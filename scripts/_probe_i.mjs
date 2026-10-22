@@ -918,6 +918,10 @@ window.__Y = {
         lineas: (b.lineas || []).map(function(l){ return typeof l === 'string' ? l : l.txt }),
         nota: b.nota || null } }),
       clinica: (r.clinica || []).map(function(f){ return f.lbl }),
+      /* La clave recom es la recomendacion de la seccion, la que usa _indVT. Sin esto, las notas
+         al pie de la tabla de estenosis tricuspidea no se pueden medir: viven ahi y no en filas. */
+      recom: r.recom ? { tipo: r.recom.tipo, tit: r.recom.tit, clase: r.recom.clase || null,
+        txt: String(r.recom.txt || '').slice(0, 300), nota: String(r.recom.nota || '').slice(0, 400) } : null,
       guia: r.guia ? { ref: r.guia.ref, txt: String(r.guia.txt || '').slice(0, 300) } : null,
       notas: (r.notas || []).length } }
     catch (e) { return 'EXC: ' + e.message } },
@@ -1238,6 +1242,170 @@ window.__Y = {
     } catch (e) { r.err = e.message; }
     out.grupos.evid = r;
     process.stderr.write('[evid] listo\n');
+  }
+
+
+  /* == GRUPO «et4» - LAS TRES NOTAS AL PIE DE LA TABLA DE ESTENOSIS TRICUSPIDEA ======
+
+     La recomendacion vive en la clave `recom` de la seccion, no en sus filas: sin medirla, un
+     A/B de filas informa «identico» sobre la nota que este commit agrega.
+     Las dos escenas son las dos UNICAS filas de esa tabla: sintomatico y cirugia izquierda. */
+  if (corre('et4')) {
+    const r = {};
+    const T_VT = 'Válvula tricúspide';
+    const sec = async () => await ev(`window.__Y.evid(${JSON.stringify(T_VT)})`, 60000);
+    try {
+      await ev(`window.__P.nuevo()`); await ev(`window.__P.despejar()`);
+      /* Estenosis severa: gradiente medio por encima de 5 mmHg. */
+      await ev(`window.__P.abrirPara('et_gmedio')`); await tipear('et_gmedio', '9');
+      r.base = await sec();
+      r.sint = await ev(`window.__Y.evidRespN([['vt.sintomas','si']], ${JSON.stringify(T_VT)})`, 60000);
+      r.secSint = await sec();
+      r.cxizq = await ev(`window.__Y.evidRespN([['vt.sintomas','no'],['vt.cxizq','si']], ${JSON.stringify(T_VT)})`, 60000);
+      /* CONTROL NEGATIVO: sin estenosis severa la tabla no aplica y no hay nota que publicar. */
+      await ev(`window.__P.nuevo()`); await ev(`window.__P.despejar()`);
+      await ev(`window.__P.abrirPara('et_gmedio')`); await tipear('et_gmedio', '3');
+      r.leve = await sec();
+      r.errores = await ev(`window.__Y.errores()`);
+    } catch (e) { r.err = e.message; }
+    out.grupos.et4 = r;
+    process.stderr.write('[et4] listo\n');
+  }
+
+
+  /* == GRUPO «tdfip» - LA SECCION NUEVA DE INSUFICIENCIA PULMONAR EN FALLOT REPARADA ====
+
+     Se mide el OBJETO y el HTML PINTADO. El control negativo mayor es el formulario vacio: la
+     seccion NO se despierta sin datos del modulo de Fallot, que es lo que decide tdfConclusion.
+     Las respuestas del panel van TODAS en una sola apertura: indicAbrir limpia _indClin antes de
+     pintar, asi que llamadas sueltas dejan viva solo la ultima. */
+  if (corre('tdfip')) {
+    const r = {};
+    const T = 'Tetralogía de Fallot reparada — insuficiencia pulmonar';
+    const sec = async () => await ev(`window.__Y.evid(${JSON.stringify(T)})`, 60000);
+    const resp = async (pares) => await ev(`window.__Y.evidRespN(${JSON.stringify(pares)}, ${JSON.stringify(T)})`, 60000);
+    try {
+      /* CONTROL NEGATIVO: formulario vacio. */
+      await ev(`window.__P.nuevo()`); await ev(`window.__P.despejar()`);
+      r.vacio = await sec();
+
+      /* Escena base: Fallot reparada despierta por sus campos PROPIOS. */
+      { const rs = await ev(`window.__P.sel('tdf_sintomas','si')`);
+        if (!rs || !rs.ok) throw new Error('SEL FALLO tdf_sintomas ' + JSON.stringify(rs)); }
+      r.despierta = await sec();
+
+      /* Sintomatico + disfuncion valvular pulmonar por fraccion regurgitante. */
+      r.sintRf40 = await resp([['tdfip.rf','gt40']]);
+      r.secSintRf40 = await sec();
+
+      /* La franja 26-40 % cuenta para la estadounidense y NO para la europea. */
+      r.rf2640 = await resp([['tdfip.rf','b2640']]);
+
+      /* Asintomatico con dos criterios: FEVD 40 % y caida de la capacidad de ejercicio. */
+      await ev(`window.__P.nuevo()`); await ev(`window.__P.despejar()`);
+      { const rs = await ev(`window.__P.sel('tdf_sintomas','no')`);
+        if (!rs || !rs.ok) throw new Error('SEL FALLO tdf_sintomas/no ' + JSON.stringify(rs)); }
+      { const rs = await ev(`window.__P.sel('tdf_ejercicio','si')`);
+        if (!rs || !rs.ok) throw new Error('SEL FALLO tdf_ejercicio ' + JSON.stringify(rs)); }
+      await ev(`window.__P.abrirPara('fevd')`); await tipear('fevd', '40');
+      r.asint2 = await resp([['tdfip.rf','gt40']]);
+      r.secAsint2 = await sec();
+      r.asintPint = await ev(`window.__Y.evidPintado(${JSON.stringify(T)})`, 60000);
+
+      /* EL BORDE DEL 80 ml/m2: la europea lo INCLUYE y la estadounidense pide POR ENCIMA.
+         Con metodo resonancia, un telesistolico de 80,0 exactos cuenta para una y no para la otra. */
+      await ev(`window.__P.abrirPara('tdf_vtsvdi')`); await tipear('tdf_vtsvdi', '80');
+      { const rs = await ev(`window.__P.sel('tdf_vol_fuente','rmc')`);
+        if (!rs || !rs.ok) throw new Error('SEL FALLO tdf_vol_fuente ' + JSON.stringify(rs)); }
+      /* ⚠️ SE MIDE POR EL PINTADO Y NO POR `sec()`: indicCerrar vacia _indClin, asi que una
+         lectura posterior del objeto pierde la respuesta y las dos guias salen en «Lo que falta»
+         — que se lee igual que «el criterio no cuenta». La primera corrida de esta tanda informo
+         exactamente eso sobre un borde que SI separa. */
+      r.vol80 = await resp([['tdfip.rf','gt40']]);
+      await ev(`window.__P.abrirPara('tdf_vtsvdi')`); await tipear('tdf_vtsvdi', '81');
+      r.vol81 = await resp([['tdfip.rf','gt40']]);
+      /* CONTROL: con metodo distinto de resonancia el volumen se declara y NO vota. */
+      { const rs = await ev(`window.__P.sel('tdf_vol_fuente','eco3d')`);
+        if (!rs || !rs.ok) throw new Error('SEL FALLO tdf_vol_fuente/eco3d ' + JSON.stringify(rs)); }
+      r.vol81eco = await resp([['tdfip.rf','gt40']]);
+
+      /* CONTROL NEGATIVO: sin disfuncion valvular pulmonar ninguna fila aplica. */
+      await ev(`window.__P.nuevo()`); await ev(`window.__P.despejar()`);
+      { const rs = await ev(`window.__P.sel('tdf_sintomas','si')`);
+        if (!rs || !rs.ok) throw new Error('SEL FALLO tdf_sintomas/si2 ' + JSON.stringify(rs)); }
+      r.sinDisf = await resp([['tdfip.rf','le25'],['tdfip.rvsp23','no']]);
+
+      /* QUE LAS RESPUESTAS NO VIAJAN CON EL ESTUDIO. */
+      r.campos = await ev(`window.__Y.campos()`);
+      r.clavesClin = await ev(`(function(){ try {
+        var o = []; var es = document.querySelectorAll('input[id],select[id],textarea[id]');
+        for (var i=0;i<es.length;i++) if (es[i].id.indexOf('tdfip.')===0) o.push(es[i].id);
+        return o } catch(e){ return ['EXC'] } })()`);
+      r.titulos = await ev(`(function(){ try {
+        var L = window.IND_SECS || IND_SECS;
+        var t = L.map(function(x){ return x.tit }), mal = [];
+        for (var i=0;i<t.length;i++) for (var j=0;j<t.length;j++)
+          if (i!==j && t[j].indexOf(t[i])===0) mal.push(t[i] + ' ES PREFIJO DE ' + t[j]);
+        return { n: t.length, prefijos: mal } } catch(e){ return 'EXC' } })()`);
+      r.errores = await ev(`window.__Y.errores()`);
+    } catch (e) { r.err = e.message; }
+    out.grupos.tdfip = r;
+    process.stderr.write('[tdfip] listo\n');
+  }
+
+
+  /* == GRUPO «cap4» - LA MIRADA SOBRE LA SECCION NUEVA ===================================
+
+     La medicion numerica da por buenos defectos que el ojo ve en un segundo. Se captura el
+     VIEWPORT con la seccion desplazada al centro, no un clip mas alto que la ventana -ese sale
+     descolocado-. Las respuestas van en la MISMA apertura que la captura: indicAbrir limpia
+     _indClin antes de pintar. */
+  if (corre('cap4')) {
+    const r = {};
+    const T = 'Tetralogía de Fallot reparada — insuficiencia pulmonar';
+    try {
+      await ev(`window.__P.nuevo()`); await ev(`window.__P.despejar()`);
+      { const rs = await ev(`window.__P.sel('tdf_sintomas','no')`);
+        if (!rs || !rs.ok) throw new Error('SEL FALLO tdf_sintomas ' + JSON.stringify(rs)); }
+      { const rs = await ev(`window.__P.sel('tdf_ejercicio','si')`);
+        if (!rs || !rs.ok) throw new Error('SEL FALLO tdf_ejercicio ' + JSON.stringify(rs)); }
+      await ev(`window.__P.abrirPara('fevd')`); await tipear('fevd', '40');
+      await ev(`window.__P.calentar()`);
+      for (const [w, h] of [[1200, 700], [360, 740]]) {
+        await cdp.send('Emulation.setDeviceMetricsOverride',
+          { width: w, height: h, deviceScaleFactor: 1, mobile: false }, sessionId);
+        for (const claro of [false, true]) {
+          const tema = await ev(`window.__P.tema(${claro})`);
+          if (!tema || tema.claro !== claro) throw new Error('EL TEMA NO QUEDO: ' + JSON.stringify(tema));
+          await ev(`window.__P.despejar()`);
+          const abierto = await ev(`(function(){ try {
+            if (typeof indicAbrir === 'function') indicAbrir();
+            var bs = document.querySelectorAll('[data-ind-clin]');
+            for (var i = 0; i < bs.length; i++)
+              if (bs[i].getAttribute('data-ind-clin') === 'tdfip.rf' && bs[i].getAttribute('data-ind-val') === 'gt40') bs[i].click();
+            var c = document.getElementById('indic-cuerpo'); if (!c) return 'NO HAY indic-cuerpo';
+            var det = c.querySelectorAll('details'), h = null;
+            for (var j = 0; j < det.length; j++) { var sm = det[j].querySelector('summary');
+              if (sm && (sm.textContent || '').trim().indexOf(${JSON.stringify(T)}) === 0) h = det[j]; }
+            if (!h) return 'SECCION NO PINTADA';
+            h.open = true; h.scrollIntoView({ block: 'start' });
+            var rc = h.getBoundingClientRect();
+            return { w: Math.round(rc.width), h: Math.round(rc.height), abierta: !!h.open } } catch (e) { return 'EXC: ' + e.message } })()`, 60000);
+          if (!abierto || !abierto.w) throw new Error('SIN GEOMETRIA seccion: ' + JSON.stringify(abierto));
+          const png = await cdp.send('Page.captureScreenshot', { format: 'png' }, sessionId);
+          const f = DEST + '/i_tdfip_' + w + (claro ? '_claro' : '_noche') + '.png';
+          await writeFile(f, Buffer.from(png.data, 'base64'));
+          r[w + (claro ? '|claro' : '|noche')] = { archivo: f, geo: abierto,
+            md5: createHash('md5').update(Buffer.from(png.data, 'base64')).digest('hex').slice(0, 10) };
+          await ev(`(function(){ try { if (typeof indicCerrar === 'function') indicCerrar() } catch (e) {} return 1 })()`);
+        }
+        await ev(`window.__P.tema(false)`);
+      }
+      await cdp.send('Emulation.clearDeviceMetricsOverride', {}, sessionId);
+      r.errores = await ev(`window.__Y.errores()`);
+    } catch (e) { r.err = e.message; }
+    out.grupos.cap4 = r;
+    process.stderr.write('[cap4] listo\n');
   }
 
 

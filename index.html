@@ -71692,7 +71692,36 @@ const IND_REFS = Object.freeze([
          'bloques de remodelado local y global del ventrículo izquierdo. Esa tabla NO lleva ' +
          'clase ni nivel de evidencia. Su propia referencia 33 la atribuye a Lancellotti P, ' +
          'Marwick T, Pierard LA, «How to manage ischaemic mitral regurgitation», Heart ' +
-         '2008;94:1497-1502, que NO está en la biblioteca.' }
+         '2008;94:1497-1502, que NO está en la biblioteca.' },
+  { k:'achd2025',
+    full:'Gurvitz M, Burns KM, Brida M, et al. 2025 ACC/AHA/HRS/ISACHD/SCAI Guideline for the ' +
+         'Management of Adults With Congenital Heart Disease. Circulation 2026;153:e115-e251. ' +
+         'doi:10.1161/CIR.0000000000001402. Regla de folio: folio = hoja del PDF + 114, ' +
+         'comprobada en el pie impreso. Apartado 4.3.5 «Tetralogy of Fallot», folio e182, ' +
+         'hoja 68 —leído en imagen a 300 ppp—: recomendación 9 Clase 1 Nivel B-NR, ' +
+         'recomendación 10 Clase 2a Nivel B-NR, recomendación 13 Clase 2a Nivel C-LD y ' +
+         'recomendación 14 Clase 2b Nivel C-LD. La nota * de esa tabla define la disfunción ' +
+         'valvular pulmonar al menos moderada como insuficiencia pulmonar moderada —fracción ' +
+         'regurgitante por resonancia por encima de 25 %— o presión sistólica del ventrículo ' +
+         'derecho por encima de dos tercios de la sistémica por obstrucción del tracto de salida. ' +
+         '⚠️ El texto EXTRAÍDO de ese PDF desalinea las celdas de clase y nivel respecto de su ' +
+         'fila: leído así, la recomendación 13 sale como Clase 2b y es 2a. Las cuatro se ' +
+         'verificaron renderizando la página.' },
+  { k:'escGuch2020Es',
+    full:'Baumgartner H, De Backer J, Babu-Narayan SV, et al. Guía ESC 2020 para el tratamiento ' +
+         'de las cardiopatías congénitas del adulto. Rev Esp Cardiol 2021;74(5):436.e1-436.e1 ' +
+         '—TRADUCCIÓN al español de la guía publicada en Eur Heart J 2021;42(6):563-645—. ' +
+         'Regla de folio: el folio impreso COINCIDE con la hoja del PDF, comprobado en el ' +
+         'encabezado. Tabla «Recomendaciones para la reintervención tras reparación de la ' +
+         'tetralogía de Fallot», folio e50 —leída en imagen a 300 ppp—: dos filas Clase I Nivel C ' +
+         'y una Clase IIa Nivel C, con las notas ᶜ fracción regurgitante por resonancia ' +
+         '«> 30-40 %», ᵈ velocidad pico > 3 m/s, ᵉ pacientes con cirugía previa del tracto de ' +
+         'salida con homoinjertos, injertos bovinos de vena yugular o biprótesis o conductos, y ' +
+         'ᶠ confirmado mediante determinaciones repetidas. ' +
+         '⚠️ ENTRADA PROPIA Y NO SE FUSIONA CON `esc2020guch`: son DOS publicaciones de la misma ' +
+         'guía con PAGINACIÓN DISTINTA, y citar una revista al lado del folio de la otra manda al ' +
+         'lector a otra página. De la biblioteca de este repositorio sólo está la traducción, ' +
+         'así que los folios de esta sección son los de la traducción.' }
 ]);
 
 /* Clave → número. Se arma UNA vez desde `IND_REFS`.
@@ -78229,11 +78258,23 @@ const VT_REC_2025 = Object.freeze({
 });
 const VT_FUENTE = 'ESC/EACTS 2025 — tabla de recomendaciones de insuficiencia tricuspídea';
 const VT_REF = 'esc2025vc';
+/* ⚠️ LAS TRES NOTAS AL PIE DE LA TABLA, Y NO SON DECORATIVAS: LAS DOS FILAS DICEN
+   «CIRUGÍA» Y LA TABLA ACLARA QUÉ CIRUGÍA Y CUÁNDO SE PUEDE INTENTAR OTRA COSA.
+   Leídas EN IMAGEN a 300 ppp en la Recommendation Table 10, folio 4688 —ese documento codifica
+   «≥» como «$» y «≤» como «#» en el texto extraído, así que leerlo sin renderizar invierte los
+   operadores—. Hasta esta tanda el panel publicaba las dos filas SIN ellas: afirmaba «cirugía
+   recomendada» sin decir que habitualmente es un REEMPLAZO y sin la alternativa percutánea que la
+   propia tabla ofrece en los dos escenarios. Son datos de la fuente que estaban en el pie y no en
+   la app.
+   La nota ᶜ es COMÚN a las dos filas y por eso vive aparte; la ᵈ y la ᵉ son una por fila. */
 const ET_REC_2025 = Object.freeze({
+  nota_cx:'La tabla aclara al pie que esa cirugía es, habitualmente, el REEMPLAZO de la válvula tricúspide.',
   sint:   { c:'Clase I · Nivel C',
-    t:'Cirugía RECOMENDADA en el paciente SINTOMÁTICO con estenosis tricuspídea severa.' },
+    t:'Cirugía RECOMENDADA en el paciente SINTOMÁTICO con estenosis tricuspídea severa.',
+    n:'Con estenosis tricuspídea AISLADA se puede intentar la valvuloplastia percutánea con balón como primer abordaje.' },
   cx_izq: { c:'Clase I · Nivel C',
-    t:'Cirugía RECOMENDADA en la estenosis tricuspídea severa del paciente que va a una intervención valvular izquierda.' }
+    t:'Cirugía RECOMENDADA en la estenosis tricuspídea severa del paciente que va a una intervención valvular izquierda.',
+    n:'Se puede intentar la valvuloplastia percutánea con balón si la comisurotomía mitral percutánea se puede hacer sobre la válvula mitral.' }
 });
 const ET_FUENTE = 'ESC/EACTS 2025 — tabla de recomendaciones de estenosis tricuspídea';
 /* La estenosis tricuspídea vive DENTRO de la sección de válvula tricúspide y cita el mismo
@@ -78388,8 +78429,10 @@ function _indVTRecom(D, itSev, itMod, etSev, etSig, E, UG){
         nota:'La pantalla y el informe siguen usando el criterio de la app, que no se tocó: cambiarlo movería el grado consignado en estudios ya firmados.' };
       return null;
     }
-    if (D.sx === 'si')    return { tipo:'ind', tit:'Estenosis tricuspídea severa sintomática', txt:ET_REC_2025.sint.t, clase:ET_REC_2025.sint.c, fuente:ET_FUENTE, ref:ET_REF };
-    if (D.cxizq === 'si') return { tipo:'ind', tit:'Estenosis tricuspídea severa con cirugía izquierda programada', txt:ET_REC_2025.cx_izq.t, clase:ET_REC_2025.cx_izq.c, fuente:ET_FUENTE, ref:ET_REF };
+    if (D.sx === 'si')    return { tipo:'ind', tit:'Estenosis tricuspídea severa sintomática', txt:ET_REC_2025.sint.t, clase:ET_REC_2025.sint.c, fuente:ET_FUENTE, ref:ET_REF,
+      nota:ET_REC_2025.nota_cx + ' ' + ET_REC_2025.sint.n };
+    if (D.cxizq === 'si') return { tipo:'ind', tit:'Estenosis tricuspídea severa con cirugía izquierda programada', txt:ET_REC_2025.cx_izq.t, clase:ET_REC_2025.cx_izq.c, fuente:ET_FUENTE, ref:ET_REF,
+      nota:ET_REC_2025.nota_cx + ' ' + ET_REC_2025.cx_izq.n };
     if (D.sx === 'no' && D.cxizq === 'no')
       return { tipo:'no', tit:'Estenosis severa sin ninguno de los dos disparadores', txt:'El gradiente medio supera el corte de severidad, pero el paciente está asintomático y no va a una intervención valvular izquierda. Las dos únicas filas de la tabla de estenosis tricuspídea piden una de esas dos condiciones.', fuente:ET_FUENTE, ref:ET_REF };
     return fal('El gradiente medio supera el corte de severidad de la guía. Las dos filas de la tabla se separan por los síntomas y por la cirugía izquierda programada.',
@@ -78674,7 +78717,11 @@ function _indVT(){
       'Reparación concomitante en la insuficiencia MODERADA, primaria o secundaria, de quien va a cirugía izquierda: Clase IIa B.',
       'Con insuficiencia secundaria LEVE y anillo dilatado —≥ ' + VT_CRIT_2025.anillo_mm + ' mm o > ' + VT_CRIT_2025.anillo_idx + ' mm/m²— la reparación concomitante es Clase IIb B. La 2025 la bajó de IIa y la restringió de «leve o moderada» a leve. Esa fila NO se puede evaluar: esta app no tiene campo de anillo tricuspídeo — el único anillo que existe es el mitral.',
       'La guía define la estenosis severa con UN solo criterio: gradiente medio diastólico > ' + (UG != null ? UG : '5') + ' mmHg A FRECUENCIA CARDÍACA NORMAL. No la gradúa en leve, moderada y severa, y no usa el tiempo de hemipresión ni el área valvular. Esta app no registra la frecuencia del gradiente, así que ese calificador queda sin verificar.',
-      'La valvuloplastia con balón NO está en el cuerpo de la tabla: vive en sus notas al pie, que la dan como primer abordaje posible con estenosis aislada, o si además se puede hacer comisurotomía percutánea mitral.',
+      /* ⚠️ NO REESCRIBE LAS NOTAS: LAS COMPONE DESDE SU DUEÑO. Este renglón decía lo mismo con
+         otras palabras que la nota de cada fila, y dos redacciones de la misma afirmación en la
+         misma sección son dos cosas que se separan en la primera edición. */
+      'La tabla lleva tres notas al pie, y cada fila publica la suya cuando aplica. ' +
+        ET_REC_2025.nota_cx + ' ' + ET_REC_2025.sint.n + ' ' + ET_REC_2025.cx_izq.n,
       'La estenosis tricuspídea casi siempre acompaña a una valvulopatía izquierda, y la decisión suele tomarse junto con ella.'
     ] };
 }
@@ -79468,6 +79515,282 @@ function _indAtero(){
     notas: prim.concat(sec).map(function(l){ return l.txt }) };
 }
 
+/* ══ TETRALOGÍA DE FALLOT REPARADA — INSUFICIENCIA PULMONAR ═══════════════════════════════════
+   DOS GUÍAS QUE NO COINCIDEN, Y POR ESO SE PUBLICAN EN DOS BLOQUES SEPARADOS. No se mezclan, no
+   se promedian y no se elige una: cada bloque dice qué pide SU documento y con qué datos.
+
+   Las tres diferencias, verificadas EN IMAGEN a 300 ppp en las dos tablas:
+     · QUÉ ES «disfunción valvular pulmonar». La guía estadounidense la define en la nota * de su
+       tabla: insuficiencia pulmonar MODERADA —fracción regurgitante por resonancia POR ENCIMA DE
+       25 %— o presión sistólica del VD por encima de DOS TERCIOS de la sistémica por obstrucción
+       del tracto de salida. La europea pide insuficiencia pulmonar GRAVE —nota ᶜ: fracción
+       regurgitante por resonancia «> 30-40 %»— u obstrucción al menos moderada —nota ᵈ: velocidad
+       pico POR ENCIMA DE 3 m/s—. Con el mismo paciente pueden decir cosas distintas.
+     · CUÁNTOS CRITERIOS. En el asintomático la estadounidense pide DOS de cinco y la europea UNO
+       de cuatro.
+     · CUÁLES. La fracción de eyección del VD ≤ 46 %, la del VI ≤ 50 % y el volumen telediastólico
+       del VD de dos veces o más el del VI son SÓLO de la estadounidense; la presión sistólica del
+       VD por encima de 80 mmHg es SÓLO de la europea.
+
+   ⚠️ EL 80 ml/m² APARECE EN LAS DOS Y NO ES EL MISMO CRITERIO. La estadounidense escribe
+   «RV end-systolic volume index >80 mL/m2», con operador ESTRICTO; la europea escribe
+   «VTSVDi ≥ 80 ml/m²», con el valor INCLUIDO. Un volumen telesistólico indexado de 80,0 exactos
+   cuenta para la europea y NO para la estadounidense. Por eso el criterio americano lleva su
+   propia constante y no reusa `TDF_VTSVDI_MIN`: compartirla haría que un cambio de operador en
+   una guía moviera la otra sin que nadie se entere.
+
+   ⚠️ LA PROGRESIÓN SE PREGUNTA Y NO SE DERIVA. «Progresivo» compara este estudio con los
+   anteriores, y un ecocardiograma aislado no lo sabe. Son tres preguntas distintas y no una: la
+   europea pide el deterioro del ventrículo DERECHO y la estadounidense dice «ventricular», que
+   incluye los dos. Con una sola pregunta, un deterioro aislado del VI haría votar a la europea un
+   criterio que su tabla no escribe.
+
+   ⚠️ UN CRITERIO DE LA ESTADOUNIDENSE NO SE PUEDE EVALUAR Y SE DECLARA: «RV end-diastolic volume
+   ≥2× LV end-diastolic volume». El volumen del VD de esta app se TRANSCRIBE de la resonancia y
+   está INDEXADO; el del VI lo mide este ecocardiograma y está en mililitros. Compararlos sería
+   un cociente entre dos métodos y dos unidades, que no es lo que la tabla pide. La sección dice
+   cuántos criterios pudo evaluar, así que el conteo nunca se presenta como completo.
+
+   LO QUE ESTA SECCIÓN NO TOCA: el módulo de Fallot reparada de la pestaña de congénitas sigue
+   publicando su conclusión y su conducta en el informe firmado. La regla de producto mandaría
+   esa conducta acá, pero moverla es un cambio clínico que esta orden no autoriza; queda
+   declarado en PENDIENTES.md. */
+const TDF_IP_ACC = Object.freeze({
+  rf_min:  25,  /* % — nota * : fracción regurgitante por resonancia POR ENCIMA de 25 */
+  vtsvdi:  80,  /* ml/m² — volumen telesistólico del VD indexado POR ENCIMA de 80 (estricto) */
+  fevd:    46,  /* % — fracción de eyección del VD de 46 o MENOS */
+  fevi:    50,  /* % — fracción de eyección del VI de 50 o MENOS */
+  n_min:    2   /* al menos DOS de los cinco */
+});
+const TDF_IP_ESC = Object.freeze({
+  psvd_min: 80, /* mmHg — obstrucción del tracto de salida con presión sistólica del VD POR ENCIMA de 80 */
+  vmax_min:  3, /* m/s — nota ᵈ: obstrucción al menos moderada, velocidad pico POR ENCIMA de 3 */
+  rf_min:   40  /* % — nota ᶜ: «> 30-40 %». Ver la nota de abajo sobre por qué se aplica el extremo alto. */
+});
+/* ⚠️ LA NOTA ᶜ DE LA EUROPEA ESCRIBE UN RANGO Y NO UN NÚMERO: «fracción regurgitante por RMC
+   > 30-40 %». La app aplica el extremo ALTO, que es el que no afirma de más, y lo declara en la
+   fila. Es el mismo criterio con que se resolvió el rango de tenting de la reparabilidad mitral
+   en esta misma tanda. */
+
+function _indTdFIP(){
+  /* Compuerta: la sección se despierta sólo si el módulo de Fallot reparada tiene datos. Esa
+     condición tiene un dueño —`tdfConclusion`, que devuelve `null` sin datos propios— y acá NO se
+     vuelve a escribir: una segunda copia de la compuerta es la forma en que el panel termina
+     apareciendo sobre un paciente que la pestaña de congénitas considera vacío. */
+  const tdfFn = _indFn('tdfConclusion');
+  if (!tdfFn) return null;
+  let vivo = false;
+  try { vivo = tdfFn() != null; } catch (e) { vivo = false; }
+  if (!vivo) return null;
+
+  const sint   = _indS('tdf_sintomas');
+  const ipG    = _indS('ip_grado');
+  /* ⚠️ `ip_grado` NACE EN «Sin insuficiencia» —es el valor de fábrica de su `<select>`—, así
+     que ese token NO distingue «no hay insuficiencia pulmonar» de «nadie la evaluó». Es la misma
+     trampa que `it_grado` ya tiene documentada y que `_indITEvaluada` resuelve del otro lado. Sin
+     esto, la fila publicaba «Sin insuficiencia» sobre un formulario en el que nadie midió nada,
+     y la línea de la guía europea negaba la insuficiencia grave apoyada en un valor de fábrica.
+     La evidencia de que alguien la miró son sus parámetros, no el grado. */
+  const ipEv   = (ipG !== '' && ipG !== 'Sin insuficiencia') ||
+                 _indN('ip_vtd') != null || _indN('ip_pht') != null || _indN('ip_ancho') != null ||
+                 _indN('ip_vmax') != null || _indS('ip_senal') !== '';
+  /* ⚠️ `ip_reversion` QUEDA FUERA DEL PREDICADO Y NO ES UN OLVIDO: ES UN CHECKBOX, y `sv()`
+     devuelve su `.value`, que vale «on» SIEMPRE —marcado o no—. Con él adentro, `ipEv` era
+     verdadero en todo paciente y la fila volvía a publicar «Sin insuficiencia» sobre el valor de
+     fábrica: lo cazó MIRAR la captura, no la lectura. Dejarlo afuera manda al lado que NO afirma. */
+  /* ⚠️ `it_grado` NUNCA ESTÁ VACÍO: nace en '0' y `limpiarCampos` lo repone, así que «Sin» no
+     distingue «no hay insuficiencia» de «nadie la evaluó». `_indITEvaluada` es el dueño de esa
+     distinción y lo comparten las otras secciones del panel. */
+  const itG    = parseInt(_indS('it_grado'), 10);
+  const itEv   = _indITEvaluada();
+  const vmax   = _indN('ep_vmax');
+  const psvd   = _indN('psap_calc');
+  const funcVD = _indS('tdf_func_vd');
+  const fevd   = _indN('fevd');
+  const fevi   = _indN('fevi');
+  const vtdvdi = _indN('tdf_vtdvdi');
+  const vtsvdi = _indN('tdf_vtsvdi');
+  const metodo = _indS('tdf_vol_fuente');
+  const ejerc  = _indS('tdf_ejercicio');
+  /* Falla cerrado: sin el umbral exportado la fila lo dice y el criterio no vota. */
+  const uTD = _indUmb('TDF_VTDVDI_MIN'), uTS = _indUmb('TDF_VTSVDI_MIN');
+
+  const rf     = _indClinGet('tdfip.rf');
+  const rvsp23 = _indClinGet('tdfip.rvsp23');
+  const progVD = _indClinGet('tdfip.progvd');
+  const progVI = _indClinGet('tdfip.progvi');
+  const progIT = _indClinGet('tdfip.progit');
+
+  /* Los volúmenes votan SÓLO medidos por resonancia, que es la regla que el módulo de congénitas
+     ya aplica: los umbrales están validados sobre resonancia y la ecocardiografía 3D subestima
+     los volúmenes del VD, así que un 150 por eco puede ser un 170 real. */
+  const volRMC = metodo === 'rmc';
+
+  /* ── Lo que cada guía llama «disfunción valvular pulmonar» ───────────────────────────────── */
+  const rfSobre25 = (rf === 'gt40' || rf === 'b2640');
+  const accDisf   = rfSobre25 || rvsp23 === 'si';
+  const accDisfNo = (rf === 'le25' && rvsp23 === 'no');
+  const escIPgrave = (ipG === 'Severa') || rf === 'gt40';
+  const escOtsvd   = _gt(vmax, TDF_IP_ESC.vmax_min);
+  const escDisf    = escIPgrave || escOtsvd;
+
+  /* ── Criterios del asintomático, cada uno con su guía ────────────────────────────────────── */
+  const accCrit = [
+    { ok: volRMC && _gt(vtsvdi, TDF_IP_ACC.vtsvdi),
+      eval: volRMC && vtsvdi != null,
+      lbl:'volumen telesistólico del VD indexado por encima de ' + TDF_IP_ACC.vtsvdi + ' ml/m²' },
+    { ok:false, eval:false,
+      lbl:'volumen telediastólico del VD de dos veces o más el del VI (no evaluable con los campos de esta app)' },
+    { ok: _le(fevd, TDF_IP_ACC.fevd), eval: fevd != null,
+      lbl:'fracción de eyección del VD de ' + TDF_IP_ACC.fevd + ' % o menos' },
+    { ok: _le(fevi, TDF_IP_ACC.fevi), eval: fevi != null,
+      lbl:'fracción de eyección del VI de ' + TDF_IP_ACC.fevi + ' % o menos' },
+    { ok: ejerc === 'si', eval: ejerc === 'si' || ejerc === 'no',
+      lbl:'caída progresiva de la capacidad de ejercicio' }
+  ];
+  const accPos = accCrit.filter(function(c){ return c.ok }).length;
+  const accNoEval = accCrit.filter(function(c){ return !c.eval }).length;
+
+  const escVolOk = volRMC && ((uTS != null && _ge(vtsvdi, uTS)) || (uTD != null && _ge(vtdvdi, uTD)));
+  const escItOk  = progIT === 'si' && itEv && isFinite(itG) && itG >= 2;
+  const escCrit = [
+    { ok: ejerc === 'si', lbl:'caída objetiva de la capacidad de ejercicio' },
+    { ok: escVolOk || escItOk,
+      lbl:'dilatación progresiva del VD —volumen telesistólico indexado de ' + (uTS != null ? uTS : '—') +
+          ' ml/m² o más, telediastólico de ' + (uTD != null ? uTD : '—') +
+          ' ml/m² o más— o progresión de la insuficiencia tricuspídea a moderada o mayor' },
+    { ok: progVD === 'si', lbl:'deterioro progresivo de la función sistólica del ventrículo derecho' },
+    { ok: _gt(psvd, TDF_IP_ESC.psvd_min),
+      lbl:'obstrucción del tracto de salida con presión sistólica del VD por encima de ' + TDF_IP_ESC.psvd_min + ' mmHg' }
+  ];
+  const escPos = escCrit.filter(function(c){ return c.ok }).length;
+
+  /* ── Filas: lo que el estudio ya tiene ───────────────────────────────────────────────────── */
+  const filas = [
+    _indFila('Síntomas', sint === 'si' ? 'Sí' : (sint === 'no' ? 'No' : '—'),
+      sint === 'si' ? 'alarm' : (sint === 'no' ? 'none' : 'ask'),
+      'separa la fila del sintomático de la del asintomático en las DOS guías'),
+    _indFila('Insuficiencia pulmonar — grado', ipEv ? (ipG || '—') : '—',
+      ipG === 'Severa' ? 'alarm' : (ipEv ? 'none' : 'ask'),
+      'la guía europea pide insuficiencia pulmonar GRAVE; la estadounidense define su umbral por la fracción regurgitante de la resonancia y no por el grado del eco' +
+      (ipEv ? '' : '. El campo nace en «Sin insuficiencia», así que sin ningún parámetro de la insuficiencia pulmonar medido no se puede distinguir una válvula normal de una que nadie evaluó')),
+    _indFila('Velocidad pico pulmonar', vmax != null ? _indNum(vmax, 1, 'm/s') : '—',
+      escOtsvd ? 'alarm' : (vmax != null ? 'none' : 'ask'),
+      'la nota ᵈ de la tabla europea define la obstrucción al menos moderada por una velocidad pico por encima de ' + TDF_IP_ESC.vmax_min + ' m/s'),
+    _indFila('Presión sistólica del ventrículo derecho', psvd != null ? _indNum(psvd, 0, 'mmHg') : '—',
+      _gt(psvd, TDF_IP_ESC.psvd_min) ? 'alarm' : (psvd != null ? 'none' : 'ask'),
+      'con obstrucción residual del tracto de salida, la presión que estima la insuficiencia tricuspídea es la del ventrículo derecho; es criterio SÓLO de la guía europea, por encima de ' + TDF_IP_ESC.psvd_min + ' mmHg'),
+    _indFila('Función sistólica del VD (consignada)', funcVD || '—',
+      funcVD === 'severa' || funcVD === 'moderada' ? 'warn' : (funcVD ? 'none' : 'ask'),
+      'el grado consignado describe el estudio de hoy; lo que las dos tablas piden es la PROGRESIÓN, que se consigna abajo'),
+    _indFila('Fracción de eyección del VD', fevd != null ? _indNum(fevd, 0, '%') : '—',
+      _le(fevd, TDF_IP_ACC.fevd) ? 'alarm' : (fevd != null ? 'none' : 'ask'),
+      'criterio SÓLO de la guía estadounidense: ' + TDF_IP_ACC.fevd + ' % o menos'),
+    _indFila('Fracción de eyección del VI', fevi != null ? _indNum(fevi, 0, '%') : '—',
+      _le(fevi, TDF_IP_ACC.fevi) ? 'alarm' : (fevi != null ? 'none' : 'ask'),
+      'criterio SÓLO de la guía estadounidense: ' + TDF_IP_ACC.fevi + ' % o menos'),
+    _indFila('Volúmenes del VD indexados',
+      (vtsvdi != null || vtdvdi != null)
+        ? ((vtsvdi != null ? 'telesistólico ' + _indNum(vtsvdi, 0, 'ml/m²') : 'telesistólico —') + ' · ' +
+           (vtdvdi != null ? 'telediastólico ' + _indNum(vtdvdi, 0, 'ml/m²') : 'telediastólico —'))
+        : '—',
+      (escVolOk || (volRMC && _gt(vtsvdi, TDF_IP_ACC.vtsvdi))) ? 'alarm'
+        : ((vtsvdi != null || vtdvdi != null) ? 'none' : 'ask'),
+      (uTS == null || uTD == null)
+        ? 'los umbrales volumétricos de la guía europea no están disponibles en esta carga: recargar la aplicación. Sin ellos ese criterio no se evalúa.'
+        : ((vtsvdi != null || vtdvdi != null) && !volRMC
+            ? 'el método consignado no es resonancia, así que los volúmenes se declaran y NO votan: los umbrales de las dos guías están validados sobre resonancia y la ecocardiografía 3D subestima los volúmenes del ventrículo derecho'
+            : 'la europea pide ' + uTS + ' ml/m² o más de telesistólico, o ' + uTD + ' ml/m² o más de telediastólico; la estadounidense pide el telesistólico POR ENCIMA de ' + TDF_IP_ACC.vtsvdi + ' ml/m², así que un valor de ' + TDF_IP_ACC.vtsvdi + ' exactos cuenta para una y no para la otra')),
+    _indFila('Caída objetiva de la capacidad de ejercicio',
+      ejerc === 'si' ? 'Sí' : (ejerc === 'no' ? 'No' : '—'),
+      ejerc === 'si' ? 'alarm' : (ejerc === 'no' ? 'none' : 'ask'),
+      'es criterio del asintomático en las DOS guías'),
+    _indFila('Insuficiencia tricuspídea — grado',
+      itEv ? (_IND_IT_TXT[String(itG)] || '—') : '—',
+      itEv && isFinite(itG) && itG >= 2 ? 'warn' : (itEv ? 'none' : 'ask'),
+      'la europea la cuenta cuando PROGRESA a moderada o mayor; la estadounidense le dedica una fila propia' +
+      (itEv ? '' : '. El campo nace en «Sin», así que sin ningún parámetro medido no se puede distinguir una tricúspide normal de una que nadie evaluó')),
+    _indFilaCtrl('Fracción regurgitante pulmonar por resonancia', 'tdfip.rf',
+      [{v:'gt40',t:'> 40 %'},{v:'b2640',t:'26 a 40 %'},{v:'le25',t:'25 % o menos'},{v:'nomed',t:'No medida'}],
+      rf == null ? 'ask' : (rfSobre25 ? 'alarm' : 'none'),
+      'es como las dos guías definen la insuficiencia pulmonar y NO coinciden: la estadounidense pide POR ENCIMA de ' + TDF_IP_ACC.rf_min + ' % y la europea escribe un rango, «por encima de 30-40 %», del que esta aplicación toma el extremo ALTO —' + TDF_IP_ESC.rf_min + ' %—, que es el que no afirma de más. La franja de 26 a 40 % cuenta para la estadounidense y NO para la europea.'),
+    _indFilaCtrl('¿La presión sistólica del VD supera los dos tercios de la sistémica?', 'tdfip.rvsp23',
+      [{v:'si',t:'Sí'},{v:'no',t:'No'}],
+      rvsp23 == null ? 'ask' : (rvsp23 === 'si' ? 'alarm' : 'none'),
+      'es la segunda mitad de la nota * de la guía estadounidense, y se pregunta porque esta aplicación no registra la presión arterial sistémica'),
+    _indFilaCtrl('¿Deterioro PROGRESIVO de la función sistólica del ventrículo DERECHO?', 'tdfip.progvd',
+      [{v:'si',t:'Sí'},{v:'no',t:'No'}],
+      progVD == null ? 'ask' : (progVD === 'si' ? 'alarm' : 'none'),
+      'un ecocardiograma aislado no sabe si algo progresa: se compara con los estudios previos. Cuenta en las DOS guías.'),
+    _indFilaCtrl('¿Deterioro PROGRESIVO de la función sistólica del ventrículo IZQUIERDO?', 'tdfip.progvi',
+      [{v:'si',t:'Sí'},{v:'no',t:'No'}],
+      progVI == null ? 'ask' : (progVI === 'si' ? 'alarm' : 'none'),
+      'se pregunta por separado porque la guía estadounidense dice «ventricular» —los dos ventrículos— y la europea dice «del VD»: con una sola pregunta, un deterioro aislado del VI haría votar a la europea un criterio que su tabla no escribe'),
+    _indFilaCtrl('¿Progresión de la insuficiencia tricuspídea con dilatación del VD?', 'tdfip.progit',
+      [{v:'si',t:'Sí'},{v:'no',t:'No'}],
+      progIT == null ? 'ask' : (progIT === 'si' ? 'alarm' : 'none'),
+      'la nota ᶠ de la tabla europea pide que la progresión esté confirmada mediante determinaciones repetidas')
+  ];
+
+  /* ── Bloque de la guía estadounidense ────────────────────────────────────────────────────── */
+  const acc = [], esc = [], faltan = [];
+  if (accDisf) {
+    if (sint === 'si') {
+      acc.push({ txt:'Clase 1 · Nivel B-NR — En el adulto SINTOMÁTICO con tetralogía de Fallot reparada y disfunción valvular pulmonar al menos moderada, se RECOMIENDA el reemplazo de la válvula pulmonar, quirúrgico o percutáneo, para aliviar los síntomas (recomendación 9 del apartado 4.3.5, folio e182).', refs:['achd2025'] });
+    } else if (sint === 'no') {
+      acc.push({ txt:'Clase 2a · Nivel B-NR — En el adulto ASINTOMÁTICO con disfunción valvular pulmonar al menos moderada y al menos ' + TDF_IP_ACC.n_min + ' de sus cinco criterios, el reemplazo de la válvula pulmonar es RAZONABLE para mejorar la evolución, incluida la reducción del riesgo de arritmias ventriculares y de muerte (recomendación 10, folio e182). Con los datos cargados ' + (accPos === 1 ? 'se cumple 1 de esos cinco criterios' : 'se cumplen ' + accPos + ' de esos cinco criterios') + (accNoEval ? (accNoEval === 1 ? ', y 1 no se pudo evaluar' : ', y ' + accNoEval + ' no se pudieron evaluar') : '') + '.', refs:['achd2025'] });
+    } else {
+      faltan.push({ txt:'Falta consignar si el paciente está sintomático: de eso dependen las dos primeras filas de la guía estadounidense.', refs:null });
+    }
+    if (progVD === 'si' || progVI === 'si') {
+      acc.push({ txt:'Clase 2a · Nivel C-LD — Con disfunción valvular pulmonar al menos moderada y deterioro PROGRESIVO de la función sistólica ventricular, el reemplazo de la válvula pulmonar es RAZONABLE para preservar la función ventricular (recomendación 13, folio e182).', refs:['achd2025'] });
+    }
+    if (progIT === 'si' && itEv && isFinite(itG) && itG >= 2) {
+      acc.push({ txt:'Clase 2b · Nivel C-LD — Con disfunción valvular pulmonar al menos moderada y progresión de una insuficiencia tricuspídea funcional de grado moderado o mayor asociada a dilatación del ventrículo derecho, la intervención sobre la válvula pulmonar PUEDE ser razonable para evitar que empeoren la disfunción tricuspídea y la dilatación del VD (recomendación 14, folio e182).', refs:['achd2025'] });
+    }
+  } else if (accDisfNo) {
+    acc.push({ txt:'La fracción regurgitante consignada no supera el ' + TDF_IP_ACC.rf_min + ' % y la presión sistólica del VD no supera los dos tercios de la sistémica: sin disfunción valvular pulmonar al menos moderada, ninguna de las cuatro filas terapéuticas de esta guía aplica.', refs:['achd2025'] });
+  } else {
+    faltan.push({ txt:'Falta la fracción regurgitante pulmonar por resonancia o la relación entre la presión sistólica del VD y la sistémica: las dos definen la «disfunción valvular pulmonar al menos moderada» que las cuatro filas de la guía estadounidense piden como condición.', refs:null });
+  }
+
+  /* ── Bloque de la guía europea ───────────────────────────────────────────────────────────── */
+  if (escDisf) {
+    if (sint === 'si') {
+      esc.push({ txt:'Clase I · Nivel C — El reemplazo de la válvula pulmonar está INDICADO en el paciente SINTOMÁTICO con insuficiencia pulmonar grave u obstrucción del tracto de salida del ventrículo derecho al menos moderada (tabla de recomendaciones para la reintervención tras reparación de la tetralogía de Fallot, folio e50).', refs:['escGuch2020Es'] });
+    } else if (sint === 'no') {
+      esc.push({ txt:'Clase IIa · Nivel C — En el paciente ASINTOMÁTICO con insuficiencia pulmonar grave u obstrucción del tracto de salida se DEBE CONSIDERAR el reemplazo de la válvula pulmonar cuando hay al menos UNO de sus cuatro criterios (misma tabla, folio e50). Con los datos cargados ' + (escPos === 1 ? 'se cumple 1 de esos cuatro' : 'se cumplen ' + escPos + ' de esos cuatro') + '.', refs:['escGuch2020Es'] });
+    } else {
+      faltan.push({ txt:'Falta consignar si el paciente está sintomático: de eso dependen las dos primeras filas de la guía europea.', refs:null });
+    }
+    esc.push({ txt:'Clase I · Nivel C — Se PREFIERE el implante percutáneo de válvula pulmonar, si es anatómicamente factible, en el paciente que no tiene tracto de salida nativo: la nota ᵉ de la tabla lo define como el que tuvo cirugía previa del tracto de salida con homoinjerto, injerto de vena yugular bovina o bioprótesis o conducto (misma tabla, folio e50). Esta aplicación no registra ese antecedente, así que la fila se publica y no se evalúa.', refs:['escGuch2020Es'] });
+  } else if (ipEv && ipG !== 'Severa' && vmax != null && rf != null) {
+    esc.push({ txt:'La insuficiencia pulmonar consignada no es grave y la velocidad pico no supera los ' + TDF_IP_ESC.vmax_min + ' m/s: sin ninguna de las dos, las tres filas de esta tabla no aplican.', refs:['escGuch2020Es'] });
+  } else {
+    faltan.push({ txt:'Falta el grado de insuficiencia pulmonar, la velocidad pico pulmonar o la fracción regurgitante por resonancia: las tres filas de la guía europea piden insuficiencia pulmonar grave u obstrucción al menos moderada.', refs:null });
+  }
+
+  const bloques = [
+    { tit:'Guía estadounidense de cardiopatías congénitas del adulto — tetralogía de Fallot (folio e182)',
+      lineas: acc,
+      nota:'El informe y la conclusión de la aplicación son DESCRIPTIVOS: estas recomendaciones se publican acá y no en el papel firmado.' },
+    { tit:'Guía europea de cardiopatías congénitas del adulto — reintervención tras reparación de la tetralogía de Fallot (folio e50)',
+      lineas: esc,
+      nota:'Las dos guías NO piden lo mismo: difieren en qué llaman disfunción valvular pulmonar, en cuántos criterios hacen falta en el asintomático y en cuáles son. Cada una se publica con su fuente y no se combinan.' }
+  ];
+  if (faltan.length) bloques.push({ tit:'Lo que falta para decidir otras filas', lineas: faltan });
+
+  return { filas: filas, bloques: bloques,
+    clinica: [
+      _indFila('Volumen telediastólico del VD comparado con el del VI', '—', 'ask',
+        'es uno de los cinco criterios del asintomático de la guía estadounidense y NO se puede evaluar acá: el volumen del ventrículo derecho se transcribe de la resonancia y está indexado, mientras que el del izquierdo lo mide este ecocardiograma y está en mililitros')
+    ],
+    guia: { ref:'achd2025',
+      txt:'La guía estadounidense define la disfunción valvular pulmonar al menos moderada en la nota * de su tabla: insuficiencia pulmonar moderada —fracción regurgitante por resonancia por encima de ' + TDF_IP_ACC.rf_min + ' %— o presión sistólica del ventrículo derecho por encima de dos tercios de la sistémica por obstrucción del tracto de salida (folio e182).',
+      nota:'La guía europea usa otra definición —insuficiencia pulmonar GRAVE, con fracción regurgitante por resonancia «por encima de 30-40 %», u obstrucción al menos moderada con velocidad pico por encima de ' + TDF_IP_ESC.vmax_min + ' m/s (folio e50)—, pide UN criterio donde la estadounidense pide ' + TDF_IP_ACC.n_min + ', y su lista no es la misma. De la biblioteca de este repositorio, de la guía europea está la TRADUCCIÓN al español, y los folios que se citan son los de esa traducción.' },
+    notas: acc.concat(esc).map(function(l){ return l.txt }) };
+}
+
 const IND_SECS = [
   { tit:'Estenosis aórtica',                     fn:_indEA },
   { tit:'Insuficiencia mitral primaria',         fn:_indIM },
@@ -79509,7 +79832,11 @@ const IND_SECS = [
      los veintitres se contiene. */
   { tit:'Ecocardiograma transesofágico — trombo en la orejuela izquierda', fn:_indETETrombo },
   { tit:'Reparabilidad de la válvula mitral', fn:_indReparMV },
-  { tit:'Ateroma aórtico — prevención', fn:_indAtero }
+  { tit:'Ateroma aórtico — prevención', fn:_indAtero },
+  /* ⚠️ LA DE LA TANDA I-E4, Y SU TITULO NO ES PREFIJO DE NINGUNO NI NINGUNO ES PREFIJO SUYO:
+     `IND_SECS` se recorre buscando la sección por el PREFIJO de su título. Verificado contra los
+     veintitrés anteriores. */
+  { tit:'Tetralogía de Fallot reparada — insuficiencia pulmonar', fn:_indTdFIP }
 ];
 
 function indicRender(){
@@ -80023,6 +80350,14 @@ function _tdfNv(id){ const n = (typeof v==='function') ? v(id) : null; return (n
    vigilancia y la etiqueta de ayuda del campo — y ya hay una entrada en CLAUDE.md sobre lo que
    pasa cuando un rótulo se queda con el umbral viejo. */
 const TDF_VTDVDI_MIN = 160, TDF_VTSVDI_MIN = 80;
+/* ⚠️ EXPORTADOS A `window` PORQUE EL PANEL DE EVIDENCIA LOS LEE Y VIVE EN OTRO LUGAR DEL
+   ARCHIVO. La regla 4 de la cabecera de ese panel es que los umbrales se leen por `window.X` con
+   `_indUmb` y SIN literal de respaldo: si la constante no está, la fila dice «umbral no
+   disponible» en vez de publicar una copia que puede haber quedado vieja. Sin este export,
+   `_indUmb` devuelve `null`, `_ge(v, null)` da `false` y el criterio volumétrico de la ESC 2020
+   deja de votar EN SILENCIO —que es exactamente lo que le pasó a `UMBRAL_FAC_VD_SEVERA` y lo que
+   `_vtAssertUmbrales` comprueba al arrancar desde entonces—. */
+window.TDF_VTDVDI_MIN = TDF_VTDVDI_MIN; window.TDF_VTSVDI_MIN = TDF_VTSVDI_MIN;
 /* ══ ESTENOSIS SUBAÓRTICA (ESC 2020) ═════════════════════════════════════════════════════════
    GRADÚA EL GRADIENTE MEDIO, NO EL PICO. La ESC 2020 adaptó la definición de obstrucción SEVERA
    del tracto de salida izquierdo —a cualquier nivel: valvular, subvalvular y supravalvular— al
