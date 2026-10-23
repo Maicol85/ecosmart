@@ -64468,6 +64468,12 @@ const TEER_TENTING_MM   = 10;    // mm  — «ideal» para TEER con `<` (Tabla S
 const REPAR_FUENTE_TXT  = 'Los tres factores salen de la Tabla 7 de la guía de evaluación ecocardiográfica de la insuficiencia valvular (hoja 25; ese documento no lleva folio impreso), descrita para la insuficiencia mitral SECUNDARIA. El área de tenting la tabla la escribe como un rango, «>2,5-3 cm²», y la aplicación aplica su extremo bajo. La altura de tenting no figura en esa tabla: su corte de 10 mm es el de la ESC/EACTS 2025, material suplementario, Tabla S2 (hoja 5), para el TEER.';
 const REPAR_NO_SEC_TXT  = 'Sin veredicto: los tres factores de la Tabla 7 están descritos para la insuficiencia mitral SECUNDARIA, y el mecanismo consignado no lo es. Las mediciones se muestran y no se integran.';
 const REPAR_PRIM_TXT    = 'Para la insuficiencia mitral PRIMARIA ninguna fuente de la biblioteca publica cortes de reparabilidad quirúrgica: las cifras de esta pantalla son un criterio propio de la aplicación.';
+/* ⚠️ SON TRES ESTADOS Y HABIA DOS TEXTOS (AJ2-3, 2026-10-23). `imMecanismoIM()` devuelve
+   'secundaria', 'primaria' o VACIO, y el estado vacio caia en `REPAR_NO_SEC_TXT`, que dice «el
+   mecanismo consignado no lo es»: una afirmacion sobre un campo que nadie cargo. El que falta es
+   el mas frecuente —el selector nace vacio— asi que esa frase era la que el medico veia primero.
+   Su propio texto NOMBRA el estado en vez de suponerlo. */
+const REPAR_SIN_MEC_TXT = 'Sin veredicto: el tipo de IM (primaria o secundaria) no está consignado. Los tres factores de la Tabla 7 están descritos para la insuficiencia mitral secundaria. Las mediciones se muestran y no se integran.';
 window.REPAR_COAPT_MM = REPAR_COAPT_MM; window.REPAR_ANGULO_GR = REPAR_ANGULO_GR;
 window.REPAR_TENTING_CM2 = REPAR_TENTING_CM2; window.TEER_TENTING_MM = TEER_TENTING_MM;
 
@@ -64521,7 +64527,11 @@ function calcETE() {
     } catch (e) { sec = false; mec = ''; }
     if (!hay) { rep.textContent = '—'; if (fue) fue.textContent = ''; }
     else if (!sec) {
-      rep.textContent = mec === 'primaria' ? REPAR_PRIM_TXT : REPAR_NO_SEC_TXT;
+      /* Los tres estados, uno por texto: 'primaria' · consignado y no secundario · SIN consignar
+         (AJ2-3). El ultimo `else` NO es codigo muerto: es el centinela de un token que el
+         desplegable no ofrece, y cae del lado que no afirma nada sobre el mecanismo. */
+      rep.textContent = mec === 'primaria' ? REPAR_PRIM_TXT
+                      : (mec ? REPAR_NO_SEC_TXT : REPAR_SIN_MEC_TXT);
       if (fue) fue.textContent = REPAR_FUENTE_TXT;
     } else {
       const f = [];

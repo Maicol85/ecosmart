@@ -1214,6 +1214,84 @@ window.__Z = {
     process.stderr.write('[htp] listo\n');
   }
 
+  /* ══ GRUPO «repar» — AJ2-3: EL TIPO DE IM VACIO ES UN TERCER ESTADO ══════════════════════
+     `imMecanismoIM()` devuelve 'secundaria', 'primaria' o VACIO, y el vacio -que es como nace el
+     selector, o sea el estado MAS frecuente- caia en el texto de «no es secundaria», que afirma
+     que hay un mecanismo consignado. Se miden los TRES, con el MISMO juego de mediciones. */
+  if (corre('repar')) {
+    const r = { escenas: {} };
+    const montar = async (tipo) => {
+      await ev(`window.__P.nuevo()`);
+      await ev(`window.__P.despejar()`);
+      await ev(`window.__P.abrirPara('ete_prof_coapt')`);
+      await poner('ete_prof_coapt', '12');
+      await poner('ete_area_tenting', '2.8');
+      await poner('ete_angulo_vp', '50');
+      if (tipo !== null) await poner('teer_tipo_im', tipo);
+      await ev(`(function(){ if (typeof calcETE === 'function') calcETE(); return 1 })()`);
+      return { repar: await ev(`window.__P.txt('ete-reparabilidad')`),
+               fuente: (await ev(`window.__P.txt('ete-repar-fuente')`) || '').slice(0, 60),
+               mec: await ev(`(function(){ return (typeof imMecanismoIM === 'function') ? (imMecanismoIM() || '') : 'SIN FN' })()`),
+               coapt: await ev(`window.__P.txt('ete-coapt-interp')`),
+               areat: await ev(`window.__P.txt('ete-areatent-interp')`) };
+    };
+    try {
+      r.escenas.vacio      = await montar('');
+      r.escenas.secundaria = await montar('secundaria');
+      r.escenas.primaria   = await montar('primaria');
+      /* Control: sin ninguna medicion cargada la frase es la raya, en los tres tipos. */
+      await ev(`window.__P.nuevo()`);
+      await ev(`window.__P.abrirPara('teer_tipo_im')`);
+      await poner('teer_tipo_im', '');
+      await ev(`(function(){ if (typeof calcETE === 'function') calcETE(); return 1 })()`);
+      r.escenas.sinMediciones = { repar: await ev(`window.__P.txt('ete-reparabilidad')`) };
+      r.errores = await ev(`window.__Y.errores()`);
+    } catch (e) { r.err = e.message; }
+    out.grupos.repar = r;
+    process.stderr.write('[repar] listo\n');
+  }
+
+  /* ══ GRUPO «diast» — AJ2-15: LA FRASE QUE PEDIA COMPLETAR UN CAMPO ════════════════════════
+     Con la onda E cargada y los dos anillos vacios, la ASE 2025 cae en su rama `incompleto` y
+     esa frase baja al informe FIRMADO por `window._diastResult.texto`. Se mide el informe
+     ENTERO, no el objeto: es la unica forma de ver que la frase llega al papel. */
+  if (corre('diast')) {
+    const r = { escenas: {} };
+    try {
+      await ev(`window.__P.nuevo()`);
+      await ev(`window.__P.despejar()`);
+      await ev(`window.__P.abrirPara('onda_e')`);
+      await poner('diast_algoritmo', 'ase2025');
+      await poner('onda_e', '90');
+      await ev(`(function(){ if (typeof calcDiastol === 'function') calcDiastol(); return 1 })()`);
+      r.escenas.sinAnillos = {
+        badge: await ev(`window.__P.txt('dd-interp')`),
+        objeto: await ev(`(function(){ var d = window._diastResult || {};
+          return { texto: d.texto || null, suma: d.textoSuma || null, alg: d.algoritmo || null } })()`),
+        lineas: await ev(`window.__Z.lineas(['diastolica','clasificar','clasificable','presion de llenado','completar'])`, 40000) };
+      /* CONTROL: con los dos anillos cargados el algoritmo clasifica y la frase no aparece. */
+      await poner('e_sep', '5'); await poner('e_lat', '6');
+      await ev(`(function(){ if (typeof calcDiastol === 'function') calcDiastol(); return 1 })()`);
+      r.escenas.conAnillos = {
+        badge: await ev(`window.__P.txt('dd-interp')`),
+        objeto: await ev(`(function(){ var d = window._diastResult || {};
+          return { texto: d.texto || null, suma: d.textoSuma || null } })()`),
+        lineas: await ev(`window.__Z.lineas(['diastolica','clasificar','clasificable','presion de llenado','completar'])`, 40000) };
+      /* CONTROL NEGATIVO: la frase hermana de la ASE 2016, que esta tanda NO toca. */
+      await ev(`window.__P.nuevo()`);
+      await ev(`window.__P.abrirPara('onda_e')`);
+      await poner('diast_algoritmo', 'ase2016');
+      await ev(`(function(){ if (typeof calcDiastol === 'function') calcDiastol(); return 1 })()`);
+      r.escenas.ase2016SinDatos = {
+        badge: await ev(`window.__P.txt('dd-interp')`),
+        objeto: await ev(`(function(){ var d = window._diastResult || {};
+          return { texto: d.texto || null } })()`) };
+      r.errores = await ev(`window.__Y.errores()`);
+    } catch (e) { r.err = e.message; }
+    out.grupos.diast = r;
+    process.stderr.write('[diast] listo\n');
+  }
+
   OUT.md5Fin = await md5(EXTERNO ? FARG : join(RAIZ, FILE));
   process.stdout.write(JSON.stringify(OUT, null, 1));
   cdp.close(); srv.close(); process.exit(0);
