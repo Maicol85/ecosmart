@@ -78272,15 +78272,22 @@ caso('TC-502', 'Tanda P: Referencias en CINCO subpestanas sin perder una entrada
     const fs = hostAo2.querySelectorAll('tr');
     for (let i = 0; i < fs.length; i++) {
       const t = fs[i].textContent.replace(/[ ]+/g, ' ').trim();
-      if (t.indexOf('criterio de EcoSmart') >= 0) return t;
+      /* ADAPTADO el 2026-10-23 (AJ4-1): la fila dejo de rotularse «criterio de EcoSmart»
+         porque el corte dejo de serlo — sale de la ESC 2024 y su ficha esta verificada. Se la
+         busca por su rotulo de hoy, que es el que la pestana publica. */
+      if (t.indexOf('Ra\u00edz a\u00f3rtica \u2014 dilatada') >= 0) return t;
     }
     return 'SIN FILA';
   })();
   ex.push(['(D3) el criterio de EcoSmart: 39 mm NO es dilatado y 40 mm exactos SI, medido en la capsula',
     cap39.indexOf('ormal') >= 0 && cap40.indexOf('ormal') < 0 && cap40 !== 'NO EXISTE',
     '39=' + cap39.slice(0, 60) + ' | 40=' + cap40.slice(0, 60)]);
-  ex.push(['(D3b) y Referencias publica ese criterio con el simbolo DERIVADO del dueno',
-    filaSeno.indexOf(String.fromCharCode(8805) + ' 40 mm') >= 0, filaSeno.slice(0, 110)]);
+  /* Los DOS cortes, y los dos derivados del dueno: desde el AJ4-1 la columna del varon y la de
+     la mujer dicen numeros distintos, que es justamente lo que esta fila existe para publicar. */
+  ex.push(['(D3b) y Referencias publica ese criterio con el simbolo DERIVADO del dueno y los DOS cortes',
+    filaSeno.indexOf(String.fromCharCode(8805) + ' ' + window.AO_DIL_MM.M + ' mm') >= 0
+      && filaSeno.indexOf(String.fromCharCode(8805) + ' ' + window.AO_DIL_MM.F + ' mm') >= 0,
+    filaSeno.slice(0, 110)]);
   ex.push(['(D4) el bloque de ateroma conserva sus CINCO grados',
     (function () { const c = EL('ref-ao'); return !!c && c.querySelectorAll('tr').length === 6; })(),
     'filas=' + (EL('ref-ao') ? EL('ref-ao').querySelectorAll('tr').length : 'NO EXISTE')]);
@@ -85978,6 +85985,302 @@ caso('TC-520', 'Tanda AJ3: el bloque del ETT avanzado sigue a los datos en los D
   ex.push(['(Z) DENOMINADOR GLOBAL: todos los campos del caso se encontraron',
     noEntraron.length === 0, 'noEntraron=' + JSON.stringify(noEntraron)]);
 
+  return { extra: ex };
+  })();
+`);
+
+/* ══ TC-521 — LA TANDA AJ4 (2026-10-23) ═══════════════════════════════════════════════════════
+   ⚠️ TODA FUNCION NUEVA SE LEE CON `typeof` Y TODA CLAVE DEL LECTOR NACE CON CENTINELA. Un caso
+   que muere por excepcion contra el arbol de entrada informa CERO condiciones en rojo, que es
+   indistinguible de «no hay cobertura» — es la leccion que TC-455, TC-462, TC-465, TC-474,
+   TC-512, TC-513, TC-514 y TC-517 ya pagaron.
+   ⚠️ SIN ACENTOS GRAVES EN EL CUERPO, tampoco en los comentarios: uno solo cierra el template y
+   el SyntaxError apunta al `return` de la primera linea. */
+caso('TC-521', 'Tanda AJ4: la raiz aortica con UN SOLO criterio de dilatacion en las siete superficies -40 mm en el varon, 36 en la mujer con el valor INCLUIDO, el indice de dimension aortica por encima de 22 mm/m2 con el operador ESTRICTO, y sin sexo el corte del varon con el aviso nombrandola-; el globo con el texto aprobado y sin la nota de las dos maneras; las pantallas de bicuspide y de coartacion leyendose entre si sin que ninguno de los dos carteles llegue al papel; y la Evidencia de la VAB con sus cuatro recomendaciones a la VISTA, en tono neutro, sin el texto que decia dos veces y con el aviso de Turner', `
+  return (async () => {
+  const ex = [];
+  const F = (n) => (typeof window[n] === 'function') ? window[n] : null;
+  const TXT = (id) => { const e = document.getElementById(id); return e ? (e.textContent || '').replace(/\\s+/g, ' ').trim() : ''; };
+  const EL  = (id) => document.getElementById(id);
+  const noEntraron = [];
+  const set = (o) => Object.keys(o).forEach(id => { const e = document.getElementById(id);
+    if (!e) { noEntraron.push('FALTA ' + id); return; }
+    e.value = o[id];
+    if (String(e.value) !== String(o[id])) { noEntraron.push(id + ' RECHAZO ' + o[id]); return; }
+    e.dispatchEvent(new Event('input', { bubbles: true }));
+    e.dispatchEvent(new Event('change', { bubbles: true })); });
+  const SG = () => { try { return (window.AO_SEGS || []).filter(s => s.k === 'ao_sin')[0] || null; }
+    catch (e) { return null; } };
+  /* La oracion de la aorta del informe, en el estilo que se pida. */
+  const infAo = (est) => { try {
+      if (F('setEstiloInforme')) setEstiloInforme(est || 'estandar');
+      if (F('generarInforme')) generarInforme();
+      const t = (EL('informe_texto') || {}).value || '';
+      return t.split('\\n').filter(l => /Aorta tor/i.test(l)).join(' // ');
+    } catch (e) { return 'EXC: ' + e.message; } };
+  const sumaAo = () => { try {
+      if (F('generarInforme')) generarInforme();
+      const s = (EL('en_suma') || {}).value || '';
+      return s.split('\\n').filter(l => /Dilataci/i.test(l)).join(' // ');
+    } catch (e) { return 'EXC: ' + e.message; } };
+  const secEv = (frag) => { try {
+      const L = (typeof IND_SECS !== 'undefined') ? IND_SECS : null;
+      if (!L) return 'SIN IND_SECS';
+      const s = L.filter(x => String(x.tit).indexOf(frag) > -1)[0];
+      if (!s) return 'NO EXISTE';
+      return s.fn() || null;
+    } catch (e) { return 'EXC: ' + e.message; } };
+  const lineasDe = (r) => { const o = [];
+    ((r && r.bloques) || []).forEach(b => ((b.lineas) || []).forEach(l => o.push(typeof l === 'string' ? l : l.txt)));
+    return o; };
+  const tarjeta = () => { try { const fr = F('evTarjetaAo') ? evTarjetaAo() : null;
+      if (!fr) return 'SIN FN';
+      const d = document.createElement('div'); d.appendChild(fr);
+      return (d.textContent || '').replace(/\\s+/g, ' ').trim();
+    } catch (e) { return 'EXC: ' + e.message; } };
+
+  /* == (A) EL DUENO UNICO, POR SUS BORDES Y POR LOS DOS SEXOS ==============================
+     DENOMINADOR: el corte efectivo TIENE que moverse con el sexo. Sin esto, que la pantalla
+     cambie no prueba que la cambio este criterio. */
+  ex.push(['(A1) las tres funciones nuevas existen y AO_SEGS esta exportada',
+    !!F('aoSegRef') && !!F('aoSegIda') && !!F('aoSegDil') && !!(window.AO_SEGS && window.AO_SEGS.length === 5),
+    'ref=' + typeof window.aoSegRef + ' ida=' + typeof window.aoSegIda + ' segs=' + ((window.AO_SEGS || []).length)]);
+  ex.push(['(A2) DENOMINADOR: el corte efectivo de la raiz cambia con el sexo y los otros cuatro NO',
+    !!SG() && window.aoSegRef(SG(), 'M') === 40 && window.aoSegRef(SG(), 'F') === 36
+      && (window.AO_SEGS || []).filter(s => s.k !== 'ao_sin')
+           .every(s => window.aoSegRef(s, 'M') === window.aoSegRef(s, 'F') && window.aoSegRef(s, 'M') === s.ref),
+    'M=' + window.aoSegRef(SG(), 'M') + ' F=' + window.aoSegRef(SG(), 'F')]);
+  ex.push(['(A3) el operador del DIAMETRO es inclusivo por los dos lados y en los dos sexos',
+    window.aoSegDil(SG(), 40, 'M') === true && window.aoSegDil(SG(), 39.9, 'M') === false
+      && window.aoSegDil(SG(), 36, 'F') === true && window.aoSegDil(SG(), 35.9, 'F') === false,
+    '40M=' + window.aoSegDil(SG(), 40, 'M') + ' 39.9M=' + window.aoSegDil(SG(), 39.9, 'M')
+      + ' 36F=' + window.aoSegDil(SG(), 36, 'F') + ' 35.9F=' + window.aoSegDil(SG(), 35.9, 'F')]);
+  ex.push(['(A4) sin sexo manda el corte del VARON, que es el alto',
+    window.aoSegRef(SG(), '') === 40 && window.aoSegDil(SG(), 39, '') === false
+      && window.aoSegDil(SG(), 40, '') === true,
+    'ref=' + window.aoSegRef(SG(), '')]);
+  /* CONTROL NEGATIVO: un sondeo por sexo NO tiene paciente, asi que no indexa. */
+  ex.push(['(A5) CONTROL: un sondeo por sexo no tiene superficie corporal y el indice no vota',
+    window.aoSegIda(SG(), 33, 'F') === null && window.aoSegIda(SG(), 33, 'M') === null,
+    String(window.aoSegIda(SG(), 33, 'F'))]);
+  /* CONTROL NEGATIVO: los otros cuatro segmentos no tienen segunda puerta. */
+  ex.push(['(A6) CONTROL: ningun otro segmento tiene indice ni corte por sexo',
+    (window.AO_SEGS || []).filter(s => s.k !== 'ao_sin')
+      .every(s => s.idaMax == null && !s.refSexo && window.aoSegIda(s, 50) === null),
+    (window.AO_SEGS || []).map(s => s.k + ':' + (s.idaMax == null ? '-' : s.idaMax)).join(' ')]);
+
+  /* == (B) EL INDICE, LA SEGUNDA PUERTA, CON SUPERFICIE CORPORAL EXACTA ====================
+     54 kg y 150 cm dan una superficie de 1,50 m2 EXACTOS, asi que 33,0 mm es un indice de
+     22,0 clavado -el borde del operador estricto- y 33,2 lo cruza. Los dos quedan MUY por
+     debajo del corte absoluto de la mujer, que es 36: el unico votante posible es el indice. */
+  __t.limpiar();
+  set({ sexo: 'F', peso: '54', talla: '150', ao_sin: '33' });
+  const bsa1 = F('getBSA') ? getBSA() : null;
+  const ida0 = window.aoSegIda(SG(), 33);
+  ex.push(['(B1) DENOMINADOR: con 54 kg y 150 cm la superficie corporal es 1,50 y el indice de 33 mm es 22,0 clavado',
+    bsa1 !== null && Math.abs(bsa1 - 1.5) < 0.0001 && ida0 !== null && Math.abs(ida0 - 22) < 0.0001,
+    'bsa=' + bsa1 + ' ida=' + ida0]);
+  ex.push(['(B2) el indice de 22,0 EXACTO no cruza: el operador es estricto',
+    window.aoSegDil(SG(), 33) === false && TXT('ao-interp').indexOf('Normal') > -1,
+    'dil=' + window.aoSegDil(SG(), 33) + ' capsula=' + TXT('ao-interp')]);
+  set({ ao_sin: '33.2' });
+  ex.push(['(B3) 22,13 si cruza, y la CAPSULA dice que lo que vota es el indice y no el diametro',
+    window.aoSegDil(SG(), 33.2) === true
+      && TXT('ao-interp').indexOf('Dilatada') > -1
+      && TXT('ao-interp').indexOf('iDA') > -1,
+    TXT('ao-interp')]);
+  ex.push(['(B4) y el informe la publica dilatada con esos 33,2 mm',
+    infAo('estandar').indexOf('33.2 mm (dilatada)') > -1, infAo('estandar').slice(0, 160)]);
+  /* CONTROL NEGATIVO: sin peso ni talla el indice no existe y 33 mm vuelve a ser normal. */
+  __t.limpiar();
+  set({ sexo: 'F', ao_sin: '33.2' });
+  ex.push(['(B5) CONTROL NEGATIVO: sin peso ni talla el indice no se aplica y 33,2 mm es normal',
+    window.aoSegIda(SG(), 33.2) === null && window.aoSegDil(SG(), 33.2) === false
+      && infAo('estandar').indexOf('calibre normal') > -1,
+    infAo('estandar').slice(0, 160)]);
+
+  /* == (C) LAS SIETE SUPERFICIES SOBRE EL MISMO PACIENTE ===================================
+     La mujer de 38 mm es el defecto que esta tanda cierra: el informe decia «calibre normal»
+     y Referencias decia «dilatada», sobre el mismo numero. */
+  __t.limpiar();
+  set({ sexo: 'F', ao_sin: '38' });
+  ex.push(['(C1) pantalla: la capsula dice Dilatada con el corte de la MUJER',
+    TXT('ao-interp').indexOf('Dilatada') > -1 && TXT('ao-interp').indexOf('36mm') > -1, TXT('ao-interp')]);
+  ex.push(['(C2) informe: los TRES estilos la publican dilatada',
+    infAo('estandar').indexOf('(dilatada)') > -1 && infAo('conciso').indexOf('(dilatada)') > -1
+      && infAo('narrativo').indexOf('dilatada') > -1,
+    infAo('estandar').slice(0, 140)]);
+  if (F('setEstiloInforme')) setEstiloInforme('estandar');
+  ex.push(['(C3) EN SUMA: la linea de dilatacion de la raiz',
+    sumaAo().indexOf('Dilataci') > -1 && sumaAo().indexOf('38') > -1, sumaAo()]);
+  ex.push(['(C4) Evidencia: la seccion de aorta se abre con 38 mm en la mujer',
+    !!secEv('Aorta tor'), String(secEv('Aorta tor') === null)]);
+  /* CONTROL: el MISMO 38 en un varon es normal en las cuatro superficies. */
+  __t.limpiar();
+  set({ sexo: 'M', ao_sin: '38' });
+  ex.push(['(C5) CONTROL NEGATIVO: el MISMO 38 mm en un VARON sigue siendo normal en pantalla, informe, EN SUMA y Evidencia',
+    TXT('ao-interp').indexOf('Normal') > -1
+      && infAo('estandar').indexOf('calibre normal') > -1
+      && sumaAo().indexOf('Dilataci') === -1
+      && secEv('Aorta tor') === null,
+    TXT('ao-interp') + ' | ' + infAo('estandar').slice(0, 90)]);
+  if (F('setEstiloInforme')) setEstiloInforme('estandar');
+  /* El aviso de sexo faltante NOMBRA la raiz. */
+  __t.limpiar();
+  set({ sexo: '', ao_sin: '39' });
+  try { if (F('aiviSexoSync')) aiviSexoSync(); } catch (e) {}
+  ex.push(['(C6) sin sexo, el aviso de pantalla NOMBRA la raiz aortica',
+    (F('aiviSexoCambian') ? aiviSexoCambian() : []).indexOf('la raíz aórtica') > -1
+      && TXT('aivi-sexo-aviso').indexOf('ra\\u00edz a\\u00f3rtica') > -1,
+    TXT('aivi-sexo-aviso').slice(0, 120)]);
+
+  /* == (D) EL GLOBO, CON EL TEXTO APROBADO (AJ4-2) ========================================= */
+  __t.limpiar();
+  const tj = tarjeta();
+  ex.push(['(D1) el globo publica los DOS cortes, leidos del dueno, con su guia y sus dos folios',
+    tj.indexOf('Dilataci\\u00f3n en EcoSmart: ' + window.AO_DIL_MM.M + ' mm o m\\u00e1s en el var\\u00f3n y '
+      + window.AO_DIL_MM.F + ' mm o m\\u00e1s en la mujer.') > -1
+      && tj.indexOf('apartado 9.2.1.1, folio 71') > -1 && tj.indexOf('Figura 24, folio 76') > -1,
+    tj.slice(0, 260)]);
+  ex.push(['(D2) el globo ya NO narra las dos maneras de escribir el corte, ni dice «Corte de EcoSmart»',
+    tj.indexOf('de dos maneras') === -1 && tj.indexOf('Corte de EcoSmart') === -1
+      && tj.indexOf('inclusivo') === -1,
+    tj.slice(-200)]);
+  ex.push(['(D3) el pie nombra el RANGO y no la fuente a secas',
+    tj.indexOf('Fuente del rango: ') > -1 && tj.indexOf('Figura 13 (folio 32)') > -1,
+    tj.slice(-140)]);
+  ex.push(['(D4) y el orden es el aprobado: el grafico, el corte, la aclaracion y la fuente',
+    tj.indexOf('Cargar la edad') < tj.indexOf('Dilataci\\u00f3n en EcoSmart')
+      && tj.indexOf('Dilataci\\u00f3n en EcoSmart') < tj.indexOf('Es una orientaci\\u00f3n')
+      && tj.indexOf('Es una orientaci\\u00f3n') < tj.indexOf('Fuente del rango'),
+    'edad=' + tj.indexOf('Cargar la edad') + ' corte=' + tj.indexOf('Dilataci\\u00f3n en EcoSmart')
+      + ' aclara=' + tj.indexOf('Es una orientaci\\u00f3n') + ' fte=' + tj.indexOf('Fuente del rango')]);
+
+  /* == (E) REFERENCIAS: UNA SOLA FILA DE LA RAIZ =========================================== */
+  try { if (F('showTab')) showTab('referencias'); } catch (e) {}
+  try { if (F('evRefPintar')) evRefPintar('ao2'); } catch (e) {}
+  const filasRef = (function(){ const o = [];
+    document.querySelectorAll('table.ev-tabla tr').forEach(tr => {
+      const t = (tr.textContent || '').replace(/\\s+/g, ' ').trim();
+      if (/Ra\\u00edz a\\u00f3rtica|dimensi\\u00f3n a\\u00f3rtica|Dilataci\\u00f3n seg\\u00fan/i.test(t)) o.push(t); });
+    return o; })();
+  ex.push(['(E1) Referencias publica UNA sola fila de la raiz, con 40 en el varon y 36 en la mujer',
+    filasRef.filter(t => /Ra\\u00edz a\\u00f3rtica/i.test(t)).length === 1
+      && filasRef.filter(t => /Ra\\u00edz a\\u00f3rtica/i.test(t))[0].indexOf('40 mm') > -1
+      && filasRef.filter(t => /Ra\\u00edz a\\u00f3rtica/i.test(t))[0].indexOf('36 mm') > -1,
+    JSON.stringify(filasRef)]);
+  ex.push(['(E2) y la fila del criterio propio desaparecio: ninguna dice «criterio de EcoSmart»',
+    filasRef.every(t => t.indexOf('criterio de EcoSmart') === -1)
+      && filasRef.filter(t => /Dilataci\\u00f3n seg\\u00fan la ESC 2024 — di\\u00e1metro/i.test(t)).length === 0,
+    JSON.stringify(filasRef)]);
+  ex.push(['(E3) la fila del INDICE se conserva: es la segunda puerta y no la dice ninguna otra',
+    filasRef.filter(t => /dimensi\\u00f3n a\\u00f3rtica/i.test(t)).length === 1
+      && filasRef.filter(t => /dimensi\\u00f3n a\\u00f3rtica/i.test(t))[0].indexOf('22 mm/m') > -1,
+    JSON.stringify(filasRef)]);
+
+  /* == (F) EL CRUCE DE LAS DOS PANTALLAS (AJ4-4) =========================================== */
+  __t.limpiar();
+  try { if (F('vabCoaCruceSync')) vabCoaCruceSync(); } catch (e) {}
+  ex.push(['(F1) sin coartacion, el cartel de la VAB es el de siempre y el de COAO esta oculto',
+    TXT('vab-coa-nota').indexOf('Excluir coartaci\\u00f3n') > -1
+      && !!EL('coa-vab-nota') && getComputedStyle(EL('coa-vab-nota')).display === 'none',
+    TXT('vab-coa-nota')]);
+  set({ coa_loc: 'preductal', coa_istmo: '8', coa_situacion: 'post_cirugia' });
+  ex.push(['(F2) con la coartacion cargada, la VAB deja de pedir que se la descarte y dice que ya esta',
+    TXT('vab-coa-nota') === 'Coartaci\\u00f3n de aorta cargada (secci\\u00f3n COAO)',
+    TXT('vab-coa-nota')]);
+  __t.limpiar();
+  set({ va_morf: 'Bic\\u00faspide' });
+  ex.push(['(F3) con la morfologia en bicuspide, COAO lo dice',
+    TXT('coa-vab-nota') === 'V\\u00e1lvula a\\u00f3rtica bic\\u00faspide presente (V\\u00e1lvulas)'
+      && getComputedStyle(EL('coa-vab-nota')).display !== 'none',
+    TXT('coa-vab-nota')]);
+  __t.limpiar();
+  set({ vab_tipo: 'fused_rl' });
+  ex.push(['(F4) y tambien por el OTRO camino: el tipo de fusion, con la morfologia de Valvulas sin tocar',
+    TXT('coa-vab-nota').indexOf('bic\\u00faspide presente') > -1,
+    TXT('coa-vab-nota') + ' | morf=' + (EL('va_morf') || {}).value]);
+  /* CONTROL: ninguno de los TRES textos llega a una superficie firmada. */
+  __t.limpiar();
+  set({ va_morf: 'Bic\\u00faspide', coa_loc: 'preductal', coa_istmo: '8', coa_situacion: 'post_cirugia' });
+  if (F('generarInforme')) generarInforme();
+  const papel = ((EL('informe_texto') || {}).value || '') + ' ' + ((EL('en_suma') || {}).value || '');
+  ex.push(['(F5) CONTROL: los tres carteles son de PANTALLA y no llegan al informe ni al EN SUMA',
+    papel.indexOf(window.VAB_COA_SIN) === -1 && papel.indexOf(window.VAB_COA_CON) === -1
+      && papel.indexOf(window.COA_VAB_CON) === -1,
+    'inf=' + papel.length]);
+  ex.push(['(F6) y los dos ids NO terminan en «-aviso», que limpiarCampos vaciaria',
+    !!EL('vab-coa-nota') && !!EL('coa-vab-nota') && !EL('vab-coa-aviso') && !EL('coa-vab-aviso'),
+    'ok']);
+
+  /* == (G) LA EVIDENCIA DE LA VAB (AJ4-5 parcial) ========================================== */
+  __t.limpiar();
+  set({ sexo: 'M', peso: '80', talla: '180', va_morf: 'Bic\\u00faspide', vab_tipo: 'fused_rl',
+        vab_fenotipo: 'raiz', ao_sin: '47', ao_tub: '42' });
+  const rVab = secEv('bic\\u00faspide — aorta ascendente');
+  const rCon = secEv('bic\\u00faspide — conclusi\\u00f3n');
+  const lVab = lineasDe(rVab);
+  ex.push(['(G1) las CUATRO recomendaciones de la VAB estan en un bloque VISIBLE, no detras del «Ver detalle»',
+    !!rVab && (rVab.bloques || []).length === 1 && !rVab.bloques[0].plegado && lVab.length === 4,
+    'bloques=' + ((rVab && rVab.bloques) || []).length + ' lineas=' + lVab.length]);
+  ex.push(['(G2) y cada una lleva su clase, su tabla y su folio',
+    lVab.length === 4 && lVab.every(l => l.indexOf('Tabla 68, folio 119') > -1)
+      && lVab.filter(l => l.indexOf('Clase I \\u00b7 Nivel C') === 0).length === 2
+      && lVab.filter(l => l.indexOf('Clase IIa \\u00b7 Nivel C') === 0).length === 1,
+    JSON.stringify(lVab.map(l => l.slice(0, 40)))]);
+  ex.push(['(G3) el panel ya NO dice dos veces la conclusion de la app',
+    !!rVab && (rVab.notas || []).every(n => String(n).indexOf('Conclusi\\u00f3n de la app') === -1)
+      && !!rCon && (rCon.notas || []).length === 1,
+    'notasVab=' + ((rVab && rVab.notas) || []).length + ' notasCon=' + ((rCon && rCon.notas) || []).length]);
+  ex.push(['(G4) ni repite la frase del fenotipo de raiz en las dos secciones',
+    (((rCon && rCon.notas) || []).filter(n => String(n).indexOf('fenotipo ascendente') > -1).length === 0),
+    JSON.stringify(((rCon && rCon.notas) || []).map(n => String(n).slice(0, 50)))]);
+  ex.push(['(G5) el tono es neutro: sin «NO hay Clase I», sin «que circulan» y sin «ESC 2014»',
+    !!rVab && (rVab.notas || []).every(n => String(n).indexOf('NO hay Clase I') === -1
+      && String(n).indexOf('que circulan') === -1 && String(n).indexOf('ESC 2014') === -1),
+    JSON.stringify((rVab.notas || []).map(n => String(n).slice(0, 60)))]);
+  ex.push(['(G6) CONTROL: los datos NO se perdieron — el 52, el 55 y el cribado familiar siguen con su clase',
+    lVab.concat((rVab.notas || []).map(String)).join(' ').indexOf('52 mm') > -1
+      && lVab.concat((rVab.notas || []).map(String)).join(' ').indexOf('55 mm') > -1
+      && lVab.join(' ').indexOf('familiares de primer grado') > -1,
+    'ok']);
+
+  /* == (H) EL AVISO DE TURNER, SOLO EN EVIDENCIA =========================================== */
+  const turner = (sx) => { __t.limpiar();
+    set({ sexo: sx, peso: '50', talla: '145', marfan_sindrome: 'turner',
+          marfan_ao_seno: '38', marfan_ita: '26' });
+    const r = secEv('Aorta tor');
+    return { aviso: (r && r.aviso) || '', papel: (function(){
+      try { if (F('generarInforme')) generarInforme(); } catch (e) {}
+      return ((EL('informe_texto') || {}).value || '') + ' ' + ((EL('en_suma') || {}).value || ''); })() }; };
+  const tM = turner('M'), tF = turner('F'), tS = turner('');
+  ex.push(['(H1) con Turner y sexo MASCULINO, la Evidencia avisa',
+    tM.aviso === 'El s\\u00edndrome de Turner se da en mujeres: revis\\u00e1 el sexo cargado.', tM.aviso]);
+  ex.push(['(H2) CONTROL NEGATIVO: con sexo femenino NO avisa', tF.aviso === '', tF.aviso]);
+  ex.push(['(H3) CONTROL NEGATIVO: SIN sexo tampoco — «no cargado» no es «masculino»', tS.aviso === '', tS.aviso]);
+  ex.push(['(H4) y el aviso NO llega al papel firmado',
+    tM.papel.indexOf('se da en mujeres') === -1, 'largo=' + tM.papel.length]);
+
+  /* == (I) LOS CONTROLES DE SIEMPRE ======================================================== */
+  __t.limpiar();
+  const cols = (function(){ try { const f = F('_labExcelRow')
+      ? _labExcelRow({ campos: {}, fecha: '2026-10-23' }) : null;
+    return f ? Object.keys(f).length : 'SIN FN'; } catch (e) { return 'EXC'; } })();
+  ex.push(['(I1) el Excel sigue en 440 columnas: esta tanda no agrego ni un campo', cols === 440, String(cols)]);
+  /* AO_REF es un const de nivel superior y NO esta en window -solo las declaraciones de
+     funcion se exportan solas-, asi que el corte de cada segmento se lee de AO_SEGS, que esta
+     exportada y es ademas el dueno que la app consulta. */
+  const refDe = (k) => { const s = (window.AO_SEGS || []).filter(x => x.k === k)[0]; return s ? s.ref : null; };
+  ex.push(['(I2) CONTROL: los cortes de los otros cuatro segmentos NO se movieron',
+    refDe('ao_st') === 38 && refDe('ao_tub') === 40
+      && refDe('diam_cayado') === 40 && refDe('diam_ao_toracica') === 35,
+    (window.AO_SEGS || []).map(s => s.k + '=' + s.ref).join(' ')]);
+  ex.push(['(I3) y la raiz no gradua: un solo rotulo, «dilatada», sin leve ni moderada ni severa',
+    window.aoSegGrado(SG(), 60, 'M') === 'dilatada' && window.aoSegGrado(SG(), 44, 'M') === 'dilatada'
+      && window.aoSegGrado(SG(), 20, 'M') === 'normal',
+    window.aoSegGrado(SG(), 60, 'M') + '/' + window.aoSegGrado(SG(), 44, 'M')]);
+
+  if (noEntraron.length) ex.push(['CAMPOS QUE NO ENTRARON', false, JSON.stringify(noEntraron)]);
   return { extra: ex };
   })();
 `);

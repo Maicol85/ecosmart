@@ -19,6 +19,134 @@ Las secciones están de **más nueva a más vieja**, que es el orden en que esta
 
 ---
 
+### El bloque del ETT avanzado y el paso 3 del HFA-PEFF — «AJ3» (2026-10-23)
+
+- **Son CUATRO commits.** Al **empezar**, `main` y `origin/main` estaban los dos en **`1f8377e`**
+  —el cierre de AJ2—, medido con `git fetch`; AJ2 había dejado **veintiún** commits sin pushear y
+  **siguen sin pushear**, así que hoy hay **veinticinco locales**. El push lo corre Maicol.
+  `b6c8299` (AJ3-2) · `a621933` (AJ3-3) · la cobertura · la documentación y el sello.
+  **El orden de revertido seguro es el inverso del de aplicación.** Los dos primeros **no se
+  nombran entre sí** —tocan `amilo*` y `_indHFPEFF`, que no se cruzan—, pero **TC-520 cuelga de
+  los dos**: revertir uno sin revertir el caso deja el suite en rojo apuntando a la app.
+
+- **Línea base al cierre: suite **530/534** con el pendrive `DISK_IMG` **MONTADO** —verificado al
+  abrir y al cerrar—, Semgrep **124 / 0 ERROR en 1 app**, Excel en **440** columnas y celular
+  **63 a 360 px y 72 a 390 px con 17 ALTA cada uno**: el MISMO par que dejó AJ2. CERO
+  REGRESIONES.** Los cuatro rojos son los de la línea base —**TC-223, TC-376, TC-390 y TC-406**—,
+  medidos ANTES de tocar nada y otra vez al cerrar; **TC-223 es el documentado, los otros tres
+  ya venían rojos de AJ2** y no son de esta tanda.
+  **El denominador sube a 535**: esta tanda agregó **TC-520**. TC-318 sigue excluido.
+- **`index.html` pasó de 9,34 MB / 132.718 líneas a 9,36 MB / 132.970 líneas** — medido con
+  `wc -c` y `wc -l` DESPUÉS de sellar (`v20261023-1524`, `md5` `6e53ab2d…`).
+
+- **(A) EL BLOQUE DEL ETT AVANZADO DEJÓ DE QUEDAR VIEJO, Y EL CENSO FUE PEOR DE LO QUE EL PEDIDO
+  SUPONÍA.** El texto de cada módulo se congela al apretar «Integrar al informe»; el refresco
+  existía (`amiloRefrescarSiIntacto`) pero se cableaba **a mano** al final de la calculadora de
+  cada módulo, y estaban cableados **ocho de diecisiete**. **A/B contra `2b9f3ef` con una escena
+  que mueve el dato propio de cada módulo: ONCE de los diecisiete quedaban viejos** —y **DOS de
+  esos once estaban en la lista de los «cableados»** (`hfpeff` y `wilk`), porque su llamada cuelga
+  de UNA calculadora y los insumos entran por otras. El cableado por módulo ya tenía agujeros
+  adentro. Hoy hay **un oyente de documento** con temporizador de 220 ms (el patrón de
+  `_evTarjetaViva`) y **17/17 coinciden**, cada uno con su denominador propio.
+
+- **LA MARCA DE EDICIÓN MANUAL GUARDA UN TEXTO Y NO UN BOOLEANO**, y eso es la mitad del ítem: la
+  clave existe ⇔ hubo edición, y su **valor** es la foto de lo que la app decía en ese momento, que
+  es contra lo que se compara para decir «los datos cambiaron **desde la edición**». Viaja con el
+  estudio en `am-editados`, no migra nada, `limpiarCampos` la vacía y la reimpresión la respalda.
+  ⚠️ **LA FOTO NO SE PERSISTE, SÓLO LAS CLAVES**: un estudio guardado con un bloque editado **y ya
+  desfasado** reabre **sin** el aviso hasta que cambie un dato. Declarado (AJ3-e).
+
+- **LA GUARDA DE LA MARCA ESTÁ DOS VECES Y LAS DOS HACEN FALTA, Y ESO LO DESTAPÓ UNA MUTACIÓN QUE
+  SOBREVIVIÓ.** `amiloRefrescarTodos` la consulta antes de delegar y `amiloRefrescarSiIntacto` la
+  vuelve a consultar, porque **ocho módulos lo llaman directamente desde su calculadora**: para ese
+  camino la marca persistida es la **única** guarda. La condición de TC-520 que lo mide llamaba a
+  `hfapeffRender()` — **y la llamada vieja de `hfpeff` vive en `calcVI`**. Era una condición vacía
+  con pinta de cobertura: sobrevivía a sacar las dos guardas. Hoy llama a `calcVI()` y muere.
+
+- **(B) LA EVIDENCIA DEL HFA-PEFF PREGUNTA EL RESULTADO DEL PASO 3.** Fila de una línea con
+  Positivo / Negativo / No concluyente, visible sólo con «Paso 3 = Realizada», y dos líneas por
+  resultado con su folio. **El ⓘ NO es un término del glosario**: ese registro exige documento,
+  tabla y página, y «el resultado lo decide el médico» es una propiedad de la app, no una cita —va
+  por la nota de la fila, que es el ⓘ que el panel ya tiene para una pregunta—.
+  ⚠️ **LA MARCA DE ESA FILA NUNCA PUEDE SER `warn` NI `alarm`**: `_indFilaHTML` sólo pliega la nota
+  cuando la marca no es una de esas dos, y con cualquiera de las dos **el ⓘ desaparece**.
+  **No toca el informe, el EN SUMA, el puntaje ni la hoja del PDF**: las cuatro superficies
+  medidas IDÉNTICAS con y sin resultado.
+
+- **FUENTE: Pieske 2019, folio = hoja + 3296, re-comprobada contra el pie impreso de TODAS las
+  hojas.** Once afirmaciones verificadas; **las Figuras 2, 4A y 4B son IMÁGENES dentro del PDF y se
+  RENDERIZARON** —el texto extraído sólo trae el epígrafe—, que es como se pudo verificar el flujo
+  «Normal → buscar otras causas», «Not conclusive → invasivo» y «Abnormal → confirmado →
+  etiología». **La Figura 5 (folio 3308) NO se leyó en imagen y NO se cita.** Y la extracción de
+  este PDF viene con rellenos de puntos por el maquetado a dos columnas: hay que des-puntear antes
+  de buscar literal.
+
+- **LO QUE SE DECLARÓ Y NO SE TOCÓ** (`docs/PENDIENTES.md` → **AJ3-a** a **AJ3-h**):
+  · **AJ3-a** — «Integrar al informe» sobre un bloque ya integrado quedó en la **lectura
+    estrecha**: pide confirmación y regenera **sólo** si está editado a mano, y si no retira, que
+    es el atajo documentado. Aplicar el ítem a todos los casos lo borraba sin que nadie lo pidiera.
+  · **AJ3-b** — la frase de «presión de llenado Normal» **no se agregó**: el ítem la pedía *si no
+    mostraba nada* y **muestra**. Lo que la frase pedida agrega es el «no descarta», verificado en
+    el folio 3307 y en la Figura 4B. Si se quiere, hay que **reescribir** la línea existente, no
+    agregar una segunda.
+  · **AJ3-c** y **AJ3-d** — los dos casos NO decididos, medidos y sin cambios: el PDF **no avisa**
+    al exportar un bloque editado y desfasado (82 textos, cero menciones); y al borrar los datos de
+    un módulo, **dieciséis de diecisiete** generadores siguen produciendo texto, así que el bloque
+    se regenera con el «sin datos» y **sigue integrado** — el único que se retira solo es `teer`,
+    el único cuyo `gen()` queda vacío, y ya lo hacía. `_AM_VACIA_RETIRA` existe para que los nueve
+    módulos nuevos **no** hereden esa conducta.
+
+- **A/B DE CONTROL contra `1f8377e`: CERO diferencias en informe, EN SUMA y PDF.** Las seis
+  superficies, una por una —informe en los **tres** estilos, EN SUMA en los tres, Excel con su
+  cuenta de columnas, los campos del estudio con su hash y el **PDF GENERADO DE VERDAD**— en dos
+  escenas (formulario vacío y escenario ajeno). **Excel en 440 en las cuatro celdas**, PDF con el
+  **mismo hash, mismo `nTextos` y mismo `nFigs`** en las dos escenas, y **consola limpia en los dos
+  árboles**. La única diferencia es `campos` 934 → **935**: el campo oculto `am-editados`, vacío.
+
+- **MEDIDO EN LOS DOS MOTORES** —Chrome por el canal del sistema y WebKit— **a 1440 y 390 px por
+  los dos temas: 17/17 pestañas con GEOMETRÍA y CERO en 0×0** (el centinela del `<div>` sin
+  cerrar), **cero scroll horizontal de la página** en las ocho celdas medido en tres momentos,
+  **cero recorte** sobre la tarjeta del ETT avanzado y sobre las **48 celdas** del panel, y la fila
+  nueva en **764 × 33 px** a 1440 y **310 × 75 px** a 390 con sus tres botones. **24 capturas PNG
+  con 24 `md5` distintos.** ⚠️ **WebKit de Playwright NO es Safari, y se declara.**
+
+- **Cobertura: TC-520**, **43 condiciones** —contadas instrumentando el propio caso para que
+  publicara su `ex.length`— en seis grupos. **Verificado por mutación, CUATRO, cada una en rojo
+  donde le toca**: sacar el oyente (B3, C5, C6, E5); sacar la guarda de
+  `amiloRefrescarSiIntacto` (B3 vía `ett`); sacar la fila del paso 3 (ocho condiciones de F); y
+  sacar **las dos** guardas (C5, C6, E5, E7b). Las mutaciones se aplicaron sobre `index.html` con
+  los dos commits ya hechos y se restauraron con `git checkout`, verificando el `md5` después de
+  cada una: **no hizo falta un worktree**.
+
+- ⚠️ **LAS TRAMPAS DE ESTA TANDA.**
+  1. **`indicAbrir()` llama a `_indClinLimpiar()` SIEMPRE**, no sólo al abrir desde cerrado: dos
+     respuestas seguidas por puertas distintas borran la primera, y la sonda informaba «no hay
+     botón con clave `hfpeff.p3res`» sobre un panel que ella misma acababa de vaciar.
+  2. **Tres módulos con compuerta `hayDatos` se median SIN HABER SIDO INTEGRADOS** (`teer`, `pop`,
+     `pulm`) y el resultado salía «no coincide» sobre un textarea vacío. Y **el botón de POP nace
+     `disabled`**: `popPatron().suficiente` daba `true` y el clic no hacía nada.
+  3. **Seis parámetros del perfil hemodinámico son DERIVADOS**: mover `hemo-gc`/`hemo-ic`, que son
+     *spans*, no mueve el bloque — sin denominador.
+  4. **La tarjeta del ETT avanzado vive en la pestaña «Informe»**: sin traerla al frente, los
+     diecisiete bloques miden **0×0** y «cero recortes» sale sobre nodos que no están dibujados.
+  5. **El primer `getBoundingClientRect()` después de un repintado del panel devuelve 0×0** y se
+     lee igual que «el botón no se dibuja». Hay que descartar la primera medición.
+  6. **`clip` de una captura es en coordenadas de PÁGINA y el panel tiene su propio scroll**: el
+     `<tr>` salía en y=1310 sobre una ventana de 900, Playwright lo rechazaba y **el `try` se comía
+     el error en silencio** — no había PNG y nadie avisaba.
+  7. **ME COMÍ EL ACENTO GRAVE TRECE VECES**, todas en comentarios míos, y `check_backticks.py` no
+     alcanza un `evCrudo` suelto. ⚠️ Y **sacarlos en lote se lleva el que ABRE el template**: el
+     error que sale después apunta al `return` de la primera línea del caso.
+
+- **Dónde está todo:** `docs/mapa/aj3-ett-avanzado.md` (**mapa NUEVO**, 15,6 KB: los commits, las
+  piezas por nombre de función, los dos casos no decididos, las sondas y sus ocho trampas);
+  **dos mapas con un puntero cada uno** (`congenitas-otros` · `htp-hfapeff`);
+  `docs/fuentes/FUENTES.md` → «La tanda AJ3», con las once afirmaciones y sus folios; y
+  `docs/PENDIENTES.md` → **ocho** cosas declaradas (**AJ3-a** a **AJ3-h**).
+  ⚠️ **NINGÚN MAPA CRUZÓ EL TECHO, medido con `wc -c` ANTES de escribir**: `congenitas-otros.md`
+  quedó en 30,4 KB e `htp-hfapeff.md` en 19,9 KB, y por eso la documentación salió a un mapa propio.
+
+
 ### Las DIECISIETE correcciones de la verificación — «AJ2» (2026-10-23)
 
 - **Son VEINTIÚN commits.** Al **empezar**, `main` y `origin/main` estaban los dos en **`2b9f3ef`**

@@ -1372,6 +1372,51 @@ window.__Z = {
     process.stderr.write('[maq] listo\n');
   }
 
+  /* == GRUPO t38 — VERIFICACION 3: EL CASO SIN AORTOPATIA CONSERVA SUS UMBRALES ==============
+     56 mm y 46 mm con cirugia valvular prevista, que es lo que la orden pide comprobar «como
+     hoy». La Tabla 38 exige ADEMAS riesgo quirurgico bajo en la fila de 45 mm, asi que se mide
+     con el riesgo puesto y, como control, sin el. */
+  if (corre('t38')) {
+    const r = { escenas: {} };
+    const T = {
+      sinAo56:      { sexo:'M', peso:'80', talla:'180', ao_sin:'56' },
+      sinAo46cx:    { sexo:'M', peso:'80', talla:'180', ao_sin:'46',
+                      vab_cx_valvular:'si', vab_riesgo_qx:'si' },
+      sinAo46sinRq: { sexo:'M', peso:'80', talla:'180', ao_sin:'46', vab_cx_valvular:'si' }
+    };
+    try {
+      for (const k of Object.keys(T)) {
+        await ev(`window.__P.nuevo()`); await ev(`window.__P.despejar()`);
+        await ev(`window.__Z.sembrar(${JSON.stringify(T[k])})`, 40000);
+        /* ⚠️ HAY QUE CONTESTAR «sin aortopatía conocida» ANTES DE LEER. El motor de aorta
+           DERIVA la aortopatia del sindrome, de la morfologia o de la coartacion, y cuando no
+           hay ninguna la PREGUNTA: sin la respuesta el bloque publica «Falta la aortopatía
+           asociada» y las filas de la Tabla 38 no existen. Medir sin contestar daria «la Tabla
+           38 desaparecio» sobre un panel que esta esperando una respuesta.
+           ⚠️ Y SE CONTESTA EN LA MISMA APERTURA EN QUE SE LEE: `indicAbrir()` llama a
+           `_indClinLimpiar()` SIEMPRE, asi que dos aperturas seguidas borran la primera. */
+        r.escenas[k] = await ev(`(function(){
+          try { indicAbrir() } catch (e) { return 'SIN PANEL: ' + e.message }
+          var c = document.getElementById('indic-cuerpo');
+          var b = c && c.querySelector('[data-ind-clin="ao.aortopatia"][data-ind-val="ninguna"]');
+          if (!b) return 'NO HAY BOTON DE AORTOPATIA';
+          b.click();
+          var L = (typeof IND_SECS !== 'undefined') ? IND_SECS : null; if (!L) return 'SIN IND_SECS';
+          var s = L.filter(function(x){ return String(x.tit).indexOf('Aorta tor') > -1 })[0];
+          if (!s) return 'NO EXISTE'; var q = null;
+          try { q = s.fn() } catch (e) { return 'EXC: ' + e.message }
+          if (!q) return null;
+          var o = [];
+          (q.bloques || []).forEach(function(b2){ (b2.lineas || []).forEach(function(l){
+            o.push((b2.tit || '') + ' :: ' + (typeof l === 'string' ? l : l.txt)) }) });
+          return o })()`, 40000);
+      }
+      r.errores = await ev(`window.__Z.errores()`);
+    } catch (e) { r.err = e.message; }
+    out.grupos.t38 = r;
+    process.stderr.write('[t38] listo\n');
+  }
+
   OUT.md5Fin = await md5(EXTERNO ? FARG : join(RAIZ, FILE));
   process.stdout.write(JSON.stringify(OUT, null, 1));
   cdp.close(); srv.close(); process.exit(0);

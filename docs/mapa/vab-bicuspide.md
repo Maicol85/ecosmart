@@ -557,3 +557,17 @@ pasa todo cambio de pastilla, censadas sus cinco entradas—, acotado a la aórt
 **Dónde está todo:** `docs/mapa/tanda-r2-correcciones.md`, sección 2 (el censo de las cinco
 entradas, por qué la condición no puede llamar a `vabSync` a mano y por qué el estado se captura
 dentro de cada escena).
+
+---
+
+## Puntero — la tanda «AJ4» (2026-10-23)
+
+- **El aviso de la coartación de esta sección dejó de ser estático.** Con la coartación cargada en
+  COAO dice «Coartación de aorta cargada (sección COAO)», en gris; sin ella queda como estaba, en
+  ámbar. Y la sección de coartación gana el espejo: «Válvula aórtica bicúspide presente
+  (Válvulas)». Un solo pintor para los dos, `vabCoaCruceSync()`.
+- **`vabConclusion` dejó de tener el 40 escrito a mano**: su rama `dilatacion_leve` pregunta por
+  `aoDilCorte(src)`, así que en una mujer arranca en 36. **La clave no se movió** —el Laboratorio
+  cuenta por clave— y no se migra ningún estudio guardado.
+
+Detalle en **`docs/mapa/aj4-raiz-aortica.md`** § 2, § 5 y § 6.

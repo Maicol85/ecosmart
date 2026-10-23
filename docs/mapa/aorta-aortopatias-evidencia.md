@@ -388,3 +388,26 @@ commits, sus dependencias y las doce trampas. En una línea, lo que toca acá:
   punto decimal intacto.
 - **Aorta**: `aoSegGrado` devuelve un solo grado, `'dilatada'`, **y el corte no se movió**.
 - **Diastólica**: la frase de «no clasificable» describe en vez de pedir un campo.
+
+---
+
+## Puntero — la tanda «AJ4» (2026-10-23)
+
+El **criterio único de dilatación de la RAÍZ** —40 mm en el varón, 36 en la mujer con el valor
+incluido, o el índice de dimensión aórtica por encima de 22 mm/m²— dejó de ser sólo de este panel:
+desde el AJ4-1 lo aplican también la pantalla, el informe, el EN SUMA, el ⓘ, Referencias y el PDF,
+por un dueño único (`aoSegRef` / `aoSegIda` / `aoSegDil`). `_indAo` y `_indVAB` **no cambiaron**:
+ya lo aplicaban.
+
+Lo que sí cambió de este panel: las cuatro recomendaciones de `_indVAB` pasaron al bloque
+**visible**, dos notas se reescribieron en tono neutro, el texto que el panel decía dos veces se
+retiró y `_indAo` gana el aviso de Turner con sexo masculino.
+
+⚠️ **`aoIdaVal()` DE ESTA SECCIÓN Y `aoSegIda()` DE LA RAÍZ NO SON EL MISMO NÚMERO**, y es
+deliberado: aquél indexa el **mayor** de los cuatro campos porque decide si la sección se abre, y
+éste indexa la **raíz** porque decide el grado de la raíz. Declarado en `docs/PENDIENTES.md` →
+**AJ4-a**.
+
+Detalle, mediciones y las cinco trampas en **`docs/mapa/aj4-raiz-aortica.md`**; las fuentes con sus
+folios —incluida la **Figura 5**, que da otro número para la mujer— en `docs/fuentes/FUENTES.md` →
+«La tanda AJ4».

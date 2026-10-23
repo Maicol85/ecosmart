@@ -6995,3 +6995,148 @@ antes del culpable.
 sobre cada archivo tocado. Y ojo con quitarlos en lote: un `replace('`','')` sobre el bloque del
 caso **se lleva también el acento grave que ABRE el template**, y el error que sale después apunta
 al `return` de la primera línea.
+
+---
+
+## Tanda AJ4 · la aorta integrada (2026-10-23) — DECLARADO y NO arreglado
+
+### AJ4-a · El índice de dimensión aórtica existe TRES veces y las tres son distintas
+
+**Qué se encontró.** Después del AJ4-1 la aplicación tiene **tres** magnitudes que se llaman
+«índice» sobre la aorta, y ninguna es la otra:
+
+| Cuál | Qué divide | Quién lo usa |
+|---|---|---|
+| `aoSegIda(sg, x, src)` — **nuevo del AJ4-1** | el diámetro **de la raíz** sobre la superficie corporal | el grado de la raíz en pantalla, informe, EN SUMA y PDF |
+| `aoIdaVal()` — del AJ1-E4 | el **mayor** de raíz, ascendente y los dos campos del módulo de aortopatía, sobre la superficie corporal | la apertura de la sección de aorta del panel de Evidencia y su fila del iDA |
+| `marfan_ita` — campo que el médico tipea | el **iDA ascendente** de la Tabla 57, que es lo que la guía pide en el síndrome de Turner | los dos cortes de Turner (23 y 25 mm/m²) en `marfanEstado` |
+
+**Qué puede causar.** Los tres coinciden en el paciente común —raíz mayor que ascendente, sin
+módulo de aortopatía cargado— y **divergen justo en el paciente que los necesita**: con la
+ascendente mayor que la raíz, el panel puede abrir por índice mientras la cápsula de la raíz dice
+normal. Eso es **correcto** —la dilatada es la ascendente— pero se lee como una contradicción, y
+nada en la pantalla explica que son dos preguntas distintas.
+
+**Cómo se corrige.** No se unifican: cada uno contesta otra cosa y la guía los publica por
+separado (el iDA del apartado 9.2.1.1 es de la raíz, el de la Tabla 57 es ascendente). Lo que falta
+es que la fila del iDA del panel **diga qué diámetro está indexando**, y que `marfan_ita` se rotule
+«iDA ascendente» en vez de «Índice de tamaño aórtico». Las dos son texto clínico: decisión de
+Maicol.
+
+---
+
+### AJ4-b · La ESC 2024 da DOS cortes para la raíz de la mujer, 36 y 34 mm
+
+**Qué se encontró.** El apartado 9.2.1.1 (folio 71) y la Figura 24 (folio 76) dicen **36 mm**. La
+**Figura 5 (folio 28)** del mismo documento, «valores en el límite superior de la normalidad»,
+imprime para el seno de Valsalva **40 mm en el varón y 34 mm en la mujer**. Verificado
+**renderizando la figura**: por texto extraído sus dieciséis números salen sin emparejar.
+
+**Qué puede causar.** Entre 34 y 35,9 mm la aplicación llama normal a una raíz que la Figura 5 de
+su propia fuente ya cuenta por encima del límite de normalidad.
+
+**Cómo se corrige.** La orden de esta tanda fija 36 citando las dos primeras, y eso es lo que se
+aplica. Mover el corte a 34 es contenido clínico: decisión de Maicol. Queda registrado en
+`docs/fuentes/FUENTES.md` → «La tanda AJ4» y en el `valor` de la ficha `AOR-004`.
+
+---
+
+### AJ4-c · Los cortes de los otros cuatro segmentos: uno coincide, tres no
+
+**Qué se encontró.** La orden decía «verificá su fuente en la biblioteca y reportá». No hay fuente
+que los publique con esos valores. La nota del Laboratorio los atribuía a la **«ESC 2021»** y **ese
+documento no existe en la biblioteca** —censada entera, las tres guías de 2021 son de insuficiencia
+cardíaca, de amiloidosis y de prevención del ictus—. Contra la **Figura 5 de la ESC 2024**, que es
+el único sitio que publica límites por segmento y **por sexo**:
+
+| Segmento | La app | La Figura 5 (varón / mujer) |
+|---|---|---|
+| Unión sinotubular | > 38 mm | 38 / **33** |
+| Aorta ascendente | > 40 mm | 40 / **36** |
+| Cayado | > 40 mm | **37 / 34** (arco proximal) |
+| Aorta torácica descendente | > 35 mm | **29 / 26** proximal · **23 / 20** distal |
+
+**Qué puede causar.** En la mujer, los cuatro cortes de la app son **más altos** que el límite que
+su propia fuente publica, así que la app calla dilataciones que esa figura marcaría. Y la
+descendente no tiene un solo valor: la guía la parte en dos tramos y la app la mide como uno.
+
+**Cómo se corrige.** Esta orden prohíbe tocarlos. Lo único que se hizo es retirar la atribución
+falsa a la «ESC 2021». Alinearlos —y, en la descendente, decidir si se parte en dos tramos— es
+contenido clínico: decisión de Maicol.
+
+---
+
+### AJ4-d · `ao_sin` y `marfan_ao_seno` siguen siendo dos entradas del mismo diámetro
+
+**Qué se encontró.** Es la deuda **G1-11**, que esta tanda vuelve a tocar: el módulo de aortopatía
+hereditaria tiene sus propios `marfan_ao_seno` y `marfan_ao_ascendente`, que son una segunda copia
+de `ao_sin` y `ao_tub`. El AJ4-1 no los unificó porque no estaba autorizado a hacerlo.
+
+**Qué puede causar.** El nuevo criterio de la raíz actúa sobre `ao_sin`; `marfanEstado` decide con
+`marfan_ao_seno`. Un paciente con los dos cargados y distintos tiene dos verdades sobre su raíz en
+el mismo estudio. Y es lo que bloquea el ítem **AJ4-3**: su paréntesis —«Síndrome de Turner (raíz
+aórtica 38 mm; …)»— tendría que publicar **cuál** de los dos.
+
+---
+
+### AJ4-e · Los cuatro insumos que la Evidencia lee de la pantalla, y los que no
+
+**Qué se encontró (inventario del AJ4-0).** La sección de aorta del panel lee de la sección VAB
+`vab_cx_valvular`, `vab_fr_crecimiento`, `vab_fr_familiar` y `vab_riesgo_qx`, **en un solo
+sentido**. Y **pregunta de nuevo** dos cosas que la pantalla ya tiene:
+
+| La Evidencia pregunta | La pantalla ya lo tiene | Por qué no se unificó |
+|---|---|---|
+| «Deseo de embarazo» (`ao.embarazo`, tres estados) | `vab_fr_embarazo` (casilla: marcada o nada) | **La casilla no distingue «no» de «no consta»** y la pregunta del panel sí. Unificarlas convierte un «no contestado» en un «no», que es la dirección peligrosa |
+| «Otra cirugía cardíaca prevista» (`ao.cxotra`, tres estados) | `vab_fr_cx` (casilla) | idem |
+| «Hipertensión resistente» (fila clínica, sin control) | `vab_fr_hta` (casilla) | la fila clínica es de SOLO LECTURA y no se puede contestar |
+| «Longitud de la aorta ascendente» (fila clínica, sin control) | `vab_fr_longitud` (casilla) | idem |
+
+**Qué puede causar.** `S.nFact` del motor de aorta cuenta **tres** factores (crecimiento, familiar
+y embarazo) y la Tabla 38 tiene **ocho**: un paciente cuyo único factor marcado sea la hipertensión
+resistente o la longitud **no dispara** la fila Clase IIb · Nivel B que le corresponde.
+
+**Cómo se corrige.** Es lo que el ítem **AJ4-5** llama «cada pregunta una sola vez» y es lo que
+esta tanda **no** hizo: la orden misma dice «si un dato tiene estados distintos y no hay forma
+limpia de unificarlo, no inventes: dejá ambos y reportá el conflicto». El conflicto es el de la
+tabla de arriba. La salida limpia es que las seis casillas `vab_fr_*` pasen a **tres estados**
+—Sí / No / No consta—, que es un cambio de interfaz y de vocabulario de Excel: decisión de Maicol.
+
+---
+
+### AJ4-f · Lo que esta tanda NO hizo: AJ4-3, AJ4-6 y la fusión de AJ4-5
+
+**Qué se encontró.** Los tres ítems reescriben lo que dice un informe **firmado** o la arquitectura
+del panel, y los tres dependen de decisiones que el inventario del AJ4-0 recién destapó:
+
+- **AJ4-3** (el bloque único de aorta en informe y EN SUMA) necesita: cuál de los tres índices se
+  publica entre paréntesis (**AJ4-a**), cuál de los dos diámetros de la raíz (**AJ4-d**), y que se
+  confirme que la aortopatía hereditaria pierde del papel firmado su umbral, su clase y su folio
+  —hoy el EN SUMA publica «indicación quirúrgica Clase I»—, que es lo que la regla de la orden
+  pide pero no está escrito como ítem.
+  **Medido y verificado para cuando se haga:** la guía indexa **sólo Turner**; Marfan y
+  Loeys-Dietz son absolutos (ver `docs/fuentes/FUENTES.md` → «La tanda AJ4»). O sea que el «si la
+  guía lo confirma, Loeys-Dietz» del ítem **se resuelve que NO**.
+- **AJ4-6** (el PDF) depende de AJ4-3: su hoja «COARTACION DE AORTA» es el mismo texto que el
+  párrafo del informe, así que recién se puede desduplicar cuando ese párrafo se mueva.
+- **La fusión de los cuatro paneles de Evidencia en uno** (resto de AJ4-5) depende de **AJ4-e**, y
+  además toca `IND_SECS`, la numeración de citas por sección y la regla de que ningún título sea
+  prefijo de otro — con TC-322 y TC-512 midiendo las dos cosas.
+
+**Lo que SÍ se hizo de AJ4-5** está en el commit `1ba0cee`: las cuatro recomendaciones de la VAB a
+la vista, el tono neutro, el texto que el panel decía dos veces y el aviso de Turner.
+
+---
+
+### AJ4-g · `check_backticks.py` dejó pasar DOS acentos graves más
+
+**Qué se encontró.** Uno dentro de un `evCrudo` suelto de la sonda nueva —que el script no
+alcanza, como ya declaró **AJ3-h**— y uno dentro del cuerpo de `TC-521` escrito antes de que el
+caso existiera en el archivo.
+
+**Qué puede causar.** El `SyntaxError` apunta a la **apertura** del template, decenas de líneas
+antes del culpable: la primera vez señaló el `caso('TC-494'` y el culpable estaba 260 líneas más
+abajo.
+
+**Cómo se corrige.** Correr **los dos**, siempre: `python3 scripts/check_backticks.py` **y**
+`node --check`, y en ese orden — `node --check` sin el otro no dice dónde está.

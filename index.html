@@ -43632,6 +43632,20 @@ function evTarjetaAo() {
     'Dilatación en EcoSmart: ' + AO_DIL_MM.M + ' mm o más en el varón y ' + AO_DIL_MM.F + ' mm o más en la mujer. '
     + 'Son los valores con los que la ESC 2024 define la aorta dilatada (apartado 9.2.1.1, folio 71; Figura 24, folio 76).',
     { 'data-ev-cat': 'ao-corte' }));
+  /* ⚠️ LA CATEGORÍA DE ESTE PACIENTE, Y SÓLO CUANDO EXISTE (AJ4-2). El texto aprobado es la
+     lectura de la tarjeta con el formulario VACÍO, así que no puede decir si esta línea tenía
+     que irse: con el formulario vacío `_evCapsula` devuelve cadena vacía y la línea no se emite,
+     o sea que el texto aprobado sale IDÉNTICO con ella y sin ella. Lo que sí se midió es el
+     precio de sacarla: sin esta línea, y SIN EDAD CARGADA —que es el caso corriente—, la tarjeta
+     entera deja de decir una palabra sobre este paciente. Lo cazó TC-501, que mide justamente
+     que las cuatro tarjetas se muevan con el dato. Se conserva, se declara, y queda para la
+     decisión de Maicol.
+     ⚠️ NO SE REESCRIBE LA CATEGORÍA: se COPIA del texto que la cápsula de pantalla acaba de
+     publicar. Es la regla de `_evCapsula`, y es lo que impide que el globo y la cápsula digan
+     dos cosas del mismo número. */
+  const cap = _evCapsula('ao-interp');
+  if (cap) fr.appendChild(_evDiv('ev-cat', 'En este paciente: ' + cap + '.',
+    { 'data-ev-cat': 'ao-cat' }));
   /* (3) La aclaracion, siempre. */
   fr.appendChild(_evDiv('ev-cat', 'Es una orientación: el criterio final es individual (edad, sexo, superficie corporal).',
     { 'data-ev-cat': 'ao-aclara' }));
@@ -130339,8 +130353,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261023-1524';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1792779870599;                 /* eco-build-ms */
+const ECO_BUILD    = '20261023-2024';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1792797850697;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -130426,7 +130440,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261023-1524</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261023-2024</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

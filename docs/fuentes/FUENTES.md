@@ -5507,3 +5507,84 @@ ninguno para sus pasos. La leyenda que lo dice ya existía en la sección y no s
    dependen del flujo (Normal → otras causas; Not conclusive → invasivo; Abnormal → confirmado →
    etiología) **sólo** se pueden verificar renderizando la página. Es la misma trampa que este
    archivo ya tenía escrita para Baumgartner 2009 y Wilkins 1988.
+
+---
+
+## La tanda AJ4 — el criterio único de dilatación de la raíz aórtica (2026-10-23)
+
+**Documento:** ESC 2024 de enfermedad arterial periférica y aórtica (Mazzolai L y cols.), edición
+en español de la Sociedad Española de Cardiología.
+**Ruta:** `~/Desktop/EcoSmart_Biblioteca_Fuentes/06_Aorta/Mazzolai_2024_Aorta.pdf`, 199 páginas.
+**Regla de folio, ya comprobada en once encabezados impresos:** folio = hoja del PDF **− 1**.
+
+⚠️ **ES LA TRADUCCIÓN DE LA SEC Y ES LA ÚNICA QUE HAY EN LA BIBLIOTECA PARA ESTE DOCUMENTO.**
+Censada la carpeta `06_Aorta` entera: no hay original inglés. Este archivo ya tiene escrito que la
+traducción de la SEC de la ESC/EACTS 2025 **se comió una palabra** de una nota al pie y dio vuelta
+un hallazgo entero. Lo que se cita acá está leído de la española; cuando aparezca el inglés hay que
+re-comprobar los tres números de abajo antes de moverlos.
+
+### Lo verificado y APLICADO
+
+| Dato | Dónde | Cómo se leyó |
+|---|---|---|
+| «se puede sospechar de dilatación de la raíz aórtica cuando el diámetro aórtico es **> 40 mm en hombres adultos y > 36 mm en mujeres** o con un diámetro indexado/ASC [índice de dimensión aórtica (iDA)] **> 22 mm/m2**» | **apartado 9.2.1.1, folio 71** (hoja 72) | texto extraído, literal |
+| La dilatación se define, antes que eso, como un diámetro **mayor a 2 desviaciones estándar** del previsto por edad, sexo y tamaño corporal (puntuación z > 2); «en valores extremos de ASC o edad se recomienda el uso de la escala Z» | **mismo apartado y folio** | texto extraído |
+| El primer escalón de la Figura 24 bracketea la banda con el valor **INCLUIDO**: «40-44 mm», nota ^a «36-44 mm en mujeres» | **Figura 24, folio 76** (hoja 77) | verificado en el trabajo «H» |
+| **Tabla 38** (aorta con válvula tricúspide): 55 mm o más → **Clase I · Nivel B**; tubular por encima de 52 mm con riesgo bajo → **IIa · B**; **45 mm o más** en quien se opera de la válvula aórtica, **con riesgo quirúrgico bajo** → **IIa · B**; 50 mm o más con cirugía cardíaca no valvular aórtica → **IIa · C**; 50 mm o más con riesgo bajo y uno de **ocho** factores → **IIb · B** | **folio 80** (hoja 81) | texto extraído, releída entera en esta tanda |
+| **Tabla 68** (aortopatía de la válvula bicúspide), sus **diez** filas: ETT al diagnosticar la VAB (I·B); cirugía con 55 mm o más (I·B); cirugía del fenotipo de raíz con 50 mm o más (I·B); TC o RM de toda la aorta torácica al inicio, ante discrepancias o por encima de 45 mm (I·C); cribado de familiares de primer grado con fenotipo de raíz o IAo aislada (I·C); seguimiento por ETT al año y después cada 2-3 años con el diámetro máximo **> 40 mm** sin indicación de cirugía o tras cirugía valvular aislada (I·C); cribado de familiares de **todos** los pacientes con VAB (IIa·B); fenotipo ascendente por encima de 52 mm con riesgo bajo (IIa·B); fenotipo ascendente con 50 mm o más, riesgo bajo y uno de **nueve** factores (IIa·C); **reemplazo de la aorta en el mismo acto** con raíz o ascendente de 45 mm o más en quien se opera de la válvula aórtica (IIa·C) | **folio 119** (hoja 120) | texto extraído, releída entera en esta tanda |
+| **Turner INDEXA y lo recomienda con Clase I**: «se recomienda el uso del **iDA ascendente** […], el **iAA** […] o la **escala Z** aórtica para definir el grado de dilatación aórtica», y fijar los intervalos de seguimiento por el riesgo estimado basado en el iDA ascendente | **Recomendaciones-tabla 57, folio 111** (hoja 112) | texto extraído |
+| **Marfan NO indexa**: sus tres cortes de la Tabla 62 son diámetros absolutos (50 mm, 45 mm con factores, 50 mm en los otros segmentos), y los de la Tabla 63 del embarazo también (más de 45 mm, y 40-45 mm) | **folio 114** (hoja 115) | texto extraído |
+| **Loeys-Dietz NO indexa**: la Tabla 66 da «superior a 45 mm» (IIa·C) y «adaptar el umbral al gen» (IIb·C), y el cuerpo del apartado escribe «un umbral de diámetro aórtico de 45 mm (≥ 40 mm en caso de características de riesgo alto asociadas)». El **tamaño corporal pequeño** entra como una característica de riesgo alto **cualitativa** —nota ^c: «mujeres con variantes del TGFBR2 y pequeño tamaño corporal»—, no como un índice | **folio 116** (hoja 117) | texto extraído |
+
+### ⚠️ LA MISMA GUÍA DA OTRO NÚMERO PARA LA MUJER, Y NO SE APLICA
+
+**Figura 5, folio 28 (hoja 29)** — «Anatomía y segmentos aórticos y **valores en el límite superior
+de la normalidad** de las dimensiones aórticas». Su recuadro imprime, por sexo:
+
+| Segmento | Varón | Mujer |
+|---|---|---|
+| **Seno de Valsalva** (con «**< 22 mm/m²**» al lado) | **40 mm** | **34 mm** |
+| Unión sinotubular | 38 mm | 33 mm |
+| Aorta ascendente | 40 mm | 36 mm |
+| Arco aórtico proximal | 37 mm | 34 mm |
+| Aorta descendente proximal | 29 mm | 26 mm |
+| Aorta descendente distal | 23 mm | 20 mm |
+| Aorta abdominal | 23 mm | 19 mm |
+
+**RENDERIZADA EN IMAGEN a 300 y a 500 ppp.** El texto extraído de esa página trae los dieciséis
+números y las once etiquetas **mezclados**, sin el emparejamiento: por texto es imposible saber
+qué número va con qué segmento. Es la misma trampa que este archivo ya tiene escrita para
+Baumgartner 2009 y Wilkins 1988.
+
+**Para el seno de Valsalva la guía se contradice consigo misma**: 36 mm en el apartado 9.2.1.1 y en
+la Figura 24, **34 mm** en la Figura 5. La aplicación usa **36**, que es lo que la orden de Maicol
+fija citando las dos primeras. La discrepancia queda acá, en la ficha `AOR-004` y en
+`docs/PENDIENTES.md` → **AJ4-b**.
+
+**El «< 22 mm/m²» impreso pegado al seno de Valsalva** es lo que respalda que el índice se aplique
+al segmento RAÍZ y se calcule con el diámetro de la raíz, que es la decisión del AJ4-1.
+
+### Lo verificado que DESMIENTE a la aplicación — reportado y NO corregido
+
+- **Los cuatro cortes de los segmentos distintos de la raíz no tienen el respaldo que la app les
+  atribuía.** La nota del Laboratorio decía «el mismo corte **(ESC 2021)** que marca el informe», y
+  **en la biblioteca no hay ninguna guía de aorta de 2021**: censada entera, las tres de ese año
+  son de insuficiencia cardíaca, de amiloidosis y de prevención del ictus. La atribución se retiró
+  (AJ4-1). Contra la Figura 5, que es el único sitio de la biblioteca que publica límites por
+  segmento: la **unión sinotubular** coincide con el varón (38) y no con la mujer (33); la
+  **ascendente** coincide con el varón (40) y no con la mujer (36); el **cayado** de la app (> 40)
+  **no coincide** con el arco proximal de la figura (37 / 34); y la **descendente** de la app
+  (> 35) **no coincide** con ninguno de los dos tramos que la figura publica (29/26 proximal y
+  23/20 distal). **No se movió ni un número**: son contenido clínico. → `PENDIENTES.md` **AJ4-c**.
+
+### Dónde quedó la historia que salió de la pantalla
+
+- **La nota de las «dos maneras»** del globo de la aorta —que el apartado 9.2.1.1 escribe «más de»
+  y la Figura 24 bracketea el valor, y que la app aplica el inclusivo— salió de la tarjeta ⓘ en el
+  **AJ4-2** y vive en la primera tabla de esta sección y en el `valor` de la ficha `AOR-004`.
+- **La comparación entre ediciones** de la ESC —que los dos umbrales de 50 mm con factores y de
+  45 mm con recambio valvular programado eran Clase I en la edición de 2014 y hoy son **IIa · C**—
+  salió de las notas del panel en el **AJ4-5** y vive acá. Lo que el panel publica es lo que la
+  **edición vigente** clasifica, con su clase, su nivel y su folio. **La edición de 2014 NO está en
+  la biblioteca**, así que lo de «eran Clase I en 2014» queda registrado como lo que la app decía y
+  **no se cita**: lo verificado es la clasificación de hoy, en la Tabla 68 del folio 119.
