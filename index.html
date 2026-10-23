@@ -14429,7 +14429,7 @@ z
           <select id="ao_movilidad_placa" onchange="calcAteroAo()">
             <option value="">—</option>
             <option value="fija">Fija</option>
-            <option value="movil">Móvil — alto riesgo embólico</option>
+            <option value="movil">Móvil</option>
           </select>
         </div>
         <div class="fg"><label>Ulceración</label>
@@ -18613,13 +18613,24 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
     </h2>
     <div id="ref-ao" style="display:none;" class="card-body">
       <table style="width:100%;border-collapse:collapse;font-size:12px;">
-        <tr style="background:var(--section-head);"><th style="padding:6px 8px;text-align:center;color:var(--accent2);">Grado</th><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Descripción</th><th style="padding:6px 8px;text-align:center;color:var(--accent2);">Riesgo embólico</th></tr>
-        <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;text-align:center;font-weight:700;">1</td><td style="padding:5px 8px;">Íntima normal</td><td style="padding:5px 8px;text-align:center;color:#3ecf8e;">Mínimo</td></tr>
-        <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;text-align:center;font-weight:700;">2</td><td style="padding:5px 8px;">Engrosamiento mínimo sin protrusiones</td><td style="padding:5px 8px;text-align:center;color:#3ecf8e;">Bajo</td></tr>
-        <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;text-align:center;font-weight:700;">3</td><td style="padding:5px 8px;">Ateroma de 3 a 5 mm</td><td style="padding:5px 8px;text-align:center;color:#f5c842;">Moderado</td></tr>
-        <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;text-align:center;font-weight:700;">4</td><td style="padding:5px 8px;">Ateroma de más de 5 mm</td><td style="padding:5px 8px;text-align:center;color:#f05454;">Alto</td></tr>
-        <tr><td style="padding:5px 8px;text-align:center;font-weight:700;color:#f05454;">5</td><td style="padding:5px 8px;">Protrusiones móviles, cualquier tamaño</td><td style="padding:5px 8px;text-align:center;color:#f05454;font-weight:700;">Muy alto</td></tr>
-      </table>
+        <!-- ⚠️ LA COLUMNA «RIESGO EMBOLICO» SE RETIRO (AJ2-7a, 23/10/2026). Publicaba
+             Minimo/Bajo/Moderado/Alto/Muy alto POR GRADO, y la fuente verificada de esta
+             escala —Nicoara, ASE/SCA 2020, folio 716 (pie impreso «716 Nicoara et al»)—
+             publica los grados por ESPESOR CRECIENTE y las limitaciones de la medicion por
+             ETE («highly subjective»), y NO publica ningun riesgo embolico por grado.
+             Es la misma afirmacion que se retiro de la capsula y del informe; esta tabla
+             de Referencias era la tercera superficie y se habia quedado atras. -->
+        <tr style="background:var(--section-head);"><th style="padding:6px 8px;text-align:center;color:var(--accent2);">Grado</th><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Descripción</th></tr>
+        
+        <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;text-align:center;font-weight:700;">1</td><td style="padding:5px 8px;">Íntima normal</td></tr>
+        
+        <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;text-align:center;font-weight:700;">2</td><td style="padding:5px 8px;">Engrosamiento mínimo sin protrusiones</td></tr>
+        
+        <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;text-align:center;font-weight:700;">3</td><td style="padding:5px 8px;">Ateroma de 3 a 5 mm</td></tr>
+        
+        <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;text-align:center;font-weight:700;">4</td><td style="padding:5px 8px;">Ateroma de más de 5 mm</td></tr>
+        
+        <tr><td style="padding:5px 8px;text-align:center;font-weight:700;color:#f05454;">5</td><td style="padding:5px 8px;">Protrusiones móviles, cualquier tamaño</td></tr></table>
       <!-- ⚠️ ESTE RENGLON PUBLICABA CUATRO UMBRALES QUIRURGICOS TIPEADOS Y TRES ESTABAN MAL
            contra las tablas de recomendaciones de la guia que el mismo renglon citaba
            (ESC 2024): decia «≥50mm con bicuspide» sin distinguir el fenotipo —en la VAB el ≥50
@@ -84181,8 +84192,15 @@ function calcAteroAo() {
          ulcerados», así que con la placa móvil consignada el hallazgo YA es el del grado 5: la
          frase lo dice en vez de pedir que se lo «considere». */
       if (movilidad === 'movil' && parseInt(grado) < 5) {
+        /* La escala de Nicoara define el grado 5 como «cualquier espesor con componentes moviles
+           o ulcerados», asi que con la placa movil consignada el hallazgo YA es el del grado 5. */
         rec += ' Con componentes móviles, la escala de Nicoara clasifica el ateroma como grado 5 con independencia del espesor.';
-        riesgoEl.innerHTML = badge('red','Muy alto — placa móvil');
+        /* ⚠️ ACA SE VOLVIA A ESCRIBIR EL RIESGO EMBOLICO (AJ2-7a lo dejo vivo y la MIRADA de una
+           captura lo destapo): la fila esta en display:none, asi que en PANTALLA no se veia, pero
+           `_amTxt` lee el textContent igual y la hoja del PDF publicaba «Riesgo embólico | Muy
+           alto — placa móvil» en el papel FIRMADO. Lo que esa linea decia ya lo dice la frase de
+           arriba, que nombra el grado 5 de la escala. El span queda VACIO. */
+        if (riesgoEl) riesgoEl.textContent = '';
       }
       recEl.textContent = rec;
     }
@@ -84191,9 +84209,13 @@ function calcAteroAo() {
        así que dejarla colgada tras volver a vacío es peor que antes. */
     /* `ao-atero-grosor` NO entra en este barrido: lo pinta su propio bloque de arriba, que es
        independiente del desplegable. */
-    ['ao-atero-desc','ao-riesgo-embol','ao-recomendacion'].forEach(id => {
+    ['ao-atero-desc','ao-recomendacion'].forEach(id => {
       const el = document.getElementById(id); if (el) el.textContent = '—';
     });
+    /* ⚠️ `ao-riesgo-embol` VA VACIO Y NO CON UNA RAYA (AJ2-7a): la hoja del PDF hace
+       `if (r) L.push('Riesgo embólico | ' + r)` y la raya es TRUTHY, asi que el papel publicaba
+       el rotulo de algo que esta app ya no evalua. */
+    { const el = document.getElementById('ao-riesgo-embol'); if (el) el.textContent = ''; }
   }
 }
 
@@ -88789,7 +88811,9 @@ function amiloTextoAortaETE() {
   if (d || r || rec) {
     L.push('## Valoración');
     if (d)   L.push('Descripción | ' + d);
-    if (r)   L.push('Riesgo embólico | ' + r);
+    /* ⚠️ LA LINEA DEL RIESGO EMBOLICO SE RETIRA (AJ2-7a). `r` se conserva leido porque el
+       span sigue existiendo —lo barre `limpiarCampos`— pero NO se publica: la escala de Nicoara
+       (folio 716) no gradua un riesgo embolico, y esta hoja era la superficie FIRMADA. */
     if (rec) L.push(rec);
   }
   const notas = _amV('ao_ete_notas'); if (notas) L.push(notas);
@@ -129779,8 +129803,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261022-1638';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1792697913626;                 /* eco-build-ms */
+const ECO_BUILD    = '20261023-1316';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1792772208499;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -129866,7 +129890,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261022-1638</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261023-1316</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

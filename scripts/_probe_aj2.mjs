@@ -2193,6 +2193,48 @@ window.__Z = {
     process.stderr.write('[tepmaq] listo\n');
   }
 
+  /* == GRUPO ctrl — EL A/B DE CONTROL ==========================================================
+     Un estudio SIN ninguno de los modulos que esta tanda toca tiene que dar informe, EN SUMA,
+     PDF y Excel IDENTICOS. Dos escenas:
+       vacio - el formulario recien limpiado.
+       ajeno - cargado en zonas que AJ2 no toca (valvulas, diastolica, AI/VI, VD) y con CERO
+               datos de HTP, TEP, HF-PEFF, eco pulmonar, ateroma, coartacion, orejuela, aorta
+               dilatada, reparabilidad, tricuspide y Wilkins. Sin esta escena, «0 diferencias»
+               lo cumple tambien una app que no emite nada.
+     Las SEIS superficies, una por una: informe en los tres estilos, EN SUMA en los tres, Excel
+     con su cuenta de columnas, los campos del estudio con su hash, y el PDF GENERADO DE VERDAD. */
+  if (corre('ctrl')) {
+    const r = {};
+    try {
+      await ev(`window.__P.nuevo()`); await ev(`window.__P.despejar()`);
+      r.vacio = {
+        salida: await ev(`window.__Y.salida()`, 40000),
+        campos: await ev(`window.__Y.campos()`),
+        excelN: await ev(`window.__Y.excelN()`),
+        pdf:    await ev(`(function(){ var p = window.__P.pdf(); return { err:p.err, nTextos:p.nTextos, nFigs:p.nFigs, hash:(function(){ var t=p.textos.join(String.fromCharCode(1)), n=0; for (var i=0;i<t.length;i++) n=((n<<5)-n+t.charCodeAt(i))|0; return n })() } })()`, 60000)
+      };
+
+      await ev(`window.__P.nuevo()`); await ev(`window.__P.despejar()`);
+      const AJENO = { peso:'70', talla:'170', edad:'62', sexo:'M',
+        fevi:'45', ddfvi:'58', dsfvi:'40', siv:'12', ppvi:'11', ai_vol:'80',
+        onda_e:'90', onda_a:'60', e_sep:'5', e_lat:'7',
+        im_vc:'8', ia_vc:'3', tapse:'22', vd_bas:'38' };
+      for (const id of Object.keys(AJENO)) {
+        try { await ev(`window.__P.abrirPara('` + id + `')`); await poner(id, AJENO[id]); }
+        catch (e) {}
+      }
+      r.ajeno = {
+        salida: await ev(`window.__Y.salida()`, 40000),
+        campos: await ev(`window.__Y.campos()`),
+        excelN: await ev(`window.__Y.excelN()`),
+        pdf:    await ev(`(function(){ var p = window.__P.pdf(); return { err:p.err, nTextos:p.nTextos, nFigs:p.nFigs, hash:(function(){ var t=p.textos.join(String.fromCharCode(1)), n=0; for (var i=0;i<t.length;i++) n=((n<<5)-n+t.charCodeAt(i))|0; return n })() } })()`, 60000)
+      };
+      r.errores = await ev(`window.__Y.errores()`);
+    } catch (e) { r.err = e.message; }
+    out.grupos.ctrl = r;
+    process.stderr.write('[ctrl] listo\n');
+  }
+
   OUT.md5Fin = await md5(EXTERNO ? FARG : join(RAIZ, FILE));
   process.stdout.write(JSON.stringify(OUT, null, 1));
   cdp.close(); srv.close(); process.exit(0);

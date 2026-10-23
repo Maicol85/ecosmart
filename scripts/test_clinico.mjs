@@ -692,12 +692,17 @@ caso('TC-26', 'La masa VI se clasifica por sexo: ~100 g/m² es HVI en mujer y no
 // ═══ GRUPO 11 — Funcion diastolica ══════════════════════════════════════════════════════════
 /* Sin e' cargada el informe pide el dato en vez de clasificar. Es una compuerta, no un default:
    un «funcion diastolica normal» de fabrica seria una afirmacion sobre algo que nadie midio. */
-caso('TC-27', "Sin e' la diastolica no se clasifica, se pide el dato", `
+/* ADAPTADO el 2026-10-23 (AJ2-15): la frase pasa de «Completar e' septal y/o lateral para
+   clasificar.» —una INSTRUCCION DE INTERFAZ en un informe FIRMADO— a la descripcion del estado.
+   El caso no estaba mal escrito: describia la app de ayer. Y GANA una condicion que exige que la
+   instruccion vieja ya no este, que es lo que distingue el cambio de un borrado. */
+caso('TC-27', "Sin e' la diastolica no se clasifica, se describe el estado", `
   __t.limpiar(); __t.set('fevi','60');
   const r = __t.informe();
   return { inf: r.inf,
-    debe: ["Completar e' septal y/o lateral para clasificar."],
-    noDebe: ['Función diastólica normal', 'Disfunción diastólica'] };
+    debe: ["Función diastólica no clasificable con los datos cargados (falta e' septal o lateral)."],
+    noDebe: ['Función diastólica normal', 'Disfunción diastólica',
+             "Completar e' septal y/o lateral para clasificar."] };
 `);
 
 caso('TC-28', "Diastolica normal: e' conservada, 0/3 parametros positivos", `
@@ -5440,7 +5445,7 @@ caso('TC-54', 'VEXUS sin VCI medida: no se informa grado, ni siquiera 0', `
 
 /* TEP: con un criterio en «No evaluado» NO se emite conclusion. Un score parcial presentado
    como total es peor que no tenerlo: un 2/7 con tres sin mirar se lee como bajo riesgo. */
-caso('TC-55', 'TEP: cinco criterios positivos dan alta probabilidad; uno sin evaluar no concluye', `
+caso('TC-55', 'TEP: cinco criterios positivos dan el veredicto descriptivo; uno sin evaluar no concluye', `
   __t.limpiar();
   __t.set('tapse','14'); __t.set('vd_bas','45'); __t.set('ddfvi','40');
   __t.set('vci_diam','23'); __t.set('vci_col','<50'); __t.set('vmax_it','3.5');
@@ -5450,7 +5455,14 @@ caso('TC-55', 'TEP: cinco criterios positivos dan alta probabilidad; uno sin eva
   const interpNE = __t.txt('tep-interpretacion');
   return { extra: [
     ['score 5/5', score.indexOf('5/5') > -1],
-    ['alta probabilidad', interp.indexOf('Disfunción VD severa — alta probabilidad de TEP/HTP aguda') > -1],
+    /* ADAPTADO el 2026-10-23 (AJ2-10): el veredicto sale del dueno unico \`tepVeredicto\` y es
+       DESCRIPTIVO. «Disfunción VD severa — alta probabilidad de TEP/HTP aguda» afirmaba una
+       probabilidad DIAGNOSTICA que una ecocardiografia sola no establece, y «severa» es un grado
+       que la ESC 2019 no publica para este recuento. Con score 5 el tramo es el de >= 4.
+       GANA el control de que no vuelva ninguna de las dos cosas. */
+    ['el veredicto es descriptivo', interp.indexOf('Disfunción del VD significativa') > -1],
+    ['y no afirma probabilidad diagnostica ni grado',
+     interp.indexOf('probabilidad') === -1 && interp.toLowerCase().indexOf('severa') === -1],
     ['con uno sin evaluar no concluye', interpNE.indexOf('Completá todos los criterios') > -1],
     ['y el score se borra',             __t.txt('tep-score').indexOf('5') === -1]
   ] };
@@ -43389,7 +43401,7 @@ caso('TC-310', 'Mitral protesica: Carpentier, el mecanismo y el score de Wilkins
 
     // ── 1 · INFORME y EN SUMA, en los TRES estilos ────────────────────────────────────────
     const EST = ['conciso','estandar','narrativo'];
-    const infPorEsc = {}, sucias = [], sumaSucia = [];
+    const infPorEsc = {}, sucias = [], sumaSucia = []; let sumaNat = '';
     ESC.forEach(E => {
       EST.forEach(st => {
         sembrar(E[1]);
@@ -43399,8 +43411,15 @@ caso('TC-310', 'Mitral protesica: Carpentier, el mecanismo y el score de Wilkins
         if (st === 'estandar') infPorEsc[E[0]] = { linea: lin.join(' / '), inf: r.inf, suma: r.suma };
         const hall = MARCAS.filter(m => String(r.inf).indexOf(m) > -1);
         if (E[0][0] === 'P' && hall.length) sucias.push(E[0] + ' [' + st + '] ' + hall.join('/') + ' :: ' + lin.join(' / '));
+        /* ADAPTADO el 2026-10-23 (AJ2-12): el EN SUMA de una valvula NATIVA publica desde hoy
+           su linea del score de Wilkins —hasta ayer ese score vivia solo en el cuerpo y en la
+           hoja del PDF, asi que un ETE cuyo unico hallazgo era un 12/16 salia en el resumen como
+           «Estudio sin alteraciones…»—. Lo que esta condicion persigue es la SUPRESION con
+           PROTESIS, asi que se acota a esas escenas, igual que sucias. La nativa la cubre la
+           condicion nueva de abajo, que exige que la linea SI este. */
         const hs = MARCAS.filter(m => String(r.suma).indexOf(m) > -1);
-        if (hs.length) sumaSucia.push(E[0] + ' [' + st + '] ' + hs.join('/'));
+        if (E[0][0] === 'P' && hs.length) sumaSucia.push(E[0] + ' [' + st + '] ' + hs.join('/'));
+        if (E[0][0] === 'N' && st === 'estandar') sumaNat = String(r.suma);
       });
     });
     try { setEstiloInforme('estandar'); } catch(e) {}
@@ -43557,8 +43576,13 @@ caso('TC-310', 'Mitral protesica: Carpentier, el mecanismo y el score de Wilkins
       // ── LA SUPRESION, por las DOS puertas y en los TRES estilos ──
       ['⚠️ CERO Carpentier, mecanismo y Wilkins en el INFORME con protesis, por las dos puertas y en los tres estilos',
         sucias.length === 0, sucias.join(' | ') || '(3 escenarios x 3 estilos limpios)'],
-      ['el EN SUMA nunca los emitio, y sigue sin emitirlos',
-        sumaSucia.length === 0, sumaSucia.join(' | ') || '(4 escenarios x 3 estilos limpios)'],
+      ['con PROTESIS el EN SUMA sigue sin emitirlos, por las dos puertas y en los tres estilos',
+        sumaSucia.length === 0, sumaSucia.join(' | ') || '(3 escenarios x 3 estilos limpios)'],
+      /* DENOMINADOR de la condicion de arriba: si la nativa tampoco lo emitiera, «cero con
+         protesis» lo cumpliria tambien una app que no emite nada en ningun caso. */
+      ['DENOMINADOR: con valvula NATIVA el EN SUMA SI publica su linea del Wilkins (AJ2-12)',
+        sumaNat.indexOf('Score de Wilkins') > -1 && /Score de Wilkins \\d+\\/16/.test(sumaNat),
+        sumaNat.split(NL).filter(l => l.indexOf('Wilkins') > -1).join(' / ') || '(sin linea)'],
       ['⚠️ CERO en el PDF —las DOS implementaciones del score—, que es la superficie que se firma',
         pdfProtSucio.length === 0 && pdfProt.length > 500, pdfProtSucio.join('/') || 'limpio (' + pdfProt.length + ' car.)'],
       ['⚠️ CERO en el PPT', pptProtSucio.length === 0 && pptProt.length > 200,
@@ -73648,10 +73672,15 @@ caso('TC-492', 'Tanda M: las DIECISEIS FICHAS nuevas del registro de evidencia d
       if (x >= bSin[i].desde && x <= bSin[i].hasta) return bSin[i].k; return 'FUERA'; };
     /* ADAPTADO (VS5, 2026-10-17): decision de Maicol — en el seno de Valsalva, 40 mm EXACTOS
        cuentan como DILATADO. El corte no se movio: cambio su operador, y es el UNICO de los
-       cinco segmentos que lo hace. */
-    ex.push(['AOR-001: el seno de Valsalva corta en 40 mm y el 40 EXACTO cae del lado DILATADO',
-      bSin.length >= 3 && ag(39) === 'normal' && ag(40) === 'leve' && ag(45) === 'leve' && ag(46) === 'moderada',
-      '39/40/45/46=' + [39, 40, 45, 46].map(ag).join('/')]);
+       cinco segmentos que lo hace.
+       ADAPTADO el 2026-10-23 (AJ2-6): la aorta ya no GRADUA su dilatacion. Las bandas pasan de
+       normal/leve/mod/fuera a normal/dilatada/fuera —ninguna guia de la biblioteca
+       publica grados de dilatacion aortica— y el CORTE no se movio. Gana el control de que las
+       dos claves retiradas ya no existan, que es mas fuerte que lo anterior. */
+    ex.push(['AOR-001: el seno de Valsalva corta en 40 mm, el 40 EXACTO cae del lado DILATADO y no hay grados',
+      bSin.length >= 2 && ag(39) === 'normal' && ag(40) === 'dilatada' && ag(45) === 'dilatada'
+        && ag(46) === 'dilatada' && bSin.every(b => b.k !== 'leve' && b.k !== 'mod'),
+      '39/40/45/46=' + [39, 40, 45, 46].map(ag).join('/') + ' · claves=' + bSin.map(b => b.k).join(',')]);
     const pm = (d, c) => { const r = LL('pmadEstimar', d, c); return (r && r.pmad !== undefined) ? r.pmad : String(r); };
     ex.push(['VCI-002: las cuatro combinaciones de la vena cava dan 3, 8, 8 y 15 mmHg',
       pm(18, '>50') === 3 && pm(18, '<50') === 8 && pm(24, '>50') === 8 && pm(24, '<50') === 15
@@ -73844,9 +73873,12 @@ caso('TC-492', 'Tanda M: las DIECISEIS FICHAS nuevas del registro de evidencia d
         && String(aoB.texto||"").indexOf('por debajo del rango esperado') > -1,
       'd34=' + (String(aoD.texto||"").indexOf('dentro') > -1) + ' d44=' + (String(aoA.texto||"").indexOf('por encima') > -1)
         + ' d24=' + (String(aoB.texto||"").indexOf('por debajo') > -1)]);
+    /* ADAPTADO el 2026-10-23 (AJ2-6): la categoria que publica la capsula pasa de «Dilat. leve»
+       a «Dilatada» — la aorta ya no gradua. La tarjeta la SONDEA, no la copia, asi que esta
+       condicion es la que ata las dos superficies. */
     ex.push(['la linea del corte de EcoSmart dice 40 mm y la categoria es la que publica la capsula; con 40 EXACTOS sale normal',
       String(aoD.texto||"").indexOf('Corte de EcoSmart: 40 mm') > -1
-        && String(aoA.texto||"").indexOf('Dilat. leve') > -1 && String(aoD.texto||"").indexOf('Normal') > -1,
+        && String(aoA.texto||"").indexOf('Dilatada') > -1 && String(aoD.texto||"").indexOf('Normal') > -1,
       'd34=' + String(aoD.texto||"").slice(0, 160)]);
     ex.push(['las tres lineas de texto de la aorta estan, y la tercera es la aclaracion',
       String(aoA.texto||"").indexOf('Corte de EcoSmart') > -1
@@ -74618,17 +74650,23 @@ caso('TC-494', 'Tanda VS: el VD, la AD, la VCI y la RAIZ AORTICA alineados a la 
   const ao = (id, x) => { __t.limpiar(); S(id, String(x)); try { calcAorta() } catch (e) {} ;
     return TXT({ ao_sin:'ao-interp', ao_st:'ao-st-interp', ao_tub:'ao-tub-interp',
                  diam_cayado:'ao-cay-interp', diam_ao_toracica:'ao-desc-interp' }[id]) };
-  ex.push(['seno de Valsalva: 39,9 normal · 40,0 EXACTO dilatacion leve · 40,1 leve',
-    ao('ao_sin',39.9).indexOf('Normal') > -1 && ao('ao_sin',40).indexOf('Dilat. leve') > -1
-      && ao('ao_sin',40.1).indexOf('Dilat. leve') > -1,
-    '39,9=' + ao('ao_sin',39.9) + ' | 40=' + ao('ao_sin',40)]);
-  ex.push(['y el 40,0 exacto llega al informe y al EN SUMA',
+  /* ADAPTADO el 2026-10-23 (AJ2-6): la aorta ya no GRADUA. La capsula pasa de «Dilat. leve» a
+     «Dilatada» y el informe de «(levemente dilatada)» a «(dilatada)». EL CORTE Y SU OPERADOR NO
+     SE MOVIERON, que es lo que estas tres condiciones siguen midiendo por sus dos lados. */
+  ex.push(['seno de Valsalva: 39,9 normal · 40,0 EXACTO dilatada · 40,1 dilatada, y sin grado',
+    ao('ao_sin',39.9).indexOf('Normal') > -1 && ao('ao_sin',40).indexOf('Dilatada') > -1
+      && ao('ao_sin',40.1).indexOf('Dilatada') > -1
+      && ao('ao_sin',40).indexOf('leve') === -1 && ao('ao_sin',48).indexOf('mod') === -1,
+    '39,9=' + ao('ao_sin',39.9) + ' | 40=' + ao('ao_sin',40) + ' | 48=' + ao('ao_sin',48)]);
+  ex.push(['y el 40,0 exacto llega al informe y al EN SUMA, con UN solo adjetivo',
     (function(){ const r = esc({ ao_sin:'40' });
-      return /Raíz aórtica 40 mm \\(levemente dilatada\\)/.test(r.inf) && r.suma.indexOf('Dilatación raíz aórtica (40 mm).') > -1; })(),
+      return /Raíz aórtica 40 mm \\(dilatada\\)/.test(r.inf)
+        && r.inf.indexOf('levemente dilatada') === -1
+        && r.suma.indexOf('Dilatación raíz aórtica (40 mm).') > -1; })(),
     esc({ ao_sin:'40' }).suma.trim()]);
   ex.push(['CONTROL NEGATIVO: los otros CUATRO segmentos conservan su operador estricto — su corte exacto sigue siendo NORMAL',
-    ao('ao_st',38).indexOf('Normal') > -1 && ao('ao_st',38.1).indexOf('Dilat. leve') > -1
-      && ao('ao_tub',40).indexOf('Normal') > -1 && ao('ao_tub',40.1).indexOf('Dilat. leve') > -1
+    ao('ao_st',38).indexOf('Normal') > -1 && ao('ao_st',38.1).indexOf('Dilatada') > -1
+      && ao('ao_tub',40).indexOf('Normal') > -1 && ao('ao_tub',40.1).indexOf('Dilatada') > -1
       && ao('diam_cayado',40).indexOf('Normal') > -1 && ao('diam_ao_toracica',35).indexOf('Normal') > -1,
     'st=' + ao('ao_st',38) + ' tub=' + ao('ao_tub',40)]);
   ex.push(['el simbolo del rotulo sale del dueno: la raiz dice mayor-o-igual y los otros cuatro estricto',
@@ -85048,6 +85086,37 @@ caso('TC-519', 'Tanda AJ2: «sin datos» no es «no medible» en las cinco super
       return f ? getComputedStyle(f).display : 'SIN FILA'; })()]);
   ex.push(['(E6) el grado 3 ya no dice «placa irregular»',
     norm(txt('ao-recomendacion')).indexOf('irregular') === -1, String(txt('ao-recomendacion'))]);
+  /* AGREGADO el 2026-10-23: AJ2-7a habia quedado a MEDIAS y lo destapo MIRAR una captura.
+     El riesgo embolico seguia vivo por TRES caminos mas, y dos de ellos son el papel FIRMADO:
+       - con placa MOVIL, calcAteroAo volvia a escribir el span escondido y la hoja del ETE
+         publicaba «Riesgo embólico | Muy alto — placa móvil»;
+       - la <option> del desplegable se llamaba «Móvil — alto riesgo embólico», y _amSelTxt
+         lleva esa ETIQUETA a la hoja;
+       - y la tabla de Referencias publicaba una columna «Riesgo embólico» por grado.
+     La escala que la app cita —Nicoara, ASE/SCA 2020, folio 716— NO gradua un riesgo embolico. */
+  __t.limpiar();
+  set({ ao_grosor_placa: '6', ao_grado_atero: '4', ao_movilidad_placa: 'movil' });
+  try { calcAteroAo(); } catch (e) {}
+  const _hojaAo = (function(){ try { return String(amiloTextoAortaETE() || '') } catch (e) { return 'EXC' } })();
+  ex.push(['(E6b) DENOMINADOR: con placa movil la hoja del ETE se arma y trae el grado',
+    _hojaAo.length > 80 && _hojaAo.indexOf('Grado 4') > -1, _hojaAo.slice(0, 90)]);
+  ex.push(['(E6c) y con placa MOVIL el span escondido queda VACIO: el papel ya no lo levanta',
+    String(txt('ao-riesgo-embol')) === '', JSON.stringify(String(txt('ao-riesgo-embol')))]);
+  ex.push(['(E6d) la hoja FIRMADA no publica ninguna linea de riesgo embolico',
+    norm(_hojaAo).indexOf('riesgo embolico') === -1,
+    _hojaAo.split(String.fromCharCode(10)).filter(l => norm(l).indexOf('riesgo embolico') > -1).join(' / ') || '(limpia)']);
+  ex.push(['(E6e) y la frase de la placa movil NO se perdio con el retiro',
+    _hojaAo.indexOf('grado 5 con independencia del espesor') > -1,
+    _hojaAo.split(String.fromCharCode(10)).pop().slice(0, 110)]);
+  ex.push(['(E6f) la tabla de Referencias del ateroma pierde su columna de riesgo embolico',
+    (function(){ const t = document.querySelector('#ref-ao table');
+      if (!t) return false;
+      const th = Array.prototype.slice.call(t.querySelectorAll('th')).map(x => norm(x.textContent));
+      const f1 = t.querySelector('tr + tr');
+      return th.length === 2 && th.indexOf('riesgo embolico') === -1
+        && !!f1 && f1.querySelectorAll('td').length === 2; })(),
+    (function(){ const t = document.querySelector('#ref-ao table');
+      return t ? Array.prototype.slice.call(t.querySelectorAll('th')).map(x => x.textContent).join(' | ') : 'SIN TABLA'; })()]);
   /* el del medico MANDA */
   __t.limpiar();
   set({ ao_grado_atero: '4' });
