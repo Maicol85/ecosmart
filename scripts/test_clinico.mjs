@@ -85335,6 +85335,84 @@ caso('TC-519', 'Tanda AJ2: «sin datos» no es «no medible» en las cinco super
     norm(bannerAm).indexOf('eco pulmonar') > -1 && norm(bannerAm).indexOf('cuerpo del informe') > -1,
     bannerAm.slice(0, 150)]);
 
+  /* == (M) AJ2-12 - EL EN SUMA NO NIEGA LO QUE EL INFORME DESCRIBE =========================
+     El inventario esta medido con la sonda, modulo por modulo: 11 de 16 publicaban la negacion
+     global con un modulo integrado y con datos. Lo que el caso fija son las DOS causas y las
+     TRES lineas nuevas, con su control negativo. */
+  const intg = (k, campos) => {
+    __t.limpiar();
+    if (campos) set(campos);
+    try { if (typeof amiloIntegrar === 'function' && typeof amiloIntegrado === 'function'
+              && !amiloIntegrado(k)) amiloIntegrar(k); } catch (e) {}
+    const i2 = inf(), s2 = suma();
+    return { integrado: (typeof amiloIntegrado === 'function') ? !!amiloIntegrado(k) : false,
+             inf: i2, suma: s2,
+             negacion: s2.indexOf('Estudio sin alteraciones') > -1,
+             verMods: s2.indexOf('ver los módulos integrados') > -1 };
+  };
+  /* (A1) el bloque ETE marca parrafo: con el trombo el cuerpo escribe y el resumen no niega. */
+  const mOai = intg('oai', { oai_trombo: 'si' });
+  ex.push(['(M1) DENOMINADOR: el modulo de la orejuela queda integrado', mOai.integrado, String(mOai.integrado)]);
+  ex.push(['(M2) DENOMINADOR: el cuerpo publica su linea de orejuela',
+    norm(mOai.inf).indexOf('orejuela izquierda') > -1, (mOai.inf.split('\\n')
+      .filter(l => norm(l).indexOf('orejuela') > -1)[0] || '').slice(0, 80)]);
+  ex.push(['(M3) y el EN SUMA ya no niega lo que el informe describe', !mOai.negacion, mOai.suma.slice(0, 110)]);
+  ex.push(['(M4) el trombo aporta su linea DESCRIPTIVA, sin conducta',
+    mOai.suma.indexOf('Trombo en la orejuela izquierda.') > -1
+    && norm(mOai.suma).indexOf('contraindica') === -1 && norm(mOai.suma).indexOf('tc cardiaca') === -1,
+    mOai.suma.slice(0, 110)]);
+  /* CONTROL NEGATIVO: «sin trombo» y «no evaluada» NO son hallazgos del resumen. */
+  const mNo = intg('oai', { oai_trombo: 'no' });
+  ex.push(['(M5) CONTROL: «sin trombo» no aporta linea al resumen',
+    norm(mNo.suma).indexOf('trombo') === -1, mNo.suma.slice(0, 100)]);
+  /* (B1) el Wilkins. */
+  const mW = intg('wilk', { wilkins_movilidad: '3', wilkins_engrosamiento: '3',
+                            wilkins_calcificacion: '3', wilkins_subvalvular: '3' });
+  ex.push(['(M6) DENOMINADOR: el Wilkins queda integrado y suma 12', mW.integrado
+    && mW.inf.indexOf('12/16') > -1, String(mW.integrado) + ' | ' + (mW.inf.indexOf('12/16') > -1)]);
+  ex.push(['(M7) el score aporta su linea con el TRAMO y sin veredicto',
+    mW.suma.indexOf('Score de Wilkins 12/16') > -1 && mW.suma.indexOf('tramo') > -1
+    && norm(mW.suma).indexOf('favorable') === -1 && norm(mW.suma).indexOf('valvuloplastia') === -1,
+    mW.suma.slice(0, 110)]);
+  ex.push(['(M8) el tramo sale de WILK_TRAMO y no de un texto a mano',
+    (function(){ const T = K('WILK_TRAMO'); return !!T && mW.suma.indexOf(T.nofavorable) > -1; })(),
+    JSON.stringify(K('WILK_TRAMO'))]);
+  /* (B3) el ateroma, y el riesgo embolico que seguia en el INFORME FIRMADO. */
+  const mA = intg('aoete', { ao_grado_atero: '4' });
+  ex.push(['(M9) DENOMINADOR: el ateroma queda integrado y el cuerpo lo publica',
+    mA.integrado && norm(mA.inf).indexOf('ateroma de m') > -1,
+    (mA.inf.split('\\n').filter(l => norm(l).indexOf('aorta tor') > -1)[0] || '').slice(0, 90)]);
+  ex.push(['(M10) el INFORME FIRMADO ya no afirma un riesgo embolico que la escala no publica',
+    norm(mA.inf).indexOf('riesgo embolico') === -1,
+    (mA.inf.split('\\n').filter(l => norm(l).indexOf('riesgo embolico') > -1)[0] || 'ok').slice(0, 90)]);
+  ex.push(['(M11) y el ateroma aporta su linea, sin repetir la palabra',
+    mA.suma.indexOf('Aorta torácica: ateroma de más de 5 mm (Grado 4).') > -1, mA.suma.slice(0, 110)]);
+  const mA2 = intg('aoete', { ao_grado_atero: '2' });
+  ex.push(['(M12) CONTROL: el grado 2 es la intima casi normal y NO aporta linea',
+    norm(mA2.suma).indexOf('ateroma') === -1, mA2.suma.slice(0, 100)]);
+  /* (A2) los modulos que escriben HOJA y no cuerpo. */
+  const mTep = intg('tep', { tep_mcconnell: 'si', tep_signo6060: 'si' });
+  ex.push(['(M13) DENOMINADOR: el modulo de sobrecarga del VD queda integrado y su hoja describe',
+    mTep.integrado && (function(){ try { return String(amiloTextoTEP()).length > 80; }
+      catch (e) { return false; } })(), String(mTep.integrado)]);
+  ex.push(['(M14) un modulo que escribe HOJA y no cuerpo tambien bloquea la negacion global',
+    !mTep.negacion && mTep.verMods, mTep.suma.slice(0, 120)]);
+  ex.push(['(M15) y el destino se DERIVA de amiloEnInforme, no de una lista de claves',
+    String(window.generarInforme || '').indexOf('amiloEnInforme') > -1
+    && String(window.generarInforme || '').indexOf('_ccMods') > -1, 'ok']);
+  /* CONTROL NEGATIVO MAYOR: sin modulos y sin hallazgos, la negacion global palabra por palabra. */
+  __t.limpiar();
+  const sVacio = (function(){ inf(); return suma(); })();
+  ex.push(['(M16) CONTROL: un estudio sin hallazgos sigue diciendo la negacion global',
+    sVacio.indexOf('Estudio sin alteraciones estructurales ni funcionales significativas.') > -1,
+    sVacio.slice(0, 100)]);
+  /* CONTROL: con un hallazgo SOLO en el cuerpo, el texto de HEAD byte por byte. */
+  __t.limpiar(); set({ ao_sin: '55' });
+  const sCuerpo = (function(){ inf(); return suma(); })();
+  ex.push(['(M17) CONTROL: con el hallazgo en el cuerpo el resumen lo nombra y no cambio',
+    sCuerpo.indexOf('Dilatación raíz aórtica (55 mm).') > -1
+    && sCuerpo.indexOf('ver los módulos integrados') === -1, sCuerpo.slice(0, 100)]);
+
   ex.push(['(Z) DENOMINADOR GLOBAL: todos los campos del caso se encontraron',
     noEntraron.length === 0, 'noEntraron=' + JSON.stringify(noEntraron)]);
 

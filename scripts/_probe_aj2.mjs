@@ -1886,6 +1886,102 @@ window.__Z = {
     process.stderr.write('[pulm] listo\n');
   }
 
+  /* == GRUPO «suma» - AJ2-12: EL INVENTARIO DE MODULOS INTEGRADOS ==========================
+     Para cada modulo del ETT avanzado: se carga un dato minimo, se INTEGRA y se mide si el EN
+     SUMA sale con la negacion global. Lo que el inventario pide es «cuenta o no, con el
+     criterio», asi que se publica tambien si llamo a ccMarcarParrafo (el fallback cambia de
+     texto) y si empujo una linea propia. */
+  if (corre('suma')) {
+    const r = { mods: {}, registro: null };
+    try {
+      r.registro = await ev(`(function(){ try { return amiloSecs().map(function(x){ return x.k }).join(',') }
+        catch (e) { return 'EXC' } })()`);
+      /* El dato minimo por modulo: el que su `hayDatos` -o su generador- necesita para que la
+         hoja describa algo. Los que no tienen `hayDatos` se integran con lo que haya. */
+      const DATOS = {
+        ett:    { ppvi:'16', siv:'16', ddfvi:'42' },
+        hemo:   { diam_tsvi_ao:'20', itv_tsvi:'20', hemo_fc:'70' },
+        hfpeff: { onda_e:'90', e_sep:'5', e_lat:'7', fevi:'55' },
+        htp:    { it_vmax_cw:'3.5' },
+        tep:    { tep_mcconnell:'si', tep_signo6060:'si' },
+        vexus:  { vci_diam:'24', vci_col:'<50' },
+        etem:   { ete_prof_coapt:'12' },
+        teer:   { teer_prof_flail:'8', teer_ancho_flail:'10' },
+        wilk:   { wilkins_movilidad:'3', wilkins_engrosamiento:'3',
+                  wilkins_calcificacion:'3', wilkins_subvalvular:'3' },
+        aoete:  { ao_grosor_placa:'6' },
+        dpt:    { pericardio:'Derrame moderado (10-20mm)' },
+        cvr:    { 'cvr-esep':'12' },
+        /* OJO: el POP exige `popPatron().suficiente` -su hayDatos es la compuerta REAL- y la
+           frecuencia cardiaca de esa pantalla es `pop_sw_fc`, no `fc`. Con el id equivocado el
+           modulo NO integra y la escena mide «la negacion global sigue» sobre un defecto que no
+           se alcanzo: denominador roto con pinta de medicion buena. */
+        pop:    { peso:'70', talla:'170', pop_monitor:'swan', pop_sw_gc:'3.2',
+                  pop_sw_fc:'90', pop_sw_pcp:'20' },
+        conco:  { co_fevi_basal:'60' },
+        pulm:   { pua_lineasb:'presentes', pua_lineasb_cant:'multiples' },
+        oai:    { oai_trombo:'si' }
+      };
+      const KEYS = Object.keys(DATOS);
+      for (const k of KEYS) {
+        const o = DATOS[k];
+        await ev(`window.__P.nuevo()`);
+        await ev(`window.__P.despejar()`);
+        const ids = Object.keys(o);
+        let abortos = [];
+        for (const id of ids) {
+          try { await ev(`window.__P.abrirPara('` + id + `')`); await poner(id, o[id]); }
+          catch (e) { abortos.push(id + ':' + e.message.slice(0, 40)); }
+        }
+        const integro = await ev(`(function(){
+          try { if (typeof amiloIntegrar !== 'function') return 'SIN FN';
+            if (typeof amiloIntegrado === 'function' && !amiloIntegrado('` + k + `')) amiloIntegrar('` + k + `');
+            return (typeof amiloIntegrado === 'function') ? !!amiloIntegrado('` + k + `') : 'SIN FN';
+          } catch (e) { return 'EXC: ' + e.message } })()`, 60000);
+        const sm = await ev(`(function(){
+          try { if (typeof generarInforme === 'function') generarInforme(true); } catch (e) {}
+          var e = document.getElementById('en_suma');
+          return e ? (e.value || '') : 'SIN NODO';
+        })()`, 60000);
+        const hoja = await ev(`(function(){
+          try { var S = amiloSecs().filter(function(x){ return x.k === '` + k + `' })[0];
+            return (S && typeof S.gen === 'function') ? String(S.gen()).length : 'SIN GEN';
+          } catch (e) { return 'EXC' } })()`, 40000);
+        r.mods[k] = { abortos: abortos, integro: integro, hojaLargo: hoja,
+          negacionGlobal: String(sm).indexOf('Estudio sin alteraciones') > -1,
+          verCuerpo: String(sm).indexOf('Sin otras alteraciones') > -1,
+          suma: String(sm).split(String.fromCharCode(10)).slice(0, 6).join(' // ').slice(0, 220) };
+        process.stderr.write('[suma] ' + k + ' integro=' + integro + ' negacion=' + r.mods[k].negacionGlobal + '\n');
+      }
+      /* CONTROL NEGATIVO: sin NINGUN modulo integrado y sin un solo hallazgo, la negacion
+         global tiene que seguir saliendo palabra por palabra. */
+      await ev(`window.__P.nuevo()`);
+      await ev(`window.__P.despejar()`);
+      r.control = await ev(`(function(){
+        try { if (typeof generarInforme === 'function') generarInforme(true); } catch (e) {}
+        var e = document.getElementById('en_suma');
+        var m = 0;
+        try { m = (typeof amiloEnInforme === 'function')
+          ? (amiloEnInforme() || []).filter(function(d){ return d && String(d.txt || '').trim() }).length : -1;
+        } catch (x) { m = -1 }
+        return { mods: m, suma: e ? (e.value || '') : 'SIN NODO' };
+      })()`, 60000);
+      /* Un estudio con un hallazgo EN EL CUERPO y sin modulos: el texto de HEAD, byte por byte. */
+      await ev(`window.__P.nuevo()`);
+      await ev(`window.__P.despejar()`);
+      await ev(`window.__P.abrirPara('ao_sin')`);
+      await poner('ao_sin', '55');
+      r.soloCuerpo = await ev(`(function(){
+        try { if (typeof generarInforme === 'function') generarInforme(true); } catch (e) {}
+        var e = document.getElementById('en_suma');
+        return e ? (e.value || '') : 'SIN NODO';
+      })()`, 60000);
+      r.errores = await ev(`window.__Y.errores()`);
+    } catch (e) { r.err = e.message; r.stack = String(e.stack || '').slice(0, 400); }
+    out.grupos.suma = r;
+    process.stderr.write('[suma] listo\n');
+  }
+
   OUT.md5Fin = await md5(EXTERNO ? FARG : join(RAIZ, FILE));
   process.stdout.write(JSON.stringify(OUT, null, 1));
   cdp.close(); srv.close(); process.exit(0);

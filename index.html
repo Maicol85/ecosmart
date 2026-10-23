@@ -54310,6 +54310,18 @@ function generarInforme(opts) {
     else if (_wParcial) s += '. Score de Wilkins incompleto — no interpretable';
       if (avmE) s += '. Área valvular por planimetría ' + avmE + ' cm²';
       etePars.push(s + '.');
+      /* ⚠️ EL SCORE DE WILKINS APORTA SU LINEA AL EN SUMA (AJ2-12, 23/10/2026). Hasta hoy vivia
+         SOLO en el cuerpo y en la hoja del PDF: un ETE cuyo unico hallazgo era un score de 12/16
+         salia en el resumen —la superficie que se lee y se copia— como «Estudio sin alteraciones
+         estructurales ni funcionales significativas».
+         DESCRIPTIVA: el puntaje y su TRAMO, que es lo unico que el I-E1 dejo que este score
+         publique. El tramo sale de `WILK_TRAMO`, su dueno unico, y no se escribe a mano. */
+      if (!isNaN(wN) && wN > 0 && !_wParcial) {
+        const _wB = (typeof wilkinsScore === 'function')
+          ? (function(){ try { return wilkinsScore().banda; } catch (e) { return null; } })() : null;
+        const _wT = (_wB && typeof WILK_TRAMO !== 'undefined') ? WILK_TRAMO[_wB] : '';
+        sumaCC('Score de Wilkins ' + wN + '/16' + (_wT ? ' (' + _wT + ')' : ''));
+      }
     }
 
     // 2. OAI
@@ -54356,6 +54368,16 @@ function generarInforme(opts) {
          hecho -trombo confirmado- sigue escrito dos oraciones mas arriba; lo que se deja de decir
          es que hacer con el. La fila de la guia esta en el panel de Evidencia, con su clase y su
          folio: ESC 2024 de fibrilacion auricular, Tabla 15 de recomendaciones, folio 3355. */
+      /* ⚠️ EL TROMBO APORTA SU LINEA AL EN SUMA (AJ2-12, 23/10/2026). Hasta hoy la orejuela vivia
+         SOLO en el cuerpo y en la hoja del ETE: un estudio cuyo unico hallazgo era un TROMBO
+         CONFIRMADO salia en el resumen —la superficie que se lee y se copia, y la que decide una
+         cardioversion— como «Estudio sin alteraciones estructurales ni funcionales
+         significativas». Medido.
+         DESCRIPTIVA y SOLO con trombo confirmado o sospechado: «sin trombo» y «no evaluada» no
+         son hallazgos, y el resumen no niega lo que no se encontro. La sospecha se nombra como
+         sospecha, SIN la conducta («se sugiere TC cardiaca») que el cuerpo publica. */
+      if (oTrombo === 'si')            sumaCC('Trombo en la orejuela izquierda');
+      else if (oTrombo === 'sospecha') sumaCC('Sospecha de trombo en la orejuela izquierda');
       /* Sólo con TRES o más lóbulos Y sin trombo pendiente. Es una nota sobre la ANATOMÍA —la
          orejuela multilobulada complica el sellado del dispositivo—, no una recomendación de
          conducta: no dice si cerrar ni con qué.
@@ -54387,17 +54409,34 @@ function generarInforme(opts) {
     // 4. Aorta ETE
     const aoG = sv('ao_grado_atero');
     if (aoG) {
+      /* ⚠️ EL RIESGO EMBOLICO POR GRADO SALE DEL INFORME FIRMADO (AJ2-7a, extendido el
+         23/10/2026). El AJ2-7a lo retiro de la PANTALLA y estas dos filas se habian quedado
+         atras, con el agravante de que esto es el papel que se firma: la escala de Nicoara
+         —ASE/SCA 2020, folio 716, leida en el original— publica los grados por ESPESOR
+         CRECIENTE y sus limitaciones de medicion, y NO publica un riesgo embolico por grado.
+         Lo mismo con la coletilla narrativa, que lo afirmaba de cualquier grado. */
       const aoMap = {
         '1': 'íntima normal, sin aterosclerosis',
         '2': 'engrosamiento intimal mínimo sin protrusiones (Grado 2)',
         '3': 'ateroma de 3 a 5 mm (Grado 3)',
-        '4': 'ateroma de más de 5 mm, alto riesgo embólico (Grado 4)',
-        '5': 'protrusiones móviles de cualquier tamaño, muy alto riesgo embólico (Grado 5)'
+        '4': 'ateroma de más de 5 mm (Grado 4)',
+        '5': 'protrusiones móviles de cualquier tamaño (Grado 5)'
       };
       const aoDesc = (aoMap[aoG] || 'Grado ' + aoG);
       etePars.push(estiloInforme === 'narrativo'
-        ? ('En la evaluación transesofágica, la aorta torácica presenta ' + aoDesc + ', hallazgo con implicancias en la estratificación del riesgo embólico.')
+        ? ('En la evaluación transesofágica, la aorta torácica presenta ' + aoDesc + '.')
         : ('Aorta torácica: ' + aoDesc + '.'));
+      /* ⚠️ EL ATEROMA APORTA SU LINEA AL EN SUMA (AJ2-12), y SOLO desde el grado 3: los grados
+         1 y 2 son la intima normal y un engrosamiento minimo, o sea el hallazgo es que NO hay
+         placa. Nombrarlos en el resumen seria afirmar un hallazgo que la propia escala llama
+         normal. El texto sale del MISMO `aoMap` que el cuerpo: dos redacciones del mismo grado
+         se separan en la primera edicion. */
+      if (aoG === '3' || aoG === '4' || aoG === '5') {
+        /* El SUJETO y no «Ateroma aórtico — »: dos de los tres textos del mapa ya empiezan con
+           la palabra «ateroma», asi que el prefijo la decia dos veces. Es el MISMO texto que el
+           estilo estandar publica en el cuerpo. */
+        sumaCC('Aorta torácica: ' + aoDesc);
+      }
     }
 
     /* 5. CIA / CIV — sólo si el checkbox está tildado. Se lee el CHECKBOX y no una clave de
@@ -55220,7 +55259,13 @@ function generarInforme(opts) {
       sumaCC(ccSumaLinea(sec[3]));
     });
 
-    if (etePars.length) inf.push('', ...etePars);
+    /* ⚠️ MARCA PARRAFO, Y ESO ERA LA CAUSA DE DOCE MODULOS (AJ2-12, 23/10/2026). Este bloque
+       escribe en el CUERPO del informe —la mitral de ETE con su score de Wilkins, la orejuela
+       con su trombo, el ateroma, las mediciones y las congenitas— y NO llamaba a
+       `ccMarcarParrafo()`, asi que el fallback del EN SUMA publicaba «Estudio sin alteraciones
+       estructurales ni funcionales significativas» sobre un informe que describia el hallazgo
+       cuatro parrafos mas arriba. Medido: pasaba con `etem`, `teer`, `wilk`, `oai` y `aoete`. */
+    if (etePars.length) { inf.push('', ...etePars); ccMarcarParrafo(); }
   })();
 
   /* ── Riesgo CV basal (marco HFA-ICOS) ──
@@ -55558,9 +55603,31 @@ function generarInforme(opts) {
      copia— como «Estudio sin alteraciones estructurales ni funcionales significativas». El
      informe firmado negaba el hallazgo que describía dos párrafos más arriba.
      `etePars` es la prueba de que hubo párrafo: si tiene algo, la negación global no se emite. */
+  /* ⚠️ Y LOS MODULOS DEL ETT AVANZADO TAMBIEN BLOQUEAN LA NEGACION GLOBAL (AJ2-12, 23/10/2026).
+     `_ccHuboParrafo` sola no alcanza: siete de los diecisiete modulos —el score de amiloidosis,
+     el perfil hemodinamico, la sobrecarga del VD, el VEXUS, constriccion/restriccion, el PostCEC
+     y cardio-oncologia— NO escriben en el cuerpo, escriben su HOJA del PDF, asi que el resumen
+     negaba todo sobre un informe que llevaba una hoja describiendo el hallazgo. Medido: con dos
+     criterios de sobrecarga del VD positivos y el modulo integrado, el EN SUMA decia «Estudio
+     sin alteraciones estructurales ni funcionales significativas».
+     Se DERIVA de `amiloEnInforme()`, el dueno unico de que modulo esta integrado y con que
+     texto, y no de una lista de claves: el dia que entre un modulo nuevo no hay nada que
+     actualizar. Y se exige TEXTO: un modulo integrado cuya hoja salio vacia no describe nada.
+     ⚠️ EL TEXTO DE HEAD SE CONSERVA BYTE POR BYTE cuando el unico destino es el cuerpo. */
+  const _ccMods = (function () {
+    try {
+      if (typeof amiloEnInforme !== 'function') return 0;
+      return (amiloEnInforme() || []).filter(function (d) {
+        return d && String(d.txt || '').trim();
+      }).length;
+    } catch (e) { return 0; }
+  })();
   if (suma.length === 0) {
-    suma.push(_ccHuboParrafo
-      ? 'Sin otras alteraciones estructurales ni funcionales significativas — ver los hallazgos descritos en el cuerpo del informe.'
+    const _dest = [];
+    if (_ccHuboParrafo) _dest.push('los hallazgos descritos en el cuerpo del informe');
+    if (_ccMods)        _dest.push('los módulos integrados');
+    suma.push(_dest.length
+      ? 'Sin otras alteraciones estructurales ni funcionales significativas — ver ' + _dest.join(' y ') + '.'
       : 'Estudio sin alteraciones estructurales ni funcionales significativas.');
   }
   _sumaBase = _infEscribir('en_suma', suma.filter(Boolean), _silencioso, _sumaBase);
