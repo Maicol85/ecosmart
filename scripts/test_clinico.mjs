@@ -85413,6 +85413,73 @@ caso('TC-519', 'Tanda AJ2: «sin datos» no es «no medible» en las cinco super
     sCuerpo.indexOf('Dilatación raíz aórtica (55 mm).') > -1
     && sCuerpo.indexOf('ver los módulos integrados') === -1, sCuerpo.slice(0, 100)]);
 
+  /* == (N) AJ2-11 - LAS TILDES ============================================================
+     ⚠️ EL DICCIONARIO SOLO LLEVA PALABRAS INEQUIVOCAS, y es la mitad del caso. Un detector que
+     incluya «auricular», «presiones», «dimensiones» o «mediciones» —que NO llevan tilde— pone en
+     rojo una pantalla perfecta: el primer censo de esta tanda informo 74 hallazgos y 33 eran
+     eso. Y las contextuales -«mas», «si», «aun», «solo», «este»- quedan fuera por lo mismo.
+     Se mide en lo que el MEDICO LEE y no en el fuente: los literales del archivo incluyen miles
+     de lineas de comentarios y de identificadores. */
+  const SIN_TILDE = ['protesis', 'parametro', 'hemipresion', 'ecuacion', 'aortica', 'aortico',
+    'tricuspidea', 'valvula', 'valvulas', 'medicion', 'indice', 'funcion', 'pericardico',
+    'morfologia', 'ventriculo', 'sistemico', 'sistemica', 'auricula', 'fibrilacion', 'maxima',
+    'quirurgica'];
+  const reTil = new RegExp('\\b(' + SIN_TILDE.join('|') + ')\\b', 'gi');
+  const censar = (txt) => { const h = []; let m; reTil.lastIndex = 0;
+    while ((m = reTil.exec(String(txt || ''))) !== null) h.push(m[0].toLowerCase());
+    return h; };
+  /* (1) los aria-label de los globos, que es lo que lee un lector de pantalla. */
+  const arias = Array.prototype.slice.call(document.querySelectorAll('[aria-label]'));
+  const ariaMal = [];
+  arias.forEach(e => { const h = censar(e.getAttribute('aria-label'));
+    if (h.length) ariaMal.push((e.id || e.tagName) + ':' + h.join(',')); });
+  ex.push(['(N1) DENOMINADOR: la app tiene aria-labels que censar', arias.length > 30, 'n=' + arias.length]);
+  ex.push(['(N2) ningun aria-label publica una palabra sin tilde',
+    ariaMal.length === 0, 'n=' + ariaMal.length + ' ' + ariaMal.slice(0, 6).join(' | ')]);
+  /* (2) los rotulos de formulario. */
+  const labs = Array.prototype.slice.call(document.querySelectorAll('label'));
+  const labMal = [];
+  labs.forEach(e => { const h = censar(e.textContent);
+    if (h.length) labMal.push((e.textContent || '').trim().slice(0, 40) + ':' + h.join(',')); });
+  ex.push(['(N3) DENOMINADOR: la app tiene rotulos que censar', labs.length > 200, 'n=' + labs.length]);
+  ex.push(['(N4) ningun rotulo publica una palabra sin tilde',
+    labMal.length === 0, 'n=' + labMal.length + ' ' + labMal.slice(0, 6).join(' | ')]);
+  /* (3) las opciones de los desplegables. */
+  const opts = Array.prototype.slice.call(document.querySelectorAll('option'));
+  const optMal = [];
+  opts.forEach(e => { const h = censar(e.textContent);
+    if (h.length) optMal.push((e.textContent || '').trim().slice(0, 40) + ':' + h.join(',')); });
+  ex.push(['(N5) DENOMINADOR: la app tiene opciones que censar', opts.length > 300, 'n=' + opts.length]);
+  ex.push(['(N6) ninguna opcion publica una palabra sin tilde',
+    optMal.length === 0, 'n=' + optMal.length + ' ' + optMal.slice(0, 6).join(' | ')]);
+  /* (4) los title. */
+  const tits = Array.prototype.slice.call(document.querySelectorAll('[title]'));
+  const titMal = [];
+  tits.forEach(e => { const h = censar(e.getAttribute('title'));
+    if (h.length) titMal.push((e.id || e.tagName) + ':' + h.join(',')); });
+  ex.push(['(N7) ningun title publica una palabra sin tilde',
+    titMal.length === 0, 'n=' + titMal.length + ' ' + titMal.slice(0, 6).join(' | ')]);
+  /* (5) los textos de las tarjetas i. */
+  const vinMal = [];
+  (function(){ const V = K('VINFO'); if (!V) { vinMal.push('SIN VINFO'); return; }
+    Object.keys(V).forEach(k => { const o = V[k]; if (!o) return;
+      ['tit', 'lee', 'nota', 'fuente'].forEach(c => {
+        let x = o[c];
+        if (typeof x === 'function') { try { x = x(); } catch (e) { return; } }
+        if (typeof x !== 'string') return;
+        const h = censar(x); if (h.length) vinMal.push(k + '.' + c + ':' + h.join(','));
+      }); }); })();
+  ex.push(['(N8) DENOMINADOR: el registro de tarjetas existe', !!K('VINFO'), typeof K('VINFO')]);
+  ex.push(['(N9) ninguna tarjeta publica una palabra sin tilde',
+    vinMal.length === 0, 'n=' + vinMal.length + ' ' + vinMal.slice(0, 6).join(' | ')]);
+  /* CONTROL NEGATIVO: la CITA LITERAL en ingles de la ESC/EACTS 2025 NO se toca. Alterar una
+     cita la falsifica, y es lo unico que el censo deja en pie a proposito. */
+  const citaIng = (function(){ const e = document.getElementById('ref-im');
+    return e ? (e.textContent || '') : 'NO EXISTE'; })();
+  ex.push(['(N10) CONTROL: la cita en ingles sigue intacta, con su «area» y todo',
+    citaIng.indexOf('elliptical regurgitant orifice') > -1 && citaIng.indexOf('area') > -1,
+    citaIng.indexOf('elliptical') > -1 ? 'ok' : 'FALTA LA CITA']);
+
   ex.push(['(Z) DENOMINADOR GLOBAL: todos los campos del caso se encontraron',
     noEntraron.length === 0, 'noEntraron=' + JSON.stringify(noEntraron)]);
 

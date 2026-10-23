@@ -5757,7 +5757,7 @@ window.cerrarSesionReal = cerrarSesionReal;
           <div class="calc-row"><span class="calc-lbl">Velocidad pico de E <button type="button" class="vinfo-btn" data-vinfo="prot-vmax" aria-expanded="false" aria-label="Informaci&oacute;n sobre la velocidad pico de E de la pr&oacute;tesis" onclick="vInfoClic(this)">&#9432;</button></span><span class="calc-val" id="vm-prot-vmax">&mdash;</span></div>
           <div class="calc-row"><span class="calc-lbl">Gradiente medio <button type="button" class="vinfo-btn" data-vinfo="prot-gmed" aria-expanded="false" aria-label="Informaci&oacute;n sobre el gradiente medio transprot&eacute;sico" onclick="vInfoClic(this)">&#9432;</button></span><span class="calc-val" id="vm-prot-gmed">&mdash;</span></div>
           <div class="calc-row"><span class="calc-lbl">AEO por continuidad <button type="button" class="vinfo-btn" data-vinfo="prot-eoa" aria-expanded="false" aria-label="Información sobre AEO por continuidad" onclick="vInfoClic(this)">&#9432;</button></span><span class="calc-val" id="vm-prot-eoa">—</span></div>
-          <div class="calc-row"><span class="calc-lbl">DVI — VTI prótesis / VTI TSVI <button type="button" class="vinfo-btn" data-vinfo="prot-dvi" aria-expanded="false" aria-label="Información sobre DVI de la protesis mitral" onclick="vInfoClic(this)">&#9432;</button></span><span class="calc-val" id="vm-prot-dvi">—</span></div>
+          <div class="calc-row"><span class="calc-lbl">DVI — VTI prótesis / VTI TSVI <button type="button" class="vinfo-btn" data-vinfo="prot-dvi" aria-expanded="false" aria-label="Información sobre DVI de la prótesis mitral" onclick="vInfoClic(this)">&#9432;</button></span><span class="calc-val" id="vm-prot-dvi">—</span></div>
           <div class="calc-row"><span class="calc-lbl">THP &mdash; tiempo de hemipresi&oacute;n <button type="button" class="vinfo-btn" data-vinfo="prot-thp" aria-expanded="false" aria-label="Informaci&oacute;n sobre el THP de la pr&oacute;tesis mitral" onclick="vInfoClic(this)">&#9432;</button></span><span class="calc-val" id="vm-prot-thp">&mdash;</span></div>
           <!-- ⚠️ FILA NUEVA (Z5, 2026-10-15): EL VEREDICTO DE OBSTRUCCION TIENE FILA PROPIA.
                Hasta hoy `R.obstr` se publicaba PEGADO al valor del AEO, y con la regla de conteo
@@ -6100,7 +6100,7 @@ window.cerrarSesionReal = cerrarSesionReal;
              numero rancio que esta zona ya pago cuatro veces. -->
         <div data-im-bloque="1">
         <div class="calc-row"><span class="calc-lbl" style="font-weight:700;color:var(--accent2);">Signos y parámetros semicuantitativos — valen para los dos métodos</span></div>
-        <div class="calc-row"><span class="calc-lbl">Onda E (parámetro soporte — &gt;120 cm/s apoya IM severa) <button type="button" class="vinfo-btn" data-vinfo="im-onda-e" aria-expanded="false" aria-label="Información sobre Onda E como parametro de soporte" onclick="vInfoClic(this)">&#9432;</button></span><span id="im-ondae-interp">—</span></div>
+        <div class="calc-row"><span class="calc-lbl">Onda E (parámetro soporte — &gt;120 cm/s apoya IM severa) <button type="button" class="vinfo-btn" data-vinfo="im-onda-e" aria-expanded="false" aria-label="Información sobre Onda E como parámetro de soporte" onclick="vInfoClic(this)">&#9432;</button></span><span id="im-ondae-interp">—</span></div>
         <!-- ⚠️ EL 1,4 SÍ TIENE FUENTE, Y NO ES LA QUE SE BUSCÓ EN LA FASE 2. Aquella pasada barrió el
              PDF primario de ASE 2017 —«1.4» cero veces, «VTI ratio» y «mitral-to-aortic» tampoco,
              con control de denominador: «1.2» sale 4 veces y «1.5» 3, o sea que la extracción
@@ -6161,7 +6161,7 @@ window.cerrarSesionReal = cerrarSesionReal;
              hoy esta fila no declaraba su corte en NINGUNA superficie —ni acá, ni en la tarjeta de
              Referencias, ni en el manual—, así que ni el 20/40 nativo ni el 20/50 protésico eran
              consultables desde la app. -->
-        <div class="calc-row"><span class="calc-lbl">Ratio jet/AI (%) <span style="font-weight:400;color:var(--text2);font-size:10px;" data-corte="jet"></span> <button type="button" class="vinfo-btn" data-vinfo="im-jet-ai" aria-expanded="false" aria-label="Información sobre Ratio jet / area de la AI" onclick="vInfoClic(this)">&#9432;</button></span><span class="calc-val" id="im-jet-ratio">—</span><span class="calc-grado" data-grado-de="im-jet-ratio"></span></div>
+        <div class="calc-row"><span class="calc-lbl">Ratio jet/AI (%) <span style="font-weight:400;color:var(--text2);font-size:10px;" data-corte="jet"></span> <button type="button" class="vinfo-btn" data-vinfo="im-jet-ai" aria-expanded="false" aria-label="Información sobre Ratio jet / área de la AI" onclick="vInfoClic(this)">&#9432;</button></span><span class="calc-val" id="im-jet-ratio">—</span><span class="calc-grado" data-grado-de="im-jet-ratio"></span></div>
         <div class="calc-row"><span class="calc-lbl">Onda S pulmonar <span style="font-weight:400;color:var(--text2);font-size:10px;" data-corte="onda_s"></span></span><span id="im-onda-s-interp">—</span></div>
         </div>
         <div data-im-bloque="2">
@@ -6432,11 +6432,11 @@ window.cerrarSesionReal = cerrarSesionReal;
           </div>
           <div>
             <div class="fg">
-              <label>AVm por THP (cm²) (auto) <button type="button" class="vinfo-btn" data-vinfo="avm-thp" aria-expanded="false" aria-label="Información sobre el area mitral por tiempo de hemipresion" onclick="vInfoClic(this)">&#9432;</button></label>
+              <label>AVm por THP (cm²) (auto) <button type="button" class="vinfo-btn" data-vinfo="avm-thp" aria-expanded="false" aria-label="Información sobre el área mitral por tiempo de hemipresión" onclick="vInfoClic(this)">&#9432;</button></label>
               <input type="text" id="em_avm_thp_display" readonly style="font-weight:700;">
             </div>
             <div class="fg">
-              <label>AVm continuidad (cm²) (auto) <button type="button" class="vinfo-btn" data-vinfo="avm-cont" aria-expanded="false" aria-label="Información sobre el area mitral por ecuacion de continuidad" onclick="vInfoClic(this)">&#9432;</button></label>
+              <label>AVm continuidad (cm²) (auto) <button type="button" class="vinfo-btn" data-vinfo="avm-cont" aria-expanded="false" aria-label="Información sobre el área mitral por ecuación de continuidad" onclick="vInfoClic(this)">&#9432;</button></label>
               <input type="text" id="avm_cont" readonly style="font-weight:700;">
             </div>
             <div class="fg">
@@ -6868,7 +6868,7 @@ window.cerrarSesionReal = cerrarSesionReal;
                  el PHT y las dos filas de la aorta descendente: sin el método en el rótulo, «EROA»
                  a secas no dice de qué cadena sale.
                  ⚠️ NO VIAJAN CON EL ESTUDIO: prefijo `vauto-`, ver `_noEsDelEstudio`. -->
-        <div class="fg"><label>EROA por PISA (mm²) (auto) <button type="button" class="vinfo-btn" data-vinfo="ia-eroa-pisa" aria-expanded="false" aria-label="Información sobre EROA, Vol-R y FR por PISA de la insuficiencia aortica" onclick="vInfoClic(this)">&#9432;</button></label><input type="text" id="vauto-ia-eroa" readonly style="font-weight:700;"></div>
+        <div class="fg"><label>EROA por PISA (mm²) (auto) <button type="button" class="vinfo-btn" data-vinfo="ia-eroa-pisa" aria-expanded="false" aria-label="Información sobre EROA, Vol-R y FR por PISA de la insuficiencia aórtica" onclick="vInfoClic(this)">&#9432;</button></label><input type="text" id="vauto-ia-eroa" readonly style="font-weight:700;"></div>
         <div class="fg"><label>Vol-R por PISA (ml) (auto)</label><input type="text" id="vauto-ia-volr" readonly></div>
         <div class="fg"><label>FR por PISA (%) (auto)</label><input type="text" id="vauto-ia-fr" readonly></div>
         <div class="fg"><label>VTI IAo Ao desc. (cm)</label><input type="number" id="ia_vti_desc" placeholder="cm" oninput="calcIA_ESC()"></div>
@@ -7029,7 +7029,7 @@ window.cerrarSesionReal = cerrarSesionReal;
             <input type="text" id="ea_dvi_display" tabindex="-1" readonly>
           </div>
           <div class="fg">
-            <label>AVA continuidad (cm&sup2;) &mdash; auto <button type="button" class="vinfo-btn" data-vinfo="ea-ava-cont" aria-expanded="false" aria-label="Información sobre el area aortica por ecuacion de continuidad" onclick="vInfoClic(this)">&#9432;</button></label>
+            <label>AVA continuidad (cm&sup2;) &mdash; auto <button type="button" class="vinfo-btn" data-vinfo="ea-ava-cont" aria-expanded="false" aria-label="Información sobre el área aórtica por ecuación de continuidad" onclick="vInfoClic(this)">&#9432;</button></label>
             <input type="text" id="ea_ava_display" tabindex="-1" readonly style="font-weight:700;">
           </div>
           <div class="fg">
@@ -7350,7 +7350,7 @@ window.cerrarSesionReal = cerrarSesionReal;
                  PREFIJO hasta el punto medio: la casilla publica la MEDICIÓN y el cuadro la
                  graduación, que es el mismo reparto que el D1 fijó para la mitral.
                  ⚠️ NO VIAJAN CON EL ESTUDIO: prefijo `vauto-`, ver `_noEsDelEstudio`. -->
-        <div class="fg"><label>EROA por PISA (mm²) (auto) <button type="button" class="vinfo-btn" data-vinfo="it-eroa-pisa" aria-expanded="false" aria-label="Información sobre EROA y Vol-R por PISA de la insuficiencia tricuspidea" onclick="vInfoClic(this)">&#9432;</button></label><input type="text" id="vauto-it-eroa" readonly style="font-weight:700;"></div>
+        <div class="fg"><label>EROA por PISA (mm²) (auto) <button type="button" class="vinfo-btn" data-vinfo="it-eroa-pisa" aria-expanded="false" aria-label="Información sobre EROA y Vol-R por PISA de la insuficiencia tricuspídea" onclick="vInfoClic(this)">&#9432;</button></label><input type="text" id="vauto-it-eroa" readonly style="font-weight:700;"></div>
         <div class="fg"><label>Vol-R por PISA (ml) (auto)</label><input type="text" id="vauto-it-volr" readonly></div>
         </div>
       </div>
@@ -7496,7 +7496,7 @@ window.cerrarSesionReal = cerrarSesionReal;
             <div class="fg"><label>THP tricuspídeo (ms)</label>
               <input type="number" id="et_thp" placeholder="ms" oninput="calcET()">
             </div>
-            <div class="fg"><label>Área valvular tricuspídea — auto (cm²) <button type="button" class="vinfo-btn" data-vinfo="et-avt-cont" aria-expanded="false" aria-label="Información sobre el area tricuspidea por ecuacion de continuidad" onclick="vInfoClic(this)">&#9432;</button></label>
+            <div class="fg"><label>Área valvular tricuspídea — auto (cm²) <button type="button" class="vinfo-btn" data-vinfo="et-avt-cont" aria-expanded="false" aria-label="Información sobre el área tricuspídea por ecuación de continuidad" onclick="vInfoClic(this)">&#9432;</button></label>
               <input type="text" id="et_avt" readonly tabindex="-1" style="color:var(--accent2);" placeholder="— completar Diám. y VTI del TSVD">
             </div>
           </div>
@@ -8160,7 +8160,7 @@ window.cerrarSesionReal = cerrarSesionReal;
          desplegable; y `aria-haspopup="dialog"` se fue con el dialogo. -->
     <button type="button" class="btn btn-ghost" id="v2d-abrir" onclick="v2dTog()"
             aria-pressed="false" aria-controls="v2d-ov"
-            title="Ver el esquema 2D con las valvulas y las cavidades">&#129728; Ver en 2D</button>
+            title="Ver el esquema 2D con las válvulas y las cavidades">&#129728; Ver en 2D</button>
   </div>
   <!-- ══ VISTA 2D DE LAS VALVULAS — PANEL EN LINEA (Y1, 2026-10-15; Y1c, 2026-10-16) ══════════
        Esquema animado, CUALITATIVO y de SOLO LECTURA. No calcula nada: todo lo que dibuja y todo
@@ -13745,7 +13745,7 @@ z
           <button type="button" class="btn btn-ghost" id="ete-qx-v-tg" aria-pressed="false"
                   onclick="eteQxVista('tg')">Vista transgastrica</button>
         </div>
-        <svg viewBox="0 0 420 420" style="width:100%;height:auto;max-width:420px;margin:0 auto;display:block;touch-action:none;" id="ete-svg-qx" tabindex="0" role="img" aria-label="Vista quirurgica de la valvula mitral: seis festones, aorta, orejuela y las dos comisuras">
+        <svg viewBox="0 0 420 420" style="width:100%;height:auto;max-width:420px;margin:0 auto;display:block;touch-action:none;" id="ete-svg-qx" tabindex="0" role="img" aria-label="Vista quirúrgica de la válvula mitral: seis festones, aorta, orejuela y las dos comisuras">
         </svg>
       </div>
 
@@ -13975,7 +13975,7 @@ z
           <span style="font-size:10px; color:var(--text2);">Excl: ≥10mm</span>
           </div>
           <svg class="teer-fig" id="teer-fig-gap" viewBox="0 0 320 250" role="img"
-                 aria-label="Esquema de la medicion">
+                 aria-label="Esquema de la medición">
               <defs><marker id="teer-ar-gap" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6"
                             markerHeight="6" orient="auto-start-reverse">
                 <path d="M2 1L8 5L2 9" fill="none" stroke="#1BA3B8" stroke-width="1.5"
@@ -13992,7 +13992,7 @@ z
           <span style="font-size:10px; color:var(--text2);">Excl: ≥15mm</span>
           </div>
           <svg class="teer-fig" id="teer-fig-anch" viewBox="0 0 320 250" role="img"
-                 aria-label="Esquema de la medicion">
+                 aria-label="Esquema de la medición">
               <defs><marker id="teer-ar-anch" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6"
                             markerHeight="6" orient="auto-start-reverse">
                 <path d="M2 1L8 5L2 9" fill="none" stroke="#1BA3B8" stroke-width="1.5"
@@ -14025,7 +14025,7 @@ z
           <span style="font-size:10px; color:var(--text2);">Excl: &ge;11mm</span>
           </div>
           <svg class="teer-fig" id="teer-fig-prof" viewBox="0 0 320 250" role="img"
-                 aria-label="Esquema de la medicion">
+                 aria-label="Esquema de la medición">
               <defs><marker id="teer-ar-prof" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6"
                             markerHeight="6" orient="auto-start-reverse">
                 <path d="M2 1L8 5L2 9" fill="none" stroke="#1BA3B8" stroke-width="1.5"
@@ -14042,7 +14042,7 @@ z
           <span style="font-size:10px; color:var(--text2);">Req: &ge;2mm</span>
           </div>
           <svg class="teer-fig" id="teer-fig-len" viewBox="0 0 320 250" role="img"
-                 aria-label="Esquema de la medicion">
+                 aria-label="Esquema de la medición">
               <defs><marker id="teer-ar-len" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6"
                             markerHeight="6" orient="auto-start-reverse">
                 <path d="M2 1L8 5L2 9" fill="none" stroke="#1BA3B8" stroke-width="1.5"
@@ -15147,7 +15147,7 @@ z
         </div>
       </div>
       <div class="grid-3" style="margin-top:10px;">
-        <div class="fg" id="marfan-ita-wrap" style="display:none;"><label>Indice de tamaño aortico (mm/m&sup2;)</label>
+        <div class="fg" id="marfan-ita-wrap" style="display:none;"><label>Índice de tamaño aórtico (mm/m&sup2;)</label>
           <input type="number" id="marfan_ita" placeholder="mm/m2" step="0.1" oninput="marfanSync()">
           <span style="font-size:10px;color:var(--text2);">Solo para Turner: el umbral se indexa por superficie corporal porque la talla baja hace que un diametro absoluto normal sea patologico.</span>
         </div>
@@ -17125,7 +17125,7 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
           <input type="number" id="eis_it_vel" placeholder="m/s" step="0.1" oninput="eisenSync()"></div>
       </div>
       <div class="grid-3" style="margin-top:10px;">
-        <div class="fg"><label>Funcion del VD</label>
+        <div class="fg"><label>Función del VD</label>
           <select id="eis_vd_funcion" onchange="eisenSync()">
             <option value="">&mdash;</option>
             <option value="normal">Normal</option>
@@ -17133,7 +17133,7 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
             <option value="moderada">Moderadamente reducida</option>
             <option value="severa">Severamente reducida</option>
           </select></div>
-        <div class="fg"><label>Derrame pericardico</label>
+        <div class="fg"><label>Derrame pericárdico</label>
           <select id="eis_pericardio" onchange="eisenSync()">
             <option value="">&mdash;</option>
             <option value="no">Sin derrame</option>
@@ -17183,7 +17183,7 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
             <option value="">&mdash;</option>
             <option value="tunel">Tunel lateral</option>
             <option value="extra">Conexion cavopulmonar total extracardiaca</option>
-            <option value="ap">Auricula-pulmonar (antiguo)</option>
+            <option value="ap">Aurícula-pulmonar (antiguo)</option>
             <option value="noesp">No especificado</option>
           </select></div>
         <div class="fg"><label>Fenestracion</label>
@@ -17193,25 +17193,25 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
             <option value="presente">Fenestracion presente</option>
             <option value="cerrada">Fenestracion cerrada</option>
           </select></div>
-        <div class="fg"><label>Morfologia del ventriculo sistemico</label>
+        <div class="fg"><label>Morfología del ventrículo sistémico</label>
           <select id="fontan_vs_morfologia" onchange="fontanSync()">
             <option value="">&mdash;</option>
-            <option value="izq">Morfologia izquierda</option>
-            <option value="der">Morfologia derecha</option>
+            <option value="izq">Morfología izquierda</option>
+            <option value="der">Morfología derecha</option>
             <option value="indet">Indeterminado</option>
           </select></div>
       </div>
       <div class="grid-3" style="margin-top:10px;">
-        <div class="fg"><label>FEVI del ventriculo sistemico (%)</label>
+        <div class="fg"><label>FEVI del ventrículo sistémico (%)</label>
           <input type="number" id="fontan_vs_fevi" placeholder="%" oninput="fontanSync()"></div>
-        <div class="fg"><label>FAC del ventriculo sistemico (%)</label>
+        <div class="fg"><label>FAC del ventrículo sistémico (%)</label>
           <input type="number" id="fontan_vs_fac" placeholder="%" oninput="fontanSync()"></div>
         <div class="fg"><label>Saturacion O&#8322; (%)</label>
           <input type="number" id="fontan_saturacion" placeholder="%" oninput="fontanSync()">
           <span style="font-size:10px;color:var(--text2);">Normal sin fenestracion: &gt;93-95&nbsp;%.</span></div>
       </div>
       <div class="grid-3" style="margin-top:10px;">
-        <div class="fg"><label>Insuficiencia AV sistemica</label>
+        <div class="fg"><label>Insuficiencia AV sistémica</label>
           <select id="fontan_it_grado" onchange="fontanSync()">
             <option value="">&mdash;</option><option value="no">Sin IT</option>
             <option value="leve">Leve</option><option value="moderada">Moderada</option>
@@ -17240,7 +17240,7 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
         <div class="fg"><label>Arritmia</label>
           <select id="fontan_arritmia" onchange="fontanSync()">
             <option value="">&mdash;</option><option value="no">No</option>
-            <option value="fa">Fibrilacion auricular</option><option value="flutter">Flutter</option>
+            <option value="fa">Fibrilación auricular</option><option value="flutter">Flutter</option>
             <option value="tsv">TSV</option><option value="tv">TV</option>
             <option value="brady">Bradicardia sinusal</option><option value="otra">Otra</option>
           </select></div>
@@ -42007,7 +42007,7 @@ const VINFO = Object.freeze({
   'pul-balik': {
     tit: 'Volumen aproximado del derrame pleural',
     formula: 'V (ml) = D (mm) × 20',
-    lee: 'D es la distancia maxima entre la pleura parietal y la visceral, medida en un corte transversal lateral sobre el angulo costofrenico con el paciente en decubito supino.',
+    lee: 'D es la distancia máxima entre la pleura parietal y la visceral, medida en un corte transversal lateral sobre el angulo costofrenico con el paciente en decubito supino.',
     fuente: 'International evidence-based recommendations for point-of-care lung ultrasound, 2025 focused update (Volpicelli et al, Intensive Care Med 2026), enunciado D6_11, hoja 19.',
     ojo: 'La guia declara que la formula fue validada en pacientes criticos en cuidados intensivos bajo ventilacion invasiva. En un paciente que puede examinarse sentado, esa misma guia dice que otros metodos de adquisicion multiplanar pueden ser mas precisos, y que no hay evidencia fuerte para recomendarlos.'
   },
@@ -125844,7 +125844,7 @@ async function labGenerarPDF() {
     const dp = _labDptResumen(infs);
     if (dp.n) {
       const fil = _filasDe(dp.dist, k => _labLblConclusion('coh-dpt-con', k));
-      await sectionChart('Derrame pericardico / Taponamiento',
+      await sectionChart('Derrame pericárdico / Taponamiento',
         ['Conclusion', 'n (%)'],
         [['Estudios con el modulo en el informe', String(dp.n)],
          ['Con conclusion clasificable', String(dp.conClave)]].concat(fil),

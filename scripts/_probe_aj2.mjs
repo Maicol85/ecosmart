@@ -1982,6 +1982,165 @@ window.__Z = {
     process.stderr.write('[suma] listo\n');
   }
 
+  /* == GRUPO «tildes» - AJ2-11: EL CENSO DE PALABRAS SIN TILDE =============================
+     Se mide en lo que el MEDICO LEE y no en el fuente: los literales del JS incluyen miles de
+     lineas de comentarios y de identificadores, asi que un grep sobre el archivo informa cientos
+     de falsos. Las cinco superficies:
+       (1) el DOM RENDERIZADO: rotulos, opciones, placeholders, titles y aria-labels
+       (2) las TARJETAS i, ejecutando cada entrada de VINFO
+       (3) las SECCIONES de Evidencia, ejecutando cada constructor de IND_SECS
+       (4) las fichas de REFERENCIAS ya pintadas
+       (5) los GENERADORES: informe, EN SUMA y las hojas del ETT avanzado
+     ⚠️ EL DICCIONARIO SOLO LLEVA PALABRAS INEQUIVOCAS. Quedan FUERA las contextuales -«mas»,
+     «si», «aun», «solo», «este»- porque sin tilde tambien son palabras correctas, y el censo
+     informaria cientos de falsos que enterrarian los hallazgos reales. */
+  if (corre('tildes')) {
+    const r = {};
+    try {
+      r.censo = await ev(`(function(){
+        var PARES = {
+          area:'área', areas:'áreas', diametro:'diámetro', diametros:'diámetros',
+          presion:'presión', funcion:'función',
+          region:'región', evaluacion:'evaluación',
+          medicion:'medición', relacion:'relación', protesis:'prótesis',
+          protesico:'protésico', protesica:'protésica', protesicas:'protésicas',
+          aortica:'aórtica', aortico:'aórtico', aorticas:'aórticas', aorticos:'aórticos',
+          tricuspide:'tricúspide', tricuspidea:'tricuspídea', tricuspideo:'tricuspídeo',
+          sistolica:'sistólica', sistolico:'sistólico', diastolica:'diastólica',
+          diastolico:'diastólico', hipertension:'hipertensión', dilatacion:'dilatación',
+          calcificacion:'calcificación', maxima:'máxima', maximo:'máximo',
+          minima:'mínima', minimo:'mínimo', indice:'índice', numero:'número',
+          segun:'según', tambien:'también', ademas:'además',
+          deposito:'depósito', diagnostico:'diagnóstico', parametro:'parámetro',
+          parametros:'parámetros', interpretacion:'interpretación',
+          clasificacion:'clasificación', descripcion:'descripción',
+          informacion:'información', conclusion:'conclusión', seccion:'sección',
+          version:'versión', configuracion:'configuración', posicion:'posición',
+          condicion:'condición', dimension:'dimensión', dimensiones:'dimensiones',
+          extension:'extensión', inclusion:'inclusión', exclusion:'exclusión',
+          revision:'revisión', decision:'decisión', precision:'precisión',
+          transesofagico:'transesofágico', transesofagica:'transesofágica',
+          ecocardiografico:'ecocardiográfico', ecocardiografica:'ecocardiográfica',
+          grafico:'gráfico', hemodinamico:'hemodinámico', hemodinamica:'hemodinámica',
+          miocardico:'miocárdico', miocardica:'miocárdica',
+          pericardico:'pericárdico', pericardica:'pericárdica',
+          ventriculo:'ventrículo', ventriculos:'ventrículos',
+          auricula:'aurícula', auriculas:'aurículas', auricular:'auricular',
+          valvula:'válvula', valvulas:'válvulas', calculo:'cálculo',
+          formula:'fórmula', metodo:'método', metodos:'métodos', patron:'patrón',
+          razon:'razón', pulmon:'pulmón', torax:'tórax',
+          toracica:'torácica', toracico:'torácico',
+          caracteristica:'característica', caracteristicas:'características',
+          anomalia:'anomalía', cardiopatia:'cardiopatía', miocardiopatia:'miocardiopatía',
+          ultimo:'último', proximo:'próximo', unico:'único', unica:'única',
+          especifico:'específico', especifica:'específica',
+          tipico:'típico', atipico:'atípico', clinico:'clínico', clinica:'clínica',
+          cronico:'crónico', cronica:'crónica', rapido:'rápido',
+          facil:'fácil', dificil:'difícil', util:'útil', debil:'débil',
+          movil:'móvil', moviles:'móviles', fraccion:'fracción', eyeccion:'eyección',
+          contraccion:'contracción', relajacion:'relajación',
+          regurgitacion:'regurgitación', integracion:'integración',
+          estimacion:'estimación', correlacion:'correlación', indicacion:'indicación',
+          recomendacion:'recomendación', observacion:'observación',
+          localizacion:'localización', distribucion:'distribución',
+          obstruccion:'obstrucción', reduccion:'reducción', duracion:'duración',
+          aceleracion:'aceleración', desaceleracion:'desaceleración',
+          comparacion:'comparación', cardioversion:'cardioversión',
+          anticoagulacion:'anticoagulación', intervencion:'intervención',
+          implantacion:'implantación', reparacion:'reparación',
+          valoracion:'valoración', puntuacion:'puntuación',
+          categoria:'categoría', etiologia:'etiología', patologia:'patología',
+          cardiologia:'cardiología', oncologia:'oncología',
+          morfologia:'morfología', fisiologia:'fisiología',
+          /* Las que el primer censo destapo en las muestras y no estaban en la lista. */
+          hemipresion:'hemipresión', ecuacion:'ecuación', fibrilacion:'fibrilación',
+          sistemico:'sistémico', sistemica:'sistémica'
+        };
+        var CLAVES = Object.keys(PARES);
+        var RE = new RegExp('\\\\b(' + CLAVES.join('|') + ')\\\\b', 'gi');
+        function buscar(txt) {
+          if (!txt) return [];
+          var hits = [], m;
+          RE.lastIndex = 0;
+          while ((m = RE.exec(String(txt))) !== null) hits.push(m[0]);
+          return hits;
+        }
+        var res = {};
+        function sumar(zona, txt, ctx) {
+          var h = buscar(txt);
+          if (!h.length) return;
+          res[zona] = res[zona] || { n: 0, palabras: {}, muestras: [] };
+          res[zona].n += h.length;
+          h.forEach(function (x) { var k = x.toLowerCase();
+            res[zona].palabras[k] = (res[zona].palabras[k] || 0) + 1 });
+          if (res[zona].muestras.length < 14) res[zona].muestras.push((ctx || '') + ' :: ' + String(txt).slice(0, 110));
+        }
+        /* (1) el DOM renderizado */
+        ['label', 'option'].forEach(function (sel) {
+          Array.prototype.forEach.call(document.querySelectorAll(sel), function (e) {
+            sumar('1-dom-' + sel, e.textContent, sel); });
+        });
+        ['placeholder', 'title', 'aria-label'].forEach(function (at) {
+          Array.prototype.forEach.call(document.querySelectorAll('[' + at + ']'), function (e) {
+            sumar('1-dom-' + at, e.getAttribute(at), e.id || e.tagName); });
+        });
+        /* (2) las tarjetas i: se ejecuta cada entrada de VINFO */
+        try {
+          var V = VINFO;
+          Object.keys(V).forEach(function (k) {
+            var o = V[k]; if (!o) return;
+            ['tit', 'lee', 'nota', 'fuente', 'cuenta', 'corte'].forEach(function (c) {
+              var x = o[c];
+              if (typeof x === 'string') sumar('2-vinfo', x, k + '.' + c);
+              else if (typeof x === 'function') { try { sumar('2-vinfo', String(x()), k + '.' + c) } catch (e) {} }
+            });
+            if (Array.isArray(o.filas)) o.filas.forEach(function (f, j) {
+              ['lbl', 'val', 'nota'].forEach(function (c) {
+                if (typeof f[c] === 'string') sumar('2-vinfo', f[c], k + '.filas[' + j + '].' + c) }) });
+          });
+        } catch (e) { res['2-vinfo-ERR'] = { n: 0, palabras: {}, muestras: ['EXC: ' + e.message] } }
+        /* (3) las secciones de Evidencia */
+        try {
+          IND_SECS.forEach(function (S) {
+            var o; try { o = S.fn() } catch (e) { return }
+            if (!o) return;
+            sumar('3-evidencia', S.tit, 'tit');
+            (o.filas || []).forEach(function (f) {
+              ['lbl', 'val', 'nota', 'txt'].forEach(function (c) {
+                if (typeof f[c] === 'string') sumar('3-evidencia', f[c], S.tit + '/' + c) }) });
+            (o.bloques || []).forEach(function (b) {
+              ['tit', 'txt'].forEach(function (c) {
+                if (typeof b[c] === 'string') sumar('3-evidencia', b[c], S.tit + '/bloque.' + c) }) });
+            if (typeof o.guia === 'string') sumar('3-evidencia', o.guia, S.tit + '/guia');
+            (o.notas || []).forEach(function (x) {
+              if (typeof x === 'string') sumar('3-evidencia', x, S.tit + '/nota') });
+          });
+        } catch (e) { res['3-evidencia-ERR'] = { n: 0, palabras: {}, muestras: ['EXC: ' + e.message] } }
+        /* (4) las fichas de Referencias ya pintadas */
+        try {
+          ['ai', 'ad', 'vd2', 'ao2', 'vi2'].forEach(function (k) {
+            try { if (typeof evRefPintar === 'function') evRefPintar(k) } catch (e) {} });
+          Array.prototype.forEach.call(document.querySelectorAll('[id^="ref-"]'), function (e) {
+            sumar('4-referencias', e.textContent, e.id); });
+        } catch (e) { res['4-referencias-ERR'] = { n: 0, palabras: {}, muestras: ['EXC: ' + e.message] } }
+        /* (5) los generadores: las hojas del ETT avanzado */
+        try {
+          amiloSecs().forEach(function (S) {
+            try { if (typeof S.gen === 'function') sumar('5-hojas', String(S.gen()), S.k) } catch (e) {} });
+        } catch (e) {}
+        /* (5b) el manual */
+        try { if (typeof ECO_AYUDA !== 'undefined')
+          Object.keys(ECO_AYUDA).forEach(function (k) { sumar('5-manual', String(ECO_AYUDA[k]), k) });
+        } catch (e) {}
+        var tot = 0; Object.keys(res).forEach(function (z) { tot += res[z].n });
+        return { total: tot, zonas: res };
+      })()`, 120000);
+      r.errores = await ev(`window.__Y.errores()`);
+    } catch (e) { r.err = e.message; r.stack = String(e.stack || '').slice(0, 400); }
+    out.grupos.tildes = r;
+    process.stderr.write('[tildes] listo\n');
+  }
+
   OUT.md5Fin = await md5(EXTERNO ? FARG : join(RAIZ, FILE));
   process.stdout.write(JSON.stringify(OUT, null, 1));
   cdp.close(); srv.close(); process.exit(0);
