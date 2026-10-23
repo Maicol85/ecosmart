@@ -84851,6 +84851,296 @@ caso('TC-518', 'Tanda I-E4: las tres notas al pie de la tabla de estenosis tricu
   })();
 `);
 
+/* ══ TC-519 — LA TANDA AJ2 (2026-10-23) ═══════════════════════════════════════════════════
+   Un grupo por item. Lo que fija cada uno esta en la ficha de docs/mapa/aj2-correcciones.md.
+   ADVERTENCIA: sin acentos graves dentro del cuerpo. scripts/check_backticks.py da la linea. */
+caso('TC-519', 'Tanda AJ2: «sin datos» no es «no medible» en las cinco superficies de HTP y el informe deja de nombrar una VRT que nadie midio; el tipo de IM vacio es un tercer estado de la reparabilidad; la tricuspide dice por que su Evidencia no se abre; la coartacion sin gradiente dice el hecho UNA vez y sin pedir estudios; el ateroma sin «irregular» ni riesgo embolico, con el grosor completando el grado y el del medico mandando; el score de TEP con un solo vocabulario en las tres superficies y sin probabilidad diagnostica; la orejuela sin «favorable»; los dos buscadores con guion = espacio = nada; la diastolica no clasificable descrita y no pedida; y el rotulo del score de TEP en /6', `
+  return (async () => {
+  const ex = [];
+  const F = (n) => (typeof window[n] === 'function') ? window[n] : null;
+  /* El identificador PELADO para los const de MODULO: la trampa de ECO_AYUDA. */
+  const K = (n) => { try { return eval(n); } catch (e) { return undefined; } };
+  const txt = (id) => { const e = document.getElementById(id); return e ? (e.textContent || '').trim() : null; };
+  const val = (id) => { const e = document.getElementById(id); return e ? e.value : null; };
+  const norm = (x) => String(x == null ? '' : x).toLowerCase()
+    .normalize('NFD').split('').filter(c => c.charCodeAt(0) < 768 || c.charCodeAt(0) > 879).join('');
+  const noEntraron = [];
+  const set = (o) => Object.keys(o).forEach(id => { const e = document.getElementById(id);
+    if (!e) { noEntraron.push('FALTA ' + id); return; }
+    e.value = o[id];
+    if (String(e.value) !== String(o[id])) { noEntraron.push(id + ' RECHAZO ' + o[id]); return; }
+    e.dispatchEvent(new Event('input', { bubbles: true }));
+    e.dispatchEvent(new Event('change', { bubbles: true })); });
+  const chk = (id, v) => { const e = document.getElementById(id);
+    if (!e) { noEntraron.push('FALTA chk ' + id); return; }
+    if (!!e.checked !== !!v) { e.checked = !!v;
+      e.dispatchEvent(new Event('change', { bubbles: true })); } };
+  const sec = (tit) => { let L = null;
+    try { L = IND_SECS; } catch (e) { return 'SIN IND_SECS'; }
+    if (!L) return 'SIN IND_SECS';
+    const x = L.filter(y => y.tit === tit)[0]; if (!x) return 'NO EXISTE';
+    try { return x.fn() || null; } catch (e) { return 'EXC: ' + e.message; } };
+  const fila = (r, lbl) => { if (!r || !r.filas) return null;
+    const f = r.filas.filter(x => (x.lbl || '').indexOf(lbl) === 0)[0];
+    return f ? { val: f.val, marca: f.marca, nota: f.nota || '' } : null; };
+  const inf = () => { try { generarInforme(); } catch (e) {} return val('informe_texto') || ''; };
+  const suma = () => val('en_suma') || '';
+
+  /* ══ (A) AJ2-1 — «sin datos» NO es «no medible» ═════════════════════════════════════════
+     El predicado es el dueno unico y cada superficie le pone su vocabulario. Los dos caminos
+     que dan el MISMO vrtCat se miden por separado, que es lo que el defecto confundia. */
+  const P = F('htpVrtSinDatos');
+  ex.push(['(A1) htpVrtSinDatos existe y es el dueno del predicado', !!P, typeof P]);
+  if (P) {
+    ex.push(['(A2) auto sin IT es «sin datos»', P('auto', 'nomedible') === true, String(P('auto', 'nomedible'))]);
+    ex.push(['(A3) «no medible» ELEGIDA no es «sin datos»', P('nomedible', 'nomedible') === false, String(P('nomedible', 'nomedible'))]);
+    ex.push(['(A4) una VRT con banda tampoco', P('auto', 'media') === false && P('baja', 'baja') === false,
+      String(P('auto', 'media')) + '/' + String(P('baja', 'baja'))]);
+  }
+  __t.limpiar();
+  try { if (F('amiloIntegrar')) amiloIntegrar('htp'); } catch (e) {}
+  set({ htp2022_vrt: 'auto' }); chk('htp2022_a3', true); chk('htp2022_b1muesca', true);
+  try { calcHTP2022(); } catch (e) {}
+  const pantSinDato = txt('htp2022-vrt-interp');
+  const infSinDato = inf();
+  const lSinDato = infSinDato.split('\\n').filter(l => norm(l).indexOf('probabilidad de hipertension pulmonar') > -1)[0] || '';
+  ex.push(['(A5) la pantalla dice «sin datos» y no «no medible»',
+    norm(pantSinDato).indexOf('sin datos') > -1 && norm(pantSinDato).indexOf('no medible') === -1, String(pantSinDato)]);
+  ex.push(['(A6) DENOMINADOR: el informe publica su linea de HTP', lSinDato.length > 40, lSinDato.slice(0, 90)]);
+  ex.push(['(A7) el informe NO nombra la VRT y si los signos',
+    norm(lSinDato).indexOf('vrt') === -1 && lSinDato.indexOf('signos adicionales en:') > -1, lSinDato.slice(0, 150)]);
+  const evSinDato = sec('Hipertensi' + String.fromCharCode(243) + 'n pulmonar — probabilidad ecocardiogr' + String.fromCharCode(225) + 'fica');
+  const fSinDato = fila(evSinDato, 'Velocidad pico');
+  ex.push(['(A8) la Evidencia dice «sin datos»', !!fSinDato && fSinDato.val === 'sin datos',
+    JSON.stringify(fSinDato && fSinDato.val)]);
+  try { if (F('amiloTextoHTP')) {
+    const h = amiloTextoHTP();
+    ex.push(['(A9) la hoja del PDF dice «sin datos» (mismo nodo que la pantalla)',
+      norm(h).indexOf('sin datos') > -1 && norm(h).indexOf('vrt no medible') === -1, h.split('\\n')[1] || '']);
+  } } catch (e) { ex.push(['(A9) la hoja del PDF dice «sin datos»', false, 'EXC: ' + e.message]); }
+  /* CONTROL: «No medible» ELEGIDA conserva su clausula palabra por palabra. */
+  set({ htp2022_vrt: 'nomedible' });
+  try { calcHTP2022(); } catch (e) {}
+  const lElegida = inf().split('\\n').filter(l => norm(l).indexOf('probabilidad de hipertension pulmonar') > -1)[0] || '';
+  ex.push(['(A10) CONTROL: con «No medible» elegida la clausula se conserva',
+    lElegida.indexOf('(VRT no medible; signos adicionales en:') > -1, lElegida.slice(0, 150)]);
+  ex.push(['(A11) CONTROL: ahi la pantalla sigue diciendo «no medible»',
+    norm(txt('htp2022-vrt-interp')).indexOf('no medible') > -1, String(txt('htp2022-vrt-interp'))]);
+
+  /* ══ (B) AJ2-3 — el tipo de IM vacio es un TERCER estado ════════════════════════════════ */
+  __t.limpiar();
+  set({ ete_prof_coapt: '12', ete_area_tenting: '2.8', ete_angulo_vp: '50', teer_tipo_im: '' });
+  try { calcETE(); } catch (e) {}
+  const repVacio = txt('ete-reparabilidad');
+  ex.push(['(B1) DENOMINADOR: con mediciones cargadas la frase no es la raya', repVacio !== '—', String(repVacio).slice(0, 60)]);
+  ex.push(['(B2) sin tipo consignado, el texto NOMBRA el estado y no afirma un mecanismo',
+    norm(repVacio).indexOf('no esta consignado') > -1 && norm(repVacio).indexOf('el mecanismo consignado no lo es') === -1,
+    String(repVacio).slice(0, 130)]);
+  set({ teer_tipo_im: 'secundaria' }); try { calcETE(); } catch (e) {}
+  ex.push(['(B3) CONTROL: con «secundaria» lista los factores desfavorables',
+    norm(txt('ete-reparabilidad')).indexOf('factores desfavorables') > -1, String(txt('ete-reparabilidad')).slice(0, 80)]);
+  set({ teer_tipo_im: 'primaria' }); try { calcETE(); } catch (e) {}
+  ex.push(['(B4) CONTROL: con «primaria» publica su propio texto',
+    norm(txt('ete-reparabilidad')).indexOf('primaria') > -1, String(txt('ete-reparabilidad')).slice(0, 80)]);
+
+  /* ══ (C) AJ2-4 — la tricuspide dice POR QUE su Evidencia no se abre ═════════════════════
+     ⚠️ LA COMPUERTA SE LE PREGUNTA AL DUENO (_indVT) Y NO SE COPIA. */
+  __t.limpiar();
+  set({ et_grado: 'Significativa' }); try { calcET(); } catch (e) {}
+  const avSinDatos = txt('et-evid-aviso');
+  const T_VT2 = 'V' + String.fromCharCode(225) + 'lvula tric' + String.fromCharCode(250) + 'spide';
+  ex.push(['(C1) DENOMINADOR: con la estenosis marcada la Evidencia NO abre', sec(T_VT2) === null, String(sec(T_VT2) === null)]);
+  ex.push(['(C2) y el aviso lo dice', !!avSinDatos && norm(avSinDatos).indexOf('se activa') > -1, String(avSinDatos).slice(0, 110)]);
+  ex.push(['(C3) el aviso NO pide cargar la velocidad maxima de la IT, que no abre la seccion',
+    !!avSinDatos && norm(avSinDatos).indexOf('velocidad maxima') === -1, String(avSinDatos).slice(0, 130)]);
+  set({ et_gmedio: '7' }); try { calcET(); } catch (e) {}
+  ex.push(['(C4) CONTROL: con el gradiente medio la seccion abre y el aviso desaparece',
+    sec(T_VT2) !== null && !txt('et-evid-aviso'), String(sec(T_VT2) !== null) + '/' + JSON.stringify(txt('et-evid-aviso'))]);
+  __t.limpiar(); try { calcET(); } catch (e) {}
+  ex.push(['(C5) CONTROL NEGATIVO: sin estenosis marcada el aviso no sale', !txt('et-evid-aviso'), JSON.stringify(txt('et-evid-aviso'))]);
+
+  /* ══ (D) AJ2-5 — la coartacion sin gradiente ════════════════════════════════════════════ */
+  __t.limpiar();
+  set({ coa_loc: 'preductal', coa_situacion: 'post_cirugia' });
+  try { const b = document.querySelector('[data-ete-chk="coart_incluir_chk"]');
+        const c = document.getElementById('coart_incluir_chk');
+        if (b && c && !c.checked) b.click(); } catch (e) {}
+  try { coaSync(); } catch (e) {}
+  const cc = (F('coaConclusion')) ? coaConclusion() : null;
+  const iCoa = inf().split('\\n').filter(l => norm(l).indexOf('coartacion de aorta') > -1)[0] || '';
+  const sCoa = suma().split('\\n').filter(l => norm(l).indexOf('coartacion') > -1)[0] || '';
+  ex.push(['(D1) DENOMINADOR: la clave es «incompleto» y el parrafo se emite',
+    !!cc && cc.clave === 'incompleto' && iCoa.length > 20, JSON.stringify(cc && cc.clave) + ' | ' + iCoa.slice(0, 60)]);
+  ex.push(['(D2) el informe dice el sustantivo UNA sola vez',
+    norm(iCoa).split('coartacion').length - 1 === 1, iCoa]);
+  ex.push(['(D3) y no pide un estudio',
+    norm(iCoa).indexOf('completar con doppler') === -1 && norm(iCoa).indexOf('sin gradiente registrado') === -1, iCoa]);
+  ex.push(['(D4) la situacion va como aposicion', iCoa.indexOf(', post-cirug') > -1, iCoa]);
+  ex.push(['(D5) el EN SUMA sin «en seguimiento» ni «datos incompletos»',
+    !!sCoa && norm(sCoa).indexOf('en seguimiento') === -1 && norm(sCoa).indexOf('datos incompletos') === -1, sCoa]);
+  set({ coa_gmedio: '25' }); try { coaSync(); } catch (e) {}
+  const iCoaG = inf().split('\\n').filter(l => norm(l).indexOf('coartacion de aorta') > -1)[0] || '';
+  ex.push(['(D6) CONTROL: con gradiente la logica queda LITERAL (el pre sigue siendo el sujeto)',
+    norm(iCoaG).indexOf('criterios de significacion') > -1, iCoaG.slice(0, 120)]);
+
+  /* ══ (E) AJ2-7a y 7b — el ateroma ═══════════════════════════════════════════════════════ */
+  __t.limpiar();
+  set({ ao_grosor_placa: '5' });
+  try { if (F('ateroGradoAuto')) ateroGradoAuto(); calcAteroAo(); } catch (e) {}
+  const selA = document.getElementById('ao_grado_atero');
+  ex.push(['(E1) 5 mm exactos completan el grado 3, marcado automatico',
+    val('ao_grado_atero') === '3' && !!selA && selA.dataset.auto === '1',
+    JSON.stringify(val('ao_grado_atero')) + ' auto=' + String(selA && selA.dataset.auto)]);
+  ex.push(['(E2) el origen se VE', norm(txt('ao-grado-auto')).indexOf('automatico') > -1, String(txt('ao-grado-auto'))]);
+  set({ ao_grosor_placa: '6' });
+  try { if (F('ateroGradoAuto')) ateroGradoAuto(); calcAteroAo(); } catch (e) {}
+  ex.push(['(E3) mas de 5 mm dan grado 4', val('ao_grado_atero') === '4', JSON.stringify(val('ao_grado_atero'))]);
+  ex.push(['(E4) la descripcion no afirma un riesgo embolico que la escala no publica',
+    norm(txt('ao-atero-desc')).indexOf('riesgo embolico') === -1, String(txt('ao-atero-desc'))]);
+  ex.push(['(E5) y la fila de riesgo embolico esta escondida',
+    (function(){ const n = document.getElementById('ao-riesgo-embol');
+      const f = n ? n.closest('.calc-row') : null;
+      return !!f && getComputedStyle(f).display === 'none'; })(),
+    (function(){ const n = document.getElementById('ao-riesgo-embol');
+      const f = n ? n.closest('.calc-row') : null;
+      return f ? getComputedStyle(f).display : 'SIN FILA'; })()]);
+  ex.push(['(E6) el grado 3 ya no dice «placa irregular»',
+    norm(txt('ao-recomendacion')).indexOf('irregular') === -1, String(txt('ao-recomendacion'))]);
+  /* el del medico MANDA */
+  __t.limpiar();
+  set({ ao_grado_atero: '4' });
+  try { if (F('ateroGradoManual')) ateroGradoManual(); } catch (e) {}
+  set({ ao_grosor_placa: '4' });
+  try { if (F('ateroGradoAuto')) ateroGradoAuto(); calcAteroAo(); } catch (e) {}
+  ex.push(['(E7) el grado elegido a mano no se pisa', val('ao_grado_atero') === '4', JSON.stringify(val('ao_grado_atero'))]);
+  /* borrar el grosor: el automatico se borra, el manual no */
+  __t.limpiar();
+  set({ ao_grosor_placa: '5' });
+  try { if (F('ateroGradoAuto')) ateroGradoAuto(); } catch (e) {}
+  set({ ao_grosor_placa: '' });
+  try { if (F('ateroGradoAuto')) ateroGradoAuto(); } catch (e) {}
+  ex.push(['(E8) al borrar el grosor el grado AUTOMATICO se borra', val('ao_grado_atero') === '', JSON.stringify(val('ao_grado_atero'))]);
+  __t.limpiar();
+  set({ ao_grado_atero: '3' });
+  try { if (F('ateroGradoManual')) ateroGradoManual(); } catch (e) {}
+  set({ ao_grosor_placa: '5' }); set({ ao_grosor_placa: '' });
+  try { if (F('ateroGradoAuto')) ateroGradoAuto(); } catch (e) {}
+  ex.push(['(E9) y el MANUAL sobrevive', val('ao_grado_atero') === '3', JSON.stringify(val('ao_grado_atero'))]);
+  __t.limpiar();
+  ex.push(['(E10) «Nuevo estudio» borra las dos marcas de origen',
+    (function(){ const e = document.getElementById('ao_grado_atero');
+      return !!e && !e.dataset.auto && !e.dataset.manual; })(),
+    (function(){ const e = document.getElementById('ao_grado_atero');
+      return e ? (String(e.dataset.auto) + '/' + String(e.dataset.manual)) : 'SIN SELECT'; })()]);
+
+  /* ══ (F) AJ2-10 — el TEP ════════════════════════════════════════════════════════════════ */
+  const TV = F('tepVeredicto');
+  ex.push(['(F1) tepVeredicto es el dueno unico del veredicto', !!TV, typeof TV]);
+  if (TV) {
+    ex.push(['(F2) >=4 criterios: «significativa» y sin probabilidad ni conducta',
+      TV(4, 6).txt.indexOf('significativa') > -1 && norm(TV(4, 6).txt).indexOf('alta probabilidad') === -1
+      && norm(TV(4, 6).txt).indexOf('correlacionar') === -1, TV(4, 6).txt]);
+    ex.push(['(F3) 2 a 3: el recuento y nada mas', norm(TV(2, 6).txt).indexOf('correlacionar') === -1
+      && TV(2, 6).txt.indexOf('2 criterios positivos') > -1, TV(2, 6).txt]);
+    ex.push(['(F4) 1: criterio aislado, sin Wells ni CTPA',
+      norm(TV(1, 6).txt).indexOf('aislado') > -1 && norm(TV(1, 6).txt).indexOf('wells') === -1, TV(1, 6).txt]);
+    ex.push(['(F5) 0: no afirma disfuncion y no lleva linea de EN SUMA',
+      TV(0, 6).suma === null, JSON.stringify(TV(0, 6).suma)]);
+    ex.push(['(F6) ninguna rama GRADUA con «moderada» ni «severa», que la ESC 2019 no publica acá',
+      [0, 1, 2, 3, 4, 6].every(n => { const t = norm(TV(n, 6).txt);
+        return t.indexOf('moderada') === -1 && t.indexOf('severa') === -1; }),
+      [0, 1, 2, 4].map(n => TV(n, 6).txt).join(' || ').slice(0, 150)]);
+  }
+  __t.limpiar();
+  try { if (F('amiloIntegrar')) amiloIntegrar('tep'); } catch (e) {}
+  set({ tep_mcconnell: 'si', tep_signo6060: 'si', tep_tabique_d: 'si', tapse: '14' });
+  try { calcPSAP(); calcTEP(); } catch (e) {}
+  const pantTep = txt('tep-interpretacion');
+  const iTep = inf().split('\\n').filter(l => norm(l).indexOf('sobrecarga del ventriculo derecho') > -1)[0] || '';
+  ex.push(['(F7) DENOMINADOR: el informe publica su linea de sobrecarga del VD', iTep.length > 40, iTep.slice(0, 100)]);
+  ex.push(['(F8) la PANTALLA y el INFORME dicen LO MISMO',
+    !!pantTep && iTep.indexOf(pantTep) > -1, JSON.stringify(pantTep) + ' | ' + iTep.slice(0, 110)]);
+  ex.push(['(F9) el denominador es el de los criterios EVALUADOS',
+    iTep.indexOf('4 de 4 criterios positivos') > -1, iTep.slice(0, 110)]);
+  try { if (F('amiloTextoTEP')) {
+    const b = amiloTextoTEP();
+    const li = b.split('\\n').filter(l => l.indexOf('Interpretaci') === 0)[0] || '';
+    ex.push(['(F10) y el bloque del ETT avanzado tambien, porque LEE el span de la pantalla',
+      !!pantTep && li.indexOf(pantTep) > -1, li]);
+  } } catch (e) { ex.push(['(F10) el bloque del ETT avanzado', false, 'EXC: ' + e.message]); }
+  /* AJ2-16a: el rotulo del score */
+  const rotScore = (function(){ const n = document.getElementById('tep-score');
+    const r = n ? n.closest('.calc-row') : null;
+    const l = r ? r.querySelector('.calc-lbl') : null;
+    return l ? (l.textContent || '').trim() : 'SIN ROTULO'; })();
+  ex.push(['(F11) AJ2-16a: el rotulo del score dice /6 y no /7',
+    rotScore.indexOf('/6') > -1 && rotScore.indexOf('/7') === -1, rotScore]);
+
+  /* ══ (G) AJ2-13 — los dos buscadores ═══════════════════════════════════════════════════ */
+  const BC = F('_buscaCompacta'), BD = F('_buscaDoc');
+  ex.push(['(G1) _buscaCompacta es el dueno de la equivalencia guion = espacio = nada', !!BC, typeof BC]);
+  if (BC) ex.push(['(G2) las tres formas colapsan a la misma',
+    BC('HFA-PEFF') === BC('HFA PEFF') && BC('HFA PEFF') === BC('hfapeff'),
+    [BC('HFA-PEFF'), BC('HFA PEFF'), BC('hfapeff')].join('|')]);
+  if (BC) ex.push(['(G3) el PUNTO DECIMAL no se toca: «0,42» sigue encontrando «0.42» y «15» no es «1.5»',
+    BC('0,42') === '0.42' && BC('1.5') !== BC('15'), BC('0,42') + ' | ' + BC('1.5') + ' vs ' + BC('15')]);
+  if (BD) ex.push(['(G4) y para nombres y documentos el punto SI es separador',
+    BD('1.234.567-8') === '12345678', BD('1.234.567-8')]);
+  try {
+    if (F('showTab')) showTab('refs');
+    if (F('refBuscadorInit')) refBuscadorInit();
+    const e = document.getElementById('ref-busca');
+    if (e && F('refBuscar')) {
+      e.value = 'HFA-PEFF'; const a = refBuscar();
+      e.value = 'HFA PEFF'; const b = refBuscar();
+      e.value = 'hfapeff';  const c = refBuscar();
+      e.value = 'tapse';    const d = refBuscar();
+      e.value = 'TAPSE';    const f2 = refBuscar();
+      e.value = '';         refBuscar();
+      ex.push(['(G5) DENOMINADOR: «HFA-PEFF» encuentra su ficha', !!a && a.n === 1, JSON.stringify(a && a.n)]);
+      ex.push(['(G6) y las tres formas dan el MISMO resultado',
+        !!b && !!c && b.n === a.n && c.n === a.n,
+        [a && a.n, b && b.n, c && c.n].join('/')]);
+      ex.push(['(G7) CONTROL: lo que ya funcionaba no se mueve (mayusculas)',
+        !!d && !!f2 && d.n === f2.n && d.n >= 4, [d && d.n, f2 && f2.n].join('/')]);
+    } else ex.push(['(G5) el buscador de Referencias existe', false, 'SIN CAMPO o SIN FN']);
+  } catch (e) { ex.push(['(G5) el buscador de Referencias', false, 'EXC: ' + e.message]); }
+
+  /* ══ (H) AJ2-14 — la orejuela ══════════════════════════════════════════════════════════ */
+  __t.limpiar();
+  set({ oai_ostium_diam: '23', oai_profundidad: '35' });
+  try { calcOAI(); } catch (e) {}
+  const rotOai = (function(){ const n = document.getElementById('oai-elegibilidad');
+    const r = n ? n.closest('.calc-row') : null;
+    const l = r ? r.querySelector('.calc-lbl') : null;
+    return l ? (l.textContent || '').trim() : 'SIN ROTULO'; })();
+  const notasOai = txt('oai-notas') || '';
+  ex.push(['(H1) el rotulo nombra al unico dispositivo que el recuadro evalua',
+    norm(rotOai).indexOf('zona de anclaje') > -1 && norm(rotOai).indexOf('elegibilidad') === -1, rotOai]);
+  ex.push(['(H2) DENOMINADOR: las notas publican las dos medidas', notasOai.indexOf('Profundidad 35 mm') > -1, notasOai.slice(-70)]);
+  ex.push(['(H3) y no las juzgan: «favorable» y «limitante» salen',
+    norm(notasOai).indexOf('favorable') === -1 && norm(notasOai).indexOf('limitante') === -1, notasOai.slice(-90)]);
+
+  /* ══ (I) AJ2-15 — la diastolica no clasificable ════════════════════════════════════════ */
+  __t.limpiar();
+  set({ diast_algoritmo: 'ase2025', onda_e: '90' });
+  try { calcDiastol(); } catch (e) {}
+  const dR = window._diastResult || {};
+  const iDia = inf().split('\\n').filter(l => norm(l).indexOf('no clasificable') > -1 || norm(l).indexOf('completar e') > -1)[0] || '';
+  ex.push(['(I1) DENOMINADOR: el algoritmo cae en su rama incompleta',
+    norm(String(txt('dd-interp'))).indexOf('incompleto') > -1, String(txt('dd-interp'))]);
+  ex.push(['(I2) la frase DESCRIBE y no pide completar un campo',
+    norm(String(dR.texto)).indexOf('no clasificable') > -1 && norm(String(dR.texto)).indexOf('completar e') === -1,
+    String(dR.texto)]);
+  ex.push(['(I3) y es la que baja al informe FIRMADO', iDia.indexOf('no clasificable') > -1, iDia]);
+
+  ex.push(['(Z) DENOMINADOR GLOBAL: todos los campos del caso se encontraron',
+    noEntraron.length === 0, 'noEntraron=' + JSON.stringify(noEntraron)]);
+
+  return { extra: ex };
+  })();
+`);
+
 
 
 
