@@ -1115,9 +1115,68 @@ window.__Z = {
              marca: t.filter(function(s){ return /dilatado/.test(s) }) } }
     catch (e) { return 'EXC: ' + e.message } },
 
+  /* AJ4-4: los DOS carteles del cruce, con su color y su visibilidad. */
+  cruce() { try {
+    try { if (typeof vabCoaCruceSync === 'function') vabCoaCruceSync() } catch (x) {}
+    function leer(id) { var e = document.getElementById(id);
+      if (!e) return { err: 'NO EXISTE ' + id };
+      var cs = getComputedStyle(e);
+      return { txt: (e.textContent || '').replace(/\\s+/g, ' ').trim(),
+               color: cs.color, display: cs.display,
+               ambar: cs.color === getComputedStyle(document.documentElement).getPropertyValue('--orange').trim() } }
+    return { vab: leer('vab-coa-nota'), coa: leer('coa-vab-nota'),
+             estado: (typeof vabCoaCruceSync === 'function') ? vabCoaCruceSync() : 'SIN FN' } }
+    catch (e) { return 'EXC: ' + e.message } },
+
+  /* CONTROL: ninguno de los dos textos llega a una superficie firmada. */
+  cruceEnPapel() { try {
+    if (typeof generarInforme === 'function') generarInforme();
+    var inf = (document.getElementById('informe_texto') || {}).value || '';
+    var sum = (document.getElementById('en_suma') || {}).value || '';
+    var p = window.__P.pdf();
+    var pdf = (p.textos || []).join(' ');
+    /* Sin expresiones regulares: los tres textos salen de sus CONSTANTES, asi que la sonda
+       busca exactamente lo que la pantalla escribe y no una aproximacion. */
+    var busca = [window.VAB_COA_SIN, window.VAB_COA_CON, window.COA_VAB_CON];
+    var o = {};
+    busca.forEach(function(b){ var t = String(b || 'SIN CONSTANTE');
+      o[t.slice(0, 34)] = { informe: inf.indexOf(t) > -1, suma: sum.indexOf(t) > -1,
+                            pdf: pdf.indexOf(t) > -1 } });
+    return o }
+    catch (e) { return 'EXC: ' + e.message } },
+
   errores() { return (window.__Yerr || []).slice() }
 };
 `);
+
+  /* == GRUPO cruce — AJ4-4: LAS DOS PANTALLAS SE LEEN ENTRE SI ===============================
+     Las CUATRO celdas de la tabla de verdad, y el control de que ninguno llega al papel. */
+  if (corre('cruce')) {
+    const r = { celdas: {} };
+    const CEL = {
+      nada:      {},
+      soloCoa:   { coa_loc: 'preductal', coa_istmo: '8', coa_situacion: 'post_cirugia' },
+      soloVab:   { va_morf: 'Bic\u00fAspide' },
+      lasDos:    { va_morf: 'Bic\u00fAspide', coa_loc: 'preductal', coa_istmo: '8', coa_situacion: 'post_cirugia' },
+      /* El OTRO camino a «la valvula es bicuspide»: el tipo de fusion de la seccion de
+         congenitas, con la morfologia de Valvulas SIN tocar. */
+      tipoFusion:{ vab_tipo: 'fused_rl' }
+    };
+    try {
+      for (const k of Object.keys(CEL)) {
+        await ev(`window.__P.nuevo()`); await ev(`window.__P.despejar()`);
+        r.celdas[k] = { sembrado: await ev(`window.__Z.sembrar(${JSON.stringify(CEL[k])})`, 40000),
+                        cruce: await ev(`window.__Z.cruce()`) };
+      }
+      /* El papel, con las DOS condiciones cargadas: es la celda en que los dos textos existen. */
+      await ev(`window.__P.nuevo()`); await ev(`window.__P.despejar()`);
+      await ev(`window.__Z.sembrar(${JSON.stringify(CEL.lasDos)})`, 40000);
+      r.papel = await ev(`window.__Z.cruceEnPapel()`, 90000);
+      r.errores = await ev(`window.__Z.errores()`);
+    } catch (e) { r.err = e.message; }
+    out.grupos.cruce = r;
+    process.stderr.write('[cruce] listo\n');
+  }
 
   /* == GRUPO dueno — EL CORTE UNICO DE LA RAIZ, POR SUS BORDES ================================
      Cada escena trae su VALOR y la respuesta de las siete superficies. El denominador de este

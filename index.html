@@ -15128,6 +15128,15 @@ z
     <div class="calc-box" style="margin-top:12px;">
       <div class="calc-row"><span class="calc-lbl">Conclusión</span><span id="coa-concl" class="calc-val">—</span></div>
     </div>
+    <!-- ══ EL ESPEJO DE LA SECCION DE BICUSPIDE (AJ4-4, 2026-10-23) ════════════════════════
+         Es DESCRIPTIVO y de PANTALLA: no llega al informe, al EN SUMA, al PDF, al PPT ni al
+         Excel, y no agrega ni un campo. Lo unico que lo escribe es `vabCoaCruceSync`, que es
+         tambien quien escribe el cartel de la otra direccion — un solo dueno para las dos
+         mitades del mismo cruce.
+         ⚠️ EL id NO PUEDE TERMINAR EN «-aviso»: `limpiarCampos` barre `[id$="-aviso"]` con
+         `textContent = ''` y dejaria el nodo visible y vacio para siempre.
+         Nace OCULTO: sin bicuspide no hay nada que decir. -->
+    <div id="coa-vab-nota" style="font-size:11px;color:var(--text2);margin:10px 0 0;line-height:1.5;display:none;"></div>
     <div style="text-align:center;margin-top:10px;">
       <input type="checkbox" id="coart_incluir_chk" style="display:none;" tabindex="-1" aria-hidden="true">
       <button type="button" class="btn btn-integrar" data-ete-chk="coart_incluir_chk" aria-pressed="false"
@@ -67306,9 +67315,63 @@ function coaSync(){
     if (e) { const a = (typeof v==='function') ? v('ao_tub') : null; e.value = (a!=null) ? a + ' mm' : ''; } }
   const c = coaConclusion();
   txt('coa-concl', c ? c.txt : '—');
+  /* El cruce con la seccion de bicuspide (AJ4-4). Va tambien desde aca y no solo desde el
+     oyente: `coaSync` esta en RECALC_MODULOS y al final de `limpiarCampos`, que son los dos
+     caminos por los que el formulario cambia SIN que nadie toque una tecla. */
+  try { vabCoaCruceSync() } catch (e) {}
 }
 window.coaSync = coaSync; window.coaConclusion = coaConclusion;
 window.coaGmax = coaGmax; window.coaRatio = coaRatio;
+
+/* ══ LAS DOS PANTALLAS SE LEEN ENTRE SÍ — UN SOLO DUEÑO (AJ4-4, 23/10/2026) ══════════════════
+   DECISIÓN DE MAICOL. Hasta hoy la sección de válvula bicúspide publicaba, SIEMPRE y en ámbar,
+   «Excluir coartación de aorta asociada — ver la sección de coartación», aunque la coartación
+   estuviera cargada tres tarjetas más abajo en la misma pestaña: la app le pedía al médico que
+   descartara lo que él ya le había dicho. Y en la otra dirección no decía nada.
+
+   ⚠️ UN SOLO PINTOR PARA LOS DOS CARTELES, y no uno por sección. Son las dos mitades del mismo
+   cruce: con dos funciones, el día que una cambie de criterio la pantalla afirmaría la presencia
+   de la coartación de un lado y la ignoraría del otro, sobre el mismo estudio.
+   ⚠️ LA PRESENCIA SE LE PREGUNTA A SU DUEÑO Y NO SE REIMPLEMENTA. «Hay coartación cargada» es
+   exactamente `coaConclusion() != null` —su `hayDato` mira los siete campos propios de la
+   sección y deja la ascendente afuera a propósito, porque `ao_tub` está medida en casi todos los
+   estudios y no es evidencia de que alguien haya buscado una coartación—. Y «la válvula es
+   bicúspide» es `_indVABEsBicuspide()`, el dueño que las dos secciones de Evidencia ya comparten
+   desde el D2-E3. Escribir acá un `sv('coa_istmo') || ...` habría sido la tercera copia.
+   ⚠️ ES DE PANTALLA Y NO LLEGA A NINGUNA SUPERFICIE FIRMADA. No lo lee el informe, ni el EN
+   SUMA, ni el PDF, ni el PPT, ni el Excel: lo único que escribe estos dos nodos es esta función.
+   ⚠️ EL CARTEL DE LA COARTACIÓN CARGADA ES DESCRIPTIVO Y POR ESO NO VA EN ÁMBAR. El ámbar de la
+   app significa «falta algo»; acá no falta nada, se está diciendo que el dato ya está.
+   ⚠️ NINGUNO DE LOS DOS ids TERMINA EN «-aviso»: `limpiarCampos` barre `[id$="-aviso"]` con
+   `textContent = ''` y dejaría el nodo visible, en ámbar y sin una palabra. Es la trampa que el
+   propio `vab-coa-nota` ya tenía documentada y que el aviso de la mitral pagó. */
+const VAB_COA_SIN = 'Excluir coartación de aorta asociada — ver la sección de coartación.';
+const VAB_COA_CON = 'Coartación de aorta cargada (sección COAO)';
+const COA_VAB_CON = 'Válvula aórtica bicúspide presente (Válvulas)';
+function vabCoaCruceSync(){
+  let hayCoa = false, hayVab = false;
+  try { hayCoa = !!coaConclusion(); } catch (e) { hayCoa = false; }
+  try { hayVab = !!_indVABEsBicuspide(); } catch (e) { hayVab = false; }
+  const n1 = document.getElementById('vab-coa-nota');
+  if (n1) {
+    n1.textContent = hayCoa ? VAB_COA_CON : VAB_COA_SIN;
+    n1.style.color = hayCoa ? 'var(--text2)' : 'var(--orange)';
+  }
+  const n2 = document.getElementById('coa-vab-nota');
+  if (n2) {
+    n2.textContent = hayVab ? COA_VAB_CON : '';
+    n2.style.display = hayVab ? 'block' : 'none';
+  }
+  return { hayCoa: hayCoa, hayVab: hayVab };
+}
+window.vabCoaCruceSync = vabCoaCruceSync;
+window.VAB_COA_SIN = VAB_COA_SIN; window.VAB_COA_CON = VAB_COA_CON; window.COA_VAB_CON = COA_VAB_CON;
+/* ⚠️ UN OYENTE DE DOCUMENTO, Y NO SÓLO LAS DOS SYNC. Cada cartel depende de campos de la OTRA
+   sección, y `va_morf` vive en otra PESTAÑA —su `onchange` llama a `valvProtSync()` y no pasa
+   por acá—, así que colgarse del gesto de cada campo es como uno se queda sin cablear. Es el
+   mismo patrón que `aiviSexoSync`, por el mismo motivo y con el mismo `try`. */
+document.addEventListener('input',  function(){ try { vabCoaCruceSync() } catch (e) {} }, true);
+document.addEventListener('change', function(){ try { vabCoaCruceSync() } catch (e) {} }, true);
 
 /* ══ VENTANA AORTOPULMONAR ═══════════════════════════════════════════════════════════════
    Comunicación directa entre aorta ascendente y arteria pulmonar principal. Es rara (<1 % de
@@ -69671,6 +69734,7 @@ function vabSync(){
     h.value = f || '';
   })();
   vabResumenPintar();
+  try { vabCoaCruceSync() } catch (e) {}
 }
 window.vabSync = vabSync; window.vabConclusion = vabConclusion; window.vabFactores = vabFactores;
 
