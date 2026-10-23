@@ -1583,6 +1583,51 @@ window.__Z = {
     process.stderr.write('[et] listo\n');
   }
 
+  /* ══ GRUPO «tep» — AJ2-10: UN SOLO VOCABULARIO EN LAS TRES SUPERFICIES ═══════════════════ */
+  if (corre('tep')) {
+    const r = { escenas: {} };
+    const montar = async (o) => {
+      await ev(`window.__P.nuevo()`);
+      await ev(`window.__P.despejar()`);
+      await ev(`window.__Y.integrar('tep')`);
+      await ev(`window.__P.abrirPara('tep_mcconnell')`);
+      /* Los tres cualitativos SIEMPRE se contestan: con uno en «no evaluado» el informe sale por
+         su return y la escena no mide el veredicto. */
+      await poner('tep_mcconnell', o.mc || 'no');
+      await poner('tep_signo6060', o.s60 || 'no');
+      await poner('tep_tabique_d', o.td || 'no');
+      if (o.tapse) { await ev(`window.__P.abrirPara('tapse')`); await poner('tapse', o.tapse); }
+      if (o.vdvi)  { await ev(`window.__P.abrirPara('vd_vi')`);  await poner('vd_vi', o.vdvi); }
+      if (o.vmaxit){ await ev(`window.__P.abrirPara('vmax_it')`); await poner('vmax_it', o.vmaxit);
+                     await ev(`window.__P.abrirPara('vci_diam')`); await poner('vci_diam', '25');
+                     await poner('vci_col', '<50'); }
+      await ev(`(function(){ if (typeof calcPSAP === 'function') calcPSAP();
+                             if (typeof calcTEP === 'function') calcTEP(); return 1 })()`);
+      return {
+        pantalla: await ev(`window.__P.txt('tep-interpretacion')`),
+        score: await ev(`window.__P.txt('tep-score')`),
+        rotulo: await ev(`(function(){
+          var n = document.getElementById('tep-score');
+          var row = n ? n.closest('.calc-row') : null;
+          var l = row ? row.querySelector('.calc-lbl') : null;
+          return l ? (l.textContent || '').trim() : 'SIN ROTULO' })()`),
+        bloqueETT: await ev(`(function(){ try { return (typeof amiloTextoTEP === 'function')
+          ? amiloTextoTEP() : 'SIN FN' } catch (e) { return 'EXC: ' + e.message } })()`, 40000),
+        lineas: await ev(`window.__Z.lineas(['sobrecarga','TEP','disfuncion del VD','disfuncion VD'])`, 40000)
+      };
+    };
+    try {
+      r.escenas.c0 = await montar({});
+      r.escenas.c2 = await montar({ mc: 'si', s60: 'si' });
+      r.escenas.c4 = await montar({ mc: 'si', s60: 'si', td: 'si', tapse: '14' });
+      r.escenas.c4completo = await montar({ mc: 'si', s60: 'si', td: 'si', tapse: '14',
+                                            vdvi: '1.2', vmaxit: '3.2' });
+      r.errores = await ev(`window.__Y.errores()`);
+    } catch (e) { r.err = e.message; }
+    out.grupos.tep = r;
+    process.stderr.write('[tep] listo\n');
+  }
+
   OUT.md5Fin = await md5(EXTERNO ? FARG : join(RAIZ, FILE));
   process.stdout.write(JSON.stringify(OUT, null, 1));
   cdp.close(); srv.close(); process.exit(0);

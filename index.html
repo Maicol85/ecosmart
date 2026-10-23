@@ -9132,7 +9132,11 @@ window.cerrarSesionReal = cerrarSesionReal;
 
   <div class="card" style="margin-bottom:6px;">
     <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleCard('tep-seccion',this)">
-      🔴 Evaluación Ecocardiográfica — TEP / Sobrecarga VD Aguda
+      <!-- ⚠️ EL TITULO NO NOMBRA UNA TEP (AJ2-10, 2026-10-23): el bloque publica el recuento de
+           criterios de sobrecarga del VD, y la probabilidad de una tromboembolia no la establece
+           el ecocardiograma solo. Decia «Evaluación Ecocardiográfica — TEP / Sobrecarga VD
+           Aguda». El titulo de la hoja del PDF se cambia en el mismo commit. -->
+      🔴 Evaluaci&oacute;n de sobrecarga del VD
       <span id="tep-arrow" style="float:right;transition:transform 0.2s;">▶</span>
     </h2>
   </div>
@@ -26857,6 +26861,48 @@ window.tepHayDatos = tepHayDatos;
 
    ⚠️ LOS CORTES 2 y 4 DEL CONTEO SON CRITERIO DE ECOSMART y no se movieron: ninguna fuente
    publica un score con estos seis criterios. Lo declara la ficha de Referencias del TEP. */
+/* ══ UN SOLO DUENO DEL VEREDICTO DE SOBRECARGA DEL VD (AJ2-10, 2026-10-23) ════════════════
+   La PANTALLA y el INFORME publicaban DOS vocabularios del mismo recuento, medido:
+
+   | recuento | pantalla (`tep-interpretacion`)                                  | informe (`estratif`)                                                      |
+   |---|---|---|
+   | 0   | «Sin criterios de disfunción VD significativa»                        | «Sin criterios ecocardiográficos de disfunción VD significativa…»          |
+   | 1   | «Criterio aislado — bajo valor diagnóstico individual»                | «Criterio aislado de disfunción VD, correlacionar con score de Wells y CTPA» |
+   | 2-3 | «Disfunción VD MODERADA — compatible con sobrecarga aguda de presión» | «Disfunción VD con N criterios positivos, correlacionar con clínica…»      |
+   | >=4 | «Disfunción VD SEVERA — alta probabilidad de TEP/HTP aguda (N)»       | «Disfunción VD SIGNIFICATIVA — correlacionar con clínica, biomarcadores…»  |
+
+   O sea que el mismo paciente leia «severa» en la pantalla y «significativa» en el papel, y la
+   pantalla ademas GRADUABA -moderada / severa- con una escala que la ESC 2019 no publica para
+   este conteo. DECISION DE MAICOL: se unifica al vocabulario del INFORME y salen las dos cosas
+   que no son hallazgos: «alta probabilidad de TEP/HTP aguda» -una probabilidad diagnostica que
+   el eco solo no establece- y las tres clausulas «correlacionar con…», que son conducta.
+
+   ⚠️ EL BLOQUE DEL ETT AVANZADO SE UNIFICA POR CONSTRUCCION: `amiloTextoTEP` publica
+   «Interpretación: » + `_amTxt('tep-interpretacion')`, o sea LEE el span de la pantalla. Por eso
+   las tres superficies no pueden volver a divergir.
+
+   ⚠️ EL DENOMINADOR ES EL DE LOS CRITERIOS EVALUADOS Y NO UN 6 FIJO. La orden pedia «N de 6»;
+   `total` es `criterios.length`, o sea cuantos se pudieron evaluar, y los tres cuantitativos
+   -VD/VI, TAPSE y PSAP- pueden faltar. Decir «de 6» con tres evaluados afirma un denominador que
+   el estudio no tiene, que es la leccion que la IP en Fallot reparada ya dejo escrita. Con los
+   seis evaluados la frase dice exactamente «N de 6 criterios positivos». */
+const TEP_VD_SIGNIF_MIN = 4;   // criterios — el tramo que la app llama «significativa»
+function tepVeredicto(score, total) {
+  if (score >= TEP_VD_SIGNIF_MIN) return {
+    txt: 'Disfunción del VD significativa',
+    suma: 'Sobrecarga del VD: disfunción del VD significativa.' };
+  if (score >= 2) return {
+    txt: 'Disfunción del VD con ' + score + ' criterios positivos',
+    suma: 'Sobrecarga del VD: disfunción del VD con ' + score + ' criterios.' };
+  if (score === 1) return {
+    txt: 'Criterio aislado de disfunción del VD',
+    suma: 'Sobrecarga del VD: criterio aislado de disfunción del VD.' };
+  return {
+    txt: 'Sin criterios ecocardiográficos de disfunción del VD por sobrecarga aguda de presión',
+    suma: null };
+}
+window.tepVeredicto = tepVeredicto; window.TEP_VD_SIGNIF_MIN = TEP_VD_SIGNIF_MIN;
+
 function calcTEP() {
   const tapse   = v('tapse');
   const psap    = v('psap_calc');
@@ -26990,10 +27036,13 @@ function calcTEP() {
        sí. La salvedad ESC 2019 se emitía sobre una evaluación inexistente, y el informe
        firmado llevaba una instrucción de interfaz como interpretación. */
     interpEl.dataset.estado = 'valido';
-    if (score === 0) interpEl.innerHTML = badge('green', 'Sin criterios de disfunción VD significativa');
-    else if (score === 1) interpEl.innerHTML = badge('yellow', 'Criterio aislado — bajo valor diagnóstico individual');
-    else if (score >= 2 && score <= 3) interpEl.innerHTML = badge('orange', 'Disfunción VD moderada — compatible con sobrecarga aguda de presión');
-    else interpEl.innerHTML = badge('red', 'Disfunción VD severa — alta probabilidad de TEP/HTP aguda (' + score + ' criterios)');
+    /* El MISMO texto que firma el informe, del dueno unico (AJ2-10). El COLOR se conserva tal
+       como estaba —es la unica cosa de estas cuatro ramas que no es una afirmacion de texto— y
+       sigue derivandose del recuento. */
+    const _tv = tepVeredicto(score, total);
+    const _cls = score === 0 ? 'green' : (score === 1 ? 'yellow'
+               : (score < TEP_VD_SIGNIF_MIN ? 'orange' : 'red'));
+    interpEl.innerHTML = badge(_cls, _tv.txt);
   }
 
   /* ⚠️ EL RENGLON DE CLASE DE RIESGO SE RETIRO (C-E2, 21/10/2026). Publicaba «Riesgo
@@ -54103,9 +54152,17 @@ function generarInforme(opts) {
        documentados. El TAPSE usa `TEP_TAPSE_BAJO_MAX` (16 mm, ESC 2019 de TEP) y NO
        `UMBRAL_TAPSE_NORMAL` (17 mm, ASE 2025), que es el de la pestaña VD; la PSAP usa `>=`. */
     let score = 0;
+    /* ⚠️ EL DENOMINADOR SE CUENTA CON LA MISMA REGLA QUE `calcTEP` (AJ2-10, 2026-10-23): los
+       tres cuantitativos cuentan si tienen valor, y los tres cualitativos cuentan SIEMPRE,
+       porque si alguno quedo en «no evaluado» este bloque ya salio por el `return` de arriba.
+       Sin esto la linea tendria que afirmar «de 6» con tres criterios medidos. */
+    let _tepTotal = 3;
     if (vdvi !== null && vdvi >= TEP_VDVI_DILAT_MIN) score++;
     if (tapse !== null && tapse < TEP_TAPSE_BAJO_MAX) score++;
     if (psap !== null && psap >= UMBRAL_PSAP_ELEVADA) score++;
+    if (vdvi  !== null) _tepTotal++;
+    if (tapse !== null) _tepTotal++;
+    if (psap  !== null) _tepTotal++;
     if (mcconnell) score++;
     if (signo6060) score++;
     if (tabiqued) score++;
@@ -54114,24 +54171,17 @@ function generarInforme(opts) {
        arterial pulmonar (ESC/ERS 2022, Tabla 16, folio 41) y no de TEP agudo. */
     const tapsePsapVal = (tapse && psap) ? (tapse / psap).toFixed(3) : null;
 
-    let estratif, estratifSuma;
-    if (score >= 4) {
-      estratif      = 'Disfunción VD significativa — correlacionar con clínica, biomarcadores y scores validados';
-      estratifSuma  = 'TEP/sobrecarga VD: disfunción VD significativa.';
-    } else if (score >= 2) {
-      estratif      = 'Disfunción VD con ' + score + ' criterios positivos, correlacionar con clínica y biomarcadores';
-      estratifSuma  = 'TEP/sobrecarga VD: disfunción VD con ' + score + ' criterios.';
-    } else if (score === 1) {
-      estratif      = 'Criterio aislado de disfunción VD, correlacionar con score de Wells y CTPA';
-      estratifSuma  = 'TEP/sobrecarga VD: criterio aislado de disfunción VD.';
-    } else {
-      estratif      = 'Sin criterios ecocardiográficos de disfunción VD significativa por sobrecarga aguda de presión';
-      estratifSuma  = null;
-    }
+    /* El MISMO dueno que la pantalla y, por su via, que el bloque del ETT avanzado (AJ2-10).
+       Las tres clausulas «correlacionar con…» salen: son CONDUCTA. */
+    const _tv = (typeof tepVeredicto === 'function') ? tepVeredicto(score, _tepTotal) : null;
+    const estratif     = _tv ? _tv.txt  : null;
+    const estratifSuma = _tv ? _tv.suma : null;
 
-    let linea = 'Evaluación ecocardiográfica de sobrecarga VD aguda (TEP): ' + score + ' criterio(s) positivo(s).';
+    /* El denominador es el de los criterios EVALUADOS: ver la nota de `tepVeredicto`. */
+    let linea = 'Evaluación ecocardiográfica de sobrecarga del ventrículo derecho: ' + score +
+                ' de ' + _tepTotal + ' criterios positivos.';
     if (tapsePsapVal) linea += ' Índice TAPSE/PSAP ' + tapsePsapVal + ' mm/mmHg.';
-    linea += ' ' + estratif + '.';
+    if (estratif) linea += ' ' + estratif + '.';
 
     inf.push(linea);
     if (estratifSuma) suma.push(estratifSuma);
@@ -89316,7 +89366,10 @@ function amiloSecs() {
       hayDatos:function(){ if (typeof hfapeffScore !== 'function') return true;
                            const g = hfapeffScore(false).gate; return !g || g.aplica; } },
     { k:'htp',  lbl:'Probabilidad de HTP (ESC 2022)',  tit:'PROBABILIDAD DE HTP - ESC 2022',           gen:amiloTextoHTP },
-    { k:'tep',  lbl:'Probabilidad de TEP',             tit:'PROBABILIDAD DE TEP / SOBRECARGA VD',      gen:amiloTextoTEP },
+    /* ⚠️ EL TITULO NO NOMBRA UNA PROBABILIDAD DIAGNOSTICA (AJ2-10, 2026-10-23): el bloque
+       publica el recuento de criterios de sobrecarga del VD, y la probabilidad de una TEP no la
+       establece el ecocardiograma solo. Decia «Probabilidad de TEP / Sobrecarga VD». */
+    { k:'tep',  lbl:'Evaluación de sobrecarga del VD',  tit:'EVALUACIÓN DE SOBRECARGA DEL VD',          gen:amiloTextoTEP },
     /* `soloHoja`: este botón gobierna la hoja del PDF, NO la línea del informe narrativo —ésa
        sale sola, gateada por el dato—. Sin esta marca los avisos mentían: retirar el módulo
        decía «VEXUS — congestión venosa ya no sale en el informe» mientras el cuerpo del informe
