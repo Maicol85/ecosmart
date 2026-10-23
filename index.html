@@ -14343,7 +14343,14 @@ z
         </div>
         <div class="calc-row"><span class="calc-lbl">SEC — interpretación</span><span id="oai-sec-interp">—</span></div>
         <div class="calc-row"><span class="calc-lbl">Trombo OAI</span><span id="oai-trombo-interp">—</span></div>
-        <div class="calc-row"><span class="calc-lbl" style="font-weight:700;">⚖️ Elegibilidad Watchman / Amulet</span><span id="oai-elegibilidad">—</span></div>
+        <!-- ⚠️ EL ROTULO NOMBRA AL UNICO DISPOSITIVO QUE ESTE RECUADRO EVALUA (AJ2-14, 2026-10-23).
+             Decia «Elegibilidad Watchman / Amulet» y la rama verde compara UNA sola cosa: la zona
+             de anclaje del Amplatzer Amulet (11 a 31 mm), que es la unica medida citable -de
+             WATCHMAN FLX Pro solo se publica el numero de tamanos, porque su tabla de
+             dimensionamiento por ostium no se pudo leer (ver `OAI_FAB_WATCH`)-. Y «Elegibilidad»
+             es una afirmacion de aptitud para un procedimiento: lo que el recuadro dice es si una
+             medida cae dentro de un rango. -->
+        <div class="calc-row"><span class="calc-lbl" style="font-weight:700;">⚖️ Zona de anclaje &mdash; Amplatzer Amulet</span><span id="oai-elegibilidad">—</span></div>
         <div class="calc-row"><span id="oai-notas" style="font-size:11px;color:var(--yellow);"></span></div>
       </div>
       <div class="fg" style="margin-top:8px;"><label>Notas OAI</label>
@@ -83720,10 +83727,20 @@ function calcOAI() {
     notas.push(OAI_FAB_AMULET);
     notas.push(OAI_FAB_WATCH);
   }
-  if (diam && prof) {
-    if (prof < diam) notas.push(`Profundidad ${prof}mm < ostium ${diam}mm — puede ser limitante`);
-    else notas.push(`Profundidad ${prof}mm ≥ ostium — favorable`);
-  }
+  /* ══ LAS DOS MEDIDAS SE PUBLICAN Y NO SE JUZGAN (AJ2-14, 2026-10-23) ═══════════════════
+     Decia «Profundidad N mm ≥ ostium — favorable» y «< ostium — puede ser limitante»: un juicio
+     de aptitud sobre una regla que NINGUNA fuente de la biblioteca publica.
+     ⚠️ CENSADO EN LA BIBLIOTECA ANTES DE SACARLO: los diez PDF de `14- ETE` se barrieron por
+     «LAA depth», «landing zone», «ostial/ostium diameter» y «depth». La unica que habla del tema
+     es la ASE de ETE (Hahn y cols., JASE 2021), **folio 50** —comprobado en el pie impreso «50
+     Hahn et al»—, y lo que dice es que hay que MEDIR la profundidad de la orejuela y el ancho de
+     la zona de anclaje en los cuatro planos (0, 45, 90 y 135 grados, Figura 27). No publica
+     ningun criterio que compare las dos; al contrario, advierte que las generaciones nuevas de
+     dispositivos son mas cortas y de forma adaptable, «asi que las mediciones de la longitud
+     utilizable de la orejuela pueden no ser ortogonales al orificio» — o sea que la regla simple
+     esta, si algo, desaconsejada para los dispositivos actuales.
+     Queda el dato medido, que es lo que el ecocardiograma puede decir. */
+  if (diam && prof) notas.push(`Profundidad ${prof} mm; ostium ${diam} mm`);
 
   const el = document.getElementById('oai-elegibilidad');
   const notasEl = document.getElementById('oai-notas');

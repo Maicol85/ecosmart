@@ -1416,6 +1416,37 @@ window.__Z = {
     process.stderr.write('[busca] listo\n');
   }
 
+  /* ══ GRUPO «oai» — AJ2-14: EL ROTULO Y EL «FAVORABLE» ════════════════════════════════════ */
+  if (corre('oai')) {
+    const r = { escenas: {} };
+    const montar = async (o) => {
+      await ev(`window.__P.nuevo()`);
+      await ev(`window.__P.despejar()`);
+      await ev(`window.__P.abrirPara('oai_ostium_diam')`);
+      if (o.diam) await poner('oai_ostium_diam', o.diam);
+      if (o.prof) await poner('oai_profundidad', o.prof);
+      if (o.trombo) await poner('oai_trombo', o.trombo);
+      await ev(`(function(){ if (typeof calcOAI === 'function') calcOAI(); return 1 })()`);
+      return { eleg: await ev(`window.__P.txt('oai-elegibilidad')`),
+               notas: await ev(`window.__P.txt('oai-notas')`),
+               rotulo: await ev(`(function(){
+                 var n = document.getElementById('oai-elegibilidad');
+                 var row = n ? n.closest('.calc-row') : null;
+                 var l = row ? row.querySelector('.calc-lbl') : null;
+                 return l ? (l.textContent || '').trim() : 'SIN ROTULO' })()`) };
+    };
+    try {
+      r.escenas.profMayor  = await montar({ diam: '23', prof: '35' });
+      r.escenas.profMenor  = await montar({ diam: '28', prof: '20' });
+      r.escenas.soloDiam   = await montar({ diam: '23' });
+      r.escenas.fueraRango = await montar({ diam: '40', prof: '35' });
+      r.escenas.conTrombo  = await montar({ diam: '23', prof: '35', trombo: 'si' });
+      r.errores = await ev(`window.__Y.errores()`);
+    } catch (e) { r.err = e.message; }
+    out.grupos.oai = r;
+    process.stderr.write('[oai] listo\n');
+  }
+
   OUT.md5Fin = await md5(EXTERNO ? FARG : join(RAIZ, FILE));
   process.stdout.write(JSON.stringify(OUT, null, 1));
   cdp.close(); srv.close(); process.exit(0);
