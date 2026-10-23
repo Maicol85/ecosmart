@@ -9185,33 +9185,47 @@ window.cerrarSesionReal = cerrarSesionReal;
 
       <!-- Resultados automáticos -->
       <div class="calc-box">
-        <div style="font-size:11px;font-weight:700;color:var(--accent2);margin-bottom:8px;">ÍNDICES Y SCORE</div>
-        <div class="calc-row"><span class="calc-lbl">TAPSE/PSAP (acoplamiento VD-AP)</span><span id="tep-tapse-psap">—</span></div>
-        <div class="calc-row"><span class="calc-lbl">Relación VD/VI</span><span id="tep-vdvi-interp">—</span></div>
-        <div class="calc-row"><span class="calc-lbl">TAPSE — función sistólica VD</span><span id="tep-tapse-interp">—</span></div>
-        <div class="calc-row"><span class="calc-lbl">PSAP estimada</span><span id="tep-psap-interp">—</span></div>
-        <div class="calc-row"><span class="calc-lbl">Signo de McConnell</span><span id="tep-mcconnell-interp">—</span></div>
-        <div class="calc-row"><span class="calc-lbl">Signo 60/60</span><span id="tep-6060-interp">—</span></div>
-        <div class="calc-row"><span class="calc-lbl">Tabique en D</span><span id="tep-tabiqued-interp">—</span></div>
-        <div style="border-top:1px solid var(--border);margin:8px 0;"></div>
-        <div style="font-size:10px;color:var(--text2);background:var(--bg3);border:1px solid var(--border);border-left:3px solid var(--orange);border-radius:6px;padding:8px 10px;margin-bottom:10px;line-height:1.5;">
-          ⚠️ Esta herramienta es orientativa. La estratificación de riesgo en TEP requiere integrar estabilidad hemodinámica, troponina, PESI/sPESI y confirmación diagnóstica. No reemplaza la clasificación ESC 2019.
-        </div>
+        <!-- == TRES GRUPOS EN EL ORDEN DE LA LECTURA: criterios, indices, score (AJ2-10c,
+             23/10/2026) ====================================================================
+             Hasta hoy el cuadro tenia UN titulo -«ÍNDICES Y SCORE»- con los seis criterios y el
+             indice mezclados, y el score, la interpretacion y OTRA VEZ el TAPSE/PSAP al final,
+             despues del cartel de advertencia.
+             OJO: EL TAPSE/PSAP SALIA DOS VECES CON EL MISMO TEXTO. Los spans tep-tapse-psap y
+             tep-acoplamiento recibian los dos el mismo idx + mm/mmHg de calcTEP, asi que el
+             mismo numero se publicaba en dos filas del mismo cuadro -y dos veces en la hoja del
+             PDF-. Queda tep-tapse-psap, que es la que la hoja lista en su seccion de indices.
+             OJO: LAS ETIQUETAS NO REPITEN EL DATO. Los spans de VD/VI, TAPSE y PSAP ya escriben
+             la sigla con su valor y su corte -«VD/VI 1.2 — dilatación VD (≥1.0) ✓»-, asi que el
+             rotulo nombra el PARAMETRO. Cambia la etiqueta de PANTALLA y nada mas: los rotulos
+             de la hoja del PDF viven en amiloTextoTEP y no se tocaron. -->
+        <div style="font-size:11px;font-weight:700;color:var(--accent2);margin-bottom:8px;">CRITERIOS DE SOBRECARGA DEL VD</div>
+        <div class="calc-row"><span class="calc-lbl">Dilataci&oacute;n del VD</span><span id="tep-vdvi-interp">&mdash;</span></div>
+        <div class="calc-row"><span class="calc-lbl">Funci&oacute;n sist&oacute;lica del VD</span><span id="tep-tapse-interp">&mdash;</span></div>
+        <div class="calc-row"><span class="calc-lbl">Presi&oacute;n sist&oacute;lica pulmonar</span><span id="tep-psap-interp">&mdash;</span></div>
+        <div class="calc-row"><span class="calc-lbl">Signo de McConnell</span><span id="tep-mcconnell-interp">&mdash;</span></div>
+        <div class="calc-row"><span class="calc-lbl">Signo 60/60</span><span id="tep-6060-interp">&mdash;</span></div>
+        <div class="calc-row"><span class="calc-lbl">Tabique en D</span><span id="tep-tabiqued-interp">&mdash;</span></div>
+
+        <div style="font-size:11px;font-weight:700;color:var(--accent2);margin:14px 0 8px;">&Iacute;NDICES</div>
+        <div class="calc-row"><span class="calc-lbl">Acoplamiento VD-AP (TAPSE/PSAP)</span><span id="tep-tapse-psap">&mdash;</span></div>
+
+        <div style="font-size:11px;font-weight:700;color:var(--accent2);margin:14px 0 8px;">SCORE</div>
         <div class="calc-row">
-          <!-- ⚠️ SON SEIS CRITERIOS Y EL ROTULO DECIA SIETE (AJ2-16a, 2026-10-23). `calcTEP`
+          <!-- OJO: SON SEIS CRITERIOS Y EL ROTULO DECIA SIETE (AJ2-16a, 2026-10-23). calcTEP
                cuenta exactamente seis: VD/VI, TAPSE, PSAP, McConnell, signo 60/60 y tabique en D
-               -contados sobre los seis `criterios.push` de esa funcion-, y el span de al lado
+               -contados sobre los seis criterios.push de esa funcion-, y el span de al lado
                publica «N criterios positivos» sobre ese mismo denominador. -->
           <span class="calc-lbl" style="font-weight:700;">Score criterios VD (+/6)</span>
-          <span id="tep-score" style="font-weight:700;font-size:14px;">—</span>
+          <span id="tep-score" style="font-weight:700;font-size:14px;">&mdash;</span>
         </div>
         <div class="calc-row">
-          <span class="calc-lbl" style="font-weight:700;">Interpretación</span>
-          <span id="tep-interpretacion" style="font-weight:700;">—</span>
+          <span class="calc-lbl" style="font-weight:700;">Interpretaci&oacute;n</span>
+          <span id="tep-interpretacion" style="font-weight:700;">&mdash;</span>
         </div>
-        <div class="calc-row">
-          <span class="calc-lbl" style="font-weight:700;">📐 TAPSE/PSAP</span>
-          <span id="tep-acoplamiento" style="font-weight:700;">—</span>
+
+        <div style="border-top:1px solid var(--border);margin:10px 0 8px;"></div>
+        <div style="font-size:10px;color:var(--text2);background:var(--bg3);border:1px solid var(--border);border-left:3px solid var(--orange);border-radius:6px;padding:8px 10px;margin-bottom:10px;line-height:1.5;">
+          ⚠️ Esta herramienta es orientativa. La estratificación de riesgo en TEP requiere integrar estabilidad hemodinámica, troponina, PESI/sPESI y confirmación diagnóstica. No reemplaza la clasificación ESC 2019.
         </div>
       </div>
 
@@ -26950,19 +26964,16 @@ function calcTEP() {
      copias de la misma cuenta divergen en cuanto se toca una. El predicado del dueno es este
      mismo (`if (tapse && psap)`) y el valor crudo es identico, asi que esta fila publica
      EXACTAMENTE lo que publicaba: sus TRES decimales y su corte de 0,32 no se tocaron. */
+  /* ⚠️ UN SOLO DESTINO (AJ2-10c, 23/10/2026). Habia DOS spans -`tep-tapse-psap` y
+     `tep-acoplamiento`- recibiendo el MISMO `idx + ' mm/mmHg'`, o sea el mismo cociente en dos
+     filas del mismo cuadro y dos veces en la hoja del PDF. `tep-acoplamiento` se retiro con su
+     fila; el valor, sus TRES decimales y su dueño (`vdTapsePsap`) no se tocaron. */
   const tapsePsapEl = document.getElementById('tep-tapse-psap');
   const _tpsp = (typeof vdTapsePsap === 'function') ? vdTapsePsap() : ((tapse && psap) ? (tapse / psap) : null);
-  const acEl = document.getElementById('tep-acoplamiento');
   if (_tpsp !== null) {
-    const idx = _tpsp.toFixed(3);
-    /* SIN badge y sin color: un color es un veredicto, y aca no hay veredicto que dar. Los tres
-       decimales y el dueño del numero (`vdTapsePsap`) no se tocaron. */
-    if (tapsePsapEl) tapsePsapEl.textContent = idx + ' mm/mmHg';
-    if (acEl) acEl.textContent = idx + ' mm/mmHg';
-  } else {
-    if (tapsePsapEl) tapsePsapEl.textContent = '—';
-    if (acEl) acEl.textContent = '—';
-  }
+    /* SIN badge y sin color: un color es un veredicto, y aca no hay veredicto que dar. */
+    if (tapsePsapEl) tapsePsapEl.textContent = _tpsp.toFixed(3) + ' mm/mmHg';
+  } else if (tapsePsapEl) tapsePsapEl.textContent = '—';
 
   // 2. VD/VI
   const vdviEl = document.getElementById('tep-vdvi-interp');
@@ -88364,7 +88375,10 @@ function amiloTextoTEP() {
   /* ⚠️ LA LINEA «Orientacion de disfuncion VD» SE RETIRO CON SU SPAN (C-E2, 21/10/2026): leia
      `tep-estratificacion`, que publicaba las clases de riesgo de la Tabla 8 de la ESC 2019
      decididas con el eco solo. Ver el comentario de `calcTEP`. */
-  const ac  = _amTxt('tep-acoplamiento');    if (ac)  L.push('TAPSE/PSAP: ' + ac);
+  /* ⚠️ LA LINEA DE TAPSE/PSAP DE ESTA SECCION SE RETIRA CON SU SPAN (AJ2-10c, 23/10/2026): su
+     fuente era `tep-acoplamiento`, el SEGUNDO span que `calcTEP` escribia con el MISMO texto que
+     `tep-tapse-psap`, y la seccion «Índices y score» de arriba ya publica ese numero. La hoja
+     decia el mismo cociente dos veces. */
   /* ⚠️ LA «SALVEDAD» SE RETIRO (C-E2, 21/10/2026). Existia para descargar el veredicto que
      calificaba — «Riesgo INTERMEDIO-ALTO», que salia del span retirado — y con ese veredicto
      afuera queda un descargo sobre una afirmacion que esta hoja ya no hace. Su idea pasa al

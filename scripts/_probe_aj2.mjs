@@ -2141,6 +2141,58 @@ window.__Z = {
     process.stderr.write('[tildes] listo\n');
   }
 
+  /* == GRUPO «tepmaq» - AJ2-10c: LA MAQUETA DEL CUADRO DE TEP ============================== */
+  if (corre('tepmaq')) {
+    const r = {};
+    try {
+      await ev(`window.__P.nuevo()`);
+      await ev(`window.__P.despejar()`);
+      await ev(`window.__P.abrirPara('tep_mcconnell')`);
+      await poner('tep_mcconnell', 'si'); await poner('tep_signo6060', 'si');
+      await ev(`window.__P.abrirPara('tapse')`); await poner('tapse', '14');
+      await ev(`window.__P.abrirPara('it_vmax_cw')`); await poner('it_vmax_cw', '3.5');
+      /* OJO: SIN LA VCI NO HAY PmAD Y SIN PmAD NO HAY PSAP, asi que el cociente queda vacio y
+         la hoja no lo imprime: la escena mediria «la hoja lo dice una vez» sobre una hoja que no
+         lo dice ninguna. */
+      await ev(`window.__P.abrirPara('vci_diam')`); await poner('vci_diam', '18');
+      await poner('vci_col', '>50');
+      await ev(`(function(){ try { calcPSAP(); } catch (e) {}
+                             try { calcTEP(); } catch (e) {}; return 1 })()`, 40000);
+      r.cuadro = await ev(`(function(){
+        var box = document.getElementById('tep-score');
+        box = box ? box.closest('.calc-box') : null;
+        if (!box) return 'SIN CAJA';
+        var titulos = [], filas = [];
+        Array.prototype.forEach.call(box.children, function (c) {
+          var t = (c.textContent || '').replace(/\s+/g, ' ').trim();
+          if (!t) return;
+          if (c.classList.contains('calc-row')) {
+            var l = c.querySelector('.calc-lbl');
+            var v = c.querySelector('[id]');
+            filas.push({ lbl: l ? (l.textContent || '').trim() : '(sin rotulo)',
+                         id: v ? v.id : '(sin id)',
+                         val: v ? (v.textContent || '').trim() : '' });
+          } else if (t === t.toUpperCase() && t.length < 40) titulos.push(t);
+        });
+        return { titulos: titulos, filas: filas,
+                 /* OJO: NI UN REGEX CON BARRA ESCAPADA ACA. Dentro del template de la sonda
+                    /TAPSE\/PSAP/ se cocina -la barra deja de estar escapada- y revienta con
+                    «Invalid regular expression flags». Va por indexOf. */
+                 nTapsePsap: filas.filter(function(f){ return f.lbl.indexOf('TAPSE/PSAP') > -1 }).length,
+                 alto: Math.round(box.getBoundingClientRect().height) };
+      })()`, 40000);
+      r.hoja = await ev(`(function(){
+        try { var t = String(amiloTextoTEP());
+          return { largo: t.length,
+                   nTapsePsap: t.split('TAPSE/PSAP').length - 1,
+                   lineas: t.split(String.fromCharCode(10)) };
+        } catch (e) { return 'EXC: ' + e.message } })()`, 40000);
+      r.errores = await ev(`window.__Y.errores()`);
+    } catch (e) { r.err = e.message; }
+    out.grupos.tepmaq = r;
+    process.stderr.write('[tepmaq] listo\n');
+  }
+
   OUT.md5Fin = await md5(EXTERNO ? FARG : join(RAIZ, FILE));
   process.stdout.write(JSON.stringify(OUT, null, 1));
   cdp.close(); srv.close(); process.exit(0);

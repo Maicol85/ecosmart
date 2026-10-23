@@ -81992,19 +81992,29 @@ caso('TC-510', 'Tanda C: el score de TEP con el TAPSE a <16 y la pestana VD inta
      la primera publicaba el rojo «Disfuncion VD significativa» y la segunda «Riesgo
      INTERMEDIO-ALTO»; hoy las dos publican lo mismo. */
   escena(con({ tapse:'14', vmax_it:'3.6' })); await esp();
-  const c025 = { t: T('tep-tapse-psap'), a: T('tep-acoplamiento'), n: nPos(),
+  /* ADAPTADO el 2026-10-23 (AJ2-10c): tep-acoplamiento era un SEGUNDO span que recibia el
+     MISMO texto que tep-tapse-psap -el mismo cociente en dos filas del mismo cuadro y dos
+     veces en la hoja del PDF- y se retiro con su fila. Lo que este bloque mide —que la fila
+     publica el NUMERO y ninguna palabra de veredicto— se mide igual sobre la fila que queda, y
+     GANA una condicion: que el segundo span ya no exista. */
+  const c025 = { t: T('tep-tapse-psap'), n: nPos(),
                  i: T('tep-interpretacion'), p: V('psap_calc') };
   escena(con({ tapse:'14', vmax_it:'3.04' })); await esp();
-  const c037 = { t: T('tep-tapse-psap'), a: T('tep-acoplamiento'), n: nPos(),
+  const c037 = { t: T('tep-tapse-psap'), n: nPos(),
                  i: T('tep-interpretacion'), p: V('psap_calc') };
   ex.push(['DENOMINADOR: las dos escenas tienen el MISMO conteo y el cociente cae de lados distintos del viejo 0,32',
     c025.t.indexOf('0.25') === 0 && c037.t.indexOf('0.35') === 0 &&
     c025.n === c037.n && c025.n >= 2,
     c025.t + ' (PSAP ' + c025.p + ') // ' + c037.t + ' (PSAP ' + c037.p + ') n=' + c025.n + '/' + c037.n]);
   ex.push(['(D1) la fila del cociente publica el NUMERO y ninguna palabra de veredicto, en las dos',
-    [c025.t, c037.t, c025.a, c037.a].every(function (x) {
+    [c025.t, c037.t].every(function (x) {
       return x.indexOf('mm/mmHg') > -1 && x.indexOf('acopl') < 0 && x.indexOf('0.32') < 0; }),
-    JSON.stringify([c025.t, c037.t, c025.a, c037.a])]);
+    JSON.stringify([c025.t, c037.t])]);
+  ex.push(['(D1b) ADAPTADO (AJ2-10c): el cociente sale UNA sola vez — el segundo span se retiro',
+    !document.getElementById('tep-acoplamiento')
+    && (function(){ try { return amiloTextoTEP().split('TAPSE/PSAP').length - 1 <= 1; }
+                    catch (e) { return false; } })(),
+    'span=' + String(!!document.getElementById('tep-acoplamiento'))]);
   ex.push(['(D2) y el cociente ya no decide: las dos escenas publican la MISMA interpretacion con el mismo conteo',
     c025.n === c037.n && c025.i === c037.i, c025.i + ' // ' + c037.i]);
   ex.push(['(D3) calcTEP no nombra el 0,32 ni la variable que lo usaba',
@@ -82013,7 +82023,16 @@ caso('TC-510', 'Tanda C: el score de TEP con el TAPSE a <16 y la pestana VD inta
   ex.push(['(D4) CONTROL NEGATIVO: con cuatro criterios o mas el renglon de interpretacion SIGUE siendo el grave, porque sale del conteo',
     (function () { escena({ tapse:'12', vmax_it:'3.8', tep_vdvi:'1.3',
       tep_mcconnell:'si', tep_signo6060:'si', tep_tabique_d:'no' });
-      return nPos() >= 4 && T('tep-interpretacion').indexOf('severa') > -1; })(),
+      /* ADAPTADO el 2026-10-23 (AJ2-10a): el renglon decia «Disfunción VD severa — alta
+         probabilidad de TEP/HTP aguda (4 criterios)». «severa» era un GRADO que la ESC 2019 no
+         publica para este recuento y la probabilidad diagnostica de una TEP no la establece el
+         ecocardiograma solo. Hoy dice «Disfunción del VD significativa», de tepVeredicto, que
+         es el dueno unico de las tres superficies. Lo que el control mide —que con cuatro
+         criterios o mas el renglon sigue siendo el GRAVE y sale del CONTEO— no cambio, y GANA
+         que no nombre una probabilidad ni una conducta. */
+      return nPos() >= 4 && T('tep-interpretacion').indexOf('significativa') > -1
+        && T('tep-interpretacion').indexOf('probabilidad') < 0
+        && T('tep-interpretacion').indexOf('correlacionar') < 0; })(),
     T('tep-interpretacion')]);
 
   /* ══ (E) PANTALLA E INFORME CON EL MISMO CONTEO ══════════════════════════════════════════ */
@@ -82021,9 +82040,20 @@ caso('TC-510', 'Tanda C: el score de TEP con el TAPSE a <16 y la pestana VD inta
     try { if (FN('amiloIntegrar') && FN('amiloIntegrado') && !amiloIntegrado('tep')) amiloIntegrar('tep'); } catch (e) {}
     try { generarInforme(); } catch (e) {}
     const t = (V('informe_texto') || '');
-    const l = t.split(NL).filter(function (x) { return x.indexOf('sobrecarga VD aguda') > -1; })[0] || '';
+    /* ADAPTADO el 2026-10-23 (AJ2-10a): la linea decia «Ecocardiograma con N criterios de
+       sobrecarga VD aguda: …» y hoy dice «Evaluación ecocardiográfica de sobrecarga del
+       ventrículo derecho: N de M criterios positivos.» —el MISMO conteo, que es lo que este
+       bloque mide, con el denominador de los criterios EVALUADOS—. El filtro va por el sintagma
+       nuevo y el numero se lee del «N de M», no del primer numero de la linea. */
+    const l = t.split(NL).filter(function (x) {
+      return x.indexOf('sobrecarga del ventr') > -1; })[0] || '';
+    /* OJO: el « de » se busca DESDE los dos puntos. La linea dice «Evaluación ecocardiográfica
+       DE sobrecarga del ventrículo derecho: 2 de 4 criterios positivos.», asi que un indexOf
+       desde el principio toma ESE « de » —que esta ANTES del «: »— y el slice sale VACIO:
+       Number('') da 0 y la condicion informa «informe=0» sobre una linea perfecta. */
     const m = l.indexOf(': ');
-    return { linea: l, n: m < 0 ? null : Number(l.slice(m + 2, l.indexOf(' criterio'))) };
+    const d = m < 0 ? -1 : l.indexOf(' de ', m + 2);
+    return { linea: l, n: (m < 0 || d < 0) ? null : Number(l.slice(m + 2, d)) };
   };
   escena({ vd_vi:'1.2', tapse:'22', tep_mcconnell:'si', tep_signo6060:'no', tep_tabique_d:'no' });
   await esp();
@@ -85479,6 +85509,64 @@ caso('TC-519', 'Tanda AJ2: «sin datos» no es «no medible» en las cinco super
   ex.push(['(N10) CONTROL: la cita en ingles sigue intacta, con su «area» y todo',
     citaIng.indexOf('elliptical regurgitant orifice') > -1 && citaIng.indexOf('area') > -1,
     citaIng.indexOf('elliptical') > -1 ? 'ok' : 'FALTA LA CITA']);
+
+  /* == (O) AJ2-10c - LA MAQUETA DEL CUADRO DE TEP ==========================================
+     ⚠️ DENOMINADOR: sin la VCI no hay PmAD, sin PmAD no hay PSAP y sin PSAP el cociente queda
+     vacio; la hoja NO lo imprime y la escena mediria «lo dice una vez» sobre una hoja que no lo
+     dice ninguna. */
+  __t.limpiar();
+  set({ tep_mcconnell: 'si', tep_signo6060: 'si', tapse: '14', it_vmax_cw: '3.5',
+        vci_diam: '18', vci_col: '>50' });
+  try { calcPSAP(); calcTEP(); } catch (e) {}
+  const cajaTep = (function(){ const n = document.getElementById('tep-score');
+    return n ? n.closest('.calc-box') : null; })();
+  const tepTit = [], tepFilas = [];
+  if (cajaTep) Array.prototype.forEach.call(cajaTep.children, (c) => {
+    const t = (c.textContent || '').replace(/\s+/g, ' ').trim(); if (!t) return;
+    if (c.classList.contains('calc-row')) {
+      const l = c.querySelector('.calc-lbl'), v = c.querySelector('[id]');
+      tepFilas.push({ lbl: l ? (l.textContent || '').trim() : '', id: v ? v.id : '',
+                      val: v ? (v.textContent || '').trim() : '' });
+    } else if (t === t.toUpperCase() && t.length < 40) tepTit.push(t);
+  });
+  ex.push(['(O1) DENOMINADOR: la caja del cuadro de TEP existe y tiene filas',
+    !!cajaTep && tepFilas.length >= 8, 'filas=' + tepFilas.length]);
+  ex.push(['(O2) DENOMINADOR: el cociente se calculo (si no, la hoja no lo imprime)',
+    (tepFilas.filter(f => f.id === 'tep-tapse-psap')[0] || {}).val !== '—',
+    JSON.stringify((tepFilas.filter(f => f.id === 'tep-tapse-psap')[0] || {}).val)]);
+  ex.push(['(O3) tres grupos en el orden de la lectura: criterios, indices, score',
+    tepTit.length === 3 && tepTit[0].indexOf('CRITERIOS') === 0
+    && tepTit[1].indexOf('NDICES') > -1 && tepTit[2] === 'SCORE', JSON.stringify(tepTit)]);
+  ex.push(['(O4) el TAPSE/PSAP sale UNA sola vez en el cuadro',
+    tepFilas.filter(f => f.lbl.indexOf('TAPSE/PSAP') > -1).length === 1,
+    JSON.stringify(tepFilas.filter(f => f.lbl.indexOf('TAPSE/PSAP') > -1).map(f => f.id))]);
+  ex.push(['(O5) y el segundo span se retiro con su fila', !document.getElementById('tep-acoplamiento'),
+    String(!!document.getElementById('tep-acoplamiento'))]);
+  ex.push(['(O6) las etiquetas no repiten la sigla que el span ya escribe',
+    (function(){ const m = {};
+      tepFilas.forEach(f => { m[f.id] = f; });
+      const vd = m['tep-vdvi-interp'], tp = m['tep-tapse-interp'], ps = m['tep-psap-interp'];
+      return !!vd && !!tp && !!ps
+        && vd.lbl.indexOf('VD/VI') === -1 && tp.lbl.indexOf('TAPSE') === -1
+        && ps.lbl.indexOf('PSAP') === -1; })(),
+    tepFilas.filter(f => ['tep-vdvi-interp','tep-tapse-interp','tep-psap-interp']
+      .indexOf(f.id) > -1).map(f => f.lbl).join(' | ')]);
+  const hojaTep = (function(){ try { return String(amiloTextoTEP()); } catch (e) { return 'EXC'; } })();
+  ex.push(['(O7) DENOMINADOR: la hoja del PDF se arma', hojaTep.length > 200, 'largo=' + hojaTep.length]);
+  ex.push(['(O8) y tampoco repite el cociente', hojaTep.split('TAPSE/PSAP').length - 1 === 1,
+    'n=' + (hojaTep.split('TAPSE/PSAP').length - 1)]);
+  /* CONTROL: los nueve spans del cuadro siguen existiendo, UNA vez cada uno. */
+  ex.push(['(O9) CONTROL: los nueve spans del cuadro siguen ahi',
+    ['tep-vdvi-interp','tep-tapse-interp','tep-psap-interp','tep-mcconnell-interp',
+     'tep-6060-interp','tep-tabiqued-interp','tep-tapse-psap','tep-score','tep-interpretacion']
+      .every(x => !!document.getElementById(x)),
+    ['tep-vdvi-interp','tep-tapse-interp','tep-psap-interp','tep-mcconnell-interp',
+     'tep-6060-interp','tep-tabiqued-interp','tep-tapse-psap','tep-score','tep-interpretacion']
+      .filter(x => !document.getElementById(x)).join(',') || 'los nueve']);
+  /* CONTROL: el cartel de advertencia no se toco. */
+  ex.push(['(O10) CONTROL: el cartel de advertencia sigue en el cuadro',
+    !!cajaTep && norm(cajaTep.textContent).indexOf('es orientativa') > -1,
+    !!cajaTep ? 'ok' : 'SIN CAJA']);
 
   ex.push(['(Z) DENOMINADOR GLOBAL: todos los campos del caso se encontraron',
     noEntraron.length === 0, 'noEntraron=' + JSON.stringify(noEntraron)]);
