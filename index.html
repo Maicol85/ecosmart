@@ -9184,7 +9184,11 @@ window.cerrarSesionReal = cerrarSesionReal;
           ⚠️ Esta herramienta es orientativa. La estratificación de riesgo en TEP requiere integrar estabilidad hemodinámica, troponina, PESI/sPESI y confirmación diagnóstica. No reemplaza la clasificación ESC 2019.
         </div>
         <div class="calc-row">
-          <span class="calc-lbl" style="font-weight:700;">Score criterios VD (+/7)</span>
+          <!-- ⚠️ SON SEIS CRITERIOS Y EL ROTULO DECIA SIETE (AJ2-16a, 2026-10-23). `calcTEP`
+               cuenta exactamente seis: VD/VI, TAPSE, PSAP, McConnell, signo 60/60 y tabique en D
+               -contados sobre los seis `criterios.push` de esa funcion-, y el span de al lado
+               publica «N criterios positivos» sobre ese mismo denominador. -->
+          <span class="calc-lbl" style="font-weight:700;">Score criterios VD (+/6)</span>
           <span id="tep-score" style="font-weight:700;font-size:14px;">—</span>
         </div>
         <div class="calc-row">
@@ -48247,6 +48251,7 @@ function etItAvisoSync() {
 }
 window.etItAvisoSync = etItAvisoSync;
 window.ET_IT_AVISO_TXT = ET_IT_AVISO_TXT;
+
 /* ⚠️ EL INSUMO VIVE EN LA MISMA PESTAÑA Y NO PASA POR `calcET`: el `onchange` de `#it_grado` va a
    `valvSev.aplicar`. Es el MISMO oyente de documento que `vdTeiAvisoSync` ya necesitó para este
    mismo campo, y se cuelga igual —en captura, sin tocar la cadena de `valvSev`—. */

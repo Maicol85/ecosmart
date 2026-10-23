@@ -1513,6 +1513,76 @@ window.__Z = {
     process.stderr.write('[atm] listo\n');
   }
 
+  /* ══ GRUPO «et» — AJ2-4: POR QUE LA EVIDENCIA DE LA TRICUSPIDE NO SE ABRE ════════════════ */
+  if (corre('et')) {
+    const r = { escenas: {} };
+    const leer = async () => ({
+      aviso: await ev(`window.__P.txt('et-evid-aviso')`),
+      sev: await ev(`window.__P.txt('et-sev')`),
+      grado: await ev(`window.__P.val('et_grado')`),
+      evidAbre: await ev(`(function(){ try { return (typeof _indVT === 'function')
+        ? (_indVT() !== null) : 'SIN FN' } catch (e) { return 'EXC: ' + e.message } })()`, 40000),
+      rotuloScore: await ev(`(function(){
+        var n = document.getElementById('tep-score');
+        var row = n ? n.closest('.calc-row') : null;
+        var l = row ? row.querySelector('.calc-lbl') : null;
+        return l ? (l.textContent || '').trim() : 'SIN ROTULO' })()`)
+    });
+    const limpio = async () => { await ev(`window.__P.nuevo()`); await ev(`window.__P.despejar()`);
+                                 await ev(`window.__P.abrirPara('et_gmedio')`); };
+    try {
+      /* El defecto: estenosis marcada y ningun insumo. */
+      await limpio(); await poner('et_grado', 'Significativa');
+      await ev(`(function(){ if (typeof calcET === 'function') calcET(); return 1 })()`);
+      r.escenas.marcadaSinDatos = await leer();
+      /* CONTROL: con el gradiente medio la seccion abre y el aviso desaparece. */
+      await poner('et_gmedio', '7');
+      await ev(`(function(){ if (typeof calcET === 'function') calcET(); return 1 })()`);
+      r.escenas.conGradiente = await leer();
+      /* CONTROL: con la velocidad maxima de la IT -la OTRA puerta- tambien abre. */
+      await limpio(); await poner('et_grado', 'Significativa');
+      await ev(`window.__P.abrirPara('it_vmax_cw')`);
+      await poner('it_vmax_cw', '3.2');
+      await ev(`(function(){ if (typeof calcIT_ESC === 'function') calcIT_ESC();
+                             if (typeof calcET === 'function') calcET(); return 1 })()`);
+      r.escenas.conVmaxIT = await leer();
+      /* ¿QUE INSUMO ABRE DE VERDAD LA SECCION? Se prueba uno por uno. */
+      r.puertas = {};
+      for (const [k, campos] of [
+            ['gmedio_7',        [['et_gmedio', '7']]],
+            ['gmedio_3',        [['et_gmedio', '3']]],
+            ['vtiEntrada_61',   [['et_vti_diast', '61']]],
+            ['vtiEntrada_40',   [['et_vti_diast', '40']]],
+            ['vmaxIT_32',       [['it_vmax_cw', '3.2']]],
+            ['itVenaContracta', [['it_vc', '8']]],
+            ['areaPorTres',     [['tsvd_diametro', '25'], ['vti_tsvd', '14'], ['et_vti_diast', '70']]]
+          ]) {
+        await limpio(); await poner('et_grado', 'Significativa');
+        for (const [id, val] of campos) { await ev(`window.__P.abrirPara(${JSON.stringify(id)})`); await poner(id, val); }
+        await ev(`(function(){ if (typeof calcIT_ESC === 'function') calcIT_ESC();
+                               if (typeof calcET === 'function') calcET(); return 1 })()`);
+        r.puertas[k] = { abre: await ev(`(function(){ try { return (typeof _indVT === 'function')
+            ? (_indVT() !== null) : 'SIN FN' } catch (e) { return 'EXC' } })()`, 40000),
+          itGrado: await ev(`window.__P.val('it_grado')`),
+          etSignif: await ev(`(function(){ var E = (typeof etEstado === 'function') ? etEstado() : null;
+            return E ? !!E.signif : 'SIN FN' })()`),
+          aviso: await ev(`window.__P.txt('et-evid-aviso')`) };
+      }
+      /* CONTROL NEGATIVO: sin estenosis marcada el aviso NO sale. */
+      await limpio();
+      await ev(`(function(){ if (typeof calcET === 'function') calcET(); return 1 })()`);
+      r.escenas.sinMarcar = await leer();
+      /* CONTROL: «Nuevo estudio» lo apaga. */
+      await limpio(); await poner('et_grado', 'Significativa');
+      await ev(`(function(){ if (typeof calcET === 'function') calcET(); return 1 })()`);
+      await ev(`window.__P.nuevo()`);
+      r.escenas.trasNuevo = await leer();
+      r.errores = await ev(`window.__Y.errores()`);
+    } catch (e) { r.err = e.message; }
+    out.grupos.et = r;
+    process.stderr.write('[et] listo\n');
+  }
+
   OUT.md5Fin = await md5(EXTERNO ? FARG : join(RAIZ, FILE));
   process.stdout.write(JSON.stringify(OUT, null, 1));
   cdp.close(); srv.close(); process.exit(0);
