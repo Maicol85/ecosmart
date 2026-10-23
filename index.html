@@ -78206,7 +78206,20 @@ function _indAo(){
                       nota:'El informe y la conclusión de la app son DESCRIPTIVOS: los umbrales quirúrgicos y los controles por imagen se publican acá y no en el papel firmado.' } ];
   if (faltan.length) bloques.push({ tit:'Lo que falta para decidir otras filas', lineas: faltan });
   const notas = lineas.map(function(l){ return l.txt });
+  /* ══ TURNER CON SEXO MASCULINO CARGADO (AJ4-5, 23/10/2026) ══════════════════════════════════
+     DECISIÓN DE MAICOL, y va SOLO EN EVIDENCIA: el informe no corrige al médico. El síndrome de
+     Turner es una monosomía del X y la propia guía titula su algoritmo «seguimiento de MUJERES
+     (≥ 15 años) con síndrome de Turner» (Figura 40, folio 111), así que las dos cosas cargadas
+     a la vez son un dato que no cierra — y el sexo decide, además, el corte de dilatación de la
+     raíz desde el AJ4-1.
+     ⚠️ SE AVISA SÓLO CON EL SEXO MASCULINO EXPLÍCITO. Con el sexo vacío no se avisa: «no
+     cargado» no es «masculino», y la app no puede afirmar una contradicción sobre un campo que
+     nadie contestó. Es la misma regla que `va_morf` ya tiene escrita.
+     ⚠️ NO CAMBIA NINGÚN CÁLCULO: los dos cortes de Turner son indexados y no miran el sexo. */
+  const _turnerVaron = (ao === 'turner')
+    && (typeof sexoCargado === 'function') && sexoCargado() === 'M';
   return { filas: filas, bloques: bloques,
+    aviso: _turnerVaron ? 'El síndrome de Turner se da en mujeres: revisá el sexo cargado.' : '',
     clinica: [
       _indFila('Puntuación Z aórtica por edad, sexo y tamaño corporal', '—', 'ask',
         'la guía define la dilatación como un diámetro por encima de 2 desviaciones estándar del esperado (Z mayor de 2) y recomienda la escala Z en los valores extremos de superficie corporal o de edad; la app no la calcula'),
@@ -78280,25 +78293,51 @@ function _indVAB(){
       riesgo === 'si' ? 'warn' : (riesgo === 'no' ? 'none' : 'ask'),
       riesgo === 'si' ? 'condición de las Clases IIa por debajo de 55 mm; solo no alcanza ningún criterio' : '')
   ];
+  /* ══ LAS CUATRO RECOMENDACIONES PASAN AL BLOQUE VISIBLE (AJ4-5, 23/10/2026) ══════════════════
+     DECISIÓN DE MAICOL. Vivían en `notas`, que el marco del panel pinta DENTRO del «Ver detalle»
+     y ese nace PLEGADO: eran las cuatro filas que esta sección existe para publicar —el control
+     por imagen, la tomografía o resonancia de toda la aorta, el cribado de familiares y la
+     cirugía en el mismo acto— y estaban detrás de un clic. Es la misma lección que el trabajo H
+     pagó en la sección de aorta y que el AJ1 repitió con la coartación: `r.bloques` es ADITIVO y
+     se pinta con `plegado:false`, y cada línea lleva su `refs` para entrar en la numeración.
+     Las cuatro están verificadas en el original, Recomendaciones-tabla 68, folio 119 (hoja 120),
+     releída entera en esta tanda. */
+  const _vabRecom = [
+    { txt:'Clase I · Nivel C — Con el diámetro aórtico máximo por encima de 40 mm y sin indicación de cirugía, o tras una cirugía valvular aislada: ecocardiografía transtorácica seriada al año y, después, cada 2 o 3 años si el paciente sigue estable (ESC 2024, Tabla 68, folio 119). Por debajo de 40 mm esa tabla no publica ningún intervalo.',
+      refs: ['esc2024ao'] },
+    { txt:'Clase I · Nivel C — Tomografía o resonancia de toda la aorta torácica en el diagnóstico inicial, y también cuando las mediciones de las ecocardiografías de control discrepan entre sí o el diámetro supera los 45 mm (ESC 2024, Tabla 68, folio 119).',
+      refs: ['esc2024ao'] },
+    { txt:'Cribado con ecocardiografía de los familiares de primer grado: Clase I · Nivel C con fenotipo de raíz o insuficiencia aórtica aislada, y Clase IIa · Nivel B para todos los pacientes con válvula bicúspide (ESC 2024, Tabla 68, folio 119).',
+      refs: ['esc2024ao'] },
+    { txt:'Clase IIa · Nivel C — En el paciente que se somete a cirugía de la válvula aórtica, con la raíz o la aorta ascendente de 45 mm o más, se debe considerar el reemplazo de la aorta en el mismo acto (ESC 2024, Tabla 68, folio 119). La ESC/EACTS 2025 de valvulopatías lo publica en su apartado 7.4, folio 4660, y remite a la guía de aorta.',
+      refs: ['esc2024ao'] }
+  ];
   return { filas: filas,
     aviso: (C && C.clave === 'contradiccion') ? C.txt : '',
+    bloques: [ { tit:'Recomendaciones aplicables de la guía', lineas: _vabRecom,
+      nota:'El informe y la conclusión de la app son DESCRIPTIVOS: los umbrales quirúrgicos y los controles por imagen se publican acá y no en el papel firmado.' } ],
     guia: { ref:'esc2024ao',
       txt:'Cirugía Clase I · Nivel B con diámetro máximo ≥ 55 mm, y Clase I · Nivel B desde 50 mm en el FENOTIPO DE RAÍZ. Todo lo demás es Clase IIa.' },
     notas: [
-      C ? 'Conclusión de la app: ' + C.txt
+      /* ⚠️ LA LÍNEA «Conclusión de la app: …» SE RETIRA (AJ4-5). Era el texto de
+         `vabConclusion()` ENTERO, y la sección «Válvula aórtica bicúspide — conclusión» de este
+         mismo panel lo publica como su única fila: el panel decía lo mismo dos veces, a dos
+         secciones de distancia. Lo que queda acá es el estado SIN conclusión, que la otra
+         sección no puede decir porque con `C` nulo no se pinta. */
+      C ? null
         : 'Sin datos cargados en la sección de válvula bicúspide, la app no emite conclusión. Los diámetros de arriba van solos.',
-      'La distinción raíz / ascendente decide la conducta: en fenotipo ascendente NO hay Clase I a 50 mm — el gatillo aislado es > 52 mm (IIa B) y la Clase I recién a ≥ 55 mm.',
-      'Clase IIa C desde 50 mm con riesgo quirúrgico bajo y algún factor: edad < 50 años, talla baja, longitud de la ascendente ≥ 11 cm, crecimiento ≥ 3 mm/año, antecedente familiar de síndrome aórtico agudo, coartación, hipertensión resistente, cirugía cardíaca no valvular aórtica concomitante o deseo de embarazo.',
-      /* ⚠️ ESTAS TRES LÍNEAS SON LAS RECOMENDACIONES QUE EL TRABAJO «H» SACÓ DEL INFORME, y por
-         eso traen su clase, su nivel, su tabla y su folio: el informe es descriptivo y la
-         recomendación vive acá. Las tres están verificadas en el original, Recomendaciones-tabla
-         68, folio 119 (hoja 120). */
-      'Clase IIa · Nivel C desde 45 mm, de raíz o de aorta ascendente, en el paciente que se somete a cirugía de válvula aórtica: la guía recomienda considerar el reemplazo de la aorta en el mismo acto (Tabla 68, folio 119). La ESC/EACTS 2025 de valvulopatías dice lo mismo en su apartado 7.4, folio 4660, y remite a la guía de aorta.',
-      'SEGUIMIENTO POR IMAGEN, con el diámetro máximo por encima de 40 mm y sin indicación de cirugía, o tras una cirugía valvular aislada: ecocardiografía transtorácica seriada al año y, después, cada 2 o 3 años si el paciente sigue estable (Clase I · Nivel C, Tabla 68, folio 119). Por debajo de 40 mm esa tabla no publica ningún intervalo.',
-      'Tomografía o resonancia de TODA la aorta torácica al diagnóstico, y también cuando las mediciones de las ecocardiografías de control discrepan entre sí o el diámetro supera 45 mm (Clase I · Nivel C, Tabla 68, folio 119).',
-      'Cribado con ecocardiografía de los familiares de primer grado: Clase I · Nivel C cuando hay fenotipo de raíz o insuficiencia aórtica aislada, y Clase IIa · Nivel B para todos los pacientes con válvula bicúspide (Tabla 68, folio 119).',
-      'Los dos umbrales Clase I que circulan —«> 50 mm con factores de riesgo» y «> 45 mm con recambio valvular programado»— son de la ESC 2014: la guía de 2024 los imprime en su tabla de recomendaciones modificadas, degradados a IIa C.'
-    ] };
+      /* ⚠️ REDACCIÓN NEUTRA (AJ4-5). Decía «en fenotipo ascendente NO hay Clase I a 50 mm — el
+         gatillo aislado es…», que es una advertencia contra una lectura ajena y no un dato. Los
+         datos —clase, nivel, tabla y folio— se conservan enteros; la historia de por qué hubo
+         que escribirlo así vive en `docs/fuentes/FUENTES.md`. */
+      'La distinción entre el fenotipo de raíz y el fenotipo ascendente decide la conducta: la Clase I desde 50 mm corresponde al fenotipo de raíz; en el fenotipo ascendente el umbral aislado es un diámetro por encima de 52 mm (Clase IIa · Nivel B) y la Clase I es desde 55 mm (Tabla 68, folio 119).',
+      'Clase IIa · Nivel C desde 50 mm con riesgo quirúrgico bajo y alguno de estos factores: edad menor de 50 años, talla baja, longitud de la aorta ascendente de 11 cm o más, crecimiento de 3 mm o más al año, antecedente familiar de síndrome aórtico agudo, coartación aórtica, hipertensión resistente, cirugía cardíaca concomitante no valvular aórtica o deseo de embarazo (Tabla 68, folio 119).',
+      /* ⚠️ REDACCIÓN NEUTRA (AJ4-5): decía «Los dos umbrales Clase I que circulan … son de la
+         ESC 2014», que es una corrección dirigida al lector. Se publica lo que la edición vigente
+         clasifica, con su clase, su nivel y su folio; la comparación entre ediciones queda en
+         `docs/fuentes/FUENTES.md`. */
+      'En la edición vigente de la guía, las dos filas de 50 mm con factores de riesgo y de 45 mm con cirugía valvular programada son Clase IIa · Nivel C, y figuran en su tabla de recomendaciones modificadas (Tabla 68, folio 119).'
+    ].filter(Boolean) };
 }
 
 /* Lector de listas, hermano de `_indFn` y `_indUmb` y con la misma regla 4: si la lista no está
@@ -79480,8 +79519,12 @@ function _indVABConcl(){
     guia: { ref:'esc2024ao',
       txt:'Cirugía Clase I · Nivel B con diámetro máximo ≥ 55 mm, y Clase I · Nivel B desde 50 mm en el FENOTIPO DE RAÍZ. Todo lo demás es Clase IIa (Tabla 68, folio 119).' },
     notas: [
-      'Este es el texto que la sección de válvula aórtica bicúspide calcula, con los mismos umbrales que viajan al informe y al EN SUMA. La sección muestra la descripción; los umbrales y la conducta se consultan acá.',
-      'La distinción raíz / ascendente decide la conducta: en fenotipo ascendente NO hay Clase I a 50 mm.'
+      'Este es el texto que la sección de válvula aórtica bicúspide calcula, con los mismos umbrales que viajan al informe y al EN SUMA. La sección muestra la descripción; los umbrales y la conducta se consultan acá.'
+      /* ⚠️ LA SEGUNDA LÍNEA SE RETIRA (AJ4-5, 23/10/2026): era la MISMA frase sobre el fenotipo
+         de raíz y el ascendente que publica «Válvula aórtica bicúspide — aorta ascendente», una
+         sección más arriba en este mismo panel. Dos secciones diciendo lo mismo del mismo
+         paciente es lo que esta tanda vino a cerrar; la frase queda, completa y con su folio, en
+         la sección que además trae los diámetros que la sostienen. */
     ] };
 }
 

@@ -1145,9 +1145,61 @@ window.__Z = {
     return o }
     catch (e) { return 'EXC: ' + e.message } },
 
+  /* AJ4-5 parcial: las secciones de la VAB y de la aorta del panel, con sus BLOQUES visibles,
+     sus notas y su aviso. Se leen por su funcion, no por el DOM: el DOM depende de que el panel
+     este abierto y de que _indClin no se haya vaciado. */
+  evidVabAo() { try {
+    var L = (typeof IND_SECS !== 'undefined') ? IND_SECS : null;
+    if (!L) return 'SIN IND_SECS';
+    var o = {};
+    L.forEach(function(s){
+      var t = String(s.tit);
+      if (!/Aorta tor|bic[uu\u00fa]spide/i.test(t)) return;
+      var r = null; try { r = s.fn() } catch (e) { o[t] = 'EXC: ' + e.message; return }
+      if (!r) { o[t] = null; return }
+      o[t] = { aviso: r.aviso || '',
+               bloques: (r.bloques || []).map(function(b){
+                 return { tit: b.tit, plegado: !!b.plegado,
+                          lineas: (b.lineas || []).map(function(l){ return (typeof l === 'string') ? l : l.txt }) } }),
+               notas: (r.notas || []).map(function(n){ return (typeof n === 'string') ? n : n.txt }) };
+    });
+    return o }
+    catch (e) { return 'EXC: ' + e.message } },
+
   errores() { return (window.__Yerr || []).slice() }
 };
 `);
+
+  /* == GRUPO evid — AJ4-5 PARCIAL ============================================================
+     (a) las cuatro recomendaciones de la VAB pasan al bloque VISIBLE; (b) tono neutro; (c) el
+     texto que estaba dos veces en el panel; (d) el aviso de Turner con sexo masculino. */
+  if (corre('evid')) {
+    const r = { escenas: {} };
+    const ESC = {
+      /* VAB con la aorta dilatada: abre las DOS secciones de la bicuspide. */
+      vab:       { sexo:'M', peso:'80', talla:'180', va_morf:'Bic\u00fAspide', vab_tipo:'fused_rl',
+                   vab_fenotipo:'raiz', ao_sin:'47', ao_tub:'42' },
+      /* Turner con sexo FEMENINO: el aviso NO tiene que salir. Control negativo. */
+      turnerF:   { sexo:'F', peso:'50', talla:'145', marfan_sindrome:'turner',
+                   marfan_ao_seno:'38', marfan_ita:'26' },
+      /* Turner con sexo MASCULINO: el aviso SI. */
+      turnerM:   { sexo:'M', peso:'50', talla:'145', marfan_sindrome:'turner',
+                   marfan_ao_seno:'38', marfan_ita:'26' },
+      /* Turner SIN sexo: tampoco avisa — «no cargado» no es «masculino». */
+      turnerSin: { sexo:'', peso:'50', talla:'145', marfan_sindrome:'turner',
+                   marfan_ao_seno:'38', marfan_ita:'26' }
+    };
+    try {
+      for (const k of Object.keys(ESC)) {
+        await ev(`window.__P.nuevo()`); await ev(`window.__P.despejar()`);
+        r.escenas[k] = { sembrado: await ev(`window.__Z.sembrar(${JSON.stringify(ESC[k])})`, 40000),
+                         secs: await ev(`window.__Z.evidVabAo()`, 60000) };
+      }
+      r.errores = await ev(`window.__Z.errores()`);
+    } catch (e) { r.err = e.message; }
+    out.grupos.evid = r;
+    process.stderr.write('[evid] listo\n');
+  }
 
   /* == GRUPO cruce — AJ4-4: LAS DOS PANTALLAS SE LEEN ENTRE SI ===============================
      Las CUATRO celdas de la tabla de verdad, y el control de que ninguno llega al papel. */
