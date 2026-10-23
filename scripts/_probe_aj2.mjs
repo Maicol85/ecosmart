@@ -1813,6 +1813,79 @@ window.__Z = {
     process.stderr.write('[hfp] listo\n');
   }
 
+  /* == GRUPO «pulm» - AJ2-9: EL ECO PULMONAR ===============================================
+     UNA linea por bloque cargado, «bilateral» cuando la misma zona esta en los dos hemitorax,
+     y la frase de interpretacion fuera del informe FIRMADO.
+     DENOMINADOR: sin INTEGRAR el modulo, el bloque 13c no emite nada y la medicion sale con el
+     informe sin una sola linea pulmonar -que se lee igual que «la frase ya no esta»-. */
+  if (corre('pulm')) {
+    const r = { escenas: {} };
+    try {
+      const montar = async (o) => {
+        await ev(`window.__P.nuevo()`);
+        await ev(`window.__P.despejar()`);
+        await ev(`window.__P.abrirPara('pua_lineasb')`);
+        if (o.lb)    await poner('pua_lineasb', o.lb);
+        if (o.cant)  await poner('pua_lineasb_cant', o.cant);
+        if (o.desliz)await poner('pua_desliz', o.desliz);
+        if (o.derr)  await poner('pua_derrame', o.derr);
+        if (o.dlado) await poner('pua_derrame_lado', o.dlado);
+        for (const z of (o.zonas || [])) await chk(z, true);
+        await ev(`(function(){ if (typeof pulAvUI === 'function') pulAvUI();
+                               if (typeof amiloIntegrar === 'function' && typeof amiloIntegrado === 'function'
+                                   && !amiloIntegrado('pulm')) amiloIntegrar('pulm'); return 1 })()`, 60000);
+        return {
+          integrado: await ev(`(function(){ return (typeof amiloIntegrado === 'function') ? !!amiloIntegrado('pulm') : 'SIN FN' })()`),
+          zonas: await ev(`(function(){ try { return (pulAvZonas() || []).join(' | ') } catch (e) { return 'EXC' } })()`),
+          zonasTxt: await ev(`(function(){ try { return (typeof pulAvZonasTxt === 'function')
+            ? (pulAvZonasTxt() || []).join(' | ') : 'SIN FN' } catch (e) { return 'EXC' } })()`),
+          frases: await ev(`(function(){ try { return pulAvFrases() } catch (e) { return ['EXC: ' + e.message] } })()`, 40000),
+          patron: await ev(`(function(){ try { var x = pulAvPatron(); return x.p + ' || ' + x.i }
+            catch (e) { return 'EXC' } })()`),
+          lineas: await ev(`window.__Z.lineas(['neas B','ulmon','pleural','Patr'])`, 40000),
+          suma: await ev(`(function(){ var e = document.getElementById('en_suma');
+            if (!e) return 'SIN NODO';
+            return (e.value || '').split(String.fromCharCode(10)).filter(function(l){
+              var t = l.toLowerCase();
+              return t.indexOf('neas b') > -1 || t.indexOf('pulmon') > -1 || t.indexOf('pleural') > -1
+                  || t.indexOf('intersticial') > -1 }).join(' // ') })()`)
+        };
+      };
+      /* (1) lineas B focales: la frase de interpretacion. */
+      r.escenas.focal = await montar({ lb:'presentes', cant:'focal', desliz:'presente' });
+      /* (2) la MISMA zona en los dos hemitorax. */
+      r.escenas.antBilateral = await montar({ lb:'presentes', cant:'multiples',
+        zonas:['pua_z_ant_d','pua_z_ant_i'] });
+      /* CONTROL: una sola zona no es bilateral. */
+      r.escenas.soloDerecha = await montar({ lb:'presentes', cant:'multiples', zonas:['pua_z_ant_d'] });
+      /* CONTROL: con cinco zonas el adjetivo sigue siendo «difusa» -el corte NO se movio-. */
+      r.escenas.cinco = await montar({ lb:'presentes', cant:'multiples',
+        zonas:['pua_z_ant_d','pua_z_ant_i','pua_z_lat_d','pua_z_lat_i','pua_z_bas_d'] });
+      /* Dos niveles bilaterales + uno solo. */
+      r.escenas.mixta = await montar({ lb:'presentes', cant:'multiples',
+        zonas:['pua_z_ant_d','pua_z_ant_i','pua_z_bas_d'] });
+      /* (3) el banner y el registro. */
+      r.banner = await ev(`(function(){
+        var c = document.getElementById('amilo-card');
+        var ps = c ? c.querySelectorAll('.card-body > p') : [];
+        return ps.length ? (ps[ps.length - 1].textContent || '').replace(/\s+/g, ' ').trim() : 'SIN BANNER';
+      })()`);
+      r.registro = await ev(`(function(){
+        try { var S = amiloSecs();
+          return { n: S.length,
+                   enCuerpo: S.filter(function(x){ return x.enCuerpo }).map(function(x){ return x.k }).join(','),
+                   soloHoja: S.filter(function(x){ return x.soloHoja }).map(function(x){ return x.k }).join(',') };
+        } catch (e) { return 'EXC: ' + e.message } })()`);
+      r.armador = await ev(`(function(){
+        var f = String(window.generarPDFReal || '');
+        return { cableado: f.indexOf("d.k !== 'pulm'") > -1, derivado: f.indexOf('_enCuerpo[d.k]') > -1 };
+      })()`);
+      r.errores = await ev(`window.__Y.errores()`);
+    } catch (e) { r.err = e.message; r.stack = String(e.stack || '').slice(0, 400); }
+    out.grupos.pulm = r;
+    process.stderr.write('[pulm] listo\n');
+  }
+
   OUT.md5Fin = await md5(EXTERNO ? FARG : join(RAIZ, FILE));
   process.stdout.write(JSON.stringify(OUT, null, 1));
   cdp.close(); srv.close(); process.exit(0);

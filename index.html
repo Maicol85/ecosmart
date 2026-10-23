@@ -19897,7 +19897,13 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
            tiene su vista formateada, su botón Editar y su Retirar individual. -->
       <div id="amilo-body"></div>
       <p style="font-size:11px;color:var(--text2);margin:0;line-height:1.5;">
-        Sale en una hoja aparte del PDF, después del En Suma. Al editar, las líneas que empiezan con <b>##</b> son los subtítulos.
+        <!-- ⚠️ EL BANNER DECIA «Sale en una hoja aparte del PDF» PARA LOS DIECINUEVE MODULOS
+             (AJ2-9, 23/10/2026) y eso es falso para el ECO PULMONAR, cuyo texto va al CUERPO
+             del informe desde el B-E3 —su hoja no se arma: ver `amiloSecs` y el armador—. Un
+             banner que miente sobre donde sale lo que el medico acaba de integrar es peor que
+             no tenerlo: lo manda a buscar la hoja. -->
+        La mayor&iacute;a sale en una hoja aparte del PDF, despu&eacute;s del En Suma; el <b>Eco Pulmonar</b> va en
+        el cuerpo del informe. Al editar, las l&iacute;neas que empiezan con <b>##</b> son los subt&iacute;tulos.
       </p>
     </div>
   </div>
@@ -63726,7 +63732,12 @@ function generarPDFReal(_aj) {
      predicado de esa exclusion mutua— pregunta por `amiloEnInforme`, asi que `omitir` lo
      dejaba falso para siempre y el modulo integrado desaparecia del informe. Medido.
      `_amDatos` NO se filtra: de el cuelgan el par de amiloidosis y el grupo del ETE. */
-  const _amEtt = _amDatos.filter(d => d.grupo !== 'ete' && !_esAmilo(d) && d.k !== 'pulm').map(d => ({ tit: d.tit, txt: d.txt }));
+  /* ⚠️ EL DESCARTE SALE DEL REGISTRO (`enCuerpo`) Y NO DE UN `d.k !== 'pulm'` CABLEADO
+     (AJ2-9): era la tercera copia de «este modulo va al cuerpo» y el banner de la tarjeta se
+     habia quedado diciendo lo contrario. El dia que otro modulo haga lo mismo es una propiedad
+     y no tocar el armador. */
+  const _enCuerpo = {}; amiloSecs().forEach(function (s) { if (s.enCuerpo) _enCuerpo[s.k] = 1; });
+  const _amEtt = _amDatos.filter(d => d.grupo !== 'ete' && !_esAmilo(d) && !_enCuerpo[d.k]).map(d => ({ tit: d.tit, txt: d.txt }));
   const _amEte = _amDatos.filter(d => d.grupo === 'ete').map(d => ({ tit: d.tit, txt: d.txt }));
   if (_amAmilo.length) {
     doc.addPage();
@@ -89014,6 +89025,33 @@ function pulAvZonas() {
              ['pua_z_ant_i','anterior izquierda'],['pua_z_lat_i','lateral izquierda'],['pua_z_bas_i','basal izquierda']];
   return Z.filter(z => _amChk(z[0])).map(z => z[1]);
 }
+/* ══ LAS ZONAS, AGRUPADAS POR NIVEL (AJ2-9, 23/10/2026) ════════════════════════════════════
+   DECISION DE MAICOL. La misma zona marcada en los DOS hemitorax se dice «BILATERAL» y no
+   «anterior derecha, anterior izquierda», que es como salia en el informe firmado: dos entradas
+   para un hallazgo que es uno.
+   Se deriva de `pulAvZonas()` —el dueno unico de que zona esta marcada— y NO de una segunda
+   lectura de los seis checkbox: con dos lectores, el dia que una zona se agregue o se renombre
+   el informe y la hoja dirian cosas distintas del mismo paciente. */
+const PUL_ZONA_NIVEL = Object.freeze([
+  { n:'anterior', d:'anterior derecha', i:'anterior izquierda' },
+  { n:'lateral',  d:'lateral derecha',  i:'lateral izquierda'  },
+  { n:'basal',    d:'basal derecha',    i:'basal izquierda'    }
+]);
+function pulAvZonasTxt() {
+  const z = (typeof pulAvZonas === 'function') ? pulAvZonas() : [];
+  if (!z.length) return [];
+  const out = [], usadas = {};
+  PUL_ZONA_NIVEL.forEach(function (N) {
+    const hayD = z.indexOf(N.d) > -1, hayI = z.indexOf(N.i) > -1;
+    if (hayD && hayI) { out.push(N.n + ' bilateral'); usadas[N.d] = 1; usadas[N.i] = 1; }
+  });
+  /* Las que quedan salen con su nombre completo y EN EL ORDEN DE `pulAvZonas`, que es el de la
+     pantalla: reordenarlas haria que el informe nombrara las zonas en otro orden que el que el
+     medico tildo. */
+  z.forEach(function (x) { if (!usadas[x]) out.push(x); });
+  return out;
+}
+window.pulAvZonasTxt = pulAvZonasTxt;
 
 // Patrón global: se deduce de los hallazgos, no se elige a mano.
 function pulAvPatron() {
@@ -89067,7 +89105,10 @@ function pulAvPatron() {
              i:'Líneas B múltiples (≥3 por espacio)' + _z + '.' };
   }
   if (lb === 'presentes' && cant === 'focal')
-    return { p:'Líneas B focales', i:'Líneas B aisladas: hallazgo focal, puede ser inespecífico.' };
+    /* ⚠️ «PUEDE SER INESPECIFICO» SALE (AJ2-9, 23/10/2026): es una INTERPRETACION, y esta
+       frase viaja al informe FIRMADO —la linea del «Patron global» del bloque 13c—. Lo que
+       queda es el hallazgo, que el rotulo `p` ya nombra. */
+    return { p:'Líneas B focales', i:'Líneas B aisladas.' };
   /* Sin ningún campo cargado la caída era a «Normal — deslizamiento pleural conservado con patrón
      A predominante», o sea una descripción positiva de una exploración que no se hizo. */
   if (!pulAvanzadoHayDatos()) return { p:'No evaluado', i:'Cargá los campos del módulo para obtener el patrón.' };
@@ -89137,9 +89178,14 @@ function pulAvFrases() {
   if (_amV('pua_lineasb') === 'presentes') {
     const cant = _amV('pua_lineasb_cant') || 'focal';
     const CANT = { focal:'aisladas', multiples:'múltiples (3 o más por espacio intercostal)', coalescentes:'coalescentes' };
+    /* ⚠️ EL CONTEO DE «difusa» SIGUE SIENDO SOBRE LAS ZONAS Y NO SOBRE LOS ROTULOS (AJ2-9):
+       con «anterior bilateral» dos zonas se escriben en un solo texto, asi que contar los
+       rotulos bajaria el umbral de cinco zonas a cinco TEXTOS -o sea a ocho zonas, que no
+       existen-. El corte no se movio. */
     const z = pulAvZonas();
+    const zTxt = (typeof pulAvZonasTxt === 'function') ? pulAvZonasTxt() : z;
     L.push('Líneas B ' + (CANT[cant] || cant) +
-      (z.length ? ', de distribución ' + (z.length >= 5 ? 'difusa' : z.join(', ')) : '') + '.');
+      (z.length ? ', de distribución ' + (z.length >= 5 ? 'difusa' : zTxt.join(', ')) : '') + '.');
   } else if (_amV('pua_lineasb')) {
     L.push('Sin líneas B.');
   }
@@ -89464,7 +89510,12 @@ function amiloSecs() {
        se arma —su texto va al cuerpo del informe—, asi que este rotulo sobrevive solo en la
        etiqueta de la tarjeta de integracion. La CLAVE `pulm` no se toca: la nombran el boton
        `data-am-k`, `amiloIntegrar`, `amiloEnInforme` y los estudios guardados. */
-    { k:'pulm', lbl:'Eco Pulmonar',                     tit:'ECOGRAFIA PULMONAR', gen:amiloTextoPulmonar, hayDatos:function(){ return typeof pulAvanzadoHayDatos !== 'function' || pulAvanzadoHayDatos(); } }
+    /* ⚠️ `enCuerpo:true` = SU TEXTO VA AL CUERPO DEL INFORME Y SU HOJA DEL PDF NO SE ARMA
+       (AJ2-9, 23/10/2026). Reemplaza al `d.k !== 'pulm'` que el armador tenia cableado: era la
+       tercera copia de la misma decision -el `if` del armador, el bloque 13c del informe y el
+       banner de la tarjeta- y el banner era la que se habia quedado atras. Va como PROPIEDAD
+       del registro por el mismo argumento que `hayDatos`, `soloHoja` y `omitir`. */
+    { k:'pulm', lbl:'Eco Pulmonar',                     tit:'ECOGRAFIA PULMONAR', gen:amiloTextoPulmonar, enCuerpo:true, hayDatos:function(){ return typeof pulAvanzadoHayDatos !== 'function' || pulAvanzadoHayDatos(); } }
   ];
 }
 window.amiloSecs = amiloSecs;

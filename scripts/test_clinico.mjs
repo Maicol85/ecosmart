@@ -85264,6 +85264,77 @@ caso('TC-519', 'Tanda AJ2: «sin datos» no es «no medible» en las cinco super
     String(hBaja.concl).slice(0, 100)]);
   ex.push(['(K12) CONTROL: y su hoja del PDF sigue retirandose entera', hBaja.hoja === '', 'largo=' + String(hBaja.hoja).length]);
 
+  /* == (L) AJ2-9 - EL ECO PULMONAR =========================================================
+     ⚠️ DENOMINADOR: sin INTEGRAR el modulo el bloque 13c no emite nada, y la medicion sale con
+     el informe SIN una sola linea pulmonar -que se lee igual que «la frase ya no esta»-. */
+  const montarPul = (o) => {
+    __t.limpiar();
+    const campos = { pua_lineasb: o.lb || '' };
+    if (o.cant) campos.pua_lineasb_cant = o.cant;
+    if (o.desliz) campos.pua_desliz = o.desliz;
+    set(campos);
+    (o.zonas || []).forEach(z => chk(z, true));
+    try { if (typeof pulAvUI === 'function') pulAvUI(); } catch (e) {}
+    try { if (typeof amiloIntegrar === 'function' && typeof amiloIntegrado === 'function'
+              && !amiloIntegrado('pulm')) amiloIntegrar('pulm'); } catch (e) {}
+    const i2 = inf();
+    return {
+      integrado: (typeof amiloIntegrado === 'function') ? !!amiloIntegrado('pulm') : false,
+      zonas: (function(){ try { return pulAvZonas() || []; } catch (e) { return []; } })(),
+      zonasTxt: (function(){ try { return (typeof pulAvZonasTxt === 'function') ? (pulAvZonasTxt() || []) : null; }
+                             catch (e) { return null; } })(),
+      frases: (function(){ try { return pulAvFrases() || []; } catch (e) { return []; } })(),
+      patron: (function(){ try { const x = pulAvPatron(); return x.p + ' || ' + x.i; } catch (e) { return 'EXC'; } })(),
+      linea: i2.split('\\n').filter(l => norm(l).indexOf('neas b') > -1 || norm(l).indexOf('pleural') > -1)[0] || ''
+    };
+  };
+  const pFocal = montarPul({ lb: 'presentes', cant: 'focal', desliz: 'presente' });
+  ex.push(['(L1) DENOMINADOR: el modulo queda integrado y su linea entra al informe',
+    pFocal.integrado && pFocal.linea.length > 30, String(pFocal.integrado) + ' | ' + pFocal.linea.slice(0, 70)]);
+  ex.push(['(L2) la interpretacion «puede ser inespecifico» sale del informe FIRMADO',
+    norm(pFocal.linea).indexOf('inespecifico') === -1 && norm(pFocal.patron).indexOf('inespecifico') === -1,
+    pFocal.patron]);
+  ex.push(['(L3) y lo que queda es el hallazgo', pFocal.patron.indexOf('Líneas B aisladas.') > -1, pFocal.patron]);
+  /* El dueno de los rotulos de zona. */
+  const ZT = F('pulAvZonasTxt');
+  ex.push(['(L4) pulAvZonasTxt es el dueno de los rotulos de zona', !!ZT, typeof ZT]);
+  const pBil = montarPul({ lb: 'presentes', cant: 'multiples', zonas: ['pua_z_ant_d', 'pua_z_ant_i'] });
+  ex.push(['(L5) DENOMINADOR: las dos zonas quedaron marcadas', pBil.zonas.length === 2, JSON.stringify(pBil.zonas)]);
+  ex.push(['(L6) la misma zona en los dos hemitorax se dice «bilateral», UNA vez',
+    JSON.stringify(pBil.zonasTxt) === JSON.stringify(['anterior bilateral']), JSON.stringify(pBil.zonasTxt)]);
+  ex.push(['(L7) y es lo que baja al informe',
+    pBil.linea.indexOf('de distribución anterior bilateral') > -1
+    && pBil.linea.indexOf('anterior derecha, anterior izquierda') === -1, pBil.linea.slice(0, 120)]);
+  const pUna = montarPul({ lb: 'presentes', cant: 'multiples', zonas: ['pua_z_ant_d'] });
+  ex.push(['(L8) CONTROL: una sola zona NO es bilateral',
+    JSON.stringify(pUna.zonasTxt) === JSON.stringify(['anterior derecha']), JSON.stringify(pUna.zonasTxt)]);
+  const pMix = montarPul({ lb: 'presentes', cant: 'multiples',
+    zonas: ['pua_z_ant_d', 'pua_z_ant_i', 'pua_z_bas_d'] });
+  ex.push(['(L9) dos lados agrupan y la suelta conserva su nombre completo',
+    JSON.stringify(pMix.zonasTxt) === JSON.stringify(['anterior bilateral', 'basal derecha']),
+    JSON.stringify(pMix.zonasTxt)]);
+  const pCinco = montarPul({ lb: 'presentes', cant: 'multiples',
+    zonas: ['pua_z_ant_d', 'pua_z_ant_i', 'pua_z_lat_d', 'pua_z_lat_i', 'pua_z_bas_d'] });
+  ex.push(['(L10) CONTROL: EL CORTE DE «difusa» NO SE MOVIO (se cuentan ZONAS, no rotulos)',
+    pCinco.zonas.length === 5 && pCinco.linea.indexOf('de distribución difusa') > -1,
+    'zonas=' + pCinco.zonas.length + ' rotulos=' + (pCinco.zonasTxt || []).length + ' | ' + pCinco.linea.slice(0, 90)]);
+  /* El destino de cada modulo sale del REGISTRO, y el banner lo dice. */
+  const SEC = (function(){ try { return amiloSecs() || []; } catch (e) { return []; } })();
+  ex.push(['(L11) DENOMINADOR: el registro de modulos del ETT avanzado existe', SEC.length >= 15, 'n=' + SEC.length]);
+  ex.push(['(L12) el destino «al cuerpo del informe» es una PROPIEDAD del registro',
+    SEC.filter(x => x.enCuerpo).map(x => x.k).join(',') === 'pulm',
+    SEC.filter(x => x.enCuerpo).map(x => x.k).join(',') || '(ninguno)']);
+  ex.push(['(L13) y el armador la CONSULTA en vez de cablear la clave',
+    String(window.generarPDFReal || '').indexOf('_enCuerpo[d.k]') > -1,
+    'largo=' + String(window.generarPDFReal || '').length]);
+  const bannerAm = (function(){ const c = document.getElementById('amilo-card');
+    const ps = c ? c.querySelectorAll('.card-body > p') : [];
+    return ps.length ? (ps[ps.length - 1].textContent || '').replace(/\s+/g, ' ').trim() : 'SIN BANNER'; })();
+  ex.push(['(L14) DENOMINADOR: el banner de la tarjeta existe', bannerAm.length > 40, bannerAm.slice(0, 60)]);
+  ex.push(['(L15) y ya no afirma «hoja aparte» para los diecisiete modulos',
+    norm(bannerAm).indexOf('eco pulmonar') > -1 && norm(bannerAm).indexOf('cuerpo del informe') > -1,
+    bannerAm.slice(0, 150)]);
+
   ex.push(['(Z) DENOMINADOR GLOBAL: todos los campos del caso se encontraron',
     noEntraron.length === 0, 'noEntraron=' + JSON.stringify(noEntraron)]);
 
