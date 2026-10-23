@@ -54749,7 +54749,11 @@ function generarInforme(opts) {
       const g = (typeof coaGmax === 'function') ? coaGmax() : null;
       const r = (typeof coaRatio === 'function') ? coaRatio() : null;
       const cola = !!document.getElementById('coa_diast_anterogrado')?.checked;
-      const p = ['Coartación de aorta' + (loc ? ' de localización ' + (COA_LOC_TXT[loc] || loc) : '')];
+      /* ⚠️ LA APOSICION VA EN `p[0]` Y NO AL FINAL DEL PARRAFO (AJ2-5): pegada al `join`
+         quedaria colgada de la ULTIMA medicion -«Aorta descendente 20 mm, post-cirugía»- y
+         calificaria el dato equivocado. */
+      const p = ['Coartación de aorta' + (loc ? ' de localización ' + (COA_LOC_TXT[loc] || loc) : '') +
+                 (c.clave === 'incompleto' && c.apos ? ', ' + c.apos : '')];
       if (f1(ist)) p.push('Diámetro del istmo ' + f1(ist) + ' mm');
       if (f1(asc)) p.push('Aorta ascendente ' + f1(asc) + ' mm');
       if (f1(desc)) p.push('Aorta descendente ' + f1(desc) + ' mm');
@@ -54776,11 +54780,14 @@ function generarInforme(opts) {
       if (f1(v('coa_estenosis_relativa'))) p.push('Estenosis relativa al diámetro aórtico al diafragma ' + f1(v('coa_estenosis_relativa')) + ' %');
       if (sv('coa_hta') === 'si') p.push('Hipertensión arterial confirmada');
       /* ⚠️ SIN EL SEGUIMIENTO DEL OPERADO (AJ1-E3): era la unica conducta que quedaba en el
-         parrafo de la coartacion del informe FIRMADO. Ver la nota de `coaSeguimiento`. */
-      etePars.push(p.join('. ') + '. ' + c.txt + '.'); ccMarcarParrafo();
+         parrafo de la coartacion del informe FIRMADO. Ver la nota de `coaSeguimiento`.
+         ⚠️ Y SIN GRADIENTE LA CONCLUSION YA ESTA DICHA EN `p[0]` (AJ2-5): pegarla otra vez es
+         el sustantivo repetido que esa orden cierra. En las demas claves queda LITERAL. */
+      const _coaInc = (c.clave === 'incompleto');
+      etePars.push(p.join('. ') + '.' + (_coaInc ? '' : ' ' + c.txt + '.')); ccMarcarParrafo();
       /* La hoja recibe LAS MISMAS oraciones y LA MISMA conclusion que la linea de arriba: el
          narrativo y la hoja no pueden discrepar porque no hay dos textos, hay uno repartido. */
-      ccHoja('coa', p, c.txt, null);
+      ccHoja('coa', p, _coaInc ? null : c.txt, null);
       /* La significativa y la limítrofe sí van al EN SUMA: la primera indica intervención y la
          segunda manda a pedir una angio-RMN. Dejar una indicación de intervención sólo en el
          cuerpo del informe es exactamente lo que la conclusión existe para evitar. */
@@ -66693,6 +66700,11 @@ function coaConclusion(src){
   const g = coaBanda(gRaw, 0, 150, fuera, 'gradiente máximo'), gm = coaBanda(gmRaw, 0, 100, fuera, 'gradiente medio');
   const PRE = { recoartacion:'Recoartación post-intervención', nativa:'Coartación nativa',
                 post_stent:'Coartación post-stent', post_cirugia:'Coartación post-cirugía' };
+  /* La MISMA situacion dicha como aposicion, para la rama sin gradiente: ahi el sujeto ya lo
+     puso el informe y lo que falta es calificarlo. `PRE` no se toca -lo usan las otras siete
+     ramas como sujeto de su propia oracion-. */
+  const COA_SIT_APOS = { recoartacion:'recoartación post-intervención', nativa:'nativa',
+                         post_stent:'post-stent', post_cirugia:'post-cirugía' };
   const pre = PRE[sit] || 'Coartación de aorta';
   const postRep = (sit === 'post_stent' || sit === 'post_cirugia' || sit === 'recoartacion');
   /* ══ INDICACIÓN DE INTERVENCIÓN — SÓLO POR EL PICO-PICO INVASIVO (corregido 2026-09-15) ══
@@ -66774,8 +66786,24 @@ function coaConclusion(src){
      localización o las aortas cargadas no hay nada que sostenga la negación. */
   if (g != null || gm != null) return { clave:'no_significativa',
     txt: pre + ' sin gradiente significativo — seguimiento clínico y por imagen' };
-  return { clave:'incompleto',
-    txt: pre + ' — sin gradiente registrado; completar con Doppler de aorta descendente e imagen' };
+  /* ══ SIN GRADIENTE: UNA ORACION DESCRIPTIVA, Y UNA SOLA VEZ (AJ2-5, 2026-10-23) ══════
+     Decia «Coartación post-cirugía — sin gradiente registrado; completar con Doppler de aorta
+     descendente e imagen». Dos defectos en una frase: PIDE un estudio -una conducta en un
+     informe FIRMADO- y, como el parrafo del informe ya abre con «Coartación de aorta de
+     localización X», el resultado publicado repetia el sustantivo:
+       «Coartación de aorta de localización preductal. Coartación post-cirugía — sin gradiente…»
+     Hoy la situacion viaja como APOSICION (`apos`) y el `txt` es la oracion completa, para que
+     la caja de conclusion de la seccion y la hoja del PDF digan lo mismo que el informe sin que
+     ninguna de las tres tenga que recomponerlo.
+     ⚠️ SOLO ESTA CLAVE. Las ramas con datos -significativa, limitrofe, las tres de indicacion,
+     no_significativa, no_interpretable- quedan LITERALES: esta orden dice «sin tocar la logica
+     de los casos con datos», y ahi el `pre` repetido es el sujeto de una afirmacion propia. */
+  const _apos = COA_SIT_APOS[sit] || '';
+  const _locT = sv2('coa_loc');
+  const _locS = _locT ? ((typeof COA_LOC_TXT !== 'undefined' && COA_LOC_TXT[_locT]) || _locT) : '';
+  return { clave:'incompleto', apos:_apos,
+    txt: 'Coartación de aorta' + (_locS ? ' de localización ' + _locS : '') +
+         (_apos ? ', ' + _apos : '') };
 }
 /* ══ EL SEGUIMIENTO DEL OPERADO SALIO DEL PAPEL FIRMADO (AJ1-E3, 22/10/2026) ═════════════════
    DECISION DE MAICOL. `coaSeguimiento()` publicaba, con la coartacion post-stent, post-cirugia
@@ -70522,7 +70550,13 @@ function ccSumaLinea(sec){
     if (g != null) l += ' — gradiente máx. ' + _cc1(g) + ' mmHg';
     else if (gm != null) l += ' — gradiente medio ' + _cc1(gm) + ' mmHg';
     if (cola) l += ' — cola diastólica presente';
+    /* ⚠️ SIN GRADIENTE, EL EN SUMA PUBLICA EL HECHO Y NADA MAS (AJ2-5, 2026-10-23). Salian
+       «— en seguimiento» -una conducta- y «— datos incompletos para clasificarla», que es
+       estado interno del clasificador: lo que el lector necesita es que este paciente tiene una
+       coartacion operada. Las otras claves quedan LITERALES, incluido el «en seguimiento» del
+       operado con datos, que esta orden no toca. */
     const dx = L(DX, c.clave);
+    if (c.clave === 'incompleto') return l;
     if (postRep && INDICA.indexOf(c.clave) === -1) l += ' — en seguimiento';
     return l + (dx ? ' — ' + dx : '');
   }

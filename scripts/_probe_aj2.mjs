@@ -1292,6 +1292,53 @@ window.__Z = {
     process.stderr.write('[diast] listo\n');
   }
 
+  /* ══ GRUPO «coao» — AJ2-5: LA COARTACION SIN GRADIENTE ═══════════════════════════════════
+     El parrafo del informe abre con «Coartación de aorta de localización X» y despues pega
+     `c.txt`, que para la clave sin gradiente VOLVIA A EMPEZAR con «Coartación post-cirugía»: el
+     sustantivo dos veces y una indicacion («completar con Doppler… e imagen»). Se miden las
+     CUATRO superficies -pantalla, informe, EN SUMA y la hoja del PDF- y el control con gradiente.
+     ⚠️ LA CASILLA DE INTEGRACION ESTA EN `display:none` y el control real es el BOTON
+     `[data-ete-chk]`: tildar la casilla por codigo no pasa por `eteInclToggle` y el parrafo no
+     se emite. */
+  if (corre('coao')) {
+    const r = { escenas: {} };
+    const integrarCoa = async () => await ev(`(function(){
+      var b = document.querySelector('[data-ete-chk="coart_incluir_chk"]');
+      if (!b) return 'SIN BOTON';
+      var c = document.getElementById('coart_incluir_chk');
+      if (c && !c.checked) b.click();
+      return c ? !!c.checked : null })()`);
+    const montar = async (o) => {
+      await ev(`window.__P.nuevo()`);
+      await ev(`window.__P.despejar()`);
+      await ev(`window.__P.abrirPara('coa_situacion')`);
+      if (o.loc) await poner('coa_loc', o.loc);
+      if (o.sit) await poner('coa_situacion', o.sit);
+      if (o.gmedio) await poner('coa_gmedio', o.gmedio);
+      if (o.istmo) await poner('coa_istmo', o.istmo);
+      r.integrada = await integrarCoa();
+      await ev(`(function(){ if (typeof coaSync === 'function') coaSync(); return 1 })()`);
+      return {
+        pantalla: await ev(`window.__P.txt('coa-concl')`),
+        clave: await ev(`(function(){ var c = (typeof coaConclusion === 'function') ? coaConclusion() : null;
+          return c ? { clave: c.clave, txt: c.txt, apos: (c.apos === undefined ? null : c.apos) } : null })()`),
+        hoja: await ev(`(function(){ try { return (typeof amiloTextoCC === 'function') ? 'hay' : (typeof ccHojaBuild === 'function' ? ccHojaBuild() : 'SIN FN') } catch (e) { return 'EXC: ' + e.message } })()`),
+        lineas: await ev(`window.__Z.lineas(['coartacion','coarta','CoAo'])`, 40000) };
+    };
+    try {
+      r.escenas.sinGradiente       = await montar({ loc: 'preductal', sit: 'post_cirugia' });
+      r.escenas.sinGradSinSit      = await montar({ loc: 'preductal' });
+      r.escenas.sinGradSinLoc      = await montar({ sit: 'post_cirugia' });
+      /* CONTROL: con gradiente medio la logica queda LITERAL. */
+      r.escenas.conGradiente       = await montar({ loc: 'preductal', sit: 'post_cirugia', gmedio: '25' });
+      r.escenas.conGradLimitrofe   = await montar({ loc: 'preductal', sit: 'nativa', gmedio: '20' });
+      r.escenas.conIstmoSinGrad    = await montar({ loc: 'preductal', sit: 'post_cirugia', istmo: '8' });
+      r.errores = await ev(`window.__Y.errores()`);
+    } catch (e) { r.err = e.message; }
+    out.grupos.coao = r;
+    process.stderr.write('[coao] listo\n');
+  }
+
   OUT.md5Fin = await md5(EXTERNO ? FARG : join(RAIZ, FILE));
   process.stdout.write(JSON.stringify(OUT, null, 1));
   cdp.close(); srv.close(); process.exit(0);
