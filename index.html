@@ -64839,6 +64839,31 @@ function _refNorm(s) {
     .replace(/,/g, '.')
     .toLowerCase();
 }
+/* ══ GUION = ESPACIO = NADA (AJ2-13, 2026-10-23) ═══════════════════════════════════════════
+   `_refNorm` ya resolvia minusculas, diacriticos y la coma decimal —MEDIDO contra HEAD: «tapse»
+   y «TAPSE» dan las MISMAS cuatro entradas, y «presion» y «presión» las mismas cuatro—. Lo que
+   faltaba es el separador: «HFA-PEFF» encontraba su ficha y «HFA PEFF» y «hfapeff» devolvian
+   CERO. Esta es la forma COMPACTA, y es el dueno unico de esa equivalencia.
+
+   ⚠️ SE BUSCA EN LAS DOS FORMAS Y NO SE REEMPLAZA LA PRIMERA. Comparar solo la compacta
+   agregaria coincidencias a traves de los limites de palabra y quitaria precision al texto con
+   espacios; buscando en las dos, el cambio solo PUEDE agregar resultados, nunca quitarlos — que
+   es lo que hace seguro tocar un buscador que ya funcionaba.
+
+   ⚠️ EL PUNTO NO SE TOCA, a proposito: `_refNorm` manda la coma a punto para que «0,42»
+   encuentre «0.42», y borrarlo ademas haria que «15» matcheara «1.5». La equivalencia pedida es
+   la del SEPARADOR de palabras, no la del separador decimal. */
+function _buscaCompacta(s) {
+  return _refNorm(s).replace(/[-\s]+/g, '');
+}
+/* Para NOMBRES y DOCUMENTOS el punto tambien es separador: un documento «1.234.567-8» se busca
+   escribiendo «12345678», que es la forma mas natural. Esta forma NO se usa en Referencias, y es
+   por eso que son dos funciones y no un parametro: alla el punto es el separador DECIMAL y
+   borrarlo haria que «15» matcheara «1.5». El alcance lo fija el llamador. */
+function _buscaDoc(s) {
+  return _buscaCompacta(s).replace(/\./g, '');
+}
+window._buscaCompacta = _buscaCompacta; window._buscaDoc = _buscaDoc;
 function _refIndiceArmar(forzar) {
   if (_refIndice && !forzar) return _refIndice;
   refSubInit();
@@ -64881,8 +64906,9 @@ function _refIndiceArmar(forzar) {
       if (!card) continue;
       if (cuerpo.querySelector('h2.card-head')) continue;
       const tit = (head.textContent || '').replace(/[▶▼]/g, '').replace(/\s+/g, ' ').trim() || id;
+      const _crudo = tit + ' ' + (card.textContent || '');
       idx.push({ id: id, sub: sub, subTit: SUBTIT[sub] || sub, tit: tit,
-                 txt: _refNorm(tit + ' ' + (card.textContent || '')) });
+                 txt: _refNorm(_crudo), txtC: _buscaCompacta(_crudo) });
     }
   });
   _refIndice = idx;
@@ -64959,7 +64985,11 @@ function refBuscar() {
   const q = _refNorm(inp.value.trim());
   if (q.length < REF_BUSCA_MIN) { res.style.display = 'none'; return { q: q, n: null }; }
   res.style.display = 'block';
-  const hits = _refIndiceArmar().filter(function (e) { return e.txt.indexOf(q) >= 0; });
+  /* Las DOS formas: la de siempre y la compacta, para que «HFA PEFF» y «hfapeff» encuentren
+     lo que «HFA-PEFF» ya encontraba. Solo agrega (AJ2-13). */
+  const qC = _buscaCompacta(inp.value.trim());
+  const hits = _refIndiceArmar().filter(function (e) {
+    return e.txt.indexOf(q) >= 0 || (qC.length >= REF_BUSCA_MIN && (e.txtC || '').indexOf(qC) >= 0); });
   if (!hits.length) {
     const p = document.createElement('div');
     p.className = 'ref-busc-vacio';
@@ -86278,12 +86308,29 @@ function igTieneAntec(inf, clave){
 // ya viene con los filtros clínicos aplicados.
 function igFiltrar(base){
   let out = (base == null) ? getInformes() : base;   // [] es válido: significa "ninguno"
-  const term  = (document.getElementById('ig-buscar')?.value || '').toLowerCase().trim();
+  /* ⚠️ ESTE BUSCADOR SOLO HACIA `toLowerCase()` (AJ2-13, 2026-10-23): un paciente «Pérez» no
+     se encontraba escribiendo «perez», y un documento «1.234.567-8» no se encontraba sin los
+     puntos ni el guion. Pasa a compartir el dueno de Referencias —`_refNorm` y
+     `_buscaCompacta`— en vez de llevar su propia copia de la normalizacion, que es como las
+     dos se separan en la primera edicion. Se comparan las DOS formas, asi que solo AGREGA. */
+  const termCrudo = (document.getElementById('ig-buscar')?.value || '').trim();
+  const term  = termCrudo.toLowerCase();
+  const termN = (typeof _refNorm === 'function') ? _refNorm(termCrudo) : term;
+  const termC = (typeof _buscaCompacta === 'function') ? _buscaCompacta(termCrudo) : term;
+  const termD = (typeof _buscaDoc === 'function') ? _buscaDoc(termCrudo) : term;
   const desde = document.getElementById('ig-fecha-desde')?.value || '';
   const hasta = document.getElementById('ig-fecha-hasta')?.value || '';
   const antec = document.getElementById('ig-filtro-antec')?.value || '';
-  if (term)  out = out.filter(i => String(i.nombre||'').toLowerCase().includes(term)
-                                || String(i.ci||'').toLowerCase().includes(term));
+  if (term)  out = out.filter(function (i) {
+    const nom = String(i.nombre || ''), ci = String(i.ci || '');
+    if (nom.toLowerCase().includes(term) || ci.toLowerCase().includes(term)) return true;
+    if (typeof _refNorm !== 'function') return false;
+    if (_refNorm(nom).includes(termN) || _refNorm(ci).includes(termN)) return true;
+    if (termC.length > 0 &&
+        (_buscaCompacta(nom).includes(termC) || _buscaCompacta(ci).includes(termC))) return true;
+    return termD.length > 0 && typeof _buscaDoc === 'function' &&
+           (_buscaDoc(nom).includes(termD) || _buscaDoc(ci).includes(termD));
+  });
   if (desde) out = out.filter(i => i.fecha_estudio && i.fecha_estudio >= desde);
   if (hasta) out = out.filter(i => i.fecha_estudio && i.fecha_estudio <= hasta);
   if (antec) out = out.filter(i => igTieneAntec(i, antec));

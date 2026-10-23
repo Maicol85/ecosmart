@@ -1339,6 +1339,83 @@ window.__Z = {
     process.stderr.write('[coao] listo\n');
   }
 
+  /* ══ GRUPO «busca» — AJ2-13: MAYUSCULAS, TILDES Y GUIONES ════════════════════════════════
+     Se mide el buscador de Referencias con las seis formas de dos consultas, y el censo de los
+     DEMAS buscadores de la app para saber cuales comparten la normalizacion y cuales no. */
+  if (corre('busca')) {
+    const r = { ref: {}, censo: null };
+    try {
+      await ev(`window.__P.nuevo()`);
+      await ev(`window.__P.despejar()`);
+      /* La pestana de Referencias y el buscador se arman al entrar. */
+      await ev(`(function(){ try { if (typeof showTab === 'function') showTab('refs') } catch (e) {}
+        try { if (typeof refBuscadorInit === 'function') refBuscadorInit() } catch (e) {}
+        return !!document.getElementById('ref-busca') })()`);
+      for (const q of ['HFA-PEFF', 'hfa-peff', 'HFA PEFF', 'hfa peff', 'hfapeff', 'HFAPEFF',
+                       'TAPSE', 'tapse', 'wilkins', 'Wilkins', 'presion', 'presión']) {
+        r.ref[q] = await ev(`(function(){
+          var e = document.getElementById('ref-busca'); if (!e) return 'SIN CAMPO';
+          e.value = ${JSON.stringify(q)};
+          var R = (typeof refBuscar === 'function') ? refBuscar() : 'SIN FN';
+          return R && typeof R === 'object' ? { n: R.n, q: R.q, ids: (R.ids || []).slice(0, 6) } : R })()`, 60000);
+      }
+      /* El censo: que normalizador usa cada buscador de la app. Se lee del FUENTE, que es lo
+         unico que distingue «comparte el dueno» de «tiene su propia copia». */
+      r.censo = await ev(`(function(){
+        var H = document.documentElement.innerHTML;
+        var o = {};
+        ['refBuscar','igBuscar','_dupBuscar','orthancBuscar','frasesBuscar'].forEach(function(f){
+          var fn = window[f];
+          o[f] = (typeof fn === 'function')
+            ? { existe: true, usaRefNorm: String(fn).indexOf('_refNorm') >= 0,
+                usaLower: String(fn).indexOf('toLowerCase') >= 0,
+                usaNFD: String(fn).indexOf('normalize') >= 0,
+                fuente: String(fn).slice(0, 260) }
+            : { existe: false };
+        });
+        return o })()`, 40000);
+      /* ── EL BUSCADOR DE GUARDADOS, con dos estudios de nombre acentuado y un documento
+         con puntos y guion. Se guardan de verdad por `abrirComoEstudio` + el guardado real. */
+      r.guard = {};
+      try {
+        /* ⚠️ `getInformes()` NO LEE UNA CLAVE DE `localStorage`: une `CeiboStore.getChunk()`
+           con `CeiboStore.getLocal()`. Inyectar en una clave inventada deja las once consultas
+           en CERO y se lee igual que «el buscador no encuentra nada» — un denominador roto con
+           pinta de medicion. Se parchea `getLocal`, que es el dueno. */
+        r.guardDenom = await ev(`(function(){
+          if (typeof CeiboStore === 'undefined' || !CeiboStore.getLocal) return 'SIN CeiboStore';
+          var prev = CeiboStore.getLocal.bind(CeiboStore);
+          window.__ZgPrev = prev;
+          var FAKE = [
+            { id: 'aj2a', nombre: 'Pérez Gómez, Juan', ci: '1.234.567-8',
+              fecha_estudio: '2026-10-23', campos: {}, informe_texto: '', en_suma: '' },
+            { id: 'aj2b', nombre: 'MUÑOZ', ci: '4567890',
+              fecha_estudio: '2026-10-23', campos: {}, informe_texto: '', en_suma: '' }];
+          CeiboStore.getLocal = function(){ return prev().concat(FAKE) };
+          return (typeof getInformes === 'function') ? getInformes().length : 'SIN getInformes' })()`);
+        for (const q of ['Pérez', 'perez', 'PEREZ', 'Muñoz', 'munoz', 'MUNOZ',
+                         '1.234.567-8', '12345678', '1234567 8', 'Perez Gomez', 'perezgomez']) {
+          r.guard[q] = await ev(`(function(){
+            var e = document.getElementById('ig-buscar');
+            if (!e) return 'SIN CAMPO';
+            e.value = ${JSON.stringify(q)};
+            if (typeof igFiltrar !== 'function') return 'SIN FN';
+            var L = igFiltrar();
+            return { n: L.length, ids: L.map(function(x){ return x.id }).slice(0, 5) } })()`, 40000);
+        }
+        /* Se deja el almacen como estaba: la sonda es de SOLO LECTURA. */
+        /* Se repone el dueno: la sonda es de SOLO LECTURA y no deja nada escrito. */
+        await ev(`(function(){
+          try { if (window.__ZgPrev) CeiboStore.getLocal = window.__ZgPrev } catch (e) {}
+          var e = document.getElementById('ig-buscar'); if (e) e.value = '';
+          return 1 })()`);
+      } catch (e) { r.guardErr = e.message; }
+      r.errores = await ev(`window.__Y.errores()`);
+    } catch (e) { r.err = e.message; }
+    out.grupos.busca = r;
+    process.stderr.write('[busca] listo\n');
+  }
+
   OUT.md5Fin = await md5(EXTERNO ? FARG : join(RAIZ, FILE));
   process.stdout.write(JSON.stringify(OUT, null, 1));
   cdp.close(); srv.close(); process.exit(0);
