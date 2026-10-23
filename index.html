@@ -79611,6 +79611,14 @@ function _indHFPEFF(){
   ];
 
   const p3 = _indClinGet('hfpeff.paso3'), pll = _indClinGet('hfpeff.pll');
+  /* AJ3-3 · EL RESULTADO DEL PASO 3. Aparece SÓLO con el paso 3 marcado como realizado: una
+     pregunta por el resultado de una prueba que no se hizo no tiene respuesta posible, y
+     pintarla siempre es el modo de falla mudo que este panel ya pagó con el mecanismo de la IM.
+     ⚠️ NO TOCA EL PUNTAJE NI EL PAPEL. El resultado NO entra al informe, al EN SUMA ni al score:
+     es una respuesta del panel, efímera como las otras dos, y lo único que mueve son las líneas
+     de «Pasos que propone la guía». Lo que la app calcula es el puntaje; el resultado de una
+     prueba de esfuerzo o de un cateterismo lo decide el médico. */
+  const p3res = _indClinGet('hfpeff.p3res');
   const clinica = [
     _indFilaCtrl('Paso 3 — prueba de esfuerzo diastólica o medición hemodinámica invasiva', 'hfpeff.paso3',
       [{v:'hecha',t:'Realizada'},{v:'pendiente',t:'Pendiente'}],
@@ -79626,13 +79634,52 @@ function _indHFPEFF(){
       : 'sin ella no se puede decidir entre confirmar y evaluar en ejercicio — contestado en este panel: no se guarda con el estudio',
       ['hfaPeff2019'])
   ];
+  /* Va DESPUÉS del `const clinica` y con `splice` en vez de dentro del literal: la fila existe
+     o no existe según el paso 3, y un `.filter(Boolean)` sobre el literal dejaría la decisión
+     escrita dos veces —la compuerta y el hueco—. Entra en el ÍNDICE 1, pegada a la pregunta que
+     la habilita y antes de la presión de llenado.
+     ⚠️ LA MARCA NUNCA ES `warn` NI `alarm`, Y ES A PROPÓSITO: `_indFilaHTML` sólo pliega la nota
+     de una pregunta cuando la marca no es una de esas dos, así que con cualquier otra el ⓘ de
+     esta fila desaparecería y su explicación saldría estirada en la celda. El ⓘ es parte del
+     pedido, no decoración. */
+  if (p3 === 'hecha') {
+    clinica.splice(1, 0, _indFilaCtrl('Resultado del paso 3', 'hfpeff.p3res',
+      [{v:'positivo',t:'Positivo'},{v:'negativo',t:'Negativo'},{v:'noconcl',t:'No concluyente'}],
+      p3res === 'positivo' ? 'ok' : (p3res ? 'none' : 'ask'),
+      'El resultado lo decide el médico: la aplicación no lo calcula. El puntaje de los pasos 1 y 2 ' +
+      'sale de lo que el ecocardiograma mide; el del paso 3 sale de una prueba de esfuerzo o de una ' +
+      'medición hemodinámica invasiva, que la aplicación no tiene cómo leer — contestado en este ' +
+      'panel: no se guarda con el estudio.',
+      ['hfaPeff2019']));
+  }
 
   const lineas = [], faltan = [];
   if (cat === 'alta') {
     lineas.push({ txt:'Con 5 puntos o más la guía considera establecido el diagnóstico de insuficiencia cardíaca con fracción de eyección preservada (texto folio 3304 y Figura 3, folio 3305).', refs:['hfaPeff2019'] });
   } else if (cat === 'intermedia') {
     lineas.push({ txt:'Con un puntaje de 2 a 4 la guía indica continuar con el paso 3: prueba de esfuerzo diastólica o medición hemodinámica invasiva (texto folio 3304 y Figura 3, folio 3305).', refs:['hfaPeff2019'] });
+    /* AJ3-3 · lo que la guía dice SEGÚN EL RESULTADO. Va dentro de la rama intermedia por el
+       mismo motivo que las de la presión de llenado, que ya estaban acá: con 5 puntos o más el
+       diagnóstico ya está hecho y con 1 o menos la Figura 2 ni siquiera llega al paso 3, así
+       que publicar un camino de step F1 ahí sería ponerle a la guía una rama que no tiene.
+       La PREGUNTA en cambio no está gateada por el puntaje —igual que la de la presión—, para
+       que un resultado contestado no desaparezca al corregir un dato del score. */
     if (p3 === 'hecha') {
+      if (p3res === 'positivo') {
+        lineas.push({ txt:'Con el paso 3 positivo la guía considera confirmado el diagnóstico de insuficiencia cardíaca con fracción de eyección preservada: el puntaje combinado de los pasos 2 y 3 llega a 5 puntos o más, o las presiones de llenado invasivas quedan por encima de los cortes (texto folio 3306, hoja 10; Figura 2, folio 3300, hoja 4; texto folio 3307, hoja 11).', refs:['hfaPeff2019'] });
+        lineas.push({ txt:'El paso siguiente de la guía es la etiología (paso 4): buscar causas específicas —miocardiopatía hipertrófica, miocarditis, enfermedades infiltrativas o de depósito como la amiloidosis, fibrosis endomiocárdica, toxicidad o radiación— y descartar lo que imita el cuadro: pericarditis constrictiva, valvulopatía primaria e insuficiencia cardíaca de alto gasto (Figura 2, folio 3300, hoja 4; texto folio 3307, hoja 11).', refs:['hfaPeff2019'] });
+      } else if (p3res === 'negativo') {
+        lineas.push({ txt:'Con el paso 3 normal la Figura 2 lleva a buscar otras causas de los síntomas, cardíacas o no cardíacas (Figura 2, folio 3300, hoja 4).', refs:['hfaPeff2019'] });
+        lineas.push({ txt:'Con medición invasiva, una presión por debajo de 25 mmHg en el pico del esfuerzo clasifica la disnea como no cardíaca (texto folio 3307, hoja 11).', refs:['hfaPeff2019'] });
+      } else if (p3res === 'noconcl') {
+        lineas.push({ txt:'Ante la duda diagnóstica la guía recomienda la medición hemodinámica invasiva de esfuerzo, sobre todo si de ese resultado depende una decisión terapéutica (texto folio 3306, hoja 10; Figura 4A, folio 3306, hoja 10; Figura 2, folio 3300, hoja 4).', refs:['hfaPeff2019'] });
+        lineas.push({ txt:'Si las demás investigaciones no fueron concluyentes, la medición invasiva de la presión capilar pulmonar o de la presión telediastólica del ventrículo izquierdo es la investigación de referencia para el diagnóstico (texto folio 3307, hoja 11).', refs:['hfaPeff2019'] });
+      } else {
+        /* Reemplaza al «falta consignar si el paso 3 ya se realizó» en cuanto ese paso se
+           contesta: ahí la pregunta pendiente deja de ser si se hizo y pasa a ser con qué
+           resultado. */
+        faltan.push({ txt:'Falta consignar el resultado del paso 3.', refs:null });
+      }
       if (pll === 'elevada') lineas.push({ txt:'Con una presión de llenado del VI elevada en reposo —presión telediastólica de 16 mmHg o más, o presión capilar pulmonar de 15 mmHg o más— el diagnóstico se puede confirmar (texto folio 3305).', refs:['hfaPeff2019'] });
       else if (pll === 'normal') lineas.push({ txt:'Con una presión de llenado normal en reposo la guía recomienda continuar la evaluación durante el ejercicio, por ecocardiografía de esfuerzo o por hemodinámica invasiva (texto folio 3305).', refs:['hfaPeff2019'] });
       else faltan.push({ txt:'Falta consignar la presión de llenado del VI en reposo: con ella elevada el diagnóstico se confirma y con ella normal la evaluación sigue durante el ejercicio (texto folio 3305).', refs:null });
