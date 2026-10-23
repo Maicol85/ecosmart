@@ -741,6 +741,18 @@
   .am-wrap.cerrado .am-arrow { transform:rotate(-90deg); }
   .am-wrap.cerrado .am-cuerpo { display:none; }
   .am-edit-tog { font-size:11px; padding:3px 9px; font-weight:600; }
+  /* AJ3-2b — aviso de «los datos cambiaron desde la edición». Va ENTRE el encabezado y el
+     cuerpo colapsable a propósito: `.am-wrap.cerrado .am-cuerpo{display:none}` lo escondería
+     justo cuando el médico tiene el acordeón cerrado, que es como se mira un bloque ya
+     revisado. Dentro del cuerpo el aviso sólo se vería al desplegar — o sea, nunca. */
+  .am-stale { display:none; margin:6px 0 0; padding:5px 9px; border-radius:6px; font-size:11px;
+              line-height:1.45; background:var(--amber-pale); color:var(--amber);
+              border-left:3px solid var(--amber); }
+  .am-wrap.desfasado .am-stale { display:block; }
+  /* El MISMO hecho en el botón del módulo, que vive en otra pestaña: sin texto nuevo ni cambio
+     de alto —el rótulo lo escribe `amiloSyncBotones` y hay casos que lo miden—, sólo el anillo
+     ámbar y el `title`. Es el lugar menos invasivo que pedía el ítem. */
+  .btn-integrar.revisar { box-shadow:0 0 0 2px var(--amber); }
   /* Campo opcional de "Institución y firma": checkbox de inclusión + input, igual que el panel de Firma del centro */
   .cfg-opt-row { display:flex; align-items:center; gap:8px; }
   .cfg-opt-row input[type=checkbox] { width:16px;height:16px;flex:none;cursor:pointer;margin:0; }
@@ -19915,6 +19927,12 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
        "el textarea tiene texto", pero amiloRetirar() conserva el texto a propósito:
        un módulo retirado del informe firmado reaparecía al reabrirlo o reimprimirlo. -->
   <input type="hidden" id="am-integrados" value="">
+  <!-- Qué bloques editó el médico A MANO, persistido con el estudio (AJ3-2d). Sin esto, abrir un
+       estudio guardado volvía a declarar «generado por la app» a TODOS los bloques —lo hace
+       `amiloRestaurarDesdeCampos`— y el refresco automático le pisaba al médico su corrección en
+       cuanto cambiaba un dato. No migra nada: un estudio viejo no trae la clave, se lee como
+       vacía, y todos sus bloques se comportan como hasta hoy. -->
+  <input type="hidden" id="am-editados" value="">
   <div class="card" id="amilo-card" style="display:none;">
     <h2 class="card-head"><span>🧬 ETT Avanzado</span></h2>
     <div class="card-body">
@@ -57201,6 +57219,13 @@ function limpiarCampos(silencioso) {
     });
     const _ac = document.getElementById('amilo-card'); if (_ac) _ac.style.display = 'none';
     if (typeof _amiloUltimo === 'object') for (const k in _amiloUltimo) delete _amiloUltimo[k];
+    /* Y la marca de «editado a mano», por lo MISMO: es un mapa global a la página y los
+       `input[type=hidden]` no entran en el barrido genérico. Sin esto, el bloque editado del
+       paciente anterior dejaba su clave en `am-editados` y viajaba DENTRO del estudio del
+       siguiente. `amiloSyncBotones`, dos renglones más abajo, reescribe el campo ya vacío. */
+    if (typeof _amiloEditado === 'object') for (const k in _amiloEditado) delete _amiloEditado[k];
+    if (typeof amiloSecs === 'function' && typeof _amiloAvisoPintar === 'function')
+      amiloSecs().forEach(function (s) { try { _amiloAvisoPintar(s.k, false); } catch (e) {} });
     if (typeof amiloSyncBotones === 'function') amiloSyncBotones();
   }
   /* VEXUS: el barrido genérico de .calc-row alcanza al score y a los vasos severos, pero
@@ -89638,9 +89663,12 @@ function amiloBuildCard() {
     +       '<button type="button" class="btn btn-ghost am-edit-tog" onclick="event.stopPropagation();amiloRetirar(\'' + s.k + '\')">✕ Retirar</button>'
     +     '</span>'
     +   '</div>'
+    /* AJ3-2b · el aviso va ACÁ, hermano de `.am-cuerpo` y no dentro: con el acordeón cerrado el
+       cuerpo está en `display:none` y el aviso no se vería nunca. Nace vacío y escondido. */
+    +   '<div class="am-stale" id="am-stale-' + s.k + '"></div>'
     +   '<div class="am-cuerpo">'
     +     '<div class="am-prev" id="am-prev-' + s.k + '"></div>'
-    +     '<textarea id="am-txt-' + s.k + '" style="min-height:150px;display:none;" oninput="amiloPreview(\'' + s.k + '\')"></textarea>'
+    +     '<textarea id="am-txt-' + s.k + '" style="min-height:150px;display:none;" oninput="amiloTxtInput(\'' + s.k + '\')"></textarea>'
     +   '</div>'
     + '</div>').join('');
   host.dataset.listo = '1';
@@ -89697,6 +89725,10 @@ function amiloSyncBotones() {
   if (li && typeof amiloSecs === 'function') {
     li.value = amiloSecs().filter(s => amiloIntegrado(s.k)).map(s => s.k).join(',');
   }
+  /* Y la lista de los editados a mano, por el mismo argumento que el renglón de arriba: éste es
+     el punto único por el que pasan integrar, retirar y restaurar. El `oninput` del textarea la
+     escribe también, porque editar no pasa por acá. */
+  if (typeof _amiloSyncEditados === 'function') _amiloSyncEditados();
   /* El aviso de «serie congelada vs seguimiento» de Cardio-Oncología se repinta acá porque éste
      es el punto único por el que pasan integrar, retirar y restaurar. Colgado sólo de
      `renderSeguimientoLista` quedaba viejo justo después de reintegrar —decía «3 congelados y
@@ -89709,6 +89741,126 @@ window.amiloSyncBotones = amiloSyncBotones;
 // Recuerda el último texto generado por la app, para distinguir "sin tocar" de
 // "editado a mano" y no pisar las correcciones del médico al reintegrar.
 var _amiloUltimo = {};
+
+/* ══ AJ3-2 · LA MARCA DE «EDITADO A MANO» ════════════════════════════════════════════════════
+   GUARDA UN TEXTO Y NO UN BOOLEANO, Y ESO ES LA MITAD DEL ÍTEM. La clave existe ⇔ el médico
+   editó ese bloque; su VALOR es la foto de lo que la app decía EN EL MOMENTO DE LA EDICIÓN, que
+   es contra lo que se compara para saber si «los datos cambiaron desde la edición». Un booleano
+   respondería «¿editado?» y no «¿quedó viejo?», que es la pregunta del aviso.
+
+   ⚠️ LA FOTO NO VIAJA CON EL ESTUDIO: lo que se guarda es la LISTA DE CLAVES (`am-editados`).
+   Al reabrir, la foto se toma de nuevo con el `gen()` de ese momento, así que un estudio que se
+   guardó con un bloque editado Y YA DESFASADO reabre SIN el aviso, hasta que cambie un dato.
+   Persistir la foto sería duplicar el texto de cada hoja dentro de cada estudio. Declarado.
+
+   ⚠️ ES SU PROPIO MAPA Y NO UN TERCER USO DE `_amiloUltimo`. Aquél contesta «¿este texto lo
+   escribió la app en ESTA sesión de página?» y la reimpresión lo BORRA a propósito; la marca de
+   edición tiene que sobrevivir a eso y al guardado. Mezclarlas es cómo una reimpresión le
+   borraría al médico la señal de que su corrección quedó vieja. */
+var _amiloEditado = {};
+function _amiloEstaEditado(k){ return Object.prototype.hasOwnProperty.call(_amiloEditado, k); }
+function _amiloDesmarcarEditado(k){ delete _amiloEditado[k]; }
+window._amiloEstaEditado = _amiloEstaEditado;
+
+/* `gen()` de un módulo sin poder tumbar a quien pregunta: lo llaman el aviso y la marca, que
+   corren detrás de CADA tecla del formulario. Un generador que lanza deja el aviso en falso —no
+   afirma que esté al día, afirma que no se pudo comparar— y no corta el tipeo. */
+function _amiloGenSeguro(k){
+  try {
+    const sec = amiloSecs().find(function (x) { return x.k === k; });
+    return sec ? String(sec.gen() || '') : '';
+  } catch (e) { return ''; }
+}
+
+/* ¿El bloque EDITADO A MANO quedó viejo? Compara el `gen()` de hoy contra la foto del momento
+   de la edición. Un bloque sin editar nunca está «desfasado»: se regenera solo. */
+function _amiloDesfasado(k){
+  if (!amiloIntegrado(k) || !_amiloEstaEditado(k)) return false;
+  return _amiloGenSeguro(k).trim() !== String(_amiloEditado[k] || '').trim();
+}
+window._amiloDesfasado = _amiloDesfasado;
+
+/* Pinta (o despinta) el aviso en sus DOS lugares: el bloque y el botón del módulo. El botón NO
+   cambia de rótulo ni de alto —`amiloSyncBotones` es su único dueño y hay casos que miden ese
+   texto—; lo que se le agrega es el anillo ámbar y el `title`. */
+const _AM_AVISO_TXT = 'Los datos cambiaron desde la edición: revisá este bloque.';
+function _amiloAvisoPintar(k, on){
+  const w = document.getElementById('am-wrap-' + k);
+  if (w) {
+    w.classList.toggle('desfasado', !!on);
+    let a = document.getElementById('am-stale-' + k);
+    if (a) a.textContent = on ? ('⚠️ ' + _AM_AVISO_TXT) : '';
+  }
+  document.querySelectorAll('.btn-integrar[data-am-k="' + k + '"]').forEach(function (b) {
+    b.classList.toggle('revisar', !!on);
+    if (on) b.setAttribute('title', _AM_AVISO_TXT); else b.removeAttribute('title');
+  });
+}
+
+/* Lista de claves editadas al campo oculto que viaja con el estudio. */
+function _amiloSyncEditados(){
+  const li = document.getElementById('am-editados');
+  if (!li || typeof amiloSecs !== 'function') return;
+  li.value = amiloSecs().filter(function (s) { return _amiloEstaEditado(s.k); })
+                        .map(function (s) { return s.k; }).join(',');
+}
+
+/* El `oninput` del textarea de un bloque. Hace lo de siempre —repintar la vista— y además
+   decide la marca. La foto se toma SÓLO en la transición a «editado»: una vez marcado, el
+   denominador del aviso no se puede mover con cada tecla, porque entonces nunca habría
+   diferencia que mostrar. Volver el texto a lo que decía la app DESMARCA, y el refresco
+   automático vuelve a hacerse cargo. */
+function amiloTxtInput(k){
+  amiloPreview(k);
+  const ta = document.getElementById('am-txt-' + k); if (!ta) return;
+  const tieneBase = Object.prototype.hasOwnProperty.call(_amiloUltimo, k);
+  const igual = tieneBase && String(ta.value || '').trim() === String(_amiloUltimo[k] || '').trim();
+  if (igual) { _amiloDesmarcarEditado(k); _amiloAvisoPintar(k, false); }
+  else if (!_amiloEstaEditado(k)) { _amiloEditado[k] = _amiloGenSeguro(k); _amiloAvisoPintar(k, false); }
+  _amiloSyncEditados();
+}
+window.amiloTxtInput = amiloTxtInput;
+
+/* ══ EL BARRIDO — UN OYENTE DE DOCUMENTO, NO UNA LLAMADA POR MÓDULO ══════════════════════════
+   Es el ítem AJ3-2a. Hasta hoy el refresco se cableaba A MANO al final de la calculadora de
+   cada módulo, y estaban cableados OCHO de diecisiete: `hfpeff`, `vexus`, `dpt`, `cvr`, `teer`,
+   `wilk`, `oai` y `pulm`. Los otros nueve congelaban su foto al integrar y no la soltaban más
+   —la prueba que lo destapó tenía el informe y el EN SUMA en «probabilidad intermedia» y el
+   bloque de HTP todavía en «baja»—. Un informe firmado se contradecía a sí mismo.
+
+   Va por oyente de documento, que es el patrón de `_evTarjetaViva`, y por el mismo motivo que
+   está escrito allá: los insumos de estos diecisiete generadores son cientos de campos
+   repartidos en todas las pestañas, y colgarse de cada uno es como uno se queda sin cablear.
+   Las ocho llamadas que ya existían se dejan donde están: corren en el acto, sin esperar al
+   temporizador, y son idempotentes con este barrido.
+
+   ⚠️ SE IGNORA LO QUE PASA DENTRO DE LA PROPIA TARJETA. Tipear en un `am-txt-*` es el médico
+   editando el bloque, no un dato que cambió: sin este corte, el barrido se dispararía con cada
+   tecla de la edición.
+   ⚠️ Y EL TEMPORIZADOR NO ES COSMÉTICO: `gen()` arma el texto completo de cada módulo
+   integrado, y sin él eso correría una vez por tecla. */
+var _amiloBarridoT = null;
+function amiloRefrescarTodos(){
+  if (typeof amiloSecs !== 'function') return;
+  amiloSecs().forEach(function (s) {
+    if (!amiloIntegrado(s.k)) { _amiloAvisoPintar(s.k, false); return; }
+    /* Editado a mano: NO se pisa. Lo único que corre acá es el aviso. */
+    if (_amiloEstaEditado(s.k)) { _amiloAvisoPintar(s.k, _amiloDesfasado(s.k)); return; }
+    amiloRefrescarSiIntacto(s.k);
+    _amiloAvisoPintar(s.k, false);
+  });
+}
+window.amiloRefrescarTodos = amiloRefrescarTodos;
+function _amiloBarrido(ev){
+  if (ev && ev.target && ev.target.closest && ev.target.closest('#amilo-card')) return;
+  if (_amiloBarridoT) clearTimeout(_amiloBarridoT);
+  _amiloBarridoT = setTimeout(function () {
+    _amiloBarridoT = null;
+    try { amiloRefrescarTodos(); } catch (e) { console.warn('[amiloRefrescarTodos]', e); }
+  }, 220);
+}
+document.addEventListener('input',  _amiloBarrido, true);
+document.addEventListener('change', _amiloBarrido, true);
 /* Regenera un módulo YA integrado y que el médico no editó a mano. Hace falta porque el
    texto de cada módulo se congela en el textarea al apretar «Integrar» y nada lo vuelve a
    calcular: el cruce Wilkins × trombo de orejuela quedaba evaluado con el valor que había
@@ -89716,6 +89868,7 @@ var _amiloUltimo = {};
    la orejuela, el orden natural —puntuar la mitral, integrar, y recién después mirar la
    orejuela— dejaba el aviso siempre en falso. El predicado de «sin tocar» es el mismo que
    usa amiloIntegrar, así que no pisa una corrección del médico. */
+const _AM_VACIA_RETIRA = { hfpeff:1, vexus:1, dpt:1, cvr:1, teer:1, wilk:1, oai:1, pulm:1 };
 function amiloRefrescarSiIntacto(k) {
   try {
     if (typeof amiloIntegrado !== 'function' || !amiloIntegrado(k)) return;
@@ -89732,9 +89885,21 @@ function amiloRefrescarSiIntacto(k) {
        textarea, los dos lados coincidían, y la hoja se REGENERABA con los criterios de hoy. La
        reimpresión dejaba de reproducir lo firmado justo cuando más se parecía a hacerlo.
        `hasOwnProperty` y no `|| ''`: sin marca contra un textarea vacío también coincidía. */
+    /* AJ3-2b · LA MARCA MANDA, Y VA PRIMERO. Las dos guardas de abajo detectan la edición
+       COMPARANDO, y eso deja de alcanzar en cuanto el estudio se guarda y se reabre:
+       `amiloRestaurarDesdeCampos` repone `_amiloUltimo[k] = ta.value`, los dos lados coinciden
+       y el texto corregido por el médico volvía a ser pisable. La marca sobrevive al guardado
+       —`am-editados`— y por eso es la que decide. */
+    if (_amiloEstaEditado(k)) return;                                                    // editado a mano: no se pisa
     if (!Object.prototype.hasOwnProperty.call(_amiloUltimo, k)) return;                  // no lo generamos nosotros
     if (String(ta.value || '').trim() !== String(_amiloUltimo[k] || '').trim()) return;  // editado a mano
     const nuevo = sec.gen();
+    /* ⚠️ AJ3-2e · CASO NO DECIDIDO: QUÉ PASA CON EL BLOQUE SI EL MÉDICO BORRA TODOS LOS DATOS.
+       Los ocho módulos que ya tenían refresco cableado se RETIRAN solos (abajo); los nueve que
+       lo estrenan con el barrido genérico NO heredan esa conducta, porque decidirla no estaba
+       pedido. Para ellos el bloque queda exactamente como estaba, que es lo que hacían ayer.
+       Cuando se decida, es borrar esta lista y el `if`. */
+    if (String(nuevo || '').trim() === '' && !_AM_VACIA_RETIRA[k]) return;
     ta.value = nuevo; _amiloUltimo[k] = nuevo;
     /* Un `gen()` que queda VACÍO —devolver un campo a «— no evaluado —» después de integrar— hace
        que `amiloEnInforme` descarte la sección y la hoja no salga del PDF, pero `amiloIntegrado`
@@ -89790,7 +89955,22 @@ function amiloIntegrar(k) {
   // El botón es un toggle: si el módulo ya está integrado, este mismo clic lo
   // retira (y deja el botón en gris). Evita tener que ir a buscar el "✕ Retirar"
   // de la card estando parado en la calculadora.
-  if (amiloIntegrado(k)) { amiloRetirar(k); return; }
+  /* AJ3-2c · EL BOTÓN SIGUE SIENDO UN TOGGLE, SALVO SOBRE UN BLOQUE EDITADO A MANO. Ahí
+     «retirar» no es lo que el médico pide: el único motivo para volver a apretar «Integrar»
+     teniendo el bloque ya integrado y el refresco automático andando es DESCARTAR la edición y
+     recuperar el texto de la app. Se pide confirmación y se regenera; en todos los demás casos
+     el botón retira, como desde siempre.
+     ⚠️ ES LA LECTURA ESTRECHA DEL ÍTEM, Y ESTÁ DECLARADA EN EL REPORTE: el ítem dice «volver a
+     tocar regenera el bloque», y aplicarlo a TODOS los casos borraría el atajo de retirar desde
+     la calculadora —documentado y deliberado— sin que nadie lo haya pedido. Con AJ3-2a puesto,
+     un bloque no editado ya está regenerado antes de que nadie apriete nada, así que la lectura
+     estrecha no pierde ninguna función. */
+  let _regenForzado = false;
+  if (amiloIntegrado(k)) {
+    if (!_amiloEstaEditado(k)) { amiloRetirar(k); return; }
+    if (!window.confirm('Se reemplazará el texto editado.')) return;
+    _regenForzado = true;
+  }
   const card = document.getElementById('amilo-card');
   const sec  = amiloSecs().find(x => x.k === k);
   const ta   = document.getElementById('am-txt-' + k);
@@ -89823,9 +90003,11 @@ function amiloIntegrar(k) {
     try { sec.alIntegrar(); } catch (e) { console.warn('[amiloIntegrar] alIntegrar de ' + k + ' lanzó:', e); }
   }
   const actual = String(ta.value || '').trim();
-  if (actual === '' || actual === (_amiloUltimo[k] || '')) {
+  if (_regenForzado || actual === '' || actual === (_amiloUltimo[k] || '')) {
     const nuevo = sec.gen();
     ta.value = nuevo; _amiloUltimo[k] = nuevo;
+    /* El texto vuelve a ser el de la app: la marca —y con ella el aviso— se van. */
+    _amiloDesmarcarEditado(k); _amiloAvisoPintar(k, false); _amiloSyncEditados();
   }
   amiloPreview(k);
   wrap.style.display = '';
@@ -89863,6 +90045,11 @@ function amiloRestaurarDesdeCampos(campos, reimpresion) {
   // hacía reaparecer un módulo retirado, porque Retirar conserva el texto.
   var lista = campos ? campos['am-integrados'] : null;
   var set = (typeof lista === 'string') ? new Set(String(lista).split(',').filter(Boolean)) : null;
+  /* AJ3-2d · QUÉ BLOQUES VENÍAN EDITADOS A MANO. Un estudio anterior a esta fase NO trae la
+     clave: `edit` queda vacío, ningún bloque se marca, y todos se comportan como hasta ayer.
+     No se migra ni se reescribe nada. */
+  var lsEd = campos ? campos['am-editados'] : null;
+  var edit = new Set((typeof lsEd === 'string') ? String(lsEd).split(',').filter(Boolean) : []);
   var hayAlguno = false;
   amiloSecs().forEach(function (s) {
     var ta = document.getElementById('am-txt-' + s.k);
@@ -89877,9 +90064,15 @@ function amiloRestaurarDesdeCampos(campos, reimpresion) {
        y `amiloRefrescarSiIntacto` regeneraba la hoja. «No escribir» no es «borrar» cuando el
        estado es global — la misma distinción que la lección 5 (no persistirse ≠ limpiarse). */
     if (reimpresion) delete _amiloUltimo[s.k]; else _amiloUltimo[s.k] = ta.value;
+    /* La marca se repone; la FOTO contra la que se mide el desfase se toma de nuevo acá, con el
+       `gen()` de este momento. O sea: al reabrir, un bloque editado arranca SIN aviso y lo gana
+       en cuanto cambie un dato. Está declarado arriba, en `_amiloEditado`. */
+    _amiloDesmarcarEditado(s.k);
+    if (edit.has(s.k)) _amiloEditado[s.k] = _amiloGenSeguro(s.k);
     var tiene = set ? set.has(s.k) : (String(ta.value).trim() !== '');
     w.style.display = tiene ? '' : 'none';
     if (tiene) { hayAlguno = true; amiloPreview(s.k); }
+    _amiloAvisoPintar(s.k, false);
   });
   var card = document.getElementById('amilo-card');
   if (card) card.style.display = hayAlguno ? '' : 'none';
@@ -94260,6 +94453,12 @@ function _pdfDeInformeGuardadoArmar(id, accion) {
      literalmente el defecto que `amiloRefrescarSiIntacto` existe para cerrar. Y no se recupera
      desde la interfaz: con la marca borrada, «Retirar» + «Integrar» tampoco regenera. */
   const amiloUltimoBackup = Object.assign({}, _amiloUltimo);
+  /* Y la marca de edición manual, por el mismo argumento del párrafo de arriba: la reimpresión
+     llama a `amiloRestaurarDesdeCampos`, que la reescribe con la del informe VIEJO. Sin
+     respaldarla, imprimir un informe guardado le dejaba al médico su estudio abierto con la
+     marca del otro — o sin la suya, que es peor: el refresco automático volvería a pisarle la
+     corrección en el próximo cambio de dato. */
+  const amiloEditadoBackup = Object.assign({}, _amiloEditado);
   // Backup de los checklists del acordeón (checkboxes son class-based, sin id → no entran en el backup anterior)
   const chkBackup = {
     indicaciones: Array.from(document.querySelectorAll('.ind-chk:checked')).map(c => c.dataset.val),
@@ -94611,6 +94810,12 @@ function _pdfDeInformeGuardadoArmar(id, accion) {
        en vez de asignarle `{}`. */
     for (const k in _amiloUltimo) delete _amiloUltimo[k];
     Object.assign(_amiloUltimo, amiloUltimoBackup);
+    /* Se REEMPLAZA el contenido y no la referencia, por lo mismo que el renglón de arriba. */
+    for (const k in _amiloEditado) delete _amiloEditado[k];
+    Object.assign(_amiloEditado, amiloEditadoBackup);
+    if (typeof _amiloSyncEditados === 'function') _amiloSyncEditados();
+    if (typeof amiloSecs === 'function' && typeof _amiloAvisoPintar === 'function')
+      amiloSecs().forEach(function (s) { try { _amiloAvisoPintar(s.k, _amiloDesfasado(s.k)); } catch (e) {} });
     ['med-nombre','med-matricula','med-lugar','med-especialidad','med-direccion','med-telefono'].forEach(fid => {
       const el = document.getElementById(fid);
       if (el) el.textContent = ceBackup[fid] || '';
