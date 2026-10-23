@@ -7590,6 +7590,16 @@ window.cerrarSesionReal = cerrarSesionReal;
             <div class="calc-row"><span id="et-it-aviso" style="color:var(--orange);font-size:11px;"></span></div>
             <div style="font-size:10px;color:var(--text2);line-height:1.45;margin:2px 0 4px;" id="et-ref-fuente"></div>
             <div class="calc-row"><span class="calc-lbl" style="font-weight:700;">Severidad sugerida</span><span id="et-sev">—</span></div>
+            <!-- ⚠️ POR QUE LA EVIDENCIA DE ESTA VALVULA NO SE ABRE (AJ2-4, 2026-10-23). Con la
+                 estenosis marcada y sin ningun criterio cumplido, la seccion
+                 «Válvula tricúspide» del panel devuelve `null` y el medico no tiene como saber
+                 que le falta. El texto es DESCRIPTIVO -dice que hace falta, no lo pide- y va
+                 debajo de la severidad, que es el renglon que el medico mira cuando marca la
+                 estenosis: es el lugar menos invasivo porque no desplaza ningun campo ni agrega
+                 una fila al cuadro de referencias.
+                 El id termina en `-aviso` a proposito, asi el barrido generico de
+                 `limpiarCampos` le vacia el texto; el `display` lo gobierna su pintor. -->
+            <div class="calc-row"><span id="et-evid-aviso" style="color:var(--text2);font-size:10px;line-height:1.4;"></span></div>
             <!-- ══ LAS FILAS DE LA PROTESIS, DENTRO DEL CUADRO (CORTOS2, 2026-10-17) ══════════════
                  DECISION DE MAICOL. El PRO-C2 las puso en una CAPSULA APARTE, por encima de las dos
                  columnas de lesiones, asi que el cuadro de referencias de la estenosis quedaba
@@ -48252,6 +48262,47 @@ function etItAvisoSync() {
 window.etItAvisoSync = etItAvisoSync;
 window.ET_IT_AVISO_TXT = ET_IT_AVISO_TXT;
 
+/* ══ POR QUE LA EVIDENCIA DE LA TRICUSPIDE NO SE ABRE (AJ2-4, 2026-10-23) ══════════════════
+   ⚠️ LA COMPUERTA SE LE PREGUNTA AL DUENO Y NO SE COPIA. La seccion «Válvula tricúspide» abre
+   con `itSev || itMod || etSig`, y replicar ese OR aca seria una segunda lectura de la misma
+   regla: el dia que el panel cambie su compuerta, la copia que se olvida es la que deja el
+   aviso puesto sobre una seccion que si se abre -o al reves-. Se llama a `_indVT()` y se mira
+   si devolvio `null`.
+   ⚠️ `_indVT` ES PURO -lee el DOM y no escribe- y por eso se lo puede llamar desde un pintor
+   sin bucle; ademas le pide el area a `etEstado()`, que tambien es puro y NO vuelve a entrar a
+   `calcET`. Censado. Va con `typeof` porque vive en el bloque `<script>` del panel: si ese
+   bloque no se parseo, la llamada pelada tiraria `ReferenceError` y se llevaria este.
+   ⚠️ Y FALLA HACIA NO MOSTRAR EL AVISO, que es la direccion barata: un aviso de mas sobre una
+   seccion que abre se lee como un defecto; uno de menos deja las cosas como estaban. */
+/* ⚠️ EL TEXTO NOMBRA LOS INSUMOS QUE DE VERDAD ABREN LA SECCION, Y ESO ES UN DESVIO DECLARADO
+   DEL LITERAL DEL PEDIDO. La orden decia «al cargar el gradiente medio o la velocidad máxima», y
+   MEDIDO uno por uno con teclas reales, con la estenosis marcada:
+     · `et_gmedio` 7   -> ABRE   · `et_gmedio` 3        -> no abre (el criterio es `> 5`)
+     · `et_vti_diast` 61 -> ABRE · `et_vti_diast` 40    -> no abre (el criterio es `>= 60`)
+     · el area por sus TRES insumos -> ABRE
+     · `it_vmax_cw` 3,2 -> NO ABRE: la velocidad maxima de la IT no gradua la insuficiencia por
+       si sola -el grado sale de la vena contracta, la EROA y el volumen regurgitante- asi que
+       `it_grado` se queda en el centinela y la compuerta `itSev || itMod` no pasa.
+     · `it_vc` 8 mm -> ABRE, porque ahi `it_grado` pasa a '4'.
+   Un texto que le pida al medico cargar un campo que NO abre la seccion es peor que no tener
+   texto: lo manda a llenar el dato equivocado. Se nombran los tres criterios de estenosis y la
+   otra puerta, que es el grado de la IT. */
+const ET_EVID_AVISO_TXT = 'La Evidencia de esta válvula se activa cuando se cumple un criterio de estenosis —gradiente medio, área valvular o VTI de entrada— o con insuficiencia tricuspídea moderada o mayor.';
+function etEvidAvisoSync() {
+  const el = document.getElementById('et-evid-aviso');
+  if (!el) return null;
+  /* La estenosis MARCADA por el medico: `et_grado` nace en el centinela `sin`. */
+  const g = (typeof sv === 'function') ? sv('et_grado') : '';
+  const marcada = !!g && g !== 'sin';
+  let abre = true;
+  try { abre = (typeof _indVT === 'function') ? (_indVT() !== null) : true; }
+  catch (e) { abre = true; }
+  const txt = (marcada && !abre) ? ET_EVID_AVISO_TXT : '';
+  el.textContent = txt;
+  return txt || null;
+}
+window.etEvidAvisoSync = etEvidAvisoSync;
+window.ET_EVID_AVISO_TXT = ET_EVID_AVISO_TXT;
 /* ⚠️ EL INSUMO VIVE EN LA MISMA PESTAÑA Y NO PASA POR `calcET`: el `onchange` de `#it_grado` va a
    `valvSev.aplicar`. Es el MISMO oyente de documento que `vdTeiAvisoSync` ya necesitó para este
    mismo campo, y se cuelga igual —en captura, sin tocar la cadena de `valvSev`—. */
@@ -48264,6 +48315,10 @@ document.addEventListener('change', function (e) {
      que es el patrón de `vdTeiAvisoSync` para este mismo campo. */
   if (id !== 'it_grado' && id !== 'ia_grado') return;
   if (id === 'it_grado') { try { etItAvisoSync(); } catch (x) {} }
+  /* El grado de la IT es la OTRA puerta de la seccion («itSev || itMod»), asi que el aviso tiene
+     que seguirlo: sin esto, graduar la IT abria la Evidencia y el aviso se quedaba puesto
+     diciendo que no se abre (AJ2-4). */
+  if (id === 'it_grado') { try { etEvidAvisoSync(); } catch (x) {} }
   try { if (typeof vtProtObstrPintar === 'function') vtProtObstrPintar(); } catch (x) {}
 }, true);
 
@@ -48281,6 +48336,9 @@ function calcET() {
   /* El aviso de la IT va con las filas y ANTES de cualquier salida temprana, por lo mismo: el
      área ya se escribió arriba y con prótesis se sigue viendo. */
   try { etItAvisoSync(); } catch (e) {}
+  /* Ídem: va ANTES de la salida temprana de prótesis, porque con prótesis la Evidencia de esta
+     válvula tampoco abre por la estenosis y el aviso sigue siendo cierto (AJ2-4). */
+  try { etEvidAvisoSync(); } catch (e) {}
   /* ⚠️ LA CÁPSULA PROTÉSICA SE REPINTA ACÁ, ANTES DE LA SALIDA TEMPRANA (PRO-C2). Los cinco
      insumos de la Tabla 19 que ya existían —gradiente medio, THP y los tres del área— llaman a
      `calcET` por su `oninput`, así que colgándola de acá no hubo que tocar ni un atributo: el
