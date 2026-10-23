@@ -85205,6 +85205,65 @@ caso('TC-519', 'Tanda AJ2: «sin datos» no es «no medible» en las cinco super
   ex.push(['(J14) CONTROL: el valor fuera de banda tampoco',
     norm(String(txt('ao-interp'))).indexOf('fuera de rango') > -1, String(txt('ao-interp'))]);
 
+  /* == (K) AJ2-8 - EL HF-PEFF ==============================================================
+     (a) la FEVI sin cargar DESCRIBE; (b) un solo parentesis; (c) la negrita del PDF, con el
+     marcador que NO llega al papel; (d) la ficha de Referencias. */
+  __t.limpiar();
+  set({ onda_e: '90', e_sep: '5', e_lat: '7' });
+  try { calcDiastol(); } catch (e) {}
+  const hSin = (function(){ try { const x = hfapeffScore(false);
+    return { total: x.total, completo: !!x.completo, motivo: x.gate ? x.gate.motivo : null,
+             concl: hfapeffConclusion(x), hoja: amiloTextoHFAPEFF() }; }
+    catch (e) { return { concl: 'EXC: ' + e.message, hoja: '', motivo: null }; } })();
+  ex.push(['(K1) DENOMINADOR: el score existe y cae en su rama de FEVI sin cargar',
+    hSin.motivo === 'sin_fevi' && hSin.total >= 1, String(hSin.motivo) + ' total=' + String(hSin.total)]);
+  ex.push(['(K2) la FEVI sin cargar DESCRIBE y no manda verificar',
+    norm(hSin.concl).indexOf('fevi no cargada') > -1 && norm(hSin.concl).indexOf('verificar fevi') === -1,
+    String(hSin.concl).slice(-90)]);
+  ex.push(['(K3) y declara la condicion de aplicacion del score',
+    hSin.concl.indexOf('50 %') > -1, String(hSin.concl).slice(-70)]);
+  ex.push(['(K4) un SOLO parentesis: el dominio humoral sin su aclaracion',
+    hSin.concl.indexOf('y humoral)') > -1 && hSin.concl.indexOf('))') === -1,
+    String(hSin.concl).slice(0, 110)]);
+  /* (c) el marcador en la hoja, y que NINGUNA otra hoja lo use. */
+  ex.push(['(K5) la hoja del HFA-PEFF marca con ** sus criterios cumplidos',
+    String(hSin.hoja).split('\\n').filter(l => l.indexOf('**') === 0).length >= 1,
+    'n=' + String(hSin.hoja).split('\\n').filter(l => l.indexOf('**') === 0).length]);
+  const otrasHojas = ['amiloTextoTEP','amiloTextoHTP','amiloTextoVEXUS','amiloTextoDPT',
+                      'amiloTextoCVR','amiloTextoWilkins'];
+  ex.push(['(K6) CONTROL: el marcador es ADITIVO, ninguna otra hoja empieza una linea con **',
+    otrasHojas.every(k => { try { const t = (typeof window[k] === 'function') ? window[k]() : '';
+      return String(t).split('\\n').filter(l => l.indexOf('**') === 0).length === 0; }
+      catch (e) { return true; } }),
+    otrasHojas.map(k => { try { return k + '=' + String((typeof window[k] === 'function') ? window[k]() : '')
+      .split('\\n').filter(l => l.indexOf('**') === 0).length; } catch (e) { return k + '=EXC'; } }).join(' ')]);
+  /* El PARSER del armador tiene que reconocer el marcador y no dejarlo pasar al papel. */
+  ex.push(['(K7) el armador declara el marcador y lo saca antes de dibujar',
+    (function(){ const f = String(window.amiloDibujarSecciones || '');
+      return f.indexOf("l.indexOf('**') === 0") > -1 && f.indexOf('fuerte') > -1; })(),
+    'largo=' + String(window.amiloDibujarSecciones || '').length]);
+  /* (d) la ficha de Referencias. */
+  const fHfp = (function(){ const e = document.getElementById('ref-hfapeff');
+    return e ? (e.textContent || '').replace(/\s+/g, ' ') : 'NO EXISTE'; })();
+  ex.push(['(K8) DENOMINADOR: la ficha del HFA-PEFF existe y tiene cuerpo', fHfp.length > 500, 'largo=' + fHfp.length]);
+  ex.push(['(K9) la ficha dice lo que la app APLICA y no la historia de la discrepancia',
+    fHfp.indexOf('Dos salvedades del original') === -1 && norm(fHfp).indexOf('mo aplica la app') > -1,
+    fHfp.indexOf('salvedades') > -1 ? 'SIGUE «salvedades»' : 'ok']);
+  ex.push(['(K10) y el 375 del texto del original sale de la ficha; queda el 365 que se aplica',
+    fHfp.indexOf('375') === -1 && fHfp.indexOf('365 pg/ml') > -1,
+    '375=' + String(fHfp.indexOf('375') > -1) + ' 365=' + String(fHfp.indexOf('365 pg/ml') > -1)]);
+  /* CONTROL NEGATIVO: con la FEVI por debajo del umbral nada de esto cambia. */
+  __t.limpiar();
+  set({ onda_e: '90', e_sep: '5', e_lat: '7', fevi: '40' });
+  try { calcDiastol(); } catch (e) {}
+  const hBaja = (function(){ try { const x = hfapeffScore(false);
+    return { concl: hfapeffConclusion(x), hoja: amiloTextoHFAPEFF() }; }
+    catch (e) { return { concl: 'EXC', hoja: 'EXC' }; } })();
+  ex.push(['(K11) CONTROL: con FEVI 40 la conclusion es la de «no aplicable», sin tocar',
+    hBaja.concl.indexOf('score no aplicable') > -1 && norm(hBaja.concl).indexOf('fevi no cargada') === -1,
+    String(hBaja.concl).slice(0, 100)]);
+  ex.push(['(K12) CONTROL: y su hoja del PDF sigue retirandose entera', hBaja.hoja === '', 'largo=' + String(hBaja.hoja).length]);
+
   ex.push(['(Z) DENOMINADOR GLOBAL: todos los campos del caso se encontraron',
     noEntraron.length === 0, 'noEntraron=' + JSON.stringify(noEntraron)]);
 

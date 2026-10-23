@@ -1696,6 +1696,123 @@ window.__Z = {
     process.stderr.write('[aorta] listo\n');
   }
 
+  /* == GRUPO «hfp» - AJ2-8: EL HF-PEFF =====================================================
+     (a) la conclusion con la FEVI sin cargar; (b) el parentesis anidado; (c) la negrita del PDF.
+     El PDF se GENERA DE VERDAD interceptando el CONSTRUCTOR de jsPDF: jsPDF 2.x instala `text`
+     como propiedad PROPIA de cada instancia, asi que parchear el prototipo no captura nada y
+     no da ningun error -la trampa que la tanda C pago con 24 celdas vacias-. */
+  if (corre('hfp')) {
+    const r = { escenas: {}, marcador: null };
+    try {
+      /* Ninguna otra hoja empieza una linea con `**`: es lo que hace al marcador aditivo. */
+      r.marcador = await ev(`(function(){
+        try {
+          var K = ['amiloTextoTEP','amiloTextoHTP','amiloTextoVEXUS','amiloTextoDPT',
+                   'amiloTextoCVR','amiloTextoWilkins','amiloTextoHFAPEFF'];
+          var o = {};
+          K.forEach(function(k){
+            try { var t = (typeof window[k] === 'function') ? window[k]() : 'SIN FN';
+              o[k] = String(t).split(String.fromCharCode(10))
+                .filter(function(l){ return l.indexOf('**') === 0 }).length;
+            } catch (e) { o[k] = 'EXC' }
+          });
+          return o;
+        } catch (e) { return 'EXC: ' + e.message }
+      })()`, 40000);
+      const montar = async (fevi, cargarMorf) => {
+        await ev(`window.__P.nuevo()`);
+        await ev(`window.__P.despejar()`);
+        /* Dominio FUNCIONAL cargado para que el puntaje exista; el morfologico y el humoral
+           quedan vacios, que es la escena del parentesis anidado. */
+        await ev(`window.__P.abrirPara('onda_e')`);
+        await poner('onda_e', '90');
+        await poner('e_sep', '5');
+        await poner('e_lat', '7');
+        if (cargarMorf) { await ev(`window.__P.abrirPara('ai_vol')`); await poner('ai_vol', '90');
+                          await poner('peso', '70'); await poner('talla', '170'); }
+        if (fevi !== null) { await ev(`window.__P.abrirPara('fevi')`); await poner('fevi', String(fevi)); }
+        await ev(`(function(){ if (typeof calcDiastol === 'function') calcDiastol();
+                               if (typeof hfapeffRender === 'function') hfapeffRender(); return 1 })()`, 40000);
+        const sc = await ev(`(function(){
+          try { var x = hfapeffScore(false);
+            return { total: x.total, completo: !!x.completo, motivo: x.gate ? x.gate.motivo : null,
+                     concl: hfapeffConclusion(x), msgUI: x.gate ? x.gate.msgUI : null };
+          } catch (e) { return { err: 'EXC: ' + e.message } } })()`, 40000);
+        const hoja = await ev(`(function(){
+          try { return (typeof amiloTextoHFAPEFF === 'function') ? amiloTextoHFAPEFF() : 'SIN FN' }
+          catch (e) { return 'EXC: ' + e.message } })()`, 40000);
+        return { score: sc,
+                 hojaFuertes: String(hoja).split(String.fromCharCode(10))
+                   .filter(function(l){ return l.indexOf('**') === 0 }),
+                 hojaCumple: String(hoja).split(String.fromCharCode(10))
+                   .filter(function(l){ return l.indexOf('CUMPLE') > -1 }).length,
+                 hojaLargo: String(hoja).length };
+      };
+      r.escenas.sinFevi   = await montar(null, false);
+      r.escenas.fevi55    = await montar(55, false);
+      r.escenas.fevi40    = await montar(40, false);
+      r.escenas.fevi55mof = await montar(55, true);
+      /* (c) EL PDF GENERADO DE VERDAD: se cuentan los `doc.text` dibujados con la fuente en
+         negrita, por la hoja del HFA-PEFF. */
+      /* ⚠️ DENOMINADOR: sin INTEGRAR el modulo su hoja no entra al PDF, y la medicion sale con
+         la hoja de amiloidosis -23 textos, 7 en negrita, todos titulos- con pinta de medicion
+         buena. La clave es `hfpeff`, no `hfapeff`. */
+      await ev(`window.__P.nuevo()`);
+      await ev(`window.__P.despejar()`);
+      await ev(`window.__P.abrirPara('onda_e')`);
+      await poner('onda_e', '90'); await poner('e_sep', '5'); await poner('e_lat', '7');
+      await ev(`window.__P.abrirPara('fevi')`); await poner('fevi', '55');
+      await ev(`(function(){ if (typeof calcDiastol === 'function') calcDiastol(); return 1 })()`, 40000);
+      r.integro = await ev(`(function(){
+        try { if (typeof amiloIntegrar === 'function') amiloIntegrar('hfpeff');
+          return (typeof amiloIntegrado === 'function') ? !!amiloIntegrado('hfpeff') : 'SIN FN';
+        } catch (e) { return 'EXC: ' + e.message } })()`, 60000);
+      r.pdf = await ev(`(function(){
+        try {
+          if (!window.jspdf || !window.jspdf.jsPDF) return 'SIN jsPDF';
+          var J = window.jspdf.jsPDF, reg = [], orig = J;
+          window.jspdf.jsPDF = function () {
+            var d = new orig(arguments[0]);
+            var t0 = d.text, f0 = d.setFont, est = 'normal';
+            d.setFont = function (fam, sty) { if (sty) est = sty; return f0.apply(d, arguments) };
+            d.text = function (txt, x, y) { reg.push({ t: String(txt), x: x, y: y, f: est });
+                                            return t0.apply(d, arguments) };
+            return d;
+          };
+          /* OJO: amiloImprimirPDF('ett') NO IMPRIME ESTA HOJA: imprime el modulo ett, y la
+             medicion sale con la hoja de AMILOIDOSIS -23 textos, 7 en negrita, todos titulos-
+             con pinta de medicion buena. La hoja del HFA-PEFF viaja en el PDF del INFORME, y su
+             puerta es generarPDFReal: generarPDF abre antes la tarjeta de severidad. */
+          try { if (typeof generarPDFReal === 'function') generarPDFReal(true); } catch (e) {}
+          window.jspdf.jsPDF = orig;
+          var neg = reg.filter(function (z) { return z.f === 'bold' });
+          /* Los textos que la hoja del HFA-PEFF dibuja: su columna de VALOR lleva el peso y la
+             palabra CUMPLE, asi que se cuentan los bold que los contienen. Un bold de TITULO no
+             cuenta: esos ya existian. */
+          var valores = neg.filter(function (z) { return z.t.indexOf('mayor') > -1 || z.t.indexOf('menor') > -1 });
+          return { n: reg.length, nBold: neg.length, nBoldValor: valores.length,
+                   boldValor: valores.map(function (z) { return z.t }).slice(0, 20),
+                   boldTxt: neg.map(function (z) { return z.t }).slice(0, 40),
+                   tieneAsterisco: reg.filter(function (z) { return z.t.indexOf('**') > -1 }).length };
+        } catch (e) { return 'EXC: ' + e.message }
+      })()`, 90000);
+      /* (d) la ficha de Referencias. */
+      r.ficha = await ev(`(function(){
+        var e = document.getElementById('ref-hfapeff');
+        if (!e) return 'NO EXISTE';
+        var t = (e.textContent || '').replace(/\s+/g, ' ');
+        return { salvedades: t.indexOf('Dos salvedades del original') > -1,
+                 comoAplica: t.indexOf('mo aplica la app') > -1,
+                 menciona375: t.indexOf('375') > -1,
+                 menciona365: t.indexOf('365 pg/ml') > -1,
+                 largo: t.length };
+      })()`, 40000);
+      r.errores = await ev(`window.__Y.errores()`);
+    } catch (e) { r.err = e.message; r.stack = String(e.stack || '').slice(0, 400); }
+    out.grupos.hfp = r;
+    process.stderr.write('[hfp] listo\n');
+  }
+
   OUT.md5Fin = await md5(EXTERNO ? FARG : join(RAIZ, FILE));
   process.stdout.write(JSON.stringify(OUT, null, 1));
   cdp.close(); srv.close(); process.exit(0);

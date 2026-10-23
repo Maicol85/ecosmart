@@ -18532,11 +18532,10 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
       </div>
 
       <div style="margin-top:10px;font-size:11.5px;color:var(--text2);line-height:1.6;">
-        <b>Dos salvedades del original.</b> El texto del folio 3304 escribe el piso del criterio menor
-        de NT-proBNP en fibrilaci&oacute;n auricular como 375 pg/ml y la Figura 3 del folio 3305 como 365: la
-        app aplica el de la <b>figura</b>. Y la velocidad de regurgitaci&oacute;n tricusp&iacute;dea y la PSAP figuran
-        como dos criterios mayores en el texto y en el <b>mismo rengl&oacute;n</b> de la Figura 3, as&iacute; que la
-        app los cuenta <b>una sola vez</b>: son dos formas de medir lo mismo.
+        <b>C&oacute;mo aplica la app dos de estos criterios.</b> El piso del criterio menor de NT-proBNP en
+        fibrilaci&oacute;n auricular es <b>365 pg/ml</b>, el de la Figura 3 (folio 3305). Y la velocidad de
+        regurgitaci&oacute;n tricusp&iacute;dea y la PSAP cuentan <b>una sola vez</b>: la Figura 3 las pone en el
+        <b>mismo rengl&oacute;n</b>, as&iacute; que son dos formas de medir lo mismo y no dos criterios mayores.
       </div>
     </div>
   </div>
@@ -29844,9 +29843,13 @@ function hfapeffFeviGate(feviCrudo) {
   const fevi = (feviCrudo === '' || feviCrudo === null || feviCrudo === undefined)
     ? null : Number(String(feviCrudo).replace(',', '.'));
   const noAplica = s => `El score HFA-PEFF aplica solo en IC con FEVI conservada (${s}${uf}%). FEVI actual: ${fevi}% ${s === '≥' ? '—' : '-'} score no aplicable.`;
-  const verificar = s => `Verificar FEVI antes de aplicar este score: el HFA-PEFF solo aplica en IC con FEVI conservada (${s}${uf}%).`;
+  /* ⚠️ «VERIFICAR FEVI ANTES DE APLICAR ESTE SCORE» ERA UNA CONDUCTA (AJ2-8a, 23/10/2026), y
+     viajaba al informe FIRMADO pegada al puntaje por `avisoFevi`. Hoy DESCRIBE el estado: el
+     dato no esta y la condicion de aplicacion del score se publica al lado, que es lo que el
+     que lee necesita para saber que la premisa no se comprobo. */
+  const sinFevi = s => `FEVI no cargada (el HFA-PEFF se aplica con FEVI ${s}${uf} %).`;
   if (fevi === null || !isFinite(fevi)) {
-    return { aplica:true, motivo:'sin_fevi', fevi:null, umbral:uf, msg:verificar('>='), msgUI:verificar('≥') };
+    return { aplica:true, motivo:'sin_fevi', fevi:null, umbral:uf, msg:sinFevi('>='), msgUI:sinFevi('≥') };
   }
   if (fevi < uf) {
     return { aplica:false, motivo:'fevi_baja', fevi, umbral:uf, msg:noAplica('>='), msgUI:noAplica('≥') };
@@ -30006,7 +30009,12 @@ function hfapeffConclusion(r) {
     const faltan = [], maxs = [];
     if (!r.func.hayDatos) { faltan.push('funcional'); maxs.push(2); }
     if (!r.morf.hayDatos) { faltan.push('morfológico'); maxs.push(2); }
-    if (!r.soloEco && !r.hum.hayDatos) { faltan.push('humoral (péptidos natriuréticos)'); maxs.push(2); }
+    /* ⚠️ SIN SU ACLARACION ENTRE PARENTESIS (AJ2-8b, 23/10/2026): este nombre se interpola
+       DENTRO de «(puntaje parcial: …)», asi que con el dominio humoral faltante la conclusion
+       del informe firmado terminaba en «y humoral (péptidos natriuréticos)).» —dos parentesis
+       seguidos—. El dominio se nombra igual en la hoja del PDF, que lo rotula «Dominio humoral
+       (ritmo sinusal)», y en el cartel del peptido. */
+    if (!r.soloEco && !r.hum.hayDatos) { faltan.push('humoral'); maxs.push(2); }
     const techo = maxs.reduce(function (a, b) { return a + b; }, 0);
     const nom = (faltan.length === 1) ? 'falta el dominio ' + faltan[0]
       : 'faltan los dominios ' + faltan.slice(0, -1).join(', ') + ' y ' + faltan[faltan.length - 1];
@@ -30372,7 +30380,10 @@ function amiloTextoHFAPEFF() {
     o.todos.forEach(function (c) {
       const peso = (c.tipo === 'mayor') ? 'mayor' : 'menor';
       const val = c.dato ? (c.val || 'medido') : 'sin dato';
-      L.push(c.txt + ' | ' + val + ' · ' + peso + (c.ok ? ' · CUMPLE' : ''));
+      /* El criterio que SE CUMPLE lleva su columna de valor en NEGRITA, ademas de la palabra
+         CUMPLE: el color no existe en esta hoja y la palabra sola se pierde al final de una
+         fila de tres datos. */
+      L.push((c.ok ? '**' : '') + c.txt + ' | ' + val + ' · ' + peso + (c.ok ? ' · CUMPLE' : ''));
     });
   };
   bloque('Dominio funcional', r.func);
@@ -89866,17 +89877,26 @@ function amiloDibujarSecciones(doc, secs, g) {
           filas.push({ t:'nota', ls: ls, n: ls.length });
           alto += H * ls.length + _NOTA_PAD * 2;
         }
+        /* `**` al principio de una fila de tabla = la columna del VALOR va en NEGRITA (AJ2-8c,
+           23/10/2026). El armador tenia `##` para subtitulo y `!!` para nota y ninguna forma de
+           destacar una fila, asi que los criterios que SE CUMPLEN del HFA-PEFF salian con el
+           mismo peso que los que no —y son los que sostienen el puntaje—. Es ADITIVO: medido,
+           ninguna de las otras hojas empieza una linea con `**`, asi que todas salen byte por
+           byte igual. Y se mide con la fuente que se va a DIBUJAR: la negrita es mas ancha, y
+           partir con la normal subestima el alto de la fila. */
         else if (l.indexOf(' | ') > 0) {                 // fila de tabla: etiqueta | valor
           // Se parten AMBAS columnas y la fila mide lo que mida la más alta.
           // Antes se pasaba maxWidth a doc.text(): el texto se envolvía pero la
           // y avanzaba una sola línea, así que la fila siguiente se escribía
           // encima y el renglón parecía cortado a la mitad.
-          const par = l.split(' | ');
+          const _fuerte = l.indexOf('**') === 0;
+          const par = (_fuerte ? l.slice(2).trim() : l).split(' | ');
           fn(sz);
           const la = doc.splitTextToSize(par[0].trim(), pgW * 0.50 - 4);
+          if (_fuerte) fb(sz); else fn(sz);
           const lb = doc.splitTextToSize(par.slice(1).join(' | ').trim(), pgW * 0.46);
           const n  = Math.max(la.length, lb.length);
-          filas.push({ t:'kv', a: la, b: lb, n: n }); alto += H * n;
+          filas.push({ t:'kv', a: la, b: lb, n: n, fuerte: _fuerte }); alto += H * n;
         }
         else { fn(sz); doc.splitTextToSize(l, pgW - 4).forEach(w => { filas.push({ t:'txt', txt:w }); alto += H; }); }
       });
@@ -89946,7 +89966,10 @@ function amiloDibujarSecciones(doc, secs, g) {
     } else if (f.t === 'kv') {
       const xVal = mL + pgW * 0.52;
       fn(sz); doc.setTextColor(90,90,90);  f.a.forEach((t,i2) => doc.text(t, mL + 2, y + i2 * p.H));
-      fn(sz); doc.setTextColor(20,20,20);  f.b.forEach((t,i2) => doc.text(t, xVal,   y + i2 * p.H));
+      /* La columna del VALOR en negrita cuando la fila lo pidio con `**`. La etiqueta se queda
+         en normal y en gris: lo que destaca es el dato, no el rotulo. */
+      if (f.fuerte) fb(sz); else fn(sz);
+      doc.setTextColor(20,20,20);  f.b.forEach((t,i2) => doc.text(t, xVal,   y + i2 * p.H));
       y += p.H * f.n;
     } else {
       fn(sz); doc.setTextColor(30,30,30);
