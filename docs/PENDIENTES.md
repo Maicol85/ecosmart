@@ -6777,3 +6777,84 @@ de esta zona salió a **`docs/mapa/tanda-i-ete.md`** (19,8 KB) con la ficha de T
 los cinco mapas con margen les entró un puntero.
 
 **Los tres siguen esperando que alguien los parta.**
+
+---
+
+## Tanda «AJ2» — lo declarado y NO tocado (2026-10-23)
+
+### AJ2-a · `vabConclusion` conserva una CONDUCTA en el informe firmado
+La rama de 40 a 44 mm publica «Dilatación de la aorta de N mm — **control por imagen y
+seguimiento del ritmo de crecimiento**». El AJ2-6 le retiró el grado («leve») porque estaba en su
+lista; la conducta **no está** en la lista de esa orden. Medido: sale en el informe en los tres
+estilos.
+**Salida**: retirarla y dejar el hecho, como ya se hizo con «vigilancia estrecha» y «Heart Team»
+en el trabajo «H». El intervalo de la ESC 2024 (Tabla 68, folio 119) vive en Evidencia.
+
+### AJ2-b · `VAB_CONDUCTAS` del Laboratorio conserva un grado Y una conducta
+Dos rótulos: `vigilancia_45` → «Vigilancia - 45 a 49 mm» con `crit:'Dilatacion moderada - control
+por imagen'`, y `dilatacion_leve` → «Dilatacion leve - 40 a 44 mm» con `crit:'Control periodico'`.
+El AJ2-6 acotaba su alcance al informe, el EN SUMA, el ⓘ, la conclusión de la VAB, Evidencia y el
+PDF: **el Laboratorio no estaba**.
+⚠️ **LAS CLAVES NO SE PUEDEN TOCAR**: el Laboratorio clasifica estudios guardados por ellas. Los
+**rótulos** sí, como ya se hizo con `vigilancia_50` en el trabajo «H».
+
+### AJ2-c · el informe pulmonar sigue siendo UN párrafo y no una línea por bloque
+`pulAvFrases()` ya devuelve **una frase por bloque cargado** y el bloque 13c las une en un párrafo.
+Esa unión es una decisión documentada de Maicol del **B2-E2** (2026-10-17), con su motivo escrito
+en el código: «UN SOLO PÁRRAFO Y UNA SOLA LÍNEA, que es lo que la orden pide, y COMPUESTOS CON LAS
+FRASES QUE YA EXISTEN». Partirlo en una entrada de `inf` por bloque **revierte** esa decisión.
+**Salida**: decidir cuál de las dos lecturas vale, y si es la de AJ2 dejar escrito que reemplaza al
+B2-E2.
+
+### AJ2-d · el signo de McConnell afirma una propiedad del signo
+El span publica «Presente — **altamente específico de TEP** ✓». Es una propiedad del SIGNO y no del
+paciente, así que no es una probabilidad diagnóstica del estudio; por eso el AJ2-10 no la tocó, y
+tampoco está en la lista. Queda declarado por si la próxima lectura quiere que el papel describa
+sólo el hallazgo.
+
+### AJ2-e · AJ2-16b NO SE ENCONTRÓ
+«Una PSAP mostrada sin redondear». Censados los **quince** ids que nombran la PSAP y sus
+escritores: `psap_calc` es un `input readonly` escrito con `.toFixed(0)`; `psap-interp` y
+`tep-psap-interp` lo **leen**; `hb-psap-val`, `ht-psap` y `lab-psap-prom` usan `toFixed(0)`;
+`cx-tp-res` imprime el **cociente** TAPSE/PSAP con `toFixed(2)` —tres decimales en la pantalla de
+TEP, que es su precisión declarada— y `cx-gtp-papm` es la PAP **media** con `toFixed(1)`.
+**No se inventó ningún arreglo.** Si el reporte apuntaba a otro nodo, hace falta el nombre.
+
+### AJ2-f · AJ2-2 NO REPRODUCE
+«La Evidencia de HTP listaba "Muesca; Diámetro de la arteria pulmonar" con la muesca y la
+velocidad de la IP tildadas». Medido por los dos caminos: muesca + velocidad de la IP lista
+exactamente esos dos signos, y el control cruzado (muesca + diámetro) lista los suyos.
+`HTP_SIGNOS` y el marcado de la tabla concuerdan.
+**La única escena que publica «Diámetro de la arteria pulmonar» sin que nadie lo tilde** es
+`ip_ap_diam > 25`, donde `htpApSync` marca y **deshabilita** esa casilla — y ahí la lista tiene
+**tres** signos, no dos.
+
+### AJ2-g · `scripts/check_backticks.py` da falsos sobre una concatenación
+El patrón legítimo `` `…` + k + `…` `` —tres apariciones en el grupo `suma` de
+`scripts/_probe_aj2.mjs`— lo informa como acento grave suelto. Y **no alcanza un `ev()` suelto**,
+que es donde se escapó uno esta tanda. **Salida**: enseñarle la concatenación, o aceptar los dos
+límites y correr siempre `node --check` al lado.
+
+### AJ2-h · TC-476 y TC-478 son inestables por orden de corrida
+Su condición lee la clase `numdec` que la maquinaria de arranque pone sobre los `type=number`.
+Corridos en una lista de dos o tres casos fallan; en la suite completa están verdes. **Medido en un
+worktree de `2b9f3ef` con la misma lista: fallan igual allá.** Se suman a TC-137, TC-246, TC-249,
+TC-252, TC-260, TC-395 y TC-484.
+
+### AJ2-i — las TRES filas del ateroma dicen casi lo mismo (23/10/2026)
+
+**Qué se encontró.** Con el grado 4 cargado, la caja de la aorta publica tres filas seguidas:
+«Clasificación — descripción: *Ateroma de más de 5 mm*», «Descripción del hallazgo: *Ateroma de
+más de 5 mm (grado 4).*» y «Grosor medido — grado en la escala: *6 mm — en la escala de Nicoara
+corresponde al grado 4 (ateroma de más de 5 mm)*». La segunda **contiene** a la primera.
+**Lo destapó MIRAR una captura**, no una medición.
+
+**Qué puede causar.** Es consecuencia de AJ2-7a: hasta el 22/10 la primera decía «Ateroma de más
+de 5 mm **— alto riesgo embólico**», o sea se distinguía de la segunda. Al retirar el riesgo —que
+la fuente no publica— las dos quedaron casi idénticas. Dos redacciones de la misma afirmación en
+la misma caja son dos cosas que se separan en la primera edición.
+
+**Cómo se corrige.** Tres salidas, ninguna aplicada porque **no está en los diecisiete ítems** y
+cambiar qué filas se muestran no estaba pedido: (a) esconder «Clasificación — descripción», cuyo
+texto hoy está contenido en el de abajo; (b) dejarle sólo el nombre del grado («Grado 4»), sin su
+descripción; (c) dejarlo como está y aceptar la repetición. **Lo decide Maicol.**

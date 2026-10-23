@@ -288,3 +288,22 @@ rojo, y NINGUNA por excepción** — las 17 que pasan son los controles y lo que
 
 **Arnés: `scripts/_probe_e.mjs`** (A/B de solo lectura con `--file`), once grupos: `htpinv`,
 `htptab`, `htpinf`, `htppdf`, `hfconcl`, `hfpdf`, `refs`, `evid`, `maq`, `captura`, `ctrl`.
+
+---
+
+## Puntero — la tanda «AJ2» (2026-10-23)
+
+Lo que esa tanda movió de esta zona está en **`docs/mapa/aj2-correcciones.md`**, con los doce
+commits, sus dependencias y las doce trampas. En una línea, lo que toca acá:
+
+- **HTP**: `htpVrtSinDatos` es el dueño del estado «sin datos», que NO es «no medible»; la hoja del
+  PDF y la pantalla son un solo dueño por construcción (`amiloTextoHTP` lee el mismo nodo).
+- **TEP**: `tepVeredicto` + `TEP_VD_SIGNIF_MIN` gobiernan las tres superficies; el cuadro pasa a
+  tres grupos y el TAPSE/PSAP sale una sola vez; el rótulo del score en `/6`.
+- **Otros / orejuela / ateroma**: la orejuela publica la medición y no la juzga; el ateroma no
+  afirma un riesgo embólico que su escala no publica, su grosor completa el grado, y los dos
+  aportan su línea al EN SUMA.
+- **Referencias**: los dos buscadores tratan guión = espacio = nada (`_buscaCompacta`), con el
+  punto decimal intacto.
+- **Aorta**: `aoSegGrado` devuelve un solo grado, `'dilatada'`, **y el corte no se movió**.
+- **Diastólica**: la frase de «no clasificable» describe en vez de pedir un campo.

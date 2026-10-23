@@ -369,3 +369,22 @@ de derivarlo del grado, justamente por eso.
 55 mg/dL la europea (Tabla 33, folio 71) y 70 mg/dL la estadounidense (AHA/ASA 2021, folio e398).
 
 Detalle en **`docs/mapa/tanda-i-ete.md` § 4 y § 6**.
+
+---
+
+## Puntero — la tanda «AJ2» (2026-10-23)
+
+Lo que esa tanda movió de esta zona está en **`docs/mapa/aj2-correcciones.md`**, con los doce
+commits, sus dependencias y las doce trampas. En una línea, lo que toca acá:
+
+- **HTP**: `htpVrtSinDatos` es el dueño del estado «sin datos», que NO es «no medible»; la hoja del
+  PDF y la pantalla son un solo dueño por construcción (`amiloTextoHTP` lee el mismo nodo).
+- **TEP**: `tepVeredicto` + `TEP_VD_SIGNIF_MIN` gobiernan las tres superficies; el cuadro pasa a
+  tres grupos y el TAPSE/PSAP sale una sola vez; el rótulo del score en `/6`.
+- **Otros / orejuela / ateroma**: la orejuela publica la medición y no la juzga; el ateroma no
+  afirma un riesgo embólico que su escala no publica, su grosor completa el grado, y los dos
+  aportan su línea al EN SUMA.
+- **Referencias**: los dos buscadores tratan guión = espacio = nada (`_buscaCompacta`), con el
+  punto decimal intacto.
+- **Aorta**: `aoSegGrado` devuelve un solo grado, `'dilatada'`, **y el corte no se movió**.
+- **Diastólica**: la frase de «no clasificable» describe en vez de pedir un campo.

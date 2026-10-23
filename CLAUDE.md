@@ -73,6 +73,7 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Tocar algo que la tanda R movió**: la lesión presente sin grado de la VAB, los cortes del TEER, la severidad de la disfunción del VD, el área de la AI, los grados del derrame, el taponamiento que ya no concluye, el VD/VI del TEP o los criterios declarados de Referencias | `docs/mapa/tanda-r-referencias.md` |
 | **Tocar la sección de la VÁLVULA AÓRTICA BICÚSPIDE**: la disposición en tres columnas, las seis tarjetas ⓘ, los factores de riesgo con casilla, el DIBUJO y sus puntos sensibles, **la SIMETRÍA DE LAS CÚSPIDES y el ÁNGULO con que se dibuja**, **los SEIS dibujos por tipo y la ANIMACIÓN de la apertura**, **la FUNCIÓN VALVULAR derivada**, **el RESUMEN esquemático y su texto en Evidencia**, la morfología que sigue al tipo de fusión, la descripción del informe, el PDF o el recordatorio de la coartación | `docs/mapa/vab-bicuspide.md` |
 | **Visor de cineloop, medición, calibración, IndexedDB** | `docs/mapa/imagenes-visor.md` |
+| **Tocar algo que la tanda AJ2 corrigió** (23/10): la VRT «sin datos» frente a «no medible», el tipo de IM vacío, la coartación sin gradiente, la aorta que ya no gradúa, el ateroma sin riesgo embólico con el grosor completando el grado, el HF-PEFF sin FEVI y la negrita de su hoja, el eco pulmonar «bilateral», el score de TEP con un solo vocabulario y su maqueta en tres grupos, el EN SUMA que ya no niega lo que el informe describe, los dos buscadores o las tildes | `docs/mapa/aj2-correcciones.md` |
 | **Tocar algo de la tanda I**: el TRAMO del score de Wilkins, la orejuela y sus dispositivos, la reparabilidad mitral con el rango de tenting, las DOS escalas de ateroma, las tres secciones de Evidencia de la ETE, las notas al pie de la estenosis tricuspídea o la INSUFICIENCIA PULMONAR en Fallot reparada con sus dos guías | `docs/mapa/tanda-i-ete.md` |
 | **Tocar la ESTENOSIS MITRAL en el LABORATORIO**: las seis categorías, las dos casillas del filtro, el gráfico de distribución, el PDF de auditoría o el PPT | `docs/mapa/laboratorio-estenosis-mitral.md` |
 | **Tocar la VISTA 2D de las válvulas**: el lector único del estado, las tarjetas, la tabla de cavidades, el dibujo, los chorros o el «por qué» | `docs/mapa/vista-2d-valvulas.md` |
@@ -139,8 +140,11 @@ Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la v
 ## Qué es EcoSmart y cómo se trabaja
 
 - App clínica de ecocardiografía en **un solo `index.html`**: HTML + CSS + JS inline, sin build,
-  sin frameworks. Hoy **9,21 MB / 131.103 líneas**, medido con `wc -l` y `wc -c` el 2026-10-22 al
-  cierre de la tanda **E**, sobre el árbol ya sellado (`v20261022-0942`, `md5` `f5919381…`).
+  sin frameworks. Hoy **9,34 MB / 132.718 líneas**, medido con `wc -c` y `wc -l` el 2026-10-23 al
+  cierre de la tanda **AJ2**, sobre el árbol ya sellado (`v20261023-1316`, `md5` `b1c8f19b…`).
+  ⚠️ **Y SE VOLVIÓ A ESCRIBIR MAL EL 23/10, POR CONFUNDIR MB CON MiB:** `ls -l` da bytes y
+  dividirlos por 1.048.576 da **8,91**, que es MiB; este renglón cuenta en MB de 10⁶, así que la
+  cifra es **9,34**. Medir con `wc -c` y dividir por 1e6.
   ⚠️ **Y ESTE RENGLÓN DECÍA «8,53 MB / 128.236 líneas» —el cierre del trabajo B— DURANTE CINCO
   TANDAS**: el B fue la primera en muchas que lo dejó más CHICO (por las 431 líneas del
   Fonocardiograma retirado) y desde entonces cada tanda escribió su delta en su propia sección sin
@@ -317,206 +321,182 @@ impecable.
 > SEGURIDAD y la tabla de Procedencia) siguen enteras y en su lugar, verificado byte por byte.
 
 
-### La ETE, la estenosis tricuspídea y la IP en Fallot reparada — «I» (2026-10-22)
+### Las DIECISIETE correcciones de la verificación — «AJ2» (2026-10-23)
 
-- **Son CINCO commits, y son los cinco que la orden pedía.** Al **empezar**, `main` estaba en
-  **`fd563e1`** —el cierre de la tanda E, con su sello `v20261022-0942`— y `origin/main` en
-  **`53ddd7a`**, o sea que los veintidós commits del D2, el D3, el AJ1 y el E seguían locales, que
-  es lo que la orden preveía. Los **cinco** de esta tanda quedan locales; el push lo corre Maicol.
-  **El orden de revertido seguro es el inverso del de aplicación: 5 → 4 → 3 → 2 → 1.**
-  ⚠️ **EL 2 CUELGA DEL 1 POR UNA PIEZA Y NO POR SU TEXTO**: el globo `wilk-score` que el 1 crea en
-  `VINFO` apunta a `ref-em`, y lo que el 2 escribe dentro de esa ficha es lo que ese globo manda a
-  leer. ⚠️ **EL 3 CUELGA DEL 2 POR LAS CLAVES DE BIBLIOGRAFÍA**: `aseEte2013`, `aseEte2020`,
-  `tamburino2010` y `guiaRegurgNativa` nacen en el 2 y las tres secciones del 3 las citan;
-  revertir el 2 sin revertir antes el 3 deja tres secciones citando claves que `IND_REF_IDX` no
-  conoce. ⚠️ **EL 4 NO CUELGA DE NINGUNO** y toca dos zonas que los tres anteriores no tocan.
-  **El 5 es TC-518, la adaptación de TC-322, la documentación y el sello**, y afirma el
-  comportamiento de los cuatro: revertir cualquiera sin el 5 lo deja en rojo.
-  ⚠️ **EL COMMIT 2 SE AMENDÓ, Y HAY QUE DECIR POR QUÉ: UN `<div>` SIN CERRAR EN LA FICHA `ref-em`
-  ROMPÍA LA MAQUETA DE TODA LA APP.** Un tag sin cerrar **no lanza**: el parser re-anida todo lo
-  que viene después, y **tres casos de zonas completamente ajenas** informaron geometría 0×0
-  —**TC-254** (el área táctil de una casilla de estadística descriptiva), **TC-259** (los gráficos
-  y los acordeones del Laboratorio) y **TC-274** (el botón de Evidencia)—. ⚠️ **NINGÚN A/B DE
-  TEXTO LO VE**: el informe, el EN SUMA, las 440 columnas del Excel y las seis plantillas del PDF
-  salían **IDÉNTICAS**, y el grupo `ctrl` de la sonda informó «cuatro diferencias, todas del
-  commit 1». **Un A/B de texto no mide estructura.** Se bisecó en worktrees.
+- **Son VEINTIÚN commits.** Al **empezar**, `main` y `origin/main` estaban los dos en **`2b9f3ef`**
+  —el cierre de la tanda I, con su sello `v20261022-1638`—, **sin nada sin pushear**, medido con un
+  `git fetch` de verdad. Los **veintiuno** quedan locales; el push lo corre Maicol.
+  **El orden de revertido seguro es el inverso del de aplicación.**
+  ⚠️ **DOS DEPENDENCIAS DURAS, Y LAS DEMÁS NO SE NOMBRAN ENTRE SÍ.** El de la **maqueta del TEP**
+  (AJ2-10c) cuelga del de su **vocabulario** (AJ2-10a): su adaptación de TC-510 reescribe el filtro
+  del conteo del informe que aquél cambió, así que revertir el vocabulario sin revertir antes la
+  maqueta deja ese caso midiendo un sintagma que ya no existe. Y el del **EN SUMA** (AJ2-12) cuelga
+  del del **ateroma** (AJ2-7a): su corrección del mapa del informe es la mitad que aquél no había
+  alcanzado, y revertir el ateroma sin el EN SUMA deja el papel diciendo «alto riesgo embólico» con
+  la pantalla ya sin él.
 
-- **Línea base al cierre: suite **528/532** con el pendrive `DISK_IMG` **MONTADO** —verificado al
+- **Línea base al cierre: suite **529/533** con el pendrive `DISK_IMG` **MONTADO** —verificado al
   abrir Y al cerrar—, Semgrep **124 / 0 ERROR en 1 app**, Excel en **440** columnas y celular **63 a
-  360 px y 72 a 390 px con 17 ALTA cada uno**: el MISMO par que dejó la tanda E. CERO
-  REGRESIONES.** Los rojos son exactamente los **cuatro** de ENTRADA —**TC-223** (el documentado,
-  falla por la fecha), **TC-376**, **TC-390** y **TC-406**— y no apareció ninguno fuera de esa
-  lista. **El denominador sube a 533**: esta tanda agregó **TC-518**, así que la comparación es
-  **527/531 → 528/532**. Los **diecisiete** de **TC-181…TC-197** salieron **VERDES**, que es la
-  prueba del pendrive, y el `md5` no se movió durante la corrida (`f7118c2e…`, el del sello).
-  ⚠️ **LA SUITE SE CORRIÓ DOS VECES Y LA PRIMERA NO ES LA LÍNEA BASE.** Dio **527/532** con
-  **cinco** rojos, y el de más lo destapó la suite completa: **TC-322**, cuyo denominador exige que
-  **TODAS** las secciones de `IND_SECS` tengan escenario — una sección nueva sin SEED lo pone en
-  rojo, y ninguna corrida de zona podía verlo. Se adaptó y la segunda es la que vale.
+  360 px y 72 a 390 px con 17 ALTA cada uno**: el MISMO par que dejó la tanda I. CERO REGRESIONES.**
+  **El denominador sube a 534**: esta tanda agregó **TC-519**.
+  ⚠️ **LA SUITE SE CORRIÓ DOS VECES Y LA PRIMERA NO ES LA LÍNEA BASE.** Dio **524/533** con nueve
+  rojos, y los **CINCO** de más los destapó la **suite completa** —ninguna corrida de zona podía
+  verlos— y los cinco son por un cambio de texto de esta lista: ver «CASOS ADAPTADOS».
   ⚠️ **TC-318 SIGUE EXCLUIDO y se excluye así:** se arma la lista con
   `grep -o "^caso('TC-[^']*'" scripts/test_clinico.mjs`, se le saca `TC-318` y se pasa entera a
-  `--solo`, **separada por COMAS**. La lista tiene **532 ids** sobre los 533 casos del archivo.
-- **`index.html` pasó de 9,21 MB / 131.103 líneas a **9,30 MB / 132.176 líneas** — medido con
-  `wc -c` y `wc -l` DESPUÉS de sellar (`v20261022-1638`).
+  `--solo`, **separada por COMAS**. La lista tiene **533 ids** sobre los 534 casos del archivo.
+  ⚠️ **TC-476 y TC-478 salen rojos en una corrida CORTA y NO son de esta tanda**: medidos en un
+  worktree de `2b9f3ef` con la misma lista, fallan **igual allá**. Son inestables por orden de
+  corrida; en la suite completa están en verde. **Repetir antes de sospechar.**
+- **`index.html` pasó de 9,30 MB / 132.176 líneas a **9,34 MB / 132.718 líneas** — medido con
+  `wc -c` y `wc -l` DESPUÉS de sellar (`v20261023-1316`, `md5` `b1c8f19b…`).
+  ⚠️ **SE SELLÓ DOS VECES, Y HAY QUE DECIR POR QUÉ:** el primer sello (`v20261023-1242`) quedó
+  invalidado porque **MIRAR UNA CAPTURA** destapó que AJ2-7a había quedado a medias (abajo). Se
+  corrigió, se volvió a sellar y **se volvió a medir TODO** sobre el árbol final.
 
-- **I-E1 · LO QUE SE RETIRA SON AFIRMACIONES DE RESULTADO Y DE CONDUCTA, Y SU CONTENIDO PASA A
-  EVIDENCIA EN EL COMMIT 3.** El score de **Wilkins** publica su **TRAMO** y nada más
-  —`WILK_TRAMO`, congelado, leído por las **cuatro** superficies que publicaban el veredicto: el
-  badge de ETE, el de Calculadoras, la hoja del PDF y las tres barras del Laboratorio, cuyo gráfico
-  pasa de «Candidatos a valvuloplastia» a «Distribución del score de Wilkins»—. **Las claves de
-  banda y el `dataset.banda` NO cambian.** La **salvedad anatómica se mantiene** y gana su fuente
-  (EAE/ASE 2009, apartado B.2.1, folio 14).
-  El **trombo de la orejuela** pasa de «Hallazgo que contraindica cardioversión eléctrica» a
-  **«Confirmado»**, y los **dispositivos** pasan al dato del fabricante con su fecha de consulta: la
-  línea de elegibilidad dejó de fusionar dos dispositivos en un rango que **no es de ninguno** y
-  hoy nombra la zona de anclaje del Amulet (11 a 31 mm).
-  La **reparabilidad mitral** lista **factores DESFAVORABLES** y sólo con IM **secundaria**; el
-  área de tenting **entra al conteo**, que antes no votaba.
-  El **ateroma** alinea su borde de 5 mm con la escala que la app ya citaba, y `ao_grosor_placa`
-  —que era una **lectura muerta**— gana su fila.
+- **LO QUE MÁS CARO SALIÓ DE TODA LA TANDA LO ENCONTRÓ UNA CAPTURA Y NO UNA MEDICIÓN: AJ2-7a HABÍA
+  QUEDADO A MEDIAS Y EL RIESGO EMBÓLICO SEGUÍA EN EL PAPEL FIRMADO POR TRES CAMINOS.** La fila de
+  pantalla **sí** estaba escondida, así que todas las cifras daban bien. Reproducido antes de tocar
+  nada, con el grado 4 y la placa móvil:
+  1. `calcAteroAo` hacía `riesgoEl.innerHTML = badge('red','Muy alto — placa móvil')` **sobre el
+     span que 7a acababa de esconder**. `display:none` **no** afecta a `textContent`, así que
+     `_amTxt` lo leía y la hoja del ETE publicaba **«Riesgo embólico | Muy alto — placa móvil»**.
+  2. La `<option>` se llamaba **«Móvil — alto riesgo embólico»** y `_amSelTxt` lleva la ETIQUETA a
+     esa misma hoja: **«Movilidad de la placa | Móvil — alto riesgo embólico»**. Hoy dice «Móvil» y
+     **el `value` no se tocó** (`movil`), que es lo que viaja con el estudio.
+  3. La tabla de **Referencias** (`ref-ao`) conservaba una columna «Riesgo embólico» con
+     Mínimo/Bajo/Moderado/Alto/Muy alto **por grado**.
+  Y la rama sin grado escribía `'—'` en ese span, que es **truthy**: la hoja publicaba el rótulo
+  con una raya. Hoy el span queda **vacío** por los dos caminos y la línea `L.push('Riesgo
+  embólico…')` de la hoja **se retiró**. **Fuente**: Nicoara, ASE/SCA 2020, **folio 716** (pie
+  impreso «716 Nicoara et al»): publica los grados por **espesor creciente** y las limitaciones de
+  la medición por ETE, y **no publica ningún riesgo embólico por grado**.
+  ⚠️ **AL SACAR EL `badge` ME LLEVÉ EL `rec +=` DE LA LÍNEA DE ARRIBA**, y lo destapó volver a
+  medir: la frase «Con componentes móviles, la escala de Nicoara clasifica el ateroma como grado 5
+  con independencia del espesor» desapareció de la hoja. Repuesta. **Al retirar una línea, mirar
+  qué se lleva con ella.**
 
-- **I-E2 · LAS CUATRO FICHAS, CADA DATO CON SU FOLIO VISTO EN IMAGEN.** `ref-em`, `ref-im`,
-  `ref-oai` y `ref-ao`. **Ningún corte se movió**: lo que cambia es que cada número diga de dónde
-  sale y que lo que no tiene fuente lleve el chip **CRITERIO DE ECOSMART**.
-  ⚠️ **«EVEREST II» ERA UNA ATRIBUCIÓN EQUIVOCADA Y DEJABA UN CRITERIO SIN CITAR.** El registro de
-  *Eur Heart J* 2010;31:1382-1389 es de **Tamburino y cols.** —un registro italiano de práctica real
-  con MitraClip—, **está en la biblioteca**, y su Tabla 1 (folio 1386) se verificó en imagen. El
-  comentario que afirmaba lo contrario se escribió sobre un censo que buscó **el nombre del
-  ensayo**, y ese PDF no lo lleva en el título. **El corte no se movió: hoy se cita.**
-  ⚠️ **EL ÁREA DE TENTING LA TABLA LA ESCRIBE COMO UN RANGO** —«> 2,5-3 cm²»— y la app aplica su
-  extremo **BAJO**, que es el lado que no deja de marcar. **Un corte único donde la fuente da un
-  rango es una DECISIÓN y no una lectura**: declarado en la ficha, en el pie de la pantalla, en el
-  rótulo del campo y en `PENDIENTES.md` → I-1.
-  ⚠️ **LAS DOS ESCALAS DE ATEROMA NO CORTAN EN EL MISMO SITIO**: la de la ASE (Nicoara, folio 716)
-  en 5 mm y la de la ESC 2024 (Tabla 14, folio 71) en 4. **Un ateroma de 4,5 mm es grado 3 por una
-  y grado 4 por la otra.** La app aplica la de la ASE y publica la otra al lado.
+- **LOS CUATRO INVENTARIOS QUE LA ORDEN PEDÍA.**
+  · **AJ2-6 (la aorta sin grados): DIEZ lugares, SIETE cambiados y TRES que ya estaban bien.**
+    `aoSegGrado` pasa de `normal|leve|mod|fuera` a `normal|dilatada|fuera`; con él, `calcAorta`,
+    `AO_BADGE_COLOR` (de cuatro colores a dos), el narrativo —con la concordancia de género por
+    `sg.m`—, la tarjeta ⓘ, `vabConclusion` y los dos asserts de arranque, que se fueron con los
+    campos `leve` y `mod`. **El corte NO se movió** y **la clave `dilatacion_leve` de
+    `vabConclusion` tampoco**, porque el Laboratorio clasifica estudios guardados por ella.
+    Los tres que ya estaban bien: Referencias (`ref-ao2`) ya decía sólo «dilatada», las dos tablas
+    del PDF imprimen el valor con un asterisco, y el EN SUMA no graduaba.
+  · **AJ2-10 (el vocabulario de sobrecarga del VD): TRES superficies, un dueño.**
+    `tepVeredicto(score, total)` y `TEP_VD_SIGNIF_MIN = 4` gobiernan la pantalla, el informe y el
+    bloque del ETT avanzado. `amiloTextoTEP` **LEE** el span de la pantalla, así que las tres no
+    pueden volver a divergir.
+  · **AJ2-12 (el EN SUMA): DIECISÉIS módulos, ONCE publicaban la negación global. Hoy: CERO.**
+  · **AJ2-11 (las tildes): 41 corregidas y 3 declaradas**, censadas sobre lo **RENDERIZADO** en
+    cinco superficies —el DOM, las tarjetas ⓘ **ejecutando** cada entrada de `VINFO`, las secciones
+    de `IND_SECS`, las fichas de Referencias pintadas y los generadores—. Las 3 que quedan son la
+    **cita literal en inglés** de la ESC/EACTS 2025, contada tres veces por el anidamiento del DOM.
+    ⚠️ **EL PRIMER CENSO DIO 74 Y 33 ERAN FALSOS MÍOS**: «auricular», «presiones», «dimensiones»,
+    «mediciones», «regiones» y «funciones» **no llevan tilde**. Es la trampa que este archivo ya
+    tenía escrita.
 
-- **I-E3 · LAS TRES SECCIONES DE EVIDENCIA DE LA ETE.** `IND_SECS` pasa de 20 a 23 y `IND_REFS`
-  gana cinco entradas. **Las recomendaciones van en el bloque VISIBLE y no en `notas`**, que el
-  marco pinta dentro del «Ver detalle», que nace plegado —medido: cero bloques plegados en las seis
-  escenas—.
-  ⚠️ **DOS PREMISAS DE LA ORDEN ERAN FALSAS.** La anticoagulación de al menos cuatro semanas tras
-  la cardioversión **sí** lleva **Clase I · Nivel B** en la Recommendation Table 15 (la orden la
-  daba como «texto de la guía sin clase»), y la Tabla 7 escribe el tenting como un rango.
-  ⚠️ **LAS DOS GUÍAS DEL ATEROMA COINCIDEN EN QUÉ HACER Y NO EN EL NÚMERO**: LDL por debajo de
-  **55 mg/dL** la europea y de **70 mg/dL** la estadounidense. Las dos se publican con su fuente y
-  **no se promedian**.
-  ⚠️ **«SEVERA O COMPLEJA» SE PREGUNTA Y NO SE DERIVA DEL GRADO**: la app gradúa con la escala de
-  la ASE y la guía que publica las recomendaciones usa la suya, que corta en 4 mm; derivarla sería
-  aplicarle a una escala el corte de la otra.
-  ⚠️ **Y SER CANDIDATO A COMISUROTOMÍA SE PREGUNTA POR DOS MOTIVOS**: es una decisión clínica, y
-  **`_indFilaOrigen` NO dibuja los botones cuando el valor viene del estudio**, así que una
-  propuesta derivada no se podría corregir.
-  ⚠️ **LA MARCA ROJA SÓLO SI LA TABLA APLICA, Y LO CAZÓ MIRAR LA SALIDA**: con IM primaria las tres
-  medidas salían en rojo al lado de una línea que dice que esa tabla no aplica — el panel
-  contradiciéndose en la misma sección.
+- **LO QUE NO SE ENCONTRÓ, Y NO SE INVENTÓ.**
+  · **AJ2-2 NO REPRODUCE.** Medido por los dos lados: la única escena que publica «Diámetro de la
+    arteria pulmonar» sin que se lo pidan es `ip_ap_diam > 25`, y ahí la lista trae **tres** signos.
+  · **AJ2-16b NO EXISTE.** Censados los **15** ids que nombran la PSAP y sus escritores: `psap_calc`
+    es un `input readonly` escrito con `.toFixed(0)`; `psap-interp` y `tep-psap-interp` lo leen;
+    `hb-psap-val`, `ht-psap` y `lab-psap-prom` usan `toFixed(0)`; `cx-tp-res` imprime el **cociente**
+    con `toFixed(2)` y `cx-gtp-papm` es la PAP **media** con `toFixed(1)`. **Ninguna PSAP sin
+    redondear.**
 
-- **I-E4 · LAS TRES NOTAS AL PIE DE LA ESTENOSIS TRICUSPÍDEA, CON LA FILA QUE LAS USA.**
-  ESC/EACTS 2025, **Recommendation Table 10, folio 4688**, leída EN IMAGEN. Las dos filas siguen en
-  **Clase I · Nivel C**: ningún corte, ninguna clase y ningún nivel se movieron. La nota ᶜ —esa
-  cirugía es, habitualmente, el **REEMPLAZO** de la válvula tricúspide— **no estaba en ningún lado
-  de la app**; las ᵈ y ᵉ son una por fila.
-  ⚠️ **EL RENGLÓN GENÉRICO DE `notas` SE COMPONE DESDE LAS MISMAS TRES CONSTANTES**: decía lo mismo
-  con otras palabras, y **dos redacciones de la misma afirmación en la misma sección son dos cosas
-  que se separan en la primera edición**.
+- **LO QUE SE DECLARÓ Y NO SE TOCÓ, por no estar en los diecisiete ítems.**
+  · `vabConclusion` publica «control por imagen y seguimiento del ritmo de crecimiento» y los
+    rótulos de `VAB_CONDUCTAS` del Laboratorio: son **conducta**, y la orden prohíbe tocar lo que no
+    está en su lista.
+  · **AJ2-9(4)** pedía «una línea por bloque cargado» y eso **contradice la decisión B2-E2** ya
+    documentada (un solo párrafo): reportado, no aplicado.
+  · **Dos frases parecidas a la de AJ2-15 quedaron como están**: «Completar los parámetros de
+    función diastólica para clasificar.» (ASE/EACVI 2016) y «…completar los parámetros del segundo
+    paso (Vol AI, LARS, S/D o TRIV).» (ASE 2025, no estimable).
+  · **Las TRES filas del ateroma dicen casi lo mismo** desde que 7a retiró el riesgo —«Ateroma de
+    más de 5 mm», «Ateroma de más de 5 mm (grado 4).» y la del grosor—. Es consecuencia medida de un
+    cambio autorizado y cambiar qué filas se muestran no estaba pedido: `PENDIENTES.md` → **AJ2-i**.
+  · El archivo **`main`**, vacío y fechado el **16/10**, es anterior a esta tanda y no se tocó.
 
-- **I-E4 · LA INSUFICIENCIA PULMONAR EN FALLOT REPARADA: DOS GUÍAS QUE NO PIDEN LO MISMO, EN DOS
-  BLOQUES SEPARADOS.** `_indTdFIP`, sección 24, compuerta `tdfConclusion()` —el dueño de «el módulo
-  de Fallot tiene datos»—. Fuente principal **ACC/AHA 2025 (Gurvitz), folio e182** comprobado en el
-  pie impreso; segunda **ESC 2020 de congénitas, folio e50** comprobado en el encabezado. **Las
-  tres diferencias:** qué es «disfunción valvular pulmonar» —fracción regurgitante por resonancia
-  **> 25 %** o PSVD > 2/3 de la sistémica, contra IP **GRAVE** «> 30-40 %» u obstrucción con
-  velocidad pico > 3 m/s—; **cuántos criterios** —DOS de cinco contra UNO de cuatro—; y **cuáles**
-  —FEVD ≤ 46 %, FEVI ≤ 50 % y VTDVD ≥ 2× VTDVI son sólo de la estadounidense; PSVD > 80 mmHg sólo
-  de la europea—.
-  ⚠️ **EL 80 ml/m² APARECE EN LAS DOS Y NO ES EL MISMO CRITERIO**: la estadounidense pide **POR
-  ENCIMA** de 80 y la europea lo **INCLUYE**. Por eso el criterio americano lleva **constante
-  propia** y no reusa `TDF_VTSVDI_MIN`. **Medido con método resonancia: con 80,0 exactos la
-  estadounidense cuenta 2 de cinco y la europea 2 de cuatro; con 81 la estadounidense pasa a 3 y la
-  europea sigue en 2; con 81 por ecocardiografía 3D el volumen se declara y NO vota, y vuelven a 2
-  y 1.** Y con la fracción regurgitante **entre 26 y 40 %** la fila 9 de la estadounidense aplica y
-  **ninguna** de la europea — que es la diferencia que estas dos guías tienen.
-  ⚠️ **LA PROGRESIÓN SE PREGUNTA Y NO SE DERIVA, Y SON DOS PREGUNTAS VENTRICULARES Y NO UNA**: la
-  europea pide el deterioro del ventrículo **DERECHO** y la estadounidense dice «ventricular», que
-  incluye los dos. Con una sola, un deterioro aislado del VI haría votar a la europea un criterio
-  que su tabla no escribe. **Las cinco respuestas no viajan con el estudio.**
-  ⚠️ **LO QUE NO SE PUEDE EVALUAR SE DECLARA Y NO SE INVENTA**: «RV end-diastolic volume ≥ 2× LV
-  end-diastolic volume», porque el volumen del VD se **transcribe** de la resonancia y está
-  **indexado** mientras el del VI lo mide este ecocardiograma y está en mililitros. **La sección
-  dice cuántos criterios pudo evaluar**, así que el conteo nunca se presenta como completo.
-  ⚠️ **`TDF_VTDVDI_MIN` Y `TDF_VTSVDI_MIN` SE EXPORTAN A `window`**: la regla 4 del panel es leer
-  los umbrales con `_indUmb` y **sin literal de respaldo**; sin el export el criterio volumétrico
-  europeo **deja de votar en silencio**.
+- **A/B DE CONTROL contra `2b9f3ef`: 27 claves y CUATRO diferencias, que son UN solo hecho.** Las
+  seis superficies enumeradas una por una —informe en los **tres** estilos, EN SUMA en los tres,
+  Excel con su cuenta de columnas, los campos del estudio con su hash y el **PDF GENERADO DE
+  VERDAD**— en dos escenas. **El escenario AJENO sale en CERO**; el formulario **vacío** mueve las
+  tres variantes del informe y, con ellas, el hash del PDF —que conserva su `nTextos` y su `nFigs`,
+  o sea que la maquetación no se movió—, y es la frase de **AJ2-15**: un formulario sin e′ es
+  exactamente el estado que ese ítem reescribe. **Excel en 440 en las cuatro celdas** y **consola
+  limpia en los dos árboles**.
 
-- **A/B DE CONTROL del commit 4 contra el commit 3: 0 diferencias en 2040 claves** del grupo de
-  superficies firmadas —informe en los tres estilos, EN SUMA, Excel clave por clave, campos del
-  estudio y el **PDF GENERADO DE VERDAD en sus SEIS plantillas**— y **0 en 1878 claves** del grupo
-  de controles. Esta parte es de panel: nada firmado se mueve. **Consola limpia.**
-  **ACUMULADO contra el inicio de la tanda**, en los commits 1 a 3: el grupo `ctrl` da **CUATRO**
-  diferencias y son las **filas de pantalla** del commit 1 (`.calc-row` 298 → 303 y sueltos 93 →
-  94); el grupo `sup`, **22**, y son las tres escenas autorizadas (la conducta del trombo y el
-  rótulo del ateroma en el informe en tres estilos, la celda del Excel y las seis plantillas del
-  PDF). **La escena del Wilkins sale en CERO.**
-  ⚠️ **Y EL GRUPO `ctrl` HUBO QUE CORRERLO SOLO PARA QUE FUERA COMPARABLE**: corrido junto con
-  `sup` informa una clave de `localStorage` de más (`ett_pdf_plantilla`), que la deja el PDF del
-  otro grupo. **Remedir con los MISMOS grupos antes de sospechar.**
+- **LOS DOS BUSCADORES, MEDIDOS CON SU DENOMINADOR.** Referencias: «HFA-PEFF», «hfa-peff»,
+  «HFA PEFF», «hfa peff», «hfapeff» y «HFAPEFF» dan las **seis** `n=1` con el mismo id; «TAPSE» y
+  «tapse» dan las dos `n=4` con los **mismos cuatro** ids; «wilkins»/«Wilkins» y «presion»/«presión»
+  igual. Guardados, con **dos** estudios sembrados: el documento con puntos, sin puntos y con
+  espacio caen en el mismo; «Pérez»/«perez»/«PEREZ» también; «Muñoz»/«munoz»/«MUNOZ» también.
+  ⚠️ **EL PUNTO DECIMAL NO SE TOCA EN `_buscaCompacta`**: «0,42» sigue encontrando «0.42» y «1.5» no
+  colapsa con «15».
 
-- **CUATRO CAPTURAS PNG con cuatro `md5` distintos**, a 1200 y 360 px por los dos temas, y **DOS
-  MIRADAS**: la sección nueva con sus quince filas y sus dos bloques a 1200 px, y la misma a 360 px
-  en una columna con los acentos completos.
+- **MEDIDO EN LOS DOS MOTORES** —Chrome por el canal del sistema y WebKit— **a 1440 y 390 px por
+  los dos temas: 17/17 pestañas con GEOMETRÍA en las ocho celdas y CERO en 0×0**, que es el
+  centinela del `<div>` sin cerrar —la trampa que la tanda I pagó, y que ningún A/B de texto ve—;
+  **cero scroll horizontal de la página** en las ocho, medido en tres momentos; los **tres títulos**
+  del TEP con sus acentos; y **cero recorte** sobre las **93 celdas** del panel de Evidencia y sobre
+  la sección de la aorta ya dibujada (1232 / 358 px). Los textos salen **idénticos entre motores** y
+  **cero errores de consola** en los dos. **8 capturas PNG con 8 `md5` distintos.**
+  ⚠️ **Y LA PRIMERA CORRIDA TENÍA TRES DENOMINADORES VACÍOS, con pinta de medición buena**: los
+  títulos del TEP no llevan atributo —se buscan por su TEXTO—, el panel de Evidencia se pinta con
+  `<table>` y no con una clase `ind-*`, y **la sección del ateroma se llama `aorta` y no `ao`**, así
+  que el span medía 0×0 y «cero recorte» salía sobre un nodo que no estaba dibujado.
+  ⚠️ **WebKit de Playwright NO es Safari, y se declara.**
 
-- **Cobertura: TC-518**, **33 condiciones** en diez grupos, con tres denominadores y cinco
-  controles negativos. **Verificado que sabe fallar contra el inicio de la tanda en un worktree
-  aparte: 30 de las 33 en rojo, y NINGUNA por excepción** — las tres que pasan son exactamente las
-  que afirman lo que esta tanda **no** mueve.
-- ⚠️ **CASOS ADAPTADOS: CUATRO.** **TC-330** (su condición pasa de prohibir «resultado suboptimo» a
-  prohibir el rótulo COMPLETO, porque desde el commit 2 la ficha **CITA** lo que halló la serie y
-  esa cita lo dice; **gana** una condición que exige la serie, la escala y la salvedad con sus seis
-  folios), **TC-507** (el conteo de chips «Criterio de EcoSmart» de SEIS a OCHO) y **TC-322**, que
-  se adaptó **dos veces** —las tres secciones del commit 3 y la del 4—, y la segunda la destapó la
-  **suite completa**.
+- **Cobertura: TC-519**, **144 condiciones** —contadas instrumentando el propio caso para que
+  publicara su `ex.length`, no a ojo sobre los `ex.push`— en dieciséis grupos, uno por ítem más el
+  denominador global. **Verificado que sabe fallar contra `2b9f3ef` en un worktree aparte: 67 de
+  las 144 en rojo, y NINGUNA por excepción.**
+- ⚠️ **CASOS ADAPTADOS: CINCO, Y LOS CINCO LOS DESTAPÓ LA SUITE COMPLETA.** **TC-27** (AJ2-15: su
+  `debe` era la instrucción de interfaz, y **gana** el control de que ya no esté), **TC-55**
+  (AJ2-10: afirmaba «Disfunción VD severa — alta probabilidad de TEP/HTP aguda», y **gana** el
+  control de que no vuelvan ni la probabilidad ni el grado), **TC-310** (AJ2-12: su `sumaSucia` no
+  distinguía la escena NATIVA, que desde hoy **sí** publica su línea de Wilkins; se acota a las de
+  PRÓTESIS —igual que su `sucias`— y **gana el DENOMINADOR** que exige que la nativa la publique),
+  y **TC-492** y **TC-494** (AJ2-6: las claves `leve`/`mod` y el texto «Dilat. leve»; los dos
+  **ganan** el control de que esas dos claves ya no existan y de que el informe lleve **UN** solo
+  adjetivo). **Ninguno estaba mal escrito: los cinco describían la app de ayer.**
 
-- ⚠️ **DIEZ TRAMPAS, Y CINCO DABAN MEDICIONES FALSAS.**
-  1. **UN `<div>` SIN CERRAR ROMPE LA MAQUETA DE TODA LA APP Y NINGÚN A/B DE TEXTO LO VE** (arriba).
-  2. **`indicAbrir` LIMPIA LAS RESPUESTAS CLÍNICAS ANTES DE PINTAR**, así que contestar tres
-     preguntas con tres llamadas sueltas deja viva **sólo la última**: la primera medición informó
-     el bloque de cardioversión **VACÍO** con las tres contestadas. Era la sonda, no la app.
-  3. **Y POR LO MISMO, LEER EL OBJETO DESPUÉS DE CERRAR EL PANEL PIERDE LA RESPUESTA**: las escenas
-     del borde de 80 ml/m² salieron las dos guías en «Lo que falta», que se lee igual que «el
-     criterio no cuenta» sobre un borde que **sí** separa.
-  4. **`ip_grado` NACE EN «Sin insuficiencia»**, así que ese token no distingue «no hay» de «nadie
-     la evaluó» —la trampa de `it_grado`—. **Lo cazó MIRAR la captura.**
-  5. **Y EL PRIMER PREDICADO QUE LO CORRIGE ESTABA MAL POR EL OTRO LADO**: incluía `ip_reversion`,
-     que es un **CHECKBOX**, y `sv()` devuelve su `.value`, que vale **«on» SIEMPRE**.
-  6. **EL TEXTO EXTRAÍDO DE LA ACC/AHA 2025 DESALINEA LAS CELDAS DE CLASE RESPECTO DE SU FILA**:
-     leída así, la recomendación 13 sale como Clase **2b** y es **2a**. Las cuatro se leyeron en
-     imagen a 600 ppp.
-  7. **`ET_REC_2025` ES UN `const` DE MÓDULO Y NO UNA PROPIEDAD DE `window`** —la trampa de
-     `ECO_AYUDA`—: siete condiciones de TC-518 en rojo sobre un árbol perfecto.
-  8. **Y EL CENTINELA TIENE QUE SER SOBRE EL TIPO Y NO SOBRE LA VERDAD**: contra el árbol anterior
-     `ET_REC_2025` **sí existe** —lo que no existen son sus tres notas—, así que un guardia por
-     `!!ER` deja pasar un `undefined.indexOf` que **mata la corrida entera**.
-  9. **`sel()` DEVUELVE `{err:'NO EXISTE'}` SIN LANZAR**: con los ids del Wilkins equivocados
-     (`wilk_*` contra `wilkins_*`) la escena medía un formulario **VACÍO** y el A/B informaba «0
-     diferencias» — un falso con pinta de medición buena.
-  10. **ME COMÍ EL ACENTO GRAVE SIETE VECES**, todas en comentarios míos dentro del cuerpo de un
-      caso o del template de la sonda. `scripts/check_backticks.py` da la línea exacta en el cuerpo
-      de un `caso(...)`; **no alcanza el template inyectado de una sonda**, y ésos los dio
-      `node --check`. **Correr los dos.**
+- ⚠️ **LAS TRAMPAS DE ESTA TANDA.**
+  1. **UNA CAPTURA VE LO QUE NINGUNA CIFRA VE** (arriba): tres superficies del papel firmado con
+     todas las mediciones en verde.
+  2. **`ev()` ENVUELVE EN `return (expr)`**, así que una SENTENCIA revienta con «Unexpected token
+     ';'». Va en una IIFE.
+  3. **Un `assert` que falla en un script de edición NO APLICA NADA**, porque la escritura va al
+     final. Pasó **dos** veces, las dos por anclar a un fragmento que aparece más de una vez.
+  4. **`amiloImprimirPDF('ett')` NO imprime la hoja del HF-PEFF**: imprime el módulo `ett`, y la
+     medición sale con la hoja de **amiloidosis** —23 textos, 7 en negrita, todos títulos— con pinta
+     de medición buena. Y **la clave del módulo es `hfpeff`, no `hfapeff`**.
+  5. **Un lector que busca `' de '` desde el principio de la línea** toma el de «ecocardiográfica DE
+     sobrecarga», que está ANTES del `': '`, y `Number('')` da 0: **tres condiciones de TC-510
+     informaron «informe=0» sobre una línea perfecta** — el defecto estaba en MI lector.
+  6. **Una regla retirada sigue en el fuente si la nombra un comentario.**
+  7. **ME COMÍ EL ACENTO GRAVE OCHO VECES**, todas en comentarios míos. ⚠️ Y
+     **`scripts/check_backticks.py` da FALSOS sobre una concatenación legítima** `` `…` + k + `…` ``
+     **y no alcanza un `ev()` suelto ni el template de una sonda nueva**: dos de los ocho pasaron su
+     chequeo y los cazó `node --check`. **Correr los dos.**
+  8. **Correr dos sondas en paralelo con `2>&1`** mezcla el stderr con el JSON y el lector revienta
+     donde no es. En serie y con el stderr aparte.
 
-- **Dónde está todo:** `docs/mapa/tanda-i-ete.md` (**mapa NUEVO**, 19,8 KB: los cinco commits con su
-  dependencia, el Wilkins, la orejuela, la reparabilidad, las dos escalas de ateroma, las tres
-  secciones de Evidencia, las notas de la ET, la IP en Fallot con su tabla de bordes medidos, las
-  diez trampas y la ficha de **TC-518**); **cinco mapas con un puntero cada uno**
-  (`wilkins-unificado` 9,2 KB · `referencias-subpestanas` 21,4 · `valvulas-mitral-pantalla` 25,2 ·
-  `aorta-aortopatias-evidencia` 24,4 · `congenitas-otros` 29,7); `docs/fuentes/FUENTES.md` → «La
-  tanda I», con las **once reglas de folio comprobadas en el pie impreso**, lo verificado dato por
-  dato, lo que **no se pudo leer**, las dos premisas falsas y la tabla de **Cambios de evidencia**; y
-  `docs/PENDIENTES.md` → **once** cosas declaradas (**I-1** a **I-11**).
-  ⚠️ **TRES MAPAS NO SE TOCARON, medido con `wc -c` ANTES de escribir:** `panel-evidencia.md`
-  (35,3 KB, **ya cruzado**), `tests-fichas.md` (34,2) y `vista-2d-valvulas.md` (34,0). Por eso la
-  documentación salió a un mapa propio y la ficha de TC-518 vive adentro. **Ningún mapa cruzó el
-  techo.**
+- **Dónde está todo:** `docs/mapa/aj2-correcciones.md` (**mapa NUEVO**, 19,4 KB: los commits con sus
+  dos dependencias, los diecisiete ítems por nombre de función, los cuatro inventarios y las doce
+  trampas); **seis mapas con un puntero cada uno** (`htp-hfapeff` · `tep-score` · `otros-hallazgos` ·
+  `referencias-subpestanas` · `aorta-aortopatias-evidencia` · `diastolica-ase2016`);
+  `docs/fuentes/FUENTES.md` → «La tanda AJ2», con **Nicoara folio 716** y **Hahn folio 50** leídos en
+  el original y la tabla de **Cambios de evidencia**; y `docs/PENDIENTES.md` → **nueve** cosas
+  declaradas (**AJ2-a** a **AJ2-i**).
+  ⚠️ **DOS MAPAS NO SE TOCARON, medido con `wc -c` ANTES de escribir:** `aortica-cortes.md` (33,9 KB)
+  e `informe-pdf-excel.md` (34,0 KB). Por eso la documentación salió a un mapa propio. **Ningún mapa
+  cruzó el techo.**
+
 
 ## Procedencia — dónde está el origen de cada regla
 

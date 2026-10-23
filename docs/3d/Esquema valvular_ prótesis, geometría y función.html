@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>EcoSmart — Esquema valvular: prótesis, geometría y función</title>
+<style>
+:root{
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  --bg:#f4f1f4; --panel:#ffffff; --ink:#221b27; --muted:#6a5f72; --line:#e0d8e3;
+  --stroke:#8a3a4d; --leaf:#fff2d1; --leafstroke:#8a5a1f; --chip:#f1ecf3;
+  --myo1:#f7bdb4; --myo2:#e2707f; --myoline:#b24a5e;
+  --bl1:#fff6f4; --bl2:#ffd3cc; --br1:#f3f4ff; --br2:#cfd6fb;
+  --blue:#1457c7; --red:#b3201f; --accent:#a8325e; --accent-ink:#ffffff;
+  --sys:#c2354f; --dia:#3b5fc4; --names:#7d3550;
+  --pcuff:#3b3441; --pmetal:#59606b; --pmetalhi:#d3d9e2; --bcuff:#8d7f92; --brod:#c4857a; --brodhi:#fff3f0;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#140f18; --panel:#1e1724; --ink:#f1e9f3; --muted:#b3a6bb; --line:#33283c;
+    --stroke:#e7a1b3; --leaf:#4a3d24; --leafstroke:#f0cf8a; --chip:#2a2132;
+    --myo1:#a14257; --myo2:#5b2237; --myoline:#e48ba0;
+    --bl1:#4b2b37; --bl2:#6d3544; --br1:#262c58; --br2:#374687;
+    --blue:#6fb7ff; --red:#ff6b6b; --accent:#ff8fb1; --accent-ink:#1b0f16; --sys:#ff6b81; --dia:#8aa6ff; --names:#f2b8c8;
+    --pcuff:#cbbfd3; --pmetal:#aab3c0; --pmetalhi:#f2f5fa; --bcuff:#a99bb0; --brod:#e6b9ae; --brodhi:#fff3f0;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#140f18; --panel:#1e1724; --ink:#f1e9f3; --muted:#b3a6bb; --line:#33283c;
+  --stroke:#e7a1b3; --leaf:#4a3d24; --leafstroke:#f0cf8a; --chip:#2a2132;
+  --myo1:#a14257; --myo2:#5b2237; --myoline:#e48ba0;
+  --bl1:#4b2b37; --bl2:#6d3544; --br1:#262c58; --br2:#374687;
+  --blue:#6fb7ff; --red:#ff6b6b; --accent:#ff8fb1; --accent-ink:#1b0f16; --sys:#ff6b81; --dia:#8aa6ff; --names:#f2b8c8;
+  --pcuff:#cbbfd3; --pmetal:#aab3c0; --pmetalhi:#f2f5fa; --bcuff:#a99bb0; --brod:#e6b9ae; --brodhi:#fff3f0;
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px);height:100%}
+body{margin:0;background:#f4f1f4;background:var(--bg);color:var(--ink);
+  font:15px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;min-height:100%}
+h1{font-size:19px;margin:0 0 2px}
+.sub{color:var(--muted);font-size:13px;margin:0 0 12px}
+.app{max-width:1120px;margin:0 auto;padding:16px;display:grid;grid-template-columns:minmax(290px,440px) minmax(0,1fr);gap:18px}
+@media (max-width:780px){.app{grid-template-columns:minmax(0,1fr)}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:14px}
+.stage svg{display:block;width:100%;height:auto;max-height:78vh;margin:0 auto}
+.sector{fill:url(#gMyo);stroke:var(--myoline);stroke-width:.6}
+.shine{fill:url(#gShine);pointer-events:none}
+.chamL{fill:url(#gBL);stroke:var(--stroke);stroke-width:.5}
+.chamR{fill:url(#gBR);stroke:var(--stroke);stroke-width:.5}
+.leaf{fill:var(--leaf);stroke:var(--leafstroke);stroke-width:1;vector-effect:non-scaling-stroke;stroke-linejoin:round}
+.cuff{fill:var(--pcuff);stroke:var(--ink);stroke-width:.5px;vector-effect:non-scaling-stroke}
+.cuff.bio{fill:var(--bcuff)}
+.cuffi{fill:var(--pmetalhi);opacity:.5}
+.rod{stroke:var(--pmetal);stroke-width:2.4px;stroke-linecap:round}
+.rod.bio{stroke:var(--brod);stroke-width:1.8px}
+.rodhi{stroke:var(--pmetalhi);stroke-width:.75px;stroke-linecap:round}
+.rodhi.bio{stroke:var(--brodhi);stroke-width:.45px}
+.piv{fill:var(--pmetalhi);stroke:var(--pmetal);stroke-width:.4px}
+.hall{margin:0 0 4px;padding:0;list-style:none;font-size:14px}
+.hall li{padding:6px 9px;border:1px solid var(--line);border-radius:9px;margin:4px 0;background:var(--chip);line-height:1.35}
+.hall li.ok{color:var(--muted)}
+.hall small{color:var(--muted)}
+.tag{font-size:11px;background:var(--chip);border:1px solid var(--line);border-radius:6px;padding:1px 6px;margin-left:6px;color:var(--muted);text-transform:none;letter-spacing:0;font-weight:400}
+.leafpat{stroke:var(--leafstroke);stroke-width:.8;vector-effect:non-scaling-stroke;stroke-linejoin:round}
+.lbl{font-size:5.2px;font-weight:700;fill:var(--ink);text-anchor:middle;paint-order:stroke;stroke:var(--bl1);stroke-width:1.2px;stroke-linejoin:round}
+.cn{font-size:5.2px;font-weight:700;fill:var(--names);text-anchor:middle;letter-spacing:.3px;paint-order:stroke;stroke:var(--bl1);stroke-width:1.3px;stroke-linejoin:round;opacity:.85}
+.jet-it,.jet-im{fill:var(--blue)} .jet-iao{fill:var(--red)}
+.cycle{margin-top:10px}
+.bar{position:relative;height:12px;border-radius:7px;background:var(--chip);overflow:hidden;display:flex}
+.bar .s{background:var(--sys);opacity:.6} .bar .d{background:var(--dia);opacity:.4}
+.mark{position:absolute;top:-2px;width:3px;height:16px;border-radius:2px;background:var(--ink)}
+.stat{display:flex;justify-content:space-between;gap:8px;font-size:13px;margin-top:6px;color:var(--muted)}
+.stat b{color:var(--ink)}
+.grp{font-size:12px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--muted);margin:14px 0 6px}
+.grp:first-child{margin-top:0}
+.row{display:grid;grid-template-columns:128px minmax(0,1fr);align-items:center;gap:8px;margin:5px 0}
+@media (max-width:480px){.row{grid-template-columns:minmax(0,1fr)}}
+.row label{font-size:14px}
+.seg{display:flex;gap:4px;flex-wrap:wrap}
+.seg button,.btn{font:inherit;font-size:13px;border:1px solid var(--line);background:var(--chip);color:var(--ink);
+  border-radius:9px;padding:7px 10px;min-height:36px;cursor:pointer}
+.seg button{flex:1 1 0;min-width:62px}
+.seg button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:700}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:700}
+.tools{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:6px}
+.tools label{font-size:13px;color:var(--muted);display:flex;align-items:center;gap:8px}
+input[type=range]{accent-color:var(--accent)}
+.legend{display:flex;flex-wrap:wrap;gap:14px;font-size:12px;color:var(--muted);margin-top:12px;align-items:center}
+.lg{display:flex;align-items:center;gap:6px}
+.lgbar{width:56px;height:9px;border-radius:5px}
+.note{font-size:12.5px;color:var(--muted);margin-top:12px;border-top:1px dashed var(--line);padding-top:10px}
+.solo .ctl,.solo .sub{display:none}
+.solo .app{display:block;padding:0}
+.solo .stage{border:0;padding:0}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="card stage">
+    <h1>🫀 Esquema valvular animado</h1>
+    <p class="sub">Vista apical de 5 cámaras · cualitativo · demo con prótesis, geometría del VI y función</p>
+    <svg id="esq" viewBox="24 36 154 242" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Esquema animado del corazón con las válvulas y sus chorros">
+      <defs>
+        <linearGradient id="gMyo" x1="0" y1="0" x2="0.35" y2="1"><stop offset="0" style="stop-color:var(--myo1)" stop-color="#f7bdb4"/><stop offset="1" style="stop-color:var(--myo2)" stop-color="#e2707f"/></linearGradient>
+        <linearGradient id="gBL" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:var(--bl1)" stop-color="#fff6f4"/><stop offset="1" style="stop-color:var(--bl2)" stop-color="#ffd3cc"/></linearGradient>
+        <linearGradient id="gBR" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:var(--br1)" stop-color="#f3f4ff"/><stop offset="1" style="stop-color:var(--br2)" stop-color="#cfd6fb"/></linearGradient>
+        <radialGradient id="gShine" cx="0.3" cy="0.18" r="0.7"><stop offset="0" stop-color="#ffffff" stop-opacity=".38"/><stop offset="1" stop-color="#ffffff" stop-opacity="0"/></radialGradient>
+        <pattern id="pt1" width="4" height="4" patternUnits="userSpaceOnUse"><circle cx="1" cy="1" r="0.6" style="fill:var(--leafstroke)" fill="#8a5a1f"/></pattern>
+        <pattern id="pt2" width="4" height="4" patternUnits="userSpaceOnUse"><line x1="0" y1="2" x2="4" y2="2" style="stroke:var(--leafstroke)" stroke="#8a5a1f" stroke-width="0.55"/></pattern>
+        <pattern id="pt3" width="4" height="4" patternUnits="userSpaceOnUse"><line x1="0" y1="2" x2="4" y2="2" style="stroke:var(--leafstroke)" stroke="#8a5a1f" stroke-width="0.55"/><line x1="2" y1="0" x2="2" y2="4" style="stroke:var(--leafstroke)" stroke="#8a5a1f" stroke-width="0.55"/></pattern>
+        <pattern id="flw-it" width="9" height="11" patternUnits="userSpaceOnUse"><rect x="1" y="1" width="7" height="2.4" rx="1.2" fill="#ffffff" fill-opacity=".8"/><rect x="3" y="6.4" width="5" height="1.8" rx=".9" fill="#ffffff" fill-opacity=".55"/></pattern>
+        <pattern id="flw-im" width="9" height="11" patternUnits="userSpaceOnUse"><rect x="1" y="1" width="7" height="2.4" rx="1.2" fill="#ffffff" fill-opacity=".8"/><rect x="3" y="6.4" width="5" height="1.8" rx=".9" fill="#ffffff" fill-opacity=".55"/></pattern>
+        <pattern id="flw-iao" width="9" height="11" patternUnits="userSpaceOnUse"><rect x="1" y="1" width="7" height="2.4" rx="1.2" fill="#ffffff" fill-opacity=".8"/><rect x="3" y="6.4" width="5" height="1.8" rx=".9" fill="#ffffff" fill-opacity=".55"/></pattern>
+      </defs>
+      <path id="p-out" class="sector"/>
+      <path id="p-shine" class="shine"/>
+      <path id="p-cl" class="chamR"/>
+      <path id="p-cr" class="chamL"/>
+      <g id="g-jets"></g>
+      <g id="g-valves"></g>
+      <g id="g-names">
+        <text id="n-vd" class="cn" x="72" y="92">VD</text><text id="n-vi" class="cn" x="124" y="92">VI</text>
+        <text id="n-ad" class="cn" x="62" y="238">AD</text><text id="n-ai" class="cn" x="122" y="238">AI</text>
+      </g>
+      <g id="g-labels">
+        <text id="l-tv" class="lbl" x="64" y="201">VT</text>
+        <text id="l-av" class="lbl" x="97" y="199">VA</text>
+        <text id="l-mv" class="lbl" x="128" y="185">VM</text>
+      </g>
+    </svg>
+    <div class="cycle">
+      <div class="bar" aria-hidden="true"><div class="s" style="width:36%"></div><div class="d" style="width:64%"></div><div class="mark" id="mark"></div></div>
+      <div class="stat"><span>Fase: <b id="fase">—</b></span><span id="fase2"></span></div>
+    </div>
+  </div>
+
+  <div class="card ctl">
+    <div class="grp">Hallazgos <span class="tag">datos de ejemplo</span></div>
+    <ul class="hall" id="hall"></ul>
+    <p class="note" style="margin:6px 0 4px;border:0;padding:0">En la app, cada frase saldría de la misma cuenta que el informe y el EN SUMA, con el dato que la clasificó entre paréntesis.</p>
+    <div id="rows"></div>
+    <div class="grp">Casos de ejemplo</div>
+    <div class="tools" id="presets"></div>
+    <div class="grp">Latido</div>
+    <div class="tools">
+      <button type="button" class="btn pri" id="play">⏸ Pausar</button>
+      <label>Duración <input type="range" id="dur" min="1.2" max="5" step="0.1" value="2.6"> <span id="durv">2,6 s</span></label>
+    </div>
+    <div class="legend">
+      <span class="lg"><i class="lgbar" style="background:linear-gradient(90deg,rgba(20,87,199,.35),rgba(20,87,199,.95))"></i>IT / IM (sístole)</span>
+      <span class="lg"><i class="lgbar" style="background:linear-gradient(90deg,rgba(179,32,31,.35),rgba(179,32,31,.95))"></i>IAo (diástole)</span>
+      <span class="lg">Estenosis: <svg width="46" height="12" viewBox="0 0 46 12" aria-hidden="true"><rect x="0" y="0" width="14" height="12" fill="url(#pt1)" stroke="#8a5a1f" stroke-width=".5"/><rect x="16" y="0" width="14" height="12" fill="url(#pt2)" stroke="#8a5a1f" stroke-width=".5"/><rect x="32" y="0" width="14" height="12" fill="url(#pt3)" stroke="#8a5a1f" stroke-width=".5"/></svg> leve · mod. · severa</span>
+    </div>
+    <p class="note"><b>Prótesis:</b> la mecánica se dibuja con un anillo de sutura y dos hemidiscos rígidos; la biológica usa el mismo dibujo con valvas más finas y de color más claro. Con prótesis, la estenosis muestra apertura restringida. <b>Geometría del VI:</b> el remodelado y la hipertrofia engrosan la pared (la cavidad se achica por dentro); la excéntrica dilata la cavidad. <b>Función:</b> la contracción del VI sigue a la FEVI y la del VD a TAPSE, S′ y FAC.</p>
+    <p class="note" style="margin-top:8px">Esquema <b>cualitativo</b>, no está a escala ni mide: la apertura de cada válvula, el tamaño de los chorros y de las cámaras muestran solo el grado elegido. Las válvulas son las hojas del propio dibujo, recortadas y animadas. Corazón izquierdo en tonos rosados y derecho en tonos azulados. La vista apical de 5 cámaras no incluye la válvula pulmonar.</p>
+  </div>
+</div>
+
+<script>
+(function(){
+'use strict';
+var NS='http://www.w3.org/2000/svg';
+var D={"OUT":[[44.18,176.71],[44.18,152.31],[44.84,135.83],[51.43,107.47],[59.34,86.38],[68.57,61.98],[79.78,48.79],[94.29,44.18],[115.39,43.52],[125.28,54.07],[133.85,65.28],[143.74,85.72],[151.65,111.43],[154.95,139.12],[155.61,166.82],[155.61,186.6],[153.63,219.56],[138.46,249.89],[118.02,253.85],[102.86,253.85],[99.56,251.21],[87.69,253.85],[76.48,254.51],[62.64,248.58],[54.73,238.69],[48.79,230.11],[43.52,215.61],[44.18,197.81]],"CL":[[52.75,174.73],[52.75,150.33],[58.02,124.62],[67.91,93.63],[77.8,71.21],[89.67,60.0],[93.63,73.85],[94.95,106.16],[90.33,137.15],[88.35,156.27],[86.38,171.43],[75.83,181.32],[69.23,182.64],[74.51,195.83],[78.46,201.1],[83.08,202.42],[95.61,205.06],[98.24,214.95],[94.95,235.39],[89.01,243.3],[77.14,247.26],[61.98,239.35],[55.39,227.48],[51.43,213.63],[50.77,198.47],[52.75,185.94]],"CR":[[85.72,178.03],[77.8,183.3],[75.83,191.21],[79.12,196.49],[84.4,199.12],[90.33,199.78],[96.27,196.49],[102.86,189.89],[106.82,183.96],[104.84,178.68],[104.18,172.09],[106.82,174.07],[106.82,174.07],[106.82,177.37],[108.79,177.37],[110.11,183.3],[113.41,180.66],[116.71,183.96],[104.18,193.85],[99.56,201.1],[104.18,214.29],[102.86,227.48],[100.88,241.98],[112.09,248.58],[133.19,241.32],[145.06,219.56],[147.7,193.19],[139.78,180.0],[147.04,184.62],[148.35,184.62],[149.01,168.14],[147.04,144.4],[145.06,118.68],[138.46,96.27],[128.57,73.85],[114.73,55.39],[108.13,54.07],[100.22,61.32],[98.9,78.46],[101.54,103.52],[98.24,127.91],[95.61,156.93],[92.31,169.45],[90.79,171.53],[87.92,173.51]],"JET":{"it":["m 63.062881,168.72453 -2.088174,17.12304 -1.252905,8.77033 1.252905,3.34108 2.505811,0.83527 2.50581,-0.83527 2.088174,-2.92344 -0.835271,-8.3527 -0.417634,-6.68216 -1.67054,-7.51743 z","m 63.898152,168.72453 7.099795,24.64047 1.670539,17.54067 1.67054,8.3527 -4.593984,4.17635 -5.84689,1.67054 -4.593984,-3.34109 -4.17635,-7.93506 v -11.27614 l 0.417634,-8.77034 3.758716,-9.18797 z","m 64.315786,171.23034 14.617227,39.25769 2.923444,17.54067 -0.835271,11.69378 -10.440873,2.50581 -9.187971,-9.6056 -8.770335,-14.61723 -2.088173,-15.03486 3.341079,-17.12303 z"],"iao":["m 89.373886,181.67122 6.264524,-17.54067 6.68216,-3.75872 2.92344,0.41764 -0.83526,3.75871 -5.429259,8.77034 -8.3527,12.52905 z","m 89.79152,178.74777 6.682161,-15.45249 2.088176,-9.18797 4.593983,-15.87013 4.59399,-4.17635 4.17635,2.08817 3.34107,8.77034 -0.83526,11.27614 -10.85851,13.78196 -9.60561,9.18797 z","m 89.373886,178.74777 6.264524,-12.94668 3.341081,-9.18797 1.252909,-10.44088 0.41763,-17.54066 4.59398,-13.78196 10.44088,-7.93507 8.3527,8.77034 1.2529,15.4525 -6.68215,22.13465 -14.61723,17.54067 z"],"im":["m 125.29049,170.39507 -2.5058,10.85851 0.83526,6.26453 4.17635,3.75871 4.59399,-4.59398 -0.83527,-7.0998 -2.50581,-7.93506 z","m 126.12576,168.72453 -7.51742,17.95831 v 10.85851 l 2.5058,10.02324 6.68216,3.34108 6.68216,-5.84689 4.17635,-10.02324 -2.08817,-10.02324 -5.01162,-7.51743 z","m 125.70813,169.14217 -6.68216,15.45249 -4.59398,12.94669 -0.41764,19.62884 9.6056,9.18797 -1.67054,12.52905 1.67054,4.59399 10.02324,-3.34109 6.68216,-14.61722 4.17635,-9.18797 2.50581,-14.19959 -0.83527,-10.44087 -6.68216,-12.52905 z"]},"LEAF":{"tv":[{"poly":[[52.75,185.94],[57.36,182.64],[61.32,178.03],[62.64,172.09],[63.3,167.48],[61.32,158.9],[58.68,158.9],[56.7,168.14],[52.75,174.73]],"b1":[52.75,185.94],"b2":[52.75,174.73],"tip":[60.0,158.9],"side":"L"},{"poly":[[75.83,181.32],[69.23,162.2],[65.94,169.45],[69.23,182.64]],"b1":[75.83,181.32],"b2":[69.23,182.64],"tip":[69.23,162.2],"side":"L"}],"mv":[{"poly":[[113.41,180.66],[120.0,172.09],[124.62,168.14],[124.62,173.41],[116.71,183.96]],"b1":[113.41,180.66],"b2":[116.71,183.96],"tip":[124.62,170.77],"side":"R"},{"poly":[[139.78,180.0],[133.19,173.41],[127.91,168.14],[133.85,168.79],[140.44,174.07],[145.72,181.32],[146.38,181.98],[147.04,184.62]],"b1":[139.78,180.0],"b2":[147.04,184.62],"tip":[130.88,168.46],"side":"R"}],"av":[{"poly":[[90.79,171.53],[90.43,178.17],[90.43,182.12],[90.07,184.81],[87.2,188.4],[86.84,184.81],[87.56,181.58],[87.74,177.81],[87.92,174.04],[87.92,173.51]],"b1":[87.92,173.51],"b2":[90.79,171.53],"tip":[87.2,188.4],"side":"R"},{"poly":[[104.84,178.68],[100.88,180.0],[96.27,187.26],[92.97,191.21],[89.67,190.55],[90.99,185.94],[97.58,178.03],[100.22,174.07],[104.18,172.09]],"b1":[104.18,172.09],"b2":[104.84,178.68],"tip":[91.32,190.88],"side":"R"}]},"BOW":{"tv":1.5,"mv":1.5,"av":-1.5}};
+function $(id){return document.getElementById(id);}
+function el(n,a,p){var e=document.createElementNS(NS,n);for(var k in a){e.setAttribute(k,a[k]);}if(p){p.appendChild(e);}return e;}
+function clamp(x,a,b){return x<a?a:(x>b?b:x);}
+function sstep(x){x=clamp(x,0,1);return x*x*(3-2*x);}
+function ramp(a,b,x){return sstep((x-a)/(b-a));}
+function f(n){return Math.round(n*100)/100;}
+function bump(phi,c,w){var d=Math.abs(phi-c);d=Math.min(d,1-d);return d<w?0.5*(1+Math.cos(Math.PI*d/w)):0;}
+
+/* ---------- configuración geométrica (coordenadas del dibujo original) ---------- */
+var CFG={yTop:54,yAVL:185,yAVR:172,yBot:250,sept:96,
+  cxLV:111,cxRV:100,cxLA:128,cxRA:64,
+  ampLV:0.30,ampRV:0.22,outK:0.93,shift:4.2,apex:3.4,atrX:0.06,atrKick:0.04,
+  x0LV:99,x0RV:95,x0LA:116,x0RA:76};
+var DIL={lv:[0,0.12,0.26,0.45],la:[0,0.18,0.38,0.65],rv:[0,0.14,0.30,0.50],ra:[0,0.18,0.38,0.65]};
+var AMP=[1,0.55,0.25];
+var FR=[1,0.72,0.5,0.3];        /* fracción de apertura según estenosis */
+var CFAC=[1,0.97,0.92,0.82];    /* acortamiento de hojas según insuficiencia (defecto de coaptación) */
+var JORG={it:[64,169],im:[127.5,169.5],iao:[89.8,181]};
+var JALPHA=[0,0.55,0.75,0.92];
+
+/* ---------- estado ---------- */
+var S={it:0,iao:0,im:0,et:0,eao:0,em:0,dvi:0,dai:0,dvd:0,dad:0,kvi:0,kvd:0,pt:0,pao:0,pm:0,geo:0,aoup:0,play:true,dur:2.6,phi:0};
+var THK=[0,0.11,0.24,0.05];
+var q=(function(){var o={},s=(location.search||'').replace(/^\?/,'').split('&');for(var i=0;i<s.length;i++){var p=s[i].split('=');if(p[0]){o[p[0]]=decodeURIComponent(p[1]||'');}}return o;})();
+['it','iao','im','et','eao','em','dvi','dai','dvd','dad'].forEach(function(k){if(q[k]!==undefined){S[k]=clamp(parseInt(q[k],10)||0,0,3);}});
+['kvi','kvd','pt','pao','pm'].forEach(function(k){if(q[k]!==undefined){S[k]=clamp(parseInt(q[k],10)||0,0,2);}});
+if(q.geo!==undefined){S.geo=clamp(parseInt(q.geo,10)||0,0,3);}
+if(q.aoup!==undefined){S.aoup=clamp(parseInt(q.aoup,10)||0,0,1);}
+if(q.solo){document.body.className+=' solo';}
+var reduce=false;try{reduce=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;}catch(e){}
+if(q.phi!==undefined){S.phi=clamp(parseFloat(q.phi)||0,0,0.9999);S.play=false;}
+else if(reduce){S.phi=0.30;S.play=false;}
+
+/* ---------- deformación: dilatación estática + contracción ---------- */
+function region(x,y,side){
+  var right=(side==='R')||(side==='O'&&x>=CFG.sept);
+  if(right){return y<CFG.yAVR?'LV':'LA';}
+  return y<CFG.yAVL?'RV':'RA';
+}
+function dilate(x,y,r){
+  var d,u,w,v,mx;
+  if(r==='LV'){d=DIL.lv[S.dvi]+(S.geo===3?0.16:0);if(d){u=clamp((y-CFG.yTop)/(CFG.yAVR-CFG.yTop),0,1);w=Math.pow(Math.sin(Math.PI*u),0.6);x=CFG.x0LV+(x-CFG.x0LV)*(1+d*w);}}
+  else if(r==='RV'){d=DIL.rv[S.dvd];if(d){u=clamp((y-CFG.yTop)/(CFG.yAVL-CFG.yTop),0,1);w=Math.pow(Math.sin(Math.PI*u),0.6);x=CFG.x0RV+(x-CFG.x0RV)*(1+d*w);}}
+  else if(r==='LA'){d=DIL.la[S.dai];if(d){v=clamp((y-CFG.yAVR)/(CFG.yBot-CFG.yAVR),0,1);w=sstep(v*3);mx=sstep((x-110)/14);x=x+(x-CFG.x0LA)*d*w*mx*0.9;y=y+d*32*sstep(v)*mx;}}
+  else{d=DIL.ra[S.dad];if(d){v=clamp((y-CFG.yAVL)/(CFG.yBot-CFG.yAVL),0,1);w=sstep(v*3);mx=1-sstep((x-68)/14);x=x-(CFG.x0RA-x)*d*w*mx*0.9;y=y+d*32*sstep(v)*mx;}}
+  return [x,y];
+}
+function deform(pt,side,cv){
+  var r=region(pt[0],pt[1],side),p=dilate(pt[0],pt[1],r),x=p[0],y=p[1];
+  if(S.geo&&r==='LV'&&side==='R'){var tg=THK[S.geo],ug=clamp((p[1]-CFG.yTop)/(CFG.yAVR-CFG.yTop),0,1),wg=Math.pow(Math.sin(Math.PI*ug),0.6);x=CFG.cxLV+(x-CFG.cxLV)*(1-tg*wg);}
+  var isL=(r==='LV'||r==='LA'),c=isL?cv.l:cv.r;
+  var cx=isL?CFG.cxLV:CFG.cxRV,yAV=isL?CFG.yAVR:CFG.yAVL;
+  var amp=(isL?CFG.ampLV:CFG.ampRV)*(side==='O'?CFG.outK:1);
+  var nx=x,ny=y;
+  if(r==='LV'||r==='RV'){
+    var u=clamp((y-CFG.yTop)/(yAV-CFG.yTop),0,1),w=Math.max(Math.pow(Math.sin(Math.PI*u),0.7),0.55*(1-u));
+    nx=cx+(x-cx)*(1-amp*c*w);
+    ny=y-CFG.shift*c*u+CFG.apex*c*Math.pow(1-u,1.4);
+  }else{
+    var v=clamp((y-yAV)/(CFG.yBot-yAV),0,1);
+    ny=y-CFG.shift*c*(1-sstep(v));
+    var wa=sstep((y-yAV)/22)*(1-sstep((y-(CFG.yBot-8))/8));
+    var cxa=isL?CFG.cxLA:CFG.cxRA;
+    nx=cxa+(x-cxa)*(1+CFG.atrX*c*wa-CFG.atrKick*cv.ak*wa);
+  }
+  return [nx,ny];
+}
+function poly(arr,side,cv){
+  var s='';
+  for(var i=0;i<arr.length;i++){var p=deform(arr[i],side,cv);s+=(i?'L':'M')+f(p[0])+' '+f(p[1]);}
+  return s+'Z';
+}
+
+/* ---------- válvulas: las hojas del propio dibujo, recortadas de las cavidades y animadas ---------- */
+var gV=$('g-valves'), gJ=$('g-jets');
+function deg(a){return a*180/Math.PI;}
+function adiff(from,to){return ((to-from+540)%360)-180;}
+var VK={tv:{lbl:'l-tv',lx:64,ly:201},mv:{lbl:'l-mv',lx:128,ly:185},av:{lbl:'l-av',lx:97,ly:199}};
+var PRO={tv:'pt',av:'pao',mv:'pm'};
+function pstr(poly){var s='';for(var i=0;i<poly.length;i++){s+=(i?'L':'M')+poly[i][0]+' '+poly[i][1];}return s+'Z';}
+Object.keys(VK).forEach(function(k){
+  var v=VK[k];v.g=el('g',{},gV);v.lf=[];v.sh=[0,0];
+  D.LEAF[k].forEach(function(L){
+    var hh={L:L},d=pstr(L.poly);
+    hh.path=el('path',{'class':'leaf',d:d},v.g);
+    hh.pat=el('path',{'class':'leafpat',d:d,fill:'none'},v.g);
+    hh.Ho=[(L.b1[0]+L.b2[0])/2,(L.b1[1]+L.b2[1])/2];
+    hh.b=deg(Math.atan2(L.tip[1]-hh.Ho[1],L.tip[0]-hh.Ho[0]));
+    hh.len=Math.sqrt(Math.pow(L.tip[0]-hh.Ho[0],2)+Math.pow(L.tip[1]-hh.Ho[1],2));
+    hh.base0={d:d,b:hh.b};
+    if(k==='av'){
+      var hy=hh.Ho[1],mp=[],ti=[L.tip[0],2*hy-L.tip[1]];
+      for(var j=0;j<L.poly.length;j++){mp.push([L.poly[j][0],f(2*hy-L.poly[j][1])]);}
+      hh.alt={d:pstr(mp),b:deg(Math.atan2(ti[1]-hh.Ho[1],ti[0]-hh.Ho[0]))};
+    }
+    v.lf.push(hh);
+  });
+  v.pg=el('g',{display:'none'},v.g.parentNode);
+  v.rd=[el('line',{'class':'rod'},v.pg),el('line',{'class':'rod'},v.pg)];
+  v.rh=[el('line',{'class':'rodhi'},v.pg),el('line',{'class':'rodhi'},v.pg)];
+  v.cf=[el('rect',{'class':'cuff',rx:1.4,ry:1.4,width:7,height:3.5},v.pg),el('rect',{'class':'cuff',rx:1.4,ry:1.4,width:7,height:3.5},v.pg)];
+  v.ci=[el('rect',{'class':'cuffi',rx:.6,ry:.6,width:4.8,height:1.3},v.pg),el('rect',{'class':'cuffi',rx:.6,ry:.6,width:4.8,height:1.3},v.pg)];
+  v.pv=[el('circle',{'class':'piv',r:1.15},v.pg),el('circle',{'class':'piv',r:1.15},v.pg)];
+  v.lb=$(v.lbl);
+});
+var aoLast=0;
+function applyAo(){
+  if(S.aoup===aoLast){return;}
+  aoLast=S.aoup;
+  VK.av.lf.forEach(function(hh){
+    var V=S.aoup?hh.alt:hh.base0;
+    hh.path.setAttribute('d',V.d);hh.pat.setAttribute('d',V.d);hh.b=V.b;
+  });
+}
+function updValve(k,o,sten,reg,cv){
+  var v=VK[k],oe=o*FR[sten],pro=S[PRO[k]],pat=(sten>0&&pro===0)?'url(#pt'+sten+')':'none',i,hh,H=[],acs=[];
+  for(i=0;i<v.lf.length;i++){
+    hh=v.lf[i];var L=hh.L,p1=deform(L.b1,L.side,cv),p2=deform(L.b2,L.side,cv);
+    hh.Hn=[(p1[0]+p2[0])/2,(p1[1]+p2[1])/2];H.push(hh.Hn);
+  }
+  var bow=D.BOW[k]*((k==='av'&&S.aoup)?-1:1);
+  var mid=[(H[0][0]+H[1][0])/2,(H[0][1]+H[1][1])/2],M=[mid[0],mid[1]+bow];
+  var m0=[(v.lf[0].Ho[0]+v.lf[1].Ho[0])/2,(v.lf[0].Ho[1]+v.lf[1].Ho[1])/2];
+  v.sh=[mid[0]-m0[0],mid[1]-m0[1]];
+  for(i=0;i<v.lf.length;i++){
+    hh=v.lf[i];
+    var dx=M[0]-hh.Hn[0],dy=M[1]-hh.Hn[1],dist=Math.sqrt(dx*dx+dy*dy);
+    var ac=deg(Math.atan2(dy,dx)),da=adiff(ac,hh.b);
+    var sc=clamp(dist/hh.len*1.1,0.5,0.97)*CFAC[reg];
+    var a=ac+da*oe,s=sc+(1-sc)*oe;
+    var tr='translate('+f(hh.Hn[0])+' '+f(hh.Hn[1])+') rotate('+f(a)+') scale('+f(s)+' 1) rotate('+f(-hh.b)+') translate('+f(-hh.Ho[0])+' '+f(-hh.Ho[1])+')';
+    hh.path.setAttribute('transform',tr);hh.pat.setAttribute('transform',tr);hh.pat.setAttribute('fill',pat);
+    acs.push(ac);
+  }
+  for(i=0;i<v.lf.length;i++){
+    hh=v.lf[i];var vis=(pro>=1)?'none':'inline';
+    hh.path.setAttribute('display',vis);hh.pat.setAttribute('display',vis);
+  }
+  if(pro===0){v.pg.setAttribute('display','none');}
+  else{drawPro(v,pro,H,M,oe,acs);}
+  v.lb.setAttribute('x',f(v.lx+v.sh[0]));v.lb.setAttribute('y',f(v.ly+v.sh[1]+((pro>0&&k!=='av')?6:0)));
+}
+/* prótesis: anillo de sutura + dos hemidiscos que pivotan; la biológica es igual pero más fina y más clara */
+function drawPro(v,pro,H,M,oe,acs){
+  var i,ax=0,ay=0,br,al,axA,ang,h,cls=(pro===1)?' bio':'';
+  ang=deg(Math.atan2(H[1][1]-H[0][1],H[1][0]-H[0][0]));
+  for(i=0;i<2;i++){br=v.lf[i].b*Math.PI/180;ax+=Math.cos(br);ay+=Math.sin(br);}
+  al=Math.sqrt(ax*ax+ay*ay)||1;ax/=al;ay/=al;axA=deg(Math.atan2(ay,ax));
+  v.pg.setAttribute('display','inline');
+  for(i=0;i<2;i++){
+    h=H[i];
+    v.cf[i].setAttribute('class','cuff'+cls);
+    v.cf[i].setAttribute('transform','translate('+f(h[0])+' '+f(h[1])+') rotate('+f(ang)+') translate(-3.5 -1.75)');
+    v.ci[i].setAttribute('transform','translate('+f(h[0])+' '+f(h[1])+') rotate('+f(ang)+') translate(-2.4 -.65)');
+    var toC=acs[i],dd=adiff(axA,toC),ao=axA+(dd>0?1:-1)*8;
+    var rl=Math.sqrt(Math.pow(M[0]-h[0],2)+Math.pow(M[1]-h[1],2));
+    var a=(toC+adiff(toC,ao)*oe)*Math.PI/180,ex=h[0]+rl*Math.cos(a),ey=h[1]+rl*Math.sin(a);
+    v.rd[i].setAttribute('class','rod'+cls);v.rh[i].setAttribute('class','rodhi'+cls);
+    v.rd[i].setAttribute('x1',f(h[0]));v.rd[i].setAttribute('y1',f(h[1]));v.rd[i].setAttribute('x2',f(ex));v.rd[i].setAttribute('y2',f(ey));
+    v.rh[i].setAttribute('x1',f(h[0]));v.rh[i].setAttribute('y1',f(h[1]));v.rh[i].setAttribute('x2',f(ex));v.rh[i].setAttribute('y2',f(ey));
+    v.pv[i].setAttribute('cx',f(h[0]));v.pv[i].setAttribute('cy',f(h[1]));
+    v.pv[i].setAttribute('display',pro===2?'inline':'none');
+  }
+}
+
+/* ---------- chorros ---------- */
+var J={};
+['it','im','iao'].forEach(function(k){
+  var g=el('g',{},gJ);
+  var base=el('path',{'class':'jet-'+k},g);
+  var sh=el('path',{fill:'url(#flw-'+k+')'},g);
+  J[k]={g:g,base:base,sh:sh,pat:$('flw-'+k)};
+});
+var JANG={it:0,im:0,iao:0};
+(function(){var v=[0.43,-0.9];JANG.iao=Math.atan2(-v[0],v[1])*180/Math.PI;})();
+function updJet(k,sev,I,sh,t){
+  var j=J[k];
+  if(sev<1||I<0.01){j.g.setAttribute('opacity','0');return;}
+  var o=JORG[k],sx,sy;
+  if(k==='iao'){sx=I;sy=I;}else{sx=0.6+0.4*I;sy=I;}
+  j.base.setAttribute('d',D.JET[k][sev-1]);j.sh.setAttribute('d',D.JET[k][sev-1]);
+  j.g.setAttribute('transform','translate('+f(o[0]+sh[0])+' '+f(o[1]+sh[1])+') scale('+f(sx)+' '+f(sy)+') translate('+f(-o[0])+' '+f(-o[1])+')');
+  j.g.setAttribute('opacity',f(JALPHA[sev]*Math.pow(I,0.8)));
+  j.sh.setAttribute('fill-opacity','0.55');
+  var off=(t*26)%11;
+  j.pat.setAttribute('patternTransform','rotate('+f(JANG[k])+') translate(0 '+f(off)+')');
+}
+
+/* ---------- ciclo cardíaco ---------- */
+function cc(p){return ramp(0.12,0.34,p)*(1-ramp(0.46,0.64,p));}
+function atrialKick(p){var qq=p<0.5?p+1:p;return ramp(0.88,0.94,qq)*(1-ramp(1.0,1.08,qq));}
+function avOpen(p){
+  var o;
+  if(p<0.10){o=1;}else if(p<0.15){o=1-ramp(0.10,0.15,p);}else if(p<0.50){o=0;}else if(p<0.58){o=ramp(0.50,0.58,p);}else{o=1;}
+  var mod=0.7+0.3*Math.max(bump(p,0.64,0.10),bump(p,0.96,0.08),bump(p,0.02,0.07));
+  return o*mod;
+}
+function aoOpen(p){return ramp(0.14,0.20,p)*(1-ramp(0.40,0.48,p))*(0.8+0.2*bump(p,0.27,0.14));}
+function sysI(p){return ramp(0.15,0.21,p)*(1-ramp(0.44,0.52,p));}
+function diaI(p){var qq=p<0.15?p+1:p;return ramp(0.50,0.57,qq)*(1-ramp(1.08,1.14,qq))*(1-0.3*ramp(0.57,1.08,qq));}
+function faseTxt(p){
+  if(p<0.10||p>=0.88){return ['Diástole','contracción auricular'];}
+  if(p<0.14){return ['Sístole','contracción isovolumétrica'];}
+  if(p<0.46){return ['Sístole','eyección'];}
+  if(p<0.52){return ['Diástole','relajación isovolumétrica'];}
+  return ['Diástole','llenado ventricular'];
+}
+
+var pOut=$('p-out'),pShine=$('p-shine'),pCl=$('p-cl'),pCr=$('p-cr'),mark=$('mark'),fase=$('fase'),fase2=$('fase2'),svgEl=$('esq');
+var nVD=$('n-vd'),nVI=$('n-vi'),nAD=$('n-ad'),nAI=$('n-ai');
+var lastTxt='';
+function fitView(){
+  var cv={l:0,r:0,ak:0},mnx=1e9,mxx=-1e9,mny=1e9,mxy=-1e9,i,p;
+  for(i=0;i<D.OUT.length;i++){p=deform(D.OUT[i],'O',cv);mnx=Math.min(mnx,p[0]);mxx=Math.max(mxx,p[0]);mny=Math.min(mny,p[1]);mxy=Math.max(mxy,p[1]);}
+  var m=5;svgEl.setAttribute('viewBox',f(mnx-m)+' '+f(mny-m)+' '+f(mxx-mnx+2*m)+' '+f(mxy-mny+2*m));
+}
+function render(t){
+  var p=S.phi,base=cc(p),ak=atrialKick(p);
+  var cv={l:base*AMP[S.kvi],r:base*AMP[S.kvd],ak:ak};
+  var dOut=poly(D.OUT,'O',cv);
+  pOut.setAttribute('d',dOut);pShine.setAttribute('d',dOut);
+  pCl.setAttribute('d',poly(D.CL,'L',cv));
+  pCr.setAttribute('d',poly(D.CR,'R',cv));
+  var oAV=avOpen(p),oAo=aoOpen(p);
+  updValve('tv',oAV,S.et,S.it,cv);
+  updValve('mv',oAV,S.em,S.im,cv);
+  updValve('av',oAo,S.eao,S.iao,cv);
+  var si=sysI(p),di=diaI(p);
+  updJet('it',S.it,si,VK.tv.sh,t);
+  updJet('im',S.im,si,VK.mv.sh,t);
+  updJet('iao',S.iao,di,VK.av.sh,t);
+  nVI.setAttribute('x',f(124+(DIL.lv[S.dvi]+(S.geo===3?0.16:0))*45));nVD.setAttribute('x',f(72-DIL.rv[S.dvd]*32));
+  nAI.setAttribute('x',f(122+DIL.la[S.dai]*32));nAI.setAttribute('y',f(238+DIL.la[S.dai]*22));
+  nAD.setAttribute('x',f(62-DIL.ra[S.dad]*24));nAD.setAttribute('y',f(238+DIL.ra[S.dad]*22));
+  mark.style.left='calc('+f(p*100)+'% - 1px)';
+  var tx=faseTxt(p);if(tx[0]+tx[1]!==lastTxt){lastTxt=tx[0]+tx[1];fase.textContent=tx[0];fase2.textContent=tx[1];}
+}
+
+/* ---------- interfaz ---------- */
+var LV=['Ausente','Leve','Moderada','Severa'],SZ=['Normal','Leve','Moderada','Severa'],KC=['Normal','Reducida','Muy reducida'],PR=['Nativa','Biológica','Mecánica'],GEO=['Normal','Remodelado concéntrico','Hipertrofia concéntrica','Hipertrofia excéntrica'];
+var ROWS=[['Insuficiencias',[['it','Tricuspídea (IT)',LV],['iao','Aórtica (IAo)',LV],['im','Mitral (IM)',LV]]],
+          ['Estenosis',[['et','Tricuspídea (ET)',LV],['eao','Aórtica (EAo)',LV],['em','Mitral (EM)',LV]]],
+          ['Prótesis',[['pt','Tricuspídea',PR],['pao','Aórtica',PR],['pm','Mitral',PR]]],
+          ['Geometría del VI',[['geo','Pared del VI',GEO]]],
+          ['Cámaras · tamaño',[['dvi','Ventrículo izq.',SZ],['dai','Aurícula izq.',SZ],['dvd','Ventrículo der.',SZ],['dad','Aurícula der.',SZ]]],
+          ['Función sistólica',[['kvi','VI · según FEVI',KC],['kvd','VD · TAPSE, S′, FAC',KC]]]];
+var segs={};
+function again(){if(!S.play){render(Date.now()/1000);}}
+(function(){
+  var host=$('rows');
+  ROWS.forEach(function(g){
+    var h=document.createElement('div');h.className='grp';h.textContent=g[0];host.appendChild(h);
+    g[1].forEach(function(it){
+      var row=document.createElement('div');row.className='row';
+      var lb=document.createElement('label');lb.textContent=it[1];row.appendChild(lb);
+      var seg=document.createElement('div');seg.className='seg';seg.setAttribute('role','group');seg.setAttribute('aria-label',g[0]+' '+it[1]);
+      it[2].forEach(function(n,i){
+        var b=document.createElement('button');b.type='button';b.textContent=n;
+        b.addEventListener('click',function(){S[it[0]]=i;sync();again();});
+        seg.appendChild(b);
+      });
+      row.appendChild(seg);host.appendChild(row);segs[it[0]]=seg;
+    });
+  });
+})();
+var SEV=['','leve','moderada','severa'];
+var DAT={it:['','VC 2 mm','VC 5 mm','VC 8 mm'],im:['','EROA 15 mm²','EROA 30 mm²','EROA 45 mm²'],iao:['','THP 520 ms','THP 350 ms','THP 200 ms'],
+  et:['','G. medio 3 mmHg','G. medio 5 mmHg','G. medio 8 mmHg'],eao:['','Vmax 2,9 m/s','Vmax 3,6 m/s','Vmax 4,4 m/s'],
+  pst:['','G. medio 8 mmHg','G. medio 12 mmHg','G. medio 18 mmHg']};
+function hallLines(){
+  var L=[],V=[['tv','Tricuspídea','pt','it','et','IT','ET'],['av','Aórtica','pao','iao','eao','IAo','EAo'],['mv','Mitral','pm','im','em','IM','EM']];
+  V.forEach(function(x){
+    var pro=S[x[2]],rg=S[x[3]],st=S[x[4]],t;
+    if(pro>0){
+      t='Prótesis '+x[1].toLowerCase().replace('tricuspídea','tricuspídea')+' '+(pro===1?'biológica':'mecánica');
+      if(st>0){t+=', con estenosis '+SEV[st]+' <small>('+DAT.pst[st]+')</small>';}
+      if(rg>0){t+=', con insuficiencia '+SEV[rg]+' <small>('+DAT[x[3]][rg]+')</small>';}
+      L.push(t);
+    }else{
+      if(rg>0){L.push(x[5]+' '+SEV[rg]+' <small>('+DAT[x[3]][rg]+')</small>');}
+      if(st>0){
+        if(x[4]==='em'){L.push(st===1?'EM no significativa, con gradiente elevado <small>(G. medio 6 mmHg)</small>':'EM significativa <small>(AVm '+(st===2?'1,4':'0,9')+' cm²)</small>');}
+        else{L.push(x[6]+' '+SEV[st]+' <small>('+DAT[x[4]][st]+')</small>');}
+      }
+    }
+  });
+  var C=[['dai','Aurícula izquierda dilatada'],['dvi','Ventrículo izquierdo dilatado'],['dvd','Ventrículo derecho dilatado'],['dad','Aurícula derecha dilatada']];
+  C.forEach(function(c){if(S[c[0]]>0){L.push(c[1]+' '+SEV[S[c[0]]]);}});
+  if(S.geo>0){L.push(GEO[S.geo]);}
+  if(S.kvi>0){L.push('Función sistólica del VI '+(S.kvi===1?'reducida <small>(FEVI 42 %)</small>':'muy reducida <small>(FEVI 28 %)</small>'));}
+  if(S.kvd>0){L.push('Función sistólica del VD '+(S.kvd===1?'reducida <small>(TAPSE 15 mm)</small>':'muy reducida <small>(TAPSE 10 mm)</small>'));}
+  return L;
+}
+function renderHall(){
+  var L=hallLines(),h=$('hall'),s='',i;
+  if(!L.length){h.innerHTML='<li class="ok">Sin hallazgos: válvulas y cavidades normales.</li>';return;}
+  for(i=0;i<L.length;i++){s+='<li>'+L[i]+'</li>';}
+  h.innerHTML=s;
+}
+function sync(){
+  applyAo();fitView();renderHall();
+  Object.keys(segs).forEach(function(k){
+    var bs=segs[k].children;for(var i=0;i<bs.length;i++){bs[i].setAttribute('aria-pressed',String(S[k]===i));}
+  });
+}
+var Z={it:0,iao:0,im:0,et:0,eao:0,em:0,dvi:0,dai:0,dvd:0,dad:0,kvi:0,kvd:0,pt:0,pao:0,pm:0,geo:0};
+function pre(o){var r={};for(var k in Z){r[k]=o[k]||0;}return r;}
+var PRE=[['Normal',pre({})],
+         ['IM severa',pre({im:3})],
+         ['EAo severa',pre({eao:3})],
+         ['IAo severa',pre({iao:3,dvi:2})],
+         ['Reumática (EM + IM)',pre({it:1,im:2,em:3,dai:3})],
+         ['Miocardiopatía dilatada',pre({im:2,dvi:3,dai:2,kvi:2})],
+         ['Sobrecarga del VD',pre({it:2,dvd:2,dad:2,kvd:1})],
+         ['Hipertrofia concéntrica (EAo)',pre({eao:3,geo:2,dai:1})],
+         ['Hipertrofia excéntrica (IAo)',pre({iao:3,geo:3,dai:1})],
+         ['Remodelado concéntrico',pre({geo:1})],
+         ['Mitral mecánica normal',pre({pm:2})],
+         ['Mitral biológica con estenosis',pre({pm:1,em:2,dai:2})],
+         ['Aórtica biológica con IAo',pre({pao:1,iao:2,dvi:1})],
+         ['Mitral mecánica obstruida',pre({pm:2,em:3,dai:3})]];
+PRE.forEach(function(p){
+  var b=document.createElement('button');b.type='button';b.className='btn';b.textContent=p[0];
+  b.addEventListener('click',function(){for(var k in p[1]){S[k]=p[1][k];}sync();again();});
+  $('presets').appendChild(b);
+});
+var playB=$('play');
+function setPlay(v){S.play=v;playB.textContent=v?'⏸ Pausar':'▶ Reproducir';}
+playB.addEventListener('click',function(){setPlay(!S.play);});
+$('dur').addEventListener('input',function(){S.dur=parseFloat(this.value);$('durv').textContent=String(S.dur).replace('.',',')+' s';});
+
+var raf=window.requestAnimationFrame||function(cb){return setTimeout(function(){cb(Date.now());},16);};
+var last=null;
+function loop(ts){
+  if(last===null){last=ts;}
+  var dt=Math.min((ts-last)/1000,0.1);last=ts;
+  if(S.play){S.phi=(S.phi+dt/S.dur)%1;}
+  render(ts/1000);
+  raf(loop);
+}
+setPlay(S.play);sync();
+render(0);
+raf(loop);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Demo: apertura de la válvula aórtica bicúspide en 2D</title>
+<style>
+:root{color-scheme:light dark;
+--font-sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+--text-primary:#1f2937;--text-secondary:#5b6472;--text-accent:#0b5cad;
+--surface-1:#ffffff;--surface-2:#f6f7f9;--border:#d7dbe2;--border-strong:#9aa3b2;
+--bg-accent:#e6f0fb;--border-accent:#7fb0e6;--bg-info:#cfe3f7;--border-info:#7fb0e6}
+@media (prefers-color-scheme:dark){:root{
+--text-primary:#e8eaee;--text-secondary:#a6adba;--text-accent:#8cc4ff;
+--surface-1:#1d2128;--surface-2:#252a33;--border:#3a414d;--border-strong:#6b7585;
+--bg-accent:#1f3550;--border-accent:#4a7db5;--bg-info:#27486b;--border-info:#4a7db5}}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;padding:14px;font-family:var(--font-sans);color:var(--text-primary);background:var(--surface-1);max-width:760px;margin-inline:auto}
+h1{font-size:16px;font-weight:500;margin:0 0 4px}
+.nota{font-size:12px;color:var(--text-secondary);margin:0 0 12px;line-height:1.4}
+button,select{font:inherit;color:var(--text-primary);background:var(--surface-2);border:0.5px solid var(--border-strong);border-radius:8px}
+button{cursor:pointer}
+button:focus-visible,select:focus-visible,input:focus-visible,svg:focus-visible{outline:2px solid var(--border-accent);outline-offset:2px}
+select{padding:6px 8px;min-height:34px;max-width:100%}
+.seg{padding:5px 10px;font-size:12px;min-height:32px}
+.seg[aria-pressed="true"]{background:var(--bg-accent);border-color:var(--border-accent);color:var(--text-accent)}
+.grp{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:0 0 10px}
+.lbl{font-size:12px;color:var(--text-secondary);margin-right:4px}
+.card{background:var(--surface-2);border:0.5px solid var(--border);border-radius:12px;padding:10px 12px;margin-bottom:10px}
+.chk{font-size:13px;display:flex;gap:6px;align-items:center}
+.cap{font-size:12px;color:var(--text-primary);margin:6px 0 0;min-height:32px;line-height:1.4}
+.hint{font-size:11px;color:var(--text-secondary);margin:4px 0 0}
+input[type=range]{flex:1;min-width:140px}
+</style>
+</head>
+<body>
+<h1>Apertura de la válvula aórtica bicúspide en 2D</h1>
+<p class="nota">Demo. Elegí el tipo de fusión, la simetría y si el rafe está calcificado, y mirá cómo se abre y se cierra la válvula en eje corto. Es un esquema ilustrativo de la mecánica general, no una medición.</p>
+
+<div class="card">
+  <div class="grp"><label class="lbl" for="tipo">Tipo de fusión</label>
+    <select id="tipo">
+      <option value="RL">Fusión R–L (derecha–izquierda)</option>
+      <option value="RN">Fusión R–N (derecha–no coronaria)</option>
+      <option value="LN">Fusión L–N (izquierda–no coronaria)</option>
+      <option value="LL">Dos senos, latero-lateral</option>
+      <option value="AP">Dos senos, antero-posterior</option>
+      <option value="PART">Parcial (forme fruste)</option>
+      <option value="NC">No clasificable</option>
+    </select>
+  </div>
+  <div class="grp" id="gpart" hidden><label class="lbl" for="part">Fusión parcial entre</label>
+    <select id="part">
+      <option value="RL">R–L</option>
+      <option value="RN">R–N</option>
+      <option value="LN">L–N</option>
+    </select>
+  </div>
+  <div class="grp" id="gsymw"><span class="lbl">Simetría de las cúspides</span><span id="gsym" style="display:contents"></span></div>
+  <div class="grp"><label class="chk" id="calcw"><input type="checkbox" id="calc"> Rafe calcificado</label></div>
+</div>
+
+<div class="card">
+  <svg id="d" viewBox="0 0 240 240" width="100%" role="img" aria-label="Válvula aórtica bicúspide vista en eje corto, con su apertura y cierre animados" style="display:block;max-width:420px;margin:0 auto;font-family:var(--font-sans)"></svg>
+  <p class="cap" id="cap"></p>
+  <div class="grp" style="margin-top:8px">
+    <button class="seg" id="play" aria-pressed="true">Pausar</button>
+    <label class="lbl" for="scrub" style="margin-left:6px">Ciclo</label>
+    <input type="range" id="scrub" min="0" max="100" value="0" aria-label="Posición dentro del ciclo de apertura y cierre">
+  </div>
+  <p class="hint">Diástole: cerrada. Sístole: abierta. Al mover el control del ciclo, la animación se pausa.</p>
+</div>
+
+<script>
+(function(){
+var NS='http://www.w3.org/2000/svg',D=Math.PI/180,C=120,R0=60;
+var G='#4CAF6E',DK='var(--text-primary)',LUM='var(--bg-info)';
+var reduce=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+var st={tipo:'RL',part:'RL',sym:170,calc:false,playing:!reduce,p:0};
+var SYMS=[[170,'Simétricas (160–180°)','simétricas'],[150,'Asimétricas (140–159°)','asimétricas'],[130,'Muy asimétricas (120–139°)','muy asimétricas']];
+function el(n,a,p){var e=document.createElementNS(NS,n);for(var k in a){e.setAttribute(k,a[k]);}if(p){p.appendChild(e);}return e;}
+function clear(g){while(g.firstChild){g.removeChild(g.firstChild);}}
+function P(deg,r){return [C+r*Math.cos(deg*D),C+r*Math.sin(deg*D)];}
+function r1(n){return Math.round(n*10)/10;}
+function pt(p){return r1(p[0])+','+r1(p[1]);}
+function arcPath(a0,a1,r,rs){return 'M '+pt(P(a0,r))+' A '+rs+' '+rs+' 0 0 1 '+pt(P(a1,r));}
+function smooth(x){x=Math.max(0,Math.min(1,x));return x*x*(3-2*x);}
+function frac(p){return smooth((p-0.08)/0.22)*(1-smooth((p-0.6)/0.22));}
+function isFused(t){return t==='RL'||t==='RN'||t==='LN';}
+function isTwo(t){return t==='LL'||t==='AP';}
+var svg=document.getElementById('d');
+var gStat=el('g',{},svg),gDyn=el('g',{},svg);
+var RAPHE={RL:-30,RN:210,LN:90};
+var COMM={RL:-30,LN:90,RN:210};
+
+function buildStatic(){
+clear(gStat);
+var t=st.tipo,i;
+if(t==='NC'){return;}
+if(isTwo(t)){
+var a=(t==='AP')?[180,360,0,180]:[270,450,90,270];
+el('path',{d:arcPath(a[0],a[1],R0,64),fill:'none',stroke:DK,'stroke-width':2.5},gStat);
+el('path',{d:arcPath(a[2],a[3],R0,64),fill:'none',stroke:DK,'stroke-width':2.5},gStat);
+return;
+}
+[[-150,-30],[-30,90],[90,210]].forEach(function(s){el('path',{d:arcPath(s[0],s[1],R0,56),fill:'none',stroke:DK,'stroke-width':2.5},gStat);});
+var LB={R:-90,L:30,N:150};
+['R','L','N'].forEach(function(k){var q=P(LB[k],90);var tx=el('text',{x:r1(q[0]),y:r1(q[1]+5),'text-anchor':'middle','font-size':14,'font-weight':500,fill:'var(--text-secondary)'},gStat);tx.textContent=k;});
+if(isFused(t)){
+var nu=RAPHE[t]+180,th=st.sym;
+el('path',{d:arcPath(nu-th/2,nu+th/2,68,68),fill:'none',stroke:'var(--text-secondary)','stroke-width':2,'stroke-dasharray':'4 3'},gStat);
+[nu-th/2,nu+th/2].forEach(function(an){var q0=P(an,63),q1=P(an,73);el('line',{x1:r1(q0[0]),y1:r1(q0[1]),x2:r1(q1[0]),y2:r1(q1[1]),stroke:'var(--text-secondary)','stroke-width':2},gStat);});
+}
+}
+
+function calcDots(ang,radii){
+var jit=[-3,3,-3,3];
+radii.forEach(function(r,i){var q=P(ang+jit[i%4],r);el('circle',{cx:r1(q[0]),cy:r1(q[1]),r:2.8,fill:G},gDyn);});
+}
+
+function drawDyn(f){
+clear(gDyn);
+var t=st.tipo;
+if(t==='NC'){return;}
+var lumen={fill:LUM,'fill-opacity':0.9,stroke:DK,'stroke-width':3,'stroke-linejoin':'round'};
+if(isFused(t)){
+var rap=RAPHE[t],nu=rap+180,th=st.sym;
+var A=P(nu-th/2,R0),B=P(nu+th/2,R0);
+var Mx=(A[0]+B[0])/2,My=(A[1]+B[1])/2,P0=[2*C-Mx,2*C-My];
+var ux=Math.cos(nu*D),uy=Math.sin(nu*D);
+var kn=st.calc?40:44,kf=st.calc?12:36;
+var Pn=[P0[0]+ux*kn*f,P0[1]+uy*kn*f],Pf=[P0[0]-ux*kf*f,P0[1]-uy*kf*f];
+var o=el('path',{d:'M '+pt(A)+' Q '+pt(Pn)+' '+pt(B)+' Q '+pt(Pf)+' '+pt(A)+' Z'},gDyn);
+for(var k in lumen){o.setAttribute(k,lumen[k]);}
+el('path',{d:'M '+pt(P(rap,R0-1))+' L '+pt(P(rap,26)),fill:'none',stroke:st.calc?G:DK,'stroke-width':4.5,'stroke-linecap':'round'},gDyn);
+if(st.calc){calcDots(rap,[30,38,46,54]);}
+return;
+}
+if(isTwo(t)){
+var A2,B2,u;
+if(t==='AP'){A2=P(180,R0);B2=P(0,R0);u=[0,-1];}else{A2=P(270,R0);B2=P(90,R0);u=[1,0];}
+var kk=40,Pa=[C+u[0]*kk*f,C+u[1]*kk*f],Pb=[C-u[0]*kk*f,C-u[1]*kk*f];
+var o2=el('path',{d:'M '+pt(A2)+' Q '+pt(Pa)+' '+pt(B2)+' Q '+pt(Pb)+' '+pt(A2)+' Z'},gDyn);
+for(var k2 in lumen){o2.setAttribute(k2,lumen[k2]);}
+return;
+}
+var keys=['RL','LN','RN'],V=[];
+keys.forEach(function(key){var part=(key===st.part);var rr=(part?24:34)*f;V.push(P(COMM[key],rr));});
+keys.forEach(function(key,i){
+var ang=COMM[key],part=(key===st.part);
+if(part){
+el('path',{d:'M '+pt(V[i])+' L '+pt(P(ang,38)),fill:'none',stroke:DK,'stroke-width':3,'stroke-linecap':'round'},gDyn);
+el('path',{d:'M '+pt(P(ang,R0-1))+' L '+pt(P(ang,38)),fill:'none',stroke:st.calc?G:DK,'stroke-width':4.5,'stroke-linecap':'round'},gDyn);
+if(st.calc){calcDots(ang,[42,48,54]);}
+}else{
+el('path',{d:'M '+pt(V[i])+' L '+pt(P(ang,R0-1)),fill:'none',stroke:DK,'stroke-width':3,'stroke-linecap':'round'},gDyn);
+}
+});
+var o3=el('path',{d:'M '+pt(V[0])+' L '+pt(V[1])+' L '+pt(V[2])+' Z'},gDyn);
+for(var k3 in lumen){o3.setAttribute(k3,lumen[k3]);}
+}
+
+var capEl=document.getElementById('cap');
+function caption(){
+var t=st.tipo,s=SYMS.filter(function(x){return x[0]===st.sym;})[0];
+var txt;
+if(t==='NC'){txt='Este tipo no tiene dibujo.';}
+else if(isFused(t)){var nm={RL:'N',RN:'L',LN:'R'}[t];txt='Cúspide sin rafe ('+nm+'): sector de '+st.sym+'°, cúspides '+s[2]+'.';}
+else if(isTwo(t)){txt='La categoría de simetría se aplica a los tipos con fusión, no a los dos senos.';}
+else{txt='Fusión parcial entre '+({RL:'R y L',RN:'R y N',LN:'L y N'}[st.part])+': la categoría de simetría no se aplica.';}
+capEl.textContent=txt;
+}
+function refresh(){
+var t=st.tipo;
+document.getElementById('gpart').hidden=(t!=='PART');
+document.getElementById('gsymw').hidden=!isFused(t);
+document.getElementById('calcw').hidden=(t==='NC'||isTwo(t));
+buildStatic();caption();drawDyn(frac(st.p));
+}
+var selT=document.getElementById('tipo'),selP=document.getElementById('part'),chk=document.getElementById('calc');
+selT.addEventListener('change',function(){st.tipo=selT.value;refresh();});
+selP.addEventListener('change',function(){st.part=selP.value;refresh();});
+chk.addEventListener('change',function(){st.calc=!!chk.checked;refresh();});
+var gsym=document.getElementById('gsym'),sb=[];
+SYMS.forEach(function(s){var b=document.createElement('button');b.className='seg';b.textContent=s[1];b.setAttribute('aria-pressed',s[0]===st.sym?'true':'false');b.addEventListener('click',function(){st.sym=s[0];sb.forEach(function(x,i){x.setAttribute('aria-pressed',SYMS[i][0]===st.sym?'true':'false');});refresh();});gsym.appendChild(b);sb.push(b);});
+var play=document.getElementById('play'),scrub=document.getElementById('scrub');
+function playLabel(){play.textContent=st.playing?'Pausar':'Reproducir';play.setAttribute('aria-pressed',st.playing?'true':'false');}
+play.addEventListener('click',function(){st.playing=!st.playing;playLabel();});
+scrub.addEventListener('input',function(){st.playing=false;playLabel();st.p=parseInt(scrub.value,10)/100;drawDyn(frac(st.p));});
+var last=0;
+function frame(ts){
+if(!last){last=ts;}
+if(st.playing){st.p=(st.p+(ts-last)/2800)%1;scrub.value=Math.round(st.p*100);}
+last=ts;drawDyn(frac(st.p));requestAnimationFrame(frame);
+}
+window.__vab={st:st,refresh:refresh,drawDyn:drawDyn,frac:frac};
+playLabel();refresh();requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

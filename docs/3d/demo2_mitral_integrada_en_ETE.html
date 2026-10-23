@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Demo: la mitral dentro de ETE (maqueta de integración)</title>
+<style>
+:root{color-scheme:light dark;
+--font-sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+--text-primary:#1f2937;--text-secondary:#5b6472;--text-accent:#0b5cad;
+--surface-1:#ffffff;--surface-2:#f6f7f9;--border:#d7dbe2;--border-strong:#9aa3b2;
+--bg-accent:#e6f0fb;--border-accent:#7fb0e6;--bg-info:#e8f1fb;--border-info:#7fb0e6}
+@media (prefers-color-scheme:dark){:root{
+--text-primary:#e8eaee;--text-secondary:#a6adba;--text-accent:#8cc4ff;
+--surface-1:#1d2128;--surface-2:#252a33;--border:#3a414d;--border-strong:#6b7585;
+--bg-accent:#1f3550;--border-accent:#4a7db5;--bg-info:#1d3248;--border-info:#4a7db5}}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;padding:14px;font-family:var(--font-sans);color:var(--text-primary);background:var(--surface-1);max-width:980px;margin-inline:auto}
+h1{font-size:16px;font-weight:500;margin:0 0 4px}
+.nota{font-size:12px;color:var(--text-secondary);margin:0 0 12px;line-height:1.4}
+button{font:inherit;color:var(--text-primary);background:var(--surface-2);border:0.5px solid var(--border-strong);border-radius:8px;cursor:pointer}
+button:focus-visible,svg:focus-visible{outline:2px solid var(--border-accent);outline-offset:2px}
+.seg{padding:5px 10px;font-size:12px;min-height:30px}
+.seg[aria-pressed="true"]{background:var(--bg-accent);border-color:var(--border-accent);color:var(--text-accent)}
+.grp{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:0 0 8px}
+.lbl{font-size:12px;color:var(--text-secondary);margin-right:4px}
+.card{background:var(--surface-2);border:0.5px solid var(--border);border-radius:12px;padding:10px 12px;margin-bottom:10px;min-width:0}
+.esqrow{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.esq{background:var(--surface-1);border:0.5px solid var(--border);border-radius:10px;padding:8px}
+.esq b{display:block;font-size:12px;font-weight:500}
+.esq span.t{display:block;font-size:11px;color:var(--text-secondary);margin-bottom:6px}
+.chips{display:flex;flex-wrap:wrap;gap:4px}
+.chip{padding:2px 7px;font-size:11px;border-radius:999px;min-height:24px;background:var(--surface-2);border:0.5px solid var(--border-strong)}
+.chip.on{color:#111;border-color:transparent}
+.bar{display:flex;gap:10px;align-items:center;margin:0 0 10px}
+.chk{font-size:13px;display:flex;gap:6px;align-items:center}
+.main{display:grid;grid-template-columns:1fr;gap:10px}
+.main.two{grid-template-columns:1fr 1fr}
+.leg{display:flex;flex-wrap:wrap;gap:4px 10px;margin:8px 0 0;font-size:11px;color:var(--text-secondary)}
+.leg i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:4px;vertical-align:-1px;border:0.5px solid var(--border-strong)}
+.hint{font-size:11px;color:var(--text-secondary);margin:6px 0 0}
+.ph3d{border:1px dashed var(--border-strong);border-radius:10px;aspect-ratio:4/3;display:flex;align-items:center;justify-content:center;text-align:center;font-size:12px;color:var(--text-secondary);padding:12px;margin:0 0 8px}
+@media (max-width:620px){.esqrow{grid-template-columns:repeat(2,1fr)}.main.two{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<h1>Cómo quedaría el dibujo de la mitral dentro de ETE</h1>
+<p class="nota">Maqueta de integración. Lo real es el dibujo del medio (gira, tres vistas, línea del plano, lesiones). Los cuatro esquemas de arriba y el recuadro 3D son de muestra: en la app son los que ya existen.</p>
+
+<div class="card">
+  <div class="lbl" style="margin:0 0 6px">Esquemas de ETE (de muestra): leen los festones de la misma tabla que el dibujo</div>
+  <div class="esqrow" id="esq"></div>
+</div>
+
+<div class="bar">
+  <label class="chk"><input type="checkbox" id="pdf"> Incluir en PDF</label>
+  <button class="seg" id="b3d" aria-pressed="false">3D</button>
+</div>
+
+<div class="main" id="main">
+  <div class="card" id="cd">
+    <div class="grp"><span class="lbl">Vista</span><span id="gv" style="display:contents"></span></div>
+    <svg id="d" viewBox="0 0 420 420" width="100%" tabindex="0" role="img" aria-label="Dibujo de la válvula mitral. Arrastralo para girarlo, tocá un festón para cambiar su lesión, o usá los botones de vista." style="display:block;touch-action:none;cursor:grab;max-width:520px;margin:0 auto"></svg>
+    <div class="leg" id="leg"></div>
+    <p class="hint">Tocá un festón para cambiar su lesión. Arrastrá para girar.</p>
+  </div>
+  <div class="card" id="c3" hidden>
+    <div class="ph3d">Acá va el 3D que ya existe en la app (en esta maqueta, un recuadro). Sus botones de ángulo mueven la línea del dibujo.</div>
+    <div class="grp"><span class="lbl">Ángulo ETE</span><span id="ga" style="display:contents"></span></div>
+    <div class="lbl" style="margin:6px 0 4px">El 3D pinta las mismas lesiones</div>
+    <div class="chips" id="chips3d"></div>
+  </div>
+</div>
+
+<script>
+(function(){
+var NS='http://www.w3.org/2000/svg',D=Math.PI/180;
+var reduce=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+var CX=210,CY=215,RX=120,E=116;
+// Valores aprobados por Maicol (17/10/2026)
+var GP={RYT:64,RYB:100,SAG:46,dx:38,dy:10,T:22};
+// Lesiones: los colores son provisorios; en la app se usan los suyos
+var LESN=['Normal','Prolapso','Flail','Restricción','Perforación','Calcificación'];
+var LESC=[null,'#E8A33A','#E24B4A','#8E6BD6','#C0568B','#4CAF6E'];
+var LES={A1:0,A2:0,A3:0,P1:0,P2:0,P3:0};
+function el(n,a,p){var e=document.createElementNS(NS,n);for(var k in a){e.setAttribute(k,a[k]);}if(p){p.appendChild(e);}return e;}
+function topY(x){var u=x/RX;return -GP.RYT*Math.sqrt(Math.max(0,1-u*u));}
+function botY(x){var u=x/RX;return GP.RYB*Math.sqrt(Math.max(0,1-u*u));}
+function coapY(x){var u=x/E;return topY(E)+GP.SAG*(1-u*u);}
+function upPost(x){return Math.abs(x)<=E?coapY(x):topY(x);}
+function annPt(phi){var s=Math.sin(phi*D);return [RX*Math.cos(phi*D),-(s>0?GP.RYT:GP.RYB)*s];}
+function bandAnt(x0,x1){var pts=[],x;for(x=x0;x<x1;x+=4){pts.push([x,topY(x)]);}pts.push([x1,topY(x1)]);for(x=x1;x>x0;x-=4){pts.push([x,coapY(x)]);}pts.push([x0,coapY(x0)]);return pts;}
+function bandPost(x0,x1){var pts=[],x;for(x=x0;x<x1;x+=4){pts.push([x,upPost(x)]);}pts.push([x1,upPost(x1)]);for(x=x1;x>x0;x-=4){pts.push([x,botY(x)]);}pts.push([x0,botY(x0)]);return pts;}
+var svg=document.getElementById('d');svg.style.fontFamily='var(--font-sans)';
+var DEF=[['A1',-E,-70.5,0],['A2',-70.5,70.5,0],['A3',70.5,E,0],['P1',-RX,-76,1],['P2',-76,76,1],['P3',76,RX,1]];
+var items=DEF.map(function(d){return {n:d[0],pts:[],e:el('polygon',{fill:'var(--surface-1)',stroke:'var(--border-strong)','stroke-width':1,style:'cursor:pointer'},svg)};});
+var LX={A1:-93,A2:0,A3:93,P1:-98,P2:0,P3:98};
+function lblPos(n){var x=LX[n],y=(n.charAt(0)==='A')?(topY(x)+coapY(x))/2:(upPost(x)+botY(x))/2;return [x,y];}
+var annPts=[],coapPts=[];
+var annE=el('polygon',{fill:'none',stroke:'var(--text-secondary)','stroke-width':2.5,'pointer-events':'none'},svg);
+var coapE=el('polyline',{fill:'none',stroke:'var(--text-secondary)','stroke-width':2,'pointer-events':'none'},svg);
+function rebuild(){
+items.forEach(function(it,i){var d=DEF[i];it.pts=d[3]?bandPost(d[1],d[2]):bandAnt(d[1],d[2]);});
+annPts=[];for(var p=0;p<360;p+=4){annPts.push(annPt(p));}
+coapPts=[];for(var x=-E;x<=E;x+=8){coapPts.push([x,coapY(x)]);}
+}
+function txt(t,sz,w){var e=el('text',{'text-anchor':'middle','font-size':sz,'font-weight':w||400,fill:'var(--text-primary)'},svg);e.textContent=t;return e;}
+var labs=DEF.map(function(d){return {n:d[0],e:txt(d[0],13,500)};});
+// Las cuatro marcas que orientan el dibujo (giran con él)
+var aoC=el('circle',{r:12,fill:'var(--bg-info)',stroke:'var(--border-info)','stroke-width':1.5,'pointer-events':'none'},svg),aoT=txt('Ao',11,500);
+var orC=el('circle',{r:11,fill:'var(--bg-info)',stroke:'var(--border-info)','stroke-width':1.5,'pointer-events':'none'},svg),orT=txt('orejuela',10,400);
+var alT=txt('AL',11,500),pmT=txt('PM',11,500);
+[aoT,orT,alT,pmT].forEach(function(t){t.setAttribute('pointer-events','none');});
+// Línea del plano de corte: sin punto de referencia
+var pl=el('line',{stroke:'var(--text-primary)','stroke-width':2.5,'stroke-dasharray':'7 5','stroke-linecap':'round','pointer-events':'none'},svg);
+var planeLab=el('text',{x:12,y:42,'font-size':13,'font-weight':500,fill:'var(--text-primary)','pointer-events':'none'},svg);
+var rot=0,flip=1,tRot=0,tFlip=1,vel=0,drag=false,lastA=0,ang=null,scan=null,all={};
+// Tabla única de cortes: cada ángulo y los festones que atraviesa
+function gOf(a){if(a===0){return 180+GP.T;}if(a===45){return 185;}if(a===60){return 180;}if(a===90){return 180-GP.T;}return 90;}
+var KEYS=[0,45,60,90,120];
+function scAt(x,y){if(Math.abs(x)<=E&&y<coapY(x)){return x<-70.5?'A1':(x<=70.5?'A2':'A3');}return x<-76?'P1':(x<=76?'P2':'P3');}
+function insideV(x,y){return Math.abs(x)<RX&&topY(x)<=y&&y<=botY(x);}
+function lineScan(a){
+var g=gOf(a),c=Math.cos(g*D),s=-Math.sin(g*D),dx=GP.dx,dy=GP.dy,t,x,y,first=null,last=null,runs=[],r,n;
+for(t=-260;t<=260;t+=0.5){x=dx+t*c;y=dy+t*s;if(!insideV(x,y)){continue;}if(first===null){first=t;}last=t;n=scAt(x,y);if(!runs.length||runs[runs.length-1].n!==n){runs.push({n:n,len:0,sx:0});}r=runs[runs.length-1];r.len+=0.5;r.sx+=x*0.5;}
+var keep=runs.filter(function(q){return q.len>=9;});keep.sort(function(u,v){return u.sx/u.len-v.sx/v.len;});
+var out=[];keep.forEach(function(q){if(out.indexOf(q.n)<0){out.push(q.n);}});
+return {p0:[dx+(first-6)*c,dy+(first-6)*s],p1:[dx+(last+6)*c,dy+(last+6)*s],list:out};
+}
+function T(p,c,s){var x=flip*p[0],y=p[1];return [CX+x*c-y*s,CY+x*s+y*c];}
+function pts(arr,c,s){return arr.map(function(p){var q=T(p,c,s);return q[0].toFixed(1)+','+q[1].toFixed(1);}).join(' ');}
+function put(e,p,c,s,dy){var q=T(p,c,s);e.setAttribute('x',q[0].toFixed(1));e.setAttribute('y',(q[1]+(dy||0)).toFixed(1));}
+function putC(e,p,c,s){var q=T(p,c,s);e.setAttribute('cx',q[0].toFixed(1));e.setAttribute('cy',q[1].toFixed(1));}
+function draw(){
+var c=Math.cos(rot*D),s=Math.sin(rot*D),i;
+for(i=0;i<items.length;i++){items[i].e.setAttribute('points',pts(items[i].pts,c,s));}
+annE.setAttribute('points',pts(annPts,c,s));coapE.setAttribute('points',pts(coapPts,c,s));
+labs.forEach(function(l){put(l.e,lblPos(l.n),c,s,4);});
+putC(aoC,[0,-GP.RYT-36],c,s);put(aoT,[0,-GP.RYT-36],c,s,4);
+putC(orC,[-138,-64],c,s);put(orT,[-138,-82],c,s,0);
+put(alT,[-158,0],c,s,4);put(pmT,[158,0],c,s,4);
+if(scan){var q1=T(scan.p0,c,s),q2=T(scan.p1,c,s);
+pl.setAttribute('x1',q1[0].toFixed(1));pl.setAttribute('y1',q1[1].toFixed(1));pl.setAttribute('x2',q2[0].toFixed(1));pl.setAttribute('y2',q2[1].toFixed(1));}
+}
+// ---- Lesiones: un solo estado que leen el dibujo, los esquemas y el 3D ----
+var chipSets=[];
+function paintChip(b,n){var k=LES[n];b.className='chip'+(k?' on':'');b.style.background=k?LESC[k]:'';b.setAttribute('aria-label',n+': '+LESN[k]+'. Tocá para cambiar.');}
+function cycle(n){LES[n]=(LES[n]+1)%LESN.length;refresh();}
+function refresh(){
+items.forEach(function(it){var k=LES[it.n];it.e.setAttribute('fill',k?LESC[k]:'var(--surface-1)');it.e.setAttribute('fill-opacity',k?'0.6':'1');});
+chipSets.forEach(function(cs){cs.forEach(function(x){paintChip(x.b,x.n);});});
+}
+function mkChip(n,host){var b=document.createElement('button');b.className='chip';b.textContent=n;b.onclick=function(){cycle(n);};host.appendChild(b);return {b:b,n:n};}
+// Esquemas de arriba (de muestra): leen la misma tabla de cortes
+var ESQ=[['0°','4 cámaras',0],['45–60°','Bicomisural',60],['60–90°','2 cámaras',90],['125°','3 cámaras',120]];
+var esqHost=document.getElementById('esq');
+function buildEsq(){
+esqHost.textContent='';chipSets=chipSets.filter(function(cs){return cs.fixed;});
+ESQ.forEach(function(q){
+var card=document.createElement('div');card.className='esq';
+var b=document.createElement('b');b.textContent=q[0];var t=document.createElement('span');t.className='t';t.textContent=q[1];
+var ch=document.createElement('div');ch.className='chips';card.appendChild(b);card.appendChild(t);card.appendChild(ch);esqHost.appendChild(card);
+var set=all[q[2]].list.map(function(n){return mkChip(n,ch);});chipSets.push(set);
+});
+}
+var legEl=document.getElementById('leg');
+LESN.forEach(function(n,k){var s=document.createElement('span');var i=document.createElement('i');i.style.background=k?LESC[k]:'var(--surface-1)';s.appendChild(i);s.appendChild(document.createTextNode(n));legEl.appendChild(s);});
+var host3d=document.getElementById('chips3d');
+var set3d=['A1','A2','A3','P1','P2','P3'].map(function(n){return mkChip(n,host3d);});set3d.fixed=true;chipSets.push(set3d);
+// ---- Ángulos: viven en los botones del 3D ----
+function lista(arr){if(arr.length<2){return arr.join('');}return arr.slice(0,arr.length-1).join(', ')+' y '+arr[arr.length-1];}
+function recalc(){rebuild();all={};KEYS.forEach(function(k){all[k]=lineScan(k);});scan=(ang!==null)?all[ang]:null;}
+var ga=document.getElementById('ga'),ab={};
+function updPlane(){
+var on=ang!==null;
+scan=on?all[ang]:null;
+pl.setAttribute('display',on?'inline':'none');planeLab.textContent=on?('ETE '+ang+'°'):'';
+labs.forEach(function(l){var hit=on&&scan.list.indexOf(l.n)>=0;l.e.setAttribute('font-weight',hit?'800':'400');l.e.setAttribute('text-decoration',hit?'underline':'none');});
+for(var k in ab){ab[k].setAttribute('aria-pressed',on&&ang===parseInt(k,10));}
+}
+[0,45,60,90,120].forEach(function(a){var b=document.createElement('button');b.className='seg';b.textContent=a+'°';b.setAttribute('aria-pressed','false');b.onclick=function(){ang=(ang===a)?null:a;updPlane();};ga.appendChild(b);ab[a]=b;});
+// ---- Botón 3D: abre el panel a la derecha y corre el dibujo a la izquierda ----
+var main=document.getElementById('main'),c3=document.getElementById('c3'),b3d=document.getElementById('b3d');
+b3d.onclick=function(){var open=c3.hasAttribute('hidden');if(open){c3.removeAttribute('hidden');main.className='main two';}else{c3.setAttribute('hidden','');main.className='main';ang=null;updPlane();}b3d.setAttribute('aria-pressed',open);};
+// ---- Las tres vistas ----
+function cls(r,f){var m=((r%360)+360)%360,d0=Math.min(m,360-m),d180=Math.abs(m-180);if(f>0.95&&d0<8){return 'cir';}if(f>0.95&&d180<8){return 'tg';}if(f<-0.95&&d0<8){return 'ett';}return 'libre';}
+function nearest(b){return b+360*Math.round((rot-b)/360);}
+var gv=document.getElementById('gv'),vb={};
+[['cir','Vista del cirujano'],['ett','Vista ETT'],['tg','Vista transgástrica']].forEach(function(v){var b=document.createElement('button');b.className='seg';b.textContent=v[1];b.setAttribute('aria-pressed','false');b.onclick=function(){vel=0;if(v[0]==='cir'){tFlip=1;tRot=nearest(0);}else if(v[0]==='tg'){tFlip=1;tRot=nearest(180);}else{tFlip=-1;tRot=nearest(0);}if(reduce){rot=tRot;flip=tFlip;}views();};gv.appendChild(b);vb[v[0]]=b;});
+function views(){var v=cls(tRot,tFlip);for(var k in vb){vb[k].setAttribute('aria-pressed',v===k);}}
+// ---- Giro con el dedo; un toque corto sobre un festón cambia su lesión ----
+function ptAngle(e){var r=svg.getBoundingClientRect(),sx=(e.clientX-r.left)/r.width*420,sy=(e.clientY-r.top)/r.height*420;return Math.atan2(sy-CY,sx-CX)/D;}
+var down=null;
+svg.addEventListener('pointerdown',function(e){drag=true;vel=0;svg.style.cursor='grabbing';
+var n=null,i;for(i=0;i<items.length;i++){if(items[i].e===e.target){n=items[i].n;}}
+for(i=0;i<labs.length;i++){if(labs[i].e===e.target){n=labs[i].n;}}
+down={n:n,x:e.clientX,y:e.clientY,moved:0};
+try{svg.setPointerCapture(e.pointerId);}catch(x){}lastA=ptAngle(e);});
+svg.addEventListener('pointermove',function(e){if(!drag){return;}
+if(down){down.moved=Math.max(down.moved,Math.abs(e.clientX-down.x)+Math.abs(e.clientY-down.y));}
+var a=ptAngle(e),d=a-lastA;if(d>180){d-=360;}if(d<-180){d+=360;}rot+=d;tRot=rot;vel=reduce?0:(0.5*d+0.5*vel);lastA=a;});
+function up(){if(!drag){return;}drag=false;svg.style.cursor='grab';tRot=rot;
+if(down&&down.n&&down.moved<6){cycle(down.n);}
+down=null;views();}
+svg.addEventListener('pointerup',up);svg.addEventListener('pointercancel',function(){drag=false;down=null;svg.style.cursor='grab';});
+svg.addEventListener('keydown',function(e){if(e.key==='ArrowLeft'){vel=0;tRot-=15;if(reduce){rot=tRot;}views();e.preventDefault();}else if(e.key==='ArrowRight'){vel=0;tRot+=15;if(reduce){rot=tRot;}views();e.preventDefault();}});
+function frame(){
+if(!drag){
+if(Math.abs(vel)>0.05){rot+=vel;vel*=0.94;tRot=rot;if(Math.abs(vel)<=0.05){views();}}
+else{rot+=(tRot-rot)*0.16;}
+flip+=(tFlip-flip)*0.16;
+}
+draw();
+requestAnimationFrame(frame);
+}
+recalc();buildEsq();refresh();updPlane();views();
+if(typeof window!=='undefined'){window.__demo={cycle:cycle,setAng:function(a){ang=a;updPlane();},all:function(){return all;},LES:LES};}
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

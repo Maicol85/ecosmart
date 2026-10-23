@@ -5377,3 +5377,75 @@ del folio de la otra manda al lector a otra página — es la lección que `fop2
 coincidir con la escala que la app ya citaba. Todo lo demás que se movió son textos que **dejaron**
 de afirmar un resultado o una conducta en el papel firmado, y lo que pasó a estar publicado donde el
 médico puede consultarlo.
+
+---
+
+## La tanda «AJ2» — las correcciones de la verificación (2026-10-23)
+
+**NINGÚN CORTE SE MOVIÓ EN ESTA TANDA.** Lo que cambió es qué se afirma y con qué palabras. Las
+dos fuentes que hubo que **leer en el original** fueron para decidir si una afirmación tenía
+respaldo, y las dos dijeron que no.
+
+### Lo verificado
+
+**Nicoara y cols., ASE/SCA 2020 — la escala de ateroma aórtico.**
+Archivo: `14- ETE/TEE-Surgical-Decision-Making_June2020.pdf`, **hoja 25 · folio 716**, comprobado
+en el pie impreso («716 Nicoara et al»). Publica los cinco grados por **espesor creciente** de la
+placa y enumera las limitaciones de la medición por ETE —entre ellas que es «highly
+subjective»—. **NO publica un riesgo embólico por grado.**
+⚠️ **Y EL 23/10, MIRANDO UNA CAPTURA, APARECIERON TRES CAMINOS MÁS** que AJ2-7a no había
+alcanzado y que **ninguna medición numérica veía**, porque la fila de pantalla sí estaba
+escondida: con **placa móvil** el código volvía a escribir el span —y `display:none` no afecta a
+`textContent`, así que la hoja del PDF lo publicaba—; la `<option>` «Móvil — alto riesgo
+embólico» llevaba su ETIQUETA a esa misma hoja; y la tabla de **Referencias** conservaba su
+columna de riesgo por grado. Los tres se retiraron. **La hoja del PDF es la superficie que se
+firma.**
+
+→ Por eso salen «Riesgo embólico: Moderado» de la pantalla (AJ2-7a) y «alto riesgo embólico
+(Grado 4)», «muy alto riesgo embólico (Grado 5)» y la coletilla «hallazgo con implicancias en la
+estratificación del riesgo embólico» del **informe firmado** (AJ2-12). El grado y su espesor se
+conservan.
+
+**Hahn y cols., ASE 2021 — el ETE de la orejuela izquierda.**
+Archivo: `14- ETE/ASE ETE .pdf`, **folio 50**, comprobado en el pie impreso («50 Hahn et al»).
+La profundidad y la **zona de anclaje** («landing zone») se **miden** en cuatro planos (Figura 27),
+y el texto advierte que los dispositivos más nuevos son más cortos y conformables, así que «the
+measurements of the usable length of the LAA may not be orthogonal to the LAA orifice».
+**NO publica ningún criterio de profundidad contra ostium.**
+→ Por eso sale «Profundidad 35 mm ≥ ostium — favorable» (AJ2-14) y queda la medición. Y **no se
+le puso el chip «Criterio de EcoSmart»**: con el juicio retirado no queda un criterio que marcar,
+queda un dato. El rango de anclaje del Amulet (11 a 31 mm) y el máximo de 32 mm siguen en las
+notas, del dato del fabricante con su fecha de consulta, que es lo que el I-E1 dejó.
+
+### Lo que esta tanda MOVIÓ a este archivo, por ser estado del proceso y no del paciente
+
+**La discrepancia 375 / 365 del NT-proBNP en fibrilación auricular (AJ2-8d).** La ficha de
+Referencias del HFA-PEFF contaba la historia; su lugar es acá. **Pieske y cols., ESC/HFA 2019**,
+`02_Diastolica/HFA PEFF Pieske ESC 2019.pdf`: el **texto del folio 3304** escribe el piso del
+criterio menor en **375 pg/ml** y la **Figura 3 del folio 3305** en **365**. Los dos están
+impresos. **Gana la figura**, que es la regla de esta casa desde la tanda de los criterios del
+HFA-PEFF (2026-10-14) y que ese mismo artículo obliga a aplicar tres veces más. **El corte
+aplicado sigue siendo 365 y no se movió.** La ficha publica hoy sólo eso y por qué la VRT y la
+PSAP cuentan una sola vez.
+
+**La nota «La app decía "control anual" hasta el 21/10/2026» (AJ2-6).** Vivía en la sección de
+Evidencia de la válvula aórtica bicúspide, dentro del texto que el médico lee. Lo que la **ESC
+2024, Tabla 68, folio 119** publica para el diámetro máximo por encima de 40 mm sin indicación de
+cirugía —o tras cirugía valvular aislada— es imagen **al año y después cada 2 o 3 años** si el
+paciente sigue estable (Clase I · Nivel C), y por debajo de 40 mm **no publica ningún intervalo**.
+Eso último sigue en la ficha; la historia de qué decía la app antes, acá.
+
+### Cambios de evidencia
+
+| qué | antes | hoy | fuente |
+|---|---|---|---|
+| ateroma aórtico — riesgo embólico por grado | «Riesgo embólico: Moderado» en pantalla y «alto / muy alto riesgo embólico» en el informe firmado | **retirado**; queda el grado con su espesor | Nicoara ASE/SCA 2020, folio 716: no lo publica |
+| ateroma aórtico — riesgo embólico, los TRES caminos que quedaban | «Riesgo embólico \| Muy alto — placa móvil» y «Movilidad de la placa \| Móvil — **alto riesgo embólico**» en la **hoja del PDF**, y la columna «Riesgo embólico» por grado en la tabla de Referencias | **retirados los tres**; el `value` `movil` del desplegable NO se tocó | la misma: esa escala no gradúa un riesgo embólico |
+| orejuela — profundidad contra ostium | «Profundidad 35 mm ≥ ostium — favorable» | **retirado**; queda «Profundidad 35 mm; ostium 23 mm» | Hahn ASE 2021, folio 50: no publica ese criterio |
+| dilatación aórtica — escala de gravedad | leve / moderada / severa, de `sg.leve` y `sg.mod` | **«dilatada»**, con el diámetro | criterio propio sin fuente: `AOR-001` figura «por verificar», `ASE25_T1` no tiene fila de aorta y la ESC 2024 publica el umbral, no una escala |
+| score de TEP — veredicto | «Disfunción VD severa — alta probabilidad de TEP/HTP aguda» | «Disfunción del VD significativa» | ESC 2019: no publica un grado ni una probabilidad para este recuento |
+| líneas B focales | «hallazgo focal, puede ser inespecífico» | «Líneas B aisladas.» | es una interpretación, no un hallazgo |
+
+**Ningún corte, ningún operador y ninguna banda cambiaron.** Verificado por sondeo del dueño en
+los dos lados de cada borde: la aorta en 39 / 40,0 / 41 mm, el ateroma en 5 / 6 mm, el HFA-PEFF en
+sus cuatro cortes, y el TEP en 0 / 1 / 2 / 4 criterios.
