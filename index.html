@@ -27021,6 +27021,29 @@ const HTP_VRT_MEDIA_MAX = 3.4;   // m/s, INCLUSIVE: la banda media es 2,9-3,4
    y no es un criterio nuevo: la casilla unica que la app ya tenia lo nombraba en su rotulo. */
 const HTP_AP_MM_MIN     = 25;    // mm, ESTRICTO: «Diámetro de AP > 25 mm»
 
+/* ══ «SIN DATOS» NO ES «NO MEDIBLE», Y LOS DISTINGUE `vrtSel` (AJ2-1, 2026-10-23) ════════
+   `vrtCat` vale `nomedible` por DOS caminos que son cosas distintas: el medico eligio «No
+   medible» en el desplegable —una AFIRMACION suya: busco el chorro y no se puede medir— o el
+   selector esta en «Automatico» y la IT no esta cargada, que es un estudio SIN DATO. Hasta hoy
+   las cinco superficies escribian «VRT no medible» en los dos, asi que el informe FIRMADO
+   afirmaba que un chorro no se puede medir sobre un paciente al que nadie se lo midio.
+
+   ⚠️ EL PREDICADO TIENE UN SOLO DUENO Y CADA SUPERFICIE LE PONE SU VOCABULARIO. La pantalla y
+   el papel dicen «VRT sin datos»; la Evidencia dice «sin datos» a secas, porque el rotulo de su
+   fila ya es «Velocidad pico de regurgitacion tricuspidea». Son dos vocabularios a proposito
+   —el de la Evidencia cita el corte de la Figura 5— y por eso lo que se comparte es la DECISION
+   y no la cadena: con un mapa unico habria que elegir uno de los dos y el otro mentiria.
+
+   ⚠️ SOLO HAY DOS CAMINOS, Y ESTA MEDIDO EN EL PROPIO NUCLEO: `vrtCat` es
+   `(vrtSel === 'auto') ? (vrtAuto === null ? 'nomedible' : vrtAuto) : vrtSel`, asi que
+   `nomedible` sale de «auto» sin IT o de «nomedible» elegido, y de ningun otro. El predicado
+   pregunta por `vrtSel !== 'nomedible'` y no por `vrtSel === 'auto'`: asi un token que el
+   desplegable no ofrezca cae del lado que NO afirma. */
+function htpVrtSinDatos(vrtSel, vrtCat) {
+  return vrtCat === 'nomedible' && vrtSel !== 'nomedible';
+}
+window.htpVrtSinDatos = htpVrtSinDatos;
+
 /* ══ LOS ONCE SIGNOS DE LA TABLA 10, UNO POR FILA (E1, 2026-10-22) ════════════════════════
    DECISION DE MAICOL: el Paso 2 pasa de renglones sueltos con casillas a UNA TABLA agrupada en
    A, B y C, con tres columnas —el signo, el corte tal como figura en la Tabla 10, y el ESTADO
@@ -27227,7 +27250,12 @@ function calcHTP2022() {
       (VRT_LBL[vrtAuto] || vrtAuto) + '. Verificar.'
     : '';
 
-  const vrtTxt = {baja:'VRT ≤ 2.8 m/s', media:'VRT 2.9–3.4 m/s', alta:'VRT > 3.4 m/s', nomedible:'VRT no medible'}[vrtCat];
+  /* ⚠️ LA PANTALLA Y LA HOJA DEL PDF SON UN SOLO DUENO: `amiloTextoHTP` arma su fila con
+     `_amTxt('htp2022-vrt-interp')`, o sea lee ESTE nodo. Por eso corregir aca corrige las dos
+     por construccion y no por una medicion a posteriori. */
+  const vrtTxt = htpVrtSinDatos(vrtSel, vrtCat)
+    ? 'VRT sin datos'
+    : {baja:'VRT ≤ 2.8 m/s', media:'VRT 2.9–3.4 m/s', alta:'VRT > 3.4 m/s', nomedible:'VRT no medible'}[vrtCat];
   const set = (id, html) => { const e = document.getElementById(id); if (e) e.innerHTML = html; };
   /* El aviso se cuelga del MISMO nodo que ya baja al PDF (`_amTxt('htp2022-vrt-interp')` en
      el generador del informe), así que aparece en pantalla y en el informe sin tocar dos
@@ -53943,8 +53971,18 @@ function generarInforme(opts) {
       if (h22.catA) cats.push('ventrículos');
       if (h22.catB) cats.push('arteria pulmonar');
       if (h22.catC) cats.push('VCI/AD');
-      let l = `Valoración ecocardiográfica de probabilidad de hipertensión pulmonar (ESC 2022): probabilidad ${h22.prob.toLowerCase()} (${h22.vrtTxt}`;
-      l += cats.length ? `; signos adicionales en: ${cats.join(', ')}).` : '; sin signos adicionales).';
+      /* ⚠️ CON LA VRT «SIN DATOS» LA CLAUSULA DE LA VRT NO SE ESCRIBE (AJ2-1, 2026-10-23).
+         No es un rotulo nuevo: es que el informe deja de nombrar una variable que nadie midio.
+         Antes publicaba «(VRT no medible; signos adicionales en: …)» con el selector en
+         «Automatico» y la IT vacia, que es afirmar un hallazgo negativo sobre un dato ausente.
+         Con «No medible» ELEGIDA la clausula se conserva palabra por palabra, porque ahi si es
+         una afirmacion del medico. */
+      const _htpSinDato = (typeof htpVrtSinDatos === 'function') && htpVrtSinDatos(h22.vrtSel, h22.vrtCat);
+      let l = `Valoración ecocardiográfica de probabilidad de hipertensión pulmonar (ESC 2022): probabilidad ${h22.prob.toLowerCase()} (`;
+      if (!_htpSinDato) l += `${h22.vrtTxt}`;
+      l += cats.length
+        ? `${_htpSinDato ? '' : '; '}signos adicionales en: ${cats.join(', ')}).`
+        : `${_htpSinDato ? 'sin signos adicionales' : '; sin signos adicionales'}).`;
       inf.push(l);
       /* ECOS-08: la salvedad va en el CUERPO del informe y no sólo en la fila de datos del
          módulo, porque la probabilidad de HTP que se acaba de afirmar arriba se calculó con
@@ -79054,8 +79092,12 @@ function _indHTP(){
   const evaluada = (R.vrtCat !== 'nomedible') || R.nCat > 0;
   if (!evaluada) return null;
 
+  /* Vocabulario propio: cita el corte de la Figura 5, que es lo que esta fila explica. Lo que
+     comparte con la pantalla es el PREDICADO de «sin datos», no la cadena (AJ2-1). */
   const VRT_TXT = { baja:'≤ 2,8 m/s (o no medible)', media:'2,9 – 3,4 m/s', alta:'> 3,4 m/s',
                     nomedible:'no medible' };
+  const _vrtSinDato = (typeof htpVrtSinDatos === 'function') && htpVrtSinDatos(R.vrtSel, R.vrtCat);
+  const _vrtVal = _vrtSinDato ? 'sin datos' : (VRT_TXT[R.vrtCat] || R.vrtCat);
   const CAT_TXT = { A:'A · Ventrículos', B:'B · Arteria pulmonar', C:'C · Vena cava inferior y AD' };
   const SG = R.signos || [];
   const nombres = (cat) => SG.filter(function (g) { return g.cat === cat && g.presente; })
@@ -79064,7 +79106,7 @@ function _indHTP(){
                               .every(function (g) { return g.estado === 'sinDatos' && !g.presente; });
 
   const filas = [
-    _indFila('Velocidad pico de regurgitación tricuspídea', VRT_TXT[R.vrtCat] || R.vrtCat,
+    _indFila('Velocidad pico de regurgitación tricuspídea', _vrtVal,
       R.vrtCat === 'alta' ? 'alarm' : (R.vrtCat === 'media' ? 'warn' : (R.vrtCat === 'nomedible' ? 'ask' : 'none')),
       'es la variable que la guía elige para asignar la probabilidad; la PAPs estimada no la reemplaza (folio 27)',
       ['escErs2022'])
