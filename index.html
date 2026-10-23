@@ -14380,8 +14380,8 @@ z
             <option value="descendente_dist">Aorta descendente distal</option>
           </select>
         </div>
-        <div class="fg"><label>Clasificación aterosclerosis</label>
-          <select id="ao_grado_atero" onchange="calcAteroAo()">
+        <div class="fg"><label>Clasificaci&oacute;n aterosclerosis <span id="ao-grado-auto" style="color:var(--text2);font-size:10px;font-weight:400;"></span></label>
+          <select id="ao_grado_atero" onchange="ateroGradoManual();calcAteroAo()">
             <option value="">—</option>
             <option value="1">Grado 1 — Íntima normal</option>
             <option value="2">Grado 2 — Engrosamiento mínimo sin protrusiones</option>
@@ -14391,7 +14391,7 @@ z
           </select>
         </div>
         <div class="fg"><label>Grosor máximo placa (mm)</label>
-          <input type="number" id="ao_grosor_placa" placeholder="mm" oninput="calcAteroAo()">
+          <input type="number" id="ao_grosor_placa" placeholder="mm" oninput="ateroGradoAuto();calcAteroAo()">
         </div>
         <div class="fg"><label>Movilidad de la placa</label>
           <select id="ao_movilidad_placa" onchange="calcAteroAo()">
@@ -56862,6 +56862,9 @@ function limpiarCampos(silencioso) {
      esta línea el bloque de nivel/etiología del paciente anterior quedaba abierto sobre un
      formulario en blanco. */
   if (typeof vpSync === 'function') { try { vpSync(); } catch (e) {} }
+  /* Las dos marcas de origen del grado de ateroma: el barrido generico vacia el `value` y NO
+     borra un `dataset` (AJ2-7b, 2026-10-23). */
+  if (typeof ateroGradoReset === 'function') { try { ateroGradoReset(); } catch (e) {} }
   if (typeof valvProtSync === 'function') { try { valvProtSync(); } catch (e) {} }
   if (typeof dptSync === 'function') { try { dptSync(); } catch (e) {} }
   if (typeof cvrSync === 'function') { try { cvrSync(); } catch (e) {} }
@@ -83809,6 +83812,55 @@ const ATERO_GRADO_RANGO = Object.freeze({ 1:'espesor intimal menor de 2 mm', 2:'
                                           3:'ateroma de 3 a 5 mm', 4:'ateroma de más de 5 mm' });
 window.ateroGradoPorGrosor = ateroGradoPorGrosor; window.ATERO_GRADO_RANGO = ATERO_GRADO_RANGO;
 
+/* ══ EL GROSOR COMPLETA EL GRADO, Y EL DEL MEDICO MANDA (AJ2-7b, 2026-10-23) ══════════════
+   Hasta hoy `ateroGradoPorGrosor` solo PUBLICABA a que grado corresponde el espesor medido, en
+   la fila `ao-atero-grosor`, y el desplegable se quedaba vacio: el informe, el bloque del ETT
+   avanzado y la Evidencia no recibian el grado porque los tres leen `ao_grado_atero`.
+
+   ⚠️ EL CALCULO NO SE TOCA. Es el mismo `ateroGradoPorGrosor`: 5 mm EXACTOS dan grado 3 -el
+   operador es `mm <= 5`- y mas de 5 dan grado 4. El grado 5 no sale de un espesor -«cualquier
+   espesor con componentes moviles o ulcerados»- y esa funcion llega hasta el 4.
+
+   ⚠️ TRES ESTADOS Y DOS MARCAS EN EL PROPIO NODO. `dataset.auto` dice que el valor lo puso el
+   calculo -y es lo unico que el calculo puede volver a pisar o borrar-; `dataset.manual` dice
+   que el medico toco el desplegable, y se pone TAMBIEN cuando lo deja en la raya: sin eso,
+   elegir «—» con el grosor cargado hacia que el automatico lo reescribiera en el gesto
+   siguiente, que es la app deshaciendo una eleccion del medico en silencio -el defecto que el
+   selector de VD/VI pago en el G3-.
+
+   ⚠️ NINGUNA DE LAS DOS MARCAS SE PERSISTE, y es deliberado: los `dataset` no viajan con el
+   estudio. Por eso `ateroGradoAuto` corre SOLO desde el gesto -el `oninput` del grosor- y NO
+   desde `RECALC_MODULOS`: `ao_grado_atero` es un campo del estudio, asi que escribirlo al
+   reabrir cambiaria lo que se guarda en el proximo guardado. Un estudio ya guardado reabre
+   EXACTAMENTE como se guardo. */
+function ateroGradoAuto() {
+  const sel = document.getElementById('ao_grado_atero'); if (!sel) return;
+  const gg = ateroGradoPorGrosor((typeof v === 'function') ? v('ao_grosor_placa') : null);
+  if (gg == null) {
+    if (sel.dataset.auto === '1') { sel.value = ''; delete sel.dataset.auto; }
+  } else if (sel.dataset.manual !== '1' && (!sel.value || sel.dataset.auto === '1')) {
+    sel.value = String(gg); sel.dataset.auto = '1';
+  }
+  const nota = document.getElementById('ao-grado-auto');
+  if (nota) nota.textContent = (sel.dataset.auto === '1') ? '(automático)' : '';
+}
+function ateroGradoManual() {
+  const sel = document.getElementById('ao_grado_atero'); if (!sel) return;
+  delete sel.dataset.auto; sel.dataset.manual = '1';
+  const nota = document.getElementById('ao-grado-auto');
+  if (nota) nota.textContent = '';
+}
+/* «Nuevo estudio»: el barrido generico vacia el `value` pero NO borra un `dataset`, asi que sin
+   esto la marca del paciente anterior sobrevivia y un grado elegido despues quedaba rotulado
+   «(automático)» — o, peor, `manual` pegado dejaba el automatico muerto para siempre. */
+function ateroGradoReset() {
+  const sel = document.getElementById('ao_grado_atero'); if (!sel) return;
+  delete sel.dataset.auto; delete sel.dataset.manual;
+  const nota = document.getElementById('ao-grado-auto');
+  if (nota) nota.textContent = '';
+}
+window.ateroGradoAuto = ateroGradoAuto; window.ateroGradoManual = ateroGradoManual;
+window.ateroGradoReset = ateroGradoReset;
 
 // ══ ATEROSCLEROSIS AÓRTICA ══
 function calcAteroAo() {
