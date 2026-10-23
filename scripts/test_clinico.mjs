@@ -500,12 +500,18 @@ caso('TC-13', 'TEER con trombo en AI: CONTRAINDICADO, no NO CONTRAINDICADO', `
 `);
 
 // ═══ GRUPO 7 — Aorta ════════════════════════════════════════════════════════════════════════
-caso('TC-14', 'Seno de Valsalva 42 mm: levemente dilatada', `
+/* ADAPTADO el 2026-10-23 (AJ2-6): la aorta ya no gradua su dilatacion. El titulo decia
+   «levemente dilatada» y ese reparto era CRITERIO PROPIO -`AOR-001` figura «por verificar» y
+   ninguna guia de la biblioteca publica una escala de gravedad del diametro-. El caso gana el
+   control negativo de las tres palabras retiradas, que es lo que lo hace fallar si alguna vuelve. */
+caso('TC-14', 'Seno de Valsalva 42 mm: dilatada, SIN grado', `
   __t.limpiar();
   __t.set('ao_sin','42');
   const r = __t.informe();
   return { inf: r.inf, suma: r.suma,
-    debe: ['levemente dilatada'], noDebe: ['Aorta torácica de calibre normal'],
+    debe: ['Raíz aórtica 42 mm (dilatada)'],
+    noDebe: ['Aorta torácica de calibre normal', 'levemente dilatada',
+             'moderadamente dilatada', 'severamente dilatada'],
     debeSuma: ['Dilatación raíz aórtica'] };
 `);
 
@@ -4980,15 +4986,20 @@ caso('TC-38', 'FAC 34.5 se publica 35 y se clasifica como 35, no como 34.5', `
 // ═══ GRUPO 14 — Aorta toracica, los cinco segmentos ═════════════════════════════════════════
 /* Umbrales unificados ESC 2021, uno por segmento. `diam_cayado` y `diam_ao_toracica` estuvieron
    meses en pantalla sin llegar a ningun lado: estos dos casos son su red. */
-caso('TC-39', 'Aorta: cada segmento dilatado llega al narrativo Y al EN SUMA', `
+/* ADAPTADO el 2026-10-23 (AJ2-6): los cinco segmentos dicen «dilatada» -o «dilatado» en el
+   cayado, que es el unico masculino- y ya no reparten leve/moderada/severa. La CONCORDANCIA DE
+   GENERO sigue probada por los dos lados, que es lo que ese caso cubria y que un adjetivo unico
+   no vuelve trivial: con un solo mapa el cayado seguiria saliendo «dilatada» si se olvidara. */
+caso('TC-39', 'Aorta: cada segmento dilatado llega al narrativo Y al EN SUMA, sin grado', `
   __t.limpiar();
   __t.set('ao_sin','44'); __t.set('ao_st','40'); __t.set('ao_tub','47');
   __t.set('diam_cayado','44'); __t.set('diam_ao_toracica','40');
   const r = __t.informe();
   return { inf: r.inf, suma: r.suma,
-    debe: ['Raíz aórtica 44 mm (levemente dilatada)', 'Unión sinotubular 40 mm (levemente dilatada)',
-           'Aorta ascendente 47 mm (moderadamente dilatada)', 'Cayado aórtico 44 mm (levemente dilatado)',
-           'Ao torácica descendente 40 mm (levemente dilatada)'],
+    debe: ['Raíz aórtica 44 mm (dilatada)', 'Unión sinotubular 40 mm (dilatada)',
+           'Aorta ascendente 47 mm (dilatada)', 'Cayado aórtico 44 mm (dilatado)',
+           'Ao torácica descendente 40 mm (dilatada)'],
+    noDebe: ['levemente dilatad', 'moderadamente dilatad', 'severamente dilatad'],
     debeSuma: ['Dilatación raíz aórtica (44 mm).', 'Dilatación unión sinotubular (40 mm).',
                'Dilatación aorta ascendente (47 mm).', 'Dilatación cayado aórtico (44 mm).',
                'Dilatación aorta torácica descendente (40 mm).'] };
@@ -4998,9 +5009,10 @@ caso('TC-40', 'Cayado y aorta descendente solos, sin ningun otro segmento cargad
   __t.limpiar(); __t.set('diam_cayado','50'); const a = __t.informe();
   __t.limpiar(); __t.set('diam_ao_toracica','44'); const b = __t.informe();
   return { extra: [
-    ['el cayado solo sale',      /Aorta torácica: Cayado aórtico 50 mm \\(moderadamente dilatado\\)/.test(a.inf)],
+    /* ADAPTADO el 2026-10-23 (AJ2-6): «moderadamente» salio con la escala de gravedad. */
+    ['el cayado solo sale',      /Aorta torácica: Cayado aórtico 50 mm \\(dilatado\\)/.test(a.inf)],
     ['el cayado solo va al EN SUMA', a.suma.indexOf('Dilatación cayado aórtico (50 mm).') > -1],
-    ['la descendente sola sale', /Ao torácica descendente 44 mm \\(moderadamente dilatada\\)/.test(b.inf)],
+    ['la descendente sola sale', /Ao torácica descendente 44 mm \\(dilatada\\)/.test(b.inf)],
     ['la descendente va al EN SUMA', b.suma.indexOf('Dilatación aorta torácica descendente (44 mm).') > -1]
   ] };
 `);
@@ -85133,6 +85145,65 @@ caso('TC-519', 'Tanda AJ2: «sin datos» no es «no medible» en las cinco super
     norm(String(dR.texto)).indexOf('no clasificable') > -1 && norm(String(dR.texto)).indexOf('completar e') === -1,
     String(dR.texto)]);
   ex.push(['(I3) y es la que baja al informe FIRMADO', iDia.indexOf('no clasificable') > -1, iDia]);
+
+  /* == (J) AJ2-6 - LA AORTA NO GRADUA SU DILATACION ========================================
+     El dueno se SONDEA: leer la capsula sola no distingue «el rotulo cambio» de «el voto
+     cambio», y el corte es lo unico que esta tanda NO toca. */
+  const AG = F('aoSegGrado');
+  ex.push(['(J1) aoSegGrado existe y es el dueno', !!AG, typeof AG]);
+  if (AG) {
+    const sgSin = (function(){ try { return AO_SEGS.filter(x => x.k === 'ao_sin')[0] || null; }
+                               catch (e) { return null; } })();
+    ex.push(['(J2) DENOMINADOR: la fila del seno de Valsalva existe', !!sgSin, JSON.stringify(sgSin && sgSin.k)]);
+    if (sgSin) {
+      ex.push(['(J3) EL CORTE NO SE MOVIO: 39 normal y 40,0 EXACTOS dilatada',
+        AG(sgSin, 39) === 'normal' && AG(sgSin, 40) === 'dilatada',
+        AG(sgSin, 39) + '/' + AG(sgSin, 40)]);
+      ex.push(['(J4) un solo grado por encima del corte: 41, 46, 51 y 60 dan lo mismo',
+        [41, 46, 51, 60].every(x => AG(sgSin, x) === 'dilatada'),
+        [41, 46, 51, 60].map(x => AG(sgSin, x)).join('/')]);
+      ex.push(['(J5) y la banda de plausibilidad sigue devolviendo «fuera»',
+        AG(sgSin, 95) === 'fuera', String(AG(sgSin, 95))]);
+      ex.push(['(J6) los cortes de GRADO salieron de AO_SEGS y no quedan huerfanos',
+        sgSin.leve === undefined && sgSin.mod === undefined,
+        'leve=' + String(sgSin.leve) + ' mod=' + String(sgSin.mod)]);
+    }
+  }
+  __t.limpiar();
+  set({ ao_sin: '48' });
+  try { calcAorta(); } catch (e) {}
+  const capAo = txt('ao-interp') || '';
+  const iAo = inf().split('\\n').filter(l => norm(l).indexOf('aorta tor') > -1)[0] || '';
+  ex.push(['(J7) DENOMINADOR: el informe publica su linea de aorta', iAo.length > 20, iAo.slice(0, 80)]);
+  ex.push(['(J8) la capsula dice «Dilatada» con su corte y sin grado',
+    capAo.indexOf('Dilatada') > -1 && norm(capAo).indexOf('leve') === -1
+    && norm(capAo).indexOf('moderada') === -1 && norm(capAo).indexOf('severa') === -1, capAo]);
+  ex.push(['(J9) el informe dice «(dilatada)» y no gradua',
+    iAo.indexOf('(dilatada)') > -1 && norm(iAo).indexOf('mente dilatad') === -1, iAo.slice(0, 110)]);
+  /* El renglon del corte de la tarjeta i: con la clave vieja la busqueda no matchea y el
+     renglon desaparece sin que nada lo señale. */
+  const tarAo = (function(){
+    try { const fr = (typeof evTarjetaAo === 'function') ? evTarjetaAo() : null;
+      const n = (fr && fr.querySelector) ? fr.querySelector('[data-ev-cat="ao-corte"]') : null;
+      return n ? (n.textContent || '').trim() : 'SIN RENGLON'; } catch (e) { return 'EXC'; } })();
+  ex.push(['(J10) la tarjeta conserva su renglon del corte y ya no dice «Dilat. leve»',
+    tarAo.indexOf('Corte de EcoSmart: 40 mm') > -1 && tarAo.indexOf('Dilat. leve') === -1, tarAo]);
+  /* La conclusion de la VAB: sale el grado y la clave del Laboratorio NO se mueve. */
+  __t.limpiar();
+  set({ ao_sin: '42', va_morf: 'Bic' + String.fromCharCode(250) + 'spide' });
+  const vc = (function(){ try { return (typeof vabConclusion === 'function') ? vabConclusion() : null; }
+                          catch (e) { return null; } })();
+  ex.push(['(J11) DENOMINADOR: la VAB cae en su rama de 40 a 44 mm',
+    !!vc && vc.clave === 'dilatacion_leve', JSON.stringify(vc && vc.clave)]);
+  ex.push(['(J12) y su texto ya no dice «leve», con la CLAVE intacta para el Laboratorio',
+    !!vc && norm(vc.txt).indexOf('dilatacion leve') === -1
+         && norm(vc.txt).indexOf('dilatacion de la aorta') > -1, String(vc && vc.txt).slice(0, 100)]);
+  /* CONTROL NEGATIVO: una aorta normal y una fuera de banda salen como siempre. */
+  __t.limpiar(); set({ ao_sin: '38' }); try { calcAorta(); } catch (e) {}
+  ex.push(['(J13) CONTROL: la aorta normal no cambio', txt('ao-interp') === 'Normal (<40mm)', String(txt('ao-interp'))]);
+  __t.limpiar(); set({ ao_sin: '95' }); try { calcAorta(); } catch (e) {}
+  ex.push(['(J14) CONTROL: el valor fuera de banda tampoco',
+    norm(String(txt('ao-interp'))).indexOf('fuera de rango') > -1, String(txt('ao-interp'))]);
 
   ex.push(['(Z) DENOMINADOR GLOBAL: todos los campos del caso se encontraron',
     noEntraron.length === 0, 'noEntraron=' + JSON.stringify(noEntraron)]);

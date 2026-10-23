@@ -23139,15 +23139,15 @@ const AO_SEGS = Object.freeze([
      al lado del valor, para que ninguna superficie tenga que recordarlo.
      ⚠️ ES CRITERIO DE ECOSMART Y NO SE LE ATRIBUYE A NINGUNA GUÍA: la ficha `AOR-001` figura
      «por verificar» y no publica fuente desde la tanda M. */
-  Object.freeze({ k:'ao_sin', lbl:'raíz aórtica',        lblC:'Raíz aórtica',        med:'senos de Valsalva',    ref:AO_REF.sin, incRef:true, leve:45, mod:50,   min:10, max:90 }),
-  Object.freeze({ k:'ao_st',  lbl:'unión sinotubular',   lblC:'Unión sinotubular',   med:'unión sinotubular',    ref:AO_REF.st,  leve:44, mod:49,   min:10, max:80 }),
-  Object.freeze({ k:'ao_tub', lbl:'aorta ascendente',    lblC:'Aorta ascendente',    med:'aorta ascendente',     ref:AO_REF.tub, leve:45, mod:50,   min:10, max:90 }),
+  Object.freeze({ k:'ao_sin', lbl:'raíz aórtica',        lblC:'Raíz aórtica',        med:'senos de Valsalva',    ref:AO_REF.sin, incRef:true, min:10, max:90 }),
+  Object.freeze({ k:'ao_st',  lbl:'unión sinotubular',   lblC:'Unión sinotubular',   med:'unión sinotubular',    ref:AO_REF.st,  min:10, max:80 }),
+  Object.freeze({ k:'ao_tub', lbl:'aorta ascendente',    lblC:'Aorta ascendente',    med:'aorta ascendente',     ref:AO_REF.tub, min:10, max:90 }),
   /* `m:true` = sustantivo MASCULINO. Los cuatro segmentos viejos son femeninos («la raíz», «la
      unión», «la aorta»), así que el narrativo tenía el artículo y el adjetivo cableados en
      femenino. El cayado es el primero masculino y salía «la cayado aórtico se encuentra
      levemente dilatada» en el informe firmado. */
-  Object.freeze({ k:'diam_cayado',      lbl:'cayado aórtico',            lblC:'Cayado aórtico',            med:'cayado',                   ref:AO_REF.cay,  leve:45, mod:50, min:10, max:80, m:true }),
-  Object.freeze({ k:'diam_ao_toracica', lbl:'aorta torácica descendente', lblC:'Ao torácica descendente',  med:'aorta torácica descendente', ref:AO_REF.desc, leve:40, mod:45, min:8,  max:70 })
+  Object.freeze({ k:'diam_cayado',      lbl:'cayado aórtico',            lblC:'Cayado aórtico',            med:'cayado',                   ref:AO_REF.cay,  min:10, max:80, m:true }),
+  Object.freeze({ k:'diam_ao_toracica', lbl:'aorta torácica descendente', lblC:'Ao torácica descendente',  med:'aorta torácica descendente', ref:AO_REF.desc, min:8,  max:70 })
 ]);
 /* ⚠️ LOS TRES TRAMOS DEL SCORE, Y NINGUNO AFIRMA UN RESULTADO (I-E1, 22/10/2026).
    Los cortes (≤ 8 / 9-11 / > 11) son los del original y NO se tocan: Wilkins 1988, folio 307,
@@ -23202,8 +23202,9 @@ function wilkTxtParcial(n) {
    error. Y `mod` ausente se comporta igual que `mod:null` (salta de leve a severa), así que la
    omisión silenciosa es una decisión clínica que nadie tomó: se avisa. */
 AO_SEGS.forEach(function(sg){
-  if (!(sg.ref < sg.leve)) console.error('[AO_SEGS] ' + sg.k + ': ref debe ser menor que leve', sg);
-  if (sg.mod != null && !(sg.leve < sg.mod)) console.error('[AO_SEGS] ' + sg.k + ': leve debe ser menor que mod', sg);
+  /* ⚠️ LOS DOS ASSERTS DE `leve` Y `mod` SE FUERON CON LOS CORTES (AJ2-6, 23/10/2026): esos dos
+     campos repartian los tres grados que la app ya no publica, y un centinela que compare dos
+     numeros que nadie lee afirma —por su propio mensaje de error— que algo los gobierna. */
   if (!('mod' in sg)) console.warn('[AO_SEGS] ' + sg.k + ': sin `mod` salta de leve a SEVERA; declarar `mod:null` si es a propósito');
 });
 /* Devuelve los segmentos MEDIDOS con su grado. Un segmento vacío no entra: no se puede afirmar
@@ -23236,7 +23237,17 @@ window.aoSegSim = aoSegSim;
 function aoSegGrado(sg, x) {
   if (x === null || x === undefined || !isFinite(x) || !x) return null;
   if (x < sg.min || x > sg.max) return 'fuera';
-  if (aoSegDil(sg, x)) return (x <= sg.leve) ? 'leve' : (sg.mod && x <= sg.mod) ? 'moderada' : 'severa';
+  /* ══ UN SOLO GRADO: «dilatada» (AJ2-6, 23/10/2026) ═══════════════════════════════════════
+     DECISION DE MAICOL. Los tres grados —leve, moderada, severa— los repartian `sg.leve` y
+     `sg.mod`, que eran CRITERIO PROPIO: la ficha `AOR-001` figura «por verificar» y no publica
+     fuente, `ASE25_T1` no tiene ninguna fila de aorta, y la ESC 2024 publica el UMBRAL de
+     dilatacion (40 mm en el varon, 36 en la mujer) y los umbrales QUIRURGICOS, no una escala de
+     gravedad del diametro. Asi que el informe firmado graduaba con una escala que ninguna guia
+     de la biblioteca escribe.
+     ⚠️ EL CORTE DE DILATACION NO SE MOVIO: sigue siendo `sg.ref` con el operador de `aoSegDil`,
+     o sea los 40 mm del seno de Valsalva —contando el valor exacto— y los de los otros cuatro
+     segmentos. Lo que se retira es el REPARTO por encima de ese corte. */
+  if (aoSegDil(sg, x)) return 'dilatada';
   return 'normal';
 }
 window.aoSegGrado = aoSegGrado;
@@ -24016,7 +24027,10 @@ window.getIMC = getIMC;
    discrepar: si la cápsula dice verde, el informe dice «normal», y al revés. */
 const AO_INTERP_EL = { ao_sin: 'ao-interp', ao_st: 'ao-st-interp', ao_tub: 'ao-tub-interp',
                        diam_cayado: 'ao-cay-interp', diam_ao_toracica: 'ao-desc-interp' };
-const AO_BADGE_COLOR = { normal:'green', leve:'yellow', moderada:'orange', severa:'red' };
+/* ⚠️ DOS COLORES Y NO CUATRO (AJ2-6, 23/10/2026): el amarillo, el naranja y el rojo eran los
+   tres grados retirados. Queda el naranja de «hay un hallazgo», y el color NUNCA es lo unico que
+   informa: la capsula escribe «Dilatada» con su corte al lado. */
+const AO_BADGE_COLOR = { normal:'green', dilatada:'orange' };
 function calcAorta() {
   /* ⚠️ SE RECORRE `AO_SEGS` COMPLETO Y NO `aoSegsMedidos()` (ARR2, 2026-10-18). Ese lector
      FILTRA los segmentos sin dato (`if (!x) return null` + `.filter(Boolean)`) porque el informe
@@ -24036,9 +24050,11 @@ function calcAorta() {
        un 40,5 clasificaba «leve» bajo un rótulo que decía que la banda empieza en 41. */
     if (m.grado === 'fuera')         txt = 'Valor fuera de rango (' + sg.min + '-' + sg.max + ' mm) — verificar';
     else if (m.grado === 'normal')   txt = 'Normal (' + aoSegSim(sg, 'normal') + sg.ref + 'mm)';
-    else if (m.grado === 'leve')     txt = 'Dilat. leve (' + aoSegSim(sg, 'dil') + sg.ref + ' y ≤' + sg.leve + 'mm)';
-    else if (m.grado === 'moderada') txt = 'Dilat. moderada (>' + sg.leve + ' y ≤' + sg.mod + 'mm)';
-    else                             txt = 'Dilat. severa (>' + (sg.mod || sg.leve) + 'mm)';
+    /* ⚠️ UN SOLO ROTULO, CON SU CORTE Y SIN GRADO (AJ2-6, 23/10/2026). Las tres ramas decian
+       «Dilat. leve (≥40 y ≤45mm)», «Dilat. moderada (>45 y ≤50mm)» y «Dilat. severa (>50mm)»:
+       la escala que esta tanda retira. El operador sigue saliendo de `aoSegSim`, que lo deriva
+       del mismo `incRef` que decide el voto. */
+    else                             txt = 'Dilatada (' + aoSegSim(sg, 'dil') + sg.ref + 'mm)';
     refSync(idSpan, badge(m.grado === 'fuera' ? 'red' : AO_BADGE_COLOR[m.grado], txt));
   });
 }
@@ -43359,7 +43375,11 @@ function evTarjetaAo() {
   const C = evCortes(sv('sexo'));
   const bSin = (C.aoSeg && C.aoSeg.ao_sin) ? C.aoSeg.ao_sin : [];
   let corte = null;
-  for (let i = 0; i < bSin.length; i++) if (bSin[i].k === 'leve') { corte = bSin[i].desde; break; }
+  /* ⚠️ LA CLAVE SONDEADA PASA DE `leve` A `dilatada` (AJ2-6, 23/10/2026): el dueno devuelve un
+     solo grado por encima del corte, asi que el piso de ESA banda es el corte. Con la clave
+     vieja la busqueda no matcheaba y la tarjeta se quedaba SIN el renglon del corte, que es un
+     dato que desaparece sin que nada lo señale. */
+  for (let i = 0; i < bSin.length; i++) if (bSin[i].k === 'dilatada') { corte = bSin[i].desde; break; }
 
   const pS = vPlaus('ao_sin');
   const diam = (pS.val != null && !pS.fuera) ? pS.val : null;
@@ -53809,10 +53829,11 @@ function generarInforme(opts) {
     const aoM  = aoSegsMedidos().filter(x => !x.fuera);
     const aoF  = aoSegsMedidos().filter(x =>  x.fuera);
     const aoD  = aoM.filter(x => x.dil);
-    /* Concordancia de género: el adjetivo sigue al sustantivo del segmento (`sg.m`). */
-    const _gTxtF = { leve:'levemente dilatada', moderada:'moderadamente dilatada', severa:'severamente dilatada' };
-    const _gTxtM = { leve:'levemente dilatado', moderada:'moderadamente dilatado', severa:'severamente dilatado' };
-    const gTxt = m => (m && m.sg && m.sg.m) ? _gTxtM : _gTxtF;
+    /* Concordancia de género: el adjetivo sigue al sustantivo del segmento (`sg.m`).
+       ⚠️ UN SOLO ADJETIVO (AJ2-6, 23/10/2026): los dos mapas repartian «levemente»,
+       «moderadamente» y «severamente» por el grado de `aoSegGrado`, que es la escala sin fuente
+       que esta tanda retira. El DIAMETRO se conserva en las dos redacciones. */
+    const gTxt = m => (m && m.sg && m.sg.m) ? 'dilatado' : 'dilatada';
     if (aoF.length && !aoD.length) {
       /* Hay un valor fuera de escala y ninguno dilatado: NO se afirma normalidad. El médico ve
          qué segmento revisar en vez de un informe que dice «normal» sobre un dato ilegible. */
@@ -53832,12 +53853,12 @@ function generarInforme(opts) {
         'Aorta torácica de calibre normal (' + vals + ').' + _vabFenoCola(),
         'La aorta torácica es de calibre normal, con ' + vals.toLowerCase() + '.' + _vabFenoCola()));
     } else {
-      const cad = aoD.map(x => x.sg.lblC + ' ' + x.val + ' mm (' + gTxt(x)[x.grado] + ')').join('; ');
+      const cad = aoD.map(x => x.sg.lblC + ' ' + x.val + ' mm (' + gTxt(x) + ')').join('; ');
       /* Sólo la raíz lleva el «a nivel de …»: su medición se toma en los senos de Valsalva, que
          es un sitio distinto del segmento que se nombra. En los otros dos el sitio y el segmento
          son el mismo y la cláusula quedaba redundante («la unión sinotubular … a nivel de la
          unión sinotubular»). */
-      const nar = aoD.map(x => (x.sg.m ? 'el ' : 'la ') + x.sg.lbl + ' se encuentra ' + gTxt(x)[x.grado] +
+      const nar = aoD.map(x => (x.sg.m ? 'el ' : 'la ') + x.sg.lbl + ' se encuentra ' + gTxt(x) +
                                (x.sg.k === 'ao_sin' ? ', con un diámetro a nivel de los ' + x.sg.med + ' de ' : ', de ') +
                                x.val + ' mm').join('; ');
       /* Los segmentos medidos y NORMALES se citan igual: sin ellos, «aorta ascendente dilatada»
@@ -68328,8 +68349,13 @@ function vabConclusion(src){
      «reemplazo en el mismo acto», o sea una recomendación condicional. */
   if (maxAo >= 45) return { clave:'vigilancia_45',
     txt: cabeza + '. Dilatación de la aorta de ' + maxAo + ' mm' + otroDiam + ', por debajo de los umbrales quirúrgicos de la ESC 2024 (Tabla 68, folio 119)' + sinEval };
+  /* ⚠️ «LEVE» SALE Y LA CLAVE NO SE MUEVE (AJ2-6, 23/10/2026): `dilatacion_leve` es lo que el
+     Laboratorio cuenta por estudio guardado, asi que renombrarla reclasificaria la base entera.
+     Lo que cambia es como se ESCRIBE.
+     ⚠️ Y LA SEGUNDA CLAUSULA —«control por imagen y seguimiento del ritmo de crecimiento»— ES UNA
+     CONDUCTA Y NO SE TOCA: no esta en la lista de esta orden. REPORTADA. */
   if (maxAo >= 40) return { clave:'dilatacion_leve',
-    txt: cabeza + '. Dilatación leve de la aorta de ' + maxAo + ' mm' + otroDiam + ' — control por imagen y seguimiento del ritmo de crecimiento' };
+    txt: cabeza + '. Dilatación de la aorta de ' + maxAo + ' mm' + otroDiam + ' — control por imagen y seguimiento del ritmo de crecimiento' };
   /* Rama benigna: sólo se afirma con la aorta MEDIDA, que es lo que exige `maxAo != null`. */
   /* ⚠️ «SEGUIMIENTO ANUAL» SE RETIRA DE ESTA RAMA, Y NO ES LO MISMO QUE ALINEARLO: la Tabla 68
      NO da ningún intervalo por debajo de 40 mm —su fila de seguimiento arranca en «> 40 mm»—,
@@ -77911,7 +77937,7 @@ function _indVAB(){
          recomendación vive acá. Las tres están verificadas en el original, Recomendaciones-tabla
          68, folio 119 (hoja 120). */
       'Clase IIa · Nivel C desde 45 mm, de raíz o de aorta ascendente, en el paciente que se somete a cirugía de válvula aórtica: la guía recomienda considerar el reemplazo de la aorta en el mismo acto (Tabla 68, folio 119). La ESC/EACTS 2025 de valvulopatías dice lo mismo en su apartado 7.4, folio 4660, y remite a la guía de aorta.',
-      'SEGUIMIENTO POR IMAGEN, con el diámetro máximo por encima de 40 mm y sin indicación de cirugía, o tras una cirugía valvular aislada: ecocardiografía transtorácica seriada al año y, después, cada 2 o 3 años si el paciente sigue estable (Clase I · Nivel C, Tabla 68, folio 119). La app decía «control anual» hasta el 21/10/2026; por debajo de 40 mm esa tabla NO publica ningún intervalo.',
+      'SEGUIMIENTO POR IMAGEN, con el diámetro máximo por encima de 40 mm y sin indicación de cirugía, o tras una cirugía valvular aislada: ecocardiografía transtorácica seriada al año y, después, cada 2 o 3 años si el paciente sigue estable (Clase I · Nivel C, Tabla 68, folio 119). Por debajo de 40 mm esa tabla no publica ningún intervalo.',
       'Tomografía o resonancia de TODA la aorta torácica al diagnóstico, y también cuando las mediciones de las ecocardiografías de control discrepan entre sí o el diámetro supera 45 mm (Clase I · Nivel C, Tabla 68, folio 119).',
       'Cribado con ecocardiografía de los familiares de primer grado: Clase I · Nivel C cuando hay fenotipo de raíz o insuficiencia aórtica aislada, y Clase IIa · Nivel B para todos los pacientes con válvula bicúspide (Tabla 68, folio 119).',
       'Los dos umbrales Clase I que circulan —«> 50 mm con factores de riesgo» y «> 45 mm con recambio valvular programado»— son de la ESC 2014: la guía de 2024 los imprime en su tabla de recomendaciones modificadas, degradados a IIa C.'

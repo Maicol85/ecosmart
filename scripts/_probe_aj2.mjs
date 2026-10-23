@@ -1628,6 +1628,74 @@ window.__Z = {
     process.stderr.write('[tep] listo\n');
   }
 
+  /* == GRUPO «aorta» - AJ2-6: LA AORTA NO GRADUA SU DILATACION =============================
+     El dueno es `aoSegGrado`, y se SONDEA en vez de leer la tabla que lo alimenta: es lo unico
+     que impide que la capsula, el narrativo y la tarjeta se desincronicen del voto.
+     TRAMPA: `ao_sin` vive en la pestana Datos, asi que hay que abrir su puerta antes de tipear. */
+  if (corre('aorta')) {
+    const r = { escenas: {} };
+    try {
+      r.sondeo = await ev(`(function(){
+        try {
+          if (typeof aoSegGrado !== 'function' || typeof AO_SEGS === 'undefined') return 'SIN FN';
+          var sg = AO_SEGS.filter(function(x){ return x.k === 'ao_sin' })[0];
+          var o = {};
+          [30, 39, 40, 41, 45, 46, 50, 51, 60, 95].forEach(function(x){ o[x] = String(aoSegGrado(sg, x)) });
+          return o;
+        } catch (e) { return 'EXC: ' + e.message }
+      })()`);
+      r.bandas = await ev(`(function(){
+        try { var C = evCortes(null); var b = (C.aoSeg && C.aoSeg.ao_sin) || [];
+          return b.map(function(x){ return x.k + ':' + x.desde + '-' + x.hasta }).join(' | ');
+        } catch (e) { return 'EXC: ' + e.message }
+      })()`);
+      const montar = async (val) => {
+        await ev(`window.__P.nuevo()`);
+        await ev(`window.__P.despejar()`);
+        await ev(`window.__P.abrirPara('ao_sin')`);
+        if (val) await poner('ao_sin', String(val));
+        await ev(`(function(){ if (typeof calcAorta === 'function') calcAorta(); return 1 })()`);
+        return {
+          capsula: await ev(`window.__P.txt('ao-interp')`),
+          clase: await ev(`(function(){ var e = document.getElementById('ao-interp');
+            var b = e ? e.querySelector('[class]') : null;
+            return b ? b.className : (e ? 'SIN BADGE' : 'SIN NODO') })()`),
+          tarjeta: await ev(`(function(){
+            try {
+              if (typeof evTarjetaAo !== 'function') return 'SIN FN';
+              var fr = evTarjetaAo();
+              var n = (fr && fr.querySelector) ? fr.querySelector('[data-ev-cat="ao-corte"]') : null;
+              return n ? (n.textContent || '').trim() : 'SIN RENGLON';
+            } catch (e) { return 'EXC: ' + e.message }
+          })()`),
+          lineas: await ev(`window.__Z.lineas(['Aorta tor','aorta tor','dilatad'])`, 40000),
+          suma: await ev(`(function(){ var e = document.getElementById('en_suma');
+            if (!e) return 'SIN NODO';
+            return (e.value || '').split(String.fromCharCode(10)).filter(function(l){
+              return l.toLowerCase().indexOf('dilataci') > -1 }).join(' // ') })()`)
+        };
+      };
+      r.escenas.n38 = await montar(38);
+      r.escenas.d42 = await montar(42);
+      r.escenas.d48 = await montar(48);
+      r.escenas.d55 = await montar(55);
+      r.escenas.f95 = await montar(95);
+      /* VAB: la conclusion con la aorta entre 40 y 44, que es la rama `dilatacion_leve`. */
+      await ev(`window.__P.nuevo()`);
+      await ev(`window.__P.despejar()`);
+      await ev(`window.__P.abrirPara('ao_sin')`);
+      await poner('ao_sin', '42');
+      await poner('va_morf', 'Bic' + String.fromCharCode(250) + 'spide');
+      r.vab = await ev(`(function(){
+        try { return (typeof vabConclusion === 'function')
+          ? JSON.stringify(vabConclusion()) : 'SIN FN' } catch (e) { return 'EXC: ' + e.message }
+      })()`);
+      r.errores = await ev(`window.__Y.errores()`);
+    } catch (e) { r.err = e.message; r.stack = String(e.stack || '').slice(0, 400); }
+    out.grupos.aorta = r;
+    process.stderr.write('[aorta] listo\n');
+  }
+
   OUT.md5Fin = await md5(EXTERNO ? FARG : join(RAIZ, FILE));
   process.stdout.write(JSON.stringify(OUT, null, 1));
   cdp.close(); srv.close(); process.exit(0);
