@@ -85643,6 +85643,317 @@ caso('TC-519', 'Tanda AJ2: «sin datos» no es «no medible» en las cinco super
   return { extra: ex };
   })();
 `);
+caso('TC-520', 'Tanda AJ3: el bloque del ETT avanzado sigue a los datos en los DIECISIETE modulos mientras no lo edite el medico; editado a mano NO se pisa y avisa en el bloque y en el boton; reintegrar pide confirmacion solo si hay edicion y retira si no la hay; la marca viaja con el estudio y no se filtra al siguiente paciente; y la Evidencia del HFA-PEFF pregunta el RESULTADO del paso 3 con sus tres caminos, sus folios de Pieske 2019 y sin tocar el informe, el EN SUMA ni el puntaje', `
+  return (async () => {
+  const ex = [];
+  const F = (n) => (typeof window[n] === 'function') ? window[n] : null;
+  const txt = (id) => { const e = document.getElementById(id); return e ? (e.textContent || '').trim() : null; };
+  const val = (id) => { const e = document.getElementById(id); return e ? e.value : null; };
+  const noEntraron = [];
+  const set = (o) => Object.keys(o).forEach(id => { const e = document.getElementById(id);
+    if (!e) { noEntraron.push('FALTA ' + id); return; }
+    e.value = o[id];
+    if (String(e.value) !== String(o[id])) { noEntraron.push(id + ' RECHAZO ' + o[id]); return; }
+    e.dispatchEvent(new Event('input', { bubbles: true }));
+    e.dispatchEvent(new Event('change', { bubbles: true })); });
+  /* Mueve un campo SIN saber su valor: un select pasa a la primera opcion distinta, un numero
+     al que se le suma 7. Devuelve si de verdad se movio, que es el denominador. */
+  const mover = (ids) => { const movidos = [];
+    ids.forEach(id => { const e = document.getElementById(id); if (!e) return;
+      const antes = (e.type === 'checkbox') ? (e.checked ? '1' : '') : String(e.value || '');
+      if (e.tagName === 'SELECT') { let c = null;
+        for (let i = 0; i < e.options.length; i++)
+          if (e.options[i].value !== e.value && e.options[i].value !== '') { c = e.options[i].value; break; }
+        if (c === null) return; e.value = c; }
+      else if (e.type === 'checkbox') { e.checked = !e.checked; }
+      else { const n = parseFloat(e.value); e.value = isNaN(n) ? '12' : String(Math.round((n + 7) * 10) / 10); }
+      e.dispatchEvent(new Event('input', { bubbles: true }));
+      e.dispatchEvent(new Event('change', { bubbles: true }));
+      const dsp = (e.type === 'checkbox') ? (e.checked ? '1' : '') : String(e.value || '');
+      if (dsp !== antes) movidos.push(id); });
+    return movidos; };
+  /* ⚠️ SE ESPERA AL OYENTE, NO SE LLAMA AL BARRIDO A MANO. La primera version de este caso
+     hacia amiloRefrescarTodos() despues de mover el dato, y con eso DESCONECTAR el oyente de
+     documento -la mutacion M1- lo dejaba en VERDE: el caso probaba la funcion y no el cableado,
+     que es justo la mitad que fallaba. El temporizador del barrido es de 220 ms. */
+  const esperar = (ms) => new Promise(r => setTimeout(r, ms));
+  const barrido = () => esperar(420);
+  const genDe = (k) => { try { const s = amiloSecs().filter(x => x.k === k)[0];
+    return s ? String(s.gen() || '') : 'SIN SEC'; } catch (e) { return 'EXC: ' + e.message; } };
+  const integrar = (k) => { const b = document.querySelector('[data-am-k="' + k + '"]');
+    if (!b) return 'SIN BOTON'; if (b.disabled) return 'DESHABILITADO';
+    if (amiloIntegrado(k)) return 'ya'; b.click();
+    return amiloIntegrado(k) ? 'ok' : 'no quedo'; };
+  const editar = (k, t) => { const ta = document.getElementById('am-txt-' + k);
+    if (!ta) return 'SIN TA'; ta.value = t;
+    ta.dispatchEvent(new Event('input', { bubbles: true })); return 'ok'; };
+  const avisoOn = (k) => { const w = document.getElementById('am-wrap-' + k);
+    return !!(w && w.classList.contains('desfasado')); };
+  const btnRevisar = (k) => { const b = document.querySelector('[data-am-k="' + k + '"]');
+    return !!(b && b.classList.contains('revisar')); };
+  const AVISO = 'Los datos cambiaron desde la edicion: revisa este bloque.'
+    .replace('edicion', String.fromCharCode(101,100,105,99,105,243,110))
+    .replace('revisa', String.fromCharCode(114,101,118,105,115,225));
+  /* Contesta VARIAS preguntas del panel en UNA sola apertura: indicAbrir() llama a
+     _indClinLimpiar() SIEMPRE, asi que dos aperturas seguidas borran la primera respuesta. */
+  const resp = (pares) => { try { indicAbrir(); } catch (e) { return 'SIN PANEL'; }
+    const hechos = [];
+    pares.forEach(p => { const c = document.getElementById('indic-cuerpo'); if (!c) return;
+      const b = c.querySelector('[data-ind-clin="' + p[0] + '"][data-ind-val="' + p[1] + '"]');
+      if (!b) { hechos.push(p[0] + ':NO HAY'); return; } b.click(); hechos.push(p[0] + ':ok'); });
+    return hechos; };
+  const secHF = () => { let L = null; try { L = IND_SECS; } catch (e) { return 'SIN IND_SECS'; }
+    const x = (L || []).filter(y => String(y.tit).indexOf('HFA-PEFF') > -1)[0];
+    if (!x) return 'NO EXISTE'; try { return x.fn() || null; } catch (e) { return 'EXC: ' + e.message; } };
+  const lineasHF = (r) => { const o = [];
+    ((r && r.bloques) || []).forEach(b => ((b.lineas) || []).forEach(l => o.push(typeof l === 'string' ? l : l.txt)));
+    return o; };
+  const ctrlHF = (r, clave) => { const f = ((r && r.clinica) || [])
+    .filter(x => x.ctrl && x.ctrl.clave === clave)[0];
+    return f ? { lbl: f.lbl, marca: f.marca, nota: String(f.nota || ''),
+                 ops: f.ctrl.ops.map(o => o.v + '|' + o.t) } : null; };
+  const BASE = { edad:'70', peso:'70', talla:'170', fevi:'60', onda_e:'90', e_sep:'6',
+    e_lat:'8', ai_vol:'60', ddfvi:'45', siv:'10', ppvi:'10', vmax_it:'2.5', hf_ntprobnp:'150' };
+
+  /* == (A) AJ3-1 — EL REGISTRO DE LOS DIECISIETE ========================================== */
+  __t.limpiar();
+  let SECS = []; try { SECS = amiloSecs(); } catch (e) { SECS = []; }
+  ex.push(['(A1) amiloSecs publica diecisiete modulos', SECS.length === 17, 'n=' + SECS.length]);
+  ex.push(['(A2) cada uno tiene su generador y UN boton',
+    SECS.length > 0 && SECS.every(s => typeof s.gen === 'function' &&
+      document.querySelectorAll('[data-am-k="' + s.k + '"]').length === 1),
+    SECS.map(s => s.k + ':' + document.querySelectorAll('[data-am-k="' + s.k + '"]').length).join(' ')]);
+  ex.push(['(A3) el barrido generico existe y es el dueno unico',
+    !!F('amiloRefrescarTodos') && !!F('amiloRefrescarSiIntacto'),
+    typeof window.amiloRefrescarTodos]);
+  ex.push(['(A4) la marca de edicion manual existe y nace vacia',
+    !!F('_amiloEstaEditado') && SECS.every(s => window._amiloEstaEditado(s.k) === false),
+    String(val('am-editados'))]);
+
+  /* == (B) AJ3-2a — EL BLOQUE SIGUE AL DATO, MODULO POR MODULO ============================
+     El DENOMINADOR es que gen() cambie: sin el, «coinciden» lo cumple tambien un bloque que
+     nunca se movio. Los nueve que NO tenian refresco cableado van todos. */
+  const DEP = { ett:['ett-septo','ett-pp','ett-ee'], alg:['alg-motivo','alg-ett-score'],
+    hfpeff:['e_sep','e_lat','ai_vol'], htp:['vmax_it'],
+    tep:['tep_mcconnell','tep_signo6060','tep_tabique_d'],
+    etem:['ete_lva','ete_lvp','ete_diam_anular'],
+    wilk:['wilkins_movilidad','wilkins_engrosamiento'],
+    oai:['oai_lobulos','oai_morfologia'],
+    aoete:['ao_grado_atero','ao_calcificacion'],
+    dpt:['pericardio','dpt_col_ad'], cvr:['cvr_rebote','cvr_hepatico'],
+    conco:['co_fevi_actual','co_gls_actual'], vexus:['vexus_ir','vexus_pv'] };
+  const sinDenom = [], discrepan = [], noIntegro = [];
+  for (const k of Object.keys(DEP)) {
+    __t.limpiar(); set(BASE);
+    const r = integrar(k);
+    if (r !== 'ok' && r !== 'ya') { noIntegro.push(k + ':' + r); continue; }
+    const g0 = genDe(k);
+    const mov = mover(DEP[k]);
+    await barrido();
+    const g1 = genDe(k), t1 = String(val('am-txt-' + k) || '');
+    if (!mov.length || g0 === g1) { sinDenom.push(k); continue; }
+    if (t1.trim() !== g1.trim()) discrepan.push(k);
+  }
+  ex.push(['(B1) los trece modulos medidos se integraron', noIntegro.length === 0,
+    'noIntegro=' + JSON.stringify(noIntegro)]);
+  ex.push(['(B2) DENOMINADOR: en los trece el texto de la app cambio al mover su dato',
+    sinDenom.length === 0, 'sinDenom=' + JSON.stringify(sinDenom)]);
+  ex.push(['(B3) y el bloque dice EXACTAMENTE lo que la app dice', discrepan.length === 0,
+    'discrepan=' + JSON.stringify(discrepan)]);
+
+  /* == (C) AJ3-2b — EDITADO A MANO: NO SE PISA, Y AVISA =================================== */
+  __t.limpiar(); set(BASE);
+  const rI = integrar('htp');
+  ex.push(['(C0) HTP integrado', rI === 'ok' || rI === 'ya', String(rI)]);
+  const MANO = 'EDITADO A MANO POR EL MEDICO';
+  editar('htp', MANO);
+  ex.push(['(C1) editar marca el bloque y lo escribe en am-editados',
+    window._amiloEstaEditado('htp') === true && String(val('am-editados')).indexOf('htp') > -1,
+    String(val('am-editados'))]);
+  ex.push(['(C2) CONTROL NEGATIVO: recien editado y sin cambiar datos, NO avisa',
+    avisoOn('htp') === false && btnRevisar('htp') === false, 'aviso=' + avisoOn('htp')]);
+  const movC = mover(['vmax_it']);
+  await barrido();
+  ex.push(['(C3) DENOMINADOR: el dato se movio', movC.length === 1, JSON.stringify(movC)]);
+  ex.push(['(C4) el texto del medico NO se pisa', String(val('am-txt-htp')) === MANO,
+    String(val('am-txt-htp')).slice(0, 60)]);
+  ex.push(['(C5) y el aviso aparece en el bloque Y en el boton del modulo',
+    avisoOn('htp') === true && btnRevisar('htp') === true,
+    'bloque=' + avisoOn('htp') + ' boton=' + btnRevisar('htp')]);
+  ex.push(['(C6) con el texto exacto, en los dos lugares',
+    txt('am-stale-htp') === String.fromCharCode(9888, 65039, 32) + AVISO &&
+    (document.querySelector('[data-am-k="htp"]') || {}).title === AVISO,
+    JSON.stringify(txt('am-stale-htp'))]);
+  ex.push(['(C7) el rotulo del boton NO cambio',
+    (document.querySelector('[data-am-k="htp"]') || {}).textContent ===
+      String.fromCharCode(10003) + ' Integrado al informe',
+    JSON.stringify((document.querySelector('[data-am-k="htp"]') || {}).textContent)]);
+  /* El aviso vive FUERA del cuerpo colapsable: con el acordeon cerrado tiene que seguir ahi. */
+  const wH = document.getElementById('am-wrap-htp');
+  ex.push(['(C8) el aviso no esta dentro del cuerpo que el acordeon esconde',
+    !!wH && !!document.getElementById('am-stale-htp') &&
+    !document.getElementById('am-stale-htp').closest('.am-cuerpo'),
+    'dentroDelCuerpo=' + !!(document.getElementById('am-stale-htp') || {}).closest]);
+
+  /* == (D) AJ3-2c — REINTEGRAR: CONFIRMA SOLO SI HAY EDICION ============================== */
+  let pedido = null; const confOrig = window.confirm;
+  window.confirm = function (m) { pedido = String(m); return false; };
+  try { document.querySelector('[data-am-k="htp"]').click(); } finally { window.confirm = confOrig; }
+  ex.push(['(D1) con edicion, pide confirmacion y con NO no toca nada',
+    pedido === String.fromCharCode(83,101,32,114,101,101,109,112,108,97,122,97,114,225) +
+      ' el texto editado.' && String(val('am-txt-htp')) === MANO && amiloIntegrado('htp'),
+    JSON.stringify(pedido)]);
+  pedido = null; window.confirm = function (m) { pedido = String(m); return true; };
+  try { document.querySelector('[data-am-k="htp"]').click(); } finally { window.confirm = confOrig; }
+  ex.push(['(D2) con SI regenera, borra la marca y apaga el aviso',
+    pedido !== null && String(val('am-txt-htp')).trim() === genDe('htp').trim() &&
+    window._amiloEstaEditado('htp') === false && avisoOn('htp') === false &&
+    String(val('am-editados')) === '',
+    'txt=' + String(val('am-txt-htp')).slice(0, 40)]);
+  pedido = null; window.confirm = function (m) { pedido = String(m); return false; };
+  try { document.querySelector('[data-am-k="htp"]').click(); } finally { window.confirm = confOrig; }
+  ex.push(['(D3) CONTROL NEGATIVO: sin edicion el boton RETIRA y NO pregunta nada',
+    pedido === null && amiloIntegrado('htp') === false, 'pedido=' + JSON.stringify(pedido)]);
+
+  /* == (E) AJ3-2d — LA MARCA VIAJA CON EL ESTUDIO Y NO SE FILTRA ========================== */
+  __t.limpiar(); set(BASE);
+  integrar('htp'); editar('htp', MANO);
+  const campos = {};
+  document.querySelectorAll('input[id], select[id], textarea[id]').forEach(e => {
+    campos[e.id] = (e.type === 'checkbox') ? (e.checked ? '1' : '') : String(e.value || ''); });
+  ex.push(['(E1) am-editados viaja dentro de los campos del estudio',
+    String(campos['am-editados'] || '').indexOf('htp') > -1, JSON.stringify(campos['am-editados'])]);
+  __t.limpiar();
+  ex.push(['(E2) «Nuevo estudio» la vacia: no se filtra al paciente siguiente',
+    String(val('am-editados')) === '' && window._amiloEstaEditado('htp') === false,
+    JSON.stringify(val('am-editados'))]);
+  Object.keys(campos).forEach(id => { const e = document.getElementById(id); if (!e) return;
+    if (e.type === 'checkbox') e.checked = campos[id] === '1'; else e.value = campos[id]; });
+  try { amiloRestaurarDesdeCampos(campos, false); } catch (e) {}
+  ex.push(['(E3) al reabrir el estudio la marca vuelve', window._amiloEstaEditado('htp') === true,
+    JSON.stringify(val('am-editados'))]);
+  const movE = mover(['vmax_it']);
+  await barrido();
+  ex.push(['(E4) DENOMINADOR: el dato se movio tras reabrir', movE.length === 1, JSON.stringify(movE)]);
+  ex.push(['(E5) y el texto del medico SIGUE sin pisarse, con el aviso puesto',
+    String(val('am-txt-htp')) === MANO && avisoOn('htp') === true,
+    String(val('am-txt-htp')).slice(0, 40)]);
+  /* CONTROL NEGATIVO del legado: un estudio SIN la clave no marca nada y se comporta como ayer. */
+  const viejo = {}; Object.keys(campos).forEach(k => { if (k !== 'am-editados') viejo[k] = campos[k]; });
+  __t.limpiar();
+  Object.keys(viejo).forEach(id => { const e = document.getElementById(id); if (!e) return;
+    if (e.type === 'checkbox') e.checked = viejo[id] === '1'; else e.value = viejo[id]; });
+  try { amiloRestaurarDesdeCampos(viejo, false); } catch (e) {}
+  ex.push(['(E6) CONTROL NEGATIVO: un estudio sin la clave no queda marcado',
+    window._amiloEstaEditado('htp') === false, JSON.stringify(val('am-editados'))]);
+
+  /* == (E7) LA GUARDA DEL CAMINO VIEJO, QUE EL BARRIDO TAPA ===============================
+     Ocho modulos llaman a amiloRefrescarSiIntacto DIRECTAMENTE desde su calculadora, sin
+     pasar por amiloRefrescarTodos. Para ese camino la marca persistida es la UNICA guarda:
+     al reabrir un estudio, amiloRestaurarDesdeCampos repone _amiloUltimo = ta.value, los
+     dos lados coinciden y la comparacion de siempre deja de ver la edicion. Se mide sobre
+     hfpeff, que es uno de los ocho, llamando a su propia calculadora.
+     ⚠️ ESTA CONDICION EXISTE PORQUE UNA MUTACION SOBREVIVIO: sacar esa guarda dejaba el caso
+     en verde, porque amiloRefrescarTodos tiene la suya y tapaba la de abajo. */
+  __t.limpiar(); set(BASE);
+  const rH = integrar('hfpeff');
+  const MANO2 = 'HFPEFF EDITADO A MANO';
+  editar('hfpeff', MANO2);
+  const campos2 = {};
+  document.querySelectorAll('input[id], select[id], textarea[id]').forEach(e => {
+    campos2[e.id] = (e.type === 'checkbox') ? (e.checked ? '1' : '') : String(e.value || ''); });
+  __t.limpiar();
+  Object.keys(campos2).forEach(id => { const e = document.getElementById(id); if (!e) return;
+    if (e.type === 'checkbox') e.checked = campos2[id] === '1'; else e.value = campos2[id]; });
+  try { amiloRestaurarDesdeCampos(campos2, false); } catch (e) {}
+  const gAntes = genDe('hfpeff');
+  const movH = mover(['e_sep', 'e_lat', 'ai_vol']);
+  /* ⚠️ LA LLAMADA VIEJA DE hfpeff VIVE EN calcVI, NO EN hfapeffRender. Con hfapeffRender esta
+     condicion no tocaba el camino que dice medir: sobrevivia a la mutacion que saca las dos
+     guardas, o sea que era una condicion vacia con pinta de cobertura. */
+  try { calcVI(); } catch (e) {}
+  ex.push(['(E7a) DENOMINADOR: hfpeff se integro, se reabrio y su texto cambiaria',
+    (rH === 'ok' || rH === 'ya') && movH.length === 3 && gAntes !== genDe('hfpeff'),
+    'integrar=' + rH + ' movidos=' + JSON.stringify(movH)]);
+  ex.push(['(E7b) por el camino VIEJO el texto del medico tampoco se pisa',
+    String(val('am-txt-hfpeff')) === MANO2, String(val('am-txt-hfpeff')).slice(0, 60)]);
+
+  /* == (F) AJ3-3 — EL RESULTADO DEL PASO 3 ================================================= */
+  __t.limpiar(); set(BASE);
+  let sc = null; try { sc = hfapeffScore(false); } catch (e) {}
+  ex.push(['(F0) DENOMINADOR: la escena da puntaje intermedio', !!sc && sc.total === 4,
+    'total=' + (sc ? sc.total : 'SIN')]);
+  resp([['hfpeff.paso3', 'pendiente']]);
+  const rPend = secHF();
+  ex.push(['(F1) con el paso 3 «Pendiente» la fila del resultado NO existe',
+    ctrlHF(rPend, 'hfpeff.p3res') === null, JSON.stringify(((rPend || {}).clinica || []).map(x => x.lbl))]);
+  resp([['hfpeff.paso3', 'hecha']]);
+  const rHecha = secHF(), cR = ctrlHF(rHecha, 'hfpeff.p3res');
+  ex.push(['(F2) con «Realizada» aparece, de UNA linea, con sus tres botones',
+    !!cR && cR.lbl === 'Resultado del paso 3' && cR.marca === 'ask' &&
+    cR.ops.join(',') === 'positivo|Positivo,negativo|Negativo,noconcl|No concluyente',
+    JSON.stringify(cR)]);
+  ex.push(['(F3) el circulo-i dice que el resultado lo decide el medico',
+    !!cR && cR.nota.indexOf('lo decide el ' + String.fromCharCode(109,233,100,105,99,111)) > -1 &&
+    cR.nota.indexOf('no lo calcula') > -1, (cR || {}).nota]);
+  ex.push(['(F4) sin elegir, el pendiente es el RESULTADO y no si el paso se hizo',
+    lineasHF(rHecha).some(l => l === 'Falta consignar el resultado del paso 3.') &&
+    !lineasHF(rHecha).some(l => l.indexOf('Falta consignar si el paso 3') === 0),
+    JSON.stringify(lineasHF(rHecha).filter(l => l.indexOf('Falta') === 0))]);
+  const ESPERA = {
+    positivo: ['folio 3306, hoja 10', 'Figura 2, folio 3300, hoja 4', 'texto folio 3307, hoja 11',
+               String.fromCharCode(101,116,105,111,108,111,103,237,97) + ' (paso 4)'],
+    negativo: ['Figura 2, folio 3300, hoja 4', 'texto folio 3307, hoja 11', '25 mmHg'],
+    noconcl:  ['texto folio 3306, hoja 10', 'Figura 4A, folio 3306, hoja 10',
+               'texto folio 3307, hoja 11']
+  };
+  Object.keys(ESPERA).forEach(v => {
+    resp([['hfpeff.paso3', 'hecha'], ['hfpeff.p3res', v]]);
+    const r = secHF(), ls = lineasHF(r), c = ctrlHF(r, 'hfpeff.p3res');
+    ex.push(['(F5-' + v + ') la fila queda contestada y publica DOS lineas nuevas',
+      !!c && c.marca === (v === 'positivo' ? 'ok' : 'none') && ls.length >= 3,
+      'marca=' + (c || {}).marca + ' nLineas=' + ls.length]);
+    ex.push(['(F6-' + v + ') con sus folios de Pieske 2019, a la vista',
+      ESPERA[v].every(f => ls.some(l => l.indexOf(f) > -1)),
+      JSON.stringify(ESPERA[v].filter(f => !ls.some(l => l.indexOf(f) > -1)))]);
+    ex.push(['(F7-' + v + ') y sin ordenes: ninguna linea arranca mandando',
+      !ls.some(l => /^(Realice|Realizar|Debe |Hay que |Solicite|Indique)/.test(l)),
+      JSON.stringify(ls.filter(l => /^(Realice|Realizar|Debe |Hay que |Solicite|Indique)/.test(l)))]);
+  });
+  /* CONTROL NEGATIVO: el resultado NO mueve el puntaje, ni el informe, ni el EN SUMA, ni la
+     hoja del PDF. Es la mitad del item que mas facil se rompe sin que nadie lo note. */
+  resp([['hfpeff.paso3', 'hecha']]);
+  let sinR = null; try { generarInforme(); } catch (e) {}
+  sinR = { inf: val('informe_texto') || '', suma: val('en_suma') || '',
+           score: (hfapeffScore(false) || {}).total, pdf: amiloTextoHFAPEFF() };
+  resp([['hfpeff.paso3', 'hecha'], ['hfpeff.p3res', 'positivo']]);
+  let conR = null; try { generarInforme(); } catch (e) {}
+  conR = { inf: val('informe_texto') || '', suma: val('en_suma') || '',
+           score: (hfapeffScore(false) || {}).total, pdf: amiloTextoHFAPEFF() };
+  ex.push(['(F8) DENOMINADOR: hay informe y hoja que comparar',
+    sinR.inf.length > 0 && sinR.pdf.length > 0,
+    'inf=' + sinR.inf.length + ' pdf=' + sinR.pdf.length]);
+  ex.push(['(F9) el resultado NO toca el informe, el EN SUMA, el puntaje ni la hoja del PDF',
+    sinR.inf === conR.inf && sinR.suma === conR.suma &&
+    sinR.score === conR.score && sinR.pdf === conR.pdf,
+    'inf=' + (sinR.inf === conR.inf) + ' suma=' + (sinR.suma === conR.suma) +
+    ' score=' + (sinR.score === conR.score) + ' pdf=' + (sinR.pdf === conR.pdf)]);
+  /* La presion de llenado en reposo NO se toco: con «Normal» sigue publicando su linea. */
+  resp([['hfpeff.paso3', 'hecha'], ['hfpeff.pll', 'normal']]);
+  const rN = secHF();
+  ex.push(['(F10) «Presion de llenado = Normal» sigue diciendo lo de siempre',
+    lineasHF(rN).some(l => l.indexOf('presi') > -1 && l.indexOf('normal en reposo') > -1 &&
+      l.indexOf('folio 3305') > -1),
+    JSON.stringify(lineasHF(rN).slice(-1))]);
+  try { indicCerrar(); } catch (e) {}
+
+  ex.push(['(Z) DENOMINADOR GLOBAL: todos los campos del caso se encontraron',
+    noEntraron.length === 0, 'noEntraron=' + JSON.stringify(noEntraron)]);
+
+  return { extra: ex };
+  })();
+`);
+
 
 
 
