@@ -31951,7 +31951,10 @@ function diastASE2025Evaluar() {
     R.clave = 'incompleto';
     R.cls = 'gray';
     R.badgeTxt = 'Incompleto — ASE 2025';
-    R.texto = 'Completar e\' septal y/o lateral para clasificar.';
+    /* ⚠️ DESCRIPTIVA Y NO UNA INDICACION (AJ2-15, 2026-10-23). Decia «Completar e' septal y/o
+       lateral para clasificar.», que es una orden al lector en un informe FIRMADO. Lo que queda
+       es el HECHO —no se puede clasificar— y qué falta para poder hacerlo, sin pedirlo. */
+    R.texto = 'Función diastólica no clasificable con los datos cargados (falta e\' septal o lateral).';
     R.textoSuma = '';
     R.ventanaTit = 'Datos insuficientes';
     R.ventanaDet = 'sin e\' septal ni lateral no se puede iniciar el algoritmo';
