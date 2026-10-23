@@ -83809,26 +83809,30 @@ const ATERO_GRADO_RANGO = Object.freeze({ 1:'espesor intimal menor de 2 mm', 2:'
                                           3:'ateroma de 3 a 5 mm', 4:'ateroma de más de 5 mm' });
 window.ateroGradoPorGrosor = ateroGradoPorGrosor; window.ATERO_GRADO_RANGO = ATERO_GRADO_RANGO;
 
+
 // ══ ATEROSCLEROSIS AÓRTICA ══
 function calcAteroAo() {
   const grado = sv('ao_grado_atero');
   const movilidad = sv('ao_movilidad_placa');
   const grosor = v('ao_grosor_placa');
 
+  /* ══ LA ESCALA DE NICOARA ES POR ESPESOR Y NO PUBLICA RIESGO EMBOLICO (AJ2-7a, 2026-10-23)
+     VERIFICADO EN EL ORIGINAL antes de tocar nada: Nicoara y cols., ASE/SCA 2020 de ETE para
+     decisiones quirurgicas, **folio 716** -comprobado en el pie impreso «716 Nicoara et al»-,
+     hoja 25. Lo que esa pagina publica es la escala por ESPESOR CRECIENTE y nada mas: «grade 1
+     (intimal thickness <2 mm), grade 2 (intimal thickening 2-3 mm), grade 3 (atheroma thickness
+     3-5 mm), grade 4 (atheroma thickness >5 mm), and grade 5 (any atheroma thickness with mobile
+     or ulcerated components)». NO atribuye un riesgo embolico a ningun grado; al contrario,
+     enumera las limitaciones de la ETE para esto -artefactos de campo proximal, una medicion
+     unidimensional de una lesion tridimensional, que no considera la carga total de placa y que
+     la valoracion de las caracteristicas del ateroma es «altamente subjetiva»-.
+     Las cinco descripciones quedan con el ESPESOR, que es lo que la escala define. */
   const descripciones = {
     '1': 'Íntima normal — sin lesiones ateroscleróticas',
     '2': 'Engrosamiento mínimo de la íntima sin protrusiones hacia la luz',
-    '3': 'Ateroma de 3 a 5 mm — riesgo embólico moderado',
-    '4': 'Ateroma de más de 5 mm — alto riesgo embólico',
-    '5': 'Protrusiones móviles de cualquier tamaño — riesgo embólico muy alto'
-  };
-
-  const riesgos = {
-    '1': badge('green','Mínimo'),
-    '2': badge('green','Bajo'),
-    '3': badge('yellow','Moderado'),
-    '4': badge('red','Alto'),
-    '5': badge('red','Muy alto — embolia')
+    '3': 'Ateroma de 3 a 5 mm',
+    '4': 'Ateroma de más de 5 mm',
+    '5': 'Protrusiones móviles de cualquier tamaño'
   };
 
   /* ══ LAS CINCO FRASES SON DESCRIPTIVAS Y NINGUNA INDICA UNA CONDUCTA (I-E1, 22/10/2026) ════
@@ -83844,9 +83848,14 @@ function calcAteroAo() {
   const recomendaciones = {
     '1': 'Orientación según grado ecográfico: sin intervención específica requerida.',
     '2': 'Orientación según grado ecográfico: control de factores de riesgo cardiovascular.',
-    '3': 'Hallazgo descriptivo: placa irregular de 3 a 5 mm de espesor.',
-    '4': 'Hallazgo descriptivo: placa de más de 5 mm de espesor, asociada a mayor riesgo embólico.',
-    '5': 'Hallazgo descriptivo: componentes móviles o ulcerados, asociados a alto riesgo embólico.'
+    /* ⚠️ «IRREGULAR» NO ES UN DATO QUE LA APP TENGA, Y EL RIESGO EMBOLICO NO ES DE LA ESCALA
+       (AJ2-7a, 2026-10-23). El grado 3 decia «placa irregular de 3 a 5 mm de espesor»: la
+       escala de Nicoara lo define por el ESPESOR y la irregularidad no se pregunta en ningun
+       campo. Y la clausula de riesgo embolico de los grados 4 y 5 es la misma afirmacion sin
+       fuente que la fila que se retira. Las tres quedan con el hallazgo y su grado. */
+    '3': 'Ateroma de 3 a 5 mm (grado 3).',
+    '4': 'Ateroma de más de 5 mm (grado 4).',
+    '5': 'Componentes móviles o ulcerados, de cualquier espesor (grado 5).'
   };
 
   /* ⚠️ LA FILA DEL ESPESOR ES INDEPENDIENTE DEL DESPLEGABLE y se pinta aunque el grado no esté
@@ -83867,7 +83876,14 @@ function calcAteroAo() {
     const riesgoEl = document.getElementById('ao-riesgo-embol');
     const recEl = document.getElementById('ao-recomendacion');
     if (descEl) descEl.textContent = descripciones[grado] || '—';
-    if (riesgoEl) riesgoEl.innerHTML = riesgos[grado] || '—';
+    /* ⚠️ LA FILA DE RIESGO EMBOLICO SE RETIRA DE LA PANTALLA Y DEL PAPEL (AJ2-7a): su gradacion
+       -Minimo / Bajo / Moderado / Alto / Muy alto- NO esta en la escala que la app cita (ver la
+       nota de `descripciones`). Se esconde la FILA entera y no solo su texto: un rotulo
+       «Riesgo embólico» con una raya al lado se lee como «se evaluo y no hay», que es la
+       direccion que afirma. `ao-riesgo-embol` se conserva VACIO porque lo leen `_amTxt` en la
+       hoja del ETE y el barrido de `limpiarCampos`. */
+    if (riesgoEl) { riesgoEl.textContent = ''; const _fr = riesgoEl.closest('.calc-row');
+                    if (_fr) _fr.style.display = 'none'; }
     if (recEl) {
       let rec = recomendaciones[grado] || '—';
       /* La escala de Nicoara define el grado 5 como «cualquier espesor con componentes móviles o

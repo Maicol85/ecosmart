@@ -1447,6 +1447,72 @@ window.__Z = {
     process.stderr.write('[oai] listo\n');
   }
 
+  /* ══ GRUPO «atm» — AJ2-7a Y AJ2-7b: EL ATEROMA ═══════════════════════════════════════════ */
+  if (corre('atm')) {
+    const r = { escenas: {} };
+    const leer = async () => ({
+      grado:   await ev(`window.__P.val('ao_grado_atero')`),
+      origen:  await ev(`(function(){ var e = document.getElementById('ao_grado_atero');
+                 return e ? { auto: e.dataset.auto || null, manual: e.dataset.manual || null } : null })()`),
+      nota:    await ev(`window.__P.txt('ao-grado-auto')`),
+      desc:    await ev(`window.__P.txt('ao-atero-desc')`),
+      riesgo:  await ev(`window.__P.txt('ao-riesgo-embol')`),
+      filaRiesgo: await ev(`(function(){ var n = document.getElementById('ao-riesgo-embol');
+                 var f = n ? n.closest('.calc-row') : null;
+                 return f ? (getComputedStyle(f).display) : 'SIN FILA' })()`),
+      recom:   await ev(`window.__P.txt('ao-recomendacion')`),
+      grosorFila: await ev(`window.__P.txt('ao-atero-grosor')`),
+      bloqueETT: await ev(`(function(){ try { return (typeof amiloTextoAortaETE === 'function')
+                 ? amiloTextoAortaETE() : 'SIN FN' } catch (e) { return 'EXC: ' + e.message } })()`),
+      evid: await ev(`window.__Z.evidSec('aorta toracica')`, 40000)
+    });
+    const limpio = async () => { await ev(`window.__P.nuevo()`); await ev(`window.__P.despejar()`);
+                                 await ev(`window.__P.abrirPara('ao_grosor_placa')`); };
+    try {
+      /* AJ2-7b: 5 mm exactos -> grado 3; mas de 5 -> grado 4. */
+      await limpio(); await poner('ao_grosor_placa', '5');  r.escenas.g5mm = await leer();
+      await limpio(); await poner('ao_grosor_placa', '6');  r.escenas.g6mm = await leer();
+      await limpio(); await poner('ao_grosor_placa', '2.5'); r.escenas.g25mm = await leer();
+      /* El manual MANDA: se elige 4 a mano y despues se carga un grosor de grado 3. */
+      await limpio();
+      await poner('ao_grado_atero', '4'); await poner('ao_grosor_placa', '4');
+      r.escenas.manualMandaConGrosor = await leer();
+      /* Borrar el grosor: el automatico se borra, el manual no. */
+      await limpio(); await poner('ao_grosor_placa', '5');
+      r.escenas.antesDeBorrarAuto = await leer();
+      await borrar('ao_grosor_placa', 'del');
+      await ev(`(function(){ if (typeof ateroGradoAuto === 'function') ateroGradoAuto();
+                             if (typeof calcAteroAo === 'function') calcAteroAo(); return 1 })()`);
+      r.escenas.autoBorrado = await leer();
+      await limpio(); await poner('ao_grado_atero', '3'); await poner('ao_grosor_placa', '5');
+      await borrar('ao_grosor_placa', 'del');
+      await ev(`(function(){ if (typeof ateroGradoAuto === 'function') ateroGradoAuto();
+                             if (typeof calcAteroAo === 'function') calcAteroAo(); return 1 })()`);
+      r.escenas.manualSobrevive = await leer();
+      /* El medico elige la RAYA con grosor cargado: el automatico no la pisa. */
+      await limpio(); await poner('ao_grosor_placa', '5'); await poner('ao_grado_atero', '');
+      await poner('ao_grosor_placa', '6');
+      r.escenas.rayaElegida = await leer();
+      /* «Nuevo estudio» borra las dos marcas. */
+      await ev(`window.__P.nuevo()`);
+      r.escenas.trasNuevo = await leer();
+      /* AJ2-7a con el grado consignado a mano, sin grosor: las cinco descripciones. */
+      r.escenas.porGrado = {};
+      for (const g of ['1', '2', '3', '4', '5']) {
+        await limpio(); await poner('ao_grado_atero', g);
+        await ev(`(function(){ if (typeof calcAteroAo === 'function') calcAteroAo(); return 1 })()`);
+        r.escenas.porGrado[g] = { desc: await ev(`window.__P.txt('ao-atero-desc')`),
+          riesgo: await ev(`window.__P.txt('ao-riesgo-embol')`),
+          recom: await ev(`window.__P.txt('ao-recomendacion')`),
+          bloqueETT: await ev(`(function(){ try { return (typeof amiloTextoAortaETE === 'function')
+            ? amiloTextoAortaETE() : 'SIN FN' } catch (e) { return 'EXC' } })()`) };
+      }
+      r.errores = await ev(`window.__Y.errores()`);
+    } catch (e) { r.err = e.message; }
+    out.grupos.atm = r;
+    process.stderr.write('[atm] listo\n');
+  }
+
   OUT.md5Fin = await md5(EXTERNO ? FARG : join(RAIZ, FILE));
   process.stdout.write(JSON.stringify(OUT, null, 1));
   cdp.close(); srv.close(); process.exit(0);
