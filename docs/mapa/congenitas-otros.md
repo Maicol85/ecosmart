@@ -244,6 +244,14 @@ amiloidosis**: es el motor por el que cualquier módulo publica una hoja en el P
   `hayDatos` **falla abierta** a propósito y si lanza lo avisa por `console.warn`.
 - `amiloBuildCard` / `amiloIntegrado` / `amiloSyncBotones` / `amiloRefrescarInforme` — ciclo de vida.
 
+> ⚠️ **DESDE LA TANDA AJ3 (23/10/2026) EL BLOQUE YA NO SE CONGELA: `docs/mapa/aj3-ett-avanzado.md`.**
+> Ahí están el barrido genérico (`amiloRefrescarTodos` + su oyente de documento con temporizador),
+> la marca de edición manual `_amiloEditado` —que guarda un TEXTO y no un booleano— con su campo
+> persistido `am-editados`, el aviso ámbar en sus dos lugares, la confirmación al reintegrar un
+> bloque editado, y los DOS casos no decididos medidos tal como están. **El refresco se cableaba a
+> mano módulo por módulo y estaban cableados ocho de diecisiete; medidos contra `2b9f3ef`, ONCE
+> quedaban viejos, dos de ellos de la lista de los «cableados».**
+
 ---
 
 ## Contractilidad

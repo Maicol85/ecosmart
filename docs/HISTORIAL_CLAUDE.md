@@ -19,6 +19,184 @@ Las secciones están de **más nueva a más vieja**, que es el orden en que esta
 
 ---
 
+### Las DIECISIETE correcciones de la verificación — «AJ2» (2026-10-23)
+
+- **Son VEINTIÚN commits.** Al **empezar**, `main` y `origin/main` estaban los dos en **`2b9f3ef`**
+  —el cierre de la tanda I, con su sello `v20261022-1638`—, **sin nada sin pushear**, medido con un
+  `git fetch` de verdad. Los **veintiuno** quedan locales; el push lo corre Maicol.
+  **El orden de revertido seguro es el inverso del de aplicación.**
+  ⚠️ **DOS DEPENDENCIAS DURAS, Y LAS DEMÁS NO SE NOMBRAN ENTRE SÍ.** El de la **maqueta del TEP**
+  (AJ2-10c) cuelga del de su **vocabulario** (AJ2-10a): su adaptación de TC-510 reescribe el filtro
+  del conteo del informe que aquél cambió, así que revertir el vocabulario sin revertir antes la
+  maqueta deja ese caso midiendo un sintagma que ya no existe. Y el del **EN SUMA** (AJ2-12) cuelga
+  del del **ateroma** (AJ2-7a): su corrección del mapa del informe es la mitad que aquél no había
+  alcanzado, y revertir el ateroma sin el EN SUMA deja el papel diciendo «alto riesgo embólico» con
+  la pantalla ya sin él.
+
+- **Línea base al cierre: suite **529/533** con el pendrive `DISK_IMG` **MONTADO** —verificado al
+  abrir Y al cerrar—, Semgrep **124 / 0 ERROR en 1 app**, Excel en **440** columnas y celular **63 a
+  360 px y 72 a 390 px con 17 ALTA cada uno**: el MISMO par que dejó la tanda I. CERO REGRESIONES.**
+  **El denominador sube a 534**: esta tanda agregó **TC-519**.
+  ⚠️ **LA SUITE SE CORRIÓ DOS VECES Y LA PRIMERA NO ES LA LÍNEA BASE.** Dio **524/533** con nueve
+  rojos, y los **CINCO** de más los destapó la **suite completa** —ninguna corrida de zona podía
+  verlos— y los cinco son por un cambio de texto de esta lista: ver «CASOS ADAPTADOS».
+  ⚠️ **TC-318 SIGUE EXCLUIDO y se excluye así:** se arma la lista con
+  `grep -o "^caso('TC-[^']*'" scripts/test_clinico.mjs`, se le saca `TC-318` y se pasa entera a
+  `--solo`, **separada por COMAS**. La lista tiene **533 ids** sobre los 534 casos del archivo.
+  ⚠️ **TC-476 y TC-478 salen rojos en una corrida CORTA y NO son de esta tanda**: medidos en un
+  worktree de `2b9f3ef` con la misma lista, fallan **igual allá**. Son inestables por orden de
+  corrida; en la suite completa están en verde. **Repetir antes de sospechar.**
+- **`index.html` pasó de 9,30 MB / 132.176 líneas a **9,34 MB / 132.718 líneas** — medido con
+  `wc -c` y `wc -l` DESPUÉS de sellar (`v20261023-1316`, `md5` `b1c8f19b…`).
+  ⚠️ **SE SELLÓ DOS VECES, Y HAY QUE DECIR POR QUÉ:** el primer sello (`v20261023-1242`) quedó
+  invalidado porque **MIRAR UNA CAPTURA** destapó que AJ2-7a había quedado a medias (abajo). Se
+  corrigió, se volvió a sellar y **se volvió a medir TODO** sobre el árbol final.
+
+- **LO QUE MÁS CARO SALIÓ DE TODA LA TANDA LO ENCONTRÓ UNA CAPTURA Y NO UNA MEDICIÓN: AJ2-7a HABÍA
+  QUEDADO A MEDIAS Y EL RIESGO EMBÓLICO SEGUÍA EN EL PAPEL FIRMADO POR TRES CAMINOS.** La fila de
+  pantalla **sí** estaba escondida, así que todas las cifras daban bien. Reproducido antes de tocar
+  nada, con el grado 4 y la placa móvil:
+  1. `calcAteroAo` hacía `riesgoEl.innerHTML = badge('red','Muy alto — placa móvil')` **sobre el
+     span que 7a acababa de esconder**. `display:none` **no** afecta a `textContent`, así que
+     `_amTxt` lo leía y la hoja del ETE publicaba **«Riesgo embólico | Muy alto — placa móvil»**.
+  2. La `<option>` se llamaba **«Móvil — alto riesgo embólico»** y `_amSelTxt` lleva la ETIQUETA a
+     esa misma hoja: **«Movilidad de la placa | Móvil — alto riesgo embólico»**. Hoy dice «Móvil» y
+     **el `value` no se tocó** (`movil`), que es lo que viaja con el estudio.
+  3. La tabla de **Referencias** (`ref-ao`) conservaba una columna «Riesgo embólico» con
+     Mínimo/Bajo/Moderado/Alto/Muy alto **por grado**.
+  Y la rama sin grado escribía `'—'` en ese span, que es **truthy**: la hoja publicaba el rótulo
+  con una raya. Hoy el span queda **vacío** por los dos caminos y la línea `L.push('Riesgo
+  embólico…')` de la hoja **se retiró**. **Fuente**: Nicoara, ASE/SCA 2020, **folio 716** (pie
+  impreso «716 Nicoara et al»): publica los grados por **espesor creciente** y las limitaciones de
+  la medición por ETE, y **no publica ningún riesgo embólico por grado**.
+  ⚠️ **AL SACAR EL `badge` ME LLEVÉ EL `rec +=` DE LA LÍNEA DE ARRIBA**, y lo destapó volver a
+  medir: la frase «Con componentes móviles, la escala de Nicoara clasifica el ateroma como grado 5
+  con independencia del espesor» desapareció de la hoja. Repuesta. **Al retirar una línea, mirar
+  qué se lleva con ella.**
+
+- **LOS CUATRO INVENTARIOS QUE LA ORDEN PEDÍA.**
+  · **AJ2-6 (la aorta sin grados): DIEZ lugares, SIETE cambiados y TRES que ya estaban bien.**
+    `aoSegGrado` pasa de `normal|leve|mod|fuera` a `normal|dilatada|fuera`; con él, `calcAorta`,
+    `AO_BADGE_COLOR` (de cuatro colores a dos), el narrativo —con la concordancia de género por
+    `sg.m`—, la tarjeta ⓘ, `vabConclusion` y los dos asserts de arranque, que se fueron con los
+    campos `leve` y `mod`. **El corte NO se movió** y **la clave `dilatacion_leve` de
+    `vabConclusion` tampoco**, porque el Laboratorio clasifica estudios guardados por ella.
+    Los tres que ya estaban bien: Referencias (`ref-ao2`) ya decía sólo «dilatada», las dos tablas
+    del PDF imprimen el valor con un asterisco, y el EN SUMA no graduaba.
+  · **AJ2-10 (el vocabulario de sobrecarga del VD): TRES superficies, un dueño.**
+    `tepVeredicto(score, total)` y `TEP_VD_SIGNIF_MIN = 4` gobiernan la pantalla, el informe y el
+    bloque del ETT avanzado. `amiloTextoTEP` **LEE** el span de la pantalla, así que las tres no
+    pueden volver a divergir.
+  · **AJ2-12 (el EN SUMA): DIECISÉIS módulos, ONCE publicaban la negación global. Hoy: CERO.**
+  · **AJ2-11 (las tildes): 41 corregidas y 3 declaradas**, censadas sobre lo **RENDERIZADO** en
+    cinco superficies —el DOM, las tarjetas ⓘ **ejecutando** cada entrada de `VINFO`, las secciones
+    de `IND_SECS`, las fichas de Referencias pintadas y los generadores—. Las 3 que quedan son la
+    **cita literal en inglés** de la ESC/EACTS 2025, contada tres veces por el anidamiento del DOM.
+    ⚠️ **EL PRIMER CENSO DIO 74 Y 33 ERAN FALSOS MÍOS**: «auricular», «presiones», «dimensiones»,
+    «mediciones», «regiones» y «funciones» **no llevan tilde**. Es la trampa que este archivo ya
+    tenía escrita.
+
+- **LO QUE NO SE ENCONTRÓ, Y NO SE INVENTÓ.**
+  · **AJ2-2 NO REPRODUCE.** Medido por los dos lados: la única escena que publica «Diámetro de la
+    arteria pulmonar» sin que se lo pidan es `ip_ap_diam > 25`, y ahí la lista trae **tres** signos.
+  · **AJ2-16b NO EXISTE.** Censados los **15** ids que nombran la PSAP y sus escritores: `psap_calc`
+    es un `input readonly` escrito con `.toFixed(0)`; `psap-interp` y `tep-psap-interp` lo leen;
+    `hb-psap-val`, `ht-psap` y `lab-psap-prom` usan `toFixed(0)`; `cx-tp-res` imprime el **cociente**
+    con `toFixed(2)` y `cx-gtp-papm` es la PAP **media** con `toFixed(1)`. **Ninguna PSAP sin
+    redondear.**
+
+- **LO QUE SE DECLARÓ Y NO SE TOCÓ, por no estar en los diecisiete ítems.**
+  · `vabConclusion` publica «control por imagen y seguimiento del ritmo de crecimiento» y los
+    rótulos de `VAB_CONDUCTAS` del Laboratorio: son **conducta**, y la orden prohíbe tocar lo que no
+    está en su lista.
+  · **AJ2-9(4)** pedía «una línea por bloque cargado» y eso **contradice la decisión B2-E2** ya
+    documentada (un solo párrafo): reportado, no aplicado.
+  · **Dos frases parecidas a la de AJ2-15 quedaron como están**: «Completar los parámetros de
+    función diastólica para clasificar.» (ASE/EACVI 2016) y «…completar los parámetros del segundo
+    paso (Vol AI, LARS, S/D o TRIV).» (ASE 2025, no estimable).
+  · **Las TRES filas del ateroma dicen casi lo mismo** desde que 7a retiró el riesgo —«Ateroma de
+    más de 5 mm», «Ateroma de más de 5 mm (grado 4).» y la del grosor—. Es consecuencia medida de un
+    cambio autorizado y cambiar qué filas se muestran no estaba pedido: `PENDIENTES.md` → **AJ2-i**.
+  · El archivo **`main`**, vacío y fechado el **16/10**, es anterior a esta tanda y no se tocó.
+
+- **A/B DE CONTROL contra `2b9f3ef`: 27 claves y CUATRO diferencias, que son UN solo hecho.** Las
+  seis superficies enumeradas una por una —informe en los **tres** estilos, EN SUMA en los tres,
+  Excel con su cuenta de columnas, los campos del estudio con su hash y el **PDF GENERADO DE
+  VERDAD**— en dos escenas. **El escenario AJENO sale en CERO**; el formulario **vacío** mueve las
+  tres variantes del informe y, con ellas, el hash del PDF —que conserva su `nTextos` y su `nFigs`,
+  o sea que la maquetación no se movió—, y es la frase de **AJ2-15**: un formulario sin e′ es
+  exactamente el estado que ese ítem reescribe. **Excel en 440 en las cuatro celdas** y **consola
+  limpia en los dos árboles**.
+
+- **LOS DOS BUSCADORES, MEDIDOS CON SU DENOMINADOR.** Referencias: «HFA-PEFF», «hfa-peff»,
+  «HFA PEFF», «hfa peff», «hfapeff» y «HFAPEFF» dan las **seis** `n=1` con el mismo id; «TAPSE» y
+  «tapse» dan las dos `n=4` con los **mismos cuatro** ids; «wilkins»/«Wilkins» y «presion»/«presión»
+  igual. Guardados, con **dos** estudios sembrados: el documento con puntos, sin puntos y con
+  espacio caen en el mismo; «Pérez»/«perez»/«PEREZ» también; «Muñoz»/«munoz»/«MUNOZ» también.
+  ⚠️ **EL PUNTO DECIMAL NO SE TOCA EN `_buscaCompacta`**: «0,42» sigue encontrando «0.42» y «1.5» no
+  colapsa con «15».
+
+- **MEDIDO EN LOS DOS MOTORES** —Chrome por el canal del sistema y WebKit— **a 1440 y 390 px por
+  los dos temas: 17/17 pestañas con GEOMETRÍA en las ocho celdas y CERO en 0×0**, que es el
+  centinela del `<div>` sin cerrar —la trampa que la tanda I pagó, y que ningún A/B de texto ve—;
+  **cero scroll horizontal de la página** en las ocho, medido en tres momentos; los **tres títulos**
+  del TEP con sus acentos; y **cero recorte** sobre las **93 celdas** del panel de Evidencia y sobre
+  la sección de la aorta ya dibujada (1232 / 358 px). Los textos salen **idénticos entre motores** y
+  **cero errores de consola** en los dos. **8 capturas PNG con 8 `md5` distintos.**
+  ⚠️ **Y LA PRIMERA CORRIDA TENÍA TRES DENOMINADORES VACÍOS, con pinta de medición buena**: los
+  títulos del TEP no llevan atributo —se buscan por su TEXTO—, el panel de Evidencia se pinta con
+  `<table>` y no con una clase `ind-*`, y **la sección del ateroma se llama `aorta` y no `ao`**, así
+  que el span medía 0×0 y «cero recorte» salía sobre un nodo que no estaba dibujado.
+  ⚠️ **WebKit de Playwright NO es Safari, y se declara.**
+
+- **Cobertura: TC-519**, **144 condiciones** —contadas instrumentando el propio caso para que
+  publicara su `ex.length`, no a ojo sobre los `ex.push`— en dieciséis grupos, uno por ítem más el
+  denominador global. **Verificado que sabe fallar contra `2b9f3ef` en un worktree aparte: 67 de
+  las 144 en rojo, y NINGUNA por excepción.**
+- ⚠️ **CASOS ADAPTADOS: CINCO, Y LOS CINCO LOS DESTAPÓ LA SUITE COMPLETA.** **TC-27** (AJ2-15: su
+  `debe` era la instrucción de interfaz, y **gana** el control de que ya no esté), **TC-55**
+  (AJ2-10: afirmaba «Disfunción VD severa — alta probabilidad de TEP/HTP aguda», y **gana** el
+  control de que no vuelvan ni la probabilidad ni el grado), **TC-310** (AJ2-12: su `sumaSucia` no
+  distinguía la escena NATIVA, que desde hoy **sí** publica su línea de Wilkins; se acota a las de
+  PRÓTESIS —igual que su `sucias`— y **gana el DENOMINADOR** que exige que la nativa la publique),
+  y **TC-492** y **TC-494** (AJ2-6: las claves `leve`/`mod` y el texto «Dilat. leve»; los dos
+  **ganan** el control de que esas dos claves ya no existan y de que el informe lleve **UN** solo
+  adjetivo). **Ninguno estaba mal escrito: los cinco describían la app de ayer.**
+
+- ⚠️ **LAS TRAMPAS DE ESTA TANDA.**
+  1. **UNA CAPTURA VE LO QUE NINGUNA CIFRA VE** (arriba): tres superficies del papel firmado con
+     todas las mediciones en verde.
+  2. **`ev()` ENVUELVE EN `return (expr)`**, así que una SENTENCIA revienta con «Unexpected token
+     ';'». Va en una IIFE.
+  3. **Un `assert` que falla en un script de edición NO APLICA NADA**, porque la escritura va al
+     final. Pasó **dos** veces, las dos por anclar a un fragmento que aparece más de una vez.
+  4. **`amiloImprimirPDF('ett')` NO imprime la hoja del HF-PEFF**: imprime el módulo `ett`, y la
+     medición sale con la hoja de **amiloidosis** —23 textos, 7 en negrita, todos títulos— con pinta
+     de medición buena. Y **la clave del módulo es `hfpeff`, no `hfapeff`**.
+  5. **Un lector que busca `' de '` desde el principio de la línea** toma el de «ecocardiográfica DE
+     sobrecarga», que está ANTES del `': '`, y `Number('')` da 0: **tres condiciones de TC-510
+     informaron «informe=0» sobre una línea perfecta** — el defecto estaba en MI lector.
+  6. **Una regla retirada sigue en el fuente si la nombra un comentario.**
+  7. **ME COMÍ EL ACENTO GRAVE OCHO VECES**, todas en comentarios míos. ⚠️ Y
+     **`scripts/check_backticks.py` da FALSOS sobre una concatenación legítima** `` `…` + k + `…` ``
+     **y no alcanza un `ev()` suelto ni el template de una sonda nueva**: dos de los ocho pasaron su
+     chequeo y los cazó `node --check`. **Correr los dos.**
+  8. **Correr dos sondas en paralelo con `2>&1`** mezcla el stderr con el JSON y el lector revienta
+     donde no es. En serie y con el stderr aparte.
+
+- **Dónde está todo:** `docs/mapa/aj2-correcciones.md` (**mapa NUEVO**, 19,4 KB: los commits con sus
+  dos dependencias, los diecisiete ítems por nombre de función, los cuatro inventarios y las doce
+  trampas); **seis mapas con un puntero cada uno** (`htp-hfapeff` · `tep-score` · `otros-hallazgos` ·
+  `referencias-subpestanas` · `aorta-aortopatias-evidencia` · `diastolica-ase2016`);
+  `docs/fuentes/FUENTES.md` → «La tanda AJ2», con **Nicoara folio 716** y **Hahn folio 50** leídos en
+  el original y la tabla de **Cambios de evidencia**; y `docs/PENDIENTES.md` → **nueve** cosas
+  declaradas (**AJ2-a** a **AJ2-i**).
+  ⚠️ **DOS MAPAS NO SE TOCARON, medido con `wc -c` ANTES de escribir:** `aortica-cortes.md` (33,9 KB)
+  e `informe-pdf-excel.md` (34,0 KB). Por eso la documentación salió a un mapa propio. **Ningún mapa
+  cruzó el techo.**
+
+---
+
 ### La ETE, la estenosis tricuspídea y la IP en Fallot reparada — «I» (2026-10-22)
 
 - **Son CINCO commits, y son los cinco que la orden pedía.** Al **empezar**, `main` estaba en

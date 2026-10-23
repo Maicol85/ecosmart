@@ -1,5 +1,13 @@
 # HTP y HF-PEFF — la tanda «E» (2026-10-22)
 
+> ⚠️ **LA EVIDENCIA DEL HFA-PEFF PREGUNTA EL RESULTADO DEL PASO 3 DESDE LA TANDA AJ3
+> (23/10/2026): `docs/mapa/aj3-ett-avanzado.md` → «(B) El resultado del paso 3».** La fila
+> `hfpeff.p3res` aparece sólo con «Paso 3 = Realizada», su marca nunca es `warn` ni `alarm`
+> —si lo fuera, `_indFilaHTML` dejaría de plegar la nota y el ⓘ desaparecería—, y sus dos líneas
+> por resultado van dentro de la rama de puntaje intermedio. **No toca el informe, el EN SUMA, el
+> puntaje ni la hoja del PDF.** Los folios de Pieske 2019 están en `docs/fuentes/FUENTES.md` →
+> «La tanda AJ3».
+
 Mapa de las dos zonas que la tanda E tocó: la **valoración ecocardiográfica de probabilidad de
 hipertensión pulmonar** (ESC/ERS 2022) y el **score HFA-PEFF** (Pieske 2019), las dos dentro de
 la pestaña de Hemodinámica.

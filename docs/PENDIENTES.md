@@ -6858,3 +6858,140 @@ la misma caja son dos cosas que se separan en la primera edición.
 cambiar qué filas se muestran no estaba pedido: (a) esconder «Clasificación — descripción», cuyo
 texto hoy está contenido en el de abajo; (b) dejarle sólo el nombre del grado («Grado 4»), sin su
 descripción; (c) dejarlo como está y aceptar la repetición. **Lo decide Maicol.**
+
+---
+
+## Tanda «AJ3» — lo declarado y NO tocado (2026-10-23)
+
+### AJ3-a · «Integrar al informe» sobre un bloque ya integrado: la lectura estrecha
+
+**Qué se encontró.** El ítem AJ3-2c pide que volver a tocar «Integrar al informe» **regenere** el
+bloque, con una confirmación si estaba editado a mano. Hoy ese botón es un **toggle**: sobre un
+módulo ya integrado **retira**, y eso es una decisión documentada y deliberada —el comentario de
+`amiloIntegrar` dice que evita ir a buscar el «✕ Retirar» de la tarjeta estando parado en la
+calculadora—.
+
+**Qué puede causar.** Aplicar el ítem a todos los casos **borra ese atajo** sin que nadie lo haya
+pedido, y el ítem AJ3-2d dice explícitamente que «Retirar» queda como está.
+
+**Cómo se corrigió, y qué queda.** Se aplicó la **lectura estrecha**: el botón pide confirmación y
+regenera **sólo** si el bloque está editado a mano; en todos los demás casos retira, como siempre.
+Con el barrido automático puesto, un bloque **no** editado ya está regenerado antes de que nadie
+apriete nada, así que la lectura estrecha no pierde ninguna función. **Decisión de Maicol:** si se
+prefiere que regenere siempre, es sacar el `if (!_amiloEstaEditado(k)) { amiloRetirar(k); return; }`
+de `amiloIntegrar` — y entonces hay que decidir desde dónde se retira.
+
+---
+
+### AJ3-b · la presión de llenado en reposo con «Normal» YA publica su línea
+
+**Qué se encontró.** El ítem AJ3-3 pedía agregar, **si no mostraba nada**, la frase «Una presión de
+llenado normal en reposo no descarta el diagnóstico: la guía recomienda la prueba de esfuerzo». La
+pregunta **sí muestra**: «Con una presión de llenado normal en reposo la guía recomienda continuar
+la evaluación durante el ejercicio, por ecocardiografía de esfuerzo o por hemodinámica invasiva
+(texto folio 3305).» Medido en Chrome con la escena de puntaje intermedio.
+
+**Qué puede causar.** Agregar la frase pedida dejaría **dos** líneas diciendo casi lo mismo en el
+mismo bloque, que es el defecto que AJ2-i ya tiene declarado para el ateroma.
+
+**Cómo se corrige.** No se tocó. Lo que la frase pedida **agrega** y la actual no dice es el «**no
+descarta**», y está verificado: Pieske 2019, **folio 3307, hoja 11** — «normal LVEDP or mPCWP levels
+at rest do not exclude HFpEF» —, con la **Figura 4B del folio 3306** leída en imagen. Si Maicol lo
+quiere, lo correcto es **reescribir la línea existente** para que lo incluya, no agregar una
+segunda.
+
+---
+
+### AJ3-c · el PDF NO avisa al exportar con un bloque editado y desfasado
+
+**Qué se encontró.** Caso no decidido del prompt, medido generando el PDF **de verdad** con el
+bloque de HTP editado a mano y ya desfasado: 82 textos, **cero** menciones de «desactualizado»,
+«sin actualizar», «edición», «cambiaron» ni «revisá este bloque», y el texto viejo del médico
+impreso tal cual. El aviso ámbar es **sólo de pantalla**.
+
+**Qué puede causar.** Un informe firmado puede salir con una hoja del ETT avanzado que el médico
+escribió sobre datos que después cambió, sin ninguna señal en el papel ni en el momento de
+exportar.
+
+**Cómo se corrige.** Sin decidir. Las dos opciones razonables son un `confirm` al exportar
+nombrando los bloques desfasados, o una marca en la propia hoja. **Ninguna se aplicó**: no estaba
+pedido.
+
+---
+
+### AJ3-d · «el médico borra todos los datos del módulo»: qué pasa HOY, medido en los diecisiete
+
+**Qué se encontró.** El otro caso no decidido. Vaciando los campos de los que cada módulo depende:
+
+- **Dieciséis de diecisiete** generadores siguen produciendo texto («VRT sin datos», «no
+  consignado», «Sin mediciones cargadas»), así que el bloque **se regenera con el texto de “sin
+  datos” y sigue integrado**. El retiro automático **no se dispara**, porque sólo mira si `gen()`
+  quedó **vacío**.
+- **El único cuyo `gen()` queda vacío es `teer`**, y ya estaba en la lista de los que se retiran
+  solos, así que **se retira** — igual que antes de esta tanda.
+
+**Qué puede causar.** Un módulo vaciado sigue publicando su hoja en el PDF firmado, diciendo «sin
+datos» línea por línea. Puede ser lo correcto —deja constancia de que se buscó— o no.
+
+**Cómo se corrige.** Sin decidir, y por eso `_AM_VACIA_RETIRA` acota el retiro automático a los
+ocho módulos que ya lo tenían: los nueve que estrenan refresco **no** heredaron esa conducta.
+Cuando se decida, es borrar la lista y su `if` en `amiloRefrescarSiIntacto`.
+
+---
+
+### AJ3-e · la FOTO contra la que se mide el desfase NO viaja con el estudio
+
+**Qué se encontró.** `am-editados` guarda **qué** bloques editó el médico, pero no **contra qué**
+texto se compara. Al reabrir un estudio, la foto se vuelve a tomar con el `gen()` de ese momento.
+
+**Qué puede causar.** Un estudio guardado con un bloque **editado y ya desfasado** reabre **sin** el
+aviso ámbar, y lo gana recién cuando cambie un dato.
+
+**Cómo se corrige.** Persistir la foto sería duplicar el texto de cada hoja dentro de cada estudio,
+y el campo oculto viaja en `campos` al backup y al Excel del Laboratorio. Queda declarado y
+cubierto por TC-520 (E3…E5).
+
+---
+
+### AJ3-f · el ⓘ del resultado NO es un término del glosario, y es a propósito
+
+**Qué se encontró.** El ítem pedía «un ⓘ que diga que el resultado lo decide el médico y la
+aplicación no lo calcula». El glosario del panel (`IND_TERMINOS`) exige `fuente`, `pagina` y
+`referencia` **obligatorias**, y esto es una propiedad **de la app**, no una cita.
+
+**Qué puede causar.** Meterlo al glosario obligaba a inventarle un documento, que es exactamente lo
+que el registro de citas existe para impedir.
+
+**Cómo se corrige.** Va por la **nota de la fila**, que es el mecanismo de ⓘ que el panel ya tiene
+para una pregunta (`<details data-ind-info>`). No se agregó maquinaria. ⚠️ **La marca de esa fila
+nunca puede ser `warn` ni `alarm`**: `_indFilaHTML` sólo pliega la nota cuando la marca no es una de
+esas dos, y con cualquiera de las dos el ⓘ **desaparece**.
+
+---
+
+### AJ3-g · la Figura 5 de Pieske 2019 no se leyó en imagen
+
+**Qué se encontró.** El texto del folio 3307 invoca la Figura 5A/B para el detalle del paso 4. La
+figura es una **imagen** dentro del PDF y **no se renderizó**.
+
+**Qué puede causar.** Citarla sería citar lo que no se leyó.
+
+**Cómo se corrige.** No se cita. Lo que la app publica sobre la etiología sale del **texto** del
+folio 3307 y de la **Figura 2** (folio 3300), las dos verificadas.
+
+---
+
+### AJ3-h · `check_backticks.py` volvió a dejar pasar trece acentos graves
+
+**Qué se encontró.** Trece, todos en comentarios míos: doce dentro de `evCrudo` sueltos de las
+sondas nuevas y uno dentro del cuerpo del caso nuevo antes de que existiera. El script **no
+alcanza** un `evCrudo` suelto, y su cobertura del cuerpo de un caso depende de que el caso ya esté
+en el archivo.
+
+**Qué puede causar.** El `SyntaxError` apunta a la **apertura** del template, decenas de líneas
+antes del culpable.
+
+**Cómo se corrige.** Correr **los dos**: `python3 scripts/check_backticks.py` **y** `node --check`
+sobre cada archivo tocado. Y ojo con quitarlos en lote: un `replace('`','')` sobre el bloque del
+caso **se lleva también el acento grave que ABRE el template**, y el error que sale después apunta
+al `return` de la primera línea.

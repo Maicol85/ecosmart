@@ -5449,3 +5449,61 @@ Eso último sigue en la ficha; la historia de qué decía la app antes, acá.
 **Ningún corte, ningún operador y ninguna banda cambiaron.** Verificado por sondeo del dueño en
 los dos lados de cada borde: la aorta en 39 / 40,0 / 41 mm, el ateroma en 5 / 6 mm, el HFA-PEFF en
 sus cuatro cortes, y el TEP en 0 / 1 / 2 / 4 criterios.
+
+---
+
+## La tanda «AJ3» — el resultado del paso 3 del HFA-PEFF (2026-10-23)
+
+**Documento:** Pieske B, Tschöpe C, de Boer RA, Fraser AG, Anker SD, Donal E et al. *How to
+diagnose heart failure with preserved ejection fraction: the HFA–PEFF diagnostic algorithm — a
+consensus recommendation from the Heart Failure Association (HFA) of the European Society of
+Cardiology (ESC).* Eur Heart J 2019;40(40):3297–3317.
+**En disco:** `~/Desktop/EcoSmart_Biblioteca_Fuentes/02_Diastolica/HFA PEFF Pieske ESC 2019.pdf`
+(21 hojas). **Clave del registro vivo:** `hfaPeff2019`.
+
+**Regla de folio: folio = hoja + 3296.** Re-comprobada en esta tanda contra el pie impreso de
+**todas** las hojas del PDF, no de una muestra: hoja 1 → «European Heart Journal (2019) 40,
+3297–3317», hoja 4 → «3300 B. Pieske et al.», hoja 10 → «3306 B. Pieske et al.», hoja 11 → «How
+to diagnose HFpEF 3307».
+
+**Sin clase ni nivel, y es de la fuente:** Pieske 2019 es un documento de **consenso** y no publica
+ninguno para sus pasos. La leyenda que lo dice ya existía en la sección y no se tocó.
+
+### Lo verificado en esta tanda
+
+| Afirmación que la app publica | Dónde está en el original | Cómo se leyó |
+|---|---|---|
+| Con el paso 3 positivo el diagnóstico queda **confirmado**: puntaje combinado de los pasos 2 y 3 de **5 o más** | **folio 3306, hoja 10** — «If the combined score from Step 2(E) and Step 3(F1) is >= 5 points, then the diagnosis of HFpEF can be confirmed.» | texto extraído |
+| …**o** con presiones de llenado invasivas por encima de los cortes | **folio 3307, hoja 11** — «elevated LV filling pressures at rest (LVEDP >= 16 mmHg) confirms definite evidence of HFpEF»; «A resting mPCWP >= 15 mmHg confirms definite evidence of HFpEF.» | texto extraído |
+| El camino «Abnormal → HFpEF confirmed → Investigate for specific aetiology» | **Figura 2, folio 3300, hoja 4** | **RENDERIZADA EN IMAGEN** |
+| El paso siguiente es la **etiología (paso 4)**: miocardiopatía hipertrófica, miocarditis, enfermedades infiltrativas o de depósito como la amiloidosis, fibrosis endomiocárdica, toxicidad o radiación | **folio 3307, hoja 11** — «Step 4(F2): Final aetiology… hypertrophic cardiomyopathies, myocarditis and chronic inflammatory cardiomyopathy… non-infiltrative and infiltrative cardiomyopathies, idiopathic or acquired endomyocardial fibrosis, storage diseases… toxicity from drugs or heavy metals, radiation»; y «(99m)Tc-DPD scintigraphy to identify cardiac amyloidosis» | texto extraído |
+| …y **descartar lo que imita el cuadro**: pericarditis constrictiva, valvulopatía primaria, insuficiencia cardíaca de alto gasto | **folio 3307, hoja 11** — «non-myocardial aetiologies… that may mimic HFpEF, such as constrictive pericarditis, primary valvular heart disease, or high output failure» | texto extraído |
+| Con el paso 3 **normal** la Figura 2 lleva a **buscar otras causas, cardíacas o no** | **Figura 2, folio 3300, hoja 4** — step F1 → «Normal» → caja «Search for other cardiac/non-cardiac causes» | **RENDERIZADA EN IMAGEN** |
+| Con medición invasiva, **por debajo de 25 mmHg en el pico** la disnea se clasifica como **no cardíaca** | **folio 3307, hoja 11** — «Patients with values < 25 mmHg during peak exercise are classified as having non-cardiac dyspnoea.» | texto extraído |
+| Ante la duda, **medición hemodinámica invasiva de esfuerzo**, sobre todo si de eso depende una decisión terapéutica | **folio 3306, hoja 10** — «If the score remains < 5 points or if exercise echocardiography cannot be performed, we recommend an invasive haemodynamic stress test in any case of doubt, especially if a therapeutic decision depends on the results.» | texto extraído |
+| **Figura 4A**: criterio no cumplido → «Perform invasive haemodynamic measurements (right heart catheterisation at rest or during exercise)» | **folio 3306, hoja 10** | **RENDERIZADA EN IMAGEN** |
+| **Figura 2**: «Not conclusive» del test diastólico vuelve a la rama invasiva | **folio 3300, hoja 4** | **RENDERIZADA EN IMAGEN** |
+| Si lo demás **no fue concluyente**, la PCP o la telediastólica invasivas son la **investigación de referencia** | **folio 3307, hoja 11** — «If other investigations have been inconclusive, invasive measurement of mPCWP or LVEDP is considered as the clinical reference investigation for diagnosing HFpEF.» | texto extraído |
+
+### Lo verificado y NO aplicado
+
+| Dato | Dónde | Por qué no se aplicó |
+|---|---|---|
+| Una presión de llenado **normal en reposo NO descarta** el diagnóstico; con presiones normales en reposo se recomienda el cateterismo derecho de esfuerzo | **folio 3307, hoja 11** — «normal LVEDP or mPCWP levels at rest do not exclude HFpEF»; «If resting filling pressures are normal, exercise right heart catheterization is recommended… (Figures 2 and 4B)». **Figura 4B, folio 3306, hoja 10, RENDERIZADA EN IMAGEN**: en reposo, «No» a LVEDP >= 16 / PCPW >= 15 → «Echo Stress Test or Invasive Stress Test» | El ítem pedía agregarlo **sólo si la pregunta no mostraba nada**, y muestra: «Con una presión de llenado normal en reposo la guía recomienda continuar la evaluación durante el ejercicio, por ecocardiografía de esfuerzo o por hemodinámica invasiva (texto folio 3305).» **Medido en Chrome.** → `PENDIENTES.md` AJ3-b |
+
+### Lo que NO se leyó y NO se cita
+
+- **Figura 5 (folio 3308, hoja 12)** — el detalle del paso 4. **No se renderizó en imagen**, así
+  que no se cita, aunque el texto del folio 3307 la invoque. Lo que la app publica sobre la
+  etiología sale del **texto** del folio 3307 y de la **Figura 2**, las dos verificadas.
+
+### Las dos trampas de método de esta ronda
+
+1. **La extracción de texto de este PDF viene con rellenos de puntos** (`....`) por el maquetado a
+   dos columnas: hay que des-puntear antes de buscar literal, o el `grep` no encuentra frases que
+   sí están.
+2. **Las Figuras 2 y 4 son IMÁGENES dentro del PDF** —una sola `DCTDecode` por página—, así que el
+   texto extraído trae **el epígrafe** y no el contenido del diagrama. Las tres afirmaciones que
+   dependen del flujo (Normal → otras causas; Not conclusive → invasivo; Abnormal → confirmado →
+   etiología) **sólo** se pueden verificar renderizando la página. Es la misma trampa que este
+   archivo ya tenía escrita para Baumgartner 2009 y Wilkins 1988.
