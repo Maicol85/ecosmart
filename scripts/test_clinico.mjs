@@ -73876,12 +73876,18 @@ caso('TC-492', 'Tanda M: las DIECISEIS FICHAS nuevas del registro de evidencia d
     /* ADAPTADO el 2026-10-23 (AJ2-6): la categoria que publica la capsula pasa de «Dilat. leve»
        a «Dilatada» — la aorta ya no gradua. La tarjeta la SONDEA, no la copia, asi que esta
        condicion es la que ata las dos superficies. */
-    ex.push(['la linea del corte de EcoSmart dice 40 mm y la categoria es la que publica la capsula; con 40 EXACTOS sale normal',
-      String(aoD.texto||"").indexOf('Corte de EcoSmart: 40 mm') > -1
-        && String(aoA.texto||"").indexOf('Dilatada') > -1 && String(aoD.texto||"").indexOf('Normal') > -1,
-      'd34=' + String(aoD.texto||"").slice(0, 160)]);
+    /* ADAPTADO el 2026-10-23 (AJ4-2): la linea del corte pasa a decir los DOS sexos con su
+       fuente, y la categoria de la capsula YA NO se copia en el globo -esta en pantalla, a dos
+       dedos-. Lo que esta condicion ata sigue siendo lo mismo: el numero del globo y el voto
+       del dueno sobre el mismo paciente. */
+    ex.push(['la linea del corte dice los DOS cortes y su fuente; con 40 EXACTOS el dueno vota dilatado y con 34 normal',
+      String(aoD.texto||"").indexOf('Dilataci\u00f3n en EcoSmart: 40 mm o m\u00e1s en el var\u00f3n y 36 mm o m\u00e1s en la mujer') > -1
+        && String(aoD.texto||"").indexOf('ESC 2024') > -1
+        && window.aoSegDil(window.AO_SEGS.filter(function(x){ return x.k === 'ao_sin' })[0], 40) === true
+        && window.aoSegDil(window.AO_SEGS.filter(function(x){ return x.k === 'ao_sin' })[0], 34) === false,
+      'd34=' + String(aoD.texto||"").slice(0, 200)]);
     ex.push(['las tres lineas de texto de la aorta estan, y la tercera es la aclaracion',
-      String(aoA.texto||"").indexOf('Corte de EcoSmart') > -1
+      String(aoA.texto||"").indexOf('Dilataci\u00f3n en EcoSmart') > -1
         && String(aoA.texto||"").indexOf('Seg\u00fan el gr\u00e1fico para su edad y superficie corporal') > -1
         && String(aoA.texto||"").indexOf('Es una orientaci\u00f3n: el criterio final es individual') > -1,
       String(aoA.texto||"").slice(0, 300)]);
@@ -73893,17 +73899,22 @@ caso('TC-492', 'Tanda M: las DIECISEIS FICHAS nuevas del registro de evidencia d
        en el cuerpo deja de servir. Lo que el control protege -que el corte de 40 mm NO se le
        ATRIBUYA a una guia- se conserva y se mide mejor: el pie de fuentes sigue teniendo UNA sola
        entrada, la del nomograma, y la linea del corte sigue diciendo «Corte de EcoSmart». */
-    ex.push(['CONTROL NEGATIVO: el corte de 40 mm sigue rotulado «Corte de EcoSmart» y el pie publica UNA sola fuente, la del nomograma',
+    /* ADAPTADO el 2026-10-23 (AJ4-1/AJ4-2). Lo que este control protegia era que el corte de
+       40 mm NO se le atribuyera a una guia, porque era criterio PROPIO y su ficha figuraba «por
+       verificar». Desde el AJ4-1 el corte SI es de la ESC 2024 y su ficha -AOR-004- esta
+       verificada, asi que la afirmacion a proteger se DA VUELTA: ahora el control es que el pie
+       no se la atribuya a la ASE/EACVI 2015, que es la fuente del RANGO y no del corte. */
+    ex.push(['CONTROL: el pie nombra el RANGO y publica UNA sola fuente -la del nomograma- mientras el corte cita su propia guia en su linea',
       (aoD.fuentes || []).length === 1
         && (aoD.fuentes || [])[0].indexOf('Figura 13') > -1
-        && String(aoD.texto||'').indexOf('Corte de EcoSmart') > -1
-        && !/ESC|AHA|gu[ií]a/i.test(String(aoD.texto||'').split('Sobre el corte de dilatación')[0].split('Fuente:')[0]),
+        && String(aoD.texto||'').indexOf('Fuente del rango:') > -1
+        && String(aoD.texto||'').indexOf('apartado 9.2.1.1, folio 71') > -1,
       'fuentes=' + (aoD.fuentes || []).join(' | ')]);
     /* Sin edad, sin superficie corporal y fuera del rango de superficie corporal. */
     montar({ ao_sin: '40' }); abrir('ao-card'); const sinE = leer(); { const b = BTN('ao-card'); if (b) b.click(); }
-    ex.push(['sin edad no hay grafico y la linea dice que cargarla; el corte de EcoSmart se evalua igual',
+    ex.push(['sin edad no hay grafico y la linea dice que cargarla; el corte se publica igual',
       sinE.nomo === 0 && String(sinE.texto||"").indexOf('Cargar la edad') > -1
-        && String(sinE.texto||"").indexOf('Corte de EcoSmart: 40 mm') > -1,
+        && String(sinE.texto||"").indexOf('Dilataci\u00f3n en EcoSmart: 40 mm o m\u00e1s en el var\u00f3n') > -1,
       String(sinE.texto||"").slice(0, 200)]);
 
     /* ══ (d) REFERENCIAS ═══════════════════════════════════════════════ */
@@ -74757,11 +74768,17 @@ caso('TC-494', 'Tanda VS: el VD, la AD, la VCI y la RAIZ AORTICA alineados a la 
       && String(lFun.cats['vd-fac']||'') === TXT('fac-interp')
       && String(lAd.cats['ad-area']||'') === TXT('ad-interp'),
     'tarjeta=' + (lFun.cats['vd-tapse']||'') + ' | capsula=' + TXT('tapse-interp')]);
-  /* La tarjeta de la aorta publica el corte LEIDO del dueno, con su operador. */
+  /* La tarjeta de la aorta publica el corte LEIDO del dueno, con su operador.
+     ADAPTADO el 2026-10-23 (AJ4-2): el renglon pasa a decir los DOS sexos y su fuente. Los
+     numeros se comparan contra AO_DIL_MM, el dueno, y no contra un literal: asi la condicion
+     sigue atando el globo al codigo y no a una redaccion. */
   try { showTab('ai-vi') } catch (e) {}
   const lAo = leerT('ao-card');
-  ex.push(['la tarjeta de la aorta dice «Corte de EcoSmart: 40 mm o mas», leido del dueno',
-    !lAo.err && String(lAo.cats['ao-corte']||'').indexOf('Corte de EcoSmart: 40 mm o más') === 0,
+  ex.push(['la tarjeta de la aorta publica los DOS cortes leidos del dueno, con su guia y su folio',
+    !lAo.err && String(lAo.cats['ao-corte']||'').indexOf(
+      'Dilatación en EcoSmart: ' + window.AO_DIL_MM.M + ' mm o más en el varón y '
+      + window.AO_DIL_MM.F + ' mm o más en la mujer.') === 0
+      && String(lAo.cats['ao-corte']||'').indexOf('apartado 9.2.1.1, folio 71') > -1,
     String(lAo.cats['ao-corte']||'')]);
   /* La tabla de la vena cava sigue al operador del dueno. */
   const tv = (() => { try { const d = document.createElement('div'); d.appendChild(window._evVciTabla(null));
@@ -84069,13 +84086,23 @@ caso('TC-516', 'Tanda AJ1: los cortes del VD pasan a la version de MAYO de la AS
   const tarAo = (function(){ try { if (!FN('evTarjetaAo')) return 'SIN FN';
     const n = evTarjetaAo(); return n ? String(n.textContent || '') : 'NULO'; }
     catch (e) { return 'EXC'; } })();
-  ex.push(['(c1) el globo de la aorta declara que la guia escribe el corte de dos maneras y cual aplica la app',
+  /* ADAPTADO el 2026-10-23 (AJ4-2). La nota que declaraba las DOS maneras de escribir el corte
+     -«40 a 44 mm» contra «mas de 40 mm»- salio del globo y vive en docs/fuentes/FUENTES.md y
+     en la ficha AOR-004: es metodologia de lectura de la fuente, no informacion sobre este
+     paciente. Lo que el globo conserva, y lo que esta condicion mide, son los DOS folios con
+     los que la guia define la dilatacion. */
+  ex.push(['(c1) el globo de la aorta publica el corte con sus DOS folios de la ESC 2024',
     tarAo.indexOf('9.2.1.1') > -1 && tarAo.indexOf('folio 71') > -1
       && tarAo.indexOf('Figura 24') > -1 && tarAo.indexOf('folio 76') > -1
-      && tarAo.indexOf('40 a 44 mm') > -1 && tarAo.indexOf('inclusivo') > -1,
+      && tarAo.indexOf('ESC 2024') > -1,
     tarAo.slice(-260)]);
-  ex.push(['(c2) CONTROL: el corte NO se movio y sigue rotulado «Corte de EcoSmart»',
-    tarAo.indexOf('Corte de EcoSmart') > -1 && window.AO_DIL_MM.M === 40 && window.AO_DIL_MM.F === 36,
+  /* El OPERADOR no se mide en el texto -ya no se narra- sino en el dueno, que es donde vive: el
+     valor exacto del corte cuenta como dilatado en los dos sexos. */
+  ex.push(['(c2) CONTROL: el corte NO se movio y su operador sigue siendo el INCLUSIVO',
+    window.AO_DIL_MM.M === 40 && window.AO_DIL_MM.F === 36
+      && window.aoSegDil(window.AO_SEGS.filter(function(x){ return x.k === 'ao_sin' })[0], 40, 'M') === true
+      && window.aoSegDil(window.AO_SEGS.filter(function(x){ return x.k === 'ao_sin' })[0], 36, 'F') === true
+      && window.aoSegDil(window.AO_SEGS.filter(function(x){ return x.k === 'ao_sin' })[0], 35.9, 'F') === false,
     JSON.stringify(window.AO_DIL_MM)]);
 
   /* ══ (d) EL INDICE DE DIMENSION AORTICA ════════════════════════════════════════════════
@@ -85286,7 +85313,8 @@ caso('TC-519', 'Tanda AJ2: «sin datos» no es «no medible» en las cinco super
       const n = (fr && fr.querySelector) ? fr.querySelector('[data-ev-cat="ao-corte"]') : null;
       return n ? (n.textContent || '').trim() : 'SIN RENGLON'; } catch (e) { return 'EXC'; } })();
   ex.push(['(J10) la tarjeta conserva su renglon del corte y ya no dice «Dilat. leve»',
-    tarAo.indexOf('Corte de EcoSmart: 40 mm') > -1 && tarAo.indexOf('Dilat. leve') === -1, tarAo]);
+    tarAo.indexOf('Dilataci\u00f3n en EcoSmart: 40 mm o m\u00e1s en el var\u00f3n') > -1
+      && tarAo.indexOf('Dilat. leve') === -1, tarAo]);
   /* La conclusion de la VAB: sale el grado y la clave del Laboratorio NO se mueve. */
   __t.limpiar();
   set({ ao_sin: '42', va_morf: 'Bic' + String.fromCharCode(250) + 'spide' });
