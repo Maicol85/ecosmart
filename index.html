@@ -19791,6 +19791,23 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
     <div class="co-ref-pane" data-coref-pane="ctrcd">
 <table style="width:100%;border-collapse:collapse;font-size:11.5px;margin-bottom:10px;">
       <tr style="background:var(--section-head);"><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Hallazgo</th><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Definicion</th></tr>
+      <!-- ⚠️ DOS COSAS MAS SALIERON ACA (J2-E3, 2026-10-24, decision de Maicol):
+           1. EL PLAZO DE «2-4 SEM» tras una caida de FEVI con antraciclinas. NO figura en la
+              guia: ni la Figura 10 (folio 4258) ni su pie lo escriben, y las Recomendaciones-
+              tabla de seguimiento tampoco. Lo que queda es la instruccion que SI se sostiene
+              -graduar la CTRCD con la subtab «CTRCD»-, sin ponerle fecha.
+           2. EL SEGUIMIENTO TRAS RADIOTERAPIA pasa de «eco a los 5 y a los 10 anos» a «desde
+              los 5 anos y luego cada 5 anos», que es lo que publica la Recomendaciones-tabla 41
+              del folio 4314, VERIFICADA EN IMAGEN: «Echocardiography should be considered in
+              asymptomatic late high-risk adult CS starting at 5 years after radiation to a
+              volume including the heart and then every 5 years» - Clase IIa, Nivel C. El «a los
+              10 anos» dejaba de pedir eco a los 15 y a los 20, que es cuando mas valvulopatia
+              tardia hay.
+           ⚠️ «REEVALUAR EN 3-6 SEM» DE LA FILA ANTI-HER2 NO SE TOCO, y es deliberado: esta
+           orden nombra el plazo de 2-4 semanas y el de 4 semanas, no este. Tampoco lo encontre
+           en el pie de la Figura 11 (folio 4260). Queda DECLARADO en docs/PENDIENTES.md para
+           que lo decida Maicol: mover un plazo clinico que la orden no nombra seria tocar
+           contenido clinico sin permiso. -->
       <!-- ⚠️ LA COLUMNA «ACCION» SE RETIRO ENTERA (R2-E6, 2026-10-21, decision de Maicol). Lo que
            publicaba eran CONDUCTAS —«Suspender, cardioproteccion, reevaluar en 2-4 sem»,
            «Continuar con cardioproteccion y control en 4 sem», «considerar biopsia si persiste»—,
@@ -19820,7 +19837,7 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
       <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;font-weight:700;">Trastuzumab</td><td style="padding:5px 8px;">Disfuncion VI reversible</td><td style="padding:5px 8px;">Eco basal, cada 3 meses durante tto</td></tr>
       <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;font-weight:700;">ICI (anti-PD1/PDL1)</td><td style="padding:5px 8px;">Miocarditis autoinmune (rara, grave)</td><td style="padding:5px 8px;">ECG y troponina basal y ante sintomas</td></tr>
       <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;font-weight:700;">Anti-VEGF</td><td style="padding:5px 8px;">HTA, trombosis, disfuncion VI</td><td style="padding:5px 8px;">PA, eco si sintomas o FEVI limite</td></tr>
-      <tr><td style="padding:5px 8px;font-weight:700;">Radioterapia toracica</td><td style="padding:5px 8px;">Pericarditis, EAC, valvulopatia tardia</td><td style="padding:5px 8px;">Eco 5 y 10 anos post-RT</td></tr>
+      <tr><td style="padding:5px 8px;font-weight:700;">Radioterapia toracica</td><td style="padding:5px 8px;">Pericarditis, EAC, valvulopatia tardia</td><td style="padding:5px 8px;">Eco <b>desde los 5 anos</b> post-RT y luego <b>cada 5 anos</b> (IIa C)</td></tr>
     </table>
     <!-- ═══ HFA-ICOS y cardiotoxicidad por clase (agregadas 2026-09-15) ═══════════════════
          SOLO REFERENCIA: ningún campo de entrada, ningún cálculo, nada que baje al PDF. Se
@@ -19936,7 +19953,7 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
         <td style="padding:5px 8px;">Parcialmente irreversible (dosis-dependiente)</td>
         <td style="padding:5px 8px;">IC &#10003;&#10003;&#10003; · HTA - · Arritmia &#10003; · Isquemia - · QT &#10003; · Pericarditis -</td>
         <td style="padding:5px 8px;">Doxorrubicina &gt;=250 mg/m2 (alto riesgo); &gt;=400 mg/m2 (muy alto riesgo)</td>
-        <td style="padding:5px 8px;">Basal obligatorio. Durante el tto: <b>cada 2 ciclos</b> en riesgo alto y muy alto; los <b>biomarcadores</b> antes de cada ciclo. A los 3 y 12 meses de terminar. Si la FEVI cae &gt;=10 pp o baja de 50%: eco en 2-4 sem y graduar la CTRCD con la subtab «CTRCD» de esta seccion, que es la que define la conducta.</td>
+        <td style="padding:5px 8px;">Basal obligatorio. Durante el tto: <b>cada 2 ciclos</b> en riesgo alto y muy alto; los <b>biomarcadores</b> antes de cada ciclo. A los 3 y 12 meses de terminar. Si la FEVI cae &gt;=10 pp o baja de 50%: graduar la CTRCD con la subtab «CTRCD» de esta seccion.</td>
         <td style="padding:5px 8px;">Mama, linfomas (LNH, Hodgkin), leucemias (LMA, LLC), sarcomas, cancer gastrico, mieloma</td>
       </tr>
       <tr style="border-bottom:1px solid var(--border);background:var(--bg3);">
@@ -20008,7 +20025,7 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
         <td style="padding:5px 8px;">Irreversible (progresiva con el tiempo)</td>
         <td style="padding:5px 8px;">IC &#10003; · HTA - · Arritmia &#10003; · Isquemia &#10003;&#10003;&#10003; · QT - · Pericarditis &#10003;&#10003;&#10003;</td>
         <td style="padding:5px 8px;">&gt;30-35 Gy sobre el corazon aumenta el riesgo</td>
-        <td style="padding:5px 8px;">Basal. Eco a los 5 anos post-RT. Eco a los 10 anos post-RT. Vigilar: valvulopatia, pericarditis constrictiva, coronariopatia tardia.</td>
+        <td style="padding:5px 8px;">Basal. Tras radioterapia sobre un volumen que incluye el corazon: eco <b>desde los 5 anos</b> y luego <b>cada 5 anos</b> (ESC 2022, Recomendaciones-tabla 41, folio 4314: Clase IIa, Nivel C). Vigilar: valvulopatia, pericarditis constrictiva, coronariopatia tardia.</td>
         <td style="padding:5px 8px;">Mama izquierda, pulmon, linfomas mediastinales (Hodgkin), esofago, timoma</td>
       </tr>
       <tr style="background:var(--bg3);">
@@ -20027,7 +20044,7 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
     <div style="font-size:11.5px;color:var(--text2);margin-bottom:10px;line-height:1.5;">Que eco pedir y cuando, por clase. Es la <b>misma</b> columna de la subtab «Cardiotoxicidad», puesta sola para consultarla sin leer las otras seis. Con antraciclinas el eco va <b>cada 2 ciclos</b> en riesgo alto y muy alto; los <b>biomarcadores</b> antes de <b>cada ciclo</b> (ESC 2022, folio 4259).</div>
     <table style="width:100%;border-collapse:collapse;font-size:11.5px;">
       <tr style="background:var(--section-head);"><th style="padding:6px 8px;text-align:left;color:var(--accent2);width:32%;">Clase</th><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Seguimiento ecocardiografico</th></tr>
-      <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;font-weight:700;">Antraciclinas</td><td style="padding:5px 8px;">Basal obligatorio. Durante el tto: <b>cada 2 ciclos</b> en riesgo alto y muy alto; los <b>biomarcadores</b> antes de cada ciclo. A los 3 y 12 meses de terminar. Si la FEVI cae &gt;=10 pp o baja de 50%: eco en 2-4 sem y graduar la CTRCD con la subtab «CTRCD» de esta seccion, que es la que define la conducta.</td></tr>
+      <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;font-weight:700;">Antraciclinas</td><td style="padding:5px 8px;">Basal obligatorio. Durante el tto: <b>cada 2 ciclos</b> en riesgo alto y muy alto; los <b>biomarcadores</b> antes de cada ciclo. A los 3 y 12 meses de terminar. Si la FEVI cae &gt;=10 pp o baja de 50%: graduar la CTRCD con la subtab «CTRCD» de esta seccion.</td></tr>
       <tr style="border-bottom:1px solid var(--border); background:var(--bg3);"><td style="padding:5px 8px;font-weight:700;">Anti-HER2</td><td style="padding:5px 8px;">Basal obligatorio. Eco cada 3 meses durante el tto. Si la FEVI cae &gt;=10 pp o baja de 50%: reevaluar en 3-6 sem y graduar la CTRCD con la subtab «CTRCD» de esta seccion, que es la que define la conducta.</td></tr>
       <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;font-weight:700;">Inhibidores VEGF/VEGFR</td><td style="padding:5px 8px;">Basal + PA. PA en cada visita (la HTA es frecuente). Eco si FEVI limite o sintomas. Eco al finalizar el tto.</td></tr>
       <tr style="border-bottom:1px solid var(--border); background:var(--bg3);"><td style="padding:5px 8px;font-weight:700;">ICI — Inmunoterapia</td><td style="padding:5px 8px;">Basal + troponina + ECG. Eco SOLO si sintomas o troponina elevada. Si hay miocarditis: urgente — suspender y hospitalizar.</td></tr>
@@ -20035,7 +20052,7 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
       <tr style="border-bottom:1px solid var(--border); background:var(--bg3);"><td style="padding:5px 8px;font-weight:700;">Agentes alquilantes</td><td style="padding:5px 8px;">Basal. Eco antes de cada ciclo de alta dosis. Monitoreo durante la infusion en altas dosis.</td></tr>
       <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;font-weight:700;">Inhibidores BCR-ABL</td><td style="padding:5px 8px;">Basal. Eco anual o si hay sintomas. Si aparece derrame pericardico: reducir dosis o suspender el dasatinib.</td></tr>
       <tr style="border-bottom:1px solid var(--border); background:var(--bg3);"><td style="padding:5px 8px;font-weight:700;">Inhibidores del proteasoma</td><td style="padding:5px 8px;">Basal. Eco antes de cada ciclo con carfilzomib. PA en cada visita.</td></tr>
-      <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;font-weight:700;">Radioterapia toracica</td><td style="padding:5px 8px;">Basal. Eco a los 5 anos post-RT. Eco a los 10 anos post-RT. Vigilar: valvulopatia, pericarditis constrictiva, coronariopatia tardia.</td></tr>
+      <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;font-weight:700;">Radioterapia toracica</td><td style="padding:5px 8px;">Basal. Tras radioterapia sobre un volumen que incluye el corazon: eco <b>desde los 5 anos</b> y luego <b>cada 5 anos</b> (ESC 2022, Recomendaciones-tabla 41, folio 4314: Clase IIa, Nivel C). Vigilar: valvulopatia, pericarditis constrictiva, coronariopatia tardia.</td></tr>
       <tr style=" background:var(--bg3);"><td style="padding:5px 8px;font-weight:700;">Hormonoterapia</td><td style="padding:5px 8px;">No rutinario. Eco si hay sintomas o FEVI limite previa. Control de PA y perfil metabolico en cada visita.</td></tr>
     </table>
     </div>

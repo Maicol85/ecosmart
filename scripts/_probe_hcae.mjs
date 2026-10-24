@@ -1026,7 +1026,16 @@ window.__Z = {
       }
       n = n.parentNode;
     }
-    return { tocados: tocados, geo: window.__P.geo(id) } },
+    /* ADVERTENCIA DEL DENOMINADOR, segunda vez en esta sonda: una zona con SUB-PANELES
+       ocultos -las cuatro subtabs de Referencia rapida de cardio-oncologia- mide solo el panel
+       visible, asi que el barrido de recortes corre sobre un tercio de las filas y devuelve
+       cero. Se abren TODOS los descendientes con display:none antes de medir. Lo que estaba en
+       display:none no tiene geometria: medirlo cerrado es medir nada. */
+    var ocultos = 0;
+    e.querySelectorAll('*').forEach(function(x){
+      if (getComputedStyle(x).display === 'none') { x.style.display = ''; ocultos++; }
+    });
+    return { tocados: tocados, subpaneles: ocultos, geo: window.__P.geo(id) } },
 
   /* El censo COMPLETO del panel de Evidencia: cada seccion que se pinta, con sus corchetes y su
      bibliografia. Es lo que detecta el defecto del AJ6 -una seccion nueva que corre la
@@ -1053,6 +1062,52 @@ window.__Z = {
       };
     });
     return o },
+
+  /* Las tres tablas de referencia de cardio-oncologia, por su texto plano. Son HTML estatico:
+     lo que se mide es lo que el medico lee. Se buscan FRASES, no se compara el bloque entero,
+     para que el veredicto diga QUE falta y no solo que algo cambio. */
+  conco() {
+    var sec = document.getElementById('co-referencia-seccion');
+    if (!sec) return 'NO EXISTE co-referencia-seccion';
+    var t = (sec.textContent || '').replace(/\\s+/g, ' ');
+    var o = { len: t.length };
+    [['plazo24', '2-4 sem'], ['plazo4', 'control en 4 sem'],
+     ['biopsia', 'considerar biopsia'], ['rt5y10', '5 anos post-RT. Eco a los 10 anos'],
+     ['rtDesde5', 'desde los 5 anos'], ['rtCada5', 'cada 5 anos'],
+     ['rtClase', 'Clase IIa, Nivel C'], ['plazo36', '3-6 sem'],
+     ['cada2ciclos', 'cada 2 ciclos'], ['dosis250', '250 mg/m2'],
+     ['gls15', 'GLS >15%'], ['noHfaIcos', 'HFA-ICOS']].forEach(function(p){
+      o[p[0]] = t.indexOf(p[1]) >= 0;
+    });
+    o.ocurrRT = (t.match(/desde los 5 anos/g) || []).length;
+    /* El denominador: cuantas filas tiene cada una de las tres tablas de la seccion. */
+    o.filas = sec.querySelectorAll('tr').length;
+    return o },
+
+  /* Lleva A LA VISTA la primera fila que contiene un fragmento de texto, para que la captura
+     muestre LO QUE SE CAMBIO y no el principio de la seccion. Devuelve su rect y su texto: si
+     no esta, lo dice, y una captura sin denominador no se confunde con una sana. */
+  verTexto(zona, frag) {
+    window.__Z.abrirZona(zona);
+    var raiz = document.getElementById(zona);
+    if (!raiz) return { err: 'NO EXISTE ' + zona };
+    var hit = null;
+    raiz.querySelectorAll('tr').forEach(function(x){
+      if (!hit && (x.textContent || '').indexOf(frag) >= 0) hit = x;
+    });
+    if (!hit) return { hay: false, frag: frag };
+    hit.scrollIntoView({ block: 'center' });
+    var r = hit.getBoundingClientRect();
+    return { hay: true, y: Math.round(r.top), h: Math.round(r.height), w: Math.round(r.width),
+             txt: (hit.textContent || '').replace(/\\s+/g, ' ').trim().slice(0, 260) } },
+
+  /* El bloque de cardio-oncologia tal como lo escribe su generador: informe y hoja del PDF. */
+  hojaConco() { return window.__Y.hoja('conco') },
+
+  /* Lo RENDERIZADO de las dos capsulas de resultado de la pestaña. */
+  concoPant() {
+    return { riesgo: window.__P.txt('co-riesgo-resultado'),
+             toxic: window.__P.txt('co-toxicidad-resultado') } },
 
   /* Abre el panel, despliega la seccion cuyo titulo empieza con el prefijo dado, la deja a la
      vista y devuelve su alto. Sin esto la captura muestra una lista de titulos cerrados. */
@@ -1114,7 +1169,14 @@ window.__Z = {
     /* CONTROL NEGATIVO 2: perfil normal, que tampoco se toca. */
     hemoNormal: { peso: '80', talla: '180', diam_tsvi: '22', itv_tsvi: '18',
                   hemo_fc: '100', hemo_pam: '90', vci_diam: '15', vci_col: '>50',
-                  onda_e: '95', e_sep: '6', e_lat: '8' }
+                  onda_e: '95', e_sep: '6', e_lat: '8' },
+    /* Cardio-oncologia con RADIOTERAPIA, que es la fila que esta tanda alinea. */
+    concoRT:    { co_farmaco: 'radioterapia', co_fevi_basal: '62', co_fevi_actual: '58',
+                  co_edad: '58', co_riesgo_cv: '1' },
+    /* Antraciclinas con caida de FEVI: la fila de la que salio el plazo de 2-4 semanas. */
+    concoAntrac:{ co_farmaco: 'antracicline', co_dosis_antrac: '300', co_fevi_basal: '62',
+                  co_fevi_actual: '48', co_gls_basal: '-20', co_gls_actual: '-15',
+                  co_edad: '66', co_riesgo_cv: '2', co_troponi: 'si' }
   };
 
   /* ══ GRUPO hemo ════════════════════════════════════════════════════════════════════════════ */
@@ -1162,8 +1224,10 @@ window.__Z = {
           await ev(`window.__Y.poner(${JSON.stringify(ESC.hemoDistrib)})`);
           await ev(`window.__P.calentar()`);
           for (const z of ZONAS) await ev(`window.__Z.abrirZona(${JSON.stringify(z)})`);
+          const FRAG = arg('--frag');
           const k = `${w}x${h}_${claro ? 'claro' : 'oscuro'}`;
           const o = { scrollH: await ev(`window.__Y.scrollH()`), geo: {} };
+          if (FRAG) o.ver = await ev(`window.__Z.verTexto(${JSON.stringify(ZONAS[0])},${JSON.stringify(FRAG)})`);
           for (const z of ZONAS) o.geo[z] = await ev(`window.__P.geo(${JSON.stringify(z)})`);
           o.recortes = await ev(`window.__Z.recortes(${JSON.stringify(ZONAS)})`);
           o.png = await shot('hcae_' + k + '_' + ZONAS[0]);
@@ -1243,6 +1307,28 @@ window.__Z = {
     } catch (e) { r.err = e.message }
     out.grupos.evid = r;
     process.stderr.write('[evid] listo\n');
+  }
+
+  /* ══ GRUPO conco — CARDIO-ONCOLOGIA ════════════════════════════════════════════════════════ */
+  if (corre('conco')) {
+    const r = { escenas: {} };
+    try {
+      await viewport(1440,900);
+      await ev(`window.__P.nuevo()`);
+      await ev(`window.__Z.abrirZona('co-referencia-seccion')`);
+      r.tablas = await ev(`window.__Z.conco()`);
+      for (const k of ['concoRT','concoAntrac']) {
+        await ev(`window.__P.nuevo()`);
+        const put = await ev(`window.__Y.poner(${JSON.stringify(ESC[k])})`);
+        await ev(`window.__P.calentar()`);
+        r.escenas[k] = { err: put.err, pant: await ev(`window.__Z.concoPant()`),
+                         hoja: await ev(`window.__Z.hojaConco()`),
+                         panel: await ev(`window.__Z.panel()`, 60000) };
+      }
+      r.errores = await ev(`window.__Y.errores()`);
+    } catch (e) { r.err = e.message }
+    out.grupos.conco = r;
+    process.stderr.write('[conco] listo\n');
   }
 
   OUT.md5Fin = await md5(EXTERNO ? FARG : join(RAIZ, FILE));
