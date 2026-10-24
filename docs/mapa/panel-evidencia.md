@@ -439,3 +439,31 @@ perdió sus frases de conducta, y entraron **tres Evidencias nuevas** más la fi
 de constricción.
 
 **Todo eso está en `docs/mapa/j-pericardio-constriccion-vexus.md`.** Acá no se repite.
+
+---
+
+## Tres secciones nuevas en la tanda «J2» → otro mapa
+
+Puntero. `IND_SECS` pasa de **27 a 30**. El relato vive en
+**`docs/mapa/j2-hemo-onco-amiloide-pulmon.md`** §2.
+
+| Sección | Dueña | Con clase y nivel |
+|---|---|---|
+| «Perfil hemodinámico — presiones y resistencias estimadas por eco» | `_indHemo` | **ninguna** |
+| «Cardiotoxicidad por tratamiento oncológico — graduación y seguimiento» | `_indConco` | dos, IIa · C |
+| «Amiloidosis cardíaca — algoritmo diagnóstico» | `_indAmil` | dos, I · B y IIa · C |
+
+⚠️ **NINGUNA CLASE SE INVENTA, Y CADA SECCIÓN DICE POR QUÉ NO LA TIENE**: la ASE 2025 no usa esa
+escala; Grossman y Braunwald son libros de texto; y el «2,2 o menos» del consenso argentino vive
+en una columna comparativa de su Tabla 1, no en una recomendación propia.
+
+⚠️ **LA DE AMILOIDOSIS ES UN CUESTIONARIO CON DOBLE PUERTA**: si el médico ya cargó el
+centellograma y las proteínas monoclonales en el módulo del algoritmo, la sección los LEE; si no,
+los PREGUNTA con `_indFilaCtrl`. Lo contestado acá no toca el módulo ni se guarda.
+
+⚠️ **`indicAbrir()` BORRA las respuestas**, al abrir Y al cerrar. Una sonda que abre antes de cada
+respuesta deja viva sólo la última: se abre **una vez por escena**. Costó una corrida.
+
+Siete entradas nuevas en `IND_REFS` (`aseDer2025`, `sacShock2024`, `grossman2016`,
+`braunwald2016`, `escOnco2022`, `gpAmiloid2021`, `boldrini2020`) y `esc2023mioc` ampliada con su
+procedencia verificada. Ver `panel-evidencia-citas.md`.

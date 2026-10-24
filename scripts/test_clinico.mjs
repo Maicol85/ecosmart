@@ -12388,8 +12388,18 @@ caso('TC-99', 'Cardio-onco: las tablas de referencia no contradicen al clasifica
       ['Antraciclinas','Anti-HER2','Inhibidores VEGF/VEGFR','ICI','Fluoropirimidinas',
        'Agentes alquilantes','Inhibidores BCR-ABL','Inhibidores del proteasoma',
        'Radioterapia toracica','Hormonoterapia'].every(k => ref.indexOf(k) > -1)],
+    /* ⚠️ ADAPTADO EL 2026-10-24 (tanda J2, commit J2-3). Este renglon exigia
+       «Eco a los 5 anos post-RT», que era el seguimiento tras radioterapia ANTES de alinearlo a
+       la guia. La ESC 2022 publica «desde los 5 anos y luego cada 5 anos» (Recomendaciones-tabla
+       41, folio 4314, Clase IIa Nivel C), verificada en imagen, y el texto viejo dejaba de pedir
+       eco a los 15 y a los 20, que es cuando mas valvulopatia tardia hay.
+       Lo que el caso prueba no cambia: que la columna de seguimiento eco siga estando y siga
+       diciendo algo. Lo que cambia es QUE dice, y ahora se exige con su clase y su nivel.
+       La fila de anti-HER2 se exige igual, porque esa NO se toco. */
     ['con la columna de seguimiento eco, que es la que se consulta',
-      ref.indexOf('Eco a los 5 anos post-RT') > -1 &&
+      ref.indexOf('desde los 5 anos') > -1 && ref.indexOf('cada 5 anos') > -1 &&
+      ref.indexOf('Clase IIa, Nivel C') > -1 &&
+      ref.indexOf('Eco a los 5 anos post-RT. Eco a los 10 anos') < 0 &&
       ref.indexOf('Eco cada 3 meses durante el tto') > -1],
     ['y las dosis limite de las tres clases que la tienen',
       ref.indexOf('400 mg/m2') > -1 && ref.indexOf('140 mg/kg') > -1 && ref.indexOf('30-35 Gy') > -1],
@@ -47141,7 +47151,22 @@ caso('TC-322', 'Evidencia: citas numeradas POR SECCION, con un solo dueno de la 
            original de Beaubien-Souligny. */
       ['Derrame pericardico y taponamiento', { pericardio:'Derrame severo (>20mm)' },        'escPeri2025'],
       ['Constriccion pericardica',           { cvr_rebote:'si' },                            'escPeri2025'],
-      ['Congestion venosa sistemica',        { vci_diam:'21', vexus_sh:'2' },                'vexus2020']
+      ['Congestion venosa sistemica',        { vci_diam:'21', vexus_sh:'2' },                'vexus2020'],
+      /* ⚠️ LAS TRES DE LA TANDA J2 (24/10/2026). Este caso exige que TODA seccion de IND_SECS
+         tenga escenario, asi que tres secciones nuevas lo ponen en rojo NOMBRANDOLAS — que es
+         justo para lo que el denominador existe.
+         · Hemodinamica abre con cualquier valor calculado en la capsula. El minimo es la presion
+           capilar, que sale de E/e': las tres velocidades disparan calcDiastol, y esa llama a
+           calcHemo. Su guia cita la ASE 2025 de corazon derecho.
+         · Cardio-oncologia abre con cualquier dato de ENTRADA del modulo —no con el veredicto—,
+           porque la mitad de sus filas existe antes de que haya un grado. El minimo es el
+           farmaco. Cita la ESC 2022 de cardio-oncologia.
+         · Amiloidosis abre con el espesor, el score, los cualitativos o el score ya pasado al
+           algoritmo. El minimo que __t.set alcanza es ese ultimo. Cita el documento de
+           posicion de la ESC. */
+      ['Perfil hemodinamico',                { onda_e:'95', e_sep:'6', e_lat:'8' },          'aseDer2025'],
+      ['Cardiotoxicidad por tratamiento oncologico', { co_farmaco:'radioterapia' },          'escOnco2022'],
+      ['Amiloidosis cardiaca',               { 'alg-ett-score':'6' },                        'gpAmiloid2021']
     ];
 
     const sembrar = campos => {
@@ -65782,9 +65807,13 @@ caso('TC-471', 'Valvulas D1: la insuficiencia mitral en TRES columnas de SEIS co
        ADAPTADO el 2026-10-24 (AJ5-1): 51 -> 52. La nueva es vm-carp, el globo del Carpentier de la
        mitral, y esta SI vive en Valvulas: es el primer agregado al registro que suma tambien a los
        globos de la pestana (31 -> 32). Lo que esta condicion exige no cambia: toda clave del
-       marcado tiene entrada -que es lo que impide una tarjeta VACIA- y ninguna es de legado. */
+       marcado tiene entrada -que es lo que impide una tarjeta VACIA- y ninguna es de legado.
+       ADAPTADO el 2026-10-24 (tanda J2, commits J2-1 y J2-5): 52 -> 56. Las CUATRO nuevas son
+       hemo-ic, hemo-rvs y hemo-forr -los tres de la capsula de Hemodinamica- y amilo-score, el
+       del score de amiloidosis. NINGUNO esta en Valvulas: lo que cambia es el denominador del
+       registro, no lo que esta condicion afirma sobre los globos de esa pestana. */
     HAY_INFO && globos.every(function(b){ return !!VINFO[b.getAttribute('data-vinfo')]; }) &&
-    Object.keys(VINFO).length === 52,
+    Object.keys(VINFO).length === 56,
     'registro=' + (HAY_INFO ? Object.keys(VINFO).join(',') : 'SIN REGISTRO')]);
   ex.push(['(H) y la tarjeta se coloca SIEMPRE dentro de la pantalla, sin cortarse',
     (function(){ const b = document.querySelector('[data-vinfo="avm-thp"]');
@@ -77052,8 +77081,11 @@ caso('TC-500', 'Tanda Q: las OCHO tarjetas i de las valvulas arriba de su pastil
      ocho tarjetas de lesion no cambia. */
   /* ADAPTADO el 2026-10-24 (AJ5-1): 51 -> 52. La nueva es vm-carp, el globo del Carpentier de la
      mitral. Es un denominador: lo que este caso afirma sobre las ocho tarjetas de lesion no cambia. */
-  ex.push(['DENOMINADOR: el mecanismo de los globos existe y el registro tiene las 52 entradas',
-    FN('vInfoClic') && !!CARD() && !!REG() && Object.keys(REG() || {}).length === 52,
+  /* ADAPTADO el 2026-10-24 (tanda J2, commits J2-1 y J2-5): 52 -> 56. Las CUATRO nuevas son
+     hemo-ic, hemo-rvs, hemo-forr y amilo-score. NINGUNA esta en Valvulas: lo que cambia es el
+     denominador del registro, no lo que este caso afirma sobre las tarjetas de esa pestana. */
+  ex.push(['DENOMINADOR: el mecanismo de los globos existe y el registro tiene las 56 entradas',
+    FN('vInfoClic') && !!CARD() && !!REG() && Object.keys(REG() || {}).length === 56,
     'VINFO=' + (REG() ? Object.keys(REG()).length : 'SIN REGISTRO') + ' card=' + !!CARD()]);
   ex.push(['(A1) los OCHO botones de lesion existen, son BUTTON, sin atributo title y con aria-expanded',
     CLAVES.every(function (k) { const b = BTN(k);
@@ -78150,8 +78182,11 @@ caso('TC-502', 'Tanda P: Referencias en CINCO subpestanas sin perder una entrada
      primera version de esa tanda creo la ficha y se OLVIDO de agregarla a REF_SUBTAB, asi que
      la entrada existia, se abria desde su encabezado y estaba indexada por el buscador, pero
      refSubInit no la reubicaba en ninguna subpestana y quedaba suelta fuera de las seis. */
-  ex.push(['(A2) DENOMINADOR: el censo encuentra las 33 entradas de la pestana',
-    censo.n === 33, 'n=' + censo.n]);
+  /* ADAPTADO el 2026-10-24 (tanda J2, commit J2-7): 33 -> 34. La que entra es la ficha de
+     ECOGRAFIA PULMONAR, en la subpestana «Otros hallazgos», pegada a la de constriccion porque
+     las dos viven en la misma pantalla de la app. */
+  ex.push(['(A2) DENOMINADOR: el censo encuentra las 34 entradas de la pestana',
+    censo.n === 34, 'n=' + censo.n]);
   ex.push(['(A2b) y la que entro es la de constriccion, en la subpestana Otros hallazgos',
     censo.filas.some(f => f.id === 'constriccion' && f.sub === 'otros'),
     JSON.stringify(censo.filas.filter(f => f.id === 'constriccion'))]);
@@ -78165,8 +78200,10 @@ caso('TC-502', 'Tanda P: Referencias en CINCO subpestanas sin perder una entrada
   /* ADAPTADO el 2026-10-22 (tanda E): «Funcion» pasa de 2 a 3 con la ficha del HFA-PEFF. */
   /* ADAPTADO el 2026-10-24 (tanda J): «Otros» pasa de 9 a 10 con la ficha de constriccion. Los
      otros cuatro repartos no se mueven, que es lo que esta condicion protege. */
-  ex.push(['(A4) el reparto es 5 Dimensiones + 3 Funcion + 12 Valvulas + 3 Aorta + 10 Otros',
-    porSub.dim === 5 && porSub.fun === 3 && porSub.valv === 12 && porSub.ao === 3 && porSub.otros === 10,
+  /* ADAPTADO el 2026-10-24 (tanda J2, commit J2-7): «Otros hallazgos» pasa de 10 a 11, por la
+     ficha de eco pulmonar. Los otros cuatro repartos no se movieron. */
+  ex.push(['(A4) el reparto es 5 Dimensiones + 3 Funcion + 12 Valvulas + 3 Aorta + 11 Otros',
+    porSub.dim === 5 && porSub.fun === 3 && porSub.valv === 12 && porSub.ao === 3 && porSub.otros === 11,
     JSON.stringify(porSub)]);
   /* Clic REAL en cada boton: activa SU panel y apaga los otros cuatro. */
   const subEstado = [];
@@ -78214,8 +78251,10 @@ caso('TC-502', 'Tanda P: Referencias en CINCO subpestanas sin perder una entrada
   /* ADAPTADO el 2026-10-24 (tanda J, commit 3): de 30 a 31 por la ficha de constriccion vs
      restriccion. Los dos agrupadores que el indice excluye por su compuerta ESTRUCTURAL no
      cambian, que es lo que esta condicion protege. */
-  ex.push(['(B1) DENOMINADOR: el buscador existe y su indice tiene las 31 entradas (33 menos los dos agrupadores)',
-    !!EL('ref-busca') && (function () { try { return FN('_refIndiceArmar') && window._refIndiceArmar(true).length === 31; } catch (e) { return false; } })(),
+  /* ADAPTADO el 2026-10-24 (tanda J2, commit J2-7): 31 -> 32, por la ficha de eco pulmonar.
+     Los dos agrupadores -nativas y protesicas- siguen fuera del indice. */
+  ex.push(['(B1) DENOMINADOR: el buscador existe y su indice tiene las 32 entradas (34 menos los dos agrupadores)',
+    !!EL('ref-busca') && (function () { try { return FN('_refIndiceArmar') && window._refIndiceArmar(true).length === 32; } catch (e) { return false; } })(),
     'indice=' + (function () { try { return window._refIndiceArmar(true).length; } catch (e) { return 'EXC'; } })()]);
   ex.push(['(B2) «RWT» encuentra la GEOMETRIA DEL VI y dice su subpestana',
     !bRWT.err && bRWT.n > 0 && bRWT.ids.indexOf('vi') >= 0 && bRWT.subs.indexOf('Dimensiones') >= 0,
@@ -78250,8 +78289,10 @@ caso('TC-502', 'Tanda P: Referencias en CINCO subpestanas sin perder una entrada
   /* ADAPTADO el 2026-10-22 (tanda I, commit 1): 39 -> 40. La nueva es wilk-score, el globo del
      encabezado del score de Wilkins en ETE, que apunta a ref-em —una entrada que YA nombra el
      score con sus folios—. Lo que este denominador vigila no cambia. */
-  ex.push(['(C1) DENOMINADOR: 40 de las 45 claves de tarjeta tienen entrada de Referencias',
-    Object.keys(MAPA).length === 40, 'n=' + Object.keys(MAPA).length]);
+  /* ADAPTADO el 2026-10-24 (tanda J2, commit J2-7): 40 -> 41. La que entra es pul-balik, que
+     deja de ser una tarjeta sin boton porque su ficha de Referencias ya existe. */
+  ex.push(['(C1) DENOMINADOR: 41 de las 56 claves de tarjeta tienen entrada de Referencias',
+    Object.keys(MAPA).length === 41, 'n=' + Object.keys(MAPA).length]);
   ex.push(['(C2) el assert del mapeo no encuentra ninguna clave rota ni ningun destino inexistente',
     (function () { try { return FN('_vinfoRefAssert') && window._vinfoRefAssert().length === 0; } catch (e) { return false; } })(),
     (function () { try { return window._vinfoRefAssert().join(' | ') || 'cero'; } catch (e) { return 'EXC'; } })()]);
@@ -78271,9 +78312,16 @@ caso('TC-502', 'Tanda P: Referencias en CINCO subpestanas sin perder una entrada
      de la mitral: no tiene entrada en VINFO_REF porque Referencias no tiene una ficha de la
      clasificacion de Carpentier, asi que la tarjeta no lleva boton «Ver referencia» — publica su
      pie de fuente y nada mas. Es el mismo limite declarado que las otras once. */
-  ex.push(['(C3) LIMITE DECLARADO: doce tarjetas sin boton, porque Referencias no tiene esa entrada',
-    sinBoton.join(',') === 'et-avt-cont,pul-balik,tarj-esten-pulmonar,tarj-esten-tricuspide,'
-      + 'tarj-insuf-pulmonar,vab-aorta,vab-cx,vab-friesgo,vab-func,vab-tit,vab-valv,vm-carp',
+  /* ADAPTADO el 2026-10-24 (tanda J2): eran DOCE y hoy son QUINCE, y el saldo tiene las dos
+     direcciones. SALE pul-balik, que gano su entrada con la ficha de eco pulmonar del commit
+     J2-7. ENTRAN cuatro: hemo-ic, hemo-rvs y hemo-forr -la capsula de Hemodinamica no tiene
+     ficha de Referencias- y amilo-score -tampoco la tiene el score de amiloidosis-. Crear esas
+     dos fichas seria escribir contenido clinico que esta orden no autoriza, asi que el limite
+     se DECLARA, que es lo que esta condicion existe para hacer. */
+  ex.push(['(C3) LIMITE DECLARADO: quince tarjetas sin boton, porque Referencias no tiene esa entrada',
+    sinBoton.join(',') === 'amilo-score,et-avt-cont,hemo-forr,hemo-ic,hemo-rvs,'
+      + 'tarj-esten-pulmonar,tarj-esten-tricuspide,tarj-insuf-pulmonar,'
+      + 'vab-aorta,vab-cx,vab-friesgo,vab-func,vab-tit,vab-valv,vm-carp',
     sinBoton.join(',')]);
   /* Cuatro tarjetas, una de cada familia. La de la aorta y la del VI viven en AI/VI, la de la
      valvula en Valvulas y la del test de burbuja detras de su propia seccion. */
@@ -81046,8 +81094,14 @@ caso('TC-507', 'Tanda R: la VAB muestra la lesion PRESENTE sin grado con un solo
          no tienen fuente. Antes de esta tanda esos nueve cortes vivian sin decir de donde salian.
          ⚠️ El chip del modulo de DERRAME no se duplico: sigue siendo uno, y lo que cambio es su
          contenido - ver (G7). Lo que esta condicion vigila -que todo corte sin fuente lleve su
-         chip y que el prefijo de las notas no se mueva- no cambia. */
-      return n === 10 && _ecoPref === 'Criterio de EcoSmart: '; })(),
+         chip y que el prefijo de las notas no se mueva- no cambia.
+         ADAPTADO el 2026-10-24 (tanda J2, commit J2-7): de DIEZ a ONCE. El nuevo es el de la
+         ficha de ECOGRAFIA PULMONAR, y declara que el reparto en zonas NO es el del consenso:
+         la aplicacion pregunta TRES zonas por hemitorax y las recomendaciones internacionales
+         de 2026 dividen el torax anterolateral en CUATRO por lado, asi que el «>=2 positivas por
+         hemitorax» se aplica sobre un denominador distinto. Lo que esta condicion vigila no
+         cambia; lo que cambia es el denominador. */
+      return n === 11 && _ecoPref === 'Criterio de EcoSmart: '; })(),
     (function(){ let n = 0;
       Array.prototype.forEach.call(document.querySelectorAll('span'), x => {
         if ((x.textContent || '').trim() === 'CRITERIO DE ECOSMART') n++; });
@@ -81951,11 +82005,16 @@ caso('TC-509', 'Trabajo B (ADAPTADO por el B2): la columna izquierda con sus ONC
          ADAPTADO el 2026-10-24 (tanda J, commit 3): el censo pasa de 32 a 33. La que entra es la
          ficha NUEVA de CONSTRICCION vs RESTRICCION (ref-constriccion), en la subpestana «Otros
          hallazgos», pegada a la de pericardio porque son el mismo tema. Se exigen las TRES, por
-         el mismo motivo de siempre. */
+         el mismo motivo de siempre.
+         ADAPTADO el 2026-10-24 (tanda J2, commit J2-7): el censo pasa de 33 a 34. La que entra
+         es la ficha NUEVA de ECOGRAFIA PULMONAR (ref-pulmon), tambien en «Otros hallazgos» y
+         pegada a la de constriccion, porque las dos viven en la misma pantalla de la app. Se
+         exigen las CUATRO, por el mismo motivo de siempre. */
       const t = EL('tab-refs');
       const n = t ? [].slice.call(t.querySelectorAll('h2.card-head'))
         .filter(function (h) { return (h.getAttribute('onclick') || '').indexOf("toggleRef('") > -1; }).length : -1;
-      return n === 33 && !!EL('ref-fop') && !!EL('ref-hfapeff') && !!EL('ref-constriccion'); })(),
+      return n === 34 && !!EL('ref-fop') && !!EL('ref-hfapeff') && !!EL('ref-constriccion')
+        && !!EL('ref-pulmon'); })(),
     (function () { const t = EL('tab-refs');
       const n = t ? [].slice.call(t.querySelectorAll('h2.card-head'))
         .filter(function (h) { return (h.getAttribute('onclick') || '').indexOf("toggleRef('") > -1; }).length : -1;
@@ -88188,6 +88247,565 @@ caso('TC-531', 'Tanda AJ6-4b: con texto en el buscador de Referencias las fichas
   return { extra: ex };
   })();
 `);
+
+/* ══ TC-533 — LA TANDA J2 ════════════════════════════════════════════════════════════════════
+   Cubre los siete commits de la tanda. Mide lo RENDERIZADO —textContent de los span que el
+   medico lee— y no el fuente, salvo donde lo que se afirma ES una constante o una regla CSS.
+   ⚠️ SIN ACENTOS GRAVES adentro, tampoco en los comentarios: el cuerpo es un template literal. */
+caso('TC-533', 'Tanda J2: el indice cardiaco en 2,19/2,2/2,21 con su globo y la nota de bordes del Forrester; la RVS como numero pelado con sus DOS referencias; la RVS baja con IC bajo sin etiqueta ni «considerar» y el perfil distributivo con su chip; la Evidencia de hemodinamica; cardio-oncologia sin el plazo de 2-4 semanas y sin «considerar biopsia» en pantalla, con el seguimiento tras radioterapia alineado a la IIa C del folio 4314, y su Evidencia; el score de amiloidosis de 0 a 10 sin «INTERMEDIO» ni «BAJO», con el rendimiento de Boldrini por corte, «ALTO» en >=8 y el globo de validacion; la Evidencia de amiloidosis con su cuestionario de cuatro escenarios; la ficha de eco pulmonar con sus enunciados y SIN Evidencia; los bloques integrados que se actualizan solos con su aviso de edicion manual; guardar, Nuevo estudio y reabrir; y los CONTROLES -posoperatorio, corte del Forrester, HTP, TEP, pericardio, informe, EN SUMA, PDF, PPT, Laboratorio y las 440 columnas del Excel-', `
+  return (async () => {
+  const ex = [];
+  const F = (n) => (typeof window[n] === 'function') ? window[n] : null;
+  const abrir = (id) => { const e = document.getElementById(id); if (!e) return;
+    const sec = e.closest ? e.closest('.tab-section') : null;
+    if (sec && F('showTab')) { try { showTab(String(sec.id || '').replace(/^tab-/, '')) } catch (x) {} }
+    let n = e;
+    while (n && n.nodeType === 1 && n !== document.body) {
+      if (getComputedStyle(n).display === 'none') {
+        const nid = String(n.id || '');
+        if (nid && F('toggleCard') && document.getElementById(nid + '-arrow')) toggleCard(nid);
+        else n.style.display = 'block';
+      }
+      n = n.parentNode; } };
+  const pon = (o) => { Object.keys(o).forEach(k => { const e = document.getElementById(k);
+      if (!e) { ex.push(['NO EXISTE el campo ' + k, false, k]); return; }
+      if (e.type === 'checkbox') e.checked = !!o[k]; else e.value = o[k];
+      e.dispatchEvent(new Event('input', { bubbles: true }));
+      e.dispatchEvent(new Event('change', { bubbles: true })); }); };
+  const T = (id) => { const e = document.getElementById(id);
+    return e ? (e.textContent || '').replace(/\\s+/g, ' ').trim() : 'NO EXISTE ' + id; };
+  const cols = (c) => Object.keys(_labExcelRow({ nombre:'P', ci:'1', fecha_estudio:'2026-10-24', campos:c || {} })).length;
+  const seccionTxt = (id) => { const e = document.getElementById(id);
+    return e ? (e.textContent || '').replace(/\\s+/g, ' ') : 'NO EXISTE ' + id; };
+  /* El globo: se abre apretando SU boton, se lee y se cierra. Antes hay que abrirle la puerta,
+     porque la capsula de Hemodinamica nace cerrada y un boton de 0 x 0 no se puede apretar. */
+  const globo = (clave) => {
+    const b = document.querySelector('[data-vinfo="' + clave + '"]');
+    if (!b) return { hay:false };
+    let n = b.parentNode;
+    while (n && n.nodeType === 1 && n !== document.body) {
+      const nid = String(n.id || '');
+      if (nid && getComputedStyle(n).display === 'none' && F('toggleCard')
+          && document.getElementById(nid + '-arrow')) toggleCard(nid);
+      n = n.parentNode; }
+    const r = b.getBoundingClientRect();
+    if (!(r.width > 0 && r.height > 0)) return { hay:true, sinGeometria:true };
+    b.click();
+    const c = document.getElementById('vinfo-card');
+    const abierta = !!(c && getComputedStyle(c).display !== 'none');
+    const t = abierta ? (c.textContent || '').replace(/\\s+/g, ' ').trim() : '';
+    const bots = abierta ? [].slice.call(c.querySelectorAll('button')).map(x => (x.textContent || '').trim()) : [];
+    if (abierta) b.click();
+    return { hay:true, abierta:abierta, txt:t, botones:bots }; };
+
+  /* ══ (A) HEMODINAMICA — EL INDICE CARDIACO Y SUS BORDES ════════════════════════════════════ */
+  __t.limpiar();
+  abrir('hemo_pam');
+  ex.push(['(A0) DENOMINADOR: la capsula de hemodinamica existe y tiene sus tres filas',
+    !!document.getElementById('hemo-ic') && !!document.getElementById('hemo-rvs')
+      && !!document.getElementById('hemo-forrester') && !!document.getElementById('hemo-perfil'),
+    'ic=' + !!document.getElementById('hemo-ic') + ' rvs=' + !!document.getElementById('hemo-rvs')]);
+
+  /* Los tres bordes se preguntan al DUENO. Hacer llegar un 2,2 exacto por la cadena de
+     multiplicaciones del eco da 2.1999999999999997 y el caso probaria otra cosa. */
+  const bIC = (x) => { const b = _icBanda(x); return b ? b.cls + '/' + b.txt : 'null'; };
+  ex.push(['(A1) el indice cardiaco corta en 2,2 INCLUSIVE: 2,19 bajo, 2,2 bajo, 2,21 normal',
+    bIC(2.19) === 'red/bajo' && bIC(2.2) === 'red/bajo' && bIC(2.21) === 'green/normal',
+    [bIC(2.19), bIC(2.2), bIC(2.21)].join(' // ')]);
+  ex.push(['(A2) CONTROL NEGATIVO: el techo del normal sigue en 4,0 y 4,01 es elevado',
+    bIC(4.0) === 'green/normal' && bIC(4.01) === 'yellow/elevado',
+    [bIC(4.0), bIC(4.01)].join(' // ')]);
+
+  /* ASC de 2,00 m2 exactos: raiz de (180 * 80 / 3600) = 2. VS = pi * (22/20)^2 * VTI. */
+  const ESC_BAJA = { peso:'80', talla:'180', diam_tsvi:'22', itv_tsvi:'10.5', hemo_fc:'100',
+                     hemo_pam:'40', vci_diam:'15', vci_col:'>50', onda_e:'95', e_sep:'6', e_lat:'8' };
+  const ESC_DIST = { peso:'80', talla:'180', diam_tsvi:'22', itv_tsvi:'18', hemo_fc:'100',
+                     hemo_pam:'65', vci_diam:'15', vci_col:'>50', onda_e:'95', e_sep:'6', e_lat:'8' };
+  const ESC_SHOCK = { peso:'80', talla:'180', diam_tsvi:'22', itv_tsvi:'10.5', hemo_fc:'100',
+                      hemo_pam:'90', vci_diam:'15', vci_col:'>50', onda_e:'95', e_sep:'6', e_lat:'8' };
+  const ESC_NORM = { peso:'80', talla:'180', diam_tsvi:'22', itv_tsvi:'18', hemo_fc:'100',
+                     hemo_pam:'90', vci_diam:'15', vci_col:'>50', onda_e:'95', e_sep:'6', e_lat:'8' };
+
+  pon(ESC_BAJA);
+  const icBaja = T('hemo-ic'), rvsBaja = T('hemo-rvs'), perfBaja = T('hemo-perfil');
+  ex.push(['(A3) DENOMINADOR de la escena: el indice cardiaco y la RVS se calcularon de verdad',
+    icBaja.indexOf('L/min/m') > -1 && rvsBaja.indexOf('dinas') > -1,
+    icBaja + ' | ' + rvsBaja]);
+
+  /* ══ (B) LA RVS — NUMERO PELADO Y SUS DOS REFERENCIAS ══════════════════════════════════════ */
+  const rvsEl = document.getElementById('hemo-rvs');
+  ex.push(['(B1) la RVS publica el NUMERO sin banda: ni rotulo ni badge de color',
+    rvsBaja.indexOf('normal') < 0 && rvsBaja.indexOf('baja') < 0 && rvsBaja.indexOf('elevada') < 0
+      && rvsBaja.indexOf('l\\u00edmite') < 0 && (!rvsEl || rvsEl.querySelectorAll('.badge').length === 0),
+    rvsBaja + ' badges=' + (rvsEl ? rvsEl.querySelectorAll('.badge').length : -1)]);
+  ex.push(['(B2) CONTROL NEGATIVO: _rvsBanda NO se toco y sigue dando sus cuatro tramos en 799/800/1200/1201',
+    (function(){ const b = x => { const r = _rvsBanda(x); return r ? r.cls : 'null'; };
+      return b(799) === 'orange' && b(800) === 'green' && b(1200) === 'green' && b(1201) === 'yellow'; })(),
+    (function(){ const b = x => { const r = _rvsBanda(x); return r ? r.cls : 'null'; };
+      return [b(799), b(800), b(1200), b(1201)].join('/'); })()]);
+
+  const gIC = globo('hemo-ic'), gRVS = globo('hemo-rvs'), gFOR = globo('hemo-forr');
+  ex.push(['(B3) el globo del INDICE CARDIACO existe, se abre de verdad y trae sus TRES fuentes con folio',
+    gIC.abierta === true && gIC.txt.indexOf('folio 2') > -1 && gIC.txt.indexOf('folio 30') > -1
+      && gIC.txt.indexOf('folio 1125') > -1 && gIC.txt.indexOf('2,5 a 4,0') > -1
+      && gIC.txt.indexOf('Shock Trial') > -1,
+    (gIC.txt || JSON.stringify(gIC)).slice(0, 220)]);
+  ex.push(['(B4) el globo de la RVS trae las DOS referencias con su folio, y dice que una es media mas desviacion de 37 sujetos',
+    gRVS.abierta === true && gRVS.txt.indexOf('1.170') > -1 && gRVS.txt.indexOf('folio 260') > -1
+      && gRVS.txt.indexOf('1.100') > -1 && gRVS.txt.indexOf('folio 375') > -1
+      && gRVS.txt.indexOf('37 sujetos') > -1 && gRVS.txt.indexOf('700 a 1.600') > -1,
+    (gRVS.txt || JSON.stringify(gRVS)).slice(0, 220)]);
+  ex.push(['(B5) el globo del FORRESTER lleva la nota de los DOS bordes no definidos y su contexto de infarto',
+    gFOR.abierta === true && gFOR.txt.indexOf('2,2 justo') > -1
+      && gFOR.txt.indexOf('por debajo de 2,2') > -1 && gFOR.txt.indexOf('SUPERA 18') > -1
+      && gFOR.txt.indexOf('infarto agudo de miocardio') > -1 && gFOR.txt.indexOf('folio 1125') > -1,
+    (gFOR.txt || JSON.stringify(gFOR)).slice(0, 220)]);
+
+  /* ══ (C) LOS DOS PERFILES CON RVS BAJA ═════════════════════════════════════════════════════ */
+  ex.push(['(C1) con IC bajo y RVS baja NO hay etiqueta ni «considerar»: salen los DOS NUMEROS',
+    perfBaja.indexOf('considerar') < 0 && perfBaja.indexOf('shock mixto') < 0
+      && perfBaja.indexOf('distributivo') < 0 && perfBaja.indexOf('IC ') === 0
+      && perfBaja.indexOf('RVS ') > -1 && perfBaja.indexOf('dinas') > -1,
+    perfBaja]);
+  ex.push(['(C2) y NO cae en el else: no dice «Perfil hemodinamico normal» sobre un paciente hipoperfundido',
+    perfBaja.indexOf('normal') < 0, perfBaja]);
+  pon(ESC_DIST);
+  const perfDist = T('hemo-perfil');
+  const nBadges = (function(){ const e = document.getElementById('hemo-perfil');
+    return e ? e.querySelectorAll('.badge').length : -1; })();
+  ex.push(['(C3) el perfil distributivo QUEDA y lleva el chip «Criterio de EcoSmart» en un segundo badge',
+    perfDist.indexOf('Perfil distributivo/vasodilatado') > -1
+      && perfDist.indexOf('Criterio de EcoSmart') > -1 && nBadges === 2,
+    perfDist + ' badges=' + nBadges]);
+  pon(ESC_SHOCK);
+  const perfShock = T('hemo-perfil');
+  ex.push(['(C4) CONTROL NEGATIVO: el shock cardiogenico -IC bajo con RVS alta- NO se toco',
+    perfShock.indexOf('Shock cardiog\\u00e9nico') > -1 && perfShock.indexOf('Criterio de EcoSmart') < 0,
+    perfShock]);
+  pon(ESC_NORM);
+  const perfNorm = T('hemo-perfil');
+  ex.push(['(C5) CONTROL NEGATIVO: el perfil normal tampoco se toco',
+    perfNorm.indexOf('Perfil hemodin\\u00e1mico normal') > -1 && perfNorm.indexOf('Criterio de EcoSmart') < 0,
+    perfNorm]);
+  /* El CORTE del Forrester no se movio: con IC 3,42 y PCP 18,7 sigue siendo B. */
+  ex.push(['(C6) CONTROL: el perfil de Forrester sigue graduando -IC 3,42 con PCP >18 da B (tibio-humedo)-',
+    T('hemo-forrester').indexOf('Perfil B') > -1, T('hemo-forrester')]);
+
+  /* ══ (D) LA EVIDENCIA DE HEMODINAMICA ══════════════════════════════════════════════════════ */
+  const evSec2 = (pref) => { const cu = document.getElementById('indic-cuerpo'); if (!cu) return null;
+    let hit = null;
+    [].slice.call(cu.children).forEach(d => { if (hit || d.tagName !== 'DETAILS') return;
+      const su = d.querySelector('summary');
+      const tit = su ? (su.textContent || '').replace(/\\s+/g, ' ').trim() : '';
+      if (tit.indexOf(pref) === 0) hit = d; });
+    if (!hit) return null;
+    hit.open = true;
+    [].slice.call(hit.querySelectorAll('details')).forEach(x => { x.open = true });
+    return { txt:(hit.textContent || '').replace(/\\s+/g, ' '),
+      biblio:[].slice.call(hit.querySelectorAll('[data-ind-refitem]')).map(x => x.getAttribute('data-ind-refitem')),
+      marcas:[].slice.call(hit.querySelectorAll('[data-ind-ref]')).map(x => x.getAttribute('data-ind-ref')) }; };
+  const abrirPanel2 = () => { try { indicAbrir() } catch (e) { return 'EXC ' + e.message } return 'ok'; };
+  const cerrarPanel2 = () => { try { indicCerrar() } catch (e) {} };
+  const clic2 = (k, v) => { const b = document.querySelector('[data-ind-clin="' + k + '"][data-ind-val="' + v + '"]');
+    if (!b) return 'NO HAY BOTON ' + k + '=' + v; b.click(); return 'ok'; };
+
+  abrirPanel2();
+  const evH = evSec2('Perfil hemodin\\u00e1mico');
+  ex.push(['(D1) la Evidencia de hemodinamica existe y cita la ASE 2025 de corazon derecho',
+    !!evH && evH.biblio.indexOf('aseDer2025') > -1, evH ? JSON.stringify(evH.biblio) : 'NO HAY SECCION']);
+  ex.push(['(D2) publica las DOS recomendaciones del folio 167 sobre que informar, sin clase ni nivel inventados',
+    !!evH && /recomienda EVITAR informar de rutina la presi\\u00f3n capilar pulmonar estimada/.test(evH.txt)
+      && /NO se recomienda para uso de rutina/.test(evH.txt)
+      && /no sustituyen a la valoraci\\u00f3n hemodin\\u00e1mica invasiva/.test(evH.txt)
+      && /No llevan clase ni nivel de recomendaci\\u00f3n/.test(evH.txt),
+    evH ? evH.txt.slice(0, 200) : '-']);
+  ex.push(['(D3) declara que el INDICE CARDIACO no figura en la tabla del folio 162',
+    !!evH && /El \\u00cdNDICE CARD\\u00cdACO no figura en esa tabla/.test(evH.txt), evH ? 'si' : '-']);
+  ex.push(['(D4) y el alcance del Forrester con sus dos bordes, citando el folio 1125',
+    !!evH && evH.txt.indexOf('folio 1125') > -1 && /POR DEBAJO de 2,2/.test(evH.txt)
+      && /SUPERA los 18 mmHg/.test(evH.txt) && evH.biblio.indexOf('braunwald2016') > -1,
+    evH ? JSON.stringify(evH.biblio) : '-']);
+  ex.push(['(D5) las CUATRO fuentes de la seccion estan en su bibliografia',
+    !!evH && ['aseDer2025','braunwald2016','escErs2022','sacShock2024','grossman2016']
+      .every(k => evH.biblio.indexOf(k) > -1), evH ? JSON.stringify(evH.biblio) : '-']);
+  cerrarPanel2();
+
+  /* ══ (E) CARDIO-ONCOLOGIA ══════════════════════════════════════════════════════════════════ */
+  __t.limpiar();
+  abrir('co-referencia-seccion');
+  const secCO = document.getElementById('co-referencia-seccion');
+  if (secCO) [].slice.call(secCO.querySelectorAll('*')).forEach(x => {
+    if (getComputedStyle(x).display === 'none') x.style.display = 'block'; });
+  const txtCO = seccionTxt('co-referencia-seccion');
+  ex.push(['(E0) DENOMINADOR: la seccion de referencia rapida tiene sus filas y sus cuatro subtabs abiertas',
+    secCO && secCO.querySelectorAll('tr').length > 40, 'filas=' + (secCO ? secCO.querySelectorAll('tr').length : -1)]);
+  ex.push(['(E1) el plazo de «2-4 sem» NO esta en ninguna de las tres tablas',
+    txtCO.indexOf('2-4 sem') < 0, txtCO.indexOf('2-4 sem') < 0 ? 'ausente' : 'PRESENTE']);
+  ex.push(['(E2) «considerar biopsia» y «control en 4 sem» tampoco -los retiro el R2-E6-',
+    txtCO.indexOf('considerar biopsia') < 0 && txtCO.indexOf('control en 4 sem') < 0, 'ausentes']);
+  ex.push(['(E3) el seguimiento tras radioterapia dice «desde los 5 anos» y «cada 5 anos» en los TRES lugares',
+    (txtCO.match(/desde los 5 anos/g) || []).length === 3
+      && txtCO.indexOf('5 anos post-RT. Eco a los 10 anos') < 0,
+    'ocurrencias=' + (txtCO.match(/desde los 5 anos/g) || []).length]);
+  ex.push(['(E4) y lleva su clase y su nivel con el folio de la tabla de recomendaciones',
+    txtCO.indexOf('Clase IIa, Nivel C') > -1 && txtCO.indexOf('folio 4314') > -1, 'si']);
+  ex.push(['(E5) CONTROL NEGATIVO: lo que dejo el R2 sigue intacto -GLS >15%, 250 mg/m2, cada 2 ciclos y el aviso del HFA-ICOS-',
+    txtCO.indexOf('GLS >15%') > -1 && txtCO.indexOf('250 mg/m2') > -1
+      && txtCO.indexOf('cada 2 ciclos') > -1 && txtCO.indexOf('HFA-ICOS') > -1, 'si']);
+
+  pon({ co_farmaco:'radioterapia', co_fevi_basal:'62', co_fevi_actual:'58', co_edad:'58', co_riesgo_cv:'1' });
+  abrirPanel2();
+  const evC = evSec2('Cardiotoxicidad por tratamiento oncol\\u00f3gico');
+  ex.push(['(E6) la Evidencia de cardio-oncologia existe y cita la ESC 2022 de cardio-oncologia',
+    !!evC && evC.biblio.indexOf('escOnco2022') > -1, evC ? JSON.stringify(evC.biblio) : 'NO HAY SECCION']);
+  ex.push(['(E7) publica las DOS recomendaciones con clase y nivel, y SOLO esas dos: radioterapia y biopsia en miocarditis por ICI',
+    !!evC && /Clase IIa \\u00b7 Nivel C \\u2014 Tras radioterapia/.test(evC.txt)
+      && /Clase IIa \\u00b7 Nivel C \\u2014 En la miocarditis asociada a inhibidores de puntos de control/.test(evC.txt)
+      && evC.txt.indexOf('folio 4314') > -1 && evC.txt.indexOf('folio 4289') > -1,
+    evC ? 'si' : '-']);
+  ex.push(['(E8) declara que las Tablas 3, 4 y 5 son DEFINICIONES y no llevan clase',
+    !!evC && /Son DEFINICIONES, no recomendaciones/.test(evC.txt)
+      && /no publica clase ni nivel/.test(evC.txt), evC ? 'si' : '-']);
+  ex.push(['(E9) y dice lo que NO escribe por no tener fuente: los plazos de 2 a 4 semanas y la vigilancia estrecha',
+    !!evC && /plazos de 2 a 4 semanas/.test(evC.txt) && /vigilancia estrecha/.test(evC.txt),
+    evC ? 'si' : '-']);
+  cerrarPanel2();
+
+  /* ══ (F) EL SCORE DE AMILOIDOSIS, DE 0 A 10 ════════════════════════════════════════════════ */
+  __t.limpiar();
+  abrir('ett-score-cat');
+  const PTS = { 'ett-rwt':3, 'ett-ee':1, 'ett-tapse':2, 'ett-sgl':1, 'ett-apice':3 };
+  const ponScore = (on, cual, hvi) => {
+    Object.keys(PTS).forEach(id => { const e = document.getElementById(id);
+      if (e) e.value = (on.indexOf(id) >= 0) ? String(PTS[id]) : '0'; });
+    ['ett-cual-1','ett-cual-2','ett-cual-3'].forEach((id, i) => { const e = document.getElementById(id);
+      if (e) e.value = (i < (cual || 0)) ? '1' : '0'; });
+    pon({ 'ett-septo': (hvi === false ? '10' : '14'), 'ett-pp': (hvi === false ? '10' : '14') });
+    try { calcETT() } catch (e) {}
+    return T('ett-score-cat'); };
+  const COMB = [[], ['ett-ee'], ['ett-tapse'], ['ett-rwt'], ['ett-rwt','ett-ee'],
+                ['ett-rwt','ett-tapse'], ['ett-rwt','ett-apice'], ['ett-rwt','ett-apice','ett-ee'],
+                ['ett-rwt','ett-apice','ett-tapse'], ['ett-rwt','ett-apice','ett-tapse','ett-ee'],
+                ['ett-rwt','ett-apice','ett-tapse','ett-ee','ett-sgl']];
+  const cats = COMB.map(c => ponScore(c, 0, true));
+  ex.push(['(F0) DENOMINADOR: los once puntajes se alcanzan de verdad, 0 a 10',
+    cats.every((c, i) => i === 0 ? true : c.indexOf(String(i) + '/10') > -1),
+    cats.map((c, i) => i + ':' + c.slice(0, 30)).join(' | ')]);
+  ex.push(['(F1) NINGUN puntaje dice «INTERMEDIO» ni «BAJO»',
+    cats.every(c => c.indexOf('INTERMEDIO') < 0 && c.indexOf('BAJO') < 0),
+    cats.filter(c => c.indexOf('INTERMEDIO') > -1 || c.indexOf('BAJO') > -1).join(' | ') || 'ninguno']);
+  ex.push(['(F2) los puntajes de 1 a 7 publican «no alcanza el corte de 8» con su sensibilidad y su especificidad',
+    cats.slice(1, 8).every(c => c.indexOf('no alcanza el corte de 8') > -1
+      && c.indexOf('sensibilidad') > -1 && c.indexOf('especificidad') > -1 && c.indexOf('Boldrini 2020') > -1),
+    cats[6]]);
+  ex.push(['(F3) el rendimiento es el de la Tabla 4 de Boldrini, corte por corte',
+    cats[1].indexOf('sensibilidad 98 %, especificidad 19 % con \\u22651') > -1
+      && cats[5].indexOf('sensibilidad 82 %, especificidad 72 % con \\u22655') > -1
+      && cats[7].indexOf('sensibilidad 67 %, especificidad 89 % con \\u22657') > -1,
+    [cats[1], cats[5], cats[7]].join(' // ')]);
+  ex.push(['(F4) los once cortes viven en una constante y la del 8 dice 46 y 98',
+    typeof AMILO_IWT_BOLDRINI === 'object' && Object.keys(AMILO_IWT_BOLDRINI).length === 11
+      && AMILO_IWT_BOLDRINI[8].se === 46 && AMILO_IWT_BOLDRINI[8].sp === 98,
+    typeof AMILO_IWT_BOLDRINI === 'undefined' ? 'NO EXISTE' : JSON.stringify(AMILO_IWT_BOLDRINI[8])]);
+  ex.push(['(F5) de 8 a 10 sigue diciendo «Score ALTO» y «Amiloidosis muy sugestiva»',
+    cats.slice(8).every(c => c.indexOf('Score ALTO') > -1 && c.indexOf('muy sugestiva') > -1),
+    cats.slice(8).join(' | ')]);
+  ex.push(['(F6) CONTROL NEGATIVO: SIN hipertrofia, 6 y 9 puntos siguen diciendo «Sin HVI»',
+    (function(){ const a = ponScore(['ett-rwt','ett-apice'], 0, false);
+      const b = ponScore(['ett-rwt','ett-apice','ett-tapse','ett-ee'], 0, false);
+      return a.indexOf('Sin HVI') > -1 && b.indexOf('Sin HVI') > -1
+        && a.indexOf('no alcanza el corte') < 0; })(),
+    ponScore(['ett-rwt','ett-apice'], 0, false)]);
+  ex.push(['(F7) CONTROL NEGATIVO: la OTRA via -dos cualitativos con score bajo- sigue dando «Criterio por eco ALCANZADO»',
+    (function(){ const a = ponScore(['ett-tapse'], 2, true);
+      return a.indexOf('Criterio por eco ALCANZADO') > -1 && a.indexOf('no alcanza el corte') < 0; })(),
+    ponScore(['ett-tapse'], 2, true)]);
+  ex.push(['(F8) CONTROL: el puntaje 0 sigue diciendo «Completa los parametros»',
+    ponScore([], 0, true).indexOf('Complet') > -1, ponScore([], 0, true)]);
+
+  ponScore(['ett-rwt','ett-apice'], 0, true);
+  const gSC = globo('amilo-score');
+  ex.push(['(F9) el globo del score dice que NO esta validado externamente y nombra la ESPECIFICIDAD, no el VPP',
+    gSC.abierta === true && gSC.txt.indexOf('folio 1556') > -1
+      && gSC.txt.indexOf('ESPECIFICIDAD') > -1 && gSC.txt.indexOf('especificidad 98 %') > -1
+      && gSC.txt.indexOf('folio 1558') > -1,
+    (gSC.txt || JSON.stringify(gSC)).slice(0, 220)]);
+  ex.push(['(F10) y aclara que el 100 % de la app es del CENTELLOGRAMA, no del score',
+    gSC.abierta === true && /valor predictivo positivo del centellograma/.test(gSC.txt),
+    (gSC.txt || '').slice(-220)]);
+  ex.push(['(F11) el informe y la hoja del PDF siguen al cambio: la clasificacion del bloque integrado ya no dice INTERMEDIO',
+    (function(){ const h = amiloTextoETT();
+      return h.indexOf('no alcanza el corte de 8') > -1 && h.indexOf('INTERMEDIO') < 0; })(),
+    amiloTextoETT().split('\\n').slice(0, 3).join(' | ')]);
+  ex.push(['(F12) CONTROL: el Laboratorio conserva SU banda, con otros cortes y otro dueno',
+    (function(){ const r = (s) => _labAmilCat({ campos:{ 'alg-ett-score': s } });
+      return r('5') === 'Baja (<6)' && r('7') === 'Intermedio (6\\u20137)' && r('8') === 'Probable (\\u22658)'; })(),
+    JSON.stringify([_labAmilCat({campos:{'alg-ett-score':'5'}}), _labAmilCat({campos:{'alg-ett-score':'7'}}), _labAmilCat({campos:{'alg-ett-score':'8'}})])]);
+
+  /* ══ (G) LA EVIDENCIA DE AMILOIDOSIS Y SU CUESTIONARIO ═════════════════════════════════════ */
+  const escenario = (gr, pr) => { abrirPanel2();
+    const r1 = clic2('amil.gamma', gr), r2 = clic2('amil.prot', pr);
+    const s = evSec2('Amiloidosis card\\u00edaca');
+    cerrarPanel2();
+    return { r1:r1, r2:r2, txt: s ? s.txt : 'NO HAY SECCION', biblio: s ? s.biblio : [] }; };
+  abrirPanel2();
+  const evA0 = evSec2('Amiloidosis card\\u00edaca');
+  ex.push(['(G1) la Evidencia de amiloidosis existe y cita el documento de posicion y a Boldrini',
+    !!evA0 && evA0.biblio.indexOf('gpAmiloid2021') > -1 && evA0.biblio.indexOf('boldrini2020') > -1,
+    evA0 ? JSON.stringify(evA0.biblio) : 'NO HAY SECCION']);
+  ex.push(['(G2) SIN contestar no publica ningun escenario, y lo dice',
+    !!evA0 && evA0.txt.indexOf('Lo que falta contestar') > -1
+      && evA0.txt.indexOf('Escenario 1') < 0 && evA0.txt.indexOf('Escenario 4') < 0,
+    evA0 ? 'si' : '-']);
+  cerrarPanel2();
+  const E1 = escenario('0','negativo'), E2 = escenario('2','negativo'),
+        E2g1 = escenario('1','negativo'), E3 = escenario('0','anormal'), E4 = escenario('2','anormal');
+  ex.push(['(G3) DENOMINADOR: los diez clics del cuestionario encontraron su boton',
+    [E1,E2,E2g1,E3,E4].every(x => x.r1 === 'ok' && x.r2 === 'ok'),
+    JSON.stringify([E1.r1,E1.r2,E2.r1,E2.r2,E3.r1,E3.r2])]);
+  ex.push(['(G4) sin captacion y con monoclonales negativas -> escenario 1',
+    E1.txt.indexOf('Escenario 1') > -1 && E1.txt.indexOf('Lo que falta contestar') < 0,
+    E1.txt.slice(0, 150)]);
+  ex.push(['(G5) captacion grado 2 o 3 con monoclonales negativas -> escenario 2, ATTR sin histologia',
+    E2.txt.indexOf('Escenario 2') > -1 && /SE PUEDE DIAGNOSTICAR sin histolog/.test(E2.txt)
+      && /estudio gen\\u00e9tico/.test(E2.txt), E2.txt.slice(0, 150)]);
+  ex.push(['(G6) captacion GRADO 1 con negativas -> escenario 2, pero el diagnostico no invasivo NO es posible',
+    E2g1.txt.indexOf('Escenario 2') > -1 && E2g1.txt.indexOf('GRADO 1') > -1
+      && /no invasivo NO es posible/.test(E2g1.txt) && /SE PUEDE DIAGNOSTICAR sin histolog/.test(E2g1.txt) === false,
+    E2g1.txt.slice(0, 180)]);
+  ex.push(['(G7) sin captacion con alguna anormal -> escenario 3, descartar AL sin demora',
+    E3.txt.indexOf('Escenario 3') > -1 && /cadenas ligeras/.test(E3.txt), E3.txt.slice(0, 150)]);
+  ex.push(['(G8) con captacion y alguna anormal -> escenario 4, histologia con tipificacion',
+    E4.txt.indexOf('Escenario 4') > -1 && /biopsia endomioc\\u00e1rdica/.test(E4.txt), E4.txt.slice(0, 150)]);
+  /* LA OTRA PUERTA: cargado en el MODULO del algoritmo, la seccion LEE el dato en vez de
+     preguntarlo. Sin esta condicion, la mitad del mecanismo de doble puerta queda sin probar. */
+  (function(){
+    __t.limpiar(); abrir('ett-score-cat');
+    ponScore(['ett-rwt','ett-apice'], 0, true);
+    abrir('algo-result');
+    try { selGrado(2) } catch (e) {}
+    try { selProteinas('negativo') } catch (e) {}
+    abrirPanel2();
+    const sMod = evSec2('Amiloidosis cardíaca');
+    cerrarPanel2();
+    ex.push(['(G10) DOBLE PUERTA: cargado en el MODULO del algoritmo, la seccion LO LEE y ya no lo pregunta',
+      typeof window.gradoGamma === 'number' && window.gradoGamma === 2
+        && !!sMod && /cargado en el módulo del algoritmo/.test(sMod.txt)
+        && sMod.txt.indexOf('Escenario 2') > -1
+        && sMod.txt.indexOf('Lo que falta contestar') < 0,
+      'gradoGamma=' + String(window.gradoGamma) + ' protMonoc=' + String(window.protMonoc)
+        + ' | ' + (sMod ? sMod.txt.slice(0, 120) : 'NO HAY SECCION')]);
+  })();
+
+  ex.push(['(G9) las DOS recomendaciones de la guia de miocardiopatias, con su clase, su nivel y el folio 27',
+    /Clase I \\u00b7 Nivel B \\u2014 En el paciente con sospecha de amiloidosis card\\u00edaca relacionada con transtiretina/.test(E4.txt)
+      && /Clase IIa \\u00b7 Nivel C \\u2014 La misma gu\\u00eda/.test(E4.txt)
+      && E4.txt.indexOf('folio 27') > -1 && E4.biblio.indexOf('esc2023mioc') > -1,
+    JSON.stringify(E4.biblio)]);
+
+  /* ══ (H) ECO PULMONAR ══════════════════════════════════════════════════════════════════════ */
+  ex.push(['(H1) la ficha de eco pulmonar existe y esta repartida en una subpestana',
+    !!document.getElementById('ref-pulmon')
+      && Object.keys(REF_SUBTAB).some(k => REF_SUBTAB[k].indexOf('pulmon') > -1),
+    'existe=' + !!document.getElementById('ref-pulmon')]);
+  ex.push(['(H2) NINGUNA entrada repartida se quedo sin panel -el olvido que pago la tanda J-',
+    (function(){ const todas = []; Object.keys(REF_SUBTAB).forEach(k => REF_SUBTAB[k].forEach(x => todas.push(x)));
+      return todas.filter(x => !document.getElementById('ref-' + x)).length === 0; })(),
+    (function(){ const todas = []; Object.keys(REF_SUBTAB).forEach(k => REF_SUBTAB[k].forEach(x => todas.push(x)));
+      return 'repartidas=' + todas.length + ' sinPanel=' + JSON.stringify(todas.filter(x => !document.getElementById('ref-' + x))); })()]);
+  const fichaPul = (function(){ const d = document.getElementById('ref-pulmon');
+    if (!d) return 'NO EXISTE';
+    if (getComputedStyle(d).display === 'none') { try { toggleRef('pulmon', d.previousElementSibling) } catch (e) {} }
+    return (d.textContent || '').replace(/\\s+/g, ' '); })();
+  ex.push(['(H3) DENOMINADOR: la ficha tiene cuerpo',
+    fichaPul.length > 1200, 'len=' + fichaPul.length]);
+  ex.push(['(H4) el sindrome intersticial difuso cita la FIGURA 3 panel C y la hoja 8, no la Figura 4',
+    /Figura 3, panel C/.test(fichaPul) && fichaPul.indexOf('hoja 8') > -1
+      && fichaPul.indexOf('Figura 4') < 0 && fichaPul.indexOf('\\u22652 zonas positivas por hemit\\u00f3rax') > -1,
+    fichaPul.indexOf('Figura 3, panel C') > -1 ? 'Figura 3' : 'NO ESTA']);
+  ex.push(['(H5) el punto pulmon confirma el neumotorax por el D2_2.1, y el D2_2.2 es la salvedad del muy grande',
+    fichaPul.indexOf('D2_2.1') > -1 && /confirma el neumot\\u00f3rax/.test(fichaPul)
+      && fichaPul.indexOf('D2_2.2') > -1 && /muy grande/.test(fichaPul), 'si']);
+  ex.push(['(H6) la formula de Balik va con su enunciado y su hoja',
+    fichaPul.indexOf('D6_11') > -1 && fichaPul.indexOf('hoja 19') > -1
+      && fichaPul.indexOf('V (ml) = D (mm) \\u00d7 20') > -1, 'si']);
+  ex.push(['(H7) lo que no tiene fuente lleva el chip CRITERIO DE ECOSMART, no una cita',
+    fichaPul.indexOf('CRITERIO DE ECOSMART') > -1 && /TRES zonas por hemit\\u00f3rax/.test(fichaPul), 'si']);
+  ex.push(['(H8) la ficha declara por que NO hay Evidencia: el consenso no publica clase ni nivel',
+    /no abre una secci\\u00f3n de Evidencia para la ecograf\\u00eda pulmonar/.test(fichaPul)
+      && /grado de acuerdo entre los panelistas/.test(fichaPul), 'si']);
+  ex.push(['(H9) EL PULSO PULMONAR NO SE AGREGO',
+    fichaPul.indexOf('pulso pulmonar') < 0 && fichaPul.indexOf('Pulso pulm') < 0, 'ausente']);
+  ex.push(['(H10) y NO existe una seccion de Evidencia de eco pulmonar',
+    !IND_SECS.some(s => /pulmonar/i.test(s.tit) && /ecograf/i.test(s.tit)),
+    JSON.stringify(IND_SECS.map(s => s.tit).filter(t => /pulmon/i.test(t)))]);
+  ex.push(['(H11) el globo de Balik gano su boton «Ver referencia»',
+    (function(){ __t.limpiar(); abrir('pua_derrame');
+      pon({ pua_derrame:'si', pua_balik:'22' });
+      const g = globo('pul-balik');
+      return g.abierta === true && g.botones.some(b => /Ver referencia/.test(b)); })(),
+    JSON.stringify(globo('pul-balik').botones || [])]);
+  ex.push(['(H12) CONTROL NEGATIVO: el modulo de eco pulmonar NO se toco -el patron focal sigue sin la frase retirada-',
+    (function(){ __t.limpiar(); abrir('pua_lineasb');
+      pon({ pua_lineasb:'presentes', pua_lineasb_cant:'focal' });
+      const r = pulAvPatron();
+      return r.p === 'L\\u00edneas B focales' && r.i === 'L\\u00edneas B aisladas.'; })(),
+    JSON.stringify(pulAvPatron())]);
+
+  /* ══ (I) LOS BLOQUES INTEGRADOS SE ACTUALIZAN SOLOS ════════════════════════════════════════ */
+  __t.limpiar();
+  abrir('hemo_pam');
+  pon(ESC_DIST);
+  /* ADVERTENCIA: EL BLOQUE DE HEMODINAMICA NO VA AL CUERPO DEL INFORME. Va a la HOJA del PDF,
+     que es lo que el registro de amiloSecs decide con enCuerpo. La primera version de este caso
+     leia #informe_texto y las dos condiciones salian rojas por la SONDA y no por la app. Lo que
+     se mide es el TEXTO CONGELADO en su textarea am-txt-hemo, que es lo que el AJ3 mantiene al
+     dia y lo que el armador del PDF imprime. */
+  if (F('amiloIntegrar')) { try { amiloIntegrar('hemo') } catch (e) {} }
+  const txHemo = () => { const t = document.getElementById('am-txt-hemo');
+    return t ? String(t.value || '') : 'NO EXISTE am-txt-hemo'; };
+  const esperarBarrido = () => new Promise(r => setTimeout(r, 400));
+  /* ADVERTENCIA: EL BARRIDO DEL AJ3 ESTA DEBOUNCED A 220 ms. Leer el textarea justo despues de
+     tipear devuelve el texto VIEJO y el caso informa «no se actualiza solo» sobre un mecanismo
+     sano: un rojo que apunta a la app y nace en la sonda. Se espera 400 ms. */
+  const bloque1 = txHemo();
+  ex.push(['(I1) DENOMINADOR: el bloque de hemodinamica se integro y tiene su texto congelado',
+    bloque1.length > 100 && bloque1.indexOf('distributivo') > -1,
+    bloque1.length + ' chars · distributivo=' + (bloque1.indexOf('distributivo') > -1)]);
+  pon({ hemo_pam:'90' });
+  await esperarBarrido();
+  const bloque2 = txHemo();
+  ex.push(['(I2) el bloque integrado SE ACTUALIZA SOLO: al subir la PAM, el perfil cambia sin volver a integrar',
+    bloque1 !== bloque2 && bloque2.indexOf('Perfil hemodinámico normal') > -1
+      && bloque2.indexOf('distributivo') < 0,
+    'b1=' + bloque1.length + ' b2=' + bloque2.length + ' | b2 perfil: '
+      + (bloque2.split('\\n').filter(x => x.indexOf('Perfil hemodin') === 0).join(' // ') || 'NO HAY LINEA')]);
+  const tHemo = document.getElementById('am-txt-hemo');
+  if (tHemo) { tHemo.value = bloque2 + ' EDITADO A MANO POR EL MEDICO.';
+    tHemo.dispatchEvent(new Event('input', { bubbles: true })); }
+  pon({ hemo_pam:'40' });
+  await esperarBarrido();
+  const bloque3 = txHemo();
+  ex.push(['(I3) editado a mano, el barrido NO lo pisa: el texto del medico sobrevive al cambio de dato',
+    bloque3.indexOf('EDITADO A MANO POR EL MEDICO.') > -1, bloque3.slice(-60)]);
+  ex.push(['(I4) y el mecanismo que lo decide sigue siendo UNO -amiloRefrescarSiIntacto- con hemodinamica en el registro',
+    typeof amiloRefrescarSiIntacto === 'function' && typeof amiloSecs === 'function'
+      && amiloSecs().some(s => s.k === 'hemo'),
+    'secs=' + (typeof amiloSecs === 'function' ? amiloSecs().length : -1)]);
+
+  /* ══ (J) GUARDAR, NUEVO ESTUDIO Y REABRIR ══════════════════════════════════════════════════ */
+  __t.limpiar();
+  abrir('ett-score-cat');
+  ponScore(['ett-rwt','ett-apice'], 0, true);
+  const antesGuardar = T('ett-score-cat');
+  const idG = (function(){ try { return __t.guardar ? __t.guardar('P J2') : null } catch (e) { return 'EXC ' + e.message } })();
+  __t.limpiar();
+  const trasNuevo = T('ett-score-cat');
+  ex.push(['(J1) «Nuevo estudio» devuelve el score a su estado de fabrica',
+    trasNuevo.indexOf('Complet') > -1, trasNuevo]);
+  ex.push(['(J2) el valor guardado es el NUMERO del score, no la etiqueta: el Excel no tiene nada que mapear',
+    (function(){ const f = _labExcelRow({ nombre:'P', ci:'1', fecha_estudio:'2026-10-24',
+        campos:{ 'alg-ett-score':'6' } });
+      return f['Score amiloidosis ETT'] === 6 || String(f['Score amiloidosis ETT']) === '6'; })(),
+    String(_labExcelRow({ nombre:'P', ci:'1', fecha_estudio:'2026-10-24', campos:{ 'alg-ett-score':'6' } })['Score amiloidosis ETT'])]);
+  ex.push(['(J3) un estudio viejo con la etiqueta «INTERMEDIO» guardada en el score NO rompe la fila del Excel',
+    (function(){ try { const f = _labExcelRow({ nombre:'P', ci:'1', fecha_estudio:'2026-10-24',
+        campos:{ 'alg-ett-score':'INTERMEDIO' } });
+      return Object.keys(f).length === 440; } catch (e) { return false } })(),
+    (function(){ try { return String(Object.keys(_labExcelRow({ nombre:'P', ci:'1', fecha_estudio:'2026-10-24',
+        campos:{ 'alg-ett-score':'INTERMEDIO' } })).length) } catch (e) { return 'EXC' } })()]);
+
+  /* ══ (K) LA MAQUETA ════════════════════════════════════════════════════════════════════════ */
+  /* ⚠️ LA GEOMETRIA DE LAS MEDIA QUERIES NO SE MIDE EN ESTE ARNES: su ventana abre por debajo
+     de 1100 px y el caso corre por encima. Lo que se mide es que los elementos NUEVOS no
+     desbordan A ESTE ANCHO y que ninguno fuerza un ancho fijo, que es lo que rompe en el
+     celular. Lo demas lo cubre scripts/check_mobile.js. */
+  __t.limpiar();
+  abrir('hemo_pam');
+  pon(ESC_DIST);
+  const desborda = (id) => { const e = document.getElementById(id); if (!e) return 'NO EXISTE';
+    const malos = [].slice.call(e.querySelectorAll('*')).filter(x => {
+      const r = x.getBoundingClientRect();
+      if (!(r.width > 0 && r.height > 0)) return false;
+      return x.scrollWidth > x.clientWidth + 1 && getComputedStyle(x).overflowX === 'hidden'; });
+    const vistos = [].slice.call(e.querySelectorAll('*')).filter(x => {
+      const r = x.getBoundingClientRect(); return r.width > 0 && r.height > 0; }).length;
+    return { vistos:vistos, malos:malos.length }; };
+  const dHemo = desborda('hemo-vi');
+  ex.push(['(K1) la capsula de hemodinamica no recorta ningun texto, y el denominador no es cero',
+    dHemo.vistos > 40 && dHemo.malos === 0, JSON.stringify(dHemo)]);
+  ex.push(['(K2) el documento no desborda en horizontal con la capsula abierta',
+    document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1,
+    document.documentElement.scrollWidth + ' vs ' + document.documentElement.clientWidth]);
+  ex.push(['(K3) ninguno de los elementos nuevos declara un ancho FIJO en pixeles',
+    (function(){ const ids = ['hemo-perfil','ett-score-cat','ref-pulmon'];
+      return ids.every(id => { const e = document.getElementById(id); if (!e) return true;
+        const w = getComputedStyle(e).width; return !/^\\d+px$/.test(e.style.width || ''); }); }),
+    'ok']);
+
+  /* ══ (L) LOS CONTROLES ═════════════════════════════════════════════════════════════════════ */
+  __t.limpiar();
+  ex.push(['(L1) el Excel sigue en 440 columnas',
+    cols({}) === 440, String(cols({}))]);
+  ex.push(['(L2) CONTROL: la vasoplejia del POSOPERATORIO sigue colgando de _rvsBanda, intacta',
+    String(window.popPatrones || '').indexOf('_rvsBanda') > -1
+      || String(window.calcPOP || '').indexOf('_rvsBanda') > -1
+      || typeof _rvsBanda === 'function',
+    typeof _rvsBanda]);
+  ex.push(['(L3) CONTROL: el corte de pletora de VCI del HTP sigue en 21 mm y el del pericardio en 20',
+    String(_htp2022Core).indexOf('vciD > 21') > -1 && DPT_VCI_PLETORA_MM === 20,
+    'htp=' + (String(_htp2022Core).indexOf('vciD > 21') > -1) + ' peri=' + DPT_VCI_PLETORA_MM]);
+  ex.push(['(L4) CONTROL: las secciones del panel de Evidencia son TREINTA, y las tres de la tanda J siguen ahi',
+    IND_SECS.length === 30
+      && IND_SECS.some(s => s.tit.indexOf('Derrame peric') === 0)
+      && IND_SECS.some(s => s.tit.indexOf('Constricci\\u00f3n peric') === 0)
+      && IND_SECS.some(s => s.tit.indexOf('Congesti\\u00f3n venosa') === 0),
+    'n=' + IND_SECS.length]);
+  ex.push(['(L5) CONTROL: ningun titulo de IND_SECS es prefijo de otro',
+    (function(){ const t = IND_SECS.map(s => s.tit);
+      for (let i = 0; i < t.length; i++) for (let j = 0; j < t.length; j++) {
+        if (i !== j && t[j].indexOf(t[i]) === 0) return false; }
+      return true; })(), 'ok']);
+  ex.push(['(L6) CONTROL: el informe y el EN SUMA de un estudio sin estos modulos no nombran nada de la tanda',
+    (function(){ __t.limpiar();
+      pon({ ddfvi:'52', dsfvi:'34', siv:'11', ppvi:'10', ai_diam:'38' });
+      const r = __t.informe();
+      const todo = String(r.inf || '') + ' ' + String(r.suma || '');
+      return todo.indexOf('Criterio de EcoSmart') < 0 && todo.indexOf('Boldrini') < 0
+        && todo.indexOf('no alcanza el corte') < 0; })(),
+    'ok']);
+  ex.push(['(L7) CONTROL: las cuatro entradas nuevas del registro bibliografico estan, y ninguna clave se repite',
+    (function(){ const ks = IND_REFS.map(r => r.k);
+      const nuevas = ['aseDer2025','sacShock2024','grossman2016','braunwald2016','escOnco2022','gpAmiloid2021','boldrini2020'];
+      return nuevas.every(k => ks.indexOf(k) > -1) && new Set(ks).size === ks.length; })(),
+    'n=' + IND_REFS.length]);
+  ex.push(['(L8) CONTROL: el assert de VINFO_REF sale limpio -ninguna tarjeta apunta a un destino inexistente-',
+    (typeof _vinfoRefAssert === 'function') && _vinfoRefAssert().length === 0,
+    JSON.stringify(typeof _vinfoRefAssert === 'function' ? _vinfoRefAssert() : 'SIN FN')]);
+
+  /* ⚠️ SE DEJA LA PAGINA COMO SE ENCONTRO. El suite corre los 548 casos en UNA sola pagina, asi
+     que lo que este caso abre se lo hereda el siguiente: la ficha de eco pulmonar, los display
+     forzados de sus ancestros, la sub-pestana de Referencias y el panel de Evidencia. Es la misma
+     leccion que el harness ya tiene escrita para el visor, y la que dejo a TC-228, TC-239,
+     TC-241 y TC-244 verdes con --solo y rojos en el suite. */
+  try { cerrarPanel2(); } catch (e) {}
+  (function(){ const d = document.getElementById('ref-pulmon');
+    if (d && getComputedStyle(d).display !== 'none') { try { toggleRef('pulmon', d.previousElementSibling) } catch (e) {} }
+    /* Los ancestros que (H3) forzo a 'block' vuelven a su clase. */
+    let n = d ? d.parentNode : null;
+    while (n && n.nodeType === 1 && n !== document.body) {
+      if (n.style && n.style.display === 'block') n.style.display = '';
+      n = n.parentNode; } })();
+  (function(){ const b = document.getElementById('ref-subtab-dim'); if (b) b.click(); })();
+  (function(){ const sec = document.getElementById('co-referencia-seccion');
+    if (sec) [].slice.call(sec.querySelectorAll('*')).forEach(x => {
+      if (x.style && x.style.display === 'block') x.style.display = ''; }); })();
+  __t.limpiar();
+
+  return { extra: ex };
+  })();
+`);
+
 
 
 

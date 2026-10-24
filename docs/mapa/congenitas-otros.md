@@ -536,3 +536,21 @@ perdió sus frases de conducta, y entraron **tres Evidencias nuevas** más la fi
 de constricción.
 
 **Todo eso está en `docs/mapa/j-pericardio-constriccion-vexus.md`.** Acá no se repite.
+
+---
+
+## La tanda «J2» movió cosas de Hemodinámica, Cardio-Oncología y Amiloidosis → otro mapa
+
+Puntero. El relato vive en **`docs/mapa/j2-hemo-onco-amiloide-pulmon.md`**. En una línea cada uno:
+
+- **Hemodinámica**: tres globos ⓘ nuevos (`hemo-ic`, `hemo-rvs`, `hemo-forr`) y las dos ramas del
+  perfil que usan la banda `<800` — la de IC bajo con RVS baja publica **los dos números** y ya no
+  «considerar shock mixto/distributivo»; la distributiva queda con el chip «Criterio de EcoSmart».
+  ⚠️ **`_rvsBanda` NO se tocó**: de ella cuelga la vasoplejia del posoperatorio.
+- **Cardio-Oncología**: el seguimiento tras radioterapia pasa a «desde los 5 años y luego cada 5»
+  (ESC 2022, Recomendaciones-tabla 41, folio 4314, IIa · C) en los **tres** lugares, y sale el
+  plazo de «2-4 sem» de las dos filas de antraciclinas.
+- **Amiloidosis**: salen las etiquetas «INTERMEDIO» (5-7) y «BAJO» (<5) del score ETT; para menos
+  de 8 puntos la pantalla publica el puntaje y su **rendimiento en ese corte** (Boldrini 2020,
+  Tabla 4, pág. 30). «ALTO» con ≥8 o con 2 de 3 cualitativos no se tocó.
+  ⚠️ El **Laboratorio conserva su propia banda** (`_labAmilBanda`, cortes <6 / 6-7 / ≥8).

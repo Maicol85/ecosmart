@@ -5756,3 +5756,107 @@ resultados distintos, y elegir una sin decirlo sería esconder la diferencia.
 | Reglas de conteo de constricción | sin origen declarado | chip «Criterio de EcoSmart», sin fuente | — | `4f081cd` | 24/10/2026 |
 | VCI de los grados 2 y 3 de VExUS | ≥ 20 mm | **> 20 mm** (el grado 1 sigue en ≥ 20) | Beaubien-Souligny 2020, Figura 1, página 3 | `b4ff8ec` | 24/10/2026 |
 | Frases de conducta de VExUS | pantalla, informe y PDF | sólo en Evidencia, con chip «Criterio de EcoSmart» | el artículo **no** da pasos por grado | `b4ff8ec` | 24/10/2026 |
+
+---
+
+## La tanda «J2» — hemodinámica, cardio-oncología, amiloidosis y eco pulmonar (2026-10-24)
+
+Siete documentos. **Cuatro se leyeron EN IMAGEN** porque son tablas o figuras maquetadas —y dos
+de ellos son **escaneos de libro sin capa de texto**, donde no hay otra forma—. Ninguna frase se
+copió literal: todo lo que entró a la aplicación está redactado con palabras propias, que es la
+regla de derechos de autor de este repositorio.
+
+### Reglas de folio comprobadas en esta tanda
+
+| Documento | Regla | Comprobada en |
+|---|---|---|
+| García-Pavía 2021 (Eur Heart J) | folio = hoja del PDF **+ 1553** | el pie impreso de las quince hojas |
+| Lyon 2022, ESC de cardio-oncología | folio = hoja del PDF **+ 4228** | el pie impreso de las hojas 15, 18, 19, 30, 32, 61 y 86 |
+| ASE 2025 de corazón derecho | folio = hoja del PDF **+ 140** | el pie impreso |
+| ESC 2023 de miocardiopatías (traducción SEC) | folio = hoja del PDF **− 1** | el encabezado |
+| Braunwald 10.ª ed. española | folio = hoja del PDF **− 30** | el pie impreso de la hoja 405 (folio **375**), leído en imagen |
+| Grossman y Baim, Tomo I | escaneo a **dos páginas por hoja**: folio 260 = hoja 143, mitad izquierda | el folio impreso en el encabezado |
+| Volpicelli 2026 (Intensive Care Med) | **sin folio de revista** en la copia de la biblioteca: se cita por HOJA y por el identificador del enunciado | — |
+
+### Lo verificado, documento por documento
+
+| Fuente | Dónde | Qué dice |
+|---|---|---|
+| **Consenso de Shock Cardiogénico, SAC 2024** (Rev Argent Cardiol 2024;92 Supl 3) · `19_Pulmon_POCUS/COMPLETO-B-52.pdf` | **Tabla 1, folio 2** (hoja 10) — **EN IMAGEN** | columna del **Shock Trial**: «Criterios hemodinámicos: IC < o = 2,2 l/min y PEP >15 mm Hg». ⚠️ Es una tabla **comparativa** de cuatro definiciones, no una recomendación propia del consenso, y la unidad impresa es «l/min», sin indexar |
+| **ESC/ERS 2022 de hipertensión pulmonar** (Humbert, traducción SEC) | **folio 30** (hoja 31) | tabla de valores hemodinámicos normales: «Índice cardiaco **2,5-4,0 l/min·m²**». Sólo se cita el VALOR numérico |
+| **Grossman y Baim**, Cateterismo cardíaco, 8.ª ed., AMOLCA 2016 | **Tomo I, Tabla 11.2, folio 260** — **EN IMAGEN** | «Resistencia vascular sistémica **1.170 ± 270 dinas-seg-cm⁻⁵**». ⚠️ El pie declara que es la **media ± desviación estándar de 37 sujetos** sin enfermedad cardíaca demostrada (17 hombres, 20 mujeres, 47 ± 9 años), cateterizados en el Peter Bent Brigham entre 01/07/1975 y 30/06/1978: **no es un intervalo de normalidad** |
+| **Braunwald**, Tratado de Cardiología, 10.ª ed. española, Elsevier 2016 | **Tabla 19-3, folio 375** | «Resistencia vascular sistémica **1.100**, intervalo **700-1.600** dina-s·cm⁻⁵» |
+| idem | **Tabla 52-9 y texto del folio 1125** — **EN IMAGEN** | «Clasificaciones hemodinámicas de los pacientes con infarto agudo de miocardio», A. por exploración clínica (Killip-Kimball) y B. por monitorización invasiva (Forrester). Subgrupo III «PECP <18, IC <2,2»; subgrupo IV «PECP >18, IC <2,2». Texto: «la hipoperfusión suele hacerse clínicamente evidente cuando el índice cardíaco cae **por debajo de 2,2** l/min/m², mientras que la congestión pulmonar se percibe cuando la presión de enclavamiento **supera** las 18 mmHg». Pie: tomado de **Forrester J, Diamond G, Chatterjee K, et al. N Engl J Med 1976;295:1356** |
+| **ASE 2025 de corazón derecho** (Mukherjee, JASE 2025;38(3):141-186) | **folio 162** (hoja 22) | tabla de fórmulas: `CO = [(πr²) × VTI_RVOT] × HR`; `PVR = [(Peak TR velocity / VTI_RVOT) × 10] + 0,16`; `PVR = (mPAP − PCWP)/CO`; `PCWP = [1,24 × (E/e′ mitral) + 1,9]` |
+| idem | **folio 167** (hoja 27) | dos bloques de recomendaciones: evitar el informe de rutina de la PCWP, porque el E/e′ promediado o medial ya entra en la valoración diastólica estándar; y que la RVP derivada de la ecocardiografía **no se recomienda para uso de rutina** y **no sustituye** a la valoración invasiva para diagnosticar, graduar ni clasificar la hipertensión pulmonar |
+| **ESC 2022 de cardio-oncología** (Lyon, Eur Heart J 2022;43(41):4229-4361) | **Tabla 3, folio 4243** — **EN IMAGEN** | definiciones de la toxicidad cardiovascular: CTRCD asintomática en tres grados, sintomática en cuatro, y la miocarditis por inhibidores de puntos de control |
+| idem | **Tabla 4, folio 4246** | estratificación HFA-ICOS del riesgo basal, **por familia de fármaco** |
+| idem | **Tabla 5, folio 4247** | equivalencia de antraciclinas: cocientes 1 / 0,8 / 0,6 / 10,5 / 5 y dosis isoequivalentes 100 / 125 / 167 / 9,5 / 20 mg/m². ⚠️ Derivadas de supervivientes **pediátricos**; la idarrubicina sale de un cociente estimado de eficacia antitumoral, no de datos de cardiotoxicidad |
+| idem | **Tabla 12, folio 4314** | categorías de riesgo del superviviente: doxorrubicina 250-399 mg/m² riesgo alto precoz; ≥400 mg/m² riesgo muy alto |
+| idem | **Figura 10, folio 4258** — **EN IMAGEN** | vigilancia con antraciclinas por riesgo. Su **pie** gradúa: en riesgo moderado el eco **debe considerarse** tras 250 mg/m² de doxorrubicina o equivalente, y en riesgo bajo **puede considerarse**; biomarcadores cada dos ciclos y dentro de los 3 meses de terminar, **IIb · C** en riesgo bajo y **IIa · C** en riesgo moderado y en riesgo bajo con ≥250 mg/m² |
+| idem | **Figura 11, folio 4260** | vigilancia con anti-HER2. Su pie: en cáncer de mama precoz HER2+ de bajo riesgo, asintomático y normal a los 3 meses, el eco **puede** bajar a cada 4 meses (**IIb · C**); en enfermedad metastásica de riesgo bajo y moderado, **se recomienda** cada 6 meses tras el primer año (**I · C**) |
+| idem | **Recomendaciones-tabla 26, folio 4289** — **EN IMAGEN** | «EMB should be considered to confirm the diagnosis of ICI-associated myocarditis if the diagnosis is suspected but not confirmed after cardiac imaging and biomarkers» — **IIa · C**. Nota c: se considera en el paciente inestable o cuando la RMC está contraindicada |
+| idem | **Recomendaciones-tabla 41, folio 4314** — **EN IMAGEN** | «Echocardiography should be considered in asymptomatic late high-risk adult CS starting at 5 years after radiation to a volume including the heart and then every 5 years» — **IIa · C** |
+| **García-Pavía 2021**, documento de posición de la ESC (Eur Heart J 2021;42:1554-1568) | **Tabla 2, folio 1558** — **EN IMAGEN** | «Unexplained LV thickness (≥12 mm) **plus 1 or 2**»: 1 = ≥2 de tres criterios cualitativos; 2 = score multiparamétrico **≥8 puntos** (espesor relativo >0,6 → 3; E/e′ >11 → 1; TAPSE ≤19 mm → 2; strain longitudinal ≤ −13 % → 1; cociente ápex/base >2,9 → 3) |
+| idem | **texto del folio 1556** | «Although **not yet externally validated**, a score ≥8 points in the presence of LV wall thickness ≥12 mm in combination with amyloid deposits in an extracardiac biopsy could also be considered diagnostic» |
+| idem | **folios 1558-1559** — **EN IMAGEN** | los **cuatro escenarios** del algoritmo (centellograma × proteínas monoclonales) y la **Figura 2** con los grados 0 a 3 de captación |
+| **Boldrini 2020**, «Multiparametric echocardiography scores for the diagnosis of cardiac amyloidosis», JACC Cardiovasc Imaging — manuscrito aceptado | **Tabla 4, página 30** — **EN IMAGEN** | score **IWT** (espesor relativo, E/e′, TAPSE, strain, cociente ápex-base), cohorte de hipertrofia inexplicada, n = 923, AUC 0,87. ≥1 Se 98 Sp 19 · ≥2 96/35 · ≥3 94/45 · ≥4 89/61 · ≥5 82/72 · ≥6 78/79 · ≥7 67/89 · **≥8 46/98** · ≥9 36/99 · =10 25/99. ⚠️ En la misma tabla convive el score **AL**, con cuatro parámetros y otra cohorte |
+| **ESC 2023 de miocardiopatías** (Arbelo, traducción SEC) | **folio 27** (hoja 28) | Tabla 6 de recomendaciones: gammagrafía con trazador óseo DPD/PYP/HMDP en la sospecha de amiloidosis por transtiretina — **I · B**. Tabla 5 de recomendaciones: RMC con contraste para el seguimiento seriado y la evaluación de la respuesta terapéutica en la amiloidosis cardíaca — **IIa · C**. **Cotejadas contra el original inglés** (`ehad194.pdf`, hoja 26): coinciden |
+| **Volpicelli 2026**, «International evidence-based recommendations for point-of-care lung ultrasound — 2025 focused update», Intensive Care Med | **Figura 3, panel C, hoja 8**, y enunciado **D3_1.4, hoja 13** | síndrome intersticial **difuso**: al menos **2 zonas positivas por hemitórax** sobre un tórax anterolateral dividido en 8 zonas; cualquier otro patrón de líneas B múltiples es **focal**, y el mismo enunciado lista sus causas |
+| idem | enunciados **D3_1.1** y **D3_1.3**, hoja 13 | líneas B múltiples = al menos **3 en un cuadro**; zona positiva = al menos 3 líneas B en un cuadro dentro de esa zona |
+| idem | enunciados **D2_2.1** y **D2_2.2**, hoja 12 | la visualización del **punto pulmón confirma** el neumotórax; sin él, con ausencia de movimiento y de signos parenquimatosos, el neumotórax es «altamente probable». En un neumotórax **muy grande** el punto pulmón puede no verse y hay que integrar radiografía o TC |
+| idem | enunciado **D6_11, hoja 19** | «V (ml) = D (mm) × 20», con D la distancia máxima entre pleura parietal y visceral en un corte transversal lateral sobre el ángulo costofrénico, en decúbito supino. **Validada en pacientes críticos bajo ventilación invasiva**; en un paciente que puede examinarse sentado, otros métodos multiplanares pueden ser más precisos. Referencia 154 = Balik M y cols., Intensive Care Med 2006 |
+
+### Tres punteros de la orden que estaban corridos, y la fuente los corrige
+
+1. **La Tabla 52-9 de Braunwald está en el folio 1125, no en el 1120.** Verificado en imagen,
+   con el folio impreso en el pie de la hoja 1155 del PDF. El texto de contexto sobre Swan y
+   Forrester está en el folio 1124.
+2. **El síndrome intersticial difuso es el pie de la FIGURA 3, panel C** (hoja 8), no de la
+   Figura 4: la Figura 4C, hoja 9, es la semicuantificación del **neumotórax** por la posición del
+   punto pulmón. El comentario de `pulAvPatron` decía «Figura 4C … hoja 8» desde el R2 —la hoja
+   estaba bien y el número no—. **Ningún corte se movió**: el «≥2 zonas por hemitórax» es el mismo.
+3. **El enunciado que dice que el punto pulmón CONFIRMA el neumotórax es el D2_2.1**, no el
+   D2_2.2; el D2_2.2 es la salvedad del neumotórax muy grande. Los dos están en la hoja 12.
+
+### Lo que NO se pudo citar, y por eso no se citó
+
+- **Forrester 1976 no está en la biblioteca.** Se cita **como lo cita Braunwald**, que lo
+  reproduce en su Tabla 52-9, y la entrada del registro lo declara: no como fuente primaria.
+- **El índice cardíaco NO figura en la tabla de fórmulas del folio 162** de la ASE 2025. Esa
+  tabla publica el gasto cardíaco, la resistencia pulmonar y la presión capilar. Dividir el gasto
+  por la superficie corporal es la **definición** del indexado, no una fórmula publicada, así que
+  esa línea de la Evidencia va **sin corchete**.
+- **Las recomendaciones del folio 167 de la ASE 2025 no llevan clase ni nivel**: ese documento no
+  usa esa escala. Escribírselas sería inventarlas.
+- **Grossman y Braunwald son libros de texto**: no publican clase ni nivel de recomendación.
+- **El «2,2 o menos» del consenso argentino vive en una columna COMPARATIVA** de su Tabla 1, no en
+  una recomendación propia de ese consenso. Se cita sin clase ni nivel.
+- **El consenso de ecografía pulmonar de 2026 no publica clase ni nivel.** Sus enunciados llevan
+  **grado de acuerdo entre panelistas**, no la escala I / IIa / IIb / III. Por eso **no se creó una
+  sección de Evidencia** para la ecografía pulmonar: sería una sección vacía o, peor, una con
+  clases inventadas. La ficha de Referencias lo dice.
+- **El reparto en zonas de la aplicación no es el del consenso**: pregunta TRES por hemitórax y la
+  fuente divide el tórax anterolateral en CUATRO por lado. Va con el chip «Criterio de EcoSmart».
+- **«Reevaluar en 3-6 sem» de la fila anti-HER2** no se encontró en el pie de la Figura 11 ni en
+  ninguna tabla de recomendaciones. **No se tocó**, porque la orden no lo nombra: queda declarado.
+
+### Cambios de evidencia
+
+| Dato | Antes | Ahora | Fuente | Commit | Fecha |
+|---|---|---|---|---|---|
+| Perfil con índice cardíaco bajo y RVS baja | «GC bajo con RVS baja — **considerar shock mixto/distributivo**» | los **dos números**, sin etiqueta ni conducta | ninguna fuente de la biblioteca cuelga ese diagnóstico de esa combinación | `071c816` | 24/10/2026 |
+| Perfil distributivo / vasodilatado | sin declarar su origen | se mantiene, con el chip «**Criterio de EcoSmart**» | el corte de 800 sale de `_rvsBanda`, escala de la casa | `071c816` | 24/10/2026 |
+| Índice cardíaco — de dónde sale cada número | sin declarar | globo ⓘ con las tres fuentes y sus folios | SAC 2024 Tabla 1 folio 2 · ESC/ERS 2022 folio 30 · Braunwald folio 1125 | `071c816` | 24/10/2026 |
+| Resistencia vascular sistémica — referencia | sin declarar | globo ⓘ con las **dos** referencias y la salvedad de los 37 sujetos | Grossman Tabla 11.2 folio 260 · Braunwald Tabla 19-3 folio 375 | `071c816` | 24/10/2026 |
+| Presión capilar y resistencia pulmonar estimadas | sin declarar qué dice la guía sobre informarlas | Evidencia con las dos recomendaciones del folio 167, **sin clase ni nivel** | ASE 2025, folio 167 | `ca67b14` | 24/10/2026 |
+| Seguimiento tras radioterapia torácica | «Eco a los 5 años post-RT. Eco a los 10 años post-RT» | «**desde los 5 años y luego cada 5 años**», con clase y nivel | ESC 2022, Recomendaciones-tabla 41, folio 4314 (**IIa · C**) | `e117e82` | 24/10/2026 |
+| Plazo tras caída de FEVI con antraciclinas | «eco en **2-4 sem** y graduar la CTRCD…» | «graduar la CTRCD…», **sin fecha** | no figura en la guía | `e117e82` | 24/10/2026 |
+| Biopsia endomiocárdica en miocarditis por inmunoterapia | fuera de la aplicación (la retiró el R2-E6) | en **Evidencia**, con clase y nivel | ESC 2022, Recomendaciones-tabla 26, folio 4289 (**IIa · C**) | `2f1e721` | 24/10/2026 |
+| Score de amiloidosis, tramo 5-7 | «🟡 Score **INTERMEDIO**» | el puntaje y su **rendimiento en ese corte** | no tiene fuente; el rendimiento es de Boldrini 2020, Tabla 4, pág. 30 | `4a29caa` | 24/10/2026 |
+| Score de amiloidosis, tramo 1-4 | «🟢 Score **BAJO** con HVI» | idem | no tiene fuente; además, con ≥8 la sensibilidad es del 46 %, así que un puntaje bajo **no descarta** | `4a29caa` | 24/10/2026 |
+| Validación y rendimiento del score | «no tiene validación externa» en una nota | globo ⓘ que además dice que lo alto es la **especificidad** (98 % con ≥8), no un valor predictivo | García-Pavía 2021 folio 1556 · Boldrini 2020 Tabla 4 | `4a29caa` | 24/10/2026 |
+| Algoritmo diagnóstico de amiloidosis | sólo en el módulo de la pestaña | **Evidencia** con los cuatro escenarios y las dos recomendaciones graduadas | García-Pavía 2021 folios 1558-1559 · ESC 2023 folio 27 (**I · B** y **IIa · C**) | `56046fe` | 24/10/2026 |
+| Criterios de eco pulmonar | sin ficha de Referencias | ficha propia, cada criterio con su enunciado y su hoja | Volpicelli 2026, enunciados D2_2.1, D2_2.2, D3_1.1, D3_1.3, D3_1.4 y D6_11 | `5a8f04c` | 24/10/2026 |
+| «Líneas B aisladas: hallazgo focal, puede ser inespecífico» | retirada del informe por el AJ2 | en la **ficha**, con su fuente: el D3_1.4 llama focal a ese patrón y lista sus causas | Volpicelli 2026, D3_1.4, hoja 13 | `5a8f04c` | 24/10/2026 |
+| Síndrome intersticial difuso — atribución | «pie de la Figura 4C, hoja 8» | «pie de la **Figura 3, panel C**, hoja 8» | el pie de esa hoja es «Fig. 3 Techniques…» | `5a8f04c` | 24/10/2026 |

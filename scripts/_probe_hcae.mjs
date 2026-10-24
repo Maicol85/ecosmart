@@ -1621,6 +1621,69 @@ window.__Z = {
     process.stderr.write('[pulmon] listo\n');
   }
 
+  if (corre('dbg')) {
+    const r = {};
+    await ev(`window.__P.nuevo()`);
+    await ev(`window.__Y.poner(${JSON.stringify(ESC.hemoDistrib)})`);
+    await ev(`window.__P.calentar()`);
+    r.perfil = await ev(`window.__P.txt('hemo-perfil')`);
+    r.integ = await ev(`(function(){ try { amiloIntegrar('hemo'); return 'ok' } catch(e){ return 'EXC '+e.message } })()`);
+    r.inf = await ev(`window.__P.informe('estandar')`, 40000);
+    out.grupos.dbg = r;
+  }
+
+  /* ══ GRUPO ab — EL A/B DEDICADO, TODAS LAS SUPERFICIES ═════════════════════════════════════
+     Formulario vacio y cuatro escenarios cargados. Por cada uno: informe en los TRES estilos,
+     EN SUMA, PDF generado DE VERDAD, PPT estadistico, PDF de auditoria del Laboratorio, las
+     funciones del Laboratorio y el Excel columna por columna. */
+  if (corre('ab')) {
+    const r = { escenas: {} };
+    const AB = {
+      vacio: { tipo:'campos', c:{} },
+      /* Hemodinamica con IC bajo (2,00) y RVS baja (742): la rama que esta tanda cambio. */
+      hemoBaja: { tipo:'campos', c: ESC.hemoBajoBaja },
+      /* Cardio-oncologia con radioterapia. */
+      concoRT: { tipo:'campos', c: ESC.concoRT },
+      /* Los tres puntajes que la orden pide: 4, 6 y 8. */
+      amil4: { tipo:'score', on:['ett-rwt','ett-ee'] },
+      amil6: { tipo:'score', on:['ett-rwt','ett-apice'] },
+      amil8: { tipo:'score', on:['ett-rwt','ett-apice','ett-tapse'] }
+    };
+    try {
+      await viewport(1440,900);
+      for (const k of Object.keys(AB)) {
+        await ev(`window.__P.nuevo()`);
+        const e = AB[k];
+        if (e.tipo === 'score') {
+          await ev(`window.__Z.abrirZona('ett-score-cat')`);
+          await ev(`window.__Z.amiloPoner(${JSON.stringify({ on: e.on })})`);
+          await ev(`window.__Z.amiloPasar()`);
+          /* Se integra para que el bloque baje a la hoja del PDF. */
+          await ev(`(function(){ try { amiloIntegrar('ett') } catch(x){} })()`);
+        } else {
+          await ev(`window.__Y.poner(${JSON.stringify(e.c)})`);
+          await ev(`window.__P.calentar()`);
+          if (k === 'hemoBaja') await ev(`(function(){ try { amiloIntegrar('hemo') } catch(x){} })()`);
+          if (k === 'concoRT')  await ev(`(function(){ try { amiloIntegrar('conco') } catch(x){} })()`);
+        }
+        await new Promise(res => setTimeout(res, 450));
+        const o = { tres: {} };
+        for (const est of ['conciso','estandar','narrativo'])
+          o.tres[est] = await ev(`window.__P.informe('${est}')`, 60000);
+        o.pdf = await ev(`window.__P.pdf('estandar')`, 120000);
+        o.excel = await ev(`window.__P.excelDOM()`, 60000);
+        o.campos = await ev(`window.__P.camposGuardados()`);
+        o.lab = await ev(`window.__P.lab(${JSON.stringify(e.tipo === 'campos' ? (e.c || {}) : {})})`, 40000);
+        o.ppt = await ev(`window.__P.labPPT([window.__P.reg({}, 'ab')])`, 90000);
+        o.audit = await ev(`window.__P.labAudit([window.__P.reg({}, 'ab')])`, 90000);
+        r.escenas[k] = o;
+      }
+      r.errores = await ev(`window.__Y.errores()`);
+    } catch (e) { r.err = e.message }
+    out.grupos.ab = r;
+    process.stderr.write('[ab] listo\n');
+  }
+
   OUT.md5Fin = await md5(EXTERNO ? FARG : join(RAIZ, FILE));
   process.stdout.write(JSON.stringify(OUT, null, 1));
   cdp.close(); srv.close(); process.exit(0);

@@ -402,3 +402,28 @@ porqué de cada centinela).
 trampas que el caso ya pagó— está en **`docs/mapa/tests-fichas-532.md`**, en archivo propio
 porque `tests-fichas.md` está a 800 bytes del techo de 35 KB.
 Las mutaciones dirigidas que lo hacen fallar viven en **`scripts/_mut_j.py`**.
+
+---
+
+## TC-533 — la tanda «J2» (2026-10-24)
+
+**63 condiciones.** Cubre los siete commits: los tres globos ⓘ de hemodinámica y los bordes del
+índice cardíaco; la RVS como número pelado; las dos ramas de RVS baja; las tres Evidencias nuevas;
+cardio-oncología sin los plazos sin fuente y con el seguimiento tras radioterapia alineado; el
+score de amiloidosis de 0 a 10; el cuestionario de los cuatro escenarios; la ficha de eco pulmonar;
+los bloques integrados; guardar y «Nuevo estudio»; y los controles.
+
+**Sabe fallar por los dos caminos:**
+- contra el HEAD de la tanda (`74665ca`, worktree aparte): **43 condiciones en rojo**, **ninguna
+  por excepción**;
+- por mutación dirigida: `scripts/_mut_j2.py`, **17 mutaciones**, una por cada cosa que la tanda
+  cambió.
+
+El arnés **exige la línea `RESULTADO`**: sin ella el veredicto es `NO CORRIÓ`, no «sobrevivió».
+Nunca muta el archivo vivo y verifica el `md5` al restaurar.
+
+⚠️ **LO QUE TC-533 NO MIDE, Y ESTÁ DECLARADO EN UNA CONDICIÓN PROPIA**: la geometría de las media
+queries. Su ventana abre por debajo de 1100 px y el arnés corre por encima. Lo cubren
+`scripts/check_mobile.js` y las capturas de `scripts/_probe_hcae.mjs`. Ver PENDIENTES → **J2-e**.
+
+El relato completo vive en **`docs/mapa/j2-hemo-onco-amiloide-pulmon.md`**.

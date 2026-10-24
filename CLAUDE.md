@@ -84,6 +84,7 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Tocar la VISTA 2D de las válvulas**: el lector único del estado, las tarjetas, la tabla de cavidades, el dibujo, los chorros o el «por qué» | `docs/mapa/vista-2d-valvulas.md` |
 | **Tocar el PANEL EN LÍNEA de la vista 2D**: el botón que prende y apaga, el apagado automático, la sincronía en vivo, el alto del dibujo o la línea de fase | `docs/mapa/vista-2d-en-linea.md` |
 | **Orientarse en otro módulo** (Congénitas, Laboratorio, PPT, Cardio-Onco, Pericardio) | `docs/mapa/congenitas-otros.md` |
+| **Tocar la HEMODINÁMICA, la CARDIO-ONCOLOGÍA, el SCORE DE AMILOIDOSIS o la ficha de ECO PULMONAR**: los tres ⓘ del índice cardíaco, la RVS y el Forrester; las dos ramas de RVS baja; el seguimiento tras radioterapia; las etiquetas del score que salieron; las TRES Evidencias nuevas o la ficha `ref-pulmon` | `docs/mapa/j2-hemo-onco-amiloide-pulmon.md` |
 | **Tocar el DERRAME y el TAPONAMIENTO, la CONSTRICCIÓN vs RESTRICCIÓN o VEXUS**: la fase y la duración del colapso de la aurícula derecha, los DOS cortes de plétora de VCI de la app, el aviso invasivo retirado, el cociente de la vena suprahepática, los dos operadores de VCI de VExUS o las tres Evidencias nuevas | `docs/mapa/j-pericardio-constriccion-vexus.md` |
 | **Saber DÓNDE ESTÁ una pantalla**: la columna izquierda y la fila de arriba, Pericardio y masas, las dos sub-pestañas de Otros, el eco pulmonar unificado, Calculadoras dentro de Referencias, C. Congénitas, el Fonocardiograma retirado o la frase de Balik | `docs/mapa/pestanas-reorganizacion.md` |
 | **Citar un dato de una guía** (documento, folio, frase verificada) | `docs/fuentes/FUENTES.md` |
@@ -146,8 +147,11 @@ Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la v
 ## Qué es EcoSmart y cómo se trabaja
 
 - App clínica de ecocardiografía en **un solo `index.html`**: HTML + CSS + JS inline, sin build,
-  sin frameworks. Hoy **9,46 MB / 134.230 líneas**, medido con `wc -c` y `wc -l` el 2026-10-24 al
-  cierre de la tanda **AJ6**, sobre el árbol ya sellado (`v20261024-1037`, `md5` `3bdbcb22…`).
+  sin frameworks. Hoy **9,59 MB / 135.540 líneas**, medido con `wc -c` y `wc -l` el 2026-10-24 al
+  cierre de la tanda **J2**, sobre el árbol ya sellado (`v20261024-1714`, `md5` `1ecdba10…`).
+  ⚠️ **Y ESTE RENGLÓN SE QUEDÓ DOS TANDAS ATRÁS OTRA VEZ**: decía «9,46 MB / 134.230 líneas», que
+  es el cierre del AJ6, mientras la J y la J2 escribían su delta en su propia sección sin tocar
+  éste, que es el que se lee para presupuestar contexto. **1.310 líneas de diferencia.**
   ⚠️ **Y SE VOLVIÓ A ESCRIBIR MAL EL 23/10, POR CONFUNDIR MB CON MiB:** `ls -l` da bytes y
   dividirlos por 1.048.576 da **8,91**, que es MiB; este renglón cuenta en MB de 10⁶, así que la
   cifra es **9,34**. Medir con `wc -c` y dividir por 1e6.
@@ -325,6 +329,104 @@ impecable.
 > secciones de REGLAS (la regla de oro con su tabla de mapas, «Qué es EcoSmart», el panel de
 > Evidencia, el protocolo de verificación, las trampas conocidas, el flujo de trabajo,
 > SEGURIDAD y la tabla de Procedencia) siguen enteras y en su lugar, verificado byte por byte.
+### Hemodinámica, cardio-oncología, amiloidosis y eco pulmonar — «J2» (2026-10-24)
+
+- **Son OCHO commits, en el orden del encabezado, y los siete ítems de código se completaron
+  enteros.** `071c816` (E1) · `ca67b14` (E2) · `e117e82` (E3) · `2f1e721` (E4) · `4a29caa` (E5) ·
+  `56046fe` (E6) · `5a8f04c` (E7) · el de cobertura y documentación. Sello **`v20261024-1714`**.
+  Al **empezar**, `origin/main` estaba en **`2b9f3ef`** con **56** commits locales sin pushear;
+  al cerrar hay ****64****, medidos con `git rev-list --count origin/main..HEAD` y no
+  contados a mano. **El push lo corre Maicol: esta tanda tenía orden expresa de NO pushear.**
+
+- **LAS SIETE FUENTES SE LEYERON EN EL PDF ORIGINAL, Y CUATRO EN IMAGEN.** Consenso SAC 2024 de
+  shock cardiogénico (Tabla 1, folio 2); ESC/ERS 2022 de HP (folio 30); **Grossman y Baim Tomo I,
+  Tabla 11.2, folio 260**; **Braunwald 10.ª española, Tabla 19-3 folio 375 y Tabla 52-9 folio
+  1125**; ASE 2025 de corazón derecho (folios 162 y 167); ESC 2022 de cardio-oncología (Tablas 3,
+  4, 5 y 12, Figuras 10 y 11, y las Recomendaciones-tabla 26 y 41); García-Pavía 2021 (Tabla 2
+  folio 1558, texto 1556, escenarios 1558-1559); Boldrini 2020 (Tabla 4, pág. 30); ESC 2023 de
+  miocardiopatías (folio 27, **cotejada contra el original inglés**); y Volpicelli 2026
+  (enunciados D2_2.1, D2_2.2, D3_1.1, D3_1.3, D3_1.4 y D6_11).
+  **LOS DOS LIBROS DEL ESCRITORIO SE RE-VERIFICARON, no quedaron en «visto por Cowork»**: son
+  escaneos sin capa de texto y se leyeron renderizando la página.
+
+- **EL DEFECTO MÁS GRANDE QUE CERRÓ, EN UNA LÍNEA: el score de amiloidosis llamaba «BAJO» a un
+  puntaje que no descarta nada.** Con el corte de 8 la sensibilidad del score es del **46 %**
+  (Boldrini 2020, Tabla 4), así que un puntaje por debajo deja fuera a más de la mitad de los
+  enfermos — y la palabra «bajo» se lee como si lo descartara. Salieron las dos etiquetas sin
+  fuente, «INTERMEDIO» (5-7) y «BAJO» (<5), y lo que queda es el puntaje con su **rendimiento en
+  ese corte**, transcrito de la tabla.
+
+- **TRES PUNTEROS DE LA ORDEN ESTABAN CORRIDOS, Y LA FUENTE LOS CORRIGE.** La Tabla 52-9 de
+  Braunwald está en el **folio 1125**, no en el 1120. El síndrome intersticial difuso es el pie de
+  la **Figura 3, panel C** (hoja 8), no de la Figura 4 —la 4C, hoja 9, es la semicuantificación
+  del neumotórax—, y el comentario de `pulAvPatron` lo decía mal desde el R2. Y el enunciado que
+  dice que el punto pulmón **confirma** el neumotórax es el **D2_2.1**, no el D2_2.2.
+  **Ningún corte se movió por ninguno de los tres.**
+
+- **UNA RAMA QUE NO SE PODÍA BORRAR.** El perfil «GC bajo con RVS baja — considerar shock
+  mixto/distributivo» salió, pero la RAMA quedó: sin ella, un índice cardíaco bajo con RVS baja
+  cae en el `else` final y la app dice **«Perfil hemodinámico normal»** sobre un paciente
+  hipoperfundido. Lo que publica hoy son los DOS NÚMEROS, en gris, sin interpretación.
+
+- **TRES EVIDENCIAS NUEVAS Y NINGUNA CLASE INVENTADA.** `IND_SECS` pasa de 27 a **30**. La de
+  hemodinámica no tiene **una sola** fila graduada, y lo declara: la ASE 2025 no usa esa escala,
+  Grossman y Braunwald son libros de texto, y el «2,2 o menos» del consenso argentino vive en una
+  columna COMPARATIVA de su Tabla 1. La de cardio-oncología tiene **dos** (IIa · C las dos) y la
+  de amiloidosis **dos** (I · B y IIa · C).
+
+- **NO SE CREÓ LA EVIDENCIA DE ECO PULMONAR, Y LA FICHA DICE POR QUÉ**: ese consenso publica
+  **grado de acuerdo entre panelistas**, no clase ni nivel. Una sección sin enunciados graduados
+  sería una sección vacía, o peor, una con clases inventadas.
+
+- **ESTUDIOS GUARDADOS: NO HUBO NADA QUE MAPEAR, Y ESTÁ MEDIDO.** La etiqueta del score nunca se
+  persistió —se calcula de los campos—, el Excel guarda «Score amiloidosis ETT» como NÚMERO, las
+  **440 columnas** salen idénticas clave por clave y el censo de **1038 campos** da el MISMO hash.
+  Un estudio viejo con la cadena «INTERMEDIO» guardada en ese campo tampoco rompe la fila.
+
+- ⚠️ **CUATRO TRAMPAS DE INSTRUMENTACIÓN, LAS CUATRO CON EL MISMO SÍNTOMA: un verde sobre cero
+  elementos, o un rojo que nace en la sonda.**
+  1. **`\s` dentro de un template literal se come la barra** y el regex borra las **eses**: el
+     título volvía «Perfil hemodinámico — pre ione y re i tencia». Va `/\\s+/g`.
+  2. **`style.display = ''` BORRA el inline** y devuelve el elemento a su CLASE — y las
+     subpestañas de Referencias se ocultan por clase. El barrido medía **cero nodos**. Va `'block'`.
+  3. **`calentar()` PONE EN CERO el score de amiloidosis**: corre todas las `calc*`, y las del
+     propio score llaman a `amCalcSinDato` con los campos de medición vacíos. La captura mostraba
+     «Completá los parámetros» sobre una escena de 6 puntos.
+  4. **`indicAbrir()` BORRA las respuestas del panel**, al abrir Y al cerrar. Leerlo después de
+     contestar devolvía la sección sin contestar; y abrir antes de CADA respuesta dejaba viva sólo
+     la ÚLTIMA. El panel se abre **una vez por escena**.
+  Y dos más en el caso de la suite: **el barrido del AJ3 está debounced a 220 ms**, y **el bloque
+  de hemodinámica NO va al cuerpo del informe** sino a la hoja del PDF.
+
+- **SIETE CASOS ADAPTADOS, CADA UNO CON EL MOTIVO ESCRITO**, y todos son DENOMINADORES que esta
+  tanda movió de verdad: **TC-99** (exigía «Eco a los 5 anos post-RT», el seguimiento tras
+  radioterapia de antes de alinearlo), **TC-322** (su denominador exige escenario para TODA
+  sección de `IND_SECS`, y entraron tres), **TC-471** y **TC-500** (el registro de globos, 52 →
+  56), **TC-502** (el censo de Referencias, 33 → 34, y la lista de tarjetas sin botón, que pierde
+  `pul-balik` y gana cuatro), **TC-507** (los chips «Criterio de EcoSmart», 10 → 11) y **TC-509**
+  (el mismo censo, por la ficha de eco pulmonar).
+
+- **Cobertura: TC-533**, con **64 condiciones**, teclas reales y midiendo lo renderizado.
+  **Sabe fallar por los dos caminos**: contra el HEAD de la tanda en un worktree aparte,
+  **43 condiciones en rojo** y **ninguna por excepción**; y por mutación dirigida,
+  ****17/17** muertas** (`scripts/_mut_j2.py`, una mutación por cada cosa que la tanda cambió).
+
+- **Línea base al cierre: suite **544/548**** con el pendrive `DISK_IMG` ****MONTADO** —verificado al abrir y al cerrar, con un `ls` de nombres reales—**, Semgrep
+  **127 WARNING / 0 ERROR en 1 app** —la MISMA línea base que dejó la tanda J—, Excel en **440**
+  columnas y celular en ****64 a 360 px y 73 a 390 px, con 18 ALTA cada uno****. Los rojos son ****TC-223, TC-376, TC-390 y TC-406**, los MISMOS CUATRO de la línea base; **TC-223 es el documentado****. **El denominador sube a
+  **548****: esta tanda agregó **TC-533**. TC-318 sigue excluido.
+- **CHROME Y WEBKIT COINCIDEN**, en los dos temas y en 1440 y 390 px, sobre las cuatro pantallas
+  que la tanda toca y las tres Evidencias nuevas. Cero errores de consola y de página en los dos motores, cero recortes, sin scroll horizontal y 17 de 17 pestañas con caja. La única diferencia es **un píxel** en el ancho del glifo ⓘ (13×13 contra 12×13), que es rasterización de fuente.
+- **`index.html` pasó de 9,52 MB / 134.867 líneas a 9,59 MB / 135.540 líneas** — medido con `wc -c` y `wc -l`
+  DESPUÉS de sellar. (MB de 10⁶: `wc -c` dividido por 1e6.)
+
+- **Dónde está todo:** `docs/mapa/j2-hemo-onco-amiloide-pulmon.md` (**mapa NUEVO**, 15,4 KB),
+  **siete mapas con un puntero cada uno** —`congenitas-otros` 33,0 KB · `panel-evidencia`
+  32,5 KB · `tests` 31,0 KB · `referencias-subpestanas` 24,9 KB · `tanda-r2-correcciones`
+  23,2 KB · `aj3-ett-avanzado` 16,6 KB · `otros-pericardio-pulmon` 14,2 KB—,
+  `docs/fuentes/FUENTES.md` → «La tanda J2» con la tabla **«Cambios de evidencia»** de dieciséis
+  filas, y `docs/PENDIENTES.md` → **CINCO** cosas declaradas (**J2-a** a **J2-e**).
+
 ### Pericardio y taponamiento, constricción y VEXUS — «J» (2026-10-24)
 
 - **Son SIETE commits, en el orden del encabezado, y los seis ítems se completaron enteros.**

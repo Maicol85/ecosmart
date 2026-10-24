@@ -231,3 +231,21 @@ perdió sus frases de conducta, y entraron **tres Evidencias nuevas** más la fi
 de constricción.
 
 **Todo eso está en `docs/mapa/j-pericardio-constriccion-vexus.md`.** Acá no se repite.
+
+---
+
+## La ficha de Referencias de eco pulmonar — tanda «J2» → otro mapa
+
+Puntero. El relato vive en **`docs/mapa/j2-hemo-onco-amiloide-pulmon.md`** §5.
+
+**La pantalla y el informe NO se tocaron**: el patrón, el adjetivo «difuso» y la hoja del PDF
+salen idénticos en las tres escenas (difuso, focal y neumotórax con punto pulmón).
+
+Lo que entra es `ref-pulmon`, con cada criterio, su enunciado del consenso de 2026 y su hoja.
+⚠️ **DOS ATRIBUCIONES ESTABAN CORRIDAS Y SE CORRIGEN**: el síndrome intersticial difuso es el pie
+de la **Figura 3, panel C** (hoja 8), no de la Figura 4 —la 4C, hoja 9, es la semicuantificación
+del neumotórax—; y el enunciado que dice que el punto pulmón **confirma** el neumotórax es el
+**D2_2.1**, no el D2_2.2, que es la salvedad del neumotórax muy grande. **Ningún corte se movió.**
+
+⚠️ **NO SE CREÓ UNA EVIDENCIA, Y LA FICHA DICE POR QUÉ**: ese consenso no publica clase ni nivel,
+sus enunciados llevan grado de acuerdo entre panelistas.

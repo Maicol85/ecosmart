@@ -369,3 +369,19 @@ perdió sus frases de conducta, y entraron **tres Evidencias nuevas** más la fi
 de constricción.
 
 **Todo eso está en `docs/mapa/j-pericardio-constriccion-vexus.md`.** Acá no se repite.
+
+---
+
+## Qué de lo que dejó el R2 tocó la tanda «J2» → otro mapa
+
+Puntero. El relato vive en **`docs/mapa/j2-hemo-onco-amiloide-pulmon.md`**.
+
+| Lo que dejó el R2 | Qué hizo el J2 |
+|---|---|
+| **R2-E8**: dos bandas de IC donde había tres, el 2,2 inclusive | **no se tocó**; el globo ⓘ nuevo declara que la definición original usa «por debajo de 2,2» y que el 2,2 exacto cae de lados distintos |
+| **R2-E8**: la RVS publica el número sin banda ni color | **no se tocó**; el globo ⓘ publica las dos referencias y por qué no hay un rango único |
+| **R2-E8**: `_rvsBanda` intacta, que protege al posoperatorio | **no se tocó**; TC-533 (B2) lo fija en los cuatro bordes |
+| **R2-E6**: la columna «Acción» retirada entera | **sigue retirada**; medido en HEAD antes de tocar nada |
+| **R2-E5**: «ALTO» con un solo camino —score ≥8 **o** 2 de 3 cualitativos— | **no se tocó**; lo que sale son los tramos de abajo |
+| **R2-E7**: el adjetivo «difuso» decidido por las zonas | **no se tocó**; se corrige la ATRIBUCIÓN de ese corte, que decía Figura 4C y es la Figura 3C |
+| **R2-E7**: el punto pulmón con las palabras de la fuente | **no se tocó**; entra a la ficha con su enunciado, el D2_2.1 |

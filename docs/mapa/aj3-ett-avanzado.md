@@ -250,3 +250,20 @@ el caso en verde**: probaba la función y no el cableado, que es la mitad que fa
 Las mutaciones se aplicaron **sobre `index.html` con los dos commits ya hechos** y se restauraron
 con `git checkout -- index.html`, verificando el `md5` después de cada una. No hizo falta un
 worktree.
+
+---
+
+## La tanda «J2» verificó el barrido sobre sus cuatro módulos → otro mapa
+
+Puntero. El relato vive en **`docs/mapa/j2-hemo-onco-amiloide-pulmon.md`** §6.
+
+TC-533 (I1) a (I4) miden el bloque de **hemodinámica**: se integra, se actualiza solo al mover la
+PAM sin volver a integrar, y **editado a mano NO se pisa**.
+
+⚠️ **DOS COSAS QUE HAY QUE SABER PARA MEDIRLO, Y LAS DOS COSTARON UNA CORRIDA:**
+1. **El barrido está debounced a 220 ms.** Leer el textarea justo después de tipear devuelve el
+   texto VIEJO y el caso informa «no se actualiza solo» sobre un mecanismo sano: un rojo que
+   apunta a la app y nace en la sonda. Hay que esperar.
+2. **El bloque de hemodinámica NO va al cuerpo del informe**, va a la HOJA del PDF — lo decide
+   `enCuerpo` en el registro de `amiloSecs`. Leer `#informe_texto` buscándolo da cero caracteres.
+   Lo que se mide es el texto congelado en `am-txt-hemo`.

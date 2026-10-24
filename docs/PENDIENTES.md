@@ -7521,3 +7521,127 @@ cerró para las corridas **nuevas** con su barrido de `exit`: lo que quedó es d
 **Cómo se corregiría.** Un borrado manual con el Chrome del arnés cerrado. No se hizo acá: esta
 tanda no tenía orden de tocar `$TMPDIR` y un borrado por patrón con una corrida en curso es
 exactamente el `pkill` que este repo ya pagó una vez.
+
+---
+
+## Tanda «J2» — lo que quedó declarado y no tocado (2026-10-24)
+
+### J2-a · «Reevaluar en 3-6 sem» en la fila anti-HER2 no tiene fuente, y sigue en pantalla
+
+**Qué se encontró.** La tabla «Cardiotoxicidad» y la subtab «Monitoreo eco» de la pestaña de
+cardio-oncología dicen, para los anti-HER2: «Si la FEVI cae ≥10 pp o baja de 50%: **reevaluar en
+3-6 sem** y graduar la CTRCD…». Ese plazo **no** figura en el pie de la Figura 11 (folio 4260) ni
+en ninguna de las tablas de recomendaciones de seguimiento de la ESC 2022 que se leyeron.
+
+**Por qué no se tocó.** La orden de esta tanda nombra el plazo de «2-4 semanas» y el de «control
+en 4 semanas», y los dos salieron. Este no lo nombra. Mover un plazo clínico que la orden no
+nombra sería tocar contenido clínico sin permiso, que es lo que `CLAUDE.md` prohíbe.
+
+**Qué puede causar.** Un plazo sin respaldo al lado de otro que sí lo tiene, en la misma tabla:
+el médico no puede distinguir cuál sale de la guía.
+
+**Cómo se corregiría.** Igual que el de 2-4 semanas: retirar la fecha y dejar «graduar la CTRCD
+con la subtab “CTRCD”». Es una línea en dos lugares. Decisión de Maicol.
+
+---
+
+### J2-b · El puntaje 0 del score de amiloidosis no distingue «ausente» de «sin cargar»
+
+**Qué se encontró.** Con hipertrofia cargada y los cinco criterios del score marcados como
+ausentes, el puntaje es **0** y la pantalla dice «Completá los parámetros» — el mismo texto que da
+un formulario en blanco. Los cinco campos de puntos son `<input type="hidden">` que nacen en `'0'`,
+así que la aplicación no puede distinguir los dos estados.
+
+**Por qué no se tocó.** La rama del puntaje 0 es la del primer `if` y esta tanda no la nombra.
+Resolverlo bien exige un tercer estado en esos cinco campos —«no evaluado» frente a «ausente»—,
+que es un cambio de modelo de datos con efecto en el Excel y en los estudios guardados.
+
+**Qué puede causar.** Un score genuinamente 0, con los cinco criterios mirados y ausentes, se
+publica como si nadie hubiera cargado nada. No afirma de más, que es el lado seguro, pero pierde
+una medición real.
+
+**Cómo se corregiría.** Dar a los cinco hidden un valor vacío de fábrica y tratar `''` como «no
+evaluado», con su migración para los estudios guardados. Es una tanda propia.
+
+---
+
+### J2-c · El Laboratorio conserva su propia banda del score, con otros cortes
+
+**Qué se encontró.** `_labAmilBanda` clasifica el score ETT en **Baja (<6) / Intermedio (6-7) /
+Probable (≥8)**, que no son los cortes de la pantalla —la pantalla tiene **un** corte, el de 8— y
+cuyas etiquetas «Baja» e «Intermedio» son las dos que esta tanda retiró de la pantalla por no
+tener fuente. Lo usan el filtro de cohorte `coh-amil`, el gráfico del dashboard de la subtab
+Avanzado y la diapositiva del PPT estadístico.
+
+**Por qué no se tocó.** Es un clasificador de **cohorte**, con otro dueño y otro propósito: agrupa
+estudios para una estadística, no gradúa a un paciente. La orden pide **reportar** las superficies
+que usaban «intermedio» o «bajo», no cambiarlas, y mover estos cortes cambia un filtro guardado y
+el eje de un gráfico.
+
+**Qué puede causar.** Un mismo estudio con 6 puntos sale «no alcanza el corte de 8» en la pantalla
+y «Intermedio (6-7)» en el Laboratorio. Las dos cosas son ciertas en su propio contexto, pero la
+palabra «Intermedio» sigue viva en una superficie de la app.
+
+**Cómo se corregiría.** O renombrar los tres tramos del Laboratorio a algo que no afirme un grado
+—por ejemplo «menos de 6», «6 a 7», «8 o más»—, o alinearlos al corte único de 8. Lo primero no
+cambia ningún dato y es reversible. Decisión de Maicol.
+
+---
+
+### J2-d · La Evidencia de hemodinámica no puede publicar una clase ni un nivel
+
+**Qué se encontró.** Las dos recomendaciones de la ASE 2025 sobre qué informar (folio 167) **no
+traen clase ni nivel**: ese documento no usa esa escala. Lo mismo con Grossman y Braunwald, que
+son libros de texto, y con el «2,2 o menos» del consenso argentino, que vive en una columna
+comparativa de su Tabla 1.
+
+**Por qué queda así.** Escribir una clase que la fuente no publica es inventarla, que es lo que
+este repositorio prohíbe. La sección lo declara en la nota de cada bloque.
+
+**Qué puede causar.** Es la única sección del panel sin una sola fila graduada. Un médico
+acostumbrado a las otras puede leer esa ausencia como un olvido.
+
+**Cómo se corregiría.** No se corrige: se declara, que es lo que se hizo. Si alguna vez entra a la
+biblioteca una guía que gradúe estas mismas afirmaciones, la fila la puede citar.
+
+---
+
+### J2-e · La geometría de las media queries sigue sin medirse en el arnés de la suite
+
+**Qué se encontró.** La ventana de las media queries del panel y de la pestaña de cardio-oncología
+abre por debajo de 1100 px y el arnés de `test_clinico.mjs` corre por encima, así que TC-533 no
+puede medir el reparto de columnas en el celular. Es la misma limitación que TC-522 (A4c) del AJ5
+y TC-529 del AJ6 ya declararon.
+
+**Qué puede causar.** Nada nuevo: lo cubren `scripts/check_mobile.js` y las capturas de la sonda
+`_probe_hcae.mjs`, que sí emulan el viewport. Queda escrito para que nadie lea el verde de TC-533
+como una medición del celular.
+
+**Cómo se corregiría.** Emular el viewport por CDP dentro del arnés de la suite, como hace la
+sonda. Toca el arnés de los 547 casos, así que es una tanda propia.
+
+---
+
+### J2-f · Un hallazgo ALTA más en el celular: el ⓘ del score es el decimoquinto `.vinfo-btn`
+
+**Qué se encontró.** `check_mobile.js` pasa de **17 a 18 ALTA** en los dos anchos (360 y 390 px).
+El hallazgo nuevo es el globo ⓘ del score de amiloidosis, medido en **13×13 px** contra el piso de
+44×44 que el checker exige, y entra en ALTA porque la regla marca así todo control de menos de
+28 px sin etiqueta envolvente.
+
+**Por qué no es una clase nueva de defecto.** La línea base ya contaba **catorce** `.vinfo-btn`
+con exactamente el mismo hallazgo y la misma medida (16×12 y 15×11 px): el de la función
+diastólica, los de AI/VI, VD, AD, aorta, los de prótesis y los de la bicúspide. Es **el mismo
+componente**, y su piso táctil está acotado a propósito a `@media (pointer: coarse)` —con el
+mouse, 44 px alrededor de un glifo de 13 serían un blanco enorme—. `check_mobile.js` **no emula
+un puntero grueso**, así que mide el tamaño de escritorio: en un teléfono real ese botón mide
+44×44 y el hallazgo no describe lo que el médico toca.
+
+**Lo que sí se corrigió.** El botón nacía en **11×11 px**, más chico que sus catorce hermanos,
+porque heredaba el `font-size:11px` del rótulo en mayúsculas que lo envuelve. Hoy lleva
+`font-size:13px`, el mismo que los demás, y mide 13×13.
+
+**Cómo se corregiría del todo.** O que `check_mobile.js` emule `pointer: coarse` —y entonces los
+quince dejan de aparecer, que es lo que un teléfono ve—, o sacarle el gate al piso táctil de
+`.vinfo-btn` y aceptar 44 px también con el mouse. Las dos tocan los quince botones a la vez, así
+que es una tanda propia. Decisión de Maicol.

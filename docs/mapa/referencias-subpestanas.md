@@ -386,3 +386,22 @@ perdió sus frases de conducta, y entraron **tres Evidencias nuevas** más la fi
 de constricción.
 
 **Todo eso está en `docs/mapa/j-pericardio-constriccion-vexus.md`.** Acá no se repite.
+
+---
+
+## Una ficha nueva en la tanda «J2»: eco pulmonar → otro mapa
+
+Puntero. El relato vive en **`docs/mapa/j2-hemo-onco-amiloide-pulmon.md`** §5.
+
+`ref-pulmon`, «🫁 Ecografía pulmonar (recomendaciones internacionales 2026)», en la subpestaña
+**«Otros hallazgos»**, pegada a `constriccion` porque viven en la misma pantalla de la app.
+
+⚠️ **SE AGREGÓ A `REF_SUBTAB` EN EL MISMO COMMIT QUE LA FICHA.** Es el paso que la tanda J se
+olvidó con `constriccion`: la ficha existía, se abría desde su encabezado y el buscador la
+indexaba, pero `refSubInit` no la reubicaba y el médico que navegara por las solapas no la
+encontraba nunca. El censo pasa de **23 a 24** entradas repartidas, **ninguna sin panel**, y
+TC-533 (H2) lo fija como invariante sobre la lista entera.
+
+Y **`pul-balik` deja de ser una de las cinco tarjetas sin botón**: entra a `VINFO_REF` y su globo
+gana el «Ver referencia →». Siguen sin botón **cuatro**: `tarj-insuf-pulmonar`,
+`tarj-esten-tricuspide`, `tarj-esten-pulmonar` y `et-avt-cont`.
