@@ -55852,7 +55852,15 @@ function generarInforme(opts) {
          ruidosamente es preferible a que falte en silencio. */
       const c = sec[1]();
       if (!c) return;
-      (c.parrafos || [c.txt + '.']).forEach(function(pp){ etePars.push(pp); }); ccMarcarParrafo();
+      /* ⚠️ `lineasInf` PRIMERO, Y ES LA EXTENSIÓN QUE AGREGÓ AJ6-1. La trae SÓLO la Fallot
+         reparada: son las LÍNEAS ya armadas del cuerpo —la fila vacía, el título y los renglones
+         con guion— en vez del párrafo único. Las otras tres secciones de esta tabla no la traen y
+         para ellas esta línea es un no-op.
+         ⚠️ Y `ccHoja` SIGUE RECIBIENDO `c.parrafos`, que en Fallot es `[]` como siempre: la hoja
+         del PDF de esta cardiopatía publica su conclusión y nada más, y hacerle llegar las
+         líneas nuevas le agregaría tres subtítulos («Morfologia / Tipo», «Mediciones»,
+         «Hemodinamica») que esta orden no pide. Declarado en el reporte. */
+      (c.lineasInf || c.parrafos || [c.txt + '.']).forEach(function(pp){ etePars.push(pp); }); ccMarcarParrafo();
       ccHoja(sec[3], c.parrafos || [], c.resumen || null, null);
       /* `clave !== 'no_interpretable'` YA NO gatea. Ese filtro borraba del EN SUMA afirmaciones
          que el cuerpo sí publicaba: con `mca_tsvd_plax` cargado en cm en vez de mm, el cuerpo
@@ -82193,7 +82201,28 @@ function tdfConclusion(src){
      insuficiencia pulmonar, la función del VD y la conducta sin nombrar nunca la tetralogía:
      quien leyera el informe seis meses después no sabía de qué paciente se estaba hablando —el
      EN SUMA sí la nombraba, y el cuerpo no—. */
-  const partes = ['Tetralogía de Fallot reparada'];
+  /* ══ EL CUERPO SALE EN ESQUEMA: UN TÍTULO Y RENGLONES CON GUION (AJ6-1, 2026-10-24) ═══════
+     DECISIÓN DE MAICOL. Hasta hoy las catorce oraciones salían como UN párrafo corrido, y la
+     última de todas era la CONDUCTA —«reemplazo valvular pulmonar indicado (ESC 2020, Clase I)»,
+     «sin síntomas ni otros criterios de reintervención por los datos cargados — seguimiento»—.
+     El informe firmado pasa a ser DESCRIPTIVO: la indicación, el seguimiento y la clase de
+     recomendación viven en la Evidencia de Referencias, que ya los publica con su folio y su
+     fuente. La nota de esos dos bloques —«El informe y la conclusión de la aplicación son
+     DESCRIPTIVOS: estas recomendaciones se publican acá y no en el papel firmado»— estaba escrita
+     desde que el panel nació y era FALSA hasta este commit: lo declaraba el propio comentario de
+     `_indTdFIP`, que mandaba el pendiente a PENDIENTES.md.
+     ⚠️ `conducta` NO SE BORRA: sigue armándose y sigue viajando en `resumen`, que es lo que
+        consume la diapositiva del PPT —el único consumidor de `resumen` en toda la app— y donde la
+        conducta SÍ va por decisión escrita (ver «POR QUÉ ACÁ SÍ VA LA CONDUCTA Y EN EL EN SUMA
+        NO»). Y `clave` no cambia, que es lo que clasifica el Laboratorio (`TDF_CONDUCTAS`).
+     ⚠️ TRES GRUPOS Y NO DOS. La orden describe DOS renglones porque su ejemplo sólo carga esos
+        datos; la CIV residual y la taquicardia ventricular no pertenecen ni al tracto de salida ni
+        al ventrículo derecho, así que salen en un tercer renglón con el mismo formato en vez de
+        colgarse del renglón vecino, que diría de la válvula pulmonar algo que no es cierto.
+        Cada renglón aparece sólo si tiene algo que decir. */
+  const gPulm = [];   // renglón 1 — válvula pulmonar y tracto de salida derecho
+  const gVD   = [];   // renglón 2 — ventrículo derecho
+  const gOtro = [];   // renglón 3 — lo que no pertenece a ninguno de los dos
   /* `ip_grado` es un <select> con TEXTO («IP severa»), no un código. `.toLowerCase()` sobre eso
      daba «ip severa» en el informe firmado, con la sigla en minúscula. Se expande la sigla. */
   const ipSevera = /severa/i.test(ip), ipModerada = /moderada/i.test(ip);
@@ -82204,28 +82233,28 @@ function tdfConclusion(src){
      saca el prefijo legado si viniera de un estudio sin migrar — las dos formas, una sola vez. */
   const ipTxt = ipHayInsuf(ip)
     ? 'insuficiencia pulmonar ' + ip.replace(/^IP\s*/i, '').trim().toLowerCase() : '';
-  if (ipTxt) partes.push(ipTxt.charAt(0).toUpperCase() + ipTxt.slice(1));
-  if (civ === 'si') partes.push('Comunicación interventricular residual' + (civG != null ? ' con gradiente de ' + civG + ' mmHg' : ''));
-  else if (civ === 'no') partes.push('Sin comunicación interventricular residual');
+  if (ipTxt) gPulm.push(ipTxt.charAt(0).toUpperCase() + ipTxt.slice(1));
+  if (civ === 'si') gOtro.push('Comunicación interventricular residual' + (civG != null ? ' con gradiente de ' + civG + ' mmHg' : ''));
+  else if (civ === 'no') gOtro.push('Sin comunicación interventricular residual');
   const FUNC = { normal:'normal', leve:'con disfunción leve', moderada:'con disfunción moderada', severa:'con disfunción severa' };
-  if (func) partes.push('Función del ventrículo derecho ' + (FUNC[func] || func));
+  if (func) gVD.push('Función del ventrículo derecho ' + (FUNC[func] || func));
   const tsvd = _tdfNv('tsvd_diametro');
-  if (tsvd != null) partes.push('Diámetro del TSVD ' + tsvd + ' mm');
-  if (gradT != null) partes.push('Gradiente en el tracto de salida derecho ' + gradT + ' mmHg' +
+  if (tsvd != null) gPulm.push('Diámetro del TSVD ' + tsvd + ' mm');
+  if (gradT != null) gPulm.push('Gradiente en el tracto de salida derecho ' + gradT + ' mmHg' +
     (gradProp == null ? ' (gradiente transvalvular pulmonar del estudio)' : '') +
-    (gradT >= 36 ? ' (obstrucción al menos moderada: velocidad pico >3 m/s)' : '') +
+    (gradT >= 36 ? '; obstrucción al menos moderada (velocidad pico >3 m/s)' : '') +
     (gradDiscrepa ? '. El gradiente cargado en esta sección (' + gradProp + ' mmHg) y el transvalvular pulmonar del estudio (' + gradVP + ' mmHg) difieren: verificar cuál corresponde al nivel de la obstrucción' : ''));
   /* `vp_morf` («Estenosis leve» / «moderada» / «severa») ya describe la válvula pulmonar y
      tiene MÁS resolución que este sí/no. Se nombra junto, para que el informe no diga dos cosas
      distintas sobre la misma válvula. */
   const vpMorf = _tdfSv('vp_morf');
-  if (ep === 'si') partes.push('Estenosis pulmonar sobre válvula nativa o stent' +
+  if (ep === 'si') gPulm.push('Estenosis pulmonar sobre válvula nativa o stent' +
     (/Estenosis/i.test(vpMorf) ? ' (morfología valvular pulmonar: ' + vpMorf.toLowerCase() + ')' : ''));
-  else if (ep !== 'si' && /Estenosis/i.test(vpMorf)) partes.push('Morfología valvular pulmonar: ' + vpMorf.toLowerCase());
+  else if (ep !== 'si' && /Estenosis/i.test(vpMorf)) gPulm.push('Morfología valvular pulmonar: ' + vpMorf.toLowerCase());
   /* En la TdF reparada con obstrucción residual, la presión estimada por IT es la del VENTRÍCULO
      DERECHO y no la de la arteria pulmonar: el gradiente del TSVD las separa. La app calcula esa
      presión bajo el nombre «PSAP», que es correcto sin obstrucción y engañoso con ella. */
-  if (psvd != null) partes.push('Presión sistólica del ventrículo derecho estimada por insuficiencia tricuspídea ' + psvd + ' mmHg' +
+  if (psvd != null) gVD.push('Presión sistólica del ventrículo derecho estimada por insuficiencia tricuspídea ' + psvd + ' mmHg' +
     (psvd > 80 ? ' — por encima de 80 mmHg, que la ESC 2020 lista entre los criterios de reintervención' : ''));
   /* Los volúmenes se describen SIEMPRE que estén cargados, voten o no: son dato clínico. Lo que
      cambia con el método es si además INDICAN. */
@@ -82235,8 +82264,11 @@ function tdfConclusion(src){
   if (volOk(vtsvdi)) volTxt.push('volumen de fin de sístole indexado ' + vtsvdi + ' ml/m²');
   if (volTxt.length) {
     const cruza = (volOk(vtdvdi) && vtdvdi >= TDF_VTDVDI_MIN) || (volOk(vtsvdi) && vtsvdi >= TDF_VTSVDI_MIN);
-    partes.push('Volúmenes del ventrículo derecho: ' + volTxt.join(', ') +
-      (volFuente ? ' (por ' + VOLF[volFuente] + ')' : '') +
+    /* El método va ANTES de los dos valores y no al final (AJ6-1): «Volúmenes del ventrículo
+       derecho (por resonancia magnética cardíaca): …». Colgado del último volumen se leía como si
+       calificara sólo a ése. Ni un número ni una salvedad cambia. */
+    gVD.push('Volúmenes del ventrículo derecho' +
+      (volFuente ? ' (por ' + VOLF[volFuente] + ')' : '') + ': ' + volTxt.join(', ') +
       (cruza ? '. Cruza el umbral de la ESC 2020 (VTDVD indexado ≥' + TDF_VTDVDI_MIN +
                ' ml/m² o VTSVD indexado ≥' + TDF_VTSVDI_MIN + ' ml/m²)' : '') +
       (cruza && !volPorRMC
@@ -82248,9 +82280,9 @@ function tdfConclusion(src){
   }
   const ITT = { '1':'leve', '2':'moderada', '3':'moderada-severa', '4':'severa' };
   const itTxt = _ccLbl(ITT, it);
-  if (itTxt) partes.push('Insuficiencia tricuspídea ' + itTxt);
+  if (itTxt) gVD.push('Insuficiencia tricuspídea ' + itTxt);
   if (tv === 'si') { const _f = (typeof tvFrase === 'function') ? tvFrase(src) : null;
-    partes.push((_f || 'Taquicardia ventricular documentada') + ', que la ESC 2020 vincula al mapeo e istmos anatómicos antes de una eventual reintervención'); }
+    gOtro.push((_f || 'Taquicardia ventricular documentada') + ', que la ESC 2020 vincula al mapeo e istmos anatómicos antes de una eventual reintervención'); }
 
   /* Conducta según la tabla de la ESC 2020 para TdF reparada. */
   let clave, conducta;
@@ -82339,18 +82371,37 @@ function tdfConclusion(src){
        sola no sostiene un recambio valvular por la ESC. */
   else if (_tvT.sostenida && clave === 'reintervencion_i') salvedadTV = 'La taquicardia ventricular sostenida no modifica la indicación, que ya es Clase I por la situación clínica, pero pide manejo propio: estudio electrofisiológico y mapeo de istmos anatómicos antes de la reintervención';
   else if (_tvT.sostenida && clave !== 'reintervencion_iia') salvedadTV = 'La taquicardia ventricular sostenida es criterio de reintervención de la ESC 2020 junto a insuficiencia pulmonar severa u obstrucción al menos moderada del tracto de salida, que no están presentes en este estudio; su manejo —estudio electrofisiológico, mapeo de istmos anatómicos— es una indicación por sí misma';
-  if (salvedadTV) partes.push(salvedadTV);
+  if (salvedadTV) gOtro.push(salvedadTV);
+  /* `txt` —la caja «Conclusión» de la pantalla— conserva la forma de párrafo, con las MISMAS
+     oraciones y en el MISMO orden que los renglones: lo que pierde es la conducta. El nodo
+     `#tdf-concl` se escribe con `textContent`, así que un salto de línea ahí no se vería. */
+  const partes = ['Tetralogía de Fallot reparada'].concat(gPulm, gVD, gOtro);
+  /* Los renglones del informe. El primero es una fila VACÍA de separación, y va con un espacio y
+     no con la cadena vacía porque `_infEscribir` recibe `inf.filter(Boolean)`: un '' se descarta
+     en el borde —el archivo ya lo documenta para `etePars` y para la hoja de cardio-oncología— y
+     la separación no llegaría nunca al papel. */
+  const _rengl = function(extra){
+    const L = [' ', 'Tetralogía de Fallot reparada.'];
+    [gPulm, gVD, gOtro, extra || []].forEach(function(g){
+      if (g && g.length) L.push('- ' + g.join('. ') + '.');
+    });
+    return L;
+  };
   if (fuera.length) {
     const t = 'Tetralogía de Fallot reparada — ' + fuera.join(' y ') + ' fuera de rango: revisar unidades antes de concluir';
-    return { clave:'no_interpretable', txt: partes.concat([t]).join('. '), resumen: t };
+    /* El renglón va SIN el prefijo de la enfermedad: debajo del título «Tetralogía de Fallot
+       reparada.» ese nombre se repetiría dos veces en dos líneas seguidas. `txt` y `resumen`
+       conservan el mensaje entero, que es el que se lee suelto en la caja y en la diapositiva. */
+    const tR = fuera.join(' y ') + ' fuera de rango: revisar unidades antes de concluir';
+    return { clave:'no_interpretable', txt: partes.concat([t]).join('. '),
+             lineasInf: _rengl([tR.charAt(0).toUpperCase() + tR.slice(1)]), resumen: t };
   }
-  partes.push(conducta);
   /* La TV sostenida sube al EN SUMA, como en miocardiopatía hipertrófica: por las ramas que no
      arman criterios no llegaba nunca, y el EN SUMA es lo que se lee. */
   const sumaTV = _tvT.sostenida && clave !== 'reintervencion_iia' && clave !== 'reintervencion_i'
     ? '. Taquicardia ventricular sostenida documentada — valorar estudio electrofisiológico'
     : (_tvT.hay && _tvT.faltaTipo ? '. Consta taquicardia ventricular sin especificar si fue sostenida' : '');
-  return { clave: clave, txt: partes.join('. '),
+  return { clave: clave, txt: partes.join('. '), lineasInf: _rengl(),
     resumen: 'Tetralogía de Fallot reparada' + (ipTxt ? ', ' + ipTxt : '') + '. ' + conducta + sumaTV };
 }
 function tdfSync(){
