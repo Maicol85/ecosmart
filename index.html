@@ -66077,7 +66077,15 @@ const REF_BUSCA_MIN = 2;
    `refBuscadorInit`: 120 ms es largo para que el `click` del resultado llegue primero y corto
    para que salir del campo se sienta inmediato. */
 const REF_BUSC_SALIDA_MS = 120;
-let _refBuscPtrDentro = false;
+/* ⚠️ UNA MARCA DE TIEMPO Y NO UN BOOLEANO, Y LA DIFERENCIA ES UN AGUJERO REAL. Con una bandera
+   pegajosa —`_refBuscPtrDentro = true` en el `pointerdown` y bajada dentro del propio `blur`— el
+   PRIMER `blur` posterior a cualquier clic dentro del buscador se ignoraba: tocar el campo,
+   escribir y salir con el tabulador dejaba las fichas escondidas y el texto en el campo, porque
+   ese `blur` se gastaba bajando la bandera. Con la marca de tiempo no hay estado que quede
+   colgado: sólo se abstiene el `blur` que llega DENTRO de la ventana del gesto, que es el que
+   viene del clic en un resultado. Se vence sola. */
+const REF_BUSC_GESTO_MS = 400;
+let _refBuscPtrTs = 0;
 let _refIndice = null;
 function _refNorm(s) {
   return String(s == null ? '' : s)
@@ -66231,10 +66239,12 @@ function refBuscadorInit() {
      un retardo corto, y si la marca está puesta no se sale (y la marca se baja ahí mismo, para
      que el próximo `blur` por teclado sí salga). El retardo es imperceptible y no hace falta
      que sea exacto: lo único que tiene que pasar antes es el `click`, que va en el mismo gesto. */
-  host.addEventListener('pointerdown', function () { _refBuscPtrDentro = true; });
+  host.addEventListener('pointerdown', function () { _refBuscPtrTs = Date.now(); });
   inp.addEventListener('blur', function () {
     setTimeout(function () {
-      if (_refBuscPtrDentro) { _refBuscPtrDentro = false; return; }
+      /* El gesto empezó dentro del buscador hace muy poco: es el clic en un resultado o en
+         «Limpiar», y su `click` todavía no llegó. No se sale. */
+      if (Date.now() - _refBuscPtrTs < REF_BUSC_GESTO_MS) return;
       _refBuscSalirDelCampo();
     }, REF_BUSC_SALIDA_MS);
   });
@@ -74738,11 +74748,20 @@ function _indSecHTMLCuerpo(tit, r){
         sección publica DOS bloques de recomendación, uno por guía, cada uno con su clase, su
         folio y la leyenda de que no se combinan — no hay una conclusión única que pueda leerse
         como titular, y lo que el médico viene a buscar es qué dice cada guía. Las otras catorce
-        secciones no traen `compacta` y su orden no se mueve. */
+        secciones no traen `compacta` y su orden no se mueve.
+     ⚠️ LOS DOS ARMADORES SE LLAMAN EN EL LUGAR DONDE SU HTML SE IMPRIME, Y NO ANTES. La primera
+        versión de esta tanda los precomputaba arriba y los emitía abajo según el modo, que es más
+        corto y está MAL: `_indBloqueHTML` y `_indRecomHTML` **numeran corchetes** —`_indRefMarca`
+        asigna por orden de primera aparición dentro de la sección— y precomputarlos le daba a sus
+        citas los números de las filas en las CATORCE secciones ajenas, donde se imprimen después.
+        O sea: el corchete dejaba de seguir el orden de lectura, sin un error y sin que ninguna
+        medición de texto de esta tanda lo viera. Lo encontró releer el propio diff.
+        Por eso hay dos ramas y no una variable. */
   const compacta = !!r.compacta;
-  const bloquesHTML = (r.bloques && r.bloques.length) ? r.bloques.map(_indBloqueHTML).join('') : '';
-  const recomHTML = r.recom ? _indRecomHTML(r.recom) : '';
-  if (compacta) h += bloquesHTML + recomHTML;
+  const _bloRec = function(){
+    return ((r.bloques && r.bloques.length) ? r.bloques.map(_indBloqueHTML).join('') : '')
+         + (r.recom ? _indRecomHTML(r.recom) : ''); };
+  if (compacta) h += _bloRec();
   const hayClin = !!(r.clinica && r.clinica.length);
   h += '<div data-ind-grid="1"' + (hayClin ? ' data-ind-dos="1"' : '') +
        (compacta ? ' data-ind-compacta="1"' : '') + '>';
@@ -74764,7 +74783,7 @@ function _indSecHTMLCuerpo(tit, r){
   /* ⚠️ LOS BLOQUES VAN ENTRE LAS FILAS Y LA RECOMENDACIÓN, y el orden es el documentado: la
      conclusión va DEBAJO de los datos que la sostienen. Catorce secciones no traen `bloques` y
      para ellas esta línea no emite nada. */
-  if (!compacta) h += bloquesHTML + recomHTML;
+  if (!compacta) h += _bloRec();
   /* Sólo los párrafos de contexto del final van al detalle. Sin rótulo y sin mezclarse con nada:
      al quedar `r.nota` visible, no hay dos orígenes que puedan confundirse. */
   /* Las dos formas: string (la mayoría) u objeto `{txt, refs}` para las notas que citan. */
@@ -131267,8 +131286,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261024-0135';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1792816542038;                 /* eco-build-ms */
+const ECO_BUILD    = '20261024-1037';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1792849041322;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -131354,7 +131373,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261024-0135</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261024-1037</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
