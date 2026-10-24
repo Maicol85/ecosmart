@@ -1102,6 +1102,10 @@ window.__Y = {
           var e = document.getElementById(id); if (e) { e.checked = true;
             e.dispatchEvent(new Event('change', { bubbles: true })) } }); return 1 })()`);
         r[k + 'Zonas'] = await ev(`window.__Y.pulGeo()`);
+        /* DENOMINADOR: sin el boton «Integrar al informe» el pulmon NO publica nada, asi que
+           medir el informe sin integrar da cero lineas y parece que no cambio nada. */
+        r[k + 'Integrado'] = await ev(`(function(){ try{ amiloIntegrar('pulm') }catch(e){ return 'EXC: ' + e.message }
+          return (typeof pulAvanzadoIntegrado === 'function') ? pulAvanzadoIntegrado() : 'SIN FN' })()`);
         const i = await ev(`window.__P.informe('estandar')`, 40000);
         r[k + 'Inf'] = String(i.inf || '').split('\n').filter((l) => /pleur|pulmon|derrame|consolidaci|l.neas/i.test(l));
         r[k + 'Suma'] = String(i.suma || '').split('\n').filter((l) => /pleur|pulmon|derrame|consolidaci|l.neas/i.test(l));

@@ -414,6 +414,20 @@
   .co-ref-tab{background:var(--bg3);color:var(--text2);border:1px solid var(--border);border-radius:7px;
               padding:7px 12px;font-size:12px;font-weight:600;cursor:pointer;min-height:36px;}
   .co-ref-tab.activa{background:var(--section-head);color:var(--accent2);border-color:var(--accent2);}
+  /* ── ECO PULMONAR EN CUATRO COLUMNAS (AJ6-3) ─────────────────────────────────────────────
+     Mismo patron que `.hfa-grid`, por el mismo motivo y con los mismos dos escalones: cuatro
+     columnas en pantalla ancha, dos en la tablet y una en el telefono. `align-items:start` para
+     que las columnas no se estiren a la altura de la mas larga -la del derrame tiene cinco
+     campos y la de consolidacion uno visible-, que es el hueco que se lee como «aca falta algo».
+     Los campos de cada columna van en UNA columna (`.pul-col-campos`): es la grilla interna que
+     reemplaza a las `grid-3`/`grid-2`/`grid-4` que tenian los cuatro grupos apilados. */
+  .pul-cols{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;align-items:start;margin-bottom:12px;}
+  .pul-col{min-width:0;}
+  .pul-col-campos{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;margin-bottom:12px;}
+  .pul-col-h{font-size:12px;font-weight:700;color:var(--accent2);margin-bottom:8px;
+             padding-bottom:5px;border-bottom:1px solid var(--border);}
+  @media(max-width:1100px){ .pul-cols{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;} }
+  @media(max-width:600px){ .pul-cols{grid-template-columns:minmax(0,1fr);} }
   .hfa-col{min-width:0;}
   .hfa-col-h{font-size:11px;font-weight:700;color:var(--accent2);text-transform:uppercase;letter-spacing:.04em;
              padding:0 6px 5px;margin-bottom:3px;border-bottom:1px solid var(--border);}
@@ -8563,8 +8577,28 @@ window.cerrarSesionReal = cerrarSesionReal;
         Si no se completa nada, no aparece en el informe.
       </p>
 
-      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin-bottom:8px;">🔍 Pleura y líneas A</div>
-      <div class="grid-3" style="margin-bottom:12px;">
+      <!-- ══ CUATRO COLUMNAS (AJ6-3, 2026-10-24) ══════════════════════════════════════════
+           DECISION DE MAICOL. Los cuatro grupos que ya existian -pleura y lineas A, lineas B,
+           derrame y consolidacion- pasan de estar APILADOS a estar uno al lado del otro, cada
+           uno con su encabezado y sus campos en vertical. NI UN CAMPO, NI UN id, NI UN ROTULO,
+           NI UN DATO CAMBIA: lo unico que se mueve es el lugar, y lo unico nuevo son los cinco
+           `div` de envoltura y las tres reglas de CSS.
+           ⚠️ LOS ENCABEZADOS CONSERVAN SU TEXTO LITERAL y pasan de un `style` inline a
+              `.pul-col-h`, que repite las mismas cuatro propiedades: el borde de abajo que la
+              columna necesita no se puede escribir inline cuatro veces sin que la quinta se
+              olvide.
+           ⚠️ LAS TRES GRILLAS INTERNAS (`grid-3`, `grid-2`, `grid-4`) PASAN A `.pul-col-campos`,
+              de UNA columna: dentro de una columna de ~290 px, cuatro campos en fila dan 60 px
+              por `<select>`. La `grid-2` de las dos zonas NO se toca -sus rotulos son «Anterior»,
+              «Lateral» y «Basal»- y sigue colapsando sola en el celular.
+           ⚠️ LA COLUMNA DE CONSOLIDACION QUEDA CASI VACIA Y ESTA ACEPTADO: sus dos dependientes
+              nacen en `display:none` y solo aparecen con «Consolidacion: Si».
+           La conclusion (patron global) y el boton de integrar quedan DEBAJO y a todo el ancho,
+           donde ya estaban: no se tocan. -->
+      <div class="pul-cols">
+      <div class="pul-col" data-pul-col="pleura">
+        <div class="pul-col-h">🔍 Pleura y líneas A</div>
+      <div class="pul-col-campos">
         <div class="fg"><label>Deslizamiento pleural</label>
           <select id="pua_desliz" onchange="pulAvUI()"><option value="">— no evaluado —</option>
             <option value="presente">Presente</option>
@@ -8602,9 +8636,10 @@ window.cerrarSesionReal = cerrarSesionReal;
           </select>
         </div>
       </div>
-
-      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin-bottom:8px;">💧 Líneas B</div>
-      <div class="grid-2" style="margin-bottom:8px;">
+      </div>
+      <div class="pul-col" data-pul-col="lineasb">
+        <div class="pul-col-h">💧 Líneas B</div>
+      <div class="pul-col-campos">
         <div class="fg"><label>Líneas B</label>
           <select id="pua_lineasb" onchange="pulAvUI()"><option value="">— no evaluado —</option>
             <option value="ausentes">Ausentes</option>
@@ -8636,9 +8671,10 @@ window.cerrarSesionReal = cerrarSesionReal;
           </div>
         </div>
       </div>
-
-      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin-bottom:8px;">🌊 Derrame pleural</div>
-      <div class="grid-4" style="margin-bottom:12px;">
+      </div>
+      <div class="pul-col" data-pul-col="derrame">
+        <div class="pul-col-h">🌊 Derrame pleural</div>
+      <div class="pul-col-campos">
         <div class="fg"><label>Derrame</label>
           <select id="pua_derrame" onchange="pulAvUI()"><option value="">— no evaluado —</option>
             <option value="no">No</option><option value="si">Sí</option>
@@ -8685,9 +8721,10 @@ window.cerrarSesionReal = cerrarSesionReal;
           </select>
         </div>
       </div>
-
-      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin-bottom:8px;">🫁 Consolidación</div>
-      <div class="grid-2" style="margin-bottom:12px;">
+      </div>
+      <div class="pul-col" data-pul-col="consol">
+        <div class="pul-col-h">🫁 Consolidación</div>
+      <div class="pul-col-campos">
         <div class="fg"><label>Consolidación</label>
           <select id="pua_consol" onchange="pulAvUI()"><option value="">— no evaluado —</option>
             <option value="no">No</option><option value="si">Sí</option>
@@ -8709,6 +8746,8 @@ window.cerrarSesionReal = cerrarSesionReal;
           <label>Consolidación — nota</label>
           <input type="text" id="pul_consol_nota" placeholder="Localización, broncograma, extensión..." oninput="pulAvUI()">
         </div>
+      </div>
+      </div>
       </div>
 
       <div class="calc-box" style="margin-bottom:12px;">
