@@ -28136,12 +28136,21 @@ function calcPmAD() {
 }
 
 /* ══ VEXUS — Venous Excess Ultrasound ══
-   Graduación de Beaubien-Souligny et al., Ultrasound J 2020;12(1):16:
+   Graduación de Beaubien-Souligny et al., Ultrasound J 2020;12(1):16, **Figura 1, página 3 de
+   12**, columna **VExUS C** — leída EN IMAGEN el 24/10/2026, que es la que esta app implementa:
 
      0 — VCI < 20 mm
-     1 — VCI ≥ 20 mm y NINGÚN vaso severo (cualquier combinación de normal o leve)
-     2 — VCI ≥ 20 mm y EXACTAMENTE UN vaso severo
-     3 — VCI ≥ 20 mm y DOS O MÁS vasos severos
+     1 — VCI **≥ 20 mm** y NINGÚN vaso severo (cualquier combinación de normal o leve)
+     2 — VCI **> 20 mm** y EXACTAMENTE UN vaso severo
+     3 — VCI **> 20 mm** y DOS O MÁS vasos severos
+
+   ⚠️ EL GRADO 1 USA «≥ 2 cm» Y LOS GRADOS 2 Y 3 USAN «> 2 cm», Y NO ES UNA ERRATA DE ESTE
+   COMENTARIO: así lo escribe la Figura 1, fila por fila, en las cinco columnas del artículo. La
+   app usaba `>= 20` para los cuatro grados, así que una VCI de 20,0 mm exactos con un vaso severo
+   daba VEXUS 2 donde el artículo no tiene fila. Corregido el 24/10/2026 (J-5).
+   ⚠️ QUÉ PASA EN LOS 20,0 mm EXACTOS CON VASOS SEVEROS: la figura NO tiene fila para ese punto
+   —el grado 1 pide patrones normales o leves, y el 2 pide más de 2 cm—. Se elige el grado MENOR,
+   que es el lado que no afirma de más: un grado inflado es el que dispara la descongestión.
 
    El grado lo decide CUÁNTOS vasos están severos, no cuál es el peor. Un solo vaso severo
    es grado 2, no 3: el 3 es el que carga la asociación fuerte con injuria renal aguda
@@ -28151,16 +28160,31 @@ function calcPmAD() {
 
    Los tres vasos tienen tres categorías (normal / leve / severo). No existe un nivel
    "moderado" intermedio en el protocolo. */
+const VEXUS_VCI_MM = 20;   // mm, el «2 cm» de la Figura 1 del artículo
 const VEXUS_VASOS = [
   { id: 'vexus_sh', lbl: 'suprahepática' },
   { id: 'vexus_pv', lbl: 'porta' },
   { id: 'vexus_ir', lbl: 'intrarrenal' }
 ];
+/* ══ LAS FRASES DE CONDUCTA SALEN DE LAS TRES SUPERFICIES (J-5, 2026-10-24) ═══════════════════
+   Estos cuatro textos se publican en la PANTALLA, en el cuerpo del INFORME firmado y en la hoja
+   del PDF —tres consumidores de la misma constante—, y cuatro de ellos decían qué hacer:
+   «Monitorizar evolución. Considerar balance hídrico.» (grado 1), «Evaluar necesidad de
+   descongestión.» (grado 2) y «Considerar descongestión activa — diuréticos o ultrafiltración
+   según contexto clínico. Reevaluar con tratamiento.» (grado 3).
+   El artículo de Beaubien-Souligny NO da pasos por grado: es un estudio de DESARROLLO de la
+   graduación y de su asociación con la injuria renal aguda, y su conclusión dice que la
+   combinación de marcadores «puede identificar congestión venosa clínicamente significativa».
+   Esas frases eran criterio propio de la aplicación publicado en un papel firmado.
+   Hoy viven SÓLO en la Evidencia de VEXUS, rotuladas «Criterio de EcoSmart».
+   ⚠️ LO QUE NO SE TOCO: «Riesgo de injuria renal aguda aumentado» (grado 2) y «Alta asociación
+   con injuria renal aguda (AKI)» (grado 3) NO son conductas sino la asociación que el artículo
+   mide, así que se quedan. */
 const VEXUS_INTERP = {
   0: 'Sin congestión venosa sistémica significativa. Presión venosa central probablemente normal.',
-  1: 'Congestión venosa leve. Monitorizar evolución. Considerar balance hídrico.',
-  2: 'Congestión venosa moderada. Evaluar necesidad de descongestión. Riesgo de injuria renal aguda aumentado.',
-  3: 'Congestión venosa severa. Alta asociación con injuria renal aguda (AKI). Considerar descongestión activa — diuréticos o ultrafiltración según contexto clínico. Reevaluar con tratamiento.'
+  1: 'Congestión venosa leve.',
+  2: 'Congestión venosa moderada. Riesgo de injuria renal aguda aumentado.',
+  3: 'Congestión venosa severa. Alta asociación con injuria renal aguda (AKI).'
 };
 const VEXUS_COLOR = { 0: 'green', 1: 'yellow', 2: 'orange', 3: 'red' };
 
@@ -28192,12 +28216,17 @@ function vexusGrado(diam, sh, pv, ir) {
      hubiera puesto el Doppler en una vena. Es el mismo razonamiento que impide informar
      grado 1 por no haber mirado, aplicado también al 0. */
   if (!evaluadosLbl.length) return { score: null, severos: [], evaluados: 0, vciDiam: d };
-  /* La VCI manda: con < 20 mm el grado es 0 aunque los tres vasos estén severos. Los valores
+  /* La VCI manda: con menos de 20 mm el grado es 0 aunque los tres vasos estén severos. Los valores
      de los vasos se conservan y se muestran —son hallazgos reales, y esconderlos haría que
      una corrección posterior del diámetro resucitara un VEXUS 3 que nadie volvió a mirar. */
-  if (d < 20) return { score: 0, severos, evaluados: evaluadosLbl.length, vciDiam: d };
+  if (d < VEXUS_VCI_MM) return { score: 0, severos, evaluados: evaluadosLbl.length, vciDiam: d };
+  /* Sin ningún vaso severo el grado es 1, que es la fila de «≥ 2 cm» de la Figura 1. */
+  if (severos.length === 0) return { score: 1, severos, evaluados: evaluadosLbl.length, vciDiam: d };
+  /* CON vasos severos hacen falta MÁS de 20 mm: las filas de grado 2 y 3 dicen «> 2 cm», no
+     «≥ 2 cm». En los 20,0 mm exactos la figura no tiene fila y se elige el grado MENOR. */
+  if (d <= VEXUS_VCI_MM) return { score: 1, severos, evaluados: evaluadosLbl.length, vciDiam: d };
   return {
-    score: severos.length === 0 ? 1 : severos.length === 1 ? 2 : 3,
+    score: severos.length === 1 ? 2 : 3,
     severos, evaluados: evaluadosLbl.length, vciDiam: d
   };
 }
@@ -28218,7 +28247,7 @@ function vexusDetalle(st) {
   const base = st.severos.length
     ? st.severos.length + ' severo' + (st.severos.length === 1 ? '' : 's') + ' de ' + nEv + ': ' + st.severos.join(', ')
     : 'sin patrón severo en ' + nEv;
-  return base + (st.score === 0 ? '; VCI < 20 mm' : '');
+  return base + (st.score === 0 ? '; VCI < ' + VEXUS_VCI_MM + ' mm' : '');
 }
 window.vexusDetalle = vexusDetalle;
 
@@ -28259,8 +28288,10 @@ function calcVEXUS() {
   const aviso = document.getElementById('vexus-vci-aviso');
   if (aviso) {
     if (diam === null) aviso.innerHTML = 'Cargá el <b>diámetro de VCI</b> en la sección VCI para poder calcular el score.';
-    else if (diam < 20) aviso.innerHTML = 'VCI &lt; 20 mm → el grado es <b>0</b> aunque los vasos estén alterados. Cargá al menos un vaso para dejar constancia de que se aplicó el protocolo.';
-    else aviso.innerHTML = 'VCI ≥ 20 mm → el grado lo define <b>cuántos</b> vasos están severos: uno → 2, dos o más → 3.';
+    else if (diam < VEXUS_VCI_MM) aviso.innerHTML = 'VCI &lt; ' + VEXUS_VCI_MM + ' mm → el grado es <b>0</b> aunque los vasos estén alterados. Cargá al menos un vaso para dejar constancia de que se aplicó el protocolo.';
+    /* Los DOS cortes del artículo: el grado 1 pide «≥ 2 cm» y los grados 2 y 3 piden «> 2 cm». */
+    else if (diam <= VEXUS_VCI_MM) aviso.innerHTML = 'VCI de ' + VEXUS_VCI_MM + ' mm exactos → el grado es <b>1</b> como máximo: los grados 2 y 3 del protocolo piden una vena cava de <b>más</b> de ' + VEXUS_VCI_MM + ' mm.';
+    else aviso.innerHTML = 'VCI &gt; ' + VEXUS_VCI_MM + ' mm → el grado lo define <b>cuántos</b> vasos están severos: uno → 2, dos o más → 3.';
   }
   /* Los selectores NO se deshabilitan con VCI < 20 mm. Deshabilitarlos parecía prolijo pero
      dejaba los valores cargados escondidos: corregir después el diámetro a 21 mm resucitaba
@@ -28279,7 +28310,8 @@ function calcVEXUS() {
   setH('vexus-score', badge(VEXUS_COLOR[st.score], 'VEXUS ' + st.score));
   set('vexus-severos', st.severos.length
     ? (st.severos.length + ' de ' + st.evaluados + ' evaluado' + (st.evaluados === 1 ? '' : 's') + ' — ' + st.severos.join(', ')
-       + (st.score === 0 ? ' (no cuentan: VCI < 20 mm)' : ''))
+       + (st.score === 0 ? ' (no cuentan: VCI < ' + VEXUS_VCI_MM + ' mm)'
+          : (st.score === 1 ? ' (no suben el grado: la vena cava no supera los ' + VEXUS_VCI_MM + ' mm)' : '')))
     : 'ninguno de ' + st.evaluados + ' evaluado' + (st.evaluados === 1 ? '' : 's'));
   setH('vexus-interp', VEXUS_INTERP[st.score]
     + (st.score >= 1 && st.evaluados < 3
