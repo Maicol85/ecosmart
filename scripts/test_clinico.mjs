@@ -86285,6 +86285,569 @@ caso('TC-521', 'Tanda AJ4: la raiz aortica con UN SOLO criterio de dilatacion en
   })();
 `);
 
+/* ══ TC-522 a TC-526 — LA TANDA AJ5 (2026-10-24) ══════════════════════════════════════════════
+   ⚠️ TODA FUNCION NUEVA SE LEE CON `typeof` Y TODA CLAVE DEL LECTOR NACE CON CENTINELA, por la
+   misma razon que TC-521: un caso que muere por excepcion informa CERO condiciones en rojo, que
+   es indistinguible de «no hay cobertura».
+   ⚠️ SIN ACENTOS GRAVES EN EL CUERPO, tampoco en los comentarios.
+   ⚠️ Y EL DENOMINADOR DE LA GEOMETRIA: la fila de los tres campos vive dentro de
+   `ete-seccion-valv-mitral`, que NACE PLEGADA, y encima en una pestana que no es la activa. Medir
+   sin abrir las dos puertas da 0 x 0 y se lee como «el campo no existe». */
+caso('TC-522', 'Tanda AJ5-1: los tres campos de la mitral en PARALELO, del mismo ancho y con el largo total DERIVADO del boton Insuficiencia -no mayor que el-, refluyendo a dos y a una columna cuando no entran en vez de apretarse, con el globo del Carpentier FLOTANTE y con su texto citando las dos fuentes que parten el tipo III', `
+  return (async () => {
+  const ex = [];
+  const F = (n) => (typeof window[n] === 'function') ? window[n] : null;
+  const abrir = () => { try {
+      if (F('showTab')) showTab('valvulas');
+      const sec = document.getElementById('ete-seccion-valv-mitral');
+      if (sec && getComputedStyle(sec).display === 'none' && F('toggleEteSeccion')) toggleEteSeccion('valv-mitral');
+      return true; } catch (e) { return 'EXC: ' + e.message; } };
+  /* ⚠️ querySelector SIEMPRE, y no un atajo por el numeral: el selector de la fila lleva un
+     espacio y getElementById con eso devuelve null, que se lee como «la fila no existe». La
+     primera corrida de este caso fallo por eso. */
+  const geo = (sel) => { const e = document.querySelector(sel);
+    if (!e) return null;
+    const r = e.getBoundingClientRect();
+    return { w: Math.round(r.width), h: Math.round(r.height), y: Math.round(r.top) }; };
+
+  __t.limpiar();
+  abrir();
+  /* El primer rect despues de un repintado puede dar 0 x 0: se descarta uno. */
+  geo('#tab-valvulas .valv-morf-row--tres');
+  const fila = geo('#tab-valvulas .valv-morf-row--tres');
+  const bot  = geo('#pill-insuf-mitral');
+  /* ⚠️ EL DENOMINADOR DE ESTE CASO ES EL ANCHO DE LA VENTANA, y el arnes no lo fija: por debajo
+     de 769 px la media query no aplica, la fila ocupa el ancho entero y los campos se APILAN,
+     que es el contrato de pantalla angosta. Las dos condiciones de ancho se evaluan contra la
+     media query REAL y no contra un numero escrito aca, asi que el caso dice lo mismo corra en
+     la ventana que corra. */
+  const ancha = window.matchMedia('(min-width: 769px)').matches;
+  const celdas = [];
+  { const f = document.querySelector('#tab-valvulas .valv-morf-row--tres');
+    if (f) Array.prototype.forEach.call(f.children, (c) => {
+      if (!c.classList || !c.classList.contains('fg')) return;
+      const r = c.getBoundingClientRect();
+      celdas.push({ id: (c.querySelector('select') || {}).id || null,
+                    w: Math.round(r.width), y: Math.round(r.top) }); }); }
+
+  ex.push(['(A1) DENOMINADOR: la fila y el boton tienen geometria, y la fila lleva los TRES campos',
+    !!fila && fila.w > 0 && !!bot && bot.w > 0 && celdas.length === 3,
+    'fila=' + JSON.stringify(fila) + ' boton=' + JSON.stringify(bot) + ' celdas=' + celdas.length]);
+  ex.push(['(A2) los tres campos son vm_morf, vm_tipo_im y vm_carp, en ese orden',
+    celdas.map(c => c.id).join(',') === 'vm_morf,vm_tipo_im,vm_carp',
+    celdas.map(c => c.id).join(',')]);
+  /* LA CONDICION QUE VIGILA LA LISTA PARALELA: --valv-sevcol es un numero medido a mano y el
+     ancho del boton depende del rotulo de su columna de severidad. Si alguien ensancha esa
+     columna, la fila pasa al boton y esto se pone rojo. */
+  ex.push(['(A3) por encima de 769 px el largo total de la fila NO supera el del boton Insuficiencia; por debajo ocupa el ancho entero',
+    ancha ? (!!fila && !!bot && fila.w <= bot.w + 1)
+          : (!!fila && fila.w > bot.w),
+    'ancha=' + ancha + ' fila=' + (fila && fila.w) + ' boton=' + (bot && bot.w)]);
+  ex.push(['(A4) los tres campos miden LO MISMO, cualquiera sea el ancho',
+    celdas.length === 3 && Math.abs(celdas[0].w - celdas[1].w) <= 1
+      && Math.abs(celdas[1].w - celdas[2].w) <= 1,
+    celdas.map(c => c.w + '@' + c.y).join(' ')]);
+  /* La fila UNICA se comprueba FIJANDO el ancho a los 463 px que el boton mide a 1440, en vez de
+     depender de la ventana del arnes: es el mismo truco que (A6) usa para el reflujo, y asi las
+     dos mitades del contrato -tres en paralelo cuando entran, apiladas cuando no- quedan
+     cubiertas en cualquier ventana. */
+  const f463 = document.querySelector('#tab-valvulas .valv-morf-row--tres');
+  let unaFila = 'SIN FILA', anchos463 = '';
+  if (f463) { const prev = f463.style.width, prevC = f463.style.gridTemplateColumns;
+    f463.style.width = '463px';
+    f463.style.gridTemplateColumns = 'repeat(auto-fit,minmax(144px,1fr))';
+    f463.getBoundingClientRect();
+    const ys = {}, ws = [];
+    Array.prototype.forEach.call(f463.children, (c) => { if (!c.classList || !c.classList.contains('fg')) return;
+      const r = c.getBoundingClientRect(); ys[Math.round(r.top)] = 1; ws.push(Math.round(r.width)); });
+    unaFila = Object.keys(ys).length; anchos463 = ws.join('/');
+    f463.style.width = prev; f463.style.gridTemplateColumns = prevC; }
+  ex.push(['(A4b) a los 463 px que mide el boton a 1440, los tres entran en UNA sola fila y del mismo ancho',
+    unaFila === 1 && anchos463.split('/').length === 3
+      && Math.abs(Number(anchos463.split('/')[0]) - Number(anchos463.split('/')[2])) <= 1,
+    'filas=' + unaFila + ' anchos=' + anchos463]);
+  /* El scroll horizontal se mide por la FILA y no por el documento: a 820 px el documento de esta
+     app ya desborda en HEAD -medido, 930 contra 820 en los dos arboles-, asi que exigirselo al
+     documento haria rojo un defecto que no es de esta tanda. */
+  ex.push(['(A5) la fila no desborda su contenedor',
+    (function () { const f = document.querySelector('#tab-valvulas .valv-morf-row--tres');
+      if (!f || !f.parentElement) return false;
+      return f.getBoundingClientRect().width <= f.parentElement.getBoundingClientRect().width + 1; })(),
+    'fila=' + (fila && fila.w)]);
+  /* (A6) REFLUJO Y NO APRETUJON. Se angosta el contenedor a mano -sin tocar el CSS- y se exige
+     que las celdas BAJEN de fila en vez de encogerse por debajo de lo legible. Es el hallazgo
+     de /sharp-edges sobre el propio diff: con tres columnas fijas la fila no apila nunca. */
+  const f0 = document.querySelector('#tab-valvulas .valv-morf-row--tres');
+  let refluye = 'SIN FILA';
+  if (f0) {
+    const prev = f0.style.width;
+    f0.style.width = '200px';
+    f0.getBoundingClientRect();
+    const ys = {};
+    Array.prototype.forEach.call(f0.children, (c) => { if (c.classList && c.classList.contains('fg'))
+      ys[Math.round(c.getBoundingClientRect().top)] = 1; });
+    refluye = Object.keys(ys).length;
+    f0.style.width = prev;
+  }
+  ex.push(['(A6) a 200 px de ancho los campos SE APILAN -mas de una fila visual- en vez de apretarse',
+    refluye !== 'SIN FILA' && refluye > 1, String(refluye)]);
+
+  /* == (B) EL GLOBO: FLOTANTE, NO UNA CAJA FIJA, Y CON SU FUENTE ============================ */
+  const btn = document.querySelector('[data-vinfo="vm-carp"]');
+  ex.push(['(B1) DENOMINADOR: el globo del Carpentier existe, tiene geometria y vive en la fila',
+    !!btn && btn.getBoundingClientRect().width > 0
+      && !!(btn.closest && btn.closest('.valv-morf-row--tres')),
+    btn ? JSON.stringify({ w: Math.round(btn.getBoundingClientRect().width) }) : 'NO EXISTE']);
+  let card = null, pos = null, dentro = null, txt = '';
+  if (btn) {
+    btn.click();
+    card = document.getElementById('vinfo-card');
+    if (card) { pos = getComputedStyle(card).position;
+      dentro = !!(card.closest && card.closest('.valv-morf-row--tres'));
+      txt = (card.textContent || '').replace(/\\s+/g, ' ').trim(); }
+  }
+  ex.push(['(B2) la tarjeta es FLOTANTE -position fixed- y NO esta anidada en la fila',
+    pos === 'fixed' && dentro === false, 'pos=' + pos + ' dentro=' + dentro]);
+  ex.push(['(B3) los CUATRO tipos, con el IIIa sistolo-diastolico y el IIIb solo sistolico',
+    txt.indexOf('Tipo I: movimiento normal') > -1
+      && txt.indexOf('Tipo II: movimiento excesivo') > -1
+      && txt.indexOf('Tipo IIIa: movimiento restringido en s') > -1
+      && txt.indexOf('y di') > -1
+      && txt.indexOf('Tipo IIIb: movimiento restringido en s') > -1,
+    txt.slice(0, 180)]);
+  /* LA CONDICION DE LA FUENTE: el texto salio de memoria y se verifico contra la biblioteca, asi
+     que la tarjeta tiene que CITARLA. Si alguna vez se retira la cita, el texto pasa a ser un
+     criterio propio sin marcar, que es lo que la regla de citacion de este repo prohibe. */
+  ex.push(['(B4) la tarjeta cita la EACVI 2013 con sus folios -la unica que parte el tipo III- y la ASE 2017',
+    txt.indexOf('EACVI 2013') > -1 && txt.indexOf('625') > -1 && txt.indexOf('626') > -1
+      && txt.indexOf('ASE 2017') > -1 && txt.indexOf('319') > -1,
+    txt.indexOf('Fuente') > -1 ? txt.slice(txt.indexOf('Fuente'), txt.indexOf('Fuente') + 200) : 'SIN PIE DE FUENTE']);
+  ex.push(['(B5) y NO lleva el chip de criterio propio, porque la fuente existe',
+    txt.indexOf('Criterio EcoSmart') < 0 && txt.indexOf('criterio propio de la aplicaci') < 0,
+    'ecosmart=' + (txt.indexOf('Criterio EcoSmart') > -1)]);
+  if (btn) btn.click();
+
+  return { extra: ex };
+  })();
+`);
+
+caso('TC-523', 'Tanda AJ5-2: el Tipo de IM y el Carpentier con UN solo dato cada uno -los dos sentidos de la sincronia, el espejo de legado del cajon de prolapso que ya no se elige y que se limpia al soltar el campo, el aviso que nombra los dos valores cuando divergen, y un estudio guardado antes de la tanda resolviendo por el lado ETE sin que se le escriba nada-', `
+  return (async () => {
+  const ex = [];
+  const F = (n) => (typeof window[n] === 'function') ? window[n] : null;
+  const V = (id) => { const e = document.getElementById(id); return e ? e.value : 'NO EXISTE'; };
+  const sel = (id, v) => { const e = document.getElementById(id);
+    if (!e) return 'NO EXISTE ' + id;
+    const hay = Array.prototype.slice.call(e.options || []).map(o => o.value);
+    if (hay.indexOf(v) < 0) return 'NO HAY OPCION ' + v + ' en ' + id;
+    e.value = v; e.dispatchEvent(new Event('change', { bubbles: true }));
+    return e.value === v ? 1 : 'NO QUEDO'; };
+  const pares = () => ({ ti: V('vm_tipo_im'), te: V('teer_tipo_im'),
+                         ca: V('vm_carp'), ec: V('ete_carpentier'), lg: V('vm_carpentier') });
+  const ops = (id) => { const e = document.getElementById(id);
+    return e ? Array.prototype.slice.call(e.options).map(o => o.value) : null; };
+
+  __t.limpiar();
+  if (F('showTab')) showTab('valvulas');
+
+  /* == (A) LOS DOS PARES TIENEN EL MISMO VOCABULARIO, Y LA MORFOLOGIA NO ==================== */
+  ex.push(['(A1) vm_tipo_im y teer_tipo_im ofrecen exactamente los mismos tres valores',
+    JSON.stringify(ops('vm_tipo_im')) === JSON.stringify(ops('teer_tipo_im')),
+    JSON.stringify(ops('vm_tipo_im')) + ' vs ' + JSON.stringify(ops('teer_tipo_im'))]);
+  ex.push(['(A2) vm_carp y ete_carpentier ofrecen los mismos cinco, con IIIa y IIIb',
+    JSON.stringify(ops('vm_carp')) === JSON.stringify(ops('ete_carpentier'))
+      && (ops('vm_carp') || []).join(',') === ',I,II,IIIa,IIIb',
+    (ops('vm_carp') || []).join(',')]);
+  /* CONTROL: la morfologia y la etiologia NO se unificaron -la orden lo prohibia si difieren- y
+     siguen con sus cinco pares de siempre. Si alguien las unifica, esto se pone rojo. */
+  ex.push(['(A3) CONTROL: Morfologia VM y Etiologia ETE siguen DIFIRIENDO y con sus cinco pares',
+    JSON.stringify(ops('vm_morf')) !== JSON.stringify(ops('ete_etiologia'))
+      && (typeof _ETE_VM_PARES !== 'undefined') && _ETE_VM_PARES.length === 5,
+    'pares=' + ((typeof _ETE_VM_PARES !== 'undefined') ? _ETE_VM_PARES.length : 'SIN CONST')]);
+  ex.push(['(A4) los dos campos nuevos NACEN en vacio y no afirman nada',
+    V('vm_tipo_im') === '' && V('vm_carp') === '',
+    'ti=' + V('vm_tipo_im') + ' ca=' + V('vm_carp')]);
+  ex.push(['(A5) el Carpentier del cajon de prolapso ya no se ELIGE: esta deshabilitado',
+    !!(document.getElementById('vm_carpentier') || {}).disabled,
+    'disabled=' + (document.getElementById('vm_carpentier') || {}).disabled]);
+
+  /* == (B) VALVULAS -> ETE, CON EL ESTUDIO MARCADO COMO ETE ================================= */
+  __t.chk('ete-es-ete', true);
+  sel('vm_tipo_im', 'secundaria');
+  const b1 = pares();
+  sel('vm_carp', 'IIIb');
+  const b2 = pares();
+  ex.push(['(B1) el Tipo de IM escrito en Valvulas llega al campo del TEER',
+    b1.ti === 'secundaria' && b1.te === 'secundaria', JSON.stringify(b1)]);
+  ex.push(['(B2) el Carpentier escrito en Valvulas llega al del ETE y al espejo de legado',
+    b2.ca === 'IIIb' && b2.ec === 'IIIb' && b2.lg.indexOf('Tipo III') === 0, JSON.stringify(b2)]);
+
+  /* == (C) ETE -> VALVULAS ================================================================== */
+  sel('teer_tipo_im', 'primaria');
+  sel('ete_carpentier', 'II');
+  const c1 = pares();
+  ex.push(['(C1) los dos campos del ETE llegan a Valvulas, y el legado sigue al nuevo',
+    c1.ti === 'primaria' && c1.ca === 'II' && c1.lg.indexOf('Tipo II') === 0, JSON.stringify(c1)]);
+
+  /* == (D) EL FANTASMA DEL LEGADO, POR LAS DOS PUERTAS ======================================
+     Era el hallazgo de /sharp-edges: soltar el Carpentier dejaba la frase de prolapso del papel
+     FIRMADO afirmando un tipo que ningun control mostraba, y el nodo esta deshabilitado, asi que
+     no habia forma de borrarlo. */
+  sel('vm_carp', '');
+  const d1 = pares();
+  sel('vm_carp', 'II');
+  sel('ete_carpentier', '');
+  const d2 = pares();
+  ex.push(['(D1) soltar el Carpentier DESDE Valvulas limpia el espejo de legado',
+    d1.ca === '' && (d1.lg === '\\u2014' || d1.lg === ''), JSON.stringify(d1)]);
+  ex.push(['(D2) y soltarlo DESDE el ETE tambien -la otra puerta-',
+    d2.ca === '' && (d2.lg === '\\u2014' || d2.lg === ''), JSON.stringify(d2)]);
+
+  /* == (E) EL AVISO DE DIVERGENCIA, Y QUE SE VE ============================================= */
+  __t.limpiar();
+  if (F('showTab')) showTab('valvulas');
+  const sec = document.getElementById('ete-seccion-valv-mitral');
+  if (sec && getComputedStyle(sec).display === 'none' && F('toggleEteSeccion')) toggleEteSeccion('valv-mitral');
+  __t.chk('ete-es-ete', false);
+  sel('ete_carpentier', 'II');
+  sel('vm_carp', 'IIIb');
+  const e1 = pares();
+  const div = F('_vmCarpDiverge') ? _vmCarpDiverge() : 'SIN FN';
+  const avTxt = (document.getElementById('vm-carp-aviso') || {}).textContent || '';
+  const avGeo = (function () { const n = document.getElementById('vm-carp-aviso');
+    if (!n) return null; const r = n.getBoundingClientRect();
+    return { w: Math.round(r.width), h: Math.round(r.height) }; })();
+  ex.push(['(E1) DENOMINADOR: con la guarda de ETE abstenida, ete_carpentier se queda VIEJO',
+    e1.ca === 'IIIb' && e1.ec === 'II', JSON.stringify(e1)]);
+  ex.push(['(E2) la divergencia se detecta y el aviso NOMBRA los dos valores',
+    !!div && div !== 'SIN FN' && div.ete === 'II'
+      && avTxt.indexOf('IIIb') > -1 && avTxt.indexOf('II') > -1,
+    JSON.stringify(div) + ' | ' + avTxt.slice(0, 120)]);
+  ex.push(['(E3) y el aviso TIENE GEOMETRIA -no se pinta dentro de una seccion plegada-',
+    !!avGeo && avGeo.w > 0 && avGeo.h > 0, JSON.stringify(avGeo)]);
+  ex.push(['(E4) CONTROL: con los dos lados coincidiendo el aviso se APAGA',
+    (function () { sel('vm_carp', 'II');
+      const n = document.getElementById('vm-carp-aviso');
+      return !!n && (n.textContent || '') === '' && getComputedStyle(n).display === 'none'; })(),
+    (document.getElementById('vm-carp-aviso') || {}).textContent || 'vacio']);
+
+  /* == (F) UN ESTUDIO GUARDADO ANTES DE ESTA TANDA ==========================================
+     No tiene los nodos de Valvulas. Lo efectivo sale del lado ETE, y NADA se le escribe: eso es
+     lo que lo distingue de migrar un estudio guardado. */
+  __t.limpiar();
+  const campos = { nombre: 'AJ5 legado', ci: '523',
+    teer_tipo_im: 'secundaria', ete_carpentier: 'IIIa', vm_carpentier: 'Tipo III (restricci\\u00f3n)',
+    vm_morf: 'Prolapso / EVMS' };
+  Object.keys(campos).forEach(id => { const e = document.getElementById(id); if (!e) return;
+    e.value = campos[id]; });
+  if (F('_recalcModulos')) _recalcModulos('TC-523');
+  const f1 = pares();
+  ex.push(['(F1) con el lado Valvulas vacio, lo EFECTIVO sale del ETE',
+    f1.ti === '' && f1.ca === ''
+      && (F('vmTipoIMEfectivo') ? vmTipoIMEfectivo() : null) === 'secundaria'
+      && (F('vmCarpEfectivo') ? vmCarpEfectivo() : null) === 'IIIa',
+    JSON.stringify(f1) + ' ef=' + (F('vmTipoIMEfectivo') ? vmTipoIMEfectivo() : '?')
+      + '/' + (F('vmCarpEfectivo') ? vmCarpEfectivo() : '?')]);
+  ex.push(['(F2) y el repintado de restauracion NO le escribe ni el nuevo ni el legado',
+    f1.ca === '' && f1.lg.indexOf('Tipo III') === 0, 'ca=' + f1.ca + ' lg=' + f1.lg]);
+
+  /* == (G) EL ASSERT DE LOS PARES NO GRITA ================================================== */
+  ex.push(['(G1) el assert de arranque de los cuatro selects no encuentra ninguna divergencia',
+    F('_vmImAssertPares') ? _vmImAssertPares().length === 0 : false,
+    F('_vmImAssertPares') ? JSON.stringify(_vmImAssertPares()) : 'SIN FN']);
+
+  return { extra: ex };
+  })();
+`);
+
+caso('TC-524', 'Tanda AJ5-3: el mecanismo y el Carpentier entre PARENTESIS a continuacion de la insuficiencia mitral, en los TRES estilos de informe -con los dos, con uno solo, con ninguno-, sin salir en el EN SUMA, sin salir sobre una protesis ni sin insuficiencia, con el genero concordado con mecanismo y absteniendose de su mitad cuando el Carpentier del cajon de prolapso lo contradice', `
+  return (async () => {
+  const ex = [];
+  const F = (n) => (typeof window[n] === 'function') ? window[n] : null;
+  const sel = (id, v) => { const e = document.getElementById(id);
+    if (!e) return 'NO EXISTE ' + id;
+    const hay = Array.prototype.slice.call(e.options || []).map(o => o.value);
+    if (hay.indexOf(v) < 0) return 'NO HAY OPCION ' + v;
+    e.value = v; e.dispatchEvent(new Event('change', { bubbles: true })); return 1; };
+  const grado = (g) => { const e = document.getElementById('im_grado');
+    if (!e) return 'NO EXISTE im_grado';
+    e.value = g; e.dispatchEvent(new Event('input', { bubbles: true }));
+    e.dispatchEvent(new Event('change', { bubbles: true })); return e.value; };
+  const linea = (est) => { try {
+      if (F('setEstiloInforme')) setEstiloInforme(est);
+      if (F('generarInforme')) generarInforme();
+      const t = (document.getElementById('informe_texto') || {}).value || '';
+      return t.split('\\n').filter(l => /mitral|^VM /i.test(l)).join(' // ');
+    } catch (e) { return 'EXC: ' + e.message; } };
+  const suma = () => { try { if (F('generarInforme')) generarInforme();
+      return (document.getElementById('en_suma') || {}).value || '';
+    } catch (e) { return 'EXC: ' + e.message; } };
+  const escena = (o) => { __t.limpiar();
+    if (F('showTab')) showTab('valvulas');
+    sel('vm_morf', o.morf || 'Normal');
+    sel('vm_tipo_im', o.mec || '');
+    sel('vm_carp', o.carp || '');
+    grado(o.grado === undefined ? '2' : o.grado);
+    if (F('_recalcModulos')) _recalcModulos('TC-524');
+    return { c: linea('conciso'), e: linea('estandar'), n: linea('narrativo'), s: suma() }; };
+
+  /* DENOMINADOR: sin los dos campos puestos el parentesis no puede salir, asi que primero se
+     comprueba que el caso base LO TIENE. Sin esto, todas las condiciones de abajo pasan sobre
+     una mitral que nunca se cargo. */
+  const A = escena({ mec: 'secundaria', carp: 'II' });
+  ex.push(['(A1) DENOMINADOR: la insuficiencia moderada esta en los tres estilos',
+    /insuficiencia moderada/.test(A.e) && /IM moderada/.test(A.c)
+      && /insuficiencia moderada/.test(A.n),
+    A.e]);
+  ex.push(['(A2) con los dos puestos, el parentesis sale en los TRES estilos con el genero concordado',
+    A.c.indexOf('(mecanismo secundario; Carpentier II)') > -1
+      && A.e.indexOf('(mecanismo secundario; Carpentier II)') > -1
+      && A.n.indexOf('(mecanismo secundario; Carpentier II)') > -1,
+    'C=' + A.c + ' || E=' + A.e]);
+  /* LA CONDICION DEL GENERO: el valor del desplegable es «secundaria» y el papel firmado decia
+     «mecanismo secundaria». Si alguien vuelve a imprimir el token crudo, esto se pone rojo. */
+  ex.push(['(A3) y NO dice el token crudo -ni secundaria ni primaria detras de mecanismo-',
+    A.e.indexOf('mecanismo secundaria') < 0 && A.e.indexOf('mecanismo primaria') < 0, A.e]);
+  ex.push(['(A4) el EN SUMA NO lo lleva',
+    A.s.indexOf('mecanismo') < 0 && A.s.indexOf('Carpentier') < 0, A.s.replace(/\\n/g, ' | ')]);
+
+  const B = escena({ mec: 'primaria', carp: '' });
+  ex.push(['(B1) con SOLO el mecanismo sale solo el mecanismo, en masculino',
+    B.e.indexOf('(mecanismo primario)') > -1 && B.e.indexOf('Carpentier') < 0, B.e]);
+  const C = escena({ mec: '', carp: 'II' });
+  ex.push(['(C1) con SOLO el Carpentier sale solo el Carpentier',
+    C.e.indexOf('(Carpentier II)') > -1 && C.e.indexOf('mecanismo') < 0, C.e]);
+  const D = escena({ mec: '', carp: '' });
+  ex.push(['(D1) con los dos en vacio NO hay parentesis, y el resto de la oracion no se mueve',
+    D.e.indexOf('mecanismo') < 0 && D.e.indexOf('Carpentier') < 0
+      && /insuficiencia moderada\\./.test(D.e), D.e]);
+
+  const Eb = escena({ morf: 'Pr\\u00f3tesis biol\\u00f3gica', mec: 'secundaria', carp: 'II' });
+  const Em = escena({ morf: 'Pr\\u00f3tesis mec\\u00e1nica', mec: 'secundaria', carp: 'II' });
+  ex.push(['(E1) sobre una PROTESIS -biologica o mecanica- no se escribe nada, en los tres estilos',
+    [Eb, Em].every(x => ['c', 'e', 'n'].every(k =>
+      x[k].indexOf('mecanismo') < 0 && x[k].indexOf('Carpentier') < 0)),
+    'bio=' + Eb.e + ' || mec=' + Em.e]);
+  const G = escena({ mec: 'secundaria', carp: 'II', grado: '' });
+  ex.push(['(G1) SIN insuficiencia tampoco, aunque los dos campos esten puestos',
+    ['c', 'e', 'n'].every(k => G[k].indexOf('mecanismo') < 0 && G[k].indexOf('Carpentier') < 0),
+    G.e]);
+
+  /* == (H) LA ABSTENCION CUANDO EL LEGADO CONTRADICE ========================================
+     Era el hallazgo de /sharp-edges: la frase de prolapso lee el nodo de legado y el parentesis
+     resolvia por el lado ETE, asi que un estudio guardado antes de la AJ5 firmaba dos Carpentier
+     en el MISMO parrafo. El que se abstiene es el texto nuevo. */
+  __t.limpiar();
+  if (F('showTab')) showTab('valvulas');
+  ['im_grado'].forEach(() => grado('2'));
+  const pon = { vm_morf: 'Prolapso / EVMS', ete_carpentier: 'II',
+                vm_carpentier: 'Tipo I (dilataci\\u00f3n anular)' };
+  Object.keys(pon).forEach(id => { const e = document.getElementById(id); if (e) e.value = pon[id]; });
+  if (F('_recalcModulos')) _recalcModulos('TC-524H');
+  const H = { e: linea('estandar') };
+  ex.push(['(H1) DENOMINADOR: el legado y el efectivo dicen tipos DISTINTOS',
+    !!(F('_vmCarpDiverge') && _vmCarpDiverge() && _vmCarpDiverge().legado),
+    F('_vmCarpDiverge') ? JSON.stringify(_vmCarpDiverge()) : 'SIN FN']);
+  ex.push(['(H2) el parentesis NUEVO se abstiene de su mitad y la frase de prolapso no se toca',
+    H.e.indexOf('(Carpentier') < 0 && H.e.indexOf('mecanismo Carpentier I') > -1,
+    H.e]);
+
+  return { extra: ex };
+  })();
+`);
+
+caso('TC-525', 'Tanda AJ5-4: los efectos del Tipo de IM funcionando DESDE Valvulas -la frase del corte alternativo de la ESC/EACTS 2025 con un ORE de 30 y no con 29, solo con la IM secundaria, y sin que el grado de la IM se mueva- y el recuadro de reparabilidad del ETE con sus TRES estados', `
+  return (async () => {
+  const ex = [];
+  const F = (n) => (typeof window[n] === 'function') ? window[n] : null;
+  const T = (id) => { const e = document.getElementById(id); return e ? (e.textContent || '').replace(/\\s+/g, ' ').trim() : 'NO EXISTE'; };
+  const sel = (id, v) => { const e = document.getElementById(id);
+    if (!e) return 'NO EXISTE ' + id;
+    e.value = v; e.dispatchEvent(new Event('change', { bubbles: true })); return 1; };
+  const set = (o) => Object.keys(o).forEach(id => { const e = document.getElementById(id);
+    if (!e) return; e.value = o[id];
+    e.dispatchEvent(new Event('input', { bubbles: true }));
+    e.dispatchEvent(new Event('change', { bubbles: true })); });
+  /* El ORE sale de PISA, que es de donde lo lee _imSecAltEroa: radio 5 mm y Vmax 5 m/s dejan la
+     EROA en 0,31416 por el Valiasing, asi que 95,5 da 30,0 clavado y 92,3 da 29,0. */
+  const escORE = (mec, valias) => { __t.limpiar();
+    if (F('showTab')) showTab('valvulas');
+    sel('vm_tipo_im', mec);
+    set({ pisa_r: '5', pisa_val: valias, im_vmax: '5' });
+    if (F('_recalcModulos')) _recalcModulos('TC-525');
+    return { eroa: T('eroa-val'), alt: T('im-sec-alt'),
+             grado: (document.getElementById('im_grado') || {}).value,
+             esSec: F('imEsSecundariaIM') ? !!imEsSecundariaIM() : 'SIN FN' }; };
+
+  const S30 = escORE('secundaria', '95.5');
+  const S29 = escORE('secundaria', '92.3');
+  const P30 = escORE('primaria', '95.5');
+  const V30 = escORE('', '95.5');
+
+  ex.push(['(A1) DENOMINADOR: las dos escenas dan la EROA que se buscaba, 30,0 y 29,0 mm2',
+    S30.eroa.indexOf('30.0') > -1 && S29.eroa.indexOf('29.0') > -1,
+    '30=' + S30.eroa + ' 29=' + S29.eroa]);
+  ex.push(['(A2) el Tipo de IM puesto en VALVULAS llega al dueno del mecanismo',
+    S30.esSec === true && P30.esSec === false && V30.esSec === false,
+    '30sec=' + S30.esSec + ' pri=' + P30.esSec + ' vac=' + V30.esSec]);
+  ex.push(['(A3) con Secundaria y ORE de 30 la frase del corte alternativo SALE, con su condicion',
+    S30.alt.indexOf('30.0 mm') > -1 && S30.alt.indexOf('ESC/EACTS 2025') > -1
+      && S30.alt.indexOf('el') > -1 && S30.alt.indexOf('ptico') > -1,
+    S30.alt]);
+  ex.push(['(A4) con 29 NO sale',   S29.alt === '', 'alt=' + S29.alt]);
+  ex.push(['(A5) CONTROL: con Primaria y con el tipo VACIO tampoco, aunque el ORE sea 30',
+    P30.alt === '' && V30.alt === '', 'pri=' + P30.alt + ' vac=' + V30.alt]);
+  ex.push(['(A6) y el GRADO de la IM es el mismo en las cuatro escenas: la frase no gradua',
+    S30.grado === S29.grado && S29.grado === P30.grado && P30.grado === V30.grado,
+    [S30.grado, S29.grado, P30.grado, V30.grado].join('/')]);
+
+  /* == (B) LA REPARABILIDAD, SUS TRES ESTADOS, GOBERNADA DESDE VALVULAS ===================== */
+  const escRep = (mec) => { __t.limpiar();
+    if (F('showTab')) showTab('valvulas');
+    sel('vm_tipo_im', mec);
+    set({ ete_prof_coapt: '12', ete_angulo_vp: '50' });
+    if (F('calcETE')) calcETE();
+    return T('ete-reparabilidad'); };
+  const rS = escRep('secundaria'), rP = escRep('primaria'), rV = escRep('');
+  ex.push(['(B1) DENOMINADOR: los tres estados dan TRES textos distintos',
+    rS !== rP && rP !== rV && rS !== rV, 'S=' + rS.slice(0, 40) + ' P=' + rP.slice(0, 40) + ' V=' + rV.slice(0, 40)]);
+  ex.push(['(B2) con Secundaria desde Valvulas lista los factores desfavorables, con sus valores',
+    rS.indexOf('Factores desfavorables presentes') > -1
+      && rS.indexOf('12 mm') > -1 && rS.indexOf('50') > -1, rS]);
+  ex.push(['(B3) con Primaria publica el texto de la AJ2 y NO lista factores',
+    rP.indexOf('PRIMARIA') > -1 && rP.indexOf('Factores desfavorables presentes') < 0, rP]);
+  ex.push(['(B4) con el tipo VACIO dice que no esta consignado, que es el tercer estado de la AJ2',
+    rV.indexOf('no est') > -1 && rV.indexOf('consignado') > -1
+      && rV.indexOf('Factores desfavorables presentes') < 0, rV]);
+
+  return { extra: ex };
+  })();
+`);
+
+caso('TC-526', 'Tanda AJ5-5: el strain de pared libre del VD entre el indice de Tei y la FEVD -normal por encima de 20 en valor absoluto, leve de 15 a 20 con el 15 EXACTO adentro, los dos signos dando lo mismo, el 0 y el valor fuera de banda sin subir al papel, el signo tipografico normalizado, y SIN votar la disfuncion sistolica, que sigue saliendo de TAPSE y onda S-', `
+  return (async () => {
+  const ex = [];
+  const F = (n) => (typeof window[n] === 'function') ? window[n] : null;
+  const T = (id) => { const e = document.getElementById(id); return e ? (e.textContent || '').replace(/\\s+/g, ' ').trim() : 'NO EXISTE'; };
+  const pon = (id, v) => { const e = document.getElementById(id);
+    if (!e) return 'NO EXISTE ' + id;
+    e.value = v; e.dispatchEvent(new Event('input', { bubbles: true }));
+    e.dispatchEvent(new Event('change', { bubbles: true })); return e.value; };
+  const linea = (est) => { try {
+      if (F('setEstiloInforme')) setEstiloInforme(est);
+      if (F('generarInforme')) generarInforme();
+      const t = (document.getElementById('informe_texto') || {}).value || '';
+      return t.split('\\n').filter(l => /ventr.culo derecho|^VD /i.test(l)).join(' // ');
+    } catch (e) { return 'EXC: ' + e.message; } };
+  const esc = (o) => { __t.limpiar();
+    if (F('showTab')) showTab('vd');
+    Object.keys(o).forEach(k => pon(k, o[k]));
+    if (F('_recalcModulos')) _recalcModulos('TC-526');
+    return { val: (document.getElementById('vd_strain_pl') || {}).value,
+             cat: F('vdStrainPlCat') ? vdStrainPlCat((document.getElementById('vd_strain_pl') || {}).value) : 'SIN FN',
+             grado: T('vd_strain_pl-grado'), marca: T('vd_strain_pl-marca'),
+             c: linea('conciso'), e: linea('estandar'), n: linea('narrativo'),
+             s: (document.getElementById('en_suma') || {}).value || '' }; };
+
+  /* == (A) EL CAMPO EXISTE, ESTA ENTRE EL TEI Y LA FEVD, Y NO TRAE SELECTOR DE TRAMO ======== */
+  __t.limpiar();
+  if (F('showTab')) showTab('vd');
+  const campo = document.getElementById('vd_strain_pl');
+  const tei = document.getElementById('vd_tei'), fevd = document.getElementById('fevd');
+  const orden = (function () { if (!campo || !tei || !fevd) return null;
+    const p = (e) => e.compareDocumentPosition(campo);
+    return { teiAntes: !!(tei.compareDocumentPosition(campo) & 4),
+             fevdDespues: !!(campo.compareDocumentPosition(fevd) & 4) }; })();
+  ex.push(['(A1) DENOMINADOR: el campo existe y es el que la orden pide',
+    !!campo && campo.tagName === 'INPUT', campo ? campo.id : 'NO EXISTE']);
+  ex.push(['(A2) esta DESPUES del indice de Tei y ANTES de la FEVD en el orden del documento, que es el del Tab',
+    !!orden && orden.teiAntes && orden.fevdDespues, JSON.stringify(orden)]);
+  /* La condicion de la orden se verifico antes: el selector de tramo existe SOLO en la relacion
+     VD/VI, no en el TAPSE ni en la onda S prima, asi que este campo tampoco lo lleva. */
+  ex.push(['(A3) CONTROL: ni el TAPSE ni la onda S prima tienen selector de tramo, y este tampoco',
+    !document.getElementById('tapse_sel') && !document.getElementById('s_prime_sel')
+      && !document.getElementById('vd_strain_pl_sel') && !!document.getElementById('vd_vi_sel'),
+    'vdvi=' + !!document.getElementById('vd_vi_sel')]);
+  ex.push(['(A4) el corte de normalidad es el MISMO que el dueno del modulo de Deformacion',
+    F('_vdStrainPlAssert') ? _vdStrainPlAssert().length === 0 : false,
+    F('_vdStrainPlAssert') ? JSON.stringify(_vdStrainPlAssert()) : 'SIN FN']);
+
+  /* == (B) LOS CUATRO BORDES, POR LOS DOS SIGNOS ============================================ */
+  const B = {};
+  ['21', '20', '15', '14', '-21', '-20', '-15', '-14'].forEach(v => { B[v] = esc({ vd_strain_pl: v }); });
+  ex.push(['(B1) 21 es normal y 20 ya es leve: el corte es ESTRICTO por arriba',
+    B['21'].cat === 'normal' && B['20'].cat === 'leve',
+    '21=' + B['21'].cat + ' 20=' + B['20'].cat]);
+  ex.push(['(B2) 15 EXACTO es leve y 14 cae por debajo: el borde de abajo es inclusivo',
+    B['15'].cat === 'leve' && B['14'].cat === 'bajo_leve',
+    '15=' + B['15'].cat + ' 14=' + B['14'].cat]);
+  ex.push(['(B3) los dos signos dan LO MISMO en los cuatro bordes',
+    ['21', '20', '15', '14'].every(v => B[v].cat === B['-' + v].cat),
+    ['21', '20', '15', '14'].map(v => v + ':' + B[v].cat + '/' + B['-' + v].cat).join(' ')]);
+  ex.push(['(B4) por debajo de leve la pantalla DICE que la aplicacion no tiene corte de moderada ni severa',
+    B['14'].grado.indexOf('por debajo de leve') > -1
+      && B['14'].grado.indexOf('no tiene corte de moderada') > -1, B['14'].grado]);
+  ex.push(['(B5) el informe publica el valor con el signo de la aplicacion en los TRES estilos, tipeado con signo o sin el',
+    ['21', '-21'].every(v => B[v].e.indexOf('strain de pared libre \\u221221 %') > -1
+      && B[v].c.indexOf('strain de pared libre \\u221221 %') > -1
+      && B[v].n.indexOf('strain de pared libre \\u221221 %') > -1),
+    'con=' + B['-21'].e + ' || sin=' + B['21'].e]);
+  ex.push(['(B6) y con el strain como UNICO dato de funcion no se afirma ni conservada ni disfuncion',
+    B['21'].e.indexOf('conservada') < 0 && B['21'].e.indexOf('disfunci') < 0, B['21'].e]);
+
+  /* == (C) EL 0, LA BANDA Y EL SIGNO TIPOGRAFICO ============================================
+     Los tres son hallazgos de /sharp-edges sobre el propio diff. */
+  const Z = esc({ vd_strain_pl: '0' });
+  const X = esc({ vd_strain_pl: '185' });
+  const Y = esc({ vd_strain_pl: '60' });
+  ex.push(['(C1) un 0 NO es una medicion: no gradua y no sube al papel',
+    Z.cat === null && Z.e.indexOf('strain') < 0, 'cat=' + Z.cat + ' inf=' + Z.e]);
+  ex.push(['(C2) un 185 -el dedazo de 18,5- queda MARCADO, no gradua y no sube al papel',
+    X.cat === null && X.marca.indexOf('revisar') > -1 && X.e.indexOf('strain') < 0,
+    'cat=' + X.cat + ' marca=' + X.marca + ' inf=' + X.e]);
+  ex.push(['(C3) CONTROL: 60 esta DENTRO de la banda, no se marca y si gradua',
+    Y.cat === 'normal' && Y.marca.indexOf('revisar') < 0 && Y.e.indexOf('strain') > -1,
+    'cat=' + Y.cat + ' marca=' + Y.marca]);
+  /* ⚠️ EL DENOMINADOR DE ESTA CONDICION ES EL TIPO DEL CAMPO, y en el arnes no es el de la app.
+     El bloque que convierte los input de tipo number a tipo text con inputmode decimal -el que
+     acepta la coma decimal en Safari- corre en DOMContentLoaded, y el arnes evalua los casos con
+     document.readyState todavia en «interactive»: medido, el campo llega aca como number, que
+     RECHAZA cualquier cadena no numerica y la deja en vacio. Sin esta conversion la condicion
+     medía el arnes y no la aplicacion. Se aplica EXACTAMENTE lo que hace ese bloque. */
+  { const e = document.getElementById('vd_strain_pl');
+    if (e && e.getAttribute('type') === 'number') {
+      e.type = 'text'; e.setAttribute('inputmode', 'decimal');
+      e.setAttribute('pattern', '[0-9]*[.,]?[0-9]*'); e.classList.add('numdec'); } }
+  const W = esc({ vd_strain_pl: String.fromCharCode(8722) + '18' });
+  ex.push(['(C4) el signo menos TIPOGRAFICO -el que el propio informe imprime- se normaliza y el dato no se pierde',
+    W.val === '-18' && W.cat === 'leve' && W.e.indexOf('strain de pared libre \\u221218 %') > -1,
+    'val=' + W.val + ' cat=' + W.cat + ' inf=' + W.e
+      + ' | type=' + ((document.getElementById('vd_strain_pl') || {}).type)]);
+
+  /* == (D) NO VOTA, Y LA DISFUNCION SIGUE SALIENDO DE DONDE SALIA ========================== */
+  const Dn = esc({ tapse: '22', s_prime: '13', vd_strain_pl: '18' });
+  const Db = esc({ tapse: '12', s_prime: '6', vd_strain_pl: '-12' });
+  ex.push(['(D1) DENOMINADOR: con TAPSE y onda S normales el dueno del grado NO gradua, y con los dos bajos SI',
+    (F('vdDisfGrado') ? vdDisfGrado('22', '13') : 'SIN FN') === null
+      && (F('vdDisfGrado') ? vdDisfGrado('12', '6') : 'SIN FN') === 'moderada',
+    'norm=' + (F('vdDisfGrado') ? vdDisfGrado('22', '13') : '?')
+      + ' bajo=' + (F('vdDisfGrado') ? vdDisfGrado('12', '6') : '?')]);
+  ex.push(['(D2) un strain LEVE sobre TAPSE y onda S normales NO cambia el veredicto: sigue conservada',
+    Dn.cat === 'leve' && Dn.e.indexOf('conservada') > -1 && Dn.e.indexOf('disfunci') < 0
+      && Dn.e.indexOf('strain de pared libre \\u221218 %') > -1,
+    Dn.e]);
+  ex.push(['(D3) y con TAPSE y onda S bajos la disfuncion sale CON SU GRADO y el strain al lado',
+    Db.e.indexOf('disfunci') > -1 && Db.e.indexOf('moderada') > -1
+      && Db.e.indexOf('strain de pared libre \\u221212 %') > -1, Db.e]);
+  ex.push(['(D4) el EN SUMA no lleva el strain en ninguna de las dos escenas',
+    Dn.s.indexOf('strain') < 0 && Db.s.indexOf('strain') < 0,
+    (Dn.s + ' || ' + Db.s).replace(/\\n/g, ' | ').slice(0, 160)]);
+
+  return { extra: ex };
+  })();
+`);
+
+
 
 
 

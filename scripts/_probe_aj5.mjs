@@ -1209,9 +1209,13 @@ window.__Y = {
       /* El signo tipografico PEGADO, sin teclas: se escribe el valor y se dispara input. */
       await ev(`window.__P.nuevo()`); await ev(`window.__P.calentar()`);
       await ev(`window.__P.abrirPara('vd_strain_pl')`);
-      await ev(`(function(){ var e = document.getElementById('vd_strain_pl');
+      r.tipoCampo = await ev(`(function(){ var e = document.getElementById('vd_strain_pl');
+        var antes = e.type;
         e.value = String.fromCharCode(8722) + '18';
-        e.dispatchEvent(new Event('input', { bubbles: true })); return e.value })()`);
+        var crudo = e.value;
+        e.dispatchEvent(new Event('input', { bubbles: true }));
+        return { type: antes, trasAsignar: crudo, trasInput: e.value,
+                 pattern: e.getAttribute('pattern'), inputmode: e.getAttribute('inputmode') } })()`);
       const i5 = await ev(`window.__P.informe('estandar')`, 40000);
       r.signoTipografico = { val: await ev(`window.__P.val('vd_strain_pl')`),
         st: await ev(`window.__Y.strain()`),
