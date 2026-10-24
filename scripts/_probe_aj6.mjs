@@ -1153,6 +1153,32 @@ window.__Y = {
       await ev(`(function(){ try{ localStorage.removeItem('ett_modules') }catch(e){}
         try{ if (typeof applyViewMode === 'function') applyViewMode() }catch(e){} return 1 })()`);
       r.consola = await ev(`window.__P.despejar()`);
+      /* El invariante que el chequeo de arranque grita por consola, evaluado aca mismo: toda
+         clave de EE_MODULES con boton, y todo [data-mod] con casilla. */
+      r.invariante = await ev(`(function(){
+        var enB = {}, faltan = [], sobran = [];
+        document.querySelectorAll('[data-mod]').forEach(function(b){ enB[b.getAttribute('data-mod')] = true });
+        var enC = {};
+        EE_MODULES.forEach(function(m){ enC[m.key] = true; if (!enB[m.key]) sobran.push(m.key) });
+        Object.keys(enB).forEach(function(k){ if (!enC[k]) faltan.push(k) });
+        return { sinCasilla: faltan, sinBoton: sobran } })()`);
+      /* El desplegable de movil en los DOS modos: por debajo de 768 px es la unica puerta. */
+      r.movil = {};
+      await viewport(390, 844);
+      for (const m of ['basico', 'avanzado']) {
+        await ev(`window.__Y.cfgModo(${JSON.stringify(m)})`);
+        r.movil[m] = await ev(`(function(){ try{ ecoAdvBuild() }catch(e){ return 'EXC: ' + e.message }
+          var s = document.getElementById('ecoAdvSelect');
+          if (!s) return 'NO EXISTE';
+          return { display: getComputedStyle(s).display,
+                   ops: Array.prototype.map.call(s.options, function(o){ return o.value }),
+                   filaTools: getComputedStyle(document.querySelector('.tabs-tools')).display,
+                   drawer: (function(){ var d = document.getElementById('ecoDrawer');
+                     return d ? Array.prototype.map.call(d.querySelectorAll('button'), function(b){
+                       return b.getAttribute('data-tab') }) : 'NO EXISTE' })() } })()`);
+      }
+      await viewport(1440, 900);
+      await ev(`window.__Y.cfgModo('avanzado')`);
       r.errores = await ev(`window.__Y.errores()`);
     } catch (e) { r.err = e.message }
     out.grupos.cfg = r;
@@ -1173,6 +1199,18 @@ window.__Y = {
       r.pasos.push({ paso: 'tipea', v: await ev(`window.__Y.buscTipear('tapse')`) });
       /* Borra el texto SIN tocar ningun boton: vuelve el que estaba. */
       r.pasos.push({ paso: 'borra', v: await ev(`window.__Y.buscTipear('')`) });
+      /* UNA sola letra: por debajo del minimo no hay busqueda, y la letra NO se puede borrar
+         sola -- si se borrara, el buscador nunca llegaria a dos caracteres. */
+      r.pasos.push({ paso: 'unaLetra', v: await ev(`window.__Y.buscTipear('t')`) });
+      r.pasos.push({ paso: 'dosLetras', v: await ev(`window.__Y.buscTipear('ta')`) });
+      r.pasos.push({ paso: 'vuelveAUna', v: await ev(`window.__Y.buscTipear('t')`) });
+      await ev(`window.__Y.buscTipear('')`);
+      /* El boton «Limpiar», que es un clic DENTRO del buscador. */
+      await ev(`window.__Y.buscTipear('tapse')`);
+      r.limpiarBtn = await ev(`(function(){ var b = document.getElementById('ref-busca-limpiar');
+        if (!b) return 'NO EXISTE'; b.click(); return 1 })()`);
+      await new Promise((s) => setTimeout(s, 400));
+      r.pasos.push({ paso: 'trasLimpiar', v: await ev(`window.__Y.buscEstado()`) });
       /* Otra vez con texto, y ahora toca un boton de arriba. */
       await ev(`window.__Y.buscTipear('tapse')`);
       await ev(`(function(){ var b = document.getElementById('ref-subtab-ao');

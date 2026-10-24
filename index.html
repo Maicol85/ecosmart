@@ -3611,7 +3611,12 @@ window.cerrarSesionReal = cerrarSesionReal;
       </div>
       <!-- FILA INFERIOR — Herramientas de apoyo (siempre visible) -->
       <div class="tabs-row tabs-tools">
-        <button class="tab-btn tab-tool" data-mod="refs" onclick="showTab('refs')">📚 Referencias</button>
+        <!-- ⚠️ SIN `data-mod` DESDE EL AJ6-4a (2026-10-24). DECISION DE MAICOL: este botón no se
+             puede ocultar nunca. Con el atributo, `applyViewMode` lo escondía uno por uno en Modo
+             Básico y, en Avanzado, lo apagaba su casilla de Config. La fila que lo contiene ya era
+             «siempre visible» por `.subtabs-wrap .tabs-tools{display:flex !important}`, así que lo
+             único que lo escondía era el atributo. Ver `EE_MODULES`. -->
+        <button class="tab-btn tab-tool" onclick="showTab('refs')">📚 Referencias</button>
       </div>
     </div>
 
@@ -3767,7 +3772,11 @@ window.cerrarSesionReal = cerrarSesionReal;
           <button class="btn" id="cfg-mode-basico" onclick="cfgSetMode('basico')">Modo Básico</button>
           <button class="btn" id="cfg-mode-avanzado" onclick="cfgSetMode('avanzado')">Modo Avanzado</button>
         </div>
-        <div style="font-size:11.5px;color:var(--text2);margin-bottom:12px;line-height:1.5;">Básico muestra solo el estudio principal (fila 1). Avanzado suma módulos especiales y herramientas — elegí cuáles ver.</div>
+        <!-- ⚠️ EL TEXTO DECIA «Básico muestra solo el estudio principal (fila 1). Avanzado suma
+             módulos especiales y herramientas — elegí cuáles ver» Y DESDE EL AJ6-4a ES FALSO por
+             las dos mitades: Básico muestra además Referencias (con Calculadoras adentro), y las
+             «herramientas» ya no se eligen — no queda ninguna casilla que las gobierne. -->
+        <div style="font-size:11.5px;color:var(--text2);margin-bottom:12px;line-height:1.5;">Básico muestra el estudio principal y Referencias, que nunca se oculta. Avanzado suma los módulos especiales —elegí cuáles ver— y el Laboratorio.</div>
         <div id="cfg-modulos" style="display:none;"></div>
       </section>
 
@@ -17851,12 +17860,13 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
     <span id="ref-volver-de" class="ref-volver-de"></span>
   </div>
   <div class="ref-subbar" role="tablist" aria-label="Secciones de Referencias">
-    <!-- ⚠️ CALCULADORAS ES EL PRIMER BOTON (B-E5, 2026-10-21), y lleva `data-mod` como el boton
-         de la fila de arriba que reemplaza: `applyViewMode` lo esconde en Modo Basico y, en
-         Avanzado, lo muestra segun su casilla de Config. Sin el atributo esa casilla dejaria de
-         gobernar nada y el chequeo de arranque gritaria «sin boton: calculadoras». Es un
-         `<button>`, que es el otro invariante que ese chequeo exige. -->
-    <button type="button" class="ref-subtab" role="tab" id="ref-subtab-calc" data-mod="calculadoras" aria-selected="false" aria-controls="ref-sub-calc" tabindex="-1" onclick="refSubTab('calc',this)">🧮 Calculadoras</button>
+    <!-- ⚠️ CALCULADORAS ES EL PRIMER BOTON (B-E5, 2026-10-21) Y DESDE EL AJ6-4a (2026-10-24) YA
+         NO LLEVA `data-mod`. DECISION DE MAICOL: queda SIEMPRE dentro de Referencias, como su
+         primera sub-pestana, en los dos modos. Con el atributo, `applyViewMode` la escondia en
+         Modo Basico -asi que en Basico Referencias se abria sin su primera sub-pestana- y en
+         Avanzado la apagaba su casilla de Config. Su clave salio de `EE_MODULES` en el mismo
+         commit; las dos cosas van juntas o el chequeo de arranque grita. -->
+    <button type="button" class="ref-subtab" role="tab" id="ref-subtab-calc" aria-selected="false" aria-controls="ref-sub-calc" tabindex="-1" onclick="refSubTab('calc',this)">🧮 Calculadoras</button>
     <button type="button" class="ref-subtab active" role="tab" id="ref-subtab-dim" aria-selected="true" aria-controls="ref-sub-dim" tabindex="0" onclick="refSubTab('dim',this)">📏 Dimensiones</button>
     <button type="button" class="ref-subtab" role="tab" id="ref-subtab-fun" aria-selected="false" aria-controls="ref-sub-fun" tabindex="-1" onclick="refSubTab('fun',this)">📈 Función</button>
     <button type="button" class="ref-subtab" role="tab" id="ref-subtab-valv" aria-selected="false" aria-controls="ref-sub-valv" tabindex="-1" onclick="refSubTab('valv',this)">🫀 Válvulas</button>
@@ -65958,9 +65968,26 @@ document.addEventListener('DOMContentLoaded', function () {
    desactivar: lo que se pliega es el cuerpo de cada seccion, y eso es de `toggleEteSeccion`.
    Se retiran tambien las dos lineas `window.*`: una referencia de nivel superior a algo que ya
    no existe aborta el <script> COMPLETO. Las de C. Congenitas NO se tocan. */
-function refSubTab(sub, el) {
-  refSubInit();
-  if (!REF_SUBTAB[sub]) { console.error('[refSubTab] subpestana desconocida: ' + sub); return; }
+/* ══ EL BUSCADOR TAPA LAS FICHAS MIENTRAS BUSCA (AJ6-4b, 2026-10-24) ════════════════════════
+   DECISION DE MAICOL. Hasta hoy, con texto en el buscador se veían las DOS cosas: la lista de
+   resultados arriba y, debajo, las fichas enteras de la sub-pestaña activa, con su botón
+   marcado. El médico escribía «tapse», leía «4 entradas» y abajo seguía la tabla de Válvulas,
+   que no tiene nada que ver con lo que buscó. Mientras hay búsqueda: las fichas del botón activo
+   se esconden y los seis botones quedan sin marcar. Tocar un botón de arriba, o salir del campo,
+   repone las fichas de ese botón y vacía el buscador; borrar el texto sin tocar ningún botón
+   repone el que estaba activo antes de buscar.
+
+   ⚠️ TRES FUNCIONES Y NO UNA, Y EL REPARTO ES LO QUE EVITA QUE SE PISEN:
+   · `_refSubActivar` es el único que prende marcas y paneles —se extrajo de `refSubTab`, que lo
+     tenía en el cuerpo— y NO toca el campo de búsqueda;
+   · `_refBuscLimpiar` vacía el campo y los resultados y NO toca las fichas;
+   · `refBuscar` compone las dos según el largo de la consulta.
+   Si la salida por «texto corto» llamara a `refSubTab`, esa función limpiaría el campo: tipear
+   la primera letra de «tapse» se borraría sola y el buscador nunca llegaría a dos caracteres.
+   Medido antes de partirlo así. */
+let _refBuscPrev = null;   // sub-pestaña activa antes de buscar; null = no se está buscando
+function _refBuscEnBusqueda(){ return _refBuscPrev !== null; }
+function _refSubActivar(sub) {
   REF_SUB_ORDEN.forEach(function (k) {
     const b = document.getElementById('ref-subtab-' + k);
     const p = document.getElementById('ref-sub-' + k);
@@ -65970,6 +65997,46 @@ function refSubTab(sub, el) {
     if (p) p.classList.toggle('active', on);
   });
   _refSubActiva = sub;
+}
+/* Apaga la marca de los seis botones y esconde los seis paneles. EL TAB STOP SE CONSERVA en el
+   que estaba activo: un tablist sin un solo elemento tabulable deja la barra fuera del teclado,
+   y acá no hay nada más que la reponga. `aria-selected` sí baja en los seis, que es lo que
+   describe el estado real: no hay ninguna seleccionada. */
+function _refBuscEntrar() {
+  if (_refBuscEnBusqueda()) return;
+  _refBuscPrev = _refSubActiva;
+  REF_SUB_ORDEN.forEach(function (k) {
+    const b = document.getElementById('ref-subtab-' + k);
+    const p = document.getElementById('ref-sub-' + k);
+    if (b) { b.classList.remove('active'); b.setAttribute('aria-selected', 'false');
+             b.tabIndex = (k === _refBuscPrev) ? 0 : -1; }
+    if (p) p.classList.remove('active');
+  });
+}
+function _refBuscLimpiar() {
+  const inp = document.getElementById('ref-busca');
+  const res = document.getElementById('ref-busca-res');
+  if (inp) inp.value = '';
+  if (res) { while (res.firstChild) res.removeChild(res.firstChild); res.style.display = 'none'; }
+  _refBuscPrev = null;
+}
+/* Salir del campo: repone las fichas del botón que estaba activo Y vacía el buscador. */
+function _refBuscSalirDelCampo() {
+  if (!_refBuscEnBusqueda()) return false;
+  const sub = _refBuscPrev;
+  _refBuscLimpiar();
+  _refSubActivar(sub);
+  return true;
+}
+window._refBuscSalirDelCampo = _refBuscSalirDelCampo;
+
+function refSubTab(sub, el) {
+  refSubInit();
+  if (!REF_SUBTAB[sub]) { console.error('[refSubTab] subpestana desconocida: ' + sub); return; }
+  /* Primero el campo y después las fichas: al revés, la rama de salida de `refBuscar` activaría
+     la sub-pestaña ANTERIOR y pisaría la que el médico acaba de tocar. */
+  _refBuscLimpiar();
+  _refSubActivar(sub);
   if (el && el.scrollIntoView) { try { el.scrollIntoView({ block: 'nearest', inline: 'nearest' }) } catch (e) {} }
 }
 
@@ -65991,6 +66058,11 @@ function refSubTab(sub, el) {
 
    NO PERSISTE: el texto vive en el campo y nada se escribe en localStorage ni en el estudio. */
 const REF_BUSCA_MIN = 2;
+/* El retardo del `blur` y la marca de «el gesto empezó dentro del buscador». Ver el oyente de
+   `refBuscadorInit`: 120 ms es largo para que el `click` del resultado llegue primero y corto
+   para que salir del campo se sienta inmediato. */
+const REF_BUSC_SALIDA_MS = 120;
+let _refBuscPtrDentro = false;
 let _refIndice = null;
 function _refNorm(s) {
   return String(s == null ? '' : s)
@@ -66134,6 +66206,23 @@ function refBuscadorInit() {
   host.appendChild(wrap); host.appendChild(res);
   inp.addEventListener('input', refBuscar);
   btn.addEventListener('click', function () { inp.value = ''; refBuscar(); inp.focus(); });
+  /* ⚠️ «SALIR DEL BUSCADOR» SE RESUELVE CON UNA GUARDA DE PUNTERO Y NO CON `relatedTarget`.
+     El problema: al tocar un resultado, el navegador dispara `blur` ANTES del `click`, así que
+     reponer y vaciar en el `blur` borra los botones de resultado y el clic no llega a ninguna
+     parte — el resultado se vuelve intocable. Y mirar `document.activeElement` no alcanza porque
+     en WebKit un `<button>` NO recibe el foco al hacerle clic: ahí el foco se va al body y la
+     guarda no distinguiría un clic adentro del buscador de uno afuera.
+     Entonces: `pointerdown` en el host marca «el gesto empezó adentro», el `blur` se decide con
+     un retardo corto, y si la marca está puesta no se sale (y la marca se baja ahí mismo, para
+     que el próximo `blur` por teclado sí salga). El retardo es imperceptible y no hace falta
+     que sea exacto: lo único que tiene que pasar antes es el `click`, que va en el mismo gesto. */
+  host.addEventListener('pointerdown', function () { _refBuscPtrDentro = true; });
+  inp.addEventListener('blur', function () {
+    setTimeout(function () {
+      if (_refBuscPtrDentro) { _refBuscPtrDentro = false; return; }
+      _refBuscSalirDelCampo();
+    }, REF_BUSC_SALIDA_MS);
+  });
   host.dataset.refBusc = '1';
 }
 function refBuscar() {
@@ -66142,7 +66231,15 @@ function refBuscar() {
   if (!inp || !res) return null;
   while (res.firstChild) res.removeChild(res.firstChild);
   const q = _refNorm(inp.value.trim());
-  if (q.length < REF_BUSCA_MIN) { res.style.display = 'none'; return { q: q, n: null }; }
+  if (q.length < REF_BUSCA_MIN) {
+    res.style.display = 'none';
+    /* Borró el texto sin tocar ningún botón: vuelve el que estaba activo antes de buscar. NO se
+       pasa por `refSubTab` ni por `_refBuscLimpiar`, que vaciarían el campo: acá puede haber una
+       primera letra recién tipeada. */
+    if (_refBuscEnBusqueda()) { const _s = _refBuscPrev; _refBuscPrev = null; _refSubActivar(_s); }
+    return { q: q, n: null };
+  }
+  _refBuscEntrar();
   res.style.display = 'block';
   /* Las DOS formas: la de siempre y la compacta, para que «HFA PEFF» y «hfapeff» encuentren
      lo que «HFA-PEFF» ya encontraba. Solo agrega (AJ2-13). */
@@ -131312,7 +131409,15 @@ const _orig=showTab;window.showTab=function(id){_orig(id);setTimeout(actualizarF
     sel.innerHTML='<option value="" disabled'+(prev?'':' selected')+'>Sección avanzada…</option>';
     var count=0,activeId=null;
     advBtns().forEach(function(b){
-      if(mode==='basico')return;
+      /* ⚠️ EN BASICO SE EXCLUYEN LOS `[data-mod]`, NO TODOS (AJ6-4a, 2026-10-24). Con el `return`
+         incondicional el desplegable quedaba VACIO en Modo Basico, y desde que Referencias no
+         lleva `data-mod` eso la dejaba sin puerta en el celular: por debajo de 768 px la regla
+         `.subtabs-wrap:not(.cc-subbar) .tabs-row{display:none !important}` esconde las dos filas
+         y la navegacion va por este `<select>`. O sea: el boton que no se puede ocultar quedaba
+         inalcanzable en un telefono. Se mira el ATRIBUTO y no `style.display` porque esta funcion
+         puede correr antes que `applyViewMode` en el arranque, y ahi ningun boton tiene el
+         display puesto todavia. */
+      if(mode==='basico'&&b.hasAttribute('data-mod'))return;
       if(b.style.display==='none')return;
       var id=idOf(b);if(!id)return;
       var opt=document.createElement('option');
@@ -131483,14 +131588,23 @@ window.ecoMedToggle=ecoMedToggle;
    de abajo gritara «sin boton: pulmonar» en cada arranque sobre una app sana, y la casilla no
    gobernaria nada. Lo que SE PIERDE es el control para apagarlo desde Config —un control, no un
    campo—; lo que se gana es que ningun modo pierda contenido. Declarado en el reporte. */
+/* ⚠️ `refs` Y `calculadoras` SALIERON DE ESTA LISTA EN EL AJ6-4a (2026-10-24), y con ellas sus
+   dos casillas de Config. DECISION DE MAICOL: Referencias está SIEMPRE visible —en Básico y en
+   Avanzado— y Calculadoras está SIEMPRE dentro de Referencias, como su primera sub-pestaña. Las
+   dos dejan de ser módulos opcionales, así que su `data-mod` también se retira: dejar el atributo
+   sin entrada acá haría que el chequeo de abajo gritara «sin casilla en Config» en cada arranque
+   sobre una app sana, y dejar la clave sin atributo lo haría gritar «sin botón».
+   ⚠️ NO SE MIGRA NADA. Un `ett_modules` guardado con `{"refs":false,"calculadoras":false}` sigue
+   en localStorage y abre sin error: nadie lee más esas dos claves —`eeModOn` sólo se consulta por
+   el atributo de un botón que existe— así que el valor viejo queda inerte. Reescribir el
+   localStorage del médico para «limpiarlo» sería migrar, que esta orden prohíbe.
+   ⚠️ `deformacion` NO está acá y sigue sin estar: no es una pestaña. Ver `eeDefOn`. */
 var EE_MODULES = [
   {key:'hemodinamica', label:'🩸 Hemodinámica'},
   {key:'ete',          label:'🔬 ETE'},
   {key:'cardioOnco',   label:'🎗️ Cardio-Oncología'},
   {key:'amiloidosis',  label:'🫀 Amiloidosis'},
-  {key:'congenitas',   label:'🧬 CC frecuentes y complejas'},
-  {key:'calculadoras', label:'🧮 Calculadoras'},
-  {key:'refs',         label:'📚 Referencias'}
+  {key:'congenitas',   label:'🧬 CC frecuentes y complejas'}
 ];
 /* Guarda contra la divergencia que acabamos de cerrar. No corrige nada —no puede saber cuál de
    las dos listas tiene razón— pero deja de ser un fallo mudo. */
@@ -131695,11 +131809,16 @@ function applyViewMode(){
   var advTab=document.getElementById('lab-subtab-avanzado');
   if(advTab) advTab.style.display = (mode!=='avanzado') ? 'none' : '';
   var special=document.querySelector('.tabs-special');
-  var tools=document.querySelector('.tabs-tools');
+  /* ⚠️ `.tabs-tools` YA NO SE TOCA (AJ6-4a, 2026-10-24). Esa fila tiene un solo botón
+     —Referencias— y la orden dice que no puede ocultarse nunca, así que ni se esconde en Básico
+     ni se la recalcula en Avanzado. Las dos líneas que se retiran, además, NO HACIAN NADA
+     VISIBLE: `.subtabs-wrap .tabs-tools{display:flex !important}` le gana a un `style.display`
+     inline, así que la fila estaba siempre dibujada y lo único que escondía al botón era su
+     `data-mod`, que se retiró en este mismo commit. Dejar el `style.display='none'` habría sido
+     peor que inútil: un estado inline que miente sobre lo que se ve. Medido en los dos modos. */
   var lab=document.querySelector('.tabs-lab-wrap');
   if(mode==='basico'){
     if(special) special.style.display='none';
-    if(tools)   tools.style.display='none';
     if(lab)     lab.style.display='none';
     /* ⚠️ Y LOS `[data-mod]` UNO POR UNO, que hasta el 2026-09-26 no hacía falta: los once vivían
        DENTRO de esas tres filas, así que esconder los contenedores los tapaba a todos. El botón
@@ -131709,7 +131828,10 @@ function applyViewMode(){
     document.querySelectorAll('button[data-mod]').forEach(function(b){ b.style.display='none'; });
   } else {
     document.querySelectorAll('button[data-mod]').forEach(function(btn){ btn.style.display = eeModOn(btn.getAttribute('data-mod')) ? '' : 'none'; });
-    [special,tools].forEach(function(row){ if(!row) return; var any=[].slice.call(row.querySelectorAll('button[data-mod]')).some(function(b){ return b.style.display!=='none'; }); row.style.display = any ? '' : 'none'; });
+    /* Sólo `special`: la fila de herramientas quedó fuera (ver arriba). Con ella adentro, y sin
+       un solo `[data-mod]` que contar, `any` daba false y esta línea le escribía
+       `display:none` a la fila del botón que no se puede ocultar. */
+    [special].forEach(function(row){ if(!row) return; var any=[].slice.call(row.querySelectorAll('button[data-mod]')).some(function(b){ return b.style.display!=='none'; }); row.style.display = any ? '' : 'none'; });
     if(lab) lab.style.display = ''; // Laboratorio: visible siempre en Modo Avanzado (CORRECCIÓN 2)
   }
   /* El drawer movil del rail se reconstruye desde los botones del rail, y desde que «Eco
@@ -131733,7 +131855,11 @@ function cfgRenderModulos(){
   var box=document.getElementById('cfg-modulos'); if(!box) return;
   if(mode!=='avanzado'){ box.style.display='none'; box.innerHTML=''; return; }
   box.style.display='block';
-  box.innerHTML='<div style="font-size:11.5px;color:var(--text2);margin-bottom:8px;">Módulos visibles (filas 2 y 3). Laboratorio aparece siempre en Modo Avanzado.</div>'+
+  /* ⚠️ DECIA «Módulos visibles (filas 2 y 3). Laboratorio aparece siempre en Modo Avanzado» y
+     desde el AJ6-4a la fila 3 no tiene ninguna casilla: su único botón —Referencias— no se puede
+     apagar. Nombrar una fila que ya no se gobierna desde acá manda a buscar un control que no
+     existe. */
+  box.innerHTML='<div style="font-size:11.5px;color:var(--text2);margin-bottom:8px;">Módulos visibles. Laboratorio aparece siempre en Modo Avanzado. Referencias —y Calculadoras, que vive adentro— están siempre, en los dos modos.</div>'+
     '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;">'+
     EE_MODULES.map(function(m){
       return '<label class="cfg-mod-item"><input type="checkbox" '+(eeModOn(m.key)?'checked':'')+' onchange="cfgToggleMod(\''+m.key+'\',this.checked)"> '+m.label+'</label>';
