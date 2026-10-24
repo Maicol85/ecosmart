@@ -1101,6 +1101,21 @@ window.__Y = {
         return o })()`);
       await pausa(260);
       r.contestado = await ev(`window.__Y.evid('Derrame pericárdico')`);
+      /* La constriccion, con su unica pregunta contestada por los DOS lados: es la unica
+         condicion que la guia le pone al cateterismo y las dos respuestas emiten texto. */
+      await escena('constr');
+      await ev(`(function(){ try{ indicAbrir() }catch(e){} return 1 })()`);
+      await pausa(300);
+      r.constrNo = await ev(`(function(){
+        var b = document.querySelector('[data-ind-clin="constr.imagen"][data-ind-val="no"]');
+        if (!b) return 'NO HAY BOTON'; b.click(); return 'ok' })()`);
+      await pausa(240);
+      r.constrRecNo = await ev(`window.__Y.evid('Constricción pericárdica')`);
+      r.constrSi = await ev(`(function(){
+        var b = document.querySelector('[data-ind-clin="constr.imagen"][data-ind-val="si"]');
+        if (!b) return 'NO HAY BOTON'; b.click(); return 'ok' })()`);
+      await pausa(240);
+      r.constrRecSi = await ev(`window.__Y.evid('Constricción pericárdica')`);
       r.citas = await ev(`window.__Y.evid('Estenosis aórtica')`);
       r.errores = await ev(`window.__Y.errores()`);
     } catch (e) { r.err = e.message }

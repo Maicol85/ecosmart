@@ -81766,6 +81766,126 @@ function _indDerrPeri(){
     notas: rec.map(function(l){ return l.txt }) };
 }
 
+/* ══ EVIDENCIA · CONSTRICCION PERICARDICA (J-4, 2026-10-24) ═════════════════════════════════
+   Mismo formato compacto que la de derrame. Es un CUESTIONARIO: lee lo que ya esta cargado -los
+   tres tramos del e' medial y el resto de los signos, todos del dueno `cvrEstado`- y le pregunta
+   al medico lo UNICO que la aplicacion no puede saber, que es si la imagen multimodal fue
+   concluyente. De esa respuesta depende la unica fila de la guia que condiciona algo.
+
+   ⚠️ LO ESCRITO SE LEYO EN IMAGEN sobre el original en ingles (ehaf192): Recommendation Table 24
+   en el folio 64 y el apartado 11.9.3 en el folio 63, mas la Figura S1 del material suplementario
+   en la hoja 6. Redactado con palabras propias.
+   ⚠️ NO SE ESCRIBE NINGUNA RECOMENDACION DE TRATAMIENTO -pericardiectomia, antiinflamatorios-
+   aunque la Tabla 24 las trae: esta seccion es la del DIAGNOSTICO, que es lo que la orden pide, y
+   la aplicacion no registra ni inflamacion pericardica ni respuesta al tratamiento, asi que
+   publicarlas seria mostrar filas que ningun dato del estudio puede encender ni apagar.
+   ⚠️ TRES FILAS VAN SIN CORCHETE A PROPOSITO: el e' lateral, el E/e' y las reglas de conteo. No
+   salen de esta guia -las dos primeras son criterios del HFA-PEFF y la tercera no tiene fuente- y
+   citarla ahi respaldaria con una fuente verificada algo que esa fuente no dice. */
+function _indConstr(){
+  const cvrFn = _indFn('cvrEstado');
+  if (!cvrFn) return null;
+  let st = null;
+  try { st = cvrFn(); } catch (e) { return null; }
+  /* Compuerta del MISMO dueno que el modulo: sin un solo criterio especifico del pericardio
+     evaluado, la seccion no despierta. Las velocidades anulares solas estan cargadas en casi
+     todos los estudios y despertarian esta seccion sobre un paciente al que nadie le miro el
+     pericardio — es la regla que `cvrEstado` ya aplica con `espEval === 0`. */
+  if (!st || !st.espEval) return null;
+  const d = st.d;
+  const n1 = function(x){ return x === null ? '—' : (Math.round(x * 10) / 10) };
+  const fila = function(lbl){ return st.filas.filter(function(f){ return f.lbl === lbl })[0] || null };
+  const vt = function(lbl, cTxt, rTxt, mTxt){
+    const f = fila(lbl);
+    if (!f || !f.ev) return '—';
+    return f.voto === 'c' ? cTxt : f.voto === 'r' ? rTxt : (f.voto === 'm' ? (mTxt || 'Formas mixtas') : 'No discrimina');
+  };
+  const mk = function(lbl){
+    const f = fila(lbl);
+    if (!f || !f.ev) return 'ask';
+    return f.voto === 'c' ? 'alarm' : (f.voto === 'm' ? 'warn' : 'none');
+  };
+
+  const concl = _indClinGet('constr.imagen');
+
+  const filas = [
+    _indFila("e' medial", d.esep !== null ? n1(d.esep) + ' cm/s' : '—', mk("e' medial"),
+      'la guía parte este valor en TRES: por encima de ' + CVR_ESEP_CONSTR_MIN + ' cm/s orienta a constricción pericárdica, por debajo de ' + CVR_ESEP_RESTR_MAX + ' a restricción, y entre ' + CVR_ESEP_RESTR_MAX + ' y ' + CVR_ESEP_CONSTR_MIN + ' dice textualmente que se trata de formas mixtas y no distingue (apartado 11.9.3, folio 63, y Figura S1 con su nota b, hoja 6 del material suplementario)',
+      ['escPeri2025']),
+    _indFila('Annulus reversus',
+      st.reversus === null ? '—' : (st.reversus ? "Presente (e' medial > e' lateral)" : 'Ausente'),
+      st.reversus === true ? 'alarm' : (st.reversus === false ? 'none' : 'ask'),
+      'la nota c de la Figura S1 lo define como el e′ medial por tissue Doppler mayor que el lateral, y lo pone como una de las dos condiciones de la valoración completa: con las dos presentes la constricción es definitiva, con una sola sigue siendo lo más probable (hoja 6)',
+      ['escPeri2025']),
+    _indFila('Rebote septal', vt('Rebote septal', 'Presente', 'Ausente'), mk('Rebote septal'),
+      'es la primera condición de los criterios ecocardiográficos de la Clínica Mayo que la guía cita: rebote septal o desplazamiento del septo interventricular, acompañado por el e′ medial alto o por el cociente hepático (apartado 11.9.3, folio 63)',
+      ['escPeri2025']),
+    _indFila('Patrón venoso hepático', vt('Patrón venoso hepático', 'Inversión espiratoria', 'Inversión inspiratoria'),
+      mk('Patrón venoso hepático'),
+      'la inversión diastólica ESPIRATORIA es la que la guía asocia a constricción (apartado 11.9.3, folio 63)',
+      ['escPeri2025']),
+    _indFila('Cociente de inversión espiratoria hepática',
+      d.hepCoc !== null ? String(d.hepCoc).replace('.', ',') : '—',
+      (d.hepCoc !== null && d.hepCoc > CVR_HEP_COC_MIN) ? 'alarm' : (d.hepCoc !== null ? 'none' : 'ask'),
+      'es la segunda alternativa de los criterios de la Clínica Mayo, junto al rebote septal: un cociente de inversión diastólica espiratoria de la vena hepática por encima de ' + String(CVR_HEP_COC_MIN).replace('.', ',') + ', con sensibilidad del 87 % y especificidad del 91 % —que sube al 97 % si se cumplen todos los criterios, a costa de bajar la sensibilidad al 64 % (apartado 11.9.3, folio 63)—. ⚠️ La Figura S1 del material suplementario lo REDONDEA a 0,8 en su nota c (hoja 6): entre ' + String(CVR_HEP_COC_MIN).replace('.', ',') + ' y 0,80 las dos cifras de la misma guía dan resultados distintos, y la aplicación usa la del texto, que es la que trae esos dos porcentajes.',
+      ['escPeri2025']),
+    _indFila('Variación respiratoria de la onda E mitral', d.varM !== null ? _indNum(d.varM, 0, '%') : '—',
+      mk('Respirofasicidad mitral'),
+      'la guía dice que en estos pacientes puede registrarse una variación respirofásica del llenado mitral por encima del ' + DPT_VAR_MITRAL_SIG + ' % (apartado 11.9.3, folio 63). Es un hallazgo que ACOMPAÑA, no uno de los dos criterios de la Clínica Mayo.',
+      ['escPeri2025']),
+    _indFila('Variación respiratoria de la onda E tricúspide', d.varT !== null ? _indNum(d.varT, 0, '%') : '—',
+      mk('Respirofasicidad tricúspide'),
+      'mismo párrafo: por encima del ' + DPT_VAR_TRIC_SIG + ' % en el llenado tricuspídeo (folio 63)',
+      ['escPeri2025']),
+    _indFila('Plétora de vena cava inferior', vt('Plétora de VCI', 'Presente', 'Variable'), mk('Plétora de VCI'),
+      'la Figura S1 pide una vena cava DILATADA, sin dar cifra, y la aplicación usa la de la Tabla 17 —por encima de ' + DPT_VCI_PLETORA_MM + ' mm con reducción menor del 50 %— porque es la única que esa guía publica (folio 62). ⚠️ La nota a de la Figura S1 avisa de que es un hallazgo de APOYO y de que puede faltar en el paciente que toma diuréticos (hoja 6).',
+      ['escPeri2025']),
+    _indFila('Engrosamiento pericárdico en TC o RMC',
+      vt('Engrosamiento pericárdico', 'Engrosado o calcificado', 'Normal'), mk('Engrosamiento pericárdico'),
+      'un pericardio normal NO descarta: la guía dice que hasta el 20 % de las constricciones cursan con grosor pericárdico normal, y que los casos típicos y avanzados muestran engrosamiento y calcificación (apartado 11.9.2, folio 63). ⚠️ El corte de 3 mm del selector de la aplicación no figura en el texto verificado: es criterio propio y por eso esta fila no lo cita.',
+      ['escPeri2025']),
+    /* ⚠️ SIN CORCHETE: ni el e' lateral ni el E/e' salen de esta guia. */
+    _indFila("e' lateral y E/e' promedio",
+      (d.elat !== null || d.ee !== null)
+        ? ((d.elat !== null ? n1(d.elat) + ' cm/s' : '—') + " · E/e' " + (d.ee !== null ? n1(d.ee) : '—'))
+        : '—',
+      'none',
+      "criterio de EcoSmart: el e' lateral de " + CVR_ELAT_CM_S + ' cm/s y el E/e′ de ' + CVR_EE_ALTO + " son criterios MAYORES de función diastólica del HFA-PEFF (Pieske 2019, folio 3303: «lateral e' <10 cm/s» y «average septal-lateral E/e' ratio ≥15»), no cortes de la distinción entre constricción y restricción. La aplicación los usa acá por decisión propia, y por eso esta fila no lleva cita."),
+    _indFila('Recuento de criterios',
+      'constricción ' + st.nC + ' · restricción ' + st.nR + ' · específicos del pericardio evaluados ' + st.espEval,
+      'none',
+      'criterio de EcoSmart: cuántos criterios hacen falta de cada lado, y cuáles cuentan, es una regla propia de la aplicación. Ninguna guía de la biblioteca publica un recuento así, y por eso esta fila no lleva cita. La guía razona por el algoritmo de la Figura S1, no por conteo.'),
+    _indFilaCtrl('¿La imagen multimodal —ecocardiografía, TC y RMC— fue CONCLUYENTE?', 'constr.imagen',
+      [{v:'si',t:'Sí'},{v:'no',t:'No'}],
+      concl == null ? 'ask' : (concl === 'no' ? 'alarm' : 'none'),
+      'es la única condición que la guía le pone al cateterismo: sólo se considera cuando la imagen multimodal no invasiva no es concluyente (apartado 11.9.3, folio 63, y Recommendation Table 24, folio 64). La aplicación no puede saberlo: depende de la TC y de la resonancia, que no vive acá.',
+      ['escPeri2025'])
+  ];
+
+  const rec = [], faltan = [];
+  rec.push({ txt:'Clase I · Nivel C — La guía RECOMIENDA la imagen multimodal en todo paciente con sospecha de pericarditis constrictiva, para hacer el diagnóstico y para valorar el engrosamiento pericárdico, las calcificaciones y la inflamación activa (Recommendation Table 24, folio 64).', refs:['escPeri2025'] });
+  if (concl === 'no') {
+    rec.push({ txt:'Clase IIa · Nivel C — Con la imagen multimodal NO concluyente, la guía dice que SE DEBE CONSIDERAR el cateterismo cardíaco para valoración hemodinámica en el paciente con sospecha de pericarditis constrictiva (Recommendation Table 24, folio 64).', refs:['escPeri2025'] });
+  } else if (concl === 'si') {
+    rec.push({ txt:'Con la imagen multimodal concluyente, el cateterismo NO corresponde por esta guía: su única fila lo condiciona a que la imagen no invasiva no sea concluyente (Recommendation Table 24, folio 64; mismo sentido en el apartado 11.9.3, folio 63).', refs:['escPeri2025'] });
+  } else {
+    faltan.push({ txt:'Falta contestar si la imagen multimodal fue concluyente: es la única condición que la guía le pone al cateterismo, y sin ella esa fila no se puede evaluar.', refs:null });
+  }
+
+  const bloques = [
+    { tit:'Guía europea de miocarditis y pericarditis — pericarditis constrictiva, diagnóstico (folio 64)',
+      lineas: rec,
+      nota:'El informe y la conclusión de la aplicación son DESCRIPTIVOS: estas recomendaciones se publican acá y no en el papel firmado. Desde el 24/10/2026 el módulo ya no pide confirmación invasiva en la pantalla, en el informe ni en el PDF — la pedía siempre, y la guía la condiciona.' }
+  ];
+  if (faltan.length) bloques.push({ tit:'Lo que falta contestar', plegado:true, lineas: faltan });
+
+  return { filas: filas, bloques: bloques, compacta: true,
+    guia: { ref:'escPeri2025',
+      txt:'El diagnóstico se hace por imagen multimodal —ecocardiografía, tomografía y resonancia—. Los criterios ecocardiográficos de la Clínica Mayo que la guía cita piden rebote septal o desplazamiento del septo ventricular, acompañado por un e′ medial por encima de ' + CVR_ESEP_CONSTR_MIN + ' cm/s O por un cociente de inversión diastólica espiratoria de la vena hepática por encima de ' + String(CVR_HEP_COC_MIN).replace('.', ',') + ' (apartado 11.9.3, folio 63).',
+      nota:'Esta sección es la del DIAGNÓSTICO. Las filas de TRATAMIENTO de la Recommendation Table 24 —antiinflamatorios en la constricción transitoria y pericardiectomía en la permanente, las dos Clase I · Nivel C— no se publican acá porque dependen de la inflamación pericárdica y de la respuesta al tratamiento, que esta aplicación no registra: serían filas que ningún dato del estudio puede encender ni apagar.' },
+    notas: rec.map(function(l){ return l.txt }) };
+}
+
 const IND_SECS = [
   { tit:'Estenosis aórtica',                     fn:_indEA },
   { tit:'Insuficiencia mitral primaria',         fn:_indIM },
@@ -81816,7 +81936,8 @@ const IND_SECS = [
      VEINTICUATRO ANTERIORES: `IND_SECS` se recorre buscando la seccion por el PREFIJO de su
      titulo, asi que un titulo que sea prefijo de otro deja una de las dos sin probar.
      Verificado contra los veinticuatro y entre si. */
-  { tit:'Derrame pericárdico y taponamiento', fn:_indDerrPeri }
+  { tit:'Derrame pericárdico y taponamiento', fn:_indDerrPeri },
+  { tit:'Constricción pericárdica — diagnóstico', fn:_indConstr }
 ];
 
 function indicRender(){
