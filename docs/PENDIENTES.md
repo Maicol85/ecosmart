@@ -7303,3 +7303,27 @@ pide signo. Hoy es **inerte**: nada llama `checkValidity()` en todo el archivo (
 coincidencias) y el `pattern` sin un `form` que valide no hace nada. Queda declarado porque el día
 que alguien active validación, este campo quedaría inválido y el único síntoma sería un borde rojo
 sin mensaje. También lo cazó `/sharp-edges`.
+
+---
+
+### AJ5-j · El arnés levantaba el login a mitad de la corrida, y era un falso rojo de dos horas
+
+**Qué se encontró.** Hay casos que ejercitan `cerrarSesionReal()` —el botón «Cerrar»— y eso borra
+`ett_auth` y levanta `#login-overlay`, que es `position:fixed` con z-index altísimo: **todo caso
+posterior que CLIQUEE mide debajo de él y sus clics no llegan**. TC-421(e) ya se reabría a mano por
+este motivo y lo dice en su comentario; el caso de la corrección del Doppler esconde el overlay
+pero **no repone la clave**.
+
+**Cómo se vio.** Agregar los cinco casos de la AJ5 no cambió el árbol pero sí el **ORDEN**, y
+TC-252 y TC-246 pasaron a correr DESPUÉS del que cierra sesión: salían rojos en la corrida completa
+y **verdes aislados**, dos veces, en el mismo árbol sellado. El mensaje de TC-252 lo decía con
+todas las letras: «TAPADO POR: DIV#login-overlay[fixed]». Y una segunda corrida completa los dio
+**verdes** sin tocar nada, así que el patrón era de orden y no de código.
+
+**Qué puede causar.** Es el modo de falla más caro de este arnés: un rojo que no apunta a su causa
+y que aparece y desaparece según cuántos casos haya. Con la suite creciendo, cada tanda nueva puede
+mover el orden y romper otro puñado de casos que cliquean.
+
+**Cómo se corrigió.** Una línea en el bucle de casos, al lado de `resetVisor` y por el mismo
+argumento —un caso que hereda estado falla con un diagnóstico que no apunta a su causa—: antes de
+cada caso se repone `ett_auth` y se baja el overlay. **No se tocó el código de la app.**

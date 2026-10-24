@@ -86974,6 +86974,21 @@ try {
        acá y no dentro de los casos para que ninguno pueda olvidarse — un caso que hereda estado
        falla con un diagnóstico que no apunta a su causa. */
     try { await ev('return __t.resetVisor();'); } catch (e) {}
+    /* ⚠️ Y LA SESION SE REABRE ANTES DE CADA CASO (AJ5, 2026-10-24). Hay casos que ejercitan
+       `cerrarSesionReal()` —el boton «Cerrar»— y eso BORRA `ett_auth` y levanta `#login-overlay`,
+       que es `position:fixed` con z-index altisimo: todo caso posterior que CLIQUEE mide debajo de
+       el y sus clics no llegan. TC-421(e) ya se reabria a mano por este motivo; el de la correccion
+       del Doppler esconde el overlay pero NO repone la clave.
+       Se vio al agregar los cinco casos de la AJ5: el denominador no cambio —el arbol es el
+       mismo— pero el ORDEN si, y TC-252 y TC-246 pasaron a correr DESPUES del que cierra sesion.
+       Salian rojos en la corrida completa y verdes aislados, y el mensaje de TC-252 lo decia con
+       todas las letras: «TAPADO POR: DIV#login-overlay[fixed]». Dos horas de un falso rojo.
+       Va ACA y no en cada caso, por el mismo argumento que `resetVisor`: un caso que hereda
+       estado falla con un diagnostico que no apunta a su causa. */
+    try { await ev(`try { sessionStorage.setItem('ett_auth','1') } catch (e) {}
+      var ov = document.getElementById('login-overlay');
+      if (ov && ov.style.display !== 'none') ov.style.display = 'none';
+      return 1;`); } catch (e) {}
     let fallos;
     try { fallos = evaluar(await ev(c.fn)); }
     catch (e) { fallos = [['excepcion', e.message, '']]; }
