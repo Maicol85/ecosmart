@@ -52367,8 +52367,58 @@ function generarInforme(opts) {
     const _imSinGrado = !(imG > 0) && !_imManual && _pillM('insuf');
     const estE = estEGrado || (_emSinGrado ? 'estenosis' : null);
     const estC = estCGrado || (_emSinGrado ? 'estenosis' : null);
-    const insE = (imG > 0) ? `insuficiencia ${imTxt[imG]}${_imFundG}` : (_imSinGrado ? 'insuficiencia' : null);
-    const insC = (imG > 0) ? `IM ${imTxt[imG]}${_imFundG}` : (_imSinGrado ? 'insuficiencia' : null);
+    /* ══ EL MECANISMO Y EL CARPENTIER, ENTRE PARÉNTESIS (AJ5-3, 2026-10-24) ═════════════
+       DECISIÓN DE MAICOL: «Válvula mitral … con insuficiencia moderada (mecanismo secundario;
+       Carpentier II).»
+       ⚠️ VA PEGADO A LA INSUFICIENCIA Y NO A LA ORACIÓN, y eso no es comodidad: así entra en las
+       CUATRO ramas de `vmSent` y en los TRES estilos de una sola vez. Escrito en cada rama serían
+       DOCE literales, y el que se olvida deja un estilo del informe FIRMADO sin el mecanismo — que
+       es exactamente el defecto que `_vdDisfTxt` vino a cerrar en el VD.
+       ⚠️ Y POR ESO MISMO NO LLEGA AL EN SUMA, que es lo que la orden pide. Esa cascada usa `insE`
+       SÓLO como booleano (`else if (insE) suma.push('IM presente.')`) y escribe su propio texto
+       con `imTxt[imG]`: medido en las tres superficies, el resumen sale idéntico.
+       ⚠️ SON TRES ESTILOS Y NO CUATRO. La orden nombraba «Conciso, Estándar, Narrativo, CC»:
+       `estiloPick(c, e, n)` tiene TRES brazos y «CC» no es un estilo de informe —es la
+       sub-pestaña «CC / Genéticas» del Laboratorio y el bloque integrable de C. Congénitas, que
+       no reescribe la oración de la mitral—. Reportado, no inventado.
+       ⚠️ TRES REGLAS, Y LAS TRES SON «NO AFIRMAR»: un campo en «—» no aporta su mitad; con las
+       dos vacías no hay paréntesis; y sobre una PRÓTESIS no se escribe nada —`_vmProt`, el mismo
+       predicado que ya gatea la rama de prótesis—, porque el Carpentier y el mecanismo describen
+       una válvula NATIVA: es la misma regla que `vmEsProtesis` aplica a los descriptores nativos.
+       Sin insuficiencia tampoco sale: el texto cuelga de `insE`/`insC`, que son `null` ahí.
+       ⚠️ `_vmProt` SE DECLARA ACÁ Y ANTES VIVÍA 28 LÍNEAS MÁS ABAJO. Se MOVIÓ, no se copió: una
+       segunda lectura de la misma pregunta es la lista paralela que este archivo ya pagó tres
+       veces, y el comentario de esa declaración dice, textual, que las superficies «tienen que
+       preguntar lo mismo». Todo lo que lo lee sigue estando DESPUÉS.
+       ⚠️ LOS DOS VALORES SALEN DE LOS RESOLVEDORES (`vmTipoIMEfectivo`, `vmCarpEfectivo`) Y NO
+       DE UN NODO: un estudio guardado ANTES de esta tanda trae el dato sólo del lado ETE, y
+       rellenar el de Válvulas al abrirlo sería migrar un estudio guardado. Con `typeof` porque
+       viven ~6.000 líneas más abajo; fallan hacia NO escribir paréntesis, que es la dirección
+       barata.
+       ⚠️ Y EL PARÉNTESIS VA DESPUÉS DE `_imFundG`, QUE TAMBIÉN ES UN PARÉNTESIS. Con un
+       fundamento escrito a mano —sólo cuando el grado manual discrepa del calculado— la frase
+       sale con DOS paréntesis seguidos: «insuficiencia severa (jet excéntrico) (mecanismo
+       secundario)». Dicen cosas distintas y fusionarlos reescribiría el texto del médico, así que
+       quedan separados y declarado en `docs/PENDIENTES.md` → AJ5-c. */
+    const _vmProt = (typeof protNoGradua === 'function') && protNoGradua('vm_morf');
+    const _imMecCarp = (function () {
+      if (_vmProt) return '';
+      const _p = [];
+      const _mec = (typeof vmTipoIMEfectivo === 'function') ? vmTipoIMEfectivo() : '';
+      /* Los dos tokens se nombran y NO se imprime lo que venga: un valor que el desplegable no
+         ofrece no puede llegar al papel firmado como si fuera un mecanismo. */
+      /* ⚠️ EL GÉNERO SE CONCUERDA CON «mecanismo» Y NO SE IMPRIME EL TOKEN CRUDO. El valor del
+         desplegable es 'primaria'/'secundaria' —concuerda con «insuficiencia», que es su rótulo
+         en pantalla— y el informe FIRMADO decía «mecanismo secundaria». Lo cazó la sonda, no la
+         lectura. El texto aprobado es «mecanismo secundario». */
+      const _MEC_TXT = { primaria: 'primario', secundaria: 'secundario' };
+      if (_MEC_TXT[_mec]) _p.push('mecanismo ' + _MEC_TXT[_mec]);
+      const _carp = (typeof vmCarpEfectivo === 'function') ? vmCarpEfectivo() : '';
+      if (['I', 'II', 'IIIa', 'IIIb'].indexOf(_carp) >= 0) _p.push('Carpentier ' + _carp);
+      return _p.length ? ' (' + _p.join('; ') + ')' : '';
+    })();
+    const insE = (imG > 0) ? `insuficiencia ${imTxt[imG]}${_imFundG}${_imMecCarp}` : (_imSinGrado ? `insuficiencia${_imMecCarp}` : null);
+    const insC = (imG > 0) ? `IM ${imTxt[imG]}${_imFundG}${_imMecCarp}` : (_imSinGrado ? `insuficiencia${_imMecCarp}` : null);
     /* El EN SUMA de una valvulopatía sin grado es SÓLO LA SIGLA (decisión de Maicol): «EM.», no
        «Estenosis mitral.». Lo que la conclusión afirma es que la válvula está comprometida, y
        cualquier palabra de más —«significativa», «presente»— es un grado encubierto sobre un
@@ -52395,7 +52445,10 @@ function generarInforme(opts) {
        La INSUFICIENCIA mitral SÍ se resume sobre una prótesis —ASE 2024, los criterios de
        regurgitación protésica son los de la válvula nativa— que es la misma asimetría que `_pE`
        aplica en el cuerpo dejando pasar `insE`. */
-    const _vmProt = (typeof protNoGradua === 'function') && protNoGradua('vm_morf');
+    /* `_vmProt` SE DECLARA AHORA ~30 LÍNEAS MÁS ARRIBA, junto al paréntesis del mecanismo de la
+       AJ5-3, que es su primer lector. Se movió y no se duplicó: sigue siendo UNA sola lectura de
+       `protNoGradua('vm_morf')` para la cascada del EN SUMA, para la rama de prótesis del cuerpo
+       y para el paréntesis nuevo, que es lo que el comentario de su declaración exige. */
     /* ⚠️ `!_emCatAct` Y NO `emCat.clave === 'nada'` (2026-10-08) — UN «SIN ESTENOSIS» DEL MÉDICO
        BORRABA DEL PAPEL LOS DOS NÚMEROS QUE LA PANTALLA MUESTRA. Medido en HEAD con AVm 1,20 por
        planimetría y gradiente medio 9: la categoría es `severa`, `emSinExplicito` la SILENCIA —que
