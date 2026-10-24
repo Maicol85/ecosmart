@@ -73356,6 +73356,29 @@ const IND_REFS = Object.freeze([
          'diagnóstico diferencial entre constricción y restricción, con los tramos del e\' ' +
          'medial (>8, 6-8 mixto, <6) y, en su nota c, el cociente de inversión espiratoria de ' +
          'las venas hepáticas REDONDEADO a >0,8.' },
+  { k:'vexus2020',
+    full:'Beaubien-Souligny W, Rola P, Haycock K, et al. Quantifying systemic congestion with ' +
+         'Point-Of-Care ultrasound: development of the venous excess ultrasound grading system. ' +
+         'Ultrasound J 2020;12(1):16. doi:10.1186/s13089-020-00163-w. Acceso abierto; el artículo ' +
+         'se pagina 1-12 y el pie impreso dice «Page N of 12». ' +
+         'Figura 1, página 3 — leída en imagen: los cinco prototipos de graduación. La columna ' +
+         'VExUS C, que es la que esta aplicación implementa, define grado 0 con vena cava menor ' +
+         'de 2 cm; grado 1 con vena cava de 2 cm o más y patrones normales o levemente alterados; ' +
+         'grado 2 con vena cava de MÁS de 2 cm y alteración severa en al menos un patrón; y grado ' +
+         '3 con vena cava de MÁS de 2 cm y alteración severa en varios patrones. ' +
+         'Resumen, página 1 — leído en imagen: análisis post hoc de un estudio prospectivo de un ' +
+         'solo centro en 145 pacientes de cirugía cardíaca, con 706 valoraciones ecográficas. ' +
+         'La congestión venosa severa definida como alteraciones severas en varios patrones ' +
+         'Doppler con vena cava dilatada mostró la asociación más fuerte con la injuria renal ' +
+         'aguda posterior (HR 3,69; IC 1,65-8,24; p = 0,001), que se mantuvo tras ajustar por el ' +
+         'riesgo basal de injuria renal y por el soporte vasopresor o inotrópico (HR 2,82; IC ' +
+         '1,21-6,55; p = 0,02), y ofreció un cociente de probabilidad positivo de 6,37 (IC ' +
+         '2,19-18,50) cuando se detectó al ingreso a cuidados intensivos, por encima de la ' +
+         'presión venosa central. Su conclusión dice que la combinación de varios marcadores de ' +
+         'ecografía en el punto de atención PUEDE identificar congestión venosa clínicamente ' +
+         'significativa. ' +
+         '⚠️ EL ARTÍCULO NO PUBLICA CONDUCTAS POR GRADO: no hay en él ninguna tabla ni párrafo ' +
+         'que diga qué hacer con un VEXUS 1, 2 o 3.' },
   { k:'aseEte2013',
     full:'ASE/SCA 2013 — Guía para realizar un examen transesofágico multiplano completo. ' +
          'Hahn RT, Abraham T, Adams MS, et al. J Am Soc Echocardiogr 2013;26(9):921-964. ' +
@@ -81918,6 +81941,91 @@ function _indConstr(){
     notas: rec.map(function(l){ return l.txt }) };
 }
 
+/* ══ EVIDENCIA · CONGESTION VENOSA SISTEMICA — VExUS (J-6, 2026-10-24) ══════════════════════
+   Seccion CHICA, y chica por una razon: la fuente es UN articulo original, no una guia, y lo
+   unico que publica es la graduacion y su asociacion con la injuria renal aguda. No hay clase ni
+   nivel porque el articulo no los da, y escribirlos seria inventarlos.
+
+   ⚠️ LAS TRES FRASES DE MANEJO VAN CON EL CHIP «CRITERIO DE ECOSMART» Y SIN CORCHETE. Son las
+   que el commit J-5 saco de la pantalla, del informe firmado y de la hoja del PDF. El articulo NO
+   da pasos por grado -censado: ni una tabla ni un parrafo- y tampoco se cita ningun otro trabajo
+   como fuente de pasos por grado, porque no se encontro ninguno de acceso libre que los de.
+   Citar el articulo al lado de esas frases respaldaria con una fuente verificada algo que esa
+   fuente no dice. */
+function _indVexus(){
+  const vxFn = _indFn('vexusEstado');
+  if (!vxFn) return null;
+  let st = null;
+  try { st = vxFn(); } catch (e) { return null; }
+  /* Compuerta del MISMO dueno que el modulo: sin score no hay seccion. `vexusGrado` ya decide
+     que sin ninguna vena interrogada no se informa grado, ni siquiera 0. */
+  if (!st || st.score === null) return null;
+
+  const vasoTxt = function(id){
+    const e = document.getElementById(id);
+    if (!e || e.value === '') return '—';
+    return e.options[e.selectedIndex].text;
+  };
+  const vasoMarca = function(id){
+    const x = _indS(id);
+    return x === '' ? 'ask' : (x === '2' ? 'alarm' : (x === '1' ? 'warn' : 'none'));
+  };
+
+  const filas = [
+    _indFila('Diámetro de la vena cava inferior',
+      st.vciDiam != null ? _indNum(st.vciDiam, 0, 'mm') : '—',
+      (st.vciDiam != null && st.vciDiam > VEXUS_VCI_MM) ? 'alarm'
+        : (st.vciDiam != null && st.vciDiam >= VEXUS_VCI_MM ? 'warn' : 'none'),
+      'la Figura 1 del artículo usa DOS cortes y no uno: el grado 1 pide una vena cava de ' + VEXUS_VCI_MM + ' mm O MÁS, y los grados 2 y 3 piden MÁS de ' + VEXUS_VCI_MM + ' mm (página 3). En los ' + VEXUS_VCI_MM + ' mm exactos con vasos severos la figura no tiene fila, y esta aplicación elige el grado menor, que es el que no afirma de más.',
+      ['vexus2020']),
+    _indFila('Vena suprahepática', vasoTxt('vexus_sh'), vasoMarca('vexus_sh'),
+      'el patrón hepático es levemente anormal cuando la onda sistólica es menor que la diastólica pero sigue dirigida al hígado, y severamente anormal cuando la sistólica se invierte hacia el corazón (pie de la Figura 1, página 3)',
+      ['vexus2020']),
+    _indFila('Vena porta', vasoTxt('vexus_pv'), vasoMarca('vexus_pv'),
+      'el patrón portal es levemente anormal con una variación de velocidades del 30 % a menos del 50 % durante el ciclo cardíaco, y severamente anormal con una variación del 50 % o más (pie de la Figura 1, página 3)',
+      ['vexus2020']),
+    _indFila('Vena intrarrenal', vasoTxt('vexus_ir'), vasoMarca('vexus_ir'),
+      'el patrón intrarrenal es levemente anormal cuando es discontinuo con una fase sistólica y una diastólica, y severamente anormal cuando es discontinuo con SÓLO una fase diastólica (pie de la Figura 1, página 3)',
+      ['vexus2020']),
+    _indFila('Grado VExUS', 'VEXUS ' + st.score,
+      st.score === 3 ? 'alarm' : (st.score === 2 ? 'warn' : 'none'),
+      'el grado lo decide CUÁNTOS patrones están severos, no cuál es el peor: uno solo es grado 2 y dos o más es grado 3 (Figura 1, columna VExUS C, página 3)',
+      ['vexus2020']),
+    _indFila('Cobertura del protocolo',
+      st.evaluados + (st.evaluados === 1 ? ' de 3 venas interrogada' : ' de 3 venas interrogadas'),
+      st.evaluados < 3 ? 'warn' : 'none',
+      'con menos de las tres venas el grado puede estar subestimado: el protocolo gradúa por cuántos patrones severos hay, así que una vena que nadie miró no puede sumar')
+  ];
+
+  const art = [
+    { txt:'En 145 pacientes de cirugía cardíaca, con 706 valoraciones ecográficas, definir la congestión venosa severa como la presencia de alteraciones severas en VARIOS patrones Doppler junto con una vena cava dilatada fue lo que más se asoció con la aparición posterior de injuria renal aguda, por encima de las otras combinaciones probadas (riesgo relativo instantáneo 3,69; intervalo de confianza 1,65 a 8,24; p = 0,001). Resumen, página 1.', refs:['vexus2020'] },
+    { txt:'Esa asociación se mantuvo tras ajustar por el riesgo basal de injuria renal aguda y por el soporte vasopresor o inotrópico (riesgo relativo instantáneo 2,82; intervalo de confianza 1,21 a 6,55; p = 0,02). Resumen, página 1.', refs:['vexus2020'] },
+    { txt:'Detectado al ingreso a cuidados intensivos, ese grado severo ofreció un cociente de probabilidad positivo de 6,37 (intervalo de confianza 2,19 a 18,50), por encima de la medición de la presión venosa central. Resumen, página 1.', refs:['vexus2020'] },
+    { txt:'La conclusión del artículo es que la combinación de varios marcadores de ecografía en el punto de atención PUEDE identificar congestión venosa clínicamente significativa. No afirma más que eso, y no publica ninguna conducta por grado. Resumen, página 1.', refs:['vexus2020'] }
+  ];
+
+  /* ⚠️ SIN CORCHETE, LAS TRES. Ver la nota de la cabecera de esta funcion. */
+  const propio = [
+    { txt:'Criterio de EcoSmart — grado 1: monitorizar la evolución y considerar el balance hídrico.', refs:null },
+    { txt:'Criterio de EcoSmart — grado 2: evaluar la necesidad de descongestión.', refs:null },
+    { txt:'Criterio de EcoSmart — grado 3: considerar descongestión activa, con diuréticos o ultrafiltración según el contexto clínico, y reevaluar con el tratamiento.', refs:null }
+  ];
+
+  return { filas: filas, compacta: true,
+    bloques: [
+      { tit:'Lo que el artículo original mide (Ultrasound J 2020, páginas 1 y 3)',
+        lineas: art,
+        nota:'No hay clase ni nivel de recomendación: la fuente es un artículo original de desarrollo de la graduación, no una guía de práctica clínica, y no los publica. Escribirlos sería inventarlos.' },
+      { tit:'Conducta por grado — criterio de EcoSmart, SIN fuente', plegado:true,
+        lineas: propio,
+        nota:'Estas tres frases se publicaban hasta el 24/10/2026 en la pantalla, en el cuerpo del informe firmado y en la hoja del PDF. Hoy viven sólo acá. El artículo NO da pasos por grado, y no se cita ninguna otra fuente para ellos: son una decisión de la aplicación y por eso no llevan corchete.' }
+    ],
+    guia: { ref:'vexus2020',
+      txt:'La graduación sale de la Figura 1 del artículo, columna VExUS C: grado 0 con vena cava por debajo de ' + VEXUS_VCI_MM + ' mm; grado 1 con ' + VEXUS_VCI_MM + ' mm o más y patrones normales o levemente alterados; grado 2 con más de ' + VEXUS_VCI_MM + ' mm y un patrón severo; grado 3 con más de ' + VEXUS_VCI_MM + ' mm y dos o más patrones severos (página 3).',
+      nota:'Los patrones venosos se alteran sin que haya congestión en la fibrilación auricular y en la ventilación mecánica, así que el grado se integra con la clínica. Esa salvedad también sale en el informe y en la hoja del PDF, que es donde está la medición que la sostiene.' },
+    notas: art.map(function(l){ return l.txt }) };
+}
+
 const IND_SECS = [
   { tit:'Estenosis aórtica',                     fn:_indEA },
   { tit:'Insuficiencia mitral primaria',         fn:_indIM },
@@ -81969,7 +82077,8 @@ const IND_SECS = [
      titulo, asi que un titulo que sea prefijo de otro deja una de las dos sin probar.
      Verificado contra los veinticuatro y entre si. */
   { tit:'Derrame pericárdico y taponamiento', fn:_indDerrPeri },
-  { tit:'Constricción pericárdica — diagnóstico', fn:_indConstr }
+  { tit:'Constricción pericárdica — diagnóstico', fn:_indConstr },
+  { tit:'Congestión venosa sistémica — VExUS', fn:_indVexus }
 ];
 
 function indicRender(){
