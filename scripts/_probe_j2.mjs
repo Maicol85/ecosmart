@@ -1123,6 +1123,55 @@ window.__Y = {
     process.stderr.write('[evid] listo\n');
   }
 
+  /* ── GRUPO `dbg` · diagnostico puntual de las condiciones rojas de TC-532 ───────────────── */
+  if (corre('dbg')) {
+    const r = {};
+    try {
+      await escena('constr');
+      r.ev = await ev(`(function(){
+        try { indicRender() } catch(e) { return 'EXC ' + e.message }
+        var cu = document.getElementById('indic-cuerpo'); if (!cu) return 'NO CUERPO';
+        var o = [];
+        [].slice.call(cu.children).forEach(function(d){
+          if (d.tagName !== 'DETAILS') { o.push({ tag: d.tagName }); return; }
+          var su = d.querySelector('summary');
+          o.push({ tag:'DETAILS', tit: su ? (su.textContent||'').replace(/\\s+/g,' ').trim().slice(0,60) : 'SIN SUMMARY' });
+        });
+        return o })()`);
+      r.constrTxt = await ev(`(function(){
+        var cu = document.getElementById('indic-cuerpo'); var hit=null;
+        [].slice.call(cu.children).forEach(function(d){
+          if (hit || d.tagName !== 'DETAILS') return;
+          var su = d.querySelector('summary');
+          if (su && (su.textContent||'').replace(/\\s+/g,' ').trim().indexOf('Constricción pericárdica') === 0) hit = d; });
+        if (!hit) return 'NO HAY';
+        var t = (hit.textContent||'').replace(/\\s+/g,' ');
+        var i = t.indexOf('Clase IIa');
+        return { tieneIIa: i, ctx: i<0 ? '' : t.slice(Math.max(0,i-160), i+200) } })()`);
+      await escena('tapoSignos');
+      r.periCount = await ev(`(function(){
+        try { indicRender() } catch(e) {}
+        [['peri.tapoclin','si'],['peri.sintomas','si'],['peri.etio','no'],['peri.percut','no'],['peri.recidiva','si']]
+          .forEach(function(p){ var b=document.querySelector('[data-ind-clin="'+p[0]+'"][data-ind-val="'+p[1]+'"]'); if(b) b.click(); });
+        var cu = document.getElementById('indic-cuerpo'); var hit=null;
+        [].slice.call(cu.children).forEach(function(d){
+          if (hit || d.tagName !== 'DETAILS') return;
+          var su = d.querySelector('summary');
+          if (su && (su.textContent||'').replace(/\\s+/g,' ').trim().indexOf('Derrame pericárdico') === 0) hit = d; });
+        if (!hit) return 'NO HAY';
+        var t = (hit.textContent||'').replace(/\\s+/g,' ');
+        return { claseI: (t.match(/Clase I · Nivel C/g)||[]).length,
+                 rt12: (t.match(/Recommendation Table 12, folio 43/g)||[]).length,
+                 drenaje: t.indexOf('drenaje pericárdico quirúrgico'),
+                 ventana: t.indexOf('ventana pleuropericárdica quirúrgica'),
+                 peri: t.indexOf('Clase I · Nivel C — La guía RECOMIENDA la pericardiocentesis') } })()`);
+      r.fns = await ev(`['fopEstado','tepScore','calcHTP2022','_htp2022Core','fopGrado','tepEstado']
+        .map(function(n){ return n + '=' + (typeof window[n]) })`);
+    } catch (e) { r.err = e.message }
+    out.grupos.dbg = r;
+    process.stderr.write('[dbg] listo\n');
+  }
+
   /* ── GRUPO `sup` · las cuatro superficies, escena por escena ────────────────────────────── */
   if (corre('sup')) {
     const r = {};
@@ -1181,14 +1230,14 @@ window.__Y = {
               Array.prototype.forEach.call(cu.children, function(d){
                 if (hit || d.tagName !== 'DETAILS') return;
                 var su = d.querySelector('summary');
-                if (su && (su.textContent||'').replace(/\s+/g,' ').trim().indexOf(${JSON.stringify(pref)}) === 0) hit = d;
+                if (su && (su.textContent||'').replace(/\\s+/g,' ').trim().indexOf(${JSON.stringify(pref)}) === 0) hit = d;
               });
               if (!hit) return 'NO HAY';
               hit.open = true; hit.scrollIntoView({ block: 'start' }); return 'ok' })()`);
             if (ab !== 'ok') { r['ev_' + pref.slice(0, 7)] = ab; continue; }
             await pausa(200);
             r['ev_' + pref.slice(0, 7) + '_' + TAG + '_' + w + (claro ? '_claro' : '_oscuro')] =
-              await shot('evid_' + pref.slice(0, 7).replace(/\s/g, '') + '_' + TAG + '_' + w + (claro ? '_claro' : '_oscuro'));
+              await shot('evid_' + pref.slice(0, 7).replace(/\\s/g, '') + '_' + TAG + '_' + w + (claro ? '_claro' : '_oscuro'));
           }
           await ev(`(function(){ var p=document.getElementById('indic-panel'); if(p) p.style.display='none'; return 1 })()`);
         }

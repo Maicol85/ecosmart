@@ -392,3 +392,13 @@ tercera vez que este repo lo paga—.
 Están ahí: **TC-481**, **TC-482** (las dos tandas del 2026-10-15 por la tarde) y **TC-485** (la
 tanda «Y3» del 2026-10-16, con sus ocho bloques, sus 42 condiciones en rojo contra HEAD y el
 porqué de cada centinela).
+
+---
+
+## ⚠️ El caso de la tanda J (2026-10-24)
+
+**TC-532** cubre el pericardio y el taponamiento, la constricción y VEXUS de esa tanda. Su ficha
+—qué afirma cada bloque, los cuatro denominadores, los cuatro controles negativos y las tres
+trampas que el caso ya pagó— está en **`docs/mapa/tests-fichas-532.md`**, en archivo propio
+porque `tests-fichas.md` está a 800 bytes del techo de 35 KB.
+Las mutaciones dirigidas que lo hacen fallar viven en **`scripts/_mut_j.py`**.

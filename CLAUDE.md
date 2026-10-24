@@ -72,7 +72,7 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Tocar la REGLA del aneurisma del septum, el selector de LATIDOS, la compuerta de la EVIDENCIA de la VAB o las barras de C. CONGÉNITAS**: el operador estricto, el lado como condición, la frase de un solo dueño, el «No» que vacía el lado, `_indVABEsBicuspide` o la caja de Conclusión apilada | `docs/mapa/d2-correcciones.md` |
 | **Tocar el BLOQUE del ETT avanzado**: el barrido que lo mantiene al día, la marca de «editado a mano» y su campo persistido, el aviso ámbar, la confirmación al reintegrar o **la pregunta del RESULTADO del paso 3 del HFA-PEFF** | `docs/mapa/aj3-ett-avanzado.md` |
 | **Tocar algo que la tanda AJ6 movió** (24/10): el cuerpo del informe de la Fallot reparada —el esquema, la fila vacía y la conducta retirada—, su Evidencia compacta con la prosa en el ⓘ, la ecografía pulmonar en cuatro columnas, o Referencias y Calculadoras dejando de ser módulos opcionales con el buscador que tapa las fichas | `docs/mapa/aj6-fallot-pulmon-refs.md` |
-| **Agregar o correr un caso de prueba; A/B; mutación** | `docs/mapa/tests.md` · fichas en `docs/mapa/tests-fichas.md` (TC-499 en adelante), `docs/mapa/tests-fichas-496-498.md`, `docs/mapa/tests-fichas-491-495.md` y `docs/mapa/tests-fichas-481-490.md` |
+| **Agregar o correr un caso de prueba; A/B; mutación** | `docs/mapa/tests.md` · fichas en `docs/mapa/tests-fichas-532.md` (TC-532), `docs/mapa/tests-fichas.md` (TC-499 en adelante), `docs/mapa/tests-fichas-496-498.md`, `docs/mapa/tests-fichas-491-495.md` y `docs/mapa/tests-fichas-481-490.md` |
 | **Tocar el DIBUJO ESTÁTICO de la mitral en ETE**: la tabla única de festones por ángulo, la geometría, la línea del plano, el giro, las tres vistas con sus LETRAS DE FESTÓN, **la ORIENTACIÓN de la TRANSGÁSTRICA**, el PDF, los CUATRO DIBUJOS DE MEDIDAS TEER, **los CRITERIOS TEER y sus cortes** o **el ESPEJO de la FEVI y el DSFVI del TEER** | `docs/mapa/mitral-dibujo-estatico.md` |
 | **Tocar algo que la tanda R2 corrigió** (21/10): las cinco opciones del derrame y la traducción del token viejo, el repintado de la VAB con el gesto de la pastilla, los seis puntos de la probabilidad de HTP, el e′ medial en tres tramos, el espesor relativo y el criterio por eco de la amiloidosis, el SGL y la calculadora de cardio-oncología, el síndrome intersticial difuso por zonas, el índice cardiaco y la RVS, o la orejuela | `docs/mapa/tanda-r2-correcciones.md` |
 | **Tocar algo que la tanda R movió**: la lesión presente sin grado de la VAB, los cortes del TEER, la severidad de la disfunción del VD, el área de la AI, los grados del derrame, el taponamiento que ya no concluye, el VD/VI del TEP o los criterios declarados de Referencias | `docs/mapa/tanda-r-referencias.md` |
@@ -84,6 +84,7 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Tocar la VISTA 2D de las válvulas**: el lector único del estado, las tarjetas, la tabla de cavidades, el dibujo, los chorros o el «por qué» | `docs/mapa/vista-2d-valvulas.md` |
 | **Tocar el PANEL EN LÍNEA de la vista 2D**: el botón que prende y apaga, el apagado automático, la sincronía en vivo, el alto del dibujo o la línea de fase | `docs/mapa/vista-2d-en-linea.md` |
 | **Orientarse en otro módulo** (Congénitas, Laboratorio, PPT, Cardio-Onco, Pericardio) | `docs/mapa/congenitas-otros.md` |
+| **Tocar el DERRAME y el TAPONAMIENTO, la CONSTRICCIÓN vs RESTRICCIÓN o VEXUS**: la fase y la duración del colapso de la aurícula derecha, los DOS cortes de plétora de VCI de la app, el aviso invasivo retirado, el cociente de la vena suprahepática, los dos operadores de VCI de VExUS o las tres Evidencias nuevas | `docs/mapa/j-pericardio-constriccion-vexus.md` |
 | **Saber DÓNDE ESTÁ una pantalla**: la columna izquierda y la fila de arriba, Pericardio y masas, las dos sub-pestañas de Otros, el eco pulmonar unificado, Calculadoras dentro de Referencias, C. Congénitas, el Fonocardiograma retirado o la frase de Balik | `docs/mapa/pestanas-reorganizacion.md` |
 | **Citar un dato de una guía** (documento, folio, frase verificada) | `docs/fuentes/FUENTES.md` |
 | **Tocar la POSICIÓN del selector de origen mitral o de los dos campos de la prótesis TRICÚSPIDE, la regla de DOS O MÁS de su obstrucción, la onda E en cm/s, el Ar−A suplementario, la FEVI del Laboratorio o los dos toggles de PDF** | `docs/mapa/cortos-arreglos.md` |
@@ -324,6 +325,125 @@ impecable.
 > secciones de REGLAS (la regla de oro con su tabla de mapas, «Qué es EcoSmart», el panel de
 > Evidencia, el protocolo de verificación, las trampas conocidas, el flujo de trabajo,
 > SEGURIDAD y la tabla de Procedencia) siguen enteras y en su lugar, verificado byte por byte.
+### Pericardio y taponamiento, constricción y VEXUS — «J» (2026-10-24)
+
+- **Son SIETE commits, en el orden del encabezado, y los seis ítems se completaron enteros.**
+  `87a17f9` (J-1) · `f883476` (J-2) · `4f081cd` (J-3) · `c7d07b2` (J-4) · `b4ff8ec` (J-5) ·
+  `4326c2e` (J-6) · el de cobertura y documentación. Sello **`v20261024-1502`**.
+  Al **empezar**, `origin/main` estaba en **`2b9f3ef`** con **49** commits locales sin pushear;
+  al cerrar hay **56**, medidos con `git rev-list --count origin/main..HEAD` y no contados a mano.
+  **El push lo corre Maicol: esta tanda tenía orden expresa de NO pushear.**
+
+- **LAS TRES FUENTES SE LEYERON EN IMAGEN, no en texto extraído.** ESC 2025 de miocarditis y
+  pericarditis (ehaf192): Tabla 17 folio 62, Recommendation Table 12 folio 43, Recommendation
+  Table 24 folio 64, apartados 11.9.2 y 11.9.3 folio 63, y la Figura S1 del suplemento en la
+  hoja 6; la traducción de la SEC se cotejó en su folio impreso 70. Beaubien-Souligny 2020:
+  Figura 1 página 3 y el resumen de la página 1. Pieske 2019: folio 3303.
+  **El `Vexus.pdf` de la carpeta 22 SÍ es el artículo original** —Cowork no lo había podido
+  confirmar—, así que los commits 5 y 6 siguieron.
+
+- **EL DEFECTO MÁS GRANDE QUE CERRÓ, EN UNA LÍNEA: el colapso de la aurícula derecha estaba en
+  la FASE EQUIVOCADA.** La app decía «sistólico (≥1/3 del ciclo)» en el rótulo, en la frase del
+  informe y en la hoja del PDF; la Tabla 17 publica «Diastolic collapse of the RA». Y la fila de
+  **mayor especificidad de esa tabla** —la duración del colapso por encima de 0,34 del ciclo,
+  especificidad 100 %— **no tenía dónde cargarse**.
+
+- **DOS CORTES DE VCI EN LA MISMA APP, Y ES DELIBERADO.** El del pericardio bajó a **>20 mm** y
+  el del HTP sigue en 21, porque lo publica otra guía que esta orden excluía. El comentario que
+  decía «el MISMO criterio que la categoría C» era justo lo que hacía marcar plétora un
+  milímetro tarde. Medido en los cuatro bordes con teclas reales: 19 no, 20 no, 21 SÍ, 22 sí.
+
+- **VEXUS USABA UN SOLO OPERADOR DONDE EL ARTÍCULO USA DOS.** La Figura 1 pide «≥ 2 cm» para el
+  grado 1 y «> 2 cm» para el 2 y el 3; la app usaba `>= 20` para los cuatro, así que una vena
+  cava de 20,0 mm exactos con un vaso severo daba VEXUS 2 donde la figura **no tiene fila**. Se
+  elige el grado MENOR, que es el lado que no afirma de más. Medido en nueve combinaciones.
+
+- **TRES CONJUNTOS DE FRASES SALIERON DEL PAPEL FIRMADO**, y ninguno se borró de la app: el
+  aviso de confirmación invasiva de constricción (que se publicaba **siempre**, y la guía lo
+  condiciona a que la imagen no sea concluyente, Clase IIa · Nivel C), la recomendación de
+  cateterismo de la rama de criterios mixtos, y las tres conductas por grado de VEXUS. Las tres
+  viven hoy en Evidencia; las de VEXUS con el chip «Criterio de EcoSmart», porque **el artículo
+  no da pasos por grado** y no se cita ninguna otra fuente para ellos.
+
+- **ENTRARON DOS CAMPOS NUEVOS Y NINGUNA COLUMNA DE EXCEL**: `dpt_col_ad_dur` y `cvr_hep_coc`.
+  Campos del estudio 1053 → 1055, Excel en **440 columnas** con las mismas claves en las diez
+  escenas del A/B. El cociente hepático **no vota**: las reglas de conteo no tienen fuente y la
+  orden las excluía, así que mover `nC`/`nR` habría sido tocar contenido clínico sin permiso.
+  Medido: 0,77 / 0,78 / 0,79 dan 6/6/6 de conteo.
+
+- ⚠️ **UN DEFECTO PROPIO QUE LA SUITE CAZÓ: la ficha nueva de Referencias quedaba FUERA de las
+  seis subpestañas.** Existía, se abría desde su encabezado y el buscador la indexaba, pero no
+  estaba en `REF_SUBTAB`, así que `refSubInit` no la reubicaba y el médico que navegara por las
+  solapas no la encontraba nunca. Lo destaparon TC-502 y TC-520, que censan las entradas y
+  exigen que ninguna quede sin panel. **Arreglado en el código, no adaptado en el caso.**
+
+- ⚠️ **Y UNA MUTACIÓN SOBREVIVIÓ, Y TENÍA RAZÓN.** Sacarle el `onclick` al encabezado de la
+  ficha dejaba TC-532 entero en verde: el caso leía el contenido abriendo el cuerpo por su id,
+  así que no medía la única puerta que el médico tiene. **Una ficha que existe y no se puede
+  abrir es, para quien usa la app, una ficha que no existe.** Se agregó la condición (G0), que
+  aprieta el encabezado de verdad, y la mutación pasó a morir: **12/12**.
+
+- ⚠️ **DOS TRAMPAS DE INSTRUMENTACIÓN, LAS DOS CON EL MISMO SÍNTOMA: un rojo que parece verde.**
+  1. **`\s` dentro de un template literal se come la barra** y el regex pasa a borrar las
+     **eses**: «Constricción» se vuelve «Con tricción» y una búsqueda por prefijo informa «NO HAY
+     SECCIÓN» sobre secciones que existen. Va `/\\s+/g`.
+  2. **El panel de Evidencia hay que ABRIRLO antes de contestar.** Quien engancha el oyente de
+     los botones es `_indClinCablear()`, y a esa la llama `indicAbrir()`, **no** `indicRender()`.
+     Sin abrir, un `click()` no escribe nada y los bloques salen vacíos — que es exactamente el
+     mismo texto que da una Evidencia sana sin contestar.
+  3. Y una tercera, de medición: **la bibliografía de la sección imprime el texto completo de la
+     referencia**, que nombra las filas con su clase y su nivel, así que buscar «Clase I · Nivel
+     C» da positivo sobre la bibliografía aunque no se haya emitido una sola recomendación.
+
+- **Cobertura: TC-532**, con teclas reales y midiendo lo renderizado. **Sabe fallar por los dos
+  caminos**: contra el HEAD de la tanda en un worktree aparte, **61 condiciones en rojo** y
+  ninguna por excepción; y por mutación dirigida, **12/12 muertas** (`scripts/_mut_j.py`).
+  **CINCO casos adaptados con el motivo escrito**: TC-322 (el denominador que exige escenario
+  para TODA sección de `IND_SECS`), TC-502 y TC-509 (el censo de entradas de Referencias),
+  TC-507 (el chip del módulo, que cambió de contenido, y el conteo de chips) y TC-520.
+
+- **Línea base al cierre: suite 543/547** con el pendrive `DISK_IMG` **MONTADO** —verificado al
+  abrir y al cerrar, con un `ls` de nombres reales—, Excel en **440** columnas y celular en
+  **63 a 360 px y 72 a 390 px con 17 ALTA cada uno**: el MISMO par que dejaron AJ5 y AJ6, sin un
+  hallazgo nuevo. Los rojos son **TC-223, TC-376, TC-390 y TC-406**, los MISMOS CUATRO de la
+  línea base; **TC-223 es el documentado**. **El denominador sube a 547**: esta tanda agregó
+  **TC-532**. TC-318 sigue excluido.
+  La suite se corrió **en diez tandas de 55 casos en primer plano**, por lo que ya documenta la
+  AJ6: acá los procesos en segundo plano se mueren sin escribir una línea. Se pierde el efecto de
+  ORDEN entre tandas, y eso tiene un caso conocido: **TC-507 tiene un `(DENOM D)` que se pone
+  rojo cuando corre junto a otros casos y verde aislado y dentro de su lote**. Medido las dos
+  veces; no es de esta tanda.
+- **CHROME Y WEBKIT COINCIDEN**, en los dos temas y en 1440 y 390 px, sobre las tres pantallas y
+  las tres Evidencias: el rótulo diastólico, la plétora en los cuatro bordes, el chip sin el 21 y
+  con los dos colapsos, la constricción sin aviso invasivo con el cociente en 0,79, los seis
+  grados de VExUS y cero frases de conducta. **Cero errores de consola y de página en los dos
+  motores**, y sin scroll horizontal ni un solo texto recortado.
+  ⚠️ **Y LA PRIMERA VERSIÓN DE ESA SONDA MEDÍA SIN DENOMINADOR**: abría la pestaña «Pericardio y
+  pulmón» a mano y las tres secciones viven en otra, así que los **valores** salían bien —se leen
+  del DOM, que existe igual— pero la captura mostraba una pantalla vacía y el chequeo de recorte
+  corría sobre nodos de ancho 0, que descarta. **Un verde sobre cero elementos.** Hoy la pestaña
+  se deduce del propio elemento y cada escena reporta su denominador.
+- ⚠️ **SEMGREP PASA DE 124 A 127 WARNING, 0 ERROR, y los TRES son míos y están explicados.** Son
+  la misma regla —`ceibo-xss-innerhtml-concat`— sobre las tres ramas del aviso de la VCI de
+  `calcVEXUS`, que antes tenían el número escrito a mano y hoy interpolan la constante
+  `VEXUS_VCI_MM`. **No entra un solo dato del usuario**: es un entero definido en el archivo. Se
+  deja así a propósito, porque la alternativa es un rótulo fijo que miente el día que se mueva el
+  corte, que es justo lo que este archivo prohíbe.
+- **`index.html` pasó de 9,46 MB / 134.230 líneas a 9,52 MB / 134.867 líneas** — medido con
+  `wc -c` y `wc -l` DESPUÉS de sellar. (MB de 10⁶: `wc -c` dividido por 1e6.)
+  ⚠️ **SE SELLÓ DOS VECES, y la segunda es la que vale.** El primer sello salió ANTES del arreglo
+  de `REF_SUBTAB`, así que quedaba describiendo un árbol que ya no era el del commit. El sello
+  bueno es **`v20261024-1502`**, y TC-126 —el caso que valida el formato del sello— se volvió a
+  correr después.
+
+- **Dónde está todo:** `docs/mapa/j-pericardio-constriccion-vexus.md` (**mapa NUEVO**, 11,2 KB),
+  la ficha del caso en `docs/mapa/tests-fichas-532.md` (**archivo propio**, porque
+  `tests-fichas.md` está a 800 bytes del techo), **seis mapas con un puntero cada uno**
+  —`congenitas-otros` 31,7 KB · `panel-evidencia` 31,0 KB · `referencias-subpestanas` 23,9 KB ·
+  `tanda-r2-correcciones` 21,9 KB · `otros-pericardio-pulmon` 13,2 KB · `tests` 29,7 KB—,
+  `docs/fuentes/FUENTES.md` → «La tanda J» con la tabla **«Cambios de evidencia»**, y
+  `docs/PENDIENTES.md` → **SIETE** cosas declaradas (**J-a** a **J-g**).
+
 ### Fallot, el eco pulmonar en columnas, Config y el buscador — «AJ6» (2026-10-24)
 
 - **Son OCHO commits y los cuatro ítems se completaron enteros, con SIETE cosas declaradas y no

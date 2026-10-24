@@ -1,6 +1,78 @@
 # EcoSmart — pendientes vivos
 
 
+## Tanda J · pericardio, constricción y VEXUS (2026-10-24) — DECLARADO y NO arreglado
+
+### J-a · Dos conductas siguen en el informe firmado de constricción y restricción
+
+Esta orden sacó del papel el **aviso de confirmación invasiva** y la **recomendación de
+cateterismo** de la rama de criterios mixtos. Quedan dos frases que también son conductas y que la
+orden **no nombra**, así que no se tocaron:
+
+- rama **restrictiva**: «… sin respirofasicidad significativa. **Considerar RMC con gadolinio.**»
+- rama **constrictiva**: «… El diagnóstico definitivo **requiere correlación clínica e
+  imagenológica (TC/RMC pericárdica)**.»
+
+Las dos salen en el cuerpo del informe, en el EN SUMA no, y en la hoja del PDF sí. La regla de
+producto dice que las conductas van sólo a Evidencia, así que son candidatas a salir por el mismo
+criterio — pero cambiar una frase clínica que la orden no nombra es decisión de Maicol.
+**Decidir:** si salen del papel y pasan a la Evidencia de constricción, que ya existe.
+
+### J-b · La Evidencia de constricción despierta sobre un estudio de taponamiento
+
+Su compuerta es la del módulo, `cvrEstado().espEval` —«al menos un criterio específico del
+pericardio evaluado»—, y la **variación respiratoria de la onda E mitral** cuenta como uno de
+esos criterios **y** se carga en el módulo de derrame y taponamiento. Así que un estudio en el que
+sólo se evaluó taponamiento despierta además la sección «Constricción pericárdica — diagnóstico»,
+con todas sus filas en «—» salvo esa.
+
+Se dejó el dueño del módulo a propósito: una segunda copia de la compuerta es cómo las dos
+divergen. **Decidir:** si esa sección debería pedir dos criterios específicos, o uno que no sea
+compartido con el módulo de taponamiento.
+
+### J-c · El corte de 3 mm del engrosamiento pericárdico no tiene fuente verificada
+
+El selector `cvr_pericardio_tc` ofrece «>3 mm — engrosado», y ese número **no figura** en el texto
+de la ESC 2025 que se leyó. Queda con el chip «Criterio de EcoSmart» en la ficha de Referencias y
+declarado en el ⓘ de su fila de la Evidencia, **sin corchete**. **Decidir:** conseguir la fuente o
+dejarlo como criterio propio.
+
+### J-d · Las reglas de conteo de constricción siguen sin fuente
+
+Cuántos criterios hacen falta de cada lado, y cuáles cuentan, es una regla propia: ninguna guía de
+la biblioteca publica un recuento así — la ESC razona por el algoritmo de la Figura S1. Esta orden
+las excluía expresamente, así que **no se tocaron** y hoy se **declaran** con el chip en la
+pantalla, en la ficha y en la Evidencia. **Decidir:** si el módulo debería seguir el algoritmo de
+la Figura S1 en vez de contar.
+
+### J-e · Las filas de TRATAMIENTO de la Recommendation Table 24 no se publican
+
+La Tabla 24 trae, además de las dos filas de diagnóstico que la Evidencia sí publica,
+antiinflamatorios en la constricción transitoria con inflamación concomitante y pericardiectomía
+en la constricción permanente, **las dos Clase I · Nivel C** (folio 64). No se escribieron porque
+la aplicación **no registra** inflamación pericárdica ni respuesta al tratamiento: serían filas
+que ningún dato del estudio puede encender ni apagar. **Decidir:** si se agregan como preguntas al
+médico, como se hizo con el cateterismo.
+
+### J-f · Los dos campos nuevos no viajan al Excel, y su reimportación los pierde
+
+`dpt_col_ad_dur` —la duración del colapso auricular derecho— y `cvr_hep_coc` —el cociente de la
+vena suprahepática— son campos del estudio: se guardan, sobreviven a «Nuevo estudio» y vuelven al
+reabrir, **verificado**. Pero **no tienen columna de Excel**, porque la orden pedía que el Excel
+quedara idéntico en 440 columnas. Es el mismo caso que `wilkins_delib`, `pericardio_hemo` y los
+otros cuatro que esta lista ya declara: una exportación y reimportación los pierde.
+**Decidir:** si entran al Excel en una tanda que lo autorice.
+
+### J-g · «VEXUS 2» sobre estudios guardados con la vena cava en 20,0 mm exactos
+
+El grado **no se persiste**: se recalcula desde los cuatro datos crudos. Así que un estudio viejo
+con la vena cava en 20,0 mm exactos y uno o dos vasos severos abre hoy mostrando **VEXUS 1** donde
+antes mostraba 2 o 3. Es el alineamiento al artículo que esta orden pide, y no se migró nada
+—no hay nada que migrar—. Queda **declarado**: el informe firmado de ese estudio, si se guardó con
+su texto, sigue diciendo lo que decía; lo que cambia es lo que la pantalla y un informe
+regenerado muestran.
+
+
 ## Tanda R · referencias y fuentes (2026-10-20) — DECLARADO y NO arreglado
 
 ### R-1 · El diámetro AP de la AI sigue sin graduar, y es de la fuente

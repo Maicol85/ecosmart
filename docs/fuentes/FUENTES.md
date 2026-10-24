@@ -5695,3 +5695,64 @@ consume `resumen`. Ver `docs/PENDIENTES.md` → **AJ6-b**.
 Nada nuevo se buscó. Las cinco tarjetas sin entrada de Referencias que el censo de TC-502 ya
 nombraba —entre ellas **`pul-balik`**, la fórmula de Balik— siguen sin entrada: crear una sería
 escribir contenido clínico nuevo, que esta orden no autoriza. Sigue en PENDIENTES desde la tanda P.
+
+---
+
+## La tanda J — pericardio y taponamiento, constricción y VEXUS (2026-10-24)
+
+**Tres documentos, los tres abiertos y LEÍDOS EN IMAGEN**, página por página. Ninguna cita sale de
+un título, de un resumen ni de un documento de trabajo: las tablas y las figuras se renderizaron y
+se miraron.
+
+### Lo que se VERIFICÓ, con su documento, su folio y su hoja
+
+| Documento | Dónde | Qué dice, verificado en imagen |
+|---|---|---|
+| **ESC 2025 de miocarditis y pericarditis** — Schulz-Menger J, Imazio M, et al., *Eur Heart J* 2025, DOI 10.1093/eurheartj/ehaf192. Original en inglés, publicación anticipada paginada 1-90: **folio impreso = hoja del PDF** | **Tabla 17, folio 62** | «Diastolic collapse of the RA» (sensibilidad 50-100 %, especificidad 33-100 %) · «Duration of diastolic collapse of the RA as a ratio of the cardiac cycle length **>0.34**» (sensibilidad >90 %, especificidad **100 %**) · «Diastolic collapse of the RV» (48-100 % / 72-100 %) · «Respiratory changes of the mitral E velocity >25 %-30 %, tricuspid E velocity >40 %-60 %» · «Inferior vena cava plethora (dilatation **>20 mm** and <50 % reduction of diameter with respiratory phases), as well as hepatic vein dilatation» (97 % / 40 %) · y «Large pericardial effusion with swinging heart». **No menciona el colapso de la aurícula izquierda ni el del ventrículo izquierdo.** |
+| idem | **texto del 11.8.2, folio 62** | «The diagnosis of CTP is a clinical diagnosis based on the combination of a suggestive history, symptoms, signs, and imaging confirmation by echocardiography (Table 17)» |
+| idem | **Recommendation Table 12, folio 43** | pericardiocentesis guiada por ecocardiografía, TC o fluoroscopia en el taponamiento, en la sospecha de pericarditis bacteriana o neoplásica, y en el derrame moderado a grande sintomático pese al tratamiento médico → **Clase I · Nivel C**; drenaje pericárdico quirúrgico cuando la vía percutánea no es factible o el derrame es purulento → **Clase I · Nivel C**; ventana pleuropericárdica quirúrgica en el derrame recidivante pese al tratamiento médico → **Clase I · Nivel C** |
+| idem | **Recommendation Table 24, folio 64** | imagen multimodal en todo paciente con sospecha de pericarditis constrictiva → **Clase I · Nivel C**; cateterismo cardíaco para valoración hemodinámica **cuando la imagen multimodal no es concluyente** → **Clase IIa · Nivel C** |
+| idem | **apartado 11.9.3, folio 63** | «Cardiac catheterization should be considered only if non-invasive multimodality imaging methods are inconclusive» · criterios de la Clínica Mayo: rebote septal o desplazamiento septal **con** e′ medial **>8 cm/s** o cociente de inversión diastólica espiratoria de la vena hepática **>0,78** (sensibilidad 87 %, especificidad 91 %; la especificidad sube al 97 % con todos los criterios y la sensibilidad baja al 64 %) · variación respirofásica mitral **>25 %** y tricuspídea **>40 %** |
+| idem | **apartado 11.9.2, folio 63** | la constricción puede cursar con grosor pericárdico normal en **hasta el 20 %** de los casos |
+| **Traducción de la SEC** del mismo documento, `SchulzMenger_2025_Pericardio.pdf` | **apartado 11.9.3, folio impreso 70 = hoja 71** | dice lo mismo que el original: «cociente inverso diastólico de la vena hepática en espiración **> 0,78**». **Cotejada contra la inglesa, no reemplaza a la inglesa** |
+| **Material suplementario de la ESC 2025**, `ehaf192_supplementary_data.pdf` | **Figura S1, hoja 6** | el algoritmo del diferencial: «TDI mitral medial e′ >8 cm/sec» → constricción probable; «<6 cm/sec» → restricción; **nota b**: entre 6 y 8 cm/s, formas mixtas; **nota c**: annulus reversus (e′ medial > e′ lateral) y «ratio expiratory hepatic veins flow velocity/forward flow **> 0.8**»; **nota a**: la vena cava dilatada es un hallazgo de apoyo que **puede faltar con diuréticos** |
+| **Beaubien-Souligny W, Rola P, Haycock K, et al.** *Quantifying systemic congestion with Point-Of-Care ultrasound: development of the venous excess ultrasound grading system.* **Ultrasound J 2020;12(1):16**, DOI 10.1186/s13089-020-00163-w. Acceso abierto, paginado 1-12 | **Figura 1, página 3** | columna **VExUS C**: grado 0 con VCI **< 2 cm**; grado 1 con VCI **≥ 2 cm** y patrones normales o leves; grado 2 con VCI **> 2 cm** y alteración severa en al menos un patrón; grado 3 con VCI **> 2 cm** y alteración severa en varios patrones. **El grado 1 usa «≥» y los grados 2 y 3 usan «>»** |
+| idem | **resumen, página 1** | 145 pacientes de cirugía cardíaca, 706 valoraciones; la congestión severa así definida fue la más asociada a injuria renal aguda posterior (HR 3,69; IC 1,65-8,24; p = 0,001), asociación que se mantuvo ajustada (HR 2,82; IC 1,21-6,55; p = 0,02), con cociente de probabilidad positivo de 6,37 (IC 2,19-18,50) al ingreso a cuidados intensivos; conclusión: la combinación de marcadores **puede** identificar congestión venosa clínicamente significativa |
+| **Pieske B, et al.** *How to diagnose heart failure with preserved ejection fraction: the HFA-PEFF diagnostic algorithm.* *Eur Heart J* 2019;40:3297-3317 | **folio 3303** | criterios mayores: «septal e′<7 cm/s, **or lateral e′<10 cm/s**» (menores de 75 años) y «average septal–lateral **E/e′ ratio ≥15**» |
+
+### Lo que la biblioteca NO tiene, y por eso NO se citó
+
+- **Welch 2014 (criterios ecocardiográficos de la Clínica Mayo)** no está. Censada la biblioteca
+  por «Welch», «Mayo» y «constrictive»: cero. El cociente >0,78 y el e′ medial >8 cm/s se citan
+  por la **ESC 2025, que los recoge**, tal como la orden indica.
+- **No hay ninguna fuente de acceso libre que publique pasos de manejo por grado de VExUS.** El
+  artículo original no los da —censado: ni una tabla ni un párrafo—. Las tres frases de conducta
+  que salieron del papel firmado quedan en la Evidencia **con el chip «Criterio de EcoSmart» y sin
+  corchete**: citar el artículo al lado respaldaría con una fuente verificada algo que no dice.
+- **El corte de 3 mm del engrosamiento pericárdico** del selector de TC/RMC no figura en el texto
+  verificado. Queda con el chip y sin cita.
+
+### Una diferencia dentro de la MISMA guía, declarada y no resuelta en silencio
+
+El cociente de la vena suprahepática vale **>0,78** en el texto del apartado 11.9.3 (folio 63 del
+original, folio 70 de la edición de la SEC) y **>0,8** en la nota c de la Figura S1 del material
+suplementario (hoja 6). La aplicación usa el **0,78**, que es el valor que trae la sensibilidad y
+la especificidad, y **declara el redondeo** en tres lugares: al lado del campo, en la ficha de
+Referencias y en el ⓘ de la Evidencia. Entre 0,78 y 0,80 las dos cifras de la misma guía dan
+resultados distintos, y elegir una sin decirlo sería esconder la diferencia.
+
+### Cambios de evidencia
+
+| Dato | Antes | Ahora | Fuente | Commit | Fecha |
+|---|---|---|---|---|---|
+| Fase del colapso de la aurícula derecha | sistólico, «≥1/3 del ciclo» | **diastólico** | ESC 2025, Tabla 17, folio 62 | `87a17f9` | 24/10/2026 |
+| Duración del colapso de la aurícula derecha | no existía | campo propio, corte **>0,34** del ciclo | ESC 2025, Tabla 17, folio 62 | `87a17f9` | 24/10/2026 |
+| Plétora de VCI en el módulo de pericardio | >21 mm con colapso <50 % | **>20 mm** con colapso <50 % | ESC 2025, Tabla 17, folio 62 | `87a17f9` | 24/10/2026 |
+| Colapsos de aurícula izquierda y ventrículo izquierdo | sin declarar | se mantienen, con chip «Criterio de EcoSmart» | la Tabla 17 **no** los menciona | `87a17f9` | 24/10/2026 |
+| Aviso de confirmación invasiva de constricción | en pantalla, informe y PDF, **siempre** | sólo en Evidencia, condicionado | ESC 2025, 11.9.3 folio 63 y Rec. Table 24 folio 64 (IIa · C) | `4f081cd` | 24/10/2026 |
+| Recomendación de cateterismo en la rama de criterios mixtos | en el informe firmado | retirada del papel; vive en Evidencia | idem | `4f081cd` | 24/10/2026 |
+| Cociente de inversión espiratoria hepática | no existía | campo propio, corte **>0,78** | ESC 2025, 11.9.3, folio 63 (SEC folio 70) | `4f081cd` | 24/10/2026 |
+| e′ lateral 10 cm/s y E/e′ 15 en constricción | sin origen declarado | chip «Criterio de EcoSmart» con su origen citado | Pieske 2019, folio 3303 | `4f081cd` | 24/10/2026 |
+| Reglas de conteo de constricción | sin origen declarado | chip «Criterio de EcoSmart», sin fuente | — | `4f081cd` | 24/10/2026 |
+| VCI de los grados 2 y 3 de VExUS | ≥ 20 mm | **> 20 mm** (el grado 1 sigue en ≥ 20) | Beaubien-Souligny 2020, Figura 1, página 3 | `b4ff8ec` | 24/10/2026 |
+| Frases de conducta de VExUS | pantalla, informe y PDF | sólo en Evidencia, con chip «Criterio de EcoSmart» | el artículo **no** da pasos por grado | `b4ff8ec` | 24/10/2026 |

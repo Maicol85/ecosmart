@@ -66040,8 +66040,14 @@ const REF_SUBTAB = Object.freeze({
   ao:    Object.freeze(['ao2', 'ao', 'aocx']),
   /* `fop` va PEGADA a `burbujas` porque son el mismo tema: la ficha del FOP remite a la del
      test de burbuja para la escala de cantidad en vez de reescribirla. */
-  otros: Object.freeze(['oai', 'burbujas', 'fop', 'coronarias', 'pericardio', 'cardiotox', 'miocard',
-                        'congenitas', 'formulas'])
+  /* ⚠️ `constriccion` VA PEGADA A `pericardio` (J-3, 2026-10-24), y la primera version de esa
+     tanda se OLVIDO DE AGREGARLA ACA: la ficha existia, se abria desde su encabezado y estaba
+     indexada por el buscador, pero `refSubInit` no la reubicaba en ninguna subpestana, asi que
+     quedaba suelta fuera de las seis y el medico que navegara por las solapas no la encontraba
+     nunca. Lo cazaron TC-502 y TC-520, que censan las entradas y exigen que ninguna quede sin
+     panel. Van juntas porque son el mismo tema: las dos describen el pericardio. */
+  otros: Object.freeze(['oai', 'burbujas', 'fop', 'coronarias', 'pericardio', 'constriccion',
+                        'cardiotox', 'miocard', 'congenitas', 'formulas'])
 });
 const REF_SUB_ORDEN = Object.freeze(['calc', 'dim', 'fun', 'valv', 'ao', 'otros']);
 /* ══ ROTULOS DE BLOQUE (tanda P, commit 4) ═══════════════════════════════════════════════════
@@ -131917,8 +131923,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261024-1037';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1792849041322;                 /* eco-build-ms */
+const ECO_BUILD    = '20261024-1502';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1792864970428;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -132004,7 +132010,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261024-1037</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261024-1502</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

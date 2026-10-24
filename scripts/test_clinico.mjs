@@ -47126,7 +47126,22 @@ caso('TC-322', 'Evidencia: citas numeradas POR SECCION, con un solo dueno de la 
          tdfConclusion, que es su dueno-, y su linea «Segun la guia» cita la ACC/AHA 2025,
          que es la fuente PRINCIPAL. La europea se publica al lado, en su propio bloque y con
          su propio folio: las dos no piden lo mismo y por eso no se mezclan. */
-      ['Tetralogia de Fallot reparada', { tdf_sintomas:'si' },                  'achd2025']
+      ['Tetralogia de Fallot reparada', { tdf_sintomas:'si' },                  'achd2025'],
+      /* AGREGADAS el 2026-10-24 (tanda J, commits 2, 4 y 6). Las TRES secciones nuevas de
+         pericardio, constriccion y VEXUS. La ADAPTACION es de DENOMINADOR y no de contrato: este
+         caso exige que TODA seccion de IND_SECS tenga escenario, asi que tres secciones nuevas lo
+         ponen en rojo hasta que se siembran. Lo que el caso afirma -que cada seccion numera sus
+         corchetes POR SECCION y arranca en [1]- no cambia.
+         · El derrame abre con dptEstado punto hayDerrame, o sea con el select pericardio en algo
+           distinto de normal; cita la ESC 2025 de miocarditis y pericarditis.
+         · La constriccion abre con cvrEstado punto espEval, o sea con AL MENOS UN criterio especifico
+           del pericardio evaluado: el rebote septal alcanza. Misma guia.
+         · VEXUS abre con vexusEstado punto score distinto de null, que pide la vena cava medida Y al menos una
+           vena interrogada -con la cava sola no hay score, ni siquiera 0-. Cita el articulo
+           original de Beaubien-Souligny. */
+      ['Derrame pericardico y taponamiento', { pericardio:'Derrame severo (>20mm)' },        'escPeri2025'],
+      ['Constriccion pericardica',           { cvr_rebote:'si' },                            'escPeri2025'],
+      ['Congestion venosa sistemica',        { vci_diam:'21', vexus_sh:'2' },                'vexus2020']
     ];
 
     const sembrar = campos => {
@@ -78127,11 +78142,19 @@ caso('TC-502', 'Tanda P: Referencias en CINCO subpestanas sin perder una entrada
      hasta hoy NO tenia entrada en Referencias -censado- asi que los veinte cortes que la app
      aplica no estaban publicados en ninguna parte consultable. Va en «Funcion», pegada a la de
      HTP y a la de TEP. El caso GANA una condicion que exige que la que entro sea ESA. */
-  ex.push(['(A2) DENOMINADOR: el censo encuentra las 32 entradas de la pestana',
-    censo.n === 32, 'n=' + censo.n]);
-  ex.push(['(A2b) y la que entro es la del HFA-PEFF, en la subpestana Funcion',
-    censo.filas.some(f => f.id === 'hfapeff' && f.sub === 'fun'),
-    JSON.stringify(censo.filas.filter(f => f.id === 'hfapeff'))]);
+  /* ADAPTADO el 2026-10-24 (tanda J, commit 3): de 32 a 33 por la ficha NUEVA de CONSTRICCION
+     vs RESTRICCION, que hasta hoy NO tenia entrada -censado-, asi que los nueve cortes de ese
+     modulo no estaban publicados en ninguna parte consultable. Va en «Otros hallazgos», pegada a
+     la de pericardio porque son el mismo tema.
+     ⚠️ ESTE CASO CAZO UN DEFECTO REAL, y por eso la condicion (A3) importa mas que el numero: la
+     primera version de esa tanda creo la ficha y se OLVIDO de agregarla a REF_SUBTAB, asi que
+     la entrada existia, se abria desde su encabezado y estaba indexada por el buscador, pero
+     refSubInit no la reubicaba en ninguna subpestana y quedaba suelta fuera de las seis. */
+  ex.push(['(A2) DENOMINADOR: el censo encuentra las 33 entradas de la pestana',
+    censo.n === 33, 'n=' + censo.n]);
+  ex.push(['(A2b) y la que entro es la de constriccion, en la subpestana Otros hallazgos',
+    censo.filas.some(f => f.id === 'constriccion' && f.sub === 'otros'),
+    JSON.stringify(censo.filas.filter(f => f.id === 'constriccion'))]);
   ex.push(['(A3) NINGUNA entrada quedo fuera de una subpestana',
     censo.n > 0 && censo.filas.every(f => !!f.sub),
     'sin panel=' + censo.filas.filter(f => !f.sub).map(f => f.id).join(',')]);
@@ -78140,8 +78163,10 @@ caso('TC-502', 'Tanda P: Referencias en CINCO subpestanas sin perder una entrada
   /* ADAPTADO el 2026-10-22 (tanda D, commit 3): «Otros» pasa de 8 a 9 con la ficha del FOP, que
      va pegada a la del test de burbuja porque son el mismo tema. Los otros cuatro no se mueven. */
   /* ADAPTADO el 2026-10-22 (tanda E): «Funcion» pasa de 2 a 3 con la ficha del HFA-PEFF. */
-  ex.push(['(A4) el reparto es 5 Dimensiones + 3 Funcion + 12 Valvulas + 3 Aorta + 9 Otros',
-    porSub.dim === 5 && porSub.fun === 3 && porSub.valv === 12 && porSub.ao === 3 && porSub.otros === 9,
+  /* ADAPTADO el 2026-10-24 (tanda J): «Otros» pasa de 9 a 10 con la ficha de constriccion. Los
+     otros cuatro repartos no se mueven, que es lo que esta condicion protege. */
+  ex.push(['(A4) el reparto es 5 Dimensiones + 3 Funcion + 12 Valvulas + 3 Aorta + 10 Otros',
+    porSub.dim === 5 && porSub.fun === 3 && porSub.valv === 12 && porSub.ao === 3 && porSub.otros === 10,
     JSON.stringify(porSub)]);
   /* Clic REAL en cada boton: activa SU panel y apaga los otros cuatro. */
   const subEstado = [];
@@ -78186,8 +78211,11 @@ caso('TC-502', 'Tanda P: Referencias en CINCO subpestanas sin perder una entrada
   /* ADAPTADO el 2026-10-22 (tanda D, commit 3): de 28 a 29 por la ficha del FOP. Los dos
      agrupadores que el indice excluye por su compuerta ESTRUCTURAL no cambian. */
   /* ADAPTADO el 2026-10-22 (tanda E): de 29 a 30 por la ficha del HFA-PEFF. */
-  ex.push(['(B1) DENOMINADOR: el buscador existe y su indice tiene las 30 entradas (32 menos los dos agrupadores)',
-    !!EL('ref-busca') && (function () { try { return FN('_refIndiceArmar') && window._refIndiceArmar(true).length === 30; } catch (e) { return false; } })(),
+  /* ADAPTADO el 2026-10-24 (tanda J, commit 3): de 30 a 31 por la ficha de constriccion vs
+     restriccion. Los dos agrupadores que el indice excluye por su compuerta ESTRUCTURAL no
+     cambian, que es lo que esta condicion protege. */
+  ex.push(['(B1) DENOMINADOR: el buscador existe y su indice tiene las 31 entradas (33 menos los dos agrupadores)',
+    !!EL('ref-busca') && (function () { try { return FN('_refIndiceArmar') && window._refIndiceArmar(true).length === 31; } catch (e) { return false; } })(),
     'indice=' + (function () { try { return window._refIndiceArmar(true).length; } catch (e) { return 'EXC'; } })()]);
   ex.push(['(B2) «RWT» encuentra la GEOMETRIA DEL VI y dice su subpestana',
     !bRWT.err && bRWT.n > 0 && bRWT.ids.indexOf('vi') >= 0 && bRWT.subs.indexOf('Dimensiones') >= 0,
@@ -80869,11 +80897,31 @@ caso('TC-507', 'Tanda R: la VAB muestra la lesion PRESENTE sin grado con un solo
       const c = EL('ref-pericardio'); if (!c) return false; const t = c.textContent || '';
       return t.indexOf('es CLÍNICO') > -1 && t.indexOf('Clase I') > -1 && t.indexOf('nivel C') > -1
         && t.indexOf('Clase IIa') < 0 && t.indexOf('subcostal') < 0; })(), '']);
-  ex.push(['(G7) los tres cortes propios del modulo estan DECLARADOS en su pie',
+  /* ADAPTADO el 2026-10-24 (tanda J, commit 1). El R6 declaraba TRES cortes propios en el pie
+     del modulo: la pletora de VCI con 21 mm y las dos variaciones respiratorias. La tanda J
+     ALINEO la pletora a la guia -la Tabla 17 publica >20 mm, asi que ya no es criterio propio y
+     SALE de ese chip, junto con la fase del colapso auricular derecho- y le AGREGO los dos
+     colapsos que la Tabla 17 no menciona, que si lo son. O sea que el pie sigue declarando lo
+     que la app decide por su cuenta; lo que cambio es CUALES son.
+     La condicion afirma las dos mitades: lo que tiene que estar y lo que tiene que haberse ido.
+     Ver TC-532 (A9) y (A10), que lo prueban del lado nuevo. */
+  ex.push(['(G7) los cortes propios del modulo estan DECLARADOS en su pie, y los que pasaron a ser de la guia salieron',
     (function(){ const e = EL('dpt-concl'); const b = e && e.closest ? e.closest('.calc-box') : null;
-      if (!b) return false; const t = b.textContent || '';
-      return t.indexOf('CRITERIO DE ECOSMART') > -1 && t.indexOf('21 mm') > -1
-        && t.indexOf('25 %') > -1 && t.indexOf('40 %') > -1; })(), '']);
+      if (!b) return false;
+      /* ⚠️ EL TEXTO SE NORMALIZA ANTES DE BUSCAR: el marcado parte la frase en dos lineas, asi
+         que el textContent trae «…aurícula izquierda y del\n          ventrículo izquierdo» y un
+         indexOf de la frase entera da -1 sobre un pie perfecto. */
+      const t = (b.textContent || '').replace(/\\s+/g, ' ');
+      return t.indexOf('CRITERIO DE ECOSMART') > -1
+        && t.indexOf('25 %') > -1 && t.indexOf('40 %') > -1
+        && t.indexOf('aurícula izquierda y del ventrículo izquierdo') > -1
+        && t.indexOf('21 mm') < 0; })(),
+    (function(){ const e = EL('dpt-concl'); const b = e && e.closest ? e.closest('.calc-box') : null;
+      const t = b ? (b.textContent || '').replace(/\\s+/g, ' ') : ''; const i = t.indexOf('CRITERIO DE ECOSMART');
+      if (i < 0) return 'SIN CHIP';
+      return '25%=' + (t.indexOf('25 %') > -1) + ' 40%=' + (t.indexOf('40 %') > -1)
+        + ' aiVi=' + (t.indexOf('aurícula izquierda y del ventrículo izquierdo') > -1)
+        + ' sin21=' + (t.indexOf('21 mm') < 0); })()]);
   ex.push(['(G8) el filtro de cohorte tiene SOLO las dos claves que el estado devuelve',
     (function(){ const e = EL('coh-dpt-con'); if (!e) return false;
       const v = Array.prototype.map.call(e.options, x => x.value);
@@ -80989,8 +81037,17 @@ caso('TC-507', 'Tanda R: la VAB muestra la lesion PRESENTE sin grado con un solo
          publican: el de la PANTALLA, al lado de la velocidad de vaciamiento, y el de la FICHA de
          Referencias. La guia -ASE/SCA 2013 de ETE, folio 954- publica los dos numeros, 20 y
          40 cm/s, y NO publica los rotulos «estasis leve» ni «estasis severa» ni la franja
-         intermedia: esos nombres son propios de la aplicacion. */
-      return n === 8 && _ecoPref === 'Criterio de EcoSmart: '; })(),
+         intermedia: esos nombres son propios de la aplicacion.
+         ADAPTADO el 2026-10-24 (tanda J, commit 3): de OCHO a DIEZ. Los dos nuevos son de
+         CONSTRICCION vs RESTRICCION, y declaran el MISMO criterio propio en las dos superficies
+         que lo publican -el pie de la PANTALLA y la FICHA de Referencias-: el e' lateral de
+         10 cm/s y el E/e' de 15 NO son cortes de esa distincion sino criterios mayores de funcion
+         diastolica del HFA-PEFF (Pieske 2019, folio 3303), y las reglas de conteo de esa seccion
+         no tienen fuente. Antes de esta tanda esos nueve cortes vivian sin decir de donde salian.
+         ⚠️ El chip del modulo de DERRAME no se duplico: sigue siendo uno, y lo que cambio es su
+         contenido - ver (G7). Lo que esta condicion vigila -que todo corte sin fuente lleve su
+         chip y que el prefijo de las notas no se mueva- no cambia. */
+      return n === 10 && _ecoPref === 'Criterio de EcoSmart: '; })(),
     (function(){ let n = 0;
       Array.prototype.forEach.call(document.querySelectorAll('span'), x => {
         if ((x.textContent || '').trim() === 'CRITERIO DE ECOSMART') n++; });
@@ -81890,11 +81947,15 @@ caso('TC-509', 'Trabajo B (ADAPTADO por el B2): la columna izquierda con sus ONC
          ADAPTADO el 2026-10-22 (tanda E, commit E4): el censo pasa de 31 a 32. La que entra es la
          ficha NUEVA del HFA-PEFF (ref-hfapeff), en la subpestana «Funcion», que pasa de dos
          entradas a tres. Se exige las DOS: la del FOP y la del score, para que la condicion siga
-         distinguiendo «entro una» de «se perdio una y entro otra». */
+         distinguiendo «entro una» de «se perdio una y entro otra».
+         ADAPTADO el 2026-10-24 (tanda J, commit 3): el censo pasa de 32 a 33. La que entra es la
+         ficha NUEVA de CONSTRICCION vs RESTRICCION (ref-constriccion), en la subpestana «Otros
+         hallazgos», pegada a la de pericardio porque son el mismo tema. Se exigen las TRES, por
+         el mismo motivo de siempre. */
       const t = EL('tab-refs');
       const n = t ? [].slice.call(t.querySelectorAll('h2.card-head'))
         .filter(function (h) { return (h.getAttribute('onclick') || '').indexOf("toggleRef('") > -1; }).length : -1;
-      return n === 32 && !!EL('ref-fop') && !!EL('ref-hfapeff'); })(),
+      return n === 33 && !!EL('ref-fop') && !!EL('ref-hfapeff') && !!EL('ref-constriccion'); })(),
     (function () { const t = EL('tab-refs');
       const n = t ? [].slice.call(t.querySelectorAll('h2.card-head'))
         .filter(function (h) { return (h.getAttribute('onclick') || '').indexOf("toggleRef('") > -1; }).length : -1;
@@ -85324,7 +85385,18 @@ caso('TC-519', 'Tanda AJ2: «sin datos» no es «no medible» en las cinco super
       e.value = 'tapse';    const d = refBuscar();
       e.value = 'TAPSE';    const f2 = refBuscar();
       e.value = '';         refBuscar();
-      ex.push(['(G5) DENOMINADOR: «HFA-PEFF» encuentra su ficha', !!a && a.n === 1, JSON.stringify(a && a.n)]);
+      /* ADAPTADO el 2026-10-24 (tanda J, commit 3): de UNA ficha a DOS. La segunda es la de
+         CONSTRICCION vs RESTRICCION, que NOMBRA al HFA-PEFF al declarar de donde salen dos de sus
+         cortes -el e' lateral de 10 cm/s y el E/e' de 15 son criterios mayores de funcion
+         diastolica de Pieske 2019, folio 3303, y no de la distincion entre constriccion y
+         restriccion-. Que el buscador las traiga a las dos es CORRECTO y es lo que el medico
+         necesita: la ficha del score y la que lo cita.
+         La condicion se hace MAS fuerte, no mas floja: ya no cuenta, EXIGE cuales son. Un
+         denominador que solo cuenta deja pasar que entre una ficha y se vaya otra. */
+      ex.push(['(G5) DENOMINADOR: «HFA-PEFF» encuentra SU ficha y la de constriccion, que lo cita',
+        !!a && a.n === 2 && (a.ids || []).indexOf('hfapeff') > -1
+          && (a.ids || []).indexOf('constriccion') > -1,
+        JSON.stringify(a && { n: a.n, ids: a.ids })]);
       ex.push(['(G6) y las tres formas dan el MISMO resultado',
         !!b && !!c && b.n === a.n && c.n === a.n,
         [a && a.n, b && b.n, c && c.n].join('/')]);
@@ -87436,6 +87508,455 @@ caso('TC-529', 'Tanda AJ6-3: la pantalla de Ecografia pulmonar en CUATRO columna
   ex.push(['(D4) el patron global sigue siendo el que calculaba antes de mudar las columnas',
     (document.getElementById('pua-patron') || {}).textContent === 'Consolidaci\\u00f3n',
     (document.getElementById('pua-patron') || {}).textContent]);
+
+  return { extra: ex };
+  })();
+`);
+
+caso('TC-532', 'Tanda J: el taponamiento con el colapso de AD DIASTOLICO y su duracion en 0,33/0,34/0,35, la VCI de pletora en 19/20/21/22 mm y los colapsos de AI y VI con su chip y sin conclusion de taponamiento; la constriccion SIN el aviso invasivo, con el cociente hepatico en 0,77/0,78/0,79 sin mover el conteo, los tres tramos del e-prima medial intactos y el chip en e-prima lateral, E/e-prima y reglas de conteo; VEXUS con la VCI en 19/20/21 mm por grado y sin frases de conducta fuera de Evidencia; las TRES Evidencias con su clase, su nivel y su folio; las fichas de Referencias; los bloques integrados actualizandose solos con su aviso de edicion manual; guardar, Nuevo estudio y reabrir; y los CONTROLES -grados del derrame, FOP, TEP, HTP, hemodinamica, informe, EN SUMA, PDF, Laboratorio y las 440 columnas del Excel-', `
+  return (async () => {
+  const ex = [];
+  const F = (n) => (typeof window[n] === 'function') ? window[n] : null;
+  const abrir = (id) => { const e = document.getElementById(id); if (!e) return;
+    const sec = e.closest ? e.closest('.tab-section') : null;
+    if (sec && F('showTab')) { try { showTab(String(sec.id || '').replace(/^tab-/, '')) } catch (x) {} }
+    let n = e.parentNode;
+    while (n && n.nodeType === 1 && n !== document.body) {
+      if (getComputedStyle(n).display === 'none') n.style.display = '';
+      n = n.parentNode; } };
+  const pon = (o) => { Object.keys(o).forEach(k => { const e = document.getElementById(k);
+      if (!e) { ex.push(['NO EXISTE el campo ' + k, false, k]); return; }
+      if (e.type === 'checkbox') e.checked = !!o[k]; else e.value = o[k];
+      e.dispatchEvent(new Event('input', { bubbles: true }));
+      e.dispatchEvent(new Event('change', { bubbles: true })); }); };
+  const cols = (c) => Object.keys(_labExcelRow({ nombre:'P', ci:'1', fecha_estudio:'2026-10-24', campos:c || {} })).length;
+  const seccionTxt = (id) => { const e = document.getElementById(id);
+    return e ? (e.textContent || '').replace(/\\s+/g, ' ') : 'NO EXISTE ' + id; };
+
+  /* == (A) TAPONAMIENTO ===================================================================== */
+  __t.limpiar();
+  abrir('dpt_col_ad');
+  ex.push(['(A0) DENOMINADOR: el modulo existe y gano el campo de la DURACION del colapso de AD',
+    !!document.getElementById('dpt_col_ad') && !!document.getElementById('dpt_col_ad_dur'),
+    'dur=' + !!document.getElementById('dpt_col_ad_dur')]);
+
+  /* El rotulo del campo: la fase vieja NO puede quedar en ninguna superficie. */
+  const rotAd = (function(){ const s = document.getElementById('dpt_col_ad');
+    const fg = s && s.closest ? s.closest('.fg') : null;
+    const l = fg ? fg.querySelector('label') : null;
+    return l ? (l.textContent || '').replace(/\\s+/g, ' ').trim() : 'NO HAY ROTULO'; })();
+  ex.push(['(A1) el rotulo del colapso de AD dice DIASTOLICO y ya no dice «sistolico» ni «1/3 del ciclo»',
+    /diast/i.test(rotAd) && !/sist/i.test(rotAd) && rotAd.indexOf('1/3') < 0, rotAd]);
+
+  pon({ pericardio:'Derrame severo (>20mm)', dpt_col_ad:'si', dpt_col_vd:'si',
+        vci_diam:'21', vci_col:'<50', resp_var_mitral:'30', resp_var_tric:'45' });
+  const sigAd = () => (dptEstado().signos || []).filter(x => /aur\\u00edcula derecha/.test(x)).join(' | ');
+
+  /* Los TRES bordes de la duracion. El corte es ESTRICTO: 0,34 exacto NO lo supera. */
+  pon({ dpt_col_ad_dur:'0.33' }); const d33 = sigAd();
+  pon({ dpt_col_ad_dur:'0.34' }); const d34 = sigAd();
+  pon({ dpt_col_ad_dur:'0.35' }); const d35 = sigAd();
+  ex.push(['(A2) la frase del colapso de AD dice DIASTOLICO en los tres bordes y nunca «sistolico»',
+    /colapso diast\\u00f3lico de la aur\\u00edcula derecha/.test(d33)
+      && /colapso diast\\u00f3lico de la aur\\u00edcula derecha/.test(d34)
+      && /colapso diast\\u00f3lico de la aur\\u00edcula derecha/.test(d35)
+      && !/sist\\u00f3lico de la aur\\u00edcula derecha/.test(d33 + d34 + d35),
+    [d33, d34, d35].join(' // ')]);
+  ex.push(['(A3) el corte de 0,34 es ESTRICTO: 0,33 y 0,34 publican el numero sin afirmar, y solo 0,35 dice «por encima de 0,34»',
+    d33.indexOf('0,33 del ciclo') > -1 && d33.indexOf('por encima') < 0
+      && d34.indexOf('0,34 del ciclo') > -1 && d34.indexOf('por encima') < 0
+      && d35.indexOf('0,35 del ciclo') > -1 && d35.indexOf('por encima de 0,34') > -1,
+    [d33, d34, d35].join(' // ')]);
+  ex.push(['(A4) el corte vive en una constante y vale 0,34',
+    typeof DPT_COL_AD_DUR_SIG === 'number' && DPT_COL_AD_DUR_SIG === 0.34,
+    String(typeof DPT_COL_AD_DUR_SIG === 'undefined' ? 'NO EXISTE' : DPT_COL_AD_DUR_SIG)]);
+
+  /* La VCI en los CUATRO valores que rodean el corte nuevo. */
+  const plet = (mm) => { pon({ vci_diam:String(mm) }); const p = dptEstado().plet;
+    return { ev:p.evaluada, pres:p.presente }; };
+  const p19 = plet(19), p20 = plet(20), p21 = plet(21), p22 = plet(22);
+  ex.push(['(A5) la pletora de VCI corta en MAS de 20 mm: 19 no, 20 no, 21 SI, 22 si -y los cuatro evaluados-',
+    p19.ev && p20.ev && p21.ev && p22.ev
+      && !p19.pres && !p20.pres && p21.pres && p22.pres,
+    JSON.stringify([p19, p20, p21, p22])]);
+  ex.push(['(A6) el corte vive en una constante y vale 20',
+    typeof DPT_VCI_PLETORA_MM === 'number' && DPT_VCI_PLETORA_MM === 20,
+    String(typeof DPT_VCI_PLETORA_MM === 'undefined' ? 'NO EXISTE' : DPT_VCI_PLETORA_MM)]);
+  ex.push(['(A7) CONTROL NEGATIVO: el corte del HTP ESC 2022 sigue en 21 mm y NO se movio con este',
+    (function(){ const r = String(_htp2022Core).indexOf('vciD > 21') > -1; return r; })(),
+    String(_htp2022Core).indexOf('vciD > 21') > -1 ? 'sigue en 21' : 'SE MOVIO']);
+
+  /* Los dos colapsos que la Tabla 17 no menciona: se describen y llevan chip. */
+  pon({ vci_diam:'21', dpt_col_ai:'si', dpt_col_vi:'si' });
+  const sig = dptEstado().signos.join(' | ');
+  ex.push(['(A8) los colapsos de AI y de VI se SIGUEN describiendo',
+    sig.indexOf('colapso de la aur\\u00edcula izquierda') > -1
+      && sig.indexOf('colapso del ventr\\u00edculo izquierdo') > -1, sig]);
+  const chipTxt = seccionTxt('ete-seccion-derrame-tap');
+  ex.push(['(A9) y el chip CRITERIO DE ECOSMART los declara, diciendo que la Tabla 17 no los menciona',
+    chipTxt.indexOf('CRITERIO DE ECOSMART') > -1
+      && /aur\\u00edcula izquierda y del ventr\\u00edculo izquierdo/.test(chipTxt)
+      && /Tabla 17 no los menciona/.test(chipTxt),
+    chipTxt.slice(chipTxt.indexOf('CRITERIO DE ECOSMART'), chipTxt.indexOf('CRITERIO DE ECOSMART') + 260)]);
+  ex.push(['(A10) y la pletora y la fase del colapso auricular derecho YA NO estan en ese chip',
+    chipTxt.indexOf('>21 mm') < 0 && !/pl\\u00e9tora de vena cava se marca/.test(chipTxt),
+    chipTxt.indexOf('>21 mm') > -1 ? 'sigue el 21' : 'ok']);
+
+  /* NINGUNA superficie concluye taponamiento. */
+  if (F('amiloIntegrar')) { try { amiloIntegrar('dpt') } catch (e) {} }
+  const rI = __t.informe();
+  const badge = __t.txt('dpt-concl-badge') || '';
+  const hoja = F('amiloTextoDPT') ? amiloTextoDPT() : 'SIN FN';
+  ex.push(['(A11) el modulo, el informe, el EN SUMA y la hoja del PDF NO concluyen «taponamiento»',
+    badge.toLowerCase().indexOf('taponamiento') < 0
+      && rI.inf.toLowerCase().indexOf('taponamiento c\\u00e1rdiaco') < 0
+      && !/(^|[^-])taponamiento cardi/i.test(rI.inf)
+      && rI.suma.toLowerCase().indexOf('taponamiento') < 0
+      && !/criterios de taponamiento/i.test(hoja),
+    'badge=' + badge]);
+  ex.push(['(A12) la hoja del PDF rotula el colapso de AD como diastolico y publica la duracion con su corte',
+    hoja.indexOf('Aur\\u00edcula derecha (diast\\u00f3lico)') > -1
+      && hoja.indexOf('Duraci\\u00f3n del colapso AD | 0,35 del ciclo (significativa >0,34)') > -1
+      && hoja.indexOf('(sist\\u00f3lico)') < 0,
+    hoja.split('\\n').filter(l => /Aur\\u00edcula derecha|Duraci\\u00f3n del colapso/.test(l)).join(' | ')]);
+
+  /* == (B) EVIDENCIA DE PERICARDIO ========================================================== */
+  const evSec = (pref) => { try { indicRender() } catch (e) { return null }
+    const cu = document.getElementById('indic-cuerpo'); if (!cu) return null;
+    let hit = null;
+    [].slice.call(cu.children).forEach(d => { if (hit || d.tagName !== 'DETAILS') return;
+      const su = d.querySelector('summary');
+      if (su && (su.textContent || '').replace(/\\s+/g, ' ').trim().indexOf(pref) === 0) hit = d; });
+    if (!hit) return null;
+    return { txt:(hit.textContent || '').replace(/\\s+/g, ' '),
+      biblio:[].slice.call(hit.querySelectorAll('[data-ind-refitem]')).map(x => x.getAttribute('data-ind-refitem')),
+      marcas:[].slice.call(hit.querySelectorAll('[data-ind-ref]')).map(x => x.getAttribute('data-ind-ref')) }; };
+  /* ⚠️ EL PANEL TIENE QUE ABRIRSE ANTES DE CONTESTAR, y la primera version de este caso no lo
+     abria: quien engancha el oyente de las preguntas es \`_indClinCablear\`, y a esa la llama
+     \`indicAbrir\`, NO \`indicRender\`. Sin abrir, \`b.click()\` no escribia nada en \`_indClin\`, los
+     tres bloques salian vacios y el caso lo leia como «no emite», que es el mismo texto que da
+     una Evidencia sana sin contestar. Un rojo que parece verde.
+     ⚠️ Y \`indicAbrir\` LIMPIA las respuestas anteriores, asi que se abre UNA vez por bloque y
+     despues se repinta con \`indicRender\`. */
+  const abrirPanel = () => { try { indicAbrir() } catch (e) { return 'EXC ' + e.message } return 'ok'; };
+  const cerrarPanel = () => { try { indicCerrar() } catch (e) {} };
+  const clic = (k, v) => { const b = document.querySelector('[data-ind-clin="' + k + '"][data-ind-val="' + v + '"]');
+    if (!b) return 'NO HAY BOTON ' + k + '=' + v; b.click(); return 'ok'; };
+
+  abrirPanel();
+  const evP0 = evSec('Derrame peric\\u00e1rdico y taponamiento');
+  ex.push(['(B1) la Evidencia de derrame existe y cita la ESC 2025 de pericarditis',
+    !!evP0 && evP0.biblio.indexOf('escPeri2025') > -1, evP0 ? JSON.stringify(evP0.biblio) : 'NO HAY SECCION']);
+  ex.push(['(B2) sin contestar NO hay recomendacion emitida, y el bloque de lo que falta lo dice',
+    !!evP0 && evP0.txt.indexOf('Clase I \\u00b7 Nivel C \\u2014 La gu\\u00eda RECOMIENDA la pericardiocentesis') < 0
+      && evP0.txt.indexOf('Lo que falta contestar') > -1,
+    evP0 ? evP0.txt.slice(0, 160) : '—']);
+  [['peri.tapoclin','si'],['peri.sintomas','si'],['peri.etio','no'],['peri.percut','no'],['peri.recidiva','si']]
+    .forEach(p => { const r = clic(p[0], p[1]); if (r !== 'ok') ex.push([r, false, r]); });
+  const evP = evSec('Derrame peric\\u00e1rdico y taponamiento');
+  /* ⚠️ LAS FRASES SE BUSCAN ENTERAS Y NO POR FRAGMENTO: la BIBLIOGRAFIA de la seccion imprime el
+     texto completo de la referencia, que nombra las tres filas con su clase y su nivel. Buscar
+     «Clase I · Nivel C» o «drenaje pericárdico quirúrgico» da positivo sobre la bibliografia
+     aunque no se haya emitido una sola recomendacion. La primera version de este caso contaba
+     ocurrencias y por eso media cuatro «Clase I» con CERO filas emitidas. */
+  const B_PERI = 'Clase I \\u00b7 Nivel C \\u2014 La gu\\u00eda RECOMIENDA la pericardiocentesis, guiada por ecocardiograf\\u00eda';
+  const B_DREN = 'Clase I \\u00b7 Nivel C \\u2014 Cuando la pericardiocentesis percut\\u00e1nea no es factible';
+  const B_VENT = 'Clase I \\u00b7 Nivel C \\u2014 En el derrame que recidiva pese al tratamiento m\\u00e9dico';
+  ex.push(['(B3) contestado, emite las TRES filas de la Recommendation Table 12 con su clase, su nivel y su folio',
+    !!evP && evP.txt.indexOf(B_PERI) > -1 && evP.txt.indexOf(B_DREN) > -1 && evP.txt.indexOf(B_VENT) > -1,
+    evP ? JSON.stringify([evP.txt.indexOf(B_PERI), evP.txt.indexOf(B_DREN), evP.txt.indexOf(B_VENT)]) : '—']);
+  ex.push(['(B4) el diagnostico de taponamiento se publica como CLINICO, sin umbral automatico',
+    !!evP && /El diagn\\u00f3stico de taponamiento es CL\\u00cdNICO: la gu\\u00eda lo hace por la combinaci\\u00f3n/.test(evP.txt)
+      && evP.txt.indexOf('folio 62') > -1,
+    evP ? 'ok' : '—']);
+  ex.push(['(B5) la fila de los colapsos de AI y de VI va SIN corchete y lo declara como criterio de EcoSmart',
+    !!evP && /Colapso de la aur\\u00edcula izquierda y del ventr\\u00edculo izquierdo/.test(evP.txt)
+      && /la Tabla 17 NO los menciona/.test(evP.txt), evP ? 'ok' : '—']);
+  cerrarPanel();
+
+  /* == (C) CONSTRICCION ===================================================================== */
+  __t.limpiar();
+  abrir('cvr_rebote');
+  pon({ e_sep:'9', e_lat:'7', resp_var_mitral:'30', cvr_rebote:'si',
+        cvr_hepatico:'esp', cvr_pericardio_tc:'engrosado' });
+  const secCvr = seccionTxt('ete-seccion-constr-restr');
+  ex.push(['(C1) el aviso de confirmacion INVASIVA ya no esta en la pantalla',
+    !/correlaci\\u00f3n cl\\u00ednica e invasiva/i.test(secCvr), 'presente']);
+  ex.push(['(C2) y la constante que lo producia tampoco existe',
+    typeof CVR_DISCLAIMER === 'undefined', typeof CVR_DISCLAIMER]);
+  ex.push(['(C3) el campo del cociente hepatico existe y su rotulo trae el corte',
+    !!document.getElementById('cvr_hep_coc') && __t.txt('cvr-lbl-coc') === '0,78',
+    __t.txt('cvr-lbl-coc')]);
+
+  /* Los TRES bordes del cociente, y el conteo que NO se mueve. */
+  const coc = (v) => { pon({ cvr_hep_coc:String(v) }); const st = cvrEstado();
+    return { lect:(__t.txt('cvr-coc-eval') || '').trim(), nC:st.nC, nR:st.nR, clave:st.clave }; };
+  const c77 = coc('0.77'), c78 = coc('0.78'), c79 = coc('0.79');
+  ex.push(['(C4) el cociente corta en MAS de 0,78: 0,77 y 0,78 «no supera», 0,79 «por encima»',
+    c77.lect.indexOf('no supera 0,78') > -1 && c78.lect.indexOf('no supera 0,78') > -1
+      && c79.lect.indexOf('por encima de 0,78') > -1,
+    [c77.lect, c78.lect, c79.lect].join(' // ')]);
+  ex.push(['(C5) y NO mueve el conteo ni el veredicto: las reglas de conteo no se tocaron',
+    c77.nC === c78.nC && c78.nC === c79.nC && c77.nR === c78.nR && c78.nR === c79.nR
+      && c77.clave === c78.clave && c78.clave === c79.clave,
+    JSON.stringify([c77, c78, c79])]);
+  ex.push(['(C6) el corte vive en una constante y vale 0,78',
+    typeof CVR_HEP_COC_MIN === 'number' && CVR_HEP_COC_MIN === 0.78,
+    String(typeof CVR_HEP_COC_MIN === 'undefined' ? 'NO EXISTE' : CVR_HEP_COC_MIN)]);
+
+  /* Los TRES tramos del e-prima medial, que dejo el R2 y esta tanda NO toca. */
+  const tramo = (v) => { pon({ e_sep:String(v) });
+    const f = cvrEstado().filas.filter(x => x.lbl === "e' medial")[0];
+    return f ? f.voto : 'NO HAY FILA'; };
+  ex.push(['(C7) CONTROL: el e-prima medial sigue en TRES tramos -9 constriccion, 7 mixto, 5 restriccion-',
+    tramo(9) === 'c' && tramo(7) === 'm' && tramo(5) === 'r',
+    [tramo(9), tramo(7), tramo(5)].join(' / ')]);
+  pon({ e_sep:'9' });
+
+  /* El chip de lo que no sale de esta guia. */
+  const secCvr2 = seccionTxt('ete-seccion-constr-restr');
+  ex.push(['(C8) el chip CRITERIO DE ECOSMART declara el e-prima lateral, el E/e-prima y las reglas de conteo, con su origen citado',
+    secCvr2.indexOf('CRITERIO DE ECOSMART') > -1
+      && /e. lateral de 10 cm\\/s/.test(secCvr2)
+      && /E\\/e. de 15/.test(secCvr2)
+      && secCvr2.indexOf('Pieske 2019, folio 3303') > -1
+      && /reglas de conteo/.test(secCvr2) && /no tienen fuente/.test(secCvr2),
+    secCvr2.slice(secCvr2.indexOf('CRITERIO DE ECOSMART'), secCvr2.indexOf('CRITERIO DE ECOSMART') + 300)]);
+
+  /* La rama de criterios mixtos ya no recomienda el cateterismo, y el informe tampoco. */
+  __t.limpiar(); abrir('cvr_rebote');
+  pon({ e_sep:'9', e_lat:'7', resp_var_mitral:'30', resp_var_tric:'10',
+        cvr_rebote:'si', cvr_hepatico:'insp', cvr_pericardio_tc:'normal' });
+  const stMix = cvrEstado();
+  const frMix = cvrFrases(stMix).join(' ');
+  ex.push(['(C9) DENOMINADOR: la escena cae de verdad en la rama de criterios mixtos',
+    stMix.clave === 'mixto', 'clave=' + stMix.clave + ' nC=' + stMix.nC + ' nR=' + stMix.nR]);
+  ex.push(['(C10) y esa rama ya NO recomienda el cateterismo: describe y se calla',
+    frMix.indexOf('Criterios mixtos de constricci\\u00f3n y restricci\\u00f3n') > -1
+      && frMix.toLowerCase().indexOf('cateterismo') < 0
+      && frMix.toLowerCase().indexOf('se recomienda') < 0, frMix]);
+  if (F('amiloIntegrar')) { try { amiloIntegrar('cvr') } catch (e) {} }
+  const rC = __t.informe();
+  const hojaC = F('amiloTextoCVR') ? amiloTextoCVR() : 'SIN FN';
+  ex.push(['(C11) ni el informe ni la hoja del PDF piden confirmacion invasiva ni cateterismo',
+    !/correlaci\\u00f3n cl\\u00ednica e invasiva/i.test(rC.inf)
+      && rC.inf.toLowerCase().indexOf('cateterismo') < 0
+      && !/correlaci\\u00f3n cl\\u00ednica e invasiva/i.test(hojaC)
+      && hojaC.toLowerCase().indexOf('cateterismo') < 0,
+    rC.inf.split('\\n').filter(l => /mixto|constric|restric/i.test(l)).join(' | ').slice(0, 220)]);
+
+  /* == (D) EVIDENCIA DE CONSTRICCION ======================================================== */
+  abrirPanel();
+  const D_CAT = 'Clase IIa \\u00b7 Nivel C \\u2014 Con la imagen multimodal NO concluyente';
+  const evC0 = evSec('Constricci\\u00f3n peric\\u00e1rdica');
+  ex.push(['(D1) la Evidencia de constriccion existe y cita la ESC 2025',
+    !!evC0 && evC0.biblio.indexOf('escPeri2025') > -1, evC0 ? JSON.stringify(evC0.biblio) : 'NO HAY SECCION']);
+  ex.push(['(D2) publica la imagen multimodal Clase I · Nivel C con su tabla y su folio',
+    !!evC0 && /Clase I \\u00b7 Nivel C \\u2014 La gu\\u00eda RECOMIENDA la imagen multimodal/.test(evC0.txt)
+      && evC0.txt.indexOf('Recommendation Table 24, folio 64') > -1, evC0 ? 'ok' : '—']);
+  ex.push(['(D3) LEE los tramos del e-prima medial ya cargados y explica los tres en su globo',
+    !!evC0 && /la gu\\u00eda parte este valor en TRES/.test(evC0.txt)
+      && evC0.txt.indexOf('formas mixtas') > -1, evC0 ? 'ok' : '—']);
+  ex.push(['(D4) y declara el redondeo de la Figura S1 a 0,8 al lado del 0,78',
+    !!evC0 && /REDONDEA a 0,8/.test(evC0.txt) && evC0.txt.indexOf('hoja 6') > -1, evC0 ? 'ok' : '—']);
+  /* Por la MISMA razon que (B3): la bibliografia de la seccion nombra la fila IIa con su clase. */
+  ex.push(['(D5) sin contestar, el cateterismo NO se emite',
+    !!evC0 && evC0.txt.indexOf(D_CAT) < 0,
+    evC0 ? 'idx=' + evC0.txt.indexOf(D_CAT) : '—']);
+  clic('constr.imagen', 'no');
+  const evC = evSec('Constricci\\u00f3n peric\\u00e1rdica');
+  ex.push(['(D6) con la imagen NO concluyente emite el cateterismo Clase IIa · Nivel C con su folio',
+    !!evC && evC.txt.indexOf(D_CAT) > -1
+      && evC.txt.indexOf('Recommendation Table 24, folio 64') > -1,
+    evC ? 'idx=' + evC.txt.indexOf(D_CAT) : '—']);
+  clic('constr.imagen', 'si');
+  const evC2 = evSec('Constricci\\u00f3n peric\\u00e1rdica');
+  ex.push(['(D7) CONTROL NEGATIVO: con la imagen concluyente dice que NO corresponde, y no emite el IIa',
+    !!evC2 && /el cateterismo NO corresponde por esta gu\\u00eda/.test(evC2.txt)
+      && evC2.txt.indexOf(D_CAT) < 0,
+    evC2 ? 'idx=' + evC2.txt.indexOf(D_CAT) : '—']);
+  ex.push(['(D8) las filas sin fuente van SIN corchete y lo dicen: e-prima lateral, E/e-prima y el recuento',
+    !!evC2 && /criterio de EcoSmart: el e. lateral/.test(evC2.txt)
+      && /Recuento de criterios/.test(evC2.txt)
+      && /Ninguna gu\\u00eda de la biblioteca publica un recuento as\\u00ed/.test(evC2.txt), evC2 ? 'ok' : '—']);
+  cerrarPanel();
+
+  /* == (E) VEXUS ============================================================================ */
+  __t.limpiar();
+  abrir('vexus_sh');
+  const vx = (mm, sh, pv) => { pon({ vci_diam:String(mm), vexus_sh:sh, vexus_pv:pv, vexus_ir:'0' });
+    const st = vexusEstado(); return st ? st.score : null; };
+  const g1 = [vx(19,'0','0'), vx(20,'0','0'), vx(21,'0','0')];
+  const g2 = [vx(19,'2','0'), vx(20,'2','0'), vx(21,'2','0')];
+  const g3 = [vx(19,'2','2'), vx(20,'2','2'), vx(21,'2','2')];
+  ex.push(['(E1) sin vasos severos: 19 da 0 y 20 y 21 dan 1 -el grado 1 pide 20 mm O MAS-',
+    JSON.stringify(g1) === JSON.stringify([0,1,1]), JSON.stringify(g1)]);
+  ex.push(['(E2) con UN vaso severo: 19 da 0, 20 da 1 y solo 21 da 2 -los grados 2 y 3 piden MAS de 20 mm-',
+    JSON.stringify(g2) === JSON.stringify([0,1,2]), JSON.stringify(g2)]);
+  ex.push(['(E3) con DOS vasos severos: 19 da 0, 20 da 1 y solo 21 da 3',
+    JSON.stringify(g3) === JSON.stringify([0,1,3]), JSON.stringify(g3)]);
+  ex.push(['(E4) el corte vive en una constante y vale 20',
+    typeof VEXUS_VCI_MM === 'number' && VEXUS_VCI_MM === 20,
+    String(typeof VEXUS_VCI_MM === 'undefined' ? 'NO EXISTE' : VEXUS_VCI_MM)]);
+
+  pon({ vci_diam:'21', vexus_sh:'2', vexus_pv:'2', vexus_ir:'0' });
+  const CONDUCTAS = ['Monitorizar', 'Considerar balance', 'Evaluar necesidad de descongesti',
+                     'Considerar descongesti', 'ultrafiltraci', 'Reevaluar con tratamiento'];
+  const secVx = seccionTxt('vexus-seccion');
+  if (F('amiloIntegrar')) { try { amiloIntegrar('vexus') } catch (e) {} }
+  const rV = __t.informe();
+  const hojaV = F('amiloTextoVEXUS') ? amiloTextoVEXUS() : 'SIN FN';
+  const hayEn = (t) => CONDUCTAS.filter(p => t.indexOf(p) > -1);
+  ex.push(['(E5) DENOMINADOR: el informe SI trae la linea de VEXUS, asi que buscar conductas ahi cuenta',
+    rV.inf.indexOf('VEXUS 3') > -1, rV.inf.split('\\n').filter(l => /VEXUS/.test(l)).join(' | ')]);
+  ex.push(['(E6) ninguna frase de conducta queda en la pantalla, en el informe ni en la hoja del PDF',
+    hayEn(secVx).length === 0 && hayEn(rV.inf).length === 0 && hayEn(hojaV).length === 0,
+    JSON.stringify({ pantalla:hayEn(secVx), informe:hayEn(rV.inf), pdf:hayEn(hojaV) })]);
+  ex.push(['(E7) CONTROL: la asociacion con la injuria renal, que NO es una conducta, se queda',
+    rV.inf.indexOf('Alta asociaci\\u00f3n con injuria renal aguda') > -1, '—']);
+
+  /* == (F) EVIDENCIA DE VEXUS =============================================================== */
+  const evV = evSec('Congesti\\u00f3n venosa sist\\u00e9mica');
+  ex.push(['(F1) la Evidencia de VEXUS existe y cita el articulo original',
+    !!evV && evV.biblio.indexOf('vexus2020') > -1, evV ? JSON.stringify(evV.biblio) : 'NO HAY SECCION']);
+  ex.push(['(F2) publica la asociacion con la injuria renal aguda con sus numeros, y SIN clase ni nivel',
+    !!evV && evV.txt.indexOf('3,69') > -1 && evV.txt.indexOf('6,37') > -1
+      && /No hay clase ni nivel de recomendaci\\u00f3n/.test(evV.txt)
+      && evV.txt.indexOf('Clase I') < 0 && evV.txt.indexOf('Clase IIa') < 0,
+    evV ? 'ok' : '—']);
+  ex.push(['(F3) y las tres frases de manejo viven ACA, rotuladas criterio de EcoSmart y sin corchete',
+    !!evV && evV.txt.indexOf('Criterio de EcoSmart \\u2014 grado 1: monitorizar') > -1
+      && evV.txt.indexOf('Criterio de EcoSmart \\u2014 grado 3: considerar descongesti\\u00f3n activa') > -1
+      && /El art\\u00edculo NO da pasos por grado/.test(evV.txt), evV ? 'ok' : '—']);
+
+  /* == (G) LAS FICHAS DE REFERENCIAS ======================================================== */
+  const ficha = (k) => { const d = document.getElementById('ref-' + k);
+    if (!d) return 'NO EXISTE ref-' + k;
+    if (getComputedStyle(d).display === 'none') { try { toggleRef(k, d.previousElementSibling) } catch (e) {} }
+    return (d.textContent || '').replace(/\\s+/g, ' '); };
+  /* ⚠️ LA REACHABILIDAD SE MIDE APARTE DEL CONTENIDO, y lo destapo una mutacion que SOBREVIVIO.
+     \`ficha()\` busca el cuerpo por su id y lo abre llamando a \`toggleRef\` ella misma, asi que una
+     mutacion que rompia el \`onclick\` del ENCABEZADO -la unica puerta que el medico tiene- dejaba
+     el caso entero en verde: el contenido seguia ahi y se seguia leyendo. Una ficha que existe y
+     no se puede abrir es, para quien usa la app, una ficha que no existe. */
+  const puerta = (k) => { const d = document.getElementById('ref-' + k);
+    const h = d ? d.previousElementSibling : null;
+    const oc = h ? String(h.getAttribute('onclick') || '') : '';
+    if (!d || !h) return 'NO HAY CUERPO O ENCABEZADO de ref-' + k;
+    if (oc.indexOf("toggleRef('" + k + "'") < 0) return 'EL ENCABEZADO NO ABRE ref-' + k + ': ' + oc;
+    /* Y se aprieta de verdad: cerrada, un clic la abre. */
+    d.style.display = 'none';
+    h.click();
+    return getComputedStyle(d).display !== 'none' ? 'ok' : 'EL CLIC NO LA ABRIO';
+  };
+  const puertaP = puerta('pericardio'), puertaC = puerta('constriccion');
+  ex.push(['(G0) las dos fichas se ABREN desde su encabezado, con un clic de verdad',
+    puertaP === 'ok' && puertaC === 'ok', 'pericardio=' + puertaP + ' constriccion=' + puertaC]);
+  const fP = ficha('pericardio'), fC = ficha('constriccion');
+  ex.push(['(G1) la ficha de pericardio trae la duracion >0,34, su especificidad y el folio 62',
+    fP.indexOf('Tabla 17, folio 62') > -1 && fP.indexOf('>0,34 del ciclo') > -1
+      && fP.indexOf('especificidad 100 %') > -1 && fP.indexOf('>20 mm') > -1,
+    fP.slice(0, 120)]);
+  ex.push(['(G2) y dice lo que la Tabla 17 NO menciona',
+    /Lo que la Tabla 17 NO menciona/.test(fP), '—']);
+  ex.push(['(G3) la ficha de constriccion existe y da fuente y folio a cada corte',
+    typeof fC === 'string' && fC.indexOf('NO EXISTE') < 0
+      && fC.indexOf('folio 63') > -1 && fC.indexOf('hoja 6') > -1
+      && fC.indexOf('>0,78') > -1 && fC.indexOf('Recommendation Table 24, folio 64') > -1,
+    typeof fC === 'string' ? fC.slice(0, 140) : '—']);
+  ex.push(['(G4) y declara con el chip lo que no tiene fuente, con su origen',
+    fC.indexOf('CRITERIO DE ECOSMART') > -1 && fC.indexOf('Pieske 2019, folio 3303') > -1
+      && /reglas de conteo/.test(fC) && /3 mm/.test(fC), '—']);
+  ex.push(['(G5) la ficha de constriccion declara el redondeo de la Figura S1 a 0,8',
+    /redondea a &gt;0,8|redondea a >0,8/.test(fC) || fC.indexOf('Figura S1 del suplemento lo redondea') > -1,
+    fC.indexOf('redondea') > -1 ? 'ok' : 'no lo dice']);
+
+  /* == (H) LOS BLOQUES INTEGRADOS SE ACTUALIZAN SOLOS, Y EL AVISO DE EDICION MANUAL ========= */
+  __t.limpiar(); abrir('dpt_col_ad');
+  pon({ pericardio:'Derrame severo (>20mm)', dpt_col_ad:'si', dpt_col_ad_dur:'0.35', vci_diam:'21', vci_col:'<50' });
+  if (F('amiloIntegrar')) { try { amiloIntegrar('dpt') } catch (e) {} }
+  const taId = 'am-txt-dpt';
+  const antesTA = (document.getElementById(taId) || {}).value || '';
+  pon({ dpt_col_ad_dur:'0.33' });
+  const despTA = (document.getElementById(taId) || {}).value || '';
+  ex.push(['(H1) DENOMINADOR: el bloque integrado existe y tiene texto',
+    !!document.getElementById(taId) && antesTA.length > 40, 'len=' + antesTA.length]);
+  ex.push(['(H2) y se actualiza SOLO al cambiar la duracion del colapso de AD',
+    antesTA.indexOf('0,35 del ciclo') > -1 && despTA.indexOf('0,33 del ciclo') > -1
+      && antesTA !== despTA, 'antes/despues distintos=' + (antesTA !== despTA)]);
+  const ta = document.getElementById(taId);
+  if (ta) { ta.value = antesTA + '\\nESCRITO A MANO POR EL MEDICO';
+    ta.dispatchEvent(new Event('input', { bubbles: true })); }
+  pon({ dpt_col_ad_dur:'0.35' });
+  const trasEdit = (document.getElementById(taId) || {}).value || '';
+  ex.push(['(H3) editado a mano, el refresco NO lo pisa y el aviso de edicion manual aparece',
+    trasEdit.indexOf('ESCRITO A MANO POR EL MEDICO') > -1,
+    trasEdit.slice(-70)]);
+  ex.push(['(H4) y el modulo queda marcado como editado a mano',
+    (function(){ const m = F('amiloEditadoAMano') ? amiloEditadoAMano('dpt') : null;
+      if (m !== null) return m === true;
+      const c = (__t.campos && __t.campos()) || {};
+      return String(c['am-edit-dpt'] || c['am_edit_dpt'] || '') !== '' || trasEdit.indexOf('ESCRITO A MANO') > -1; })(),
+    'marca']);
+
+  /* == (I) GUARDAR, NUEVO ESTUDIO, REABRIR ================================================== */
+  __t.limpiar(); abrir('dpt_col_ad');
+  pon({ nombre:'J Pericardio', ci:'J532', pericardio:'Derrame severo (>20mm)',
+        dpt_col_ad:'si', dpt_col_ad_dur:'0.35', vci_diam:'21', vci_col:'<50',
+        cvr_hep_coc:'0.85', vexus_sh:'2', vexus_pv:'2' });
+  const g = await __t.guardar();
+  ex.push(['(I1) el estudio guarda con los dos campos nuevos', g.ok === true && !!g.estudioId,
+    JSON.stringify(g)]);
+  __t.nuevoEstudio();
+  ex.push(['(I2) «Nuevo estudio» deja los dos campos nuevos VACIOS',
+    (__t.val('dpt_col_ad_dur') || '') === '' && (__t.val('cvr_hep_coc') || '') === '',
+    JSON.stringify([__t.val('dpt_col_ad_dur'), __t.val('cvr_hep_coc')])]);
+  if (g.estudioId) {
+    __t.reabrir(g.estudioId);
+    await new Promise(r => setTimeout(r, 420));
+    ex.push(['(I3) y al reabrir vuelven con su valor, y el grado de VEXUS se recalcula desde los datos crudos',
+      (__t.val('dpt_col_ad_dur') || '') === '0.35' && (__t.val('cvr_hep_coc') || '') === '0.85'
+        && vexusEstado() && vexusEstado().score === 3,
+      JSON.stringify([__t.val('dpt_col_ad_dur'), __t.val('cvr_hep_coc'),
+        vexusEstado() ? vexusEstado().score : null])]);
+    await __t.borrar(g.estudioId);
+  }
+
+  /* == (J) LOS CONTROLES =================================================================== */
+  __t.limpiar();
+  ex.push(['(J1) el Excel sigue en 440 columnas con el formulario vacio y con los dos campos nuevos cargados',
+    cols({}) === 440 && cols({ dpt_col_ad_dur:'0.35', cvr_hep_coc:'0.85' }) === 440,
+    cols({}) + ' / ' + cols({ dpt_col_ad_dur:'0.35', cvr_hep_coc:'0.85' })]);
+  ex.push(['(J2) y ninguno de los dos campos nuevos se volvio columna de Excel',
+    (function(){ const ks = Object.keys(_labExcelRow({ nombre:'P', ci:'1', fecha_estudio:'2026-10-24',
+        campos:{ dpt_col_ad_dur:'0.35', cvr_hep_coc:'0.85' } }));
+      return !ks.some(k => /Duraci\\u00f3n del colapso|cociente hep/i.test(k)); })(), 'ok']);
+  /* Los grados del derrame, que esta orden NO toca. */
+  const grado = (p) => { pon({ pericardio:p }); return dptTamano().clave + '|' + dptTamano().rango; };
+  ex.push(['(J3) CONTROL: los tres grados del derrame siguen como los dejo el R5',
+    grado('Derrame leve (<10mm)') === 'leve|<10mm'
+      && grado('Derrame moderado (10-20mm)') === 'moderado|10-20mm'
+      && grado('Derrame severo (>20mm)') === 'severo|>20mm',
+    [grado('Derrame leve (<10mm)'), grado('Derrame moderado (10-20mm)'), grado('Derrame severo (>20mm)')].join(' / ')]);
+  /* ⚠️ LOS NOMBRES SON LOS REALES, y la primera version de este caso invento dos -\`fopEstado\` y
+     \`tepScore\`, que no existen-: con \`typeof\` dando «undefined» el control fallaba por el nombre
+     y no por el modulo, que es un rojo que no prueba nada. */
+  const CTRL_FN = ['fopConclusion','tepVeredicto','tepHayDatos','calcHTP2022','_htp2022Core'];
+  const ctrlMal = CTRL_FN.filter(n => typeof window[n] !== 'function');
+  const ctrlExc = CTRL_FN.filter(n => { if (typeof window[n] !== 'function') return false;
+    if (n === '_htp2022Core') return false;
+    try { window[n]() } catch (e) { return true } return false; });
+  ex.push(['(J4) CONTROL: el FOP, el TEP y el HTP siguen en pie -sus funciones existen y no lanzan-',
+    ctrlMal.length === 0 && ctrlExc.length === 0,
+    'no existen=' + JSON.stringify(ctrlMal) + ' lanzan=' + JSON.stringify(ctrlExc)]);
+  __t.limpiar();
+  const vac = __t.informe();
+  ex.push(['(J5) CONTROL: con el formulario vacio, el informe y el EN SUMA no mencionan nada de esta tanda',
+    vac.inf.indexOf('VEXUS') < 0 && vac.inf.indexOf('cociente') < 0
+      && vac.suma.indexOf('Derrame peric\\u00e1rdico') < 0, vac.suma.slice(0, 120)]);
+  ex.push(['(J6) CONTROL: el panel de Evidencia NO despierta ninguna de las tres secciones sobre un formulario vacio',
+    !evSec('Derrame peric\\u00e1rdico y taponamiento') && !evSec('Constricci\\u00f3n peric\\u00e1rdica')
+      && !evSec('Congesti\\u00f3n venosa sist\\u00e9mica'), 'ok']);
 
   return { extra: ex };
   })();

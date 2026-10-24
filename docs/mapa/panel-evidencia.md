@@ -425,3 +425,17 @@ Ejemplo concreto: **agregar una cita a Estenosis mitral**.
   su firma y por los comentarios vecinos; sus cuerpos no se leyeron.
 - **TC-282, TC-322, TC-327 y TC-328 existen** en `scripts/test_clinico.mjs` (un `caso()` cada uno,
   verificado por grep el 2026-10-01). Lo que NO se verificó es qué cubre cada uno.
+
+---
+
+## ⚠️ La tanda J movió esto (2026-10-24) — el mapa está en otro archivo
+
+El colapso de la aurícula derecha pasó a ser **diastólico** con su duración (`dpt_col_ad_dur`,
+corte `DPT_COL_AD_DUR_SIG` = 0,34), la plétora de VCI del pericardio bajó a **>20 mm**
+(`DPT_VCI_PLETORA_MM`), la constricción perdió el aviso de confirmación invasiva y ganó el
+cociente de la vena suprahepática (`cvr_hep_coc`, `CVR_HEP_COC_MIN` = 0,78), VEXUS pasó a usar los
+**dos** operadores del artículo (`VEXUS_VCI_MM`, con `≥` para el grado 1 y `>` para el 2 y el 3) y
+perdió sus frases de conducta, y entraron **tres Evidencias nuevas** más la ficha de Referencias
+de constricción.
+
+**Todo eso está en `docs/mapa/j-pericardio-constriccion-vexus.md`.** Acá no se repite.
