@@ -1024,6 +1024,29 @@ window.__Y = {
     inp.blur();
     return 1 },
 
+  /* ── EL ORDEN DE LOS CORCHETES, SECCION POR SECCION ───────────────────────────────────────
+     _indRefMarca numera por ORDEN DE PRIMERA APARICION dentro de la seccion, asi que mover
+     cuando se ARMA un bloque cambia los numeros sin cambiar un texto. Esto dumpea la secuencia
+     entera: clave y numero, en el orden del documento. */
+  citas() {
+    var cu = document.getElementById('indic-cuerpo');
+    if (!cu) return { err: 'NO EXISTE indic-cuerpo' };
+    var o = { secs: [] };
+    Array.prototype.forEach.call(cu.querySelectorAll('details'), function(d){
+      if (d.parentNode !== cu && !(d.parentNode && d.parentNode.parentNode === cu)) return;
+      var su = d.querySelector('summary');
+      if (!su) return;
+      var tit = (su.textContent || '').replace(/\s+/g, ' ').trim();
+      /* Solo las SECCIONES: las de primer nivel de #indic-cuerpo. */
+      if (d.parentNode !== cu) return;
+      var marcas = Array.prototype.map.call(d.querySelectorAll('[data-ind-ref]'), function(x){
+        return x.getAttribute('data-ind-ref') + '=' + (x.textContent || '').trim() });
+      var biblio = Array.prototype.map.call(d.querySelectorAll('[data-ind-refitem]'), function(x){
+        return x.getAttribute('data-ind-refitem') + '|' + (x.textContent || '').replace(/\s+/g,' ').trim().slice(0, 40) });
+      o.secs.push({ tit: tit, marcas: marcas, biblio: biblio });
+    });
+    return o },
+
   errores() { return (window.__Yerr || []).slice() }
 };
 `);
@@ -1300,6 +1323,36 @@ window.__Y = {
     } catch (e) { r.err = e.message }
     out.grupos.busc = r;
     process.stderr.write('[busc] listo\n');
+  }
+
+  /* == GRUPO citas — el orden de los corchetes en TODAS las secciones del panel ============= */
+  if (corre('citas')) {
+    const r = {};
+    /* Una escena RICA, para que despierten las secciones que tienen filas con cita Y bloques o
+       recomendacion con cita: ahi es donde el orden de armado se ve. */
+    const RICA = { nombre: 'Citas', ci: '7',
+      ea_vmax: '4.5', ea_gmed: '45', ea_ava: '0.8', ea_sintomas: 'si',
+      im_grado: '4', ia_grado: '3', it_grado: '3', ip_grado: 'Severa',
+      em_avm: '1.2', vm_morf: 'Reum\u00e1tica',
+      tsvd_diametro: '35', ep_vmax: '3', tdf_func_vd: 'leve',
+      tdf_vtdvdi: '70', tdf_vtsvdi: '24', tdf_vol_fuente: 'rmc',
+      ao_sin: '47', ao_tub: '42', fevi: '45', ddvi: '60' };
+    try {
+      await ev(`window.__P.nuevo()`);
+      await ev(`window.__P.calentar()`);
+      for (const id of Object.keys(RICA)) {
+        try { await ev(`window.__P.abrirPara(${JSON.stringify(id)})`);
+              await ev(`window.__Y.tdfPoner(${JSON.stringify({ [id]: RICA[id] })})`); }
+        catch (e) { r['no_' + id] = e.message }
+      }
+      await ev(`(function(){ try{ if (typeof _recalcModulos === 'function') _recalcModulos('citas') }catch(e){} return 1 })()`);
+      await ev(`(function(){ try{ indicAbrir() }catch(e){ return 'EXC: ' + e.message } return 1 })()`);
+      r.dump = await ev(`window.__Y.citas()`);
+      await ev(`(function(){ try{ indicCerrar() }catch(e){} return 1 })()`);
+      r.errores = await ev(`window.__Y.errores()`);
+    } catch (e) { r.err = e.message }
+    out.grupos.citas = r;
+    process.stderr.write('[citas] listo\n');
   }
 
   /* == GRUPO ctrl — el A/B de control: un estudio SIN ninguno de estos modulos ============== */

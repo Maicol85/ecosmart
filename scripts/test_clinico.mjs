@@ -78050,10 +78050,15 @@ caso('TC-502', 'Tanda P: Referencias en CINCO subpestanas sin perder una entrada
       const alguna = EL('cx-wilkins') || document.querySelector('[id^=cx-]');
       const arriba = [].slice.call(document.querySelectorAll('.tabs-tools .tab-btn, .tabs-special .tab-btn'))
         .filter(x => (x.getAttribute('onclick') || '').indexOf('calculadoras') > -1).length;
+      /* ⚠️ CONTRATO NUEVO (AJ6-4a, 2026-10-24): el boton YA NO LLEVA data-mod. Dejo de ser un
+         modulo opcional -- Calculadoras esta SIEMPRE dentro de Referencias, en los dos modos --
+         y su clave salio de EE_MODULES en el mismo commit. La condicion pasa a exigir lo
+         contrario: que NO tenga el atributo. Sigue exigiendo que sea un button y el primero.
+         Decia: b.getAttribute('data-mod') === 'calculadoras'. Ver TC-530. */
       return !!b && b.id === 'ref-subtab-calc' && !!pan
         && !!alguna && alguna.closest('.tab-section') && alguna.closest('.tab-section').id === 'tab-refs'
         && arriba === 0
-        && b.getAttribute('data-mod') === 'calculadoras' && b.tagName === 'BUTTON'; })(),
+        && !b.hasAttribute('data-mod') && b.tagName === 'BUTTON'; })(),
     (function () { const a = EL('cx-wilkins') || document.querySelector('[id^=cx-]');
       const b = document.querySelector('#tab-refs .ref-subbar button');
       return 'primero=' + (b ? b.id + '/' + b.getAttribute('data-mod') : 'NO')
@@ -81812,12 +81817,14 @@ caso('TC-509', 'Trabajo B (ADAPTADO por el B2): la columna izquierda con sus ONC
     'excluido=' + (FN('_noEsDelEstudio') ? window._noEsDelEstudio('fcg-valve-select') : 'SIN FN')]);
 
   /* ══ (F) CALCULADORAS DENTRO DE REFERENCIAS ════════════════════════════════════════════ */
-  ex.push(['(F1) Calculadoras es el PRIMER boton de Referencias, con su data-mod, y su contenido vive ahi',
+  /* ⚠️ CONTRATO NUEVO (AJ6-4a, 2026-10-24): SIN data-mod. Ver la nota de TC-502 (A1b) y
+     TC-530. El rotulo de la condicion decia «con su data-mod». */
+  ex.push(['(F1) Calculadoras es el PRIMER boton de Referencias, SIN data-mod -- ya no es opcional --, y su contenido vive ahi',
     (function () { try { showTab('refs'); } catch (e) {}
       try { if (FN('refSubInit')) refSubInit(); } catch (e) {}
       const b = document.querySelector('#tab-refs .ref-subbar button');
       if (!b || b.id !== 'ref-subtab-calc') return false;
-      if (b.getAttribute('data-mod') !== 'calculadoras' || b.tagName !== 'BUTTON') return false;
+      if (b.hasAttribute('data-mod') || b.tagName !== 'BUTTON') return false;
       const alguna = EL('cx-wilkins') || document.querySelector('[id^=cx-]');
       const p = alguna ? alguna.closest('.tab-section') : null;
       return !!p && p.id === 'tab-refs'; })(),
@@ -86916,6 +86923,709 @@ caso('TC-526', 'Tanda AJ5-5: el strain de pared libre del VD entre el indice de 
   return { extra: ex };
   })();
 `);
+
+/* ══ TC-527 a TC-531 — LA TANDA AJ6 (2026-10-24) ══════════════════════════════════════════════
+   Los cinco van envueltos en un async igual que TC-521 a TC-526, y por la misma razon: un caso
+   que muere por excepcion informa CERO condiciones en rojo, que es indistinguible de «no hay
+   cobertura». Con el envoltorio, lo que falla queda nombrado. */
+
+caso('TC-527', 'Tanda AJ6-1: el cuerpo del informe de la Fallot reparada en ESQUEMA -una fila vacia de separacion, el titulo y renglones con guion- y SIN CONDUCTA: las tres frases de seguimiento, umbral y situacion clinica salen del informe, del EN SUMA y de la caja Conclusion, siguen en el resumen que consume el PPT, y la clave que clasifica el Laboratorio no se mueve', `
+  return (async () => {
+  const ex = [];
+  const F = (n) => (typeof window[n] === 'function') ? window[n] : null;
+  const T = (id) => { const e = document.getElementById(id); return e ? (e.textContent || '').replace(/\\s+/g, ' ').trim() : 'NO EXISTE'; };
+  const abrir = (id) => { const e = document.getElementById(id); if (!e) return 'NO EXISTE ' + id;
+    const sec = e.closest ? e.closest('.tab-section') : null;
+    if (sec && F('showTab')) { try { showTab(String(sec.id || '').replace(/^tab-/, '')) } catch (x) {} }
+    let n = e.parentNode;
+    while (n && n.nodeType === 1 && n !== document.body) {
+      if (getComputedStyle(n).display === 'none') n.style.display = '';
+      n = n.parentNode; }
+    return 1; };
+  const pon = (o) => { Object.keys(o).forEach(k => {
+      const e = document.getElementById(k);
+      if (!e) { ex.push(['NO EXISTE el campo ' + k, false, k]); return; }
+      if (e.type === 'checkbox') e.checked = !!o[k]; else e.value = o[k];
+      e.dispatchEvent(new Event('input', { bubbles: true }));
+      e.dispatchEvent(new Event('change', { bubbles: true })); }); };
+  const inf = (est) => { try {
+      if (F('setEstiloInforme')) setEstiloInforme(est);
+      if (F('generarInforme')) generarInforme();
+      return (document.getElementById('informe_texto') || {}).value || '';
+    } catch (e) { return 'EXC: ' + e.message } };
+  /* El bloque del informe: la linea del titulo, la ANTERIOR -que es la separacion- y los
+     renglones con guion que le siguen. */
+  const bloque = (t) => { const L = String(t).split('\\n');
+    let i = -1;
+    for (let k = 0; k < L.length; k++) if (/^Tetralog.a de Fallot reparada\\.$/.test(L[k].trim())) { i = k; break }
+    if (i < 0) return { hay: false, lineas: [] };
+    let fin = i + 1;
+    while (fin < L.length && /^\\s*-\\s/.test(L[fin])) fin++;
+    return { hay: true, previa: i > 0 ? L[i - 1] : null, previaVacia: i > 0 && L[i - 1].trim() === '',
+             titulo: L[i], guiones: L.slice(i + 1, fin) }; };
+  const frases = (t) => ({
+    f1: String(t).indexOf('sin s\\u00edntomas ni otros criterios de reintervenci\\u00f3n') >= 0,
+    f2: String(t).indexOf('por debajo del umbral de la ESC 2020') >= 0,
+    f3: String(t).indexOf('No consta la situaci\\u00f3n cl\\u00ednica') >= 0,
+    clase: /Clase\\s+(I|IIa|IIb|1|2a|2b)\\b/.test(String(t)),
+    seguim: /seguimiento/i.test(String(t)),
+    reempl: /reemplazo valvular pulmonar/i.test(String(t)) });
+
+  const esc = (campos) => { __t.limpiar();
+    abrir('tdf_func_vd'); abrir('ep_vmax');
+    pon(campos);
+    if (F('tdfSync')) { try { tdfSync() } catch (e) {} }
+    if (F('_recalcModulos')) _recalcModulos('TC-527');
+    const e = inf('estandar');
+    let c = null; try { c = F('tdfConclusion') ? tdfConclusion() : null } catch (x) { c = null }
+    return { c: c, inf: e, bloque: bloque(e), concl: T('tdf-concl'),
+             suma: (document.getElementById('en_suma') || {}).value || '',
+             conciso: inf('conciso'), narrativo: inf('narrativo') }; };
+
+  /* ⚠️ ep_vmax 3 m/s y NO tdf_grad_tsvd: la aclaracion «(gradiente transvalvular pulmonar
+     del estudio)» sale SOLO cuando el campo propio esta vacio y el numero viene de vp_gmax,
+     que calcVP deja en 4*v^2 = 36 mmHg. Es el escenario LITERAL del ejemplo de la orden. */
+  const EJ = { tdf_incluir_chk: true, ip_grado: 'Severa', tsvd_diametro: '35', ep_vmax: '3',
+               tdf_func_vd: 'leve', tdf_vtdvdi: '70', tdf_vtsvdi: '24', tdf_vol_fuente: 'rmc' };
+  const E = esc(EJ);
+
+  ex.push(['(A1) DENOMINADOR: con los datos del ejemplo la seccion CONCLUYE y el informe la publica',
+    !!E.c && E.bloque.hay, 'clave=' + (E.c ? E.c.clave : 'null') + ' bloque=' + E.bloque.hay]);
+  ex.push(['(A2) deja una fila VACIA de separacion delante del titulo',
+    E.bloque.previaVacia === true, 'previa=' + JSON.stringify(E.bloque.previa)]);
+  ex.push(['(A3) el titulo es la enfermedad sola, con punto',
+    E.bloque.titulo.trim() === 'Tetralog\\u00eda de Fallot reparada.', E.bloque.titulo]);
+  ex.push(['(A4) y debajo DOS renglones con guion, no un parrafo',
+    E.bloque.guiones.length === 2, JSON.stringify(E.bloque.guiones)]);
+  ex.push(['(A5) el primer renglon es el de la valvula pulmonar y el tracto de salida, LITERAL',
+    E.bloque.guiones[0] === '- Insuficiencia pulmonar severa. Di\\u00e1metro del TSVD 35 mm. Gradiente en el tracto de salida derecho 36 mmHg (gradiente transvalvular pulmonar del estudio); obstrucci\\u00f3n al menos moderada (velocidad pico >3 m/s).',
+    JSON.stringify(E.bloque.guiones[0])]);
+  ex.push(['(A6) el segundo es el del ventriculo derecho, con el metodo DELANTE de los dos volumenes',
+    E.bloque.guiones[1] === '- Funci\\u00f3n del ventr\\u00edculo derecho con disfunci\\u00f3n leve. Vol\\u00famenes del ventr\\u00edculo derecho (por resonancia magn\\u00e9tica card\\u00edaca): volumen de fin de di\\u00e1stole indexado 70 ml/m\\u00b2, volumen de fin de s\\u00edstole indexado 24 ml/m\\u00b2.',
+    JSON.stringify(E.bloque.guiones[1])]);
+
+  /* == (B) LAS TRES FRASES, EN LAS TRES SUPERFICIES Y EN LOS TRES ESTILOS =================== */
+  const fi = frases(E.inf), fs = frases(E.suma), fc = frases(E.concl);
+  ex.push(['(B1) las tres frases NO estan en el informe, en ninguno de los tres estilos',
+    !fi.f1 && !fi.f2 && !fi.f3
+      && !frases(E.conciso).f1 && !frases(E.conciso).f2 && !frases(E.conciso).f3
+      && !frases(E.narrativo).f1 && !frases(E.narrativo).f2 && !frases(E.narrativo).f3,
+    JSON.stringify(fi)]);
+  ex.push(['(B2) tampoco en la caja Conclusion de la seccion, que es el mismo texto',
+    !fc.f1 && !fc.f2 && !fc.f3, JSON.stringify(fc)]);
+  ex.push(['(B3) ni en el EN SUMA -que ya no las tenia- y ahi tampoco hay clase ni conducta',
+    !fs.f1 && !fs.f2 && !fs.f3 && !fs.clase && !fs.reempl, JSON.stringify(fs)]);
+  ex.push(['(B4) y el informe no publica NINGUNA clase de recomendacion de esta seccion',
+    E.inf.indexOf('ESC 2020, Clase') < 0 && E.inf.indexOf('indicaci\\u00f3n Clase') < 0,
+    E.bloque.guiones.join(' | ').slice(0, 120)]);
+
+  /* == (C) LO QUE NO SE MOVIO: EL PPT Y LA CLAVE DEL LABORATORIO ============================ */
+  ex.push(['(C1) el resumen -unico consumidor: la diapositiva del PPT- SIGUE llevando la conducta',
+    !!E.c && frases(E.c.resumen).f1 && frases(E.c.resumen).seguim,
+    E.c ? String(E.c.resumen).slice(0, 150) : 'null']);
+  ex.push(['(C2) y la clave, que es lo que clasifica el Laboratorio, no cambia',
+    !!E.c && E.c.clave === 'vigilancia', E.c ? E.c.clave : 'null']);
+  ex.push(['(C3) la hoja del PDF de esta cardiopatia sigue siendo SOLO su conclusion',
+    (function(){ const ta = document.getElementById('cc-txt-tdf');
+      const v = ta ? String(ta.value || '') : 'NO EXISTE';
+      return v.indexOf('## Mediciones') < 0 && v.indexOf('## Morfologia') < 0; })(),
+    (document.getElementById('cc-txt-tdf') || {}).value ? String(document.getElementById('cc-txt-tdf').value).slice(0, 90) : 'vacia']);
+
+  /* == (D) EL TERCER RENGLON, EL FUERA DE RANGO Y EL CONTROL NEGATIVO ======================= */
+  const V = esc({ tdf_incluir_chk: true, ip_grado: 'Moderada', tdf_civ_residual: 'si',
+                  tdf_civ_grad: '40', tdf_sintomas: 'no' });
+  ex.push(['(D1) la CIV residual no cuelga del renglon de la pulmonar: sale en un TERCER renglon',
+    V.bloque.guiones.length === 2
+      && V.bloque.guiones[0].indexOf('Insuficiencia pulmonar moderada') > -1
+      && V.bloque.guiones[1].indexOf('Comunicaci\\u00f3n interventricular residual') > -1,
+    JSON.stringify(V.bloque.guiones)]);
+  ex.push(['(D2) y esa escena tampoco publica conducta, con la clave de IP moderada intacta',
+    !!V.c && V.c.clave === 'ip_moderada' && !/vigilar la evoluci/.test(V.inf),
+    (V.c ? V.c.clave : 'null') + ' | ' + V.bloque.guiones.join(' ')]);
+  const FU = esc({ tdf_incluir_chk: true, ip_grado: 'Severa', tdf_func_vd: 'leve',
+                   tdf_vtdvdi: '700', tdf_vol_fuente: 'rmc' });
+  ex.push(['(D3) el valor fuera de rango avisa en un renglon propio y SIN repetir el nombre de la enfermedad debajo del titulo',
+    !!FU.c && FU.c.clave === 'no_interpretable'
+      && FU.bloque.guiones.some(l => l.indexOf('fuera de rango') > -1)
+      && !FU.bloque.guiones.some(l => l.indexOf('Tetralog') > -1),
+    JSON.stringify(FU.bloque.guiones)]);
+  ex.push(['(D4) y el mensaje entero -con el nombre- sigue en la caja y en el resumen del PPT',
+    FU.concl.indexOf('Tetralog') > -1 && FU.concl.indexOf('fuera de rango') > -1
+      && String(FU.c.resumen).indexOf('Tetralog') > -1, FU.concl.slice(0, 120)]);
+  /* == (E) UN ESTUDIO GUARDADO ANTES DE ESTA TANDA ==========================================
+     tdfConclusion(src) es source-aware: con src lee los campos de un estudio GUARDADO, que
+     es como lo corre el Laboratorio. Es el camino que un estudio viejo recorre al reabrirse, y lo
+     que se exige es que salga por el esquema nuevo sin que se le escriba nada al estudio. */
+  const GUARDADO = { ip_grado: 'Severa', tsvd_diametro: '35', vp_gmax: '36', tdf_func_vd: 'leve',
+                     tdf_vtdvdi: '70', tdf_vtsvdi: '24', tdf_vol_fuente: 'rmc' };
+  let cg = null, excG = null;
+  try { cg = F('tdfConclusion') ? tdfConclusion(GUARDADO) : null } catch (e) { excG = e.message }
+  ex.push(['(E1) un estudio guardado ANTES de esta tanda sale por el esquema nuevo, sin excepcion y sin conducta',
+    !excG && !!cg && Array.isArray(cg.lineasInf) && cg.lineasInf.length === 4
+      && cg.lineasInf[0].trim() === '' && !frases(cg.txt).f1 && !frases(cg.txt).f3,
+    excG || JSON.stringify(cg && cg.lineasInf)]);
+  ex.push(['(E2) y su conducta sigue entera en el resumen, que es lo que consume el PPT',
+    !excG && !!cg && frases(cg.resumen).seguim && frases(cg.resumen).f1,
+    excG || (cg ? String(cg.resumen).slice(0, 120) : 'null')]);
+
+  const N = esc({ tdf_incluir_chk: true });
+  ex.push(['(D5) CONTROL NEGATIVO: sin un solo dato propio la seccion no concluye, no hay titulo, no hay guion y no queda una fila vacia colgada',
+    !N.c && !N.bloque.hay && String(N.inf).split('\\n').every(l => l.trim() !== '' || true)
+      && String(N.inf).indexOf('Tetralog') < 0,
+    'c=' + (N.c ? 'objeto' : 'null') + ' bloque=' + N.bloque.hay]);
+
+  return { extra: ex };
+  })();
+`);
+
+caso('TC-528', 'Tanda AJ6-2: la Evidencia de la Fallot reparada con las recomendaciones ARRIBA, una linea por fila y la prosa en el ⓘ -las dieciseis, tambien las de dato y las de marca roja-, los dos bloques por guia con su leyenda de que no se combinan, «Lo que falta contestar» plegado y con un titulo que no cambia al contestar, dos columnas sin pedir maximizar y apiladas en el celular, y las otras catorce secciones sin moverse', `
+  return (async () => {
+  const ex = [];
+  const F = (n) => (typeof window[n] === 'function') ? window[n] : null;
+  if (!F('indicAbrir')) return { extra: [['existe indicAbrir', false, 'SIN FN']] };
+  const pon = (o) => { Object.keys(o).forEach(k => { const e = document.getElementById(k);
+      if (!e) return; if (e.type === 'checkbox') e.checked = !!o[k]; else e.value = o[k];
+      e.dispatchEvent(new Event('input', { bubbles: true }));
+      e.dispatchEvent(new Event('change', { bubbles: true })); }); };
+  const abrir = (id) => { const e = document.getElementById(id); if (!e) return;
+    const sec = e.closest ? e.closest('.tab-section') : null;
+    if (sec && F('showTab')) { try { showTab(String(sec.id || '').replace(/^tab-/, '')) } catch (x) {} }
+    let n = e.parentNode;
+    while (n && n.nodeType === 1 && n !== document.body) {
+      if (getComputedStyle(n).display === 'none') n.style.display = '';
+      n = n.parentNode; } };
+  const seccion = (re) => { const cu = document.getElementById('indic-cuerpo');
+    if (!cu) return null;
+    return [].slice.call(cu.querySelectorAll('details')).filter(d => {
+      const s = d.querySelector('summary'); return s && re.test(s.textContent || '') })[0] || null; };
+
+  __t.limpiar();
+  abrir('tdf_func_vd'); abrir('ep_vmax');
+  pon({ tdf_incluir_chk: true, ip_grado: 'Severa', tsvd_diametro: '35', ep_vmax: '3',
+        tdf_func_vd: 'leve', tdf_vtdvdi: '70', tdf_vtsvdi: '24', tdf_vol_fuente: 'rmc' });
+  if (F('tdfSync')) { try { tdfSync() } catch (e) {} }
+  try { indicAbrir() } catch (e) { return { extra: [['indicAbrir no lanza', false, e.message]] } }
+  const S = seccion(/Fallot/);
+  ex.push(['(A1) DENOMINADOR: la seccion de Fallot esta en el panel',
+    !!S, S ? (S.querySelector('summary').textContent || '').trim() : 'NO ESTA']);
+  if (!S) { try { indicCerrar() } catch (e) {} return { extra: ex }; }
+  S.open = true;
+
+  /* == (A) UNA LINEA POR FILA: LA PROSA, EN EL ⓘ ============================================ */
+  const filas = [].slice.call(S.querySelectorAll('tr'));
+  const conNota = filas.filter(t => (t.querySelectorAll('[data-ind-info]').length > 0));
+  /* Prosa SUELTA = texto de la celda de estado que NO esta dentro del ⓘ, sacando el icono. */
+  const suelta = filas.map(t => { const td = t.querySelectorAll('td')[2];
+      if (!td) return null;
+      const cl = td.cloneNode(true);
+      [].slice.call(cl.querySelectorAll('[data-ind-info]')).forEach(d => d.parentNode.removeChild(d));
+      const s = (cl.textContent || '').replace(/[\\u2753\\u2705\\u26a0\\ufe0f\\u{1F534}\\s\\u2014-]/gu, '');
+      return s.length > 2 ? ((t.querySelectorAll('td')[0].textContent || '').slice(0, 24) + '=' + s.slice(0, 40)) : null; })
+    .filter(Boolean);
+  ex.push(['(A2) las DIECISEIS filas llevan su nota dentro de un ⓘ',
+    conNota.length === 16 && S.querySelectorAll('[data-ind-info]').length === 16,
+    'filas=' + filas.length + ' conNota=' + conNota.length + ' infos=' + S.querySelectorAll('[data-ind-info]').length]);
+  ex.push(['(A3) y NINGUNA deja prosa suelta al lado del estado -ni las de dato ni la de marca roja-',
+    suelta.length === 0, JSON.stringify(suelta).slice(0, 220)]);
+  /* Los CINCO iconos de IND_MARCA, y el de «none» es una RAYA y no un emoji: con el set de
+     emojis solo, tres filas medidas que no alcanzan su criterio salian sin estado y la condicion
+     daba 13 de 16 sobre una app sana. Se mide FUERA del ⓘ, que es lo que la orden pide. */
+  const conEstado = filas.filter(t => { const td = t.querySelectorAll('td')[2];
+    if (!td) return false;
+    const cl = td.cloneNode(true);
+    [].slice.call(cl.querySelectorAll('[data-ind-info]')).forEach(d => d.parentNode.removeChild(d));
+    return /[\\u2753\\u2705\\u26a0\\u{1F534}\\u2014]/u.test(cl.textContent || ''); });
+  ex.push(['(A4) el estado sigue VISIBLE y FUERA del ⓘ en las dieciseis: lo que se pliega es la prosa, no el icono',
+    conEstado.length === 16, conEstado.length + '/' + filas.length]);
+  /* El reparto de la tabla: sin la celda golosa y sin el piso de la botonera, las filas vuelven a
+     ser de dos y tres lineas y el alto NO baja -medido-. Se miran los style EN LINEA, que es donde
+     viven, y no el ancho: la ventana del arnes no aplica la media query. */
+  const reparto = (function(){
+    const f = [].slice.call(S.querySelectorAll('tr'));
+    const golosa = f.filter(t => { const td = t.querySelectorAll('td')[0];
+      return td && /width:\s*100%/.test(td.getAttribute('style') || '') }).length;
+    const piso = f.filter(t => { const td = t.querySelectorAll('td')[1];
+      return td && /min-width:\s*170px/.test(td.getAttribute('style') || '') }).length;
+    const nowrap = f.filter(t => { const td = t.querySelectorAll('td')[1];
+      return td && /nowrap/.test(td.getAttribute('style') || '') }).length;
+    return { total: f.length, golosa: golosa, piso: piso, nowrap: nowrap }; })();
+  ex.push(['(A6) el rotulo es la celda GOLOSA en las dieciseis, el valor ya no es nowrap, y la botonera de cuatro opciones tiene su piso',
+    reparto.golosa === reparto.total && reparto.nowrap === 0 && reparto.piso === 1,
+    JSON.stringify(reparto)]);
+  ex.push(['(A5) los ⓘ nacen CERRADOS',
+    [].slice.call(S.querySelectorAll('[data-ind-info]')).every(d => !d.open), 'abiertos=' +
+      [].slice.call(S.querySelectorAll('[data-ind-info]')).filter(d => d.open).length]);
+
+  /* == (B) LAS RECOMENDACIONES ARRIBA, Y LO QUE SE CONSERVA ================================= */
+  const grid = S.querySelector('[data-ind-grid]');
+  const bloq1 = S.querySelector('[data-ind-grid]') ? S.querySelector('div > div') : null;
+  const pos = (a, b) => !!(a && b && (a.compareDocumentPosition(b) & 4));
+  const cuerpo = S.querySelector('summary').nextElementSibling;
+  const hijos = cuerpo ? [].slice.call(cuerpo.children) : [];
+  const iGrid = hijos.indexOf(grid);
+  const txt = (S.textContent || '').replace(/\\s+/g, ' ');
+  ex.push(['(B1) los dos bloques de recomendacion van ANTES de la tabla de filas',
+    iGrid >= 2 && hijos.slice(0, iGrid).some(h => /estadounidense/.test(h.textContent || ''))
+      && hijos.slice(0, iGrid).some(h => /europea/.test(h.textContent || '')),
+    'iGrid=' + iGrid + ' hijos=' + hijos.length]);
+  ex.push(['(B2) los dos bloques siguen separados y la leyenda de que NO se combinan sigue ahi',
+    /estadounidense/.test(txt) && /europea/.test(txt) && txt.indexOf('no se combinan') > -1,
+    'acc=' + /estadounidense/.test(txt) + ' esc=' + /europea/.test(txt) + ' leyenda=' + (txt.indexOf('no se combinan') > -1)]);
+  const plegado = [].slice.call(S.querySelectorAll('[data-ind-bloque]')).filter(d =>
+    /falta/i.test((d.querySelector('summary') || {}).textContent || ''))[0] || null;
+  ex.push(['(B3) «Lo que falta contestar» es un bloque PLEGADO y nace cerrado',
+    !!plegado && !plegado.open, plegado ? (plegado.querySelector('summary').textContent || '').trim() : 'NO ESTA']);
+  ex.push(['(B4) y su titulo NO lleva un contador: _indRepintarConservando indexa por ese texto',
+    !!plegado && !/[0-9]/.test((plegado.querySelector('summary').textContent || '')),
+    plegado ? (plegado.querySelector('summary').textContent || '').trim() : 'NO ESTA']);
+
+  /* == (C) LA GRILLA: DOS COLUMNAS SIN MAXIMIZAR, APILADA EN EL CELULAR ======================
+     ⚠️ SE LEE LA REGLA, NO LA GEOMETRIA. La ventana del arnes abre por debajo de 1200 px, asi
+     que la media query NO se aplica mientras el caso corre: medir el ancho de las columnas aca
+     mide el arnes y no la aplicacion. Es la leccion de TC-522 (A4c), de la tanda AJ5. */
+  ex.push(['(C1) la seccion marca su grilla como compacta, y es la UNICA del panel que lo hace',
+    !!grid && grid.getAttribute('data-ind-compacta') === '1'
+      && document.querySelectorAll('#indic-cuerpo [data-ind-compacta]').length === 1,
+    'compacta=' + (grid ? grid.getAttribute('data-ind-compacta') : '?') + ' total=' +
+      document.querySelectorAll('#indic-cuerpo [data-ind-compacta]').length]);
+  ex.push(['(C2) trae las dos columnas: filas del eco y preguntas que el eco no mide',
+    !!grid && grid.getAttribute('data-ind-dos') === '1'
+      && !!S.querySelector('[data-ind-col="eco"]') && !!S.querySelector('[data-ind-col="clin"]'),
+    'dos=' + (grid ? grid.getAttribute('data-ind-dos') : '?')]);
+  const regla = (function(){
+    let r = null;
+    [].slice.call(document.styleSheets).forEach(ss => {
+      let rs = null; try { rs = ss.cssRules } catch (e) { return }
+      [].slice.call(rs || []).forEach(x => {
+        if (x.type !== 4) return;                       // @media
+        [].slice.call(x.cssRules || []).forEach(y => {
+          if (!/data-ind-compacta/.test(y.selectorText || '')) return;
+          if (!/grid-template-columns/.test(y.style.cssText || '')) return;
+          r = { media: x.conditionText || (x.media && x.media.mediaText),
+                sel: y.selectorText, cols: y.style.getPropertyValue('grid-template-columns'),
+                display: y.style.getPropertyValue('display') }; }); }); });
+    return r; })();
+  ex.push(['(C3) la regla de dos columnas existe, es de pantalla ancha y NO exige el panel maximizado',
+    !!regla && /min-width/.test(regla.media || '') && /grid/.test(regla.display || '')
+      && (regla.cols || '').split(' minmax').length === 2
+      && !/data-ind-max/.test(regla.sel || ''),
+    JSON.stringify(regla)]);
+  ex.push(['(C4) y por debajo de ese corte no hay ninguna regla que la encienda: en el celular quedan apiladas',
+    !!regla && (function(){ const m = /min-width:\\s*(\\d+)/.exec(regla.media || '');
+      return !!m && Number(m[1]) >= 1000; })(), regla ? regla.media : 'NO HAY']);
+
+  /* == (D) EL CICLO: CONTESTAR CON UN ⓘ ABIERTO ============================================ */
+  const infoSint = [].slice.call(S.querySelectorAll('[data-ind-info]')).filter(d => {
+    const s = d.querySelector('summary');
+    return s && /S\\u00edntomas/.test(s.getAttribute('aria-label') || '') })[0] || null;
+  ex.push(['(D1) DENOMINADOR: el ⓘ de la fila de sintomas existe y se puede abrir',
+    !!infoSint, infoSint ? (infoSint.querySelector('summary').getAttribute('aria-label') || '') : 'NO ESTA']);
+  let ciclo = null;
+  if (infoSint) {
+    infoSint.open = true;
+    /* ⚠️ SE MIDE EL REPINTADO Y EL GESTO, NO LA PRESENCIA DE «Clase 2a». Las respuestas clinicas
+       viven en memoria (_indClin) y NO las limpia __t.limpiar(), asi que cual recomendacion esta
+       publicada ANTES de este clic depende de lo que haya contestado un caso anterior en la MISMA
+       pagina: medir el texto exacto medía el orden de la suite y no el panel. Se exige lo que la
+       orden pide: que el gesto quede registrado, que el panel se repinte, que el ⓘ abierto siga
+       abierto y que las recomendaciones sigan arriba. */
+    const antes = (S.textContent || '').replace(/\s+/g, ' ');
+    const b = S.querySelector('[data-ind-clin="tdfip.rvsp23"][data-ind-val="si"]');
+    if (b) {
+      b.click();
+      const S2 = seccion(/Fallot/);
+      const i2 = S2 && [].slice.call(S2.querySelectorAll('[data-ind-info]')).filter(d => {
+        const s = d.querySelector('summary');
+        return s && /S\\u00edntomas/.test(s.getAttribute('aria-label') || '') })[0];
+      const b2 = S2 && S2.querySelector('[data-ind-clin="tdfip.rvsp23"][data-ind-val="si"]');
+      const hijos2 = S2 ? [].slice.call(S2.querySelector('summary').nextElementSibling.children) : [];
+      const iG2 = hijos2.indexOf(S2 ? S2.querySelector('[data-ind-grid]') : null);
+      ciclo = { sigue: !!S2, abierto: !!(i2 && i2.open),
+                marcado: !!(b2 && b2.getAttribute('aria-pressed') === 'true'),
+                cambio: antes !== ((S2 ? S2.textContent : '') || '').replace(/\s+/g, ' '),
+                recomArriba: iG2 >= 2,
+                infos: S2 ? S2.querySelectorAll('[data-ind-info]').length : 0 };
+    }
+  }
+  ex.push(['(D2) contestar una pregunta queda MARCADA, repinta el panel, no cierra el ⓘ que el medico tenia abierto y deja las recomendaciones arriba',
+    !!ciclo && ciclo.sigue && ciclo.abierto && ciclo.marcado && ciclo.cambio
+      && ciclo.recomArriba && ciclo.infos === 16,
+    JSON.stringify(ciclo)]);
+
+  /* == (E) CONTROL NEGATIVO: LAS OTRAS SECCIONES NO SE TOCARON ============================== */
+  const otras = [].slice.call(document.querySelectorAll('#indic-cuerpo > details'));
+  const conCompacta = otras.filter(d => d.querySelector('[data-ind-compacta]'));
+  ex.push(['(E1) CONTROL NEGATIVO: ninguna otra seccion del panel quedo compacta',
+    conCompacta.length === 1 && /Fallot/.test((conCompacta[0].querySelector('summary') || {}).textContent || ''),
+    'n=' + conCompacta.length + ' secs=' + otras.length]);
+  const diast = seccion(/diast|Diast/);
+  ex.push(['(E2) y una seccion vecina con notas sigue mostrando la prosa al lado del estado, sin plegarla',
+    (function(){ if (!diast) return true;      // si no esta despierta, la condicion no aplica
+      diast.open = true;
+      const f = [].slice.call(diast.querySelectorAll('tr'));
+      if (!f.length) return true;
+      return f.some(t => { const td = t.querySelectorAll('td')[2];
+        if (!td) return false;
+        const cl = td.cloneNode(true);
+        [].slice.call(cl.querySelectorAll('[data-ind-info]')).forEach(d => d.parentNode.removeChild(d));
+        return (cl.textContent || '').replace(/\\s/g, '').length > 6 }); })(),
+    diast ? 'filas=' + diast.querySelectorAll('tr').length : 'no despierta']);
+
+  try { indicCerrar() } catch (e) {}
+  return { extra: ex };
+  })();
+`);
+
+caso('TC-529', 'Tanda AJ6-3: la pantalla de Ecografia pulmonar en CUATRO columnas -pleura y lineas A, lineas B con sus seis zonas, derrame con el Balik y su globo, consolidacion- con los veinte campos en la columna que les toca, la conclusion y el boton de integrar DEBAJO y a todo el ancho, el reflujo a dos y a una columna declarado en la hoja de estilos, y el informe y el EN SUMA del pulmon sin moverse', `
+  return (async () => {
+  const ex = [];
+  const F = (n) => (typeof window[n] === 'function') ? window[n] : null;
+  const abrir = (id) => { const e = document.getElementById(id); if (!e) return;
+    const sec = e.closest ? e.closest('.tab-section') : null;
+    if (sec && F('showTab')) { try { showTab(String(sec.id || '').replace(/^tab-/, '')) } catch (x) {} }
+    let n = e.parentNode;
+    while (n && n.nodeType === 1 && n !== document.body) {
+      if (getComputedStyle(n).display === 'none') n.style.display = '';
+      n = n.parentNode; } };
+  const pon = (o) => { Object.keys(o).forEach(k => { const e = document.getElementById(k);
+      if (!e) { ex.push(['NO EXISTE el campo ' + k, false, k]); return; }
+      if (e.type === 'checkbox') e.checked = !!o[k]; else e.value = o[k];
+      e.dispatchEvent(new Event('input', { bubbles: true }));
+      e.dispatchEvent(new Event('change', { bubbles: true })); }); };
+
+  __t.limpiar();
+  abrir('pua_desliz');
+  const wrap = document.querySelector('#pua-seccion .pul-cols');
+  ex.push(['(A1) DENOMINADOR: la pantalla existe y tiene el envoltorio de columnas',
+    !!wrap, wrap ? 'ok' : 'NO EXISTE .pul-cols']);
+  if (!wrap) return { extra: ex };
+  const cols = [].slice.call(wrap.children).map(c => c.getAttribute('data-pul-col'));
+  ex.push(['(A2) son CUATRO columnas y en el orden que la orden fija',
+    cols.length === 4 && cols.join(',') === 'pleura,lineasb,derrame,consol', JSON.stringify(cols)]);
+
+  /* Los veinte campos y la columna que les toca. Es la condicion que NO depende del ancho de la
+     ventana del arnes: es estructura del documento. */
+  const MAPA = { pua_desliz:'pleura', pua_desliz_lado:'pleura', pua_lineasa:'pleura', pua_punto:'pleura',
+                 pua_lineasb:'lineasb', pua_lineasb_cant:'lineasb',
+                 pua_z_ant_d:'lineasb', pua_z_lat_d:'lineasb', pua_z_bas_d:'lineasb',
+                 pua_z_ant_i:'lineasb', pua_z_lat_i:'lineasb', pua_z_bas_i:'lineasb',
+                 pua_derrame:'derrame', pul_derrame_tam:'derrame', pua_derrame_tipo:'derrame',
+                 pua_balik:'derrame', pua_derrame_lado:'derrame',
+                 pua_consol:'consol', pua_consol_bronco:'consol', pul_consol_nota:'consol' };
+  const mal = Object.keys(MAPA).filter(id => { const e = document.getElementById(id);
+    if (!e) return true;
+    const c = e.closest ? e.closest('[data-pul-col]') : null;
+    return !c || c.getAttribute('data-pul-col') !== MAPA[id]; });
+  ex.push(['(A3) los VEINTE campos existen y cada uno esta en su columna, con su id de siempre',
+    mal.length === 0, 'mal=' + JSON.stringify(mal)]);
+  ex.push(['(A4) el globo del Balik sigue al lado de su campo, dentro de la columna del derrame',
+    (function(){ const b = document.querySelector('[data-vinfo="pul-balik"]');
+      const c = b && b.closest ? b.closest('[data-pul-col]') : null;
+      return !!c && c.getAttribute('data-pul-col') === 'derrame'; })(),
+    document.querySelector('[data-vinfo="pul-balik"]') ? 'existe' : 'NO EXISTE']);
+
+  /* == (B) LA CONCLUSION Y EL BOTON, DEBAJO Y FUERA DE LAS COLUMNAS ========================= */
+  const pat = document.getElementById('pua-patron');
+  const caja = pat ? pat.closest('.calc-box') : null;
+  const btn = document.querySelector('#pua-seccion [data-am-k="pulm"]');
+  ex.push(['(B1) la conclusion y el boton de integrar NO viven dentro de ninguna columna',
+    !!caja && !!btn && !caja.closest('[data-pul-col]') && !btn.closest('[data-pul-col]'),
+    'caja=' + !!caja + ' btn=' + !!btn]);
+  ex.push(['(B2) y van DESPUES del envoltorio en el orden del documento, que es el del Tab',
+    !!caja && !!btn && !!(wrap.compareDocumentPosition(caja) & 4)
+      && !!(caja.compareDocumentPosition(btn) & 4),
+    'caja=' + (caja ? !!(wrap.compareDocumentPosition(caja) & 4) : '?')]);
+
+  /* == (C) EL REFLUJO, LEIDO DE LA HOJA DE ESTILOS ==========================================
+     ⚠️ SE LEE LA REGLA Y NO LA GEOMETRIA: la ventana del arnes abre por debajo de 1100 px, asi
+     que las media queries NO se aplican mientras el caso corre. Medir el ancho aca mide el
+     arnes. Es la leccion de TC-522 (A4c). */
+  const reglas = (function(){
+    const o = { base: null, medias: [] };
+    [].slice.call(document.styleSheets).forEach(ss => {
+      let rs = null; try { rs = ss.cssRules } catch (e) { return }
+      [].slice.call(rs || []).forEach(x => {
+        if (x.type === 1 && /\\.pul-cols/.test(x.selectorText || '')
+            && x.style.getPropertyValue('grid-template-columns'))
+          o.base = { sel: x.selectorText, cols: x.style.getPropertyValue('grid-template-columns'),
+                     display: x.style.getPropertyValue('display') };
+        if (x.type !== 4) return;
+        [].slice.call(x.cssRules || []).forEach(y => {
+          if (!/\\.pul-cols/.test(y.selectorText || '')) return;
+          o.medias.push({ media: x.conditionText || (x.media && x.media.mediaText),
+                          cols: y.style.getPropertyValue('grid-template-columns') }); }); }); });
+    return o; })();
+  ex.push(['(C1) la regla base es una grilla de CUATRO columnas',
+    !!reglas.base && /grid/.test(reglas.base.display || '')
+      && (reglas.base.cols || '').indexOf('repeat(4') === 0,
+    JSON.stringify(reglas.base)]);
+  ex.push(['(C2) y hay DOS escalones: dos columnas en la tablet y una sola en el telefono',
+    reglas.medias.length === 2
+      && reglas.medias.some(m => /max-width/.test(m.media || '') && /repeat\\(2/.test(m.cols || ''))
+      && reglas.medias.some(m => /max-width/.test(m.media || '') && !/repeat\\(/.test(m.cols || '')),
+    JSON.stringify(reglas.medias)]);
+  ex.push(['(C3) DENOMINADOR del arnes: esta ventana esta por debajo del primer corte, asi que la geometria de aca NO prueba el reflujo',
+    window.innerWidth < 1100, 'innerWidth=' + window.innerWidth]);
+
+  /* == (D) EL TEXTO NO SE MOVIO ============================================================= */
+  pon({ pua_desliz:'reducido', pua_desliz_lado:'derecho', pua_lineasa:'ausentes', pua_punto:'no',
+        pua_lineasb:'presentes', pua_lineasb_cant:'multiples', pua_derrame:'si',
+        pul_derrame_tam:'moderado', pua_derrame_tipo:'libre', pua_balik:'25',
+        pua_derrame_lado:'bilateral', pua_consol:'si', pua_consol_bronco:'con',
+        pul_consol_nota:'Base derecha' });
+  if (F('pulAvUI')) { try { pulAvUI() } catch (e) {} }
+  const sinInt = (function(){ try { generarInforme() } catch (e) {}
+    return (document.getElementById('informe_texto') || {}).value || ''; })();
+  ex.push(['(D1) DENOMINADOR: sin el boton «Integrar al informe» el pulmon NO publica nada',
+    sinInt.indexOf('Deslizamiento pleural') < 0, sinInt.split('\\n').filter(l => /pleur/i.test(l)).join(' | ') || 'sin linea pulmonar']);
+  if (F('amiloIntegrar')) { try { amiloIntegrar('pulm') } catch (e) {} }
+  try { generarInforme() } catch (e) {}
+  const conInt = (document.getElementById('informe_texto') || {}).value || '';
+  const suma = (document.getElementById('en_suma') || {}).value || '';
+  ex.push(['(D2) integrado, el parrafo del pulmon sale con las mismas palabras que dejo el AJ2',
+    conInt.indexOf('Deslizamiento pleural reducido en el hemit\\u00f3rax derecho.') > -1
+      && conInt.indexOf('L\\u00edneas B m\\u00faltiples (3 o m\\u00e1s por espacio intercostal)') > -1
+      && conInt.indexOf('Derrame pleural bilateral moderado, de aspecto libre (aproximadamente 500 ml, seg\\u00fan f\\u00f3rmula de Balik).') > -1
+      && conInt.indexOf('Consolidaci\\u00f3n pulmonar con broncograma a\\u00e9reo (Base derecha).') > -1,
+    conInt.split('\\n').filter(l => /pleur/i.test(l)).join(' | ').slice(0, 300)]);
+  ex.push(['(D3) y el EN SUMA tambien',
+    suma.indexOf('Consolidaci\\u00f3n pulmonar con broncograma a\\u00e9reo. Derrame pleural bilateral moderado (aproximadamente 500 ml, seg\\u00fan f\\u00f3rmula de Balik).') > -1,
+    suma.split('\\n').filter(l => /pleur|consolidaci/i.test(l)).join(' | ').slice(0, 220)]);
+  ex.push(['(D4) el patron global sigue siendo el que calculaba antes de mudar las columnas',
+    (document.getElementById('pua-patron') || {}).textContent === 'Consolidaci\\u00f3n',
+    (document.getElementById('pua-patron') || {}).textContent]);
+
+  return { extra: ex };
+  })();
+`);
+
+caso('TC-530', 'Tanda AJ6-4a: Referencias SIEMPRE visible y Calculadoras SIEMPRE dentro de Referencias -sin casilla en Config, sin data-mod, en Modo Basico y en Avanzado, con el desplegable de movil ofreciendo Referencias en Basico, con una configuracion vieja que las apagaba abriendo sin error y sin migrarla, y con los modulos que SI son opcionales todavia apagables-', `
+  return (async () => {
+  const ex = [];
+  const F = (n) => (typeof window[n] === 'function') ? window[n] : null;
+  const modoAntes = F('eeGetMode') ? eeGetMode() : 'avanzado';
+  let guardadoAntes = null;
+  try { guardadoAntes = localStorage.getItem('ett_modules') } catch (e) {}
+  const vis = (el) => el ? getComputedStyle(el).display : 'NO EXISTE';
+  const refBtn = () => document.querySelector('.tabs-tools .tab-btn');
+  const calcBtn = () => document.getElementById('ref-subtab-calc');
+  const modo = (m) => { try { if (F('cfgSetMode')) cfgSetMode(m) } catch (e) {} };
+
+  /* == (A) EL REGISTRO Y LOS ATRIBUTOS ====================================================== */
+  const claves = (typeof EE_MODULES !== 'undefined') ? EE_MODULES.map(m => m.key) : null;
+  ex.push(['(A1) EE_MODULES ya no tiene ni refs ni calculadoras',
+    !!claves && claves.indexOf('refs') < 0 && claves.indexOf('calculadoras') < 0,
+    JSON.stringify(claves)]);
+  ex.push(['(A2) y ningun nodo del documento lleva ya esos dos data-mod',
+    !document.querySelector('[data-mod="refs"]') && !document.querySelector('[data-mod="calculadoras"]'),
+    JSON.stringify([].slice.call(document.querySelectorAll('[data-mod]')).map(b => b.getAttribute('data-mod')))]);
+  /* El invariante que el chequeo de arranque grita por consola: las dos listas, en los dos
+     sentidos. Retirar la clave y dejar el atributo -o al reves- es el modo de falla. */
+  const inv = (function(){ const enB = {}, faltan = [], sobran = [];
+    document.querySelectorAll('[data-mod]').forEach(b => { enB[b.getAttribute('data-mod')] = true });
+    const enC = {};
+    (claves || []).forEach(k => { enC[k] = true; if (!enB[k]) sobran.push(k) });
+    Object.keys(enB).forEach(k => { if (!enC[k]) faltan.push(k) });
+    return { sinCasilla: faltan, sinBoton: sobran }; })();
+  ex.push(['(A3) el invariante de las dos listas queda limpio en los DOS sentidos: ningun aviso de consola',
+    inv.sinCasilla.length === 0 && inv.sinBoton.length === 0, JSON.stringify(inv)]);
+
+  /* == (B) LAS CASILLAS DE CONFIG Y SUS TEXTOS ============================================== */
+  try { if (F('showTab')) showTab('config'); if (F('cfgOnShow')) cfgOnShow(); } catch (e) {}
+  modo('avanzado');
+  const caja = document.getElementById('cfg-modulos');
+  const etiquetas = caja ? [].slice.call(caja.querySelectorAll('label')).map(l => (l.textContent || '').trim()) : [];
+  ex.push(['(B1) Config no ofrece una casilla de Referencias ni de Calculadoras',
+    !etiquetas.some(t => /Referencias/.test(t)) && !etiquetas.some(t => /Calculadoras/.test(t)),
+    JSON.stringify(etiquetas)]);
+  ex.push(['(B2) CONTROL: la casilla de Deformacion sigue ahi, que la orden pide no tocar',
+    etiquetas.some(t => /Deformaci/.test(t)) && !!document.getElementById('cfg-mod-def'),
+    JSON.stringify(etiquetas)]);
+  const ayuda = (caja ? (caja.textContent || '') : '') + ' ' +
+    [].slice.call(document.querySelectorAll('#tab-config .cfg-card')).filter(c =>
+      /Modo de visualizaci/.test(c.textContent || '')).map(c => c.textContent || '').join(' ');
+  ex.push(['(B3) y los textos de ayuda ya no nombran «fila 1» ni «filas 2 y 3», que dejaron de ser ciertos',
+    ayuda.indexOf('fila 1') < 0 && ayuda.indexOf('filas 2 y 3') < 0,
+    ayuda.replace(/\\s+/g, ' ').slice(0, 220)]);
+
+  /* == (C) LOS DOS CONTROLES, EN LOS DOS MODOS ============================================== */
+  const enModo = (m) => { modo(m);
+    try { if (F('showTab')) showTab('refs'); if (F('refSubInit')) refSubInit(); } catch (e) {}
+    return { ref: vis(refBtn()), calc: vis(calcBtn()),
+             refAncho: refBtn() ? Math.round(refBtn().getBoundingClientRect().width) : 0,
+             calcAncho: calcBtn() ? Math.round(calcBtn().getBoundingClientRect().width) : 0,
+             primero: calcBtn() ? calcBtn() === calcBtn().parentNode.querySelector('.ref-subtab') : false }; };
+  const A = enModo('avanzado'), B = enModo('basico');
+  /* ⚠️ EL ANCHO DEL BOTON NO SE MIDE ACA, Y NO ES UN DESCUIDO: la ventana del arnes abre por
+     debajo de 768 px, y ahi la regla .subtabs-wrap:not(.cc-subbar) .tabs-row{display:none
+     !important} esconde la fila ENTERA a proposito -la navegacion pasa al desplegable, que es lo
+     que mide (C3)-. El boton informa inline-flex y CERO px de ancho, y eso es el arnes, no la app:
+     sin esta nota la condicion se lee como una regresion. Lo que se exige aca es que nada lo
+     apague por su cuenta: ni su propio display, ni un data-mod que lo gatee. El ancho real a
+     1440 px lo mide la sonda de maqueta en los dos motores (105x44 en los dos modos). */
+  ex.push(['(C1) el boton de Referencias no esta apagado en NINGUNO de los dos modos, y ya no depende de un data-mod',
+    A.ref !== 'none' && B.ref !== 'none' && !document.querySelector('.tabs-tools .tab-btn[data-mod]'),
+    'avanzado=' + A.ref + ' basico=' + B.ref + ' | innerWidth=' + window.innerWidth]);
+  ex.push(['(C2) y Calculadoras es la PRIMERA sub-pestana de Referencias en los dos modos, con ancho real -su barra SI se dibuja en esta ventana-',
+    A.calc !== 'none' && B.calc !== 'none' && A.primero && B.primero
+      && A.calcAncho > 40 && B.calcAncho > 40,
+    'avanzado=' + A.calc + '/' + A.calcAncho + ' basico=' + B.calc + '/' + B.calcAncho]);
+  /* El desplegable de movil: por debajo de 768 px las dos filas estan en display:none y la
+     navegacion va por ahi. En Basico tiene que ofrecer Referencias. */
+  const sel = (m) => { modo(m); try { if (F('ecoAdvBuild')) ecoAdvBuild() } catch (e) {}
+    const s = document.getElementById('ecoAdvSelect');
+    return s ? [].slice.call(s.options).map(o => o.value) : null; };
+  const opsB = sel('basico'), opsA = sel('avanzado');
+  ex.push(['(C3) el desplegable de movil ofrece Referencias en Modo Basico, y en Basico SOLO eso',
+    !!opsB && opsB.indexOf('refs') > -1 && opsB.filter(Boolean).length === 1,
+    JSON.stringify(opsB)]);
+  ex.push(['(C4) CONTROL: en Avanzado ofrece ademas los modulos opcionales',
+    !!opsA && opsA.indexOf('refs') > -1 && opsA.filter(Boolean).length > 1, JSON.stringify(opsA)]);
+
+  /* == (D) UNA CONFIGURACION VIEJA, SIN MIGRAR ============================================== */
+  let viejo = null, excVieja = null;
+  try {
+    localStorage.setItem('ett_modules', JSON.stringify({ refs: false, calculadoras: false, ete: false }));
+    if (F('applyViewMode')) applyViewMode();
+    if (F('cfgRenderModulos')) cfgRenderModulos();
+    modo('avanzado');
+    viejo = { ref: vis(refBtn()), calc: vis(calcBtn()),
+              ete: vis(document.querySelector('[data-mod="ete"]')),
+              guardado: localStorage.getItem('ett_modules') };
+  } catch (e) { excVieja = e.message }
+  ex.push(['(D1) una configuracion guardada que apagaba las dos abre SIN ERROR y las muestra igual',
+    !excVieja && !!viejo && viejo.ref !== 'none' && viejo.calc !== 'none',
+    excVieja || JSON.stringify(viejo)]);
+  ex.push(['(D2) y NO se migra: el valor viejo sigue en localStorage, inerte',
+    !!viejo && String(viejo.guardado).indexOf('"refs":false') > -1,
+    viejo ? String(viejo.guardado) : 'null']);
+  ex.push(['(D3) CONTROL NEGATIVO: un modulo que SI es opcional sigue apagandose con su casilla',
+    !!viejo && viejo.ete === 'none', viejo ? viejo.ete : 'null']);
+
+  /* El estado se repone: los casos siguientes corren en la misma pagina. */
+  try { if (guardadoAntes === null) localStorage.removeItem('ett_modules');
+        else localStorage.setItem('ett_modules', guardadoAntes); } catch (e) {}
+  modo(modoAntes || 'avanzado');
+  ex.push(['(D4) el arnes deja el modo y la configuracion como estaban, para el caso siguiente',
+    (F('eeGetMode') ? eeGetMode() : null) === (modoAntes || 'avanzado')
+      && vis(document.querySelector('[data-mod="ete"]')) !== 'none',
+    'modo=' + (F('eeGetMode') ? eeGetMode() : '?') + ' ete=' + vis(document.querySelector('[data-mod="ete"]'))]);
+
+  return { extra: ex };
+  })();
+`);
+
+caso('TC-531', 'Tanda AJ6-4b: con texto en el buscador de Referencias las fichas del boton activo desaparecen y los seis botones quedan sin marcar -con el tab stop conservado-; tocar un boton de arriba o salir del campo repone las fichas de ese boton y vacia el buscador; borrar el texto sin tocar nada repone el que estaba; una sola letra no se borra sola; y el clic en un resultado llega y abre su ficha', `
+  return (async () => {
+  const ex = [];
+  const F = (n) => (typeof window[n] === 'function') ? window[n] : null;
+  const pausa = (ms) => new Promise(r => setTimeout(r, ms));
+  try { if (F('showTab')) showTab('refs'); if (F('refSubInit')) refSubInit(); } catch (e) {}
+  const inp = document.getElementById('ref-busca');
+  ex.push(['(A1) DENOMINADOR: el buscador existe y Referencias tiene sus seis sub-pestanas',
+    !!inp && document.querySelectorAll('#tab-refs .ref-subtab').length === 6,
+    'inp=' + !!inp + ' subtabs=' + document.querySelectorAll('#tab-refs .ref-subtab').length]);
+  if (!inp) return { extra: ex };
+  const est = () => ({
+    texto: inp.value,
+    hits: document.querySelectorAll('#ref-busca-res .ref-busc-hit').length,
+    marcados: [].slice.call(document.querySelectorAll('#tab-refs .ref-subtab')).filter(b => b.classList.contains('active')).map(b => b.id),
+    tabstop: [].slice.call(document.querySelectorAll('#tab-refs .ref-subtab')).filter(b => b.tabIndex === 0).map(b => b.id),
+    sel: [].slice.call(document.querySelectorAll('#tab-refs .ref-subtab')).filter(b => b.getAttribute('aria-selected') === 'true').length,
+    fichas: [].slice.call(document.querySelectorAll('#tab-refs .ref-subpanel')).filter(p => getComputedStyle(p).display !== 'none').map(p => p.id),
+    activa: F('_refSubActivaLeer') ? _refSubActivaLeer() : null });
+  const tipear = (t) => { inp.value = t; inp.dispatchEvent(new Event('input', { bubbles: true })); return est(); };
+
+  /* Se sale de la sub-pestana de fabrica, para poder ver CUAL vuelve. */
+  const bValv = document.getElementById('ref-subtab-valv');
+  if (bValv) bValv.click();
+  const P0 = est();
+  ex.push(['(A2) DENOMINADOR: con el buscador vacio hay UNA ficha visible y su boton marcado',
+    P0.fichas.length === 1 && P0.fichas[0] === 'ref-sub-valv' && P0.marcados.join() === 'ref-subtab-valv',
+    JSON.stringify(P0)]);
+  const P1 = tipear('tapse');
+  ex.push(['(B1) con texto: las fichas desaparecen, ningun boton queda marcado y hay resultados',
+    P1.fichas.length === 0 && P1.marcados.length === 0 && P1.sel === 0 && P1.hits > 0,
+    JSON.stringify(P1)]);
+  ex.push(['(B2) y la barra NO se queda sin tab stop: el boton que estaba activo sigue tabulable',
+    P1.tabstop.join() === 'ref-subtab-valv', JSON.stringify(P1.tabstop)]);
+  const P2 = tipear('');
+  ex.push(['(B3) borrar el texto sin tocar ningun boton repone el que estaba activo antes de buscar',
+    P2.fichas.join() === 'ref-sub-valv' && P2.marcados.join() === 'ref-subtab-valv' && P2.hits === 0,
+    JSON.stringify(P2)]);
+  /* Una sola letra: por debajo del minimo no se busca, y la letra NO se puede borrar sola. */
+  const P3 = tipear('t');
+  ex.push(['(B4) una sola letra se CONSERVA -si se borrara, el buscador nunca llegaria a dos caracteres- y las fichas vuelven',
+    P3.texto === 't' && P3.hits === 0 && P3.fichas.join() === 'ref-sub-valv', JSON.stringify(P3)]);
+  const P4 = tipear('ta');
+  ex.push(['(B5) y con la segunda letra ya busca y vuelve a tapar las fichas',
+    P4.hits > 0 && P4.fichas.length === 0, 'hits=' + P4.hits + ' fichas=' + P4.fichas.length]);
+
+  /* Tocar un boton de arriba: repone SUS fichas y vacia el buscador. */
+  tipear('tapse');
+  const bAo = document.getElementById('ref-subtab-ao');
+  if (bAo) bAo.click();
+  const P5 = est();
+  ex.push(['(C1) tocar un boton de arriba repone las fichas de ESE boton y vacia el buscador',
+    P5.texto === '' && P5.hits === 0 && P5.fichas.join() === 'ref-sub-ao'
+      && P5.marcados.join() === 'ref-subtab-ao', JSON.stringify(P5)]);
+
+  /* Salir del campo: lo mismo, con el boton que estaba. */
+  tipear('tapse');
+  const P6 = est();
+  inp.focus(); inp.blur();
+  await pausa(400);
+  const P7 = est();
+  ex.push(['(C2) DENOMINADOR: antes de salir habia resultados y ninguna ficha',
+    P6.hits > 0 && P6.fichas.length === 0, JSON.stringify({ hits: P6.hits, fichas: P6.fichas })]);
+  ex.push(['(C3) salir del campo repone las fichas del boton que estaba y vacia el buscador',
+    P7.texto === '' && P7.hits === 0 && P7.fichas.join() === 'ref-sub-ao'
+      && P7.marcados.join() === 'ref-subtab-ao', JSON.stringify(P7)]);
+
+  /* ⚠️ LA GUARDA DEL GESTO SE VENCE SOLA, y esta condicion es la que separa la marca de tiempo
+     de una bandera pegajosa. Escena: el gesto empieza DENTRO del buscador (un clic en el campo o
+     en «Limpiar»), pasa mas tiempo que la ventana del gesto, se escribe y se sale con el
+     tabulador. Con una bandera, ese blur se gastaba bajandola y las fichas quedaban escondidas
+     con el texto puesto. El click() de JS no dispara pointerdown, asi que se despacha a mano. */
+  const host = document.getElementById('ref-buscador-host');
+  if (host) {
+    host.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+    await pausa(550);
+    tipear('tapse');
+    const antes = est();
+    inp.focus(); inp.blur();
+    await pausa(400);
+    const P9 = est();
+    ex.push(['(C4) DENOMINADOR: el gesto viejo dentro del buscador no impide que la busqueda tape las fichas',
+      antes.hits > 0 && antes.fichas.length === 0, JSON.stringify({ hits: antes.hits, fichas: antes.fichas })]);
+    ex.push(['(C5) y el blur posterior SI sale: la guarda del gesto se vencio sola',
+      P9.texto === '' && P9.hits === 0 && P9.fichas.length === 1, JSON.stringify(P9)]);
+  } else {
+    ex.push(['(C4) DENOMINADOR: existe el host del buscador', false, 'NO EXISTE ref-buscador-host']);
+  }
+
+  /* El clic en un resultado tiene que LLEGAR: el blur se dispara antes del click, asi que
+     vaciar en el blur sin guarda borraba el boton y el resultado quedaba intocable. */
+  tipear('tapse');
+  const hit = document.querySelector('#ref-busca-res .ref-busc-hit');
+  ex.push(['(D1) DENOMINADOR: hay al menos un resultado para tocar',
+    !!hit, hit ? (hit.textContent || '').trim().slice(0, 60) : 'NO HAY']);
+  if (hit) {
+    hit.click();
+    await pausa(250);
+    const P8 = est();
+    ex.push(['(D2) el clic en un resultado abre su ficha, la destaca y vacia el buscador',
+      P8.texto === '' && P8.hits === 0 && P8.fichas.length === 1
+        && document.querySelectorAll('#tab-refs .ref-destacada').length >= 1,
+      JSON.stringify(P8) + ' destacadas=' + document.querySelectorAll('#tab-refs .ref-destacada').length]);
+  }
+  /* Se deja la sub-pestana de fabrica para el caso siguiente. */
+  const bDim = document.getElementById('ref-subtab-dim');
+  if (bDim) bDim.click();
+  return { extra: ex };
+  })();
+`);
+
 
 
 
