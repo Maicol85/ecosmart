@@ -19,6 +19,130 @@ Las secciones están de **más nueva a más vieja**, que es el orden en que esta
 
 ---
 
+### Tipo de IM y Carpentier en Válvulas, y el strain del VD — «AJ5» (2026-10-24)
+
+- **Son OCHO commits y el ítem se completó entero, con DIEZ cosas declaradas y no tocadas.**
+  `dbfc146` (AJ5-1 + AJ5-2 + AJ5-4) · `ce4995f` (AJ5-3) · `eb19cc3` (AJ5-5) · `1c80ed5` (AJ5-6,
+  los siete hallazgos de `/sharp-edges` sobre el propio diff) · `4a2ea41` (TC-522 a TC-526) ·
+  `a675aa9` (el arnés de mutaciones) · `408cec8` (ocho casos al contrato nuevo y la documentación
+  de cierre) · `f3ebf6b` (el arnés reabre la sesión antes de cada caso).
+  Al **empezar**, `origin/main` estaba en **`2b9f3ef`** —medido con `git fetch`— con **31**
+  commits locales sin pushear; hoy hay **39**, medidos con
+  `git rev-list --count origin/main..HEAD` y no contados a mano. **El push lo corre Maicol: esta tanda
+  tenía orden expresa de NO pushear.**
+
+- ⚠️ **EL FALSO ROJO MÁS CARO FUE DEL ARNÉS, NO DEL CÓDIGO.** La primera corrida completa dio
+  **527/541 con CATORCE rojos**. Ocho eran de **CONTRATO VIEJO** —los números que esta tanda movió:
+  31 → 32 globos de Válvulas, 51 → 52 entradas de `VINFO`, dieciséis → diecisiete campos del VD,
+  dos → tres entradas de la banda del VD y once → doce tarjetas sin «Ver referencia»— y se
+  reescribieron. **Los otros dos no eran regresiones y tampoco eran del árbol**: hay casos que
+  ejercitan `cerrarSesionReal()`, y eso borra `ett_auth` y levanta `#login-overlay`, que es
+  `position:fixed` con z-index altísimo, así que **todo caso posterior que cliquee mide debajo de
+  él**. Agregar cinco casos no cambió el árbol pero sí el ORDEN. Síntoma: rojos en la corrida
+  completa, **verdes aislados dos veces** en el mismo árbol sellado, y una segunda corrida completa
+  verdes sin tocar nada. El mensaje lo decía con todas las letras: «TAPADO POR:
+  `DIV#login-overlay[fixed]`». Se cerró con **una línea en el bucle de casos**, al lado de
+  `resetVisor` y por el mismo argumento. → **AJ5-j**.
+
+- **Línea base al cierre: suite **537/541** con el pendrive `DISK_IMG` **MONTADO** —verificado al
+  abrir y al cerrar—, Semgrep **124 / 0 ERROR en 1 app**, Excel en **440** columnas y celular en
+  **63 a 360 px y 72 a 390 px con 17 ALTA cada uno**: el MISMO par que dejó AJ4, sin un hallazgo
+  nuevo. Los rojos son **TC-223, TC-376, TC-390 y TC-406**, los MISMOS CUATRO de la línea base
+  —medidos antes de tocar nada y otra vez al cerrar—; **TC-223 es el documentado**.
+  **El denominador sube a 541**: esta tanda agregó **TC-522, TC-523, TC-524, TC-525 y TC-526**.
+  TC-318 sigue excluido. La suite se corrió **sobre el árbol YA SELLADO**, que es la lección del AJ4.
+- **`index.html` pasó de 9,39 MB / 133.268 líneas a 9,44 MB / 133.914 líneas** — medido con `wc -c`
+  y `wc -l` DESPUÉS de sellar (`v20261024-0135`). (MB de 10⁶: `wc -c` dividido por 1e6.)
+
+- **EL DEFECTO QUE CERRÓ, EN UNA LÍNEA: un médico que no abría la pestaña ETE no tenía dónde
+  consignar si la insuficiencia mitral es primaria o secundaria, ni el Carpentier** — los dos
+  vivían en el ETE, y de ellos dependen la frase del corte alternativo de la ESC/EACTS 2025, el
+  aviso del calc-box, la interfaz del TEER y el recuadro de reparabilidad. Hoy el dueño es
+  **Válvulas**, sincronizado en los dos sentidos.
+
+- **LA PREMISA DEL PEDIDO ERA FALSA EN DOS PUNTOS, Y LOS DOS SE REPORTAN.**
+  · **«Carpentier vive en ETE»: vivía en DOS lugares.** `vm_carpentier`, en el cajón de prolapso de
+    Válvulas, con **otro vocabulario** (tres opciones, sin partir el III en IIIa y IIIb), **sin
+    sincronía** con el del ETE, y **alimentando la frase de prolapso del informe FIRMADO**. Hoy
+    quedó `disabled` y es el espejo de legado del nuevo: su vocabulario NO se tocó, porque los
+    estudios guardados traen ahí el TEXTO de la opción y sacarle la opción dejaría
+    `selectedIndex = -1` y persistiría el hueco.
+  · **«los cuatro estilos (Conciso, Estándar, Narrativo, CC)»: son TRES.** `estiloPick(c, e, n)`
+    tiene tres brazos; «CC» es la sub-pestaña del Laboratorio y el bloque de C. Congénitas, no un
+    estilo de informe.
+
+- **LA GUARDA DE «ES UN ETE» ES ASIMÉTRICA, Y ESTÁ MEDIDA CAMPO POR CAMPO.** `ete_carpentier` está
+  en la regex de `ete-es-ete__chk` y en `_labUsaEteVM` —escribirlo desde un transtorácico lo
+  devuelve del reimport titulado «Transesofágico»— así que **lleva la guarda**. `teer_tipo_im` no
+  está en ninguna de las dos, y **sin escribirlo nada de la AJ5-4 funcionaría**: `imEsSecundariaIM`,
+  `imSecAltPintar`, `calcTEER` y el recuadro de reparabilidad leen ese campo directamente.
+
+- **LAS DOS LISTAS DE MORFOLOGÍA DIFIEREN Y NO SE UNIFICARON**, que es lo que la orden pedía si
+  difieren: cinco pares de nueve (`_ETE_VM_PARES`), con `vm_morf` mezclando morfología y etiología
+  y `ete_etiologia` separando Barlow de DFE. Ese par ya estaba sincronizado y **no se le tocó una
+  línea**; TC-523 (A3) se pone rojo si alguien las unifica.
+
+- **EL ANCHO DE LA FILA NO ESTÁ ESCRITO: SE DERIVA DEL BOTÓN.** `calc((100% - 8px)/2 -
+  var(--valv-sevcol))`, con el único número a mano —110 px, la columna de severidad más su gap—
+  **medido** y **vigilado por TC-522 (A3)**. A 1440 px: fila 463 = botón 463, tres celdas de 149,
+  una fila, sin scroll horizontal, los dos temas.
+
+- ⚠️ **`/sharp-edges` SOBRE EL PROPIO DIFF ENCONTRÓ SIETE COSAS, Y CUATRO ERAN DEL PAPEL FIRMADO.**
+  Es la cuarta vez que esta regla paga sola:
+  1. **dos Carpentier en el mismo párrafo** de un estudio guardado antes de la tanda: el paréntesis
+     nuevo hablaba por el lado ETE y la frase de prolapso por el legado. **El que se abstiene es el
+     texto nuevo**, así que ese informe sale byte por byte como salía, y el aviso lo dice en pantalla
+     nombrando los dos valores;
+  2. **el legado era un FANTASMA**: poner Carpentier II y volver a «—» dejaba la frase de prolapso
+     afirmando II, persistida, y sin forma de borrarla porque el nodo está `disabled`. Se limpia en
+     el GESTO —por las dos puertas— y no en el repintado de restauración;
+  3. **`ete_carpentier` se quedaba VIEJO** cuando la guarda se abstenía, sin ninguna señal;
+  4. **`vd_strain_pl` era el único de los diecisiete campos del VD sin banda de plausibilidad**: un
+     185 por 18,5 salía VERDE y «normal» en pantalla y «−185 %» en el papel;
+  5. **el signo que el campo ENSEÑABA y el informe EMITE (U+2212) es el que `PF` rechaza**: pegar
+     «−18» del propio informe dejaba el valor a la vista, guardado, y el strain sin salir por
+     ninguna superficie — pérdida muda de dato clínico;
+  6. **un `0` firmaba «strain de pared libre −0 %»** con la pantalla en rojo al lado;
+  7. **el aviso nuevo nacía dentro de `ete-seccion-valv-mitral`**, que nace plegada: se pintaba,
+     medía 0 × 0 y seguía sin verse. Es el defecto que `eteVmAvisoSync` ya documenta.
+  Más: **`repeat(3,1fr)` no refluía, apretaba**, y como el ancho es el del botón, entre 769 y
+  ~1400 px las tres celdas caían a 70-120 px. La verificación original midió 1440 y 390: **la
+  franja apretada quedaba exactamente entre los dos puntos medidos.**
+
+- **A/B DE CONTROL contra el HEAD inicial: CERO diferencias** en informe (tres estilos), EN SUMA
+  (tres), **PDF generado de verdad** (mismos `nTextos` y `nFigs`) y **Excel en 440 columnas**, en
+  las dos escenas donde el cambio no puede actuar —formulario vacío y paciente ajeno con aorta y
+  diastólica cargadas—. Lo único que difiere en el censo de campos son **los tres nodos nuevos, los
+  tres vacíos**: 1033 → 1036, sin un solo valor cambiado.
+
+- **Cobertura: cinco casos, 63 condiciones, verificado por DIECISÉIS mutaciones, todas en rojo**,
+  con el `md5` del árbol idéntico antes y después de cada una.
+  ⚠️ **DOS SOBREVIVÍAN, Y DESTAPARON UN AGUJERO DE ARNÉS**: la ventana de Chrome del arnés abre a
+  **~740 px**, o sea POR DEBAJO del corte de 769 px, así que la media query que pone las tres
+  columnas y el ancho derivado **no se aplica nunca mientras el caso corre**. Vigilado sólo por
+  geometría, el escritorio quedaba sin cobertura y se leía igual que «no hay cobertura». TC-522
+  ganó **(A4c)**: la regla se LEE de `document.styleSheets` y se exige **por su forma**, no por sus
+  números.
+  ⚠️ **Y EL OTRO DENOMINADOR: el TIPO del campo del strain.** El bloque que convierte los
+  `input[type=number]` a `type="text" inputmode="decimal"` corre en `DOMContentLoaded`, y el arnés
+  evalúa los casos con `document.readyState` todavía en **«interactive»**: el campo llega como
+  `number` y **rechaza** cualquier cadena no numérica. Sin convertirlo, la condición medía el arnés
+  y no la aplicación.
+
+- **LAS TRES EXIGENCIAS DE MAQUETACIÓN DE LA ORDEN NO SON SIMULTÁNEAS, Y SE REPORTA CON NÚMEROS.**
+  Con el ancho del botón (463 px) cada celda mide 149 y el ancho útil del `<select>` 119:
+  **«Mixomatosa / Barlow» mide 125 px y se recorta por SEIS** en el control cerrado. Con el ancho
+  de la pastilla (573) entra, pero entonces la fila es más larga que el botón. → **AJ5-g**.
+
+- **Dónde está todo:** `docs/mapa/aj5-mitral-tipoim-carpentier.md` (**mapa NUEVO**, 19,2 KB, con la
+  ficha de los cinco casos); **dos mapas con un puntero cada uno** (`valvulas-mitral-pantalla`
+  26,2 KB · `vd-derecho` 33,0 KB); `docs/fuentes/FUENTES.md` → «La tanda AJ5», con los dos folios de
+  la EACVI 2013 verificados en texto completo y el censo de lo que la biblioteca **no** tiene del
+  strain; y `docs/PENDIENTES.md` → **DIEZ** cosas declaradas (**AJ5-a** a **AJ5-j**).
+  ⚠️ **NINGÚN MAPA CRUZÓ EL TECHO, medido con `wc -c` ANTES de escribir.**
+
+---
+
 ### El bloque del ETT avanzado y el paso 3 del HFA-PEFF — «AJ3» (2026-10-23)
 
 - **Son CUATRO commits.** Al **empezar**, `main` y `origin/main` estaban los dos en **`1f8377e`**

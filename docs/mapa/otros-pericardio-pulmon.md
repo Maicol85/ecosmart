@@ -2,6 +2,13 @@
 
 Mapa de la zona. **Por nombre de función y de id, no por número de línea.**
 
+> ⚠️ **LA PANTALLA PULMONAR ESTÁ EN CUATRO COLUMNAS DESDE EL AJ6-3 (2026-10-24)** —pleura y
+> líneas A, líneas B, derrame y consolidación, cada una con sus campos en vertical, y la
+> conclusión y el botón de integrar debajo a todo el ancho—. Ni un campo, ni un id, ni un rótulo
+> cambió. Las columnas, su CSS y lo medido a 1440 y 390 px están en
+> **`docs/mapa/aj6-fallot-pulmon-refs.md`**.
+> (Este mapa describe el módulo **básico** de la tanda I, que el B2-E2 unificó con el avanzado.)
+
 ---
 
 ## 1 · Dónde vive

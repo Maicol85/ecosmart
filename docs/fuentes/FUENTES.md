@@ -5650,3 +5650,48 @@ magnitud, no para graduar.
    `vm_carpentier` en el cajón de prolapso de Válvulas, con **otro vocabulario** (tres opciones, sin
    partir el III), sin sincronía entre ellos, y el segundo alimentando la frase de prolapso del
    informe firmado. Ver `docs/mapa/aj5-mitral-tipoim-carpentier.md` §2.
+
+---
+
+## La tanda AJ6 — NO se verificó ni se citó una fuente nueva (2026-10-24)
+
+**Esta entrada existe para decir que no hay nada nuevo, que es un dato y no un hueco.** La tanda
+AJ6 fue de **forma y redacción**: el cuerpo del informe de la tetralogía de Fallot reparada en
+esquema y sin conducta, la Evidencia de esa misma sección reordenada, la pantalla de ecografía
+pulmonar en cuatro columnas y dos cosas de Referencias y Config. **Ni un corte, ni un umbral, ni un
+rótulo de grado, ni un folio se tocó**, así que no hubo nada que abrir.
+
+### Lo que la tanda MOVIÓ de lugar, y de dónde venía cada cosa
+
+| Lo que se movió | Qué fuente lo sostiene | Dónde estaba verificada |
+|---|---|---|
+| Los dos bloques de recomendación de la Evidencia de Fallot, que pasan **arriba** de las filas | ACC/AHA 2025 de cardiopatías congénitas del adulto, apartado 4.3.5, **folio e182** (recomendaciones 9, 10, 13 y 14) · ESC 2020 GUCH, tabla de reintervención tras reparación de la TdF, **folio e50** | La tanda «I» (22/10/2026), leídas en texto completo contra el pie impreso. **No se reabrieron.** |
+| Las once notas de fila que pasan al ⓘ | las mismas dos, más los umbrales `TDF_VTDVDI_MIN` / `TDF_VTSVDI_MIN` (Baumgartner, EHJ 2021;42:563) | ídem. El texto de cada nota **no cambió una letra**: cambió dónde se lee. |
+| La frase del gradiente del tracto de salida, que pasó de «(obstrucción al menos moderada: velocidad pico >3 m/s)» a «; obstrucción al menos moderada (velocidad pico >3 m/s)» | nota ᵈ de la tabla de la ESC 2020, folio e50 (`TDF_IP_ESC.vmax_min = 3`) | ídem. **El número no cambió**: cambió la puntuación. |
+| El método de los volúmenes, que pasa delante de los dos valores | la regla de método de la propia app: los umbrales están validados sobre **resonancia** y la ecocardiografía 3D subestima | Ya documentada en `tdfConclusion` y en el manual (`docs/mapa/aj6-fallot-pulmon-refs.md` §AJ6-1) |
+| Los cuatro grupos de la pantalla pulmonar | ICM 2026 (Volpicelli y col.) para el punto pulmón y la fórmula de Balik; los rótulos y las opciones son los del B2-E2 | La tanda R2 y el trabajo B2. **Ni un rótulo se movió**, sólo la columna donde vive. |
+
+### Lo que se RETIRÓ del papel firmado, y qué fuente lo respalda donde sigue estando
+
+Las tres frases de conducta que salieron del informe —«sin síntomas ni otros criterios de
+reintervención por los datos cargados — seguimiento», «los volúmenes … están por debajo del umbral
+de la ESC 2020» y «No consta la situación clínica, que es lo que define la indicación Clase I»—
+**no se borraron de la app**: las dos primeras las dice la Evidencia con su folio (la fila de
+volúmenes indexados y los dos bloques por guía) y la tercera es el renglón «Falta consignar si el
+paciente está sintomático» del bloque «Lo que falta contestar». **Verificado en pantalla**, no
+deducido: los dos bloques, la leyenda de que no se combinan y el bloque de faltantes están
+presentes en los tres anchos medidos.
+
+⚠️ **Y una nota que era FALSA hasta esta tanda pasó a ser cierta.** El bloque estadounidense dice
+desde que nació: «El informe y la conclusión de la aplicación son DESCRIPTIVOS: estas
+recomendaciones se publican acá y no en el papel firmado». El propio comentario de `_indTdFIP`
+declaraba que eso no era verdad —«el módulo de Fallot reparada sigue publicando su conclusión y su
+conducta en el informe firmado … queda declarado en PENDIENTES.md»—. AJ6-1 cerró ese hueco.
+**Con una salvedad declarada**: la hoja del PDF de congénitas sigue imprimiendo la conducta, porque
+consume `resumen`. Ver `docs/PENDIENTES.md` → **AJ6-b**.
+
+### Lo que la biblioteca NO tiene, y por eso no se citó
+
+Nada nuevo se buscó. Las cinco tarjetas sin entrada de Referencias que el censo de TC-502 ya
+nombraba —entre ellas **`pul-balik`**, la fórmula de Balik— siguen sin entrada: crear una sería
+escribir contenido clínico nuevo, que esta orden no autoriza. Sigue en PENDIENTES desde la tanda P.

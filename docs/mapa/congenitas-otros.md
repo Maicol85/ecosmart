@@ -9,6 +9,13 @@ El detalle fino vive en otros archivos de esta carpeta y **no se repite acá**: 
 `panel-evidencia.md`, `informe-pdf-excel.md`, `tests.md`, `imagenes-visor.md` — los cinco existen en
 disco (verificado el 2026-10-01).
 
+> ⚠️ **TETRALOGÍA DE FALLOT REPARADA — EL CUERPO DEL INFORME CAMBIÓ DE FORMA (AJ6-1, 2026-10-24).**
+> Ya no es un párrafo corrido: `tdfConclusion` devuelve `lineasInf` —una fila vacía, el título
+> «Tetralogía de Fallot reparada.» y renglones con guion— y **el informe firmado perdió la
+> conducta**, que vive en la Evidencia de Referencias. `resumen` (el PPT) y `clave` (el
+> Laboratorio) no se movieron. Todo el detalle, con los tres grupos y la trampa de la fila vacía,
+> en **`docs/mapa/aj6-fallot-pulmon-refs.md`**.
+
 ---
 
 ## Tabs / navegación general

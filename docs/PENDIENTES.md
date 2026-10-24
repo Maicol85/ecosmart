@@ -7327,3 +7327,125 @@ mover el orden y romper otro puñado de casos que cliquean.
 **Cómo se corrigió.** Una línea en el bucle de casos, al lado de `resetVisor` y por el mismo
 argumento —un caso que hereda estado falla con un diagnóstico que no apunta a su causa—: antes de
 cada caso se repone `ett_auth` y se baja el overlay. **No se tocó el código de la app.**
+
+---
+
+## Tanda «AJ6» · Fallot, eco pulmonar en columnas, Config y el buscador (2026-10-24) — DECLARADO y NO arreglado
+
+### AJ6-a · El EN SUMA repite la insuficiencia y la estenosis pulmonar que la sección de válvulas ya publicó
+
+**Qué se encontró.** La línea de Fallot del EN SUMA (`ccSumaLinea('tdf')`) empieza con
+«Tetralogía de Fallot reparada — insuficiencia pulmonar severa — gradiente TSVD 36 mmHg — …», y
+esas dos cosas ya figuran más arriba en el mismo EN SUMA, emitidas por la sección de la válvula
+pulmonar. **La orden lo nombra y pide no tocarlo**: «la repetición de EP e IP que ya figura arriba
+no se toca, reportala».
+
+**Qué puede causar.** Un EN SUMA más largo de lo necesario, con el mismo hallazgo dicho dos veces
+con palabras distintas («IP severa» arriba, «insuficiencia pulmonar severa» abajo). No hay
+contradicción: son el mismo dato leído del mismo campo (`ip_grado`).
+
+**Cómo se corregiría.** Hay dos caminos y los dos son decisión clínica: (1) que la línea de Fallot
+omita la IP y el gradiente cuando la sección de válvulas ya los publicó —y entonces un lector que
+sólo mire la línea de la cardiopatía no ve la severidad de la válvula—; o (2) que la línea de
+Fallot los conserve y la de válvulas los omita cuando hay Fallot integrada, que invierte la
+dependencia entre dos módulos que hoy no se conocen. **Decisión de Maicol.**
+
+---
+
+### AJ6-b · La hoja del PDF de Fallot sigue publicando la conducta, y el informe ya no
+
+**Qué se encontró.** `ccHoja('tdf', …)` recibe `c.resumen`, que **conserva la conducta** —es el
+mismo campo que consume el PPT—. Así que un estudio con el botón «Incluir en el PDF» de congénitas
+tildado imprime una hoja con «Segun la guia: … sin síntomas ni otros criterios de reintervención —
+seguimiento», una frase que la orden AJ6-1 sacó del cuerpo del informe.
+
+**Qué puede causar.** El mismo PDF firmado puede decir las dos cosas: el cuerpo describe y la hoja
+recomienda. No se contradicen —la hoja dice lo que la guía dice— pero la regla de producto de esta
+tanda («indicaciones y clase sólo en Evidencia») queda cumplida en el cuerpo y no en esa hoja.
+
+**Cómo se corregiría.** Pasarle a `ccHoja` un texto propio sin conducta, o no pasarle conclusión.
+Las dos cosas cambian el PDF firmado, que esta orden no autoriza: la orden nombra el informe, el
+EN SUMA y la caja «Conclusión», y nada más. **Decisión de Maicol.**
+
+---
+
+### AJ6-c · Las dos salvedades de la taquicardia ventricular siguen nombrando criterios y manejo
+
+**Qué se encontró.** `salvedadTV` tiene cuatro ramas y dos de ellas dicen, dentro del cuerpo del
+informe, cosas como «su manejo —estudio electrofisiológico, mapeo de istmos anatómicos— es una
+indicación por sí misma» y «no modifica la indicación, que ya es Clase I por la situación
+clínica». Eso es **manejo y clase**, que es justo lo que esta tanda mandó a la Evidencia.
+
+**Por qué NO se tocó.** La Evidencia de Fallot (`_indTdFIP`) **no tiene ninguna fila ni
+recomendación sobre la taquicardia ventricular**: sus dieciséis filas son la IP, el gradiente, la
+presión del VD, las dos fracciones de eyección, los volúmenes, el ejercicio, la IT y las cinco
+preguntas clínicas. Sacar la salvedad del informe sin tener dónde ponerla **perdería contenido
+clínico**, que es lo contrario de lo que la orden pide («ese contenido ya está en la Evidencia: no
+lo agregues, verificá que esté» — y ahí no está).
+
+**Cómo se corregiría.** Agregar a `_indTdFIP` las filas de la TV con su folio de la ESC 2020 y
+recién entonces retirar la salvedad del cuerpo. Es contenido clínico nuevo en el panel.
+**Decisión de Maicol.**
+
+---
+
+### AJ6-d · El orden de los campos de la pantalla de Fallot no se tocó, por orden expresa
+
+**Qué se encontró.** La pantalla de la tetralogía sigue con sus campos en el orden de siempre, que
+**no es** el de los renglones del informe: en pantalla el gradiente del TSVD viene después de la
+función del VD, y en el papel va en el primer renglón, con el diámetro.
+
+**Por qué no se tocó.** La orden lo excluye con todas las letras: «El orden de los campos de la
+pantalla de Fallot NO entra acá (queda para otro prompt, tras un esquema)».
+
+**Cómo se corregiría.** Con el esquema que la orden anuncia. Hoy el único dueño del orden del
+papel son los tres grupos de `tdfConclusion`, y el de la pantalla es el marcado.
+
+---
+
+### AJ6-e · «Lo que falta contestar» es el único bloque plegado del panel que nace cerrado con algo adentro
+
+**Qué se encontró.** El bloque de lo que falta nace **plegado**, que es lo que la orden pide
+(«compacto»). La estenosis mitral tiene el otro bloque plegado del panel, pero el suyo describe una
+condición hipotética («Si fuera reumática»); éste enumera **lo que el médico tiene que contestar
+para que la guía decida**.
+
+**Qué puede causar.** Que el médico no vea que faltan datos: el panel tiene un bloque cerrado
+donde antes tenía una lista a la vista.
+
+**Cómo se corregiría.** Tres caminos, todos cosméticos y los tres una decisión: dejarlo abierto
+cuando hay **más de N** faltantes; nacer abierto siempre y plegarse sólo cuando no hay ninguno
+(hoy en ese caso el bloque no se emite); o poner el conteo **afuera** del summary —adentro no
+puede ir, porque `_indRepintarConservando` indexa por ese texto y el bloque se cerraría solo al
+contestar—. **Decisión de Maicol.**
+
+---
+
+### AJ6-f · El desborde horizontal de la tabla del panel se cerró SÓLO para la sección compacta
+
+**Qué se encontró.** A 390 px, la tabla de una sección del panel desborda su caja cuando una fila
+tiene un valor largo con `white-space:nowrap` —medido: «telesistólico 24 ml/m² · telediastólico 70
+ml/m²» mide 362 px en un panel de 310—. **Viene de antes de esta tanda**, medido en el árbol de
+HEAD. El modo compacto de AJ6-2 lo cierra para la Fallot porque le saca el `nowrap` al valor; las
+otras catorce secciones lo conservan.
+
+**Qué puede causar.** Texto escondido a la derecha dentro del panel, sin que la página desborde:
+el médico tiene que arrastrar la tabla. No afecta al informe ni al papel.
+
+**Cómo se corregiría.** Sacar el `nowrap` del valor en todas las secciones, o acotarlo con una
+media query por debajo de 560 px. Toca las quince secciones del panel, así que es una tanda propia.
+
+---
+
+### AJ6-g · Quedan ~7.000 perfiles temporales de Chrome en `$TMPDIR`
+
+**Qué se encontró.** Al barrer los procesos de una corrida interrumpida se contaron **~7.285**
+entradas con «chrome» en `/var/folders/*/*/T/`. Es la cola del defecto que `CLAUDE.md` ya documenta
+(«10 Chrome huérfanos con 60 hijos y 1075 perfiles temporales sin borrar, 2,9 GB»), que el arnés
+cerró para las corridas **nuevas** con su barrido de `exit`: lo que quedó es de antes.
+
+**Qué puede causar.** Disco ocupado y nada más: son perfiles vacíos de Chrome headless.
+
+**Cómo se corregiría.** Un borrado manual con el Chrome del arnés cerrado. No se hizo acá: esta
+tanda no tenía orden de tocar `$TMPDIR` y un borrado por patrón con una corrida en curso es
+exactamente el `pkill` que este repo ya pagó una vez.

@@ -5,6 +5,14 @@ corte, operador, texto del informe, EN SUMA, PDF ni PPT, y el Excel queda en **4
 idéntico** —medido clave por clave en los siete commits—. El único contenido clínico nuevo es la
 tabla de cirugía aórtica, y sale entera de lo que se **vio** en el PDF original.
 
+> ⚠️ **DOS COSAS CAMBIARON EN LA TANDA AJ6 (2026-10-24), y están en
+> `docs/mapa/aj6-fallot-pulmon-refs.md`:**
+> · **Calculadoras ya no lleva `data-mod`** y Referencias tampoco: las dos dejaron de ser módulos
+>   opcionales, salieron de `EE_MODULES` y están siempre visibles, en Modo Básico y en Avanzado.
+> · **El buscador tapa las fichas mientras busca**: con texto, el panel del botón activo se
+>   esconde y los seis botones quedan sin marcar; tocar un botón o salir del campo los repone y
+>   vacía el buscador. El reparto es `_refSubActivar` / `_refBuscLimpiar` / `refBuscar`.
+
 ---
 
 ## 1 · Las cinco subpestañas
