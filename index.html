@@ -2081,6 +2081,45 @@ html.light-mode #tab-valvulas .sev-lvl3{color:#7f1d1d;}
 #tab-valvulas .valv-morf-row{display:flex;flex-wrap:wrap;gap:8px 12px;margin-bottom:12px;}
 #tab-valvulas .valv-morf-row > .fg{flex:0 1 420px;min-width:0;margin-bottom:0;}
 
+/* (2b) LA MITRAL LLEVA TRES CAMPOS EN ESA FILA (AJ5-1, 2026-10-24, decision de Maicol).
+   ⚠️ EL ANCHO TOTAL NO SE ESCRIBE: SE DERIVA DEL DE LA PASTILLA «Insuficiencia». La fila de
+   botones de abajo es un `display:flex; gap:8px` con dos `.valv-btn-wrap` en `flex:1`, asi que
+   cada pastilla mide exactamente `(100% - 8px)/2` — el mismo `calc` de aca. Un ancho en px
+   fijo se separaria de la pastilla el dia que alguien toque el `gap` o agregue un tercer boton,
+   y la orden pide que la fila no sea mas larga que ESE boton.
+   `max(300px, …)` es lo que hace que a columna angosta la fila deje de ser la mitad y pase a
+   ocupar lo que pueda; el `min(100%, …)` impide que ese piso desborde el contenedor.
+   La grilla con `auto-fit` y base 150 px APILA SOLA y sin ninguna media query, por el mismo
+   motivo que las tres primitivas de arriba: con ~485 px de ancho util entran las tres (≈156
+   cada una) y con 300 px no entran dos, asi que caen a una por fila. Medido en Chrome a 1440 y
+   a 390 px.
+   ⚠️ EL `width` VA EN LA FILA Y NO EN LOS CAMPOS: con `flex:0 1 420px` en los `.fg` —la regla
+   de arriba— el tercer campo se iba a una segunda linea y la fila quedaba mas alta que la
+   pastilla, que es justo lo que la orden prohibe. En grilla el `flex` de los hijos es inerte,
+   asi que se neutraliza explicitamente para que nadie lo lea como vigente. */
+#tab-valvulas .valv-morf-row--tres{display:grid;gap:8px;grid-template-columns:1fr;}
+#tab-valvulas .valv-morf-row--tres > .fg{flex:none;min-width:0;margin-bottom:0;}
+#tab-valvulas .valv-morf-row--tres > .fg > select{width:100%;}
+/* ⚠️ LAS TRES COLUMNAS Y EL ANCHO VIVEN SÓLO POR ENCIMA DE 768 px, Y NO ES UN BREAKPOINT
+   NUEVO: es el complemento exacto del `max-width:768px` que ya colapsa `.grid-3` a una columna,
+   el MISMO argumento que usa `.vd-grid`. Por debajo, una columna — los campos se apilan y cada
+   uno toma el ancho entero, que es lo que la orden pide para pantallas angostas.
+   ⚠️ EL ANCHO ES EL DEL BOTÓN «Insuficiencia», DERIVADO Y CON UN SOLO NÚMERO ESCRITO. La fila
+   de botones es un `display:flex; gap:8px` con dos `.valv-btn-wrap` en `flex:1`, así que cada
+   pastilla mide `(100% - 8px)/2`; el BOTÓN es esa pastilla MENOS su columna de severidad (el ⓘ
+   y el «Severidad ▼») y los 6 px de `gap` que los separan. Esa resta es lo único que no se
+   puede derivar en CSS —`.valv-sev-col` es `flex-shrink:0` y la ancha su contenido—, así que va
+   en `--valv-sevcol`, MEDIDA en Chrome: la pastilla da 573 px y el botón 463, o sea 110.
+   ⚠️ Y ES UNA LISTA PARALELA, así que la vigila un caso y no la buena voluntad: TC-522 mide en
+   Chrome el ancho de la fila y el del botón y se pone rojo si la fila lo pasa. Sin eso, cambiar
+   el rótulo de «Severidad ▼» ensancha la columna, el botón se angosta y la fila lo pasa en
+   silencio — que es exactamente lo que la orden prohíbe. */
+#tab-valvulas{--valv-sevcol:110px;}
+@media (min-width: 769px) {
+  #tab-valvulas .valv-morf-row--tres{grid-template-columns:repeat(3,1fr);
+    width:calc((100% - 8px)/2 - var(--valv-sevcol));}
+}
+
 /* (3) Fila de grado final: insuficiencia a la izquierda (bajo su botón), estenosis a la derecha,
    a la misma altura. `align-items:flex-start` y no `stretch`: con el cajón del fundamento abierto
    la columna de la estenosis crece, y estirar la otra dejaría una caja vacía del mismo alto.
@@ -5521,7 +5560,7 @@ window.cerrarSesionReal = cerrarSesionReal;
            ni listener: el `onchange` del select viaja adentro. El orden del DOM es además el
            orden de tabulación —no hay un `tabindex` en todo el bloque—, así que ahora se tabula
            morfología → Insuficiencia → Estenosis, que es el orden en que se carga el caso. -->
-      <div class="valv-morf-row">
+      <div class="valv-morf-row valv-morf-row--tres">
         <div class="fg"><label>Morfología VM</label>
           <!-- Las dos últimas son ETIOLOGÍAS, no morfologías, y por eso el narrativo NO las mete
                en «de morfología …»: ver `VALV_MORF_ETIOL`. Van al final para no mover el orden
@@ -5545,6 +5584,36 @@ window.cerrarSesionReal = cerrarSesionReal;
                `params.length === 0` en `calcIM_ESC` y la entrada de CLAUDE.md. -->
           <select id="vm_morf" onchange="showProlapsoPanel();valvProtSync();imOndaESiExiste();eteVmPropagar('vm');calcIM_ESC();calcEM();m3dBotonSync()"><option>Normal</option><option>Mixomatosa / Barlow</option><option>Calcificada</option><option>Reumática</option><option>Prolapso / EVMS</option><option value="Prótesis biológica">Prótesis biológica</option><option value="Prótesis mecánica">Prótesis mecánica</option><option>Endocarditis</option><option>Isquémica (disfunción/rotura músculo papilar)</option></select>
           <div id="vm-ete-aviso" style="display:none;font-size:11px;color:var(--red);margin-top:3px;"></div>
+        </div>
+        <!-- ══ TIPO DE IM Y CARPENTIER — AJ5-1 (2026-10-24, decisión de Maicol) ═══════════
+             Los dos existían y los dos vivían en la pestaña ETE —«Tipo de IM» en «Criterios TEER»
+             (`teer_tipo_im`) y «Carpentier» en «Morfología y clasificación VM»
+             (`ete_carpentier`)—, así que un médico que no abre el ETE no tenía dónde consignar si
+             la insuficiencia mitral es primaria o secundaria. El dueño pasa a ser Válvulas y los
+             dos quedan sincronizados en los DOS sentidos: ver `vmTipoImPropagar` y
+             `vmCarpPropagar`, que explican por qué uno lleva la guarda de «es un ETE» y el otro no.
+             ⚠️ LOS DOS NACEN EN «—» Y ESO ES EL PUNTO: el informe es descriptivo y un campo vacío
+             no afirma nada. Un valor de fábrica acá publicaría en el papel FIRMADO un mecanismo
+             que nadie consignó — es el defecto del `<select>` de riesgo CV que este archivo ya
+             documenta.
+             ⚠️ «Mecanismo predominante» (`ete_mecanismo`) NO se toca: queda sólo en el ETE. -->
+        <div class="fg"><label>Tipo de IM</label>
+          <select id="vm_tipo_im" onchange="vmTipoImPropagar('vm')">
+            <option value="">&mdash;</option>
+            <option value="primaria">Primaria (orgánica)</option>
+            <option value="secundaria">Secundaria (funcional)</option>
+          </select>
+        </div>
+        <div class="fg"><label>Carpentier
+          <button type="button" class="vinfo-btn" data-vinfo="vm-carp" aria-expanded="false"
+                  aria-label="Los cuatro tipos de la clasificación de Carpentier" onclick="vInfoClic(this)">&#9432;</button></label>
+          <select id="vm_carp" onchange="vmCarpPropagar('vm')">
+            <option value="">&mdash;</option>
+            <option value="I">I</option>
+            <option value="II">II</option>
+            <option value="IIIa">IIIa</option>
+            <option value="IIIb">IIIb</option>
+          </select>
         </div>
       </div>
       <div style="display:flex;gap:8px;margin-bottom:12px;">
@@ -5784,8 +5853,29 @@ window.cerrarSesionReal = cerrarSesionReal;
         <div id="bloque-prolapso-vm" class="fg" style="display:none;">
           <label style="font-weight:600">🔍 Detalle morfológico — Prolapso / Barlow</label>
           <div style="margin-bottom:6px">
-            <label style="font-size:11px">Mecanismo Carpentier</label>
-            <select id="vm_carpentier"><option>—</option><option>Tipo I (dilatación anular)</option><option>Tipo II (prolapso/flail)</option><option>Tipo III (restricción)</option></select>
+            <!-- ══ ESTE SELECT YA NO SE ELIGE — ES EL ESPEJO DEL «Carpentier» DE ARRIBA (AJ5-1) ══
+                 La orden dice «un solo dato por cada uno», y acá había un SEGUNDO Carpentier: otro
+                 vocabulario (tres opciones, sin partir el III en IIIa y IIIb), sin sincronía con
+                 el del ETE, y alimentando la frase de prolapso del informe FIRMADO. O sea que la
+                 misma válvula podía salir con «(Carpentier II)» en la insuficiencia y «mecanismo
+                 Carpentier I» en la frase de prolapso, las dos firmadas y en el mismo párrafo.
+                 ⚠️ EL NODO NO SE BORRA Y SU VOCABULARIO NO SE TOCA, porque los estudios YA
+                 GUARDADOS traen acá el TEXTO de la opción («Tipo II (prolapso/flail)»): sacarle la
+                 opción dejaría `selectedIndex = -1`, `.value` devolvería '' y `guardarInforme`
+                 PERSISTIRÍA el hueco — el defecto de `vab_tipo` y de `centro_nombre` que este
+                 archivo ya documenta dos veces, y además sería migrar un estudio guardado.
+                 Queda `disabled` y lo escribe `vmCarpLegadoSync` desde `vm_carp`, que es una
+                 función TOTAL en esa dirección: IIIa y IIIb caen los dos en «Tipo III».
+                 ⚠️ Y NO SE ESCRIBE AL REVÉS. Con `vm_carp` vacío este nodo se deja COMO ESTÁ, así
+                 que un estudio viejo conserva su valor y su frase de prolapso sale byte por byte
+                 igual. Rellenar `vm_carp` desde el legado tampoco se hace: «Tipo III» no distingue
+                 IIIa de IIIb, así que no hay a qué traducirlo, y escribirlo al abrir sería migrar.
+                 ⚠️ `disabled` NO LO SACA DEL ESTUDIO: `guardarInforme` barre
+                 `select[id]` y lee `.value`, que en un select deshabilitado sigue valiendo, y las
+                 rutas de restauración reponen asignando `.value`. Verificado. -->
+            <label style="font-size:11px">Mecanismo Carpentier
+              <span style="font-weight:400;color:var(--text2);font-size:10px;">se elige arriba, en «Carpentier»</span></label>
+            <select id="vm_carpentier" disabled aria-readonly="true"><option>—</option><option>Tipo I (dilatación anular)</option><option>Tipo II (prolapso/flail)</option><option>Tipo III (restricción)</option></select>
           </div>
           <div style="font-size:11px;margin:4px 0 2px">Segmento(s) afectado(s):</div>
           <div style="display:flex;flex-wrap:wrap;gap:6px 12px;font-size:12px">
@@ -10508,7 +10598,7 @@ window.cerrarSesionReal = cerrarSesionReal;
           <div id="ete-vm-aviso" style="display:none;font-size:11px;color:var(--red);margin-top:3px;"></div>
         </div>
         <div class="fg"><label>Carpentier</label>
-          <select id="ete_carpentier" onchange="calcETE()">
+          <select id="ete_carpentier" onchange="calcETE();vmCarpPropagar('ete')">
             <option value="">—</option>
             <option value="I">Tipo I — movimiento normal (perforación/dilatación anular)</option>
             <option value="II">Tipo II — prolapso/movimiento excesivo</option>
@@ -13969,7 +14059,7 @@ z
              pantalla. Sin la llamada, elegir «Secundaria» dejaba el cuadro de más arriba con el
              texto del gesto anterior. -->
         <div class="fg"><label>Tipo de IM</label>
-          <select id="teer_tipo_im" onchange="calcTEER();calcETE()">
+          <select id="teer_tipo_im" onchange="calcTEER();calcETE();vmTipoImPropagar('ete')">
             <option value="">—</option>
             <option value="primaria">Primaria (orgánica)</option>
             <option value="secundaria">Secundaria (funcional)</option>
@@ -41902,6 +41992,36 @@ window._imPeorIntegrado = _imPeorIntegrado;
    una palabra. Se reescriben en D2, y mientras tanto el medico ve en el dedo lo que antes solo
    veia con el mouse. Son `legado: true`. */
 const VINFO = Object.freeze({
+  /* ══ LOS CUATRO TIPOS DE CARPENTIER (AJ5-1, 2026-10-24) ═══════════════════════
+     ⚠️ EL TEXTO DE LA ORDEN SALIÓ DE MEMORIA Y SE VERIFICÓ EN TEXTO COMPLETO ANTES DE
+     PUBLICARLO, así que NO lleva el marcador `ecosmart` de «Criterio EcoSmart» — lo llevaría si
+     la biblioteca no lo respaldara, y sí lo respalda, por DOS documentos:
+       · EACVI 2013 (Lancellotti y col., Eur Heart J Cardiovasc Imaging 2013;14:611-644), folio
+         625: la clasificación de Carpentier del movimiento de las valvas, con el tipo III PARTIDO
+         —«A» sistólico-diastólico y «B» sistólico—. Es el ÚNICO documento de la biblioteca que
+         lo parte: hay que citarlo para poder ofrecer IIIa y IIIb.
+       · El folio 626 del MISMO documento atribuye cada mitad: el IIIb a la IM secundaria
+         isquémica por tracción, con la restricción ocurriendo esencialmente en sístole, y el IIIa
+         a la reumática, por la rigidez y el movimiento reducido del velo posterior en diástole.
+       · ASE 2017 (Zoghbi), folio 319 y Figura 10 del folio 320: los tres tipos con sus causas
+         —dilatación anular o perforación en el I, prolapso o flail en el II, dilatación del VI o
+         enfermedad reumática en el III—, SIN partir el III.
+     Las palabras son propias: ninguna frase se copia literal, que es la regla de derechos de
+     autor de este repo. El registro queda en `docs/fuentes/FUENTES.md` → «La tanda AJ5». */
+  'vm-carp': {
+    tit: 'Clasificaci\u00f3n de Carpentier',
+    lee: 'Describe el MOVIMIENTO de las valvas, no la etiolog\u00eda.\n'
+       + 'Tipo I: movimiento normal de las valvas (dilataci\u00f3n del anillo, perforaci\u00f3n).\n'
+       + 'Tipo II: movimiento excesivo (prolapso, flail).\n'
+       + 'Tipo IIIa: movimiento restringido en s\u00edstole y di\u00e1stole (por ejemplo, reum\u00e1tica).\n'
+       + 'Tipo IIIb: movimiento restringido en s\u00edstole (tracci\u00f3n por dilataci\u00f3n o disfunci\u00f3n del VI).',
+    fuente: 'EACVI 2013 (Lancellotti y col., Eur Heart J Cardiovasc Imaging 2013;14:611-644), '
+       + 'folios 625 y 626 \u2014 es la que parte el tipo III en IIIa y IIIb. '
+       + 'ASE 2017 (Zoghbi), folio 319 y Figura 10 del folio 320, con los tres tipos sin partir.',
+    ojo: 'El tipo de IM \u2014primaria o secundaria\u2014 es otra pregunta: el Carpentier describe el '
+       + 'movimiento, y un mismo tipo puede verse en las dos. El IIIb es el patr\u00f3n habitual de la '
+       + 'secundaria por dilataci\u00f3n del VI, y el IIIa el de la reum\u00e1tica.'
+  },
   /* ══ LAS SEIS TARJETAS DE LA SECCION VAB (Y3d4, 2026-10-19) ════════════════════════════════
      DECISION DE MAICOL: casi todo el texto largo de esa seccion pasa a un globo, con la
      informacion RESUMIDA y con las palabras que la app YA usaba. No se agrega ni un dato nuevo.
@@ -56654,7 +56774,7 @@ function RECALC_MODULOS() {
      automaticos con el «requiere …» del formulario vacio al lado de un VDFVI y una FEVI ya
      poblados. No puede migrar nada: no escribe ningun campo del estudio, los dos nodos que
      toca son `vauto-` y el tercero un `<div>` de texto. */
-  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','asiaMmSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','dtTapSync','etOndaESync','papmEstSync','calcDopTric','etTsvdSync','calcET','vpVmaxSync','ipIncongruenciaSync','itRefFuenteSync','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccSegSync','vpSync','popSync','sglOrigenSync','calcVenaPulm','valvProtSync','eaTaviEspejar','imEspejosRestaurar','eteVmAvisoSync','emPdfValsSync','emCuadroRefRepintar','emContFaAvisoSync','imCortesPintar','imContAvisoPintar','itIncongruenciaSync','aoEspejosRestaurar','tangoRestaurar','diastExclSync','diastFcAvisoSync','diastBseEprimaAvisoSync','diastBseGrisAvisoSync','diastStrainMarcaSync','vdMarcaSync','vdTeiAvisoSync','hfPepSync','hfPepPintar','viVolAutoSync','eaAvaiGradoPintar','eaPvlPintar','imPvlPintar','vdTapsePsapSync','ipApDiamSync','vdViSelSync','htpApSync','htpTablaPintar','m3dBotonSync','contrPdfSync','sglPdfSync','eteQxPdfSync','otrBurbUI','v2dCerrar','aiviSexoSync','vtDviAuto','sincronizarTEERDesdeGlobal','calcETE'];
+  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','asiaMmSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','dtTapSync','etOndaESync','papmEstSync','calcDopTric','etTsvdSync','calcET','vpVmaxSync','ipIncongruenciaSync','itRefFuenteSync','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccSegSync','vpSync','popSync','sglOrigenSync','calcVenaPulm','valvProtSync','eaTaviEspejar','imEspejosRestaurar','eteVmAvisoSync','vmCarpLegadoSync','vdStrainPlSync','emPdfValsSync','emCuadroRefRepintar','emContFaAvisoSync','imCortesPintar','imContAvisoPintar','itIncongruenciaSync','aoEspejosRestaurar','tangoRestaurar','diastExclSync','diastFcAvisoSync','diastBseEprimaAvisoSync','diastBseGrisAvisoSync','diastStrainMarcaSync','vdMarcaSync','vdTeiAvisoSync','hfPepSync','hfPepPintar','viVolAutoSync','eaAvaiGradoPintar','eaPvlPintar','imPvlPintar','vdTapsePsapSync','ipApDiamSync','vdViSelSync','htpApSync','htpTablaPintar','m3dBotonSync','contrPdfSync','sglPdfSync','eteQxPdfSync','otrBurbUI','v2dCerrar','aiviSexoSync','vtDviAuto','sincronizarTEERDesdeGlobal','calcETE'];
 }
 function _recalcModulos(etiqueta) {
   RECALC_MODULOS().forEach(function(fn){
@@ -56884,6 +57004,14 @@ function limpiarCampos(silencioso) {
   /* Las DOS columnas: `RECALC_MODULOS` es el embudo de las rutas de restauracion y `limpiarCampos`
      NO pasa por ahi. Sin esta linea, «Nuevo estudio» dejaba el aviso del paciente anterior. */
   { if (typeof eteVmAvisoSync === 'function') { try { eteVmAvisoSync(); } catch (e) {} } }
+  /* Las DOS columnas también para los dos pintores de la AJ5, y por el mismo motivo que el aviso
+     de arriba. `vmCarpLegadoSync` es además el único que puede dejar el «Tipo II» del paciente
+     anterior en el cajon de prolapso: el barrido de `select` lo devuelve a «—», pero si alguna
+     ruta futura no lo hiciera, este repintado lo cierra. `vdStrainPlSync` repinta el grado del
+     strain de pared libre, que con el campo vacío tiene que quedar en blanco y no con la
+     categoría del estudio anterior. */
+  { if (typeof vmCarpLegadoSync === 'function') { try { vmCarpLegadoSync(); } catch (e) {} } }
+  { if (typeof vdStrainPlSync === 'function') { try { vdStrainPlSync(); } catch (e) {} } }
   /* ⚠️ LA LINEA DE FUENTE DEL CUADRO DE LA IT NECESITA LAS DOS COLUMNAS, Y POR UN MOTIVO DISTINTO
      QUE SUS VECINAS: no es estado del paciente, es la REFERENCIA del cuadro, y `calcIT_ESC` —el
      único que la pinta— sólo corre con el `oninput` de uno de los seis parámetros. En un
@@ -58543,6 +58671,187 @@ function eteVmPropagar(origen) {
   eteVmAvisoSync();
 }
 window.eteVmPropagar = eteVmPropagar;
+
+/* ══ TIPO DE IM Y CARPENTIER — EL DUEÑO ES VÁLVULAS (AJ5-2, 2026-10-24) ═════════════════
+   DECISIÓN DE MAICOL. Los dos campos ya existían y los dos vivían en el ETE. Desde esta tanda
+   cada uno tiene también su control en Válvulas → mitral (`vm_tipo_im`, `vm_carp`) y los dos se
+   sincronizan EN LOS DOS SENTIDOS. «Mecanismo predominante» (`ete_mecanismo`) no se toca.
+
+   ⚠️ LA MORFOLOGÍA NO ENTRA ACÁ Y NO SE UNIFICÓ. La orden pedía comparar las listas de
+   «Morfología VM» (`vm_morf`) y «Etiología» (`ete_etiologia`) y, si diferían, NO unificarlas.
+   DIFIEREN: nueve opciones contra nueve, con sólo CINCO pares (`_ETE_VM_PARES`), y las dos
+   granularidades son distintas a propósito —`ete_etiologia` separa «Degenerativa — DFE» de
+   «Barlow» y `vm_morf` tiene una sola opción degenerativa—. Ese par YA estaba sincronizado por
+   `eteVmPropagar` desde antes de esta tanda y NO se le tocó una línea. Las diferencias están
+   enumeradas en `docs/mapa/aj5-mitral-tipoim-carpentier.md`.
+
+   ⚠️ MISMO MECANISMO QUE `eteVmPropagar` Y NO UNO NUEVO: escriben SÓLO los `onchange`, nunca
+   una ruta de restauración. Reabrir un estudio no puede modificar un valor guardado, y asignar
+   `.value` no dispara `change`, así que la reentrada no es alcanzable; la bandera se conserva
+   por el mismo motivo que la de ahí — fija el contrato para el día que un efecto del destino
+   pase a despachar el evento.
+
+   ⚠️ LOS DOS VOCABULARIOS SON IDÉNTICOS EN CADA PAR, así que no hay tabla de pares ni
+   granularidades distintas: '' / 'primaria' / 'secundaria' en uno, y '' / 'I' / 'II' / 'IIIa' /
+   'IIIb' en el otro. Eso es lo que hace que acá NO haga falta la guarda de «no pisar lo que el
+   otro no puede decir» que la morfología sí necesita, ni el aviso de contradicción de
+   `eteVmAvisoSync`: con los dos nodos sincronizados en el gesto, el único estado en que difieren
+   es un estudio ANTERIOR a esta tanda, donde el lado Válvulas está vacío —y vacío no contradice
+   nada—. De eso se ocupan los dos resolvedores de más abajo.
+
+   ⚠️ LA ASIMETRÍA DE LA GUARDA ESTÁ MEDIDA Y ES LA DIFERENCIA DE FONDO ENTRE LOS DOS PARES.
+   `eteVmPropagar` se niega a escribir el lado ETE si el estudio no es un ETE, porque eso fabrica
+   dato de un estudio que no se hizo, y su comentario enumera TRES salidas. Aplicadas a estos dos
+   campos, una por una:
+     · `ete_carpentier` tiene DOS de las tres —está en `_labUsaEteVM`, así que «Con datos ETE
+       cargados» del Laboratorio se infla con cada Carpentier transtorácico; y está en la regex
+       de `ete-es-ete__chk`, así que el estudio vuelve del reimport con la bandera encendida y el
+       PDF titulado «Informe Ecocardiograma Transesofágico»—. Así que el Carpentier LLEVA la
+       guarda, igual que la etiología.
+     · `teer_tipo_im` NO está en esa regex —verificado, la regex nombra `ete_etiologia`,
+       `ete_carpentier`, `ete_mecanismo`, `ete_tecnica`, `ete_lva`, `ete_lvp`, `ete_area_mitral`,
+       `oai_` y cuatro de aorta, y ningún `teer_`— y no está en `_labUsaEteVM`, así que la peor
+       de las tres NO aplica. Y sin escribirlo, los efectos que la orden manda probar desde
+       Válvulas no ocurrirían: `imEsSecundariaIM`, `imSecAltPintar`, `calcTEER` y el recuadro de
+       reparabilidad de `calcETE` leen `teer_tipo_im` directamente, no un resolvedor. Así que el
+       Tipo de IM se escribe SIN guarda, y es lo que hace que el pedido 4 funcione.
+   LO QUE QUEDA DECLARADO Y NO CORREGIDO: `_labUsaTeer` cuenta un estudio como «con evaluación
+   TEER» en cuanto `teer_tipo_im` tiene texto, así que desde hoy un transtorácico con el Tipo de
+   IM cargado en Válvulas entra a ESE denominador del Laboratorio. Es otro módulo y el criterio
+   es de Maicol: `docs/PENDIENTES.md` → AJ5-a. */
+let _vmImSincronizando = false;
+/* El espejo de UN par, con las dos guardas que `eteVmPropagar` ya paga. Devuelve `true` si
+   escribió, que es lo que usa el llamador para decidir si repinta. */
+function _vmEspejar(srcEl, dstEl, efectos) {
+  if (!srcEl || !dstEl) return false;
+  if (dstEl.value === srcEl.value) return false;
+  /* Asignar un valor que ya no es ninguna opción del select deja `selectedIndex = -1`, `.value`
+     devuelve '' y `guardarInforme` PERSISTE el hueco. Es la misma guarda de `eteVmPropagar`, y
+     el motivo por el que no se confia en que las dos listas sigan siendo iguales. */
+  if (!Array.prototype.some.call(dstEl.options, function (o) { return o.value === srcEl.value; })) {
+    console.error('[vmIm] «' + srcEl.value + '» ya no es una opción de #' + dstEl.id);
+    return false;
+  }
+  _vmImSincronizando = true;
+  try {
+    dstEl.value = srcEl.value;
+    /* LOS EFECTOS DEL DESTINO SE LLAMAN A MANO porque asignar `.value` no dispara `change`.
+       Cada uno en su `try`: sin eso, un throw en el primero deja los siguientes sin correr y el
+       destino a medias, con el valor ya cambiado. */
+    (efectos || []).forEach(function (fn) {
+      if (typeof window[fn] === 'function') { try { window[fn](); } catch (e) { console.error('[vmIm] ' + fn, e); } }
+    });
+  } finally { _vmImSincronizando = false; }
+  return true;
+}
+/* La frase del corte alternativo de la ESC/EACTS 2025 y el aviso del calc-box viven en la
+   pestaña VÁLVULAS y los dos preguntan por el mecanismo, así que los DOS lados tienen que
+   repintarlos.
+   ⚠️ Y `imSecAltSiExiste` LE FALTABA AL LADO ETE DESDE ANTES DE ESTA TANDA: `calcTEER` llama a
+   `imSecAvisoSiExiste` y no a su gemelo, así que cargar «Secundaria» en el ETE con un ORE de 30
+   ya cargado dejaba la frase sin pintar hasta que alguien tocara un campo de la IM. Se repara
+   por las dos puertas: esta función y la línea nueva de `calcTEER`. */
+function _vmTipoImPintar() {
+  ['imSecAltSiExiste', 'imSecAvisoSiExiste'].forEach(function (fn) {
+    if (typeof window[fn] === 'function') { try { window[fn](); } catch (e) { console.error('[vmIm] ' + fn, e); } }
+  });
+}
+function vmTipoImPropagar(origen) {
+  if (_vmImSincronizando) return;
+  const vmEl = document.getElementById('vm_tipo_im');
+  const teEl = document.getElementById('teer_tipo_im');
+  if (!vmEl || !teEl) return;
+  /* Desde el ETE no se repiten `calcTEER` ni `calcETE`: su propio `onchange` ya los corrió. */
+  if (origen === 'ete') _vmEspejar(teEl, vmEl, []);
+  else                  _vmEspejar(vmEl, teEl, ['calcTEER', 'calcETE']);
+  _vmTipoImPintar();
+}
+/* ⚠️ NEW → LEGADO ES TOTAL; LEGADO → NEW NO LO ES, y por eso sólo hay una dirección: «Tipo III
+   (restricción)» no distingue IIIa de IIIb, así que traducirlo al revés sería elegir por el
+   médico. Es la MISMA asimetría que `_ETE_VM_PARES` declara entre DFE y Barlow. */
+const _VM_CARP_LEGADO = Object.freeze({
+  'I':    'Tipo I (dilatación anular)',
+  'II':   'Tipo II (prolapso/flail)',
+  'IIIa': 'Tipo III (restricción)',
+  'IIIb': 'Tipo III (restricción)'
+});
+/* PINTA el select de legado del cajon de prolapso, y por eso va en `RECALC_MODULOS` y en
+   `limpiarCampos`: son las DOS columnas. Con `vm_carp` vacío NO TOCA NADA — un estudio anterior
+   a esta tanda conserva el valor que trae y su frase de prolapso sale igual que siempre. */
+function vmCarpLegadoSync() {
+  const nue = document.getElementById('vm_carp');
+  const leg = document.getElementById('vm_carpentier');
+  if (!nue || !leg) return;
+  const v = nue.value;
+  if (!v) return;
+  const txt = _VM_CARP_LEGADO[v];
+  if (!txt) { console.error('[vmCarp] «' + v + '» no tiene traducción al vocabulario de legado'); return; }
+  if (!Array.prototype.some.call(leg.options, function (o) { return o.value === txt; })) {
+    console.error('[vmCarp] «' + txt + '» ya no es una opción de #vm_carpentier'); return;
+  }
+  leg.value = txt;
+}
+window.vmCarpLegadoSync = vmCarpLegadoSync;
+function vmCarpPropagar(origen) {
+  if (_vmImSincronizando) return;
+  const vmEl = document.getElementById('vm_carp');
+  const etEl = document.getElementById('ete_carpentier');
+  if (!vmEl || !etEl) return;
+  if (origen === 'ete') _vmEspejar(etEl, vmEl, []);
+  else {
+    /* HACIA EL ETE SÓLO SI EL ESTUDIO ES UN ETE — las dos salidas medidas están en la cabecera
+       de este bloque. `calcETE` es el efecto del destino porque su narrativo lee el Carpentier. */
+    const esEte = document.getElementById('ete-es-ete');
+    if (esEte && esEte.checked) _vmEspejar(vmEl, etEl, ['calcETE']);
+  }
+  vmCarpLegadoSync();
+}
+window.vmTipoImPropagar = vmTipoImPropagar; window.vmCarpPropagar = vmCarpPropagar;
+
+/* ══ EL MECANISMO Y EL CARPENTIER EFECTIVOS — UN SOLO DUEÑO POR PREGUNTA ════════════════
+   Los dos nodos de cada par quedan iguales en todo estudio guardado DESDE esta tanda, porque la
+   sincronía corre en el gesto. Los estudios ANTERIORES no tienen el nodo de Válvulas, así que
+   traen el valor sólo del lado ETE: por eso lo efectivo es «el de Válvulas, y si no dice nada,
+   el del ETE».
+   ⚠️ SE RESUELVE AL LEER Y NO SE RELLENA AL ABRIR, que es la diferencia entre esto y migrar un
+   estudio guardado: estas dos funciones no escriben un solo campo. */
+function vmTipoIMEfectivo() {
+  const a = document.getElementById('vm_tipo_im'), b = document.getElementById('teer_tipo_im');
+  return (a && a.value) || (b && b.value) || '';
+}
+function vmCarpEfectivo() {
+  const a = document.getElementById('vm_carp'), b = document.getElementById('ete_carpentier');
+  return (a && a.value) || (b && b.value) || '';
+}
+window.vmTipoIMEfectivo = vmTipoIMEfectivo; window.vmCarpEfectivo = vmCarpEfectivo;
+
+/* Los cuatro `<select>` son listas PARALELAS de dos pares y nada las vigilaba. Si una opción se
+   renombra de un lado, `_vmEspejar` grita en el gesto —cuando ya es tarde—; esto grita al
+   arrancar. Mismo patrón que `_eteVmAssertPares`. */
+function _vmImAssertPares() {
+  const problemas = [];
+  const ops = function (id) {
+    const e = document.getElementById(id);
+    return e && e.options ? [].slice.call(e.options).map(function (o) { return o.value; }) : null;
+  };
+  [['vm_tipo_im', 'teer_tipo_im'], ['vm_carp', 'ete_carpentier']].forEach(function (par) {
+    const a = ops(par[0]), b = ops(par[1]);
+    if (!a || !b) { problemas.push('falta uno de los dos selects del par ' + par.join(' / ')); return; }
+    a.forEach(function (v) { if (b.indexOf(v) < 0) problemas.push('#' + par[1] + ' no tiene la opción «' + v + '»'); });
+    b.forEach(function (v) { if (a.indexOf(v) < 0) problemas.push('#' + par[0] + ' no tiene la opción «' + v + '»'); });
+  });
+  Object.keys(_VM_CARP_LEGADO).forEach(function (k) {
+    const leg = ops('vm_carpentier');
+    if (leg && leg.indexOf(_VM_CARP_LEGADO[k]) < 0)
+      problemas.push('#vm_carpentier no tiene la opción de legado «' + _VM_CARP_LEGADO[k] + '»');
+  });
+  if (problemas.length) console.error('[vmIm] los pares del Tipo de IM / Carpentier divergieron:\n  ' + problemas.join('\n  '));
+  return problemas;
+}
+window._vmImAssertPares = _vmImAssertPares;
+if (document.readyState === 'loading')
+  document.addEventListener('DOMContentLoaded', function(){ try { _vmImAssertPares(); } catch (e) { console.error('[vmIm] assert', e); } });
+else { try { _vmImAssertPares(); } catch (e) { console.error('[vmIm] assert', e); } }
 
 /* ══ PRÓTESIS MITRAL — EOA, DVI Y PPM ═══════════════════════════════════════════════════════════
    ASE 2024 (Zoghbi et al., J Am Soc Echocardiogr 2024;37(1):2-63), Sección III.B, Tabla 11 (p. 27)
@@ -64873,6 +65182,12 @@ function calcTEER() {
      «Secundaria» en la pestaña ETE dejaba la calculadora de severidad muda. Los otros dos caminos
      son `calcIM_ESC` y la respuesta manual del panel. Ver `imSecAvisoPintar`. */
   if (typeof imSecAvisoSiExiste === 'function') imSecAvisoSiExiste();
+  /* ⚠️ Y SU GEMELO, QUE FALTABA DESDE ANTES DE LA AJ5. `imSecAltPintar` publica la frase del
+     corte alternativo de la ESC/EACTS 2025 y pregunta por el MISMO mecanismo, pero su único
+     disparador era el final de `calcIM_ESC`: cargar «Secundaria» en el ETE con un ORE de 30 ya
+     medido dejaba la frase sin pintar hasta que alguien tocara un campo de la IM. Medido en HEAD
+     antes de agregar la línea. No cambia ni un corte ni un grado — es un repintado. */
+  if (typeof imSecAltSiExiste === 'function') imSecAltSiExiste();
   const _mostrar = (id, on) => { const el = document.getElementById(id); if (el) el.style.display = on ? '' : 'none'; };
   _mostrar('teer-bloque-primaria',   !r.esSec);
   _mostrar('teer-bloque-secundaria', !r.esPrim);
