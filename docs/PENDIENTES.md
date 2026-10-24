@@ -7140,3 +7140,166 @@ abajo.
 
 **Cómo se corrige.** Correr **los dos**, siempre: `python3 scripts/check_backticks.py` **y**
 `node --check`, y en ese orden — `node --check` sin el otro no dice dónde está.
+
+---
+
+## Tanda «AJ5» · Tipo de IM y Carpentier en Válvulas, y el strain del VD (2026-10-24) — DECLARADO y NO arreglado
+
+### AJ5-a · `_labUsaTeer` cuenta ahora transtorácicos en «Estudios con evaluación TEER»
+
+**Qué se encontró.** `_labUsaTeer` devuelve verdadero en cuanto `teer_tipo_im` tiene texto
+(`_labCampoRaw(i,'teer_tipo_im') !== ''`). Desde la AJ5-2 el campo de Válvulas escribe ese nodo
+**sin guarda** —y tiene que escribirlo, porque es lo que hace funcionar la frase del corte
+alternativo, `calcTEER` y el recuadro de reparabilidad—, así que un transtorácico con el Tipo de IM
+consignado en Válvulas entra a ese denominador.
+
+**Qué puede causar.** El panel del Laboratorio baja todos sus porcentajes sin que nadie haya
+cambiado de práctica, que es textual el argumento con el que la guarda de `tipo !== 'coapt'` se
+puso en el segundo brazo de esa misma función.
+
+**Cómo se corrige.** Gatear el primer brazo por un campo que sólo se cargue dentro del módulo TEER
+—`teer_pasp`, `teer_area_mitral` o uno de los seis criterios anatómicos— en vez de por el tipo de
+IM, que desde hoy es un dato de Válvulas. Es otro módulo y el criterio del denominador es clínico:
+**no se tocó**.
+
+---
+
+### AJ5-b · El Carpentier de un transtorácico no llega a la columna «Carpentier ETE» del Excel
+
+**Qué se encontró.** `ete_carpentier` NO tiene columna en el libro de 440 —verificado— pero sí
+viaja al PPT (`_pptSel('ete_carpentier')`) y a la tabla de datos usados del 3D
+(`M3D_TABLA`). Con la guarda de «es un ETE» funcionando como debe, un transtorácico con el
+Carpentier consignado en Válvulas deja esos dos vacíos mientras el informe firmado dice
+«(Carpentier II)».
+
+**Qué puede causar.** El ateneo proyecta un PPT sin el Carpentier al lado de un informe que lo
+publica.
+
+**Cómo se corrige.** Que esos dos lectores pregunten por `vmCarpEfectivo()` en vez de por el nodo
+del ETE. Son dos superficies firmadas y el cambio es de contenido: **se reporta**.
+
+---
+
+### AJ5-c · Dos paréntesis seguidos en la oración de la mitral
+
+**Qué se encontró.** `_imFundG` —el fundamento que el médico escribe a mano, y que sólo aparece
+cuando el grado manual discrepa del calculado— ya es un paréntesis. Con él puesto, la frase sale
+«insuficiencia severa (jet excéntrico) (mecanismo secundario; Carpentier II)».
+
+**Qué puede causar.** Nada falso: los dos dicen cosas distintas. Es redacción del papel firmado.
+
+**Cómo se corrige.** Fusionarlos reescribiría el texto del médico, así que quedan separados hasta
+que Maicol decida. Lo mismo pasa en el VD con el strain, que viaja dentro de `funcTxt` mientras el
+TAPSE y la S′ viajan en su propio paréntesis.
+
+---
+
+### AJ5-d · El strain del VD no vota, así que puede quedar «conservada» con el strain alterado
+
+**Qué se encontró.** La orden dice, textual, «si no la incluye, el campo muestra su grado y aparece
+como dato en la oración de función del VD, **sin votar**». `vdDisfGrado` lee TAPSE y onda S′ y nada
+más —medido—, así que el campo no vota. Consecuencia: con TAPSE 22 mm y S′ 13 cm/s (los dos
+normales) y un strain de −18 % (leve), el informe firma «función sistólica conservada (strain de
+pared libre −18 %)».
+
+**Qué puede causar.** Una afirmación de normalidad al lado de un parámetro alterado del mismo
+ventrículo. **Se mitigó lo que se podía sin cambiar la lógica de integración**: al papel va el
+NÚMERO y no la categoría, así que la frase no dice «conservada (leve)»; el grado se ve en la
+pantalla, al lado del campo.
+
+**Cómo se corrige.** Sumarlo al OR de `vdDisf` cambiaría qué escenas publican «disfunción
+sistólica» en el informe firmado, que es lógica de integración y decisión de Maicol — el mismo
+argumento con el que la FEVD sigue sin votar.
+
+---
+
+### AJ5-e · La banda «leve 15-20 %» del strain NO estaba en el AJ1, y no está declarada en Referencias
+
+**Qué se encontró.** Dos cosas, y la segunda la cazó `/sharp-edges`:
+
+1. La orden dice que los cortes «ya [estaban] aplicados en el AJ1». **Es falso**: el AJ1 unificó el
+   corte de NORMALIDAD por sexo (−20 %, un solo corte para los dos) y **no abrió ninguna banda
+   intermedia**. La ficha `FUN-VD-007` lo declara textual: «el dueño no gradúa… es un corte
+   BINARIO, no las tres bandas de la Tabla 1». El 15 se aplica porque **la orden fija el número**,
+   igual que el 36 mm de la AJ4-1.
+2. La fila del cuadro de Referencias del VD (`FUN-VD-007`) publica **un solo corte**, el de
+   normalidad, con el comentario de arriba diciendo que el dueño es binario. Desde la AJ5-5 la
+   pantalla aplica una banda intermedia que **esa fila no declara**: la misma aplicación afirma en
+   una superficie que no gradúa y gradúa en otra.
+
+**Y moderada y severa no existen en ningún lado.** Censado: ni la Tabla 1 de la ASE 2025 de mayo,
+ni el texto del folio 159, ni `ASE25_T1`, ni ninguna ficha de `IND_REFS`. La orden dice «usá los
+que ya tiene la app… no inventes ninguno», así que **no se inventó ninguno**: por debajo de 15 el
+campo dice «por debajo de leve», que es la negación de las dos bandas que sí existen y no un grado
+nuevo.
+
+**Cómo se corrige.** Dos caminos, los dos de contenido: (a) publicar la banda en la fila de
+Referencias derivándola de `VD_STRAIN_PL_LEVE` —sin escribir un número nuevo— y reescribir el
+comentario que dice que el dueño es binario; o (b) retirar la banda `leve` hasta que tenga fuente.
+**`_vdStrainPlAssert` vigila el corte de normalidad pero nada vigila que el 15 exista en
+Referencias.**
+
+---
+
+### AJ5-f · Qué hace la PANTALLA con el Tipo de IM y el Carpentier sobre una prótesis
+
+**Qué se encontró.** La orden dice que no está decidido, y pide dejarlos visibles y sin cambios.
+Así quedaron: con `vm_morf` en «Prótesis biológica» o «Prótesis mecánica», los dos `<select>` de la
+fila siguen **visibles, habilitados y conservando su valor**. Lo que cambia es sólo el papel: el
+paréntesis no se escribe (`_vmProt`).
+
+**Qué puede causar.** El médico ve dos campos cargados cuya información no sale en ninguna parte, y
+no hay nada en la pantalla que lo diga. Es el mismo estado que ya tienen el Carpentier, el
+mecanismo y el score de Wilkins del ETE sobre una prótesis, que `vmEsProtesis` gobierna.
+
+**Cómo se corrige.** Tres opciones y las tres son decisión de Maicol: esconderlos como hace
+`vmEsProtesis` con los descriptores nativos del ETE; dejarlos y agregar una línea gris que diga
+que no van al informe; o dejarlos tal cual.
+
+---
+
+### AJ5-g · «Mixomatosa / Barlow» se recorta 6 px en el control cerrado, y las tres exigencias de la orden no son simultáneas
+
+**Qué se encontró.** La orden pide tres cosas a la vez: tres campos **del mismo ancho** (un tercio
+cada uno), un **largo total no mayor al del botón «Insuficiencia»**, y las **opciones largas
+legibles**. Medido en Chrome con `measureText` sobre la tipografía real del `<select>`:
+
+| ancho de la fila | celda | ancho útil | «Mixomatosa / Barlow» (125 px) | «Isquémica (disfunción/rotura músculo papilar)» (275 px) |
+|---|---|---|---|---|
+| 573 (la pastilla entera) | 186 | 156 | cabe | recorta |
+| **463 (el botón)** | **149** | **119** | **recorta por 6 px** | recorta |
+| 415 (a 1280 px, dos columnas) | 204 | 174 | cabe | recorta |
+
+Con el ancho del botón —que es lo que la orden fija— «Mixomatosa / Barlow» no entra por **6
+píxeles** en el control CERRADO. El desplegable abierto sí lo muestra completo, y la opción
+«Isquémica…» ya se recortaba antes de esta tanda (a 420 px el ancho útil eran ~390 px, así que
+entraba; hoy no).
+
+**Qué puede causar.** El médico elige la morfología y después no puede verificar de un vistazo
+cuál eligió.
+
+**Cómo se corrige.** Tres caminos, los tres de maquetación y decisión de Maicol: bajar un punto la
+tipografía **de esa fila sola** (a 12 px el rótulo mide 115 y entra); dejar la fila en el ancho de
+la **pastilla** (573) en vez del botón, y entonces entran las dos primeras pero no la «Isquémica…»;
+o acortar el rótulo de la opción.
+
+---
+
+### AJ5-h · El scroll horizontal a 820 px de la pestaña Válvulas es PREEXISTENTE
+
+Medido en los dos árboles, sin tocar nada: `scrollWidth` 930 contra `clientWidth` 820, **el mismo
+par en HEAD y en el árbol nuevo**. No es de esta tanda y la fila de los tres campos no desborda su
+contenedor en ninguno de los cinco anchos medidos. Queda anotado para que la próxima tanda que
+mida esa franja no lo cuelgue de la AJ5. `check_mobile.js` mide 360 y 390, así que 820 px no está
+cubierto por ningún barrido automático.
+
+---
+
+### AJ5-i · El `pattern` global de los campos numéricos excluye el signo menos
+
+El bloque que convierte los `input[type=number]` a `type="text" inputmode="decimal"` les pone
+`pattern="[0-9]*[.,]?[0-9]*"`, que **no admite el signo menos** — y `vd_strain_pl` es un campo que
+pide signo. Hoy es **inerte**: nada llama `checkValidity()` en todo el archivo (verificado, cero
+coincidencias) y el `pattern` sin un `form` que valide no hace nada. Queda declarado porque el día
+que alguien active validación, este campo quedaría inválido y el único síntoma sería un borde rojo
+sin mensaje. También lo cazó `/sharp-edges`.

@@ -86366,6 +86366,43 @@ caso('TC-522', 'Tanda AJ5-1: los tres campos de la mitral en PARALELO, del mismo
     unaFila === 1 && anchos463.split('/').length === 3
       && Math.abs(Number(anchos463.split('/')[0]) - Number(anchos463.split('/')[2])) <= 1,
     'filas=' + unaFila + ' anchos=' + anchos463]);
+  /* == (A4c) LA REGLA DE ESCRITORIO, LEIDA DE LA HOJA DE ESTILO =============================
+     ⚠️ ESTO NO ES FORMALISMO: ES EL UNICO LUGAR DONDE ESTE ARNES PUEDE VIGILAR EL ESCRITORIO.
+     La ventana de Chrome del arnes abre a ~740 px, o sea POR DEBAJO del corte de 769 px, asi que
+     la media query que pone las tres columnas y el ancho derivado del boton NO se aplica nunca
+     mientras el caso corre. Medido: con el ancho y las columnas vigilados solo por geometria, dos
+     mutaciones -volver a tres columnas fijas y poner width 100% - SOBREVIVIAN, que es
+     indistinguible de «no hay cobertura». La regla se lee de document.styleSheets y se exige
+     por su FORMA, no por sus numeros: auto-fit con minmax -que es lo que hace refluir en vez
+     de apretar- y un width derivado de --valv-sevcol -que es lo que lo ata al boton-.
+     Las CIFRAS de escritorio se miden en la sonda y estan en el mapa de la tanda. */
+  const reglaDesk = (function () {
+    try {
+      for (const hoja of Array.prototype.slice.call(document.styleSheets)) {
+        let rs = null;
+        try { rs = hoja.cssRules; } catch (e) { continue; }
+        for (const r of Array.prototype.slice.call(rs || [])) {
+          if (!(r.media && String(r.conditionText || r.media.mediaText).indexOf('769px') > -1)) continue;
+          for (const r2 of Array.prototype.slice.call(r.cssRules || [])) {
+            if (String(r2.selectorText || '').indexOf('valv-morf-row--tres') > -1)
+              return { gtc: r2.style.gridTemplateColumns || '', w: r2.style.width || '' };
+          }
+        }
+      }
+      return null;
+    } catch (e) { return 'EXC: ' + e.message; }
+  })();
+  ex.push(['(A4c) DENOMINADOR: la regla de escritorio existe y se pudo leer de la hoja de estilo',
+    !!reglaDesk && reglaDesk !== 'EXC' && typeof reglaDesk === 'object',
+    JSON.stringify(reglaDesk)]);
+  ex.push(['(A4c-1) y declara auto-fit con minmax: la fila REFLUYE en vez de apretar las tres columnas',
+    !!reglaDesk && typeof reglaDesk === 'object'
+      && reglaDesk.gtc.indexOf('auto-fit') > -1 && reglaDesk.gtc.indexOf('minmax') > -1,
+    reglaDesk && reglaDesk.gtc]);
+  ex.push(['(A4c-2) y su ancho se DERIVA del boton por --valv-sevcol, no es un 100% ni un numero suelto',
+    !!reglaDesk && typeof reglaDesk === 'object'
+      && reglaDesk.w.indexOf('calc') > -1 && reglaDesk.w.indexOf('--valv-sevcol') > -1,
+    reglaDesk && reglaDesk.w]);
   /* El scroll horizontal se mide por la FILA y no por el documento: a 820 px el documento de esta
      app ya desborda en HEAD -medido, 930 contra 820 en los dos arboles-, asi que exigirselo al
      documento haria rojo un defecto que no es de esta tanda. */

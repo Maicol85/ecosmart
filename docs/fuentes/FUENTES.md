@@ -5588,3 +5588,65 @@ al segmento RAÍZ y se calcule con el diámetro de la raíz, que es la decisión
   **edición vigente** clasifica, con su clase, su nivel y su folio. **La edición de 2014 NO está en
   la biblioteca**, así que lo de «eran Clase I en 2014» queda registrado como lo que la app decía y
   **no se cita**: lo verificado es la clasificación de hoy, en la Tabla 68 del folio 119.
+
+---
+
+## La tanda AJ5 — la clasificación de Carpentier, y qué tiene la biblioteca del strain del VD (2026-10-24)
+
+### Lo que se VERIFICÓ en texto completo, abriendo los PDF
+
+El texto del globo ⓘ del Carpentier **salió de memoria** en la orden y se verificó **antes** de
+publicarlo, así que la tarjeta cita fuente y **no** lleva el marcador `ecosmart` de criterio
+propio. Dos documentos, los dos abiertos y leídos en la página:
+
+| documento | ruta | folio | qué dice, verificado |
+|---|---|---|---|
+| **EACVI 2013** · Lancellotti P y col., *Eur Heart J Cardiovasc Imaging* 2013;14(7):611-644 | `~/Desktop/EcoSmart_Biblioteca_Fuentes/04_Valvulopatias/ehjcimaging_14_7_611.pdf` | **625** (PDF p. 15) | la clasificación de Carpentier del movimiento de las valvas, con el tipo III **PARTIDO**: tipo I movimiento normal, tipo II movimiento excesivo, tipo III movimiento restrictivo «(A: systolic/diastolic and B: systolic)», con remisión a su Figura 14 |
+| idem | idem | **626** (PDF p. 16) | atribuye cada mitad: el **IIIb** a la IM secundaria isquémica por tracción, con la restricción ocurriendo esencialmente en sístole y el patrón asimétrico tras un infarto posterior; el **IIIa** a la reumática, por la rigidez y el movimiento reducido del velo posterior **en diástole** |
+| **ASE 2017** · Zoghbi WA y col., *JASE* 2017;30:303-371 | `~/Desktop/EcoSmart_Biblioteca_Fuentes/04_Valvulopatias/Zoghbi_2017_Regurgitacion_Valvular.pdf` | **319** (PDF p. 17) y **Figura 10 del folio 320** | los **tres** tipos con sus causas: el I con movimiento normal que puede asociarse a IM por dilatación anular (secundaria) o perforación; el II excesivo, lo más común prolapso o velo flail; el III restrictivo, habitual con dilatación del VI (secundaria), enfermedad reumática u otras condiciones posinflamatorias. **NO parte el III** |
+
+**El offset de folio de cada uno, comprobado contra el pie impreso:**
+
+- **EACVI 2013 (`ehjcimaging_14_7_611.pdf`)** — folio = página del PDF **+ 610**. Verificado en
+  tres páginas: PDF 7 → 617, PDF 15 → 625, PDF 16 → 626, leyendo el número del pie.
+- **ASE 2017 (`Zoghbi_2017_Regurgitacion_Valvular.pdf`)** — folio = página del PDF **+ 302**, que
+  es el offset que este registro ya tenía asentado y que se reconfirmó.
+
+**La EACVI 2013 es la ÚNICA de la biblioteca que parte el tipo III.** Se censaron todos los PDF de
+`04_Valvulopatias`, `14- ETE`, `00_CONSOLIDADO`, `10_Material_de_apoyo` y
+`17- Doppler tisular y strain` buscando «IIIa» y «IIIb» juntos: aparecen en cuatro documentos, y de
+ésos el único que los define para la **mitral** es éste (en los otros tres el par IIIa/IIIb es de la
+aórtica o de la tabla de la ETE). Por eso hay que citarlo para poder ofrecer IIIa y IIIb.
+
+**Las palabras de la tarjeta son propias.** Ninguna frase se copia literal, que es la regla de
+derechos de autor de este repo.
+
+### Lo que la biblioteca NO tiene — el strain de pared libre del VD
+
+La orden de la AJ5-5 daba por aplicados en el AJ1 dos cortes y pedía que moderada y severa salieran
+«de los que ya tiene la app». Censado, campo por campo:
+
+| corte | ¿está en la app? | ¿está en la fuente? |
+|---|---|---|
+| **normal, más de 20 % en valor absoluto** | **sí** — `VD_STRAIN_NORMAL = -20`, aplicado en el AJ1 | **sí** — ASE 2025 de mayo (Mukherjee/Rudski, *JASE* 2025;38(3):141-186), **Tabla 1, folio 145** («>20» en valor absoluto, con la nota al pie «Absolute values and ranges for strain are shown») y el **texto del folio 159** («strain values more negative than 20% to 25% … are generally considered as normal»). **Sin columnas de varón y de mujer** |
+| **leve, de 15 a 20 % inclusive** | **NO lo tenía** | **NO** — la Tabla 1 no bandea el strain y el folio 159 tampoco. Se aplica porque **la orden fija el número**, igual que el 36 mm de la AJ4-1. Queda sin cita: un corchete sobre un corte que la fuente no publica respaldaría lo que esa fuente no dice |
+| **moderada y severa** | **NO los tiene** | **NO** — censado: ni `ASE25_T1` (que no tiene entrada de strain), ni el folio 145, ni el 159, ni ninguna ficha de `IND_REFS`. **No se inventó ninguno** |
+
+La ficha `FUN-VD-007` ya lo declaraba textual antes de esta tanda: «el dueño no gradúa… es un corte
+**BINARIO** —normal o por debajo de lo normal— y **no** las tres bandas de la Tabla 1».
+
+⚠️ **La banda `[-60, 60] %` que la AJ5-6 agregó NO es un corte y va SIN CITA**, por la regla de este
+repo: una banda de plausibilidad es un rango de lo medible, no un criterio. Es el mismo número que
+los dos strain de la AI (`DIAST_STRAIN_BANDA`) y existe para cazar el dedazo de un orden de
+magnitud, no para graduar.
+
+### Dos premisas de la orden que la medición dio vuelta, y se reportan sin tocar nada
+
+1. **«Los cuatro estilos de informe (Conciso, Estándar, Narrativo, CC)».** `estiloPick(c, e, n)`
+   tiene **TRES** brazos. «CC» no es un estilo: es la sub-pestaña «CC / Genéticas» del Laboratorio
+   y el bloque integrable de C. Congénitas, que no reescribe la oración de la mitral. El paréntesis
+   se aplicó en los tres que existen.
+2. **«Carpentier vive en ETE».** Vivía en **DOS** lugares: `ete_carpentier` en el ETE y
+   `vm_carpentier` en el cajón de prolapso de Válvulas, con **otro vocabulario** (tres opciones, sin
+   partir el III), sin sincronía entre ellos, y el segundo alimentando la frase de prolapso del
+   informe firmado. Ver `docs/mapa/aj5-mitral-tipoim-carpentier.md` §2.
