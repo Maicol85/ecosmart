@@ -1077,6 +1077,25 @@ window.__Y = {
           vexus:  await ev(`window.__Y.evid('Congestión venosa sistémica')`)
         };
       }
+      /* Con las preguntas CONTESTADAS, y contestadas con el GESTO REAL: `_indClin` es un const
+         de modulo, no vive en `window`, asi que la unica forma de responder es apretar el boton
+         `[data-ind-clin]` que el panel pinta. Sin esto el grupo mide tres bloques vacios -ninguna
+         recomendacion se emite sin respuesta- y parece que todo esta bien. */
+      await escena('tapoSignos');
+      await ev(`(function(){ try{ indicAbrir() }catch(e){ return 'EXC: ' + e.message } return 1 })()`);
+      await pausa(300);
+      r.clics = await ev(`(function(){
+        var o = {};
+        [['peri.tapoclin','si'],['peri.sintomas','si'],['peri.etio','no'],
+         ['peri.percut','no'],['peri.recidiva','si']].forEach(function(par){
+          var b = document.querySelector('[data-ind-clin="' + par[0] + '"][data-ind-val="' + par[1] + '"]');
+          if (!b) { o[par[0]] = 'NO HAY BOTON'; return; }
+          b.click();
+          o[par[0]] = par[1];
+        });
+        return o })()`);
+      await pausa(260);
+      r.contestado = await ev(`window.__Y.evid('Derrame pericárdico')`);
       r.citas = await ev(`window.__Y.evid('Estenosis aórtica')`);
       r.errores = await ev(`window.__Y.errores()`);
     } catch (e) { r.err = e.message }
@@ -1125,6 +1144,33 @@ window.__Y = {
             await pausa(170);
             r[nom + '_' + suf] = await shot('sec_' + nom + '_' + suf);
           }
+        }
+      }
+      /* Las tres Evidencias: el panel se abre con su propio dueno y la seccion se despliega
+         por su `<summary>`, que es el gesto del medico. */
+      for (const [w, h] of [[1200, 700], [390, 844]]) {
+        await viewport(w, h);
+        for (const claro of [false, true]) {
+          await ev(`window.__P.tema(${claro})`);
+          await ev(`(function(){ try{ indicAbrir() }catch(e){ return 'EXC: ' + e.message } return 1 })()`);
+          await pausa(320);
+          for (const pref of ['Derrame pericárdico', 'Constricción pericárdica', 'Congestión venosa sistémica']) {
+            const ab = await ev(`(function(){
+              var cu = document.getElementById('indic-cuerpo'); if (!cu) return 'NO CUERPO';
+              var hit = null;
+              Array.prototype.forEach.call(cu.children, function(d){
+                if (hit || d.tagName !== 'DETAILS') return;
+                var su = d.querySelector('summary');
+                if (su && (su.textContent||'').replace(/\s+/g,' ').trim().indexOf(${JSON.stringify(pref)}) === 0) hit = d;
+              });
+              if (!hit) return 'NO HAY';
+              hit.open = true; hit.scrollIntoView({ block: 'start' }); return 'ok' })()`);
+            if (ab !== 'ok') { r['ev_' + pref.slice(0, 7)] = ab; continue; }
+            await pausa(200);
+            r['ev_' + pref.slice(0, 7) + '_' + TAG + '_' + w + (claro ? '_claro' : '_oscuro')] =
+              await shot('evid_' + pref.slice(0, 7).replace(/\s/g, '') + '_' + TAG + '_' + w + (claro ? '_claro' : '_oscuro'));
+          }
+          await ev(`(function(){ var p=document.getElementById('indic-panel'); if(p) p.style.display='none'; return 1 })()`);
         }
       }
       await ev(`window.__P.tema(false)`);

@@ -73172,6 +73172,39 @@ const IND_REFS = Object.freeze([
          'tras la cardioversión Clase I · Nivel B; repetir el transesofágico si se identificó ' +
          'trombo Clase IIa · Nivel C; cardioversión precoz sin anticoagulación ni transesofágico ' +
          'con fibrilación de más de 24 horas Clase III · Nivel C.' },
+  /* ⚠️ UNA SOLA ENTRADA PARA LA GUIA Y SU SUPLEMENTO, que son un mismo documento con un mismo
+     DOI. Cada seccion cita adentro de su texto la tabla, la figura y el folio que usa: esta
+     entrada la comparten la Evidencia del derrame y la de la constriccion. */
+  { k:'escPeri2025',
+    full:'ESC 2025 — Guía para el manejo de la miocarditis y la pericarditis. Schulz-Menger J, ' +
+         'Imazio M, et al. Eur Heart J 2025. doi:10.1093/eurheartj/ehaf192. Verificada sobre el ' +
+         'ORIGINAL en inglés, que es la publicación anticipada, paginada 1-90, así que el folio ' +
+         'impreso coincide con la hoja del PDF. ⚠️ No confundirla con la ESC/EACTS 2025 de ' +
+         'VALVULOPATÍAS (ehaf194), que es otra guía del mismo año. ' +
+         'Tabla 10, folio 31 — leída en imagen: derrame leve <10 mm, moderado 10-20 mm, grande ' +
+         '>20 mm, medidos como diámetro telediastólico máximo. ' +
+         'Recommendation Table 12, folio 43 — leída en imagen: pericardiocentesis guiada por ' +
+         'imagen Clase I · Nivel C; drenaje pericárdico quirúrgico Clase I · Nivel C; ventana ' +
+         'pleuropericárdica quirúrgica Clase I · Nivel C. ' +
+         'Tabla 17, folio 62 — leída en imagen: signos ecocardiográficos de taponamiento con su ' +
+         'sensibilidad y su especificidad, entre ellos el colapso DIASTÓLICO de la aurícula ' +
+         'derecha, la duración de ese colapso por encima de 0,34 del ciclo y la plétora de vena ' +
+         'cava inferior con dilatación >20 mm y reducción <50 %. El texto de ese mismo folio ' +
+         'dice que el diagnóstico de taponamiento es CLÍNICO, por la combinación de una historia ' +
+         'sugestiva, síntomas y signos, con confirmación por ecocardiografía. ' +
+         'Apartado 11.9.3, folio 63 — leído en imagen: el cateterismo cardíaco sólo debe ' +
+         'considerarse si la imagen multimodal no invasiva no es concluyente, y los criterios ' +
+         'ecocardiográficos de la Clínica Mayo para la constricción —rebote septal o ' +
+         'desplazamiento septal con e\' medial >8 cm/s o cociente de inversión diastólica ' +
+         'espiratoria de la vena hepática >0,78, sensibilidad 87 %, especificidad 91 %—. ' +
+         'Recommendation Table 24, folio 64 — leída en imagen: imagen multimodal en toda ' +
+         'sospecha de pericarditis constrictiva Clase I · Nivel C; cateterismo cardíaco para ' +
+         'valoración hemodinámica cuando la imagen multimodal no es concluyente Clase IIa · ' +
+         'Nivel C. ' +
+         'Material suplementario, Figura S1, hoja 6 — leída en imagen: el algoritmo del ' +
+         'diagnóstico diferencial entre constricción y restricción, con los tramos del e\' ' +
+         'medial (>8, 6-8 mixto, <6) y, en su nota c, el cociente de inversión espiratoria de ' +
+         'las venas hepáticas REDONDEADO a >0,8.' },
   { k:'aseEte2013',
     full:'ASE/SCA 2013 — Guía para realizar un examen transesofágico multiplano completo. ' +
          'Hahn RT, Abraham T, Adams MS, et al. J Am Soc Echocardiogr 2013;26(9):921-964. ' +
@@ -81463,6 +81496,157 @@ function _indTdFIP(){
     notas: acc.concat(esc).map(function(l){ return l.txt }) };
 }
 
+/* ══ EVIDENCIA · DERRAME PERICARDICO Y TAPONAMIENTO (J-2, 2026-10-24) ═══════════════════════
+   Formato COMPACTO, el que dejo el AJ6 en la Evidencia de Fallot: recomendaciones arriba, una
+   fila de una linea por dato y la prosa larga en el globo ⓘ.
+
+   ⚠️ TODO LO QUE SE ESCRIBE ACA SE LEYO EN IMAGEN sobre el original en ingles (ehaf192):
+   Recommendation Table 12 en el folio 43 y el texto del 11.8.2 con la Tabla 17 en el folio 62.
+   Redactado con palabras propias, fiel al sentido, con su clase, su nivel y su folio.
+
+   ⚠️ NO HAY UMBRAL AUTOMATICO DE TAPONAMIENTO, Y NO ES UN OLVIDO. La guia dice, en ese folio 62,
+   que el diagnostico es CLINICO -historia sugestiva, sintomas y signos- con confirmacion por
+   ecocardiografia, y NINGUNA tabla fija un numero de signos de eco que lo defina. Por eso el
+   taponamiento entra como una PREGUNTA al medico y no como un conteo: es el mismo retiro que el
+   R6 hizo en el modulo, y reponerlo aca por la puerta de atras seria publicar dos veces la regla
+   que se saco.
+   ⚠️ Y LA GUIA NO TIENE NINGUNA TABLA DE RECOMENDACIONES PROPIA DEL DERRAME NI DEL TAPONAMIENTO:
+   censadas sus veintisiete, la unica que los alcanza es la 12, de tecnicas intervencionistas en
+   pericarditis. Lo que no esta no se escribe. */
+function _indDerrPeri(){
+  /* Compuerta de UN solo dueno: `dptEstado`, el mismo que firma el informe. Sin derrame
+     consignado la seccion no despierta -el titulo dice «Derrame pericárdico»- y con el campo en
+     su valor de fabrica tampoco, porque `hayDerrame` sale de `dptTamano`. */
+  const dptFn = _indFn('dptEstado');
+  if (!dptFn) return null;
+  let st = null;
+  try { st = dptFn(); } catch (e) { return null; }
+  if (!st || !st.hayDerrame) return null;
+
+  const tapo   = _indClinGet('peri.tapoclin');
+  const sint   = _indClinGet('peri.sintomas');
+  const etio   = _indClinGet('peri.etio');
+  const percut = _indClinGet('peri.percut');
+  const recid  = _indClinGet('peri.recidiva');
+
+  const sg = st.signos || [];
+  const tieneSigno = function(frag){ return sg.some(function(x){ return x.indexOf(frag) >= 0 }) };
+  const colAd = _indS('dpt_col_ad'), colVd = _indS('dpt_col_vd');
+  const colAi = _indS('dpt_col_ai'), colVi = _indS('dpt_col_vi');
+  const modSev = (st.tam.clave === 'moderado' || st.tam.clave === 'severo');
+
+  const filas = [
+    _indFila('Cuantía del derrame', st.tam.lbl + (st.tam.rango ? ' (' + st.tam.rango + ')' : ''),
+      modSev ? 'warn' : 'none',
+      'la Tabla 10 de la guía gradúa por el diámetro telediastólico máximo: leve por debajo de 10 mm, moderado entre 10 y 20, grande por encima de 20 (folio 31). La fila de pericardiocentesis que pide un derrame «moderado a grande» usa esta misma graduación.',
+      ['escPeri2025']),
+    _indFila('Colapso diastólico de la aurícula derecha',
+      colAd === 'si' ? 'Presente' : (colAd === 'no' ? 'Ausente' : '—'),
+      colAd === 'si' ? 'alarm' : (colAd === 'no' ? 'none' : 'ask'),
+      'la Tabla 17 lo publica con sensibilidad del 50 al 100 % y especificidad del 33 al 100 % (folio 62). Es un signo, no un diagnóstico.',
+      ['escPeri2025']),
+    _indFila('Duración de ese colapso', st.colAdDur !== null
+        ? String(st.colAdDur).replace('.', ',') + ' del ciclo' : '—',
+      (st.colAdDur !== null && st.colAdDur > DPT_COL_AD_DUR_SIG) ? 'alarm' : (st.colAdDur !== null ? 'none' : 'ask'),
+      'es la fila de MAYOR especificidad de la Tabla 17 —100 %, con sensibilidad por encima del 90 %— y su corte es una fracción del ciclo cardíaco por encima de 0,34 (folio 62).',
+      ['escPeri2025']),
+    _indFila('Colapso diastólico del ventrículo derecho',
+      colVd === 'si' ? 'Presente' : (colVd === 'no' ? 'Ausente' : '—'),
+      colVd === 'si' ? 'alarm' : (colVd === 'no' ? 'none' : 'ask'),
+      'sensibilidad del 48 al 100 % y especificidad del 72 al 100 % en la Tabla 17 (folio 62)',
+      ['escPeri2025']),
+    _indFila('Plétora de vena cava inferior',
+      st.plet.evaluada ? (st.plet.presente ? 'Presente' : 'Ausente') : '—',
+      st.plet.presente ? 'alarm' : (st.plet.evaluada ? 'none' : 'ask'),
+      'la Tabla 17 la define como dilatación por encima de ' + DPT_VCI_PLETORA_MM + ' mm con reducción del diámetro menor del 50 % con las fases respiratorias, y le asigna sensibilidad del 97 % y especificidad del 40 % (folio 62). La guía la nombra junto con la dilatación de las venas suprahepáticas, que esta aplicación no registra.',
+      ['escPeri2025']),
+    _indFila('Variación respiratoria de la onda E mitral',
+      st.varM !== null ? _indNum(st.varM, 0, '%') : '—',
+      tieneSigno('E mitral') ? 'alarm' : (st.varM !== null ? 'none' : 'ask'),
+      'la Tabla 17 escribe un RANGO, por encima del 25 al 30 % (folio 62); la aplicación marca desde el ' + DPT_VAR_MITRAL_SIG + ' %, que es el extremo que avisa antes, y lo declara como criterio propio en el módulo.',
+      ['escPeri2025']),
+    _indFila('Variación respiratoria de la onda E tricúspide',
+      st.varT !== null ? _indNum(st.varT, 0, '%') : '—',
+      tieneSigno('E tricúspide') ? 'alarm' : (st.varT !== null ? 'none' : 'ask'),
+      'mismo caso que la mitral: la tabla escribe por encima del 40 al 60 % y la aplicación marca desde el ' + DPT_VAR_TRIC_SIG + ' % (folio 62)',
+      ['escPeri2025']),
+    _indFila('Corazón oscilante', _amChk('dpt_swinging') ? 'Presente' : '—',
+      _amChk('dpt_swinging') ? 'alarm' : 'ask',
+      'la Tabla 17 lo publica junto al derrame grande y NO le asigna sensibilidad ni especificidad (folio 62)',
+      ['escPeri2025']),
+    /* ⚠️ SIN CORCHETE, Y ES DELIBERADO: la Tabla 17 NO menciona estos dos colapsos. Citarla acá
+       respaldaría con una fuente verificada algo que esa fuente no dice. */
+    _indFila('Colapso de la aurícula izquierda y del ventrículo izquierdo',
+      (colAi === 'si' || colVi === 'si')
+        ? [colAi === 'si' ? 'aurícula izquierda' : null, colVi === 'si' ? 'ventrículo izquierdo' : null].filter(Boolean).join(' y ')
+        : ((colAi || colVi) ? 'Ausentes' : '—'),
+      (colAi === 'si' || colVi === 'si') ? 'warn' : ((colAi || colVi) ? 'none' : 'ask'),
+      'criterio de EcoSmart: la Tabla 17 NO los menciona. La aplicación los recoge porque son hallazgos reales del estudio y los describe, pero no cuentan como criterio y por eso esta fila no lleva cita.'),
+    _indFilaCtrl('¿El cuadro CLÍNICO es compatible con taponamiento?', 'peri.tapoclin',
+      [{v:'si',t:'Sí'},{v:'no',t:'No'}],
+      tapo == null ? 'ask' : (tapo === 'si' ? 'alarm' : 'none'),
+      'la guía dice que el diagnóstico de taponamiento se hace por la combinación de una historia sugestiva, síntomas y signos, con la ecocardiografía CONFIRMANDO (folio 62). Ninguna de sus tablas fija un número de signos de eco que lo defina, así que esta pregunta la contesta el médico y la aplicación no la deduce.',
+      ['escPeri2025']),
+    _indFilaCtrl('¿El derrame da síntomas pese al tratamiento médico?', 'peri.sintomas',
+      [{v:'si',t:'Sí'},{v:'no',t:'No'}],
+      sint == null ? 'ask' : (sint === 'si' ? 'alarm' : 'none'),
+      'es la tercera condición de la fila de pericardiocentesis, y pide además que el derrame sea moderado o grande (folio 43)',
+      ['escPeri2025']),
+    _indFilaCtrl('¿Se sospecha etiología bacteriana o neoplásica?', 'peri.etio',
+      [{v:'si',t:'Sí'},{v:'no',t:'No'}],
+      etio == null ? 'ask' : (etio === 'si' ? 'alarm' : 'none'),
+      'es la segunda condición de esa misma fila, y no depende de la cuantía del derrame (folio 43)',
+      ['escPeri2025']),
+    _indFilaCtrl('¿La pericardiocentesis percutánea es factible, y el derrame NO es purulento?', 'peri.percut',
+      [{v:'si',t:'Sí'},{v:'no',t:'No'}],
+      percut == null ? 'ask' : (percut === 'no' ? 'alarm' : 'none'),
+      'la guía manda al drenaje QUIRÚRGICO cuando la vía percutánea no es factible o el derrame es purulento, para vaciarlo por completo y evitar que se organice (folio 43). Las dos condiciones van en una sola pregunta porque llevan a la misma fila.',
+      ['escPeri2025']),
+    _indFilaCtrl('¿El derrame RECIDIVA pese al tratamiento médico?', 'peri.recidiva',
+      [{v:'si',t:'Sí'},{v:'no',t:'No'}],
+      recid == null ? 'ask' : (recid === 'si' ? 'alarm' : 'none'),
+      'es la condición de la ventana pleuropericárdica quirúrgica (folio 43)',
+      ['escPeri2025'])
+  ];
+
+  const rec = [], faltan = [];
+  const porTapo = (tapo === 'si'), porEtio = (etio === 'si'), porSint = (modSev && sint === 'si');
+  if (porTapo || porEtio || porSint) {
+    const motivos = [];
+    if (porTapo) motivos.push('el cuadro clínico es compatible con taponamiento');
+    if (porEtio) motivos.push('se sospecha una etiología bacteriana o neoplásica');
+    if (porSint) motivos.push('el derrame es ' + st.tam.lbl + ' y sigue dando síntomas pese al tratamiento médico');
+    rec.push({ txt:'Clase I · Nivel C — La guía RECOMIENDA la pericardiocentesis, guiada por ecocardiografía, tomografía o fluoroscopia, en el taponamiento cardíaco, ante la sospecha de pericarditis bacteriana o neoplásica, y en el derrame moderado a grande que sigue sintomático pese al tratamiento médico (Recommendation Table 12, folio 43). Con lo cargado, ' + (motivos.length === 1 ? 'se cumple una de esas tres condiciones: ' : 'se cumplen ' + motivos.length + ' de esas tres condiciones: ') + motivos.join('; ') + '.', refs:['escPeri2025'] });
+  } else if (tapo === 'no' && etio === 'no' && (sint === 'no' || !modSev)) {
+    rec.push({ txt:'Ninguna de las tres condiciones de la fila de pericardiocentesis se cumple con lo cargado: no hay cuadro clínico de taponamiento, no se sospecha etiología bacteriana ni neoplásica y el derrame no es un derrame moderado a grande sintomático pese al tratamiento médico (Recommendation Table 12, folio 43).', refs:['escPeri2025'] });
+  } else {
+    faltan.push({ txt:'Falta contestar si el cuadro clínico es compatible con taponamiento, si se sospecha una etiología bacteriana o neoplásica, o si el derrame sigue dando síntomas pese al tratamiento médico: de esas tres condiciones depende la fila de pericardiocentesis.', refs:null });
+  }
+  if (percut === 'no') {
+    rec.push({ txt:'Clase I · Nivel C — Cuando la pericardiocentesis percutánea no es factible, o el derrame es purulento, la guía RECOMIENDA el drenaje pericárdico quirúrgico, que permite vaciarlo por completo y evita que se organice (Recommendation Table 12, folio 43).', refs:['escPeri2025'] });
+  } else if (percut == null) {
+    faltan.push({ txt:'Falta contestar si la vía percutánea es factible y si el derrame es purulento: de eso depende la fila del drenaje quirúrgico.', refs:null });
+  }
+  if (recid === 'si') {
+    rec.push({ txt:'Clase I · Nivel C — En el derrame que recidiva pese al tratamiento médico, la guía RECOMIENDA la ventana pleuropericárdica quirúrgica (Recommendation Table 12, folio 43).', refs:['escPeri2025'] });
+  } else if (recid == null) {
+    faltan.push({ txt:'Falta contestar si el derrame recidiva pese al tratamiento médico: es la condición de la ventana pleuropericárdica.', refs:null });
+  }
+
+  const bloques = [
+    { tit:'Guía europea de miocarditis y pericarditis — técnicas intervencionistas (folio 43)',
+      lineas: rec,
+      nota:'El informe y la conclusión de la aplicación son DESCRIPTIVOS: estas recomendaciones se publican acá y no en el papel firmado. El módulo de la pestaña lista los signos presentes y no concluye taponamiento.' }
+  ];
+  if (faltan.length) bloques.push({ tit:'Lo que falta contestar', plegado:true, lineas: faltan });
+
+  return { filas: filas, bloques: bloques, compacta: true,
+    guia: { ref:'escPeri2025',
+      txt:'El diagnóstico de taponamiento es CLÍNICO: la guía lo hace por la combinación de una historia sugestiva, síntomas y signos, con confirmación por ecocardiografía (folio 62, que remite a la Tabla 17).',
+      nota:'Ninguna de las veintisiete tablas de recomendaciones de esa guía fija un número de signos ecocardiográficos que defina el taponamiento, y ninguna es propia del derrame o del taponamiento: la única que los alcanza es la 12, de técnicas intervencionistas en pericarditis. Los signos de la Tabla 17 se publican con su sensibilidad y su especificidad, no como un puntaje.' },
+    notas: rec.map(function(l){ return l.txt }) };
+}
+
 const IND_SECS = [
   { tit:'Estenosis aórtica',                     fn:_indEA },
   { tit:'Insuficiencia mitral primaria',         fn:_indIM },
@@ -81508,7 +81692,12 @@ const IND_SECS = [
   /* ⚠️ LA DE LA TANDA I-E4, Y SU TITULO NO ES PREFIJO DE NINGUNO NI NINGUNO ES PREFIJO SUYO:
      `IND_SECS` se recorre buscando la sección por el PREFIJO de su título. Verificado contra los
      veintitrés anteriores. */
-  { tit:'Tetralogía de Fallot reparada — insuficiencia pulmonar', fn:_indTdFIP }
+  { tit:'Tetralogía de Fallot reparada — insuficiencia pulmonar', fn:_indTdFIP },
+  /* ⚠️ LAS TRES DE LA TANDA J (24/10/2026), Y NINGUN TITULO ES PREFIJO DE OTRO NI DE LOS
+     VEINTICUATRO ANTERIORES: `IND_SECS` se recorre buscando la seccion por el PREFIJO de su
+     titulo, asi que un titulo que sea prefijo de otro deja una de las dos sin probar.
+     Verificado contra los veinticuatro y entre si. */
+  { tit:'Derrame pericárdico y taponamiento', fn:_indDerrPeri }
 ];
 
 function indicRender(){
