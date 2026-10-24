@@ -882,6 +882,54 @@ window.__G = {
     };
   },
   togglear() { try { popMonToggle(); return 'ok' } catch (e) { return 'EXC ' + e.message } },
+  /* EL PANEL SE ABRE UNA VEZ POR ESCENA: indicAbrir borra las respuestas al abrir Y al cerrar. */
+  abrirPanel() { try { indicAbrir(); return 'ok' } catch (e) { return 'EXC ' + e.message } },
+  cerrarPanel() { try { if (typeof indicCerrar === 'function') indicCerrar();
+    else { var o = document.getElementById('indic-overlay'); if (o) o.style.display = 'none'; }
+    return 'ok' } catch (e) { return 'EXC ' + e.message } },
+  /* Contesta apretando los BOTONES de verdad, que es lo unico que engancha _indClinCablear. */
+  responder(pares) {
+    var out = [];
+    pares.forEach(function(p){
+      var sel = '[data-ind-clin=\"' + p[0] + '\"][data-ind-val=\"' + p[1] + '\"]';
+      var b = document.querySelector(sel);
+      if (!b) { out.push('NO HAY BOTON ' + sel); return; }
+      b.click();
+      out.push(p[0] + '=' + (typeof _indClinGet === 'function' ? _indClinGet(p[0]) : '?'));
+    });
+    return out;
+  },
+  /* La seccion del panel por el PREFIJO de su titulo, con sus bloques separados: la bibliografia
+     imprime el texto de la referencia con clases y niveles adentro, y medir sobre la seccion
+     entera da positivo sin una sola recomendacion emitida. */
+  secPanel(pref) {
+    var c = document.getElementById('indic-cuerpo');
+    if (!c) return { err: 'NO EXISTE indic-cuerpo' };
+    var hit = null;
+    c.querySelectorAll('summary').forEach(function(sm){
+      if (!hit && (sm.textContent || '').trim().indexOf(pref) === 0) hit = sm.parentNode;
+    });
+    if (!hit) return { err: 'NO HAY SECCION que empiece con ' + pref,
+                       sumarios: Array.prototype.map.call(c.querySelectorAll('summary'),
+                         function(x){ return (x.textContent||'').trim().slice(0,40) }) };
+    var bloques = [];
+    hit.querySelectorAll('details').forEach(function(d){
+      var sm = d.querySelector('summary');
+      bloques.push({ tit: sm ? (sm.textContent||'').trim() : '(sin summary)',
+                     txt: (d.textContent || '').replace(/\\s+/g, ' ').trim() });
+    });
+    /* ⚠️ EL TEXTO SE CORTA ANTES DE LA BIBLIOGRAFIA. Esa bibliografia IMPRIME la referencia
+       completa, que nombra las filas de la tabla con su clase y su nivel: buscar «Clase I ·
+       Nivel B» sobre la seccion entera da positivo aunque no se haya emitido una sola
+       recomendacion. Es la trampa que la tanda J dejo escrita. */
+    var entero = (hit.textContent || '').replace(/\\s+/g, ' ').trim();
+    var corte = entero.indexOf('Bibliografia de esta seccion');
+    if (corte < 0) corte = entero.indexOf('Bibliograf');
+    var sinBib = corte > 0 ? entero.slice(0, corte) : entero;
+    return { existe: true, filas: hit.querySelectorAll('[data-ind-clin]').length,
+             sinBib: sinBib, bibCortada: corte > 0,
+             txt: (hit.textContent || '').replace(/\\s+/g, ' ').trim(), bloques: bloques };
+  },
   svgNodos() {
     var s2 = document.getElementById('pop-esq-svg');
     if (!s2) return { err: 'NO EXISTE pop-esq-svg' };
@@ -1174,6 +1222,57 @@ window.__G = {
     } catch (e) { r.err = e.message }
     out2.grupos.e5 = r;
     process.stderr.write('[e5] listo\n');
+  }
+
+  /* ══ GRUPO e6 — la Evidencia del posoperatorio ════════════════════════════════════════════
+     TRES TRAMPAS DEL PANEL, TODAS YA DOCUMENTADAS EN ESTE REPO Y TODAS APLICADAS ACA:
+       1. `indicAbrir()` BORRA las respuestas, al abrir Y al cerrar. El panel se abre UNA vez por
+          escena, y recien despues se contesta.
+       2. Quien engancha el oyente de los botones es `_indClinCablear()`, y a esa la llama
+          `indicAbrir()`, NO `indicRender()`. Sin abrir, un click no escribe nada y los bloques
+          salen vacios -que es el MISMO texto que da una Evidencia sana sin contestar-.
+       3. La bibliografia de la seccion IMPRIME el texto completo de la referencia, que nombra
+          las filas con su clase y su nivel: buscar «Clase I · Nivel B» sobre la seccion entera
+          da positivo aunque no se haya emitido una sola recomendacion. Se mide sobre el BLOQUE. */
+  if (corre('e6')) {
+    const r = {};
+    try {
+      await ev(`window.__P.nuevo()`);
+      r.secs = await ev(`(function(){ try { return IND_SECS.length } catch(e){ return 'EXC' } })()`);
+      r.tieneSec = await ev(`(function(){ try {
+        return IND_SECS.some(function(x){ return x.tit.indexOf('Posoperatorio') === 0 }) }
+        catch(e){ return 'EXC ' + e.message } })()`);
+      /* ── COMPUERTA: sin tipo de cirugia ni asistencia, la seccion NO existe ── */
+      r.sinDatos = await ev(`(function(){ try { return _indPOP() === null } catch(e){ return 'EXC ' + e.message } })()`);
+      await ev(`window.__G.poner({ pop_cx_tipo:'cabg', pop_cx_horas:'12' })`);
+      r.conCx = await ev(`(function(){ try { return _indPOP() !== null } catch(e){ return 'EXC ' + e.message } })()`);
+      /* ── ESCENA 1: CABG, sin contestar nada ── */
+      await ev(`window.__G.abrirPanel()`);
+      r.e1 = await ev(`window.__G.secPanel('Posoperatorio')`);
+      await ev(`window.__G.cerrarPanel()`);
+      /* ── ESCENA 2: CABG + ECMO + derrame pleural + las cuatro respuestas en SI ── */
+      await ev(`window.__G.poner({ pop_asist_tipo:'ecmo_va', pop_ecmo_flujo:'3.8',
+                                   pop_pleura_der:'moderado', pericardio:'leve' })`);
+      await ev(`(function(){ try{ popSync() }catch(x){}; return 1 })()`);
+      await ev(`window.__G.abrirPanel()`);
+      r.respondio = await ev(`window.__G.responder([['pop.fiebre','si'],['pop.dolor','si'],
+                                                    ['pop.roce','no'],['pop.pcr','si']])`);
+      r.e2 = await ev(`window.__G.secPanel('Posoperatorio')`);
+      await ev(`window.__G.cerrarPanel()`);
+      /* ── ESCENA 3: cirugia VALVULAR, para la otra rama de «Segun la cirugia» ── */
+      await ev(`window.__G.poner({ pop_cx_tipo:'valvular', pop_asist_tipo:'' })`);
+      await ev(`(function(){ try{ popSync() }catch(x){}; return 1 })()`);
+      await ev(`window.__G.abrirPanel()`);
+      r.e3 = await ev(`window.__G.secPanel('Posoperatorio')`);
+      await ev(`window.__G.cerrarPanel()`);
+      /* ── EL INFORME NO LLEVA NADA DE ESTO ── */
+      const inf = await ev(`window.__P.informe('estandar')`, 60000);
+      r.informeTienePCIS = /post-lesi/i.test((inf && inf.inf) || '');
+      r.sumaTieneCx = /Seg.n la cirug/i.test((inf && inf.suma) || '');
+      r.errores = await ev(`window.__Yerr ? window.__Yerr.slice(0,20) : null`);
+    } catch (e) { r.err = e.message }
+    out2.grupos.e6 = r;
+    process.stderr.write('[e6] listo\n');
   }
 
   /* ══ GRUPO ctrl — A/B de control: informe, EN SUMA, Excel y censo de campos ═════════════

@@ -74429,7 +74429,16 @@ const IND_REFS = Object.freeze([
          'Material suplementario, Figura S1, hoja 6 — leída en imagen: el algoritmo del ' +
          'diagnóstico diferencial entre constricción y restricción, con los tramos del e\' ' +
          'medial (>8, 6-8 mixto, <6) y, en su nota c, el cociente de inversión espiratoria de ' +
-         'las venas hepáticas REDONDEADO a >0,8.' },
+         'las venas hepáticas REDONDEADO a >0,8.' + '\n\nAmpliado en el G6 (2026-10-24), leído sobre el mismo original en inglés: §11.3 ' +
+         '«Post-cardiac injury syndrome», FOLIO 58; sus cinco criterios diagnósticos en el ' +
+         '§11.3.1, FOLIO 59 —al menos DOS de: fiebre sin otra causa, dolor pericárdico o ' +
+         'pleurítico, roce pericárdico o pleural, derrame pericárdico, y derrame pleural con ' +
+         'proteína C reactiva elevada—; y la Recommendation Table 22, FOLIO 59, LEÍDA EN IMAGEN: ' +
+         'tratamiento antiinflamatorio Clase I · Nivel B; antagonistas de la interleucina 1 en el ' +
+         'refractario Clase I · Nivel B; aspirina en dosis alta como primera opción en la ' +
+         'pericarditis POSTERIOR AL INFARTO Clase I · Nivel C; colchicina comenzada 48 a 72 h ' +
+         'antes de la cirugía cardíaca y mantenida un mes para prevenirlo Clase IIa · Nivel A; y ' +
+         'seguimiento cuidadoso para descartar la evolución a constricción Clase IIa · Nivel C.' },
   { k:'vexus2020',
     full:'Beaubien-Souligny W, Rola P, Haycock K, et al. Quantifying systemic congestion with ' +
          'Point-Of-Care ultrasound: development of the venous excess ultrasound grading system. ' +
@@ -74463,6 +74472,9 @@ const IND_REFS = Object.freeze([
          'mantener el ritmo sinusal tras la cardioversión de una fibrilación auricular. ' +
          '⚠️ Esa guía NO distingue ritmo sinusal de fibrilación auricular para esos dos ' +
          'números, y NO publica los rótulos «estasis leve» ni «estasis severa».' },
+  /* ⚠️ AMPLIADA EN EL G6 (2026-10-24) con los folios del POSOPERATORIO. Es la MISMA guía: se
+     extiende el registro en vez de abrir una segunda clave, que es como el panel termina con dos
+     entradas bibliográficas del mismo documento y numeraciones que no coinciden. */
   { k:'aseEte2020',
     full:'ASE/SCA/STS 2020 — Guía para el uso del ecocardiograma transesofágico en la decisión ' +
          'quirúrgica en quirófano. Nicoara A, Skubas N, Ad N, et al. J Am Soc Echocardiogr ' +
@@ -74493,7 +74505,21 @@ const IND_REFS = Object.freeze([
          'bloques de remodelado local y global del ventrículo izquierdo. Esa tabla NO lleva ' +
          'clase ni nivel de evidencia. Su propia referencia 33 la atribuye a Lancellotti P, ' +
          'Marwick T, Pierard LA, «How to manage ischaemic mitral regurgitation», Heart ' +
-         '2008;94:1497-1502, que NO está en la biblioteca.' },
+         '2008;94:1497-1502, que NO está en la biblioteca.' + '\n\nFolios del POSOPERATORIO, verificados en el G6 (2026-10-24) sobre este mismo PDF: ' +
+         '§3.1.5 «Postprocedure Assessment. Mitral Valve Repair» y su Tabla 3 «Key points for ' +
+         'the post-surgical assessment for mitral valve surgery» en el FOLIO 701, hoja 10 —evaluar ' +
+         'insuficiencia residual o nueva, motilidad de los velos, excluir estenosis iatrogénica ' +
+         'con gradiente medio, planimetría tridimensional y ecuación de continuidad, y el ' +
+         'movimiento anterior sistólico—; §4.2 «Postprocedure Assessment» de la cirugía de ' +
+         'revascularización en el FOLIO 716, hoja 25, con su Tabla 8 en el FOLIO 707, hoja 16 ' +
+         '—función miocárdica regional y global en los segmentos revascularizados, repetida ' +
+         'durante el posoperatorio porque el injerto puede acodarse, sobre todo al cerrar el ' +
+         'esternón; complicaciones de la canulación, aire y protección miocárdica; y función ' +
+         'valvular—; y la FIGURA 12 en el FOLIO 716, leída en imagen: estrategia de imágenes tras ' +
+         'el ECMO, de ocho vistas, que arranca en la de cuatro cámaras medioesofágica. ' +
+         '⚠️ ESTA GUÍA NO PUBLICA CLASE NI NIVEL: sus tablas son de «puntos clave» y la Figura 12 ' +
+         'es una estrategia de imágenes propuesta. Lo que se cite de ella va sin clase y sin ' +
+         'nivel.' },
   { k:'achd2025',
     full:'Gurvitz M, Burns KM, Brida M, et al. 2025 ACC/AHA/HRS/ISACHD/SCAI Guideline for the ' +
          'Management of Adults With Congenital Heart Disease. Circulation 2026;153:e115-e251. ' +
@@ -74922,6 +74948,12 @@ function _indN(id){ const n = (typeof v === 'function') ? v(id) : null; return (
    y el espejo era una copia literal sin traducción ni redondeo. */
 function _indS(id){ return (typeof sv === 'function') ? String(sv(id) || '').trim() : ''; }
 function _indChk(id){ const e = document.getElementById(id); return !!(e && e.checked); }
+/* El RÓTULO de la opción elegida, leído de la propia `<option>` y no de un mapa paralelo: una
+   segunda tabla de rótulos se desincroniza el día que alguien reescriba una opción. Es el mismo
+   argumento de `_qvMorfTxt` y del selector de VExUS. */
+function _indSelTxt(id){ const e = document.getElementById(id);
+  if (!e || !e.options || e.selectedIndex < 0 || e.value === '') return '';
+  return String(e.options[e.selectedIndex].textContent || '').trim(); }
 function _indFn(nombre){ const f = window[nombre]; return (typeof f === 'function') ? f : null; }
 function _indUmb(nombre){ const u = window[nombre]; return (typeof u === 'number' && isFinite(u)) ? u : null; }
 
@@ -83541,6 +83573,184 @@ function _indAmil(){
     notas: rec.map(function(l){ return l.txt }) };
 }
 
+/* ══ EVIDENCIA · POSOPERATORIO DE CIRUGÍA CARDÍACA (G6, 2026-10-24) ═══════════════════════════
+   Formato COMPACTO, el que dejó el AJ6 en la Evidencia de Fallot: recomendaciones arriba, una
+   fila de una línea por dato y la prosa larga en el globo ⓘ.
+
+   ⚠️ DOS FUENTES, Y SÓLO UNA GRADÚA. Lo que se escribe acá se leyó en imagen sobre el PDF
+   original de la biblioteca:
+   · ESC 2025 de miocarditis y pericarditis (ehaf192) — §11.3 folio 58, los cinco criterios
+     diagnósticos del síndrome post-lesión cardíaca en §11.3.1 folio 59, y la Recommendation
+     Table 22 en el folio 59, con su clase y su nivel. ES LA ÚNICA QUE GRADÚA.
+   · ASE / SCA / STS 2020 (Nicoara) — §3.1.5 y Tabla 3 folio 701 (tras cirugía mitral), §4.2
+     folio 716 con su Tabla 8 folio 707 (tras revascularización) y Figura 12 folio 716 (la
+     secuencia de vistas tras ECMO). ESA GUÍA NO USA CLASE NI NIVEL: publica tablas de «puntos
+     clave» y una figura de estrategia de imagen. Lo suyo se publica como texto, SIN clase y SIN
+     nivel, y la sección lo declara. Inventarle una escala sería exactamente lo que este archivo
+     prohíbe, y es el mismo motivo por el que el J2 no abrió una Evidencia de ecografía pulmonar.
+
+   ⚠️ LOS PATRONES HEMODINÁMICOS DEL POSOPERATORIO NO ENTRAN ACÁ, por orden expresa y porque no
+   tienen fuente: cómo se COMBINAN las bandas para dar «hipovolemia», «falla del VI» o
+   «vasoplejia» es una decisión de esta aplicación. Viven en la pantalla, con su chip.
+
+   ⚠️ Y LA VASOPLEJIA TAMPOCO. Sus dos fuentes publican una DEFINICIÓN, no una recomendación, y
+   ninguna de las dos es una guía: un editorial y una revisión. Vive en la ficha de Referencias,
+   que es donde esta aplicación pone las definiciones con su fuente. */
+/* «Según la cirugía, también mirar…» — CRITERIO DE ECOSMART, sin clase y sin nivel.
+   Las dos primeras entradas TIENEN fuente y la citan; las otras cuatro no la tienen y lo dicen.
+   ⚠️ LA OPCIÓN «valvular» DE LA APLICACIÓN ES GENÉRICA y lo que la guía detalla es la cirugía
+   MITRAL: se publica nombrando esa limitación en vez de extender el alcance de la fuente. */
+const POP_CX_MIRAR = Object.freeze({
+  cabg: Object.freeze({
+    txt: 'Tras revascularización: la motilidad regional y global, con atención a los segmentos ' +
+         'que riegan los vasos revascularizados; las complicaciones de la canulación, el aire ' +
+         'retenido y la protección miocárdica; y la función valvular.',
+    fuente: 'ASE / SCA / STS 2020 (Nicoara), §4.2 folio 716; los puntos clave están en su Tabla 8, folio 707',
+    ref: 'aseEte2020',
+    ojo: 'La guía pide que esa evaluación se REPITA durante el posoperatorio, y dice por qué: el ' +
+         'injerto puede acodarse en cualquier momento, y sobre todo al volver a cerrar el esternón.' }),
+  valvular: Object.freeze({
+    txt: 'Tras cirugía mitral: la insuficiencia residual o nueva, la motilidad de los velos, la ' +
+         'estenosis iatrogénica —gradiente medio, área por planimetría tridimensional y por ' +
+         'ecuación de continuidad— y el movimiento anterior sistólico.',
+    fuente: 'ASE / SCA / STS 2020 (Nicoara), §3.1.5 y Tabla 3, folio 701',
+    ref: 'aseEte2020',
+    ojo: 'Esa tabla declara su propia limitación: lo que se mide depende de la precarga, la ' +
+         'poscarga, la contractilidad y la frecuencia cardíaca con que el paciente sale de la ' +
+         'circulación extracorpórea. La opción «Valvular» de esta aplicación es genérica y lo ' +
+         'que la guía detalla en ese folio es la cirugía MITRAL.' }),
+  aorta: Object.freeze({
+    txt: 'Tras cirugía de la aorta: el derrame pericárdico, la insuficiencia aórtica residual y ' +
+         'el colgajo intimal que pueda quedar.',
+    fuente: null, ref: null, ojo: null }),
+  trasplante: Object.freeze({
+    txt: 'Tras trasplante: la función del ventrículo derecho y el derrame pericárdico.',
+    fuente: null, ref: null, ojo: null }),
+  congenita: Object.freeze({
+    txt: 'Tras cirugía de una cardiopatía congénita: el cortocircuito residual.',
+    fuente: null, ref: null, ojo: null }),
+  combinada: Object.freeze({
+    txt: 'En una cirugía combinada, lo de cada procedimiento por separado.',
+    fuente: null, ref: null, ojo: null })
+});
+function _indPOP(){
+  /* ── COMPUERTA ── La sección se despierta con el TIPO DE CIRUGÍA consignado, o con una
+     asistencia circulatoria. No se usa `popPatron().suficiente`, que es la compuerta del botón
+     de integrar y exige índice cardíaco: lo que esta sección publica —qué mirar según la cirugía
+     y el síndrome post-lesión cardíaca— no depende de que haya un gasto medido, y colgarla de
+     ahí la dejaría muda justo en el paciente sin catéter. */
+  const cx = _indS('pop_cx_tipo');
+  const asist = _indS('pop_asist_tipo');
+  if ((cx === '' || cx === 'ninguna') && asist === '') return null;
+
+  /* ── LO QUE YA ESTÁ CARGADO ── */
+  let dpt = null;
+  try { dpt = (typeof dptEstado === 'function') ? dptEstado() : null; } catch (e) { dpt = null; }
+  const derrPeri = !!(dpt && dpt.hayDerrame);
+  const plD = _indS('pop_pleura_der'), plI = _indS('pop_pleura_izq');
+  const hayPle = (plD !== '' && plD !== 'ausente') || (plI !== '' && plI !== 'ausente');
+  const plEval = plD !== '' || plI !== '';
+  const horas = _indN('pop_cx_horas');
+
+  /* ── LO QUE LE FALTA AL PANEL Y LE PREGUNTA AL MÉDICO ── */
+  const fiebre = _indClinGet('pop.fiebre');
+  const dolor  = _indClinGet('pop.dolor');
+  const roce   = _indClinGet('pop.roce');
+  const pcr    = _indClinGet('pop.pcr');
+
+  /* Los CINCO criterios del §11.3.1, folio 59. El quinto pide las DOS cosas: derrame pleural
+     Y proteína C reactiva elevada. */
+  const crit = [
+    { ok: fiebre === 'si', eval: fiebre != null, lbl:'fiebre sin otra causa' },
+    { ok: dolor === 'si',  eval: dolor != null,  lbl:'dolor pericárdico o pleurítico' },
+    { ok: roce === 'si',   eval: roce != null,   lbl:'roce pericárdico o pleural' },
+    { ok: derrPeri,        eval: true,           lbl:'derrame pericárdico' },
+    { ok: hayPle && pcr === 'si', eval: plEval && pcr != null,
+      lbl:'derrame pleural con proteína C reactiva elevada' }
+  ];
+  const pos = crit.filter(function(c){ return c.ok }).length;
+  const sinEval = crit.filter(function(c){ return !c.eval }).length;
+  const pcis = pos >= 2;
+
+  const SIN = [{v:'si',t:'Sí'},{v:'no',t:'No'}];
+  const filas = [
+    _indFila('Tipo de cirugía', cx === '' ? '—' : (_indSelTxt('pop_cx_tipo') || cx), cx === '' ? 'ask' : 'none',
+      'decide qué publica el bloque de «Según la cirugía, también mirar…»'),
+    _indFila('Horas desde la circulación extracorpórea', horas != null ? horas + ' h' : '—',
+      horas != null ? 'none' : 'ask',
+      'la otra definición de vasoplejia —Busse 2020— acota su ventana a las 24 h de la circulación extracorpórea; acá el dato se publica y no vota'),
+    _indFila('Asistencia circulatoria', asist === '' ? '—' : (_indSelTxt('pop_asist_tipo') || asist),
+      asist === '' ? 'ask' : 'none',
+      'con ECMO venoarterial la guía propone una secuencia de vistas, que se publica abajo'),
+    _indFila('Derrame pericárdico', derrPeri ? 'Sí' : (dpt && dpt.clave === 'sin_derrame' ? 'No' : '—'),
+      derrPeri ? 'warn' : (dpt && dpt.clave === 'sin_derrame' ? 'none' : 'ask'),
+      'es el cuarto de los cinco criterios diagnósticos del síndrome post-lesión cardíaca. Se lee del módulo de pericardio de esta misma pestaña, no se reevalúa acá'),
+    _indFila('Derrame pleural', plEval ? (hayPle ? 'Sí' : 'No') : '—',
+      hayPle ? 'warn' : (plEval ? 'none' : 'ask'),
+      'el quinto criterio pide derrame pleural JUNTO CON proteína C reactiva elevada: el derrame solo no cuenta'),
+    _indFilaCtrl('¿Fiebre sin otra causa que la explique?', 'pop.fiebre', SIN,
+      fiebre == null ? 'ask' : (fiebre === 'si' ? 'warn' : 'none'),
+      'primero de los cinco criterios diagnósticos del §11.3.1, folio 59'),
+    _indFilaCtrl('¿Dolor pericárdico o pleurítico?', 'pop.dolor', SIN,
+      dolor == null ? 'ask' : (dolor === 'si' ? 'warn' : 'none'),
+      'segundo de los cinco criterios'),
+    _indFilaCtrl('¿Roce pericárdico o pleural?', 'pop.roce', SIN,
+      roce == null ? 'ask' : (roce === 'si' ? 'warn' : 'none'),
+      'tercero de los cinco criterios'),
+    _indFilaCtrl('¿Proteína C reactiva elevada?', 'pop.pcr', SIN,
+      pcr == null ? 'ask' : (pcr === 'si' ? 'warn' : 'none'),
+      'la guía dice que demostrar actividad inflamatoria es ESENCIAL para establecer el diagnóstico, porque a veces cuesta separar este síndrome de las consecuencias mecánicas de la cirugía —un derrame pericárdico o pleural precoz—')
+  ];
+
+  /* ── BLOQUE 1 · SÍNDROME POST-LESIÓN CARDÍACA ── La única fuente que gradúa. ── */
+  const peri = [], faltan = [];
+  peri.push({ txt:'Criterios diagnósticos (§11.3.1, folio 59): el diagnóstico puede alcanzarse con AL MENOS DOS de cinco — fiebre sin otra causa, dolor pericárdico o pleurítico, roce pericárdico o pleural, derrame pericárdico, y derrame pleural con proteína C reactiva elevada. Con lo cargado y lo contestado se cumplen ' + pos + ' de los cinco' + (sinEval ? (sinEval === 1 ? ', y 1 no se pudo evaluar' : ', y ' + sinEval + ' no se pudieron evaluar') : '') + '.', refs:['escPeri2025'] });
+  if (pcis) {
+    peri.push({ txt:'Clase I · Nivel B — Con síndrome post-lesión cardíaca, se RECOMIENDA el tratamiento antiinflamatorio para acelerar la remisión de los síntomas y reducir las recurrencias (Tabla 22, folio 59).', refs:['escPeri2025'] });
+    peri.push({ txt:'Clase I · Nivel B — En el síndrome post-lesión cardíaca REFRACTARIO, se RECOMIENDAN los antagonistas de la interleucina 1 para prevenir las recurrencias y la progresión a constricción (Tabla 22, folio 59).', refs:['escPeri2025'] });
+    peri.push({ txt:'Clase IIa · Nivel C — Se DEBE CONSIDERAR un seguimiento cuidadoso para descartar la evolución hacia una pericarditis constrictiva (Tabla 22, folio 59).', refs:['escPeri2025'] });
+  } else if (sinEval === 0) {
+    peri.push({ txt:'Con lo cargado y lo contestado se cumplen ' + pos + ' de los cinco criterios, menos de los DOS que la guía pide: las filas de tratamiento de su Tabla 22 no aplican.', refs:['escPeri2025'] });
+  } else {
+    faltan.push({ txt:'Faltan respuestas para contar los cinco criterios diagnósticos del síndrome post-lesión cardíaca: sin ellas no se sabe si llega a los dos que la guía pide.', refs:null });
+  }
+  peri.push({ txt:'Clase IIa · Nivel A — La colchicina, comenzada 48 a 72 h ANTES de la cirugía cardíaca y mantenida un mes, DEBE CONSIDERARSE para prevenir el síndrome post-lesión cardíaca si no hay contraindicaciones y se tolera (Tabla 22, folio 59). Es una medida PREOPERATORIA: se publica acá porque es la única de esa tabla que habla del paciente de cirugía cardíaca antes de que el síndrome aparezca.', refs:['escPeri2025'] });
+
+  /* ── BLOQUE 2 · QUÉ MIRAR SEGÚN LA CIRUGÍA ── */
+  const mirar = [];
+  const m = POP_CX_MIRAR[cx];
+  if (m) {
+    mirar.push(m.fuente
+      ? { txt: m.txt + ' (' + m.fuente + '). Esa guía NO publica clase ni nivel: sus tablas son de «puntos clave»' + (m.ojo ? '. ' + m.ojo : '.'), refs:[m.ref] }
+      : { txt:'Criterio EcoSmart. ' + m.txt + ' Ninguna de las fuentes de este módulo lo publica para este tipo de cirugía: es una decisión de esta aplicación, sin clase y sin nivel.', refs:['ecosmart'] });
+  } else if (cx === '') {
+    faltan.push({ txt:'Falta consignar el tipo de cirugía: de eso depende qué conviene mirar en el posoperatorio.', refs:null });
+  }
+  if (asist === 'ecmo_va') {
+    mirar.push({ txt:'Con ECMO venoarterial, la guía propone una secuencia de ocho vistas que arranca en la de cuatro cámaras medioesofágica: cuatro cámaras —descompresión del ventrículo izquierdo y del derecho, y posición de la cánula en la aurícula derecha—, válvula aórtica en eje corto, bicava, aorta ascendente en eje corto, eje largo de la válvula aórtica, aorta ascendente en eje largo, transgástrica del ventrículo izquierdo en eje corto y transgástrica de la vena cava inferior (ASE / SCA / STS 2020, Figura 12, folio 716). Esa guía NO publica clase ni nivel.', refs:['aseEte2020'] });
+  }
+  /* ── LA CONDUCTA DEL DERRAME PLEURAL, QUE SALIÓ DE LA PANTALLA EN EL G4 ── */
+  if (hayPle) {
+    mirar.push({ txt:'Criterio EcoSmart. Según el tamaño del derrame pleural, esta aplicación orientaba en pantalla hacia vigilancia o hacia drenaje. Esa orientación vive acá y no en el papel firmado, y no tiene fuente: ninguna de las fuentes de este módulo gradúa el derrame pleural por tamaño ni cuelga una conducta de esa graduación. En un derrame grande o que crece, la decisión depende además del débito y del cuadro clínico, que esta aplicación no recoge.', refs:['ecosmart'] });
+  }
+
+  const bloques = [
+    { tit:'Síndrome post-lesión cardíaca — ESC 2025 de miocarditis y pericarditis (folios 58 y 59)',
+      lineas: peri,
+      nota:'El informe y la conclusión de la aplicación son DESCRIPTIVOS: estas recomendaciones se publican acá y no en el papel firmado.' },
+    { tit:'Según la cirugía, también mirar…',
+      lineas: mirar,
+      nota:'La guía ASE / SCA / STS 2020 no usa la escala de clase y nivel de las guías europeas: publica tablas de puntos clave y figuras de estrategia de imagen. Lo suyo se publica sin clase y sin nivel, y no se le inventa ninguna. Lo que lleva el rótulo «Criterio EcoSmart» no tiene fuente y lo dice.' }
+  ];
+  if (faltan.length) bloques.push({ tit:'Lo que falta contestar', plegado:true, lineas: faltan });
+
+  return { filas: filas, bloques: bloques, compacta: true,
+    guia: { ref:'escPeri2025',
+      txt:'El síndrome post-lesión cardíaca es un término paraguas que incluye la pericarditis tardía tras el infarto —síndrome de Dressler—, el síndrome pospericardiotomía y la pericarditis postraumática, con o sin sangrado (§11.3, folio 58). Se le atribuye un mecanismo autoinmune desencadenado por el sangrado pericárdico y la incisión de la pleura.',
+      nota:'La Tabla 22 tiene una quinta fila, Clase I · Nivel C, sobre la aspirina en dosis alta: es para la pericarditis POSTERIOR AL INFARTO y para el paciente que ya está con antiagregación, no para el posoperatorio de cirugía cardíaca, así que no se publica entre las de arriba. Los patrones hemodinámicos de este módulo y la etiqueta de vasoplejia NO entran en esta sección: los primeros no tienen fuente y la segunda es una definición de dos artículos que no son guías, publicada en la ficha de Referencias.' },
+    notas: peri.concat(mirar).map(function(l){ return l.txt }) };
+}
+
 const IND_SECS = [
   { tit:'Estenosis aórtica',                     fn:_indEA },
   { tit:'Insuficiencia mitral primaria',         fn:_indIM },
@@ -83603,7 +83813,12 @@ const IND_SECS = [
   { tit:'Cardiotoxicidad por tratamiento oncológico — graduación y seguimiento', fn:_indConco },
   /* ⚠️ «Amiloidosis cardíaca — algoritmo diagnóstico» no es prefijo de ninguno de los
      veintinueve anteriores ni ninguno es prefijo suyo. Verificado. */
-  { tit:'Amiloidosis cardíaca — algoritmo diagnóstico', fn:_indAmil }
+  { tit:'Amiloidosis cardíaca — algoritmo diagnóstico', fn:_indAmil },
+  /* ⚠️ «Posoperatorio de cirugía cardíaca» no es prefijo de ninguno de los TREINTA anteriores ni
+     ninguno es prefijo suyo: `IND_SECS` se recorre buscando la sección por el PREFIJO de su
+     título, así que un título que sea prefijo de otro deja una de las dos sin probar. Verificado
+     contra los treinta: ninguno empieza con «Posoperatorio». */
+  { tit:'Posoperatorio de cirugía cardíaca', fn:_indPOP }
 ];
 
 function indicRender(){
