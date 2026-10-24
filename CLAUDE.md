@@ -333,10 +333,14 @@ impecable.
   lo corre Maicol. ⚠️ **El renglón del AJ3 decía que `origin/main` estaba en `1f8377e` y NO
   estaba**: medirlo con `git fetch`, no leerlo de acá.
 
-- **Línea base al cierre: suite **530/536** con el pendrive `DISK_IMG` **MONTADO**
+- **Línea base al cierre: suite **532/536** con el pendrive `DISK_IMG` **MONTADO**
   —verificado al abrir y al cerrar—, Semgrep **124 / 0 ERROR en 1 app** y Excel en **440**
   columnas y celular **63 a 360 px y 72 a 390 px con 17 ALTA cada uno**: el MISMO par que dejó AJ3. Los rojos son **TC-223, TC-376, TC-390 y TC-406**, los MISMOS CUATRO que dejó AJ3 —medidos antes de tocar nada y otra vez al cerrar—; **TC-223 es el documentado**.
   **El denominador sube a 536**: esta tanda agregó **TC-521**. TC-318 sigue excluido.
+  ⚠️ **LA SUITE SE CORRIÓ DOS VECES AL CIERRE Y LA PRIMERA DIO 530.** Los dos rojos de más eran
+  **TC-501 (H0) y TC-502 (D3b)**, los dos de **CONTRATO VIEJO** —ver abajo—, y el número bueno es
+  el de la segunda, sobre el árbol YA SELLADO. **Correr la suite después del sello**, no antes:
+  `sellar_version.py` toca `index.html`.
 - **`index.html` pasó de 9,36 MB / 132.970 líneas a 9,39 MB / 133.268 líneas** — medido con
   `wc -c` y `wc -l` DESPUÉS de sellar (`v20261023-2024`, `md5` `9aa0b851…`). (MB de 10⁶: `wc -c` dividido por
   1e6, no por 1.048.576.)
@@ -414,8 +418,16 @@ impecable.
   plegado (una); sacar el aviso de Turner (una); desconectar el cruce (tres). Se aplicaron sobre
   `index.html` con los tres commits ya hechos y se restauraron con `git checkout`, **verificando
   el `md5` después de cada una**.
-  **Cuatro casos se reescribieron al contrato nuevo del globo** —TC-492, TC-494, TC-516 y
-  TC-519—: eran rojos de **CONTRATO VIEJO**, no regresiones. Y **dos controles se dieron vuelta
+  **SEIS casos se reescribieron al contrato nuevo** —TC-492, TC-494, TC-516 y TC-519 por el texto
+  del globo; **TC-502 (D3b)** porque buscaba la fila de Referencias por el rótulo «criterio de
+  EcoSmart», que el AJ4-1 retiró; y **TC-501 (H0)**, que ahora carga también la edad—: los seis
+  eran rojos de **CONTRATO VIEJO**, no regresiones.
+  ⚠️ **Y TC-501 CAZÓ ALGO QUE LA LECTURA NO**: al sacar del globo la categoría de la cápsula, la
+  tarjeta de la aorta dejaba de decir una palabra sobre el paciente **sin edad cargada**, que es el
+  caso corriente. El texto aprobado es la lectura con el formulario VACÍO, así que no puede decir
+  si esa línea tenía que irse —con el formulario vacío `_evCapsula` devuelve cadena vacía y la
+  línea no se emite, o sea que el texto aprobado sale IDÉNTICO con ella y sin ella—. **Se conserva**
+  como «En este paciente: …» y queda declarado para la decisión de Maicol. Y **dos controles se dieron vuelta
   donde correspondía**: el que exigía que el corte NO se atribuyera a ninguna guía ahora exige que
   el pie no le atribuya a la ASE/EACVI 2015 lo que es de la ESC 2024.
 
