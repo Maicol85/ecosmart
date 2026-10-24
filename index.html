@@ -2474,6 +2474,21 @@ html.light-mode .amilo-root{
    que cuelga todo el panel. Medido: a 1200 px maximizado la tarjeta mide 1180 y la consulta entra;
    a 390 y a 360 px maximizado mide 370 y 340 y NO entra, que es exactamente el comportamiento
    pedido —una columna en el celular—. */
+/* ⚠️ EN MODO COMPACTO LAS DOS COLUMNAS NO PIDEN MAXIMIZAR (AJ6-2, 2026-10-24). La regla de abajo
+   exige `[data-ind-max="1"]` porque con las notas desplegadas una columna de 386 px —el ancho del
+   panel sin maximizar— parte cada nota en seis renglones. En la sección compacta las filas son de
+   UNA línea (la prosa está en el ⓘ), así que 386 px alcanzan y la pantalla ancha se aprovecha
+   desde que el panel se abre. El corte es 1200 y no 1000: el panel sin maximizar mide ~790 px y
+   por debajo de eso las dos columnas quedarían en 370, que es el ancho de un celular.
+   En el celular esto no se aplica y los tres `div` vuelven a ser `display:block`, o sea apilados,
+   que es lo que la orden pide. */
+@media (min-width:1200px){
+  #indic-card [data-ind-grid][data-ind-dos="1"][data-ind-compacta="1"]{
+    display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+    column-gap:18px;align-items:start;
+  }
+  #indic-card [data-ind-grid][data-ind-dos="1"][data-ind-compacta="1"] [data-ind-col="clin"] > div:first-child{margin-top:0}
+}
 @media (min-width:1000px){
   #indic-card[data-ind-max="1"] [data-ind-grid][data-ind-dos="1"]{
     display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);
@@ -74166,7 +74181,13 @@ function _indInfoHTML(lbl, htmlInterno){
     '<div style="margin-top:4px;">' + htmlInterno + '</div></details>';
 }
 
-function _indFilaHTML(f){
+/* ⚠️ EL SEGUNDO PARAMETRO ES EXPLICITO Y LOS TRES LLAMADORES PASAN POR UNA LAMBDA. Hasta hoy
+   los tres eran `lista.map(_indFilaHTML)`, que le pasa (fila, INDICE, array): el día que esta
+   función tuviera un segundo parámetro, la fila 0 se pintaría de un modo y las otras de otro,
+   sin un error y sin que nada lo delate. Ese día es hoy, así que se cambian los tres.
+   `compacta` lo trae la SECCIÓN (ver `_indSecHTMLCuerpo`) y hoy lo pide una sola: la Fallot
+   reparada. Para las otras catorce esta rama no existe. */
+function _indFilaHTML(f, compacta){
   const M = IND_MARCA[f.marca] || IND_MARCA.none;
   /* ══ QUÉ NOTA SE PLIEGA, Y LA COMPUERTA ES LA MARCA ════════════════════════════════════════
      Se pliega la nota de una PREGUNTA —una fila con botonera— y nada más. Decisión de Maicol
@@ -74186,7 +74207,20 @@ function _indFilaHTML(f){
      nueva que algún día devuelva `alarm` queda cubierta sin que nadie se acuerde de agregarla.
 
      El ❓ / ✅ / 🔴 / ⚠️ / — SIEMPRE queda visible: lo que se pliega es la prosa, no el estado. */
-  const plegar = !!f.ctrl && !!f.nota && f.marca !== 'alarm' && f.marca !== 'warn';
+  /* ══ Y EN MODO COMPACTO SE PLIEGAN TODAS (AJ6-2, 2026-10-24) ═══════════════════════════════
+     DECISIÓN DE MAICOL para la sección de Fallot: «una línea por dato medido (nombre, valor,
+     estado) con el texto largo en el ⓘ». Eso invierte, PARA ESA SECCIÓN, las dos reglas de
+     arriba: se pliega también la nota de una fila de dato y también la de una marca 🔴/⚠️.
+     ⚠️ POR QUÉ ACÁ SÍ, con el argumento de la regla de arriba delante: lo que esa regla protege
+        son las CONTRAINDICACIONES de la Tabla 8 de la estenosis mitral —«contraindicación de la
+        comisurotomía percutánea»—, que son advertencias de seguridad. Las once notas de esta
+        sección no advierten nada: dicen qué guía usa ese dato y con qué corte («criterio SÓLO de
+        la guía estadounidense: 46 % o menos»). El ❓/✅/🔴/⚠️ sigue SIEMPRE visible —lo que se
+        pliega es la prosa, no el estado—, el `aviso` de la sección no es una nota de fila y no
+        se pliega, y las recomendaciones con su clase y su folio pasan ARRIBA, visibles.
+        Si alguna vez esta sección publicara una contraindicación, la compuerta tiene que
+        volver a mirar la marca. */
+  const plegar = !!f.nota && (compacta || (!!f.ctrl && f.marca !== 'alarm' && f.marca !== 'warn'));
   return '<tr style="border-top:1px solid var(--border);">' +
     /* ⚠️ EL ⓘ DEL TÉRMINO VA DESPUÉS DEL RÓTULO ESCAPADO Y **NO** DENTRO DE ÉL. El rótulo no
        cambia ni una letra: `_critEsc(f.lbl)` sigue siendo exactamente lo que era, y el botón se
@@ -74194,11 +74228,28 @@ function _indFilaHTML(f){
        el mismo motivo: un marcado embebido en el string saldría LITERAL por el escape, y la
        única alternativa sería no escapar, o sea un XSS por comodidad.
        `term` es opcional: las ~130 filas que no lo traen se pintan exactamente igual. */
-    '<td style="padding:5px 8px;font-size:11.5px;vertical-align:top;">' + _critEsc(f.lbl) +
+    /* ⚠️ EN MODO COMPACTO EL ROTULO ES LA CELDA GOLOSA (`width:100%`) Y EL VALOR DEJA DE SER
+       `nowrap`, y las dos cosas son necesarias. Medido sobre la primera versión de esta tanda:
+       con la prosa plegada, la celda de estado pasa de 322 px a 30 —sólo el icono y el ⓘ— y el
+       reparto automático de la tabla le daba esos 290 px al VALOR, dejando el rótulo en 90 px;
+       las preguntas largas pasaban de 53 a 109 px de alto y el alto total NO bajaba. Con el
+       rótulo golosa se lleva el sobrante, que es lo que hace que la fila entre en una línea.
+       Y el `nowrap` del valor es lo que desbordaba la tabla a 390 px —«telesistólico 24 ml/m² ·
+       telediastólico 70 ml/m²» mide 362 px en un panel de 310—, un desborde que viene de antes
+       de esta tanda y que acá se cierra para esta sección. */
+    '<td style="padding:5px 8px;font-size:11.5px;vertical-align:top;' +
+      (compacta ? 'width:100%;' : '') + '">' + _critEsc(f.lbl) +
       (f.term ? _indTermBtnHTML(f.term) : '') + '</td>' +
+    /* ⚠️ Y UN PISO DE ANCHO PARA LAS BOTONERAS DE MAS DE DOS OPCIONES. Con el rótulo golosa, la
+       celda de los botones se queda con ~92 px: las dos de Sí/No entran igual, pero la de cuatro
+       opciones —la fracción regurgitante— apilaba sus cuatro botones uno por línea y la fila
+       medía 150 px, el triple que sus vecinas. Con el piso caen en dos filas de dos. Va por el
+       NUMERO DE OPCIONES y no por la clave de la pregunta: una pregunta nueva de tres opciones
+       queda cubierta sin que nadie se acuerde de agregarla. */
     '<td' + (f.ctrl ? ' class="ind-ctrl"' : '') +
       ' style="padding:5px 8px;font-size:11.5px;font-weight:700;vertical-align:top;' +
-      (f.ctrl ? '' : 'white-space:nowrap;') + '">' +
+      (compacta && f.ctrl && (f.ctrl.ops || []).length > 2 ? 'min-width:170px;' : '') +
+      (f.ctrl || compacta ? '' : 'white-space:nowrap;') + '">' +
       (f.ctrl ? _indCtrlHTML(f.ctrl) : _critEsc(f.val)) + '</td>' +
     /* ⚠️ UNA FILA PUEDE LLEVAR SUS CITAS, misma extensión aditiva que la de las notas y por el
        mismo motivo: la nota pasa por `_critEsc`, así que un corchete embebido en el string saldría
@@ -74608,7 +74659,10 @@ function _indBloqueHTML(b){
   (b.grupos || []).filter(function(g){ return g && g.filas && g.filas.length; }).forEach(function(g){
     if (g.tit) c += '<div style="font-size:10.5px;font-weight:700;color:var(--text2);' +
       'margin:10px 0 1px;text-transform:uppercase;letter-spacing:.4px;">' + _critEsc(g.tit) + '</div>';
-    c += '<table style="width:100%;border-collapse:collapse;">' + g.filas.map(_indFilaHTML).join('') + '</table>';
+    /* Lambda y no `map(_indFilaHTML)`: ver el docstring de esa función. Los grupos de un bloque
+       no heredan el modo compacto —hoy ninguna sección tiene las dos cosas— y el día que lo
+       necesiten, el modo tiene que llegar hasta acá por el objeto del bloque. */
+    c += '<table style="width:100%;border-collapse:collapse;">' + g.filas.map(function(f){ return _indFilaHTML(f) }).join('') + '</table>';
   });
   if (b.nota) c += '<div style="font-size:10.5px;line-height:1.5;color:var(--text2);margin-top:8px;' +
     'font-style:italic;">' + _critEsc(b.nota) + '</div>';
@@ -74675,26 +74729,42 @@ function _indSecHTMLCuerpo(tit, r){
      Y las siete que traen `clinica` con filas de SOLO LECTURA (la auricular, la interventricular,
      el ductus, la coartación y la hipertrófica) entran igual: lo que define la columna derecha es
      «no evaluable por ecocardiograma», no que haya botones. */
+  /* ══ MODO COMPACTO — UNA SOLA SECCIÓN LO PIDE (AJ6-2, 2026-10-24) ══════════════════════════
+     DECISIÓN DE MAICOL para la Fallot reparada: las recomendaciones ARRIBA y las filas de una
+     línea abajo, con la prosa en el ⓘ. Son dos cambios de orden y ninguno de contenido.
+     ⚠️ ESTO INVIERTE, PARA ESA SECCIÓN, LA REGLA QUE ESTE MISMO ARCHIVO ESCRIBE DOS RENGLONES
+        MÁS ABAJO («la recomendación va DEBAJO de los datos que la sostienen y no arriba: arriba
+        se leería como el titular de la sección»). El motivo por el que acá no es un titular: la
+        sección publica DOS bloques de recomendación, uno por guía, cada uno con su clase, su
+        folio y la leyenda de que no se combinan — no hay una conclusión única que pueda leerse
+        como titular, y lo que el médico viene a buscar es qué dice cada guía. Las otras catorce
+        secciones no traen `compacta` y su orden no se mueve. */
+  const compacta = !!r.compacta;
+  const bloquesHTML = (r.bloques && r.bloques.length) ? r.bloques.map(_indBloqueHTML).join('') : '';
+  const recomHTML = r.recom ? _indRecomHTML(r.recom) : '';
+  if (compacta) h += bloquesHTML + recomHTML;
   const hayClin = !!(r.clinica && r.clinica.length);
-  h += '<div data-ind-grid="1"' + (hayClin ? ' data-ind-dos="1"' : '') + '>';
+  h += '<div data-ind-grid="1"' + (hayClin ? ' data-ind-dos="1"' : '') +
+       (compacta ? ' data-ind-compacta="1"' : '') + '>';
   h += '<div data-ind-col="eco"><table style="width:100%;border-collapse:collapse;">' +
-       r.filas.map(_indFilaHTML).join('') + '</table></div>';
+       r.filas.map(function(f){ return _indFilaHTML(f, compacta) }).join('') + '</table></div>';
   if (hayClin) {
     h += '<div data-ind-col="clin">';
     h += '<div style="font-size:11px;font-weight:700;color:var(--text2);margin:12px 0 2px;">Requiere datos clínicos — no evaluable por ecocardiograma</div>';
-    h += '<table style="width:100%;border-collapse:collapse;">' + r.clinica.map(_indFilaHTML).join('') + '</table>';
+    h += '<table style="width:100%;border-collapse:collapse;">' +
+         r.clinica.map(function(f){ return _indFilaHTML(f, compacta) }).join('') + '</table>';
     h += '</div>';
   }
   h += '</div>';
   /* La recomendación va DEBAJO de los datos que la sostienen y no arriba: es la conclusión de
-     lo que se acaba de leer, y arriba se leería como el titular de la sección. */
+     lo que se acaba de leer, y arriba se leería como el titular de la sección. (La excepción
+     del modo compacto está arriba.) */
   /* El detalle se junta ANTES de pintarlo: `_indRecomHTML` empuja sus dos notas acá, así que el
      control tiene que armarse después de llamarla. */
   /* ⚠️ LOS BLOQUES VAN ENTRE LAS FILAS Y LA RECOMENDACIÓN, y el orden es el documentado: la
      conclusión va DEBAJO de los datos que la sostienen. Catorce secciones no traen `bloques` y
      para ellas esta línea no emite nada. */
-  if (r.bloques && r.bloques.length) h += r.bloques.map(_indBloqueHTML).join('');
-  if (r.recom) h += _indRecomHTML(r.recom);
+  if (!compacta) h += bloquesHTML + recomHTML;
   /* Sólo los párrafos de contexto del final van al detalle. Sin rótulo y sin mezclarse con nada:
      al quedar `r.nota` visible, no hay dos orígenes que puedan confundirse. */
   /* Las dos formas: string (la mayoría) u objeto `{txt, refs}` para las notas que citan. */
@@ -81297,9 +81367,20 @@ function _indTdFIP(){
       lineas: esc,
       nota:'Las dos guías NO piden lo mismo: difieren en qué llaman disfunción valvular pulmonar, en cuántos criterios hacen falta en el asintomático y en cuáles son. Cada una se publica con su fuente y no se combinan.' }
   ];
-  if (faltan.length) bloques.push({ tit:'Lo que falta para decidir otras filas', lineas: faltan });
+  /* ⚠️ PLEGADO Y RENOMBRADO (AJ6-2, 2026-10-24): «Lo que falta contestar», compacto. El
+     mecanismo es el `plegado` que `_indBloqueHTML` ya tiene —el `<details>` anidado— y no un
+     marcado nuevo. Las líneas y sus textos no cambian. Decía «Lo que falta para decidir otras
+     filas». */
+  /* ⚠️ EL TITULO NO LLEVA EL CONTEADOR, y la primera versión de esta tanda sí —«Lo que falta
+     contestar (2)»—. `_indRepintarConservando` indexa cada `<details>` por «summary del padre ▸
+     summary», así que un número adentro del rótulo CAMBIA LA CLAVE en cuanto el médico contesta:
+     abría el bloque, contestaba una pregunta y el bloque se cerraba solo en el repintado, que es
+     exactamente el salto que esa función existe para evitar. */
+  if (faltan.length) bloques.push({ tit:'Lo que falta contestar', plegado:true, lineas: faltan });
 
-  return { filas: filas, bloques: bloques,
+  /* `compacta`: recomendaciones arriba, una línea por fila y la prosa en el ⓘ. Ver
+     `_indSecHTMLCuerpo` y `_indFilaHTML`. Es la única sección que la trae. */
+  return { filas: filas, bloques: bloques, compacta: true,
     clinica: [
       _indFila('Volumen telediastólico del VD comparado con el del VI', '—', 'ask',
         'es uno de los cinco criterios del asintomático de la guía estadounidense y NO se puede evaluar acá: el volumen del ventrículo derecho se transcribe de la resonancia y está indexado, mientras que el del izquierdo lo mide este ecocardiograma y está en mililitros')

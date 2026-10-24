@@ -858,6 +858,35 @@ window.__Y = {
     if (rec) o.recomDesde = Math.round(rec.getBoundingClientRect().top - r.top);
     var tabla = mia.querySelector('table');
     if (tabla) o.tablaDesde = Math.round(tabla.getBoundingClientRect().top - r.top);
+    /* El reparto del alto, pieza por pieza: sin esto no se sabe QUE ocupa el alto. */
+    var grid = mia.querySelector('[data-ind-grid]');
+    if (grid) { var rg = grid.getBoundingClientRect();
+      o.grilla = { display: getComputedStyle(grid).display, cols: getComputedStyle(grid).gridTemplateColumns,
+                   alto: Math.round(rg.height), ancho: Math.round(rg.width),
+                   compacta: grid.getAttribute('data-ind-compacta') } }
+    o.piezas = [];
+    Array.prototype.forEach.call(mia.querySelector('summary').parentNode.children, function(c){
+      if (c.tagName === 'SUMMARY') return;
+      Array.prototype.forEach.call(c.children, function(x){
+        var rx = x.getBoundingClientRect();
+        o.piezas.push({ tag: x.tagName, at: (x.getAttribute('data-ind-grid') ? 'grid' :
+          (x.getAttribute('data-ind-bloque') ? 'bloque' : (x.className || ''))),
+          alto: Math.round(rx.height), txt: (x.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 45) });
+      });
+    });
+    o.infosAbiertos = Array.prototype.filter.call(mia.querySelectorAll('[data-ind-info]'), function(d){ return d.open }).length;
+    o.scrollX = mia.scrollWidth > mia.clientWidth + 1;
+    o.scrollXDoc = document.documentElement.scrollWidth > document.documentElement.clientWidth + 1;
+    o.desbordan = Array.prototype.filter.call(mia.querySelectorAll('table,tr,td'), function(n){
+      return n.scrollWidth > n.clientWidth + 1 }).map(function(n){
+      return n.tagName + ':' + n.scrollWidth + '/' + n.clientWidth + ':' + (n.textContent||'').replace(/\s+/g,' ').trim().slice(0,30) }).slice(0, 8);
+    o.filasAlto = Array.prototype.map.call(mia.querySelectorAll('tr'), function(t){
+      var tds = t.querySelectorAll('td');
+      return { h: Math.round(t.getBoundingClientRect().height),
+               lbl: (tds[0] ? (tds[0].textContent||'').replace(/\s+/g,' ').trim().slice(0,30) : ''),
+               wLbl: tds[0] ? Math.round(tds[0].getBoundingClientRect().width) : null,
+               wVal: tds[1] ? Math.round(tds[1].getBoundingClientRect().width) : null,
+               wEst: tds[2] ? Math.round(tds[2].getBoundingClientRect().width) : null } });
     mia.open = abierto;
     return o },
 
@@ -1073,6 +1102,42 @@ window.__Y = {
       r.movil = await ev(`window.__Y.evidTdf()`);
       await ev(`(function(){ try{ indicCerrar() }catch(e){} return 1 })()`);
       await viewport(1440, 900);
+      /* ── Contestar una pregunta con un ⓘ ABIERTO: el repintado no lo tiene que cerrar, y la
+            recomendacion de arriba tiene que cambiar. Es el flujo principal del panel. */
+      await ev(`(function(){ try{ indicAbrir() }catch(e){ return 'EXC: ' + e.message } return 1 })()`);
+      r.ciclo = await ev(`(function(){
+        var cu = document.getElementById('indic-cuerpo');
+        var mia = Array.prototype.filter.call(cu.querySelectorAll('details'), function(d){
+          var s = d.querySelector('summary'); return s && /Fallot/.test(s.textContent || '') })[0];
+        if (!mia) return 'NO HAY seccion';
+        mia.open = true;
+        /* Se abre el ⓘ de la fila de los sintomas. */
+        var inf = Array.prototype.filter.call(mia.querySelectorAll('[data-ind-info]'), function(d){
+          var s = d.querySelector('summary');
+          return s && /S\u00edntomas/.test(s.getAttribute('aria-label') || '') })[0];
+        if (!inf) return { err: 'NO HAY info de Sintomas',
+          labels: Array.prototype.map.call(mia.querySelectorAll('[data-ind-info] summary'), function(s){
+            return s.getAttribute('aria-label') }) };
+        inf.open = true;
+        var antes = (mia.textContent || '').indexOf('Clase 2a') >= 0;
+        var b = mia.querySelector('[data-ind-clin="tdfip.rvsp23"][data-ind-val="si"]');
+        if (!b) return { err: 'NO HAY boton rvsp23' };
+        b.click();
+        /* Tras el repintado, se vuelve a buscar la seccion: el nodo viejo ya no esta. */
+        var m2 = Array.prototype.filter.call(cu.querySelectorAll('details'), function(d){
+          var s = d.querySelector('summary'); return s && /Fallot/.test(s.textContent || '') })[0];
+        var inf2 = m2 && Array.prototype.filter.call(m2.querySelectorAll('[data-ind-info]'), function(d){
+          var s = d.querySelector('summary');
+          return s && /S\u00edntomas/.test(s.getAttribute('aria-label') || '') })[0];
+        var t2 = m2 ? (m2.textContent || '').replace(/\s+/g, ' ') : '';
+        return { secSigue: !!m2, infoSigueAbierto: !!(inf2 && inf2.open),
+                 claseAntes: antes, claseAhora: /Clase 2a/.test(t2),
+                 marcaRvsp: (function(){ var f = Array.prototype.filter.call(m2.querySelectorAll('tr'), function(t){
+                   return /dos tercios/.test(t.textContent || '') })[0];
+                   return f ? (f.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 90) : null })(),
+                 infos: m2.querySelectorAll('[data-ind-info]').length,
+                 alto: Math.round(m2.getBoundingClientRect().height) } })()`);
+      await ev(`(function(){ try{ indicCerrar() }catch(e){} return 1 })()`);
       r.errores = await ev(`window.__Y.errores()`);
     } catch (e) { r.err = e.message }
     out.grupos.evid = r;
