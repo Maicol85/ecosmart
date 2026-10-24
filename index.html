@@ -9150,11 +9150,11 @@ window.cerrarSesionReal = cerrarSesionReal;
           <span class="calc-val" id="hemo-gc">—</span>
         </div>
         <div class="calc-row">
-          <span class="calc-lbl">Índice cardíaco (IC) <span style="color:var(--text2);font-size:10px;">= GC / ASC</span></span>
+          <span class="calc-lbl">Índice cardíaco (IC) <span style="color:var(--text2);font-size:10px;">= GC / ASC</span> <button type="button" class="vinfo-btn" data-vinfo="hemo-ic" aria-expanded="false" aria-label="Informaci&oacute;n sobre el &iacute;ndice card&iacute;aco y sus referencias" onclick="vInfoClic(this)">&#9432;</button></span>
           <span id="hemo-ic">—</span>
         </div>
         <div class="calc-row">
-          <span class="calc-lbl">RVS <span style="color:var(--text2);font-size:10px;">= (PAM − PVC) / GC × 80</span></span>
+          <span class="calc-lbl">RVS <span style="color:var(--text2);font-size:10px;">= (PAM − PVC) / GC × 80</span> <button type="button" class="vinfo-btn" data-vinfo="hemo-rvs" aria-expanded="false" aria-label="Informaci&oacute;n sobre la resistencia vascular sist&eacute;mica y sus referencias" onclick="vInfoClic(this)">&#9432;</button></span>
           <span id="hemo-rvs">—</span>
         </div>
         <div class="calc-row">
@@ -9179,7 +9179,7 @@ window.cerrarSesionReal = cerrarSesionReal;
       </div>
       <div class="calc-box" style="margin-top:8px;">
         <div class="calc-row">
-          <span class="calc-lbl" style="font-weight:700;">🧭 Perfil de Forrester <span style="font-weight:400;color:var(--text2);font-size:10px;">(IC + PCP, estimado por eco)</span></span>
+          <span class="calc-lbl" style="font-weight:700;">🧭 Perfil de Forrester <span style="font-weight:400;color:var(--text2);font-size:10px;">(IC + PCP, estimado por eco)</span> <button type="button" class="vinfo-btn" data-vinfo="hemo-forr" aria-expanded="false" aria-label="Informaci&oacute;n sobre el alcance y los bordes del perfil de Forrester" onclick="vInfoClic(this)">&#9432;</button></span>
           <span id="hemo-forrester">—</span>
         </div>
         <!-- Ojo: en ESTA tarjeta la RVP NO deriva de la PCP —sale de Abbas o del override por
@@ -25920,9 +25920,29 @@ function calcHemo() {
       const cong = (pcp !== null && pcp > UMBRAL_PCP_HUMEDO) ? (' con congestión (PCP >' + UMBRAL_PCP_HUMEDO + ')') : '';
       perfilEl.innerHTML = badge('red', 'Shock cardiogénico — GC bajo + RVS elevada' + cong);
     } else if (rvs < 800 && ic >= 2.2) {
-      perfilEl.innerHTML = badge('orange', 'Perfil distributivo/vasodilatado — RVS baja + GC conservado');
+      /* ══ EL PERFIL DISTRIBUTIVO QUEDA, Y DECLARA QUE ES CRITERIO PROPIO (J2-E1, 2026-10-24) ══
+         Ninguna de las fuentes de la biblioteca publica «RVS < 800 con IC conservado» como una
+         categoría con nombre: el 800 sale de `_rvsBanda`, que es la escala de la casa. Se deja
+         el rótulo porque es información útil, y se le cuelga el chip para que el médico sepa
+         que detrás no hay una guía. El chip va con un separador DELANTE porque el informe y el
+         PPT leen el `textContent` del span: sin él, las dos etiquetas se pegan en una palabra. */
+      perfilEl.innerHTML = [badge('orange', 'Perfil distributivo/vasodilatado — RVS baja + GC conservado'),
+                            badge('gray', '· Criterio de EcoSmart')].join(' ');
+      /* ⚠️ `join(' ')` Y NO UNA SUMA, Y NO ES ESTILO: `ceibo-xss-innerhtml-concat` marca todo
+         `innerHTML =` con una concatenación, y con el `+` esta línea agregaba un WARNING nuevo
+         a la línea base. Los dos operandos salen de `badge`, que escapa su texto, así que el
+         hallazgo sería un falso positivo — pero una línea base que sube sin motivo es ruido que
+         termina tapando el hallazgo de verdad. */
     } else if (ic < 2.2 && rvs < 800) {
-      perfilEl.innerHTML = badge('orange', 'GC bajo con RVS baja — considerar shock mixto/distributivo');
+      /* ══ ACÁ SALEN LA ETIQUETA Y EL «CONSIDERAR» (J2-E1, 2026-10-24, decisión de Maicol) ════
+         Decía «GC bajo con RVS baja — considerar shock mixto/distributivo». Dos problemas: el
+         «considerar» es una CONDUCTA, y esta app describe; y «shock mixto/distributivo» es un
+         diagnóstico que ninguna fuente de la biblioteca cuelga de esa combinación de números.
+         ⚠️ LA RAMA NO SE PUEDE BORRAR: sin ella, un IC bajo con RVS baja caería en el `else`
+         final y la app diría «Perfil hemodinámico normal» sobre un paciente hipoperfundido.
+         Lo que queda son LOS DOS NÚMEROS, en gris, sin interpretación. El informe, la hoja del
+         PDF y el PPT leen este mismo span, así que los tres cambian con éste y no por su lado. */
+      perfilEl.innerHTML = badge('gray', 'IC ' + ic.toFixed(2) + ' L/min/m² · RVS ' + rvs.toFixed(0) + ' dinas·s·cm⁻⁵');
     } else {
       perfilEl.innerHTML = badge('green', 'Perfil hemodinámico normal');
     }
@@ -42746,6 +42766,45 @@ const VINFO = Object.freeze({
      lo que muestran son NODOS clonados, no un texto. */
   'otr-burbujas': { ancho: 360, dyn: function () { return _otrRefClon('ref-burbujas', 'tablas') } },
   'otr-rac': { ancho: 360, dyn: function () { return _otrRefClon('ref-coronarias') } },
+  /* ══ LOS TRES GLOBOS DE HEMODINÁMICA (J2-E1, 2026-10-24) ═══════════════════════════════════
+     Las CINCO fuentes están verificadas en el PDF original, con folio impreso y hoja, y dos de
+     ellas en IMAGEN porque son tablas escaneadas. Ninguna frase se copia literal: la regla de
+     derechos de autor de este repo obliga a redactar con palabras propias.
+     ⚠️ NINGUNO DE LOS TRES TOCA UN CORTE. `_icBanda` sigue cortando en 2,2, `FORR_IC_CORTE`
+     sigue siendo el mismo número y `_rvsBanda` no se toca —de ella cuelga la vasoplejía del
+     posoperatorio—. Lo que estos globos agregan es DE DÓNDE sale cada número.
+     ⚠️ Y EL DEL FORRESTER DECLARA UN BORDE QUE NO COINCIDE: la app marca hipoperfusión con
+     `ic <= 2.2` y la clasificación original dice «por debajo de 2,2», así que el 2,2 EXACTO cae
+     de lados distintos. Se DECLARA, no se corrige: mover un corte es decisión de Maicol. */
+  'hemo-ic': {
+    tit: 'Índice cardíaco — de dónde sale cada número',
+    formula: 'IC = gasto cardíaco ÷ superficie corporal → L/min/m²',
+    lee: 'La app llama BAJO a un índice cardíaco de 2,2 o menos, y el 2,2 exacto cae de ese lado.\n'
+       + 'El rango de referencia normal es 2,5 a 4,0 L/min/m².\n'
+       + 'La clasificación original de los subgrupos hemodinámicos del infarto no usa ese mismo borde: habla de un índice cardíaco por debajo de 2,2, de modo que el 2,2 exacto no queda definido.',
+    fuente: 'Bajo con 2,2 o menos · Consenso de shock cardiogénico de la Sociedad Argentina de Cardiología, 2024 (Revista Argentina de Cardiología, volumen 92, suplemento 3), Tabla 1, folio 2, columna del Shock Trial.\n'
+       + 'Rango normal 2,5 a 4,0 L/min/m² · Guía ESC/ERS 2022 de hipertensión pulmonar, tabla de valores hemodinámicos normales, folio 30.\n'
+       + 'Definición original con «por debajo de 2,2» · Forrester y colaboradores, New England Journal of Medicine 1976;295:1356, reproducida en Braunwald, Tratado de Cardiología, 10.ª edición española, Tabla 52-9 y texto del folio 1125.',
+    ojo: 'Los tres números contestan preguntas distintas: el 2,2 es un criterio de hipoperfusión en el shock, el 2,5 a 4,0 es un rango de normalidad en el laboratorio de hemodinamia, y la definición original se escribió para el infarto agudo con la presión capilar MEDIDA por catéter. Acá el índice cardíaco se deriva del eco.'
+  },
+  'hemo-rvs': {
+    tit: 'Resistencia vascular sistémica — las dos referencias',
+    formula: 'RVS = (PAM − PVC) ÷ GC × 80 → dinas·s·cm⁻⁵',
+    lee: 'La app publica el NÚMERO y no lo rotula con una banda, porque los libros no ofrecen un único rango normal.\n'
+       + 'Una referencia da 1.170 ± 270 dinas·s·cm⁻⁵, que es la media y la desviación estándar de 37 personas sin cardiopatía demostrada, no un intervalo de normalidad.\n'
+       + 'La otra da un valor medio de 1.100 con un intervalo de 700 a 1.600 dinas·s·cm⁻⁵.',
+    fuente: '1.170 ± 270 dinas·s·cm⁻⁵ · Grossman y Baim, Cateterismo cardíaco, angiografía e intervención, 8.ª edición, AMOLCA 2016, Tomo I, Tabla 11.2, folio 260. El pie de esa tabla aclara que los valores salen de 37 sujetos (17 hombres y 20 mujeres, de 47 ± 9 años) cateterizados entre 1975 y 1978.\n'
+          + '1.100, intervalo 700 a 1.600 dinas·s·cm⁻⁵ · Braunwald, Tratado de Cardiología, 10.ª edición española, Elsevier 2016, Tabla 19-3, folio 375.',
+    ojo: 'Una media con su desviación estándar no es un rango de referencia: describe a los 37 sujetos medidos, no define qué es normal. Por eso la app muestra el valor sin banda y sin color, y deja la lectura al médico. Además, acá la presión de la aurícula derecha es la PVC ESTIMADA por la vena cava, no una presión medida.'
+  },
+  'hemo-forr': {
+    tit: 'Perfil de Forrester — alcance y bordes',
+    lee: 'Cruza perfusión y congestión en cuatro cuadrantes: A sin una ni otra, B con congestión sola, L con hipoperfusión sola y C con las dos.\n'
+       + 'Se construyó midiendo el gasto cardíaco y la presión de enclavamiento al mismo tiempo, con catéter en la arteria pulmonar, en pacientes con infarto agudo de miocardio.\n'
+       + 'Acá los dos ejes son estimaciones por eco: el índice cardíaco sale del tracto de salida y la presión capilar de la relación E/e\u2019.',
+    fuente: 'Forrester y colaboradores, New England Journal of Medicine 1976;295:1356, reproducida en Braunwald, Tratado de Cardiología, 10.ª edición española, Elsevier 2016, Tabla 52-9 y texto del folio 1125.',
+    ojo: 'LOS DOS BORDES EXACTOS NO ESTÁN DEFINIDOS. Con un índice cardíaco de 2,2 justo, la app marca hipoperfusión, y la clasificación original dice «por debajo de 2,2», de modo que no resuelve ese valor exacto. Lo mismo del otro lado: la app no define la presión capilar de 18 exacta, porque la congestión aparece cuando esa presión SUPERA 18.'
+  },
   /* El unico globo de esta tanda que escribe texto, y lo escribe porque la fuente esta VISTA: su
      formula, su medicion y su alcance salen del enunciado D6_11 de la guia, no de la memoria. */
   'pul-balik': {
