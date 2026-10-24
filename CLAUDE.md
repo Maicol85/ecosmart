@@ -425,7 +425,7 @@ impecable.
   32,5 KB · `tests` 31,0 KB · `referencias-subpestanas` 24,9 KB · `tanda-r2-correcciones`
   23,2 KB · `aj3-ett-avanzado` 16,6 KB · `otros-pericardio-pulmon` 14,2 KB—,
   `docs/fuentes/FUENTES.md` → «La tanda J2» con la tabla **«Cambios de evidencia»** de dieciséis
-  filas, y `docs/PENDIENTES.md` → **CINCO** cosas declaradas (**J2-a** a **J2-e**).
+  filas, y `docs/PENDIENTES.md` → **SEIS** cosas declaradas (**J2-a** a **J2-f**).
 
 ### Pericardio y taponamiento, constricción y VEXUS — «J» (2026-10-24)
 
