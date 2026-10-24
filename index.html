@@ -2120,7 +2120,17 @@ html.light-mode #tab-valvulas .sev-lvl3{color:#7f1d1d;}
    silencio — que es exactamente lo que la orden prohíbe. */
 #tab-valvulas{--valv-sevcol:110px;}
 @media (min-width: 769px) {
-  #tab-valvulas .valv-morf-row--tres{grid-template-columns:repeat(3,1fr);
+  /* ⚠️ `auto-fit` Y NO `repeat(3,1fr)`, Y LO CAZÓ /sharp-edges SOBRE ESTE PROPIO DIFF. Con
+     tres columnas fijas la fila no apila NUNCA: aprieta. Y el ancho es el del botón, que se
+     angosta con la ventana, así que entre 769 px y ~1400 px las tres celdas caen a ~70-120 px
+     y el médico elige un dato del informe firmado sin poder leer después qué eligió. La
+     verificación original midió 1440 y 390 px: la franja apretada queda EXACTAMENTE entre los
+     dos puntos medidos, que es el agujero de denominador que este repo ya documenta.
+     Con `auto-fit` y base 144 px: a 1440 px entran las TRES (celda 149, medido) y por debajo
+     caen a dos y después a una. 144 y no 150 porque con 150 las tres NO entran en los 463 px
+     del botón (3×150+16 = 466) y la fila arrancaría ya en dos columnas a 1440.
+     ⚠️ EL `width` NO SE TOCA: es lo que TC-522 mide contra el botón. */
+  #tab-valvulas .valv-morf-row--tres{grid-template-columns:repeat(auto-fit,minmax(144px,1fr));
     width:calc((100% - 8px)/2 - var(--valv-sevcol));}
 }
 
@@ -4500,8 +4510,14 @@ window.cerrarSesionReal = cerrarSesionReal;
                firmado, que es lógica de integración y decisión de Maicol — el mismo argumento con
                que la FEVD sigue sin votar. Ver `docs/PENDIENTES.md` → AJ5-d.
                ⚠️ SIN COLUMNA DE EXCEL, como pide la orden: el libro queda en 440. -->
+          <!-- ⚠️ EL `placeholder` LLEVA GUION ASCII Y NO EL SIGNO MENOS TIPOGRÁFICO (AJ5-6). El
+               «−» (U+2212) es lo que el informe IMPRIME, pero `PF` sólo normaliza la coma, así que
+               `parseFloat('−18')` da `NaN` y el campo quedaba con el valor a la vista, guardado,
+               y el strain sin salir en ninguna superficie — pérdida muda de dato clínico. Lo
+               normaliza `vdStrainPlNorm` en el `oninput`, y el `placeholder` no lo enseña. -->
           <label>Strain de pared libre del VD (%)</label>
-          <input type="number" id="vd_strain_pl" placeholder="−18" step="0.1" oninput="vdStrainPlSync();calcVD()">
+          <input type="number" id="vd_strain_pl" placeholder="-18" step="0.1" oninput="vdStrainPlNorm(this);vdStrainPlSync();calcVD()">
+          <div id="vd_strain_pl-marca" style="font-size:10px;color:var(--yellow);margin-top:3px;min-height:14px;"></div>
           <div id="vd_strain_pl-grado" style="font-size:10px;margin-top:3px;min-height:14px;"></div>
         </div>
         <div class="fg vd-c1 vd-r6">
@@ -5646,6 +5662,9 @@ window.cerrarSesionReal = cerrarSesionReal;
             <option value="IIIa">IIIa</option>
             <option value="IIIb">IIIb</option>
           </select>
+          <!-- Mismo mecanismo y mismo aspecto que `vm-ete-aviso` de la morfología, dos campos más
+               a la izquierda: lo pinta `vmCarpAvisoSync` y NO escribe ningún valor. -->
+          <div id="vm-carp-aviso" style="display:none;font-size:11px;color:var(--red);margin-top:3px;"></div>
         </div>
       </div>
       <div style="display:flex;gap:8px;margin-bottom:12px;">
@@ -26180,9 +26199,16 @@ window.VD_TEI_PW_ALT_MIN  = VD_TEI_PW_ALT_MIN;
    · `vd_tei` [0, 3] cociente. El 0 es piso porque el MPI es una razón de tiempos y no puede ser
      negativo. **El techo en 3 es lo que marca el 55 tipeado por 0,55**, que es el dedazo que esta
      zona tiene que cazar; un MPI real no pasa de ~1,5. */
+/* · `vd_strain_pl` [-60, 60] % (AJ5-6, de /sharp-edges sobre el propio diff). ES UNA BANDA DE
+     PLAUSIBILIDAD Y NO UN CORTE: no gradúa nada, caza el dedazo de un ORDEN DE MAGNITUD —el 185
+     tipeado por 18,5—, que sin ella salía VERDE y «normal» en la pantalla y «−185 %» en el
+     informe FIRMADO, porque la rama de normalidad no tiene techo. Es el MISMO número y el mismo
+     argumento que los dos strain de la AI (`DIAST_STRAIN_BANDA`), y es simétrica porque el campo
+     acepta los dos signos. Era el único de los diecisiete campos de esa pantalla sin banda. */
 const VD_NUEVOS_BANDA = Object.freeze({
-  vd_pared: [1, 30],   // mm
-  vd_tei:   [0, 3]     // cociente (adimensional)
+  vd_pared:      [1, 30],   // mm
+  vd_tei:        [0, 3],    // cociente (adimensional)
+  vd_strain_pl:  [-60, 60]  // % — plausibilidad, no severidad
 });
 window.VD_NUEVOS_BANDA = VD_NUEVOS_BANDA;
 
@@ -26440,9 +26466,39 @@ const VD_STRAIN_PL_TXT = Object.freeze({
   leve:      'leve',
   bajo_leve: 'por debajo de leve'
 });
+/* ⚠️ EL ÚNICO DUEÑO DE «¿HAY UN STRAIN USABLE?» (AJ5-6). Tres estados NO son un valor:
+     · vacío → no se midió;
+     · `0` → tampoco. Una deformación nula no es un hallazgo, y con `!== null` el informe FIRMADO
+       decía «Ventrículo derecho con strain de pared libre −0 %» sobre un campo que nadie midió,
+       con la pantalla al lado en ROJO. Es el mismo `> 0` que esta zona ya aplica al diámetro
+       basal, con su comentario escrito tres párrafos más abajo;
+     · fuera de la banda de plausibilidad → ilegible, y un valor ilegible no sube al papel: es la
+       misma decisión que el AVm por THP y la Vmax de la estenosis mitral.
+   Lo leen `vdStrainPlCat` y el informe, así que la pregunta se contesta UNA vez. */
+function vdStrainPlVal() {
+  const n = v('vd_strain_pl');
+  if (n === null || n === 0) return null;
+  const b = VD_NUEVOS_BANDA.vd_strain_pl;
+  if (n < b[0] || n > b[1]) return null;
+  return n;
+}
+window.vdStrainPlVal = vdStrainPlVal;
+/* Normaliza el SIGNO tipeado o pegado: U+2212 (el que imprime el informe), el guion corto y el
+   largo de Word, y el guion de no separación. `PF` sólo normaliza la coma, así que sin esto
+   «−18» pegado del informe del ecógrafo se veía, se guardaba y no salía por ninguna parte.
+   Local a este campo y NO en el normalizador global, que toca los ~400 numéricos del archivo. */
+function vdStrainPlNorm(el) {
+  if (!el) return;
+  const t = String(el.value || '');
+  const u = t.replace(/[−–—‐‑]/g, '-');
+  if (u !== t) el.value = u;
+}
+window.vdStrainPlNorm = vdStrainPlNorm;
 function vdStrainPlCat(x) {
   const n = (typeof PF === 'function') ? PF(x) : parseFloat(x);
-  if (n == null || !isFinite(n)) return null;
+  if (n == null || !isFinite(n) || n === 0) return null;
+  const b = VD_NUEVOS_BANDA.vd_strain_pl;
+  if (n < b[0] || n > b[1]) return null;   // la marca «(revisar)» la pone `vdMarcaSync`
   const a = Math.abs(n);
   if (a > VD_STRAIN_PL_NORMAL) return 'normal';
   if (a >= VD_STRAIN_PL_LEVE)  return 'leve';
@@ -26455,6 +26511,8 @@ window.vdStrainPlCat = vdStrainPlCat;
    bandas de este archivo. Y el corte se nombra con PALABRAS y no con el operador solo, por el
    defecto de `#ref-cardiotox` que el módulo de Deformación ya documenta. */
 function vdStrainPlSync() {
+  /* La marca de banda la pinta su dueño genérico, que ya recorre `VD_NUEVOS_BANDA`. */
+  if (typeof vdMarcaSync === 'function') { try { vdMarcaSync(); } catch (e) {} }
   const el = document.getElementById('vd_strain_pl-grado');
   if (!el) return;
   const inp = document.getElementById('vd_strain_pl');
@@ -26488,7 +26546,12 @@ function _vdStrainPlAssert() {
   return [];
 }
 window._vdStrainPlAssert = _vdStrainPlAssert;
-document.addEventListener('DOMContentLoaded', function(){ try { _vdStrainPlAssert(); } catch (e) {} });
+/* Se registra IGUAL que `_vmImAssertPares`: con el documento ya cargado, un `DOMContentLoaded`
+   agregado después NO dispara nunca y el assert no avisa. Hoy este bloque corre siempre con
+   `readyState === 'loading'`, pero el día que se mueva o se difiera la diferencia es muda. */
+if (document.readyState === 'loading')
+  document.addEventListener('DOMContentLoaded', function(){ try { _vdStrainPlAssert(); } catch (e) {} });
+else { try { _vdStrainPlAssert(); } catch (e) {} }
 /* ══ EL BADGE DE UN PARAMETRO GRADUADO POR LA TABLA 1 (VS2, 2026-10-17) ══════════════════
    Valor, categoria EN PALABRAS y el rango de SU banda, los tres del mismo dueno: el rango se le
    pide a `ase25Rango`, que lo deriva de los operadores que el evaluador aplica, asi que el
@@ -51940,7 +52003,7 @@ function generarInforme(opts) {
        votante medido. Entra, en cambio, en la compuerta del BLOQUE —la línea de abajo—, que es lo
        que impide que un estudio con sólo el strain cargado pierda la oración entera: el agujero
        que esta zona ya pagó tres veces (el Tei, la hipertrofia y el Doppler tricuspídeo). */
-    const strVD = v('vd_strain_pl');
+    const strVD = (typeof vdStrainPlVal === 'function') ? vdStrainPlVal() : null;
     /* ⚠️ LA HIPERTROFIA ENTRA EN LA COMPUERTA DEL BLOQUE, y la guía lo pide: su Recomendación 3
        del folio 144 dice que la pared se informa si es anormal. Sin esto, un estudio cuyo ÚNICO
        dato del VD fuera la pared perdía la oración entera —el mismo agujero que el comentario de
@@ -52551,8 +52614,15 @@ function generarInforme(opts) {
          lectura. El texto aprobado es «mecanismo secundario». */
       const _MEC_TXT = { primaria: 'primario', secundaria: 'secundario' };
       if (_MEC_TXT[_mec]) _p.push('mecanismo ' + _MEC_TXT[_mec]);
+      /* ⚠️ CON EL CARPENTIER DIVERGENTE EL PARÉNTESIS SE ABSTIENE DE SU MITAD (AJ5-6). La frase
+         de prolapso de más abajo sigue leyendo el nodo de LEGADO, y en un estudio guardado antes
+         de la AJ5 los dos pueden decir tipos distintos: publicar las dos deja el MISMO párrafo
+         del informe firmado con dos Carpentier. El que se calla es el nuevo, así que ese informe
+         sale byte por byte como salía en HEAD, y la pantalla lo dice con `vmCarpAvisoSync`.
+         Falla CERRADO: sin la función no se publica. */
       const _carp = (typeof vmCarpEfectivo === 'function') ? vmCarpEfectivo() : '';
-      if (['I', 'II', 'IIIa', 'IIIb'].indexOf(_carp) >= 0) _p.push('Carpentier ' + _carp);
+      const _carpDiv = (typeof _vmCarpDiverge !== 'function') || !!_vmCarpDiverge();
+      if (!_carpDiv && ['I', 'II', 'IIIa', 'IIIb'].indexOf(_carp) >= 0) _p.push('Carpentier ' + _carp);
       return _p.length ? ' (' + _p.join('; ') + ')' : '';
     })();
     const insE = (imG > 0) ? `insuficiencia ${imTxt[imG]}${_imFundG}${_imMecCarp}` : (_imSinGrado ? `insuficiencia${_imMecCarp}` : null);
@@ -56965,7 +57035,7 @@ function RECALC_MODULOS() {
      automaticos con el «requiere …» del formulario vacio al lado de un VDFVI y una FEVI ya
      poblados. No puede migrar nada: no escribe ningun campo del estudio, los dos nodos que
      toca son `vauto-` y el tercero un `<div>` de texto. */
-  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','asiaMmSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','dtTapSync','etOndaESync','papmEstSync','calcDopTric','etTsvdSync','calcET','vpVmaxSync','ipIncongruenciaSync','itRefFuenteSync','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccSegSync','vpSync','popSync','sglOrigenSync','calcVenaPulm','valvProtSync','eaTaviEspejar','imEspejosRestaurar','eteVmAvisoSync','vmCarpLegadoSync','vdStrainPlSync','emPdfValsSync','emCuadroRefRepintar','emContFaAvisoSync','imCortesPintar','imContAvisoPintar','itIncongruenciaSync','aoEspejosRestaurar','tangoRestaurar','diastExclSync','diastFcAvisoSync','diastBseEprimaAvisoSync','diastBseGrisAvisoSync','diastStrainMarcaSync','vdMarcaSync','vdTeiAvisoSync','hfPepSync','hfPepPintar','viVolAutoSync','eaAvaiGradoPintar','eaPvlPintar','imPvlPintar','vdTapsePsapSync','ipApDiamSync','vdViSelSync','htpApSync','htpTablaPintar','m3dBotonSync','contrPdfSync','sglPdfSync','eteQxPdfSync','otrBurbUI','v2dCerrar','aiviSexoSync','vtDviAuto','sincronizarTEERDesdeGlobal','calcETE'];
+  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','asiaMmSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','dtTapSync','etOndaESync','papmEstSync','calcDopTric','etTsvdSync','calcET','vpVmaxSync','ipIncongruenciaSync','itRefFuenteSync','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccSegSync','vpSync','popSync','sglOrigenSync','calcVenaPulm','valvProtSync','eaTaviEspejar','imEspejosRestaurar','eteVmAvisoSync','vmCarpLegadoSync','vmCarpAvisoSync','vdStrainPlSync','emPdfValsSync','emCuadroRefRepintar','emContFaAvisoSync','imCortesPintar','imContAvisoPintar','itIncongruenciaSync','aoEspejosRestaurar','tangoRestaurar','diastExclSync','diastFcAvisoSync','diastBseEprimaAvisoSync','diastBseGrisAvisoSync','diastStrainMarcaSync','vdMarcaSync','vdTeiAvisoSync','hfPepSync','hfPepPintar','viVolAutoSync','eaAvaiGradoPintar','eaPvlPintar','imPvlPintar','vdTapsePsapSync','ipApDiamSync','vdViSelSync','htpApSync','htpTablaPintar','m3dBotonSync','contrPdfSync','sglPdfSync','eteQxPdfSync','otrBurbUI','v2dCerrar','aiviSexoSync','vtDviAuto','sincronizarTEERDesdeGlobal','calcETE'];
 }
 function _recalcModulos(etiqueta) {
   RECALC_MODULOS().forEach(function(fn){
@@ -57202,6 +57272,7 @@ function limpiarCampos(silencioso) {
      strain de pared libre, que con el campo vacío tiene que quedar en blanco y no con la
      categoría del estudio anterior. */
   { if (typeof vmCarpLegadoSync === 'function') { try { vmCarpLegadoSync(); } catch (e) {} } }
+  { if (typeof vmCarpAvisoSync === 'function') { try { vmCarpAvisoSync(); } catch (e) {} } }
   { if (typeof vdStrainPlSync === 'function') { try { vdStrainPlSync(); } catch (e) {} } }
   /* ⚠️ LA LINEA DE FUENTE DEL CUADRO DE LA IT NECESITA LAS DOS COLUMNAS, Y POR UN MOTIVO DISTINTO
      QUE SUS VECINAS: no es estado del paciente, es la REFERENCIA del cuadro, y `calcIT_ESC` —el
@@ -58969,12 +59040,20 @@ const _VM_CARP_LEGADO = Object.freeze({
 /* PINTA el select de legado del cajon de prolapso, y por eso va en `RECALC_MODULOS` y en
    `limpiarCampos`: son las DOS columnas. Con `vm_carp` vacío NO TOCA NADA — un estudio anterior
    a esta tanda conserva el valor que trae y su frase de prolapso sale igual que siempre. */
-function vmCarpLegadoSync() {
+/* ⚠️ `gesto` DISTINGUE «el médico acaba de tocar el campo» de «se está repintando al abrir un
+   estudio», y sin eso el legado era un FANTASMA —lo cazó /sharp-edges sobre este diff—: elegir
+   Carpentier II y después volver a «—» dejaba el único control tocable en «—», el paréntesis
+   del informe sin salir, y la frase de prolapso del papel FIRMADO diciendo «mecanismo Carpentier
+   II» — una afirmación sin ningún campo cargado que la sostenga, persistida, y sin forma de
+   borrarla salvo «Nuevo estudio», porque el nodo está `disabled`.
+   En el gesto se limpia; en el repintado NO se toca, que es lo que conserva el valor de un
+   estudio guardado antes de esta tanda. */
+function vmCarpLegadoSync(gesto) {
   const nue = document.getElementById('vm_carp');
   const leg = document.getElementById('vm_carpentier');
   if (!nue || !leg) return;
   const v = nue.value;
-  if (!v) return;
+  if (!v) { if (gesto) leg.selectedIndex = 0; return; }
   const txt = _VM_CARP_LEGADO[v];
   if (!txt) { console.error('[vmCarp] «' + v + '» no tiene traducción al vocabulario de legado'); return; }
   if (!Array.prototype.some.call(leg.options, function (o) { return o.value === txt; })) {
@@ -58983,6 +59062,61 @@ function vmCarpLegadoSync() {
   leg.value = txt;
 }
 window.vmCarpLegadoSync = vmCarpLegadoSync;
+/* ══ EL AVISO DE DIVERGENCIA DEL CARPENTIER — AJ5-6, de /sharp-edges sobre este diff ══════
+   HABÍA TRES VOCES Y NADIE LAS COMPARABA, y las dos que sobran llegan al informe FIRMADO:
+     · el nodo de LEGADO (`vm_carpentier`) lo sigue leyendo la frase de prolapso
+       («Prolapso mitral …, mecanismo Carpentier I») y `vmCarpLegadoSync` NO lo escribe cuando
+       `vm_carp` está vacío —o sea, en todo estudio guardado ANTES de esta tanda—, mientras el
+       paréntesis nuevo sí habla, por `vmCarpEfectivo`, desde el lado ETE. Medido: un estudio con
+       `vm_carp` vacío, `ete_carpentier` en II y el legado en «Tipo I» firmaba «(Carpentier II)»
+       y «mecanismo Carpentier I» en el MISMO párrafo — textual el defecto que el AJ5-1 declaró
+       cerrado para el estudio nuevo.
+     · `ete_carpentier` puede quedar VIEJO cuando la guarda de «es un ETE» se abstiene: el médico
+       carga II en el ETE (que lo espeja a Válvulas), se corrige a IIIb en Válvulas y el lado ETE
+       se queda en II. Con la morfología del ETE integrada, el informe publica IIIb en la oración
+       mitral y «Carpentier Tipo II» en la del ETE, y el PPT proyecta la segunda.
+   ⚠️ EL QUE SE ABSTIENE ES EL TEXTO NUEVO, no el viejo: el paréntesis de la AJ5-3 no existía en
+   HEAD, así que callarse deja el informe del estudio legado byte por byte como estaba. Lo que NO
+   se hace es pisar un valor guardado para «arreglar» la contradicción: eso es migrar.
+   ⚠️ PINTA, NO ESCRIBE. Por eso va en `RECALC_MODULOS` y en `limpiarCampos` —las dos columnas—,
+   igual que `eteVmAvisoSync`. */
+function _vmCarpDiverge() {
+  const ef = (typeof vmCarpEfectivo === 'function') ? vmCarpEfectivo() : '';
+  const leg = document.getElementById('vm_carpentier');
+  const lv = leg ? String(leg.value || '') : '';
+  const et = document.getElementById('ete_carpentier');
+  const ev = et ? String(et.value || '') : '';
+  const o = { legado: null, ete: null };
+  /* El valor de FÁBRICA del legado es «—» y no afirma nada. */
+  if (ef && lv && lv !== '—' && _VM_CARP_LEGADO[ef] !== lv) o.legado = lv;
+  /* Los dos lados afirmando cosas distintas. Vacío no contradice nada. */
+  if (ef && ev && ev !== ef) o.ete = ev;
+  return (o.legado || o.ete) ? o : null;
+}
+window._vmCarpDiverge = _vmCarpDiverge;
+function vmCarpAvisoSync() {
+  const n = document.getElementById('vm-carp-aviso');
+  if (!n) return;
+  const d = _vmCarpDiverge();
+  if (!d) { n.textContent = ''; n.style.display = 'none'; return; }
+  /* SE NOMBRAN LOS DOS VALORES, que es lo único que le dice al médico cuál corregir — la misma
+     decisión que `eteVmAvisoSync` ya tomó para «biológica contra mecánica». */
+  const ef = (typeof vmCarpEfectivo === 'function') ? vmCarpEfectivo() : '';
+  const p = [];
+  if (d.ete)    p.push('el ETE dice «' + d.ete + '»');
+  if (d.legado) p.push('el detalle de prolapso dice «' + d.legado + '»');
+  n.textContent = '⚠️ Carpentier «' + ef + '» y ' + p.join(' y ')
+    + ' — mientras no coincidan, el informe no publica el Carpentier de la insuficiencia.';
+  n.style.display = '';
+  /* ⚠️ Y SE ABRE LA SECCIÓN, QUE ES EL DEFECTO QUE `eteVmAvisoSync` YA DOCUMENTA Y QUE LA SONDA
+     DE ESTA TANDA VOLVIÓ A MEDIR: `ete-seccion-valv-mitral` nace con `display:none` y la abre SÓLO
+     `toggleEteSeccion` —no la recorren `secAutoOpen` ni `cardAutoOpen`—, así que el aviso se
+     pintaba, medía 0 × 0 y seguía sin verse, justo en el escenario para el que existe. Abrir no
+     toca ningún valor: es lo mismo que hace `secAutoOpen` cuando hay datos. */
+  { const sec = document.getElementById('ete-seccion-valv-mitral');
+    if (sec && sec.style.display === 'none') sec.style.display = 'block'; }
+}
+window.vmCarpAvisoSync = vmCarpAvisoSync;
 function vmCarpPropagar(origen) {
   if (_vmImSincronizando) return;
   const vmEl = document.getElementById('vm_carp');
@@ -58995,7 +59129,13 @@ function vmCarpPropagar(origen) {
     const esEte = document.getElementById('ete-es-ete');
     if (esEte && esEte.checked) _vmEspejar(vmEl, etEl, ['calcETE']);
   }
-  vmCarpLegadoSync();
+  /* ⚠️ `true` EN LOS DOS SENTIDOS: cambiar el Carpentier en el ETE es un gesto igual que
+     cambiarlo en Válvulas, y con `origen !== 'ete'` el fantasma del legado volvía por esa puerta
+     —borrar el Carpentier DESDE el ETE dejaba el legado puesto y la frase de prolapso del papel
+     firmado afirmando un tipo que ningún control mostraba—. Las rutas de restauración no pasan
+     por aquí: reponen con `.value`, que no dispara `change`. */
+  vmCarpLegadoSync(true);
+  vmCarpAvisoSync();
 }
 window.vmTipoImPropagar = vmTipoImPropagar; window.vmCarpPropagar = vmCarpPropagar;
 

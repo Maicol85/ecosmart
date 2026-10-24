@@ -773,8 +773,12 @@ window.__Y = {
   /* La fila de tres campos: su geometria, la del boton y la de la pastilla entera. */
   filaGeo() {
     var o = {};
+    /* El scroll horizontal se mide SIEMPRE, aunque la fila no exista: es lo que permite correr
+       este mismo grupo contra HEAD y saber si el desborde es de esta tanda o venia de antes. */
+    o.scrollHDoc = document.documentElement.scrollWidth > document.documentElement.clientWidth + 1;
+    o.anchos = { sw: document.documentElement.scrollWidth, cw: document.documentElement.clientWidth };
     var fila = document.querySelector('#tab-valvulas .valv-morf-row--tres');
-    if (!fila) return { err: 'NO EXISTE la fila --tres' };
+    if (!fila) { o.err = 'NO EXISTE la fila --tres'; return o }
     var fr = fila.getBoundingClientRect();
     o.fila = { w: Math.round(fr.w || fr.width), h: Math.round(fr.height) };
     o.campos = [];
@@ -1096,7 +1100,7 @@ window.__Y = {
   if (corre('maq')) {
     const r = {};
     try {
-      for (const [w, h] of [[1440, 900], [390, 844]]) {
+      for (const [w, h] of [[1440, 900], [1280, 800], [1024, 768], [820, 1180], [390, 844]]) {
         await cdp.send('Emulation.setDeviceMetricsOverride',
           { width: w, height: h, deviceScaleFactor: 1, mobile: w < 500 }, sessionId);
         await pausa(400);
@@ -1112,6 +1116,7 @@ window.__Y = {
             vd: await ev(`(function(){ window.__P.abrirPara('vd_strain_pl');
               var e = document.getElementById('vd_strain_pl'); var g = document.getElementById('vd_strain_pl-grado');
               var f = document.getElementById('fevd');
+              if (!e || !g || !f) return { err: 'faltan campos (HEAD)' };
               var r1 = e.getBoundingClientRect(), r2 = g.getBoundingClientRect(), r3 = f.getBoundingClientRect();
               return { campo: { w: Math.round(r1.width), h: Math.round(r1.height), y: Math.round(r1.top) },
                        grado: { w: Math.round(r2.width), h: Math.round(r2.height), y: Math.round(r2.top), txt: (g.textContent||'').trim() },
@@ -1127,6 +1132,94 @@ window.__Y = {
     } catch (e) { r.err = e.message }
     out.grupos.maq = r;
     process.stderr.write('[maq] listo\n');
+  }
+
+  /* == GRUPO he - LOS SEIS HALLAZGOS DE /sharp-edges, UNO POR ESCENA ======================== */
+  if (corre('he')) {
+    const r = {};
+    try {
+      /* H2 - el FANTASMA del legado: poner y sacar, por las DOS puertas. */
+      await ev(`window.__P.nuevo()`); await ev(`window.__P.calentar()`);
+      await ev(`window.__P.abrirPara('vm_carp')`);
+      await ev(`window.__P.sel('vm_morf','Prolapso / EVMS')`);
+      await ev(`window.__P.sel('vm_carp','II')`);
+      const a1 = await ev(`window.__Y.pares()`);
+      await ev(`window.__P.sel('vm_carp','')`);
+      const a2 = await ev(`window.__Y.pares()`);
+      const i1 = await ev(`window.__P.informe('estandar')`, 40000);
+      r.fantasmaVm = { puesto: a1.vm_carpentier, sacado: a2.vm_carpentier,
+        inf: (i1.inf || '').split('\n').filter((l) => /mitral|Prolapso/i.test(l)) };
+      /* La otra puerta: sacarlo DESDE el ETE. */
+      await ev(`window.__P.sel('vm_carp','II')`);
+      await ev(`window.__P.abrirPara('ete_carpentier')`);
+      await ev(`window.__P.sel('ete_carpentier','')`);
+      const a3 = await ev(`window.__Y.pares()`);
+      const i2 = await ev(`window.__P.informe('estandar')`, 40000);
+      r.fantasmaEte = { legado: a3.vm_carpentier, vm_carp: a3.vm_carp,
+        inf: (i2.inf || '').split('\n').filter((l) => /mitral|Prolapso/i.test(l)) };
+      /* H3 - el ETE que se queda VIEJO con la guarda abstenida, y el aviso. */
+      await ev(`window.__P.nuevo()`); await ev(`window.__P.calentar()`);
+      await ev(`window.__P.abrirPara('ete_carpentier')`);
+      await ev(`(function(){ var c = document.getElementById('ete-es-ete');
+        if (c && c.checked) { c.checked = false; c.dispatchEvent(new Event('change',{bubbles:true})); }
+        return c ? c.checked : 'NO EXISTE' })()`);
+      await ev(`window.__P.sel('ete_carpentier','II')`);
+      await ev(`window.__P.abrirPara('vm_carp')`);
+      await ev(`window.__P.sel('vm_carp','IIIb')`);
+      await ev(`window.__Y.poner(${JSON.stringify({ im_grado: '2' })})`);
+      const i3 = await ev(`window.__P.informe('estandar')`, 40000);
+      r.eteViejo = { pares: await ev(`window.__Y.pares()`),
+        diverge: await ev(`(typeof _vmCarpDiverge === 'function') ? _vmCarpDiverge() : 'SIN FN'`),
+        aviso: await ev(`window.__P.txt('vm-carp-aviso')`),
+        avisoDbg: await ev(`(function(){ var sec = document.getElementById('ete-seccion-valv-mitral');
+          var n = document.getElementById('vm-carp-aviso');
+          return { secInline: sec ? sec.style.display : 'NO EXISTE',
+                   secComputed: sec ? getComputedStyle(sec).display : null,
+                   avisoInline: n ? n.style.display : 'NO EXISTE',
+                   tabValv: getComputedStyle(document.getElementById('tab-valvulas')).display } })()`),
+        avisoVis: await ev(`(function(){ if (typeof showTab === 'function') showTab('valvulas');
+          /* DENOMINADOR: el tab y la seccion. showTab vuelve a plegar la seccion de la mitral,
+             asi que se reabre por su toggle REAL -el mismo que usa puertaDe- antes de medir. */
+          var sec = document.getElementById('ete-seccion-valv-mitral');
+          if (sec && getComputedStyle(sec).display === 'none' && typeof toggleEteSeccion === 'function')
+            toggleEteSeccion('valv-mitral');
+          return { vis: window.__P.vis('vm-carp-aviso'), geo: window.__P.geo('vm-carp-aviso'),
+                   oculto: (function(){ var n = document.getElementById('vm-carp-aviso');
+                     while (n && n.nodeType === 1) { if (getComputedStyle(n).display === 'none') return n.id || n.className; n = n.parentNode } return null })() } })()`),
+        inf: (i3.inf || '').split('\n').filter((l) => /mitral/i.test(l)) };
+      /* H1 - estudio LEGADO con el legado contradiciendo al ETE. */
+      await ev(`window.__P.abrirComoEstudio(${JSON.stringify({ nombre: 'L', ci: '2', im_grado: '2', vm_morf: 'Prolapso / EVMS', ete_carpentier: 'II', vm_carpentier: 'Tipo I (dilataci\u00f3n anular)', 'ete-es-ete__chk': '1' })})`, 40000);
+      await ev(`window.__P.abrirPara('vm_carp')`);
+      const i4 = await ev(`window.__P.informe('estandar')`, 40000);
+      r.legadoContra = { pares: await ev(`window.__Y.pares()`),
+        diverge: await ev(`(typeof _vmCarpDiverge === 'function') ? _vmCarpDiverge() : 'SIN FN'`),
+        aviso: await ev(`window.__P.txt('vm-carp-aviso')`),
+        inf: (i4.inf || '').split('\n').filter((l) => /mitral|Prolapso/i.test(l)) };
+      /* H4/H5/H6 - el strain: 0, el dedazo de orden de magnitud y el signo tipografico. */
+      r.strain = {};
+      for (const v of ['0', '185', '-185', '60', '61']) {
+        await ev(`window.__P.nuevo()`); await ev(`window.__P.calentar()`);
+        await ev(`window.__P.abrirPara('vd_strain_pl')`);
+        await tipear('vd_strain_pl', v);
+        const ii = await ev(`window.__P.informe('estandar')`, 40000);
+        r.strain[v] = { st: await ev(`window.__Y.strain()`),
+          marca: await ev(`window.__P.txt('vd_strain_pl-marca')`),
+          inf: (ii.inf || '').split('\n').filter((l) => /VD|ventr/i.test(l)) };
+      }
+      /* El signo tipografico PEGADO, sin teclas: se escribe el valor y se dispara input. */
+      await ev(`window.__P.nuevo()`); await ev(`window.__P.calentar()`);
+      await ev(`window.__P.abrirPara('vd_strain_pl')`);
+      await ev(`(function(){ var e = document.getElementById('vd_strain_pl');
+        e.value = String.fromCharCode(8722) + '18';
+        e.dispatchEvent(new Event('input', { bubbles: true })); return e.value })()`);
+      const i5 = await ev(`window.__P.informe('estandar')`, 40000);
+      r.signoTipografico = { val: await ev(`window.__P.val('vd_strain_pl')`),
+        st: await ev(`window.__Y.strain()`),
+        inf: (i5.inf || '').split('\n').filter((l) => /VD|ventr/i.test(l)) };
+      r.errores = await ev(`window.__Y.errores()`);
+    } catch (e) { r.err = e.message }
+    out.grupos.he = r;
+    process.stderr.write('[he] listo\n');
   }
 
   OUT.md5Fin = await md5(EXTERNO ? FARG : join(RAIZ, FILE));
