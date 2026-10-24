@@ -7992,9 +7992,16 @@ caso('TC-121', 'TdF: el criterio volumetrico del VD vota, y solo medido por reso
     ['VTDVD 159 no', d159.c.clave !== 'reintervencion_iia'],
     ['VTSVD 80 exactos dan criterio IIa', s80.c.clave === 'reintervencion_iia'],
     ['VTSVD 79 no', s79.c.clave !== 'reintervencion_iia'],
-    ['el criterio se nombra en el informe con su valor',
-      d160.inf.inf.indexOf('dilatación del ventrículo derecho por resonancia') > -1 &&
-      d160.inf.inf.indexOf('160 ml/m²') > -1],
+    /* ⚠️ CONTRATO NUEVO (AJ6-1, 2026-10-24): el criterio se sigue nombrando CON SU VALOR, pero en
+       el resumen -que consume la diapositiva del PPT- y NO en el papel firmado, que desde esta
+       tanda es descriptivo. El informe sigue publicando el VALOR del volumen; lo que ya no
+       publica es la frase del criterio, que es una indicacion. Decia:
+       d160.inf.inf.indexOf('dilatación del ventrículo derecho por resonancia') > -1. Ver TC-527. */
+    ['el criterio se nombra con su valor en el resumen del PPT, y el informe publica el valor sin la indicacion',
+      d160.c.resumen.indexOf('dilatación del ventrículo derecho por resonancia') > -1 &&
+      d160.c.resumen.indexOf('160 ml/m²') > -1 &&
+      d160.inf.inf.indexOf('160 ml/m²') > -1 &&
+      d160.inf.inf.indexOf('dilatación del ventrículo derecho por resonancia') === -1],
     // EL METODO: por eco 3D el valor se declara y NO vota.
     ['por eco 3D no vota', eco.c.clave !== 'reintervencion_iia'],
     ['pero el valor SI se describe: es dato clinico',
@@ -8007,16 +8014,23 @@ caso('TC-121', 'TdF: el criterio volumetrico del VD vota, y solo medido por reso
     ['por tomografia tampoco vota', tcx.c.clave !== 'reintervencion_iia'],
     // Valores por debajo del umbral: la rama de vigilancia deja de PROMETER la resonancia.
     ['con volumenes normales por resonancia no hay criterio', bajo.c.clave !== 'reintervencion_iia'],
-    ['y el informe deja de mandar a hacer una resonancia que ya se hizo',
-      bajo.inf.inf.indexOf('se miden por RESONANCIA: VTDVD') === -1 &&
-      bajo.inf.inf.indexOf('por debajo del umbral') > -1],
+    /* ⚠️ CONTRATO NUEVO (AJ6-1): la frase vive en el resumen. En el informe ya no esta NINGUNA
+       de las dos -ni la promesa ni la constancia-, porque las dos son parte de la conducta. */
+    ['ya no manda a hacer una resonancia que ya se hizo: el resumen lo dice, y el informe no promete ninguna',
+      bajo.c.resumen.indexOf('se miden por RESONANCIA: VTDVD') === -1 &&
+      bajo.c.resumen.indexOf('por debajo del umbral') > -1 &&
+      bajo.inf.inf.indexOf('se miden por RESONANCIA: VTDVD') === -1],
     // Banda de plausibilidad: 1800 ml/m2 es ilegible.
     ['un volumen de 1800 ml/m2 no vota', ilegible.c.clave !== 'reintervencion_iia'],
     ['y se declara fuera de rango', ilegible.c.clave === 'no_interpretable'],
     // Con sintomas manda la Clase I: el volumetrico no la degrada.
     ['con sintomas sigue siendo Clase I', conSint.c.clave === 'reintervencion_i'],
-    ['y ahi el texto no promete una resonancia pendiente',
-      conSint.inf.inf.indexOf('se evalúa por RESONANCIA') === -1]
+    /* La condicion conserva su sentido mirando las DOS superficies: con sintomas, ni el papel ni
+       la diapositiva prometen una resonancia pendiente. Mirando solo el informe pasaria sola
+       desde el AJ6-1 -ahi ya no hay conducta de ningun tipo- y dejaria de probar algo. */
+    ['y ahi ni el informe ni el resumen prometen una resonancia pendiente',
+      conSint.inf.inf.indexOf('se evalúa por RESONANCIA') === -1 &&
+      conSint.c.resumen.indexOf('se evalúa por RESONANCIA') === -1]
   ] };
 `);
 
@@ -11322,7 +11336,7 @@ caso('TC-144', 'Tabs avanzadas: el orden nuevo en las tres superficies, y las cl
      contenido basico. Lo que este caso vigila sigue igual: las claves que quedan no se cruzan. */
   const MOD = { hemodinamica:'hemodinamica', ete:'ete', cardioOnco:'cardioOnco',
     amiloidosis:'amiloidosis', congenitas:'congenitas', congenitas2:'congenitas',
-    calculadoras:'calculadoras', refs:'refs' };
+    calculadoras:null, refs:null };   /* AJ6-4a: las dos dejaron de llevar data-mod */
 
   /* Cada boton abre SU panel — lo que el reorden podria haber cruzado. */
   const noAbren = [];
@@ -11382,12 +11396,15 @@ caso('TC-144', 'Tabs avanzadas: el orden nuevo en las tres superficies, y las cl
       ' barras=' + document.querySelectorAll('.cc-subbar').length],
     /* CONDICION NUEVA (B-E5): Calculadoras no esta arriba y SI es el primer boton de la barra
        de Referencias, con su data-mod. */
-    ['«Calculadoras» es el primer boton de Referencias y no esta arriba',
+    /* ⚠️ CONTRATO NUEVO (AJ6-4a, 2026-10-24): el primer boton de Referencias es Calculadoras y
+       YA NO LLEVA data-mod -- dejo de ser un modulo opcional y esta siempre, en los dos modos-.
+       La condicion pasa a exigir lo contrario de lo que exigia. Ver TC-530. */
+    ['«Calculadoras» es el primer boton de Referencias, no esta arriba y ya no es opcional',
       f1.concat(f2).every(function(x){ return x.id !== 'calculadoras'; })
         && (function(){ const b = document.querySelector('#tab-refs .ref-subbar button');
-          return !!b && b.id === 'ref-subtab-calc' && b.getAttribute('data-mod') === 'calculadoras'; })(),
+          return !!b && b.id === 'ref-subtab-calc' && !b.hasAttribute('data-mod'); })(),
       (function(){ const b = document.querySelector('#tab-refs .ref-subbar button');
-        return 'primero=' + (b ? b.id : 'NO'); })()],
+        return 'primero=' + (b ? b.id + '/mod=' + b.getAttribute('data-mod') : 'NO'); })()],
     /* ADAPTADO el 2026-10-22 (B2-E1): el eco pulmonar dejo de tener boton propio —esta apilado
        con pericardio y masas detras de «Pericardio y pulmon»— asi que la condicion afirma hoy
        lo CONTRARIO por los dos lados: ni arriba, ni en el rail, ni como pestana suelta, y SIN
@@ -11418,9 +11435,11 @@ caso('TC-144', 'Tabs avanzadas: el orden nuevo en las tres superficies, y las cl
        arranque gritaria «sin boton»—, y desde el B2-E1 la del PULMONAR tambien: su boton dejo
        de existir, porque el eco pulmonar vive apilado detras de «Pericardio y pulmon», que no
        lleva data-mod. Son SIETE claves. */
-    ['las casillas de Config siguen el orden de los botones',
+    /* ⚠️ CONTRATO NUEVO (AJ6-4a): calculadoras y refs SALIERON de EE_MODULES con sus dos
+       casillas. Quedan CINCO claves, en el mismo orden que los cinco botones de la fila. */
+    ['las casillas de Config siguen el orden de los botones, y son CINCO',
       EE_MODULES.map(function(m){ return m.key; }).join(',') ===
-        ['hemodinamica','ete','cardioOnco','amiloidosis','congenitas','calculadoras','refs'].join(','),
+        ['hemodinamica','ete','cardioOnco','amiloidosis','congenitas'].join(','),
       EE_MODULES.map(function(m){ return m.key; }).join(',')],
     /* CONDICION NUEVA: el invariante que el chequeo de arranque vigila —cada clave de
        EE_MODULES tiene su boton y cada [data-mod] su casilla— ahora cruza las DOS
@@ -15492,7 +15511,11 @@ caso('TC-268', 'El boton CC respeta Basico/Avanzado y la casilla de Configuracio
            atributo: el pulmonar al rail (B-E1) y Calculadoras a la barra de Referencias (B-E5).
            El denominador baja a 8 para que siga cazando un barrido vacio sin volverse a quedar
            corto en la proxima tanda que mueva uno. */
-        ['DENOMINADOR: hay [data-mod] que auditar', nDataMod >= 8, 'n=' + nDataMod],
+        /* ⚠️ EL PISO BAJA DE 8 A 6 (AJ6-4a, 2026-10-24): Referencias y Calculadoras dejaron de
+           ser modulos opcionales y sus dos data-mod se retiraron. Quedan seis -- los cinco de la
+           fila de patologias mas el boton CC del informe, con congenitas repetido--, y el piso
+           sigue siendo un DENOMINADOR: lo que no puede pasar es que el barrido audite cero. */
+        ['DENOMINADOR: hay [data-mod] que auditar', nDataMod >= 6, 'n=' + nDataMod],
         ['todo [data-mod] es un <button> y ninguno lleva hidden', malDataMod.length === 0,
           malDataMod.join(' · ')],
         ['AVANZADO + CC encendido: el boton SE VE', avanzadoConCC, ''],
@@ -39333,7 +39356,14 @@ caso('TC-293', 'Panel de Evidencia: el detalle largo nace COLAPSADO, hay un solo
     ex.push(['ningun control clinico queda detras del «Ver detalle», y los que estan detras de un bloque son solo los del bloque condicional de la estenosis mitral',
       clinEnDetalle === 0 &&
       seccionesConClinEnBloque.every(t => pl(t).indexOf('estenosis mitral') > -1) &&
-      bloquesPlegados.every(d => pl((d.querySelector('summary') || {}).textContent || '').indexOf('si fuera reumatica') > -1),
+      /* ⚠️ ADAPTADO 2026-10-24 (AJ6-2): un bloque plegado vale si es el de la estenosis mitral
+         O SI NO ESCONDE NINGUN CONTROL CLINICO. La Evidencia de la Fallot reparada publica «Lo
+         que falta contestar» plegado -- son LINEAS de texto, sin un solo boton -- y la regla que
+         esta condicion protege es «ningun control clinico detras de un plegado», no «ningun
+         plegado». Antes exigia que TODO plegado se llamara «Si fuera reumatica», que es la lista
+         escrita a mano que este archivo ya documenta como trampa. */
+      bloquesPlegados.every(d => pl((d.querySelector('summary') || {}).textContent || '').indexOf('si fuera reumatica') > -1
+        || d.querySelectorAll('[data-ind-clin]').length === 0),
       'en el Ver detalle=' + clinEnDetalle + ' · en bloques=' + clinEnBloque.length +
       ' de ' + cu.querySelectorAll('[data-ind-clin]').length +
       ' · secciones=' + JSON.stringify(seccionesConClinEnBloque) +
@@ -39346,10 +39376,22 @@ caso('TC-293', 'Panel de Evidencia: el detalle largo nace COLAPSADO, hay un solo
     indicRender();
     const clinOcultosReum = cu.querySelectorAll('details[data-ind-bloque] [data-ind-clin]').length;
     const clinTotalReum   = cu.querySelectorAll('[data-ind-clin]').length;
-    const bloquesReum     = cu.querySelectorAll('details[data-ind-bloque]').length;
-    ex.push(['CONTROL NEGATIVO: con morfologia reumatica el bloque NO esta plegado y sus controles quedan A LA VISTA',
+    /* ⚠️ EL CONTEO SE ACOTA A LA SECCION DE LA ESTENOSIS MITRAL, que es de la que habla esta
+       condicion (AJ6-2, 2026-10-24). Contaba los bloques plegados de TODO el panel y exigia
+       cero: desde que la Evidencia de la Fallot reparada publica «Lo que falta contestar» como
+       un bloque plegado propio, ese cero mide una seccion ajena y la condicion sale roja sobre
+       una app sana. Lo que vigila -que el bloque de la mitral deje de plegarse cuando la
+       morfologia es reumatica- no cambio, y lo sigue vigilando donde vive. */
+    const secEM = [].slice.call(cu.querySelectorAll('details')).filter(function(d){
+      const su = d.querySelector('summary');
+      return su && /Estenosis mitral/.test(su.textContent || ''); })[0] || null;
+    const bloquesReum = secEM ? secEM.querySelectorAll('details[data-ind-bloque]').length
+                              : cu.querySelectorAll('details[data-ind-bloque]').length;
+    ex.push(['CONTROL NEGATIVO: con morfologia reumatica el bloque de la estenosis mitral NO esta plegado y sus controles quedan A LA VISTA',
       clinTotalReum > 0 && clinOcultosReum === 0 && bloquesReum === 0,
-      'ocultos=' + clinOcultosReum + ' de ' + clinTotalReum + ' · bloques plegados=' + bloquesReum]);
+      'ocultos=' + clinOcultosReum + ' de ' + clinTotalReum + ' · bloques plegados en EM=' + bloquesReum
+        + ' · secEM=' + !!secEM
+        + ' · plegados en todo el panel=' + cu.querySelectorAll('details[data-ind-bloque]').length]);
 
     /* ⚠️ LA CONDICION DE LA FILA QUE NO SE VERIFICO QUEDA VISIBLE, NO DETRAS DEL CONTROL.
        La primera version de esta ronda mando «r.recom.nota» al detalle, y eso revirtio tres arreglos
