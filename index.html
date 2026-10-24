@@ -19038,6 +19038,53 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
     </div>
   </div>
 
+
+  <!-- ══ ECOGRAFIA PULMONAR (J2-E7, 2026-10-24) ═══════════════════════════════════════════════
+       Ficha NUEVA. Cada criterio con su enunciado y su HOJA del PDF, VISTOS en las
+       recomendaciones internacionales de 2026. Ese documento no tiene folio de revista propio
+       en la copia de la biblioteca, asi que se cita por hoja y por el identificador del
+       enunciado, que es estable y es como el propio consenso se referencia.
+       ⚠️ DOS PUNTEROS DE LA ORDEN ESTABAN CORRIDOS, y se corrigen acá y en el comentario de
+       `pulAvPatron`: el sindrome intersticial difuso es el pie de la FIGURA 3, panel C (hoja 8)
+       —la Figura 4C, hoja 9, es la semicuantificacion del neumotorax por el punto pulmon—, y el
+       enunciado que dice que el punto pulmon CONFIRMA el neumotorax es el D2_2.1; el D2_2.2 es
+       la SALVEDAD del neumotorax muy grande.
+       ⚠️ EL PULSO PULMONAR NO SE AGREGA: la orden lo excluye expresamente.
+       ⚠️ LO QUE NO TIENE FUENTE LLEVA EL CHIP, no una cita: un corchete sobre «no pude
+       verificar» se lee como si hubiera un criterio detras. -->
+  <div class="card">
+    <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleRef('pulmon',this)">
+      🫁 Ecograf&iacute;a pulmonar (recomendaciones internacionales 2026)
+      <span style="float:right;">▶</span>
+    </h2>
+    <div id="ref-pulmon" style="display:none;" class="card-body">
+      <table style="width:100%;border-collapse:collapse;font-size:12px;">
+        <tr style="background:var(--section-head);"><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Criterio</th><th style="padding:6px 8px;text-align:center;color:var(--accent2);">Corte</th><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Fuente</th></tr>
+        <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;">L&iacute;neas B m&uacute;ltiples</td><td style="padding:5px 8px;text-align:center;">&ge;3 en un mismo cuadro</td><td style="padding:5px 8px;">Enunciado <b>D3_1.1</b> &middot; hoja 13</td></tr>
+        <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;">Zona positiva</td><td style="padding:5px 8px;text-align:center;">&ge;3 l&iacute;neas B en un cuadro dentro de esa zona</td><td style="padding:5px 8px;">Enunciado <b>D3_1.3</b> &middot; hoja 13</td></tr>
+        <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;">S&iacute;ndrome intersticial <b>DIFUSO</b></td><td style="padding:5px 8px;text-align:center;">&ge;2 zonas positivas por hemit&oacute;rax</td><td style="padding:5px 8px;">Pie de la <b>Figura 3, panel C</b> &middot; hoja 8, y enunciado <b>D3_1.4</b> &middot; hoja 13</td></tr>
+        <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;">S&iacute;ndrome intersticial <b>FOCAL</b></td><td style="padding:5px 8px;text-align:center;">cualquier otro patr&oacute;n de l&iacute;neas B m&uacute;ltiples</td><td style="padding:5px 8px;">Enunciado <b>D3_1.4</b> &middot; hoja 13. Ese mismo enunciado lista sus causas &mdash;neumon&iacute;a y neumonitis, contusi&oacute;n, infarto pulmonar, enfermedad pleural, neoplasia y secuelas cr&oacute;nicas&mdash;, que es lo que hace que un hallazgo focal no apunte a una sola etiolog&iacute;a</td></tr>
+        <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;"><b>Punto pulm&oacute;n</b> presente</td><td style="padding:5px 8px;text-align:center;">confirma el neumot&oacute;rax</td><td style="padding:5px 8px;">Enunciado <b>D2_2.1</b> &middot; hoja 12</td></tr>
+        <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;">Punto pulm&oacute;n no identificado</td><td style="padding:5px 8px;text-align:center;">el neumot&oacute;rax sigue siendo altamente probable</td><td style="padding:5px 8px;">Enunciado <b>D2_2.1</b> &middot; hoja 12: con ausencia de movimiento y de signos parenquimatosos, el mismo enunciado lo deja en &laquo;altamente probable&raquo;</td></tr>
+        <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;">Punto pulm&oacute;n ausente en un neumot&oacute;rax muy grande</td><td style="padding:5px 8px;text-align:center;">integrar radiograf&iacute;a o TC</td><td style="padding:5px 8px;">Enunciado <b>D2_2.2</b> &middot; hoja 12: sin contacto entre el pulm&oacute;n colapsado y la pared, el punto pulm&oacute;n puede no verse</td></tr>
+        <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;">Volumen aproximado del derrame pleural</td><td style="padding:5px 8px;text-align:center;">V (ml) = D (mm) &times; 20</td><td style="padding:5px 8px;">Enunciado <b>D6_11</b> &middot; hoja 19. Sus l&iacute;mites est&aacute;n en el globo &#9432; de ese campo: paciente en dec&uacute;bito supino, corte transversal lateral sobre el &aacute;ngulo costofr&eacute;nico, distancia m&aacute;xima entre pleura parietal y visceral, y validada en pacientes cr&iacute;ticos bajo ventilaci&oacute;n invasiva</td></tr>
+        <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;"><span style="display:inline-block;border:1px solid var(--border);border-radius:4px;color:var(--text2);padding:1px 5px;margin-right:4px;font-size:9px;letter-spacing:.3px;">CRITERIO DE ECOSMART</span>La aplicaci&oacute;n pregunta <b>TRES</b> zonas por hemit&oacute;rax y la fuente divide el t&oacute;rax anterolateral en <b>cuatro</b> por lado</td><td style="padding:5px 8px;text-align:center;">se mantiene el &laquo;&ge;2 por hemit&oacute;rax&raquo;</td><td style="padding:5px 8px;">Sobre tres zonas, exigir dos es m&aacute;s estricto en proporci&oacute;n que sobre cuatro: es el lado que no sobre-afirma. Esta aplicaci&oacute;n no tiene la cuarta zona, as&iacute; que el reparto no es el del consenso</td></tr>
+      </table>
+      <div style="margin-top:10px;font-size:11px;color:var(--text2);line-height:1.6;">
+        <b>Fuente:</b> &laquo;International evidence-based recommendations for point-of-care lung
+        ultrasound &mdash; 2025 focused update of the 2012 recommendations&raquo;, Volpicelli G y
+        colaboradores, <i>Intensive Care Medicine</i> 2026. La f&oacute;rmula del derrame es de
+        Balik M y colaboradores, <i>Intensive Care Medicine</i> 2006, que ese consenso cita como
+        referencia 154 del enunciado D6_11.<br>
+        <b>Lo que este consenso NO publica:</b> clase ni nivel de recomendaci&oacute;n. Sus
+        enunciados llevan grado de acuerdo entre los panelistas, no la escala I / IIa / IIb / III
+        de las gu&iacute;as europeas, as&iacute; que esta ficha no escribe ninguna: hacerlo ser&iacute;a
+        inventarla. Por el mismo motivo la aplicaci&oacute;n no abre una secci&oacute;n de Evidencia
+        para la ecograf&iacute;a pulmonar.
+      </div>
+    </div>
+  </div>
+
   <div class="card">
     <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleRef('cardiotox',this)">
       🧪 Cardiotoxicidad — CTRCD (ESC Cardio-Oncología 2022)
@@ -66140,8 +66187,13 @@ const REF_SUBTAB = Object.freeze({
      quedaba suelta fuera de las seis y el medico que navegara por las solapas no la encontraba
      nunca. Lo cazaron TC-502 y TC-520, que censan las entradas y exigen que ninguna quede sin
      panel. Van juntas porque son el mismo tema: las dos describen el pericardio. */
+  /* ⚠️ `pulmon` VA PEGADA A `constriccion` (J2-E7, 2026-10-24), y SE AGREGA ACA EN EL MISMO
+     COMMIT QUE LA FICHA: la tanda J se olvido de este paso con `constriccion` y la ficha quedo
+     suelta fuera de las seis subpestanas —existia, se abria y el buscador la indexaba, pero el
+     medico que navegara por las solapas no la encontraba nunca—. Van juntas porque viven en la
+     misma pantalla de la app: «Pericardio y pulmon». */
   otros: Object.freeze(['oai', 'burbujas', 'fop', 'coronarias', 'pericardio', 'constriccion',
-                        'cardiotox', 'miocard', 'congenitas', 'formulas'])
+                        'pulmon', 'cardiotox', 'miocard', 'congenitas', 'formulas'])
 });
 const REF_SUB_ORDEN = Object.freeze(['calc', 'dim', 'fun', 'valv', 'ao', 'otros']);
 /* ══ ROTULOS DE BLOQUE (tanda P, commit 4) ═══════════════════════════════════════════════════
@@ -66635,7 +66687,12 @@ const VINFO_REF = Object.freeze({
   'prot-vmax': 'pm', 'prot-gmed': 'pm', 'prot-thp': 'pm',
   'ea-prot-sev': 'pao', 'ea-prot-ppm': 'pao',
   'tapse-psap': 'htp',
-  'otr-burbujas': 'burbujas', 'otr-rac': 'coronarias', 'oai-ref': 'oai'
+  'otr-burbujas': 'burbujas', 'otr-rac': 'coronarias', 'oai-ref': 'oai',
+  /* ⚠️ `pul-balik` DEJA DE SER UNA DE LAS CINCO SIN BOTON (J2-E7, 2026-10-24): la entrada de
+     Referencias que le faltaba existe desde este commit, y el invariante de esta tabla es que
+     una tarjeta con entrada LLEVA boton. Siguen sin boton cuatro: `tarj-insuf-pulmonar`,
+     `tarj-esten-tricuspide`, `tarj-esten-pulmonar` y `et-avt-cont`. */
+  'pul-balik': 'pulmon'
 });
 function _vinfoRefAssert() {
   const malas = [];
@@ -91679,8 +91736,13 @@ function pulAvPatron() {
     return { p:'Líneas B coalescentes', i:'Líneas B coalescentes ("pulmón blanco"): pérdida de aireación avanzada.' };
   if (lb === 'presentes' && (cant === 'multiples')) {
     /* ⚠️ EL ADJETIVO «DIFUSO» LO DECIDEN LAS ZONAS (R2-E7): dos o mas positivas por hemitorax,
-       pie de la Figura 4C del ICM 2026, hoja 8. Sin zonas marcadas no se afirma ni una cosa ni
+       pie de la Figura 3C del ICM 2026, hoja 8. Sin zonas marcadas no se afirma ni una cosa ni
        la otra — el patron se nombra sin adjetivo. */
+    /* ⚠️ Y LA FIGURA ES LA 3, NO LA 4 (J2-E7, 2026-10-24). La hoja estaba bien —la 8— pero el
+       NUMERO no: el pie de la hoja 8 es «Fig. 3 Techniques…» y su panel C es el del sindrome
+       intersticial difuso; la Figura 4C, hoja 9, es la semicuantificacion del NEUMOTORAX por la
+       posicion del punto pulmon. Verificado sobre el PDF original. Ningun corte se movio: el
+       «>=2 zonas positivas por hemitorax» es el mismo, y es el que ese panel C publica. */
     const _dif = (typeof pulAvDifuso === 'function') ? pulAvDifuso() : { difuso: null };
     const _z = _dif.difuso === null ? ''
       : (_dif.difuso ? ' de distribución DIFUSA (' + _dif.der + ' y ' + _dif.izq + ' zonas por hemitórax, ≥2 en cada uno)'

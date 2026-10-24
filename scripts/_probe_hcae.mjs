@@ -1022,7 +1022,13 @@ window.__Z = {
           toggleCard(nid); tocados.push('card:' + nid);
         } else if (nid.indexOf('sacc-') === 0 && typeof secToggle === 'function') {
           secToggle(nid.slice(5)); tocados.push('sacc:' + nid);
-        } else { n.style.display = ''; tocados.push('forzado:' + nid); }
+        } else {
+          /* ADVERTENCIA: va 'block' y NO ''. Vaciar el inline BORRA el estilo y el elemento
+             vuelve a lo que diga su clase —y las subpestanas de Referencias se ocultan POR
+             CLASE—, asi que forzar con '' dejaba la ficha oculta y el barrido media CERO nodos:
+             el tercer verde sobre cero elementos de esta sonda. */
+          n.style.display = 'block'; tocados.push('forzado:' + nid);
+        }
       }
       n = n.parentNode;
     }
@@ -1033,7 +1039,7 @@ window.__Z = {
        display:none no tiene geometria: medirlo cerrado es medir nada. */
     var ocultos = 0;
     e.querySelectorAll('*').forEach(function(x){
-      if (getComputedStyle(x).display === 'none') { x.style.display = ''; ocultos++; }
+      if (getComputedStyle(x).display === 'none') { x.style.display = 'block'; ocultos++; }
     });
     return { tocados: tocados, subpaneles: ocultos, geo: window.__P.geo(id) } },
 
@@ -1202,6 +1208,54 @@ window.__Z = {
     if (!b) return { err: 'NO EXISTE el boton' };
     b.click();
     return { ok: true, alg: window.__P.val('alg-ett-score') } },
+
+  /* La ficha de eco pulmonar: existe, esta en una subpestana, el buscador la indexa, y el globo
+     de Balik tiene su boton «Ver referencia». */
+  pulmonRef() {
+    var o = {};
+    o.existe = !!document.getElementById('ref-pulmon');
+    o.enSubtab = (typeof REF_SUBTAB !== 'undefined')
+      ? Object.keys(REF_SUBTAB).filter(function(k){ return REF_SUBTAB[k].indexOf('pulmon') >= 0 })
+      : 'SIN REF_SUBTAB';
+    o.vinfoRef = (typeof VINFO_REF !== 'undefined') ? (VINFO_REF['pul-balik'] || null) : 'SIN VINFO_REF';
+    /* El assert de arranque de la tabla: si una clave apunta a un destino inexistente, lo grita. */
+    o.assert = (typeof _vinfoRefAssert === 'function') ? _vinfoRefAssert() : 'SIN FN';
+    /* El censo de entradas que REF_SUBTAB reparte, contra las que existen en el marcado: es lo
+       que cazo el olvido de la tanda J. */
+    var repartidas = [];
+    if (typeof REF_SUBTAB !== 'undefined') Object.keys(REF_SUBTAB).forEach(function(k){
+      REF_SUBTAB[k].forEach(function(x){ repartidas.push(x) }) });
+    o.repartidas = repartidas.length;
+    o.sinPanel = repartidas.filter(function(x){ return !document.getElementById('ref-' + x) });
+    o.cuerpo = window.__Y.ficha('pulmon');
+    return o },
+
+  /* El pie «Ver referencia» de un globo, medido CON LA TARJETA ABIERTA. qtarj la cierra al
+     salir -aprieta el boton una segunda vez-, asi que preguntarle despues da cero botones sobre
+     una tarjeta vacia: otro verde sobre cero elementos. */
+  pieRef(clave) {
+    window.__Z.abrirAcordeones(clave);
+    var b = document.querySelector('[data-vinfo=\"' + clave + '\"]');
+    if (!b) return { err: 'NO EXISTE globo ' + clave };
+    var rr = b.getBoundingClientRect();
+    if (!(rr.width > 0 && rr.height > 0)) return { sinGeometria: true };
+    b.click();
+    var c = document.getElementById('vinfo-card');
+    var abierta = !!(c && getComputedStyle(c).display !== 'none');
+    var bots = abierta ? Array.prototype.map.call(c.querySelectorAll('button'), function(x){
+      return (x.textContent || '').replace(/\\s+/g, ' ').trim() }) : [];
+    if (abierta) b.click();
+    return { abierta: abierta, botones: bots } },
+
+  /* Lo RENDERIZADO del modulo de eco pulmonar: el patron y las tres lineas del informe. */
+  pulmonPant() {
+    var o = {};
+    try { o.patron = (typeof pulAvPatron === 'function') ? JSON.stringify(pulAvPatron()) : 'SIN FN' }
+    catch (e) { o.patron = 'EXC: ' + e.message }
+    try { o.difuso = (typeof pulAvDifuso === 'function') ? JSON.stringify(pulAvDifuso()) : 'SIN FN' }
+    catch (e) { o.difuso = 'EXC' }
+    o.hoja = window.__Y.hoja('pulm');
+    return o },
 
   /* Lleva A LA VISTA la primera fila que contiene un fragmento de texto, para que la captura
      muestre LO QUE SE CAMBIO y no el principio de la seccion. Devuelve su rect y su texto: si
@@ -1531,6 +1585,40 @@ window.__Z = {
     } catch (e) { r.err = e.message }
     out.grupos.amilo = r;
     process.stderr.write('[amilo] listo\n');
+  }
+
+  /* ══ GRUPO pulmon — LA FICHA DE REFERENCIAS Y EL MODULO QUE NO SE TOCA ═════════════════════ */
+  if (corre('pulmon')) {
+    const r = { escenas: {} };
+    try {
+      await viewport(1440,900);
+      await ev(`window.__P.nuevo()`);
+      r.ref = await ev(`window.__Z.pulmonRef()`, 60000);
+      /* Las tres escenas del modulo: difuso, focal y neumotorax con punto pulmon. */
+      const PESC = {
+        difuso: { pua_lineasb: 'presentes', pua_lineasb_cant: 'multiples',
+                  pua_z_ant_d: true, pua_z_lat_d: true, pua_z_ant_i: true, pua_z_lat_i: true },
+        focal:  { pua_lineasb: 'presentes', pua_lineasb_cant: 'focal' },
+        neumo:  { pua_desliz: 'abolido', pua_lineasa: 'presentes', pua_lineasb: 'ausentes',
+                  pua_punto: 'si' }
+      };
+      for (const k of Object.keys(PESC)) {
+        await ev(`window.__P.nuevo()`);
+        await ev(`window.__Z.abrirZona('pua_lineasb')`);
+        const put = await ev(`window.__Y.poner(${JSON.stringify(PESC[k])})`);
+        r.escenas[k] = { err: put.err, m: await ev(`window.__Z.pulmonPant()`, 30000) };
+      }
+      /* El globo de Balik vive en un campo que solo se muestra con derrame: sin ponerlo, el
+         boton mide 0 x 0 y la lectura informa «sinGeometria» sobre un globo que el medico ve. */
+      await ev(`window.__P.nuevo()`);
+      await ev(`window.__Z.abrirZona('pua_derrame')`);
+      await ev(`window.__Y.poner({ pua_derrame: 'si', pua_balik: '22' })`);
+      r.globoBalik = await ev(`window.__Z.globo('pul-balik')`, 20000);
+      r.verRef = await ev(`window.__Z.pieRef('pul-balik')`, 20000);
+      r.errores = await ev(`window.__Y.errores()`);
+    } catch (e) { r.err = e.message }
+    out.grupos.pulmon = r;
+    process.stderr.write('[pulmon] listo\n');
   }
 
   OUT.md5Fin = await md5(EXTERNO ? FARG : join(RAIZ, FILE));
