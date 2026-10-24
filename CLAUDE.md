@@ -325,13 +325,28 @@ impecable.
 
 ### Tipo de IM y Carpentier en Válvulas, y el strain del VD — «AJ5» (2026-10-24)
 
-- **Son SEIS commits y el ítem se completó entero, con NUEVE cosas declaradas y no tocadas.**
+- **Son OCHO commits y el ítem se completó entero, con DIEZ cosas declaradas y no tocadas.**
   `dbfc146` (AJ5-1 + AJ5-2 + AJ5-4) · `ce4995f` (AJ5-3) · `eb19cc3` (AJ5-5) · `1c80ed5` (AJ5-6,
   los siete hallazgos de `/sharp-edges` sobre el propio diff) · `4a2ea41` (TC-522 a TC-526) ·
-  `a675aa9` (el arnés de mutaciones) · más la documentación y el sello.
-  Al **empezar**, `origin/main` estaba en **`2b9f3ef`** —medido con `git fetch`— con **veintinueve**
-  commits locales sin pushear; hoy hay **treinta y seis**. **El push lo corre Maicol: esta tanda
+  `a675aa9` (el arnés de mutaciones) · `408cec8` (ocho casos al contrato nuevo y la documentación
+  de cierre) · `f3ebf6b` (el arnés reabre la sesión antes de cada caso).
+  Al **empezar**, `origin/main` estaba en **`2b9f3ef`** —medido con `git fetch`— con **31**
+  commits locales sin pushear; hoy hay **39**, medidos con
+  `git rev-list --count origin/main..HEAD` y no contados a mano. **El push lo corre Maicol: esta tanda
   tenía orden expresa de NO pushear.**
+
+- ⚠️ **EL FALSO ROJO MÁS CARO FUE DEL ARNÉS, NO DEL CÓDIGO.** La primera corrida completa dio
+  **527/541 con CATORCE rojos**. Ocho eran de **CONTRATO VIEJO** —los números que esta tanda movió:
+  31 → 32 globos de Válvulas, 51 → 52 entradas de `VINFO`, dieciséis → diecisiete campos del VD,
+  dos → tres entradas de la banda del VD y once → doce tarjetas sin «Ver referencia»— y se
+  reescribieron. **Los otros dos no eran regresiones y tampoco eran del árbol**: hay casos que
+  ejercitan `cerrarSesionReal()`, y eso borra `ett_auth` y levanta `#login-overlay`, que es
+  `position:fixed` con z-index altísimo, así que **todo caso posterior que cliquee mide debajo de
+  él**. Agregar cinco casos no cambió el árbol pero sí el ORDEN. Síntoma: rojos en la corrida
+  completa, **verdes aislados dos veces** en el mismo árbol sellado, y una segunda corrida completa
+  verdes sin tocar nada. El mensaje lo decía con todas las letras: «TAPADO POR:
+  `DIV#login-overlay[fixed]`». Se cerró con **una línea en el bucle de casos**, al lado de
+  `resetVisor` y por el mismo argumento. → **AJ5-j**.
 
 - **Línea base al cierre: suite **537/541** con el pendrive `DISK_IMG` **MONTADO** —verificado al
   abrir y al cerrar—, Semgrep **124 / 0 ERROR en 1 app**, Excel en **440** columnas y celular en
@@ -427,7 +442,7 @@ impecable.
   ficha de los cinco casos); **dos mapas con un puntero cada uno** (`valvulas-mitral-pantalla`
   26,2 KB · `vd-derecho` 33,0 KB); `docs/fuentes/FUENTES.md` → «La tanda AJ5», con los dos folios de
   la EACVI 2013 verificados en texto completo y el censo de lo que la biblioteca **no** tiene del
-  strain; y `docs/PENDIENTES.md` → **NUEVE** cosas declaradas (**AJ5-a** a **AJ5-i**).
+  strain; y `docs/PENDIENTES.md` → **DIEZ** cosas declaradas (**AJ5-a** a **AJ5-j**).
   ⚠️ **NINGÚN MAPA CRUZÓ EL TECHO, medido con `wc -c` ANTES de escribir.**
 
 ## Procedencia — dónde está el origen de cada regla
