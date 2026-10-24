@@ -9644,9 +9644,14 @@ window.cerrarSesionReal = cerrarSesionReal;
 
       <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:14px 0 6px;">2 · Colapso de cavidades</div>
       <div class="grid-2" style="margin-bottom:10px;">
-        <div class="fg"><label>Colapso AD — sistólico (≥1/3 del ciclo)</label>
+        <div class="fg"><label>Colapso AD — diastólico (Tabla 17)</label>
           <select id="dpt_col_ad" onchange="dptCambio()"><option value="">— no evaluado —</option><option value="no">Ausente</option><option value="si">Presente</option></select>
         </div>
+        <!-- La duracion del colapso auricular derecho es la fila de MAYOR especificidad de la
+             Tabla 17 (100 %) y no tenia donde cargarse. Va como fraccion del ciclo, que es como la
+             guia la escribe -«as a ratio of the cardiac cycle length»-, no como porcentaje. -->
+        <div class="fg"><label>Duración del colapso AD (fracción del ciclo) — significativa &gt;<span id="dpt-lbl-addur">0,34</span></label>
+          <input type="number" id="dpt_col_ad_dur" step="0.01" placeholder="0–1" oninput="dptSync()" onchange="dptCambio()"></div>
         <div class="fg"><label>Colapso VD — diastólico (más específico)</label>
           <select id="dpt_col_vd" onchange="dptCambio()"><option value="">— no evaluado —</option><option value="no">Ausente</option><option value="si">Presente</option></select>
         </div>
@@ -9703,12 +9708,16 @@ window.cerrarSesionReal = cerrarSesionReal;
         <div style="font-size:10px; color:var(--text2); line-height:1.55; margin-top:6px;">
           <span style="display:inline-block; border:1px solid var(--border); border-radius:4px;
                        padding:1px 5px; margin-right:4px; font-size:9px; letter-spacing:.3px;">CRITERIO DE ECOSMART</span>
-          La pl&eacute;tora de vena cava se marca con un di&aacute;metro &gt;21 mm y colapso
-          &lt;50 %, y la variaci&oacute;n respiratoria con &gt;25 % en la onda E mitral y
-          &gt;40 % en la tricusp&iacute;dea. La Tabla 17 de la gu&iacute;a publica
-          &gt;20 mm con reducci&oacute;n &lt;50 %, y rangos de &gt;25-30 % y &gt;40-60 %: la
-          aplicaci&oacute;n usa el l&iacute;mite inferior de cada rango, que es el que marca
-          antes.
+          La variaci&oacute;n respiratoria se marca con &gt;25 % en la onda E mitral y &gt;40 % en
+          la tricusp&iacute;dea. La Tabla 17 de la gu&iacute;a publica rangos de &gt;25-30 % y
+          &gt;40-60 %: la aplicaci&oacute;n usa el l&iacute;mite inferior de cada uno, que es el
+          que marca antes. Y los <b>colapsos de la aur&iacute;cula izquierda y del
+          ventr&iacute;culo izquierdo</b> se recogen porque son hallazgos reales del estudio, pero
+          <b>la Tabla 17 no los menciona</b>: se describen y no cuentan como criterio.
+          La pl&eacute;tora de vena cava y la fase del colapso auricular derecho ya no est&aacute;n
+          en esta lista: desde el 24/10/2026 siguen a la gu&iacute;a &mdash;&gt;20 mm con
+          reducci&oacute;n &lt;50 %, colapso <b>diast&oacute;lico</b> con duraci&oacute;n
+          &gt;0,34 del ciclo&mdash;.
         </div>
       </div>
 
@@ -18935,7 +18944,12 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
       </table>
       <div style="margin-top:10px;font-size:12px;color:var(--text);line-height:1.8;">
         <b style="color:var(--accent2);">Diagnóstico de taponamiento:</b> es CLÍNICO —historia, síntomas y signos— con confirmación por ecocardiografía (Tabla 17). Ninguna guía fija un número de signos ecocardiográficos que lo defina.<br>
-        <b style="color:var(--accent2);">Signos ecocardiográficos (Tabla 17):</b> derrame grande con corazón oscilante · colapso diastólico de la aurícula derecha (precoz) · colapso diastólico del ventrículo derecho · variación respiratoria de la onda E mitral &gt;25–30 % y tricuspídea &gt;40–60 % · plétora de vena cava inferior (dilatación &gt;20 mm con reducción &lt;50 %)<br>
+        <!-- J-1 (2026-10-24): la ficha gana la fila de la DURACION del colapso auricular derecho,
+             que es la de mayor especificidad de la Tabla 17 (100 %) y faltaba, y cada fila lleva su
+             sensibilidad y su especificidad tal como la tabla las publica. Verificado EN IMAGEN
+             sobre el original en ingles (DOI 10.1093/eurheartj/ehaf192), folio impreso 62. -->
+        <b style="color:var(--accent2);">Signos ecocardiográficos (Tabla 17, folio 62):</b> derrame grande con corazón oscilante · colapso <b>diastólico</b> de la aurícula derecha (sensibilidad 50–100 %, especificidad 33–100 %) · <b>duración</b> de ese colapso &gt;0,34 del ciclo cardíaco (sensibilidad &gt;90 %, especificidad 100 %) · colapso diastólico del ventrículo derecho (48–100 % / 72–100 %) · variación respiratoria de la onda E mitral &gt;25–30 % y tricuspídea &gt;40–60 % · plétora de vena cava inferior (dilatación &gt;20 mm y reducción &lt;50 % del diámetro con las fases respiratorias), junto con dilatación de las venas suprahepáticas (97 % / 40 %)<br>
+        <b style="color:var(--accent2);">Lo que la Tabla 17 NO menciona:</b> el colapso de la aurícula izquierda y el del ventrículo izquierdo. La aplicación los recoge porque son hallazgos reales del estudio, los describe y no los cuenta como criterio (criterio de EcoSmart).<br>
         <!-- R6: «Clase IIa» en el derrame sintomatico era INCORRECTO. Recommendation Table 12,
              pagina 43: «Pericardiocentesis ... is recommended for cardiac tamponade, or suspected
              bacterial or neoplastic pericarditis, or symptomatic moderate to large pericardial
@@ -28320,6 +28334,23 @@ window.vexusEstado = vexusEstado;
 
 const DPT_VAR_MITRAL_SIG = 25;   // % de variación respiratoria de la E mitral
 const DPT_VAR_TRIC_SIG   = 40;   // % de variación respiratoria de la E tricúspide
+/* ══ LA PLETORA DE VCI Y LA FASE DEL COLAPSO AURICULAR DERECHO SE ALINEAN A LA GUIA (J-1) ═════
+   ESC 2025 de miocarditis y pericarditis, **Tabla 17, folio 62** del original en ingles
+   (DOI 10.1093/eurheartj/ehaf192), leida EN IMAGEN, tres filas:
+     · «Inferior vena cava plethora (dilatation >20 mm and <50% reduction of diameter with
+       respiratory phases)» -> el diametro pasa de **>21 a >20 mm**. El colapso <50 % no se mueve.
+     · «Diastolic collapse of the RA» -> la fase del colapso auricular derecho es **DIASTOLICA**.
+       La app decia «sistolico», que es la fase equivocada en TODAS sus superficies.
+     · «Duration of diastolic collapse of the RA as a ratio of the cardiac cycle length >0.34»
+       (sensibilidad >90 %, especificidad 100 %) -> la DURACION tiene su propio corte y su propio
+       campo, porque es la fila con la especificidad mas alta de la tabla y no tenia donde cargarse.
+   ⚠️ DIVERGENCIA DECLARADA CON `_htp2022Core`, Y ES DELIBERADA: su `vciD > 21` es la categoria C
+   de la ESC/ERS 2022 de hipertension pulmonar, otra guia, y esta orden la excluye expresamente.
+   O sea que la app usa DOS cortes de VCI, cada uno con el documento que lo publica. El comentario
+   que vivia sobre `dptPletora` decia lo contrario -«el MISMO criterio que la categoria C»- y esa
+   unificacion era justamente lo que hacia que el pericardio marcara plétora un milimetro tarde. */
+const DPT_VCI_PLETORA_MM = 20;    // mm, ESTRICTO: >20 con colapso <50 % es pletora (Tabla 17)
+const DPT_COL_AD_DUR_SIG = 0.34;  // fraccion del ciclo, ESTRICTO: >0,34 (Tabla 17)
 /* Un umbral por anillo, no uno compartido. El septal corta en 7 y el lateral en 10, que es lo
    que usa la CLASIFICACIÓN DIASTÓLICA del archivo (`esep < 7 || elat < 10`, fija). Con el 7
    compartido, un e' lateral de 8 cm/s era «reducido» en toda la app y acá votaba CONSTRICCIÓN.
@@ -28425,7 +28456,7 @@ function _pcHayDpt(c) {
   c = c || {};
   const per = String(c.pericardio || '');
   if (/m[ií]nimo|leve|moderado|severo/i.test(per)) return true;
-  return ['dpt_col_vd','dpt_col_ad','dpt_col_ai','dpt_col_vi','dpt_mm_ant','dpt_mm_lat','dpt_mm_post',
+  return ['dpt_col_vd','dpt_col_ad','dpt_col_ad_dur','dpt_col_ai','dpt_col_vi','dpt_mm_ant','dpt_mm_lat','dpt_mm_post',
           'resp_var_mitral','vci_diam','vci_col'].some(k => String(c[k] || '').trim() !== '')
       || String(c['dpt_swinging__chk'] || '') === '1';
 }
@@ -28466,6 +28497,13 @@ window._pcCon = _pcCon;
 function _dptPctSospechoso(id) { const n = _pcV(id); return n !== null && n > 0 && n < 1; }
 function _dptPct(id) { const n = _pcV(id); return (n === null || n < 0 || n > 100 || (n > 0 && n < 1)) ? null : n; }
 function _dptMm(id)  { const n = _pcV(id); return (n === null || n <= 0 || n > 100) ? null : n; }
+/* La duración del colapso auricular derecho es una FRACCIÓN del ciclo, no un porcentaje: la banda
+   es (0, 1]. Fuera de ahí devuelve `null` —«no medido»— y no un número que la frase pueda usar.
+   Importa por la misma dirección que las dos variaciones respiratorias ya documentan: un 34
+   tipeado por 0,34 caería muy por encima del corte y afirmaría la fila de especificidad 100 % de
+   la Tabla 17 sobre un error de escala. El 1 exacto se conserva: es un colapso que dura todo el
+   ciclo, raro pero medible. */
+function _dptFrac(id) { const n = _pcV(id); return (n === null || n <= 0 || n > 1) ? null : n; }
 
 /* ══ LOS TRES GRADOS DEL DERRAME — TABLA DUEÑA (R5, 2026-10-20) ══════════════════════════════
    ESC 2025 de miocarditis y pericarditis, **Tabla 10, pagina 31** del original en ingles (folio 33
@@ -28505,12 +28543,13 @@ function dptTamano() {
 }
 window.dptTamano = dptTamano;
 
-/* Plétora de VCI con el MISMO criterio que la categoría C del HTP ESC 2022 (>21 mm con
-   colapso <50%, ver `calcHTP2022`). Dos definiciones de plétora en la misma app terminan
-   contradiciéndose en el mismo informe. */
+/* Plétora de VCI con el criterio de la **Tabla 17 de la ESC 2025 de pericarditis**: dilatación
+   `> DPT_VCI_PLETORA_MM` mm con reducción < 50 % con las fases respiratorias. Ver la nota de esa
+   constante para la divergencia —declarada y deliberada— con la categoría C del HTP ESC/ERS 2022,
+   que sigue en 21 mm porque la publica otra guía y esta orden la excluye. */
 function dptPletora() {
   const d = _pcV('vci_diam'), col = _pcSv('vci_col');
-  return { evaluada: (d !== null && col !== ''), presente: (d !== null && d > 21 && col === '<50'), diam:d, col:col };
+  return { evaluada: (d !== null && col !== ''), presente: (d !== null && d > DPT_VCI_PLETORA_MM && col === '<50'), diam:d, col:col };
 }
 
 function dptEstado() {
@@ -28536,8 +28575,21 @@ function dptEstado() {
      es el signo más precoz, estaba consignado en la oración anterior, y la conclusión lo
      negaba. Una negación no puede ignorar un hallazgo positivo del mismo párrafo. */
   const varT = _dptPct('resp_var_tric');
+  /* ⚠️ LA FASE ES DIASTOLICA (J-1): la Tabla 17 publica «Diastolic collapse of the RA» y la app
+     decia «sistolico». Y la DURACION, que es la fila de especificidad 100 % de esa misma tabla,
+     entra como dato propio: con el corte superado la frase lo dice, y por debajo publica el
+     numero sin afirmar nada, que es lo que la guia sostiene. */
+  const colAdDur = _dptFrac('dpt_col_ad_dur');
   const otros = [];
-  if (_pcSv('dpt_col_ad') === 'si') otros.push('colapso sistólico de la aurícula derecha');
+  /* ⚠️ LA DURACION VA ENTRE PARENTESIS Y NO ENTRE COMAS, y el A/B del commit 1 lo destapo:
+     `signos` se publica como una ENUMERACION separada por comas, asi que «…aurícula derecha de
+     0,35 del ciclo, por encima de 0,34 y variación respiratoria…» se lee como si «por encima de
+     0,34» fuera un signo mas de la lista. Con parentesis el inciso queda pegado a su signo. */
+  if (_pcSv('dpt_col_ad') === 'si') otros.push('colapso diastólico de la aurícula derecha'
+    + (colAdDur !== null
+        ? ' (' + String(colAdDur).replace('.', ',') + ' del ciclo'
+          + (colAdDur > DPT_COL_AD_DUR_SIG ? ', por encima de ' + String(DPT_COL_AD_DUR_SIG).replace('.', ',') : '') + ')'
+        : ''));
   if (_pcSv('dpt_col_ai') === 'si') otros.push('colapso de la aurícula izquierda');
   if (_pcSv('dpt_col_vi') === 'si') otros.push('colapso del ventrículo izquierdo');
   if (_pcChk('dpt_swinging'))    otros.push('corazón oscilante');
@@ -28577,7 +28629,7 @@ function dptEstado() {
   const signos = cumplidos.map(c => c.lbl).concat(otros);
 
   return { clave, tam, hayDerrame, crit, evaluados, cumplidos, otros, signos,
-           plet, varM, varT, colVD, mmMax, mmDiscrepa };
+           plet, varM, varT, colVD, colAdDur, mmMax, mmDiscrepa };
 }
 window.dptEstado = dptEstado;
 
@@ -28701,6 +28753,7 @@ function dptSync() {
   // Los umbrales de los rótulos salen de las constantes: un rótulo fijo miente el día que se mueva el corte.
   txt('dpt-lbl-mitral', String(DPT_VAR_MITRAL_SIG));
   txt('dpt-lbl-tric',   String(DPT_VAR_TRIC_SIG));
+  txt('dpt-lbl-addur',  String(DPT_COL_AD_DUR_SIG).replace('.', ','));
   txt('dpt-tam-eco', st.hayDerrame ? ('Derrame ' + st.tam.lbl) : (_pcSv('pericardio') || '—'));
   txt('dpt-vci-eco', st.plet.diam !== null ? st.plet.diam + ' mm' : 'no cargada');
   txt('dpt-vcicol-eco', st.plet.col === '>50' ? '> 50%' : st.plet.col === '<50' ? '< 50%' : 'no cargado');
@@ -89845,11 +89898,15 @@ function amiloTextoDPT() {
   /* Las cuatro cavidades se imprimen con su estado REAL, incluido «no evaluado». Un informe
      que sólo lista lo presente deja al lector sin saber si lo demás se buscó. */
   L.push('## Colapso de cavidades');
-  [['dpt_col_ad','Aurícula derecha (sistólico)'],['dpt_col_vd','Ventrículo derecho (diastólico)'],
+  [['dpt_col_ad','Aurícula derecha (diastólico)'],['dpt_col_vd','Ventrículo derecho (diastólico)'],
    ['dpt_col_ai','Aurícula izquierda'],['dpt_col_vi','Ventrículo izquierdo']].forEach(p => {
     const s = sv(p[0]);
     L.push(p[1] + ' | ' + (s === 'si' ? 'Presente' : s === 'no' ? 'Ausente' : 'No evaluado'));
   });
+  /* La duración sale con su corte al lado: es la fila de especificidad 100 % de la Tabla 17 y el
+     número solo no dice de qué lado del corte cayó. Se lee del MISMO dueño que la frase. */
+  if (st.colAdDur !== null) L.push('Duración del colapso AD | ' + String(st.colAdDur).replace('.', ',')
+    + ' del ciclo (significativa >' + String(DPT_COL_AD_DUR_SIG).replace('.', ',') + ')');
 
   L.push('## VCI y variación respiratoria');
   L.push('VCI | ' + (st.plet.diam !== null ? st.plet.diam + ' mm' : 'no cargada'));
