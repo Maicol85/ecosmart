@@ -881,7 +881,43 @@ window.__G = {
               return e ? getComputedStyle(e).display !== 'none' : null })()
     };
   },
-  togglear() { try { popMonToggle(); return 'ok' } catch (e) { return 'EXC ' + e.message } }
+  togglear() { try { popMonToggle(); return 'ok' } catch (e) { return 'EXC ' + e.message } },
+  svgNodos() {
+    var s2 = document.getElementById('pop-esq-svg');
+    if (!s2) return { err: 'NO EXISTE pop-esq-svg' };
+    return { hijos: s2.childNodes.length, todos: s2.querySelectorAll('*').length,
+             vis: getComputedStyle(s2).display !== 'none',
+             w: Math.round(s2.getBoundingClientRect().width),
+             h: Math.round(s2.getBoundingClientRect().height),
+             atributosEvento: s2.querySelectorAll('[onclick],[onload],[onerror],[onmouseover]').length };
+  },
+  esqTexto() {
+    var h = document.getElementById('pop-esq-txt');
+    if (!h) return { err: 'NO EXISTE pop-esq-txt' };
+    return { filas: h.children.length, chips: h.querySelectorAll('.pop-esq-chip').length,
+             txt: (h.textContent || '').replace(/[ ]+/g, ' ').trim() };
+  },
+  esq() { try { var d = popEsquema();
+    return { ic: d.ic, pvc: d.pvc, pcp: d.pcp, papm: d.papm, pam: d.pam, gtp: d.gtp,
+             rvp: d.rvp === null ? null : Number(d.rvp.toFixed(2)), rvs: d.rvs,
+             cVI: d.cVI, cVD: d.cVD, cPulmon: d.cPulmon, cCajaPulm: d.cCajaPulm,
+             vdRama: d.vdRama, bcia: d.bcia, ecmoVA: d.ecmoVA, drogas: d.drogas,
+             pleD: d.pleD, pleI: d.pleI, lineasB: d.lineasB, suf: d.suficiente } }
+    catch (e) { return 'EXC ' + e.message } },
+  /* Que se VE del dibujo: los elementos que aparecen y desaparecen segun el dato. */
+  esqVisibles() {
+    var s2 = document.getElementById('pop-esq-svg');
+    if (!s2) return { err: 'NO EXISTE' };
+    var n = 0;
+    s2.querySelectorAll('line').forEach(function(e){ if (e.getAttribute('display') !== 'none') n++ });
+    var txt = [];
+    s2.querySelectorAll('text').forEach(function(e){
+      if (e.getAttribute('display') !== 'none' && (e.textContent||'').trim())
+        txt.push(e.textContent.trim()) });
+    var el = s2.querySelectorAll('ellipse'), elv = 0;
+    el.forEach(function(e){ if (e.getAttribute('display') !== 'none') elv++ });
+    return { lineasVisibles: n, elipsesVisibles: elv, textos: txt };
+  }
 };
 1`);
 
@@ -963,6 +999,76 @@ window.__G = {
     } catch (e) { r.err = e.message + ' | ' + String(e.stack || '').split('\n')[1] }
     out2.grupos.e1 = r;
     process.stderr.write('[e1] listo\n');
+  }
+
+  /* ══ GRUPO e2 — el diagrama central ═══════════════════════════════════════════════════════ */
+  if (corre('e2')) {
+    const r = {};
+    const ESC = {
+      pop_cx_tipo:'cabg', pop_cx_horas:'6', pop_monitor:'swan',
+      pop_sw_gc:'3.1', pop_sw_fc:'95', pop_sw_pam:'58', pop_sw_paps:'52', pop_sw_papd:'26',
+      pop_sw_pcp:'10', pop_sw_pad:'18',
+      pop_pleura_der:'moderado', pop_pleura_izq:'ausente', pop_pulmon_lineasb:'difusas',
+      pop_asist_tipo:'bcia', pop_bcia_ratio:'1:1',
+      tapse:'11', tep_vdvi:'1.2',
+      peso:'80', talla:'175'
+    };
+    try {
+      r.abrir = await ev(`window.__G.abrirPOP()`);
+      /* DENOMINADOR: el SVG existe y tiene nodos. Sin esto, todo lo de abajo cuenta sobre cero. */
+      r.svgNodos0 = await ev(`window.__G.svgNodos()`);
+      r.txtVacio = await ev(`window.__G.esqTexto()`);
+      r.esqVacio = await ev(`window.__G.esq()`);
+      await ev(`window.__G.poner(${JSON.stringify(ESC)})`);
+      await ev(`(function(){ try{ popSync() }catch(e){ return 'EXC ' + e.message }; return 1 })()`);
+      r.esqCargado = await ev(`window.__G.esq()`);
+      r.svgNodos1 = await ev(`window.__G.svgNodos()`);
+      r.txtCargado = await ev(`window.__G.esqTexto()`);
+      r.visibles = await ev(`window.__G.esqVisibles()`);
+      /* ── ANIMACION: corre con el dibujo a la vista ── */
+      await ev(`(function(){ return new Promise(function(ok){ setTimeout(function(){ ok(1) }, 400) }) })()`);
+      r.rafVisible = await ev(`(function(){ return { raf: _popEsq.rafId !== 0, vis: _popEsq.visible,
+        reduce: _popEsq.reduce, montado: _popEsq.montado, obs: !!_popEsq.obs } })()`);
+      /* ── sale del POP: el bucle se apaga ── */
+      await ev(`(function(){ try{ showTab('paciente') }catch(e){}; return 1 })()`);
+      await ev(`(function(){ return new Promise(function(ok){ setTimeout(function(){ ok(1) }, 500) }) })()`);
+      r.rafFuera = await ev(`(function(){ return { raf: _popEsq.rafId !== 0, vis: _popEsq.visible } })()`);
+      /* ── vuelve: se enciende ── */
+      await ev(`window.__G.abrirPOP()`);
+      await ev(`(function(){ return new Promise(function(ok){ setTimeout(function(){ ok(1) }, 500) }) })()`);
+      r.rafVuelta = await ev(`(function(){ return { raf: _popEsq.rafId !== 0, vis: _popEsq.visible } })()`);
+      /* ── VEINTE aperturas y cierres: ni un nodo ni un observador de mas ── */
+      await ev(`(function(){ for (var i=0;i<20;i++){ try{ showTab('paciente'); showTab('hemodinamica') }catch(e){} } return 1 })()`);
+      await ev(`(function(){ for (var i=0;i<20;i++){ try{ popSync() }catch(e){} } return 1 })()`);
+      await ev(`(function(){ return new Promise(function(ok){ setTimeout(function(){ ok(1) }, 600) }) })()`);
+      r.svgNodos20 = await ev(`window.__G.svgNodos()`);
+      r.raf20 = await ev(`(function(){ return { raf: _popEsq.rafId !== 0, obs: !!_popEsq.obs } })()`);
+      /* ── ECMO en vez de balon ── */
+      await ev(`window.__G.poner({ pop_asist_tipo:'ecmo_va', pop_ecmo_flujo:'4.0' })`);
+      await ev(`(function(){ try{ popSync() }catch(e){}; return 1 })()`);
+      r.visiblesEcmo = await ev(`window.__G.esqVisibles()`);
+      r.txtEcmo = await ev(`window.__G.esqTexto()`);
+      await ev(`window.__G.abrirPOP()`);
+      await ev(`(function(){ return new Promise(function(ok){ setTimeout(function(){ ok(1) }, 400) }) })()`);
+      r.geoEsq = await ev(`window.__G.svgNodos()`);
+      await ev(`(function(){ var e=document.querySelector('[data-pop=\"pop-esq\"]');
+        if(e) e.scrollIntoView({block:'center'}); return 1 })()`);
+      r.png = await shot('g-e2-esquema-oscuro');
+      await ev(`window.__P.tema(true)`);
+      r.pngClaro = await shot('g-e2-esquema-claro');
+      await ev(`window.__P.tema(false)`);
+      /* ¿RESPETA «REDUCIR MOVIMIENTO»? Se fuerza la preferencia y se comprueba que NO quede un
+         bucle pedido: con la preferencia puesta se dibuja UN cuadro y ahí queda. */
+      r.reduceAntes = await ev(`_popEsq.reduce`);
+      await ev(`(function(){ _popEsq.reduce = true; popEsqParar(); popEsqPintar(); return 1 })()`);
+      await ev(`(function(){ return new Promise(function(ok){ setTimeout(function(){ ok(1) }, 400) }) })()`);
+      r.reduceRaf = await ev(`(function(){ return { raf: _popEsq.rafId !== 0, reduce: _popEsq.reduce } })()`);
+      r.reduceDibujo = await ev(`window.__G.esqVisibles()`);
+      await ev(`(function(){ _popEsq.reduce = false; popEsqPintar(); return 1 })()`);
+      r.errores = await ev(`window.__Yerr ? window.__Yerr.slice(0,20) : null`);
+    } catch (e) { r.err = e.message }
+    out2.grupos.e2 = r;
+    process.stderr.write('[e2] listo\n');
   }
 
   /* ══ GRUPO ctrl — A/B de control: informe, EN SUMA, Excel y censo de campos ═════════════

@@ -1436,6 +1436,43 @@
   /* El botón centrado y fuera de las cards, con el disclaimer debajo. */
   .pop-integrar-wrap { display:flex; justify-content:center; margin:12px auto 0; }
   .pop-card-wide { grid-column: 1 / -1; }
+  /* ══ POP · EL DIAGRAMA AL CENTRO Y LOS DATOS ALREDEDOR (G2, 24/10/2026) ══
+     Tres columnas DESDE 1100 px: a la izquierda los datos hemodinámicos y el monitoreo, al
+     centro el esquema, a la derecha el contexto y el soporte con las drogas; la evaluación por
+     sistemas y la conclusión abajo, a ancho completo.
+     ⚠️ EL REPARTO LO HACE `grid-template-areas` Y NO EL ORDEN DEL MARCADO, a propósito: mover
+     las secciones de lugar en el HTML habría cambiado el ORDEN DE TABULACIóN y el de lectura de
+     un lector de pantalla, que es el orden en que el médico carga los datos. Cada `data-pop` se
+     ubica por su nombre; sin la consulta de medios el marcado sigue siendo el de siempre.
+     ⚠️ EL CORTE ES 1100 px Y NO 768: con dos columnas de ~400 px el esquema queda en 400 px de
+     ancho y los rótulos de dentro del dibujo se enciman. Entre 768 y 1100 px vale la maqueta de
+     DOS columnas de siempre y el esquema se lleva las dos. */
+  @media (min-width: 1100px) {
+    .pop-grid { grid-template-columns: minmax(0,1fr) minmax(0,1.35fr) minmax(0,1fr);
+                grid-template-areas: "hemo esq ctx" "hemo esq sop" "pocus pocus pocus" "concl concl concl"; }
+    .pop-grid > [data-pop="pop-ctx"]     { grid-area: ctx; }
+    .pop-grid > [data-pop="pop-hemo"]    { grid-area: hemo; }
+    .pop-grid > [data-pop="pop-esq"]     { grid-area: esq; }
+    .pop-grid > [data-pop="pop-soporte"] { grid-area: sop; }
+    .pop-grid > [data-pop="pop-pocus"]   { grid-area: pocus; }
+    .pop-grid > [data-pop="pop-concl"]   { grid-area: concl; }
+  }
+  @media (min-width: 769px) and (max-width: 1099px) {
+    .pop-grid > [data-pop="pop-esq"] { grid-column: 1 / -1; }
+  }
+  /* El dibujo escala con su caja y no al revés: `width:100%` y `height:auto` sobre un `viewBox`.
+     `--bg3` y `--border` ya se usan en esta misma zona; no entra un color nuevo. */
+  .pop-esq-wrap { background:var(--bg3); border:1px solid var(--border); border-radius:10px;
+                  padding:8px; }
+  .pop-esq-svg { display:block; width:100%; height:auto; }
+  .pop-esq-chip { display:inline-block; font-size:10px; line-height:1.4; padding:1px 6px;
+                  border-radius:999px; border:1px solid var(--border); color:var(--text2);
+                  background:var(--bg2); margin-left:6px; vertical-align:middle; }
+  /* El equivalente en TEXTO del dibujo. No es una leyenda: dice lo MISMO, para quien no ve el
+     dibujo y para el papel. */
+  .pop-esq-txt { font-size:11.5px; line-height:1.6; color:var(--text); margin-top:10px; }
+  .pop-esq-txt b { color:var(--text2); font-weight:600; font-size:10.5px; display:block;
+                   text-transform:uppercase; letter-spacing:.3px; margin-top:8px; }
   .pop-card-tit { font-size:11px; text-transform:uppercase; letter-spacing:.4px; font-weight:700;
                   color:var(--text2); margin-bottom:10px; }
   @media (max-width: 768px) {
@@ -10051,6 +10088,23 @@ window.cerrarSesionReal = cerrarSesionReal;
             <div style="font-size:10px;color:var(--text2);margin-top:6px;line-height:1.5;" id="pop-comp-nota"></div>
           </div>
         </div>
+    </section>
+    <!-- ══ EL ESQUEMA DEL POSOPERATORIO (G2, 24/10/2026) ══════════════════════════════
+         La ESCENA SALE SOLO DE LOS DATOS CARGADOS: no hay un selector de patrón, ni un botón de
+         ejemplo, ni un valor por omisión. Sin datos el dibujo se ve en gris y lo dice.
+         TODO LO QUE EL DIBUJO MUESTRA EXISTE TAMBIÉN COMO TEXTO, en `#pop-esq-txt`: el dibujo no
+         es la única forma de leer el dato —ni para quien usa un lector de pantalla, ni para el
+         papel—. El `role="img"` con su `aria-label` describe la escena completa.
+         El contenido del SVG lo construye `popEsqPintar()` con `createElementNS`: ni un nodo se
+         arma concatenando texto en `innerHTML`. -->
+    <section class="pop-card" data-pop="pop-esq">
+      <div class="pop-card-tit">🫀 Esquema del posoperatorio</div>
+      <div class="pop-esq-wrap">
+        <svg id="pop-esq-svg" class="pop-esq-svg" viewBox="0 0 600 496" role="img"
+             aria-label="Esquema del posoperatorio: las cuatro cavidades, los grandes vasos, los pulmones y el soporte, dibujados con los datos cargados."></svg>
+      </div>
+      <div id="pop-esq-txt" class="pop-esq-txt" aria-live="polite"></div>
+      <div style="font-size:10px;color:var(--text2);margin-top:8px;line-height:1.5;">Esquema ilustrativo: el tamaño de las cavidades y el grosor de los vasos acompañan a los valores cargados, no son una medición del paciente. Los colores y los números salen de los mismos dueños que gradua el resto de la app.</div>
     </section>
     <section class="pop-card" data-pop="pop-soporte">
       <div class="pop-card-tit">💉 Soporte y drogas vasoactivas</div>
@@ -57380,6 +57434,560 @@ function popConclSync() {
   }
 }
 window.popConclSync = popConclSync;
+/* ══ POP · EL ESQUEMA DEL POSOPERATORIO — SEAM DE DATOS (G2, 2026-10-24) ══════════════════════
+   `popEsquema()` devuelve DATOS, nunca HTML ni nodos: es el mismo patrón que `popPatron()`, y
+   existe por el mismo motivo. Lo consumen DOS superficies —el dibujo y su equivalente en
+   TEXTO— y con dos derivaciones podrían decir cosas distintas del mismo paciente.
+
+   ⚠️ LA ESCENA SALE SOLO DE LOS DATOS CARGADOS. No hay selector de patrón, ni botones de
+   ejemplo, ni valores por omisión: la demo aprobada los tenía porque era una demo, y copiarlos
+   habría puesto en la app una superficie clínica que se elige a mano.
+
+   ⚠️ NI UN CORTE NUEVO. Las tres cosas que el dibujo COLOREA preguntan por la banda que la app
+   ya tiene dueño:
+     · el VI      -> `_icBanda`, la misma de la cápsula «Perfil hemodinámico» y del bloque 3;
+     · el VD      -> `UMBRAL_TAPSE_NORMAL` y `TEP_VDVI_DILAT_MIN`, los de la cápsula de TEP;
+     · el pulmón  -> `RVP_ELEVADA_UW` (ESC/ERS 2022), la única unidad de corte de la RVP.
+   LA AD Y LA AI NO SE COLOREAN, y es deliberado: esta app NO tiene una banda de PVC ni de PCP
+   —la de 12 a 18 del diseño es criterio propio, declarado como tal en la conclusión— y pintar
+   una aurícula de rojo es una afirmación clínica. Se dibujan del tamaño que acompaña al número
+   y el número se publica al lado, que es describir sin graduar.
+
+   ⚠️ LA GEOMETRÍA ES ILUSTRATIVA Y SE DECLARA EN PANTALLA. Que una cavidad se vea más grande
+   con una presión más alta es un recurso de dibujo, no una medición: no hay ninguna fuente que
+   convierta una PVC en milímetros de aurícula. Por eso vive en este bloque y no entre las
+   constantes clínicas, y por eso el rótulo de abajo del dibujo lo dice con todas las letras. */
+/* El umbral de hipertensión pulmonar de la ESC/ERS 2022 (PAP media > 20 mmHg). Se usa para UNA
+   sola cosa: partir la falla del VD en «contra una poscarga alta» y «del propio VD», que es lo
+   que pide el diseño aprobado. Esa PARTICIÓN es criterio de EcoSmart y lleva su chip; el NÚMERO
+   no se inventa, es el de la guía.
+   ⚠️ EL MISMO 20 ESTÁ ESCRITO INLINE en la cápsula de Hemodinámica (`calcHemodinamica`), que
+   esta orden NO autoriza a tocar. Quedan DOS copias del mismo número: si alguna vez se mueve,
+   hay que moverlo en los dos lugares. Declarado en PENDIENTES. */
+const POP_PAPM_HP_MMHG = 20;
+/* Duración de un latido del dibujo, en milisegundos. NO es la frecuencia cardíaca del paciente
+   —esa no entra en este trabajo— : es la velocidad a la que el esquema se ve bien. */
+const POP_ESQ_PER_MS = 1700;
+function popEsquema() {
+  const r = popPatron();
+  const sv2 = id => { const e = document.getElementById(id); return e ? e.value : ''; };
+  const mon = sv2('pop_monitor');
+  const esSw = mon === 'swan', esPic = mon === 'picco';
+
+  /* ── GASTO CARDÍACO, con la misma precedencia que `popPatron` ── */
+  const swGc = esSw ? v('pop_sw_gc') : null;
+  const picGc = esPic ? v('pop_picco_gc') : null;
+  const ecoGc = _hemoGCEco(v('diam_tsvi'), v('itv_tsvi'), v('hemo_fc'));
+  let gc = null, gcFuente = null;
+  if (swGc !== null && swGc > 0) { gc = swGc; gcFuente = 'termodilución'; }
+  else if (picGc !== null && picGc > 0) { gc = picGc; gcFuente = 'PiCCO'; }
+  else if (ecoGc !== null && ecoGc > 0) { gc = ecoGc; gcFuente = 'ecocardiografía'; }
+
+  /* ── PRESIONES ── La MEDIDA le gana a la estimada, y se declara cuál se usó: mezclarlas sin
+     decirlo publica un dibujo sostenido en una estimación como si fuera una medición. */
+  const padSw = esSw ? v('pop_sw_pad') : null;
+  const pvc = padSw !== null ? padSw : v('pmad');
+  const pvcFuente = padSw !== null ? 'PAD medida (Swan-Ganz)'
+                    : (v('pmad') !== null ? 'PVC estimada por VCI' : null);
+  const papsSw = esSw ? v('pop_sw_paps') : null;
+  const paps = papsSw !== null ? papsSw : v('psap_calc');
+  const papsFuente = papsSw !== null ? 'medida (Swan-Ganz)'
+                     : (v('psap_calc') !== null ? 'estimada por eco' : null);
+  const papd = esSw ? v('pop_sw_papd') : null;
+  const papm = (paps !== null && papd !== null) ? (paps + 2 * papd) / 3 : null;
+  const pamSw = esSw ? v('pop_sw_pam') : null;
+  const pam = pamSw !== null ? pamSw : v('hemo_pam');
+  /* El rotulo NO repite el nombre del dato: la superficie que lo publica ya dice «PAM», y
+     «PAM 58 mmHg - PAM medida (Swan-Ganz)» se lee como dos PAM distintas. */
+  const pamFuente = pamSw !== null ? 'medida (Swan-Ganz)'
+                    : (v('hemo_pam') !== null ? 'de Hemodinámica' : null);
+  const pcp = r.pcp;
+  const gtp = (papm !== null && pcp !== null) ? papm - pcp : null;
+  const rvp = (gtp !== null && gc !== null && gc > 0) ? gtp / gc : null;
+  const rvpLim = (typeof RVP_ELEVADA_UW !== 'undefined') ? RVP_ELEVADA_UW : 2;
+
+  /* ── VENTRÍCULO DERECHO ── Los dos cortes son los de la cápsula de TEP; no se gradúa acá. */
+  const uT = (typeof UMBRAL_TAPSE_NORMAL !== 'undefined') ? UMBRAL_TAPSE_NORMAL : 17;
+  const tapse = r.tapse, vdvi = r.vdvi;
+  const tapseBaja = tapse !== null && tapse < uT;
+  const vdDil = vdvi !== null && vdvi >= TEP_VDVI_DILAT_MIN;
+  const hayVD = tapse !== null || vdvi !== null;
+  /* LA PARTICIÓN POR PAP ES CRITERIO DE ECOSMART: ninguna fuente de la biblioteca cuelga
+     «poscarga» o «contractilidad» de ese umbral. El número es el de la ESC/ERS 2022. Sin PAP
+     media no se parte: se dice que falta, que es distinto de elegir una de las dos ramas. */
+  let vdRama = null;
+  if (tapseBaja || vdDil) {
+    vdRama = papm === null ? 'sin_pap' : (papm > POP_PAPM_HP_MMHG ? 'poscarga' : 'contractilidad');
+  }
+
+  /* ── PERICARDIO ── Se lee del módulo de pericardio de esta misma pestaña; no se reevalúa. */
+  let dpt = null;
+  try { dpt = (typeof dptEstado === 'function') ? dptEstado() : null; } catch (e) { dpt = null; }
+  const hayDerrame = !!(dpt && dpt.hayDerrame);
+  const compresion = !!r.taponamiento;
+
+  /* ── PLEURA, PULMÓN, SOPORTE Y VASOACTIVOS ── */
+  const pleD = sv2('pop_pleura_der'), pleI = sv2('pop_pleura_izq');
+  const lineasB = sv2('pop_pulmon_lineasb');
+  const asist = sv2('pop_asist_tipo');
+  const bcia = asist === 'bcia';
+  const ecmoVA = asist === 'ecmo_va';
+  const drogas = (window.POP_DROGAS || []).map(function (k) {
+    const c = document.getElementById('pop_' + k + '_activa');
+    if (!c || !c.checked) return null;
+    return c.parentNode ? (c.parentNode.textContent || '').trim() : k;
+  }).filter(Boolean);
+
+  const icB = r.icBanda;
+  return {
+    patron: r.pat, suficiente: r.suficiente, motivo: r.motivo,
+    ic: r.ic, icBanda: icB, icFuente: r.icFuente,
+    gc: gc, gcFuente: gcFuente,
+    pvc: pvc, pvcFuente: pvcFuente, pcp: pcp, pcpFuente: r.pcpFuente,
+    paps: paps, papsFuente: papsFuente, papd: papd, papm: papm,
+    pam: pam, pamFuente: pamFuente,
+    gtp: gtp, rvp: rvp, rvpLim: rvpLim,
+    rvs: r.rvs, rvsBanda: r.rvsBanda, rvsFuente: r.rvsFuente,
+    tapse: tapse, vdvi: vdvi, uT: uT, tapseBaja: tapseBaja, vdDil: vdDil,
+    hayVD: hayVD, vdRama: vdRama,
+    hayDerrame: hayDerrame, compresion: compresion,
+    pleD: pleD, pleI: pleI, lineasB: lineasB,
+    asist: asist, bcia: bcia, ecmoVA: ecmoVA, drogas: drogas,
+    /* Los CUATRO colores del dibujo, resueltos acá para que el SVG no decida nada. */
+    cVI: icB ? (icB.cls === 'green' ? 'ok' : icB.cls === 'yellow' ? 'warn' : 'bad') : 'none',
+    cVD: !hayVD ? 'none' : (tapseBaja && vdDil) ? 'bad' : (tapseBaja || vdDil) ? 'warn' : 'ok',
+    cPulmon: lineasB === 'difusas' ? 'bad' : lineasB === 'focales' ? 'warn'
+             : lineasB === 'ausentes' ? 'ok' : 'none',
+    cCajaPulm: papm === null ? 'none' : papm <= POP_PAPM_HP_MMHG ? 'ok'
+               : (rvp !== null && rvp > rvpLim) ? 'bad' : 'warn'
+  };
+}
+window.popEsquema = popEsquema;
+/* ══ POP · EL DIBUJO ══════════════════════════════════════════════════════════════════════════
+   TODO nodo se crea con `createElementNS` y se actualiza con `setAttribute`: ni una cadena de
+   marcado, ni un `innerHTML`, ni un `setAttribute` de un atributo de evento.
+
+   SE MONTA UNA SOLA VEZ. `_popEsq.montado` es la guarda: `popEsqPintar()` se llama desde
+   `popSync`, o sea en cada tecla del módulo, y montar de nuevo dejaría el SVG con dos juegos de
+   nodos por tecla. Lo mismo vale para el oyente: hay UN `IntersectionObserver`, creado en el
+   montaje, y ninguno más.
+
+   ⚠️ LA ANIMACIÓN SE DETIENE SOLA CUANDO EL DIBUJO NO SE VE. No hay un `requestAnimationFrame`
+   que siga corriendo con la pestaña en otra sección: el observador lo apaga al salir y lo
+   enciende al volver. Un bucle de animación vivo detrás de un `display:none` es trabajo que el
+   navegador hace para nadie, y en un equipo de guardia eso es batería.
+
+   ⚠️ Y RESPETA «REDUCIR MOVIMIENTO». Con la preferencia puesta no se pide un solo cuadro: se
+   dibuja una vez, en fin de diástole, y ahí queda. */
+const _popEsqNS = 'http://www.w3.org/2000/svg';
+/* ⚠️ NADA DE `--red-pale` Y COMPANIA, Y ESTO SE VIO EN LA CAPTURA: esas cuatro variables NO
+   estan definidas en el `:root` del tema claro —viven dentro de `html.light-mode .amilo-root`,
+   que es otro modulo—, asi que fuera de ahi el `var()` no resuelve. Un `fill` con un `var()` sin
+   resolver no cae en el color de al lado: cae en el INICIAL, que es NEGRO. Los pulmones, el
+   cuadro pulmonar y los dos ventriculos salian negros, con el rotulo negro adentro, en los DOS
+   temas —en el oscuro no se notaba porque el fondo tambien es oscuro—.
+   Hoy el tinte sale del color FUERTE con `fill-opacity`, que usa `--green`, `--orange`, `--red`,
+   `--bg2` y `--border`: las cinco estan en el `:root` de los dos temas. */
+const _popEsqC = { ok:   ['var(--green)',  0.14, 'var(--green)'],
+                   warn: ['var(--orange)', 0.16, 'var(--orange)'],
+                   bad:  ['var(--red)',    0.16, 'var(--red)'],
+                   none: ['var(--bg2)',    1,    'var(--border)'] };
+var _popEsq = { montado: false, rafId: 0, t0: null, obs: null, visible: false, g: null, n: {} };
+function _popEsqNodo(tag, attrs, padre) {
+  const e = document.createElementNS(_popEsqNS, tag);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  if (padre) padre.appendChild(e);
+  return e;
+}
+function _popEsqTexto(padre, x, y, t, sz, peso, anclaje, color) {
+  const e = _popEsqNodo('text', { x: x, y: y, 'text-anchor': anclaje || 'middle',
+    'font-size': sz, 'font-weight': peso || 400, fill: color || 'var(--text)' }, padre);
+  e.textContent = t;
+  return e;
+}
+/* Un vaso son DOS trazos sobre el mismo camino: el de afuera hace la pared y el de adentro la
+   luz. Cambiar el calibre es cambiar los dos anchos, nada más. */
+function _popEsqVaso(padre, d) {
+  const fuera = _popEsqNodo('path', { d: d, fill: 'none', stroke: 'var(--border)',
+    'stroke-linejoin': 'round' }, padre);
+  const dentro = _popEsqNodo('path', { d: d, fill: 'none', stroke: 'var(--bg3)',
+    'stroke-linejoin': 'round' }, padre);
+  return { set: function (w) { fuera.setAttribute('stroke-width', w + 3);
+                               dentro.setAttribute('stroke-width', w); } };
+}
+function _popEsqClamp(x, a, b) { return Math.max(a === undefined ? 0 : a, Math.min(b === undefined ? 1 : b, x)); }
+function _popEsqLerp(a, b, t) { return a + (b - a) * t; }
+
+function popEsqMontar() {
+  const svg = document.getElementById('pop-esq-svg');
+  if (!svg || _popEsq.montado) return !!svg;
+  const n = {};
+  /* ── PULMONES, TRÁQUEA Y BRONQUIOS ── Dibujo clásico, el de la demo aprobada. */
+  n.lungR = _popEsqNodo('path', { d:'M90 84 C68 76 36 98 28 138 C20 180 26 226 46 254 C60 270 82 264 90 248 C95 206 95 130 90 84 Z', 'stroke-width':1.5 }, svg);
+  n.lungL = _popEsqNodo('path', { d:'M100 84 C122 76 154 98 162 138 C170 180 164 226 144 254 C130 270 108 264 100 248 C95 206 95 130 100 84 Z', 'stroke-width':1.5 }, svg);
+  ['M30 146 Q62 150 92 160','M36 192 Q64 196 92 226','M160 150 Q130 170 100 214'].forEach(function (d) {
+    _popEsqNodo('path', { d:d, fill:'none', stroke:'var(--border)', 'stroke-width':1 }, svg); });
+  const traquea = _popEsqVaso(svg, 'M95 14 L95 66'); traquea.set(9);
+  ['M95 66 L70 104 L62 150','M95 66 L120 104 L128 150'].forEach(function (d) {
+    _popEsqNodo('path', { d:d, fill:'none', stroke:'var(--text2)', 'stroke-width':4, opacity:0.55,
+      'stroke-linecap':'round', 'stroke-linejoin':'round' }, svg); });
+  ['M70 104 L48 124','M66 128 L44 146','M120 104 L142 124','M124 128 L146 146','M62 150 L52 176','M128 150 L138 176'].forEach(function (d) {
+    _popEsqNodo('path', { d:d, fill:'none', stroke:'var(--text2)', 'stroke-width':2.5, opacity:0.45,
+      'stroke-linecap':'round' }, svg); });
+  /* ── DERRAME PLEURAL Y LÍNEAS B ── */
+  /* El tinte sale del color fuerte con `fill-opacity`: `--blue-pale` no resuelve fuera de
+     `.amilo-root` y un `fill` sin resolver cae en NEGRO. Mismo motivo que `_popEsqC`. */
+  n.plR = _popEsqNodo('ellipse', { cx:58, cy:252, rx:22, ry:11, fill:'var(--accent2)',
+    'fill-opacity':0.22, stroke:'var(--accent2)', 'stroke-width':1.5, display:'none' }, svg);
+  n.plL = _popEsqNodo('ellipse', { cx:132, cy:252, rx:22, ry:11, fill:'var(--accent2)',
+    'fill-opacity':0.22, stroke:'var(--accent2)', 'stroke-width':1.5, display:'none' }, svg);
+  n.bl = [];
+  for (let i = 0; i < 4; i++) {
+    n.bl.push([_popEsqNodo('line', { x1:38+i*8, y1:196, x2:38+i*8, y2:232, stroke:'var(--accent2)', 'stroke-width':2, display:'none' }, svg),
+               _popEsqNodo('line', { x1:126+i*8, y1:196, x2:126+i*8, y2:232, stroke:'var(--accent2)', 'stroke-width':2, display:'none' }, svg)]);
+  }
+  /* ⚠️ UNA SOLA LÍNEA PARA LOS DOS LADOS. Con un rótulo centrado debajo de cada pulmón, el del
+     lado derecho —que empieza en x 58— se salía del `viewBox` por la izquierda y se veía
+     cortado: «rrame D moderado». Visto en la captura. */
+  n.plT = _popEsqTexto(svg, 12, 282, '', 13, 500, 'start', 'var(--text2)');
+  /* ── LOS CAÑOS ── */
+  n.pa = _popEsqVaso(svg, 'M340 257 L146 257');
+  n.pv = _popEsqVaso(svg, 'M166 160 L238 160 L238 118 L408 118 L408 172'); n.pv.set(7);
+  n.vc = _popEsqVaso(svg, 'M284 372 L284 178 L330 178');
+  n.ao = _popEsqVaso(svg, 'M410 257 L490 257 L490 110 Q490 62 530 62 Q570 62 570 110 L570 322');
+  n.ecmo = _popEsqNodo('path', { d:'M284 372 L284 388 L570 388 L570 322', fill:'none',
+    stroke:'var(--accent2)', 'stroke-width':3, 'stroke-dasharray':'8 6', display:'none' }, svg);
+  _popEsqTexto(svg, 530, 48, 'Aorta', 16, 500);
+  _popEsqTexto(svg, 292, 348, 'Vena cava', 15, 500, 'start', 'var(--text2)');
+  /* ⚠️ DOS LINEAS CORTAS Y NO UNA LARGA. Entre el borde del pulmon y el ventriculo derecho hay
+     unas ochenta unidades de ancho: «arteria pulmonar · PAP 52/26 · media 35» en una sola linea
+     se metia debajo del VD por un lado y encima del pulmon por el otro. El texto completo vive
+     en el cuadro pulmonar y en el equivalente en texto. */
+  n.paT = _popEsqTexto(svg, 220, 278, '', 13, 500, 'middle', 'var(--text2)');
+  n.pcpT = _popEsqTexto(svg, 323, 106, '', 15, 500, 'middle', 'var(--text2)');
+  n.ecmoT = _popEsqTexto(svg, 430, 382, 'ECMO VA', 15, 500, 'middle', 'var(--accent2)');
+  n.ecmoT.setAttribute('display', 'none');
+  n.drogT = _popEsqTexto(svg, 330, 408, '', 15, 400, 'middle', 'var(--text2)');
+  n.vcT = _popEsqTexto(svg, 292, 366, '', 14, 400, 'start', 'var(--text2)');
+  /* ── CUADRO PULMONAR ── Gradiente transpulmonar y resistencia vascular pulmonar. */
+  n.pbox = _popEsqNodo('rect', { x:10, y:292, width:178, height:80, rx:8, 'stroke-width':1.5 }, svg);
+  n.pb1 = _popEsqTexto(svg, 18, 312, '', 15, 500, 'start');
+  n.pb2 = _popEsqTexto(svg, 18, 330, '', 13, 400, 'start', 'var(--text2)');
+  n.pb3 = _popEsqTexto(svg, 18, 347, '', 12, 400, 'start', 'var(--text2)');
+  n.pb4 = _popEsqTexto(svg, 18, 364, '', 13, 500, 'start', 'var(--text2)');
+  /* El rótulo de los pulmones va ARRIBA Y A LA IZQUIERDA: debajo quedaba pegado al cuadro
+     pulmonar y se leía como su cuarta línea. */
+  _popEsqTexto(svg, 95, 390, 'Pulmones', 16, 500);
+  /* ── PERICARDIO ── El anillo exterior es el derrame; el punteado es el saco. */
+  n.effo = _popEsqNodo('rect', { x:248, y:92, width:248, height:244, rx:34, fill:'none',
+    stroke:'var(--red)', opacity:0.6, 'stroke-width':0 }, svg);
+  _popEsqNodo('rect', { x:256, y:100, width:232, height:228, rx:30, fill:'none',
+    stroke:'var(--border)', 'stroke-width':1, 'stroke-dasharray':'6 4' }, svg);
+  n.effT = _popEsqTexto(svg, 372, 84, '', 14, 500, 'middle', 'var(--red)');
+  /* ── LAS CUATRO CAVIDADES ── Cuadradas y pegadas, como la demo aprobada. */
+  n.rAD = _popEsqNodo('rect', { rx:10, 'stroke-width':1.5 }, svg);
+  n.rAI = _popEsqNodo('rect', { rx:10, 'stroke-width':1.5 }, svg);
+  n.rVD = _popEsqNodo('rect', { rx:10, 'stroke-width':1.5 }, svg);
+  n.rVI = _popEsqNodo('rect', { rx:10, 'stroke-width':1.5 }, svg);
+  n.sep = _popEsqNodo('path', { fill:'none', stroke:'var(--text2)', 'stroke-width':2.5 }, svg);
+  n.tAD = _popEsqTexto(svg, 0, 0, 'AD', 17, 500);
+  n.tAI = _popEsqTexto(svg, 0, 0, 'AI', 17, 500);
+  n.tVD = _popEsqTexto(svg, 0, 0, 'VD', 17, 500);
+  n.tVI = _popEsqTexto(svg, 0, 0, 'VI', 17, 500);
+  /* ── BALÓN DE CONTRAPULSACIÓN ── */
+  n.balon = _popEsqNodo('ellipse', { cx:570, cy:215, rx:3, ry:34, fill:'var(--accent2)',
+    'fill-opacity':0.22, stroke:'var(--accent2)', 'stroke-width':1.5, display:'none' }, svg);
+  n.balonT = _popEsqTexto(svg, 570, 262, 'Balón', 15, 500, 'middle', 'var(--accent2)');
+  n.balonT.setAttribute('display', 'none');
+  /* ── CURVA DE PRESIÓN ARTERIAL ── */
+  _popEsqNodo('rect', { x:20, y:414, width:560, height:72, rx:8, fill:'var(--bg2)',
+    stroke:'var(--border)', 'stroke-width':1 }, svg);
+  _popEsqTexto(svg, 28, 434, 'Presión arterial', 14, 400, 'start', 'var(--text2)');
+  n.wave = _popEsqNodo('path', { fill:'none', stroke:'var(--text)', 'stroke-width':1.8,
+    'stroke-linejoin':'round' }, svg);
+  n.cur = _popEsqNodo('line', { x1:140, y1:420, x2:140, y2:482, stroke:'var(--accent2)',
+    'stroke-width':1.5 }, svg);
+  n.augT = _popEsqTexto(svg, 218, 434, 'aumento diastólico', 14, 500, 'middle', 'var(--accent2)');
+  n.augT.setAttribute('display', 'none');
+  n.pamT = _popEsqTexto(svg, 572, 434, '', 14, 500, 'end', 'var(--text2)');
+
+  _popEsq.n = n;
+  _popEsq.montado = true;
+  _popEsq.reduce = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  /* UN observador, creado una vez. Con el dibujo fuera de vista —otra pestaña, la sección
+     plegada, la ventana en segundo plano— el bucle se apaga; al volver, se enciende. */
+  if (window.IntersectionObserver && !_popEsq.obs) {
+    _popEsq.obs = new IntersectionObserver(function (ents) {
+      const ve = ents.some(function (x) { return x.isIntersecting; });
+      _popEsq.visible = ve;
+      if (ve) popEsqArrancar(); else popEsqParar();
+    }, { threshold: 0 });
+    _popEsq.obs.observe(svg);
+  } else { _popEsq.visible = true; }
+  return true;
+}
+/* Geometría del cuadro, derivada de los datos. ILUSTRATIVA: ver la advertencia de `popEsquema`. */
+function _popEsqGeo(d) {
+  const o = {};
+  const pvc = d.pvc === null ? 6 : d.pvc, pcp = d.pcp === null ? 12 : d.pcp;
+  o.sAD = _popEsqLerp(0.8, 1.22, _popEsqClamp(pvc / 22));
+  o.sAI = _popEsqLerp(0.8, 1.22, _popEsqClamp(pcp / 30));
+  o.sVD = _popEsqLerp(0.82, 1.32, _popEsqClamp((pvc - 3) / 18));
+  o.sVI = _popEsqLerp(0.74, 1.25, _popEsqClamp(pcp / 28));
+  if (d.compresion) { o.sAD *= 0.88; o.sVD *= 0.88; o.sVI *= 0.9; }
+  /* La EXCURSIÓN del VI acompaña al índice cardíaco y la del VD al TAPSE. Sin el dato, un latido
+     intermedio: una cavidad quieta diría «no se contrae» sobre un paciente sin medir. */
+  o.ampVI = d.ic === null ? 0.18 : _popEsqLerp(0.05, 0.34, _popEsqClamp((d.ic - 1.2) / 2.4));
+  o.ampVD = d.tapse === null ? 0.14 : _popEsqLerp(0.03, 0.26, _popEsqClamp((d.tapse - 8) / 16));
+  /* El septo se abomba hacia el lado de MENOR presión. */
+  o.bulge = (d.pvc === null || d.pcp === null) ? 0 : _popEsqClamp((d.pvc - d.pcp) / 14) * 24;
+  o.eff = d.hayDerrame ? (d.compresion ? 14 : 8) : 0;
+  o.vc = _popEsqLerp(4, 18, _popEsqClamp(pvc / 22));
+  /* La aorta se ve ANCHA con resistencia baja y angosta con resistencia alta. */
+  o.aoW = d.rvs === null ? 13 : _popEsqLerp(20, 7, _popEsqClamp((d.rvs - 500) / 1100));
+  o.paW = d.papm === null ? 9 : _popEsqLerp(7, 15, _popEsqClamp((d.papm - 12) / 30));
+  o.nb = d.lineasB === 'difusas' ? 4 : d.lineasB === 'focales' ? 2 : 0;
+  return o;
+}
+/* Coloca una cavidad: `f` es su tamaño y `kw`/`kh` el factor del latido. */
+function _popEsqCaja(cual, f, kw, kh) {
+  const BW = 70, BH = 76;
+  const w = BW * f, h = BH * f;
+  let x, y;
+  if (cual === 'AD') { x = 370 - w; y = 216 - h; }
+  else if (cual === 'AI') { x = 373; y = 216 - h; }
+  else if (cual === 'VD') { x = 370 - w; y = 219; }
+  else { x = 373; y = 219; }
+  const cx = x + w / 2, cy = y + h / 2, w2 = w * kw, h2 = h * kh;
+  return { x: cx - w2 / 2, y: cy - h2 / 2, w: w2, h: h2, cx: cx, cy: cy };
+}
+function _popEsqPonerCaja(rect, txt, g, color) {
+  rect.setAttribute('x', g.x.toFixed(1)); rect.setAttribute('y', g.y.toFixed(1));
+  rect.setAttribute('width', g.w.toFixed(1)); rect.setAttribute('height', g.h.toFixed(1));
+  rect.setAttribute('fill', _popEsqC[color][0]);
+  rect.setAttribute('fill-opacity', _popEsqC[color][1]);
+  rect.setAttribute('stroke', _popEsqC[color][2]);
+  txt.setAttribute('x', g.cx.toFixed(1)); txt.setAttribute('y', (g.cy + 5).toFixed(1));
+}
+/* La curva de presión arterial. Con balón lleva el aumento diastólico, que es lo que el médico
+   busca en esa curva. Sin PAM no se dibuja una curva inventada: se dice que falta. */
+function _popEsqOnda(d) {
+  const n = _popEsq.n, X0 = 140, X1 = 560;
+  if (d.pam === null) {
+    n.wave.setAttribute('d', 'M140 460 L560 460');
+    n.wave.setAttribute('stroke-dasharray', '5 5');
+    n.pamT.textContent = 'sin PAM cargada';
+    return;
+  }
+  n.wave.setAttribute('stroke-dasharray', '');
+  n.pamT.textContent = 'PAM ' + d.pam.toFixed(0) + ' mmHg' + (d.pamFuente ? ' · ' + d.pamFuente : '');
+  const ic = d.ic === null ? 2.5 : d.ic;
+  const PP = _popEsqClamp(20 + 14 * (ic - 2), 14, 60);
+  const D = d.pam - PP / 3, S = D + PP, N = D + 0.62 * PP;
+  /* ⚠️ LA CURVA SE ESCALA A SU PROPIO RANGO Y NO A UNO FIJO, Y ESTO SE MIDIÓ: con la escala de
+     30 a 140 mmHg de la demo, un paciente con PAM 58 y presión de pulso 14 ocupaba SEIS píxeles
+     de los cuarenta y seis de la caja, o sea una raya horizontal. Justo el paciente del módulo
+     —hipotenso y con poca presión de pulso— era el que no se veía. Se recorre la onda dos veces:
+     la primera para saber su mínimo y su máximo, la segunda para dibujarla. */
+  const vals = [];
+  for (let i = 0; i <= 80; i++) {
+    const f = i / 80;
+    let P;
+    if (f < 0.12) P = D + PP * Math.sin(Math.PI / 2 * f / 0.12);
+    else if (f < 0.35) P = S - (S - N) * ((f - 0.12) / 0.23);
+    else P = N - (N - D) * (1 - Math.exp(-(f - 0.35) / 0.25)) / (1 - Math.exp(-0.65 / 0.25));
+    if (d.bcia) {
+      P += 0.38 * PP * Math.exp(-Math.pow((f - 0.55) / 0.11, 2));
+      if (f > 0.88) P -= (f - 0.88) / 0.12 * 0.22 * PP;
+    }
+    vals.push(P);
+  }
+  let mn = Infinity, mx = -Infinity;
+  vals.forEach(function (p) { if (p < mn) mn = p; if (p > mx) mx = p; });
+  const rango = (mx - mn) < 1 ? 1 : (mx - mn);
+  let s = '';
+  for (let i = 0; i <= 80; i++) {
+    const x = X0 + (i / 80) * (X1 - X0);
+    const y = 478 - ((vals[i] - mn) / rango) * 42;
+    s += (i ? 'L' : 'M') + x.toFixed(1) + ' ' + y.toFixed(1);
+  }
+  n.wave.setAttribute('d', s);
+}
+/* Lo que NO se mueve con el latido. */
+function _popEsqEstatico(d, g) {
+  const n = _popEsq.n;
+  n.sep.setAttribute('d', 'M371.5 219 Q' + (371.5 + g.bulge).toFixed(1) + ' 257 371.5 295');
+  n.effo.setAttribute('stroke-width', g.eff);
+  n.effT.textContent = d.hayDerrame
+    ? (d.compresion ? 'derrame pericárdico con compromiso hemodinámico' : 'derrame pericárdico')
+    : '';
+  const cp = _popEsqC[d.cPulmon];
+  [n.lungR, n.lungL].forEach(function (e) {
+    e.setAttribute('fill', cp[0]); e.setAttribute('fill-opacity', cp[1]); e.setAttribute('stroke', cp[2]); });
+  for (let i = 0; i < 4; i++) {
+    const on = i < g.nb ? 'inline' : 'none';
+    n.bl[i][0].setAttribute('display', on); n.bl[i][1].setAttribute('display', on);
+  }
+  const LBL = { leve:'leve', moderado:'moderado', severo:'severo', ausente:'' };
+  n.plR.setAttribute('display', (d.pleD && d.pleD !== 'ausente') ? 'inline' : 'none');
+  n.plL.setAttribute('display', (d.pleI && d.pleI !== 'ausente') ? 'inline' : 'none');
+  const _ple = [(d.pleD && LBL[d.pleD]) ? 'D ' + LBL[d.pleD] : '',
+                (d.pleI && LBL[d.pleI]) ? 'I ' + LBL[d.pleI] : ''].filter(Boolean).join(' · ');
+  n.plT.textContent = _ple ? 'derrame pleural ' + _ple : '';
+  n.balon.setAttribute('display', d.bcia ? 'inline' : 'none');
+  n.balonT.setAttribute('display', d.bcia ? 'inline' : 'none');
+  n.augT.setAttribute('display', d.bcia ? 'inline' : 'none');
+  n.ecmo.setAttribute('display', d.ecmoVA ? 'inline' : 'none');
+  n.ecmoT.setAttribute('display', d.ecmoVA ? 'inline' : 'none');
+  n.drogT.textContent = d.drogas.length ? 'Vasoactivos: ' + d.drogas.join(', ') : 'Sin vasoactivos marcados';
+  n.paT.textContent = (d.paps !== null && d.papd !== null)
+    ? 'AP ' + d.paps + '/' + d.papd
+    : (d.paps !== null ? 'AP sist. ' + d.paps : 'AP —');
+  n.pcpT.textContent = d.pcp === null ? 'venas pulmonares hacia la AI'
+    : 'venas pulmonares · PCP ' + d.pcp.toFixed(0);
+  n.vcT.textContent = d.pvc === null ? '' : d.pvc.toFixed(0) + ' mmHg';
+  const cc = _popEsqC[d.cCajaPulm];
+  n.pbox.setAttribute('fill', cc[0]); n.pbox.setAttribute('fill-opacity', cc[1]);
+  n.pbox.setAttribute('stroke', cc[2]);
+  n.pb1.textContent = 'Circuito pulmonar';
+  n.pb2.textContent = (d.papm !== null ? 'PAP media ' + d.papm.toFixed(0) : 'PAP media —') +
+                      (d.pcp !== null ? ' · PCP ' + d.pcp.toFixed(0) : ' · PCP —');
+  n.pb3.textContent = d.gtp === null ? 'Gradiente transpulm. —'
+                      : 'Gradiente transpulm. ' + d.gtp.toFixed(0) + ' mmHg';
+  n.pb4.textContent = d.rvp === null ? 'RVP — (falta PAP media, PCP o gasto)'
+                      : 'RVP ' + d.rvp.toFixed(1) + ' UW' + (d.rvp > d.rvpLim ? ' (>' + d.rvpLim + ')' : '');
+  _popEsqOnda(d);
+}
+/* ══ EL EQUIVALENTE EN TEXTO ══
+   No es una leyenda del dibujo: dice LO MISMO que el dibujo, fila por fila. Existe por dos
+   motivos y los dos son del médico: un lector de pantalla no lee un SVG animado, y el papel no
+   lleva el dibujo. Se arma con `createElement` y `textContent`: ni una cadena de marcado con un
+   dato adentro. */
+function popEsqTexto(d) {
+  const host = document.getElementById('pop-esq-txt');
+  if (!host) return null;
+  while (host.firstChild) host.removeChild(host.firstChild);
+  const L = [];
+  const fila = function (rotulo, valor, chip) {
+    const b = document.createElement('b'); b.textContent = rotulo;
+    const p = document.createElement('div'); p.appendChild(b);
+    p.appendChild(document.createTextNode(valor));
+    if (chip) { const c = document.createElement('span'); c.className = 'pop-esq-chip';
+                c.textContent = chip; p.appendChild(c); }
+    host.appendChild(p);
+    L.push(rotulo + ': ' + valor + (chip ? ' [' + chip + ']' : ''));
+  };
+  const num = function (x, u, dec) { return x === null ? 'no cargado' : x.toFixed(dec === undefined ? 0 : dec) + (u ? ' ' + u : ''); };
+
+  fila('Cavidades izquierdas',
+    'ventrículo izquierdo con ' + (d.ic === null ? 'índice cardíaco no calculable'
+      : 'índice cardíaco ' + d.ic.toFixed(2) + ' L/min/m² — ' + d.icBanda.txt + ', por ' + d.icFuente) +
+    '; aurícula izquierda con presión capilar pulmonar ' + num(d.pcp, 'mmHg') +
+    (d.pcpFuente ? ', ' + d.pcpFuente : '') + '.');
+  fila('Cavidades derechas',
+    'aurícula derecha con presión ' + num(d.pvc, 'mmHg') + (d.pvcFuente ? ', ' + d.pvcFuente : '') +
+    '; ventrículo derecho con TAPSE ' + (d.tapse === null ? 'no cargado' : d.tapse + ' mm') +
+    ' y relación VD/VI ' + (d.vdvi === null ? 'no cargada' : String(d.vdvi)) +
+    (!d.hayVD ? '.' : d.tapseBaja || d.vdDil
+       ? ' — por debajo de los cortes de la app (TAPSE ' + d.uT + ' mm, VD/VI ' + TEP_VDVI_DILAT_MIN.toFixed(1) + ').'
+       : ' — dentro de los cortes de la app.'));
+  if (d.vdRama) {
+    fila('Falla del ventrículo derecho',
+      d.vdRama === 'poscarga'
+        ? 'con presión pulmonar media por encima de 20 mmHg: el ventrículo derecho trabaja contra una poscarga alta.'
+        : d.vdRama === 'contractilidad'
+        ? 'con presión pulmonar media de 20 mmHg o menos: la falla es del propio ventrículo derecho.'
+        : 'sin presión pulmonar media cargada no se distingue si es por poscarga o por contractilidad.',
+      'Criterio de EcoSmart');
+  }
+  fila('Circuito pulmonar',
+    'presión pulmonar media ' + num(d.papm, 'mmHg') + ', presión capilar ' + num(d.pcp, 'mmHg') +
+    ', gradiente transpulmonar ' + num(d.gtp, 'mmHg') +
+    ', resistencia vascular pulmonar ' + num(d.rvp, 'UW', 1) +
+    (d.rvp !== null ? (d.rvp > d.rvpLim ? ' — por encima de ' + d.rvpLim + ' UW (ESC/ERS 2022).'
+                                        : ' — ' + d.rvpLim + ' UW o menos (ESC/ERS 2022).') : '.'));
+  const LB = { ausentes:'sin líneas B', focales:'líneas B focales',
+               difusas:'líneas B difusas bilaterales' };
+  const PL = { leve:'leve', moderado:'moderado', severo:'severo', ausente:'ausente' };
+  const ple = [d.pleD ? 'derecho ' + PL[d.pleD] : '', d.pleI ? 'izquierdo ' + PL[d.pleI] : '']
+                .filter(Boolean).join(' · ');
+  fila('Pulmones y pleura',
+    (LB[d.lineasB] || 'evaluación pulmonar no cargada') + '; derrame pleural ' +
+    (ple || 'no evaluado') + '.');
+  fila('Pericardio', d.hayDerrame
+    ? ('derrame pericárdico' + (d.compresion
+        ? ', con compromiso hemodinámico consignado por el médico.' : ', sin compromiso consignado.'))
+    : 'sin derrame consignado.');
+  const sop = [];
+  if (d.bcia) sop.push('balón de contrapulsación, que se infla en la diástole y se desinfla antes de la sístole');
+  if (d.ecmoVA) sop.push('ECMO venoarterial, que lleva sangre de la aurícula derecha a la aorta');
+  if (d.asist === 'impella') sop.push('Impella');
+  if (d.asist === 'ecmo_vv') sop.push('ECMO venovenoso');
+  fila('Soporte y vasoactivos',
+    (sop.length ? sop.join('; ') : 'sin asistencia circulatoria consignada') + '. ' +
+    (d.drogas.length ? 'Vasoactivos: ' + d.drogas.join(', ') + '.' : 'Sin vasoactivos marcados.'));
+  fila('Presión arterial', d.pam === null
+    ? 'no cargada: la curva no se dibuja.'
+    : ('media ' + d.pam.toFixed(0) + ' mmHg' + (d.pamFuente ? ', ' + d.pamFuente : '') +
+       (d.bcia ? ', con el aumento diastólico del balón.' : '.')) +
+    (d.rvs !== null ? ' Resistencia vascular sistémica ' + d.rvs.toFixed(0) + ' dinas·s·cm⁻⁵ — ' +
+       d.rvsBanda.txt + (d.rvsFuente ? ', con ' + d.rvsFuente : '') + '.' : ''));
+  if (!d.suficiente && d.motivo) fila('Falta', d.motivo + '.');
+  return L.join('\n');
+}
+window.popEsqTexto = popEsqTexto;
+
+/* ══ EL BUCLE ══
+   Un solo `requestAnimationFrame` vivo como mucho. `popEsqArrancar` es idempotente: si ya hay
+   uno, no pide otro — lo llaman el observador y `popEsqPintar`, y sin la guarda veinte aperturas
+   dejarían veinte bucles pintando el mismo SVG. */
+function popEsqFrame(ahora) {
+  _popEsq.rafId = 0;
+  const n = _popEsq.n, g = _popEsq.g;
+  if (!n || !g) return;
+  if (_popEsq.t0 === null) _popEsq.t0 = ahora;
+  const fase = _popEsq.reduce ? 0.2 : ((ahora - _popEsq.t0) % POP_ESQ_PER_MS) / POP_ESQ_PER_MS;
+  const s = fase < 0.35 ? Math.sin(Math.PI * fase / 0.35) : 0;
+  const a = 1 + 0.05 * s;
+  const d = _popEsq.d;
+  _popEsqPonerCaja(n.rAD, n.tAD, _popEsqCaja('AD', g.sAD, a, a), 'none');
+  _popEsqPonerCaja(n.rAI, n.tAI, _popEsqCaja('AI', g.sAI, a, a), 'none');
+  _popEsqPonerCaja(n.rVD, n.tVD, _popEsqCaja('VD', g.sVD, 1 - 0.5 * g.ampVD * s, 1 - g.ampVD * s), d.cVD);
+  _popEsqPonerCaja(n.rVI, n.tVI, _popEsqCaja('VI', g.sVI, 1 - 0.5 * g.ampVI * s, 1 - g.ampVI * s), d.cVI);
+  n.ao.set(g.aoW * (1 + 0.15 * s)); n.pa.set(g.paW * (1 + 0.1 * s)); n.vc.set(g.vc);
+  const cx = (140 + fase * 420).toFixed(1);
+  n.cur.setAttribute('x1', cx); n.cur.setAttribute('x2', cx);
+  if (d.bcia) {
+    const u = fase < 0.35 ? 0 : (fase < 0.45 ? (fase - 0.35) / 0.1 : (fase < 0.9 ? 1 : (1 - fase) / 0.1));
+    n.balon.setAttribute('rx', (2 + 9 * Math.max(0, u)).toFixed(1));
+  }
+  if (d.ecmoVA) n.ecmo.setAttribute('stroke-dashoffset', (-(ahora / 40) % 14).toFixed(1));
+  if (!_popEsq.reduce && _popEsq.visible) _popEsq.rafId = requestAnimationFrame(popEsqFrame);
+}
+function popEsqArrancar() {
+  if (_popEsq.reduce) { if (_popEsq.montado) popEsqFrame(0); return; }
+  if (_popEsq.rafId || !_popEsq.montado) return;
+  _popEsq.t0 = null;
+  _popEsq.rafId = requestAnimationFrame(popEsqFrame);
+}
+function popEsqParar() {
+  if (_popEsq.rafId) { cancelAnimationFrame(_popEsq.rafId); _popEsq.rafId = 0; }
+}
+window.popEsqArrancar = popEsqArrancar;
+window.popEsqParar = popEsqParar;
+
+/* Punto de entrada único: lo llama `popSync`. Monta una vez, recalcula los datos, repinta lo
+   estático y el texto, y deja el bucle corriendo sólo si el dibujo se ve. */
+function popEsqPintar() {
+  if (!popEsqMontar()) return;
+  const d = popEsquema();
+  _popEsq.d = d;
+  _popEsq.g = _popEsqGeo(d);
+  _popEsqEstatico(d, _popEsq.g);
+  popEsqTexto(d);
+  if (_popEsq.visible || _popEsq.reduce) popEsqArrancar(); else popEsqFrame(0);
+}
+window.popEsqPintar = popEsqPintar;
 /* ══ POP · CALCULADOR DE DOSIS POR DILUCIÓN (2026-09-18) ══
    dosis (mcg/kg/min) = (mg × 1000 / ml) × (ml/h) / 60 / peso
    Comprobado dimensionalmente: mg×1000 = mcg; /ml = mcg/ml; ×ml/h = mcg/h; /60 = mcg/min;
@@ -57468,6 +58076,9 @@ function popSync() {
   try { popHemoSync(); } catch (e) { console.error('[popSync] popHemoSync:', e); }
   try { popPocusSync(); } catch (e) { console.error('[popSync] popPocusSync:', e); }
   try { popConclSync(); } catch (e) { console.error('[popSync] popConclSync:', e); }
+  /* El esquema va DESPUES de la conclusion: lee `popPatron()` igual que ella, y asi los dos
+     dibujan el mismo estado en el mismo repintado. */
+  try { popEsqPintar(); } catch (e) { console.error('[popSync] popEsqPintar:', e); }
 }
 window.popSync = popSync;
 window.POP_DROGAS = POP_DROGAS;
