@@ -1028,6 +1028,56 @@ window.__Z = {
     }
     return { tocados: tocados, geo: window.__P.geo(id) } },
 
+  /* El censo COMPLETO del panel de Evidencia: cada seccion que se pinta, con sus corchetes y su
+     bibliografia. Es lo que detecta el defecto del AJ6 -una seccion nueva que corre la
+     numeracion de las catorce ajenas-.
+     ADVERTENCIA DEL DENOMINADOR: hay que ABRIR el panel, no solo renderizarlo. Quien engancha
+     los oyentes es _indClinCablear(), y a esa la llama indicAbrir(), no indicRender(). */
+  panel() {
+    try { if (typeof indicAbrir === 'function') indicAbrir();
+          else if (typeof indicRender === 'function') indicRender(); }
+    catch (e) { return 'EXC abrir: ' + e.message }
+    var cu = document.getElementById('indic-cuerpo');
+    if (!cu) return 'NO EXISTE indic-cuerpo';
+    var o = { n: 0, secs: {} };
+    Array.prototype.forEach.call(cu.children, function(d){
+      if (d.tagName !== 'DETAILS') return;
+      var su = d.querySelector('summary');
+      var tit = su ? (su.textContent || '').replace(/\\s+/g, ' ').trim() : '(sin summary)';
+      o.n++;
+      o.secs[tit] = {
+        marcas: Array.prototype.map.call(d.querySelectorAll('[data-ind-ref]'), function(x){
+          return x.getAttribute('data-ind-ref') + '=' + (x.textContent || '').trim() }),
+        biblio: Array.prototype.map.call(d.querySelectorAll('[data-ind-refitem]'), function(x){
+          return x.getAttribute('data-ind-refitem') + '|' + (x.textContent || '').replace(/\\s+/g,' ').trim().slice(0,60) })
+      };
+    });
+    return o },
+
+  /* Abre el panel, despliega la seccion cuyo titulo empieza con el prefijo dado, la deja a la
+     vista y devuelve su alto. Sin esto la captura muestra una lista de titulos cerrados. */
+  abrirSeccion(pref) {
+    try { if (typeof showTab === 'function') showTab('referencias') } catch (e) {}
+    try { if (typeof indicAbrir === 'function') indicAbrir() } catch (e) { return 'EXC: ' + e.message }
+    var cu = document.getElementById('indic-cuerpo');
+    if (!cu) return 'NO EXISTE indic-cuerpo';
+    var hit = null;
+    Array.prototype.forEach.call(cu.children, function(d){
+      if (hit || d.tagName !== 'DETAILS') return;
+      var su = d.querySelector('summary');
+      var tit = su ? (su.textContent || '').replace(/\\s+/g, ' ').trim() : '';
+      if (tit.indexOf(pref) === 0) hit = d;
+    });
+    if (!hit) return { hay: false, titulos: Array.prototype.map.call(cu.children, function(d){
+      var su = d.querySelector ? d.querySelector('summary') : null;
+      return su ? su.textContent.trim().slice(0,40) : d.tagName }) };
+    hit.open = true;
+    Array.prototype.forEach.call(hit.querySelectorAll('details'), function(x){ x.open = true });
+    hit.scrollIntoView({ block: 'start' });
+    var r = hit.getBoundingClientRect();
+    return { hay: true, h: Math.round(r.height), w: Math.round(r.width),
+             txt: (hit.textContent || '').replace(/\\s+/g, ' ').trim().length } },
+
   /* El bloque de hemodinamica tal como lo escribe su generador: es el texto que entra al
      informe cuando se integra y el que sale en la hoja del PDF. */
   hojaHemo() { return window.__Y.hoja('hemo') },
@@ -1155,6 +1205,44 @@ window.__Z = {
     } catch (e) { r.err = e.message }
     out.grupos.ctrl = r;
     process.stderr.write('[ctrl] listo\n');
+  }
+
+  /* ══ GRUPO evid — EL PANEL DE EVIDENCIA ════════════════════════════════════════════════════
+     Censa TODO el panel en cada escena: la seccion nueva y las ajenas, con sus corchetes y su
+     bibliografia. Lo que se busca es la seccion nueva donde debe estar Y cero movimiento en la
+     numeracion de las demas. */
+  if (corre('evid')) {
+    const r = { escenas: {} };
+    try {
+      await viewport(1440,900);
+      for (const k of Object.keys(ESC)) {
+        await ev(`window.__P.nuevo()`);
+        const put = await ev(`window.__Y.poner(${JSON.stringify(ESC[k] || {})})`);
+        await ev(`window.__P.calentar()`);
+        r.escenas[k] = { err: put.err, panel: await ev(`window.__Z.panel()`, 60000) };
+      }
+      /* La captura: el panel ABIERTO, en los dos temas y a dos anchos, con la seccion nueva
+         desplegada. Sin MIRARLA no se sabe si el texto entra, si se corta o si el color es
+         ilegible en claro. */
+      if (PNGDIR) {
+        for (const [w,h] of [[1440,900],[390,844]]) {
+          for (const claro of [false,true]) {
+            await viewport(w,h);
+            await ev(`window.__P.tema(${claro ? 'true' : 'false'})`);
+            await ev(`window.__P.nuevo()`);
+            await ev(`window.__Y.poner(${JSON.stringify(ESC.hemoDistrib)})`);
+            await ev(`window.__P.calentar()`);
+            const abierto = await ev(`window.__Z.abrirSeccion(${JSON.stringify(arg('--sec') || 'Perfil hemodin')})`, 60000);
+            r['shot_' + w + '_' + (claro ? 'claro' : 'oscuro')] =
+              { abierto: abierto, png: await shot(`hcae_evid_${w}_${claro ? 'claro' : 'oscuro'}`) };
+          }
+        }
+        await viewport(1440,900); await ev(`window.__P.tema(false)`);
+      }
+      r.errores = await ev(`window.__Y.errores()`);
+    } catch (e) { r.err = e.message }
+    out.grupos.evid = r;
+    process.stderr.write('[evid] listo\n');
   }
 
   OUT.md5Fin = await md5(EXTERNO ? FARG : join(RAIZ, FILE));

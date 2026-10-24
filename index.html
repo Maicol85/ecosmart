@@ -73513,7 +73513,56 @@ const IND_REFS = Object.freeze([
          '⚠️ ENTRADA PROPIA Y NO SE FUSIONA CON `esc2020guch`: son DOS publicaciones de la misma ' +
          'guía con PAGINACIÓN DISTINTA, y citar una revista al lado del folio de la otra manda al ' +
          'lector a otra página. De la biblioteca de este repositorio sólo está la traducción, ' +
-         'así que los folios de esta sección son los de la traducción.' }
+         'así que los folios de esta sección son los de la traducción.' },
+  /* ══ LAS CUATRO DE LA TANDA J2 (24/10/2026) ════════════════════════════════════════════════
+     Van AL FINAL, que es la regla de este registro: el orden de la lista es el orden histórico y
+     no se reordena. Las cuatro se leyeron en el PDF original, con folio impreso y hoja, y DOS en
+     IMAGEN porque son tablas escaneadas de un libro.
+     ⚠️ DOS SON LIBROS Y NO GUÍAS, así que NO traen clase ni nivel de recomendación: publican
+     valores de referencia. Escribirles una clase sería inventarla.
+     ⚠️ Y LA DEL CONSENSO ARGENTINO SE CITA POR LO QUE REPRODUCE, no por lo que recomienda: el
+     «2,2 o menos» vive en la columna del Shock Trial de su Tabla 1, que es una tabla
+     COMPARATIVA de definiciones, no una recomendación de ese consenso. */
+  { k:'aseDer2025',
+    full:'Mukherjee M, Rudski LG, Addetia K, et al. Guidelines for the Echocardiographic ' +
+         'Assessment of the Right Heart in Adults and Special Considerations in Pulmonary ' +
+         'Hypertension: Recommendations from the American Society of Echocardiography. ' +
+         'J Am Soc Echocardiogr 2025;38(3):141-186. doi:10.1016/j.echo.2025.01.006. ' +
+         'Regla de folio: folio = hoja del PDF + 140, comprobada en el pie impreso. ' +
+         'Folio 162, tabla de fórmulas del cálculo hemodinámico no invasivo; folio 167, los dos ' +
+         'bloques de recomendaciones sobre informar la presión capilar y la resistencia vascular ' +
+         'pulmonar estimadas. ' +
+         '⚠️ ESOS DOS BLOQUES NO LLEVAN CLASE NI NIVEL: este documento no usa esa escala.' },
+  { k:'sacShock2024',
+    full:'Consenso de Shock Cardiogénico. Sociedad Argentina de Cardiología. ' +
+         'Rev Argent Cardiol 2024;92(Supl 3). Tabla 1 «Definición de Shock Cardiogénico», ' +
+         'folio 2 (hoja 10 del PDF), leída EN IMAGEN. ' +
+         '⚠️ EL ÍNDICE CARDÍACO «< o = 2,2» ESTÁ EN LA COLUMNA DEL SHOCK TRIAL de esa tabla, que ' +
+         'compara cuatro definiciones de shock cardiogénico; no es una recomendación propia del ' +
+         'consenso y por eso se cita sin clase ni nivel. La unidad impresa en esa celda es ' +
+         '«l/min», sin indexar por superficie corporal.' },
+  { k:'grossman2016',
+    full:'Moscucci M (ed.). Grossman y Baim. Cateterismo cardíaco, angiografía e intervención. ' +
+         '8.ª edición. AMOLCA, 2016. Tomo I, Tabla 11.2 «Valores normales de la resistencia ' +
+         'vascular», folio 260, leída EN IMAGEN. Resistencia vascular sistémica ' +
+         '1.170 ± 270 dinas-seg-cm⁻⁵. ' +
+         '⚠️ ES UNA MEDIA CON SU DESVIACIÓN ESTÁNDAR, NO UN RANGO DE REFERENCIA: el pie de la ' +
+         'tabla declara que los valores salen de 37 sujetos sin enfermedad cardíaca demostrada ' +
+         '(17 hombres y 20 mujeres, de 47 ± 9 años) cateterizados entre 1975 y 1978. Es un libro ' +
+         'de texto: no publica clase ni nivel de recomendación.' },
+  { k:'braunwald2016',
+    full:'Mann DL, Zipes DP, Libby P, Bonow RO (eds.). Braunwald. Tratado de Cardiología: texto ' +
+         'de medicina cardiovascular. 10.ª edición en español. Elsevier España, 2016. ' +
+         'Tabla 19-3 «Presión y valores normales de la resistencia vascular», folio 375: ' +
+         'resistencia vascular sistémica 1.100, intervalo 700 a 1.600 dina-s·cm⁻⁵. ' +
+         'Tabla 52-9 «Clasificaciones hemodinámicas de los pacientes con infarto agudo de ' +
+         'miocardio» y texto del folio 1125, que reproducen la clasificación de ' +
+         'Forrester J, Diamond G, Chatterjee K, et al. N Engl J Med 1976;295:1356. ' +
+         'Las dos páginas leídas EN IMAGEN; regla de folio: folio = hoja del PDF − 30, ' +
+         'comprobada en el pie impreso. ' +
+         '⚠️ LA CLASIFICACIÓN DE FORRESTER SE CITA COMO LA CITA ESTE LIBRO, no como fuente ' +
+         'primaria: el artículo de 1976 no está en la biblioteca de este repositorio. Es un ' +
+         'libro de texto: no publica clase ni nivel de recomendación.' }
 ]);
 
 /* Clave → número. Se arma UNA vez desde `IND_REFS`.
@@ -82091,6 +82140,94 @@ function _indVexus(){
     notas: art.map(function(l){ return l.txt }) };
 }
 
+/* ══ EVIDENCIA · PERFIL HEMODINÁMICO (J2-E2, 2026-10-24) ═══════════════════════════════════
+   Sección CHICA, en el formato compacto que dejó el AJ6: una fila de una línea por dato, las
+   recomendaciones arriba y las explicaciones largas en el globo de cada fila.
+
+   ⚠️ LAS CUATRO FUENTES ESTÁN VERIFICADAS, y dos de ellas en IMAGEN. Lo escrito está redactado
+   con palabras propias: la regla de derechos de autor de este repositorio prohíbe copiar filas
+   ni párrafos de una guía.
+   ⚠️ NI UNA CONDUCTA DE TRATAMIENTO. Las dos recomendaciones de la ASE son sobre QUÉ INFORMAR,
+   no sobre qué hacer con el paciente, y ninguna de las otras fuentes es una guía de práctica.
+   ⚠️ Y NINGUNA LLEVA CLASE NI NIVEL, por tres motivos distintos y los tres declarados: la ASE
+   2025 no usa esa escala; Grossman y Braunwald son libros de texto; y el «2,2 o menos» del
+   consenso argentino vive en una columna COMPARATIVA de su Tabla 1, no en una recomendación.
+   Escribirles una clase sería inventarla.
+   ⚠️ EL ÍNDICE CARDÍACO NO ESTÁ EN LA TABLA DEL FOLIO 162 y la sección lo dice: esa tabla
+   publica el gasto cardíaco, la resistencia vascular pulmonar y la presión capilar, no el
+   índice. Indexar por superficie corporal es la DEFINICIÓN del indexado, no una fórmula
+   publicada, así que esa fila no cuelga el corchete de la ASE sobre un cálculo que esa guía no
+   escribe. */
+function _indHemo(){
+  /* Compuerta de UN solo dueño: `calcHemo` ya decidió qué se puede calcular, y esta sección lee
+     sus span. Sin un solo valor calculado no hay sección — repetir acá los predicados de
+     `calcHemo` sería una segunda copia que se desincroniza el día que uno de ellos cambie. */
+  const T = function(id){ const e = document.getElementById(id);
+    const t = e ? String(e.textContent || '').trim() : '';
+    return (t && t !== '—') ? t : ''; };
+  const gc = T('hemo-gc'), ic = T('hemo-ic'), rvs = T('hemo-rvs'),
+        pcp = T('hemo-pcp'), rvp = T('hemo-rvp'), forr = T('hemo-forrester');
+  if (!gc && !ic && !rvs && !pcp && !rvp) return null;
+
+  const filas = [
+    _indFila('Gasto cardíaco', gc || '—', 'none',
+      'la guía publica el gasto cardíaco como el área del tracto de salida por su integral de velocidad y por la frecuencia cardíaca (folio 162). Lo escribe sobre el tracto de salida DERECHO; esta aplicación lo calcula sobre el IZQUIERDO, que es donde tiene el diámetro y la integral cargados. La aritmética es la misma y el tracto, no.',
+      ['aseDer2025']),
+    _indFila('Índice cardíaco', ic || '—', 'none',
+      'el rango de referencia normal es 2,5 a 4,0 L/min/m² (ESC/ERS 2022 de hipertensión pulmonar, tabla de valores hemodinámicos normales, folio 30). El «2,2 o menos» con que la aplicación lo llama bajo sale de la columna del Shock Trial de la Tabla 1 del consenso argentino de shock cardiogénico (folio 2), que es una tabla comparativa de definiciones. La tabla de fórmulas del folio 162 de la guía de corazón derecho NO publica el índice cardíaco: dividir el gasto por la superficie corporal es la definición del indexado.',
+      ['escErs2022','sacShock2024']),
+    _indFila('Resistencia vascular sistémica', rvs || '—', 'none',
+      'los dos libros de referencia no coinciden en un rango único, y por eso la aplicación publica el número sin banda: 1.170 ± 270 dinas-seg-cm⁻⁵ en una tabla cuyo pie aclara que es la media y la desviación estándar de 37 sujetos sin cardiopatía demostrada —no un intervalo de normalidad— (Tabla 11.2, folio 260), y 1.100 con intervalo de 700 a 1.600 en la otra (Tabla 19-3, folio 375).',
+      ['grossman2016','braunwald2016']),
+    _indFila('Presión capilar pulmonar estimada por eco', pcp || '—', pcp ? 'warn' : 'ask',
+      'la guía de corazón derecho publica esta misma ecuación a partir del cociente E/e\u2019 mitral y sitúa lo normal por debajo de 12 a 15 mmHg (folio 162), y en el folio 167 recomienda EVITAR informarla de rutina, porque el cociente E/e\u2019 promediado o medial ya entra en la valoración diastólica habitual.',
+      ['aseDer2025']),
+    _indFila('Resistencia vascular pulmonar estimada por eco', rvp || '—', rvp ? 'warn' : 'ask',
+      'la guía publica la ecuación de Abbas y la forma invasiva —gradiente transpulmonar sobre gasto cardíaco— en la misma tabla (folio 162), y en el folio 167 dice que la resistencia estimada por ecocardiografía NO se recomienda para uso de rutina, porque depende de medidas indirectas, y que no sustituye a la medición invasiva para diagnosticar, graduar ni clasificar la hipertensión pulmonar.',
+      ['aseDer2025']),
+    _indFila('Perfil de Forrester', forr || '—', 'none',
+      'la clasificación se construyó en pacientes con infarto agudo de miocardio, midiendo el gasto cardíaco y la presión de enclavamiento al mismo tiempo con un catéter en la arteria pulmonar (Tabla 52-9 y texto del folio 1125). Acá los dos ejes son estimaciones por ecocardiografía.',
+      ['braunwald2016'])
+  ];
+
+  const rec = [
+    { txt:'La guía de corazón derecho recomienda EVITAR informar de rutina la presión capilar pulmonar estimada, porque el cociente E/e\u2019 promediado o medial ya forma parte de la valoración diastólica estándar y el dato sería redundante (folio 167).', refs:['aseDer2025'] },
+    { txt:'La misma guía dice que la resistencia vascular pulmonar derivada de la ecocardiografía puede obtenerse en la mayoría de los casos pero NO se recomienda para uso de rutina, porque se apoya en medidas indirectas y pierde exactitud en la enfermedad vascular pulmonar avanzada (folio 167).', refs:['aseDer2025'] },
+    { txt:'Y agrega que las estimaciones no invasivas de la resistencia vascular pulmonar no sustituyen a la valoración hemodinámica invasiva para diagnosticar, graduar ni clasificar la hipertensión pulmonar (folio 167).', refs:['aseDer2025'] }
+  ];
+
+  const forrLin = [
+    { txt:'La clasificación nació midiendo simultáneamente el gasto cardíaco y la presión de enclavamiento capilar pulmonar, con catéter en la arteria pulmonar, en una serie amplia de pacientes con infarto agudo de miocardio (folio 1125). Ése es el escenario en el que está validada.', refs:['braunwald2016'] },
+    { txt:'El libro describe la hipoperfusión como clínicamente evidente cuando el índice cardíaco cae POR DEBAJO de 2,2 L/min/m², y la congestión pulmonar cuando la presión de enclavamiento SUPERA los 18 mmHg (folio 1125). Ninguno de los dos valores exactos queda definido.', refs:['braunwald2016'] },
+    { txt:'Esta aplicación marca hipoperfusión con un índice cardíaco de 2,2 o menos, de modo que el 2,2 justo cae de un lado distinto del que resuelve la clasificación original. Del otro lado coincide: la congestión aparece cuando la presión capilar supera 18, así que el 18 exacto tampoco está definido acá.', refs:null },
+    { txt:'El libro advierte además que los pacientes cambian de categoría con el tratamiento y, a veces, espontáneamente, y que alrededor de la cuarta parte de los que tienen un índice cardíaco por debajo de 2,2 no se reconocen clínicamente (folio 1125).', refs:['braunwald2016'] }
+  ];
+
+  const formLin = [
+    { txt:'Gasto cardíaco: área del tracto de salida por su integral de velocidad y por la frecuencia cardíaca (folio 162).', refs:['aseDer2025'] },
+    { txt:'Resistencia vascular pulmonar: la velocidad pico de la insuficiencia tricuspídea dividida por la integral del tracto de salida derecho, por diez, más 0,16; o bien el gradiente transpulmonar dividido por el gasto cardíaco (folio 162).', refs:['aseDer2025'] },
+    { txt:'Presión capilar pulmonar: 1,24 por el cociente E/e\u2019 mitral, más 1,9; normal por debajo de 12 a 15 mmHg (folio 162).', refs:['aseDer2025'] },
+    { txt:'El ÍNDICE CARDÍACO no figura en esa tabla. Dividir el gasto por la superficie corporal es la definición del indexado, no una fórmula que esa guía publique, y por eso esta línea no lleva cita.', refs:null }
+  ];
+
+  return { filas: filas, compacta: true,
+    bloques: [
+      { tit:'Qué informar, según la guía de corazón derecho (folio 167)',
+        lineas: rec,
+        nota:'No llevan clase ni nivel de recomendación: ese documento no usa esa escala. Y son recomendaciones sobre QUÉ INFORMAR, no conductas de tratamiento. La aplicación sigue calculando los dos valores y los rotula «estimada por eco» en la pantalla, en el informe y en la hoja del PDF.' },
+      { tit:'Alcance de la clasificación de Forrester (folio 1125)', plegado:true,
+        lineas: forrLin,
+        nota:'Se cita como la reproduce este libro de texto y no como fuente primaria: el artículo original de 1976 no está en la biblioteca de este repositorio. No publica clase ni nivel.' },
+      { tit:'Las fórmulas que publica la guía (folio 162)', plegado:true,
+        lineas: formLin,
+        nota:'La guía escribe el gasto cardíaco sobre el tracto de salida DERECHO; esta aplicación lo calcula sobre el izquierdo, que es donde tiene el diámetro y la integral cargados.' }
+    ],
+    guia: { ref:'aseDer2025',
+      txt:'La guía de corazón derecho pide evitar el informe de rutina de la presión capilar pulmonar estimada y no recomienda el uso de rutina de la resistencia vascular pulmonar estimada por ecocardiografía, que tampoco sustituye a la medición invasiva (folio 167).',
+      nota:'Sin clase ni nivel: ese documento no los publica.' },
+    notas: rec.map(function(l){ return l.txt }) };
+}
+
 const IND_SECS = [
   { tit:'Estenosis aórtica',                     fn:_indEA },
   { tit:'Insuficiencia mitral primaria',         fn:_indIM },
@@ -82143,7 +82280,11 @@ const IND_SECS = [
      Verificado contra los veinticuatro y entre si. */
   { tit:'Derrame pericárdico y taponamiento', fn:_indDerrPeri },
   { tit:'Constricción pericárdica — diagnóstico', fn:_indConstr },
-  { tit:'Congestión venosa sistémica — VExUS', fn:_indVexus }
+  { tit:'Congestión venosa sistémica — VExUS', fn:_indVexus },
+  /* ⚠️ LA DE LA TANDA J2 (24/10/2026), Y SU TÍTULO NO ES PREFIJO DE NINGUNO NI NINGUNO ES
+     PREFIJO SUYO: `IND_SECS` se recorre buscando la sección por el PREFIJO de su título.
+     Verificado contra los veintisiete anteriores: ninguno empieza con «Perfil». */
+  { tit:'Perfil hemodinámico — presiones y resistencias estimadas por eco', fn:_indHemo }
 ];
 
 function indicRender(){
