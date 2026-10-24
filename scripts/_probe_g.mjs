@@ -1135,6 +1135,47 @@ window.__G = {
     process.stderr.write('[e3] listo\n');
   }
 
+  /* ══ GRUPO e5 — la ficha de Referencias del posoperatorio ═════════════════════════════════ */
+  if (corre('e5')) {
+    const r = {};
+    try {
+      r.existe = await ev(`window.__P.existe('ref-pop')`);
+      r.subtab = await ev(`(function(){ try {
+        var o = {};
+        Object.keys(REF_SUBTAB).forEach(function(k){ if (REF_SUBTAB[k].indexOf('pop') >= 0) o.panel = k });
+        o.todas = Object.keys(REF_SUBTAB).reduce(function(a,k){ return a + REF_SUBTAB[k].length }, 0);
+        return o } catch(e){ return 'EXC ' + e.message } })()`);
+      /* Lo abre el MEDICO desde su encabezado, que es la unica puerta que tiene: la leccion de
+         TC-532 del J. Sin apretar el encabezado de verdad, la condicion no mide esa puerta. */
+      r.abreDesdeEncabezado = await ev(`(function(){
+        var p = document.getElementById('ref-pop'); if (!p) return 'NO EXISTE';
+        try { showTab('referencias') } catch(e){}
+        var h = p.previousElementSibling;
+        if (!h || !/card-head/.test(h.className || '')) return 'SIN ENCABEZADO';
+        var antes = getComputedStyle(p).display;
+        h.click();
+        return { antes: antes, despues: getComputedStyle(p).display };
+      })()`);
+      r.filas = await ev(`(function(){ var p = document.getElementById('ref-pop');
+        return p ? p.querySelectorAll('table tr').length : null })()`);
+      r.chips = await ev(`(function(){ var p = document.getElementById('ref-pop');
+        if (!p) return null; var n = 0;
+        p.querySelectorAll('span').forEach(function(e){ if (/CRITERIO DE ECOSMART/.test(e.textContent||'')) n++ });
+        return n })()`);
+      r.txt = await ev(`(function(){ var p = document.getElementById('ref-pop');
+        return p ? (p.textContent || '').replace(/\\s+/g, ' ').trim() : null })()`);
+      /* El buscador de Referencias la tiene que encontrar. */
+      r.enBuscador = await ev(`(function(){ try {
+        var h = document.querySelectorAll('h2.card-head'), n = 0, hit = false;
+        h.forEach(function(e){ var o = e.getAttribute('onclick') || '';
+          if (/toggleRef\\(/.test(o)) { n++; if (/'pop'/.test(o)) hit = true } });
+        return { encabezados: n, tienePop: hit } } catch(e){ return 'EXC ' + e.message } })()`);
+      r.errores = await ev(`window.__Yerr ? window.__Yerr.slice(0,20) : null`);
+    } catch (e) { r.err = e.message }
+    out2.grupos.e5 = r;
+    process.stderr.write('[e5] listo\n');
+  }
+
   /* ══ GRUPO ctrl — A/B de control: informe, EN SUMA, Excel y censo de campos ═════════════
      DOS escenas, y la segunda es el denominador de la primera:
        vacio  — formulario nuevo, sin un solo dato: lo que no puede cambiar en NINGUN commit.
