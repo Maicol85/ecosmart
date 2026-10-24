@@ -403,3 +403,19 @@ extremo BAJO: un corte único donde la fuente da un rango es una DECISIÓN, y qu
 ficha, en la pantalla y en `PENDIENTES.md`.
 
 Detalle en **`docs/mapa/tanda-i-ete.md` § 3**.
+
+---
+
+## La fila de arriba lleva TRES campos desde la AJ5 (2026-10-24) — puntero
+
+`Morfología VM` ya no está sola: la acompañan **`Tipo de IM`** (`vm_tipo_im`) y **`Carpentier`**
+(`vm_carp`, con su globo ⓘ), los tres del mismo ancho y con el largo total **derivado del botón
+«Insuficiencia»**. Los dos nuevos se sincronizan en los dos sentidos con el ETE —`teer_tipo_im` sin
+guarda, `ete_carpentier` con la guarda de «es un ETE»— y entran al informe **entre paréntesis
+pegados a la insuficiencia**: «… con insuficiencia moderada (mecanismo secundario; Carpentier II)».
+
+El `vm_carpentier` del cajón de prolapso **sigue existiendo pero ya no se elige**: quedó
+`disabled` y es el espejo de legado del nuevo, para no perder el valor de los estudios guardados.
+
+→ `docs/mapa/aj5-mitral-tipoim-carpentier.md` (el ancho derivado, la guarda asimétrica, las tres
+voces del Carpentier y los cinco casos).

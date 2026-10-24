@@ -547,3 +547,16 @@ TAPSE conservado no se puede afirmar un grado global. ⚠️ **Dos filas de la T
 lo consumen `funcTxt` del informe y las ocho ramas del EN SUMA.
 
 → `docs/mapa/tanda-r-referencias.md` § 3.
+
+---
+
+## La columna 1 tiene SEIS campos desde la AJ5 (2026-10-24) — puntero
+
+Entre el índice de Tei y la FEVD entró **`vd_strain_pl`**, «Strain de pared libre del VD (%)», y la
+FEVD bajó a `vd-r6`. **No vota** la disfunción sistólica —`vdDisfGrado` sigue leyendo TAPSE y onda
+S′ y nada más— y al informe va el **número**, no la categoría. Normal por encima de 20 % en valor
+absoluto (el corte del AJ1, vigilado contra su dueño del módulo de Deformación) y leve de 15 a 20
+inclusive; **moderada y severa no existen en la app ni en la fuente y no se inventaron**.
+
+→ `docs/mapa/aj5-mitral-tipoim-carpentier.md` § 5 (los cortes, el signo, el 0, la banda de
+plausibilidad y las tres oraciones del informe).

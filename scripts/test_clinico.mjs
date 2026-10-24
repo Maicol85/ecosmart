@@ -2031,7 +2031,13 @@ caso('TC-457', 'Pared del VD e indice de Tei (DTI): los dos cortes por sus dos l
       N.nada.vd + ' // ' + N.nada.suma],
 
     // ── F · LA MARCA «(revisar)» ─────────────────────────────────────────────────────────────
-    ['la banda tiene un dueño unico y es la declarada', banda === '{"vd_pared":[1,30],"vd_tei":[0,3]}', banda],
+    /* ADAPTADO el 2026-10-24 (AJ5-6): dos entradas -> TRES. La nueva es vd_strain_pl, con una
+       banda de PLAUSIBILIDAD y no de severidad -caza el 185 tipeado por 18,5-, simetrica porque el
+       campo acepta los dos signos y con el mismo numero que los dos strain de la AI. Lo que este
+       caso vigila no es el numero de entradas sino que la banda tenga UN dueno y sea la declarada,
+       y eso se conserva entero. */
+    ['la banda tiene un dueño unico y es la declarada',
+      banda === '{"vd_pared":[1,30],"vd_tei":[0,3],"vd_strain_pl":[-60,60]}', banda],
     ['el Tei tipeado como PORCENTAJE (55) queda MARCADO «(revisar)»', mTeiPct.mTei === '(revisar)', 'marca=' + mTeiPct.mTei],
     ['  y NO se corrige: el campo conserva el 55 que se tipeo', mTeiPct.qTei === '55', 'quedo=' + mTeiPct.qTei],
     ['  y NO cambia la cuenta: el 55 sigue votando como alterado',
@@ -65600,8 +65606,11 @@ caso('TC-471', 'Valvulas D1: la insuficiencia mitral en TRES columnas de SEIS co
        numero sino que ninguno sea de legado, que todos sean <button> sin atributo title y que ninguno
        lleve al manual, y eso se conserva entero: medido, 44 globos en la app, 44 entradas de
        registro, CERO sin entrada, CERO con atributo title y CERO que no sean <button>. */
-    '(H) DENOMINADOR: la pestana tiene los TREINTA Y UN globos y la tarjeta esta en el marcado',
-    globos.length === 31 && !!G('vinfo-card'),
+    /* ADAPTADO el 2026-10-24 (AJ5-1): 31 -> 32. El globo nuevo es el del Carpentier de la mitral
+       (clave vm-carp), que nace con su pie de fuente. Lo que este caso vigila no es el numero
+       sino que ninguno sea de legado y que todos sean <button> sin title, y eso se conserva. */
+    '(H) DENOMINADOR: la pestana tiene los TREINTA Y DOS globos y la tarjeta esta en el marcado',
+    globos.length === 32 && !!G('vinfo-card'),
     'globos=' + globos.length + ' tarjeta=' + !!G('vinfo-card')]);
   ex.push(['(H) los veintidos son BOTONES, o sea enfocables y activables con teclado',
     globos.every(function(b){ return b.tagName.toLowerCase() === 'button'; }),
@@ -65712,9 +65721,13 @@ caso('TC-471', 'Valvulas D1: la insuficiencia mitral en TRES columnas de SEIS co
        ADAPTADO el 2026-10-22 (tanda I, commit 1): 50 -> 51. La nueva es wilk-score, el globo del
        encabezado del score de Wilkins en la pestana ETE, que publica lo que hallo la serie original
        (Wilkins 1988, folios 300 y 307). Tampoco esta en Valvulas: lo que cambia es el denominador
-       del registro, no lo que esta condicion afirma sobre los globos de Valvulas. */
+       del registro, no lo que esta condicion afirma sobre los globos de Valvulas.
+       ADAPTADO el 2026-10-24 (AJ5-1): 51 -> 52. La nueva es vm-carp, el globo del Carpentier de la
+       mitral, y esta SI vive en Valvulas: es el primer agregado al registro que suma tambien a los
+       globos de la pestana (31 -> 32). Lo que esta condicion exige no cambia: toda clave del
+       marcado tiene entrada -que es lo que impide una tarjeta VACIA- y ninguna es de legado. */
     HAY_INFO && globos.every(function(b){ return !!VINFO[b.getAttribute('data-vinfo')]; }) &&
-    Object.keys(VINFO).length === 51,
+    Object.keys(VINFO).length === 52,
     'registro=' + (HAY_INFO ? Object.keys(VINFO).join(',') : 'SIN REGISTRO')]);
   ex.push(['(H) y la tarjeta se coloca SIEMPRE dentro de la pantalla, sin cortarse',
     (function(){ const b = document.querySelector('[data-vinfo="avm-thp"]');
@@ -65952,8 +65965,9 @@ caso('TC-472', 'Valvulas D2: la insuficiencia aortica en TRES columnas de CUATRO
        numero sino que ninguno sea de legado, que todos sean <button> sin atributo title y que ninguno
        lleve al manual, y eso se conserva entero: medido, 44 globos en la app, 44 entradas de
        registro, CERO sin entrada, CERO con atributo title y CERO que no sean <button>. */
-    '(E) DENOMINADOR: la pestana tiene TREINTA Y UN globos y la tarjeta esta en el marcado',
-    globos.length === 31 && !!G('vinfo-card'),
+    /* ADAPTADO el 2026-10-24 (AJ5-1): 31 -> 32, por el globo del Carpentier de la mitral. */
+    '(E) DENOMINADOR: la pestana tiene TREINTA Y DOS globos y la tarjeta esta en el marcado',
+    globos.length === 32 && !!G('vinfo-card'),
     'globos=' + globos.length + ' tarjeta=' + !!G('vinfo-card')]);
   ex.push(['(E) las CUATRO nuevas y las SIETE reescritas estan en el registro',
     HAY_INFO && NUEVAS.concat(REESCRITAS).every(function(k){ return !!VINFO[k]; }),
@@ -66919,7 +66933,8 @@ caso('TC-474', 'W2-B: los criterios PROPIOS de la protesis mitral y aortica —T
     // vigila no es el numero sino que NINGUNO sea de legado, y eso se conserva entero.
     // ADAPTADO el 2026-10-17 (tanda Q): 22 -> 31, por los ocho globos de las tarjetas de lesion
     // y el de la fuga paravalvular aortica. Lo que este caso vigila sigue intacto.
-    globos.length === 31 &&
+    // ADAPTADO el 2026-10-24 (AJ5-1): 31 -> 32, por el globo del Carpentier de la mitral.
+    globos.length === 32 &&
     globos.every(function(b){ return b.tagName.toLowerCase() === 'button'; }) &&
     globos.every(function(b){ return !b.getAttribute('title'); }) &&
     globos.every(function(b){ return (b.getAttribute('onclick') || '').indexOf('abrirAyudaEco') === -1; }) &&
@@ -67323,11 +67338,15 @@ caso('TC-476', 'Tanda G1: el VD en tres columnas con su orden de Tab, las filas 
     /* ADAPTADO 2026-10-15 (G3): QUINCE -> DIECISEIS, con ip_ap_diam en el TERCER lugar de la
        columna 3, debajo del VTI TSVD. El campo se MUDO desde la insuficiencia de la valvula
        pulmonar: mismo id, mismo dueno de lectura y misma columna de Excel. */
-    const ESPERADO = ['tvia','tapse','s_prime','vd_tei','fevd','vd_bas','vd_mid','vd_long',
+    /* ADAPTADO el 2026-10-24 (AJ5-5): dieciseis -> DIECISIETE. El campo nuevo es
+       vd_strain_pl, entre el indice de Tei y la FEVD, asi que la columna 1 pasa a SEIS y la
+       FEVD baja a vd-r6. Lo que este caso vigila -que el orden del MARCADO sea el de las
+       columnas, que es el que recorre el Tab- se conserva entero. */
+    const ESPERADO = ['tvia','tapse','s_prime','vd_tei','vd_strain_pl','fevd','vd_bas','vd_mid','vd_long',
                       'vd_vi','vd_pared','tsvd_diametro','vti_tsvd','ip_ap_diam','vd_area_d',
                       'vd_area_s','vd_fac'];
     const orden = grid ? Array.prototype.slice.call(grid.querySelectorAll('input[id]')).map(e => e.id) : [];
-    ex.push(['los DIECISEIS campos estan en el orden de COLUMNAS, que es el que recorre el Tab',
+    ex.push(['los DIECISIETE campos estan en el orden de COLUMNAS, que es el que recorre el Tab',
       orden.join(',') === ESPERADO.join(','), orden.join(',')]);
     /* Cada campo declara su celda, y ninguna celda se repite. */
     const celdas = grid ? Array.prototype.slice.call(grid.querySelectorAll('.fg')).map(fg => {
@@ -67335,10 +67354,11 @@ caso('TC-476', 'Tanda G1: el VD en tres columnas con su orden de Tab, las filas 
       const c = (cl.match(/vd-c(\\d)/) || [])[1] || '?';
       const r = (cl.match(/vd-r(\\d)/) || [])[1] || '?';
       return c + ':' + r; }) : [];
-    /* ADAPTADO 2026-10-15 (G3): quince -> dieciseis casillas. */
-    ex.push(['las dieciseis casillas estan declaradas y NINGUNA se repite',
-      celdas.length === 16 && celdas.indexOf('?:?') < 0 &&
-      new Set(celdas).size === 16, celdas.join(' ')]);
+    /* ADAPTADO 2026-10-15 (G3): quince -> dieciseis casillas.
+       ADAPTADO 2026-10-24 (AJ5-5): dieciseis -> DIECISIETE, por el strain de pared libre. */
+    ex.push(['las diecisiete casillas estan declaradas y NINGUNA se repite',
+      celdas.length === 17 && celdas.indexOf('?:?') < 0 &&
+      new Set(celdas).size === 17, celdas.join(' ')]);
     /* NI UN tabindex: con uno positivo el Tab deja de seguir el orden del documento. */
     ex.push(['NO hay ni un tabindex en la grilla del VD',
       grid ? grid.querySelectorAll('[tabindex]').length === 0 : false,
@@ -68141,10 +68161,14 @@ caso('TC-478', 'Tanda G3: la casilla de la FAC vuelve a estar VISIBLE con su men
     const grid = document.querySelector('.vd-grid');
     ex.push(['DENOMINADOR: el contenedor .vd-grid existe', !!grid, grid ? 'si' : 'NO EXISTE']);
     const campos = grid ? Array.prototype.slice.call(grid.querySelectorAll('input[id]')).map(e => e.id) : [];
-    const ESPERADO = ['tvia','tapse','s_prime','vd_tei','fevd','vd_bas','vd_mid','vd_long',
+    /* ADAPTADO el 2026-10-24 (AJ5-5): dieciseis -> DIECISIETE. El campo nuevo es
+       vd_strain_pl, entre el indice de Tei y la FEVD, asi que la columna 1 pasa a SEIS y la
+       FEVD baja a vd-r6. Lo que este caso vigila -que el orden del MARCADO sea el de las
+       columnas, que es el que recorre el Tab- se conserva entero. */
+    const ESPERADO = ['tvia','tapse','s_prime','vd_tei','vd_strain_pl','fevd','vd_bas','vd_mid','vd_long',
                       'vd_vi','vd_pared','tsvd_diametro','vti_tsvd','ip_ap_diam','vd_area_d',
                       'vd_area_s','vd_fac'];
-    ex.push(['(A) los DIECISEIS campos estan en el orden de COLUMNAS, que es el que recorre el Tab',
+    ex.push(['(A) los DIECISIETE campos estan en el orden de COLUMNAS, que es el que recorre el Tab',
       campos.join(',') === ESPERADO.join(','), campos.join(',')]);
     ex.push(['(A) el diametro de la arteria pulmonar es el TERCERO de la columna 3',
       (function(){ const e = EL('ip_ap_diam'); if (!e) return false;
@@ -68157,8 +68181,11 @@ caso('TC-478', 'Tanda G3: la casilla de la FAC vuelve a estar VISIBLE con su men
     const porCol = { 1: 0, 2: 0, 3: 0 };
     if (grid) Array.prototype.slice.call(grid.querySelectorAll('.fg')).forEach(fg => {
       const m = String(fg.className || '').match(/vd-c(\\d)/); if (m) porCol[m[1]]++; });
-    ex.push(['(A) la columna 3 tiene SEIS campos y las otras dos CINCO',
-      porCol[1] === 5 && porCol[2] === 5 && porCol[3] === 6, JSON.stringify(porCol)]);
+    /* ADAPTADO el 2026-10-24 (AJ5-5): ahora son DOS las columnas de seis -la 1 y la 3- y la 2 se
+       queda con cinco. El desbalance sigue siendo lo que hace NECESARIA la posicion explicita:
+       con flujo automatico el sexto campo de la columna 3 se iria a la fila 1 de la columna 1. */
+    ex.push(['(A) las columnas 1 y 3 tienen SEIS campos y la 2 tiene CINCO',
+      porCol[1] === 6 && porCol[2] === 5 && porCol[3] === 6, JSON.stringify(porCol)]);
     ex.push(['(A) la NOVENA regla de posicion (vd-r6) esta en el fuente',
       fuente.indexOf('.vd-grid > .vd-r6 { grid-row: 6; }') > -1, '']);
     ex.push(['(A) y la DECLARACION .ip-ap-col2 del G1 ya no existe: el campo se MOVIO, no se duplico',
@@ -76966,8 +76993,10 @@ caso('TC-500', 'Tanda Q: las OCHO tarjetas i de las valvulas arriba de su pastil
   /* ADAPTADO el 2026-10-22 (tanda I, commit 1): 50 -> 51. La nueva es wilk-score, el globo del
      encabezado del score de Wilkins en ETE. Es un denominador: lo que este caso afirma sobre las
      ocho tarjetas de lesion no cambia. */
-  ex.push(['DENOMINADOR: el mecanismo de los globos existe y el registro tiene las 51 entradas',
-    FN('vInfoClic') && !!CARD() && !!REG() && Object.keys(REG() || {}).length === 51,
+  /* ADAPTADO el 2026-10-24 (AJ5-1): 51 -> 52. La nueva es vm-carp, el globo del Carpentier de la
+     mitral. Es un denominador: lo que este caso afirma sobre las ocho tarjetas de lesion no cambia. */
+  ex.push(['DENOMINADOR: el mecanismo de los globos existe y el registro tiene las 52 entradas',
+    FN('vInfoClic') && !!CARD() && !!REG() && Object.keys(REG() || {}).length === 52,
     'VINFO=' + (REG() ? Object.keys(REG()).length : 'SIN REGISTRO') + ' card=' + !!CARD()]);
   ex.push(['(A1) los OCHO botones de lesion existen, son BUTTON, sin atributo title y con aria-expanded',
     CLAVES.every(function (k) { const b = BTN(k);
@@ -78163,9 +78192,13 @@ caso('TC-502', 'Tanda P: Referencias en CINCO subpestanas sin perder una entrada
     for (let i = 0; i < bs.length; i++) ks[bs[i].getAttribute('data-vinfo')] = 1;
     return Object.keys(ks).filter(c => !MAPA[c]).sort();
   })();
-  ex.push(['(C3) LIMITE DECLARADO: once tarjetas sin boton, porque Referencias no tiene esa entrada',
+  /* ADAPTADO el 2026-10-24 (AJ5-1): once -> DOCE. La nueva es vm-carp, el globo del Carpentier
+     de la mitral: no tiene entrada en VINFO_REF porque Referencias no tiene una ficha de la
+     clasificacion de Carpentier, asi que la tarjeta no lleva boton «Ver referencia» — publica su
+     pie de fuente y nada mas. Es el mismo limite declarado que las otras once. */
+  ex.push(['(C3) LIMITE DECLARADO: doce tarjetas sin boton, porque Referencias no tiene esa entrada',
     sinBoton.join(',') === 'et-avt-cont,pul-balik,tarj-esten-pulmonar,tarj-esten-tricuspide,'
-      + 'tarj-insuf-pulmonar,vab-aorta,vab-cx,vab-friesgo,vab-func,vab-tit,vab-valv',
+      + 'tarj-insuf-pulmonar,vab-aorta,vab-cx,vab-friesgo,vab-func,vab-tit,vab-valv,vm-carp',
     sinBoton.join(',')]);
   /* Cuatro tarjetas, una de cada familia. La de la aorta y la del VI viven en AI/VI, la de la
      valvula en Valvulas y la del test de burbuja detras de su propia seccion. */
