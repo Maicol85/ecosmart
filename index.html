@@ -1361,12 +1361,67 @@
      Una fila por droga: casilla a la izquierda y dosis a la derecha, y la dosis sólo aparece
      con la droga marcada. `min-width:0` en la columna de la dosis porque un hijo de grid no
      baja de su min-content y el `placeholder` la ensanchaba. */
-  .pop-drogas { display:grid; gap:6px; }
-  .pop-droga { display:grid; grid-template-columns: minmax(0,1fr) minmax(0,150px); gap:10px; align-items:center; }
+  /* ⚠️ LA COLUMNA DE LA DOSIS ERA `minmax(0,150px)` Y RESERVABA ESOS 150 px CON LA DROGA
+     APAGADA — una pista de grilla existe aunque su único hijo esté en `display:none`—, así que
+     la mitad derecha de las diez filas era un rectángulo vacío. Hoy la pista es `auto`: con la
+     dosis oculta mide 0 y el rótulo se queda con el ancho entero. El ancho de la caja de dosis
+     pasa a la propia `.pop-droga-dosis`, que es quien lo necesita. Medido: con las diez drogas
+     apagadas, el bloque baja de 380 a 170 px. */
+  .pop-drogas { display:grid; grid-template-columns: repeat(auto-fit, minmax(252px,1fr));
+                gap:6px 16px; align-items:start; }
+  .pop-droga { display:grid; grid-template-columns: minmax(0,1fr) auto; gap:10px; align-items:center; }
+  /* ⚠️ LA FILA DE UNA DROGA ENCENDIDA OCUPA LAS DOS COLUMNAS, Y ESTO SE MIDIÓ. Con la fila
+     dentro de media columna, al rótulo le quedaban 112 px y «Noradrenalina» no entra: la caja
+     de dosis mide 150 px fijos y no encoge. Encendida, la fila se lleva el ancho entero y el
+     rótulo vuelve a 401 px, que es lo que medía antes de este commit. Las apagadas —que son la
+     mayoría y no tienen caja de dosis— siguen de a dos.
+     La clase la pone `popSync`, que es el mismo dúeño que muestra y oculta la dosis: con `:has`
+     sería una regla que este archivo no usa en ningún otro lado y que depende de la versión del
+     navegador, y el estado ya tenía un dúeño. */
+  .pop-droga-on { grid-column: 1 / -1; }
   .pop-droga-chk { display:flex; align-items:center; gap:8px; cursor:pointer; font-size:13px; color:var(--text); min-height:32px; }
   .pop-droga-chk input { width:16px; height:16px; cursor:pointer; flex:0 0 auto; }
-  .pop-droga-dosis input { width:100%; box-sizing:border-box; }
-  @media (max-width: 768px) { .pop-droga { grid-template-columns: 1fr; gap:4px; } }
+  .pop-droga-dosis { width:150px; }
+  .pop-droga-dosis > input { width:100%; box-sizing:border-box; }
+  @media (max-width: 768px) {
+    .pop-droga { grid-template-columns: 1fr; gap:4px; }
+    .pop-droga-on { grid-column: auto; }
+    .pop-droga-dosis { width:100%; }
+  }
+  /* ══ POP · ACORDEÓN DEL MONITOREO ══
+     Los campos del dispositivo (siete con Swan-Ganz, cinco con PiCCO) agrandaban la pantalla
+     entera al elegirlo. Hoy viven en un acordeón: aparece y se abre solo cuando hay dispositivo,
+     y su cuerpo está ACOTADO en alto con scroll propio, así que lo que crece la pantalla no
+     depende de cuántos campos traiga el dispositivo.
+     `.pop-mon-slot` RESERVA el alto del acordeón abierto mientras hay dispositivo —se lo pone
+     `popMonSync` en píxeles—, de modo que plegarlo y desplegarlo a mano NO mueve nada de lo que
+     está debajo. Sin dispositivo el hueco se borra y no queda un rectángulo en blanco.
+     El fondo y el borde salen de `--bg3` y `--border`, que ya se usan en esta misma zona. */
+  /* ⚠️ EL MARGEN DE ABAJO VA EN EL `slot`, NO EN EL ACORDEÓN, y esto SE MIDIÓ: con el margen
+     adentro, el alto del contenido del slot es acordeón + 14 px, o sea 14 más que el
+     `min-height` reservado, así que plegarlo encogía la pantalla exactamente esos 14 px —la
+     reserva funcionaba y aún así la pantalla se movía—. Con el margen afuera, el contenido
+     mide lo mismo que la reserva y plegar no mueve nada. */
+  .pop-mon-slot { margin-bottom:14px; }
+  .pop-mon-acc { border:1px solid var(--border); border-radius:10px; background:var(--bg3);
+                 overflow:hidden; }
+  .pop-mon-sum { display:flex; align-items:center; gap:8px; width:100%; box-sizing:border-box;
+                 background:none; border:0; cursor:pointer; text-align:left; padding:0 10px;
+                 min-height:40px; font-size:11px; font-weight:700; letter-spacing:.4px;
+                 text-transform:uppercase; color:var(--accent2); font-family:inherit; }
+  .pop-mon-arrow { display:inline-block; transition:transform .2s; font-size:10px; }
+  .pop-mon-body { max-height:250px; overflow:auto; padding:0 10px 10px; }
+  /* ⚠️ EN EL CELULAR NO SE ACOTA NI SE RESERVA, Y ES DELIBERADO. Por debajo de 768 px la
+     grilla del dispositivo pasa a UNA columna, así que los siete campos del Swan miden el triple
+     de alto: dentro de una caja de 250 px con scroll propio, el médico tendría que desplazar un
+     recuadro dentro de una página que ya se desplaza, que es peor que lo que venía a arreglar.
+     Y la reserva de hueco existe para que plegar no mueva una maqueta de DOS dimensiones; en una
+     columna única dejaría un rectángulo en blanco. El `!important` le gana al `min-height`
+     inline que escribe `popMonSync`. */
+  @media (max-width: 768px) {
+    .pop-mon-body { max-height:none; overflow:visible; }
+    .pop-mon-slot { min-height:0 !important; }
+  }
   /* ══ POP CIRUGÍA CARDÍACA — grilla de cards ══
      Mismo patrón que Config: dos columnas en escritorio, una apilada en móvil, y `minmax(0,1fr)`
      porque un hijo de grid no baja de su min-content —las cards de hemodinámica y POCUS llevan
@@ -9916,10 +9971,34 @@ window.cerrarSesionReal = cerrarSesionReal;
     </section>
     <section class="pop-card" data-pop="pop-hemo">
       <div class="pop-card-tit">📈 Datos hemodinámicos</div>
+        <!-- ⚠️ LACTATO — CAMPO OPCIONAL QUE LA APP NO INTERPRETA (G1, 24/10/2026).
+             Entra al estudio por el barrido genérico de `input[id]` y sale al informe como un
+             dato más, SIN banda, sin «elevado» y sin corte: ninguna de las fuentes de este
+             módulo publica un punto de corte de lactato aplicable acá — Unic-Stojanovic 2025 lo
+             nombra como «pista diagnóstica» sin cifra—, y escribir uno sería inventarlo.
+             NO agrega columna al Excel: `LAB_XLS_MAP` es una lista EXPLÍCITA y no tiene un solo
+             `pop_`. Verificado antes de escribirlo. -->
+        <div class="grid-3" style="margin-bottom:12px;">
+          <div class="fg"><label for="pop_lactato">Lactato (mmol/L)</label>
+            <input type="number" id="pop_lactato" step="0.1" min="0" inputmode="decimal" placeholder="mmol/L"></div>
+        </div>
+
         <!-- Las tres subsecciones se muestran segun pop_monitor. La de ECO va SIEMPRE: es la
-             que esta app sabe medir, y con «Ninguno» es la unica. -->
+             que esta app sabe medir, y con «Ninguno» es la unica.
+             ⚠️ LAS DOS DEL DISPOSITIVO VIVEN DENTRO DEL ACORDEÓN `pop_mon_acc` (G1): sus ids y
+             sus `oninput` no cambian, sólo el envoltorio. Lo gobierna `popMonSync`. -->
+        <!-- ⚠️ LOS DOS RÓTULOS «Swan-Ganz — valores medidos» / «PiCCO — valores medidos» QUE
+             ENCABEZABAN CADA BLOQUE SE RETIRARON: hoy ese texto lo dice el encabezado del
+             acordeón (`pop_mon_lbl`), y dejarlos daba el MISMO rótulo dos veces seguidas, uno
+             debajo del otro. Visto en la captura, no deducido. -->
+        <div class="pop-mon-slot" id="pop_mon_slot">
+        <div class="pop-mon-acc" id="pop_mon_acc" style="display:none;">
+          <button type="button" class="pop-mon-sum" id="pop_mon_sum" aria-expanded="true"
+                  aria-controls="pop_mon_body" onclick="popMonToggle()">
+            <span class="pop-mon-arrow" id="pop_mon_arrow">▼</span><span id="pop_mon_lbl">Monitoreo</span>
+          </button>
+          <div class="pop-mon-body" id="pop_mon_body">
         <div id="pop_sw_wrap" style="display:none;margin-bottom:14px;">
-          <div style="font-size:11px;font-weight:700;color:var(--accent2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.4px;">Swan-Ganz — valores medidos</div>
           <div class="grid-3">
             <div class="fg"><label for="pop_sw_gc">GC termodilución (L/min)</label><input type="number" id="pop_sw_gc" step="0.1" min="0" inputmode="decimal" oninput="popHemoSync()"></div>
             <div class="fg"><label for="pop_sw_fc">FC (lpm)</label><input type="number" id="pop_sw_fc" step="1" min="0" inputmode="decimal" oninput="popHemoSync()"></div>
@@ -9942,7 +10021,6 @@ window.cerrarSesionReal = cerrarSesionReal;
         </div>
 
         <div id="pop_picco_wrap" style="display:none;margin-bottom:14px;">
-          <div style="font-size:11px;font-weight:700;color:var(--accent2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.4px;">PiCCO — valores medidos</div>
           <div class="grid-3">
             <div class="fg"><label for="pop_picco_gc">GC (L/min)</label><input type="number" id="pop_picco_gc" step="0.1" min="0" inputmode="decimal" oninput="popHemoSync()"></div>
             <div class="fg"><label for="pop_picco_ic">IC (L/min/m²)</label><input type="number" id="pop_picco_ic" step="0.1" min="0" inputmode="decimal" oninput="popHemoSync()"></div>
@@ -9952,6 +10030,9 @@ window.cerrarSesionReal = cerrarSesionReal;
           </div>
           <div class="calc-box" style="margin-top:10px;" id="pop-picco-box"></div>
         </div>
+          </div><!-- /#pop_mon_body -->
+        </div><!-- /#pop_mon_acc -->
+        </div><!-- /#pop_mon_slot -->
 
         <div style="font-size:11px;font-weight:700;color:var(--accent2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.4px;">Ecocardiografía</div>
         <div class="calc-box">
@@ -56791,6 +56872,60 @@ var POP_DROGAS = ['nor','adr','dob','mil','vaso','levo','dop','ter','ntg','ntp']
      El «normal <250 dyn» del pedido son 3,1 UW, y habría contradicho al módulo de HTP.
    Los ids del pedido —`tsvi`, `vti`, `fc`— NO EXISTEN: los reales son `diam_tsvi`, `itv_tsvi` y
    `hemo_fc`, y viven en Hemodinámica, no en AI/VI. Verificado antes de escribir una línea. */
+/* ══ POP · ACORDEÓN DEL MONITOREO (G1, 24/10/2026) ══
+   Lo que cambia es el ENVOLTORIO: ni un id, ni un `oninput`, ni un campo del estudio.
+
+   TRES REGLAS, y ninguna es cosmética:
+   1. APARECE Y SE ABRE SOLO AL ELEGIR EL DISPOSITIVO. Con «Ninguno», «Vigileo», «presión
+      invasiva» o sin consignar no hay acordeón: esos cuatro no tienen campos propios.
+   2. EL CUERPO ESTÁ ACOTADO (`max-height` con scroll propio en el CSS), así que lo que la
+      pantalla crece NO depende de cuántos campos traiga el dispositivo — que era el síntoma:
+      con Swan-Ganz entraban siete campos más cuatro cálculos de una sola vez.
+   3. EL HUECO QUEDA RESERVADO mientras haya dispositivo. Se mide el alto del acordeón ABIERTO y
+      se le pone al `slot` como `min-height`, así plegarlo y desplegarlo a mano no mueve una sola
+      fila de lo que está debajo. Sin dispositivo el `min-height` se BORRA: reservarlo ahí
+      dejaría un rectángulo en blanco, que es justo el espacio vacío que este commit vino a
+      sacar.
+
+   ⚠️ EL ESTADO ABIERTO/CERRADO NO ES UN CAMPO DEL ESTUDIO y no se persiste: es la misma
+   decisión que los acordeones de `popAbrirEnEscritorio`. Se re-deriva de `pop_monitor` en cada
+   `popHemoSync`, que es el embudo por el que pasan «Nuevo estudio», abrir un estudio guardado y
+   las dos reimpresiones. Un estudio viejo abre con el acordeón desplegado, como corresponde a
+   un dispositivo consignado.
+
+   ⚠️ `offsetHeight` DA 0 CON LA SECCIÓN PLEGADA, y ese cero NO se guarda: con el POP cerrado
+   —que es como arranca la pestaña— el acordeón no tiene geometría, y escribir `min-height:0px`
+   ahí hubiera dejado la reserva en cero para siempre. Sólo se anota una medición > 0. */
+var _popMonAbierto = true, _popMonVisto = null, _popMonAlto = 0;
+function _popMonPintar() {
+  var b = document.getElementById('pop_mon_body');
+  var a = document.getElementById('pop_mon_arrow');
+  var s2 = document.getElementById('pop_mon_sum');
+  if (b) b.style.display = _popMonAbierto ? 'block' : 'none';
+  if (a) a.style.transform = _popMonAbierto ? '' : 'rotate(-90deg)';
+  if (s2) s2.setAttribute('aria-expanded', _popMonAbierto ? 'true' : 'false');
+}
+function popMonToggle() { _popMonAbierto = !_popMonAbierto; _popMonPintar(); }
+window.popMonToggle = popMonToggle;
+function popMonSync() {
+  var acc = document.getElementById('pop_mon_acc');
+  var slot = document.getElementById('pop_mon_slot');
+  if (!acc) return;
+  var mon = (document.getElementById('pop_monitor') || {}).value || '';
+  var hay = mon === 'swan' || mon === 'picco';
+  acc.style.display = hay ? 'block' : 'none';
+  if (!hay) { _popMonVisto = null; _popMonAlto = 0; if (slot) slot.style.minHeight = ''; return; }
+  var lbl = document.getElementById('pop_mon_lbl');
+  if (lbl) lbl.textContent = (mon === 'swan' ? 'Swan-Ganz' : 'PiCCO') + ' — valores medidos';
+  /* Cambiar de dispositivo vuelve a abrirlo: son campos distintos y el médico acaba de pedirlos. */
+  if (_popMonVisto !== mon) { _popMonVisto = mon; _popMonAbierto = true; _popMonAlto = 0; }
+  _popMonPintar();
+  if (slot) {
+    if (_popMonAbierto) { var h = acc.offsetHeight; if (h > 0) _popMonAlto = h; }
+    slot.style.minHeight = _popMonAlto > 0 ? _popMonAlto + 'px' : '';
+  }
+}
+window.popMonSync = popMonSync;
 function popHemoSync() {
   const set = (id, txt) => { const e = document.getElementById(id); if (e) e.textContent = txt; };
   const setH = (id, h) => { const e = document.getElementById(id); if (e) e.innerHTML = h; };
@@ -56798,6 +56933,7 @@ function popHemoSync() {
   const vis = (id, on) => { const e = document.getElementById(id); if (e) e.style.display = on ? 'block' : 'none'; };
   vis('pop_sw_wrap', mon === 'swan');
   vis('pop_picco_wrap', mon === 'picco');
+  popMonSync();
 
   const asc = (typeof getBSA === 'function') ? getBSA() : null;
   /* ── ECO ── Los tres campos son los del estudio; no se duplican acá. */
@@ -57303,6 +57439,10 @@ function popSync() {
     if (!chk || !wrap) return;
     var on = !!chk.checked;
     wrap.style.display = on ? 'block' : 'none';
+    /* La fila encendida ocupa las dos columnas de la grilla: ver el comentario de
+       `.pop-droga-on` en el CSS. `wrap.parentNode` es el `.pop-droga`. */
+    if (wrap.parentNode && wrap.parentNode.classList)
+      wrap.parentNode.classList.toggle('pop-droga-on', on);
     /* Al apagar la droga se borran TAMBIÉN los tres campos de dilución, por el mismo motivo que
        la dosis: guardarInforme barre input[id] sin mirar visibilidad y viajarían dentro del
        estudio. */
