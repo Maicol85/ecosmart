@@ -1294,7 +1294,7 @@ window.__Z = {
             await viewport(w,h);
             await ev(`window.__P.tema(${claro ? 'true' : 'false'})`);
             await ev(`window.__P.nuevo()`);
-            await ev(`window.__Y.poner(${JSON.stringify(ESC.hemoDistrib)})`);
+            await ev(`window.__Y.poner(${JSON.stringify(ESC[arg('--escena') || 'hemoDistrib'])})`);
             await ev(`window.__P.calentar()`);
             const abierto = await ev(`window.__Z.abrirSeccion(${JSON.stringify(arg('--sec') || 'Perfil hemodin')})`, 60000);
             r['shot_' + w + '_' + (claro ? 'claro' : 'oscuro')] =

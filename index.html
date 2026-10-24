@@ -73579,7 +73579,32 @@ const IND_REFS = Object.freeze([
          'comprobada en el pie impreso. ' +
          '⚠️ LA CLASIFICACIÓN DE FORRESTER SE CITA COMO LA CITA ESTE LIBRO, no como fuente ' +
          'primaria: el artículo de 1976 no está en la biblioteca de este repositorio. Es un ' +
-         'libro de texto: no publica clase ni nivel de recomendación.' }
+         'libro de texto: no publica clase ni nivel de recomendación.' },
+  /* ── AÑADIDA 2026-10-24 (J2-E4). Guía ESC 2022 de cardio-oncología. Regla de folio:
+     folio = hoja del PDF + 4228, comprobada en el pie impreso de las hojas 15, 18, 19, 30, 32,
+     61 y 86. TRES de las piezas citadas se leyeron EN IMAGEN porque son tablas y figuras
+     maquetadas: la Tabla 3 (folio 4243), la Figura 10 (folio 4258) y las dos tablas de
+     recomendaciones (folios 4289 y 4314). Las otras se leyeron en el texto del PDF original.
+     ⚠️ ESTE DOCUMENTO NUMERA APARTE sus «Table» y sus «Recommendation Table», y las dos series
+     se pisan en los números bajos: existe una «Table 26» distinta de la «Recommendation Table
+     26». Por eso cada cita dice cuál de las dos es, que es la regla que el trabajo H dejó
+     escrita para la ESC 2024 de aorta. */
+  { k:'escOnco2022',
+    full:'Lyon AR, López-Fernández T, Couch LS, et al. 2022 ESC Guidelines on cardio-oncology ' +
+         'developed in collaboration with the European Hematology Association (EHA), the ' +
+         'European Society for Therapeutic Radiology and Oncology (ESTRO) and the International ' +
+         'Cardio-Oncology Society (IC-OS). Eur Heart J 2022;43(41):4229-4361. ' +
+         'doi:10.1093/eurheartj/ehac244. ' +
+         'Tabla 3 «Cancer therapy-related cardiovascular toxicity definitions», folio 4243. ' +
+         'Tabla 4 «HFA–ICOS baseline cardiovascular toxicity risk stratification», folio 4246. ' +
+         'Tabla 5 «Anthracycline equivalence dose», folio 4247. ' +
+         'Tabla 12 «Risk categories for asymptomatic adult cancer survivors», folio 4314. ' +
+         'Figura 10, vigilancia con antraciclinas, folio 4258. ' +
+         'Figura 11, vigilancia con terapias anti-HER2, folio 4260. ' +
+         'Recomendaciones-tabla 26, diagnóstico y manejo de la miocarditis asociada a ' +
+         'inhibidores de puntos de control, folio 4289. ' +
+         'Recomendaciones-tabla 41, vigilancia cardiovascular en supervivientes adultos ' +
+         'asintomáticos, folio 4314.' }
 ]);
 
 /* Clave → número. Se arma UNA vez desde `IND_REFS`.
@@ -82245,6 +82270,120 @@ function _indHemo(){
     notas: rec.map(function(l){ return l.txt }) };
 }
 
+/* ══ EVIDENCIA · CARDIO-ONCOLOGÍA (J2-E4, 2026-10-24) ══════════════════════════════════════
+   Sección NUEVA. Publica SÓLO lo que se verificó en la guía ESC 2022 de cardio-oncología, con
+   su tabla o su figura y su folio, redactado con palabras propias.
+
+   ⚠️ LO QUE NO ENTRA, Y POR QUÉ. No se escriben: los textos de seguimiento que se aplicarían
+   igual a cualquier fármaco (la guía los publica POR FAMILIA, no en general); la «vigilancia
+   estrecha» para caídas que no llegan a cardiotoxicidad (la Tabla 3 no gradúa eso y la guía no
+   le cuelga ninguna conducta); y los plazos de 2 a 4 semanas, que no figuran en el documento —
+   el commit J2-3 los sacó de la pantalla por eso mismo—.
+   ⚠️ SÓLO DOS FILAS TIENEN CLASE Y NIVEL, y son las únicas dos que salen de una tabla de
+   recomendaciones: el seguimiento tras radioterapia y la biopsia en la miocarditis por
+   inmunoterapia, las dos IIa · C. Las Tablas 3, 4 y 5 y las Figuras 10 y 11 son DEFINICIONES y
+   ESQUEMAS, no recomendaciones graduadas: escribirles una clase sería inventarla. Lo único
+   graduado de la Figura 10 es lo que dice su propio pie, y va con esas palabras. */
+function _indConco(){
+  /* Compuerta: la sección despierta cuando el módulo de cardio-oncología tiene algo cargado.
+     Se pregunta por los DATOS DE ENTRADA y no por el veredicto, porque la mitad de las filas
+     —el riesgo basal, la equivalencia de dosis— existen antes de que haya un grado. */
+  const farm = _indS('co_farmaco');
+  const fb = _indN('co_fevi_basal'), fa = _indN('co_fevi_actual');
+  const gb = _indN('co_gls_basal'), ga = _indN('co_gls_actual');
+  const dosis = _indN('co_dosis_antrac'), trop = _indS('co_troponi');
+  if (farm === '' && fb == null && fa == null && gb == null && ga == null
+      && dosis == null && trop === '') return null;
+
+  const T = function(id){ const e = document.getElementById(id);
+    const t = e ? String(e.textContent || '').replace(/\s+/g, ' ').trim() : '';
+    return (t && t !== '—') ? t : ''; };
+  const farmTxt = (function(){ const e = document.getElementById('co_farmaco');
+    return (e && e.value !== '' && e.selectedIndex >= 0) ? e.options[e.selectedIndex].text : ''; })();
+  /* Caída RELATIVA del strain, que es la que la Tabla 3 usa. Los dos valores son negativos. */
+  const glsRel = (gb != null && ga != null && gb !== 0) ? ((gb - ga) / gb) * 100 : null;
+  const esRT = (farm === 'radioterapia');
+  const esICI = (farm === 'inmunoterapia');
+
+  const filas = [
+    _indFila('Fármaco oncológico', farmTxt || '—', farm === '' ? 'ask' : 'none',
+      'la Tabla 4 estratifica el riesgo cardiovascular basal POR FAMILIA de fármaco —antraciclinas, anti-HER2, inhibidores de VEGF, inhibidores de BCR-ABL, tratamientos del mieloma múltiple e inhibidores de RAF y MEK— y el mismo antecedente pesa distinto en cada columna (folio 4246).',
+      ['escOnco2022']),
+    _indFila('Dosis acumulada de antraciclinas',
+      dosis != null ? _indNum(dosis, 0, 'mg/m²') : '—',
+      dosis != null && dosis >= 400 ? 'alarm' : (dosis != null && dosis >= 250 ? 'warn' : (dosis != null ? 'none' : 'ask')),
+      'la Tabla 12 ubica la doxorrubicina de 250 a 399 mg/m² en riesgo alto precoz y de 400 mg/m² o más en riesgo muy alto (folio 4314). Para convertir otra antraciclina a su equivalente de doxorrubicina, la Tabla 5 publica los cocientes (folio 4247).',
+      ['escOnco2022']),
+    _indFila('FEVI basal y actual',
+      (fb != null || fa != null)
+        ? ((fb != null ? _indNum(fb, 0, '%') : '—') + ' → ' + (fa != null ? _indNum(fa, 0, '%') : '—'))
+        : '—',
+      (fa != null && fa < 40) ? 'alarm' : ((fa != null && fa < 50) ? 'warn' : (fa != null ? 'none' : 'ask')),
+      'la Tabla 3 define la cardiotoxicidad asintomática en tres grados: severa, cuando la fracción de eyección cae por primera vez por debajo del 40 %; moderada, con una caída de 10 puntos o más hasta un valor de 40 a 49 %, o con una caída menor a ese mismo rango acompañada de deterioro del strain o de biomarcadores; y leve, con fracción de eyección conservada —50 % o más— y deterioro del strain o de los biomarcadores (folio 4243).',
+      ['escOnco2022']),
+    _indFila('Caída relativa del strain longitudinal global',
+      glsRel != null ? _indNum(glsRel, 1, '%') : '—',
+      (glsRel != null && glsRel > 15) ? 'warn' : (glsRel != null ? 'none' : 'ask'),
+      'la Tabla 3 usa una caída RELATIVA mayor del 15 % respecto del valor basal, no una diferencia absoluta de puntos (folio 4243).',
+      ['escOnco2022']),
+    _indFila('Troponina',
+      trop === 'si' ? 'Elevada' : (trop === 'no' ? 'No elevada' : '—'),
+      trop === 'si' ? 'warn' : (trop === 'no' ? 'none' : 'ask'),
+      'la Tabla 3 la toma como elevación NUEVA o cambio significativo respecto del valor basal, y es uno de los dos marcadores que, con la fracción de eyección conservada, definen la cardiotoxicidad leve (folio 4243).',
+      ['escOnco2022']),
+    _indFila('Grado que publica la aplicación', T('co-toxicidad-resultado') || '—', 'none',
+      'lo decide el módulo de la pestaña con los cortes de esa misma Tabla 3. Esta fila sólo repite lo que esa pantalla ya dice.',
+      ['escOnco2022'])
+  ];
+
+  /* ── Las DOS únicas recomendaciones con clase y nivel ─────────────────────────────────── */
+  const rec = [
+    { txt:'Clase IIa · Nivel C — Tras radioterapia sobre un volumen que incluye el corazón, en el superviviente adulto asintomático de riesgo alto tardío la guía dice que DEBE CONSIDERARSE la ecocardiografía a partir de los 5 años y luego cada 5 años (Recomendaciones-tabla 41, folio 4314).' + (esRT ? ' Es la fila que corresponde a lo cargado.' : ''), refs:['escOnco2022'] },
+    { txt:'Clase IIa · Nivel C — En la miocarditis asociada a inhibidores de puntos de control, la guía dice que DEBE CONSIDERARSE la biopsia endomiocárdica para confirmar el diagnóstico cuando se sospecha pero no se confirmó con la imagen cardíaca y los biomarcadores. Una nota de esa misma tabla la ubica en el paciente inestable o cuando la resonancia está contraindicada (Recomendaciones-tabla 26, folio 4289).' + (esICI ? ' Es la fila que corresponde a lo cargado.' : ''), refs:['escOnco2022'] }
+  ];
+
+  const grad = [
+    { txt:'Cardiotoxicidad asintomática: severa cuando la fracción de eyección cae por primera vez por debajo del 40 %; moderada con una caída de 10 puntos o más hasta un valor de 40 a 49 %, o con una caída menor a ese rango junto con deterioro del strain mayor del 15 % relativo o ascenso nuevo de biomarcadores; leve con fracción de eyección de 50 % o más y deterioro del strain o de los biomarcadores (Tabla 3, folio 4243).', refs:['escOnco2022'] },
+    { txt:'Cardiotoxicidad sintomática, en cuatro escalones: muy severa cuando la insuficiencia cardíaca necesita inotrópicos, soporte circulatorio mecánico o evaluación de trasplante; severa cuando obliga a internar; moderada cuando hace falta intensificar el tratamiento de forma ambulatoria; y leve con síntomas que no obligan a intensificar nada (Tabla 3, folio 4243).', refs:['escOnco2022'] },
+    { txt:'La misma Tabla 3 define la miocarditis por inmunoterapia: ascenso de troponina con un criterio mayor —resonancia diagnóstica por los criterios de Lake Louise modificados— o dos criterios menores, tras excluir el síndrome coronario agudo y la miocarditis infecciosa aguda (folio 4243).', refs:['escOnco2022'] }
+  ];
+
+  const esquema = [
+    { txt:'Con antraciclinas, todos los pacientes llevan electrocardiograma, ecocardiograma y biomarcadores basales. En riesgo alto y muy alto, la vigilancia es la más densa: ecocardiograma cada dos ciclos y a los 3 y 12 meses de terminar, con troponina y péptidos natriuréticos antes de cada ciclo (Figura 10, folio 4258).', refs:['escOnco2022'] },
+    { txt:'El pie de esa figura gradúa dos cosas: en riesgo moderado DEBE CONSIDERARSE el ecocardiograma tras una dosis acumulada de 250 mg/m² de doxorrubicina o equivalente, y en riesgo bajo PUEDE CONSIDERARSE con esa misma dosis (folio 4258).', refs:['escOnco2022'] },
+    { txt:'Y para los biomarcadores: medirlos cada dos ciclos y dentro de los 3 meses de terminar PUEDE CONSIDERARSE en riesgo bajo (Clase IIb · Nivel C) y DEBE CONSIDERARSE en riesgo moderado y en riesgo bajo con 250 mg/m² o más de doxorrubicina o equivalente (Clase IIa · Nivel C) (pie de la Figura 10, folio 4258).', refs:['escOnco2022'] },
+    { txt:'Con terapias anti-HER2 el esquema es propio: el ecocardiograma se hace en la semana 2 o 3 del ciclo de tres semanas de trastuzumab. En el cáncer de mama precoz HER2 positivo de bajo riesgo, asintomático y con evaluación normal a los 3 meses, PUEDE CONSIDERARSE bajar la vigilancia a cada 4 meses (Clase IIb · Nivel C); en la enfermedad metastásica de riesgo bajo y moderado, se RECOMIENDA que pase a cada 6 meses después del primer año si el paciente está asintomático y el ecocardiograma es normal (Clase I · Nivel C) (pie de la Figura 11, folio 4260).', refs:['escOnco2022'] }
+  ];
+
+  const equiv = [
+    { txt:'La Tabla 5 convierte cualquier antraciclina a su equivalente de doxorrubicina multiplicando la dosis por un cociente: epirrubicina 0,8; daunorrubicina 0,6; mitoxantrona 10,5; idarrubicina 5. Las dosis isoequivalentes a 100 mg/m² de doxorrubicina son 125, 167, 9,5 y 20 mg/m² (folio 4247).', refs:['escOnco2022'] },
+    { txt:'La propia tabla advierte dos cosas: esas dosis isoequivalentes se derivaron de supervivientes de cáncer PEDIÁTRICO, y el dato de la idarrubicina sale de un cociente estimado de eficacia antitumoral, no de datos de cardiotoxicidad (folio 4247).', refs:['escOnco2022'] }
+  ];
+
+  const riesgo = [
+    { txt:'La Tabla 4 reparte los factores en bloques —enfermedad cardiovascular previa, imagen cardíaca, biomarcadores basales, edad y factores de riesgo cardiovascular— y les asigna una categoría distinta en cada columna de fármaco. El mismo antecedente puede ser «muy alto» con una familia y no contar con otra (folio 4246).', refs:['escOnco2022'] },
+    { txt:'Es una TABLA de estratificación, no una tabla de recomendaciones: no publica clase ni nivel, y por eso acá tampoco se escriben.', refs:null }
+  ];
+
+  return { filas: filas, compacta: true,
+    bloques: [
+      { tit:'Las dos recomendaciones con clase y nivel',
+        lineas: rec,
+        nota:'Son las ÚNICAS dos de esta sección que salen de una tabla de recomendaciones de la guía. El informe y la conclusión de la aplicación son DESCRIPTIVOS: estas dos se publican acá y no en el papel firmado.' },
+      { tit:'Los grados de cardiotoxicidad (Tabla 3, folio 4243)', plegado:true, lineas: grad,
+        nota:'Son DEFINICIONES, no recomendaciones: la tabla no publica clase ni nivel.' },
+      { tit:'Qué eco y qué biomarcadores, y cuándo (Figuras 10 y 11, folios 4258 y 4260)', plegado:true,
+        lineas: esquema,
+        nota:'Las clases y los niveles que aparecen acá son los que escriben los PIES de esas dos figuras; el cuerpo del esquema no los lleva.' },
+      { tit:'Equivalencia de dosis de antraciclinas (Tabla 5, folio 4247)', plegado:true, lineas: equiv },
+      { tit:'El riesgo basal por familia de fármaco (Tabla 4, folio 4246)', plegado:true, lineas: riesgo }
+    ],
+    guia: { ref:'escOnco2022',
+      txt:'La graduación de la cardiotoxicidad sale de la Tabla 3 (folio 4243), el riesgo basal de la Tabla 4 (folio 4246) y el esquema de vigilancia de las Figuras 10 y 11 (folios 4258 y 4260).',
+      nota:'No se escriben acá los textos de seguimiento que se aplicarían igual a cualquier fármaco —la guía los publica por familia—, ni una «vigilancia estrecha» para caídas que no alcanzan ningún grado de la Tabla 3, ni los plazos de 2 a 4 semanas, porque ninguna de esas tres cosas figura en el documento.' },
+    notas: rec.map(function(l){ return l.txt }) };
+}
+
 const IND_SECS = [
   { tit:'Estenosis aórtica',                     fn:_indEA },
   { tit:'Insuficiencia mitral primaria',         fn:_indIM },
@@ -82301,7 +82440,10 @@ const IND_SECS = [
   /* ⚠️ LA DE LA TANDA J2 (24/10/2026), Y SU TÍTULO NO ES PREFIJO DE NINGUNO NI NINGUNO ES
      PREFIJO SUYO: `IND_SECS` se recorre buscando la sección por el PREFIJO de su título.
      Verificado contra los veintisiete anteriores: ninguno empieza con «Perfil». */
-  { tit:'Perfil hemodinámico — presiones y resistencias estimadas por eco', fn:_indHemo }
+  { tit:'Perfil hemodinámico — presiones y resistencias estimadas por eco', fn:_indHemo },
+  /* ⚠️ NINGUNO DE LOS DOS TÍTULOS ES PREFIJO DE OTRO NI DE LOS VEINTISIETE ANTERIORES.
+     Verificado: ninguno empieza con «Perfil» ni con «Cardiotoxicidad». */
+  { tit:'Cardiotoxicidad por tratamiento oncológico — graduación y seguimiento', fn:_indConco }
 ];
 
 function indicRender(){
