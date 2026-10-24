@@ -20687,7 +20687,7 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
              se conservan tal cual: no se tocó una línea de esa función. -->
         <div class="card" style="margin-bottom:0">
           <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap">
-            <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--muted)">Score multiparamétrico</span>
+            <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--muted)">Score multiparam&eacute;trico <button type="button" class="vinfo-btn" data-vinfo="amilo-score" aria-expanded="false" aria-label="Informaci&oacute;n sobre la validaci&oacute;n y el rendimiento del score" onclick="vInfoClic(this)">&#9432;</button></span>
             <span style="font-size:13px;font-weight:700;font-variant-numeric:tabular-nums"><span id="ett-score-num">0</span> / 10 pts</span>
             <span id="ett-score-cat" style="font-size:12px;font-weight:600">Completá los parámetros</span>
           </div>
@@ -42821,6 +42821,24 @@ const VINFO = Object.freeze({
        + 'Acá los dos ejes son estimaciones por eco: el índice cardíaco sale del tracto de salida y la presión capilar de la relación E/e\u2019.',
     fuente: 'Forrester y colaboradores, New England Journal of Medicine 1976;295:1356, reproducida en Braunwald, Tratado de Cardiología, 10.ª edición española, Elsevier 2016, Tabla 52-9 y texto del folio 1125.',
     ojo: 'LOS DOS BORDES EXACTOS NO ESTÁN DEFINIDOS. Con un índice cardíaco de 2,2 justo, la app marca hipoperfusión, y la clasificación original dice «por debajo de 2,2», de modo que no resuelve ese valor exacto. Lo mismo del otro lado: la app no define la presión capilar de 18 exacta, porque la congestión aparece cuando esa presión SUPERA 18.'
+  },
+  /* ══ EL GLOBO DEL SCORE DE AMILOIDOSIS (J2-E5, 2026-10-24) ═════════════════════════════════
+     Las DOS fuentes están verificadas: el folio 1556 del documento de posición en el texto del
+     PDF original, y la Tabla 4 de Boldrini EN IMAGEN.
+     ⚠️ DICE «ESPECIFICIDAD», NO «VALOR PREDICTIVO POSITIVO». El valor predictivo del 100 % que
+     esta aplicación publica en otro lado es el del CENTELLOGRAMA grado 2 o 3 con proteínas
+     monoclonales negativas, que es el ALGORITMO y no el score: son dos cosas distintas y
+     confundirlas convierte un puntaje ecocardiográfico en un diagnóstico. */
+  'amilo-score': {
+    tit: 'Score multiparamétrico — validación y rendimiento',
+    formula: 'Espesor relativo >0,6 → 3 · E/e\u2019 >11 → 1 · TAPSE ≤19 mm → 2 · strain longitudinal ≤ −13 % → 1 · cociente ápex-base >2,9 → 3',
+    lee: 'El documento de posición de la ESC publica el score SIN validación externa, y lo dice con esas palabras.\n'
+       + 'Su corte es uno solo, 8 puntos, y exige además un espesor parietal inexplicado de 12 mm o más.\n'
+       + 'En ese corte la ESPECIFICIDAD es cercana al 100 % y la SENSIBILIDAD es baja: un puntaje por debajo de 8 no descarta amiloidosis.',
+    fuente: 'Los cinco parámetros, sus puntos y el corte de 8 · García-Pavía P y col., documento de posición del Grupo de Trabajo de Miocardio y Pericardio de la ESC, Eur Heart J 2021;42:1554-1568, Tabla 2, folio 1558.\n'
+          + '«No validado externamente» · el mismo documento, texto del folio 1556.\n'
+          + 'Sensibilidad y especificidad por corte · Boldrini M y col., «Multiparametric echocardiography scores for the diagnosis of cardiac amyloidosis», JACC: Cardiovascular Imaging (manuscrito aceptado), Tabla 4, página 30. Score IWT, cohorte de hipertrofia inexplicada, n = 923: con ≥8 puntos, sensibilidad 46 % y especificidad 98 %.',
+    ojo: 'El 100 % que esta aplicación publica en el módulo del ALGORITMO es otro número y de otra prueba: es el valor predictivo positivo del centellograma con captación grado 2 o 3 cuando las proteínas monoclonales son negativas. Del score lo que se puede decir es que su especificidad es alta; no que un puntaje alto confirme el diagnóstico por sí solo.'
   },
   /* El unico globo de esta tanda que escribe texto, y lo escribe porque la fuente esta VISTA: su
      formula, su medicion y su alcance salen del enunciado D6_11 de la guia, no de la memoria. */
@@ -93206,6 +93224,37 @@ function calcApice() {
   calcETT();
 }
 
+/* ══ RENDIMIENTO DEL SCORE POR CORTE — BOLDRINI 2020, TABLA 4 (J2-E5, 2026-10-24) ══════════
+   Sensibilidad y especificidad del score IWT en cada corte, TRANSCRITAS de la tabla y no
+   escritas de memoria. Fuente: Boldrini M, Cappelli F, Chacko L, y col., «Multiparametric
+   echocardiography scores for the diagnosis of cardiac amyloidosis», manuscrito aceptado en
+   JACC: Cardiovascular Imaging, Tabla 4, página 30 — VERIFICADA EN IMAGEN.
+
+   ⚠️ ES EL SCORE «IWT» Y NO EL «AL», y la distinción importa: son dos scores distintos en la
+   misma tabla, con cohortes distintas. El IWT es el de la cohorte de HIPERTROFIA INEXPLICADA
+   (espesor septal o de pared posterior de 12 mm o más), n = 923, área bajo la curva 0,87, y
+   suma los mismos cinco parámetros que esta aplicación: espesor relativo, E/e', TAPSE, strain
+   longitudinal y cociente ápex-base. El score AL tiene cuatro parámetros y otra cohorte.
+   ⚠️ LOS VALORES SON DE «>= N», salvo la última fila, que la tabla escribe «= 10». Acá sólo se
+   usan los cortes de 1 a 7 —por encima de 7 la aplicación no publica este texto—, así que esa
+   diferencia no llega a la pantalla; queda escrita para el día que alguien la use más arriba.
+   ⚠️ EL INTERVALO DE CONFIANZA DE LA FILA «>= 3» VIENE CON UNA ERRATA EN EL ORIGINAL («92-6»).
+   Acá se guardan los PUNTOS ESTIMADOS, que son inequívocos; los intervalos no se publican. */
+const AMILO_IWT_BOLDRINI = Object.freeze({
+  0:  { se: 100, sp: 0  },
+  1:  { se: 98,  sp: 19 },
+  2:  { se: 96,  sp: 35 },
+  3:  { se: 94,  sp: 45 },
+  4:  { se: 89,  sp: 61 },
+  5:  { se: 82,  sp: 72 },
+  6:  { se: 78,  sp: 79 },
+  7:  { se: 67,  sp: 89 },
+  8:  { se: 46,  sp: 98 },
+  9:  { se: 36,  sp: 99 },
+  10: { se: 25,  sp: 99 }
+});
+window.AMILO_IWT_BOLDRINI = AMILO_IWT_BOLDRINI;
+
 function calcETT() {
   var pts = ['ett-rwt','ett-ee','ett-tapse','ett-sgl','ett-apice']
     .reduce((s,id)=>s+(PF(document.getElementById(id)?.value)||0),0);
@@ -93255,13 +93304,34 @@ function calcETT() {
     interp='HVI ≥12mm con ' + (pts >= 8 && cualCount >= 2
         ? 'score ≥8 y ≥2 criterios cualitativos'
         : (pts >= 8 ? 'score ≥8' : '≥2 criterios cualitativos'))
-      + '. Alcanza uno de los dos caminos de la Tabla 2 (Garcia-Pavia 2021). Patrón altamente sugestivo de amiloidosis cardíaca. Continuar con centellograma y proteínas monoclonales.';
-  } else if(pts >= 5 && hvi) {
-    cat='🟡 Score INTERMEDIO (' + pts + '/10)';
-    interp='Hallazgos sugestivos pero score <8 o criterios cualitativos insuficientes. Evaluar en contexto clínico. Completar estudio.';
+      + '. Alcanza uno de los dos caminos de la Tabla 2 del documento de posición de la ESC (García-Pavía 2021, folio 1558). Patrón altamente sugestivo de amiloidosis cardíaca. Continuar con centellograma y proteínas monoclonales.';
   } else if(hvi) {
-    cat='🟢 Score BAJO (' + pts + '/10) con HVI';
-    interp='HVI presente pero score bajo. Considerar otras causas de HVI (HTA, estenosis aórtica, miocardiopatía hipertrófica). Amiloidosis menos probable pero no descartada.';
+    /* ══ SE VAN LAS ETIQUETAS «INTERMEDIO» (5-7) Y «BAJO» (<5) ═══════════════════════════════
+       (J2-E5, 2026-10-24, decisión de Maicol — opción A.)
+       Ninguna de las dos tiene fuente. El documento de posición de la ESC publica UN corte, el
+       de 8 puntos (Tabla 2, folio 1558); no parte lo que queda por debajo en dos bandas, y
+       tampoco lo hace el artículo que desarrolló el score. «BAJO» era además una afirmación
+       peligrosa: con el corte de 8 la sensibilidad es del 46 %, o sea que un puntaje por debajo
+       NO descarta amiloidosis, y la palabra «bajo» se lee como si lo hiciera.
+       Lo que queda es DESCRIPTIVO: el puntaje, que no alcanza el corte, y el rendimiento del
+       score EN ESE CORTE, transcrito de la Tabla 4 de Boldrini 2020.
+       ⚠️ ESTA RAMA ABSORBE LAS DOS VIEJAS, y el orden de los `else if` es lo que lo garantiza:
+       la de arriba ya se llevó los casos que alcanzan el criterio por eco —score de 8 o más, o
+       dos de los tres criterios cualitativos—, así que acá sólo caen los que tienen hipertrofia
+       y no alcanzan ninguno de los dos caminos. Borrar una de las dos ramas y dejar la otra
+       habría mandado los puntajes de 1 a 4 al `else` final, que afirma «Sin HVI >=12mm» sobre
+       un paciente que SÍ la tiene.
+       ⚠️ EL PUNTAJE 0 NO LLEGA ACÁ: lo atrapa el primer `if`, que no se tocó. Los cinco campos
+       de puntos son hidden que nacen en '0', así que la aplicación no puede distinguir «los
+       cinco criterios ausentes» de «nadie cargó nada», y seguir diciendo «Completá los
+       parámetros» es el lado que no afirma. Declarado en docs/PENDIENTES.md. */
+    var _b = AMILO_IWT_BOLDRINI[pts];
+    cat='🔵 Puntaje ' + pts + '/10: no alcanza el corte de 8'
+      + (_b ? ' (sensibilidad ' + _b.se + ' %, especificidad ' + _b.sp + ' % con ≥' + pts + '; Boldrini 2020)' : '');
+    interp='Con hipertrofia ventricular izquierda de 12 mm o más y menos de 8 puntos, sin llegar a dos de los tres criterios cualitativos, no se cumple ninguno de los dos caminos de la Tabla 2 del documento de posición de la ESC (García-Pavía 2021, folio 1558). '
+      + 'Un puntaje por debajo de 8 NO descarta amiloidosis cardíaca: en ese corte la sensibilidad del score es del '
+      + (AMILO_IWT_BOLDRINI[8] ? AMILO_IWT_BOLDRINI[8].se : 46) + ' % (Boldrini 2020, Tabla 4, cohorte de hipertrofia inexplicada). '
+      + 'Considerar también otras causas de hipertrofia: hipertensión arterial, estenosis aórtica, miocardiopatía hipertrófica.';
   } else {
     cat='⚪ Score: ' + pts + '/10 — Sin HVI ≥12mm';
     interp='Sin HVI ≥12mm, el algoritmo de la Tabla 2 (García-Pavía 2021) no es formalmente aplicable. Score calculado como referencia.';

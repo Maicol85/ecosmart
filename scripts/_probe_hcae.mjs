@@ -1084,6 +1084,67 @@ window.__Z = {
     o.filas = sec.querySelectorAll('tr').length;
     return o },
 
+  /* Barrido del score de amiloidosis: pone los cinco hidden de puntos y los tres cualitativos,
+     corre calcETT y devuelve TODAS las superficies que publican la etiqueta.
+     Los cinco valen 3, 1, 2, 1 y 3, asi que con subconjuntos se alcanzan los once puntajes. */
+  amiloPoner(cfg) {
+    var P = { 'ett-rwt': 3, 'ett-ee': 1, 'ett-tapse': 2, 'ett-sgl': 1, 'ett-apice': 3 };
+    var puestos = {};
+    Object.keys(P).forEach(function(id){
+      var e = document.getElementById(id);
+      if (!e) { puestos[id] = 'NO EXISTE'; return; }
+      e.value = (cfg.on || []).indexOf(id) >= 0 ? String(P[id]) : '0';
+      puestos[id] = e.value;
+    });
+    ['ett-cual-1','ett-cual-2','ett-cual-3'].forEach(function(id, i){
+      var e = document.getElementById(id);
+      if (!e) { puestos[id] = 'NO EXISTE'; return; }
+      e.value = (i < (cfg.cual || 0)) ? '1' : '0';
+      puestos[id] = e.value;
+    });
+    ['ett-septo','ett-pp'].forEach(function(id){
+      var e = document.getElementById(id); if (!e) return;
+      e.value = cfg.hvi === false ? '10' : '14';
+      e.dispatchEvent(new Event('input', { bubbles: true }));
+      puestos[id] = e.value;
+    });
+    try { calcETT() } catch (e) { return { err: 'EXC calcETT: ' + e.message, puestos: puestos } }
+    return { puestos: puestos } },
+
+  /* TODAS las superficies que publican la etiqueta del score, lado a lado. */
+  amilo() {
+    var o = {};
+    o.num    = window.__P.txt('ett-score-num');
+    o.cat    = window.__P.txt('ett-score-cat');
+    o.interp = window.__P.txt('ett-score-interp');
+    o.hvi    = window.__P.txt('ett-hvi-badge');
+    o.cual   = window.__P.txt('ett-cual-count');
+    /* El informe y la hoja del PDF, por su generador real. */
+    try { o.hoja = (typeof amiloTextoETT === 'function') ? amiloTextoETT() : 'SIN FN' }
+    catch (e) { o.hoja = 'EXC: ' + e.message }
+    /* El PPT lee los dos span por su dueno. */
+    o.ppt = { num: (typeof _pptSpan === 'function') ? _pptSpan('ett-score-num') : 'SIN FN',
+              interp: (typeof _pptSpan === 'function') ? _pptSpan('ett-score-interp') : 'SIN FN' };
+    /* El Laboratorio tiene su PROPIA banda, con otros cortes, y su dueno es _labAmilCat. */
+    try {
+      var sc = document.getElementById('alg-ett-score');
+      var val = sc ? sc.value : '';
+      var inf = window.__P.reg({ 'alg-ett-score': val }, 'am');
+      o.lab = (typeof _labAmilCat === 'function') ? _labAmilCat(inf) : 'SIN FN';
+      o.algScore = val;
+    } catch (e) { o.lab = 'EXC: ' + e.message }
+    return o },
+
+  /* Pasa el score al algoritmo con el BOTON real, que es la unica puerta del medico. */
+  amiloPasar() {
+    var b = null;
+    document.querySelectorAll('button').forEach(function(x){
+      if (!b && (x.getAttribute('onclick') || '').indexOf('pasarScoreAAlgoritmo') >= 0) b = x;
+    });
+    if (!b) return { err: 'NO EXISTE el boton' };
+    b.click();
+    return { ok: true, alg: window.__P.val('alg-ett-score') } },
+
   /* Lleva A LA VISTA la primera fila que contiene un fragmento de texto, para que la captura
      muestre LO QUE SE CAMBIO y no el principio de la seccion. Devuelve su rect y su texto: si
      no esta, lo dice, y una captura sin denominador no se confunde con una sana. */
@@ -1094,6 +1155,12 @@ window.__Z = {
     var hit = null;
     raiz.querySelectorAll('tr').forEach(function(x){
       if (!hit && (x.textContent || '').indexOf(frag) >= 0) hit = x;
+    });
+    /* Sin tabla, el nodo MAS PROFUNDO que contiene el fragmento: una fila de una tabla y una
+       caja de resultado son la misma pregunta -«mostrame donde cambio»- y la sonda no deberia
+       servir solo para una de las dos. */
+    if (!hit) raiz.querySelectorAll('*').forEach(function(x){
+      if ((x.textContent || '').indexOf(frag) >= 0 && x.children.length === 0) hit = x;
     });
     if (!hit) return { hay: false, frag: frag };
     hit.scrollIntoView({ block: 'center' });
@@ -1221,8 +1288,19 @@ window.__Z = {
           await viewport(w,h);
           await ev(`window.__P.tema(${claro ? 'true' : 'false'})`);
           await ev(`window.__P.nuevo()`);
-          await ev(`window.__Y.poner(${JSON.stringify(ESC.hemoDistrib)})`);
-          await ev(`window.__P.calentar()`);
+          if (arg('--amilo')) {
+            for (const z of ZONAS) await ev(`window.__Z.abrirZona(${JSON.stringify(z)})`);
+            await ev(`window.__Z.amiloPoner(${JSON.stringify({ on: (arg('--amilo')||'').split('+').filter(Boolean) })})`);
+            /* ADVERTENCIA: NO se llama a calentar() en esta rama, y no es un atajo. calentar()
+               corre TODAS las funciones calc*, entre ellas calcApice y las demas calculadoras
+               del score: con los campos de medicion vacios, cada una llama a amCalcSinDato y
+               PONE EN CERO su hidden de puntos. Medido: el puntaje volvia a 0 y la captura
+               mostraba «Completa los parametros» sobre una escena de 6 puntos -un verde sobre
+               otra escena-. */
+          } else {
+            await ev(`window.__Y.poner(${JSON.stringify(ESC.hemoDistrib)})`);
+            await ev(`window.__P.calentar()`);
+          }
           for (const z of ZONAS) await ev(`window.__Z.abrirZona(${JSON.stringify(z)})`);
           const FRAG = arg('--frag');
           const k = `${w}x${h}_${claro ? 'claro' : 'oscuro'}`;
@@ -1329,6 +1407,55 @@ window.__Z = {
     } catch (e) { r.err = e.message }
     out.grupos.conco = r;
     process.stderr.write('[conco] listo\n');
+  }
+
+  /* ══ GRUPO amilo — EL SCORE DE 0 A 10, Y SUS SUPERFICIES ═══════════════════════════════════
+     Los once puntajes, con hipertrofia y sin ella, y las dos vias del criterio por eco. */
+  const AMILO_ESC = {
+    p0:  { on: [] },
+    p1:  { on: ['ett-ee'] },
+    p2:  { on: ['ett-tapse'] },
+    p3:  { on: ['ett-rwt'] },
+    p4:  { on: ['ett-rwt','ett-ee'] },
+    p5:  { on: ['ett-rwt','ett-tapse'] },
+    p6:  { on: ['ett-rwt','ett-apice'] },
+    p7:  { on: ['ett-rwt','ett-apice','ett-ee'] },
+    p8:  { on: ['ett-rwt','ett-apice','ett-tapse'] },
+    p9:  { on: ['ett-rwt','ett-apice','ett-tapse','ett-ee'] },
+    p10: { on: ['ett-rwt','ett-apice','ett-tapse','ett-ee','ett-sgl'] },
+    /* CONTROL NEGATIVO 1: los mismos puntajes SIN hipertrofia, que caen en otra rama. */
+    p6sinHVI: { on: ['ett-rwt','ett-apice'], hvi: false },
+    p9sinHVI: { on: ['ett-rwt','ett-apice','ett-tapse','ett-ee'], hvi: false },
+    /* CONTROL NEGATIVO 2: la OTRA via del criterio por eco -dos cualitativos con score bajo-,
+       que esta tanda no toca. */
+    p2cual2:  { on: ['ett-tapse'], cual: 2 },
+    p4cual2:  { on: ['ett-rwt','ett-ee'], cual: 2 }
+  };
+  if (corre('amilo')) {
+    const r = { escenas: {} };
+    try {
+      await viewport(1440,900);
+      for (const k of Object.keys(AMILO_ESC)) {
+        await ev(`window.__P.nuevo()`);
+        await ev(`window.__Z.abrirZona('ett-score-cat')`);
+        const put = await ev(`window.__Z.amiloPoner(${JSON.stringify(AMILO_ESC[k])})`);
+        const pasar = await ev(`window.__Z.amiloPasar()`);
+        r.escenas[k] = { err: put.err, pasar: pasar, m: await ev(`window.__Z.amilo()`, 30000) };
+      }
+      /* El globo del score, apretado de verdad. */
+      r.globo = await ev(`window.__Z.globo('amilo-score')`, 20000);
+      /* Excel y el censo de campos con un puntaje intermedio cargado. */
+      await ev(`window.__P.nuevo()`);
+      await ev(`window.__Z.abrirZona('ett-score-cat')`);
+      await ev(`window.__Z.amiloPoner(${JSON.stringify(AMILO_ESC.p6)})`);
+      await ev(`window.__Z.amiloPasar()`);
+      r.excel = await ev(`window.__P.excelDOM()`, 60000);
+      r.campos = await ev(`window.__P.camposGuardados()`);
+      r.panel = await ev(`window.__Z.panel()`, 60000);
+      r.errores = await ev(`window.__Y.errores()`);
+    } catch (e) { r.err = e.message }
+    out.grupos.amilo = r;
+    process.stderr.write('[amilo] listo\n');
   }
 
   OUT.md5Fin = await md5(EXTERNO ? FARG : join(RAIZ, FILE));
