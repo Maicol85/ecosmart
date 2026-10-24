@@ -326,12 +326,14 @@ impecable.
 > SEGURIDAD y la tabla de Procedencia) siguen enteras y en su lugar, verificado byte por byte.
 ### Fallot, el eco pulmonar en columnas, Config y el buscador — «AJ6» (2026-10-24)
 
-- **Son SIETE commits y los cuatro ítems se completaron enteros, con SIETE cosas declaradas y no
+- **Son OCHO commits y los cuatro ítems se completaron enteros, con SIETE cosas declaradas y no
   tocadas.** `fc7ce7f` (AJ6-1) · `70d5623` (AJ6-3) · `840d9b2` (AJ6-4a y AJ6-4b) · `558c125`
-  (AJ6-2) · `42f3ade` (AJ6-5, los tres hallazgos de releer el propio diff) · el de los cinco casos
-  con su arnés de mutaciones · el de la documentación. Sello **`v20261024-1037`**.
+  (AJ6-2) · `4b946d5` (AJ6-5, los tres hallazgos de releer el propio diff) · `221a193` (los cinco
+  casos y el arnés de mutaciones) · `36a25b9` (los cuatro casos que destapó la suite completa) ·
+  `fa85cc7` (la documentación). Sello **`v20261024-1037`**.
   Al **empezar**, `origin/main` estaba en **`2b9f3ef`** con **40** commits locales sin pushear;
-  al cerrar hay **47**, medidos con `git rev-list --count origin/main..HEAD` y no contados a mano.
+  al cerrar hay **49** —los ocho de la tanda más este renglón, que es su propio commit—, medidos
+  con `git rev-list --count origin/main..HEAD` y no contados a mano.
   **El push lo corre Maicol: esta tanda tenía orden expresa de NO pushear.**
 
 - ⚠️ **EL PENDRIVE SE DESENCHUFÓ Y LA MÁQUINA SE CERRÓ A MITAD DE LA SUITE, Y LA CORRIDA QUEDÓ
