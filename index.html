@@ -73110,8 +73110,22 @@ const IND_REFS = Object.freeze([
          'indexado > 32 mm/m² no figura en el documento. Verificación clínica pendiente: hasta ' +
          'resolverla, el nivel de evidencia no se publica y esta referencia no se unifica con la ' +
          'de sus secciones hermanas.' },
+  /* ⚠️ ENTRADA AMPLIADA EL 2026-10-24 (J2-E6) con lo que se verificó en el PDF original. Antes
+     decía sólo el nombre de la guía. No se le cambió el contenido clínico a nadie: lo que entra
+     es la PROCEDENCIA —folio, tabla y regla de folio— de las dos filas que la sección de
+     amiloidosis cita. Regla de folio: folio = hoja del PDF − 1, comprobada en el encabezado.
+     ⚠️ ES LA TRADUCCIÓN DE LA SEC. Las dos recomendaciones citadas se COTEJARON contra el
+     original inglés (Eur Heart J 2023, `ehad194.pdf`, hoja 26) y coinciden palabra por palabra
+     en su sentido, con la misma clase y el mismo nivel. */
   { k:'esc2023mioc',
-    full:'ESC 2023 — Guía para el manejo de las miocardiopatías. Sociedad Europea de Cardiología.' },
+    full:'Arbelo E, Protonotarios A, Gimeno JR, et al. Guía ESC 2023 sobre el manejo de las ' +
+         'miocardiopatías. Traducción al español de la Sociedad Española de Cardiología de la ' +
+         'guía publicada en Eur Heart J 2023;44(37):3503-3626. ' +
+         'Folio 27 (hoja 28 del PDF): Tabla 6 de recomendaciones, sobre tomografía computarizada ' +
+         'e imagen nuclear —la gammagrafía con trazador óseo DPD/PYP/HMDP en la sospecha de ' +
+         'amiloidosis cardíaca relacionada con TTR, Clase I · Nivel B—; y Tabla 5 de ' +
+         'recomendaciones, sobre resonancia magnética cardíaca —el seguimiento seriado y la ' +
+         'evaluación de la respuesta terapéutica en la amiloidosis cardíaca, Clase IIa · Nivel C—.' },
   { k:'esc2024ao',
     full:'ESC 2024 — Guía para el manejo de las enfermedades aórticas y arteriales periféricas. ' +
          'Sociedad Europea de Cardiología. Incluye la tabla de recomendaciones modificadas, donde ' +
@@ -73622,7 +73636,34 @@ const IND_REFS = Object.freeze([
          'Recomendaciones-tabla 26, diagnóstico y manejo de la miocarditis asociada a ' +
          'inhibidores de puntos de control, folio 4289. ' +
          'Recomendaciones-tabla 41, vigilancia cardiovascular en supervivientes adultos ' +
-         'asintomáticos, folio 4314.' }
+         'asintomáticos, folio 4314.' },
+  /* ── AÑADIDAS 2026-10-24 (J2-E5 y J2-E6). Las dos leídas en el PDF original; la Tabla 2 del
+     documento de posición y la Tabla 4 de Boldrini, EN IMAGEN.
+     ⚠️ BOLDRINI ES UN MANUSCRITO ACEPTADO y se cita como tal: la copia de la biblioteca es la
+     versión del autor, con numeración de página propia (la Tabla 4 está en su página 30) y sin
+     folio de revista. No se le inventa uno. */
+  { k:'gpAmiloid2021',
+    full:'Garcia-Pavia P, Rapezzi C, Adler Y, et al. Diagnosis and treatment of cardiac ' +
+         'amyloidosis: a position statement of the ESC Working Group on Myocardial and ' +
+         'Pericardial Diseases. Eur Heart J 2021;42(16):1554-1568. ' +
+         'doi:10.1093/eurheartj/ehab072. Regla de folio: folio = hoja del PDF + 1553, ' +
+         'comprobada en el pie impreso de las quince hojas. ' +
+         'Tabla 2, folio 1558: los criterios ecocardiográficos y de resonancia, con el score ' +
+         'multiparamétrico de 8 puntos y los tres criterios cualitativos. ' +
+         'Texto del folio 1556: el score «no está validado externamente». ' +
+         'Folios 1558-1559: los CUATRO escenarios del algoritmo diagnóstico según el ' +
+         'centellograma y las proteínas monoclonales, y la Figura 2 con los grados 0 a 3 de ' +
+         'captación.' },
+  { k:'boldrini2020',
+    full:'Boldrini M, Cappelli F, Chacko L, et al. Multiparametric echocardiography scores for ' +
+         'the diagnosis of cardiac amyloidosis. JACC: Cardiovascular Imaging — manuscrito ' +
+         'aceptado, copia del autor. Tabla 4, página 30 del manuscrito, leída EN IMAGEN: ' +
+         'sensibilidad y especificidad de cada corte del score IWT (espesor relativo, E/e\u2019, ' +
+         'TAPSE, strain longitudinal y cociente ápex-base) en la cohorte de hipertrofia ' +
+         'inexplicada, n = 923, área bajo la curva 0,87. Con 8 puntos o más: sensibilidad 46 % ' +
+         '(intervalo 42-50) y especificidad 98 % (intervalo 95-99). ' +
+         '⚠️ EN LA MISMA TABLA CONVIVE EL SCORE «AL», que tiene cuatro parámetros y otra ' +
+         'cohorte: los valores citados son los del IWT, que es el que esta aplicación calcula.' }
 ]);
 
 /* Clave → número. Se arma UNA vez desde `IND_REFS`.
@@ -82402,6 +82443,144 @@ function _indConco(){
     notas: rec.map(function(l){ return l.txt }) };
 }
 
+/* ══ EVIDENCIA · AMILOIDOSIS CARDÍACA (J2-E6, 2026-10-24) ══════════════════════════════════
+   Es un CUESTIONARIO del ALGORITMO DIAGNÓSTICO, sin un solo paso de tratamiento. LEE lo que el
+   estudio ya tiene —el score, el espesor, los criterios cualitativos, y el centellograma y las
+   proteínas monoclonales si el médico ya los cargó en el módulo del algoritmo— y PREGUNTA
+   únicamente lo que falte.
+
+   ⚠️ DOBLE PUERTA, Y NO DOS DUEÑOS. Si el dato está en el módulo se lee de ahí; si no está, se
+   contesta acá, en una respuesta efímera del panel. Es el mecanismo que `_indFilaCtrl` ya tiene
+   para los campos de la pestaña ETE que el Modo Básico esconde. Lo contestado acá NO se guarda,
+   no viaja al informe ni al Excel y no pisa el módulo.
+   ⚠️ LOS CUATRO ESCENARIOS SON LOS DEL DOCUMENTO DE POSICIÓN, folios 1558-1559, leídos EN
+   IMAGEN, y están redactados con palabras propias. Son pasos DIAGNÓSTICOS —resonancia, biopsia,
+   tipificación del amiloide, estudio genético, consulta con hematología—, no de tratamiento.
+   ⚠️ NINGUNO DE LOS CUATRO LLEVA CLASE NI NIVEL: el documento de posición no publica esa escala
+   para los escenarios. Las ÚNICAS dos filas con clase y nivel de esta sección son las de la guía
+   ESC 2023 de miocardiopatías, folio 27. */
+function _indAmil(){
+  const pts = ['ett-rwt','ett-ee','ett-tapse','ett-sgl','ett-apice']
+    .reduce(function(a, id){ const e = document.getElementById(id);
+      const n = e ? parseFloat(String(e.value || '0').replace(',', '.')) : 0;
+      return a + (isFinite(n) ? n : 0); }, 0);
+  const cual = ['ett-cual-1','ett-cual-2','ett-cual-3']
+    .reduce(function(a, id){ const e = document.getElementById(id);
+      const n = e ? parseFloat(String(e.value || '0').replace(',', '.')) : 0;
+      return a + (isFinite(n) ? n : 0); }, 0);
+  const septo = _indN('ett-septo'), pp = _indN('ett-pp');
+  const espesor = Math.max(septo || 0, pp || 0);
+  const scAlg = _indN('alg-ett-score');
+  /* Compuerta: hace falta que ALGUIEN haya cargado algo del módulo de amiloidosis. Sin esto la
+     sección despertaría en todo paciente, porque sus dos preguntas se pueden contestar siempre. */
+  if (pts === 0 && cual === 0 && espesor === 0 && scAlg == null) return null;
+
+  /* ── El dato del módulo, si está; si no, la respuesta del panel ──────────────────────────── */
+  const gMod = (typeof window.gradoGamma === 'number') ? window.gradoGamma : null;
+  const pMod = (typeof window.protMonoc === 'string' && window.protMonoc) ? window.protMonoc : null;
+  const gPan = _indClinGet('amil.gamma');
+  const pPan = _indClinGet('amil.prot');
+  const g = (gMod !== null) ? gMod : (gPan != null ? parseInt(gPan, 10) : null);
+  const prot = (pMod !== null) ? pMod : (pPan != null ? pPan : null);
+
+  const GR = ['0 — no capta', '1 — captación menor que la del hueso',
+              '2 — captación similar a la del hueso', '3 — captación mayor que la del hueso'];
+  const hvi = espesor >= 12;
+
+  const filas = [
+    _indFila('Espesor parietal máximo',
+      espesor > 0 ? _indNum(espesor, 1, 'mm') : '—',
+      hvi ? 'warn' : (espesor > 0 ? 'none' : 'ask'),
+      'la Tabla 2 pide un espesor inexplicado de 12 mm o más como condición de entrada: sin él, ninguno de los dos caminos del criterio ecocardiográfico aplica (folio 1558).',
+      ['gpAmiloid2021']),
+    _indFila('Score multiparamétrico', pts + ' / 10 puntos',
+      pts >= 8 ? 'warn' : 'none',
+      'el corte es 8 puntos, y es el ÚNICO que publica el documento. En ese corte la sensibilidad es del 46 % y la especificidad del 98 % en la cohorte de hipertrofia inexplicada, así que un puntaje por debajo no descarta nada (Tabla 2, folio 1558; rendimiento de la Tabla 4, página 30 de Boldrini).',
+      ['gpAmiloid2021','boldrini2020']),
+    _indFila('Criterios cualitativos', cual + ' de 3 presentes',
+      cual >= 2 ? 'warn' : 'none',
+      'son el OTRO camino de la Tabla 2: con dos de los tres —disfunción diastólica de grado 2 o peor, velocidades tisulares por debajo de 5 cm/s y caída del strain longitudinal— se alcanza el criterio por ecocardiografía sin llegar a los 8 puntos (folio 1558).',
+      ['gpAmiloid2021'])
+  ];
+
+  /* Las DOS preguntas. Si el módulo ya las tiene, la fila las PUBLICA en vez de preguntarlas. */
+  if (gMod !== null) {
+    filas.push(_indFila('Centellograma con difosfonatos — grado de captación', 'Grado ' + GR[gMod],
+      gMod >= 2 ? 'warn' : 'none',
+      'cargado en el módulo del algoritmo. La Figura 2 define los cuatro grados: 0 sin captación miocárdica y captación ósea normal; 1 con captación miocárdica menor que la del hueso; 2 con captación miocárdica y ósea similares; 3 con captación miocárdica mayor que la del hueso y captación ósea reducida o ausente (folio 1559).',
+      ['gpAmiloid2021']));
+  } else {
+    filas.push(_indFilaCtrl('¿Qué grado de captación cardíaca muestra el centellograma con difosfonatos?',
+      'amil.gamma',
+      [{v:'0',t:'Grado 0'},{v:'1',t:'Grado 1'},{v:'2',t:'Grado 2'},{v:'3',t:'Grado 3'}],
+      g == null ? 'ask' : (g >= 2 ? 'warn' : 'none'),
+      'la Figura 2 define los cuatro grados: 0 sin captación miocárdica y captación ósea normal; 1 con captación miocárdica menor que la del hueso; 2 con captación miocárdica y ósea similares; 3 con captación miocárdica mayor que la del hueso y captación ósea reducida o ausente (folio 1559). Contestar acá no toca el módulo del algoritmo ni se guarda con el estudio.',
+      ['gpAmiloid2021']));
+  }
+  if (pMod !== null) {
+    filas.push(_indFila('Proteínas monoclonales en suero y orina',
+      pMod === 'negativo' ? 'Todas negativas' : 'Al menos una anormal',
+      pMod === 'negativo' ? 'none' : 'warn',
+      'cargadas en el módulo del algoritmo. El documento pide las TRES: cadenas ligeras libres en suero, y electroforesis de proteínas en suero y en orina, las dos con inmunofijación. La combinación de las tres tiene una sensibilidad del 99 % para detectar el precursor anormal en la amiloidosis AL (folio 1556).',
+      ['gpAmiloid2021']));
+  } else {
+    filas.push(_indFilaCtrl('¿Son todas negativas las proteínas monoclonales en suero y orina?',
+      'amil.prot',
+      [{v:'negativo',t:'Todas negativas'},{v:'anormal',t:'Al menos una anormal'}],
+      prot == null ? 'ask' : (prot === 'negativo' ? 'none' : 'warn'),
+      'el documento pide las TRES: cadenas ligeras libres en suero, y electroforesis de proteínas en suero y en orina, las dos con inmunofijación. La combinación de las tres tiene una sensibilidad del 99 % para detectar el precursor anormal en la amiloidosis AL (folio 1556). Contestar acá no toca el módulo del algoritmo ni se guarda con el estudio.',
+      ['gpAmiloid2021']));
+  }
+
+  /* ── El escenario que corresponde, de los cuatro ─────────────────────────────────────────── */
+  const esc = [], faltan = [];
+  if (g == null || prot == null) {
+    const q = [];
+    if (g == null) q.push('el grado de captación del centellograma');
+    if (prot == null) q.push('el resultado de las proteínas monoclonales en suero y orina');
+    faltan.push({ txt:'Falta contestar ' + q.join(' y ') + ': el algoritmo del documento de posición cruza esas dos cosas y de ahí salen sus cuatro escenarios (folios 1558-1559).', refs:['gpAmiloid2021'] });
+  } else {
+    const capta = g >= 1, protNeg = (prot === 'negativo');
+    if (!capta && protNeg) {
+      esc.push({ txt:'Escenario 1 — Sin captación cardíaca y con las proteínas monoclonales negativas, la probabilidad de amiloidosis cardíaca es muy baja, y tanto la ATTR como la AL son poco probables: corresponde considerar un diagnóstico alternativo (folio 1558).', refs:['gpAmiloid2021'] });
+      esc.push({ txt:'Si la sospecha clínica persiste, el documento sugiere considerar una resonancia cardíaca seguida de biopsia cardíaca o extracardíaca, porque el centellograma óseo puede ser negativo en algunas mutaciones de la ATTR hereditaria y en subtipos raros de amiloidosis cardíaca (folio 1558).', refs:['gpAmiloid2021'] });
+    } else if (capta && protNeg) {
+      if (g >= 2) {
+        esc.push({ txt:'Escenario 2 — Con captación cardíaca de grado 2 o 3 y las proteínas monoclonales negativas, la amiloidosis cardíaca por transtiretina SE PUEDE DIAGNOSTICAR sin histología (folio 1559).', refs:['gpAmiloid2021'] });
+        esc.push({ txt:'El paso siguiente es el estudio genético, para distinguir la forma hereditaria de la forma no hereditaria (folio 1559).', refs:['gpAmiloid2021'] });
+      } else {
+        esc.push({ txt:'Escenario 2 — Con captación cardíaca de GRADO 1 y las proteínas monoclonales negativas, el diagnóstico no invasivo NO es posible: hace falta confirmación histológica del depósito de amiloide, que puede ser extracardíaca (folio 1559).', refs:['gpAmiloid2021'] });
+      }
+    } else if (!capta && !protNeg) {
+      esc.push({ txt:'Escenario 3 — Sin captación cardíaca y con al menos una prueba de proteínas monoclonales anormal, hay que descartar sin demora una amiloidosis de cadenas ligeras. La resonancia cardíaca puede confirmar el compromiso del corazón (folio 1559).', refs:['gpAmiloid2021'] });
+      esc.push({ txt:'Si la resonancia no apoya la amiloidosis cardíaca, el diagnóstico es muy improbable. Si la apoya o no es concluyente, hace falta la demostración histológica del depósito, cardíaca o extracardíaca, para diagnosticar la amiloidosis AL (folio 1559).', refs:['gpAmiloid2021'] });
+      esc.push({ txt:'El documento recomienda biopsiar el corazón u otro órgano clínicamente afectado para no demorar el diagnóstico, y señala que la consulta con hematología está justificada. Si la resonancia no se puede hacer pronto, cabe considerar la biopsia directamente (folio 1559).', refs:['gpAmiloid2021'] });
+    } else {
+      esc.push({ txt:'Escenario 4 — Con captación cardíaca y al menos una prueba de proteínas monoclonales anormal, son posibles tres cosas: una ATTR con gammapatía monoclonal concomitante, una amiloidosis AL, o la coexistencia de las dos (folio 1559).', refs:['gpAmiloid2021'] });
+      esc.push({ txt:'En ese escenario el diagnóstico EXIGE histología con tipificación del amiloide, habitualmente por biopsia endomiocárdica (folio 1559).', refs:['gpAmiloid2021'] });
+    }
+  }
+
+  const rec = [
+    { txt:'Clase I · Nivel B — En el paciente con sospecha de amiloidosis cardíaca relacionada con transtiretina, la guía europea de miocardiopatías RECOMIENDA el centellograma con trazador óseo (DPD, PYP o HMDP) para ayudar al diagnóstico (Tabla 6 de recomendaciones, folio 27).', refs:['esc2023mioc'] },
+    { txt:'Clase IIa · Nivel C — La misma guía dice que DEBE CONSIDERARSE la resonancia cardíaca con contraste para el seguimiento seriado y la evaluación de la respuesta al tratamiento en la amiloidosis cardíaca (Tabla 5 de recomendaciones, folio 27).', refs:['esc2023mioc'] }
+  ];
+
+  const bloques = [];
+  if (esc.length) bloques.push({ tit:'El escenario que corresponde con lo contestado (folios 1558-1559)', lineas: esc,
+    nota:'Son los cuatro escenarios del documento de posición, que cruzan el centellograma con las proteínas monoclonales. No llevan clase ni nivel: ese documento no publica esa escala. Son pasos DIAGNÓSTICOS; esta sección no escribe tratamiento.' });
+  if (faltan.length) bloques.push({ tit:'Lo que falta contestar', lineas: faltan });
+  bloques.push({ tit:'Las dos recomendaciones con clase y nivel (guía europea de miocardiopatías, folio 27)',
+    plegado:true, lineas: rec,
+    nota:'Cotejadas contra el original inglés de esa guía: coinciden en sentido, clase y nivel. El informe y la conclusión de la aplicación son DESCRIPTIVOS: estas dos se publican acá y no en el papel firmado.' });
+
+  return { filas: filas, compacta: true, bloques: bloques,
+    guia: { ref:'gpAmiloid2021',
+      txt:'El criterio ecocardiográfico pide un espesor inexplicado de 12 mm o más MÁS uno de dos caminos: dos de los tres criterios cualitativos, o el score multiparamétrico de 8 puntos o más (Tabla 2, folio 1558). El algoritmo diagnóstico cruza después el centellograma con las proteínas monoclonales y da cuatro escenarios (folios 1558-1559).',
+      nota:'El propio documento declara que el score NO está validado externamente (folio 1556).' },
+    notas: rec.map(function(l){ return l.txt }) };
+}
+
 const IND_SECS = [
   { tit:'Estenosis aórtica',                     fn:_indEA },
   { tit:'Insuficiencia mitral primaria',         fn:_indIM },
@@ -82461,7 +82640,10 @@ const IND_SECS = [
   { tit:'Perfil hemodinámico — presiones y resistencias estimadas por eco', fn:_indHemo },
   /* ⚠️ NINGUNO DE LOS DOS TÍTULOS ES PREFIJO DE OTRO NI DE LOS VEINTISIETE ANTERIORES.
      Verificado: ninguno empieza con «Perfil» ni con «Cardiotoxicidad». */
-  { tit:'Cardiotoxicidad por tratamiento oncológico — graduación y seguimiento', fn:_indConco }
+  { tit:'Cardiotoxicidad por tratamiento oncológico — graduación y seguimiento', fn:_indConco },
+  /* ⚠️ «Amiloidosis cardíaca — algoritmo diagnóstico» no es prefijo de ninguno de los
+     veintinueve anteriores ni ninguno es prefijo suyo. Verificado. */
+  { tit:'Amiloidosis cardíaca — algoritmo diagnóstico', fn:_indAmil }
 ];
 
 function indicRender(){

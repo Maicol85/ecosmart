@@ -1037,6 +1037,41 @@ window.__Z = {
     });
     return { tocados: tocados, subpaneles: ocultos, geo: window.__P.geo(id) } },
 
+  /* La seccion de amiloidosis del panel, por el prefijo de su titulo. */
+  /* ADVERTENCIA, Y COSTO UNA CORRIDA: indicAbrir() BORRA las respuestas del panel -lo hace al
+     abrir Y al cerrar, por diseno-, asi que llamarla DESPUES de contestar deja la seccion igual
+     que sin contestar, y los cinco escenarios salian con «Lo que falta contestar». Se abre solo
+     cuando se pide, y la lectura posterior a una respuesta NO abre. */
+  evidAmil(abrir) {
+    if (abrir) { try { if (typeof indicAbrir === 'function') indicAbrir() } catch (e) { return 'EXC: ' + e.message } }
+    var cu = document.getElementById('indic-cuerpo');
+    if (!cu) return 'NO EXISTE indic-cuerpo';
+    var hit = null;
+    Array.prototype.forEach.call(cu.children, function(d){
+      if (hit || d.tagName !== 'DETAILS') return;
+      var su = d.querySelector('summary');
+      if (su && (su.textContent || '').replace(/\\s+/g,' ').trim().indexOf('Amiloidosis card') === 0) hit = d;
+    });
+    if (!hit) return { hay: false };
+    hit.open = true;
+    Array.prototype.forEach.call(hit.querySelectorAll('details'), function(x){ x.open = true });
+    var t = (hit.textContent || '').replace(/\\s+/g, ' ').trim();
+    return { hay: true, len: t.length,
+      esc1: t.indexOf('Escenario 1') >= 0, esc2: t.indexOf('Escenario 2') >= 0,
+      esc3: t.indexOf('Escenario 3') >= 0, esc4: t.indexOf('Escenario 4') >= 0,
+      falta: t.indexOf('Lo que falta contestar') >= 0,
+      claseIB: t.indexOf('Clase I · Nivel B') >= 0,
+      claseIIaC: t.indexOf('Clase IIa · Nivel C') >= 0,
+      sinHisto: t.indexOf('SE PUEDE DIAGNOSTICAR sin histolog') >= 0,
+      gradoUno: t.indexOf('GRADO 1') >= 0,
+      biopsia: t.indexOf('biopsia endomiocárdica') >= 0,
+      botones: Array.prototype.map.call(hit.querySelectorAll('[data-ind-clin]'), function(x){
+        return x.getAttribute('data-ind-clin') + '=' + x.getAttribute('data-ind-val') }),
+      marcas: Array.prototype.map.call(hit.querySelectorAll('[data-ind-ref]'), function(x){
+        return x.getAttribute('data-ind-ref') + '=' + (x.textContent || '').trim() }).filter(function(v,i,a){ return a.indexOf(v)===i }),
+      biblio: Array.prototype.map.call(hit.querySelectorAll('[data-ind-refitem]'), function(x){
+        return x.getAttribute('data-ind-refitem') }) } },
+
   /* El censo COMPLETO del panel de Evidencia: cada seccion que se pinta, con sus corchetes y su
      bibliografia. Es lo que detecta el defecto del AJ6 -una seccion nueva que corre la
      numeracion de las catorce ajenas-.
@@ -1134,6 +1169,29 @@ window.__Z = {
       o.algScore = val;
     } catch (e) { o.lab = 'EXC: ' + e.message }
     return o },
+
+  /* Contesta una pregunta del panel APRETANDO SU BOTON, que es la unica puerta del medico.
+     ADVERTENCIA: hay que ABRIR el panel antes, no solo renderizarlo. Quien engancha el oyente
+     delegado es _indClinCablear(), y a esa la llama indicAbrir(), no indicRender(). Sin abrir,
+     el click no escribe nada y la seccion sale igual que sin contestar. */
+  /* ADVERTENCIA, SEGUNDA PARTE DE LA MISMA TRAMPA: esta funcion NO abre el panel. indicAbrir()
+     borra las respuestas, asi que abrir antes de CADA respuesta dejaba viva solo la ULTIMA —y
+     el sintoma era un escenario que no aparecia nunca, con la primera pregunta en blanco—. El
+     panel se abre UNA vez por escena, con abrirPanel(), y despues se contesta. */
+  abrirPanel() {
+    try { if (typeof indicAbrir === 'function') indicAbrir() } catch (e) { return 'EXC: ' + e.message }
+    return { botones: document.querySelectorAll('#indic-cuerpo [data-ind-clin]').length } },
+
+  responder(clave, valor) {
+    var b = document.querySelector('#indic-cuerpo [data-ind-clin=\"' + clave + '\"][data-ind-val=\"' + valor + '\"]');
+    if (!b) {
+      var hay = Array.prototype.map.call(
+        document.querySelectorAll('#indic-cuerpo [data-ind-clin]'), function(x){
+          return x.getAttribute('data-ind-clin') + '=' + x.getAttribute('data-ind-val') });
+      return { ok: false, por: 'NO EXISTE el boton', hay: hay };
+    }
+    b.click();
+    return { ok: true, leido: (typeof _indClinGet === 'function') ? _indClinGet(clave) : '?' } },
 
   /* Pasa el score al algoritmo con el BOTON real, que es la unica puerta del medico. */
   amiloPasar() {
@@ -1444,6 +1502,23 @@ window.__Z = {
       }
       /* El globo del score, apretado de verdad. */
       r.globo = await ev(`window.__Z.globo('amilo-score')`, 20000);
+      /* ── EL CUESTIONARIO DE LA EVIDENCIA: los cuatro escenarios, contestados con los BOTONES
+         del panel y no escribiendo el estado a mano. */
+      r.cuest = {};
+      const COMB = [['0','negativo','esc1'],['2','negativo','esc2g23'],['1','negativo','esc2g1'],
+                    ['0','anormal','esc3'],['2','anormal','esc4']];
+      for (const [gr, pr, nom] of COMB) {
+        await ev(`window.__P.nuevo()`);
+        await ev(`window.__Z.abrirZona('ett-score-cat')`);
+        await ev(`window.__Z.amiloPoner(${JSON.stringify(AMILO_ESC.p6)})`);
+        const o = {};
+        await ev(`window.__Z.abrirPanel()`, 60000);
+        o.sinContestar = await ev(`window.__Z.evidAmil()`, 60000);
+        o.rg = await ev(`window.__Z.responder('amil.gamma',${JSON.stringify(gr)})`, 30000);
+        o.rp = await ev(`window.__Z.responder('amil.prot',${JSON.stringify(pr)})`, 30000);
+        o.sec = await ev(`window.__Z.evidAmil()`, 60000);
+        r.cuest[nom] = o;
+      }
       /* Excel y el censo de campos con un puntaje intermedio cargado. */
       await ev(`window.__P.nuevo()`);
       await ev(`window.__Z.abrirZona('ett-score-cat')`);
