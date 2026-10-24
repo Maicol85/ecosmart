@@ -949,6 +949,11 @@ window.__Y = {
                   resp_var_tric: '12', cvr_rebote: 'no', cvr_hepatico: 'insp', cvr_pericardio_tc: 'normal' },
     /* La zona mixta del e' medial, que el R2 dejo y esta orden no toca. */
     mixto:      { e_sep: '7', e_lat: '8', resp_var_mitral: '30', cvr_rebote: 'si', cvr_hepatico: 'esp' },
+    /* La rama `mixto` de verdad -nC>=2 y nR>=2-, que es donde vivia la frase que recomendaba el
+       cateterismo. La escena `mixto` de arriba es la ZONA MIXTA del e' medial, que es otra cosa
+       y cae en `no_concluyente`: sin esta, el grupo no toca la rama que esta tanda cambia. */
+    mixtoReal:  { e_sep: '9', e_lat: '7', resp_var_mitral: '30', resp_var_tric: '10',
+                  cvr_rebote: 'si', cvr_hepatico: 'insp', cvr_pericardio_tc: 'normal' },
     vexus1:     { vci_diam: '21', vexus_sh: '0', vexus_pv: '0', vexus_ir: '0' },
     vexus2:     { vci_diam: '21', vexus_sh: '2', vexus_pv: '0', vexus_ir: '0' },
     vexus3:     { vci_diam: '21', vexus_sh: '2', vexus_pv: '2', vexus_ir: '0' }
@@ -1005,7 +1010,7 @@ window.__Y = {
   if (corre('constr')) {
     const r = { escenas: {}, bordes: {} };
     try {
-      for (const k of ['vacio', 'constr', 'restr', 'mixto']) {
+      for (const k of ['vacio', 'constr', 'restr', 'mixto', 'mixtoReal']) {
         const put = await escena(k);
         r.escenas[k] = { put: put.err, cvr: await ev(`window.__Y.cvr()`) };
       }
@@ -1107,7 +1112,7 @@ window.__Y = {
   if (corre('sup')) {
     const r = {};
     try {
-      for (const k of ['vacio', 'tapoSignos', 'tapoSin', 'constr', 'restr', 'mixto', 'vexus1', 'vexus2', 'vexus3']) {
+      for (const k of ['vacio', 'tapoSignos', 'tapoSin', 'constr', 'restr', 'mixto', 'mixtoReal', 'vexus1', 'vexus2', 'vexus3']) {
         await escena(k);
         /* Los tres modulos se INTEGRAN: sin el clic, el derrame y la constriccion no publican
            nada y medir sin integrar da cero lineas y parece que nada cambio. */

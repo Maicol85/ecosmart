@@ -9769,6 +9769,21 @@ window.cerrarSesionReal = cerrarSesionReal;
               <option value="insp">Inversión diastólica inspiratoria (restricción)</option>
             </select>
           </div>
+          <!-- El cociente CUANTIFICA el patron de arriba y no es un segundo dato del mismo
+               hecho: el <select> dice que patron vio el medico y esto dice cuanto. No vota -las
+               reglas de conteo no tienen fuente y esta orden las excluye-, se publica con su
+               corte al lado. -->
+          <div class="fg" style="margin-top:8px;"><label>Cociente de inversión diastólica espiratoria hepática — significativo &gt;<span id="cvr-lbl-coc">0,78</span></label>
+            <input type="number" id="cvr_hep_coc" step="0.01" placeholder="cociente" oninput="cvrSync()" onchange="cvrCambio()">
+            <div class="calc-row" style="margin-top:4px;"><span class="calc-lbl">Lectura</span><span id="cvr-coc-eval" style="font-weight:700;">no cargado</span></div>
+            <div style="font-size:10px;color:var(--text2);line-height:1.5;margin-top:4px;">
+              Velocidad del flujo espiratorio invertido sobre el flujo anter&oacute;grado.
+              El <b>0,78</b> es el valor del texto de la gu&iacute;a (ESC 2025, apartado 11.9.3:
+              sensibilidad 87 %, especificidad 91 %). Su <b>Figura S1</b> del material
+              suplementario lo <b>redondea a &gt;0,8</b>: entre 0,78 y 0,80 las dos cifras de la
+              misma gu&iacute;a dan resultados distintos.
+            </div>
+          </div>
           <div class="fg" style="margin-top:8px;"><label>Engrosamiento pericárdico (TC/RMC)</label>
             <select id="cvr_pericardio_tc" onchange="cvrCambio()">
               <option value="">No disponible</option>
@@ -9797,8 +9812,27 @@ window.cerrarSesionReal = cerrarSesionReal;
       <div class="calc-box">
         <div class="calc-row"><span class="calc-lbl" style="font-weight:700;">Orientación</span><span id="cvr-concl-badge" style="font-weight:700;">—</span></div>
         <div id="cvr-concl" style="font-size:12px;line-height:1.6;color:var(--text);margin-top:6px;"></div>
-        <div style="font-size:10px;color:var(--text2);background:var(--bg3);border:1px solid var(--border);border-left:3px solid var(--orange);border-radius:6px;padding:8px 10px;margin-top:10px;line-height:1.5;">
-          ⚠️ El diagnóstico definitivo de constricción requiere correlación clínica e invasiva.
+        <!-- ══ EL CARTEL DE CONFIRMACION INVASIVA SE RETIRA (J-3, 2026-10-24) ══════════════════
+             Decia «⚠️ El diagnóstico definitivo de constricción requiere correlación clínica e
+             invasiva» y se pintaba SIEMPRE, hubiera o no conclusion. Es una conducta, y la ESC
+             2025 no la pide siempre: el cateterismo «solo debe considerarse si la imagen
+             multimodal no invasiva no es concluyente» (11.9.3, folio 63), Clase IIa · Nivel C
+             (Recommendation Table 24, folio 64). Vive en la Evidencia de constriccion.
+             En su lugar va de donde sale cada corte, que es lo que esta pantalla no decia. -->
+        <div style="border-top:1px solid var(--border); margin:10px 0 0;"></div>
+        <div style="font-size:10px; color:var(--text2); line-height:1.55; margin-top:6px;">
+          <span style="display:inline-block; border:1px solid var(--border); border-radius:4px;
+                       padding:1px 5px; margin-right:4px; font-size:9px; letter-spacing:.3px;">CRITERIO DE ECOSMART</span>
+          El <b>e&#39; lateral de 10 cm/s</b> y el <b>E/e&#39; de 15</b> NO son cortes de la
+          distinci&oacute;n entre constricci&oacute;n y restricci&oacute;n: salen de los criterios
+          mayores de funci&oacute;n diast&oacute;lica del HFA-PEFF (Pieske 2019, folio 3303), que
+          los publica como «e&#39; lateral &lt;10 cm/s» y «E/e&#39; promedio septal-lateral
+          &ge;15». Usarlos ac&aacute; es una decisi&oacute;n de la aplicaci&oacute;n.
+          Y las <b>reglas de conteo</b> de esta secci&oacute;n &mdash;cu&aacute;ntos criterios
+          hacen falta de cada lado, y cu&aacute;les cuentan&mdash; <b>no tienen fuente</b>:
+          ninguna gu&iacute;a de la biblioteca publica un recuento as&iacute;.
+          El <b>e&#39; medial</b> en tres tramos y el <b>cociente de la vena suprahep&aacute;tica</b>
+          s&iacute; son de la gu&iacute;a: ver la ficha de Referencias.
         </div>
       </div>
 
@@ -18956,6 +18990,50 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
              effusion despite medical therapy» → I-C. Y se SACA la «ventana eco mínima ≥10mm
              subcostal», que no figura en la guia ni en su suplemento. -->
         <b style="color:var(--accent2);">Pericardiocentesis:</b> Clase I · nivel C en el taponamiento, en la sospecha de pericarditis bacteriana o neoplásica, y en el derrame moderado a grande sintomático pese al tratamiento médico (Recommendation Table 12).
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ CONSTRICCION vs RESTRICCION — FICHA NUEVA (J-3, 2026-10-24) ═══════════════════════════
+       No habia ficha de esta zona: los nueve cortes del modulo vivian sin decir de donde salian.
+       Cada fila lleva su fuente y su folio LEIDOS EN IMAGEN, y lo que no tiene fuente lleva el
+       chip «CRITERIO DE ECOSMART» en vez de una cita: un corchete sobre «no pude verificar» se
+       lee como si hubiera un criterio detras. -->
+  <div class="card">
+    <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleRef('constriccion',this)">
+      🧊 Constricci&oacute;n vs restricci&oacute;n (ESC 2025 de miocarditis y pericarditis)
+      <span style="float:right;">▶</span>
+    </h2>
+    <div id="ref-constriccion" style="display:none;" class="card-body">
+      <table style="width:100%;border-collapse:collapse;font-size:12px;">
+        <tr style="background:var(--section-head);"><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Criterio</th><th style="padding:6px 8px;text-align:center;color:var(--accent2);">Corte</th><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Fuente</th></tr>
+        <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;">Rebote septal o desplazamiento del septo</td><td style="padding:5px 8px;text-align:center;">Presente</td><td style="padding:5px 8px;">Criterios de la Cl&iacute;nica Mayo citados por la gu&iacute;a, apartado 11.9.3 &middot; folio 63</td></tr>
+        <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;">e&#39; medial &mdash; constricci&oacute;n</td><td style="padding:5px 8px;text-align:center;">&gt;8 cm/s</td><td style="padding:5px 8px;">Apartado 11.9.3 &middot; folio 63, y Figura S1 del material suplementario &middot; hoja 6</td></tr>
+        <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;">e&#39; medial &mdash; formas mixtas</td><td style="padding:5px 8px;text-align:center;">6&ndash;8 cm/s</td><td style="padding:5px 8px;">Figura S1, nota b &middot; hoja 6: entre 6 y 8 cm/s la gu&iacute;a dice que no se distingue</td></tr>
+        <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;">e&#39; medial &mdash; restricci&oacute;n</td><td style="padding:5px 8px;text-align:center;">&lt;6 cm/s</td><td style="padding:5px 8px;">Figura S1 &middot; hoja 6</td></tr>
+        <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;">Annulus reversus</td><td style="padding:5px 8px;text-align:center;">e&#39; medial &gt; e&#39; lateral</td><td style="padding:5px 8px;">Figura S1, nota c &middot; hoja 6</td></tr>
+        <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;"><b>Cociente de inversi&oacute;n diast&oacute;lica espiratoria hep&aacute;tica</b></td><td style="padding:5px 8px;text-align:center;"><b>&gt;0,78</b></td><td style="padding:5px 8px;">Apartado 11.9.3 &middot; folio 63 del original en ingl&eacute;s, folio impreso 70 de la edici&oacute;n de la SEC: sensibilidad 87 %, especificidad 91 %. <b>La Figura S1 del suplemento lo redondea a &gt;0,8</b> (hoja 6, nota c): entre 0,78 y 0,80 las dos cifras de la misma gu&iacute;a dan resultados distintos, y la aplicaci&oacute;n usa el 0,78, que es el que trae esos dos porcentajes.</td></tr>
+        <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;">Variaci&oacute;n respiratoria de la onda E mitral</td><td style="padding:5px 8px;text-align:center;">&gt;25 %</td><td style="padding:5px 8px;">Apartado 11.9.3 &middot; folio 63, y Figura S1 &middot; hoja 6</td></tr>
+        <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;">Variaci&oacute;n respiratoria de la onda E tricusp&iacute;dea</td><td style="padding:5px 8px;text-align:center;">&gt;40 %</td><td style="padding:5px 8px;">Apartado 11.9.3 &middot; folio 63</td></tr>
+        <tr><td style="padding:5px 8px;">Pl&eacute;tora de vena cava inferior</td><td style="padding:5px 8px;text-align:center;">&gt;20 mm con reducci&oacute;n &lt;50 %</td><td style="padding:5px 8px;">El n&uacute;mero es el de la Tabla 17 &middot; folio 62. La Figura S1 s&oacute;lo pide &laquo;vena cava dilatada&raquo;, sin cifra, y su nota a avisa de que es un hallazgo de apoyo que <b>puede faltar con diur&eacute;ticos</b>.</td></tr>
+      </table>
+      <div style="margin-top:10px;font-size:12px;color:var(--text);line-height:1.8;">
+        <b style="color:var(--accent2);">Diagn&oacute;stico por imagen:</b> Clase I &middot; nivel C &mdash; la gu&iacute;a recomienda imagen multimodal en todo paciente con sospecha de pericarditis constrictiva, para hacer el diagn&oacute;stico y valorar engrosamiento, calcificaci&oacute;n e inflamaci&oacute;n activa (Recommendation Table 24, folio 64).<br>
+        <b style="color:var(--accent2);">Cateterismo card&iacute;aco:</b> Clase IIa &middot; nivel C &mdash; se debe considerar para valoraci&oacute;n hemodin&aacute;mica <b>s&oacute;lo cuando la imagen multimodal no es concluyente</b> (Recommendation Table 24, folio 64; mismo sentido en el apartado 11.9.3, folio 63). No es un paso obligado de todos los estudios.<br>
+        <b style="color:var(--accent2);">Grosor peric&aacute;rdico normal:</b> la constricci&oacute;n puede cursar con pericardio de grosor normal en hasta el 20 % de los casos (apartado 11.9.2, folio 63).
+      </div>
+      <div style="border-top:1px solid var(--border); margin:12px 0 0;"></div>
+      <div style="font-size:10px; color:var(--text2); line-height:1.55; margin-top:8px;">
+        <span style="display:inline-block; border:1px solid var(--border); border-radius:4px;
+                     padding:1px 5px; margin-right:4px; font-size:9px; letter-spacing:.3px;">CRITERIO DE ECOSMART</span>
+        Tres cosas de este m&oacute;dulo <b>no salen de esta gu&iacute;a</b> y se declaran en vez de citarse:
+        el <b>e&#39; lateral de 10 cm/s</b> y el <b>E/e&#39; de 15</b>, que son criterios mayores de
+        funci&oacute;n diast&oacute;lica del HFA-PEFF (Pieske 2019, folio 3303: &laquo;e&#39; lateral
+        &lt;10 cm/s&raquo; y &laquo;E/e&#39; promedio septal-lateral &ge;15&raquo;) y no de la
+        distinci&oacute;n entre constricci&oacute;n y restricci&oacute;n; las <b>reglas de conteo</b>
+        &mdash;cu&aacute;ntos criterios hacen falta de cada lado y cu&aacute;les cuentan&mdash;, que
+        ninguna gu&iacute;a de la biblioteca publica; y el <b>engrosamiento peric&aacute;rdico de
+        m&aacute;s de 3 mm</b> del selector de TC/RMC, cuyo corte no figura en el texto verificado.
       </div>
     </div>
   </div>
@@ -28384,6 +28462,23 @@ const CVR_ESEP_RESTR_MAX  = 6;   // e' medial, cm/s, ESTRICTO: <6 vota RESTRICCI
 /* El tramo 6-8 INCLUSIVE es la zona mixta: no vota por ninguna de las dos. */
 const CVR_ELAT_CM_S      = 10;   // e' lateral, cm/s
 const CVR_EE_ALTO        = 15;   // E/e'
+/* ══ EL COCIENTE DE LA VENA SUPRAHEPATICA (J-3, 2026-10-24) ══════════════════════════════════
+   ESC 2025 de miocarditis y pericarditis, apartado **11.9.3**, leido EN IMAGEN en las DOS
+   ediciones: original en ingles **folio 63** -«hepatic vein expiratory diastolic reversal ratio
+   of >0.78 (sensitivity 87%, specificity 91%)»- y traduccion de la SEC **folio impreso 70, hoja
+   71**, que dice lo mismo. Son los criterios de la Clinica Mayo, que la ESC cita; el trabajo
+   original de la Mayo (Welch 2014) NO esta en la biblioteca, asi que la fuente que se cita es la
+   ESC 2025.
+   ⚠️ LA FIGURA S1 DEL SUPLEMENTO LO REDONDEA A >0,8 (hoja 6, nota c, leida en imagen). Se usa el
+   **0,78**, que es el valor del texto y el que trae la sensibilidad y la especificidad; el
+   redondeo se DECLARA al lado del campo y en la Evidencia, porque entre 0,78 y 0,80 las dos cifras
+   de la misma guia dan resultados distintos y callarlo seria elegir una sin decirlo.
+   ⚠️ EL COCIENTE NO VOTA, Y ES DELIBERADO. Las reglas de conteo de esta seccion no tienen fuente
+   -lo dice su chip- y esta orden las excluye expresamente: agregar una fila votante moveria
+   `nC`, `nR` y con ellos `clave`, que es contenido clinico que no esta autorizado tocar. El
+   cociente CUANTIFICA la fila que ya existe -el patron venoso hepatico, que el medico elige- y se
+   publica con su corte al lado. */
+const CVR_HEP_COC_MIN    = 0.78; // cociente de inversion diastolica espiratoria, ESTRICTO: >0,78
 
 /* Los dos disclaimers, como CONSTANTES compartidas por las tres superficies (pantalla,
    narrativo y hoja del PDF). No van dentro del array de frases: la pantalla lo sacaba con
@@ -28391,7 +28486,14 @@ const CVR_EE_ALTO        = 15;   // E/e'
    la pantalla se come una frase clínica. */
 const DPT_DISCLAIMER = 'El diagnóstico de taponamiento es clínico-ecocardiográfico. Esta '
   + 'herramienta es de apoyo y no reemplaza la evaluación clínica.';
-const CVR_DISCLAIMER = 'El diagnóstico definitivo de constricción requiere correlación clínica e invasiva.';
+/* ⚠️ `CVR_DISCLAIMER` SE RETIRA (J-3, 2026-10-24). Decia «El diagnóstico definitivo de
+   constricción requiere correlación clínica e invasiva» y se publicaba SIEMPRE: en la pantalla
+   como cartel fijo, en el informe firmado bajo el patron restrictivo y en la hoja del PDF en dos
+   ramas. Es una CONDUCTA, y la guia no la pide siempre: la ESC 2025 escribe, en su apartado
+   11.9.3 (folio 63), que «el cateterismo cardiaco solo debe considerarse si la imagen multimodal
+   no invasiva no es concluyente», y su Recommendation Table 24 (folio 64) lo gradúa Clase IIa ·
+   Nivel C con esa misma condicion. O sea que el aviso pedia de mas, y lo pedia en el papel.
+   Donde vive hoy: en la Evidencia de constriccion, con su clase, su nivel y su folio. */
 
 /* Bandas de plausibilidad. Fuera de banda devuelven null —«no medido»— y NO un número que
    la cascada pueda usar. Importa por una dirección concreta: `patronRestr` exige
@@ -28466,7 +28568,7 @@ function _pcHayDpt(c) {
    la variación respiratoria tricuspídea. */
 function _pcHayCvr(c) {
   c = c || {};
-  return ['cvr_rebote','cvr_hepatico','cvr_pericardio_tc','resp_var_tric']
+  return ['cvr_rebote','cvr_hepatico','cvr_hep_coc','cvr_pericardio_tc','resp_var_tric']
     .some(k => String(c[k] || '').trim() !== '');
 }
 /* Memo por estudio. `_labCohorteOk` corre por estudio y `labGetInformes()` se invoca ~6 veces
@@ -28790,7 +28892,10 @@ function cvrDatos() {
     elat: hf ? hf.elat : _pcV('e_lat'),
     ee:   hf ? hf.ee   : null,
     varM: _dptPct('resp_var_mitral'), varT: _dptPct('resp_var_tric'),
-    plet: dptPletora(), rebote: _pcSv('cvr_rebote'), hep: _pcSv('cvr_hepatico'), tc: _pcSv('cvr_pericardio_tc')
+    plet: dptPletora(), rebote: _pcSv('cvr_rebote'), hep: _pcSv('cvr_hepatico'), tc: _pcSv('cvr_pericardio_tc'),
+    /* Banda (0, 5]: es un cociente entre dos velocidades, no un porcentaje. Fuera de banda
+       devuelve `null` -«no medido»- y no un numero que la frase pueda publicar. */
+    hepCoc: (function(){ const n = _pcV('cvr_hep_coc'); return (n === null || n <= 0 || n > 5) ? null : n; })()
   };
 }
 window.cvrDatos = cvrDatos;
@@ -28849,7 +28954,10 @@ function cvrFilas() {
       ev: d => d.rebote !== '', voto: d => d.rebote === 'si' ? 'c' : 'r' },
     { lbl:'Plétora de VCI',       c:'Presente', r:'Variable', adic:true, esp:true,
       ev: d => d.plet.evaluada, voto: d => d.plet.presente ? 'c' : null },
-    { lbl:'Patrón venoso hepático', c:'Inversión espiratoria', r:'Inversión inspiratoria', adic:true, esp:true,
+    /* El rotulo lleva el corte del cociente porque se publica VERBATIM en la hoja del PDF y en
+       la tabla de pantalla: el patron se elige, y el cociente es como la guia lo cuantifica. */
+    { lbl:'Patrón venoso hepático', c:'Inversión espiratoria (cociente >' + String(CVR_HEP_COC_MIN).replace('.', ',') + ')',
+      r:'Inversión inspiratoria', adic:true, esp:true,
       ev: d => d.hep !== '', voto: d => d.hep === 'esp' ? 'c' : d.hep === 'insp' ? 'r' : null },
     { lbl:'Engrosamiento pericárdico', c:'>3 mm o calcificado', r:'Normal', adic:true, esp:true,
       ev: d => d.tc !== '', voto: d => (d.tc === 'engrosado' || d.tc === 'calcificado') ? 'c' : d.tc === 'normal' ? 'r' : null }
@@ -28872,7 +28980,8 @@ function cvrProsa(lbl, d) {
     'Respirofasicidad tricúspide':'variación respiratoria de la E tricúspide del ' + d.varT + '%',
     'Rebote septal':             'rebote septal',
     'Plétora de VCI':            'plétora de vena cava inferior',
-    'Patrón venoso hepático':    'inversión diastólica espiratoria del flujo venoso hepático',
+    'Patrón venoso hepático':    'inversión diastólica espiratoria del flujo venoso hepático'
+                                   + (d.hepCoc !== null ? ' (cociente ' + String(d.hepCoc).replace('.', ',') + ')' : ''),
     'Engrosamiento pericárdico': 'engrosamiento pericárdico en TC/RMC'
   })[lbl] || '';
 }
@@ -28943,9 +29052,13 @@ function cvrFrases(st) {
       + "E/e' elevado (" + n1(d.ee) + '), sin respirofasicidad significativa. Considerar RMC con gadolinio.'];
   }
   if (s.clave === 'mixto') {
+    /* ⚠️ «Se recomienda cateterismo cardíaco derecho e izquierdo simultáneo para diagnóstico
+       definitivo» SE RETIRA (J-3): es la misma conducta que el cartel fijo, escrita dentro de una
+       frase clinica del informe FIRMADO. Lo que queda es la descripcion, que es lo que el
+       producto publica. La indicacion de cateterismo vive en la Evidencia, con su Clase IIa ·
+       Nivel C y la condicion que la guia le pone. */
     return ['Criterios mixtos de constricción y restricción. No es posible diferenciar '
-      + 'ecocardiográficamente. Se recomienda cateterismo cardíaco derecho e izquierdo simultáneo '
-      + 'para diagnóstico definitivo.'];
+      + 'ecocardiográficamente.'];
   }
   return [];
 }
@@ -28988,6 +29101,7 @@ function cvrSync() {
   const st = cvrEstado(), d = st.d;
   const n1 = x => (x === null ? '—' : (Math.round(x * 10) / 10));
 
+  txt('cvr-lbl-coc', String(CVR_HEP_COC_MIN).replace('.', ','));
   txt('cvr-esep',  d.esep !== null ? n1(d.esep) + ' cm/s' : 'no cargado');
   txt('cvr-elat',  d.elat !== null ? n1(d.elat) + ' cm/s' : 'no cargado');
   txt('cvr-ee',    d.ee   !== null ? String(n1(d.ee))     : 'no calculable');
@@ -28995,6 +29109,12 @@ function cvrSync() {
   txt('cvr-vcicol', d.plet.col === '>50' ? '> 50%' : d.plet.col === '<50' ? '< 50%' : 'no cargado');
   txt('cvr-respm', d.varM !== null ? d.varM + ' %' : 'no cargada');
   txt('cvr-respt', d.varT !== null ? d.varT + ' %' : 'no cargada');
+  /* El cociente dice de que lado del corte cayo: el numero solo no lo dice, y es la medicion con
+     la sensibilidad y la especificidad que la guia publica. */
+  txt('cvr-coc-eval', d.hepCoc === null ? 'no cargado'
+    : String(d.hepCoc).replace('.', ',') + (d.hepCoc > CVR_HEP_COC_MIN
+        ? ' — por encima de ' + String(CVR_HEP_COC_MIN).replace('.', ',')
+        : ' — no supera ' + String(CVR_HEP_COC_MIN).replace('.', ',')));
 
   setH('cvr-reversus', st.reversus === null
     ? '<span style="color:var(--text2)">Faltan e\' septal o e\' lateral.</span>'
@@ -54761,12 +54881,11 @@ function generarInforme(opts) {
     /* `cvrFrases` devuelve [] en «datos insuficientes»: no se imprime nada, ni siquiera una
        constancia de que se miró. Un párrafo que diga «no concluyente» sobre dos campos cargados
        ocupa lugar en el informe y no aporta. */
-    /* El disclaimer va SOLO cuando la frase no cierra sola. La de constricción ya termina en
-       «requiere correlación clínica e imagenológica (TC/RMC pericárdica)» y la de criterios
-       mixtos en «cateterismo […] para diagnóstico definitivo»: agregarle encima «requiere
-       correlación clínica e invasiva» dejaba dos oraciones de cierre casi iguales pegadas. */
+    /* ⚠️ EL AVISO DE CONFIRMACION INVASIVA SE FUE DEL PAPEL (J-3, 2026-10-24): era una conducta
+       y la guia no la pide siempre -solo con la imagen no concluyente, Clase IIa · Nivel C-. Hoy
+       vive en la Evidencia de constriccion. Lo que el informe publica son las frases clinicas. */
     if (_fc.length) {
-      inf.push(_fc.join(' ') + (_sc.clave === 'restrictiva' ? ' ' + CVR_DISCLAIMER : ''));
+      inf.push(_fc.join(' '));
       const _sm2 = cvrSuma(_sc);
       if (_sm2) suma.push(_sm2);
     }
@@ -90128,6 +90247,10 @@ function amiloTextoCVR() {
   L.push("e' lateral | " + (d.elat !== null ? n1(d.elat) + ' cm/s' : 'no cargado'));
   L.push("E/e' promedio | " + (d.ee !== null ? String(n1(d.ee)) : 'no calculable'));
   L.push('Annulus reversus | ' + (st.reversus === null ? 'no valorable' : st.reversus ? 'Presente' : 'Ausente'));
+  /* Con su corte al lado: el numero solo no dice de que lado cayo, y es la medicion que lleva la
+     sensibilidad y la especificidad que la guia publica. */
+  if (d.hepCoc !== null) L.push('Cociente hepático espiratorio | ' + String(d.hepCoc).replace('.', ',')
+    + ' (significativo >' + String(CVR_HEP_COC_MIN).replace('.', ',') + ')');
 
   L.push('## Criterios');
   st.filas.forEach(f => {
@@ -90141,14 +90264,14 @@ function amiloTextoCVR() {
 
   L.push('## Conclusión');
   const fr = cvrFrases(st);
+  /* ⚠️ LAS DOS SALVEDADES DE CONFIRMACION INVASIVA SE FUERON (J-3): ver la nota donde vivia
+     `CVR_DISCLAIMER`. La hoja del PDF describe, igual que el cuerpo del informe. */
   if (fr.length) {
     fr.forEach(f => L.push(f));
-    if (st.clave === 'restrictiva') L.push('!! Salvedad. ' + CVR_DISCLAIMER);
   } else {
     // El motivo REAL, no un texto fijo: con cinco criterios de constricción en la tabla de
     // arriba, «menos de dos criterios» se contradecía con lo que el propio lector veía.
     L.push(cvrMotivo(st));
-    L.push('!! Salvedad. ' + CVR_DISCLAIMER);
   }
   return L.join('\n');
 }
