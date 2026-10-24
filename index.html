@@ -571,7 +571,11 @@
     .vd-grid > .vd-r3 { grid-row: 3; }
     .vd-grid > .vd-r4 { grid-row: 4; }
     .vd-grid > .vd-r5 { grid-row: 5; }
-    /* ⚠️ LA FILA 6 NACE EN EL G3 (2026-10-15) Y LA USA UNA SOLA COLUMNA. La columna 3 pasa a SEIS
+    /* ⚠️ LA FILA 6 NACIÓ EN EL G3 (2026-10-15) PARA LA COLUMNA 3, Y DESDE LA AJ5-5 (2026-10-24)
+       LA USAN DOS: el strain de pared libre entra en la columna 1 y empuja la FEVD a esta fila.
+       La regla no cambia ni una letra; lo que cambia es cuántas columnas la ocupan. La columna 2
+       sigue con cinco campos, así que el hueco de abajo ahora es uno solo y es el suyo.
+       El texto del G3, que sigue vigente: la columna 3 pasa a SEIS
        campos —el diametro de la arteria pulmonar se mudo aca desde la insuficiencia pulmonar— y
        las columnas 1 y 2 se quedan con cinco, asi que debajo de la pared del VD y de la FEVD
        queda un hueco. Es lo correcto y es la razon de ser de la posicion explicita: con flujo
@@ -4422,8 +4426,11 @@ window.cerrarSesionReal = cerrarSesionReal;
           <button type="button" class="vinfo-btn" data-vinfo="vd-fun-card" aria-expanded="false"
                   aria-label="Cortes y referencia de la función del ventrículo derecho" onclick="vInfoClic(this)">&#9432;</button></span>
       </div>
-      <!-- ══ LOS DIECISÉIS CAMPOS EN TRES COLUMNAS (G1, 2026-10-15 · G3, 2026-10-15) ══════════
-           Decisión de Maicol: columna 1 = TAP · TAPSE · S' · índice de Tei · FEVD; columna 2 =
+      <!-- ══ LOS DIECISIETE CAMPOS EN TRES COLUMNAS (G1 · G3, 2026-10-15 · AJ5-5, 2026-10-24) ══
+           ⚠️ DIECISIETE Y NO DIECISÉIS DESDE LA AJ5-5: el strain de pared libre entra en la
+           columna 1, entre el índice de Tei y la FEVD, así que esa columna pasa a SEIS campos y la
+           FEVD baja a `vd-r6` — la fila 6 ya existía, la había abierto el G3 para la columna 3.
+           Decisión de Maicol: columna 1 = TAP · TAPSE · S' · índice de Tei · STRAIN · FEVD; columna 2 =
            VD basal · medio · longitudinal · relación VD/VI · pared; columna 3 = Diám. TSVD ·
            VTI TSVD · diámetro de la arteria pulmonar · área telediastólica · área telesistólica ·
            FAC. Las referencias de abajo siguen ESE mismo orden.
@@ -4473,6 +4480,31 @@ window.cerrarSesionReal = cerrarSesionReal;
           <div id="vd_tei-marca" style="font-size:10px;color:var(--yellow);margin-top:3px;min-height:14px;"></div>
         </div>
         <div class="fg vd-c1 vd-r5">
+          <!-- ══ STRAIN DE PARED LIBRE DEL VD — AJ5-5 (2026-10-24, decisión de Maicol) ════════
+               Campo NUEVO, entre el índice de Tei y la FEVD como pide la orden. NO es el strain del
+               módulo «Deformación»: ese se MIDE trazando dos contornos, vive en el visor, lo
+               persiste `strain_manual` y su propio descargo dice «no se integra al informe
+               firmado». Este es un valor que el médico TIPEA, viene de su equipo, y sí sale al
+               informe. Los dos conviven y no se tocan.
+               ⚠️ SIN SELECTOR «Sin medición, elegí el tramo», Y LA CONDICIÓN DE LA ORDEN SE
+               VERIFICÓ ANTES: ese control existe en UN solo campo de esta pantalla, la relación
+               VD/VI (`vd_vi_sel`, G3), y NO en el TAPSE ni en la onda S'. La orden lo pedía sólo
+               si esos dos lo tenían, así que no se agrega.
+               ⚠️ SE TIPEA EN VALOR ABSOLUTO O CON SIGNO, LOS DOS, y graduúa por el absoluto: −18
+               y 18 dan lo mismo. La convención de la app es NEGATIVA —`VD_STRAIN_NORMAL` vale
+               −20 y el panel de Deformación calcula un porcentaje negativo— y el `placeholder`
+               la pone a la vista. El informe publica el signo de la app, no el que se tipeó.
+               ⚠️ NO VOTA LA DISFUNCIÓN SISTÓLICA, y está medido: `vdDisfGrado` —el dueño del
+               grado— lee TAPSE y onda S' y nada más, y el OR de `vdDisf` suma esos dos, la FAC y
+               el Tei. Meterlo cambiaría qué escenas publican «disfunción sistólica» en el papel
+               firmado, que es lógica de integración y decisión de Maicol — el mismo argumento con
+               que la FEVD sigue sin votar. Ver `docs/PENDIENTES.md` → AJ5-d.
+               ⚠️ SIN COLUMNA DE EXCEL, como pide la orden: el libro queda en 440. -->
+          <label>Strain de pared libre del VD (%)</label>
+          <input type="number" id="vd_strain_pl" placeholder="−18" step="0.1" oninput="vdStrainPlSync();calcVD()">
+          <div id="vd_strain_pl-grado" style="font-size:10px;margin-top:3px;min-height:14px;"></div>
+        </div>
+        <div class="fg vd-c1 vd-r6">
           <!-- ⚠️ `calcVD()` EN EL `oninput` ES NUEVO (G1) Y NO ES DECORATIVO: desde esta tanda la
                FILA de referencia de la FEVD aparece y desaparece con el dato, y sin el manejador
                el campo se cargaba sin que nada repintara el cuadro. El campo NO cambia de id, no
@@ -26378,6 +26410,85 @@ function vdTeiCat(x) {
   if (n == null || !isFinite(n)) return null;
   return ase25Grado('vd_tei', n);
 }
+/* ══ STRAIN DE PARED LIBRE DEL VD — LOS CORTES DEL CAMPO TIPEADO (AJ5-5, 2026-10-24) ═══════
+   ⚠️ NO ENTRA EN `ASE25_T1`, Y EL MOTIVO YA ESTÁ ESCRITO EN ESTE ARCHIVO DOS VECES: la Tabla 1
+   de la ASE 2025 NO bandea el strain —le da UN corte de normalidad, «>20» en valor absoluto, con
+   la nota al pie «Absolute values and ranges for strain are shown»— y el texto del folio 159
+   habla de «más negativo que 20 % a 25 %», también sin bandas. La ficha `FUN-VD-007` lo declara
+   así: «el dueño no gradúa». Meterlo en la Tabla 1 fabricaría tres bandas que esa tabla no tiene.
+
+   ⚠️ LO QUE LA APP TENÍA, MEDIDO, Y LO QUE LA ORDEN AGREGA — PORQUE NO ES LO MISMO:
+     · NORMAL: lo tenía. Es `VD_STRAIN_NORMAL` (−20 %), aplicado en el AJ1, sin diferencia por
+       sexo. Acá se reescribe en valor absoluto y se VIGILA contra ese dueño (ver el assert).
+     · LEVE de 15 a 20 inclusive: NO lo tenía. La orden dice «ya aplicados en el AJ1» y eso es
+       FALSO — el AJ1 unificó el corte de normalidad por sexo y no abrió ninguna banda. Se aplica
+       porque la orden fija el número, igual que el 36 mm de la AJ4-1, y queda REPORTADO.
+     · MODERADA y SEVERA: la app NO TIENE esos cortes, ni la Tabla 1, ni el texto del folio 159, ni
+       `Tabla_VD`, ni ninguna ficha de `IND_REFS` — censado. La orden dice «usa los que ya tiene la
+       app … no inventes ninguno», así que NO SE INVENTA NINGUNO: por debajo de 15 el campo dice
+       «por debajo de leve», que es la negación de las dos bandas que SÍ existen y no un grado
+       nuevo. `docs/PENDIENTES.md` → AJ5-e.
+
+   ⚠️ SE GRADÚA POR EL VALOR ABSOLUTO, así que −18 y 18 dan lo mismo. Es lo que dice la Tabla 1
+   y lo que ya dice la ficha `FUN-VD-007` («en valor absoluto»), y evita el modo de falla que este
+   archivo documenta para `#ref-cardiotox`: «< −20» leído literal significa lo contrario. */
+const VD_STRAIN_PL_NORMAL = 20;  // % en valor absoluto — normal con MÁS de 20 (ASE 2025 de mayo, Tabla 1 folio 145 y texto folio 159)
+const VD_STRAIN_PL_LEVE   = 15;  // % en valor absoluto — leve de 15 a 20 INCLUSIVE; el 15 exacto es leve (orden de Maicol, AJ5-5)
+window.VD_STRAIN_PL_NORMAL = VD_STRAIN_PL_NORMAL; window.VD_STRAIN_PL_LEVE = VD_STRAIN_PL_LEVE;
+const VD_STRAIN_PL_TXT = Object.freeze({
+  normal:    'normal',
+  leve:      'leve',
+  bajo_leve: 'por debajo de leve'
+});
+function vdStrainPlCat(x) {
+  const n = (typeof PF === 'function') ? PF(x) : parseFloat(x);
+  if (n == null || !isFinite(n)) return null;
+  const a = Math.abs(n);
+  if (a > VD_STRAIN_PL_NORMAL) return 'normal';
+  if (a >= VD_STRAIN_PL_LEVE)  return 'leve';
+  return 'bajo_leve';
+}
+window.vdStrainPlCat = vdStrainPlCat;
+/* PINTA la categoría al lado del campo. Nunca escribe un valor, así que va en `RECALC_MODULOS`
+   y en `limpiarCampos` — las dos columnas.
+   ⚠️ LA PALABRA VA SIEMPRE Y EL COLOR NUNCA ES LO ÚNICO QUE INFORMA, que es la regla de las
+   bandas de este archivo. Y el corte se nombra con PALABRAS y no con el operador solo, por el
+   defecto de `#ref-cardiotox` que el módulo de Deformación ya documenta. */
+function vdStrainPlSync() {
+  const el = document.getElementById('vd_strain_pl-grado');
+  if (!el) return;
+  const inp = document.getElementById('vd_strain_pl');
+  const cat = vdStrainPlCat(inp ? inp.value : '');
+  if (!cat) { el.textContent = ''; el.style.color = ''; return; }
+  el.textContent = VD_STRAIN_PL_TXT[cat]
+    + (cat === 'normal' ? ' (más de ' + VD_STRAIN_PL_NORMAL + ' % en valor absoluto)'
+     : cat === 'leve'   ? ' (de ' + VD_STRAIN_PL_LEVE + ' a ' + VD_STRAIN_PL_NORMAL + ' % en valor absoluto)'
+     : ' (menos de ' + VD_STRAIN_PL_LEVE + ' % en valor absoluto — la aplicación no tiene corte de moderada ni de severa)');
+  el.style.color = cat === 'normal' ? 'var(--green)' : cat === 'leve' ? 'var(--yellow)' : 'var(--red)';
+}
+window.vdStrainPlSync = vdStrainPlSync;
+/* El corte de normalidad tiene UN dueño en el módulo de Deformación (`VD_STRAIN_NORMAL`) y acá
+   hay una segunda escritura del mismo número, en valor absoluto. Son una lista PARALELA y nada
+   las vigilaba: moverlo de un lado dejaría la pantalla del VD y el panel de medición graduando
+   el mismo strain con dos cortes, sin una señal.
+   ⚠️ SE LEE DENTRO DE UN `try` Y NO POR `window`: `VD_STRAIN_NORMAL` es un `const` de nivel
+   superior, así que NO está en `window`, y si su bloque `<script>` muriera la lectura pelada
+   quedaría en zona muerta y se llevaría éste. Corre en `DOMContentLoaded`, cuando los dos
+   bloques ya se ejecutaron. */
+function _vdStrainPlAssert() {
+  let due = null;
+  try { due = VD_STRAIN_NORMAL; } catch (e) { due = null; }
+  if (due == null) { console.error('[vdStrain] no se pudo leer VD_STRAIN_NORMAL: el módulo de Deformación no cargó'); return ['sin dueño']; }
+  if (Math.abs(due) !== VD_STRAIN_PL_NORMAL) {
+    console.error('[vdStrain] el corte de normalidad se separó: VD_STRAIN_NORMAL = ' + due +
+      ' y VD_STRAIN_PL_NORMAL = ' + VD_STRAIN_PL_NORMAL + '. El campo de la pantalla VD y el panel ' +
+      'de Deformación gradúan el mismo strain con dos cortes distintos.');
+    return ['divergen'];
+  }
+  return [];
+}
+window._vdStrainPlAssert = _vdStrainPlAssert;
+document.addEventListener('DOMContentLoaded', function(){ try { _vdStrainPlAssert(); } catch (e) {} });
 /* ══ EL BADGE DE UN PARAMETRO GRADUADO POR LA TABLA 1 (VS2, 2026-10-17) ══════════════════
    Valor, categoria EN PALABRAS y el rango de SU banda, los tres del mismo dueno: el rango se le
    pide a `ase25Rango`, que lo deriva de los operadores que el evaluador aplica, asi que el
@@ -51822,6 +51933,14 @@ function generarInforme(opts) {
        reintrodujo por la puerta de al lado. */
     const teiVD = v('vd_tei');
     const hayFunc = tapse !== null || sp !== null || facVD !== null || teiVD !== null;
+    /* ══ EL STRAIN DE PARED LIBRE ENTRA COMO DATO, NO COMO VOTO (AJ5-5, 2026-10-24) ════════
+       ⚠️ NO ENTRA EN `hayFunc`, Y ES LA DECISIÓN DE FONDO DE ESTE ÍTEM. `hayFunc` es la compuerta
+       de la AFIRMACIÓN «función sistólica conservada»: con el strain adentro, un estudio cuyo
+       ÚNICO dato de función fuera el strain habría firmado «conservada» sin un solo parámetro
+       votante medido. Entra, en cambio, en la compuerta del BLOQUE —la línea de abajo—, que es lo
+       que impide que un estudio con sólo el strain cargado pierda la oración entera: el agujero
+       que esta zona ya pagó tres veces (el Tei, la hipertrofia y el Doppler tricuspídeo). */
+    const strVD = v('vd_strain_pl');
     /* ⚠️ LA HIPERTROFIA ENTRA EN LA COMPUERTA DEL BLOQUE, y la guía lo pide: su Recomendación 3
        del folio 144 dice que la pared se informa si es anormal. Sin esto, un estudio cuyo ÚNICO
        dato del VD fuera la pared perdía la oración entera —el mismo agujero que el comentario de
@@ -51842,7 +51961,7 @@ function generarInforme(opts) {
     const _dd = (typeof dtDiastEstado === 'function') ? dtDiastEstado() : null;
     const _dtHay = (typeof dopTricFrase === 'function') && !!dopTricFrase();
     // `vdFuera` también entra: un valor ilegible no puede desaparecer del informe en silencio.
-    if (hayTam || hayFunc || vdFuera.length || _dd || _dtHay || _hvdInf.hvd) {
+    if (hayTam || hayFunc || vdFuera.length || _dd || _dtHay || _hvdInf.hvd || strVD !== null) {
       /* El GRADO sale de `vdBasCat`, la misma función que pinta la cápsula, en vez de un
          `> 41` propio. Con el umbral suelto, un VD basal de 43 mm daba «Leve (>41 y ≤45mm)» en
          pantalla y «Ventrículo derecho dilatado» en el informe firmado — dos respuestas a la
@@ -51893,7 +52012,21 @@ function generarInforme(opts) {
          resumen diciendo «disfunción sistólica» sobre un cuerpo que dice «disfunción sistólica
          moderada» del mismo paciente — que es el defecto que esta tanda persigue. */
       const _vdDisfTxt = 'disfunción sistólica' + (_vdDisfG ? ' ' + _vdDisfG : '');
-      const funcTxt = hayFunc ? (vdDisf ? _vdDisfTxt : 'función sistólica conservada') : null;
+      /* ⚠️ VA EL NÚMERO Y NO SU CATEGORÍA, y es deliberado. Con la categoría, un strain de −18 %
+         sobre un TAPSE y una onda S' normales habría firmado «función sistólica conservada (strain
+         de pared libre leve)» — una contradicción en el informe FIRMADO, y la consecuencia directa
+         de que el campo no vote. El GRADO se muestra en la PANTALLA, al lado del campo, que es
+         donde el médico lo mira y lo corrige. Declarado en `docs/PENDIENTES.md` → AJ5-d.
+         ⚠️ Y SE PUBLICA CON EL SIGNO DE LA APP, no con el que se tipeó: `VD_STRAIN_NORMAL` vale
+         −20 y el panel de Deformación calcula un porcentaje negativo, así que el informe dice
+         «−18 %» aunque el médico haya escrito 18. Dos estudios con el mismo hallazgo no pueden
+         salir con dos signos distintos en un documento firmado. */
+      const _strTxt = (strVD !== null) ? ` (strain de pared libre −${Math.abs(strVD)} %)` : '';
+      /* Con el strain como ÚNICO dato de función no se afirma ni «conservada» ni «disfunción»:
+         se nombra el valor y nada más. Es el mismo molde que la rama de prótesis de la mitral y
+         que «valores medidos sin veredicto» — describir sin graduar. */
+      const funcTxt = hayFunc ? ((vdDisf ? _vdDisfTxt : 'función sistólica conservada') + _strTxt)
+                    : (strVD !== null ? `strain de pared libre −${Math.abs(strVD)} %` : null);
 
       // conciso (sigla) · estándar (nombre completo, frase compacta) · narrativo (prosa),
       // misma escala que AI / válvula pulmonar / aorta. El "En suma" mantiene la sigla.
@@ -51905,8 +52038,13 @@ function generarInforme(opts) {
         const nexo = (!vdDilat && !vdDisf) ? ', ' : ' con ';
         vdC = `VD ${tamTxt}${nexo}${funcTxt}`;
         vdE = `Ventrículo derecho ${tamTxt}${nexo}${funcTxt}`;
+        /* ⚠️ EL NARRATIVO LLEVA SU PROPIO LITERAL EN LA RAMA «TODO NORMAL» Y NO USA
+             `funcTxt`, así que el strain tiene que agregarse ACÁ TAMBIÉN. Sin esta línea el
+             Conciso y el Estándar publicaban el valor y el Narrativo no: el mismo paciente con
+             tres informes distintos, que es el defecto que esta zona viene arreglando desde el
+             R3. Medido en los tres estilos. */
         vdN = (!vdDilat && !vdDisf)
-          ? 'El ventrículo derecho es de dimensiones normales, con función sistólica conservada'
+          ? 'El ventrículo derecho es de dimensiones normales, con función sistólica conservada' + _strTxt
           : `El ventrículo derecho se encuentra ${tamTxt} y presenta ${funcTxt}`;
       } else if (tamTxt) {
         vdC = `VD ${tamTxt}`;
