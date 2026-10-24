@@ -10280,7 +10280,11 @@ window.cerrarSesionReal = cerrarSesionReal;
         <div style="font-size:11px;font-weight:700;color:var(--accent2);margin-bottom:6px;text-transform:uppercase;letter-spacing:.4px;">Pericardio</div>
         <div class="calc-box" style="margin-bottom:14px;"><div id="pop-pocus-peri">—</div></div>
 
-        <div style="font-size:11px;font-weight:700;color:var(--accent2);margin-bottom:6px;text-transform:uppercase;letter-spacing:.4px;">Pleura</div>
+        <!-- ⚠️ EL GLOBO ⓘ ES EL MISMO `pul-balik` DEL MÓDULO DE ECOGRAFÍA PULMONAR, no una copia:
+             publica la fórmula del volumen (Volpicelli 2026, enunciado D6_11, hoja 19) y sus
+             límites de validez —pacientes críticos en ventilación invasiva—. Una segunda ficha
+             con el mismo contenido se desincroniza el día que una de las dos se corrija. -->
+        <div style="font-size:11px;font-weight:700;color:var(--accent2);margin-bottom:6px;text-transform:uppercase;letter-spacing:.4px;">Pleura <button type="button" class="vinfo-btn" data-vinfo="pul-balik" aria-expanded="false" aria-label="Informaci&oacute;n sobre la estimaci&oacute;n del volumen del derrame pleural" onclick="vInfoClic(this)">&#9432;</button></div>
         <div class="grid-3">
           <div class="fg"><label for="pop_pleura_der">Derrame derecho</label><select id="pop_pleura_der" onchange="popPocusSync()"><option value="" selected>— no evaluado —</option><option value="leve">Leve (&lt;1 cm)</option><option value="moderado">Moderado (1-3 cm)</option><option value="severo">Severo (&gt;3 cm)</option><option value="ausente">Ausente</option></select></div>
           <div class="fg"><label for="pop_pleura_izq">Derrame izquierdo</label><select id="pop_pleura_izq" onchange="popPocusSync()"><option value="" selected>— no evaluado —</option><option value="leve">Leve (&lt;1 cm)</option><option value="moderado">Moderado (1-3 cm)</option><option value="severo">Severo (&gt;3 cm)</option><option value="ausente">Ausente</option></select></div>
@@ -57135,9 +57139,22 @@ function popPocusSync() {
     else { txt = 'Sin derrame pleural'; cls = 'green'; }
     /* El hemotórax se DECLARA aparte y no cambia la banda: la conducta la decide el equipo
        quirúrgico y depende del débito, que esta app no recoge. Callarlo sería peor. */
+    /* ⚠️ LOS TRES GRADOS DEL DERRAME PLEURAL NO TIENEN FUENTE, Y SE DECLARA (G3, 2026-10-24).
+       Censada la biblioteca: ni las recomendaciones internacionales de ecografía pulmonar 2026
+       ni ninguna otra de las fuentes de este módulo publican una graduación del derrame pleural
+       en «leve menos de 1 cm / moderado de 1 a 3 / severo más de 3». NO SE RETIRAN —el médico
+       las usa y son una descripción del tamaño, no un veredicto— pero llevan el chip, que es la
+       regla de la casa para lo que no tiene fuente.
+       LO QUE SÍ TIENE FUENTE es la ESTIMACIÓN DEL VOLUMEN, y vive en el globo ⓘ de al lado:
+       es la misma fórmula y el mismo globo `pul-balik` del módulo de ecografía pulmonar
+       —Volpicelli 2026, enunciado D6_11, hoja 19— con sus límites de validez. No se reescribe
+       acá: una segunda copia de la fórmula es la duplicación que este archivo persigue. */
     setH('pop-pocus-pleura', fila('Conducta orientativa', badge(cls, txt)) +
       (car === 'hemotorax' ? fila('Característica', badge('red', 'Hemotórax — la conducta la define el equipo quirúrgico')) :
-       car ? fila('Característica', car === 'loculado' ? 'Loculado' : 'Libre') : ''));
+       car ? fila('Característica', car === 'loculado' ? 'Loculado' : 'Libre') : '') +
+      '<div style="font-size:10px;color:var(--text2);margin-top:6px;line-height:1.5;">Los tres grados por el tamaño (menos de 1 cm, de 1 a 3 cm, más de 3 cm) no salen de ninguna de las fuentes de este módulo ' +
+      badge('gray', 'Criterio de EcoSmart') +
+      '. La estimación del volumen y sus límites están en el globo ⓘ de este bloque.</div>');
   }
 
   /* ── PULMÓN ── */
@@ -57186,7 +57203,13 @@ function popPocusSync() {
     fila('PSAP', psap === null ? '—' : psap + ' mmHg') +
     fila('Conclusión', concl) +
     (pend.length ? '<div style="font-size:10px;color:var(--text2);margin-top:6px;line-height:1.5;">Completar: ' + pend.join(' · ') + '</div>' : '') +
-    '<div style="font-size:10px;color:var(--text2);margin-top:6px;line-height:1.5;">Los cortes son los que la app ya aplica en la cápsula de TEP de esta pestaña (TAPSE ' + uT + ' mm · VD/VI 0,9). No se gradúan de otra forma acá.</div>');
+    /* ⚠️ ESTA LÍNEA DECÍA «VD/VI 0,9» CON EL NÚMERO ESCRITO A MANO, Y LA CONSTANTE VALE 1,0.
+       `TEP_VDVI_DILAT_MIN` es 1,0 desde la tanda R (ESC 2019 de TEP, folio e17), y las DOS filas
+       de arriba de este mismo cuadro ya lo imprimen bien porque lo leen de la constante: el
+       badge decía «dilatación (≥1.0)» y el pie, dos renglones más abajo, «VD/VI 0,9». NO se
+       movió ningún corte: lo que se corrige es una DECLARACIÓN FALSA. Hoy sale de la constante,
+       como el TAPSE de al lado, así que el día que se mueva no puede volver a desincronizarse. */
+    '<div style="font-size:10px;color:var(--text2);margin-top:6px;line-height:1.5;">Los cortes son los que la app ya aplica en la cápsula de TEP de esta pestaña (TAPSE ' + uT + ' mm · VD/VI ' + TEP_VDVI_DILAT_MIN.toFixed(1) + '). No se gradúan de otra forma acá.</div>');
 }
 window.popPocusSync = popPocusSync;
 /* ══ POP · BLOQUE 5 — patrón hemodinámico (2026-09-18) ══
@@ -57210,6 +57233,11 @@ window.popPocusSync = popPocusSync;
    `_icBanda` la comparten la cápsula de Hemodinámica y el bloque 3, y meterle una banda de
    plausibilidad cambiaría lo que publican esas dos superficies, que no es lo que se vino a tocar. */
 const POP_IC_PLAUSIBLE_MIN = 0.5, POP_IC_PLAUSIBLE_MAX = 10;
+/* Presión arterial media por debajo de la cual la definición propuesta de vasoplejia se aplica.
+   Unic-Stojanovic 2025 (ivaf075, hoja 1 de 4), leído en imagen en el PDF original. Es el ÚNICO
+   número de esa definición que esta app no tenía ya con dueño: el «IC > 2,2» es `_icBanda` y el
+   «RVS < 800» es `_rvsBanda`. Ver la nota larga en `popPatron`. */
+const POP_VASO_PAM_MAX = 65;
 function popPatron() {
   const asc = (typeof getBSA === 'function') ? getBSA() : null;
 
@@ -57288,6 +57316,15 @@ function popPatron() {
   }
   const rvsB = _rvsBanda(rvs);
 
+  /* ⚠️ LA PRESIÓN ARTERIAL MEDIA ENTRA AL CLASIFICADOR (G3, 2026-10-24) y es, hasta hoy, el
+     ÚNICO criterio de vasoplejia que este bloque no miraba. La MEDIDA por el catéter le gana a
+     la de Hemodinámica, igual que hace la PCP, y se declara cuál se usó: una etiqueta de
+     vasoplejia sostenida en una PAM que el médico cargó en otra pestaña, sin decirlo, es la
+     mezcla de medición y estimación que este módulo persigue desde el primer commit. */
+  let pam = null, pamFuente = null;
+  if (swPam !== null) { pam = swPam; pamFuente = 'medida (Swan-Ganz)'; }
+  else { const _hp = v('hemo_pam'); if (_hp !== null) { pam = _hp; pamFuente = 'de Hemodinámica'; } }
+
   const tapse = v('tapse');
   let vdvi = v('tep_vdvi');
   if (vdvi === null && v('vd_bas') && v('ddfvi')) vdvi = PF((v('vd_bas') / v('ddfvi')).toFixed(2));
@@ -57346,7 +57383,32 @@ function popPatron() {
   if (icBajo && pcp !== null && pcp < 12 && rvsAlta) pats.push({ k:'hipovolemia', lbl:'Hipovolemia', cls:'orange' });
   if (icBajo && pcp !== null && pcp > 18 && rvsAlta) pats.push({ k:'falla_vi', lbl:'Falla del ventrículo izquierdo', cls:'red' });
   if (icBajo && tapseBaja && vdDil) pats.push({ k:'falla_vd', lbl:'Falla del ventrículo derecho', cls:'red' });
-  if (icB && !icBajo && rvsBaja) pats.push({ k:'vasoplejia', lbl:'Vasoplejia', cls:'orange' });
+  /* ⚠️ LA VASOPLEJIA EXIGE LAS TRES COSAS, Y LA PAM ERA LA QUE FALTABA (G3, 2026-10-24).
+     LAS DOS FUENTES, LEÍDAS EN IMAGEN EN EL PDF ORIGINAL:
+       · Unic-Stojanovic D, Koster A, Erdoes G, Milojevic M. «Vasoplegic syndrome in cardiac
+         surgery». Interdiscip CardioVasc Thorac Surg 2025;40(4):ivaf075 — HOJA 1 de 4: los
+         criterios diagnósticos centrales son una presión arterial media por debajo de 65 mmHg
+         JUNTO CON un índice cardíaco por encima de 2,2 y una RVS por debajo de 800.
+       · Busse LW, Barker N, Petersen C. «Vasoplegic syndrome following cardiothoracic surgery».
+         Crit Care 2020;24:36 — PÁGINA 1 de 11: índice cardíaco por encima de 2,2 y RVS por
+         debajo de 800, DENTRO DE LAS 24 h de la circulación extracorpórea. NO NOMBRA LA PAM, y
+         su unidad del índice sale impresa con una errata («L/kg/m²» por L/min/m²).
+     O sea que el «PAM < 65» sale SÓLO del primero, y así se cita en pantalla.
+     NINGUNA DE LAS DOS ES UNA GUÍA: la primera es un editorial y la segunda una revisión, y las
+     dos dicen que no hay una definición universal. Por eso la etiqueta se rotula en pantalla
+     como DEFINICIÓN PROPUESTA por esos artículos y no como un criterio establecido.
+     ⚠️ LOS OTROS DOS CORTES NO SE ESCRIBEN ACÁ Y NO HACÍA FALTA MOVERLOS. `!icBajo` es
+     exactamente «IC > 2,2» —`_icBanda` llama «bajo» a todo lo que sea 2,2 o menos— y `rvsBaja`
+     es exactamente «RVS < 800» sobre el valor SIN INDEXAR —`_rvsBanda` abre su banda de
+     vasodilatación por debajo de 800, y el SVRI del PiCCO entra desindexado por SC—. Las dos
+     coinciden con lo que publican los artículos; medido antes de tocar, y por eso lo único que
+     se agrega es la PAM. Un `2.2` escrito acá habría sido la segunda copia de un corte que ya
+     tiene dueño, que es lo que el comentario del bloque de conclusión prohíbe con todas las
+     letras.
+     ⚠️ SIN PAM NO HAY ETIQUETA. No se asume que esté baja: la pantalla publica el índice y la
+     resistencia con sus bandas, y una línea dice qué falta para poder aplicar la definición. */
+  const pamBaja = pam !== null && pam < POP_VASO_PAM_MAX;
+  if (icB && !icBajo && rvsBaja && pamBaja) pats.push({ k:'vasoplejia', lbl:'Vasoplejia', cls:'orange' });
 
   /* «Datos insuficientes» NO es lo mismo que «sin patrón»: sin IC no se clasifica nada, y decir
      «sin alteraciones» sobre una evaluación que no se hizo es la afirmación tranquilizadora que
@@ -57390,6 +57452,10 @@ function popPatron() {
   return { pat: pat, patrones: pats, preguntas: preg, motivo: icB || tapo ? null : motivo,
            ic: ic, icBanda: icB, icFuente: icFuente, icFuera: icFuera,
            pcp: pcp, pcpFuente: pcpFuente, rvs: rvs, rvsBanda: rvsB, rvsFuente: rvsFuente,
+           pam: pam, pamFuente: pamFuente, pamBaja: pamBaja,
+           /* Para la línea que explica por qué NO hay etiqueta de vasoplejia. */
+           vasoSinPam: !!(icB && !icBajo && rvsBaja && pam === null),
+           vasoPamAlta: !!(icB && !icBajo && rvsBaja && pam !== null && !pamBaja),
            tapse: tapse, vdvi: vdvi, taponamiento: tapo,
            suficiente: !!icB || tapo };
 }
@@ -57412,6 +57478,31 @@ function popConclSync() {
        cerrado para el Laboratorio. Ver el comentario de `popPatron`. */
     (r.motivo ? '<div style="font-size:11px;color:var(--text2);margin-top:6px;line-height:1.5;">Falta: ' +
       escHtml(r.motivo) + '</div>' : '') +
+    /* ⚠️ LA VASOPLEJIA SE DECLARA COMO DEFINICIÓN PROPUESTA, no como criterio establecido: las
+       dos fuentes son un editorial y una revisión, no guías, y las dos dicen que no hay una
+       definición universal. Y el «PAM < 65» sale de UNA sola de las dos. Sin esa línea, la
+       etiqueta se lee con el mismo peso que «taponamiento», que sí sale de una guía.
+       Las TRES ramas son excluyentes: o la etiqueta está puesta, o falta la PAM, o la PAM está
+       por encima del corte. Decir «no hay vasoplejia» sin decir por qué es lo mismo que
+       callarse. */
+    (r.patrones.some(function (p) { return p.k === 'vasoplejia'; })
+      ? '<div style="font-size:10px;color:var(--text2);margin-top:6px;line-height:1.5;">' +
+        'Vasoplejia: definición PROPUESTA por Unic-Stojanovic 2025 (PAM &lt;65 mmHg + IC &gt;2,2 + RVS &lt;800) ' +
+        'y por Busse 2020 (IC &gt;2,2 + RVS &lt;800, dentro de las 24 h de la circulación extracorpórea; ' +
+        'ese artículo no nombra la PAM). Ninguna de las dos es una guía y ninguna publica una ' +
+        'definición universal. La RVS se compara SIN INDEXAR' +
+        (r.pamFuente ? '. PAM ' + r.pam.toFixed(0) + ' mmHg, ' + escHtml(r.pamFuente) : '') + '.</div>'
+      : r.vasoSinPam
+      ? '<div style="font-size:10px;color:var(--text2);margin-top:6px;line-height:1.5;">' +
+        'Resistencia vascular baja con índice cardíaco conservado. NO se aplica la etiqueta de ' +
+        'vasoplejia: esa definición exige además una PAM por debajo de ' + POP_VASO_PAM_MAX +
+        ' mmHg, y no hay PAM cargada (Swan-Ganz o Hemodinámica).</div>'
+      : r.vasoPamAlta
+      ? '<div style="font-size:10px;color:var(--text2);margin-top:6px;line-height:1.5;">' +
+        'Resistencia vascular baja con índice cardíaco conservado y PAM ' + r.pam.toFixed(0) +
+        ' mmHg, de ' + POP_VASO_PAM_MAX + ' mmHg o más: no se cumple la definición propuesta de ' +
+        'vasoplejia.</div>'
+      : '') +
     /* ⚠️ LA DECLARACIÓN DE LA RVS NO PUEDE COLGAR DEL IC. Colgaba, y con un IC rechazado por
        banda —que anula `icFuente`— desaparecía también la fuente de una RVS que SÍ está calculada
        y publicada dos filas más arriba: un número sin decir de dónde salió, que es lo que estas

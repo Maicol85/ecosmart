@@ -1071,6 +1071,70 @@ window.__G = {
     process.stderr.write('[e2] listo\n');
   }
 
+  /* ══ GRUPO e3 — vasoplejia, PiCCO desindexado y derrame pleural ═══════════════════════════
+     LOS SEIS ESCENARIOS SON LOS BORDES. Todo con PiCCO: el IC se TIPEA como indice (sin pasar
+     por GC / superficie, que agrega un redondeo entre la tecla y el corte) y la RVS sale del
+     SVRI desindexado por la superficie corporal, que es justo lo que este commit tiene que
+     probar. Peso 60 y talla 170 dan una superficie de 1,68325 m2.
+       SVRI 1344.92 / 1.68325 = 798.99  -> por DEBAJO de 800
+       SVRI 1346.60 / 1.68325 = 800.00  -> NO por debajo
+     La PAM sale de Hemodinamica, que es de donde la toma el clasificador cuando el monitoreo no
+     es Swan-Ganz. */
+  if (corre('e3')) {
+    const r = { escenas: [] };
+    const BASE = { peso:'60', talla:'170', pop_cx_tipo:'cabg', pop_monitor:'picco' };
+    const ESC = [
+      { n:'1 · PAM 64 · IC 2,21 · RVS 799', pam:'64', ic:'2.21', svri:'1344.92' },
+      { n:'2 · PAM 65 (borde) · IC 2,21 · RVS 799', pam:'65', ic:'2.21', svri:'1344.92' },
+      { n:'3 · PAM 64 · IC 2,20 (borde) · RVS 799', pam:'64', ic:'2.20', svri:'1344.92' },
+      { n:'4 · PAM 64 · IC 2,21 · RVS 800 (borde)', pam:'64', ic:'2.21', svri:'1346.61' },
+      { n:'5 · SIN PAM · IC 2,21 · RVS 799', pam:'', ic:'2.21', svri:'1344.92' },
+      { n:'6 · PAM 64 · IC 2,21 · SVRI sin peso ni talla', pam:'64', ic:'2.21', svri:'1344.92', sinSC:true }
+    ];
+    try {
+      r.abrir = await ev(`window.__G.abrirPOP()`);
+      for (const e of ESC) {
+        await ev(`window.__P.nuevo()`);
+        const campos = Object.assign({}, BASE);
+        if (e.sinSC) { campos.peso = ''; campos.talla = ''; }
+        await ev(`window.__G.poner(${JSON.stringify(campos)})`);
+        /* TECLAS REALES en los tres numeros que deciden. */
+        await tipear('pop_picco_ic', e.ic);
+        await tipear('pop_picco_svri', e.svri);
+        if (e.pam === '') { await ev(`window.__G.poner({ hemo_pam: '' })`); }
+        else { await tipear('hemo_pam', e.pam); }
+        await ev(`(function(){ try{ popSync() }catch(x){}; return 1 })()`);
+        const d = await ev(`(function(){ try { var x = popPatron();
+          return { bsa: (typeof getBSA==='function' ? getBSA() : null),
+                   ic: x.ic, rvs: x.rvs === null ? null : Number(x.rvs.toFixed(3)), rvsF: x.rvsFuente, pam: x.pam, pamF: x.pamFuente,
+                   etiqueta: x.pat.lbl, k: x.pat.k,
+                   patrones: x.patrones.map(function(p){ return p.k }),
+                   sinPam: x.vasoSinPam, pamAlta: x.vasoPamAlta } }
+          catch(ex){ return 'EXC ' + ex.message } })()`);
+        const box = await ev(`window.__P.txt('pop-concl-box')`);
+        r.escenas.push({ escena: e.n, datos: d, decl: (box || '').slice(-460) });
+      }
+      /* ── DERRAME PLEURAL: el chip y la cita del volumen ── */
+      await ev(`window.__P.nuevo()`);
+      await ev(`window.__G.poner({ pop_pleura_der:'moderado', pop_pleura_izq:'leve' })`);
+      await ev(`(function(){ try{ popPocusSync() }catch(x){}; return 1 })()`);
+      r.pleura = await ev(`window.__P.txt('pop-pocus-pleura')`);
+      r.pleuraGlobo = await ev(`(function(){
+        var b = document.querySelectorAll('[data-vinfo=\\"pul-balik\\"]');
+        return { botones: b.length,
+                 ficha: (typeof VINFO !== 'undefined' && VINFO['pul-balik'])
+                        ? VINFO['pul-balik'].fuente : 'SIN FICHA' } })()`);
+      /* ── VD/VI: la constante y lo que el pie DECLARA ── */
+      r.vdCte = await ev(`TEP_VDVI_DILAT_MIN`);
+      await ev(`window.__G.poner({ tapse:'14', tep_vdvi:'1.1' })`);
+      await ev(`(function(){ try{ popPocusSync() }catch(x){}; return 1 })()`);
+      r.vdTxt = await ev(`window.__P.txt('pop-pocus-vd')`);
+      r.errores = await ev(`window.__Yerr ? window.__Yerr.slice(0,20) : null`);
+    } catch (e) { r.err = e.message }
+    out2.grupos.e3 = r;
+    process.stderr.write('[e3] listo\n');
+  }
+
   /* ══ GRUPO ctrl — A/B de control: informe, EN SUMA, Excel y censo de campos ═════════════
      DOS escenas, y la segunda es el denominador de la primera:
        vacio  — formulario nuevo, sin un solo dato: lo que no puede cambiar en NINGUN commit.
