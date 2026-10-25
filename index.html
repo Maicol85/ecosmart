@@ -5760,7 +5760,7 @@ window.cerrarSesionReal = cerrarSesionReal;
                Con una vena contracta cargada funciona —el voto leve pisa al severo del jet—; con
                el jet como único parámetro, el grado nativo sobrevive. Ver la nota de
                `params.length === 0` en `calcIM_ESC` y la entrada de CLAUDE.md. -->
-          <select id="vm_morf" onchange="showProlapsoPanel();valvProtSync();imOndaESiExiste();eteVmPropagar('vm');calcIM_ESC();calcEM();m3dBotonSync()"><option>Normal</option><option>Mixomatosa / Barlow</option><option>Calcificada</option><option>Reumática</option><option>Prolapso / EVMS</option><option value="Prótesis biológica">Prótesis biológica</option><option value="Prótesis mecánica">Prótesis mecánica</option><option>Endocarditis</option><option>Isquémica (disfunción/rotura músculo papilar)</option></select>
+          <select id="vm_morf" onchange="showProlapsoPanel();valvProtSync();imOndaESiExiste();eteVmPropagar('vm');calcIM_ESC();calcEM();m3dBotonSync();vmProtBloqSync();vmMorfFitSync()"><option>Normal</option><option>Mixomatosa / Barlow</option><option>Calcificada</option><option>Reumática</option><option>Prolapso / EVMS</option><option value="Prótesis biológica">Prótesis biológica</option><option value="Prótesis mecánica">Prótesis mecánica</option><option>Endocarditis</option><option>Isquémica (disfunción/rotura músculo papilar)</option></select>
           <div id="vm-ete-aviso" style="display:none;font-size:11px;color:var(--red);margin-top:3px;"></div>
         </div>
         <!-- ══ TIPO DE IM Y CARPENTIER — AJ5-1 (2026-10-24, decisión de Maicol) ═══════════
@@ -10879,7 +10879,7 @@ window.cerrarSesionReal = cerrarSesionReal;
     <div class="card-body">
       <div class="grid-3">
         <div class="fg"><label>Etiología</label>
-          <select id="ete_etiologia" onchange="calcETE();eteVmPropagar('ete')">
+          <select id="ete_etiologia" onchange="calcETE();eteVmPropagar('ete');vmProtBloqSync()">
             <option value="">—</option>
             <option value="barlow">Degenerativa — Barlow</option>
             <option value="dfe">Degenerativa — DFE (deficiencia fibroelástica)</option>
@@ -25492,6 +25492,28 @@ const EV_REG = Object.freeze([
     estado: 'verificado', fecha_verificacion: EV_FECHA_AJ1,
     fuente_una_linea: 'ASE 2025 de mayo (Mukherjee), Tabla 1 (folio 145) y texto del folio 159',
   }),
+  /* ⚠️ LA BANDA `leve` DEL STRAIN NO TIENE FUENTE, Y POR ESO ES UNA FICHA APARTE (AJ7-3i,
+     2026-10-24). Cierra AJ5-e. No se cuelga de `FUN-VD-007` —que esta VERIFICADA contra la ASE
+     2025— porque mezclarlas haria que una ficha verificada declarara un corte que su documento no
+     publica, que es exactamente lo que el registro de citas existe para impedir. Nace como las
+     otras de su clase (ver `AOR-001`): `tipo: criterio propio de EcoSmart`, `estado: por
+     verificar`, y sin guia, folio ni DOI. `_evRefBiblio` SALTEA toda ficha que no este
+     `verificado`, asi que su fila del cuadro sale SIN CORCHETE —un corchete sobre un corte que la
+     fuente no publica respaldaria lo que esa fuente niega—.
+     CENSADO OTRA VEZ EN ESTA TANDA, sobre el registro del proyecto: ni `ASE25_T1` tiene entrada
+     de strain, ni la Tabla 1 del folio 145 lo bandea, ni el texto del folio 159 abre bandas —lo
+     unico que publican es el corte de NORMALIDAD, 20 % en valor absoluto, sin columnas de varon
+     y de mujer—. El 15 se aplica porque LA ORDEN FIJA EL NUMERO, igual que el 36 mm de la AJ4-1.
+     Moderada y severa NO EXISTEN en ningun lado y no se inventaron. */
+  Object.freeze({
+    id: 'FUN-VD-008', zona: 'VD/AD — Ventrículo derecho', dato: 'Strain de pared libre del VD: la banda de disfunción leve',
+    valor: 'Disfunción leve con un strain de pared libre de 15 a 20 % en valor absoluto, el 15 incluido. Por debajo de 15 la aplicación dice «leve como mínimo» y NO gradúa moderada ni severa: esos dos cortes no existen en la fuente. El corte de normalidad —más de 20 %— sí es de la guía y vive en la ficha FUN-VD-007. Desde la tanda AJ7 esta banda VOTA en la función sistólica del ventrículo derecho del informe firmado, y nunca puede llevar el grado más allá de leve',
+    duenio: 'VD_STRAIN_PL_LEVE / vdStrainPlCat',
+    guia: '', ubicacion: '', folio: '', hoja_pdf: null,
+    doi: '', fuente_original: '', tipo: 'criterio propio de EcoSmart',
+    estado: 'por verificar', fecha_verificacion: EV_FECHA_VER,
+    fuente_una_linea: '',
+  }),
   /* ── AORTA TORACICA ──────────────────────────────────────────────── */
   Object.freeze({
     id: 'AOR-001', zona: 'AI/VI — Aorta torácica', dato: 'Cortes de dilatación de los segmentos distintos de la raíz',
@@ -26878,6 +26900,12 @@ function vdTeiCat(x) {
    la nota al pie «Absolute values and ranges for strain are shown»— y el texto del folio 159
    habla de «más negativo que 20 % a 25 %», también sin bandas. La ficha `FUN-VD-007` lo declara
    así: «el dueño no gradúa». Meterlo en la Tabla 1 fabricaría tres bandas que esa tabla no tiene.
+   ⚠️ DESDE LA AJ7-3i LA BANDA `leve` SÍ ESTÁ DECLARADA EN REFERENCIAS, y tiene ficha propia:
+      `FUN-VD-008`, con `tipo: criterio propio de EcoSmart` y `estado: por verificar`, para que la
+      fila del cuadro salga SIN CORCHETE. Era el defecto de AJ5-e: desde la AJ5-5 la pantalla
+      aplicaba una banda intermedia que el cuadro de Referencias no declaraba, o sea que la misma
+      aplicación afirmaba en una superficie que no graduaba y graduaba en otra. `FUN-VD-007` sigue
+      diciendo lo que dice la guía —el corte de normalidad— y nada más.
 
    ⚠️ LO QUE LA APP TENÍA, MEDIDO, Y LO QUE LA ORDEN AGREGA — PORQUE NO ES LO MISMO:
      · NORMAL: lo tenía. Es `VD_STRAIN_NORMAL` (−20 %), aplicado en el AJ1, sin diferencia por
@@ -44767,7 +44795,7 @@ function evRefPintar(id) {
     const B = _evRefBiblio(['DIM-VD-001', 'DIM-VD-002', 'DIM-VD-003', 'DIM-VD-004',
                             'DIM-VD-005', 'DIM-VD-006',
                             'FUN-VD-001', 'FUN-VD-002', 'FUN-VD-003', 'FUN-VD-004',
-                            'FUN-VD-005', 'FUN-VD-006', 'FUN-VD-007']);
+                            'FUN-VD-005', 'FUN-VD-006', 'FUN-VD-007', 'FUN-VD-008']);
     host.appendChild(_evRefTabla([
       ..._evRefFilasT1('DIM-VD-001', 'vd_bas',   'Diámetro basal'),
       ..._evRefFilasT1('DIM-VD-002', 'vd_mid',   'Diámetro medio'),
@@ -44784,14 +44812,40 @@ function evRefPintar(id) {
          lo aplica con un solo corte, que esta orden deja como esta. Su fila sigue siendo la que
          describe lo que la app hace. */
       { ficha: 'FUN-VD-006', rot: 'Tiempo de aceleración pulmonar — normal', h: '≥ ' + UMBRAL_TAP_HTP + ' ms', m: '≥ ' + UMBRAL_TAP_HTP + ' ms' },
-      /* ⚠️ EL STRAIN DE PARED LIBRE TAMPOCO ENTRA EN `ASE25_T1` (AJ1): su dueño es un corte
-         BINARIO -normal o por debajo de lo normal- y no las tres bandas de la Tabla 1, así que
-         su fila describe lo que la app aplica. Las DOS columnas publican el MISMO valor, que es
-         lo que esta tanda vino a arreglar: ni la Tabla 1 ni el texto del folio 159 separan por
-         sexo. El número sale del DUEÑO y no se escribe a mano. */
+      /* ⚠️ EL STRAIN DE PARED LIBRE TAMPOCO ENTRA EN `ASE25_T1` (AJ1), así que sus filas
+         describen lo que la app aplica. Las DOS columnas publican el MISMO valor: ni la Tabla 1
+         ni el texto del folio 159 separan por sexo. Los números salen de los DUEÑOS y no se
+         escriben a mano.
+         ⚠️ ESTE COMENTARIO DECÍA QUE EL DUEÑO ERA «UN CORTE BINARIO -normal o por debajo de lo
+            normal-» Y DEJÓ DE SER CIERTO EN LA AJ5-5, que abrió la banda `leve` en la pantalla
+            sin declararla acá: la misma aplicación afirmaba en una superficie que no graduaba y
+            graduaba en otra. Es lo que la AJ7-3i corrige, y por eso son DOS filas: la de
+            NORMALIDAD, que es de la guía y lleva su corchete, y la de la banda LEVE, que **no
+            tiene fuente** y va sin corchete —`_evRefBiblio` saltea las fichas no verificadas, así
+            que `B.idx['FUN-VD-008']` es `undefined` y `_evRefTabla` no imprime número—. */
       { ficha: 'FUN-VD-007', rot: 'Strain de pared libre — normal (valor absoluto)',
         h: '> ' + Math.abs(VD_STRAIN_NORMAL) + ' %', m: '> ' + Math.abs(VD_STRAIN_NORMAL) + ' %' },
+      { ficha: 'FUN-VD-008', rot: 'Strain de pared libre — disfunción leve (valor absoluto)',
+        h: 'de ' + VD_STRAIN_PL_LEVE + ' a ' + VD_STRAIN_PL_NORMAL + ' %',
+        m: 'de ' + VD_STRAIN_PL_LEVE + ' a ' + VD_STRAIN_PL_NORMAL + ' %' },
     ], B.idx));
+    /* La nota de la banda sin fuente, con el chip de la casa. Se arma con nodos y NO con
+       `innerHTML`: es la regla de seguridad de la suite y evita un hallazgo de Semgrep nuevo. */
+    host.appendChild((function () {
+      const d = _evDiv('ev-fte', null, { 'data-ev-fuente': 'vd-strain-leve' });
+      const chip = document.createElement('span');
+      chip.style.cssText = 'display:inline-block;border:1px solid var(--border);border-radius:4px;'
+        + 'padding:1px 5px;margin-right:4px;font-size:9px;letter-spacing:.3px;';
+      chip.textContent = 'CRITERIO DE ECOSMART';
+      d.appendChild(chip);
+      d.appendChild(document.createTextNode(
+        'La banda de disfunción leve —de ' + VD_STRAIN_PL_LEVE + ' a ' + VD_STRAIN_PL_NORMAL
+        + ' % en valor absoluto— es una decisión de la aplicación y va sin cita: la Tabla 1 del '
+        + 'folio 145 y el texto del folio 159 publican un único corte, el de normalidad. '
+        + 'Por debajo de ' + VD_STRAIN_PL_LEVE + ' % la aplicación dice «leve como mínimo» y no '
+        + 'gradúa moderada ni severa, porque esos dos cortes no existen en la fuente.'));
+      return d;
+    })());
     host.appendChild(_evRefBarras([
       { clave: 'ref-vd-bas', rotulo: 'Diámetro basal (mm)', banda: 'vdBas', lo: 20, hi: 65, unidad: 'mm', dec: 0, ficha: 'DIM-VD-001', corteEn: ['desde', 'hasta', 'hasta'] },
       { clave: 'ref-vd-mid', rotulo: 'Diámetro medio (mm)', banda: 'vdMid', lo: 15, hi: 55, unidad: 'mm', dec: 0, ficha: 'DIM-VD-002', corteEn: ['desde', 'hasta', 'hasta'] },
@@ -52667,7 +52721,40 @@ function generarInforme(opts) {
          mismo que antes, porque `teiAlt` queda en `false` igual que los otros tres.
          El corte es el de DTI (`>= 0,55`); el del Doppler pulsado NO se usa — ver la constante. */
       const teiAlt    = teiVD !== null ? _vdAnorm(vdTeiCat(teiVD))     : false;
-      const vdDisf = tapseBajo || spBajo || facBajo || teiAlt;
+      /* ══ EL STRAIN DE PARED LIBRE PASA A VOTAR (AJ7-3h, 2026-10-24) ═══════════════════════
+         DECISION DE MAICOL, y cierra AJ5-d. Hasta hoy el campo mostraba su grado en la PANTALLA
+         y no votaba: con TAPSE 22 mm y onda S' 13 cm/s -los dos normales- y un strain de -18 %,
+         el informe FIRMADO decia «funcion sistolica conservada (strain de pared libre -18 %)»,
+         una afirmacion de normalidad al lado de un parametro alterado del mismo ventriculo.
+         Medido en Chrome contra HEAD, en las tres bandas y en los dos bordes.
+         LAS TRES REGLAS SON LAS DE LA ORDEN, y ninguna inventa un corte:
+           · de 15 a 20 % en valor absoluto -la banda `leve` de `vdStrainPlCat`- vota LEVE;
+           · por debajo de 15 vota «leve como minimo», NUNCA moderada ni severa: esos dos cortes
+             NO EXISTEN en ninguna fuente de la biblioteca. Censado otra vez en esta tanda: la
+             Tabla 1 de la ASE 2025 de mayo NO tiene entrada de strain -`ASE25_T1` tampoco-, el
+             texto del folio 159 publica un unico corte de normalidad, y ninguna ficha de
+             `IND_REFS` abre bandas. Lo unico que la fuente publica es el 20 %;
+           · por encima de 20 -la banda `normal`- NO vota, igual que cualquier parametro normal.
+         ⚠️ COMO COMBINA CON TAPSE Y ONDA S', MEDIDO ANTES DE ESCRIBIR: `vdDisf` es un OR de
+            parametros -cada uno cuenta solo si esta medido y uno alcanza-, y el GRADO lo da
+            `vdDisfGrado(tapse, sp)`, que mira SOLO esos dos: pide su banda a `ase25Grado` para
+            cada uno, devuelve `null` si ALGUNO de los dos es normal -un parametro normal bloquea
+            el grado-, y si los dos son anormales publica el rango entre el menos y el mas grave
+            («leve-moderada»). La FAC y el Tei votan en el OR pero NO entran en el grado, y la
+            FEVD no vota. El strain se suma al OR con la misma regla.
+         ⚠️ EL STRAIN NO PUEDE SUBIR EL GRADO, SOLO PONER UN PISO. Si `vdDisfGrado` devuelve un
+            grado, ese manda: TAPSE y onda S' son sus duenos y tienen bandas de la guia. El strain
+            solo escribe el grado cuando los duenos no pudieron darlo, y entonces nunca pasa de
+            «leve».
+         ⚠️ `hayFunc` NO SE TOCA, y es deliberado. Sigue siendo `tapse || sp || FAC || Tei`: es la
+            compuerta de la AFIRMACION, y con el strain adentro un estudio cuyo UNICO dato de
+            funcion fuera un strain de -25 % firmaria «funcion sistolica conservada» sin un solo
+            parametro votante medido. Con el strain solo, la oracion sigue siendo descriptiva
+            -«strain de pared libre -18 %»- y no gradua. */
+      const strCat  = (strVD !== null && typeof vdStrainPlCat === 'function')
+                        ? vdStrainPlCat(strVD) : null;
+      const strVota = strCat === 'leve' || strCat === 'bajo_leve';
+      const vdDisf = tapseBajo || spBajo || facBajo || teiAlt || strVota;
 
       const tamTxt  = hayTam  ? VD_TAM_TXT[vdTamGrado] : null;
       /* ⚠️ EL GRADO SE LE PIDE AL DUEÑO Y NO SE CALCULA ACA (R3, 2026-10-20). `vdDisfGrado` lee
@@ -52675,7 +52762,11 @@ function generarInforme(opts) {
          el badge de la pantalla no pueden decir dos severidades distintas del mismo numero. Con
          `null` -un parametro normal, ninguno de los dos medido, o una excepcion- la frase queda
          EXACTAMENTE como estaba, que es la direccion segura. */
-      const _vdDisfG = vdDisf ? ((typeof vdDisfGrado === 'function') ? vdDisfGrado(tapse, sp) : null) : null;
+      let _vdDisfG = vdDisf ? ((typeof vdDisfGrado === 'function') ? vdDisfGrado(tapse, sp) : null) : null;
+      /* EL PISO DEL STRAIN (AJ7-3h). Solo cuando los duenos del grado no pudieron darlo: ver el
+         bloque de arriba. «leve como minimo» y no «moderada» por debajo de 15, porque la
+         aplicacion no tiene corte de moderada ni de severa para este parametro. */
+      if (!_vdDisfG && strVota) _vdDisfG = (strCat === 'bajo_leve') ? 'leve como mínimo' : 'leve';
       /* UN SOLO TEXTO PARA LAS NUEVE SUPERFICIES de esta zona: el informe en los tres estilos y
          las OCHO ramas del EN SUMA. Con el grado escrito en cada rama, la que se olvida deja el
          resumen diciendo «disfunción sistólica» sobre un cuerpo que dice «disfunción sistólica
@@ -58362,7 +58453,7 @@ function RECALC_MODULOS() {
      automaticos con el «requiere …» del formulario vacio al lado de un VDFVI y una FEVI ya
      poblados. No puede migrar nada: no escribe ningun campo del estudio, los dos nodos que
      toca son `vauto-` y el tercero un `<div>` de texto. */
-  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','asiaMmSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','dtTapSync','etOndaESync','papmEstSync','calcDopTric','etTsvdSync','calcET','vpVmaxSync','ipIncongruenciaSync','itRefFuenteSync','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccSegSync','vpSync','popSync','sglOrigenSync','calcVenaPulm','valvProtSync','eaTaviEspejar','imEspejosRestaurar','eteVmAvisoSync','vmCarpLegadoSync','vmCarpAvisoSync','vdStrainPlSync','emPdfValsSync','emCuadroRefRepintar','emContFaAvisoSync','imCortesPintar','imContAvisoPintar','itIncongruenciaSync','aoEspejosRestaurar','tangoRestaurar','diastExclSync','diastFcAvisoSync','diastBseEprimaAvisoSync','diastBseGrisAvisoSync','diastStrainMarcaSync','vdMarcaSync','vdTeiAvisoSync','hfPepSync','hfPepPintar','viVolAutoSync','eaAvaiGradoPintar','eaPvlPintar','imPvlPintar','vdTapsePsapSync','ipApDiamSync','vdViSelSync','htpApSync','htpTablaPintar','m3dBotonSync','contrPdfSync','sglPdfSync','eteQxPdfSync','otrBurbUI','v2dCerrar','aiviSexoSync','vtDviAuto','sincronizarTEERDesdeGlobal','calcETE'];
+  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','asiaMmSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','dtTapSync','etOndaESync','papmEstSync','calcDopTric','etTsvdSync','calcET','vpVmaxSync','ipIncongruenciaSync','itRefFuenteSync','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccSegSync','vpSync','popSync','sglOrigenSync','calcVenaPulm','valvProtSync','eaTaviEspejar','imEspejosRestaurar','eteVmAvisoSync','vmCarpLegadoSync','vmCarpAvisoSync','vmProtBloqSync','vmMorfFitSync','vdStrainPlSync','emPdfValsSync','emCuadroRefRepintar','emContFaAvisoSync','imCortesPintar','imContAvisoPintar','itIncongruenciaSync','aoEspejosRestaurar','tangoRestaurar','diastExclSync','diastFcAvisoSync','diastBseEprimaAvisoSync','diastBseGrisAvisoSync','diastStrainMarcaSync','vdMarcaSync','vdTeiAvisoSync','hfPepSync','hfPepPintar','viVolAutoSync','eaAvaiGradoPintar','eaPvlPintar','imPvlPintar','vdTapsePsapSync','ipApDiamSync','vdViSelSync','htpApSync','htpTablaPintar','m3dBotonSync','contrPdfSync','sglPdfSync','eteQxPdfSync','otrBurbUI','v2dCerrar','aiviSexoSync','vtDviAuto','sincronizarTEERDesdeGlobal','calcETE'];
 }
 function _recalcModulos(etiqueta) {
   RECALC_MODULOS().forEach(function(fn){
@@ -58600,6 +58691,10 @@ function limpiarCampos(silencioso) {
      categoría del estudio anterior. */
   { if (typeof vmCarpLegadoSync === 'function') { try { vmCarpLegadoSync(); } catch (e) {} } }
   { if (typeof vmCarpAvisoSync === 'function') { try { vmCarpAvisoSync(); } catch (e) {} } }
+  /* AJ7-3j · al lado de sus vecinas y por el mismo motivo: `limpiarCampos` devuelve `vm_morf` a
+     «Normal» y sin esto los dos campos quedaban atenuados y bloqueados del estudio anterior. */
+  { if (typeof vmProtBloqSync === 'function') { try { vmProtBloqSync(); } catch (e) {} } }
+  { if (typeof vmMorfFitSync === 'function') { try { vmMorfFitSync(); } catch (e) {} } }
   { if (typeof vdStrainPlSync === 'function') { try { vdStrainPlSync(); } catch (e) {} } }
   /* ⚠️ LA LINEA DE FUENTE DEL CUADRO DE LA IT NECESITA LAS DOS COLUMNAS, Y POR UN MOTIVO DISTINTO
      QUE SUS VECINAS: no es estado del paciente, es la REFERENCIA del cuadro, y `calcIT_ESC` —el
@@ -60444,6 +60539,89 @@ function vmCarpAvisoSync() {
     if (sec && sec.style.display === 'none') sec.style.display = 'block'; }
 }
 window.vmCarpAvisoSync = vmCarpAvisoSync;
+
+/* ══ CON PROTESIS MITRAL, EL TIPO DE IM Y EL CARPENTIER SE ATENUAN Y SE BLOQUEAN (AJ7-3j) ════
+   DECISION DE MAICOL, y cierra AJ5-f. Medido en Chrome antes de tocar nada: con `vm_morf` en
+   «Prótesis biológica» o «Prótesis mecánica», los dos <select> seguian VISIBLES, HABILITADOS y
+   con opacidad 1, conservando su valor — y lo unico que cambiaba era el papel, donde `_vmProt`
+   no escribe el parentesis. O sea: el medico veia dos campos cargados cuya informacion no salia
+   por ningun lado, sin nada en la pantalla que se lo dijera.
+   ⚠️ SE ATENUA Y SE BLOQUEA, NO SE ESCONDE NI SE BORRA. El valor cargado se CONSERVA —ni este
+      barrido ni ningun otro lo toca—, por la regla de la casa: un cambio de morfologia no sale a
+      reescribir lo que el medico ya consigno, y si vuelve a una morfologia nativa el dato sigue
+      ahi. Esconderlos seria el camino de `vmEsProtesis` con los descriptores nativos del ETE,
+      pero entonces un valor cargado desapareceria de la vista sin dejar rastro.
+   ⚠️ PINTA, NO ESCRIBE, asi que va en `RECALC_MODULOS` y no en la columna de los que calculan.
+   ⚠️ `disabled` DEJA EL CAMPO FUERA DEL `FormData`, pero este formulario NO se serializa asi:
+      el censo de campos recorre `input[id],select[id],textarea[id]` y lee `.value`, que un
+      <select> deshabilitado conserva. Verificado con el censo de campos y las 440 columnas del
+      Excel, que no se mueven. */
+const _VM_PROT_BLOQ = ['vm_tipo_im', 'vm_carp'];
+const _VM_PROT_TITULO = 'Con una prótesis mitral el informe no publica el tipo de insuficiencia '
+  + 'ni el Carpentier: el valor cargado se conserva.';
+function vmProtBloqSync() {
+  const prot = (typeof vmEsProtesis === 'function') && vmEsProtesis();
+  _VM_PROT_BLOQ.forEach(function (id) {
+    const e = document.getElementById(id);
+    if (!e) return;
+    e.disabled = !!prot;
+    e.style.opacity = prot ? '0.5' : '';
+    /* El rotulo tambien se atenua: un campo gris con su etiqueta en negro se lee como un campo
+       que todavia se puede tocar. El `.fg` es el contenedor de campo de la casa. */
+    const fg = e.closest ? e.closest('.fg') : null;
+    const lab = fg ? fg.querySelector('label') : null;
+    if (lab) lab.style.opacity = prot ? '0.5' : '';
+    if (prot) e.setAttribute('title', _VM_PROT_TITULO); else e.removeAttribute('title');
+  });
+}
+window.vmProtBloqSync = vmProtBloqSync;
+
+/* ══ EL ROTULO DE LA MORFOLOGIA SE ACHICA HASTA QUE ENTRE (AJ7-3k, 2026-10-24) ═══════════════
+   DECISION DE MAICOL, y cierra AJ5-g. Medido en Chrome con `measureText` sobre la tipografia
+   REAL del <select>: la fila de tres campos deja `#vm_morf` en 149 px, de los cuales el ancho
+   util es 121 -descontando los dos padding y la flecha-, y «Mixomatosa / Barlow» mide 125 px a
+   12,48 px de cuerpo. Se recorta por CUATRO pixeles en el control CERRADO; el desplegable abierto
+   siempre lo mostro entero.
+   ⚠️ SE MIDE, NO SE FIJA UN NUMERO. La alternativa era un `font-size: 12px` en el CSS de ese
+      campo, y queda viejo el dia que cambie el ancho de la columna, la tipografia o el texto de
+      una opcion: la app tendria un rotulo recortado otra vez y nada lo diria. Esto mide el texto
+      SELECCIONADO contra el ancho util de HOY y baja el cuerpo de a 0,25 px hasta que entre.
+   ⚠️ CON UN PISO, Y DECLARADO. `_VM_MORF_FS_MIN` = 10 px. «Isquémica (disfunción/rotura músculo
+      papilar)» mide 275 px y no entra en 121 ni a 10 px: esa opcion ya se recortaba antes de esta
+      tanda y la orden no la nombra. Llega al piso y se queda ahi, legible; no se achica sin fondo
+      hasta volverse ilegible, que seria cambiar un defecto por otro peor.
+   ⚠️ EL CUERPO BASE SE RELEE EN CADA PASADA, y por eso la primera linea borra el inline: sin eso
+      cada llamada mediria contra el cuerpo que la llamada anterior dejo puesto y el campo se
+      achicaria escalon a escalon hasta el piso. */
+const _VM_MORF_FS_MIN = 10;
+function vmMorfFitSync() {
+  const el = document.getElementById('vm_morf');
+  if (!el || typeof el.getBoundingClientRect !== 'function') return;
+  el.style.fontSize = '';                      // se vuelve al cuerpo del CSS antes de medir
+  const r = el.getBoundingClientRect();
+  if (!r.width) return;                        // sin geometria no hay nada que medir
+  const cs = getComputedStyle(el);
+  const base = parseFloat(cs.fontSize);
+  if (!isFinite(base) || base <= 0) return;
+  /* La flecha del <select> no tiene ancho declarado en ningun lado: 18 px es la reserva que la
+     sonda de la AJ5 midio contra el control real, y es la misma que usa su medicion. */
+  const util = r.width - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight) - 18;
+  if (!(util > 0)) return;
+  const op = el.options[el.selectedIndex];
+  const txt = op ? op.text : '';
+  if (!txt) return;
+  const cv = (vmMorfFitSync._cv || (vmMorfFitSync._cv = document.createElement('canvas'))).getContext('2d');
+  let fs = base;
+  for (let i = 0; i < 40; i++) {
+    cv.font = cs.fontStyle + ' ' + cs.fontWeight + ' ' + fs + 'px ' + cs.fontFamily;
+    if (cv.measureText(txt).width <= util) break;
+    if (fs <= _VM_MORF_FS_MIN) { fs = _VM_MORF_FS_MIN; break; }
+    fs = Math.max(_VM_MORF_FS_MIN, fs - 0.25);
+  }
+  if (fs < base) el.style.fontSize = fs + 'px';
+}
+window.vmMorfFitSync = vmMorfFitSync;
+
 function vmCarpPropagar(origen) {
   if (_vmImSincronizando) return;
   const vmEl = document.getElementById('vm_carp');

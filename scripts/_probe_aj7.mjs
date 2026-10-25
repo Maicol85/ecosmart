@@ -883,7 +883,11 @@ window.__Y = {
       var e = document.getElementById(id);
       if (!e) { o[id] = 'NO EXISTE'; return; }
       var r = e.getBoundingClientRect(), cs = getComputedStyle(e);
+      var fg = e.closest ? e.closest('.fg') : null;
+      var lab = fg ? fg.querySelector('label') : null;
       o[id] = { val: e.value, disabled: !!e.disabled, op: cs.opacity,
+                labOp: lab ? (lab.style.opacity || getComputedStyle(lab).opacity) : null,
+                tit: e.getAttribute('title') ? 'SI' : null,
                 w: Math.round(r.width), h: Math.round(r.height), fs: cs.fontSize,
                 vis: window.__P.vis(id) };
     });
@@ -898,6 +902,12 @@ window.__Y = {
         return { t: op.text, w: Math.round(cv.measureText(op.text).width) } });
       o.utilMorf = Math.round(sel.getBoundingClientRect().width)
         - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight) - 18;
+      /* El ancho REAL del rotulo SELECCIONADO con el cuerpo que tiene puesto AHORA: es lo que
+         decide si se recorta en el control cerrado. */
+      var op = sel.options[sel.selectedIndex];
+      o.selTxt = op ? op.text : '';
+      o.selW = op ? Math.round(cv.measureText(op.text).width) : null;
+      o.recorta = (o.selW != null) ? (o.selW > o.utilMorf) : null;
     }
     return o },
 
