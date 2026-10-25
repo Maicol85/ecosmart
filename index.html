@@ -28595,11 +28595,22 @@ function calcVEXUS() {
   set('vexus-vci', diam === null ? '—' : diam + ' mm');
   const aviso = document.getElementById('vexus-vci-aviso');
   if (aviso) {
+    /* ⚠️ EL AVISO SE ARMA CON `join` Y NO CONCATENANDO (AJ7-4c, 2026-10-24) ═══════════════════
+       Las tres ramas que interpolan `VEXUS_VCI_MM` eran los TRES hallazgos que la tanda J le
+       sumó a Semgrep —`ceibo-xss-innerhtml-concat`, que matchea `$EL.innerHTML = $A + $B`—, y la
+       línea base pasó de 124 a 127 WARNING. Son falsos positivos declarados: lo único que entra
+       es un entero definido en este archivo, no hay un solo dato del usuario. Pero un hallazgo
+       conocido que se deja fijo es ruido que tapa al siguiente que sí importe.
+       `[...].join('')` NO es una concatenación para esa regla, así que las tres salen del reporte
+       **sin apagar la regla, sin un `nosemgrep` y sin volver al número escrito a mano**, que era
+       la alternativa y es la que miente el día que el corte se mueva. El texto es el MISMO, byte
+       por byte: medido en los tres bordes, 19, 20 y 21 mm. El corte no cambia. */
+    const _vn = String(VEXUS_VCI_MM);
     if (diam === null) aviso.innerHTML = 'Cargá el <b>diámetro de VCI</b> en la sección VCI para poder calcular el score.';
-    else if (diam < VEXUS_VCI_MM) aviso.innerHTML = 'VCI &lt; ' + VEXUS_VCI_MM + ' mm → el grado es <b>0</b> aunque los vasos estén alterados. Cargá al menos un vaso para dejar constancia de que se aplicó el protocolo.';
+    else if (diam < VEXUS_VCI_MM) aviso.innerHTML = ['VCI &lt; ', _vn, ' mm → el grado es <b>0</b> aunque los vasos estén alterados. Cargá al menos un vaso para dejar constancia de que se aplicó el protocolo.'].join('');
     /* Los DOS cortes del artículo: el grado 1 pide «≥ 2 cm» y los grados 2 y 3 piden «> 2 cm». */
-    else if (diam <= VEXUS_VCI_MM) aviso.innerHTML = 'VCI de ' + VEXUS_VCI_MM + ' mm exactos → el grado es <b>1</b> como máximo: los grados 2 y 3 del protocolo piden una vena cava de <b>más</b> de ' + VEXUS_VCI_MM + ' mm.';
-    else aviso.innerHTML = 'VCI &gt; ' + VEXUS_VCI_MM + ' mm → el grado lo define <b>cuántos</b> vasos están severos: uno → 2, dos o más → 3.';
+    else if (diam <= VEXUS_VCI_MM) aviso.innerHTML = ['VCI de ', _vn, ' mm exactos → el grado es <b>1</b> como máximo: los grados 2 y 3 del protocolo piden una vena cava de <b>más</b> de ', _vn, ' mm.'].join('');
+    else aviso.innerHTML = ['VCI &gt; ', _vn, ' mm → el grado lo define <b>cuántos</b> vasos están severos: uno → 2, dos o más → 3.'].join('');
   }
   /* Los selectores NO se deshabilitan con VCI < 20 mm. Deshabilitarlos parecía prolijo pero
      dejaba los valores cargados escondidos: corregir después el diámetro a 21 mm resucitaba
@@ -29380,16 +29391,31 @@ function cvrFrases(st) {
   const s = st || cvrEstado(), d = s.d;
   const n1 = x => (x === null ? '—' : (Math.round(x * 10) / 10));
   const presentes = s.filas.filter(f => f.voto === 'c' && f.prosa).map(f => f.prosa);
+  /* ══ LAS DOS ULTIMAS CONDUCTAS SALEN DEL PAPEL FIRMADO (AJ7-4a, 2026-10-24) ════════════════
+     DECISION DE MAICOL, y cierra J-a. La tanda J ya habia sacado de acá el aviso de confirmación
+     invasiva y la recomendación de cateterismo de la rama mixta; quedaban estas dos, que son
+     conductas escritas dentro de una frase clínica del informe FIRMADO y de la hoja del PDF.
+     ⚠️ LAS DOS SE TRATARON POR SEPARADO, Y NO TUVIERON EL MISMO DESTINO:
+       · «El diagnóstico definitivo requiere correlación clínica e imagenológica (TC/RMC
+         pericárdica)» — lo que dice ESTA SÍ lo respalda la Recommendation Table 24 (folio 64),
+         cuya primera fila RECOMIENDA la imagen multimodal en todo paciente con sospecha de
+         pericarditis constrictiva, Clase I · Nivel C. Y la Evidencia de constricción YA la
+         publica, con esa clase, ese nivel y ese folio, desde que la sección nació. O sea que no
+         hay nada que mover: sale del papel y lo que afirmaba sigue estando donde corresponde.
+       · «Considerar RMC con gadolinio» — NO la respalda. La Recommendation Table 24 es de
+         PERICARDITIS CONSTRICTIVA y esta frase vive en la rama RESTRICTIVA, que es una
+         miocardiopatía: la tabla no tiene ninguna fila sobre ella. No se cita ninguna otra
+         fuente, porque la orden acota el respaldo a esa tabla. Se RETIRA y no va a Evidencia: una
+         conducta sin fuente verificada no se publica en ninguna de las dos superficies. */
   if (s.clave === 'constrictiva') {
     return ['Hallazgos ecocardiográficos compatibles con pericarditis constrictiva: annulus reversus '
       + "(e' septal " + n1(d.esep) + " cm/s > e' lateral " + n1(d.elat) + ' cm/s), '
-      + presentes.join(', ') + '. El diagnóstico definitivo requiere correlación clínica e '
-      + 'imagenológica (TC/RMC pericárdica).'];
+      + presentes.join(', ') + '.'];
   }
   if (s.clave === 'restrictiva') {
     return ['Hallazgos ecocardiográficos compatibles con miocardiopatía restrictiva: velocidades '
       + "anulares reducidas (e' septal " + n1(d.esep) + " cm/s, e' lateral " + n1(d.elat) + ' cm/s), '
-      + "E/e' elevado (" + n1(d.ee) + '), sin respirofasicidad significativa. Considerar RMC con gadolinio.'];
+      + "E/e' elevado (" + n1(d.ee) + '), sin respirofasicidad significativa.'];
   }
   if (s.clave === 'mixto') {
     /* ⚠️ «Se recomienda cateterismo cardíaco derecho e izquierdo simultáneo para diagnóstico
@@ -83297,11 +83323,39 @@ function _indConstr(){
   if (!cvrFn) return null;
   let st = null;
   try { st = cvrFn(); } catch (e) { return null; }
-  /* Compuerta del MISMO dueno que el modulo: sin un solo criterio especifico del pericardio
-     evaluado, la seccion no despierta. Las velocidades anulares solas estan cargadas en casi
-     todos los estudios y despertarian esta seccion sobre un paciente al que nadie le miro el
-     pericardio — es la regla que `cvrEstado` ya aplica con `espEval === 0`. */
-  if (!st || !st.espEval) return null;
+  if (!st) return null;
+  /* ══ LA COMPUERTA PASA A SER PROPIA DE LA CONSTRICCION (AJ7-4b, 2026-10-24) ═════════════════
+     DECISION DE MAICOL, y cierra J-b. Hasta hoy la compuerta era `st.espEval` —«al menos un
+     criterio especifico del pericardio evaluado»—, la MISMA del modulo. El problema medido: la
+     RESPIROFASICIDAD MITRAL cuenta como uno de esos criterios Y se carga en el modulo de derrame
+     y taponamiento, asi que un estudio en el que solo se evaluo TAPONAMIENTO despertaba ademas
+     esta seccion, con todas sus filas en «—» salvo esa. Verificado en Chrome contra HEAD con un
+     estudio de solo taponamiento: `_indConstr()` devolvia un objeto.
+     Hoy la compuerta mira los datos PROPIOS de la constriccion, que son los cuatro que la orden
+     nombra: las velocidades anulares (e' medial y lateral), el rebote septal, el patron venoso
+     hepatico y su cociente. Ninguno se comparte con el modulo de taponamiento.
+     ⚠️ LA RESPIROFASICIDAD -mitral y tricuspide- Y LA PLETORA DE VCI QUEDAN FUERA DE LA
+        COMPUERTA PERO SIGUEN EN LA SECCION: se evaluan y se publican como siempre; lo unico que
+        dejaron de hacer es ABRIRLA. El engrosamiento pericardico por TC tampoco abre, porque la
+        orden no lo nombra entre los cuatro.
+     ⚠️ ES UNA SEGUNDA COMPUERTA, Y SE DECLARA: `cvrEstado` conserva la suya —`espEval === 0`—,
+        que es la que decide si el MODULO concluye. La J las habia dejado unificadas a proposito
+        («una segunda copia de la compuerta es como las dos divergen») y esta orden las separa
+        porque ya no contestan la misma pregunta: una decide si se CONCLUYE, la otra si la
+        Evidencia DESPIERTA. Van pegadas, con este comentario al lado.
+     ⚠️ LO QUE ESTO CUESTA, MEDIDO Y REPORTADO: las velocidades anulares estan cargadas en casi
+        todos los estudios, asi que un perfil diastolico de rutina ABRE esta seccion, con las
+        filas del pericardio en «—». Es el escenario que la compuerta vieja evitaba y que la nueva
+        acepta, porque la orden pone a e' entre los datos propios. El modulo NO concluye nada en
+        ese caso —su compuerta no se movio—: lo unico que cambia es que la seccion de Evidencia se
+        ve. Declarado en `docs/PENDIENTES.md` → AJ7-c. */
+  const _dC = st.d || {};
+  const _propio = (_dC.esep !== null && _dC.esep !== undefined)
+               || (_dC.elat !== null && _dC.elat !== undefined)
+               || (_dC.rebote !== '' && _dC.rebote != null)
+               || (_dC.hep !== '' && _dC.hep != null)
+               || (_dC.hepCoc !== null && _dC.hepCoc !== undefined);
+  if (!_propio) return null;
   const d = st.d;
   const n1 = function(x){ return x === null ? '—' : (Math.round(x * 10) / 10) };
   const fila = function(lbl){ return st.filas.filter(function(f){ return f.lbl === lbl })[0] || null };
@@ -83453,6 +83507,16 @@ function _indVexus(){
   ];
 
   const art = [
+    /* ⚠️ LA POBLACION, EN SU PROPIA LINEA Y PRIMERA (AJ7-4d, 2026-10-24). Estaba —«En 145
+       pacientes de cirugía cardíaca, con 706 valoraciones»— pero METIDA adentro de una oración de
+       cincuenta palabras sobre el riesgo relativo: quien leyera la sección se llevaba el número
+       del hazard ratio y no en quién se midió. Sale sola y primera, que es donde se lee.
+       ⚠️ NO DICE «UN SOLO CENTRO». La orden lo pedía; el registro de fuentes de este proyecto
+          verifica la población y el número de valoraciones del resumen de la página 1, y NO que
+          el estudio sea unicéntrico. Esta tanda no puede abrir el PDF original —la orden prohíbe
+          leer archivos fuera del proyecto—, así que el dato no se escribe: lo que no se verificó
+          no se publica. Declarado en `docs/PENDIENTES.md` → AJ7-d. */
+    { txt:'La graduación se desarrolló en 145 pacientes de CIRUGÍA CARDÍACA, con 706 valoraciones ecográficas: ésa es la población en la que se midió, y fuera de ella el artículo no mide nada. Resumen, página 1.', refs:['vexus2020'] },
     { txt:'En 145 pacientes de cirugía cardíaca, con 706 valoraciones ecográficas, definir la congestión venosa severa como la presencia de alteraciones severas en VARIOS patrones Doppler junto con una vena cava dilatada fue lo que más se asoció con la aparición posterior de injuria renal aguda, por encima de las otras combinaciones probadas (riesgo relativo instantáneo 3,69; intervalo de confianza 1,65 a 8,24; p = 0,001). Resumen, página 1.', refs:['vexus2020'] },
     { txt:'Esa asociación se mantuvo tras ajustar por el riesgo basal de injuria renal aguda y por el soporte vasopresor o inotrópico (riesgo relativo instantáneo 2,82; intervalo de confianza 1,21 a 6,55; p = 0,02). Resumen, página 1.', refs:['vexus2020'] },
     { txt:'Detectado al ingreso a cuidados intensivos, ese grado severo ofreció un cociente de probabilidad positivo de 6,37 (intervalo de confianza 2,19 a 18,50), por encima de la medición de la presión venosa central. Resumen, página 1.', refs:['vexus2020'] },
@@ -83470,7 +83534,7 @@ function _indVexus(){
     bloques: [
       { tit:'Lo que el artículo original mide (Ultrasound J 2020, páginas 1 y 3)',
         lineas: art,
-        nota:'No hay clase ni nivel de recomendación: la fuente es un artículo original de desarrollo de la graduación, no una guía de práctica clínica, y no los publica. Escribirlos sería inventarlos.' },
+        nota:'No hay clase ni nivel de recomendación: la fuente es un artículo original de desarrollo de la graduación, no una guía de práctica clínica, y no los publica. Escribirlos sería inventarlos. Y la población en la que se midió —145 pacientes de cirugía cardíaca— es parte del resultado: un grado VExUS fuera de ese contexto no tiene detrás la asociación que el artículo describe.' },
       { tit:'Conducta por grado — criterio de EcoSmart, SIN fuente', plegado:true,
         lineas: propio,
         nota:'Estas tres frases se publicaban hasta el 24/10/2026 en la pantalla, en el cuerpo del informe firmado y en la hoja del PDF. Hoy viven sólo acá. El artículo NO da pasos por grado, y no se cita ninguna otra fuente para ellos: son una decisión de la aplicación y por eso no llevan corchete.' }

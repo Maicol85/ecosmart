@@ -1119,6 +1119,11 @@ window.__Y = {
         puesto: await ev(`window.__Y.poner(${JSON.stringify({ nombre: 'Constr AJ7', ci: '5',
           cvr_rebote: 'si', cvr_hepatico: 'esp', e_sep: '11', e_lat: '8' })})`),
         cvr: await ev(`window.__Y.cvr()`),
+        /* El cuerpo del informe y la hoja del PDF SOLO publican la constriccion con el bloque
+           INTEGRADO: `if (amiloIntegrado('cvr'))`. Sin esto la sonda mide un informe sin una sola
+           linea de pericardio y reporta «cero frases» sobre un denominador vacio. */
+        integra: await ev(`(function(){ try { amiloIntegrar('cvr');
+          return { integrado: amiloIntegrado('cvr') } } catch (e) { return 'EXC: ' + e.message } })()`),
         inf: await ev(`window.__P.informe('estandar')`, 60000),
         pdf: await ev(`window.__P.pdf('estandar')`, 120000)
       };
@@ -1138,6 +1143,8 @@ window.__Y = {
           e_sep: '5', e_lat: '8', onda_e: '110', e_sep_prom: '', resp_var_mitral: '8',
           cvr_rebote: 'no', cvr_hepatico: 'insp' })})`),
         cvr: await ev(`window.__Y.cvr()`),
+        integra: await ev(`(function(){ try { amiloIntegrar('cvr');
+          return { integrado: amiloIntegrado('cvr') } } catch (e) { return 'EXC: ' + e.message } })()`),
         inf: await ev(`window.__P.informe('estandar')`, 60000),
         pdf: await ev(`window.__P.pdf('estandar')`, 120000)
       };
