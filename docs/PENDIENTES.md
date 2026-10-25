@@ -3,7 +3,13 @@
 
 ## Tanda J · pericardio, constricción y VEXUS (2026-10-24) — DECLARADO y NO arreglado
 
-### J-a · Dos conductas siguen en el informe firmado de constricción y restricción
+### [CERRADO 2026-10-24 · AJ7-4a] J-a · Dos conductas siguen en el informe firmado de constricción y restricción
+
+> **Cerrado, y las dos NO tuvieron el mismo destino.** «requiere correlación clínica e
+> imagenológica» la respalda la Recommendation Table 24 (folio 64, I · C) y la Evidencia **ya la
+> publicaba**: sale del papel y no hubo nada que mover. «Considerar RMC con gadolinio» vive en la
+> rama RESTRICTIVA, que esa tabla no cubre: **se retira y no va a Evidencia**. Medido sobre el
+> PDF generado de verdad: 1 → 0 y 2 → 0 apariciones.
 
 Esta orden sacó del papel el **aviso de confirmación invasiva** y la **recomendación de
 cateterismo** de la rama de criterios mixtos. Quedan dos frases que también son conductas y que la
@@ -18,7 +24,11 @@ producto dice que las conductas van sólo a Evidencia, así que son candidatas a
 criterio — pero cambiar una frase clínica que la orden no nombra es decisión de Maicol.
 **Decidir:** si salen del papel y pasan a la Evidencia de constricción, que ya existe.
 
-### J-b · La Evidencia de constricción despierta sobre un estudio de taponamiento
+### [CERRADO 2026-10-24 · AJ7-4b] J-b · La Evidencia de constricción despierta sobre un estudio de taponamiento
+
+> **Decidido: una compuerta propia.** `_indConstr` mira los datos propios de la constricción —e′
+> medial y lateral, rebote septal, patrón venoso hepático y su cociente—. Un estudio de solo
+> taponamiento ya no la despierta. **Lo que eso cuesta está medido y declarado en AJ7-c.**
 
 Su compuerta es la del módulo, `cvrEstado().espEval` —«al menos un criterio específico del
 pericardio evaluado»—, y la **variación respiratoria de la onda E mitral** cuenta como uno de
@@ -6955,7 +6965,11 @@ de `amiloIntegrar` — y entonces hay que decidir desde dónde se retira.
 
 ---
 
-### AJ3-b · la presión de llenado en reposo con «Normal» YA publica su línea
+### [CERRADO 2026-10-24 · AJ7-2a] AJ3-b · la presión de llenado en reposo con «Normal» YA publica su línea
+
+> **Cerrado.** La línea existente se **reescribió** —no se agregó una segunda, que era el riesgo
+> que esta entrada nombraba— para incluir el «NO descarta». Fuente: Pieske 2019, folio 3307,
+> hoja 11, la misma que el módulo ya cita. Medido en Chrome con la escena de puntaje intermedio.
 
 **Qué se encontró.** El ítem AJ3-3 pedía agregar, **si no mostraba nada**, la frase «Una presión de
 llenado normal en reposo no descarta el diagnóstico: la guía recomienda la prueba de esfuerzo». La
@@ -6974,7 +6988,12 @@ segunda.
 
 ---
 
-### AJ3-c · el PDF NO avisa al exportar con un bloque editado y desfasado
+### [CERRADO 2026-10-24 · AJ7-2d] AJ3-c · el PDF NO avisa al exportar con un bloque editado y desfasado
+
+> **Cerrado.** `generarPDF()` pregunta «¿Exportar igual?» nombrando los bloques desfasados.
+> **No cambia lo que se publica**: si el médico acepta, el PDF sale idéntico. Medido: pregunta
+> UNA vez nombrando «PostCEC — Cirugía Cardíaca», un «no» detiene y sin bloque editado no
+> pregunta nada.
 
 **Qué se encontró.** Caso no decidido del prompt, medido generando el PDF **de verdad** con el
 bloque de HTP editado a mano y ya desfasado: 82 textos, **cero** menciones de «desactualizado»,
@@ -6991,7 +7010,12 @@ pedido.
 
 ---
 
-### AJ3-d · «el médico borra todos los datos del módulo»: qué pasa HOY, medido en los diecisiete
+### [CERRADO EN PARTE 2026-10-24 · AJ7-2c] AJ3-d · «el médico borra todos los datos del módulo»: qué pasa HOY, medido en los diecisiete
+
+> **Decidido:** un bloque cuyo módulo quedó sin datos **se retira solo**, salvo que esté editado
+> a mano. `_AM_VACIA_RETIRA` se retiró y el refresco pasa a mirar `sec.hayDatos()`. Lo que eso
+> alcanza hoy son **cuatro** módulos de diecisiete; los otros trece no declaran `hayDatos`.
+> → **AJ7-b**, con el censo de los diecisiete al lado.
 
 **Qué se encontró.** El otro caso no decidido. Vaciando los campos de los que cada módulo depende:
 
@@ -7266,7 +7290,11 @@ TAPSE y la S′ viajan en su propio paréntesis.
 
 ---
 
-### AJ5-d · El strain del VD no vota, así que puede quedar «conservada» con el strain alterado
+### [CERRADO 2026-10-24 · AJ7-3h] AJ5-d · El strain del VD no vota, así que puede quedar «conservada» con el strain alterado
+
+> **Cerrado.** El strain vota: de 15 a 20 % en valor absoluto, leve; por debajo de 15, «leve como
+> mínimo»; por encima de 20 no vota. **No puede subir el grado** que TAPSE y onda S′ ya dieron.
+> `hayFunc` no se tocó. Medido A/B en las tres bandas y en los dos bordes.
 
 **Qué se encontró.** La orden dice, textual, «si no la incluye, el campo muestra su grado y aparece
 como dato en la oración de función del VD, **sin votar**». `vdDisfGrado` lee TAPSE y onda S′ y nada
@@ -7285,7 +7313,14 @@ argumento con el que la FEVD sigue sin votar.
 
 ---
 
-### AJ5-e · La banda «leve 15-20 %» del strain NO estaba en el AJ1, y no está declarada en Referencias
+### [CERRADO 2026-10-24 · AJ7-3i] AJ5-e · La banda «leve 15-20 %» del strain NO estaba en el AJ1, y no está declarada en Referencias
+
+> **Cerrado por el camino (a):** ficha propia `FUN-VD-008`, `criterio propio de EcoSmart` y
+> `por verificar`, con la banda **derivada de `VD_STRAIN_PL_LEVE`** y la fila del cuadro **SIN
+> CORCHETE** (`_evRefBiblio` saltea las fichas no verificadas). Abajo, la nota con el chip. Y se
+> reescribió el comentario que decía que el dueño era un corte BINARIO. **Moderada y severa
+> siguen sin existir**, y se censó de nuevo: no están ni en `ASE25_T1`, ni en el folio 145, ni
+> en el 159.
 
 **Qué se encontró.** Dos cosas, y la segunda la cazó `/sharp-edges`:
 
@@ -7313,7 +7348,10 @@ Referencias.**
 
 ---
 
-### AJ5-f · Qué hace la PANTALLA con el Tipo de IM y el Carpentier sobre una prótesis
+### [CERRADO 2026-10-24 · AJ7-3j] AJ5-f · Qué hace la PANTALLA con el Tipo de IM y el Carpentier sobre una prótesis
+
+> **Decidido: se atenúan y se bloquean, conservando el valor.** `vmProtBloqSync()`. No se
+> esconden —un valor cargado que desaparece de la vista no deja rastro— y no se borra nada.
 
 **Qué se encontró.** La orden dice que no está decidido, y pide dejarlos visibles y sin cambios.
 Así quedaron: con `vm_morf` en «Prótesis biológica» o «Prótesis mecánica», los dos `<select>` de la
@@ -7330,7 +7368,13 @@ que no van al informe; o dejarlos tal cual.
 
 ---
 
-### AJ5-g · «Mixomatosa / Barlow» se recorta 6 px en el control cerrado, y las tres exigencias de la orden no son simultáneas
+### [CERRADO 2026-10-24 · AJ7-3k] AJ5-g · «Mixomatosa / Barlow» se recorta 6 px en el control cerrado, y las tres exigencias de la orden no son simultáneas
+
+> **Cerrado por el primer camino, y MIDIENDO en vez de fijar un número:** `vmMorfFitSync()` mide
+> el rótulo seleccionado contra el ancho útil de hoy y baja el cuerpo de a 0,25 px hasta que
+> entre, con piso declarado de 10 px. Medido: 12,48 → 11,98 px, y el rótulo pasa de 125 px a
+> 120 contra 121 de ancho útil. «Isquémica (disfunción/rotura músculo papilar)» llega al piso y
+> se queda ahí: ya se recortaba antes de la AJ5 y la orden no la nombra.
 
 **Qué se encontró.** La orden pide tres cosas a la vez: tres campos **del mismo ancho** (un tercio
 cada uno), un **largo total no mayor al del botón «Insuficiencia»**, y las **opciones largas
@@ -7552,7 +7596,10 @@ exactamente el `pkill` que este repo ya pagó una vez.
 
 ## Tanda «J2» — lo que quedó declarado y no tocado (2026-10-24)
 
-### J2-a · «Reevaluar en 3-6 sem» en la fila anti-HER2 no tiene fuente, y sigue en pantalla
+### [CERRADO 2026-10-24 · AJ7-5] J2-a · «Reevaluar en 3-6 sem» en la fila anti-HER2 no tiene fuente, y sigue en pantalla
+
+> **Cerrado.** Retirado de las **dos** copias, y **nada en su lugar**: lo que la Figura 11 publica
+> son plazos de VIGILANCIA por riesgo, que contestan otra pregunta. Medido: de 2 apariciones a 0.
 
 **Qué se encontró.** La tabla «Cardiotoxicidad» y la subtab «Monitoreo eco» de la pestaña de
 cardio-oncología dicen, para los anti-HER2: «Si la FEVI cae ≥10 pp o baja de 50%: **reevaluar en
@@ -7648,7 +7695,11 @@ sonda. Toca el arnés de los 547 casos, así que es una tanda propia.
 
 ---
 
-### J2-f · Un hallazgo ALTA más en el celular: el ⓘ del score es el decimoquinto `.vinfo-btn`
+### [CERRADO 2026-10-24 · AJ7-6a] J2-f · Un hallazgo ALTA más en el celular: el ⓘ del score es el decimoquinto `.vinfo-btn`
+
+> **Cerrado junto con el de la tanda G.** Los **dos** globos llevan la clase `.vinfo-btn-44`, que
+> da el piso táctil sin la media query. `check_mobile.js` vuelve de **65/74 con 19 ALTA** a
+> **63/72 con 17**. Los otros quince no se tocaron → **AJ7-e**.
 
 **Qué se encontró.** `check_mobile.js` pasa de **17 a 18 ALTA** en los dos anchos (360 y 390 px).
 El hallazgo nuevo es el globo ⓘ del score de amiloidosis, medido en **13×13 px** contra el piso de
@@ -7674,6 +7725,219 @@ que es una tanda propia. Decisión de Maicol.
 
 ---
 
+
+# Tanda «AJ7» — los pendientes de AJ3, AJ5, AJ6, J y J2, y el G-a (2026-10-24)
+
+## Lo que esta tanda CERRÓ
+
+**AJ6-a**, **AJ6-b**, **AJ3-b**, **AJ3-c**, **AJ3-d** (en parte), **AJ2-i**, **AJ5-d**,
+**AJ5-e**, **AJ5-f**, **AJ5-g**, **J-a**, **J-b**, **J2-a**, **J2-f**, **G-a** y **G-e**.
+Cada una lleva su nota de cierre arriba, en su propia entrada.
+
+Y dos decisiones tomadas sin tocar código: **AJ6-c** —las salvedades de taquicardia ventricular
+se dejan como están hasta tener fuente— y **AJ6-e** —«Lo que falta contestar» queda plegado—.
+
+---
+
+## AJ7-a · El gradiente de la línea de Fallot sigue pudiendo salir de la válvula pulmonar
+
+**Qué se encontró.** La línea del EN SUMA dejó de publicar la insuficiencia pulmonar, pero el
+gradiente que publica (`g`) **cae en `vp_gmax`** cuando el campo propio de la sección
+(`tdf_grad_tsvd`) está vacío — y `vp_gmax` es el gradiente **transvalvular pulmonar**, que la
+sección de la válvula pulmonar también publica más arriba en el mismo EN SUMA.
+
+**Por qué no se tocó.** La orden nombra la IP y nada más. Mover un segundo dato clínico que la
+orden no nombra es lo que `CLAUDE.md` prohíbe.
+
+**Qué puede causar.** Para un estudio sin `tdf_grad_tsvd` cargado, el mismo número puede
+aparecer dos veces en el EN SUMA con dos rótulos distintos. Con el campo propio cargado —que es
+el caso para el que ese campo existe— no pasa.
+
+**Cómo se corregiría.** Que la línea publique el gradiente **sólo** cuando viene del campo
+propio, y que la reserva (`vp_gmax`) siga alimentando el CUERPO del informe, donde ya se declara
+de dónde salió («gradiente transvalvular pulmonar del estudio»). Es contenido clínico y lo decide
+Maicol.
+
+---
+
+## AJ7-b · Trece de los diecisiete módulos integrables no declaran `hayDatos`
+
+**Qué se encontró.** El retiro automático del bloque pasa a mirar `sec.hayDatos()`. Censados los
+diecisiete generadores con el formulario vacío, medido en Chrome:
+
+| Módulo | `hayDatos()` con el formulario vacío | Lo que su `gen()` emite |
+|---|---|---|
+| `teer` | **false** | vacío — ya se retiraba |
+| `pulm` | **false** | vacío — ya se retiraba |
+| `pop` | **false** | **377 caracteres** de «no consignado» — **ésta es la que la AJ7 cierra** |
+| `hfpeff` | **true**, y es correcto | su `hayDatos` contesta si el score APLICA, no si hay datos |
+| los otros **trece** | **no la declaran** | texto de «sin datos»: «VRT sin datos», «no consignado», «Sin mediciones cargadas», «Score… 0 / 10 puntos» |
+
+**Qué puede causar.** Un módulo vaciado sigue publicando su hoja en el PDF firmado, diciendo «sin
+datos» línea por línea. Puede ser lo correcto —deja constancia de que se buscó— o no.
+
+**Cómo se corregiría.** Darle `hayDatos` a los trece. Cada uno necesita saber cuál es el conjunto
+de **sus** campos propios: es conocimiento clínico por módulo y esta orden no autoriza a
+inventarlo. Un predicado genérico leído del TEXTO —«no hay ninguna línea `rótulo | valor` con
+valor»— se descartó midiendo: con el formulario vacío, `aoete` ya emite dos valores reales
+(«Ulceración | No», «Calcificación | No / mínima») y `dpt` otro («Tamaño | Normal, sin derrame»),
+así que la heurística los conservaría igual y agregaría fragilidad sin cambiar el resultado.
+
+---
+
+## AJ7-c · La Evidencia de constricción ahora SÍ abre con un perfil diastólico de rutina
+
+**Qué se encontró, y está medido.** La compuerta nueva de `_indConstr` incluye `e′` entre los
+datos propios, que es lo que la orden pide. Las velocidades anulares están cargadas en casi
+todos los estudios, así que un perfil diastólico de rutina —`e_sep 8`, `e_lat 10`, `onda_e 70`,
+**cero** datos del pericardio— **abre** la sección, con todas las filas del pericardio en «—».
+Medido A/B contra HEAD: ese escenario pasa de `_indConstr() === null` a devolver un objeto.
+
+**Por qué quedó así.** La orden nombra los cuatro datos propios y `e′` es uno de ellos.
+
+**Qué puede causar.** Ruido: una sección más en el panel para cualquier estudio con el Doppler
+tisular cargado. **No cambia el papel firmado**: el módulo no concluye nada —su compuerta,
+`espEval`, no se movió— y el informe no gana una sola línea.
+
+**Cómo se corregiría.** Sacar `e′` de la lista de datos propios y dejar los tres del pericardio
+—rebote septal, patrón venoso hepático y su cociente—, que es lo que de verdad no se comparte
+con ningún otro módulo. Es una línea. **Decisión de Maicol.**
+
+---
+
+## AJ7-d · «Un solo centro» no se escribió en la Evidencia de VExUS
+
+**Qué se encontró.** La orden pedía que la Evidencia dijera «145 pacientes de cirugía cardíaca,
+**un solo centro**». El registro de fuentes de este proyecto verifica, del resumen de la página 1,
+la población (145 pacientes de cirugía cardíaca) y el número de valoraciones (706). **No**
+verifica que el estudio sea unicéntrico.
+
+**Por qué no se escribió.** La orden de esta tanda prohíbe abrir archivos fuera del proyecto, y
+la biblioteca de guías vive fuera. Lo que no se verificó no se publica.
+
+**Cómo se cierra.** Abrir `Vexus.pdf` y leer la sección de métodos. Si lo dice, es una palabra.
+
+---
+
+## AJ7-e · Los otros quince `.vinfo-btn` siguen contados por `check_mobile.js`
+
+**Qué se encontró.** Los dos globos que la J2 y la G sumaron llevan el piso táctil sin la media
+query y el barrido vuelve a **63 / 72 con 17 ALTA**. Los otros quince siguen midiendo entre
+15×11 y 17×13 px con el mouse, y 44×44 con el dedo.
+
+**Por qué no se tocaron.** Sacarles el gate a los diecisiete cambia el blanco de clic de quince
+controles a la vez, y bajaría el barrido muy por debajo del objetivo que la orden fija.
+
+**Cómo se corregiría.** O que `check_mobile.js` emule `pointer: coarse` —y entonces los
+diecisiete dejan de aparecer, que es lo que un teléfono ve—, o sacarle el gate a `.vinfo-btn`
+entero. **Es una tanda propia.**
+
+---
+
+## AJ7-f · La tanda G no ejecutó quince casos, y nadie lo notó
+
+**Qué se encontró, contando.** La suite tiene **549 casos**: `TC-1` a `TC-534` —sin huecos y sin
+duplicados— **más quince `TC-GR-01` a `TC-GR-15`**. El reporte de la tanda **G** dice «suite
+530/534, corrida en nueve lotes de 60»: ese 534 es el conteo de los **numerados**, así que sus
+lotes **no incluyeron un solo `TC-GR-*`**. El reporte de la J2 decía 548, que es 549 menos el
+TC-318 excluido, y ése sí los cubría.
+
+**Qué puede causar.** Quince casos sin correr durante una tanda entera, con un total que se lee
+como completo.
+
+**Cómo se corrige, y ya se aplica.** El denominador se **cuenta** antes de armar los lotes
+(`grep -oE "^caso\('[^']+'" scripts/test_clinico.mjs | sort -u | wc -l`) y la suma de lo
+ejecutado se compara con ese número. La AJ7 corrió en lotes de 55 cubriendo los 549.
+
+---
+
+## AJ7-g · Los perfiles temporales viejos siguen ahí, y NO se borraron
+
+**Censado**, en `$TMPDIR`:
+
+| Qué | Cuántos | Cuánto ocupan |
+|---|---|---|
+| `com.google.Chrome.*` | **7.836** | **16 KB** en total — son entradas vacías |
+| `ecosmart-test-*` (perfiles de la suite) | **4** | **414 MB** |
+| `ecosmart-aj7-*` (los de esta tanda) | **0** | el barrido de `exit` de la sonda los borra |
+| **todo `$TMPDIR`** | **7.840** | **793 MB** |
+
+El más viejo es del **19 de septiembre**. Los 414 MB están en **cuatro** directorios, todos del
+24/10: son perfiles de Chrome que la suite dejó al morir una corrida.
+
+**No se borró nada**, que es lo que la orden pide. Para borrarlos, con el Chrome del arnés
+cerrado:
+
+```bash
+rm -rf "$TMPDIR"/ecosmart-test-*
+```
+
+⚠️ **Nunca con una corrida en curso**: es el `pkill` que este repo ya pagó una vez.
+
+---
+
+## AJ7-h · G-c: qué pierde el Laboratorio, y una propuesta SIN aplicar
+
+**Qué lee hoy.** `_labPopResumen(infs)` saca el patrón del **TEXTO integrado** del estudio
+guardado, con `txt.match(/## Patrón hemodinámico\n([^\n]+)/)` sobre `campos['am-txt-pop']`.
+Por el mismo camino saca el índice cardíaco promedio, con `/Índice cardíaco \| ([0-9.]+)/`.
+El tipo de cirugía y el soporte por droga **no** salen del texto: salen de los campos
+(`_labCampoRaw(i, 'pop_cx_tipo')` y `c['pop_' + k + '_activa__chk']`).
+
+**Qué estudios quedan sin dato.** Los que se integren **desde la tanda G**, porque esa tanda
+sacó la sección «## Patrón hemodinámico» del texto. Los **ya guardados conservan su texto y
+siguen contando**: no se migró nada, y esta tanda tampoco migra nada. O sea que la distribución
+de patrones del panel va a ir quedando congelada, no vacía: cuenta los viejos y no los nuevos,
+que es peor que estar vacía porque se lee como una distribución al día.
+
+**Propuesta, SIN aplicar.** Un campo oculto `pop_patron_k` —la **clave** del patrón
+(`taponamiento`, `hipovolemia`, `falla_vi`, `falla_vd`, `vasoplejia`, …), no su rótulo— escrito
+por `popConclSync()` desde el MISMO `popEsquema()` que pinta la pantalla. Viaja en `campos` con
+el estudio, como cualquier campo oculto, y `_labPopResumen` lo lee con `_labCampoRaw(i,
+'pop_patron_k')` cayendo al `match` del texto para los estudios viejos.
+**No agrega una columna de Excel**: `LAB_XLS_MAP` no tiene un solo `pop_`, verificado otra vez en
+esta tanda, así que un campo `pop_*` nuevo no mueve las 440 columnas — es exactamente lo que pasó
+con `pop_lactato` en la tanda G, que subió el censo de campos de 1038 a 1039 y dejó el Excel
+intacto. **Cuesta un campo persistido más y no se aplicó porque la orden decía «solo reportar».**
+
+---
+
+## AJ7-i · Cuatro frases de tono de conducta siguen en el POCUS del posoperatorio
+
+**Qué se encontró**, con su texto exacto y su superficie:
+
+| Frase | Dónde se arma | En qué superficies sale |
+|---|---|---|
+| «PRESENTE — **evaluar drenaje urgente**» (neumotórax) | `popPocusSync()`, bloque PULMÓN | **sólo pantalla** (`#pop-pocus-pulmon`) |
+| «Sospecha — **confirmar**» (neumotórax) | `popPocusSync()`, bloque PULMÓN | **sólo pantalla** |
+| «Disfunción del VD con dilatación — **descartar taponamiento y TEP**» | `popPocusSync()`, bloque VENTRÍCULO DERECHO | **sólo pantalla** (`#pop-pocus-vd`) |
+| «Compromiso del VD — **revisar contexto**» | `popPocusSync()`, bloque VENTRÍCULO DERECHO | **sólo pantalla** |
+
+**Verificado**: las cuatro se escriben con `setH('pop-pocus-pulmon' / 'pop-pocus-vd', …)` y
+**nadie lee esos nodos** — ni `amiloTextoPOP`, ni el informe, ni el PDF, ni el PPT. No llegan al
+papel firmado.
+
+⚠️ **Y hay una quinta que SÍ llega al papel**, y no es del POCUS: «Concordancia Swan vs eco | N %
+— **revisar posición del catéter o la ventana**», en `amiloTextoPOP`, o sea en el cuerpo del
+informe y en la hoja del PDF del bloque integrado.
+
+**No se tocó ninguna**: la orden decía «solo reportar».
+
+---
+
+## AJ7-j · El denominador de la fila de TEER del Laboratorio
+
+**Qué cuenta hoy.** `_labUsaTeer` da un estudio por «con evaluación TEER» **en cuanto
+`teer_tipo_im` tiene texto**. Desde la AJ5, `teer_tipo_im` está espejado con `vm_tipo_im` de
+Válvulas, así que **un transtorácico con el Tipo de IM cargado entra a ese denominador**, sin que
+nadie haya abierto el módulo de TEER.
+
+**Qué cuenta como «positivo».** Lo decide `teerEstado()`, que es el mismo dueño que gobierna la
+hoja del PDF y el `hayDatos` del bloque integrable.
+
+**Ya estaba declarado** como **AJ5-a**, y esta tanda sólo lo vuelve a reportar: cambiar el
+predicado es criterio de Maicol y toca otro módulo.
+
 # Tanda «G» — el posoperatorio de cirugía cardíaca (2026-10-24)
 
 ## Lo que esta tanda CERRÓ
@@ -7689,7 +7953,11 @@ que es una tanda propia. Decisión de Maicol.
 - **Los grados del derrame pleural y la banda de precarga no declaraban que no tienen fuente.**
 - **La conducta del derrame pleural vivía en la pantalla** colgada de una graduación sin fuente.
 
-## G-a · Dos copias del umbral de hipertensión pulmonar (20 mmHg)
+## [CERRADO 2026-10-24 · AJ7-8] G-a · Dos copias del umbral de hipertensión pulmonar (20 mmHg)
+
+> **Cerrado.** `HP_PAPM_MIN` es el dueño único, declarado junto a `RVP_ELEVADA_UW`.
+> `POP_PAPM_HP_MMHG` se retiró: cero ocurrencias. **Ningún corte cambió**, medido en las DOS
+> superficies con sus denominadores, en 19, 20 y 21 mmHg.
 
 `POP_PAPM_HP_MMHG` vale 20 en el módulo del posoperatorio, y el **mismo 20** está escrito INLINE en
 `calcHemodinamica` (`papm <= 20`), que esta orden no autorizaba a tocar. Si alguna vez se mueve,
@@ -7721,7 +7989,9 @@ como imagen. La orden permitía dejarlo afuera («sin dibujo si no entra de form
 hizo. **Todo lo que el dibujo muestra está en la tabla de datos medidos de la hoja**, que esta
 tanda completó con la PAM, la PAD, la PAP, el gradiente transpulmonar y la RVP.
 
-## G-e · Un hallazgo más de `toque-chico` en el celular
+## [CERRADO 2026-10-24 · AJ7-6a] G-e · Un hallazgo más de `toque-chico` en el celular
+
+> **Cerrado junto con el de la tanda J2**: ver **J2-f** arriba y **AJ7-e** abajo.
 
 La línea base era **64 hallazgos a 360 px y 73 a 390, con 18 ALTA cada uno**; hoy es **65 y 74,
 con 19 ALTA**. El hallazgo nuevo es el globo ⓘ que el bloque de pleura del POP agrega, medido en

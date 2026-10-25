@@ -560,3 +560,15 @@ inclusive; **moderada y severa no existen en la app ni en la fuente y no se inve
 
 → `docs/mapa/aj5-mitral-tipoim-carpentier.md` § 5 (los cortes, el signo, el 0, la banda de
 plausibilidad y las tres oraciones del informe).
+
+---
+
+## ⚠️ La tanda AJ7: el strain de pared libre VOTA (24/10/2026)
+
+`vdDisf` suma `strVota`. De 15 a 20 % en valor absoluto vota **leve**; por debajo de 15, **«leve
+como mínimo»**; por encima de 20 **no vota**. El strain **no puede subir** el grado que
+`vdDisfGrado(tapse, sp)` ya dio: sólo lo escribe cuando ése devolvió `null`. **`hayFunc` no se
+tocó.** Y la banda leve pasó a declararse en el cuadro de Referencias, con ficha propia
+`FUN-VD-008` y **sin corchete**.
+
+**`docs/mapa/aj7-correcciones.md` § 3.** Cierra AJ5-d y AJ5-e.

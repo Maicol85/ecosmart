@@ -437,3 +437,22 @@ El relato completo vive en **`docs/mapa/j2-hemo-onco-amiloide-pulmon.md`**.
 (`scripts/_mut_g.py`). Siete casos adaptados: TC-168, TC-169, TC-253, TC-322, TC-502, TC-507,
 TC-509 y TC-533. La ficha del caso y sus ocho trampas de instrumentación:
 **`docs/mapa/g-posoperatorio.md`** §7 y §8.
+
+---
+
+## ⚠️ TC-535 — la tanda AJ7 (24/10/2026)
+
+Su ficha está en **`docs/mapa/tests-fichas-535.md`**, en archivo propio porque `tests-fichas.md`
+estaba en 34,2 KB. El arnés de mutaciones es `scripts/_mut_aj7.py` y la sonda A/B de solo
+lectura, `scripts/_probe_aj7.mjs`.
+
+⚠️ **Y ESTA TANDA DESTAPÓ QUE EL DENOMINADOR DE LA SUITE NO ERA 534.** Son **549**: `TC-1` a
+`TC-534` —sin huecos ni duplicados— **más quince `TC-GR-01` a `TC-GR-15`**. Los lotes de la
+tanda G enumeraron sólo los numerados, así que **quince casos no se ejecutaron** y el total se
+leyó como completo. Antes de armar lotes, contar:
+
+```bash
+grep -oE "^caso\('[^']+'" scripts/test_clinico.mjs | sort -u | wc -l
+```
+
+→ `PENDIENTES.md` **AJ7-f**.

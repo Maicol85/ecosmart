@@ -345,3 +345,14 @@ escritores: `psap_calc` es un `input readonly` escrito con `.toFixed(0)`; `psap-
 **Cobertura: TC-519**, con un grupo por ítem: (A) AJ2-1 · (B) AJ2-3 · (C) AJ2-4 · (D) AJ2-5 ·
 (E) AJ2-7a y 7b · (F) AJ2-10 y 16a · (G) AJ2-13 · (H) AJ2-14 · (I) AJ2-15 · (J) AJ2-6 ·
 (K) AJ2-8 · (L) AJ2-9 · (M) AJ2-12 · (N) AJ2-11 · (O) AJ2-10c · (Z) el denominador global.
+
+---
+
+## ⚠️ La tanda AJ7 cerró AJ2-i (24/10/2026)
+
+La fila **«Clasificación — descripción»** del ateroma se **esconde** de la pantalla y su línea
+**`Descripción | …`** sale de la hoja del ETE. Quedan las otras dos. El span `ao-atero-desc` se
+**conserva**: lo escribe `calcAteroAo`, lo barre `limpiarCampos` y la guarda `if (d || r || rec)`
+decide si hay bloque «Valoración» que emitir.
+
+**`docs/mapa/aj7-correcciones.md` § 2.**

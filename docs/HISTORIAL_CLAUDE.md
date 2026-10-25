@@ -13380,3 +13380,332 @@ es un dato con dos campos, ese agujero se alcanza también escribiendo en el cam
   mecanismo de citación salió a `docs/mapa/panel-evidencia-citas.md` (7,0 KB) sin cambiar una
   palabra, y el mapa bajó de **35,3 a 29,5 KB** antes de recibir su puntero. Medido con `wc -c`
   **antes** de escribir, no después.
+
+
+### El posoperatorio de cirugía cardíaca — «G» (2026-10-24)
+
+- **Son SIETE commits, en el orden del encabezado, y los seis ítems de código se completaron
+  enteros.** `99a7d36` (G1) · `163bda9` (G2) · `66d4889` (G3) · `6d62194` (G4) · `3d54c09` (G5) ·
+  `b42cfbf` (G6) · el de cobertura y documentación. Sello **`v20261024-2108`**.
+  Al **empezar**, `origin/main` estaba en **`2b9f3ef`** con **65** commits locales sin pushear; al
+  cerrar hay **72**, medidos con `git rev-list --count origin/main..HEAD` y no contados a mano.
+  **El push lo corre Maicol: esta tanda tenía orden expresa de NO pushear.**
+
+- **LAS CINCO FUENTES NUEVAS SE LEYERON EN IMAGEN SOBRE EL PDF ORIGINAL.** Unic-Stojanovic 2025
+  (ivaf075, **hoja 1 de 4**); Busse 2020 (Crit Care 24:36, **página 1 de 11**); Nicoara 2020
+  (ASE/SCA/STS, **folios 701, 707 y 716**, con la regla de folio = hoja + 691 comprobada en cuatro
+  pies impresos); Bora 2024 (**folio 152**); y la ESC 2025 de miocarditis y pericarditis
+  (**§11.3 folio 58**, **§11.3.1 folio 59** y la **Recommendation Table 22 folio 59**).
+
+- **UNA PREMISA DE LA ORDEN ERA FALSA, Y ESTÁ MEDIDA.** Decía que «hoy la app usa IC ≥ 2,2» para
+  la vasoplejia. **No es así**: `_icBanda` llama «bajo» a todo lo que sea 2,2 **o menos**, así que
+  `!icBajo` ya era exactamente «IC > 2,2». Medido en el borde: con IC 2,20 exacto la app **no**
+  ponía la etiqueta ni antes ni ahora. **Ningún corte de índice cardíaco se movió.** Lo mismo con
+  la RVS —ya era «< 800» sobre el valor sin indexar— y con el **SVRI del PiCCO**, que ya se
+  desindexaba por la superficie corporal. **Lo único que faltaba era la PAM.**
+
+- **EL DEFECTO MÁS GRANDE QUE CERRÓ, EN UNA LÍNEA: el papel firmado del posoperatorio se
+  contradecía a sí mismo.** Con un índice cardíaco de 2,18 la hoja del PDF decía «Índice cardíaco |
+  2.18 — bajo» ocho renglones antes de «Sin patrón de bajo gasto», y el EN SUMA lo decía en la
+  MISMA oración: «PostCEC CABG — hora 8 h — **Patrón: Sin patrón de bajo gasto** ni vasoplejia por
+  los datos cargados — IC 2.18 L/min/m² — **bajo gasto**.» Hoy el informe y el PDF del POP son
+  DESCRIPTIVOS y esa línea dice «PostCEC CABG — hora 8 h — IC 2.18 L/min/m² — bajo gasto.»
+
+- ⚠️ **TRES DEFECTOS PROPIOS DEL DIBUJO, LOS TRES VISTOS EN LA CAPTURA Y NO DEDUCIDOS.**
+  1. **`--red-pale`, `--green-pale`, `--amber-pale` y `--blue-pale` NO están en el `:root` del tema
+     claro** —viven dentro de `html.light-mode .amilo-root`—, así que fuera de ahí el `var()` no
+     resuelve, y **un `fill` sin resolver no cae en el color de al lado: cae en el INICIAL, que es
+     NEGRO**. Los pulmones, el cuadro pulmonar, los dos ventrículos y las elipses de derrame salían
+     NEGROS, con el rótulo negro adentro, **en los dos temas** —en el oscuro no se notaba—.
+  2. **La curva de presión arterial se escalaba de 30 a 140 mmHg:** un paciente con PAM 58 y
+     presión de pulso 14 ocupaba **seis píxeles** de los cuarenta y seis de la caja. Justo el
+     paciente del módulo era el que no se veía.
+  3. **Cuatro rótulos se pisaban entre sí o se salían del `viewBox`** por la izquierda
+     («rrame D moderado»).
+
+- **LA ANIMACIÓN NO CORRE PARA NADIE, Y ESTÁ MEDIDO.** Con el dibujo a la vista hay un
+  `requestAnimationFrame` pedido; al salir del POP el `IntersectionObserver` lo apaga y al volver lo
+  enciende. **Veinte aperturas y cierres dejan los MISMOS 68 nodos y UN solo observador.** Con
+  «reducir movimiento» no se pide un solo cuadro. ⚠️ **El bucle tiene DOS frenos** —el cuadro no se
+  vuelve a pedir, y `popEsqParar` cancela el pedido— y la primera versión del caso sólo medía el
+  primero: la mutación que vaciaba `popEsqParar` **sobrevivía** porque el otro freno la tapaba.
+
+- **LO QUE ESTO LE COSTÓ AL LABORATORIO, DECLARADO Y MEDIDO:** `_labPopResumen` lee el patrón del
+  TEXTO integrado, y esa sección ya no se emite, así que su **distribución de patrones** queda
+  vacía para los estudios que se integren desde hoy. Los **ya guardados** conservan su texto y
+  siguen contando: **no se migró nada**. El resto de ese panel no depende de esa sección, y el PPT
+  del Laboratorio (21 textos) y el PDF de auditoría (104) salieron **idénticos** en el A/B.
+
+- **CUATRO CORTES SIN FUENTE, CENSADA LA BIBLIOTECA, Y LOS CUATRO LLEVAN EL CHIP:** la banda de
+  precarga de 12 a 18 mmHg; los tres grados del derrame pleural por tamaño; la **partición** de la
+  falla del VD en «poscarga» y «contractilidad» —el número, 20 mmHg, sí es la definición de HP de la
+  ESC/ERS 2022—; y el «patrón detectado» con el «Según la cirugía, también mirar…». Los chips
+  «CRITERIO DE ECOSMART» de la app pasan de **11 a 15**.
+
+- **LA GUÍA DE NICOARA NO GRADÚA, Y SE DECLARA:** publica tablas de «puntos clave» y una figura de
+  estrategia de imagen, no la escala I / IIa / IIb / III. Lo suyo sale en la Evidencia **sin clase y
+  sin nivel**, que es el mismo motivo por el que el J2 no abrió una Evidencia de eco pulmonar. La
+  **única** fuente que gradúa en esta sección es la ESC 2025, con cuatro de las cinco filas de su
+  Tabla 22; la quinta —aspirina, I · C— es para la pericarditis **posterior al infarto** y se
+  declara por qué no se publica.
+
+- **ENTRÓ UN CAMPO NUEVO Y NINGUNA COLUMNA DE EXCEL:** `pop_lactato`. Campos del estudio
+  **1038 → 1039**. Excel en **440 columnas** con las mismas claves, y la **única** con valor
+  distinto es «EN SUMA (texto completo)», que es la línea que esta tanda cambia. `LAB_XLS_MAP` no
+  tiene un solo `pop_`, verificado antes de escribir el campo.
+
+- **Cobertura: TC-534**, con **63 condiciones** en doce grupos, teclas reales y midiendo lo
+  renderizado. **Sabe fallar por los dos caminos**: contra el HEAD de la tanda en un worktree
+  aparte, **63 condiciones en rojo y NINGUNA por excepción**; y por mutación dirigida, **25/25
+  muertas** (`scripts/_mut_g.py`). **SIETE casos adaptados, cada uno con el motivo escrito**:
+  TC-168 y TC-169 y TC-253 (la conducta de pleura, el patrón del EN SUMA y la PAM de la
+  vasoplejia), TC-322 (su denominador exige escenario para TODA sección de `IND_SECS`), TC-502 y
+  TC-509 (el censo de Referencias, 34 → 35), TC-507 (los chips, 11 → 15) y TC-533 (`IND_SECS`,
+  30 → 31).
+
+- **Línea base al cierre: suite **530/534**, corrida en nueve lotes de 60 en primer plano, con el
+  pendrive `DISK_IMG` **MONTADO** —verificado al abrir y al cerrar, con un `ls` de nombres reales—.
+  Los rojos son **TC-223, TC-376, TC-390 y TC-406**, los MISMOS CUATRO de la línea base; **TC-223 es
+  el documentado**. Semgrep **127 WARNING / 0 ERROR en 1 app**, la MISMA línea base que dejó el J2.
+  Excel en **440** columnas.
+  ⚠️ **Dos rojos de la corrida por lotes NO eran regresiones y se midieron aislados:** **TC-348**
+  cayó con «NO HAY jsPDF» —el CDN no cargó en ese lote— y sale verde solo; y **TC-507** tiene el
+  `(DENOM D)` que la tanda J ya documenta como rojo cuando corre junto a otros casos y verde
+  aislado.
+- **CELULAR: 65 hallazgos a 360 px y 74 a 390, con 19 ALTA cada uno**, contra los **64 y 73 con 18
+  ALTA** de la línea base. **El hallazgo nuevo es UNO y es el mismo componente**: el globo ⓘ que el
+  bloque de pleura agrega, medido en 16×12 px, igual que los otros dieciocho `.vinfo-btn` ya
+  contados. Declarado en `docs/PENDIENTES.md` → **G-e**.
+- **CHROME Y WEBKIT COINCIDEN**, en los dos temas y en 1440 y 390 px: mismo SVG (440×364 y 310×256,
+  **68 nodos**), mismos textos del dibujo, mismas ocho filas del equivalente en texto, mismo chip,
+  mismo índice cardíaco y misma rama del VD, **17 de 17 pestañas con caja**, **cero scroll
+  horizontal**, **cero texto recortado** y **cero errores de consola y de página en los dos
+  motores**. Las únicas diferencias son **dos redondeos**: `331.797px` contra `331.796875px` en una
+  pista de grilla, y **un píxel** de alto en la tabla de la ficha. Rasterización de fuente.
+- **`index.html` pasó de 9,59 MB / 135.540 líneas a 9,68 MB / 136.700 líneas** — medido con `wc -c`
+  y `wc -l` DESPUÉS de sellar. (MB de 10⁶: `wc -c` dividido por 1e6.)
+
+- **Dónde está todo:** `docs/mapa/g-posoperatorio.md` (**mapa NUEVO**, 16,5 KB, con la ficha del
+  caso y sus ocho trampas de instrumentación), **seis mapas con un puntero cada uno**
+  —`informe-pdf-excel` 34,4 KB · `congenitas-otros` 33,3 · `panel-evidencia` 33,1 · `tests` 31,4 ·
+  `referencias-subpestanas` 25,3 · `j2-hemo-onco-amiloide-pulmon` 15,7—,
+  `docs/fuentes/FUENTES.md` → «La tanda G» con la tabla **«Cambios de evidencia»** de trece filas, y
+  `docs/PENDIENTES.md` → **SIETE** cosas declaradas (**G-a** a **G-g**), entre ellas el híbrido con
+  el corazón anatómico y la frecuencia cardíaca en las animaciones, que esta orden excluía.
+
+### Hemodinámica, cardio-oncología, amiloidosis y eco pulmonar — «J2» (2026-10-24)
+
+- **Son OCHO commits, en el orden del encabezado, y los siete ítems de código se completaron
+  enteros.** `071c816` (E1) · `ca67b14` (E2) · `e117e82` (E3) · `2f1e721` (E4) · `4a29caa` (E5) ·
+  `56046fe` (E6) · `5a8f04c` (E7) · el de cobertura y documentación. Sello **`v20261024-1714`**.
+  Al **empezar**, `origin/main` estaba en **`2b9f3ef`** con **56** commits locales sin pushear;
+  al cerrar hay ****64****, medidos con `git rev-list --count origin/main..HEAD` y no
+  contados a mano. **El push lo corre Maicol: esta tanda tenía orden expresa de NO pushear.**
+
+- **LAS SIETE FUENTES SE LEYERON EN EL PDF ORIGINAL, Y CUATRO EN IMAGEN.** Consenso SAC 2024 de
+  shock cardiogénico (Tabla 1, folio 2); ESC/ERS 2022 de HP (folio 30); **Grossman y Baim Tomo I,
+  Tabla 11.2, folio 260**; **Braunwald 10.ª española, Tabla 19-3 folio 375 y Tabla 52-9 folio
+  1125**; ASE 2025 de corazón derecho (folios 162 y 167); ESC 2022 de cardio-oncología (Tablas 3,
+  4, 5 y 12, Figuras 10 y 11, y las Recomendaciones-tabla 26 y 41); García-Pavía 2021 (Tabla 2
+  folio 1558, texto 1556, escenarios 1558-1559); Boldrini 2020 (Tabla 4, pág. 30); ESC 2023 de
+  miocardiopatías (folio 27, **cotejada contra el original inglés**); y Volpicelli 2026
+  (enunciados D2_2.1, D2_2.2, D3_1.1, D3_1.3, D3_1.4 y D6_11).
+  **LOS DOS LIBROS DEL ESCRITORIO SE RE-VERIFICARON, no quedaron en «visto por Cowork»**: son
+  escaneos sin capa de texto y se leyeron renderizando la página.
+
+- **EL DEFECTO MÁS GRANDE QUE CERRÓ, EN UNA LÍNEA: el score de amiloidosis llamaba «BAJO» a un
+  puntaje que no descarta nada.** Con el corte de 8 la sensibilidad del score es del **46 %**
+  (Boldrini 2020, Tabla 4), así que un puntaje por debajo deja fuera a más de la mitad de los
+  enfermos — y la palabra «bajo» se lee como si lo descartara. Salieron las dos etiquetas sin
+  fuente, «INTERMEDIO» (5-7) y «BAJO» (<5), y lo que queda es el puntaje con su **rendimiento en
+  ese corte**, transcrito de la tabla.
+
+- **TRES PUNTEROS DE LA ORDEN ESTABAN CORRIDOS, Y LA FUENTE LOS CORRIGE.** La Tabla 52-9 de
+  Braunwald está en el **folio 1125**, no en el 1120. El síndrome intersticial difuso es el pie de
+  la **Figura 3, panel C** (hoja 8), no de la Figura 4 —la 4C, hoja 9, es la semicuantificación
+  del neumotórax—, y el comentario de `pulAvPatron` lo decía mal desde el R2. Y el enunciado que
+  dice que el punto pulmón **confirma** el neumotórax es el **D2_2.1**, no el D2_2.2.
+  **Ningún corte se movió por ninguno de los tres.**
+
+- **UNA RAMA QUE NO SE PODÍA BORRAR.** El perfil «GC bajo con RVS baja — considerar shock
+  mixto/distributivo» salió, pero la RAMA quedó: sin ella, un índice cardíaco bajo con RVS baja
+  cae en el `else` final y la app dice **«Perfil hemodinámico normal»** sobre un paciente
+  hipoperfundido. Lo que publica hoy son los DOS NÚMEROS, en gris, sin interpretación.
+
+- **TRES EVIDENCIAS NUEVAS Y NINGUNA CLASE INVENTADA.** `IND_SECS` pasa de 27 a **30**. La de
+  hemodinámica no tiene **una sola** fila graduada, y lo declara: la ASE 2025 no usa esa escala,
+  Grossman y Braunwald son libros de texto, y el «2,2 o menos» del consenso argentino vive en una
+  columna COMPARATIVA de su Tabla 1. La de cardio-oncología tiene **dos** (IIa · C las dos) y la
+  de amiloidosis **dos** (I · B y IIa · C).
+
+- **NO SE CREÓ LA EVIDENCIA DE ECO PULMONAR, Y LA FICHA DICE POR QUÉ**: ese consenso publica
+  **grado de acuerdo entre panelistas**, no clase ni nivel. Una sección sin enunciados graduados
+  sería una sección vacía, o peor, una con clases inventadas.
+
+- **ESTUDIOS GUARDADOS: NO HUBO NADA QUE MAPEAR, Y ESTÁ MEDIDO.** La etiqueta del score nunca se
+  persistió —se calcula de los campos—, el Excel guarda «Score amiloidosis ETT» como NÚMERO, las
+  **440 columnas** salen idénticas clave por clave y el censo de **1038 campos** da el MISMO hash.
+  Un estudio viejo con la cadena «INTERMEDIO» guardada en ese campo tampoco rompe la fila.
+
+- ⚠️ **CUATRO TRAMPAS DE INSTRUMENTACIÓN, LAS CUATRO CON EL MISMO SÍNTOMA: un verde sobre cero
+  elementos, o un rojo que nace en la sonda.**
+  1. **`\s` dentro de un template literal se come la barra** y el regex borra las **eses**: el
+     título volvía «Perfil hemodinámico — pre ione y re i tencia». Va `/\\s+/g`.
+  2. **`style.display = ''` BORRA el inline** y devuelve el elemento a su CLASE — y las
+     subpestañas de Referencias se ocultan por clase. El barrido medía **cero nodos**. Va `'block'`.
+  3. **`calentar()` PONE EN CERO el score de amiloidosis**: corre todas las `calc*`, y las del
+     propio score llaman a `amCalcSinDato` con los campos de medición vacíos. La captura mostraba
+     «Completá los parámetros» sobre una escena de 6 puntos.
+  4. **`indicAbrir()` BORRA las respuestas del panel**, al abrir Y al cerrar. Leerlo después de
+     contestar devolvía la sección sin contestar; y abrir antes de CADA respuesta dejaba viva sólo
+     la ÚLTIMA. El panel se abre **una vez por escena**.
+  Y dos más en el caso de la suite: **el barrido del AJ3 está debounced a 220 ms**, y **el bloque
+  de hemodinámica NO va al cuerpo del informe** sino a la hoja del PDF.
+
+- **SIETE CASOS ADAPTADOS, CADA UNO CON EL MOTIVO ESCRITO**, y todos son DENOMINADORES que esta
+  tanda movió de verdad: **TC-99** (exigía «Eco a los 5 anos post-RT», el seguimiento tras
+  radioterapia de antes de alinearlo), **TC-322** (su denominador exige escenario para TODA
+  sección de `IND_SECS`, y entraron tres), **TC-471** y **TC-500** (el registro de globos, 52 →
+  56), **TC-502** (el censo de Referencias, 33 → 34, y la lista de tarjetas sin botón, que pierde
+  `pul-balik` y gana cuatro), **TC-507** (los chips «Criterio de EcoSmart», 10 → 11) y **TC-509**
+  (el mismo censo, por la ficha de eco pulmonar).
+
+- **Cobertura: TC-533**, con **64 condiciones**, teclas reales y midiendo lo renderizado.
+  **Sabe fallar por los dos caminos**: contra el HEAD de la tanda en un worktree aparte,
+  **43 condiciones en rojo** y **ninguna por excepción**; y por mutación dirigida,
+  ****17/17** muertas** (`scripts/_mut_j2.py`, una mutación por cada cosa que la tanda cambió).
+
+- **Línea base al cierre: suite **544/548**** con el pendrive `DISK_IMG` ****MONTADO** —verificado al abrir y al cerrar, con un `ls` de nombres reales—**, Semgrep
+  **127 WARNING / 0 ERROR en 1 app** —la MISMA línea base que dejó la tanda J—, Excel en **440**
+  columnas y celular en ****64 a 360 px y 73 a 390 px, con 18 ALTA cada uno****. Los rojos son ****TC-223, TC-376, TC-390 y TC-406**, los MISMOS CUATRO de la línea base; **TC-223 es el documentado****. **El denominador sube a
+  **548****: esta tanda agregó **TC-533**. TC-318 sigue excluido.
+- **CHROME Y WEBKIT COINCIDEN**, en los dos temas y en 1440 y 390 px, sobre las cuatro pantallas
+  que la tanda toca y las tres Evidencias nuevas. Cero errores de consola y de página en los dos motores, cero recortes, sin scroll horizontal y 17 de 17 pestañas con caja. La única diferencia es **un píxel** en el ancho del glifo ⓘ (13×13 contra 12×13), que es rasterización de fuente.
+- **`index.html` pasó de 9,52 MB / 134.867 líneas a 9,59 MB / 135.540 líneas** — medido con `wc -c` y `wc -l`
+  DESPUÉS de sellar. (MB de 10⁶: `wc -c` dividido por 1e6.)
+
+- **Dónde está todo:** `docs/mapa/j2-hemo-onco-amiloide-pulmon.md` (**mapa NUEVO**, 15,4 KB),
+  **siete mapas con un puntero cada uno** —`congenitas-otros` 33,0 KB · `panel-evidencia`
+  32,5 KB · `tests` 31,0 KB · `referencias-subpestanas` 24,9 KB · `tanda-r2-correcciones`
+  23,2 KB · `aj3-ett-avanzado` 16,6 KB · `otros-pericardio-pulmon` 14,2 KB—,
+  `docs/fuentes/FUENTES.md` → «La tanda J2» con la tabla **«Cambios de evidencia»** de dieciséis
+  filas, y `docs/PENDIENTES.md` → **SEIS** cosas declaradas (**J2-a** a **J2-f**).
+
+### Pericardio y taponamiento, constricción y VEXUS — «J» (2026-10-24)
+
+- **Son SIETE commits, en el orden del encabezado, y los seis ítems se completaron enteros.**
+  `87a17f9` (J-1) · `f883476` (J-2) · `4f081cd` (J-3) · `c7d07b2` (J-4) · `b4ff8ec` (J-5) ·
+  `4326c2e` (J-6) · el de cobertura y documentación. Sello **`v20261024-1502`**.
+  Al **empezar**, `origin/main` estaba en **`2b9f3ef`** con **49** commits locales sin pushear;
+  al cerrar hay **56**, medidos con `git rev-list --count origin/main..HEAD` y no contados a mano.
+  **El push lo corre Maicol: esta tanda tenía orden expresa de NO pushear.**
+
+- **LAS TRES FUENTES SE LEYERON EN IMAGEN, no en texto extraído.** ESC 2025 de miocarditis y
+  pericarditis (ehaf192): Tabla 17 folio 62, Recommendation Table 12 folio 43, Recommendation
+  Table 24 folio 64, apartados 11.9.2 y 11.9.3 folio 63, y la Figura S1 del suplemento en la
+  hoja 6; la traducción de la SEC se cotejó en su folio impreso 70. Beaubien-Souligny 2020:
+  Figura 1 página 3 y el resumen de la página 1. Pieske 2019: folio 3303.
+  **El `Vexus.pdf` de la carpeta 22 SÍ es el artículo original** —Cowork no lo había podido
+  confirmar—, así que los commits 5 y 6 siguieron.
+
+- **EL DEFECTO MÁS GRANDE QUE CERRÓ, EN UNA LÍNEA: el colapso de la aurícula derecha estaba en
+  la FASE EQUIVOCADA.** La app decía «sistólico (≥1/3 del ciclo)» en el rótulo, en la frase del
+  informe y en la hoja del PDF; la Tabla 17 publica «Diastolic collapse of the RA». Y la fila de
+  **mayor especificidad de esa tabla** —la duración del colapso por encima de 0,34 del ciclo,
+  especificidad 100 %— **no tenía dónde cargarse**.
+
+- **DOS CORTES DE VCI EN LA MISMA APP, Y ES DELIBERADO.** El del pericardio bajó a **>20 mm** y
+  el del HTP sigue en 21, porque lo publica otra guía que esta orden excluía. El comentario que
+  decía «el MISMO criterio que la categoría C» era justo lo que hacía marcar plétora un
+  milímetro tarde. Medido en los cuatro bordes con teclas reales: 19 no, 20 no, 21 SÍ, 22 sí.
+
+- **VEXUS USABA UN SOLO OPERADOR DONDE EL ARTÍCULO USA DOS.** La Figura 1 pide «≥ 2 cm» para el
+  grado 1 y «> 2 cm» para el 2 y el 3; la app usaba `>= 20` para los cuatro, así que una vena
+  cava de 20,0 mm exactos con un vaso severo daba VEXUS 2 donde la figura **no tiene fila**. Se
+  elige el grado MENOR, que es el lado que no afirma de más. Medido en nueve combinaciones.
+
+- **TRES CONJUNTOS DE FRASES SALIERON DEL PAPEL FIRMADO**, y ninguno se borró de la app: el
+  aviso de confirmación invasiva de constricción (que se publicaba **siempre**, y la guía lo
+  condiciona a que la imagen no sea concluyente, Clase IIa · Nivel C), la recomendación de
+  cateterismo de la rama de criterios mixtos, y las tres conductas por grado de VEXUS. Las tres
+  viven hoy en Evidencia; las de VEXUS con el chip «Criterio de EcoSmart», porque **el artículo
+  no da pasos por grado** y no se cita ninguna otra fuente para ellos.
+
+- **ENTRARON DOS CAMPOS NUEVOS Y NINGUNA COLUMNA DE EXCEL**: `dpt_col_ad_dur` y `cvr_hep_coc`.
+  Campos del estudio 1053 → 1055, Excel en **440 columnas** con las mismas claves en las diez
+  escenas del A/B. El cociente hepático **no vota**: las reglas de conteo no tienen fuente y la
+  orden las excluía, así que mover `nC`/`nR` habría sido tocar contenido clínico sin permiso.
+  Medido: 0,77 / 0,78 / 0,79 dan 6/6/6 de conteo.
+
+- ⚠️ **UN DEFECTO PROPIO QUE LA SUITE CAZÓ: la ficha nueva de Referencias quedaba FUERA de las
+  seis subpestañas.** Existía, se abría desde su encabezado y el buscador la indexaba, pero no
+  estaba en `REF_SUBTAB`, así que `refSubInit` no la reubicaba y el médico que navegara por las
+  solapas no la encontraba nunca. Lo destaparon TC-502 y TC-520, que censan las entradas y
+  exigen que ninguna quede sin panel. **Arreglado en el código, no adaptado en el caso.**
+
+- ⚠️ **Y UNA MUTACIÓN SOBREVIVIÓ, Y TENÍA RAZÓN.** Sacarle el `onclick` al encabezado de la
+  ficha dejaba TC-532 entero en verde: el caso leía el contenido abriendo el cuerpo por su id,
+  así que no medía la única puerta que el médico tiene. **Una ficha que existe y no se puede
+  abrir es, para quien usa la app, una ficha que no existe.** Se agregó la condición (G0), que
+  aprieta el encabezado de verdad, y la mutación pasó a morir: **12/12**.
+
+- ⚠️ **DOS TRAMPAS DE INSTRUMENTACIÓN, LAS DOS CON EL MISMO SÍNTOMA: un rojo que parece verde.**
+  1. **`\s` dentro de un template literal se come la barra** y el regex pasa a borrar las
+     **eses**: «Constricción» se vuelve «Con tricción» y una búsqueda por prefijo informa «NO HAY
+     SECCIÓN» sobre secciones que existen. Va `/\\s+/g`.
+  2. **El panel de Evidencia hay que ABRIRLO antes de contestar.** Quien engancha el oyente de
+     los botones es `_indClinCablear()`, y a esa la llama `indicAbrir()`, **no** `indicRender()`.
+     Sin abrir, un `click()` no escribe nada y los bloques salen vacíos — que es exactamente el
+     mismo texto que da una Evidencia sana sin contestar.
+  3. Y una tercera, de medición: **la bibliografía de la sección imprime el texto completo de la
+     referencia**, que nombra las filas con su clase y su nivel, así que buscar «Clase I · Nivel
+     C» da positivo sobre la bibliografía aunque no se haya emitido una sola recomendación.
+
+- **Cobertura: TC-532**, con teclas reales y midiendo lo renderizado. **Sabe fallar por los dos
+  caminos**: contra el HEAD de la tanda en un worktree aparte, **61 condiciones en rojo** y
+  ninguna por excepción; y por mutación dirigida, **12/12 muertas** (`scripts/_mut_j.py`).
+  **CINCO casos adaptados con el motivo escrito**: TC-322 (el denominador que exige escenario
+  para TODA sección de `IND_SECS`), TC-502 y TC-509 (el censo de entradas de Referencias),
+  TC-507 (el chip del módulo, que cambió de contenido, y el conteo de chips) y TC-520.
+
+- **Línea base al cierre: suite 543/547** con el pendrive `DISK_IMG` **MONTADO** —verificado al
+  abrir y al cerrar, con un `ls` de nombres reales—, Excel en **440** columnas y celular en
+  **63 a 360 px y 72 a 390 px con 17 ALTA cada uno**: el MISMO par que dejaron AJ5 y AJ6, sin un
+  hallazgo nuevo. Los rojos son **TC-223, TC-376, TC-390 y TC-406**, los MISMOS CUATRO de la
+  línea base; **TC-223 es el documentado**. **El denominador sube a 547**: esta tanda agregó
+  **TC-532**. TC-318 sigue excluido.
+  La suite se corrió **en diez tandas de 55 casos en primer plano**, por lo que ya documenta la
+  AJ6: acá los procesos en segundo plano se mueren sin escribir una línea. Se pierde el efecto de
+  ORDEN entre tandas, y eso tiene un caso conocido: **TC-507 tiene un `(DENOM D)` que se pone
+  rojo cuando corre junto a otros casos y verde aislado y dentro de su lote**. Medido las dos
+  veces; no es de esta tanda.
+- **CHROME Y WEBKIT COINCIDEN**, en los dos temas y en 1440 y 390 px, sobre las tres pantallas y
+  las tres Evidencias: el rótulo diastólico, la plétora en los cuatro bordes, el chip sin el 21 y
+  con los dos colapsos, la constricción sin aviso invasivo con el cociente en 0,79, los seis
+  grados de VExUS y cero frases de conducta. **Cero errores de consola y de página en los dos
+  motores**, y sin scroll horizontal ni un solo texto recortado.
+  ⚠️ **Y LA PRIMERA VERSIÓN DE ESA SONDA MEDÍA SIN DENOMINADOR**: abría la pestaña «Pericardio y
+  pulmón» a mano y las tres secciones viven en otra, así que los **valores** salían bien —se leen
+  del DOM, que existe igual— pero la captura mostraba una pantalla vacía y el chequeo de recorte
+  corría sobre nodos de ancho 0, que descarta. **Un verde sobre cero elementos.** Hoy la pestaña
+  se deduce del propio elemento y cada escena reporta su denominador.
+- ⚠️ **SEMGREP PASA DE 124 A 127 WARNING, 0 ERROR, y los TRES son míos y están explicados.** Son
+  la misma regla —`ceibo-xss-innerhtml-concat`— sobre las tres ramas del aviso de la VCI de
+  `calcVEXUS`, que antes tenían el número escrito a mano y hoy interpolan la constante
+  `VEXUS_VCI_MM`. **No entra un solo dato del usuario**: es un entero definido en el archivo. Se
+  deja así a propósito, porque la alternativa es un rótulo fijo que miente el día que se mueva el
+  corte, que es justo lo que este archivo prohíbe.
+- **`index.html` pasó de 9,46 MB / 134.230 líneas a 9,52 MB / 134.867 líneas** — medido con
+  `wc -c` y `wc -l` DESPUÉS de sellar. (MB de 10⁶: `wc -c` dividido por 1e6.)
+  ⚠️ **SE SELLÓ DOS VECES, y la segunda es la que vale.** El primer sello salió ANTES del arreglo
+  de `REF_SUBTAB`, así que quedaba describiendo un árbol que ya no era el del commit. El sello
+  bueno es **`v20261024-1502`**, y TC-126 —el caso que valida el formato del sello— se volvió a
+  correr después.
+
+- **Dónde está todo:** `docs/mapa/j-pericardio-constriccion-vexus.md` (**mapa NUEVO**, 11,2 KB),
+  la ficha del caso en `docs/mapa/tests-fichas-532.md` (**archivo propio**, porque
+  `tests-fichas.md` está a 800 bytes del techo), **seis mapas con un puntero cada uno**
+  —`congenitas-otros` 31,7 KB · `panel-evidencia` 31,0 KB · `referencias-subpestanas` 23,9 KB ·
+  `tanda-r2-correcciones` 21,9 KB · `otros-pericardio-pulmon` 13,2 KB · `tests` 29,7 KB—,
+  `docs/fuentes/FUENTES.md` → «La tanda J» con la tabla **«Cambios de evidencia»**, y
+  `docs/PENDIENTES.md` → **SIETE** cosas declaradas (**J-a** a **J-g**).

@@ -176,3 +176,20 @@ Las condiciones comparan la frase ENTERA.
 ## 7 · La ficha de los casos
 
 `docs/mapa/tests-fichas-532.md` — TC-532, el caso de esta tanda.
+
+---
+
+## ⚠️ La tanda AJ7 cerró J-a y J-b (24/10/2026)
+
+- Las **dos últimas conductas** salieron del informe y del PDF, y **no tuvieron el mismo
+  destino**: «requiere correlación clínica e imagenológica» ya estaba en la Evidencia con su
+  Clase I · Nivel C; «Considerar RMC con gadolinio» **se retira y no va a Evidencia**.
+- La **compuerta de la Evidencia** de constricción pasa a mirar los datos propios —e′ medial y
+  lateral, rebote septal, patrón venoso hepático y su cociente—. Lo que eso cuesta está medido:
+  `PENDIENTES.md` → **AJ7-c**.
+- El **aviso de la VCI** se arma con `join` y Semgrep vuelve de **127 a 124 WARNING**. El texto
+  es el mismo byte por byte y el corte no cambia.
+- La **población del estudio** —145 pacientes de cirugía cardíaca, 706 valoraciones— sale a su
+  propia línea y primera.
+
+**`docs/mapa/aj7-correcciones.md` § 4.**

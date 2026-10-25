@@ -266,3 +266,16 @@ La tanda «G» (2026-10-24) tocó la subpestaña **«POP Cirugía Cardíaca»** 
 «Perfil hemodinámico» ni el Forrester de esta sección. Lo único compartido son las dos bandas
 —`_icBanda` y `_rvsBanda`—, que el posoperatorio **pregunta** y no copia. Ver
 **`docs/mapa/g-posoperatorio.md`**.
+
+---
+
+## ⚠️ La tanda AJ7 cerró J2-a y J2-f (24/10/2026)
+
+- **«Reevaluar en 3-6 sem»** salió de las **dos** copias de la fila anti-HER2, y **nada** se
+  escribió en su lugar: los plazos de la Figura 11 son de **vigilancia por riesgo** y contestan
+  otra pregunta.
+- El **globo ⓘ del score de amiloidosis** lleva `.vinfo-btn-44`, el piso táctil sin la media
+  query, junto con el del bloque de pleura del POP. `check_mobile.js` vuelve a **63 / 72 con 17
+  ALTA**.
+
+**`docs/mapa/aj7-correcciones.md` § 5.**

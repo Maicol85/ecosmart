@@ -60642,6 +60642,13 @@ function vmProtBloqSync() {
     const e = document.getElementById(id);
     if (!e) return;
     e.disabled = !!prot;
+    /* ⚠️ EL `opacity` EXPLICITO NO ES REDUNDANTE, Y ESTA MEDIDO. Sacandolo, un <select>
+       deshabilitado NO queda con opacidad 1: la hoja de estilos DEL NAVEGADOR le pone 0,7
+       —Chromium trae `select:disabled { opacity: 0.7 }` y esta app no tiene ninguna regla
+       `:disabled` que lo toque, censadas las dos que existen—. O sea que la atenuacion
+       seguiria viendose, pero la decidiria el motor y no la aplicacion: en otro motor puede
+       ser otro numero o ninguno, y este repositorio mide Chrome y WebKit lado a lado. El 0,5
+       la fija y la hace comparable entre los dos. */
     e.style.opacity = prot ? '0.5' : '';
     /* El rotulo tambien se atenua: un campo gris con su etiqueta en negro se lee como un campo
        que todavia se puede tocar. El `.fg` es el contenedor de campo de la casa. */
@@ -134164,8 +134171,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261024-2108';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1792886898848;                 /* eco-build-ms */
+const ECO_BUILD    = '20261025-0117';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1792901826871;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -134251,7 +134258,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261024-2108</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261025-0117</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

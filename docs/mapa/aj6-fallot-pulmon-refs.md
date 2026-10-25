@@ -351,3 +351,16 @@ debajo de 1100 px, así que ni las cuatro columnas del pulmón ni las dos de la 
 mientras el caso corre. Las dos condiciones **leen la regla** de `document.styleSheets` y la exigen
 por su forma, que es la lección de TC-522 (A4c) de la tanda AJ5. TC-529 lo declara en una condición
 propia (`innerWidth < 1100`).
+
+---
+
+## ⚠️ La tanda AJ7 movió DOS cosas de la Fallot (24/10/2026)
+
+1. **La línea del EN SUMA ya no publica la insuficiencia pulmonar** —la sección de la válvula
+   pulmonar la emite más arriba desde el mismo `ip_grado`—. `ipHayInsuf(ip)` **se queda en la
+   compuerta**: decide si el EN SUMA *nombra* la cardiopatía, no qué dice de ella.
+2. **`resumen` pasó a ser el texto descriptivo completo**, así que la hoja de congénitas del PDF
+   y la diapositiva del PPT dejaron de publicar la conducta. `sumaTV` salió; `conducta` se
+   devuelve y nadie la publica; `clave` no cambió.
+
+Todo en **`docs/mapa/aj7-correcciones.md` § 1**. Cierra AJ6-a y AJ6-b.

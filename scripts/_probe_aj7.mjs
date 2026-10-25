@@ -1353,6 +1353,109 @@ window.__Y = {
   }
 
   /* ── COMMIT 6b · se siente lento escribir? SOLO MEDIR ─────────────────────────────────── */
+  /* ── AGREGADO 4c (G-g) · el PPT del paciente, de punta a punta ──────────────────────── */
+  async function escenaPPT() {
+    const r = {};
+    try {
+      await ev(`window.__P.nuevo()`); await ev(`window.__P.calentar()`);
+      await ev(`window.__P.abrirPara('pop_picco_ic')`);
+      r.puesto = await ev(`window.__Y.poner(${JSON.stringify({
+        nombre: 'PPT POP AJ7', ci: '11', peso: '80', talla: '175', sexo: 'M', edad: '66',
+        pop_cx_tipo: 'cabg', pop_cx_horas: '8', pop_monitor: 'picco',
+        pop_picco_ic: '1.9', pop_picco_svri: '1400', pop_lactato: '3.2',
+        tapse: '14', onda_e: '95', e_sep: '6', e_lat: '8',
+        pop_pleura_der: 'moderado', pop_pulmon_lineasb: 'difusas' })})`);
+      r.patron = await ev(`(function(){ try { var R = popPatron();
+        return { suficiente: R.suficiente, pat: R.pat ? R.pat.lbl : null,
+                 nPreg: (R.preguntas||[]).length,
+                 preg: (R.preguntas||[]).map(function(q){ return q.q }) } }
+        catch (e) { return 'EXC: ' + e.message } })()`);
+      r.integra = await ev(`(function(){ try { amiloIntegrar('pop');
+        return amiloIntegrado('pop') } catch (e) { return 'EXC: ' + e.message } })()`, 60000);
+      await ev(`window.__P.informe('estandar')`, 60000);
+      /* Se GUARDA, que es lo que generarPPT(id) exige: sin estudio guardado con informe_texto
+         la funcion sale por el toast y la medicion seria sobre cero diapositivas. */
+      /* valvSevConfirmada: sin eso guardarInforme ABRE la tarjeta de severidades y devuelve
+         false sin guardar — medido, la primera corrida dio n:0 estudios. */
+      r.guardado = await ev(`(function(){ return new Promise(function(res){
+        var avisos = [], oT = window.toast;
+        window.toast = function(m){ avisos.push(String(m)); };
+        var ret = null, exc = null;
+        /* valvSevConfirmada es un let de nivel superior: NO esta en window, asi que ponerlo
+           ahi no hace nada -medido: guardarInforme devolvia false sin un solo toast-. Lo que si
+           se puede interceptar es la tarjeta de severidades, que si es window.*. */
+        var oCard = window.mostrarCardSeveridadValvular;
+        window.mostrarCardSeveridadValvular = function(cb){ if (cb) cb(); };
+        try { ret = guardarInforme(function(){ window.mostrarCardSeveridadValvular = oCard; listo('cb') }); }
+        catch (e) { exc = e.message }
+        function listo(via){
+          window.toast = oT;
+          if (oCard) window.mostrarCardSeveridadValvular = oCard;
+          var L = [];
+          try { L = getInformes() } catch (e) { exc = (exc || '') + ' getInformes: ' + e.message }
+          var u = L[L.length - 1];
+          res({ via: via, ret: ret, exc: exc, avisos: avisos, n: L.length,
+                id: u ? u.id : null,
+                tieneInforme: !!(u && u.campos && u.campos.informe_texto),
+                tienePop: !!(u && u.campos && u.campos['am-txt-pop']),
+                fecha: (document.getElementById('fecha')||{}).value,
+                nombre: (document.getElementById('nombre')||{}).value });
+        }
+        setTimeout(function(){ listo('timeout') }, 6000);
+      }) })()`, 60000);
+      if (r.guardado && r.guardado.id) {
+        r.ppt = await ev(`(function(){ return new Promise(function(res){
+          if (typeof PptxGenJS === 'undefined') { res({ err: 'SIN PptxGenJS' }); return; }
+          var textos = [], slides = 0;
+          var P = PptxGenJS, oAdd = P.prototype.addSlide;
+          P.prototype.addSlide = function(){ slides++; var sl = oAdd.apply(this, arguments);
+            var oT = sl.addText; sl.addText = function(t){
+              textos.push(typeof t === 'string' ? t : JSON.stringify(t)); return oT.apply(sl, arguments) };
+            var oTb = sl.addTable; if (oTb) sl.addTable = function(rows){
+              try { textos.push(JSON.stringify(rows)) } catch (e) {} return oTb.apply(sl, arguments) };
+            return sl };
+          var oW = P.prototype.writeFile; P.prototype.writeFile = function(){ res(fin()); return Promise.resolve('') };
+          /* Los TRES modales se cortocircuitan: sin esto generarPPT se queda esperando un clic
+             que en una sonda no llega nunca, y el timeout se leeria como «el PPT no sale». */
+          var pasos = [];
+          var oTe = window._pptElegirTema, oPr = window._pptElegirPresentador, oIm = window._pptElegirImagenes;
+          var oDes = window._pptDesdeFormulario, oPdf = window.pdfDeInformeGuardado, oToast = window.toast;
+          window.toast = function(m){ pasos.push('toast: ' + String(m)) };
+          window._pptElegirTema = function(cb){ pasos.push('tema'); cb('clinico') };
+          window._pptElegirPresentador = function(inf, cb){ pasos.push('presentador'); cb({ nombre: 'Sonda AJ7' }) };
+          window._pptElegirImagenes = function(a, b, cb){ pasos.push('imagenes'); cb([]) };
+          if (oDes) window._pptDesdeFormulario = function(){ pasos.push('desdeFormulario');
+            return oDes.apply(null, arguments) };
+          if (oPdf) window.pdfDeInformeGuardado = function(){ pasos.push('pdfDeInformeGuardado');
+            return oPdf.apply(null, arguments) };
+          function fin(){
+            P.prototype.addSlide = oAdd; P.prototype.writeFile = oW;
+            window._pptElegirTema = oTe; window._pptElegirPresentador = oPr; window._pptElegirImagenes = oIm;
+            if (oDes) window._pptDesdeFormulario = oDes;
+            if (oPdf) window.pdfDeInformeGuardado = oPdf;
+            window.toast = oToast;
+            var j = textos.join(' \u0001 ');
+            return { pasos: pasos, slides: slides, nTextos: textos.length,
+                     pop: textos.filter(function(t){ return /PostCEC|Patr|Gasto card|Precarga|peric|Falla del VD|Congesti/.test(t) }).map(function(t){ return String(t).slice(0, 220) }),
+                     patron: (j.match(/Patr[oó]n hemodin[aá]mico:[^\u0001"]*/) || [null])[0],
+                     preguntas: (j.match(/[\u{1F7E2}\u{1F7E1}\u{1F534}]\s\s[^\u0001"]{3,90}/gu) || []),
+                     postcec: j.indexOf('PostCEC') >= 0 };
+          }
+          /* El id se pasa TAL CUAL: generarPPT compara con === contra inf.id, que es un
+             NUMERO. La primera version lo mandaba como cadena y la funcion contestaba «No se
+             encontro ese estudio guardado» — cero diapositivas, que se lee como «el PPT no
+             publica el POP». */
+          try { generarPPT(${JSON.stringify(r.guardado.id)}) }
+          catch (e) { res({ err: 'EXC: ' + e.message }) }
+          setTimeout(function(){ res(Object.assign({ porTimeout: true }, fin())) }, 25000);
+        }) })()`, 40000);
+      }
+      r.errores = await ev(`window.__Y.errores()`);
+    } catch (e) { r.err = e.message }
+    out.grupos.ppt = r;
+    process.stderr.write('[ppt] listo\n');
+  }
+
   async function escenaHP() {
     const r = { hemo: {}, pop: {} };
     try {
@@ -1490,6 +1593,7 @@ window.__Y = {
   if (corre('globos')) await escenaGlobos();
   if (corre('hfp'))    await escenaHFP();
   if (corre('blo'))    await escenaBloques();
+  if (corre('ppt'))    await escenaPPT();
   if (corre('hp'))     await escenaHP();
   if (corre('perf'))   await escenaPerf();
   if (corre('secs'))   await escenaSecs();

@@ -2454,6 +2454,55 @@ TAVI**; una SAVR con jet paravalvular no tiene dónde cargarla (W1-12, pide camp
 
 ---
 
+
+## La tanda AJ7 (2026-10-24) — los pendientes de AJ3, AJ5, AJ6, J y J2, y el G-a
+
+⚠️ **ESTA TANDA NO ABRIÓ UN SOLO PDF NUEVO, Y SE DECLARA.** Su orden prohíbe expresamente leer
+archivos fuera del proyecto («No abras ni edites archivos fuera del proyecto»), y la biblioteca
+de guías vive fuera. Todo lo que se cita abajo sale del **registro verificado de este archivo**,
+escrito por las tandas que sí leyeron el original con su folio, su tabla y su hoja. Donde el
+registro no alcanzaba, **el texto no se escribió** — ver «Lo que no se pudo verificar».
+
+### Lo que se re-censó, y lo que contestó
+
+| Pregunta de la orden | Respuesta, y de dónde sale |
+|---|---|
+| ¿La **ASE 2025 de corazón derecho** publica cortes de **moderada** o **severa** del strain de pared libre del VD? | **NO.** Censado por tercera vez: `ASE25_T1` no tiene entrada de strain; la **Tabla 1, folio 145** no lo bandea —publica un único corte, «>20» en valor absoluto, con la nota al pie «Absolute values and ranges for strain are shown»— y el **texto del folio 159** tampoco abre bandas. El censo original es de la tanda AJ5 y está en «Lo que la biblioteca NO tiene — el strain de pared libre del VD», de este mismo archivo. **No hay nada que reportar sin aplicar** |
+| ¿La **Recommendation Table 24** de la ESC 2025 respalda «requiere correlación clínica e imagenológica»? | **SÍ.** Su primera fila RECOMIENDA la imagen multimodal en todo paciente con sospecha de pericarditis constrictiva, **Clase I · Nivel C** (folio 64). Y la Evidencia de constricción **ya la publica** con esa clase, ese nivel y ese folio desde que la sección nació: no hubo nada que mover |
+| ¿Y «Considerar RMC con gadolinio»? | **NO.** Esa frase vive en la rama **RESTRICTIVA**, que es una miocardiopatía; la Table 24 es de **pericarditis constrictiva** y no tiene ninguna fila sobre ella. **Se retira y no va a Evidencia** |
+| ¿La **ESC 2022 de cardio-oncología** respalda un plazo de reevaluación por fase tras una caída de la FEVI con anti-HER2? | **NO el de «3-6 sem».** Lo que la **Figura 11, folio 4260** publica son plazos de **VIGILANCIA por riesgo** —cada 4 meses en el cáncer de mama precoz HER2+ de bajo riesgo asintomático y normal a los 3 meses (**IIb · C**), y cada 6 meses tras el primer año en la enfermedad metastásica de riesgo bajo y moderado (**I · C**)—, que contestan **otra** pregunta. **No se escribe nada en su lugar** |
+| ¿Qué dice **Pieske 2019** sobre una presión de llenado normal en reposo? | **Folio 3307, hoja 11:** «normal LVEDP or mPCWP levels at rest do not exclude HFpEF»; «If resting filling pressures are normal, exercise right heart catheterization is recommended… (Figures 2 and 4B)», con la **Figura 4B, folio 3306, hoja 10, renderizada en imagen** por la tanda AJ3 |
+| ¿Cuál es la población de **Beaubien-Souligny 2020**? | **145 pacientes de cirugía cardíaca, 706 valoraciones** (resumen, página 1, Ultrasound J 2020;12(1):16) |
+
+### Lo que NO se pudo verificar, y por eso no se escribió
+
+- **«Un solo centro» en la Evidencia de VExUS.** La orden lo pedía. El registro de este archivo
+  verifica la población y el número de valoraciones del resumen de la página 1, y **no** que el
+  estudio sea unicéntrico. Esta tanda no puede abrir el PDF original. **No se escribió.**
+  → `docs/PENDIENTES.md` **AJ7-d**.
+- **El «15 %» de la banda leve del strain del VD.** Ninguna fuente de la biblioteca lo publica.
+  Se aplica porque **la orden fija el número**, igual que el 36 mm de la AJ4-1, y su ficha nace
+  como **criterio propio de EcoSmart**, sin guía, sin folio y sin DOI, para que su fila del
+  cuadro salga **SIN CORCHETE**.
+
+### Cambios de evidencia
+
+| Dato | Antes | Ahora | Fuente | Commit | Fecha |
+|---|---|---|---|---|---|
+| Línea de Fallot del EN SUMA | «Tetralogía de Fallot reparada — **insuficiencia pulmonar severa** — gradiente TSVD…» | la misma **sin** la cláusula de IP | ninguna: es la misma `ip_grado` que la sección de la válvula pulmonar ya publica más arriba | `41ab435` | 24/10/2026 |
+| Hoja de congénitas del PDF y diapositiva del PPT de Fallot | encabezado + IP + **conducta** («reemplazo valvular pulmonar a considerar, ESC 2020 Clase IIa») | el **texto descriptivo completo**, sin indicación ni clase | la indicación y su clase viven en la Evidencia, con su folio | `41ab435` | 24/10/2026 |
+| Línea de presión de llenado «Normal» del HFA-PEFF | «Con una presión de llenado normal en reposo la guía recomienda continuar la evaluación…» | «Una presión de llenado normal en reposo **NO descarta** la IC con FEVI preservada: …» | Pieske 2019, **texto folio 3307, hoja 11**, con la Figura 4B del folio 3306 en imagen | `dc1f238` | 24/10/2026 |
+| Fila «Descripción» del ateroma, en pantalla y en la hoja del ETE | se publicaba | **se retira** | ninguna: su texto estaba **contenido** en el de «Descripción del hallazgo» | `dc1f238` | 24/10/2026 |
+| Strain de pared libre del VD en la función sistólica del informe | **no votaba**: con TAPSE 22 y S′ 13 y strain −18 % el informe firmaba «conservada» | **vota**: 15-20 % leve, por debajo de 15 «leve como mínimo», por encima de 20 no vota | el corte de **normalidad** es de la ASE 2025 (Tabla 1 folio 145 y texto folio 159); el **15** no tiene fuente y lleva el chip | `d3586bc` | 24/10/2026 |
+| La banda leve del strain, en el cuadro de Referencias del VD | **no estaba declarada** | fila propia, **sin corchete**, con la nota del chip «CRITERIO DE ECOSMART» | ninguna — ficha `FUN-VD-008`, criterio propio | `d3586bc` | 24/10/2026 |
+| «El diagnóstico definitivo requiere correlación clínica e imagenológica (TC/RMC pericárdica)» en el informe y el PDF | se publicaba **siempre** en la rama constrictiva | **sólo en Evidencia**, donde ya estaba | ESC 2025, **Recommendation Table 24, folio 64** (I · C) | `aee9e93` | 24/10/2026 |
+| «Considerar RMC con gadolinio» en el informe y el PDF | se publicaba en la rama restrictiva | **se retira**, y **no** va a Evidencia | **ninguna**: la Table 24 es de pericarditis constrictiva y esa frase es de una miocardiopatía | `aee9e93` | 24/10/2026 |
+| Compuerta de la Evidencia de constricción | la del módulo (`espEval`), que incluye la respirofasicidad mitral **del módulo de taponamiento** | los datos **propios**: e′ medial y lateral, rebote septal, patrón venoso hepático y su cociente | — | `aee9e93` | 24/10/2026 |
+| Población del estudio de VExUS | dentro de una oración de cincuenta palabras sobre el riesgo relativo | **línea propia y primera** del bloque, y en la nota | Beaubien-Souligny 2020, **resumen página 1** | `aee9e93` | 24/10/2026 |
+| «Reevaluar en 3-6 sem» en la fila anti-HER2 | en **dos** copias | **cero**, y nada en su lugar | **ninguna**: no está en el pie de la Figura 11 (folio 4260) ni en ninguna tabla de recomendaciones de seguimiento leída | `2517d55` | 24/10/2026 |
+| Corte de hipertensión pulmonar (20 mmHg) | **dos** copias: una constante del POP y un literal en `calcHemodinamica` | **una**, `HP_PAPM_MIN` | ESC/ERS 2022, **folio 30**. **El número NO se movió** | `354d9a4` | 24/10/2026 |
+
+
 ## La tanda G2 (2026-10-15) NO ESTABLECE NINGÚN CORTE CLÍNICO — por qué no lleva citas nuevas
 
 El G2 es Excel, importador y Laboratorio. **No mueve un solo umbral, ni un operador, ni una regla

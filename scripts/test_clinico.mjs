@@ -5616,7 +5616,18 @@ caso('TC-60', 'Constriccion vs restriccion: los dos veredictos opuestos', `
     ['la hoja nombra el annulus reversus', txtC.indexOf('annulus reversus') > -1],
     ['restrictiva', r === 'restrictiva'],
     ['la hoja la nombra', txtR.indexOf('compatibles con miocardiopatía restrictiva') > -1],
-    ['y manda a RMC',     txtR.indexOf('Considerar RMC con gadolinio') > -1]
+    /* ⚠️ CONTRATO NUEVO (AJ7-4a, 24/10/2026): «Considerar RMC con gadolinio» SALIO del papel
+       firmado y NO fue a Evidencia. Es una conducta, y la unica fuente que la orden habilitaba
+       -la Recommendation Table 24 de la ESC 2025- es de pericarditis CONSTRICTIVA, mientras esa
+       frase vive en la rama RESTRICTIVA, que es una miocardiopatia: esa tabla no tiene ninguna
+       fila sobre ella. La condicion decia:
+         txtR.indexOf('Considerar RMC con gadolinio') > -1
+       y hoy exige lo contrario. Lo que la hoja SI conserva es la descripcion. Ver TC-535 (H4/H5)
+       y docs/PENDIENTES.md → J-a (cerrado). */
+    ['y YA NO manda a RMC: era una conducta y su tabla no cubre la restrictiva',
+      txtR.indexOf('Considerar RMC con gadolinio') === -1],
+    ['pero la hoja conserva la descripcion, que es el denominador',
+      txtR.indexOf('sin respirofasicidad significativa') > -1]
   ] };
 `);
 
@@ -7992,15 +8003,18 @@ caso('TC-121', 'TdF: el criterio volumetrico del VD vota, y solo medido por reso
     ['VTDVD 159 no', d159.c.clave !== 'reintervencion_iia'],
     ['VTSVD 80 exactos dan criterio IIa', s80.c.clave === 'reintervencion_iia'],
     ['VTSVD 79 no', s79.c.clave !== 'reintervencion_iia'],
-    /* ⚠️ CONTRATO NUEVO (AJ6-1, 2026-10-24): el criterio se sigue nombrando CON SU VALOR, pero en
-       el resumen -que consume la diapositiva del PPT- y NO en el papel firmado, que desde esta
-       tanda es descriptivo. El informe sigue publicando el VALOR del volumen; lo que ya no
-       publica es la frase del criterio, que es una indicacion. Decia:
-       d160.inf.inf.indexOf('dilatación del ventrículo derecho por resonancia') > -1. Ver TC-527. */
-    ['el criterio se nombra con su valor en el resumen del PPT, y el informe publica el valor sin la indicacion',
-      d160.c.resumen.indexOf('dilatación del ventrículo derecho por resonancia') > -1 &&
+    /* ⚠️ CONTRATO NUEVO OTRA VEZ (AJ7-1b, 24/10/2026), y esta vez el criterio sale TAMBIEN del
+       resumen. El AJ6-1 habia dejado la frase de la indicacion viviendo en resumen, que es lo
+       que consumen la hoja de congenitas del PDF y la diapositiva del PPT — o sea que el MISMO
+       PDF describia en el cuerpo y recomendaba en la hoja. Hoy resumen es el texto DESCRIPTIVO
+       completo, asi que la frase del criterio no esta en ninguna de las dos superficies y el
+       VALOR del volumen sigue en las dos. Decia:
+         d160.c.resumen.indexOf('dilatación del ventrículo derecho por resonancia') > -1
+       Ver TC-535 (A3/A4) y docs/PENDIENTES.md → AJ6-b (cerrado). */
+    ['el VALOR del volumen esta en el resumen y en el informe, y la INDICACION en ninguno',
       d160.c.resumen.indexOf('160 ml/m²') > -1 &&
       d160.inf.inf.indexOf('160 ml/m²') > -1 &&
+      d160.c.resumen.indexOf('dilatación del ventrículo derecho por resonancia') === -1 &&
       d160.inf.inf.indexOf('dilatación del ventrículo derecho por resonancia') === -1],
     // EL METODO: por eco 3D el valor se declara y NO vota.
     ['por eco 3D no vota', eco.c.clave !== 'reintervencion_iia'],
@@ -8014,11 +8028,12 @@ caso('TC-121', 'TdF: el criterio volumetrico del VD vota, y solo medido por reso
     ['por tomografia tampoco vota', tcx.c.clave !== 'reintervencion_iia'],
     // Valores por debajo del umbral: la rama de vigilancia deja de PROMETER la resonancia.
     ['con volumenes normales por resonancia no hay criterio', bajo.c.clave !== 'reintervencion_iia'],
-    /* ⚠️ CONTRATO NUEVO (AJ6-1): la frase vive en el resumen. En el informe ya no esta NINGUNA
-       de las dos -ni la promesa ni la constancia-, porque las dos son parte de la conducta. */
-    ['ya no manda a hacer una resonancia que ya se hizo: el resumen lo dice, y el informe no promete ninguna',
+    /* ⚠️ CONTRATO NUEVO OTRA VEZ (AJ7-1b): la constancia tambien salio del resumen, porque todo
+       lo que conducta arma dejo de viajar ahi. Ni la promesa ni la constancia estan en ninguna
+       de las dos superficies. Decia: bajo.c.resumen.indexOf('por debajo del umbral') > -1. */
+    ['ni el informe ni el resumen prometen una resonancia, y tampoco dejan constancia: las dos eran conducta',
       bajo.c.resumen.indexOf('se miden por RESONANCIA: VTDVD') === -1 &&
-      bajo.c.resumen.indexOf('por debajo del umbral') > -1 &&
+      bajo.c.resumen.indexOf('por debajo del umbral') === -1 &&
       bajo.inf.inf.indexOf('se miden por RESONANCIA: VTDVD') === -1],
     // Banda de plausibilidad: 1800 ml/m2 es ilegible.
     ['un volumen de 1800 ml/m2 no vota', ilegible.c.clave !== 'reintervencion_iia'],
@@ -81112,7 +81127,12 @@ caso('TC-507', 'Tanda R: la VAB muestra la lesion PRESENTE sin grado con un solo
       return t.indexOf('Criterio de EcoSmart') === 0 && t.indexOf('9 mmHg') > -1; })(),
     (function(){ if (!_qvNota) return 'SIN'; const n = _qvNota['esten:pulmonar'];
       return (typeof n === 'function') ? n() : String(n || 'SIN'); })()]);
-  ex.push(['(I8) los CUATRO chips «Criterio de EcoSmart» estan y el prefijo de las notas tambien',
+  /* El cuadro del VD se pinta ANTES de contar: su chip es diferido y sin esto el conteo
+     depende de si algun caso anterior abrio Referencias. Ver la nota de adaptacion de abajo. */
+  try { if (typeof showTab === 'function') showTab('referencias'); } catch (e) {}
+  try { if (typeof toggleRef === 'function') toggleRef('vd2', null); } catch (e) {}
+  try { if (typeof evRefPintar === 'function') evRefPintar('vd2'); } catch (e) {}
+  ex.push(['(I8) los DIECISEIS chips «Criterio de EcoSmart» estan y el prefijo de las notas tambien',
     (function(){ let n = 0;
       Array.prototype.forEach.call(document.querySelectorAll('span'), x => {
         if ((x.textContent || '').trim() === 'CRITERIO DE ECOSMART') n++; });
@@ -81159,8 +81179,19 @@ caso('TC-507', 'Tanda R: la VAB muestra la lesion PRESENTE sin grado con un solo
          -el numero, 20 mmHg, si es la definicion de hipertension pulmonar de la ESC/ERS 2022; la
          particion no-; y el «patron detectado» junto con el «Segun la cirugia, tambien mirar…».
          Lo que esta condicion vigila -que todo corte sin fuente lleve su chip y que el prefijo de
-         las notas no se mueva- no cambia; lo que cambia es el denominador. */
-      return n === 15 && _ecoPref === 'Criterio de EcoSmart: '; })(),
+         las notas no se mueva- no cambia; lo que cambia es el denominador.
+         ADAPTADO el 2026-10-24 (tanda AJ7, commit 3i): de QUINCE a DIECISEIS. El nuevo es el de
+         la nota del cuadro del VD de Referencias, y declara la banda de disfuncion LEVE del
+         strain de pared libre -de 15 a 20 % en valor absoluto-, que NO publica ninguna fuente:
+         la Tabla 1 del folio 145 y el texto del folio 159 de la ASE 2025 dan un unico corte, el
+         de normalidad. Es la contracara de la ficha FUN-VD-008, que nace como criterio propio
+         para que su fila salga SIN CORCHETE.
+         ⚠️ Y EL CHIP SE PINTA DIFERIDO, lo que volvia este conteo DEPENDIENTE DEL ORDEN: el
+            cuadro del VD lo arma evRefPintar('vd2'), que corre cuando alguien abre esa ficha.
+            Corriendo este caso SOLO el chip no existia y el conteo daba 15; despues de un caso
+            que abriera Referencias, 16. Se PINTA ACA antes de contar, que es lo unico que hace
+            el denominador estable — y de paso es lo que el medico ve cuando entra a la ficha. */
+      return n === 16 && _ecoPref === 'Criterio de EcoSmart: '; })(),
     (function(){ let n = 0;
       Array.prototype.forEach.call(document.querySelectorAll('span'), x => {
         if ((x.textContent || '').trim() === 'CRITERIO DE ECOSMART') n++; });
@@ -87137,7 +87168,13 @@ caso('TC-526', 'Tanda AJ5-5: el strain de pared libre del VD entre el indice de 
     'val=' + W.val + ' cat=' + W.cat + ' inf=' + W.e
       + ' | type=' + ((document.getElementById('vd_strain_pl') || {}).type)]);
 
-  /* == (D) NO VOTA, Y LA DISFUNCION SIGUE SALIENDO DE DONDE SALIA ========================== */
+  /* == (D) EL STRAIN VOTA, Y NO PUEDE PASAR DE LEVE ========================================
+     ⚠️ CONTRATO NUEVO (AJ7-3h, 24/10/2026). Hasta la AJ5-5 el campo NO votaba, y esta seccion
+     fijaba eso: con TAPSE 22 y onda S 13 -los dos normales- y un strain de -18 %, el informe
+     firmaba «funcion sistolica conservada». Era el defecto que AJ5-d declaraba: una afirmacion
+     de normalidad al lado de un parametro alterado del MISMO ventriculo. Hoy el strain vota
+     -15 a 20 leve, por debajo de 15 «leve como minimo», por encima de 20 no vota- y NO puede
+     subir el grado que TAPSE y onda S ya dieron. Ver TC-535 (E1..E8). */
   const Dn = esc({ tapse: '22', s_prime: '13', vd_strain_pl: '18' });
   const Db = esc({ tapse: '12', s_prime: '6', vd_strain_pl: '-12' });
   ex.push(['(D1) DENOMINADOR: con TAPSE y onda S normales el dueno del grado NO gradua, y con los dos bajos SI',
@@ -87145,8 +87182,9 @@ caso('TC-526', 'Tanda AJ5-5: el strain de pared libre del VD entre el indice de 
       && (F('vdDisfGrado') ? vdDisfGrado('12', '6') : 'SIN FN') === 'moderada',
     'norm=' + (F('vdDisfGrado') ? vdDisfGrado('22', '13') : '?')
       + ' bajo=' + (F('vdDisfGrado') ? vdDisfGrado('12', '6') : '?')]);
-  ex.push(['(D2) un strain LEVE sobre TAPSE y onda S normales NO cambia el veredicto: sigue conservada',
-    Dn.cat === 'leve' && Dn.e.indexOf('conservada') > -1 && Dn.e.indexOf('disfunci') < 0
+  ex.push(['(D2) un strain LEVE sobre TAPSE y onda S normales SI cambia el veredicto: vota disfuncion LEVE',
+    Dn.cat === 'leve' && Dn.e.indexOf('disfunción sistólica leve') > -1
+      && Dn.e.indexOf('conservada') < 0
       && Dn.e.indexOf('strain de pared libre \\u221218 %') > -1,
     Dn.e]);
   ex.push(['(D3) y con TAPSE y onda S bajos la disfuncion sale CON SU GRADO y el strain al lado',
@@ -87255,9 +87293,20 @@ caso('TC-527', 'Tanda AJ6-1: el cuerpo del informe de la Fallot reparada en ESQU
     E.inf.indexOf('ESC 2020, Clase') < 0 && E.inf.indexOf('indicaci\\u00f3n Clase') < 0,
     E.bloque.guiones.join(' | ').slice(0, 120)]);
 
-  /* == (C) LO QUE NO SE MOVIO: EL PPT Y LA CLAVE DEL LABORATORIO ============================ */
-  ex.push(['(C1) el resumen -unico consumidor: la diapositiva del PPT- SIGUE llevando la conducta',
-    !!E.c && frases(E.c.resumen).f1 && frases(E.c.resumen).seguim,
+  /* == (C) EL RESUMEN TAMBIEN QUEDO DESCRIPTIVO, Y LA CLAVE NO SE MOVIO ====================
+     ⚠️ CONTRATO NUEVO (AJ7-1b, 24/10/2026). La AJ6-1 habia sacado la conducta del informe, del
+     EN SUMA y de la caja «Conclusion», y la habia dejado en resumen, con el argumento de que
+     su unico consumidor era la diapositiva del PPT. **Eran DOS**: la hoja de congenitas del PDF
+     tambien lo consume (ccHoja(sec[3], c.parrafos || [], c.resumen || null, null)), asi que el
+     MISMO PDF describia en el cuerpo y recomendaba en la hoja. Hoy resumen es el texto
+     DESCRIPTIVO completo. La condicion decia:
+       !!E.c && frases(E.c.resumen).f1 && frases(E.c.resumen).seguim
+     Ver TC-535 (A3/A4) y docs/PENDIENTES.md → AJ6-b (cerrado). */
+  ex.push(['(C1) el resumen -que consumen la hoja del PDF de congenitas Y el PPT- YA NO lleva la conducta',
+    !!E.c && !frases(E.c.resumen).f1 && !frases(E.c.resumen).seguim,
+    E.c ? String(E.c.resumen).slice(0, 150) : 'null']);
+  ex.push(['(C1b) y ES descriptivo: trae las mismas clausulas que el cuerpo del informe',
+    !!E.c && String(E.c.resumen) === String(E.c.txt),
     E.c ? String(E.c.resumen).slice(0, 150) : 'null']);
   ex.push(['(C2) y la clave, que es lo que clasifica el Laboratorio, no cambia',
     !!E.c && E.c.clave === 'vigilancia', E.c ? E.c.clave : 'null']);
@@ -87300,8 +87349,11 @@ caso('TC-527', 'Tanda AJ6-1: el cuerpo del informe de la Fallot reparada en ESQU
     !excG && !!cg && Array.isArray(cg.lineasInf) && cg.lineasInf.length === 4
       && cg.lineasInf[0].trim() === '' && !frases(cg.txt).f1 && !frases(cg.txt).f3,
     excG || JSON.stringify(cg && cg.lineasInf)]);
-  ex.push(['(E2) y su conducta sigue entera en el resumen, que es lo que consume el PPT',
-    !excG && !!cg && frases(cg.resumen).seguim && frases(cg.resumen).f1,
+  /* ⚠️ CONTRATO NUEVO OTRA VEZ (AJ7-1b): tampoco en el resumen. Decia:
+       !excG && !!cg && frases(cg.resumen).seguim && frases(cg.resumen).f1 */
+  ex.push(['(E2) y su resumen tampoco lleva conducta: el estudio viejo sale descriptivo por las CUATRO superficies',
+    !excG && !!cg && !frases(cg.resumen).seguim && !frases(cg.resumen).f1
+      && String(cg.resumen).indexOf('Tetralog') === 0,
     excG || (cg ? String(cg.resumen).slice(0, 120) : 'null')]);
 
   const N = esc({ tdf_incluir_chk: true });
@@ -89554,6 +89606,620 @@ caso('TC-534', 'Tanda G: la grilla de drogas sin la columna vacia y el acordeon 
 
   /* Cada caso BORRA lo que guardo: un estudio que sobrevive cambia el denominador del siguiente. */
   try { if (gPOP && gPOP.estudioId) await __t.borrar(gPOP.estudioId); } catch (e) {}
+  __t.limpiar();
+  return { extra: ex };
+  })();
+`);
+
+/* -- TC-535 ---------------------------------------------------------------------------------
+   TANDA AJ7. Cubre los seis commits de codigo y el G-a del agregado, con su denominador
+   declarado en cada grupo y un control negativo por cada cambio.
+
+   ⚠️ TIENE QUE PODER CORRER CONTRA EL HEAD DE LA TANDA, donde la clase `.vinfo-btn-44`, la
+   ficha `FUN-VD-008`, `vmProtBloqSync`, `vmMorfFitSync`, `HP_PAPM_MIN` y `_amiloDesfasadosRot`
+   NO existen: ninguna lectura supone que el nodo o la funcion estan. Con un getComputedStyle
+   sobre null el caso se cae con una excepcion y deja de distinguir «la app no lo tiene» de «la
+   sonda esta rota», que es la leccion que TC-534 ya tiene escrita.
+
+   ⚠️ DOS TRAMPAS QUE ESTE CASO PAGO Y DEJA ESCRITAS:
+     1. `valvSevConfirmada` es un `let` de nivel superior y NO esta en `window`: ponerlo ahi no
+        hace nada, y `guardarInforme` devuelve `false` sin un solo toast. Lo que si se puede
+        interceptar es `mostrarCardSeveridadValvular`, que si es `window.*`.
+     2. `generarPPT(id)` compara con `===` contra `inf.id`, que es un NUMERO: pasarle la cadena
+        da «No se encontro ese estudio guardado» y CERO diapositivas, que se lee como «el modulo
+        no sale en el PPT».
+-------------------------------------------------------------------------------------------- */
+caso('TC-535', 'Tanda AJ7: la linea de Fallot del EN SUMA sin la IP y el resumen descriptivo que saca la conducta del PDF de congenitas y del PPT; la linea de presion de llenado normal del HF-PEFF que dice NO DESCARTA, en UNA sola linea; la fila Descripcion del ateroma fuera de la pantalla y de la hoja del ETE; el bloque integrado que se retira solo cuando su modulo queda sin datos salvo que este editado a mano, y el PDF preguntando Exportar igual; el strain de pared libre del VD votando leve y leve como minimo en sus bordes sin poder pasar de leve, con su banda declarada en Referencias SIN corchete y con el chip; el tipo de IM y el Carpentier atenuados y bloqueados con protesis mitral conservando el valor; el rotulo de morfologia que entra sin recortarse; las dos conductas de constriccion fuera del informe y del PDF y la Evidencia abriendose solo con datos propios; el aviso de VExUS igual byte por byte y su poblacion declarada; la fila anti-HER2 sin el plazo; los dos globos de 44x44 que no tapan nada; y UNA sola constante para el corte de HTP, con los CONTROLES de cada uno', `
+  return (async () => {
+  const ex = [];
+  const F = (n) => (typeof window[n] === 'function') ? window[n] : null;
+  const EL2 = (id) => document.getElementById(id);
+  const T = (id) => { const e = EL2(id);
+    return e ? (e.textContent || '').replace(/\\s+/g, ' ').trim() : 'NO EXISTE ' + id; };
+  const pon = (o) => { Object.keys(o).forEach(k => { const e = EL2(k);
+      if (!e) { ex.push(['NO EXISTE el campo ' + k, false, k]); return; }
+      if (e.type === 'checkbox') e.checked = !!o[k];
+      else if (e.tagName === 'SELECT') {
+        const hay = Array.prototype.some.call(e.options, (op) => op.value === o[k]);
+        if (!hay) { ex.push(['NO HAY opcion ' + o[k] + ' en ' + k, false,
+          Array.prototype.map.call(e.options, (op) => op.value).join('|')]); return; }
+        e.value = o[k];
+      } else e.value = o[k];
+      e.dispatchEvent(new Event('input', { bubbles: true }));
+      e.dispatchEvent(new Event('change', { bubbles: true })); }); };
+  const pausa = (ms) => new Promise(r => setTimeout(r, ms));
+  /* El PDF se genera DE VERDAD y se leen sus textos: es la unica forma de probar que una frase
+     salio del PAPEL y no solo de la pantalla. */
+  const pdfTextos = () => {
+    if (typeof window.jspdf === 'undefined') return null;
+    const orig = window.jspdf.jsPDF; const t = [];
+    function E(){ const d = new orig(arguments[0]); const oT = d.text;
+      d.text = function(x){ t.push(typeof x === 'string' ? x : (Array.isArray(x) ? x.join(' ') : String(x)));
+        return oT.apply(d, arguments) };
+      d.save = function(){ return d }; return d }
+    E.API = orig.API; E.version = orig.version;
+    window.jspdf.jsPDF = E;
+    try { generarPDFReal(); } catch (e) { t.push('EXC ' + e.message); }
+    finally { window.jspdf.jsPDF = orig; }
+    return t.join(' \\u0001 ');
+  };
+
+  /* ══ (A) FALLOT — el EN SUMA sin la IP y el resumen descriptivo ══════════════════════════ */
+  __t.limpiar();
+  pon({ nombre:'AJ7 Fallot', ci:'1', tdf_func_vd:'normal', tdf_grad_tsvd:'36',
+        tdf_sintomas:'no', ip_grado:'Severa', it_grado:'2', tdf_incluir_chk:true });
+  const cA = F('tdfConclusion') ? tdfConclusion() : null;
+  const sA = F('ccSumaLinea') ? ccSumaLinea('tdf') : null;
+  ex.push(['(A0) DENOMINADOR: la seccion de Fallot despierta y el EN SUMA emite su linea',
+    !!cA && !!sA && String(sA).indexOf('Tetralogía de Fallot reparada') === 0,
+    'clave=' + (cA && cA.clave) + ' suma=' + String(sA).slice(0, 60)]);
+  ex.push(['(A1) la linea del EN SUMA NO repite la insuficiencia pulmonar',
+    !!sA && String(sA).indexOf('insuficiencia pulmonar') < 0,
+    String(sA)]);
+  ex.push(['(A2) y SI conserva lo propio de Fallot: gradiente, funcion del VD e IT',
+    !!sA && /gradiente TSVD 36 mmHg/.test(sA) && /VD con función normal/.test(sA) && /IT moderada/.test(sA),
+    String(sA)]);
+  ex.push(['(A3) el resumen -lo que consumen la hoja del PDF de congenitas y el PPT- NO lleva conducta',
+    !!cA && String(cA.resumen).indexOf('reemplazo valvular pulmonar') < 0
+         && String(cA.resumen).indexOf('Clase I') < 0
+         && String(cA.resumen).indexOf('Clase IIa') < 0,
+    String(cA && cA.resumen).slice(0, 140)]);
+  ex.push(['(A4) y el resumen es DESCRIPTIVO: trae el gradiente y la funcion del VD',
+    !!cA && /Gradiente en el tracto de salida derecho 36 mmHg/.test(cA.resumen)
+         && /Función del ventrículo derecho normal/.test(cA.resumen),
+    String(cA && cA.resumen).slice(0, 160)]);
+  ex.push(['(A5) CONTROL: el cuerpo del informe -lineasInf- y la caja Conclusion -txt- NO cambian de forma',
+    !!cA && Array.isArray(cA.lineasInf) && cA.lineasInf[0] === ' '
+         && cA.lineasInf[1] === 'Tetralogía de Fallot reparada.'
+         && String(cA.txt).indexOf('reemplazo valvular') < 0,
+    'n=' + (cA && cA.lineasInf ? cA.lineasInf.length : 'NO')]);
+  const pdfA = pdfTextos();
+  ex.push(['(A6) el PDF generado DE VERDAD no dice la conducta de Fallot por ningun lado',
+    pdfA !== null && pdfA.indexOf('reemplazo valvular pulmonar') < 0 && pdfA.indexOf('Clase IIa') < 0,
+    pdfA === null ? 'NO HAY jsPDF' : ('largo=' + pdfA.length)]);
+  /* CONTROL NEGATIVO: con la IP como UNICO hallazgo de la seccion, el EN SUMA sigue NOMBRANDO
+     la cardiopatia. Sacar ipHayInsuf de la compuerta la haria desaparecer. */
+  __t.limpiar();
+  pon({ nombre:'AJ7 Fallot IP', ci:'1', tdf_sintomas:'no', ip_grado:'Severa' });
+  const sA2 = F('ccSumaLinea') ? ccSumaLinea('tdf') : null;
+  ex.push(['(A7) CONTROL NEGATIVO: con la IP como unico hallazgo, la linea sigue nombrando la Fallot',
+    !!sA2 && String(sA2).indexOf('Tetralogía de Fallot reparada') === 0
+          && String(sA2).indexOf('insuficiencia pulmonar') < 0,
+    String(sA2)]);
+
+  /* ══ (B) HF-PEFF — la presion de llenado normal en reposo ════════════════════════════════ */
+  __t.limpiar();
+  pon({ nombre:'AJ7 HFPEFF', ci:'2', e_sep:'6', e_lat:'7', onda_e:'95', siv:'13' });
+  /* ⚠️ EL PANEL SE ABRE UNA SOLA VEZ: indicAbrir() BORRA las respuestas, al abrir Y al
+     cerrar, asi que abrirlo antes de cada respuesta deja viva solo la ULTIMA. */
+  try { if (F('indicAbrir')) indicAbrir(); } catch (e) {}
+  /* LAS DOS respuestas, y en UNA sola apertura del panel: la linea de la presion de llenado
+     cuelga de la rama del paso 3, asi que contestar solo la presion deja el bloque sin ella. */
+  [['hfpeff.paso3','hecha'], ['hfpeff.pll','normal']].forEach((par) => {
+    const b = document.querySelector('[data-ind-clin="' + par[0] + '"][data-ind-val="' + par[1] + '"]');
+    if (b) b.click(); else ex.push(['NO HAY el boton ' + par[0] + '=' + par[1], false, '-']); });
+  const secB = (function(){ const cu = EL2('indic-cuerpo'); if (!cu) return '';
+    let hit = ''; Array.prototype.forEach.call(cu.children, (d) => {
+      if (hit || d.tagName !== 'DETAILS') return;
+      const su = d.querySelector('summary');
+      const ti = su ? (su.textContent || '') : '';
+      if (ti.indexOf('Insuficiencia cardíaca con fracción de eyección preservada') === 0)
+        hit = (d.textContent || '').replace(/\\s+/g, ' ').trim(); });
+    return hit; })();
+  ex.push(['(B0) DENOMINADOR: la seccion del HFA-PEFF esta en el panel y tiene texto',
+    secB.length > 200, 'largo=' + secB.length]);
+  ex.push(['(B1) la linea dice que una presion normal en reposo NO DESCARTA el diagnostico',
+    secB.indexOf('NO descarta la insuficiencia cardíaca con fracción de eyección preservada') >= 0,
+    secB.indexOf('NO descarta') >= 0 ? 'si' : 'NO ESTA']);
+  ex.push(['(B2) y cita los DOS folios: el 3305 de la prueba de esfuerzo y el 3307 del no descarta',
+    /texto folio 3305 y texto folio 3307, hoja 11/.test(secB), 'folios']);
+  /* El CONTROL de AJ2-i: la frase se REESCRIBIO, NO se agrego una segunda linea.
+     ⚠️ NO SE CUENTA CONTRA 1, Y ESO COSTO UNA VUELTA: la seccion emite CADA linea DOS veces
+     —una con sus corchetes de cita y otra en la copia sin acentos que alimenta el papel—, asi
+     que exigir una sola aparicion da un rojo que no describe ningun defecto. El denominador es
+     una linea PREEXISTENTE del MISMO bloque: si la nueva aparece las mismas veces que ella, el
+     mecanismo las trata igual y no hay linea de mas. */
+  const nNueva = (secB.match(/NO descarta la insuficiencia cardíaca|NO descarta la insuficiencia cardiaca/g) || []).length;
+  const nVieja = (secB.match(/continuar con el paso 3/g) || []).length;
+  ex.push(['(B3) DENOMINADOR: la linea PREEXISTENTE del mismo bloque sigue emitiendose',
+    nVieja >= 1, 'n=' + nVieja]);
+  ex.push(['(B3b) CONTROL: la frase se REESCRIBIO -aparece las mismas veces que su vecina, no una de mas-',
+    nNueva === nVieja, 'nueva=' + nNueva + ' vieja=' + nVieja]);
+
+  /* ══ (C) ATEROMA — la fila «Descripcion» fuera de la pantalla y de la hoja ═══════════════ */
+  __t.limpiar();
+  try { showTab('ete') } catch (e) {}
+  (function(){ const s = EL2('ete-seccion-aorta');
+    if (s && getComputedStyle(s).display === 'none') s.style.display = 'block'; })();
+  pon({ nombre:'AJ7 Ateroma', ci:'3', ao_segmento:'arco', ao_grado_atero:'4',
+        ao_grosor_placa:'6', ao_movilidad_placa:'fija' });
+  const filC = Array.prototype.map.call(
+    document.querySelectorAll('#ete-seccion-aorta .calc-box .calc-row'), (r) => {
+      const l = r.querySelector('.calc-lbl');
+      return { lbl: l ? l.textContent.trim() : '', vis: getComputedStyle(r).display !== 'none' };
+    });
+  ex.push(['(C0) DENOMINADOR: la caja del ateroma tiene sus CUATRO filas y el grado esta cargado',
+    filC.length === 4 && T('ao-recomendacion').indexOf('grado 4') >= 0,
+    'n=' + filC.length + ' rec=' + T('ao-recomendacion')]);
+  ex.push(['(C1) la fila «Clasificacion - descripcion» esta ESCONDIDA',
+    filC.some((f) => f.lbl === 'Clasificación — descripción' && f.vis === false),
+    JSON.stringify(filC.map((f) => f.lbl + '=' + f.vis))]);
+  ex.push(['(C2) CONTROL: las OTRAS DOS siguen a la vista',
+    filC.some((f) => f.lbl === 'Descripción del hallazgo' && f.vis === true)
+    && filC.some((f) => f.lbl === 'Grosor medido — grado en la escala' && f.vis === true),
+    JSON.stringify(filC.map((f) => f.lbl + '=' + f.vis))]);
+  ex.push(['(C3) CONTROL: el grosor sigue completando el grado automaticamente',
+    T('ao-atero-grosor').indexOf('corresponde al grado 4') >= 0, T('ao-atero-grosor')]);
+  const hojaC = (function(){ try {
+      const s = (F('amiloSecs') ? amiloSecs() : []).filter((x) => x.k === 'aoete')[0];
+      return s && s.gen ? String(s.gen()) : 'NO HAY aoete';
+    } catch (e) { return 'EXC ' + e.message } })();
+  ex.push(['(C4) la hoja del ETE ya no publica la linea «Descripcion | ...»',
+    hojaC.indexOf('Descripción | ') < 0, hojaC.slice(-120)]);
+  ex.push(['(C5) CONTROL: la hoja SI conserva el hallazgo con su grado',
+    hojaC.indexOf('Ateroma de más de 5 mm (grado 4).') >= 0, hojaC.slice(-120)]);
+
+  /* ══ (D) BLOQUES INTEGRADOS — se retiran solos y el PDF avisa ════════════════════════════ */
+  __t.limpiar();
+  try { showTab('hemodinamica') } catch (e) {}
+  pon({ nombre:'AJ7 POP', ci:'4', peso:'80', talla:'175', pop_cx_tipo:'cabg',
+        pop_cx_horas:'8', pop_monitor:'picco', pop_picco_ic:'2.4' });
+  const hayD0 = (function(){ try { const s = (F('amiloSecs') ? amiloSecs() : []).filter((x) => x.k === 'pop')[0];
+    return s && s.hayDatos ? s.hayDatos() : null } catch (e) { return 'EXC' } })();
+  try { if (F('amiloIntegrar')) amiloIntegrar('pop'); } catch (e) {}
+  const intD0 = F('amiloIntegrado') ? amiloIntegrado('pop') : null;
+  ex.push(['(D0) DENOMINADOR: con datos, el modulo del POP declara que los tiene y el bloque integra',
+    hayD0 === true && intD0 === true, 'hayDatos=' + hayD0 + ' integrado=' + intD0]);
+  pon({ pop_picco_ic:'' });
+  try { if (F('amiloRefrescarSiIntacto')) amiloRefrescarSiIntacto('pop'); } catch (e) {}
+  ex.push(['(D1) borrados los datos del modulo, el bloque SE RETIRA SOLO',
+    (F('amiloIntegrado') ? amiloIntegrado('pop') : null) === false,
+    'integrado=' + (F('amiloIntegrado') ? amiloIntegrado('pop') : 'NO FN')]);
+  /* Editado a mano: NO se retira. */
+  __t.limpiar();
+  pon({ nombre:'AJ7 POP ed', ci:'4', peso:'80', talla:'175', pop_cx_tipo:'cabg',
+        pop_cx_horas:'8', pop_monitor:'picco', pop_picco_ic:'2.4' });
+  try { if (F('amiloIntegrar')) amiloIntegrar('pop'); } catch (e) {}
+  (function(){ const ta = EL2('am-txt-pop'); if (!ta) return;
+    ta.value = 'TEXTO ESCRITO POR EL MEDICO';
+    if (F('amiloTxtInput')) amiloTxtInput('pop');
+    else ta.dispatchEvent(new Event('input', { bubbles: true })); })();
+  const edD = String(__t.val('am-editados') || '');
+  pon({ pop_picco_ic:'' });
+  try { if (F('amiloRefrescarSiIntacto')) amiloRefrescarSiIntacto('pop'); } catch (e) {}
+  ex.push(['(D2) DENOMINADOR: el bloque quedo MARCADO como editado a mano',
+    edD.indexOf('pop') >= 0, 'am-editados=' + edD]);
+  ex.push(['(D3) CONTROL: editado a mano, el bloque SOBREVIVE con el texto del medico',
+    (F('amiloIntegrado') ? amiloIntegrado('pop') : null) === true
+    && String(__t.val('am-txt-pop')) === 'TEXTO ESCRITO POR EL MEDICO',
+    'integrado=' + (F('amiloIntegrado') ? amiloIntegrado('pop') : 'NO FN')]);
+  ex.push(['(D4) y queda marcado como DESFASADO',
+    (F('_amiloDesfasado') ? _amiloDesfasado('pop') : null) === true,
+    'desfasado=' + (F('_amiloDesfasado') ? _amiloDesfasado('pop') : 'NO FN')]);
+  const avD = (function(){
+    const visto = []; const oc = window.confirm, oCard = window.mostrarCardSeveridadValvular;
+    let siguio = 0; const oAj = window._pdfAjustarA4, oReal = window.generarPDFReal;
+    window.confirm = function(m){ visto.push(String(m)); return false };
+    window.mostrarCardSeveridadValvular = function(cb){ siguio++; if (cb) cb(); };
+    window._pdfAjustarA4 = function(){ siguio++ };
+    window.generarPDFReal = function(){ siguio++ };
+    try { generarPDF(); } catch (e) { visto.push('EXC ' + e.message); }
+    window.confirm = oc; window.mostrarCardSeveridadValvular = oCard;
+    window._pdfAjustarA4 = oAj; window.generarPDFReal = oReal;
+    return { n: visto.length, msg: visto[0] || '', siguio: siguio };
+  })();
+  ex.push(['(D5) al exportar el PDF se pregunta UNA vez, nombrando el bloque desfasado',
+    avD.n === 1 && avD.msg.indexOf('¿Exportar igual?') >= 0
+    && avD.msg.indexOf('PostCEC') >= 0, 'n=' + avD.n + ' msg=' + avD.msg.slice(0, 90)]);
+  ex.push(['(D6) y un «no» DETIENE la exportacion',
+    avD.siguio === 0, 'siguio=' + avD.siguio]);
+  const avD2 = (function(){
+    const oc = window.confirm, oCard = window.mostrarCardSeveridadValvular;
+    let siguio = 0; const oAj = window._pdfAjustarA4, oReal = window.generarPDFReal;
+    window.confirm = function(){ return true };
+    window.mostrarCardSeveridadValvular = function(cb){ if (cb) cb(); };
+    window._pdfAjustarA4 = function(){ siguio++ };
+    window.generarPDFReal = function(){ siguio++ };
+    try { generarPDF(); } catch (e) {}
+    window.confirm = oc; window.mostrarCardSeveridadValvular = oCard;
+    window._pdfAjustarA4 = oAj; window.generarPDFReal = oReal;
+    return siguio;
+  })();
+  ex.push(['(D7) CONTROL: si el medico acepta, la exportacion sigue y no cambia nada mas',
+    avD2 >= 1 && String(__t.val('am-txt-pop')) === 'TEXTO ESCRITO POR EL MEDICO',
+    'siguio=' + avD2]);
+  const avD3 = (function(){
+    __t.limpiar();
+    const visto = []; const oc = window.confirm, oCard = window.mostrarCardSeveridadValvular;
+    const oAj = window._pdfAjustarA4, oReal = window.generarPDFReal;
+    window.confirm = function(m){ visto.push(String(m)); return false };
+    window.mostrarCardSeveridadValvular = function(cb){ if (cb) cb(); };
+    window._pdfAjustarA4 = function(){}; window.generarPDFReal = function(){};
+    try { generarPDF(); } catch (e) {}
+    window.confirm = oc; window.mostrarCardSeveridadValvular = oCard;
+    window._pdfAjustarA4 = oAj; window.generarPDFReal = oReal;
+    return visto.length;
+  })();
+  ex.push(['(D8) CONTROL NEGATIVO: sin ningun bloque editado NO se pregunta nada',
+    avD3 === 0, 'preguntas=' + avD3]);
+  /* ⚠️ LA MARCA SOLO SE PUEDE EJERCITAR DESPUES DE GUARDAR Y REABRIR, y es la unica prueba que
+     la distingue de la comparacion. Con el estudio en pantalla hay DOS frenos —la marca, y que
+     el texto del medico no coincide con _amiloUltimo—, asi que una mutacion que vacie la marca
+     SOBREVIVE tapada por el otro: paso en el barrido. Al reabrir, amiloRestaurarDesdeCampos
+     repone _amiloUltimo[k] = ta.value, los dos lados coinciden y la comparacion deja de
+     proteger: ahi la marca es lo unico que queda. */
+  __t.limpiar();
+  pon({ nombre:'AJ7 POP save', ci:'4', peso:'80', talla:'175', pop_cx_tipo:'cabg',
+        pop_cx_horas:'8', pop_monitor:'picco', pop_picco_ic:'2.4' });
+  try { if (F('amiloIntegrar')) amiloIntegrar('pop'); } catch (e) {}
+  (function(){ const ta = EL2('am-txt-pop'); if (!ta) return;
+    ta.value = 'TEXTO DEL MEDICO QUE SOBREVIVE AL GUARDADO';
+    if (F('amiloTxtInput')) amiloTxtInput('pop'); })();
+  const gD = await __t.guardar();
+  __t.nuevoEstudio();
+  if (gD && gD.estudioId) __t.reabrir(gD.estudioId);
+  await pausa(400);
+  ex.push(['(D9) DENOMINADOR: el estudio se guardo, se reabrio y el bloque volvio con el texto del medico',
+    !!(gD && gD.estudioId)
+    && String(__t.val('am-txt-pop') || '').indexOf('SOBREVIVE AL GUARDADO') >= 0
+    && String(__t.val('am-editados') || '').indexOf('pop') >= 0,
+    'id=' + (gD && gD.estudioId) + ' ed=' + __t.val('am-editados')]);
+  pon({ pop_picco_ic:'' });
+  try { if (F('amiloRefrescarSiIntacto')) amiloRefrescarSiIntacto('pop'); } catch (e) {}
+  ex.push(['(D10) CONTROL: tras reabrir, la MARCA sigue protegiendo el texto del medico',
+    String(__t.val('am-txt-pop') || '').indexOf('SOBREVIVE AL GUARDADO') >= 0
+    && (F('amiloIntegrado') ? amiloIntegrado('pop') : null) === true,
+    'txt=' + String(__t.val('am-txt-pop') || '').slice(0, 50)]);
+  try { if (gD && gD.estudioId) await __t.borrar(gD.estudioId); } catch (e) {}
+
+  /* ══ (E) EL STRAIN DEL VD VOTA ═══════════════════════════════════════════════════════════ */
+  const vdEsc = (c) => { __t.limpiar();
+    pon(Object.assign({ nombre:'AJ7 VD', ci:'5' }, c));
+    const I = __t.informe();
+    const l = String(I.inf || '').split(/\\n/).filter((x) => /ventr[ií]culo derecho/i.test(x)).join(' ');
+    return l; };
+  const eLeve = vdEsc({ tapse:'22', s_prime:'13', vd_strain_pl:'-18' });
+  const eBajo = vdEsc({ tapse:'22', s_prime:'13', vd_strain_pl:'-12' });
+  const eNorm = vdEsc({ tapse:'22', s_prime:'13', vd_strain_pl:'-25' });
+  const e15   = vdEsc({ tapse:'22', s_prime:'13', vd_strain_pl:'-15' });
+  const e20   = vdEsc({ tapse:'22', s_prime:'13', vd_strain_pl:'-20' });
+  const eCtrl = vdEsc({ tapse:'12', s_prime:'6',  vd_strain_pl:'-25' });
+  ex.push(['(E0) DENOMINADOR: el informe emite la oracion del ventriculo derecho en las seis escenas',
+    [eLeve, eBajo, eNorm, e15, e20, eCtrl].every((x) => x.length > 30),
+    [eLeve, eBajo, eNorm, e15, e20, eCtrl].map((x) => x.length).join('/')]);
+  ex.push(['(E1) strain -18 % vota DISFUNCION LEVE con TAPSE y onda S prima normales',
+    /disfunción sistólica leve \\(strain de pared libre −18 %\\)/.test(eLeve), eLeve]);
+  ex.push(['(E2) strain -12 % vota «leve como minimo» y NUNCA moderada ni severa',
+    /disfunción sistólica leve como mínimo/.test(eBajo)
+    && !/moderada|severa/.test(eBajo), eBajo]);
+  ex.push(['(E3) CONTROL NEGATIVO: strain -25 % NO vota y la funcion sigue conservada',
+    /función sistólica conservada/.test(eNorm), eNorm]);
+  ex.push(['(E4) el borde 15 vota leve -el 15 esta INCLUIDO-',
+    /disfunción sistólica leve \\(/.test(e15), e15]);
+  ex.push(['(E5) el borde 20 vota leve -lo normal es MAS de 20-',
+    /disfunción sistólica leve \\(/.test(e20), e20]);
+  ex.push(['(E6) CONTROL: con el strain NORMAL, el grado de TAPSE y S prima manda',
+    /disfunción sistólica moderada/.test(eCtrl), eCtrl]);
+  /* ⚠️ Y EL CONTROL QUE DE VERDAD FIJA EL PISO: TAPSE y onda S prima dando MODERADA y el strain
+     VOTANDO leve. Con el (E6) solo, una mutacion que dejara al strain PISAR el grado sobrevive
+     —ahi el strain es normal y strVota es false—. Paso en el barrido de mutaciones. */
+  const eChoque = vdEsc({ tapse:'12', s_prime:'6', vd_strain_pl:'-18' });
+  ex.push(['(E7) DENOMINADOR: la escena del choque emite su oracion',
+    eChoque.length > 30, 'largo=' + eChoque.length]);
+  ex.push(['(E8) CONTROL: con TAPSE y S prima en MODERADA y el strain votando leve, manda MODERADA',
+    /disfunción sistólica moderada/.test(eChoque) && !/leve/.test(eChoque), eChoque]);
+
+  /* ══ (F) LA BANDA LEVE, DECLARADA EN REFERENCIAS ═════════════════════════════════════════ */
+  try { showTab('referencias') } catch (e) {}
+  try { if (F('evRefPintar')) evRefPintar('vd2'); } catch (e) {}
+  const hostF = EL2('ref-vd2-cuerpo');
+  const filF = hostF ? Array.prototype.map.call(hostF.querySelectorAll('tr'), (tr) =>
+    Array.prototype.map.call(tr.querySelectorAll('th,td'), (c) => (c.textContent || '').trim()).join(' | ')) : [];
+  ex.push(['(F0) DENOMINADOR: el cuadro del VD de Referencias se pinta y tiene sus filas',
+    filF.length > 20, 'n=' + filF.length]);
+  const fLeve = filF.filter((x) => x.indexOf('Strain de pared libre — disfunción leve') === 0)[0] || '';
+  ex.push(['(F1) existe la fila de la banda LEVE, derivada de las constantes',
+    /de 15 a 20 %/.test(fLeve), fLeve || 'NO ESTA']);
+  ex.push(['(F2) y va SIN CORCHETE: la fuente no publica ese corte',
+    fLeve !== '' && !/\\[\\d+\\]/.test(fLeve), fLeve]);
+  const fNorm = filF.filter((x) => x.indexOf('Strain de pared libre — normal') === 0)[0] || '';
+  ex.push(['(F3) CONTROL: la fila de NORMALIDAD si lleva corchete, porque esa si es de la guia',
+    /\\[\\d+\\]/.test(fNorm), fNorm || 'NO ESTA']);
+  ex.push(['(F4) y abajo esta la nota con el chip CRITERIO DE ECOSMART',
+    !!hostF && /CRITERIO DE ECOSMART/.test(hostF.textContent || '')
+    && /banda de disfunción leve/.test(hostF.textContent || ''), 'chip']);
+
+  /* ══ (G) MITRAL — protesis y el rotulo que entra ═════════════════════════════════════════ */
+  /* DENOMINADOR: el <select> tiene que tener GEOMETRIA. vmMorfFitSync sale temprano con
+     ancho 0 -a proposito, para no medir un control escondido-, y la sonda leeria un ancho util
+     NEGATIVO y un cuerpo sin achicar: un rojo que nace en la sonda. */
+  const abrirMitral = () => { try { showTab('valvulas') } catch (e) {}
+    const e = EL2('vm_morf'); if (!e) return false;
+    let n = e.parentNode;
+    while (n && n.nodeType === 1 && n !== document.body) {
+      if (getComputedStyle(n).display === 'none') n.style.display = 'block';
+      n = n.parentNode; }
+    return e.getBoundingClientRect().width > 0; };
+  const mitEsc = (morf) => { __t.limpiar();
+    abrirMitral();
+    pon({ nombre:'AJ7 Mitral', ci:'6', vm_morf:morf, vm_tipo_im:'primaria', vm_carp:'II' });
+    try { if (F('vmMorfFitSync')) vmMorfFitSync(); } catch (e) {}
+    const o = {};
+    ['vm_tipo_im', 'vm_carp', 'vm_morf'].forEach((id) => { const e = EL2(id);
+      const fg = e && e.closest ? e.closest('.fg') : null;
+      const lab = fg ? fg.querySelector('label') : null;
+      o[id] = e ? { v:e.value, dis:!!e.disabled, op:getComputedStyle(e).opacity,
+                    labOp: lab ? (lab.style.opacity || getComputedStyle(lab).opacity) : null,
+                    fs:parseFloat(getComputedStyle(e).fontSize) } : null; });
+    return o; };
+  const mNat = mitEsc('Mixomatosa / Barlow');
+  const mPro = mitEsc('Prótesis biológica');
+  ex.push(['(G0) DENOMINADOR: los tres selectores existen y conservan lo cargado en las dos escenas',
+    !!mNat.vm_tipo_im && !!mPro.vm_tipo_im
+    && mNat.vm_tipo_im.v === 'primaria' && mPro.vm_tipo_im.v === 'primaria'
+    && mNat.vm_carp.v === 'II' && mPro.vm_carp.v === 'II',
+    JSON.stringify([mNat.vm_tipo_im, mPro.vm_tipo_im])]);
+  ex.push(['(G1) con protesis mitral, Tipo de IM y Carpentier quedan BLOQUEADOS',
+    mPro.vm_tipo_im.dis === true && mPro.vm_carp.dis === true,
+    'tipo=' + mPro.vm_tipo_im.dis + ' carp=' + mPro.vm_carp.dis]);
+  /* ⚠️ SE EXIGE EL 0,5 EXACTO, Y NO UN «MENOR QUE 1». Medido: con el opacity propio sacado, un
+     <select> deshabilitado igual queda en 0,7 porque lo pone la hoja de estilos DEL NAVEGADOR
+     (Chromium: select:disabled { opacity: 0.7 }). Un «< 1» no distingue la decision de la app
+     de la del motor, y una mutacion que saca el opacity propio SOBREVIVE — paso, y por eso
+     esta condicion es exacta. El ROTULO es la otra mitad: el disabled del navegador no lo toca. */
+  ex.push(['(G2) y ATENUADOS: el campo al 0,5 que fija la app, no al 0,7 del navegador',
+    mPro.vm_tipo_im.op === '0.5' && mPro.vm_carp.op === '0.5',
+    'op=' + mPro.vm_tipo_im.op + '/' + mPro.vm_carp.op]);
+  ex.push(['(G2b) y el ROTULO tambien se atenua, que es lo que el disabled del navegador NO hace',
+    parseFloat(mPro.vm_tipo_im.labOp) < 1 && parseFloat(mPro.vm_carp.labOp) < 1,
+    'labOp=' + mPro.vm_tipo_im.labOp + '/' + mPro.vm_carp.labOp]);
+  ex.push(['(G3) CONTROL NEGATIVO: con morfologia NATIVA siguen habilitados y opacos',
+    mNat.vm_tipo_im.dis === false && mNat.vm_carp.dis === false
+    && parseFloat(mNat.vm_tipo_im.op) === 1, 'dis=' + mNat.vm_tipo_im.dis]);
+  const fitG = (function(){ abrirMitral(); const e = EL2('vm_morf'); if (!e) return null;
+    const cs = getComputedStyle(e), r = e.getBoundingClientRect();
+    const util = r.width - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight) - 18;
+    const op = e.options[e.selectedIndex];
+    const cv = document.createElement('canvas').getContext('2d');
+    cv.font = cs.fontStyle + ' ' + cs.fontWeight + ' ' + cs.fontSize + ' ' + cs.fontFamily;
+    return { util: Math.round(util), w: Math.round(cv.measureText(op ? op.text : '').width),
+             fs: parseFloat(cs.fontSize), txt: op ? op.text : '' }; })();
+  ex.push(['(G4) DENOMINADOR: se midio el rotulo SELECCIONADO contra el ancho util real',
+    !!fitG && fitG.util > 40 && fitG.txt === 'Prótesis biológica', JSON.stringify(fitG)]);
+  const fitG2 = (function(){ __t.limpiar();
+    abrirMitral();
+    pon({ nombre:'AJ7 Mitral', ci:'6', vm_morf:'Mixomatosa / Barlow' });
+    try { if (F('vmMorfFitSync')) vmMorfFitSync(); } catch (e) {}
+    const e = EL2('vm_morf'); if (!e) return null;
+    const cs = getComputedStyle(e), r = e.getBoundingClientRect();
+    const util = r.width - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight) - 18;
+    const op = e.options[e.selectedIndex];
+    const cv = document.createElement('canvas').getContext('2d');
+    cv.font = cs.fontStyle + ' ' + cs.fontWeight + ' ' + cs.fontSize + ' ' + cs.fontFamily;
+    return { util: Math.round(util), w: Math.round(cv.measureText(op ? op.text : '').width),
+             fs: parseFloat(cs.fontSize), txt: op ? op.text : '' }; })();
+  ex.push(['(G5) «Mixomatosa / Barlow» ENTRA en el control cerrado, sin recortarse',
+    !!fitG2 && fitG2.txt === 'Mixomatosa / Barlow' && fitG2.w <= fitG2.util,
+    JSON.stringify(fitG2)]);
+  /* ⚠️ EL ARNES CORRE EN UNA VENTANA ANGOSTA Y LA COLUMNA LE QUEDA MAS ANCHA que la fila de
+     tres campos del escritorio, asi que ahi el rotulo YA entra a 12,48 px y no hay nada que
+     achicar: exigir el achique sin mas seria un rojo que nace en el ancho del arnes. Se fija el
+     ancho a los 149 px que la AJ5 midio sobre la fila real y recien ahi se exige. */
+  const fitG3 = (function(){ const e = EL2('vm_morf'); if (!e) return null;
+    const antes = e.style.width;
+    e.style.width = '149px'; e.style.fontSize = '';
+    try { if (F('vmMorfFitSync')) vmMorfFitSync(); } catch (x) {}
+    const cs = getComputedStyle(e), r = e.getBoundingClientRect();
+    const util = r.width - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight) - 18;
+    const op = e.options[e.selectedIndex];
+    const cv = document.createElement('canvas').getContext('2d');
+    cv.font = cs.fontStyle + ' ' + cs.fontWeight + ' ' + cs.fontSize + ' ' + cs.fontFamily;
+    const o = { util: Math.round(util), w: Math.round(cv.measureText(op ? op.text : '').width),
+                fs: parseFloat(cs.fontSize) };
+    e.style.width = antes; e.style.fontSize = '';
+    return o; })();
+  ex.push(['(G6) DENOMINADOR: con el ancho REAL de la fila -149 px- el util queda en ~121 px',
+    !!fitG3 && fitG3.util > 100 && fitG3.util < 140, JSON.stringify(fitG3)]);
+  ex.push(['(G7) ahi SI achica la letra, y el rotulo entra',
+    !!fitG3 && fitG3.fs < 12.4 && fitG3.fs >= 10 && fitG3.w <= fitG3.util,
+    JSON.stringify(fitG3)]);
+  /* ⚠️ EL PISO SOLO SE EJERCITA CON UN ROTULO QUE NO ENTRA NI AL MINIMO. «Mixomatosa / Barlow»
+     entra a ~11,98 px, asi que el bucle se detiene antes de tocar el piso y una mutacion que lo
+     baje a 1 px SOBREVIVE — paso en el barrido. «Isquémica (disfunción/rotura músculo papilar)»
+     mide 275 px contra 121 de util: no entra a ningun cuerpo razonable, y ahi el piso manda. */
+  const fitG4 = (function(){ abrirMitral();
+    const e = EL2('vm_morf'); if (!e) return null;
+    const antes = e.style.width;
+    pon({ vm_morf:'Isquémica (disfunción/rotura músculo papilar)' });
+    e.style.width = '149px'; e.style.fontSize = '';
+    try { if (F('vmMorfFitSync')) vmMorfFitSync(); } catch (x) {}
+    const fs = parseFloat(getComputedStyle(e).fontSize);
+    const txt = e.options[e.selectedIndex] ? e.options[e.selectedIndex].text : '';
+    e.style.width = antes; e.style.fontSize = '';
+    return { fs: fs, txt: txt }; })();
+  ex.push(['(G8) DENOMINADOR: la opcion larga quedo seleccionada',
+    !!fitG4 && fitG4.txt.indexOf('Isquémica') === 0, JSON.stringify(fitG4)]);
+  ex.push(['(G9) con un rotulo que NO entra ni al minimo, el achique SE DETIENE EN EL PISO de 10 px',
+    !!fitG4 && fitG4.fs >= 10 && fitG4.fs <= 10.3, JSON.stringify(fitG4)]);
+
+  /* ══ (H) CONSTRICCION — las dos conductas fuera del papel y la compuerta ═════════════════ */
+  __t.limpiar();
+  pon({ nombre:'AJ7 Constr', ci:'7', cvr_rebote:'si', cvr_hepatico:'esp', e_sep:'11', e_lat:'8' });
+  try { if (F('amiloIntegrar')) amiloIntegrar('cvr'); } catch (e) {}
+  const stH = F('cvrEstado') ? cvrEstado() : null;
+  const IH = __t.informe();
+  ex.push(['(H0) DENOMINADOR: el modulo concluye constriccion y el bloque esta INTEGRADO -sin eso el informe no publica una sola linea de pericardio-',
+    !!stH && stH.clave === 'constrictiva'
+    && (F('amiloIntegrado') ? amiloIntegrado('cvr') : false) === true
+    && String(IH.inf).indexOf('pericarditis constrictiva') >= 0,
+    'clave=' + (stH && stH.clave)]);
+  ex.push(['(H1) el cuerpo del informe ya NO dice «requiere correlacion clinica e imagenologica»',
+    String(IH.inf).indexOf('requiere correlación clínica e imagenológica') < 0, 'cuerpo']);
+  const pdfH = pdfTextos();
+  ex.push(['(H2) y la hoja del PDF tampoco',
+    pdfH !== null && pdfH.indexOf('requiere correlación clínica e imagenológica') < 0,
+    pdfH === null ? 'NO HAY jsPDF' : 'largo=' + pdfH.length]);
+  __t.limpiar();
+  pon({ nombre:'AJ7 Restr', ci:'7', e_sep:'5', e_lat:'8', onda_e:'110',
+        resp_var_mitral:'8', cvr_rebote:'no', cvr_hepatico:'insp' });
+  try { if (F('amiloIntegrar')) amiloIntegrar('cvr'); } catch (e) {}
+  const stH2 = F('cvrEstado') ? cvrEstado() : null;
+  const IH2 = __t.informe();
+  ex.push(['(H3) DENOMINADOR: la rama RESTRICTIVA se alcanza y publica su frase',
+    !!stH2 && stH2.clave === 'restrictiva'
+    && String(IH2.inf).indexOf('miocardiopatía restrictiva') >= 0,
+    'clave=' + (stH2 && stH2.clave)]);
+  ex.push(['(H4) «Considerar RMC con gadolinio» ya no esta en el cuerpo del informe',
+    String(IH2.inf).indexOf('Considerar RMC con gadolinio') < 0, 'cuerpo']);
+  const pdfH2 = pdfTextos();
+  ex.push(['(H5) ni en el PDF generado de verdad',
+    pdfH2 !== null && pdfH2.indexOf('Considerar RMC con gadolinio') < 0,
+    pdfH2 === null ? 'NO HAY jsPDF' : 'largo=' + pdfH2.length]);
+  /* La compuerta de la Evidencia. */
+  __t.limpiar();
+  pon({ nombre:'AJ7 Tapo', ci:'7', resp_var_mitral:'32', dpt_mm_post:'18' });
+  const indTapo = (function(){ try { return F('_indConstr') ? !!_indConstr() : 'NO FN' }
+    catch (e) { return 'EXC ' + e.message } })();
+  const stH3 = F('cvrEstado') ? cvrEstado() : null;
+  ex.push(['(H6) DENOMINADOR: el estudio de solo taponamiento SI tiene un criterio especifico evaluado',
+    !!stH3 && stH3.espEval >= 1, 'espEval=' + (stH3 && stH3.espEval)]);
+  ex.push(['(H7) y aun asi la Evidencia de constriccion NO despierta: la respirofasicidad mitral es del otro modulo',
+    indTapo === false, 'ind=' + indTapo]);
+  __t.limpiar();
+  pon({ nombre:'AJ7 Propio', ci:'7', cvr_rebote:'si' });
+  ex.push(['(H8) CONTROL: con un dato PROPIO -el rebote septal- la Evidencia si despierta',
+    (function(){ try { return F('_indConstr') ? !!_indConstr() : 'NO FN' }
+      catch (e) { return 'EXC' } })() === true, 'rebote']);
+
+  /* ══ (I) VExUS — el aviso y la poblacion ═════════════════════════════════════════════════ */
+  const vexEsc = (d) => { __t.limpiar();
+    pon({ nombre:'AJ7 VExUS', ci:'8', vci_diam:d, vexus_sh:'2' });
+    return T('vexus-vci-aviso'); };
+  const v19 = vexEsc('19'), v20 = vexEsc('20'), v21 = vexEsc('21');
+  ex.push(['(I0) DENOMINADOR: el aviso de la VCI se pinta en las tres escenas',
+    [v19, v20, v21].every((x) => x.length > 40), [v19, v20, v21].map((x) => x.length).join('/')]);
+  ex.push(['(I1) el aviso de 19 mm es EXACTAMENTE el de siempre',
+    v19 === 'VCI < 20 mm → el grado es 0 aunque los vasos estén alterados. Cargá al menos un vaso para dejar constancia de que se aplicó el protocolo.', v19]);
+  ex.push(['(I2) el de 20 mm exactos tambien',
+    v20 === 'VCI de 20 mm exactos → el grado es 1 como máximo: los grados 2 y 3 del protocolo piden una vena cava de más de 20 mm.', v20]);
+  ex.push(['(I3) y el de 21 mm tambien',
+    v21 === 'VCI > 20 mm → el grado lo define cuántos vasos están severos: uno → 2, dos o más → 3.', v21]);
+  const secI = (function(){ __t.limpiar();
+    pon({ nombre:'AJ7 VExUS', ci:'8', vci_diam:'24', vexus_sh:'2', vexus_pv:'2' });
+    try { if (F('indicAbrir')) indicAbrir(); } catch (e) {}
+    const cu = EL2('indic-cuerpo'); if (!cu) return '';
+    let hit = ''; Array.prototype.forEach.call(cu.children, (d) => {
+      if (hit || d.tagName !== 'DETAILS') return;
+      const su = d.querySelector('summary');
+      if (su && (su.textContent || '').indexOf('Congestión venosa sistémica') === 0)
+        hit = (d.textContent || '').replace(/\\s+/g, ' ').trim(); });
+    return hit; })();
+  ex.push(['(I4) DENOMINADOR: la Evidencia de VExUS despierta y tiene texto',
+    secI.length > 300, 'largo=' + secI.length]);
+  ex.push(['(I5) y dice la POBLACION del estudio en su propia linea',
+    /La graduación se desarrolló en 145 pacientes de CIRUGÍA CARDÍACA, con 706 valoraciones/.test(secI),
+    secI.indexOf('145 pacientes') >= 0 ? 'si' : 'NO ESTA']);
+
+  /* ══ (J) CARDIO-ONCOLOGIA — el plazo sin fuente ══════════════════════════════════════════ */
+  try { showTab('cardioonco') } catch (e) {}
+  const cuerpoJ = document.body.textContent || '';
+  ex.push(['(J0) DENOMINADOR: la fila anti-HER2 existe y sigue remitiendo a la subtab CTRCD',
+    (cuerpoJ.match(/graduar la CTRCD con la subtab/g) || []).length >= 2,
+    'n=' + (cuerpoJ.match(/graduar la CTRCD con la subtab/g) || []).length]);
+  ex.push(['(J1) «reevaluar en 3-6 sem» no esta en ninguna de las dos copias',
+    cuerpoJ.indexOf('reevaluar en 3-6 sem') < 0 && cuerpoJ.indexOf('3-6 sem') < 0, 'cero']);
+
+  /* ══ (K) LOS DOS GLOBOS DE 44x44 ═════════════════════════════════════════════════════════ */
+  /* ⚠️ EL PANEL DE EVIDENCIA QUEDA ABIERTO de los grupos (B) e (I) y es un overlay fixed que
+     tapa el documento ENTERO: sin cerrarlo, elementFromPoint devuelve DETAILS y SUMMARY del
+     panel sobre CUALQUIER punto, y este grupo informaria «el globo tapa a un vecino» sobre un
+     defecto que no existe. Medido: los cinco puntos daban DIV#indic-cuerpo. */
+  try { if (F('indicCerrar')) indicCerrar(); } catch (e) {}
+  const tapK = (function(){
+    const out = [];
+    Array.prototype.forEach.call(document.querySelectorAll('button.vinfo-btn-44'), (b) => {
+      let n = b.parentNode;
+      while (n && n.nodeType === 1 && n !== document.body) {
+        if (getComputedStyle(n).display === 'none') n.style.display = 'block';
+        n = n.parentNode; }
+      try { b.scrollIntoView({ block:'center' }) } catch (e) {}
+      const r = b.getBoundingClientRect();
+      const pts = [[r.left + 1, r.top + 1], [r.right - 1, r.top + 1],
+                   [r.left + 1, r.bottom - 1], [r.right - 1, r.bottom - 1],
+                   [(r.left + r.right) / 2, (r.top + r.bottom) / 2]];
+      const hits = pts.map((p) => { const e2 = document.elementFromPoint(p[0], p[1]);
+        return e2 === b ? 'propio' : (e2 ? (e2.tagName + (e2.id ? '#' + e2.id : '')) : 'nada'); });
+      out.push({ k: b.getAttribute('data-vinfo'), w: Math.round(r.width), h: Math.round(r.height),
+                 enVista: r.top >= 0 && r.bottom <= window.innerHeight,
+                 propios: hits.filter((h) => h === 'propio').length, hits: hits });
+    });
+    return out; })();
+  ex.push(['(K0) DENOMINADOR: los DOS globos llevan la clase, tienen geometria y estan EN VISTA',
+    tapK.length === 2 && tapK.every((x) => x.w > 0 && x.h > 0 && x.enVista), JSON.stringify(tapK)]);
+  ex.push(['(K1) los dos miden 44x44 tambien con el mouse',
+    tapK.length === 2 && tapK.every((x) => x.w >= 44 && x.h >= 44), JSON.stringify(tapK)]);
+  ex.push(['(K2) y su caja NO tapa a ningun vecino: los cinco puntos dan el propio boton',
+    tapK.length === 2 && tapK.every((x) => x.propios === 5), JSON.stringify(tapK)]);
+  ex.push(['(K3) CONTROL: los demas globos NO se tocaron y siguen con su piso solo tactil',
+    document.querySelectorAll('button.vinfo-btn').length
+      - document.querySelectorAll('button.vinfo-btn-44').length >= 10,
+    'otros=' + (document.querySelectorAll('button.vinfo-btn').length
+      - document.querySelectorAll('button.vinfo-btn-44').length)]);
+
+  /* ══ (L) UNA SOLA CONSTANTE PARA EL CORTE DE HTP ═════════════════════════════════════════ */
+  ex.push(['(L0) existe el dueno unico HP_PAPM_MIN y vale 20',
+    typeof window.HP_PAPM_MIN === 'number' && window.HP_PAPM_MIN === 20,
+    'HP_PAPM_MIN=' + window.HP_PAPM_MIN]);
+  const hemoL = (t) => { const e = EL2('psap_calc'); if (!e) return 'NO EXISTE psap_calc';
+    e.value = String(t); e.dispatchEvent(new Event('input', { bubbles: true }));
+    try { if (F('calcHemo')) calcHemo(); } catch (x) {}
+    return T('hemo-htp-tipo'); };
+  __t.limpiar();
+  pon({ nombre:'AJ7 HP', ci:'9', peso:'80', talla:'175', onda_e:'90', e_sep:'6', e_lat:'8' });
+  const l19 = hemoL(27.868852), l20 = hemoL(29.5), l21 = hemoL(29.6);
+  ex.push(['(L1) DENOMINADOR: con E/e cargado la pastilla de HTP ya no pide datos',
+    [l19, l20, l21].every((x) => x.indexOf('Requiere') < 0),
+    [l19, l20, l21].map((x) => x.slice(0, 28)).join(' // ')]);
+  ex.push(['(L2) PAPm 19 y 19,995 siguen dando «Sin HTP»',
+    /Sin HTP \\(PAPm ≤20 mmHg\\)/.test(l19) && /Sin HTP \\(PAPm ≤20 mmHg\\)/.test(l20),
+    l19 + ' // ' + l20]);
+  ex.push(['(L3) y 20,056 cruza al otro lado: el corte no se movio',
+    l21.indexOf('Sin HTP') < 0 && l21.length > 20, l21.slice(0, 60)]);
+  const popL = (t) => { pon({ pop_monitor:'swan', pop_sw_paps:String(t), pop_sw_papd:String(t) });
+    try { const P = F('popEsquema') ? popEsquema() : null; return P ? P.vdRama : 'NO FN' }
+    catch (x) { return 'EXC ' + x.message } };
+  __t.limpiar();
+  try { showTab('hemodinamica') } catch (e) {}
+  pon({ nombre:'AJ7 HP POP', ci:'9', peso:'80', talla:'175', pop_cx_tipo:'cabg',
+        pop_cx_horas:'8', tapse:'14', onda_e:'90', e_sep:'6', e_lat:'8' });
+  const p19 = popL(19), p20 = popL(20), p21 = popL(21);
+  ex.push(['(L4) DENOMINADOR: con el VD alterado, la rama del POP se decide en las tres escenas',
+    [p19, p20, p21].every((x) => x === 'poscarga' || x === 'contractilidad'),
+    [p19, p20, p21].join('/')]);
+  ex.push(['(L5) PAPm 19 y 20 EXACTO dan «contractilidad», y 21 «poscarga»',
+    p19 === 'contractilidad' && p20 === 'contractilidad' && p21 === 'poscarga',
+    [p19, p20, p21].join('/')]);
+
   __t.limpiar();
   return { extra: ex };
   })();

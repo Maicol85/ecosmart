@@ -276,3 +276,17 @@ Pieske 2019 y **sin clase ni nivel**, porque el original no publica ninguno.
 **La PANTALLA no se tocó**, medido.
 
 Detalle en **`docs/mapa/htp-hfapeff.md`** §5 a §8.
+
+---
+
+## ⚠️ La tanda AJ7 reescribió la línea de presión de llenado «Normal» (24/10/2026)
+
+Hoy dice que una presión de llenado normal en reposo **NO descarta** la IC con FEVI preservada
+(Pieske 2019, **texto folio 3307, hoja 11**, con la Figura 4B del folio 3306 leída en imagen).
+**Se reescribió, no se agregó una segunda línea.**
+
+⚠️ Y queda escrito, porque costó una vuelta: **la sección emite cada línea DOS veces** —una con
+sus corchetes de cita y otra en la copia sin acentos que alimenta el papel—, así que un caso que
+exija una sola aparición da un rojo que no describe ningún defecto.
+
+**`docs/mapa/aj7-correcciones.md` § 2.**

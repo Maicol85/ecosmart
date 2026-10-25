@@ -267,3 +267,16 @@ PAM sin volver a integrar, y **editado a mano NO se pisa**.
 2. **El bloque de hemodinámica NO va al cuerpo del informe**, va a la HOJA del PDF — lo decide
    `enCuerpo` en el registro de `amiloSecs`. Leer `#informe_texto` buscándolo da cero caracteres.
    Lo que se mide es el texto congelado en `am-txt-hemo`.
+
+---
+
+## ⚠️ La tanda AJ7 cerró AJ3-b, AJ3-c y (en parte) AJ3-d (24/10/2026)
+
+- La línea de presión de llenado «Normal» se **reescribió** para decir que una presión normal en
+  reposo **NO descarta** la IC con FEVI preservada (Pieske 2019, folio 3307).
+- **`generarPDF()` pregunta «¿Exportar igual?»** cuando hay un bloque editado a mano y
+  desfasado, nombrándolo. No cambia lo que se publica si el médico acepta.
+- **`_AM_VACIA_RETIRA` se retiró** y el refresco mira `sec.hayDatos()`: un bloque cuyo módulo
+  declara que no tiene datos se retira solo, salvo que esté editado a mano.
+
+Todo en **`docs/mapa/aj7-correcciones.md` § 2**, con el censo de los diecisiete generadores.

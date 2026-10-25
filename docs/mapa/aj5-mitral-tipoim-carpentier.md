@@ -330,3 +330,14 @@ valor y el Narrativo no.
    `type="text" inputmode="decimal"` corre en `DOMContentLoaded`, y el arnés evalúa los casos con
    `document.readyState` todavía en «interactive»: el campo llega como `number` y **rechaza**
    cualquier cadena no numérica. Sin convertirlo, la condición medía el arnés y no la app.
+
+---
+
+## ⚠️ La tanda AJ7 cerró AJ5-f y AJ5-g (24/10/2026)
+
+- **`vmProtBloqSync()`**: con prótesis mitral, `vm_tipo_im` y `vm_carp` se **atenúan y se
+  bloquean**, conservando el valor cargado. Pinta y no escribe.
+- **`vmMorfFitSync()`**: el rótulo de la morfología se **mide** contra el ancho útil de hoy y el
+  cuerpo baja de a 0,25 px hasta que entre, con piso de 10 px. No se fijó un número.
+
+**`docs/mapa/aj7-correcciones.md` § 3.**

@@ -271,3 +271,20 @@ y no distingue «la app no lo tiene» de «la sonda está rota».
 7. **El panel de Evidencia se cierra al terminar cada celda** de la sonda de dos motores: sin eso,
    la celda del tema claro se captura con el overlay de la celda del tema oscuro encima.
 8. **`guardarInforme()` a secas no guarda**: el guardado real cuelga de la card de severidades.
+
+---
+
+## ⚠️ La tanda AJ7 cerró G-a y G-e, y midió G-c y G-g (24/10/2026)
+
+- **`POP_PAPM_HP_MMHG` ya no existe.** El corte de hipertensión pulmonar tiene un dueño único,
+  **`HP_PAPM_MIN`**, declarado junto a `RVP_ELEVADA_UW` — el primero de los dos bloques
+  `<script>` que lo necesita, porque un `const` no está en `window`. **Ningún corte se movió.**
+- El **globo ⓘ del bloque de pleura** lleva `.vinfo-btn-44`.
+- El **bloque integrado del POP se retira solo** cuando `popPatron().suficiente` es falso: era el
+  único de los diecisiete que declaraba no tener datos y seguía emitiendo su hoja.
+- **El PPT del paciente SÍ publica el POP, medido de punta a punta**: 6 diapositivas, 35 textos,
+  «PostCEC — Cirugía cardíaca», «Patrón hemodinámico: …» y **las cinco preguntas con su
+  semáforo**. → `PENDIENTES.md` **AJ7-h** (lo que el Laboratorio pierde) y **AJ7-i** (las cuatro
+  frases de tono de conducta que quedan en el POCUS, todas **sólo de pantalla**).
+
+**`docs/mapa/aj7-correcciones.md` § 5.**
