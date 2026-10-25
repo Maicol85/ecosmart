@@ -939,6 +939,42 @@ window.__Y = {
     (frases || []).forEach(function(f){ o[f] = s.indexOf(f) >= 0 });
     return o },
 
+
+  /* Una seccion del panel de Evidencia, por el PREFIJO de su titulo. */
+  sec(pref) {
+    var cu = document.getElementById('indic-cuerpo');
+    if (!cu) return 'NO EXISTE indic-cuerpo';
+    var hit = null;
+    Array.prototype.forEach.call(cu.children, function(d){
+      if (hit || d.tagName !== 'DETAILS') return;
+      var su = d.querySelector('summary');
+      var tit = su ? (su.textContent || '').replace(/\\s+/g, ' ').trim() : '';
+      if (tit.indexOf(pref) === 0) hit = d;
+    });
+    if (!hit) return { hay: false };
+    return { hay: true,
+      tit: (hit.querySelector('summary').textContent || '').replace(/\\s+/g, ' ').trim(),
+      txt: (hit.textContent || '').replace(/\\s+/g, ' ').trim() } },
+
+  /* Los titulos de TODAS las secciones del panel: el denominador. */
+  secTitulos() {
+    var cu = document.getElementById('indic-cuerpo');
+    if (!cu) return 'NO EXISTE indic-cuerpo';
+    return Array.prototype.filter.call(cu.children, function(d){ return d.tagName === 'DETAILS' })
+      .map(function(d){ var su = d.querySelector('summary');
+        return su ? (su.textContent || '').replace(/\\s+/g, ' ').trim().slice(0, 70) : '(sin summary)' }) },
+
+  /* Contesta una pregunta del panel por su clave y su valor. El panel se abre UNA sola vez
+     por escena: indicAbrir() BORRA las respuestas, al abrir y al cerrar. */
+  responder(pares) {
+    var o = {};
+    (pares || []).forEach(function(par){
+      var b = document.querySelector('[data-ind-clin="' + par[0] + '"][data-ind-val="' + par[1] + '"]');
+      if (!b) { o[par[0]] = 'NO HAY BOTON ' + par[1]; return; }
+      b.click(); o[par[0]] = par[1];
+    });
+    return o },
+
   /* Censo de globos i, con su geometria: el denominador del celular. */
   globos() {
     var out = [];
@@ -1133,6 +1169,119 @@ window.__Y = {
     process.stderr.write('[globos] listo\n');
   }
 
+
+  async function escenaHFP() {
+    const r = {};
+    try {
+      await ev(`window.__P.nuevo()`); await ev(`window.__P.calentar()`);
+      await ev(`window.__P.abrirPara('e_sep')`);
+      r.puesto = await ev(`window.__Y.poner(${JSON.stringify({
+        nombre: 'HFPEFF AJ7', ci: '7', e_sep: '6', e_lat: '7', onda_e: '95',
+        siv: '13' })})`);
+      /* El panel se abre UNA vez: indicAbrir() borra las respuestas al abrir Y al cerrar. */
+      r.abre = await ev(`(function(){ try { indicAbrir() } catch (e) { return 'EXC: ' + e.message } return 1 })()`);
+      r.resp = await ev(`window.__Y.responder([['hfpeff.pll','normal'],['hfpeff.paso3','hecha']])`);
+      r.titulos = await ev(`window.__Y.secTitulos()`);
+      r.sec = await ev(`window.__Y.sec('Insuficiencia cardíaca con fracción de eyección preservada')`);
+      r.errores = await ev(`window.__Y.errores()`);
+    } catch (e) { r.err = e.message }
+    out.grupos.hfp = r;
+    process.stderr.write('[hfp] listo\n');
+  }
+
+  async function escenaBloques() {
+    const r = {};
+    try {
+      await ev(`window.__P.nuevo()`); await ev(`window.__P.calentar()`);
+      /* A · el POP con datos: se integra y el bloque existe. */
+      await ev(`window.__P.abrirPara('pop_cirugia')`).catch(() => {});
+      r.aPuesto = await ev(`window.__Y.poner(${JSON.stringify({
+        nombre: 'POP AJ7', ci: '8', peso: '80', talla: '175', pop_cx_tipo: 'cabg',
+        pop_cx_horas: '8', pop_monitor: 'picco', pop_picco_ic: '2.4', pop_lactato: '2.1' })})`);
+      r.aHayDatos = await ev(`(function(){ try { var s = amiloSecs().find(function(x){ return x.k==='pop' });
+        return { hay: s && s.hayDatos ? s.hayDatos() : null, largo: s ? String(s.gen()||'').length : null } }
+        catch (e) { return 'EXC: ' + e.message } })()`);
+      r.aIntegrar = await ev(`(function(){ try { amiloIntegrar('pop');
+        return { integrado: amiloIntegrado('pop'), largo: (document.getElementById('am-txt-pop')||{}).value.length } }
+        catch (e) { return 'EXC: ' + e.message } })()`);
+      /* B · se borran los datos del modulo y se dispara el refresco. */
+      r.bBorrar = await ev(`window.__Y.poner(${JSON.stringify({
+        pop_picco_ic: '', pop_lactato: '' })})`);
+      r.bTrasBorrar = await ev(`(function(){ try { amiloRefrescarSiIntacto('pop');
+        return { integrado: amiloIntegrado('pop'),
+                 hayDatos: (function(){ var s = amiloSecs().find(function(x){ return x.k==='pop' });
+                   return s && s.hayDatos ? s.hayDatos() : null })() } }
+        catch (e) { return 'EXC: ' + e.message } })()`);
+      /* C · editado a mano: el bloque NO se retira aunque el modulo quede sin datos. */
+      await ev(`window.__P.nuevo()`); await ev(`window.__P.calentar()`);
+      r.cPuesto = await ev(`window.__Y.poner(${JSON.stringify({
+        nombre: 'POP AJ7', ci: '8', peso: '80', talla: '175', pop_cx_tipo: 'cabg',
+        pop_cx_horas: '8', pop_monitor: 'picco', pop_picco_ic: '2.4' })})`);
+      r.cEditado = await ev(`(function(){ try {
+        amiloIntegrar('pop');
+        var ta = document.getElementById('am-txt-pop');
+        ta.value = 'TEXTO ESCRITO POR EL MEDICO';
+        /* Por el oyente REAL del textarea, que es quien toma la foto y marca la edicion. */
+        if (typeof amiloTxtInput === 'function') amiloTxtInput('pop');
+        else ta.dispatchEvent(new Event('input', { bubbles: true }));
+        return { editados: (document.getElementById('am-editados')||{}).value,
+                 desfasado: _amiloDesfasado('pop') } }
+        catch (e) { return 'EXC: ' + e.message } })()`);
+      r.cTrasBorrar = await ev(`(function(){ try {
+        ['pop_picco_ic'].forEach(function(id){ var e = document.getElementById(id);
+          if (e) { e.value = ''; e.dispatchEvent(new Event('change', { bubbles: true })) } });
+        amiloRefrescarSiIntacto('pop');
+        return { integrado: amiloIntegrado('pop'),
+                 txt: (document.getElementById('am-txt-pop')||{}).value,
+                 desfasado: _amiloDesfasado('pop') } }
+        catch (e) { return 'EXC: ' + e.message } })()`);
+      /* D · el aviso al exportar. Se intercepta `confirm` y se mira si se pregunta y que dice. */
+      r.dConfirm = await ev(`(function(){ try {
+        var visto = [], oc = window.confirm, og = window.generarPDFReal, oa = window._pdfAjustarA4;
+        var llego = 0;
+        window.confirm = function(m){ visto.push(m); return false };
+        window._pdfAjustarA4 = function(){ llego++ };
+        window.generarPDFReal = function(){ llego++ };
+        try { window.valvSevConfirmada = true; generarPDF() } catch (e) { visto.push('EXC: ' + e.message) }
+        window.confirm = oc; window.generarPDFReal = og; window._pdfAjustarA4 = oa;
+        return { pregunto: visto.length, msg: visto[0] || null, siguio: llego,
+                 desfasados: (typeof _amiloDesfasadosRot === 'function') ? _amiloDesfasadosRot() : 'SIN FN' } }
+        catch (e) { return 'EXC: ' + e.message } })()`, 60000);
+      /* E · CONTROL NEGATIVO: sin bloque editado NO se pregunta. */
+      await ev(`window.__P.nuevo()`); await ev(`window.__P.calentar()`);
+      r.eCtrlNeg = await ev(`(function(){ try {
+        var visto = [], oc = window.confirm, og = window.generarPDFReal, oa = window._pdfAjustarA4;
+        var llego = 0;
+        window.confirm = function(m){ visto.push(m); return false };
+        window._pdfAjustarA4 = function(){ llego++ };
+        window.generarPDFReal = function(){ llego++ };
+        try { window.valvSevConfirmada = true; generarPDF() } catch (e) { visto.push('EXC: ' + e.message) }
+        window.confirm = oc; window.generarPDFReal = og; window._pdfAjustarA4 = oa;
+        return { pregunto: visto.length, siguio: llego } }
+        catch (e) { return 'EXC: ' + e.message } })()`, 60000);
+      r.errores = await ev(`window.__Y.errores()`);
+    } catch (e) { r.err = e.message }
+    out.grupos.blo = r;
+    process.stderr.write('[blo] listo\n');
+  }
+
+  async function escenaSecs() {
+    const r = {};
+    try {
+      await ev(`window.__P.nuevo()`);
+      await ev(`window.__P.calentar()`);
+      r.vacio = await ev(`(function(){
+        var secs = (typeof amiloSecs === 'function') ? amiloSecs() : [];
+        return secs.map(function(s){
+          var t = null; try { t = s.gen ? s.gen() : null } catch (e) { t = 'EXC: ' + e.message }
+          var hd = null; try { hd = s.hayDatos ? s.hayDatos() : null } catch (e) { hd = 'EXC' }
+          return { k: s.k, lbl: s.lbl, hayDatos: hd, txt: t };
+        }) })()`, 60000);
+    } catch (e) { r.err = e.message }
+    out.grupos.secs = r;
+    process.stderr.write('[secs] listo\n');
+  }
+
   async function escenaCtrl() {
     const r = {};
     const AJENO = { nombre: 'Control', ci: '9', ddvi: '52', dsvi: '34', fevi: '58',
@@ -1166,6 +1315,9 @@ window.__Y = {
   if (corre('cvr'))    await escenaCVR();
   if (corre('vexus'))  await escenaVexus();
   if (corre('globos')) await escenaGlobos();
+  if (corre('hfp'))    await escenaHFP();
+  if (corre('blo'))    await escenaBloques();
+  if (corre('secs'))   await escenaSecs();
   if (corre('ctrl'))   await escenaCtrl();
 
   OUT.md5Fin = await md5(EXTERNO ? FARG : join(RAIZ, FILE));

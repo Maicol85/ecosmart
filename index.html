@@ -14845,7 +14845,17 @@ z
         </div>
       </div>
       <div class="calc-box" style="margin-top:10px;">
-        <div class="calc-row"><span class="calc-lbl">Clasificación — descripción</span><span id="ao-atero-desc" style="color:var(--text2);font-size:11px;">—</span></div>
+        <!-- ⚠️ FILA ESCONDIDA (AJ7-2b, 24/10/2026), y cierra AJ2-i. DECISION DE MAICOL. Con el
+             grado 4 cargado esta fila decia «Ateroma de más de 5 mm» y la de «Descripción del
+             hallazgo», dos renglones mas abajo, decia «Ateroma de más de 5 mm (grado 4).»: la
+             segunda CONTIENE a la primera. Quedo asi cuando el AJ2-7a retiro el riesgo embolico,
+             que era lo que las distinguia. Se esconde la FILA entera y no solo su texto, por el
+             mismo argumento escrito para «Riesgo embólico»: un rotulo con una raya al lado se lee
+             como «se evaluo y no hay». El span `ao-atero-desc` se CONSERVA porque lo escribe
+             `calcAteroAo`, lo barre `limpiarCampos` y lo leia la hoja del ETE. Las OTRAS DOS
+             -«Descripción del hallazgo» y «Grosor medido — grado en la escala»- quedan, y el
+             grosor sigue completando el grado automaticamente por `ateroGradoAuto`. -->
+        <div class="calc-row" style="display:none;"><span class="calc-lbl">Clasificación — descripción</span><span id="ao-atero-desc" style="color:var(--text2);font-size:11px;">—</span></div>
         <div class="calc-row"><span class="calc-lbl">Riesgo embólico</span><span id="ao-riesgo-embol">—</span></div>
         <div class="calc-row"><span class="calc-lbl" style="font-weight:700;">Descripción del hallazgo</span><span id="ao-recomendacion" style="font-size:11px;">—</span></div>
         <!-- ⚠️ FILA NUEVA (I-E1, 22/10/2026): el campo «Grosor máximo placa» estaba en el
@@ -62767,8 +62777,42 @@ function mostrarCardSeveridadValvular(onConfirm) {
 }
 window.mostrarCardSeveridadValvular = mostrarCardSeveridadValvular;
 
+/* ══ LOS BLOQUES EDITADOS A MANO Y YA DESFASADOS, PARA EL AVISO DE EXPORTACION (AJ7-2d) ═════
+   Devuelve los ROTULOS de los modulos que el medico edito a mano y cuyos datos cambiaron desde
+   esa edicion. Usa el MISMO dueno que pinta el aviso ambar de la pantalla, `_amiloDesfasado`: una
+   segunda definicion de «desfasado» es como las dos se separan. */
+function _amiloDesfasadosRot() {
+  try {
+    return amiloSecs()
+      .filter(function (x) { return _amiloDesfasado(x.k); })
+      .map(function (x) { return x.lbl || x.k; });
+  } catch (e) { return []; }
+}
+window._amiloDesfasadosRot = _amiloDesfasadosRot;
+
 function generarPDF() {
   if (document.getElementById('pdf-review-overlay')) return;
+  /* ══ EL PAPEL AVISA ANTES DE SALIR (AJ7-2d, 2026-10-24), y cierra AJ3-c. ═══════════════════
+     Medido antes de tocar nada, generando el PDF de verdad con un bloque editado y desfasado: 82
+     textos y CERO menciones de «desactualizado», «sin actualizar», «edición», «cambiaron» o
+     «revisá este bloque». El aviso ambar era SOLO de pantalla, asi que un informe firmado podia
+     salir con una hoja escrita por el medico sobre datos que despues cambio, sin ninguna senal ni
+     en el papel ni en el momento de exportar.
+     ⚠️ NO CAMBIA LO QUE SE PUBLICA. Si el medico acepta, el PDF sale EXACTAMENTE igual que antes
+        de este commit: la hoja conserva el texto que el escribio. Lo unico que se agrega es la
+        pregunta. Es deliberado: reescribir la hoja del medico al exportar seria pisar una edicion
+        a mano, que es lo que la marca `am-editados` existe para impedir.
+     ⚠️ VA EN `generarPDF` Y NO EN `generarPDFReal`: `generarPDFReal` tambien lo llama la pasada de
+        MEDICION de `_pdfAjustarA4` —y la reimpresion de un guardado—, y preguntar dos veces por el
+        mismo documento, o preguntar durante una medicion que no guarda nada, es ruido. `generarPDF`
+        es la puerta del boton. */
+  const _desf = _amiloDesfasadosRot();
+  if (_desf.length && !confirm(
+      'Hay ' + (_desf.length === 1 ? 'un bloque integrado editado a mano cuyos datos cambiaron'
+                                   : _desf.length + ' bloques integrados editados a mano cuyos datos cambiaron')
+      + ' desde esa edición:\n\n· ' + _desf.join('\n· ')
+      + '\n\nEl PDF va a imprimir el texto tal como lo editaste, sin actualizarlo.\n\n¿Exportar igual?'))
+    return;
   /* Por `_pdfAjustarA4` y no directo por `generarPDFReal`: es el que mide y decide si el
      informe entra en una hoja. `pdfDeInformeGuardado` entra por el MISMO camino, para que
      reimprimir un guardado dé el documento que se firmó y no uno más largo. */
@@ -82319,7 +82363,19 @@ function _indHFPEFF(){
         faltan.push({ txt:'Falta consignar el resultado del paso 3.', refs:null });
       }
       if (pll === 'elevada') lineas.push({ txt:'Con una presión de llenado del VI elevada en reposo —presión telediastólica de 16 mmHg o más, o presión capilar pulmonar de 15 mmHg o más— el diagnóstico se puede confirmar (texto folio 3305).', refs:['hfaPeff2019'] });
-      else if (pll === 'normal') lineas.push({ txt:'Con una presión de llenado normal en reposo la guía recomienda continuar la evaluación durante el ejercicio, por ecocardiografía de esfuerzo o por hemodinámica invasiva (texto folio 3305).', refs:['hfaPeff2019'] });
+      /* ══ LA LINEA SE REESCRIBE Y NO SE AGREGA UNA SEGUNDA (AJ7-2a, 2026-10-24) ══════════
+         Cierra AJ3-f. El item del AJ3 pedia agregar «una presion de llenado normal en reposo no
+         descarta el diagnostico» SI la pregunta no mostraba nada; la pregunta SI mostraba, asi
+         que agregarla habria dejado DOS lineas diciendo casi lo mismo en el mismo bloque —el
+         defecto que AJ2-i ya tiene declarado para el ateroma—. Lo que la frase pedida agrega y la
+         vieja no decia es el «NO DESCARTA», y eso es lo que entra, dentro de la MISMA linea.
+         FUENTE, la unica que el modulo ya cita y verificada en el original por la tanda AJ3:
+         Pieske 2019, **folio 3307, hoja 11** — «normal LVEDP or mPCWP levels at rest do not
+         exclude HFpEF»; «If resting filling pressures are normal, exercise right heart
+         catheterization is recommended… (Figures 2 and 4B)» — con la **Figura 4B, folio 3306,
+         hoja 10, renderizada en imagen**. El folio 3305 se conserva porque es de donde sale la
+         recomendacion de seguir durante el ejercicio, que la linea ya publicaba. */
+      else if (pll === 'normal') lineas.push({ txt:'Una presión de llenado normal en reposo NO descarta la insuficiencia cardíaca con fracción de eyección preservada: la guía recomienda continuar la evaluación durante el ejercicio, por ecocardiografía de esfuerzo o por cateterismo derecho de esfuerzo (texto folio 3305 y texto folio 3307, hoja 11).', refs:['hfaPeff2019'] });
       else faltan.push({ txt:'Falta consignar la presión de llenado del VI en reposo: con ella elevada el diagnóstico se confirma y con ella normal la evaluación sigue durante el ejercicio (texto folio 3305).', refs:null });
     } else if (p3 == null) {
       faltan.push({ txt:'Falta consignar si el paso 3 ya se realizó: es lo que la guía indica para el puntaje intermedio (texto folio 3304).', refs:null });
@@ -92540,7 +92596,12 @@ function amiloTextoAortaETE() {
   const d = _amTxt('ao-atero-desc'), r = _amTxt('ao-riesgo-embol'), rec = _amTxt('ao-recomendacion');
   if (d || r || rec) {
     L.push('## Valoración');
-    if (d)   L.push('Descripción | ' + d);
+    /* ⚠️ LA LINEA «Descripción» SE RETIRA (AJ7-2b, 24/10/2026). Es el texto de `ao-atero-desc`,
+       la fila que este commit esconde de la pantalla: su contenido esta CONTENIDO en el de `rec`,
+       dos renglones mas abajo en esta misma hoja («Ateroma de más de 5 mm» contra «Ateroma de más
+       de 5 mm (grado 4).»). `d` se conserva LEIDO —igual que `r`, el riesgo embolico que el
+       AJ2-7a retiro— porque el span sigue existiendo y lo barre `limpiarCampos`, y porque la
+       guarda `if (d || r || rec)` de arriba decide si hay bloque «Valoración» que emitir. */
     /* ⚠️ LA LINEA DEL RIESGO EMBOLICO SE RETIRA (AJ2-7a). `r` se conserva leido porque el
        span sigue existiendo —lo barre `limpiarCampos`— pero NO se publica: la escala de Nicoara
        (folio 716) no gradua un riesgo embolico, y esta hoja era la superficie FIRMADA. */
@@ -93578,7 +93639,11 @@ document.addEventListener('change', _amiloBarrido, true);
    la orejuela, el orden natural —puntuar la mitral, integrar, y recién después mirar la
    orejuela— dejaba el aviso siempre en falso. El predicado de «sin tocar» es el mismo que
    usa amiloIntegrar, así que no pisa una corrección del médico. */
-const _AM_VACIA_RETIRA = { hfpeff:1, vexus:1, dpt:1, cvr:1, teer:1, wilk:1, oai:1, pulm:1 };
+/* ⚠️ `_AM_VACIA_RETIRA` SE RETIRO (AJ7-2c, 2026-10-24), y cierra AJ3-d. DECISION DE MAICOL: un
+   bloque integrado cuyo modulo quedo SIN DATOS se retira solo, salvo que el medico lo haya
+   editado a mano —y esa salvedad ya la garantiza el `if (_amiloEstaEditado(k)) return` de mas
+   abajo, que corre ANTES—. La lista acotaba el retiro a ocho modulos de diecisiete; hoy la regla
+   es generica y vale para los diecisiete. */
 function amiloRefrescarSiIntacto(k) {
   try {
     if (typeof amiloIntegrado !== 'function' || !amiloIntegrado(k)) return;
@@ -93609,7 +93674,23 @@ function amiloRefrescarSiIntacto(k) {
        lo estrenan con el barrido genérico NO heredan esa conducta, porque decidirla no estaba
        pedido. Para ellos el bloque queda exactamente como estaba, que es lo que hacían ayer.
        Cuando se decida, es borrar esta lista y el `if`. */
-    if (String(nuevo || '').trim() === '' && !_AM_VACIA_RETIRA[k]) return;
+    /* ══ EL MODULO DECLARA QUE NO TIENE DATOS (AJ7-2c, 2026-10-24) ══════════════════════════
+       `hayDatos` ya existia en el registro y lo declaran los propios modulos; lo que faltaba era
+       que el refresco lo MIRARA. Censados los diecisiete generadores con el formulario vacio,
+       medido en Chrome: `teer` y `pulm` devuelven texto VACIO y ya se retiraban; **`pop` declara
+       `hayDatos() === false` y aun asi emitia 377 caracteres de «no consignado», o sea que su
+       hoja seguia saliendo del PDF firmado sobre un modulo que el propio modulo da por vacio**.
+       Esa es la que este commit cierra.
+       ⚠️ `hfpeff` DEVUELVE `true` CON EL FORMULARIO VACIO Y ESO ES CORRECTO: su `hayDatos`
+          contesta si el score APLICA —lo dice su comentario en `amiloSecs`—, no si hay datos. No
+          se toca: cambiarlo movería cuándo el botón «Integrar» avisa y no integra.
+       ⚠️ LOS OTROS TRECE NO DECLARAN `hayDatos` y sus generadores siguen emitiendo texto de «sin
+          datos» con el modulo vacio, asi que NO se retiran. Darles la propiedad es escribir, modulo
+          por modulo, cual es el conjunto de campos propios de cada uno: es conocimiento clinico
+          por modulo y esta orden no lo autoriza a inventarlo. Queda declarado en
+          `docs/PENDIENTES.md` → AJ7-b, con el censo de los diecisiete al lado. */
+    const _sinDato = (typeof sec.hayDatos === 'function') && !sec.hayDatos();
+    if (_sinDato) { if (typeof amiloRetirar === 'function') amiloRetirar(k); return; }
     ta.value = nuevo; _amiloUltimo[k] = nuevo;
     /* Un `gen()` que queda VACÍO —devolver un campo a «— no evaluado —» después de integrar— hace
        que `amiloEnInforme` descarte la sección y la hoja no salga del PDF, pero `amiloIntegrado`
