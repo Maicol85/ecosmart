@@ -405,3 +405,12 @@ TC-533 (H2) lo fija como invariante sobre la lista entera.
 Y **`pul-balik` deja de ser una de las cinco tarjetas sin botón**: entra a `VINFO_REF` y su globo
 gana el «Ver referencia →». Siguen sin botón **cuatro**: `tarj-insuf-pulmonar`,
 `tarj-esten-tricuspide`, `tarj-esten-pulmonar` y `et-avt-cont`.
+
+---
+
+## ➜ La ficha del POSOPERATORIO (tanda «G», 2026-10-24)
+
+`ref-pop` entra en **«Otros hallazgos»**, pegada a `pulmon`, y se agregó a `REF_SUBTAB` **en el
+mismo commit que la ficha** —la lección de `constriccion` en la tanda J—. Las entradas pasan de
+**34 a 35** y los encabezados con `toggleRef` de 34 a 35. Dieciséis filas, cuatro con chip.
+Todo lo demás: **`docs/mapa/g-posoperatorio.md`** §6.

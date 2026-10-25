@@ -257,3 +257,12 @@ del PDF. Leer `#informe_texto` buscándolo da cero caracteres.
 - **Por mutación dirigida**: `scripts/_mut_j2.py`, con 17 mutaciones, una por cada cosa que la
   tanda cambió. El arnés **exige la línea `RESULTADO`** en la salida: sin ella el veredicto es
   `NO CORRIÓ`, no «sobrevivió». Nunca muta el archivo vivo y verifica el `md5` al restaurar.
+
+---
+
+## ➜ El POSOPERATORIO es otro módulo y tiene su propio mapa
+
+La tanda «G» (2026-10-24) tocó la subpestaña **«POP Cirugía Cardíaca»** y **no** la cápsula
+«Perfil hemodinámico» ni el Forrester de esta sección. Lo único compartido son las dos bandas
+—`_icBanda` y `_rvsBanda`—, que el posoperatorio **pregunta** y no copia. Ver
+**`docs/mapa/g-posoperatorio.md`**.

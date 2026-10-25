@@ -427,3 +427,13 @@ queries. Su ventana abre por debajo de 1100 px y el arnés corre por encima. Lo 
 `scripts/check_mobile.js` y las capturas de `scripts/_probe_hcae.mjs`. Ver PENDIENTES → **J2-e**.
 
 El relato completo vive en **`docs/mapa/j2-hemo-onco-amiloide-pulmon.md`**.
+
+---
+
+## ➜ TC-534 — la tanda «G» (posoperatorio, 2026-10-24)
+
+63 condiciones en doce grupos. **Sabe fallar por los dos caminos**: contra el HEAD de la tanda,
+**63 en rojo y ninguna por excepción**; por mutación dirigida, **25/25 muertas**
+(`scripts/_mut_g.py`). Siete casos adaptados: TC-168, TC-169, TC-253, TC-322, TC-502, TC-507,
+TC-509 y TC-533. La ficha del caso y sus ocho trampas de instrumentación:
+**`docs/mapa/g-posoperatorio.md`** §7 y §8.

@@ -71,6 +71,7 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Tocar la EXCURSIÓN del aneurisma o su frase**: sus DOS controles —`fop_asa_mm` en el FOP y su espejo en «Otros»—, el dueño del espejo o el enganche de la nota | `docs/mapa/d2-correcciones.md` §9 |
 | **Tocar la REGLA del aneurisma del septum, el selector de LATIDOS, la compuerta de la EVIDENCIA de la VAB o las barras de C. CONGÉNITAS**: el operador estricto, el lado como condición, la frase de un solo dueño, el «No» que vacía el lado, `_indVABEsBicuspide` o la caja de Conclusión apilada | `docs/mapa/d2-correcciones.md` |
 | **Tocar el BLOQUE del ETT avanzado**: el barrido que lo mantiene al día, la marca de «editado a mano» y su campo persistido, el aviso ámbar, la confirmación al reintegrar o **la pregunta del RESULTADO del paso 3 del HFA-PEFF** | `docs/mapa/aj3-ett-avanzado.md` |
+| **Tocar el POSOPERATORIO de cirugía cardíaca**: la grilla de drogas, el acordeón de monitoreo, el lactato, el esquema animado con sus cavidades y sus caños, la vasoplejia con la PAM, los grados del derrame pleural, lo que sale al informe y lo que se queda en la pantalla, su ficha de Referencias o su Evidencia | `docs/mapa/g-posoperatorio.md` |
 | **Tocar algo que la tanda AJ6 movió** (24/10): el cuerpo del informe de la Fallot reparada —el esquema, la fila vacía y la conducta retirada—, su Evidencia compacta con la prosa en el ⓘ, la ecografía pulmonar en cuatro columnas, o Referencias y Calculadoras dejando de ser módulos opcionales con el buscador que tapa las fichas | `docs/mapa/aj6-fallot-pulmon-refs.md` |
 | **Agregar o correr un caso de prueba; A/B; mutación** | `docs/mapa/tests.md` · fichas en `docs/mapa/tests-fichas-532.md` (TC-532), `docs/mapa/tests-fichas.md` (TC-499 en adelante), `docs/mapa/tests-fichas-496-498.md`, `docs/mapa/tests-fichas-491-495.md` y `docs/mapa/tests-fichas-481-490.md` |
 | **Tocar el DIBUJO ESTÁTICO de la mitral en ETE**: la tabla única de festones por ángulo, la geometría, la línea del plano, el giro, las tres vistas con sus LETRAS DE FESTÓN, **la ORIENTACIÓN de la TRANSGÁSTRICA**, el PDF, los CUATRO DIBUJOS DE MEDIDAS TEER, **los CRITERIOS TEER y sus cortes** o **el ESPEJO de la FEVI y el DSFVI del TEER** | `docs/mapa/mitral-dibujo-estatico.md` |
@@ -140,6 +141,13 @@ justamente por eso, y aun así el mapa pasó de 27,5 a 34,4. **La próxima tanda
 que partirlo.** `informe-pdf-excel.md` quedó en 29,7 KB y `laboratorio-asociaciones-valvulas.md`
 en 13,6. Siguen esperando `panel-evidencia.md` (35,3 KB) y `diastolica.md` (35,2).
 
+⚠️ **Al 2026-10-24, tras la tanda G, el mapa nuevo nació chico** —`g-posoperatorio.md`, **16,5 KB**—
+y los seis que recibieron un puntero quedaron medidos ANTES de escribirlo, que es la regla:
+`informe-pdf-excel.md` **34,4 KB**, `congenitas-otros.md` 33,3, `panel-evidencia.md` 33,1,
+`tests.md` 31,4, `referencias-subpestanas.md` 25,3 y `j2-hemo-onco-amiloide-pulmon.md` 15,7.
+**`informe-pdf-excel.md` queda a 600 bytes del techo: la próxima tanda que lo toque tiene que
+partirlo.**
+
 Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la ventana.
 
 ---
@@ -147,8 +155,8 @@ Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la v
 ## Qué es EcoSmart y cómo se trabaja
 
 - App clínica de ecocardiografía en **un solo `index.html`**: HTML + CSS + JS inline, sin build,
-  sin frameworks. Hoy **9,59 MB / 135.540 líneas**, medido con `wc -c` y `wc -l` el 2026-10-24 al
-  cierre de la tanda **J2**, sobre el árbol ya sellado (`v20261024-1714`, `md5` `1ecdba10…`).
+  sin frameworks. Hoy **9,68 MB / 136.700 líneas**, medido con `wc -c` y `wc -l` el 2026-10-24 al
+  cierre de la tanda **G**, sobre el árbol ya sellado (`v20261024-2108`, `md5` `6e23c4cc…`).
   ⚠️ **Y ESTE RENGLÓN SE QUEDÓ DOS TANDAS ATRÁS OTRA VEZ**: decía «9,46 MB / 134.230 líneas», que
   es el cierre del AJ6, mientras la J y la J2 escribían su delta en su propia sección sin tocar
   éste, que es el que se lee para presupuestar contexto. **1.310 líneas de diferencia.**
@@ -329,6 +337,117 @@ impecable.
 > secciones de REGLAS (la regla de oro con su tabla de mapas, «Qué es EcoSmart», el panel de
 > Evidencia, el protocolo de verificación, las trampas conocidas, el flujo de trabajo,
 > SEGURIDAD y la tabla de Procedencia) siguen enteras y en su lugar, verificado byte por byte.
+### El posoperatorio de cirugía cardíaca — «G» (2026-10-24)
+
+- **Son SIETE commits, en el orden del encabezado, y los seis ítems de código se completaron
+  enteros.** `99a7d36` (G1) · `163bda9` (G2) · `66d4889` (G3) · `6d62194` (G4) · `3d54c09` (G5) ·
+  `b42cfbf` (G6) · el de cobertura y documentación. Sello **`v20261024-2108`**.
+  Al **empezar**, `origin/main` estaba en **`2b9f3ef`** con **65** commits locales sin pushear; al
+  cerrar hay **72**, medidos con `git rev-list --count origin/main..HEAD` y no contados a mano.
+  **El push lo corre Maicol: esta tanda tenía orden expresa de NO pushear.**
+
+- **LAS CINCO FUENTES NUEVAS SE LEYERON EN IMAGEN SOBRE EL PDF ORIGINAL.** Unic-Stojanovic 2025
+  (ivaf075, **hoja 1 de 4**); Busse 2020 (Crit Care 24:36, **página 1 de 11**); Nicoara 2020
+  (ASE/SCA/STS, **folios 701, 707 y 716**, con la regla de folio = hoja + 691 comprobada en cuatro
+  pies impresos); Bora 2024 (**folio 152**); y la ESC 2025 de miocarditis y pericarditis
+  (**§11.3 folio 58**, **§11.3.1 folio 59** y la **Recommendation Table 22 folio 59**).
+
+- **UNA PREMISA DE LA ORDEN ERA FALSA, Y ESTÁ MEDIDA.** Decía que «hoy la app usa IC ≥ 2,2» para
+  la vasoplejia. **No es así**: `_icBanda` llama «bajo» a todo lo que sea 2,2 **o menos**, así que
+  `!icBajo` ya era exactamente «IC > 2,2». Medido en el borde: con IC 2,20 exacto la app **no**
+  ponía la etiqueta ni antes ni ahora. **Ningún corte de índice cardíaco se movió.** Lo mismo con
+  la RVS —ya era «< 800» sobre el valor sin indexar— y con el **SVRI del PiCCO**, que ya se
+  desindexaba por la superficie corporal. **Lo único que faltaba era la PAM.**
+
+- **EL DEFECTO MÁS GRANDE QUE CERRÓ, EN UNA LÍNEA: el papel firmado del posoperatorio se
+  contradecía a sí mismo.** Con un índice cardíaco de 2,18 la hoja del PDF decía «Índice cardíaco |
+  2.18 — bajo» ocho renglones antes de «Sin patrón de bajo gasto», y el EN SUMA lo decía en la
+  MISMA oración: «PostCEC CABG — hora 8 h — **Patrón: Sin patrón de bajo gasto** ni vasoplejia por
+  los datos cargados — IC 2.18 L/min/m² — **bajo gasto**.» Hoy el informe y el PDF del POP son
+  DESCRIPTIVOS y esa línea dice «PostCEC CABG — hora 8 h — IC 2.18 L/min/m² — bajo gasto.»
+
+- ⚠️ **TRES DEFECTOS PROPIOS DEL DIBUJO, LOS TRES VISTOS EN LA CAPTURA Y NO DEDUCIDOS.**
+  1. **`--red-pale`, `--green-pale`, `--amber-pale` y `--blue-pale` NO están en el `:root` del tema
+     claro** —viven dentro de `html.light-mode .amilo-root`—, así que fuera de ahí el `var()` no
+     resuelve, y **un `fill` sin resolver no cae en el color de al lado: cae en el INICIAL, que es
+     NEGRO**. Los pulmones, el cuadro pulmonar, los dos ventrículos y las elipses de derrame salían
+     NEGROS, con el rótulo negro adentro, **en los dos temas** —en el oscuro no se notaba—.
+  2. **La curva de presión arterial se escalaba de 30 a 140 mmHg:** un paciente con PAM 58 y
+     presión de pulso 14 ocupaba **seis píxeles** de los cuarenta y seis de la caja. Justo el
+     paciente del módulo era el que no se veía.
+  3. **Cuatro rótulos se pisaban entre sí o se salían del `viewBox`** por la izquierda
+     («rrame D moderado»).
+
+- **LA ANIMACIÓN NO CORRE PARA NADIE, Y ESTÁ MEDIDO.** Con el dibujo a la vista hay un
+  `requestAnimationFrame` pedido; al salir del POP el `IntersectionObserver` lo apaga y al volver lo
+  enciende. **Veinte aperturas y cierres dejan los MISMOS 68 nodos y UN solo observador.** Con
+  «reducir movimiento» no se pide un solo cuadro. ⚠️ **El bucle tiene DOS frenos** —el cuadro no se
+  vuelve a pedir, y `popEsqParar` cancela el pedido— y la primera versión del caso sólo medía el
+  primero: la mutación que vaciaba `popEsqParar` **sobrevivía** porque el otro freno la tapaba.
+
+- **LO QUE ESTO LE COSTÓ AL LABORATORIO, DECLARADO Y MEDIDO:** `_labPopResumen` lee el patrón del
+  TEXTO integrado, y esa sección ya no se emite, así que su **distribución de patrones** queda
+  vacía para los estudios que se integren desde hoy. Los **ya guardados** conservan su texto y
+  siguen contando: **no se migró nada**. El resto de ese panel no depende de esa sección, y el PPT
+  del Laboratorio (21 textos) y el PDF de auditoría (104) salieron **idénticos** en el A/B.
+
+- **CUATRO CORTES SIN FUENTE, CENSADA LA BIBLIOTECA, Y LOS CUATRO LLEVAN EL CHIP:** la banda de
+  precarga de 12 a 18 mmHg; los tres grados del derrame pleural por tamaño; la **partición** de la
+  falla del VD en «poscarga» y «contractilidad» —el número, 20 mmHg, sí es la definición de HP de la
+  ESC/ERS 2022—; y el «patrón detectado» con el «Según la cirugía, también mirar…». Los chips
+  «CRITERIO DE ECOSMART» de la app pasan de **11 a 15**.
+
+- **LA GUÍA DE NICOARA NO GRADÚA, Y SE DECLARA:** publica tablas de «puntos clave» y una figura de
+  estrategia de imagen, no la escala I / IIa / IIb / III. Lo suyo sale en la Evidencia **sin clase y
+  sin nivel**, que es el mismo motivo por el que el J2 no abrió una Evidencia de eco pulmonar. La
+  **única** fuente que gradúa en esta sección es la ESC 2025, con cuatro de las cinco filas de su
+  Tabla 22; la quinta —aspirina, I · C— es para la pericarditis **posterior al infarto** y se
+  declara por qué no se publica.
+
+- **ENTRÓ UN CAMPO NUEVO Y NINGUNA COLUMNA DE EXCEL:** `pop_lactato`. Campos del estudio
+  **1038 → 1039**. Excel en **440 columnas** con las mismas claves, y la **única** con valor
+  distinto es «EN SUMA (texto completo)», que es la línea que esta tanda cambia. `LAB_XLS_MAP` no
+  tiene un solo `pop_`, verificado antes de escribir el campo.
+
+- **Cobertura: TC-534**, con **63 condiciones** en doce grupos, teclas reales y midiendo lo
+  renderizado. **Sabe fallar por los dos caminos**: contra el HEAD de la tanda en un worktree
+  aparte, **63 condiciones en rojo y NINGUNA por excepción**; y por mutación dirigida, **25/25
+  muertas** (`scripts/_mut_g.py`). **SIETE casos adaptados, cada uno con el motivo escrito**:
+  TC-168 y TC-169 y TC-253 (la conducta de pleura, el patrón del EN SUMA y la PAM de la
+  vasoplejia), TC-322 (su denominador exige escenario para TODA sección de `IND_SECS`), TC-502 y
+  TC-509 (el censo de Referencias, 34 → 35), TC-507 (los chips, 11 → 15) y TC-533 (`IND_SECS`,
+  30 → 31).
+
+- **Línea base al cierre: suite **530/534**, corrida en nueve lotes de 60 en primer plano, con el
+  pendrive `DISK_IMG` **MONTADO** —verificado al abrir y al cerrar, con un `ls` de nombres reales—.
+  Los rojos son **TC-223, TC-376, TC-390 y TC-406**, los MISMOS CUATRO de la línea base; **TC-223 es
+  el documentado**. Semgrep **127 WARNING / 0 ERROR en 1 app**, la MISMA línea base que dejó el J2.
+  Excel en **440** columnas.
+  ⚠️ **Dos rojos de la corrida por lotes NO eran regresiones y se midieron aislados:** **TC-348**
+  cayó con «NO HAY jsPDF» —el CDN no cargó en ese lote— y sale verde solo; y **TC-507** tiene el
+  `(DENOM D)` que la tanda J ya documenta como rojo cuando corre junto a otros casos y verde
+  aislado.
+- **CELULAR: 65 hallazgos a 360 px y 74 a 390, con 19 ALTA cada uno**, contra los **64 y 73 con 18
+  ALTA** de la línea base. **El hallazgo nuevo es UNO y es el mismo componente**: el globo ⓘ que el
+  bloque de pleura agrega, medido en 16×12 px, igual que los otros dieciocho `.vinfo-btn` ya
+  contados. Declarado en `docs/PENDIENTES.md` → **G-e**.
+- **CHROME Y WEBKIT COINCIDEN**, en los dos temas y en 1440 y 390 px: mismo SVG (440×364 y 310×256,
+  **68 nodos**), mismos textos del dibujo, mismas ocho filas del equivalente en texto, mismo chip,
+  mismo índice cardíaco y misma rama del VD, **17 de 17 pestañas con caja**, **cero scroll
+  horizontal**, **cero texto recortado** y **cero errores de consola y de página en los dos
+  motores**. Las únicas diferencias son **dos redondeos**: `331.797px` contra `331.796875px` en una
+  pista de grilla, y **un píxel** de alto en la tabla de la ficha. Rasterización de fuente.
+- **`index.html` pasó de 9,59 MB / 135.540 líneas a 9,68 MB / 136.700 líneas** — medido con `wc -c`
+  y `wc -l` DESPUÉS de sellar. (MB de 10⁶: `wc -c` dividido por 1e6.)
+
+- **Dónde está todo:** `docs/mapa/g-posoperatorio.md` (**mapa NUEVO**, 16,5 KB, con la ficha del
+  caso y sus ocho trampas de instrumentación), **seis mapas con un puntero cada uno**
+  —`informe-pdf-excel` 34,4 KB · `congenitas-otros` 33,3 · `panel-evidencia` 33,1 · `tests` 31,4 ·
+  `referencias-subpestanas` 25,3 · `j2-hemo-onco-amiloide-pulmon` 15,7—,
+  `docs/fuentes/FUENTES.md` → «La tanda G» con la tabla **«Cambios de evidencia»** de trece filas, y
+  `docs/PENDIENTES.md` → **SIETE** cosas declaradas (**G-a** a **G-g**), entre ellas el híbrido con
+  el corazón anatómico y la frecuencia cardíaca en las animaciones, que esta orden excluía.
+
 ### Hemodinámica, cardio-oncología, amiloidosis y eco pulmonar — «J2» (2026-10-24)
 
 - **Son OCHO commits, en el orden del encabezado, y los siete ítems de código se completaron
@@ -545,142 +664,6 @@ impecable.
   `tanda-r2-correcciones` 21,9 KB · `otros-pericardio-pulmon` 13,2 KB · `tests` 29,7 KB—,
   `docs/fuentes/FUENTES.md` → «La tanda J» con la tabla **«Cambios de evidencia»**, y
   `docs/PENDIENTES.md` → **SIETE** cosas declaradas (**J-a** a **J-g**).
-
-### Fallot, el eco pulmonar en columnas, Config y el buscador — «AJ6» (2026-10-24)
-
-- **Son OCHO commits y los cuatro ítems se completaron enteros, con SIETE cosas declaradas y no
-  tocadas.** `fc7ce7f` (AJ6-1) · `70d5623` (AJ6-3) · `840d9b2` (AJ6-4a y AJ6-4b) · `558c125`
-  (AJ6-2) · `4b946d5` (AJ6-5, los tres hallazgos de releer el propio diff) · `221a193` (los cinco
-  casos y el arnés de mutaciones) · `36a25b9` (los cuatro casos que destapó la suite completa) ·
-  `fa85cc7` (la documentación). Sello **`v20261024-1037`**.
-  Al **empezar**, `origin/main` estaba en **`2b9f3ef`** con **40** commits locales sin pushear;
-  al cerrar hay **49** —los ocho de la tanda más este renglón, que es su propio commit—, medidos
-  con `git rev-list --count origin/main..HEAD` y no contados a mano.
-  **El push lo corre Maicol: esta tanda tenía orden expresa de NO pushear.**
-
-- ⚠️ **EL PENDRIVE SE DESENCHUFÓ Y LA MÁQUINA SE CERRÓ A MITAD DE LA SUITE, Y LA CORRIDA QUEDÓ
-  COLGADA EN TC-151 SIN MORIR.** No dio un error: dejó de avanzar y el proceso siguió vivo 81
-  minutos. Es el modo de falla que `CLAUDE.md` ya documenta para `DISK_IMG` —«`readdir` sigue
-  contestando de caché y `readFile` revienta»— con la vuelta de tuerca de que acá **ni reventó**.
-  Se mató el árbol de Chrome, se verificó que el pendrive estuviera montado **y legible de verdad**
-  (un `ls` con nombres reales, no un montaje vacío) y **la suite se corrió entera de nuevo sobre el
-  árbol ya sellado**. La lección vieja se amplía: **una corrida que no avanza no es una corrida
-  lenta**; antes de creerle a un total hay que mirar si el último caso cambió.
-
-- ⚠️ **Y LA SUITE COMPLETA DESTAPÓ CUATRO CASOS MÁS SOBRE EL CONTRATO VIEJO**, que las corridas
-  por grupo no podían ver: TC-121 (exigía la frase del criterio volumétrico en el cuerpo del
-  informe), TC-144 (el `data-mod` de Calculadoras y las siete claves de `EE_MODULES`), TC-268 (un
-  denominador de ocho `[data-mod]`; quedan seis) y TC-293 (exigía que TODO bloque plegado se
-  llamara «Si fuera reumática» —una lista escrita a mano— y contaba los plegados de todo el panel
-  en su control negativo). Los cuatro reescritos donde la cosa vive hoy. **Son SEIS casos
-  adaptados en total**, contando TC-502 y TC-509.
-
-- ⚠️ **EN ESTE ENTORNO LOS PROCESOS EN SEGUNDO PLANO SE MUEREN SIN ESCRIBIR UNA LÍNEA.** La suite
-  completa murió **tres veces** así —una con el pendrive afuera, otra colgada en TC-151 durante 81
-  minutos sin avanzar y sin error— y el barrido de mutaciones **dos**, dejando su directorio de
-  trabajo sin borrar. Sin la línea `RESULTADO` el veredicto es **NO CORRIÓ**, así que no se puntuó
-  nada de esas corridas. Las dos cosas se corrieron en **tandas cortas en primer plano**: la suite
-  en **seis tandas de 91 casos**, cada una con su `RESULTADO`, y las mutaciones en cinco grupos
-  —para eso el arnés ganó un `--solo`—. Lo que se pierde es el efecto de ORDEN entre tandas, que es
-  justo lo que el AJ5 neutralizó reponiendo la sesión y el visor ANTES de cada caso.
-
-- **Línea base al cierre: suite **542/546** con el pendrive `DISK_IMG` **MONTADO** —verificado al
-  abrir y al cerrar—, Semgrep **124 / 0 ERROR en 1 app**, Excel en **440** columnas y celular en
-  **63 a 360 px y 72 a 390 px con 17 ALTA cada uno**: el MISMO par que dejó AJ5, sin un hallazgo
-  nuevo. Los rojos son **TC-223, TC-376, TC-390 y TC-406**, los MISMOS CUATRO de la línea base;
-  **TC-223 es el documentado**. **El denominador sube a 546**: esta tanda agregó **TC-527, TC-528,
-  TC-529, TC-530 y TC-531**. TC-318 sigue excluido.
-- **`index.html` pasó de 9,44 MB / 133.914 líneas a 9,46 MB / 134.230 líneas** — medido con `wc -c`
-  y `wc -l` DESPUÉS de sellar. (MB de 10⁶: `wc -c` dividido por 1e6.)
-
-- **EL DEFECTO QUE CERRÓ, EN UNA LÍNEA: el informe firmado de la tetralogía de Fallot reparada
-  terminaba con una CONDUCTA** —«reemplazo valvular pulmonar indicado (ESC 2020, Clase I)», «sin
-  síntomas ni otros criterios de reintervención — seguimiento»— **y la Evidencia de Referencias
-  afirmaba, desde que nació, que eso no pasaba**: «El informe y la conclusión de la aplicación son
-  DESCRIPTIVOS: estas recomendaciones se publican acá y no en el papel firmado». El comentario de
-  `_indTdFIP` declaraba la mentira y mandaba el pendiente a PENDIENTES.md. Hoy el cuerpo sale en
-  esquema —una fila vacía, el título y renglones con guion— y describe; la indicación, el
-  seguimiento y la clase viven sólo en la Evidencia.
-
-- **LO QUE NO SE MOVIÓ, Y ESTÁ MEDIDO CAMPO POR CAMPO.** `conducta` sigue armándose y sigue
-  viajando en `resumen`, que es lo que consume la **diapositiva del PPT** —su único consumidor— y
-  donde la conducta SÍ va por decisión escrita; `clave` no cambia, que es lo que clasifica el
-  **Laboratorio**; `ccHoja` sigue recibiendo `c.parrafos`, que en Fallot es `[]`, así que la hoja
-  del PDF sale igual. Y el **EN SUMA nunca tuvo conducta**: medido en HEAD, los tres marcadores en
-  `false`, así que no se le tocó una letra.
-
-- **TRES RENGLONES Y NO DOS, y se reporta.** La orden describe dos porque su ejemplo sólo carga
-  esos datos. La CIV residual y la taquicardia ventricular no pertenecen ni al tracto de salida ni
-  al ventrículo derecho, así que salen en un tercer renglón con el mismo formato en vez de colgarse
-  del vecino, que diría de la válvula pulmonar algo que no es cierto.
-
-- ⚠️ **LA FILA VACÍA DE SEPARACIÓN NO PUEDE SER LA CADENA VACÍA.** `_infEscribir` recibe
-  `inf.filter(Boolean)`: un `''` se descarta en el borde y la separación no llega nunca al papel.
-  El archivo ya lo tenía escrito **dos veces** —para `etePars` y para la hoja de
-  cardio-oncología—, las dos como «ese separador es código muerto», y las dos veces nadie lo usó
-  para nada. Va una línea con **un espacio**, que es *truthy*, y el PDF la imprime porque
-  `amiloSanPDFml` conserva la sangría de cada línea.
-
-- ⚠️ **`lista.map(_indFilaHTML)` LE PASABA EL ÍNDICE COMO SEGUNDO PARÁMETRO.** Los tres llamadores
-  del renderizador de filas del panel eran `map(_indFilaHTML)`, que entrega `(fila, índice,
-  array)`. El día que esa función tuviera un segundo parámetro, **la fila 0 se pintaría de un modo
-  y las otras quince de otro**, sin un error y sin que nada lo delate. Ese día era hoy. Los tres
-  pasan por una lambda explícita.
-
-- ⚠️ **CON LA PROSA PLEGADA, EL ALTO NO BAJABA — Y LA CAUSA ERA EL REPARTO DE LA TABLA.** La celda
-  de estado baja de **322 px a 30** y el reparto automático le daba esos 290 al **valor**, dejando
-  el rótulo en **90 px**: las preguntas pasaban de 53 a **109** y el total quedaba igual. Con el
-  rótulo como celda golosa (`width:100%`) y un piso de 170 px para las botoneras de más de dos
-  opciones, la sección pasó de **1562 a 1256 px** sin maximizar (−19,6 %), de 1514 a **1114**
-  maximizada (−26 %) y de 2430 a **1917** a 390 px (−21 %), con las dieciséis filas de dato en
-  **43 px** —una línea—.
-
-- ⚠️ **EL TÍTULO DE UN BLOQUE PLEGABLE NO PUEDE LLEVAR UN CONTADOR.**
-  `_indRepintarConservando` indexa cada `<details>` por «summary del padre ▸ summary», así que
-  «Lo que falta contestar (2)» **cambia de clave** en cuanto el médico contesta: el bloque se
-  cerraba solo en el repintado, que es exactamente el salto que esa función existe para evitar.
-
-- ⚠️ **TRES HALLAZGOS DEL PROPIO DIFF EN CONFIG, Y UNO DEJABA A REFERENCIAS SIN PUERTA EN EL
-  CELULAR.** (1) Las dos líneas que escondían `.tabs-tools` **no hacían nada visible**:
-  `.subtabs-wrap .tabs-tools{display:flex !important}` le gana a un `style.display` inline, así que
-  lo único que escondía al botón era su `data-mod`. (2) En Avanzado, esa misma fila entraba en un
-  recálculo que, sin un solo `[data-mod]` que contar, le escribía `display:none` **al botón que no
-  se puede ocultar**. (3) `ecoAdvBuild` salía por `return` para **todos** los botones en Modo
-  Básico, así que el desplegable de móvil quedaba **vacío** — y por debajo de 768 px las dos filas
-  están en `display:none !important` y la navegación va por ahí. Medido después: en Básico el
-  desplegable ofrece exactamente `refs`.
-
-- ⚠️ **EL `blur` SE DISPARA ANTES DEL `click`, Y `activeElement` NO ALCANZA EN WEBKIT.** Vaciar el
-  buscador en el `blur` borraba los botones de resultado y **el resultado se volvía intocable**; y
-  mirar `document.activeElement` no distingue un clic adentro de uno afuera, porque en WebKit un
-  `<button>` **no recibe el foco** al hacerle clic. Se resolvió con una marca de `pointerdown` en
-  el host y un retardo de 120 ms. Medido en los dos motores.
-
-- **A/B DE CONTROL contra el HEAD inicial: CERO diferencias** en informe (tres estilos), EN SUMA
-  (tres), **PDF generado de verdad** (65 textos y 26 figuras, idénticos) y **Excel en 440
-  columnas**, sobre un estudio sin ninguno de estos módulos. El censo de campos guardados da el
-  **mismo hash** (1036 campos). Y con el pulmón **integrado** —sin ese clic no publica nada y medir
-  sin integrar da cero líneas y parece que nada cambió— el párrafo y la línea del EN SUMA salen
-  byte por byte como los dejó el AJ2, en 1440 y en 390 px.
-
-- **Cobertura: cinco casos nuevos (TC-527 a TC-531) y DOS reescritos al contrato nuevo** —TC-502
-  (A1b) y TC-509 (F1) exigían `data-mod="calculadoras"` en la sub-pestaña y hoy exigen lo
-  contrario—. ⚠️ **La geometría de las media queries NO se mide en el arnés**: su ventana abre por
-  debajo de 1100 px, así que ni las cuatro columnas del pulmón ni las dos de la Evidencia se
-  aplican mientras el caso corre. Las dos condiciones **leen la regla** de `document.styleSheets` y
-  la exigen por su forma, que es la lección de TC-522 (A4c) del AJ5, y TC-529 lo declara en una
-  condición propia (`innerWidth < 1100`).
-
-- **Dónde está todo:** `docs/mapa/aj6-fallot-pulmon-refs.md` (**mapa NUEVO**, 20,8 KB, con la ficha
-  de los cinco casos); **cuatro mapas con un puntero cada uno** (`congenitas-otros` 31,0 KB ·
-  `referencias-subpestanas` 23,1 KB · `otros-pericardio-pulmon` 12,4 KB · `panel-evidencia`
-  30,2 KB); `docs/fuentes/FUENTES.md` → «La tanda AJ6», que existe **para decir que no se verificó
-  ni se citó una fuente nueva**, con la tabla de dónde venía cada cosa que se movió; y
-  `docs/PENDIENTES.md` → **SIETE** cosas declaradas (**AJ6-a** a **AJ6-g**).
-  ⚠️ **Y `panel-evidencia.md` SE PARTIÓ, que era la deuda que esperaba desde el 2026-10-12**: su
-  mecanismo de citación salió a `docs/mapa/panel-evidencia-citas.md` (7,0 KB) sin cambiar una
-  palabra, y el mapa bajó de **35,3 a 29,5 KB** antes de recibir su puntero. Medido con `wc -c`
-  **antes** de escribir, no después.
 
 ## Procedencia — dónde está el origen de cada regla
 

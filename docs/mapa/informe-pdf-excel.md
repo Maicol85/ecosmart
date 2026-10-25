@@ -538,3 +538,12 @@ En `docs/mapa/cortos-arreglos.md` y `docs/mapa/otros-hallazgos.md`.
   archivado (`vabFuncionDerivada(c)`), y la de «fused type» **conserva el texto viejo** porque el
   importador lo lee por valor de opción: renombrarlo descarta la **fila entera** de todo backup ya
   exportado.
+
+---
+
+## ➜ El POSOPERATORIO (tanda «G», 2026-10-24)
+
+La hoja PostCEC del PDF y la línea del EN SUMA pasan a ser **descriptivas**: sin el patrón, sin
+las cinco preguntas y sin conducta. Entran el lactato, la PAM, la PAD, la PAP, el gradiente
+transpulmonar y la RVP. El Excel sigue en **440 columnas** y `LAB_XLS_MAP` no tiene un solo
+`pop_`. Qué sale por dónde: **`docs/mapa/g-posoperatorio.md`** §5.

@@ -554,3 +554,11 @@ Puntero. El relato vive en **`docs/mapa/j2-hemo-onco-amiloide-pulmon.md`**. En u
   de 8 puntos la pantalla publica el puntaje y su **rendimiento en ese corte** (Boldrini 2020,
   Tabla 4, pág. 30). «ALTO» con ≥8 o con 2 de 3 cualitativos no se tocó.
   ⚠️ El **Laboratorio conserva su propia banda** (`_labAmilBanda`, cortes <6 / 6-7 / ≥8).
+
+---
+
+## ➜ El POSOPERATORIO de cirugía cardíaca vive en su propio mapa
+
+La subpestaña **«POP Cirugía Cardíaca»** de Hemodinámica —su pantalla, el esquema animado, la
+vasoplejia, el derrame pleural, lo que sale al informe y lo que no, su ficha de Referencias y
+su Evidencia— está en **`docs/mapa/g-posoperatorio.md`** (tanda «G», 2026-10-24).

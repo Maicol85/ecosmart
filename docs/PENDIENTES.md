@@ -7645,3 +7645,82 @@ porque heredaba el `font-size:11px` del rótulo en mayúsculas que lo envuelve. 
 quince dejan de aparecer, que es lo que un teléfono ve—, o sacarle el gate al piso táctil de
 `.vinfo-btn` y aceptar 44 px también con el mouse. Las dos tocan los quince botones a la vez, así
 que es una tanda propia. Decisión de Maicol.
+
+---
+
+# Tanda «G» — el posoperatorio de cirugía cardíaca (2026-10-24)
+
+## Lo que esta tanda CERRÓ
+
+- **La vasoplejia no miraba la PAM.** Hoy exige las tres cosas de la definición que publican
+  Unic-Stojanovic 2025 y Busse 2020.
+- **El pie del cuadro del VD del POP declaraba «VD/VI 0,9»** mientras las dos filas de arriba del
+  mismo cuadro imprimían «≥1.0» leyendo `TEP_VDVI_DILAT_MIN`. Hoy sale de la constante.
+- **El papel firmado del posoperatorio se contradecía:** con IC 2,18 decía «Índice cardíaco | 2.18
+  — bajo» ocho renglones antes de «Sin patrón de bajo gasto», y el EN SUMA lo decía en la MISMA
+  oración. Hoy el patrón no viaja al papel.
+- **La mitad derecha de las diez filas de drogas era un rectángulo vacío** (374 → 184 px).
+- **Los grados del derrame pleural y la banda de precarga no declaraban que no tienen fuente.**
+- **La conducta del derrame pleural vivía en la pantalla** colgada de una graduación sin fuente.
+
+## G-a · Dos copias del umbral de hipertensión pulmonar (20 mmHg)
+
+`POP_PAPM_HP_MMHG` vale 20 en el módulo del posoperatorio, y el **mismo 20** está escrito INLINE en
+`calcHemodinamica` (`papm <= 20`), que esta orden no autorizaba a tocar. Si alguna vez se mueve,
+hay que moverlo en los dos lugares. **Lo correcto es un único `HP_PAPM_MIN` con dueño**, igual que
+`RVP_ELEVADA_UW`, y que las dos superficies lo pregunten.
+
+## G-b · La clasificación pre/poscapilar está inline y no se puede reusar
+
+El esquema del POP publica los NÚMEROS del circuito pulmonar —PAP media, PCP, gradiente
+transpulmonar y RVP— y **no** dice «precapilar» ni «poscapilar», porque esa cascada vive dentro de
+`calcHemodinamica` sin ser una función, y copiarla habría puesto dos veces los mismos cortes en la
+misma app. Extraerla a un `_hpPatron(papm, pcp, rvp)` que las dos superficies pregunten es trabajo
+de una tanda de la hemodinámica general.
+
+## G-c · El Laboratorio pierde la distribución de patrones del POP
+
+`_labPopResumen` lee el patrón del TEXTO integrado con
+`match(/## Patrón hemodinámico\n([^\n]+)/)`, y esa sección ya no se emite: su contador queda vacío
+para los estudios que se integren desde hoy. Los **ya guardados** conservan su texto y siguen
+contando — no se migró nada. El resto de ese panel (tipo de cirugía, soporte por droga, índice
+cardíaco promedio) no depende de esa sección. **Si esa estadística importa**, la salida limpia es
+que el Laboratorio lea `popPatron()` sobre los campos guardados —hay una fuente inyectable,
+`_pcCon(campos, fn)`— en vez de leer el texto del informe. Decisión de Maicol.
+
+## G-d · El dibujo no entra al PDF
+
+La hoja del POP se arma como texto tabulado; meter el SVG exigiría rasterizarlo a canvas y pegarlo
+como imagen. La orden permitía dejarlo afuera («sin dibujo si no entra de forma limpia») y así se
+hizo. **Todo lo que el dibujo muestra está en la tabla de datos medidos de la hoja**, que esta
+tanda completó con la PAM, la PAD, la PAP, el gradiente transpulmonar y la RVP.
+
+## G-e · Un hallazgo más de `toque-chico` en el celular
+
+La línea base era **64 hallazgos a 360 px y 73 a 390, con 18 ALTA cada uno**; hoy es **65 y 74,
+con 19 ALTA**. El hallazgo nuevo es el globo ⓘ que el bloque de pleura del POP agrega, medido en
+**16×12 px**: es **el mismo componente** que los otros dieciocho `.vinfo-btn` ya contados, con la
+misma medida. Vale lo que ya dice la entrada del J2 sobre ese piso táctil: está acotado a
+`@media (pointer: coarse)` y `check_mobile.js` no emula un puntero grueso, así que mide el tamaño
+de escritorio. En un teléfono real ese botón mide 44×44.
+
+## G-f · El híbrido con el corazón anatómico y la frecuencia cardíaca en las animaciones
+
+Las dos quedan **fuera de esta tanda por orden expresa**, y se dejan anotadas como trabajos
+futuros:
+
+- **El híbrido con el corazón anatómico del Laboratorio.** El esquema del POP usa las cuatro
+  cavidades cuadradas de la demo aprobada del 17/10 y **no** el corazón anatómico. Unirlos no está
+  decidido.
+- **La frecuencia cardíaca real en las animaciones.** Hoy el latido del dibujo dura
+  `POP_ESQ_PER_MS` (1700 ms), que es la velocidad a la que el esquema se ve bien y **no** la
+  frecuencia del paciente. Atarla a `hemo_fc` es una decisión de producto que esta orden excluye.
+
+## G-g · El PPT del paciente no se midió de punta a punta
+
+El PPT del **Laboratorio** (21 textos) y el **PDF de auditoría** (104 textos) salieron IDÉNTICOS en
+el A/B contra el HEAD de la tanda. El PPT **del paciente** no se pudo medir así: `generarPPT(id)`
+exige un estudio guardado y la sonda no logró completar el guardado —cuelga de la card de
+severidades—. Lo que sí está medido: la rama `integrado('pop')` del PPT lee `popPatron()`, que esta
+tanda **no cambió** (TC-534, condición L9), y los casos de la suite que cubren el PPT están en
+verde. Cerrar esto es agregarle a la sonda el guardado real.

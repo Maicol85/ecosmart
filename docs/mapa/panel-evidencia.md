@@ -467,3 +467,13 @@ respuesta deja viva sólo la última: se abre **una vez por escena**. Costó una
 Siete entradas nuevas en `IND_REFS` (`aseDer2025`, `sacShock2024`, `grossman2016`,
 `braunwald2016`, `escOnco2022`, `gpAmiloid2021`, `boldrini2020`) y `esc2023mioc` ampliada con su
 procedencia verificada. Ver `panel-evidencia-citas.md`.
+
+---
+
+## ➜ La sección del POSOPERATORIO (tanda «G», 2026-10-24)
+
+`_indPOP()` es la sección **31** de `IND_SECS`, título «Posoperatorio de cirugía cardíaca»,
+formato **compacto**. Su compuerta es el tipo de cirugía o una asistencia circulatoria, y NO
+`popPatron().suficiente`. Dos bloques: el síndrome post-lesión cardíaca (ESC 2025, la única
+fuente que gradúa) y «Según la cirugía, también mirar…» (Nicoara 2020, **sin clase y sin
+nivel**, porque esa guía no usa esa escala). Detalle: **`docs/mapa/g-posoperatorio.md`** §6.

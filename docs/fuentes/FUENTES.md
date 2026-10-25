@@ -5860,3 +5860,73 @@ regla de derechos de autor de este repositorio.
 | Criterios de eco pulmonar | sin ficha de Referencias | ficha propia, cada criterio con su enunciado y su hoja | Volpicelli 2026, enunciados D2_2.1, D2_2.2, D3_1.1, D3_1.3, D3_1.4 y D6_11 | `5a8f04c` | 24/10/2026 |
 | «Líneas B aisladas: hallazgo focal, puede ser inespecífico» | retirada del informe por el AJ2 | en la **ficha**, con su fuente: el D3_1.4 llama focal a ese patrón y lista sus causas | Volpicelli 2026, D3_1.4, hoja 13 | `5a8f04c` | 24/10/2026 |
 | Síndrome intersticial difuso — atribución | «pie de la Figura 4C, hoja 8» | «pie de la **Figura 3, panel C**, hoja 8» | el pie de esa hoja es «Fig. 3 Techniques…» | `5a8f04c` | 24/10/2026 |
+
+---
+
+## La tanda «G» — el posoperatorio de cirugía cardíaca (2026-10-24)
+
+### Lo verificado EN IMAGEN sobre el PDF original de la biblioteca
+
+| Documento | Archivo | Dónde | Qué dice, literal |
+|---|---|---|---|
+| **Unic-Stojanovic D, Koster A, Erdoes G, Milojevic M.** «Vasoplegic syndrome in cardiac surgery: bridging therapeutic gaps with best practices and future research». *Interdiscip CardioVasc Thorac Surg* 2025;**40(4):ivaf075** | `22_Hemodinamica_avanzada/ivaf075.pdf` | **hoja 1 de 4** (el artículo se pagina por su identificador, no lleva folio impreso) | *«While various definitions exist, they generally agree on core diagnostic criteria: a mean arterial pressure (MAP) <65 mmHg along with a cardiac index >2.2 l/min/m² and an SVR <800 dynes·s/cm⁵.»* Y: *«Elevated lactate levels and the absence of infection are also frequently considered diagnostic clues»* — **sin cifra de lactato** |
+| **Busse LW, Barker N, Petersen C.** «Vasoplegic syndrome following cardiothoracic surgery — review of pathophysiology and update of treatment options». *Crit Care* 2020;**24:36** | `22_Hemodinamica_avanzada/s13054-020-2743-8.pdf` | **página 1 de 11** (el pie impreso dice «Page N of 11») | *«…typically is considered when shock occurs within 24 h of CPB in the setting of a cardiac index (CI) is greater than 2.2 L/kg/m² and SVR less than 800 dyne s/cm⁵.»* **NO nombra la PAM**, y la unidad del índice sale impresa con una **errata**: «L/kg/m²» por L/min/m² |
+| **Nicoara A, Skubas N, Ad N, et al.** (ASE / SCA / STS) «Guidelines for the Use of Transesophageal Echocardiography to Assist with Surgical Decision-Making in the Operating Room». *J Am Soc Echocardiogr* 2020;**33(6):692-734** | `14- ETE/TEE-Surgical-Decision-Making_June2020.pdf` | **folio = hoja + 691**, comprobado en el pie impreso de las hojas 1, 10, 25 y 26 | **§3.1.5 «Postprocedure Assessment. Mitral Valve Repair» y su Tabla 3, folio 701**; **§4.2 «Postprocedure Assessment» de la cirugía de revascularización, folio 716**, con su **Tabla 8 en el folio 707**; y la **Figura 12, folio 716**, «Post-ECMO TEE Imaging», de ocho vistas |
+| **Bora V, Pulijal SV.** «Transesophageal Echocardiography in Critical Care». *Curr Pulmonol Rep* 2024;**13:152-172** | `14- ETE/s13665-024-00351-2.pdf` | **folio 152** (primera página) | lista las situaciones en que el ETE es instrumental, entre ellas las **complicaciones tras cirugía cardíaca** y el taponamiento |
+| **ESC 2025 de miocarditis y pericarditis** (ehaf192) | `07_Pericardio/___25_Myocarditis_and_Pericarditis.pdf` | **§11.3, folio 58**; **§11.3.1, folio 59**; **Recommendation Table 22, folio 59** | el síndrome post-lesión cardíaca se diagnostica con **al menos DOS de cinco** criterios; su Tabla 22 publica cinco recomendaciones con clase y nivel |
+
+### Lo REUSADO sin releer, porque ya estaba verificado en este archivo
+
+- **Consenso de Shock Cardiogénico, SAC 2024** — Tabla 1, folio 2, columna comparativa del *Shock
+  Trial*: «IC ≤ 2,2 y PEP > 15». Es una tabla **comparativa de cuatro definiciones**, no una
+  recomendación propia, y su unidad sale impresa **sin indexar**.
+- **ESC/ERS 2022 de hipertensión pulmonar** — las definiciones (PAP media > 20 mmHg, poscapilar
+  con PCP > 15, RVP > 2 UW).
+- **Volpicelli 2026**, enunciado **D6_11, hoja 19** — el volumen del derrame pleural y sus límites.
+
+### La Recommendation Table 22 (ESC 2025, folio 59), leída en imagen
+
+| Recomendación | Clase | Nivel | ¿La publica la app? |
+|---|---|---|---|
+| Tratamiento antiinflamatorio para acelerar la remisión y reducir recurrencias | **I** | **B** | sí, con el síndrome diagnosticado |
+| Antagonistas de la interleucina 1 en el síndrome **refractario** | **I** | **B** | sí, con el síndrome diagnosticado |
+| Aspirina en dosis alta como primera opción en la pericarditis **posterior al infarto** | I | C | **NO**, y se declara por qué: no es el posoperatorio de cirugía cardíaca |
+| **Colchicina** 48 a 72 h **antes** de la cirugía, por un mes, para prevenirlo | **IIa** | **A** | sí, **siempre**: es la única fila que habla del paciente antes de que el síndrome aparezca |
+| Seguimiento cuidadoso para descartar la evolución a constricción | **IIa** | **C** | sí, con el síndrome diagnosticado |
+
+### Lo que NO tiene fuente, censada la biblioteca, y lleva el chip
+
+| Corte o texto | Por qué no tiene fuente |
+|---|---|
+| **Precarga suficiente: PCP de 12 a 18 mmHg** | ninguna de las fuentes de este módulo publica esa banda. El SAC 2024 publica «PEP > 15» **dentro de una definición de shock**, que no es un rango de precarga adecuada |
+| **Grados del derrame pleural por tamaño** (< 1 cm / 1-3 / > 3) | ninguna fuente de este módulo gradúa el derrame pleural por tamaño. **No se retiran**: describen el tamaño |
+| **Partición de la falla del VD** en «poscarga» y «contractilidad» | ninguna fuente cuelga esos dos nombres de ese umbral. El **número** (20 mmHg) sí es la definición de HP de la ESC/ERS 2022 |
+| **«Patrón detectado (orientativo)»** y **«Según la cirugía, también mirar…»** | cómo se COMBINAN las bandas y qué conviene mirar según la cirugía son decisiones de la aplicación |
+
+### Una premisa de la orden era FALSA, y está medida
+
+La orden decía que **«hoy la app usa IC ≥ 2,2»** para la vasoplejia. **No es así.** `_icBanda`
+llama «bajo» a todo lo que sea **2,2 o menos**, así que `!icBajo` ya era exactamente «IC > 2,2»,
+que es lo que publican los dos artículos. Medido en el borde: con IC 2,20 exacto la app **no**
+ponía la etiqueta ni antes ni ahora. **No se movió ningún corte de índice cardíaco.** Lo mismo con
+la RVS: `rvsBaja` ya era «< 800» sobre el valor **sin indexar**, y el SVRI del PiCCO ya se
+desindexaba por la superficie corporal del estudio.
+
+### Cambios de evidencia
+
+| Dato | Antes | Ahora | Fuente | Commit | Fecha |
+|---|---|---|---|---|---|
+| **Vasoplejia — criterios** | «RVS baja sin IC bajo», **sin mirar la PAM** | **PAM < 65 + IC > 2,2 + RVS < 800 sin indexar**; sin PAM no hay etiqueta | Unic-Stojanovic 2025, ivaf075, hoja 1 (el PAM < 65 sale **sólo** de ahí) y Busse 2020, Crit Care 24:36, pág. 1 | `66d4889` | 24/10/2026 |
+| **Vasoplejia — cómo se rotula** | etiqueta a secas, con el mismo peso que «taponamiento» | **«definición PROPUESTA»**, declarando que las dos fuentes son un editorial y una revisión y que no hay definición universal | las dos fuentes lo dicen en su propio texto | `66d4889` | 24/10/2026 |
+| **Grados del derrame pleural** | sin declarar su origen | se mantienen, con el chip «**Criterio de EcoSmart**» | ninguna fuente de este módulo los publica | `66d4889` | 24/10/2026 |
+| **Volumen del derrame pleural en el POP** | sin cita en esa pantalla | el globo ⓘ `pul-balik`, **reusado** y no copiado | Volpicelli 2026, enunciado D6_11, hoja 19 | `66d4889` | 24/10/2026 |
+| **Pie del cuadro del VD del POP** | declaraba «**VD/VI 0,9**» con el número a mano, mientras las filas de arriba imprimían «≥1.0» | sale de `TEP_VDVI_DILAT_MIN` | ESC 2019 de TEP, folio e17 (el corte **no se movió**) | `66d4889` | 24/10/2026 |
+| **Conducta del derrame pleural** | «Considerar drenaje…» / «Vigilancia — reevaluar en 24 h» **en la pantalla** | **en la Evidencia**, rotulada «Criterio EcoSmart», diciendo que depende además del débito y del cuadro clínico | esa conducta colgaba de una graduación sin fuente | `6d62194` · `b42cfbf` | 24/10/2026 |
+| **Patrón hemodinámico del POP** | en la hoja del PDF (con las cinco preguntas) y en el EN SUMA | **sólo en la pantalla**, con el chip y un aviso de que no viaja al papel | el informe y el papel firmado del POP son descriptivos | `6d62194` | 24/10/2026 |
+| **EN SUMA del POP** | «PostCEC CABG — hora 8 h — **Patrón: Sin patrón de bajo gasto…** — IC 2.18 — bajo gasto.» (negaba y afirmaba el bajo gasto en la misma oración) | «PostCEC CABG — hora 8 h — IC 2.18 L/min/m² — bajo gasto.» | — | `6d62194` | 24/10/2026 |
+| **Hoja PostCEC del PDF** | sin PAM, sin PAD, sin PAP, sin gradiente transpulmonar y sin RVP | los cinco, como dato medido, **sin banda** | son los números que el esquema publica | `6d62194` | 24/10/2026 |
+| **Lactato** | no existía | campo opcional que la app **no interpreta** y que el papel publica como dato | ninguna fuente de este módulo publica un corte aplicable | `99a7d36` · `6d62194` | 24/10/2026 |
+| **Falla del VD — partición por PAP** | no existía | «por poscarga» por encima de 20 mmHg y «del propio VD» por debajo, con el chip | el **número** es la definición de HP de la ESC/ERS 2022; la **partición** no tiene fuente | `163bda9` | 24/10/2026 |
+| **Evaluación tras cirugía mitral y tras revascularización, y vistas tras ECMO** | no estaban en la aplicación | en la **Evidencia**, **sin clase y sin nivel**, declarando que esa guía no usa esa escala | Nicoara 2020, folios 701, 707 y 716 | `b42cfbf` | 24/10/2026 |
+| **Síndrome post-lesión cardíaca** | no estaba en la aplicación | cuestionario de cinco criterios y cuatro recomendaciones graduadas | ESC 2025, §11.3 folio 58, §11.3.1 y Tabla 22 folio 59 | `b42cfbf` | 24/10/2026 |
+| **Ficha de Referencias del POP** | no existía | dieciséis filas, cada una con su fuente y su folio; cuatro con chip | ver la tabla de arriba | `3d54c09` | 24/10/2026 |

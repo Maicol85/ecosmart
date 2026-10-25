@@ -1318,6 +1318,52 @@ window.__G = {
       r.conclBox = await ev(`window.__P.txt('pop-concl-box')`);
       r.pocusPleura = await ev(`window.__P.txt('pop-pocus-pleura')`);
       r.pocusVD = await ev(`window.__P.txt('pop-pocus-vd')`);
+      /* ── EL PDF GENERADO DE VERDAD, el PPT del paciente, el PPT del Laboratorio y el PDF de
+            auditoria. Con el POP integrado, que es la unica forma de que su hoja salga. ── */
+      r.pdf = await ev(`window.__P.pdf('estandar')`, 120000);
+      r.pptPac = await ev(`(function(){
+        if (typeof PptxGenJS === 'undefined') return 'SIN PptxGenJS';
+        if (typeof generarPPT !== 'function') return 'SIN generarPPT';
+        var n = 0, txt = [];
+        var Pp = PptxGenJS, orig = Pp.prototype.addSlide;
+        Pp.prototype.addSlide = function(){ var sl = orig.apply(this, arguments);
+          var oT = sl.addText;
+          sl.addText = function(t){ n++;
+            try { txt.push(typeof t === 'string' ? t : JSON.stringify(t).slice(0,160)) } catch(e){}
+            return oT.apply(sl, arguments) };
+          return sl };
+        /* El PPT del paciente se arma sobre un estudio GUARDADO: se guarda el de pantalla y se
+           le pasa su id, que es el camino real. Sin id, el generador no tiene de donde leer. */
+        /* ⚠️ guardarInforme() A SECAS NO GUARDA: el guardado real cuelga de la card de
+           severidades, que hay que confirmar. Sin eso no hay estudioId y el PPT sale con CERO
+           diapositivas en los dos lados del A/B — o sea un verde sobre cero elementos. */
+        var err = null, id = null;
+        try {
+          window._ettEditandoId = null;
+          var antes = getInformes().map(function(i){ return i.estudioId });
+          guardarInforme(function(){});
+          var cf = document.getElementById('rev-confirm'); if (cf) cf.click();
+          var ahora = getInformes();
+          for (var i = 0; i < ahora.length; i++)
+            if (antes.indexOf(ahora[i].estudioId) < 0) id = ahora[i].estudioId;
+        } catch (e) { err = 'guardar: ' + e.message }
+        try { if (id) generarPPT(id); } catch (e) { err = String(e && e.message || e) }
+        Pp.prototype.addSlide = orig;
+        return { n: n, err: err, idOk: !!id,
+                 pop: txt.filter(function(x){ return /PostCEC|posoperatorio|Patr/i.test(x) }).slice(0,6) };
+      })()`, 120000);
+      const _reg = await ev(`(function(){
+        var c = {};
+        document.querySelectorAll('input[id],select[id],textarea[id]').forEach(function(e){
+          if (e.type === 'checkbox' || e.type === 'radio') c[e.id + '__chk'] = e.checked ? '1' : '0';
+          else c[e.id] = e.value; });
+        c['am-txt-pop'] = (document.getElementById('am-txt-pop') || {}).value || '';
+        return [window.__P.reg(c, 'pop')];
+      })()`);
+      r.labPPT = await ev(`window.__P.labPPT(${JSON.stringify(_reg)})`, 120000);
+      r.labAudit = await ev(`(function(){ var a = window.__P.labAudit(${JSON.stringify(_reg)});
+        return (a && a.textos) ? { n: a.textos.length,
+          pop: a.textos.filter(function(x){ return /PostCEC|Patr|posoperatorio/i.test(x) }).slice(0,8) } : a })()`, 120000);
       r.errores = await ev(`window.__Yerr ? window.__Yerr.slice(0,20) : null`);
     } catch (e) { r.err = e.message }
     out2.grupos.ctrl = r;
