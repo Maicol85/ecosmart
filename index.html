@@ -24117,6 +24117,20 @@ window.UMBRAL_MASA_HVI_M = UMBRAL_MASA_HVI_M; window.UMBRAL_MASA_HVI_H = UMBRAL_
    con RVP 2,5 veía «límite» en amarillo en una tarjeta y «HTP precapilar» en rojo en otra —y
    el que sale al PDF es el de la tarjeta de Cálculos, el del umbral viejo—. */
 const RVP_ELEVADA_UW = 2;
+/* ══ UN SOLO DUEÑO PARA EL CORTE DE HIPERTENSIÓN PULMONAR (AJ7-8, 2026-10-24) ══════════════
+   Cierra G-a. El 20 vivía DOS veces: una constante propia del módulo del posoperatorio y el
+   MISMO 20 escrito inline acá, en `calcHemodinamica` (`papm <= 20`), más tres veces dentro de
+   los textos de sus pastillas. Moverlo exigía moverlo en los dos lados, y nada lo vigilaba: es
+   el patrón de la lista paralela que este archivo ya pagó con el corte de la onda S′ y con el
+   pie del cuadro del VD del posoperatorio.
+   El número es la definición de hipertensión pulmonar de la ESC/ERS 2022 —PAP media POR ENCIMA
+   de 20 mmHg—, la misma que la tanda G verificó en el folio 30 para la rama del ventrículo
+   derecho del posoperatorio. NO SE MUEVE: este commit sólo lo unifica.
+   Va acá, al lado de `RVP_ELEVADA_UW`, porque es su vecino de cascada y porque este bloque
+   corre ANTES que el del posoperatorio: un `const` no está en `window`, así que el orden de los
+   bloques importa y el dueño tiene que nacer en el primero de los dos que lo necesita. */
+const HP_PAPM_MIN = 20;   // mmHg — HTP con PAP media POR ENCIMA de este valor (ESC/ERS 2022, folio 30)
+window.HP_PAPM_MIN = HP_PAPM_MIN;
 window.RVP_ELEVADA_UW = RVP_ELEVADA_UW;
 /* Término constante de la ecuación de Abbas: `RVP = (TRV / VTI_TSVD) × 10 + 0,16` (Wood).
    Vive al lado del umbral y NO dentro de la cuenta para que se lea que es parte de LA ECUACIÓN y
@@ -26266,7 +26280,7 @@ function calcHemo() {
   }
 
   // ── HTP: pre / pos / mixta (ESC 2022) ──
-  // HTP precapilar — ESC/ERS Guidelines 2022 — PAPm>20 + PAWP≤15 + RVP>2 UW
+  // HTP precapilar — ESC/ERS Guidelines 2022 — PAPm>HP_PAPM_MIN + PAWP≤15 + RVP>2 UW
   const htpEl = document.getElementById('hemo-htp-tipo');
   // FIX clínico: la clasificación pre/poscapilar es un diagnóstico hemodinámico que requiere
   // cateterismo cardíaco derecho (RHC). Con estimaciones eco sólo se describe un "patrón compatible con".
@@ -26274,14 +26288,14 @@ function calcHemo() {
   if (htpEl) {
     if (papm === null || pcp === null) {
       htpEl.innerHTML = badge('gray', 'Requiere PAPm (PSAP) + PCP (E/e\')');
-    } else if (papm <= 20) {
-      htpEl.innerHTML = badge('green', 'Sin HTP (PAPm ≤20 mmHg)');
+    } else if (papm <= HP_PAPM_MIN) {
+      htpEl.innerHTML = badge('green', 'Sin HTP (PAPm ≤' + HP_PAPM_MIN + ' mmHg)');
     } else if (rvp === null) {
       htpEl.innerHTML = (pcp <= 15
         ? badge('yellow', 'HTP precapilar posible — confirmar RVP (cateterismo derecho)')
         : badge('yellow', 'Componente poscapilar posible (PCP >15) — confirmar RVP (cateterismo derecho)')) + htpNote;
     } else if (pcp <= 15 && rvp > RVP_ELEVADA_UW) {
-      htpEl.innerHTML = badge('red', 'Patrón compatible con HTP precapilar — PAPm >20 + PCP ≤15 + RVP ' + rvp.toFixed(1) + ' UW (>2)') + htpNote;
+      htpEl.innerHTML = badge('red', 'Patrón compatible con HTP precapilar — PAPm >' + HP_PAPM_MIN + ' + PCP ≤15 + RVP ' + rvp.toFixed(1) + ' UW (>2)') + htpNote;
     } else if (pcp <= 15 && rvp <= 2) {
       htpEl.innerHTML = badge('yellow', 'No clasificable como precapilar — PCP ≤15 pero RVP ' + rvp.toFixed(1) + ' UW (≤2). Criterio ESC/ERS 2022 exige RVP >2 UW') + htpNote;
     } else if (rvp > RVP_ELEVADA_UW) {
@@ -57775,7 +57789,9 @@ window.popConclSync = popConclSync;
    ⚠️ EL MISMO 20 ESTÁ ESCRITO INLINE en la cápsula de Hemodinámica (`calcHemodinamica`), que
    esta orden NO autoriza a tocar. Quedan DOS copias del mismo número: si alguna vez se mueve,
    hay que moverlo en los dos lugares. Declarado en PENDIENTES. */
-const POP_PAPM_HP_MMHG = 20;
+/* El corte de HTP tiene UN dueño, `HP_PAPM_MIN`, declarado junto a `RVP_ELEVADA_UW` en el
+   bloque de hemodinámica — que es el primero de los dos que lo necesita (AJ7-8, cierra G-a).
+   Acá vivía la segunda copia del 20. */
 /* Duración de un latido del dibujo, en milisegundos. NO es la frecuencia cardíaca del paciente
    —esa no entra en este trabajo— : es la velocidad a la que el esquema se ve bien. */
 const POP_ESQ_PER_MS = 1700;
@@ -57828,7 +57844,7 @@ function popEsquema() {
      media no se parte: se dice que falta, que es distinto de elegir una de las dos ramas. */
   let vdRama = null;
   if (tapseBaja || vdDil) {
-    vdRama = papm === null ? 'sin_pap' : (papm > POP_PAPM_HP_MMHG ? 'poscarga' : 'contractilidad');
+    vdRama = papm === null ? 'sin_pap' : (papm > HP_PAPM_MIN ? 'poscarga' : 'contractilidad');
   }
 
   /* ── PERICARDIO ── Se lee del módulo de pericardio de esta misma pestaña; no se reevalúa. */
@@ -57869,7 +57885,7 @@ function popEsquema() {
     cVD: !hayVD ? 'none' : (tapseBaja && vdDil) ? 'bad' : (tapseBaja || vdDil) ? 'warn' : 'ok',
     cPulmon: lineasB === 'difusas' ? 'bad' : lineasB === 'focales' ? 'warn'
              : lineasB === 'ausentes' ? 'ok' : 'none',
-    cCajaPulm: papm === null ? 'none' : papm <= POP_PAPM_HP_MMHG ? 'ok'
+    cCajaPulm: papm === null ? 'none' : papm <= HP_PAPM_MIN ? 'ok'
                : (rvp !== null && rvp > rvpLim) ? 'bad' : 'warn'
   };
 }

@@ -943,6 +943,39 @@ window.__Y = {
       o[id] = window.__P.txt(id) });
     return o },
 
+  /* ── COMMIT 8 · G-a, el corte de HP en sus DOS superficies ─────────────────────────── */
+  hp(psapCalc) {
+    var o = {};
+    var e = document.getElementById('psap_calc');
+    if (!e) return { err: 'NO EXISTE psap_calc' };
+    e.value = String(psapCalc);
+    e.dispatchEvent(new Event('input', { bubbles: true }));
+    try { if (typeof calcHemo === 'function') calcHemo(); } catch (x) { o.errHemo = x.message }
+    o.psap = e.value;
+    o.papm = +(0.61 * parseFloat(e.value) + 2).toFixed(4);
+    o.htp = window.__P.txt('hemo-htp-tipo');
+    return o },
+
+  /* La rama del VD del posoperatorio, por el PROPIO clasificador y no por un span. */
+  hpPop(paps, papd) {
+    var o = { paps: paps, papd: papd, papm: +((paps + 2 * papd) / 3).toFixed(4) };
+    [['pop_monitor', 'swan'], ['pop_sw_paps', String(paps)], ['pop_sw_papd', String(papd)]]
+      .forEach(function(par){
+        var e = document.getElementById(par[0]);
+        if (!e) { o['no_' + par[0]] = 1; return; }
+        if (e.tagName === 'SELECT') { var r = window.__P.sel(par[0], par[1]); if (r.err) o['err_' + par[0]] = r.err; }
+        else { e.value = par[1]; e.dispatchEvent(new Event('input', { bubbles: true })); }
+        e.dispatchEvent(new Event('change', { bubbles: true }));
+      });
+    /* vdRama y cCajaPulm los decide popEsquema(), NO popPatron(): la primera version de esta
+       sonda le preguntaba a popPatron y leia undefined en las tres escenas — un null contra un
+       null, que es un A/B sin denominador. */
+    try { var P = (typeof popEsquema === 'function') ? popEsquema() : null;
+      o.vdRama = P ? P.vdRama : 'SIN popEsquema'; o.cCajaPulm = P ? P.cCajaPulm : null;
+      o.papmFn = P ? P.papm : null; }
+    catch (x) { o.err = x.message }
+    return o },
+
   /* ── Texto buscado en cualquier superficie ─────────────────────────────────────────── */
   busca(t, frases) {
     var s = String(t || ''), o = {};
@@ -1320,6 +1353,44 @@ window.__Y = {
   }
 
   /* ── COMMIT 6b · se siente lento escribir? SOLO MEDIR ─────────────────────────────────── */
+  async function escenaHP() {
+    const r = { hemo: {}, pop: {} };
+    try {
+      await ev(`window.__P.nuevo()`); await ev(`window.__P.calentar()`);
+      await ev(`window.__P.abrirPara('e_sep')`);
+      /* DENOMINADOR DEL LADO DE HEMODINAMICA: sin E/e' no hay PCP y la pastilla dice «Requiere
+         PAPm + PCP», o sea que las dos ramas del corte NO se alcanzan y el A/B compararia dos
+         veces el mismo texto de «falta un dato». Medido: sin esto, 19, 20 y 21 daban todos
+         «Requiere PAPm (PSAP) + PCP (E/e')». */
+      r.puestoHemo = await ev(`window.__Y.poner(${JSON.stringify({
+        nombre: 'HP AJ7', ci: '10', peso: '80', talla: '175',
+        onda_e: '90', e_sep: '6', e_lat: '8' })})`);
+      /* psap_calc se fija DIRECTO para caer en PAPm 19, 20 y 21 exactos: por el camino natural
+         -it_vmax y pmad- el redondeo a dos decimales no permite aterrizar en el borde. */
+      for (const t of [19, 20, 21]) {
+        /* ⚠️ PAPm EXACTAMENTE 20 ES INALCANZABLE POR ESTE CAMINO, y se declara: del lado de
+           hemodinamica la PAPm es DERIVADA -0,61 x PSAP + 2- y no hay PSAP binario que de 18,000
+           exacto; (20-2)/0.61 reconstruye 20.000000000000004, que cae del lado de ARRIBA del
+           corte. Se miden entonces los dos lados del borde, 19,995 y 20,056, y el 20 EXACTO se
+           prueba del lado del posoperatorio, donde la PAPm es un promedio directo. */
+        const psap = { 19: 27.868852, 20: 29.5, 21: 29.6 }[t];
+        r.hemo[t] = await ev(`window.__Y.hp(${psap})`);
+      }
+      await ev(`window.__P.nuevo()`); await ev(`window.__P.calentar()`);
+      await ev(`window.__P.abrirPara('pop_sw_paps')`);
+      /* DENOMINADOR DEL LADO DEL POSOPERATORIO: `vdRama` solo se decide con el VD alterado
+         -TAPSE bajo o VD/VI dilatado-. Sin eso queda en `null` y el A/B compararia dos nulls.
+         Medido: sin el TAPSE, 19, 20 y 21 daban `vdRama: null` en los tres. */
+      r.puestoPop = await ev(`window.__Y.poner(${JSON.stringify({ nombre: 'HP AJ7', ci: '10',
+        peso: '80', talla: '175', pop_cx_tipo: 'cabg', pop_cx_horas: '8',
+        tapse: '14', onda_e: '90', e_sep: '6', e_lat: '8' })})`);
+      for (const t of [19, 20, 21]) r.pop[t] = await ev(`window.__Y.hpPop(${t}, ${t})`);
+      r.errores = await ev(`window.__Y.errores()`);
+    } catch (e) { r.err = e.message }
+    out.grupos.hp = r;
+    process.stderr.write('[hp] listo\n');
+  }
+
   async function escenaPerf() {
     const r = {};
     try {
@@ -1419,6 +1490,7 @@ window.__Y = {
   if (corre('globos')) await escenaGlobos();
   if (corre('hfp'))    await escenaHFP();
   if (corre('blo'))    await escenaBloques();
+  if (corre('hp'))     await escenaHP();
   if (corre('perf'))   await escenaPerf();
   if (corre('secs'))   await escenaSecs();
   if (corre('ctrl'))   await escenaCtrl();
