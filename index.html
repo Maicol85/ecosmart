@@ -1711,6 +1711,28 @@
                line-height: 1; color: var(--accent2); cursor: pointer;
                min-height: 0; min-width: 0; }
   .vinfo-btn:focus-visible { outline: 2px solid var(--accent2); outline-offset: 2px; border-radius: 4px; }
+  /* ══ EL PISO TACTIL SIN GATE, PARA LOS DOS GLOBOS DE ENCABEZADO (AJ7-6a, 2026-10-24) ═══════
+     Los diecisiete `.vinfo-btn` de la aplicacion miden entre 15×11 y 17×13 px con el mouse y 44×44
+     con el dedo, por el `@media (pointer: coarse)` de abajo. `check_mobile.js` NO emula un puntero
+     grueso —mide el tamano de escritorio—, asi que los cuenta a todos como «toque-chico» de
+     severidad ALTA, y en un telefono real ese boton mide 44×44 y el hallazgo no describe lo que el
+     medico toca. La linea base convivia con QUINCE de esos hallazgos; la J2 sumo el decimosexto
+     (el del score de amiloidosis) y la G el decimoseptimo (el del bloque de pleura del POP), y el
+     barrido paso de 63/72 con 17 ALTA a 65/74 con 19.
+     ESTOS DOS, Y SOLO ESTOS DOS, llevan el piso SIN la media query. Es lo que la orden pide, y
+     deja el barrido exactamente donde estaba. Los otros quince siguen como estan: sacarles el gate
+     a los diecisiete es una tanda propia —cambia el blanco de clic de quince controles a la vez—
+     y esta orden no la autoriza. Queda declarado en `docs/PENDIENTES.md` → AJ7-e.
+     ⚠️ SIN MARGENES NEGATIVOS, Y ES LA DECISION DEL ARREGLO. Un area de 44×44 encajada con
+        `margin:-16px` alrededor de un glifo de 13 px NO cambia la maqueta, pero TAPA 16 px de lo
+        que tenga arriba y abajo: debajo de los dos encabezados hay campos, asi que el borde
+        superior de un <select> dejaria de ser clicable y el clic se lo llevaria el globo. En vez
+        de eso el contenedor CRECE —los dos son encabezados de seccion, no filas de datos—, y nada
+        queda cubierto. Verificado con `elementFromPoint` sobre las cuatro esquinas y el centro de
+        la caja nueva. */
+  .vinfo-btn.vinfo-btn-44 { min-width: 44px; min-height: 44px;
+    display: inline-flex; align-items: center; justify-content: center;
+    vertical-align: middle; }
   @media (pointer: coarse) {
     .vinfo-btn { min-width: 44px; min-height: 44px; }
     /* El control del ciclo de la animacion de la VAB (Y3f8). Un `<input type=range>` nativo mide
@@ -10284,7 +10306,7 @@ window.cerrarSesionReal = cerrarSesionReal;
              publica la fórmula del volumen (Volpicelli 2026, enunciado D6_11, hoja 19) y sus
              límites de validez —pacientes críticos en ventilación invasiva—. Una segunda ficha
              con el mismo contenido se desincroniza el día que una de las dos se corrija. -->
-        <div style="font-size:11px;font-weight:700;color:var(--accent2);margin-bottom:6px;text-transform:uppercase;letter-spacing:.4px;">Pleura <button type="button" class="vinfo-btn" data-vinfo="pul-balik" aria-expanded="false" aria-label="Informaci&oacute;n sobre la estimaci&oacute;n del volumen del derrame pleural" onclick="vInfoClic(this)">&#9432;</button></div>
+        <div style="font-size:11px;font-weight:700;color:var(--accent2);margin-bottom:6px;text-transform:uppercase;letter-spacing:.4px;">Pleura <button type="button" class="vinfo-btn vinfo-btn-44" data-vinfo="pul-balik" aria-expanded="false" aria-label="Informaci&oacute;n sobre la estimaci&oacute;n del volumen del derrame pleural" onclick="vInfoClic(this)">&#9432;</button></div>
         <div class="grid-3">
           <div class="fg"><label for="pop_pleura_der">Derrame derecho</label><select id="pop_pleura_der" onchange="popPocusSync()"><option value="" selected>— no evaluado —</option><option value="leve">Leve (&lt;1 cm)</option><option value="moderado">Moderado (1-3 cm)</option><option value="severo">Severo (&gt;3 cm)</option><option value="ausente">Ausente</option></select></div>
           <div class="fg"><label for="pop_pleura_izq">Derrame izquierdo</label><select id="pop_pleura_izq" onchange="popPocusSync()"><option value="" selected>— no evaluado —</option><option value="leve">Leve (&lt;1 cm)</option><option value="moderado">Moderado (1-3 cm)</option><option value="severo">Severo (&gt;3 cm)</option><option value="ausente">Ausente</option></select></div>
@@ -20943,7 +20965,7 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
              se conservan tal cual: no se tocó una línea de esa función. -->
         <div class="card" style="margin-bottom:0">
           <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap">
-            <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--muted)">Score multiparam&eacute;trico <button type="button" class="vinfo-btn" data-vinfo="amilo-score" aria-expanded="false" style="font-size:13px;" aria-label="Informaci&oacute;n sobre la validaci&oacute;n y el rendimiento del score" onclick="vInfoClic(this)">&#9432;</button></span>
+            <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--muted)">Score multiparam&eacute;trico <button type="button" class="vinfo-btn vinfo-btn-44" data-vinfo="amilo-score" aria-expanded="false" style="font-size:13px;" aria-label="Informaci&oacute;n sobre la validaci&oacute;n y el rendimiento del score" onclick="vInfoClic(this)">&#9432;</button></span>
             <span style="font-size:13px;font-weight:700;font-variant-numeric:tabular-nums"><span id="ett-score-num">0</span> / 10 pts</span>
             <span id="ett-score-cat" style="font-size:12px;font-weight:600">Completá los parámetros</span>
           </div>

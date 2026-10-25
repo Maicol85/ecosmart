@@ -109,7 +109,7 @@ function servir() {
   });
 }
 async function abrirChrome(url) {
-  const perfil = await mkdtemp(join(tmpdir(), 'ecosmart-z-'));
+  const perfil = await mkdtemp(join(tmpdir(), 'ecosmart-aj7-'));
   let bin = null;
   for (const c of CHROMES) { try { await readFile(c); bin = c; break; } catch {} }
   if (!bin) throw new Error('No encontre Chrome/Chromium.');
@@ -985,6 +985,36 @@ window.__Y = {
     });
     return o },
 
+  /* Los dos globos con piso tactil sin gate: geometria y QUE HAY DEBAJO de su caja. Un area
+     de 44x44 que tapa el borde de un campo vecino cambia un defecto por otro peor. */
+  tap() {
+    var out = [];
+    Array.prototype.forEach.call(document.querySelectorAll('button.vinfo-btn-44'), function(b){
+      /* Se abre TODO ancestro oculto y se lleva el boton a la vista: sin geometria y sin estar
+         dentro del viewport, elementFromPoint contesta 'nada' y el chequeo seria un verde sobre
+         cero elementos. 'block' y no '' -el '' borra el inline y devuelve el nodo a su CLASE-. */
+      var n = b.parentNode, abiertos = 0;
+      while (n && n.nodeType === 1 && n !== document.body) {
+        if (getComputedStyle(n).display === 'none') { n.style.display = 'block'; abiertos++; }
+        n = n.parentNode;
+      }
+      try { b.scrollIntoView({ block: 'center' }) } catch (e) {}
+      var r = b.getBoundingClientRect();
+      var pts = [['tl', r.left + 1, r.top + 1], ['tr', r.right - 1, r.top + 1],
+                 ['bl', r.left + 1, r.bottom - 1], ['br', r.right - 1, r.bottom - 1],
+                 ['c', (r.left + r.right) / 2, (r.top + r.bottom) / 2]];
+      var tapa = {};
+      pts.forEach(function(p){
+        var e = document.elementFromPoint(p[1], p[2]);
+        tapa[p[0]] = e ? (e === b ? 'EL BOTON'
+          : (e.tagName + (e.id ? '#' + e.id : '') + (e.className ? '.' + String(e.className).split(' ')[0] : '')))
+          : 'nada';
+      });
+      out.push({ k: b.getAttribute('data-vinfo'), w: Math.round(r.width), h: Math.round(r.height),
+                 abiertos: abiertos, enVista: r.top >= 0 && r.bottom <= innerHeight, tapa: tapa });
+    });
+    return out },
+
   /* Censo de globos i, con su geometria: el denominador del celular. */
   globos() {
     var out = [];
@@ -1177,6 +1207,13 @@ window.__Y = {
       r.cerrado = await ev(`window.__Y.globos()`);
       /* Con TODO abierto: lo que esta en display:none no tiene geometria, y sin eso el censo
          mide cero y parece impecable. Es la misma leccion de check_mobile.js. */
+      /* DENOMINADOR: los dos globos viven en contenedores cerrados, y un boton sin geometria
+         informa «no tapa nada» sobre una caja de 0x0. Se abre el camino a un campo vecino de
+         cada uno ANTES de medir, y la sonda reporta el ancho para que se vea que midio algo. */
+      r.tapAbre = {};
+      for (const id of ['pop_pleura_der', 'ett-score-num'])
+        r.tapAbre[id] = await ev(`window.__P.abrirPara(${JSON.stringify(id)})`);
+      r.tap = await ev(`window.__Y.tap()`);
       r.abierto = await ev(`(function(){
         Array.prototype.forEach.call(document.querySelectorAll('.tab-section'), function(s){ s.style.display = 'block' });
         Array.prototype.forEach.call(document.querySelectorAll('[id^=ete-seccion-],[id^=am-cuerpo-]'), function(s){ s.style.display = 'block' });
@@ -1282,6 +1319,54 @@ window.__Y = {
     process.stderr.write('[blo] listo\n');
   }
 
+  /* ── COMMIT 6b · se siente lento escribir? SOLO MEDIR ─────────────────────────────────── */
+  async function escenaPerf() {
+    const r = {};
+    try {
+      await ev(`window.__P.nuevo()`); await ev(`window.__P.calentar()`);
+      await ev(`window.__P.abrirPara('pop_picco_ic')`);
+      await ev(`window.__Y.poner(${JSON.stringify({
+        nombre: 'Perf AJ7', ci: '9', peso: '80', talla: '175', pop_cx_tipo: 'cabg',
+        pop_cx_horas: '8', pop_monitor: 'picco', pop_picco_ic: '2.4' })})`);
+      /* Se integran VARIOS modulos, que es el escenario caro: el barrido regenera el texto de
+         CADA bloque integrado. Sin ninguno integrado el barrido no hace nada y la medicion
+         diria «no cuesta» sobre un denominador vacio. */
+      r.integrados = await ev(`(function(){ var ok = [];
+        ['pop','hemo','ett','alg','htp','tep','dpt','cvr'].forEach(function(k){
+          try { amiloIntegrar(k); if (amiloIntegrado(k)) ok.push(k) } catch (e) {} });
+        return ok })()`, 60000);
+      /* El reloj: se envuelve `amiloRefrescarTodos` y se cuenta cuantas veces corre y cuanto
+         tarda cada pasada. Y se mide el tiempo del PROPIO tecleo, que es lo que el medico siente:
+         el barrido corre 220 ms DESPUES y en otro turno del bucle de eventos. */
+      await ev(`(function(){
+        window.__perf = { barridos: [], teclas: [] };
+        var o = window.amiloRefrescarTodos;
+        window.amiloRefrescarTodos = function(){ var t0 = performance.now();
+          var x = o.apply(null, arguments);
+          window.__perf.barridos.push(+(performance.now() - t0).toFixed(2)); return x };
+        return 1 })()`);
+      /* Doce teclas reales sobre un campo del modulo integrado. */
+      await foco('pop_picco_ic');
+      for (const ch of ['2', '.', '4', '1', '2', '3', '4', '5', '6', '7', '8', '9']) {
+        const t = await ev(`(function(){ var e = document.getElementById('pop_picco_ic');
+          var t0 = performance.now();
+          e.value = (e.value || '') + ${JSON.stringify(ch)};
+          e.dispatchEvent(new Event('input', { bubbles: true }));
+          var dt = performance.now() - t0;
+          window.__perf.teclas.push(+dt.toFixed(2));
+          return +dt.toFixed(2) })()`);
+        r['t_' + ch] = t;
+      }
+      await pausa(900);
+      r.perf = await ev(`window.__perf`);
+      r.nIntegrados = await ev(`(function(){ return amiloSecs().filter(function(s){
+        return amiloIntegrado(s.k) }).length })()`);
+      r.errores = await ev(`window.__Y.errores()`);
+    } catch (e) { r.err = e.message }
+    out.grupos.perf = r;
+    process.stderr.write('[perf] listo\n');
+  }
+
   async function escenaSecs() {
     const r = {};
     try {
@@ -1334,6 +1419,7 @@ window.__Y = {
   if (corre('globos')) await escenaGlobos();
   if (corre('hfp'))    await escenaHFP();
   if (corre('blo'))    await escenaBloques();
+  if (corre('perf'))   await escenaPerf();
   if (corre('secs'))   await escenaSecs();
   if (corre('ctrl'))   await escenaCtrl();
 
