@@ -7404,7 +7404,15 @@ cada caso se repone `ett_auth` y se baja el overlay. **No se tocó el código de
 
 ## Tanda «AJ6» · Fallot, eco pulmonar en columnas, Config y el buscador (2026-10-24) — DECLARADO y NO arreglado
 
-### AJ6-a · El EN SUMA repite la insuficiencia y la estenosis pulmonar que la sección de válvulas ya publicó
+### [CERRADO 2026-10-24 · AJ7-1a] AJ6-a · El EN SUMA repite la insuficiencia y la estenosis pulmonar que la sección de válvulas ya publicó
+
+> **Cerrado por la tanda AJ7, commit 1a.** La línea de Fallot del EN SUMA dejó de publicar la
+> insuficiencia pulmonar: hoy dice sólo lo propio de la cardiopatía. Medido en Chrome con un
+> estudio de Fallot con IP severa, gradiente TSVD 36 mmHg, VD normal e IT moderada —la línea pasa
+> de «Tetralogía de Fallot reparada — **insuficiencia pulmonar severa** — gradiente TSVD 36 mmHg
+> — VD con función normal — IT moderada — volúmenes…» a la misma sin la segunda cláusula—, con
+> `txt` y `lineasInf` **idénticos** (el cuerpo del informe y la caja «Conclusión» no se tocaron).
+> **El gradiente NO se movió** y queda declarado aparte: ver **AJ7-a**.
 
 **Qué se encontró.** La línea de Fallot del EN SUMA (`ccSumaLinea('tdf')`) empieza con
 «Tetralogía de Fallot reparada — insuficiencia pulmonar severa — gradiente TSVD 36 mmHg — …», y
@@ -7424,7 +7432,14 @@ dependencia entre dos módulos que hoy no se conocen. **Decisión de Maicol.**
 
 ---
 
-### AJ6-b · La hoja del PDF de Fallot sigue publicando la conducta, y el informe ya no
+### [CERRADO 2026-10-24 · AJ7-1b] AJ6-b · La hoja del PDF de Fallot sigue publicando la conducta, y el informe ya no
+
+> **Cerrado por la tanda AJ7, commit 1b.** `resumen` pasó a ser DESCRIPTIVO y con eso salieron la
+> indicación y la clase de los **dos** consumidores que tiene —la hoja de congénitas del PDF y la
+> diapositiva del PPT—. Medido sobre el **PDF generado de verdad**: «reemplazo valvular pulmonar»,
+> «Clase I», «Clase IIa» y «medidas seriadas» pasan de **1 aparición cada una a 0**. De paso la
+> hoja gana el detalle que no tenía (gradiente, función del VD, IT), porque `resumen` ya no era el
+> encabezado más la conducta sino el texto descriptivo completo.
 
 **Qué se encontró.** `ccHoja('tdf', …)` recibe `c.resumen`, que **conserva la conducta** —es el
 mismo campo que consume el PPT—. Así que un estudio con el botón «Incluir en el PDF» de congénitas
@@ -7442,6 +7457,13 @@ EN SUMA y la caja «Conclusión», y nada más. **Decisión de Maicol.**
 ---
 
 ### AJ6-c · Las dos salvedades de la taquicardia ventricular siguen nombrando criterios y manejo
+
+> **DECISIÓN DE MAICOL, 2026-10-24 (tanda AJ7, commit 1):** se dejan como están **hasta tener
+> fuente**. No se tocaron. Lo único que la AJ7 movió del territorio de la TV es `sumaTV`
+> —«Taquicardia ventricular sostenida documentada — valorar estudio electrofisiológico»—, que
+> viajaba en `resumen` y por lo tanto al PDF de congénitas y al PPT: eso **sí** es una conducta y
+> salió con el resto. Lo que la TV tiene que decir sigue saliendo por `salvedadTV`, que viaja en
+> `gOtro` y llega a las tres superficies a la vez.
 
 **Qué se encontró.** `salvedadTV` tiene cuatro ramas y dos de ellas dicen, dentro del cuerpo del
 informe, cosas como «su manejo —estudio electrofisiológico, mapeo de istmos anatómicos— es una
@@ -7476,6 +7498,10 @@ papel son los tres grupos de `tdfConclusion`, y el de la pantalla es el marcado.
 ---
 
 ### AJ6-e · «Lo que falta contestar» es el único bloque plegado del panel que nace cerrado con algo adentro
+
+> **DECISIÓN DE MAICOL, 2026-10-24 (tanda AJ7, commit 1):** **queda plegado**. No se tocó.
+> ⚠️ La orden de la AJ7 lo nombra «AJ6-d»; en este archivo **AJ6-d** es el orden de los campos de
+> la pantalla de Fallot y el bloque plegado es **AJ6-e**. La decisión se anota donde corresponde.
 
 **Qué se encontró.** El bloque de lo que falta nace **plegado**, que es lo que la orden pide
 («compacto»). La estenosis mitral tiene el otro bloque plegado del panel, pero el suyo describe una

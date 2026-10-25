@@ -73427,9 +73427,23 @@ function ccSumaLinea(sec){
        un « — Sin insuficiencia» y la compuerta dejaba de poder devolver null por ese lado. */
     if (!ipHayInsuf(ip) && !fvd && g == null && civ !== 'si' && ep !== 'si') return null;
     let l = cab;
-    /* El valor de `ip_grado` YA empieza con «IP» —«IP severa»— así que anteponerlo daba «IP ip». */
-    /* «— Moderada» no dice de qué: con el prefijo «IP» viejo se entendía solo. */
-    if (ipHayInsuf(ip)) l += ' — insuficiencia pulmonar ' + ip.replace(/^IP\s*/i, '').trim().toLowerCase();
+    /* ══ LA INSUFICIENCIA PULMONAR SALE DE ESTA LINEA (AJ7-1a, 2026-10-24) ══════════════════
+       DECISION DE MAICOL, y cierra AJ6-a. La severidad de la IP ya la publica MAS ARRIBA, en el
+       mismo EN SUMA, la seccion de la valvula pulmonar: las dos salian del MISMO campo
+       (`ip_grado`) con dos redacciones distintas —«IP severa» arriba y «insuficiencia pulmonar
+       severa» aca— y el lector veia el mismo hallazgo dos veces. Esta linea dice ahora SOLO lo
+       propio de la Fallot reparada: el gradiente del tracto de salida, la estenosis o el stent,
+       la CIV residual, la funcion del VD y la salvedad volumetrica.
+       ⚠️ `ipHayInsuf(ip)` SE QUEDA EN LA COMPUERTA DE ARRIBA, y no es un olvido: la compuerta
+          decide si el EN SUMA NOMBRA la cardiopatia, no que dice de ella. Sacandola de ahi, un
+          estudio cuyo unico hallazgo de esta seccion fuera la IP dejaria de publicar la linea
+          entera y el EN SUMA no diria nunca que el paciente tiene una tetralogia reparada —que
+          es un diagnostico, no una repeticion—. Con ella, la linea sale y describe lo suyo.
+       ⚠️ EL GRADIENTE SE QUEDA, con su reserva declarada: `g` cae en `vp_gmax` cuando el campo
+          propio (`tdf_grad_tsvd`) esta vacio, y ESE si es el gradiente transvalvular pulmonar
+          que la seccion de valvulas tambien publica. La orden nombra la IP y nada mas, y mover
+          un segundo dato clinico sin que la orden lo nombre es lo que este archivo prohibe.
+          Declarado en `docs/PENDIENTES.md` → AJ7-a. */
     if (g != null) l += ' — gradiente TSVD ' + _cc1(g) + ' mmHg';
     if (ep === 'si') l += ' — estenosis o stent pulmonar';
     if (civ === 'si') l += ' — CIV residual' + (civG != null ? ' (gradiente ' + _cc1(civG) + ' mmHg)' : '');
@@ -84995,13 +85009,33 @@ function tdfConclusion(src){
     return { clave:'no_interpretable', txt: partes.concat([t]).join('. '),
              lineasInf: _rengl([tR.charAt(0).toUpperCase() + tR.slice(1)]), resumen: t };
   }
-  /* La TV sostenida sube al EN SUMA, como en miocardiopatía hipertrófica: por las ramas que no
-     arman criterios no llegaba nunca, y el EN SUMA es lo que se lee. */
-  const sumaTV = _tvT.sostenida && clave !== 'reintervencion_iia' && clave !== 'reintervencion_i'
-    ? '. Taquicardia ventricular sostenida documentada — valorar estudio electrofisiológico'
-    : (_tvT.hay && _tvT.faltaTipo ? '. Consta taquicardia ventricular sin especificar si fue sostenida' : '');
-  return { clave: clave, txt: partes.join('. '), lineasInf: _rengl(),
-    resumen: 'Tetralogía de Fallot reparada' + (ipTxt ? ', ' + ipTxt : '') + '. ' + conducta + sumaTV };
+  /* ══ `resumen` PASA A SER DESCRIPTIVO (AJ7-1b, 2026-10-24) ═══════════════════════════════
+     DECISION DE MAICOL, y cierra AJ6-b. `resumen` tiene EXACTAMENTE DOS consumidores en todo el
+     archivo, los dos medidos antes de tocar nada: la HOJA DE CONGENITAS del PDF
+     (`ccHoja(sec[3], c.parrafos || [], c.resumen || null, null)`) y la DIAPOSITIVA del PPT
+     (`_pptTxt(cc.resumen || cc.txt)`). Los dos son papel firmado, y los dos publicaban la
+     CONDUCTA —«reemplazo valvular pulmonar a considerar (ESC 2020, Clase IIa)»— mientras el
+     cuerpo del informe, que el AJ6-1 ya habia vuelto descriptivo, no la publicaba. El MISMO PDF
+     decia las dos cosas: el cuerpo describia y la hoja recomendaba.
+     Hoy `resumen` es el MISMO texto descriptivo que `txt` —encabezado y las clausulas de los
+     tres renglones—, asi que la hoja y la diapositiva ganan el detalle que no tenian (gradiente,
+     funcion del VD, IT, volumenes) y pierden la indicacion y la clase, que viven en la Evidencia
+     de Referencias con su folio y su fuente.
+     ⚠️ `conducta` NO SE BORRA Y SE DEVUELVE, pero NINGUNA superficie la publica. Se conserva en
+        el objeto para que la cascada de la ESC 2020 siga siendo legible y verificable desde
+        afuera, y porque `clave` —que es lo que clasifica el Laboratorio con `TDF_CONDUCTAS`— se
+        decide en las MISMAS ramas: partirlas seria tener la clasificacion en un lado y su motivo
+        en otro.
+     ⚠️ `sumaTV` SALE, y tenia DOS defectos. Su comentario decia «sube al EN SUMA» y era falso:
+        el EN SUMA de esta seccion lo arma `ccSumaLinea('tdf')`, que tiene su PROPIA clausula de
+        taquicardia ventricular; `resumen` nunca fue el EN SUMA. Y su texto —«valorar estudio
+        electrofisiologico»— es una CONDUCTA, que es justo lo que este commit saca del papel. Lo
+        que la TV tiene que decir ya esta en `salvedadTV`, que viaja en `gOtro` y por lo tanto en
+        `partes`, o sea en los tres destinos a la vez. Las dos salvedades de TV se dejan como
+        estan hasta tener fuente: `docs/PENDIENTES.md` → AJ6-c. */
+  const _tdfDesc = partes.join('. ');
+  return { clave: clave, txt: _tdfDesc, lineasInf: _rengl(),
+    resumen: _tdfDesc, conducta: conducta };
 }
 function tdfSync(){
   const txt = (id,s) => { const e=document.getElementById(id); if(e) e.textContent = s; };
