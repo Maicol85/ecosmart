@@ -8020,3 +8020,93 @@ exige un estudio guardado y la sonda no logró completar el guardado —cuelga d
 severidades—. Lo que sí está medido: la rama `integrado('pop')` del PPT lee `popPatron()`, que esta
 tanda **no cambió** (TC-534, condición L9), y los casos de la suite que cubren el PPT están en
 verde. Cerrar esto es agregarle a la sonda el guardado real.
+
+# Tanda AJ10-B — blindaje de Eco Estrés (2026-10-26)
+
+## AJ10-C · Borrado del código de Eco Estrés
+
+**DECISIÓN DE MAICOL DEL 25/10/2026: NO se borra hasta modularizar la app.** Esta entrada queda
+para que el día que se modularice no haya que volver a medir todo.
+
+### Qué se borraría
+
+Las **cinco piezas (A)** del inventario, que son las exclusivas de Eco Estrés:
+
+| Pieza | Líneas | Bytes |
+|---|---|---|
+| A1 · bloque principal (la IIFE con la diana, los evaluadores, las galerías, los dos listeners y el `setTimeout`) | 436 | 31.770 |
+| A2 · sección «ECO ESTRÉS» del PDF | 161 | 9.496 |
+| A3 · `eeIncluirPDF` y su comentario | 22 | 1.997 |
+| A4 · `EE_PROTO`, `EE_PDF_KEYS` y los toggles de PDF por sección | 208 | 13.138 |
+| A5 · limpieza de la bandera al arrancar | 5 | 346 |
+| **TOTAL** | **832** | **56.747** |
+
+Son el **0,61 %** de las 137.115 líneas y el **0,58 %** de los 9,72 MB.
+
+> ⚠️ **La cifra de «unas 738 líneas, 0,5 %» que traía el inventario AJ10-A NO reproduce.** Medido
+> pieza por pieza con `sed -n 'a,bp' | wc -l` y `wc -c`: son **832 líneas**. La diferencia es del
+> tamaño de A2, así que lo más probable es que esa cuenta no incluyera la sección del PDF. Para
+> presupuestar el borrado vale **832**.
+
+Más **dos enganches**, que son lo que hay que retirar además del bloque:
+
+1. **El enganche del informe narrativo** (5 líneas, 241 B, dentro de `generarInforme`): el
+   `if (typeof eeInformeLineas === 'function')` que agrega el rótulo «Eco Estrés:». Con A1 borrado
+   falla cerrado y no rompe nada, pero queda nombrando una función que no existe.
+2. **La llamada a `eePdfOn` desde la sección del PDF**: se va junto con A2, pero si alguna vez A2
+   se conserva y A4 se borra, ese `_eeOn` cae al `function(){ return true; }` de respaldo y **todas
+   las subsecciones quedarían encendidas**.
+
+### Qué hay que revisar ANTES de borrar
+
+- **Las otras tres familias «ee», que están VIVAS.** El prefijo `ee` **no identifica** a Eco
+  Estrés. Un borrado por prefijo apaga: la **calculadora de E/e′** (`ee-e`, `ee-ep`, `ee-result`,
+  `ee-val`, `ee-lbl`, `calcEE`), el **modo básico/avanzado del ETT** (`EE_MODULES`, `EE_DEF_KEY`,
+  `eeGetMode`, `eeGetModules`, `eeModOn`, `eeDefOn`, que alimentan el desplegable «Sección
+  avanzada») y el **QR del informe** (`EE_QR_ROWS`, `eeStudyUrl`, `eeQrDataURL`, `eeQrEnabled`).
+  Las tres tienen control negativo en TC-536 (condiciones E1 a E4) precisamente para que un
+  borrado que se las lleve salga en rojo.
+- **`cx_duke_*` y el score de Duke NO son de Eco Estrés** —salen de una ergometría en cinta— pero
+  su rama del PDF estuvo tapada por la doble condición de Eco Estrés. Hoy depende sólo de su
+  propio toggle. Cubierto por TC-536 (E5).
+- **`EE_SEGS` es la autoridad declarada de la numeración de 17 segmentos de Contractilidad**
+  (decisión de Maicol del 20/09/2026). No es una dependencia de código —`_STR_ANILLOS` tiene los
+  números escritos a mano— pero sí documental: borrar A1 deja el comentario de Contractilidad
+  citando una constante que no existe. **Mover esa tabla a una constante propia antes de borrar.**
+- **El orden de los dos listeners de `paste`.** El de Eco Estrés se registra antes que
+  `imgPasteHandler`. Hoy sale por su guarda; el día que vuelva la interfaz habría que decidir el
+  orden. Si se borra, el problema desaparece — y la nota que lo documenta también tiene que irse.
+- **`localStorage['ecosmart_pdf_toggles']` se puede borrar con A4.** El nombre engaña: suena a
+  preferencia global de PDF y, medido, **sólo Eco Estrés la lee y la escribe**.
+- ⚠️ **`ptpCad()` — la probabilidad pre-test de enfermedad coronaria de la ESC 2019 — vive DENTRO
+  de A1 y se borraría con él.** Son 25 líneas (1.417 B) con la tabla de porcentajes por grupo
+  etario y sexo y las cuatro recomendaciones de la guía. Hoy está **tan muerta como el resto**
+  —nadie la llama y sus cinco campos `ee-ptp-*` no existen— **pero no es maquinaria de Eco
+  Estrés: es una calculadora clínica independiente y completa que sólo necesita que le devuelvan
+  sus cinco campos.** La encontró TC-536. **Decidir si se rescata ANTES de borrar A1, y eso es
+  decisión de Maicol.**
+
+### La medición que FALTA, y es la que decide
+
+**Cuántos estudios reales guardados tienen claves `ee-*` de Eco Estrés dentro de sus `campos`.**
+
+`guardarInforme` barre `input[id], select[id], textarea[id]` de **todo** el documento y congela
+cada valor en `campos`. Hoy no captura nada de Eco Estrés porque los elementos no existen, pero
+**cualquier estudio guardado con una build que tuviera la interfaz puede llevar esas claves
+adentro**. No se midió en esta tanda, y la razón está escrita: la orden del AJ10-B prohíbe tocar
+el almacenamiento real del médico, y los estudios de verdad viven ahí.
+
+Qué hay que contar, sobre una copia del store y nunca sobre el original:
+
+- cuántos estudios tienen al menos una clave `ee-*` que no sea de la calculadora de E/e′
+  (`ee-e`, `ee-ep`, `ee-result`, `ee-val`, `ee-lbl`);
+- de ésos, cuántos tienen un **valor no vacío** — un campo vacío no es un dato clínico;
+- y si alguno tiene `ee-res-global` o `ee-narrativa` cargados, que es lo que convertiría al
+  estudio en uno donde **sí se hizo** un eco estrés y cuyo resultado hoy no sale por ninguna
+  superficie firmada.
+
+De ese último número depende la decisión: si hay estudios con un eco estrés real guardado, borrar
+el código los deja sin forma de reimprimir lo que ya se midió. **Nada de esto se migra ni se borra
+sin orden expresa** — es la regla de EcoSmart sobre estudios guardados.
+
+**Dónde está el detalle:** `docs/mapa/eco-estres-inventario.md`.

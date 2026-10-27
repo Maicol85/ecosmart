@@ -16462,7 +16462,26 @@ z
   
 </div>
 
-<!-- ═══════════════════════ TAB: ECO ESTRÉS ═══════════════════════ -->
+<!-- ═══════════════════════ TAB: ECO ESTRÉS ═══════════════════════
+     LA INTERFAZ DE ESTE MÓDULO ESTÁ RETIRADA: no hay pestaña, no hay campos y no hay una sola
+     regla de CSS para sus clases —medido—. El JS de abajo sigue COMPLETO y corre en cada
+     carga: dos listeners globales, un setTimeout de arranque y unas sesenta funciones que
+     salen por su guarda porque el elemento que buscan no existe.
+
+     NO SE BORRA, y es decisión de Maicol del 25/10/2026: queda inerte hasta modularizar la
+     app. El motivo es que EL PREFIJO `ee` NO IDENTIFICA A ESTE MÓDULO —hay cuatro familias y
+     tres están VIVAS—; la nota del listener de `paste`, más abajo, las enumera.
+
+     LO MANTIENEN FUERA DEL PAPEL TRES COMPUERTAS:
+       1. la sección del PDF exige que EXISTA el elemento 'ee-incluir-pdf' en el DOM;
+       2. el informe narrativo sólo agrega el rótulo «Eco Estrés:» si eeInformeLineas()
+          devuelve líneas, y sale con [] porque 'ee-res-global' no existe;
+       3. eeHasData() da falso con el árbol limpio.
+     Las tres las fija TC-536, con el escenario peligroso —la bandera encendida a mitad de
+     sesión más eeHasData() en true— y con controles negativos de las tres familias vivas.
+
+     Inventario de piezas, líneas, bytes y dueños: docs/mapa/eco-estres-inventario.md
+     Qué falta medir antes de borrar:          docs/PENDIENTES.md → AJ10-C -->
 
 <script>
 (function(){
@@ -16645,6 +16664,12 @@ function eeUpdateWMSI(phase){
   else{catEl.textContent='Disfunción severa';catEl.style.color='var(--red)';}
 }
 function eeResetBull(phase){ eeBull[phase]=Array(17).fill(0); eeRenderBull(phase); }
+/* El PRIMERO de los dos listeners GLOBALES de Eco Estrés, cuya interfaz está retirada. Sale
+   solo: pregunta por `#ee-eye-pop`, que no existe, y verificado en el navegador no llega nunca
+   a cerrar nada. El criterio completo —por qué NO se desactiva con una bandera, por qué quitar
+   los exports no alcanza, y cuáles son las TRES familias `ee` que SÍ están vivas— está en la
+   nota del segundo listener, el de `paste`, más abajo en este mismo bloque.
+   Inventario: docs/mapa/eco-estres-inventario.md · lo fija TC-536. */
 document.addEventListener('click',e=>{
   const pop=document.getElementById('ee-eye-pop');
   if(pop&&pop.classList.contains('open')&&!pop.contains(e.target)&&!(e.target.closest&&e.target.closest('#tab-ee svg'))) eeCloseEyePop();
@@ -16819,7 +16844,22 @@ function eeEcgRemove(e,idx){ if(e) e.stopPropagation(); eeEcg[idx]=null; eeEcgRe
    Lo que SÍ queda pendiente, y es la única interferencia real posible: este handler se
    registra ANTES que `imgPasteHandler` del módulo de imágenes. Si vuelve `#tab-ee`, un pegado
    con la pestaña de ECG activa haría `preventDefault()` acá y el módulo de imágenes no lo
-   vería. Al restaurar la UI hay que decidir el orden, no descubrirlo. */
+   vería. Al restaurar la UI hay que decidir el orden, no descubrirlo.
+
+   ⚠️ EL PREFIJO `ee` NO IDENTIFICA A ECO ESTRÉS. Hay CUATRO familias y TRES están VIVAS, así
+   que un borrado —o una IIFE— por prefijo apaga funciones de la app:
+     · CALCULADORA DE E/e′ — ee-e, ee-ep, ee-result, ee-val, ee-lbl y calcEE(). Alimenta la
+       función diastólica y el score de amiloidosis.
+     · MODO BÁSICO/AVANZADO DEL ETT — EE_MODULES, EE_DEF_KEY, eeGetMode, eeGetModules, eeModOn,
+       eeDefOn. Alimentan el desplegable «Sección avanzada» (#ecoAdvSelect, ecoAdvBuild).
+     · QR DEL INFORME — EE_QR_ROWS, eeStudyUrl, eeQrDataURL, eeQrEnabled.
+   Muerta de cara al usuario está SOLO la cuarta, la de Eco Estrés. Y no se borra por decisión
+   de Maicol del 25/10/2026: hasta modularizar la app, queda inerte detrás de sus compuertas.
+   Los campos cx_duke_* NO son de acá: el score de Duke sale de una ergometría en cinta.
+
+   Inventario con las piezas A/B/C: docs/mapa/eco-estres-inventario.md
+   Las compuertas y los controles:   TC-536
+   Lo que falta medir para borrar:   docs/PENDIENTES.md → AJ10-C */
 document.addEventListener('paste',function(e){
   const ee=document.getElementById('tab-ee'), ecg=document.getElementById('ee-tab-ecg');
   if(!ee||!ee.classList.contains('active')||!ecg||!ecg.classList.contains('active')) return;
@@ -16883,7 +16923,10 @@ function eeHasData(){
      una sección «ECO ESTRÉS» con los tres bull's eyes y los 17 segmentos en NORMAL, sobre un
      estudio donde no se hizo ningún eco estrés. Un informe firmado afirmando motilidad
      normal en pico de un test que no existió.
-     La interfaz de este módulo fue retirada; el JS queda inerte por si se restaura. */
+     La interfaz de este módulo fue retirada; el JS queda inerte por si se restaura —decisión
+     de Maicol del 25/10/2026: no se borra hasta modularizar la app—. Que esta función dé
+     FALSO con el árbol limpio es la tercera de las tres compuertas, y la fija TC-536
+     (condición D). Inventario: docs/mapa/eco-estres-inventario.md · borrado: AJ10-C. */
   if(eeImg.some(Boolean)||eeEcg.some(Boolean)) return true;
   return false;
 }
@@ -65446,11 +65489,23 @@ function generarPDFReal(_aj) {
      firmado afirmando motilidad normal en pico de un test que no existió.
      Atarlo a la presencia del toggle hace que la condición vuelva sola el día que se restaure
      la interfaz, sin dejar una bandera booleana que alguien tenga que acordarse de invertir.
-     NO se envolvió el bloque en un IIFE: el código de Eco Estrés no es contiguo —73
-     declaraciones en cinco clusters entre las líneas 7437 y 30207, con 599 funciones ajenas
-     intercaladas— y el prefijo `ee` no lo identifica: eeGetMode/eeGetModules/eeModOn son la
-     configuración de modo básico/avanzado de la app, alimentan el selector «Sección avanzada»
-     y romperlas apagaría esa función. */
+     NO se envolvió el bloque en un IIFE por dos razones. La primera: el código de Eco Estrés
+     NO ES CONTIGUO —son cinco piezas repartidas en TRES zonas del archivo, con el enganche
+     del informe narrativo en medio—. La segunda, y la que de verdad decide: EL PREFIJO `ee`
+     NO LO IDENTIFICA. Hay cuatro familias `ee` y TRES están VIVAS:
+       · la calculadora de E/e′ — ee-e, ee-ep, ee-result, ee-val, ee-lbl, calcEE();
+       · el modo básico/avanzado del ETT — EE_MODULES, eeGetMode, eeGetModules, eeModOn,
+         eeDefOn, que alimentan el desplegable «Sección avanzada»;
+       · el QR del informe — EE_QR_ROWS, eeStudyUrl, eeQrDataURL, eeQrEnabled.
+     Envolverlas o borrarlas por prefijo apaga esas tres funciones de la app.
+
+     ⚠️ SIN NÚMEROS DE LÍNEA A PROPÓSITO. Este comentario los traía —«cinco clusters entre
+     las líneas 7437 y 30207»— y para el 26/10/2026 el archivo había crecido lo suficiente
+     para que apuntaran a código ajeno: hoy esas líneas no son Eco Estrés. Es el mismo
+     envejecimiento que ya hizo reabrir dos hallazgos de auditoría que NO existían. Los
+     nombres no envejecen; las líneas sí. El inventario, con las piezas y sus tamaños medidos
+     en el momento, está en docs/mapa/eco-estres-inventario.md, y las tres compuertas las fija
+     TC-536. No se borra por decisión de Maicol del 25/10/2026; ver AJ10-C. */
   if (document.getElementById('ee-incluir-pdf') && localStorage.getItem('ecoestres_incluir_pdf') === '1' && typeof window.eeHasData === 'function' && window.eeHasData()) {
     const _eev = id => { const el = document.getElementById(id); return el ? (el.value || '') : ''; };
     const _eeselT = id => { const el = document.getElementById(id); return (el && el.value !== '') ? el.options[el.selectedIndex].text : ''; };
@@ -101135,7 +101190,10 @@ function cxGtpPDF(){ _togglePDF('gtp_incluir_pdf','cx-gtp-pdf','GTP/RVP'); }
    condición del PDF no puede dar verdadero por sí sola. El riesgo residual es llamar a la
    función a mano desde la consola en esa misma sesión: pondría la bandera en '1' y la limpieza
    sólo corre al cargar, con lo cual el PDF podría estampar una sección «ECO ESTRÉS» con los 17
-   segmentos en NORMAL sobre un estudio donde no se hizo ninguno. No re-agregar el export. */
+   segmentos en NORMAL sobre un estudio donde no se hizo ninguno. No re-agregar el export.
+   ESE escenario —bandera encendida a mitad de sesión más eeHasData() en true— es el que mide
+   TC-536 de verdad: llega hasta el if del PDF y comprueba que lo único que lo para es la
+   presencia del toggle en el DOM. Inventario: docs/mapa/eco-estres-inventario.md. */
 function eeIncluirPDF(){ _togglePDF('ecoestres_incluir_pdf','ee-incluir-pdf','Eco Estrés'); }
 window.cxWilkinsPDF=cxWilkinsPDF; window.cxDukePDF=cxDukePDF; window.cxGtpPDF=cxGtpPDF; window.eteQxIncluirPDF=eteQxIncluirPDF;
 
@@ -101339,7 +101397,12 @@ _pdfToggleBtnState('cx-duke-pdf', localStorage.getItem('duke_incluir_pdf')==='1'
 _pdfToggleBtnState('cx-gtp-pdf', localStorage.getItem('gtp_incluir_pdf')==='1');
 /* El botón que encendía esta bandera ya no existe (la pestaña de Eco Estrés se retiró), así
    que quien la tenga en '1' de una build anterior no tiene forma de apagarla. Se borra al
-   arrancar: sin interfaz que la encienda, una bandera encendida sólo puede hacer daño. */
+   arrancar: sin interfaz que la encienda, una bandera encendida sólo puede hacer daño.
+   ⚠️ CORRE SÓLO AL ARRANCAR, y eso importa: encenderla a mitad de sesión —llamando
+   eeIncluirPDF() desde la consola, que sigue siendo llamable— la deja viva hasta el próximo
+   refresco. Lo único que para el PDF en esa ventana es que el toggle 'ee-incluir-pdf' no
+   exista en el DOM. Es exactamente lo que mide TC-536 (condiciones D6 y B3).
+   Inventario: docs/mapa/eco-estres-inventario.md · borrado: docs/PENDIENTES.md → AJ10-C. */
 if (localStorage.getItem('ecoestres_incluir_pdf') !== null && !document.getElementById('ee-incluir-pdf')) {
   localStorage.removeItem('ecoestres_incluir_pdf');
 }
@@ -134171,8 +134234,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261025-0117';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1792901826871;                 /* eco-build-ms */
+const ECO_BUILD    = '20261026-2221';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793064095962;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -134258,7 +134321,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261025-0117</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261026-2221</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

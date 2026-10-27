@@ -74,7 +74,8 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Tocar el POSOPERATORIO de cirugía cardíaca**: la grilla de drogas, el acordeón de monitoreo, el lactato, el esquema animado con sus cavidades y sus caños, la vasoplejia con la PAM, los grados del derrame pleural, lo que sale al informe y lo que se queda en la pantalla, su ficha de Referencias o su Evidencia | `docs/mapa/g-posoperatorio.md` |
 | **Tocar algo que la tanda AJ6 movió** (24/10): el cuerpo del informe de la Fallot reparada —el esquema, la fila vacía y la conducta retirada—, su Evidencia compacta con la prosa en el ⓘ, la ecografía pulmonar en cuatro columnas, o Referencias y Calculadoras dejando de ser módulos opcionales con el buscador que tapa las fichas | `docs/mapa/aj6-fallot-pulmon-refs.md` |
 | **Tocar algo que la tanda AJ7 movió** (24/10): la línea de Fallot del EN SUMA y su `resumen`, la línea de presión de llenado del HF-PEFF, la fila «Descripción» del ateroma, el retiro automático del bloque integrado y el aviso al exportar, el VOTO del strain del VD y su banda en Referencias, el bloqueo del Tipo de IM y el Carpentier con prótesis, el rótulo que se achica, las dos conductas de constricción, la compuerta de su Evidencia, el aviso de VExUS armado con `join`, o el dueño único del corte de HTP | `docs/mapa/aj7-correcciones.md` |
-| **Agregar o correr un caso de prueba; A/B; mutación** | `docs/mapa/tests.md` · fichas en `docs/mapa/tests-fichas-535.md` (TC-535), `docs/mapa/tests-fichas-532.md` (TC-532), `docs/mapa/tests-fichas.md` (TC-499 en adelante), `docs/mapa/tests-fichas-496-498.md`, `docs/mapa/tests-fichas-491-495.md` y `docs/mapa/tests-fichas-481-490.md` |
+| **Tocar algo de ECO ESTRÉS, o entender por qué su código sigue en el archivo sin interfaz**: las cinco piezas (A), las compartidas (B), las que tocan algo guardado (C), las TRES compuertas, las CUATRO familias «ee» —tres vivas— o la calculadora de probabilidad pre-test de la ESC 2019 que vive adentro | `docs/mapa/eco-estres-inventario.md` |
+| **Agregar o correr un caso de prueba; A/B; mutación** | `docs/mapa/tests.md` · fichas en `docs/mapa/tests-fichas-536.md` (TC-536), `docs/mapa/tests-fichas-535.md` (TC-535), `docs/mapa/tests-fichas-532.md` (TC-532), `docs/mapa/tests-fichas.md` (TC-499 en adelante), `docs/mapa/tests-fichas-496-498.md`, `docs/mapa/tests-fichas-491-495.md` y `docs/mapa/tests-fichas-481-490.md` |
 | **Tocar el DIBUJO ESTÁTICO de la mitral en ETE**: la tabla única de festones por ángulo, la geometría, la línea del plano, el giro, las tres vistas con sus LETRAS DE FESTÓN, **la ORIENTACIÓN de la TRANSGÁSTRICA**, el PDF, los CUATRO DIBUJOS DE MEDIDAS TEER, **los CRITERIOS TEER y sus cortes** o **el ESPEJO de la FEVI y el DSFVI del TEER** | `docs/mapa/mitral-dibujo-estatico.md` |
 | **Tocar algo que la tanda R2 corrigió** (21/10): las cinco opciones del derrame y la traducción del token viejo, el repintado de la VAB con el gesto de la pastilla, los seis puntos de la probabilidad de HTP, el e′ medial en tres tramos, el espesor relativo y el criterio por eco de la amiloidosis, el SGL y la calculadora de cardio-oncología, el síndrome intersticial difuso por zonas, el índice cardiaco y la RVS, o la orejuela | `docs/mapa/tanda-r2-correcciones.md` |
 | **Tocar algo que la tanda R movió**: la lesión presente sin grado de la VAB, los cortes del TEER, la severidad de la disfunción del VD, el área de la AI, los grados del derrame, el taponamiento que ya no concluye, el VD/VI del TEP o los criterios declarados de Referencias | `docs/mapa/tanda-r-referencias.md` |
@@ -156,8 +157,10 @@ Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la v
 ## Qué es EcoSmart y cómo se trabaja
 
 - App clínica de ecocardiografía en **un solo `index.html`**: HTML + CSS + JS inline, sin build,
-  sin frameworks. Hoy **9,72 MB / 137.115 líneas**, medido con `wc -c` y `wc -l` el 2026-10-25 al
-  cierre de la tanda **AJ7**, sobre el árbol ya sellado (`v20261025-0117`).
+  sin frameworks. Hoy **9,72 MB / 137.178 líneas**, medido con `wc -c` y `wc -l` el 2026-10-26 al
+  cierre de la tanda **AJ10-B**, sobre el árbol ya sellado (`v20261026-2221`). Las 63 líneas que
+  esa tanda sumó son **todas comentarios**: el diff de `index.html` no tiene una sola línea
+  ejecutable.
   ⚠️ **Y ESTE RENGLÓN SE QUEDÓ DOS TANDAS ATRÁS OTRA VEZ**: decía «9,46 MB / 134.230 líneas», que
   es el cierre del AJ6, mientras la J y la J2 escribían su delta en su propia sección sin tocar
   éste, que es el que se lee para presupuestar contexto. **1.310 líneas de diferencia.**
@@ -432,6 +435,58 @@ impecable.
   34,2 KB), **diez mapas con un puntero cada uno** —medidos ANTES de escribir—,
   `docs/fuentes/FUENTES.md` → «La tanda AJ7» con la tabla **«Cambios de evidencia»** de doce
   filas, y `docs/PENDIENTES.md` → **DIEZ** cosas declaradas (**AJ7-a** a **AJ7-j**).
+
+### Blindaje del código de Eco Estrés — «AJ10-B» (2026-10-26)
+
+- **DOS commits, y el comportamiento de la app NO cambia.** Uno con **TC-536** y otro con los
+  comentarios, el sello **`v20261026-2221`** y la documentación. Al empezar, `origin/main` =
+  `HEAD` = **`95184ae`**: los 80 commits del AJ7 **ya están publicados**, verificado.
+  **El push lo corre Maicol: esta tanda tenía orden expresa de NO pushear.**
+- **CERO código borrado y cero líneas ejecutables tocadas.** El diff de `index.html` son **10
+  líneas de comentario reemplazadas y 73 agregadas**, verificado línea por línea, con los 17
+  bloques de JS inline parseando.
+
+- **DOS PREMISAS DEL INVENTARIO AJ10-A ERAN FALSAS, Y ESTÁN MEDIDAS.**
+  1. **Las piezas (A) no son «unas 738 líneas, 0,5 %»: son 832 líneas y 56.747 bytes**, medido
+     pieza por pieza. La diferencia es del tamaño de la sección del PDF, que esa cuenta parece
+     no haber incluido.
+  2. **Los cortes de SGL de −16 y −20 NO «viven sólo en ese código».** El **−16** es además el
+     criterio `hfaicos_gls_alt` del HFA-ICOS de cardio-oncología; el **−20** es la referencia
+     `sgl:{ref:-20}` del Laboratorio y los textos del 3D del VI. Lo exclusivo de `eeEvalGLS` es
+     la **clasificación en tres bandas con el rótulo «borderline»**.
+
+- ⚠️ **TC-536 DESTAPÓ UNA CALCULADORA CLÍNICA AJENA ESCONDIDA DENTRO DEL BLOQUE.** `ptpCad()`
+  —**probabilidad pre-test de enfermedad coronaria, ESC 2019**, con su tabla por grupo etario y
+  sexo y las cuatro recomendaciones, 25 líneas— vive en el `<script>` de Eco Estrés. Está tan
+  muerta como el resto (nadie la llama, sus cinco campos `ee-ptp-*` no existen) **pero no es
+  maquinaria de Eco Estrés: borrar la pieza A1 la borra.** → **AJ10-C**.
+
+- **NADA DE ECO ESTRÉS LLEGA HOY A UNA SUPERFICIE FIRMADA, y el único «hallazgo» fue MÍO.** El
+  PDF salió con «eco estr» adentro y era **el nombre del paciente de prueba** —«Prueba Eco
+  Estres»—, que el PDF imprime. El fixture envenenaba lo que el caso cuenta. Por eso el
+  diagnóstico de cada marcador imprime ahora **55 caracteres de contexto a cada lado**.
+
+- **TC-536: 24 condiciones, SEIS de ellas denominadores.** Fija las tres compuertas —el elemento
+  `ee-incluir-pdf` en el DOM, `eeInformeLineas()` vacía y `eeHasData()` en falso— con el
+  escenario **peligroso** incluido: la bandera encendida **a mitad de sesión** (la limpieza sólo
+  corre al arrancar) más `eeHasData()` en `true` por `eeSetBullState`. Y con **cinco controles
+  negativos** de lo que sigue vivo, porque el prefijo `ee` no identifica al módulo.
+- **10/10 MUTACIONES DIRIGIDAS MUERTAS**, en worktree y nunca sobre el vivo, cada una matando
+  exactamente lo que le toca. La que más dice es **M2**: sacar la condición del `getElementById`
+  de la compuerta del PDF mata **sólo B3**, o sea que la presencia del toggle en el DOM es **lo
+  único** que para la sección «ECO ESTRÉS» cuando la bandera está encendida y hay datos.
+
+- **Línea base al cerrar, idéntica a la de abrir:** suite **546/550** en diez lotes de 55
+  **cubriendo los 550 contados** (ejecutados 550 de 550), con el pendrive `DISK_IMG` **MONTADO**
+  y listando nombres reales al abrir y al cerrar; los rojos son **TC-223, TC-376, TC-390 y
+  TC-406**, los cuatro de siempre. Semgrep **124 WARNING / 0 ERROR**. Excel **440** columnas.
+  Censo de campos **1039**, hash `1636376460`. Celular **63 a 360 px y 72 a 390, con 17 ALTA**.
+  Sin huérfanos nuevos.
+
+- **Dónde está todo:** `docs/mapa/eco-estres-inventario.md` (**mapa NUEVO**, 12,4 KB, con la
+  tabla A/B/C), la ficha del caso en `docs/mapa/tests-fichas-536.md` (**archivo propio**),
+  y `docs/PENDIENTES.md` → **AJ10-C**, con la medición que falta: cuántos estudios reales
+  guardados llevan claves `ee-*` de Eco Estrés dentro de sus `campos`.
 
 ## Procedencia — dónde está el origen de cada regla
 
