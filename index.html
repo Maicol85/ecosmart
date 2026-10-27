@@ -19891,22 +19891,21 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
   <div id="hfaicos-seccion" style="display:none;">
   <div class="card">
     <div class="card-body">
-    <!-- ⚠️ EL NOMBRE (R2-E6, 2026-10-21, decision de Maicol): esta calculadora NO es el HFA-ICOS.
-         El HFA-ICOS propiamente dicho son tablas ESPECIFICAS por tipo de tratamiento (ESC 2022,
-         tabla 4) y recoge doce factores de su seccion A, de los que esta app tiene cuatro. Lo que
-         suma este bloque son puntos genericos propios. Sus PESOS y sus CORTES no se tocan: lo que
-         cambia es que ya no se presenta con el nombre de un instrumento que no es. -->
-    <div style="font-size:12px;font-weight:700;color:var(--accent2);margin-bottom:2px;">Evaluacion de riesgo cardiovascular basal antes de iniciar tratamiento oncologico — <b>Calculadora propia de EcoSmart, no es HFA-ICOS</b></div>
+    <!-- ⚠️ EL NOMBRE (tanda D, decisión de Maicol, sobre lo que el R2-E6 había dejado): la
+         categoría se rotula SOLO «Clasificación de EcoSmart (orientativa)». De la pantalla salen
+         tanto «HFA-ICOS» como «no es HFA-ICOS»: desde esta tanda la afirmación simple es falsa en
+         las dos direcciones —con antraciclinas y con anti-HER2 la clasificación SÍ sale de la
+         Tabla 4 de la guía, y con los demás fármacos NO—, así que una etiqueta fija en el
+         encabezado mentía en la mitad de los casos. Lo que distingue un camino del otro se dice
+         en la LÍNEA DE ALCANCE del resultado, que depende del fármaco elegido.
+         Las citas de guía, las clases y los niveles viven en el globo ⓘ (regla R2). -->
+    <div style="font-size:12px;font-weight:700;color:var(--accent2);margin-bottom:2px;">Riesgo cardiovascular basal antes de iniciar el tratamiento oncol&oacute;gico
+      <button type="button" class="vinfo-btn vinfo-btn-44" data-vinfo="co-riesgo-basal" aria-expanded="false" style="font-size:13px;" aria-label="Informaci&oacute;n sobre la clasificaci&oacute;n de riesgo, sus fuentes y sus l&iacute;mites" onclick="vInfoClic(this)">&#9432;</button>
+    </div>
     <div style="font-size:11px;color:var(--text2);background:var(--section-head);border-left:3px solid var(--accent2);padding:8px 10px;border-radius:0 6px 6px 0;margin:8px 0 10px;line-height:1.55;">
-      <b>Calculadora propia de EcoSmart, no es HFA-ICOS.</b> Recoge los factores disponibles en el
-      ecocardiograma; el HFA-ICOS son tablas especificas por tipo de tratamiento (ESC 2022, tabla 4)
-      con factores clinicos y de laboratorio que deben evaluarse por separado.<br>
-      <b>Esta es la UNICA calculadora de riesgo basal de la app</b> desde el 2026-09-15. El bloque
-      «Datos basales» de esta pestaña tenia un segundo score con otra escala, y las dos bandas podian
-      terminar en el mismo informe firmado por caminos distintos; se elimino. Su clasificacion
-      —la que sale en la capsula de aquel bloque, en la hoja del PDF, en el PPT y en el texto del
-      modulo integrado— es la que se calcula ACA. Si ademas se integra, el mismo resultado entra
-      al cuerpo narrativo.
+      Es la <b>&uacute;nica</b> clasificaci&oacute;n de riesgo basal de la aplicaci&oacute;n: la que aparece en &laquo;Datos basales&raquo;,
+      en la hoja del PDF, en el PPT y en el texto del m&oacute;dulo integrado se calcula ac&aacute;. Si adem&aacute;s se integra,
+      entra al cuerpo narrativo.
     </div>
 
     <!-- Las doce filas van ESTÁTICAS en el HTML y no las construye el JS al abrir la sección.
@@ -19929,38 +19928,59 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
     <div id="hfaicos-factores" class="hfa-grid" style="margin-bottom:12px;">
       <div class="hfa-col">
         <div class="hfa-col-h">Demográfico y clínico</div>
-        <label style="display:flex;align-items:center;gap:8px;font-size:12px;padding:6px;border-radius:6px;cursor:pointer;min-height:36px;"><input type="checkbox" id="hfaicos_edad" onchange="hfaicosToggle('hfaicos_edad')" style="flex:0 0 auto;width:16px;height:16px;"><span style="flex:1;">Edad ≥65 años</span><span data-hfa-pts="1" style="color:var(--text2);font-variant-numeric:tabular-nums;flex:0 0 auto;">1 pt</span></label>
-        <label style="display:flex;align-items:center;gap:8px;font-size:12px;padding:6px;border-radius:6px;cursor:pointer;min-height:36px;"><input type="checkbox" id="hfaicos_sexo_fem" onchange="hfaicosToggle('hfaicos_sexo_fem')" style="flex:0 0 auto;width:16px;height:16px;"><span style="flex:1;">Sexo femenino (antraciclinas / RT)</span><span data-hfa-pts="1" style="color:var(--text2);font-variant-numeric:tabular-nums;flex:0 0 auto;">1 pt</span></label>
-        <label style="display:flex;align-items:center;gap:8px;font-size:12px;padding:6px;border-radius:6px;cursor:pointer;min-height:36px;"><input type="checkbox" id="hfaicos_hta" onchange="hfaicosToggle('hfaicos_hta')" style="flex:0 0 auto;width:16px;height:16px;"><span style="flex:1;">Hipertensión arterial</span><span data-hfa-pts="1" style="color:var(--text2);font-variant-numeric:tabular-nums;flex:0 0 auto;">1 pt</span></label>
-        <label style="display:flex;align-items:center;gap:8px;font-size:12px;padding:6px;border-radius:6px;cursor:pointer;min-height:36px;"><input type="checkbox" id="hfaicos_dm" onchange="hfaicosToggle('hfaicos_dm')" style="flex:0 0 auto;width:16px;height:16px;"><span style="flex:1;">Diabetes mellitus</span><span data-hfa-pts="1" style="color:var(--text2);font-variant-numeric:tabular-nums;flex:0 0 auto;">1 pt</span></label>
-        <label style="display:flex;align-items:center;gap:8px;font-size:12px;padding:6px;border-radius:6px;cursor:pointer;min-height:36px;"><input type="checkbox" id="hfaicos_obesidad" onchange="hfaicosToggle('hfaicos_obesidad')" style="flex:0 0 auto;width:16px;height:16px;"><span style="flex:1;">Obesidad (IMC &gt;30)</span><span data-hfa-pts="1" style="color:var(--text2);font-variant-numeric:tabular-nums;flex:0 0 auto;">1 pt</span></label>
-        <label style="display:flex;align-items:center;gap:8px;font-size:12px;padding:6px;border-radius:6px;cursor:pointer;min-height:36px;"><input type="checkbox" id="hfaicos_tabaco" onchange="hfaicosToggle('hfaicos_tabaco')" style="flex:0 0 auto;width:16px;height:16px;"><span style="flex:1;">Tabaquismo activo</span><span data-hfa-pts="1" style="color:var(--text2);font-variant-numeric:tabular-nums;flex:0 0 auto;">1 pt</span></label>
-        <label style="display:flex;align-items:center;gap:8px;font-size:12px;padding:6px;border-radius:6px;cursor:pointer;min-height:36px;"><input type="checkbox" id="hfaicos_cv_previa" onchange="hfaicosToggle('hfaicos_cv_previa')" style="flex:0 0 auto;width:16px;height:16px;"><span style="flex:1;">Enfermedad CV previa (IC, CAD, FA, ACV)</span><span data-hfa-pts="2" style="color:var(--text2);font-variant-numeric:tabular-nums;flex:0 0 auto;">2 pts</span></label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:12px;padding:6px;border-radius:6px;cursor:pointer;min-height:36px;"><input type="checkbox" id="hfaicos_edad" onchange="hfaicosToggle('hfaicos_edad')" style="flex:0 0 auto;width:16px;height:16px;"><span style="flex:1;">Edad ≥65 años</span><span data-hfa-pts-de="hfaicos_edad" style="color:var(--text2);font-variant-numeric:tabular-nums;flex:0 0 auto;">1 pt</span></label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:12px;padding:6px;border-radius:6px;cursor:pointer;min-height:36px;"><input type="checkbox" id="hfaicos_sexo_fem" onchange="hfaicosToggle('hfaicos_sexo_fem')" style="flex:0 0 auto;width:16px;height:16px;"><span style="flex:1;">Sexo femenino (antraciclinas / RT)</span><span data-hfa-pts-de="hfaicos_sexo_fem" style="color:var(--text2);font-variant-numeric:tabular-nums;flex:0 0 auto;">1 pt</span></label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:12px;padding:6px;border-radius:6px;cursor:pointer;min-height:36px;"><input type="checkbox" id="hfaicos_hta" onchange="hfaicosToggle('hfaicos_hta')" style="flex:0 0 auto;width:16px;height:16px;"><span style="flex:1;">Hipertensión arterial</span><span data-hfa-pts-de="hfaicos_hta" style="color:var(--text2);font-variant-numeric:tabular-nums;flex:0 0 auto;">1 pt</span></label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:12px;padding:6px;border-radius:6px;cursor:pointer;min-height:36px;"><input type="checkbox" id="hfaicos_dm" onchange="hfaicosToggle('hfaicos_dm')" style="flex:0 0 auto;width:16px;height:16px;"><span style="flex:1;">Diabetes mellitus</span><span data-hfa-pts-de="hfaicos_dm" style="color:var(--text2);font-variant-numeric:tabular-nums;flex:0 0 auto;">1 pt</span></label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:12px;padding:6px;border-radius:6px;cursor:pointer;min-height:36px;"><input type="checkbox" id="hfaicos_obesidad" onchange="hfaicosToggle('hfaicos_obesidad')" style="flex:0 0 auto;width:16px;height:16px;"><span style="flex:1;">Obesidad (IMC &gt;30)</span><span data-hfa-pts-de="hfaicos_obesidad" style="color:var(--text2);font-variant-numeric:tabular-nums;flex:0 0 auto;">1 pt</span></label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:12px;padding:6px;border-radius:6px;cursor:pointer;min-height:36px;"><input type="checkbox" id="hfaicos_tabaco" onchange="hfaicosToggle('hfaicos_tabaco')" style="flex:0 0 auto;width:16px;height:16px;"><span style="flex:1;">Tabaquismo activo</span><span data-hfa-pts-de="hfaicos_tabaco" style="color:var(--text2);font-variant-numeric:tabular-nums;flex:0 0 auto;">1 pt</span></label>
+        <!-- ⚠️ LA CASILLA DE ANTECEDENTE CV SE PARTIÓ EN TRES (tanda D, decisión de Maicol).
+             La Tabla 4 de la guía les da pesos MUY distintos —insuficiencia cardíaca muy alto,
+             coronariopatía alto, arritmia nada en antraciclinas y moderado 2 en anti-HER2—, así que
+             como una sola casilla no se podía puntuar sin inventarle un peso.
+             La casilla VIEJA sigue existiendo debajo porque viaja en los estudios ya guardados y
+             borrarla sería migrarlos; NO puntúa, y su fila sólo aparece cuando está tildada. -->
+        <label style="display:flex;align-items:center;gap:8px;font-size:12px;padding:6px;border-radius:6px;cursor:pointer;min-height:36px;"><input type="checkbox" id="hfaicos_cv_ic" onchange="hfaicosToggle('hfaicos_cv_ic')" style="flex:0 0 auto;width:16px;height:16px;"><span style="flex:1;">Insuficiencia card&iacute;aca o miocardiopat&iacute;a previa</span><span data-hfa-pts-de="hfaicos_cv_ic" style="color:var(--text2);font-variant-numeric:tabular-nums;flex:0 0 auto;">2 pts</span></label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:12px;padding:6px;border-radius:6px;cursor:pointer;min-height:36px;"><input type="checkbox" id="hfaicos_cv_coron" onchange="hfaicosToggle('hfaicos_cv_coron')" style="flex:0 0 auto;width:16px;height:16px;"><span style="flex:1;">Infarto, angioplastia o cirug&iacute;a coronaria, angina estable o valvulopat&iacute;a severa</span><span data-hfa-pts-de="hfaicos_cv_coron" style="color:var(--text2);font-variant-numeric:tabular-nums;flex:0 0 auto;">2 pts</span></label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:12px;padding:6px;border-radius:6px;cursor:pointer;min-height:36px;"><input type="checkbox" id="hfaicos_cv_arrit" onchange="hfaicosToggle('hfaicos_cv_arrit')" style="flex:0 0 auto;width:16px;height:16px;"><span style="flex:1;">Arritmia previa (FA, aleteo, TV o FV)</span><span data-hfa-pts-de="hfaicos_cv_arrit" style="color:var(--text2);font-variant-numeric:tabular-nums;flex:0 0 auto;">2 pts</span></label>
+        <label id="hfaicos_cv_previa_fila" hidden style="display:flex;align-items:center;gap:8px;font-size:12px;padding:6px;border-radius:6px;cursor:pointer;min-height:36px;"><input type="checkbox" id="hfaicos_cv_previa" onchange="hfaicosToggle('hfaicos_cv_previa')" style="flex:0 0 auto;width:16px;height:16px;"><span style="flex:1;">Enfermedad CV previa (IC, CAD, FA, ACV) &mdash; sin especificar</span><span data-hfa-pts-de="hfaicos_cv_previa" style="color:var(--text2);font-variant-numeric:tabular-nums;flex:0 0 auto;">&mdash;</span></label>
       </div>
       <div class="hfa-col">
         <div class="hfa-col-h">Ecocardiográfico</div>
-        <label style="display:flex;align-items:center;gap:8px;font-size:12px;padding:6px;border-radius:6px;cursor:pointer;min-height:36px;"><input type="checkbox" id="hfaicos_fevi_lim" onchange="hfaicosToggle('hfaicos_fevi_lim')" style="flex:0 0 auto;width:16px;height:16px;"><span style="flex:1;">FEVI basal 50-54%</span><span data-hfa-pts="1" style="color:var(--text2);font-variant-numeric:tabular-nums;flex:0 0 auto;">1 pt</span></label>
-        <label style="display:flex;align-items:center;gap:8px;font-size:12px;padding:6px;border-radius:6px;cursor:pointer;min-height:36px;"><input type="checkbox" id="hfaicos_fevi_red" onchange="hfaicosToggle('hfaicos_fevi_red')" style="flex:0 0 auto;width:16px;height:16px;"><span style="flex:1;">FEVI basal &lt;50%</span><span data-hfa-pts="2" style="color:var(--text2);font-variant-numeric:tabular-nums;flex:0 0 auto;">2 pts</span></label>
-        <label style="display:flex;align-items:center;gap:8px;font-size:12px;padding:6px;border-radius:6px;cursor:pointer;min-height:36px;"><input type="checkbox" id="hfaicos_gls_alt" onchange="hfaicosToggle('hfaicos_gls_alt')" style="flex:0 0 auto;width:16px;height:16px;"><span style="flex:1;">GLS basal deteriorado (&gt;-16%)</span><span data-hfa-pts="1" style="color:var(--text2);font-variant-numeric:tabular-nums;flex:0 0 auto;">1 pt</span></label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:12px;padding:6px;border-radius:6px;cursor:pointer;min-height:36px;"><input type="checkbox" id="hfaicos_fevi_lim" onchange="hfaicosToggle('hfaicos_fevi_lim')" style="flex:0 0 auto;width:16px;height:16px;"><span style="flex:1;">FEVI basal 50-54%</span><span data-hfa-pts-de="hfaicos_fevi_lim" style="color:var(--text2);font-variant-numeric:tabular-nums;flex:0 0 auto;">1 pt</span></label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:12px;padding:6px;border-radius:6px;cursor:pointer;min-height:36px;"><input type="checkbox" id="hfaicos_fevi_red" onchange="hfaicosToggle('hfaicos_fevi_red')" style="flex:0 0 auto;width:16px;height:16px;"><span style="flex:1;">FEVI basal &lt;50%</span><span data-hfa-pts-de="hfaicos_fevi_red" style="color:var(--text2);font-variant-numeric:tabular-nums;flex:0 0 auto;">2 pts</span></label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:12px;padding:6px;border-radius:6px;cursor:pointer;min-height:36px;"><input type="checkbox" id="hfaicos_gls_alt" onchange="hfaicosToggle('hfaicos_gls_alt')" style="flex:0 0 auto;width:16px;height:16px;"><span style="flex:1;">GLS basal deteriorado (&gt;-16%)</span><span data-hfa-pts-de="hfaicos_gls_alt" style="color:var(--text2);font-variant-numeric:tabular-nums;flex:0 0 auto;">1 pt</span></label>
       </div>
       <div class="hfa-col">
         <div class="hfa-col-h">Humoral</div>
-        <label style="display:flex;align-items:center;gap:8px;font-size:12px;padding:6px;border-radius:6px;cursor:pointer;min-height:36px;"><input type="checkbox" id="hfaicos_troponina" onchange="hfaicosToggle('hfaicos_troponina')" style="flex:0 0 auto;width:16px;height:16px;"><span style="flex:1;">Troponina basal elevada</span><span data-hfa-pts="1" style="color:var(--text2);font-variant-numeric:tabular-nums;flex:0 0 auto;">1 pt</span></label>
-        <label style="display:flex;align-items:center;gap:8px;font-size:12px;padding:6px;border-radius:6px;cursor:pointer;min-height:36px;"><input type="checkbox" id="hfaicos_bnp" onchange="hfaicosToggle('hfaicos_bnp')" style="flex:0 0 auto;width:16px;height:16px;"><span style="flex:1;">BNP / NT-proBNP basal elevado</span><span data-hfa-pts="1" style="color:var(--text2);font-variant-numeric:tabular-nums;flex:0 0 auto;">1 pt</span></label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:12px;padding:6px;border-radius:6px;cursor:pointer;min-height:36px;"><input type="checkbox" id="hfaicos_troponina" onchange="hfaicosToggle('hfaicos_troponina')" style="flex:0 0 auto;width:16px;height:16px;"><span style="flex:1;">Troponina basal elevada</span><span data-hfa-pts-de="hfaicos_troponina" style="color:var(--text2);font-variant-numeric:tabular-nums;flex:0 0 auto;">1 pt</span></label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:12px;padding:6px;border-radius:6px;cursor:pointer;min-height:36px;"><input type="checkbox" id="hfaicos_bnp" onchange="hfaicosToggle('hfaicos_bnp')" style="flex:0 0 auto;width:16px;height:16px;"><span style="flex:1;">BNP / NT-proBNP basal elevado</span><span data-hfa-pts-de="hfaicos_bnp" style="color:var(--text2);font-variant-numeric:tabular-nums;flex:0 0 auto;">1 pt</span></label>
       </div>
       <div class="hfa-col hfa-col-farm">
         <div class="hfa-col-h">Fármaco</div>
+        <!-- ⚠️ UN SOLO SELECTOR DE FÁRMACO (tanda D). Acá vivía `hfaicos_farmaco`, con BANDAS de
+             riesgo, mientras «Datos basales» tenía `co_farmaco`, con NOMBRES de fármaco: dos
+             controles que contestaban la misma pregunta y no se sincronizaban, así que la
+             clasificación dependía de cuál de los dos hubiera tocado el médico. Se retiró el de
+             bandas —que además imponía un PISO que la Tabla 4 no tiene— y el que quedó es
+             `co_farmaco`, que es el que viaja con el estudio, va al Excel y lo lee el Laboratorio.
+             Se mudó a esta columna porque desde esta tanda el fármaco elige la COLUMNA de la
+             Tabla 4, o sea que decide la clasificación entera. En «Datos basales» quedó un
+             reflejo de sólo lectura, que no es un control y por eso no cambia el censo. -->
         <div class="fg" style="margin:0;">
-          <select id="hfaicos_farmaco" onchange="calcHFAICOS()">
-            <option value="">— No seleccionado —</option>
-            <option value="muy_alto">Muy alto riesgo (antraciclinas alta dosis ≥250 mg/m², trastuzumab + antraciclinas)</option>
-            <option value="alto">Alto riesgo (antraciclinas dosis moderada, anti-HER2, ciclofosfamida alta dosis)</option>
-            <option value="medio">Riesgo medio (inhibidores VEGF, ICI, inhibidores CDK4/6, fluoropirimidinas, BCR-ABL)</option>
-            <option value="bajo">Riesgo bajo (hormonoterapia, taxanos, alcaloides de la vinca)</option>
-          </select>
+          <select id="co_farmaco" onchange="calcCardioOnco();calcHFAICOS();">
+          <option value="">-- Seleccionar --</option>
+          <option value="antracicline">Antraciclinas</option>
+          <option value="trastuzumab">Trastuzumab / Anti-HER2</option>
+          <option value="inmunoterapia">Inmunoterapia (ICI)</option>
+          <option value="vegf">Anti-VEGF / Bevacizumab</option>
+          <option value="bcr_abl">BCR-ABL inhibidor (imatinib)</option>
+          <option value="radioterapia">Radioterapia toraxica</option>
+          <option value="otro">Otro</option>
+        </select>
         </div>
         <div style="font-size:10.5px;color:var(--text2);line-height:1.45;margin-top:6px;">
-          El fármaco impone un <b>piso</b> de banda: no reemplaza al puntaje ni puede bajarlo.
+          Con antraciclinas o anti-HER2 la clasificaci&oacute;n sale de la tabla de la gu&iacute;a; con los dem&aacute;s, del puntaje propio.
         </div>
       </div>
     </div>
@@ -20002,21 +20022,16 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
            dos escalas de riesgo, así que una referencia rota acá cuesta más que en otro lado —y
            es la cuarta vez que este archivo paga una cadena que decía «el de arriba». -->
       Estos campos describen el tratamiento y las mediciones basales. La <b>clasificación de riesgo</b>
-      —y la que baja al informe— sale de la sección <b>🧮 Calculadora de Riesgo CV</b> (marco
-      HFA-ICOS) de esta misma pestaña. Acá ya no se calcula un score aparte.
+      —y la que baja al informe— sale de la sección <b>🧮 Calculadora de Riesgo CV</b> de esta misma
+      pestaña, que es donde se elige también el fármaco. Acá ya no se calcula un score aparte.
     </div>
     <div class="grid-3" style="margin-bottom:10px;">
-      <div class="fg"><label>Farmaco oncologico</label>
-        <select id="co_farmaco" onchange="calcCardioOnco()">
-          <option value="">-- Seleccionar --</option>
-          <option value="antracicline">Antraciclinas</option>
-          <option value="trastuzumab">Trastuzumab / Anti-HER2</option>
-          <option value="inmunoterapia">Inmunoterapia (ICI)</option>
-          <option value="vegf">Anti-VEGF / Bevacizumab</option>
-          <option value="bcr_abl">BCR-ABL inhibidor (imatinib)</option>
-          <option value="radioterapia">Radioterapia toraxica</option>
-          <option value="otro">Otro</option>
-        </select>
+      <div class="fg"><label>F&aacute;rmaco oncol&oacute;gico</label>
+        <!-- REFLEJO DE SÓLO LECTURA: el control vive en la Calculadora de Riesgo CV. Es un
+             `<span>` y no un `<input readonly>` a propósito —un control con id entra en el censo
+             de campos y viajaría con el estudio por duplicado—. Lo mantiene al día
+             `_hfaicosPintarPuntos`, desde el mismo lugar que pinta la clasificación. -->
+        <div id="co_farmaco_eco" class="calc-val" style="font-weight:400;min-height:36px;display:flex;align-items:center;">&mdash;</div>
       </div>
       <div class="fg"><label>Dosis acumulada antraciclinas (mg/m2)</label>
         <input type="number" id="co_dosis_antrac" placeholder="mg/m2" oninput="calcCardioOnco()">
@@ -43280,6 +43295,24 @@ const VINFO = Object.freeze({
     fuente: 'Forrester y colaboradores, New England Journal of Medicine 1976;295:1356, reproducida en Braunwald, Tratado de Cardiología, 10.ª edición española, Elsevier 2016, Tabla 52-9 y texto del folio 1125.',
     ojo: 'LOS DOS BORDES EXACTOS NO ESTÁN DEFINIDOS. Con un índice cardíaco de 2,2 justo, la app marca hipoperfusión, y la clasificación original dice «por debajo de 2,2», de modo que no resuelve ese valor exacto. Lo mismo del otro lado: la app no define la presión capilar de 18 exacta, porque la congestión aparece cuando esa presión SUPERA 18.'
   },
+  /* ══ EL GLOBO DE LA CLASIFICACIÓN DE RIESGO BASAL (tanda D, 2026-10-27) ════════════════════
+     Acá viven las CITAS, LAS CLASES Y LOS NIVELES de la calculadora, que es la regla R2 de esta
+     tanda: en la línea visible no va ninguno. Las dos fuentes están verificadas EN IMAGEN —la
+     Tabla 4 en los folios 4246-4247 y la Recomendaciones-tabla 1 en el folio 4249—. */
+  'co-riesgo-basal': {
+    tit: 'Clasificación de riesgo cardiovascular basal — qué aplica y qué no',
+    formula: 'Cualquier factor muy alto → muy alto · cualquier factor alto, o 5 o más puntos moderados → alto · 2 a 4 puntos moderados → moderado · 0 o 1 punto → bajo',
+    lee: 'Con antraciclinas y con terapias dirigidas contra HER2 la clasificación sale de la tabla de la guía tal cual, sin pisos ni cortes propios de la aplicación: el fármaco elige la COLUMNA, y cada factor de riesgo vale distinto en cada columna.\n'
+       + 'Por eso un paciente sin factores de riesgo que va a recibir un anti-HER2 es de riesgo BAJO.\n'
+       + 'El único piso de la tabla es su nota al pie: antraciclina y trastuzumab administrados de forma concurrente son riesgo alto.\n'
+       + 'Con los demás fármacos la aplicación usa un puntaje propio y lo dice en la línea de alcance: la tabla de la guía no tiene columna para la inmunoterapia ni para la radioterapia, y las que sí tiene —anti-VEGF, BCR-ABL, mieloma múltiple y RAF/MEK— todavía no están implementadas.\n'
+       + 'Derivación a cardiología: en riesgo alto y muy alto se recomienda antes del tratamiento, salvo urgencia oncológica (Clase I · Nivel C); en riesgo moderado se puede considerar, sin demorar el tratamiento (Clase IIb · Nivel C); en riesgo bajo la guía recomienda empezar sin demora (Clase I · Nivel C). Con enfermedad cardiovascular previa o hallazgos anormales en la evaluación basal, la derivación se recomienda en cualquier categoría (Clase I · Nivel C). La derivación es a cardio-oncología donde exista; si no, a un cardiólogo con experiencia en pacientes con cáncer.\n'
+       + 'Calendario de eco: con antraciclinas en riesgo alto y muy alto, cada dos ciclos y dentro de los 3 meses de terminar (Clase I · Nivel C), y en todos dentro de los 12 meses de terminar (Clase I · Nivel B); con anti-HER2, cada 3 meses y dentro de los 12 meses de terminar (Clase I · Nivel B).',
+    fuente: 'Tabla de estratificación de riesgo basal y su regla de combinación · Lyon AR, López-Fernández T, Couch LS y col., «2022 ESC Guidelines on cardio-oncology», Eur Heart J 2022;43(41):4229-4361, Tabla 4, folios 4246 y 4247, leída en imagen.\n'
+          + 'Derivación por categoría, con sus clases y niveles · el mismo documento, Recomendaciones-tabla 1, folio 4249, hoja 21, leída en imagen; la definición de «hallazgos anormales» es su nota g y la de la derivación su nota d.\n'
+          + 'Calendario con antraciclinas · Recomendaciones-tabla 7, folio 4259. Calendario con anti-HER2 · Recomendaciones-tabla 8, folio 4261.',
+    ojo: 'La calculadora recoge los factores de riesgo que se pueden obtener del ecocardiograma y de los datos basales cargados, no los de la tabla entera. Para los hallazgos anormales de la evaluación basal no ve el ECG basal ni una valvulopatía, miocardiopatía o enfermedad pericárdica moderada o grave no conocida: si los hay, corresponde derivar aunque la calculadora no los muestre. Y no distingue si la antraciclina se dio ANTES del anti-HER2 o de forma concurrente —la tabla les da pesos distintos—, así que con una dosis de antraciclinas cargada toma el lado seguro.'
+  },
   /* ══ EL GLOBO DEL SCORE DE AMILOIDOSIS (J2-E5, 2026-10-24) ═════════════════════════════════
      Las DOS fuentes están verificadas: el folio 1556 del documento de posición en el texto del
      PDF original, y la Tabla 4 de Boldrini EN IMAGEN.
@@ -51154,7 +51187,18 @@ function hfaicosFactores() {
     { id:'hfaicos_dm',        pts:1, lbl:'Diabetes mellitus' },
     { id:'hfaicos_obesidad',  pts:1, lbl:'Obesidad (IMC >30)' },
     { id:'hfaicos_tabaco',    pts:1, lbl:'Tabaquismo activo' },
-    { id:'hfaicos_cv_previa', pts:2, lbl:'Enfermedad CV previa (IC, CAD, FA, ACV)' },
+    /* ⚠️ LA CASILLA DE LEGADO. Juntaba cuatro antecedentes con pesos MUY distintos en la Tabla 4
+       —insuficiencia cardíaca muy alto, coronariopatía alto, arritmia nada en antraciclinas y
+       moderado 2 en anti-HER2—, así que como una sola casilla la tabla no la puede puntuar.
+       Se PARTIÓ en las tres de abajo (decisión de Maicol, tanda D). Ésta se conserva porque
+       viaja en los estudios ya guardados y borrarla sería migrar, pero NO SUMA EN NINGÚN CAMINO
+       y no se le inventa un peso: cuando está tildada y las tres nuevas están vacías, la
+       calculadora publica una línea pidiendo que se elija cuál. `pts:0` y no ausencia para que
+       siga teniendo etiqueta cuando haya que nombrarla. */
+    { id:'hfaicos_cv_previa', pts:0, lbl:'Enfermedad CV previa (IC, CAD, FA, ACV) — sin especificar', legado:true },
+    { id:'hfaicos_cv_ic',     pts:2, lbl:'Insuficiencia cardíaca o miocardiopatía previa' },
+    { id:'hfaicos_cv_coron',  pts:2, lbl:'Infarto, angioplastia o cirugía coronaria, angina estable o valvulopatía severa' },
+    { id:'hfaicos_cv_arrit',  pts:2, lbl:'Arritmia previa (fibrilación o aleteo auricular, taquicardia o fibrilación ventricular)' },
     /* Los dos de FEVI son MUTUAMENTE EXCLUYENTES: una misma FEVI basal no puede estar a la vez
        en 50-54% y por debajo de 50. Marcados los dos sumaban 3 puntos por una sola medición y
        empujaban al paciente una banda entera hacia arriba sobre una contradicción. `excluye`
@@ -51167,19 +51211,194 @@ function hfaicosFactores() {
   ];
 }
 window.hfaicosFactores = hfaicosFactores;
-/* MÁXIMO REAL, derivado del catálogo y no escrito a mano: doce filas NO son doce puntos —hay una
-   que vale 2 y dos que se excluyen—, así que el denominador es 13. Un «X/12» al lado de un
-   puntaje que puede llegar a 13 es un score que se desmiente solo. */
+
+/* ══ LAS TRES CASILLAS QUE REEMPLAZAN A LA DE LEGADO ══════════════════════════════════════
+   Se nombran UNA vez acá y las leen el camino de la Tabla 4, el camino por puntos y la línea
+   del estudio viejo. Escribir la terna tres veces es cómo se desincronizan. */
+function _hfaicosCvTerna() { return ['hfaicos_cv_ic', 'hfaicos_cv_coron', 'hfaicos_cv_arrit']; }
+
+/* MÁXIMO REAL, derivado del catálogo y no escrito a mano: las filas NO son los puntos —hay
+   varias que valen 2 y dos pares que se excluyen—, así que el denominador se calcula.
+   Un «X/12» al lado de un puntaje que puede llegar más arriba es un score que se desmiente solo.
+   ⚠️ LAS TRES CASILLAS DE ANTECEDENTE CV CUENTAN UNA SOLA VEZ, igual que en el puntaje: ver
+   `_hfaicosPuntos`. Sin esto el denominador subía 4 puntos por partir una casilla en tres, que
+   es exactamente el cambio de escala que la partición NO quiere introducir. */
 function hfaicosMax() {
-  return hfaicosFactores().reduce((t, f) => t + (f.id === 'hfaicos_fevi_lim' ? 0 : f.pts), 0);
+  return hfaicosFactores().reduce((t, f) => {
+    if (f.legado) return t;                                   // no suma en ningún camino
+    if (f.id === 'hfaicos_fevi_lim') return t;                // gana el excluyente mayor
+    if (f.id === 'hfaicos_cv_coron' || f.id === 'hfaicos_cv_arrit') return t;  // la terna vale 2 en total
+    return t + f.pts;
+  }, 0);
 }
 
-/* Piso de banda que impone el fármaco. La clasificación final es la MAYOR de las dos: el
-   paciente sin ningún factor que recibe antraciclinas a dosis alta es de muy alto riesgo, y el
-   que suma cuatro factores lo es con cualquier fármaco. */
+/* ══ TABLA 4 DE LA GUÍA ESC 2022 DE CARDIO-ONCOLOGÍA ══════════════════════════════════════════
+   Lyon AR, López-Fernández T, Couch LS y col., «2022 ESC Guidelines on cardio-oncology»,
+   Eur Heart J 2022;43(41):4229-4361. Tabla 4, «Heart Failure Association–International
+   Cardio-Oncology Society baseline cardiovascular toxicity risk stratification», folios 4246 y
+   4247 (dos hojas) — TRANSCRITA EN IMAGEN, celda por celda, no de memoria.
+
+   LA TABLA ES UNA MATRIZ, no un puntaje único: cada factor de riesgo vale distinto SEGÚN LA
+   CLASE DE FÁRMACO, y el fármaco es una COLUMNA, nunca un piso. Las celdas son «VH» (muy alto),
+   «H» (alto), «M2» (moderado, 2 puntos), «M1» (moderado, 1 punto) y «–» (la fila existe y en esa
+   columna no suma).
+
+   REGLA DE COMBINACIÓN, al pie de la tabla, literal y leída a siete aumentos:
+     «Low risk = no risk factors OR one moderate1 risk factor; moderate risk (M) = moderate risk
+      factors with a total of 2–4 points (Moderate 1 [M1] = 1 point; Moderate [M2] = 2 points);
+      high risk (H) = moderate risk factors with a total of >=5 points OR any high-risk factor;
+      very-high risk (VH) = any very-high risk factor.»
+   O sea: cualquier VH manda; si no, cualquier H o cinco puntos moderados dan alto; 2 a 4 puntos
+   moderados dan moderado; 0 o 1 punto da bajo.
+
+   ⚠️ SÓLO DOS COLUMNAS, Y ES DELIBERADO. La tabla trae seis —antraciclinas, anti-HER2, anti-VEGF,
+   BCR-ABL, mieloma múltiple y RAF/MEK—. La orden de esta tanda aplica las dos primeras y deja las
+   otras explícitamente sin tocar; están transcritas en `docs/fuentes/FUENTES.md` y declaradas en
+   `docs/PENDIENTES.md` para el día que se implementen. Un fármaco sin columna acá no pasa por este
+   camino: lo atiende el puntaje propio de la aplicación, que se rotula como tal en pantalla. */
+function coT4Pesos() {
+  return {
+    hfaicos_hta:       { antracicline:'M1', trastuzumab:'M1' },   // Hypertension
+    hfaicos_dm:        { antracicline:'M1', trastuzumab:'M1' },   // DM
+    hfaicos_obesidad:  { antracicline:'M1', trastuzumab:'M1' },   // Obesity (BMI >30 kg/m2)
+    hfaicos_tabaco:    { antracicline:'M1', trastuzumab:'M1' },   // Current smoker / smoking history
+    hfaicos_cv_ic:     { antracicline:'VH', trastuzumab:'VH' },   // HF / cardiomyopathy / CTRCD
+    hfaicos_cv_coron:  { antracicline:'H',  trastuzumab:'H'  },   // MI o PCI o CABG · angina estable · severe VHD
+    hfaicos_cv_arrit:  { antracicline:null, trastuzumab:'M2' },   // Arrhythmia (nota a) — «–» en antraciclinas
+    hfaicos_fevi_lim:  { antracicline:'M2', trastuzumab:'M2' },   // LVEF 50-54%
+    hfaicos_fevi_red:  { antracicline:'H',  trastuzumab:'H'  },   // LVEF <50%
+    hfaicos_troponina: { antracicline:'M1', trastuzumab:'M2' },   // Elevated baseline cTn (nota b)
+    hfaicos_bnp:       { antracicline:'M1', trastuzumab:'M2' }    // Elevated baseline NP (nota b)
+    /* `hfaicos_edad` NO está acá: la tabla tiene DOS filas de edad para estas dos columnas
+       —«Age >=80 years» alto y «Age 65-79 years» moderado 2— y cuál se aplica depende del número,
+       no de la casilla. Lo resuelve `_coT4Edad`.
+       `hfaicos_sexo_fem` y `hfaicos_gls_alt` NO TIENEN FILA en la Tabla 4, y por eso no figuran:
+       son reglas propias de la aplicación. En el camino de la Tabla 4 no suman —la orden dice que
+       lo que no está en la tabla se retira— y la pantalla lo dice en su columna de puntos.
+       `hfaicos_cv_previa` tampoco: es la casilla de legado, que no puntúa en ningún camino. */
+  };
+}
+window.coT4Pesos = coT4Pesos;
+
+/* Qué columna de la Tabla 4 le toca a cada valor del selector de fármaco. Lo que no está acá no
+   tiene columna aplicada: `inmunoterapia` y `radioterapia` NO TIENEN COLUMNA EN LA TABLA, y
+   `vegf` y `bcr_abl` sí la tienen pero esta tanda no la implementa. Los cuatro van por el
+   puntaje propio, con su línea. */
+function coT4Columna(farmaco) {
+  if (farmaco === 'antracicline') return 'antracicline';
+  if (farmaco === 'trastuzumab')  return 'trastuzumab';
+  return null;
+}
+window.coT4Columna = coT4Columna;
+
+/* Las dos filas de edad. Con la casilla «Edad >=65» tildada y SIN edad cargada se aplica la fila
+   de 65-79, que es la MENOR de las dos: la casilla afirma «65 o más» y no «80 o más», así que
+   subir a la fila de alto sobre un dato que nadie cargó sería inventarlo. */
+function _coT4Edad(edad) {
+  if (edad !== null && edad >= 80) return 'H';
+  return 'M2';
+}
+const _CO_T4_PTS = Object.freeze({ M1: 1, M2: 2 });
 const _HFAICOS_ORDEN = ['bajo', 'medio', 'alto', 'muy_alto'];
+
+/* Suma del camino PROPIO de la aplicación (el de los fármacos sin columna aplicada). Es el mismo
+   número que daba antes de esta tanda, con una sola diferencia declarada: la casilla de legado
+   dejó de sumar y la reemplaza la terna, que vale 2 ENTRE LAS TRES —no 2 cada una—, que es lo que
+   valía la casilla que partió. Partir una casilla no puede cambiar la escala del puntaje. */
+function _hfaicosPuntos(presentes) {
+  const ids = presentes.map(f => f.id);
+  let pts = presentes.reduce((t, f) => t + (_hfaicosCvTerna().indexOf(f.id) >= 0 ? 0 : f.pts), 0);
+  if (_hfaicosCvTerna().some(id => ids.indexOf(id) >= 0)) pts += 2;
+  return pts;
+}
+
+/* ══ EL CALENDARIO DE ECO, POR FÁRMACO Y POR BANDA ════════════════════════════════════════════
+   FUENTE, verificada en imagen: guía ESC 2022 de cardio-oncología.
+   · Antraciclinas — Recomendaciones-tabla 7, folio 4259: eco basal en todos; eco dentro de los
+     12 meses de terminar; en riesgo alto y muy alto, eco CADA DOS CICLOS y dentro de los 3 meses
+     de terminar; en riesgo moderado, eco adicional tras una dosis acumulada de 250 mg/m² de
+     doxorrubicina o equivalente; en riesgo bajo, ese mismo eco adicional puede considerarse.
+   · Anti-HER2 — Recomendaciones-tabla 8, folio 4261: eco CADA 3 MESES y dentro de los 12 meses de
+     terminar; en riesgo alto y muy alto puede considerarse un control más frecuente.
+
+   ⚠️ DECÍA «ECO CADA CICLO» EN MUY ALTO, Y NO ES DE LA GUÍA PARA NINGUNO DE LOS DOS. El calendario
+   venía de la BANDA y no del fármaco, así que un anti-HER2 clasificado muy alto recibía el
+   calendario de las antraciclinas; y «cada ciclo» es lo que la guía pide para los BIOMARCADORES,
+   no para el eco, que en antraciclinas de riesgo alto y muy alto va cada DOS ciclos.
+
+   ⚠️ UN FÁRMACO SIN COLUMNA APLICADA NO RECIBE CALENDARIO, y es deliberado: antes recibía el de su
+   banda, que no es el suyo. Entre no mostrar nada y mostrar el calendario de otro fármaco, la
+   orden de esta tanda elige no mostrar nada.
+   Las clases y los niveles de cada recomendación viven en el globo ⓘ, no en esta línea. */
+function _hfaicosSeguimiento(col, clave) {
+  const intenso = (clave === 'alto' || clave === 'muy_alto');
+  if (col === 'antracicline') {
+    if (intenso) return 'Eco basal, cada dos ciclos durante el tratamiento, dentro de los 3 meses de terminarlo y dentro de los 12 meses.';
+    if (clave === 'medio') return 'Eco basal y dentro de los 12 meses de terminar el tratamiento, con un eco adicional al superar 250 mg/m² de doxorrubicina o equivalente.';
+    return 'Eco basal y dentro de los 12 meses de terminar el tratamiento. Puede considerarse un eco adicional al superar 250 mg/m² de doxorrubicina o equivalente.';
+  }
+  if (col === 'trastuzumab') {
+    return 'Eco basal, cada 3 meses durante el tratamiento y dentro de los 12 meses de terminarlo.'
+      + (intenso ? ' Puede considerarse un control más frecuente.' : '');
+  }
+  return '';
+}
+
+/* ══ LA DERIVACIÓN A CARDIOLOGÍA, POR CATEGORÍA ═══════════════════════════════════════════════
+   FUENTE, verificada en imagen: guía ESC 2022 de cardio-oncología, Recomendaciones-tabla 1,
+   folio 4249, hoja 21. Riesgo alto y muy alto: derivación antes del tratamiento, salvo urgencia
+   oncológica. Riesgo moderado: se puede considerar derivar, sin demorar el tratamiento. Riesgo
+   bajo: la tabla recomienda empezar el tratamiento sin demora, así que no hay acción que mostrar.
+   La derivación es a cardio-oncología donde exista; si no, a un cardiólogo con experiencia en
+   pacientes con cáncer (nota d). Las clases y los niveles viven en el globo ⓘ.
+
+   ⚠️ ANTES ESTA ACCIÓN NO IBA POR CATEGORÍA: era una frase pegada al texto de la banda MUY ALTA y
+   a ninguna otra, así que un paciente de riesgo ALTO —que la tabla deriva con Clase I— no la veía,
+   y uno de riesgo MODERADO —que la tabla deriva con Clase IIb— tampoco. */
+function _hfaicosDerivacion(clave) {
+  if (clave === 'alto' || clave === 'muy_alto')
+    return 'Derivación a cardiología antes de iniciar el tratamiento, salvo urgencia oncológica.';
+  if (clave === 'medio')
+    return 'Se puede considerar derivar a cardiología, sin demorar el tratamiento.';
+  return '';
+}
+
+/* ══ ENFERMEDAD CV PREVIA U HALLAZGOS ANORMALES EN LA EVALUACIÓN BASAL ════════════════════════
+   La última fila de la Recomendaciones-tabla 1: con enfermedad cardiovascular previa o hallazgos
+   anormales en la evaluación basal, la derivación se recomienda en CUALQUIER categoría. Su nota g
+   enumera los hallazgos: biomarcadores cardíacos por encima del límite normal, fracción de
+   eyección de 50 % o menos, strain global longitudinal por debajo de los valores normales
+   locales, enfermedad miocárdica, pericárdica o valvular moderada o grave no conocida, y ECG
+   basal anormal.
+
+   ⚠️ LA CALCULADORA NO VE LOS CINCO, Y LO DICE. Ve el antecedente cardiovascular, los dos
+   biomarcadores, la fracción de eyección y el strain; NO ve el ECG basal ni una valvulopatía,
+   miocardiopatía o enfermedad pericárdica no conocida que no esté tildada acá. Por eso, cuando no
+   encuentra ninguno, lo que publica es una LÍNEA INFORMATIVA y no una conclusión: «no hay
+   hallazgos anormales» sobre una evaluación que no miró el ECG sería una afirmación
+   tranquilizadora sobre algo que no se evaluó. */
+function _hfaicosHallazgos() {
+  const chk = id => { const e = document.getElementById(id); return !!(e && e.checked); };
+  const num = id => { const e = document.getElementById(id); if (!e) return null;
+    const n = parseFloat(String(e.value).replace(',', '.')); return isFinite(n) ? n : null; };
+  const L = [];
+  if (chk('hfaicos_cv_ic'))    L.push('insuficiencia cardíaca o miocardiopatía previa');
+  if (chk('hfaicos_cv_coron')) L.push('cardiopatía isquémica o valvulopatía severa previa');
+  if (chk('hfaicos_cv_arrit')) L.push('arritmia previa');
+  if (chk('hfaicos_troponina') || chk('hfaicos_bnp')) L.push('biomarcadores cardíacos por encima del límite normal');
+  /* El número manda sobre la casilla cuando está cargado: la nota g dice «50 % o menos» y la
+     casilla de la calculadora parte en 50-54 y por debajo de 50, así que una FEVI de 50 exactos
+     cae en la casilla de 50-54 y sí cumple la nota. */
+  const fb = num('co_fevi_basal');
+  if (fb !== null ? fb <= 50 : chk('hfaicos_fevi_red')) L.push('fracción de eyección basal de 50 % o menos');
+  if (chk('hfaicos_gls_alt')) L.push('strain global longitudinal por debajo de los valores normales');
+  return L;
+}
+
 function hfaicosEstado() {
   const chk = id => { const e = document.getElementById(id); return !!(e && e.checked); };
+  const num = id => { const e = document.getElementById(id); if (!e) return null;
+    const n = parseFloat(String(e.value).replace(',', '.')); return isFinite(n) ? n : null; };
   /* La EXCLUSION SE IMPONE ACA, no sólo en el clic. `hfaicosToggle` la aplicaba en el borde, y
      eso alcanzaba mientras el único camino fuera el dedo del médico — pero `hfaicosSyncDesdeEstudio`
      tilda por su cuenta, así que un «FEVI 50-54%» marcado a mano y protegido por `manual` convivía
@@ -51187,47 +51406,94 @@ function hfaicosEstado() {
      informe firmado listando la misma FEVI basal en dos rangos disjuntos.
      Es «bloquear no es recalcular»: un invariante que vive sólo en la interfaz no es un invariante.
      Si los dos están marcados gana el MAYOR, que es el lado seguro. */
-  let presentes = hfaicosFactores().filter(f => chk(f.id));
+  let presentes = hfaicosFactores().filter(f => !f.legado && chk(f.id));
   if (chk('hfaicos_fevi_lim') && chk('hfaicos_fevi_red')) {
     presentes = presentes.filter(f => f.id !== 'hfaicos_fevi_lim');
   }
-  const pts = presentes.reduce((t, f) => t + f.pts, 0);
 
-  let porPuntos;
-  if (pts === 0)      porPuntos = 'bajo';
-  else if (pts === 1) porPuntos = 'medio';
-  else if (pts <= 3)  porPuntos = 'alto';
-  else                porPuntos = 'muy_alto';
-
-  const farmEl = document.getElementById('hfaicos_farmaco');
+  /* EL FÁRMACO SALE DE `co_farmaco`, QUE ES EL ÚNICO SELECTOR QUE QUEDA (tanda D). Antes había
+     dos —`hfaicos_farmaco`, con bandas de riesgo, y éste, con nombres de fármaco— y no se
+     sincronizaban: el médico elegía «Trastuzumab» en uno y el otro seguía en blanco o en otra
+     banda, así que la clasificación dependía de cuál de los dos hubiera tocado. Se retiró el de
+     bandas, que además era el que imponía el piso que la Tabla 4 no tiene. `co_farmaco` es el que
+     viaja con el estudio, va al Excel, lo lee el Laboratorio y vive en los estudios guardados. */
+  const farmEl = document.getElementById('co_farmaco');
   const farmaco = farmEl ? farmEl.value : '';
-  /* El fármaco de riesgo BAJO no impone piso: «bajo» es el piso de todos. Tratarlo como piso
-     daría lo mismo hoy, pero dejaría escrito que un fármaco puede EMPUJAR hacia abajo, que es
-     lo contrario de lo que hace un piso. */
-  const pisoFarm = (farmaco && farmaco !== 'bajo') ? farmaco : null;
-  const clave = pisoFarm && _HFAICOS_ORDEN.indexOf(pisoFarm) > _HFAICOS_ORDEN.indexOf(porPuntos)
-    ? pisoFarm : porPuntos;
-  const mandaFarmaco = clave !== porPuntos;
+  const col = coT4Columna(farmaco);
+  const edad = num('co_edad');
+
+  /* El antecedente CV de un estudio GUARDADO ANTES DE LA PARTICIÓN: la casilla vieja tildada y
+     las tres nuevas vacías. No se le inventa peso ni se lo migra; se avisa y el médico elige. */
+  const cvSinEspecificar = chk('hfaicos_cv_previa') && !_hfaicosCvTerna().some(chk);
+
+  let clave, pts, max, porPuntos = null, mandaFarmaco = false, fueraDeTabla = [];
+
+  if (col) {
+    /* ── CAMINO TABLA 4 ─────────────────────────────────────────────────────────────────── */
+    const PES = coT4Pesos();
+    let hayVH = false, hayH = false;
+    pts = 0; max = null;
+    presentes.forEach(f => {
+      const cel = (f.id === 'hfaicos_edad') ? _coT4Edad(edad)
+                : (PES[f.id] ? PES[f.id][col] : undefined);
+      if (cel === undefined) { fueraDeTabla.push(f.lbl); return; }  // no tiene fila en la tabla
+      if (cel === null) return;                                      // «–»: la fila no suma acá
+      if (cel === 'VH') hayVH = true;
+      else if (cel === 'H') hayH = true;
+      else pts += _CO_T4_PTS[cel];
+    });
+    if (hayVH)               clave = 'muy_alto';
+    else if (hayH || pts >= 5) clave = 'alto';
+    else if (pts >= 2)       clave = 'medio';
+    else                     clave = 'bajo';
+
+    /* ⚠️ EL ÚNICO PISO DE LA TABLA 4, Y ES SU NOTA AL PIE «g»: «High risk if anthracycline
+       chemotherapy and trastuzumab delivered concurrently». Se aplica cuando el fármaco elegido
+       es el anti-HER2 y hay una dosis de antraciclinas cargada.
+       ⚠️ Y LO QUE LA APLICACIÓN NO PUEDE DISTINGUIR SE DECLARA: la tabla tiene DOS cosas distintas
+       —la fila «Includes anthracycline before HER2-targeted therapy», que vale M1, y la nota g,
+       que exige que sean CONCURRENTES y entonces es alto—, y ningún campo de esta aplicación dice
+       si la antraciclina fue antes o es concurrente. Se toma el lado seguro (alto) y queda
+       declarado en `docs/PENDIENTES.md`. */
+    if (col === 'trastuzumab' && (num('co_dosis_antrac') || 0) > 0
+        && _HFAICOS_ORDEN.indexOf('alto') > _HFAICOS_ORDEN.indexOf(clave)) {
+      clave = 'alto';
+      mandaFarmaco = true;
+    }
+  } else {
+    /* ── CAMINO PROPIO DE LA APLICACIÓN ─────────────────────────────────────────────────────
+       Los fármacos sin columna aplicada conservan EXACTAMENTE el puntaje y los cortes que esta
+       calculadora tenía antes de la tanda D. Lo único que se fue es el PISO POR FÁRMACO, que era
+       una regla propia y que desapareció con el selector que lo llevaba. */
+    pts = _hfaicosPuntos(presentes);
+    max = hfaicosMax();
+    if (pts === 0)      clave = 'bajo';
+    else if (pts === 1) clave = 'medio';
+    else if (pts <= 3)  clave = 'alto';
+    else                clave = 'muy_alto';
+    porPuntos = clave;
+  }
 
   const BANDAS = {
-    bajo:     { txt:'BAJO',     cls:'green',  nota:'Sin factores de riesgo identificados.',
-                seg:'Eco basal recomendado. Control clínico durante el tratamiento. Eco al finalizar si hay síntomas.' },
-    medio:    { txt:'MEDIO',    cls:'yellow', nota:'Monitoreo estándar recomendado.',
-                seg:'Eco basal obligatorio. Eco al finalizar el tratamiento. Eco a los 12 meses.' },
-    alto:     { txt:'ALTO',     cls:'orange', nota:'Monitoreo intensificado recomendado. Considerar cardioprotección preventiva.',
-                seg:'Eco basal obligatorio. Eco cada 2 ciclos durante el tratamiento. Eco al finalizar. Eco a los 12 meses.' },
-    muy_alto: { txt:'MUY ALTO', cls:'red',    nota:'Monitoreo muy intensivo. Cardioprotección preventiva recomendada. Evaluación por cardiología antes de iniciar el tratamiento.',
-                seg:'Eco basal obligatorio. Eco cada ciclo durante el tratamiento. Eco al finalizar. Eco a los 12 meses. Considerar troponina y BNP seriados.' }
+    bajo:     { txt:'BAJO',     cls:'green'  },
+    medio:    { txt:'MEDIO',    cls:'yellow' },
+    alto:     { txt:'ALTO',     cls:'orange' },
+    muy_alto: { txt:'MUY ALTO', cls:'red'    }
   };
   const b = BANDAS[clave];
-  return { pts, max: hfaicosMax(), clave, porPuntos, mandaFarmaco, farmaco,
-           banda: b.txt, cls: b.cls, nota: b.nota, seguimiento: b.seg,
+
+  return { pts, max, clave, porPuntos, mandaFarmaco, farmaco, col,
+           banda: b.txt, cls: b.cls,
+           seguimiento: _hfaicosSeguimiento(col, clave),
+           derivacion: _hfaicosDerivacion(clave),
+           hallazgos: _hfaicosHallazgos(),
+           cvSinEspecificar, fueraDeTabla,
            factores: presentes.map(f => f.lbl),
            /* «Hay algo cargado» = algún factor O un fármaco elegido. Sin esto, un módulo en
               blanco publicaría «Riesgo BAJO — sin factores de riesgo identificados» sobre cero
               evaluación, que es la afirmación tranquilizadora sobre nada que el resto de la app
               se cuida de no emitir. */
-           hayDatos: presentes.length > 0 || !!farmaco };
+           hayDatos: presentes.length > 0 || !!farmaco || cvSinEspecificar };
 }
 window.hfaicosEstado = hfaicosEstado;
 
@@ -51237,6 +51503,7 @@ function calcHFAICOS() {
   const el = document.getElementById('hfaicos-resultado');
   if (!el) return;
   const r = hfaicosEstado();
+  _hfaicosPintarPuntos(r.col);
   /* Se construye con NODOS, no concatenando `innerHTML`. No hay dato del paciente acá —todo sale
      del catálogo y de `BANDAS`— pero la concatenación es el patrón que el ruleset local marca, y
      un warning más en la línea base es un warning que el próximo lector tiene que volver a
@@ -51254,23 +51521,98 @@ function calcHFAICOS() {
     sp.textContent = t; return sp; };
 
   if (!r.hayDatos) {
-    fila('Riesgo CV basal (calculadora de EcoSmart)', pill('gray', 'Ingresar factores o fármaco'));
+    fila('Clasificación de EcoSmart (orientativa)', pill('gray', 'Ingresar factores o fármaco'));
+    /* ⚠️ Y SE PUBLICA IGUAL ANTES DE SALIR (tanda D). Esta salida temprana estaba ANTES de la
+       llamada a `hfaicosPublicarBasal`, así que al vaciar la calculadora esta cápsula se ponía en
+       gris y `co-riesgo-resultado` —el contenedor que leen la hoja del PDF, el PPT y el texto del
+       módulo integrado— se quedaba con la banda ANTERIOR. O sea: la pantalla decía «ingresar
+       factores» y el papel firmado seguía diciendo «riesgo muy alto» del paciente de antes.
+       Un reseteo que no repinta todas sus superficies no es un reseteo. */
+    if (typeof hfaicosPublicarBasal === 'function') hfaicosPublicarBasal();
     return;
   }
-  fila('Puntaje total', txt(r.pts + ' / ' + r.max + ' puntos'));
-  fila('Clasificación de riesgo', pill(r.cls, 'Riesgo ' + r.banda));
-  if (r.mandaFarmaco) {
-    fila('Por qué', txt('El fármaco impone el piso: por puntaje sería «' + r.porPuntos.replace('_', ' ') + '».', true));
+  /* El denominador sólo existe en el camino propio: la Tabla 4 no tiene un puntaje sobre un
+     máximo —suma puntos moderados y además mira si hay algún factor alto o muy alto—, así que un
+     «X / 13 puntos» ahí sería un número inventado. */
+  if (r.max !== null) fila('Puntaje total', txt(r.pts + ' / ' + r.max + ' puntos'));
+  else if (r.pts > 0) fila('Puntos de factores moderados', txt(String(r.pts)));
+  fila('Clasificación de EcoSmart (orientativa)', pill(r.cls, 'Riesgo ' + r.banda));
+  /* ⚠️ LO QUE NO ES DE LA GUÍA SE ROTULA COMO PROPIO, Y ESA LÍNEA ES VISIBLE. Un puntaje que la
+     guía no publica para ese fármaco, presentado al lado de los que sí, se lee como si lo fuera. */
+  if (!r.col) {
+    fila('Alcance', txt(_hfaicosAlcance(r.farmaco), true));
   }
-  fila('Conducta', txt(r.nota, true));
-  fila('Seguimiento ecocardiográfico', txt(r.seguimiento, true));
-  fila('Salvedad', txt('Recoge sólo los factores disponibles en el ecocardiograma; el HFA-ICOS completo es específico por tratamiento (ESC 2022, tabla 4).', true));
+  if (r.mandaFarmaco) {
+    fila('Por qué', txt('Hay una dosis de antraciclinas cargada junto al anti-HER2.', true));
+  }
+  if (r.cvSinEspecificar) {
+    fila('Antecedente cardiovascular previo sin especificar', txt('Elegir cuál: insuficiencia cardíaca o miocardiopatía, cardiopatía isquémica o valvulopatía severa, o arritmia.', true));
+  }
+  if (r.fueraDeTabla.length) {
+    fila('No puntúan con este fármaco', txt(r.fueraDeTabla.join(', ') + '.', true));
+  }
+  if (r.derivacion) fila('Derivación', txt(r.derivacion, true));
+  /* La última fila de la Recomendaciones-tabla 1 vale en CUALQUIER categoría, así que se publica
+     también cuando la banda es baja y no hay acción por categoría. */
+  if (r.hallazgos.length) {
+    fila('Enfermedad CV previa o hallazgos anormales', txt(r.hallazgos.join(', ') + '. Se recomienda derivación a cardiología.', true));
+  } else {
+    fila('Enfermedad CV previa o hallazgos anormales', txt('La calculadora no ve el ECG basal ni una valvulopatía, miocardiopatía o enfermedad pericárdica no conocida; si los hay, corresponde derivar.', true));
+  }
+  if (r.seguimiento) fila('Seguimiento ecocardiográfico', txt(r.seguimiento, true));
   /* Y se publica en `co-riesgo-resultado`, que es de donde lo toman el PDF, el PPT y el texto del
      módulo integrado. Si sólo se pintara acá, tildar un factor dejaría al informe firmado con la
      banda anterior. */
   if (typeof hfaicosPublicarBasal === 'function') hfaicosPublicarBasal();
 }
 window.calcHFAICOS = calcHFAICOS;
+
+/* La línea que rotula el puntaje propio. Dos textos y no uno, porque las dos situaciones son
+   distintas: hay fármacos para los que la Tabla 4 NO TIENE COLUMNA —inmunoterapia y
+   radioterapia— y otros para los que la tiene y esta versión todavía no la aplica. Decirle al
+   médico «la guía no lo define» sobre un fármaco que la guía sí define sería falso.
+   Sin citas de guía acá: la explicación completa va en el globo ⓘ. */
+function _hfaicosAlcance(farmaco) {
+  const SIN_COLUMNA = ['inmunoterapia', 'radioterapia'];
+  return SIN_COLUMNA.indexOf(farmaco) >= 0
+    ? 'Puntaje propio de la aplicación; la guía no lo define para este fármaco.'
+    : 'Puntaje propio de la aplicación; todavía no se aplica la tabla de la guía para este fármaco.';
+}
+
+/* ══ LA COLUMNA DE PUNTOS DE LA PANTALLA SIGUE AL FÁRMACO ═════════════════════════════════════
+   Los `1 pt` / `2 pts` del costado eran literales del HTML, y con la Tabla 4 dejaron de ser
+   ciertos: la misma casilla vale distinto en cada columna, y dos de ellas no valen nada. Una
+   casilla que dice «1 pt» al lado de un puntaje que no la contó es un score que se desmiente
+   solo — el mismo defecto que esta aplicación ya pagó con las tablas estáticas de cardiotoxicidad.
+   Se repinta desde el MISMO lugar del que sale la clasificación. */
+function _hfaicosPintarPuntos(col) {
+  /* La fila de la casilla de LEGADO sólo aparece cuando está tildada: es un resto de los estudios
+     guardados antes de la partición y no tiene por qué ocupar un renglón en un estudio nuevo. */
+  const vieja = document.getElementById('hfaicos_cv_previa');
+  const filaVieja = document.getElementById('hfaicos_cv_previa_fila');
+  if (filaVieja) filaVieja.hidden = !(vieja && vieja.checked);
+  /* El reflejo de sólo lectura de «Datos basales», desde el mismo lugar que pinta todo lo demás:
+     si se pintara aparte, cambiar el fármaco dejaría ese bloque mostrando el anterior. */
+  const eco = document.getElementById('co_farmaco_eco');
+  if (eco) {
+    const sel = document.getElementById('co_farmaco');
+    const op = sel && sel.selectedIndex >= 0 ? sel.options[sel.selectedIndex] : null;
+    eco.textContent = (sel && sel.value && op) ? op.textContent : '\u2014';
+  }
+  const PES = col ? coT4Pesos() : null;
+  const edadEl = document.getElementById('co_edad');
+  const edadN = edadEl ? parseFloat(String(edadEl.value).replace(',', '.')) : NaN;
+  const ROT = { VH:'muy alto', H:'alto', M2:'2 pts', M1:'1 pt' };
+  hfaicosFactores().forEach(f => {
+    const sp = document.querySelector('[data-hfa-pts-de="' + f.id + '"]');
+    if (!sp) return;
+    if (f.legado) { sp.textContent = '—'; return; }
+    if (!col) { sp.textContent = f.pts + (f.pts === 1 ? ' pt' : ' pts'); return; }
+    const cel = (f.id === 'hfaicos_edad') ? _coT4Edad(isFinite(edadN) ? edadN : null)
+              : (PES[f.id] ? PES[f.id][col] : undefined);
+    sp.textContent = (cel === undefined || cel === null) ? '—' : ROT[cel];
+  });
+}
 
 /* Excluyente + recálculo. Va por acá y no por el `onchange` genérico para que la exclusión se
    aplique en el BORDE, al tildar, y no como una corrección posterior del puntaje. */
@@ -51359,21 +51701,37 @@ window.hfaicosAbrir = hfaicosAbrir;
 function hfaicosTexto() {
   const r = hfaicosEstado();
   if (!r.hayDatos) return '';
-  const p = ['Evaluación de riesgo cardiovascular basal (marco HFA-ICOS ESC 2022): puntaje '
-    + r.pts + '/' + r.max + ' puntos — riesgo ' + r.banda.toLowerCase() + '.'];
-  /* Sin factores tildados NO se afirma que no los haya: doce casillas en su estado de fábrica
+  /* ⚠️ EL PUNTAJE SOBRE UN MÁXIMO SÓLO SE ESCRIBE EN EL CAMINO PROPIO. La Tabla 4 no clasifica
+     por un total sobre un denominador —un solo factor muy alto manda sobre cualquier suma—, así
+     que «7/13 puntos» al lado de «riesgo muy alto» sería un número que no explica la banda.
+     El informe circula solo: tiene que decir con qué regla se clasificó. */
+  const p = [];
+  if (r.col) {
+    p.push('Evaluación de riesgo cardiovascular basal según la tabla de estratificación de la guía '
+      + 'ESC 2022 de cardio-oncología para '
+      + (r.col === 'antracicline' ? 'antraciclinas' : 'terapias dirigidas contra HER2')
+      + ': riesgo ' + r.banda.toLowerCase() + '.');
+  } else {
+    p.push('Evaluación de riesgo cardiovascular basal con la clasificación orientativa de EcoSmart: puntaje '
+      + r.pts + '/' + r.max + ' puntos — riesgo ' + r.banda.toLowerCase() + '.');
+  }
+  /* Sin factores tildados NO se afirma que no los haya: las casillas en su estado de fábrica
      significan «no está» y «no lo miré» a la vez, y acá esa negación además sostiene una agenda
-     de control («eco al finalizar sólo si hay síntomas»). Es la regla del `coa_diast_anterogrado`:
-     un checkbox no puede afirmar una ausencia. */
+     de control. Es la regla del `coa_diast_anterogrado`: un checkbox no puede afirmar una ausencia. */
   p.push(r.factores.length
     ? 'Factores presentes: ' + r.factores.join(', ') + '.'
     : 'No se consignaron factores de riesgo del paciente.');
-  if (r.mandaFarmaco) p.push('La clasificación la determina el riesgo del fármaco, no el puntaje.');
-  p.push('Seguimiento ecocardiográfico recomendado: ' + r.seguimiento);
-  /* El marco se NOMBRA al cerrar además de al abrir. Ya no hay un segundo score con el que
-     confundirlo —se eliminó—, pero el informe circula solo y tiene que decir con qué regla se
-     clasificó: «riesgo alto» sin marco no es interpretable por quien lo recibe. */
-  p.push('Estratificación según el marco HFA-ICOS (ESC 2022); es la única clasificación de riesgo basal de este informe.');
+  if (r.cvSinEspecificar) p.push('Consta un antecedente cardiovascular previo sin especificar, que no se puntuó.');
+  if (r.mandaFarmaco) p.push('La clasificación la determina la combinación de antraciclina con el anti-HER2.');
+  if (r.hallazgos.length) p.push('Enfermedad cardiovascular previa o hallazgos anormales en la evaluación basal: '
+    + r.hallazgos.join(', ') + '.');
+  if (r.derivacion) p.push(r.derivacion);
+  if (r.seguimiento) p.push('Seguimiento ecocardiográfico recomendado: ' + r.seguimiento);
+  /* ⚠️ YA NO SE LLAMA «MARCO HFA-ICOS» (tanda D). Decía serlo en las dos puntas del párrafo, y
+     para los fármacos que no son antraciclina ni anti-HER2 esta aplicación NO aplica esa tabla:
+     el informe firmado le prestaba a un puntaje propio la autoridad de una herramienta publicada.
+     Hoy cada camino se nombra por lo que es. */
+  if (!r.col) p.push('Es una clasificación orientativa propia de la aplicación, no la de la guía.');
   return p.join(' ');
 }
 window.hfaicosTexto = hfaicosTexto;
@@ -51410,19 +51768,30 @@ function hfaicosPublicarBasal() {
     if (_hfa && _hfa.hayDatos) {
       var _b = document.createElement('span');
       _b.className = 'badge badge-' + (BADGE_CLS_OK.indexOf(_hfa.cls) >= 0 ? _hfa.cls : 'gray');
-      _b.textContent = 'Riesgo ' + _hfa.banda + ' (' + _hfa.pts + '/' + _hfa.max + ' pts)';
-      _fila('Riesgo CV basal (calculadora de EcoSmart)', _b);
-      _fila('Seguimiento ecocardiográfico', _val(_hfa.seguimiento));
+      /* El puntaje entre paréntesis sólo en el camino propio: en el de la Tabla 4 no hay un
+         total sobre un máximo, y «(7/13 pts)» al lado de una banda que decidió un solo factor
+         muy alto es un número que contradice a la banda que acompaña. */
+      _b.textContent = 'Riesgo ' + _hfa.banda + (_hfa.max !== null ? ' (' + _hfa.pts + '/' + _hfa.max + ' pts)' : '');
+      _fila('Clasificación de EcoSmart (orientativa)', _b);
+      if (_hfa.derivacion) _fila('Derivación', _val(_hfa.derivacion));
+      if (_hfa.hallazgos.length) _fila('Enfermedad CV previa o hallazgos anormales',
+        _val(_hfa.hallazgos.join(', ') + '. Se recomienda derivación a cardiología.'));
+      if (_hfa.seguimiento) _fila('Seguimiento ecocardiográfico', _val(_hfa.seguimiento));
       /* ⚠️ LA SALVEDAD SIGUE AL NOMBRE (R2-E6, commit 10): decia «Marco HFA-ICOS (ESC 2022)» dos
          filas debajo de un rotulo que el commit 6 ya habia pasado a «calculadora de EcoSmart», o
          sea el mismo papel firmado atribuyendo la banda a un marco que la app NO implementa y
-         nombrandola propia en el renglon de arriba. Lo destapo TC-72 en la SUITE COMPLETA. */
-      _fila('Salvedad', _val('Calculadora propia de EcoSmart, no es el HFA-ICOS. Recoge sólo los factores disponibles en el ecocardiograma; el HFA-ICOS de la ESC 2022 es específico por tratamiento (tabla 4).'));
+         nombrandola propia en el renglon de arriba. Lo destapo TC-72 en la SUITE COMPLETA.
+         ⚠️ Y EN LA TANDA D SE PARTIÓ EN DOS, porque desde esta tanda las dos situaciones son
+         distintas de verdad: con antraciclinas o anti-HER2 la clasificación SÍ sale de la tabla
+         de la guía, y seguir diciendo «no es el HFA-ICOS» ahí sería falso en el otro sentido. */
+      _fila('Alcance', _val(_hfa.col
+        ? 'Recoge sólo los factores de riesgo disponibles en el ecocardiograma y en los datos basales cargados.'
+        : _hfaicosAlcance(_hfa.farmaco) + ' Recoge sólo los factores disponibles en el ecocardiograma.'));
     } else {
       var _g = document.createElement('span');
       _g.className = 'badge badge-gray';
       _g.textContent = 'Completar en «Calculadora de Riesgo CV»';
-      _fila('Riesgo CV basal (calculadora de EcoSmart)', _g);
+      _fila('Clasificación de EcoSmart (orientativa)', _g);
     }
     /* El aviso de dosis se CONSERVA: no era parte del score, es un umbral acumulativo propio y
        es el único lugar de la app que lo publica. */
