@@ -878,9 +878,28 @@ línea: el archivo creció y un informe de auditoría viejo apunta a otro archiv
   la sub-pestaña «HFA-ICOS», que publican el esquema retirado (→ **D-c**); y «la tabla del score
   se muestra en gris», que no dice qué elemento (→ **D-f**).
 
-- **`index.html` pasó de 9,79 MB / 138.038 líneas a 9,84 MB / 138.681** — medido con `wc -c` y
-  `wc -l` DESPUÉS de sellar. (MB de 10⁶: `wc -c` dividido por 1e6.) Sello **`v20261027-1826`**,
-  md5 de `index.html` **`7aa7b3a4`**.
+- **SON SIETE COMMITS**, no cinco: los dos últimos salieron de lo que la verificación encontró.
+  El **D-6** adapta los CINCO casos que la suite COMPLETA destapó —y que la corrida de zona no
+  podía ver—, y el **D-7** cierra el globo que los dos motores encontraron cortado.
+- ⚠️ **EL GLOBO NUEVO DE LA CALCULADORA SE CORTABA, Y LO ENCONTRÓ LA SONDA DE DOS MOTORES**: 1140
+  px de contenido en 648 de hueco con el ancho estándar. Con ancho propio de **640** entra entero
+  en Chrome y en WebKit; **a 390 px no entra ni así** y se declara (**D-i**) en vez de esconderlo.
+  El primer valor probado, 560, se quedó a **catorce píxeles**.
+- **`index.html` pasó de 9,79 MB / 138.038 líneas a 9,84 MB / 138.691** — medido con `wc -c` y
+  `wc -l` DESPUÉS de sellar. (MB de 10⁶: `wc -c` dividido por 1e6.) Sello **`v20261027-1903`**,
+  md5 de `index.html` **`8d1dc802`**.
+- **Línea base al cierre: suite 551/555**, cubriendo los 555 casos en once lotes, con el pendrive
+  `DISK_IMG` montado y listando nombres reales. Los rojos son **TC-223, TC-376, TC-390 y
+  TC-406**, los cuatro de siempre; **TC-358 salió verde al repetir su lote**, que es el
+  intermitente por CDN que la orden anticipa. Semgrep **124 WARNING / 0 ERROR**. Excel **440**
+  columnas. Censo **1025**, sin huérfanos. Celular **63 a 360 px y 72 a 390, 17 ALTA en cada
+  ancho**, idénticos a la base.
+- **CHROME Y WEBKIT COINCIDEN EN LOS OCHO CRUCES**: 17/17 pestañas con caja, cero scroll
+  horizontal, **cero textos recortados** y **cero errores de consola y de página en los dos
+  motores**, con la clasificación idéntica en las cuatro escenas de la Tabla 4, un solo selector
+  y el score marcándose solo en 7/10. **Escribir no se volvió más lento**: doce teclas, media
+  **0,13 a 0,15 ms**, máximo 0,4 — contra 0,16-0,21 de la tanda anterior.
+  ⚠️ **WebKit de Playwright no es Safari, y se declara.**
 
 - **Dónde está todo:** `docs/mapa/d-cardioonco-amiloidosis.md` (**mapa NUEVO**, 14,6 KB), la ficha
   del caso en `docs/mapa/tests-fichas-540.md` (**archivo propio**), **tres mapas con un puntero

@@ -1145,6 +1145,61 @@ window.__Y = {
     process.stderr.write('[maqam] listo\n');
   }
 
+  /* ── GRUPO `viejo` · 3c: un estudio guardado ANTES del cambio no se rompe ──────────────── */
+  if (corre('viejo')) {
+    const r = {};
+    try {
+      await ev(`window.__P.nuevo()`); await ev(`window.__P.calentar()`);
+      /* Se monta un estudio como los de ANTES de esta tanda: el paso al algoritmo hecho A MANO
+         —`alg-ett-score` con un numero— y los criterios del score cargados, pero con la casilla
+         de antecedente CV en su forma VIEJA y SIN las tres nuevas. */
+      await ev(`window.__Y.poner({ nombre: 'Guardado viejo', ci: '7',
+        'ett-septo': '16', 'ett-pp': '14',
+        'rwt-septo': '16', 'rwt-pp': '14', 'rwt-ddvi': '42',
+        'ee-e': '90', 'ee-ep': '5', 'tapse-val': '16', 'sgl-val': '-12',
+        'ap-apic': '-18', 'ap-base': '-6',
+        'alg-ett-score': '10', hfaicos_cv_previa: 1, co_farmaco: 'antracicline' })`, 40000);
+      r.antes = { amilo: await ev(`window.__Y.amilo()`, 30000),
+                  riesgo: await ev(`window.__Y.riesgo()`, 30000),
+                  alg: await ev(`window.__P.val('alg-ett-score')`) };
+      /* ⚠️ GUARDAR DE VERDAD TIENE TRES CONDICIONES, y sin las tres devuelve `false` en silencio
+         —medido—: `guardarInforme` EXIGE nombre o documento; recibe un CALLBACK, no devuelve el
+         id; y la primera vez muestra la tarjeta de severidades valvulares, cuyo boton
+         `#rev-confirm` es el que dispara el guardado real. Es el mismo camino que usa el arnes
+         de la suite, para que el gate quede ejercitado y no salteado. */
+      const g = await ev(`new Promise(function(res){
+        window._ettEditandoId = null;
+        var antes = new Set((getInformes() || []).map(function(i){ return i.estudioId }));
+        var fin = function(ok){
+          var nuevo = (getInformes() || []).filter(function(i){ return !antes.has(i.estudioId) })[0];
+          res({ ok: ok === true, estudioId: nuevo ? nuevo.estudioId : null }) };
+        try { guardarInforme(fin) } catch (e) { res({ ok:false, err:e.message }); return }
+        var cf = document.getElementById('rev-confirm'); if (cf) cf.click();
+        setTimeout(function(){ res({ ok:false, err:'el callback no volvio' }) }, 12000);
+      })`, 60000);
+      r.guardo = g;
+      await ev(`window.__P.nuevo()`);
+      if (g && g.estudioId) {
+        await ev(`(function(){ try { cargarEstudioPorId(${JSON.stringify(g.estudioId)}) }
+          catch (e) { return 'EXC ' + e.message } return 1 })()`, 60000);
+        await pausa(600);
+        await ev(`(function(){ if (typeof _espejosBarrerTodos === 'function') _espejosBarrerTodos(); return 1 })()`, 30000);
+        r.despues = { amilo: await ev(`window.__Y.amilo()`, 30000),
+                      riesgo: await ev(`window.__Y.riesgo()`, 30000),
+                      alg: await ev(`window.__P.val('alg-ett-score')`),
+                      cvPrevia: await ev(`(function(){ var e=document.getElementById('hfaicos_cv_previa'); return e? e.checked : 'NO EXISTE' })()`) };
+        /* Cada corrida BORRA lo que guardo: un estudio que sobrevive cambia el denominador de
+           cualquier medicion posterior que mire la lista. NUNCA se toca el almacenamiento real
+           del medico fuera de lo que esta misma sonda creo. */
+        await ev(`CeiboStore.setLocal((getInformes() || []).filter(function(i){
+          return i.estudioId !== ${JSON.stringify(g.estudioId)} }))`, 30000);
+      }
+      r.errores = await ev(`window.__Y.errores()`);
+    } catch (e) { r.err = e.message + ' | ' + String(e.stack || '').slice(0, 250) }
+    out.grupos.viejo = r;
+    process.stderr.write('[viejo] listo\\n');
+  }
+
   /* ── GRUPO `tablas` · las tablas de cardio-onco, celda por celda (tildes del commit 2) ── */
   if (corre('tablas')) {
     const r = {};

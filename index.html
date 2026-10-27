@@ -43300,6 +43300,16 @@ const VINFO = Object.freeze({
      tanda: en la línea visible no va ninguno. Las dos fuentes están verificadas EN IMAGEN —la
      Tabla 4 en los folios 4246-4247 y la Recomendaciones-tabla 1 en el folio 4249—. */
   'co-riesgo-basal': {
+    /* ⚠️ ANCHO PROPIO, Y ESTÁ MEDIDO EN LOS DOS MOTORES. Con los 300 px de la tarjeta estándar
+       este texto ocupa 1140 px de alto contra 648 de hueco: se corta. Es el mismo mecanismo
+       `ancho` por clave que usa la tarjeta del score de amiloidosis, y no mueve a las demás.
+       ⚠️ A 390 px NO ENTRA NI ASÍ, y se declara en vez de esconderlo: la tarjeta se acota al
+       ancho de la pantalla y lo que sobra scrollea adentro —`overflow:auto`, no se pierde nada—.
+       Acortar el texto costaría una de las clases o uno de los calendarios, y la regla R2 de esta
+       tanda es justamente que eso viva acá. → `docs/PENDIENTES.md` D-i.
+       ⚠️ Y EL PRIMER VALOR QUE SE PROBÓ, 560, SE QUEDÓ A CATORCE PÍXELES: 662 de contenido contra
+       648 de hueco. Medido en los dos motores. 640 lo deja en 579. */
+    ancho: 640,
     tit: 'Clasificación de riesgo cardiovascular basal — qué aplica y qué no',
     formula: 'Cualquier factor muy alto → muy alto · cualquier factor alto, o 5 o más puntos moderados → alto · 2 a 4 puntos moderados → moderado · 0 o 1 punto → bajo',
     lee: 'Con antraciclinas y con terapias dirigidas contra HER2 la clasificación sale de la tabla de la guía tal cual, sin pisos ni cortes propios de la aplicación: el fármaco elige la COLUMNA, y cada factor de riesgo vale distinto en cada columna.\n'
@@ -135737,8 +135747,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261027-1826';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793136360047;                 /* eco-build-ms */
+const ECO_BUILD    = '20261027-1903';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793138585172;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -135824,7 +135834,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261027-1826</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261027-1903</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

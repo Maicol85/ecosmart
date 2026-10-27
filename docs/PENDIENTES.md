@@ -8638,3 +8638,18 @@ así que agregar sólo las tres nuevas habría dejado el Excel con tres de quinc
 cambió: **1023 → 1025** (tres casillas nuevas menos el selector `hfaicos_farmaco` retirado).
 
 **Qué haría falta.** Si se quieren, van las **quince**, al final y sin mover ninguna existente.
+
+## D-i · El globo de la calculadora no entra a 390 px
+
+**Qué pasa.** El ⓘ `co-riesgo-basal` ocupa **1140 px** de alto con el ancho estándar de 300. Se le
+dio ancho propio de **560**, con lo que entra entero a 1440 px en Chrome y en WebKit. A **390 px**
+la tarjeta se acota al ancho de la pantalla y **no entra**: lo que sobra scrollea adentro
+(`overflow:auto`, no se pierde nada), pero se lee cortado.
+
+**Por qué no se acortó el texto.** Ahí viven las clases y los niveles de las cuatro categorías de
+derivación y los dos calendarios de eco, que la regla **R2** de esta tanda saca expresamente de la
+línea visible. Acortarlo costaría una de esas clases.
+
+**Qué haría falta.** Decidir qué sale del globo y adónde va: una ficha en Referencias para
+`co-riesgo-basal` resolvería las dos cosas a la vez —también le daría el botón «Ver referencia»
+que hoy no tiene, que es el límite que **D-c** y TC-502 declaran—.
