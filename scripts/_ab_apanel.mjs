@@ -17,9 +17,14 @@ const esc = Object.keys(A).filter(k => k[0] !== '_' && k !== 'archivo' && B[k])
   .filter(k => !SOLO || k === SOLO);
 
 /* ── EL GUARDIAN DE LO QUE NO SE PUEDE PERDER (regla R7) ───────────────────────────────────── */
+/* ⚠️ SE RECORTA LA PUNTUACION FINAL DE CADA MARCA, Y SIN ESO EL GUARDIAN MIENTE. La clase
+   `[0-9A-Za-z.-]` existe para atrapar «folio 497.e20», y de paso se tragaba el PUNTO QUE CIERRA
+   LA ORACION: «folio e17» en un lado y «folio e17.» en el otro salian como marcas distintas, y
+   el guardian reporto 58 folios perdidos que estaban los 58 presentes —verificado contando las
+   cadenas en el volcado—. Un guardian que da falsos rojos se desactiva solo. */
 const marcas = t => {
   const s = String(t || '');
-  const m = (re) => (s.match(re) || []).map(x => x.replace(/\s+/g, ' ').trim());
+  const m = (re) => (s.match(re) || []).map(x => x.replace(/\s+/g, ' ').replace(/[.,;:]+$/, '').trim());
   return { clase: m(/Clase\s+[0-9IVab]+[a-z]?(\s*·\s*Nivel\s+[A-Za-z-]+)?/g),
            folio: m(/folios?\s+[0-9e][0-9A-Za-z.–-]*/g),
            tabla: m(/(Tabla|Recommendation Table|Recomendaciones-tabla|Figura|apartado|§)\s*[0-9][0-9.]*/g) };
