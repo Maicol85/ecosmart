@@ -80850,7 +80850,7 @@ function _indAo(){
     _indFila('Diámetro aórtico máximo (raíz o ascendente)', _indNum(max, 0, 'mm'),
       max >= 55 ? 'alarm' : (max >= 45 ? 'warn' : 'ok'),
       'alcanza el corte de dilatación de ' + corte + ' mm' +
-      (sexoF ? ' — SIN SEXO CARGADO se usa el corte del varón (40 mm), que es el alto; con sexo femenino el corte es 36 mm'
+      (sexoF ? ' — sin sexo cargado se usa el corte del varón (40 mm); con sexo femenino el corte es 36 mm'
              : ' que la guía da para el sexo ' + (sexo === 'F' ? 'femenino' : 'masculino')),
       ['esc2024ao']),
     _indFila('Raíz aórtica (senos de Valsalva)', _indNum(raiz, 0, 'mm'), raiz != null ? 'none' : 'ask',
@@ -81043,21 +81043,30 @@ function _indVAB(){
      Las cuatro están verificadas en el original, Recomendaciones-tabla 68, folio 119 (hoja 120),
      releída entera en esta tanda. */
   const _vabRecom = [
-    { txt:'Clase I · Nivel C — Con el diámetro aórtico máximo por encima de 40 mm y sin indicación de cirugía, o tras una cirugía valvular aislada: ecocardiografía transtorácica seriada al año y, después, cada 2 o 3 años si el paciente sigue estable (ESC 2024, Tabla 68, folio 119). Por debajo de 40 mm esa tabla no publica ningún intervalo.',
-      refs: ['esc2024ao'] },
-    { txt:'Clase I · Nivel C — Tomografía o resonancia de toda la aorta torácica en el diagnóstico inicial, y también cuando las mediciones de las ecocardiografías de control discrepan entre sí o el diámetro supera los 45 mm (ESC 2024, Tabla 68, folio 119).',
-      refs: ['esc2024ao'] },
-    { txt:'Cribado con ecocardiografía de los familiares de primer grado: Clase I · Nivel C con fenotipo de raíz o insuficiencia aórtica aislada, y Clase IIa · Nivel B para todos los pacientes con válvula bicúspide (ESC 2024, Tabla 68, folio 119).',
-      refs: ['esc2024ao'] },
-    { txt:'Clase IIa · Nivel C — En el paciente que se somete a cirugía de la válvula aórtica, con la raíz o la aorta ascendente de 45 mm o más, se debe considerar el reemplazo de la aorta en el mismo acto (ESC 2024, Tabla 68, folio 119). La ESC/EACTS 2025 de valvulopatías lo publica en su apartado 7.4, folio 4660, y remite a la guía de aorta.',
+    { txt:'Clase I · Nivel C — Con el diámetro aórtico máximo por encima de 40 mm y sin indicación de cirugía, o tras una cirugía valvular aislada: ecocardiografía transtorácica seriada al año y, después, cada 2 o 3 años si el paciente sigue estable. Por debajo de 40 mm esa tabla no publica ningún intervalo.',
+      refs: null },
+    { txt:'Clase I · Nivel C — Tomografía o resonancia de toda la aorta torácica en el diagnóstico inicial, y también cuando las mediciones de las ecocardiografías de control discrepan entre sí o el diámetro supera los 45 mm.',
+      refs: null },
+    { txt:'Cribado con ecocardiografía de los familiares de primer grado: Clase I · Nivel C con fenotipo de raíz o insuficiencia aórtica aislada, y Clase IIa · Nivel B para todos los pacientes con válvula bicúspide.',
+      refs: null },
+    { txt:'Clase IIa · Nivel C — En el paciente que se somete a cirugía de la válvula aórtica, con la raíz o la aorta ascendente de 45 mm o más, se debe considerar el reemplazo de la aorta en el mismo acto.',
+      refs: null },
+    /* ⚠️ UNA SOLA CITA, AL FINAL DEL BLOQUE (tanda A, regla R2): «(ESC 2024, Tabla 68, folio
+       119)» salia en las CUATRO filas. La segunda fuente de la cuarta fila —el apartado 7.4 de
+       la ESC/EACTS 2025 de valvulopatias— esta en el ⓘ de la seccion, con su folio. */
+    { txt:'Fuente: ESC 2024 de aorta, Recomendaciones-tabla 68, folio 119.',
       refs: ['esc2024ao'] }
   ];
   return { filas: filas,
     aviso: (C && C.clave === 'contradiccion') ? C.txt : '',
-    bloques: [ { tit:'Recomendaciones aplicables de la guía', lineas: _vabRecom,
-      nota:'El informe y la conclusión de la app son DESCRIPTIVOS: los umbrales quirúrgicos y los controles por imagen se publican acá y no en el papel firmado.' } ],
+    bloques: [ { tit:'Recomendaciones aplicables de la guía', lineas: _vabRecom } ],
+    /* ⚠️ ESTA ES LA UNICA SECCION DEL PANEL QUE PUBLICA LOS UMBRALES QUIRURGICOS (tanda A,
+       punto 2e). La seccion «Valvula aortica bicuspide — conclusion» decia la MISMA frase, dos
+       secciones mas abajo; queda aca porque es la que trae los diametros que la sostienen, que
+       es el mismo criterio con que el AJ4-5 resolvio las otras dos duplicaciones de este panel.
+       El folio se agrega acá: antes estaba sólo en la copia que se retira. */
     guia: { ref:'esc2024ao',
-      txt:'Cirugía Clase I · Nivel B con diámetro máximo ≥ 55 mm, y Clase I · Nivel B desde 50 mm en el FENOTIPO DE RAÍZ. Todo lo demás es Clase IIa.' },
+      txt:'Cirugía Clase I · Nivel B con diámetro máximo ≥ 55 mm, y Clase I · Nivel B desde 50 mm en el fenotipo de raíz. Todo lo demás es Clase IIa (ESC 2024, Tabla 68, folio 119).' },
     notas: [
       /* ⚠️ LA LÍNEA «Conclusión de la app: …» SE RETIRA (AJ4-5). Era el texto de
          `vabConclusion()` ENTERO, y la sección «Válvula aórtica bicúspide — conclusión» de este
@@ -81076,7 +81085,9 @@ function _indVAB(){
          ESC 2014», que es una corrección dirigida al lector. Se publica lo que la edición vigente
          clasifica, con su clase, su nivel y su folio; la comparación entre ediciones queda en
          `docs/fuentes/FUENTES.md`. */
-      'En la edición vigente de la guía, las dos filas de 50 mm con factores de riesgo y de 45 mm con cirugía valvular programada son Clase IIa · Nivel C, y figuran en su tabla de recomendaciones modificadas (Tabla 68, folio 119).'
+      'En la edición vigente de la guía, las dos filas de 50 mm con factores de riesgo y de 45 mm con cirugía valvular programada son Clase IIa · Nivel C, y figuran en su tabla de recomendaciones modificadas (Tabla 68, folio 119).',
+      /* ⚠️ LA SEGUNDA FUENTE DE LA CUARTA RECOMENDACION, QUE SALIO DE LA LINEA VISIBLE (R2). */
+      { txt:'El reemplazo de la aorta en el mismo acto quirúrgico lo publica también la ESC/EACTS 2025 de valvulopatías, en su apartado 7.4, folio 4660, que remite a la guía de aorta.', refs:['esc2024ao'] }
     ].filter(Boolean) };
 }
 
@@ -82256,8 +82267,12 @@ function _indVABConcl(){
        una afirmacion de guia sin cita es justamente lo que este archivo persigue. La clave es la
        misma que la linea de guia. */
     filas: [ _indFila('Según la guía', '—', marca, C.txt, ['esc2024ao']) ],
+    /* ⚠️ LA LINEA DE UMBRALES SALE DE ACA (tanda A, punto 2e). Era palabra por palabra la de la
+       seccion «Valvula aortica bicuspide — aorta ascendente», dos secciones mas arriba en este
+       mismo panel y con los diametros que la sostienen al lado. El corchete sigue saliendo: lo
+       trae tambien la unica fila de esta seccion, asi que la bibliografia del pie no cambia. */
     guia: { ref:'esc2024ao',
-      txt:'Cirugía Clase I · Nivel B con diámetro máximo ≥ 55 mm, y Clase I · Nivel B desde 50 mm en el FENOTIPO DE RAÍZ. Todo lo demás es Clase IIa (Tabla 68, folio 119).' },
+      txt:'Los umbrales quirúrgicos de la aorta, con su clase y su nivel, están en la sección «Válvula aórtica bicúspide — aorta ascendente», que trae los diámetros que los sostienen (ESC 2024, Tabla 68, folio 119).' },
     notas: [
       'Este es el texto que la sección de válvula aórtica bicúspide calcula, con los mismos umbrales que viajan al informe y al EN SUMA. La sección muestra la descripción; los umbrales y la conducta se consultan acá.'
       /* ⚠️ LA SEGUNDA LÍNEA SE RETIRA (AJ4-5, 23/10/2026): era la MISMA frase sobre el fenotipo
@@ -83360,7 +83375,7 @@ function _indDerrPeri(){
       ['escPeri2025']),
     _indFila('Corazón oscilante', _amChk('dpt_swinging') ? 'Presente' : '—',
       _amChk('dpt_swinging') ? 'alarm' : 'ask',
-      'la Tabla 17 lo publica junto al derrame grande y NO le asigna sensibilidad ni especificidad (folio 62)',
+      'la Tabla 17 lo publica junto al derrame grande y no le asigna sensibilidad ni especificidad (folio 62)',
       ['escPeri2025']),
     /* ⚠️ SIN CORCHETE, Y ES DELIBERADO: la Tabla 17 NO menciona estos dos colapsos. Citarla acá
        respaldaría con una fuente verificada algo que esa fuente no dice. */
@@ -83369,11 +83384,11 @@ function _indDerrPeri(){
         ? [colAi === 'si' ? 'aurícula izquierda' : null, colVi === 'si' ? 'ventrículo izquierdo' : null].filter(Boolean).join(' y ')
         : ((colAi || colVi) ? 'Ausentes' : '—'),
       (colAi === 'si' || colVi === 'si') ? 'warn' : ((colAi || colVi) ? 'none' : 'ask'),
-      'criterio de EcoSmart: la Tabla 17 NO los menciona. La aplicación los recoge porque son hallazgos reales del estudio y los describe, pero no cuentan como criterio y por eso esta fila no lleva cita.'),
-    _indFilaCtrl('¿El cuadro CLÍNICO es compatible con taponamiento?', 'peri.tapoclin',
+      'criterio de EcoSmart: la Tabla 17 no los menciona. La aplicación los recoge porque son hallazgos reales del estudio y los describe, pero no cuentan como criterio y por eso esta fila no lleva cita.'),
+    _indFilaCtrl('¿El cuadro clínico es compatible con taponamiento?', 'peri.tapoclin',
       [{v:'si',t:'Sí'},{v:'no',t:'No'}],
       tapo == null ? 'ask' : (tapo === 'si' ? 'alarm' : 'none'),
-      'la guía dice que el diagnóstico de taponamiento se hace por la combinación de una historia sugestiva, síntomas y signos, con la ecocardiografía CONFIRMANDO (folio 62). Ninguna de sus tablas fija un número de signos de eco que lo defina, así que esta pregunta la contesta el médico y la aplicación no la deduce.',
+      'la guía dice que el diagnóstico de taponamiento se hace por la combinación de una historia sugestiva, síntomas y signos, con la ecocardiografía confirmando (folio 62). Ninguna de sus tablas fija un número de signos de eco que lo defina, así que esta pregunta la contesta el médico y la aplicación no la deduce.',
       ['escPeri2025']),
     _indFilaCtrl('¿El derrame da síntomas pese al tratamiento médico?', 'peri.sintomas',
       [{v:'si',t:'Sí'},{v:'no',t:'No'}],
@@ -83385,12 +83400,12 @@ function _indDerrPeri(){
       etio == null ? 'ask' : (etio === 'si' ? 'alarm' : 'none'),
       'es la segunda condición de esa misma fila, y no depende de la cuantía del derrame (folio 43)',
       ['escPeri2025']),
-    _indFilaCtrl('¿La pericardiocentesis percutánea es factible, y el derrame NO es purulento?', 'peri.percut',
+    _indFilaCtrl('¿La pericardiocentesis percutánea es factible, y el derrame no es purulento?', 'peri.percut',
       [{v:'si',t:'Sí'},{v:'no',t:'No'}],
       percut == null ? 'ask' : (percut === 'no' ? 'alarm' : 'none'),
-      'la guía manda al drenaje QUIRÚRGICO cuando la vía percutánea no es factible o el derrame es purulento, para vaciarlo por completo y evitar que se organice (folio 43). Las dos condiciones van en una sola pregunta porque llevan a la misma fila.',
+      'la guía manda al drenaje quirúrgico cuando la vía percutánea no es factible o el derrame es purulento, para vaciarlo por completo y evitar que se organice (folio 43). Las dos condiciones van en una sola pregunta porque llevan a la misma fila.',
       ['escPeri2025']),
-    _indFilaCtrl('¿El derrame RECIDIVA pese al tratamiento médico?', 'peri.recidiva',
+    _indFilaCtrl('¿El derrame recidiva pese al tratamiento médico?', 'peri.recidiva',
       [{v:'si',t:'Sí'},{v:'no',t:'No'}],
       recid == null ? 'ask' : (recid === 'si' ? 'alarm' : 'none'),
       'es la condición de la ventana pleuropericárdica quirúrgica (folio 43)',
@@ -83404,35 +83419,43 @@ function _indDerrPeri(){
     if (porTapo) motivos.push('el cuadro clínico es compatible con taponamiento');
     if (porEtio) motivos.push('se sospecha una etiología bacteriana o neoplásica');
     if (porSint) motivos.push('el derrame es ' + st.tam.lbl + ' y sigue dando síntomas pese al tratamiento médico');
-    rec.push({ txt:'Clase I · Nivel C — La guía RECOMIENDA la pericardiocentesis, guiada por ecocardiografía, tomografía o fluoroscopia, en el taponamiento cardíaco, ante la sospecha de pericarditis bacteriana o neoplásica, y en el derrame moderado a grande que sigue sintomático pese al tratamiento médico (Recommendation Table 12, folio 43). Con lo cargado, ' + (motivos.length === 1 ? 'se cumple una de esas tres condiciones: ' : 'se cumplen ' + motivos.length + ' de esas tres condiciones: ') + motivos.join('; ') + '.', refs:['escPeri2025'] });
+    rec.push({ txt:'Clase I · Nivel C — La guía recomienda la pericardiocentesis, guiada por ecocardiografía, tomografía o fluoroscopia. Con lo cargado, ' + (motivos.length === 1 ? 'se cumple una de sus tres condiciones: ' : 'se cumplen ' + motivos.length + ' de sus tres condiciones: ') + motivos.join('; ') + '.', refs:null });
   } else if (tapo === 'no' && etio === 'no' && (sint === 'no' || !modSev)) {
-    rec.push({ txt:'Ninguna de las tres condiciones de la fila de pericardiocentesis se cumple con lo cargado: no hay cuadro clínico de taponamiento, no se sospecha etiología bacteriana ni neoplásica y el derrame no es un derrame moderado a grande sintomático pese al tratamiento médico (Recommendation Table 12, folio 43).', refs:['escPeri2025'] });
+    rec.push({ txt:'Ninguna de las tres condiciones de la fila de pericardiocentesis se cumple con lo cargado.', refs:null });
   } else {
     faltan.push({ txt:'Falta contestar si el cuadro clínico es compatible con taponamiento, si se sospecha una etiología bacteriana o neoplásica, o si el derrame sigue dando síntomas pese al tratamiento médico: de esas tres condiciones depende la fila de pericardiocentesis.', refs:null });
   }
   if (percut === 'no') {
-    rec.push({ txt:'Clase I · Nivel C — Cuando la pericardiocentesis percutánea no es factible, o el derrame es purulento, la guía RECOMIENDA el drenaje pericárdico quirúrgico, que permite vaciarlo por completo y evita que se organice (Recommendation Table 12, folio 43).', refs:['escPeri2025'] });
+    rec.push({ txt:'Clase I · Nivel C — Cuando la pericardiocentesis percutánea no es factible, o el derrame es purulento, la guía recomienda el drenaje pericárdico quirúrgico, que permite vaciarlo por completo y evita que se organice.', refs:null });
   } else if (percut == null) {
     faltan.push({ txt:'Falta contestar si la vía percutánea es factible y si el derrame es purulento: de eso depende la fila del drenaje quirúrgico.', refs:null });
   }
   if (recid === 'si') {
-    rec.push({ txt:'Clase I · Nivel C — En el derrame que recidiva pese al tratamiento médico, la guía RECOMIENDA la ventana pleuropericárdica quirúrgica (Recommendation Table 12, folio 43).', refs:['escPeri2025'] });
+    rec.push({ txt:'Clase I · Nivel C — En el derrame que recidiva pese al tratamiento médico, la guía recomienda la ventana pleuropericárdica quirúrgica.', refs:null });
   } else if (recid == null) {
     faltan.push({ txt:'Falta contestar si el derrame recidiva pese al tratamiento médico: es la condición de la ventana pleuropericárdica.', refs:null });
   }
 
+  /* ⚠️ UNA SOLA CITA, AL FINAL DEL BLOQUE (tanda A, regla R2): «Recommendation Table 12, folio
+     43» salia en las cuatro ramas. */
+  if (rec.length) rec.push({ txt:'Fuente: guía europea de miocarditis y pericarditis, Recommendation Table 12 —técnicas intervencionistas en pericarditis—, folio 43.', refs:['escPeri2025'] });
   const bloques = [
     { tit:'Guía europea de miocarditis y pericarditis — técnicas intervencionistas (folio 43)',
-      lineas: rec,
-      nota:'El informe y la conclusión de la aplicación son DESCRIPTIVOS: estas recomendaciones se publican acá y no en el papel firmado. El módulo de la pestaña lista los signos presentes y no concluye taponamiento.' }
+      lineas: rec }
   ];
   if (faltan.length) bloques.push({ tit:'Lo que falta contestar', plegado:true, lineas: faltan });
 
   return { filas: filas, bloques: bloques, compacta: true,
     guia: { ref:'escPeri2025',
-      txt:'El diagnóstico de taponamiento es CLÍNICO: la guía lo hace por la combinación de una historia sugestiva, síntomas y signos, con confirmación por ecocardiografía (folio 62, que remite a la Tabla 17).',
-      nota:'Ninguna de las veintisiete tablas de recomendaciones de esa guía fija un número de signos ecocardiográficos que defina el taponamiento, y ninguna es propia del derrame o del taponamiento: la única que los alcanza es la 12, de técnicas intervencionistas en pericarditis. Los signos de la Tabla 17 se publican con su sensibilidad y su especificidad, no como un puntaje.' },
-    notas: rec.map(function(l){ return l.txt }) };
+      txt:'El diagnóstico de taponamiento es clínico: la guía lo hace por la combinación de una historia sugestiva, síntomas y signos, con confirmación por ecocardiografía (folio 62, que remite a la Tabla 17).' },
+    /* ⚠️ `notas` DEJA DE SER UNA COPIA DEL BLOQUE (tanda A, regla R4): era `rec.map(…)`. Lo que
+       queda es el texto largo que salio de la pantalla —la enumeracion de las tres condiciones,
+       el censo de las tablas de la guia y lo que el modulo de la pestaña hace y no hace—. */
+    notas: [
+      { txt:'Las tres condiciones de la fila de pericardiocentesis son el taponamiento cardíaco, la sospecha de pericarditis bacteriana o neoplásica, y el derrame moderado a grande que sigue sintomático pese al tratamiento médico. Cada una se pregunta en su propia fila, arriba.', refs:['escPeri2025'] },
+      { txt:'Ninguna de las veintisiete tablas de recomendaciones de esa guía fija un número de signos ecocardiográficos que defina el taponamiento, y ninguna es propia del derrame o del taponamiento: la única que los alcanza es la 12, de técnicas intervencionistas en pericarditis. Los signos de la Tabla 17 se publican con su sensibilidad y su especificidad, no como un puntaje.', refs:['escPeri2025'] },
+      { txt:'El módulo de la pestaña lista los signos presentes y no concluye taponamiento.', refs:null }
+    ] };
 }
 
 /* ══ EVIDENCIA · CONSTRICCION PERICARDICA (J-4, 2026-10-24) ═════════════════════════════════
@@ -83724,34 +83747,49 @@ function _indHemo(){
 
   const filas = [
     _indFila('Gasto cardíaco', gc || '—', 'none',
-      'la guía publica el gasto cardíaco como el área del tracto de salida por su integral de velocidad y por la frecuencia cardíaca (folio 162). Lo escribe sobre el tracto de salida DERECHO; esta aplicación lo calcula sobre el IZQUIERDO, que es donde tiene el diámetro y la integral cargados. La aritmética es la misma y el tracto, no.',
+      'la guía publica el gasto cardíaco como el área del tracto de salida por su integral de velocidad y por la frecuencia cardíaca (folio 162). Lo escribe sobre el tracto de salida derecho; esta aplicación lo calcula sobre el izquierdo, que es donde tiene el diámetro y la integral cargados. La aritmética es la misma y el tracto, no.',
       ['aseDer2025']),
     _indFila('Índice cardíaco', ic || '—', 'none',
-      'el rango de referencia normal es 2,5 a 4,0 L/min/m² (ESC/ERS 2022 de hipertensión pulmonar, tabla de valores hemodinámicos normales, folio 30). El «2,2 o menos» con que la aplicación lo llama bajo sale de la columna del Shock Trial de la Tabla 1 del consenso argentino de shock cardiogénico (folio 2), que es una tabla comparativa de definiciones. La tabla de fórmulas del folio 162 de la guía de corazón derecho NO publica el índice cardíaco: dividir el gasto por la superficie corporal es la definición del indexado.',
+      'el rango de referencia normal es 2,5 a 4,0 L/min/m² (ESC/ERS 2022 de hipertensión pulmonar, tabla de valores hemodinámicos normales, folio 30). El «2,2 o menos» con que la aplicación lo llama bajo sale de la columna del Shock Trial de la Tabla 1 del consenso argentino de shock cardiogénico (folio 2), que es una tabla comparativa de definiciones. La tabla de fórmulas del folio 162 de la guía de corazón derecho no publica el índice cardíaco: dividir el gasto por la superficie corporal es la definición del indexado.',
       ['escErs2022','sacShock2024']),
     _indFila('Resistencia vascular sistémica', rvs || '—', 'none',
       'los dos libros de referencia no coinciden en un rango único, y por eso la aplicación publica el número sin banda: 1.170 ± 270 dinas-seg-cm⁻⁵ en una tabla cuyo pie aclara que es la media y la desviación estándar de 37 sujetos sin cardiopatía demostrada —no un intervalo de normalidad— (Tabla 11.2, folio 260), y 1.100 con intervalo de 700 a 1.600 en la otra (Tabla 19-3, folio 375).',
       ['grossman2016','braunwald2016']),
     _indFila('Presión capilar pulmonar estimada por eco', pcp || '—', pcp ? 'warn' : 'ask',
-      'la guía de corazón derecho publica esta misma ecuación a partir del cociente E/e\u2019 mitral y sitúa lo normal por debajo de 12 a 15 mmHg (folio 162), y en el folio 167 recomienda EVITAR informarla de rutina, porque el cociente E/e\u2019 promediado o medial ya entra en la valoración diastólica habitual.',
+      'la guía de corazón derecho publica esta misma ecuación a partir del cociente E/e\u2019 mitral y sitúa lo normal por debajo de 12 a 15 mmHg (folio 162), y en el folio 167 recomienda evitar informarla de rutina, porque el cociente E/e\u2019 promediado o medial ya entra en la valoración diastólica habitual.',
       ['aseDer2025']),
     _indFila('Resistencia vascular pulmonar estimada por eco', rvp || '—', rvp ? 'warn' : 'ask',
-      'la guía publica la ecuación de Abbas y la forma invasiva —gradiente transpulmonar sobre gasto cardíaco— en la misma tabla (folio 162), y en el folio 167 dice que la resistencia estimada por ecocardiografía NO se recomienda para uso de rutina, porque depende de medidas indirectas, y que no sustituye a la medición invasiva para diagnosticar, graduar ni clasificar la hipertensión pulmonar.',
+      'la guía publica la ecuación de Abbas y la forma invasiva —gradiente transpulmonar sobre gasto cardíaco— en la misma tabla (folio 162), y en el folio 167 dice que la resistencia estimada por ecocardiografía no se recomienda para uso de rutina, porque depende de medidas indirectas, y que no sustituye a la medición invasiva para diagnosticar, graduar ni clasificar la hipertensión pulmonar.',
       ['aseDer2025']),
-    _indFila('Perfil de Forrester', forr || '—', 'none',
+    /* ══ 2d(iv) · EL MENSAJE DICE QUE FALTA, Y SE ARMA ACA ══════════════════════════════════
+       La capsula de `calcHemo` publica «Requiere IC + PCP estimada» en los dos casos —falte el
+       indice cardiaco o falte la presion capilar—, asi que esta fila terminaba pidiendo un dato
+       que ya estaba cargado. Aca se nombra el que falta.
+       ⚠️ Y LA CAPSULA DEL MODULO **NO** SE TOCA, QUE ES DONDE EL ARREGLO IRIA EN SU ORIGEN. El
+          texto de `hemo-forrester` lo leen `amiloTextoHemo()` —que se integra al informe y sale
+          en la hoja de ETT Avanzado del PDF— y la diapositiva del PPT (`_pptSpan`). Cambiarlo
+          ahi cambia TRES superficies firmadas, y esta tanda no las toca: parado y reportado. */
+    _indFila('Perfil de Forrester',
+      (!ic && !pcp) ? 'faltan el índice cardíaco y la presión capilar pulmonar estimada'
+                    : (!ic ? 'falta el índice cardíaco'
+                    : (!pcp ? 'falta la presión capilar pulmonar estimada' : (forr || '—'))),
+      (!ic || !pcp) ? 'ask' : 'none',
       'la clasificación se construyó en pacientes con infarto agudo de miocardio, midiendo el gasto cardíaco y la presión de enclavamiento al mismo tiempo con un catéter en la arteria pulmonar (Tabla 52-9 y texto del folio 1125). Acá los dos ejes son estimaciones por ecocardiografía.',
       ['braunwald2016'])
   ];
 
+  /* ⚠️ «folio 167» SALIA EN LAS TRES LINEAS Y OTRA VEZ EN EL CRITERIO (tanda A, regla R2).
+     Queda una sola vez, en la linea de cierre del bloque. */
   const rec = [
-    { txt:'La guía de corazón derecho recomienda EVITAR informar de rutina la presión capilar pulmonar estimada, porque el cociente E/e\u2019 promediado o medial ya forma parte de la valoración diastólica estándar y el dato sería redundante (folio 167).', refs:['aseDer2025'] },
-    { txt:'La misma guía dice que la resistencia vascular pulmonar derivada de la ecocardiografía puede obtenerse en la mayoría de los casos pero NO se recomienda para uso de rutina, porque se apoya en medidas indirectas y pierde exactitud en la enfermedad vascular pulmonar avanzada (folio 167).', refs:['aseDer2025'] },
-    { txt:'Y agrega que las estimaciones no invasivas de la resistencia vascular pulmonar no sustituyen a la valoración hemodinámica invasiva para diagnosticar, graduar ni clasificar la hipertensión pulmonar (folio 167).', refs:['aseDer2025'] }
+    { txt:'La guía de corazón derecho recomienda evitar informar de rutina la presión capilar pulmonar estimada, porque el cociente E/e\u2019 promediado o medial ya forma parte de la valoración diastólica estándar y el dato sería redundante.', refs:null },
+    { txt:'La misma guía dice que la resistencia vascular pulmonar derivada de la ecocardiografía puede obtenerse en la mayoría de los casos pero no se recomienda para uso de rutina, porque se apoya en medidas indirectas y pierde exactitud en la enfermedad vascular pulmonar avanzada.', refs:null },
+    { txt:'Y agrega que las estimaciones no invasivas de la resistencia vascular pulmonar no sustituyen a la valoración hemodinámica invasiva para diagnosticar, graduar ni clasificar la hipertensión pulmonar.', refs:null },
+    { txt:'Fuente: guía de corazón derecho, folio 167.', refs:['aseDer2025'] }
   ];
 
   const forrLin = [
     { txt:'La clasificación nació midiendo simultáneamente el gasto cardíaco y la presión de enclavamiento capilar pulmonar, con catéter en la arteria pulmonar, en una serie amplia de pacientes con infarto agudo de miocardio (folio 1125). Ése es el escenario en el que está validada.', refs:['braunwald2016'] },
-    { txt:'El libro describe la hipoperfusión como clínicamente evidente cuando el índice cardíaco cae POR DEBAJO de 2,2 L/min/m², y la congestión pulmonar cuando la presión de enclavamiento SUPERA los 18 mmHg (folio 1125). Ninguno de los dos valores exactos queda definido.', refs:['braunwald2016'] },
+    { txt:'El libro describe la hipoperfusión como clínicamente evidente cuando el índice cardíaco cae por debajo de 2,2 L/min/m², y la congestión pulmonar cuando la presión de enclavamiento supera los 18 mmHg (folio 1125). Ninguno de los dos valores exactos queda definido.', refs:['braunwald2016'] },
     { txt:'Esta aplicación marca hipoperfusión con un índice cardíaco de 2,2 o menos, de modo que el 2,2 justo cae de un lado distinto del que resuelve la clasificación original. Del otro lado coincide: la congestión aparece cuando la presión capilar supera 18, así que el 18 exacto tampoco está definido acá.', refs:null },
     { txt:'El libro advierte además que los pacientes cambian de categoría con el tratamiento y, a veces, espontáneamente, y que alrededor de la cuarta parte de los que tienen un índice cardíaco por debajo de 2,2 no se reconocen clínicamente (folio 1125).', refs:['braunwald2016'] }
   ];
@@ -83759,26 +83797,36 @@ function _indHemo(){
   const formLin = [
     { txt:'Gasto cardíaco: área del tracto de salida por su integral de velocidad y por la frecuencia cardíaca (folio 162).', refs:['aseDer2025'] },
     { txt:'Resistencia vascular pulmonar: la velocidad pico de la insuficiencia tricuspídea dividida por la integral del tracto de salida derecho, por diez, más 0,16; o bien el gradiente transpulmonar dividido por el gasto cardíaco (folio 162).', refs:['aseDer2025'] },
-    { txt:'Presión capilar pulmonar: 1,24 por el cociente E/e\u2019 mitral, más 1,9; normal por debajo de 12 a 15 mmHg (folio 162).', refs:['aseDer2025'] },
-    { txt:'El ÍNDICE CARDÍACO no figura en esa tabla. Dividir el gasto por la superficie corporal es la definición del indexado, no una fórmula que esa guía publique, y por eso esta línea no lleva cita.', refs:null }
+    { txt:'Presión capilar pulmonar: 1,24 por el cociente E/e\u2019 mitral, más 1,9; normal por debajo de 12 a 15 mmHg (folio 162).', refs:['aseDer2025'] }
+    /* ⚠️ LA CUARTA LINEA SE RETIRA (tanda A, regla R4): decia que el indice cardiaco no figura
+       en esa tabla y que indexar es la definicion del indexado, que es EXACTAMENTE lo que ya
+       dice el ⓘ de la fila «Indice cardiaco», al lado de su valor. */
   ];
 
   return { filas: filas, compacta: true,
     bloques: [
       { tit:'Qué informar, según la guía de corazón derecho (folio 167)',
         lineas: rec,
-        nota:'No llevan clase ni nivel de recomendación: ese documento no usa esa escala. Y son recomendaciones sobre QUÉ INFORMAR, no conductas de tratamiento. La aplicación sigue calculando los dos valores y los rotula «estimada por eco» en la pantalla, en el informe y en la hoja del PDF.' },
+        nota:'Son recomendaciones sobre qué informar, no conductas de tratamiento.' },
       { tit:'Alcance de la clasificación de Forrester (folio 1125)', plegado:true,
-        lineas: forrLin,
-        nota:'Se cita como la reproduce este libro de texto y no como fuente primaria: el artículo original de 1976 no está en la biblioteca de este repositorio. No publica clase ni nivel.' },
+        lineas: forrLin },
       { tit:'Las fórmulas que publica la guía (folio 162)', plegado:true,
-        lineas: formLin,
-        nota:'La guía escribe el gasto cardíaco sobre el tracto de salida DERECHO; esta aplicación lo calcula sobre el izquierdo, que es donde tiene el diámetro y la integral cargados.' }
+        lineas: formLin }
     ],
+    /* ⚠️ EL CRITERIO ERA LA SEGUNDA COPIA DE LAS TRES LINEAS DEL BLOQUE (tanda A, regla R4):
+       decia lo mismo en una sola oracion y con el mismo folio. Queda lo que el bloque no dice,
+       que es DE DONDE sale lo que esta seccion publica. */
     guia: { ref:'aseDer2025',
-      txt:'La guía de corazón derecho pide evitar el informe de rutina de la presión capilar pulmonar estimada y no recomienda el uso de rutina de la resistencia vascular pulmonar estimada por ecocardiografía, que tampoco sustituye a la medición invasiva (folio 167).',
-      nota:'Sin clase ni nivel: ese documento no los publica.' },
-    notas: rec.map(function(l){ return l.txt }) };
+      txt:'Lo que esta sección publica son estimaciones por ecocardiografía: las fórmulas salen de la tabla del folio 162 de la guía de corazón derecho, y lo que esa guía pide informar y lo que no, del folio 167.' },
+    /* ⚠️ `notas` DEJA DE SER UNA COPIA DEL BLOQUE (tanda A, regla R4): era `rec.map(…)`, la
+       TERCERA copia de las mismas tres lineas. Lo que queda es por que ninguna linea de esta
+       seccion lleva clase ni nivel —tres motivos distintos— y la reserva de la fuente del
+       Forrester, que son notas de metodo y no afirmaciones clinicas. */
+    notas: [
+      { txt:'Ninguna línea de esta sección lleva clase ni nivel, por tres motivos distintos: la guía de corazón derecho no usa esa escala; Grossman y Braunwald son libros de texto; y el «2,2 o menos» del consenso argentino vive en una columna comparativa de su Tabla 1, no en una recomendación.', refs:null },
+      { txt:'El Forrester se cita como lo reproduce ese libro de texto y no como fuente primaria: el artículo original de 1976 no está en la biblioteca de este repositorio.', refs:['braunwald2016'] },
+      { txt:'La aplicación sigue calculando la presión capilar y la resistencia vascular pulmonar estimadas, y las rotula «estimada por eco» en la pantalla, en el informe y en la hoja del PDF.', refs:null }
+    ] };
 }
 
 /* ══ EVIDENCIA · CARDIO-ONCOLOGÍA (J2-E4, 2026-10-24) ══════════════════════════════════════
@@ -84099,7 +84147,11 @@ const POP_CX_MIRAR = Object.freeze({
          'retenido y la protección miocárdica; y la función valvular.',
     fuente: 'ASE / SCA / STS 2020 (Nicoara), §4.2 folio 716; los puntos clave están en su Tabla 8, folio 707',
     ref: 'aseEte2020',
-    ojo: 'La guía pide que esa evaluación se REPITA durante el posoperatorio, y dice por qué: el ' +
+    /* ⚠️ `ojo` Y `fuente` YA NO SE IMPRIMEN EN LA LINEA VISIBLE (tanda A, reglas R1 y R2): su
+       contenido vive en `notas`, o sea en el ⓘ de la seccion. Se conservan acá porque son el
+       registro de lo que cada fuente dice y de su limitacion, y porque el dia que la linea
+       vuelva a querer publicarlos no hay que volver a buscarlos en el PDF. */
+    ojo: 'La guía pide que esa evaluación se repita durante el posoperatorio, y dice por qué: el ' +
          'injerto puede acodarse en cualquier momento, y sobre todo al volver a cerrar el esternón.' }),
   valvular: Object.freeze({
     txt: 'Tras cirugía mitral: la insuficiencia residual o nueva, la motilidad de los velos, la ' +
@@ -84110,7 +84162,7 @@ const POP_CX_MIRAR = Object.freeze({
     ojo: 'Esa tabla declara su propia limitación: lo que se mide depende de la precarga, la ' +
          'poscarga, la contractilidad y la frecuencia cardíaca con que el paciente sale de la ' +
          'circulación extracorpórea. La opción «Valvular» de esta aplicación es genérica y lo ' +
-         'que la guía detalla en ese folio es la cirugía MITRAL.' }),
+         'que la guía detalla en ese folio es la cirugía mitral.' }),
   aorta: Object.freeze({
     txt: 'Tras cirugía de la aorta: el derrame pericárdico, la insuficiencia aórtica residual y ' +
          'el colgajo intimal que pueda quedar.',
@@ -84179,7 +84231,7 @@ function _indPOP(){
       'es el cuarto de los cinco criterios diagnósticos del síndrome post-lesión cardíaca. Se lee del módulo de pericardio de esta misma pestaña, no se reevalúa acá'),
     _indFila('Derrame pleural', plEval ? (hayPle ? 'Sí' : 'No') : '—',
       hayPle ? 'warn' : (plEval ? 'none' : 'ask'),
-      'el quinto criterio pide derrame pleural JUNTO CON proteína C reactiva elevada: el derrame solo no cuenta'),
+      'el quinto criterio pide derrame pleural junto con proteína C reactiva elevada: el derrame solo no cuenta'),
     _indFilaCtrl('¿Fiebre sin otra causa que la explique?', 'pop.fiebre', SIN,
       fiebre == null ? 'ask' : (fiebre === 'si' ? 'warn' : 'none'),
       'primero de los cinco criterios diagnósticos del §11.3.1, folio 59'),
@@ -84191,56 +84243,78 @@ function _indPOP(){
       'tercero de los cinco criterios'),
     _indFilaCtrl('¿Proteína C reactiva elevada?', 'pop.pcr', SIN,
       pcr == null ? 'ask' : (pcr === 'si' ? 'warn' : 'none'),
-      'la guía dice que demostrar actividad inflamatoria es ESENCIAL para establecer el diagnóstico, porque a veces cuesta separar este síndrome de las consecuencias mecánicas de la cirugía —un derrame pericárdico o pleural precoz—')
+      'la guía dice que demostrar actividad inflamatoria es esencial para establecer el diagnóstico, porque a veces cuesta separar este síndrome de las consecuencias mecánicas de la cirugía —un derrame pericárdico o pleural precoz—')
   ];
 
   /* ── BLOQUE 1 · SÍNDROME POST-LESIÓN CARDÍACA ── La única fuente que gradúa. ── */
   const peri = [], faltan = [];
-  peri.push({ txt:'Criterios diagnósticos (§11.3.1, folio 59): el diagnóstico puede alcanzarse con AL MENOS DOS de cinco — fiebre sin otra causa, dolor pericárdico o pleurítico, roce pericárdico o pleural, derrame pericárdico, y derrame pleural con proteína C reactiva elevada. Con lo cargado y lo contestado se cumplen ' + pos + ' de los cinco' + (sinEval ? (sinEval === 1 ? ', y 1 no se pudo evaluar' : ', y ' + sinEval + ' no se pudieron evaluar') : '') + '.', refs:['escPeri2025'] });
+  peri.push({ txt:'El diagnóstico puede alcanzarse con al menos dos de los cinco criterios que las filas de arriba preguntan una por una. Con lo cargado y lo contestado se cumplen ' + pos + ' de los cinco' + (sinEval ? (sinEval === 1 ? ', y 1 no se pudo evaluar' : ', y ' + sinEval + ' no se pudieron evaluar') : '') + '.', refs:null });
   if (pcis) {
-    peri.push({ txt:'Clase I · Nivel B — Con síndrome post-lesión cardíaca, se RECOMIENDA el tratamiento antiinflamatorio para acelerar la remisión de los síntomas y reducir las recurrencias (Tabla 22, folio 59).', refs:['escPeri2025'] });
-    peri.push({ txt:'Clase I · Nivel B — En el síndrome post-lesión cardíaca REFRACTARIO, se RECOMIENDAN los antagonistas de la interleucina 1 para prevenir las recurrencias y la progresión a constricción (Tabla 22, folio 59).', refs:['escPeri2025'] });
-    peri.push({ txt:'Clase IIa · Nivel C — Se DEBE CONSIDERAR un seguimiento cuidadoso para descartar la evolución hacia una pericarditis constrictiva (Tabla 22, folio 59).', refs:['escPeri2025'] });
+    peri.push({ txt:'Clase I · Nivel B — Con síndrome post-lesión cardíaca, se recomienda el tratamiento antiinflamatorio para acelerar la remisión de los síntomas y reducir las recurrencias.', refs:null });
+    peri.push({ txt:'Clase I · Nivel B — En el síndrome post-lesión cardíaca refractario, se recomiendan los antagonistas de la interleucina 1 para prevenir las recurrencias y la progresión a constricción.', refs:null });
+    peri.push({ txt:'Clase IIa · Nivel C — Se debe considerar un seguimiento cuidadoso para descartar la evolución hacia una pericarditis constrictiva.', refs:null });
   } else if (sinEval === 0) {
-    peri.push({ txt:'Con lo cargado y lo contestado se cumplen ' + pos + ' de los cinco criterios, menos de los DOS que la guía pide: las filas de tratamiento de su Tabla 22 no aplican.', refs:['escPeri2025'] });
+    peri.push({ txt:'Con lo cargado y lo contestado se cumplen ' + pos + ' de los cinco criterios, menos de los dos que la guía pide: las filas de tratamiento de su Tabla 22 no aplican.', refs:null });
   } else {
     faltan.push({ txt:'Faltan respuestas para contar los cinco criterios diagnósticos del síndrome post-lesión cardíaca: sin ellas no se sabe si llega a los dos que la guía pide.', refs:null });
   }
-  peri.push({ txt:'Clase IIa · Nivel A — La colchicina, comenzada 48 a 72 h ANTES de la cirugía cardíaca y mantenida un mes, DEBE CONSIDERARSE para prevenir el síndrome post-lesión cardíaca si no hay contraindicaciones y se tolera (Tabla 22, folio 59). Es una medida PREOPERATORIA: se publica acá porque es la única de esa tabla que habla del paciente de cirugía cardíaca antes de que el síndrome aparezca.', refs:['escPeri2025'] });
+  /* ⚠️ LA COLCHICINA SE MANTIENE — DECISION DEL MEDICO (tanda A, punto 2a), con su Clase IIa y
+     su Nivel A intactos. Lo que sale del texto visible es la justificacion de POR QUE esta en
+     esta seccion siendo una medida preoperatoria: eso es una nota de trabajo y vive en el ⓘ y en
+     `docs/fuentes/FUENTES.md`. */
+  peri.push({ txt:'Clase IIa · Nivel A — La colchicina, comenzada 48 a 72 h antes de la cirugía cardíaca y mantenida un mes, debe considerarse para prevenir el síndrome post-lesión cardíaca si no hay contraindicaciones y se tolera.', refs:null });
+  /* ⚠️ UNA SOLA CITA, AL FINAL DEL BLOQUE (tanda A, regla R2): «Tabla 22, folio 59» salia en las
+     cuatro filas, y «§11.3.1, folio 59» en la del conteo. */
+  peri.push({ txt:'Fuente: guía europea de miocarditis y pericarditis — criterios diagnósticos en el apartado 11.3.1, folio 59, y las cuatro filas de tratamiento y prevención en su Tabla 22, folio 59.', refs:['escPeri2025'] });
 
   /* ── BLOQUE 2 · QUÉ MIRAR SEGÚN LA CIRUGÍA ── */
   const mirar = [];
   const m = POP_CX_MIRAR[cx];
   if (m) {
+    /* ⚠️ EL LOCALIZADOR Y LA SALVEDAD PASAN AL ⓘ (tanda A, reglas R1 y R2). La linea visible
+       queda con lo que hay que mirar; el apartado, el folio, la tabla de «puntos clave» y la
+       limitacion de alcance de cada fuente viajan a `notas`, enteros. */
     mirar.push(m.fuente
-      ? { txt: m.txt + ' (' + m.fuente + '). Esa guía NO publica clase ni nivel: sus tablas son de «puntos clave»' + (m.ojo ? '. ' + m.ojo : '.'), refs:[m.ref] }
-      : { txt:'Criterio EcoSmart. ' + m.txt + ' Ninguna de las fuentes de este módulo lo publica para este tipo de cirugía: es una decisión de esta aplicación, sin clase y sin nivel.', refs:['ecosmart'] });
+      ? { txt: m.txt, refs:[m.ref] }
+      : { txt:'Criterio EcoSmart. ' + m.txt, refs:['ecosmart'] });
   } else if (cx === '') {
     faltan.push({ txt:'Falta consignar el tipo de cirugía: de eso depende qué conviene mirar en el posoperatorio.', refs:null });
   }
   if (asist === 'ecmo_va') {
-    mirar.push({ txt:'Con ECMO venoarterial, la guía propone una secuencia de ocho vistas que arranca en la de cuatro cámaras medioesofágica: cuatro cámaras —descompresión del ventrículo izquierdo y del derecho, y posición de la cánula en la aurícula derecha—, válvula aórtica en eje corto, bicava, aorta ascendente en eje corto, eje largo de la válvula aórtica, aorta ascendente en eje largo, transgástrica del ventrículo izquierdo en eje corto y transgástrica de la vena cava inferior (ASE / SCA / STS 2020, Figura 12, folio 716). Esa guía NO publica clase ni nivel.', refs:['aseEte2020'] });
+    mirar.push({ txt:'Con ECMO venoarterial, la guía propone una secuencia de ocho vistas que arranca en la de cuatro cámaras medioesofágica: cuatro cámaras —descompresión del ventrículo izquierdo y del derecho, y posición de la cánula en la aurícula derecha—, válvula aórtica en eje corto, bicava, aorta ascendente en eje corto, eje largo de la válvula aórtica, aorta ascendente en eje largo, transgástrica del ventrículo izquierdo en eje corto y transgástrica de la vena cava inferior.', refs:['aseEte2020'] });
   }
   /* ── LA CONDUCTA DEL DERRAME PLEURAL, QUE SALIÓ DE LA PANTALLA EN EL G4 ── */
   if (hayPle) {
-    mirar.push({ txt:'Criterio EcoSmart. Según el tamaño del derrame pleural, esta aplicación orientaba en pantalla hacia vigilancia o hacia drenaje. Esa orientación vive acá y no en el papel firmado, y no tiene fuente: ninguna de las fuentes de este módulo gradúa el derrame pleural por tamaño ni cuelga una conducta de esa graduación. En un derrame grande o que crece, la decisión depende además del débito y del cuadro clínico, que esta aplicación no recoge.', refs:['ecosmart'] });
+    mirar.push({ txt:'Criterio EcoSmart. Según el tamaño del derrame pleural, esta aplicación orienta hacia vigilancia o hacia drenaje. En un derrame grande o que crece, la decisión depende además del débito y del cuadro clínico, que esta aplicación no recoge.', refs:['ecosmart'] });
   }
 
   const bloques = [
     { tit:'Síndrome post-lesión cardíaca — ESC 2025 de miocarditis y pericarditis (folios 58 y 59)',
-      lineas: peri,
-      nota:'El informe y la conclusión de la aplicación son DESCRIPTIVOS: estas recomendaciones se publican acá y no en el papel firmado.' },
+      lineas: peri },
     { tit:'Según la cirugía, también mirar…',
       lineas: mirar,
-      nota:'La guía ASE / SCA / STS 2020 no usa la escala de clase y nivel de las guías europeas: publica tablas de puntos clave y figuras de estrategia de imagen. Lo suyo se publica sin clase y sin nivel, y no se le inventa ninguna. Lo que lleva el rótulo «Criterio EcoSmart» no tiene fuente y lo dice.' }
+      nota:'Nada de este bloque lleva clase ni nivel: su fuente no usa esa escala, y lo que va rotulado «Criterio EcoSmart» no tiene fuente.' }
   ];
   if (faltan.length) bloques.push({ tit:'Lo que falta contestar', plegado:true, lineas: faltan });
 
   return { filas: filas, bloques: bloques, compacta: true,
     guia: { ref:'escPeri2025',
       txt:'El síndrome post-lesión cardíaca es un término paraguas que incluye la pericarditis tardía tras el infarto —síndrome de Dressler—, el síndrome pospericardiotomía y la pericarditis postraumática, con o sin sangrado (§11.3, folio 58). Se le atribuye un mecanismo autoinmune desencadenado por el sangrado pericárdico y la incisión de la pleura.',
-      nota:'La Tabla 22 tiene una quinta fila, Clase I · Nivel C, sobre la aspirina en dosis alta: es para la pericarditis POSTERIOR AL INFARTO y para el paciente que ya está con antiagregación, no para el posoperatorio de cirugía cardíaca, así que no se publica entre las de arriba. Los patrones hemodinámicos de este módulo y la etiqueta de vasoplejia NO entran en esta sección: los primeros no tienen fuente y la segunda es una definición de dos artículos que no son guías, publicada en la ficha de Referencias.' },
-    notas: peri.concat(mirar).map(function(l){ return l.txt }) };
+      nota:'La Tabla 22 tiene una quinta fila, Clase I · Nivel C, sobre la aspirina en dosis alta: es para la pericarditis posterior al infarto y no para el posoperatorio de cirugía cardíaca, así que no se publica entre las de arriba.' },
+    /* ⚠️ `notas` DEJA DE SER UNA COPIA DE LOS DOS BLOQUES (tanda A, regla R4): era
+       `peri.concat(mirar).map(…)`, o sea las nueve lineas que los bloques publican VISIBLES,
+       otra vez detras del «ⓘ Ver detalle». Lo que queda es lo que las lineas perdieron por las
+       reglas R1 y R2 —los localizadores de cada fuente, su limitacion de alcance y por que la
+       colchicina preoperatoria esta en esta seccion—, sin perder una tabla ni un folio. */
+    notas: [
+      { txt:'La colchicina es una medida preoperatoria: se publica acá porque es la única fila de la Tabla 22 que habla del paciente de cirugía cardíaca antes de que el síndrome aparezca.', refs:['escPeri2025'] },
+      { txt:'Tras cirugía mitral: ASE / SCA / STS 2020 (Nicoara), apartado 3.1.5 y Tabla 3, folio 701. Esa tabla declara su propia limitación —lo que se mide depende de la precarga, la poscarga, la contractilidad y la frecuencia cardíaca con que el paciente sale de la circulación extracorpórea— y la opción «Valvular» de esta aplicación es genérica, mientras lo que la guía detalla en ese folio es la cirugía mitral.', refs:['aseEte2020'] },
+      { txt:'Tras revascularización: ASE / SCA / STS 2020, apartado 4.2, folio 716, con sus puntos clave en la Tabla 8, folio 707. La guía pide que esa evaluación se repita durante el posoperatorio, y dice por qué: el injerto puede acodarse en cualquier momento, y sobre todo al volver a cerrar el esternón.', refs:['aseEte2020'] },
+      { txt:'Secuencia de vistas tras ECMO venoarterial: ASE / SCA / STS 2020, Figura 12, folio 716.', refs:['aseEte2020'] },
+      { txt:'Esa guía no publica clase ni nivel: sus tablas son de «puntos clave» y sus figuras, de estrategia de imagen. No se le inventa ninguna escala.', refs:['aseEte2020'] },
+      { txt:'La orientación por tamaño del derrame pleural no tiene fuente: ninguna de las fuentes de este módulo gradúa el derrame pleural por tamaño ni cuelga una conducta de esa graduación. Vive acá y no en el papel firmado.', refs:['ecosmart'] },
+      { txt:'Los patrones hemodinámicos de este módulo y la etiqueta de vasoplejia no entran en esta sección: los primeros no tienen fuente y la segunda es una definición de dos artículos que no son guías, publicada en la ficha de Referencias.', refs:null }
+    ] };
 }
 
 const IND_SECS = [
