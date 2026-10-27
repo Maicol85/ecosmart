@@ -90224,6 +90224,282 @@ caso('TC-535', 'Tanda AJ7: la linea de Fallot del EN SUMA sin la IP y el resumen
   return { extra: ex };
   })();
 `);
+/* -- TC-536 ---------------------------------------------------------------------------------
+   LA PUERTA DE ECO ESTRES, CERRADA Y MEDIDA. La interfaz del modulo de Eco Estres se retiro,
+   pero su JS sigue completo en el archivo y corre en cada carga: dos listeners globales, un
+   setTimeout de arranque y ~37 funciones que salen por su guarda. Lo que lo mantiene fuera del
+   papel son TRES compuertas, y ninguna tenia caso:
+     1. la seccion del PDF exige que EXISTA el elemento 'ee-incluir-pdf' en el DOM;
+     2. el informe narrativo solo agrega el rotulo «Eco Estres:» si eeInformeLineas() devuelve
+        lineas, y esa funcion sale vacia porque 'ee-res-global' no existe;
+     3. eeHasData() da falso con el arbol limpio.
+   El escenario que este caso prueba de verdad es el PELIGROSO, que es el que ya ocurrio una vez:
+   la bandera ecoestres_incluir_pdf quedo guardada en cualquier navegador que usara la build con
+   interfaz, y con eeHasData() en true el PDF estampaba una seccion «ECO ESTRES» con los 17
+   segmentos en NORMAL sobre un estudio donde no se hizo ningun eco estres. La limpieza de esa
+   bandera SOLO corre al arrancar, asi que encenderla a mitad de sesion la deja viva: lo unico
+   que la para es la compuerta 1. El caso enciende la bandera DESPUES de la carga y pone
+   eeHasData() en true por eeSetBullState, o sea que llega hasta la compuerta y la mide — sin
+   eso estaria contando una ausencia en un escenario que ni se acerca al if.
+
+   ⚠️ EL PREFIJO «ee» NO IDENTIFICA A ECO ESTRES, y por eso los CONTROLES NEGATIVOS no son
+   decoracion. Hay cuatro familias y tres estan VIVAS: la calculadora de E/e' (ee-e, ee-ep,
+   ee-result, ee-val, ee-lbl), el modo basico/avanzado del ETT (eeGetMode, eeModOn,
+   eeGetModules, que alimentan el desplegable «Seccion avanzada») y el QR del informe
+   (eeQrDataURL, eeStudyUrl). Un caso que solo contara ausencias pasaria en verde con las tres
+   familias vivas borradas. El score de Duke va por el mismo motivo: se calcula desde una
+   ergometria en cinta y no depende de eco estres, pero su rama del PDF estuvo tapada por la
+   doble condicion de Eco Estres y conviene fijar que hoy no lo esta.
+
+   ⚠️ EL NOMBRE DEL PACIENTE DE PRUEBA NO PUEDE CONTENER EL MARCADOR, y se pago una vuelta por
+   esto: la primera version lo llamaba «Prueba Eco Estres» y el PDF imprime el nombre, asi que
+   B2 y B3 salieron rojos senalando una fuga del modulo que no existia. El fixture envenenaba
+   lo que el caso cuenta. Por eso el diagnostico de los marcadores imprime 55 caracteres de
+   CONTEXTO a cada lado: un marcador sin contexto no se distingue de un falso hallazgo.
+
+   ⚠️ DENOMINADORES DECLARADOS. Contar «cero ECO ESTRES» sobre un PDF que no se genero da cero
+   y se lee igual que un documento correcto; lo mismo con un informe vacio y con los controles
+   negativos sobre elementos que no existen. Cada bloque declara el suyo antes de contar.
+
+   Mutaciones dirigidas que lo ponen en rojo (medidas en un worktree, nunca sobre el vivo):
+   crear el elemento 'ee-incluir-pdf', sacar la condicion del getElementById de la compuerta del
+   PDF, y devolver una linea desde eeInformeLineas(). */
+caso('TC-536', 'Eco Estres sin interfaz no llega a ninguna superficie firmada: cero elementos en el DOM, cero seccion en el PDF —ni con la bandera encendida a mitad de sesion y eeHasData() en true—, cero rotulo en los tres estilos del informe narrativo y eeInformeLineas() vacia, con los CONTROLES de las tres familias ee vivas y del score de Duke', `
+  return (async () => {
+    /* Depende del CDN. Se espera hasta 8 s y, si no llega, se FALLA con el motivo escrito: un
+       caso que se saltea solo es cobertura que no existe. Igual que TC-295. */
+    for (let i = 0; i < 40 && !(window.jspdf && window.jspdf.jsPDF); i++)
+      await new Promise(r => setTimeout(r, 200));
+    if (!(window.jspdf && window.jspdf.jsPDF))
+      return { extra: [['D1 · jsPDF llego por CDN', false, 'no llego en 8 s — el caso no pudo verificar nada']] };
+
+    /* Captura del PDF REAL. \`save()\` es propiedad de la INSTANCIA, asi que se envuelve el
+       CONSTRUCTOR — es el camino de TC-295. El regex va anclado y con alternancia determinista:
+       con una sola barra el parentesis queda como grupo, el regex deja de estar anclado y el
+       lazy sobre el stream binario es cuadratico — no da rojo, CUELGA la suite. */
+    const pdf = async () => {
+      const O = window.jspdf.jsPDF; let cap = null;
+      window.jspdf.jsPDF = function () {
+        const d = new O(...arguments);
+        d.save = function () { try { cap = d.output('datauristring'); } catch (e) { cap = null; } };
+        return d;
+      };
+      window.jspdf.jsPDF.API = O.API;
+      try { await generarPDFReal({}); } catch (e) {} finally { window.jspdf.jsPDF = O; }
+      if (!cap) return { ok: false, t: '', n: 0, pags: 0 };
+      const bin = atob(cap.split(',')[1]);
+      const re = /\\(((?:\\\\[\\s\\S]|[^()\\\\])*)\\)\\s?Tj/g;
+      let m; const txt = [];
+      while ((m = re.exec(bin))) txt.push(m[1]);
+      const pags = (bin.match(/\\/Type\\s*\\/Page[^s]/g) || []).length;
+      return { ok: pags > 0 && txt.length >= 15, t: txt.join(' | '), n: txt.length, pags: pags };
+    };
+
+    /* Los SEIS marcadores que solo puede emitir la seccion de Eco Estres del PDF, verificados
+       uno por uno contra el archivo: 'Tipo de estr', 'Atropina administrada' y
+       'Reserva de flujo coronario' aparecen UNA sola vez en todo index.html, y los otros tres
+       son el rotulo de la barra, el subtitulo de las dianas y el de las imagenes. Se buscan en
+       minusculas y por fragmentos SIN TILDE: jsPDF emite el acento con su propio encoding y un
+       marcador con tilde puede no matchear nunca — o sea dar verde sin haber mirado. */
+    const MARCAS = ['eco estr', 'tipo de estr', 'atropina administrada',
+                    'reserva de flujo coronario', 'motilidad —', 'nes del estudio (eco estr'];
+    /* Devuelve el marcador CON SU CONTEXTO. Sin el contexto, un marcador que aparece por una
+       razon ajena —una recomendacion clinica que nombra al eco estres como estudio, por
+       ejemplo— se lee como una fuga del modulo, que es un falso hallazgo caro. */
+    const halla = (t) => { const b = String(t).toLowerCase();
+      return MARCAS.filter(k => b.indexOf(k) >= 0)
+        .map(k => k + ' @ «' + b.slice(Math.max(0, b.indexOf(k) - 55), b.indexOf(k) + 55) + '»'); };
+
+    const R = {};
+    const FLAG = 'ecoestres_incluir_pdf';
+    let estiloPrev = null, flagPrev = null;
+    try { flagPrev = localStorage.getItem(FLAG); } catch (e) {}
+    try { estiloPrev = localStorage.getItem('ett_estilo_informe'); } catch (e) {}
+
+    try {
+      // ── (a) EL DOM NO TIENE NADA DE ECO ESTRES ──────────────────────────────────────────
+      R.tabEe = !document.getElementById('tab-ee');
+      R.togPdf = !document.getElementById('ee-incluir-pdf');
+      /* La condicion FUERTE, y la que atrapa cualquier elemento que vuelva, no solo los dos de
+         arriba: los UNICOS [id^="ee-"] del documento tienen que ser los cinco de la calculadora
+         de E/e'. Si alguien reabre la pestaña, este renglon lista los intrusos por nombre. */
+      const VIVOS = ['ee-e', 'ee-ep', 'ee-result', 'ee-val', 'ee-lbl'];
+      R.intrusos = [...document.querySelectorAll('[id^="ee-"]')].map(el => el.id).filter(id => VIVOS.indexOf(id) < 0);
+      /* Y por CLASE, porque un elemento de eco estres podria volver sin id. */
+      const CLS = ['.ee-tab', '.ee-tab-content', '.ee-pdftog', '.ee-chk', '.ee-eye-pop-btn',
+                   '.ee-pdf-panel', '.ee-result-box', '.ee-pst', '.ee-psin', '.ee-ppa',
+                   '.ee-pfc', '.ee-parr', '.ee-cst', '.ee-csin', '.ee-carr'];
+      R.clases = CLS.filter(s => document.querySelectorAll(s).length > 0);
+
+      // ── (d) eeHasData() CON EL ARBOL LIMPIO ─────────────────────────────────────────────
+      __t.limpiar();
+      R.hasDataFn = typeof window.eeHasData === 'function';
+      R.hasDataLimpio = R.hasDataFn ? window.eeHasData() : 'NO EXISTE eeHasData';
+
+      // ── (c) EL INFORME NARRATIVO EN LOS TRES ESTILOS ────────────────────────────────────
+      /* eeInformeLineas() sigue en window —una declaracion de funcion en nivel superior de un
+         <script> clasico ya crea la propiedad, asi que quitar el export no la saca— y por eso
+         se la interroga directo, que es lo que lee el enganche del informe. */
+      R.lineasFn = typeof window.eeInformeLineas === 'function';
+      const _ln = R.lineasFn ? window.eeInformeLineas() : null;
+      R.lineasArray = Array.isArray(_ln);
+      R.lineasLargo = R.lineasArray ? _ln.length : 'no es array: ' + typeof _ln;
+
+      __t.set('nombre', 'Paciente AJ10B'); __t.set('peso', '80'); __t.set('talla', '175');
+      __t.set('ddvi', '52'); __t.set('fevi', '60'); __t.set('ai_vol', '40');
+      __t.set('vd_basal', '35'); __t.set('tapse', '22');
+      R.estilos = {};
+      for (const est of ['conciso', 'estandar', 'narrativo']) {
+        setEstiloInforme(est);
+        const r = __t.informe();
+        const inf = String(r.inf || ''), suma = String(r.suma || '');
+        R.estilos[est] = {
+          /* DENOMINADOR del estilo: si el informe sale vacio, buscarle una ausencia no prueba
+             nada. 120 caracteres es menos que el informe mas corto que la app emite con los
+             ocho campos de arriba cargados. */
+          largo: inf.length,
+          rotulo: inf.indexOf('Eco Estrés:') >= 0 || inf.toLowerCase().indexOf('eco estr') >= 0,
+          enSuma: suma.toLowerCase().indexOf('eco estr') >= 0
+        };
+      }
+      setEstiloInforme('estandar');
+      __t.informe();
+
+      // ── (b) EL PDF, TRES VECES ──────────────────────────────────────────────────────────
+      // b1 · formulario VACIO
+      __t.limpiar();
+      R.p1 = await pdf(); R.m1 = halla(R.p1.t);
+      // b2 · con un estudio cargado
+      __t.set('nombre', 'Paciente AJ10B'); __t.set('peso', '80'); __t.set('talla', '175');
+      __t.set('ddvi', '52'); __t.set('fevi', '60'); __t.set('vd_basal', '35'); __t.set('tapse', '22');
+      __t.informe();
+      R.p2 = await pdf(); R.m2 = halla(R.p2.t);
+      /* b3 · EL ESCENARIO PELIGROSO. La bandera se enciende DESPUES de la carga a proposito: la
+         limpieza de 101342 solo corre al arrancar, asi que encenderla aca la deja viva y la
+         unica barrera que queda es la presencia del toggle en el DOM — que es justo la
+         compuerta que este caso fija. Y eeHasData() se pone en TRUE por el unico camino que
+         queda sin interfaz: eeSetBullState, que sigue exportado en window. Asigna el estado
+         ANTES de llamar a eeRenderBull, asi que el try/catch no impide que quede puesto. */
+      try { localStorage.setItem(FLAG, '1'); } catch (e) {}
+      try { window.eeSetBullState('pico', 0, 1); } catch (e) {}
+      R.flagEncendida = (() => { try { return localStorage.getItem(FLAG) === '1'; } catch (e) { return false; } })();
+      R.hasDataPeligro = R.hasDataFn ? window.eeHasData() : false;
+      R.p3 = await pdf(); R.m3 = halla(R.p3.t);
+
+      // ── (e) CONTROLES NEGATIVOS — LO VIVO SIGUE VIVO ────────────────────────────────────
+      // e1 · calculadora de E/e'
+      R.calcExiste = !!(document.getElementById('ee-e') && document.getElementById('ee-ep') && document.getElementById('ee-result'));
+      if (R.calcExiste) { __t.set('ee-e', '80'); __t.set('ee-ep', '5'); }
+      R.calcVal = R.calcExiste ? document.getElementById('ee-result').value : 'no existe';
+
+      // e2 · modo basico/avanzado y el desplegable «Seccion avanzada»
+      R.modoFns = ['eeGetMode', 'eeGetModules', 'eeModOn'].filter(f => typeof window[f] !== 'function');
+      R.selExiste = !!document.getElementById('ecoAdvSelect');
+      R.modo = (typeof eeGetMode === 'function') ? eeGetMode() : 'SIN FN';
+      R.modsObj = (typeof eeGetModules === 'function') && eeGetModules() && typeof eeGetModules() === 'object';
+      R.modOnBool = (typeof eeModOn === 'function') && typeof eeModOn('valvulas') === 'boolean';
+      const _opts = () => { try { ecoAdvBuild(); } catch (e) {} const s = document.getElementById('ecoAdvSelect');
+        return s ? [...s.options].filter(o => o.value).length : -1; };
+      const _modoPrev = (() => { try { return localStorage.getItem('ett_view_mode'); } catch (e) { return null; } })();
+      try { localStorage.setItem('ett_view_mode', 'avanzado'); } catch (e) {}
+      R.optsAvanzado = _opts();
+      try { localStorage.setItem('ett_view_mode', 'basico'); } catch (e) {}
+      R.optsBasico = _opts();
+      try { if (_modoPrev === null) localStorage.removeItem('ett_view_mode'); else localStorage.setItem('ett_view_mode', _modoPrev); } catch (e) {}
+      _opts();
+
+      // e3 · QR del informe
+      R.qrFn = typeof window.eeQrDataURL === 'function';
+      R.qr = '';
+      if (R.qrFn) { try { R.qr = String(window.eeQrDataURL(64) || ''); } catch (e) { R.qr = 'excepcion: ' + e.message; } }
+      R.urlFn = (typeof window.eeStudyUrl === 'function') && String(eeStudyUrl()).indexOf('http') === 0;
+
+      // e4 · score de Duke, que no depende de eco estres
+      R.dukeCampos = ['cx_duke_min', 'cx_duke_st', 'cx_duke_ang'].filter(id => !document.getElementById(id));
+      R.dukeTxt = 'no se pudo';
+      if (!R.dukeCampos.length) {
+        __t.set('cx_duke_min', '9'); __t.set('cx_duke_st', '1'); __t.set('cx_duke_ang', '0');
+        try { cxDuke(); } catch (e) {}
+        R.dukeTxt = String(__t.txt('cx-duke-total') || '');
+      }
+    } finally {
+      /* La bandera y el estilo vuelven SIEMPRE. Sin esto el caso le deja la bandera encendida
+         al siguiente, que es exactamente el acoplamiento por orden que este suite ya pago una
+         vez con TC-507. */
+      try { if (flagPrev === null) localStorage.removeItem(FLAG); else localStorage.setItem(FLAG, flagPrev); } catch (e) {}
+      try { if (estiloPrev === null) localStorage.removeItem('ett_estilo_informe'); else localStorage.setItem('ett_estilo_informe', estiloPrev); } catch (e) {}
+      try { ['basal', 'pico', 'recup'].forEach(p => window.eeResetBull(p)); } catch (e) {}
+      try { setEstiloInforme(estiloPrev || 'estandar'); } catch (e) {}
+      try { __t.limpiar(); } catch (e) {}
+    }
+
+    const E = R.estilos || {};
+    const cz = E.conciso || {}, ed = E.estandar || {}, nr = E.narrativo || {};
+    return { extra: [
+      // ── DENOMINADORES ─────────────────────────────────────────────────────────────────
+      ['D1 · jsPDF llego por CDN', true, 'si, ya verificado arriba'],
+      ['D2 · el PDF con formulario VACIO tiene paginas y al menos 15 textos que contar',
+        R.p1.ok, R.p1.pags + ' pag / ' + R.p1.n + ' textos'],
+      ['D3 · el PDF con un estudio cargado tiene paginas y al menos 15 textos',
+        R.p2.ok, R.p2.pags + ' pag / ' + R.p2.n + ' textos'],
+      ['D4 · el PDF del escenario PELIGROSO tiene paginas y al menos 15 textos',
+        R.p3.ok, R.p3.pags + ' pag / ' + R.p3.n + ' textos'],
+      ['D5 · el informe narrativo sale no vacio en los TRES estilos',
+        cz.largo > 120 && ed.largo > 120 && nr.largo > 120,
+        'conciso ' + cz.largo + ' / estandar ' + ed.largo + ' / narrativo ' + nr.largo + ' caracteres'],
+      ['D6 · el escenario peligroso LLEGO a la compuerta: bandera en 1 y eeHasData() en true',
+        R.flagEncendida === true && R.hasDataPeligro === true,
+        'bandera=' + R.flagEncendida + ' eeHasData=' + R.hasDataPeligro],
+
+      // ── (a) DOM ───────────────────────────────────────────────────────────────────────
+      ['A1 · NO existe el elemento #tab-ee', R.tabEe, R.tabEe],
+      ['A2 · NO existe el toggle #ee-incluir-pdf', R.togPdf, R.togPdf],
+      ['A3 · los UNICOS [id^="ee-"] del DOM son los cinco de la calculadora de E/e\\'',
+        R.intrusos.length === 0, 'intrusos: ' + (R.intrusos.join(', ') || 'ninguno')],
+      ['A4 · cero elementos con una clase de eco estres',
+        R.clases.length === 0, 'clases con nodos: ' + (R.clases.join(', ') || 'ninguna')],
+
+      // ── (b) PDF ───────────────────────────────────────────────────────────────────────
+      ['B1 · formulario VACIO: cero marcadores de Eco Estres en el PDF',
+        R.m1.length === 0, 'encontrados: ' + (R.m1.join(' · ') || 'ninguno')],
+      ['B2 · estudio cargado: cero marcadores de Eco Estres en el PDF',
+        R.m2.length === 0, 'encontrados: ' + (R.m2.join(' · ') || 'ninguno')],
+      ['B3 · PELIGROSO (bandera en 1 + eeHasData true): cero marcadores de Eco Estres en el PDF',
+        R.m3.length === 0, 'encontrados: ' + (R.m3.join(' · ') || 'ninguno')],
+
+      // ── (c) INFORME NARRATIVO ─────────────────────────────────────────────────────────
+      ['C1 · estilo Conciso: sin rotulo «Eco Estrés:» ni mencion', cz.rotulo === false, 'rotulo=' + cz.rotulo],
+      ['C2 · estilo Estandar: sin rotulo «Eco Estrés:» ni mencion', ed.rotulo === false, 'rotulo=' + ed.rotulo],
+      ['C3 · estilo Narrativo: sin rotulo «Eco Estrés:» ni mencion', nr.rotulo === false, 'rotulo=' + nr.rotulo],
+      ['C4 · y tampoco en el EN SUMA de ninguno de los tres',
+        cz.enSuma === false && ed.enSuma === false && nr.enSuma === false,
+        'conciso=' + cz.enSuma + ' estandar=' + ed.enSuma + ' narrativo=' + nr.enSuma],
+      ['C5 · eeInformeLineas() existe, devuelve un array y esta VACIA',
+        R.lineasFn === true && R.lineasArray === true && R.lineasLargo === 0,
+        'existe=' + R.lineasFn + ' array=' + R.lineasArray + ' largo=' + R.lineasLargo],
+
+      // ── (d) eeHasData ─────────────────────────────────────────────────────────────────
+      ['F · eeHasData() da FALSO con el arbol limpio (apartado d de la orden; se rotula F para no confundirlo con los denominadores D1-D6)',
+        R.hasDataFn === true && R.hasDataLimpio === false, 'devolvio: ' + R.hasDataLimpio],
+
+      // ── (e) CONTROLES NEGATIVOS ───────────────────────────────────────────────────────
+      ['E1 · la calculadora de E/e\\' existe y calcula: E 80 / e\\' 5 = 16.0',
+        R.calcExiste === true && R.calcVal === '16.0', 'ee-result = «' + R.calcVal + '»'],
+      ['E2 · el modo basico/avanzado esta vivo: las tres funciones responden y el desplegable «Seccion avanzada» existe',
+        R.modoFns.length === 0 && R.selExiste === true && R.modsObj === true && R.modOnBool === true,
+        'faltan: ' + (R.modoFns.join(', ') || 'ninguna') + ' / select=' + R.selExiste + ' modo=' + R.modo],
+      ['E3 · y el desplegable se puebla, con MENOS secciones en Basico que en Avanzado',
+        R.optsAvanzado > 0 && R.optsBasico > 0 && R.optsBasico < R.optsAvanzado,
+        'avanzado=' + R.optsAvanzado + ' basico=' + R.optsBasico],
+      ['E4 · el QR del informe se genera y eeStudyUrl() da una URL',
+        R.qrFn === true && R.qr.indexOf('data:image/png') === 0 && R.urlFn === true,
+        'qr=' + R.qr.slice(0, 22) + '… url=' + R.urlFn],
+      ['E5 · el score de Duke calcula con datos de ergometria: 9 min, ST 1 mm, angina 0 = 4.0 intermedio',
+        R.dukeCampos.length === 0 && R.dukeTxt.indexOf('4.0') === 0 && R.dukeTxt.indexOf('intermedio') > 0,
+        'campos que faltan: ' + (R.dukeCampos.join(', ') || 'ninguno') + ' / total = «' + R.dukeTxt + '»']
+    ] };
+  })();
+`);
 
 
 let servidor, chrome;
