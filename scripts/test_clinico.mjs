@@ -87285,7 +87285,8 @@ caso('TC-526', 'Tanda AJ5-5: el strain de pared libre del VD entre el indice de 
      fijaba eso: con TAPSE 22 y onda S 13 -los dos normales- y un strain de -18 %, el informe
      firmaba «funcion sistolica conservada». Era el defecto que AJ5-d declaraba: una afirmacion
      de normalidad al lado de un parametro alterado del MISMO ventriculo. Hoy el strain vota
-     -15 a 20 leve, por debajo de 15 «leve como minimo», por encima de 20 no vota- y NO puede
+     -15 a 20 leve, por debajo de 15 VOTA SIN GRADO desde la tanda E (E-3a; el AJ7 ponia «leve
+     como minimo» y esta linea quedo vencida), por encima de 20 no vota- y NO puede
      subir el grado que TAPSE y onda S ya dieron. Ver TC-535 (E1..E8). */
   const Dn = esc({ tapse: '22', s_prime: '13', vd_strain_pl: '18' });
   const Db = esc({ tapse: '12', s_prime: '6', vd_strain_pl: '-12' });
@@ -90090,9 +90091,16 @@ caso('TC-535', 'Tanda AJ7: la linea de Fallot del EN SUMA sin la IP y el resumen
     [eLeve, eBajo, eNorm, e15, e20, eCtrl].map((x) => x.length).join('/')]);
   ex.push(['(E1) strain -18 % vota DISFUNCION LEVE con TAPSE y onda S prima normales',
     /disfunción sistólica leve \\(strain de pared libre −18 %\\)/.test(eLeve), eLeve]);
-  ex.push(['(E2) strain -12 % vota «leve como minimo» y NUNCA moderada ni severa',
-    /disfunción sistólica leve como mínimo/.test(eBajo)
-    && !/moderada|severa/.test(eBajo), eBajo]);
+  /* == ADAPTADO EN LA TANDA E (E-3a, 2026-10-27), CON EL MOTIVO ESCRITO ===================
+     DECISION DE MAICOL: por debajo de 15 % en valor absoluto el informe y el EN SUMA dicen
+     «disfuncion sistolica» SIN grado. El AJ7 habia puesto «leve como minimo», que es una
+     afirmacion de severidad -al menos leve, y abierto a que sea peor- sobre una banda donde la
+     fuente no publica ningun corte. Lo que el caso sigue fijando es lo mismo de antes y mas
+     fuerte: que el strain VOTA -la frase afirma disfuncion-, que NUNCA dice moderada ni severa,
+     y ahora ademas que no dice LEVE, que es el grado que la version anterior le ponia. */
+  ex.push(['(E2) strain -12 % vota DISFUNCION SIN GRADO: ni leve, ni leve como minimo, ni moderada, ni severa',
+    /disfunción sistólica \\(strain de pared libre −12 %\\)/.test(eBajo)
+    && !/moderada|severa|leve/.test(eBajo), eBajo]);
   ex.push(['(E3) CONTROL NEGATIVO: strain -25 % NO vota y la funcion sigue conservada',
     /función sistólica conservada/.test(eNorm), eNorm]);
   ex.push(['(E4) el borde 15 vota leve -el 15 esta INCLUIDO-',

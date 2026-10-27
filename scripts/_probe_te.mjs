@@ -1075,6 +1075,34 @@ window.__E = {
       for (const v of ['-12', '-18']) await medir(r.conDuenios, v, { tapse: '12', s_prime: '6' });
       /* Con TAPSE y S' NORMALES: control de que no se afirma «conservada» con disfuncion. */
       for (const v of ['-12', '-18']) await medir(r.normalesConStrain, v, { tapse: '22', s_prime: '13' });
+      /* ══ 3c · LA TABLA DE LA FICHA DEL VD, CELDA POR CELDA (SOLO REPORTAR) ══════════════
+         Las tres columnas son «Parametro | Varon | Mujer». Se cuenta cuantas filas NO distinguen
+         sexo -las dos celdas iguales- para dimensionar la solucion minima, y se marca cual lleva
+         un texto que no es un valor. */
+      r.tabla3c = await ev(`(function(){
+        try { if (typeof evRefPintar === 'function') evRefPintar('vd2') } catch (e) {}
+        var n = document.getElementById('ref-vd2');
+        if (!n) return 'NO EXISTE ref-vd2';
+        var t = n.querySelector('table.ev-tabla');
+        if (!t) return 'SIN TABLA';
+        var N = function(x){ return (x || '').replace(/\\s+/g, ' ').trim() };
+        var filas = [].slice.call(t.querySelectorAll('tr')).map(function(tr){
+          return [].slice.call(tr.querySelectorAll('th,td')).map(function(c){
+            return { txt: N(c.textContent), span: c.colSpan || 1, tag: c.tagName } });
+        });
+        var cab = filas[0] ? filas[0].map(function(c){ return c.txt }) : [];
+        var cuerpo = filas.slice(1);
+        var iguales = 0, distintos = 0, noValor = [];
+        cuerpo.forEach(function(f){
+          if (f.length < 3) { noValor.push({ rot: (f[0]||{}).txt, motivo: 'menos de 3 celdas', n: f.length }); return }
+          var v = f[1].txt, m = f[2].txt;
+          if (v === m) iguales++; else distintos++;
+          if (!/\\d/.test(m)) noValor.push({ rot: f[0].txt, varon: v, mujer: m });
+        });
+        return { cab: cab, nFilas: cuerpo.length, sinDistincionDeSexo: iguales,
+                 conDistincionDeSexo: distintos, celdaQueNoEsUnValor: noValor,
+                 colspanUsado: cuerpo.some(function(f){ return f.some(function(c){ return c.span > 1 }) }) };
+      })()`, 40000);
       r.ficha = await ev(`(function(){ var o = {};
         try { if (typeof evRefPintar === 'function') evRefPintar('vd2') } catch (e) { o.pintar = 'EXC' }
         var n = document.getElementById('ref-vd2');

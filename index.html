@@ -25617,7 +25617,7 @@ const EV_REG = Object.freeze([
      Moderada y severa NO EXISTEN en ningun lado y no se inventaron. */
   Object.freeze({
     id: 'FUN-VD-008', zona: 'VD/AD — Ventrículo derecho', dato: 'Strain de pared libre del VD: la banda de disfunción leve',
-    valor: 'Disfunción leve con un strain de pared libre de 15 a 20 % en valor absoluto, el 15 incluido. Por debajo de 15 la aplicación dice «leve como mínimo» y NO gradúa moderada ni severa: esos dos cortes no existen en la fuente. El corte de normalidad —más de 20 %— sí es de la guía y vive en la ficha FUN-VD-007. Desde la tanda AJ7 esta banda VOTA en la función sistólica del ventrículo derecho del informe firmado, y nunca puede llevar el grado más allá de leve',
+    valor: 'Disfunción leve con un strain de pared libre de 15 a 20 % en valor absoluto, el 15 incluido. Por debajo de 15 la aplicación informa disfunción sistólica SIN graduar y no gradúa moderada ni severa: esos dos cortes no existen en la fuente. El corte de normalidad —más de 20 %— sí es de la guía y vive en la ficha FUN-VD-007. Desde la tanda AJ7 esta banda VOTA en la función sistólica del ventrículo derecho del informe firmado, y nunca puede llevar el grado más allá de leve',
     duenio: 'VD_STRAIN_PL_LEVE / vdStrainPlCat',
     guia: '', ubicacion: '', folio: '', hoja_pdf: null,
     doi: '', fuente_original: '', tipo: 'criterio propio de EcoSmart',
@@ -45019,14 +45019,18 @@ function evRefPintar(id) {
         + 'padding:1px 5px;margin-right:4px;font-size:9px;letter-spacing:.3px;';
       chip.textContent = 'CRITERIO DE ECOSMART';
       d.appendChild(chip);
-      /* ⚠️ LOS DOS FOLIOS PASAN AL ⓘ (tanda A, punto 3c), y la frase «leve como minimo» NO se
-         toca: pertenece a otro cambio -como informa el strain por debajo de 15 %- que se hace
-         en otra tanda. Se arma con nodos y NO con `innerHTML`, igual que antes. */
+      /* ⚠️ LOS DOS FOLIOS PASAN AL ⓘ (tanda A, punto 3c). Y LA FRASE «leve como minimo» SALE EN
+         LA TANDA E (E-3b, 2026-10-27), que es el cambio que aquel comentario dejaba para otra
+         tanda: desde el E-3a, por debajo de 15 % la aplicacion informa disfuncion sistolica SIN
+         graduar, asi que decir «leve como minimo» aca contradiria al informe firmado.
+         UNA LINEA, con las dos mitades que la orden pide: que la banda leve es decision de la
+         aplicacion y va sin cita, y que por debajo de 15 no se gradua porque la fuente no
+         publica cortes de moderada ni de severa. Se arma con nodos y NO con `innerHTML`. */
       d.appendChild(document.createTextNode(
         'La banda de disfunción leve —de ' + VD_STRAIN_PL_LEVE + ' a ' + VD_STRAIN_PL_NORMAL
-        + ' % en valor absoluto— es una decisión de la aplicación y va sin cita. '
-        + 'Por debajo de ' + VD_STRAIN_PL_LEVE + ' % la aplicación dice «leve como mínimo» y no '
-        + 'gradúa moderada ni severa, porque esos dos cortes no existen en la fuente.'));
+        + ' % en valor absoluto— es una decisión de la aplicación y va sin cita; por debajo de '
+        + VD_STRAIN_PL_LEVE + ' % la aplicación informa disfunción sistólica sin graduar, porque '
+        + 'la fuente no publica cortes de moderada ni de severa.'));
       d.appendChild((function () {
         const g = document.createElement('details');
         g.style.cssText = 'display:inline-block;vertical-align:top;margin-left:3px;';
@@ -53077,7 +53081,9 @@ function generarInforme(opts) {
          Medido en Chrome contra HEAD, en las tres bandas y en los dos bordes.
          LAS TRES REGLAS SON LAS DE LA ORDEN, y ninguna inventa un corte:
            · de 15 a 20 % en valor absoluto -la banda `leve` de `vdStrainPlCat`- vota LEVE;
-           · por debajo de 15 vota «leve como minimo», NUNCA moderada ni severa: esos dos cortes
+           · por debajo de 15 VOTA pero NO escribe grado desde el E-3a -el AJ7 ponia «leve como
+             minimo» aca y esta linea quedo vencida; ver el bloque del piso, mas abajo-. Nunca
+             moderada ni severa: esos dos cortes
              NO EXISTEN en ninguna fuente de la biblioteca. Censado otra vez en esta tanda: la
              Tabla 1 de la ASE 2025 de mayo NO tiene entrada de strain -`ASE25_T1` tampoco-, el
              texto del folio 159 publica un unico corte de normalidad, y ninguna ficha de
@@ -53111,10 +53117,24 @@ function generarInforme(opts) {
          `null` -un parametro normal, ninguno de los dos medido, o una excepcion- la frase queda
          EXACTAMENTE como estaba, que es la direccion segura. */
       let _vdDisfG = vdDisf ? ((typeof vdDisfGrado === 'function') ? vdDisfGrado(tapse, sp) : null) : null;
-      /* EL PISO DEL STRAIN (AJ7-3h). Solo cuando los duenos del grado no pudieron darlo: ver el
-         bloque de arriba. «leve como minimo» y no «moderada» por debajo de 15, porque la
-         aplicacion no tiene corte de moderada ni de severa para este parametro. */
-      if (!_vdDisfG && strVota) _vdDisfG = (strCat === 'bajo_leve') ? 'leve como mínimo' : 'leve';
+      /* EL PISO DEL STRAIN (AJ7-3h), Y POR DEBAJO DE 15 YA NO HAY GRADO (E-3a, 2026-10-27).
+         DECISION DE MAICOL, y reemplaza el «leve como minimo» que el AJ7 habia puesto: con un
+         strain de pared libre por debajo de 15 % en valor absoluto el informe y el EN SUMA dicen
+         «disfuncion sistolica» SIN grado -ni leve, ni moderada, ni severa- y el valor va al lado,
+         como ya iba. Ejemplo medido: -12 % sale «Ventriculo derecho con disfuncion sistolica
+         (strain de pared libre -12 %)».
+         ⚠️ POR QUE ES MEJOR QUE «leve como minimo»: la fuente publica UN SOLO corte, el de
+         normalidad (ASE 2025 de mayo, Tabla 1 folio 145 y texto folio 159). «leve como minimo»
+         es una afirmacion de severidad —dice que es al menos leve y deja abierto que sea peor—
+         sobre una banda donde la guia no publica ningun corte. No graduar es lo que la fuente
+         permite decir. Censado otra vez en esta tanda: ni `ASE25_T1` ni ninguna ficha de
+         `IND_REFS` abre bandas de moderada o de severa para este parametro.
+         ⚠️ LO QUE NO CAMBIA, Y ESTA MEDIDO: el strain SIGUE VOTANDO -o sea que la frase afirma
+         disfuncion, no la calla-, la banda LEVE de 15 a 20 % inclusive sigue escribiendo «leve»,
+         por encima de 20 sigue sin votar, y si `vdDisfGrado(tapse, sp)` dio un grado ESE MANDA:
+         un TAPSE de 12 mm con una onda S' de 6 cm/s sigue publicando «moderada» con el strain en
+         -12. El strain nunca pudo y sigue sin poder subir un grado. */
+      if (!_vdDisfG && strCat === 'leve') _vdDisfG = 'leve';
       /* UN SOLO TEXTO PARA LAS NUEVE SUPERFICIES de esta zona: el informe en los tres estilos y
          las OCHO ramas del EN SUMA. Con el grado escrito en cada rama, la que se olvida deja el
          resumen diciendo «disfunción sistólica» sobre un cuerpo que dice «disfunción sistólica
@@ -134898,8 +134918,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261027-1311';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793117509782;                 /* eco-build-ms */
+const ECO_BUILD    = '20261027-1318';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793117917366;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -134985,7 +135005,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261027-1311</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261027-1318</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
