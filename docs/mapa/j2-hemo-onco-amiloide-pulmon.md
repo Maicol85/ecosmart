@@ -296,3 +296,21 @@ sigue saliendo de `v('hemo_pam')` a secas y por lo tanto **sigue ignorando la PA
 catéter**, que es lo único que faltaba para que la app tuviera un solo dueño de la PAM. Se paró
 porque el texto de esta cápsula viaja a la hoja de ETT Avanzado del PDF y al PPT, y el cambio
 movería un papel firmado en un estudio con una sola fuente. `docs/PENDIENTES.md` → **B-a**.
+
+---
+
+## ⚠️ La tanda D rehizo la calculadora de riesgo CV y el score de amiloidosis (2026-10-27)
+
+Lo de esta sección sobre **cardio-oncología** y sobre el **score de amiloidosis** sigue siendo
+cierto como historia, pero **ya no describe cómo clasifica la app**:
+
+- la clasificación de **antraciclinas y anti-HER2** sale hoy de la **Tabla 4 de la guía** tal
+  cual —matriz factor × columna—, sin piso por fármaco y con la derivación por categoría;
+- el **score de amiloidosis se marca solo** desde los datos de las otras pestañas y se
+  sincroniza en los dos sentidos;
+- la tabla de escenas por puntaje de la sección 4 **no cambió** en sus textos, pero el puntaje
+  que la alimenta ahora se puebla solo.
+
+**Todo eso vive en `docs/mapa/d-cardioonco-amiloidosis.md`.** La constante
+`AMILO_IWT_BOLDRINI` y su advertencia sobre el score «IWT» frente al «AL» siguen siendo las de
+acá, y la tanda D las verificó fila por fila contra la Tabla 4 **sin cambiar ninguna**.

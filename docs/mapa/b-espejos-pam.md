@@ -230,3 +230,18 @@ Sin la espera de 500 ms el control positivo daba cero y el A/B se leía como «n
 ## 7 · El caso
 
 `TC-538`, con su ficha en `docs/mapa/tests-fichas-538.md`.
+
+---
+
+## ⚠️ La tanda D sumó un pintor al registro (2026-10-27)
+
+`amiloScoreSync` entró en `ESPEJOS_VIVOS()`: trae los insumos del score de amiloidosis desde las
+otras pestañas y deja que el módulo marque sus casillas. Cuelga del **mismo** debounce de 220 ms
+y **no escribe un solo campo del estudio**, que es la regla con la que este registro excluye a
+`popSync` y a `calcVD`.
+
+El sentido inverso —módulo → estudio— **no** entró acá a propósito: cuelga del `oninput` del
+propio calculador, que es un gesto del médico. Y cuando el campo del estudio ya tiene otro valor,
+**no lo pisa**: lo declara, con el mismo criterio que el aviso de discrepancia de la PAM.
+
+Detalle en `docs/mapa/d-cardioonco-amiloidosis.md` § 2.

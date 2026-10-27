@@ -492,3 +492,13 @@ declarados. **13/13 mutaciones dirigidas muertas** (`scripts/_mut_e.py`), y cae 
 **19** condiciones. Dos de sus condiciones (A11 y A12) **nacieron de mutaciones que
 sobrevivieron**. Lo que el caso NO mide y se declara: la geometría de dos avisos, que vive en
 `scripts/_probe_te.mjs` → `docs/PENDIENTES.md` **E-b**.
+
+---
+
+## ⚠️ TC-540 — la tanda D (2026-10-27)
+
+Ficha en **`docs/mapa/tests-fichas-540.md`** (archivo propio: `tests-fichas.md` ya estaba en
+34,2 KB). 31 condiciones, tres denominadores declarados y cinco controles negativos; cae en las
+31 contra HEAD. Sus cinco trampas de arnés —los acentos graves del cuerpo, `VINFO` fuera de
+`window`, el botón del globo midiendo 0 × 0, el disparador fabricado que tapaba el defecto de
+limpieza, y la marca `hfaicos_manual` que sobrevive a `limpiar()`— están en esa ficha.

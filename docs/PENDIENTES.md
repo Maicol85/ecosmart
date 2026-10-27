@@ -8524,3 +8524,117 @@ for (let i = 0; i < 40 && !(window.jspdf && window.jspdf.jsPDF); i++)
 estenosis aórtica (TC-345, TC-358, TC-359, TC-360…), así que meterle una espera cambia el arnés de
 todos ellos, y esta orden no lo autoriza. El riesgo de dejarlo es concreto: **un rojo que parece
 una regresión y no lo es**, en una zona que nada de esta tanda toca.
+
+---
+
+# Tanda D — cardio-oncología y amiloidosis (2026-10-27)
+
+## D-a · La app no distingue antraciclina ANTES del anti-HER2 de antraciclina CONCURRENTE
+
+**Qué pasa.** La Tabla 4 de la guía ESC 2022 tiene **dos cosas distintas**: la fila «Includes
+anthracycline **before** HER2-targeted therapy», que vale **M1** en la columna del anti-HER2, y su
+nota al pie **g**, que dice que es **riesgo alto** cuando la antraciclina y el trastuzumab se dan
+de forma **concurrente**. Ningún campo de esta aplicación dice cuál de las dos es.
+
+**Qué hace hoy.** Con `co_farmaco = trastuzumab` y una dosis cargada en `co_dosis_antrac`, aplica
+el **lado seguro**: el piso de la nota g, o sea alto. Un paciente que recibió la antraciclina
+**antes** —donde la tabla da sólo M1— puede salir una banda por encima.
+
+**Qué haría falta.** Un control que distinga «antes» de «concurrente». Es un **campo nuevo
+guardado**: censo y, si se exporta, una columna de Excel. Decisión de Maicol.
+
+## D-b · Faltan cuatro columnas de la Tabla 4
+
+**Qué pasa.** La Tabla 4 trae **seis** columnas y esta tanda aplica **dos** (antraciclinas y
+anti-HER2), porque la orden lo dice expresamente. Las otras cuatro —**anti-VEGF**, **BCR-ABL**,
+**mieloma múltiple** y **RAF/MEK**— están transcritas en imagen pero no implementadas: esos
+fármacos pasan por el puntaje propio de la aplicación, que lo **declara** en su línea de alcance.
+
+**Dónde difieren, con un ejemplo cada uno.** Un paciente con **hipertensión y diabetes** y nada
+más, que hoy la app clasifica **ALTO** (2 puntos de su puntaje propio) con cualquiera de ellos:
+
+| Fármaco | Celdas de la Tabla 4 | La Tabla 4 da | ¿Coincide? |
+|---|---|---|---|
+| anti-VEGF | hipertensión **H** · DM M1 | **alto** (cualquier factor H manda) | **sí** |
+| BCR-ABL | hipertensión M2 · DM M1 | 3 puntos → **moderado** | no: la app sobreestima |
+| mieloma múltiple | hipertensión M1 · DM M1 | 2 puntos → **moderado** | no: la app sobreestima |
+| RAF/MEK | hipertensión M2 · DM M1 | 3 puntos → **moderado** | no: la app sobreestima |
+
+⚠️ **Y DOS DE ESAS COLUMNAS NO TIENEN FÁRMACO EN LA APP**: el selector `co_farmaco` no ofrece
+mieloma múltiple ni RAF/MEK, así que implementarlas exige además agregar sus opciones —y eso toca
+el vocabulario de una columna del Excel.
+
+Las seis columnas están transcritas en `docs/fuentes/FUENTES.md` → «La tanda D»; implementar
+anti-VEGF y BCR-ABL es agregar dos claves por factor en `coT4Pesos()` y dos valores en
+`coT4Columna()`, sin tocar ningún campo guardado.
+
+⚠️ **Y PARA INMUNOTERAPIA Y RADIOTERAPIA LA TABLA 4 NO TIENE COLUMNA**: ésas no se pueden
+implementar aunque se quiera, y su línea de alcance lo dice con otras palabras.
+
+## D-c · Tres tablas de referencia publican el esquema que el D-1 retiró
+
+**Qué pasa.** En la sub-pestaña «HFA-ICOS» de Cardio-Oncología viven la tabla de factores con
+**puntos fijos**, la de riesgo **por fármaco** y la de **riesgo global** («≥4 puntos de la sección
+A o fármaco de muy alto riesgo»). Ninguna de las tres describe cómo clasifica la app desde esta
+tanda, y ninguna es la Tabla 4 de la guía.
+
+**Qué se hizo.** Su aviso visible se corrigió —decía los cortes viejos de la calculadora y traía
+un «ejemplo real» que ya no ocurre— y hoy dice que son referencia de lectura y que sus puntos no
+deciden. Las tablas **quedan**.
+
+**Por qué no se retiraron.** Es contenido clínico que la orden de esta tanda no nombra, y este
+repo tiene escrito que una tabla estática que contradice al clasificador de al lado es de lo peor
+que le puede pasar a esta pestaña. Decidir entre retirarlas, reemplazarlas por la matriz real de
+la Tabla 4, o dejarlas con el aviso, es de Maicol.
+
+## D-d · «Radioterapia toraxica» tiene una x por una c, y corregirlo cambia el Excel
+
+**Qué pasa.** La etiqueta de la opción `radioterapia` del selector `co_farmaco` dice
+«Radioterapia **toraxica**»: le falta la tilde y además tiene **x** donde va **c**. El mismo texto
+está en el mapa de vocabulario del Excel y es lo que se publica en la columna «Fármaco
+cardiotóxico».
+
+**Por qué no se corrigió.** Cambiarlo cambia un **valor** del Excel y el round-trip de
+reimportación. La regla de la casa es que eso va con orden expresa.
+
+## D-e · La Central Illustration de Boldrini no está en la copia de la biblioteca
+
+**Qué pasa.** La orden afirma que «el artículo no propone un corte para este score». La página de
+figuras del manuscrito trae **sólo las leyendas** —ninguna página del PDF contiene una imagen—, y
+la leyenda de la Central Illustration dice que propone cortes para los **dos** scores, con el IWT
+en su panel inferior.
+
+**Qué se hizo.** No se escribió esa frase absoluta. El ⓘ dice lo que **sí** está verificado en
+texto: que el corte de 8 sale del documento de posición y que el «<1 y ≥5» es del score AL.
+
+**Qué haría falta.** La versión publicada del artículo, o una copia con las figuras.
+
+## D-f · «La tabla del score se muestra en gris» quedó sin aplicar
+
+**Qué pasa.** El punto 3e lo pide, pero no dice **qué** elemento va en gris: el título, la barra
+de puntaje, la categoría o las filas de criterios. El peso visual de ese bloque lo fijó la tanda
+R2-E5 a propósito («con el peso visual de una caja de resultado de Hemodinámica»), así que
+cambiarlo a ciegas desharía una decisión anterior.
+
+## D-g · Las filas de ICI y anti-VEGF de «Monitoreo recomendado» subestiman lo que la guía pide
+
+**Qué pasa.** Verificadas fila por fila contra la guía, dos de las cinco no coinciden:
+
+| Fila | La app dice | La guía publica |
+|---|---|---|
+| ICI — Inmunoterapia | «ECG y troponina basal y ante síntomas» | Figura 20, folio 4273: vigilancia programada con CV assessment, ECG, TTE, cTn y NP, por ciclos y por riesgo |
+| Anti-VEGF | «PA, eco si síntomas o FEVI límite» | Rec.-tabla 10, folio 4264: eco **cada 4 meses** en riesgo moderado y **cada 3 meses** en alto y muy alto durante el primer año; PA en cada visita y PA domiciliaria diaria el primer ciclo |
+
+**Por qué no se corrigió.** La orden decide el calendario del **anti-HER2** y manda a no mostrar
+calendarios inventados; estas dos filas no son anti-HER2 y reescribirlas es escribir
+recomendaciones clínicas nuevas, con sus clases y sus niveles. Se reporta con la cita exacta para
+que la decisión sea de una línea.
+
+## D-h · Las tres casillas nuevas no se exportan al Excel
+
+**Qué pasa.** Maicol autorizó tres columnas nuevas (440 → 443) al partir el antecedente CV. **No
+se agregaron**, y el Excel quedó en **440**: ninguna de las doce casillas `hfaicos_*` se exportaba,
+así que agregar sólo las tres nuevas habría dejado el Excel con tres de quince. El censo sí
+cambió: **1023 → 1025** (tres casillas nuevas menos el selector `hfaicos_farmaco` retirado).
+
+**Qué haría falta.** Si se quieren, van las **quince**, al final y sin mover ninguna existente.

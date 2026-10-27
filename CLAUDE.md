@@ -825,3 +825,67 @@ Cada bloque de arriba sale de una sección del historial. Títulos exactos para 
 (2026-09-09)`. Antes de reabrir un hallazgo viejo por número de línea, mirar qué hay HOY en esa
 línea: el archivo creció y un informe de auditoría viejo apunta a otro archivo
 (`### Un hallazgo de auditoría por NÚMERO DE LÍNEA apunta a otro archivo`).
+
+### La calculadora de riesgo CV y el score de amiloidosis — «D» (2026-10-27)
+
+- **CINCO commits.** `2d82861` (D-1) · `6284aeb` (D-2) · `9b79262` (D-3) · `3fd2a39` (D-4) · el de
+  cobertura y documentación. Al empezar, `origin/main` = `HEAD` = **`8fac09f`**, el cierre de la
+  tanda E, ya publicado. **El push lo corre Maicol: esta tanda tenía orden expresa de NO pushear.**
+
+- **LA FUENTE SE LEYÓ EN IMAGEN, Y ES LO QUE SOSTIENE TODO.** La **Tabla 4** de la guía ESC 2022
+  de cardio-oncología (folios 4246-4247) es una **matriz factor × clase de fármaco** con celdas
+  VH/H/M2/M1/–, no un puntaje: la misma FA previa **no suma** con antraciclinas y vale **dos
+  puntos** con un anti-HER2. Su regla de combinación se leyó **a siete aumentos** y se transcribe
+  literal. El fármaco es una **columna**, nunca un piso.
+
+- ⚠️ **CINCO PREMISAS DE LA ORDEN ERAN FALSAS, Y ESTÁN MEDIDAS.**
+  1. **La Tabla 4 son DOS hojas, no ocho**; las ocho serán el anexo `Tables S2–S7`, que no se abrió.
+  2. **El «rendimiento por corte» no difería de la Tabla 4 de Boldrini**: las once filas de
+     `AMILO_IWT_BOLDRINI` coinciden una por una. No hubo nada que corregir.
+  3. **Los cuatro botones del centellograma NO ocupan cuatro renglones**: medido en seis anchos,
+     van en **una** fila desde 560 px y en **dos** por debajo de 500.
+  4. **El globo ⓘ del score NO se cortaba** (647 px de contenido en 1002 de hueco). ⚠️ **Pero el
+     texto nuevo del D-4 SÍ lo cortó**, y por eso la tarjeta pasó a tener ancho propio de 460 px.
+  5. **El Excel no necesitaba tres columnas nuevas**: ninguna de las doce casillas `hfaicos_*` se
+     exportaba. Censo **1023 → 1025**; Excel **sigue en 440**.
+
+- **EL DEFECTO MÁS GRANDE QUE CERRÓ, EN UNA LÍNEA: un anti-HER2 sin ningún factor de riesgo salía
+  «alto» o «muy alto», y la Tabla 4 lo da BAJO.** Lo causaba un piso por fármaco que es regla
+  propia de la app y no está en la guía.
+
+- ⚠️ **Y UN SEGUNDO, QUE SE ENCONTRÓ LEYENDO EL CÓDIGO: `calcHFAICOS` salía con `return` ANTES de
+  publicar.** Al vaciar la calculadora, la pantalla decía «ingresar factores» mientras
+  `co-riesgo-resultado` —lo que leen la hoja del PDF, el PPT y el módulo integrado— conservaba la
+  banda del paciente **anterior**. Medido con su denominador contra HEAD.
+
+- ⚠️ **MI PROPIA SONDA TAPABA ESE DEFECTO, DOS VECES.** `window.__Y.poner` y el helper `farmaco()`
+  del caso llaman a `calcCardioOnco()`, que es **justo** el disparador que la app no tiene cuando
+  el médico destilda una casilla. Con esa llamada, 1f «no pasa». Es el error de TC-519.
+
+- **EL SCORE DE AMILOIDOSIS SE MARCA SOLO**, colgado del barrido de espejos de la tanda B —el
+  mismo debounce de 220 ms, sin temporizador nuevo—, y para que «el médico puede desmarcarla y esa
+  decisión se respeta» se pudiera cumplir hubo que agregar un **tercer estado** de origen:
+  `'nomanual'`, «una persona lo SACÓ». Con dos estados, el barrido revivía lo destildado.
+
+- ⚠️ **LOS ESPESORES DEL MÓDULO VIAJAN EN UN SOLO SENTIDO, Y ESTÁ MEDIDO POR QUÉ.** `_amHayDatos`
+  —la línea de pendientes de la miocardiopatía hipertrófica— lee `ett-septo` y `ett-pp` como «el
+  médico está evaluando amiloidosis acá»: autollenarlos desde `siv` habría puesto esa frase en el
+  informe de **cualquier** estudio con el septo cargado. `calcETT` **lee** `siv` y `ppvi` en vez de
+  escribirlos.
+
+- **TRES PARTES SE PARARON Y SE REPORTARON, NO SE APLICARON**: las filas de ICI y anti-VEGF de
+  «Monitoreo recomendado», que subestiman lo que la guía publica (→ **D-g**); las tres tablas de
+  la sub-pestaña «HFA-ICOS», que publican el esquema retirado (→ **D-c**); y «la tabla del score
+  se muestra en gris», que no dice qué elemento (→ **D-f**).
+
+- **`index.html` pasó de 9,79 MB / 138.038 líneas a 9,84 MB / 138.681** — medido con `wc -c` y
+  `wc -l` DESPUÉS de sellar. (MB de 10⁶: `wc -c` dividido por 1e6.) Sello **`v20261027-1826`**,
+  md5 de `index.html` **`7aa7b3a4`**.
+
+- **Dónde está todo:** `docs/mapa/d-cardioonco-amiloidosis.md` (**mapa NUEVO**, 14,6 KB), la ficha
+  del caso en `docs/mapa/tests-fichas-540.md` (**archivo propio**), **tres mapas con un puntero
+  cada uno** —medidos ANTES de escribir; ⚠️ `tests.md` quedó a **246 bytes** del techo y
+  `informe-pdf-excel.md` **no se tocó**, que es lo que la orden pide—,
+  `docs/fuentes/FUENTES.md` → «La tanda D» con las dos fuentes transcritas y la tabla «Cambios de
+  evidencia» de **veinte filas**, y `docs/PENDIENTES.md` → **OCHO** cosas declaradas
+  (**D-a** a **D-h**).

@@ -6229,3 +6229,104 @@ arteria pulmonar. El punto 4d de la orden lo deja explícitamente fuera y el 4g 
 | Carpentier en el informe | hasta **tres** apariciones, y con el tipo III hasta **dos valores distintos** | **una sola** | — (es una regla de redacción, no clínica) |
 | Glosa del Carpentier del ETE («Tipo IIIb (tethering sistólico)») | en la oración del ETE del informe | **retirada de ahí**; vive en el ⓘ `vm-carp` y en la ficha de Referencias | — |
 | Aviso del corte alternativo de la IM secundaria | 113 caracteres en dos renglones | línea corta + **texto completo en el ⓘ**, con los dos valores, los dos cortes y las dos condiciones | ESC/EACTS 2025 — **no se tocó ni un número ni una cita** |
+
+---
+
+## La tanda D — la calculadora de riesgo CV y el score de amiloidosis (2026-10-27)
+
+### Las dos fuentes, leídas EN IMAGEN
+
+**1 · Guía ESC 2022 de cardio-oncología.** Lyon AR, López-Fernández T, Couch LS y cols., «2022
+ESC Guidelines on cardio-oncology», Eur Heart J 2022;43(41):4229-4361.
+Archivo: `12_Cardio_oncologia/Lyon_2022_Cardio_oncologia.pdf`.
+Regla de folio comprobada en esta tanda: **folio = índice de hoja 0-based + 4229**.
+
+- **Tabla 4**, «Heart Failure Association–International Cardio-Oncology Society baseline
+  cardiovascular toxicity risk stratification», **folios 4246 y 4247** (hojas 17 y 18).
+  ⚠️ **SON DOS HOJAS, NO OCHO.** La orden decía «ocupa unas ocho hojas»; las ocho serán la
+  versión ampliada que la propia tabla manda a `Supplementary data, Tables S2–S7`, que **no se
+  abrió**. La tabla del cuerpo son dos hojas, transcritas celda por celda.
+- **Regla de combinación**, al pie de la tabla, leída a siete aumentos y transcrita literal:
+  > «Risk level: Low risk = no risk factors OR one moderate1 risk factor; moderate risk (M) =
+  > moderate risk factors with a total of 2–4 points (Moderate 1 [M1] = 1 point; Moderate [M2] =
+  > 2 points); high risk (H) = moderate risk factors with a total of ≥5 points OR any high-risk
+  > factor; very-high risk (VH) = any very-high risk factor.»
+- **Notas al pie de la Tabla 4**, textuales: a) «AF, atrial flutter, ventricular tachycardia, or
+  ventricular fibrillation.» · b) «Elevated above the ULN of the local laboratory reference
+  range.» · c) «Systolic BP > 140 mmHg or diastolic BP > 90 mmHg, or on treatment.» ·
+  d) «eGFR < 60 mL/min/1.73 m².» · e) «HbA1c > 7.0% or >53 mmol/mol, or on treatment.» ·
+  f) «Non-high density lipoprotein cholesterol >3.8 mmol/L (>145 mg/dL) or on treatment.» ·
+  **g) «High risk if anthracycline chemotherapy and trastuzumab delivered concurrently.»** ·
+  h) «Previous malignancy (not current treatment protocol).»
+- **Recomendaciones-tabla 1**, «Recommendations for a general approach to cardiovascular toxicity
+  risk categorization», **folio 4249, hoja 21**. Coincide **palabra por palabra** con lo que la
+  orden de esta tanda transcribe, incluidas sus notas:
+  d) «Cardio-oncology referral is recommended when available; alternatively, the patients should
+  be referred to a specialized cardiologist with expertise in managing CVD in patients with
+  cancer.» · e) «Without delaying cancer treatments.» · f) «Unless there is an oncology emergency
+  requiring immediate cancer treatment.» · **g)** «Moderate-to-severe pre-existing CVDs or new
+  abnormal findings (baseline cardiac serum biomarkers > ULN, LVEF ≤ 50%, GLS under normal local
+  values, previously undiagnosed moderate-to-severe myocardial, pericardial, or VHDs, abnormal
+  baseline ECG).»
+- **Recomendaciones-tabla 7**, antraciclinas, **folio 4259, hoja 31**: eco basal en todos (I·B);
+  eco dentro de los 12 meses de terminar (I·B); **en riesgo alto y muy alto, eco cada DOS ciclos**
+  y dentro de los 3 meses de terminar (I·C); en moderado, eco adicional tras 250 mg/m² (IIa·C); en
+  bajo, ese mismo adicional «may be considered» (IIb·C).
+- **Recomendaciones-tabla 8**, anti-HER2, **folio 4261, hoja 33**: «In patients receiving
+  neoadjuvant or adjuvant HER2-targeted therapies, echocardiography is recommended **every 3
+  months** and within 12 months after completing treatment» (**I·B**).
+
+**2 · Boldrini 2020 — score multiparamétrico de amiloidosis.** Boldrini M, Cappelli F, Chacko L y
+cols., «Multiparametric echocardiography scores for the diagnosis of cardiac amyloidosis», JACC:
+Cardiovascular Imaging — **manuscrito aceptado, copia del autor, sin folio de revista**.
+Archivo: `09_Amiloidosis/Fontana_Multiparametric echocardiography scores…_JACCCVI.pdf`.
+
+- **Tabla 3**, página 29 del manuscrito, panel inferior (score IWT), transcrita:
+  RWT >0,6 → 3 · E/e′ >11 → 1 · TAPSE ≤19 mm → 2 · LS ≥ −13 → 1 · SAB >2,9 → 3. Total 10.
+  ⚠️ **COINCIDE EXACTAMENTE CON LOS CINCO CRITERIOS DE LA APP**: el punto 3d queda verificado.
+- **Tabla 4**, página 30, panel «Increased Wall Thickness · IWT score (AUC 0.87) · n=923»,
+  verificada fila por fila contra la constante `AMILO_IWT_BOLDRINI`: **no hubo ni una
+  diferencia**. La errata del original en la fila ≥3 («92-6») está, y no se copia.
+- **Población**, texto del manuscrito: «consecutive patients referred for suspected CA between
+  2009 to 2018 to 3 specialized centres: National Amyloidosis Centre (NAC), London (n=899);
+  Fondazione Toscana Gabriele Monasterio, Pisa (n=180); Hospital Puerta de Hierro in Madrid
+  (n=108)», **1187** en total.
+- **No es tamizaje**, literal: «we do not propose that this algorithm is applied immediately to
+  the general population as a screening tool for cardiac amyloidosis, as further studies are
+  required to validate these findings within the general unselected cardiology population».
+- **Los cortes de «<1» y «≥5» son del score AL**, literal: «we propose to use highly sensitive and
+  highly specific cut-offs (**AL score** <1 and ≥5) to exclude or confirm the diagnosis of CA».
+
+### Reserva de trabajo
+
+⚠️ **LA CENTRAL ILLUSTRATION NO ESTÁ EN ESTA COPIA.** La página de figuras del manuscrito trae
+**sólo las leyendas**; ninguna página del PDF contiene una imagen. Su leyenda dice que propone
+cortes para los dos scores —AL en el panel superior e **IWT en el inferior**—, así que **no se
+escribió** la frase absoluta «el artículo no propone ningún corte para este score», que la orden
+daba por cierta. Lo que sí está verificado en texto y es lo que el ⓘ publica: el corte de **8**
+sale del documento de posición, y el «<1 y ≥5» es del score **AL**. → `docs/PENDIENTES.md` **D-e**.
+
+### Cambios de evidencia
+
+| Qué | Antes | Después | Fuente |
+|---|---|---|---|
+| Clasificación de riesgo con antraciclinas y anti-HER2 | puntaje propio con cortes propios (0 bajo · 1 medio · ≤3 alto · >3 muy alto) más un **piso por fármaco** | la **Tabla 4** tal cual: matriz factor × columna y su regla de combinación al pie | **nueva**: Tabla 4, folios 4246-4247, en imagen |
+| Anti-HER2 sin ningún factor de riesgo | «alto» o «muy alto» por el piso | **BAJO** | la misma |
+| Arritmia (FA, aleteo, TV, FV) previa | 2 puntos, igual con cualquier fármaco | **no suma** con antraciclinas; **M2** con anti-HER2 | la misma, fila «Arrhythmia» y su nota a |
+| Insuficiencia cardíaca o miocardiopatía previa | 2 puntos, dentro de una casilla que juntaba cuatro antecedentes | **VH** en las dos columnas, en casilla propia | la misma, fila «HF/cardiomyopathy/CTRCD» |
+| Infarto, angioplastia, cirugía coronaria o valvulopatía severa | los mismos 2 puntos | **H** en las dos columnas, en casilla propia | la misma, filas «MI or PCI or CABG», «Stable angina» y «Severe VHD» |
+| Edad ≥65 | 1 punto | **M2** si 65-79, **H** si ≥80, por `co_edad` | la misma, las dos filas de edad |
+| Troponina y BNP basales elevados | 1 punto cada uno, igual con cualquier fármaco | M1 con antraciclinas, **M2** con anti-HER2 | la misma, y su nota b |
+| Sexo femenino · GLS basal deteriorado | 1 punto cada uno | **no puntúan** con antraciclinas ni con anti-HER2 | **no tienen fila en la Tabla 4** |
+| Piso por fármaco | cuatro bandas en un selector propio | **retirado**; el único piso es la **nota al pie g** | la misma |
+| Derivación a cardiología | una frase pegada **sólo** a la banda muy alta | por **categoría**, y en cualquier categoría con enfermedad previa o hallazgos anormales | **nueva**: Recomendaciones-tabla 1, folio 4249 |
+| Calendario de eco del anti-HER2 | el de la banda: «Eco cada ciclo» en muy alto | **cada 3 meses** y dentro de los 12 meses | **nueva**: Rec.-tabla 8, folio 4261 |
+| Calendario de eco de las antraciclinas | «cada ciclo» en muy alto, «cada 2 ciclos» en alto | **cada dos ciclos** en alto **y** en muy alto | **nueva**: Rec.-tabla 7, folio 4259 |
+| Calendario para inmunoterapia, anti-VEGF, BCR-ABL, radioterapia | el de su banda | **ninguno** | la guía no publica uno aplicable a la columna que la app no implementa |
+| Rótulo de la categoría | «marco HFA-ICOS (ESC 2022)» / «no es el HFA-ICOS» | **«Clasificación de EcoSmart (orientativa)»**, con la línea de alcance según el fármaco | decisión de Maicol |
+| Título del score de amiloidosis | «Score Amiloidosis por ETT (García-Pavía 2021)», también en el PDF | **«Score de amiloidosis por ecocardiografía»** | la cita completa pasa al ⓘ y a Referencias |
+| Qué detecta el score de 10 puntos | no se decía | **cualquier** amiloidosis cardíaca, no sólo por transtiretina, con pared ≥12 mm | **nueva**: Boldrini, Tabla 4, panel IWT y su nota |
+| Qué significa un puntaje por debajo de 8 | no se decía | **no descarta**: con ≥8 la sensibilidad es 46 % | Boldrini, Tabla 4 |
+| De dónde sale el corte de 8 | se citaban los dos documentos sin distinguir | del **documento de posición**, no del artículo | García-Pavía 2021, Tabla 2, folio 1558 |
+| Los cortes «<1» y «≥5» | no se publicaban | se dice que son del score **AL**, que es otro | Boldrini, discusión |
+| Rendimiento por corte de la app | once filas | **sin cambios**: coinciden una por una con la Tabla 4 | verificado, no corregido |
