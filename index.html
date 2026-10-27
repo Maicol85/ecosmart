@@ -20876,7 +20876,7 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
            La fuente es el documento de posicion del Grupo de Trabajo de la ESC sobre Enfermedades
            Miocardicas y Pericardicas (Garcia-Pavia y col., Eur Heart J 2021;42:1554-1568), que no
            es una guia de practica clinica de la ESC. -->
-      🫀 Score Amiloidosis por ETT (García-Pavía 2021)
+      🫀 Score de amiloidosis por ecocardiografía
       <span id="amilo-ett-arrow" style="float:right;transition:transform 0.2s;">▶</span>
     </h2>
   </div>
@@ -20931,12 +20931,12 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
           </div>
 
           <div class="card">
-            <div class="card-title"><span>📊</span> Puntuación multiparamétrica — García-Pavía 2021</div>
+            <div class="card-title"><span>📊</span> Puntuación multiparamétrica</div>
             <div class="criterio-item" id="crit-rwt" onclick="toggleCrit('crit-rwt','ett-rwt',3)">
       <div class="criterio-check" id="chk-rwt">—</div>
       <div style="flex:1">
         <div class="criterio-nombre">Espesor relativo &gt; 0.6</div>
-        <div class="criterio-def">Espesor relativo de pared = (septo + pared posterior) / DDVI (Garcia-Pavia 2021, Tabla 2). Indica hipertrofia concéntrica marcada</div>
+        <div class="criterio-def">Espesor relativo de pared = (septo + pared posterior) / DDVI. Indica hipertrofia concéntrica marcada</div>
       </div>
       <button type="button" class="crit-calc-btn" id="calcbtn-rwt" onclick="event.stopPropagation();amCalcToggle('rwt')">Calcular ▾</button>
       <div class="criterio-pts">+3</div>
@@ -21252,7 +21252,7 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
     </div>
   </div>
   <div class="card">
-    <div class="card-title"><span>📋</span> Score Amiloidosis por ETT — Resumen de puntuación</div>
+    <div class="card-title"><span>📋</span> Score de amiloidosis — resumen de puntuación</div>
     <table style="width:100%;border-collapse:collapse;font-size:13px">
       <thead>
         <tr style="background:var(--bg)">
@@ -43321,16 +43321,27 @@ const VINFO = Object.freeze({
      monoclonales negativas, que es el ALGORITMO y no el score: son dos cosas distintas y
      confundirlas convierte un puntaje ecocardiográfico en un diagnóstico. */
   'amilo-score': {
-    tit: 'Score multiparamétrico — validación y rendimiento',
+    /* ⚠️ ANCHO PROPIO, Y ESTÁ MEDIDO. Con los 300 px de la tarjeta estándar este texto ocupa
+       1013 px de alto y el hueco bajo su globo son 985: se corta —scrollea, no se pierde nada,
+       pero se lee cortado—. A 460 px entra entero. Es el mismo mecanismo `ancho` por clave que
+       usa la tarjeta de las barras de los cortes, y no mueve ni un píxel a las demás. */
+    ancho: 460,
+    tit: 'Score de amiloidosis por ecocardiografía — alcance, validación y rendimiento',
     formula: 'Espesor relativo >0,6 → 3 · E/e\u2019 >11 → 1 · TAPSE ≤19 mm → 2 · strain longitudinal ≤ −13 % → 1 · cociente ápex-base >2,9 → 3',
-    lee: 'El documento de posición de la ESC publica el score SIN validación externa, y lo dice con esas palabras.\n'
-       + 'Su corte es uno solo, 8 puntos, y exige además un espesor parietal inexplicado de 12 mm o más.\n'
-       + 'En ese corte la ESPECIFICIDAD es cercana al 100 % y la SENSIBILIDAD es baja: un puntaje por debajo de 8 no descarta amiloidosis.',
+    lee: 'Es el score «IWT» de Boldrini: detecta amiloidosis cardíaca de CUALQUIER tipo —de cadenas ligeras o por transtiretina— y NO es específico de transtiretina.\n'
+       + 'Se aplica con un espesor parietal inexplicado de 12 mm o más, que es la población en la que se construyó.\n'
+       + 'Con 8 puntos o más la sensibilidad es 46 % y la especificidad 98 %: un puntaje por debajo de 8 NO descarta la enfermedad.\n'
+       + 'El corte de 8 puntos no sale del artículo de Boldrini sino del documento de posición de la ESC, que es el que lo propone junto con el espesor de 12 mm.\n'
+       + 'Los cortes de «menos de 1» y «5 o más» que el artículo propone para descartar y confirmar son del score AL, que es OTRO score —cuatro parámetros y otra cohorte— y no se mezclan con éste.\n'
+       + 'El documento de posición publica el score SIN validación externa, y lo dice con esas palabras.',
     fuente: 'Los cinco parámetros, sus puntos y el corte de 8 · García-Pavía P y col., documento de posición del Grupo de Trabajo de Miocardio y Pericardio de la ESC, Eur Heart J 2021;42:1554-1568, Tabla 2, folio 1558.\n'
           + '«No validado externamente» · el mismo documento, texto del folio 1556.\n'
-          + 'Sensibilidad y especificidad por corte · Boldrini M y col., «Multiparametric echocardiography scores for the diagnosis of cardiac amyloidosis», JACC: Cardiovascular Imaging (manuscrito aceptado), Tabla 4, página 30. Score IWT, cohorte de hipertrofia inexplicada, n = 923: con ≥8 puntos, sensibilidad 46 % y especificidad 98 %.',
-    ojo: 'El 100 % que esta aplicación publica en el módulo del ALGORITMO es otro número y de otra prueba: es el valor predictivo positivo del centellograma con captación grado 2 o 3 cuando las proteínas monoclonales son negativas. Del score lo que se puede decir es que su especificidad es alta; no que un puntaje alto confirme el diagnóstico por sí solo.'
+          + 'Los cinco cortes del score y la sensibilidad y especificidad de cada puntaje · Boldrini M y col., «Multiparametric echocardiography scores for the diagnosis of cardiac amyloidosis», JACC: Cardiovascular Imaging (manuscrito aceptado, sin folio de revista), Tablas 3 y 4, páginas 29 y 30. Score IWT, cohorte de espesor parietal de 12 mm o más, n = 923, área bajo la curva 0,87.\n'
+          + 'Población del artículo · 1187 pacientes consecutivos derivados por sospecha de amiloidosis cardíaca entre 2009 y 2018 a tres centros especializados: el National Amyloidosis Centre de Londres, la Fondazione Toscana Gabriele Monasterio de Pisa y el Hospital Puerta de Hierro de Madrid.',
+    ojo: 'No es una población sin seleccionar, y los propios autores escriben que NO proponen aplicar este algoritmo a la población general como tamizaje de amiloidosis cardíaca sin validarlo antes en una población cardiológica no seleccionada.\n'
+       + 'El 100 % que esta aplicación publica en el módulo del ALGORITMO es otro número y de otra prueba: es el valor predictivo positivo del centellograma con captación grado 2 o 3 cuando las proteínas monoclonales son negativas. Del score lo que se puede decir es que su especificidad es alta; no que un puntaje alto confirme el diagnóstico por sí solo.'
   },
+
   /* El unico globo de esta tanda que escribe texto, y lo escribe porque la fuente esta VISTA: su
      formula, su medicion y su alcance salen del enunciado D6_11 de la guia, no de la memoria. */
   'pul-balik': {
@@ -94923,7 +94934,7 @@ window.ccHoja = ccHoja;
 
 function amiloSecs() {
   return [
-    { k:'ett',  lbl:'Score Amiloidosis por ETT',       tit:'SCORE DE PROBABILIDAD DE AMILOIDOSIS CARDÍACA — GARCÍA-PAVÍA 2021',            gen:amiloTextoETT },
+    { k:'ett',  lbl:'Score Amiloidosis por ETT',       tit:'SCORE DE AMILOIDOSIS POR ECOCARDIOGRAFÍA',            gen:amiloTextoETT },
     { k:'alg',  lbl:'Algoritmo diagnóstico',           tit:'ALGORITMO DIAGNOSTICO DE AMILOIDOSIS',     gen:amiloTextoAlgoritmo },
     { k:'hemo', lbl:'Perfil hemodinámico',             tit:'PERFIL HEMODINAMICO',                      gen:amiloTextoHemo },
     /* `hayDatos` acá no pregunta si hay datos sino si el score APLICA: con FEVI reducida el
@@ -95732,7 +95743,7 @@ function amiloImprimirPDF(cual) {
   // Encabezado con los datos del paciente, igual que el informe
   doc.setFillColor(T[0],T[1],T[2]); doc.rect(0, 0, 210, 22, 'F');
   doc.setFont('helvetica','bold'); doc.setFontSize(12); doc.setTextColor(255,255,255);
-  doc.text(esETT ? 'Score Amiloidosis por ETT - Garcia-Pavia 2021' : 'Algoritmo diagnostico de amiloidosis', 105, 9, { align:'center' });
+  doc.text(esETT ? 'Score de amiloidosis por ecocardiografia' : 'Algoritmo diagnostico de amiloidosis', 105, 9, { align:'center' });
   const _s = id => { const e = document.getElementById(id); return e ? String(e.value || '').trim() : ''; };
   const _f = _s('fecha') ? _s('fecha').split('-').reverse().join('/') : '';
   /* ⚠️ LA IDENTIFICACION SALE DE `pacIdImpreso` (CORTOS9, 2026-10-17), y cierra `J-2`. Este

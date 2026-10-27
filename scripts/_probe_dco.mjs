@@ -1066,6 +1066,85 @@ window.__Y = {
     process.stderr.write('[auto] listo\n');
   }
 
+  /* ── GRUPO `maqam` · 3e/3f: el globo que se corta y los cuatro botones del centellograma ── */
+  if (corre('maqam')) {
+    const r = {};
+    try {
+      await ev(`window.__P.nuevo()`); await ev(`window.__P.calentar()`);
+      /* La pestania se abre por su BOTON real: con showTab programatico la tarjeta de adentro
+         queda sin caja y todo lo que hay dentro informa 0x0 (leccion E-b de este repo). */
+      r.abrir = await ev(`(function(){
+        var b = document.querySelector('[data-mod="amiloidosis"]');
+        if (b) b.click();
+        document.querySelectorAll('#tab-amiloidosis .card-head').forEach(function(h){
+          try { h.click() } catch(e){} });
+        return !!b })()`, 30000);
+      await pausa(500);
+      r.grid = await ev(`(function(){
+        var g = document.getElementById('gamma-grado-grid');
+        if (!g) return 'NO EXISTE';
+        var cs = getComputedStyle(g);
+        var items = Array.prototype.map.call(g.querySelectorAll('.grado-item'), function(it){
+          var b = it.getBoundingClientRect(); return { x: Math.round(b.x), y: Math.round(b.y),
+            w: Math.round(b.width), h: Math.round(b.height) } });
+        var filas = {}; items.forEach(function(i){ filas[i.y] = 1 });
+        return { display: cs.display, cols: cs.gridTemplateColumns, items: items,
+                 renglones: Object.keys(filas).length, anchoCaja: Math.round(g.getBoundingClientRect().width) } })()`, 30000);
+      /* El globo del score: se abre por su boton real y se mide si su contenido ENTRA. */
+      r.globo = await ev(`(function(){
+        var b = document.querySelector('[data-vinfo="amilo-score"]');
+        if (!b) return 'NO HAY BOTON';
+        var rb = b.getBoundingClientRect();
+        if (!rb.width || !rb.height) return { err: 'EL BOTON MIDE 0x0', rb: rb.width + 'x' + rb.height };
+        b.click();
+        var c = document.getElementById('vinfo-card');
+        if (!c || c.style.display === 'none') return 'NO ABRIO';
+        return { w: Math.round(c.getBoundingClientRect().width),
+                 visible: Math.round(c.clientHeight), contenido: Math.round(c.scrollHeight),
+                 seCorta: c.scrollHeight > c.clientHeight + 2,
+                 maxH: c.style.maxHeight, texto: (c.textContent||'').replace(/\s+/g,' ').length } })()`, 30000);
+      r.titulo = await ev(`(function(){
+        var t = null;
+        document.querySelectorAll('#tab-amiloidosis .card-title').forEach(function(x){
+          if (/multiparam/i.test(x.textContent||'')) t = (x.textContent||'').replace(/\s+/g,' ').trim() });
+        return t })()`, 20000);
+      /* ⚠️ Y POR ANCHO, porque a 1440 px ninguno de los dos problemas aparece: hay que encontrar
+         DONDE aparece en vez de arreglar lo que no se reproduce. */
+      r.anchos = {};
+      for (const W of [390, 480, 500, 560, 768, 1024]) {
+        await cdp.send('Emulation.setDeviceMetricsOverride',
+          { width: W, height: 900, deviceScaleFactor: 1, mobile: W < 768 }, sessionId);
+        await pausa(350);
+        r.anchos[W] = await ev(`(function(){
+          var o = {};
+          var g = document.getElementById('gamma-grado-grid');
+          if (g) {
+            var filas = {};
+            g.querySelectorAll('.grado-item').forEach(function(it){ filas[Math.round(it.getBoundingClientRect().y)] = 1 });
+            o.renglones = Object.keys(filas).length;
+            o.cols = getComputedStyle(g).gridTemplateColumns;
+            o.ancho = Math.round(g.getBoundingClientRect().width);
+          } else o.grid = 'NO EXISTE';
+          try { if (typeof vInfoCerrar === 'function') vInfoCerrar(true) } catch(e){}
+          var b = document.querySelector('[data-vinfo="amilo-score"]');
+          if (b) { var rb = b.getBoundingClientRect();
+            if (rb.width && rb.height) { b.click();
+              var c = document.getElementById('vinfo-card');
+              if (c && c.style.display !== 'none') {
+                o.globoVis = Math.round(c.clientHeight); o.globoCont = Math.round(c.scrollHeight);
+                o.globoCorta = c.scrollHeight > c.clientHeight + 2; o.globoMax = c.style.maxHeight;
+                o.globoW = Math.round(c.getBoundingClientRect().width); }
+              else o.globo = 'NO ABRIO'; }
+            else o.globo = 'BOTON 0x0'; }
+          return o })()`, 30000);
+      }
+      await cdp.send('Emulation.clearDeviceMetricsOverride', {}, sessionId);
+      r.errores = await ev(`window.__Y.errores()`);
+    } catch (e) { r.err = e.message }
+    out.grupos.maqam = r;
+    process.stderr.write('[maqam] listo\n');
+  }
+
   /* ── GRUPO `tablas` · las tablas de cardio-onco, celda por celda (tildes del commit 2) ── */
   if (corre('tablas')) {
     const r = {};
