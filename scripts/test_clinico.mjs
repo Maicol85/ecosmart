@@ -7262,7 +7262,11 @@ caso('TC-111', 'Cardio-onco: el rediseño no perdio ni duplico contenido', `
        TC-108, que leen el contenedor entero. */
     ['el contenido oculto SIGUE en textContent, que es de lo que dependen los otros casos',
       ref.indexOf('CTRCD severa') > -1 && ref.indexOf('marco HFA-ICOS') > -1 &&
-      ref.indexOf('Inhibidores del proteasoma') > -1 && ref.indexOf('Seguimiento ecocardiografico') > -1],
+      /* ADAPTADO en la tanda A (commit A-4): la cabecera de esa columna paso a
+         «Seguimiento ecocardiografico» con tilde. Lo que el caso prueba —que el contenido
+         escondido siga en textContent, que es de lo que dependen TC-93, TC-100 y TC-108— no
+         cambia. */
+      ref.indexOf('Inhibidores del proteasoma') > -1 && ref.indexOf('Seguimiento ecocardiográfico') > -1],
     ['cambiar de subtab muestra una y esconde las otras tres',
       (function(){ coRefTab('monit');
         const vis = panes.filter(p => p.style.display !== 'none');
@@ -12412,7 +12416,14 @@ caso('TC-99', 'Cardio-onco: las tablas de referencia no contradicen al clasifica
        diciendo algo. Lo que cambia es QUE dice, y ahora se exige con su clase y su nivel.
        La fila de anti-HER2 se exige igual, porque esa NO se toco. */
     ['con la columna de seguimiento eco, que es la que se consulta',
-      ref.indexOf('desde los 5 anos') > -1 && ref.indexOf('cada 5 anos') > -1 &&
+      /* ADAPTADO en la tanda A (commit A-4): el punto 4a corrigio las tildes de la tabla de
+         monitoreo, y «anos» paso a «años» en los TRES lugares donde esta esa fila. Lo que el
+         caso prueba no cambia —que la columna de seguimiento eco siga diciendo lo que la guia
+         publica, con su clase y su nivel—; cambia COMO esta escrito. Se exige la forma nueva Y
+         se exige que la vieja NO este, para que el caso no vuelva a pasar con el texto sin
+         tilde: una condicion que acepta las dos formas no protege ninguna. */
+      ref.indexOf('desde los 5 años') > -1 && ref.indexOf('cada 5 años') > -1 &&
+      ref.indexOf('desde los 5 anos') < 0 &&
       ref.indexOf('Clase IIa, Nivel C') > -1 &&
       ref.indexOf('Eco a los 5 anos post-RT. Eco a los 10 anos') < 0 &&
       ref.indexOf('Eco cada 3 meses durante el tto') > -1],
@@ -83114,9 +83125,15 @@ caso('TC-512', 'Trabajo H: las citas de aorta por sindrome —Tabla 62 solo Marf
     !ao({ sexo:'F', ao_tub:'35' }).hay && ao({ sexo:'F', ao_tub:'36' }).hay && ao({ sexo:'F', ao_tub:'37' }).hay]);
   ex.push(['SIN sexo cargado se usa el corte del varon, que es el alto',
     !ao({ ao_tub:'37' }).hay && ao({ ao_tub:'40' }).hay]);
+  /* ADAPTADO en la tanda A (commit A-2, punto 2e): la frase quedo «sin sexo cargado se usa el
+     corte del varon (40 mm); con sexo femenino el corte es 36 mm» —sin mayusculas de en medio y
+     sin el «que es el alto», que era largo de mas—. Lo que el caso vigila no cambia: que la fila
+     DIGA que esta usando el corte del varon en vez de callarlo. Se exige la forma nueva Y que la
+     vieja no este, para que no vuelva sin que nada chille. */
   ex.push(['y la fila lo DICE en vez de callarlo',
     ao({ ao_tub:'41' }).filas.indexOf('41 mm') > -1 &&
-    ao({ ao_tub:'41' }).f0.indexOf('SIN SEXO CARGADO') > -1]);
+    ao({ ao_tub:'41' }).f0.indexOf('sin sexo cargado se usa el corte del var') > -1 &&
+    ao({ ao_tub:'41' }).f0.indexOf('SIN SEXO CARGADO') < 0]);
   ex.push(['con sexo femenino el corte publicado es 36 mm',
     ao({ sexo:'F', ao_tub:'37' }).f0.indexOf('36 mm') > -1]);
   /* (D2) LAS DOS SECCIONES DE AORTA COMPARTEN EL DUENO DEL UMBRAL. */
@@ -85127,7 +85144,12 @@ caso('TC-518', 'Tanda I-E4: las tres notas al pie de la tabla de estenosis tricu
   const bAcc1 = bloque(sintRf40, 'estadounidense') || '';
   const bEsc1 = bloque(sintRf40, 'europea') || '';
   ex.push(['(c1) sintomatico con fraccion regurgitante mayor de 40 %: la estadounidense publica su Clase 1 B-NR y la europea su Clase I C',
-    bAcc1.indexOf('Clase 1 \\u00b7 Nivel B-NR') > -1 && bAcc1.indexOf('recomendaci\\u00f3n 9') > -1 &&
+    /* ADAPTADO en la tanda A (commit A-1): la regla R2 saco el numero de recomendacion de la
+       linea visible —salia en las SIETE— y lo dejo UNA vez, en el ⓘ de la seccion. Lo que el
+       caso prueba no cambia: que la rama del sintomatico publique su Clase 1 B-NR con el folio
+       de SU guia. El numero de recomendacion se exige ahora donde vive, en las notas de la seccion. */
+    bAcc1.indexOf('Clase 1 \\u00b7 Nivel B-NR') > -1 && bAcc1.indexOf('folio e182') > -1 &&
+    (sintRf40.notas || []).some(n => String(n && n.txt || n).indexOf('recomendaciones 9, 10, 13 y 14') > -1) &&
     bEsc1.indexOf('Clase I \\u00b7 Nivel C') > -1 && bEsc1.indexOf('folio e50') > -1,
     (bAcc1 + ' ### ' + bEsc1).slice(0, 300)]);
   ex.push(['(c2) los dos bloques son SEPARADOS y cada uno cita SU folio',
@@ -85184,7 +85206,7 @@ caso('TC-518', 'Tanda I-E4: las tres notas al pie de la tabla de estenosis tricu
   ex.push(['(e1) la fraccion de eyeccion del VD corta en 46 % INCLUIDO y es criterio SOLO de la estadounidense',
     cnt(fevd46, 'estadounidense', 'cinco') === 1 && cnt(fevd47, 'estadounidense', 'cinco') === 0 &&
     cnt(fevd46, 'europea', 'cuatro') === 0 &&
-    ((fila(fevd46, 'Fracci' + String.fromCharCode(243) + 'n de eyecci' + String.fromCharCode(243) + 'n del VD') || {}).nota || '').indexOf('S' + String.fromCharCode(211) + 'LO de la gu' + String.fromCharCode(237) + 'a estadounidense') > -1,
+    ((fila(fevd46, 'Fracci' + String.fromCharCode(243) + 'n de eyecci' + String.fromCharCode(243) + 'n del VD') || {}).nota || '').indexOf('s' + String.fromCharCode(243) + 'lo de la gu' + String.fromCharCode(237) + 'a estadounidense') > -1,
     '46=' + cnt(fevd46, 'estadounidense', 'cinco') + ' 47=' + cnt(fevd47, 'estadounidense', 'cinco') +
     ' esc46=' + cnt(fevd46, 'europea', 'cuatro')]);
   /* La presion sistolica del VD por encima de 80 mmHg es criterio SOLO de la europea. */
@@ -86528,10 +86550,19 @@ caso('TC-521', 'Tanda AJ4: la raiz aortica con UN SOLO criterio de dilatacion en
   const rCon = secEv('bic\\u00faspide — conclusi\\u00f3n');
   const lVab = lineasDe(rVab);
   ex.push(['(G1) las CUATRO recomendaciones de la VAB estan en un bloque VISIBLE, no detras del «Ver detalle»',
-    !!rVab && (rVab.bloques || []).length === 1 && !rVab.bloques[0].plegado && lVab.length === 4,
+    /* ADAPTADO en la tanda A (commit A-2): el bloque tiene CINCO lineas, no cuatro. La regla R2
+       saco «(ESC 2024, Tabla 68, folio 119)» de las cuatro recomendaciones —se repetia en cada
+       una— y agrego una QUINTA linea de fuente al final del bloque. Las cuatro recomendaciones
+       siguen siendo cuatro y siguen visibles, que es lo que el caso vigila. */
+    !!rVab && (rVab.bloques || []).length === 1 && !rVab.bloques[0].plegado && lVab.length === 5,
     'bloques=' + ((rVab && rVab.bloques) || []).length + ' lineas=' + lVab.length]);
-  ex.push(['(G2) y cada una lleva su clase, su tabla y su folio',
-    lVab.length === 4 && lVab.every(l => l.indexOf('Tabla 68, folio 119') > -1)
+  ex.push(['(G2) cada recomendacion lleva su clase, y la tabla con su folio sale UNA vez al final',
+    /* ADAPTADO en la tanda A (commit A-2): antes se exigia el folio en las CUATRO; hoy se exige
+       en UNA sola —la de cierre— y se exige que NO este en las otras cuatro, que es lo que la
+       regla R2 pide y lo que impide que la repeticion vuelva sin que nada chille. */
+    lVab.length === 5
+      && lVab.filter(l => l.indexOf('Tabla 68, folio 119') > -1).length === 1
+      && lVab[4].indexOf('Fuente:') === 0
       && lVab.filter(l => l.indexOf('Clase I \\u00b7 Nivel C') === 0).length === 2
       && lVab.filter(l => l.indexOf('Clase IIa \\u00b7 Nivel C') === 0).length === 1,
     JSON.stringify(lVab.map(l => l.slice(0, 40)))]);
@@ -87452,9 +87483,16 @@ caso('TC-528', 'Tanda AJ6-2: la Evidencia de la Fallot reparada con las recomend
   const hijos = cuerpo ? [].slice.call(cuerpo.children) : [];
   const iGrid = hijos.indexOf(grid);
   const txt = (S.textContent || '').replace(/\\s+/g, ' ');
-  ex.push(['(B1) los dos bloques de recomendacion van ANTES de la tabla de filas',
-    iGrid >= 2 && hijos.slice(0, iGrid).some(h => /estadounidense/.test(h.textContent || ''))
-      && hijos.slice(0, iGrid).some(h => /europea/.test(h.textContent || '')),
+  /* ⚠️ ADAPTADO en la tanda A (commit A-1), Y ES UNA REVERSION DECLARADA. Este caso nacio en el
+     AJ6-2 exigiendo las recomendaciones ARRIBA de la tabla, que era la inversion que ese commit
+     introdujo para Fallot. DECISION DE MAICOL en la tanda A: las ocho secciones compactas
+     vuelven al orden de las otras siete del panel —datos, lo que falta, recomendaciones,
+     teoria, bibliografia—, porque pesa mas que las quince se lean igual. Lo que el caso vigila
+     pasa a ser lo contrario, y con la misma fuerza: los dos bloques van DESPUES de la tabla y
+     la grilla es lo primero del cuerpo. */
+  ex.push(['(B1) los dos bloques de recomendacion van DESPUES de la tabla de filas',
+    iGrid === 0 && hijos.slice(iGrid + 1).some(h => /estadounidense/.test(h.textContent || ''))
+      && hijos.slice(iGrid + 1).some(h => /europea/.test(h.textContent || '')),
     'iGrid=' + iGrid + ' hijos=' + hijos.length]);
   ex.push(['(B2) los dos bloques siguen separados y la leyenda de que NO se combinan sigue ahi',
     /estadounidense/.test(txt) && /europea/.test(txt) && txt.indexOf('no se combinan') > -1,
@@ -87471,10 +87509,18 @@ caso('TC-528', 'Tanda AJ6-2: la Evidencia de la Fallot reparada con las recomend
      ⚠️ SE LEE LA REGLA, NO LA GEOMETRIA. La ventana del arnes abre por debajo de 1200 px, asi
      que la media query NO se aplica mientras el caso corre: medir el ancho de las columnas aca
      mide el arnes y no la aplicacion. Es la leccion de TC-522 (A4c), de la tanda AJ5. */
-  ex.push(['(C1) la seccion marca su grilla como compacta, y es la UNICA del panel que lo hace',
+  /* ⚠️ ADAPTADO en la tanda A (commit A-4), Y EL MOTIVO ES QUE ESTA CONDICION NO PODIA FALLAR.
+     Decia «es la UNICA del panel que lo hace» y contaba data-ind-compacta en el DOM: como
+     este escenario despierta UNA sola seccion, el conteo daba 1 y la condicion pasaba en verde
+     aunque hubiera ocho secciones compactas declaradas en el codigo —y desde la tanda G ya eran
+     ocho—. Un chequeo que no puede fallar es cobertura que no existe. Hoy mide lo que de verdad
+     le toca a ESTE escenario: que la seccion de Fallot marque su grilla, y que la unica grilla
+     compacta DESPIERTA sea la suya. El conteo de las ocho lo mide TC-537, con un escenario que
+     las despierta a todas. */
+  ex.push(['(C1) la seccion marca su grilla como compacta, y es la unica compacta DESPIERTA en este escenario',
     !!grid && grid.getAttribute('data-ind-compacta') === '1'
       && document.querySelectorAll('#indic-cuerpo [data-ind-compacta]').length === 1,
-    'compacta=' + (grid ? grid.getAttribute('data-ind-compacta') : '?') + ' total=' +
+    'compacta=' + (grid ? grid.getAttribute('data-ind-compacta') : '?') + ' despiertas=' +
       document.querySelectorAll('#indic-cuerpo [data-ind-compacta]').length]);
   ex.push(['(C2) trae las dos columnas: filas del eco y preguntas que el eco no mide',
     !!grid && grid.getAttribute('data-ind-dos') === '1'
@@ -87531,19 +87577,24 @@ caso('TC-528', 'Tanda AJ6-2: la Evidencia de la Fallot reparada con las recomend
       ciclo = { sigue: !!S2, abierto: !!(i2 && i2.open),
                 marcado: !!(b2 && b2.getAttribute('aria-pressed') === 'true'),
                 cambio: antes !== ((S2 ? S2.textContent : '') || '').replace(/\s+/g, ' '),
-                recomArriba: iG2 >= 2,
+                /* ADAPTADO en la tanda A (commit A-1): el orden se invirtio por decision de
+                   Maicol, asi que lo que se vigila es que las recomendaciones queden ABAJO y la
+                   grilla sea lo primero del cuerpo. */
+                recomAbajo: iG2 === 0,
                 infos: S2 ? S2.querySelectorAll('[data-ind-info]').length : 0 };
     }
   }
-  ex.push(['(D2) contestar una pregunta queda MARCADA, repinta el panel, no cierra el ⓘ que el medico tenia abierto y deja las recomendaciones arriba',
+  ex.push(['(D2) contestar una pregunta queda MARCADA, repinta el panel, no cierra el ⓘ que el medico tenia abierto y deja las recomendaciones ABAJO',
     !!ciclo && ciclo.sigue && ciclo.abierto && ciclo.marcado && ciclo.cambio
-      && ciclo.recomArriba && ciclo.infos === 16,
+      && ciclo.recomAbajo && ciclo.infos === 16,
     JSON.stringify(ciclo)]);
 
   /* == (E) CONTROL NEGATIVO: LAS OTRAS SECCIONES NO SE TOCARON ============================== */
   const otras = [].slice.call(document.querySelectorAll('#indic-cuerpo > details'));
   const conCompacta = otras.filter(d => d.querySelector('[data-ind-compacta]'));
-  ex.push(['(E1) CONTROL NEGATIVO: ninguna otra seccion del panel quedo compacta',
+  /* ADAPTADO en la tanda A (commit A-4): el rotulo decia «del panel» y lo que mide es «de las
+     DESPIERTAS en este escenario». Ver (C1). */
+  ex.push(['(E1) CONTROL NEGATIVO: ninguna otra seccion DESPIERTA en este escenario quedo compacta',
     conCompacta.length === 1 && /Fallot/.test((conCompacta[0].querySelector('summary') || {}).textContent || ''),
     'n=' + conCompacta.length + ' secs=' + otras.length]);
   const diast = seccion(/diast|Diast/);
@@ -87822,7 +87873,8 @@ caso('TC-532', 'Tanda J: el taponamiento con el colapso de AD DIASTOLICO y su du
   ex.push(['(B1) la Evidencia de derrame existe y cita la ESC 2025 de pericarditis',
     !!evP0 && evP0.biblio.indexOf('escPeri2025') > -1, evP0 ? JSON.stringify(evP0.biblio) : 'NO HAY SECCION']);
   ex.push(['(B2) sin contestar NO hay recomendacion emitida, y el bloque de lo que falta lo dice',
-    !!evP0 && evP0.txt.indexOf('Clase I \\u00b7 Nivel C \\u2014 La gu\\u00eda RECOMIENDA la pericardiocentesis') < 0
+    /* ADAPTADO en la tanda A: regla R3, «RECOMIENDA» -> «recomienda». */
+    !!evP0 && evP0.txt.indexOf('Clase I \\u00b7 Nivel C \\u2014 La gu\\u00eda recomienda la pericardiocentesis') < 0
       && evP0.txt.indexOf('Lo que falta contestar') > -1,
     evP0 ? evP0.txt.slice(0, 160) : '—']);
   [['peri.tapoclin','si'],['peri.sintomas','si'],['peri.etio','no'],['peri.percut','no'],['peri.recidiva','si']]
@@ -87833,19 +87885,23 @@ caso('TC-532', 'Tanda J: el taponamiento con el colapso de AD DIASTOLICO y su du
      «Clase I · Nivel C» o «drenaje pericárdico quirúrgico» da positivo sobre la bibliografia
      aunque no se haya emitido una sola recomendacion. La primera version de este caso contaba
      ocurrencias y por eso media cuatro «Clase I» con CERO filas emitidas. */
-  const B_PERI = 'Clase I \\u00b7 Nivel C \\u2014 La gu\\u00eda RECOMIENDA la pericardiocentesis, guiada por ecocardiograf\\u00eda';
+  /* ADAPTADO en la tanda A (commit A-2): la regla R3 saco las mayusculas de en medio
+     («RECOMIENDA» -> «recomienda») y la regla R4 saco de esta linea la reenumeracion de las
+     tres condiciones, que las filas de arriba ya preguntan una por una. */
+  const B_PERI = 'Clase I \\u00b7 Nivel C \\u2014 La gu\\u00eda recomienda la pericardiocentesis, guiada por ecocardiograf\\u00eda';
   const B_DREN = 'Clase I \\u00b7 Nivel C \\u2014 Cuando la pericardiocentesis percut\\u00e1nea no es factible';
   const B_VENT = 'Clase I \\u00b7 Nivel C \\u2014 En el derrame que recidiva pese al tratamiento m\\u00e9dico';
   ex.push(['(B3) contestado, emite las TRES filas de la Recommendation Table 12 con su clase, su nivel y su folio',
     !!evP && evP.txt.indexOf(B_PERI) > -1 && evP.txt.indexOf(B_DREN) > -1 && evP.txt.indexOf(B_VENT) > -1,
     evP ? JSON.stringify([evP.txt.indexOf(B_PERI), evP.txt.indexOf(B_DREN), evP.txt.indexOf(B_VENT)]) : '—']);
   ex.push(['(B4) el diagnostico de taponamiento se publica como CLINICO, sin umbral automatico',
-    !!evP && /El diagn\\u00f3stico de taponamiento es CL\\u00cdNICO: la gu\\u00eda lo hace por la combinaci\\u00f3n/.test(evP.txt)
+    !!evP && /El diagn\\u00f3stico de taponamiento es cl\\u00ednico: la gu\\u00eda lo hace por la combinaci\\u00f3n/.test(evP.txt)
       && evP.txt.indexOf('folio 62') > -1,
     evP ? 'ok' : '—']);
   ex.push(['(B5) la fila de los colapsos de AI y de VI va SIN corchete y lo declara como criterio de EcoSmart',
     !!evP && /Colapso de la aur\\u00edcula izquierda y del ventr\\u00edculo izquierdo/.test(evP.txt)
-      && /la Tabla 17 NO los menciona/.test(evP.txt), evP ? 'ok' : '—']);
+      /* ADAPTADO en la tanda A: regla R3, «NO los menciona» -> «no los menciona». */
+      && /la Tabla 17 no los menciona/.test(evP.txt), evP ? 'ok' : '—']);
   cerrarPanel();
 
   /* == (C) CONSTRICCION ===================================================================== */
@@ -87921,18 +87977,22 @@ caso('TC-532', 'Tanda J: el taponamiento con el colapso de AD DIASTOLICO y su du
 
   /* == (D) EVIDENCIA DE CONSTRICCION ======================================================== */
   abrirPanel();
-  const D_CAT = 'Clase IIa \\u00b7 Nivel C \\u2014 Con la imagen multimodal NO concluyente';
+  /* ADAPTADO en la tanda A (commit A-1): regla R3, «NO concluyente» -> «no concluyente». */
+  const D_CAT = 'Clase IIa \\u00b7 Nivel C \\u2014 Con la imagen multimodal no concluyente';
   const evC0 = evSec('Constricci\\u00f3n peric\\u00e1rdica');
   ex.push(['(D1) la Evidencia de constriccion existe y cita la ESC 2025',
     !!evC0 && evC0.biblio.indexOf('escPeri2025') > -1, evC0 ? JSON.stringify(evC0.biblio) : 'NO HAY SECCION']);
   ex.push(['(D2) publica la imagen multimodal Clase I · Nivel C con su tabla y su folio',
-    !!evC0 && /Clase I \\u00b7 Nivel C \\u2014 La gu\\u00eda RECOMIENDA la imagen multimodal/.test(evC0.txt)
+    /* ADAPTADO en la tanda A: regla R3, «RECOMIENDA» -> «recomienda». */
+    !!evC0 && /Clase I \\u00b7 Nivel C \\u2014 La gu\\u00eda recomienda la imagen multimodal/.test(evC0.txt)
       && evC0.txt.indexOf('Recommendation Table 24, folio 64') > -1, evC0 ? 'ok' : '—']);
   ex.push(['(D3) LEE los tramos del e-prima medial ya cargados y explica los tres en su globo',
-    !!evC0 && /la gu\\u00eda parte este valor en TRES/.test(evC0.txt)
+    /* ADAPTADO en la tanda A: regla R3, «en TRES» -> «en tres». */
+    !!evC0 && /la gu\\u00eda parte este valor en tres/.test(evC0.txt)
       && evC0.txt.indexOf('formas mixtas') > -1, evC0 ? 'ok' : '—']);
   ex.push(['(D4) y declara el redondeo de la Figura S1 a 0,8 al lado del 0,78',
-    !!evC0 && /REDONDEA a 0,8/.test(evC0.txt) && evC0.txt.indexOf('hoja 6') > -1, evC0 ? 'ok' : '—']);
+    /* ADAPTADO en la tanda A: regla R3, «REDONDEA» -> «redondea». */
+    !!evC0 && /redondea a 0,8/.test(evC0.txt) && evC0.txt.indexOf('hoja 6') > -1, evC0 ? 'ok' : '—']);
   /* Por la MISMA razon que (B3): la bibliografia de la seccion nombra la fila IIa con su clase. */
   ex.push(['(D5) sin contestar, el cateterismo NO se emite',
     !!evC0 && evC0.txt.indexOf(D_CAT) < 0,
@@ -87946,7 +88006,8 @@ caso('TC-532', 'Tanda J: el taponamiento con el colapso de AD DIASTOLICO y su du
   clic('constr.imagen', 'si');
   const evC2 = evSec('Constricci\\u00f3n peric\\u00e1rdica');
   ex.push(['(D7) CONTROL NEGATIVO: con la imagen concluyente dice que NO corresponde, y no emite el IIa',
-    !!evC2 && /el cateterismo NO corresponde por esta gu\\u00eda/.test(evC2.txt)
+    /* ADAPTADO en la tanda A: regla R3, «NO corresponde» -> «no corresponde». */
+    !!evC2 && /el cateterismo no corresponde por esta gu\\u00eda/.test(evC2.txt)
       && evC2.txt.indexOf(D_CAT) < 0,
     evC2 ? 'idx=' + evC2.txt.indexOf(D_CAT) : '—']);
   ex.push(['(D8) las filas sin fuente van SIN corchete y lo dicen: e-prima lateral, E/e-prima y el recuento',
@@ -87995,13 +88056,20 @@ caso('TC-532', 'Tanda J: el taponamiento con el colapso de AD DIASTOLICO y su du
     !!evV && evV.biblio.indexOf('vexus2020') > -1, evV ? JSON.stringify(evV.biblio) : 'NO HAY SECCION']);
   ex.push(['(F2) publica la asociacion con la injuria renal aguda con sus numeros, y SIN clase ni nivel',
     !!evV && evV.txt.indexOf('3,69') > -1 && evV.txt.indexOf('6,37') > -1
-      && /No hay clase ni nivel de recomendaci\\u00f3n/.test(evV.txt)
+      /* ADAPTADO en la tanda A (commit A-1): la regla R1 saco de la pantalla la nota «No hay
+         clase ni nivel de recomendacion…» y la dejo en el ⓘ de la seccion, con las palabras
+         «La fuente no publica clase ni nivel de recomendacion». Lo que el caso vigila es lo
+         mismo: que la seccion DECLARE que no hay escala y que no publique ninguna clase. */
+      && /no publica clase ni nivel de recomendaci\\u00f3n/.test(evV.txt)
       && evV.txt.indexOf('Clase I') < 0 && evV.txt.indexOf('Clase IIa') < 0,
     evV ? 'ok' : '—']);
   ex.push(['(F3) y las tres frases de manejo viven ACA, rotuladas criterio de EcoSmart y sin corchete',
     !!evV && evV.txt.indexOf('Criterio de EcoSmart \\u2014 grado 1: monitorizar') > -1
       && evV.txt.indexOf('Criterio de EcoSmart \\u2014 grado 3: considerar descongesti\\u00f3n activa') > -1
-      && /El art\\u00edculo NO da pasos por grado/.test(evV.txt), evV ? 'ok' : '—']);
+      /* ADAPTADO en la tanda A (commit A-1): regla R3, «NO da pasos» -> «no da pasos». La frase
+         quedo acortada —el registro de que esas tres frases salieron del papel el 24/10/2026
+         vive en docs/fuentes/FUENTES.md— pero sigue declarando lo mismo en pantalla. */
+      && /El art\\u00edculo no da pasos por grado/.test(evV.txt), evV ? 'ok' : '—']);
 
   /* == (G) LAS FICHAS DE REFERENCIAS ======================================================== */
   const ficha = (k) => { const d = document.getElementById('ref-' + k);
@@ -88529,16 +88597,25 @@ caso('TC-533', 'Tanda J2: el indice cardiaco en 2,19/2,2/2,21 con su globo y la 
   ex.push(['(D1) la Evidencia de hemodinamica existe y cita la ASE 2025 de corazon derecho',
     !!evH && evH.biblio.indexOf('aseDer2025') > -1, evH ? JSON.stringify(evH.biblio) : 'NO HAY SECCION']);
   ex.push(['(D2) publica las DOS recomendaciones del folio 167 sobre que informar, sin clase ni nivel inventados',
-    !!evH && /recomienda EVITAR informar de rutina la presi\\u00f3n capilar pulmonar estimada/.test(evH.txt)
-      && /NO se recomienda para uso de rutina/.test(evH.txt)
+    /* ADAPTADO en la tanda A (commit A-2): reglas R1 y R3. Las dos recomendaciones siguen
+       publicadas y con las mismas palabras salvo las mayusculas de en medio; la nota de que ese
+       documento no usa la escala de clase y nivel salio de la pantalla y vive en el ⓘ de la
+       seccion, refundida con los OTROS DOS motivos por los que esta seccion no gradua. */
+    !!evH && /recomienda evitar informar de rutina la presi\\u00f3n capilar pulmonar estimada/.test(evH.txt)
+      && /no se recomienda para uso de rutina/.test(evH.txt)
       && /no sustituyen a la valoraci\\u00f3n hemodin\\u00e1mica invasiva/.test(evH.txt)
-      && /No llevan clase ni nivel de recomendaci\\u00f3n/.test(evH.txt),
+      && /Ninguna l\\u00ednea de esta secci\\u00f3n lleva clase ni nivel/.test(evH.txt),
     evH ? evH.txt.slice(0, 200) : '-']);
   ex.push(['(D3) declara que el INDICE CARDIACO no figura en la tabla del folio 162',
-    !!evH && /El \\u00cdNDICE CARD\\u00cdACO no figura en esa tabla/.test(evH.txt), evH ? 'si' : '-']);
+    /* ADAPTADO en la tanda A (commit A-2): esa linea del bloque de formulas decia palabra por
+       palabra lo que ya dice el ⓘ de la fila «Indice cardiaco», al lado de su valor, asi que la
+       regla R4 la retiro. La declaracion sigue, en el ⓘ de la fila que le corresponde. */
+    !!evH && /no publica el \\u00edndice card\\u00edaco/.test(evH.txt)
+      && /la definici\\u00f3n del indexado/.test(evH.txt), evH ? 'si' : '-']);
   ex.push(['(D4) y el alcance del Forrester con sus dos bordes, citando el folio 1125',
-    !!evH && evH.txt.indexOf('folio 1125') > -1 && /POR DEBAJO de 2,2/.test(evH.txt)
-      && /SUPERA los 18 mmHg/.test(evH.txt) && evH.biblio.indexOf('braunwald2016') > -1,
+    /* ADAPTADO en la tanda A (commit A-2): regla R3, «POR DEBAJO» y «SUPERA» a minuscula. */
+    !!evH && evH.txt.indexOf('folio 1125') > -1 && /por debajo de 2,2/.test(evH.txt)
+      && /supera los 18 mmHg/.test(evH.txt) && evH.biblio.indexOf('braunwald2016') > -1,
     evH ? JSON.stringify(evH.biblio) : '-']);
   ex.push(['(D5) las CUATRO fuentes de la seccion estan en su bibliografia',
     !!evH && ['aseDer2025','braunwald2016','escErs2022','sacShock2024','grossman2016']
@@ -88559,9 +88636,14 @@ caso('TC-533', 'Tanda J2: el indice cardiaco en 2,19/2,2/2,21 con su globo y la 
   ex.push(['(E2) «considerar biopsia» y «control en 4 sem» tampoco -los retiro el R2-E6-',
     txtCO.indexOf('considerar biopsia') < 0 && txtCO.indexOf('control en 4 sem') < 0, 'ausentes']);
   ex.push(['(E3) el seguimiento tras radioterapia dice «desde los 5 anos» y «cada 5 anos» en los TRES lugares',
-    (txtCO.match(/desde los 5 anos/g) || []).length === 3
+    /* ADAPTADO en la tanda A (commit A-4): «anos» paso a «años». El DENOMINADOR no se toca
+       —siguen siendo los TRES lugares, que es lo que este caso vigila— y se agrega que la forma
+       sin tilde ya no aparece en ninguno. */
+    (txtCO.match(/desde los 5 años/g) || []).length === 3
+      && (txtCO.match(/desde los 5 anos/g) || []).length === 0
       && txtCO.indexOf('5 anos post-RT. Eco a los 10 anos') < 0,
-    'ocurrencias=' + (txtCO.match(/desde los 5 anos/g) || []).length]);
+    'con tilde=' + (txtCO.match(/desde los 5 años/g) || []).length
+      + ' sin tilde=' + (txtCO.match(/desde los 5 anos/g) || []).length]);
   ex.push(['(E4) y lleva su clase y su nivel con el folio de la tabla de recomendaciones',
     txtCO.indexOf('Clase IIa, Nivel C') > -1 && txtCO.indexOf('folio 4314') > -1, 'si']);
   ex.push(['(E5) CONTROL NEGATIVO: lo que dejo el R2 sigue intacto -GLS >15%, 250 mg/m2, cada 2 ciclos y el aviso del HFA-ICOS-',
@@ -88579,7 +88661,8 @@ caso('TC-533', 'Tanda J2: el indice cardiaco en 2,19/2,2/2,21 con su globo y la 
       && evC.txt.indexOf('folio 4314') > -1 && evC.txt.indexOf('folio 4289') > -1,
     evC ? 'si' : '-']);
   ex.push(['(E8) declara que las Tablas 3, 4 y 5 son DEFINICIONES y no llevan clase',
-    !!evC && /Son DEFINICIONES, no recomendaciones/.test(evC.txt)
+    /* ADAPTADO en la tanda A (commit A-1): regla R3, «DEFINICIONES» -> «definiciones». */
+    !!evC && /Son definiciones, no recomendaciones/.test(evC.txt)
       && /no publica clase ni nivel/.test(evC.txt), evC ? 'si' : '-']);
   ex.push(['(E9) y dice lo que NO escribe por no tener fuente: los plazos de 2 a 4 semanas y la vigilancia estrecha',
     !!evC && /plazos de 2 a 4 semanas/.test(evC.txt) && /vigilancia estrecha/.test(evC.txt),
@@ -88682,11 +88765,14 @@ caso('TC-533', 'Tanda J2: el indice cardiaco en 2,19/2,2/2,21 con su globo y la 
     E1.txt.indexOf('Escenario 1') > -1 && E1.txt.indexOf('Lo que falta contestar') < 0,
     E1.txt.slice(0, 150)]);
   ex.push(['(G5) captacion grado 2 o 3 con monoclonales negativas -> escenario 2, ATTR sin histologia',
-    E2.txt.indexOf('Escenario 2') > -1 && /SE PUEDE DIAGNOSTICAR sin histolog/.test(E2.txt)
+    /* ADAPTADO en la tanda A (commit A-1): regla R3. */
+    E2.txt.indexOf('Escenario 2') > -1 && /se puede diagnosticar sin histolog/.test(E2.txt)
       && /estudio gen\\u00e9tico/.test(E2.txt), E2.txt.slice(0, 150)]);
   ex.push(['(G6) captacion GRADO 1 con negativas -> escenario 2, pero el diagnostico no invasivo NO es posible',
-    E2g1.txt.indexOf('Escenario 2') > -1 && E2g1.txt.indexOf('GRADO 1') > -1
-      && /no invasivo NO es posible/.test(E2g1.txt) && /SE PUEDE DIAGNOSTICAR sin histolog/.test(E2g1.txt) === false,
+    /* ADAPTADO en la tanda A (commit A-1): regla R3. El CONTROL de que la rama del grado 2 NO
+       se publique en la del grado 1 se conserva, con la frase en minuscula. */
+    E2g1.txt.indexOf('Escenario 2') > -1 && E2g1.txt.indexOf('grado 1') > -1
+      && /no invasivo no es posible/.test(E2g1.txt) && /se puede diagnosticar sin histolog/.test(E2g1.txt) === false,
     E2g1.txt.slice(0, 180)]);
   ex.push(['(G7) sin captacion con alguna anormal -> escenario 3, descartar AL sin demora',
     E3.txt.indexOf('Escenario 3') > -1 && /cadenas ligeras/.test(E3.txt), E3.txt.slice(0, 150)]);
@@ -88747,7 +88833,13 @@ caso('TC-533', 'Tanda J2: el indice cardiaco en 2,19/2,2/2,21 con su globo y la 
   ex.push(['(H7) lo que no tiene fuente lleva el chip CRITERIO DE ECOSMART, no una cita',
     fichaPul.indexOf('CRITERIO DE ECOSMART') > -1 && /TRES zonas por hemit\\u00f3rax/.test(fichaPul), 'si']);
   ex.push(['(H8) la ficha declara por que NO hay Evidencia: el consenso no publica clase ni nivel',
-    /no abre una secci\\u00f3n de Evidencia para la ecograf\\u00eda pulmonar/.test(fichaPul)
+    /* ADAPTADO en la tanda A (commit A-3): el punto 3b retiro de la ficha la reserva interna
+       —«hacerlo seria inventarla. Por el mismo motivo la aplicacion no abre una seccion de
+       Evidencia»—, que es una nota de trabajo y vive en docs/fuentes/FUENTES.md. El HECHO que la
+       sostiene sigue en la ficha, en su ⓘ: que ese consenso no publica clase ni nivel y que sus
+       enunciados llevan grado de acuerdo entre los panelistas. Y que no hay seccion de Evidencia
+       de eco pulmonar lo sigue midiendo (H10), que es donde corresponde. */
+    /no publica clase ni nivel/.test(fichaPul)
       && /grado de acuerdo entre los panelistas/.test(fichaPul), 'si']);
   ex.push(['(H9) EL PULSO PULMONAR NO SE AGREGO',
     fichaPul.indexOf('pulso pulmonar') < 0 && fichaPul.indexOf('Pulso pulm') < 0, 'ausente']);
@@ -89369,7 +89461,9 @@ caso('TC-534', 'Tanda G: la grilla de drogas sin la columna vacia y el acordeon 
   ex.push(['(F5) y ya publica «Segun la cirugia, tambien mirar…» con la revascularizacion y sus folios',
     !P1.err && P1.txt.indexOf('Según la cirugía') > -1
       && P1.txt.indexOf('folio 716') > -1 && P1.txt.indexOf('folio 707') > -1
-      && P1.txt.indexOf('NO publica clase ni nivel') > -1,
+      /* ADAPTADO en la tanda A (commit A-2): regla R3, «NO publica» -> «no publica». Los dos
+         folios siguen en la seccion, en su ⓘ, y siguen SIGUIENDO a la cirugia cargada. */
+      && P1.txt.indexOf('no publica clase ni nivel') > -1,
     P1.err || P1.txt.slice(P1.txt.indexOf('Según la cirugía'), P1.txt.indexOf('Según la cirugía') + 200)]);
   /* Se contesta apretando los BOTONES de verdad, que es lo unico que el panel escucha. */
   const clinClic = (clave, val) => { const b = document.querySelector(
@@ -89404,7 +89498,8 @@ caso('TC-534', 'Tanda G: la grilla de drogas sin la columna vacia y el acordeon 
   indicCerrar();
   ex.push(['(F7b) con UN solo criterio de cinco NO sale ninguna recomendacion de la Tabla 22, y se dice',
     !PU.err && PU.txt.indexOf('se cumplen 1 de los cinco') > -1
-      && PU.txt.indexOf('menos de los DOS que la guía pide') > -1
+      /* ADAPTADO en la tanda A (commit A-2): regla R3, «los DOS» -> «los dos». */
+      && PU.txt.indexOf('menos de los dos que la guía pide') > -1
       && PU.txt.indexOf('Clase I · Nivel B') === -1,
     PU.err || PU.txt.slice(0, 520)]);
   pon({ pop_cx_tipo:'valvular' });
@@ -89428,8 +89523,13 @@ caso('TC-534', 'Tanda G: la grilla de drogas sin la columna vacia y el acordeon 
     'abre=' + abreRef + ' sub=' + (typeof REF_SUBTAB !== 'undefined'
       ? Object.keys(REF_SUBTAB).filter(k => REF_SUBTAB[k].indexOf('pop') >= 0).join(',') : 'SIN')]);
   ex.push(['(G2) y sus DIECISEIS filas traen el folio de cada fuente, vistas en el PDF original',
+    /* ADAPTADO en la tanda A (commit A-3): el punto 3a partio la columna «Fuente» en una linea
+       de «autor, revista, año» y un ⓘ con la hoja, la pagina, el folio y el apartado, asi que la
+       cita de Busse dejo de ser la cadena contigua «Crit Care 2020;24:36» y hoy es «Crit Care,
+       2020» en la linea y «24:36 · pagina 1 de 11» en el globo. Se exigen las DOS mitades por
+       separado. Las dieciseis filas y los once localizadores siguen todos. */
     (fPop ? fPop.querySelectorAll('table tr').length : 0) === 17
-      && ['ivaf075','Crit Care 2020;24:36','folio 701','folio 716','folio 707','folio 152',
+      && ['ivaf075','Crit Care','24:36','folio 701','folio 716','folio 707','folio 152',
           'folio 58','folio 59','D6_11','SAC 2024','ESC/ERS 2022'].every(k => tPop.indexOf(k) > -1),
     'filas=' + (fPop ? fPop.querySelectorAll('table tr').length : 'NO') + ' | ' +
     ['ivaf075','folio 701','folio 716','folio 707','folio 152','folio 58','D6_11'].filter(k => tPop.indexOf(k) < 0).join(',')]);
@@ -90137,7 +90237,10 @@ caso('TC-535', 'Tanda AJ7: la linea de Fallot del EN SUMA sin la IP y el resumen
   ex.push(['(I4) DENOMINADOR: la Evidencia de VExUS despierta y tiene texto',
     secI.length > 300, 'largo=' + secI.length]);
   ex.push(['(I5) y dice la POBLACION del estudio en su propia linea',
-    /La graduación se desarrolló en 145 pacientes de CIRUGÍA CARDÍACA, con 706 valoraciones/.test(secI),
+    /* ADAPTADO en la tanda A (commit A-1): regla R3, «CIRUGÍA CARDÍACA» -> «cirugía cardíaca».
+       La linea sigue siendo la PRIMERA del bloque y sigue diciendo la poblacion, que es lo que
+       la tanda AJ7 puso ahi y lo que este caso vigila. */
+    /La graduación se desarrolló en 145 pacientes de cirugía cardíaca, con 706 valoraciones/.test(secI),
     secI.indexOf('145 pacientes') >= 0 ? 'si' : 'NO ESTA']);
 
   /* ══ (J) CARDIO-ONCOLOGIA — el plazo sin fuente ══════════════════════════════════════════ */
@@ -90500,6 +90603,396 @@ caso('TC-536', 'Eco Estres sin interfaz no llega a ninguna superficie firmada: c
     ] };
   })();
 `);
+
+/* -- TC-537 ---------------------------------------------------------------------------------
+   LA TANDA A: TEXTOS DE EVIDENCIA Y DE REFERENCIAS. Esta tanda no cambio ningun dato clinico
+   -ni un corte, ni un umbral, ni una clase, ni un nivel, ni una tabla, ni un folio-: movio
+   texto al globo ⓘ y a `docs/fuentes/FUENTES.md`, lo acorto, le saco las mayusculas de en
+   medio y dejo cada contenido UNA sola vez por seccion. Lo que este caso vigila es justamente
+   lo que un cambio de redaccion puede romper sin que nada chille:
+     (a) que ninguna nota de TRABAJO se lea en la pantalla, y que ningun nombre interno del
+         codigo este en el archivo -ni dentro del globo-;
+     (b) que cada recomendacion movida conserve su clase y su nivel;
+     (c) que ningun dato clinico se haya perdido: lo que salio de una linea visible esta en el
+         ⓘ de su fila o en la bibliografia de su seccion;
+     (d) que el informe en los tres estilos, el EN SUMA y el PDF no lleven NADA del panel.
+
+   ⚠️ LA DISTINCION QUE HACE QUE ESTE CASO SIRVA ES «VISIBLE» CONTRA «EN EL GLOBO». `textContent`
+      incluye el contenido de un <details> CERRADO, asi que medir «la frase no esta» sobre el
+      textContent del panel daria verde tambien si la frase siguiera a la vista: el ⓘ es
+      justamente el destino de casi todo lo que esta tanda movio. `VIS()` clona el nodo y le saca
+      a cada <details> cerrado todo lo que no sea su <summary>, que es lo que el medico ve sin
+      hacer un clic. `TODO()` es el textContent completo, y es el que (c) usa para probar que el
+      dato NO se perdio. Sin las dos, el caso o no prueba nada o prueba lo contrario.
+
+   ⚠️ Y LOS CONTROLES NEGATIVOS NO SON DECORACION. El barrido de mayusculas y el de notas podria
+      haberse llevado cosas que SI tienen que estar: la leyenda de que las dos guias de Fallot no
+      se combinan, el rotulo «definicion propuesta» de la vasoplejia y la frase «leve como
+      minimo» del strain del VD. Y hay DOS controles de FRONTERA: la capsula de `calcHemo` tiene
+      que seguir diciendo «Requiere IC + PCP estimada» -porque su texto viaja al informe, a la
+      hoja de ETT Avanzado del PDF y al PPT, y esta tanda NO la toca- y el globo del glosario
+      `hemo-forr`, que esta tanda no alcanza, tiene que seguir con sus mayusculas: si se hubieran
+      ido, el barrido habria sido un minusculizado global y no el cambio acotado que se pidio. */
+caso('TC-537', 'Tanda A: las ocho Evidencias compactas despiertas a la vez sin una sola nota de trabajo VISIBLE ni un nombre interno del codigo, cada recomendacion movida con su clase y su nivel, cada dato que salio de una linea en el ⓘ o en la bibliografia de su seccion, el informe en los tres estilos y el EN SUMA y el PDF sin nada del panel, y los CONTROLES de lo que no se podia ir y de las dos fronteras que la tanda no toca', `
+  return (async () => {
+    const ex = [];
+    const N = s => String(s == null ? '' : s).replace(/\\s+/g, ' ').trim();
+    const VIS = el => { if (!el) return '';
+      const c = el.cloneNode(true);
+      [].slice.call(c.querySelectorAll('details:not([open])')).forEach(d => {
+        [].slice.call(d.children).forEach(h => { if (h.tagName !== 'SUMMARY') h.parentNode.removeChild(h); });
+      });
+      return N(c.textContent); };
+    const TODO = el => N(el ? el.textContent : '');
+
+    __t.limpiar();
+    const sets = [];
+    const S = (id, v) => { const r = __t.set(id, v); if (r !== 1) sets.push(id + '=>' + r); };
+    [['peso','80'],['talla','180'],['edad','56'],['hemo_fc','70'],['hemo_pam','90'],
+     ['diam_tsvi','20'],['itv_tsvi','20'],['e_sep','7'],['e_lat','12'],['onda_e','95'],
+     ['vci_diam','24'],['ao_sin','46'],['ao_tub','47'],['tdf_grad_tsvd','30'],
+     ['tdf_vtsvdi','90'],['tdf_vtdvdi','170'],['fevd','40'],['fevi','45'],['ip_vmax','2.6'],
+     ['co_fevi_basal','60'],['co_fevi_actual','45'],['co_dosis_antrac','300'],
+     ['co_gls_basal','-20'],['co_gls_actual','-15'],['pop_cx_horas','12']
+    ].forEach(p => S(p[0], p[1]));
+    [['sexo','M'],['va_morf','Bicúspide'],['vab_fenotipo','rl'],
+     ['pericardio','Derrame moderado (10-20mm)'],
+     ['vexus_sh','2'],['vexus_pv','1'],['vexus_ir','2'],
+     ['it_grado','2'],
+     ['tdf_civ_residual','no'],['tdf_sintomas','no'],['tdf_func_vd','moderada'],
+     ['ip_grado','Severa'],['tdf_vol_fuente','rmc'],['tdf_ejercicio','si'],
+     ['co_farmaco','inmunoterapia'],['co_troponi','si'],
+     ['ett-septo','16'],['ett-pp','14'],['ett-rwt','1'],['ett-ee','1'],
+     ['ett-cual-1','1'],['ett-cual-2','1'],
+     ['pop_cx_tipo','cabg'],['pop_asist_tipo','ecmo_va'],['pop_pleura_der','moderado']
+    ].forEach(p => S(p[0], p[1]));
+    Object.keys(window).forEach(k => { if (/^calc[A-Z]/.test(k) && typeof window[k] === 'function') {
+      try { window[k]() } catch (e) {} } });
+    /* ⚠️ EL PANEL SE ABRE CON indicAbrir, NO CON indicRender, Y NO ES UN DETALLE:
+       _indClinCablear corre desde indicAbrir, y sin el los clics de las preguntas no hacen
+       nada. Con indicRender a secas las ramas de recomendacion que dependen de una respuesta
+       quedan sin alcanzar y (B1) acusa a la app de haber perdido dos clases que en realidad
+       nunca se publicaron en esa escena. Me paso en la primera corrida de este caso. */
+    try { if (typeof indicAbrir === 'function') indicAbrir(); else indicRender() } catch (e) {}
+    /* Las respuestas se CLICKEAN, no se escribe _indClin a mano: el oyente es delegado y vive
+       en #indic-cuerpo, asi que escribir el estado saltearia el cableado. Mismo camino que
+       TC-275. Lo que no se pueda contestar queda en clics y cae en su propio denominador. */
+    const clics = [];
+    const CLIC = (clave, val) => {
+      const b = document.querySelector('#indic-cuerpo button[data-ind-clin="' + clave
+              + '"][data-ind-val="' + val + '"]');
+      if (!b) { clics.push(clave + '=' + val + ' SIN BOTON'); return; }
+      b.click();
+      if (typeof _indClinGet === 'function' && _indClinGet(clave) !== val)
+        clics.push(clave + ' quedo en ' + _indClinGet(clave));
+    };
+    [['tdfip.rf','gt40'],['tdfip.rvsp23','si'],['tdfip.progvd','si'],['tdfip.progvi','no'],
+     ['tdfip.progit','si'],['peri.tapoclin','si'],['peri.sintomas','si'],['peri.etio','si'],
+     ['peri.percut','no'],['peri.recidiva','si'],['constr.imagen','no'],
+     ['pop.fiebre','si'],['pop.dolor','si'],['pop.roce','si'],['pop.pcr','si'],
+     ['amil.gamma','2'],['amil.prot','negativo']].forEach(p => CLIC(p[0], p[1]));
+    try { indicRender() } catch (e) {}
+    const cu = document.getElementById('indic-cuerpo');
+    const PV = VIS(cu), PT = TODO(cu);
+    const FP = document.getElementById('ref-pop'), FU = document.getElementById('ref-pulmon');
+    const FPV = VIS(FP), FPT = TODO(FP), FUV = VIS(FU), FUT = TODO(FU);
+    try { if (typeof evRefPintar === 'function') evRefPintar('vd2') } catch (e) {}
+    const NV = document.querySelector('[data-ev-fuente="vd-strain-leve"]');
+
+    ex.push(['(D1) DENOMINADOR: los campos de los ocho modulos entraron todos',
+      sets.length === 0, sets.length ? 'no entraron: ' + sets.join(' · ') : 'entraron los 49']);
+    const nComp = cu ? cu.querySelectorAll('[data-ind-compacta]').length : -1;
+    ex.push(['(D2) DENOMINADOR: las OCHO secciones compactas estan despiertas a la vez',
+      nComp === 8, 'grillas compactas=' + nComp]);
+    ex.push(['(D2b) DENOMINADOR: las DIECISIETE preguntas del panel quedaron contestadas',
+      clics.length === 0, clics.length ? 'no entraron: ' + clics.join(' · ') : 'las diecisiete']);
+    ex.push(['(D3) DENOMINADOR: el panel pinto texto, y el globo guarda mas que lo visible',
+      PV.length > 5000 && PT.length > PV.length, 'visible=' + PV.length + ' total=' + PT.length]);
+    /* ⚠️ SIN ESTE DENOMINADOR, (A1) Y (A4) SON VACUOS. VIS() saca el contenido de todo
+       <details> cerrado, y una SECCION del panel es un <details> que nace cerrado si ninguna de
+       sus filas marca ✅ ni 🔴: medir «la frase no se ve» sobre una seccion colapsada da verde
+       sin haber mirado nada. Se exige que las OCHO esten dentro del texto visible. */
+    const OCHO = ['Tetralogía de Fallot reparada', 'Derrame pericárdico y taponamiento',
+      'Constricción pericárdica', 'Congestión venosa sistémica', 'Perfil hemodinámico',
+      'Cardiotoxicidad por tratamiento oncológico', 'Amiloidosis cardíaca',
+      'operatorio de cirugía cardíaca'];
+    const dormidas = OCHO.filter(t => PV.indexOf(t) < 0);
+    ex.push(['(D3b) DENOMINADOR: las ocho secciones compactas tienen su texto en lo VISIBLE',
+      dormidas.length === 0, dormidas.length ? 'no visibles: ' + dormidas.join(' · ') : 'las ocho']);
+    ex.push(['(D4) DENOMINADOR: las dos fichas tocadas existen y tienen texto',
+      FPT.length > 3000 && FUT.length > 800, 'pop=' + FPT.length + ' pulmon=' + FUT.length]);
+    const nCl = (PT.match(/Clase\\s[0-9IVab]+[a-z]?\\s·\\sNivel\\s[A-Z]/g) || []).length;
+    ex.push(['(D5) DENOMINADOR: el panel publica al menos veinte pares clase-nivel',
+      nCl >= 20, 'pares clase·nivel=' + nCl]);
+    /* ⚠️ EL BLOQUE DE HEMODINAMICA SE INTEGRA ANTES DE MEDIR EL INFORME, Y SIN ESO (E1) NO
+       PRUEBA NADA. La funcion amiloTextoHemo() es el unico camino por el que texto de ese modulo llega al
+       informe y a la hoja de ETT Avanzado del PDF, y SOLO corre si el medico aprieta «Integrar al
+       informe». Con el bloque sin integrar, el informe no contiene nada de ese modulo, asi que
+       buscarle fugas da verde por construccion. Lo cazo la mutacion M15 del barrido dirigido:
+       meterle un «folio 1125» a esa funcion SOBREVIVIO. */
+    const integro = (function(){ try { if (typeof amiloIntegrar === 'function') {
+      amiloIntegrar('hemo'); return 1 } return 'SIN amiloIntegrar' } catch (e) { return String(e).slice(0, 60) } })();
+    const EST = {};
+    ['estandar', 'narrativo', 'conciso'].forEach(st => {
+      try { setEstiloInforme(st) } catch (e) {}
+      const r = __t.informe(); EST[st] = { inf: N(r.inf), suma: N(r.suma) };
+    });
+    try { setEstiloInforme('estandar') } catch (e) {}
+    /* ⚠️ MEDIDO: EL BLOQUE INTEGRADO **NO** ENTRA EN informe_texto. El comentario de
+       amiloTextoHemo dice «se integra al informe y sale en la hoja de ETT Avanzado del PDF», y
+       la segunda mitad es la que vale: el texto vive en el <textarea> am-txt-hemo de la tarjeta
+       y de ahi viaja al PDF. La primera version de esta condicion lo buscaba en el informe y
+       daba falso. Lo que se exige es que el bloque quede integrado y que su texto exista, que es
+       el denominador de (E1b) y lo que hace que (E3) pueda ver una fuga. */
+    const cardHemo = N((document.getElementById('am-txt-hemo') || {}).value || '');
+    ex.push(['(D6b) DENOMINADOR: el bloque de hemodinamica quedo INTEGRADO y su texto existe',
+      integro === 1 && (typeof amiloIntegrado === 'function') && amiloIntegrado('hemo') === true
+      && cardHemo.length > 300,
+      'integrar=' + integro + ' · integrado='
+      + ((typeof amiloIntegrado === 'function') ? amiloIntegrado('hemo') : 'SIN FN')
+      + ' · largo del bloque=' + cardHemo.length]);
+    ex.push(['(D6) DENOMINADOR: el informe y el EN SUMA salieron en los TRES estilos',
+      ['estandar','narrativo','conciso'].every(st => EST[st].inf.length > 400 && EST[st].suma.length > 40),
+      JSON.stringify(['estandar','narrativo','conciso'].map(st => st + ':' + EST[st].inf.length + '/' + EST[st].suma.length))]);
+
+    const R1 = ['son DESCRIPTIVOS', 'son descriptivos', 'Cotejadas contra el original',
+      'No llevan clase ni nivel', 'Se cita como la reproduce', 'esta línea no lleva cita',
+      'Es una medida PREOPERATORIA', 'Censada la biblioteca', 'no tiene fuente y lo dice',
+      'Escribirlos sería inventarlos', 'hacerlo sería inventarla'];
+    const pv = R1.filter(f => PV.indexOf(f) > -1);
+    ex.push(['(A1) ninguna de las ONCE frases de trabajo se lee en la pantalla de Evidencia',
+      pv.length === 0, pv.length ? 'VISIBLES: ' + pv.join(' / ') : 'ninguna']);
+    const fv = R1.filter(f => FPV.indexOf(f) > -1 || FUV.indexOf(f) > -1);
+    ex.push(['(A2) ni en las dos fichas de Referencias tocadas',
+      fv.length === 0, fv.length ? 'VISIBLES: ' + fv.join(' / ') : 'ninguna']);
+    const R6 = ['UMBRAL_TAPSE_NORMAL', 'TEP_VDVI_DILAT_MIN', 'RVP_ELEVADA_UW'];
+    const r6 = R6.filter(k => PT.indexOf(k) > -1 || FPT.indexOf(k) > -1 || FUT.indexOf(k) > -1);
+    ex.push(['(A3) los tres nombres internos del codigo no estan NI DENTRO DEL GLOBO',
+      r6.length === 0, r6.length ? 'PRESENTES: ' + r6.join(' / ') : 'ninguno']);
+    const MAY = ['RECOMIENDA', 'RECOMIENDAN', 'DEBE CONSIDERAR', 'DEBE CONSIDERARSE',
+      'AL MENOS DOS', 'PREOPERATORIA', 'EVITAR', 'POR DEBAJO', 'POR ENCIMA', 'SUPERA',
+      'FENOTIPO DE RAÍZ', 'SIN SEXO CARGADO', 'ÍNDICE CARDÍACO', 'DESCRIPTIVOS',
+      'las DOS guías', 'PROGRESIVO', 'PROGRESIÓN', 'RAZONABLE', 'INDICADO', 'PREFIERE',
+      'CONFIRMANDO', 'QUIRÚRGICO', 'DILATADA', 'MAYOR especificidad', 'un RANGO',
+      'criterio SÓLO', 'con SÓLO una fase', 'TRADUCCIÓN'];
+    const may = MAY.filter(w => PV.indexOf(w) > -1);
+    ex.push(['(A4) ninguna de las veintiocho mayusculas de en medio quedo en la pantalla',
+      may.length === 0, may.length ? 'QUEDARON: ' + may.join(' / ') : 'ninguna']);
+
+    /* ⚠️ «Clase 1 · Nivel B-NR» NO ENTRA EN ESTA LISTA, Y ES UNA LECCION DE DENOMINADOR: es la
+       rama del paciente SINTOMATICO de la guia estadounidense, y esta escena carga
+       asintomatico, asi que la que se publica es la «Clase 2a · Nivel B-NR». Las dos son
+       EXCLUYENTES y ninguna escena puede tener las dos. Se mide en (B1b), con su propia escena
+       y con el control de que al prender los sintomas la 2a se apaga. La primera version de
+       este caso las pedia juntas y acusaba a la app de haber perdido una clase. */
+    const CL = ['Clase 2a · Nivel B-NR', 'Clase 2a · Nivel C-LD', 'Clase 2b · Nivel C-LD',
+      'Clase I · Nivel C', 'Clase IIa · Nivel C', 'Clase I · Nivel B', 'Clase IIa · Nivel A',
+      'Clase IIa · Nivel B'];
+    const falt = CL.filter(c => PT.indexOf(c) < 0);
+    ex.push(['(B1) los ocho pares clase-nivel alcanzables en esta escena siguen publicados',
+      falt.length === 0, falt.length ? 'FALTAN: ' + falt.join(' / ') : 'los ocho']);
+    /* ⚠️ EL DIAGNOSTICO IMPRIME LAS DOS MITADES, y la primera version imprimia solo la primera:
+       contra HEAD la condicion daba FALSO y el diagnostico decia «presente=true», porque ahi la
+       linea existe pero dice «ANTES» en mayuscula. Un diagnostico que no apunta a su causa es
+       media hora perdida. */
+    ex.push(['(B2) la colchicina preoperatoria conserva su Clase IIa · Nivel A y sus 48 a 72 h',
+      PT.indexOf('Clase IIa · Nivel A — La colchicina, comenzada 48 a 72 h antes de la cirugía cardíaca') > -1,
+      'la linea existe=' + (PT.indexOf('Clase IIa · Nivel A — La colchicina') > -1)
+      + ' · con «48 a 72 h antes» en minuscula=' + (PT.indexOf('48 a 72 h antes de la cirugía') > -1)]);
+    ex.push(['(B3) el cribado de familiares conserva sus DOS clases y sus dos niveles',
+      PT.indexOf('Clase I · Nivel C con fenotipo de raíz o insuficiencia aórtica aislada') > -1
+      && PT.indexOf('Clase IIa · Nivel B para todos los pacientes con válvula bicúspide') > -1,
+      'raiz=' + (PT.indexOf('Clase I · Nivel C con fenotipo de raíz') > -1)
+      + ' todos=' + (PT.indexOf('Clase IIa · Nivel B para todos') > -1)]);
+    const nUmb = (PT.match(/Cirugía Clase I · Nivel B con diámetro máximo/g) || []).length;
+    ex.push(['(B4) la linea de umbrales quirurgicos sale UNA sola vez en todo el panel',
+      nUmb === 1, 'apariciones=' + nUmb]);
+    /* (B5) EL CAMBIO CENTRAL DE LA TANDA: el orden. En las OCHO secciones compactas la grilla
+       de datos tiene que ser lo PRIMERO del cuerpo, y las recomendaciones ir despues. Hasta la
+       tanda A el modo compacto invertia eso para las ocho. Se mide seccion por seccion. */
+    const malOrden = [].slice.call(cu ? cu.children : [])
+      .filter(d => d.tagName === 'DETAILS' && d.querySelector('[data-ind-compacta]'))
+      .map(d => { const cuerpo = d.querySelector('summary').nextElementSibling;
+        const hijos = cuerpo ? [].slice.call(cuerpo.children) : [];
+        const iG = hijos.indexOf(cuerpo ? cuerpo.querySelector('[data-ind-grid]') : null);
+        return { t: N((d.querySelector('summary') || {}).textContent).slice(0, 28), i: iG }; })
+      .filter(o => o.i !== 0);
+    ex.push(['(B5) en las ocho compactas la grilla de datos es lo PRIMERO del cuerpo, y las recomendaciones van despues',
+      malOrden.length === 0,
+      malOrden.length ? 'con las recomendaciones arriba: ' + JSON.stringify(malOrden) : 'las ocho en orden']);
+    /* (B1b) LA RAMA DEL SINTOMATICO, en su propia escena, con el control de exclusion. */
+    __t.set('tdf_sintomas', 'si');
+    Object.keys(window).forEach(k => { if (/^calc[A-Z]/.test(k) && typeof window[k] === 'function') {
+      try { window[k]() } catch (e) {} } });
+    try { indicRender() } catch (e) {}
+    const PTs = TODO(document.getElementById('indic-cuerpo'));
+    ex.push(['(B1b) con sintomas prendidos aparece la Clase 1 · Nivel B-NR, y la Clase 2a se apaga',
+      PTs.indexOf('Clase 1 · Nivel B-NR') > -1 && PTs.indexOf('Clase 2a · Nivel B-NR') < 0,
+      'clase1=' + (PTs.indexOf('Clase 1 · Nivel B-NR') > -1)
+      + ' clase2a=' + (PTs.indexOf('Clase 2a · Nivel B-NR') > -1)]);
+    ex.push(['(B1c) y la europea pasa de su Clase IIa · Nivel C a su Clase I · Nivel C del sintomatico',
+      PTs.indexOf('Clase I · Nivel C — El reemplazo de la válvula pulmonar está indicado en el paciente sintomático') > -1,
+      'presente=' + (PTs.indexOf('está indicado en el paciente sintomático') > -1)]);
+    __t.set('tdf_sintomas', 'no');
+    Object.keys(window).forEach(k => { if (/^calc[A-Z]/.test(k) && typeof window[k] === 'function') {
+      try { window[k]() } catch (e) {} } });
+    try { indicRender() } catch (e) {}
+
+    const MOV = [
+      ['Fallot: apartado y numeros de recomendacion', 'recomendaciones 9, 10, 13 y 14 del apartado 4.3.5, folio e182'],
+      ['Fallot: las notas al pie de la tabla europea', 'su nota ᵈ'],
+      ['Fallot: la salvedad de la traduccion', 'está la traducción al español, y los folios que se citan son los de esa traducción'],
+      ['VExUS: la fuente del articulo', 'Ultrasound J 2020, resumen de la página 1'],
+      ['VExUS: por que no hay clase ni nivel', 'no publica clase ni nivel de recomendación: es un artículo original'],
+      ['VExUS: la poblacion en que se midio', '145 pacientes de cirugía cardíaca, con 706 valoraciones'],
+      ['Constriccion: las filas de tratamiento que no se publican', 'antiinflamatorios en la constricción transitoria y pericardiectomía en la permanente'],
+      ['Amiloidosis: las dos tablas de la guia europea', 'Tabla 6 de recomendaciones para el centellograma y Tabla 5 para la resonancia'],
+      ['Amiloidosis: el score no validado externamente', 'no está validado externamente'],
+      ['Cardiotoxicidad: la nota al pie de la biopsia', 'paciente inestable o cuando la resonancia está contraindicada'],
+      ['Cardiotoxicidad: los folios de las dos tablas', 'Recomendaciones-tabla 41, folio 4314'],
+      ['Hemodinamica: los tres motivos de que no haya escala', 'Grossman y Braunwald son libros de texto'],
+      ['Hemodinamica: la fuente del folio 167', 'Fuente: guía de corazón derecho, folio 167'],
+      ['Posoperatorio: por que la colchicina esta aca', 'es la única fila de la Tabla 22 que habla del paciente de cirugía cardíaca'],
+      /* El de la cirugia MITRAL no entra en esta lista: la escena carga revascularizacion y los
+         localizadores del ⓘ SIGUEN a la cirugia cargada —si no, la seccion publicaria, dentro
+         del globo, lo que hay que mirar tras una cirugia que el paciente no tuvo—. Se mide en
+         (C1b), con su propia escena y con el control de exclusion. */
+      ['Posoperatorio: el localizador de la revascularizacion', 'Tabla 8, folio 707'],
+      ['Posoperatorio: por que esa guia no gradua', 'sus tablas son de «puntos clave»'],
+      ['Derrame: las tres condiciones de la pericardiocentesis', 'el taponamiento cardíaco, la sospecha de pericarditis bacteriana o neoplásica'],
+      ['Derrame: el censo de las veintisiete tablas', 'Ninguna de las veintisiete tablas de recomendaciones'],
+      ['Bicuspide: la segunda fuente del mismo acto quirurgico', 'apartado 7.4, folio 4660']
+    ];
+    const perd = MOV.filter(p => PT.indexOf(p[1]) < 0).map(p => p[0]);
+    ex.push(['(C1) los VEINTE datos que salieron de una linea visible estan en el ⓘ o en la bibliografia',
+      perd.length === 0, perd.length ? 'PERDIDOS: ' + perd.join(' · ') : 'los veinte']);
+    /* (C1b) EL ⓘ DEL POSOPERATORIO SIGUE A LA CIRUGIA CARGADA, con su control de exclusion. */
+    __t.set('pop_cx_tipo', 'valvular');
+    Object.keys(window).forEach(k => { if (/^calc[A-Z]/.test(k) && typeof window[k] === 'function') {
+      try { window[k]() } catch (e) {} } });
+    try { indicRender() } catch (e) {}
+    const PTv = TODO(document.getElementById('indic-cuerpo'));
+    ex.push(['(C1b) con cirugia valvular el ⓘ trae el localizador de la mitral y NO el de la revascularizacion',
+      PTv.indexOf('apartado 3.1.5 y Tabla 3, folio 701') > -1
+      && PTv.indexOf('Tabla 8, folio 707') < 0,
+      'mitral=' + (PTv.indexOf('Tabla 3, folio 701') > -1)
+      + ' revascularizacion=' + (PTv.indexOf('Tabla 8, folio 707') > -1)]);
+    __t.set('pop_cx_tipo', 'cabg');
+    Object.keys(window).forEach(k => { if (/^calc[A-Z]/.test(k) && typeof window[k] === 'function') {
+      try { window[k]() } catch (e) {} } });
+    try { indicRender() } catch (e) {}
+
+    const FIC = [['ficha POP: la hoja del editorial de vasoplejia', 'hoja 1 de 4'],
+      ['ficha POP: el folio e17 del corte del VD', 'folio e17'],
+      ['ficha POP: el apartado y la tabla de la cirugia mitral', 'Tabla 3, folio 701'],
+      ['ficha POP: la banda sin fuente de la precarga', 'Censada la biblioteca'],
+      ['ficha POP: las tres reservas del pie', 'La RVS se compara sin indexar'],
+      ['ficha pulmonar: el titulo del consenso', 'point-of-care lung'],
+      ['ficha pulmonar: la formula de Balik', 'Balik M'],
+      ['ficha pulmonar: el enunciado del derrame', 'D6_11']];
+    const perdF = FIC.filter(p => FPT.indexOf(p[1]) < 0 && FUT.indexOf(p[1]) < 0).map(p => p[0]);
+    ex.push(['(C2) los OCHO datos de las fichas estan en el ⓘ de su fila o de su pie',
+      perdF.length === 0, perdF.length ? 'PERDIDOS: ' + perdF.join(' · ') : 'los ocho']);
+    const nv = NV ? N(NV.textContent) : '';
+    ex.push(['(C3) los dos folios de la banda del strain del VD estan en su ⓘ',
+      nv.indexOf('Tabla 1 del folio 145') > -1 && nv.indexOf('folio 159') > -1,
+      '145=' + (nv.indexOf('folio 145') > -1) + ' 159=' + (nv.indexOf('folio 159') > -1)]);
+    /* ⚠️ LA TABLA SE BUSCA DENTRO DE #ref-vd2, Y NO EN TODO EL DOCUMENTO. La primera version
+       usaba querySelector('table.ev-tabla') a secas: aislado daba verde, y en la corrida
+       completa daba «FILA NO ENCONTRADA» porque un caso anterior en la MISMA pagina ya habia
+       pintado la tabla de OTRA ficha —_evRefTabla se usa en cinco fichas— y se media esa. Es
+       la misma dependencia de orden que TC-507 pago en la tanda AJ7: verde con --solo y rojo en
+       el suite. */
+    const tvd = document.querySelector('#ref-vd2 table.ev-tabla');
+    const fvd = tvd ? [].slice.call(tvd.rows).map(r => [].slice.call(r.cells).map(c => N(c.textContent)))
+      .filter(f => /disfunción leve/.test(f[0] || ''))[0] : null;
+    ex.push(['(C4) la fila de la banda leve dice el valor y «Decisión de la aplicación», sin repetirlo',
+      !!fvd && fvd[1] === 'de 15 a 20 %' && fvd[2] === 'Decisión de la aplicación',
+      fvd ? JSON.stringify(fvd) : 'FILA NO ENCONTRADA']);
+    const fpop = FP ? FP.querySelector('table') : null;
+    ex.push(['(C5) las DIECISEIS filas de la ficha del posoperatorio siguen, cada una con su ⓘ',
+      !!fpop && fpop.rows.length - 1 === 16
+      && [].slice.call(fpop.rows).slice(1).every(r => r.cells[2] && r.cells[2].querySelector('details')),
+      'filas=' + (fpop ? fpop.rows.length - 1 : -1) + ' con globo='
+      + (fpop ? [].slice.call(fpop.rows).slice(1).filter(r => r.cells[2] && r.cells[2].querySelector('details')).length : -1)]);
+    ex.push(['(C6) y sus CUATRO sellos «Criterio de EcoSmart» siguen ahi',
+      (FPT.match(/CRITERIO DE ECOSMART/g) || []).length === 4,
+      'sellos=' + (FPT.match(/CRITERIO DE ECOSMART/g) || []).length]);
+
+    const FUGA = ['Clase I ·', 'Clase IIa ·', 'Clase IIb ·', 'Clase 1 ·', 'Clase 2a ·',
+      'folio ', 'Criterio EcoSmart', 'Criterio de EcoSmart', 'Fuente: guía',
+      'Decisión de la aplicación', 'Recommendation Table', 'Recomendaciones-tabla',
+      'Lo que falta contestar', 'Bibliografía de esta sección'];
+    const fug = [];
+    ['estandar', 'narrativo', 'conciso'].forEach(st => {
+      FUGA.forEach(f => { if (EST[st].inf.indexOf(f) > -1) fug.push(st + '/informe:' + f);
+                          if (EST[st].suma.indexOf(f) > -1) fug.push(st + '/suma:' + f); });
+    });
+    ex.push(['(E1) el informe en los TRES estilos y el EN SUMA no llevan nada del panel',
+      fug.length === 0, fug.length ? 'FUGAS: ' + fug.join(' · ') : 'ninguna de las catorce marcas']);
+    /* (E1b) EL BLOQUE INTEGRADO, que es el camino por el que texto de un modulo llega a la hoja
+       de ETT Avanzado del PDF. Sin esta condicion, meterle una cita del panel a
+       amiloTextoHemo no lo ve nadie: lo cazo la mutacion M15 del barrido dirigido. */
+    const fugC = FUGA.filter(f => cardHemo.indexOf(f) > -1);
+    ex.push(['(E1b) el bloque integrado de hemodinamica tampoco lleva nada del panel',
+      fugC.length === 0, fugC.length ? 'FUGAS: ' + fugC.join(' · ') : 'ninguna de las catorce marcas']);
+    for (let i = 0; i < 40 && !(window.jspdf && window.jspdf.jsPDF); i++)
+      await new Promise(r => setTimeout(r, 200));
+    if (!(window.jspdf && window.jspdf.jsPDF)) {
+      ex.push(['(E2) jsPDF llego por CDN', false, 'no llego en 8 s: el PDF no se pudo verificar']);
+    } else {
+      const O = window.jspdf.jsPDF; const T = [];
+      window.jspdf.jsPDF = function () { const d = new O(...arguments);
+        const ot = d.text.bind(d);
+        d.text = function () { T.push(String(arguments[0])); return ot.apply(null, arguments) };
+        d.save = function () { return true }; d.output = function () { return '' };
+        return d; };
+      Object.keys(O).forEach(k => { try { window.jspdf.jsPDF[k] = O[k] } catch (e) {} });
+      try { if (typeof _pdfAjustarA4 === 'function') await _pdfAjustarA4();
+            else await generarPDF(); } catch (e) {} finally { window.jspdf.jsPDF = O; }
+      const pt = N(T.join(' | '));
+      ex.push(['(E2) DENOMINADOR: el PDF se genero de verdad y escribio textos',
+        T.length >= 15, 'textos=' + T.length]);
+      const fugP = FUGA.filter(f => pt.indexOf(f) > -1);
+      ex.push(['(E3) el PDF generado no lleva nada del panel',
+        fugP.length === 0, fugP.length ? 'FUGAS: ' + fugP.join(' · ') : 'ninguna de las catorce marcas']);
+    }
+
+    ex.push(['(N1) CONTROL: la leyenda de que las dos guias de Fallot no se combinan sigue VISIBLE',
+      PV.indexOf('no se combinan') > -1, 'presente=' + (PV.indexOf('no se combinan') > -1)]);
+    ex.push(['(N2) CONTROL: el rotulo «definición propuesta» de la vasoplejia sigue VISIBLE',
+      FPV.indexOf('definición propuesta') > -1, 'presente=' + (FPV.indexOf('definición propuesta') > -1)]);
+    ex.push(['(N3) CONTROL: la frase «leve como mínimo» del strain del VD no se toco',
+      nv.indexOf('leve como mínimo') > -1, 'presente=' + (nv.indexOf('leve como mínimo') > -1)]);
+    __t.limpiar();
+    ['peso','talla','hemo_fc','hemo_pam','diam_tsvi','itv_tsvi'].forEach((id, i) =>
+      __t.set(id, ['80','180','70','90','20','20'][i]));
+    Object.keys(window).forEach(k => { if (/^calc[A-Z]/.test(k) && typeof window[k] === 'function') {
+      try { window[k]() } catch (e) {} } });
+    ex.push(['(N4) FRONTERA: la capsula del modulo sigue diciendo «Requiere IC + PCP estimada»',
+      N(__t.txt('hemo-forrester')) === 'Requiere IC + PCP estimada',
+      'capsula=' + N(__t.txt('hemo-forrester'))]);
+    try { indicRender() } catch (e) {}
+    /* ⚠️ ESTA SE MIDE SOBRE TODO Y NO SOBRE VIS, Y EL MOTIVO ES DEL PRODUCTO: en esta
+       escena ninguna fila de la seccion hemodinamica marca ✅ ni 🔴 —son «—» y «❓»—, asi que
+       la seccion NACE COLAPSADA y VIS se la lleva entera. Con VIS la condicion daba falso
+       y parecia que la fila no decia nada. Lo que se vigila es QUE dice la fila, no si la
+       seccion esta abierta. */
+    const pt2 = TODO(document.getElementById('indic-cuerpo'));
+    ex.push(['(N5) y la fila de la Evidencia, en esa misma escena, nombra el dato que falta',
+      pt2.indexOf('falta la presión capilar pulmonar estimada') > -1
+      && pt2.indexOf('Requiere IC + PCP') < 0,
+      'dice el que falta=' + (pt2.indexOf('falta la presión capilar pulmonar estimada') > -1)
+      + ' repite el de la capsula=' + (pt2.indexOf('Requiere IC + PCP') > -1)]);
+    const gl = (typeof VINFO !== 'undefined' && VINFO['hemo-forr']) ? VINFO['hemo-forr'] : null;
+    const glt = gl ? N(String(gl.ojo || '') + ' ' + String(gl.lee || '')) : '';
+    ex.push(['(N6) FRONTERA: el globo del glosario del Forrester, que la tanda no toca, conserva sus mayusculas',
+      glt.length > 0 && glt.indexOf('LOS DOS BORDES EXACTOS NO ESTÁN DEFINIDOS') > -1,
+      glt.length ? 'conserva=' + (glt.indexOf('LOS DOS BORDES') > -1) : 'NO SE PUDO LEER EL GLOSARIO']);
+    return { extra: ex };
+  })();
+`);
+
 
 
 let servidor, chrome;

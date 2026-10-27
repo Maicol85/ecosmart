@@ -44723,8 +44723,10 @@ function _evRefTabla(filas, refIdx) {
        el valor en las dos columnas no dice nada; decir de donde sale, si.
        ⚠️ LA CABECERA DE ESA COLUMNA SIGUE DICIENDO «Mujer», y eso se declara: el pedido la
           llamaba «columna de fuente» y esta tabla no tiene ninguna. Decidirlo -renombrar la
-          columna, partir la tabla o volver atras- es de Maicol. Las otras doce filas se pintan
-          exactamente igual, asi que el cambio no alcanza a ninguna banda de guia. */
+          columna, partir la tabla o volver atras- es de Maicol. Medido: por este armador pasan
+          CUARENTA Y OCHO filas en sus cinco llamadas y `fuente` lo trae UNA, asi que las otras
+          cuarenta y siete se pintan exactamente igual y el cambio no alcanza a ninguna banda de
+          guia. */
     [f.h, f.fuente || f.m].forEach(function (x) {
       const td = document.createElement('td'); td.textContent = x;
       td.style.color = 'var(--text)'; tr.appendChild(td);
@@ -80904,7 +80906,7 @@ function _indAo(){
       Object.keys(AO_EV_LBL).map(function(k){ return { v:k, t:AO_EV_LBL[k] } }),
       function(v){
         if (!v) return { txt:'No consta', marca:'ask',
-          nota:'es lo que ELIGE la tabla de umbrales: sin ella no se puede publicar ninguna recomendación' };
+          nota:'es lo que elige la tabla de umbrales: sin ella no se puede publicar ninguna recomendación' };
         return { txt: AO_EV_LBL[v] || v, marca:'ok',
           nota: Object.prototype.hasOwnProperty.call(AO_EV, v)
             ? 'las recomendaciones de abajo son las de su tabla' : 'sin tabla propia en la guía' };
@@ -80929,7 +80931,7 @@ function _indAo(){
     _indFilaOrigen('Crecimiento de 3 mm o más al año', oCre, [{v:'si',t:'Sí'},{v:'no',t:'No'}],
       function(v){ return { txt: v === 'si' ? 'Sí' : (v === 'no' ? 'No' : 'No consta'),
         marca: v === 'si' ? 'ok' : (v === 'no' ? 'none' : 'ask'),
-        nota:'es factor de riesgo en las CINCO tablas de aortopatía' } }),
+        nota:'es factor de riesgo en las cinco tablas de aortopatía' } }),
     _indFilaOrigen('Antecedente familiar de disección o síndrome aórtico agudo', oFam, [{v:'si',t:'Sí'},{v:'no',t:'No'}],
       function(v){ return { txt: v === 'si' ? 'Sí' : (v === 'no' ? 'No' : 'No consta'),
         marca: v === 'si' ? 'ok' : (v === 'no' ? 'none' : 'ask'),
@@ -80950,7 +80952,7 @@ function _indAo(){
      fila que desaparece porque falta un dato se lee como una fila que no aplica. */
   const lineas = [], faltan = [];
   if (!ao) {
-    lineas.push({ txt:'Falta la aortopatía asociada: es lo que ELIGE la tabla de umbrales. Con ella, esta sección publica las recomendaciones de esa tabla con su clase, su nivel y su folio.', refs:null });
+    lineas.push({ txt:'Falta la aortopatía asociada: es lo que elige la tabla de umbrales. Con ella, esta sección publica las recomendaciones de esa tabla con su clase, su nivel y su folio.', refs:null });
   } else {
     const lista = AO_EV[ao];
     for (let i = 0; i < lista.length; i++) {
@@ -80971,9 +80973,17 @@ function _indAo(){
     if (!lineas.length) lineas.push({ txt:'Con los datos cargados ninguna fila de la tabla de ' +
       (AO_EV_LBL[ao] || ao) + ' resulta aplicable.', refs:null });
   }
-  const bloques = [ { tit:'Recomendaciones aplicables de la guía', lineas: lineas,
-                      nota:'El informe y la conclusión de la app son DESCRIPTIVOS: los umbrales quirúrgicos y los controles por imagen se publican acá y no en el papel firmado.' } ];
+  const bloques = [ { tit:'Recomendaciones aplicables de la guía', lineas: lineas } ];
   if (faltan.length) bloques.push({ tit:'Lo que falta para decidir otras filas', lineas: faltan });
+  /* ⚠️ ACA `notas` SIGUE SIENDO UNA COPIA DEL BLOQUE, Y ES LO UNICO DE LA REGLA R4 QUE LA TANDA
+     A **NO** APLICO. El intento esta medido y se revirtio: vaciarlo deja a esta seccion SIN su
+     «ⓘ Ver detalle», y «un control de detalle por seccion» es un invariante del panel que
+     TC-293 cuenta —midio 13 secciones y 12 controles—. Las otras siete secciones compactas
+     pudieron cerrar la duplicacion porque tenian contenido PROPIO para poner en el globo: lo
+     que las reglas R1 y R2 les sacaron de la linea visible. Esta seccion no perdio nada de su
+     linea visible —el punto 2e de la orden acota el cambio a la de «aorta ascendente»—, asi que
+     no hay con que llenar el globo sin escribir texto clinico nuevo, que la orden prohibe.
+     Declarado en `docs/PENDIENTES.md` → A-g. */
   const notas = lineas.map(function(l){ return l.txt });
   /* ══ TURNER CON SEXO MASCULINO CARGADO (AJ4-5, 23/10/2026) ══════════════════════════════════
      DECISIÓN DE MAICOL, y va SOLO EN EVIDENCIA: el informe no corrige al médico. El síndrome de
@@ -80999,7 +81009,7 @@ function _indAo(){
     ],
     guia: { ref:'esc2024ao',
       txt:'La dilatación aórtica se define como un diámetro mayor de 2 desviaciones estándar del esperado por edad, sexo y tamaño corporal (puntuación Z mayor de 2); en la práctica se sospecha dilatación de la raíz con un diámetro por encima de 40 mm en el hombre adulto y de 36 mm en la mujer, o con un índice de dimensión aórtica mayor de 22 mm/m² (apartado 9.2.1.1, folio 71).',
-      nota:'El primer escalón del algoritmo de seguimiento (Figura 24, folio 76) escribe esos mismos dos números con el valor INCLUIDO —«40-44 mm», «36-44 mm en mujeres»—, y es el operador que esta sección aplica.' },
+      nota:'El primer escalón del algoritmo de seguimiento (Figura 24, folio 76) escribe esos mismos dos números con el valor incluido —«40-44 mm», «36-44 mm en mujeres»—, y es el operador que esta sección aplica.' },
     notas: notas };
 }
 
@@ -81083,7 +81093,10 @@ function _indVAB(){
     /* ⚠️ UNA SOLA CITA, AL FINAL DEL BLOQUE (tanda A, regla R2): «(ESC 2024, Tabla 68, folio
        119)» salia en las CUATRO filas. La segunda fuente de la cuarta fila —el apartado 7.4 de
        la ESC/EACTS 2025 de valvulopatias— esta en el ⓘ de la seccion, con su folio. */
-    { txt:'Fuente: ESC 2024 de aorta, Recomendaciones-tabla 68, folio 119.',
+    /* ⚠️ «Tabla 68, folio 119» Y NO «Recomendaciones-tabla 68»: es la cadena con la que el
+       resto de la aplicacion cita esa tabla, y TC-521 la CUENTA. Escribirla distinto hacia
+       que el conteo diera cero sin que faltara nada. */
+    { txt:'Fuente: ESC 2024 de aorta, Tabla 68, folio 119.',
       refs: ['esc2024ao'] }
   ];
   return { filas: filas,
@@ -83190,16 +83203,16 @@ function _indTdFIP(){
       'la nota ᵈ de la tabla europea define la obstrucción al menos moderada por una velocidad pico por encima de ' + TDF_IP_ESC.vmax_min + ' m/s'),
     _indFila('Presión sistólica del ventrículo derecho', psvd != null ? _indNum(psvd, 0, 'mmHg') : '—',
       _gt(psvd, TDF_IP_ESC.psvd_min) ? 'alarm' : (psvd != null ? 'none' : 'ask'),
-      'con obstrucción residual del tracto de salida, la presión que estima la insuficiencia tricuspídea es la del ventrículo derecho; es criterio SÓLO de la guía europea, por encima de ' + TDF_IP_ESC.psvd_min + ' mmHg'),
+      'con obstrucción residual del tracto de salida, la presión que estima la insuficiencia tricuspídea es la del ventrículo derecho; es criterio sólo de la guía europea, por encima de ' + TDF_IP_ESC.psvd_min + ' mmHg'),
     _indFila('Función sistólica del VD (consignada)', funcVD || '—',
       funcVD === 'severa' || funcVD === 'moderada' ? 'warn' : (funcVD ? 'none' : 'ask'),
       'el grado consignado describe el estudio de hoy; lo que las dos tablas piden es la progresión, que se consigna abajo'),
     _indFila('Fracción de eyección del VD', fevd != null ? _indNum(fevd, 0, '%') : '—',
       _le(fevd, TDF_IP_ACC.fevd) ? 'alarm' : (fevd != null ? 'none' : 'ask'),
-      'criterio SÓLO de la guía estadounidense: ' + TDF_IP_ACC.fevd + ' % o menos'),
+      'criterio sólo de la guía estadounidense: ' + TDF_IP_ACC.fevd + ' % o menos'),
     _indFila('Fracción de eyección del VI', fevi != null ? _indNum(fevi, 0, '%') : '—',
       _le(fevi, TDF_IP_ACC.fevi) ? 'alarm' : (fevi != null ? 'none' : 'ask'),
-      'criterio SÓLO de la guía estadounidense: ' + TDF_IP_ACC.fevi + ' % o menos'),
+      'criterio sólo de la guía estadounidense: ' + TDF_IP_ACC.fevi + ' % o menos'),
     _indFila('Volúmenes del VD indexados',
       (vtsvdi != null || vtdvdi != null)
         ? ((vtsvdi != null ? 'telesistólico ' + _indNum(vtsvdi, 0, 'ml/m²') : 'telesistólico —') + ' · ' +
@@ -83211,7 +83224,7 @@ function _indTdFIP(){
         ? 'los umbrales volumétricos de la guía europea no están disponibles en esta carga: recargar la aplicación. Sin ellos ese criterio no se evalúa.'
         : ((vtsvdi != null || vtdvdi != null) && !volRMC
             ? 'el método consignado no es resonancia, así que los volúmenes se declaran y no votan: los umbrales de las dos guías están validados sobre resonancia y la ecocardiografía 3D subestima los volúmenes del ventrículo derecho'
-            : 'la europea pide ' + uTS + ' ml/m² o más de telesistólico, o ' + uTD + ' ml/m² o más de telediastólico; la estadounidense pide el telesistólico POR ENCIMA de ' + TDF_IP_ACC.vtsvdi + ' ml/m², así que un valor de ' + TDF_IP_ACC.vtsvdi + ' exactos cuenta para una y no para la otra')),
+            : 'la europea pide ' + uTS + ' ml/m² o más de telesistólico, o ' + uTD + ' ml/m² o más de telediastólico; la estadounidense pide el telesistólico por encima de ' + TDF_IP_ACC.vtsvdi + ' ml/m², así que un valor de ' + TDF_IP_ACC.vtsvdi + ' exactos cuenta para una y no para la otra')),
     _indFila('Caída objetiva de la capacidad de ejercicio',
       ejerc === 'si' ? 'Sí' : (ejerc === 'no' ? 'No' : '—'),
       ejerc === 'si' ? 'alarm' : (ejerc === 'no' ? 'none' : 'ask'),
@@ -83229,11 +83242,11 @@ function _indTdFIP(){
       [{v:'si',t:'Sí'},{v:'no',t:'No'}],
       rvsp23 == null ? 'ask' : (rvsp23 === 'si' ? 'alarm' : 'none'),
       'es la segunda mitad de la nota * de la guía estadounidense, y se pregunta porque esta aplicación no registra la presión arterial sistémica'),
-    _indFilaCtrl('¿Deterioro PROGRESIVO de la función sistólica del ventrículo DERECHO?', 'tdfip.progvd',
+    _indFilaCtrl('¿Deterioro progresivo de la función sistólica del ventrículo derecho?', 'tdfip.progvd',
       [{v:'si',t:'Sí'},{v:'no',t:'No'}],
       progVD == null ? 'ask' : (progVD === 'si' ? 'alarm' : 'none'),
       'un ecocardiograma aislado no sabe si algo progresa: se compara con los estudios previos. Cuenta en las dos guías.'),
-    _indFilaCtrl('¿Deterioro PROGRESIVO de la función sistólica del ventrículo IZQUIERDO?', 'tdfip.progvi',
+    _indFilaCtrl('¿Deterioro progresivo de la función sistólica del ventrículo izquierdo?', 'tdfip.progvi',
       [{v:'si',t:'Sí'},{v:'no',t:'No'}],
       progVI == null ? 'ask' : (progVI === 'si' ? 'alarm' : 'none'),
       'se pregunta por separado porque la guía estadounidense dice «ventricular» —los dos ventrículos— y la europea dice «del VD»: con una sola pregunta, un deterioro aislado del VI haría votar a la europea un criterio que su tabla no escribe'),
@@ -83380,7 +83393,7 @@ function _indDerrPeri(){
     _indFila('Duración de ese colapso', st.colAdDur !== null
         ? String(st.colAdDur).replace('.', ',') + ' del ciclo' : '—',
       (st.colAdDur !== null && st.colAdDur > DPT_COL_AD_DUR_SIG) ? 'alarm' : (st.colAdDur !== null ? 'none' : 'ask'),
-      'es la fila de MAYOR especificidad de la Tabla 17 —100 %, con sensibilidad por encima del 90 %— y su corte es una fracción del ciclo cardíaco por encima de 0,34 (folio 62).',
+      'es la fila de mayor especificidad de la Tabla 17 —100 %, con sensibilidad por encima del 90 %— y su corte es una fracción del ciclo cardíaco por encima de 0,34 (folio 62).',
       ['escPeri2025']),
     _indFila('Colapso diastólico del ventrículo derecho',
       colVd === 'si' ? 'Presente' : (colVd === 'no' ? 'Ausente' : '—'),
@@ -83395,7 +83408,7 @@ function _indDerrPeri(){
     _indFila('Variación respiratoria de la onda E mitral',
       st.varM !== null ? _indNum(st.varM, 0, '%') : '—',
       tieneSigno('E mitral') ? 'alarm' : (st.varM !== null ? 'none' : 'ask'),
-      'la Tabla 17 escribe un RANGO, por encima del 25 al 30 % (folio 62); la aplicación marca desde el ' + DPT_VAR_MITRAL_SIG + ' %, que es el extremo que avisa antes, y lo declara como criterio propio en el módulo.',
+      'la Tabla 17 escribe un rango, por encima del 25 al 30 % (folio 62); la aplicación marca desde el ' + DPT_VAR_MITRAL_SIG + ' %, que es el extremo que avisa antes, y lo declara como criterio propio en el módulo.',
       ['escPeri2025']),
     _indFila('Variación respiratoria de la onda E tricúspide',
       st.varT !== null ? _indNum(st.varT, 0, '%') : '—',
@@ -83587,7 +83600,7 @@ function _indConstr(){
       'mismo párrafo: por encima del ' + DPT_VAR_TRIC_SIG + ' % en el llenado tricuspídeo (folio 63)',
       ['escPeri2025']),
     _indFila('Plétora de vena cava inferior', vt('Plétora de VCI', 'Presente', 'Variable'), mk('Plétora de VCI'),
-      'la Figura S1 pide una vena cava DILATADA, sin dar cifra, y la aplicación usa la de la Tabla 17 —por encima de ' + DPT_VCI_PLETORA_MM + ' mm con reducción menor del 50 %— porque es la única que esa guía publica (folio 62). ⚠️ La nota a de la Figura S1 avisa de que es un hallazgo de apoyo y de que puede faltar en el paciente que toma diuréticos (hoja 6).',
+      'la Figura S1 pide una vena cava dilatada, sin dar cifra, y la aplicación usa la de la Tabla 17 —por encima de ' + DPT_VCI_PLETORA_MM + ' mm con reducción menor del 50 %— porque es la única que esa guía publica (folio 62). ⚠️ La nota a de la Figura S1 avisa de que es un hallazgo de apoyo y de que puede faltar en el paciente que toma diuréticos (hoja 6).',
       ['escPeri2025']),
     _indFila('Engrosamiento pericárdico en TC o RMC',
       vt('Engrosamiento pericárdico', 'Engrosado o calcificado', 'Normal'), mk('Engrosamiento pericárdico'),
@@ -83685,7 +83698,7 @@ function _indVexus(){
       'el patrón portal es levemente anormal con una variación de velocidades del 30 % a menos del 50 % durante el ciclo cardíaco, y severamente anormal con una variación del 50 % o más (pie de la Figura 1, página 3)',
       ['vexus2020']),
     _indFila('Vena intrarrenal', vasoTxt('vexus_ir'), vasoMarca('vexus_ir'),
-      'el patrón intrarrenal es levemente anormal cuando es discontinuo con una fase sistólica y una diastólica, y severamente anormal cuando es discontinuo con SÓLO una fase diastólica (pie de la Figura 1, página 3)',
+      'el patrón intrarrenal es levemente anormal cuando es discontinuo con una fase sistólica y una diastólica, y severamente anormal cuando es discontinuo con sólo una fase diastólica (pie de la Figura 1, página 3)',
       ['vexus2020']),
     _indFila('Grado VExUS', 'VEXUS ' + st.score,
       st.score === 3 ? 'alarm' : (st.score === 2 ? 'warn' : 'none'),
@@ -84326,6 +84339,20 @@ function _indPOP(){
   ];
   if (faltan.length) bloques.push({ tit:'Lo que falta contestar', plegado:true, lineas: faltan });
 
+  /* ── EL ⓘ DE LA SECCION: lo que las reglas R1 y R2 sacaron de las lineas visibles ──────── */
+  const _popNotas = [];
+  /* ⚠️ UNA SOLA REDACCION, Y NO DOS SEGUN `pcis`. La primera version de esta tanda tenia una
+     frase distinta para cada rama, y la segunda era texto clinico NUEVO —que la orden prohibe—
+     para decir lo mismo. La linea de la colchicina se publica siempre, asi que su nota tambien. */
+  _popNotas.push({ txt:'La colchicina es una medida preoperatoria: se publica acá porque es la única fila de la Tabla 22 que habla del paciente de cirugía cardíaca antes de que el síndrome aparezca.', refs:['escPeri2025'] });
+  if (cx === 'valvular') _popNotas.push({ txt:'Tras cirugía mitral: ASE / SCA / STS 2020 (Nicoara), apartado 3.1.5 y Tabla 3, folio 701. Esa tabla declara su propia limitación —lo que se mide depende de la precarga, la poscarga, la contractilidad y la frecuencia cardíaca con que el paciente sale de la circulación extracorpórea— y la opción «Valvular» de esta aplicación es genérica, mientras lo que la guía detalla en ese folio es la cirugía mitral.', refs:['aseEte2020'] });
+  if (cx === 'cabg') _popNotas.push({ txt:'Tras revascularización: ASE / SCA / STS 2020 (Nicoara), apartado 4.2, folio 716, con sus puntos clave en la Tabla 8, folio 707. La guía pide que esa evaluación se repita durante el posoperatorio, y dice por qué: el injerto puede acodarse en cualquier momento, y sobre todo al volver a cerrar el esternón.', refs:['aseEte2020'] });
+  if (asist === 'ecmo_va') _popNotas.push({ txt:'Secuencia de vistas tras ECMO venoarterial: ASE / SCA / STS 2020, Figura 12, folio 716.', refs:['aseEte2020'] });
+  if (cx === 'valvular' || cx === 'cabg' || asist === 'ecmo_va')
+    _popNotas.push({ txt:'Esa guía no publica clase ni nivel: sus tablas son de «puntos clave» y sus figuras, de estrategia de imagen. No se le inventa ninguna escala.', refs:['aseEte2020'] });
+  if (hayPle) _popNotas.push({ txt:'La orientación por tamaño del derrame pleural no tiene fuente: ninguna de las fuentes de este módulo gradúa el derrame pleural por tamaño ni cuelga una conducta de esa graduación. Vive acá y no en el papel firmado.', refs:['ecosmart'] });
+  _popNotas.push({ txt:'Los patrones hemodinámicos de este módulo y la etiqueta de vasoplejia no entran en esta sección: los primeros no tienen fuente y la segunda es una definición de dos artículos que no son guías, publicada en la ficha de Referencias.', refs:null });
+
   return { filas: filas, bloques: bloques, compacta: true,
     guia: { ref:'escPeri2025',
       txt:'El síndrome post-lesión cardíaca es un término paraguas que incluye la pericarditis tardía tras el infarto —síndrome de Dressler—, el síndrome pospericardiotomía y la pericarditis postraumática, con o sin sangrado (§11.3, folio 58). Se le atribuye un mecanismo autoinmune desencadenado por el sangrado pericárdico y la incisión de la pleura.',
@@ -84335,15 +84362,13 @@ function _indPOP(){
        otra vez detras del «ⓘ Ver detalle». Lo que queda es lo que las lineas perdieron por las
        reglas R1 y R2 —los localizadores de cada fuente, su limitacion de alcance y por que la
        colchicina preoperatoria esta en esta seccion—, sin perder una tabla ni un folio. */
-    notas: [
-      { txt:'La colchicina es una medida preoperatoria: se publica acá porque es la única fila de la Tabla 22 que habla del paciente de cirugía cardíaca antes de que el síndrome aparezca.', refs:['escPeri2025'] },
-      { txt:'Tras cirugía mitral: ASE / SCA / STS 2020 (Nicoara), apartado 3.1.5 y Tabla 3, folio 701. Esa tabla declara su propia limitación —lo que se mide depende de la precarga, la poscarga, la contractilidad y la frecuencia cardíaca con que el paciente sale de la circulación extracorpórea— y la opción «Valvular» de esta aplicación es genérica, mientras lo que la guía detalla en ese folio es la cirugía mitral.', refs:['aseEte2020'] },
-      { txt:'Tras revascularización: ASE / SCA / STS 2020, apartado 4.2, folio 716, con sus puntos clave en la Tabla 8, folio 707. La guía pide que esa evaluación se repita durante el posoperatorio, y dice por qué: el injerto puede acodarse en cualquier momento, y sobre todo al volver a cerrar el esternón.', refs:['aseEte2020'] },
-      { txt:'Secuencia de vistas tras ECMO venoarterial: ASE / SCA / STS 2020, Figura 12, folio 716.', refs:['aseEte2020'] },
-      { txt:'Esa guía no publica clase ni nivel: sus tablas son de «puntos clave» y sus figuras, de estrategia de imagen. No se le inventa ninguna escala.', refs:['aseEte2020'] },
-      { txt:'La orientación por tamaño del derrame pleural no tiene fuente: ninguna de las fuentes de este módulo gradúa el derrame pleural por tamaño ni cuelga una conducta de esa graduación. Vive acá y no en el papel firmado.', refs:['ecosmart'] },
-      { txt:'Los patrones hemodinámicos de este módulo y la etiqueta de vasoplejia no entran en esta sección: los primeros no tienen fuente y la segunda es una definición de dos artículos que no son guías, publicada en la ficha de Referencias.', refs:null }
-    ] };
+    /* ⚠️ LOS LOCALIZADORES DEL ⓘ SIGUEN A LA CIRUGIA CARGADA, Y NO SON UNA LISTA FIJA. La
+       primera version de esta tanda los ponia los cinco siempre, y eso hacia que la seccion
+       publicara —dentro del globo— lo que hay que mirar tras una cirugia que el paciente NO
+       tuvo: con «valvular» cargada aparecia igual el folio 716 de la revascularizacion. Lo
+       cazo TC-534 (F9), que cuenta exactamente eso. Cada linea se emite con la misma condicion
+       que su linea visible. */
+    notas: _popNotas };
 }
 
 const IND_SECS = [
@@ -134404,8 +134429,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261026-2221';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793064095962;                 /* eco-build-ms */
+const ECO_BUILD    = '20261027-0155';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793076936691;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -134491,7 +134516,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261026-2221</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261027-0155</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

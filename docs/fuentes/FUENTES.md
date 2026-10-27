@@ -5979,3 +5979,124 @@ desindexaba por la superficie corporal del estudio.
 | **Evaluación tras cirugía mitral y tras revascularización, y vistas tras ECMO** | no estaban en la aplicación | en la **Evidencia**, **sin clase y sin nivel**, declarando que esa guía no usa esa escala | Nicoara 2020, folios 701, 707 y 716 | `b42cfbf` | 24/10/2026 |
 | **Síndrome post-lesión cardíaca** | no estaba en la aplicación | cuestionario de cinco criterios y cuatro recomendaciones graduadas | ESC 2025, §11.3 folio 58, §11.3.1 y Tabla 22 folio 59 | `b42cfbf` | 24/10/2026 |
 | **Ficha de Referencias del POP** | no existía | dieciséis filas, cada una con su fuente y su folio; cuatro con chip | ver la tabla de arriba | `3d54c09` | 24/10/2026 |
+
+---
+
+## La tanda A — textos de Evidencia y Referencias (2026-10-26)
+
+**Esta tanda NO cambió ningún dato clínico.** Ni un corte, ni un umbral, ni una clase, ni un
+nivel, ni una tabla, ni un folio. No abrió ni cerró ninguna fuente, y **no leyó ningún PDF**: su
+orden acota el cambio a lo que se lee en la pantalla de Evidencia y en las fichas de Referencias,
+y todo lo que se movió salía ya escrito y verificado por las tandas que sí leyeron los originales.
+Lo que hizo fue **mover** texto —al globo ⓘ, a la bibliografía de la sección o a este archivo— y
+**acortar** sin perder el dato. Las cuatro superficies firmadas quedaron idénticas, medido con
+A/B sobre catorce escenas.
+
+### Las notas de trabajo que salieron de la pantalla, textuales
+
+La regla R1 de la orden dice que las notas de trabajo y las reservas internas no van en pantalla.
+Quedan acá, **palabra por palabra como estaban**, porque son el registro de método de cada
+sección y la próxima tanda que toque esos textos las necesita.
+
+**«El informe y la conclusión de la aplicación son DESCRIPTIVOS: estas recomendaciones se publican
+acá y no en el papel firmado.»** — estaba en el bloque de recomendaciones de **OCHO** secciones:
+**Fallot reparada**, **derrame pericárdico**, **constricción**, **cardiotoxicidad**,
+**amiloidosis**, **posoperatorio**, la **aorta ascendente de la bicúspide** y **«Aorta torácica —
+dilatación y aortopatía»** (`_indAo`), que apareció al final de la tanda —son dos secciones
+distintas con la misma nota y el commit A-2 cerró una sola—. Sigue siendo verdad y sigue siendo la
+regla de producto de la aplicación; lo que dejó de hacer es ocupar un renglón en ocho secciones.
+
+**Derrame pericárdico**, además: «El módulo de la pestaña lista los signos presentes y no concluye
+taponamiento.» — hoy en el ⓘ de la sección.
+
+**Constricción**, además: «Desde el 24/10/2026 el módulo ya no pide confirmación invasiva en la
+pantalla, en el informe ni en el PDF — la pedía siempre, y la guía la condiciona.» Es el registro
+del commit AJ7-4a y vive acá.
+
+**VExUS**: «No hay clase ni nivel de recomendación: la fuente es un artículo original de
+desarrollo de la graduación, no una guía de práctica clínica, y no los publica. Escribirlos sería
+inventarlos.» — hoy en el ⓘ de la sección, porque explica **por qué algo no tiene fuente** y eso
+la regla R1 manda al globo y no acá solo. Y: «Estas tres frases se publicaban hasta el 24/10/2026
+en la pantalla, en el cuerpo del informe firmado y en la hoja del PDF. Hoy viven sólo acá.» — es
+el registro del commit J-5, y queda sólo en este archivo.
+
+**Perfil hemodinámico**: «No llevan clase ni nivel de recomendación: ese documento no usa esa
+escala.» · «Se cita como la reproduce este libro de texto y no como fuente primaria: el artículo
+original de 1976 no está en la biblioteca de este repositorio. No publica clase ni nivel.» ·
+«Sin clase ni nivel: ese documento no los publica.» Las tres explicaban por qué no hay escala, y
+las tres están hoy en el ⓘ de la sección, refundidas en una sola línea que nombra **los tres
+motivos distintos**: la guía de corazón derecho no usa esa escala, Grossman y Braunwald son libros
+de texto, y el «2,2 o menos» del consenso argentino vive en una columna comparativa de su Tabla 1.
+
+**Amiloidosis**: «Cotejadas contra el original inglés de esa guía: coinciden en sentido, clase y
+nivel.» — es una nota de **verificación** de la tanda J2 sobre las dos recomendaciones de la guía
+europea de miocardiopatías (folio 27), no una afirmación clínica, y queda sólo acá.
+
+**Posoperatorio**: «Es una medida PREOPERATORIA: se publica acá porque es la única de esa tabla que
+habla del paciente de cirugía cardíaca antes de que el síndrome aparezca.» — es la justificación de
+por qué la colchicina está en esta sección; hoy en el ⓘ. · «La guía ASE / SCA / STS 2020 no usa la
+escala de clase y nivel de las guías europeas: publica tablas de puntos clave y figuras de
+estrategia de imagen. Lo suyo se publica sin clase y sin nivel, y no se le inventa ninguna. Lo que
+lleva el rótulo «Criterio EcoSmart» no tiene fuente y lo dice.» — refundida en una línea corta en
+pantalla y completa en el ⓘ. · «Los patrones hemodinámicos de este módulo y la etiqueta de
+vasoplejia NO entran en esta sección: los primeros no tienen fuente y la segunda es una definición
+de dos artículos que no son guías, publicada en la ficha de Referencias.» — hoy en el ⓘ.
+
+**Ficha del posoperatorio**, pie: «Las dos fuentes de la vasoplejia no son guías y ninguna publica
+una definición universal: una es un editorial y la otra una revisión.» · «La RVS se compara SIN
+INDEXAR. Los dos artículos usan la resistencia sin indexar y ninguno usa el índice, así que el SVRI
+del PiCCO se divide por la superficie corporal del estudio antes de comparar. Sin peso ni talla no
+hay superficie, la resistencia queda sin calcular y no hay etiqueta.» · «El informe y el PDF del
+posoperatorio son descriptivos: publican lo medido y lo observado. El patrón, las cinco preguntas
+y las conductas no viajan al papel firmado.» — las tres en el ⓘ del pie; en pantalla queda una
+línea, la que califica la etiqueta clínica («definición propuesta»).
+Y: «Censada la biblioteca: ninguna de las fuentes de este módulo publica esa banda.» — hoy en el ⓘ
+de la fila de la precarga, que es donde explica por qué esa banda no tiene fuente.
+
+**Ficha de ecografía pulmonar**: «…así que esta ficha no escribe ninguna: **hacerlo sería
+inventarla**. Por el mismo motivo la aplicación no abre una sección de Evidencia para la ecografía
+pulmonar.» — es la reserva interna que la orden manda retirar. El hecho que la sostiene —que ese
+consenso no publica clase ni nivel y que sus enunciados llevan grado de acuerdo entre los
+panelistas— sigue en el ⓘ de la ficha.
+
+### Lo que NO se pudo mover sin perder un dato, y por eso quedó como estaba
+
+- **La leyenda de los corchetes del panel** («[n] numera las citas DENTRO de cada sección: el [1]
+  de una sección no es el mismo documento que el [1] de otra. Cada sección lleva su bibliografía
+  al pie.») **no se tocó.** La regla R1 la nombra entre las notas a retirar, pero el comentario
+  que la puso ahí dice, y tiene razón, que es el reparo de un número que cambió de significado: la
+  numeración por sección hace que el [1] de la aórtica y el [1] de la pulmonar sean documentos
+  distintos en el mismo panel del mismo paciente, y un médico que compare corchetes entre
+  secciones se equivoca. Son dos renglones y ya son la versión corta. **Reportado, no aplicado.**
+- **El criterio de cada sección (`guia.txt`) no puede quedar vacío.** `_indGuiaHTML` publica
+  «[criterio no cargado]» en rojo cuando lo está, así que en la sección de la conclusión de la
+  bicúspide —de donde salió la línea de umbrales duplicada— hubo que escribir una línea que
+  remite a la sección que la publica, con su tabla y su folio. Es una frase de navegación, no
+  clínica, y es el único texto nuevo de la tanda.
+
+### Cambios de evidencia
+
+| Dato | Antes | Ahora | Fuente | Commit | Fecha |
+|---|---|---|---|---|---|
+| **Orden de las ocho Evidencias compactas** | Fallot y las otras siete publicaban las recomendaciones **arriba** de la tabla de datos (inversión del AJ6-2) | el orden de las otras siete secciones del panel: datos → lo que falta → recomendaciones → teoría → bibliografía | decisión de Maicol, regla R5 de la orden | `c6e65d0` | 26/10/2026 |
+| **Fallot — citas de las siete recomendaciones** | «(recomendación 9 del apartado 4.3.5, folio e182)» y «(misma tabla, folio e50)» **en cada fila** | una línea de fuente al final de cada bloque; los números de recomendación, el apartado y las notas ᵈ/ᵉ/ᶠ en el ⓘ | ACHD 2025 folio e182 · guía europea de congénitas folio e50 (**sin cambio**) | `c6e65d0` | 26/10/2026 |
+| **Fallot — cortes de fracción regurgitante** | el 25 % de la estadounidense y el 40 % de la europea salían **tres veces**: en el ⓘ de su fila, en el criterio y en la nota del criterio | una vez, en el ⓘ de su propia fila, al lado del dato del paciente | las dos guías (**sin cambio**) | `c6e65d0` | 26/10/2026 |
+| **VExUS — «Resumen, página 1»** | en las **cinco** líneas del artículo | una vez, al final del bloque | Ultrasound J 2020, resumen pág. 1 (**sin cambio**) | `c6e65d0` | 26/10/2026 |
+| **Constricción — «Recommendation Table 24, folio 64»** | en las **tres** líneas | una vez, al final del bloque | ESC 2025 de pericardio, folio 64 (**sin cambio**) | `c6e65d0` | 26/10/2026 |
+| **Amiloidosis — las dos recomendaciones graduadas** | en el bloque **plegado** y otra vez en «Ver detalle» | una vez y **visibles**, con su Clase I · Nivel B y su Clase IIa · Nivel C | guía europea de miocardiopatías, Tabla 6 y Tabla 5, folio 27 (**sin cambio**) | `c6e65d0` | 26/10/2026 |
+| **Amiloidosis — criterio ecocardiográfico y «no validado externamente»** | en el criterio de la sección **y** en el ⓘ de las tres primeras filas | sólo en el ⓘ de la fila que le corresponde | Tabla 2 folio 1558 · folio 1556 (**sin cambio**) | `c6e65d0` | 26/10/2026 |
+| **Cardiotoxicidad — las dos Clase IIa · Nivel C** | un párrafo cada una, con la nota al pie de la tabla adentro | **una línea** cada una; la nota al pie, los números de tabla y los folios en el ⓘ | Recomendaciones-tabla 41 folio 4314 · tabla 26 folio 4289 (**sin cambio**) | `c6e65d0` | 26/10/2026 |
+| **Posoperatorio — los cinco criterios diagnósticos** | enumerados en la línea del bloque, **además** de una fila por criterio y otra vez en «Ver detalle» | una fila por criterio; la línea del bloque sólo cuenta cuántos se cumplen | ESC 2025, §11.3.1 folio 59 (**sin cambio**) | `8564981` | 26/10/2026 |
+| **Posoperatorio — la colchicina preoperatoria** | Clase IIa · Nivel A **más** la justificación de por qué está en esta sección | **se mantiene**, Clase IIa · Nivel A, 48 a 72 h antes; la justificación en el ⓘ | ESC 2025, Tabla 22 folio 59 (**sin cambio**) · **decisión del médico** | `8564981` | 26/10/2026 |
+| **Derrame — las tres condiciones de la pericardiocentesis** | enumeradas en la recomendación **y** una fila por condición | una fila por condición; la recomendación sólo cuenta cuántas se cumplen | ESC 2025, Recommendation Table 12 folio 43 (**sin cambio**) | `8564981` | 26/10/2026 |
+| **Hemodinámica — «qué informar»** | el mismo texto en la caja, en el criterio en negrita y en «Ver detalle», con «folio 167» en cada línea | una vez, con una línea de fuente | guía de corazón derecho, folio 167 (**sin cambio**) | `8564981` | 26/10/2026 |
+| **Hemodinámica — fila del perfil de Forrester** | «Requiere IC + PCP estimada» aunque el dato que faltara fuera **uno solo** | nombra el que falta: «falta la presión capilar pulmonar estimada» o «falta el índice cardíaco» | — (no es un dato de guía) | `8564981` | 26/10/2026 |
+| **Bicúspide — umbrales quirúrgicos** | la misma línea en la sección de la **conclusión** y en la de la **aorta ascendente** | una vez, en la de la aorta ascendente, que trae los diámetros que la sostienen; **con su folio**, que antes vivía sólo en la copia que se retira | ESC 2024, Tabla 68 folio 119 (**sin cambio**) | `8564981` | 26/10/2026 |
+| **Bicúspide — «(ESC 2024, Tabla 68, folio 119)»** | en las **cuatro** recomendaciones | una vez al final del bloque; la segunda fuente de la cuarta fila (apartado 7.4, folio 4660) en el ⓘ | ESC 2024 folio 119 · ESC/EACTS 2025 folio 4660 (**sin cambio**) | `8564981` | 26/10/2026 |
+| **Ficha del posoperatorio — columna «Fuente»** | autor, revista, año, hoja, página, folio, apartado y aclaraciones en una sola celda | «autor, revista, año» en una línea; el resto en el ⓘ de cada una de las dieciséis filas | las mismas dieciséis fuentes (**sin cambio**) | `c40df82` | 26/10/2026 |
+| **Ficha del posoperatorio — nombres del código** | `UMBRAL_TAPSE_NORMAL`, `TEP_VDVI_DILAT_MIN` y `RVP_ELEVADA_UW` **impresos en pantalla** | el valor y su fuente en palabras de lector | ESC 2019 de TEP folio e17 · ESC/ERS 2022 (**sin cambio**) | `c40df82` | 26/10/2026 |
+| **Ficha del VD — banda de disfunción leve del strain** | la celda repetía «de 15 a 20 %» | dice **«Decisión de la aplicación»**; los folios 145 y 159 pasan al ⓘ | la banda **no tiene fuente**, y eso no cambia | `c40df82` | 26/10/2026 |
+| **Tabla «Monitoreo recomendado» de Cardio-Oncología** | diez palabras mal escritas, dos de ellas con «anos» por «años» | corregidas; y en las otras dos tablas, sólo el calendario que duplica esa fila y la cabecera | ninguna cita en otro idioma ni ningún texto de fuente se tocó | `4f17e36` | 26/10/2026 |
+| **Sello de ejemplo del manual** | `v20260916-0227`, un sello real de hace seis semanas, al lado del formato | sólo el formato neutro `vAAAAMMDD-HHMM` | — | `4f17e36` | 26/10/2026 |
+| **Catorce mayúsculas de en medio que quedaron en el primer barrido** | el censo las midió sobre los **comentarios** del código y dio 29 falsos positivos | censadas sacando los comentarios antes de extraer las cadenas: quedaban catorce, y hoy cero | regla R3 | commit A-5 | 27/10/2026 |
+| **El ⓘ del posoperatorio** | publicaba los localizadores de **todas** las cirugías | cada línea se emite con la **misma condición** que su línea visible: con «valvular» cargada ya no aparece el folio 716 de la revascularización | lo cazó TC-534 (F9) | commit A-5 | 27/10/2026 |

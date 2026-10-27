@@ -477,3 +477,12 @@ formato **compacto**. Su compuerta es el tipo de cirugía o una asistencia circu
 `popPatron().suficiente`. Dos bloques: el síndrome post-lesión cardíaca (ESC 2025, la única
 fuente que gradúa) y «Según la cirugía, también mirar…» (Nicoara 2020, **sin clase y sin
 nivel**, porque esa guía no usa esa escala). Detalle: **`docs/mapa/g-posoperatorio.md`** §6.
+
+---
+
+## ⚠️ La tanda A movió textos de esta zona (2026-10-27)
+
+No cambió ningún dato clínico. Movió notas de trabajo al globo ⓘ y a `docs/fuentes/FUENTES.md`,
+dejó una sola cita al final de cada bloque, sacó las mayúsculas de en medio y dejó cada contenido
+una sola vez por sección. **Lo que esta tanda hizo está en `docs/mapa/a-evidencia-textos.md`**, y
+el caso que lo fija es **TC-537** (ficha en `docs/mapa/tests-fichas-537.md`).

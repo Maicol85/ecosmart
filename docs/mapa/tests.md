@@ -456,3 +456,12 @@ grep -oE "^caso\('[^']+'" scripts/test_clinico.mjs | sort -u | wc -l
 ```
 
 → `PENDIENTES.md` **AJ7-f**.
+
+---
+
+## ⚠️ La tanda A movió textos de esta zona (2026-10-27)
+
+No cambió ningún dato clínico. Movió notas de trabajo al globo ⓘ y a `docs/fuentes/FUENTES.md`,
+dejó una sola cita al final de cada bloque, sacó las mayúsculas de en medio y dejó cada contenido
+una sola vez por sección. **Lo que esta tanda hizo está en `docs/mapa/a-evidencia-textos.md`**, y
+el caso que lo fija es **TC-537** (ficha en `docs/mapa/tests-fichas-537.md`).

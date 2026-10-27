@@ -8110,3 +8110,107 @@ el código los deja sin forma de reimprimir lo que ya se midió. **Nada de esto 
 sin orden expresa** — es la regla de EcoSmart sobre estudios guardados.
 
 **Dónde está el detalle:** `docs/mapa/eco-estres-inventario.md`.
+
+---
+
+## A-a · La cabecera de la columna de la ficha del VD sigue diciendo «Mujer»
+
+El punto 3c de la tanda A pedía que la fila «Strain de pared libre — disfunción leve (valor
+absoluto)» dejara de repetir «de 15 a 20 %» «en la columna de fuente» y dijera «Decisión de la
+aplicación». **Esa tabla no tiene columna «Fuente»:** sus tres columnas son **Parámetro | Varón |
+Mujer**, medido en Chrome, y la fila repetía el número en la de **Mujer** porque la guía no separa
+por sexo y los dos valores salen del mismo dueño.
+
+Se hizo lo que el texto pide: la celda dice «Decisión de la aplicación». El campo `fuente` que lo
+permite es **opcional** y lo trae **una sola fila** de las **cuarenta y ocho** que pasan por
+`_evRefTabla` en sus cinco llamadas, así que las otras **cuarenta y siete** se pintan exactamente
+igual y ninguna banda de guía se tocó. Pero la cabecera de esa columna sigue diciendo «Mujer».
+
+**Las tres salidas, y la decisión es de Maicol:**
+1. renombrar la columna a «Varón / Mujer» y agregar una cuarta de «Origen», que es la forma
+   honesta y la que más toca (hay cuarenta y siete filas en esa tabla);
+2. dejarlo como está y asumir que una fila usa esa celda para otra cosa, declarado acá;
+3. volver atrás y que la fila repita el valor.
+
+## A-b · El resto de las tablas de Cardio-Oncología sigue sin tildes
+
+El punto 4a acotaba el cambio a la tabla «Monitoreo recomendado». Medido: la sección de referencia
+de Cardio-Oncología tiene **siete** tablas, y las dos que no son la nombrada están escritas sin
+tildes **de punta a punta** — «Mieloma multiple», «constriccion», «esofago», «cronica», «pulmon»,
+«disfuncion VI», «Definicion», «Elevacion», «caida», «reduccion», «infusion», «metabolico».
+
+Se corrigió entera la tabla que la orden nombra, y de las otras dos sólo lo que **duplica** su
+contenido: el calendario tras radioterapia (las dos celdas decían exactamente lo mismo) y la
+cabecera «Seguimiento ecocardiográfico». El resto queda como está, porque **tocar una celda y no
+su vecina de la misma fila es peor que no tocar ninguna**: la fila de radioterapia de la matriz
+grande quedaría con «Radioterapia toracica» sin tilde al lado de «desde los 5 años» con ñ.
+
+Lo que falta decidir: si se acentúa esa sección **completa** —son unas sesenta palabras, y hay que
+mirar una por una que no sea una sigla ni una cita en otro idioma— o si se deja como una
+convención del bloque. Si se acentúa, caen por lo menos **TC-99**, **TC-111** y **TC-533**, que
+afirman los textos sin tilde, y hay que adaptarlos con el motivo escrito.
+
+## A-c · La leyenda de los corchetes del panel no se movió, y se declara
+
+La regla R1 de la tanda A nombra la leyenda «[n] numera las citas DENTRO de cada sección…» entre
+las notas de trabajo que tienen que salir de la pantalla. **No se movió**, y el motivo está en el
+comentario que la puso ahí: no es una nota de método, es el **reparo de un número que cambió de
+significado**. La numeración por sección hace que el [1] de la aórtica y el [1] de la pulmonar
+sean documentos distintos en el mismo panel del mismo paciente, y un médico que compare corchetes
+entre secciones se equivoca. Son dos renglones y ya son la versión corta.
+
+Si Maicol quiere igual sacarla, lo que la reemplaza no puede ser nada: tendría que ser un ⓘ al
+lado del primer corchete de cada sección, que son quince globos nuevos.
+
+## A-d · El mensaje «Requiere IC + PCP estimada» sigue mal en la cápsula del módulo
+
+El punto 2d(iv) se aplicó **en la fila de la Evidencia** y no en su origen. La cápsula de
+`calcHemo` sigue publicando «Requiere IC + PCP estimada» cuando falta **uno solo** de los dos, y
+lo mismo hacen sus dos hermanas: «Requiere IC + RVS (VFD/VFS, FC, PAM, PVC, ASC)» y
+«Requiere PAPm (PSAP) + PCP (E/e′)».
+
+**Por qué no se tocó:** el texto de `hemo-forrester` lo leen `amiloTextoHemo()` —que se integra al
+informe y sale en la hoja de ETT Avanzado del PDF— y la diapositiva del PPT (`_pptSpan`).
+Cambiarlo ahí cambia **tres superficies firmadas**, y esta tanda tenía orden expresa de dejarlas
+idénticas. Medido: la cápsula sale igual en los dos árboles en las tres escenas.
+
+Para arreglarlo en su origen hay que decidir primero **qué tiene que decir el informe** cuando el
+perfil no se puede calcular. Hoy dice «Perfil de Forrester (estimado por eco): Requiere IC + PCP
+estimada», que es una instrucción de pantalla dentro de un papel firmado.
+
+## A-e · No hay «mensaje equivalente en la ficha de Referencias» del Forrester
+
+El punto 2d(iv) pedía aplicar el arreglo «también al mensaje equivalente de la ficha de
+Referencias». **Censadas las 35 fichas de Referencias (`toggleRef`): ninguna publica un mensaje de
+ese tipo.** Los tres únicos emisores de «Requiere …» viven en `calcHemo`, y el globo ⓘ del
+Forrester (`hemo-forr`) no lo tiene. No había nada que cambiar, y se declara en vez de inventar un
+objetivo.
+
+## A-f · Las mayúsculas de en medio que quedaron fuera del alcance
+
+La regla R3 se aplicó a la pantalla de Evidencia y a las tres fichas que la tanda toca. Siguen con
+mayúsculas en medio de la frase, **fuera del alcance de esta orden**, los globos ⓘ del formulario
+(`hemo-ic`, `hemo-rvs`, `hemo-forr` y los demás del glosario: «LOS DOS BORDES EXACTOS NO ESTÁN
+DEFINIDOS», «MEDIDA por catéter», «el NÚMERO») y las otras siete secciones no compactas del panel.
+Son otra tanda, y conviene que sea una sola: hoy el panel tiene dos registros de tono distintos
+según la sección que se abra.
+
+## A-g · La regla R4 queda sin aplicar en «Aorta torácica — dilatación y aortopatía»
+
+De las secciones del panel que duplicaban su bloque en el «ⓘ Ver detalle» —`notas` armado como
+`lineas.map(l => l.txt)`—, la tanda A cerró **todas menos una**: `_indAo`.
+
+**El intento está medido y se revirtió.** Vaciar su `notas` deja a esa sección **sin su control de
+detalle**, y «un control de detalle por sección» es un invariante del panel que **TC-293** cuenta:
+midió 13 secciones y 12 controles. Las otras siete pudieron cerrar la duplicación porque tenían
+contenido **propio** para el globo —lo que las reglas R1 y R2 les sacaron de la línea visible—.
+Esta sección no perdió nada de su línea visible: el punto 2e de la orden acota el cambio a la de
+«aorta ascendente», así que no hay con qué llenar el globo sin escribir texto clínico nuevo, que
+la orden prohíbe.
+
+**Las dos salidas:**
+1. aplicarle a `_indAo` lo mismo que a las otras —sacar de sus ocho líneas visibles el folio y la
+   tabla, que hoy van inline, y mandarlos al globo—, con lo que el globo se llena con contenido
+   real y la duplicación se cierra. Es una tanda propia: son ocho líneas con su clase y su nivel;
+2. aceptar que el marco permita una sección sin detalle, lo que obliga a cambiar TC-293 y a
+   decidir si el invariante sigue siendo un invariante.

@@ -102,12 +102,28 @@ conservan el mensaje entero, que ahí se lee suelto.
 
 ### El flag vive en la SECCIÓN
 
-`_indTdFIP` devuelve `compacta: true`. Es **la única** de las quince que lo trae, y eso gobierna
-tres cosas en `_indSecHTMLCuerpo`:
+`_indTdFIP` devuelve `compacta: true`, y eso gobernaba **tres** cosas en `_indSecHTMLCuerpo`:
 
-1. `bloques` y `recom` se emiten **antes** de la grilla de filas;
+1. ~~`bloques` y `recom` se emiten **antes** de la grilla de filas~~;
 2. las filas se pintan con `_indFilaHTML(f, true)`;
 3. la grilla lleva `data-ind-compacta="1"`, que es lo que enciende la regla de CSS.
+
+⚠️ **DOS COSAS DE ESTE PÁRRAFO SE VENCIERON, Y ASÍ SE ENCONTRARON EN LA TANDA A (2026-10-27).**
+
+- **«Es la única de las quince» dejó de ser cierto.** Lo era cuando este mapa se escribió; entre
+  la J, la J2, la G y el AJ6 se sumaron siete más y nadie lo tocó. Hoy son **ocho**, listadas por
+  nombre de función en el comentario de arriba de `_indRecomHTML` y en
+  `docs/mapa/a-evidencia-textos.md`. El conteo se mide con `grep -c "compacta: *true" index.html`.
+- **El punto 1 se revirtió.** DECISIÓN DE MAICOL en la tanda A: las ocho vuelven al orden de las
+  otras siete secciones del panel —datos, lo que falta contestar, recomendaciones, teoría,
+  bibliografía—, porque pesa más que las quince se lean igual que el argumento del AJ6-2 (una
+  sección con dos bloques por guía no tiene una conclusión única que pueda leerse como titular).
+  Hoy hay **un solo lugar de llamada** para `_bloRec`, después de la grilla.
+- Y **TC-528 (B1) exigía lo contrario**: «los dos bloques van ANTES de la tabla». Está adaptado,
+  con el motivo escrito, y hoy exige que vayan **después**. Su condición (C1) decía además «es la
+  ÚNICA del panel» contando `data-ind-compacta` en el DOM, y pasaba en verde porque su escenario
+  despierta una sola sección: un chequeo que no podía fallar. Hoy dice «la única compacta
+  DESPIERTA en este escenario», y el conteo de las ocho lo mide TC-537.
 
 ### `_indFilaHTML(f, compacta)` — tres efectos
 
