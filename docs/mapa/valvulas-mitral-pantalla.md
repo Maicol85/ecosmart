@@ -419,3 +419,17 @@ El `vm_carpentier` del cajón de prolapso **sigue existiendo pero ya no se elige
 
 → `docs/mapa/aj5-mitral-tipoim-carpentier.md` (el ancho derivado, la guarda asimétrica, las tres
 voces del Carpentier y los cinco casos).
+
+---
+
+## ⚠️ Lo que la tanda E movió en esta pantalla (27/10/2026)
+
+- el nodo `vm-carp-aviso` de la fila de tres campos **se fue**, y en su lugar está
+  `vm-carp-origen`, que no es rojo: dice de dónde sale el Carpentier y dónde corregirlo;
+- con un Carpentier en el ETE, el `<select>` `vm_carp` queda **deshabilitado a opacidad 0,5**;
+- los dos bloques protésicos (`bloque-prot-vm` y `bloque-prot-vm-res`) bajaron **debajo** de
+  `#vm-lesiones`;
+- el aviso del corte alternativo de la IM secundaria (`im-sec-alt`) pasa a **una línea corta más
+  un ⓘ** con el texto completo: 28 px de alto a 17.
+
+**`docs/mapa/e-carpentier-tricuspide-orejuela.md` §§ 1, 3 y 5.**

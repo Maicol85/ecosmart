@@ -292,3 +292,17 @@ copia de HEAD y no tocan `index.html`.
   template. **Barrer el cuerpo del template después de cada edición**, no sólo antes del commit.
 - ⚠️ **EL AVISO LEGAL VUELVE A MITAD DE CORRIDA** y se come los clics: las dos sondas lo despejan
   **antes de cada escena**, no una vez al arranque.
+
+---
+
+## ⚠️ La tanda E retiró el grado del strain por debajo de 15 % (27/10/2026)
+
+Con un strain de pared libre por debajo de 15 % en valor absoluto, el informe y el EN SUMA dicen
+«disfunción sistólica» **sin grado**. El «leve como mínimo» del AJ7 salió. La banda de 15 a 20 %
+sigue en «leve» y por encima de 20 sigue sin votar.
+
+**El voto en el Laboratorio no se perdió**: `_labDisfSistVent` da `{vi:false, vd:true}` en los dos
+árboles, porque su regex busca «disfunción sistólica» y no el grado — la columna `DisfSist_VD` y
+las dos filas de `_LAB_HALLAZGOS` no se mueven.
+
+**`docs/mapa/e-carpentier-tricuspide-orejuela.md` § 6.**

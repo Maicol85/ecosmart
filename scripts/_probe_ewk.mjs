@@ -1,42 +1,39 @@
-#!/usr/bin/env node
-/**
- * _probe_ewk.mjs - la tanda E en los DOS motores: HTP y HF-PEFF.
- * Cierra las mediciones que la sonda de CDP no puede hacer, porque CDP solo habla con Chrome:
- *   texto   - los once signos de la tabla de HTP, las dos hojas del PDF, la conclusion del
- *             score y las dos secciones de Evidencia, en Chrome y en WebKit.
- *   maqueta - la tabla de signos a TRES viewports x DOS temas, con el color REAL resuelto y
- *             el scroll horizontal de la PAGINA.
- *   captura - la tabla, las dos fichas de Referencias y las dos secciones de Evidencia.
+/* Sonda de MAQUETA en DOS MOTORES para la tanda E (2026-10-27). Calcada de _probe_bwk.mjs.
  *
- *   node scripts/_probe_ewk.mjs --dest /tmp/cap_e > /tmp/ewk.NEW.json
- *   node scripts/_probe_ewk.mjs --file /tmp/index.EHEAD.html > /tmp/ewk.HEAD.json
+ *   node scripts/_probe_ewk.mjs [--file /ruta/index.html] [--dest /dir/capturas]
  *
- * ADVERTENCIA: WebKit de Playwright NO es Safari, y se declara.
- * Sin acentos graves dentro del template de la sonda, tampoco en sus comentarios.
+ * Mide, a 1440 px y 390 px y en los DOS temas, lo que esta tanda movio:
+ *   - CERO barra horizontal de la PAGINA.
+ *   - La linea de Fallot del EN SUMA y el resumen descriptivo.
+ *   - La caja del ateroma: que filas se ven.
+ *   - La oracion del VD con el strain votando, y el cuadro de Referencias con su banda.
+ *   - El tipo de IM y el Carpentier con protesis, y el rotulo de la morfologia sin recortarse.
+ *   - El aviso de la VCI de VExUS en sus tres bordes.
+ *   - Los dos globos de 44x44.
+ *   - El corte de HTP en sus dos superficies.
+ *   - La geometria de TODA la app: cuantas pestanas tienen caja. Un <div> sin cerrar no lanza
+ *     -el parser re-anida lo que viene despues- y ningun A/B de texto lo ve; lo unico que lo
+ *     delata es que pestanas AJENAS informen 0x0, que es lo que la tanda I pago.
+ *
+ * ⚠️ Playwright se resuelve POR RUTA. Si no esta, la sonda lo DICE y sale con codigo 2.
+ * ⚠️ WebKit de Playwright NO es Safari, y se declara.
  */
 import { createServer } from 'node:http';
 import { readFile, mkdir } from 'node:fs/promises';
 import { join, extname } from 'node:path';
 import { createHash } from 'node:crypto';
 
-/* Playwright se resuelve POR RUTA. Si no esta, la sonda lo DICE y sale con codigo 2. */
 const CANDIDATAS = ['/tmp/node_modules/playwright/index.js',
                     '/usr/local/lib/node_modules/playwright/index.js',
                     process.env.HOME + '/node_modules/playwright/index.js'];
 let _pw = null;
 for (const c of CANDIDATAS) { try { _pw = (await import(c)).default; break } catch (e) {} }
-if (!_pw) {
-  console.log(JSON.stringify({ error: 'SIN PLAYWRIGHT', buscado: CANDIDATAS }, null, 1));
-  process.exit(2);
-}
+if (!_pw) { console.log(JSON.stringify({ error: 'SIN PLAYWRIGHT', buscado: CANDIDATAS }, null, 1)); process.exit(2); }
 const { chromium, webkit } = _pw;
 
 const RAIZ = '/Users/maicoldossantos/Desktop/APLICACIONES/ecosmart';
 const arg = (n) => { const i = process.argv.indexOf(n); return i > -1 ? process.argv[i + 1] : null };
-const ARCH = arg('--file');
-const DEST = arg('--dest');
-const SOLO = (arg('--solo') || '').split(',').map(s => s.trim()).filter(Boolean);
-const corre = (g) => !SOLO.length || SOLO.indexOf(g) > -1;
+const ARCH = arg('--file'), DEST = arg('--dest');
 
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css',
                '.json': 'application/json', '.png': 'image/png', '.svg': 'image/svg+xml' };
@@ -54,227 +51,228 @@ if (DEST) { try { await mkdir(DEST, { recursive: true }) } catch (e) {} }
 const out = { arbol: ARCH || 'VIVO', md5: null, grupos: {}, abortos: [] };
 out.md5 = createHash('md5').update(await readFile(ARCH || join(RAIZ, 'index.html'))).digest('hex');
 
-const SONDA = `window.__P = {
-  despejar() {
-    var n = 0;
+const SONDA = `window.__M = {
+  despejar() { var n = 0;
     ['modalAvisoEco','login-overlay'].forEach(function(id){
       var m = document.getElementById(id);
-      if (m && getComputedStyle(m).display !== 'none') { m.style.display = 'none'; n++; }
-    });
+      if (m && getComputedStyle(m).display !== 'none') { m.style.display = 'none'; n++ } });
     return n },
   tema(claro) { document.documentElement.classList.toggle('light-mode', !!claro);
     return document.documentElement.classList.contains('light-mode') === !!claro },
-  /* El escenario se arma con asignacion directa mas el evento, porque aca no hay CDP para
-     teclas reales. Lo que esta sonda mide es MAQUETA y TEXTO en el OTRO motor; la cuenta con
-     teclas de verdad la mide la sonda de CDP. Se declara. */
   set(id, v) { var e = document.getElementById(id); if (!e) return 'NO EXISTE ' + id;
-    e.value = v; e.dispatchEvent(new Event('input', { bubbles:true }));
-    e.dispatchEvent(new Event('change', { bubbles:true })); return e.value },
-  geo(id) { var e = document.getElementById(id); if (!e) return { ok:false, falta:id };
-    var r = e.getBoundingClientRect();
-    return { ok: r.width > 0 && r.height > 0, w: Math.round(r.width), h: Math.round(r.height) } },
-  color(sel) { var e = document.querySelector(sel); if (!e) return 'NO EXISTE ' + sel;
-    return getComputedStyle(e).color },
+    if (e.tagName === 'SELECT') {
+      var hay = Array.prototype.some.call(e.options, function(o){ return o.value === v });
+      if (!hay) return 'NO HAY OPCION ' + v;
+    }
+    e.value = v; e.dispatchEvent(new Event('input',{bubbles:true}));
+    e.dispatchEvent(new Event('change',{bubbles:true})); return e.value },
+  pon(o) { var r = {}; Object.keys(o).forEach(function(k){ r[k] = window.__M.set(k, o[k]) }); return r },
+  limpiar() { try { limpiarCampos(true) } catch (e) {} return 1 },
+  txt(id) { var e = document.getElementById(id);
+    return e ? (e.textContent || '').replace(/\\s+/g, ' ').trim() : 'NO EXISTE ' + id },
+  abrir(id) { var e = document.getElementById(id); if (!e) return false;
+    var sec = e.closest ? e.closest('.tab-section') : null;
+    if (sec) { try { showTab(String(sec.id || '').replace(/^tab-/, '')) } catch (x) {} }
+    var n = e.parentNode;
+    while (n && n.nodeType === 1 && n !== document.body) {
+      if (getComputedStyle(n).display === 'none') n.style.display = 'block';
+      n = n.parentNode; }
+    return e.getBoundingClientRect().width > 0 },
+
   scrollH() { var d = document.documentElement;
     return { hay: d.scrollWidth > d.clientWidth, sw: d.scrollWidth, cw: d.clientWidth } },
 
-  /* La seccion de HTP nace CERRADA y vive en Hemodinamica: sin abrirla la tabla mide 0x0 y
-     «cero scroll horizontal» sale sobre una pantalla que no esta dibujada. */
-  abrirHtp() {
-    try { if (typeof showTab === 'function') showTab('hemodinamica') } catch (e) {}
-    try { var d = document.getElementById('htp2022-seccion');
-      if (d && getComputedStyle(d).display === 'none' && typeof toggleCard === 'function')
-        toggleCard('htp2022-seccion', document.getElementById('htp2022-arrow')) } catch (e) {}
-    return window.__P.geo('htp2022-tabla') },
-
-  /* La escena de HTP: un signo de cada categoria y la VRT alta, con los campos reales. */
-  escHtp() {
-    window.__P.abrirHtp();
-    var o = {};
-    o.vrt = window.__P.set('vmax_it', '3.5');
-    o.tvia = window.__P.set('tvia', '90');
-    o.ad = window.__P.set('ad_area', '22');
-    o.vciD = window.__P.set('vci_diam', '25');
-    o.vciC = window.__P.set('vci_col', '<50');
-    o.ap = window.__P.set('ip_ap_diam', '30');
-    o.ao = window.__P.set('ao_sin', '28');
-    try { if (typeof calcHTP2022 === 'function') calcHTP2022() } catch (e) {}
+  /* El centinela del div sin cerrar: pestanas AJENAS en 0x0. */
+  pestanas() {
+    var bs = Array.prototype.slice.call(document.querySelectorAll('.tab-btn[onclick]'));
+    var o = { n: 0, conCaja: 0, cero: [] };
+    bs.forEach(function(b){
+      var m = /showTab\\('([^']+)'/.exec(b.getAttribute('onclick') || ''); if (!m) return;
+      o.n++;
+      try { showTab(m[1]) } catch (e) {}
+      var p = document.getElementById('tab-' + m[1]);
+      var r = p ? p.getBoundingClientRect() : { width:0, height:0 };
+      if (r.width > 0 && r.height > 0) o.conCaja++; else o.cero.push(m[1]);
+    });
     return o },
 
-  /* La escena de HF-PEFF: los tres dominios con datos. BSA exacta con 80 kg y 180 cm. */
-  escHf() {
-    var o = {};
-    [['peso','80'],['talla','180'],['edad','70'],['fevi','60'],
-     ['onda_e','120'],['e_sep','5'],['e_lat','7'],['ai_vol','90'],
-     ['ddfvi','45'],['siv','14'],['ppvi','14'],['hf_ntprobnp','900']].forEach(function(p){
-      o[p[0]] = window.__P.set(p[0], p[1]); });
-    try { if (typeof calcHFAPEFF === 'function') calcHFAPEFF() } catch (e) {}
-    try { if (typeof hfapeffPintar === 'function') hfapeffPintar() } catch (e) {}
-    return o },
+  /* TEXTO RECORTADO: cualquier nodo cuyo contenido no entra en su caja. */
+  recortes(sel) {
+    var out = [];
+    Array.prototype.forEach.call(document.querySelectorAll(sel), function(e){
+      var r = e.getBoundingClientRect();
+      if (!r.width) return;
+      if (e.scrollWidth > e.clientWidth + 1 || e.scrollHeight > e.clientHeight + 1)
+        out.push((e.id || e.className || e.tagName) + ' ' + e.scrollWidth + '/' + e.clientWidth);
+    });
+    return out },
 
-  /* La tabla de signos, leida del DOM renderizado. */
-  htpTabla() {
-    var t = document.getElementById('htp2022-tabla');
-    if (!t) return 'NO EXISTE';
-    var trs = t.querySelectorAll('tr[data-htp-signo]'), fs = [];
-    for (var i = 0; i < trs.length; i++) {
-      var tr = trs[i], tds = tr.querySelectorAll('td'), b = tr.getBoundingClientRect();
-      fs.push({ clave: tr.getAttribute('data-htp-signo'), cat: tr.getAttribute('data-htp-cat'),
-                estado: tr.getAttribute('data-htp-estado'),
-                signo: tds[0] ? (tds[0].textContent || '').trim() : null,
-                criterio: tds[1] ? (tds[1].textContent || '').trim() : null,
-                txtEstado: tds[2] ? (tds[2].textContent || '').trim() : null,
-                cols: tds.length, geo: Math.round(b.width) + 'x' + Math.round(b.height) });
+  /* ── ESCENAS DE LA TANDA E ──────────────────────────────────────────────────────────────
+     Las cuatro zonas que la tanda toca, en los DOS motores: el Carpentier con el ETE como dueno,
+     el aviso de la tricuspide con el GESTO REAL, el strain por debajo de 15 y las dos tablas de
+     la orejuela. ADVERTENCIA: sin acentos graves adentro. */
+  escCarp() {
+    window.__M.limpiar();
+    window.__M.abrir('vm_carp');
+    window.__M.pon({ vm_morf: 'Prolapso / EVMS', ete_carpentier: 'IIIb',
+                     vm_tipo_im: 'secundaria', im_vc: '7', im_grado: '2' });
+    var b = document.getElementById('pill-insuf-mitral');
+    if (b && !b.classList.contains('btn-primary')) b.click();
+    return new Promise(function (res) { setTimeout(function () {
+      window.__M.set('im_grado', '2');
+      try { if (typeof vmCarpOrigenSync === 'function') vmCarpOrigenSync() } catch (e) {}
+      try { if (typeof generarInforme === 'function') generarInforme() } catch (e) {}
+      var vm = document.getElementById('vm_carp');
+      var en = document.getElementById('vm-carp-origen');
+      var inf = String((document.getElementById('informe_texto') || {}).value || '');
+      var r = en ? en.getBoundingClientRect() : null;
+      res({ efectivo: (typeof vmCarpEfectivo === 'function') ? vmCarpEfectivo() : 'SIN FN',
+            dis: vm ? !!vm.disabled : 'NO EXISTE',
+            op: vm ? getComputedStyle(vm).opacity : null,
+            enlace: en ? (en.textContent || '').trim() : 'NO EXISTE',
+            enlaceGeo: r ? { w: Math.round(r.width), h: Math.round(r.height) } : null,
+            avisoViejo: !!document.getElementById('vm-carp-aviso'),
+            nCarp: (inf.match(/Carpentier/g) || []).length,
+            lineaVM: (inf.split('\\n').filter(function (l) { return /mitral/i.test(l) })[0] || '') });
+    }, 600) }) },
+
+  escTric() {
+    window.__M.limpiar();
+    window.__M.abrir('et_gmedio');
+    var b = document.getElementById('pill-esten-tricuspide');
+    if (b && !b.classList.contains('btn-primary')) b.click();
+    /* EL GESTO REAL: un change sobre el select, sin llamar al pintor. */
+    var g = document.getElementById('et_grado');
+    if (g) { g.value = 'Significativa'; g.dispatchEvent(new Event('change', { bubbles: true })); }
+    return new Promise(function (res) { setTimeout(function () {
+      var e = document.getElementById('et-evid-aviso');
+      e && e.getBoundingClientRect();
+      var r = e ? e.getBoundingClientRect() : null;
+      var abre;
+      try { abre = (typeof _indVT === 'function') ? (_indVT() !== null) : 'SIN FN' } catch (x) { abre = 'EXC' }
+      res({ txt: e ? (e.textContent || '').replace(/\\s+/g, ' ').trim() : 'NO EXISTE',
+            geo: r ? { w: Math.round(r.width), h: Math.round(r.height) } : null,
+            abre: abre, grado: g ? g.value : null,
+            pastilla: b ? b.classList.contains('btn-primary') : 'NO EXISTE' });
+    }, 500) }) },
+
+  escStrain() {
+    window.__M.limpiar();
+    window.__M.abrir('vd_strain_pl');
+    window.__M.pon({ tapse: '22', s_prime: '13', vd_strain_pl: '-12' });
+    return new Promise(function (res) { setTimeout(function () {
+      try { if (typeof generarInforme === 'function') generarInforme() } catch (e) {}
+      var inf = String((document.getElementById('informe_texto') || {}).value || '');
+      var sum = String((document.getElementById('en_suma') || {}).value || '');
+      res({ linea: inf.split('\\n').filter(function (l) { return /entr.culo derecho|VD /i.test(l) })[0] || '',
+            suma: sum.split('\\n').filter(function (l) { return /VD/.test(l) })[0] || '',
+            grado: window.__M.txt('vd_strain_pl-grado') });
+    }, 500) }) },
+
+  escOrej() {
+    window.__M.limpiar();
+    window.__M.abrir('oai_ostium_diam');
+    window.__M.pon({ oai_ostium_diam: '24', oai_profundidad: '28' });
+    return new Promise(function (res) { setTimeout(function () {
+      try { if (typeof calcOAI === 'function') calcOAI() } catch (e) {}
+      try { if (typeof generarInforme === 'function') generarInforme() } catch (e) {}
+      var inf = String((document.getElementById('informe_texto') || {}).value || '');
+      var sec = document.getElementById('ete-seccion-oai');
+      var st = sec ? (sec.textContent || '').replace(/\\s+/g, ' ').trim() : 'NO EXISTE';
+      var t = document.body.innerText || '';
+      res({ notas: window.__M.txt('oai-notas').slice(0, 220),
+            badge: window.__M.txt('oai-elegibilidad'),
+            tablaAmulet: st.indexOf('Distancia desde el orificio') > -1,
+            tablaWatch: st.indexOf('Ancho máximo del ostium') > -1,
+            profEnPalabras: st.indexOf('mitad del diámetro del dispositivo') > -1,
+            sinFecha: !/consultad[oa] el/i.test(st),
+            viejos: [/ostium\s*17/i, /17\s*a\s*31/, /17-31/, /(≤|<=)\s*32\s*mm/, /11-32/]
+                      .filter(function (re) { return re.test(t) }).length,
+            linea: inf.split('\\n').filter(function (l) { return /ostium/i.test(l) })[0] || '' });
+    }, 600) }) },
+
+  /* Tiempos de ESCRITURA: doce teclas reales sobre un campo del VD. Solo en Chrome. */
+  escTeclas() {
+    window.__M.limpiar();
+    window.__M.abrir('vd_strain_pl');
+    var e = document.getElementById('vd_strain_pl');
+    if (!e) return Promise.resolve({ err: 'NO EXISTE vd_strain_pl' });
+    var ms = [];
+    for (var i = 0; i < 12; i++) {
+      var t0 = performance.now();
+      e.value = String(-(10 + i));
+      e.dispatchEvent(new Event('input', { bubbles: true }));
+      ms.push(Math.round((performance.now() - t0) * 100) / 100);
     }
-    var gr = Array.prototype.map.call(t.querySelectorAll('tr[data-htp-grupo]'),
-      function(x){ return (x.textContent || '').trim() });
-    return { n: fs.length, filas: fs, grupos: gr,
-             prob: ((document.getElementById('htp2022-prob') || {}).textContent || '').trim() } },
-
-  /* Las dos hojas del PDF, crudas. */
-  pdfHtp() { try { return typeof amiloTextoHTP === 'function' ? amiloTextoHTP() : 'SIN FN' }
-    catch (e) { return 'EXC: ' + e.message } },
-  pdfHf()  { try { return typeof amiloTextoHFAPEFF === 'function' ? amiloTextoHFAPEFF() : 'SIN FN' }
-    catch (e) { return 'EXC: ' + e.message } },
-
-  /* La conclusion del score, por su dueno. */
-  hfConcl() { try {
-    if (typeof hfapeffScore !== 'function' || typeof hfapeffConclusion !== 'function') return 'SIN FN';
-    var r = hfapeffScore(); return { total: r.total, txt: hfapeffConclusion(r) } }
-    catch (e) { return 'EXC: ' + e.message } },
-
-  /* Una seccion del panel de Evidencia, por su titulo. IND_SECS es un const de MODULO y NO una
-     propiedad de window: el identificador pelado si se ve. */
-  evid(pref) { try {
-    var S = (typeof IND_SECS !== 'undefined') ? IND_SECS : null;
-    if (!S) return 'SIN IND_SECS';
-    var norm = function(s){ return String(s || '').normalize('NFD').replace(/[\\u0300-\\u036f]/g, '') };
-    for (var i = 0; i < S.length; i++) {
-      if (norm(S[i].tit).indexOf(norm(pref)) === 0) {
-        var r = S[i].fn();
-        if (!r) return { nula: true };
-        var bl = (r.bloques || []).map(function(b){
-          return { tit: b.tit || null, n: (b.lineas || []).length,
-                   lineas: (b.lineas || []).map(function(l){ return String(l.txt || '').slice(0, 170) }) } });
-        return { tit: S[i].tit, nFilas: (r.filas || []).length,
-                 filas: (r.filas || []).map(function(f){ return String(f.lbl || f.txt || '').slice(0, 90) }),
-                 nBloques: bl.length, bloques: bl,
-                 nNotas: (r.notas || []).length };
-      }
-    }
-    return 'SIN SECCION ' + pref }
-    catch (e) { return 'EXC: ' + e.message } },
-
-  /* Una ficha de Referencias, por su id. */
-  ficha(id) { try { var e = document.getElementById(id);
-    if (!e) return 'NO EXISTE ' + id;
-    var t = (e.textContent || '').replace(/\\u00a0/g, ' ');
-    t = t.split(/[ ]+/).join(' ');
-    return { largo: t.length, hash: (function(){ var h = 0;
-      for (var i = 0; i < t.length; i++) { h = (h * 31 + t.charCodeAt(i)) | 0 } return h })(),
-      tablas: e.querySelectorAll('table').length, filas: e.querySelectorAll('tr').length,
-      ecosmart: t.indexOf('CRITERIO DE ECOSMART') > -1 || t.indexOf('Criterio de EcoSmart') > -1 } }
-    catch (e) { return 'EXC: ' + e.message } }
+    return new Promise(function (res) { setTimeout(function () {
+      ms.sort(function (a, b) { return a - b });
+      res({ min: ms[0], max: ms[ms.length - 1],
+            media: Math.round(ms.reduce(function (a, b) { return a + b }, 0) / ms.length * 100) / 100 });
+    }, 500) }) },
 };
 1`;
+/* ⚠️ ESTE ARNES SE COLGO UNA HORA Y CUARTO SIN ESCRIBIR UN BYTE, Y LAS DOS COSAS VAN JUNTAS.
+   `page.evaluate` de Playwright NO tiene timeout: una escena que devuelve una Promise que nunca
+   se resuelve —porque algo tiro adentro de su `setTimeout` antes del `res(...)`— deja al proceso
+   dormido para siempre, a 0 % de CPU. Y como el arnes heredado imprime UNA sola vez al final, no
+   habia forma de saber en que paso estaba: stdout y stderr en cero bytes.
+   Dos piezas, ninguna decorativa:
+     · `paso()` envuelve cada `evaluate` con un reloj que RECHAZA nombrando la escena, el motor y
+       el ancho, asi que el cuelgue se vuelve un error con direccion;
+     · cada escena escribe en stderr antes y despues, asi que la corrida se puede seguir en vivo. */
+function conReloj(p, ms, etiqueta) {
+  return Promise.race([p, new Promise((_, no) =>
+    setTimeout(() => no(new Error('TIMEOUT ' + ms + ' ms en ' + etiqueta)), ms))]);
+}
 
 async function correrMotor(nombre, lanzar) {
   const nav = await lanzar();
-  const ctx = await nav.newContext({ viewport: { width: 1200, height: 700 } });
-  const pag = await ctx.newPage();
-  const errs = [];
-  pag.on('pageerror', (e) => errs.push(String(e.message).slice(0, 160)));
-  pag.on('console', (m) => { if (m.type() === 'error') errs.push('console: ' + m.text().slice(0, 160)) });
-  await pag.goto(`http://127.0.0.1:${PORT}/index.html`, { waitUntil: 'load' });
-  await pag.evaluate(() => { try { sessionStorage.setItem('ett_auth', '1') } catch (e) {} });
-  await pag.reload({ waitUntil: 'load' });
-  await pag.waitForTimeout(2500);
-  await pag.evaluate(SONDA);
-  const g = { celdas: {}, texto: {}, errs };
-
-  if (corre('texto')) {
-    await pag.evaluate(() => window.__P.despejar());
-    g.texto.escHtp = await pag.evaluate(() => window.__P.escHtp());
-    g.texto.tabla = await pag.evaluate(() => window.__P.htpTabla());
-    g.texto.pdfHtp = await pag.evaluate(() => window.__P.pdfHtp());
-    g.texto.escHf = await pag.evaluate(() => window.__P.escHf());
-    g.texto.hfConcl = await pag.evaluate(() => window.__P.hfConcl());
-    g.texto.pdfHf = await pag.evaluate(() => window.__P.pdfHf());
-    g.texto.evidHtp = await pag.evaluate(() => window.__P.evid('Hipertension pulmonar'));
-    g.texto.evidHf = await pag.evaluate(() => window.__P.evid('Insuficiencia cardiaca con fraccion'));
-    /* Denominador: la tabla tiene que tener sus once filas y la escena producir probabilidad. */
-    const t = g.texto.tabla;
-    if (!t || t.n !== 11) throw new Error('DENOMINADOR tabla ' + nombre + ': ' + JSON.stringify(t && t.n));
-  }
-
-  if (corre('maqueta')) {
+  const g = { celdas: {}, errs: [] };
+  for (const W of [1440, 390]) {
+    const ctx = await nav.newContext({ viewport: { width: W, height: 900 } });
+    const pag = await ctx.newPage();
+    pag.on('pageerror', (e) => g.errs.push(nombre + '@' + W + ': ' + String(e.message).slice(0, 160)));
+    pag.on('console', (m) => { if (m.type() === 'error') g.errs.push(nombre + '@' + W + ' console: ' + m.text().slice(0, 160)) });
+    await pag.goto(`http://127.0.0.1:${PORT}/index.html`, { waitUntil: 'load' });
+    await pag.evaluate(() => { try { sessionStorage.setItem('ett_auth', '1') } catch (e) {} });
+    await pag.reload({ waitUntil: 'load' });
+    await pag.waitForTimeout(2500);
+    await pag.evaluate(SONDA);
     for (const claro of [false, true]) {
-      for (const w of [1200, 768, 360]) {
-        await pag.setViewportSize({ width: w, height: w === 1200 ? 700 : (w === 768 ? 1024 : 740) });
-        const ok = await pag.evaluate((c) => window.__P.tema(c), claro);
-        if (!ok) throw new Error('EL TEMA NO QUEDO en ' + nombre + ' ' + w);
-        await pag.waitForTimeout(100);
-        await pag.evaluate(() => window.__P.despejar());
-        const gt = await pag.evaluate(() => window.__P.abrirHtp());
-        if (!gt || !gt.ok) throw new Error('SIN GEOMETRIA htp2022-tabla ' + nombre + ' ' + w
-                                           + ' ' + JSON.stringify(gt));
-        const c = { tabla: gt, scroll: await pag.evaluate(() => window.__P.scrollH()),
-          colorEst: await pag.evaluate(() => window.__P.color('#htp2022-est-a1')),
-          colorProb: await pag.evaluate(() => window.__P.color('#htp2022-prob')),
-          filas: (await pag.evaluate(() => window.__P.htpTabla())).filas.map(f => f.geo) };
-        c.denom = !!(gt.ok && c.filas.length === 11);
-        if (!c.denom) throw new Error('DENOMINADOR maqueta ' + nombre + ' ' + w);
-        g.celdas[(claro ? 'dia' : 'noche') + '|' + w] = c;
-        if (DEST) {
-          try { const el = await pag.$('#htp2022-tabla');
-            if (el) { await el.scrollIntoViewIfNeeded();
-              await pag.screenshot({ path: join(DEST,
-                'ewk_tabla_' + nombre + '_' + w + '_' + (claro ? 'dia' : 'noche') + '.png') }); } }
-          catch (e) { out.abortos.push('captura tabla ' + nombre + ' ' + w + ': ' + e.message); }
-        }
-      }
+      const k = W + (claro ? '_claro' : '_oscuro');
+      const c = {};
+      c.despejo = await pag.evaluate(() => window.__M.despejar());
+      c.tema = await pag.evaluate(cl => window.__M.tema(cl), claro);
+      c.pestanas = await pag.evaluate(() => window.__M.pestanas());
+      const paso = async (et, fn, ms) => {
+        process.stderr.write('[' + nombre + '@' + k + '] ' + et + ' …');
+        const t0 = Date.now();
+        try { const r = await conReloj(pag.evaluate(fn), ms || 90000, nombre + '@' + k + '/' + et);
+              process.stderr.write(' ok ' + (Date.now() - t0) + ' ms\n'); return r; }
+        catch (e) { process.stderr.write(' FALLO: ' + e.message + '\n');
+                    g.errs.push(nombre + '@' + k + ' ' + et + ': ' + e.message.slice(0, 120));
+                    return { err: e.message.slice(0, 160) }; }
+      };
+      c.carp = await paso('carp', () => window.__M.escCarp(), 90000);
+      c.tric = await paso('tric', () => window.__M.escTric(), 90000);
+      c.strain = await paso('strain', () => window.__M.escStrain(), 90000);
+      c.orej = await paso('orej', () => window.__M.escOrej(), 90000);
+      if (nombre === 'chrome') c.teclas = await paso('teclas', () => window.__M.escTeclas(), 120000);
+      c.recortes = await pag.evaluate(() => window.__M.recortes('.calc-row, .calc-lbl, .ev-ref td, select'));
+      c.scroll = await pag.evaluate(() => window.__M.scrollH());
+      if (DEST) { try { await pag.screenshot({ path: join(DEST, `e_${nombre}_${k}.png`) }) } catch (e) {} }
+      g.celdas[k] = c;
     }
-    await pag.evaluate(() => window.__P.tema(false));
-    await pag.setViewportSize({ width: 1200, height: 700 });
+    await ctx.close();
   }
-
-  /* Las dos fichas de Referencias, con su captura. */
-  if (corre('refs')) {
-    g.texto.refHtp = await pag.evaluate(() => window.__P.ficha('ref-htp'));
-    g.texto.refHf = await pag.evaluate(() => window.__P.ficha('ref-hfapeff'));
-    if (DEST) {
-      for (const [id, sub] of [['ref-htp', 'fun'], ['ref-hfapeff', 'fun']]) {
-        for (const claro of [false, true]) {
-          try {
-            await pag.evaluate((c) => window.__P.tema(c), claro);
-            await pag.evaluate((s) => { try { showTab('refs') } catch (e) {}
-              try { refSubTab(s, document.querySelector('[data-ref-sub="' + s + '"]')) } catch (e) {}
-              try { var h = document.getElementById(arguments[0]); } catch (e) {} }, sub);
-            await pag.evaluate((i) => { var e = document.getElementById(i);
-              if (e && getComputedStyle(e).display === 'none') {
-                var hd = e.previousElementSibling; if (hd) hd.click(); } }, id);
-            await pag.waitForTimeout(120);
-            await pag.evaluate(() => window.__P.despejar());
-            const el = await pag.$('#' + id);
-            if (el) { await el.scrollIntoViewIfNeeded();
-              await pag.screenshot({ path: join(DEST,
-                'ewk_' + id + '_' + nombre + '_' + (claro ? 'dia' : 'noche') + '.png') }); }
-          } catch (e) { out.abortos.push('captura ' + id + ' ' + nombre + ': ' + e.message); }
-        }
-      }
-      await pag.evaluate(() => window.__P.tema(false));
-    }
-  }
-  await ctx.close(); await nav.close();
+  await nav.close();
   return g;
 }
 
-try {
-  out.grupos.chrome = await correrMotor('chrome', () => chromium.launch({ channel: 'chrome' }));
-} catch (e) { out.abortos.push('chrome: ' + e.message); }
-try {
-  out.grupos.webkit = await correrMotor('webkit', () => webkit.launch());
-} catch (e) { out.abortos.push('webkit: ' + e.message); }
+try { out.grupos.chrome = await correrMotor('chrome', () => chromium.launch({ channel: 'chrome' })); }
+catch (e) { out.abortos.push('chrome: ' + e.message); }
+try { out.grupos.webkit = await correrMotor('webkit', () => webkit.launch()); }
+catch (e) { out.abortos.push('webkit: ' + e.message); }
 
 console.log(JSON.stringify(out, null, 1));
 try { srv.close() } catch (e) {}

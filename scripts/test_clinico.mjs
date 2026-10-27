@@ -91067,8 +91067,17 @@ caso('TC-537', 'Tanda A: las ocho Evidencias compactas despiertas a la vez sin u
       PV.indexOf('no se combinan') > -1, 'presente=' + (PV.indexOf('no se combinan') > -1)]);
     ex.push(['(N2) CONTROL: el rotulo «definición propuesta» de la vasoplejia sigue VISIBLE',
       FPV.indexOf('definición propuesta') > -1, 'presente=' + (FPV.indexOf('definición propuesta') > -1)]);
-    ex.push(['(N3) CONTROL: la frase «leve como mínimo» del strain del VD no se toco',
-      nv.indexOf('leve como mínimo') > -1, 'presente=' + (nv.indexOf('leve como mínimo') > -1)]);
+    /* ADAPTADO EN LA TANDA E (E-3b, 2026-10-27), CON EL MOTIVO ESCRITO. Este control existia para
+       que la tanda A no tocara lo que no le tocaba: su propio comentario de index.html decia que
+       «leve como minimo» «pertenece a otro cambio que se hace en otra tanda». Esa tanda es esta.
+       Por decision de Maicol la frase SALE: por debajo de 15 % la aplicacion informa disfuncion
+       sistolica SIN graduar, asi que la nota de la ficha no puede decir «leve como minimo» sin
+       contradecir al informe firmado. El control se INVIERTE y sigue siendo un control: exige que
+       la frase no este Y que la nota diga las dos mitades que la orden pide. */
+    ex.push(['(N3) la frase «leve como mínimo» del strain del VD YA NO ESTA, y la nota dice sin graduar',
+      nv.indexOf('leve como mínimo') === -1 && nv.indexOf('sin graduar') > -1
+        && nv.indexOf('decisión de la aplicación') > -1,
+      'leveComoMinimo=' + (nv.indexOf('leve como mínimo') > -1) + ' | ' + nv.slice(0, 200)]);
     __t.limpiar();
     ['peso','talla','hemo_fc','hemo_pam','diam_tsvi','itv_tsvi'].forEach((id, i) =>
       __t.set(id, ['80','180','70','90','20','20'][i]));
@@ -91433,6 +91442,490 @@ caso('TC-538', 'Tanda B: los veintiseis espejos siguen a su fuente sin tocar otr
     ex.push(['  y la marca «la escribio la app» NO sobrevive — es B-b, declarado y medido a proposito',
       marcaAuto === '87' && (marcaReab === undefined || marcaReab === null),
       'al escribirla=' + marcaAuto + ' · al reabrir=' + String(marcaReab)]);
+
+    return { extra: ex };
+  })();
+`);
+
+/* -- TC-539 ---------------------------------------------------------------------------------
+   LA TANDA E. Cuatro zonas, cada una con su denominador declarado y sus controles negativos.
+   ADVERTENCIA: ni un acento grave adentro del cuerpo, tampoco en los comentarios. Y la barra
+   invertida de una regex va DOBLE: este cuerpo es un template literal y consume una. */
+caso('TC-539', 'Tanda E: el Carpentier con UN SOLO dato -gana el ETE, el campo de Valvulas de solo lectura con enlace, y una sola aparicion en el informe sin aviso de discordancia-; el aviso de la Evidencia de la tricuspide apareciendo con el GESTO REAL y yendose al cargar el gradiente medio; el strain del VD por debajo de 15 informando disfuncion sistolica SIN grado, con los bordes 15 y 20 en leve y el dueño del grado mandando; y las DOS tablas de la orejuela fila por fila, sin los rangos viejos, sin fecha de consulta y sin un veredicto de aptitud', `
+  return (async () => {
+    const ex = [];
+    const N = s => String(s == null ? '' : s).replace(/\\s+/g, ' ').trim();
+    const EL = id => document.getElementById(id);
+    const T = id => N(__t.txt(id));
+    const F = n => typeof window[n] === 'function';
+    const esperar = ms => new Promise(r => setTimeout(r, ms));
+    /* ⚠️ SE DESCARTA EL PRIMER RECT, igual que TC-522: el primero despues de un repintado puede
+       dar 0 x 0 y eso se lee como «el nodo no se ve». */
+    const geo = id => { const e = EL(id); if (!e) return null;
+      e.getBoundingClientRect();
+      const r = e.getBoundingClientRect();
+      return { w: Math.round(r.width), h: Math.round(r.height) }; };
+    /* ⚠️ SIN ESTO LA GEOMETRIA DA 0 x 0 Y EL CASO MIENTE. Lo que esta en display:none no tiene
+       caja, y en este arnes las tarjetas y las secciones nacen plegadas: medir un aviso ahi
+       devuelve 0 x 0 con el texto puesto, que se lee como «el aviso no se ve» cuando lo que no
+       se abrio es el contenedor. Sube por los ancestros y destapa el que este escondido, que es
+       lo mismo que hace window.__P.abrirPara en las sondas. Abrir no escribe ningun valor.
+       Pagado en la primera corrida de este caso: (A6) y (B1). */
+    const abrir = id => { let n = EL(id); if (!n) return 'NO EXISTE ' + id;
+      const tocados = [];
+      /* ⚠️ LAS SECCIONES DEL ETE SE ABREN CON SU PROPIO ABRIDOR, no a la fuerza: poniendo
+         display:block a mano, ete-seccion-valv-mitral quedaba en block y offsetParent SEGUIA
+         en null —la seccion tiene mas estado que el display—. Es el camino que TC-522 ya usa
+         para medir esta misma fila. Pagado en tres corridas de este caso. */
+      try { if (typeof toggleEteSeccion === 'function') {
+        let m = EL(id);
+        while (m && m.nodeType === 1) {
+          if (/^ete-seccion-/.test(m.id || '') && getComputedStyle(m).display === 'none') {
+            toggleEteSeccion(m.id.replace('ete-seccion-', '')); tocados.push('tog:' + m.id);
+          }
+          m = m.parentNode;
+        }
+      } } catch (x) { tocados.push('EXC tog'); }
+      n = EL(id);
+      while (n && n.nodeType === 1) {
+        /* ⚠️ display = '' NO ALCANZA, Y ES LA SEGUNDA VUELTA DE ESTE MISMO DEFECTO: el
+           display:none de las pestañas y de varias tarjetas viene de una CLASE CSS, no de un
+           estilo inline, asi que vaciar el inline no quita nada —cae de nuevo en la clase— y la
+           geometria seguia dando 0 x 0. Se escribe un valor EXPLICITO. */
+        if (getComputedStyle(n).display === 'none') { n.style.display = 'block'; tocados.push(n.id || n.tagName); }
+        n = n.parentNode;
+      }
+      return tocados; };
+    const sets = [];
+    const S = (id, v) => { const r = __t.set(id, v); if (r !== 1) sets.push(id + '=>' + r); };
+    /* ⚠️ LA PASTILLA SE ABRE POR LA CLASE DEL BOTON Y NO PREGUNTANDOLE A pillOn, y costo DOS
+       corridas -una ROJA y una VERDE con el MISMO arbol, que es lo peor que puede pasarle a un
+       caso-: tras un limpiar(), pillOn('mitral','insuf') puede devolver true con el boton
+       APAGADO porque la clave de localStorage sobrevive entre corridas, asi que el guard se
+       salteaba el toggle, la escena quedaba SIN insuficiencia graduada y el parentesis no
+       hablaba. Un caso que pasa o falla segun lo que corrio antes no prueba nada: es el defecto
+       de TC-507 y de TC-537 que CLAUDE.md ya documenta.
+       Se mira btn-primary, que es el estado REAL del boton, y es lo que usa el montaje del A/B.
+       Devuelve el estado para que el DENOMINADOR lo exija y no haya que confiar en el gesto. */
+    /* ⚠️ Y limpiar() NO BORRA LA MARCA DE AJUSTE MANUAL NI LAS CLAVES DE LAS PASTILLAS, que es
+       la OTRA mitad de la inestabilidad: con esqSevManual.im puesto por una escena anterior,
+       calcIM_ESC sale por su guarda de manual y la IM no gradua aunque la pastilla este abierta
+       y la vena contracta cargada. El denominador A2 lo cazo -pastilla=true y la frase sin
+       grado-. TC-416 ya tuvo que hacer exactamente esto para la estenosis tricuspidea. */
+    const escenaNueva = () => { __t.limpiar();
+      ['im', 'em', 'et', 'it', 'ia', 'ea'].forEach(k => {
+        try { if (window.esqSevManual) delete window.esqSevManual[k]; } catch (x) {}
+        try { if (window._sevCalcAlFijar) delete window._sevCalcAlFijar[k]; } catch (x) {}
+      });
+      ['valv-pill-insuf-mitral', 'valv-pill-esten-mitral',
+       'valv-pill-esten-tricuspide', 'valv-pill-insuf-tricuspide'].forEach(k => {
+        try { localStorage.removeItem(k); } catch (x) {}
+      });
+      try { if (typeof VALV_ESTEN_AUTO !== 'undefined') VALV_ESTEN_AUTO.delete('tricuspide'); } catch (x) {}
+    };
+    const pastilla = (valv, tipo) => { const b = EL('pill-' + tipo + '-' + valv);
+      if (!b) return 'NO EXISTE pill-' + tipo + '-' + valv;
+      if (!b.classList.contains('btn-primary')) b.click();
+      return b.classList.contains('btn-primary'); };
+    /* El informe en los TRES estilos. El estilo es estado de SESION, asi que se fija cada vez. */
+    const inf3 = () => ['conciso', 'estandar', 'narrativo'].map(e => {
+      try { if (F('setEstiloInforme')) setEstiloInforme(e); } catch (x) {}
+      try { if (F('generarInforme')) generarInforme(); } catch (x) {}
+      /* ⚠️ EL TEXTO VA CRUDO Y NO NORMALIZADO, y costo dos corridas: N() colapsa /\\s+/ a un
+         espacio, o sea que SE COME LOS SALTOS DE LINEA, y entonces lineaVM y lineaVD recibian el
+         informe entero en un solo renglon y devolvian la primera oracion del documento. El
+         informe es de UNA oracion por renglon y eso es lo que se usa para aislar la oracion. */
+      return { estilo: e, inf: String(__t.val('informe_texto') || ''),
+               suma: String(__t.val('en_suma') || '') };
+    });
+    const nCarp = s => (String(s).match(/Carpentier/g) || []).length;
+    /* ⚠️ SE PARTE POR SALTO DE LINEA Y NO POR PUNTO, y costo una corrida: «strain de pared libre
+       −14.9 %» tiene un punto adentro, asi que split('.') devolvia «... −14» y la condicion del
+       borde medía una cadena truncada. El informe es de UNA oracion por renglon. */
+    const lineaVM = s => (String(s).split(/\\n/).filter(l => /mitral|^ *VM /i.test(l))[0] || '');
+    const lineaVD = o => (String(o).split(/\\n/).filter(l => /entr[ií]culo derecho|VD /i.test(l))[0] || '');
+
+    /* ══ (A) EL CARPENTIER TIENE UN SOLO DATO ════════════════════════════════════════════ */
+    /* (A1) SIN ETE: manda el campo de Valvulas y el enlace no se ve. */
+    escenaNueva();
+    try { if (F('showTab')) showTab('valvulas'); } catch (x) {}
+    /* ⚠️ EL GRADO SE FIJA Y NO SE DERIVA DE LA VENA CONTRACTA, y es por lo que este caso fue
+       ROJO en dos de cuatro corridas con el MISMO arbol: la cascada que gradua la IM desde
+       im_vc pasa por la marca de ajuste manual y por calcETE, y con ete_carpentier en la misma
+       escena a veces salia por su guarda y dejaba la frase en «sin insuficiencia» — o sea que el
+       parentesis no hablaba y (A7) medía la frase de prolapso en vez del parentesis.
+       Lo que este bloque prueba es DONDE se dice el Carpentier, no como se gradua una IM: el
+       informe lee sv('im_grado'), asi que se escribe ahi y la escena deja de depender de una
+       cascada que no es lo que se esta midiendo. La pastilla se abre igual, y su estado entra en
+       el denominador. */
+    [['vm_morf', 'Prolapso / EVMS'], ['vm_carp', 'II'], ['vm_tipo_im', 'secundaria'],
+     ['im_vc', '7'], ['im_grado', '2']].forEach(p => S(p[0], p[1]));
+    const _pil = pastilla('mitral', 'insuf');
+    S('im_grado', '2');
+    const A1 = inf3();
+    /* ⚠️ EL DENOMINADOR EXIGE LA INSUFICIENCIA GRADUADA Y NO LA PALABRA: «sin estenosis ni
+       insuficiencia» CONTIENE «insuficiencia», asi que un test por la palabra pasa sobre una
+       escena que no grado nada. Fue el denominador que no pudo cazar la pastilla apagada. */
+    ex.push(['  DENOMINADOR A: la escena entro entera, la pastilla quedo ABIERTA y la IM esta GRADUADA',
+      sets.length === 0 && _pil === true
+        && A1.every(o => /con (insuficiencia|IM) (leve|moderada|severa|moderada-severa)/.test(o.inf)),
+      (sets.join(' · ') || 'sets ok') + ' | pastilla=' + _pil + ' | ' + lineaVM(A1[1].inf)]);
+    ex.push(['(A1) sin ETE, lo EFECTIVO es el de Valvulas, el campo esta HABILITADO y el enlace no se ve',
+      (F('vmCarpEfectivo') ? vmCarpEfectivo() : null) === 'II'
+        && !(EL('vm_carp') || {}).disabled
+        && !!EL('vm-carp-origen') && getComputedStyle(EL('vm-carp-origen')).display === 'none',
+      'ef=' + (F('vmCarpEfectivo') ? vmCarpEfectivo() : '?')
+        + ' dis=' + (EL('vm_carp') || {}).disabled
+        + ' enlace=' + (EL('vm-carp-origen') ? getComputedStyle(EL('vm-carp-origen')).display : 'NO EXISTE')]);
+    ex.push(['(A2) y el Carpentier se dice UNA SOLA VEZ en los tres estilos, en el parentesis',
+      A1.every(o => nCarp(o.inf) === 1 && /\\(mecanismo secundario; Carpentier II\\)/.test(o.inf)
+                    && !/mecanismo Carpentier/.test(o.inf)),
+      A1.map(o => o.estilo + '=' + nCarp(o.inf)).join(' ') + ' | ' + lineaVM(A1[1].inf)]);
+    ex.push(['(A3) y NO sale en el EN SUMA, en ninguno de los tres',
+      A1.every(o => nCarp(o.suma) === 0), A1.map(o => o.estilo + '=' + nCarp(o.suma)).join(' ')]);
+    ex.push(['(A4) el aviso de divergencia del Carpentier NO EXISTE: ni el nodo ni su funcion',
+      !EL('vm-carp-aviso') && !F('_vmCarpDiverge') && !F('vmCarpAvisoSync'),
+      'nodo=' + (!!EL('vm-carp-aviso')) + ' diverge=' + F('_vmCarpDiverge')
+        + ' aviso=' + F('vmCarpAvisoSync')]);
+
+    /* (A5) CON ETE: gana el ETE, el campo queda de solo lectura y el enlace lo nombra.
+       ⚠️ ESCENA COMPLETA Y NO UN AÑADIDO A LA DE ARRIBA: poniendo solo ete_carpentier sobre la
+       escena anterior, el informe salia «sin estenosis ni insuficiencia» -la graduacion de la IM
+       no se repintaba- y el Carpentier que contaba venia de la frase de prolapso, no del
+       parentesis. O sea que (A7) medía otra cosa. Pagado en la primera corrida. */
+    escenaNueva();
+    try { if (F('showTab')) showTab('valvulas'); } catch (x) {}
+    [['vm_morf', 'Prolapso / EVMS'], ['ete_carpentier', 'IIIb'], ['vm_tipo_im', 'secundaria'],
+     ['im_vc', '7'], ['im_grado', '2']].forEach(p => S(p[0], p[1]));
+    const _pil2 = pastilla('mitral', 'insuf');
+    /* ⚠️ SE ESPERA EL DEBOUNCE ANTES DE FIJAR EL GRADO, y es la tercera vuelta de la misma
+       inestabilidad: calcETE -que corre por el onchange de ete_carpentier- deja agendado un
+       repintado, y ese repintado PISA im_grado despues de que el caso lo escribio. Fijandolo
+       antes del debounce, el informe salia «sin insuficiencia» en tres de cuatro corridas. */
+    await esperar(450);
+    S('im_grado', '2');
+    try { if (F('vmCarpOrigenSync')) vmCarpOrigenSync(); } catch (x) {}
+    const _diagA6 = abrir('vm-carp-origen');
+    await esperar(60);
+    const A5 = inf3();
+    ex.push(['  DENOMINADOR A2: la escena con ETE tiene la pastilla ABIERTA y la IM GRADUADA',
+      _pil2 === true && A5.every(o => /con (insuficiencia|IM) (leve|moderada|severa|moderada-severa)/.test(o.inf)),
+      'pastilla=' + _pil2 + ' | ' + lineaVM(A5[1].inf)]);
+    const gOr = geo('vm-carp-origen');
+    ex.push(['(A5) con Carpentier en el ETE, GANA EL ETE y el campo de Valvulas queda de SOLO LECTURA',
+      (F('vmCarpEfectivo') ? vmCarpEfectivo() : null) === 'IIIb'
+        && !!(EL('vm_carp') || {}).disabled
+        && getComputedStyle(EL('vm_carp')).opacity === '0.5',
+      'ef=' + (F('vmCarpEfectivo') ? vmCarpEfectivo() : '?')
+        + ' dis=' + (EL('vm_carp') || {}).disabled
+        + ' op=' + getComputedStyle(EL('vm_carp')).opacity]);
+    /* ⚠️ LA GEOMETRIA DE ESTOS DOS NODOS NO SE MIDE ACA, Y ES UNA LIMITACION DEL ARNES, NO DE LA
+       APP — se declara en vez de esconderla. Se intento por tres caminos: display:block a mano
+       sobre cada ancestro escondido, el abridor propio de la seccion (toggleEteSeccion, que es
+       el que TC-522 usa para medir ESTA MISMA fila) y descartando el primer rect. Los tres dejan
+       el nodo en display:block y visibility:visible con offsetParent en null, o sea sin caja.
+       DONDE SI ESTA MEDIDA, y las dos estan medidas de verdad:
+         · el aviso de la tricuspide da 28 x 545 con el gesto real en scripts/_probe_te.mjs
+           (--solo tric, paso et_grado=Significativa) y 0 x 0 contra HEAD, y 565 x 28 a 1440 px en
+           los DOS motores (scripts/_probe_ewk.mjs);
+         · el enlace del Carpentier da 156 x 44 px con offsetParent, abriendo la pestaña por su
+           BOTON real mas toggleEteSeccion. Eso es lo que los tres arneses no hacen: abren la
+           pestaña con showTab y la tarjeta queda sin caja, asi que el 0 x 0 era del arnes.
+       Lo que el caso SI fija es lo que depende de la app y no del arnes: que el pintor NO lo deje
+       en display:none y que el texto nombre el valor del ETE. */
+    ex.push(['(A6) el enlace NOMBRA el valor del ETE y el pintor NO lo deja escondido',
+      T('vm-carp-origen').indexOf('IIIb') > -1 && T('vm-carp-origen').indexOf('ETE') > -1
+        && EL('vm-carp-origen').style.display !== 'none',
+      T('vm-carp-origen') + ' | geo=' + JSON.stringify(gOr)
+        + ' | abrio=' + JSON.stringify(_diagA6)
+        + ' | op=' + (EL('vm-carp-origen') ? getComputedStyle(EL('vm-carp-origen')).display + '/'
+            + getComputedStyle(EL('vm-carp-origen')).visibility + '/offsetParent='
+            + !!EL('vm-carp-origen').offsetParent : 'NO EXISTE')]);
+    ex.push(['(A7) y sigue diciendose UNA SOLA VEZ, con el valor del ETE y sin el III del cajon de legado',
+      A5.every(o => nCarp(o.inf) === 1 && /\\(mecanismo secundario; Carpentier IIIb\\)/.test(o.inf)
+                    && !/mecanismo Carpentier/.test(o.inf)),
+      A5.map(o => o.estilo + '=' + nCarp(o.inf)).join(' ') + ' | ' + lineaVM(A5[1].inf)]);
+
+    /* (A8) CONTROL NEGATIVO: SIN insuficiencia el parentesis no habla, asi que la frase de
+       prolapso sigue siendo la UNICA voz y publica el Carpentier igual que siempre. */
+    escenaNueva();
+    try { if (F('showTab')) showTab('valvulas'); } catch (x) {}
+    [['vm_morf', 'Prolapso / EVMS'], ['vm_carp', 'II']].forEach(p => S(p[0], p[1]));
+    const A8 = inf3();
+    ex.push(['(A8) CONTROL NEGATIVO: sin insuficiencia, la frase de prolapso es la UNICA voz y SIGUE diciendolo',
+      A8.every(o => nCarp(o.inf) === 1 && /mecanismo Carpentier II/.test(o.inf)
+                    && !/\\(Carpentier/.test(o.inf)),
+      A8.map(o => o.estilo + '=' + nCarp(o.inf)).join(' ') + ' | ' + lineaVM(A8[1].inf)]);
+
+    /* (A9) CONTROL NEGATIVO: sobre una PROTESIS no se escribe ningun Carpentier. */
+    escenaNueva();
+    try { if (F('showTab')) showTab('valvulas'); } catch (x) {}
+    [['vm_morf', 'Prótesis mecánica'], ['vm_carp', 'II'], ['im_vc', '7'], ['im_grado', '2']].forEach(p => S(p[0], p[1]));
+    const _pil3 = pastilla('mitral', 'insuf');
+    const A9 = inf3();
+    ex.push(['(A9) CONTROL NEGATIVO: con protesis mitral NINGUNA superficie publica el Carpentier',
+      A9.every(o => nCarp(o.inf) === 0 && nCarp(o.suma) === 0),
+      A9.map(o => o.estilo + '=' + nCarp(o.inf)).join(' ') + ' | ' + lineaVM(A9[1].inf)]);
+
+    /* (A10) UN ESTUDIO LEGADO: el hueco se llena y el legado guardado NO se pisa. */
+    escenaNueva();
+    try { if (F('showTab')) showTab('valvulas'); } catch (x) {}
+    ['vm_morf', 'ete_carpentier', 'vm_carpentier'].forEach((id, i) => {
+      const e = EL(id); if (e) e.value = ['Prolapso / EVMS', 'II', 'Tipo I (dilatación anular)'][i]; });
+    try { if (F('_recalcModulos')) _recalcModulos('TC-539'); } catch (x) {}
+    await esperar(60);
+    ex.push(['(A10) estudio LEGADO: el hueco de vm_carp se llena con el del ETE y el legado guardado NO se pisa',
+      __t.val('vm_carp') === 'II'
+        && String(__t.val('vm_carpentier')).indexOf('Tipo I ') === 0,
+      'vm_carp=' + __t.val('vm_carp') + ' legado=' + __t.val('vm_carpentier')]);
+
+    /* (A11) LOS DOS NODOS CON VALORES DISTINTOS: GANA EL ETE.
+       ⚠️ ESTA CONDICION LA PIDIO UNA MUTACION QUE SOBREVIVIO (M1). Sin ella, invertir la
+       precedencia de vmCarpEfectivo no rompia nada: en todas las escenas de arriba los dos nodos
+       terminan con el MISMO valor -el espejo del gesto copia ETE -> Valvulas-, asi que da igual
+       cual gane. El estado donde la precedencia IMPORTA es el de un estudio importado o editado
+       a mano con los dos distintos, que es justo el que PENDIENTES E-a declara.
+       Se escriben los dos .value SIN disparar change, para que el espejo no los iguale. */
+    escenaNueva();
+    try { if (F('showTab')) showTab('valvulas'); } catch (x) {}
+    (function () { const a = EL('vm_carp'), b = EL('ete_carpentier');
+      if (a) a.value = 'I'; if (b) b.value = 'IIIa'; })();
+    ex.push(['  DENOMINADOR A3: los dos nodos quedaron con valores DISTINTOS, sin que el espejo los iguale',
+      __t.val('vm_carp') === 'I' && __t.val('ete_carpentier') === 'IIIa',
+      'vm_carp=' + __t.val('vm_carp') + ' ete=' + __t.val('ete_carpentier')]);
+    ex.push(['(A11) con los dos nodos en valores DISTINTOS, lo EFECTIVO es el del ETE',
+      (F('vmCarpEfectivo') ? vmCarpEfectivo() : null) === 'IIIa',
+      'ef=' + (F('vmCarpEfectivo') ? vmCarpEfectivo() : '?')
+        + ' (vm_carp=' + __t.val('vm_carp') + ', ete=' + __t.val('ete_carpentier') + ')']);
+
+    /* (A12) LA ORACION DE LA MITRAL DEL ETE, INTEGRADA: se calla y la oracion SOBREVIVE.
+       ⚠️ ESTA CONDICION LA PIDIO LA OTRA MUTACION QUE SOBREVIVIO (M7). Ninguna escena de arriba
+       integra la morfologia del ETE -ete_morfo_incluir_chk-, asi que esa oracion no se emitia y
+       sacarle su compuerta no cambiaba nada. Con la etiologia cargada la oracion SI sale, y lo
+       que se fija es que salga SIN el Carpentier y que el total siga en UNO. */
+    escenaNueva();
+    try { if (F('showTab')) showTab('valvulas'); } catch (x) {}
+    [['vm_morf', 'Reumática'], ['ete_carpentier', 'II'], ['ete_etiologia', 'reumatica'],
+     ['vm_tipo_im', 'secundaria'], ['im_vc', '7'], ['im_grado', '2']].forEach(p => S(p[0], p[1]));
+    const _pil5 = pastilla('mitral', 'insuf');
+    (function () { const c = EL('ete_morfo_incluir_chk');
+      if (c && !c.checked) { c.checked = true; c.dispatchEvent(new Event('change', { bubbles: true })); } })();
+    try { if (F('calcETE')) calcETE(); } catch (x) {}
+    await esperar(450);
+    S('im_grado', '2');
+    const A12 = inf3();
+    const lineaETE = o => (String(o).split(/\\n/).filter(l => /^ETE/.test(l))[0] || '');
+    ex.push(['  DENOMINADOR A4: la oracion de la mitral del ETE SE EMITE y la IM esta GRADUADA',
+      _pil5 === true && A12.every(o => lineaETE(o.inf).length > 20)
+        && A12.every(o => /con (insuficiencia|IM) (leve|moderada|severa|moderada-severa)/.test(o.inf)),
+      'pastilla=' + _pil5 + ' | ' + lineaETE(A12[1].inf) + ' | ' + lineaVM(A12[1].inf)]);
+    ex.push(['(A12) la oracion del ETE SALE con su etiologia y SIN el Carpentier, y el total sigue en UNO',
+      A12.every(o => nCarp(o.inf) === 1 && /\(mecanismo secundario; Carpentier II\)/.test(o.inf)
+                    && lineaETE(o.inf).indexOf('Carpentier') === -1
+                    && /reum[aá]tica/i.test(lineaETE(o.inf))),
+      A12.map(o => o.estilo + '=' + nCarp(o.inf)).join(' ') + ' | ' + lineaETE(A12[1].inf)]);
+
+    /* ══ (B) LA TRICUSPIDE DICE POR QUE SU EVIDENCIA NO SE ABRE ═════════════════════════ */
+    escenaNueva();
+    try { if (F('showTab')) showTab('valvulas'); } catch (x) {}
+    const _pilT = pastilla('tricuspide', 'esten');
+    /* EL GESTO REAL, y esto es el punto del bloque: un change sobre el select y NADA MAS. No se
+       llama a calcET ni al pintor. Contra HEAD esto deja el nodo en 0 x 0 con texto vacio,
+       porque el onchange de et_grado va a valvSev.aplicar y el oyente no atrapaba este id. */
+    (function () { const e = EL('et_grado'); if (!e) return;
+      e.value = 'Significativa'; e.dispatchEvent(new Event('change', { bubbles: true })); })();
+    await esperar(60);
+    /* Los ancestros SE ABREN DESPUES del gesto, y a proposito: abrirlos antes no cambia nada
+       -el pintor no mira la geometria- y asi queda claro que lo que se mide es el efecto del
+       gesto y no el de haber destapado la caja. */
+    abrir('et-evid-aviso');
+    const B_txt = T('et-evid-aviso'), B_geo = geo('et-evid-aviso');
+    const B_abre = () => { try { return F('_indVT') ? (_indVT() !== null) : 'SIN FN'; } catch (x) { return 'EXC'; } };
+    ex.push(['  DENOMINADOR B: la pastilla de estenosis esta abierta y la severidad quedo elegida',
+      _pilT === true && String(__t.val('et_grado')) === 'Significativa',
+      'pastilla=' + _pilT + ' grado=' + __t.val('et_grado')]);
+    ex.push(['  DENOMINADOR B2: con la estenosis marcada y sin ningun insumo, la Evidencia NO abre',
+      B_abre() === false, 'indVT=' + B_abre()]);
+    /* Misma limitacion de arnes que (A6): la geometria vive en la sonda, donde da 28 x 545 con el
+       gesto real y 0 x 0 contra HEAD. Lo que se fija aca es el EFECTO DEL GESTO: que el aviso
+       aparezca SIN llamar al pintor a mano, que es lo que faltaba y lo que TC-519 no podia ver
+       porque llamaba a calcET() justo despues de poner la severidad. */
+    ex.push(['(B1) el aviso APARECE con el gesto real, sin llamar al pintor a mano',
+      B_txt.indexOf('se activa') > -1,
+      'geo=' + JSON.stringify(B_geo) + ' | ' + B_txt.slice(0, 120)]);
+    ex.push(['(B2) y nombra los TRES criterios de estenosis y la otra puerta, sin pedir la Vmax de la IT',
+      /gradiente medio/.test(B_txt) && /área valvular|area valvular/.test(B_txt)
+        && /VTI de entrada/.test(B_txt) && /moderada o mayor/.test(B_txt)
+        && !/velocidad m[aá]xima/i.test(B_txt), B_txt.slice(0, 200)]);
+    /* (B3) el gradiente medio 6: el aviso se va y la Evidencia abre. */
+    S('et_gmedio', '6');
+    try { if (F('calcET')) calcET(); } catch (x) {}
+    await esperar(60);
+    ex.push(['(B3) con el gradiente medio 6 la Evidencia ABRE y el aviso DESAPARECE',
+      B_abre() === true && T('et-evid-aviso') === '',
+      'indVT=' + B_abre() + ' aviso=' + JSON.stringify(T('et-evid-aviso'))]);
+    /* (B4) CONTROL: se borra y vuelve. */
+    S('et_gmedio', '');
+    try { if (F('calcET')) calcET(); } catch (x) {}
+    await esperar(60);
+    ex.push(['(B4) CONTROL: borrado el gradiente, la Evidencia vuelve a NO abrir y el aviso VUELVE',
+      B_abre() === false && T('et-evid-aviso').indexOf('se activa') > -1,
+      'indVT=' + B_abre() + ' aviso=' + T('et-evid-aviso').slice(0, 60)]);
+    /* (B5) CONTROL: la OTRA puerta, la IT moderada. */
+    S('it_grado', '2');
+    await esperar(60);
+    ex.push(['(B5) CONTROL: con insuficiencia tricuspidea moderada la Evidencia abre por la OTRA puerta y el aviso se va',
+      B_abre() === true && T('et-evid-aviso') === '',
+      'indVT=' + B_abre() + ' aviso=' + JSON.stringify(T('et-evid-aviso'))]);
+
+    /* ══ (C) EL STRAIN DE PARED LIBRE DEL VD ════════════════════════════════════════════ */
+    const strEsc = (v, tapse, sp) => { escenaNueva();
+      try { if (F('showTab')) showTab('vd'); } catch (x) {}
+      if (tapse) S('tapse', tapse); if (sp) S('s_prime', sp);
+      S('vd_strain_pl', v);
+      try { if (F('calcVD')) calcVD(); } catch (x) {}
+      try { if (F('setEstiloInforme')) setEstiloInforme('estandar'); } catch (x) {}
+      try { if (F('generarInforme')) generarInforme(); } catch (x) {}
+      return { inf: lineaVD(N(__t.val('informe_texto'))), suma: N(__t.val('en_suma')) }; };
+    const c25 = strEsc('-25', '22', '13'), c20 = strEsc('-20', '22', '13');
+    const c18 = strEsc('-18', '22', '13'), c15 = strEsc('-15', '22', '13');
+    const c149 = strEsc('-14.9', '22', '13'), c12 = strEsc('-12', '22', '13');
+    const cDue = strEsc('-12', '12', '6');
+    ex.push(['  DENOMINADOR C: el informe emite la oracion del VD en las SIETE escenas',
+      [c25, c20, c18, c15, c149, c12, cDue].every(o => o.inf.length > 20),
+      [c25, c20, c18, c15, c149, c12, cDue].map(o => o.inf.length).join('/')]);
+    ex.push(['(C1) -25 % NO vota: la funcion sigue CONSERVADA',
+      /conservada/.test(c25.inf) && !/disfunción/.test(c25.inf), c25.inf]);
+    ex.push(['(C2) -20 % y -18 % votan LEVE -el 20 es el borde y lo normal es MAS de 20-',
+      /disfunción sistólica leve \\(/.test(c20.inf) && /disfunción sistólica leve \\(/.test(c18.inf),
+      c20.inf + ' || ' + c18.inf]);
+    ex.push(['(C3) -15 % vota LEVE -el 15 esta INCLUIDO en la banda leve-',
+      /disfunción sistólica leve \\(/.test(c15.inf), c15.inf]);
+    ex.push(['(C4) -14.9 % y -12 % informan disfuncion sistolica SIN GRADO en el cuerpo',
+      /disfunción sistólica \\(strain de pared libre −14.9 %\\)/.test(c149.inf)
+        && /disfunción sistólica \\(strain de pared libre −12 %\\)/.test(c12.inf)
+        && !/leve|moderada|severa/.test(c149.inf) && !/leve|moderada|severa/.test(c12.inf),
+      c149.inf + ' || ' + c12.inf]);
+    ex.push(['(C5) y el EN SUMA tampoco gradua: ni leve, ni leve como minimo, ni moderada, ni severa',
+      /VD con disfunción sistólica\\./.test(c12.suma) && !/leve|moderada|severa/.test(c12.suma),
+      c12.suma]);
+    ex.push(['(C6) CONTROL: con TAPSE 12 y onda S prima 6, el DUEÑO del grado MANDA y publica moderada',
+      /disfunción sistólica moderada/.test(cDue.inf), cDue.inf]);
+    ex.push(['(C7) CONTROL: la nota de la ficha no dice «leve como minimo» y si dice «sin graduar»',
+      (function () { try { if (F('evRefPintar')) evRefPintar('vd2'); } catch (x) {}
+        const n = EL('ref-vd2'); const t = n ? N(n.innerText || n.textContent) : '';
+        return t.indexOf('leve como mínimo') === -1 && t.indexOf('sin graduar') > -1; })(),
+      (function () { const n = EL('ref-vd2'); const t = n ? N(n.innerText || n.textContent) : '';
+        const i = t.indexOf('La banda de disfunción leve'); return i < 0 ? 'NO ENCONTRADA' : t.slice(i, i + 230); })()]);
+
+    /* ══ (D) LA OREJUELA: LAS DOS TABLAS, SIN RANGOS VIEJOS Y SIN JUZGAR ════════════════ */
+    escenaNueva();
+    try { if (F('showTab')) showTab('ete'); } catch (x) {}
+    try { const s = EL('ete-seccion-oai');
+      if (s && getComputedStyle(s).display === 'none' && F('toggleEteSeccion')) toggleEteSeccion('oai'); } catch (x) {}
+    S('oai_ostium_diam', '24'); S('oai_profundidad', '28');
+    try { if (F('calcOAI')) calcOAI(); } catch (x) {}
+    await esperar(60);
+    const D_notas = T('oai-notas');
+    const D_sec = (function () { const n = EL('ete-seccion-oai'); return n ? N(n.textContent) : 'NO EXISTE'; })();
+    ex.push(['  DENOMINADOR D: la seccion de la orejuela esta abierta y sus notas tienen texto',
+      D_sec !== 'NO EXISTE' && D_sec.length > 200 && D_notas.length > 40,
+      'seccion=' + D_sec.length + ' notas=' + D_notas.length]);
+    /* (D1) LAS OCHO FILAS DEL AMULET, una por una, contra la Tabla 2 del manual. */
+    const AMU = [[16, 11, 13, 10], [18, 13, 15, 10], [20, 15, 17, 10], [22, 17, 19, 10],
+                 [25, 19, 22, 12], [28, 22, 25, 12], [31, 25, 28, 12], [34, 28, 31, 12]];
+    const amuMal = (function () { const t = window.OAI_AMULET_TABLA;
+      if (!Array.isArray(t)) return ['NO EXISTE OAI_AMULET_TABLA'];
+      if (t.length !== AMU.length) return ['son ' + t.length + ' filas y no ' + AMU.length];
+      return AMU.map((f, i) => f.every((v, j) => Number(t[i][j]) === v) ? null
+        : 'tamaño ' + f[0] + ': ' + JSON.stringify(t[i]) + ' en vez de ' + JSON.stringify(f)).filter(Boolean); })();
+    ex.push(['(D1) las OCHO filas del Amulet, una por una (IFU FDA P200049, Tabla 2, hoja 19, folio 15)',
+      amuMal.length === 0, amuMal.length ? amuMal.join(' · ') : 'las ocho coinciden']);
+    /* (D2) LAS SEIS FILAS DEL WATCHMAN, contra la Tabla 78. */
+    const WAT = [[20, 14, 18], [24, 16.8, 21.6], [27, 18.9, 24.3],
+                 [31, 21.7, 27.9], [35, 24.5, 31.5], [40, 28, 36]];
+    const watMal = (function () { const t = window.OAI_WATCH_TABLA;
+      if (!Array.isArray(t)) return ['NO EXISTE OAI_WATCH_TABLA'];
+      if (t.length !== WAT.length) return ['son ' + t.length + ' filas y no ' + WAT.length];
+      return WAT.map((f, i) => f.every((v, j) => Math.abs(Number(t[i][j]) - v) < 0.001) ? null
+        : 'tamaño ' + f[0] + ': ' + JSON.stringify(t[i]) + ' en vez de ' + JSON.stringify(f)).filter(Boolean); })();
+    ex.push(['(D2) las SEIS filas del WATCHMAN FLX Pro, una por una (IFU 52212467-01 rev. A, Tabla 78, hoja 26)',
+      watMal.length === 0, watMal.length ? watMal.join(' · ') : 'las seis coinciden']);
+    /* (D3) LAS DOS TABLAS ESTAN EN LA PANTALLA, en el globo. */
+    ex.push(['(D3) las dos tablas se PINTAN en el globo de la seccion, con la palabra del manual',
+      D_sec.indexOf('Distancia desde el orificio') > -1
+        && D_sec.indexOf('Ancho máximo del ostium') > -1
+        && D_sec.indexOf('profundidad mínima') === -1
+        && D_sec.indexOf('mitad del diámetro del dispositivo') > -1,
+      'distancia=' + (D_sec.indexOf('Distancia desde el orificio') > -1)
+        + ' ancho=' + (D_sec.indexOf('Ancho máximo del ostium') > -1)
+        + ' profMin=' + (D_sec.indexOf('profundidad mínima') > -1)
+        + ' mitad=' + (D_sec.indexOf('mitad del diámetro del dispositivo') > -1)]);
+    /* (D4) LOS RANGOS VIEJOS: CERO en el texto RENDERIZADO del documento entero. Se mide sobre
+       innerText y NO sobre innerHTML, que incluye los comentarios que EXPLICAN el retiro — la
+       trampa que este repo ya tiene escrita y que TC-508 (K2) pago. */
+    const VIS = N(document.body.innerText || '');
+    const viejos = [['ostium 17', /ostium\\s*17/i], ['17 a 31', /17\\s*a\\s*31/],
+                    ['17-31', /17-31/], ['menor o igual a 32 mm', /(≤|<=)\\s*32\\s*mm/],
+                    ['11-32', /11-32/], ['11 a 32', /11\\s*a\\s*32/]]
+      .filter(p => p[1].test(VIS)).map(p => p[0]);
+    ex.push(['(D4) los rangos VIEJOS dan CERO en el texto renderizado del documento',
+      viejos.length === 0, viejos.length ? 'SOBREVIVEN: ' + viejos.join(' · ') : 'ninguno de los seis']);
+    /* (D5) NI UNA FECHA DE CONSULTA en la seccion ni en el globo. */
+    ex.push(['(D5) ni una fecha de consulta en la seccion de la orejuela, ni la constante',
+      !/consultad[oa] el/i.test(D_sec) && !/21\\/10\\/2026/.test(D_sec)
+        && typeof window.OAI_FAB_FECHA === 'undefined',
+      'consultado=' + /consultad[oa] el/i.test(D_sec) + ' fecha=' + /21\\/10\\/2026/.test(D_sec)
+        + ' cte=' + (typeof window.OAI_FAB_FECHA)]);
+    /* (D6) LA PANTALLA NO JUZGA. */
+    ex.push(['(D6) las notas publican el ostium medido y NO lo juzgan por rango',
+      D_notas.indexOf('Ostium 24 mm') > -1
+        && !/dentro de|por encima de la zona|por debajo de la zona/.test(D_notas)
+        && !/medidas l[ií]mite|apto/i.test(T('oai-elegibilidad')),
+      'notas=' + D_notas.slice(0, 110) + ' | badge=' + T('oai-elegibilidad')]);
+    /* (D7) EL PAPEL FIRMADO NO JUZGA. */
+    try { if (F('setEstiloInforme')) setEstiloInforme('estandar'); } catch (x) {}
+    try { if (F('generarInforme')) generarInforme(); } catch (x) {}
+    const D_inf = N(__t.val('informe_texto'));
+    const D_lin = (String(D_inf).split('.').filter(l => /ostium/i.test(l))[0] || '');
+    ex.push(['(D7) el INFORME publica las dos medidas y ningun veredicto de aptitud por tamaño',
+      /ostium 24 mm/.test(D_lin) && /profundidad 28 mm/.test(D_lin)
+        && !/apto|fuera de rango|Watchman\\/Amulet/i.test(D_lin),
+      JSON.stringify(D_lin)]);
+    /* (D8) CONTROL NEGATIVO: la rama del TROMBO si juzga, y se conserva a proposito. */
+    S('oai_trombo', 'si');
+    try { if (F('calcOAI')) calcOAI(); } catch (x) {}
+    try { if (F('generarInforme')) generarInforme(); } catch (x) {}
+    const D_tr = N(__t.val('informe_texto'));
+    const D_trLin = (String(D_tr).split('.').filter(l => /ostium/i.test(l))[0] || '');
+    ex.push(['(D8) CONTROL NEGATIVO: la rama del TROMBO se conserva -es contraindicacion, no un rango-',
+      /no apto para cierre percutáneo \\(trombo presente\\)/.test(D_trLin),
+      JSON.stringify(D_trLin)]);
+
+    /* ══ (E) CONTROL DE QUE NADA MAS SE MOVIO ══════════════════════════════════════════
+       Un estudio con datos de las CUATRO zonas pero NINGUNO en los valores que esta tanda
+       cambia: strain en banda leve, sin Carpentier, sin estenosis tricuspidea marcada y sin
+       orejuela. Si una de estas cuatro frases se moviera, la tanda toco algo que no le tocaba. */
+    escenaNueva();
+    try { if (F('showTab')) showTab('valvulas'); } catch (x) {}
+    [['vd_strain_pl', '-18'], ['tapse', '22'], ['s_prime', '13'],
+     ['vm_morf', 'Reumática'], ['im_vc', '7'], ['ai_vol', '70'], ['peso', '80'], ['talla', '180']]
+      .forEach(p => S(p[0], p[1]));
+    const _pil4 = pastilla('mitral', 'insuf');
+    Object.keys(window).forEach(k => { if (/^calc[A-Z]/.test(k) && typeof window[k] === 'function') {
+      try { window[k](); } catch (x) {} } });
+    const E1 = inf3();
+    ex.push(['(E1) CONTROL: un estudio SIN ninguno de los valores que la tanda cambia no menciona el Carpentier ni la orejuela',
+      E1.every(o => nCarp(o.inf) === 0 && !/ostium/i.test(o.inf)),
+      E1.map(o => o.estilo + ': carp=' + nCarp(o.inf) + ' ostium=' + /ostium/i.test(o.inf)).join(' | ')]);
+    ex.push(['(E2) CONTROL: y su strain en banda leve sigue publicando «leve», que es lo que no cambio',
+      E1.every(o => /disfunción sistólica leve \\(strain de pared libre −18 %\\)/.test(o.inf)),
+      lineaVD(E1[1].inf)]);
+    ex.push(['(E3) CONTROL: el campo del Carpentier de un estudio sin ETE sigue HABILITADO',
+      !(EL('vm_carp') || {}).disabled && !!EL('vm-carp-origen')
+        && getComputedStyle(EL('vm-carp-origen')).display === 'none',
+      'dis=' + (EL('vm_carp') || {}).disabled
+        + ' enlace=' + (EL('vm-carp-origen') ? getComputedStyle(EL('vm-carp-origen')).display : 'NO EXISTE')]);
 
     return { extra: ex };
   })();

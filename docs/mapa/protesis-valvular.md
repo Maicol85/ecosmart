@@ -297,3 +297,17 @@ constante dueña de cada corte, la cosecha de fuentes, la frase de integración 
 
 ⚠️ Es **solo presentación**: ni un corte, ni un operador, ni una regla, ni un texto del informe,
 del EN SUMA, del PDF, del PPT o del Excel. A/B contra el inicio de la tanda: **cero diferencias**.
+
+---
+
+## ⚠️ La tanda E bajó los dos bloques protésicos de la MITRAL (27/10/2026)
+
+`bloque-prot-vm` (el DVI) y `bloque-prot-vm-res` (las siete filas de la Tabla 11) vivían **entre**
+los cajones de grado de las dos lesiones y el envoltorio `#vm-lesiones`. Hoy van **debajo** de él.
+Medido: y = 429 y 437 contra y = 1306 y 1314, con los dos cuadros de referencias en 729 y 809.
+
+**La aórtica NO tenía el mismo problema**: `bloque-prot-va` ya vive **dentro** de
+`#caja-esten-aortica`, y sus filas protésicas (`ea-det-*`) en ese mismo cuadro — la decisión del
+CORTOS2 que la mitral no había seguido. Del lado aórtico no se tocó nada.
+
+**`docs/mapa/e-carpentier-tricuspide-orejuela.md` § 5.**

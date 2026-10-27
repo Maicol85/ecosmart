@@ -321,3 +321,18 @@ esta tanda **no** mueve.
 
 **Arnés: `scripts/_probe_i.mjs`**, con los grupos `wilk`, `oai`, `repar`, `atero`, `evid`, `et4`,
 `tdfip`, `cap4`, `sup` y `ctrl`.
+
+---
+
+## ⚠️ La tanda E reemplazó los rangos de la orejuela por las tablas del manual (27/10/2026)
+
+- Los **dos PDF se abrieron** y las catorce filas quedaron verificadas: `OAI_AMULET_TABLA` (8
+  filas, Tabla 2 del IFU FDA P200049, hoja 19, folio 15) y `OAI_WATCH_TABLA` (6 filas, Tabla 78
+  del IFU 52212467-01 rev. A de 2025-09, hoja 26). **La reserva de la I-E1 de que la tabla del
+  WATCHMAN «no se pudo leer» dejó de ser cierta**: el documento que se leyó es otro y más nuevo.
+- **La orejuela dejó de juzgar**, y la premisa de que «seguía sin juzgar» era falsa: juzgaba en
+  `oai-notas`, en el badge `oai-elegibilidad` y —el hallazgo más grande— **en el emisor del
+  informe**, que conservaba los rangos viejos `17 a 31` y `≤ 32` escritos a mano.
+- **Ni una fecha de consulta** en pantalla ni en el ⓘ: `OAI_FAB_FECHA` se retiró.
+
+**`docs/mapa/e-carpentier-tricuspide-orejuela.md` § 7.**

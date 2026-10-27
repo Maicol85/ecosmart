@@ -8382,3 +8382,145 @@ trabajar sobre una fuente que la orden dejó fuera.
 **Qué costaría.** Un campo nuevo persistido —**mueve el censo**, 1023 → 1024, y entra al JSON de
 cada estudio—, más una decisión clínica sobre si la app publica las tres categorías o sólo la
 medida. Por la regla de la casa («la orejuela publica las medidas y no juzga»), lo segundo.
+
+## E-a · Carpentier: un estudio con los dos nodos en valores distintos
+
+**Qué se encontró.** Desde la tanda E el Carpentier tiene **un solo dato** y gana el del ETE. El
+campo de Válvulas queda deshabilitado mostrando ese valor, y `vmCarpOrigenSync` **llena el hueco**
+cuando `vm_carp` está vacío. Pero si `vm_carp` ya trae un valor **distinto** —un estudio importado
+o editado a mano— **no se toca**: el informe publica el del ETE y el `<select>` sigue mostrando el
+suyo, deshabilitado.
+
+**Por qué no se corrigió.** Pisar el valor guardado para que coincidan es **migrar un estudio
+guardado**, que la regla de la casa prohíbe. El enlace nombra el valor que manda («Carpentier
+«IIIa» — lo consigna el ETE»), así que la pantalla no miente: dice de dónde sale el dato del papel.
+
+**Qué queda.** Decidir si en ese estado la app tiene que avisar explícitamente que los dos nodos
+difieren. Es un aviso nuevo, y el que había (`vm-carp-aviso`) se retiró por orden expresa. Está
+cubierto por **TC-539 (A11)**, que fija que el efectivo es el del ETE.
+
+## E-b · La geometría de dos avisos no se puede medir dentro del suite
+
+**Qué se encontró.** TC-539 no puede medir la caja de `vm-carp-origen` ni de `et-evid-aviso`. Se
+intentó por tres caminos —`display:block` a mano sobre cada ancestro escondido, el abridor propio
+de la sección (`toggleEteSeccion`, el que TC-522 usa para medir **esta misma fila**) y descartando
+el primer rect— y los tres dejan el nodo en `display:block` y `visibility:visible` con
+`offsetParent` en `null`, o sea sin caja.
+
+**Por qué importa.** Un aviso sin geometría no existe para el médico, y este repositorio ya pagó
+ese defecto dos veces: el aviso del Carpentier de la AJ5 y el de la morfología del ETE. El
+invariante merece cobertura automática.
+
+**Qué se hizo mientras tanto, y la causa QUEDÓ ENCONTRADA.** Las dos geometrías están medidas
+fuera del suite: el aviso de la tricúspide da **28 × 545** con el gesto real en
+`scripts/_probe_te.mjs` (y **0 × 0** contra HEAD), y **565 × 28** a 1440 px en los dos motores; el
+enlace del Carpentier da **156 × 44 px** con `offsetParent`.
+
+⚠️ **Lo que les falta a los tres arneses es abrir la TARJETA, no la sección.** Midiendo con la
+pestaña abierta por su **botón real** (`.tab-btn` → `click()`) más `toggleEteSeccion`, el enlace
+aparece con sus 156 × 44. Con `showTab(...)` programático, la `.card` de adentro queda sin caja y
+todo lo que hay dentro informa 0 × 0 — que es lo que hacía parecer que el pintor lo dejaba
+escondido.
+
+**Qué queda.** Llevar ese gesto —abrir por el botón de la pestaña— al arnés del suite y mover los
+dos invariantes de geometría a TC-539. Es un cambio del arnés compartido, así que toca a muchos
+casos y no entra en esta orden.
+
+## E-c · La celda «Decisión de la aplicación» en la columna «Mujer» (punto 3c, reportado)
+
+**Qué se encontró, medido y no estimado.** La tabla de la ficha del VD tiene cabecera **«Parámetro
+| Varón | Mujer»** y **47 filas** de cuerpo. De esas, **46 no distinguen sexo** (las dos celdas
+dicen lo mismo) y **1 sí**. Y hay exactamente **una** celda que no es un valor: la columna
+**«Mujer»** de la fila del strain de pared libre, que dice «Decisión de la aplicación». El
+`colspan` **no se usa hoy** en ninguna fila de esa tabla.
+
+**Solución mínima propuesta.** Que `_evRefTabla` admita una celda con `colspan=2` para las filas
+sin distinción de sexo, y usarla en esa **única** fila → **1 fila afectada**.
+
+**La variante amplia, y por qué es otra orden.** Aplicarlo a las 46 filas sin distinción mejora la
+lectura, pero `_evRefTabla` se usa en **cinco** fichas: cambiarlo ahí cambia la maqueta de todas.
+
+**Por qué no se aplicó.** El punto 3c de la orden dice «SOLO REPORTAR, sin cambiar».
+
+## E-d · La rama del trombo sigue dando un veredicto de aptitud
+
+**Qué se encontró.** La tanda E retiró del informe las tres ramas que juzgaban la aptitud para el
+cierre percutáneo **por rango de tamaño**. Queda una: con trombo confirmado, el informe publica
+«ostium N mm, profundidad N mm — **no apto para cierre percutáneo (trombo presente)**».
+
+**Por qué se conservó.** Tres razones, y las tres están en el código:
+
+1. es una **contraindicación absoluta**, no un rango de tamaño, y la orden de esta tanda nombra los
+   rangos;
+2. el párrafo anterior **depende de ese gate**: su propio comentario dice que sin él el informe
+   salía con dos párrafos seguidos donde uno manda a considerar el cierre percutáneo y el otro
+   declara al paciente no apto para ese mismo cierre;
+3. el EN SUMA ya nombra el trombo por su cuenta.
+
+**Qué queda.** Si la regla «la orejuela publica las medidas y no juzga» va a ser absoluta, esta
+rama también sale — y entonces hay que decidir qué dice el párrafo del trombo en su lugar. Es
+contenido clínico y la decisión es de Maicol. Cubierto como **control negativo** en TC-539 (D8),
+así que si se cambia, el caso lo dice.
+
+## E-f · `docs/mapa/informe-pdf-excel.md` no recibió puntero, y hay que partirlo
+
+**Qué se encontró.** Ese mapa está en **34.382 bytes**, a 600 bytes del techo de 35 KB, y
+`CLAUDE.md` dice desde la tanda G que «la próxima tanda que lo toque tiene que partirlo». La tanda
+E **toca el informe** en tres zonas (el Carpentier, la línea de la orejuela y la frase del strain
+del VD), así que le correspondía un puntero.
+
+**Qué se hizo.** **No se le agregó el puntero**, porque agregarlo lo cruza y partirlo no está en
+esta orden. Todo lo de la tanda E vive en `docs/mapa/e-carpentier-tricuspide-orejuela.md`, que
+figura en la tabla de `ecosmart/CLAUDE.md` — que es el índice que se lee primero.
+
+**Qué queda.** Partirlo. El bloque candidato más grande y más autónomo es el del **Excel y la
+reimportación**, que ya tiene mapas vecinos (`excel-origen-ida-vuelta.md`,
+`importacion-excel.md`). Después, agregarle el puntero de la tanda E.
+
+## E-g · El cuerpo y el EN SUMA no dicen lo mismo con el strain como único dato de función
+
+**Qué se encontró, medido en los dos árboles.** Con un strain de pared libre de −20 % y **ningún**
+otro parámetro de función del VD cargado:
+
+- el **cuerpo** del informe dice «Ventrículo derecho con strain de pared libre −20 %.» —describe y
+  no gradúa, que es lo que `hayFunc` decide a propósito—;
+- el **EN SUMA** dice «VD con disfunción sistólica leve.» —gradúa—.
+
+**Es PREEXISTENTE**, no lo trajo esta tanda: viene del AJ7, cuando el strain pasó a votar. El voto
+entra en `vdDisf` (que es lo que lee la cascada del EN SUMA) y **no** en `hayFunc` (que es la
+compuerta de la afirmación del cuerpo), y las dos decisiones están razonadas en su comentario.
+
+**Por qué no se corrigió.** Alinearlas es cambiar qué afirma una superficie firmada: o el cuerpo
+empieza a graduar con el strain solo, o el EN SUMA deja de hacerlo. Las dos son decisiones de
+Maicol, y la orden de esta tanda no las nombra.
+
+## E-h · TC-358 no espera a jsPDF, y por eso es inestable
+
+**Qué se encontró.** En la corrida completa de la tanda E, TC-358 salió rojo con «NO HAY jsPDF» en
+sus dos denominadores de PDF. **No es una regresión**, y está verificado de la forma que no deja
+dudas: en el **mismo directorio**, con los **mismos scripts**, alternando sólo el `index.html`
+entre HEAD y el árbol nuevo, dos rondas seguidas dieron **rojo en los dos** (ronda 1) y **verde en
+los dos** (ronda 2).
+
+**La causa.** El helper `pdfTxt` de `AO3B_SONDAS` lee `window.jspdf` **sin esperar**:
+
+```js
+const ns = window.jspdf;
+if (!ns || typeof ns.jsPDF !== 'function') return 'NO HAY jsPDF';
+```
+
+Medido con Playwright sobre los dos árboles: jsPDF llega **en menos de 1 segundo**, sin un solo
+fallo de red ni de SRI, y los tags de CDN son **idénticos** a los de HEAD. O sea que la biblioteca
+llega — lo que falta es la espera.
+
+**Cómo se arregla.** El bucle de espera que **TC-537 ya tiene**:
+
+```js
+for (let i = 0; i < 40 && !(window.jspdf && window.jspdf.jsPDF); i++)
+  await new Promise(r => setTimeout(r, 200));
+```
+
+**Por qué no se hizo en esta tanda.** `AO3B_SONDAS` lo comparten **varios** casos de la zona de
+estenosis aórtica (TC-345, TC-358, TC-359, TC-360…), así que meterle una espera cambia el arnés de
+todos ellos, y esta orden no lo autoriza. El riesgo de dejarlo es concreto: **un rojo que parece
+una regresión y no lo es**, en una zona que nada de esta tanda toca.

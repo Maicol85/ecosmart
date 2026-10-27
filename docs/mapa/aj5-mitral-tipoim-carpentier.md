@@ -341,3 +341,19 @@ valor y el Narrativo no.
   cuerpo baja de a 0,25 px hasta que entre, con piso de 10 px. No se fijó un número.
 
 **`docs/mapa/aj7-correcciones.md` § 3.**
+
+---
+
+## ⚠️ La tanda E REVIRTIÓ la precedencia del Carpentier y retiró el aviso (27/10/2026)
+
+- **Gana el ETE**, no Válvulas: `vmCarpEfectivo()` invierte el orden de este mapa. Con un
+  Carpentier en el ETE, el campo de Válvulas queda **deshabilitado** mostrando ese valor, con un
+  enlace a la pestaña de origen (`vmCarpOrigenSync`, `vmCarpIrAlEte`).
+- **`_vmCarpDiverge` y `vmCarpAvisoSync` YA NO EXISTEN**, ni el nodo `vm-carp-aviso`: con un solo
+  dato no hay dos voces que comparar. Todo el § «El aviso de divergencia, y las tres voces» de
+  este mapa describe un mecanismo **retirado**.
+- **El paréntesis ya no se abstiene** por divergencia, y **la frase de prolapso y la oración de la
+  mitral del ETE se callan** cuando él habla: el Carpentier se dice **una sola vez**.
+- `vmCarpLegadoSync` lleva una **guarda de repintado** nueva.
+
+**`docs/mapa/e-carpentier-tricuspide-orejuela.md` §§ 1 y 2.**

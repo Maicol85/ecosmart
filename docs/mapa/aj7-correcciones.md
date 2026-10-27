@@ -229,3 +229,19 @@ promedio directo.
 
 `TC-535`, con su ficha en **`docs/mapa/tests-fichas-535.md`**. El arnés de mutaciones dirigidas
 es `scripts/_mut_aj7.py`. La sonda A/B de solo lectura es `scripts/_probe_aj7.mjs`.
+
+---
+
+## ⚠️ La tanda E cambió lo que el strain publica por debajo de 15 % (27/10/2026)
+
+El § del voto del strain de este mapa dice que por debajo de 15 vota **«leve como mínimo»**. Eso
+**ya no es cierto**: por decisión de Maicol, desde la tanda E esa banda **vota sin escribir grado**
+y el informe dice «disfunción sistólica (strain de pared libre −12 %)». Lo demás del § sigue
+valiendo: de 15 a 20 vota leve, por encima de 20 no vota, y si `vdDisfGrado` dio un grado ese
+manda.
+
+El `opacity` explícito de la mitral protésica que este mapa documenta **sigue en pie**, y desde la
+tanda E `vmProtBloqSync` calcula el OR de **dos** motivos para `vm_carp`: la prótesis y el ETE como
+dueño del Carpentier.
+
+**`docs/mapa/e-carpentier-tricuspide-orejuela.md` §§ 1 y 6.**

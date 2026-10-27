@@ -76,6 +76,7 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Tocar el POSOPERATORIO de cirugía cardíaca**: la grilla de drogas, el acordeón de monitoreo, el lactato, el esquema animado con sus cavidades y sus caños, la vasoplejia con la PAM, los grados del derrame pleural, lo que sale al informe y lo que se queda en la pantalla, su ficha de Referencias o su Evidencia | `docs/mapa/g-posoperatorio.md` |
 | **Tocar algo que la tanda AJ6 movió** (24/10): el cuerpo del informe de la Fallot reparada —el esquema, la fila vacía y la conducta retirada—, su Evidencia compacta con la prosa en el ⓘ, la ecografía pulmonar en cuatro columnas, o Referencias y Calculadoras dejando de ser módulos opcionales con el buscador que tapa las fichas | `docs/mapa/aj6-fallot-pulmon-refs.md` |
 | **Tocar algo que la tanda AJ7 movió** (24/10): la línea de Fallot del EN SUMA y su `resumen`, la línea de presión de llenado del HF-PEFF, la fila «Descripción» del ateroma, el retiro automático del bloque integrado y el aviso al exportar, el VOTO del strain del VD y su banda en Referencias, el bloqueo del Tipo de IM y el Carpentier con prótesis, el rótulo que se achica, las dos conductas de constricción, la compuerta de su Evidencia, el aviso de VExUS armado con `join`, o el dueño único del corte de HTP | `docs/mapa/aj7-correcciones.md` |
+| **Tocar el CARPENTIER de la mitral —quién es su dueño y dónde se dice—, el AVISO de la Evidencia de la TRICÚSPIDE, el strain del VD por debajo de 15 %, o las dos TABLAS de la OREJUELA** | `docs/mapa/e-carpentier-tricuspide-orejuela.md` |
 | **Tocar algo de ECO ESTRÉS, o entender por qué su código sigue en el archivo sin interfaz**: las cinco piezas (A), las compartidas (B), las que tocan algo guardado (C), las TRES compuertas, las CUATRO familias «ee» —tres vivas— o la calculadora de probabilidad pre-test de la ESC 2019 que vive adentro | `docs/mapa/eco-estres-inventario.md` |
 | **Agregar o correr un caso de prueba; A/B; mutación** | `docs/mapa/tests.md` · fichas en `docs/mapa/tests-fichas-538.md` (TC-538), `docs/mapa/tests-fichas-537.md` (TC-537), `docs/mapa/tests-fichas-536.md` (TC-536), `docs/mapa/tests-fichas-535.md` (TC-535), `docs/mapa/tests-fichas-532.md` (TC-532), `docs/mapa/tests-fichas.md` (TC-499 en adelante), `docs/mapa/tests-fichas-496-498.md`, `docs/mapa/tests-fichas-491-495.md` y `docs/mapa/tests-fichas-481-490.md` |
 | **Tocar el DIBUJO ESTÁTICO de la mitral en ETE**: la tabla única de festones por ángulo, la geometría, la línea del plano, el giro, las tres vistas con sus LETRAS DE FESTÓN, **la ORIENTACIÓN de la TRANSGÁSTRICA**, el PDF, los CUATRO DIBUJOS DE MEDIDAS TEER, **los CRITERIOS TEER y sus cortes** o **el ESPEJO de la FEVI y el DSFVI del TEER** | `docs/mapa/mitral-dibujo-estatico.md` |
@@ -159,8 +160,8 @@ Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la v
 ## Qué es EcoSmart y cómo se trabaja
 
 - App clínica de ecocardiografía en **un solo `index.html`**: HTML + CSS + JS inline, sin build,
-  sin frameworks. Hoy **9,76 MB / 137.611 líneas**, medido con `wc -c` y `wc -l` el 2026-10-27 al
-  cierre de la tanda **B**, sobre el árbol ya sellado (`v20261027-1204`). Las 63 líneas que
+  sin frameworks. Hoy **9,79 MB / 138.038 líneas**, medido con `wc -c` y `wc -l` el 2026-10-27 al
+  cierre de la tanda **E**, sobre el árbol ya sellado (`v20261027-1511`). Las 63 líneas que
   esa tanda sumó son **todas comentarios**: el diff de `index.html` no tiene una sola línea
   ejecutable.
   ⚠️ **Y ESTE RENGLÓN SE QUEDÓ DOS TANDAS ATRÁS OTRA VEZ**: decía «9,46 MB / 134.230 líneas», que
@@ -672,6 +673,121 @@ impecable.
   34,2 KB), **cinco mapas con un puntero cada uno** —medidos ANTES de escribir—,
   `docs/fuentes/FUENTES.md` → «La tanda B» con su tabla de cambios de evidencia **vacía a
   propósito**, y `docs/PENDIENTES.md` → **SIETE** cosas declaradas (**B-a** a **B-g**).
+
+### El Carpentier, la tricúspide, el strain del VD y la orejuela — «E» (2026-10-27)
+
+- **CINCO commits.** `47dafe8` (E-1) · `93655d7` (E-2) · `9a8cb79` (E-3) · `f9ca06d` (E-4) · el de
+  cobertura y documentación. Sello **`v20261027-1511`**, md5 de `index.html` **`db846ab9`**. Al
+  empezar, `origin/main` = `HEAD` = **`ec0c327`**, el cierre de la tanda B, ya publicado.
+  **El push lo corre Maicol: esta tanda tenía orden expresa de NO pushear.**
+
+- **CUATRO PREMISAS DE LA ORDEN ERAN FALSAS, Y ESTÁN MEDIDAS.**
+  1. **La orejuela NO «seguía sin juzgar»**: juzgaba en `oai-notas`, en el badge
+     `oai-elegibilidad` y —el hallazgo más grande— **en el emisor del INFORME**, que conservaba
+     los dos rangos viejos escritos a mano (`>= 17 && <= 31` y `>= 11 && <= 32`). La I-E1 cambió
+     las constantes de la pantalla en octubre y esa cascada se quedó atrás: **la pantalla ya no los
+     usaba y el documento que se firma sí.**
+  2. **La VÁLVULA AÓRTICA no tenía el problema de orden del 2b**: `bloque-prot-va` ya vive dentro
+     de `#caja-esten-aortica`. Sólo la mitral estaba fuera de lugar.
+  3. **La suite no tenía 553 casos al cerrar: tiene 554** (TC-1 a TC-539 sin huecos más quince
+     TC-GR).
+  4. **El aviso de la tricúspide del AJ2-4 no estaba «sin implementar»**: el texto y la compuerta
+     estaban bien. Lo que faltaba era **el disparador**.
+
+- **EL DEFECTO MÁS GRANDE QUE CERRÓ, EN UNA LÍNEA: el Carpentier se decía hasta TRES veces en el
+  mismo informe firmado, y con el tipo III con DOS VALORES DISTINTOS.** Medido en HEAD: dos
+  apariciones en un transtorácico con prolapso, y tres en un ETE con la morfología integrada —el
+  paréntesis «Carpentier **IIIb**», la frase de prolapso «Carpentier **III**» y la oración del ETE
+  «Carpentier Tipo IIIb (tethering sistólico)»—, porque el vocabulario del cajón de legado no parte
+  el tipo III. Hoy se dice **una sola vez**, con un dueño único de la pregunta
+  (`vmCarpDichoEnMitral`).
+
+- ⚠️ **POR QUÉ EL MÉDICO NO VEÍA EL AVISO DE LA TRICÚSPIDE, Y POR QUÉ NADIE LO NOTÓ.** El
+  `onchange` de `#et_grado` es `valvSev.aplicar(...)`, que **no pasa por `calcET`** —el único lugar
+  desde donde se llamaba al pintor—, y el oyente de documento sólo atrapaba `it_grado` e
+  `ia_grado`. Medido: 0 × 0 con texto vacío al elegir la severidad, **28 × 545** al borrar el
+  gradiente medio. Y **TC-519 pasaba EN VERDE sobre el defecto**, porque el caso llamaba a
+  `calcET()` a mano justo después: **fabricaba el disparador que la app no tenía**. Es el «freno
+  que tapa al que se muta» — un chequeo que no podía fallar.
+
+- **LAS CATORCE FILAS DE LAS DOS TABLAS DE LA OREJUELA SE VERIFICARON CONTRA EL PDF ORIGINAL**, no
+  contra un resumen, y **no hubo una sola discrepancia**. Amulet: Tabla 2 del IFU FDA P200049
+  (2021), hoja 19, folio 15. WATCHMAN FLX Pro: Tabla 78 del IFU 52212467-01 rev. A (2025-09), hoja
+  26 — **un documento más nuevo** que el que la reserva de la I-E1 nombraba, así que esa reserva
+  **se retira porque dejó de ser cierta**.
+  ⚠️ **El «mayor o igual» de la Tabla 2 es un glifo de la fuente Symbol (U+F0B3)**: la extracción
+  de texto plano devuelve « 10» y « 12» **sin el signo**, así que un `pdftotext` habría publicado
+  la distancia como un valor exacto. Verificado glifo por glifo.
+
+- **EL STRAIN DEL VD POR DEBAJO DE 15 % YA NO GRADÚA.** «leve como mínimo» es una afirmación de
+  severidad sobre una banda donde la fuente no publica ningún corte. −25, −20, −18 y −15 salen
+  **idénticos a HEAD**; si `vdDisfGrado` dio un grado **ese manda**; y **el voto no se perdió en el
+  Laboratorio**: `_labDisfSistVent` da `{vi:false, vd:true}` en los dos árboles, porque su regex
+  busca «disfunción sistólica» y no el grado.
+
+- ⚠️ **TRES PARTES SE PARARON Y SE REPORTARON, NO SE APLICARON.** El punto **3c** (la celda
+  «Decisión de la aplicación» en la columna «Mujer»: **47 filas, 46 sin distinción de sexo, 1 celda
+  que no es un valor, `colspan` sin usar** → E-c); la **rama del trombo** del informe, que sigue
+  dando un veredicto de aptitud porque es una contraindicación y no un rango, y el párrafo de
+  arriba depende de ese gate (→ E-d); y el **puntero en `informe-pdf-excel.md`**, que está a 600
+  bytes del techo y partirlo es otra orden (→ E-f).
+
+- **LAS DOCE MUTACIONES DIRIGIDAS, Y DOS SOBREVIVIERON AL PRIMER BARRIDO — LAS DOS ERAN COBERTURA
+  QUE FALTABA.** **M1** (revertir la precedencia) no rompía nada porque en todas las escenas los
+  dos nodos terminan con el **mismo** valor: el espejo del gesto copia ETE → Válvulas. **M7** (que
+  la oración del ETE no se calle) tampoco, porque ninguna escena integraba la morfología del ETE.
+  Cerradas con **A11** y **A12**, que son dos condiciones que nacieron del barrido. **13/13
+  muertas** tras cerrarlas, en worktree y nunca sobre el vivo, con guarda de md5.
+
+- ⚠️ **TC-539 FUE ROJO Y VERDE CON EL MISMO ÁRBOL, Y LA CAUSA SE ENCONTRÓ: eran CUATRO cosas del
+  arnés, no de la app.** (1) el denominador probaba la palabra «insuficiencia», y «sin estenosis ni
+  insuficiencia» la contiene; (2) `pillOn` devolvía `true` con el botón **apagado**, porque la clave
+  de `localStorage` sobrevive entre corridas; (3) `limpiar()` no borra `esqSevManual`, así que
+  `calcIM_ESC` salía por su guarda; (4) **`calcETE` deja agendado un repintado que PISA
+  `im_grado`** — fijándolo antes del debounce, el informe salía «sin insuficiencia» en tres de
+  cuatro corridas. Las cuatro están escritas en el caso.
+
+- **Línea base al cierre: suite 549/554** en once lotes de 55 **cubriendo los 554**, con el
+  pendrive `DISK_IMG` **montado y listando nombres reales** al abrir y al cerrar, y el md5 de
+  `index.html` **idéntico** antes y después. Los rojos son **TC-223, TC-376, TC-390 y TC-406**, los
+  cuatro de siempre, más **TC-358**, que es el rojo por CDN que la orden anticipa.
+  ⚠️ **Y TC-358 SE VERIFICÓ DE LA FORMA QUE NO DEJA DUDAS**: en el **mismo directorio**, con los
+  **mismos scripts**, alternando sólo el `index.html` entre HEAD y el árbol nuevo, dos rondas
+  dieron **rojo en los dos** y después **verde en los dos**. Su helper `pdfTxt` lee `window.jspdf`
+  **sin esperar**, y medido con Playwright jsPDF llega **en menos de 1 segundo** en los dos árboles,
+  sin un fallo de red ni de SRI. → **E-h**.
+- **Semgrep 124 WARNING / 0 ERROR.** Excel **440** columnas. Censo **1023** campos, 0 huérfanos.
+  17 bloques de JS inline parsean. Celular **34 hallazgos ALTA —17 a 360 px y 17 a 390—, idénticos
+  a HEAD**.
+- **A/B contra HEAD, uno por commit, y las diferencias de superficie firmada son SÓLO las
+  autorizadas**: 30 en las dos escenas del Carpentier (E-1), **cero** en las cinco del E-2, 17 en
+  `strE12` (E-3) y 12 en `orejE` (E-4). En todos, `vacio`, `ajeno` y los controles negativos dan
+  **cero** en informe (tres estilos), EN SUMA, las 440 columnas de Excel clave por clave, los
+  943/960 campos, el Laboratorio por sus ocho funciones dueñas, el PDF generado de verdad en sus
+  seis plantillas y el PPT (23 textos).
+  ⚠️ **LA ESCENA `tricE` DEL A/B NO PUEDE MOSTRAR LA DIFERENCIA DEL 2a, Y SE DECLARA EN EL CÓDIGO**:
+  su montaje corre todos los `calc*` de `window`, así que fabrica el mismo disparador que TC-519
+  fabricaba. Esa diferencia la mide `_probe_te.mjs --solo tric`, con gestos reales.
+- **CHROME Y WEBKIT COINCIDEN EN LOS OCHO CRUCES** (dos motores × 1440 y 390 px × dos temas):
+  17/17 pestañas con caja, cero scroll horizontal, **cero textos recortados**, **cero errores de
+  consola y de página en los dos motores**, el Carpentier con una sola aparición y el campo
+  bloqueado a opacidad 0,5, el aviso de la tricúspide con **565 × 28** a 1440 px, la frase del
+  strain sin grado y las dos tablas de la orejuela con **cero** rangos viejos.
+  **Escribir no se volvió más lento**: doce teclas en Chrome, media **0,16 a 0,21 ms**, máximo 0,5.
+  ⚠️ **WebKit de Playwright no es Safari, y se declara.**
+- ⚠️ **EL ENLACE DEL CARPENTIER DABA 0 × 0 EN LOS TRES ARNESES Y SÍ SE VE: 156 × 44 px.** Lo que
+  les falta es abrir la **TARJETA**, no la sección: con `showTab(...)` programático la `.card` de
+  adentro queda sin caja y todo lo que hay dentro informa 0 × 0. Midiendo con la pestaña abierta
+  por su **botón real** más `toggleEteSeccion`, aparece con su texto completo. → **E-b**.
+- **`index.html` pasó de 9,76 MB / 137.611 líneas a 9,79 MB / 138.038** — medido con `wc -c` y
+  `wc -l` DESPUÉS de sellar. (MB de 10⁶: `wc -c` dividido por 1e6.)
+
+- **Dónde está todo:** `docs/mapa/e-carpentier-tricuspide-orejuela.md` (**mapa NUEVO**, 19,1 KB),
+  la ficha del caso en `docs/mapa/tests-fichas-539.md` (**archivo propio**, porque
+  `tests-fichas.md` ya estaba en 34,2 KB), **ocho mapas con un puntero cada uno** —medidos ANTES de
+  escribir, todos por debajo de 35 KB—, `docs/fuentes/FUENTES.md` → «La tanda E» con las dos tablas
+  transcriptas fila por fila y la tabla «Cambios de evidencia» de catorce filas, y
+  `docs/PENDIENTES.md` → **OCHO** cosas declaradas (**E-a** a **E-h**).
 
 ## Procedencia — dónde está el origen de cada regla
 

@@ -356,3 +356,19 @@ La fila **«Clasificación — descripción»** del ateroma se **esconde** de la
 decide si hay bloque «Valoración» que emitir.
 
 **`docs/mapa/aj7-correcciones.md` § 2.**
+
+---
+
+## ⚠️ El aviso del AJ2-4 no tenía disparador, y la tanda E lo arregló (27/10/2026)
+
+El texto y la compuerta estaban bien; lo que faltaba era quién llamara al pintor. El `onchange` de
+`#et_grado` es `valvSev.aplicar(...)`, que **no pasa por `calcET`** —el único lugar desde donde se
+llamaba a `etEvidAvisoSync`—, y el oyente de documento sólo atrapaba `it_grado` e `ia_grado`. El
+aviso recién aparecía después de un gesto que tocara una **medición**, que es justo el gesto que la
+escena del AJ2-4 no tiene. Medido: 0 × 0 con texto vacío al elegir la severidad, 28 × 545 al
+borrar el gradiente medio.
+
+⚠️ **Y TC-519 (C1-C5) pasaba en verde sobre el defecto**, porque el caso llamaba a `calcET()` a
+mano justo después de poner la severidad: fabricaba el disparador que la app no tenía.
+
+**`docs/mapa/e-carpentier-tricuspide-orejuela.md` § 4.**

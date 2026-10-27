@@ -481,3 +481,14 @@ varias tandas midieron su A/B sin pasar por el camino que reponen `editarInforme
 autoguardado y las dos reimpresiones. Corregido en `scripts/_probe_bab.mjs` a
 `_recalcModulos('ab')`; **`_probe_aab.mjs` y `_probe_r2ab.mjs` siguen con el defecto**, y la
 próxima tanda que los use conviene que lo arregle ahí también.
+
+---
+
+## TC-539 — la tanda E (27/10/2026)
+
+Ficha completa en **`docs/mapa/tests-fichas-539.md`** (archivo propio: `tests-fichas.md` ya estaba
+en 34,2 KB). Cuatro bloques —Carpentier, tricúspide, strain del VD y orejuela— con 8 denominadores
+declarados. **13/13 mutaciones dirigidas muertas** (`scripts/_mut_e.py`), y cae contra HEAD en
+**19** condiciones. Dos de sus condiciones (A11 y A12) **nacieron de mutaciones que
+sobrevivieron**. Lo que el caso NO mide y se declara: la geometría de dos avisos, que vive en
+`scripts/_probe_te.mjs` → `docs/PENDIENTES.md` **E-b**.
