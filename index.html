@@ -10061,7 +10061,10 @@ window.cerrarSesionReal = cerrarSesionReal;
           <div class="grid-3">
             <div class="fg"><label for="pop_sw_gc">GC termodilución (L/min)</label><input type="number" id="pop_sw_gc" step="0.1" min="0" inputmode="decimal" oninput="popHemoSync()"></div>
             <div class="fg"><label for="pop_sw_fc">FC (lpm)</label><input type="number" id="pop_sw_fc" step="1" min="0" inputmode="decimal" oninput="popHemoSync()"></div>
-            <div class="fg"><label for="pop_sw_pam">PAM (mmHg)</label><input type="number" id="pop_sw_pam" step="1" min="0" inputmode="decimal" oninput="popHemoSync()"></div>
+            <div class="fg"><label for="pop_sw_pam">PAM (mmHg)</label><input type="number" id="pop_sw_pam" step="1" min="0" inputmode="decimal" oninput="popHemoSync();pamAvisoSync()">
+              <!-- Una linea, sin color de alarma: dice cual de las tres PAM manda y cual difiere.
+                   NO entra al informe, al EN SUMA, al PDF ni al PPT. Ver `pamAvisoSync`. -->
+              <div id="pop-pam-aviso" style="font-size:10px;color:var(--text2);margin-top:3px;min-height:0;"></div></div>
             <div class="fg"><label for="pop_sw_paps">PAPs (mmHg)</label><input type="number" id="pop_sw_paps" step="1" min="0" inputmode="decimal" oninput="popHemoSync()"></div>
             <div class="fg"><label for="pop_sw_papd">PAPd (mmHg)</label><input type="number" id="pop_sw_papd" step="1" min="0" inputmode="decimal" oninput="popHemoSync()"></div>
             <div class="fg"><label for="pop_sw_pcp">PCP (mmHg)</label><input type="number" id="pop_sw_pcp" step="1" min="0" inputmode="decimal" oninput="popHemoSync()"></div>
@@ -47961,6 +47964,123 @@ function aoPamCalc() {
 }
 window.aoPamCalc = aoPamCalc;
 
+/* ══ LA PAM TIENE UN SOLO DUEÑO (B-2, 2026-10-27) — DECISIÓN DE MAICOL ═══════════════════════
+   EL ORDEN, que no es mío: (1) la PAM medida por catéter o línea arterial; (2) si no hay, la
+   tipeada; (3) si no hay, la calculada de PAS y PAD. Todos los lugares la leen de acá.
+
+   DÓNDE VIVE CADA UNA, medido antes de escribir:
+     (1) INVASIVA → `pop_sw_pam`, y sólo con `pop_monitor` en «swan». La compuerta es la misma
+         que ya aplican `popPatron` y `popEsquema`: los valores del Swan sobreviven a cambiar el
+         dispositivo, y sin la compuerta la app graduaría con un número que no está a la vista.
+         ⚠️ NO HAY UN CAMPO DE LÍNEA ARTERIAL. La opción «Presión arterial invasiva solamente»
+            del selector de monitoreo no abre ningún campo: hoy la única PAM por catéter que la
+            app sabe recibir es la del Swan-Ganz. Declarado en PENDIENTES.md.
+     (2) TIPEADA  → `hemo_pam` SIN la marca `dataset.derivadoDe`.
+     (3) CALCULADA→ `aoPamCalc()`, de `ao_pas` y `ao_pad`. La app ya la escribe dentro de
+         `hemo_pam` —con la marca— cuando el campo está vacío, así que (2) y (3) comparten
+         campo y los distingue la marca. Por eso `aoPresionSync` no se tocó: sigue siendo el
+         único que ESCRIBE, y esta función sólo LEE.
+
+   ⚠️ LA MARCA NO SOBREVIVE A UNA RECARGA, y es el borde que esta tanda deja declarado. Medido:
+      la PAM TIPEADA sí se conserva —el autoguardado repone `hemo_pam`— pero `dataset.derivadoDe`
+      no se persiste, así que una PAM que la app había DERIVADO vuelve pareciendo tipeada. Desde
+      ahí la app ya no la vuelve a derivar de PAS/PAD y el aviso «auto» desaparece. Conservarla
+      exige un campo nuevo en el guardado, que mueve el censo: queda parado y reportado (B-b).
+
+   «DIFIERE» ES DESPUÉS DE REDONDEAR al mmHg que se muestra, y nada más: no hay ningún umbral
+   clínico acá, y escribir uno sería inventarlo. */
+const PAM_FUENTE_LBL = {
+  /* Los rótulos cortos son los que YA publicaban `popPatron` y `popEsquema`, letra por letra: la
+     hoja del PDF del posoperatorio los imprime, y cambiarlos movería un papel firmado. La
+     calculada comparte el de la tipeada porque hasta hoy viajaba dentro del mismo campo y se
+     publicaba con ese mismo texto. */
+  inv: 'medida (Swan-Ganz)', tip: 'de Hemodinámica', calc: 'de Hemodinámica'
+};
+const PAM_FUENTE_DET = {
+  /* Los largos son SÓLO para el aviso de pantalla. No entran al informe, al EN SUMA, al PDF ni
+     al PPT. */
+  inv: 'medida por catéter (Swan-Ganz)', tip: 'tipeada en Hemodinámica',
+  calc: 'calculada de PAS y PAD del Doppler aórtico'
+};
+function pamEfectiva() {
+  const out = { val: null, clave: null, fuente: null, detalle: null, cargadas: [], difieren: [] };
+  let inv = null;
+  try {
+    const mon = (document.getElementById('pop_monitor') || {}).value || '';
+    if (mon === 'swan') inv = v('pop_sw_pam');
+  } catch (e) {}
+  /* ⚠️ LA CALCULADA GANA CON EL VALOR QUE LA APP MATERIALIZÓ, NO CON EL CRUDO, y lo destapó el
+     A/B: `aoPresionSync` escribe `pam.toFixed(0)` dentro de `hemo_pam`, así que lo que hoy
+     alimenta la vasoplejia del posoperatorio es el REDONDEADO —87—, no el crudo —86,666…—.
+     Devolver el crudo movía el número que entra a un corte clínico (PAM < 65 mmHg) sin que
+     nadie lo pidiera. El crudo se conserva aparte, y sólo para comparar y avisar. */
+  let calcCrudo = null;
+  try { calcCrudo = (typeof aoPamCalc === 'function') ? aoPamCalc() : null; } catch (e) {}
+  let tip = null, calc = null;
+  try {
+    const el = document.getElementById('hemo_pam');
+    const hp = v('hemo_pam');
+    /* El MISMO predicado `esNuestro` que usa `aoPresionSync` para decidir si puede pisar el
+       campo. Una segunda definición de «lo escribió la app» es como las dos se separan. */
+    const esNuestro = !!el && el.value !== '' &&
+      el.dataset.derivadoDe !== undefined && el.dataset.derivadoDe === el.value;
+    if (hp !== null) { if (esNuestro) calc = hp; else tip = hp; }
+  } catch (e) {}
+  const cand = [['inv', inv], ['tip', tip], ['calc', calc]];
+  cand.forEach(function (p) { if (p[1] !== null) out.cargadas.push({ clave: p[0], val: p[1] }); });
+  /* El crudo entra a `cargadas` SÓLO para la comparación, y sólo si no está ya materializado:
+     es lo que hace que «tipeé 95 y el Doppler dice 87» muestre el aviso. */
+  if (calc === null && calcCrudo !== null) out.cargadas.push({ clave: 'calc', val: calcCrudo });
+  for (let i = 0; i < cand.length; i++) {
+    if (cand[i][1] !== null) { out.clave = cand[i][0]; out.val = cand[i][1]; break; }
+  }
+  /* ⚠️ SIN (1) NI (2) NI (3) MATERIALIZADA, NO HAY PAM — AUNQUE HAYA PAS Y PAD. Es el único
+     estado donde la calculada existe sin estar en el campo: el médico borró `hemo_pam` a mano.
+     Hacerla ganar ahí agrega una línea «PAM | 87 mmHg» a la hoja del posoperatorio de un PDF
+     FIRMADO en un estudio con UNA sola fuente, que es justo lo que esta tanda tiene prohibido.
+     Medido y declarado en PENDIENTES.md (B-c); el primer gesto del médico sobre PAS o PAD
+     vuelve a materializarla y la precedencia aplica normalmente. */
+  if (out.clave === null) return out;
+  out.fuente = PAM_FUENTE_LBL[out.clave];
+  out.detalle = PAM_FUENTE_DET[out.clave];
+  out.cargadas.forEach(function (c) {
+    if (c.clave !== out.clave && Math.round(c.val) !== Math.round(out.val))
+      out.difieren.push({ clave: c.clave, val: c.val, detalle: PAM_FUENTE_DET[c.clave] });
+  });
+  return out;
+}
+window.pamEfectiva = pamEfectiva;
+
+/* La línea discreta que dice CUÁL se está usando y cuál difiere. Una sola línea, sin color de
+   alarma, y NO entra al informe, al EN SUMA, al PDF ni al PPT: los tres nodos que escribe son
+   `<div>` de pantalla.
+   ⚠️ CON UNA SOLA FUENTE EL TEXTO ES EL DE SIEMPRE. `hemo-pam-auto` dice «auto ← PAS/PAD del
+      Doppler aórtico» cuando la que manda es la calculada y no hay otra, y queda VACÍO cuando
+      la que manda es la tipeada sola: es letra por letra lo que decía antes de esta tanda, y
+      TC-424 lo cuenta. La línea nueva aparece SÓLO cuando hay dos fuentes que difieren. */
+function pamAvisoSync() {
+  const pintar = function (id, txt) {
+    const e = document.getElementById(id);
+    if (e) e.textContent = txt;
+  };
+  let r = null;
+  try { r = pamEfectiva(); } catch (e) { r = null; }
+  if (!r || r.clave === null) { pintar('hemo-pam-auto', ''); pintar('pop-pam-aviso', ''); return; }
+  /* SIN discrepancia no hay nada que avisar: la línea queda como estaba antes de esta tanda
+     —el rótulo histórico «auto» cuando la calculada es la única, y vacía en todo lo demás—. */
+  if (!r.difieren.length) {
+    pintar('hemo-pam-auto', r.clave === 'calc' ? 'auto ← PAS/PAD del Doppler aórtico' : '');
+    pintar('pop-pam-aviso', '');
+    return;
+  }
+  const linea = 'PAM en uso ' + r.val.toFixed(0) + ' mmHg, ' + r.detalle
+    + ' · difiere de la ' + r.difieren.map(function (d) {
+        return d.detalle + ' (' + d.val.toFixed(0) + ' mmHg)'; }).join(' y de la ');
+  pintar('hemo-pam-auto', linea);
+  pintar('pop-pam-aviso', linea);
+}
+window.pamAvisoSync = pamAvisoSync;
+
 /* ⚠️ LO QUE EL MÉDICO TIPEÓ EN LA PAM DE HEMODINÁMICA MANDA Y NO SE PISA. La marca es
    `dataset.derivadoDe`, el mismo mecanismo —y el mismo predicado `esNuestro`— que
    `oai_area_ostium` y el gradiente pulmonar ya usan: se escribe sólo si el campo está VACÍO o si
@@ -47987,13 +48107,13 @@ window.aoPresionSync = aoPresionSync;
 /* El aviso «auto» al lado de la PAM de Hemodinámica. Es la única línea que esta tanda agrega a esa
    pestaña, y existe porque un número que la app escribió en un campo editable, sin decirlo, se lee
    como una medición del médico. */
+/* ⚠️ DESDE B-2 (2026-10-27) ESTA FUNCIÓN DELEGA, y no es un rodeo: el aviso dejó de contestar
+   «¿la escribió la app?» para contestar «¿cuál de las tres manda, y hay otra que difiera?», que
+   es una pregunta del dueño único. Dos pintores escribiendo el mismo `<div>` con dos
+   definiciones distintas es exactamente cómo se separan. Se conserva el nombre porque lo llaman
+   el `oninput` de `hemo_pam` y `aoPresionSync`. */
 function _aoPamAutoAviso() {
-  const box = document.getElementById('hemo-pam-auto');
-  if (!box) return;
-  const el = document.getElementById('hemo_pam');
-  const esNuestro = !!el && el.value !== '' &&
-    el.dataset.derivadoDe !== undefined && el.dataset.derivadoDe === el.value;
-  box.textContent = esNuestro ? 'auto ← PAS/PAD del Doppler aórtico' : '';
+  if (typeof pamAvisoSync === 'function') pamAvisoSync();
 }
 window._aoPamAutoAviso = _aoPamAutoAviso;
 
@@ -48139,10 +48259,19 @@ function aoRefHemo(H) {
     const el = document.getElementById(id);
     if (el) el.textContent = txt;
   };
-  const el = document.getElementById('hemo_pam');
-  const pam = v('hemo_pam');
-  const pamAuto = !!el && el.dataset.derivadoDe !== undefined && el.dataset.derivadoDe === el.value;
-  set('ao-ref-pam', pam === null ? '—' : (pam + ' mmHg' + (pamAuto ? ' (auto)' : '')));
+  /* ⚠️ DESDE B-2 ESTA FILA LEE AL DUEÑO ÚNICO (`pamEfectiva`) Y NO A `hemo_pam` A SECAS. Antes
+     ignoraba por completo la PAM medida por catéter: con el Swan-Ganz cargado en 58 mmHg y
+     Hemodinámica vacía, esta fila decía «—» mientras el posoperatorio graduaba vasoplejia con
+     ese mismo 58. Era, literalmente, el «más de un dueño» del pedido.
+     Es un `<span>` de PANTALLA: no lo lee el informe, ni el EN SUMA, ni el PDF, ni el PPT
+     —verificado, sus dos únicas apariciones en el archivo son el marcado y esta línea—, así que
+     la fila puede decir la verdad sin mover un papel firmado. El «(auto)» se conserva letra por
+     letra para la calculada, que es lo que TC-424 cuenta. */
+  const _pamR = (typeof pamEfectiva === 'function') ? pamEfectiva() : { val: null, clave: null };
+  const pam = _pamR.val;
+  set('ao-ref-pam', pam === null ? '—'
+      : (pam.toFixed(0) + ' mmHg' + (_pamR.clave === 'calc' ? ' (auto)'
+         : _pamR.clave === 'inv' ? ' (Swan-Ganz)' : '')));
   set('ao-ref-gc',  H.gc  === null || H.gc  === undefined ? '—' : H.gc.toFixed(2) + ' L/min');
   set('ao-ref-ic',  H.ic  === null || H.ic  === undefined ? '—' : H.ic.toFixed(2) + ' L/min/m²');
   set('ao-ref-pcp', H.pcp === null || H.pcp === undefined ? '—' : H.pcp.toFixed(1) + ' mmHg');
@@ -57602,9 +57731,19 @@ function popPatron() {
      la de Hemodinámica, igual que hace la PCP, y se declara cuál se usó: una etiqueta de
      vasoplejia sostenida en una PAM que el médico cargó en otra pestaña, sin decirlo, es la
      mezcla de medición y estimación que este módulo persigue desde el primer commit. */
+  /* ⚠️ DESDE B-2 SALE DE `pamEfectiva`, EL DUEÑO ÚNICO. La precedencia que este bloque ya
+     aplicaba —la medida por catéter le gana a la de Hemodinámica— es la misma; lo que se agrega
+     es el TERCER nivel, la calculada de PAS y PAD, para el caso en que el médico vació
+     `hemo_pam` y el Doppler aórtico sí tiene las dos presiones. Los dos rótulos publicados
+     —«medida (Swan-Ganz)» y «de Hemodinámica»— son los MISMOS, letra por letra: la hoja del PDF
+     del posoperatorio los imprime. Ver `PAM_FUENTE_LBL`. */
   let pam = null, pamFuente = null;
-  if (swPam !== null) { pam = swPam; pamFuente = 'medida (Swan-Ganz)'; }
-  else { const _hp = v('hemo_pam'); if (_hp !== null) { pam = _hp; pamFuente = 'de Hemodinámica'; } }
+  {
+    const _r = (typeof pamEfectiva === 'function') ? pamEfectiva() : null;
+    /* La compuerta del dispositivo la aplica `pamEfectiva` igual que este bloque: sin «swan» la
+       invasiva no cuenta. `swPam` queda como estaba para los otros usos de arriba. */
+    if (_r && _r.val !== null) { pam = _r.val; pamFuente = _r.fuente; }
+  }
 
   const tapse = v('tapse');
   let vdvi = v('tep_vdvi');
@@ -57876,12 +58015,13 @@ function popEsquema() {
                      : (v('psap_calc') !== null ? 'estimada por eco' : null);
   const papd = esSw ? v('pop_sw_papd') : null;
   const papm = (paps !== null && papd !== null) ? (paps + 2 * papd) / 3 : null;
-  const pamSw = esSw ? v('pop_sw_pam') : null;
-  const pam = pamSw !== null ? pamSw : v('hemo_pam');
+  /* ⚠️ DESDE B-2 SALE DE `pamEfectiva`, igual que la vasoplejia: el dibujo y la conclusión no
+     pueden derivar la PAM por dos caminos. Mismo tercer nivel y mismos dos rótulos. */
+  const _pamE = (typeof pamEfectiva === 'function') ? pamEfectiva() : { val: null, fuente: null };
+  const pam = _pamE.val;
   /* El rotulo NO repite el nombre del dato: la superficie que lo publica ya dice «PAM», y
      «PAM 58 mmHg - PAM medida (Swan-Ganz)» se lee como dos PAM distintas. */
-  const pamFuente = pamSw !== null ? 'medida (Swan-Ganz)'
-                    : (v('hemo_pam') !== null ? 'de Hemodinámica' : null);
+  const pamFuente = _pamE.fuente;
   const pcp = r.pcp;
   const gtp = (papm !== null && pcp !== null) ? papm - pcp : null;
   const rvp = (gtp !== null && gc !== null && gc > 0) ? gtp / gc : null;
@@ -58599,7 +58739,12 @@ function RECALC_MODULOS() {
      automaticos con el «requiere …» del formulario vacio al lado de un VDFVI y una FEVI ya
      poblados. No puede migrar nada: no escribe ningun campo del estudio, los dos nodos que
      toca son `vauto-` y el tercero un `<div>` de texto. */
-  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','asiaMmSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','dtTapSync','etOndaESync','papmEstSync','calcDopTric','etTsvdSync','calcET','vpVmaxSync','ipIncongruenciaSync','itRefFuenteSync','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccSegSync','vpSync','popSync','sglOrigenSync','calcVenaPulm','valvProtSync','eaTaviEspejar','imEspejosRestaurar','eteVmAvisoSync','vmCarpLegadoSync','vmCarpAvisoSync','vmProtBloqSync','vmMorfFitSync','vdStrainPlSync','emPdfValsSync','emCuadroRefRepintar','emContFaAvisoSync','imCortesPintar','imContAvisoPintar','itIncongruenciaSync','aoEspejosRestaurar','tangoRestaurar','diastExclSync','diastFcAvisoSync','diastBseEprimaAvisoSync','diastBseGrisAvisoSync','diastStrainMarcaSync','vdMarcaSync','vdTeiAvisoSync','hfPepSync','hfPepPintar','viVolAutoSync','eaAvaiGradoPintar','eaPvlPintar','imPvlPintar','vdTapsePsapSync','ipApDiamSync','vdViSelSync','htpApSync','htpTablaPintar','m3dBotonSync','contrPdfSync','sglPdfSync','eteQxPdfSync','otrBurbUI','v2dCerrar','aiviSexoSync','vtDviAuto','sincronizarTEERDesdeGlobal','calcETE'];
+  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','asiaMmSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','dtTapSync','etOndaESync','papmEstSync','calcDopTric','etTsvdSync','calcET','vpVmaxSync','ipIncongruenciaSync','itRefFuenteSync','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccSegSync','vpSync','popSync','sglOrigenSync','calcVenaPulm','valvProtSync','eaTaviEspejar','imEspejosRestaurar','eteVmAvisoSync','vmCarpLegadoSync','vmCarpAvisoSync','vmProtBloqSync','vmMorfFitSync','vdStrainPlSync','emPdfValsSync','emCuadroRefRepintar','emContFaAvisoSync','imCortesPintar','imContAvisoPintar','itIncongruenciaSync','aoEspejosRestaurar','tangoRestaurar','diastExclSync','diastFcAvisoSync','diastBseEprimaAvisoSync','diastBseGrisAvisoSync','diastStrainMarcaSync','vdMarcaSync','vdTeiAvisoSync','hfPepSync','hfPepPintar','viVolAutoSync','eaAvaiGradoPintar','eaPvlPintar','imPvlPintar','vdTapsePsapSync','ipApDiamSync','vdViSelSync','htpApSync','htpTablaPintar','m3dBotonSync','contrPdfSync','sglPdfSync','eteQxPdfSync','otrBurbUI','v2dCerrar','aiviSexoSync','vtDviAuto','sincronizarTEERDesdeGlobal','calcETE',
+          /* `pamAvisoSync` (B-2) repinta la línea del dueño único de la PAM. Entra acá por lo
+             mismo que los demás: las cinco rutas de restauración pueblan asignando `.value`,
+             que no dispara `input`, así que al reabrir un estudio con dos PAM que difieren el
+             aviso se quedaba con el del paciente anterior. Sólo escribe texto. */
+          'pamAvisoSync'];
 }
 function _recalcModulos(etiqueta) {
   RECALC_MODULOS().forEach(function(fn){
@@ -58656,7 +58801,21 @@ window.RECALC_MODULOS = RECALC_MODULOS; window._recalcModulos = _recalcModulos;
 function ESPEJOS_VIVOS() {
   return ['tvSync', 'dapSync', 'coaSync', 'vapSync', 'ebsSync', 'tgaSync', 'dsavSync',
           'cvpaSync', 'eteShuntSync', 'calcTEP',
-          'popHemoSync', 'popPocusSync', 'popEsqPintar', 'popConclSync', 'popDosisTodas'];
+          'popHemoSync', 'popPocusSync', 'popEsqPintar', 'popConclSync', 'popDosisTodas',
+          /* B-2: el aviso del dueño único de la PAM. Lee tres pestañas —el Swan del POP,
+             Hemodinámica y el Doppler aórtico— y escribe DOS `<div>` de texto, ninguno de los
+             cuales sale al papel.
+             `aoRefPintar` va con él y NO es un agregado de más: desde B-2 la fila «PAM» de la
+             columna de referencias del Doppler aórtico lee al dueño único, así que pasó a
+             depender de `pop_sw_pam`, que vive en el posoperatorio. Sin esta entrada, cargar la
+             PAM del Swan dejaba esa fila en «—» —medido—, que es el mismo defecto que esta
+             tanda vino a cerrar, recién creado. No escribe un solo campo.
+             ⚠️ Y `calcHemo` CON ELLOS, porque quien pinta esa fila es él y no `aoRefPintar`:
+             `aoRefHemo` tiene UN solo llamador en todo el archivo, la última línea de
+             `calcHemo`. Entra sólo para repintar, no cambia lo que lee: su RVS sigue saliendo de
+             `v('hemo_pam')` a secas y NO del dueño único —ver B-a en PENDIENTES.md—. Escribe dos
+             campos y los dos son `readonly`: `hemo_pvc` y `hemo_vs`. */
+          'pamAvisoSync', 'aoRefPintar', 'calcHemo'];
 }
 function _espejosBarrerTodos() {
   ESPEJOS_VIVOS().forEach(function (fn) {

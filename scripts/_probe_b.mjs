@@ -1089,6 +1089,11 @@ async function main() {
     { k: 'IC',   I: '58', T: null,  C: ['120', '70'] },
     { k: 'TC',   I: null, T: '95',  C: ['120', '70'] },
     { k: 'ITC',  I: '58', T: '95',  C: ['120', '70'] },
+    /* ⚠️ LA NOVENA, Y ES LA UNICA QUE PUEDE ROMPER EL CONTRATO DE «UNA SOLA FUENTE». La
+       calculada vive DENTRO de `hemo_pam`; el unico estado donde existe como fuente SOLA y el
+       campo esta vacio es el que deja el medico borrando la PAM a mano con PAS y PAD cargadas.
+       En HEAD ahi no hay PAM para nadie; con el dueno unico, la calculada manda. */
+    { k: 'Cv',   I: null, T: null,  C: ['120', '70'], borrarHemo: true },
   ];
   async function escenaPam() {
     const r = { combos: [] };
@@ -1111,8 +1116,19 @@ async function main() {
             try { await ev(`window.__P.abrirPara('hemo_pam')`); await poner('hemo_pam', C.T); }
             catch (e) { o.noT = e.message.slice(0, 110); }
           }
+          if (C.borrarHemo) {
+            try { await ev(`(function(){ showTab('hemo'); return 1 })()`); } catch (e) {}
+            try { await ev(`window.__P.abrirPara('hemo_pam')`); await borrar('hemo_pam', 'del'); }
+            catch (e) { o.noBorra = e.message.slice(0, 110); }
+          }
           await pausa(1200);
           o.estado = await ev(`window.__B.pam()`);
+          o.popPatron = await ev(`(function(){ try { var r = popPatron();
+            return { pam: r.pam, pamFuente: r.pamFuente, vasoSinPam: r.vasoSinPam,
+                     pat: r.pat && r.pat.lbl } } catch (e) { return 'EXC ' + e.message } })()`);
+          o.hojaPop = await ev(`(function(){ try { return (amiloTextoPOP() || '')
+            .split(String.fromCharCode(10)).filter(function(l){ return /PAM/.test(l) }).join(' | ') }
+            catch (e) { return 'EXC ' + e.message } })()`, 40000);
           o.informe = await ev(`window.__P.informe('estandar')`, 60000);
           o.suma = await ev(`window.__P.val('en_suma')`);
         } catch (e) { o.err = e.message.slice(0, 200); }
