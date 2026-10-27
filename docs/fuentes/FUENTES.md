@@ -6134,3 +6134,98 @@ entran al informe, al EN SUMA, al PDF ni al PPT.
 la biblioteca publica un orden de preferencia entre una PAM medida por catéter, una tipeada y
 una calculada de PAS y PAD. Si algún día se publica en el panel de Evidencia, el marcador que le
 corresponde es `ecosmart`, no una cita.
+
+## La tanda E — Carpentier, tricúspide, strain del VD y las dos tablas de la orejuela (2026-10-27)
+
+### Las DOS fuentes nuevas, VERIFICADAS CONTRA EL PDF ORIGINAL
+
+⚠️ **Esta tanda SÍ abrió los dos PDF** (la orden lo autorizaba en el punto 4e) y las **catorce
+filas coinciden exactamente** con las que la orden dictaba. No hubo ni una discrepancia, así que
+**no corresponde la nota «leídas en imagen por Cowork»** que el 4e dejaba como alternativa: lo que
+corresponde es «verificadas contra el documento original el 27/10/2026».
+
+| Documento | Dónde está | Qué se leyó | Hoja / folio |
+|---|---|---|---|
+| Abbott, **Amplatzer Amulet Left Atrial Appendage Occluder**, instrucciones de uso, aprobación FDA **P200049** (2021) | `23_Orejuela_izquierda/Abbott_Amulet_IFU_FDA-P200049_2021.pdf` | **Apéndice A, Tabla 2 — «Sizing chart»**. Sus tres columnas: «Landing Zone Width Xa», «Distance from Orifice Y», «Device Size (Lobe Diameter)». Ocho filas | hoja **19** de 27 · folio **15** (comprobado en el pie impreso) |
+| Boston Scientific, **WATCHMAN FLX Pro**, instrucciones de uso **52212467-01 rev. A** (2025-09) | `23_Orejuela_izquierda/BSC_Watchman_FLX_Pro_IFU_52212467-01A_2025-09.pdf` | **Tabla 78 — «WATCHMAN FLX Pro Device Selection»**. Su columna: «Max LAA Ostium Width and/or Deployed Closure Device Diameter (mm)». Seis filas, más la nota al pie de la profundidad | hoja **26** de 32 |
+
+**Amulet — Tabla 2, las ocho filas, en mm:**
+
+| Tamaño | Zona de anclaje | Distancia desde el orificio |
+|---|---|---|
+| 16 | 11,0 a 13,0 | ≥ 10 |
+| 18 | 13,0 a 15,0 | ≥ 10 |
+| 20 | 15,0 a 17,0 | ≥ 10 |
+| 22 | 17,0 a 19,0 | ≥ 10 |
+| 25 | 19,0 a 22,0 | ≥ 12 |
+| 28 | 22,0 a 25,0 | ≥ 12 |
+| 31 | 25,0 a 28,0 | ≥ 12 |
+| 34 | 28,0 a 31,0 | ≥ 12 |
+
+⚠️ **El símbolo de la segunda columna es un «mayor o igual» de la fuente Symbol (U+F0B3)**, no el
+U+2265 de Unicode. La extracción de texto plano devuelve « 10» y « 12» sin el signo, así que una
+lectura por `pdftotext` publicaría la distancia como si fuera un valor exacto. Verificado glifo
+por glifo sobre la página.
+
+⚠️ **Se usa la palabra del manual, «distancia desde el orificio», y NO «profundidad mínima»**: la
+Tabla 2 no rotula así esa columna.
+
+**WATCHMAN FLX Pro — Tabla 78, las seis filas, en mm (ancho máximo del ostium):**
+
+| Tamaño | Ancho máximo del ostium |
+|---|---|
+| 20 | 14,0 a 18,0 |
+| 24 | 16,8 a 21,6 |
+| 27 | 18,9 a 24,3 |
+| 31 | 21,7 a 27,9 |
+| 35 | 24,5 a 31,5 |
+| 40 | 28,0 a 36,0 |
+
+**La regla de profundidad va EN PALABRAS, textual de la nota al pie de la Tabla 78:** *«The LAA
+depth should be approximately half the labeled Implant diameter or longer.»* → «La profundidad de
+la orejuela debe ser aproximadamente la mitad del diámetro del dispositivo o más.» **No se puso un
+número fijo** porque la tabla no lo da.
+
+⚠️ **Lo que la hoja 25 del mismo manual publica y la app NO publica:** «Measured maximum LAA ostium
+width must be ≥ 14.0 mm and ≤ 36.0 mm to accommodate available Closure Device sizes». Es un
+criterio de **elegibilidad**, y la decisión de esta tanda es que la orejuela publica las medidas y
+**no juzga la aptitud**. Queda registrado acá para que no se lo busque de nuevo.
+
+⚠️ **La reserva de la I-E1 se RETIRA porque dejó de ser cierta.** Esa tanda escribió que la tabla
+de dimensionamiento del WATCHMAN «no se pudo leer y no se cita», nombrando el documento
+**51245861-01 rev. A (2023-07), Tabla 62**. El que se leyó ahora es **otro y más nuevo**:
+52212467-01 rev. A (2025-09), Tabla 78.
+
+### Fechas de consulta — ACÁ, y no en pantalla
+
+Regla R5 y punto 4d de la orden: ni la pantalla ni el ⓘ llevan fecha de consulta.
+
+| Qué | Fecha |
+|---|---|
+| Los dos PDF de instrucciones de uso, abiertos y verificados | **27/10/2026** |
+| La constante `OAI_FAB_FECHA` (`21/10/2026`), que la I-E1 imprimía en `oai-notas` y en la ficha | **retirada del código** |
+
+### Lo que NO se abrió, y se declara
+
+`23_Orejuela_izquierda/Abbott_Amulet_aviso_seguridad_arteria_pulmonar_2026-09_FR.pdf` — el aviso
+de campo **FA-Q326-SH-1 del 10/9/2026**, con las tres categorías de riesgo de distancia a la
+arteria pulmonar. El punto 4d de la orden lo deja explícitamente fuera y el 4g lo manda a
+`docs/PENDIENTES.md` → **E-e**. **Esta tanda no lo abrió.**
+
+### Cambios de evidencia
+
+| Qué | Antes | Después | Fuente |
+|---|---|---|---|
+| Amulet — rango de ostium publicado | «zona de anclaje 11,0 a 31,0 mm», sin tabla por tamaño, con fecha de consulta en pantalla | **tabla completa de ocho tamaños** en el ⓘ y en la ficha; línea corta «zona de anclaje de 11 a 31 mm según tamaño» | **nueva**: IFU FDA P200049 (2021), Apéndice A, Tabla 2, hoja 19, folio 15 |
+| Watchman — rango de ostium publicado | **nada** («no se pudo leer y no se cita»), y en el INFORME el rango viejo `17 a 31 mm` | **tabla completa de seis tamaños**; línea corta «ancho máximo del ostium de 14 a 36 mm según tamaño» | **nueva**: IFU 52212467-01 rev. A (2025-09), Tabla 78, hoja 26 |
+| Watchman — profundidad | nada | «aproximadamente la mitad del diámetro del dispositivo o más», **en palabras** | nota al pie de la Tabla 78 |
+| Amulet — `≤ 32 mm` en el informe | `oDiam >= 11 && oDiam <= 32` → «a evaluar para cierre percutáneo (Amulet)» | **retirado**: la app no juzga | — (no tenía fuente) |
+| Watchman — `17 a 31 mm` en el informe | `oDiam >= 17 && oDiam <= 31` → «potencialmente apto para cierre percutáneo (Watchman/Amulet)» | **retirado**: la app no juzga | — (era de una generación anterior) |
+| «fuera de rango para dispositivos actuales» | en el informe firmado y en las seis plantillas del PDF | **retirado** | — (no tenía fuente) |
+| «dentro / por debajo / por encima de la zona de anclaje del Amplatzer Amulet» | en `oai-notas` | **retirado**: queda «Ostium N mm» | — (no tenía fuente) |
+| Badge de `oai-elegibilidad` | verde «Ostium dentro de la zona de anclaje (11 a 31 mm)» · amarillo «Evaluar — medidas límite» | gris «Medidas publicadas — sin veredicto de aptitud» | — |
+| Strain de pared libre del VD, por debajo de 15 % | «leve como mínimo» en informe, EN SUMA, PDF y ficha | **«disfunción sistólica» SIN grado** | ninguna fuente publica cortes de moderada ni de severa; la ASE 2025 de mayo publica **sólo** el de normalidad (Tabla 1 folio 145, texto folio 159) |
+| Carpentier — precedencia | ganaba el de Válvulas, el del ETE era respaldo | **gana el del ETE** | **decisión de Maicol**, sin fuente: marcador `ecosmart` si alguna vez sube al panel |
+| Carpentier en el informe | hasta **tres** apariciones, y con el tipo III hasta **dos valores distintos** | **una sola** | — (es una regla de redacción, no clínica) |
+| Glosa del Carpentier del ETE («Tipo IIIb (tethering sistólico)») | en la oración del ETE del informe | **retirada de ahí**; vive en el ⓘ `vm-carp` y en la ficha de Referencias | — |
+| Aviso del corte alternativo de la IM secundaria | 113 caracteres en dos renglones | línea corta + **texto completo en el ⓘ**, con los dos valores, los dos cortes y las dos condiciones | ESC/EACTS 2025 — **no se tocó ni un número ni una cita** |

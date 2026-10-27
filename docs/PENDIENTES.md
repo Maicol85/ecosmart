@@ -8358,3 +8358,27 @@ tocaron**: arreglarlos cambia lo que midieron tandas ya cerradas, y no está ped
 arreglo antes de apoyarse en su A/B. No invalida los resultados publicados —los dos lados del
 A/B estaban igualmente afectados, así que la comparación sigue valiendo— pero **cubrían menos
 de lo que decían**.
+
+## E-e · La distancia más corta entre la zona de implante y la arteria pulmonar (idea, no implementada)
+
+**Qué es.** Abbott publicó un aviso de seguridad de campo —**FA-Q326-SH-1, del 10/9/2026**— sobre
+el Amplatzer Amulet, que introduce la **distancia más corta entre la zona de implante y la arteria
+pulmonar** como medida de planificación, con **tres categorías de riesgo**. Sería un campo nuevo de
+la sección de orejuela del ETE, con su tabla en el ⓘ.
+
+**Por qué NO se implementó en la tanda E.** La orden lo pide explícitamente como idea para después
+(punto 4g) y prohíbe incluirlo ahora (punto 4d). El motivo de fondo es que las tres categorías de
+riesgo viven en un aviso de campo y **no en el manual del dispositivo**: el manual que la app cita
+hoy es la aprobación FDA P200049 de 2021, que no las tiene. Publicar tres bandas de riesgo citando
+un manual que no las contiene sería exactamente lo que la regla de citación de este repo prohíbe.
+
+**Cuándo retomarlo.** Cuando esté publicado el **manual actualizado del Amulet** que incorpore esa
+medida, para poder citar documento, tabla, hoja y folio como las otras dos tablas de esta sección.
+El PDF del aviso está en la biblioteca
+(`23_Orejuela_izquierda/Abbott_Amulet_aviso_seguridad_arteria_pulmonar_2026-09_FR.pdf`) y **esta
+tanda no lo abrió**: no hacía falta para nada de lo que sí hizo, y abrirlo habría sido empezar a
+trabajar sobre una fuente que la orden dejó fuera.
+
+**Qué costaría.** Un campo nuevo persistido —**mueve el censo**, 1023 → 1024, y entra al JSON de
+cada estudio—, más una decisión clínica sobre si la app publica las tres categorías o sólo la
+medida. Por la regla de la casa («la orejuela publica las medidas y no juzga»), lo segundo.

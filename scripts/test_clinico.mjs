@@ -81720,21 +81720,30 @@ caso('TC-508', 'Tanda R2: el desplegable del derrame ofrece SOLO las cinco opcio
     return { eleg: TXT('oai-elegibilidad'), pant: document.documentElement.innerHTML }; })();
   ex.push(['(DENOM K) la escena de la orejuela publica su elegibilidad',
     _oai.eleg !== '—' && _oai.eleg !== 'NO EXISTE' && _oai.eleg !== '', 'eleg=' + _oai.eleg]);
-  /* ADAPTADO el 2026-10-22 (tanda I, commit 1): el rango «17-32 mm» era de dos dispositivos
-     fusionados y no coincidia con ninguno. Hoy la linea nombra la ZONA DE ANCLAJE del Amplatzer
-     Amulet (11 a 31 mm, dato del fabricante, Abbott, consultado el 21/10/2026), que es lo que esa
-     medida describe. Lo que esta condicion prueba —que se describe el HECHO y no se deriva al
-     Heart Team— no cambia, y GANA que los dos numeros salgan de las constantes y no de un
+  /* ADAPTADO el 2026-10-22 (tanda I, commit 1) y OTRA VEZ EN LA TANDA E (E-4a, 2026-10-27).
+     El rango «17-32 mm» era de dos dispositivos fusionados. La tanda I lo cambio por la zona de
+     anclaje del Amulet, y esta condicion exigia que el BADGE la nombrara con sus dos numeros.
+     DESDE LA TANDA E LA OREJUELA NO JUZGA: el badge decia «Ostium dentro de la zona de anclaje
+     del Amplatzer Amulet (11 a 31 mm)» en verde y «Evaluar — medidas limite» en amarillo, o sea
+     un veredicto de aptitud por rango sobre un dato de FABRICANTE que ninguna guia respalda. Hoy
+     dice «Medidas publicadas — sin veredicto de aptitud» y los dos numeros viven en las notas y
+     en el globo, que es donde son un dato de referencia y no una regla aplicada al paciente.
+     LO QUE ESTA CONDICION PRUEBA NO CAMBIA Y SE REPARTE: los tres controles negativos siguen
+     sobre el badge, y «nombra el dispositivo con sus dos numeros» pasa a medirse donde el texto
+     vive ahora -las notas-, exigiendo igual que los numeros salgan de las CONSTANTES y no de un
      literal, asi que mover una no puede dejar el texto diciendo otra cosa. */
-  ex.push(['(K1) con un ostium en rango describe el HECHO, no deriva al Heart Team y nombra la zona de anclaje',
+  ex.push(['(K1) el badge NO da veredicto de aptitud: ni Heart Team, ni «apto», ni el rango viejo',
     _oai.eleg.indexOf('Posiblemente apto') < 0 && _oai.eleg.indexOf('Heart Team') < 0
-      && _oai.eleg.indexOf('Amulet') > -1 && _oai.eleg.indexOf('17-32') < 0
-      && (function(){ try {
-            return typeof OAI_AMULET_MIN === 'number' && typeof OAI_AMULET_MAX === 'number' &&
-                   _oai.eleg.indexOf(String(OAI_AMULET_MIN)) > -1 &&
-                   _oai.eleg.indexOf(String(OAI_AMULET_MAX)) > -1;
-          } catch (e) { return false; } })(),
+      && _oai.eleg.indexOf('17-32') < 0 && !/\bapto\b|dentro de|fuera de rango/i.test(_oai.eleg),
     'eleg=' + _oai.eleg]);
+  ex.push(['(K1b) y las NOTAS nombran el Amulet con sus dos numeros, sacados de las constantes',
+    (function(){ try {
+        const n = EL('oai-notas'); const t = n ? String(n.textContent || '') : '';
+        return typeof OAI_AMULET_MIN === 'number' && typeof OAI_AMULET_MAX === 'number'
+          && t.indexOf('Amulet') > -1
+          && t.indexOf(String(OAI_AMULET_MIN)) > -1 && t.indexOf(String(OAI_AMULET_MAX)) > -1;
+      } catch (e) { return false; } })(),
+    'notas=' + String((EL('oai-notas') || {}).textContent || '').slice(0, 140)]);
   ex.push(['(K2) y el texto no sobrevive en ninguna otra superficie',
     _oai.pant.indexOf('Posiblemente apto — evaluar Heart Team') < 0, '']);
   /* CONTROL NEGATIVO: lo que la orden EXCLUYE sigue en su lugar.
@@ -85631,8 +85640,15 @@ caso('TC-519', 'Tanda AJ2: «sin datos» no es «no medible» en las cinco super
     const l = r ? r.querySelector('.calc-lbl') : null;
     return l ? (l.textContent || '').trim() : 'SIN ROTULO'; })();
   const notasOai = txt('oai-notas') || '';
-  ex.push(['(H1) el rotulo nombra al unico dispositivo que el recuadro evalua',
-    norm(rotOai).indexOf('zona de anclaje') > -1 && norm(rotOai).indexOf('elegibilidad') === -1, rotOai]);
+  /* ADAPTADO EN LA TANDA E (E-4a, 2026-10-27), CON EL MOTIVO ESCRITO. El rotulo decia «Zona de
+     anclaje — Amplatzer Amulet» porque el recuadro EVALUABA contra ese rango. Desde la tanda E no
+     evalua: publica las medidas. Nombrar un dispositivo en el rotulo de un recuadro que ya no lo
+     usa como criterio es decir que si lo usa, asi que el rotulo pasa a «Medidas de la orejuela».
+     Lo que el caso sigue exigiendo es lo que la AJ2-14 vino a cerrar -que NO diga
+     «elegibilidad»-, mas que no vuelva a nombrar un dispositivo como criterio. */
+  ex.push(['(H1) el rotulo describe la MEDIDA y no la elegibilidad ni un dispositivo como criterio',
+    norm(rotOai).indexOf('medidas') > -1 && norm(rotOai).indexOf('elegibilidad') === -1
+      && norm(rotOai).indexOf('amulet') === -1 && norm(rotOai).indexOf('watchman') === -1, rotOai]);
   ex.push(['(H2) DENOMINADOR: las notas publican las dos medidas', notasOai.indexOf('Profundidad 35 mm') > -1, notasOai.slice(-70)]);
   ex.push(['(H3) y no las juzgan: «favorable» y «limitante» salen',
     norm(notasOai).indexOf('favorable') === -1 && norm(notasOai).indexOf('limitante') === -1, notasOai.slice(-90)]);

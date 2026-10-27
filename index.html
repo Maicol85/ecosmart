@@ -14836,7 +14836,7 @@ z
              dimensionamiento por ostium no se pudo leer (ver `OAI_FAB_WATCH`)-. Y «Elegibilidad»
              es una afirmacion de aptitud para un procedimiento: lo que el recuadro dice es si una
              medida cae dentro de un rango. -->
-        <div class="calc-row"><span class="calc-lbl" style="font-weight:700;">⚖️ Zona de anclaje &mdash; Amplatzer Amulet</span><span id="oai-elegibilidad">—</span></div>
+        <div class="calc-row"><span class="calc-lbl" style="font-weight:700;">⚖️ Medidas de la orejuela</span><span id="oai-elegibilidad">—</span></div>
         <div class="calc-row"><span id="oai-notas" style="font-size:11px;color:var(--yellow);"></span></div>
       </div>
       <div class="fg" style="margin-top:8px;"><label>Notas OAI</label>
@@ -19109,16 +19109,32 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
         severa» y la franja intermedia de 20 a 40 cm/s son propios de la aplicación: la guía da
         los números y no los nombres.</span><br>
         <b style="color:var(--accent2);">SEC:</b> ausente/leve/moderado/severo (barro) — mayor SEC = mayor riesgo<br>
-        <b style="color:var(--accent2);">Dispositivos de cierre percutáneo — dato del fabricante,
-        consultado el 21/10/2026:</b><br>
-        • <b>Amplatzer Amulet</b> (Abbott): 8 tamaños de 16 a 34 mm, para zonas de anclaje de
-        <b>11,0 a 31,0 mm</b> — página oficial del fabricante.<br>
-        • <b>WATCHMAN FLX Pro</b> (Boston Scientific): 6 tamaños de <b>20 a 40 mm</b> — folleto de
-        producto del fabricante. Su tabla de dimensionamiento por diámetro de ostium
-        (instrucciones de uso 51245861-01 rev. A, 2023-07) no se pudo leer y no se cita, así que
-        la aplicación no afirma un rango de ostium para este dispositivo.<br>
+        <!-- ══ LAS DOS TABLAS DE DIMENSIONAMIENTO (E-4b, E-4c y E-4f, 2026-10-27) ═══════════
+             La ficha existia, asi que la tabla entra ACA tambien, como pide el punto 4f. Los dos
+             rangos viejos —el ostium 17-31 de Watchman y el <=32 de Amulet— ya no estan en
+             ningun lado de la app: censado en el documento entero.
+             ⚠️ SIN FECHA DE CONSULTA, ni aca ni en el globo (E-4d y regla R5): esa fecha vive en
+             `docs/fuentes/FUENTES.md`.
+             ⚠️ Y EL WATCHMAN YA SE PUEDE CITAR. La I-E1 escribio que su tabla «no se pudo leer y
+             no se cita»; en esta tanda se abrio el PDF de las instrucciones de uso 52212467-01
+             rev. A (2025-09) y la Tabla 78 esta verificada fila por fila. Esa reserva se retira
+             porque dejo de ser cierta. -->
+        <b style="color:var(--accent2);">Dispositivos de cierre percutáneo — dato de fabricante:</b><br>
+        • <b>Amplatzer Amulet</b> (Abbott): zona de anclaje de <b>11 a 31 mm</b> según tamaño, en
+        8 tamaños de 16 a 34 mm. Por tamaño: 16 → 11,0 a 13,0 (distancia desde el orificio ≥ 10);
+        18 → 13,0 a 15,0 (≥ 10); 20 → 15,0 a 17,0 (≥ 10); 22 → 17,0 a 19,0 (≥ 10);
+        25 → 19,0 a 22,0 (≥ 12); 28 → 22,0 a 25,0 (≥ 12); 31 → 25,0 a 28,0 (≥ 12);
+        34 → 28,0 a 31,0 (≥ 12). <span style="font-size:11px;color:var(--text2);">Instrucciones de
+        uso, aprobación FDA P200049 (2021), Apéndice A, Tabla 2, hoja 19, folio 15.</span><br>
+        • <b>WATCHMAN FLX Pro</b> (Boston Scientific): ancho máximo del ostium de <b>14 a 36 mm</b>
+        según tamaño, en 6 tamaños de 20 a 40 mm. Por tamaño: 20 → 14,0 a 18,0; 24 → 16,8 a 21,6;
+        27 → 18,9 a 24,3; 31 → 21,7 a 27,9; 35 → 24,5 a 31,5; 40 → 28,0 a 36,0. La profundidad de
+        la orejuela debe ser aproximadamente la mitad del diámetro del dispositivo o más.
+        <span style="font-size:11px;color:var(--text2);">Instrucciones de uso 52212467-01 rev. A
+        (2025-09), Tabla 78, hoja 26.</span><br>
         <span style="font-size:11px;color:var(--text2);">Ninguna guía de la biblioteca publica
-        rangos de tamaño de dispositivo: son datos de fabricante y no recomendaciones.</span>
+        rangos de tamaño de dispositivo: son datos de fabricante y no recomendaciones. La
+        aplicación publica las medidas de la orejuela y no juzga la aptitud para el cierre.</span>
       </div>
     </div>
   </div>
@@ -56097,11 +56113,24 @@ function generarInforme(opts) {
     const oDiam = v('oai_ostium_diam'), oProf = v('oai_profundidad');
     if (oDiam || oProf) {
       const dimParts = [oDiam ? 'ostium ' + oDiam + ' mm' : null, oProf ? 'profundidad ' + oProf + ' mm' : null].filter(Boolean);
+      /* ══ LOS DOS RANGOS VIEJOS ESTABAN VIVOS EN EL PAPEL FIRMADO (E-4a, 2026-10-27) ═══════
+         Y ES EL HALLAZGO MAS GRANDE DE ESTE PUNTO. La I-E1 cambio las CONSTANTES de la pantalla
+         en octubre —el ostium 17-31 de Watchman y el <=32 de Amulet quedaron fuera de `calcOAI`—
+         pero ESTA cascada, que es la que escribe el INFORME, se quedo con los numeros viejos
+         escritos a mano: `>= 17 && <= 31` y `>= 11 && <= 32`. O sea que la pantalla ya no los
+         usaba y el documento que se firma si. Medido en HEAD: un ostium de 36 mm salia
+         «ostium 36 mm, profundidad 25 mm — fuera de rango para dispositivos actuales.»
+         LAS TRES RAMAS DE JUICIO POR TAMAÑO SE VAN: la orejuela publica las medidas y no dice si
+         el paciente es apto. Es la misma decision que el R2-E9 ya tomo para el badge de pantalla
+         («Posiblemente apto — Heart Team») y que el AJ2-14 tomo para la profundidad.
+         ⚠️ LA RAMA DEL TROMBO SE CONSERVA Y SE DECLARA. «no apto para cierre percutáneo (trombo
+         presente)» tambien es un juicio de aptitud, pero es una contraindicacion absoluta y no un
+         rango de tamaño, la orden de esta tanda no la nombra, y el parrafo de arriba depende de
+         ella: su propio comentario dice que sin ese gate el informe salia con dos parrafos
+         seguidos donde uno manda a considerar el cierre y el otro declara al paciente no apto.
+         Retirarla es decision de Maicol -> `docs/PENDIENTES.md` E-d. */
       let aptitud = '';
-      if (oTrombo === 'si')               aptitud = 'no apto para cierre percutáneo (trombo presente)';
-      else if (oDiam && oDiam >= 17 && oDiam <= 31) aptitud = 'potencialmente apto para cierre percutáneo (Watchman/Amulet)';
-      else if (oDiam && oDiam >= 11 && oDiam <= 32) aptitud = 'a evaluar para cierre percutáneo (Amulet)';
-      else if (oDiam)                      aptitud = 'fuera de rango para dispositivos actuales';
+      if (oTrombo === 'si') aptitud = 'no apto para cierre percutáneo (trombo presente)';
       etePars.push(dimParts.join(', ') + (aptitud ? ' — ' + aptitud : '') + '.');
     }
 
@@ -88625,15 +88654,150 @@ const OAI_VEL_BAJA  = 'Por debajo de 20 cm/s se asocia con contraste espontáneo
    ningun documento oficial: el 17-31 corresponde a una generacion anterior de Watchman.
    ⚠️ NINGUNA GUIA DE LA BIBLIOTECA PUBLICA RANGOS DE TAMAÑO. La ASE 2021 de ETE de cribado
    estructural explica COMO medir el ostium segun el dispositivo y no da medidas. Lo que se cita
-   es al fabricante, con su fecha de consulta, y se dice que es dato de fabricante y no de guia.
-   ⚠️ LA UNICA MEDIDA DE OSTIUM CITABLE ES LA ZONA DE ANCLAJE DEL AMULET. De WATCHMAN FLX Pro
-   se publica el numero de tamanos; su tabla de dimensionamiento por ostium (IFU 51245861-01
-   rev. A, 2023-07, Tabla 62) NO se pudo leer, asi que NO se cita y la app no afirma un rango de
-   ostium para ese dispositivo. */
+   es al fabricante, y se dice que es dato de fabricante y no de guia.
+   ⚠️ ESTE BLOQUE DECIA «LA UNICA MEDIDA DE OSTIUM CITABLE ES LA ZONA DE ANCLAJE DEL AMULET» Y
+   QUEDO VENCIDO EN LA TANDA E. La reserva de la I-E1 era que la tabla de dimensionamiento del
+   WATCHMAN no se habia podido leer. En la tanda E se abrieron los DOS PDF originales y las dos
+   tablas quedaron verificadas fila por fila: la Tabla 2 del Amulet (IFU FDA P200049, 2021, hoja
+   19, folio 15) y la Tabla 78 del WATCHMAN FLX Pro (IFU 52212467-01 rev. A, 2025-09, hoja 26)
+   —que es un documento MAS NUEVO que el 51245861-01 rev. A de 2023-07 que esta reserva nombraba—.
+   Las dos viven en `OAI_AMULET_TABLA` y `OAI_WATCH_TABLA`, aca abajo.
+   ⚠️ Y LA FECHA DE CONSULTA SALIO DE LA PANTALLA (E-4d y regla R5): vive en
+   `docs/fuentes/FUENTES.md`. */
+/* ══ LAS DOS TABLAS DE DIMENSIONAMIENTO, DEL MANUAL (E-4b y E-4c, 2026-10-27) ══════════════
+   DECISION DE MAICOL, y REEMPLAZA lo que la I-E1 habia podido poner.
+   ⚠️ LAS DOS SE VERIFICARON CONTRA EL PDF ORIGINAL EN ESTA TANDA, no se copiaron de un resumen:
+     · AMULET — Abbott, Amplatzer Amulet Left Atrial Appendage Occluder, instrucciones de uso,
+       aprobacion de la FDA P200049, 2021; Apendice A, Tabla 2 («Sizing chart»), hoja 19 de 27,
+       folio 15 (comprobado en el pie impreso). Sus tres columnas son «Landing Zone Width Xa»,
+       «Distance from Orifice Y» y «Device Size (Lobe Diameter)». Las OCHO filas coinciden.
+       El simbolo de la segunda columna es un «mayor o igual» de la fuente Symbol (U+F0B3), que
+       la extraccion de texto no devuelve: verificado glifo por glifo.
+     · WATCHMAN FLX Pro — Boston Scientific, instrucciones de uso 52212467-01 rev. A (2025-09),
+       Tabla 78 («WATCHMAN FLX Pro Device Selection»), hoja 26 de 32. Su columna es «Max LAA
+       Ostium Width and/or Deployed Closure Device Diameter (mm)». Las SEIS filas coinciden.
+   ⚠️ SE USA LA PALABRA DEL MANUAL: «distancia desde el orificio» y no «profundidad minima», que
+   no es lo que la Tabla 2 rotula.
+   ⚠️ Y LA REGLA DE PROFUNDIDAD DEL WATCHMAN VA EN PALABRAS Y NO COMO NUMERO FIJO, porque la nota
+   al pie de la Tabla 78 la da asi: «The LAA depth should be approximately half the labeled
+   Implant diameter or longer». Un numero fijo seria inventar un corte que la tabla no da.
+   ⚠️ NO SE PUBLICA EL PUNTO DE MEDICION de la zona de anclaje ni del ostium (E-4d): las fuentes
+   no coinciden en eso y la app no elige por el medico.
+   ⚠️ NI UNA FECHA DE CONSULTA EN PANTALLA NI EN EL ⓘ (E-4d y regla R5). `OAI_FAB_FECHA` se
+   retiro: las fechas y las reservas de trabajo viven en `docs/fuentes/FUENTES.md`. */
 const OAI_AMULET_MIN = 11, OAI_AMULET_MAX = 31;
-const OAI_FAB_FECHA  = '21/10/2026';
-const OAI_FAB_AMULET = 'Amplatzer Amulet (Abbott): 8 tamaños de 16 a 34 mm para zonas de anclaje de 11,0 a 31,0 mm — página oficial del fabricante, consultada el ' + OAI_FAB_FECHA + '.';
-const OAI_FAB_WATCH  = 'WATCHMAN FLX Pro (Boston Scientific): 6 tamaños de 20 a 40 mm — folleto de producto del fabricante, consultado el ' + OAI_FAB_FECHA + '. Su tabla de dimensionamiento por diámetro de ostium (instrucciones de uso 51245861-01 rev. A, 2023-07) no se pudo leer y no se cita.';
+/* [tamaño del dispositivo, zona de anclaje minima, zona de anclaje maxima, distancia desde el
+   orificio] — en mm. El orden es el de la Tabla 2. */
+const OAI_AMULET_TABLA = Object.freeze([
+  Object.freeze([16, 11.0, 13.0, 10]), Object.freeze([18, 13.0, 15.0, 10]),
+  Object.freeze([20, 15.0, 17.0, 10]), Object.freeze([22, 17.0, 19.0, 10]),
+  Object.freeze([25, 19.0, 22.0, 12]), Object.freeze([28, 22.0, 25.0, 12]),
+  Object.freeze([31, 25.0, 28.0, 12]), Object.freeze([34, 28.0, 31.0, 12])
+]);
+/* [tamaño del dispositivo, ancho maximo del ostium minimo, maximo] — en mm, Tabla 78. */
+const OAI_WATCH_TABLA = Object.freeze([
+  Object.freeze([20, 14.0, 18.0]), Object.freeze([24, 16.8, 21.6]),
+  Object.freeze([27, 18.9, 24.3]), Object.freeze([31, 21.7, 27.9]),
+  Object.freeze([35, 24.5, 31.5]), Object.freeze([40, 28.0, 36.0])
+]);
+const OAI_WATCH_MIN = 14, OAI_WATCH_MAX = 36;
+const OAI_FTE_AMULET = 'Abbott, Amplatzer Amulet, instrucciones de uso (aprobación FDA P200049, '
+  + '2021), Apéndice A, Tabla 2, hoja 19, folio 15.';
+const OAI_FTE_WATCH  = 'Boston Scientific, WATCHMAN FLX Pro, instrucciones de uso 52212467-01 '
+  + 'rev. A (2025-09), Tabla 78, hoja 26.';
+const OAI_WATCH_PROF = 'La profundidad de la orejuela debe ser aproximadamente la mitad del '
+  + 'diámetro del dispositivo o más.';
+/* LA LINEA CORTA DE PANTALLA, una por dispositivo. El rango es el SOBRE de su tabla y se deriva
+   de ella —no se escribe a mano— para que no puedan separarse. */
+const _oaiRango = (t, i, j) => t.reduce((a, f) => [Math.min(a[0], f[i]), Math.max(a[1], f[j])],
+                                        [Infinity, -Infinity]);
+const OAI_FAB_AMULET = (function () { const r = _oaiRango(OAI_AMULET_TABLA, 1, 2);
+  return 'Amplatzer Amulet (Abbott): zona de anclaje de ' + r[0] + ' a ' + r[1]
+    + ' mm según tamaño, en ' + OAI_AMULET_TABLA.length + ' tamaños de '
+    + OAI_AMULET_TABLA[0][0] + ' a ' + OAI_AMULET_TABLA[OAI_AMULET_TABLA.length - 1][0] + ' mm.'; })();
+const OAI_FAB_WATCH = (function () { const r = _oaiRango(OAI_WATCH_TABLA, 1, 2);
+  return 'WATCHMAN FLX Pro (Boston Scientific): ancho máximo del ostium de ' + r[0] + ' a ' + r[1]
+    + ' mm según tamaño, en ' + OAI_WATCH_TABLA.length + ' tamaños de '
+    + OAI_WATCH_TABLA[0][0] + ' a ' + OAI_WATCH_TABLA[OAI_WATCH_TABLA.length - 1][0] + ' mm.'; })();
+/* ⚠️ UN ASSERT AL ARRANCAR, porque `OAI_AMULET_MIN`/`MAX` son una SEGUNDA escritura del sobre de
+   la Tabla 2 y las lee `calcOAI`. Si una de las dos se mueve sin la otra, grita. */
+(function () {
+  const r = _oaiRango(OAI_AMULET_TABLA, 1, 2);
+  if (r[0] !== OAI_AMULET_MIN || r[1] !== OAI_AMULET_MAX)
+    console.error('[oai] el sobre de OAI_AMULET_TABLA (' + r[0] + '-' + r[1] + ') no coincide con '
+      + 'OAI_AMULET_MIN/MAX (' + OAI_AMULET_MIN + '-' + OAI_AMULET_MAX + ')');
+  const w = _oaiRango(OAI_WATCH_TABLA, 1, 2);
+  if (w[0] !== OAI_WATCH_MIN || w[1] !== OAI_WATCH_MAX)
+    console.error('[oai] el sobre de OAI_WATCH_TABLA (' + w[0] + '-' + w[1] + ') no coincide con '
+      + 'OAI_WATCH_MIN/MAX (' + OAI_WATCH_MIN + '-' + OAI_WATCH_MAX + ')');
+})();
+/* ══ EL GLOBO ⓘ CON LAS DOS TABLAS COMPLETAS (E-4b y E-4c) ═══════════════════════════════
+   Un `<details>` con el ⓘ de la casa. Adentro, las dos tablas enteras con su fuente citada por
+   documento, tabla, hoja y folio, y la regla de profundidad del Watchman EN PALABRAS.
+   ⚠️ TODO CON NODOS, ni un `innerHTML`: es la regla de seguridad de la suite.
+   ⚠️ LAS FILAS SE RECORREN, NO SE ESCRIBEN: la tabla del globo y el rango de la linea corta
+   salen de la MISMA constante, asi que no pueden decir cosas distintas.
+   ⚠️ Y NO LLEVA FECHA DE CONSULTA (E-4d y R5): eso vive en `docs/fuentes/FUENTES.md`. */
+function _oaiTabla(cab, filas, fmt) {
+  const t = document.createElement('table');
+  t.style.cssText = 'border-collapse:collapse;margin:3px 0 5px;font-size:10.5px;';
+  const tr0 = document.createElement('tr');
+  cab.forEach(function (c) {
+    const th = document.createElement('th');
+    th.style.cssText = 'text-align:left;padding:1px 8px 1px 0;border-bottom:1px solid var(--border);font-weight:700;';
+    th.textContent = c; tr0.appendChild(th);
+  });
+  t.appendChild(tr0);
+  filas.forEach(function (f) {
+    const tr = document.createElement('tr');
+    fmt(f).forEach(function (c) {
+      const td = document.createElement('td');
+      td.style.cssText = 'padding:1px 8px 1px 0;';
+      td.textContent = c; tr.appendChild(td);
+    });
+    t.appendChild(tr);
+  });
+  return t;
+}
+function oaiTablasGlobo() {
+  const g = document.createElement('details');
+  g.style.cssText = 'display:inline-block;vertical-align:top;margin-top:3px;';
+  const su = document.createElement('summary');
+  su.style.cssText = 'cursor:pointer;list-style:none;display:inline;font-weight:700;color:var(--accent2);';
+  su.setAttribute('aria-label', 'Ver las tablas de dimensionamiento de los dos dispositivos');
+  su.textContent = '\u24D8';
+  g.appendChild(su);
+  const cu = document.createElement('div');
+  cu.style.cssText = 'margin-top:4px;font-weight:400;line-height:1.5;';
+  const tit = function (txt) { const b = document.createElement('b');
+    b.textContent = txt; cu.appendChild(b); cu.appendChild(document.createElement('br')); };
+  const nota = function (txt) { const d = document.createElement('div');
+    d.style.cssText = 'font-size:10px;color:var(--text2);margin-bottom:5px;';
+    d.textContent = txt; cu.appendChild(d); };
+  const uno = function (x) { return (Math.round(x * 10) / 10).toFixed(1).replace('.', ','); };
+
+  tit('Amplatzer Amulet — dimensionamiento por tamaño');
+  cu.appendChild(_oaiTabla(['Tamaño (mm)', 'Zona de anclaje (mm)', 'Distancia desde el orificio (mm)'],
+    OAI_AMULET_TABLA, function (f) {
+      return [String(f[0]), uno(f[1]) + ' a ' + uno(f[2]), '≥ ' + f[3]];
+    }));
+  nota(OAI_FTE_AMULET);
+
+  tit('WATCHMAN FLX Pro — dimensionamiento por tamaño');
+  cu.appendChild(_oaiTabla(['Tamaño (mm)', 'Ancho máximo del ostium (mm)'],
+    OAI_WATCH_TABLA, function (f) {
+      return [String(f[0]), uno(f[1]) + ' a ' + uno(f[2])];
+    }));
+  nota(OAI_WATCH_PROF + ' ' + OAI_FTE_WATCH);
+  nota('Son datos de fabricante y no recomendaciones: ninguna guía de la biblioteca publica '
+    + 'rangos de tamaño de dispositivo. La aplicación publica las medidas y no juzga la aptitud.');
+  g.appendChild(cu);
+  return g;
+}
+window.oaiTablasGlobo = oaiTablasGlobo;
+window.OAI_AMULET_TABLA = OAI_AMULET_TABLA; window.OAI_WATCH_TABLA = OAI_WATCH_TABLA;
+window.OAI_FAB_AMULET = OAI_FAB_AMULET; window.OAI_FAB_WATCH = OAI_FAB_WATCH;
+window.OAI_WATCH_PROF = OAI_WATCH_PROF;
 function calcOAI() {
   const vel = v('oai_vel_vac');
   const sec = sv('oai_sec');
@@ -88738,13 +88902,17 @@ function calcOAI() {
 
   if (trombo === 'si') { apto = false; notas.push('Trombo presente — contraindicación absoluta'); }
   if (vel && vel < 20) notas.push('Estasis severa — mayor riesgo procedimiento');
-  /* ⚠️ EL UNICO RANGO DE OSTIUM QUE SE AFIRMA ES LA ZONA DE ANCLAJE DEL AMULET (I-E1). Las dos
-     lineas del fabricante se publican SIEMPRE que haya ostium, para que el lector sepa de donde
-     sale el rango y que del otro dispositivo no se afirma ninguno. */
+  /* ══ LA OREJUELA PUBLICA LAS MEDIDAS Y NO LAS JUZGA (E-4a, 2026-10-27) ═══════════════════
+     DECISION DE MAICOL. ⚠️ LA PREMISA DE QUE «sigue sin juzgar» ERA FALSA Y ESTA MEDIDA: estas
+     tres ramas decian «por debajo de», «por encima de» y «dentro de la zona de anclaje del
+     Amplatzer Amulet», o sea un veredicto de aptitud por rango sobre un dato de FABRICANTE que
+     ninguna guia de la biblioteca respalda. Hoy la nota publica el ostium medido y nada mas, y
+     los dos rangos quedan como DATO DE REFERENCIA del dispositivo —no como regla aplicada al
+     paciente—, que es la diferencia entre describir y recomendar.
+     Las dos lineas del fabricante se publican SIEMPRE que haya ostium, para que el lector sepa
+     de donde sale cada rango. Son CORTAS; las tablas completas van en el globo (`oaiTablasGlobo`). */
   if (diam) {
-    if (diam < OAI_AMULET_MIN) notas.push(`Ostium ${diam} mm — por debajo de la zona de anclaje del Amplatzer Amulet (${OAI_AMULET_MIN},0 a ${OAI_AMULET_MAX},0 mm)`);
-    else if (diam > OAI_AMULET_MAX) notas.push(`Ostium ${diam} mm — por encima de la zona de anclaje del Amplatzer Amulet (${OAI_AMULET_MIN},0 a ${OAI_AMULET_MAX},0 mm)`);
-    else notas.push(`Ostium ${diam} mm — dentro de la zona de anclaje del Amplatzer Amulet (${OAI_AMULET_MIN},0 a ${OAI_AMULET_MAX},0 mm)`);
+    notas.push(`Ostium ${diam} mm`);
     notas.push(OAI_FAB_AMULET);
     notas.push(OAI_FAB_WATCH);
   }
@@ -88767,27 +88935,35 @@ function calcOAI() {
   const notasEl = document.getElementById('oai-notas');
   if (trombo === 'si') {
     el.innerHTML = badge('red','NO apto — trombo presente');
-  } else if (diam && (diam >= OAI_AMULET_MIN && diam <= OAI_AMULET_MAX)) {
-    /* ══ EL TEXTO «Posiblemente apto — Heart Team» SE RETIRA (R2-E9, 2026-10-21) ═══════════
-       DECISION DE MAICOL. Era una CONDUCTA —derivar al Heart Team— y una afirmacion de
-       elegibilidad para un procedimiento, y el criterio de producto de esta app es que la
-       pantalla y el papel DESCRIBEN. Lo que queda es el hecho medido: el ostium esta dentro del
-       rango de los dos dispositivos, que es lo que el ecocardiograma puede decir. Las notas de
-       `notas` —que nombran los rangos de Watchman y Amulet— no se tocan.
-       ⚠️ ESTE NODO NO BAJA AL PAPEL: censado, `oai-elegibilidad` tiene UN solo lector, su propio
-       marcado de pantalla. No lo leen el informe, el EN SUMA, el PDF ni el PPT. Los otros
-       textos de la seccion —el ateroma, el Wilkins, la reparabilidad mitral, la escala de la
-       orejuela, los 40 y 20 cm/s, Watchman, Amulet, «contraindicar cardioversión» y «favorable
-       para valvuloplastia»— no se tocaron EN AQUELLA TANDA. Los revisa la I (22/10/2026):
-       el rango pasa a ser la zona de anclaje que publica Abbott para el Amulet, con su fecha
-       de consulta, y de WATCHMAN FLX Pro solo se publica el numero de tamanos. */
-    el.innerHTML = badge('green','Ostium dentro de la zona de anclaje del Amplatzer Amulet (11 a 31 mm)');
-  } else if (diam) {
-    el.innerHTML = badge('yellow','Evaluar — medidas límite');
+  } else if (diam || prof) {
+    /* ══ EL BADGE DEJA DE DAR UN VEREDICTO POR RANGO (E-4a, 2026-10-27) ═══════════════════
+       DECISION DE MAICOL. Tenia TRES ramas de juicio y las tres se van:
+         · verde «Ostium dentro de la zona de anclaje del Amplatzer Amulet (11 a 31 mm)»,
+         · amarillo «Evaluar — medidas limite» para todo lo que caia afuera,
+         · y el rango viejo del informe, que ademas decia «potencialmente apto para cierre
+           percutaneo (Watchman/Amulet)» con numeros de una generacion anterior.
+       Lo que queda es el hecho medido. El `badge('gray', ...)` conserva el mecanismo y el lugar
+       —no se saca el nodo, que tiene un lector de pantalla propio— y no afirma aptitud.
+       ⚠️ LA RAMA DEL TROMBO NO SE TOCA Y SE DECLARA: «NO apto — trombo presente» SI es un
+       juicio, pero es una contraindicacion absoluta y no un rango de tamaño, y la orden de esta
+       tanda no la nombra. Cambiarla es decision de Maicol -> `docs/PENDIENTES.md` E-d. */
+    el.innerHTML = badge('gray', 'Medidas publicadas — sin veredicto de aptitud');
   } else {
     el.innerHTML = badge('gray','Completar mediciones');
   }
-  if (notasEl) notasEl.innerHTML = notas.join('<br>');
+  /* ══ LAS NOTAS SE ARMAN CON NODOS, Y EL GLOBO LLEVA LAS DOS TABLAS (E-4b y E-4c) ════════
+     Era `innerHTML = notas.join('<br>')`. El texto sale de constantes de este archivo, pero el
+     `<details>` del globo necesita marcado y un `innerHTML` con marcado armado a mano seria un
+     hallazgo de Semgrep nuevo. Mismo patron que la nota de `FUN-VD-008` y que el aviso del corte
+     alternativo de la IM secundaria. */
+  if (notasEl) {
+    notasEl.textContent = '';
+    notas.forEach(function (t, k) {
+      if (k) notasEl.appendChild(document.createElement('br'));
+      notasEl.appendChild(document.createTextNode(t));
+    });
+    if (diam) notasEl.appendChild(oaiTablasGlobo());
+  }
   /* Si el módulo de Wilkins ya está integrado, se regenera: el cruce con el trombo se
      evaluaba una sola vez, al apretar «Integrar», y en la pantalla del ETE la tarjeta de
      Wilkins va ANTES que la de la orejuela — o sea que en el orden natural de trabajo
@@ -134918,8 +135094,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261027-1318';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793117917366;                 /* eco-build-ms */
+const ECO_BUILD    = '20261027-1327';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793118479184;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -135005,7 +135181,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261027-1318</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261027-1327</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
