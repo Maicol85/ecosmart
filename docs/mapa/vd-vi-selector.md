@@ -153,3 +153,14 @@ Sobre un REGISTRO archivado: `{vd_vi:'1.3'}` alterada · `{vd_vi_sel:'gt1'}` alt
   la tabla de Hemodinámica que arma `generarPPT`, detrás de dos modales encadenados. La sonda
   mide esa fila **por el fuente** —que llame a `vdViTexto`— y el valor por el dueño; la del PDF
   sí se genera de verdad. Declarado.
+
+## ⚠️ La tanda B encontró un QUINTO lector, y es el que no usa este dueño (2026-10-27)
+
+El cuadro de los cuatro lectores de arriba está completo para los que **leen `vd_vi`**. El
+posoperatorio no está en él porque **no lo lee**: `popPocusSync` y `popEsquema` toman
+`tep_vdvi` y, si falta, calculan `vd_bas ÷ ddfvi` por su cuenta. Medido con `vd_vi = 1.30` y los
+otros dos caminos vacíos: la tabla del VD del PDF imprime `VD/VI: 1.30` y, cinco páginas
+después, la hoja del posoperatorio del **mismo PDF** imprime `TAPSE 16 mm · VD/VI -`.
+
+Arreglarlo cambia una hoja firmada, así que quedó reportado: `docs/PENDIENTES.md` → **B-d**.
+Lo que sí hizo la tanda es que `calcTEP` —el que pinta `tep-vdvi-interp`— siga al DDVI en vivo.

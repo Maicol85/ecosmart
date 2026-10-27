@@ -297,3 +297,19 @@ No cambió ningún dato clínico. Movió notas de trabajo al globo ⓘ y a `docs
 dejó una sola cita al final de cada bloque, sacó las mayúsculas de en medio y dejó cada contenido
 una sola vez por sección. **Lo que esta tanda hizo está en `docs/mapa/a-evidencia-textos.md`**, y
 el caso que lo fija es **TC-537** (ficha en `docs/mapa/tests-fichas-537.md`).
+
+## ⚠️ La tanda B cambió CUÁNDO se repinta este módulo (2026-10-27)
+
+Los siete campos del recuadro del Swan-Ganz llaman sólo a `popHemoSync()`, que pinta su propia
+caja. El esquema (`popEsqPintar`), la conclusión (`popConclSync`) y el POCUS (`popPocusSync`)
+colgaban de `popSync()`, al que sólo llaman el selector de monitoreo, las casillas de droga y el
+tipo de asistencia: **cargar o cambiar GC, PAM, PAPs, PAPd, PCP o PAD no actualizaba nada de eso
+hasta tocar otro campo**. Igual el texto de dosis de una dilución, que lee el **peso** —otra
+pestaña— y sólo corría desde sus tres campos propios.
+
+Hoy los cinco pintores puros del módulo están en `ESPEJOS_VIVOS()` y corren 220 ms después de
+cualquier tecla. `popSync` **no** entró, porque borra campos. Y la PAM del esquema y de la
+vasoplejia sale del dueño único.
+
+**Todo en `docs/mapa/b-espejos-pam.md`**, con la tabla de los dieciocho pintores, la de las
+nueve combinaciones de PAM y lo que quedó parado (B-a a B-f).

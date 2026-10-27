@@ -8214,3 +8214,147 @@ la orden prohíbe.
    real y la duplicación se cierra. Es una tanda propia: son ocho líneas con su clase y su nivel;
 2. aceptar que el marco permita una sección sin detalle, lo que obliga a cambiar TC-293 y a
    decidir si el invariante sigue siendo un invariante.
+
+# Tanda B — espejos en vivo y el dueño único de la PAM (2026-10-27)
+
+## B-a · Que la RVS de Hemodinámica lea al dueño único de la PAM
+
+**Qué se encontró.** El punto 6 del pedido dice que *todos* los lugares lean la PAM del mismo
+dueño. Se aplicó en tres —la fila «PAM» de la columna del Doppler aórtico, la vasoplejia del
+posoperatorio y su esquema— y **se paró en el cuarto**: la RVS de `calcHemo`.
+
+**Qué pasaría si se aplicara.** `calcHemo` calcula `RVS = (PAM − PVC) / GC × 80` con
+`v('hemo_pam')` a secas: hoy **ignora por completo** la PAM medida por catéter. Con el Swan en
+58 mmHg y `hemo_pam` vacía, la cápsula dice «—». Leyendo al dueño único diría un número.
+
+**Por qué se paró.** Esa cápsula **no es de pantalla**: `amiloTextoHemo()` lee el span
+`hemo-rvs` y lo manda al bloque «Perfil hemodinámico», que sale a la **hoja de ETT Avanzado del
+PDF** y a la diapositiva del PPT. O sea que el cambio mueve un papel firmado en un estudio con
+**una sola** fuente de PAM —el catéter—, que es exactamente lo que el encabezado de esta tanda
+prohíbe («Informe, EN SUMA, PDF, PPT, Excel y Laboratorio tienen que quedar IDÉNTICOS a HEAD en
+todo estudio donde la PAM tenga UNA sola fuente»). Y además mezclaría una PAM **medida** por
+catéter con una PVC **estimada por eco**, sin decirlo, que es la mezcla que el módulo del
+posoperatorio declara en cada línea.
+
+**Qué costaría.** Un renglón: cambiar `const pam = v('hemo_pam')` por `pamEfectiva().val`. Lo
+caro es lo otro: decidir si la cápsula tiene que declarar de dónde salió la PAM —como ya hace
+el posoperatorio— y volver a correr el A/B de las seis plantillas del PDF y del PPT.
+
+## B-b · Persistir la marca «esta PAM la escribió la app»
+
+**Qué se encontró.** El síntoma S4 decía que la PAM tipeada no se conserva al recargar.
+**Medido: sí se conserva.** El autoguardado repone `hemo_pam` y el valor vuelve intacto.
+
+Lo que **no** sobrevive es `dataset.derivadoDe`, la marca que distingue «la escribió la app
+desde PAS/PAD» de «la tipeó el médico». Consecuencias, las dos medidas:
+
+1. una PAM que la app había **derivado** vuelve pareciendo **tipeada**, así que desde ahí la app
+   ya no la vuelve a derivar aunque cambien PAS o PAD;
+2. el aviso «auto ← PAS/PAD del Doppler aórtico» desaparece al reabrir.
+
+**Por qué se paró.** Conservarla exige un campo nuevo en el guardado. `capturarForm` barre
+`input[id]`, así que alcanzaría con un `<input hidden>` — y eso **mueve el censo de campos**
+(1023 → 1024) y entra al JSON de cada estudio. El punto 7 del pedido lo dice con todas las
+letras: parar y reportar con su costo.
+
+**La alternativa que NO se tomó y por qué.** Re-derivar la marca al abrir, comparando
+`hemo_pam` con `aoPamCalc()` redondeado, no agrega ningún campo. Pero cambia lo que la app hace
+con un estudio ya guardado —pasaría a pisar una PAM que hoy respeta— y eso es migrar en
+silencio, que SEGURIDAD prohíbe. **Es decisión de Maicol.**
+
+⚠️ **TC-538 (e) mide las dos mitades a propósito**: que la tipeada sobreviva y que la marca no.
+El día que se decida persistirla, ese renglón se pone rojo y hay que adaptarlo.
+
+## B-c · Que la calculada gane con `hemo_pam` borrado a mano
+
+**Qué se encontró.** La PAM calculada no es una fuente independiente: vive **dentro** de
+`hemo_pam`, donde `aoPresionSync` la materializa redondeada y marcada. El único estado en que
+existe como fuente sola **sin** estar en el campo es el que deja el médico borrando `hemo_pam` a
+mano con PAS y PAD cargadas.
+
+**Qué pasaría si se aplicara.** Medido en los dos árboles: hoy ahí no hay PAM para nadie, y con
+la calculada ganando la hoja del posoperatorio pasa a imprimir `PAM | 87 mmHg (de
+Hemodinámica)`. Es **una línea nueva en un PDF firmado** en un estudio con **una sola** fuente.
+
+**Por qué se paró.** Por lo mismo que B-a. Y porque el estado es transitorio: el primer gesto
+del médico sobre PAS o PAD vuelve a materializar la calculada en el campo, y desde ahí la
+precedencia aplica normalmente.
+
+## B-d · El POCUS del posoperatorio no lee `vd_vi` — y el mismo PDF se contradice
+
+**Qué se encontró (S5 del pedido, medido).** La mitad del síntoma es **falsa** y la otra es peor
+de lo que decía.
+
+- **`vd_vi` SÍ llega al PDF.** Con `vd_vi = 1.30` cargado y `tep_vdvi`, `vd_bas` y `ddfvi`
+  **vacíos** —ése es el denominador: los otros dos caminos dan el mismo cociente por otra
+  puerta—, la tabla del VD imprime `VD/VI: 1.30`.
+- **El POCUS del posoperatorio NO lo lee.** `popPocusSync` toma `v('tep_vdvi')` y, si falta,
+  calcula `vd_bas ÷ ddfvi`. **Nunca** mira `vd_vi`. La pantalla muestra `VD/VI —` y
+  «Completar: VD/VI (tab VD/AD)» **sobre un campo que está cargado en esa misma pestaña**.
+- **Y el mismo PDF se contradice.** Cinco páginas después de `VD/VI: 1.30`, la hoja del
+  posoperatorio imprime `TAPSE 16 mm · VD/VI -`. Un documento firmado dice el número y dice que
+  falta.
+
+**Por qué se paró.** Agregar `vd_vi` a la cadena de lectura cambia lo que publica una hoja
+firmada y puede mover la conclusión del bloque («Compromiso del VD» ↔ «Disfunción del VD con
+dilatación»). Es contenido clínico y es decisión de Maicol.
+
+**Cómo se arreglaría.** `popPocusSync` y `popEsquema` tienen la misma cadena escrita dos veces;
+lo correcto es un lector único —el mismo `vdViTexto`/`vdViEstado` que ya usan el PDF, el PPT y
+la categoría A de la probabilidad de HTP— y que el posoperatorio lo llame. Ver
+`docs/mapa/vd-vi-selector.md`, que lista los cuatro lectores: el posoperatorio sería el quinto,
+y hoy es el único que deriva el cociente por su cuenta.
+
+## B-e · La dosis de una droga no entra al cuerpo del informe ni al EN SUMA
+
+**Qué se encontró (S6 del pedido, medido).** También es **falso a medias**. Con Noradrenalina
+marcada y la dosis en 0,25 y el bloque integrado:
+
+- **la hoja del PDF SÍ la lleva**: `Noradrenalina 0.25 mcg/kg/min`, en la fila «Vasoactivos»;
+- **el PPT también**, por `_pptNum('pop_<k>_dosis')`;
+- **el cuerpo del informe y el EN SUMA no**, y eso **no es un olvido**: el módulo `pop` no
+  declara `enCuerpo` en `amiloSecs()`, así que por diseño es un módulo de **hoja**, no de
+  cuerpo. Ningún dato del posoperatorio entra al párrafo narrativo.
+
+**Por qué se paró.** Cambiarlo es agregar el posoperatorio entero al cuerpo del informe firmado,
+que es una decisión de qué dice el papel. No está pedido y no se hace sin orden expresa.
+
+## B-f · «Presión arterial invasiva solamente» no abre ningún campo
+
+**Qué se encontró.** El punto 6 nombra «la PAM medida por catéter **o línea arterial**». El
+selector `pop_monitor` tiene la opción `pai` — «Presión arterial invasiva solamente» — pero
+`popMonSync` sólo muestra el acordeón con `swan` o `picco`: con `pai` elegido **no hay un solo
+campo donde cargar esa PAM**. Hoy la única PAM por catéter que la app sabe recibir es la del
+Swan-Ganz, y `pamEfectiva()` la lee con esa compuerta.
+
+**Qué costaría.** Un campo nuevo, persistido, que **mueve el censo** (1023 → 1024) y entra al
+JSON de cada estudio — el mismo costo que B-b, y por eso queda en la misma lista en vez de
+aplicarse. Decidirlo es de Maicol.
+
+## B-g · El arnés de A/B de varias tandas no pasaba por el embudo de restauración
+
+**Qué se encontró.** El montaje de escenas de `scripts/_probe_r2ab.mjs` —y de su copia
+`_probe_aab.mjs`, que usó la tanda A— hace:
+
+```js
+try { if (typeof RECALC_MODULOS !== 'undefined') RECALC_MODULOS.forEach(n => { … }) } catch (e) {}
+```
+
+`RECALC_MODULOS` es una **función**, no un arreglo. Eso tira `TypeError`, el `catch` lo traga en
+silencio y **el embudo de restauración nunca corre**: ninguna de esas mediciones ejercitó el
+camino por el que reponen `editarInforme`, el QR del PDF, el autoguardado y las dos
+reimpresiones.
+
+**Cómo se destapó.** No leyendo: la tanda B le agregó una entrada a `RECALC_MODULOS`
+(`pamAvisoSync`) y el A/B no la movía ni en la escena que debía. El control positivo de los tres
+nodos de pantalla fue lo que lo hizo visible — sin él, «cero diferencias» no se distingue de «la
+sonda no mira nada».
+
+**Qué se hizo.** `scripts/_probe_bab.mjs` llama `_recalcModulos('ab')` y espera 500 ms para que
+corra el debounce de 220 ms antes de medir. **`_probe_aab.mjs` y `_probe_r2ab.mjs` NO se
+tocaron**: arreglarlos cambia lo que midieron tandas ya cerradas, y no está pedido.
+
+**Qué queda.** La próxima tanda que use uno de esos dos arneses conviene que aplique el mismo
+arreglo antes de apoyarse en su A/B. No invalida los resultados publicados —los dos lados del
+A/B estaban igualmente afectados, así que la comparación sigue valiendo— pero **cubrían menos
+de lo que decían**.

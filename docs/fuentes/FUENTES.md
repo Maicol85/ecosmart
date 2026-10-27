@@ -6100,3 +6100,37 @@ panelistas— sigue en el ⓘ de la ficha.
 | **Sello de ejemplo del manual** | `v20260916-0227`, un sello real de hace seis semanas, al lado del formato | sólo el formato neutro `vAAAAMMDD-HHMM` | — | `4f17e36` | 26/10/2026 |
 | **Catorce mayúsculas de en medio que quedaron en el primer barrido** | el censo las midió sobre los **comentarios** del código y dio 29 falsos positivos | censadas sacando los comentarios antes de extraer las cadenas: quedaban catorce, y hoy cero | regla R3 | commit A-5 | 27/10/2026 |
 | **El ⓘ del posoperatorio** | publicaba los localizadores de **todas** las cirugías | cada línea se emite con la **misma condición** que su línea visible: con «valvular» cargada ya no aparece el folio 716 de la revascularización | lo cazó TC-534 (F9) | commit A-5 | 27/10/2026 |
+
+---
+
+## La tanda B — espejos en vivo y el dueño único de la PAM (2026-10-27)
+
+**NO HAY NINGUNA FUENTE NUEVA, Y NO ES UN OLVIDO.** Esta tanda cambió *cuándo* se repinta un
+campo que lee otra pestaña y *de cuál de las tres fuentes* sale la presión arterial media. No
+movió un corte, un umbral, un rótulo de grado, una clase, un nivel, una tabla ni un folio, y lo
+midió por dos caminos: las nueve combinaciones de PAM dan `popPatron()`, la hoja del
+posoperatorio, el informe y el EN SUMA **idénticos** al árbol anterior, y el censo de campos
+sale con el mismo total.
+
+### Cambios de evidencia
+
+| Qué | Antes | Después | Fuente |
+|---|---|---|---|
+| — | — | — | **ninguno** |
+
+### Lo único que se escribió, y de dónde sale
+
+| Texto nuevo | Dónde | Qué lo respalda |
+|---|---|---|
+| «PAM en uso … · difiere de la …» | pantalla, en Hemodinámica y bajo la PAM del Swan | **nada clínico**: es una comparación aritmética. «Difiere» = valores distintos **después de redondear al mmHg que se muestra**. No hay umbral, y el pedido prohibía inventarlo |
+| «medida por catéter (Swan-Ganz)» · «tipeada en Hemodinámica» · «calculada de PAS y PAD del Doppler aórtico» | el mismo aviso | rótulos de **procedencia**, no de criterio |
+
+⚠️ **Los dos rótulos que SÍ salen al papel no se tocaron.** `popPatron` y `popEsquema` publican
+«medida (Swan-Ganz)» y «de Hemodinámica», y la hoja del posoperatorio del PDF los imprime: están
+en `PAM_FUENTE_LBL` letra por letra como estaban. Los largos de arriba son de pantalla y no
+entran al informe, al EN SUMA, al PDF ni al PPT.
+
+⚠️ **La precedencia de las tres PAM es una DECISIÓN DE MAICOL, no una guía.** Ninguna fuente de
+la biblioteca publica un orden de preferencia entre una PAM medida por catéter, una tipeada y
+una calculada de PAS y PAD. Si algún día se publica en el panel de Evidencia, el marcador que le
+corresponde es `ecosmart`, no una cita.

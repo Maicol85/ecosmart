@@ -59238,8 +59238,20 @@ caso('TC-424', 'Doppler aortico: los cuatro titulos, el Tab baja por columna sal
       'igual=' + JSON.stringify(pIgual) + ' menor=' + JSON.stringify(pMenor)],
     ['con una sola de las dos presiones tampoco gradua',
       pSolo.hemo === '' && pSolo.fila === '—', JSON.stringify(pSolo)],
-    ['la PAM tipeada a mano en Hemodinamica NO se pisa, y no se marca «auto»',
-      pManual.hemo === '105' && pManual.aviso === '', JSON.stringify(pManual)],
+    /* ⚠️ ADAPTADO POR LA TANDA B (2026-10-27), Y EL MOTIVO IMPORTA. Este renglon medía
+       aviso === '' sobre un escenario con DOS fuentes de PAM que difieren —105 tipeada y 80
+       calculada de PAS/PAD—, o sea exactamente el caso donde el dueño único ahora avisa cuál
+       está usando. Lo que el caso vigilaba sigue vigilado y es lo de siempre: que lo tipeado NO
+       se pise (hemo === '105') y que NO se marque «auto», porque ese rótulo afirma que el
+       número lo escribió la app. Lo que se agrega es que el aviso nombre a las dos, que es lo
+       que hace que el renglón pueda volver a fallar si la discrepancia deja de publicarse.
+       El escenario de UNA sola fuente —limpia.antes, dos renglones más abajo— sigue pidiendo
+       «auto» letra por letra y no se tocó: ahí no hay nada que avisar. */
+    ['la PAM tipeada a mano en Hemodinamica NO se pisa, no se marca «auto», y el aviso del dueño unico nombra a la tipeada y a la calculada',
+      pManual.hemo === '105' && !/auto/.test(pManual.aviso) &&
+      /PAM en uso 105 mmHg/.test(pManual.aviso) && /tipeada/.test(pManual.aviso) &&
+      /calculada/.test(pManual.aviso) && /80 mmHg/.test(pManual.aviso),
+      JSON.stringify(pManual)],
     ['  y una vez corregida por el medico, un cambio posterior de PAS tampoco la pisa',
       pCorrige.auto === '80' && pCorrige.despues === '95', JSON.stringify(pCorrige)],
 
@@ -90993,6 +91005,345 @@ caso('TC-537', 'Tanda A: las ocho Evidencias compactas despiertas a la vez sin u
   })();
 `);
 
+/* -- TC-538 ---------------------------------------------------------------------------------
+   LA TANDA B: CUANDO SE ACTUALIZA UN ESPEJO Y DE QUIEN SALE LA PAM. Dos cambios de MECANICA
+   que no mueven un solo corte, umbral ni texto clinico, y por eso son justo los que se pueden
+   deshacer sin que nada chille. Lo que este caso vigila:
+
+     (a) EL INVENTARIO DE ESPEJOS, con denominador declarado. VEINTISEIS espejos de DIECINUEVE
+         fuentes, medidos en el arbol anterior a esta tanda, donde el espejo se quedaba con el
+         valor viejo. Cada uno tiene que seguir a su fuente SIN tocar nada mas: ni otro
+         campo, ni la pestania, ni una recarga.
+     (b) S1 y S2, los dos sintomas del pedido, con su propio denominador.
+     (c) LA PAM: las siete combinaciones de fuentes cargadas -cada una sola, de a pares y las
+         tres juntas-, quien gana y si aparece el aviso.
+     (d) CONTROLES NEGATIVOS: con una sola fuente el aviso NO aparece y no hay una palabra del
+         aviso en el informe ni en el EN SUMA; el barrido no mueve un solo campo EDITABLE; es
+         idempotente; y las cuatro funciones excluidas del registro siguen afuera.
+     (e) PERSISTENCIA: la PAM tipeada sobrevive a guardar y reabrir el estudio.
+
+   ⚠️ EL DENOMINADOR DE (a) ES LO QUE HACE QUE SIRVA, Y SE MIDE EN DOS TIEMPOS. Un espejo que
+      NUNCA se pinto tambien da «no cambio»: el caso exige primero que el espejo tenga un valor
+      de partida distinto del de llegada -eso es `antes !== esperado`- y recien entonces mide.
+      Sin ese paso, un espejo roto que siempre dice «—» pasaria los veintiseis.
+
+   ⚠️ Y HAY QUE ESPERAR AL DEBOUNCE. El barrido corre 220 ms despues del ultimo evento, no en el
+      acto: medir enseguida de `set()` da el valor viejo y el caso fallaria por el reloj y no por
+      el codigo. Se esperan 450 ms, que es el doble con margen.
+
+   ⚠️ LA PAM TIPEADA Y LA CALCULADA COMPARTEN CAMPO. `hemo_pam` lleva las dos; las distingue
+      `dataset.derivadoDe`, que pone `aoPresionSync` cuando la escribe la app. Por eso el orden
+      de carga de cada combinacion importa y esta escrito: para «tipeada sin calculada» se tipea
+      con PAS y PAD vacias, y para «las dos» se cargan PAS y PAD primero -que materializa la
+      calculada- y se tipea ENCIMA, que es el gesto real del medico. */
+caso('TC-538', 'Tanda B: los veintiseis espejos siguen a su fuente sin tocar otro campo —con el denominador de que antes NO lo hacian—, S1 y S2 cerrados, la PAM con un solo dueno en las siete combinaciones y el aviso solo cuando dos fuentes difieren, y los CONTROLES de que el barrido no toca un campo editable, es idempotente, deja afuera a los seis excluidos y no mete una palabra en el informe ni en el EN SUMA', `
+  return (async () => {
+    const ex = [];
+    const N = s => String(s == null ? '' : s).replace(/\\s+/g, ' ').trim();
+    const T = id => N(__t.txt(id));
+    const V = id => __t.val(id);
+    /* ⚠️ CASI TODOS LOS ESPEJOS SON input readonly, NO span, y en un input el textContent esta
+       VACIO: leerlos con txt() da cadena vacia siempre, los veintiseis darian «no se movio» y
+       el caso se leeria como «el arreglo no funciona» cuando lo que falla es la sonda. Pagado
+       en la primera corrida: 5 de 24. Se elige por el tag. */
+    const E = id => { const e = document.getElementById(id); if (!e) return null;
+      return N(('value' in e && e.tagName !== 'DIV') ? e.value : e.textContent); };
+    const esperar = ms => new Promise(r => setTimeout(r, ms));
+    /* El barrido vive detras de un debounce de 220 ms colgado de input/change. */
+    const asentar = () => esperar(450);
+
+    const sets = [];
+    const S = (id, v) => { const r = __t.set(id, v); if (r !== 1) sets.push(id + '=>' + r); };
+
+    /* ── ESCENA ────────────────────────────────────────────────────────────────────────────
+       Los insumos de los once modulos con espejo, el posoperatorio con Swan-Ganz y una droga
+       vasoactiva con su dilucion. Se carga TODO primero y se deja asentar: a partir de ahi,
+       cada par de (a) cambia UNA fuente y mira UN espejo. */
+    __t.limpiar();
+    [['peso','80'],['talla','175'],['edad','64'],
+     ['ddfvi','54'],['dsfvi','36'],['fevi','52'],['siv','11'],['ppvi','10'],
+     ['ai_diam','40'],['ai_area','22'],['ad_area','18'],
+     ['ao_sin','40'],['ao_tub','38'],
+     ['tapse','16'],['vd_bas','42'],['vci_diam','22'],
+     ['tsvd_diametro','26'],['vti_tsvd','16'],
+     ['diam_tsvi','21'],['itv_tsvi','18'],['hemo_fc','75'],
+     ['onda_e','80'],['onda_a','60'],['e_sep','6'],['e_lat','8'],
+     ['ebs_desplazamiento','12'],['coa_istmo','12'],
+     ['pop_cx_horas','8']
+    ].forEach(p => S(p[0], p[1]));
+    S('pop_monitor', 'swan');
+    await esperar(200);
+    [['pop_sw_gc','4.2'],['pop_sw_fc','90'],['pop_sw_paps','38'],['pop_sw_papd','18'],
+     ['pop_sw_pcp','14'],['pop_sw_pad','9']].forEach(p => S(p[0], p[1]));
+    __t.chk('pop_nor_activa', true);
+    await esperar(200);
+    [['pop_nor_diluc_mg','4'],['pop_nor_diluc_ml','100'],['pop_nor_veloc','12']].forEach(p => S(p[0], p[1]));
+    await asentar();
+    ex.push(['  DENOMINADOR 0: la escena entro entera, sin un solo campo que no exista',
+      sets.length === 0, sets.join(' · ') || 'todos ok']);
+
+    /* ── (a) LOS VEINTICUATRO PARES FUENTE -> ESPEJO ───────────────────────────────────────
+       Cada entrada es [fuente, valor nuevo, espejo, fragmento que tiene que aparecer]. La lista
+       sale de la medicion sobre el arbol anterior a esta tanda: son exactamente los pares donde
+       el espejo se quedaba viejo. */
+    /* ⚠️ AGRUPADO POR FUENTE, Y NO ES COSMETICO: con una fila por par, dos filas seguidas que
+       cambian el MISMO campo al mismo valor dejan al segundo espejo sin denominador —ya se
+       habia movido en la fila anterior— y el caso informa «no se movio» sobre un espejo sano.
+       Pagado en la segunda corrida: cinco de veinticuatro. */
+    const FUENTES_ESP = [
+      ['peso',          '95',  [['ete_shunt_asc_ro', '2.1'],  ['pop-sw-ic', '']]],
+      ['talla',         '185', [['ete_shunt_asc_ro', '2.2']]],
+      ['ddfvi',         '61',  [['ete_shunt_ddvi_ro', '61 mm'], ['tep-vdvi-interp', '0.69']]],
+      ['dsfvi',         '44',  [['dsav_vi_ro', '44 mm']]],
+      ['fevi',          '38',  [['mch_fevi_ro', '38 %'], ['dsav_vi_ro', 'FEVI 38']]],
+      ['siv',           '17',  [['mch_siv_ro', 'SIV 17']]],
+      ['ppvi',          '15',  [['mch_siv_ro', 'PP 15 mm']]],
+      ['ai_diam',       '48',  [['mch_ai_ro', '48 mm']]],
+      ['ai_area',       '31',  [['ebs_areas_ro', '31']]],
+      ['ad_area',       '27',  [['ebs_areas_ro', '27']]],
+      ['ao_tub',        '49',  [['coa_ao_asc_ro', '49 mm']]],
+      ['vd_bas',        '51',  [['tga_dilatacion_ro', '51 mm'], ['cvpa_vd_ro', 'Dilataci']]],
+      ['tsvd_diametro', '33',  [['mca_plax_ro', '33 mm'], ['tdf_tsvd_ro', '33 mm']]],
+      ['vti_tsvd',      '23',  [['vap-qpqs', '']]],
+      ['diam_tsvi',     '25',  [['pop-eco-src', '25 mm'], ['dap-qpqs', '']]],
+      ['itv_tsvi',      '24',  [['pop-eco-src', '24 cm']]],
+      ['hemo_fc',       '112', [['pop-eco-src', '112 lpm']]],
+      ['pop_sw_gc',     '2.4', [['pop-concl-box', 'bajo'], ['pop-esq-txt', '']]],
+      ['pop_sw_pcp',    '28',  [['pop-esq-txt', '28 mmHg']]]
+    ];
+    let okPares = 0, nPares = 0, sinDenom = 0; const falloPares = [];
+    for (const [src, val, espejos] of FUENTES_ESP) {
+      const antes = espejos.map(e => E(e[0]));
+      S(src, val);
+      await asentar();
+      espejos.forEach((e, i) => {
+        nPares++;
+        const dsp = E(e[0]);
+        if (dsp === null) { sinDenom++; falloPares.push(src + '->' + e[0] + ' NO EXISTE'); return; }
+        /* DENOMINADOR: el espejo tiene que haber CAMBIADO. Uno que nunca se pinta tambien da
+           «no cambio», y el caso se leeria verde sobre un espejo muerto. */
+        if (antes[i] === dsp) { sinDenom++; falloPares.push(src + '->' + e[0] + ' NO SE MOVIO (' + String(antes[i]).slice(0, 40) + ')'); return; }
+        if (e[1] === '' || dsp.indexOf(e[1]) > -1) okPares++;
+        else falloPares.push(src + '->' + e[0] + ' sin «' + e[1] + '»: ' + dsp.slice(0, 60));
+      });
+    }
+    ex.push(['(a) los VEINTISEIS espejos de diecinueve fuentes siguen al dato sin tocar otro campo, sin cambiar de pestania y sin recargar',
+      okPares === nPares && sinDenom === 0 && nPares === 26,
+      okPares + '/' + nPares + ' · sin denominador=' + sinDenom + (falloPares.length ? ' · ' + falloPares.join(' | ') : '')]);
+    ex.push(['  DENOMINADOR de (a): el registro declara los pintores y ninguno falta de window',
+      (function () {
+        const L = (typeof ESPEJOS_VIVOS === 'function') ? ESPEJOS_VIVOS() : [];
+        const faltan = L.filter(f => typeof window[f] !== 'function');
+        return L.length >= 15 && faltan.length === 0;
+      })(),
+      (typeof ESPEJOS_VIVOS === 'function' ? ESPEJOS_VIVOS().length + ' pintores' : 'NO EXISTE ESPEJOS_VIVOS')]);
+
+    /* ── (b) S1 y S2 ──────────────────────────────────────────────────────────────────────
+       S1: cambiar un dato del recuadro del Swan-Ganz actualiza el esquema, el texto de abajo y
+       la conclusion SIN tocar otro campo. S2: el texto de dosis sigue al peso. */
+    S('pop_sw_gc', '6.5'); await asentar();
+    const s1a = { esq: T('pop-esq-txt'), con: T('pop-concl-box') };
+    S('pop_sw_gc', '1.9'); await asentar();
+    const s1b = { esq: T('pop-esq-txt'), con: T('pop-concl-box') };
+    ex.push(['(b·S1) el esquema y la conclusion del posoperatorio siguen al GC del Swan-Ganz sin tocar otro campo',
+      s1a.esq !== s1b.esq && s1a.con !== s1b.con && s1b.con.indexOf('bajo') > -1,
+      'esq cambio=' + (s1a.esq !== s1b.esq) + ' concl cambio=' + (s1a.con !== s1b.con) + ' · ' + s1b.con.slice(0, 90)]);
+
+    const d80 = T('pop_nor_calc');
+    S('peso', '40'); await asentar();
+    const d40 = T('pop_nor_calc');
+    S('peso', ''); await asentar();
+    const dSin = T('pop_nor_calc');
+    ex.push(['(b·S2) el texto de dosis sigue al peso, y sin peso pide completarlo',
+      d80.length > 0 && d40.length > 0 && d80 !== d40 &&
+      dSin.indexOf('completar el peso') > -1,
+      '80kg=' + d80.slice(0, 26) + ' · 40kg=' + d40.slice(0, 26) + ' · sin peso=' + dSin.slice(0, 40)]);
+    S('peso', '80'); await asentar();
+
+    /* ── (c) LA PAM: LAS SIETE COMBINACIONES ──────────────────────────────────────────────
+       Cada una arranca de cero. pamEfectiva() es el dueno unico; su clave dice quien gano
+       ('inv' cateter, 'tip' tipeada, 'calc' calculada) y difieren dice quien discrepa. */
+    const combo = async (I, Tp, C) => {
+      __t.limpiar();
+      S('peso', '80'); S('talla', '175');
+      if (I !== null) { S('pop_monitor', 'swan'); await esperar(150); S('pop_sw_pam', I); }
+      if (C !== null) { S('ao_pas', C[0]); S('ao_pad', C[1]); }
+      if (Tp !== null) S('hemo_pam', Tp);
+      await asentar();
+      const r = (typeof pamEfectiva === 'function') ? pamEfectiva() : null;
+      return { clave: r && r.clave, val: r && r.val, dif: r ? r.difieren.length : -1,
+               avisoH: T('hemo-pam-auto'), avisoP: T('pop-pam-aviso'),
+               fila: T('ao-ref-pam') };
+    };
+    const cI   = await combo('58', null, null);
+    const cT   = await combo(null, '95', null);
+    const cC   = await combo(null, null, ['120', '70']);
+    const cIT  = await combo('58', '95', null);
+    const cIC  = await combo('58', null, ['120', '70']);
+    const cTC  = await combo(null, '95', ['120', '70']);
+    const cITC = await combo('58', '95', ['120', '70']);
+
+    ex.push(['(c1) SOLA la medida por cateter: gana ella, sin aviso, y la fila lo dice',
+      cI.clave === 'inv' && cI.val === 58 && cI.dif === 0 && cI.avisoH === '' && cI.avisoP === '' &&
+      cI.fila.indexOf('58 mmHg') > -1 && cI.fila.indexOf('Swan-Ganz') > -1,
+      JSON.stringify(cI)]);
+    ex.push(['(c2) SOLA la tipeada: gana ella, sin aviso, y el rotulo «auto» NO aparece',
+      cT.clave === 'tip' && cT.val === 95 && cT.dif === 0 && cT.avisoH === '' && cT.avisoP === '' &&
+      cT.fila === '95 mmHg', JSON.stringify(cT)]);
+    ex.push(['(c3) SOLA la calculada: gana ella con el valor REDONDEADO que la app materializa, y conserva el rotulo «auto» de siempre',
+      cC.clave === 'calc' && cC.val === 87 && cC.dif === 0 &&
+      cC.avisoH === 'auto ← PAS/PAD del Doppler aórtico' && cC.avisoP === '' &&
+      cC.fila === '87 mmHg (auto)', JSON.stringify(cC)]);
+    ex.push(['(c4) cateter + tipeada que difieren: gana el cateter y el aviso nombra a las dos',
+      cIT.clave === 'inv' && cIT.val === 58 && cIT.dif === 1 &&
+      cIT.avisoH.indexOf('PAM en uso 58 mmHg') > -1 && cIT.avisoH.indexOf('tipeada') > -1 &&
+      cIT.avisoH.indexOf('95 mmHg') > -1 && cIT.avisoP === cIT.avisoH,
+      JSON.stringify(cIT)]);
+    ex.push(['(c5) cateter + calculada que difieren: gana el cateter y el aviso nombra a la calculada',
+      cIC.clave === 'inv' && cIC.val === 58 && cIC.dif === 1 &&
+      cIC.avisoH.indexOf('PAM en uso 58 mmHg') > -1 && cIC.avisoH.indexOf('calculada') > -1,
+      JSON.stringify(cIC)]);
+    ex.push(['(c6) tipeada + calculada que difieren: gana la TIPEADA, no la calculada',
+      cTC.clave === 'tip' && cTC.val === 95 && cTC.dif === 1 &&
+      cTC.avisoH.indexOf('PAM en uso 95 mmHg') > -1 && cTC.avisoH.indexOf('calculada') > -1 &&
+      cTC.fila === '95 mmHg', JSON.stringify(cTC)]);
+    ex.push(['(c7) las TRES cargadas y distintas: gana el cateter y el aviso nombra a las otras dos',
+      cITC.clave === 'inv' && cITC.val === 58 && cITC.dif === 2 &&
+      cITC.avisoH.indexOf('tipeada') > -1 && cITC.avisoH.indexOf('calculada') > -1,
+      JSON.stringify(cITC)]);
+
+    /* ── (d) CONTROLES NEGATIVOS ──────────────────────────────────────────────────────────
+       d1 · El barrido no mueve UN SOLO campo editable, corrido tres veces seguidas.
+       d2 · Es idempotente: la segunda pasada no cambia ni un nodo de texto.
+       d3 · Las cuatro excluidas siguen FUERA del registro.
+       d4 · Con dos fuentes que difieren, ni una palabra del aviso entra al informe ni al EN SUMA. */
+    const fotoEd = () => { const o = {};
+      [].slice.call(document.querySelectorAll('input[id], select[id], textarea[id]')).forEach(e => {
+        if (e.readOnly || e.disabled || e.hasAttribute('data-espejo') || /_ro$/.test(e.id)) return;
+        o[e.id] = (e.type === 'checkbox' || e.type === 'radio') ? (e.checked ? '1' : '0') : String(e.value == null ? '' : e.value);
+      }); return o; };
+    const fotoTx = () => { const o = {};
+      [].slice.call(document.querySelectorAll('span[id], div[id], td[id]')).forEach(e => {
+        if (e.querySelector('input, select, textarea')) return;
+        o[e.id] = N(e.textContent).slice(0, 300);
+      }); return o; };
+    const difObj = (a, b) => Object.keys(b).filter(k => String(a[k]) !== String(b[k]));
+
+    /* ⚠️ LA FOTO SOLA NO ALCANZA, Y UNA MUTACION ME LO DEMOSTRO. Si un pintor del registro ya
+       venia pisando un campo editable, cuando (d1) saca la foto el campo YA tiene el valor
+       pisado: las tres pasadas siguientes no lo mueven y el control da verde sobre el defecto
+       que existe para cazar. Es el «freno que tapa al que se muta» que este repo ya documenta,
+       y sobrevivio M14 por eso. Se siembran CENTINELAS con asignacion directa —sin evento, asi
+       que no disparan el barrido y el valor queda— en los cuatro campos que las funciones
+       EXCLUIDAS del registro escriben: si alguna se colara, el centinela desaparece. */
+    const CENT = [['pop_nor_dosis', '0.33'], ['vd_fac', '41'], ['hemo_pam', '77']];
+    const sembrados = [];
+    CENT.forEach(p => { const e = document.getElementById(p[0]);
+      if (!e) return; e.value = p[1]; sembrados.push([p[0], p[1]]); });
+    const edAntes = fotoEd();
+    try { _espejosBarrerTodos(); _espejosBarrerTodos(); _espejosBarrerTodos(); } catch (e) {}
+    const edMov = difObj(edAntes, fotoEd());
+    const centPerdidos = sembrados.filter(p => { const e = document.getElementById(p[0]);
+      return !e || String(e.value) !== String(p[1]); }).map(p => p[0]);
+    ex.push(['(d1) CONTROL: el barrido corrido TRES veces no mueve un solo campo que el medico pueda tipear, y los TRES CENTINELAS siguen en pie',
+      edMov.length === 0 && centPerdidos.length === 0 &&
+      sembrados.length === 3 && Object.keys(edAntes).length > 300,
+      'movidos=' + edMov.length + '/' + Object.keys(edAntes).length +
+      ' · centinelas sembrados=' + sembrados.length + ' perdidos=' + (centPerdidos.join(',') || '0') +
+      (edMov.length ? ' · ' + edMov.slice(0, 8).join(',') : '')]);
+
+    /* ⚠️ LA UNICA ESCRITURA SOBRE UN CAMPO TIPEABLE QUE EL BARRIDO HACE, DECLARADA Y MEDIDA.
+       tvSync vacia tv_tipo y tv_morfologia cuando la taquicardia ventricular NO esta
+       documentada — y en el mismo gesto los DESHABILITA, que es por lo que la foto de arriba no
+       los ve: fotoEd() saltea los disabled. No es una perdida nueva: tvSync ya estaba en
+       RECALC_MODULOS, asi que la compuerta corria en las cinco rutas de restauracion. Se mide
+       de los dos lados para que quede fijada y no escondida. */
+    const tvGate = (function () {
+      const t = document.getElementById('tv_tipo'), d = document.getElementById('tv_documentada');
+      if (!t || !d) return { err: 'NO EXISTEN tv_tipo / tv_documentada' };
+      const op = [].slice.call(t.options || []).map(x => x.value).filter(Boolean)[0];
+      if (!op) return { err: 'tv_tipo SIN OPCIONES' };
+      __t.set('tv_documentada', 'si'); t.value = op;
+      try { _espejosBarrerTodos(); } catch (e) {}
+      const conTV = { val: t.value, dis: t.disabled };
+      __t.set('tv_documentada', '');
+      try { _espejosBarrerTodos(); } catch (e) {}
+      const sinTV = { val: t.value, dis: t.disabled };
+      return { op: op, conTV: conTV, sinTV: sinTV };
+    })();
+    ex.push(['(d1b) la UNICA escritura del barrido sobre un campo tipeable es la compuerta de tvSync: con TV documentada NO lo toca, y sin documentar lo vacia Y lo deshabilita en el mismo gesto',
+      !tvGate.err && tvGate.conTV.val === tvGate.op && tvGate.conTV.dis === false &&
+      tvGate.sinTV.val === '' && tvGate.sinTV.dis === true,
+      JSON.stringify(tvGate)]);
+
+    try { _espejosBarrerTodos(); } catch (e) {}
+    const txAntes = fotoTx();
+    try { _espejosBarrerTodos(); } catch (e) {}
+    const txMov = difObj(txAntes, fotoTx());
+    ex.push(['(d2) CONTROL: el barrido es idempotente — la segunda pasada no mueve un solo nodo de texto',
+      txMov.length === 0 && Object.keys(txAntes).length > 300,
+      'movidos=' + txMov.length + '/' + Object.keys(txAntes).length + (txMov.length ? ' · ' + txMov.slice(0, 8).join(',') : '')]);
+
+    const reg = (typeof ESPEJOS_VIVOS === 'function') ? ESPEJOS_VIVOS() : [];
+    const FUERA = ['popSync', 'calcVD', 'imEspejosRestaurar', 'sincronizarTEERDesdeGlobal', 'v2dCerrar', 'm3dBotonSync'];
+    const colados = FUERA.filter(f => reg.indexOf(f) > -1);
+    ex.push(['(d3) CONTROL: las seis excluidas con motivo escrito siguen FUERA del registro',
+      colados.length === 0, colados.length ? 'se colaron: ' + colados.join(', ') : 'ninguna de ' + FUERA.join(', ')]);
+
+    /* El informe con las DOS fuentes que difieren: la escena de (c7), reconstruida. */
+    __t.limpiar();
+    S('nombre', 'Prueba Tanda B'); S('peso', '80'); S('talla', '175');
+    S('pop_monitor', 'swan'); await esperar(150);
+    S('pop_sw_pam', '58'); S('pop_sw_gc', '4.2'); S('pop_sw_pad', '9'); S('pop_sw_pcp', '14');
+    S('ao_pas', '120'); S('ao_pad', '70'); S('hemo_pam', '95');
+    S('pop_cx_horas', '8');
+    await asentar();
+    const avisoVivo = T('hemo-pam-auto');
+    const rI = __t.informe();
+    let hojaPop = '';
+    try { amiloIntegrar('pop'); } catch (e) {}
+    await asentar();
+    try { hojaPop = N(amiloTextoPOP()); } catch (e) { hojaPop = 'EXC'; }
+    const marca = /PAM en uso|difiere de la/;
+    ex.push(['(d4) CONTROL: con dos fuentes que difieren el aviso esta EN PANTALLA y no hay una palabra suya en el informe, el EN SUMA ni la hoja del posoperatorio',
+      avisoVivo.length > 0 && marca.test(avisoVivo) &&
+      !marca.test(rI.inf) && !marca.test(rI.suma) && !marca.test(hojaPop),
+      'aviso=' + avisoVivo.slice(0, 50) + ' · inf=' + marca.test(rI.inf) + ' suma=' + marca.test(rI.suma) + ' hoja=' + marca.test(hojaPop)]);
+    ex.push(['  DENOMINADOR de (d4): la hoja del posoperatorio SI se genero y SI publica la PAM que gano',
+      hojaPop.length > 50 && hojaPop.indexOf('58 mmHg') > -1 && hojaPop.indexOf('medida (Swan-Ganz)') > -1,
+      'largo=' + hojaPop.length + ' · ' + (hojaPop.match(/PAM[^|]*\\|[^|]*/) || ['sin linea de PAM'])[0]]);
+
+    /* ── (e) PERSISTENCIA: la PAM tipeada sobrevive a guardar y reabrir ───────────────────
+       ⚠️ Y LA MARCA derivadoDe NO, que es el borde declarado en PENDIENTES.md (B-b): se mide
+          a proposito para que el dia que se decida persistirla, este renglon se ponga rojo. */
+    __t.limpiar();
+    S('nombre', 'Prueba PAM'); S('ci', '555'); S('peso', '80'); S('talla', '175');
+    S('ao_pas', '120'); S('ao_pad', '70');
+    await asentar();
+    const pamAuto = V('hemo_pam');
+    const marcaAuto = (document.getElementById('hemo_pam') || { dataset: {} }).dataset.derivadoDe;
+    S('hemo_pam', '95');
+    await asentar();
+    const g = await __t.guardar();
+    let reab = null, marcaReab = null;
+    if (g.ok && g.estudioId) {
+      __t.nuevoEstudio();
+      __t.reabrir(g.estudioId);
+      await esperar(900);
+      reab = V('hemo_pam');
+      marcaReab = (document.getElementById('hemo_pam') || { dataset: {} }).dataset.derivadoDe;
+      await __t.borrar(g.estudioId);
+    }
+    ex.push(['(e) la PAM TIPEADA sobrevive a guardar y reabrir el estudio',
+      g.ok === true && reab === '95',
+      'guardo=' + g.ok + ' · auto previo=' + pamAuto + ' · reabierta=' + reab]);
+    ex.push(['  y la marca «la escribio la app» NO sobrevive — es B-b, declarado y medido a proposito',
+      marcaAuto === '87' && (marcaReab === undefined || marcaReab === null),
+      'al escribirla=' + marcaAuto + ' · al reabrir=' + String(marcaReab)]);
+
+    return { extra: ex };
+  })();
+`);
 
 
 let servidor, chrome;

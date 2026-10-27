@@ -288,3 +288,11 @@ No cambió ningún dato clínico. Movió notas de trabajo al globo ⓘ y a `docs
 dejó una sola cita al final de cada bloque, sacó las mayúsculas de en medio y dejó cada contenido
 una sola vez por sección. **Lo que esta tanda hizo está en `docs/mapa/a-evidencia-textos.md`**, y
 el caso que lo fija es **TC-537** (ficha en `docs/mapa/tests-fichas-537.md`).
+
+## ⚠️ La tanda B tocó la RVS de este módulo, y lo que hizo fue NO tocarla (2026-10-27)
+
+`calcHemo` entró al barrido de espejos **sólo para repintar**: lo que lee no se movió. Su RVS
+sigue saliendo de `v('hemo_pam')` a secas y por lo tanto **sigue ignorando la PAM medida por
+catéter**, que es lo único que faltaba para que la app tuviera un solo dueño de la PAM. Se paró
+porque el texto de esta cápsula viaja a la hoja de ETT Avanzado del PDF y al PPT, y el cambio
+movería un papel firmado en un estudio con una sola fuente. `docs/PENDIENTES.md` → **B-a**.

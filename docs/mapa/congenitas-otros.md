@@ -562,3 +562,13 @@ Puntero. El relato vive en **`docs/mapa/j2-hemo-onco-amiloide-pulmon.md`**. En u
 La subpestaña **«POP Cirugía Cardíaca»** de Hemodinámica —su pantalla, el esquema animado, la
 vasoplejia, el derrame pleural, lo que sale al informe y lo que no, su ficha de Referencias y
 su Evidencia— está en **`docs/mapa/g-posoperatorio.md`** (tanda «G», 2026-10-24).
+
+## ⚠️ La tanda B puso los espejos de estos módulos al día solos (2026-10-27)
+
+Los `*_ro` de MCH, MCA, Fallot, TGA, Ebstein, la coartación, el DSAV, la CVPA y el shunt del ETE
+—y los `dap-qpqs` / `vap-qpqs`— se repintaban **sólo** desde el `oninput` de sus propios campos y
+desde `RECALC_MODULOS`. Cambiar la fuente en otra pestaña no avisaba a nadie: medido, **ocho de
+los once pintores que quedaban viejos** son de esta zona.
+
+Hoy `tvSync`, `dapSync`, `coaSync`, `vapSync`, `ebsSync`, `tgaSync`, `dsavSync`, `cvpaSync` y
+`eteShuntSync` están en `ESPEJOS_VIVOS()`. **Ver `docs/mapa/b-espejos-pam.md`.**

@@ -465,3 +465,19 @@ No cambió ningún dato clínico. Movió notas de trabajo al globo ⓘ y a `docs
 dejó una sola cita al final de cada bloque, sacó las mayúsculas de en medio y dejó cada contenido
 una sola vez por sección. **Lo que esta tanda hizo está en `docs/mapa/a-evidencia-textos.md`**, y
 el caso que lo fija es **TC-537** (ficha en `docs/mapa/tests-fichas-537.md`).
+
+## ⚠️ TC-538, de la tanda B (2026-10-27)
+
+Los veintiséis espejos que siguen a su fuente sin tocar otro campo, S1 y S2, las siete
+combinaciones de la PAM y cuatro controles negativos. **Ficha propia en
+`docs/mapa/tests-fichas-538.md`** —`tests-fichas.md` ya estaba en 34,2 KB, medido antes—, con
+las tres trampas que costó escribirlo y la tabla de las dieciséis mutaciones
+(`scripts/_mut_b.py`).
+
+⚠️ **Y LA TANDA B ENCONTRÓ UN DEFECTO EN EL ARNÉS DE A/B QUE VIENE DESDE `_probe_r2ab.mjs`.**
+El montaje de escenas hacía `RECALC_MODULOS.forEach(...)`, y `RECALC_MODULOS` es una **función**:
+tiraba `TypeError`, el `catch` lo tragaba y **el embudo de restauración nunca corría**. O sea que
+varias tandas midieron su A/B sin pasar por el camino que reponen `editarInforme`, el QR, el
+autoguardado y las dos reimpresiones. Corregido en `scripts/_probe_bab.mjs` a
+`_recalcModulos('ab')`; **`_probe_aab.mjs` y `_probe_r2ab.mjs` siguen con el defecto**, y la
+próxima tanda que los use conviene que lo arregle ahí también.

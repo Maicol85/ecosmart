@@ -1277,6 +1277,63 @@ async function main() {
     process.stderr.write('[censo] listo\n');
   }
 
+  /* ── GRUPO `s56` ───────────────────────────────────────────────────────────────────────
+     Los dos puntos que el pedido manda REPORTAR y no arreglar sin permiso.
+     S5: lo cargado en VD/VI (pestaña VD/AD) ¿llega al PDF y al bloque POCUS del POP?
+     S6: la dosis de una droga marcada ¿llega al informe, a la hoja del PDF y al EN SUMA?
+     ⚠️ EL DENOMINADOR DE S5 ES NO CARGAR LOS OTROS DOS CAMINOS. `tep_vdvi` y el par
+        `vd_bas`/`ddfvi` dan el mismo cociente por otra puerta: con ellos cargados la sonda
+        mediría «sí llega» sin que `vd_vi` hubiera entrado nunca. */
+  async function escenaS56() {
+    const r = {};
+    try {
+      await ev(`window.__P.nuevo()`); await ev(`window.__P.calentar()`);
+      r.fallos = await ponerEscena();
+      /* `ddfvi` y `vd_bas` vienen de la escena: hay que VACIARLOS para aislar `vd_vi`. */
+      r.vaciar = await ev(`window.__B.ponerVarios([['vd_bas',''],['ddfvi',''],['tep_vdvi','']])`);
+      r.ponerVdVi = await ev(`window.__B.ponerVarios([['vd_vi','1.30']])`);
+      await ponerPOP(true);
+      r.droga = await ev(`window.__B.ponerVarios([['pop_nor_activa','1']])`);
+      await pausa(500);
+      r.dosis = await ev(`window.__B.ponerVarios([['pop_nor_dosis','0.25'],['pop_cx_tipo','crm'],['pop_cx_horas','6']])`);
+      await pausa(1200);
+      r.estado = await ev(`(function(){ var t=function(id){var e=document.getElementById(id); return e?(e.textContent||'').trim():null};
+        return { vd_vi: (document.getElementById('vd_vi')||{}).value,
+                 tep_vdvi: (document.getElementById('tep_vdvi')||{}).value,
+                 pocusVd: t('pop-pocus-vd'), tepInterp: t('tep-vdvi-interp'),
+                 vdViTexto: (typeof vdViTexto === 'function' ? vdViTexto(true) : 'SIN') } })()`);
+      /* S6 · se INTEGRA el bloque del posoperatorio, que es lo que lo manda a la hoja. */
+      r.integrar = await ev(`(function(){ try { amiloIntegrar('pop'); return 'ok' } catch(e){ return 'EXC '+e.message } })()`, 60000);
+      await pausa(900);
+      r.informe = await ev(`window.__P.informe('estandar')`, 60000);
+      r.suma = await ev(`window.__P.val('en_suma')`);
+      const pdf = await ev(`window.__P.pdf('estandar')`, 180000);
+      r.pdfN = pdf && pdf.nTextos;
+      const T = (pdf && pdf.textos) || [];
+      const buscar = (re) => T.map(function (x, i) { return [i, x]; })
+                              .filter(function (p) { return re.test(p[1]); })
+                              .slice(0, 6).map(function (p) { return p[1].slice(0, 140); });
+      r.pdfVdVi   = buscar(/VD\s*\/\s*VI|VD\/VI/i);
+      r.pdfNor    = buscar(/noradrenalina/i);
+      r.pdfVasoac = buscar(/vasoactiv/i);
+      /* El VALOR, no el rotulo: la tabla del VD manda la etiqueta y el numero en DOS llamadas
+         distintas a `text()`, asi que buscar «VD/VI» solo encuentra la celda del rotulo. */
+      r.pdf130 = buscar(/1[.,]30?(?![0-9])/);
+      r.pdfIdx = T.map(function (x, i) { return [i, x]; })
+                  .filter(function (p) { return /VD\s*\/\s*VI/i.test(p[1]); })
+                  .map(function (p) { return { i: p[0], ctx: T.slice(Math.max(0, p[0] - 1), p[0] + 4)
+                                      .map(function (z) { return String(z).slice(0, 60) }) } });
+      r.infVdVi   = /VD\s*\/\s*VI|1[.,]3/.test(r.informe || '');
+      r.infNor    = /noradrenalina/i.test(r.informe || '');
+      r.sumaNor   = /noradrenalina/i.test(r.suma || '');
+      r.sumaVdVi  = /VD\/VI/i.test(r.suma || '');
+      r.errores = await ev(`window.__B.errores()`);
+    } catch (e) { r.err = e.message; }
+    out.grupos.s56 = r;
+    process.stderr.write('[s56] listo\n');
+  }
+
+  if (corre('s56'))    await escenaS56();
   if (corre('censo'))  await escenaCenso();
   if (corre('pureza')) await escenaPureza();
   if (corre('viejo'))  await escenaViejo();
