@@ -66046,8 +66046,12 @@ caso('TC-471', 'Valvulas D1: la insuficiencia mitral en TRES columnas de SEIS co
        hemo-ic, hemo-rvs y hemo-forr -los tres de la capsula de Hemodinamica- y amilo-score, el
        del score de amiloidosis. NINGUNO esta en Valvulas: lo que cambia es el denominador del
        registro, no lo que esta condicion afirma sobre los globos de esa pestana. */
+    /* ⚠️ ADAPTADO EN LA TANDA D: 56 -> 57. La entrada nueva es co-riesgo-basal, el globo de la
+       clasificacion de riesgo cardiovascular basal, donde viven las clases y los niveles que la
+       regla R2 saca de la linea visible. Lo que esta condicion afirma no cambia: que el
+       mecanismo exista y que el registro este completo. */
     HAY_INFO && globos.every(function(b){ return !!VINFO[b.getAttribute('data-vinfo')]; }) &&
-    Object.keys(VINFO).length === 56,
+    Object.keys(VINFO).length === 57,
     'registro=' + (HAY_INFO ? Object.keys(VINFO).join(',') : 'SIN REGISTRO')]);
   ex.push(['(H) y la tarjeta se coloca SIEMPRE dentro de la pantalla, sin cortarse',
     (function(){ const b = document.querySelector('[data-vinfo="avm-thp"]');
@@ -77319,7 +77323,11 @@ caso('TC-500', 'Tanda Q: las OCHO tarjetas i de las valvulas arriba de su pastil
      hemo-ic, hemo-rvs, hemo-forr y amilo-score. NINGUNA esta en Valvulas: lo que cambia es el
      denominador del registro, no lo que este caso afirma sobre las tarjetas de esa pestana. */
   ex.push(['DENOMINADOR: el mecanismo de los globos existe y el registro tiene las 56 entradas',
-    FN('vInfoClic') && !!CARD() && !!REG() && Object.keys(REG() || {}).length === 56,
+    /* ⚠️ ADAPTADO EN LA TANDA D: 56 -> 57. La entrada nueva es co-riesgo-basal, el globo de la
+       clasificacion de riesgo cardiovascular basal, donde viven las clases y los niveles que la
+       regla R2 saca de la linea visible. Lo que esta condicion afirma no cambia: que el
+       mecanismo exista y que el registro este completo. */
+    FN('vInfoClic') && !!CARD() && !!REG() && Object.keys(REG() || {}).length === 57,
     'VINFO=' + (REG() ? Object.keys(REG()).length : 'SIN REGISTRO') + ' card=' + !!CARD()]);
   ex.push(['(A1) los OCHO botones de lesion existen, son BUTTON, sin atributo title y con aria-expanded',
     CLAVES.every(function (k) { const b = BTN(k);
@@ -78560,8 +78568,12 @@ caso('TC-502', 'Tanda P: Referencias en CINCO subpestanas sin perder una entrada
      ficha de Referencias- y amilo-score -tampoco la tiene el score de amiloidosis-. Crear esas
      dos fichas seria escribir contenido clinico que esta orden no autoriza, asi que el limite
      se DECLARA, que es lo que esta condicion existe para hacer. */
-  ex.push(['(C3) LIMITE DECLARADO: quince tarjetas sin boton, porque Referencias no tiene esa entrada',
-    sinBoton.join(',') === 'amilo-score,et-avt-cont,hemo-forr,hemo-ic,hemo-rvs,'
+  /* ⚠️ ADAPTADO EN LA TANDA D: quince -> DIECISEIS. La que entra es co-riesgo-basal, el globo de
+     la clasificacion de riesgo cardiovascular basal: Referencias no tiene una ficha para el, asi
+     que no lleva boton «Ver referencia». El limite se DECLARA, que es lo que esta condicion hace:
+     la lista exacta impide que una tarjeta pierda su boton sin que nadie lo note. */
+  ex.push(['(C3) LIMITE DECLARADO: dieciseis tarjetas sin boton, porque Referencias no tiene esa entrada',
+    sinBoton.join(',') === 'amilo-score,co-riesgo-basal,et-avt-cont,hemo-forr,hemo-ic,hemo-rvs,'
       + 'tarj-esten-pulmonar,tarj-esten-tricuspide,tarj-insuf-pulmonar,'
       + 'vab-aorta,vab-cx,vab-friesgo,vab-func,vab-tit,vab-valv,vm-carp',
     sinBoton.join(',')]);
@@ -88974,9 +88986,14 @@ caso('TC-533', 'Tanda J2: el indice cardiaco en 2,19/2,2/2,21 con su globo y la 
 
   ponScore(['ett-rwt','ett-apice'], 0, true);
   const gSC = globo('amilo-score');
-  ex.push(['(F9) el globo del score dice que NO esta validado externamente y nombra la ESPECIFICIDAD, no el VPP',
+  /* ⚠️ ADAPTADO EN LA TANDA D: ya no se exige la palabra en MAYUSCULAS. La regla R3 de esa tanda
+     prohibe las mayusculas en medio de la frase, asi que «la ESPECIFICIDAD» paso a «la
+     especificidad». Lo que esta condicion afirma no cambia y se refuerza: que el globo nombre la
+     especificidad CON SU NUMERO, que siga citando los dos folios, y —en (F10)— que aclare que el
+     100 % es del centellograma y no del score. */
+  ex.push(['(F9) el globo del score dice que NO esta validado externamente y nombra la especificidad, no el VPP',
     gSC.abierta === true && gSC.txt.indexOf('folio 1556') > -1
-      && gSC.txt.indexOf('ESPECIFICIDAD') > -1 && gSC.txt.indexOf('especificidad 98 %') > -1
+      && /especificidad/i.test(gSC.txt) && gSC.txt.indexOf('especificidad 98 %') > -1
       && gSC.txt.indexOf('folio 1558') > -1,
     (gSC.txt || JSON.stringify(gSC)).slice(0, 220)]);
   ex.push(['(F10) y aclara que el 100 % de la app es del CENTELLOGRAMA, no del score',
@@ -90535,12 +90552,18 @@ caso('TC-535', 'Tanda AJ7: la linea de Fallot del EN SUMA sin la IP y el resumen
                  propios: hits.filter((h) => h === 'propio').length, hits: hits });
     });
     return out; })();
-  ex.push(['(K0) DENOMINADOR: los DOS globos llevan la clase, tienen geometria y estan EN VISTA',
-    tapK.length === 2 && tapK.every((x) => x.w > 0 && x.h > 0 && x.enVista), JSON.stringify(tapK)]);
-  ex.push(['(K1) los dos miden 44x44 tambien con el mouse',
-    tapK.length === 2 && tapK.every((x) => x.w >= 44 && x.h >= 44), JSON.stringify(tapK)]);
+  /* ⚠️ ADAPTADO EN LA TANDA D: DOS -> TRES. El que entra es co-riesgo-basal, el globo de la
+     clasificacion de riesgo cardiovascular basal, que nace con la clase vinfo-btn-44 por la misma
+     razon que los otros dos: es un objetivo tactil y el piso de la casa son 44 px.
+     Lo que estas condiciones miden NO cambia —que el area de 44x44 exista con el mouse y que NO
+     tape al vecino de abajo—, y por eso la de los cinco puntos sigue siendo la que importa: un
+     area encajada con margenes negativos taparia 16 px del campo de al lado. */
+  ex.push(['(K0) DENOMINADOR: los TRES globos llevan la clase, tienen geometria y estan EN VISTA',
+    tapK.length === 3 && tapK.every((x) => x.w > 0 && x.h > 0 && x.enVista), JSON.stringify(tapK)]);
+  ex.push(['(K1) los tres miden 44x44 tambien con el mouse',
+    tapK.length === 3 && tapK.every((x) => x.w >= 44 && x.h >= 44), JSON.stringify(tapK)]);
   ex.push(['(K2) y su caja NO tapa a ningun vecino: los cinco puntos dan el propio boton',
-    tapK.length === 2 && tapK.every((x) => x.propios === 5), JSON.stringify(tapK)]);
+    tapK.length === 3 && tapK.every((x) => x.propios === 5), JSON.stringify(tapK)]);
   ex.push(['(K3) CONTROL: los demas globos NO se tocaron y siguen con su piso solo tactil',
     document.querySelectorAll('button.vinfo-btn').length
       - document.querySelectorAll('button.vinfo-btn-44').length >= 10,
