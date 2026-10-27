@@ -58405,6 +58405,21 @@ function popDosisDilucion(k) {
   out.innerHTML = _hd;
 }
 window.popDosisDilucion = popDosisDilucion;
+/* ══ LAS DIEZ DILUCIONES DE UNA (B-1, 2026-10-27) ════════════════════════════════════════════
+   `popDosisDilucion` lee el PESO DEL PACIENTE, que vive en otra pestaña, y hasta hoy sólo corría
+   desde el `oninput` de sus tres campos propios (mg, ml y velocidad) y desde `popSync`. O sea
+   que borrar o corregir el peso dejaba «≈ 0,20 mcg/kg/min» calculado con el peso anterior, y un
+   peso vacío dejaba el número viejo en vez de «— completar el peso del paciente», hasta recargar
+   la página. Es el síntoma S2 de esta tanda, medido antes de tocar nada.
+   Esta función es lo que el barrido de espejos llama: una entrada en el registro por módulo, no
+   diez. Es idempotente —`popDosisDilucion` reescribe el mismo `innerHTML` con los mismos
+   insumos— y no escribe ningún campo: `pop_<k>_dosis` lo decide el médico o el botón «usar». */
+function popDosisTodas() {
+  (window.POP_DROGAS || []).forEach(function (k) {
+    try { popDosisDilucion(k); } catch (e) { console.warn('[popDosisTodas] ' + k, e); }
+  });
+}
+window.popDosisTodas = popDosisTodas;
 function popDosisCopiar(k) {
   const mg = v('pop_' + k + '_diluc_mg'), ml = v('pop_' + k + '_diluc_ml'), vel = v('pop_' + k + '_veloc');
   const peso = v('peso');
@@ -58594,6 +58609,63 @@ function _recalcModulos(etiqueta) {
   });
 }
 window.RECALC_MODULOS = RECALC_MODULOS; window._recalcModulos = _recalcModulos;
+
+/* ══ LOS ESPEJOS SE ACTUALIZAN SOLOS (B-1, 2026-10-27) ═══════════════════════════════════════
+   QUE ARREGLA. Un «espejo» es un campo de SOLO LECTURA —los veintiocho `*_ro`, los `data-espejo`
+   deshabilitados— o un texto calculado que muestra un dato que vive en OTRA pestaña. Hasta hoy
+   cada uno se repintaba sólo desde el `oninput` de SUS campos y desde `RECALC_MODULOS`, que es
+   el embudo de las cinco rutas de restauración. Cambiar la FUENTE no avisaba a nadie: el espejo
+   seguía mostrando el valor anterior hasta que el médico tocara otro campo del mismo módulo o
+   recargara la página.
+
+   MEDIDO ANTES DE ESCRIBIR UNA LÍNEA, con las veinticuatro fuentes de otra pestaña cambiadas de
+   a una y preguntando después cuál pintor movía algo: **once pintores quedaban viejos**.
+   `popSync` por catorce fuentes distintas, `tvSync` por cinco, `dapSync` y `vapSync` por cuatro,
+   `eteShuntSync` y `ebsSync` por tres, `dsavSync` por dos, y `calcVD` —vía `calcTEP`—,
+   `coaSync`, `tgaSync` y `cvpaSync` por una cada uno.
+
+   UN SOLO MECANISMO, Y NO UN PARCHE POR CAMPO. El registro de abajo dice QUIÉN pinta un espejo;
+   el barrido lo recorre. Es el mismo patrón que `RECALC_MODULOS` —una lista declarada de nombres
+   que se resuelven en `window` al correr— y por la misma razón: los insumos son cientos de
+   campos repartidos en diecisiete pestañas, y colgarse de cada uno es como uno se queda sin
+   cablear.
+
+   ⚠️ NO HAY UN TEMPORIZADOR NUEVO Y LA FRECUENCIA NO SUBE. El barrido cuelga del MISMO debounce
+   de 220 ms que ya existía para los bloques integrados (`_amiloBarrido`, mucho más abajo), y va
+   ANTES de `amiloRefrescarTodos()`: aquél regenera el texto de los bloques leyendo la pantalla,
+   así que repintar los espejos después lo dejaría armando la hoja con el dato anterior.
+
+   ⚠️ QUÉ PUEDE ENTRAR ACÁ Y QUÉ NO. Sólo pintores que escriben TEXTO o campos de SOLO LECTURA.
+   Queda FUERA, medido y con motivo:
+     · `popSync` — BORRA campos: apaga la dosis de una droga desactivada y los detalles de la
+       asistencia circulatoria. Entran en su lugar sus cinco pintores puros, que cubren
+       exactamente los mismos nodos: `popHemoSync`, `popPocusSync`, `popEsqPintar`,
+       `popConclSync` y `popDosisTodas`.
+     · `calcVD` — escribe `vd_fac`, que es un campo del estudio y sale al informe firmado. Lo
+       único que dejaba viejo es `tep-vdvi-interp`, y ése lo pinta `calcTEP`, que no escribe
+       ningún campo: entra `calcTEP`.
+     · `imEspejosRestaurar` y `sincronizarTEERDesdeGlobal` — aparecieron en la medición pero NO
+       son desfase: se pasan la marca `espejoVivo` el uno al otro y mueven en CADA pasada, con el
+       dato quieto. Correrlos cada 220 ms sería dos funciones peleándose por una marca.
+     · `v2dCerrar` y `m3dBotonSync` — cierran la vista 2D y el 3D. Un barrido que corre con cada
+       tecla cerraría el panel que el médico acaba de abrir.
+
+   ⚠️ EL ORDEN DE LA LISTA ES EL DE `RECALC_MODULOS` para los que están en los dos, y no es
+   decorativo: `tvSync` repone los cinco espejos de arritmia ventricular y DESPUÉS llama a
+   `mchSync`, `tdfSync` y `mcaSync`, que pintan a partir de ellos. */
+function ESPEJOS_VIVOS() {
+  return ['tvSync', 'dapSync', 'coaSync', 'vapSync', 'ebsSync', 'tgaSync', 'dsavSync',
+          'cvpaSync', 'eteShuntSync', 'calcTEP',
+          'popHemoSync', 'popPocusSync', 'popEsqPintar', 'popConclSync', 'popDosisTodas'];
+}
+function _espejosBarrerTodos() {
+  ESPEJOS_VIVOS().forEach(function (fn) {
+    if (typeof window[fn] === 'function') {
+      try { window[fn](); } catch (e) { console.warn('[espejos] ' + fn, e); }
+    }
+  });
+}
+window.ESPEJOS_VIVOS = ESPEJOS_VIVOS; window._espejosBarrerTodos = _espejosBarrerTodos;
 
 /* ══ ÉPOCA DEL ESTUDIO ═══════════════════════════════════════════════════════════════════
    Un contador que sube UNA vez cada vez que el formulario pasa a describir OTRO estudio.
@@ -94177,6 +94249,13 @@ function _amiloBarrido(ev){
   if (_amiloBarridoT) clearTimeout(_amiloBarridoT);
   _amiloBarridoT = setTimeout(function () {
     _amiloBarridoT = null;
+    /* ⚠️ LOS ESPEJOS VAN PRIMERO (B-1, 2026-10-27), Y COMPARTEN ESTE TEMPORIZADOR A PROPOSITO.
+       Un segundo oyente con su propio debounce seria un segundo barrido por rafaga de teclas, y
+       la orden de esta tanda prohibe encarecer la escritura. Y van ANTES porque
+       `amiloRefrescarTodos` regenera el texto de los bloques integrados leyendo la pantalla: con
+       los espejos repintados despues, la hoja saldria armada con el dato anterior.
+       Ver `ESPEJOS_VIVOS`, donde esta el registro y el motivo de cada exclusion. */
+    try { _espejosBarrerTodos(); } catch (e) { console.warn('[_espejosBarrerTodos]', e); }
     try { amiloRefrescarTodos(); } catch (e) { console.warn('[amiloRefrescarTodos]', e); }
   }, 220);
 }
