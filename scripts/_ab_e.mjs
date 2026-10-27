@@ -106,7 +106,15 @@ const ESCENAS = {
   carpSin: { campos: {}, sel: { vm_morf: 'Prolapso / EVMS', vm_carp: 'II' } },
   imsecE:  { campos: { pisa_r: '5', pisa_val: '95.5', im_vmax: '5' },
              pastillas: [['mitral', 'insuf']], sel: { vm_tipo_im: 'secundaria' } },
-  tricE:   { campos: {}, pastillas: [['tricusp', 'esten']], sel: { et_grado: 'Significativa' } },
+  /* ⚠️ ESTA ESCENA NO PUEDE MOSTRAR LA DIFERENCIA DEL E-2a, Y SE DECLARA. MONTAR termina
+     corriendo TODOS los `calc*` de window -incluido `calcET`-, o sea que FABRICA el disparador
+     que la app no tenia: el aviso sale con su texto en los DOS lados. Es el mismo defecto de
+     instrumentacion que TC-519 tenia. Sirve igual para lo que este A/B existe -probar que las
+     superficies FIRMADAS no se movieron-, y la diferencia del 2a la mide
+     `scripts/_probe_te.mjs --solo tric` paso a paso, con gestos reales: contra HEAD el nodo da
+     0 x 0 y texto vacio, y con el arreglo 28 x 545 con la frase entera.
+     La valvula es «tricuspide» y no «tricusp»: el id del boton es `pill-esten-tricuspide`. */
+  tricE:   { campos: {}, pastillas: [['tricuspide', 'esten']], sel: { et_grado: 'Significativa' } },
   protE:   { campos: { em_vmax: '1.8', em_gmedio: '6', thp: '110' },
              pastillas: [['mitral', 'esten']], sel: { vm_morf: 'Prótesis mecánica' } },
   strE12:  { campos: { vd_strain_pl: '-12', tapse: '22', s_prime: '13' } },

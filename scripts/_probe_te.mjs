@@ -830,12 +830,16 @@ window.__E = {
     o.existe = !!e;
     o.txt = e ? (e.textContent || '').trim() : null;
     o.h = e ? Math.round(e.getBoundingClientRect().height) : null;
+    o.w = e ? Math.round(e.getBoundingClientRect().width) : null;
+    o.pillGeo = (function(){ var b = document.getElementById('pill-esten-tricuspide');
+      if (!b) return 'NO EXISTE'; var r = b.getBoundingClientRect();
+      return { w: Math.round(r.width), on: b.classList.contains('btn-primary') } })();
     o.cte = (typeof window.ET_EVID_AVISO_TXT === 'string') ? window.ET_EVID_AVISO_TXT : 'NO EN WINDOW';
     try { o.indVT = (typeof _indVT === 'function') ? (_indVT() === null ? 'null' : 'abre') : 'SIN FN' }
     catch (x) { o.indVT = 'EXC: ' + x.message }
     o.et_grado = (typeof sv === 'function') ? sv('et_grado') : null;
     o.it_grado = (typeof sv === 'function') ? sv('it_grado') : null;
-    o.pillEsten = (typeof pillOn === 'function') ? pillOn('tricusp','esten') : 'SIN FN';
+    o.pillEsten = (typeof pillOn === 'function') ? pillOn('tricuspide','esten') : 'SIN FN';
     try { o.sync = (typeof etEvidAvisoSync === 'function') ? etEvidAvisoSync() : 'SIN FN' }
     catch (x) { o.sync = 'EXC' }
     o.trasSync = e ? (e.textContent || '').trim() : null;
@@ -852,6 +856,24 @@ window.__E = {
                 vis: r.width > 0 && r.height > 0 };
     });
     return o },
+
+  /* El ORDEN VERTICAL de las cajas de una seccion de valvula, con el TEXTO de cada una para no
+     suponer cual es cual. La raiz es la .card que contiene el <select> de morfologia. */
+  ordenCajas(morfId) {
+    var m = document.getElementById(morfId);
+    if (!m) return 'NO EXISTE ' + morfId;
+    var raiz = (m.closest && m.closest('.card')) || document.getElementById('tab-valvulas');
+    if (!raiz) return 'SIN RAIZ';
+    var o = [];
+    raiz.querySelectorAll('.calc-box,[id^=bloque-prot],[id^=bloque-prolapso],.valv-pill').forEach(function(e){
+      var r = e.getBoundingClientRect();
+      if (r.width === 0 && r.height === 0) return;
+      o.push({ id: e.id || '(sin id)', cls: String(e.className).slice(0, 28),
+               y: Math.round(r.top), x: Math.round(r.left), h: Math.round(r.height),
+               txt: (e.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 70) });
+    });
+    o.sort(function(a, b){ return a.y - b.y || a.x - b.x });
+    return o.slice(0, 40) },
 
   /* El strain: categoria, voto, y las lineas del VD del informe y del EN SUMA. */
   strainE(o) {
@@ -968,13 +990,16 @@ window.__E = {
       await ev(`window.__P.nuevo()`); await ev(`window.__P.calentar()`);
       await ev(`window.__P.abrirPara('et_gmedio')`);
       r.pasos.push({ paso: 'inicio', v: await ev(`window.__E.tric()`) });
-      /* 1. La pastilla de estenosis. */
+      /* 1. La pastilla de estenosis. La valvula es «tricuspide», no «tricusp»: el id del boton
+         es `pill-esten-tricuspide` y con la clave corta `pillOn` daba SIEMPRE false -o sea que
+         la primera corrida midio una pastilla que nunca se abrio-. */
       r.pill = await ev(`(function(){ try { return (typeof toggleValvPill === 'function')
-        ? (toggleValvPill('tricusp','esten'), 'ok') : 'SIN FN' } catch (e) { return 'EXC: ' + e.message } })()`);
+        ? (toggleValvPill('tricuspide','esten'), 'ok') : 'SIN FN' } catch (e) { return 'EXC: ' + e.message } })()`);
       r.pasos.push({ paso: 'pastilla esten', v: await ev(`window.__E.tric()`) });
-      /* 2. La severidad, por el gesto REAL del select. */
-      r.selGrado = await ev(`window.__P.sel('et_grado','3')`);
-      r.pasos.push({ paso: 'et_grado=3 (gesto)', v: await ev(`window.__E.tric()`) });
+      /* 2. La severidad, por el gesto REAL del select. El selector es BINARIO
+         («Significativa» / «No significativa»), no una lista de grados. */
+      r.selGrado = await ev(`window.__P.sel('et_grado','Significativa')`);
+      r.pasos.push({ paso: 'et_grado=Significativa (gesto)', v: await ev(`window.__E.tric()`) });
       /* 3. El gradiente medio 6: el aviso tiene que irse y la Evidencia abrir. */
       await tipear('et_gmedio', '6');
       r.pasos.push({ paso: 'et_gmedio=6', v: await ev(`window.__E.tric()`) });
@@ -982,8 +1007,10 @@ window.__E = {
       await borrar('et_gmedio', 'del');
       r.pasos.push({ paso: 'et_gmedio borrado', v: await ev(`window.__E.tric()`) });
       /* 5. La OTRA puerta: IT moderada. */
-      r.selIt = await ev(`window.__P.sel('it_grado','3')`);
-      r.pasos.push({ paso: 'it_grado=3', v: await ev(`window.__E.tric()`) });
+      /* La otra puerta: IT MODERADA. El vocabulario de `it_grado` es ['0','1','2','4'] -sin
+         el 3-, y «moderada o mayor» es el 2 para arriba. */
+      r.selIt = await ev(`window.__P.sel('it_grado','2')`);
+      r.pasos.push({ paso: 'it_grado=2 (moderada)', v: await ev(`window.__E.tric()`) });
       r.errores = await ev(`window.__E.errores()`);
     } catch (e) { r.err = e.message }
     out.grupos.tric = r;
@@ -997,24 +1024,22 @@ window.__E = {
       await ev(`window.__P.nuevo()`); await ev(`window.__P.calentar()`);
       await ev(`window.__P.abrirPara('vm_morf')`);
       await ev(`window.__P.sel('vm_morf','Prótesis mecánica')`);
-      r.pill = await ev(`(function(){ try { toggleValvPill('mitral','esten'); toggleValvPill('mitral','insuf');
+      r.pill = await ev(`(function(){ try { toggleValvPill('mitral','esten');
         return 'ok' } catch (e) { return 'EXC: ' + e.message } })()`);
+      /* Con insumos cargados, para que la capsula protesica tenga filas con valor. */
+      await ev(`window.__E.poner(${JSON.stringify({ em_vmax: '1.8', em_gmedio: '6', thp: '110', vm_dvi: '2.6' })})`, 40000);
       r.mitral = await ev(`window.__E.ordenProt(${JSON.stringify(
-        ['bloque-prot-vm','bloque-prot-vm-res','pill-esten-mitral','pill-insuf-mitral','bloque-prolapso-vm','em-sev','im_sev_final','em-thp-badge'])})`);
-      /* El orden VISUAL de todas las cajas de la seccion mitral, descubierto y no supuesto. */
-      r.mitralOrden = await ev(`(function(){ var sec = document.getElementById('vm_morf');
-        while (sec && !/^(tab-valvulas)$/.test(sec.id) && !(sec.className||'').toString().includes('valv-sec')) sec = sec.parentNode;
-        var raiz = document.getElementById('vm_morf').closest('.card') || document.getElementById('tab-valvulas');
-        var o = [];
-        raiz.querySelectorAll('.calc-box,[id^=bloque-prot-vm],[id^=bloque-prolapso]').forEach(function(e){
-          var r = e.getBoundingClientRect();
-          if (r.width === 0 && r.height === 0) return;
-          o.push({ id: e.id || '(sin id)', cls: e.className, y: Math.round(r.top), x: Math.round(r.left), h: Math.round(r.height) });
-        });
-        o.sort(function(a,b){ return a.y - b.y || a.x - b.x });
-        return o.slice(0, 40) })()`);
+        ['bloque-prot-vm','bloque-prot-vm-res','pill-esten-mitral','pill-insuf-mitral','bloque-prolapso-vm','em-thp-badge'])})`);
+      /* El orden VISUAL de todas las cajas de la seccion mitral, descubierto y no supuesto, y
+         medido ANTES de tocar la aortica: `abrirPara('va_morf')` deja la seccion de la mitral sin
+         geometria y la lista salia VACIA -que es el denominador de este grupo-. */
+      r.mitralOrden = await ev(`window.__E.ordenCajas('vm_morf')`);
       /* La aortica: su propia morfologia y sus propios bloques. */
       await ev(`window.__P.abrirPara('va_morf')`);
+      await ev(`window.__P.sel('va_morf','Prótesis mecánica')`);
+      await ev(`(function(){ try { toggleValvPill('aortica','esten'); return 'ok' } catch (e) { return 'EXC' } })()`);
+      await ev(`window.__E.poner(${JSON.stringify({ vmax_ao: '3.2', gmedio_ao: '24', itv_tsvi: '20', itv_ao: '80', diam_tsvi_ao: '21' })})`, 40000);
+      r.aortOrden = await ev(`window.__E.ordenCajas('va_morf')`);
       r.aorticaIds = await ev(`(function(){ var o = [];
         document.querySelectorAll('[id*="prot-va"],[id*="prot_va"],[id*="va-prot"],[id*="ea-prot"],[id*="bloque-prot"]')
           .forEach(function(e){ o.push(e.id) }); return o })()`);

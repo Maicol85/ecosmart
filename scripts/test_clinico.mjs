@@ -85389,14 +85389,44 @@ caso('TC-519', 'Tanda AJ2: «sin datos» no es «no medible» en las cinco super
 
   /* ══ (C) AJ2-4 — la tricuspide dice POR QUE su Evidencia no se abre ═════════════════════
      ⚠️ LA COMPUERTA SE LE PREGUNTA AL DUENO (_indVT) Y NO SE COPIA. */
+  /* == ENDURECIDO EN LA TANDA E (E-2a, 2026-10-27), CON EL MOTIVO ESCRITO ===================
+     ESTE BLOQUE PASABA EN VERDE SOBRE UN DEFECTO, Y POR ESO EL MEDICO NUNCA VIO EL AVISO.
+     Decia set({et_grado}) y ENSEGUIDA llamaba a calcET() a mano. calcET es el unico lugar desde
+     donde se llamaba al pintor del aviso, asi que el caso FABRICABA el disparador que la app no
+     tenia: en la app real el onchange de et_grado es valvSev.aplicar(...), que no pasa por
+     calcET, y el oyente de documento solo atrapaba it_grado e ia_grado. Resultado: el aviso
+     recien aparecia despues de un gesto que tocara una MEDICION -y la escena de este bloque no
+     tiene ninguna-. Es textual el patron del «freno que tapa al que se muta» que CLAUDE.md
+     documenta: un chequeo que no podia fallar.
+     Desde la tanda E el gesto es el REAL -un change sobre el select, sin llamar al pintor- y
+     et_grado entra en el oyente. Medido en Chrome: contra HEAD el nodo mide 0 x 0 con el texto
+     vacio; con el arreglo mide 28 x 545 con la frase entera. */
   __t.limpiar();
-  set({ et_grado: 'Significativa' }); try { calcET(); } catch (e) {}
+  /* La escena EXACTA del pedido: pastilla «Estenosis» PRENDIDA y una severidad elegida. La
+     pastilla va primero porque el cuadro de la estenosis -donde vive el aviso- nace plegado: sin
+     abrirla el nodo se pinta y mide 0 x 0, que para el medico es no existir. */
+  (function () { try { if (typeof showTab === 'function') showTab('valvulas'); } catch (e) {}
+    try { if (typeof pillOn === 'function' && !pillOn('tricuspide', 'esten')
+      && typeof toggleValvPill === 'function') toggleValvPill('tricuspide', 'esten'); } catch (e) {} })();
+  /* El gesto real: change sobre el select, SIN llamar a calcET. */
+  (function () { const e = document.getElementById('et_grado');
+    if (!e) return; e.value = 'Significativa';
+    e.dispatchEvent(new Event('change', { bubbles: true })); })();
   const avSinDatos = txt('et-evid-aviso');
+
   const T_VT2 = 'V' + String.fromCharCode(225) + 'lvula tric' + String.fromCharCode(250) + 'spide';
   ex.push(['(C1) DENOMINADOR: con la estenosis marcada la Evidencia NO abre', sec(T_VT2) === null, String(sec(T_VT2) === null)]);
   ex.push(['(C2) y el aviso lo dice', !!avSinDatos && norm(avSinDatos).indexOf('se activa') > -1, String(avSinDatos).slice(0, 110)]);
   ex.push(['(C3) el aviso NO pide cargar la velocidad maxima de la IT, que no abre la seccion',
     !!avSinDatos && norm(avSinDatos).indexOf('velocidad maxima') === -1, String(avSinDatos).slice(0, 130)]);
+  /* ⚠️ LA GEOMETRIA DEL AVISO NO SE MIDE ACA, Y ES UNA LIMITACION DEL ARNES DE ESTE CASO, NO
+     DE LA APP. Con el gesto real mas la pastilla abierta el nodo mide 28 x 545 en Chrome
+     -medido con scripts/_probe_te.mjs --solo tric, paso «et_grado=Significativa»-, pero dentro
+     de este caso sigue dando 0 x 0: la escena de TC-519 recorre cinco modulos y llega aca con la
+     pestania de Valvulas sin presentar, asi que el cuadro no tiene caja. El invariante de
+     geometria vive en TC-539 (E), que controla su propia escena. Lo que SI fija este caso, y es
+     lo que faltaba, es que el aviso aparezca con el gesto REAL y sin llamar al pintor a mano:
+     C2 y C3 CAEN contra HEAD -verificado en un arbol con el index.html de HEAD-. */
   set({ et_gmedio: '7' }); try { calcET(); } catch (e) {}
   ex.push(['(C4) CONTROL: con el gradiente medio la seccion abre y el aviso desaparece',
     sec(T_VT2) !== null && !txt('et-evid-aviso'), String(sec(T_VT2) !== null) + '/' + JSON.stringify(txt('et-evid-aviso'))]);

@@ -6021,45 +6021,6 @@ window.cerrarSesionReal = cerrarSesionReal;
         </div>
       </div>
       <div class="grid-2" style="margin-bottom:8px;">
-        <!-- Campos de PRÓTESIS (Fase 1, 2026-09-27). Se muestran sólo con una de las tres
-             opciones de prótesis y NO calculan nada todavía: la graduación es la Fase 2. -->
-        <div id="bloque-prot-vm" class="fg" style="display:none;">
-          <label>DVI <span style="font-weight:400;color:var(--text2);font-size:10px;">— índice de velocidad Doppler</span></label>
-          <!-- ⚠️ ESTE CAMPO NO TENÍA UN SOLO DISPARADOR. Nació en la Fase 1 —«no calculan
-               nada todavía»— y desde que el DVI se interpreta, tipearlo a mano no repintaba
-               nada: el médico cargaba el número y la cápsula seguía en «—». Es «un consumidor
-               nuevo sin su disparador», el patrón que este archivo documenta tres veces. -->
-          <input type="number" id="vm_dvi" step="0.01" placeholder="—" oninput="vmProtEOAPintar()">
-        </div>
-        <!-- ⚠️ CÁPSULA DE SÓLO LECTURA: ni un `id` de control acá dentro. `guardarInforme` barre
-             `input[id]`/`select[id]` de TODO el documento, así que un campo con id se guardaría en
-             `campos` de cada estudio y viajaría al Excel — la regla de los paneles de referencia de
-             Marfan. Los tres valores se DERIVAN en cada repintado de `vmProtEOA()`.
-             ⚠️ Y NO HAY UN CAMPO NUEVO DE VTI: el insumo es `em_vtimit`, que vive en el bloque de
-             Estenosis Mitral. Uno propio acá sería la cuarta entrada de la misma medición (el
-             patrón del espesor parietal, pagado tres veces). Por eso la cápsula NOMBRA el campo que
-             falta en vez de ofrecer dónde tipearlo de nuevo. -->
-        <div id="bloque-prot-vm-res" class="calc-box" style="display:none;margin-top:8px;">
-          <!-- ⚠️ LAS TRES FILAS DE LA TABLA 11 QUE FALTABAN (W1-9 y W1-8 del censo W1). Los tres
-               campos ya existian —`em_vmax`, `em_gmedio` y `thp`— y ninguno se leia con el corte
-               PROTESICO: el cuadro de referencias de mas abajo los rotulaba con el corte NATIVO.
-               No hay un campo nuevo ni una columna nueva: la capsula NOMBRA donde se carga cada
-               uno, igual que ya lo hace con el VTI mitral. -->
-          <div class="calc-row"><span class="calc-lbl">Velocidad pico de E <button type="button" class="vinfo-btn" data-vinfo="prot-vmax" aria-expanded="false" aria-label="Informaci&oacute;n sobre la velocidad pico de E de la pr&oacute;tesis" onclick="vInfoClic(this)">&#9432;</button></span><span class="calc-val" id="vm-prot-vmax">&mdash;</span></div>
-          <div class="calc-row"><span class="calc-lbl">Gradiente medio <button type="button" class="vinfo-btn" data-vinfo="prot-gmed" aria-expanded="false" aria-label="Informaci&oacute;n sobre el gradiente medio transprot&eacute;sico" onclick="vInfoClic(this)">&#9432;</button></span><span class="calc-val" id="vm-prot-gmed">&mdash;</span></div>
-          <div class="calc-row"><span class="calc-lbl">AEO por continuidad <button type="button" class="vinfo-btn" data-vinfo="prot-eoa" aria-expanded="false" aria-label="Información sobre AEO por continuidad" onclick="vInfoClic(this)">&#9432;</button></span><span class="calc-val" id="vm-prot-eoa">—</span></div>
-          <div class="calc-row"><span class="calc-lbl">DVI — VTI prótesis / VTI TSVI <button type="button" class="vinfo-btn" data-vinfo="prot-dvi" aria-expanded="false" aria-label="Información sobre DVI de la prótesis mitral" onclick="vInfoClic(this)">&#9432;</button></span><span class="calc-val" id="vm-prot-dvi">—</span></div>
-          <div class="calc-row"><span class="calc-lbl">THP &mdash; tiempo de hemipresi&oacute;n <button type="button" class="vinfo-btn" data-vinfo="prot-thp" aria-expanded="false" aria-label="Informaci&oacute;n sobre el THP de la pr&oacute;tesis mitral" onclick="vInfoClic(this)">&#9432;</button></span><span class="calc-val" id="vm-prot-thp">&mdash;</span></div>
-          <!-- ⚠️ FILA NUEVA (Z5, 2026-10-15): EL VEREDICTO DE OBSTRUCCION TIENE FILA PROPIA.
-               Hasta hoy `R.obstr` se publicaba PEGADO al valor del AEO, y con la regla de conteo
-               eso seria engañoso: el veredicto ya no es del AEO sino del conjunto, y un
-               «sugiere obstruccion significativa» al lado de un AEO que no es positivo se lee
-               como si lo fuera. Cada fila publica AHORA su propio nivel y el veredicto va aparte,
-               con la lista de los criterios que lo decidieron. Va DEBAJO de los cinco parametros
-               —es su conclusion— y ARRIBA del PPM, que es otra pregunta. -->
-          <div class="calc-row"><span class="calc-lbl" style="font-weight:700;">Obstrucci&oacute;n prot&eacute;sica <button type="button" class="vinfo-btn" data-vinfo="prot-obstr" aria-expanded="false" aria-label="Informaci&oacute;n sobre el veredicto de obstrucci&oacute;n prot&eacute;sica mitral" onclick="vInfoClic(this)">&#9432;</button></span><span class="calc-val" id="vm-prot-obstr">&mdash;</span></div>
-          <div class="calc-row"><span class="calc-lbl">PPM — AEO indexada <button type="button" class="vinfo-btn" data-vinfo="prot-ppm" aria-expanded="false" aria-label="Información sobre PPM — AEO indexada" onclick="vInfoClic(this)">&#9432;</button></span><span class="calc-val" id="vm-prot-ppm">—</span></div>
-        </div>
         <div id="bloque-prolapso-vm" class="fg" style="display:none;">
           <label style="font-weight:600">🔍 Detalle morfológico — Prolapso / Barlow</label>
           <div style="margin-bottom:6px">
@@ -6866,6 +6827,69 @@ window.cerrarSesionReal = cerrarSesionReal;
       </div>
       </div><!-- fin caja-esten-mitral -->
       </div><!-- fin vm-lesiones -->
+
+        <!-- ══ LOS DOS BLOQUES PROTESICOS SE MUDAN DEBAJO DE LA CUANTIFICACION (E-2b,
+             2026-10-27) ═══════════════════════════════════════════════════════════════════════
+             DECISION DE MAICOL: «el DVI y las referencias de estenosis protesica van DEBAJO del
+             bloque de cuantificacion habitual».
+             MEDIDO EN EL DOM ANTES DE MOVER NADA, no por coordenadas: los dos vivian entre los
+             cajones de GRADO de las dos lesiones y el envoltorio `#vm-lesiones` -el bloque de
+             cuantificacion habitual, con las tres columnas de cada lesion y sus dos cuadros de
+             referencias-. O sea que el medico leia el DVI y los cortes PROTESICOS antes de ver
+             una sola de las mediciones de las que salen.
+             ⚠️ Y LA AORTICA NO TENIA EL MISMO PROBLEMA, censado: `bloque-prot-va` vive DENTRO de
+             `#caja-esten-aortica`, que es parte de `#va-lesiones`, y sus filas protesicas
+             (`ea-det-*`) estan dentro de ese mismo cuadro. Es la decision del CORTOS2 -«las filas
+             de la protesis, DENTRO del cuadro»- que la mitral no habia seguido. Asi que esta
+             mudanza la pone a la par y no hay nada que cambiar del lado aortico.
+             ⚠️ POR QUE DEBAJO DE `#vm-lesiones` Y NO ADENTRO DE `#caja-esten-mitral`, que seria
+             el calco exacto de la aortica: ese envoltorio se PLIEGA con `valvDatosTog`, asi que
+             adentro los datos de la protesis desaparecerian al colapsar la estenosis — y la
+             protesis no es una lesion que se pueda plegar, es la valvula que tiene el paciente.
+             Afuera y debajo cumple la orden sin colgar el dato de un toggle.
+             ⚠️ `bloque-prolapso-vm` NO SE MUEVE y se queda en el `grid-2` de arriba: no es un
+             bloque protesico y la orden no lo nombra. -->
+        <div class="grid-2" style="margin-bottom:8px;">
+        <!-- Campos de PRÓTESIS (Fase 1, 2026-09-27). Se muestran sólo con una de las tres
+             opciones de prótesis y NO calculan nada todavía: la graduación es la Fase 2. -->
+        <div id="bloque-prot-vm" class="fg" style="display:none;">
+          <label>DVI <span style="font-weight:400;color:var(--text2);font-size:10px;">— índice de velocidad Doppler</span></label>
+          <!-- ⚠️ ESTE CAMPO NO TENÍA UN SOLO DISPARADOR. Nació en la Fase 1 —«no calculan
+               nada todavía»— y desde que el DVI se interpreta, tipearlo a mano no repintaba
+               nada: el médico cargaba el número y la cápsula seguía en «—». Es «un consumidor
+               nuevo sin su disparador», el patrón que este archivo documenta tres veces. -->
+          <input type="number" id="vm_dvi" step="0.01" placeholder="—" oninput="vmProtEOAPintar()">
+        </div>
+        <!-- ⚠️ CÁPSULA DE SÓLO LECTURA: ni un `id` de control acá dentro. `guardarInforme` barre
+             `input[id]`/`select[id]` de TODO el documento, así que un campo con id se guardaría en
+             `campos` de cada estudio y viajaría al Excel — la regla de los paneles de referencia de
+             Marfan. Los tres valores se DERIVAN en cada repintado de `vmProtEOA()`.
+             ⚠️ Y NO HAY UN CAMPO NUEVO DE VTI: el insumo es `em_vtimit`, que vive en el bloque de
+             Estenosis Mitral. Uno propio acá sería la cuarta entrada de la misma medición (el
+             patrón del espesor parietal, pagado tres veces). Por eso la cápsula NOMBRA el campo que
+             falta en vez de ofrecer dónde tipearlo de nuevo. -->
+        <div id="bloque-prot-vm-res" class="calc-box" style="display:none;margin-top:8px;">
+          <!-- ⚠️ LAS TRES FILAS DE LA TABLA 11 QUE FALTABAN (W1-9 y W1-8 del censo W1). Los tres
+               campos ya existian —`em_vmax`, `em_gmedio` y `thp`— y ninguno se leia con el corte
+               PROTESICO: el cuadro de referencias de mas abajo los rotulaba con el corte NATIVO.
+               No hay un campo nuevo ni una columna nueva: la capsula NOMBRA donde se carga cada
+               uno, igual que ya lo hace con el VTI mitral. -->
+          <div class="calc-row"><span class="calc-lbl">Velocidad pico de E <button type="button" class="vinfo-btn" data-vinfo="prot-vmax" aria-expanded="false" aria-label="Informaci&oacute;n sobre la velocidad pico de E de la pr&oacute;tesis" onclick="vInfoClic(this)">&#9432;</button></span><span class="calc-val" id="vm-prot-vmax">&mdash;</span></div>
+          <div class="calc-row"><span class="calc-lbl">Gradiente medio <button type="button" class="vinfo-btn" data-vinfo="prot-gmed" aria-expanded="false" aria-label="Informaci&oacute;n sobre el gradiente medio transprot&eacute;sico" onclick="vInfoClic(this)">&#9432;</button></span><span class="calc-val" id="vm-prot-gmed">&mdash;</span></div>
+          <div class="calc-row"><span class="calc-lbl">AEO por continuidad <button type="button" class="vinfo-btn" data-vinfo="prot-eoa" aria-expanded="false" aria-label="Información sobre AEO por continuidad" onclick="vInfoClic(this)">&#9432;</button></span><span class="calc-val" id="vm-prot-eoa">—</span></div>
+          <div class="calc-row"><span class="calc-lbl">DVI — VTI prótesis / VTI TSVI <button type="button" class="vinfo-btn" data-vinfo="prot-dvi" aria-expanded="false" aria-label="Información sobre DVI de la prótesis mitral" onclick="vInfoClic(this)">&#9432;</button></span><span class="calc-val" id="vm-prot-dvi">—</span></div>
+          <div class="calc-row"><span class="calc-lbl">THP &mdash; tiempo de hemipresi&oacute;n <button type="button" class="vinfo-btn" data-vinfo="prot-thp" aria-expanded="false" aria-label="Informaci&oacute;n sobre el THP de la pr&oacute;tesis mitral" onclick="vInfoClic(this)">&#9432;</button></span><span class="calc-val" id="vm-prot-thp">&mdash;</span></div>
+          <!-- ⚠️ FILA NUEVA (Z5, 2026-10-15): EL VEREDICTO DE OBSTRUCCION TIENE FILA PROPIA.
+               Hasta hoy `R.obstr` se publicaba PEGADO al valor del AEO, y con la regla de conteo
+               eso seria engañoso: el veredicto ya no es del AEO sino del conjunto, y un
+               «sugiere obstruccion significativa» al lado de un AEO que no es positivo se lee
+               como si lo fuera. Cada fila publica AHORA su propio nivel y el veredicto va aparte,
+               con la lista de los criterios que lo decidieron. Va DEBAJO de los cinco parametros
+               —es su conclusion— y ARRIBA del PPM, que es otra pregunta. -->
+          <div class="calc-row"><span class="calc-lbl" style="font-weight:700;">Obstrucci&oacute;n prot&eacute;sica <button type="button" class="vinfo-btn" data-vinfo="prot-obstr" aria-expanded="false" aria-label="Informaci&oacute;n sobre el veredicto de obstrucci&oacute;n prot&eacute;sica mitral" onclick="vInfoClic(this)">&#9432;</button></span><span class="calc-val" id="vm-prot-obstr">&mdash;</span></div>
+          <div class="calc-row"><span class="calc-lbl">PPM — AEO indexada <button type="button" class="vinfo-btn" data-vinfo="prot-ppm" aria-expanded="false" aria-label="Información sobre PPM — AEO indexada" onclick="vInfoClic(this)">&#9432;</button></span><span class="calc-val" id="vm-prot-ppm">—</span></div>
+        </div>
+        </div>
 
       <div class="fg" style="margin-top:8px;"><label>Notas mitral</label>
         <textarea id="vm_notas" placeholder="Ej: prolapso P2, mecanismo Carpentier..."></textarea>
@@ -49876,13 +49900,37 @@ document.addEventListener('change', function (e) {
      veredicto protésico tricuspídeo y ninguno de los dos `onchange` pasa por `calcET` —los dos van
      a `valvSev.aplicar`—. Se cuelga del oyente que ya existía, en captura y sin tocar esa cadena,
      que es el patrón de `vdTeiAvisoSync` para este mismo campo. */
-  if (id !== 'it_grado' && id !== 'ia_grado') return;
+  /* ⚠️ `et_grado` ENTRA EN ESTE OYENTE EN LA TANDA E (E-2a, 2026-10-27), Y ES LA CAUSA DE QUE EL
+     MEDICO NO VIERA EL AVISO DE LA AJ2-4. Medido en Chrome, paso por paso, con la escena EXACTA
+     del pedido -pastilla «Estenosis» abierta, severidad «Significativa» elegida, ningun insumo
+     cargado y la IT en «Sin»-:
+       · el TEXTO estaba bien y la COMPUERTA tambien: llamando a `etEvidAvisoSync()` a mano en ese
+         estado devuelve la frase completa, y `_indVT()` devuelve `null` -o sea que la Evidencia
+         de verdad no abre y el aviso de verdad corresponde-;
+       · lo que faltaba era el DISPARADOR. El `onchange` de `#et_grado` es
+         `valvSev.aplicar('esten','tricuspide',this.value)`, que NO pasa por `calcET` -el unico
+         lugar desde donde se llamaba al pintor-, y este oyente solo atrapaba `it_grado` e
+         `ia_grado`. Resultado: el aviso recien aparecia despues de un gesto que tocara una
+         MEDICION, que es justo el gesto que esa escena no tiene. En la sonda se ve clavado: en el
+         paso «et_grado=Significativa» el nodo mide 0 x 0 y su texto es la cadena vacia, y en el
+         paso siguiente -borrar el gradiente medio, que SI llama a `calcET`- mide 28 x 545 con la
+         frase entera.
+     Se cuelga del oyente que ya existia, en captura y sin tocar la cadena de `valvSev`, que es el
+     patron que `ia_grado` ya uso por esta misma razon. */
+  if (id !== 'it_grado' && id !== 'ia_grado' && id !== 'et_grado') return;
   if (id === 'it_grado') { try { etItAvisoSync(); } catch (x) {} }
   /* El grado de la IT es la OTRA puerta de la seccion («itSev || itMod»), asi que el aviso tiene
      que seguirlo: sin esto, graduar la IT abria la Evidencia y el aviso se quedaba puesto
-     diciendo que no se abre (AJ2-4). */
-  if (id === 'it_grado') { try { etEvidAvisoSync(); } catch (x) {} }
-  try { if (typeof vtProtObstrPintar === 'function') vtProtObstrPintar(); } catch (x) {}
+     diciendo que no se abre (AJ2-4). Y el de la ESTENOSIS es la condicion `marcada` del propio
+     aviso: sin el, el aviso no nace (E-2a). */
+  if (id === 'it_grado' || id === 'et_grado') { try { etEvidAvisoSync(); } catch (x) {} }
+  /* La capsula protesica tricuspidea se repinta por los DOS grados de regurgitacion que la
+     Tabla 19 evalua «in the absence of AR or TR», y `et_grado` no es uno de ellos: con el
+     tercer id adentro del oyente, esta linea se gatea para no agregar un repintado que no
+     cambia nada -y que en un modulo con salida temprana es una pasada de mas por gesto-. */
+  if (id === 'it_grado' || id === 'ia_grado') {
+    try { if (typeof vtProtObstrPintar === 'function') vtProtObstrPintar(); } catch (x) {}
+  }
 }, true);
 
 /* El PINTOR. Sólo pinta: el veredicto lo decide `etEstado`, que es lo que también lee el
@@ -134850,8 +134898,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261027-1254';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793116462643;                 /* eco-build-ms */
+const ECO_BUILD    = '20261027-1311';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793117509782;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -134937,7 +134985,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261027-1254</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261027-1311</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
