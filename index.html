@@ -76037,8 +76037,8 @@ function _indInfoHTML(lbl, htmlInterno){
    los tres eran `lista.map(_indFilaHTML)`, que le pasa (fila, INDICE, array): el día que esta
    función tuviera un segundo parámetro, la fila 0 se pintaría de un modo y las otras de otro,
    sin un error y sin que nada lo delate. Ese día es hoy, así que se cambian los tres.
-   `compacta` lo trae la SECCIÓN (ver `_indSecHTMLCuerpo`) y hoy lo pide una sola: la Fallot
-   reparada. Para las otras catorce esta rama no existe. */
+   `compacta` lo trae la SECCIÓN (ver `_indSecHTMLCuerpo`), y desde la tanda A lo piden OCHO.
+   Para las otras siete esta rama no existe. */
 function _indFilaHTML(f, compacta){
   const M = IND_MARCA[f.marca] || IND_MARCA.none;
   /* ══ QUÉ NOTA SE PLIEGA, Y LA COMPUERTA ES LA MARCA ════════════════════════════════════════
@@ -76059,10 +76059,11 @@ function _indFilaHTML(f, compacta){
      nueva que algún día devuelva `alarm` queda cubierta sin que nadie se acuerde de agregarla.
 
      El ❓ / ✅ / 🔴 / ⚠️ / — SIEMPRE queda visible: lo que se pliega es la prosa, no el estado. */
-  /* ══ Y EN MODO COMPACTO SE PLIEGAN TODAS (AJ6-2, 2026-10-24) ═══════════════════════════════
-     DECISIÓN DE MAICOL para la sección de Fallot: «una línea por dato medido (nombre, valor,
-     estado) con el texto largo en el ⓘ». Eso invierte, PARA ESA SECCIÓN, las dos reglas de
-     arriba: se pliega también la nota de una fila de dato y también la de una marca 🔴/⚠️.
+  /* ══ Y EN MODO COMPACTO SE PLIEGAN TODAS (AJ6-2, 2026-10-24; ocho secciones desde la tanda A)
+     DECISIÓN DE MAICOL, nacida en la sección de Fallot: «una línea por dato medido (nombre,
+     valor, estado) con el texto largo en el ⓘ». Eso invierte, PARA LAS OCHO SECCIONES
+     COMPACTAS, las dos reglas de arriba: se pliega también la nota de una fila de dato y
+     también la de una marca 🔴/⚠️.
      ⚠️ POR QUÉ ACÁ SÍ, con el argumento de la regla de arriba delante: lo que esa regla protege
         son las CONTRAINDICACIONES de la Tabla 8 de la estenosis mitral —«contraindicación de la
         comisurotomía percutánea»—, que son advertencias de seguridad. Las once notas de esta
@@ -76581,29 +76582,33 @@ function _indSecHTMLCuerpo(tit, r){
      Y las siete que traen `clinica` con filas de SOLO LECTURA (la auricular, la interventricular,
      el ductus, la coartación y la hipertrófica) entran igual: lo que define la columna derecha es
      «no evaluable por ecocardiograma», no que haya botones. */
-  /* ══ MODO COMPACTO — UNA SOLA SECCIÓN LO PIDE (AJ6-2, 2026-10-24) ══════════════════════════
-     DECISIÓN DE MAICOL para la Fallot reparada: las recomendaciones ARRIBA y las filas de una
-     línea abajo, con la prosa en el ⓘ. Son dos cambios de orden y ninguno de contenido.
-     ⚠️ ESTO INVIERTE, PARA ESA SECCIÓN, LA REGLA QUE ESTE MISMO ARCHIVO ESCRIBE DOS RENGLONES
-        MÁS ABAJO («la recomendación va DEBAJO de los datos que la sostienen y no arriba: arriba
-        se leería como el titular de la sección»). El motivo por el que acá no es un titular: la
-        sección publica DOS bloques de recomendación, uno por guía, cada uno con su clase, su
-        folio y la leyenda de que no se combinan — no hay una conclusión única que pueda leerse
-        como titular, y lo que el médico viene a buscar es qué dice cada guía. Las otras catorce
-        secciones no traen `compacta` y su orden no se mueve.
-     ⚠️ LOS DOS ARMADORES SE LLAMAN EN EL LUGAR DONDE SU HTML SE IMPRIME, Y NO ANTES. La primera
-        versión de esta tanda los precomputaba arriba y los emitía abajo según el modo, que es más
-        corto y está MAL: `_indBloqueHTML` y `_indRecomHTML` **numeran corchetes** —`_indRefMarca`
-        asigna por orden de primera aparición dentro de la sección— y precomputarlos le daba a sus
-        citas los números de las filas en las CATORCE secciones ajenas, donde se imprimen después.
-        O sea: el corchete dejaba de seguir el orden de lectura, sin un error y sin que ninguna
-        medición de texto de esta tanda lo viera. Lo encontró releer el propio diff.
-        Por eso hay dos ramas y no una variable. */
+  /* ══ MODO COMPACTO — OCHO SECCIONES LO PIDEN ══════════════════════════════════════════════
+     Las ocho, por orden de aparición en `IND_SECS`: Fallot reparada (`_indTdFIP`), derrame
+     pericárdico y taponamiento (`_indDerrPeri`), constricción pericárdica (`_indConstr`),
+     VExUS (`_indVexus`), perfil hemodinámico (`_indHemo`), cardiotoxicidad (`_indConco`),
+     amiloidosis cardíaca (`_indAmil`) y posoperatorio de cirugía cardíaca (`_indPOP`).
+     Lo que `compacta` gobierna son DOS cosas de forma y ninguna de contenido: la grilla se
+     marca `data-ind-compacta` —que enciende la regla de dos columnas de la hoja de estilos— y
+     `_indFilaHTML` pliega TODAS las notas en el ⓘ, para que cada dato ocupe una línea.
+     ⚠️ LO QUE YA NO GOBIERNA ES EL ORDEN, Y ESO RETIRA LA INVERSIÓN DEL AJ6-2 (tanda A).
+        DECISIÓN DE MAICOL: las ocho siguen el mismo orden que las otras siete secciones del
+        panel — (1) los datos del paciente, (2) lo que falta contestar, (3) las recomendaciones
+        con su clase y su nivel, (4) la teoría y las fórmulas, (5) la bibliografía—. El AJ6-2
+        había puesto las recomendaciones ARRIBA de la tabla para Fallot, con el argumento de que
+        una sección con dos bloques por guía no tiene una conclusión única que pueda leerse como
+        titular; hoy pesa más que las quince secciones se lean igual. La regla que este mismo
+        archivo escribe más abajo —«la recomendación va DEBAJO de los datos que la sostienen»—
+        vuelve a valer sin excepciones.
+     ⚠️ Y CON UN SOLO LUGAR DE LLAMADA, EL RIESGO DE NUMERACIÓN QUE EL AJ6-2 DOCUMENTÓ DESAPARECE.
+        `_indBloqueHTML` y `_indRecomHTML` **numeran corchetes** —`_indRefMarca` asigna por orden
+        de primera aparición dentro de la sección—, así que precomputar su HTML arriba y emitirlo
+        abajo le daba a sus citas los números de las filas. Mientras había dos ramas eso se
+        evitaba llamando a cada una en su lugar; con una sola, el corchete sigue el orden de
+        lectura por construcción y no por revisión. */
   const compacta = !!r.compacta;
   const _bloRec = function(){
     return ((r.bloques && r.bloques.length) ? r.bloques.map(_indBloqueHTML).join('') : '')
          + (r.recom ? _indRecomHTML(r.recom) : ''); };
-  if (compacta) h += _bloRec();
   const hayClin = !!(r.clinica && r.clinica.length);
   h += '<div data-ind-grid="1"' + (hayClin ? ' data-ind-dos="1"' : '') +
        (compacta ? ' data-ind-compacta="1"' : '') + '>';
@@ -76618,14 +76623,14 @@ function _indSecHTMLCuerpo(tit, r){
   }
   h += '</div>';
   /* La recomendación va DEBAJO de los datos que la sostienen y no arriba: es la conclusión de
-     lo que se acaba de leer, y arriba se leería como el titular de la sección. (La excepción
-     del modo compacto está arriba.) */
+     lo que se acaba de leer, y arriba se leería como el titular de la sección. Desde la tanda A
+     no tiene excepciones: el modo compacto dejó de invertir el orden. */
   /* El detalle se junta ANTES de pintarlo: `_indRecomHTML` empuja sus dos notas acá, así que el
      control tiene que armarse después de llamarla. */
   /* ⚠️ LOS BLOQUES VAN ENTRE LAS FILAS Y LA RECOMENDACIÓN, y el orden es el documentado: la
-     conclusión va DEBAJO de los datos que la sostienen. Catorce secciones no traen `bloques` y
-     para ellas esta línea no emite nada. */
-  if (!compacta) h += _bloRec();
+     conclusión va DEBAJO de los datos que la sostienen. Las secciones que no traen `bloques` ni
+     `recom` no emiten nada acá. */
+  h += _bloRec();
   /* Sólo los párrafos de contexto del final van al detalle. Sin rótulo y sin mezclarse con nada:
      al quedar `r.nota` visible, no hay dos orígenes que puedan confundirse. */
   /* Las dos formas: string (la mayoría) u objeto `{txt, refs}` para las notas que citan. */
@@ -83131,10 +83136,10 @@ function _indTdFIP(){
   const filas = [
     _indFila('Síntomas', sint === 'si' ? 'Sí' : (sint === 'no' ? 'No' : '—'),
       sint === 'si' ? 'alarm' : (sint === 'no' ? 'none' : 'ask'),
-      'separa la fila del sintomático de la del asintomático en las DOS guías'),
+      'separa la fila del sintomático de la del asintomático en las dos guías'),
     _indFila('Insuficiencia pulmonar — grado', ipEv ? (ipG || '—') : '—',
       ipG === 'Severa' ? 'alarm' : (ipEv ? 'none' : 'ask'),
-      'la guía europea pide insuficiencia pulmonar GRAVE; la estadounidense define su umbral por la fracción regurgitante de la resonancia y no por el grado del eco' +
+      'la guía europea pide insuficiencia pulmonar grave; la estadounidense define su umbral por la fracción regurgitante de la resonancia y no por el grado del eco' +
       (ipEv ? '' : '. El campo nace en «Sin insuficiencia», así que sin ningún parámetro de la insuficiencia pulmonar medido no se puede distinguir una válvula normal de una que nadie evaluó')),
     _indFila('Velocidad pico pulmonar', vmax != null ? _indNum(vmax, 1, 'm/s') : '—',
       escOtsvd ? 'alarm' : (vmax != null ? 'none' : 'ask'),
@@ -83144,7 +83149,7 @@ function _indTdFIP(){
       'con obstrucción residual del tracto de salida, la presión que estima la insuficiencia tricuspídea es la del ventrículo derecho; es criterio SÓLO de la guía europea, por encima de ' + TDF_IP_ESC.psvd_min + ' mmHg'),
     _indFila('Función sistólica del VD (consignada)', funcVD || '—',
       funcVD === 'severa' || funcVD === 'moderada' ? 'warn' : (funcVD ? 'none' : 'ask'),
-      'el grado consignado describe el estudio de hoy; lo que las dos tablas piden es la PROGRESIÓN, que se consigna abajo'),
+      'el grado consignado describe el estudio de hoy; lo que las dos tablas piden es la progresión, que se consigna abajo'),
     _indFila('Fracción de eyección del VD', fevd != null ? _indNum(fevd, 0, '%') : '—',
       _le(fevd, TDF_IP_ACC.fevd) ? 'alarm' : (fevd != null ? 'none' : 'ask'),
       'criterio SÓLO de la guía estadounidense: ' + TDF_IP_ACC.fevd + ' % o menos'),
@@ -83161,21 +83166,21 @@ function _indTdFIP(){
       (uTS == null || uTD == null)
         ? 'los umbrales volumétricos de la guía europea no están disponibles en esta carga: recargar la aplicación. Sin ellos ese criterio no se evalúa.'
         : ((vtsvdi != null || vtdvdi != null) && !volRMC
-            ? 'el método consignado no es resonancia, así que los volúmenes se declaran y NO votan: los umbrales de las dos guías están validados sobre resonancia y la ecocardiografía 3D subestima los volúmenes del ventrículo derecho'
+            ? 'el método consignado no es resonancia, así que los volúmenes se declaran y no votan: los umbrales de las dos guías están validados sobre resonancia y la ecocardiografía 3D subestima los volúmenes del ventrículo derecho'
             : 'la europea pide ' + uTS + ' ml/m² o más de telesistólico, o ' + uTD + ' ml/m² o más de telediastólico; la estadounidense pide el telesistólico POR ENCIMA de ' + TDF_IP_ACC.vtsvdi + ' ml/m², así que un valor de ' + TDF_IP_ACC.vtsvdi + ' exactos cuenta para una y no para la otra')),
     _indFila('Caída objetiva de la capacidad de ejercicio',
       ejerc === 'si' ? 'Sí' : (ejerc === 'no' ? 'No' : '—'),
       ejerc === 'si' ? 'alarm' : (ejerc === 'no' ? 'none' : 'ask'),
-      'es criterio del asintomático en las DOS guías'),
+      'es criterio del asintomático en las dos guías'),
     _indFila('Insuficiencia tricuspídea — grado',
       itEv ? (_IND_IT_TXT[String(itG)] || '—') : '—',
       itEv && isFinite(itG) && itG >= 2 ? 'warn' : (itEv ? 'none' : 'ask'),
-      'la europea la cuenta cuando PROGRESA a moderada o mayor; la estadounidense le dedica una fila propia' +
+      'la europea la cuenta cuando progresa a moderada o mayor; la estadounidense le dedica una fila propia' +
       (itEv ? '' : '. El campo nace en «Sin», así que sin ningún parámetro medido no se puede distinguir una tricúspide normal de una que nadie evaluó')),
     _indFilaCtrl('Fracción regurgitante pulmonar por resonancia', 'tdfip.rf',
       [{v:'gt40',t:'> 40 %'},{v:'b2640',t:'26 a 40 %'},{v:'le25',t:'25 % o menos'},{v:'nomed',t:'No medida'}],
       rf == null ? 'ask' : (rfSobre25 ? 'alarm' : 'none'),
-      'es como las dos guías definen la insuficiencia pulmonar y NO coinciden: la estadounidense pide POR ENCIMA de ' + TDF_IP_ACC.rf_min + ' % y la europea escribe un rango, «por encima de 30-40 %», del que esta aplicación toma el extremo ALTO —' + TDF_IP_ESC.rf_min + ' %—, que es el que no afirma de más. La franja de 26 a 40 % cuenta para la estadounidense y NO para la europea.'),
+      'es como las dos guías definen la insuficiencia pulmonar y no coinciden: la estadounidense pide por encima de ' + TDF_IP_ACC.rf_min + ' % y la europea escribe un rango, «por encima de 30-40 %», del que esta aplicación toma el extremo alto —' + TDF_IP_ESC.rf_min + ' %—, que es el que no afirma de más. La franja de 26 a 40 % cuenta para la estadounidense y no para la europea.'),
     _indFilaCtrl('¿La presión sistólica del VD supera los dos tercios de la sistémica?', 'tdfip.rvsp23',
       [{v:'si',t:'Sí'},{v:'no',t:'No'}],
       rvsp23 == null ? 'ask' : (rvsp23 === 'si' ? 'alarm' : 'none'),
@@ -83183,7 +83188,7 @@ function _indTdFIP(){
     _indFilaCtrl('¿Deterioro PROGRESIVO de la función sistólica del ventrículo DERECHO?', 'tdfip.progvd',
       [{v:'si',t:'Sí'},{v:'no',t:'No'}],
       progVD == null ? 'ask' : (progVD === 'si' ? 'alarm' : 'none'),
-      'un ecocardiograma aislado no sabe si algo progresa: se compara con los estudios previos. Cuenta en las DOS guías.'),
+      'un ecocardiograma aislado no sabe si algo progresa: se compara con los estudios previos. Cuenta en las dos guías.'),
     _indFilaCtrl('¿Deterioro PROGRESIVO de la función sistólica del ventrículo IZQUIERDO?', 'tdfip.progvi',
       [{v:'si',t:'Sí'},{v:'no',t:'No'}],
       progVI == null ? 'ask' : (progVI === 'si' ? 'alarm' : 'none'),
@@ -83198,20 +83203,20 @@ function _indTdFIP(){
   const acc = [], esc = [], faltan = [];
   if (accDisf) {
     if (sint === 'si') {
-      acc.push({ txt:'Clase 1 · Nivel B-NR — En el adulto SINTOMÁTICO con tetralogía de Fallot reparada y disfunción valvular pulmonar al menos moderada, se RECOMIENDA el reemplazo de la válvula pulmonar, quirúrgico o percutáneo, para aliviar los síntomas (recomendación 9 del apartado 4.3.5, folio e182).', refs:['achd2025'] });
+      acc.push({ txt:'Clase 1 · Nivel B-NR — En el adulto sintomático con tetralogía de Fallot reparada y disfunción valvular pulmonar al menos moderada, se recomienda el reemplazo de la válvula pulmonar, quirúrgico o percutáneo, para aliviar los síntomas.', refs:null });
     } else if (sint === 'no') {
-      acc.push({ txt:'Clase 2a · Nivel B-NR — En el adulto ASINTOMÁTICO con disfunción valvular pulmonar al menos moderada y al menos ' + TDF_IP_ACC.n_min + ' de sus cinco criterios, el reemplazo de la válvula pulmonar es RAZONABLE para mejorar la evolución, incluida la reducción del riesgo de arritmias ventriculares y de muerte (recomendación 10, folio e182). Con los datos cargados ' + (accPos === 1 ? 'se cumple 1 de esos cinco criterios' : 'se cumplen ' + accPos + ' de esos cinco criterios') + (accNoEval ? (accNoEval === 1 ? ', y 1 no se pudo evaluar' : ', y ' + accNoEval + ' no se pudieron evaluar') : '') + '.', refs:['achd2025'] });
+      acc.push({ txt:'Clase 2a · Nivel B-NR — En el adulto asintomático con disfunción valvular pulmonar al menos moderada y al menos ' + TDF_IP_ACC.n_min + ' de sus cinco criterios, el reemplazo de la válvula pulmonar es razonable para mejorar la evolución, incluida la reducción del riesgo de arritmias ventriculares y de muerte. Con los datos cargados ' + (accPos === 1 ? 'se cumple 1 de esos cinco criterios' : 'se cumplen ' + accPos + ' de esos cinco criterios') + (accNoEval ? (accNoEval === 1 ? ', y 1 no se pudo evaluar' : ', y ' + accNoEval + ' no se pudieron evaluar') : '') + '.', refs:null });
     } else {
       faltan.push({ txt:'Falta consignar si el paciente está sintomático: de eso dependen las dos primeras filas de la guía estadounidense.', refs:null });
     }
     if (progVD === 'si' || progVI === 'si') {
-      acc.push({ txt:'Clase 2a · Nivel C-LD — Con disfunción valvular pulmonar al menos moderada y deterioro PROGRESIVO de la función sistólica ventricular, el reemplazo de la válvula pulmonar es RAZONABLE para preservar la función ventricular (recomendación 13, folio e182).', refs:['achd2025'] });
+      acc.push({ txt:'Clase 2a · Nivel C-LD — Con disfunción valvular pulmonar al menos moderada y deterioro progresivo de la función sistólica ventricular, el reemplazo de la válvula pulmonar es razonable para preservar la función ventricular.', refs:null });
     }
     if (progIT === 'si' && itEv && isFinite(itG) && itG >= 2) {
-      acc.push({ txt:'Clase 2b · Nivel C-LD — Con disfunción valvular pulmonar al menos moderada y progresión de una insuficiencia tricuspídea funcional de grado moderado o mayor asociada a dilatación del ventrículo derecho, la intervención sobre la válvula pulmonar PUEDE ser razonable para evitar que empeoren la disfunción tricuspídea y la dilatación del VD (recomendación 14, folio e182).', refs:['achd2025'] });
+      acc.push({ txt:'Clase 2b · Nivel C-LD — Con disfunción valvular pulmonar al menos moderada y progresión de una insuficiencia tricuspídea funcional de grado moderado o mayor asociada a dilatación del ventrículo derecho, la intervención sobre la válvula pulmonar puede ser razonable para evitar que empeoren la disfunción tricuspídea y la dilatación del VD.', refs:null });
     }
   } else if (accDisfNo) {
-    acc.push({ txt:'La fracción regurgitante consignada no supera el ' + TDF_IP_ACC.rf_min + ' % y la presión sistólica del VD no supera los dos tercios de la sistémica: sin disfunción valvular pulmonar al menos moderada, ninguna de las cuatro filas terapéuticas de esta guía aplica.', refs:['achd2025'] });
+    acc.push({ txt:'La fracción regurgitante consignada no supera el ' + TDF_IP_ACC.rf_min + ' % y la presión sistólica del VD no supera los dos tercios de la sistémica: sin disfunción valvular pulmonar al menos moderada, ninguna de las cuatro filas terapéuticas de esta guía aplica.', refs:null });
   } else {
     faltan.push({ txt:'Falta la fracción regurgitante pulmonar por resonancia o la relación entre la presión sistólica del VD y la sistémica: las dos definen la «disfunción valvular pulmonar al menos moderada» que las cuatro filas de la guía estadounidense piden como condición.', refs:null });
   }
@@ -83219,26 +83224,33 @@ function _indTdFIP(){
   /* ── Bloque de la guía europea ───────────────────────────────────────────────────────────── */
   if (escDisf) {
     if (sint === 'si') {
-      esc.push({ txt:'Clase I · Nivel C — El reemplazo de la válvula pulmonar está INDICADO en el paciente SINTOMÁTICO con insuficiencia pulmonar grave u obstrucción del tracto de salida del ventrículo derecho al menos moderada (tabla de recomendaciones para la reintervención tras reparación de la tetralogía de Fallot, folio e50).', refs:['escGuch2020Es'] });
+      esc.push({ txt:'Clase I · Nivel C — El reemplazo de la válvula pulmonar está indicado en el paciente sintomático con insuficiencia pulmonar grave u obstrucción del tracto de salida del ventrículo derecho al menos moderada.', refs:null });
     } else if (sint === 'no') {
-      esc.push({ txt:'Clase IIa · Nivel C — En el paciente ASINTOMÁTICO con insuficiencia pulmonar grave u obstrucción del tracto de salida se DEBE CONSIDERAR el reemplazo de la válvula pulmonar cuando hay al menos UNO de sus cuatro criterios (misma tabla, folio e50). Con los datos cargados ' + (escPos === 1 ? 'se cumple 1 de esos cuatro' : 'se cumplen ' + escPos + ' de esos cuatro') + '.', refs:['escGuch2020Es'] });
+      esc.push({ txt:'Clase IIa · Nivel C — En el paciente asintomático con insuficiencia pulmonar grave u obstrucción del tracto de salida se debe considerar el reemplazo de la válvula pulmonar cuando hay al menos uno de sus cuatro criterios. Con los datos cargados ' + (escPos === 1 ? 'se cumple 1 de esos cuatro' : 'se cumplen ' + escPos + ' de esos cuatro') + '.', refs:null });
     } else {
       faltan.push({ txt:'Falta consignar si el paciente está sintomático: de eso dependen las dos primeras filas de la guía europea.', refs:null });
     }
-    esc.push({ txt:'Clase I · Nivel C — Se PREFIERE el implante percutáneo de válvula pulmonar, si es anatómicamente factible, en el paciente que no tiene tracto de salida nativo: la nota ᵉ de la tabla lo define como el que tuvo cirugía previa del tracto de salida con homoinjerto, injerto de vena yugular bovina o bioprótesis o conducto (misma tabla, folio e50). Esta aplicación no registra ese antecedente, así que la fila se publica y no se evalúa.', refs:['escGuch2020Es'] });
+    esc.push({ txt:'Clase I · Nivel C — Se prefiere el implante percutáneo de válvula pulmonar, si es anatómicamente factible, en el paciente que no tiene tracto de salida nativo: la nota ᵉ de la tabla lo define como el que tuvo cirugía previa del tracto de salida con homoinjerto, injerto de vena yugular bovina o bioprótesis o conducto. Esta aplicación no registra ese antecedente, así que la fila se publica y no se evalúa.', refs:null });
   } else if (ipEv && ipG !== 'Severa' && vmax != null && rf != null) {
-    esc.push({ txt:'La insuficiencia pulmonar consignada no es grave y la velocidad pico no supera los ' + TDF_IP_ESC.vmax_min + ' m/s: sin ninguna de las dos, las tres filas de esta tabla no aplican.', refs:['escGuch2020Es'] });
+    esc.push({ txt:'La insuficiencia pulmonar consignada no es grave y la velocidad pico no supera los ' + TDF_IP_ESC.vmax_min + ' m/s: sin ninguna de las dos, las tres filas de esta tabla no aplican.', refs:null });
   } else {
     faltan.push({ txt:'Falta el grado de insuficiencia pulmonar, la velocidad pico pulmonar o la fracción regurgitante por resonancia: las tres filas de la guía europea piden insuficiencia pulmonar grave u obstrucción al menos moderada.', refs:null });
   }
 
+  /* ⚠️ UNA SOLA CITA POR BLOQUE, Y VA AL FINAL (tanda A, regla R2). Las lineas de arriba
+     perdieron su parentesis y su corchete; el apartado, el numero de recomendacion y el folio
+     viajan a esta linea de cierre y al ⓘ de la seccion, sin perder nada. Se agrega SOLO si el
+     bloque publico algo: una cita suelta debajo de un bloque vacio se lee como si faltara el
+     texto que respalda. */
+  if (acc.length) acc.push({ txt:'Fuente: guía estadounidense de cardiopatías congénitas del adulto, apartado 4.3.5, folio e182.', refs:['achd2025'] });
+  if (esc.length) esc.push({ txt:'Fuente: guía europea de cardiopatías congénitas del adulto, tabla de reintervención tras reparación de la tetralogía de Fallot, folio e50.', refs:['escGuch2020Es'] });
+
   const bloques = [
     { tit:'Guía estadounidense de cardiopatías congénitas del adulto — tetralogía de Fallot (folio e182)',
-      lineas: acc,
-      nota:'El informe y la conclusión de la aplicación son DESCRIPTIVOS: estas recomendaciones se publican acá y no en el papel firmado.' },
+      lineas: acc },
     { tit:'Guía europea de cardiopatías congénitas del adulto — reintervención tras reparación de la tetralogía de Fallot (folio e50)',
       lineas: esc,
-      nota:'Las dos guías NO piden lo mismo: difieren en qué llaman disfunción valvular pulmonar, en cuántos criterios hacen falta en el asintomático y en cuáles son. Cada una se publica con su fuente y no se combinan.' }
+      nota:'Las dos guías no piden lo mismo: difieren en qué llaman disfunción valvular pulmonar, en cuántos criterios hacen falta en el asintomático y en cuáles son. Cada una se publica con su fuente y no se combinan.' }
   ];
   /* ⚠️ PLEGADO Y RENOMBRADO (AJ6-2, 2026-10-24): «Lo que falta contestar», compacto. El
      mecanismo es el `plegado` que `_indBloqueHTML` ya tiene —el `<details>` anidado— y no un
@@ -83251,17 +83263,25 @@ function _indTdFIP(){
      exactamente el salto que esa función existe para evitar. */
   if (faltan.length) bloques.push({ tit:'Lo que falta contestar', plegado:true, lineas: faltan });
 
-  /* `compacta`: recomendaciones arriba, una línea por fila y la prosa en el ⓘ. Ver
-     `_indSecHTMLCuerpo` y `_indFilaHTML`. Es la única sección que la trae. */
+  /* `compacta`: una línea por fila y la prosa en el ⓘ. El orden lo fija `_indSecHTMLCuerpo`,
+     que desde la tanda A es el mismo para las quince secciones. Son OCHO las que la traen. */
   return { filas: filas, bloques: bloques, compacta: true,
     clinica: [
       _indFila('Volumen telediastólico del VD comparado con el del VI', '—', 'ask',
         'es uno de los cinco criterios del asintomático de la guía estadounidense y NO se puede evaluar acá: el volumen del ventrículo derecho se transcribe de la resonancia y está indexado, mientras que el del izquierdo lo mide este ecocardiograma y está en mililitros')
     ],
     guia: { ref:'achd2025',
-      txt:'La guía estadounidense define la disfunción valvular pulmonar al menos moderada en la nota * de su tabla: insuficiencia pulmonar moderada —fracción regurgitante por resonancia por encima de ' + TDF_IP_ACC.rf_min + ' %— o presión sistólica del ventrículo derecho por encima de dos tercios de la sistémica por obstrucción del tracto de salida (folio e182).',
-      nota:'La guía europea usa otra definición —insuficiencia pulmonar GRAVE, con fracción regurgitante por resonancia «por encima de 30-40 %», u obstrucción al menos moderada con velocidad pico por encima de ' + TDF_IP_ESC.vmax_min + ' m/s (folio e50)—, pide UN criterio donde la estadounidense pide ' + TDF_IP_ACC.n_min + ', y su lista no es la misma. De la biblioteca de este repositorio, de la guía europea está la TRADUCCIÓN al español, y los folios que se citan son los de esa traducción.' },
-    notas: acc.concat(esc).map(function(l){ return l.txt }) };
+      txt:'La guía estadounidense define la disfunción valvular pulmonar al menos moderada en la nota * de su tabla: insuficiencia pulmonar moderada o presión sistólica del ventrículo derecho por encima de dos tercios de la sistémica por obstrucción del tracto de salida (folio e182). La europea pide insuficiencia pulmonar grave u obstrucción al menos moderada (folio e50).',
+      nota:'Las dos no piden lo mismo: la europea pide un criterio donde la estadounidense pide ' + TDF_IP_ACC.n_min + ', y su lista no es la misma. Los cortes de fracción regurgitante de cada una están en el ⓘ de su propia fila.' },
+    /* ⚠️ `notas` DEJA DE SER UNA COPIA DE LOS BLOQUES (tanda A, regla R4). Era
+       `acc.concat(esc).map(l => l.txt)`, o sea las mismas siete lineas que el bloque ya publica
+       VISIBLES, otra vez detras del «ⓘ Ver detalle». Lo que queda aca es lo que las lineas
+       perdieron por la regla R2 —el apartado, los numeros de recomendacion, las notas al pie— y
+       la salvedad de la traduccion, que es una reserva de metodo y no una afirmacion clinica. */
+    notas: [
+      { txt:'Guía estadounidense: las cuatro filas terapéuticas de esta sección son las recomendaciones 9, 10, 13 y 14 del apartado 4.3.5, folio e182, y la definición de disfunción valvular pulmonar al menos moderada está en la nota * de esa misma tabla.', refs:['achd2025'] },
+      { txt:'Guía europea: las tres filas salen de la tabla de recomendaciones para la reintervención tras reparación de la tetralogía de Fallot, folio e50, con su nota ᵈ —la velocidad pico que define la obstrucción al menos moderada—, su nota ᵉ —qué cuenta como tracto de salida no nativo— y su nota ᶠ —la progresión confirmada con determinaciones repetidas—. De la biblioteca de este repositorio está la traducción al español, y los folios que se citan son los de esa traducción.', refs:['escGuch2020Es'] }
+    ] };
 }
 
 /* ══ EVIDENCIA · DERRAME PERICARDICO Y TAPONAMIENTO (J-2, 2026-10-24) ═══════════════════════
@@ -83487,7 +83507,7 @@ function _indConstr(){
 
   const filas = [
     _indFila("e' medial", d.esep !== null ? n1(d.esep) + ' cm/s' : '—', mk("e' medial"),
-      'la guía parte este valor en TRES: por encima de ' + CVR_ESEP_CONSTR_MIN + ' cm/s orienta a constricción pericárdica, por debajo de ' + CVR_ESEP_RESTR_MAX + ' a restricción, y entre ' + CVR_ESEP_RESTR_MAX + ' y ' + CVR_ESEP_CONSTR_MIN + ' dice textualmente que se trata de formas mixtas y no distingue (apartado 11.9.3, folio 63, y Figura S1 con su nota b, hoja 6 del material suplementario)',
+      'la guía parte este valor en tres: por encima de ' + CVR_ESEP_CONSTR_MIN + ' cm/s orienta a constricción pericárdica, por debajo de ' + CVR_ESEP_RESTR_MAX + ' a restricción, y entre ' + CVR_ESEP_RESTR_MAX + ' y ' + CVR_ESEP_CONSTR_MIN + ' dice textualmente que se trata de formas mixtas y no distingue (apartado 11.9.3, folio 63, y Figura S1 con su nota b, hoja 6 del material suplementario)',
       ['escPeri2025']),
     _indFila('Annulus reversus',
       st.reversus === null ? '—' : (st.reversus ? "Presente (e' medial > e' lateral)" : 'Ausente'),
@@ -83499,27 +83519,27 @@ function _indConstr(){
       ['escPeri2025']),
     _indFila('Patrón venoso hepático', vt('Patrón venoso hepático', 'Inversión espiratoria', 'Inversión inspiratoria'),
       mk('Patrón venoso hepático'),
-      'la inversión diastólica ESPIRATORIA es la que la guía asocia a constricción (apartado 11.9.3, folio 63)',
+      'la inversión diastólica espiratoria es la que la guía asocia a constricción (apartado 11.9.3, folio 63)',
       ['escPeri2025']),
     _indFila('Cociente de inversión espiratoria hepática',
       d.hepCoc !== null ? String(d.hepCoc).replace('.', ',') : '—',
       (d.hepCoc !== null && d.hepCoc > CVR_HEP_COC_MIN) ? 'alarm' : (d.hepCoc !== null ? 'none' : 'ask'),
-      'es la segunda alternativa de los criterios de la Clínica Mayo, junto al rebote septal: un cociente de inversión diastólica espiratoria de la vena hepática por encima de ' + String(CVR_HEP_COC_MIN).replace('.', ',') + ', con sensibilidad del 87 % y especificidad del 91 % —que sube al 97 % si se cumplen todos los criterios, a costa de bajar la sensibilidad al 64 % (apartado 11.9.3, folio 63)—. ⚠️ La Figura S1 del material suplementario lo REDONDEA a 0,8 en su nota c (hoja 6): entre ' + String(CVR_HEP_COC_MIN).replace('.', ',') + ' y 0,80 las dos cifras de la misma guía dan resultados distintos, y la aplicación usa la del texto, que es la que trae esos dos porcentajes.',
+      'es la segunda alternativa de los criterios de la Clínica Mayo, junto al rebote septal: un cociente de inversión diastólica espiratoria de la vena hepática por encima de ' + String(CVR_HEP_COC_MIN).replace('.', ',') + ', con sensibilidad del 87 % y especificidad del 91 % —que sube al 97 % si se cumplen todos los criterios, a costa de bajar la sensibilidad al 64 % (apartado 11.9.3, folio 63)—. ⚠️ La Figura S1 del material suplementario lo redondea a 0,8 en su nota c (hoja 6): entre ' + String(CVR_HEP_COC_MIN).replace('.', ',') + ' y 0,80 las dos cifras de la misma guía dan resultados distintos, y la aplicación usa la del texto, que es la que trae esos dos porcentajes.',
       ['escPeri2025']),
     _indFila('Variación respiratoria de la onda E mitral', d.varM !== null ? _indNum(d.varM, 0, '%') : '—',
       mk('Respirofasicidad mitral'),
-      'la guía dice que en estos pacientes puede registrarse una variación respirofásica del llenado mitral por encima del ' + DPT_VAR_MITRAL_SIG + ' % (apartado 11.9.3, folio 63). Es un hallazgo que ACOMPAÑA, no uno de los dos criterios de la Clínica Mayo.',
+      'la guía dice que en estos pacientes puede registrarse una variación respirofásica del llenado mitral por encima del ' + DPT_VAR_MITRAL_SIG + ' % (apartado 11.9.3, folio 63). Es un hallazgo que acompaña, no uno de los dos criterios de la Clínica Mayo.',
       ['escPeri2025']),
     _indFila('Variación respiratoria de la onda E tricúspide', d.varT !== null ? _indNum(d.varT, 0, '%') : '—',
       mk('Respirofasicidad tricúspide'),
       'mismo párrafo: por encima del ' + DPT_VAR_TRIC_SIG + ' % en el llenado tricuspídeo (folio 63)',
       ['escPeri2025']),
     _indFila('Plétora de vena cava inferior', vt('Plétora de VCI', 'Presente', 'Variable'), mk('Plétora de VCI'),
-      'la Figura S1 pide una vena cava DILATADA, sin dar cifra, y la aplicación usa la de la Tabla 17 —por encima de ' + DPT_VCI_PLETORA_MM + ' mm con reducción menor del 50 %— porque es la única que esa guía publica (folio 62). ⚠️ La nota a de la Figura S1 avisa de que es un hallazgo de APOYO y de que puede faltar en el paciente que toma diuréticos (hoja 6).',
+      'la Figura S1 pide una vena cava DILATADA, sin dar cifra, y la aplicación usa la de la Tabla 17 —por encima de ' + DPT_VCI_PLETORA_MM + ' mm con reducción menor del 50 %— porque es la única que esa guía publica (folio 62). ⚠️ La nota a de la Figura S1 avisa de que es un hallazgo de apoyo y de que puede faltar en el paciente que toma diuréticos (hoja 6).',
       ['escPeri2025']),
     _indFila('Engrosamiento pericárdico en TC o RMC',
       vt('Engrosamiento pericárdico', 'Engrosado o calcificado', 'Normal'), mk('Engrosamiento pericárdico'),
-      'un pericardio normal NO descarta: la guía dice que hasta el 20 % de las constricciones cursan con grosor pericárdico normal, y que los casos típicos y avanzados muestran engrosamiento y calcificación (apartado 11.9.2, folio 63). ⚠️ El corte de 3 mm del selector de la aplicación no figura en el texto verificado: es criterio propio y por eso esta fila no lo cita.',
+      'un pericardio normal no descarta: la guía dice que hasta el 20 % de las constricciones cursan con grosor pericárdico normal, y que los casos típicos y avanzados muestran engrosamiento y calcificación (apartado 11.9.2, folio 63). ⚠️ El corte de 3 mm del selector de la aplicación no figura en el texto verificado: es criterio propio y por eso esta fila no lo cita.',
       ['escPeri2025']),
     /* ⚠️ SIN CORCHETE: ni el e' lateral ni el E/e' salen de esta guia. */
     _indFila("e' lateral y E/e' promedio",
@@ -83527,12 +83547,12 @@ function _indConstr(){
         ? ((d.elat !== null ? n1(d.elat) + ' cm/s' : '—') + " · E/e' " + (d.ee !== null ? n1(d.ee) : '—'))
         : '—',
       'none',
-      "criterio de EcoSmart: el e' lateral de " + CVR_ELAT_CM_S + ' cm/s y el E/e′ de ' + CVR_EE_ALTO + " son criterios MAYORES de función diastólica del HFA-PEFF (Pieske 2019, folio 3303: «lateral e' <10 cm/s» y «average septal-lateral E/e' ratio ≥15»), no cortes de la distinción entre constricción y restricción. La aplicación los usa acá por decisión propia, y por eso esta fila no lleva cita."),
+      "criterio de EcoSmart: el e' lateral de " + CVR_ELAT_CM_S + ' cm/s y el E/e′ de ' + CVR_EE_ALTO + " son criterios mayores de función diastólica del HFA-PEFF (Pieske 2019, folio 3303: «lateral e' <10 cm/s» y «average septal-lateral E/e' ratio ≥15»), no cortes de la distinción entre constricción y restricción. La aplicación los usa acá por decisión propia, y por eso esta fila no lleva cita."),
     _indFila('Recuento de criterios',
       'constricción ' + st.nC + ' · restricción ' + st.nR + ' · específicos del pericardio evaluados ' + st.espEval,
       'none',
       'criterio de EcoSmart: cuántos criterios hacen falta de cada lado, y cuáles cuentan, es una regla propia de la aplicación. Ninguna guía de la biblioteca publica un recuento así, y por eso esta fila no lleva cita. La guía razona por el algoritmo de la Figura S1, no por conteo.'),
-    _indFilaCtrl('¿La imagen multimodal —ecocardiografía, TC y RMC— fue CONCLUYENTE?', 'constr.imagen',
+    _indFilaCtrl('¿La imagen multimodal —ecocardiografía, TC y RMC— fue concluyente?', 'constr.imagen',
       [{v:'si',t:'Sí'},{v:'no',t:'No'}],
       concl == null ? 'ask' : (concl === 'no' ? 'alarm' : 'none'),
       'es la única condición que la guía le pone al cateterismo: sólo se considera cuando la imagen multimodal no invasiva no es concluyente (apartado 11.9.3, folio 63, y Recommendation Table 24, folio 64). La aplicación no puede saberlo: depende de la TC y de la resonancia, que no vive acá.',
@@ -83540,27 +83560,33 @@ function _indConstr(){
   ];
 
   const rec = [], faltan = [];
-  rec.push({ txt:'Clase I · Nivel C — La guía RECOMIENDA la imagen multimodal en todo paciente con sospecha de pericarditis constrictiva, para hacer el diagnóstico y para valorar el engrosamiento pericárdico, las calcificaciones y la inflamación activa (Recommendation Table 24, folio 64).', refs:['escPeri2025'] });
+  rec.push({ txt:'Clase I · Nivel C — La guía recomienda la imagen multimodal en todo paciente con sospecha de pericarditis constrictiva, para hacer el diagnóstico y para valorar el engrosamiento pericárdico, las calcificaciones y la inflamación activa.', refs:null });
   if (concl === 'no') {
-    rec.push({ txt:'Clase IIa · Nivel C — Con la imagen multimodal NO concluyente, la guía dice que SE DEBE CONSIDERAR el cateterismo cardíaco para valoración hemodinámica en el paciente con sospecha de pericarditis constrictiva (Recommendation Table 24, folio 64).', refs:['escPeri2025'] });
+    rec.push({ txt:'Clase IIa · Nivel C — Con la imagen multimodal no concluyente, la guía dice que se debe considerar el cateterismo cardíaco para valoración hemodinámica en el paciente con sospecha de pericarditis constrictiva.', refs:null });
   } else if (concl === 'si') {
-    rec.push({ txt:'Con la imagen multimodal concluyente, el cateterismo NO corresponde por esta guía: su única fila lo condiciona a que la imagen no invasiva no sea concluyente (Recommendation Table 24, folio 64; mismo sentido en el apartado 11.9.3, folio 63).', refs:['escPeri2025'] });
+    rec.push({ txt:'Con la imagen multimodal concluyente, el cateterismo no corresponde por esta guía: su única fila lo condiciona a que la imagen no invasiva no sea concluyente.', refs:null });
   } else {
     faltan.push({ txt:'Falta contestar si la imagen multimodal fue concluyente: es la única condición que la guía le pone al cateterismo, y sin ella esa fila no se puede evaluar.', refs:null });
   }
 
+  /* ⚠️ UNA SOLA CITA, AL FINAL DEL BLOQUE (tanda A, regla R2): «Recommendation Table 24, folio
+     64» salia en las tres lineas, y el corchete con ella. */
+  rec.push({ txt:'Fuente: guía europea de miocarditis y pericarditis, Recommendation Table 24, folio 64; mismo sentido en el apartado 11.9.3, folio 63.', refs:['escPeri2025'] });
   const bloques = [
     { tit:'Guía europea de miocarditis y pericarditis — pericarditis constrictiva, diagnóstico (folio 64)',
-      lineas: rec,
-      nota:'El informe y la conclusión de la aplicación son DESCRIPTIVOS: estas recomendaciones se publican acá y no en el papel firmado. Desde el 24/10/2026 el módulo ya no pide confirmación invasiva en la pantalla, en el informe ni en el PDF — la pedía siempre, y la guía la condiciona.' }
+      lineas: rec }
   ];
   if (faltan.length) bloques.push({ tit:'Lo que falta contestar', plegado:true, lineas: faltan });
 
   return { filas: filas, bloques: bloques, compacta: true,
     guia: { ref:'escPeri2025',
       txt:'El diagnóstico se hace por imagen multimodal —ecocardiografía, tomografía y resonancia—. Los criterios ecocardiográficos de la Clínica Mayo que la guía cita piden rebote septal o desplazamiento del septo ventricular, acompañado por un e′ medial por encima de ' + CVR_ESEP_CONSTR_MIN + ' cm/s O por un cociente de inversión diastólica espiratoria de la vena hepática por encima de ' + String(CVR_HEP_COC_MIN).replace('.', ',') + ' (apartado 11.9.3, folio 63).',
-      nota:'Esta sección es la del DIAGNÓSTICO. Las filas de TRATAMIENTO de la Recommendation Table 24 —antiinflamatorios en la constricción transitoria y pericardiectomía en la permanente, las dos Clase I · Nivel C— no se publican acá porque dependen de la inflamación pericárdica y de la respuesta al tratamiento, que esta aplicación no registra: serían filas que ningún dato del estudio puede encender ni apagar.' },
-    notas: rec.map(function(l){ return l.txt }) };
+      nota:'Esta sección es la del diagnóstico: las filas de tratamiento de la misma tabla no se publican acá.' },
+    /* ⚠️ `notas` DEJA DE SER UNA COPIA DEL BLOQUE (tanda A, regla R4): era `rec.map(…)`. Lo que
+       queda es por que las filas de tratamiento no estan, con su clase y su nivel intactos. */
+    notas: [
+      { txt:'Las filas de tratamiento de la Recommendation Table 24 —antiinflamatorios en la constricción transitoria y pericardiectomía en la permanente, las dos Clase I · Nivel C— no se publican acá porque dependen de la inflamación pericárdica y de la respuesta al tratamiento, que esta aplicación no registra: serían filas que ningún dato del estudio puede encender ni apagar.', refs:['escPeri2025'] }
+    ] };
 }
 
 /* ══ EVIDENCIA · CONGESTION VENOSA SISTEMICA — VExUS (J-6, 2026-10-24) ══════════════════════
@@ -83598,7 +83624,7 @@ function _indVexus(){
       st.vciDiam != null ? _indNum(st.vciDiam, 0, 'mm') : '—',
       (st.vciDiam != null && st.vciDiam > VEXUS_VCI_MM) ? 'alarm'
         : (st.vciDiam != null && st.vciDiam >= VEXUS_VCI_MM ? 'warn' : 'none'),
-      'la Figura 1 del artículo usa DOS cortes y no uno: el grado 1 pide una vena cava de ' + VEXUS_VCI_MM + ' mm O MÁS, y los grados 2 y 3 piden MÁS de ' + VEXUS_VCI_MM + ' mm (página 3). En los ' + VEXUS_VCI_MM + ' mm exactos con vasos severos la figura no tiene fila, y esta aplicación elige el grado menor, que es el que no afirma de más.',
+      'la Figura 1 del artículo usa dos cortes y no uno: el grado 1 pide una vena cava de ' + VEXUS_VCI_MM + ' mm o más, y los grados 2 y 3 piden más de ' + VEXUS_VCI_MM + ' mm (página 3). En los ' + VEXUS_VCI_MM + ' mm exactos con vasos severos la figura no tiene fila, y esta aplicación elige el grado menor, que es el que no afirma de más.',
       ['vexus2020']),
     _indFila('Vena suprahepática', vasoTxt('vexus_sh'), vasoMarca('vexus_sh'),
       'el patrón hepático es levemente anormal cuando la onda sistólica es menor que la diastólica pero sigue dirigida al hígado, y severamente anormal cuando la sistólica se invierte hacia el corazón (pie de la Figura 1, página 3)',
@@ -83611,7 +83637,7 @@ function _indVexus(){
       ['vexus2020']),
     _indFila('Grado VExUS', 'VEXUS ' + st.score,
       st.score === 3 ? 'alarm' : (st.score === 2 ? 'warn' : 'none'),
-      'el grado lo decide CUÁNTOS patrones están severos, no cuál es el peor: uno solo es grado 2 y dos o más es grado 3 (Figura 1, columna VExUS C, página 3)',
+      'el grado lo decide cuántos patrones están severos, no cuál es el peor: uno solo es grado 2 y dos o más es grado 3 (Figura 1, columna VExUS C, página 3)',
       ['vexus2020']),
     _indFila('Cobertura del protocolo',
       st.evaluados + (st.evaluados === 1 ? ' de 3 venas interrogada' : ' de 3 venas interrogadas'),
@@ -83629,11 +83655,14 @@ function _indVexus(){
           el estudio sea unicéntrico. Esta tanda no puede abrir el PDF original —la orden prohíbe
           leer archivos fuera del proyecto—, así que el dato no se escribe: lo que no se verificó
           no se publica. Declarado en `docs/PENDIENTES.md` → AJ7-d. */
-    { txt:'La graduación se desarrolló en 145 pacientes de CIRUGÍA CARDÍACA, con 706 valoraciones ecográficas: ésa es la población en la que se midió, y fuera de ella el artículo no mide nada. Resumen, página 1.', refs:['vexus2020'] },
-    { txt:'En 145 pacientes de cirugía cardíaca, con 706 valoraciones ecográficas, definir la congestión venosa severa como la presencia de alteraciones severas en VARIOS patrones Doppler junto con una vena cava dilatada fue lo que más se asoció con la aparición posterior de injuria renal aguda, por encima de las otras combinaciones probadas (riesgo relativo instantáneo 3,69; intervalo de confianza 1,65 a 8,24; p = 0,001). Resumen, página 1.', refs:['vexus2020'] },
-    { txt:'Esa asociación se mantuvo tras ajustar por el riesgo basal de injuria renal aguda y por el soporte vasopresor o inotrópico (riesgo relativo instantáneo 2,82; intervalo de confianza 1,21 a 6,55; p = 0,02). Resumen, página 1.', refs:['vexus2020'] },
-    { txt:'Detectado al ingreso a cuidados intensivos, ese grado severo ofreció un cociente de probabilidad positivo de 6,37 (intervalo de confianza 2,19 a 18,50), por encima de la medición de la presión venosa central. Resumen, página 1.', refs:['vexus2020'] },
-    { txt:'La conclusión del artículo es que la combinación de varios marcadores de ecografía en el punto de atención PUEDE identificar congestión venosa clínicamente significativa. No afirma más que eso, y no publica ninguna conducta por grado. Resumen, página 1.', refs:['vexus2020'] }
+    { txt:'La graduación se desarrolló en 145 pacientes de cirugía cardíaca, con 706 valoraciones ecográficas: ésa es la población en la que se midió, y fuera de ella el artículo no mide nada.', refs:null },
+    { txt:'Definir la congestión venosa severa como la presencia de alteraciones severas en varios patrones Doppler junto con una vena cava dilatada fue lo que más se asoció con la aparición posterior de injuria renal aguda, por encima de las otras combinaciones probadas (riesgo relativo instantáneo 3,69; intervalo de confianza 1,65 a 8,24; p = 0,001).', refs:null },
+    { txt:'Esa asociación se mantuvo tras ajustar por el riesgo basal de injuria renal aguda y por el soporte vasopresor o inotrópico (riesgo relativo instantáneo 2,82; intervalo de confianza 1,21 a 6,55; p = 0,02).', refs:null },
+    { txt:'Detectado al ingreso a cuidados intensivos, ese grado severo ofreció un cociente de probabilidad positivo de 6,37 (intervalo de confianza 2,19 a 18,50), por encima de la medición de la presión venosa central.', refs:null },
+    { txt:'La conclusión del artículo es que la combinación de varios marcadores de ecografía en el punto de atención puede identificar congestión venosa clínicamente significativa. No afirma más que eso, y no publica ninguna conducta por grado.', refs:null },
+    /* ⚠️ UNA SOLA CITA, AL FINAL DEL BLOQUE (tanda A, regla R2). «Resumen, página 1» salia en
+       las CINCO lineas, y el corchete con ella. */
+    { txt:'Fuente: artículo original de la graduación VExUS, Ultrasound J 2020, resumen de la página 1.', refs:['vexus2020'] }
   ];
 
   /* ⚠️ SIN CORCHETE, LAS TRES. Ver la nota de la cabecera de esta funcion. */
@@ -83646,16 +83675,22 @@ function _indVexus(){
   return { filas: filas, compacta: true,
     bloques: [
       { tit:'Lo que el artículo original mide (Ultrasound J 2020, páginas 1 y 3)',
-        lineas: art,
-        nota:'No hay clase ni nivel de recomendación: la fuente es un artículo original de desarrollo de la graduación, no una guía de práctica clínica, y no los publica. Escribirlos sería inventarlos. Y la población en la que se midió —145 pacientes de cirugía cardíaca— es parte del resultado: un grado VExUS fuera de ese contexto no tiene detrás la asociación que el artículo describe.' },
-      { tit:'Conducta por grado — criterio de EcoSmart, SIN fuente', plegado:true,
+        lineas: art },
+      { tit:'Conducta por grado — criterio de EcoSmart, sin fuente', plegado:true,
         lineas: propio,
-        nota:'Estas tres frases se publicaban hasta el 24/10/2026 en la pantalla, en el cuerpo del informe firmado y en la hoja del PDF. Hoy viven sólo acá. El artículo NO da pasos por grado, y no se cita ninguna otra fuente para ellos: son una decisión de la aplicación y por eso no llevan corchete.' }
+        nota:'El artículo no da pasos por grado: estas tres frases son una decisión de la aplicación y por eso no llevan cita.' }
     ],
     guia: { ref:'vexus2020',
       txt:'La graduación sale de la Figura 1 del artículo, columna VExUS C: grado 0 con vena cava por debajo de ' + VEXUS_VCI_MM + ' mm; grado 1 con ' + VEXUS_VCI_MM + ' mm o más y patrones normales o levemente alterados; grado 2 con más de ' + VEXUS_VCI_MM + ' mm y un patrón severo; grado 3 con más de ' + VEXUS_VCI_MM + ' mm y dos o más patrones severos (página 3).',
       nota:'Los patrones venosos se alteran sin que haya congestión en la fibrilación auricular y en la ventilación mecánica, así que el grado se integra con la clínica. Esa salvedad también sale en el informe y en la hoja del PDF, que es donde está la medición que la sostiene.' },
-    notas: art.map(function(l){ return l.txt }) };
+    /* ⚠️ `notas` DEJA DE SER UNA COPIA DEL BLOQUE (tanda A, regla R4): era `art.map(…)`, las
+       mismas cinco lineas que el bloque publica visibles. Lo que queda es por que la fuente no
+       trae clase ni nivel —que es la reserva de metodo de esta seccion— y el alcance de la
+       poblacion, que es lo que limita el resultado. */
+    notas: [
+      { txt:'La fuente no publica clase ni nivel de recomendación: es un artículo original de desarrollo de la graduación, no una guía de práctica clínica. Escribirlos sería inventarlos, y por eso ninguna línea de esta sección los lleva.', refs:['vexus2020'] },
+      { txt:'La población en la que se midió —145 pacientes de cirugía cardíaca, con 706 valoraciones— es parte del resultado: un grado VExUS fuera de ese contexto no tiene detrás la asociación que el artículo describe.', refs:['vexus2020'] }
+    ] };
 }
 
 /* ══ EVIDENCIA · PERFIL HEMODINÁMICO (J2-E2, 2026-10-24) ═══════════════════════════════════
@@ -83783,7 +83818,7 @@ function _indConco(){
 
   const filas = [
     _indFila('Fármaco oncológico', farmTxt || '—', farm === '' ? 'ask' : 'none',
-      'la Tabla 4 estratifica el riesgo cardiovascular basal POR FAMILIA de fármaco —antraciclinas, anti-HER2, inhibidores de VEGF, inhibidores de BCR-ABL, tratamientos del mieloma múltiple e inhibidores de RAF y MEK— y el mismo antecedente pesa distinto en cada columna (folio 4246).',
+      'la Tabla 4 estratifica el riesgo cardiovascular basal por familia de fármaco —antraciclinas, anti-HER2, inhibidores de VEGF, inhibidores de BCR-ABL, tratamientos del mieloma múltiple e inhibidores de RAF y MEK— y el mismo antecedente pesa distinto en cada columna (folio 4246).',
       ['escOnco2022']),
     _indFila('Dosis acumulada de antraciclinas',
       dosis != null ? _indNum(dosis, 0, 'mg/m²') : '—',
@@ -83800,12 +83835,12 @@ function _indConco(){
     _indFila('Caída relativa del strain longitudinal global',
       glsRel != null ? _indNum(glsRel, 1, '%') : '—',
       (glsRel != null && glsRel > 15) ? 'warn' : (glsRel != null ? 'none' : 'ask'),
-      'la Tabla 3 usa una caída RELATIVA mayor del 15 % respecto del valor basal, no una diferencia absoluta de puntos (folio 4243).',
+      'la Tabla 3 usa una caída relativa mayor del 15 % respecto del valor basal, no una diferencia absoluta de puntos (folio 4243).',
       ['escOnco2022']),
     _indFila('Troponina',
       trop === 'si' ? 'Elevada' : (trop === 'no' ? 'No elevada' : '—'),
       trop === 'si' ? 'warn' : (trop === 'no' ? 'none' : 'ask'),
-      'la Tabla 3 la toma como elevación NUEVA o cambio significativo respecto del valor basal, y es uno de los dos marcadores que, con la fracción de eyección conservada, definen la cardiotoxicidad leve (folio 4243).',
+      'la Tabla 3 la toma como elevación nueva o cambio significativo respecto del valor basal, y es uno de los dos marcadores que, con la fracción de eyección conservada, definen la cardiotoxicidad leve (folio 4243).',
       ['escOnco2022']),
     _indFila('Grado que publica la aplicación', T('co-toxicidad-resultado') || '—', 'none',
       'lo decide el módulo de la pestaña con los cortes de esa misma Tabla 3. Esta fila sólo repite lo que esa pantalla ya dice.',
@@ -83813,9 +83848,17 @@ function _indConco(){
   ];
 
   /* ── Las DOS únicas recomendaciones con clase y nivel ─────────────────────────────────── */
+  /* ⚠️ UNA LINEA POR RECOMENDACION (tanda A, punto 1c). Lo que salio del texto visible —la nota
+     al pie de la tabla de la biopsia, los numeros de tabla y los folios— esta en el ⓘ de la
+     seccion, enumerado, sin perder ni la clase ni el nivel ni el folio.
+     ⚠️ LAS DOS SE PUBLICAN SIEMPRE, Y NO DEPENDE DEL FARMACO ELEGIDO. Son las unicas dos filas
+        de esta guia que esta seccion alcanza, asi que la seccion las publica como su contenido
+        de referencia; lo unico que el farmaco cargado decide es la marca de «es la fila que
+        corresponde». Era asi antes de esta tanda y sigue igual. */
   const rec = [
-    { txt:'Clase IIa · Nivel C — Tras radioterapia sobre un volumen que incluye el corazón, en el superviviente adulto asintomático de riesgo alto tardío la guía dice que DEBE CONSIDERARSE la ecocardiografía a partir de los 5 años y luego cada 5 años (Recomendaciones-tabla 41, folio 4314).' + (esRT ? ' Es la fila que corresponde a lo cargado.' : ''), refs:['escOnco2022'] },
-    { txt:'Clase IIa · Nivel C — En la miocarditis asociada a inhibidores de puntos de control, la guía dice que DEBE CONSIDERARSE la biopsia endomiocárdica para confirmar el diagnóstico cuando se sospecha pero no se confirmó con la imagen cardíaca y los biomarcadores. Una nota de esa misma tabla la ubica en el paciente inestable o cuando la resonancia está contraindicada (Recomendaciones-tabla 26, folio 4289).' + (esICI ? ' Es la fila que corresponde a lo cargado.' : ''), refs:['escOnco2022'] }
+    { txt:'Clase IIa · Nivel C — Tras radioterapia sobre un volumen que incluye el corazón, en el superviviente adulto asintomático de riesgo alto tardío debe considerarse la ecocardiografía a partir de los 5 años y luego cada 5 años.' + (esRT ? ' Es la fila que corresponde a lo cargado.' : ''), refs:null },
+    { txt:'Clase IIa · Nivel C — En la miocarditis asociada a inhibidores de puntos de control debe considerarse la biopsia endomiocárdica para confirmar el diagnóstico cuando se sospecha y no se confirmó con la imagen cardíaca y los biomarcadores.' + (esICI ? ' Es la fila que corresponde a lo cargado.' : ''), refs:null },
+    { txt:'Fuente: guía europea de cardio-oncología — Recomendaciones-tabla 41, folio 4314, para el seguimiento tras radioterapia, y Recomendaciones-tabla 26, folio 4289, para la biopsia.', refs:['escOnco2022'] }
   ];
 
   const grad = [
@@ -83826,38 +83869,43 @@ function _indConco(){
 
   const esquema = [
     { txt:'Con antraciclinas, todos los pacientes llevan electrocardiograma, ecocardiograma y biomarcadores basales. En riesgo alto y muy alto, la vigilancia es la más densa: ecocardiograma cada dos ciclos y a los 3 y 12 meses de terminar, con troponina y péptidos natriuréticos antes de cada ciclo (Figura 10, folio 4258).', refs:['escOnco2022'] },
-    { txt:'El pie de esa figura gradúa dos cosas: en riesgo moderado DEBE CONSIDERARSE el ecocardiograma tras una dosis acumulada de 250 mg/m² de doxorrubicina o equivalente, y en riesgo bajo PUEDE CONSIDERARSE con esa misma dosis (folio 4258).', refs:['escOnco2022'] },
-    { txt:'Y para los biomarcadores: medirlos cada dos ciclos y dentro de los 3 meses de terminar PUEDE CONSIDERARSE en riesgo bajo (Clase IIb · Nivel C) y DEBE CONSIDERARSE en riesgo moderado y en riesgo bajo con 250 mg/m² o más de doxorrubicina o equivalente (Clase IIa · Nivel C) (pie de la Figura 10, folio 4258).', refs:['escOnco2022'] },
-    { txt:'Con terapias anti-HER2 el esquema es propio: el ecocardiograma se hace en la semana 2 o 3 del ciclo de tres semanas de trastuzumab. En el cáncer de mama precoz HER2 positivo de bajo riesgo, asintomático y con evaluación normal a los 3 meses, PUEDE CONSIDERARSE bajar la vigilancia a cada 4 meses (Clase IIb · Nivel C); en la enfermedad metastásica de riesgo bajo y moderado, se RECOMIENDA que pase a cada 6 meses después del primer año si el paciente está asintomático y el ecocardiograma es normal (Clase I · Nivel C) (pie de la Figura 11, folio 4260).', refs:['escOnco2022'] }
+    { txt:'El pie de esa figura gradúa dos cosas: en riesgo moderado debe considerarse el ecocardiograma tras una dosis acumulada de 250 mg/m² de doxorrubicina o equivalente, y en riesgo bajo puede considerarse con esa misma dosis (folio 4258).', refs:['escOnco2022'] },
+    { txt:'Y para los biomarcadores: medirlos cada dos ciclos y dentro de los 3 meses de terminar puede considerarse en riesgo bajo (Clase IIb · Nivel C) y debe considerarse en riesgo moderado y en riesgo bajo con 250 mg/m² o más de doxorrubicina o equivalente (Clase IIa · Nivel C) (pie de la Figura 10, folio 4258).', refs:['escOnco2022'] },
+    { txt:'Con terapias anti-HER2 el esquema es propio: el ecocardiograma se hace en la semana 2 o 3 del ciclo de tres semanas de trastuzumab. En el cáncer de mama precoz HER2 positivo de bajo riesgo, asintomático y con evaluación normal a los 3 meses, puede considerarse bajar la vigilancia a cada 4 meses (Clase IIb · Nivel C); en la enfermedad metastásica de riesgo bajo y moderado, se recomienda que pase a cada 6 meses después del primer año si el paciente está asintomático y el ecocardiograma es normal (Clase I · Nivel C) (pie de la Figura 11, folio 4260).', refs:['escOnco2022'] }
   ];
 
   const equiv = [
     { txt:'La Tabla 5 convierte cualquier antraciclina a su equivalente de doxorrubicina multiplicando la dosis por un cociente: epirrubicina 0,8; daunorrubicina 0,6; mitoxantrona 10,5; idarrubicina 5. Las dosis isoequivalentes a 100 mg/m² de doxorrubicina son 125, 167, 9,5 y 20 mg/m² (folio 4247).', refs:['escOnco2022'] },
-    { txt:'La propia tabla advierte dos cosas: esas dosis isoequivalentes se derivaron de supervivientes de cáncer PEDIÁTRICO, y el dato de la idarrubicina sale de un cociente estimado de eficacia antitumoral, no de datos de cardiotoxicidad (folio 4247).', refs:['escOnco2022'] }
+    { txt:'La propia tabla advierte dos cosas: esas dosis isoequivalentes se derivaron de supervivientes de cáncer pediátrico, y el dato de la idarrubicina sale de un cociente estimado de eficacia antitumoral, no de datos de cardiotoxicidad (folio 4247).', refs:['escOnco2022'] }
   ];
 
   const riesgo = [
     { txt:'La Tabla 4 reparte los factores en bloques —enfermedad cardiovascular previa, imagen cardíaca, biomarcadores basales, edad y factores de riesgo cardiovascular— y les asigna una categoría distinta en cada columna de fármaco. El mismo antecedente puede ser «muy alto» con una familia y no contar con otra (folio 4246).', refs:['escOnco2022'] },
-    { txt:'Es una TABLA de estratificación, no una tabla de recomendaciones: no publica clase ni nivel, y por eso acá tampoco se escriben.', refs:null }
+    { txt:'Es una tabla de estratificación, no de recomendaciones: no publica clase ni nivel.', refs:null }
   ];
 
   return { filas: filas, compacta: true,
     bloques: [
       { tit:'Las dos recomendaciones con clase y nivel',
-        lineas: rec,
-        nota:'Son las ÚNICAS dos de esta sección que salen de una tabla de recomendaciones de la guía. El informe y la conclusión de la aplicación son DESCRIPTIVOS: estas dos se publican acá y no en el papel firmado.' },
+        lineas: rec },
       { tit:'Los grados de cardiotoxicidad (Tabla 3, folio 4243)', plegado:true, lineas: grad,
-        nota:'Son DEFINICIONES, no recomendaciones: la tabla no publica clase ni nivel.' },
+        nota:'Son definiciones, no recomendaciones: esa tabla no publica clase ni nivel.' },
       { tit:'Qué eco y qué biomarcadores, y cuándo (Figuras 10 y 11, folios 4258 y 4260)', plegado:true,
         lineas: esquema,
-        nota:'Las clases y los niveles que aparecen acá son los que escriben los PIES de esas dos figuras; el cuerpo del esquema no los lleva.' },
+        nota:'Las clases y los niveles de este bloque son los de los pies de esas dos figuras.' },
       { tit:'Equivalencia de dosis de antraciclinas (Tabla 5, folio 4247)', plegado:true, lineas: equiv },
       { tit:'El riesgo basal por familia de fármaco (Tabla 4, folio 4246)', plegado:true, lineas: riesgo }
     ],
     guia: { ref:'escOnco2022',
-      txt:'La graduación de la cardiotoxicidad sale de la Tabla 3 (folio 4243), el riesgo basal de la Tabla 4 (folio 4246) y el esquema de vigilancia de las Figuras 10 y 11 (folios 4258 y 4260).',
-      nota:'No se escriben acá los textos de seguimiento que se aplicarían igual a cualquier fármaco —la guía los publica por familia—, ni una «vigilancia estrecha» para caídas que no alcanzan ningún grado de la Tabla 3, ni los plazos de 2 a 4 semanas, porque ninguna de esas tres cosas figura en el documento.' },
-    notas: rec.map(function(l){ return l.txt }) };
+      txt:'La graduación de la cardiotoxicidad sale de la Tabla 3 (folio 4243), el riesgo basal de la Tabla 4 (folio 4246) y el esquema de vigilancia de las Figuras 10 y 11 (folios 4258 y 4260).' },
+    /* ⚠️ `notas` DEJA DE SER UNA COPIA DEL BLOQUE (tanda A, regla R4): era `rec.map(…)`, las dos
+       recomendaciones otra vez detras del «ⓘ Ver detalle». Lo que queda es el detalle que las
+       dos lineas visibles perdieron por el punto 1c, y la reserva de alcance de la seccion. */
+    notas: [
+      { txt:'La nota al pie de la Recomendaciones-tabla 26 ubica la biopsia endomiocárdica en el paciente inestable o cuando la resonancia está contraindicada (folio 4289).', refs:['escOnco2022'] },
+      { txt:'Las Tablas 3, 4 y 5 y las Figuras 10 y 11 son definiciones y esquemas, no tablas de recomendaciones: no publican clase ni nivel, y lo único graduado de la Figura 10 es lo que dice su propio pie.', refs:['escOnco2022'] },
+      { txt:'No se publican acá los textos de seguimiento que se aplicarían igual a cualquier fármaco —la guía los publica por familia—, ni una «vigilancia estrecha» para caídas que no alcanzan ningún grado de la Tabla 3, ni los plazos de 2 a 4 semanas: ninguna de esas tres cosas figura en el documento.', refs:null }
+    ] };
 }
 
 /* ══ EVIDENCIA · AMILOIDOSIS CARDÍACA (J2-E6, 2026-10-24) ══════════════════════════════════
@@ -83912,11 +83960,11 @@ function _indAmil(){
       ['gpAmiloid2021']),
     _indFila('Score multiparamétrico', pts + ' / 10 puntos',
       pts >= 8 ? 'warn' : 'none',
-      'el corte es 8 puntos, y es el ÚNICO que publica el documento. En ese corte la sensibilidad es del 46 % y la especificidad del 98 % en la cohorte de hipertrofia inexplicada, así que un puntaje por debajo no descarta nada (Tabla 2, folio 1558; rendimiento de la Tabla 4, página 30 de Boldrini).',
+      'el corte es 8 puntos, y es el único que publica el documento. En ese corte la sensibilidad es del 46 % y la especificidad del 98 % en la cohorte de hipertrofia inexplicada, así que un puntaje por debajo no descarta nada (Tabla 2, folio 1558; rendimiento de la Tabla 4, página 30 de Boldrini). El propio documento declara que el score no está validado externamente (folio 1556).',
       ['gpAmiloid2021','boldrini2020']),
     _indFila('Criterios cualitativos', cual + ' de 3 presentes',
       cual >= 2 ? 'warn' : 'none',
-      'son el OTRO camino de la Tabla 2: con dos de los tres —disfunción diastólica de grado 2 o peor, velocidades tisulares por debajo de 5 cm/s y caída del strain longitudinal— se alcanza el criterio por ecocardiografía sin llegar a los 8 puntos (folio 1558).',
+      'son el otro camino de la Tabla 2: con dos de los tres —disfunción diastólica de grado 2 o peor, velocidades tisulares por debajo de 5 cm/s y caída del strain longitudinal— se alcanza el criterio por ecocardiografía sin llegar a los 8 puntos (folio 1558).',
       ['gpAmiloid2021'])
   ];
 
@@ -83938,14 +83986,14 @@ function _indAmil(){
     filas.push(_indFila('Proteínas monoclonales en suero y orina',
       pMod === 'negativo' ? 'Todas negativas' : 'Al menos una anormal',
       pMod === 'negativo' ? 'none' : 'warn',
-      'cargadas en el módulo del algoritmo. El documento pide las TRES: cadenas ligeras libres en suero, y electroforesis de proteínas en suero y en orina, las dos con inmunofijación. La combinación de las tres tiene una sensibilidad del 99 % para detectar el precursor anormal en la amiloidosis AL (folio 1556).',
+      'cargadas en el módulo del algoritmo. El documento pide las tres: cadenas ligeras libres en suero, y electroforesis de proteínas en suero y en orina, las dos con inmunofijación. La combinación de las tres tiene una sensibilidad del 99 % para detectar el precursor anormal en la amiloidosis AL (folio 1556).',
       ['gpAmiloid2021']));
   } else {
     filas.push(_indFilaCtrl('¿Son todas negativas las proteínas monoclonales en suero y orina?',
       'amil.prot',
       [{v:'negativo',t:'Todas negativas'},{v:'anormal',t:'Al menos una anormal'}],
       prot == null ? 'ask' : (prot === 'negativo' ? 'none' : 'warn'),
-      'el documento pide las TRES: cadenas ligeras libres en suero, y electroforesis de proteínas en suero y en orina, las dos con inmunofijación. La combinación de las tres tiene una sensibilidad del 99 % para detectar el precursor anormal en la amiloidosis AL (folio 1556). Contestar acá no toca el módulo del algoritmo ni se guarda con el estudio.',
+      'el documento pide las tres: cadenas ligeras libres en suero, y electroforesis de proteínas en suero y en orina, las dos con inmunofijación. La combinación de las tres tiene una sensibilidad del 99 % para detectar el precursor anormal en la amiloidosis AL (folio 1556). Contestar acá no toca el módulo del algoritmo ni se guarda con el estudio.',
       ['gpAmiloid2021']));
   }
 
@@ -83959,43 +84007,62 @@ function _indAmil(){
   } else {
     const capta = g >= 1, protNeg = (prot === 'negativo');
     if (!capta && protNeg) {
-      esc.push({ txt:'Escenario 1 — Sin captación cardíaca y con las proteínas monoclonales negativas, la probabilidad de amiloidosis cardíaca es muy baja, y tanto la ATTR como la AL son poco probables: corresponde considerar un diagnóstico alternativo (folio 1558).', refs:['gpAmiloid2021'] });
-      esc.push({ txt:'Si la sospecha clínica persiste, el documento sugiere considerar una resonancia cardíaca seguida de biopsia cardíaca o extracardíaca, porque el centellograma óseo puede ser negativo en algunas mutaciones de la ATTR hereditaria y en subtipos raros de amiloidosis cardíaca (folio 1558).', refs:['gpAmiloid2021'] });
+      esc.push({ txt:'Escenario 1 — Sin captación cardíaca y con las proteínas monoclonales negativas, la probabilidad de amiloidosis cardíaca es muy baja, y tanto la ATTR como la AL son poco probables: corresponde considerar un diagnóstico alternativo.', refs:null });
+      esc.push({ txt:'Si la sospecha clínica persiste, el documento sugiere considerar una resonancia cardíaca seguida de biopsia cardíaca o extracardíaca, porque el centellograma óseo puede ser negativo en algunas mutaciones de la ATTR hereditaria y en subtipos raros de amiloidosis cardíaca.', refs:null });
     } else if (capta && protNeg) {
       if (g >= 2) {
-        esc.push({ txt:'Escenario 2 — Con captación cardíaca de grado 2 o 3 y las proteínas monoclonales negativas, la amiloidosis cardíaca por transtiretina SE PUEDE DIAGNOSTICAR sin histología (folio 1559).', refs:['gpAmiloid2021'] });
-        esc.push({ txt:'El paso siguiente es el estudio genético, para distinguir la forma hereditaria de la forma no hereditaria (folio 1559).', refs:['gpAmiloid2021'] });
+        esc.push({ txt:'Escenario 2 — Con captación cardíaca de grado 2 o 3 y las proteínas monoclonales negativas, la amiloidosis cardíaca por transtiretina se puede diagnosticar sin histología.', refs:null });
+        esc.push({ txt:'El paso siguiente es el estudio genético, para distinguir la forma hereditaria de la forma no hereditaria.', refs:null });
       } else {
-        esc.push({ txt:'Escenario 2 — Con captación cardíaca de GRADO 1 y las proteínas monoclonales negativas, el diagnóstico no invasivo NO es posible: hace falta confirmación histológica del depósito de amiloide, que puede ser extracardíaca (folio 1559).', refs:['gpAmiloid2021'] });
+        esc.push({ txt:'Escenario 2 — Con captación cardíaca de grado 1 y las proteínas monoclonales negativas, el diagnóstico no invasivo no es posible: hace falta confirmación histológica del depósito de amiloide, que puede ser extracardíaca.', refs:null });
       }
     } else if (!capta && !protNeg) {
-      esc.push({ txt:'Escenario 3 — Sin captación cardíaca y con al menos una prueba de proteínas monoclonales anormal, hay que descartar sin demora una amiloidosis de cadenas ligeras. La resonancia cardíaca puede confirmar el compromiso del corazón (folio 1559).', refs:['gpAmiloid2021'] });
-      esc.push({ txt:'Si la resonancia no apoya la amiloidosis cardíaca, el diagnóstico es muy improbable. Si la apoya o no es concluyente, hace falta la demostración histológica del depósito, cardíaca o extracardíaca, para diagnosticar la amiloidosis AL (folio 1559).', refs:['gpAmiloid2021'] });
-      esc.push({ txt:'El documento recomienda biopsiar el corazón u otro órgano clínicamente afectado para no demorar el diagnóstico, y señala que la consulta con hematología está justificada. Si la resonancia no se puede hacer pronto, cabe considerar la biopsia directamente (folio 1559).', refs:['gpAmiloid2021'] });
+      esc.push({ txt:'Escenario 3 — Sin captación cardíaca y con al menos una prueba de proteínas monoclonales anormal, hay que descartar sin demora una amiloidosis de cadenas ligeras. La resonancia cardíaca puede confirmar el compromiso del corazón.', refs:null });
+      esc.push({ txt:'Si la resonancia no apoya la amiloidosis cardíaca, el diagnóstico es muy improbable. Si la apoya o no es concluyente, hace falta la demostración histológica del depósito, cardíaca o extracardíaca, para diagnosticar la amiloidosis AL.', refs:null });
+      esc.push({ txt:'El documento recomienda biopsiar el corazón u otro órgano clínicamente afectado para no demorar el diagnóstico, y señala que la consulta con hematología está justificada. Si la resonancia no se puede hacer pronto, cabe considerar la biopsia directamente.', refs:null });
     } else {
-      esc.push({ txt:'Escenario 4 — Con captación cardíaca y al menos una prueba de proteínas monoclonales anormal, son posibles tres cosas: una ATTR con gammapatía monoclonal concomitante, una amiloidosis AL, o la coexistencia de las dos (folio 1559).', refs:['gpAmiloid2021'] });
-      esc.push({ txt:'En ese escenario el diagnóstico EXIGE histología con tipificación del amiloide, habitualmente por biopsia endomiocárdica (folio 1559).', refs:['gpAmiloid2021'] });
+      esc.push({ txt:'Escenario 4 — Con captación cardíaca y al menos una prueba de proteínas monoclonales anormal, son posibles tres cosas: una ATTR con gammapatía monoclonal concomitante, una amiloidosis AL, o la coexistencia de las dos.', refs:null });
+      esc.push({ txt:'En ese escenario el diagnóstico exige histología con tipificación del amiloide, habitualmente por biopsia endomiocárdica.', refs:null });
     }
   }
 
   const rec = [
-    { txt:'Clase I · Nivel B — En el paciente con sospecha de amiloidosis cardíaca relacionada con transtiretina, la guía europea de miocardiopatías RECOMIENDA el centellograma con trazador óseo (DPD, PYP o HMDP) para ayudar al diagnóstico (Tabla 6 de recomendaciones, folio 27).', refs:['esc2023mioc'] },
-    { txt:'Clase IIa · Nivel C — La misma guía dice que DEBE CONSIDERARSE la resonancia cardíaca con contraste para el seguimiento seriado y la evaluación de la respuesta al tratamiento en la amiloidosis cardíaca (Tabla 5 de recomendaciones, folio 27).', refs:['esc2023mioc'] }
+    { txt:'Clase I · Nivel B — En el paciente con sospecha de amiloidosis cardíaca relacionada con transtiretina, la guía europea de miocardiopatías recomienda el centellograma con trazador óseo (DPD, PYP o HMDP) para ayudar al diagnóstico.', refs:null },
+    { txt:'Clase IIa · Nivel C — La misma guía dice que debe considerarse la resonancia cardíaca con contraste para el seguimiento seriado y la evaluación de la respuesta al tratamiento en la amiloidosis cardíaca.', refs:null },
+    /* ⚠️ UNA SOLA CITA, AL FINAL DEL BLOQUE (tanda A, regla R2). Las DOS tablas se nombran: son
+       distintas —la 6 para el centellograma y la 5 para la resonancia— y confundirlas seria
+       mover una clase de una fila a otra. */
+    { txt:'Fuente: guía europea de miocardiopatías, folio 27 — Tabla 6 de recomendaciones para el centellograma y Tabla 5 para la resonancia.', refs:['esc2023mioc'] }
   ];
 
+  /* ⚠️ EL ORDEN DE LOS TRES BLOQUES CAMBIA (tanda A, regla R5), y el contenido no. Era
+     escenario → lo que falta → recomendaciones (plegadas). Hoy es el de las quince secciones:
+     (2) lo que falta contestar, (3) las recomendaciones con su clase y su nivel —VISIBLES, no
+     detras de un clic—, (4) la teoria, que acá es el escenario del algoritmo.
+     ⚠️ EL ESCENARIO QUEDA CUARTO Y ESO SE DECLARA: es lo que el algoritmo resuelve para ESTE
+        paciente, asi que se lee como una conclusion y no como teoria. Va cuarto porque la regla
+        R5 reserva el tercer lugar para lo que trae clase y nivel, y los cuatro escenarios del
+        documento de posicion no la traen. */
   const bloques = [];
-  if (esc.length) bloques.push({ tit:'El escenario que corresponde con lo contestado (folios 1558-1559)', lineas: esc,
-    nota:'Son los cuatro escenarios del documento de posición, que cruzan el centellograma con las proteínas monoclonales. No llevan clase ni nivel: ese documento no publica esa escala. Son pasos DIAGNÓSTICOS; esta sección no escribe tratamiento.' });
   if (faltan.length) bloques.push({ tit:'Lo que falta contestar', lineas: faltan });
   bloques.push({ tit:'Las dos recomendaciones con clase y nivel (guía europea de miocardiopatías, folio 27)',
-    plegado:true, lineas: rec,
-    nota:'Cotejadas contra el original inglés de esa guía: coinciden en sentido, clase y nivel. El informe y la conclusión de la aplicación son DESCRIPTIVOS: estas dos se publican acá y no en el papel firmado.' });
+    lineas: rec });
+  if (esc.length) bloques.push({ tit:'El escenario que corresponde con lo contestado (folios 1558-1559)', lineas: esc,
+    nota:'Son pasos diagnósticos del documento de posición: esta sección no escribe tratamiento.' });
 
   return { filas: filas, compacta: true, bloques: bloques,
+    /* ⚠️ EL PARRAFO DEL CRITERIO ECOCARDIOGRAFICO SALE DE ACA (tanda A, punto 1b). Decia el
+       espesor de 12 mm y los dos caminos, que es EXACTAMENTE lo que ya dicen los ⓘ de las tres
+       primeras filas —espesor, score y criterios cualitativos—, cada uno al lado de su valor.
+       Lo que queda es el algoritmo, que ninguna fila publica. */
     guia: { ref:'gpAmiloid2021',
-      txt:'El criterio ecocardiográfico pide un espesor inexplicado de 12 mm o más MÁS uno de dos caminos: dos de los tres criterios cualitativos, o el score multiparamétrico de 8 puntos o más (Tabla 2, folio 1558). El algoritmo diagnóstico cruza después el centellograma con las proteínas monoclonales y da cuatro escenarios (folios 1558-1559).',
-      nota:'El propio documento declara que el score NO está validado externamente (folio 1556).' },
-    notas: rec.map(function(l){ return l.txt }) };
+      txt:'El algoritmo diagnóstico cruza el centellograma con las proteínas monoclonales y da cuatro escenarios (folios 1558-1559).' },
+    /* ⚠️ `notas` DEJA DE SER UNA COPIA DEL BLOQUE (tanda A, regla R4): era `rec.map(…)`, las dos
+       recomendaciones otra vez detras del «ⓘ Ver detalle». */
+    notas: [
+      { txt:'Los cuatro escenarios no llevan clase ni nivel: el documento de posición no publica esa escala para ellos. Son pasos diagnósticos —resonancia, biopsia, tipificación del amiloide, estudio genético, consulta con hematología— y no de tratamiento.', refs:['gpAmiloid2021'] },
+      { txt:'Las dos recomendaciones con clase y nivel son las únicas de esta sección que salen de una tabla de recomendaciones: la guía europea de miocardiopatías, folio 27.', refs:['esc2023mioc'] }
+    ] };
 }
 
 /* ══ EVIDENCIA · POSOPERATORIO DE CIRUGÍA CARDÍACA (G6, 2026-10-24) ═══════════════════════════
