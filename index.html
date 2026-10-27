@@ -5814,9 +5814,16 @@ window.cerrarSesionReal = cerrarSesionReal;
             <option value="IIIa">IIIa</option>
             <option value="IIIb">IIIb</option>
           </select>
-          <!-- Mismo mecanismo y mismo aspecto que `vm-ete-aviso` de la morfología, dos campos más
-               a la izquierda: lo pinta `vmCarpAvisoSync` y NO escribe ningún valor. -->
-          <div id="vm-carp-aviso" style="display:none;font-size:11px;color:var(--red);margin-top:3px;"></div>
+          <!-- ══ DE DONDE SALE EL CARPENTIER (E-1a, 2026-10-27) ═══════════════════════════════
+               Reemplaza al `vm-carp-aviso` de divergencia de la AJ5, que ya no hace falta: con un
+               solo dato no hay dos voces que comparar. Lo pinta `vmCarpOrigenSync`.
+               ⚠️ NO ES ROJO. El rojo de los dos avisos de esta fila dice «hay algo mal»; esto
+               dice de donde sale el dato y donde se corrige, que es informacion y no alarma.
+               El salto va por `vmCarpIrAlEte`, que chequea el plan antes de abrir el modulo. -->
+          <div id="vm-carp-origen" role="note" tabindex="-1"
+               style="display:none;font-size:11px;color:var(--text2);margin-top:3px;"
+               onclick="vmCarpIrAlEte()"
+               onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();vmCarpIrAlEte()}"></div>
         </div>
       </div>
       <div style="display:flex;gap:8px;margin-bottom:12px;">
@@ -42497,19 +42504,54 @@ function imSecAltPintar() {
   catch (e) { sec = false; }
   const e2 = window._imSecAltEroa, v2 = window._imSecAltVolr;
   if (!sec) { el.textContent = ''; return; }
-  const partes = [];
-  if (e2 != null && isFinite(e2) && e2 >= IMS_ALT_EROA)
+  const partes = [], cortos = [];
+  if (e2 != null && isFinite(e2) && e2 >= IMS_ALT_EROA) {
     /* `toFixed(1)` y no un redondeo pelado: es el MISMO formato con que la fila de arriba
        publica la EROA, y dos numeros distintos del mismo hallazgo en la misma pantalla es el
        defecto que este archivo ya documenta. */
     partes.push('el ORE de ' + e2.toFixed(1) + ' mm² alcanza el corte alternativo de la '
       + 'ESC/EACTS 2025 (≥ ' + IMS_ALT_EROA + ' mm², aplicable con orificio elíptico)');
-  if (v2 != null && isFinite(v2) && v2 >= IMS_ALT_VOLR)
+    cortos.push('el ORE');
+  }
+  if (v2 != null && isFinite(v2) && v2 >= IMS_ALT_VOLR) {
     partes.push('el volumen regurgitante de ' + v2.toFixed(1) + ' ml alcanza el corte '
       + 'alternativo de la ESC/EACTS 2025 (≥ ' + IMS_ALT_VOLR + ' ml, aplicable con bajo flujo)');
-  /* `textContent` y no `innerHTML`: el texto se arma de constantes de este archivo y de dos
-     numeros, y no lleva marcado. Es una frontera menos. */
-  el.textContent = partes.length ? (partes.join('; ') + '.') : '';
+    cortos.push('el volumen regurgitante');
+  }
+  /* ══ UNA LINEA CORTA EN PANTALLA Y EL TEXTO COMPLETO EN EL ⓘ (E-1c, 2026-10-27) ══════════
+     DECISION DE MAICOL. El aviso medía hasta 300 caracteres en dos renglones dentro del cuadro
+     de cuantificación de la insuficiencia, y repetía «el corte alternativo de la ESC/EACTS 2025»
+     una vez por cada uno de los dos parámetros.
+     ⚠️ NO SE PIERDE NI UN DATO, NI UNA CITA, NI UNA CONDICION DE APLICABILIDAD: el ⓘ lleva el
+     texto COMPLETO, palabra por palabra el que la pantalla publicaba —los dos valores medidos con
+     su `toFixed(1)`, los dos cortes y las dos condiciones («aplicable con orificio elíptico»,
+     «aplicable con bajo flujo»)—. La línea visible nombra la guía UNA vez (regla R2: en la línea
+     visible, a lo sumo una cita) y dice QUE parámetro la alcanza, que es lo que el médico mira.
+     ⚠️ SE ARMA CON NODOS Y NO CON `innerHTML`, que es la regla de seguridad de la suite: el texto
+     sale de constantes de este archivo y de dos números, pero el `<details>` necesita marcado y
+     un `innerHTML` acá seria un hallazgo de Semgrep nuevo. Mismo patrón que la nota de
+     `FUN-VD-008` en el panel de Evidencia.
+     ⚠️ Y SIGUE SIN SUBIR AL INFORME FIRMADO, igual que antes: la decisión de la AJ5 no cambia. */
+  el.textContent = '';
+  if (!partes.length) return;
+  const _jy = (a) => a.length < 2 ? (a[0] || '') : (a.slice(0, -1).join(', ') + ' y ' + a[a.length - 1]);
+  el.appendChild(document.createTextNode(
+    'Corte alternativo de la ESC/EACTS 2025: lo ' + (cortos.length > 1 ? 'alcanzan ' : 'alcanza ')
+    + _jy(cortos) + '. '));
+  el.appendChild((function () {
+    const g = document.createElement('details');
+    g.style.cssText = 'display:inline-block;vertical-align:top;';
+    const su = document.createElement('summary');
+    su.style.cssText = 'cursor:pointer;list-style:none;display:inline;font-weight:700;color:var(--accent2);';
+    su.setAttribute('aria-label', 'Ver el detalle del corte alternativo de la ESC/EACTS 2025');
+    su.textContent = '\u24D8';
+    g.appendChild(su);
+    const cu = document.createElement('div');
+    cu.style.cssText = 'margin-top:4px;font-weight:400;';
+    cu.textContent = partes.join('; ') + '.';
+    g.appendChild(cu);
+    return g;
+  })());
 }
 function imSecAltSiExiste(){ if (typeof imSecAltPintar === 'function') {
   try { imSecAltPintar(); } catch (e) { console.warn('[imSecAlt]', e); } } }
@@ -53569,15 +53611,18 @@ function generarInforme(opts) {
          lectura. El texto aprobado es «mecanismo secundario». */
       const _MEC_TXT = { primaria: 'primario', secundaria: 'secundario' };
       if (_MEC_TXT[_mec]) _p.push('mecanismo ' + _MEC_TXT[_mec]);
-      /* ⚠️ CON EL CARPENTIER DIVERGENTE EL PARÉNTESIS SE ABSTIENE DE SU MITAD (AJ5-6). La frase
-         de prolapso de más abajo sigue leyendo el nodo de LEGADO, y en un estudio guardado antes
-         de la AJ5 los dos pueden decir tipos distintos: publicar las dos deja el MISMO párrafo
-         del informe firmado con dos Carpentier. El que se calla es el nuevo, así que ese informe
-         sale byte por byte como salía en HEAD, y la pantalla lo dice con `vmCarpAvisoSync`.
-         Falla CERRADO: sin la función no se publica. */
+      /* ⚠️ LA ABSTENCION POR DIVERGENCIA SE RETIRO (E-1b, 2026-10-27). La AJ5-6 hacia callar al
+         parentesis cuando alguna de las OTRAS dos voces del Carpentier lo contradecia, porque las
+         tres publicaban a la vez. Desde esta tanda hay UN SOLO dato —el del ETE si lo hay, el de
+         Valvulas si no (`vmCarpEfectivo`)— y UN SOLO lugar donde se dice: este parentesis. Las
+         otras dos voces preguntan `vmCarpDichoEnMitral()` y se callan cuando esta habla, asi que
+         ya no hay dos Carpentier en el mismo parrafo y no hay nada de lo que abstenerse.
+         ⚠️ ESTE ES EL EMISOR, asi que NO se pregunta a si mismo: usa sus tres condiciones
+         directas —no protesis, un valor del vocabulario, y colgar de `insE`/`insC`—, que son las
+         MISMAS que `vmCarpDichoEnMitral` contesta para los otros dos. Si se cambia una, se
+         cambian las dos: estan a cuarenta lineas y el comentario de alla lo dice tambien. */
       const _carp = (typeof vmCarpEfectivo === 'function') ? vmCarpEfectivo() : '';
-      const _carpDiv = (typeof _vmCarpDiverge !== 'function') || !!_vmCarpDiverge();
-      if (!_carpDiv && ['I', 'II', 'IIIa', 'IIIb'].indexOf(_carp) >= 0) _p.push('Carpentier ' + _carp);
+      if (['I', 'II', 'IIIa', 'IIIb'].indexOf(_carp) >= 0) _p.push('Carpentier ' + _carp);
       return _p.length ? ' (' + _p.join('; ') + ')' : '';
     })();
     const insE = (imG > 0) ? `insuficiencia ${imTxt[imG]}${_imFundG}${_imMecCarp}` : (_imSinGrado ? `insuficiencia${_imMecCarp}` : null);
@@ -53814,7 +53859,21 @@ function generarInforme(opts) {
         .filter(h => { const el = document.getElementById(h[0]); return el && el.checked; }).map(h => h[1]);
       let _fr = (vmMorf === 'Prolapso / EVMS') ? 'Prolapso mitral' : 'Enfermedad mixomatosa (Barlow)';
       if (_segs.length) _fr += ' segmento' + (_segs.length > 1 ? 's' : '') + ' ' + _segs.join(', ');
-      if (_carp && _carp !== '—') _fr += ', mecanismo ' + _carp.replace('Tipo ', 'Carpentier ').replace(/\s*\(.*\)/, '');
+      /* ⚠️ EL CARPENTIER SE DICE UNA SOLA VEZ EN EL INFORME (E-1b, 2026-10-27). Hasta hoy esta
+         frase lo repetia: medido en HEAD, un transtorácico con prolapso, IM moderada-severa y
+         Carpentier II salia «… con insuficiencia moderada-severa (mecanismo secundario;
+         Carpentier II). Prolapso mitral, mecanismo Carpentier II.» — dos veces en la MISMA
+         oracion. Y con el tipo III era peor: el parentesis decia «Carpentier IIIb» y esta frase
+         «Carpentier III», porque el vocabulario del cajon de legado no parte el tipo III. Dos
+         VALORES distintos del mismo hallazgo en un documento firmado.
+         ⚠️ SE CALLA, NO SE BORRA, y la diferencia es un dato: cuando el parentesis NO habla
+         —sin insuficiencia, sobre una protesis, o sin ningun Carpentier en los dos campos
+         nuevos— esta frase sigue siendo la UNICA voz y publica el del cajon igual que siempre.
+         Medido: un estudio con prolapso, Carpentier II y SIN insuficiencia sigue saliendo
+         «Prolapso mitral, mecanismo Carpentier II.» */
+      if (_carp && _carp !== '—'
+          && !((typeof vmCarpDichoEnMitral === 'function') && vmCarpDichoEnMitral()))
+        _fr += ', mecanismo ' + _carp.replace('Tipo ', 'Carpentier ').replace(/\s*\(.*\)/, '');
       if (_mm) _fr += ', extensión ' + _mm + 'mm';
       if (_hall.length) { const _jy = (a) => a.reduce((ac,c,i) => i === 0 ? c : (ac + (/^[aeiouáéíóú]/i.test(c) ? ' e ' : ' y ') + c), ''); _fr += ', con ' + _jy(_hall); }
       _fr += '.';
@@ -55821,7 +55880,21 @@ function generarInforme(opts) {
        función a otro bloque, que es lo que se quiere. */
     const _vmProt = vmEsProtesis();
     const etio = _morfoInc ? sv('ete_etiologia')  : '';
-    const carp = (_morfoInc && !_vmProt) ? sv('ete_carpentier') : '';
+    /* ⚠️ Y SE CALLA SI LA ORACION DE LA MITRAL YA DIJO EL CARPENTIER (E-1b, 2026-10-27). Medido
+       en HEAD: un ETE con la morfologia integrada, prolapso y Carpentier IIIb publicaba el
+       Carpentier TRES veces en el mismo informe firmado —el parentesis de la insuficiencia, la
+       frase de prolapso y esta oracion—. El dueño de la pregunta es `vmCarpDichoEnMitral`.
+       ⚠️ LO QUE ESTO CUESTA, DECLARADO: esta oracion lo decia con su glosa —«Carpentier Tipo IIIb
+       (tethering sistolico)»— y el parentesis lo dice pelado («Carpentier IIIb»). La glosa es la
+       DEFINICION del tipo, no un dato del paciente, y vive en el globo ⓘ del campo (`vm-carp`) y
+       en la ficha de Referencias. El TIPO, que es el dato, no se pierde.
+       ⚠️ Y SI EL CARPENTIER ERA LO UNICO CARGADO, LA ORACION DEL ETE DESAPARECE ENTERA, que es lo
+       correcto y no un efecto colateral: la compuerta de abajo (`etio || carp || …`) existe
+       justamente para no publicar «ETE — Válvula mitral.» a secas. El dato sigue en el parentesis
+       de la oracion de la mitral. */
+    const carp = (_morfoInc && !_vmProt
+                  && !((typeof vmCarpDichoEnMitral === 'function') && vmCarpDichoEnMitral()))
+                 ? sv('ete_carpentier') : '';
     const mec  = (_morfoInc && !_vmProt) ? sv('ete_mecanismo')  : '';
     /* El span se anula en vez de filtrar el número más abajo: de ahí salen las DOS ramas del
        score —el total y el «incompleto — no interpretable»— y la compuerta. Con `null`, `wN`
@@ -58739,7 +58812,7 @@ function RECALC_MODULOS() {
      automaticos con el «requiere …» del formulario vacio al lado de un VDFVI y una FEVI ya
      poblados. No puede migrar nada: no escribe ningun campo del estudio, los dos nodos que
      toca son `vauto-` y el tercero un `<div>` de texto. */
-  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','asiaMmSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','dtTapSync','etOndaESync','papmEstSync','calcDopTric','etTsvdSync','calcET','vpVmaxSync','ipIncongruenciaSync','itRefFuenteSync','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccSegSync','vpSync','popSync','sglOrigenSync','calcVenaPulm','valvProtSync','eaTaviEspejar','imEspejosRestaurar','eteVmAvisoSync','vmCarpLegadoSync','vmCarpAvisoSync','vmProtBloqSync','vmMorfFitSync','vdStrainPlSync','emPdfValsSync','emCuadroRefRepintar','emContFaAvisoSync','imCortesPintar','imContAvisoPintar','itIncongruenciaSync','aoEspejosRestaurar','tangoRestaurar','diastExclSync','diastFcAvisoSync','diastBseEprimaAvisoSync','diastBseGrisAvisoSync','diastStrainMarcaSync','vdMarcaSync','vdTeiAvisoSync','hfPepSync','hfPepPintar','viVolAutoSync','eaAvaiGradoPintar','eaPvlPintar','imPvlPintar','vdTapsePsapSync','ipApDiamSync','vdViSelSync','htpApSync','htpTablaPintar','m3dBotonSync','contrPdfSync','sglPdfSync','eteQxPdfSync','otrBurbUI','v2dCerrar','aiviSexoSync','vtDviAuto','sincronizarTEERDesdeGlobal','calcETE',
+  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','asiaMmSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','dtTapSync','etOndaESync','papmEstSync','calcDopTric','etTsvdSync','calcET','vpVmaxSync','ipIncongruenciaSync','itRefFuenteSync','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccSegSync','vpSync','popSync','sglOrigenSync','calcVenaPulm','valvProtSync','eaTaviEspejar','imEspejosRestaurar','eteVmAvisoSync','vmCarpLegadoSync','vmCarpOrigenSync','vmProtBloqSync','vmMorfFitSync','vdStrainPlSync','emPdfValsSync','emCuadroRefRepintar','emContFaAvisoSync','imCortesPintar','imContAvisoPintar','itIncongruenciaSync','aoEspejosRestaurar','tangoRestaurar','diastExclSync','diastFcAvisoSync','diastBseEprimaAvisoSync','diastBseGrisAvisoSync','diastStrainMarcaSync','vdMarcaSync','vdTeiAvisoSync','hfPepSync','hfPepPintar','viVolAutoSync','eaAvaiGradoPintar','eaPvlPintar','imPvlPintar','vdTapsePsapSync','ipApDiamSync','vdViSelSync','htpApSync','htpTablaPintar','m3dBotonSync','contrPdfSync','sglPdfSync','eteQxPdfSync','otrBurbUI','v2dCerrar','aiviSexoSync','vtDviAuto','sincronizarTEERDesdeGlobal','calcETE',
           /* `pamAvisoSync` (B-2) repinta la línea del dueño único de la PAM. Entra acá por lo
              mismo que los demás: las cinco rutas de restauración pueblan asignando `.value`,
              que no dispara `input`, así que al reabrir un estudio con dos PAM que difieren el
@@ -59052,7 +59125,7 @@ function limpiarCampos(silencioso) {
      strain de pared libre, que con el campo vacío tiene que quedar en blanco y no con la
      categoría del estudio anterior. */
   { if (typeof vmCarpLegadoSync === 'function') { try { vmCarpLegadoSync(); } catch (e) {} } }
-  { if (typeof vmCarpAvisoSync === 'function') { try { vmCarpAvisoSync(); } catch (e) {} } }
+  { if (typeof vmCarpOrigenSync === 'function') { try { vmCarpOrigenSync(); } catch (e) {} } }
   /* AJ7-3j · al lado de sus vecinas y por el mismo motivo: `limpiarCampos` devuelve `vm_morf` a
      «Normal» y sin esto los dos campos quedaban atenuados y bloqueados del estudio anterior. */
   { if (typeof vmProtBloqSync === 'function') { try { vmProtBloqSync(); } catch (e) {} } }
@@ -60832,12 +60905,19 @@ const _VM_CARP_LEGADO = Object.freeze({
    borrarla salvo «Nuevo estudio», porque el nodo está `disabled`.
    En el gesto se limpia; en el repintado NO se toca, que es lo que conserva el valor de un
    estudio guardado antes de esta tanda. */
+/* ⚠️ Y DESDE LA TANDA E, EL REPINTADO SOLO LLENA EL HUECO (E-1a). `vmCarpOrigenSync` copia el
+   Carpentier del ETE a `vm_carp` cuando ese campo esta VACIO —el caso de un estudio guardado
+   antes de la AJ5—, y sin esta guarda ese llenado llegaba hasta aca y PISABA el «Tipo …» que ese
+   mismo estudio trae guardado en el cajon de prolapso. Es un campo clinico persistido: en el
+   gesto se escribe, porque ahi el medico acaba de elegir; en el repintado se escribe SOLO si el
+   nodo esta en su valor de fabrica «—», que es llenar un hueco y no pisar una decision. */
 function vmCarpLegadoSync(gesto) {
   const nue = document.getElementById('vm_carp');
   const leg = document.getElementById('vm_carpentier');
   if (!nue || !leg) return;
   const v = nue.value;
   if (!v) { if (gesto) leg.selectedIndex = 0; return; }
+  if (!gesto) { const lv = String(leg.value || ''); if (lv && lv !== '—') return; }
   const txt = _VM_CARP_LEGADO[v];
   if (!txt) { console.error('[vmCarp] «' + v + '» no tiene traducción al vocabulario de legado'); return; }
   if (!Array.prototype.some.call(leg.options, function (o) { return o.value === txt; })) {
@@ -60846,61 +60926,26 @@ function vmCarpLegadoSync(gesto) {
   leg.value = txt;
 }
 window.vmCarpLegadoSync = vmCarpLegadoSync;
-/* ══ EL AVISO DE DIVERGENCIA DEL CARPENTIER — AJ5-6, de /sharp-edges sobre este diff ══════
-   HABÍA TRES VOCES Y NADIE LAS COMPARABA, y las dos que sobran llegan al informe FIRMADO:
-     · el nodo de LEGADO (`vm_carpentier`) lo sigue leyendo la frase de prolapso
-       («Prolapso mitral …, mecanismo Carpentier I») y `vmCarpLegadoSync` NO lo escribe cuando
-       `vm_carp` está vacío —o sea, en todo estudio guardado ANTES de esta tanda—, mientras el
-       paréntesis nuevo sí habla, por `vmCarpEfectivo`, desde el lado ETE. Medido: un estudio con
-       `vm_carp` vacío, `ete_carpentier` en II y el legado en «Tipo I» firmaba «(Carpentier II)»
-       y «mecanismo Carpentier I» en el MISMO párrafo — textual el defecto que el AJ5-1 declaró
-       cerrado para el estudio nuevo.
-     · `ete_carpentier` puede quedar VIEJO cuando la guarda de «es un ETE» se abstiene: el médico
-       carga II en el ETE (que lo espeja a Válvulas), se corrige a IIIb en Válvulas y el lado ETE
-       se queda en II. Con la morfología del ETE integrada, el informe publica IIIb en la oración
-       mitral y «Carpentier Tipo II» en la del ETE, y el PPT proyecta la segunda.
-   ⚠️ EL QUE SE ABSTIENE ES EL TEXTO NUEVO, no el viejo: el paréntesis de la AJ5-3 no existía en
-   HEAD, así que callarse deja el informe del estudio legado byte por byte como estaba. Lo que NO
-   se hace es pisar un valor guardado para «arreglar» la contradicción: eso es migrar.
-   ⚠️ PINTA, NO ESCRIBE. Por eso va en `RECALC_MODULOS` y en `limpiarCampos` —las dos columnas—,
-   igual que `eteVmAvisoSync`. */
-function _vmCarpDiverge() {
-  const ef = (typeof vmCarpEfectivo === 'function') ? vmCarpEfectivo() : '';
-  const leg = document.getElementById('vm_carpentier');
-  const lv = leg ? String(leg.value || '') : '';
-  const et = document.getElementById('ete_carpentier');
-  const ev = et ? String(et.value || '') : '';
-  const o = { legado: null, ete: null };
-  /* El valor de FÁBRICA del legado es «—» y no afirma nada. */
-  if (ef && lv && lv !== '—' && _VM_CARP_LEGADO[ef] !== lv) o.legado = lv;
-  /* Los dos lados afirmando cosas distintas. Vacío no contradice nada. */
-  if (ef && ev && ev !== ef) o.ete = ev;
-  return (o.legado || o.ete) ? o : null;
-}
-window._vmCarpDiverge = _vmCarpDiverge;
-function vmCarpAvisoSync() {
-  const n = document.getElementById('vm-carp-aviso');
-  if (!n) return;
-  const d = _vmCarpDiverge();
-  if (!d) { n.textContent = ''; n.style.display = 'none'; return; }
-  /* SE NOMBRAN LOS DOS VALORES, que es lo único que le dice al médico cuál corregir — la misma
-     decisión que `eteVmAvisoSync` ya tomó para «biológica contra mecánica». */
-  const ef = (typeof vmCarpEfectivo === 'function') ? vmCarpEfectivo() : '';
-  const p = [];
-  if (d.ete)    p.push('el ETE dice «' + d.ete + '»');
-  if (d.legado) p.push('el detalle de prolapso dice «' + d.legado + '»');
-  n.textContent = '⚠️ Carpentier «' + ef + '» y ' + p.join(' y ')
-    + ' — mientras no coincidan, el informe no publica el Carpentier de la insuficiencia.';
-  n.style.display = '';
-  /* ⚠️ Y SE ABRE LA SECCIÓN, QUE ES EL DEFECTO QUE `eteVmAvisoSync` YA DOCUMENTA Y QUE LA SONDA
-     DE ESTA TANDA VOLVIÓ A MEDIR: `ete-seccion-valv-mitral` nace con `display:none` y la abre SÓLO
-     `toggleEteSeccion` —no la recorren `secAutoOpen` ni `cardAutoOpen`—, así que el aviso se
-     pintaba, medía 0 × 0 y seguía sin verse, justo en el escenario para el que existe. Abrir no
-     toca ningún valor: es lo mismo que hace `secAutoOpen` cuando hay datos. */
-  { const sec = document.getElementById('ete-seccion-valv-mitral');
-    if (sec && sec.style.display === 'none') sec.style.display = 'block'; }
-}
-window.vmCarpAvisoSync = vmCarpAvisoSync;
+/* ══ EL AVISO DE DIVERGENCIA DEL CARPENTIER SE RETIRA (E-1a, 2026-10-27) ══════════════════
+   DECISION DE MAICOL. El aviso existía porque había TRES voces del Carpentier y nadie las
+   comparaba: `vm_carp`, `ete_carpentier` y el nodo de LEGADO del cajón de prolapso. Con un solo
+   dato —el del ETE si lo hay, el de Válvulas si no— no quedan dos voces que puedan contradecirse,
+   así que `_vmCarpDiverge` y `vmCarpAvisoSync` se fueron con su nodo `vm-carp-aviso`.
+   EN SU LUGAR, dos cosas que SI hacen falta:
+     · `vmCarpOrigenSync`, que cuando el ETE es el dueño deja el campo de Válvulas de sólo
+       lectura con un enlace a la pestaña de origen — o sea que el médico ve de dónde sale el
+       dato y dónde corregirlo, en vez de ver dos campos que se contradicen;
+     · la guarda de repintado de `vmCarpLegadoSync`, acá abajo, que es lo que impide que llenar
+       el hueco de un estudio LEGADO pise el «Tipo …» que ese estudio trae guardado.
+   ⚠️ LO QUE ESTO CUESTA, MEDIDO Y DECLARADO: en un estudio guardado a mano o importado donde
+   `vm_carp` y `ete_carpentier` tengan valores DISTINTOS, el informe publica el del ETE y el
+   <select> de Válvulas sigue mostrando el suyo, deshabilitado. El enlace nombra el valor que
+   manda, así que la pantalla no miente; pisar el valor guardado para que coincidan sería migrar
+   un estudio guardado. Declarado en `docs/PENDIENTES.md` → E-a.
+   ⚠️ Y EL NODO DE LEGADO SIGUE EXISTIENDO. No se borra por lo que su propio comentario ya dice:
+   los estudios guardados traen ahí el TEXTO de la opción, y sacarla dejaría `selectedIndex = -1`
+   y `guardarInforme` persistiría el hueco. Lo que cambió es que ya no es una voz del informe
+   cuando el paréntesis habla — ver `vmCarpDichoEnMitral`. */
 
 /* ══ CON PROTESIS MITRAL, EL TIPO DE IM Y EL CARPENTIER SE ATENUAN Y SE BLOQUEAN (AJ7-3j) ════
    DECISION DE MAICOL, y cierra AJ5-f. Medido en Chrome antes de tocar nada: con `vm_morf` en
@@ -60921,12 +60966,23 @@ window.vmCarpAvisoSync = vmCarpAvisoSync;
 const _VM_PROT_BLOQ = ['vm_tipo_im', 'vm_carp'];
 const _VM_PROT_TITULO = 'Con una prótesis mitral el informe no publica el tipo de insuficiencia '
   + 'ni el Carpentier: el valor cargado se conserva.';
+const _VM_CARP_ETE_TITULO = 'El Carpentier lo consigna el estudio transesofágico: ese es el dato '
+  + 'que publica el informe. Se corrige en la pestaña ETE.';
+/* ⚠️ ESTA FUNCION ES EL UNICO ESCRITOR DE `disabled` Y DE `opacity` DE LOS DOS <select> (E-1a).
+   Desde esta tanda `vm_carp` tiene DOS motivos para quedar bloqueado —la prótesis mitral y el
+   ETE como dueño del Carpentier— y la tentación era un segundo pintor para el motivo nuevo. No:
+   dos escritores de la misma propiedad es exactamente cómo la pantalla queda contando el estado
+   del último que corrió. Acá se calcula el OR, con su propio `title` por motivo, y el pintor del
+   enlace (`vmCarpOrigenSync`) llama a éste en vez de escribir el atributo él mismo. */
 function vmProtBloqSync() {
   const prot = (typeof vmEsProtesis === 'function') && vmEsProtesis();
+  const ete  = (typeof vmCarpDesdeEte === 'function') && vmCarpDesdeEte();
   _VM_PROT_BLOQ.forEach(function (id) {
     const e = document.getElementById(id);
     if (!e) return;
-    e.disabled = !!prot;
+    /* El motivo «el ETE es el dueño» es SOLO del Carpentier: el Tipo de IM no cambió de dueño. */
+    const bloq = !!prot || (id === 'vm_carp' && !!ete);
+    e.disabled = bloq;
     /* ⚠️ EL `opacity` EXPLICITO NO ES REDUNDANTE, Y ESTA MEDIDO. Sacandolo, un <select>
        deshabilitado NO queda con opacidad 1: la hoja de estilos DEL NAVEGADOR le pone 0,7
        —Chromium trae `select:disabled { opacity: 0.7 }` y esta app no tiene ninguna regla
@@ -60934,16 +60990,94 @@ function vmProtBloqSync() {
        seguiria viendose, pero la decidiria el motor y no la aplicacion: en otro motor puede
        ser otro numero o ninguno, y este repositorio mide Chrome y WebKit lado a lado. El 0,5
        la fija y la hace comparable entre los dos. */
-    e.style.opacity = prot ? '0.5' : '';
+    e.style.opacity = bloq ? '0.5' : '';
     /* El rotulo tambien se atenua: un campo gris con su etiqueta en negro se lee como un campo
        que todavia se puede tocar. El `.fg` es el contenedor de campo de la casa. */
     const fg = e.closest ? e.closest('.fg') : null;
     const lab = fg ? fg.querySelector('label') : null;
-    if (lab) lab.style.opacity = prot ? '0.5' : '';
-    if (prot) e.setAttribute('title', _VM_PROT_TITULO); else e.removeAttribute('title');
+    if (lab) lab.style.opacity = bloq ? '0.5' : '';
+    if (bloq) e.setAttribute('title', prot ? _VM_PROT_TITULO : _VM_CARP_ETE_TITULO);
+    else e.removeAttribute('title');
   });
 }
 window.vmProtBloqSync = vmProtBloqSync;
+
+/* ══ CON ETE, EL CAMPO DE VALVULAS MUESTRA EL CARPENTIER DEL ETE (E-1a, 2026-10-27) ═══════
+   DECISION DE MAICOL: «que con ETE el campo de Válvulas muestre el valor del ETE de solo
+   lectura, con enlace a la pestaña de origen».
+   Hace TRES cosas y ninguna de más:
+     1. LLENA EL HUECO, y sólo el hueco. Si `vm_carp` está VACIO y el ETE tiene un Carpentier,
+        se copia, para que el <select> deshabilitado no muestre «—» al lado de un enlace que
+        dice «II». Si `vm_carp` ya trae un valor NO SE TOCA, aunque difiera: pisar un valor
+        guardado es migrar un estudio guardado, y eso no se hace. El caso está medido y
+        declarado (ver la cabecera del aviso retirado y `docs/PENDIENTES.md` → E-a).
+     2. PINTA EL ENLACE, que nombra el valor que manda y lleva a la pestaña de origen.
+     3. LE PIDE A `vmProtBloqSync` que aplique el bloqueo, en vez de escribirlo acá: un solo
+        escritor de `disabled` y de `opacity`.
+   ⚠️ VA EN `RECALC_MODULOS` porque PINTA, igual que `vmProtBloqSync`. El llenado del hueco es
+   la única escritura, es idempotente —la segunda pasada encuentra el campo ya igual— y no
+   alcanza a ningún campo que el médico pueda tipear: `vm_carp` queda deshabilitado en el mismo
+   gesto. */
+function vmCarpOrigenSync() {
+  const vm = document.getElementById('vm_carp');
+  const et = document.getElementById('ete_carpentier');
+  const en = document.getElementById('vm-carp-origen');
+  const ete = !!(et && et.value);
+  if (vm && ete && !vm.value) {
+    /* La misma guarda de `_vmEspejar`: un valor que ya no es opción dejaría `selectedIndex=-1`,
+       `.value` daría '' y `guardarInforme` persistiría el hueco. */
+    if (Array.prototype.some.call(vm.options, function (o) { return o.value === et.value; })) {
+      vm.value = et.value;
+      /* El legado sigue a `vm_carp` por su propio pintor, y su guarda de repintado es la que
+         impide que esto pise un «Tipo …» guardado. */
+      if (typeof vmCarpLegadoSync === 'function') { try { vmCarpLegadoSync(false); } catch (e) {} }
+    } else {
+      console.error('[vmCarp] «' + et.value + '» ya no es una opción de #vm_carp');
+    }
+  }
+  if (en) {
+    if (ete) {
+      const puerta = vmCarpPuertaEteAbierta();
+      en.textContent = 'Carpentier «' + et.value + '» — lo consigna el ETE'
+        + (puerta ? ' · abrir ↗' : '');
+      en.style.cursor = puerta ? 'pointer' : 'default';
+      en.style.textDecoration = puerta ? 'underline' : 'none';
+      en.setAttribute('role', puerta ? 'link' : 'note');
+      en.setAttribute('tabindex', puerta ? '0' : '-1');
+      en.style.display = '';
+    } else { en.textContent = ''; en.style.display = 'none';
+             en.removeAttribute('role'); en.setAttribute('tabindex', '-1'); }
+  }
+  if (typeof vmProtBloqSync === 'function') { try { vmProtBloqSync(); } catch (e) {} }
+}
+window.vmCarpOrigenSync = vmCarpOrigenSync;
+/* ══ EL SALTO A LA PESTAÑA DE ORIGEN, GATEADO POR EL PLAN (E-1a) ══════════════════════════
+   ⚠️ NO ES `showTab('ete')` PELADO, Y ESTE ARCHIVO YA DOCUMENTA POR QUE: `showTab` NO chequea
+   el plan —medido sobre su propia fuente, no nombra `eeGetMode`, `eeModOn`, `applyViewMode` ni
+   `ett_view_mode`— y el plan Básico se aplica SOLO escondiendo los `button[data-mod]`. El panel
+   del ETE queda en el árbol, así que un enlace pelado acá, en una pestaña del estudio principal
+   que el plan Básico SI muestra, seria una puerta de entrada a ECO AVANZADO sin pasar por
+   ninguna compuerta — textual el defecto que `hfapeffIr` vino a cerrar.
+   Con la puerta cerrada el texto se queda como ROTULO: nombra el origen del dato y no lleva a
+   ningún lado, que es lo correcto — el dato ya está, lo que no está es el permiso de abrir el
+   módulo. */
+function vmCarpPuertaEteAbierta() {
+  const b = document.querySelector('button[data-mod="ete"]');
+  return !!(b && b.offsetParent !== null);
+}
+function vmCarpIrAlEte() {
+  if (!vmCarpPuertaEteAbierta()) return false;
+  if (typeof showTab === 'function') { try { showTab('ete'); } catch (e) { return false; } }
+  /* La sección del Carpentier del ETE nace plegada y la abre SOLO `toggleEteSeccion`: sin esto
+     el salto deja al médico en la pestaña correcta y la sección cerrada. Es el mismo defecto que
+     `eteVmAvisoSync` ya documenta. */
+  { const sec = document.getElementById('ete-seccion-valv-mitral');
+    if (sec && sec.style.display === 'none') sec.style.display = 'block'; }
+  { const e = document.getElementById('ete_carpentier');
+    if (e && e.scrollIntoView) { try { e.scrollIntoView({ block: 'center' }); } catch (x) {} } }
+  return true;
+}
+window.vmCarpPuertaEteAbierta = vmCarpPuertaEteAbierta; window.vmCarpIrAlEte = vmCarpIrAlEte;
 
 /* ══ EL ROTULO DE LA MORFOLOGIA SE ACHICA HASTA QUE ENTRE (AJ7-3k, 2026-10-24) ═══════════════
    DECISION DE MAICOL, y cierra AJ5-g. Medido en Chrome con `measureText` sobre la tipografia
@@ -61009,7 +61143,7 @@ function vmCarpPropagar(origen) {
      firmado afirmando un tipo que ningún control mostraba—. Las rutas de restauración no pasan
      por aquí: reponen con `.value`, que no dispara `change`. */
   vmCarpLegadoSync(true);
-  vmCarpAvisoSync();
+  vmCarpOrigenSync();
 }
 window.vmTipoImPropagar = vmTipoImPropagar; window.vmCarpPropagar = vmCarpPropagar;
 
@@ -61024,10 +61158,59 @@ function vmTipoIMEfectivo() {
   const a = document.getElementById('vm_tipo_im'), b = document.getElementById('teer_tipo_im');
   return (a && a.value) || (b && b.value) || '';
 }
+/* ══ EL CARPENTIER TIENE UN SOLO DATO Y EL ETE GANA (E-1a, 2026-10-27) ════════════════════
+   DECISION DE MAICOL, y REVIERTE la precedencia de la AJ5. Hasta hoy mandaba el de Válvulas y
+   el del ETE era el respaldo; desde hoy, si el ETE tiene un Carpentier cargado, ese es EL dato
+   y el campo de Válvulas lo muestra de sólo lectura (ver `vmCarpOrigenSync`).
+   ⚠️ POR QUE SE INVIERTE Y NO SE DEJA COMO ESTABA: el Carpentier es una clasificación del
+   MOVIMIENTO de las valvas, y el transesofágico es la ventana que lo resuelve. Con la
+   precedencia vieja, un valor tipeado en Válvulas tapaba al del ETE del mismo estudio.
+   ⚠️ Y CON ESTO EL AVISO DE DIVERGENCIA DEJA DE HACER FALTA: con un solo dato no hay dos voces
+   que comparar. Se retiró `_vmCarpDiverge` / `vmCarpAvisoSync` y el nodo `vm-carp-aviso`. */
 function vmCarpEfectivo() {
   const a = document.getElementById('vm_carp'), b = document.getElementById('ete_carpentier');
-  return (a && a.value) || (b && b.value) || '';
+  return (b && b.value) || (a && a.value) || '';
 }
+/* ¿El ETE es el dueño del Carpentier en este estudio? PURO: lee un nodo y no escribe. */
+function vmCarpDesdeEte() {
+  const b = document.getElementById('ete_carpentier');
+  return !!(b && b.value);
+}
+window.vmCarpDesdeEte = vmCarpDesdeEte;
+/* ══ ¿LA ORACION DE LA MITRAL DEL INFORME YA DIJO EL CARPENTIER? (E-1b) ═══════════════════
+   UN SOLO DUEÑO DE LA PREGUNTA, y por eso vive acá y no en cada emisor: la leen el paréntesis
+   de la mitral (indirectamente, por sus mismas tres condiciones), la frase de prolapso y la
+   oración de la mitral del ETE. Con la pregunta escrita en cada lugar, el que se olvida deja el
+   informe FIRMADO diciendo el Carpentier dos veces — que es lo que esta tanda vino a cerrar, y
+   que estaba MEDIDO en HEAD: dos apariciones en un transtorácico con prolapso y tres en un ETE
+   con la morfología integrada, y en ese último con DOS valores distintos («Carpentier IIIb» en
+   el paréntesis y «Carpentier III» en la frase de prolapso, porque el vocabulario del cajón de
+   legado no parte el tipo III).
+   ⚠️ ES PURA: lee el DOM y no escribe, así que la pueden llamar los tres emisores sin orden ni
+   bucle. Y falla hacia `false` —«no se dijo»—, que es la dirección que CONSERVA el dato: con una
+   excepción, la frase de prolapso y la del ETE siguen publicando el Carpentier como hasta hoy. */
+function imHayInsufEnInforme() {
+  const g = parseInt((typeof sv === 'function') ? sv('im_grado') : '') || 0;
+  if (g > 0) return true;
+  /* La MISMA cascada que `insE`/`insC`: grado, o pastilla de insuficiencia abierta sin grado y
+     sin ajuste manual. Si se cambia una, se cambia la otra — están al lado en el informe. */
+  const man = !!(window.esqSevManual && window.esqSevManual.im);
+  const pil = (typeof pillOn === 'function') && pillOn('mitral', 'insuf');
+  return !man && !!pil;
+}
+window.imHayInsufEnInforme = imHayInsufEnInforme;
+function vmCarpDichoEnMitral() {
+  try {
+    /* Sobre una PROTESIS el paréntesis no escribe nada (`_vmProt`), así que no dijo el
+       Carpentier y los otros dos emisores no tienen que callarse. */
+    if ((typeof protNoGradua === 'function') && protNoGradua('vm_morf')) return false;
+    const c = vmCarpEfectivo();
+    if (['I', 'II', 'IIIa', 'IIIb'].indexOf(c) < 0) return false;
+    /* El paréntesis cuelga de `insE`/`insC`: sin insuficiencia no llega al papel. */
+    return imHayInsufEnInforme();
+  } catch (e) { return false; }
+}
+window.vmCarpDichoEnMitral = vmCarpDichoEnMitral;
 window.vmTipoIMEfectivo = vmTipoIMEfectivo; window.vmCarpEfectivo = vmCarpEfectivo;
 
 /* Los cuatro `<select>` son listas PARALELAS de dos pares y nada las vigilaba. Si una opción se
@@ -134667,8 +134850,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261027-1204';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793113451852;                 /* eco-build-ms */
+const ECO_BUILD    = '20261027-1254';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793116462643;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -134754,7 +134937,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261027-1204</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261027-1254</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

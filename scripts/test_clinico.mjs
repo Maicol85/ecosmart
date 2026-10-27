@@ -86899,24 +86899,43 @@ caso('TC-523', 'Tanda AJ5-2: el Tipo de IM y el Carpentier con UN solo dato cada
   sel('ete_carpentier', 'II');
   sel('vm_carp', 'IIIb');
   const e1 = pares();
-  const div = F('_vmCarpDiverge') ? _vmCarpDiverge() : 'SIN FN';
-  const avTxt = (document.getElementById('vm-carp-aviso') || {}).textContent || '';
-  const avGeo = (function () { const n = document.getElementById('vm-carp-aviso');
+  /* == ADAPTADO EN LA TANDA E (E-1a, 2026-10-27), CON EL MOTIVO ESCRITO =====================
+     E2, E3 y E4 median el AVISO DE DIVERGENCIA (vm-carp-aviso / _vmCarpDiverge), y la
+     tanda E lo RETIRO por decision de Maicol: el Carpentier tiene UN solo dato -el del ETE si
+     lo hay, el de Valvulas si no- y con un solo dato no hay dos voces que comparar. En su lugar
+     se mide lo que hoy le dice al medico de donde sale el dato: el ENLACE DE ORIGEN
+     (vm-carp-origen), que nombra el valor del ETE y lleva a la pestaña de origen.
+     ⚠️ E1 SE CONSERVA COMO DENOMINADOR y cambia de significado: los dos nodos con valores
+     DISTINTOS ya no son un estado al que el medico pueda llegar -con el ETE cargado el campo de
+     Valvulas queda deshabilitado-, pero si al que llega un estudio importado o editado a mano.
+     Es el caso que docs/PENDIENTES.md → E-a declara, y acá se fija que el EFECTIVO es el del
+     ETE y que el enlace lo NOMBRA, que es lo que impide que la pantalla mienta. */
+  const orTxt = (document.getElementById('vm-carp-origen') || {}).textContent || '';
+  const orGeo = (function () { const n = document.getElementById('vm-carp-origen');
     if (!n) return null; const r = n.getBoundingClientRect();
     return { w: Math.round(r.width), h: Math.round(r.height) }; })();
   ex.push(['(E1) DENOMINADOR: con la guarda de ETE abstenida, ete_carpentier se queda VIEJO',
     e1.ca === 'IIIb' && e1.ec === 'II', JSON.stringify(e1)]);
-  ex.push(['(E2) la divergencia se detecta y el aviso NOMBRA los dos valores',
-    !!div && div !== 'SIN FN' && div.ete === 'II'
-      && avTxt.indexOf('IIIb') > -1 && avTxt.indexOf('II') > -1,
-    JSON.stringify(div) + ' | ' + avTxt.slice(0, 120)]);
-  ex.push(['(E3) y el aviso TIENE GEOMETRIA -no se pinta dentro de una seccion plegada-',
-    !!avGeo && avGeo.w > 0 && avGeo.h > 0, JSON.stringify(avGeo)]);
-  ex.push(['(E4) CONTROL: con los dos lados coincidiendo el aviso se APAGA',
-    (function () { sel('vm_carp', 'II');
-      const n = document.getElementById('vm-carp-aviso');
-      return !!n && (n.textContent || '') === '' && getComputedStyle(n).display === 'none'; })(),
-    (document.getElementById('vm-carp-aviso') || {}).textContent || 'vacio']);
+  ex.push(['(E2) el aviso de divergencia NO EXISTE MAS, y el enlace de origen nombra el del ETE',
+    !document.getElementById('vm-carp-aviso') && !F('_vmCarpDiverge')
+      && orTxt.indexOf('II') > -1 && orTxt.indexOf('ETE') > -1,
+    'aviso=' + (!!document.getElementById('vm-carp-aviso')) + ' diverge=' + F('_vmCarpDiverge')
+      + ' | ' + orTxt.slice(0, 120)]);
+  ex.push(['(E3) el enlace TIENE GEOMETRIA -no se pinta dentro de una seccion plegada-',
+    !!orGeo && orGeo.w > 0 && orGeo.h > 0, JSON.stringify(orGeo)]);
+  ex.push(['(E4) con el ETE como dueño, el EFECTIVO es el del ETE y el campo queda bloqueado',
+    (F('vmCarpEfectivo') ? vmCarpEfectivo() : null) === 'II'
+      && !!(document.getElementById('vm_carp') || {}).disabled,
+    'ef=' + (F('vmCarpEfectivo') ? vmCarpEfectivo() : '?')
+      + ' dis=' + (document.getElementById('vm_carp') || {}).disabled]);
+  ex.push(['(E5) CONTROL NEGATIVO: sin Carpentier en el ETE, el enlace se APAGA y el campo se habilita',
+    (function () { sel('ete_carpentier', ''); sel('vm_carp', 'II');
+      const n = document.getElementById('vm-carp-origen');
+      return !!n && (n.textContent || '') === '' && getComputedStyle(n).display === 'none'
+        && !(document.getElementById('vm_carp') || {}).disabled
+        && (F('vmCarpEfectivo') ? vmCarpEfectivo() : null) === 'II'; })(),
+    'or=' + ((document.getElementById('vm-carp-origen') || {}).textContent || 'vacio')
+      + ' dis=' + (document.getElementById('vm_carp') || {}).disabled]);
 
   /* == (F) UN ESTUDIO GUARDADO ANTES DE ESTA TANDA ==========================================
      No tiene los nodos de Valvulas. Lo efectivo sale del lado ETE, y NADA se le escribe: eso es
@@ -86929,14 +86948,23 @@ caso('TC-523', 'Tanda AJ5-2: el Tipo de IM y el Carpentier con UN solo dato cada
     e.value = campos[id]; });
   if (F('_recalcModulos')) _recalcModulos('TC-523');
   const f1 = pares();
-  ex.push(['(F1) con el lado Valvulas vacio, lo EFECTIVO sale del ETE',
-    f1.ti === '' && f1.ca === ''
+  /* == ADAPTADO EN LA TANDA E (E-1a), CON EL MOTIVO ESCRITO =================================
+     F1 exigia vm_carp VACIO tras el repintado y F2 que el repintado no escribiera NADA. Desde
+     la tanda E, vmCarpOrigenSync LLENA EL HUECO de vm_carp con el Carpentier del ETE -y solo
+     el hueco-, para que el <select> deshabilitado no muestre «—» al lado de un enlace que dice
+     «IIIa». El Tipo de IM NO cambio de dueño, asi que vm_tipo_im sigue vacio.
+     ⚠️ LO QUE F2 SIGUE VIGILANDO, Y ES LO QUE IMPORTA: el nodo de LEGADO del cajon de prolapso
+     -que es un campo clinico PERSISTIDO- no se toca. Sin la guarda de repintado de
+     vmCarpLegadoSync, llenar el hueco llegaba hasta ahi y pisaba el «Tipo III (restriccion)»
+     que este estudio trae guardado: eso seria migrar un estudio guardado. */
+  ex.push(['(F1) con el lado Valvulas vacio, lo EFECTIVO sale del ETE y el hueco se LLENA',
+    f1.ti === '' && f1.ca === 'IIIa'
       && (F('vmTipoIMEfectivo') ? vmTipoIMEfectivo() : null) === 'secundaria'
       && (F('vmCarpEfectivo') ? vmCarpEfectivo() : null) === 'IIIa',
     JSON.stringify(f1) + ' ef=' + (F('vmTipoIMEfectivo') ? vmTipoIMEfectivo() : '?')
       + '/' + (F('vmCarpEfectivo') ? vmCarpEfectivo() : '?')]);
-  ex.push(['(F2) y el repintado de restauracion NO le escribe ni el nuevo ni el legado',
-    f1.ca === '' && f1.lg.indexOf('Tipo III') === 0, 'ca=' + f1.ca + ' lg=' + f1.lg]);
+  ex.push(['(F2) y el repintado NO pisa el legado guardado, ni escribe el Tipo de IM',
+    f1.ti === '' && f1.lg.indexOf('Tipo III') === 0, 'ti=' + f1.ti + ' lg=' + f1.lg]);
 
   /* == (G) EL ASSERT DE LOS PARES NO GRITA ================================================== */
   ex.push(['(G1) el assert de arranque de los cuatro selects no encuentra ninguna divergencia',
@@ -87032,11 +87060,22 @@ caso('TC-524', 'Tanda AJ5-3: el mecanismo y el Carpentier entre PARENTESIS a con
   Object.keys(pon).forEach(id => { const e = document.getElementById(id); if (e) e.value = pon[id]; });
   if (F('_recalcModulos')) _recalcModulos('TC-524H');
   const H = { e: linea('estandar') };
+  /* == ADAPTADO EN LA TANDA E (E-1a y E-1b), CON EL MOTIVO ESCRITO ==========================
+     H1 y H2 median la ABSTENCION del parentesis cuando el nodo de legado lo contradecia. Las dos
+     piezas de ese mecanismo se fueron: _vmCarpDiverge ya no existe y el parentesis ya no se
+     abstiene. Hoy el Carpentier se dice UNA sola vez y el que habla es el parentesis -con el
+     valor del ETE, que es el dueño-; la frase de prolapso se CALLA, asi que ya no hay dos
+     Carpentier en el mismo parrafo y no hay nada de lo que abstenerse.
+     ⚠️ EL DENOMINADOR SE CONSERVA y se mide sin la funcion retirada: el nodo de legado dice
+     «Tipo I» y el efectivo «II», que es el estado que H1 buscaba. */
+  const H1leg = (document.getElementById('vm_carpentier') || {}).value || '';
+  const H1ef = F('vmCarpEfectivo') ? vmCarpEfectivo() : '';
   ex.push(['(H1) DENOMINADOR: el legado y el efectivo dicen tipos DISTINTOS',
-    !!(F('_vmCarpDiverge') && _vmCarpDiverge() && _vmCarpDiverge().legado),
-    F('_vmCarpDiverge') ? JSON.stringify(_vmCarpDiverge()) : 'SIN FN']);
-  ex.push(['(H2) el parentesis NUEVO se abstiene de su mitad y la frase de prolapso no se toca',
-    H.e.indexOf('(Carpentier') < 0 && H.e.indexOf('mecanismo Carpentier I') > -1,
+    H1leg.indexOf('Tipo I ') === 0 && H1ef === 'II',
+    'legado=' + H1leg + ' efectivo=' + H1ef]);
+  ex.push(['(H2) el parentesis publica el del ETE y la frase de prolapso se CALLA -una sola vez-',
+    H.e.indexOf('(Carpentier II)') > -1 && H.e.indexOf('mecanismo Carpentier') < 0
+      && (H.e.match(/Carpentier/g) || []).length === 1,
     H.e]);
 
   return { extra: ex };
