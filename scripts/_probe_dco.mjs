@@ -1005,6 +1005,67 @@ window.__Y = {
     process.stderr.write('[amilo] listo\n');
   }
 
+  /* ── GRUPO `auto` · 3a/3b/3c: el score se marca solo, en los dos sentidos ───────────────── */
+  if (corre('auto')) {
+    const r = {};
+    const esperar = async () => { await pausa(400); };
+    try {
+      /* (A1) El dato se carga en OTRAS pestanias y el score se marca solo, sin abrir el modulo. */
+      await ev(`window.__P.nuevo()`); await ev(`window.__P.calentar()`);
+      r.a0 = await ev(`window.__Y.amilo()`, 30000);
+      await ev(`window.__Y.poner({ siv: '16', ppvi: '14', ddfvi: '42', tapse: '16',
+        onda_e: '90', e_sep: '4', e_lat: '6', sgl: '-12' })`, 40000);
+      await esperar();
+      /* El barrido de espejos cuelga del debounce de 220 ms; se espera a que corra. */
+      await ev(`(function(){ if (typeof _espejosBarrerTodos === 'function') _espejosBarrerTodos(); return 1 })()`, 30000);
+      r.a1 = await ev(`window.__Y.amilo()`, 30000);
+      r.a1nota = await ev(`window.__P.txt('ett-auto-nota')`);
+      r.a1alg  = await ev(`window.__P.val('alg-ett-score')`);
+
+      /* (A2) El medico DESTILDA una casilla y el barrido NO la revive. */
+      await ev(`(function(){ toggleCrit('crit-tapse','ett-tapse',2); return 1 })()`, 20000);
+      r.a2justo = await ev(`window.__Y.amilo()`, 30000);
+      await ev(`(function(){ if (typeof _espejosBarrerTodos === 'function') _espejosBarrerTodos(); return 1 })()`, 30000);
+      await esperar();
+      r.a2 = await ev(`window.__Y.amilo()`, 30000);
+      r.a2orig = await ev(`window.__P.val('ett-tapse-orig')`);
+
+      /* (A3) Guardar, Nuevo estudio y reabrir: el destildado a mano sobrevive. */
+      r.a3 = await ev(`(function(){ try { return { ok: !!window.guardarInforme } } catch(e){ return { err: e.message } } })()`);
+
+      /* (A4) SENTIDO MODULO -> APP: se tipea en el calculador con el campo del estudio VACIO. */
+      await ev(`window.__P.nuevo()`); await ev(`window.__P.calentar()`);
+      await ev(`window.__Y.poner({ 'tapse-val': '15' })`, 30000);
+      r.a4 = { modulo: await ev(`window.__P.val('tapse-val')`),
+               app:    await ev(`window.__P.val('tapse')`) };
+
+      /* (A5) SENTIDO MODULO -> APP con el campo del estudio YA cargado y DISTINTO: no se pisa. */
+      await ev(`window.__P.nuevo()`); await ev(`window.__P.calentar()`);
+      await ev(`window.__Y.poner({ tapse: '21' })`, 30000);
+      await ev(`(function(){ var e = document.getElementById('tapse-val');
+        e.dataset.espejo = ''; e.value = '15'; calcTAPSE(); return 1 })()`, 30000);
+      r.a5 = { modulo: await ev(`window.__P.val('tapse-val')`),
+               app:    await ev(`window.__P.val('tapse')`),
+               nota:   await ev(`window.__P.txt('ett-auto-nota')`) };
+
+      /* (A6) CONTROL NEGATIVO: el apice/base no tiene fuente y NO se marca solo. */
+      await ev(`window.__P.nuevo()`); await ev(`window.__P.calentar()`);
+      await ev(`window.__Y.poner({ siv: '16', ppvi: '14', ddfvi: '42' })`, 30000);
+      await ev(`(function(){ if (typeof _espejosBarrerTodos === 'function') _espejosBarrerTodos(); return 1 })()`, 30000);
+      r.a6 = await ev(`window.__Y.amilo()`, 30000);
+
+      /* (A7) CONTROL NEGATIVO: con el modulo VACIO no se pisa un `alg-ett-score` tipeado. */
+      await ev(`window.__P.nuevo()`); await ev(`window.__P.calentar()`);
+      await ev(`window.__Y.poner({ 'alg-ett-score': '7' })`, 30000);
+      await ev(`(function(){ if (typeof calcETT === 'function') calcETT(); return 1 })()`, 20000);
+      r.a7 = await ev(`window.__P.val('alg-ett-score')`);
+
+      r.errores = await ev(`window.__Y.errores()`);
+    } catch (e) { r.err = e.message + ' | ' + String(e.stack || '').slice(0, 300) }
+    out.grupos.auto = r;
+    process.stderr.write('[auto] listo\n');
+  }
+
   /* ── GRUPO `tablas` · las tablas de cardio-onco, celda por celda (tildes del commit 2) ── */
   if (corre('tablas')) {
     const r = {};

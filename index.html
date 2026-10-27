@@ -21063,11 +21063,14 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
           <!-- ⚠️ LA SALVEDAD ES DE LA FUENTE Y VA CON SUS PALABRAS (R2-E5, 2026-10-21): el folio
                1556 dice «Although NOT YET EXTERNALLY VALIDATED, a score >=8 points in the presence
                of LV wall thickness >=12 mm … could also be considered diagnostic». -->
+          <!-- D-3: qué NO se pudo marcar solo y por qué. Un marcado automático que calla lo que
+               no pudo evaluar se lee como «eso no está presente». No es un control: es un `<div>`
+               de texto, así que no entra al censo de campos ni viaja con el estudio. -->
+          <div id="ett-auto-nota" style="font-size:11px;color:var(--text2);line-height:1.5;margin-top:6px"></div>
           <div style="font-size:11px;color:var(--text2);line-height:1.5;margin-top:6px">El score multiparamétrico <strong>no tiene validación externa</strong> («not yet externally validated», García-Pavía 2021, folio 1556).</div>
         </div>
 
         <div style="text-align:center;margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;justify-content:center;" class="no-print">
-          <button class="btn btn-ghost" onclick="pasarScoreAAlgoritmo()">→ Pasar score al Algoritmo</button>
           <button class="btn btn-green" onclick="amiloImprimirPDF('ett')">🖨 Imprimir resultado</button>
           <button class="btn btn-integrar" data-am-k="ett" onclick="amiloIntegrar('ett')">📎 Integrar al informe</button>
           <button class="btn btn-ghost" onclick="resetETTConfirmar()">🔄 Limpiar</button>
@@ -59351,7 +59354,13 @@ function ESPEJOS_VIVOS() {
              `calcHemo`. Entra sólo para repintar, no cambia lo que lee: su RVS sigue saliendo de
              `v('hemo_pam')` a secas y NO del dueño único —ver B-a en PENDIENTES.md—. Escribe dos
              campos y los dos son `readonly`: `hemo_pvc` y `hemo_vs`. */
-          'pamAvisoSync', 'aoRefPintar', 'calcHemo'];
+          'pamAvisoSync', 'aoRefPintar', 'calcHemo',
+          /* D-3: el score de amiloidosis sigue al dato. Trae los insumos de las otras pestañas y
+             deja que `amAplicarCalc` marque, respetando las dos decisiones del médico. NO escribe
+             un solo campo del estudio —el sentido módulo → app cuelga del `oninput` del propio
+             calculador, que es un gesto, y no de este barrido—, que es la regla con la que este
+             registro excluye a `popSync` y a `calcVD`. */
+          'amiloScoreSync'];
 }
 function _espejosBarrerTodos() {
   ESPEJOS_VIVOS().forEach(function (fn) {
@@ -96105,7 +96114,14 @@ function amETTSyncDesdeHidden() {
     var marcado = (PF(hid.value) || 0) > 0;
     crit.classList.toggle('activo', marcado);
     chk.textContent = marcado ? '✓' : '—';
-    if (!marcado) amOrigenSet(k, '');
+    /* ⚠️ UN CRITERIO DESTILDADO A MANO CONSERVA SU MARCA AL REABRIR. Acá se ponía `''` en todo
+       lo no marcado, que borraba el `'nomanual'` persistido: al reabrir el estudio el barrido lo
+       volvía a marcar y el score subía solo sobre un informe ya firmado. */
+    if (!marcado) {
+      var _hidO = document.getElementById('ett-' + k + '-orig');
+      var _g = _hidO ? String(_hidO.value || '').trim() : '';
+      amOrigenSet(k, _g === 'nomanual' ? 'nomanual' : '');
+    }
     else {
       // El origen persistido manda. Sólo se deduce en informes viejos, que no lo traen:
       // el cálculo nunca marca un criterio cuyo valor no cumple el umbral ni marca sin
@@ -96192,7 +96208,14 @@ function toggleCrit(itemId, inputId, pts) {
   // a propósito, porque con un valor que cumple volvería a marcarlo en el acto y
   // haría imposible destildarlo.
   var _k0 = itemId.replace('crit-','');
-  amOrigenSet(_k0, activo ? 'manual' : '');
+  /* ⚠️ TRES ESTADOS DESDE LA TANDA D, NO DOS. Acá se guardaba `''` al destildar —«nadie lo
+     decidió»— y el comentario de arriba explicaba que el cálculo recuperaba el mando recién en
+     el próximo cambio del campo numérico. Con el marcado automático EN VIVO eso deja de
+     alcanzar: el barrido corre solo, 220 ms después, y volvía a marcar lo que el médico acababa
+     de sacar. `'nomanual'` es «una persona lo SACÓ», y `amAplicarCalc` la respeta igual que a
+     `'manual'`. Sin este tercer estado, «el médico puede desmarcarla y esa decisión se respeta»
+     no se puede cumplir. Viaja en el mismo hidden `ett-<k>-orig` que ya se persistía. */
+  amOrigenSet(_k0, activo ? 'manual' : 'nomanual');
   amMarcaTitulo(_k0);
   // Marcarlo a mano también resuelve el criterio: se cierra el acordeón si estaba abierto.
   var k = itemId.replace('crit-','');
@@ -96211,7 +96234,9 @@ function amAplicarCalc(k, cumple, pts) {
   var input = document.getElementById('ett-' + k);
   var chk   = document.getElementById('chk-' + k);
   if (!crit || !input || !chk) return;
-  if (crit.dataset.origen === 'manual') { amMarcaTitulo(k); return; }  // a mano: el cálculo no lo pisa
+  /* Las DOS decisiones de una persona se respetan: `'manual'` (la marcó) y `'nomanual'` (la
+     sacó). Antes sólo la primera, y con el marcado automático en vivo eso revivía lo destildado. */
+  if (crit.dataset.origen === 'manual' || crit.dataset.origen === 'nomanual') { amMarcaTitulo(k); return; }
   crit.classList.toggle('activo', cumple);
   input.value = cumple ? pts : 0;
   chk.textContent = cumple ? '✓' : '—';
@@ -96233,6 +96258,8 @@ function amMarcaTitulo(k) {
     if (marcado && val !== 'Calcular') chk.title += ' Valor cargado: ' + val + '.';
   } else if (o === 'auto') {
     chk.title = 'Marcado automáticamente por el valor cargado. Si borrás el valor, se destilda solo.';
+  } else if (o === 'nomanual') {
+    chk.title = 'Destildado a mano — el marcado automático no lo vuelve a tocar. Tocá la fila para marcarlo.';
   } else {
     chk.title = 'Sin marcar. Tocá la fila para marcarlo a mano, o usá Calcular.';
   }
@@ -96257,6 +96284,199 @@ function amCalcSinDato(k) {
   amOrigenSet(k, '');
   amMarcaTitulo(k);
 }
+
+/* ══ EL SCORE SE MARCA SOLO — tanda D, decisión de Maicol ═════════════════════════════════════
+   Cada casilla se marca cuando el dato que la aplicación YA TIENE en otra pestaña cumple el
+   criterio, con los cortes que `_AM_CALC` ya define. No se inventa ningún corte: esta función no
+   compara nada, sólo trae el insumo y deja que decidan `_AM_CALC[k].ok` y `amAplicarCalc`.
+
+   ⚠️ TRES COSAS QUE NO HACE, Y CADA UNA CIERRA UN RIESGO CONOCIDO.
+   1. NO PISA UN VALOR CARGADO. `amAutoLlenar` escribe sólo sobre un insumo VACÍO, así que un
+      estudio ya guardado no puede cambiar de score al reabrirlo.
+   2. NO REVIVE UNA MARCA QUE EL MÉDICO QUITÓ. Hasta esta tanda, destildar una fila borraba el
+      origen y el siguiente recálculo la volvía a marcar en silencio: `amAplicarCalc` sólo
+      respetaba `'manual'`, que es la marca de «la puso una persona», y no existía la de «una
+      persona la SACÓ». Por eso `toggleCrit` ahora guarda `'nomanual'` al destildar. Sin esa
+      tercera marca, «el médico puede desmarcarla y esa decisión se respeta» no se podía cumplir
+      con un marcado automático en vivo.
+   3. NO MARCA CUANDO EL DATO DE LA APLICACIÓN NO ES EL DEL CRITERIO. El cociente ápex-base no
+      tiene fuente: el strain por segmentos no lo publica. Se declara en pantalla en vez de
+      deducirlo de otra medición.
+
+   Cuelga del barrido de espejos de la tanda B —el mismo debounce de 220 ms, sin temporizador
+   nuevo ni más frecuencia—, así que el score sigue al dato aunque el médico cargue el TAPSE en
+   la pestaña del ventrículo derecho y nunca abra el calculador. */
+function amiloAutoMarcarTodos() {
+  if (typeof amCalcIds !== 'function' || typeof _AM_FUENTE === 'undefined') return;
+  amCalcIds().forEach(function (k) {
+    if (!_AM_FUENTE[k]) return;                 // sin fuente en la app: no se toca
+    var crit = document.getElementById('crit-' + k);
+    if (!crit) return;                          // la tarjeta no está en el DOM
+    if (crit.dataset.origen === 'manual' || crit.dataset.origen === 'nomanual') return;
+    var lleno = amAutoLlenar(k);
+    /* El recálculo corre SIEMPRE que haya insumos, no sólo cuando esta pasada escribió algo:
+       si el médico cambia el TAPSE en la pestaña del VD y el insumo del calculador ya estaba
+       lleno con el valor viejo, lo que corresponde es que el espejo lo traiga —y de eso se
+       ocupa `amiloEspejoDesdeApp`—, pero el criterio tiene que re-evaluarse igual. */
+    var rec = { rwt:'calcRWT', ee:'calcEE', tapse:'calcTAPSE', sgl:'amCalcSGL' }[k];
+    if (rec && typeof window[rec] === 'function') { try { window[rec](); } catch (e) {} }
+    void lleno;
+  });
+  amiloNotaAutoPintar();
+}
+window.amiloAutoMarcarTodos = amiloAutoMarcarTodos;
+
+/* ══ LOS DOS SENTIDOS ═════════════════════════════════════════════════════════════════════════
+   El registro de qué campo del módulo refleja a qué campo del estudio. Se nombra UNA vez: el
+   sentido app → módulo y el sentido módulo → app leen la MISMA tabla, que es lo que impide que
+   se desincronicen.
+
+   ⚠️ TRES INSUMOS NO TIENEN CONTRAPARTE, y no se les inventa una. El `e′` promedio del módulo
+   sale de `e′` septal y `e′` lateral: devolver un solo número a dos campos exigiría repartirlo,
+   o sea inventar dos mediciones. Y el strain apical y el basal del cociente ápex-base no existen
+   como campo en ninguna otra pestaña. Los tres se declaran en pantalla. */
+function amiloEspejos() {
+  return [
+    /* Los espesores y la FEVI del encabezado del módulo. Van en el registro porque el criterio
+       de pared de 12 mm o más —que es la condición de las DOS vías del criterio por eco— se
+       evalúa sobre `ett-septo` y `ett-pp`, y sin espejo el badge decía «Sin HVI ≥12mm» con un
+       septo de 16 cargado dos pestañas más allá. */
+    /* ⚠️ ESTOS TRES VAN EN UN SOLO SENTIDO, Y ESTÁ MEDIDO POR QUÉ. `ett-septo` y `ett-pp` los lee
+       OTRO módulo —`_amHayDatos`, en la lista de pendientes de la miocardiopatía hipertrófica—
+       como «el médico está evaluando amiloidosis en esta aplicación». Autollenarlos desde `siv` y
+       `ppvi` haría que esa frase apareciera en el informe de CUALQUIER estudio con el septo
+       cargado, que es un cambio del papel firmado en pacientes que nadie evaluó por amiloidosis.
+       Medido antes de escribir esto.
+       Así que el espesor viaja del módulo HACIA la app y no al revés; para la condición de pared
+       de 12 mm o más, `calcETT` LEE `siv` y `ppvi` cuando los del módulo están vacíos, que es un
+       cálculo y no una escritura. `ett-fevi` va con ellos por simetría: no puntúa. */
+    { mod:'ett-septo', app:'siv',    lbl:'espesor septal',            soloHaciaApp:true },
+    { mod:'ett-pp',    app:'ppvi',   lbl:'espesor de pared posterior', soloHaciaApp:true },
+    { mod:'ett-fevi',  app:'fevi',   lbl:'FEVI',                      soloHaciaApp:true },
+    { mod:'rwt-septo', app:'siv',    lbl:'septo' },
+    { mod:'rwt-pp',    app:'ppvi',   lbl:'pared posterior' },
+    { mod:'rwt-ddvi',  app:'ddfvi',  lbl:'DDVI' },
+    { mod:'ee-e',      app:'onda_e', lbl:'onda E' },
+    { mod:'tapse-val', app:'tapse',  lbl:'TAPSE' },
+    /* El strain se guarda NEGATIVO en el módulo y el campo del estudio admite cualquier signo.
+       Se compara por valor absoluto y se escribe respetando el signo que ya tenga el destino. */
+    { mod:'sgl-val',   app:'sgl',    lbl:'strain longitudinal global', abs:true }
+  ];
+}
+window.amiloEspejos = amiloEspejos;
+
+function _amiloNum(id) {
+  var e = document.getElementById(id); if (!e) return null;
+  var n = parseFloat(String(e.value).replace(',', '.'));
+  return isFinite(n) ? n : null;
+}
+
+/* ── SENTIDO MÓDULO → APP ─────────────────────────────────────────────────────────────────────
+   Corre con el gesto del médico —lo llaman los `calc*` del módulo, que cuelgan del `oninput` de
+   cada insumo— y NO desde el barrido de espejos. Es deliberado: el barrido de la tanda B excluye
+   a propósito a los pintores que ESCRIBEN campos del estudio, porque un barrido que escribe
+   mueve datos del paciente sin que nadie los haya tocado.
+
+   ⚠️ Y NO PISA UN VALOR DISTINTO QUE YA ESTÉ CARGADO. Si el campo del estudio está vacío, se
+   escribe; si ya tiene el mismo número, no hay nada que hacer; y si tiene OTRO, NO se escribe y
+   se publica el desacuerdo. Pisarlo sería cambiar en silencio un dato que decide el resto del
+   informe —el TAPSE del ventrículo derecho, el cociente TAPSE/PSAP, el score de TEP—, con el
+   médico mirando otra pestaña. Es el criterio del aviso de discrepancia de la PAM (tanda B). */
+var _amiloEspejoCorriendo = false;
+function amiloEspejoHaciaApp() {
+  /* ⚠️ GUARDA DE REENTRADA. Esta función despacha `input` sobre el campo del estudio, y ese
+     evento corre los manejadores de la otra pestaña; si alguno de ellos llegara a `calcETT` o a
+     un `calc*` del módulo, volveríamos acá con el trabajo a medias. Sin la guarda el ciclo es
+     silencioso: no tira error, sólo deja valores intermedios. */
+  if (_amiloEspejoCorriendo) return;
+  _amiloEspejoCorriendo = true;
+  try { _amiloEspejoHaciaAppCuerpo(); } finally { _amiloEspejoCorriendo = false; }
+}
+function _amiloEspejoHaciaAppCuerpo() {
+  var discrep = [];
+  amiloEspejos().forEach(function (e) {
+    var vm = _amiloNum(e.mod);
+    if (vm === null) return;
+    var destino = document.getElementById(e.app);
+    if (!destino) return;
+    var va = _amiloNum(e.app);
+    var mismo = (va !== null) && (e.abs ? Math.abs(va) === Math.abs(vm) : va === vm);
+    if (va === null) {
+      /* ⚠️ EL STRAIN SE ESCRIBE NEGATIVO, que es la convención del campo del estudio: su línea de
+         referencia del Laboratorio es `ref:-20`, así que un +12 queda del lado sano de una
+         referencia que es negativa. Medido: el A/B publicaba «GLS (%) 12» en el Excel con el
+         módulo en −12. Se compara por valor absoluto y se escribe con el signo del destino. */
+      destino.value = e.abs ? -Math.abs(vm) : vm;
+      destino.dispatchEvent(new Event('input', { bubbles: true }));
+      destino.dispatchEvent(new Event('change', { bubbles: true }));
+    } else if (!mismo) {
+      discrep.push(e.lbl + ' (acá ' + vm + ', en el estudio ' + va + ')');
+    }
+  });
+  _AMILO_DISCREP = discrep;
+  amiloNotaAutoPintar();
+}
+window.amiloEspejoHaciaApp = amiloEspejoHaciaApp;
+var _AMILO_DISCREP = [];
+
+/* ── SENTIDO APP → MÓDULO ─────────────────────────────────────────────────────────────────────
+   Trae al módulo lo que cambió en otra pestaña, SIN pisar lo que el médico escribió acá: sólo
+   escribe sobre un insumo vacío o sobre uno que esta misma función había traído antes. La marca
+   `dataset.espejo` es la que distingue los dos casos; sin ella, traer el dato nuevo pisaría una
+   medición propia del calculador. */
+function amiloEspejoDesdeApp() {
+  amiloEspejos().forEach(function (e) {
+    if (e.soloHaciaApp) return;
+    var el = document.getElementById(e.mod); if (!el) return;
+    var va = _amiloNum(e.app); if (va === null) return;
+    var vm = _amiloNum(e.mod);
+    var propio = String(el.value || '').trim() !== '' && el.dataset.espejo !== '1';
+    if (propio) return;
+    var nuevo = e.abs ? -Math.abs(va) : va;
+    if (vm === nuevo) return;
+    el.value = nuevo;
+    el.dataset.espejo = '1';
+  });
+}
+window.amiloEspejoDesdeApp = amiloEspejoDesdeApp;
+
+/* El pintor que entra al barrido de espejos: primero trae, después marca. El orden importa —
+   marcar sobre el insumo viejo publicaría un criterio que el dato ya no sostiene. */
+function amiloScoreSync() {
+  amiloEspejoDesdeApp();
+  amiloAutoMarcarTodos();
+}
+window.amiloScoreSync = amiloScoreSync;
+
+/* ══ LA LÍNEA QUE DICE QUÉ NO SE PUDO MARCAR SOLO ═════════════════════════════════════════════
+   Un marcado automático que calla lo que no pudo evaluar se lee como «eso no está presente». Acá
+   se nombra cada criterio que la aplicación no puede resolver sola y por qué, y los desacuerdos
+   entre el módulo y el resto del estudio. */
+function amiloNotaAutoPintar() {
+  var caja = document.getElementById('ett-auto-nota');
+  if (!caja) return;
+  while (caja.firstChild) caja.removeChild(caja.firstChild);
+  var L = [];
+  if (document.getElementById('crit-apice')) {
+    L.push('El cociente ápex/base no se marca solo: el strain por segmentos de esta aplicación no publica esa relación. Se carga en su calculador.');
+  }
+  /* `e′` promedio: el módulo lo trae de la función diastólica, pero no puede devolverlo. */
+  L.push('La onda E y el TAPSE viajan en los dos sentidos; el e′ promedio sólo llega desde la función diastólica, porque un promedio no se puede devolver a e′ septal y e′ lateral por separado.');
+  var man = [];
+  if (typeof amCalcIds === 'function') amCalcIds().forEach(function (k) {
+    var c = document.getElementById('crit-' + k);
+    if (c && c.dataset.origen === 'nomanual') man.push(k);
+  });
+  if (man.length) L.push('Hay ' + man.length + (man.length === 1 ? ' criterio destildado' : ' criterios destildados') + ' a mano: el marcado automático no los vuelve a tocar.');
+  if (_AMILO_DISCREP.length) L.push('No coinciden con lo cargado en el estudio, y no se pisó: ' + _AMILO_DISCREP.join('; ') + '.');
+  L.forEach(function (t) {
+    var d = document.createElement('div');
+    d.style.marginTop = '3px';
+    d.textContent = t;
+    caja.appendChild(d);
+  });
+}
+window.amiloNotaAutoPintar = amiloNotaAutoPintar;
 
 function toggleCual(itemId, inputId) {
   var item = document.getElementById(itemId);
@@ -96285,6 +96505,9 @@ function calcRWT() {
   var rwt = (sep+pp)/ddvi;
   if(resEl) resEl.value = rwt.toFixed(2);
   amAplicarCalc('rwt', rwt > 0.6, 3);
+  /* D-3: el sentido módulo → app. Cuelga del gesto del médico (el `oninput` de los insumos
+     llama acá), nunca del barrido de espejos, y no pisa un valor distinto ya cargado. */
+  if (typeof amiloEspejoHaciaApp === 'function') amiloEspejoHaciaApp();
   calcETT();
 }
 
@@ -96296,6 +96519,9 @@ function calcEE() {
   var ee = e/ep;
   if(resEl) resEl.value = ee.toFixed(1);
   amAplicarCalc('ee', ee > 11, 1);
+  /* D-3: el sentido módulo → app. Cuelga del gesto del médico (el `oninput` de los insumos
+     llama acá), nunca del barrido de espejos, y no pisa un valor distinto ya cargado. */
+  if (typeof amiloEspejoHaciaApp === 'function') amiloEspejoHaciaApp();
   calcETT();
 }
 
@@ -96303,6 +96529,9 @@ function calcTAPSE() {
   var val = PF(document.getElementById('tapse-val')?.value);
   if(isNaN(val)){ amCalcSinDato('tapse'); calcETT(); return; }
   amAplicarCalc('tapse', val <= 19, 2);
+  /* D-3: el sentido módulo → app. Cuelga del gesto del médico (el `oninput` de los insumos
+     llama acá), nunca del barrido de espejos, y no pisa un valor distinto ya cargado. */
+  if (typeof amiloEspejoHaciaApp === 'function') amiloEspejoHaciaApp();
   calcETT();
 }
 
@@ -96310,6 +96539,9 @@ function amCalcSGL() {
   var val = PF(document.getElementById('sgl-val')?.value);
   if(isNaN(val)){ amCalcSinDato('sgl'); calcETT(); return; }
   amAplicarCalc('sgl', val >= -13, 1);
+  /* D-3: el sentido módulo → app. Cuelga del gesto del médico (el `oninput` de los insumos
+     llama acá), nunca del barrido de espejos, y no pisa un valor distinto ya cargado. */
+  if (typeof amiloEspejoHaciaApp === 'function') amiloEspejoHaciaApp();
   calcETT();
 }
 
@@ -96321,6 +96553,9 @@ function calcApice() {
   var rel = Math.abs(apic)/Math.abs(base);
   if(resEl) resEl.value = rel.toFixed(2);
   amAplicarCalc('apice', rel > 2.9, 3);
+  /* D-3: el sentido módulo → app. Cuelga del gesto del médico (el `oninput` de los insumos
+     llama acá), nunca del barrido de espejos, y no pisa un valor distinto ya cargado. */
+  if (typeof amiloEspejoHaciaApp === 'function') amiloEspejoHaciaApp();
   calcETT();
 }
 
@@ -96356,11 +96591,20 @@ const AMILO_IWT_BOLDRINI = Object.freeze({
 window.AMILO_IWT_BOLDRINI = AMILO_IWT_BOLDRINI;
 
 function calcETT() {
+  /* D-3: el sentido módulo → app también para los espesores y la FEVI del encabezado, que se
+     tipean acá y cuelgan de este `oninput`. No pisa un valor distinto ya cargado. */
+  if (typeof amiloEspejoHaciaApp === 'function') { try { amiloEspejoHaciaApp(); } catch (e) {} }
   var pts = ['ett-rwt','ett-ee','ett-tapse','ett-sgl','ett-apice']
     .reduce((s,id)=>s+(PF(document.getElementById(id)?.value)||0),0);
 
+  /* ⚠️ EL ESPESOR SE LEE DEL MÓDULO Y, SI ESTÁ VACÍO, DE AI/VI (tanda D). Es una LECTURA, no un
+     autollenado: escribir `ett-septo` desde `siv` cambiaría el informe de cualquier estudio con
+     septo cargado, porque `_amHayDatos` usa esos dos campos como «el médico está evaluando
+     amiloidosis acá». Lo que viaja hacia el estudio es lo que el médico tipea en el módulo. */
   var septo = PF(document.getElementById('ett-septo')?.value)||0;
   var pp    = PF(document.getElementById('ett-pp')?.value)||0;
+  if (!septo && !pp) { septo = PF((document.getElementById('siv')||{}).value)||0;
+                       pp    = PF((document.getElementById('ppvi')||{}).value)||0; }
   var espesor = Math.max(septo, pp);
   var hvi = espesor >= 12;
 
@@ -96376,6 +96620,26 @@ function calcETT() {
 
   if(numEl) numEl.textContent = pts;
   if(barEl) barEl.style.transform = 'scaleX(' + (pts/10) + ')';
+
+  /* ══ EL RESULTADO PASA SOLO AL ALGORITMO (tanda D, decisión de Maicol) ═══════════════════
+     El botón «→ Pasar score al Algoritmo» se retiró: un resultado que el médico tiene que
+     acordarse de copiar a mano es un resultado que a veces no llega, y `alg-ett-score` es lo que
+     leen el algoritmo diagnóstico, el informe y la columna «Score amiloidosis ETT» del Excel.
+     ⚠️ SÓLO CUANDO ESTE MÓDULO TIENE DATOS. El campo del algoritmo se puede tipear directo —un
+     médico puede usar el algoritmo con un score calculado en otro lado y el módulo vacío—, y
+     pisarle ese número con un 0 sería borrarle el dato. Con el módulo vacío no se toca nada. */
+  /* ⚠️ SOLO CON PUNTAJE MAYOR QUE CERO, Y ESTO SE MIDIÓ. La condición era «el módulo tiene algún
+     insumo cargado», y con el autollenado en vivo eso es CUALQUIER estudio que tenga TAPSE y onda
+     E —o sea casi todos—: publicaba un 0 en `alg-ett-score`, que es la columna «Score amiloidosis
+     ETT» del Excel, donde antes había vacío. Un 0 donde había vacío es un dato inventado en una
+     celda del Excel de un paciente que nadie evaluó por amiloidosis.
+     Con `pts > 0` no se pierde nada: `actualizarAlgoritmo` lee ese campo con `PF(...) || null`,
+     o sea que para él 0 y vacío son lo mismo. */
+  var _algEl = document.getElementById('alg-ett-score');
+  if (_algEl && pts > 0 && String(_algEl.value) !== String(pts)) {
+    _algEl.value = pts;
+    if (typeof actualizarAlgoritmo === 'function') { try { actualizarAlgoritmo(); } catch (e) {} }
+  }
   if(hviEl) hviEl.innerHTML = espesor > 0
     ? (hvi
         ? '<span class="badge badge-purple">✅ HVI ≥12mm — Criterio presente (' + espesor.toFixed(1) + 'mm)</span>'
@@ -96441,14 +96705,16 @@ function calcETT() {
   if(interpEl) interpEl.textContent = interp;
 }
 
-function pasarScoreAAlgoritmo() {
-  var pts = ['ett-rwt','ett-ee','ett-tapse','ett-sgl','ett-apice']
-    .reduce((s,id)=>s+(PF(document.getElementById(id)?.value)||0),0);
-  var scoreEl = document.getElementById('alg-ett-score');
-  if(scoreEl) scoreEl.value = pts;
-  amiloSwitchTab('algoritmo');   // abre el acordeón del algoritmo (antes conmutaba la subtab)
-  actualizarAlgoritmo();
-}
+/* ⚠️ EL BOTÓN «→ Pasar score al Algoritmo» SE RETIRÓ (tanda D, decisión de Maicol), y la función
+   se va con él: su único llamador era ese botón. El puntaje llega hoy a `alg-ett-score` desde
+   `calcETT`, que es su dueño, sin que el médico tenga que acordarse de copiarlo —y por eso el
+   paso ya no se puede OLVIDAR, que era el defecto: el algoritmo, el informe y la columna «Score
+   amiloidosis ETT» del Excel leen ese campo—.
+   Lo que la función hacía de más era CONMUTAR a la pestaña del algoritmo, y eso no se repone:
+   publicar un dato no es motivo para moverle la pantalla al médico.
+   Un estudio guardado ANTES de este cambio, con el paso hecho a mano, no se rompe: su
+   `alg-ett-score` vuelve del estudio y `calcETT` recalcula el mismo número desde los mismos
+   criterios, que también viajan con el estudio. */
 
 /* ══ Confirmación de los dos botones destructivos ══
 
