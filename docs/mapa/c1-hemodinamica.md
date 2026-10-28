@@ -153,13 +153,43 @@ esta orden; declarado en `PENDIENTES.md`.
 | Qué | Dueño |
 |---|---|
 | El contenedor | `<div id="hemo-forr-graf">` |
-| Quién lo pinta | `hemoForrGrafPintar(ic, pcp)` |
-| Quién lo llama | la **cola de `calcHemo`**, que ya está en `ESPEJOS_VIVOS` |
+| Quién lo dibuja | `hemoForrGrafPintar(ic, pcp)` |
+| Quién lo llama | **`hemoForrGrafSync()`**, en las TRES columnas de siempre |
+| De dónde salen los números | `_forrUlt`, que `calcHemo` **registra** sin pintar |
 | El generador del SVG | **`_labForrSVG`**, el MISMO del Laboratorio |
 | Los rótulos de cuadrante | **`_LAB_FORR_LBL`**, los MISMOS del Laboratorio |
 | La paleta | `_labForrPal()`, con las CSS vars resueltas → sigue el modo día/noche |
 | El cuadrante | **`forrCuadrante(ic, pcp)`** |
 | El mensaje de vacío | `forrFaltaTxt`, vía la opción `vacioTxt` de `_labForrSVG` |
+
+### ⚠️ `calcHemo` REGISTRA, NO PINTA — y eso lo decidió una medición
+
+La primera versión pintaba en la cola de `calcHemo`. **`calcHemo` corre en el `oninput` de
+varios campos, o sea una vez por tecla**, y pintar rearma el SVG entero y lo vuelve a parsear con
+`innerHTML`. Medido en Chrome con doce teclas reales sobre `onda_e` y **con el punto dibujado**:
+
+| | media | máximo |
+|---|---|---|
+| HEAD | 0,53 – 0,58 ms | 0,8 – 0,9 ms |
+| pintando por tecla | **0,74 – 0,92 ms** | **2,1 – 2,6 ms** |
+| pintando en el barrido | 0,56 – 0,58 ms | 0,9 – 1,0 ms |
+
+Hoy `calcHemo` sólo hace `_forrUlt.ic = ic; _forrUlt.pcp = pcp` —dos asignaciones— y quien dibuja
+es `hemoForrGrafSync`, en **las tres columnas** que este archivo usa para todo sincronizador:
+
+1. **`ESPEJOS_VIVOS`**, justo después de `calcHemo` —al revés pintaría con los números del gesto
+   anterior—. Es el barrido colgado del debounce de 220 ms: **una** vez tras la última tecla.
+2. **`RECALC_MODULOS`**, porque las cinco rutas de restauración pueblan asignando `.value`, que
+   no dispara `input`: sin esto, reabrir un estudio dejaba el punto del paciente anterior.
+3. **El final de `limpiarCampos`**, que no pasa por `RECALC_MODULOS`, y donde además se vacía
+   `_forrUlt` primero: «Nuevo estudio» tiene que dejar el gráfico vacío.
+
+Es además el mecanismo que la orden de la tanda pedía: «que se actualice en vivo con el mecanismo
+de espejos (`ESPEJOS_VIVOS` y su barrido), sin temporizador nuevo».
+
+⚠️ **Un caso que llame sólo a `calcHemo` no verá el gráfico repintado.** TC-544 corre `barrer()`
+después del montaje, y la sonda de dos motores llama a `_espejosBarrerTodos()`: las dos lo
+aprendieron en rojo.
 
 ### Los dos cortes, medidos — y por qué la orden suponía otros
 

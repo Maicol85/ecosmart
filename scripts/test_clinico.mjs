@@ -93604,18 +93604,26 @@ caso('TC-544', 'C1: VExUS dice lo que la Figura 7 de Rola 2021 rotula y su Evide
     const graf = () => EL('hemo-forr-graf');
     const pts = () => { const g = graf(); return g ? g.querySelectorAll('svg circle').length : -1; };
     const desc = () => { const g = graf(); return g ? N((g.querySelector('[data-forr-desc]') || {}).textContent) : 'NO EXISTE'; };
-    const montarForr = (fc, e) => { __t.limpiar();
+    /* ⚠️ EL BARRIDO ES EL QUE PINTA, Y POR ESO ESTE MONTAJE LO CORRE. El diagrama NO se pinta
+       en cada tecla: calcHemo solo registra los numeros y quien dibuja es hemoForrGrafSync,
+       colgado del barrido de espejos. Se hizo asi porque pintar por tecla volvia la escritura
+       mas lenta —medido: media 0,74 a 0,92 ms contra 0,53 a 0,58 en HEAD—, y porque el barrido
+       es el mecanismo que la orden de la tanda pedia. Llamar solo a calcHemo aca dejaria el
+       diagrama sin repintar y las cuatro condiciones del cuadrante fallarian sobre el
+       comportamiento bueno. */
+    const montarForr = async (fc, e) => { __t.limpiar();
       poner('peso', '80'); poner('talla', '180'); poner('hemo_fc', fc);
       poner('diam_tsvi', '20'); poner('itv_tsvi', '20');
       poner('onda_e', e); poner('e_sep', '10'); poner('e_lat', '10');
-      try { if (F('calcHemo')) calcHemo() } catch (e2) {} };
+      try { if (F('calcHemo')) calcHemo() } catch (e2) {}
+      barrer(); await esperar(120); };
 
     ex.push(['  DENOMINADOR G: el contenedor del grafico existe en la pestana de Hemodinamica',
       !!graf(), 'nodo=' + (!!graf())]);
-    montarForr('80', '80');  await esperar(150); const q1 = desc(), n1 = pts();
-    montarForr('80', '160'); await esperar(150); const q2 = desc();
-    montarForr('60', '80');  await esperar(150); const q3 = desc();
-    montarForr('60', '160'); await esperar(150); const q4 = desc();
+    await montarForr('80', '80');  const q1 = desc(), n1 = pts();
+    await montarForr('80', '160'); const q2 = desc();
+    await montarForr('60', '80');  const q3 = desc();
+    await montarForr('60', '160'); const q4 = desc();
     ex.push(['(G1) el punto cae en el cuadrante I con IC alto y PCP baja',
       n1 === 1 && q1.indexOf('cuadrante I — seco-caliente') > -1, 'pts=' + n1 + ' ' + JSON.stringify(q1)]);
     ex.push(['(G2) en el II con IC alto y PCP alta',
@@ -93639,11 +93647,11 @@ caso('TC-544', 'C1: VExUS dice lo que la Figura 7 de Rola 2021 rotula y su Evide
       cuad(3.0, 15) === 'I' && cuad(3.0, 15.01) === 'II' && cuad(3.0, 18) === 'II',
       '15=' + cuad(3.0, 15) + ' 15.01=' + cuad(3.0, 15.01) + ' 18=' + cuad(3.0, 18)]);
     /* Sin dato: ni punto ni cuadrante, y el mensaje es el MISMO de la capsula. */
-    montarHemo(true, false); await esperar(150);
+    montarHemo(true, false); barrer(); await esperar(200);
     ex.push(['(G7) sin PCP no hay punto, y el grafico pide el MISMO dato que la capsula',
       pts() === 0 && desc().indexOf('Falta la presión capilar pulmonar estimada') === 0,
       'pts=' + pts() + ' ' + JSON.stringify(desc())]);
-    montarHemo(false, false); await esperar(150);
+    montarHemo(false, false); barrer(); await esperar(200);
     ex.push(['(G8) sin ninguno de los dos, tampoco',
       pts() === 0 && desc().indexOf('Faltan el índice cardíaco') === 0,
       'pts=' + pts() + ' ' + JSON.stringify(desc())]);
@@ -93651,7 +93659,7 @@ caso('TC-544', 'C1: VExUS dice lo que la Figura 7 de Rola 2021 rotula y su Evide
        ⚠️ NO se llama a \`calcHemo\` aca: el punto es justamente que el grafico siga al dato por el
        mecanismo de la tanda B. Si hubiera que llamarlo, el caso estaria fabricando el
        disparador que la app no tiene. */
-    montarForr('80', '80'); await esperar(150);
+    await montarForr('80', '80');
     const antes = desc();
     poner('onda_e', '160');
     await esperar(400); barrer(); await esperar(250);

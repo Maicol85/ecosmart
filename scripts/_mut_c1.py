@@ -73,10 +73,16 @@ MUT = [
         'una PCP de 16 deja de ser congestion y el grafico contradice a la capsula de arriba',
   "function forrCuadrante(ic, pcp) {\n  if (ic === null || pcp === null || !isFinite(ic) || !isFinite(pcp)) return null;\n  const humedo = pcp > UMBRAL_PCP_HUMEDO",
   "function forrCuadrante(ic, pcp) {\n  if (ic === null || pcp === null || !isFinite(ic) || !isFinite(pcp)) return null;\n  const humedo = pcp > 18"),
- ('M14','el grafico deja de seguir al dato: ya no lo pinta la cola de calcHemo, asi que el '
-        'barrido de espejos no lo alcanza',
-  "  if (typeof hemoForrGrafPintar === 'function') {\n    try { hemoForrGrafPintar(ic, pcp); } catch (e) { console.warn('[forr-graf]', e); }\n  }",
-  "  void 0;"),
+ # ADVERTENCIA M14 CAMBIO DE BLANCO al medir los tiempos de escritura. La primera version
+ # quitaba el pintado de la cola de `calcHemo`; ese pintado por tecla se RETIRO, porque volvia la
+ # escritura mas lenta -media 0,74 a 0,92 ms contra 0,53 a 0,58 en HEAD-. Hoy quien pinta es
+ # `hemoForrGrafSync`, colgado del BARRIDO de espejos, asi que la mutacion que inyecta el defecto
+ # es sacarlo de ese registro: el grafico deja de seguir al dato aunque `calcHemo` siga
+ # registrando los numeros.
+ ('M14','el grafico deja de seguir al dato: sale del registro de espejos, asi que el barrido '
+        'ya no lo alcanza',
+  "          'hemoForrGrafSync',",
+  "          'calcHemo',"),
 ]
 
 

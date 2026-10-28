@@ -1167,8 +1167,8 @@ línea: el archivo creció y un informe de auditoría viejo apunta a otro archiv
 ### VExUS, la HTP, el Forrester, la RVS y el POCUS — «C1» (2026-10-28)
 
 - **CINCO commits.** `30890df` (C1-1) · `1ca3035` (C1-2) · `b73218b` (C1-3) · `0ee1956` (C1-4) ·
-  el de cobertura y documentación. Sello **`v20261028-1934`**, md5 de `index.html`
-  **`3fb0dc05`**. Al empezar, `origin/main` = `HEAD` = **`96379fc`**, el cierre del D-11, ya
+  el de cobertura y documentación. Sello **`v20261028-2000`**, md5 de `index.html`
+  **`2ad1c673`**. Al empezar, `origin/main` = `HEAD` = **`96379fc`**, el cierre del D-11, ya
   publicado. **El push lo corre Maicol: esta tanda tenía orden expresa de NO pushear.**
 
 - **LA FUENTE SE LEYÓ EN IMAGEN, Y ES LO QUE SOSTIENE EL COMMIT 1.** La **Figura 7 de Rola P y
@@ -1235,7 +1235,15 @@ línea: el archivo creció y un informe de auditoría viejo apunta a otro archiv
   (`96379fc`), con los mismos scripts y en el mismo lote: el denominador (E0) da **0/0/0/0/0/0**
   en los dos árboles. Es dependiente del orden, como TC-507 en el AJ7 y TC-537 en la tanda A.
 
-- **`index.html` pasó de 9,86 MB / 138.899 líneas a 9,89 MB / 139.228** — medido con `wc -c` y
+- ⚠️ **HUBO UN SEXTO COMMIT, Y LO PIDIÓ UNA MEDICIÓN.** El gráfico se pintaba en la cola de
+  `calcHemo`, que corre **una vez por tecla**, y eso volvió la escritura más lenta: media
+  **0,74 a 0,92 ms** contra 0,53 a 0,58 en HEAD, con el máximo de 0,8 a **2,6**. Hoy `calcHemo`
+  sólo **registra** los dos números y quien dibuja es `hemoForrGrafSync`, en las tres columnas
+  de siempre —`ESPEJOS_VIVOS`, `RECALC_MODULOS` y el final de `limpiarCampos`—. Medido de nuevo:
+  **0,56 a 0,58 ms**, por debajo del HEAD, con el punto dibujado. Es además el mecanismo que la
+  orden pedía. TC-544 y la sonda de dos motores pasaron a correr el barrido.
+
+- **`index.html` pasó de 9,86 MB / 138.899 líneas a 9,89 MB / 139.274** — medido con `wc -c` y
   `wc -l` DESPUÉS de sellar. (MB de 10⁶: `wc -c` dividido por 1e6.)
 
 - **Dónde está todo:** `docs/mapa/c1-hemodinamica.md` (**mapa NUEVO**, 10,3 KB), la ficha del

@@ -60,7 +60,18 @@ peso y talla) y la presión capilar de Nagueh sobre E/e′. Ninguna combinación
 directamente a `forrCuadrante`, que es donde el borde vive, y por eso las mutaciones **M12** y
 **M13** —que mueven el operador y el corte— las matan.
 
-### 3. El caso NO llama a `calc*` a mano donde la app ya tiene su disparador
+### 3. El montaje del gráfico corre el BARRIDO, y eso lo aprendió en rojo
+
+El gráfico **no** se pinta en cada tecla: `calcHemo` sólo registra los números y quien dibuja es
+`hemoForrGrafSync`, colgado del barrido de espejos. La primera versión del caso llamaba sólo a
+`calcHemo` y las cuatro condiciones del cuadrante fallaban **sobre el comportamiento bueno**.
+Hoy `montarForr` corre `barrer()` y espera.
+
+⚠️ **M14 cambió de blanco por lo mismo.** Apuntaba al pintado por tecla; ese pintado se retiró
+—volvía la escritura más lenta—, así que la mutación que inyecta el defecto hoy es **sacar
+`hemoForrGrafSync` del registro de espejos**.
+
+### 4. El caso NO llama a `calc*` a mano donde la app ya tiene su disparador
 
 Los selectores de vaso de VExUS llevan `onchange="calcVEXUSyRefrescar()"`, así que poner el
 valor **es** el gesto del médico. Y **(G9)** —el gráfico que sigue al dato— se mide con el
@@ -87,7 +98,7 @@ Todas en un worktree, nunca sobre el vivo, con guarda de md5 antes y después.
 | M11 | el POCUS vuelve a no mirar `vd_vi` | (E1), (E2), (E3) |
 | M12 | el borde del índice cardíaco pasa a «≤» | (G5) |
 | M13 | el corte de congestión se escribe a mano en 18 | (G6) |
-| M14 | el gráfico deja de seguir al dato | (G1)–(G4) |
+| M14 | el gráfico sale del registro de espejos | (G1)–(G4) |
 
 **Dos de las catorce no revierten un arreglo: lo aplican de más.** M3 y M7 existen porque las
 condiciones que las matan son controles negativos, y un control negativo que ninguna mutación

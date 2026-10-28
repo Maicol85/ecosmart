@@ -254,7 +254,12 @@ Detalle en `docs/mapa/d-cardioonco-amiloidosis.md` § 2.
 `pamEfectiva()`. El comentario de `ESPEJOS_VIVOS` que decía lo contrario está corregido en el
 código.
 
-Y como `calcHemo` ya estaba en el registro, **el diagrama de Forrester nuevo sigue al dato por
-este mismo barrido**, sin un temporizador propio: lo pinta la cola de `calcHemo`.
+Y el registro ganó **una entrada**: `hemoForrGrafSync`, el que dibuja el diagrama de Forrester
+nuevo. Va justo **después** de `calcHemo`, que es quien deja los dos números en `_forrUlt`.
+
+⚠️ **Está acá y no en la cola de `calcHemo`, y eso lo decidió una medición.** `calcHemo` corre en
+el `oninput` de varios campos, o sea una vez por tecla, y pintar un SVG entero por tecla volvió
+la escritura más lenta —media 0,74 a 0,92 ms contra 0,53 a 0,58—. Colgado del barrido corre
+**una** vez, 220 ms después de la última tecla, y la escritura vuelve a la línea base.
 
 **`docs/mapa/c1-hemodinamica.md` §§ 4 y 6.**

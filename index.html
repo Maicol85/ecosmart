@@ -26256,6 +26256,12 @@ const RVS_PAM_ORIGEN = Object.freeze({
   calc: 'PAM calculada de PAS y PAD'
 });
 
+/* Los dos numeros del ultimo calculo, para que el barrido pinte el diagrama sin recalcular ni
+   releer el DOM. Es un objeto y no dos variables sueltas para que `hemoForrGrafSync`, que vive
+   en otro bloque <script>, lo alcance por `window` con una sola referencia. */
+const _forrUlt = { ic: null, pcp: null };
+window._forrUlt = _forrUlt;
+
 function calcHemo() {
   /* ⚠️ LA FC PASA POR LA BANDA, Y EL CAMPO NO SE TOCA. `hemoFCUsable` es el MISMO predicado que usa
      el PDF (ver `HEMO_FC_BANDA`): fuera de banda esto queda en `null` y el gasto cardíaco cae por la
@@ -26400,13 +26406,17 @@ function calcHemo() {
       forEl.innerHTML = badge(cls, txt);
     }
   }
-  /* ══ EL DIAGRAMA, CON LOS NUMEROS QUE ESTA MISMA FUNCION YA CALCULO (C1-4) ═════════════════
-     Se le pasan `ic` y `pcp`, no se los vuelve a leer del DOM: con una segunda lectura, el punto
-     podria caer en un cuadrante y la fila de arriba decir otro —que es lo que un diagrama no
-     puede hacer—. `hemoForrGrafPintar` vive en otro bloque <script>, de ahi el `typeof`. */
-  if (typeof hemoForrGrafPintar === 'function') {
-    try { hemoForrGrafPintar(ic, pcp); } catch (e) { console.warn('[forr-graf]', e); }
-  }
+  /* ══ EL DIAGRAMA: ACA SE REGISTRAN LOS NUMEROS, NO SE PINTA (C1-4, corregido al medir) ══════
+     Se guardan `ic` y `pcp` tal como esta funcion los calculo, y NO se vuelven a leer del DOM:
+     con una segunda lectura el punto podria caer en un cuadrante y la fila de arriba decir otro,
+     que es lo que un diagrama no puede hacer.
+     ⚠️ LA PRIMERA VERSION PINTABA ACA, Y ESCRIBIR SE VOLVIO MAS LENTO. `calcHemo` corre en el
+     `oninput` de varios campos, o sea UNA VEZ POR TECLA, y pintar rearma el SVG entero y lo
+     vuelve a parsear con `innerHTML`. Medido en Chrome con doce teclas reales sobre `onda_e`,
+     con el punto DIBUJADO: media 0,74 a 0,92 ms contra 0,53 a 0,58 en HEAD, y el maximo de 0,8
+     a 2,6. Quien pinta es `hemoForrGrafSync`, que cuelga del BARRIDO DE ESPEJOS —una sola vez,
+     220 ms despues de la ultima tecla—, que es ademas lo que la orden de la tanda pedia. */
+  _forrUlt.ic = ic; _forrUlt.pcp = pcp;
 
   // ── Perfil hemodinámico ──
   const perfilEl = document.getElementById('hemo-perfil');
@@ -59469,7 +59479,13 @@ function RECALC_MODULOS() {
              mismo que los demás: las cinco rutas de restauración pueblan asignando `.value`,
              que no dispara `input`, así que al reabrir un estudio con dos PAM que difieren el
              aviso se quedaba con el del paciente anterior. Sólo escribe texto. */
-          'pamAvisoSync'];
+          'pamAvisoSync',
+          /* C1-4: el diagrama de Forrester. Entra acá por lo mismo que los demás —las cinco
+             rutas de restauración pueblan asignando `.value`, que no dispara `input`, así que
+             sin esto reabrir un estudio dejaba el diagrama con el punto del paciente anterior—.
+             Va DESPUÉS de todos: lee `_forrUlt`, que lo deja `calcHemo`, y las rutas de
+             restauración lo llaman por su lado. */
+          'hemoForrGrafSync'];
 }
 function _recalcModulos(etiqueta) {
   RECALC_MODULOS().forEach(function(fn){
@@ -59542,10 +59558,16 @@ function ESPEJOS_VIVOS() {
              ⚠️ ESTE PARRAFO DECIA «su RVS sigue saliendo de `v('hemo_pam')` a secas y NO del
              dueño único —ver B-a—», y dejó de ser cierto en el C1-3a: hoy `calcHemo` pregunta a
              `pamEfectiva()`, así que B-a está cerrado.
-             ⚠️ Y DESDE EL C1-4 ESTA ENTRADA TAMBIÉN MANTIENE AL DÍA EL DIAGRAMA DE FORRESTER de
-             la pestaña de Hemodinámica: lo pinta la cola de `calcHemo`, de modo que el gráfico
-             sigue al dato por este mismo barrido y sin un temporizador propio. */
+             ⚠️ EL DIAGRAMA DE FORRESTER NO LO PINTA `calcHemo`, Y ESTE PÁRRAFO DECÍA QUE SÍ.
+             `calcHemo` sólo REGISTRA `ic` y `pcp` en `_forrUlt`; quien dibuja es la entrada de
+             abajo, `hemoForrGrafSync`. Pintar en la cola de `calcHemo` —que corre una vez por
+             TECLA— volvía la escritura más lenta, medido. */
           'pamAvisoSync', 'aoRefPintar', 'calcHemo',
+          /* C1-4: el diagrama de Forrester de la pestaña de Hemodinámica. Va DESPUÉS de
+             `calcHemo`, que es quien deja `ic` y `pcp` en `_forrUlt`: al revés pintaría con los
+             números del gesto anterior. NO escribe un solo campo —su nodo es un `<div>` sin `id`
+             de campo— y no recalcula nada. */
+          'hemoForrGrafSync',
           /* D-3: el score de amiloidosis sigue al dato. Trae los insumos de las otras pestañas y
              deja que `amAplicarCalc` marque, respetando las dos decisiones del médico. NO escribe
              un solo campo del estudio —el sentido módulo → app cuelga del `oninput` del propio
@@ -60481,6 +60503,14 @@ function limpiarCampos(silencioso) {
      es la otra columna. Va acá y no arriba porque LEE los campos para decidir qué escribir:
      corriendo antes del vaciado vería los del paciente anterior. */
   if (typeof hfPepPintar === 'function') { try { hfPepPintar(); } catch (e) {} }
+  /* ⚠️ EL DIAGRAMA DE FORRESTER, TERCERA COLUMNA (C1-4). Su nodo es un `<div>` que ningún
+     barrido genérico de esta función toca —no es un `input`, ni un `select`, ni un
+     `.calc-row span[id]`, ni termina en `-aviso`—, y `limpiarCampos` NO pasa por el embudo de
+     `RECALC_MODULOS`, que es la otra columna. Sin esto, «Nuevo estudio» dejaba el punto del
+     paciente ANTERIOR dibujado sobre un formulario ya vacío. Va acá, al final, y primero se
+     borran los números que `calcHemo` había dejado: la función lee `_forrUlt`, no el DOM. */
+  try { if (typeof _forrUlt !== 'undefined') { _forrUlt.ic = null; _forrUlt.pcp = null; } } catch (e) {}
+  if (typeof hemoForrGrafSync === 'function') { try { hemoForrGrafSync(); } catch (e) {} }
   if (!silencioso) toast('🗑 Formulario limpiado');
 }
 
@@ -127860,6 +127890,23 @@ function hemoForrGrafPintar(ic, pcp) {
 }
 window.hemoForrGrafPintar = hemoForrGrafPintar;
 
+/* ══ QUIEN PINTA EL DIAGRAMA, Y CUANDO (C1-4) ════════════════════════════════════════════════
+   Va en las TRES columnas que este archivo usa para todo sincronizador:
+     · `ESPEJOS_VIVOS`  — el barrido colgado del debounce de 220 ms, o sea UNA vez despues de la
+                          ultima tecla. Entra DESPUES de `calcHemo`, que es quien deja los
+                          numeros en `_forrUlt`: al reves pintaria con los del gesto anterior.
+     · `RECALC_MODULOS` — las cinco rutas de restauracion pueblan asignando `.value`, que NO
+                          dispara `input`, asi que sin esto reabrir un estudio dejaba el diagrama
+                          con el paciente anterior.
+     · el final de `limpiarCampos` — «Nuevo estudio» tiene que dejarlo vacio.
+   ⚠️ NO RECALCULA NADA. Lee lo que `calcHemo` ya calculo: con una segunda cuenta, el punto y la
+   fila de arriba podrian discrepar, que es justo lo que un diagrama no puede hacer. */
+function hemoForrGrafSync() {
+  const u = (typeof _forrUlt !== 'undefined') ? _forrUlt : (window._forrUlt || { ic: null, pcp: null });
+  hemoForrGrafPintar(u.ic, u.pcp);
+}
+window.hemoForrGrafSync = hemoForrGrafSync;
+
 let _forrEnganchado = false;
 function _labForrRenderDash(infs) {
   const cont = document.getElementById('lab-adv-hemo-diag');
@@ -136284,8 +136331,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261028-1934';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793226867471;                 /* eco-build-ms */
+const ECO_BUILD    = '20261028-2013';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793229237500;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -136371,7 +136418,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261028-1934</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261028-2013</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
