@@ -299,7 +299,9 @@ const MEDIR = `(() => {
   try {
     const g = document.getElementById('hemo-forr-graf');
     out['_pant_graf_desc'] = g ? N(g.getAttribute('aria-label') || (g.querySelector('[data-forr-desc]') || {}).textContent) : 'NO EXISTE';
-    out['_pant_graf_pts'] = g ? g.querySelectorAll('circle[data-forr-pt]').length : 'NO EXISTE';
+    out['_pant_graf_pts'] = g ? g.querySelectorAll('svg circle').length : 'NO EXISTE';
+    out['_pant_graf_cuad'] = g ? N((g.querySelector('[data-forr-desc]') || {}).textContent) : 'NO EXISTE';
+    out['_pant_graf_vacio'] = g ? N((g.querySelector('svg text[font-style=\"italic\"]') || {}).textContent) : 'NO EXISTE';
   } catch (e) { out['_pant_graf_desc'] = 'EXC' }
   /* ══ EL DENOMINADOR DE LAS CINCO ZONAS ══════════════════════════════════════════════════
      Sin esto, un «cero diferencias» no se distingue de «la escena no llego a la zona». */

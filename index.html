@@ -9327,6 +9327,14 @@ window.cerrarSesionReal = cerrarSesionReal;
           <span class="calc-lbl" style="font-weight:700;">🧭 Perfil de Forrester <span style="font-weight:400;color:var(--text2);font-size:10px;">(IC + PCP, estimado por eco)</span> <button type="button" class="vinfo-btn" data-vinfo="hemo-forr" aria-expanded="false" aria-label="Informaci&oacute;n sobre el alcance y los bordes del perfil de Forrester" onclick="vInfoClic(this)">&#9432;</button></span>
           <span id="hemo-forrester">—</span>
         </div>
+        <!-- ══ EL DIAGRAMA DE LOS CUATRO CUADRANTES (C1-4, 2026-10-28) ══════════════════════
+             SOLO DE PANTALLA. No entra al informe, al EN SUMA, al PDF, al PPT, al Excel ni al
+             guardado, y no agrega ningun campo: el nodo es un `<div>` sin `id` de campo, asi
+             que ni `_noEsDelEstudio` ni el censo lo ven.
+             Lo dibuja `hemoForrGrafPintar`, que llama al MISMO generador que el Laboratorio.
+             `aria-live="polite"` y no `assertive`: el barrido de espejos lo repinta despues de
+             cada tecla, y un lector de pantalla interrumpiendo en cada digito es inusable. -->
+        <div id="hemo-forr-graf" style="margin-top:10px;" aria-live="polite"></div>
         <!-- Ojo: en ESTA tarjeta la RVP NO deriva de la PCP —sale de Abbas o del override por
              cateterismo—, así que el disclaimer no puede decir que sí. En la tarjeta de
              Cálculos es al revés: allí la RVP es GTP/GC y sí depende de la PCP. -->
@@ -26391,6 +26399,13 @@ function calcHemo() {
       else                      { cls = 'red';    txt = 'Perfil C (frío-húmedo) — Shock cardiogénico (congestión + hipoperfusión)'; }
       forEl.innerHTML = badge(cls, txt);
     }
+  }
+  /* ══ EL DIAGRAMA, CON LOS NUMEROS QUE ESTA MISMA FUNCION YA CALCULO (C1-4) ═════════════════
+     Se le pasan `ic` y `pcp`, no se los vuelve a leer del DOM: con una segunda lectura, el punto
+     podria caer en un cuadrante y la fila de arriba decir otro —que es lo que un diagrama no
+     puede hacer—. `hemoForrGrafPintar` vive en otro bloque <script>, de ahi el `typeof`. */
+  if (typeof hemoForrGrafPintar === 'function') {
+    try { hemoForrGrafPintar(ic, pcp); } catch (e) { console.warn('[forr-graf]', e); }
   }
 
   // ── Perfil hemodinámico ──
@@ -59522,9 +59537,14 @@ function ESPEJOS_VIVOS() {
              tanda vino a cerrar, recién creado. No escribe un solo campo.
              ⚠️ Y `calcHemo` CON ELLOS, porque quien pinta esa fila es él y no `aoRefPintar`:
              `aoRefHemo` tiene UN solo llamador en todo el archivo, la última línea de
-             `calcHemo`. Entra sólo para repintar, no cambia lo que lee: su RVS sigue saliendo de
-             `v('hemo_pam')` a secas y NO del dueño único —ver B-a en PENDIENTES.md—. Escribe dos
-             campos y los dos son `readonly`: `hemo_pvc` y `hemo_vs`. */
+             `calcHemo`. Entra sólo para repintar. Escribe dos campos y los dos son `readonly`:
+             `hemo_pvc` y `hemo_vs`.
+             ⚠️ ESTE PARRAFO DECIA «su RVS sigue saliendo de `v('hemo_pam')` a secas y NO del
+             dueño único —ver B-a—», y dejó de ser cierto en el C1-3a: hoy `calcHemo` pregunta a
+             `pamEfectiva()`, así que B-a está cerrado.
+             ⚠️ Y DESDE EL C1-4 ESTA ENTRADA TAMBIÉN MANTIENE AL DÍA EL DIAGRAMA DE FORRESTER de
+             la pestaña de Hemodinámica: lo pinta la cola de `calcHemo`, de modo que el gráfico
+             sigue al dato por este mismo barrido y sin un temporizador propio. */
           'pamAvisoSync', 'aoRefPintar', 'calcHemo',
           /* D-3: el score de amiloidosis sigue al dato. Trae los insumos de las otras pestañas y
              deja que `amAplicarCalc` marque, respetando las dos decisiones del médico. NO escribe
@@ -127645,6 +127665,33 @@ function _labHemoUsado(inf) { return _labCampoRaw(inf, 'hemo_fc') !== '' || _lab
 const FORR_IC_CORTE = 2.2;
 const FORR_EJE = { icMin: 1.0, icMax: 4.0, pcpMin: 0, pcpMax: 30 };
 
+/* ══ EL CUADRANTE, EN UN SOLO LUGAR (C1-4a, 2026-10-28) ═══════════════════════════════════════
+   Los dos operadores viven aca y nadie mas los escribe. Era una EXTRACCION PURA de las dos
+   lineas que `_labICPCP` ya tenia, con los mismos cortes y los mismos operadores, byte por byte:
+
+     humedo = pcp >  UMBRAL_PCP_HUMEDO   (15)   -> una PCP de 15 EXACTOS no es congestion
+     frio   = ic  <  FORR_IC_CORTE       (2,2)  -> un IC de 2,2 EXACTOS no es hipoperfusion
+
+   ⚠️ SE EXTRAE PORQUE AHORA HAY DOS DIBUJOS. El comentario de `_labICPCP` ya lo advertia para el
+   diagrama del Laboratorio —«con dos implementaciones, el punto podria caer en un cuadrante y el
+   color decir otro, que es exactamente lo que un diagrama no puede hacer»—, y esta tanda agrega
+   un segundo diagrama en la pestaña de Hemodinamica. Con la regla copiada, el dia que un corte
+   se mueva los dos diagramas de la misma app clasificarian distinto.
+
+   ⚠️ LOS DOS BORDES SON DISTINTOS DE LOS QUE LA ORDEN DE ESTA TANDA SUPONIA, Y ESTAN MEDIDOS.
+   La orden decia «el indice cardiaco de 2,2 cae del lado de hipoperfusion y la presion capilar
+   de 18 NO se considera congestion». Medido en el codigo: el 2,2 EXACTO **no** es hipoperfusion
+   en el Forrester (`<`), y el corte de congestion de esta app es **15**, no 18, asi que una PCP
+   de 18 **si** es congestion. El 2,2 cae del lado de «bajo» en `_icBanda`, que es OTRA capsula.
+   No se movio ninguno de los dos: el grafico usa los que la app ya aplica. Declarado en
+   `docs/PENDIENTES.md` -> C1-a y C1-b, que es donde van las discrepancias de texto clinico. */
+function forrCuadrante(ic, pcp) {
+  if (ic === null || pcp === null || !isFinite(ic) || !isFinite(pcp)) return null;
+  const humedo = pcp > UMBRAL_PCP_HUMEDO, frio = ic < FORR_IC_CORTE;
+  return (!frio && !humedo) ? 'I' : (humedo && !frio) ? 'II' : (frio && !humedo) ? 'III' : 'IV';
+}
+window.forrCuadrante = forrCuadrante;
+
 /* UN SOLO GENERADOR, con la paleta INYECTADA. El SVG de pantalla y el PNG de la diapositiva salen
    de acá: con dos generadores, el día que se mueva un cuadrante hay que acordarse de los dos.
    La paleta se pasa como parámetro y no se leen `var(--x)` adentro porque **un `var()` dentro de
@@ -127706,8 +127753,11 @@ function _labForrSVG(puntos, pal, opts) {
          (o.interactivo && p.eid ? (' data-eid="' + esc(p.eid) + '" style="cursor:pointer"') : '') + '>' +
          (o.interactivo ? ('<title>' + esc(p.tip) + '</title>') : '') + '</circle>';
   });
+  /* `vacioTxt` es ADITIVO (C1-4b): sin el, el texto es el de siempre y el Laboratorio no cambia.
+     La pestaña de Hemodinamica pasa el MISMO mensaje de «falta...» que publica la capsula, para
+     que el grafico y la fila de arriba no le pidan al medico cosas distintas. */
   if (!(puntos || []).length)
-    h += '<text x="' + (W / 2) + '" y="' + ((MT + H - MB) / 2) + '" text-anchor="middle" font-size="11" font-style="italic" fill="' + pal.texto + '">Sin estudios con IC y PCP estimables en este período</text>';
+    h += '<text x="' + (W / 2) + '" y="' + ((MT + H - MB) / 2) + '" text-anchor="middle" font-size="11" font-style="italic" fill="' + pal.texto + '">' + esc(o.vacioTxt || 'Sin estudios con IC y PCP estimables en este período') + '</text>';
   return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + W + ' ' + H + '" width="' + W + '" height="' + H + '">' + h + '</svg>';
 }
 
@@ -127743,6 +127793,73 @@ function _labForrPal() {
            eje: g('--text2', '#94A3B8'), texto: g('--text', '#E2E8F0'),
            fondo: g('--bg2', '#111827'), punto: g('--bg', '#0F172A') };
 }
+/* ══ EL DIAGRAMA DE FORRESTER DE LA PESTAÑA DE HEMODINAMICA (C1-4, 2026-10-28) ════════════════
+   SOLO DE PANTALLA, y eso es una condicion de la orden, no una preferencia: no entra al informe,
+   al EN SUMA, al PDF, al PPT, al Excel ni al guardado, y no agrega ningun campo. El nodo que
+   escribe es un `<div>` sin `id` de campo, asi que el censo no lo ve y las 440 columnas no se
+   mueven.
+
+   ⚠️ REUTILIZA `_labForrSVG`, EL GENERADOR DEL LABORATORIO, Y ESO FIJA LOS EJES. La orden pedia
+   la presion capilar en el eje horizontal y el indice cardiaco en el vertical; este generador los
+   tiene al reves —X = indice cardiaco, Y = presion capilar— y su propio comentario explica por
+   que hay UNO solo: «con dos generadores, el dia que se mueva un cuadrante hay que acordarse de
+   los dos». Girar los ejes aqui obligaria a una segunda geometria y a reubicar los cuatro
+   rotulos, que es exactamente lo que ese comentario previene. Se reutiliza tal cual y la
+   diferencia de orientacion se declara en `docs/PENDIENTES.md` -> C1-c.
+
+   ⚠️ LOS ROTULOS DE CUADRANTE SON LOS DEL LABORATORIO (`_LAB_FORR_LBL`), SIN INVENTAR NINGUNO:
+   «I — seco-caliente», «II — húmedo-caliente», «III — seco-frío», «IV — húmedo-frío». La fila de
+   arriba, en cambio, los llama «Perfil A / B / L / C» (Stevenson): son DOS vocabularios para los
+   MISMOS cuatro cuadrantes —A↔I, B↔II, L↔III, C↔IV, verificado condicion por condicion— y esta
+   tanda no unifica ninguno, porque renombrar un rotulo clinico es decision de Maicol. Declarado
+   en C1-d.
+
+   ⚠️ SIN TEMPORIZADOR NUEVO. Lo llama `calcHemo`, que YA esta en `ESPEJOS_VIVOS` desde la tanda
+   B, asi que el grafico sigue al dato por el mismo barrido colgado del debounce de 220 ms.
+
+   ⚠️ SIN CONDUCTA POR CUADRANTE, y el alcance no se reescribe: vive en el globo ⓘ de la fila de
+   arriba (`hemo-forr`) y en la Evidencia del perfil, que es de donde la orden pide reutilizarlo. */
+function hemoForrGrafPintar(ic, pcp) {
+  const cont = document.getElementById('hemo-forr-graf');
+  if (!cont) return;
+  const _n = function (x) { return (typeof x === 'number' && isFinite(x)) ? x : null; };
+  const _ic = _n(ic), _pcp = _n(pcp);
+  const cuad = (typeof forrCuadrante === 'function') ? forrCuadrante(_ic, _pcp) : null;
+  /* El MISMO mensaje que publica la capsula de arriba, del MISMO dueño (C1-2b): el grafico no
+     puede pedir un dato distinto del que pide la fila que tiene encima. */
+  const falta = (typeof forrFaltaTxt === 'function') ? forrFaltaTxt(_ic !== null, _pcp !== null) : null;
+  const pts = (cuad && _ic !== null && _pcp !== null)
+    ? [{ ic: _ic, pcp: _pcp, perfil: cuad,
+         tip: 'Índice cardíaco ' + _ic.toFixed(2) + ' L/min/m² · presión capilar estimada '
+            + _pcp.toFixed(1) + ' mmHg · cuadrante ' + (_LAB_FORR_LBL[cuad] || cuad) }]
+    : [];
+  const pal = _labForrPal();
+  cont.textContent = '';
+  const caja = document.createElement('div');
+  /* `max-width` y `width:100%` con alto automatico: a 390 px el SVG se achica solo y no hay
+     barra horizontal. Es el mismo encuadre que usa el Laboratorio. */
+  caja.style.cssText = 'width:100%;max-width:470px;margin:0 auto;';
+  caja.innerHTML = _labForrSVG(pts, pal, { vacioTxt: falta || 'Sin datos para ubicar al paciente' })
+    .replace('width="460" height="330"', 'style="width:100%;height:auto;display:block;"');
+  cont.appendChild(caja);
+  /* ══ LA DESCRIPCION ACCESIBLE, EN TEXTO Y NO SOLO EN EL COLOR ═══════════════════════════════
+     La regla de la casa es que el color nunca sea lo unico que informa. El SVG ya escribe el
+     numero romano y el nombre DENTRO de cada cuadrante; esto agrega donde cayo ESTE paciente,
+     que es lo que el dibujo dice solo con la posicion del punto. Va con `textContent`, asi que
+     no hay nada que escapar. */
+  const desc = document.createElement('div');
+  desc.setAttribute('data-forr-desc', '1');
+  desc.style.cssText = 'font-size:11px;color:var(--text2);line-height:1.5;margin-top:8px;text-align:center;';
+  desc.textContent = (cuad && _ic !== null && _pcp !== null)
+    ? ('Índice cardíaco ' + _ic.toFixed(2) + ' L/min/m², presión capilar estimada por eco '
+       + _pcp.toFixed(1) + ' mmHg: cuadrante ' + (_LAB_FORR_LBL[cuad] || cuad) + '.')
+    : (falta ? (falta.charAt(0).toUpperCase() + falta.slice(1) + ': el gráfico no ubica al paciente.')
+             : 'Sin datos para ubicar al paciente.');
+  cont.appendChild(desc);
+  cont.setAttribute('aria-label', 'Diagrama de Forrester. ' + desc.textContent);
+}
+window.hemoForrGrafPintar = hemoForrGrafPintar;
+
 let _forrEnganchado = false;
 function _labForrRenderDash(infs) {
   const cont = document.getElementById('lab-adv-hemo-diag');
@@ -127804,11 +127921,11 @@ function _labICPCP(inf) {
   /* Truthiness, no `!== null`: `_labNum` devuelve 0 para un campo con «0», y con los dos e' en
      cero el E/e' daba Infinity y el estudio se clasificaba «húmedo» sin ningún aviso. */
   if (e && esep && elat) { pcp = pcpNagueh(e / ((esep + elat) / 2)); }
-  let perfil = null;
-  if (ic !== null && pcp !== null) {
-    const humedo = pcp > UMBRAL_PCP_HUMEDO, frio = ic < FORR_IC_CORTE;
-    perfil = (!frio && !humedo) ? 'I' : (humedo && !frio) ? 'II' : (frio && !humedo) ? 'III' : 'IV';
-  }
+  /* ⚠️ DESDE EL C1-4a LA REGLA SALE DE `forrCuadrante` Y NO SE ESCRIBE ACA. Es la MISMA
+     clasificacion con los MISMOS cortes y los MISMOS operadores —fue una extraccion pura, y el
+     A/B sobre las ocho funciones dueñas del Laboratorio lo confirma—: lo unico que cambia es
+     que el diagrama del Laboratorio y el de la pestaña de Hemodinamica ya no pueden discrepar. */
+  const perfil = forrCuadrante(ic, pcp);
   return { ic: ic, pcp: pcp, perfil: perfil };
 }
 function _labForrester(inf) { return _labICPCP(inf).perfil; }
