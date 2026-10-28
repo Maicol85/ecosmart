@@ -90,6 +90,7 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Tocar la VISTA 2D de las válvulas**: el lector único del estado, las tarjetas, la tabla de cavidades, el dibujo, los chorros o el «por qué» | `docs/mapa/vista-2d-valvulas.md` |
 | **Tocar el PANEL EN LÍNEA de la vista 2D**: el botón que prende y apaga, el apagado automático, la sincronía en vivo, el alto del dibujo o la línea de fase | `docs/mapa/vista-2d-en-linea.md` |
 | **Orientarse en otro módulo** (Congénitas, Laboratorio, PPT, Cardio-Onco, Pericardio) | `docs/mapa/congenitas-otros.md` |
+| **Tocar algo que la tanda C1 movió** (28/10): los cuatro rótulos de VExUS contra la Figura 7 de Rola 2021 y su Evidencia sin conducta por grado, la casilla de HTP que dice «sin evaluar», los tres mensajes del Forrester con su dueño único, la RVS leyendo `pamEfectiva` con el origen de sus insumos, el POCUS del posoperatorio viendo el `vd_vi` de VD/AD, o el DIAGRAMA DE FORRESTER de la pestaña de Hemodinámica con sus dos cortes | `docs/mapa/c1-hemodinamica.md` |
 | **Tocar la HEMODINÁMICA, la CARDIO-ONCOLOGÍA, el SCORE DE AMILOIDOSIS o la ficha de ECO PULMONAR**: los tres ⓘ del índice cardíaco, la RVS y el Forrester; las dos ramas de RVS baja; el seguimiento tras radioterapia; las etiquetas del score que salieron; las TRES Evidencias nuevas o la ficha `ref-pulmon` | `docs/mapa/j2-hemo-onco-amiloide-pulmon.md` |
 | **Tocar el DERRAME y el TAPONAMIENTO, la CONSTRICCIÓN vs RESTRICCIÓN o VEXUS**: la fase y la duración del colapso de la aurícula derecha, los DOS cortes de plétora de VCI de la app, el aviso invasivo retirado, el cociente de la vena suprahepática, los dos operadores de VCI de VExUS o las tres Evidencias nuevas | `docs/mapa/j-pericardio-constriccion-vexus.md` |
 | **Saber DÓNDE ESTÁ una pantalla**: la columna izquierda y la fila de arriba, Pericardio y masas, las dos sub-pestañas de Otros, el eco pulmonar unificado, Calculadoras dentro de Referencias, C. Congénitas, el Fonocardiograma retirado o la frase de Balik | `docs/mapa/pestanas-reorganizacion.md` |
@@ -1162,3 +1163,87 @@ línea: el archivo creció y un informe de auditoría viejo apunta a otro archiv
 - **Dónde está todo:** `docs/mapa/d11-dos-puertas.md` (**mapa NUEVO**, 5,1 KB), el puntero en
   `docs/mapa/d-cardioonco-amiloidosis.md` § 7, la ficha de TC-543 en
   `docs/mapa/tests-fichas-540.md`, y `docs/PENDIENTES.md` → **D-o**, **D-p** y **D-q**.
+
+### VExUS, la HTP, el Forrester, la RVS y el POCUS — «C1» (2026-10-28)
+
+- **CINCO commits.** `30890df` (C1-1) · `1ca3035` (C1-2) · `b73218b` (C1-3) · `0ee1956` (C1-4) ·
+  el de cobertura y documentación. Sello **`v20261028-1934`**, md5 de `index.html`
+  **`3fb0dc05`**. Al empezar, `origin/main` = `HEAD` = **`96379fc`**, el cierre del D-11, ya
+  publicado. **El push lo corre Maicol: esta tanda tenía orden expresa de NO pushear.**
+
+- **LA FUENTE SE LEYÓ EN IMAGEN, Y ES LO QUE SOSTIENE EL COMMIT 1.** La **Figura 7 de Rola P y
+  cols., *Ultrasound J* 2021;13:32**, renderizada a 600 ppp, rotula los cuatro grados y nada
+  más: `<2 cm → No congestion`; `0/3 → At risk`; `1/3 → Moderate congestion`; `2-3/3 → Severe
+  congestion`. No publica conducta por grado, no vincula el grado 2 con la injuria renal aguda y
+  no dice que la presión venosa central sea normal en el grado 0.
+  ⚠️ **El archivo de la biblioteca tiene la autora mal escrita** —«VEXUS Tola.pdf»— y es **Rola**.
+
+- ⚠️ **EL TEXTO Y LA FIGURA DEL MISMO ARTÍCULO DISCREPAN EN EL GRADO 1, Y MANDA LA FIGURA.** El
+  cuerpo de la página 8 dice «only mild congestive findings» y la Figura 7 dice «0/3 → At risk»,
+  o sea CERO patrones severos. La figura es además la que concuerda con lo que `vexusGrado` ya
+  implementa. **Antes de «corregir» el grado 1 a «leve», leer `docs/mapa/c1-hemodinamica.md` § 1.**
+
+- ⚠️ **TRES PREMISAS DE LA ORDEN ERAN FALSAS, Y ESTÁN MEDIDAS.**
+  1. **El corte de congestión del Forrester NO es 18: es 15.** `UMBRAL_PCP_HUMEDO` vale 15 y se
+     aplica como `pcp > 15`, así que una presión capilar de **18 SÍ es congestión** en esta app.
+     El 18 es el del Braunwald. Dos textos de pantalla —el `ojo` del globo `hemo-forr` y la
+     tercera línea de `forrLin`— afirman lo contrario: **reportados y sin tocar** → **C1-a**.
+  2. **Un índice cardíaco de 2,2 exactos NO es hipoperfusión en el Forrester** (`ic < 2.2`). El
+     «2,2 o menos» es de `_icBanda`, que es otra cápsula. Los mismos dos textos lo atribuyen al
+     Forrester → **C1-b**.
+  3. **El Laboratorio YA tiene un diagrama de Forrester**, pero ubica **un punto por estudio
+     GUARDADO del período**, no al paciente en curso → **C1-e**.
+
+- **EL DEFECTO MÁS GRANDE QUE CERRÓ, EN UNA LÍNEA: la RVS ignoraba la PAM medida por catéter.**
+  Con el catéter en 58 y el campo de Hemodinámica vacío la cápsula decía «—» sobre un paciente
+  que SÍ tiene una presión medida, mientras la hoja del posoperatorio, en el mismo estudio, ya la
+  usaba. Hoy pregunta a `pamEfectiva()` y cierra **B-a**. Con las dos cargadas, la del catéter
+  gana: 1385 → 875.
+
+- **TRES DUEÑOS ÚNICOS NUEVOS, Y NINGUNA REGLA DUPLICADA.** `forrFaltaTxt` —los tres mensajes de
+  «falta…», que la cápsula y la fila del panel ahora comparten, cerrando **A-d**—;
+  `RVS_PAM_ORIGEN`; y `forrCuadrante`, extraído de `_labICPCP` **antes** de escribir el segundo
+  diagrama, porque con la regla copiada los dos dibujos de la misma app podrían clasificar
+  distinto el día que un corte se mueva.
+
+- ⚠️ **EL GRÁFICO NO TOCA UNA SOLA SUPERFICIE FIRMADA, Y ESTÁ MEDIDO AISLADO.** El A/B del
+  commit 4 contra el árbol del commit 3 da **CERO diferencias** en informe (tres estilos), EN
+  SUMA, las 440 columnas de Excel clave por clave, los 962 campos, el Laboratorio por sus ocho
+  funciones dueñas, el PDF en sus seis plantillas y el PPT — con **40** diferencias de pantalla
+  como control positivo. Sin ese control, un cero no se distingue de «la sonda no mira nada».
+
+- ⚠️ **EL ESPÍA DEL PPT DE LA SONDA HEREDADA SÓLO MIRABA `addText`**, y la fila del Forrester de
+  la diapositiva es una fila de **tabla**: el A/B daba cero sobre ella sin que eso probara nada.
+  Extendido a `addTable`, el PPT pasó de 27 a 30 textos y la diferencia apareció. Las sondas de
+  las tandas A y B **siguen con el defecto** → **C1-g**.
+
+- **LAS CATORCE MUTACIONES DIRIGIDAS, MUERTAS EN 1 min 42 s**, en worktree y nunca sobre el
+  vivo, con guarda de md5 antes y después. **Dos de las catorce no revierten un arreglo: lo
+  aplican de más** —M3 saca la frase del grado 3 y M7 le pone «sin evaluar» también al signo
+  automático medido—, porque las condiciones que las matan son controles negativos, y un control
+  negativo que ninguna mutación puede romper no está probando nada.
+
+- **SEIS CASOS VIEJOS ADAPTADOS, cada uno con el motivo escrito**: **TC-471**, **TC-500** y
+  **TC-502** (conteos del registro de globos, por `vexus-lim`), **TC-532 (F3)** y **TC-537 (N4)**
+  —los dos **invertidos**, porque medían exactamente lo que esta tanda vino a cambiar— y
+  **TC-535 (K0-K2)** (tres globos de 44×44 → cuatro).
+  ⚠️ **TC-532 (F3) necesitó un segundo arreglo**: buscaba «El artículo no da pasos por grado»,
+  que era la **nota del bloque retirado** y se fue con él. La declaración vive ahora en la última
+  línea del bloque del artículo original.
+
+- ⚠️ **TC-535 (E) ESTÁ ROJO, Y NO ES DE ESTA TANDA.** Verificado en un worktree en HEAD
+  (`96379fc`), con los mismos scripts y en el mismo lote: el denominador (E0) da **0/0/0/0/0/0**
+  en los dos árboles. Es dependiente del orden, como TC-507 en el AJ7 y TC-537 en la tanda A.
+
+- **`index.html` pasó de 9,86 MB / 138.899 líneas a 9,89 MB / 139.228** — medido con `wc -c` y
+  `wc -l` DESPUÉS de sellar. (MB de 10⁶: `wc -c` dividido por 1e6.)
+
+- **Dónde está todo:** `docs/mapa/c1-hemodinamica.md` (**mapa NUEVO**, 10,3 KB), la ficha del
+  caso en `docs/mapa/tests-fichas-544.md` (**archivo propio**), **siete mapas con un puntero cada
+  uno** —medidos ANTES de escribir, todos por debajo de 35 KB—,
+  `docs/fuentes/FUENTES.md` → «La tanda C1» con la Figura 7 transcripta, las tres frases
+  retiradas y la tabla «Cambios de evidencia» de dieciséis filas, y `docs/PENDIENTES.md` →
+  **NUEVE** cosas declaradas (**C1-a** a **C1-i**).
+  ⚠️ **`docs/mapa/tests.md` (34,8 KB) y `docs/mapa/informe-pdf-excel.md` (34,4 KB) NO se
+  tocaron**, y está declarado en **C1-h**: el primero está a **246 bytes** del techo y el segundo
+  a 600. La próxima tanda que necesite escribir en cualquiera de los dos tiene que partirlo.

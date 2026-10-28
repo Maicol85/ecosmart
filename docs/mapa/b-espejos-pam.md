@@ -245,3 +245,16 @@ propio calculador, que es un gesto del médico. Y cuando el campo del estudio ya
 **no lo pisa**: lo declara, con el mismo criterio que el aviso de discrepancia de la PAM.
 
 Detalle en `docs/mapa/d-cardioonco-amiloidosis.md` § 2.
+
+---
+
+## ⇢ La tanda C1 (2026-10-28) cerró **B-a** y le colgó una cosa más al barrido
+
+**B-a queda cerrado**: `calcHemo` ya no lee `v('hemo_pam')` a secas para la RVS, sino
+`pamEfectiva()`. El comentario de `ESPEJOS_VIVOS` que decía lo contrario está corregido en el
+código.
+
+Y como `calcHemo` ya estaba en el registro, **el diagrama de Forrester nuevo sigue al dato por
+este mismo barrido**, sin un temporizador propio: lo pinta la cola de `calcHemo`.
+
+**`docs/mapa/c1-hemodinamica.md` §§ 4 y 6.**

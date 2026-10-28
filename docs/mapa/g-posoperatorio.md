@@ -313,3 +313,17 @@ vasoplejia sale del dueño único.
 
 **Todo en `docs/mapa/b-espejos-pam.md`**, con la tabla de los dieciocho pintores, la de las
 nueve combinaciones de PAM y lo que quedó parado (B-a a B-f).
+
+---
+
+## ⇢ La tanda C1 (2026-10-28): el POCUS ve el VD/VI de la pestaña VD/AD
+
+`popPocusSync()` leía `tep_vdvi` y, si faltaba, derivaba de `vd_bas / ddfvi`. **Nunca miraba
+`vd_vi`**, así que la pantalla pedía «Completar: VD/VI (tab VD/AD)» sobre un campo cargado. Hoy
+pregunta a `vdViEstado`, el lector único. **Ningún corte se movió.**
+
+⚠️ **`popPatron()` tiene la MISMA cascada de tres líneas y TAMPOCO mira `vd_vi`**, y su rama de
+respaldo de la RVS sigue leyendo `v('hemo_pam')` en vez del dueño único. Las dos quedaron fuera
+de esa orden y declaradas en `PENDIENTES.md`.
+
+**Las tres fuentes, su orden y por qué el selector no gradúa: `docs/mapa/c1-hemodinamica.md` § 5.**

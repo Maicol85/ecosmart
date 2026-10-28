@@ -6330,3 +6330,147 @@ sale del documento de posición, y el «<1 y ≥5» es del score **AL**. → `do
 | De dónde sale el corte de 8 | se citaban los dos documentos sin distinguir | del **documento de posición**, no del artículo | García-Pavía 2021, Tabla 2, folio 1558 |
 | Los cortes «<1» y «≥5» | no se publicaban | se dice que son del score **AL**, que es otro | Boldrini, discusión |
 | Rendimiento por corte de la app | once filas | **sin cambios**: coinciden una por una con la Tabla 4 | verificado, no corregido |
+
+---
+
+# La tanda C1 — VExUS, HTP, Forrester, RVS y el POCUS (2026-10-28)
+
+## La fuente nueva, verificada EN IMAGEN
+
+**Rola P, Miralles-Aguiar F, Argaiz E, y colaboradores. «Clinical applications of the venous
+excess ultrasound (VExUS) score: conceptual review and case series». *Ultrasound J*
+2021;13:32. doi:10.1186/s13089-021-00232-8.**
+
+Acceso abierto; el artículo se pagina 1-10 y el pie impreso dice «Page N of 10», así que **la
+hoja del PDF y la página impresa coinciden** (no hay offset de folio).
+
+⚠️ **El archivo de la biblioteca tiene la autora mal escrita.** Está en
+`22_Hemodinamica_avanzada/VEXUS Tola.pdf`, y la autora es **Rola**. Quien vaya a re-verificar
+esta entrada no lo va a encontrar buscando «Rola».
+
+### Figura 7, página 8 — leída en imagen a 600 ppp el 2026-10-28
+
+Rotula los cuatro grados y **nada más**. Transcripción literal de la figura:
+
+```
+  <2 cm                      ->  Grade 0: No congestion
+  >2 cm   ·  0/3             ->  Grade 1: At risk
+             1/3             ->  Grade 2: Moderate congestion
+             2-3/3           ->  Grade 3: Severe congestion
+```
+
+Las tres cajas del centro, bajo el rótulo **«Severe Abnormality»**, son los Doppler de la vena
+hepática, la porta y las venas interlobares. El «0/3», «1/3» y «2-3/3» cuentan **cuántas de las
+tres** están severamente anormales.
+
+**Lo que la figura NO hace, censado:** no publica ninguna conducta por grado; no vincula el
+grado 2 con la injuria renal aguda; y no dice que la presión venosa central sea normal en el
+grado 0.
+
+### ⚠️ El texto de la página 8 y su propia figura DISCREPAN en el grado 1
+
+El cuerpo de la página 8 dice, literal: «VExUS grade 1 is with only mild congestive findings».
+La Figura 7 lo rotula «0/3 → Grade 1: At risk», o sea **cero** patrones severos.
+
+Son cosas distintas: con «hallazgos leves» el grado 1 exigiría una alteración leve; con «0/3»
+basta la vena cava dilatada **sin ningún patrón severo**. **La aplicación usa la figura**, que
+es además la que concuerda con la columna VExUS C de Beaubien-Souligny 2020 que ya implementa
+`vexusGrado`.
+
+### Página 9 — leída en imagen: las limitaciones de la lectura
+
+Las seis que la aplicación publica en el globo ⓘ del módulo, redactadas con palabras propias
+(la regla de derechos de autor de este repositorio prohíbe copiar párrafos):
+
+1. La vena cava puede estar comprimida por la presión intraabdominal con independencia de la
+   presión de la aurícula derecha.
+2. En la hipertensión pulmonar crónica la vena cava puede remodelarse.
+3. La vena hepática puede no alterarse aun con insuficiencia tricuspídea grave si la aurícula
+   derecha conserva su complacencia.
+4. La vena porta puede ser pulsátil sin congestión en personas delgadas sanas y en las
+   malformaciones arteriovenosas.
+5. Con el parénquima hepático rígido —cirrosis, hígado graso no alcohólico— la vena porta puede
+   **no** ser pulsátil aunque la congestión sea grave.
+6. El Doppler venoso intrarrenal es técnicamente difícil de obtener, y una enfermedad del
+   parénquima renal puede alterar su patrón.
+
+La misma página concluye que, por esas limitaciones, **es importante evitar interpretar
+cualquiera de estos estudios de forma aislada**.
+
+### Conclusión, página 9 — la frase que sostiene la única línea de conducta
+
+Literal: «there remains a lack of properly controlled interventional studies regarding the
+effectiveness of a strategy based on such an approach».
+
+Es lo que respalda la línea «Hasta hoy no hay estudios de intervención que prueben una conducta
+guiada por el grado».
+
+---
+
+## Lo que SALIÓ de la pantalla, transcripto
+
+### Las tres frases de conducta de la Evidencia de VExUS (regla R1 · decisión de Maicol)
+
+Vivían en un bloque plegado titulado **«Conducta por grado — criterio de EcoSmart, sin fuente»**,
+con esta nota al pie: «El artículo no da pasos por grado: estas tres frases son una decisión de
+la aplicación y por eso no llevan cita.»
+
+> - Criterio de EcoSmart — grado 1: monitorizar la evolución y considerar el balance hídrico.
+> - Criterio de EcoSmart — grado 2: evaluar la necesidad de descongestión.
+> - Criterio de EcoSmart — grado 3: considerar descongestión activa, con diuréticos o
+>   ultrafiltración según el contexto clínico, y reevaluar con el tratamiento.
+
+La tanda J-5 (24/10/2026) ya las había sacado del informe firmado y de la hoja del PDF y las
+había dejado **sólo** en la Evidencia. La C1 las retira también de ahí.
+
+### La nota de trabajo del criterio de la sección (regla R1)
+
+Era la segunda oración de la glosa del criterio, y es una nota de **trabajo** —dice dónde más
+aparece el texto—, no una afirmación clínica:
+
+> «Esa salvedad también sale en el informe y en la hoja del PDF, que es donde está la medición
+> que la sostiene.»
+
+⚠️ **No se encontró en pantalla ninguna nota fechada «24/10» de forma literal.** La orden pedía
+retirar «la nota histórica del 24/10»; lo que hay en la sección con ese origen es la oración de
+arriba, escrita por la tanda AJ7 del 24/10/2026, y es la que salió. Si lo que la orden nombraba
+era otra cosa, no está en el texto visible de la sección: queda declarado.
+
+### El número de la población, dicho dos veces (regla R4)
+
+Los «145 pacientes de cirugía cardíaca, con 706 valoraciones ecográficas» estaban en la primera
+línea del bloque visible **y otra vez** en el detalle. El número queda en el bloque, que es donde
+se lee; el detalle conserva el **alcance**, que es otra afirmación.
+
+⚠️ **Medido: en la sección el número aparece HOY dos veces, y es correcto.** Una es la
+afirmación de la aplicación; la otra está **dentro de la ficha bibliográfica de `vexus2020`**,
+que transcribe el resumen del documento. La bibliografía describe la fuente, no es una segunda
+afirmación de la app.
+
+---
+
+## Cambios de evidencia
+
+| # | Dónde | Qué decía | Qué dice | Fuente / motivo |
+|---|---|---|---|---|
+| 1 | `VEXUS_INTERP[0]` | «Sin congestión venosa sistémica significativa. Presión venosa central probablemente normal.» | «Sin congestión venosa.» | Figura 7 rotula «No congestion»; el artículo no afirma nada sobre la PVC |
+| 2 | `VEXUS_INTERP[1]` | «Congestión venosa leve.» | «En riesgo de congestión venosa.» | Figura 7: «0/3 → At risk». Manda la figura sobre el texto de la p. 8 |
+| 3 | `VEXUS_INTERP[2]` | «Congestión venosa moderada. Riesgo de injuria renal aguda aumentado.» | «Congestión venosa moderada.» | Figura 7: «Moderate congestion», y nada más |
+| 4 | `VEXUS_INTERP[3]` | (sin cambio) | (sin cambio) | Es el resultado que mide Beaubien-Souligny 2020, ya citado con sus números |
+| 5 | Evidencia VExUS, bloque de conducta | tres frases «Criterio de EcoSmart» | retirado entero | Ninguna de las dos fuentes publica conducta por grado |
+| 6 | Evidencia VExUS, bloque nuevo | — | «Hasta hoy no hay estudios de intervención que prueben una conducta guiada por el grado.» | Rola 2021, Conclusión, p. 9 |
+| 7 | ⓘ `vexus-lim` | (no existía) | las seis limitaciones de la p. 9 | Rola 2021, p. 9 |
+| 8 | `IND_REFS` | (no existía) | `vexusRola2021` | — |
+| 9 | Evidencia VExUS, detalle | «…—145 pacientes…, con 706 valoraciones— es parte del resultado…» | «La población en la que se midió es parte del resultado…» | Regla R4: el número se dice una vez |
+| 10 | Criterio de la sección VExUS | llevaba una nota de trabajo | retirada | Regla R1 |
+| 11 | `htp2022-est-<k>`, estado `manual` | «marcado a mano — ausente» | «marcado a mano — sin evaluar» | Sin marcar, la app no sabe si se buscó |
+| 12 | `_indHTP`, fila de categoría | «ninguno · evaluada, sin signos» cuando nadie evaluó | «— · ningún signo de esta categoría se pudo evaluar con lo cargado» | Ídem, a nivel de categoría |
+| 13 | `hemo-forrester` | «Requiere IC + PCP estimada» en los tres casos | nombra el dato que falta | Cierra el pendiente **A-d** |
+| 14 | `hemo-rvs` | el número pelado | el número + el origen de los dos insumos | La PAM puede ser medida y la PVC es estimada por eco |
+| 15 | `calcHemo`, insumo PAM | `v('hemo_pam')` | `pamEfectiva()` | Cierra el pendiente **B-a** |
+| 16 | `popPocusSync`, fuente del VD/VI | no miraba `vd_vi` | pregunta a `vdViEstado` | Cierra el pendiente **B-d** |
+
+⚠️ **NINGÚN CORTE, UMBRAL, CLASE, NIVEL, TABLA NI FOLIO SE MOVIÓ EN ESTA TANDA.** Las dos
+discrepancias de borde que se encontraron —el corte de congestión que dos textos clínicos
+declaran en 18 cuando la app usa 15, y el borde del índice cardíaco— quedaron **reportadas y sin
+tocar**: ver `docs/PENDIENTES.md` → **C1-a** y **C1-b**.

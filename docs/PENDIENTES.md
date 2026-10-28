@@ -8936,3 +8936,119 @@ lecturas en el reflejo, una en `amAutoLlenar`, una en `amiloGestoEnModulo`, una 
 y las dos de la lista cerrada; **el riesgo es que `eaTaviEspejar` usa la misma marca de runtime
 sobre `ete_tavi_ava`**, así que el renombre tiene que cubrirlo o quedarse sin limpiar. Después hay
 que correr la suite completa: TC-514 y TC-543 miden las dos caras.
+
+---
+
+# Tanda C1 (2026-10-28) — lo que quedó declarado
+
+## C1-a · Dos textos clínicos declaran un corte de congestión que la app NO usa
+
+**Medido.** El corte de congestión del Forrester en esta aplicación es `UMBRAL_PCP_HUMEDO`, que
+vale **15** y se aplica como `pcp > 15`. Una presión capilar de **18 SÍ es congestión** acá.
+
+Dos textos de pantalla dicen lo contrario:
+
+- el `ojo` del globo ⓘ **`hemo-forr`**: «…la app no define la presión capilar de 18 exacta,
+  porque la congestión aparece cuando esa presión **SUPERA 18**»;
+- la tercera línea de `forrLin` en **`_indHemo`**: «Del otro lado coincide: la congestión
+  aparece cuando la presión capilar **supera 18**, así que el 18 exacto tampoco está definido
+  acá.»
+
+El **18 es el corte del Braunwald**, que la línea anterior de ese mismo bloque cita bien
+(folio 1125). Lo que está mal es atribuírselo a la aplicación. El propio comentario de
+`UMBRAL_PCP_HUMEDO` registra que el pedido de mover el corte a 18 se hizo el 2026-09-16 y **no
+se aplicó**, con su motivo.
+
+**No se corrigió**: es texto clínico y la regla de la casa es reportar y esperar. Son dos
+cadenas y el arreglo es de una línea cada una, pero decide Maicol.
+
+## C1-b · Y el borde del índice cardíaco está declarado del lado que no es
+
+**Medido.** En el Forrester, `frio = ic < FORR_IC_CORTE` (2,2), así que un índice cardíaco de
+**2,2 exactos NO es hipoperfusión**. El «2,2 o menos» es de **`_icBanda`**, que es otra cápsula
+y otra pregunta.
+
+Los mismos dos textos dicen «Con un índice cardíaco de 2,2 justo, la app marca hipoperfusión» y
+«Esta aplicación marca hipoperfusión con un índice cardíaco de 2,2 o menos». Es cierto de
+`_icBanda` y **falso del Forrester**, que es de lo que esas dos líneas hablan.
+
+**No se corrigió, por lo mismo que C1-a.** TC-544 **(G5)** fija el borde real, así que si algún
+día el corte se mueve el caso se pone rojo.
+
+## C1-c · Los ejes del diagrama están al revés de lo que la orden pedía
+
+La orden pedía la presión capilar en el eje horizontal y el índice cardíaco en el vertical.
+`_labForrSVG` —el generador **único**, que el Laboratorio ya usa— los tiene al revés.
+
+Girarlos obliga a una segunda geometría y a reubicar los cuatro rótulos de cuadrante, que es
+exactamente lo que el comentario de ese generador previene. Se reutilizó tal cual.
+
+**Si Maicol quiere la orientación de la orden**, la forma correcta es parametrizar
+`_labForrSVG` con un `ejes:'pcp-x'` y mover los dos diagramas a la vez, no escribir un segundo
+dibujo.
+
+## C1-d · Dos vocabularios para los mismos cuatro cuadrantes
+
+La cápsula dice **«Perfil A / B / L / C»** (Stevenson) y el diagrama **«I / II / III / IV»**
+(`_LAB_FORR_LBL`, que el Laboratorio ya publica).
+
+La correspondencia está verificada condición por condición: **A↔I, B↔II, L↔III, C↔IV**, con los
+mismos dos operadores. No hay contradicción clínica; hay dos nombres para lo mismo, uno encima
+del otro en la misma tarjeta.
+
+**No se unificó**: renombrar un rótulo clínico es decisión de Maicol, y la orden pedía
+explícitamente no inventar nombres de cuadrante.
+
+## C1-e · El Laboratorio tiene un diagrama de Forrester, y NO ubica al paciente en curso
+
+`_labForrRenderDash(infs)` dibuja **un punto por estudio GUARDADO del período**, con jitter
+determinista y clic para abrir el estudio. **No conoce al paciente cargado en el formulario.**
+
+La orden pedía anotarlo como idea si no lo ubicaba: **ubicarlo también ahí**, con una marca
+distinta (un punto más grande o con borde) para distinguirlo de la cohorte. El generador ya
+acepta una lista de puntos, así que es agregar un punto y distinguirlo, no un dibujo nuevo.
+**Esta tanda no tocó el Laboratorio.**
+
+## C1-f · `popPatron()` del posoperatorio tiene los DOS defectos que C1-3 cerró en otros lados
+
+Medido, y queda fuera del alcance de esta orden (el posoperatorio está excluido salvo lo
+listado):
+
+1. Su rama de respaldo de la RVS lee **`v('hemo_pam')` a secas**, no `pamEfectiva()`. Las dos
+   ramas de arriba (Swan y PiCCO) sí usan datos medidos, así que el defecto sólo aparece cuando
+   se cae a la estimación por VCI — pero es el mismo que C1-3a cerró en la cápsula.
+2. Tiene la **misma cascada de tres líneas** del VD/VI que `popPocusSync` tenía —`tep_vdvi`,
+   después `vd_bas / ddfvi`— y **tampoco mira `vd_vi`**.
+
+## C1-g · El arnés de A/B heredado sólo espiaba `addText` del PPT
+
+`_probe_aab.mjs`, `_probe_bab.mjs` y los que derivan de ellos envolvían `addText` y **no**
+`addTable`. La fila «Perfil de Forrester» de la diapositiva de Hemodinámica es una fila de
+**tabla**, así que el A/B daba cero sobre ella sin que eso probara nada — el denominador vacío
+que este repositorio ya documenta.
+
+**Corregido en `_probe_c1ab.mjs`** (el PPT pasó de 27 a 30 textos capturados y la diferencia
+apareció). **Los otros dos siguen con el defecto**, igual que `_probe_aab.mjs` y
+`_probe_r2ab.mjs` siguen con el de `RECALC_MODULOS.forEach` que la tanda B declaró en B-g.
+
+## C1-h · Dos mapas no recibieron puntero, y es a propósito
+
+- **`docs/mapa/informe-pdf-excel.md`** está en **34,4 KB**, a 600 bytes del techo, y la orden
+  pide explícitamente no agregarle nada. **No se tocó.**
+- **`docs/mapa/tests.md`** está en **34,8 KB**, a **246 bytes** del techo. Un puntero lo cruza.
+  **No se tocó.** La próxima tanda que necesite escribir en cualquiera de los dos tiene que
+  partirlo primero.
+
+## C1-i · La diferencia (d) de la RVS alcanza a MÁS casos que los que la orden autorizaba
+
+La orden autoriza como diferencia permitida «(d) la RVS cuando hay PAM por catéter», y el punto
+3a pide que la línea declare de dónde sale cada insumo. Las dos cosas no se superponen del todo:
+**el origen se escribe siempre**, así que la línea de la RVS también cambia cuando la PAM es
+tipeada o calculada —el **número** no, sólo el texto que lo acompaña—.
+
+Medido: con PAM tipeada en 90, HEAD decía `1385 dinas·s·cm⁻⁵` y hoy dice
+`1385 dinas·s·cm⁻⁵ · PAM tipeada; PVC estimada por eco`.
+
+Se aplicó así porque el punto 3a lo pide por su nombre y da el ejemplo de la redacción. **Si la
+intención era limitar el añadido al caso del catéter**, es un `if` de una línea sobre
+`_pamRvs.clave === 'inv'`. Decide Maicol.

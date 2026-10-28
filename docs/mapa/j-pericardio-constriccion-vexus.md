@@ -202,3 +202,17 @@ No cambió ningún dato clínico. Movió notas de trabajo al globo ⓘ y a `docs
 dejó una sola cita al final de cada bloque, sacó las mayúsculas de en medio y dejó cada contenido
 una sola vez por sección. **Lo que esta tanda hizo está en `docs/mapa/a-evidencia-textos.md`**, y
 el caso que lo fija es **TC-537** (ficha en `docs/mapa/tests-fichas-537.md`).
+
+---
+
+## ⇢ La tanda C1 (2026-10-28) movió los CUATRO rótulos de VExUS
+
+Los textos de `VEXUS_INTERP` se revisaron contra la **Figura 7 de Rola 2021**, leída en imagen:
+el grado 0 dejó de afirmar que la presión venosa central es normal, el grado 1 pasó a «en
+riesgo» (el rótulo «At risk» de la figura, que **discrepa** del «hallazgos leves» del texto de
+la página 8), el grado 2 perdió la injuria renal aguda y el grado 3 **no se tocó**. Y la
+Evidencia dejó de publicar conducta por grado.
+
+**Todo eso vive en `docs/mapa/c1-hemodinamica.md` § 1.** Antes de tocar un rótulo de VExUS,
+leerlo: la discrepancia del grado 1 entre el texto y la figura está documentada ahí, y «corregir»
+el grado 1 a «leve» sería deshacerla.

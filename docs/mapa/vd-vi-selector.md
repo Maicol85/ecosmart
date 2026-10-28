@@ -164,3 +164,14 @@ después, la hoja del posoperatorio del **mismo PDF** imprime `TAPSE 16 mm · VD
 
 Arreglarlo cambia una hoja firmada, así que quedó reportado: `docs/PENDIENTES.md` → **B-d**.
 Lo que sí hizo la tanda es que `calcTEP` —el que pinta `tep-vdvi-interp`— siga al DDVI en vivo.
+
+---
+
+## ⇢ La tanda C1 (2026-10-28) le sumó un QUINTO lector
+
+El POCUS del posoperatorio (`popPocusSync`) pasó a preguntar a `vdViEstado`, y **sólo su rama
+`numero`**: el selector de tramo publica su rótulo con `vdViTexto()` pero **no gradúa**, porque
+sus dos opciones cortan en «> 1,0 / ≤ 1,0» y el corte de ese bloque es `>= 1,0` —en el 1,0
+exacto no caen del mismo lado, y usarlo sería inventar un criterio—.
+
+**`docs/mapa/c1-hemodinamica.md` § 5.**

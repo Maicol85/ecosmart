@@ -314,3 +314,19 @@ cierto como historia, pero **ya no describe cómo clasifica la app**:
 **Todo eso vive en `docs/mapa/d-cardioonco-amiloidosis.md`.** La constante
 `AMILO_IWT_BOLDRINI` y su advertencia sobre el score «IWT» frente al «AL» siguen siendo las de
 acá, y la tanda D las verificó fila por fila contra la Tabla 4 **sin cambiar ninguna**.
+
+---
+
+## ⇢ La tanda C1 (2026-10-28) tocó tres cosas de esta cápsula
+
+1. **El Forrester nombra el dato que falta.** Decía «Requiere IC + PCP estimada» en los tres
+   casos; hoy sale del dueño único `forrFaltaTxt`, que comparte con la fila del panel.
+2. **La RVS lee `pamEfectiva()`** y declara el origen de sus dos insumos.
+3. **Un diagrama de los cuatro cuadrantes**, SOLO de pantalla, debajo de la fila del perfil.
+
+⚠️ **Los dos globos ⓘ de esta sección declaran bordes que la app NO usa**, y esa tanda los
+**reportó sin tocarlos**: el corte de congestión de la aplicación es **15**, no 18, y un índice
+cardíaco de 2,2 exactos **no** es hipoperfusión en el Forrester. Ver `PENDIENTES.md` → C1-a y
+C1-b.
+
+**Todo en `docs/mapa/c1-hemodinamica.md` §§ 3, 4 y 6.**

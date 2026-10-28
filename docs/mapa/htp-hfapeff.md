@@ -315,3 +315,16 @@ commits, sus dependencias y las doce trampas. En una línea, lo que toca acá:
   punto decimal intacto.
 - **Aorta**: `aoSegGrado` devuelve un solo grado, `'dilatada'`, **y el corte no se movió**.
 - **Diastólica**: la frase de «no clasificable» describe en vez de pedir un campo.
+
+---
+
+## ⇢ La tanda C1 (2026-10-28): una casilla sin marcar dice «sin evaluar»
+
+La celda de estado de la tabla de signos decía «marcado a mano — ausente» sobre una casilla que
+**nadie marcó**. Hoy los tres estados de `_htp2022Signos` se leen distinto, y el cambio alcanza
+también a la fila de categoría de la Evidencia.
+
+⚠️ **Ningún conteo se movió**: `catA`, `catB`, `catC`, `nCat` y `prob` salen de `_htp2022Core`,
+que esa tanda no toca.
+
+**Los tres estados y quién publica cada sufijo: `docs/mapa/c1-hemodinamica.md` § 2.**

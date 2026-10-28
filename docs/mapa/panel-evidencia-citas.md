@@ -98,3 +98,17 @@ la biblioteca, así que el corte va «según la guía» y sin atribución), y la
 nota de guías previas, que es siempre la penúltima. El mecanismo sigue siendo el mismo —primera
 aparición dentro de la sección— y lo que se mueve con el paciente hoy es la **presencia** de
 `asePandian2023`, que se cita **sólo con etiología reumática**. Lo fijan TC-322, TC-327 y TC-328.
+
+---
+
+## ⇢ La tanda C1 (2026-10-28) agregó `vexusRola2021`
+
+Rola P y cols., *Ultrasound J* 2021;13:32. Entra en la bibliografía de la sección de VExUS, que
+pasa a tener **dos** entradas: `vexus2020` (Beaubien-Souligny, la graduación) y ésta (la Figura
+7 y las limitaciones de la página 9).
+
+⚠️ **El archivo de la biblioteca tiene la autora mal escrita** —«VEXUS Tola.pdf»— y la autora es
+**Rola**. Queda dicho en el propio registro, porque quien vaya a re-verificar la entrada va a
+buscar el PDF por el apellido correcto.
+
+**`docs/mapa/c1-hemodinamica.md` § 1.**

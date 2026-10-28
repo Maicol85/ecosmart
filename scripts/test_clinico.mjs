@@ -66050,8 +66050,11 @@ caso('TC-471', 'Valvulas D1: la insuficiencia mitral en TRES columnas de SEIS co
        clasificacion de riesgo cardiovascular basal, donde viven las clases y los niveles que la
        regla R2 saca de la linea visible. Lo que esta condicion afirma no cambia: que el
        mecanismo exista y que el registro este completo. */
+    /* ⚠️ ADAPTADO EN LA TANDA C1 (commit C1-1d): 57 -> 58. La entrada nueva es
+       vexus-lim, el globo del modulo de VExUS, donde viven las SEIS limitaciones de la
+       lectura que publica la pagina 9 de Rola 2021. Lo que esta condicion afirma no cambia. */
     HAY_INFO && globos.every(function(b){ return !!VINFO[b.getAttribute('data-vinfo')]; }) &&
-    Object.keys(VINFO).length === 57,
+    Object.keys(VINFO).length === 58,
     'registro=' + (HAY_INFO ? Object.keys(VINFO).join(',') : 'SIN REGISTRO')]);
   ex.push(['(H) y la tarjeta se coloca SIEMPRE dentro de la pantalla, sin cortarse',
     (function(){ const b = document.querySelector('[data-vinfo="avm-thp"]');
@@ -77327,7 +77330,10 @@ caso('TC-500', 'Tanda Q: las OCHO tarjetas i de las valvulas arriba de su pastil
        clasificacion de riesgo cardiovascular basal, donde viven las clases y los niveles que la
        regla R2 saca de la linea visible. Lo que esta condicion afirma no cambia: que el
        mecanismo exista y que el registro este completo. */
-    FN('vInfoClic') && !!CARD() && !!REG() && Object.keys(REG() || {}).length === 57,
+    /* ⚠️ ADAPTADO EN LA TANDA C1 (commit C1-1d): 57 -> 58. La entrada nueva es
+       vexus-lim, el globo del modulo de VExUS, donde viven las SEIS limitaciones de la
+       lectura que publica la pagina 9 de Rola 2021. Lo que esta condicion afirma no cambia. */
+    FN('vInfoClic') && !!CARD() && !!REG() && Object.keys(REG() || {}).length === 58,
     'VINFO=' + (REG() ? Object.keys(REG()).length : 'SIN REGISTRO') + ' card=' + !!CARD()]);
   ex.push(['(A1) los OCHO botones de lesion existen, son BUTTON, sin atributo title y con aria-expanded',
     CLAVES.every(function (k) { const b = BTN(k);
@@ -78572,10 +78578,16 @@ caso('TC-502', 'Tanda P: Referencias en CINCO subpestanas sin perder una entrada
      la clasificacion de riesgo cardiovascular basal: Referencias no tiene una ficha para el, asi
      que no lleva boton «Ver referencia». El limite se DECLARA, que es lo que esta condicion hace:
      la lista exacta impide que una tarjeta pierda su boton sin que nadie lo note. */
-  ex.push(['(C3) LIMITE DECLARADO: dieciseis tarjetas sin boton, porque Referencias no tiene esa entrada',
+  /* ⚠️ ADAPTADO EN LA TANDA C1 (commit C1-1d): dieciseis -> DIECISIETE. La que entra es
+     vexus-lim, el globo nuevo del modulo de VExUS, que tampoco tiene ficha propia en
+     Referencias —las limitaciones de Rola 2021 viven en el globo y en la bibliografia de la
+     seccion de Evidencia—. Lo que esta condicion declara sigue siendo lo mismo: CUALES son las
+     tarjetas que no pueden ofrecer «Ver referencia», nombradas una por una para que el dia que
+     una consiga ficha el caso se ponga rojo y alguien la saque de la lista. */
+  ex.push(['(C3) LIMITE DECLARADO: diecisiete tarjetas sin boton, porque Referencias no tiene esa entrada',
     sinBoton.join(',') === 'amilo-score,co-riesgo-basal,et-avt-cont,hemo-forr,hemo-ic,hemo-rvs,'
       + 'tarj-esten-pulmonar,tarj-esten-tricuspide,tarj-insuf-pulmonar,'
-      + 'vab-aorta,vab-cx,vab-friesgo,vab-func,vab-tit,vab-valv,vm-carp',
+      + 'vab-aorta,vab-cx,vab-friesgo,vab-func,vab-tit,vab-valv,vexus-lim,vm-carp',
     sinBoton.join(',')]);
   /* Cuatro tarjetas, una de cada familia. La de la aorta y la del VI viven en AI/VI, la de la
      valvula en Valvulas y la del test de burbuja detras de su propia seccion. */
@@ -88326,13 +88338,26 @@ caso('TC-532', 'Tanda J: el taponamiento con el colapso de AD DIASTOLICO y su du
       && /no publica clase ni nivel de recomendaci\\u00f3n/.test(evV.txt)
       && evV.txt.indexOf('Clase I') < 0 && evV.txt.indexOf('Clase IIa') < 0,
     evV ? 'ok' : '—']);
-  ex.push(['(F3) y las tres frases de manejo viven ACA, rotuladas criterio de EcoSmart y sin corchete',
-    !!evV && evV.txt.indexOf('Criterio de EcoSmart \\u2014 grado 1: monitorizar') > -1
-      && evV.txt.indexOf('Criterio de EcoSmart \\u2014 grado 3: considerar descongesti\\u00f3n activa') > -1
-      /* ADAPTADO en la tanda A (commit A-1): regla R3, «NO da pasos» -> «no da pasos». La frase
-         quedo acortada —el registro de que esas tres frases salieron del papel el 24/10/2026
-         vive en docs/fuentes/FUENTES.md— pero sigue declarando lo mismo en pantalla. */
-      && /El art\\u00edculo no da pasos por grado/.test(evV.txt), evV ? 'ok' : '—']);
+  /* ⚠️ ADAPTADO EN LA TANDA C1 (commit C1-1c), CON EL MOTIVO ESCRITO Y POR DECISION DE MAICOL.
+     La tanda J-5 habia sacado las tres frases de conducta del informe firmado y del PDF y las
+     habia dejado SOLO aca, rotuladas «criterio de EcoSmart»; este control vigilaba justamente
+     que no se perdieran por el camino. Hoy salen tambien de aca: ni Beaubien-Souligny 2020 ni
+     Rola 2021 publican conducta por grado, y la Conclusion de Rola -pagina 9, leida en imagen-
+     dice que faltan estudios de intervencion que prueben una estrategia guiada por el grado.
+     El control se INVIERTE y sigue siendo un control: exige que las tres frases NO esten y que
+     la linea que las reemplaza SI este. Las tres quedan transcriptas en
+     docs/fuentes/FUENTES.md -> «La tanda C1». */
+  ex.push(['(F3) las tres frases de manejo YA NO ESTAN, y en su lugar esta la unica linea que la fuente sostiene',
+    !!evV && evV.txt.indexOf('Criterio de EcoSmart \\u2014 grado 1: monitorizar') === -1
+      && evV.txt.indexOf('Criterio de EcoSmart \\u2014 grado 3: considerar descongesti\\u00f3n activa') === -1
+      && evV.txt.indexOf('Conducta por grado') === -1
+      && /Hasta hoy no hay estudios de intervenci\\u00f3n que prueben una conducta guiada por el grado/.test(evV.txt)
+      /* ⚠️ LA FRASE QUE SE BUSCA CAMBIO DE SITIO, Y NO DE SENTIDO. «El articulo no da pasos
+         por grado» era la NOTA del bloque de conducta, asi que salio con el: la declaracion
+         vive ahora en la ultima linea del bloque del articulo original, que dice que su
+         conclusion «no afirma mas que eso, y no publica ninguna conducta por grado». La
+         seccion sigue declarando lo mismo y este control lo sigue exigiendo. */
+      && /no publica ninguna conducta por grado/.test(evV.txt), evV ? 'ok' : '—']);
 
   /* == (G) LAS FICHAS DE REFERENCIAS ======================================================== */
   const ficha = (k) => { const d = document.getElementById('ref-' + k);
@@ -90558,12 +90583,17 @@ caso('TC-535', 'Tanda AJ7: la linea de Fallot del EN SUMA sin la IP y el resumen
      Lo que estas condiciones miden NO cambia —que el area de 44x44 exista con el mouse y que NO
      tape al vecino de abajo—, y por eso la de los cinco puntos sigue siendo la que importa: un
      area encajada con margenes negativos taparia 16 px del campo de al lado. */
-  ex.push(['(K0) DENOMINADOR: los TRES globos llevan la clase, tienen geometria y estan EN VISTA',
-    tapK.length === 3 && tapK.every((x) => x.w > 0 && x.h > 0 && x.enVista), JSON.stringify(tapK)]);
-  ex.push(['(K1) los tres miden 44x44 tambien con el mouse',
-    tapK.length === 3 && tapK.every((x) => x.w >= 44 && x.h >= 44), JSON.stringify(tapK)]);
+  /* ⚠️ ADAPTADO EN LA TANDA C1 (commit C1-1d): TRES -> CUATRO. El que entra es vexus-lim, el
+     globo del modulo de VExUS, que nace con la clase vinfo-btn-44 por la misma razon que los
+     otros tres y SIN margenes negativos. Lo que estas condiciones miden NO cambia, y la de los
+     cinco puntos sigue siendo la que importa: un area de 44x44 encajada con margin:-16px
+     taparia 16 px del campo de al lado, y la linea base del celular no puede empeorar. */
+  ex.push(['(K0) DENOMINADOR: los CUATRO globos llevan la clase, tienen geometria y estan EN VISTA',
+    tapK.length === 4 && tapK.every((x) => x.w > 0 && x.h > 0 && x.enVista), JSON.stringify(tapK)]);
+  ex.push(['(K1) los cuatro miden 44x44 tambien con el mouse',
+    tapK.length === 4 && tapK.every((x) => x.w >= 44 && x.h >= 44), JSON.stringify(tapK)]);
   ex.push(['(K2) y su caja NO tapa a ningun vecino: los cinco puntos dan el propio boton',
-    tapK.length === 3 && tapK.every((x) => x.propios === 5), JSON.stringify(tapK)]);
+    tapK.length === 4 && tapK.every((x) => x.propios === 5), JSON.stringify(tapK)]);
   ex.push(['(K3) CONTROL: los demas globos NO se tocaron y siguen con su piso solo tactil',
     document.querySelectorAll('button.vinfo-btn').length
       - document.querySelectorAll('button.vinfo-btn-44').length >= 10,
@@ -91259,8 +91289,17 @@ caso('TC-537', 'Tanda A: las ocho Evidencias compactas despiertas a la vez sin u
       __t.set(id, ['80','180','70','90','20','20'][i]));
     Object.keys(window).forEach(k => { if (/^calc[A-Z]/.test(k) && typeof window[k] === 'function') {
       try { window[k]() } catch (e) {} } });
-    ex.push(['(N4) FRONTERA: la capsula del modulo sigue diciendo «Requiere IC + PCP estimada»',
-      N(__t.txt('hemo-forrester')) === 'Requiere IC + PCP estimada',
+    /* ⚠️ ADAPTADO EN LA TANDA C1 (commit C1-2b), CON EL MOTIVO ESCRITO. Este control existia
+       para que la tanda A no tocara lo que no le tocaba: su propio comentario decia que la
+       capsula viaja a TRES superficies firmadas -el informe integrado, la hoja de ETT Avanzado
+       del PDF y el PPT- y que arreglarla era de otra tanda. Esa tanda es esta, y el punto 2b de
+       su orden lo pide por su nombre: el pendiente A-d queda cerrado.
+       El control se INVIERTE y sigue siendo un control: ahora exige que la capsula NOMBRE el
+       dato que falta -y que no vuelva a la cadena vieja-, lo que junto con (N5) sigue fijando
+       lo que de verdad importa, que es que la capsula y la fila de la Evidencia digan LO MISMO
+       sobre el mismo estudio. Con el dueno unico forrFaltaTxt eso vale por construccion. */
+    ex.push(['(N4) la capsula del modulo nombra el dato que falta, igual que la fila de la Evidencia',
+      N(__t.txt('hemo-forrester')) === 'falta la presión capilar pulmonar estimada',
       'capsula=' + N(__t.txt('hemo-forrester'))]);
     try { indicRender() } catch (e) {}
     /* ⚠️ ESTA SE MIDE SOBRE TODO Y NO SOBRE VIS, Y EL MOTIVO ES DEL PRODUCTO: en esta
@@ -93303,6 +93342,346 @@ caso('TC-543', 'D-11: UN dato, DOS puertas, gana la ULTIMA edicion —lo que el 
       String((EL('ett-rwt') || {}).value) === '0', 'puntos=' + String((EL('ett-rwt') || {}).value)]);
     ex.push(['(H2) y el gesto igual llego al estudio: 19',
       V('siv') === '19', 'siv=' + V('siv')]);
+
+    return { extra: ex };
+  })();
+`);
+
+
+caso('TC-544', 'C1: VExUS dice lo que la Figura 7 de Rola 2021 rotula y su Evidencia no da conducta por grado; una casilla de HTP sin marcar dice «sin evaluar» y no «ausente»; el Forrester nombra el dato que falta y la capsula coincide con la Evidencia; la RVS lee la PAM del dueno unico y declara el origen de sus dos insumos; el POCUS del posoperatorio ve el VD/VI de la pestana VD/AD; y el diagrama de Forrester ubica al paciente en el cuadrante correcto, con sus dos bordes, sin entrar al informe ni al PDF', `
+  return (async () => {
+    const ex = [];
+    const N = s => String(s == null ? '' : s).replace(/\\s+/g, ' ').trim();
+    const EL = id => document.getElementById(id);
+    const T = id => N(__t.txt(id));
+    const V = id => String((EL(id) || {}).value || '');
+    const F = n => typeof window[n] === 'function';
+    const esperar = ms => new Promise(r => setTimeout(r, ms));
+    const barrer = () => { try { if (F('_espejosBarrerTodos')) _espejosBarrerTodos(); } catch (e) {} };
+    const poner = (id, val) => { const e = EL(id); if (!e) return 'NO EXISTE ' + id;
+      e.value = val;
+      e.dispatchEvent(new Event('input',  { bubbles: true }));
+      e.dispatchEvent(new Event('change', { bubbles: true }));
+      return e.value; };
+    const marcar = (id, on) => { const e = EL(id); if (!e) return 'NO EXISTE ' + id;
+      e.checked = !!on; e.dispatchEvent(new Event('change', { bubbles: true })); return e.checked; };
+    const informe = () => { try { if (F('generarInforme')) generarInforme() } catch (e) {}
+      return N(V('informe_texto')); };
+
+    /* ══════════════════════════════════════════════════════════════════════════════════════
+       (A) VExUS — LOS CUATRO ROTULOS CONTRA LA FIGURA 7 DE ROLA 2021
+       ⚠️ SIN LLAMAR A NINGUN calc* A MANO. Los selectores de vaso llevan
+       \`onchange="calcVEXUSyRefrescar()"\`, asi que \`poner\` ES el gesto del medico. Fabricar el
+       disparador es el error que TC-519 cometio y que el E-2a destapo.
+       ══════════════════════════════════════════════════════════════════════════════════════ */
+    const vx = (diam, sh, pv, ir) => { __t.limpiar();
+      poner('vci_diam', diam); poner('vexus_sh', sh); poner('vexus_pv', pv); poner('vexus_ir', ir); };
+    const grado = () => { try { const st = vexusEstado(); return st ? st.score : null } catch (e) { return 'EXC' } };
+
+    vx('15', '2', '2', '2'); const g0 = grado(), t0 = T('vexus-interp');
+    vx('24', '1', '1', '0'); const g1 = grado(), t1 = T('vexus-interp');
+    vx('24', '2', '1', '0'); const g2 = grado(), t2 = T('vexus-interp');
+    vx('24', '2', '2', '0'); const g3 = grado(), t3 = T('vexus-interp'), inf3 = informe();
+
+    ex.push(['  DENOMINADOR A: las cuatro escenas graduan 0, 1, 2 y 3 — sin esto, comparar textos vacios da verde',
+      g0 === 0 && g1 === 1 && g2 === 2 && g3 === 3,
+      'grados=' + [g0, g1, g2, g3].join('/')]);
+    ex.push(['(A1) grado 0 dice «Sin congestión venosa.» y NO afirma que la PVC sea normal',
+      t0 === 'Sin congestión venosa.',
+      JSON.stringify(t0)]);
+    ex.push(['(A2) grado 1 dice «En riesgo de congestión venosa.» — el rotulo «At risk» de la figura, no el «hallazgos leves» del texto',
+      t1 === 'En riesgo de congestión venosa.',
+      JSON.stringify(t1)]);
+    ex.push(['(A3) grado 2 dice «Congestión venosa moderada.» y NO le cuelga la injuria renal aguda',
+      t2 === 'Congestión venosa moderada.',
+      JSON.stringify(t2)]);
+    /* CONTROL NEGATIVO: no cambiaron los cuatro. El grado 3 conserva su frase, que es el
+       RESULTADO que mide Beaubien-Souligny 2020 y no una lectura de la Figura 7. */
+    ex.push(['(A4) CONTROL NEGATIVO: el grado 3 conserva su frase de injuria renal aguda',
+      t3 === 'Congestión venosa severa. Alta asociación con injuria renal aguda (AKI).',
+      JSON.stringify(t3)]);
+    ex.push(['  DENOMINADOR A2: el informe narrativo trae la linea de VEXUS 3',
+      inf3.indexOf('VEXUS 3') > -1, 'linea=' + (inf3.indexOf('VEXUS 3') > -1)]);
+    vx('24', '2', '1', '0'); const inf2 = informe();
+    ex.push(['(A5) el texto del grado 2 llega al INFORME sin la injuria renal aguda',
+      inf2.indexOf('Congestión venosa moderada.') > -1 && inf2.indexOf('Riesgo de injuria renal aguda aumentado') < 0,
+      'moderada=' + (inf2.indexOf('Congestión venosa moderada.') > -1) +
+      ' injuriaVieja=' + (inf2.indexOf('Riesgo de injuria renal aguda aumentado') > -1)]);
+
+    /* ── La Evidencia de VExUS: sin conducta por grado ── */
+    try { if (F('indicRender')) indicRender() } catch (e) {}
+    await esperar(250);
+    const secV = (() => { let hit = '';
+      document.querySelectorAll('#indic-cuerpo > details').forEach(d => {
+        const su = d.querySelector('summary');
+        if (su && (su.textContent || '').indexOf('Congestión venosa sistémica') === 0) hit = N(d.textContent); });
+      return hit; })();
+    ex.push(['  DENOMINADOR A3: la seccion de VExUS del panel despierta y tiene texto',
+      secV.length > 300, 'largo=' + secV.length]);
+    const CONDUCTAS = ['Criterio de EcoSmart — grado 1', 'Criterio de EcoSmart — grado 2',
+                       'Criterio de EcoSmart — grado 3', 'descongestión activa',
+                       'Conducta por grado', 'evaluar la necesidad de descongestión'];
+    const quedan = CONDUCTAS.filter(f => secV.indexOf(f) > -1);
+    ex.push(['(A6) la Evidencia NO publica ninguna conducta por grado',
+      quedan.length === 0, 'quedan=' + (quedan.join(' | ') || 'ninguna')]);
+    ex.push(['(A7) y publica la UNICA linea que la fuente sostiene',
+      secV.indexOf('Hasta hoy no hay estudios de intervención que prueben una conducta guiada por el grado') > -1,
+      'presente=' + (secV.indexOf('Hasta hoy no hay estudios de intervención') > -1)]);
+    ex.push(['(A8) los «145 pacientes» se dicen UNA vez como afirmacion de la app (la otra es la ficha bibliografica de la fuente)',
+      (secV.match(/145 pacientes/g) || []).length === 2,
+      'veces=' + (secV.match(/145 pacientes/g) || []).length]);
+
+    /* ── El globo ⓘ de VExUS, con las limitaciones de la pagina 9 y NINGUNA del resto ── */
+    const globo = (() => { const b = document.querySelector('[data-vinfo="vexus-lim"]');
+      if (!b) return 'NO EXISTE EL BOTON';
+      try { b.click() } catch (e) { return 'NO ABRE' }
+      const cajas = [].slice.call(document.querySelectorAll('.vinfo-pop, [data-vinfo-pop], .vinfo-caja'));
+      const txt = cajas.map(c => N(c.textContent)).join(' ');
+      try { b.click() } catch (e) {}
+      return txt || N(document.body.textContent).indexOf('presión intraabdominal') > -1 ? txt : ''; })();
+    const cuerpoTrasGlobo = N(document.body.textContent);
+    ex.push(['(A9) el globo ⓘ de VExUS existe en el modulo',
+      !!document.querySelector('[data-vinfo="vexus-lim"]'),
+      'boton=' + (!!document.querySelector('[data-vinfo="vexus-lim"]'))]);
+    const LIMS = ['presión intraabdominal', 'remodelarse', 'complacencia', 'malformaciones arteriovenosas',
+                  'hígado graso no alcohólico', 'intrarrenal es técnicamente difícil'];
+    const faltanLim = LIMS.filter(f => cuerpoTrasGlobo.indexOf(f) < 0);
+    ex.push(['(A10) y trae las SEIS limitaciones de la pagina 9 de Rola 2021',
+      faltanLim.length === 0, 'faltan=' + (faltanLim.join(' | ') || 'ninguna')]);
+
+    /* ══════════════════════════════════════════════════════════════════════════════════════
+       (B) HTP — UNA CASILLA SIN MARCAR DICE «SIN EVALUAR»
+       ══════════════════════════════════════════════════════════════════════════════════════ */
+    __t.limpiar();
+    poner('vmax_it', '3.2'); poner('tvia', '120'); poner('ip_ap_diam', '28');
+    poner('ao_sin', '30'); poner('ad_area', '16'); poner('vci_diam', '24');
+    poner('vci_col', '>50'); poner('tapse', '18');
+    await esperar(300);
+    const estados = (() => { try {
+      return _htp2022Signos({ num: _hfN, txt: sv, chk: _hfChk })
+        .reduce((a, g) => { a[g.k] = g.estado + (g.presente ? '+' : '-'); return a }, {});
+    } catch (e) { return { err: String(e) } } })();
+    ex.push(['  DENOMINADOR B: la tabla tiene casillas MANUALES sin marcar y signos AUTOMATICOS medidos',
+      estados.a2 === 'manual-' && estados.b4 === 'auto+' && estados.b5 === 'auto-',
+      'a2=' + estados.a2 + ' b4=' + estados.b4 + ' b5=' + estados.b5]);
+    ex.push(['(B1) una casilla manual sin marcar dice «sin evaluar», no «ausente»',
+      T('htp2022-est-a2') === 'marcado a mano — sin evaluar',
+      JSON.stringify(T('htp2022-est-a2'))]);
+    /* CONTROL NEGATIVO: un signo que SI se midio y no esta sigue diciendo «ausente». */
+    ex.push(['(B2) CONTROL NEGATIVO: un signo AUTOMATICO medido y ausente conserva «ausente»',
+      T('htp2022-est-b5') === 'automático (según datos) — ausente',
+      JSON.stringify(T('htp2022-est-b5'))]);
+    ex.push(['(B3) un signo automatico SIN sus insumos sigue sin sufijo',
+      T('htp2022-est-a1') === 'sin datos', JSON.stringify(T('htp2022-est-a1'))]);
+    const probAntes = T('htp2022-prob'), catAantes = T('htp2022-catA');
+    marcar('htp2022_a3', true); await esperar(200);
+    ex.push(['(B4) marcada a mano, la misma celda pasa a «presente»',
+      T('htp2022-est-a2') === 'marcado a mano — presente',
+      JSON.stringify(T('htp2022-est-a2'))]);
+    marcar('htp2022_a3', false); await esperar(200);
+    ex.push(['(B5) NINGUN conteo se movio por el cambio de rotulo: la probabilidad y la categoria A vuelven a lo de antes',
+      T('htp2022-prob') === probAntes && T('htp2022-catA') === catAantes,
+      'prob=' + T('htp2022-prob') + ' catA=' + T('htp2022-catA')]);
+    const infHtp = informe();
+    ex.push(['(B6) el informe firmado no publica «ausente» por ningun signo de HTP (solo lista los PRESENTES)',
+      infHtp.indexOf('marcado a mano') < 0 && infHtp.indexOf('sin evaluar') < 0,
+      'manoEnInforme=' + (infHtp.indexOf('marcado a mano') > -1)]);
+
+    /* ══════════════════════════════════════════════════════════════════════════════════════
+       (C) LOS TRES MENSAJES DEL FORRESTER, Y SU COINCIDENCIA CON LA EVIDENCIA
+       ══════════════════════════════════════════════════════════════════════════════════════ */
+    const filaEv = () => { try { if (F('indicRender')) indicRender() } catch (e) {}
+      let hit = '';
+      document.querySelectorAll('#indic-cuerpo tr').forEach(tr => {
+        const c = tr.querySelectorAll('td, th');
+        if (c.length >= 2 && N(c[0].textContent) === 'Perfil de Forrester') hit = N(c[1].textContent); });
+      return hit; };
+    const montarHemo = (conIc, conPcp) => { __t.limpiar();
+      poner('peso', '80'); poner('talla', '180');
+      if (conIc) { poner('hemo_fc', '80'); poner('diam_tsvi', '20'); poner('itv_tsvi', '20'); }
+      if (conPcp) { poner('onda_e', '80'); poner('e_sep', '10'); poner('e_lat', '10'); } };
+
+    montarHemo(true, false); await esperar(150);
+    const cSinPcp = T('hemo-forrester'), eSinPcp = filaEv();
+    montarHemo(false, true); await esperar(150);
+    const cSinIc = T('hemo-forrester'), eSinIc = filaEv();
+    montarHemo(false, false); await esperar(150);
+    const cNada = T('hemo-forrester'), eNada = filaEv();
+    montarHemo(true, true); await esperar(150);
+    const cFull = T('hemo-forrester');
+
+    ex.push(['  DENOMINADOR C: con los dos datos la capsula publica un PERFIL y no un «falta»',
+      cFull.indexOf('Perfil A') === 0, JSON.stringify(cFull.slice(0, 50))]);
+    ex.push(['(C1) sin PCP la capsula nombra el dato que falta',
+      cSinPcp === 'falta la presión capilar pulmonar estimada', JSON.stringify(cSinPcp)]);
+    ex.push(['(C2) sin IC, idem',
+      cSinIc === 'falta el índice cardíaco', JSON.stringify(cSinIc)]);
+    ex.push(['(C3) sin ninguno de los dos, los nombra a los dos',
+      cNada === 'faltan el índice cardíaco y la presión capilar pulmonar estimada', JSON.stringify(cNada)]);
+    /* ⚠️ EL TERCER CASO NO TIENE FILA QUE COMPARAR, Y NO ES UN DEFECTO. \`_indHemo\` tiene una
+       compuerta propia —sin un solo valor calculado devuelve \`null\`— asi que con el estudio
+       vacio la seccion de Hemodinamica del panel NO EXISTE. Escrito como estaba, el caso exigia
+       que una fila inexistente dijera una cadena: fallaba sobre el comportamiento bueno. Se
+       compara donde hay fila, y la ausencia de la tercera se fija como denominador. */
+    ex.push(['  DENOMINADOR C2: la fila de la Evidencia existe en los DOS casos con algun dato, y no con el estudio vacio',
+      eSinPcp !== '' && eSinIc !== '' && eNada === '',
+      'ev=' + JSON.stringify([eSinPcp, eSinIc, eNada])]);
+    ex.push(['(C4) donde hay fila, la Evidencia dice EXACTAMENTE lo mismo que la capsula',
+      eSinPcp === cSinPcp && eSinIc === cSinIc,
+      'ev=' + JSON.stringify([eSinPcp, eSinIc]) + ' cap=' + JSON.stringify([cSinPcp, cSinIc])]);
+
+    /* ══════════════════════════════════════════════════════════════════════════════════════
+       (D) LA RVS Y LAS CUATRO FUENTES DE PAM
+       ══════════════════════════════════════════════════════════════════════════════════════ */
+    const montarRvs = (cat, tip) => { __t.limpiar();
+      poner('peso', '80'); poner('talla', '180'); poner('hemo_fc', '80');
+      poner('diam_tsvi', '20'); poner('itv_tsvi', '20');
+      poner('vci_diam', '18'); poner('vci_col', '>50');
+      if (cat) { poner('pop_monitor', 'swan'); poner('pop_sw_pam', cat); }
+      if (tip) poner('hemo_pam', tip);
+      try { if (F('calcHemo')) calcHemo() } catch (e) {} };
+
+    montarRvs('58', null);  await esperar(150); const rCat = T('hemo-rvs');
+    montarRvs(null, '90');  await esperar(150); const rTip = T('hemo-rvs');
+    montarRvs('58', '90');  await esperar(150); const rDos = T('hemo-rvs');
+    montarRvs(null, null);  await esperar(150); const rNada = T('hemo-rvs');
+
+    ex.push(['  DENOMINADOR D: con PAM tipeada la RVS da un numero (si diera «—», comparar el resto no probaria nada)',
+      /^[0-9]+ dinas/.test(rTip), JSON.stringify(rTip)]);
+    ex.push(['(D1) con PAM por cateter y el campo de Hemodinamica VACIO la RVS ya no es «—»',
+      /^[0-9]+ dinas/.test(rCat) && rCat.indexOf('PAM por catéter; PVC estimada por eco') > -1,
+      JSON.stringify(rCat)]);
+    ex.push(['(D2) con PAM tipeada la linea lo declara',
+      rTip.indexOf('PAM tipeada; PVC estimada por eco') > -1, JSON.stringify(rTip)]);
+    ex.push(['(D3) con las DOS cargadas manda la del cateter: el numero es el de (D1)',
+      rDos === rCat, 'dos=' + JSON.stringify(rDos) + ' cat=' + JSON.stringify(rCat)]);
+    ex.push(['(D4) CONTROL NEGATIVO: sin ninguna PAM la RVS sigue en «—»',
+      rNada === '—', JSON.stringify(rNada)]);
+
+    /* ══════════════════════════════════════════════════════════════════════════════════════
+       (E) EL POCUS DEL POSOPERATORIO Y EL VD/VI DE LA PESTANA VD/AD
+       ══════════════════════════════════════════════════════════════════════════════════════ */
+    const montarPop = (vdvi) => { __t.limpiar();
+      poner('pop_cx_tipo', 'cabg'); poner('pop_cx_horas', '12'); poner('tapse', '16');
+      if (vdvi) poner('vd_vi', vdvi);
+      try { if (F('popPocusSync')) popPocusSync() } catch (e) {} };
+    montarPop('1.30'); await esperar(150); const pCon = T('pop-pocus-vd');
+    montarPop(null);   await esperar(150); const pSin = T('pop-pocus-vd');
+
+    ex.push(['  DENOMINADOR E: el bloque del POCUS del VD tiene filas que leer',
+      pCon.indexOf('TAPSE') > -1 && pCon.indexOf('VD/VI') > -1, 'largo=' + pCon.length]);
+    ex.push(['(E1) con el VD/VI cargado en VD/AD el POCUS lo publica y lo gradua con SU corte',
+      pCon.indexOf('VD/VI1.3') > -1 && pCon.indexOf('dilatación (≥1.0)') > -1,
+      JSON.stringify(pCon.slice(pCon.indexOf('VD/VI'), pCon.indexOf('VD/VI') + 50))]);
+    ex.push(['(E2) y deja de pedirlo en «Completar»',
+      pCon.indexOf('VD/VI (tab VD/AD)') < 0, 'sigue pidiendolo=' + (pCon.indexOf('VD/VI (tab VD/AD)') > -1)]);
+    ex.push(['(E3) la conclusion pasa a «Disfunción del VD con dilatación»',
+      pCon.indexOf('Disfunción del VD con dilatación') > -1,
+      'concl=' + (pCon.indexOf('Disfunción del VD con dilatación') > -1)]);
+    ex.push(['(E4) CONTROL NEGATIVO: sin VD/VI por ningun camino sigue en «—» y lo sigue pidiendo',
+      pSin.indexOf('VD/VI—') > -1 && pSin.indexOf('VD/VI (tab VD/AD)') > -1,
+      JSON.stringify(pSin.slice(pSin.indexOf('VD/VI'), pSin.indexOf('VD/VI') + 40))]);
+
+    /* ══════════════════════════════════════════════════════════════════════════════════════
+       (F) FUERA DE LO LISTADO, EL PAPEL NO CAMBIA
+       Un estudio sin VExUS, sin hemodinamica y sin HTP no puede traer ninguna de las cadenas
+       nuevas. Es el control de que la tanda no derramo texto a un informe cualquiera.
+       ══════════════════════════════════════════════════════════════════════════════════════ */
+    __t.limpiar();
+    poner('ddfvi', '50'); poner('fevi', '60');
+    const infLimpio = informe();
+    const NUEVAS = ['En riesgo de congestión venosa', 'falta la presión capilar pulmonar estimada',
+                    'PAM por catéter; PVC estimada por eco', 'sin evaluar', 'cuadrante'];
+    const derramadas = NUEVAS.filter(f => infLimpio.indexOf(f) > -1);
+    ex.push(['  DENOMINADOR F: el informe del estudio limpio tiene contenido',
+      infLimpio.length > 80, 'largo=' + infLimpio.length]);
+    ex.push(['(F1) ninguna cadena nueva de esta tanda aparece en un informe que no la toca',
+      derramadas.length === 0, 'derramadas=' + (derramadas.join(' | ') || 'ninguna')]);
+
+    /* ══════════════════════════════════════════════════════════════════════════════════════
+       (G) EL DIAGRAMA DE FORRESTER
+       ══════════════════════════════════════════════════════════════════════════════════════ */
+    const graf = () => EL('hemo-forr-graf');
+    const pts = () => { const g = graf(); return g ? g.querySelectorAll('svg circle').length : -1; };
+    const desc = () => { const g = graf(); return g ? N((g.querySelector('[data-forr-desc]') || {}).textContent) : 'NO EXISTE'; };
+    const montarForr = (fc, e) => { __t.limpiar();
+      poner('peso', '80'); poner('talla', '180'); poner('hemo_fc', fc);
+      poner('diam_tsvi', '20'); poner('itv_tsvi', '20');
+      poner('onda_e', e); poner('e_sep', '10'); poner('e_lat', '10');
+      try { if (F('calcHemo')) calcHemo() } catch (e2) {} };
+
+    ex.push(['  DENOMINADOR G: el contenedor del grafico existe en la pestana de Hemodinamica',
+      !!graf(), 'nodo=' + (!!graf())]);
+    montarForr('80', '80');  await esperar(150); const q1 = desc(), n1 = pts();
+    montarForr('80', '160'); await esperar(150); const q2 = desc();
+    montarForr('60', '80');  await esperar(150); const q3 = desc();
+    montarForr('60', '160'); await esperar(150); const q4 = desc();
+    ex.push(['(G1) el punto cae en el cuadrante I con IC alto y PCP baja',
+      n1 === 1 && q1.indexOf('cuadrante I — seco-caliente') > -1, 'pts=' + n1 + ' ' + JSON.stringify(q1)]);
+    ex.push(['(G2) en el II con IC alto y PCP alta',
+      q2.indexOf('cuadrante II — húmedo-caliente') > -1, JSON.stringify(q2)]);
+    ex.push(['(G3) en el III con IC bajo y PCP baja',
+      q3.indexOf('cuadrante III — seco-frío') > -1, JSON.stringify(q3)]);
+    ex.push(['(G4) en el IV con IC bajo y PCP alta',
+      q4.indexOf('cuadrante IV — húmedo-frío') > -1, JSON.stringify(q4)]);
+    /* ══ LOS DOS BORDES, AL DUEÑO DIRECTO ══════════════════════════════════════════════════
+       Se le preguntan a \`forrCuadrante\` con los numeros EXACTOS. Montarlos desde los campos es
+       imposible sin inventar decimales: el IC sale de una cadena de cinco campos y la PCP de
+       Nagueh, y ninguna combinacion razonable da 2,2 ni 18 clavados. Preguntarle al dueno mide
+       el borde de verdad, que es lo que la orden pide fijar. */
+    const cuad = (ic, pcp) => { try { return forrCuadrante(ic, pcp) } catch (e) { return 'EXC' } };
+    ex.push(['  DENOMINADOR G2: el dueno del cuadrante existe y clasifica',
+      cuad(3.0, 10) === 'I', 'control=' + cuad(3.0, 10)]);
+    ex.push(['(G5) BORDE del indice cardiaco: 2,2 EXACTO **no** es hipoperfusion (el corte es «<»)',
+      cuad(2.2, 10) === 'I' && cuad(2.19, 10) === 'III',
+      '2.2=' + cuad(2.2, 10) + ' 2.19=' + cuad(2.19, 10)]);
+    ex.push(['(G6) BORDE de la presion capilar: 15 EXACTOS **no** son congestion, y 18 **SI** lo son',
+      cuad(3.0, 15) === 'I' && cuad(3.0, 15.01) === 'II' && cuad(3.0, 18) === 'II',
+      '15=' + cuad(3.0, 15) + ' 15.01=' + cuad(3.0, 15.01) + ' 18=' + cuad(3.0, 18)]);
+    /* Sin dato: ni punto ni cuadrante, y el mensaje es el MISMO de la capsula. */
+    montarHemo(true, false); await esperar(150);
+    ex.push(['(G7) sin PCP no hay punto, y el grafico pide el MISMO dato que la capsula',
+      pts() === 0 && desc().indexOf('Falta la presión capilar pulmonar estimada') === 0,
+      'pts=' + pts() + ' ' + JSON.stringify(desc())]);
+    montarHemo(false, false); await esperar(150);
+    ex.push(['(G8) sin ninguno de los dos, tampoco',
+      pts() === 0 && desc().indexOf('Faltan el índice cardíaco') === 0,
+      'pts=' + pts() + ' ' + JSON.stringify(desc())]);
+    /* ══ SE ACTUALIZA SOLO AL CAMBIAR LA FUENTE, por el barrido de espejos y sin tocar nada mas.
+       ⚠️ NO se llama a \`calcHemo\` aca: el punto es justamente que el grafico siga al dato por el
+       mecanismo de la tanda B. Si hubiera que llamarlo, el caso estaria fabricando el
+       disparador que la app no tiene. */
+    montarForr('80', '80'); await esperar(150);
+    const antes = desc();
+    poner('onda_e', '160');
+    await esperar(400); barrer(); await esperar(250);
+    const despues = desc();
+    ex.push(['  DENOMINADOR G3: antes del cambio el grafico estaba en el cuadrante I',
+      antes.indexOf('cuadrante I — seco-caliente') > -1, JSON.stringify(antes)]);
+    ex.push(['(G9) cambiar la onda E mueve el punto SOLO con el barrido de espejos, sin llamar a calcHemo',
+      despues.indexOf('cuadrante II — húmedo-caliente') > -1, JSON.stringify(despues)]);
+    /* ══ Y NO SALE AL PAPEL ══ */
+    const infGraf = informe();
+    const EXCEL = (() => { try {
+      const campos = {};
+      document.querySelectorAll('input[id], select[id], textarea[id]').forEach(e => {
+        if (F('_noEsDelEstudio') && _noEsDelEstudio(e.id)) return;
+        campos[e.id] = (e.type === 'checkbox') ? (e.checked ? '1' : '') : String(e.value || '');
+      });
+      const fila = F('_labExcelRow') ? _labExcelRow({ campos: campos, fecha: '2026-10-28' }) : null;
+      return { n: fila ? Object.keys(fila).length : -1,
+               txt: fila ? JSON.stringify(fila) : '' };
+    } catch (e) { return { n: -2, txt: '' } } })();
+    ex.push(['  DENOMINADOR G4: hay punto dibujado cuando se mira el papel',
+      pts() === 1, 'pts=' + pts()]);
+    ex.push(['(G10) el grafico NO entra al informe ni al EN SUMA',
+      infGraf.indexOf('cuadrante') < 0 && N(V('en_suma')).indexOf('cuadrante') < 0,
+      'informe=' + (infGraf.indexOf('cuadrante') > -1) + ' suma=' + (N(V('en_suma')).indexOf('cuadrante') > -1)]);
+    ex.push(['(G11) NO agrega ninguna columna al Excel: siguen 440',
+      EXCEL.n === 440, 'columnas=' + EXCEL.n]);
+    ex.push(['(G12) ni ninguna celda con el texto del grafico',
+      EXCEL.txt.indexOf('cuadrante') < 0 && EXCEL.txt.indexOf('seco-caliente') < 0,
+      'enExcel=' + (EXCEL.txt.indexOf('cuadrante') > -1)]);
 
     return { extra: ex };
   })();
