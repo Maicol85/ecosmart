@@ -92435,9 +92435,16 @@ caso('TC-540', 'Tanda D: la calculadora de riesgo CV aplicando la Tabla 4 de la 
     __t.set('tapse', '21');
     gesto('tapse-val', '15');
     const f5b = String(__t.val('tapse') || '');
-    ex.push(['(F5) el modulo escribe el TAPSE del estudio si esta vacio, y NO lo pisa si difiere',
-      f5a === '15' && f5b === '21' && /No coinciden con lo cargado/i.test(T('ett-auto-nota')),
-      'vacio->' + f5a + ' distinto->' + f5b]);
+    /* ⚠️ ADAPTADA EN EL D-11, Y EL CAMBIO ES DE FONDO: esta condicion exigia que el gesto del
+       modulo NO pisara un valor distinto ya cargado en el estudio, y que la nota lo declarara.
+       Por decision de Maicol el modelo es ahora UN dato, DOS puertas, gana la ULTIMA edicion: el
+       gesto del medico dentro del calculador es explicito y escribe completo, aunque el estudio
+       tuviera otro numero. Asi que lo que se exige es lo contrario, y el desacuerdo dejo de ser
+       posible por construccion: los dos lados terminan con el mismo valor.
+       Sigue pudiendo fallar: exige que el campo vacio reciba el valor Y que el cargado se pise. */
+    ex.push(['(F5) el gesto del modulo escribe el TAPSE del estudio esta vacio o cargado: gana la ultima edicion',
+      f5a === '15' && f5b === '15',
+      'vacio->' + f5a + ' ya cargado en 21->' + f5b]);
 
     /* ══ (G) LA FUENTE DEL SCORE ══ */
     /* (G1) LAS ONCE FILAS DEL RENDIMIENTO POR CORTE, contra la Tabla 4 del manuscrito, una por una. */
@@ -92647,9 +92654,11 @@ caso('TC-541', 'D-9: borrar en el estudio BORRA de verdad —los ocho datos que 
     ex.push(['(D2) CONTROL: vaciando UN solo espesor el cartel sigue, porque manda el mayor',
       /HVI ≥12mm/.test(T('ett-hvi-badge')), T('ett-hvi-badge').slice(0, 46)]);
 
-    /* ══ (E) EL GESTO DENTRO DEL MODULO SIGUE ESCRIBIENDO ══ Es el paso 10 de la guia, y es lo
-       que este arreglo NO puede romper: con el campo del estudio vacio se escribe, y con uno ya
-       cargado y distinto NO se pisa. */
+    /* ══ (E) EL GESTO DENTRO DEL MODULO SIGUE ESCRIBIENDO ══ Es el paso 10 de la guia del D-9.
+       ⚠️ ADAPTADA EN EL D-11: la segunda mitad decia «y con uno ya cargado y distinto NO se
+       pisa». Por decision de Maicol el modelo es UN dato, DOS puertas, gana la ULTIMA edicion, y
+       el gesto del medico dentro del calculador pisa el valor del estudio. El desacuerdo que esta
+       condicion exigia declarar dejo de ser posible: los dos lados terminan con el mismo numero. */
     __t.limpiar();
     poner('tapse-val', '15');
     const e1 = V('tapse');
@@ -92659,9 +92668,8 @@ caso('TC-541', 'D-9: borrar en el estudio BORRA de verdad —los ocho datos que 
     const e2 = V('tapse');
     ex.push(['(E1) con el campo del estudio VACIO, escribir en el modulo lo escribe',
       e1 === '15', 'tapse=' + e1]);
-    ex.push(['(E2) y con un valor DISTINTO ya cargado NO lo pisa, y lo declara',
-      e2 === '21' && /No coinciden con lo cargado/i.test(T('ett-auto-nota')),
-      'tapse=' + e2 + ' nota=' + T('ett-auto-nota').slice(-80)]);
+    ex.push(['(E2) y con un valor DISTINTO ya cargado tambien lo escribe: gana la ultima edicion',
+      e2 === '15', 'tapse=' + e2 + ' (habia 21)']);
     /* ══ (F) LO QUE EL MEDICO TIPEA EN EL MODULO NO SE LO PISA EL BARRIDO ══
        Lo destaparon DOS mutaciones que sobrevivieron al primer barrido: una sacaba el borrado de
        la marca de espejo en el gesto y la otra hacia que el reflejo pisara igual. Ninguna
@@ -92888,15 +92896,17 @@ caso('TC-542', 'D-10: el campo del estudio es el dueno y el modulo lo refleja SI
     ex.push(['(H6b) lo mismo en el campo del espesor relativo: el estudio queda en 15',
       V('siv') === '15', 'estudio=' + JSON.stringify(V('siv'))]);
 
-    /* ⚠️ CONTROL NEGATIVO DE H6, Y ES EL QUE IMPIDE QUE EL ARREGLO SE PASE DE LARGO: lo que el
-       medico cargo a mano en el estudio NO se pisa, y el desacuerdo se conserva en pantalla. */
+    /* ⚠️ ADAPTADA EN EL D-11. Decia: «lo que el medico cargo a mano en el estudio NO se pisa, y
+       el desacuerdo se conserva en pantalla». Por decision de Maicol gana la ULTIMA edicion, asi
+       que el gesto dentro del calculador pisa el valor del estudio y los dos lados quedan iguales.
+       Lo que se exige ahora es eso: que pise Y que el modulo conserve lo tecleado. */
     __t.limpiar();
     poner('siv', '20');
     await esperar(400);
     teclear('ett-septo', '15');
     await esperar(500);
-    ex.push(['(H6c) CONTROL NEGATIVO: el 20 cargado a mano en el estudio NO se pisa',
-      V('siv') === '20', 'estudio=' + V('siv')]);
+    ex.push(['(H6c) el 20 cargado a mano en el estudio SI se pisa: gana la ultima edicion',
+      V('siv') === '15', 'estudio=' + V('siv') + ' (habia 20)']);
     ex.push(['(H6d) y lo que el medico midio en el modulo no se le borra de la pantalla',
       V('ett-septo') === '15', 'modulo=' + V('ett-septo')]);
 
@@ -92916,8 +92926,8 @@ caso('TC-542', 'D-10: el campo del estudio es el dueno y el modulo lo refleja SI
     await esperar(500); barrer(); await esperar(300);
     ex.push(['  DENOMINADOR G: el TAPSE del estudio llego solo al calculador antes del gesto',
       tapseAuto === '16', 'tapse-val autollenado=' + JSON.stringify(tapseAuto)]);
-    ex.push(['(H6e) el 16 cargado a mano en el estudio NO lo pisa el 21 tecleado en el modulo',
-      V('tapse') === '16', 'tapse del estudio=' + V('tapse')]);
+    ex.push(['(H6e) el 16 cargado a mano en el estudio lo pisa el 21 tecleado en el modulo',
+      V('tapse') === '21', 'tapse del estudio=' + V('tapse') + ' (habia 16)']);
     ex.push(['(H6f) y el 21 que el medico midio en el modulo sigue en pantalla tras el barrido',
       V('tapse-val') === '21', 'tapse-val=' + V('tapse-val')]);
 
@@ -92966,51 +92976,28 @@ caso('TC-542', 'D-10: el campo del estudio es el dueno y el modulo lo refleja SI
     ex.push(['(N4) CONTROL NEGATIVO: el promedio escrito a mano en el modulo NO se pisa',
       V('ee-ep') === '9', 'ee-ep=' + V('ee-ep')]);
 
-    /* (H6h) ⚠️ Y LAS DOS MARCAS TIENEN QUE MORIR CON «NUEVO ESTUDIO», que es el defecto que
-       encontro TC-541 al correr DESPUES de este caso en el mismo lote: verde aislado y rojo en
-       el lote, y contra el arbol del D-9 el mismo lote no lo rompia. Las marcas viven en el nodo
-       y limpiarCampos vacia los value pero NO los dataset, asi que el desacuerdo de un
-       paciente dejaba al campo del SIGUIENTE sin seguir al estudio. En una maquina compartida eso
-       es el dato de otro paciente mandando sobre el que el medico tiene delante. */
+    /* (H6h) ⚠️ ADAPTADA EN EL D-11, Y LA ESCENA CAMBIO DE PREMISA. Montaba un DESACUERDO entre
+       el modulo y el estudio —modulo 21, estudio 16— y exigia que la marca que lo guardaba muriera
+       con «Nuevo estudio». Desde que gana la ultima edicion ese desacuerdo no se puede montar: el
+       gesto escribe y los dos lados quedan en 21. Las dos marcas del D-10 —el permiso y el
+       desacuerdo— se retiraron con las reglas que las leian, asi que (H6i) y su denominador
+       tambien se van: lo que queda viva es la marca de ESPEJO, y eso lo fija TC-543 (E5).
+       La escena se conserva midiendo el invariante que SI sigue valiendo y que es el que importaba:
+       un dato de un paciente no manda sobre el siguiente. */
     __t.limpiar();
     poner('tapse', '16');
     await esperar(400);
     teclear('tapse-val', '21');
     await esperar(500); barrer(); await esperar(200);
-    const desacuerdoPrevio = V('tapse-val') === '21' && V('tapse') === '16';
+    const pisoPrevio = V('tapse-val') === '21' && V('tapse') === '21';
     __t.limpiar();
     await esperar(300);
     poner('tapse', '14');
     await esperar(500); barrer(); await esperar(300);
-    ex.push(['  DENOMINADOR H: hubo desacuerdo antes del «Nuevo estudio»',
-      desacuerdoPrevio, 'modulo=21 estudio=16 -> ' + desacuerdoPrevio]);
-    ex.push(['(H6h) tras «Nuevo estudio» el calculador vuelve a seguir al estudio: 14',
+    ex.push(['  DENOMINADOR H: el gesto del modulo habia pisado el campo del estudio',
+      pisoPrevio, 'modulo/estudio tras el gesto -> ' + pisoPrevio]);
+    ex.push(['(H6h) tras «Nuevo estudio» el calculador sigue al paciente nuevo: 14',
       V('tapse-val') === '14', 'tapse-val=' + V('tapse-val') + ' tapse=' + V('tapse')]);
-
-    /* (H6i) ⚠️ Y EL PERMISO DE PISAR EL CAMPO DEL ESTUDIO TAMBIEN TIENE QUE MORIR CON «Nuevo
-       estudio». El modulo escribe 21 y queda autorizado a pisar ese 21; «Nuevo estudio» vacia el
-       campo, y si el permiso sobreviviera, el paciente siguiente que cargue 21 A MANO se lo
-       podria pisar. Nacio de tres mutaciones que sobrevivieron.
-       ⚠️ Y VA SOBRE EL TAPSE, NO SOBRE EL SEPTO, POR LA MISMA RAZON QUE (H6e): al septo del
-       estudio lo espejan DOS campos del modulo, asi que cuando uno escribe un valor indebido el
-       otro lo vuelve a escribir bien en la misma pasada y el estudio termina correcto. Escrita
-       con el septo, esta condicion pasaba EN VERDE sobre la mutacion — el mismo error dos veces
-       en la misma correccion. El TAPSE tiene un solo espejo y nadie que lo tape. */
-    __t.limpiar();
-    await esperar(300);
-    teclear('tapse-val', '21');
-    await esperar(500);
-    const permisoPrevio = V('tapse') === '21';
-    __t.limpiar();
-    await esperar(400); barrer(); await esperar(300);
-    poner('tapse', '21');
-    await esperar(400);
-    teclear('tapse-val', '25');
-    await esperar(500); barrer(); await esperar(300);
-    ex.push(['  DENOMINADOR I: el modulo habia escrito ese campo antes del «Nuevo estudio»',
-      permisoPrevio, 'tapse tras el gesto=' + permisoPrevio]);
-    ex.push(['(H6i) el 21 que el paciente nuevo cargo a mano NO lo pisa el 25 del modulo',
-      V('tapse') === '21', 'tapse=' + V('tapse')]);
 
     /* ══ (H5) «NUEVO ESTUDIO» NO DEJA UN DATO DEL PACIENTE ═════════════════════════════════
        Medido en 8fac09f, en 195c87a y hoy: los MISMOS 84 campos quedan con contenido, y son
@@ -93035,6 +93022,287 @@ caso('TC-542', 'D-10: el campo del estudio es el dueno y el modulo lo refleja SI
     ex.push(['(H5b) CONTROL NEGATIVO: los valores por omision de los selectores SIGUEN puestos',
       V('em_grado') === 'sin' && V('pericardio') === 'Normal, sin derrame',
       'em_grado=' + V('em_grado') + ' pericardio=' + V('pericardio')]);
+
+    return { extra: ex };
+  })();
+`);
+
+caso('TC-543', 'D-11: UN dato, DOS puertas, gana la ULTIMA edicion —lo que el medico teclea o borra dentro de un campo del modulo de amiloidosis llega al campo del estudio TECLA POR TECLA y completo, el vacio incluido, aunque el estudio ya tuviera otro valor; lo que teclea en el estudio se ve en el modulo; NADA automatico escribe al estudio —ni el barrido, ni los recalculos, ni la recarga, ni abrir un estudio guardado—; y todo lo derivado que el modulo muestra —el valor del boton violeta, el espesor relativo, el cartel de HVI y el score— se vacia cuando falta el dato', `
+  return (async () => {
+    const ex = [];
+    const N = s => String(s == null ? '' : s).replace(/\\s+/g, ' ').trim();
+    const EL = id => document.getElementById(id);
+    const T = id => N(__t.txt(id));
+    const V = id => String((EL(id) || {}).value || '');
+    const F = n => typeof window[n] === 'function';
+    const esperar = ms => new Promise(r => setTimeout(r, ms));
+    const barrer = () => { try { if (F('_espejosBarrerTodos')) _espejosBarrerTodos(); } catch (e) {} };
+
+    /* UNA tecla sobre un campo: deja el texto y dispara el evento de entrada, que es lo que hace
+       el teclado. NO se usa una sola llamada con la cadena entera: el defecto del D-11 vivia en
+       los estados intermedios, con el estudio ya escrito por el primer digito. */
+    const tecla = (id, texto) => { const e = EL(id); if (!e) return 'NO EXISTE ' + id;
+      e.value = texto;
+      e.dispatchEvent(new Event('input', { bubbles: true }));
+      return e.value; };
+    /* El gesto sobre un campo del ESTUDIO, que es la otra puerta. */
+    const poner = (id, val) => { const e = EL(id); if (!e) return 'NO EXISTE ' + id;
+      e.value = val;
+      e.dispatchEvent(new Event('input',  { bubbles: true }));
+      e.dispatchEvent(new Event('change', { bubbles: true }));
+      return e.value; };
+
+    /* Los OCHO datos que el medico nombro, con el campo del MODULO por el que se tipean.
+       ⚠️ e-PRIMA SEPTAL Y LATERAL NO SON EDITABLES DESDE EL MODULO, y eso NO es un defecto: el
+       calculador tiene UN campo, el promedio, y un promedio no se reparte en dos mediciones sin
+       inventarlas. Entran igual, con su expectativa propia: el estudio NO cambia. */
+    const OCHO = [
+      { app:'siv',    mod:'rwt-septo', carga:'14',  vuelve:true },
+      { app:'ppvi',   mod:'rwt-pp',    carga:'12',  vuelve:true },
+      { app:'ddfvi',  mod:'rwt-ddvi',  carga:'45',  vuelve:true },
+      { app:'tapse',  mod:'tapse-val', carga:'16',  vuelve:true },
+      { app:'onda_e', mod:'ee-e',      carga:'90',  vuelve:true },
+      { app:'sgl',    mod:'sgl-val',   carga:'-12', vuelve:true, neg:true },
+      { app:'e_sep',  mod:'ee-ep',     carga:'4',   vuelve:false },
+      { app:'e_lat',  mod:'ee-ep',     carga:'6',   vuelve:false }
+    ];
+
+    /* ══ DENOMINADOR A ══ Los dieciseis nodos existen. Sin esto, «no llego al estudio» podria ser
+       que el campo no este en el DOM. */
+    const faltan = [];
+    OCHO.forEach(c => { if (!EL(c.app)) faltan.push(c.app); if (!EL(c.mod)) faltan.push(c.mod); });
+    ['calcbtn-rwt','rwt-result','ett-hvi-badge','ett-score-num','ett-rwt','crit-rwt'].forEach(
+      id => { if (!EL(id)) faltan.push(id); });
+    ex.push(['  DENOMINADOR A: existen los campos de las dos puertas y los nodos de lo derivado',
+      faltan.length === 0, 'faltan=' + (faltan.join(',') || 'ninguno')]);
+
+    /* ══ (A) TECLA POR TECLA EN EL MODULO, CON EL ESTUDIO YA CARGADO ═══════════════════════════
+       Es el hallazgo H1: hasta el D-10 la regla de «no pisar» hacia que esto NO llegara nunca. */
+    const malEscribe = [], malBorra = [], malDenom = [];
+    for (const c of OCHO) {
+      __t.limpiar();
+      poner(c.app, c.carga);
+      await esperar(400); barrer(); await esperar(250);
+      /* DENOMINADOR por campo: el modulo recibio el dato del estudio antes del gesto. */
+      if (!c.neg && c.vuelve && V(c.mod) !== c.carga) malDenom.push(c.app + ' reflejo=' + V(c.mod));
+      tecla(c.mod, '1');
+      const trasEl1 = V(c.app);
+      tecla(c.mod, '15');
+      const trasEl15 = V(c.app);
+      const esperado1  = c.vuelve ? (c.neg ? '-1'  : '1')  : c.carga;
+      const esperado15 = c.vuelve ? (c.neg ? '-15' : '15') : c.carga;
+      if (trasEl1 !== esperado1 || trasEl15 !== esperado15)
+        malEscribe.push(c.app + ' tras1=' + trasEl1 + ' tras15=' + trasEl15 +
+                        ' (esperaba ' + esperado1 + ' y ' + esperado15 + ')');
+      /* ══ (B) RETROCESO DE A UNA TECLA, el hallazgo H2 ══ */
+      tecla(c.mod, '1');
+      await esperar(400); barrer(); await esperar(250);
+      const modTras1 = V(c.mod), appTras1 = V(c.app);
+      tecla(c.mod, '');
+      await esperar(400); barrer(); await esperar(250);
+      const modVacio = V(c.mod), appVacio = V(c.app);
+      /* ⚠️ EL CAMPO SIN VUELTA CONSERVA LO TECLEADO, que es lo correcto: el reflejo no pisa un
+         valor que el medico midio ahi mientras tenga algo escrito. Al VACIARLO si lo repuebla,
+         porque un campo vacio no guarda ninguna medicion. Escrito al reves, esta condicion daba
+         rojo sobre el comportamiento bueno. */
+      const modEsp1 = c.vuelve ? (c.neg ? '-1' : '1') : '1';
+      const modEspV = c.vuelve ? '' : c.carga;
+      const appEspV = c.vuelve ? '' : c.carga;
+      if (modTras1 !== modEsp1 || appTras1 !== esperado1 || modVacio !== modEspV || appVacio !== appEspV)
+        malBorra.push(c.app + ' a1=' + modTras1 + '/' + appTras1 +
+                      ' vacio=' + JSON.stringify(modVacio) + '/' + JSON.stringify(appVacio));
+    }
+    ex.push(['  DENOMINADOR B: el modulo recibio cada dato del estudio ANTES del gesto',
+      malDenom.length === 0, 'sin reflejo=' + (malDenom.join(' | ') || 'ninguno')]);
+    ex.push(['(A) lo tecleado en el modulo llega al estudio tecla por tecla y PISA lo que habia',
+      malEscribe.length === 0, malEscribe.join(' | ') || 'los ocho bien']);
+    ex.push(['(B) el retroceso tambien llega: queda «1» y despues VACIO en los dos lados',
+      malBorra.length === 0, malBorra.join(' | ') || 'los ocho bien']);
+
+    /* ══ (C) LA OTRA PUERTA: lo tecleado en el estudio se ve en el modulo ══════════════════ */
+    __t.limpiar();
+    poner('siv', '14'); poner('ppvi', '12'); poner('ddfvi', '45');
+    await esperar(500); barrer(); await esperar(250);
+    ex.push(['(C) lo cargado en AI/VI se ve en el calculador: 14, 12 y 45',
+      V('rwt-septo') === '14' && V('rwt-pp') === '12' && V('rwt-ddvi') === '45',
+      V('rwt-septo') + '/' + V('rwt-pp') + '/' + V('rwt-ddvi')]);
+
+    /* ══ (D) LO DERIVADO, el hallazgo H4 ══════════════════════════════════════════════════
+       ⚠️ El boton se lee ANTES de abrirlo: hasta el D-10 la etiqueta la escribia SOLO el gesto
+       de abrir el acordeon, asi que un caso que lo abriera primero no podria fallar. */
+    const btn = () => N((EL('calcbtn-rwt') || {}).textContent).replace(/[ ▾▴]+$/, '');
+    const conDatos = { boton: btn(), result: V('rwt-result'), hvi: T('ett-hvi-badge') };
+    ex.push(['  DENOMINADOR C: con los tres espesores hay algo derivado que mirar',
+      conDatos.result === '0.58' && conDatos.hvi.indexOf('14.0mm') > -1,
+      'result=' + conDatos.result + ' hvi=' + conDatos.hvi]);
+    ex.push(['(D1) el boton violeta anuncia el valor SIN que nadie lo abra: 0.58',
+      conDatos.boton === '0.58', 'boton=' + JSON.stringify(conDatos.boton)]);
+    poner('siv', ''); poner('ppvi', ''); poner('ddfvi', '');
+    await esperar(500); barrer(); await esperar(300);
+    ex.push(['(D2) borrados los tres en AI/VI, el boton vuelve a «Calcular» y no al valor viejo',
+      btn() === 'Calcular', 'boton=' + JSON.stringify(btn())]);
+    ex.push(['(D3) y el espesor, el cartel de HVI y el score quedan vacios',
+      V('rwt-result') === '' && (T('ett-hvi-badge') === '—' || T('ett-hvi-badge') === '')
+        && String((EL('ett-rwt') || {}).value) === '0',
+      'result=' + JSON.stringify(V('rwt-result')) + ' hvi=' + JSON.stringify(T('ett-hvi-badge')) +
+      ' puntos=' + String((EL('ett-rwt') || {}).value)]);
+
+    /* ══ (E) CONTROLES NEGATIVOS: NADA automatico escribe al estudio ══════════════════════ */
+    __t.limpiar();
+    await esperar(300);
+    /* Se carga el campo del modulo SIN gesto -asignando el valor- para que ninguna escritura
+       legitima lo explique: lo unico que podria llevarlo al estudio es un flujo automatico. */
+    const e1 = EL('tapse-val'); if (e1) e1.value = '17';
+    barrer(); await esperar(500); barrer(); await esperar(300);
+    ex.push(['(E1) CONTROL: el barrido de espejos NO escribe en el estudio',
+      V('tapse') === '', 'tapse=' + JSON.stringify(V('tapse'))]);
+    const e2 = EL('tapse-val'); if (e2) e2.value = '17';
+    try { if (F('_recalcModulos')) _recalcModulos('caso'); } catch (e) {}
+    try { if (F('amiloAutoMarcarTodos')) amiloAutoMarcarTodos(); } catch (e) {}
+    try { if (F('calcTAPSE')) calcTAPSE(); } catch (e) {}
+    try { if (F('calcETT')) calcETT(); } catch (e) {}
+    ex.push(['(E2) CONTROL: el marcado del score y los recalculos tampoco escriben',
+      V('tapse') === '', 'tapse=' + JSON.stringify(V('tapse'))]);
+    /* Y el cambio de pestania. */
+    try { if (F('showTab')) { showTab('ai-vi'); showTab('amiloidosis'); } } catch (e) {}
+    await esperar(400); barrer(); await esperar(250);
+    ex.push(['(E3) CONTROL: cambiar de pestania tampoco escribe',
+      V('tapse') === '', 'tapse=' + JSON.stringify(V('tapse'))]);
+
+    /* (D4) ⚠️ LA FLECHA DEL BOTON TIENE QUE SEGUIR DICIENDO SI EL ACORDEON ESTA ABIERTO.
+       Nacio de una mutacion que sobrevivio: el repintado dejaba la etiqueta al dia y perdia el
+       estado, asi que con el calculador ABIERTO el boton ofrecia «abrir». Las condiciones de
+       arriba no lo veian porque recortan la flecha. */
+    __t.limpiar();
+    poner('siv', '14'); poner('ppvi', '12'); poner('ddfvi', '45');
+    await esperar(500); barrer(); await esperar(250);
+    const brutoCerrado = N((EL('calcbtn-rwt') || {}).textContent);
+    try { if (F('amCalcToggle')) amCalcToggle('rwt', true); } catch (e) {}
+    poner('siv', '16');
+    await esperar(500); barrer(); await esperar(300);
+    const brutoAbierto = N((EL('calcbtn-rwt') || {}).textContent);
+    ex.push(['(D4) con el calculador cerrado el boton ofrece abrir, y con el abierto ofrece cerrar',
+      brutoCerrado.indexOf('▾') > -1 && brutoAbierto.indexOf('▴') > -1,
+      'cerrado=' + JSON.stringify(brutoCerrado) + ' abierto=' + JSON.stringify(brutoAbierto)]);
+    ex.push(['(D5) y con el acordeon abierto la etiqueta igual sigue al dato: 0.62',
+      brutoAbierto.indexOf('0.62') > -1, 'abierto=' + JSON.stringify(brutoAbierto)]);
+    try { if (F('amCalcToggle')) amCalcToggle('rwt', false); } catch (e) {}
+
+    /* (E4) ⚠️ CONTROL POR EL CAMINO DEL ESPESOR RELATIVO, no solo por el del TAPSE. Nacio de una
+       mutacion que sobrevivio: reintroducir la escritura hacia el estudio dentro de calcRWT —que
+       es el defecto que cerro el D-9— no rompia nada, porque los controles (E1) y (E2) miraban
+       SOLO el TAPSE. Cada camino de recalculo necesita su propio control. */
+    __t.limpiar();
+    await esperar(300);
+    const e4 = EL('rwt-septo'); if (e4) e4.value = '16';
+    const e4b = EL('rwt-pp');   if (e4b) e4b.value = '12';
+    const e4c = EL('rwt-ddvi'); if (e4c) e4c.value = '45';
+    try { if (F('calcRWT')) calcRWT(); } catch (e) {}
+    try { if (F('calcETT')) calcETT(); } catch (e) {}
+    barrer(); await esperar(500); barrer(); await esperar(300);
+    ex.push(['(E4) CONTROL: recalcular el espesor relativo NO escribe en AI/VI',
+      V('siv') === '' && V('ppvi') === '' && V('ddfvi') === '',
+      'siv=' + JSON.stringify(V('siv')) + ' ppvi=' + JSON.stringify(V('ppvi')) +
+      ' ddfvi=' + JSON.stringify(V('ddfvi'))]);
+
+    /* (E5) ⚠️ Y LA MARCA DE ESPEJO TIENE QUE MORIR CON «Nuevo estudio». Vive en el nodo y
+       limpiarCampos vacia los value pero no los dataset, asi que si no entra en su lista cerrada
+       de marcas sobrevive y manda sobre el paciente SIGUIENTE. Nacio de una mutacion que
+       sobrevivio, y es la misma fuga que el propio archivo documenta en ese bloque. */
+    __t.limpiar();
+    poner('tapse', '16');
+    await esperar(500); barrer(); await esperar(250);
+    const marcaPrevia = (EL('tapse-val') || {}).dataset
+      ? (EL('tapse-val').dataset.espejo === '1') : false;
+    __t.limpiar();
+    await esperar(300);
+    const marcaTrasNuevo = (EL('tapse-val') || {}).dataset
+      ? ((EL('tapse-val').dataset.espejo || '-')) : '?';
+    ex.push(['  DENOMINADOR F: el reflejo habia marcado el insumo antes del «Nuevo estudio»',
+      marcaPrevia === true, 'marca=' + marcaPrevia]);
+    ex.push(['(E5) la marca de espejo no sobrevive a «Nuevo estudio»',
+      marcaTrasNuevo === '-', 'marca tras nuevo=' + JSON.stringify(marcaTrasNuevo)]);
+
+    /* ══ (F) ABRIR UN ESTUDIO GUARDADO NO ESCRIBE NADA, y lo guardado vuelve igual ════════ */
+    __t.limpiar();
+    /* ⚠️ CON NOMBRE DE PACIENTE, Y NO ES UN ADORNO: guardarInforme tiene una salida temprana
+       —sin nombre ni documento avisa por toast y hace return SIN llamar al callback—, asi que la
+       promesa del helper no resuelve nunca. Esa fue la causa del cuelgue, y era de esta escena,
+       no de la app: el caso no ponia nombre. */
+    poner('nombre', 'Prueba D11');
+    poner('siv', '13'); poner('ppvi', '11'); poner('ddfvi', '44'); poner('tapse', '18');
+    await esperar(500); barrer(); await esperar(250);
+    /* ⚠️ CON RELOJ. El helper de guardado devuelve una promesa que resuelve SOLO cuando el
+       callback de guardarInforme vuelve, y no tiene reloj: si ese callback no llega —porque
+       aparecio una
+       tarjeta de confirmacion que esta escena no toca— el caso queda dormido para siempre. Medido:
+       27 minutos a 0 % de CPU sin escribir un byte, y otros 11 con marcas de progreso puestas.
+       Un caso que se cuelga no es un caso rojo: es un caso que no corre, y en un lote se lleva
+       puesto todo lo que viene despues. */
+    const _pGu = __t.guardar();
+    /* ⚠️ Y LA TARJETA DE CONFIRMACION SE BUSCA VARIAS VECES, no una. El helper la clickea UNA
+       sola vez, justo despues de pedir el guardado; si aparece un instante mas tarde —que es lo
+       que pasa en esta escena— ese clic no la encuentra y el guardado no termina NUNCA. Medido
+       con el reloj: la promesa no contestaba en 15 segundos. */
+    for (let _i = 0; _i < 40; _i++) {
+      const _cf = EL('rev-confirm');
+      if (_cf && _cf.offsetParent !== null) { _cf.click(); break; }
+      await esperar(100);
+    }
+    const gu = await Promise.race([
+      _pGu,
+      new Promise(r => setTimeout(() => r({ ok: false, sinRespuesta: true }), 15000))
+    ]);
+    ex.push(['  DENOMINADOR D: el estudio de prueba se guardo y el guardado contesto',
+      !!(gu && gu.ok && gu.estudioId), 'guardar=' + JSON.stringify(gu)]);
+    if (gu && gu.ok) {
+      __t.nuevoEstudio();
+      await esperar(400);
+      __t.reabrir(gu.estudioId);
+      await esperar(700); barrer(); await esperar(400);
+      ex.push(['(F) al reabrir, el estudio conserva sus valores y el modulo los refleja',
+        V('siv') === '13' && V('ppvi') === '11' && V('ddfvi') === '44' && V('tapse') === '18'
+          && V('rwt-septo') === '13' && V('tapse-val') === '18',
+        'estudio=' + V('siv') + '/' + V('ppvi') + '/' + V('ddfvi') + '/' + V('tapse') +
+        ' modulo=' + V('rwt-septo') + '/' + V('tapse-val')]);
+      try { await __t.borrar(gu && gu.estudioId); } catch (e) {}
+    }
+
+    /* ══ (G) EL CAMPO A MEDIO ESCRIBIR NO SE PROPAGA NI SE BORRA ═════════════════════════
+       Un «-» solo todavia no es un numero. Escribirlo como vacio borraria el dato del paciente
+       mientras el medico pone el signo, y vaciarlo desde el reflejo le comeria el guion: medido,
+       el barrido se lo llevaba 220 ms despues y habia que empezar de nuevo. */
+    __t.limpiar();
+    poner('sgl', '-20');
+    await esperar(400); barrer(); await esperar(250);
+    tecla('sgl-val', '-');
+    const appTrasGuion = V('sgl');
+    await esperar(500); barrer(); await esperar(300);
+    ex.push(['(G1) un «-» solo en el modulo NO borra el dato del estudio',
+      appTrasGuion === '-20', 'sgl=' + JSON.stringify(appTrasGuion)]);
+    ex.push(['(G2) y el barrido NO le come el guion al medico',
+      V('sgl-val') === '-', 'sgl-val=' + JSON.stringify(V('sgl-val'))]);
+    tecla('sgl-val', '-1');
+    await esperar(400);
+    ex.push(['(G3) completado el numero, SI llega: el estudio queda en -1',
+      V('sgl') === '-1', 'sgl=' + V('sgl')]);
+
+    /* ══ (H) EL CRITERIO DESTILDADO A MANO SE SIGUE RESPETANDO ══════════════════════════ */
+    __t.limpiar();
+    poner('siv', '18'); poner('ppvi', '12'); poner('ddfvi', '45');
+    await esperar(500); barrer(); await esperar(250);
+    const puntosAuto = String((EL('ett-rwt') || {}).value);
+    try { if (F('amOrigenSet')) amOrigenSet('rwt', 'nomanual'); } catch (e) {}
+    const ho = EL('ett-rwt-orig'); if (ho) ho.value = 'nomanual';
+    const hp = EL('ett-rwt'); if (hp) hp.value = '0';
+    tecla('rwt-septo', '19');
+    await esperar(500); barrer(); await esperar(300);
+    ex.push(['  DENOMINADOR E: con 18/12/45 el criterio se habia marcado solo',
+      puntosAuto === '3', 'puntos=' + puntosAuto]);
+    ex.push(['(H1) destildado a mano sigue destildado aunque el dato cambie por el modulo',
+      String((EL('ett-rwt') || {}).value) === '0', 'puntos=' + String((EL('ett-rwt') || {}).value)]);
+    ex.push(['(H2) y el gesto igual llego al estudio: 19',
+      V('siv') === '19', 'siv=' + V('siv')]);
 
     return { extra: ex };
   })();

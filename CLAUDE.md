@@ -1045,3 +1045,94 @@ línea: el archivo creció y un informe de auditoría viejo apunta a otro archiv
   **`v20261028-0322`**, md5 **`103b7e0d`**.
 - **Dónde está todo:** `docs/mapa/d-cardioonco-amiloidosis.md` § 6, la ficha de TC-542 en
   `docs/mapa/tests-fichas-540.md`, y `docs/PENDIENTES.md` → **D-l** y **D-m**.
+
+### Un dato, dos puertas, gana la última edición — «D-11» (2026-10-28)
+
+- **UN commit sobre el HEAD del D-10 (`954ee14`).** Al empezar, `origin/main` = `HEAD` =
+  **`954ee14`**: los diez commits de la tanda D, el D-9 y el D-10 **ya están publicados**,
+  verificado. **El push lo corre Maicol: esta corrección tenía orden expresa de NO pushear.**
+
+- **DE LOS TRES HALLAZGOS NUEVOS, DOS ERAN LA MISMA REGLA Y EL TERCERO ES DE LA PANTALLA.** Medido
+  tecla por tecla en los **ocho** datos compartidos antes de tocar nada.
+
+- **EL MODELO CAMBIÓ, Y ES DECISIÓN DE MAICOL: revierte la regla del D-10.** Un dato vive en el
+  campo del estudio, se edita por dos puertas y **gana la última edición**. Lo que el médico teclea
+  o borra dentro de un campo del módulo va al estudio **tecla por tecla y completo, el vacío
+  incluido**, aunque el estudio ya tuviera otro valor. Lo automático sigue sin escribir **nada**
+  —eso es del D-9 y no se movió—, y está medido por cinco caminos: el barrido, el marcado del
+  score, los recálculos, el cambio de pestaña y la carga de un estudio guardado.
+
+- **LA CAUSA DE LOS DOS PRIMEROS: `if (va === null || nuestro)`.** Con el estudio ya cargado, nada
+  de lo tecleado en el calculador llegaba. Y el borrado era peor que no llegar: al vaciar el campo
+  del módulo la escritura salía temprano **y borraba la marca de desacuerdo**, con lo que el reflejo
+  quedaba libre para repoblar el campo en la pasada siguiente. El médico lo describió exacto: «se
+  borra sólo la primera cifra».
+
+- ⚠️ **EL TERCERO ERA LA ETIQUETA DEL BOTÓN VIOLETA, Y LA PINTABA SÓLO EL CLIC.** Borrados los tres
+  espesores en AI/VI, el espesor relativo se vaciaba, el criterio se destildaba, el cartel de HVI se
+  iba y el score bajaba —todo correcto— y el botón seguía anunciando `0.58` en violeta. Hoy la
+  repinta `amCalcLabelSync` en **cada** recálculo, y **antes de las salidas tempranas**, porque la
+  etiqueta muestra el valor medido y no la marca.
+
+- ⚠️ **EL `id` DEL CAMPO EDITADO NO ES DECORATIVO, Y SIN ÉL EL MODELO NUEVO SE DESHACE SOLO.** `siv`
+  y `ppvi` tienen **DOS** campos de módulo cada uno, así que recorrer el registro entero escribiendo
+  todo lo que tuviera valor deshacía el gesto en el acto: el 1 tecleado en el encabezado iba a `siv`
+  y, dos entradas después, el 14 que el espesor relativo todavía mostraba lo volvía a pisar.
+
+- **UN CAMPO A MEDIO ESCRIBIR NO SE PROPAGA NI SE VACÍA, Y LA REGLA ES LA MISMA DE LOS DOS LADOS.**
+  Un «−» solo todavía no es un número. Medido: tecleando «−12» con una pausa después del guión, el
+  barrido se lo llevaba 220 ms más tarde y había que empezar de nuevo.
+
+- **TRES PARTES SE PARARON Y SE REPORTARON**: los tres campos del encabezado del módulo, que siguen
+  en un solo sentido porque autollenarlos metería la frase de la miocardiopatía hipertrófica en el
+  informe de cualquier estudio con el septo cargado (→ **D-p**); el `e′` promedio, único de los ocho
+  sin camino de vuelta (→ **D-o**); y el botón «↓ Traer del formulario» (→ **D-q**).
+
+- ⚠️ **EL BOTÓN «↓ TRAER DEL FORMULARIO» QUEDÓ SIN TRABAJO, Y ADEMÁS AVISA AL REVÉS.** Medido con
+  los ocho datos cargados: `amAutoLlenar` devuelve **false** en los cuatro criterios que lo tienen
+  —no hay nada vacío que llenar— y de **22** valores fotografiados **no cambia ninguno**. Y como
+  devuelve false, el botón muestra «⚠️ No hay datos suficientes cargados» **justo cuando están todos
+  cargados**. Es el punto 3 y no se tocó: retirar un control o reescribir su mensaje es decisión de
+  Maicol.
+
+- ⚠️ **TC-543 SE COLGÓ 27 MINUTOS A 0 % DE CPU, Y LA CAUSA ERA MÍA.** `guardarInforme` tiene una
+  salida temprana: **sin nombre ni documento del paciente avisa por `toast` y hace `return` sin
+  llamar al callback**, así que la promesa del helper de guardado no resuelve nunca. Mi escena no
+  ponía nombre. Dos arreglos y los dos hacen falta: el nombre, y un **reloj** sobre esa promesa.
+  Y ⚠️ **las marcas de progreso dentro de `ex` no sirven para diagnosticar un cuelgue**: el arnés
+  sólo las imprime cuando el caso **devuelve**. Lo que sirvió fue bisecar con un `return` temprano.
+
+- **TRES CONDICIONES NACIERON DE MUTACIONES QUE SOBREVIVIERON, y las tres por el mismo motivo —el
+  control miraba un solo camino—:** la **flecha** del botón (las otras condiciones la recortaban),
+  el control del **espesor relativo** (los de automatismo miraban sólo el TAPSE, así que
+  reintroducir la escritura dentro de `calcRWT` —el defecto que cerró el D-9— no rompía nada) y la
+  **marca de espejo** en «Nuevo estudio». **14/14 muertas** tras cerrarlas, en worktree y nunca
+  sobre el vivo, con guarda de md5.
+
+- **CINCO CASOS VIEJOS ADAPTADOS, cada uno con el motivo escrito**: **TC-540 (F5)**, **TC-541 (E2)**
+  y **TC-542 (H6c)**, **(H6e)** y **(H6h)** —ésta además cambió de premisa, porque el desacuerdo que
+  montaba ya no se puede montar—, y **(H6i) se retiró** junto con el permiso que medía.
+
+- **A/B contra el HEAD del D-10: 703 claves comparadas y UNA diferencia**, el identificador generado
+  del estudio de prueba. Informe en tres estilos, EN SUMA, las 440 columnas de Excel clave por
+  clave, el PDF y los campos: **cero**.
+- ⚠️ **LA SUITE COMPLETA QUEDÓ PENDIENTE, Y ESO ES LO PRIMERO QUE HAY QUE SABER DE ESTA ENTRADA.**
+  Maicol tuvo que cortar —se llevaba la computadora y el pendrive— con **9 de los 11 lotes**
+  terminados: **495 casos corridos, 491 verdes y 4 rojos**, que son **TC-223, TC-376, TC-390 y
+  TC-406**, los cuatro de siempre. **Ningún rojo nuevo en los 495.** Faltan los lotes **10 y 11**
+  —63 casos, `TC-481` a `TC-543` más los quince `TC-GR`— y la repetición del lote de **TC-358**.
+  El pendrive estuvo **montado y listando nombres reales al abrir y entre los nueve lotes**, y el
+  md5 de `index.html` no cambió durante la corrida. → `PENDIENTES.md` **D-r**, con el comando.
+- **Lo que SÍ está medido y cerrado:** Semgrep **124 WARNING / 0 ERROR**; censo **1025**, 0
+  huérfanos; celular **63 a 360 px y 72 a 390, 17 ALTA en cada ancho** — idénticos a la base; los
+  casos de la zona **8/8 en verde**; **14/14 mutaciones muertas** con guarda de md5; y los cinco
+  casos viejos adaptados.
+- **CHROME Y WEBKIT COINCIDEN EN LOS OCHO CRUCES, valor por valor**: 17/17 pestañas con caja, cero
+  scroll horizontal, cero textos recortados y **cero errores de consola y de página en los dos
+  motores**. Escribir no se volvió más lento: media **0,14 a 0,19 ms** contra 0,12 a 0,22 del D-10.
+  ⚠️ **WebKit de Playwright no es Safari, y se declara.**
+- **`index.html` pasó de 9,86 MB / 138.867 líneas a 9,86 MB / 138.889.** Sello **`v20261028-1137`**.
+
+- **Dónde está todo:** `docs/mapa/d11-dos-puertas.md` (**mapa NUEVO**, 5,1 KB), el puntero en
+  `docs/mapa/d-cardioonco-amiloidosis.md` § 7, la ficha de TC-543 en
+  `docs/mapa/tests-fichas-540.md`, y `docs/PENDIENTES.md` → **D-o**, **D-p** y **D-q**.

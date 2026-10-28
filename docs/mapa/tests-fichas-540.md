@@ -162,3 +162,54 @@ condiciones verdes adentro.
 ⚠️ **Acentos graves: la quinta vez.** Dos de mis comentarios dentro del template de la sonda
 llevaban nombres entre acentos graves y el archivo dejó de parsear con un `SyntaxError` que apunta
 a otra línea. Contarlos antes de insertar, no después.
+
+---
+
+## TC-543 — un dato, dos puertas, gana la última edición (D-11)
+
+**Veintisiete condiciones, SEIS de ellas denominadores**, y **cae en seis** contra el HEAD del D-10.
+
+| Grupo | Qué exige |
+|---|---|
+| DENOM A | existen los campos de las dos puertas y los nodos de lo derivado |
+| DENOM B | el módulo recibió cada dato del estudio **antes** del gesto |
+| (A) | lo tecleado en el módulo llega al estudio **tecla por tecla** y **pisa** lo que había, en los ocho datos |
+| (B) | el retroceso también llega: queda «1» y después **vacío en los dos lados** |
+| (C) | lo cargado en AI/VI se ve en el calculador |
+| DENOM C · (D1) | el botón violeta anuncia el valor **sin que nadie lo abra** |
+| (D2) (D3) | borrados los tres, el botón vuelve a «Calcular» y el espesor, el cartel y el score quedan vacíos |
+| (D4) (D5) | la flecha sigue diciendo si el acordeón está abierto, y la etiqueta sigue al dato igual |
+| (E1) (E2) (E3) | **controles**: el barrido, los recálculos y el cambio de pestaña **no** escriben |
+| (E4) | **control por el camino del espesor relativo**, no sólo por el del TAPSE |
+| DENOM F · (E5) | la marca de espejo **no** sobrevive a «Nuevo estudio» |
+| DENOM D · (F) | abrir un estudio guardado no escribe nada y el módulo lo refleja |
+| (G1) (G2) (G3) | un «−» solo no borra el dato ni se lo come el barrido, y completado **sí** llega |
+| DENOM E · (H1) (H2) | el criterio destildado a mano se respeta, y el gesto igual llega al estudio |
+
+### Lo que costó
+
+⚠️ **El caso se colgó 27 minutos a 0 % de CPU, y la causa era MÍA.** `guardarInforme` tiene una
+salida temprana: **sin nombre ni documento del paciente avisa por `toast` y hace `return` sin
+llamar al callback**, así que la promesa del helper de guardado no resuelve nunca. Mi escena no
+ponía nombre. Dos arreglos, y los dos hacen falta: el nombre, y un **reloj** sobre esa promesa —un
+caso que se cuelga no es un caso rojo, es un caso que no corre, y en un lote se lleva puesto todo
+lo que viene después.
+⚠️ **Y la tarjeta de confirmación de severidades se busca varias veces, no una.** El helper la
+clickea justo después de pedir el guardado; si aparece un instante más tarde, ese clic no la
+encuentra.
+
+⚠️ **Las marcas de progreso dentro de `ex` no sirven para diagnosticar un cuelgue**: el arnés sólo
+las imprime cuando el caso **devuelve**. Lo que sirvió fue bisecar con un `return` temprano.
+
+⚠️ **Tres condiciones nacieron de mutaciones que sobrevivieron**, y las tres por el mismo motivo
+—el control miraba un solo camino—: la **flecha** del botón (las otras condiciones la recortaban),
+el control del **espesor relativo** (los de automatismo miraban sólo el TAPSE, así que reintroducir
+la escritura dentro de `calcRWT` no rompía nada) y la **marca de espejo** en «Nuevo estudio».
+
+⚠️ **La expectativa del `e′` promedio estaba al revés en la primera versión.** Es el único de los
+ocho sin camino de vuelta: al teclear ahí el módulo **conserva** lo tecleado y el estudio no cambia;
+al vaciarlo, el reflejo lo repuebla. Escrito como si fuera de dos puertas, daba rojo sobre el
+comportamiento correcto.
+
+⚠️ **Acentos graves: la séptima vez.** Dos comentarios nuevos llevaban nombres entre acentos graves
+y el archivo dejó de parsear con un `SyntaxError` que apunta a otra línea.

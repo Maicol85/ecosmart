@@ -59554,20 +59554,19 @@ function limpiarCampos(silencioso) {
      app había copiado ella misma. El daño es de auditabilidad hoy y de comportamiento el día que
      `~` y `=` se traten distinto. */
   /* ⚠️ Y LAS DOS MARCAS DEL MÓDULO DE AMILOIDOSIS (D-10) ENTRAN ACÁ, que es donde este archivo
-     ya decía que tenían que entrar. `amilo-esc` es el permiso del módulo para pisar un campo del
-     estudio que él mismo escribió, y `amilo-propio` es el desacuerdo entre lo que el médico midió
-     en el calculador y lo que hay cargado en el estudio. Las dos nacieron en esta corrección y las
-     dos viven en el nodo, así que sin esta línea sobrevivían a «Nuevo estudio» y mandaban sobre el
-     paciente SIGUIENTE: en una máquina compartida eso es el dato de otro paciente decidiendo. Lo
-     cazó TC-541 corriendo después de TC-542 en el mismo lote —verde aislado, rojo en el lote—, que
-     es exactamente la fuga que el párrafo de arriba cuenta. La primera versión del arreglo las
-     limpiaba desde el barrido de espejos, que es otro mecanismo para el mismo trabajo; esta es la
-     única puerta y es la que el archivo ya tenía. */
-  document.querySelectorAll('[data-derivado-de],[data-sugerido],[data-espejo-de],[data-espejo-vivo],[data-espejo-inferido],[data-params-disc],[data-grado-volum],[data-fuera-banda],[data-amilo-esc],[data-amilo-propio]').forEach(el => {
+     ya decía que tenían que entrar. `data-espejo` dice que ese insumo del calculador lo trajo el
+     reflejo y no lo midió el médico ahí. Vive en el nodo, así que sin esta línea sobrevivía a
+     «Nuevo estudio» y mandaba sobre el paciente SIGUIENTE: en una máquina compartida eso es el
+     dato de otro paciente decidiendo. Lo cazó TC-541 corriendo después de TC-542 en el mismo lote
+     —verde aislado, rojo en el lote—, que es exactamente la fuga que el párrafo de arriba cuenta.
+     ⚠️ ACÁ ENTRARON TAMBIÉN `amilo-esc` Y `amilo-propio`, las dos marcas del D-10, y las dos se
+     RETIRARON en el D-11 junto con las reglas que las leían: con «gana la última edición» no hay
+     permiso que guardar ni desacuerdo que conservar. */
+  document.querySelectorAll('[data-derivado-de],[data-sugerido],[data-espejo-de],[data-espejo-vivo],[data-espejo-inferido],[data-params-disc],[data-grado-volum],[data-fuera-banda],[data-espejo]').forEach(el => {
     delete el.dataset.derivadoDe; delete el.dataset.sugerido; delete el.dataset.espejoDe;
     delete el.dataset.espejoVivo; delete el.dataset.espejoInferido;
     delete el.dataset.paramsDisc; delete el.dataset.gradoVolum;
-    delete el.dataset.amiloEsc; delete el.dataset.amiloPropio;
+    delete el.dataset.espejo;
     /* ⚠️ EL SELECTOR Y EL CUERPO SON DOS LISTAS, y agregar la marca a UNA SOLA es un no-op
        COMPLETO: nadie mas borra este atributo en toda la app. Asi entro —con la entrada en el
        selector de arriba y sin este `delete`— y la fuga sobrevivio a su propio caso, porque el
@@ -96197,6 +96196,28 @@ function amCalcLabel(k) {
   return v || 'Calcular';
 }
 
+/* ══ LA ETIQUETA DEL BOTÓN SE REPINTA EN CADA CAMBIO, NO SÓLO AL ABRIRLO (D-11) ═══════════════
+   Hasta acá la etiqueta la escribía `amCalcToggle`, que corre SÓLO cuando el médico toca el
+   botón. Así que el valor quedaba congelado: borrados los tres espesores en AI/VI, el espesor
+   relativo se vaciaba, el criterio se destildaba, el cartel de HVI se iba y el score bajaba —todo
+   correcto— y el botón seguía anunciando el número viejo, en violeta, como si el dato estuviera.
+   Medido: `0.58 ▴` con `rwt-result` ya vacío y el criterio en «—».
+   Esta función deja la etiqueta valiendo lo que dice el dato, conservando si el acordeón está
+   abierto o cerrado, y la llaman los dos únicos lugares por donde pasa cada recálculo de un
+   criterio: `amAplicarCalc` y `amCalcSinDato`. */
+function amCalcLabelSync(k) {
+  var box = document.getElementById('calc-' + k);
+  var btn = document.getElementById('calcbtn-' + k);
+  if (!box || !btn) return;
+  var abierto = !box.hasAttribute('hidden');
+  var val = amCalcLabel(k);
+  btn.textContent = val + (abierto ? ' ▴' : ' ▾');
+  btn.title = (val === 'Calcular') ? 'Calcular este criterio'
+                                   : 'Valor cargado: ' + val + ' — tocá para ver o editar';
+  btn.classList.toggle('con-valor', val !== 'Calcular');
+}
+window.amCalcLabelSync = amCalcLabelSync;
+
 // abrir undefined = alternar.
 function amCalcToggle(k, abrir) {
   var box = document.getElementById('calc-' + k);
@@ -96268,6 +96289,11 @@ function amAplicarCalc(k, cumple, pts) {
   var crit  = document.getElementById('crit-' + k);
   var input = document.getElementById('ett-' + k);
   var chk   = document.getElementById('chk-' + k);
+  /* ⚠️ VA ANTES DE TODA SALIDA TEMPRANA, Y ESO ES EL PUNTO: la etiqueta muestra el VALOR MEDIDO,
+     no la marca. Un criterio tildado a mano sale por el `return` de abajo sin tocar la marca
+     —que es lo correcto— pero su medición pudo cambiar igual, y es justamente el caso que el
+     comentario de `amCalcLabel` cuenta: un TAPSE de 25 con «TAPSE ≤ 19» marcado a mano. */
+  amCalcLabelSync(k);
   if (!crit || !input || !chk) return;
   /* Las DOS decisiones de una persona se respetan: `'manual'` (la marcó) y `'nomanual'` (la
      sacó). Antes sólo la primera, y con el marcado automático en vivo eso revivía lo destildado. */
@@ -96310,6 +96336,8 @@ window.amMarcaTitulo = amMarcaTitulo;
 // inocuo, así que la guarda correcta es la explícita.
 function amCalcSinDato(k) {
   var crit = document.getElementById('crit-' + k);
+  /* Ídem: sin dato la etiqueta vuelve a «Calcular» aunque la marca sea de una persona. */
+  amCalcLabelSync(k);
   if (!crit || crit.dataset.origen === 'manual') return;
   var input = document.getElementById('ett-' + k);
   var chk   = document.getElementById('chk-' + k);
@@ -96446,6 +96474,11 @@ var _amiloEspejoCorriendo = false;
    maquinaria había traído del estudio, deja de ser un reflejo y pasa a ser una medición propia:
    sin esto, la siguiente pasada se lo pisaría con el valor del estudio. */
 function amiloGestoEnModulo(id) {
+  /* ⚠️ EL ID NO ES DECORATIVO (D-11): la escritura toca SÓLO el campo que el médico acaba de
+     editar. `siv` y `ppvi` tienen DOS campos de módulo cada uno —el del encabezado y el del
+     espesor relativo—, así que recorrer el registro entero y escribir todo lo que tuviera valor
+     deshacía el gesto en el acto: tipear un 1 en el encabezado escribía el 1 en `siv` y, dos
+     entradas después, el 14 que el espesor relativo todavía mostraba lo volvía a pisar. */
   var e = id ? document.getElementById(id) : null;
   /* El gesto borra la marca de espejo: lo que el médico escribe acá deja de ser un reflejo.
      ⚠️ TAMBIÉN BORRABA LA DE DESACUERDO, Y LA SACÓ OTRA MUTACIÓN QUE SOBREVIVIÓ. La escritura
@@ -96453,72 +96486,63 @@ function amiloGestoEnModulo(id) {
      quita si escribe o si los dos valores coinciden. Borrarla acá además era adelantarse al
      veredicto. */
   if (e && e.dataset) delete e.dataset.espejo;
-  amiloEspejoHaciaApp();
+  amiloEspejoHaciaApp(id);
 }
 window.amiloGestoEnModulo = amiloGestoEnModulo;
 
-function amiloEspejoHaciaApp() {
+function amiloEspejoHaciaApp(id) {
   /* ⚠️ GUARDA DE REENTRADA. Esta función despacha `input` sobre el campo del estudio, y ese
      evento corre los manejadores de la otra pestaña; si alguno de ellos llegara a `calcETT` o a
      un `calc*` del módulo, volveríamos acá con el trabajo a medias. Sin la guarda el ciclo es
      silencioso: no tira error, sólo deja valores intermedios. */
   if (_amiloEspejoCorriendo) return;
   _amiloEspejoCorriendo = true;
-  try { _amiloEspejoHaciaAppCuerpo(); } finally { _amiloEspejoCorriendo = false; }
+  try { _amiloEspejoHaciaAppCuerpo(id); } finally { _amiloEspejoCorriendo = false; }
 }
-function _amiloEspejoHaciaAppCuerpo() {
-  var discrep = [];
-  amiloEspejos().forEach(function (e) {
-    var mod = document.getElementById(e.mod);
-    var vm = _amiloNum(e.mod);
-    if (vm === null) { if (mod && mod.dataset) delete mod.dataset.amiloPropio; return; }
-    var destino = document.getElementById(e.app);
-    if (!destino) return;
-    var va = _amiloNum(e.app);
-    var mismo = (va !== null) && (e.abs ? Math.abs(va) === Math.abs(vm) : va === vm);
-    /* ══ LO ÚLTIMO QUE ESCRIBIÓ ESTE MÓDULO, Y POR QUÉ HACE FALTA SABERLO (D-10) ═════════════
-       El médico escribe «15» en un campo del módulo con el campo del estudio vacío. El primer
-       dígito llega como el número 1 y se escribe: el estudio queda en 1. El segundo llega como
-       el número 15 y entonces la regla «no pisar un valor distinto ya cargado» leía ese 1 —que
-       lo había puesto esta misma función medio segundo antes— como un valor del médico y se
-       negaba a pisarlo: **el estudio se quedaba con el primer dígito**. Medido en el D-8 y en el
-       D-9; antes de la tanda D no pasaba porque el módulo no escribía nada.
-       La marca `amiloEsc` vive en el campo del ESTUDIO y guarda lo último que este módulo
-       escribió ahí. Pisar lo propio está permitido; pisar lo del médico, no. Y la marca VIVE EN
-       EL NODO, así que una recarga la borra sola y no autoriza nada del paciente anterior: si el
-       médico edita el campo a mano, el valor deja de coincidir con la marca y la autorización se
-       cae por sí misma, sin necesidad de limpiarla en ninguna otra ruta. */
-    var ult = (destino.dataset ? destino.dataset.amiloEsc : '') || '';
-    var nUlt = ult === '' ? null : parseFloat(ult);
-    var nuestro = (va !== null) && nUlt !== null && isFinite(nUlt) &&
-                  (e.abs ? Math.abs(va) === Math.abs(nUlt) : va === nUlt);
-    if (va === null || nuestro) {
-      /* ⚠️ EL STRAIN SE ESCRIBE NEGATIVO, que es la convención del campo del estudio: su línea de
-         referencia del Laboratorio es `ref:-20`, así que un +12 queda del lado sano de una
-         referencia que es negativa. Medido: el A/B publicaba «GLS (%) 12» en el Excel con el
-         módulo en −12. Se compara por valor absoluto y se escribe con el signo del destino. */
-      destino.value = e.abs ? -Math.abs(vm) : vm;
-      if (destino.dataset) destino.dataset.amiloEsc = String(destino.value);
-      destino.dispatchEvent(new Event('input', { bubbles: true }));
-      destino.dispatchEvent(new Event('change', { bubbles: true }));
-      if (mod && mod.dataset) delete mod.dataset.amiloPropio;
-    } else if (!mismo) {
-      discrep.push(e.lbl + ' (acá ' + vm + ', en el estudio ' + va + ')');
-      /* ⚠️ Y SE MARCA EL CAMPO DEL MÓDULO, porque si no el reflejo lo pisaría enseguida. Es un
-         valor que el médico midió ACÁ y que el estudio rechazó por tener otro cargado a mano:
-         la app no puede escribirlo en el estudio —eso lo prohíbe la regla de arriba— pero
-         tampoco puede borrárselo de la pantalla. Queda el desacuerdo, que es lo que la nota
-         automática del módulo nombra. La marca NO se persiste: nace de un gesto, así que una
-         recarga no la puede fabricar, y por eso el reflejo manda después de recargar. */
-      if (mod && mod.dataset) mod.dataset.amiloPropio = '1';
-    } else if (mod && mod.dataset) {
-      /* Coinciden: no hay nada que escribir y no hay desacuerdo que conservar. NO se reclama la
-         marca `amiloEsc` acá: coincidir no es haberlo escrito, y reclamarlo dejaría que el
-         siguiente dígito pisara un valor que el médico cargó en el estudio. */
-      delete mod.dataset.amiloPropio;
-    }
-  });
-  _AMILO_DISCREP = discrep;
+function _amiloEspejoHaciaAppCuerpo(id) {
+  /* ══ UN DATO, DOS PUERTAS, GANA LA ÚLTIMA EDICIÓN — decisión de Maicol, D-11 ════════════════
+     Lo que el médico escribe o borra en un campo del módulo va al campo del estudio TECLA POR
+     TECLA y COMPLETO, el vacío incluido, aunque el estudio ya tuviera otro valor. Es un gesto
+     explícito: si el estudio decía 21 y el médico escribe 15 en el calculador, queda 15.
+
+     ⚠️ ACÁ VIVÍA LA REGLA DE «NO PISAR», Y ERA LA CAUSA DE DOS DEFECTOS. Escribía sólo si el
+     campo del estudio estaba vacío o si tenía lo último que este módulo había puesto ahí.
+     Medido en los OCHO datos compartidos: con el estudio ya cargado, tipear en el calculador
+     no llegaba NUNCA al estudio —el 1 y el 15 quedaban sólo en el módulo—, y al borrar el
+     último dígito el reflejo repoblaba el campo con el valor del estudio, que es lo que el
+     médico vio como «se borra sólo la primera cifra».
+
+     ⚠️ Y SIGUE SIENDO EL ÚNICO CAMINO DE ESCRITURA HACIA EL ESTUDIO. Nada automático escribe:
+     ni el marcado del score, ni los recálculos, ni el barrido de espejos, ni la recarga, ni el
+     cambio de pestaña, ni la carga de un estudio guardado. Eso es del D-9 y no se movió. */
+  if (!id) return;                                   // sin gesto no hay escritura
+  var e = null;
+  try { e = (amiloEspejos() || []).filter(function (x) { return x.mod === id; })[0]; }
+  catch (x) { return; }
+  if (!e) return;                                    // el campo no tiene contraparte en el estudio
+  var destino = document.getElementById(e.app);
+  var mod = document.getElementById(e.mod);
+  if (!destino || !mod) return;
+  var vm = _amiloNum(e.mod);
+  var crudo = String(mod.value || '').trim();
+  /* ⚠️ EL CAMPO A MEDIO ESCRIBIR NO SE PROPAGA COMO VACÍO. Un «-» solo, o un «1e», son texto
+     que todavía no es un número: escribirlos como vacío en el estudio borraría el dato del
+     paciente mientras el médico está tipeando el signo. Vacío de verdad SÍ se propaga, porque
+     borrar es un gesto. */
+  if (vm === null && crudo !== '') return;
+  /* ⚠️ EL STRAIN SE ESCRIBE NEGATIVO, que es la convención del campo del estudio: su línea de
+     referencia del Laboratorio es `ref:-20`, así que un +12 queda del lado sano de una
+     referencia que es negativa. Medido: el A/B publicaba «GLS (%) 12» en el Excel con el
+     módulo en −12. */
+  var nuevo = (vm === null) ? '' : (e.abs ? -Math.abs(vm) : vm);
+  if (String(destino.value) === String(nuevo)) return;   // nada que mover, y sin eventos de más
+  destino.value = nuevo;
+  destino.dispatchEvent(new Event('input', { bubbles: true }));
+  destino.dispatchEvent(new Event('change', { bubbles: true }));
+  /* El desacuerdo entre el módulo y el estudio dejó de ser posible para estos campos: la última
+     edición manda y los dos lados terminan con el mismo número. La lista queda, vacía, porque
+     la nota del módulo la lee y porque nombrar un desacuerdo que no existe sería peor. */
+  _AMILO_DISCREP = [];
   amiloNotaAutoPintar();
 }
 window.amiloEspejoHaciaApp = amiloEspejoHaciaApp;
@@ -96582,22 +96606,21 @@ function _amiloReflejarDesdeApp() {
          calculador de un estudio recién empezado. Es de la tanda D (D-3/D-8), no del D-9: la
          versión del D-8 tenía la MISMA guarda.
          El campo del ESTUDIO es el dueño, así que el reflejo manda siempre, salvo: */
-      /* 1. es un valor que el médico midió acá y que el estudio RECHAZÓ por tener otro cargado
-            a mano. No se puede escribir en el estudio ni borrar de la pantalla: queda el
-            desacuerdo, que la nota automática nombra. La marca nace de un gesto y no se
-            persiste, así que una recarga no la fabrica.
-            ⚠️ ACÁ HABÍA ADEMÁS UNA GUARDA DE FOCO —no pisar el campo que el médico está
-            tipeando— Y LA SACÓ UNA MUTACIÓN QUE SOBREVIVIÓ. Era inalcanzable: la escritura
-            hacia el estudio corre en el `oninput`, o sea ANTES de que el barrido pueda correr,
-            así que al llegar la primera pasada el campo ya tiene su veredicto —escrito en el
-            estudio, o marcado como desacuerdo— y esta misma línea lo protege. Dos mecanismos
-            para el mismo trabajo son los que en el D-9 dejaron cuatro mutaciones vivas. */
-      /* ⚠️ ACÁ PEDÍ ADEMÁS QUE EL CAMPO NO ESTUVIERA VACÍO, Y LO SACÓ UNA MUTACIÓN QUE
-            SOBREVIVIÓ: era un tercer mecanismo para el mismo trabajo. Dentro de un estudio la
-            marca implica campo con valor —la escritura la borra en cuanto el insumo queda
-            vacío— y entre estudios la borra `limpiarCampos` por su lista cerrada de marcas,
-            que es donde este archivo dice que hay que anotarlas. */
-      if (el.dataset.amiloPropio === '1') return;
+      /* 1. EL CAMPO ESTÁ A MEDIO ESCRIBIR: tiene texto que todavía no es un número —un «-» solo,
+            un «1e»—. Vaciarlo ahí le borra al médico el signo que acaba de poner, y medido pasa
+            de verdad: tecleando «−12» en el strain con una pausa después del guión, el barrido se
+            llevaba el guión 220 ms más tarde y había que empezar de nuevo. Es exactamente la
+            misma condición con la que la escritura decide no propagar un campo a medio escribir,
+            y por eso se escribe igual de los dos lados: lo que no es un número todavía no es un
+            dato, en ninguna de las dos direcciones. */
+      var crudoMod = String(el.value || '').trim();
+      if (crudoMod !== '' && isNaN(PF(crudoMod))) return;
+      /* ⚠️ ACÁ ESTABA LA REGLA DEL DESACUERDO, Y SE FUE CON EL MODELO NUEVO (D-11). Protegía
+            un valor que el médico había medido en el calculador y que el estudio RECHAZABA por
+            tener otro cargado a mano. Desde que la última edición manda, el estudio no rechaza
+            nada: el gesto del módulo escribe, los dos lados quedan con el mismo número y no hay
+            desacuerdo que conservar. Mantenerla habría dejado un campo protegido contra un
+            reflejo que ya no lo contradice. */
       /* 3. no tiene camino de vuelta al estudio y ya tiene algo escrito que no puso esta
             maquinaria. Hoy eso es UN campo, el `e′` promedio: su fuente son `e′` septal y
             lateral, y un promedio no se reparte en dos mediciones sin inventarlas, así que lo
@@ -96616,7 +96639,6 @@ function _amiloReflejarDesdeApp() {
          reflejo de una medición propia para la regla 2—; y la de desacuerdo se va, porque si el
          reflejo llegó hasta acá es que no había desacuerdo que conservar. */
       if (vacio) delete el.dataset.espejo; else el.dataset.espejo = '1';
-      delete el.dataset.amiloPropio;
     });
   });
 }
@@ -135923,8 +135945,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261028-0322';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793168579149;                 /* eco-build-ms */
+const ECO_BUILD    = '20261028-1137';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793198249800;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -136010,7 +136032,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261028-0322</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261028-1137</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

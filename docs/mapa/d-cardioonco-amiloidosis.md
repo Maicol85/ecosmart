@@ -437,3 +437,25 @@ El `e′` promedio sigue siendo el único insumo con fuente y **sin** camino de 
 se reparte en dos mediciones sin inventarlas, así que lo que el médico escriba ahí no tiene dónde
 vivir si se lo pisa. El reflejo no lo toca cuando tiene algo que no puso esta maquinaria. Queda
 declarado en `PENDIENTES.md` → **D-l**.
+
+---
+
+## 7 · La corrección D-11 — un dato, dos puertas, gana la última edición
+
+El médico probó los diez pasos de la guía del D-10 y encontró tres cosas más. **Las dos primeras
+eran la misma regla; la tercera es de la pantalla.** El modelo cambió por decisión de Maicol y
+**revierte** la regla del D-10 según la cual el gesto del módulo no podía pisar un valor cargado a
+mano en el estudio.
+
+**Está todo en `docs/mapa/d11-dos-puertas.md`** (mapa nuevo, 5,1 KB) — la tabla de los cinco
+hallazgos con su causa medida, el modelo en tres filas, qué cambió, qué quedó parado y reportado
+(`D-p`, los tres campos del encabezado) y la medición del botón «↓ Traer del formulario» (`D-q`).
+Salió a archivo propio porque este mapa estaba en **25,4 KB** y una sección más lo acerca al techo
+de 35 KB que este repo ya cruzó cuatro veces.
+
+En una línea: la escritura módulo → estudio toma el **`id` del campo editado** y toca sólo ése
+—`siv` y `ppvi` tienen dos campos de módulo cada uno—, escribe **tecla por tecla** y **el vacío
+incluido**, y se fueron las dos marcas del D-10 (`amiloEsc` y `amiloPropio`) con las reglas que las
+leían. En la lista cerrada de «Nuevo estudio» quedó **`data-espejo`**, que es la que sigue viva.
+La etiqueta del botón violeta la repinta `amCalcLabelSync`, que corre en **cada** recálculo y no
+sólo al tocar el botón.

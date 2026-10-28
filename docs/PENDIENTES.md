@@ -8762,3 +8762,141 @@ que son las dos listas que el archivo advierte hay que tocar juntas. Es una lín
 después hay que correr la suite completa: TC-541 y TC-542 miden esa marca en varias condiciones.
 Quedó afuera porque llegó al final de la verificación y meterla habría exigido rehacer las cinco
 rondas de mutación, el A/B, los dos motores y los once lotes.
+
+---
+
+# Corrección D-11 (2026-10-28)
+
+## D-o · El `e′` promedio es el único de los ocho datos que no tiene dos puertas — SOLO REPORTADO
+
+Con el modelo nuevo, siete de los ocho datos compartidos se editan por las dos puertas. El `e′`
+promedio del calculador de E/e′ **no**: su fuente son `e′` septal y `e′` lateral del estudio, y un
+promedio no se reparte en dos mediciones sin inventarlas.
+
+**Medido:** teclear ahí deja el valor en el módulo y **no cambia el estudio**; vaciarlo hace que el
+reflejo lo repueble con el promedio de las dos `e′`. TC-543 lo fija con esa expectativa propia, y
+es el único de los ocho que la tiene.
+
+Lo que haría falta para cerrarlo es lo mismo que **D-l** ya plantea: o un campo guardado nuevo, o
+partir el calculador en dos entradas —septal y lateral— con el promedio como resultado calculado.
+Lo segundo lo convierte en un dato de dos puertas como los otros siete y hace desaparecer la
+excepción; también es lo más grande, porque toca la pantalla del calculador.
+
+## D-p · Los tres campos del encabezado del módulo siguen en un solo sentido — PARADO Y REPORTADO
+
+El punto 2(b) pide que lo tecleado en el estudio se vea en el módulo. Vale para los siete insumos
+de los calculadores, y **no** para los tres del encabezado —`ett-septo`, `ett-pp` y `ett-fevi`—,
+que siguen escribiendo hacia el estudio y no al revés.
+
+**Por qué se paró.** `_amHayDatos` —la línea de pendientes de la miocardiopatía hipertrófica— lee
+`ett-septo` y `ett-pp` como «el médico está evaluando amiloidosis en esta aplicación». Autollenarlos
+desde `siv` y `ppvi` haría aparecer esa frase en el **informe de cualquier estudio con el septo
+cargado**: es un cambio del papel firmado en pacientes que nadie evaluó por amiloidosis, y esta
+corrección tenía prohibido tocarlo sin reportar primero.
+
+**No es un agujero funcional:** el criterio de pared de 12 mm o más que esos campos alimentan lo
+resuelve `calcETT` **leyendo** `siv` y `ppvi` cuando los del módulo están vacíos, que es un cálculo
+y no una escritura. Lo que falta es que el número se **vea** ahí.
+
+**Qué haría falta:** separar la señal «se está evaluando amiloidosis» de esos dos campos —una marca
+propia, o un tercer campo— y recién entonces agregarlos al reflejo. Decisión de Maicol, porque la
+señal que hay que mover es la que decide una frase del informe.
+
+## D-q · El botón «↓ Traer del formulario» quedó sin trabajo, y además avisa al revés — SOLO REPORTADO
+
+Es el punto 3 de la orden. **Qué hace hoy:** llama a `amAutoLlenar(k)`, que escribe los insumos de
+ese criterio desde el estudio **sólo si están vacíos**, recalcula el criterio y avisa por `toast`.
+
+**Medido con el reflejo en vivo:** con los ocho datos cargados en el estudio, `amAutoLlenar`
+devuelve **false** en los cuatro criterios que tienen el botón —no hay nada vacío que llenar,
+porque el reflejo ya lo trajo— y de **22** valores fotografiados (los nueve insumos, los cinco
+puntajes, las cinco etiquetas, los resultados y el score) **no cambia ninguno**.
+
+⚠️ **Y el aviso quedó al revés.** Como `amAutoLlenar` devuelve false, el botón muestra
+«⚠️ No hay datos suficientes cargados en las otras pestañas para este criterio» **justo cuando los
+datos están todos cargados**. Es lo peor de los dos mundos: no hace nada y dice que falta el dato.
+
+**Qué pasaría si se retirara.** Nada del flujo de datos: los insumos llegan igual por el reflejo.
+Se perdería un gesto explícito para repoblar un insumo que el médico haya vaciado **en el
+calculador** sin querer vaciar el del estudio — pero con el modelo nuevo vaciar en el calculador
+vacía el estudio, así que ese gesto ya no existe como tal. **Queda un solo caso de uso real:** el
+`e′` promedio de **D-o**, que no tiene vuelta y donde el botón sí puede repoblar lo que el médico
+borró. Si se retira, conviene retirarlo de los otros tres y dejarlo en ése, o cambiarle el aviso.
+
+**No se tocó** porque retirar un control o reescribir su mensaje es decisión de Maicol y es texto
+de cara al usuario.
+
+## D-r · La suite completa del D-11 quedó PENDIENTE — hay que retomarla
+
+El commit del D-11 es **de resguardo**: Maicol tuvo que cortar la corrida porque se llevaba la
+computadora y el pendrive. **No es una línea base cerrada.**
+
+### Qué quedó medido y cerrado
+
+| | |
+|---|---|
+| Casos de la zona (amiloidosis, espejos, estudio nuevo) | **8/8 verdes** |
+| Mutaciones dirigidas | **14/14 muertas**, en worktree, con guarda de md5 |
+| TC-543 contra el HEAD del D-10 | **cae en 6 de 27 condiciones** |
+| Casos viejos adaptados | **cinco**, con el motivo escrito |
+| A/B contra el HEAD del D-10 | **703 claves, 1 diferencia** (el id generado del estudio) |
+| Semgrep | **124 WARNING / 0 ERROR** |
+| Censo de campos | **1025**, 0 huérfanos |
+| Celular | **63 a 360 px y 72 a 390, 17 ALTA en cada ancho** — idénticos a la base |
+| Chrome y WebKit | los **ocho cruces** coinciden valor por valor, **0 errores de consola** |
+| Tiempos de escritura | media **0,14 a 0,19 ms**, contra 0,12 a 0,22 del D-10 |
+| Excel | **440** columnas (en el A/B, clave por clave) |
+
+### Qué FALTA
+
+**Sólo la suite completa.** Corrieron **9 de los 11 lotes**: 495 casos, 491 verdes y 4 rojos
+—**TC-223, TC-376, TC-390 y TC-406**, los cuatro de siempre—, **sin un rojo nuevo**. Faltan:
+
+1. **Los lotes 10 y 11**, que son 63 casos: `TC-481` a `TC-543` más los quince `TC-GR`.
+2. **La repetición del lote de TC-358**, el intermitente por el CDN de jsPDF (**E-h**).
+
+**El pendrive `DISK_IMG` tiene que estar montado**, porque `TC-181` a `TC-197` dependen de él.
+Verificarlo antes de arrancar: si el `ls` no lista nombres reales, esos diecisiete fallan y no
+prueban nada.
+
+```bash
+cd ~/Desktop/APLICACIONES/ecosmart && ls /Volumes/DISK_IMG/GEMS_IMG/
+```
+
+**Para correr sólo lo que falta** (los lotes 10 y 11, más el lote de TC-358):
+
+```bash
+cd ~/Desktop/APLICACIONES/ecosmart && bash /dev/stdin <<'EOF'
+set -e
+ls /Volumes/DISK_IMG/GEMS_IMG/ >/dev/null || { echo "PARA: falta el pendrive"; exit 3; }
+M0=$(md5 -q index.html)
+python3 - > /tmp/lotes_resto.sh <<'PY'
+import re, io
+s = io.open("scripts/test_clinico.mjs", encoding="utf-8").read()
+ids = re.findall(r"^caso\('(TC-[0-9A-Za-z-]+)'", s, flags=re.M)
+v = []
+for i in ids:
+    if i not in v: v.append(i)
+lotes = [v[k:k+55] for k in range(0, len(v), 55)]
+print("#!/bin/bash")
+for n in (10, 11):                      # los dos que faltan
+    if n <= len(lotes):
+        print('echo "=== LOTE %d ==="' % n)
+        print('ls /Volumes/DISK_IMG/GEMS_IMG/ >/dev/null || { echo "PARA: falta el pendrive"; exit 3; }')
+        print('node scripts/test_clinico.mjs --solo %s 2>&1 | grep -E "RESULTADO|✗"' % ",".join(lotes[n-1]))
+print('echo "=== LOTE de TC-358, repetido ==="')
+print('node scripts/test_clinico.mjs --solo %s 2>&1 | grep -E "RESULTADO|✗"' % ",".join(lotes[7]))
+PY
+bash /tmp/lotes_resto.sh
+ls /Volumes/DISK_IMG/GEMS_IMG/ >/dev/null && echo "pendrive OK al cerrar"
+[ "$M0" = "$(md5 -q index.html)" ] && echo "GUARDA OK: index.html no cambio" || echo "GUARDA ROTA"
+EOF
+```
+
+**Criterio de cierre:** los cuatro rojos conocidos y ninguno más (TC-358 cuenta aparte: si queda
+rojo, es **E-h** y no una regresión — verificado tres veces el 27/10 contra dos árboles distintos).
+Si aparece cualquier otro rojo, **es una regresión del D-11** y hay que mirarla antes de pushear.
+
+⚠️ **Y no hace falta rehacer nada de lo que ya está en la tabla de arriba**: el A/B, las
+mutaciones, los dos motores, el celular, Semgrep y el censo se corrieron sobre **este mismo árbol**
+—sello `v20261028-1137`— y el md5 de `index.html` no cambió desde entonces.

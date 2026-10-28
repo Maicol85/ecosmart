@@ -90,7 +90,11 @@ const SONDA = `window.__M = {
       r.trasEl5 = V('siv');
       window.__M.limpiar(); window.__M.set('tapse', '16'); await esperar(700);
       teclear('tapse-val', '21'); await esperar(700);
-      r.noPisa = 'estudio=' + V('tapse') + ' modulo=' + V('tapse-val');
+      /* ⚠️ ESTA ESCENA CAMBIO DE SIGNIFICADO EN EL D-11, y el nombre se corrige con ella: antes
+         medi­a que el modulo NO pisaba un valor cargado a mano en el estudio, y desde que gana la
+         ultima edicion lo que mide es que SI lo pisa. Dejarle el nombre viejo seria publicar una
+         medicion que afirma lo contrario de lo que comprueba. */
+      r.ultimaEdicionGana = 'estudio=' + V('tapse') + ' modulo=' + V('tapse-val');
       return r;
     })() },
 

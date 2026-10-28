@@ -1638,6 +1638,182 @@ window.__E.marcas = function(){
     process.stderr.write('[d10b] listo\n');
   }
 
+  /* ── GRUPO `d11` · los cinco hallazgos del D-11, TECLA POR TECLA ──────────────────────────
+     El defecto vive en los estados intermedios, asi que cada tecla se mide por separado: un
+     solo evento con la cadena entera no reproduce nada. */
+  if (corre('d11')) {
+    const r = { denominador: {}, campos: {} };
+    const paso = (m) => process.stderr.write('[d11] ' + m + '\n');
+    paso('entra');
+    /* Los OCHO datos compartidos, con el campo del MODULO por el que se tipean. */
+    const OCHO = [
+      { app:'siv',    mod:'rwt-septo', carga:'14' },
+      { app:'ppvi',   mod:'rwt-pp',    carga:'12' },
+      { app:'ddfvi',  mod:'rwt-ddvi',  carga:'45' },
+      { app:'tapse',  mod:'tapse-val', carga:'16' },
+      { app:'onda_e', mod:'ee-e',      carga:'90' },
+      { app:'e_sep',  mod:'ee-ep',     carga:'4'  },
+      { app:'e_lat',  mod:'ee-ep',     carga:'6'  },
+      { app:'sgl',    mod:'sgl-val',   carga:'-12' }
+    ];
+    try {
+      await evCrudo(`
+window.__F = {
+  /* UNA tecla: deja el campo del modulo en el texto dado y dispara el evento de entrada, que es
+     lo que hace el teclado. Devuelve lo que quedo en los DOS lados. */
+  tecla(mod, texto, app) {
+    var e = document.getElementById(mod); if (!e) return { err:'NO EXISTE ' + mod };
+    e.value = texto;
+    e.dispatchEvent(new Event('input', { bubbles: true }));
+    var a = document.getElementById(app);
+    return { modulo: String(e.value), estudio: a ? String(a.value) : 'NO EXISTE' } },
+  /* Lo mismo pero sobre el campo del ESTUDIO, que es la otra puerta. */
+  teclaApp(app, texto, mod) {
+    var a = document.getElementById(app); if (!a) return { err:'NO EXISTE ' + app };
+    a.value = texto;
+    a.dispatchEvent(new Event('input', { bubbles: true }));
+    a.dispatchEvent(new Event('change', { bubbles: true }));
+    var e = document.getElementById(mod);
+    return { estudio: String(a.value), modulo: e ? String(e.value) : 'NO EXISTE' } },
+  leer(mod, app) {
+    var e = document.getElementById(mod), a = document.getElementById(app);
+    return { modulo: e ? String(e.value) : '?', estudio: a ? String(a.value) : '?' } },
+  barrido() { try { if (typeof _espejosBarrerTodos === 'function') _espejosBarrerTodos() } catch(e){} return 1 },
+  /* El boton violeta, el cartel y el score: todo lo derivado que el modulo muestra. */
+  derivado() {
+    var b = document.getElementById('calcbtn-rwt');
+    var p = document.querySelector('#crit-rwt .criterio-pts');
+    var c = document.getElementById('crit-rwt');
+    return { boton: b ? (b.textContent||'').trim() : 'NO EXISTE',
+             botonClase: b ? b.className : '?',
+             puntos: p ? (p.textContent||'').trim() : 'NO EXISTE',
+             activo: c ? c.classList.contains('activo') : '?',
+             check: window.__P.txt('chk-rwt'),
+             ocultos: (document.getElementById('ett-rwt')||{}).value,
+             resultado: (document.getElementById('rwt-result')||{}).value,
+             hvi: window.__P.txt('ett-hvi-badge'),
+             score: window.__P.txt('ett-score-num') } },
+  /* Abre el acordeon del criterio, que es lo UNICO que hoy repinta la etiqueta del boton. */
+  abrirCalc(k) { try { amCalcToggle(k, true) } catch(e){} return 1 }
+};
+1`);
+
+      /* ══ H1 y H2 · tecla por tecla en el campo del MODULO, con el estudio YA cargado ══════ */
+      for (const c of OCHO) {
+        const o = { carga: c.carga };
+        await ev(`window.__P.nuevo()`, 40000);
+        await ev(`window.__P.calentar()`, 40000);
+        /* El estudio se carga por su propia puerta, que es el escenario del medico. */
+        await ev(`window.__F.teclaApp(${JSON.stringify(c.app)}, ${JSON.stringify(c.carga)}, ${JSON.stringify(c.mod)})`, 30000);
+        await pausa(600);
+        o.trasCargarEnEstudio = await ev(`window.__F.leer(${JSON.stringify(c.mod)}, ${JSON.stringify(c.app)})`, 20000);
+        /* H1: escribir «1» y despues «15» en el campo del modulo. */
+        o.escribe1  = await ev(`window.__F.tecla(${JSON.stringify(c.mod)}, '1', ${JSON.stringify(c.app)})`, 20000);
+        o.escribe15 = await ev(`window.__F.tecla(${JSON.stringify(c.mod)}, '15', ${JSON.stringify(c.app)})`, 20000);
+        await pausa(600);
+        o.trasEsperar = await ev(`window.__F.leer(${JSON.stringify(c.mod)}, ${JSON.stringify(c.app)})`, 20000);
+        /* H2: retroceso de a UNA tecla. */
+        o.borra1 = await ev(`window.__F.tecla(${JSON.stringify(c.mod)}, '1', ${JSON.stringify(c.app)})`, 20000);
+        await pausa(600);
+        o.borra1TrasEsperar = await ev(`window.__F.leer(${JSON.stringify(c.mod)}, ${JSON.stringify(c.app)})`, 20000);
+        o.borraTodo = await ev(`window.__F.tecla(${JSON.stringify(c.mod)}, '', ${JSON.stringify(c.app)})`, 20000);
+        await pausa(600);
+        o.borraTodoTrasEsperar = await ev(`window.__F.leer(${JSON.stringify(c.mod)}, ${JSON.stringify(c.app)})`, 20000);
+        r.campos[c.app] = o;
+        paso(c.app + ' listo');
+      }
+
+      /* ══ H4 · el boton violeta, el cartel y el score al borrar los tres espesores ═══════ */
+      paso('H4');
+      await ev(`window.__P.nuevo()`, 40000);
+      await ev(`window.__P.calentar()`, 40000);
+      await ev(`window.__F.teclaApp('siv',  '14', 'rwt-septo')`, 30000);
+      await ev(`window.__F.teclaApp('ppvi', '12', 'rwt-pp')`,    30000);
+      await ev(`window.__F.teclaApp('ddfvi','45', 'rwt-ddvi')`,  30000);
+      await pausa(700); await ev(`window.__F.barrido()`, 30000); await pausa(400);
+      r.h4 = { conDatos: await ev(`window.__F.derivado()`, 25000) };
+      /* El medico abre el acordeon, que es lo que hoy pinta el valor en el boton. */
+      await ev(`window.__F.abrirCalc('rwt')`, 25000);
+      r.h4.trasAbrir = await ev(`window.__F.derivado()`, 25000);
+      /* Y ahora borra los TRES en el estudio. */
+      await ev(`window.__F.teclaApp('siv',  '', 'rwt-septo')`, 30000);
+      await ev(`window.__F.teclaApp('ppvi', '', 'rwt-pp')`,    30000);
+      await ev(`window.__F.teclaApp('ddfvi','', 'rwt-ddvi')`,  30000);
+      await pausa(700); await ev(`window.__F.barrido()`, 30000); await pausa(400);
+      r.h4.trasBorrar = await ev(`window.__F.derivado()`, 25000);
+      /* ══ EL SIGNO DEL STRAIN Y EL TECLEO RAPIDO, que es lo que el modelo nuevo puede mover ══ */
+      paso('signo y velocidad');
+      r.signo = {};
+      await ev(`window.__P.nuevo()`, 40000); await ev(`window.__P.calentar()`, 40000);
+      /* El medico tipea «-12» tecla por tecla, esperando el barrido entre teclas. */
+      r.signo.guion   = await ev(`window.__F.tecla('sgl-val', '-',   'sgl')`, 20000);
+      await pausa(600);
+      r.signo.guionTras = await ev(`window.__F.leer('sgl-val','sgl')`, 20000);
+      r.signo.menos1  = await ev(`window.__F.tecla('sgl-val', '-1',  'sgl')`, 20000);
+      await pausa(600);
+      r.signo.menos12 = await ev(`window.__F.tecla('sgl-val', '-12', 'sgl')`, 20000);
+      await pausa(600);
+      r.signo.final   = await ev(`window.__F.leer('sgl-val','sgl')`, 20000);
+      /* Y el mismo numero SIN signo, que es el caso que normaliza el reflejo. */
+      await ev(`window.__P.nuevo()`, 40000); await ev(`window.__P.calentar()`, 40000);
+      await ev(`window.__F.tecla('sgl-val', '1', 'sgl')`, 20000);
+      await pausa(600);
+      r.signo.sinSigno1 = await ev(`window.__F.leer('sgl-val','sgl')`, 20000);
+      await ev(`window.__F.tecla('sgl-val', '12', 'sgl')`, 20000);
+      await pausa(600);
+      r.signo.sinSigno12 = await ev(`window.__F.leer('sgl-val','sgl')`, 20000);
+      /* TECLEO RAPIDO: cuatro teclas seguidas sin esperar el barrido, que es como escribe una
+         persona de verdad. Si el reflejo comiera un digito, se ve aca. */
+      await ev(`window.__P.nuevo()`, 40000); await ev(`window.__P.calentar()`, 40000);
+      await ev(`window.__Y.poner({ siv: '9' })`, 30000);
+      await pausa(600);
+      r.rapido = { antes: await ev(`window.__F.leer('rwt-septo','siv')`, 20000) };
+      await ev(`(function(){ var e=document.getElementById('rwt-septo');
+        ['1','14','14.','14.5'].forEach(function(t){ e.value=t;
+          e.dispatchEvent(new Event('input',{bubbles:true})) }); return 1 })()`, 30000);
+      r.rapido.justoDespues = await ev(`window.__F.leer('rwt-septo','siv')`, 20000);
+      await pausa(800); await ev(`window.__F.barrido()`, 30000); await pausa(400);
+      r.rapido.trasBarrido = await ev(`window.__F.leer('rwt-septo','siv')`, 20000);
+      /* CONTROL: ningun flujo automatico escribe al estudio. Modulo cargado, estudio vacio. */
+      await ev(`window.__P.nuevo()`, 40000); await ev(`window.__P.calentar()`, 40000);
+      await ev(`(function(){ var e=document.getElementById('tapse-val'); e.value='17'; return 1 })()`, 20000);
+      await ev(`window.__F.barrido()`, 30000); await pausa(600);
+      await ev(`window.__F.barrido()`, 30000); await pausa(400);
+      r.auto = { trasBarrido: await ev(`window.__F.leer('tapse-val','tapse')`, 20000) };
+      await ev(`(function(){ try { _recalcModulos('probe') } catch(e){} ; try { amiloAutoMarcarTodos() } catch(e){}
+        try { calcTAPSE() } catch(e){} ; try { calcETT() } catch(e){} ; return 1 })()`, 30000);
+      r.auto.trasRecalcular = await ev(`window.__F.leer('tapse-val','tapse')`, 20000);
+      /* ══ PUNTO 3 · ¿el boton «Traer del formulario» todavia hace algo? ══════════════════
+         Se fotografia el calculador entero, se aprieta el boton de los CUATRO criterios que lo
+         tienen, y se vuelve a fotografiar. Si no cambia nada, el boton es un no-op. */
+      paso('boton traer');
+      await ev(`window.__P.nuevo()`, 40000); await ev(`window.__P.calentar()`, 40000);
+      await ev(`window.__Y.poner({ siv:'14', ppvi:'12', ddfvi:'45', tapse:'16',
+        onda_e:'90', e_sep:'4', e_lat:'6', sgl:'-12' })`, 40000);
+      await pausa(800); await ev(`window.__F.barrido()`, 30000); await pausa(400);
+      const FOTO = `(function(){ var r = {};
+        ['rwt-septo','rwt-pp','rwt-ddvi','rwt-result','ee-e','ee-ep','ee-result',
+         'tapse-val','sgl-val','ap-apic','ap-base'].forEach(function(id){
+          var e = document.getElementById(id); r[id] = e ? String(e.value) : 'NO EXISTE' });
+        ['rwt','ee','tapse','sgl','apice'].forEach(function(k){
+          var h = document.getElementById('ett-' + k);
+          r['pts-' + k] = h ? String(h.value) : '?';
+          var b = document.getElementById('calcbtn-' + k);
+          r['btn-' + k] = b ? (b.textContent||'').trim() : '?' });
+        r.score = (document.getElementById('ett-score-num')||{}).textContent;
+        return r })()`;
+      r.boton = { antes: await ev(FOTO, 25000) };
+      r.boton.devuelve = await ev(`(function(){ var o = {};
+        ['rwt','ee','tapse','sgl'].forEach(function(k){
+          try { o[k] = amAutoLlenar(k) } catch(e){ o[k] = 'EXC' } }); return o })()`, 30000);
+      await pausa(500);
+      r.boton.despues = await ev(FOTO, 25000);
+      r.errores = await ev(`window.__Yerr ? window.__Yerr.slice(0,8) : []`);
+    } catch (e) { r.err = e.message + ' | ' + String(e.stack || '').slice(0, 300) }
+    out.grupos.d11 = r;
+    process.stderr.write('[d11] listo\n');
+  }
+
   /* ── GRUPO `tablas` · las tablas de cardio-onco, celda por celda (tildes del commit 2) ── */
   if (corre('tablas')) {
     const r = {};
