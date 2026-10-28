@@ -1305,6 +1305,339 @@ window.__B = {
     process.stderr.write('[borrado] listo\n');
   }
 
+  /* ── GRUPO `d10` · los seis hallazgos del medico probando el D-9, con SUS valores ──────────
+     Cada hallazgo se mide en su propia escena montada de cero, y cada paso fotografia el
+     estudio Y el modulo, para poder atribuir la causa en vez de suponerla.
+     ⚠️ EL DENOMINADOR DE CADA ESCENA SE DECLARA: si el montaje no dejo el dato en el estudio,
+     «el modulo no se llena» no prueba nada. */
+  if (corre('d10')) {
+    const r = { denominador: {} };
+    /* ⚠️ CADA PASO ESCRIBE EN stderr. La primera corrida de este grupo se colgo 13 minutos a
+       0 % de CPU sin escribir un byte y no habia forma de saber en que paso: es la leccion que
+       la tanda B ya pago con la sonda de dos motores. */
+    const paso = (m) => process.stderr.write('[d10] ' + m + '\n');
+    paso('entra');
+    const MOD = ['rwt-septo','rwt-pp','rwt-ddvi','rwt-result','ee-e','ee-ep','ee-result',
+                 'tapse-val','sgl-val','ap-apic','ap-base','ett-septo','ett-pp','ett-fevi'];
+    const EST = ['peso','talla','siv','ppvi','ddfvi','tapse','onda_e','e_sep','e_lat','sgl','fevi'];
+    try {
+      await evCrudo(`
+window.__D = {
+  /* Foto completa: los campos del modulo, los del estudio, el cartel de HVI, el score y la
+     marca de espejo de cada insumo. La marca es la que decide si el reflejo toca el campo. */
+  foto() {
+    var mod = {}, est = {}, marca = {};
+    ${JSON.stringify(MOD)}.forEach(function(id){
+      var e = document.getElementById(id);
+      mod[id] = e ? (e.tagName === 'INPUT' ? String(e.value) : (e.textContent||'').trim()) : 'NO EXISTE';
+      if (e && e.dataset) marca[id] = e.dataset.espejo === '1' ? 'espejo' : 'propio'; });
+    ${JSON.stringify(EST)}.forEach(function(id){
+      var e = document.getElementById(id); est[id] = e ? String(e.value) : 'NO EXISTE' });
+    return { mod: mod, est: est, marca: marca,
+             hvi: window.__P.txt('ett-hvi-badge'), score: window.__P.txt('ett-score-num'),
+             chkRwt: (document.getElementById('ett-rwt')||{}).value,
+             chkEe: (document.getElementById('ett-ee')||{}).value };
+  },
+  barrido() { try { if (typeof _espejosBarrerTodos === 'function') _espejosBarrerTodos() } catch(e){} return 1 },
+  /* Quien escribe cada sentido, para separar causa de sintoma. */
+  soloTrae()  { try { amiloEspejoDesdeApp() } catch(e){} return 1 },
+  soloMarca() { try { amiloAutoMarcarTodos() } catch(e){} return 1 },
+  /* Abre el calculador, que es lo UNICO que hoy dispara el autollenado. */
+  abrirCalc(k) { try { return amAutoLlenar(k) } catch(e){ return 'EXC: ' + e.message } },
+  /* El blob del autosave: dice si la recarga repone el campo del modulo ademas del del estudio. */
+  draft() {
+    try {
+      var k = (typeof AUTOSAVE_KEY !== 'undefined') ? AUTOSAVE_KEY : null;
+      if (!k) return 'SIN CLAVE';
+      var raw = localStorage.getItem(k);
+      if (!raw) return 'SIN BORRADOR';
+      var d = JSON.parse(raw);
+      return { siv: d['siv'], rwtSepto: d['rwt-septo'], rwtDdvi: d['rwt-ddvi'],
+               tapseVal: d['tapse-val'], eeE: d['ee-e'], claves: Object.keys(d).length };
+    } catch(e) { return 'EXC: ' + e.message }
+  },
+  guardarDraft() { try { if (typeof autoSave === 'function') autoSave(); else if (typeof _autosaveGuardar === 'function') _autosaveGuardar(); return 1 } catch(e){ return 'EXC: ' + e.message } }
+};
+1`);
+
+      /* ══ H1 · estudio nuevo, peso/talla y los tres del VI; el modulo NO se llena ══════════ */
+      paso('helpers puestos');
+      await ev(`window.__P.nuevo()`, 40000);
+      await ev(`window.__P.calentar()`, 40000);
+      paso('escena limpia');
+      await tipear('peso', '70');  paso('peso');
+      await tipear('talla', '170'); paso('talla');
+      await tipear('siv', '14');   paso('siv');
+      await tipear('ppvi', '12');  paso('ppvi');
+      await tipear('ddfvi', '45'); paso('ddfvi');
+      r.denominador.h1 = await ev(`(function(){ return ['siv','ppvi','ddfvi','peso','talla'].map(function(i){
+        var e=document.getElementById(i); return i+'='+(e?e.value:'?') }).join(' ') })()`);
+      /* ⚠️ TRES ETAPAS, Y LA PRIMERA NO LLAMA A NADA. Llamar al barrido a mano es fabricar el
+         disparador que la app podria no tener — es el defecto que la tanda D ya pago con
+         `window.__Y.poner` y el que TC-519 escondia. Primero se ESPERA el debounce real. */
+      await pausa(900);
+      r.h1 = { soloEsperando: await ev(`window.__D.foto()`, 25000) };
+      await ev(`window.__D.barrido()`, 30000); await pausa(400);
+      r.h1.trasCargar = await ev(`window.__D.foto()`, 25000);
+      /* Y la causa: el autollenado SI llena cuando se lo llama a mano, o sea que lo que falta
+         es el disparador y no la fuente. */
+      paso('H1 fotografiado');
+      r.h1.abrirRwt = await ev(`window.__D.abrirCalc('rwt')`, 25000);
+      r.h1.abrirEe  = await ev(`window.__D.abrirCalc('ee')`, 25000);
+      r.h1.trasAbrir = await ev(`window.__D.foto()`, 25000);
+
+      /* ══ H2 · subir el septo a 18; el modulo no se actualiza. Y despues, RECARGA REAL ════ */
+      paso('H2 arranca');
+      await tipear('siv', '18');
+      await pausa(500); await ev(`window.__D.barrido()`, 30000); await pausa(400);
+      r.denominador.h2 = await ev(`window.__P.val('siv')`);
+      r.h2 = { trasSubir: await ev(`window.__D.foto()`, 25000) };
+      r.h2.draftAntes = await ev(`window.__D.guardarDraft()`, 25000);
+      r.h2.draft = await ev(`window.__D.draft()`, 25000);
+      /* RECARGA DE VERDAD, el mismo mecanismo que usa el arranque de esta sonda. */
+      /* ⚠️ LA RECARGA SE MIDE POR SU CAMINO, NO CON `location.reload()`, Y SE DECLARA POR QUE.
+         Un `Runtime.evaluate` que navega la pagina no devuelve: el contexto de ejecucion muere
+         con el `evaluate` en vuelo y `evCrudo` —que no tiene reloj— queda dormido. Medido: 13
+         minutos a 0 % de CPU sin escribir un byte, y despues otros 2 con las marcas puestas,
+         colgado exactamente en este paso.
+         Lo que corre una recarga es `_autosaveRestore`, y eso SI se puede ejercitar: se guarda
+         el borrador, se devuelve cada campo a su `defaultValue` —que es el DOM que da una carga
+         nueva— y se llama al restaurador. La recarga DE VERDAD la mide `_probe_d10wk.mjs` con
+         Playwright, que navega de verdad, y las dos mediciones tienen que coincidir. */
+      paso('H2 recarga por el camino del borrador');
+      await evCrudo(`
+window.__D.recargaSim = function() {
+  var tocados = 0, marcas = 0;
+  document.querySelectorAll('input[id], select[id], textarea[id]').forEach(function(e){
+    try {
+      /* ADVERTENCIA Y LAS MARCAS DE ESPEJO SE VAN, QUE ES LO QUE HACE FIEL A ESTA SIMULACION.
+         Una carga nueva da un DOM sin una sola marca de espejo: vive en el nodo y NO se
+         persiste. La primera version de esta sonda las dejaba puestas y por eso informaba
+         "H2 no se reproduce" sobre el defecto. El dato que lo delata esta en el blob del
+         borrador: trae el campo del modulo, o sea que la recarga repone su valor SIN la marca. */
+      if (e.dataset && e.dataset.espejo) { delete e.dataset.espejo; marcas++ }
+      if (e.type === 'checkbox' || e.type === 'radio') { if (e.checked !== e.defaultChecked) { e.checked = e.defaultChecked; tocados++ } }
+      else if (String(e.value) !== String(e.defaultValue === undefined ? '' : e.defaultValue)) { e.value = (e.defaultValue === undefined ? '' : e.defaultValue); tocados++ }
+    } catch(x){}
+  });
+  var hay = 'SIN _formTieneDatos';
+  try { if (typeof _formTieneDatos === 'function') hay = _formTieneDatos() } catch(x){ hay = 'EXC' }
+  var err = null;
+  try { _autosaveRestore() } catch(x){ err = x.message }
+  return { tocados: tocados, marcasBorradas: marcas, formTieneDatos: hay, err: err };
+};
+1`);
+      r.h2.recarga = await ev(`window.__D.recargaSim()`, 40000);
+      await pausa(500);
+      r.h2.trasRecargar = await ev(`window.__D.foto()`, 25000);
+      await ev(`window.__D.barrido()`, 30000); await pausa(400);
+      r.h2.trasRecargarYBarrer = await ev(`window.__D.foto()`, 25000);
+      /* Y LA PRUEBA QUE DECIDE: con el borrador repuesto, cambiar el septo del estudio otra vez.
+         Si el modulo no lo sigue, el sintoma de H2 esta reproducido. */
+      paso('H2 septo a 20 despues de la recarga');
+      await tipear('siv', '20');
+      await pausa(900);
+      r.h2.trasSubirPostRecarga = await ev(`window.__D.foto()`, 25000);
+      await ev(`window.__D.barrido()`, 30000); await pausa(400);
+      r.h2.trasSubirPostRecargaYBarrer = await ev(`window.__D.foto()`, 25000);
+      /* Y EL BORRADO, que es H4 sobre un arbol ya recargado. */
+      paso('H4 borrar solo el DDVI');
+      await borrar('ddfvi', 'del');
+      await pausa(900);
+      r.h4 = { soloEsperando: await ev(`window.__D.foto()`, 25000) };
+      await ev(`window.__D.barrido()`, 30000); await pausa(400);
+      r.h4.trasBarrido = await ev(`window.__D.foto()`, 25000);
+      r.errores = await ev(`window.__Yerr ? window.__Yerr.slice(0,8) : []`);
+    } catch (e) { r.err = e.message + ' | ' + String(e.stack || '').slice(0, 300) }
+    out.grupos.d10 = r;
+    process.stderr.write('[d10] listo\n');
+  }
+
+  /* ── GRUPO `d10b` · H3, H5 y H6, y H1 sobre un arbol RECARGADO ────────────────────────────
+     El medico probo la guia del D-9, cuyo paso 1 es recargar para ver el sello: su pagina venia
+     recargada y con criterios tocados a mano. Esa es la condicion en la que hay que medir. */
+  if (corre('d10b')) {
+    const r = { denominador: {} };
+    const paso = (m) => process.stderr.write('[d10b] ' + m + '\n');
+    paso('entra');
+    const MOD2 = ['rwt-septo','rwt-pp','rwt-ddvi','rwt-result','ee-e','ee-ep','tapse-val',
+                  'sgl-val','ett-septo','ett-pp','ett-fevi'];
+    try {
+      await evCrudo(`
+window.__E = {
+  foto() {
+    var mod = {}, marca = {};
+    ${JSON.stringify(MOD2)}.forEach(function(id){
+      var e = document.getElementById(id);
+      mod[id] = e ? (e.tagName === 'INPUT' ? String(e.value) : (e.textContent||'').trim()) : 'NO EXISTE';
+      if (e && e.dataset) marca[id] = e.dataset.espejo === '1' ? 'espejo' : 'propio' });
+    var ori = {};
+    ['rwt','ee','tapse','sgl'].forEach(function(k){
+      var c = document.getElementById('crit-' + k);
+      var h = document.getElementById('ett-' + k + '-orig');
+      ori[k] = (c && c.dataset.origen ? c.dataset.origen : '-') + '/' + (h ? String(h.value||'-') : 'NO EXISTE') });
+    return { mod: mod, marca: marca, origen: ori,
+             est: { siv: window.__P.val('siv'), ppvi: window.__P.val('ppvi'), ddfvi: window.__P.val('ddfvi') },
+             hvi: window.__P.txt('ett-hvi-badge'), score: window.__P.txt('ett-score-num') } },
+  /* Lo que hace una recarga: repone el borrador sobre un DOM limpio y SIN marcas de espejo. */
+  recarga() {
+    var marcas = 0;
+    try { if (typeof autoSave === 'function') autoSave() } catch(x){}
+    document.querySelectorAll('input[id], select[id], textarea[id]').forEach(function(e){
+      try {
+        if (e.dataset && e.dataset.espejo) { delete e.dataset.espejo; marcas++ }
+        if (e.type === 'checkbox' || e.type === 'radio') e.checked = e.defaultChecked;
+        else e.value = (e.defaultValue === undefined ? '' : e.defaultValue);
+      } catch(x){}
+    });
+    ['rwt','ee','tapse','sgl'].forEach(function(k){
+      var c = document.getElementById('crit-' + k); if (c) delete c.dataset.origen });
+    var err = null; try { _autosaveRestore() } catch(x){ err = x.message }
+    return { marcasBorradas: marcas, err: err } },
+  /* Marca un criterio a mano, que es lo que hizo el medico en el paso 5 de la guia del D-9. */
+  destildar(k) { try { amOrigenSet(k, 'nomanual'); var h = document.getElementById('ett-' + k + '-orig');
+    if (h) h.value = 'nomanual'; return 'ok' } catch(e){ return 'EXC: ' + e.message } },
+  /* H5: el censo de lo que «Nuevo estudio» deja vivo. */
+  censoNuevo() {
+    var vivos = {}, n = 0;
+    document.querySelectorAll('input[id], select[id], textarea[id]').forEach(function(e){
+      try {
+        if (e.type === 'checkbox' || e.type === 'radio') { if (e.checked) { vivos[e.id] = 'tildado'; n++ } }
+        else { var v = String(e.value || '').trim(); if (v !== '') { vivos[e.id] = v; n++ } }
+      } catch(x){}
+    });
+    return { n: n, vivos: vivos } }
+};
+1`);
+
+      /* ══ H1 SOBRE UN ARBOL RECARGADO, con el criterio destildado a mano ═════════════════ */
+      paso('H1R montaje');
+      await ev(`window.__P.nuevo()`, 40000);
+      await ev(`window.__P.calentar()`, 40000);
+      await tipear('siv', '14'); await tipear('ppvi', '12'); await tipear('ddfvi', '45');
+      await pausa(900);
+      r.h1r = { antesDeRecargar: await ev(`window.__E.foto()`, 25000) };
+      r.h1r.destildo = await ev(`window.__E.destildar('rwt')`, 25000);
+      r.h1r.recarga = await ev(`window.__E.recarga()`, 40000);
+      await pausa(600);
+      r.h1r.trasRecargar = await ev(`window.__E.foto()`, 25000);
+      /* Y ahora el gesto del medico: estudio NUEVO y volver a cargar los tres del VI. */
+      paso('H1R nuevo estudio y recargar los datos');
+      await ev(`window.__P.nuevo()`, 40000);
+      r.h1r.trasNuevo = await ev(`window.__E.foto()`, 25000);
+      await tipear('siv', '14'); await tipear('ppvi', '12'); await tipear('ddfvi', '45');
+      await pausa(900);
+      r.h1r.trasRecargarDatos = await ev(`window.__E.foto()`, 25000);
+
+      /* ══ H3 · el cartel de HVI con la pared posterior en 12 ════════════════════════════ */
+      paso('H3');
+      await ev(`window.__P.nuevo()`, 40000);
+      await ev(`window.__P.calentar()`, 40000);
+      await tipear('siv', '14'); await tipear('ppvi', '12');
+      await pausa(900);
+      r.h3 = { conLosDos: await ev(`window.__E.foto()`, 25000) };
+      await borrar('siv', 'del');
+      await pausa(900);
+      r.h3.sinSepto = await ev(`window.__E.foto()`, 25000);
+      await borrar('ppvi', 'del');
+      await pausa(900);
+      r.h3.sinNinguno = await ev(`window.__E.foto()`, 25000);
+
+      /* ══ H6 · tecleo DIGITO POR DIGITO en el campo del modulo, con el estudio vacio ════ */
+      paso('H6');
+      await ev(`window.__P.nuevo()`, 40000);
+      await ev(`window.__P.calentar()`, 40000);
+      r.denominador.h6 = await ev(`window.__P.val('siv')`);
+      await foco('ett-septo');
+      for (let i = 0; i < 24; i++) await tecla('Backspace');
+      /* UN digito, con su propio evento de entrada: es lo que hace el teclado y NO lo que hace
+         un `insertText` de la cadena entera, que dispara un solo evento. */
+      await cdp.send('Input.insertText', { text: '1' }, sessionId);
+      await ev(`(function(){ var e=document.getElementById('ett-septo');
+        e.dispatchEvent(new Event('input',{bubbles:true})); return e.value })()`, 25000);
+      r.h6 = { trasEl1: { modulo: await ev(`window.__P.val('ett-septo')`), estudio: await ev(`window.__P.val('siv')`) } };
+      await cdp.send('Input.insertText', { text: '5' }, sessionId);
+      await ev(`(function(){ var e=document.getElementById('ett-septo');
+        e.dispatchEvent(new Event('input',{bubbles:true})); return e.value })()`, 25000);
+      r.h6.trasEl5 = { modulo: await ev(`window.__P.val('ett-septo')`), estudio: await ev(`window.__P.val('siv')`) };
+      await pausa(900);
+      r.h6.trasEsperar = { modulo: await ev(`window.__P.val('ett-septo')`), estudio: await ev(`window.__P.val('siv')`) };
+      r.h6.aviso = await ev(`window.__P.txt('ett-nota-auto')`);
+      /* Y EL MISMO TECLEO EN EL CAMPO DEL ESPESOR RELATIVO, que es el de dos sentidos.
+         ⚠️ ACA NO SE PUEDEN MANDAR TECLAS REALES, Y SE DECLARA. El campo vive dentro de la
+         tarjeta del calculador y con la pestana abierta por `showTab` la tarjeta queda sin caja:
+         el campo informa 0 x 0 y `foco()` aborta. Es el mismo limite que la tanda E midio con el
+         enlace del Carpentier (E-b). Se escribe digito por digito con su propio evento de
+         entrada, que es lo que el teclado dispara y lo que el manejador escucha; lo que no se
+         ejercita es el foco. El caso del medico es el de arriba, con teclas de verdad. */
+      await ev(`window.__P.nuevo()`, 40000); await ev(`window.__P.calentar()`, 40000);
+      r.h6.rwtPorEventos = true;
+      await ev(`(function(){ var e=document.getElementById('rwt-septo');
+        e.value=''; e.value='1'; e.dispatchEvent(new Event('input',{bubbles:true})); return 1 })()`, 25000);
+      r.h6.rwtTrasEl1 = { modulo: await ev(`window.__P.val('rwt-septo')`), estudio: await ev(`window.__P.val('siv')`) };
+      await ev(`(function(){ var e=document.getElementById('rwt-septo');
+        e.value='15'; e.dispatchEvent(new Event('input',{bubbles:true})); return 1 })()`, 25000);
+      await pausa(900);
+      r.h6.rwt = { modulo: await ev(`window.__P.val('rwt-septo')`), estudio: await ev(`window.__P.val('siv')`) };
+
+      /* ══ H5 · que deja vivo «Nuevo estudio» ═══════════════════════════════════════════ */
+      paso('H5');
+      await ev(`window.__P.nuevo()`, 40000);
+      await ev(`window.__P.calentar()`, 40000);
+      await ev(`window.__Y.poner({ nombre:'Prueba D10', edad:'70', peso:'70', talla:'170',
+        siv:'14', ppvi:'12', ddfvi:'45', tapse:'16', onda_e:'90', e_sep:'4', e_lat:'6',
+        sgl:'-12', fevi:'55' })`, 40000);
+      await pausa(900);
+      r.h5 = { antes: await ev(`window.__E.censoNuevo()`, 40000) };
+      await ev(`window.__P.nuevo()`, 40000);
+      await pausa(900);
+      r.h5.despues = await ev(`window.__E.censoNuevo()`, 40000);
+      /* ══ LAS DOS MARCAS A TRAVES DE «Nuevo estudio», paso por paso ═══════════════════════ */
+      paso('marcas');
+      await evCrudo(`
+window.__E.marcas = function(){
+  var r = {};
+  ['siv','tapse'].forEach(function(id){ var e = document.getElementById(id);
+    r[id] = e ? (String(e.value) + ' esc=' + (e.dataset.amiloEsc || '-')) : 'NO EXISTE' });
+  ['ett-septo','tapse-val'].forEach(function(id){ var e = document.getElementById(id);
+    r[id] = e ? (String(e.value) + ' propio=' + (e.dataset.amiloPropio || '-')
+                 + ' espejo=' + (e.dataset.espejo || '-')) : 'NO EXISTE' });
+  return r };
+1`);
+      r.marcas = {};
+      await ev(`window.__P.nuevo()`, 40000); await ev(`window.__P.calentar()`, 40000);
+      await ev(`(function(){ var e=document.getElementById('ett-septo');
+        e.value='1'; e.dispatchEvent(new Event('input',{bubbles:true}));
+        e.value='15'; e.dispatchEvent(new Event('input',{bubbles:true})); return 1 })()`, 30000);
+      await pausa(600);
+      r.marcas.trasEscribir = await ev(`window.__E.marcas()`, 20000);
+      await ev(`window.__P.nuevo()`, 40000);
+      await pausa(600);
+      r.marcas.trasNuevo = await ev(`window.__E.marcas()`, 20000);
+      await ev(`(function(){ try { if (typeof _espejosBarrerTodos === "function") _espejosBarrerTodos() } catch(e){} return 1 })()`, 20000);
+      await pausa(500);
+      r.marcas.trasBarrer = await ev(`window.__E.marcas()`, 20000);
+      /* y el desacuerdo */
+      await ev(`window.__P.nuevo()`, 40000);
+      await ev(`window.__Y.poner({ tapse: '16' })`, 30000);
+      await pausa(600);
+      await ev(`(function(){ var e=document.getElementById('tapse-val');
+        e.value='2'; e.dispatchEvent(new Event('input',{bubbles:true}));
+        e.value='21'; e.dispatchEvent(new Event('input',{bubbles:true})); return 1 })()`, 30000);
+      await pausa(600);
+      r.marcas.desacuerdo = await ev(`window.__E.marcas()`, 20000);
+      await ev(`window.__P.nuevo()`, 40000);
+      await pausa(600);
+      r.marcas.desacuerdoTrasNuevo = await ev(`window.__E.marcas()`, 20000);
+      await ev(`window.__Y.poner({ tapse: '14' })`, 30000);
+      await pausa(800);
+      r.marcas.desacuerdoTrasCargar = await ev(`window.__E.marcas()`, 20000);
+      r.errores = await ev(`window.__Yerr ? window.__Yerr.slice(0,8) : []`);
+    } catch (e) { r.err = e.message + ' | ' + String(e.stack || '').slice(0, 300) }
+    out.grupos.d10b = r;
+    process.stderr.write('[d10b] listo\n');
+  }
+
   /* ── GRUPO `tablas` · las tablas de cardio-onco, celda por celda (tildes del commit 2) ── */
   if (corre('tablas')) {
     const r = {};

@@ -324,3 +324,116 @@ corre dentro del `try` del barrido— sino el caso, al medir el denominador.
 El `e′` promedio **no se vacía** cuando se borra una sola de las dos `e′`: pasa a valer la que
 queda, que es lo correcto. La primera versión de la condición exigía vacío y daba rojo sobre el
 comportamiento correcto.
+
+---
+
+## 6 · La corrección D-10 — el estudio es el dueño, y el módulo lo refleja SIEMPRE
+
+El médico probó la guía del D-9 en Chrome y reportó seis cosas. **Tres eran un solo defecto, dos
+no eran defectos, y una era de la tanda D y no del D-9.** Todo medido antes de tocar nada.
+
+| # | Qué reportó | ¿Se reproduce? | Causa medida |
+|---|---|---|---|
+| **H1** | el módulo no se llena con 14/12/45 | **sí, en una página recargada** | la marca de espejo |
+| **H2** | subir el septo a 18 no mueve el módulo; y tras recargar queda en los previos | **sí, tras recargar** | la marca de espejo |
+| **H3** | borrado el septo el cartel sigue diciendo «HVI ≥12 mm» | **no es un defecto** | con la pared posterior en 12 el criterio se cumple |
+| **H4** | borrar el DDVI no lo borra del módulo | **sí, tras recargar** | la marca de espejo |
+| **H5** | «Nuevo estudio» ya no deja nada | **no es un cambio** | idéntico en las tres versiones |
+| **H6** | el «1» y el «5» dejan el estudio en «1» | **sí, siempre** | la regla de no pisar lo ya cargado |
+
+### H1, H2 y H4 son el mismo defecto: la marca de espejo no se persiste
+
+El reflejo app → módulo sólo tocaba un insumo **que llevara la marca `dataset.espejo`**, que es lo
+que distinguía un reflejo de una medición hecha en el calculador. **Esa marca vive en el nodo y no
+se guarda.** El borrador del autoguardado, en cambio, **sí** se lleva el valor del campo del
+módulo: medido, el blob trae `rwt-septo` junto con `siv`. Así que toda recarga repone el número
+**sin** su marca, y desde ahí el módulo quedaba congelado.
+
+Medido tras la recarga: el estudio en **20** y el módulo clavado en **18**, con el espesor relativo
+publicando **0,67** —un número que ninguna medición sostiene— y el criterio marcado por ese número.
+Lo mismo dejaba el DDVI sin borrar y el calculador sin llenarse en un estudio recién empezado.
+
+⚠️ **Viene de la tanda D, no del D-9.** La versión del **D-8** tenía la misma guarda, escrita como
+`var propio = ... && el.dataset.espejo !== '1'; if (propio) return;`. El D-9 la conservó y la
+documentó. Y el médico la encontró porque el **paso 1 de la guía es recargar para ver el sello**:
+su página venía recargada, que es justo la condición en la que el defecto aparece.
+
+**El arreglo:** el reflejo manda siempre, con **dos** razones para no tocar un insumo —ninguna de
+ellas «no tiene la marca»—: que sea un valor que el médico midió acá y el estudio rechazó, y que
+no tenga camino de vuelta al estudio (hoy eso es **un** campo, el `e′` promedio).
+
+### H6: el módulo trataba su propio dígito como un valor del médico
+
+El médico escribe «15» con el campo del estudio vacío. El primer dígito llega como el número **1**
+y se escribe. El segundo llega como **15**, y la regla «no pisar un valor distinto ya cargado» leía
+ese 1 —puesto por esta misma función medio segundo antes— como un valor del médico: **el estudio se
+quedaba con el primer dígito.**
+
+⚠️ **Y es de la tanda D, no del D-9: medido en las tres versiones.** En `8fac09f` el módulo **no
+escribía nada** al estudio, así que el «1» no quedaba. Desde el **D-8** escribe el «1» y se queda
+ahí. El D-9 no lo tocó.
+
+**El arreglo:** `dataset.amiloEsc`, en el campo **del estudio**, guarda lo último que este módulo
+escribió ahí. Pisar lo propio está permitido; pisar lo del médico, no. **La marca vive en el nodo**,
+así que una recarga la borra sola y no autoriza nada del paciente anterior, y si el médico edita el
+campo a mano el valor deja de coincidir y la autorización se cae por sí misma — sin hacer falta
+limpiarla en ninguna otra ruta.
+
+### H3 y H5 no se tocaron, y está medido por qué
+
+**H3 — el cartel está bien.** El criterio es el **mayor** de los dos espesores, así que con la pared
+posterior en 12 sigue cumpliéndose. Medido en las tres versiones, y lo interesante es que **el D-9
+lo arregló**: en el D-8 el cartel decía `(14.0mm)` con el septo **ya borrado** —el valor difunto—,
+y hoy dice `(12.0mm)`, que es la pared posterior. Vaciando los **dos**, se va.
+⚠️ **La que estaba mal era la guía de prueba del D-9**: su paso 3 pedía que el cartel se fuera al
+borrar sólo el septo. Pedía un defecto.
+
+**H5 — «Nuevo estudio» no cambió.** Censado campo por campo en `8fac09f`, en `195c87a` y hoy: los
+**mismos 84** campos quedan con contenido, **ni uno de más ni uno de menos**, y son todos valores
+por omisión de selectores y casillas de PDF (`em_grado='sin'`, `pericardio='Normal, sin derrame'`,
+los ocultos del score en `0`). **Ningún dato del paciente sobrevive** en ninguna de las tres. Lo
+único que cambió es el «antes»: 107 campos cargados en `8fac09f` contra 120 hoy, porque la tanda D
+agregó campos. No es una regresión y no se cambió nada.
+
+### El barrido de mutaciones encontró CINCO redundancias mías, una por una
+
+⚠️ **Hicieron falta CINCO rondas de mutación, y lo que destaparon no fue falta de cobertura: fue
+que el arreglo nacía con dos mecanismos para cada trabajo.** Cada sobreviviente señalaba uno:
+
+| Lo que sobrevivió | Por qué | Qué se hizo |
+|---|---|---|
+| guarda de **foco** en el reflejo | la escritura corre en el `oninput`, antes de que el barrido pueda correr | retirada |
+| limpieza del desacuerdo **en el gesto** | el cuerpo de la escritura ya la resuelve por sus tres caminos | retirada |
+| **autollenado** dentro del barrido | el reflejo ya deja cada insumo valiendo lo que dice su fuente | retirado del barrido (queda para el botón «↓ Traer del formulario») |
+| requisito de **campo no vacío** en la marca de desacuerdo | dentro del estudio la marca implica valor; entre estudios la borra `limpiarCampos` | retirado |
+| limpieza de las marcas **desde el barrido de espejos** | `limpiarCampos` ya tiene una lista cerrada de marcas para eso | retirada |
+
+**Catorce de quince mutaciones mueren.** La quinceava —volver a poner el autollenado en el
+barrido— **no es una inyección de defecto**: reañade código redundante, así que el comportamiento
+no cambia. Su valor es justamente ése: es la evidencia medida de que retirarlo no movió nada.
+
+### Y el error de denominador que cometí DOS VECES en la misma corrección
+
+⚠️ **Al septo del estudio lo espejan DOS campos del módulo** —el del encabezado y el del espesor
+relativo—. El segundo trae el valor del estudio por el reflejo, así que cuando el primero escribe
+un valor indebido **el segundo lo vuelve a escribir bien en la misma pasada**: el estudio termina
+correcto y la condición pasa **en verde sobre la mutación**. Escribí dos controles negativos con el
+septo —(H6c) y la primera versión de (H6i)— y los dos pasaban sin poder fallar. Se cerraron con el
+**TAPSE**, que tiene un solo campo espejo y nadie que lo tape.
+
+### El defecto que destapó TC-541 corriendo después de TC-542
+
+⚠️ **Las dos marcas nuevas sobrevivían a «Nuevo estudio» y mandaban sobre el paciente siguiente.**
+Verde aislado, rojo en el lote, y contra el árbol del D-9 el mismo lote **no** lo rompía — o sea
+que era mío. Viven en el nodo y `limpiarCampos` vacía los `value` pero no los `dataset`.
+**Y el archivo ya tenía el mecanismo y ya tenía la lección escrita**, textual: «la lista es CERRADA:
+agregar una marca de `dataset` sin agregarla a este selector la hace sobrevivir a “Nuevo estudio”.
+Costó tres casos en rojo». Las dos marcas del D-10 entraron ahí, en el selector **y** en el cuerpo
+—que son dos listas, y anotarla en una sola es un no-op completo, como el propio archivo advierte—.
+
+### Lo que NO se tocó
+
+El `e′` promedio sigue siendo el único insumo con fuente y **sin** camino de vuelta: un promedio no
+se reparte en dos mediciones sin inventarlas, así que lo que el médico escriba ahí no tiene dónde
+vivir si se lo pisa. El reflejo no lo toca cuando tiene algo que no puso esta maquinaria. Queda
+declarado en `PENDIENTES.md` → **D-l**.

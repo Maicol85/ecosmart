@@ -100,3 +100,65 @@ médico tipea dentro del módulo y la otra el caso de la fuente incompleta.
 ⚠️ **ACENTOS GRAVES EN EL CUERPO, POR CUARTA VEZ EN LA TANDA.** El cuerpo es un template literal y
 uno solo lo cierra, con un `SyntaxError` que apunta decenas de líneas antes. Contar los backticks
 del fragmento **antes** de insertarlo es más barato que leer ese error.
+
+---
+
+## TC-542 — el dueño del dato, en los dos sentidos (D-10)
+
+**Qué fija.** Los seis hallazgos del médico con sus valores exactos: peso 70, talla 170, septo 14,
+pared posterior 12, DDVI 45, el septo subiendo a 18 y a 20, el DDVI borrado, el tecleo del «1» y
+después el «5», el cartel de HVI y «Nuevo estudio».
+
+**Veintidós condiciones, SIETE de ellas denominadores**, y **cae en seis** contra el HEAD del D-9.
+
+| Grupo | Qué exige |
+|---|---|
+| DENOM A | los diecisiete nodos de los dos lados existen |
+| DENOM B | los tres del VI quedaron cargados en el **estudio** |
+| (H1) | el calculador se llena solo con 14, 12 y 45, **esperando el debounce real** |
+| (H1b) | **control negativo**: con 0,58 el criterio NO se marca — el corte es *mayor* a 0,6 |
+| (H2a) | el módulo sigue al septo: 18, espesor 0,67 y el criterio marcado |
+| DENOM C | el borrador guarda el campo **del módulo** además del del estudio |
+| DENOM D | la recarga borró las marcas de espejo y el restaurador no tiró |
+| (H2b) (H2c) | tras recargar sigue mostrando el dato, y **sigue al dato nuevo**: 20 y 0,71 |
+| (H4) (H4b) | borrado el DDVI se vacía y el criterio se destilda; el septo y la pared **no** se van con él |
+| (H3) (H3b) (H3c) | el cartel dice 14,0 mm; borrado el septo **cae a 12,0 mm**; vaciados los dos, se va |
+| DENOM E | el septo del estudio arranca vacío |
+| (H6) (H6b) | el estudio recibe **los dos dígitos**, en el encabezado y en el espesor relativo |
+| (H6c) (H6d) | **control negativo**: el 20 cargado a mano no se pisa y lo del módulo no se borra |
+| DENOM G | el TAPSE llegó solo al calculador antes del gesto |
+| (H6e) (H6f) | con **un solo** campo espejo, el 16 del estudio no se pisa y el 21 del módulo queda |
+| (N1) (N2) | el criterio destildado a mano sigue destildado, y el calculador igual refleja el dato |
+| (N3) (N4) | el `e′` promedio se autollena, y escrito a mano **no** se pisa |
+| DENOM F · (H5) (H5b) | había datos; «Nuevo estudio» no deja ninguno; los por omisión **siguen** |
+
+### Lo que costó
+
+⚠️ **El tecleo tiene que ser dígito por dígito.** Un solo evento con la cadena entera no reproduce
+nada: el defecto vivía en el estado intermedio, con el estudio ya escrito por el primer dígito.
+
+⚠️ **El espesor relativo se lee con `V()` y no con `T()`.** El campo del resultado es un `<input>`,
+así que su `textContent` está vacío siempre. Escrito con `T()` daba rojo sobre un valor correcto, y
+las tres condiciones decían `result=` pelado — que es justo lo que delata el error.
+
+⚠️ **La recarga se ejercita por su camino, no con `location.reload()`.** Un `Runtime.evaluate` que
+navega la página no devuelve: el contexto muere con el `evaluate` en vuelo y la sonda queda dormida.
+Medido: **trece minutos a 0 % de CPU sin escribir un byte**, y otros dos con las marcas de progreso
+puestas, colgado exactamente en ese paso. Lo que corre una recarga es el restaurador del borrador, y
+eso sí se puede llamar: se guarda el borrador, se devuelve cada campo a su `defaultValue` **y se
+borran las marcas de espejo**, que es el DOM que da una carga nueva.
+⚠️ **La primera versión de esa simulación NO borraba las marcas, e informó «H2 no se reproduce»
+sobre el defecto.** Dejar las marcas puestas es dejar puesta justamente la cosa que la recarga
+destruye.
+
+⚠️ **El caso quedó primero DESPUÉS del arnés** —al final del archivo, detrás del `}` de la limpieza
+de Chrome— y el suite informó **0/0 ✓**: ni rojo ni verde, simplemente no existía. Un caso que no se
+registra pasa por no estar.
+
+⚠️ **Y devolvía `ex` en vez de `{ extra: ex }`**, que el arnés nombra con todas las letras: «las
+condiciones van dentro del objeto devuelto». Con el array pelado el caso sale rojo con veintidós
+condiciones verdes adentro.
+
+⚠️ **Acentos graves: la quinta vez.** Dos de mis comentarios dentro del template de la sonda
+llevaban nombres entre acentos graves y el archivo dejó de parsear con un `SyntaxError` que apunta
+a otra línea. Contarlos antes de insertar, no después.

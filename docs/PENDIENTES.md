@@ -8710,3 +8710,55 @@ tabla de `mount` tiene diez entradas, todas internas. Tampoco hay copia local de
 `GEMS_IMG` en el home, así que no sirve apuntar `ECO_PENDRIVE` a una carpeta. **Antes de relanzar
 el lote, confirmar con `ls /Volumes/DISK_IMG/GEMS_IMG/` que lista nombres reales**: si ese `ls`
 falla, los diecisiete van a fallar igual y no van a probar nada.
+
+---
+
+# Corrección D-10 (2026-10-28)
+
+## D-l · El `e′` promedio del módulo es el único insumo sin camino de vuelta — SOLO REPORTADO
+
+El reflejo app → módulo ahora manda **siempre**, porque el campo del estudio es el dueño del dato.
+Eso vale para los seis insumos que tienen camino de vuelta: lo que el médico escriba en ellos viaja
+al campo del estudio, así que reflejarlo de nuevo devuelve el mismo número y no se pierde nada.
+
+**El `e′` promedio del calculador de E/e′ es la excepción, y queda con la regla del D-9.** Su fuente
+son `e′` septal y `e′` lateral, y **un promedio no se reparte en dos mediciones sin inventarlas**:
+si el reflejo lo pisara, lo que el médico midió ahí no tendría dónde vivir. Así que el reflejo no lo
+toca cuando ya tiene un valor que no puso esta maquinaria.
+
+**La consecuencia, declarada:** una vez que el médico escribe ahí a mano, ese campo deja de seguir a
+las `e′` del estudio para el resto de la sesión. La marca muere con el DOM, así que una recarga lo
+devuelve a seguir el dato.
+
+**Qué haría falta para cerrarlo.** Decidir una de dos, y es decisión de Maicol porque las dos
+cambian lo que el médico ve:
+1. **Un campo guardado nuevo** para el `e′` promedio medido a mano, con su columna en el Excel —lo
+   que esta corrección tenía prohibido hacer sin reportar primero—; o
+2. **Dos campos en el calculador** en vez de uno, septal y lateral, con el promedio como resultado
+   calculado y no como entrada. Eso lo convierte en un insumo con vuelta, como los otros seis, y la
+   excepción desaparece. Es el cambio más limpio y el más grande: toca la pantalla del calculador.
+
+## D-m · La guía de prueba del D-9 pedía un defecto en su paso 3
+
+Decía que el cartel «HVI ≥12 mm» tenía que irse al borrar **sólo** el septo. Es incorrecto: el
+criterio es el **mayor** de los dos espesores, así que con la pared posterior en 12 el cartel debe
+seguir — y hoy cae a 12,0 mm, que es lo correcto. Si esa guía se reusa, el paso 3 va con los **dos**
+espesores vaciados. **TC-542 (H3b)** lo fija para que no se vuelva a pedir al revés.
+
+## D-n · La marca de espejo del D-9 sobrevive a «Nuevo estudio» — SOLO REPORTADO
+
+Medido al cerrar el D-10: después de `limpiarCampos`, un insumo del módulo que había traído el
+reflejo conserva su `data-espejo`. No está en la lista cerrada de marcas que «Nuevo estudio» borra
+—la misma que esta corrección tuvo que ampliar con sus dos marcas nuevas—, así que es la misma fuga
+que ese bloque del archivo documenta, entrando por la puerta del D-9.
+
+**Hoy no cambia nada, y por eso no se tocó dentro de esta corrección.** Desde el D-10 esa marca ya
+no decide si el reflejo actúa: su único lector es la regla del insumo **sin camino de vuelta**, que
+hoy es el `e′` promedio. Y una marca heredada ahí empuja hacia el lado **seguro** —hace que el
+reflejo SÍ escriba, o sea que el campo siga al estudio del paciente nuevo—.
+
+**Qué haría falta:** agregar `[data-espejo]` al selector **y** `delete el.dataset.espejo` al cuerpo,
+que son las dos listas que el archivo advierte hay que tocar juntas. Es una línea en cada una, y
+después hay que correr la suite completa: TC-541 y TC-542 miden esa marca en varias condiciones.
+Quedó afuera porque llegó al final de la verificación y meterla habría exigido rehacer las cinco
+rondas de mutación, el A/B, los dos motores y los once lotes.

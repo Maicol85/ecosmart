@@ -970,3 +970,78 @@ línea: el archivo creció y un informe de auditoría viejo apunta a otro archiv
 - **Dónde está todo:** `docs/mapa/d-cardioonco-amiloidosis.md` § 5 (18,0 KB), la ficha de TC-541
   en `docs/mapa/tests-fichas-540.md`, y `docs/PENDIENTES.md` → **D-j**, el inventario de
   direcciones de los dieciséis campos del módulo, que el punto 3 pedía **sólo reportar**.
+
+### Lo que el médico encontró probando el D-9 — «D-10» (2026-10-28)
+
+- **UN commit sobre el HEAD del D-9.** ⚠️ **Y ESE HEAD ES `4c4c919`, NO `26c5549`**: es el mismo
+  D-9, amendado dos veces al cierre para meterle a la bitácora dos mediciones. Mismo `index.html`,
+  mismo sello. Al empezar, `origin/main` = **`8fac09f`** con nueve commits locales sin pushear.
+  **El push lo corre Maicol: esta corrección tenía orden expresa de NO pushear.**
+
+- **DE LOS SEIS HALLAZGOS, TRES ERAN UN SOLO DEFECTO, DOS NO ERAN DEFECTOS Y UNO VENÍA DE LA TANDA
+  D Y NO DEL D-9.** Todo medido antes de tocar nada, y las tres versiones comparadas
+  (`8fac09f`, `195c87a`, HEAD).
+
+- **H1, H2 y H4 son el mismo defecto: la marca de espejo no se persiste.** El reflejo app → módulo
+  sólo tocaba un insumo que llevara `dataset.espejo`, y esa marca vive en el nodo. **El borrador
+  del autoguardado, en cambio, SÍ se lleva el valor del campo del módulo** —medido, el blob trae
+  `rwt-septo` junto con `siv`—, así que toda recarga repone el número **sin** su marca y desde ahí
+  el módulo queda congelado. Medido: el estudio en **20** y el módulo clavado en **18**, con el
+  espesor relativo publicando **0,67**, un número que ninguna medición sostiene, y el criterio
+  marcado por ese número. **Viene del D-8, que tenía la MISMA guarda**, y el médico lo encontró
+  porque el paso 1 de la guía es recargar para ver el sello.
+
+- **H6 es de la tanda D, no del D-9, y está medido en las tres versiones.** El «1» tecleado se
+  escribía en el estudio y al llegar el «15» la regla «no pisar un valor ya cargado» leía ese 1
+  —puesto por la misma función medio segundo antes— como un valor del médico: **el estudio se
+  quedaba con el primer dígito**. En `8fac09f` no pasaba porque el módulo no escribía nada.
+
+- **H3 Y H5 NO SE TOCARON, Y LOS DOS ESTÁN BIEN.** El cartel de HVI es el **mayor** de los dos
+  espesores, así que con la pared posterior en 12 sigue —y hoy dice **12,0 mm**, mientras el D-8
+  decía 14,0 con el septo **ya borrado**: el D-9 lo arregló—. ⚠️ **La que estaba mal era la guía
+  de prueba del D-9**, cuyo paso 3 pedía que el cartel se fuera: pedía un defecto. → **D-m**.
+  Y «Nuevo estudio» deja los **mismos 84** campos en las tres versiones, ni uno de más ni uno de
+  menos, todos valores por omisión: **ningún dato del paciente sobrevive en ninguna**.
+
+- ⚠️ **EL BARRIDO DE MUTACIONES ENCONTRÓ CINCO REDUNDANCIAS MÍAS, UNA POR RONDA, Y HICIERON FALTA
+  CINCO RONDAS.** Ninguna sobrevivencia era falta de cobertura: el arreglo nacía con dos
+  mecanismos para cada trabajo. Una guarda de **foco** —la escritura corre en el `oninput`, antes
+  de que el barrido pueda correr—; la limpieza del desacuerdo **en el gesto** —el cuerpo de la
+  escritura ya la resuelve—; el **autollenado** dentro del barrido —el reflejo ya hace eso—; un
+  requisito de **campo no vacío**; y la limpieza de marcas **desde el barrido**. **Las cinco se
+  retiraron. 14/15 muertas**, y la quinceava **no es una inyección de defecto**: vuelve a poner el
+  autollenado redundante, así que el comportamiento no cambia — su valor es ser la evidencia
+  medida de que retirarlo no movió nada.
+
+- ⚠️ **Y EL MISMO ERROR DE DENOMINADOR DOS VECES EN LA MISMA CORRECCIÓN.** Al septo del estudio lo
+  espejan **DOS** campos del módulo: cuando uno escribe un valor indebido, **el otro lo vuelve a
+  escribir bien en la misma pasada** y la condición pasa en verde sobre la mutación. Escribí dos
+  controles negativos con el septo y los dos eran inútiles. Se cerraron con el **TAPSE**, que
+  tiene un solo espejo. Es el «freno que tapa al que se muta» por una puerta nueva.
+
+- ⚠️ **EL DEFECTO QUE DESTAPÓ TC-541 CORRIENDO DESPUÉS DE TC-542: las dos marcas nuevas sobrevivían
+  a «Nuevo estudio» y mandaban sobre el paciente SIGUIENTE.** Verde aislado, rojo en el lote, y
+  contra el árbol del D-9 el mismo lote **no** lo rompía. **Y este archivo ya tenía la lección
+  escrita**, textual: «la lista es CERRADA: agregar una marca de `dataset` sin agregarla a este
+  selector la hace sobrevivir a “Nuevo estudio”. Costó tres casos en rojo». Las dos entraron ahí,
+  en el selector **y** en el cuerpo, que son dos listas.
+
+- **A/B contra el HEAD del D-9: CERO diferencias** en 518 claves de control —informe en tres
+  estilos, EN SUMA, las 440 columnas de Excel clave por clave, el PDF y los campos—, 24 del grupo
+  de amiloidosis y 70 del bloque integrado. La única diferencia de los 703 valores comparados es
+  el **identificador generado** del estudio de prueba, que es un contador y no un dato.
+
+- **Línea base al cierre: suite 552/557** en once lotes cubriendo los 557 (ejecutados 557 de 557),
+  con el pendrive `DISK_IMG` **montado y listando nombres reales al abrir, ENTRE LOTES y al
+  cerrar** —el arnés para si falta— y el md5 de `index.html` idéntico antes y después. Los rojos
+  son **TC-223, TC-376, TC-390 y TC-406**, los cuatro de siempre, más **TC-358**, el rojo por CDN
+  de **E-h**: repetido su lote, sigue rojo. Semgrep **124 WARNING / 0 ERROR**. Censo **1025**, 0
+  huérfanos. Celular **63 a 360 px y 72 a 390, 17 ALTA en cada ancho** — idénticos a la base.
+- **CHROME Y WEBKIT COINCIDEN EN LOS OCHO CRUCES, valor por valor**: 17/17 pestañas con caja, cero
+  scroll horizontal, cero textos recortados, **cero errores de consola y de página en los dos
+  motores**, y la escena del D-10 **idéntica** en los ocho. Escribir no se volvió más lento: media
+  **0,12 a 0,22 ms** contra 0,16 a 0,22 del D-9. ⚠️ **WebKit de Playwright no es Safari.**
+- **`index.html` pasó de 9,85 MB / 138.761 líneas a 9,86 MB / 138.867.** Sello
+  **`v20261028-0322`**, md5 **`103b7e0d`**.
+- **Dónde está todo:** `docs/mapa/d-cardioonco-amiloidosis.md` § 6, la ficha de TC-542 en
+  `docs/mapa/tests-fichas-540.md`, y `docs/PENDIENTES.md` → **D-l** y **D-m**.

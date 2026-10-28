@@ -92307,6 +92307,21 @@ caso('TC-540', 'Tanda D: la calculadora de riesgo CV aplicando la Tabla 4 de la 
         b = document.querySelector('[data-vinfo="' + clave + '"]');
         if (!b) return 'NO HAY BOTON ' + clave;
         r = b.getBoundingClientRect();
+        /* ⚠️ ADAPTADO EN EL D-10: abrir la PESTANIA no alcanza. Con showTab programatico la
+           TARJETA de adentro puede quedar sin caja, y entonces el boton informa 0x0 y este
+           helper devolvia el texto 'BOTON 0x0' — con lo que (G2) y (G3) salian ROJAS aunque el
+           globo este perfecto. Es el limite que la tanda E midio con el enlace del Carpentier
+           (E-b). El caso daba VERDE aislado y ROJO en un lote, segun que hubiera colapsado el
+           caso anterior, y falla igual contra el arbol del D-9: la dependencia de orden es
+           PREEXISTENTE, no de esta correccion. Se destapan los ancestros ocultos antes de
+           rendirse, que es lo que hacen las sondas. */
+        if (!r.width || !r.height) {
+          let a = b.parentNode;
+          while (a && a.nodeType === 1 && a !== document.body) {
+            if (getComputedStyle(a).display === 'none') a.style.display = 'block';
+            a = a.parentNode; }
+          r = b.getBoundingClientRect();
+        }
         if (!r.width || !r.height) return 'BOTON 0x0 ' + clave;
       }
       try { if (F('vInfoCerrar')) vInfoCerrar(true); } catch (x) {}
@@ -92699,6 +92714,332 @@ caso('TC-541', 'D-9: borrar en el estudio BORRA de verdad —los ocho datos que 
   })();
 `);
 
+caso('TC-542', 'D-10: el campo del estudio es el dueno y el modulo lo refleja SIEMPRE —tambien despues de una recarga, que borra la marca de espejo—, asi que el calculador se llena solo con 14/12/45, sigue al septo cuando pasa a 18 y a 20, y se vacia cuando se borra el DDVI; el tecleo digito por digito dentro del modulo escribe TODOS los digitos en el estudio y no se queda en el primero; el cartel de HVI cae a la pared posterior al borrar el septo; el criterio destildado a mano se respeta; y «Nuevo estudio» no deja un solo dato del paciente', `
+  return (async () => {
+    const ex = [];
+    const N = s => String(s == null ? '' : s).replace(/\\s+/g, ' ').trim();
+    const EL = id => document.getElementById(id);
+    const T = id => N(__t.txt(id));
+    const V = id => String((EL(id) || {}).value || '');
+    const F = n => typeof window[n] === 'function';
+    const esperar = ms => new Promise(r => setTimeout(r, ms));
+    const barrer = () => { try { if (F('_espejosBarrerTodos')) _espejosBarrerTodos(); } catch (e) {} };
+
+    /* El gesto real sobre un campo del estudio: escribir o vaciar, con los dos eventos que
+       dispara el teclado. */
+    const poner = (id, val) => { const e = EL(id); if (!e) return 'NO EXISTE ' + id;
+      e.value = val;
+      e.dispatchEvent(new Event('input',  { bubbles: true }));
+      e.dispatchEvent(new Event('change', { bubbles: true }));
+      return e.value; };
+
+    /* ⚠️ EL TECLEO DIGITO POR DIGITO, QUE ES EL GESTO DEL HALLAZGO H6. Un solo evento con la
+       cadena entera NO reproduce nada: el defecto vivia en el estado intermedio, con el estudio
+       ya escrito por el primer digito. Cada digito va con su propio evento de entrada, que es
+       lo que hace el teclado y lo que escucha el manejador del campo. */
+    const teclear = (id, digitos) => { const e = EL(id); if (!e) return 'NO EXISTE ' + id;
+      e.value = '';
+      let acc = '';
+      for (const d of String(digitos).split('')) {
+        acc += d; e.value = acc;
+        e.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+      return e.value; };
+
+    /* ⚠️ LA RECARGA SE EJERCITA POR SU CAMINO, Y ESO ES LO QUE MIDE EL DEFECTO. Lo que una
+       recarga le hace al modulo es: repone el borrador sobre un DOM nuevo, o sea SIN una sola
+       marca de espejo, porque la marca vive en el nodo y no se persiste. Esa marca era la guarda
+       del reflejo, asi que desde cualquier recarga el modulo quedaba congelado. Devolver cada
+       campo a su valor por omision y borrar las marcas es exactamente el DOM que da una carga
+       nueva; despues corre el restaurador de verdad. */
+    const recargar = () => {
+      let marcas = 0;
+      try { if (F('autoSave')) autoSave(); } catch (e) {}
+      document.querySelectorAll('input[id], select[id], textarea[id]').forEach(e => {
+        try {
+          if (e.dataset && e.dataset.espejo) { delete e.dataset.espejo; marcas++; }
+          if (e.dataset && e.dataset.amiloPropio) delete e.dataset.amiloPropio;
+          if (e.dataset && e.dataset.amiloEsc) delete e.dataset.amiloEsc;
+          if (e.type === 'checkbox' || e.type === 'radio') e.checked = e.defaultChecked;
+          else e.value = (e.defaultValue === undefined ? '' : e.defaultValue);
+        } catch (x) {}
+      });
+      ['rwt','ee','tapse','sgl'].forEach(k => { const c = EL('crit-' + k); if (c) delete c.dataset.origen; });
+      let err = null;
+      try { _autosaveRestore(); } catch (x) { err = x.message; }
+      return { marcas, err };
+    };
+
+    /* ══ DENOMINADOR A ══ Los campos de los dos lados existen. Sin esto, «el modulo no se llena»
+       no dice nada: podria ser que el campo no este en el DOM. */
+    const IDS = ['siv','ppvi','ddfvi','peso','talla','rwt-septo','rwt-pp','rwt-ddvi','rwt-result',
+                 'ett-septo','ett-hvi-badge','ett-score-num','crit-rwt','ett-rwt','ee-ep','e_sep','e_lat'];
+    const faltan = IDS.filter(i => !EL(i));
+    ex.push(['  DENOMINADOR A: existen los diecisiete nodos de los dos lados',
+      faltan.length === 0, 'faltan=' + (faltan.join(',') || 'ninguno')]);
+
+    /* ══ (H1) ESTUDIO NUEVO, peso 70 y talla 170, y 14/12/45 en el VI ════════════════════════
+       Se ESPERA el debounce real: llamar al barrido a mano seria fabricar el disparador. */
+    __t.limpiar();
+    poner('peso', '70'); poner('talla', '170');
+    poner('siv', '14'); poner('ppvi', '12'); poner('ddfvi', '45');
+    await esperar(500);
+    ex.push(['  DENOMINADOR B: los tres del VI quedaron cargados en el ESTUDIO',
+      V('siv') === '14' && V('ppvi') === '12' && V('ddfvi') === '45',
+      'siv=' + V('siv') + ' ppvi=' + V('ppvi') + ' ddfvi=' + V('ddfvi')]);
+    ex.push(['(H1) el calculador del espesor relativo se lleno solo con 14, 12 y 45',
+      V('rwt-septo') === '14' && V('rwt-pp') === '12' && V('rwt-ddvi') === '45',
+      'septo=' + V('rwt-septo') + ' pp=' + V('rwt-pp') + ' ddvi=' + V('rwt-ddvi')]);
+    /* ⚠️ CONTROL NEGATIVO DEL CRITERIO: (14+12)/45 = 0,578 y el corte es MAYOR a 0,6, asi que el
+       criterio NO se marca. Un caso que exigiera score > 0 aca pasaria por el motivo equivocado.
+       ⚠️ Y EL ESPESOR SE LEE CON V() Y NO CON T(): el campo del resultado es un INPUT, asi que su
+       textContent esta vacio siempre. Escrito con T() la condicion daba rojo sobre un valor
+       correcto, y las tres veces decia «result=» pelado, que es justo lo que delata el error. */
+    ex.push(['(H1b) CONTROL NEGATIVO: con 0.58 el criterio del espesor NO se marca',
+      V('rwt-result') === '0.58' && String((EL('ett-rwt') || {}).value) === '0',
+      'result=' + V('rwt-result') + ' puntos=' + String((EL('ett-rwt') || {}).value)]);
+
+    /* ══ (H2) EL SEPTO SUBE A 18 ════════════════════════════════════════════════════════════ */
+    poner('siv', '18');
+    await esperar(500);
+    ex.push(['(H2a) el modulo sigue al septo: 18, espesor 0.67 y el criterio marcado',
+      V('rwt-septo') === '18' && V('rwt-result') === '0.67' && String((EL('ett-rwt') || {}).value) === '3',
+      'septo=' + V('rwt-septo') + ' result=' + V('rwt-result') + ' puntos=' + String((EL('ett-rwt') || {}).value)]);
+
+    /* ══ DENOMINADOR C ══ El borrador se lleva el campo del MODULO, que es por lo que la recarga
+       lo repone sin su marca. Sin este dato la recarga no prueba nada. */
+    let draft = null;
+    try {
+      if (F('autoSave')) autoSave();
+      const k = (typeof AUTOSAVE_KEY !== 'undefined') ? AUTOSAVE_KEY : null;
+      draft = k ? JSON.parse(localStorage.getItem(k) || '{}') : null;
+    } catch (e) {}
+    ex.push(['  DENOMINADOR C: el borrador guarda el campo del modulo ademas del del estudio',
+      !!draft && String(draft['rwt-septo']) === '18' && String(draft['siv']) === '18',
+      draft ? ('rwt-septo=' + draft['rwt-septo'] + ' siv=' + draft['siv']) : 'SIN BORRADOR']);
+
+    const rec = recargar();
+    await esperar(400);
+    ex.push(['  DENOMINADOR D: la recarga borro las marcas de espejo y el restaurador no tiro',
+      rec.marcas > 0 && !rec.err, 'marcas=' + rec.marcas + ' err=' + String(rec.err)]);
+    ex.push(['(H2b) tras la recarga el modulo sigue mostrando el valor del estudio',
+      V('rwt-septo') === '18' && V('siv') === '18',
+      'modulo=' + V('rwt-septo') + ' estudio=' + V('siv')]);
+
+    /* ⚠️ ESTA ES LA CONDICION QUE CAE CONTRA EL D-9. Sin el arreglo, el modulo queda clavado en
+       18 para siempre y el espesor relativo publica 0.67, un numero que ninguna medicion
+       sostiene, con el criterio marcado por ese numero. */
+    poner('siv', '20');
+    await esperar(500);
+    ex.push(['(H2c) y DESPUES de recargar sigue al dato: septo 20 y espesor 0.71',
+      V('rwt-septo') === '20' && V('rwt-result') === '0.71',
+      'modulo=' + V('rwt-septo') + ' estudio=' + V('siv') + ' result=' + V('rwt-result')]);
+
+    /* ══ (H4) BORRAR SOLO EL DDVI, sobre el arbol ya recargado ══════════════════════════════ */
+    poner('ddfvi', '');
+    await esperar(500);
+    ex.push(['(H4) borrado el DDVI del estudio, el del modulo se vacia y el criterio se destilda',
+      V('rwt-ddvi') === '' && String((EL('ett-rwt') || {}).value) === '0',
+      'ddvi modulo=' + JSON.stringify(V('rwt-ddvi')) + ' puntos=' + String((EL('ett-rwt') || {}).value)]);
+    /* ⚠️ Y LOS OTROS DOS INSUMOS NO SE VAN CON EL. Es la condicion de la fuente incompleta que
+       el D-9 ya tenia: vaciar y repoblar no equivale a seguir al dato. */
+    ex.push(['(H4b) y el septo y la pared posterior del modulo NO se fueron con el DDVI',
+      V('rwt-septo') === '20' && V('rwt-pp') === '12',
+      'septo=' + V('rwt-septo') + ' pp=' + V('rwt-pp')]);
+
+    /* ══ (H3) EL CARTEL DE HVI, QUE ESTA BIEN Y SE FIJA PARA QUE SIGA ESTANDO ═══════════════
+       El criterio es el MAYOR de los dos espesores. Con la pared posterior en 12 el cartel debe
+       seguir, y debe decir 12: la guia de prueba del D-9 pedia que se fuera, y era incorrecta. */
+    __t.limpiar();
+    poner('siv', '14'); poner('ppvi', '12');
+    await esperar(500);
+    const hviDos = T('ett-hvi-badge');
+    poner('siv', '');
+    await esperar(500);
+    const hviSinSepto = T('ett-hvi-badge');
+    poner('ppvi', '');
+    await esperar(500);
+    const hviSinNada = T('ett-hvi-badge');
+    ex.push(['(H3) con los dos espesores el cartel dice 14.0mm',
+      hviDos.indexOf('14.0mm') > -1 && hviDos.indexOf('Criterio presente') > -1, hviDos]);
+    ex.push(['(H3b) borrado el septo el cartel SIGUE y cae a la pared posterior: 12.0mm',
+      hviSinSepto.indexOf('12.0mm') > -1 && hviSinSepto.indexOf('Criterio presente') > -1, hviSinSepto]);
+    ex.push(['(H3c) CONTROL NEGATIVO: vaciados los DOS, el cartel se va',
+      hviSinNada === '—' || hviSinNada === '', JSON.stringify(hviSinNada)]);
+
+    /* ══ (H6) TECLEAR 1 Y DESPUES 5 DENTRO DEL MODULO, con el estudio vacio ════════════════ */
+    __t.limpiar();
+    await esperar(300);
+    ex.push(['  DENOMINADOR E: el septo del estudio arranca vacio',
+      V('siv') === '', JSON.stringify(V('siv'))]);
+    teclear('ett-septo', '1');
+    const trasEl1 = V('siv');
+    teclear('ett-septo', '15');
+    await esperar(500);
+    /* ⚠️ ESTA ES LA OTRA CONDICION QUE CAE CONTRA EL D-9: alli el estudio se quedaba en «1». */
+    ex.push(['(H6) el estudio recibe los DOS digitos: 15, no 1',
+      V('siv') === '15' && V('ett-septo') === '15',
+      'tras el 1 el estudio decia ' + JSON.stringify(trasEl1) + ', ahora dice ' + JSON.stringify(V('siv'))]);
+    __t.limpiar();
+    await esperar(300);
+    teclear('rwt-septo', '1');
+    teclear('rwt-septo', '15');
+    await esperar(500);
+    ex.push(['(H6b) lo mismo en el campo del espesor relativo: el estudio queda en 15',
+      V('siv') === '15', 'estudio=' + JSON.stringify(V('siv'))]);
+
+    /* ⚠️ CONTROL NEGATIVO DE H6, Y ES EL QUE IMPIDE QUE EL ARREGLO SE PASE DE LARGO: lo que el
+       medico cargo a mano en el estudio NO se pisa, y el desacuerdo se conserva en pantalla. */
+    __t.limpiar();
+    poner('siv', '20');
+    await esperar(400);
+    teclear('ett-septo', '15');
+    await esperar(500);
+    ex.push(['(H6c) CONTROL NEGATIVO: el 20 cargado a mano en el estudio NO se pisa',
+      V('siv') === '20', 'estudio=' + V('siv')]);
+    ex.push(['(H6d) y lo que el medico midio en el modulo no se le borra de la pantalla',
+      V('ett-septo') === '15', 'modulo=' + V('ett-septo')]);
+
+    /* ══ (H6e/H6f) EL DESACUERDO SOBRE UN CAMPO CON UN SOLO ESPEJO ═══════════════════════════
+       ⚠️ ESTA ESCENA NACIO DE DOS MUTACIONES QUE SOBREVIVIERON, Y EL MOTIVO ES EL DENOMINADOR.
+       (H6c) usa el septo, y al septo del estudio lo espejan DOS campos del modulo: el del
+       encabezado y el del espesor relativo. El segundo trae el valor del estudio por el reflejo,
+       asi que cuando el primero escribia un valor indebido el segundo lo volvia a escribir bien
+       en la misma pasada — el estudio terminaba correcto y la condicion pasaba EN VERDE sobre la
+       mutacion. El TAPSE tiene un solo campo espejo, asi que ahi la escritura indebida no la
+       tapa nadie. Es la misma leccion del «freno que tapa al que se muta». */
+    __t.limpiar();
+    poner('tapse', '16');
+    await esperar(400);
+    const tapseAuto = V('tapse-val');
+    teclear('tapse-val', '21');
+    await esperar(500); barrer(); await esperar(300);
+    ex.push(['  DENOMINADOR G: el TAPSE del estudio llego solo al calculador antes del gesto',
+      tapseAuto === '16', 'tapse-val autollenado=' + JSON.stringify(tapseAuto)]);
+    ex.push(['(H6e) el 16 cargado a mano en el estudio NO lo pisa el 21 tecleado en el modulo',
+      V('tapse') === '16', 'tapse del estudio=' + V('tapse')]);
+    ex.push(['(H6f) y el 21 que el medico midio en el modulo sigue en pantalla tras el barrido',
+      V('tapse-val') === '21', 'tapse-val=' + V('tapse-val')]);
+
+    /* (H6g) ⚠️ Y EL DESACUERDO SE TIENE QUE PODER RESOLVER, QUE ES OTRA MUTACION SOBREVIVIENTE.
+       Si la marca de desacuerdo no se limpia cuando los dos valores coinciden, el campo queda
+       marcado como propio PARA SIEMPRE y el reflejo no lo vuelve a tocar: el medico corrige su
+       medicion, los dos lados quedan de acuerdo, y desde ahi el calculador deja de seguir al
+       estudio sin que nada lo diga. Partiendo del desacuerdo de arriba —modulo 21, estudio 16—,
+       el medico escribe 16 en el modulo y despues el estudio cambia a 18. */
+    teclear('tapse-val', '16');
+    await esperar(400); barrer(); await esperar(200);
+    poner('tapse', '18');
+    await esperar(500); barrer(); await esperar(300);
+    ex.push(['(H6g) resuelto el desacuerdo, el calculador vuelve a seguir al estudio: 18',
+      V('tapse-val') === '18', 'tapse-val=' + V('tapse-val') + ' tapse=' + V('tapse')]);
+
+    /* ══ (NEG) EL CRITERIO DESTILDADO A MANO SE RESPETA, y el modulo igual se llena ═════════ */
+    __t.limpiar();
+    poner('siv', '18'); poner('ppvi', '12'); poner('ddfvi', '45');
+    await esperar(500);
+    const puntosAntes = String((EL('ett-rwt') || {}).value);
+    try { if (F('amOrigenSet')) amOrigenSet('rwt', 'nomanual'); } catch (e) {}
+    const ho = EL('ett-rwt-orig'); if (ho) ho.value = 'nomanual';
+    const hp = EL('ett-rwt'); if (hp) hp.value = '0';
+    poner('siv', '19');
+    await esperar(500);
+    ex.push(['(N1) el criterio destildado a mano sigue destildado aunque el dato cambie',
+      String((EL('ett-rwt') || {}).value) === '0',
+      'antes=' + puntosAntes + ' ahora=' + String((EL('ett-rwt') || {}).value)]);
+    ex.push(['(N2) y el calculador igual refleja el dato nuevo: 19',
+      V('rwt-septo') === '19', 'modulo=' + V('rwt-septo')]);
+
+    /* ══ (NEG) EL PROMEDIO DE e-PRIMA ES EL UNICO INSUMO SIN VUELTA, y no se pisa ═══════════
+       Su fuente son las dos e-prima y un promedio no se reparte en dos mediciones sin
+       inventarlas, asi que lo que el medico escriba ahi no tiene donde vivir. */
+    __t.limpiar();
+    poner('e_sep', '4'); poner('e_lat', '6');
+    await esperar(500);
+    const epAuto = V('ee-ep');
+    poner('ee-ep', '9');
+    const e9 = EL('ee-ep');
+    if (e9 && e9.dataset) delete e9.dataset.espejo;
+    await esperar(500); barrer(); await esperar(300);
+    ex.push(['(N3) el promedio de e-prima se autollena desde las dos e-prima del estudio',
+      epAuto === '5', 'autollenado=' + JSON.stringify(epAuto)]);
+    ex.push(['(N4) CONTROL NEGATIVO: el promedio escrito a mano en el modulo NO se pisa',
+      V('ee-ep') === '9', 'ee-ep=' + V('ee-ep')]);
+
+    /* (H6h) ⚠️ Y LAS DOS MARCAS TIENEN QUE MORIR CON «NUEVO ESTUDIO», que es el defecto que
+       encontro TC-541 al correr DESPUES de este caso en el mismo lote: verde aislado y rojo en
+       el lote, y contra el arbol del D-9 el mismo lote no lo rompia. Las marcas viven en el nodo
+       y limpiarCampos vacia los value pero NO los dataset, asi que el desacuerdo de un
+       paciente dejaba al campo del SIGUIENTE sin seguir al estudio. En una maquina compartida eso
+       es el dato de otro paciente mandando sobre el que el medico tiene delante. */
+    __t.limpiar();
+    poner('tapse', '16');
+    await esperar(400);
+    teclear('tapse-val', '21');
+    await esperar(500); barrer(); await esperar(200);
+    const desacuerdoPrevio = V('tapse-val') === '21' && V('tapse') === '16';
+    __t.limpiar();
+    await esperar(300);
+    poner('tapse', '14');
+    await esperar(500); barrer(); await esperar(300);
+    ex.push(['  DENOMINADOR H: hubo desacuerdo antes del «Nuevo estudio»',
+      desacuerdoPrevio, 'modulo=21 estudio=16 -> ' + desacuerdoPrevio]);
+    ex.push(['(H6h) tras «Nuevo estudio» el calculador vuelve a seguir al estudio: 14',
+      V('tapse-val') === '14', 'tapse-val=' + V('tapse-val') + ' tapse=' + V('tapse')]);
+
+    /* (H6i) ⚠️ Y EL PERMISO DE PISAR EL CAMPO DEL ESTUDIO TAMBIEN TIENE QUE MORIR CON «Nuevo
+       estudio». El modulo escribe 21 y queda autorizado a pisar ese 21; «Nuevo estudio» vacia el
+       campo, y si el permiso sobreviviera, el paciente siguiente que cargue 21 A MANO se lo
+       podria pisar. Nacio de tres mutaciones que sobrevivieron.
+       ⚠️ Y VA SOBRE EL TAPSE, NO SOBRE EL SEPTO, POR LA MISMA RAZON QUE (H6e): al septo del
+       estudio lo espejan DOS campos del modulo, asi que cuando uno escribe un valor indebido el
+       otro lo vuelve a escribir bien en la misma pasada y el estudio termina correcto. Escrita
+       con el septo, esta condicion pasaba EN VERDE sobre la mutacion — el mismo error dos veces
+       en la misma correccion. El TAPSE tiene un solo espejo y nadie que lo tape. */
+    __t.limpiar();
+    await esperar(300);
+    teclear('tapse-val', '21');
+    await esperar(500);
+    const permisoPrevio = V('tapse') === '21';
+    __t.limpiar();
+    await esperar(400); barrer(); await esperar(300);
+    poner('tapse', '21');
+    await esperar(400);
+    teclear('tapse-val', '25');
+    await esperar(500); barrer(); await esperar(300);
+    ex.push(['  DENOMINADOR I: el modulo habia escrito ese campo antes del «Nuevo estudio»',
+      permisoPrevio, 'tapse tras el gesto=' + permisoPrevio]);
+    ex.push(['(H6i) el 21 que el paciente nuevo cargo a mano NO lo pisa el 25 del modulo',
+      V('tapse') === '21', 'tapse=' + V('tapse')]);
+
+    /* ══ (H5) «NUEVO ESTUDIO» NO DEJA UN DATO DEL PACIENTE ═════════════════════════════════
+       Medido en 8fac09f, en 195c87a y hoy: los MISMOS 84 campos quedan con contenido, y son
+       todos valores por omision de selectores y casillas de PDF. Lo que se exige aca es que no
+       quede un dato del paciente, y como control que los por omision SIGAN estando: un «Nuevo
+       estudio» que los borrara tambien seria un defecto, en la otra direccion. */
+    __t.limpiar();
+    const DEL_PACIENTE = ['nombre','edad','peso','talla','siv','ppvi','ddfvi','tapse','onda_e',
+                          'e_sep','e_lat','sgl','fevi','rwt-septo','rwt-pp','rwt-ddvi','ett-septo',
+                          'ett-pp','ett-fevi','tapse-val','sgl-val','ee-e','ee-ep'];
+    DEL_PACIENTE.forEach((id, i) => { if (EL(id)) poner(id, String(10 + i)); });
+    poner('nombre', 'Prueba D10');
+    await esperar(500);
+    const cargados = DEL_PACIENTE.filter(id => V(id) !== '').length;
+    __t.limpiar();
+    await esperar(500);
+    const sobreviven = DEL_PACIENTE.filter(id => V(id) !== '');
+    ex.push(['  DENOMINADOR F: habia datos cargados antes de «Nuevo estudio»',
+      cargados >= 20, 'cargados=' + cargados + '/' + DEL_PACIENTE.length]);
+    ex.push(['(H5) «Nuevo estudio» no deja un solo dato del paciente, ni en el modulo',
+      sobreviven.length === 0, 'sobreviven=' + (sobreviven.join(',') || 'ninguno')]);
+    ex.push(['(H5b) CONTROL NEGATIVO: los valores por omision de los selectores SIGUEN puestos',
+      V('em_grado') === 'sin' && V('pericardio') === 'Normal, sin derrame',
+      'em_grado=' + V('em_grado') + ' pericardio=' + V('pericardio')]);
+
+    return { extra: ex };
+  })();
+`);
+
 
 let servidor, chrome;
 try {
@@ -92828,3 +93169,4 @@ try {
   try { chrome && chrome.proc.kill(); } catch {}
   try { chrome && await rm(chrome.perfil, { recursive: true, force: true }); } catch {}
 }
+
