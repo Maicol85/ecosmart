@@ -8653,3 +8653,60 @@ línea visible. Acortarlo costaría una de esas clases.
 **Qué haría falta.** Decidir qué sale del globo y adónde va: una ficha en Referencias para
 `co-riesgo-basal` resolvería las dos cosas a la vez —también le daría el botón «Ver referencia»
 que hoy no tiene, que es el límite que **D-c** y TC-502 declaran—.
+
+---
+
+# Corrección D-9 (2026-10-27)
+
+## D-j · Inventario de direcciones del módulo de amiloidosis — SOLO REPORTADO
+
+Para **cada** campo de entrada del módulo, qué sincronización existe hoy y qué costaría completar
+la que falta. **Nada de esto se implementó**: el punto 3 de la orden pide reportarlo.
+
+| Campo del módulo | Campo del estudio | Hoy | Qué falta y qué costaría |
+|---|---|---|---|
+| `rwt-septo` | `siv` | **los dos sentidos** | — |
+| `rwt-pp` | `ppvi` | **los dos sentidos** | — |
+| `rwt-ddvi` | `ddfvi` | **los dos sentidos** | — |
+| `ee-e` | `onda_e` | **los dos sentidos** | — |
+| `tapse-val` | `tapse` | **los dos sentidos** | — |
+| `sgl-val` | `sgl` | **los dos sentidos** | — |
+| `ett-septo` | `siv` | **módulo → estudio** | la vuelta NO se puede dar: `_amHayDatos` —la línea de pendientes de la miocardiopatía hipertrófica— lee este campo como «el médico está evaluando amiloidosis acá», así que autollenarlo pondría esa frase en el informe de cualquier estudio con el septo cargado. Para la condición de 12 mm, `calcETT` ya **lee** `siv`. Costaría separar esa señal de ese campo. |
+| `ett-pp` | `ppvi` | **módulo → estudio** | lo mismo que el anterior |
+| `ett-fevi` | `fevi` | **módulo → estudio** | la vuelta es trivial —mismo dato, misma unidad— y no toca ningún campo guardado. **Es la que el médico reportó que falta.** Sólo hay que agregarle la entrada al registro sin la marca de «un solo sentido». |
+| `ee-ep` | `e_sep` + `e_lat` | **estudio → módulo** | la vuelta **no es definible**: un promedio no se reparte en dos mediciones sin inventarlas. |
+| `ap-apic` | — | **ninguno** | el strain por segmentos de la app no publica el apical por separado. Haría falta un campo nuevo guardado. |
+| `ap-base` | — | **ninguno** | ídem |
+| `ett-derrperic` | `pericardio` | **ninguno** | la vuelta exige **traducir vocabularios**: el estudio tiene cinco opciones («Normal, sin derrame», «Derrame leve (<10mm)», «Derrame moderado (10-20mm)», «Derrame severo (>20mm)», «Engrosamiento / calcificación») y el módulo tres («— no evaluado —», «No», «Sí (mínimo o moderado)»). Mapear «severo» a «Sí (mínimo o moderado)» sería **falsear el grado**, y el módulo no tiene opción para un derrame severo. **Es la otra que el médico reportó.** Decidir: agregarle una cuarta opción al módulo, o leer el del estudio y mostrarlo sin graduar. |
+| `ett-sparkling` | — | **ninguno** | el patrón granular no existe como campo en ninguna otra pestaña |
+| `ett-valvular` | — | **ninguno** | el engrosamiento valvular por amiloidosis tampoco |
+| `alg-motivo` · `alg-ett-score` | — / propio | **no corresponde** | `alg-ett-score` lo escribe el propio módulo desde el D-3 |
+
+**Las dos que el médico notó** —la FEVI y el derrame pericárdico que no aparecen en «otros
+hallazgos»— son las filas en negrita: la FEVI es **una línea de registro**; el derrame **no se
+puede hacer sin decidir qué pasa con el grado severo**, que el módulo hoy no sabe decir.
+
+## D-k · Los diecisiete casos del pendrive no son cobertura de esta corrección
+
+La orden pedía la suite completa «con el pendrive montado y legible al abrir y al cerrar».
+**Al abrir lo estaba; a mitad de la corrida se desmontó.** `/Volumes/` quedó con `Macintosh HD`
+solo, y los casos **TC-181 a TC-197** —los que leen archivos reales del ecógrafo— fallaron los
+diecisiete con «hace falta el pendrive del Vivid montado». No se tocó nada para forzarlos.
+
+Esos diecisiete **no prueban nada en esta pasada** y no se cuentan como verdes. Hay que volver a
+correr ese lote con el pendrive puesto:
+
+```bash
+node scripts/test_clinico.mjs --solo TC-181,TC-182,TC-183,TC-184,TC-185,TC-186,TC-187,TC-188,TC-189,TC-190,TC-191,TC-192,TC-193,TC-194,TC-195,TC-196,TC-197
+```
+
+Ninguno de los diecisiete toca el módulo de amiloidosis ni los espejos: son el visor de imágenes
+y la calibración. El riesgo de que escondan una regresión de esta corrección es bajo, pero **bajo
+no es cero y por eso queda declarado**.
+
+⚠️ **Se volvió a pedir la corrida con el pendrive puesto y NO estaba montado, medido por tres
+caminos:** `/Volumes/` tiene sólo `Macintosh HD`, `diskutil list external` no devuelve nada y la
+tabla de `mount` tiene diez entradas, todas internas. Tampoco hay copia local del árbol
+`GEMS_IMG` en el home, así que no sirve apuntar `ECO_PENDRIVE` a una carpeta. **Antes de relanzar
+el lote, confirmar con `ls /Volumes/DISK_IMG/GEMS_IMG/` que lista nombres reales**: si ese `ls`
+falla, los diecisiete van a fallar igual y no van a probar nada.

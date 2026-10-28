@@ -92405,13 +92405,20 @@ caso('TC-540', 'Tanda D: la calculadora de riesgo CV aplicando la Tabla 4 de la 
         && String((EL('ett-tapse-orig') || {}).value) === 'nomanual',
       'justo=' + f4a.total + ' tras barrido=' + f4b.total + ' orig=' + (EL('ett-tapse-orig') || {}).value]);
     /* (F5) SENTIDO MODULO -> APP con el campo del estudio vacio, y con un valor DISTINTO cargado. */
+    /* ⚠️ ADAPTADO EN LA D-9, con el motivo escrito: la escritura del modulo hacia el estudio ya
+       NO cuelga de los calc*, porque el barrido de espejos los llama a ellos en su pasada de
+       marcado y por ahi se deshacia un borrado del medico. Hoy cuelga del evento de entrada del
+       campo del propio modulo, que es la UNICA puerta. La escena pasa a usar ese gesto.
+       ⚠️ SIN ACENTOS GRAVES EN ESTE COMENTARIO: el cuerpo del caso es un template literal y uno
+       solo lo cierra, con un SyntaxError que apunta decenas de lineas antes. Pagado tres veces. */
+    const gesto = (id, val) => { const e = EL(id); if (!e) return 'NO EXISTE ' + id;
+      e.value = val; e.dispatchEvent(new Event('input', { bubbles: true })); return e.value; };
     __t.limpiar();
-    __t.set('tapse-val', '15'); if (F('calcTAPSE')) calcTAPSE();
+    gesto('tapse-val', '15');
     const f5a = String(__t.val('tapse') || '');
     __t.limpiar();
     __t.set('tapse', '21');
-    const _tv = EL('tapse-val'); if (_tv) { _tv.dataset.espejo = ''; _tv.value = '15'; }
-    if (F('calcTAPSE')) calcTAPSE();
+    gesto('tapse-val', '15');
     const f5b = String(__t.val('tapse') || '');
     ex.push(['(F5) el modulo escribe el TAPSE del estudio si esta vacio, y NO lo pisa si difiere',
       f5a === '15' && f5b === '21' && /No coinciden con lo cargado/i.test(T('ett-auto-nota')),
@@ -92487,6 +92494,206 @@ caso('TC-540', 'Tanda D: la calculadora de riesgo CV aplicando la Tabla 4 de la 
     ex.push(['(I2) y su alg-ett-score sigue VACIO: el modulo vacio no publica un cero',
       String(__t.val('alg-ett-score') || '') === '',
       'alg=' + JSON.stringify(String(__t.val('alg-ett-score') || ''))]);
+
+    return { extra: ex };
+  })();
+`);
+
+caso('TC-541', 'D-9: borrar en el estudio BORRA de verdad —los ocho datos que el modulo de amiloidosis comparte se dejan vaciar y no vuelven ni con el barrido, ni al cambiar de pestania, ni al guardar y reabrir—, el reflejo del modulo se vacia con ellos, el criterio se destilda solo y el cartel de HVI se va al vaciar los DOS espesores; y el gesto dentro del modulo sigue escribiendo en un campo vacio del estudio sin pisar uno cargado', `
+  return (async () => {
+    const ex = [];
+    const N = s => String(s == null ? '' : s).replace(/\\s+/g, ' ').trim();
+    const EL = id => document.getElementById(id);
+    const T = id => N(__t.txt(id));
+    const F = n => typeof window[n] === 'function';
+    const esperar = ms => new Promise(r => setTimeout(r, ms));
+    const V = id => String((EL(id) || {}).value || '');
+
+    /* Los OCHO datos que el modulo y el estudio comparten, con el campo del modulo que los
+       refleja. El e-prima septal y el lateral no tienen campo espejo: alimentan el promedio del
+       calculador, que si se autollena, y por eso entran igual. */
+    const OCHO = [
+      { app:'siv',    mods:['ett-septo','rwt-septo'], val:'16' },
+      { app:'ppvi',   mods:['ett-pp','rwt-pp'],       val:'14' },
+      { app:'ddfvi',  mods:['rwt-ddvi'],              val:'42' },
+      { app:'tapse',  mods:['tapse-val'],             val:'16' },
+      { app:'onda_e', mods:['ee-e'],                  val:'90' },
+      /* ⚠️ ESTOS DOS NO DEJAN EL REFLEJO VACIO, Y ESTA BIEN. El promedio del calculador sale de
+         las DOS e-prima: borrando la septal, el promedio pasa a ser la lateral, no desaparece.
+         Lo que se exige es que SIGA al dato —que es la regla «el campo del estudio es el
+         dueno»—, no que se vacie. Exigir vacio aca daba rojo sobre el comportamiento correcto,
+         y fue lo primero que escribi. */
+      { app:'e_sep',  mods:['ee-ep'],                 val:'4',  espera:'6' },
+      { app:'e_lat',  mods:['ee-ep'],                 val:'6',  espera:'4' },
+      { app:'sgl',    mods:['sgl-val'],               val:'-12' }
+    ];
+    /* El gesto REAL del medico sobre un campo: escribir o vaciar y que el campo avise. */
+    const poner = (id, val) => { const e = EL(id); if (!e) return 'NO EXISTE ' + id;
+      e.value = val;
+      e.dispatchEvent(new Event('input',  { bubbles: true }));
+      e.dispatchEvent(new Event('change', { bubbles: true }));
+      return e.value; };
+    const barrer = () => { try { if (F('_espejosBarrerTodos')) _espejosBarrerTodos(); } catch (e) {} };
+    const montar = () => { __t.limpiar();
+      OCHO.forEach(c => poner(c.app, c.val));
+      barrer(); };
+
+    /* ══ DENOMINADOR A ══ Los ocho campos existen, el modulo los LEE y el score se pobla: sin
+       esto, «quedo vacio» no prueba nada porque nunca hubo nada que borrar. */
+    montar();
+    await esperar(400); barrer();
+    const faltan = OCHO.filter(c => !EL(c.app)).map(c => c.app);
+    const scoreIni = Number(T('ett-score-num') || 0);
+    const reflejoIni = OCHO.filter(c => c.mods.some(m => V(m) !== '')).length;
+    ex.push(['  DENOMINADOR A: los ocho campos existen, el modulo los refleja y el score se poblo',
+      faltan.length === 0 && scoreIni > 0 && reflejoIni === OCHO.length,
+      'faltan=' + (faltan.join(',') || 'ninguno') + ' score=' + scoreIni + ' reflejados=' + reflejoIni + '/8']);
+
+    /* ══ (B) UNO POR UNO: borrar y que NO vuelva ══ Cada campo se borra sobre la escena entera
+       montada de nuevo, para que el resultado no dependa de lo que quedo de la vuelta anterior. */
+    const malVuelve = [], malReflejo = [];
+    for (const c of OCHO) {
+      montar();
+      await esperar(300); barrer();
+      poner(c.app, '');
+      /* El barrido cuelga de un debounce de 220 ms: se le da tiempo y se lo corre dos veces. */
+      await esperar(400); barrer();
+      await esperar(300); barrer();
+      if (V(c.app) !== '') malVuelve.push(c.app + '=' + V(c.app));
+      const esperado = c.espera || '';
+      const refSucio = c.mods.filter(m => V(m) !== esperado);
+      if (refSucio.length) malReflejo.push(c.app + ' esperaba ' + JSON.stringify(esperado) + ' -> '
+        + refSucio.map(m => m + '=' + V(m)).join('/'));
+    }
+    ex.push(['(B1) los OCHO se dejan borrar en el estudio y NO los reescribe el barrido',
+      malVuelve.length === 0, 'vuelven: ' + (malVuelve.join(' | ') || 'ninguno')]);
+    ex.push(['(B2) y el reflejo del modulo SIGUE al dato: se vacia con el, o queda con lo que resta',
+      malReflejo.length === 0, 'con valor viejo: ' + (malReflejo.join(' | ') || 'ninguno')]);
+
+    /* ══ (C) EL VIAJE COMPLETO: cinco segundos, cambio de pestania, guardar y reabrir ══ */
+    montar();
+    await esperar(400); barrer();
+    const scoreAntes = Number(T('ett-score-num') || 0);
+    OCHO.forEach(c => poner(c.app, ''));
+    await esperar(5000);                         // los cinco segundos que pide la orden
+    barrer();
+    const trasEsperar = OCHO.filter(c => V(c.app) !== '').map(c => c.app);
+    /* Cambio de pestania POR SU BOTON, que es el gesto real: showTab por codigo no dispara lo
+       mismo. Se va a Amiloidosis y se vuelve. */
+    try { const b1 = document.querySelector('[data-mod="amiloidosis"]'); if (b1) b1.click(); } catch (e) {}
+    await esperar(400);
+    try { const b2 = document.querySelector('[data-mod="aivi"]') || document.querySelector('.tab-btn'); if (b2) b2.click(); } catch (e) {}
+    await esperar(400); barrer();
+    const trasPestania = OCHO.filter(c => V(c.app) !== '').map(c => c.app);
+    ex.push(['(C1) tras CINCO segundos siguen vacios',
+      trasEsperar.length === 0, 'volvieron: ' + (trasEsperar.join(',') || 'ninguno')]);
+    ex.push(['(C2) y tras cambiar de pestania y volver, tambien',
+      trasPestania.length === 0, 'volvieron: ' + (trasPestania.join(',') || 'ninguno')]);
+
+    /* El estudio se guarda con los ocho VACIOS y se reabre: lo borrado no puede resucitar. */
+    poner('nombre', 'D9 borrado'); poner('ci', '941');
+    const gu = await __t.guardar();
+    let trasReabrir = 'NO SE GUARDO';
+    if (gu && gu.estudioId) {
+      __t.nuevoEstudio();
+      __t.reabrir(gu.estudioId);
+      await esperar(700); barrer();
+      await esperar(300); barrer();
+      trasReabrir = OCHO.filter(c => V(c.app) !== '').map(c => c.app);
+    }
+    ex.push(['  DENOMINADOR C: el estudio con los ocho vacios se guardo de verdad',
+      !!(gu && gu.estudioId), JSON.stringify(gu)]);
+    ex.push(['(C3) y al reabrirlo siguen vacios: lo borrado no resucita',
+      Array.isArray(trasReabrir) && trasReabrir.length === 0,
+      'volvieron: ' + (Array.isArray(trasReabrir) ? (trasReabrir.join(',') || 'ninguno') : trasReabrir)]);
+    ex.push(['(C4) y el score bajo: el criterio se destilda solo cuando el dato ya no esta',
+      scoreAntes > 0 && Number(T('ett-score-num') || 0) < scoreAntes,
+      'antes=' + scoreAntes + ' despues=' + T('ett-score-num')]);
+    try { await __t.borrar(gu && gu.estudioId); } catch (e) {}
+
+    /* ══ (D) EL CARTEL DE HVI ══ Se mide vaciando los DOS espesores, no uno: el criterio es el
+       MAYOR de septo y pared posterior, asi que con uno solo el cartel sigue —y debe seguir—
+       diciendo que la hipertrofia esta. Medirlo con un campo daria un falso arreglo. */
+    montar(); await esperar(400); barrer();
+    const hviAntes = T('ett-hvi-badge');
+    poner('siv', ''); poner('ppvi', '');
+    await esperar(400); barrer();
+    await esperar(300); barrer();
+    const hviDespues = T('ett-hvi-badge');
+    ex.push(['(D1) con los DOS espesores vacios el cartel de HVI se va, y el criterio se destilda',
+      /HVI ≥12mm/.test(hviAntes) && !/HVI ≥12mm/.test(hviDespues)
+        && Number(V('ett-rwt') || 0) === 0,
+      'antes=' + hviAntes.slice(0, 44) + ' | despues=' + hviDespues.slice(0, 30) + ' rwt=' + V('ett-rwt')]);
+    /* CONTROL NEGATIVO del anterior: con UN solo espesor vaciado el cartel SIGUE, porque el
+       criterio es el mayor de los dos. */
+    montar(); await esperar(400); barrer();
+    poner('siv', '');
+    await esperar(400); barrer();
+    ex.push(['(D2) CONTROL: vaciando UN solo espesor el cartel sigue, porque manda el mayor',
+      /HVI ≥12mm/.test(T('ett-hvi-badge')), T('ett-hvi-badge').slice(0, 46)]);
+
+    /* ══ (E) EL GESTO DENTRO DEL MODULO SIGUE ESCRIBIENDO ══ Es el paso 10 de la guia, y es lo
+       que este arreglo NO puede romper: con el campo del estudio vacio se escribe, y con uno ya
+       cargado y distinto NO se pisa. */
+    __t.limpiar();
+    poner('tapse-val', '15');
+    const e1 = V('tapse');
+    __t.limpiar();
+    poner('tapse', '21');
+    poner('tapse-val', '15');
+    const e2 = V('tapse');
+    ex.push(['(E1) con el campo del estudio VACIO, escribir en el modulo lo escribe',
+      e1 === '15', 'tapse=' + e1]);
+    ex.push(['(E2) y con un valor DISTINTO ya cargado NO lo pisa, y lo declara',
+      e2 === '21' && /No coinciden con lo cargado/i.test(T('ett-auto-nota')),
+      'tapse=' + e2 + ' nota=' + T('ett-auto-nota').slice(-80)]);
+    /* ══ (F) LO QUE EL MEDICO TIPEA EN EL MODULO NO SE LO PISA EL BARRIDO ══
+       Lo destaparon DOS mutaciones que sobrevivieron al primer barrido: una sacaba el borrado de
+       la marca de espejo en el gesto y la otra hacia que el reflejo pisara igual. Ninguna
+       condicion cubria el caso, que es el inverso del defecto que esta correccion arregla: el
+       campo del estudio es el dueno, pero una medicion propia del calculador —el TAPSE que el
+       medico midio ACA y que no quiere mandar al estudio— tampoco se puede perder. */
+    __t.limpiar();
+    poner('tapse', '20');                      // el estudio dice 20
+    await esperar(400); barrer();              // el reflejo trae 20 al modulo
+    const f0 = V('tapse-val');
+    poner('tapse-val', '13');                  // y el medico mide 13 ACA
+    const f1 = V('tapse-val');
+    await esperar(400); barrer();
+    await esperar(300); barrer();
+    ex.push(['  DENOMINADOR F: el reflejo habia traido el valor del estudio al modulo',
+      f0 === '20', 'tapse-val tras el barrido=' + f0]);
+    ex.push(['(F1) lo que el medico tipea en el modulo sobrevive al barrido, no se lo pisa',
+      f1 === '13' && V('tapse-val') === '13', 'tras tipear=' + f1 + ' tras barrer=' + V('tapse-val')]);
+
+    /* ══ (G) LA FUENTE INCOMPLETA ══ Lo destapo una mutacion que sobrevivio: vaciar el reflejo y
+       dejar que el autollenado lo reponga da el MISMO resultado que seguir al dato... salvo
+       cuando la fuente esta incompleta. El autollenado exige los TRES insumos del espesor
+       relativo —septo, pared posterior y DDVI— y no escribe nada si falta uno; asi que, sin el
+       reflejo que sigue al dato, borrar SOLO el DDVI se llevaba puestos tambien el septo y la
+       pared posterior del calculador. Es un escenario corriente: el medico mide dos de tres. */
+    __t.limpiar();
+    poner('siv', '16'); poner('ppvi', '14'); poner('ddfvi', '42');
+    await esperar(400); barrer();
+    const g0 = V('rwt-septo') + '/' + V('rwt-pp') + '/' + V('rwt-ddvi');
+    poner('ddfvi', '');
+    await esperar(400); barrer();
+    await esperar(300); barrer();
+    ex.push(['  DENOMINADOR G: los TRES insumos del espesor relativo llegaron al calculador',
+      g0 === '16/14/42', 'septo/pp/ddvi=' + g0]);
+    ex.push(['(G1) borrando SOLO el DDVI, el septo y la pared posterior siguen en el calculador',
+      V('rwt-septo') === '16' && V('rwt-pp') === '14' && V('rwt-ddvi') === '',
+      'septo=' + V('rwt-septo') + ' pp=' + V('rwt-pp') + ' ddvi=' + JSON.stringify(V('rwt-ddvi'))]);
+
+    /* CONTROL NEGATIVO: el barrido por si solo NO escribe nada en el estudio. Es la condicion
+       que mata la mutacion de reintroducir la escritura desde el barrido. */
+    __t.limpiar();
+    poner('tapse-val', '17');
+    poner('tapse', '');
+    await esperar(400); barrer();
+    await esperar(300); barrer();
+    ex.push(['(E3) CONTROL: el barrido NO escribe en el estudio, ni con el modulo cargado',
+      V('tapse') === '', 'tapse=' + JSON.stringify(V('tapse'))]);
 
     return { extra: ex };
   })();

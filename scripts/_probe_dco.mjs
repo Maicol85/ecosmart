@@ -1200,6 +1200,111 @@ window.__Y = {
     process.stderr.write('[viejo] listo\\n');
   }
 
+  /* ── GRUPO `borrado` · D-9: se puede BORRAR lo que el modulo escribio en el estudio? ──── */
+  if (corre('borrado')) {
+    const r = { campos: {}, denominador: {} };
+    const OCHO = ['siv','ppvi','ddfvi','tapse','onda_e','e_sep','e_lat','sgl'];
+    try {
+      /* Helper en pagina: monta la escena, borra UN campo con el gesto real y fotografia el
+         valor del estudio DESPUES de cada etapa, para atribuir quien lo reescribe. */
+      await evCrudo(`
+window.__B = {
+  montar() {
+    window.__P.nuevo();
+    window.__P.calentar();
+    var V = { siv:'16', ppvi:'14', ddfvi:'42', tapse:'16', onda_e:'90',
+              e_sep:'4', e_lat:'6', sgl:'-12' };
+    Object.keys(V).forEach(function(id){
+      var e = document.getElementById(id); if (!e) return;
+      e.value = V[id];
+      e.dispatchEvent(new Event('input', { bubbles: true }));
+      e.dispatchEvent(new Event('change', { bubbles: true })); });
+    try { if (typeof _espejosBarrerTodos === 'function') _espejosBarrerTodos() } catch(e){}
+    return Object.keys(V).map(function(id){
+      var e = document.getElementById(id); return id + '=' + (e ? e.value : 'NO EXISTE') }).join(' ') },
+
+  /* El valor del campo del ESTUDIO y el del campo del MODULO que lo refleja. */
+  foto(id) {
+    var e = document.getElementById(id);
+    var par = null;
+    try { par = (amiloEspejos() || []).filter(function(x){ return x.app === id }) } catch(x){ par = [] }
+    return { estudio: e ? String(e.value) : 'NO EXISTE',
+             modulo: (par || []).map(function(x){
+               var m = document.getElementById(x.mod);
+               return x.mod + '=' + (m ? String(m.value) : '?') }).join(',') } },
+
+  /* BORRA con el gesto real: seleccionar y vaciar, con los eventos que dispara el teclado. */
+  borrar(id) {
+    var e = document.getElementById(id); if (!e) return 'NO EXISTE';
+    e.focus(); e.value = '';
+    e.dispatchEvent(new Event('input', { bubbles: true }));
+    e.dispatchEvent(new Event('change', { bubbles: true }));
+    return e.value },
+
+  barrido() { try { if (typeof _espejosBarrerTodos === 'function') _espejosBarrerTodos() } catch(e){} return 1 },
+  soloTrae() { try { amiloEspejoDesdeApp() } catch(e){} return 1 },
+  soloMarca() { try { amiloAutoMarcarTodos() } catch(e){} return 1 },
+  soloCalcETT() { try { calcETT() } catch(e){} return 1 },
+  hvi() { return window.__P.txt('ett-hvi-badge') },
+  score() { return window.__P.txt('ett-score-num') },
+  chk(k) { var h = document.getElementById('ett-' + k); return h ? h.value : '?' }
+};
+1`);
+
+      r.denominador.campos = OCHO.length;
+      for (const id of OCHO) {
+        const o = {};
+        o.monto = await ev(`window.__B.montar()`, 40000);
+        o.trasMontar = await ev(`window.__B.foto(${JSON.stringify(id)})`, 20000);
+        o.borre = await ev(`window.__B.borrar(${JSON.stringify(id)})`, 20000);
+        o.justoDespues = await ev(`window.__B.foto(${JSON.stringify(id)})`, 20000);
+        /* (a) solo el sentido app -> modulo */
+        await ev(`window.__B.soloTrae()`, 20000);
+        o.trasTraer = await ev(`window.__B.foto(${JSON.stringify(id)})`, 20000);
+        /* (b) solo el marcado automatico, que es quien llama a los calc* del modulo */
+        await ev(`window.__B.soloMarca()`, 30000);
+        o.trasMarcar = await ev(`window.__B.foto(${JSON.stringify(id)})`, 20000);
+        /* (c) el barrido entero, y despues el debounce real */
+        await ev(`window.__B.barrido()`, 30000);
+        await pausa(400);
+        await ev(`window.__B.barrido()`, 30000);
+        o.trasBarrido = await ev(`window.__B.foto(${JSON.stringify(id)})`, 20000);
+        o.hvi = await ev(`window.__B.hvi()`, 20000);
+        o.score = await ev(`window.__B.score()`, 20000);
+        r.campos[id] = o;
+      }
+      /* ⚠️ EL CARTEL DE HVI SE MIDE VACIANDO LOS DOS ESPESORES, no uno. El criterio es el MAYOR
+         de septo y pared posterior, asi que con uno solo borrado el cartel sigue —y debe seguir—
+         diciendo que la hipertrofia esta. Medirlo con un solo campo daria «no se arreglo» sobre
+         un comportamiento correcto. */
+      r.hviDoble = {};
+      await ev(`window.__B.montar()`, 40000);
+      r.hviDoble.antes = await ev(`window.__B.hvi()`, 20000);
+      await ev(`window.__B.borrar('siv')`, 20000);
+      await ev(`window.__B.borrar('ppvi')`, 20000);
+      await ev(`window.__B.barrido()`, 30000);
+      await pausa(400);
+      await ev(`window.__B.barrido()`, 30000);
+      r.hviDoble.despues = await ev(`window.__B.hvi()`, 20000);
+      r.hviDoble.score = await ev(`window.__B.score()`, 20000);
+      r.hviDoble.rwt = await ev(`window.__B.chk('rwt')`, 20000);
+      /* Y el CONTROL del paso 10 de la guia: escribir en el modulo con el campo del estudio
+         vacio sigue escribiendolo, y con un valor distinto NO lo pisa. */
+      await ev(`window.__P.nuevo()`); await ev(`window.__P.calentar()`);
+      await ev(`(function(){ var e=document.getElementById('tapse-val');
+        e.value='15'; e.dispatchEvent(new Event('input',{bubbles:true})); return 1 })()`, 30000);
+      r.gesto = { vacio: await ev(`window.__P.val('tapse')`) };
+      await ev(`window.__P.nuevo()`); await ev(`window.__P.calentar()`);
+      await ev(`window.__Y.poner({ tapse: '21' })`, 30000);
+      await ev(`(function(){ var e=document.getElementById('tapse-val');
+        delete e.dataset.espejo; e.value='15'; e.dispatchEvent(new Event('input',{bubbles:true})); return 1 })()`, 30000);
+      r.gesto.distinto = await ev(`window.__P.val('tapse')`);
+      r.errores = await ev(`window.__Y.errores()`);
+    } catch (e) { r.err = e.message + ' | ' + String(e.stack || '').slice(0, 300) }
+    out.grupos.borrado = r;
+    process.stderr.write('[borrado] listo\n');
+  }
+
   /* ── GRUPO `tablas` · las tablas de cardio-onco, celda por celda (tildes del commit 2) ── */
   if (corre('tablas')) {
     const r = {};

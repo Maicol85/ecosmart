@@ -68,3 +68,35 @@ válvulas.
 no llegaban a correr: una sola excepción ocultaba qué distinguía de verdad los dos árboles. Con
 los accesos endurecidos, **31 de 31 condiciones caen contra HEAD** y los cinco controles negativos
 pasan en los dos, que es como tiene que ser.
+
+---
+
+# TC-541 — la corrección D-9: borrar borra de verdad
+
+**Dónde**: justo después de TC-540. **15 condiciones**, con **cuatro denominadores declarados** y
+**tres controles negativos**. Cae en **8 de sus 15** contra el HEAD de la tanda D.
+
+| Grupo | Qué fija |
+|---|---|
+| **DENOM. A** | los ocho campos existen, el módulo los refleja y el score se pobló — sin esto, «quedó vacío» no prueba nada |
+| **B1 · B2** | los ocho se dejan borrar y el reflejo **sigue al dato**: se vacía, o queda con lo que resta |
+| **C1 · C2 · C3** | tras **cinco segundos**, tras cambiar de pestaña, y tras **guardar y reabrir** |
+| **DENOM. C · C4** | el estudio con los ocho vacíos se guardó de verdad, y el score bajó |
+| **D1 · D2** | el cartel de HVI se va con los **dos** espesores vacíos; **D2 es control negativo**: con uno solo, sigue |
+| **E1 · E2** | el gesto dentro del módulo escribe en un campo vacío y **no pisa** uno cargado |
+| **E3** | **control negativo**: el barrido NO escribe en el estudio. Es el que mata la mutación clave |
+| **DENOM. F · F1** | lo que el médico tipea en el módulo sobrevive al barrido |
+| **DENOM. G · G1** | con la **fuente incompleta** —dos de tres insumos— el reflejo no se lleva puestos los que quedan |
+
+## Lo que costó
+
+⚠️ **(B2) EXIGÍA VACÍO Y ESTABA MAL.** Borrando una sola `e′`, el promedio del calculador pasa a
+valer la que queda: no desaparece. La primera versión daba rojo sobre el comportamiento correcto.
+Hoy cada campo declara **qué espera** tras su borrado.
+
+⚠️ **(F1) Y (G1) NACIERON DE MUTACIONES QUE SOBREVIVIERON**, no de la lectura: una cubría lo que el
+médico tipea dentro del módulo y la otra el caso de la fuente incompleta.
+
+⚠️ **ACENTOS GRAVES EN EL CUERPO, POR CUARTA VEZ EN LA TANDA.** El cuerpo es un template literal y
+uno solo lo cierra, con un `SyntaxError` que apunta decenas de líneas antes. Contar los backticks
+del fragmento **antes** de insertarlo es más barato que leer ese error.

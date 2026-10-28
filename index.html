@@ -20895,8 +20895,8 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
             <div class="card-title"><span>📏</span> Espesor VI — criterio indispensable</div>
             <div class="warn-box">El espesor parietal ≥12mm inexplicable es el punto de entrada al algoritmo. Sin HVI ≥12mm, el score ESC no es aplicable.</div>
             <div class="form-row cols2">
-      <div><label>Espesor septal diastólico (mm)</label><input type="number" id="ett-septo" placeholder="Ej: 14" step="0.1" min="6" max="40" oninput="calcETT()"></div>
-      <div><label>Espesor pared posterior (mm)</label><input type="number" id="ett-pp" placeholder="Ej: 13" step="0.1" min="6" max="40" oninput="calcETT()"></div>
+      <div><label>Espesor septal diastólico (mm)</label><input type="number" id="ett-septo" placeholder="Ej: 14" step="0.1" min="6" max="40" oninput="calcETT();amiloGestoEnModulo('ett-septo')"></div>
+      <div><label>Espesor pared posterior (mm)</label><input type="number" id="ett-pp" placeholder="Ej: 13" step="0.1" min="6" max="40" oninput="calcETT();amiloGestoEnModulo('ett-pp')"></div>
     </div>
     <div id="ett-hvi-badge" style="font-size:12px;margin-top:4px;color:var(--muted)">—</div>
           </div>
@@ -20946,9 +20946,9 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
       <!-- ⚠️ TRES CAMPOS DESDE EL R2-E5: la formula de la Tabla 2 suma el SEPTO y la pared
            posterior. El cuarto es el resultado, de solo lectura. -->
       <div class="form-row cols3">
-        <div><label>Septo (mm)</label><input type="number" id="rwt-septo" placeholder="Ej: 15" step="0.1" oninput="calcRWT()" onchange="amCalcAutoColapsar('rwt')"></div>
-        <div><label>PP (mm)</label><input type="number" id="rwt-pp" placeholder="Ej: 13" step="0.1" oninput="calcRWT()" onchange="amCalcAutoColapsar('rwt')"></div>
-        <div><label>DDVI (mm)</label><input type="number" id="rwt-ddvi" placeholder="Ej: 42" step="0.1" oninput="calcRWT()" onchange="amCalcAutoColapsar('rwt')"></div>
+        <div><label>Septo (mm)</label><input type="number" id="rwt-septo" placeholder="Ej: 15" step="0.1" oninput="calcRWT();amiloGestoEnModulo('rwt-septo')" onchange="amCalcAutoColapsar('rwt')"></div>
+        <div><label>PP (mm)</label><input type="number" id="rwt-pp" placeholder="Ej: 13" step="0.1" oninput="calcRWT();amiloGestoEnModulo('rwt-pp')" onchange="amCalcAutoColapsar('rwt')"></div>
+        <div><label>DDVI (mm)</label><input type="number" id="rwt-ddvi" placeholder="Ej: 42" step="0.1" oninput="calcRWT();amiloGestoEnModulo('rwt-ddvi')" onchange="amCalcAutoColapsar('rwt')"></div>
       </div>
       <div class="form-row cols3">
         <div><label>Espesor relativo calculado</label><input id="rwt-result" readonly style="background:#f5f7fa;font-weight:700;color:var(--purple)"></div>
@@ -20967,8 +20967,8 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
     </div>
     <div class="crit-calc" id="calc-ee" hidden>
       <div class="form-row cols3">
-        <div><label>Velocidad E (cm/s)</label><input type="number" id="ee-e" placeholder="Ej: 90" step="1" oninput="calcEE()" onchange="amCalcAutoColapsar('ee')"></div>
-        <div><label>e' promedio (cm/s)</label><input type="number" id="ee-ep" placeholder="Ej: 5" step="0.5" oninput="calcEE()" onchange="amCalcAutoColapsar('ee')"></div>
+        <div><label>Velocidad E (cm/s)</label><input type="number" id="ee-e" placeholder="Ej: 90" step="1" oninput="calcEE();amiloGestoEnModulo('ee-e')" onchange="amCalcAutoColapsar('ee')"></div>
+        <div><label>e' promedio (cm/s)</label><input type="number" id="ee-ep" placeholder="Ej: 5" step="0.5" oninput="calcEE();amiloGestoEnModulo('ee-ep')" onchange="amCalcAutoColapsar('ee')"></div>
         <div><label>E/e' calculado</label><input id="ee-result" readonly style="background:#f5f7fa;font-weight:700;color:var(--purple)"></div>
       </div>
       <div style="margin-top:8px;text-align:right;"><button type="button" class="crit-calc-btn" onclick="event.stopPropagation();amTraerDeFormulario('ee')">↓ Traer del formulario</button></div>
@@ -20985,7 +20985,7 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
     </div>
     <div class="crit-calc" id="calc-tapse" hidden>
       <label>TAPSE medido (mm)</label>
-      <input type="number" id="tapse-val" placeholder="Ej: 16" step="1" min="5" max="35" oninput="calcTAPSE()" onchange="amCalcAutoColapsar('tapse')" style="max-width:200px">
+      <input type="number" id="tapse-val" placeholder="Ej: 16" step="1" min="5" max="35" oninput="calcTAPSE();amiloGestoEnModulo('tapse-val')" onchange="amCalcAutoColapsar('tapse')" style="max-width:200px">
       <div style="margin-top:8px;text-align:right;"><button type="button" class="crit-calc-btn" onclick="event.stopPropagation();amTraerDeFormulario('tapse')">↓ Traer del formulario</button></div>
     </div>
     <div class="criterio-item" id="crit-sgl" onclick="toggleCrit('crit-sgl','ett-sgl',1)">
@@ -21000,7 +21000,7 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
     </div>
     <div class="crit-calc" id="calc-sgl" hidden>
       <label>SGL medido (%)</label>
-      <input type="number" id="sgl-val" placeholder="Ej: -12" step="0.5" min="-25" max="0" oninput="amCalcSGL()" onchange="amCalcAutoColapsar('sgl')" style="max-width:200px">
+      <input type="number" id="sgl-val" placeholder="Ej: -12" step="0.5" min="-25" max="0" oninput="amCalcSGL();amiloGestoEnModulo('sgl-val')" onchange="amCalcAutoColapsar('sgl')" style="max-width:200px">
       <div style="margin-top:8px;text-align:right;"><button type="button" class="crit-calc-btn" onclick="event.stopPropagation();amTraerDeFormulario('sgl')">↓ Traer del formulario</button></div>
     </div>
     <div class="criterio-item" id="crit-apice" onclick="toggleCrit('crit-apice','ett-apice',3)">
@@ -21015,8 +21015,8 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
     </div>
     <div class="crit-calc" id="calc-apice" hidden>
       <div class="form-row cols3">
-        <div><label>Strain apical (%)</label><input type="number" id="ap-apic" placeholder="Ej: -18" step="0.5" oninput="calcApice()" onchange="amCalcAutoColapsar('apice')"></div>
-        <div><label>Strain basal (%)</label><input type="number" id="ap-base" placeholder="Ej: -6" step="0.5" oninput="calcApice()" onchange="amCalcAutoColapsar('apice')"></div>
+        <div><label>Strain apical (%)</label><input type="number" id="ap-apic" placeholder="Ej: -18" step="0.5" oninput="calcApice();amiloGestoEnModulo('ap-apic')" onchange="amCalcAutoColapsar('apice')"></div>
+        <div><label>Strain basal (%)</label><input type="number" id="ap-base" placeholder="Ej: -6" step="0.5" oninput="calcApice();amiloGestoEnModulo('ap-base')" onchange="amCalcAutoColapsar('apice')"></div>
         <div><label>Relación calculada</label><input id="ap-result" readonly style="background:#f5f7fa;font-weight:700;color:var(--purple)"></div>
       </div>
     </div>
@@ -21025,7 +21025,7 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
           <div class="card">
             <div class="card-title"><span>🔎</span> Otros hallazgos — no puntuados</div>
             <div class="form-row cols2">
-      <div><label>FEVI (%)</label><input type="number" id="ett-fevi" placeholder="Ej: 55" min="10" max="80" oninput="calcETT()"></div>
+      <div><label>FEVI (%)</label><input type="number" id="ett-fevi" placeholder="Ej: 55" min="10" max="80" oninput="calcETT();amiloGestoEnModulo('ett-fevi')"></div>
       <div>
         <label>Patrón granular "sparkling"</label>
         <select id="ett-sparkling" onchange="calcETT()"><option value="">— no evaluado —</option><option value="no">No presente</option><option value="si">Presente</option></select>
@@ -96063,7 +96063,10 @@ function amAutoLlenar(k) {
     if (n === null || n === undefined || isNaN(n)) return false; // falta un insumo: no se escribe nada
     plan.push([el, Math.round(n * 10) / 10]);
   }
-  plan.forEach(function (p) { p[0].value = p[1]; });
+  /* ⚠️ MARCADO COMO REFLEJO (D-9). Sin la marca no hay forma de distinguir un insumo que trajo
+     esta maquinaria de uno que el médico midió acá, y entonces no se puede vaciar el primero sin
+     arriesgarse a borrar el segundo. Es la misma marca que usa el registro de espejos. */
+  plan.forEach(function (p) { p[0].value = p[1]; p[0].dataset.espejo = '1'; });
   return plan.length > 0;
 }
 window.amAutoLlenar = amAutoLlenar;
@@ -96404,6 +96407,27 @@ function _amiloNum(id) {
    informe —el TAPSE del ventrículo derecho, el cociente TAPSE/PSAP, el score de TEP—, con el
    médico mirando otra pestaña. Es el criterio del aviso de discrepancia de la PAM (tanda B). */
 var _amiloEspejoCorriendo = false;
+/* ══ LA ÚNICA PUERTA DE ESCRITURA DEL MÓDULO HACIA EL ESTUDIO (D-9) ═══════════════════════════
+   El campo del ESTUDIO es el dueño del dato. El módulo escribe en él SÓLO como consecuencia
+   directa de un gesto del médico dentro de un campo del propio módulo: esta función la llama el
+   `oninput` de cada insumo del módulo y NADIE más.
+
+   ⚠️ POR QUÉ NO ALCANZABA COLGARLA DE LOS `calc*`, que es como estaba hasta el D-8: el barrido de
+   espejos llama a esos mismos `calc*` en su pasada de marcado, y también lo hacen la restauración
+   de un estudio guardado, cada repintado y el cambio de pestaña. O sea que «sólo con el gesto»
+   era una intención, no un mecanismo. Lo que se medía: borrar el septo, la pared posterior, el
+   DDVI, el TAPSE, la onda E o el strain en el estudio quedaba deshecho 220 ms después.
+
+   ⚠️ Y EL GESTO BORRA LA MARCA DE ESPEJO. Si el médico escribe sobre un insumo que esta misma
+   maquinaria había traído del estudio, deja de ser un reflejo y pasa a ser una medición propia:
+   sin esto, la siguiente pasada se lo pisaría con el valor del estudio. */
+function amiloGestoEnModulo(id) {
+  var e = id ? document.getElementById(id) : null;
+  if (e && e.dataset) delete e.dataset.espejo;
+  amiloEspejoHaciaApp();
+}
+window.amiloGestoEnModulo = amiloGestoEnModulo;
+
 function amiloEspejoHaciaApp() {
   /* ⚠️ GUARDA DE REENTRADA. Esta función despacha `input` sobre el campo del estudio, y ese
      evento corre los manejadores de la otra pestaña; si alguno de ellos llegara a `calcETT` o a
@@ -96446,17 +96470,48 @@ var _AMILO_DISCREP = [];
    `dataset.espejo` es la que distingue los dos casos; sin ella, traer el dato nuevo pisaría una
    medición propia del calculador. */
 function amiloEspejoDesdeApp() {
-  amiloEspejos().forEach(function (e) {
-    if (e.soloHaciaApp) return;
-    var el = document.getElementById(e.mod); if (!el) return;
-    var va = _amiloNum(e.app); if (va === null) return;
-    var vm = _amiloNum(e.mod);
-    var propio = String(el.value || '').trim() !== '' && el.dataset.espejo !== '1';
-    if (propio) return;
-    var nuevo = e.abs ? -Math.abs(va) : va;
-    if (vm === nuevo) return;
-    el.value = nuevo;
-    el.dataset.espejo = '1';
+  /* ⚠️ ACÁ HABÍA UN SEGUNDO RECORRIDO, Y LO DESTAPARON DOS MUTACIONES QUE SOBREVIVIERON (D-9).
+     Esta función recorría `amiloEspejos()` trayendo cada entrada de dos sentidos, y
+     `_amiloReflejarDesdeApp` hace lo MISMO sobre los MISMOS campos —los insumos de `_AM_CALC`
+     con fuente en `_AM_FUENTE` son exactamente `rwt-septo`, `rwt-pp`, `rwt-ddvi`, `ee-e`,
+     `ee-ep`, `tapse-val` y `sgl-val`—. Con dos mecanismos cubriendo lo mismo, romper cualquiera
+     de los dos no cambia nada: las mutaciones M4 y M7 salieron «sobrevivió» no porque el caso
+     no mirara, sino porque el código tenía una mitad que no hacía falta.
+     Queda UN dueño del sentido app → módulo. El registro `amiloEspejos()` sigue siendo el del
+     sentido módulo → app, que es donde se lo necesita. */
+  _amiloReflejarDesdeApp();
+}
+
+/* ══ EL ÚNICO DUEÑO DEL SENTIDO APP → MÓDULO (D-9) ═══════════════════════════════════════════
+   Recorre los insumos de cada criterio y los deja valiendo lo que dice su fuente en el estudio:
+   el valor si lo hay, vacío si no. El campo del ESTUDIO es el dueño del dato.
+
+   ⚠️ SIGUE AL DATO, NO SÓLO SE VACÍA, y la diferencia la destapó el caso nuevo. Borrando UNA
+   sola `e′` el promedio no queda vacío: pasa a ser la que quedó. Una versión que sólo vaciara
+   cuando la fuente desaparece dejaba el promedio con el valor de las DOS, o sea un número que
+   ninguna medición sostiene.
+   ⚠️ Y TOCA SÓLO LO QUE ESTA MAQUINARIA ESCRIBIÓ. La marca `espejo` —que pone `amAutoLlenar`—
+   es lo único que distingue un reflejo de una medición que el médico hizo en el calculador. Sin
+   ella no se puede vaciar el primero sin arriesgarse a borrar el segundo, y el `oninput` del
+   campo la quita en cuanto el médico escribe ahí. */
+function _amiloReflejarDesdeApp() {
+  if (typeof amCalcIds !== 'function' || typeof _AM_FUENTE === 'undefined') return;
+  amCalcIds().forEach(function (k) {
+    var f = _AM_FUENTE[k]; if (!f) return;
+    var cfg = _AM_CALC[k]; if (!cfg) return;
+    var vals; try { vals = f(); } catch (e) { return; }
+    cfg.ins.forEach(function (id, i) {
+      var el = document.getElementById(id); if (!el) return;
+      if (el.dataset.espejo !== '1') return;                 // medición propia del médico
+      var n = vals[i];
+      var vacio = (n === null || n === undefined || isNaN(n));
+      /* El MISMO redondeo que usa el autollenado: si no, el reflejo y la fuente difieren en el
+         decimal y esta función reescribiría el campo en cada pasada. */
+      var nuevo = vacio ? '' : String(Math.round(n * 10) / 10);
+      if (String(el.value || '').trim() === nuevo) return;
+      el.value = nuevo;
+      if (vacio) delete el.dataset.espejo;
+    });
   });
 }
 window.amiloEspejoDesdeApp = amiloEspejoDesdeApp;
@@ -96526,9 +96581,12 @@ function calcRWT() {
   var rwt = (sep+pp)/ddvi;
   if(resEl) resEl.value = rwt.toFixed(2);
   amAplicarCalc('rwt', rwt > 0.6, 3);
-  /* D-3: el sentido módulo → app. Cuelga del gesto del médico (el `oninput` de los insumos
-     llama acá), nunca del barrido de espejos, y no pisa un valor distinto ya cargado. */
-  if (typeof amiloEspejoHaciaApp === 'function') amiloEspejoHaciaApp();
+  /* ⚠️ ACÁ ESTABA LA ESCRITURA HACIA EL ESTUDIO, Y ERA EL DEFECTO (D-9). El comentario decía
+     «cuelga del gesto del médico», y era falso: el barrido de espejos llama a estos mismos
+     `calc*` en su pasada de marcado, así que escribía igual. Medido: borrar el septo, la pared
+     posterior, el DDVI, el TAPSE, la onda E o el strain en el estudio quedaba deshecho 220 ms
+     después, con el valor viejo que el módulo conservaba. Hoy la escritura cuelga de
+     `amiloGestoEnModulo`, que SÓLO corre desde el `oninput` del campo del propio módulo. */
   calcETT();
 }
 
@@ -96540,9 +96598,12 @@ function calcEE() {
   var ee = e/ep;
   if(resEl) resEl.value = ee.toFixed(1);
   amAplicarCalc('ee', ee > 11, 1);
-  /* D-3: el sentido módulo → app. Cuelga del gesto del médico (el `oninput` de los insumos
-     llama acá), nunca del barrido de espejos, y no pisa un valor distinto ya cargado. */
-  if (typeof amiloEspejoHaciaApp === 'function') amiloEspejoHaciaApp();
+  /* ⚠️ ACÁ ESTABA LA ESCRITURA HACIA EL ESTUDIO, Y ERA EL DEFECTO (D-9). El comentario decía
+     «cuelga del gesto del médico», y era falso: el barrido de espejos llama a estos mismos
+     `calc*` en su pasada de marcado, así que escribía igual. Medido: borrar el septo, la pared
+     posterior, el DDVI, el TAPSE, la onda E o el strain en el estudio quedaba deshecho 220 ms
+     después, con el valor viejo que el módulo conservaba. Hoy la escritura cuelga de
+     `amiloGestoEnModulo`, que SÓLO corre desde el `oninput` del campo del propio módulo. */
   calcETT();
 }
 
@@ -96550,9 +96611,12 @@ function calcTAPSE() {
   var val = PF(document.getElementById('tapse-val')?.value);
   if(isNaN(val)){ amCalcSinDato('tapse'); calcETT(); return; }
   amAplicarCalc('tapse', val <= 19, 2);
-  /* D-3: el sentido módulo → app. Cuelga del gesto del médico (el `oninput` de los insumos
-     llama acá), nunca del barrido de espejos, y no pisa un valor distinto ya cargado. */
-  if (typeof amiloEspejoHaciaApp === 'function') amiloEspejoHaciaApp();
+  /* ⚠️ ACÁ ESTABA LA ESCRITURA HACIA EL ESTUDIO, Y ERA EL DEFECTO (D-9). El comentario decía
+     «cuelga del gesto del médico», y era falso: el barrido de espejos llama a estos mismos
+     `calc*` en su pasada de marcado, así que escribía igual. Medido: borrar el septo, la pared
+     posterior, el DDVI, el TAPSE, la onda E o el strain en el estudio quedaba deshecho 220 ms
+     después, con el valor viejo que el módulo conservaba. Hoy la escritura cuelga de
+     `amiloGestoEnModulo`, que SÓLO corre desde el `oninput` del campo del propio módulo. */
   calcETT();
 }
 
@@ -96560,9 +96624,12 @@ function amCalcSGL() {
   var val = PF(document.getElementById('sgl-val')?.value);
   if(isNaN(val)){ amCalcSinDato('sgl'); calcETT(); return; }
   amAplicarCalc('sgl', val >= -13, 1);
-  /* D-3: el sentido módulo → app. Cuelga del gesto del médico (el `oninput` de los insumos
-     llama acá), nunca del barrido de espejos, y no pisa un valor distinto ya cargado. */
-  if (typeof amiloEspejoHaciaApp === 'function') amiloEspejoHaciaApp();
+  /* ⚠️ ACÁ ESTABA LA ESCRITURA HACIA EL ESTUDIO, Y ERA EL DEFECTO (D-9). El comentario decía
+     «cuelga del gesto del médico», y era falso: el barrido de espejos llama a estos mismos
+     `calc*` en su pasada de marcado, así que escribía igual. Medido: borrar el septo, la pared
+     posterior, el DDVI, el TAPSE, la onda E o el strain en el estudio quedaba deshecho 220 ms
+     después, con el valor viejo que el módulo conservaba. Hoy la escritura cuelga de
+     `amiloGestoEnModulo`, que SÓLO corre desde el `oninput` del campo del propio módulo. */
   calcETT();
 }
 
@@ -96574,9 +96641,12 @@ function calcApice() {
   var rel = Math.abs(apic)/Math.abs(base);
   if(resEl) resEl.value = rel.toFixed(2);
   amAplicarCalc('apice', rel > 2.9, 3);
-  /* D-3: el sentido módulo → app. Cuelga del gesto del médico (el `oninput` de los insumos
-     llama acá), nunca del barrido de espejos, y no pisa un valor distinto ya cargado. */
-  if (typeof amiloEspejoHaciaApp === 'function') amiloEspejoHaciaApp();
+  /* ⚠️ ACÁ ESTABA LA ESCRITURA HACIA EL ESTUDIO, Y ERA EL DEFECTO (D-9). El comentario decía
+     «cuelga del gesto del médico», y era falso: el barrido de espejos llama a estos mismos
+     `calc*` en su pasada de marcado, así que escribía igual. Medido: borrar el septo, la pared
+     posterior, el DDVI, el TAPSE, la onda E o el strain en el estudio quedaba deshecho 220 ms
+     después, con el valor viejo que el módulo conservaba. Hoy la escritura cuelga de
+     `amiloGestoEnModulo`, que SÓLO corre desde el `oninput` del campo del propio módulo. */
   calcETT();
 }
 
@@ -96612,9 +96682,9 @@ const AMILO_IWT_BOLDRINI = Object.freeze({
 window.AMILO_IWT_BOLDRINI = AMILO_IWT_BOLDRINI;
 
 function calcETT() {
-  /* D-3: el sentido módulo → app también para los espesores y la FEVI del encabezado, que se
-     tipean acá y cuelgan de este `oninput`. No pisa un valor distinto ya cargado. */
-  if (typeof amiloEspejoHaciaApp === 'function') { try { amiloEspejoHaciaApp(); } catch (e) {} }
+  /* ⚠️ Y ACÁ TAMPOCO (D-9): `calcETT` lo llaman la restauración, el barrido y cada repintado.
+     Los espesores y la FEVI del encabezado escriben hacia el estudio desde `amiloGestoEnModulo`,
+     igual que los demás. */
   var pts = ['ett-rwt','ett-ee','ett-tapse','ett-sgl','ett-apice']
     .reduce((s,id)=>s+(PF(document.getElementById(id)?.value)||0),0);
 
@@ -135747,8 +135817,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261027-1903';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793138585172;                 /* eco-build-ms */
+const ECO_BUILD    = '20261027-2030';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793143836815;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -135834,7 +135904,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261027-1903</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261027-2030</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

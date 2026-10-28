@@ -270,3 +270,57 @@ apuntaban a defectos que no existían.
   `docs/mapa/j2-hemo-onco-amiloide-pulmon.md`.
 - La ficha del caso de prueba: `docs/mapa/tests-fichas-540.md`.
 - Las fuentes, transcritas: `docs/fuentes/FUENTES.md` → «La tanda D».
+
+---
+
+## 5 · La corrección D-9 — no se podía borrar lo que el módulo había escrito
+
+**El defecto, medido campo por campo antes de tocar nada.** Después de que el módulo escribía en
+el estudio, **seis** de los ocho datos compartidos no se dejaban borrar: volvían 220 ms después.
+
+| Campo del estudio | ¿Se borraba? | Quién lo reescribía |
+|---|---|---|
+| `siv` · `ppvi` · `ddfvi` · `tapse` · `onda_e` · `sgl` | **no** | la pasada de **marcado** del barrido |
+| `e_sep` · `e_lat` | sí | — (no tienen campo espejo) |
+
+⚠️ **EL SENTIDO APP → MÓDULO NO ERA EL CULPABLE**: tras esa pasada el campo del estudio seguía
+vacío. Lo reescribía `amiloAutoMarcarTodos`, que llama a los `calc*` del módulo, y **ésos**
+escribían hacia el estudio. El comentario del D-3 decía «cuelga del gesto del médico» y era una
+intención, no un mecanismo: el barrido llama a esas mismas funciones.
+
+### El arreglo, en una frase: el campo del ESTUDIO es el dueño
+
+- **`amiloGestoEnModulo(id)` es la única puerta de escritura módulo → estudio**, y la llama el
+  evento de entrada de cada insumo del módulo. Ningún `calc*` escribe ya. Eso cubre de una vez el
+  barrido, el repintado, la restauración de un estudio guardado y el cambio de pestaña.
+- **`_amiloReflejarDesdeApp()` es el único dueño del sentido app → módulo**: deja cada insumo
+  valiendo lo que dice su fuente —el valor si lo hay, vacío si no—, y toca sólo lo que lleva la
+  marca `espejo`, que es lo que distingue un reflejo de una medición hecha en el calculador.
+- El gesto **quita** esa marca: lo que el médico escribe en el módulo deja de ser reflejo.
+
+### Dos redundancias que destaparon las mutaciones, y no el caso
+
+⚠️ **CUATRO MUTACIONES SOBREVIVIERON AL PRIMER BARRIDO Y SÓLO DOS ERAN FALTA DE COBERTURA.** Las
+otras dos sobrevivían porque **el arreglo tenía dos mecanismos haciendo el mismo trabajo**: un
+recorrido del registro `amiloEspejos()` y el que sigue a los insumos autollenados cubrían
+exactamente los mismos campos. Romper cualquiera de los dos no cambiaba nada. Se retiró el
+recorrido y quedó un solo dueño.
+
+⚠️ **Y UNA TERCERA REDUNDANCIA SOBREVIVIÓ A ESO**: vaciar el reflejo y dejar que el autollenado lo
+repusiera da el mismo resultado que seguir al dato… **salvo con la fuente incompleta**. El
+autollenado exige los TRES insumos del espesor relativo y no escribe nada si falta uno, así que
+sin el reflejo que sigue al dato, borrar **sólo el DDVI** se llevaba puestos también el septo y la
+pared posterior del calculador. Esa es la condición **(G1)** de TC-541, y es un escenario
+corriente: el médico mide dos de tres.
+
+⚠️ **EL EMPALME DEL CÓDIGO SE LLEVÓ UNA FUNCIÓN ENTERA, Y LO DIJO LA MEDICIÓN.** Al quitar el
+recorrido redundante, el corte llegaba hasta la línea `window.amiloEspejoDesdeApp = …`, que estaba
+**después** de la función nueva: quedó la llamada sin la función. El score pasó a 0 y el marcado
+automático dejó de funcionar por completo. No lo dijo ningún error de consola —`amiloScoreSync`
+corre dentro del `try` del barrido— sino el caso, al medir el denominador.
+
+### Lo que NO se tocó
+
+El `e′` promedio **no se vacía** cuando se borra una sola de las dos `e′`: pasa a valer la que
+queda, que es lo correcto. La primera versión de la condición exigía vacío y daba rojo sobre el
+comportamiento correcto.

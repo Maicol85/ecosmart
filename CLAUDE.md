@@ -908,3 +908,65 @@ línea: el archivo creció y un informe de auditoría viejo apunta a otro archiv
   `docs/fuentes/FUENTES.md` → «La tanda D» con las dos fuentes transcritas y la tabla «Cambios de
   evidencia» de **veinte filas**, y `docs/PENDIENTES.md` → **OCHO** cosas declaradas
   (**D-a** a **D-h**).
+
+### No se podía borrar lo que el módulo de amiloidosis escribía — «D-9» (2026-10-27)
+
+- **UN commit sobre el HEAD de la tanda D.** Sello **`v20261027-2030`**. Al empezar,
+  `origin/main` = **`8fac09f`** con los 8 commits de la D sin pushear.
+  **El push lo corre Maicol: esta corrección tenía orden expresa de NO pushear.**
+
+- ⚠️ **EL DEFECTO LO ENCONTRÓ EL MÉDICO PROBANDO EL PASO 7 DE LA GUÍA, Y ERA DEL D-3.** Después de
+  que el módulo escribía en el estudio, **seis de los ocho datos compartidos no se dejaban
+  borrar**: volvían 220 ms después. Medido campo por campo y por etapa antes de tocar nada.
+  El sentido app → módulo **no** era el culpable: lo reescribía la pasada de **marcado** del
+  barrido, que llama a los `calc*` del módulo, y ésos escribían hacia el estudio.
+  **El comentario del D-3 decía «cuelga del gesto del médico» y era una intención, no un
+  mecanismo**: el barrido llama a esas mismas funciones.
+
+- **EL ARREGLO EN UNA FRASE: el campo del ESTUDIO es el dueño.** Una sola puerta de escritura
+  módulo → estudio, colgada del evento de entrada de cada insumo del módulo; y un solo dueño del
+  sentido app → módulo, que deja cada insumo valiendo lo que dice su fuente. Borrar borra, el
+  criterio se destilda solo y el cartel de HVI se va al vaciar los **dos** espesores.
+
+- ⚠️ **CUATRO MUTACIONES SOBREVIVIERON AL PRIMER BARRIDO Y SÓLO DOS ERAN FALTA DE COBERTURA.** Las
+  otras dos sobrevivían porque **el arreglo tenía dos mecanismos haciendo el mismo trabajo**, y
+  una tercera sobrevivió a eso por el mismo motivo. Se retiró la redundancia; **10/10 muertas**.
+  La condición que la cierra es la de la **fuente incompleta**: con dos de los tres insumos del
+  espesor relativo, vaciar y repoblar NO equivale a seguir al dato.
+
+- ⚠️ **EL EMPALME SE LLEVÓ UNA FUNCIÓN ENTERA Y NINGÚN ERROR LO DIJO.** Al quitar el recorrido
+  redundante quedó la llamada sin la función: el score pasó a 0 y el marcado automático dejó de
+  funcionar. Lo cazó el **denominador** del caso, no la consola —el barrido lo traga en su `try`—.
+
+- **Línea base al cierre: suite 534/556 verdes, 5 rojos y 17 que no probaron nada**, en once
+  lotes cubriendo los 556 (ejecutados 556 de 556). Rojos: **TC-223, TC-376, TC-390 y TC-406**, los
+  cuatro de siempre, más **TC-358**, que es el rojo por CDN que la tanda E ya declara en **E-h** —
+  su denominador dice «NO HAY jsPDF» en los dos lados— y que se verificó **en el mismo directorio
+  y con los mismos scripts, alternando sólo `index.html`**: cae igual contra el HEAD de la tanda D.
+  Repetir el lote **no lo movió: rojo tres veces**, dos en su lote y una aislado.
+  ⚠️ **Y NO ES LA RED, MEDIDO**: `curl` al `jspdf.umd.min.js` de cdnjs que carga la app devuelve
+  **200 con 364.463 bytes**. Es la carrera del helper del propio caso, que lee `window.jspdf` sin
+  esperarlo. **El próximo que lo vea rojo no tiene que mirar la conexión: tiene que hacer esperar
+  a `pdfTxt`.**
+  ⚠️ **Y EL PENDRIVE SE DESMONTÓ A MITAD DE LA CORRIDA, ASÍ QUE LA CONDICIÓN DE LA ORDEN NO SE
+  CUMPLIÓ AL CERRAR.** `TC-181` a `TC-197` fallaron los diecisiete por eso: **no son cobertura de
+  esta pasada** y hay que volver a correr ese lote. → **D-k**.
+  ⚠️ **Y AL VOLVER A PEDIRLO NO ESTABA MONTADO, MEDIDO POR TRES CAMINOS**: `/Volumes/` tiene sólo
+  `Macintosh HD`, `diskutil list external` **no devuelve nada** y la tabla de `mount` tiene diez
+  entradas, todas internas. **No hay copia local del árbol `GEMS_IMG`** en el home, así que
+  tampoco se puede correr apuntando `ECO_PENDRIVE` a una carpeta. Los diecisiete siguen sin
+  cobertura.
+  ⚠️ **Y EL LOTE 10 SE COLGÓ EN TC-534**: 37 minutos a 0 % de CPU, dormido, que es la trampa de
+  los procesos `cdp.mjs` que no salen. Matado por PID exacto; **TC-534 y TC-535 corridos aparte
+  dan los dos verde**, así que ese lote es 55/55 y el cuelgue era del arnés.
+  Semgrep **124/0**. Excel **440**. Censo **1025**, igual que la D. Celular **63 a 360 px y 72 a
+  390, 17 ALTA**.
+- **A/B contra el HEAD de la tanda D: CERO diferencias** en las siete escenas —informe en tres
+  estilos, EN SUMA, las 440 columnas y el PDF del control—. El arreglo no movió ninguna superficie
+  firmada.
+- **CHROME Y WEBKIT COINCIDEN EN LOS OCHO CRUCES**, cero errores de consola, y **escribir no se
+  volvió más lento**: media **0,13 a 0,16 ms** contra 0,13-0,15 de la tanda D.
+- **`index.html` pasó de 9,84 MB / 138.691 líneas a 9,85 MB / 138.761.**
+- **Dónde está todo:** `docs/mapa/d-cardioonco-amiloidosis.md` § 5 (18,0 KB), la ficha de TC-541
+  en `docs/mapa/tests-fichas-540.md`, y `docs/PENDIENTES.md` → **D-j**, el inventario de
+  direcciones de los dieciséis campos del módulo, que el punto 3 pedía **sólo reportar**.
