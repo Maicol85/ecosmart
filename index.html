@@ -9653,7 +9653,7 @@ window.cerrarSesionReal = cerrarSesionReal;
       </div>
 
       <div class="calc-box">
-        <div style="font-size:11px;font-weight:700;color:var(--accent2);margin-bottom:8px;">SCORE E INTERPRETACIÓN</div>
+        <div style="font-size:11px;font-weight:700;color:var(--accent2);margin-bottom:8px;">SCORE E INTERPRETACI&Oacute;N <button type="button" class="vinfo-btn vinfo-btn-44" data-vinfo="vexus-lim" aria-expanded="false" style="font-size:13px;" aria-label="Informaci&oacute;n sobre las limitaciones de la lectura del VExUS" onclick="vInfoClic(this)">&#9432;</button></div>
         <div class="calc-row">
           <span class="calc-lbl" style="font-weight:700;">Score VEXUS</span>
           <span id="vexus-score" style="font-weight:700;font-size:14px;">—</span>
@@ -28628,11 +28628,42 @@ const VEXUS_VASOS = [
    Hoy viven SÓLO en la Evidencia de VEXUS, rotuladas «Criterio de EcoSmart».
    ⚠️ LO QUE NO SE TOCO: «Riesgo de injuria renal aguda aumentado» (grado 2) y «Alta asociación
    con injuria renal aguda (AKI)» (grado 3) NO son conductas sino la asociación que el artículo
-   mide, así que se quedan. */
+   mide, así que se quedan.
+
+   ══ Y EL GRADO 2 SI SE TOCO, EN LA TANDA C1 (2026-10-28, DECISION DE MAICOL) ═══════════════
+   Los cuatro rotulos se revisaron contra la **Figura 7 de Rola P y cols., Ultrasound J
+   2021;13:32**, leida EN IMAGEN a 600 ppp en esta tanda. La figura rotula los cuatro grados y
+   no dice nada mas:
+
+     <2 cm      -> Grade 0: **No congestion**
+     0/3 (>2cm) -> Grade 1: **At risk**
+     1/3        -> Grade 2: **Moderate congestion**
+     2-3/3      -> Grade 3: **Severe congestion**
+
+   Lo que se retiro, y por que:
+     · grado 0 — «Presión venosa central probablemente normal» NO esta en la figura ni en el
+       texto: el articulo no afirma que la PVC sea normal con VExUS 0. Queda «sin congestión
+       venosa», que es el rotulo literal de la figura.
+     · grado 2 — «Riesgo de injuria renal aguda aumentado» NO cuelga del grado 2 en ninguna de
+       las dos fuentes. Lo que Beaubien-Souligny 2020 midio es la asociacion del grado SEVERO
+       (LR+ 6,37), y la Figura 7 de Rola llama al grado 2 «moderate congestion» y nada mas.
+
+   ⚠️ EL GRADO 1 DISCREPA ENTRE EL TEXTO Y LA FIGURA DEL MISMO ARTICULO, Y MANDA LA FIGURA.
+   El cuerpo de la pagina 8 dice «VExUS grade 1 is with only mild congestive findings»; la
+   Figura 7 lo rotula «0/3 -> At risk», o sea CERO patrones severos. Son cosas distintas: con
+   «hallazgos leves» el grado 1 exigiria una alteracion leve, y con «0/3» basta la vena cava
+   dilatada sin ningun patron severo —que es, ademas, lo que `vexusGrado` ya implementa desde
+   la columna VExUS C de Beaubien-Souligny—. Se usa la figura, que es la que concuerda con el
+   codigo; declarado en `docs/fuentes/FUENTES.md` -> «La tanda C1».
+
+   ⚠️ EL GRADO 3 CONSERVA SU FRASE DE INJURIA RENAL, Y NO ES UN OLVIDO. Esa asociacion es el
+   RESULTADO que mide Beaubien-Souligny 2020 —la fuente de la graduacion que esta app
+   implementa y que la Evidencia ya cita con sus numeros—, no una conducta ni una lectura de la
+   Figura 7. Retirarla seria tocar contenido clinico fuera de lo que la orden decide. */
 const VEXUS_INTERP = {
-  0: 'Sin congestión venosa sistémica significativa. Presión venosa central probablemente normal.',
-  1: 'Congestión venosa leve.',
-  2: 'Congestión venosa moderada. Riesgo de injuria renal aguda aumentado.',
+  0: 'Sin congestión venosa.',
+  1: 'En riesgo de congestión venosa.',
+  2: 'Congestión venosa moderada.',
   3: 'Congestión venosa severa. Alta asociación con injuria renal aguda (AKI).'
 };
 const VEXUS_COLOR = { 0: 'green', 1: 'yellow', 2: 'orange', 3: 'red' };
@@ -43286,6 +43317,27 @@ const VINFO = Object.freeze({
     fuente: '1.170 ± 270 dinas·s·cm⁻⁵ · Grossman y Baim, Cateterismo cardíaco, angiografía e intervención, 8.ª edición, AMOLCA 2016, Tomo I, Tabla 11.2, folio 260. El pie de esa tabla aclara que los valores salen de 37 sujetos (17 hombres y 20 mujeres, de 47 ± 9 años) cateterizados entre 1975 y 1978.\n'
           + '1.100, intervalo 700 a 1.600 dinas·s·cm⁻⁵ · Braunwald, Tratado de Cardiología, 10.ª edición española, Elsevier 2016, Tabla 19-3, folio 375.',
     ojo: 'Una media con su desviación estándar no es un rango de referencia: describe a los 37 sujetos medidos, no define qué es normal. Por eso la app muestra el valor sin banda y sin color, y deja la lectura al médico. Además, acá la presión de la aurícula derecha es la PVC ESTIMADA por la vena cava, no una presión medida.'
+  },
+  /* ══ EL GLOBO DE VExUS (C1-1d, 2026-10-28) ═══════════════════════════════════════════════
+     Las limitaciones que el ARTICULO da en su pagina 9, leida en imagen en esta tanda, y NINGUNA
+     del resto: la orden lo pide explicitamente, y el modulo ya tiene su propia caja de salvedad
+     en pantalla con las de Beaubien-Souligny. Mezclarlas aqui haria imposible saber cual sale de
+     cual documento, que es la razon por la que este archivo separa las fuentes por globo.
+     ⚠️ REDACTADO CON PALABRAS PROPIAS. La regla de derechos de autor de este repositorio prohibe
+     copiar parrafos de un articulo; lo literal esta en `IND_REFS.vexusRola2021`, entre comillas
+     y acotado a la frase que sostiene la unica linea de conducta de la Evidencia.
+     ⚠️ SIN CLASE NI NIVEL: es una serie de casos con revision conceptual, no una guia de
+     practica clinica. Escribirlos seria inventarlos. */
+  'vexus-lim': {
+    tit: 'VExUS — las limitaciones que da el artículo',
+    lee: 'La vena cava puede verse comprimida por la presión intraabdominal, con independencia de la presión de la aurícula derecha.\n'
+       + 'En la hipertensión pulmonar crónica la vena cava puede remodelarse.\n'
+       + 'La vena hepática puede no alterarse aun con una insuficiencia tricuspídea grave, si la aurícula derecha conserva su complacencia.\n'
+       + 'La vena porta puede ser pulsátil sin congestión en personas delgadas sanas y en las malformaciones arteriovenosas.\n'
+       + 'Con el hígado rígido —cirrosis, hígado graso no alcohólico— la vena porta puede NO ser pulsátil aunque la congestión sea grave.\n'
+       + 'El Doppler venoso intrarrenal es técnicamente difícil de obtener, y una enfermedad del parénquima renal puede alterar su patrón.',
+    fuente: 'Rola P y colaboradores, Ultrasound J 2021;13:32, página 9, leída en imagen.',
+    ojo: 'Por esas limitaciones el artículo pide no interpretar ninguno de estos estudios de forma aislada: el protocolo completo —vena cava, suprahepática, porta e intrarrenal— es lo que sostiene la lectura, y un componente suelto no la reemplaza.'
   },
   'hemo-forr': {
     tit: 'Perfil de Forrester — alcance y bordes',
@@ -75775,6 +75827,29 @@ const IND_REFS = Object.freeze([
          'significativa. ' +
          '⚠️ EL ARTÍCULO NO PUBLICA CONDUCTAS POR GRADO: no hay en él ninguna tabla ni párrafo ' +
          'que diga qué hacer con un VEXUS 1, 2 o 3.' },
+  /* ⚠️ EL NOMBRE DEL ARCHIVO DE LA BIBLIOTECA TIENE LA AUTORA MAL ESCRITA —«VEXUS Tola.pdf»—
+     Y LA AUTORA ES **ROLA**. Se deja dicho acá porque quien vaya a re-verificar esta entrada
+     va a buscar el PDF por el apellido correcto y no lo va a encontrar. */
+  { k:'vexusRola2021',
+    full:'Rola P, Miralles-Aguiar F, Argaiz E, et al. Clinical applications of the venous excess ' +
+         'ultrasound (VExUS) score: conceptual review and case series. Ultrasound J 2021;13:32. ' +
+         'doi:10.1186/s13089-021-00232-8. Acceso abierto; el artículo se pagina 1-10 y el pie ' +
+         'impreso dice «Page N of 10», así que la hoja del PDF y la página impresa coinciden. ' +
+         'Figura 7, página 8 — leída en imagen: rotula los cuatro grados y nada más. Vena cava ' +
+         'menor de 2 cm → «Grade 0: No congestion»; vena cava mayor de 2 cm con «0/3» → «Grade ' +
+         '1: At risk»; «1/3» → «Grade 2: Moderate congestion»; «2-3/3» → «Grade 3: Severe ' +
+         'congestion». La figura NO publica ninguna conducta por grado, NO vincula el grado 2 ' +
+         'con la injuria renal aguda y NO dice que la presión venosa central sea normal en el ' +
+         'grado 0. ' +
+         '⚠️ EL TEXTO DE LA PÁGINA 8 Y SU PROPIA FIGURA DISCREPAN EN EL GRADO 1: el cuerpo dice ' +
+         '«VExUS grade 1 is with only mild congestive findings» y la Figura 7 lo rotula «0/3 → ' +
+         'At risk», o sea CERO patrones severos. Esta aplicación usa la figura, que es la que ' +
+         'concuerda con la columna VExUS C de Beaubien-Souligny 2020 que ya implementa. ' +
+         'Página 9 — leída en imagen: las limitaciones de la lectura, que son las que publica ' +
+         'el globo ⓘ del módulo. La misma página concluye que, por esas limitaciones, es ' +
+         'importante evitar interpretar cualquiera de estos estudios de forma aislada, y que ' +
+         '«there remains a lack of properly controlled interventional studies regarding the ' +
+         'effectiveness of a strategy based on such an approach».' },
   { k:'aseEte2013',
     full:'ASE/SCA 2013 — Guía para realizar un examen transesofágico multiplano completo. ' +
          'Hahn RT, Abraham T, Adams MS, et al. J Am Soc Echocardiogr 2013;26(9):921-964. ' +
@@ -84657,31 +84732,58 @@ function _indVexus(){
     { txt:'Fuente: artículo original de la graduación VExUS, Ultrasound J 2020, resumen de la página 1.', refs:['vexus2020'] }
   ];
 
-  /* ⚠️ SIN CORCHETE, LAS TRES. Ver la nota de la cabecera de esta funcion. */
-  const propio = [
-    { txt:'Criterio de EcoSmart — grado 1: monitorizar la evolución y considerar el balance hídrico.', refs:null },
-    { txt:'Criterio de EcoSmart — grado 2: evaluar la necesidad de descongestión.', refs:null },
-    { txt:'Criterio de EcoSmart — grado 3: considerar descongestión activa, con diuréticos o ultrafiltración según el contexto clínico, y reevaluar con el tratamiento.', refs:null }
+  /* ══ LA CONDUCTA POR GRADO SE RETIRA ENTERA (C1-1c, 2026-10-28, DECISION DE MAICOL) ════════
+     Eran TRES lineas rotuladas «Criterio de EcoSmart», dentro de un bloque plegado titulado
+     «Conducta por grado — criterio de EcoSmart, sin fuente»: «monitorizar la evolución y
+     considerar el balance hídrico» (grado 1), «evaluar la necesidad de descongestión» (grado 2)
+     y «considerar descongestión activa, con diuréticos o ultrafiltración según el contexto
+     clínico, y reevaluar con el tratamiento» (grado 3). El J-5 ya las habia sacado del informe
+     firmado y del PDF y las habia dejado SOLO aca; hoy salen tambien de aca.
+     En su lugar va UNA linea, que es lo que las dos fuentes sostienen. Rola 2021 lo dice en su
+     Conclusion, pagina 9, leida en imagen en esta tanda: «there remains a lack of properly
+     controlled interventional studies regarding the effectiveness of a strategy based on such
+     an approach».
+     ⚠️ LA CITA VA POR `refs` Y NO ENTRE PARENTESIS EN LA LINEA. La orden escribe la frase con
+     «(Rola 2021, Ultrasound J 2021;13:32)» adentro; el panel numera sus citas con corchete y
+     lista la bibliografia por seccion, asi que escribir el documento en la linea lo diria DOS
+     veces —la regla R4 de esta tanda y la regla de una sola cita por linea visible (R2)—. El
+     corchete y la entrada bibliografica dicen exactamente ese documento.
+     ⚠️ LAS TRES FRASES RETIRADAS QUEDAN TRANSCRIPTAS en `docs/fuentes/FUENTES.md` -> «La tanda
+     C1», que es donde este repositorio guarda lo que sale de pantalla. */
+  const sinConducta = [
+    { txt:'Hasta hoy no hay estudios de intervención que prueben una conducta guiada por el grado.', refs:['vexusRola2021'] }
   ];
 
   return { filas: filas, compacta: true,
     bloques: [
       { tit:'Lo que el artículo original mide (Ultrasound J 2020, páginas 1 y 3)',
         lineas: art },
-      { tit:'Conducta por grado — criterio de EcoSmart, sin fuente', plegado:true,
-        lineas: propio,
-        nota:'El artículo no da pasos por grado: estas tres frases son una decisión de la aplicación y por eso no llevan cita.' }
+      { tit:'Qué se sabe de la conducta guiada por el grado',
+        lineas: sinConducta }
     ],
     guia: { ref:'vexus2020',
       txt:'La graduación sale de la Figura 1 del artículo, columna VExUS C: grado 0 con vena cava por debajo de ' + VEXUS_VCI_MM + ' mm; grado 1 con ' + VEXUS_VCI_MM + ' mm o más y patrones normales o levemente alterados; grado 2 con más de ' + VEXUS_VCI_MM + ' mm y un patrón severo; grado 3 con más de ' + VEXUS_VCI_MM + ' mm y dos o más patrones severos (página 3).',
-      nota:'Los patrones venosos se alteran sin que haya congestión en la fibrilación auricular y en la ventilación mecánica, así que el grado se integra con la clínica. Esa salvedad también sale en el informe y en la hoja del PDF, que es donde está la medición que la sostiene.' },
+      /* ⚠️ LA SEGUNDA ORACION SALIO DE PANTALLA (C1-1a, regla R1): decia «Esa salvedad también
+         sale en el informe y en la hoja del PDF, que es donde está la medición que la
+         sostiene», que es una nota de TRABAJO —donde mas aparece el texto— y no una
+         afirmacion clinica. Transcripta en `docs/fuentes/FUENTES.md` -> «La tanda C1». */
+      nota:'Los patrones venosos se alteran sin que haya congestión en la fibrilación auricular y en la ventilación mecánica, así que el grado se integra con la clínica.' },
     /* ⚠️ `notas` DEJA DE SER UNA COPIA DEL BLOQUE (tanda A, regla R4): era `art.map(…)`, las
        mismas cinco lineas que el bloque publica visibles. Lo que queda es por que la fuente no
        trae clase ni nivel —que es la reserva de metodo de esta seccion— y el alcance de la
        poblacion, que es lo que limita el resultado. */
+    /* ⚠️ LA CIFRA DE LA POBLACION SE DICE UNA SOLA VEZ (C1-1a, regla R4). Los «145 pacientes de
+       cirugía cardíaca, con 706 valoraciones» estaban DOS veces en la misma seccion: en la
+       primera linea del bloque visible —donde la puso el AJ7-4d, y donde se lee— y otra vez
+       aca. El numero queda en el bloque; lo que queda aca es el ALCANCE, que es otra
+       afirmacion y no la repeticion de la cifra.
+       ⚠️ LA RESERVA DE CLASE Y NIVEL NO SE TOCA, Y FUE UNA CORRECCION DE RUMBO DE ESTA TANDA.
+       La primera version de este commit la habia sacado a `FUENTES.md` por la regla R1; la
+       orden no lo pide, y ese parrafo no es una nota de trabajo: dice por que NINGUNA linea de
+       esta seccion lleva clase ni nivel, que es la regla R6. Se repuso. */
     notas: [
       { txt:'La fuente no publica clase ni nivel de recomendación: es un artículo original de desarrollo de la graduación, no una guía de práctica clínica. Escribirlos sería inventarlos, y por eso ninguna línea de esta sección los lleva.', refs:['vexus2020'] },
-      { txt:'La población en la que se midió —145 pacientes de cirugía cardíaca, con 706 valoraciones— es parte del resultado: un grado VExUS fuera de ese contexto no tiene detrás la asociación que el artículo describe.', refs:['vexus2020'] }
+      { txt:'La población en la que se midió es parte del resultado: un grado VExUS fuera de ese contexto no tiene detrás la asociación que el artículo describe.', refs:['vexus2020'] }
     ] };
 }
 
