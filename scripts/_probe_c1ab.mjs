@@ -109,6 +109,13 @@ const ESCENAS = {
   forSinPcp: { campos: { peso:'80', talla:'180', hemo_fc:'80', diam_tsvi:'20', itv_tsvi:'20' } },
   forSinIc:  { campos: { peso:'80', talla:'180', onda_e:'80', e_sep:'10', e_lat:'10' } },
   forSinNada:{ campos: { peso:'80', talla:'180' } },
+  /* Las DOS escenas que llegan al papel: el bloque de hemodinamica INTEGRADO, una con el
+     Forrester completo -control negativo: el texto no cambia- y otra con la PCP faltando, que
+     es donde el mensaje viaja al informe integrado, a la hoja del PDF y al PPT. */
+  forIntOk:  { campos: { peso:'80', talla:'180', hemo_fc:'80', diam_tsvi:'20', itv_tsvi:'20',
+                         onda_e:'80', e_sep:'10', e_lat:'10' }, integrar: ['hemo'] },
+  forIntFal: { campos: { peso:'80', talla:'180', hemo_fc:'80', diam_tsvi:'20', itv_tsvi:'20' },
+               integrar: ['hemo'] },
   /* ── LA RVS Y SUS CUATRO FUENTES DE PAM ────────────────────────────────────────────────────
      El dueno unico es `pamEfectiva`: cateter, luego tipeada, luego calculada. La RVS necesita
      ademas PVC (que sale de la VCI) y gasto cardiaco. */
@@ -167,6 +174,11 @@ const MONTAR = `((esc) => {
   Object.keys(esc.sel || {}).forEach(k => S(k, esc.sel[k]));
   (esc.pastillas || []).forEach(p => { const b = document.getElementById('pill-' + p[1] + '-' + p[0]);
     if (b && !b.classList.contains('btn-primary')) b.click() });
+  /* ⚠️ INTEGRAR ES UN GESTO, Y SIN EL EL BLOQUE NO LLEGA AL PAPEL. Lo midio la tanda A con su
+     mutacion M15: la hoja de ETT Avanzado del PDF y la diapositiva del PPT publican el bloque
+     de hemodinamica SOLO si el medico lo integro. Sin esto, un A/B sobre el texto de la capsula
+     da cero en las superficies firmadas y parece que el cambio no las toca. */
+  (esc.integrar || []).forEach(k => { try { if (typeof amiloIntegrar === 'function') amiloIntegrar(k) } catch (e) {} });
   /* Todos los calculadores, para que no haya desfase por el orden de carga. */
   Object.keys(window).forEach(k => { if (/^calc[A-Z]/.test(k) && typeof window[k] === 'function') {
     try { window[k]() } catch (e) {} } });
@@ -290,13 +302,23 @@ const MEDIR = `(() => {
 const PPT = `(async () => {
   if (typeof window.PptxGenJS === 'undefined') return { err: 'SIN PPTXGENJS' };
   const Orig = window.PptxGenJS;
-  const reg = { textos: [], slides: 0 };
+  const reg = { textos: [], slides: 0, tablas: 0 };
   window.PptxGenJS = function (...a) {
     const p = new Orig(...a);
     const oa = p.addSlide.bind(p);
     p.addSlide = function (...z) { reg.slides++; const s = oa(...z);
       const ot = s.addText.bind(s);
       s.addText = function (t, ...r) { reg.textos.push(JSON.stringify(t).slice(0, 400)); return ot(t, ...r) };
+      /* ⚠️ EL ESPIA HEREDADO SOLO MIRABA addText, Y LAS TABLAS DEL PPT VAN POR addTable.
+         La fila «Perfil de Forrester» de la diapositiva de Hemodinamica es una FILA DE TABLA,
+         asi que no aparecia en el volcado y el A/B daba cero sobre ella sin que eso probara
+         nada: es el denominador vacio que este repositorio documenta. Las tandas que usaron
+         esta sonda midieron «el PPT (23 textos)» sin ninguna tabla adentro. */
+      if (typeof s.addTable === 'function') {
+        const oTb = s.addTable.bind(s);
+        s.addTable = function (filas, ...r) { reg.tablas++;
+          reg.textos.push('[TABLA] ' + JSON.stringify(filas).slice(0, 1200)); return oTb(filas, ...r) };
+      }
       return s; };
     p.writeFile = function () { return Promise.resolve(true) };
     p.write = function () { return Promise.resolve('') };

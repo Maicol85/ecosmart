@@ -26216,6 +26216,27 @@ function _rvpTxt(uw) {
            txt: (uw <= lim ? '\u2264' : '>') + lim + ' UW — ' + (uw <= lim ? 'normal' : 'elevada (ESC/ERS 2022)') };
 }
 
+/* ══ LOS TRES MENSAJES DE «FALTA...» DEL FORRESTER — UN SOLO DUEÑO (C1-2b, 2026-10-28) ═══════
+   La cápsula decía «Requiere IC + PCP estimada» en los TRES casos, así que le pedía al médico un
+   dato que a veces ya estaba cargado. La tanda A arregló la FILA DE LA EVIDENCIA y dejó la
+   cápsula sin tocar —declarado en `docs/PENDIENTES.md` → A-d—, porque su texto viaja a tres
+   superficies firmadas. Hoy se arregla la cápsula, que es donde el defecto estaba en su origen.
+
+   ⚠️ LA FUNCION ES EL DUEÑO Y LAS DOS LA LLAMAN, que es el punto: con las cadenas escritas en
+   los dos lugares, el día que una se redacte distinto la pantalla y el panel le pedirían al
+   médico cosas distintas sobre el mismo estudio. Son las MISMAS TRES cadenas que `_indHemo` ya
+   publicaba desde la tanda A, byte por byte.
+   ⚠️ DEVUELVE `null` CUANDO NO FALTA NADA, y no una cadena vacía: el que llama tiene que poder
+   distinguir «están los dos» de «falta algo que no supe nombrar».
+   ⚠️ EMPIEZAN EN MINUSCULA A PROPOSITO (regla R3): son el VALOR de una fila y el texto de un
+   badge, no el principio de una oración. */
+function forrFaltaTxt(hayIc, hayPcp) {
+  if (hayIc && hayPcp) return null;
+  if (!hayIc && !hayPcp) return 'faltan el índice cardíaco y la presión capilar pulmonar estimada';
+  return hayIc ? 'falta la presión capilar pulmonar estimada' : 'falta el índice cardíaco';
+}
+window.forrFaltaTxt = forrFaltaTxt;
+
 function calcHemo() {
   /* ⚠️ LA FC PASA POR LA BANDA, Y EL CAMPO NO SE TOCA. `hemoFCUsable` es el MISMO predicado que usa
      el PDF (ver `HEMO_FC_BANDA`): fuera de banda esto queda en `null` y el gasto cardíaco cae por la
@@ -26321,7 +26342,11 @@ function calcHemo() {
   const forEl = document.getElementById('hemo-forrester');
   if (forEl) {
     if (ic === null || pcp === null) {
-      forEl.innerHTML = badge('gray', 'Requiere IC + PCP estimada');
+      /* ⚠️ ESTE TEXTO VIAJA A TRES SUPERFICIES FIRMADAS, Y ES UNA DIFERENCIA AUTORIZADA (C1-2b).
+         `amiloTextoHemo()` lee este nodo y se integra al informe y a la hoja de ETT Avanzado del
+         PDF, y `_pptSpan('hemo-forrester')` lo lleva a la diapositiva. Son las tres que cambian,
+         y ninguna mas: el cuerpo del informe narrativo y el EN SUMA no leen este span. */
+      forEl.innerHTML = badge('gray', forrFaltaTxt(ic !== null, pcp !== null));
     } else {
       const humedo = pcp > UMBRAL_PCP_HUMEDO;   // congestión
       const frio   = ic < 2.2;   // hipoperfusión
@@ -28444,9 +28469,24 @@ function htpTablaPintar() {
   L.forEach(function (g) {
     const tr = t.querySelector('tr[data-htp-signo="' + g.k + '"]');
     if (tr) tr.setAttribute('data-htp-estado', g.estado);
+    /* ══ UNA CASILLA SIN MARCAR NO ES «AUSENTE»: ES «SIN EVALUAR» (C1-2a, 2026-10-28) ══════
+       Los tres estados dicen cosas distintas y la celda los trataba como dos:
+         · `auto`     — el signo se decidio con datos CARGADOS. Si no esta, se MIDIO y no esta:
+                        «ausente» es correcto y se queda.
+         · `sinDatos` — un signo automatico sin sus insumos. Ya no decia nada, y sigue sin decir.
+         · `manual`   — una casilla que escribe el medico. Sin marcar, la app NO SABE si el
+                        signo se busco y no estaba o si nadie lo miro: «ausente» afirmaba la
+                        primera de las dos. Hoy dice «sin evaluar».
+       ⚠️ NO MUEVE NI UN CONTEO NI LA PROBABILIDAD. `catA`, `catB`, `catC`, `nCat` y `prob` salen
+       de `_htp2022Core`, que no se toca: lo que cambia es como se LEE una celda, no que cuenta.
+       ⚠️ LAS DOS CASILLAS DE LA ARTERIA PULMONAR NO ENTRAN cuando tienen datos: con el diametro
+       cargado su estado es `auto`, asi que su «ausente» es una medicion y se queda. Sin datos
+       vuelven a `manual` y dicen «sin evaluar», que es lo correcto. */
     const td = document.getElementById('htp2022-est-' + g.k);
     if (td) td.textContent = (HTP_EST_TXT[g.estado] || g.estado) +
-      (g.presente ? ' — presente' : (g.estado === 'sinDatos' ? '' : ' — ausente'));
+      (g.presente ? ' — presente'
+        : (g.estado === 'sinDatos' ? ''
+        : (g.estado === 'manual' ? ' — sin evaluar' : ' — ausente')));
     if (!g.chk) {
       const cb = t.querySelector('input[data-htp-auto="' + g.k + '"]');
       if (cb) cb.checked = !!g.presente;
@@ -83527,8 +83567,17 @@ function _indHTP(){
   const SG = R.signos || [];
   const nombres = (cat) => SG.filter(function (g) { return g.cat === cat && g.presente; })
                              .map(function (g) { return g.lbl; }).join('; ');
-  const sinDatos = (cat) => SG.filter(function (g) { return g.cat === cat; })
-                              .every(function (g) { return g.estado === 'sinDatos' && !g.presente; });
+  /* ══ «SIN EVALUAR» TAMBIEN A NIVEL DE CATEGORIA (C1-2a, 2026-10-28) ════════════════════════
+     Era `g.estado === 'sinDatos' && !g.presente`, asi que una categoria cuyos signos son TODOS
+     casillas manuales sin marcar —la A y la C lo son en un estudio de rutina— caia en la otra
+     rama y la fila decia «ninguno · evaluada, sin signos»: afirmaba que se habia evaluado. Un
+     signo que el medico no marco no se evaluo, lo mismo que uno automatico sin sus insumos, y
+     la fila ya tenia la redaccion correcta para ese caso.
+     ⚠️ UNA CATEGORIA EVALUADA A MEDIAS SIGUE DICIENDO «evaluada, sin signos», y es deliberado:
+     con UN solo signo medido y ausente la categoria SI se evaluo y no dio signos, que es lo que
+     la nota afirma. El cambio alcanza solo al caso en que no se evaluo NINGUNO. */
+  const _noEval = function (g) { return !g.presente && (g.estado === 'sinDatos' || g.estado === 'manual'); };
+  const sinDatos = (cat) => SG.filter(function (g) { return g.cat === cat; }).every(_noEval);
 
   const filas = [
     _indFila('Velocidad pico de regurgitación tricuspídea', _vrtVal,
@@ -84840,10 +84889,13 @@ function _indHemo(){
           texto de `hemo-forrester` lo leen `amiloTextoHemo()` —que se integra al informe y sale
           en la hoja de ETT Avanzado del PDF— y la diapositiva del PPT (`_pptSpan`). Cambiarlo
           ahi cambia TRES superficies firmadas, y esta tanda no las toca: parado y reportado. */
+    /* ⚠️ DESDE EL C1-2b LA CADENA SALE DEL DUEÑO (`forrFaltaTxt`) Y NO SE ESCRIBE ACA. Era la
+       misma cascada, con las tres cadenas tipeadas: hoy la cápsula del módulo y esta fila no
+       pueden decir cosas distintas sobre el mismo estudio porque las dos preguntan a la misma
+       función. El `_indFn` es el patrón de esta sección para alcanzar un dueño de otro bloque. */
     _indFila('Perfil de Forrester',
-      (!ic && !pcp) ? 'faltan el índice cardíaco y la presión capilar pulmonar estimada'
-                    : (!ic ? 'falta el índice cardíaco'
-                    : (!pcp ? 'falta la presión capilar pulmonar estimada' : (forr || '—'))),
+      (function(){ const f = _indFn('forrFaltaTxt'); const q = f ? f(!!ic, !!pcp) : null;
+        return q || (forr || '—'); })(),
       (!ic || !pcp) ? 'ask' : 'none',
       'la clasificación se construyó en pacientes con infarto agudo de miocardio, midiendo el gasto cardíaco y la presión de enclavamiento al mismo tiempo con un catéter en la arteria pulmonar (Tabla 52-9 y texto del folio 1125). Acá los dos ejes son estimaciones por ecocardiografía.',
       ['braunwald2016'])
