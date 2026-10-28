@@ -26237,6 +26237,17 @@ function forrFaltaTxt(hayIc, hayPcp) {
 }
 window.forrFaltaTxt = forrFaltaTxt;
 
+/* Los tres origenes de la PAM, en la forma mas corta que los distingue. Las claves son las de
+   `pamEfectiva` (`inv` / `tip` / `calc`). ⚠️ SON ROTULOS NUEVOS Y CORTOS, y no los de
+   `PAM_FUENTE_LBL`: aquellos («medida (Swan-Ganz)», «de Hemodinámica») los imprime la hoja del
+   PDF del posoperatorio letra por letra, y reusarlos aca ataria dos papeles distintos a la misma
+   cadena. */
+const RVS_PAM_ORIGEN = Object.freeze({
+  inv:  'PAM por catéter',
+  tip:  'PAM tipeada',
+  calc: 'PAM calculada de PAS y PAD'
+});
+
 function calcHemo() {
   /* ⚠️ LA FC PASA POR LA BANDA, Y EL CAMPO NO SE TOCA. `hemoFCUsable` es el MISMO predicado que usa
      el PDF (ver `HEMO_FC_BANDA`): fuera de banda esto queda en `null` y el gasto cardíaco cae por la
@@ -26245,7 +26256,18 @@ function calcHemo() {
      asterisco, que es lo que ya hacía. Lo único que se apaga es el cálculo; `hemo_fc` conserva lo
      que el médico escribió. */
   const fc  = hemoFCUsable(v('hemo_fc')) ? v('hemo_fc') : null;
-  const pam = v('hemo_pam');
+  /* ══ LA PAM SALE DEL DUEÑO UNICO, NO DE `hemo_pam` A SECAS (C1-3a, 2026-10-28) ══════════════
+     `pamEfectiva()` es el dueño que dejo la tanda B: cateter (Swan-Ganz), luego tipeada, luego
+     calculada de PAS y PAD. Esta capsula leia `hemo_pam` directo, asi que con la PAM medida por
+     cateter en 58 y el campo de Hemodinamica vacio la RVS salia «—» sobre un paciente que SI
+     tiene una presion medida — y la hoja del posoperatorio, en el mismo estudio, ya la usaba.
+     Es el mismo arreglo que el B-2 aplico a la fila del Doppler aortico, a la vasoplejia y al
+     esquema del posoperatorio; esta capsula fue la que quedo afuera.
+     ⚠️ EL `typeof` ES EL PATRON DE LA CASA Y NO ES DECORATIVO: `pamEfectiva` vive en otro bloque
+     <script>, muy por debajo de este. En tiempo de ejecucion esta, pero la guarda es la que ya
+     usan las otras tres superficies que lo leen. */
+  const _pamRvs = (typeof pamEfectiva === 'function') ? pamEfectiva() : null;
+  const pam = (_pamRvs && _pamRvs.val !== null) ? _pamRvs.val : v('hemo_pam');
   const asc = getBSA();
 
   // PVC ← VCI (PmAD estimada por diámetro + colapso de VCI)
@@ -26295,7 +26317,19 @@ function calcHemo() {
        funcion. ⚠️ Y SE VA TAMBIEN EL COLOR, no solo la palabra: el badge entero sale. Un color
        sin rotulo seguiria afirmando la banda —y la regla de la casa es que el color nunca es lo
        unico que informa—, asi que lo que queda es el NUMERO pelado, que es lo que la orden pide. */
-    setH('hemo-rvs', rvs.toFixed(0) + ' dinas·s·cm⁻⁵');
+    /* ══ DE DONDE SALE CADA INSUMO, EN LA MISMA LINEA (C1-3a, 2026-10-28) ════════════════════
+       La RVS mezcla una presion ARTERIAL con una presion VENOSA que esta app NO mide: la PVC
+       sale de la vena cava por `pmad`, o sea es una estimacion ecografica. Con los dos numeros
+       en la misma formula, el resultado se lee como si los dos fueran medidos. La linea lo dice
+       en pocas palabras y SIN CITA, que es lo que la orden pide.
+       ⚠️ LA FORMA MAS CORTA QUE CONSERVA LA INFORMACION. El ejemplo de la orden era «PAM por
+       catéter; PVC estimada por eco»; lo unico que cambia por fuente es el primer tramo, asi que
+       el segundo se escribe una sola vez y no tres (regla R4).
+       ⚠️ NO LLEVA BANDA NI COLOR, y eso no se toca: el R2-E8 retiro el badge de esta capsula a
+       proposito —un color sin rotulo afirma la banda— y lo que se agrega aca es el ORIGEN de los
+       insumos, no una lectura del numero. */
+    const _ori = _pamRvs && _pamRvs.clave ? (RVS_PAM_ORIGEN[_pamRvs.clave] || 'PAM') : 'PAM';
+    setH('hemo-rvs', [rvs.toFixed(0), ' dinas·s·cm⁻⁵ · ', _ori, '; PVC estimada por eco'].join(''));
   } else setH('hemo-rvs', '—');
 
   // ── PCP (Nagueh) ──
@@ -58238,15 +58272,37 @@ function popPocusSync() {
   }
 
   /* ── VENTRÍCULO DERECHO ── Todo sincronizado; nada editable acá. */
+  /* ══ EL VD/VI DE LA PESTAÑA VD/AD TAMBIEN CUENTA (C1-3b, 2026-10-28) ════════════════════════
+     Este bloque leia `tep_vdvi` y, si faltaba, derivaba de `vd_bas / ddfvi`. NUNCA miraba
+     `vd_vi`, que es el campo de la pestaña VD/AD. Medido: el MISMO PDF imprime «VD/VI: 1.30» en
+     la tabla del VD y, cinco paginas despues, «VD/VI -» en el POCUS, y la pantalla pide
+     «Completar: VD/VI (tab VD/AD)» sobre un campo que esta cargado. Declarado en B-d.
+     Hoy se le pregunta a `vdViEstado`, el lector UNICO que ya usan la tabla del VD del PDF, el
+     PPT y la categoria A de la probabilidad de HTP.
+     ⚠️ `tep_vdvi` SIGUE PRIMERO Y NO SE TOCA. Son DOS campos distintos con DOS preguntas y DOS
+     cortes distintos —el de TEP y el de HTP—, como este archivo ya documenta; lo que se agrega
+     es una fuente que faltaba, detras de la que ya habia y delante de la derivada.
+     ⚠️ NINGUN CORTE SE MUEVE: la dilatacion la sigue decidiendo `vdvi >= TEP_VDVI_DILAT_MIN`
+     sobre un NUMERO. Por eso solo entra la rama `numero` de `vdViEstado`.
+     ⚠️ EL SELECTOR DE TRAMO NO GRADUA, Y ES DELIBERADO. Sin numero, `vd_vi_sel` dice «> 1,0» o
+     «≤ 1,0», y el corte de este bloque es `>= 1,0`: en el 1,0 exacto los dos tramos del selector
+     caen del mismo lado y el corte no. Usarlo para decidir la dilatacion seria inventar un
+     criterio. Lo que SI hace es publicar su rotulo con `vdViTexto()` y dejar de pedir un dato
+     que ya esta contestado. */
   const tapse = v('tapse');
+  const _vdviR = (typeof vdViEstado === 'function') ? vdViEstado() : null;
   let vdvi = v('tep_vdvi');
+  if (vdvi === null && _vdviR && _vdviR.fuente === 'numero') vdvi = _vdviR.val;
   if (vdvi === null && v('vd_bas') && v('ddfvi')) vdvi = PF((v('vd_bas') / v('ddfvi')).toFixed(2));
+  /* El rotulo del tramo, SOLO cuando no hay ningun numero de donde sacar el cociente. */
+  const _vdviSel = (vdvi === null && _vdviR && _vdviR.fuente === 'selector' && typeof vdViTexto === 'function')
+    ? vdViTexto(false) : null;
   const mcc = (document.getElementById('tep_mcconnell') || {}).value || '';
   const psap = v('psap_calc');
   const uT = (typeof UMBRAL_TAPSE_NORMAL !== 'undefined') ? UMBRAL_TAPSE_NORMAL : 17;
   const pend = [];
   if (tapse === null) pend.push('TAPSE (tab VD/AD)');
-  if (vdvi === null) pend.push('VD/VI (tab VD/AD)');
+  if (vdvi === null && !_vdviSel) pend.push('VD/VI (tab VD/AD)');
   if (psap === null) pend.push('PSAP (tab Doppler)');
   const tapseBaja = tapse !== null && tapse < uT;
   const vdDil = vdvi !== null && vdvi >= TEP_VDVI_DILAT_MIN;
@@ -58258,7 +58314,9 @@ function popPocusSync() {
   setH('pop-pocus-vd',
     fila('TAPSE', tapse === null ? '—' : tapse + ' mm ' + badge(tapseBaja ? 'red' : 'green',
          tapseBaja ? 'disfunción (<' + uT + ' mm)' : 'normal (≥' + uT + ' mm)')) +
-    fila('VD/VI', vdvi === null ? '—' : vdvi + ' ' + badge(vdDil ? 'red' : 'green',
+    fila('VD/VI', vdvi === null
+         ? (_vdviSel ? _vdviSel + ' ' + badge('yellow', 'tramo elegido, sin número: no se gradúa acá') : '—')
+         : vdvi + ' ' + badge(vdDil ? 'red' : 'green',
          vdDil ? 'dilatación (≥' + TEP_VDVI_DILAT_MIN.toFixed(1) + ')'
                : 'normal (<' + TEP_VDVI_DILAT_MIN.toFixed(1) + ')')) +
     fila('McConnell', mcc === 'si' ? badge('red', 'Presente') : mcc === 'no' ? badge('green', 'Ausente') : '—') +

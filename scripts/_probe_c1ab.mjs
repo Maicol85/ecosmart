@@ -119,19 +119,40 @@ const ESCENAS = {
   /* ── LA RVS Y SUS CUATRO FUENTES DE PAM ────────────────────────────────────────────────────
      El dueno unico es `pamEfectiva`: cateter, luego tipeada, luego calculada. La RVS necesita
      ademas PVC (que sale de la VCI) y gasto cardiaco. */
+  /* ⚠️ LOS NOMBRES REALES SON `pop_sw_pam` y `pop_monitor`, medidos en el marcado. La primera
+     version de esta sonda uso `pop_swan_pam` y `pop_asist_tipo`, que NO EXISTEN: el helper `S`
+     devuelve «NO EXISTE id» y sigue, asi que la escena montaba sin PAM por cateter y el A/B
+     habria dado cero sobre el commit 3a sin que eso probara nada. */
   rvsCat:  { campos: { peso:'80', talla:'180', hemo_fc:'80', diam_tsvi:'20', itv_tsvi:'20',
-                       vci_diam:'18', pop_swan_pam:'58' }, sel: { vci_col:'>50', pop_asist_tipo:'swan' } },
+                       vci_diam:'18', pop_sw_pam:'58' }, sel: { vci_col:'>50', pop_monitor:'swan' } },
   rvsTip:  { campos: { peso:'80', talla:'180', hemo_fc:'80', diam_tsvi:'20', itv_tsvi:'20',
                        vci_diam:'18', hemo_pam:'90' }, sel: { vci_col:'>50' } },
   rvsDos:  { campos: { peso:'80', talla:'180', hemo_fc:'80', diam_tsvi:'20', itv_tsvi:'20',
-                       vci_diam:'18', hemo_pam:'90', pop_swan_pam:'58' },
-             sel: { vci_col:'>50', pop_asist_tipo:'swan' } },
+                       vci_diam:'18', hemo_pam:'90', pop_sw_pam:'58' },
+             sel: { vci_col:'>50', pop_monitor:'swan' } },
   rvsNada: { campos: { peso:'80', talla:'180', hemo_fc:'80', diam_tsvi:'20', itv_tsvi:'20',
                        vci_diam:'18' }, sel: { vci_col:'>50' } },
-  /* ── EL POCUS DEL POSOPERATORIO: con el VD/VI cargado en la pestana VD/AD, y sin el ───────── */
-  popVd:   { campos: { pop_cx_horas:'12', vd_bas:'39', ddfvi:'30', tapse:'16', vmax_it:'3.0' },
+  /* ── EL POCUS DEL POSOPERATORIO ────────────────────────────────────────────────────────────
+     `popVdNum` carga `vd_vi` DIRECTO, que es el campo de la pestana VD/AD que el bloque no
+     miraba: es la escena del defecto. `popVdDer` usa la derivacion de `vd_bas / ddfvi`, que YA
+     funcionaba -control negativo: no puede cambiar-. `popVdSel` deja el SELECTOR de tramo sin
+     numero. `popSinVd` no tiene ninguno de los tres. */
+  popVdNum:{ campos: { pop_cx_horas:'12', vd_vi:'1.30', tapse:'16' }, sel: { pop_cx_tipo:'cabg' } },
+  popVdDer:{ campos: { pop_cx_horas:'12', vd_bas:'39', ddfvi:'30', tapse:'16' },
              sel: { pop_cx_tipo:'cabg' } },
+  popVdSel:{ campos: { pop_cx_horas:'12', tapse:'16' },
+             sel: { pop_cx_tipo:'cabg', vd_vi_sel: 'gt1' } },
   popSinVd:{ campos: { pop_cx_horas:'12', tapse:'16' }, sel: { pop_cx_tipo:'cabg' } },
+  /* Las mismas dos, con el bloque del posoperatorio INTEGRADO: es la unica forma de que el
+     POCUS llegue a la hoja del PDF y al PPT, igual que el bloque de hemodinamica. */
+  popIntNum:{ campos: { pop_cx_horas:'12', vd_vi:'1.30', tapse:'16' },
+              sel: { pop_cx_tipo:'cabg' }, integrar: ['pop'] },
+  popIntSin:{ campos: { pop_cx_horas:'12', tapse:'16' },
+              sel: { pop_cx_tipo:'cabg' }, integrar: ['pop'] },
+  /* La RVS por cateter con el bloque de hemodinamica integrado: la diferencia (d) en el papel. */
+  rvsIntCat:{ campos: { peso:'80', talla:'180', hemo_fc:'80', diam_tsvi:'20', itv_tsvi:'20',
+                        vci_diam:'18', pop_sw_pam:'58' },
+              sel: { vci_col:'>50', pop_monitor:'swan' }, integrar: ['hemo'] },
   /* ── LA TABLA DE SIGNOS DE HTP con una casilla MANUAL sin marcar y una AUTOMATICA medida ──── */
   htpSig:  { campos: { vmax_it:'3.2', tvia:'120', ip_ap_diam:'28', ao_sin:'30', ad_area:'16',
                        vci_diam:'24', vd_bas:'45', ddfvi:'40', tapse:'18' },
