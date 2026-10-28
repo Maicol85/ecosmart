@@ -8826,7 +8826,15 @@ borró. Si se retira, conviene retirarlo de los otros tres y dejarlo en ése, o 
 **No se tocó** porque retirar un control o reescribir su mensaje es decisión de Maicol y es texto
 de cara al usuario.
 
-## D-r · La suite completa del D-11 quedó PENDIENTE — hay que retomarla
+## D-r · [CERRADO 2026-10-28] La suite completa del D-11 — retomada y cerrada
+
+**Cerrado al retomar tras el reinicio.** Suite **554/558**, 558 de 558 casos distintos ejecutados,
+rojos **TC-223, TC-376, TC-390 y TC-406** y ninguno más —**TC-358 salió verde**—, con el pendrive
+verificado al abrir, entre lotes y al cerrar. ⚠️ **El lote 10 destapó una regresión del D-11**
+—`TC-514`, la declaración `data-espejo` borrada en «Nuevo estudio»—, corregida y fijada con la
+mutación M15; está contada en **D-s**. Lo de abajo queda como registro de lo que faltaba.
+
+### Lo que decía cuando quedó pendiente
 
 El commit del D-11 es **de resguardo**: Maicol tuvo que cortar la corrida porque se llevaba la
 computadora y el pendrive. **No es una línea base cerrada.**
@@ -8900,3 +8908,31 @@ Si aparece cualquier otro rojo, **es una regresión del D-11** y hay que mirarla
 ⚠️ **Y no hace falta rehacer nada de lo que ya está en la tabla de arriba**: el A/B, las
 mutaciones, los dos motores, el celular, Semgrep y el censo se corrieron sobre **este mismo árbol**
 —sello `v20261028-1137`— y el md5 de `index.html` no cambió desde entonces.
+
+## D-s · `data-espejo` significa dos cosas, y no hay nada que lo impida
+
+Lo encontró **TC-514 en rojo** al retomar la verificación del D-11, y era una regresión de esa
+misma corrección. El atributo se usa para **dos cosas distintas**:
+
+| | Quién la pone | Valor |
+|---|---|---|
+| marca de **runtime** | el reflejo de amiloidosis, en vivo | `'1'` |
+| **declaración** del marcado | está escrita en el HTML | sin valor (cadena vacía) |
+
+La declaración la llevan **catorce** elementos: `im_espejos`, `im_pisa`, `vab_funcion`,
+`mch_tvns`, `tv_legacy_ev`, `mca_v_may`, `mca_v_men1`, `mca_v_men2`, `tdf_tv`, `dsav_vi_ro`,
+`cvpa_cia_ro`, `cvpa_vd_ro` y los dos restantes. **Nada en el código impide confundirlas**, y el
+D-11 las confundió: al anotar la marca en la lista cerrada de «Nuevo estudio» se llevaba la
+declaración de los catorce en cada estudio nuevo.
+
+**Hoy está cerrado por el valor**: el selector pide `[data-espejo="1"]` y el cuerpo comprueba
+`=== '1'` antes de borrar. Las dos mitades son redundantes entre sí —romper una sola sobrevive a
+la mutación— y **se conservan las dos a propósito**, porque la convención que ese bloque declara
+es que el selector y el cuerpo van juntos.
+
+**Lo que quedaría mejor, y es decisión de Maicol:** darle a la marca de runtime un nombre propio
+—`data-espejo-amilo`, por ejemplo— para que no pueda volver a chocar con la declaración. Son dos
+lecturas en el reflejo, una en `amAutoLlenar`, una en `amiloGestoEnModulo`, una en `eaTaviEspejar`
+y las dos de la lista cerrada; **el riesgo es que `eaTaviEspejar` usa la misma marca de runtime
+sobre `ete_tavi_ava`**, así que el renombre tiene que cubrirlo o quedarse sin limpiar. Después hay
+que correr la suite completa: TC-514 y TC-543 miden las dos caras.

@@ -59562,11 +59562,21 @@ function limpiarCampos(silencioso) {
      ⚠️ ACÁ ENTRARON TAMBIÉN `amilo-esc` Y `amilo-propio`, las dos marcas del D-10, y las dos se
      RETIRARON en el D-11 junto con las reglas que las leían: con «gana la última edición» no hay
      permiso que guardar ni desacuerdo que conservar. */
-  document.querySelectorAll('[data-derivado-de],[data-sugerido],[data-espejo-de],[data-espejo-vivo],[data-espejo-inferido],[data-params-disc],[data-grado-volum],[data-fuera-banda],[data-espejo]').forEach(el => {
+  document.querySelectorAll('[data-derivado-de],[data-sugerido],[data-espejo-de],[data-espejo-vivo],[data-espejo-inferido],[data-params-disc],[data-grado-volum],[data-fuera-banda],[data-espejo="1"]').forEach(el => {
     delete el.dataset.derivadoDe; delete el.dataset.sugerido; delete el.dataset.espejoDe;
     delete el.dataset.espejoVivo; delete el.dataset.espejoInferido;
     delete el.dataset.paramsDisc; delete el.dataset.gradoVolum;
-    delete el.dataset.espejo;
+    /* ⚠️ SOLO LA MARCA DE RUNTIME, Y ESTO LO ENCONTRÓ TC-514 EN ROJO (D-11). `data-espejo` se usa
+       para DOS cosas en este archivo: la marca que el reflejo de amiloidosis pone en vivo —valor
+       `'1'`— y una DECLARACIÓN estática en el marcado, sin valor, que dice «este campo es un
+       espejo y no un dato del estudio». La llevan CATORCE elementos: `im_espejos`, `im_pisa`,
+       `vab_funcion`, `mch_tvns`, `tv_legacy_ev`, los tres `mca_v_*`, `tdf_tv`, `dsav_vi_ro`, los
+       dos `cvpa_*_ro` y los demás. Borrarla sin condición se llevaba la declaración de los
+       catorce en cada «Nuevo estudio» —medido: `vab_funcion` quedaba sin su atributo y TC-514
+       pasaba de verde a rojo, en el mismo directorio alternando sólo `index.html`—. El selector
+       de arriba pide `[data-espejo="1"]`, que la bare nunca matchea, y acá se comprueba otra vez:
+       el selector y el cuerpo son dos listas, como este bloque ya advierte. */
+    if (el.dataset.espejo === '1') delete el.dataset.espejo;
     /* ⚠️ EL SELECTOR Y EL CUERPO SON DOS LISTAS, y agregar la marca a UNA SOLA es un no-op
        COMPLETO: nadie mas borra este atributo en toda la app. Asi entro —con la entrada en el
        selector de arriba y sin este `delete`— y la fuga sobrevivio a su propio caso, porque el
@@ -135945,8 +135955,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261028-1137';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793198249800;                 /* eco-build-ms */
+const ECO_BUILD    = '20261028-1407';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793207231061;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -136032,7 +136042,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261028-1137</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261028-1407</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

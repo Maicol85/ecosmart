@@ -1116,22 +1116,48 @@ línea: el archivo creció y un informe de auditoría viejo apunta a otro archiv
 - **A/B contra el HEAD del D-10: 703 claves comparadas y UNA diferencia**, el identificador generado
   del estudio de prueba. Informe en tres estilos, EN SUMA, las 440 columnas de Excel clave por
   clave, el PDF y los campos: **cero**.
-- ⚠️ **LA SUITE COMPLETA QUEDÓ PENDIENTE, Y ESO ES LO PRIMERO QUE HAY QUE SABER DE ESTA ENTRADA.**
-  Maicol tuvo que cortar —se llevaba la computadora y el pendrive— con **9 de los 11 lotes**
-  terminados: **495 casos corridos, 491 verdes y 4 rojos**, que son **TC-223, TC-376, TC-390 y
-  TC-406**, los cuatro de siempre. **Ningún rojo nuevo en los 495.** Faltan los lotes **10 y 11**
-  —63 casos, `TC-481` a `TC-543` más los quince `TC-GR`— y la repetición del lote de **TC-358**.
-  El pendrive estuvo **montado y listando nombres reales al abrir y entre los nueve lotes**, y el
-  md5 de `index.html` no cambió durante la corrida. → `PENDIENTES.md` **D-r**, con el comando.
-- **Lo que SÍ está medido y cerrado:** Semgrep **124 WARNING / 0 ERROR**; censo **1025**, 0
-  huérfanos; celular **63 a 360 px y 72 a 390, 17 ALTA en cada ancho** — idénticos a la base; los
-  casos de la zona **8/8 en verde**; **14/14 mutaciones muertas** con guarda de md5; y los cinco
-  casos viejos adaptados.
+- ⚠️ **EL LOTE QUE FALTABA TRAJO UNA REGRESIÓN MÍA, Y ES LO PRIMERO QUE HAY QUE SABER DE ESTA
+  ENTRADA.** Maicol cortó la primera corrida con 9 de los 11 lotes —sin un rojo nuevo en 495
+  casos—; al retomarla, el **lote 10** destapó **TC-514 en rojo**. Verificado en el mismo
+  directorio alternando sólo `index.html`: **verde en `954ee14`, rojo en el D-11**, y rojo también
+  aislado, así que no era dependencia de orden.
+  **La causa: `data-espejo` se usa para DOS cosas y las traté como una.** Es la marca de runtime
+  que el reflejo pone —valor `'1'`— **y** una **declaración estática** en el marcado, sin valor,
+  que dice «este campo es un espejo y no un dato del estudio». La llevan **CATORCE** elementos:
+  `im_espejos`, `im_pisa`, `vab_funcion`, `mch_tvns`, `tv_legacy_ev`, los tres `mca_v_*`,
+  `tdf_tv`, `dsav_vi_ro` y los dos `cvpa_*_ro`, entre otros. Al agregarla a la lista cerrada de
+  «Nuevo estudio» **les borraba la declaración a los catorce en cada estudio nuevo**.
+  **El arreglo:** el selector pide `[data-espejo="1"]` —que la declaración sin valor nunca
+  matchea— y el cuerpo comprueba el valor antes de borrar. ⚠️ **Es la tercera vez en esta tanda
+  que ese bloque cobra su propia advertencia: el selector y el cuerpo son DOS listas.**
+  ⚠️ **Y UNA MUTACIÓN SOLA NO ALCANZABA PARA FIJARLO.** Romper **una** de las dos mitades
+  sobrevive, porque la otra la tapa: la protección está duplicada **a propósito**, siguiendo la
+  convención que el archivo declara. **M15 rompe las dos a la vez**, y la mata exactamente la
+  condición que encontró la regresión, `(F4)` de TC-514. Y el arnés de mutaciones pasó a correr
+  **DOS casos**: TC-543 no puede ver esto —sus condiciones siguen verdes si se borra de más—.
+
+- **Línea base al cierre, con el árbol ya corregido: suite 554/558** en once lotes, **558 de 558
+  casos distintos ejecutados** —contado nombre por nombre, no por la suma de los lotes—, con el
+  pendrive `DISK_IMG` **montado y listando nombres reales al abrir, ENTRE LOTES y al cerrar** y el
+  md5 de `index.html` idéntico antes y después. Los rojos son **TC-223, TC-376, TC-390 y TC-406**,
+  los cuatro de siempre, **y ninguno más**: **TC-358 salió VERDE** en esta corrida.
+  **15/15 mutaciones muertas.** Semgrep **124 WARNING / 0 ERROR**. Censo **1025**, 0 huérfanos.
+  Excel **440**. Celular **63 a 360 px y 72 a 390, 17 ALTA en cada ancho** — idénticos a la base.
+- ⚠️ **LA SUITE COMPLETA TARDA 11 MIN 49 S, MEDIDO LOTE POR LOTE, Y YO VENÍA SUPONIENDO HORAS.**
+  Con la máquina recién reiniciada y sin Chrome zombis compitiendo: el lote más lento es el 6 con
+  **2 min 31 s** y el más rápido el 2 con **3 s**. El barrido de dieciséis mutaciones, **12 min
+  29 s**. ⚠️ **Y los lotes de 3 y 7 segundos SÍ corrieron sus 55 casos** —verificado contando los
+  nombres en la salida—: lo que los hacía lentos antes era la carga de la máquina, no el trabajo.
+- ⚠️ **EL REINICIO SE LLEVÓ `/tmp`, Y CON ÉL PLAYWRIGHT.** La sonda de dos motores salió con
+  «SIN PLAYWRIGHT». Los **binarios de los navegadores sobreviven** en
+  `~/Library/Caches/ms-playwright/`, así que alcanza con `npm i playwright` en `/tmp`: no hay que
+  volver a descargar WebKit.
 - **CHROME Y WEBKIT COINCIDEN EN LOS OCHO CRUCES, valor por valor**: 17/17 pestañas con caja, cero
   scroll horizontal, cero textos recortados y **cero errores de consola y de página en los dos
   motores**. Escribir no se volvió más lento: media **0,14 a 0,19 ms** contra 0,12 a 0,22 del D-10.
   ⚠️ **WebKit de Playwright no es Safari, y se declara.**
-- **`index.html` pasó de 9,86 MB / 138.867 líneas a 9,86 MB / 138.889.** Sello **`v20261028-1137`**.
+- **`index.html` pasó de 9,86 MB / 138.867 líneas a 9,86 MB / 138.899.** Sello
+  **`v20261028-1407`**, md5 **`cf1481d5`**.
 
 - **Dónde está todo:** `docs/mapa/d11-dos-puertas.md` (**mapa NUEVO**, 5,1 KB), el puntero en
   `docs/mapa/d-cardioonco-amiloidosis.md` § 7, la ficha de TC-543 en

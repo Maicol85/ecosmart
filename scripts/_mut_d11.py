@@ -19,7 +19,11 @@ import hashlib, io, os, re, shutil, subprocess, sys
 
 RAIZ = '/Users/maicoldossantos/Desktop/APLICACIONES/ecosmart'
 WT   = '/tmp/wt-mut-d11'
-CASO = 'TC-543'
+# ADVERTENCIA DOS CASOS, NO UNO. M15 y M16 reproducen una regresion que TC-543 NO puede ver: su
+# condicion (E5) exige que la marca de espejo muera con Nuevo estudio, y las dos mutaciones borran
+# de MAS, asi que (E5) sigue verde. La que las caza es TC-514, que comprueba que la declaracion
+# estatica del marcado SIGA puesta. Un arnes con un solo caso habria dicho «sobrevivieron».
+CASO = 'TC-543,TC-514'
 
 MUT = [
  # ── El modelo nuevo: gana la ULTIMA edicion ─────────────────────────────────────────────────
@@ -67,8 +71,18 @@ MUT = [
   "  _amiloReflejarDesdeApp();",
   "  void 0;"),
  ('M13','la marca de espejo deja de morir con Nuevo estudio y manda sobre el paciente siguiente',
-  "    delete el.dataset.espejo;",
+  "    if (el.dataset.espejo === '1') delete el.dataset.espejo;",
   "    void 0;"),
+ # ADVERTENCIA M15 REPRODUCE LA REGRESION ENTERA que TC-514 encontro en rojo al retomar la
+ # verificacion. Las DOS mitades juntas: data-espejo se usa para la marca de runtime del reflejo
+ # (valor '1') Y para una declaracion estatica SIN valor que llevan CATORCE elementos del
+ # marcado. La primera version de esta mutacion cambiaba solo el selector y SOBREVIVIO, porque
+ # el cuerpo comprueba el valor y tapa la mitad mutada: la proteccion esta duplicada a
+ # proposito, siguiendo la convencion que el propio archivo declara -el selector y el cuerpo
+ # son DOS listas-. Para inyectar el defecto hay que romper las dos.
+ ('M15','las DOS mitades a la vez: Nuevo estudio vuelve a llevarse la declaracion estatica de\n        los catorce campos que la tienen en el marcado',
+  '[data-espejo="1"]\').forEach(el => {\n    delete el.dataset.derivadoDe; delete el.dataset.sugerido; delete el.dataset.espejoDe;\n    delete el.dataset.espejoVivo; delete el.dataset.espejoInferido;\n    delete el.dataset.paramsDisc; delete el.dataset.gradoVolum;\n    /* ⚠️ SOLO LA MARCA DE RUNTIME, Y ESTO LO ENCONTRÓ TC-514 EN ROJO (D-11). `data-espejo` se usa\n       para DOS cosas en este archivo: la marca que el reflejo de amiloidosis pone en vivo —valor\n       `\'1\'`— y una DECLARACIÓN estática en el marcado, sin valor, que dice «este campo es un\n       espejo y no un dato del estudio». La llevan CATORCE elementos: `im_espejos`, `im_pisa`,\n       `vab_funcion`, `mch_tvns`, `tv_legacy_ev`, los tres `mca_v_*`, `tdf_tv`, `dsav_vi_ro`, los\n       dos `cvpa_*_ro` y los demás. Borrarla sin condición se llevaba la declaración de los\n       catorce en cada «Nuevo estudio» —medido: `vab_funcion` quedaba sin su atributo y TC-514\n       pasaba de verde a rojo, en el mismo directorio alternando sólo `index.html`—. El selector\n       de arriba pide `[data-espejo="1"]`, que la bare nunca matchea, y acá se comprueba otra vez:\n       el selector y el cuerpo son dos listas, como este bloque ya advierte. */\n    if (el.dataset.espejo === \'1\') delete el.dataset.espejo;',
+  '[data-espejo]\').forEach(el => {\n    delete el.dataset.derivadoDe; delete el.dataset.sugerido; delete el.dataset.espejoDe;\n    delete el.dataset.espejoVivo; delete el.dataset.espejoInferido;\n    delete el.dataset.paramsDisc; delete el.dataset.gradoVolum;\n    /* ⚠️ SOLO LA MARCA DE RUNTIME, Y ESTO LO ENCONTRÓ TC-514 EN ROJO (D-11). `data-espejo` se usa\n       para DOS cosas en este archivo: la marca que el reflejo de amiloidosis pone en vivo —valor\n       `\'1\'`— y una DECLARACIÓN estática en el marcado, sin valor, que dice «este campo es un\n       espejo y no un dato del estudio». La llevan CATORCE elementos: `im_espejos`, `im_pisa`,\n       `vab_funcion`, `mch_tvns`, `tv_legacy_ev`, los tres `mca_v_*`, `tdf_tv`, `dsav_vi_ro`, los\n       dos `cvpa_*_ro` y los demás. Borrarla sin condición se llevaba la declaración de los\n       catorce en cada «Nuevo estudio» —medido: `vab_funcion` quedaba sin su atributo y TC-514\n       pasaba de verde a rojo, en el mismo directorio alternando sólo `index.html`—. El selector\n       de arriba pide `[data-espejo="1"]`, que la bare nunca matchea, y acá se comprueba otra vez:\n       el selector y el cuerpo son dos listas, como este bloque ya advierte. */\n    delete el.dataset.espejo;'),
  ('M14','el strain deja de escribirse negativo: el Excel publica un GLS con el signo cambiado',
   "  var nuevo = (vm === null) ? '' : (e.abs ? -Math.abs(vm) : vm);",
   "  var nuevo = (vm === null) ? '' : vm;"),
