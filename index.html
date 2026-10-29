@@ -101319,10 +101319,8 @@ function _pptDesdeFormulario(inf, tema, presentador){
     if (R && R.suficiente) {
       const s = nueva();
       titulo(s, 'PostCEC — Cirugía cardíaca');
-      /* Un solo glifo por banda. `orange` cae en el mismo amarillo que `yellow`: la escala del
-         pedido tiene tres luces y el clasificador cuatro bandas, y mapear naranja a rojo diría
-         «actuar» sobre un hallazgo que la app marca como intermedio. */
-      const _sem = c => c === 'green' ? '🟢' : c === 'red' ? '🔴' : '🟡';
+      /* ⚠️ ACA VIVIA `_sem`, que traducia la banda de cada pregunta a un glifo de semaforo. Se
+         retira con las cinco preguntas (POP-V2-6): era su unico uso, censado en todo el archivo. */
       const CTX = [], HEMO = [];
       let n0 = CTX.length;
       fila(CTX, 'Tipo de cirugía', _pptSpan('pop_cx_tipo'));
@@ -101362,29 +101360,28 @@ function _pptDesdeFormulario(inf, tema, presentador){
 
       const _colW = (W - 1.15) / 2;
       const _yTab = 0.90;
-      /* El patrón va en una franja propia y no como fila: es la conclusión de la hoja, y como
-         una fila más de la tabla se lee igual que «Monitoreo». */
-      const _yPat = H - 2.30;
+      /* ══ EL PATRON Y LAS CINCO PREGUNTAS SALIERON DE LA DIAPOSITIVA (POP-V2-6, 29/10/2026) ══
+         El papel del posoperatorio es DESCRIPTIVO (decision de Maicol, 21/10/2026), y eso ya
+         valia para el cuerpo del informe, el EN SUMA y la hoja PostCEC del PDF desde la G4: las
+         tres describen lo medido y lo observado, sin patron y sin los veredictos de los
+         semaforos. Esta diapositiva era la UNICA superficie firmada que seguia publicandolos
+         —medido: «Patron hemodinamico: …» mas las cinco preguntas con su glifo verde, amarillo o
+         rojo—, asi que el mismo estudio describia en el PDF y concluia en el PPT.
+         ⚠️ EL PATRON SIGUE EN LA PANTALLA, en la conclusion hemodinamica, con su chip «Criterio
+         de EcoSmart» y la linea que dice que no viaja al papel.
+         ⚠️ Y SIGUE EN EL LABORATORIO, que lo lee del TEXTO integrado de los estudios GUARDADOS
+         antes de la G4 (`_labPopResumen`): eso NO se toca y no se migra nada. La orden de esta
+         tanda dice expresamente que si el patron sale en el Laboratorio hay que PARAR esa parte
+         y reportarla, y eso es lo que se hizo.
+         ⚠️ ACA VIVIA TAMBIEN `_sem`, el traductor de banda a glifo. Se retira con ellas: era su
+         unico uso en todo el archivo, censado.
+         Las dos tablas se quedan con el alto que ocupaban las dos franjas, que es espacio para
+         que su tipografia no se achique. */
+      const _yPat = H - 1.10;
       const _est = _pptFsQueEntra([CTX, HEMO], _yPat - _yTab - 0.10, _colW);
       _est.sinCabecera = true;
       tabla(s, CTX,  _yTab, undefined, 0.5, _colW, _est);
       tabla(s, HEMO, _yTab, undefined, 0.5 + _colW + 0.15, _colW, _est);
-
-      /* `R.pat` es un OBJETO {k, lbl, cls}, no una cadena: concatenarlo imprime
-         «[object Object]» en la diapositiva. Es el mismo defecto que este archivo ya pago con
-         dptTamano(). Se usa `.lbl`, que es el texto que la pantalla y el PDF publican. */
-      s.addText(_pptTxt('Patrón hemodinámico: ' + ((R.pat && R.pat.lbl) || 'no concluyente')),
-        { x:0.5, y:_yPat, w:W-1, h:0.30, fontSize:15, bold:true, color:PPT_C.teal, fontFace:_HDR_FONT });
-      /* Las cinco preguntas en una sola linea cada una: glifo + pregunta + respuesta. Como tabla
-         de tres columnas el texto de la respuesta —«IC 1,60 L/min/m² (Swan)»— se partia en dos
-         renglones y la hoja pasaba de cinco filas a diez. */
-      let yq = _yPat + 0.36;
-      const _fsQ = (R.preguntas || []).length > 5 ? 10 : 11;
-      (R.preguntas || []).forEach(function (q) {
-        s.addText(_pptTxt(_sem(q.cls) + '  ' + String(q.q).replace(/^¿|\?$/g, '') + ': ' + (q.r || '—')),
-          { x:0.55, y:yq, w:W-1.1, h:0.22, fontSize:_fsQ, color:PPT_C.txt, fontFace:PPT_FONT });
-        yq += 0.24;
-      });
       /* El disclaimer del propio módulo, no uno redactado acá: es el que ya firma la hoja del
          PDF y la conclusión en pantalla. */
       if (typeof POP_DISCLAIMER === 'string')
