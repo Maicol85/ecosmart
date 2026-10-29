@@ -45337,9 +45337,37 @@ function evTarjetaAo() {
      ⚠️ NO SE REESCRIBE LA CATEGORÍA: se COPIA del texto que la cápsula de pantalla acaba de
      publicar. Es la regla de `_evCapsula`, y es lo que impide que el globo y la cápsula digan
      dos cosas del mismo número. */
-  const cap = _evCapsula('ao-interp');
-  if (cap) fr.appendChild(_evDiv('ev-cat', 'En este paciente: ' + cap + '.',
-    { 'data-ev-cat': 'ao-cat' }));
+  /* ⚠️ LA LINEA «En este paciente» SE RETIRA (G-4c, 2026-10-29, decision de Maicol). La
+     pastilla que esta junto al campo ya dice como clasifica a este paciente, a dos dedos de
+     este globo: repetirla aca era una segunda redaccion del mismo veredicto, que es la regla R4.
+     El precio que el AJ4-2 habia medido —que sin edad cargada la tarjeta deja de decir una
+     palabra sobre este paciente— sigue siendo cierto y se acepta: el globo EXPLICA el criterio
+     y la pastilla AFIRMA sobre el paciente. TC-501 medía que las cuatro tarjetas se mueven con
+     el dato y se adapta con su motivo. */
+  /* ══ (2b) LO QUE LA FUENTE DICE Y LO QUE NO (G-4c, 2026-10-29) ═════════════════════════════
+     Las dos lineas salen de la ESC 2024 LEIDA EN IMAGEN en esta tanda:
+       · el apartado 9.2.1.1, folio 71, dice textualmente «se puede sospechar de dilatacion de
+         la raiz aortica cuando el diametro aortico es > 40 mm en hombres adultos y > 36 mm en
+         mujeres o con un diametro indexado/ASC [indice de dimension aortica (iDA)] > 22 mm/m2».
+         Es una DEFINICION para sospechar, dentro de «9.2.1.1 Definiciones»: no es una
+         recomendacion y no lleva clase ni nivel. Decirlo importa, porque el resto de los
+         numeros de esta zona SI salen de tablas de recomendaciones con su clase;
+       · la Figura 5, folio 28, rotula la raiz «seno de Valsalva» y publica 40 mm en el varon y
+         34 mm en la mujer como valores EN EL LIMITE SUPERIOR DE LA NORMALIDAD -asi lo dice su
+         pie-, que no es lo mismo que un umbral de dilatacion. El 34 no es el 36 del apartado
+         9.2.1.1, y las dos cifras conviven en el mismo documento. */
+  /* ⚠️ SIN REPETIR EL FOLIO: la linea de arriba ya cita «apartado 9.2.1.1, folio 71», y la
+     regla R4 de esta tanda es que cada contenido sale UNA sola vez por seccion. El primer
+     intento lo escribia dos veces en la misma tarjeta. */
+  fr.appendChild(_evDiv('ev-cat',
+    'Ese mismo apartado lo escribe como una definición para sospechar la dilatación, no como una recomendación '
+    + 'con clase y nivel: «se puede sospechar de dilatación de la raíz aórtica» con esos diámetros, o con un '
+    + 'índice de dimensión aórtica por encima de ' + AO_IDA_MAX + ' mm/m².',
+    { 'data-ev-cat': 'ao-sospecha' }));
+  fr.appendChild(_evDiv('ev-cat',
+    'En la misma guía, la Figura 5 (folio 28) da para el seno de Valsalva 40 mm en el varón y 34 mm en la mujer '
+    + 'como valores en el límite superior de la normalidad, que no son umbrales de dilatación.',
+    { 'data-ev-cat': 'ao-fig5' }));
   /* (3) La aclaracion, siempre. */
   fr.appendChild(_evDiv('ev-cat', 'Es una orientación: el criterio final es individual (edad, sexo, superficie corporal).',
     { 'data-ev-cat': 'ao-aclara' }));

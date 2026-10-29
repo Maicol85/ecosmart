@@ -78050,8 +78050,15 @@ caso('TC-501', 'Tanda ARR: un campo VACIO es SIN DATO - las once referencias que
   };
   (function () {
     const CUATRO = ['tarj-insuf-tricuspide', 'ad-card', 'vd-fun-card', 'ao-card'];
+    /* ADAPTADO EN LA TANDA G (G-4c, 2026-10-29), Y ESTE ES EL MOTIVO. La escena no cargaba la
+       EDAD, y sin edad la tarjeta de la aorta no puede elegir su grafico: lo unico suyo que se
+       movia con el dato era la linea «En este paciente», que esta tanda retira porque repetia
+       el veredicto de la pastilla que esta a dos dedos (regla R4). Con la edad cargada la
+       tarjeta vuelve a moverse por su propio contenido -la lectura del nomograma-, que es lo
+       que este denominador quiere medir. Sigue pudiendo fallar: si la tarjeta deja de seguir al
+       dato, la condicion se pone roja igual. */
     const CARGA = { it_vc: '8', ad_area: '22', tapse: '14', s_prime: '8', ao_sin: '46',
-                    peso: '80', talla: '180' };
+                    peso: '80', talla: '180', edad: '55' };
     LIMPIO();
     const base = {}; CUATRO.forEach(function (k) { base[k] = TARJ(k); });
     Object.keys(CARGA).forEach(function (c) { try { __t.set(c, CARGA[c]); } catch (e) {} });
@@ -78757,6 +78764,10 @@ caso('TC-502', 'Tanda P: Referencias en CINCO subpestanas sin perder una entrada
     try { if (FN('calcAorta')) calcAorta(); } catch (x) {}
     return String(TXT('ao-interp'));
   };
+  /* ADAPTADO EN LA TANDA G (G-4, 2026-10-29): la escena no cargaba el SEXO y desde esta tanda
+     39 mm sin sexo caen en la franja donde la app NO clasifica. El corte del varon es lo que
+     esta condicion mide y no se movio. */
+  try { __t.set('sexo', 'M'); } catch (x) {}
   const cap39 = senoCap(39), cap40 = senoCap(40);
   senoCap('');
   /* Y la FILA que Referencias publica, cuyo simbolo lo deriva "aoSegSim" del propio dueno. */
