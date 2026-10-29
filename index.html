@@ -8878,7 +8878,15 @@ window.cerrarSesionReal = cerrarSesionReal;
              criticos en ventilacion invasiva—. Sin reponerlo aca, unificar los dos modulos
              habria borrado de la app la unica superficie que los publica. Lo destapo TC-502,
              que cuenta las tarjetas registradas sin boton. -->
-        <div class="fg pua-der" style="display:none;"><label>Balik (mm) <button type="button" class="vinfo-btn" data-vinfo="pul-balik" aria-expanded="false" aria-label="Informaci&oacute;n sobre la estimaci&oacute;n del volumen del derrame pleural" onclick="vInfoClic(this)">&#9432;</button></label>
+        <!-- ⚠️ EL ROTULO YA NO NOMBRA A UN AUTOR (C2-1a, 2026-10-28). Decia «Balik (mm)», que
+             no dice QUE se mide: hay que saber de antes que es la separacion entre las dos hojas
+             pleurales. El consenso que sostiene la formula (Volpicelli 2026, enunciado D6_11,
+             hoja 19) NO se la atribuye a ningun autor -cita [154-156] juntas: Balik 2006, Peris
+             2010 y Remerand 2010-, asi que el apellido en la pantalla afirmaba una autoria que
+             la fuente no establece.
+             ⚠️ SOLO CAMBIA EL ROTULO. El id sigue siendo `pua_balik`, el campo guardado
+             `pul_balik`, la columna del Excel y la cuenta (`_balikVol`, mm x 20) no se mueven. -->
+        <div class="fg pua-der" style="display:none;"><label>Distancia m&aacute;xima entre pleuras (mm) <button type="button" class="vinfo-btn" data-vinfo="pul-balik" aria-expanded="false" aria-label="Informaci&oacute;n sobre la estimaci&oacute;n del volumen del derrame pleural" onclick="vInfoClic(this)">&#9432;</button></label>
           <input type="number" id="pua_balik" step="1" min="1" max="120" placeholder="mm" oninput="pulAvUI()">
         </div>
         <div class="fg pua-der" style="display:none;"><label>Lateralidad</label>
@@ -8927,9 +8935,14 @@ window.cerrarSesionReal = cerrarSesionReal;
         <div class="calc-row"><span class="calc-lbl">Interpretación</span><span id="pua-patron-interp" style="font-size:11px;">—</span></div>
       </div>
 
-      <div style="text-align:center;">
-        <button type="button" class="btn btn-integrar" data-am-k="pulm" onclick="amiloIntegrar('pulm')">📎 Integrar al informe</button>
-      </div>
+      <!-- ⚠️ EL BOTON «Integrar al informe» SE RETIRO (C2-1h, 2026-10-28), con el bloque
+           «Eco Pulmonar» del ETT Avanzado al que integraba. Desde este commit el eco pulmonar
+           llega al cuerpo del informe POR EL DATO -ver el bloque 13c de `generarInforme`-, asi
+           que no hay nada que integrar: el boton habria llamado a `amiloIntegrar('pulm')` sobre
+           una clave que ya no esta en `amiloSecs`.
+           Lo que el bloque publicaba -las frases mas la linea «Patron global»- era el MISMO
+           texto que el cuerpo del informe, y el PPT lo imprimia dos veces: en las diapositivas
+           del informe y en una diapositiva «Ecografia Pulmonar» propia. -->
     </div>
   </div>
   </div>
@@ -19344,7 +19357,7 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
       </table>
       <div style="margin-top:10px;font-size:11px;color:var(--text2);line-height:1.6;">
         <b>Fuente:</b> Volpicelli G y colaboradores, <i>Intensive Care Medicine</i>, 2026.
-<details style="display:inline-block;vertical-align:top;margin-left:3px;"><summary style="cursor:pointer;list-style:none;display:inline;font-weight:700;color:var(--accent2);" aria-label="Ver el detalle: la fuente de la ecograf&iacute;a pulmonar">&#9432;</summary><div style="margin-top:4px;font-weight:400;">T&iacute;tulo: &laquo;International evidence-based recommendations for point-of-care lung ultrasound &mdash; 2025 focused update of the 2012 recommendations&raquo;. La f&oacute;rmula del derrame es de <b>Balik M</b> y colaboradores, <i>Intensive Care Medicine</i> 2006, que ese consenso cita como referencia 154 del enunciado <b>D6_11</b>.<br>Ese consenso <b>no publica clase ni nivel</b> de recomendaci&oacute;n: sus enunciados llevan grado de acuerdo entre los panelistas, no la escala I / IIa / IIb / III de las gu&iacute;as europeas, as&iacute; que esta ficha no escribe ninguna.</div></details>
+<details style="display:inline-block;vertical-align:top;margin-left:3px;"><summary style="cursor:pointer;list-style:none;display:inline;font-weight:700;color:var(--accent2);" aria-label="Ver el detalle: la fuente de la ecograf&iacute;a pulmonar">&#9432;</summary><div style="margin-top:4px;font-weight:400;">T&iacute;tulo: &laquo;International evidence-based recommendations for point-of-care lung ultrasound &mdash; 2025 focused update of the 2012 recommendations&raquo;. El consenso <b>no atribuye</b> la f&oacute;rmula del derrame a ning&uacute;n autor: el enunciado <b>D6_11</b> la publica citando tres referencias juntas. Su registro est&aacute; en el archivo de fuentes del proyecto.<br>Ese consenso <b>no publica clase ni nivel</b> de recomendaci&oacute;n: sus enunciados llevan grado de acuerdo entre los panelistas, no la escala I / IIa / IIb / III de las gu&iacute;as europeas, as&iacute; que esta ficha no escribe ninguna.</div></details>
       </div>
     </div>
   </div>
@@ -43504,13 +43517,24 @@ const VINFO = Object.freeze({
   },
 
   /* El unico globo de esta tanda que escribe texto, y lo escribe porque la fuente esta VISTA: su
-     formula, su medicion y su alcance salen del enunciado D6_11 de la guia, no de la memoria. */
+     formula, su medicion y su alcance salen del enunciado D6_11 de la guia, no de la memoria.
+     ⚠️ RE-VERIFICADO EN IMAGEN EL 28/10/2026 (C2-1b), a 400 ppp sobre la hoja 19 del PDF
+     original, no sobre el texto extraido: la posicion, la medicion, la formula y el alcance
+     coinciden palabra por palabra con lo que esta tarjeta ya publicaba. No se movio ni un dato.
+     ⚠️ LO QUE SE CORRIGIO SON LOS ACENTOS. Decia «angulo costofrenico», «decubito supino»,
+     «formula», «criticos», «ventilacion», «metodos» y «mas precisos». Es texto clinico que el
+     medico LEE -la regla que este archivo ya enuncia para los cuatro textos del score de
+     Wilkins, doce lineas mas abajo-, no un cuerpo de sonda donde un acento grave rompe el
+     template. Ninguna palabra cambio: solo su ortografia.
+     ⚠️ Y NO SE ATRIBUYE LA FORMULA A NINGUN AUTOR, a proposito: el enunciado D6_11 la publica
+     citando [154-156] JUNTAS -Balik 2006, Peris 2010 y Remerand 2010- y no dice de cual es.
+     El censo de los tres esta en `docs/fuentes/FUENTES.md`. */
   'pul-balik': {
     tit: 'Volumen aproximado del derrame pleural',
     formula: 'V (ml) = D (mm) × 20',
-    lee: 'D es la distancia máxima entre la pleura parietal y la visceral, medida en un corte transversal lateral sobre el angulo costofrenico con el paciente en decubito supino.',
+    lee: 'D es la distancia máxima entre la pleura parietal y la visceral, medida en un corte transversal lateral sobre el ángulo costofrénico con el paciente en decúbito supino.',
     fuente: 'International evidence-based recommendations for point-of-care lung ultrasound, 2025 focused update (Volpicelli et al, Intensive Care Med 2026), enunciado D6_11, hoja 19.',
-    ojo: 'La guia declara que la formula fue validada en pacientes criticos en cuidados intensivos bajo ventilacion invasiva. En un paciente que puede examinarse sentado, esa misma guia dice que otros metodos de adquisicion multiplanar pueden ser mas precisos, y que no hay evidencia fuerte para recomendarlos.'
+    ojo: 'La guía declara que la fórmula fue validada en pacientes críticos en cuidados intensivos bajo ventilación invasiva. En un paciente que puede examinarse sentado, esa misma guía dice que otros métodos de adquisición multiplanar pueden ser más precisos, y que no hay evidencia fuerte para recomendarlos.'
   },
   /* ⚠️ EL GLOBO DEL SCORE DE WILKINS (I-E1, 22/10/2026). Publica lo que la SERIE ORIGINAL
      hallo, con su folio, y no un veredicto: el badge de la pantalla dice el numero y el tramo.
@@ -56315,25 +56339,57 @@ function generarInforme(opts) {
      ⚠️ UN SOLO PARRAFO Y UNA SOLA LINEA, que es lo que la orden pide, y COMPUESTOS CON LAS
      FRASES QUE YA EXISTEN: no se escribe una oracion clinica nueva — se las une con un
      espacio. Antes cada frase era una entrada propia de `inf` y de `suma`. */
-  if (typeof pulAvanzadoIntegrado === 'function' && pulAvanzadoIntegrado()
-      && typeof pulAvanzadoHayDatos === 'function' && pulAvanzadoHayDatos()
+  /* ══ TRES CAMBIOS DE LA TANDA C2 EN ESTE BLOQUE (2026-10-28) ════════════════════════════
+     ── 1h · LA COMPUERTA ES EL DATO, NO EL BOTON ───────────────────────────────────────────
+     Decia `pulAvanzadoIntegrado() && pulAvanzadoHayDatos()`. El bloque «Eco Pulmonar» del ETT
+     Avanzado se RETIRO en este commit porque repetia, palabra por palabra, lo que este mismo
+     bloque ya publica en el cuerpo del informe desde el B-E3: el medico lo veia dos veces -en
+     la tarjeta de integracion y en el informe- y el PPT lo imprimia dos veces -en las
+     diapositivas del informe y en una diapositiva propia-.
+     ⚠️ RETIRAR EL BLOQUE SIN TOCAR ESTA LINEA HABRIA DEJADO EL INFORME MUDO SOBRE EL PULMON.
+     `pulAvanzadoIntegrado` preguntaba por `amiloEnInforme`, o sea por el registro `amiloSecs`;
+     sacando `pulm` de ese registro el predicado quedaba FALSO PARA SIEMPRE. Es el modo de falla
+     que el comentario del propio registro ya advertia para `omitir`, y por eso la compuerta
+     pasa a ser `pulAvanzadoHayDatos()` sola: hay dato pulmonar cargado -> sale al informe.
+     ⚠️ LO QUE ESO CUESTA, DECLARADO: el medico pierde el interruptor. Hasta hoy podia cargar
+     el modulo y NO publicarlo; desde hoy, cargado es publicado. Es el precio de que el
+     contenido quede publicado UNA sola vez, que es lo que la orden pide, y esta medido: un
+     estudio con eco pulmonar cargado y SIN integrar pasa de informe mudo a informe con sus
+     lineas. Declarado en `docs/PENDIENTES.md` -> C2-a.
+     ── 1g · UNA LINEA POR HALLAZGO, NO UN PARRAFO CORRIDO ──────────────────────────────────
+     Era `inf.push(_pl.join(' '))`, o sea las cinco oraciones pegadas en un parrafo. Hoy cada
+     frase es su propia entrada de `inf`, que es el ESQUEMA que la pantalla ya muestra. Esto
+     revierte a proposito lo que el B-E3 habia unificado: decision de Maicol.
+     ── 1e · EL «PATRON GLOBAL» SALE DEL PAPEL ──────────────────────────────────────────────
+     Repetia lo ya dicho: con un derrame, las frases dicen «Derrame pleural bilateral moderado
+     (...)» y la linea agregaba «Patron global: Normal. Sin hallazgos patologicos en los campos
+     evaluados», que es una segunda lectura del mismo estudio en el mismo parrafo. Sigue en
+     PANTALLA, en `pua-patron` y `pua-patron-interp`, que es donde el medico la usa.
+     ⚠️ Y SE LLEVA CON EL LA UNICA VIA DE «Correlacionar con la clinica» AL PAPEL (1f): esa
+     frase vive en el `i` de la rama «Indeterminado» de `pulAvPatron`, y `i` solo viajaba al
+     informe dentro de esta linea. Medido: con el deslizamiento «reducido» y nada mas, el
+     informe la publicaba. El EN SUMA nunca la llevo -`pulAvSuma` empuja `r.p`, no `r.i`-. */
+  if (typeof pulAvanzadoHayDatos === 'function' && pulAvanzadoHayDatos()
       && typeof pulAvSuma === 'function') {
-    const _pl = [];
     if (typeof pulAvFrases === 'function') {
-      try { pulAvFrases().forEach(x => _pl.push(x)) } catch (e) {}
+      try { pulAvFrases().forEach(function (x) { inf.push(x);
+        /* ⚠️ `ccMarcarParrafo()` — Y LO DESTAPO EL A/B DE ESTE MISMO COMMIT. Hasta hoy el
+           pulmon contaba para el fallback del EN SUMA por OTRA via: `_ccMods` cuenta los
+           modulos integrados, y `pulm` era uno. Retirado el bloque (1h), esa via desaparecio y
+           un estudio cuyo UNICO hallazgo es pulmonar y no sube al EN SUMA -el deslizamiento
+           reducido, por ejemplo- salia con «Estudio sin alteraciones estructurales ni
+           funcionales significativas» mientras el cuerpo del informe decia «Deslizamiento
+           pleural reducido en ambos hemitorax». Medido en la escena `pulIndet`: el EN SUMA
+           negaba lo que el mismo informe firmado describia dos parrafos antes.
+           Es EXACTAMENTE el defecto que este archivo ya documenta para las valvulas y para el
+           cociente TAPSE/PSAP, y que `ccMarcarParrafo` existe para cerrar. */
+        if (typeof ccMarcarParrafo === 'function') ccMarcarParrafo();
+      }) } catch (e) {}
     }
-    /* ⚠️ EL «PATRON GLOBAL» TAMBIEN, Y LO DESTAPO EL A/B DEL PDF DEL B: vivia SOLO en la hoja
-       —`amiloTextoPulmonar` lo agrega despues de las frases, bajo su propio «## En suma»— asi
-       que al dejar de imprimirse esa pagina esa linea desaparecia del papel. Van las MISMAS
-       palabras y el MISMO formato que la hoja publicaba, leidos del mismo dueno. */
-    if (typeof pulAvPatron === 'function') {
-      try { const _pg = pulAvPatron();
-            if (_pg && _pg.p !== 'No evaluado') _pl.push('Patrón global: ' + _pg.p + '. ' + _pg.i);
-      } catch (e) {}
-    }
-    if (_pl.length) inf.push(_pl.join(' '));
-    const _ps = pulAvSuma([]);
-    if (_ps.length) suma.push(_ps.join(' '));
+    /* ⚠️ UNA ENTRADA DE `suma` POR HALLAZGO (1d). Era `suma.push(_ps.join(' '))`, que pegaba
+       el derrame y la consolidacion en una sola linea. El ORDEN -derrame primero- lo fija
+       `pulAvSuma`, que es su dueno; aca solo se deja de pegarlas. */
+    try { pulAvSuma([]).forEach(x => suma.push(x)) } catch (e) {}
   }
 
   // ════════════════════════════════════════════════════════════════════
@@ -67484,9 +67540,10 @@ function generarPDFReal(_aj) {
      este mismo PDF imprime unas paginas antes. Sin este descarte el papel publicaria las
      mismas nueve oraciones DOS veces, que es el defecto que la exclusion mutua entre el modulo
      basico y el avanzado ya existia para evitar.
-     Se descarta ACA y no con la compuerta `omitir` de la seccion: `pulAvanzadoIntegrado` —el
-     predicado de esa exclusion mutua— pregunta por `amiloEnInforme`, asi que `omitir` lo
-     dejaba falso para siempre y el modulo integrado desaparecia del informe. Medido.
+     ⚠️ Y DESDE EL C2-1h NO HAY NINGUNA ENTRADA `pulm` EN `amiloSecs`, asi que este filtro no
+     descarta nada: el bloque entero del ETT Avanzado se retiro y el eco pulmonar llega al
+     cuerpo del informe por el DATO. El mecanismo se queda porque es el mecanismo -una
+     propiedad del registro, no un caso particular-, no porque haya algo que filtrar hoy.
      `_amDatos` NO se filtra: de el cuelgan el par de amiloidosis y el grupo del ETE. */
   /* ⚠️ EL DESCARTE SALE DEL REGISTRO (`enCuerpo`) Y NO DE UN `d.k !== 'pulm'` CABLEADO
      (AJ2-9): era la tercera copia de «este modulo va al cuerpo» y el banner de la tarjeta se
@@ -94736,7 +94793,22 @@ function _balikVol(bk) {
    volver a decidir si el número es plausible. Antes cada uno tenía su propio texto: el mismo
    200 mm salía «(Balik 200 mm — valor fuera de rango, verificar)» en el En Suma y
    «…de 200 mm (valor fuera de rango, no se estima el volumen)» en el cuerpo del informe. */
-/* ⚠️ LA FRASE NOMBRA LA FORMULA Y NO EL APELLIDO PELADO (B-E3, 2026-10-21). Decia «Balik
+/* ⚠️ Y DESDE EL C2-1c NO NOMBRA NI A LA FORMULA NI A SU AUTOR (2026-10-28). Decia
+   «aproximadamente 500 ml, segun formula de Balik» y hoy dice «volumen estimado por ecografia de
+   aproximadamente 500 ml». El motivo esta medido en la fuente, no supuesto: el enunciado D6_11
+   del consenso (Volpicelli 2026, hoja 19, leido EN IMAGEN) publica la formula citando
+   [154-156] JUNTAS -Balik 2006, Peris 2010 y Remerand 2010- y no se la atribuye a ninguno.
+   Un informe firmado que dice «segun formula de Balik» afirma una autoria que la fuente no
+   establece, y ademas no dice QUE es lo que se estimo.
+   LA FORMULA Y SUS NUMEROS NO CAMBIAN: sigue siendo `_balikVol`, mm x 20, con la misma guarda
+   de rango. Lo unico que cambia son las palabras.
+   ⚠️ LA MISMA FRASE LA USAN EL CUERPO Y EL EN SUMA, y eso es a proposito: son los dos unicos
+   consumidores de `_balikFrase` / `_balikDet`, y dos redacciones distintas del mismo volumen en
+   el mismo documento firmado es peor que una sola que no nombre al autor.
+   ⚠️ LOS NOMBRES DE FUNCION (`_balikVol`, `_balikFrase`, `_balikDet`) Y LOS ids (`pua_balik`,
+   `pul_balik`) NO SE TOCAN: no son superficie visible, y cambiarlos moveria un campo guardado.
+
+   ⚠️ LA FRASE NOMBRA LA FORMULA Y NO EL APELLIDO PELADO (B-E3, 2026-10-21). Decia «Balik
    25 mm, aproximadamente 500 ml», y «Balik 25 mm» en un informe firmado no dice que 25 sea
    una separacion pleural ni que el volumen salga de una formula: hay que saberlo de antes.
    LA FORMULA Y SUS NUMEROS NO CAMBIAN —sigue siendo `_balikVol`, mm x 20— y tampoco cambia
@@ -94753,7 +94825,7 @@ function _balikFrase(bk) {
   if (r.motivo === 'ausente') return '';
   if (r.motivo === 'fuera_rango')
     return 'separación pleural de ' + bk + ' mm, fuera del rango plausible: no se estima el volumen';
-  return 'aproximadamente ' + r.ml + ' ml, según fórmula de Balik';
+  return 'volumen estimado por ecografía de aproximadamente ' + r.ml + ' ml';
 }
 function _balikDet(bk) {
   const f = _balikFrase(bk);
@@ -94921,11 +94993,11 @@ function pulAvUI() {
   /* Los dos campos que vinieron del modulo basico (B2-E2) siguen la MISMA compuerta que sus
      hermanos: el tamano cuelga de `.pua-der` por su clase, la nota del broncograma. */
   on('pua-consol-nota-wrap', _amV('pua_consol') === 'si');
-  /* Sin esto la hoja del PDF quedaba CONGELADA con el texto del momento en que se integró:
-     devolver un select a «— no evaluado —» hacía que el básico volviera a imprimirse mientras la
-     hoja seguía describiendo lo viejo, y el mismo PDF llevaba las dos versiones. Es el mismo
-     enganche que ya tienen VEXUS, Pericardio y Wilkins, y respeta la edición manual del texto. */
-  if (typeof amiloRefrescarSiIntacto === 'function') amiloRefrescarSiIntacto('pulm');
+  /* ⚠️ EL REFRESCO DEL BLOQUE SE RETIRO CON EL BLOQUE (C2-1h, 2026-10-28). Era
+     `amiloRefrescarSiIntacto('pulm')`, y existia para que la tarjeta del ETT Avanzado no
+     quedara congelada con el texto del momento en que se integro. Sin bloque no hay nada que
+     refrescar: desde este commit el texto pulmonar lo compone `generarInforme` en cada pasada,
+     o sea que no puede quedar viejo. */
   const r = pulAvPatron();
   const p = document.getElementById('pua-patron'), i = document.getElementById('pua-patron-interp');
   if (p) p.textContent = r.p;
@@ -95020,14 +95092,12 @@ function pulAvFrases() {
   return L;
 }
 window.pulAvFrases = pulAvFrases;
-/* La hoja del PDF se arma de las MISMAS frases mas su bloque de patron global. No cambia ni un
-   byte respecto de antes de esta tanda: lo unico que se movio es de donde salen las frases. */
-function amiloTextoPulmonar() {
-  const L = pulAvFrases();
-  const r = pulAvPatron();
-  if (r.p !== 'No evaluado') { L.push('## En suma'); L.push('Patrón global: ' + r.p + '. ' + r.i); }
-  return L.join('\n');
-}
+/* ⚠️ `amiloTextoPulmonar` SE RETIRO (C2-1h, 2026-10-28). Era el `gen` de la entrada `pulm` de
+   `amiloSecs`, su UNICO llamador, y con la entrada retirada queda sin trabajo. Lo que componia
+   -las frases de `pulAvFrases()` mas «## En suma» y la linea «Patron global»- es lo que el
+   bloque 13c de `generarInforme` publica hoy en el cuerpo, sin la linea del patron (C2-1e).
+   Se retira entero y no se deja muerto: una funcion viva sin llamador es la que una tanda
+   futura vuelve a cablear creyendo que es la via buena. */
 
 // Conclusiones del avanzado para el En Suma.
 /* `omitir` es la lista de dominios que el módulo BÁSICO ya publicó. Sin esto, en el estado
@@ -95045,6 +95115,23 @@ function pulAvSuma(omitir) {
   if (r.p === 'Líneas B coalescentes') s.push('Líneas B coalescentes.');
   else if (r.p === 'Edema alveolar')   s.push('Edema alveolar.');
   else if (r.p === 'Neumotórax probable') s.push('Neumotórax probable.');
+  /* ⚠️ EL DERRAME VA ANTES QUE LA CONSOLIDACION (C2-1d, 2026-10-28). Los dos bloques estaban
+     al reves: con las dos cosas cargadas el EN SUMA decia «Consolidacion pulmonar con
+     broncograma aereo. Derrame pleural bilateral moderado (...)», o sea el orden contrario al
+     del CUERPO del informe, que compone sus frases en orden clinico (pleura, lineas A, lineas
+     B, derrame, consolidacion) dentro de `pulAvFrases`. El mismo estudio decia los dos
+     hallazgos en un orden arriba y en el otro abajo.
+     Es un intercambio de dos bloques: ninguna condicion, ningun texto y ninguna compuerta
+     cambian. Lo que cambia es el ORDEN de las entradas que devuelve esta funcion.
+     ⚠️ Y SON DOS ENTRADAS SEPARADAS, no una: quien las publica (bloque 13c) hacia
+     `suma.push(_ps.join(' '))`, que las pegaba en una sola linea. Desde el C2-1d empuja una
+     por una, asi que el EN SUMA las lista en renglones distintos. */
+  if (_amV('pua_derrame') === 'si' && _om.indexOf('derrame') < 0) {
+    const bk = PF(_amV('pua_balik')), lado = _amV('pua_derrame_lado');
+    const tam = _amV('pul_derrame_tam');
+    const det = _balikDet(bk);
+    s.push('Derrame pleural' + (lado ? ' ' + lado : '') + (tam ? ' ' + tam : '') + det + '.');
+  }
   if (_amV('pua_consol') === 'si' && _om.indexOf('consol') < 0) {
     /* ⚠️ CON EL BRONCOGRAMA «sin consignar» DICE «sin broncograma especificado» Y NO «sin
        broncograma» (B2-E2): el estado vacio nacio en este commit, asi que no cambia ningun
@@ -95052,12 +95139,6 @@ function pulAvSuma(omitir) {
        exactamente lo que la rama del cuerpo ya evita con esas mismas palabras. */
     const b = _amV('pua_consol_bronco');
     s.push('Consolidación pulmonar ' + (b === 'con' ? 'con broncograma aéreo' : b === 'fluido' ? 'con broncograma fluido' : b === 'sin' ? 'sin broncograma' : 'sin broncograma especificado') + '.');
-  }
-  if (_amV('pua_derrame') === 'si' && _om.indexOf('derrame') < 0) {
-    const bk = PF(_amV('pua_balik')), lado = _amV('pua_derrame_lado');
-    const tam = _amV('pul_derrame_tam');
-    const det = _balikDet(bk);
-    s.push('Derrame pleural' + (lado ? ' ' + lado : '') + (tam ? ' ' + tam : '') + det + '.');
   }
   return s;
 }
@@ -95089,11 +95170,15 @@ window.pulAvanzadoHayDatos = pulAvanzadoHayDatos;
 /* ⚠️ `pulAvanzadoCubreBasico` SE RETIRO EN EL B2-E2 CON LA EXCLUSION MUTUA: era el predicado
    que decidia si el avanzado podia silenciar al basico, y ya no hay dos modulos. */
 
-// ¿Está integrado el módulo avanzado? Sirve para la exclusión mutua.
-function pulAvanzadoIntegrado() {
-  return (typeof amiloEnInforme === 'function') && (amiloEnInforme() || []).some(d => d.k === 'pulm');
-}
-window.pulAvanzadoIntegrado = pulAvanzadoIntegrado;
+/* ⚠️ `pulAvanzadoIntegrado` SE RETIRO (C2-1h, 2026-10-28), Y SU `window.X = X` CON ELLA.
+   Preguntaba si `pulm` estaba en `amiloEnInforme`, o sea en el registro `amiloSecs`; retirada
+   esa entrada, el predicado quedaba FALSO PARA SIEMPRE y el bloque 13c del informe dejaba de
+   publicar el pulmon. Su unico llamador era ese bloque, que hoy pregunta por el DATO.
+   ⚠️ LA LINEA `window.pulAvanzadoIntegrado = pulAvanzadoIntegrado` SE VA EN EL MISMO GESTO.
+   Una referencia de nivel superior a una funcion que ya no existe es un ReferenceError que
+   aborta el <script> COMPLETO -la app con cero pestañas-, que es la trampa que el comentario
+   del B2-E2, doce lineas mas arriba, ya documenta por haberla pagado. Se cuentan los
+   `window.X = X`, no los grep de X. */
 
 // ── Catálogo de módulos del bloque ETT Avanzado ───────────────────
 // Un solo lugar define el orden (Amiloidosis primero, después Hemodinámica),
@@ -95283,26 +95368,27 @@ function amiloSecs() {
     { k:'conco',lbl:'Cardio-Oncología',                tit:'CARDIO-ONCOLOGIA - ESC 2022',   gen:amiloTextoCardioOnco,
       alIntegrar:function(){ if (typeof coCongelarSerie === 'function') coCongelarSerie(); } },
     /* `hayDatos` es opcional y sólo lo usa `amiloIntegrar` para no dejar integrar una hoja
-       vacía. Va acá y no dentro de `amiloIntegrar` con un `if (k === 'pulm')` para que el día
-       que otro módulo lo necesite sea agregar una propiedad y no tocar el integrador. */
-    /* ⚠️ NO LLEVA `omitir`, Y LO DESTAPO LA MEDICION. Desde el B-E3 el texto de este modulo va
-       al CUERPO del informe y su hoja del PDF no sale, pero la supresion NO puede hacerse acá:
-       `pulAvanzadoIntegrado` —el predicado de la exclusion mutua con el modulo basico— pregunta
-       por `amiloEnInforme`, que es justo donde `omitir` actua. Con la compuerta puesta ese
-       predicado quedaba FALSO para siempre: el avanzado no publicaba nada, el basico no se
-       silenciaba y el modulo integrado desaparecia del informe firmado. Medido en cinco escenas.
-       La hoja se descarta en el ARMADOR del PDF, que es el unico lugar que habla de paginas. */
-    /* ⚠️ SIN LA PALABRA «AVANZADO» DESDE EL B2-E2: el eco pulmonar es UNA pantalla y deja de
-       ser un modulo avanzado. El `tit` es el titulo de la hoja del PDF, que desde el B-E3 NO
-       se arma —su texto va al cuerpo del informe—, asi que este rotulo sobrevive solo en la
-       etiqueta de la tarjeta de integracion. La CLAVE `pulm` no se toca: la nombran el boton
-       `data-am-k`, `amiloIntegrar`, `amiloEnInforme` y los estudios guardados. */
+       vacía. Va como PROPIEDAD del registro, y no dentro de `amiloIntegrar` con un `if` por
+       clave, para que el día que otro módulo lo necesite sea agregar una propiedad y no tocar
+       el integrador. Es el mismo argumento de `soloHoja`, `omitir`, `enCuerpo` y `alIntegrar`. */
     /* ⚠️ `enCuerpo:true` = SU TEXTO VA AL CUERPO DEL INFORME Y SU HOJA DEL PDF NO SE ARMA
        (AJ2-9, 23/10/2026). Reemplaza al `d.k !== 'pulm'` que el armador tenia cableado: era la
        tercera copia de la misma decision -el `if` del armador, el bloque 13c del informe y el
        banner de la tarjeta- y el banner era la que se habia quedado atras. Va como PROPIEDAD
        del registro por el mismo argumento que `hayDatos`, `soloHoja` y `omitir`. */
-    { k:'pulm', lbl:'Eco Pulmonar',                     tit:'ECOGRAFIA PULMONAR', gen:amiloTextoPulmonar, enCuerpo:true, hayDatos:function(){ return typeof pulAvanzadoHayDatos !== 'function' || pulAvanzadoHayDatos(); } }
+    /* ⚠️ LA ENTRADA `pulm` SE RETIRO (C2-1h, 2026-10-28). Repetia, palabra por palabra, lo que
+       el bloque 13c de `generarInforme` ya publica en el cuerpo del informe desde el B-E3: su
+       `gen` era `pulAvFrases()` mas la linea «Patron global», que es exactamente lo que ese
+       bloque componia. El medico lo veia dos veces y el PPT lo imprimia dos veces.
+       LO QUE SE FUE CON ELLA, censado antes de retirarla: la tarjeta de integracion de la card,
+       el boton «Integrar al informe» de la pantalla pulmonar, el textarea `am-txt-pulm` y su
+       diapositiva propia del PPT. NO se fue ninguna hoja del PDF: `enCuerpo:true` ya hacia que
+       el armador la descartara desde el AJ2-9, verificado en `_enCuerpo` del armador.
+       ⚠️ LA PROPIEDAD `enCuerpo` SE QUEDA aunque hoy no la lleve ninguna entrada: la lee el
+       armador del PDF y es el mecanismo, no un caso particular.
+       ⚠️ ESTUDIOS YA GUARDADOS: los que tengan `am-txt-pulm` en sus campos lo conservan -no se
+       migra nada-, y al reabrirlos ese texto queda sin lector. El contenido pulmonar vuelve a
+       salir solo, compuesto desde los campos `pua_*` que el mismo estudio guarda. */
   ];
 }
 window.amiloSecs = amiloSecs;
@@ -99787,20 +99873,13 @@ function _pptDesdeFormulario(inf, tema, presentador){
     conPie(s);
   }
 
-  // ══ Eco pulmonar ══
-  /* Se usa el TEXTO que genera el propio módulo (am-txt-pulm), no una tabla de campos
-     elegidos a mano: los ids del módulo son `pua_*` y una lista escrita acá se desincroniza
-     en cuanto se agrega un campo — de hecho el primer intento leía `pulm_*`, que no existe,
-     y la diapositiva salía vacía. Ese textarea es además lo que imprime el PDF, o sea la
-     misma fuente, y viaja en `campos`. */
-  if (integrado('pulm')) {
-    const s = nueva();
-    titulo(s, 'Ecografía Pulmonar');
-    const t = _pptTxt((document.getElementById('am-txt-pulm') || {}).value || '');
-    if (t) s.addText(t, { x:0.5, y:1.1, w:W-1, h:H-1.85, fontSize:14, color:PPT_C.txt,
-      fontFace:PPT_FONT, lineSpacingMultiple:1.4, valign:'top' });
-    conPie(s);
-  }
+  /* ══ LA DIAPOSITIVA «Ecografia Pulmonar» SE RETIRO (C2-1h, 2026-10-28) ═══════════════════
+     Leia `am-txt-pulm`, el textarea del bloque del ETT Avanzado que este commit retira, y por
+     eso publicaba el contenido pulmonar POR SEGUNDA VEZ en el mismo mazo: las primeras
+     diapositivas llevan `informe_texto`, y desde el B-E3 ese informe YA trae las frases del
+     pulmon en su cuerpo. Medido antes de retirarla sobre el PPT generado de verdad.
+     ⚠️ EL CONTENIDO NO SE PIERDE: sigue en las diapositivas del informe, una sola vez, que es
+     lo que la orden de la tanda pide. Lo que desaparece es la copia. */
 
   // ══ Hemodinámica ══
   if (integrado('hemo')) {
