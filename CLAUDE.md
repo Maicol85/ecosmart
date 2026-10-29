@@ -99,6 +99,7 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Citar un dato de una guía** (documento, folio, frase verificada) | `docs/fuentes/FUENTES.md` |
 | **Tocar la POSICIÓN del selector de origen mitral o de los dos campos de la prótesis TRICÚSPIDE, la regla de DOS O MÁS de su obstrucción, la onda E en cm/s, el Ar−A suplementario, la FEVI del Laboratorio o los dos toggles de PDF** | `docs/mapa/cortos-arreglos.md` |
 | **Tocar el SCORE de TEP, su ficha de Referencias o su Evidencia**: los seis criterios con su corte, el TAPSE que NO es el de la pestaña VD, el cociente sin corte, el dueño del VD/VI o las siete ramas de la Tabla 8 | `docs/mapa/tep-score.md` |
+| **Tocar un CORTE del VD para EMBOLIA PULMONAR —el TAPSE de 17 mm o el VD/VI de 0,9—, su cita, el dueño del predicado, el signo de McConnell o la línea de que el eco orienta** | `docs/mapa/tep-aha2026.md` |
 | **Tocar un HALLAZGO de la pestaña OTROS**: ASIA, las seis variantes anatómicas, la circunfleja retroaórtica, el test de burbuja, el derrame pericárdico del papel o la separación de las líneas B | `docs/mapa/otros-hallazgos.md` |
 | **Tocar la OBSTRUCCIÓN de una prótesis TRICÚSPIDE o PULMONAR**: las Tablas 19 y 15 de la ASE 2024, los tres campos del PRO-C1, el DVI retirado con regurgitación o los tres estados pulmonares que no gradúan | `docs/mapa/protesis-tri-pulm.md` |
 | **Tocar un CORTE de PRÓTESIS de la tanda PRO**: el cociente VTI mitral por régimen, el jet/TSVI y la FR de la IAo protésica, o el reverso diastólico de la TAVI | `docs/mapa/protesis-pro.md` |
@@ -1402,3 +1403,99 @@ línea: el archivo creció y un informe de auditoría viejo apunta a otro archiv
   ⚠️ **`docs/mapa/tests.md` (34,8 KB) y `docs/mapa/informe-pdf-excel.md` (34,4 KB) NO se
   tocaron**, y está declarado en **C1-h**: el primero está a **246 bytes** del techo y el segundo
   a 600. La próxima tanda que necesite escribir en cualquiera de los dos tiene que partirlo.
+
+### Los cortes del VD por la AHA/ACC 2026 — «TEP» (2026-10-29)
+
+- **CUATRO commits.** `8c979a8` (TEP-1) · `46429fa` (TEP-2) · `3ad213b` (TEP-3) · el de cobertura
+  y documentación. Al empezar, `origin/main` = `HEAD` = **`d48bff4`**, el cierre del C2, ya
+  publicado, con md5 de `index.html` **`7fef59e4`**.
+  **El push lo corre Maicol: esta tanda tenía orden expresa de NO pushear.**
+
+- **LAS CINCO FUENTES SE LEYERON EN IMAGEN, Y LA REGLA DE FOLIO SE COMPROBÓ EN EL PIE IMPRESO.**
+  AHA/ACC 2026 (Creager, *Circulation* 2026;153:e977-e1051): **Tabla 4 en la hoja 13, folio
+  e989** —«RV/LV >0.9» y «TAPSE <1.7 cm is abnormal»—; **recomendación 12, Clase 1 · B-NR** y
+  **recomendación 9, Clase 3 «No Benefit» · B-NR**, las dos en la hoja 10, folio **e986**; y la
+  **especificidad del 64 %** en la hoja 12, folio **e988**. Hotelling 2024, hoja 8 (77 % / 94 %,
+  «not pathognomonic»). ESC 2019, hoja 14, folio 497.e14. Folio = «e» + (hoja + 976), verificado.
+
+- **EL DEFECTO MÁS GRANDE QUE CERRÓ, EN UNA LÍNEA: la ficha del posoperatorio citaba un corte que
+  su fuente no publica, y además mentía sobre lo que la app aplicaba.** Decía «TAPSE <17 mm ·
+  VD/VI ≥1,0 — **ESC 2019**, folio e17», y **censado el documento entero, sus 58 hojas no
+  contienen un solo «17 mm»**: el folio 497.e17 dice 16. Su globo remataba afirmando que esos eran
+  «los mismos dos cortes que aplica la cápsula de TEP», que cortaba en **16**.
+
+- ⚠️ **ESTO REVIERTE EL R7 Y NO LO CONTRADICE.** El R7 subió el VD/VI de 0,9 a 1,0 argumentando
+  que el 0,9 era un corte de **tomografía**; con la ESC 2019 sobre la mesa, tenía razón. Lo que
+  cambió es la fuente: la Tabla 4 de la AHA/ACC 2026 se titula «…**on Echocardiogram**» y publica
+  ahí el `>0.9`. **Antes de volver a subirlo, leer `docs/mapa/tep-aha2026.md` §1.**
+
+- ⚠️ **EL DUEÑO ÚNICO ES DEL PREDICADO, NO DEL NÚMERO, Y ESA ES TODA LA DECISIÓN DE DISEÑO.** Los
+  **seis** consumidores compartían la constante y cada uno escribía su propio `>=`. Con el
+  operador movido a `>` estricto eso dejó de alcanzar: el que se quedara con `>=` graduaría el
+  **0,90 exacto** al revés que la cápsula, sobre el mismo paciente. **La mutación M4 es
+  exactamente eso, y la caza una sola condición.**
+
+- ⚠️ **EL POSOPERATORIO SIGUE EL CORTE SIN QUE SE LE TOQUE UNA LÍNEA, Y SE PREGUNTÓ ANTES.**
+  `popPatron()` alimenta la hoja PostCEC del PDF, el EN SUMA, el PPT y el Laboratorio. **Decisión
+  de Maicol: que lo siga.** Medido, y es la única diferencia: «¿Falla del VD?» pasa de naranja a
+  rojo con VD/VI entre 0,9 y 1,0, y **en el 0,90 exacto no cambia nada**.
+
+- **DOS PREMISAS DE LA ORDEN ERAN FALSAS, Y ESTÁN MEDIDAS.** (1) **La sección de TEP no vive en
+  «la pestaña de ventrículo derecho y TEP»**: vive en `tab-hemodinamica` → **TEP-c**. (2) **La
+  suite no tiene 553 ni 555 casos: tiene 560** —TC-1 a TC-545 sin huecos ni duplicados, más
+  quince TC-GR—, contado nombre por nombre.
+
+- **3d, RESPONDIDO Y NO TOCADO: la app SÍ asigna categorías de riesgo de TEP, en el panel de
+  Evidencia.** `_indTEP` publica cinco categorías de la Tabla 8 de la ESC 2019, decididas con las
+  **cuatro respuestas del médico** y nunca con el conteo del eco. **No aparecen** en la cápsula,
+  el informe, el EN SUMA, el PDF ni el PPT. → **TEP-d**.
+
+- **3c, CONFIRMADO EN VEZ DE REHECHO: la «Salvedad» ya no salía en el PDF.** La retiró el C-E2 el
+  21/10. Medido ausente en los dos árboles, con la hoja de TEP de 490 caracteres como denominador.
+
+- **14/14 MUTACIONES MUERTAS EN EL PRIMER BARRIDO**, en worktree y nunca sobre el vivo, con guarda
+  de md5 antes y después. **M12 no es una reversión: aplica el corte de más**, al VD/VI de la
+  probabilidad de HTP, y existe porque las condiciones que la matan son controles negativos.
+
+- ⚠️ **TRES TRAMPAS NUEVAS, Y LAS TRES COSTARON UNA MEDICIÓN.** (1) `generarInforme()` **cambia de
+  pestaña**: medir la geometría de un globo después de llamarlo da **0×0** sobre un botón que sí
+  se dibuja. (2) El informe de TEP tiene **dos ramas** y el filtro de la primera sonda buscaba la
+  de «criterios incompletos»: la línea salía vacía en todas las escenas cargadas y **el único que
+  la tenía era el control negativo**, así que el A/B decía «sin diferencias» sobre un denominador
+  de cero. (3) El badge de la **categoría A** de la probabilidad de HTP **agrega varios signos**:
+  dice «signo presente» en 1,00 y en 1,01 por igual, así que un control que le pregunte a él
+  **pasa en verde sobre cualquier corte**. Hay que preguntarle a `vdViEstado`.
+
+- ⚠️ **TC-546 CAÍA CONTRA HEAD POR EXCEPCIÓN, Y ESO NO ES CAER.** El ayudante del globo devolvía
+  `{ERROR}` cuando el botón no existe —que es justo el árbol anterior— y la primera condición que
+  leía `.t` mataba el caso con un `TypeError`, sin decir qué invariante se rompió. Devolviendo una
+  forma completa cae por **20 condiciones y ninguna por excepción**.
+
+- ⚠️ **TC-476 y TC-478 SON INTERMITENTES POR UNA CARRERA PROPIA, NO POR ESTA TANDA.** Miden que la
+  maquinaria `numdec` haya tomado `vd_vi` y leen antes de que esa pasada termine. Medido: los dos
+  árboles convierten **384** inputs idénticos con cero errores, y pasan **3 de 3** al repetirlos.
+  → **TEP-f**.
+
+- **DIEZ CASOS VIEJOS ADAPTADOS, cada uno con el motivo escrito**: **TC-168** (el badge del
+  POCUS), **TC-507** (H1, H2 y H4, las tres invertidas), **TC-510** (el denominador de las dos
+  constantes, A1-A3, C1-C2 y G1-G2), **TC-471**, **TC-500** y **TC-502** (los tres conteos del
+  registro de globos: 60 → **62**), **TC-535** (K0-K2: seis globos de 44×44 → **ocho**),
+  **TC-534** (D4 y L4), **TC-544** (E1, el badge del POCUS) y **TC-537**.
+  ⚠️ **SIETE DE LOS DIEZ LOS DESTAPÓ LA CORRIDA COMPLETA, NO EL CENSO**, y seis de esos siete son
+  **conteos de inventario** que los dos globos nuevos corren — la clase de afirmación que grepear
+  por el nombre de lo que tocás **no encuentra**. Es el mismo modo de falla que el C2 documenta
+  con TC-520.
+  ⚠️ **Y TC-537 HIZO EXACTAMENTE SU TRABAJO: es el guardián de la regla R7** —que ninguna cadena
+  «folio N» se pierda de una superficie— **y cazó que esta tanda sacó «folio e17» de la ficha del
+  posoperatorio**. Sacarlo era lo correcto, porque esa cita era falsa; lo que se adaptó es el
+  folio que vigila, y el guardián sigue en pie.
+  ⚠️ **DOS DE ELLAS TUVIERON QUE CAMBIAR DE FORMA Y NO SÓLO DE NÚMERO:** el denominador de TC-510
+  medía que las dos constantes de TAPSE fueran **distintas** (16 contra 17), y hoy valen las dos
+  17 con fuentes distintas; y su (G2) medía que la ficha **no dijera «17 mm»**, que era el corte de
+  la pestaña VD. Las dos dejaron de poder distinguir lo que fueron a distinguir.
+
+- **Dónde está todo:** `docs/mapa/tep-aha2026.md` (**mapa NUEVO**, 10,8 KB), **seis mapas con un
+  puntero cada uno** —medidos ANTES de escribir, todos por debajo de 27 KB—,
+  `docs/fuentes/FUENTES.md` → «La tanda TEP» con la Tabla 4 transcripta fila por fila, las tres
+  frases literales y la tabla «Cambios de evidencia» de veintiuna filas, y `docs/PENDIENTES.md` →
+  **SIETE** cosas declaradas (**TEP-a** a **TEP-g**).

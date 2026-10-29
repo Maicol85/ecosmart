@@ -327,3 +327,17 @@ respaldo de la RVS sigue leyendo `v('hemo_pam')` en vez del dueño único. Las d
 de esa orden y declaradas en `PENDIENTES.md`.
 
 **Las tres fuentes, su orden y por qué el selector no gradúa: `docs/mapa/c1-hemodinamica.md` § 5.**
+
+
+---
+
+## Puntero — la tanda «TEP» (2026-10-29)
+
+⚠️ **EL POSOPERATORIO CAMBIÓ DE COMPORTAMIENTO SIN QUE SE LE TOCARA UNA LÍNEA.** `popPocusSync`,
+`popPatron` y `popEsquema` leen `TEP_VDVI_DILAT_MIN` por diseño, y esa constante pasó de 1,0 a
+0,9 con operador estricto. **Decisión de Maicol.** Medido: «¿Falla del VD?» pasa de naranja a
+rojo con VD/VI entre 0,9 y 1,0, y en el **0,90 exacto no cambia nada**.
+
+Y la fila «¿Falla del ventrículo derecho?» de su ficha de Referencias llevaba una **cita falsa**
+—«ESC 2019, folio e17» para un TAPSE de 17 mm que ese documento no publica—. Ver
+**`docs/mapa/tep-aha2026.md`** §3 y §4, y `docs/PENDIENTES.md` → **TEP-g**.

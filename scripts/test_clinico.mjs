@@ -14242,8 +14242,13 @@ caso('TC-168', 'POP-3: el POCUS sincroniza y no inventa cortes', `
       ['TAPSE 12 usa el corte de la app (17)',      vd.indexOf('disfunción (<17 mm)') > -1, vd.slice(0,70)],
       /* ADAPTADO el 2026-10-20 (R7): el corte del eco pasa de >=0,9 a >=1,0 (ESC 2019 de TEP,
          folio e17). Lo que la condicion fija -que el POCUS use el corte de la APP y no el
-         semaforo de tres bandas del pedido original- no cambio. */
-      ['VD/VI 1.1 usa el corte de la app (1.0)',    vd.indexOf('dilatación (≥1.0)') > -1, vd.slice(0,120)],
+         semaforo de tres bandas del pedido original- no cambio.
+         ADAPTADO el 2026-10-29 (tanda TEP): vuelve a 0,9 y el operador pasa a ESTRICTO, con otra
+         fuente -AHA/ACC 2026, Tabla 4, folio e989, «RV/LV >0.9»-, y por DECISION DE MAICOL el
+         posoperatorio sigue el corte nuevo. El rotulo del badge se mueve con el: era «(≥1.0)» y
+         es «(>0.9)». Lo que la condicion fija SIGUE sin cambiar. Con 1,1 el veredicto es el
+         mismo de antes; el borde que esta tanda movio -el 0,90 exacto- lo mide TC-546 (H4). */
+      ['VD/VI 1.1 usa el corte de la app (0.9, estricto)', vd.indexOf('dilatación (>0.9)') > -1, vd.slice(0,120)],
       ['la conclusion del VD manda a descartar taponamiento y TEP',
         vd.indexOf('descartar taponamiento y TEP') > -1, vd.slice(0,190)],
       ['y declara lo que falta completar',          vd.indexOf('Completar: PSAP') > -1, vd.slice(-90)]
@@ -66063,7 +66068,10 @@ caso('TC-471', 'Valvulas D1: la insuficiencia mitral en TRES columnas de SEIS co
     HAY_INFO && globos.every(function(b){ return !!VINFO[b.getAttribute('data-vinfo')]; }) &&
     /* ⚠️ ADAPTADO EN LA C2 (2026-10-28): 58 -> 60, por cvr-coc y cvr-ecosmart, las dos
        tarjetas del C2-2. Ninguna de las dos esta en Valvulas. */
-    Object.keys(VINFO).length === 60,
+    /* ⚠️ ADAPTADO EN LA TANDA TEP (2026-10-29): 60 -> 62, por tep-eco-dx y tep-mcconnell,
+       los dos globos de la seccion de sobrecarga del VD. NINGUNO esta en Valvulas: lo que
+       cambia es el denominador del registro, no lo que esta condicion afirma. */
+    Object.keys(VINFO).length === 62,
     'registro=' + (HAY_INFO ? Object.keys(VINFO).join(',') : 'SIN REGISTRO')]);
   ex.push(['(H) y la tarjeta se coloca SIEMPRE dentro de la pantalla, sin cortarse',
     (function(){ const b = document.querySelector('[data-vinfo="avm-thp"]');
@@ -77363,7 +77371,10 @@ caso('TC-500', 'Tanda Q: las OCHO tarjetas i de las valvulas arriba de su pastil
     /* ⚠️ ADAPTADO EN LA TANDA C1 (commit C1-1d): 57 -> 58. La entrada nueva es
        vexus-lim, el globo del modulo de VExUS, donde viven las SEIS limitaciones de la
        lectura que publica la pagina 9 de Rola 2021. Lo que esta condicion afirma no cambia. */
-    FN('vInfoClic') && !!CARD() && !!REG() && Object.keys(REG() || {}).length === 60,
+    /* ⚠️ ADAPTADO EN LA TANDA TEP (2026-10-29): 60 -> 62, por tep-eco-dx y tep-mcconnell,
+       los dos globos de la seccion de sobrecarga del VD. NINGUNO esta en Valvulas: lo que
+       cambia es el denominador del registro, no lo que esta condicion afirma. */
+    FN('vInfoClic') && !!CARD() && !!REG() && Object.keys(REG() || {}).length === 62,
     'VINFO=' + (REG() ? Object.keys(REG()).length : 'SIN REGISTRO') + ' card=' + !!CARD()]);
   ex.push(['(A1) los OCHO botones de lesion existen, son BUTTON, sin atributo title y con aria-expanded',
     CLAVES.every(function (k) { const b = BTN(k);
@@ -78625,10 +78636,17 @@ caso('TC-502', 'Tanda P: Referencias en CINCO subpestanas sin perder una entrada
      la segunda tarjeta manda con sus palabras, y crear una entrada nueva seria escribir contenido
      clinico que esa tanda no tenia orden de escribir. La lista sigue nombrandolas una por una,
      que es lo que hace que el dia que una consiga ficha el caso se ponga rojo. */
-  ex.push(['(C3) LIMITE DECLARADO: diecinueve tarjetas sin boton, porque Referencias no tiene esa entrada',
+  /* ⚠️ ADAPTADO EN LA TANDA TEP (2026-10-29): diecinueve -> veintiuna. Las dos nuevas son
+     tep-eco-dx y tep-mcconnell. Referencias NO tiene una entrada para ninguna de las dos: la
+     ficha ref-tep existe, pero lo que estos globos publican -el rendimiento del signo y la
+     clase 3 de la recomendacion 9- NO esta en esa ficha, y ponerlo ahi seria publicar el mismo
+     contenido dos veces (regla R4). La lista sigue nombrandolas una por una, que es lo que hace
+     que el dia que una consiga ficha el caso se ponga rojo. */
+  ex.push(['(C3) LIMITE DECLARADO: veintiuna tarjetas sin boton, porque Referencias no tiene esa entrada',
     sinBoton.join(',') === 'amilo-score,co-riesgo-basal,cvr-coc,cvr-ecosmart,et-avt-cont,'
       + 'hemo-forr,hemo-ic,hemo-rvs,'
       + 'tarj-esten-pulmonar,tarj-esten-tricuspide,tarj-insuf-pulmonar,'
+      + 'tep-eco-dx,tep-mcconnell,'
       + 'vab-aorta,vab-cx,vab-friesgo,vab-func,vab-tit,vab-valv,vexus-lim,vm-carp',
     sinBoton.join(',')]);
   /* Cuatro tarjetas, una de cada familia. La de la aorta y la del VI viven en AI/VI, la de la
@@ -81292,26 +81310,37 @@ caso('TC-507', 'Tanda R: la VAB muestra la lesion PRESENTE sin grado con un solo
     return TXT('tep-vdvi-interp'); };
   ex.push(['(DENOM H) la capsula de TEP publica un estado con el cociente cargado',
     _tepEsc('1.2').indexOf('VD/VI') > -1, _tepEsc('1.2')]);
-  ex.push(['(H1) el corte del eco en TEP es 1,0 y vive en UNA constante',
-    _tepMin === 1.0, String(_tepMin)]);
-  ex.push(['(H2) 0,9 y 0,99 ya NO son dilatacion, y 1,0 si',
-    _tepEsc('0.9').indexOf('normal') > -1 && _tepEsc('0.99').indexOf('normal') > -1
-      && _tepEsc('1').indexOf('dilatación VD') > -1 && _tepEsc('1.01').indexOf('dilatación VD') > -1,
-    _tepEsc('0.9') + ' | ' + _tepEsc('1')]);
+  /* ADAPTADO el 2026-10-29 (tanda TEP): el corte vuelve a 0,9 y el operador pasa a ESTRICTO,
+     con otra fuente -AHA/ACC 2026, Tabla 4, folio e989, «RV/LV >0.9»-. La tanda R lo habia
+     subido a 1,0 con la ESC 2019 y tenia razon con ESA fuente; lo que cambio es la fuente.
+     Las dos condiciones se INVIERTEN, que es lo que corresponde cuando el corte se mueve: lo
+     que fijaban -que 0,9 y 1,0 caigan de lados distintos- se conserva, cambiado de lado. */
+  ex.push(['(H1) el corte del eco en TEP es 0,9 y vive en UNA constante',
+    _tepMin === 0.9, String(_tepMin)]);
+  ex.push(['(H2) 0,90 EXACTO NO es dilatacion —el operador es estricto— y 0,91, 0,99 y 1,0 si',
+    _tepEsc('0.90').indexOf('normal') > -1
+      && _tepEsc('0.91').indexOf('dilatación VD') > -1
+      && _tepEsc('0.99').indexOf('dilatación VD') > -1
+      && _tepEsc('1').indexOf('dilatación VD') > -1,
+    _tepEsc('0.90') + ' | ' + _tepEsc('0.91') + ' | ' + _tepEsc('1')]);
   ex.push(['(H3) CONTROL NEGATIVO: el corte de la probabilidad de HTP es OTRO campo y OTRO operador',
     _htpMin === 1.0 && !!EL('vd_vi') && !!EL('tep_vdvi') && EL('vd_vi') !== EL('tep_vdvi'),
     'htp=' + String(_htpMin) + ' tep=' + String(_tepMin)]);
   /* ADAPTADO el 2026-10-21 (tanda C, commit 3). La ficha de TEP se reescribio entera: cada
      criterio pasa a una tabla con su corte y su fuente, asi que el cociente ya no se escribe
-     pegado a la sigla (VD/VI ≥1.0) sino en su propia celda. Lo que esta condicion afirma no
-     cambia -que la ficha publica 1,0 y no 0,9- y GANA que el corte del TAPSE de esa ficha sea
-     el de TEP y no el de la pestana VD. */
-  ex.push(['(H4) la ficha de TEP publica el VD/VI en 1,0 y ya no en 0,9, y el TAPSE en el corte de TEP',
+     pegado a la sigla (VD/VI ≥1.0) sino en su propia celda.
+     ADAPTADO el 2026-10-29 (tanda TEP): los DOS cortes de esa tabla pasan a la AHA/ACC 2026,
+     asi que la ficha publica «> 0,9» y «< 17 mm». La condicion se invierte entera —antes exigia
+     que 0,9 NO estuviera— y lo que conserva es su forma: que la ficha diga el MISMO corte que
+     aplica la capsula, sea cual sea. El corte del TAPSE de esta ficha sigue sin ser el de la
+     pestana VD, aunque desde hoy coincidan en el numero: lo que los separa es la fuente. */
+  ex.push(['(H4) la ficha de TEP publica el VD/VI en > 0,9 y el TAPSE en < 17 mm, los dos con la AHA/ACC 2026',
     (function(){ try { if (typeof showTab === 'function') showTab('referencias'); } catch (e) {}
       const c = EL('ref-tep'); if (!c) return false;
       const t = (c.textContent || '').replace(/[ ]+/g, ' ');
-      return t.indexOf('≥ 1,0') > -1 && t.indexOf('0.9') < 0 && t.indexOf('0,9') < 0 &&
-             t.indexOf('< 16 mm') > -1; })(), '']);
+      return t.indexOf('> 0,9') > -1 && t.indexOf('1,0') < 0 &&
+             t.indexOf('< 17 mm') > -1 && t.indexOf('< 16 mm') < 0 &&
+             t.indexOf('AHA/ACC 2026') > -1; })(), '']);
   ex.push(['(H5) las dos formulas de HTP publican los cortes de la ESC/ERS 2022',
     (function(){ const filas = Array.prototype.filter.call(document.querySelectorAll('tr'), tr => {
         const t = tr.textContent || '';
@@ -82555,8 +82584,18 @@ caso('TC-510', 'Tanda C: el score de TEP con el TAPSE a <16 y la pestana VD inta
     UMB('UMBRAL_PSAP_ELEVADA') !== null,
     'tapse=' + UMB('TEP_TAPSE_BAJO_MAX') + ' vdvi=' + UMB('TEP_VDVI_DILAT_MIN') +
     ' psap=' + UMB('UMBRAL_PSAP_ELEVADA')]);
-  ex.push(['DENOMINADOR: las dos constantes de TAPSE son DISTINTAS — la de TEP vale 16 y la de la pestana VD 17',
-    UMB('TEP_TAPSE_BAJO_MAX') === 16 && UMB('UMBRAL_TAPSE_NORMAL') === 17,
+  /* ADAPTADO el 2026-10-29 (tanda TEP): los dos cortes del score pasan a la AHA/ACC 2026,
+     Tabla 4, folio e989 —TAPSE <1,7 cm y RV/LV >0,9—, asi que el TAPSE sube de 16 a 17 y el
+     VD/VI baja de 1,0 a 0,9 con el operador ESTRICTO. Lo que estas condiciones fijan —que cada
+     corte tenga un borde que cuente y otro que no, y que la capsula nombre el MISMO corte que
+     el score— no cambia: se mueven los numeros, no la forma. Los bordes nuevos los mide
+     ademas TC-546 (A) y (B). */
+  /* ⚠️ Y LA CONDICION TUVO QUE CAMBIAR DE FORMA, NO SOLO DE NUMERO: media que las dos constantes
+     fueran DISTINTAS (16 contra 17), y desde esta tanda valen las DOS 17 con fuentes distintas.
+     Lo que se fija ahora es que sigan siendo DOS: el dia que alguien las fusione «porque son el
+     mismo numero», mover una guia mueve la otra. */
+  ex.push(['DENOMINADOR: el TAPSE del score y el de la pestana VD son DOS constantes, hoy las dos en 17',
+    UMB('TEP_TAPSE_BAJO_MAX') === 17 && UMB('UMBRAL_TAPSE_NORMAL') === 17,
     'tep=' + UMB('TEP_TAPSE_BAJO_MAX') + ' vd=' + UMB('UMBRAL_TAPSE_NORMAL')]);
 
   /* ══ (A) EL TAPSE DEL SCORE, POR SUS TRES VALORES ════════════════════════════════════════
@@ -82570,11 +82609,11 @@ caso('TC-510', 'Tanda C: el score de TEP con el TAPSE a <16 y la pestana VD inta
   const t169 = { n: nPos(), fila: T('tep-tapse-interp') };
   ex.push(['(A1) TAPSE 15,9 mm SUMA al score de TEP y la capsula nombra el corte de TEP',
     t159.n === 2 && t159.fila.indexOf('bajo para TEP') > -1 &&
-    t159.fila.indexOf('<16 mm') > -1 && t159.fila.indexOf('17') < 0,
+    t159.fila.indexOf('<17 mm') > -1 && t159.fila.indexOf('16') < 0,
     't159=' + JSON.stringify(t159)]);
-  ex.push(['(A2) TAPSE 16,0 EXACTO NO suma — el operador es estricto',
-    t16.n === 1 && t16.fila.indexOf('no bajo') > -1, 't16=' + JSON.stringify(t16)]);
-  ex.push(['(A3) TAPSE 16,9 tampoco suma', t169.n === 1 && t169.fila.indexOf('no bajo') > -1,
+  ex.push(['(A2) TAPSE 16,0 tambien suma con el corte nuevo',
+    t16.n === 2 && t16.fila.indexOf('bajo para TEP') > -1, 't16=' + JSON.stringify(t16)]);
+  ex.push(['(A3) TAPSE 16,9 tambien suma', t169.n === 2 && t169.fila.indexOf('bajo para TEP') > -1,
     't169=' + JSON.stringify(t169)]);
   ex.push(['(A4) CONTROL: con ESE MISMO TAPSE de 16 la pestana VD sigue diciendo disfuncion, con SU corte de 17',
     t16.vd.indexOf('disfunci') > -1 && t16.vd.indexOf('17') > -1, 'vd=' + t16.vd]);
@@ -82599,13 +82638,13 @@ caso('TC-510', 'Tanda C: el score de TEP con el TAPSE a <16 y la pestana VD inta
   const v099 = { n: nPos(), fila: T('tep-vdvi-interp') };
   escena(con({ tep_vdvi:'1.0' })); await esp();
   const v100 = { n: nPos(), fila: T('tep-vdvi-interp') };
-  ex.push(['(C1) VD/VI 0,99 no suma y 1,00 EXACTO si — el operador es >=',
-    v099.n === 1 && v100.n === 2, JSON.stringify(v099) + ' // ' + JSON.stringify(v100)]);
-  ex.push(['(C2) y el rotulo del campo dice 1,0 y ya no 0,9',
+  ex.push(['(C1) VD/VI 0,99 y 1,00 SUMAN los dos con el corte nuevo — el borde esta en 0,90',
+    v099.n === 2 && v100.n === 2, JSON.stringify(v099) + ' // ' + JSON.stringify(v100)]);
+  ex.push(['(C2) y el rotulo del campo dice >0,9 y ya no 1,0',
     (function () { const e = EL('tep_vdvi');
       const sp = e && e.parentElement ? e.parentElement.querySelector('span') : null;
       const t = sp ? (sp.textContent || '') : 'NO EXISTE';
-      return t.indexOf('1,0') > -1 && t.indexOf('0.9') < 0 && t.indexOf('0,9') < 0; })(),
+      return t.indexOf('>0,9') > -1 && t.indexOf('1,0') < 0; })(),
     (function () { const e = EL('tep_vdvi');
       const sp = e && e.parentElement ? e.parentElement.querySelector('span') : null;
       return sp ? sp.textContent : 'NO EXISTE'; })()]);
@@ -82744,12 +82783,21 @@ caso('TC-510', 'Tanda C: el score de TEP con el TAPSE a <16 y la pestana VD inta
   ex.push(['DENOMINADOR: la ficha de TEP existe, se abre y tiene geometria',
     !!ref && ref.w > 0 && ref.h > 0 && ref.t.length > 1500,
     ref ? (ref.w + 'x' + ref.h + ' n=' + ref.t.length) : 'NO EXISTE']);
-  ex.push(['(G1) cada criterio con su corte y su folio: TAPSE <16 con e17 y e15, PSAP >=35 con el folio 145, VD/VI 1,0',
-    !!ref && ref.t.indexOf('< 16 mm') > -1 && ref.t.indexOf('497.e17') > -1 &&
-    ref.t.indexOf('497.e15') > -1 && ref.t.indexOf('35 mmHg') > -1 &&
-    ref.t.indexOf('folio 145') > -1 && ref.t.indexOf('1,0') > -1, '']);
-  ex.push(['(G2) y ya no dice el corte de la pestana VD ni el operador viejo de la PSAP',
-    !!ref && ref.t.indexOf('17mm') < 0 && ref.t.indexOf('17 mm') < 0 &&
+  /* ADAPTADO el 2026-10-29 (tanda TEP): el TAPSE y el VD/VI de esta ficha pasan a la AHA/ACC
+     2026 con su folio, asi que ya no llevan el 497.e17. La ESC 2019 SIGUE citada en las otras
+     tres filas —McConnell, el 60/60 y el tabique en D—, y eso es lo que conserva (G1b).
+     ⚠️ (G2) MEDIA QUE LA FICHA NO DIJERA «17 mm», y ese era el corte de la pestana VD. Hoy el
+     corte de TEP ES 17 mm por otra fuente, asi que esa condicion dejo de poder distinguir lo que
+     fue a distinguir: lo que se fija en su lugar es que la ficha NO cite ya la fuente vieja para
+     esos dos cortes, y que el operador de la PSAP siga siendo el suyo. */
+  ex.push(['(G1) cada criterio con su corte y su folio: TAPSE <17 y VD/VI >0,9 con la AHA/ACC 2026, PSAP >=35 con el folio 145',
+    !!ref && ref.t.indexOf('< 17 mm') > -1 && ref.t.indexOf('> 0,9') > -1 &&
+    ref.t.indexOf('AHA/ACC 2026') > -1 && ref.t.indexOf('e989') > -1 &&
+    ref.t.indexOf('35 mmHg') > -1 && ref.t.indexOf('folio 145') > -1, '']);
+  ex.push(['(G1b) y la ESC 2019 sigue sosteniendo McConnell, el 60/60 y el tabique en D',
+    !!ref && ref.t.indexOf('497.e14') > -1 && ref.t.indexOf('497.e15') > -1, '']);
+  ex.push(['(G2) y ya no atribuye el TAPSE ni el VD/VI al folio 497.e17, ni usa el operador viejo de la PSAP',
+    !!ref && ref.t.indexOf('497.e17') < 0 && ref.t.indexOf('< 16 mm') < 0 &&
     ref.t.indexOf('> 35') < 0 && ref.t.indexOf('>35') < 0, '']);
   ex.push(['(G3) los cortes 2 y 4 del conteo llevan el chip «CRITERIO DE ECOSMART»',
     !!ref && ref.t.indexOf('CRITERIO DE ECOSMART') > -1 &&
@@ -89788,11 +89836,19 @@ caso('TC-534', 'Tanda G: la grilla de drogas sin la columna vacia y el acordeon 
       && VINFO['pul-balik'].fuente.indexOf('hoja 19') > -1,
     'botones=' + document.querySelectorAll('[data-vinfo="pul-balik"]').length +
     ' | ' + (typeof VINFO !== 'undefined' && VINFO['pul-balik'] ? VINFO['pul-balik'].fuente.slice(0, 90) : 'SIN')]);
-  ex.push(['(D4) CONTROL: el VD del POP lee la MISMA constante que el TEP y el pie ya no dice 0,9',
+  /* ⚠️ ADAPTADO EN LA TANDA TEP (2026-10-29), Y LA FORMA CAMBIO, NO SOLO EL NUMERO. Esta
+     condicion nacio para cazar un pie que decia «VD/VI 0,9» ESCRITO A MANO mientras la constante
+     valia 1,0 — o sea una declaracion desincronizada—. Desde esta tanda la constante VALE 0,9
+     (AHA/ACC 2026, Tabla 4, folio e989) y el pie dice 0.9 PORQUE LA DERIVA, que es justo lo
+     contrario del defecto. Buscar el literal «0,9» ya no distingue las dos cosas. Lo que se fija
+     ahora es lo que la condicion siempre quiso: que el pie imprima EL VALOR DE LA CONSTANTE, sea
+     cual sea, y con el punto decimal del toFixed y no con coma escrita a mano. */
+  ex.push(['(D4) CONTROL: el VD del POP lee la MISMA constante que el TEP y el pie la DERIVA',
     (function(){ pon({ tapse:'14', tep_vdvi:'1.1' }); try { popPocusSync() } catch (e) {}
       const t = T('pop-pocus-vd');
-      return typeof TEP_VDVI_DILAT_MIN === 'number' && TEP_VDVI_DILAT_MIN === 1
-        && t.indexOf('VD/VI 1.0') > -1 && t.indexOf('VD/VI 0,9') === -1; })(),
+      return typeof TEP_VDVI_DILAT_MIN === 'number'
+        && t.indexOf('VD/VI ' + TEP_VDVI_DILAT_MIN.toFixed(1)) > -1
+        && t.indexOf('VD/VI 0,9') === -1 && t.indexOf('VD/VI 1,0') === -1; })(),
     'cte=' + (typeof TEP_VDVI_DILAT_MIN !== 'undefined' ? TEP_VDVI_DILAT_MIN : 'SIN') +
     ' | ' + T('pop-pocus-vd').slice(-120)]);
 
@@ -90088,8 +90144,11 @@ caso('TC-534', 'Tanda G: la grilla de drogas sin la columna vacia y el acordeon 
   ex.push(['(L3) CONTROL: los cortes de pletora de VCI siguen en 21 (HTP) y 20 (pericardio)',
     String(_htp2022Core).indexOf('vciD > 21') > -1 && DPT_VCI_PLETORA_MM === 20,
     'htp=' + (String(_htp2022Core).indexOf('vciD > 21') > -1) + ' peri=' + DPT_VCI_PLETORA_MM]);
-  ex.push(['(L4) CONTROL: el corte de dilatacion del VD del TEP sigue en 1,0 y el TAPSE en 17',
-    typeof TEP_VDVI_DILAT_MIN !== 'undefined' && TEP_VDVI_DILAT_MIN === 1
+  /* ⚠️ ADAPTADO EN LA TANDA TEP (2026-10-29): el corte de dilatacion del TEP paso de 1,0 a 0,9
+     con la AHA/ACC 2026, Tabla 4, folio e989. El TAPSE de la pestana VD -que es el que esta
+     condicion controla como AJENO al posoperatorio- NO se movio: sigue en 17 por la ASE 2025. */
+  ex.push(['(L4) CONTROL: el corte de dilatacion del VD del TEP esta en 0,9 y el TAPSE de la pestana VD en 17',
+    typeof TEP_VDVI_DILAT_MIN !== 'undefined' && TEP_VDVI_DILAT_MIN === 0.9
       && typeof UMBRAL_TAPSE_NORMAL !== 'undefined' && UMBRAL_TAPSE_NORMAL === 17,
     'vdvi=' + (typeof TEP_VDVI_DILAT_MIN !== 'undefined' ? TEP_VDVI_DILAT_MIN : 'SIN') +
     ' tapse=' + (typeof UMBRAL_TAPSE_NORMAL !== 'undefined' ? UMBRAL_TAPSE_NORMAL : 'SIN')]);
@@ -90727,12 +90786,17 @@ caso('TC-535', 'Tanda AJ7: la linea de Fallot del EN SUMA sin la IP y el resumen
      cambia -geometria, 44x44 con el mouse y los cinco puntos dando el propio boton-: lo que
      cambia es cuantos globos tienen que cumplirlo. El conteo es el denominador, asi que agregar
      uno sin la clase pone esto en rojo, que es lo que se quiere. */
-  ex.push(['(K0) DENOMINADOR: los SEIS globos llevan la clase, tienen geometria y estan EN VISTA',
-    tapK.length === 6 && tapK.every((x) => x.w > 0 && x.h > 0 && x.enVista), JSON.stringify(tapK)]);
-  ex.push(['(K1) los seis miden 44x44 tambien con el mouse',
-    tapK.length === 6 && tapK.every((x) => x.w >= 44 && x.h >= 44), JSON.stringify(tapK)]);
+  /* ⚠️ ADAPTADO EN LA TANDA TEP (2026-10-29): seis -> OCHO. Los dos nuevos son tep-eco-dx y
+     tep-mcconnell, que nacen con la clase vinfo-btn-44 y SIN margenes negativos. Lo que estas tres
+     condiciones exigen no cambia; lo que cambia es cuantos globos tienen que cumplirlo, y el
+     conteo ES el denominador: agregar uno sin la clase pone esto en rojo, que es lo que se
+     quiere. Medido en los dos motores: los ocho dan 44x44 y los cinco puntos dan el propio. */
+  ex.push(['(K0) DENOMINADOR: los OCHO globos llevan la clase, tienen geometria y estan EN VISTA',
+    tapK.length === 8 && tapK.every((x) => x.w > 0 && x.h > 0 && x.enVista), JSON.stringify(tapK)]);
+  ex.push(['(K1) los ocho miden 44x44 tambien con el mouse',
+    tapK.length === 8 && tapK.every((x) => x.w >= 44 && x.h >= 44), JSON.stringify(tapK)]);
   ex.push(['(K2) y su caja NO tapa a ningun vecino: los cinco puntos dan el propio boton',
-    tapK.length === 6 && tapK.every((x) => x.propios === 5), JSON.stringify(tapK)]);
+    tapK.length === 8 && tapK.every((x) => x.propios === 5), JSON.stringify(tapK)]);
   ex.push(['(K3) CONTROL: los demas globos NO se tocaron y siguen con su piso solo tactil',
     document.querySelectorAll('button.vinfo-btn').length
       - document.querySelectorAll('button.vinfo-btn-44').length >= 10,
@@ -91333,7 +91397,13 @@ caso('TC-537', 'Tanda A: las ocho Evidencias compactas despiertas a la vez sin u
     try { indicRender() } catch (e) {}
 
     const FIC = [['ficha POP: la hoja del editorial de vasoplejia', 'hoja 1 de 4'],
-      ['ficha POP: el folio e17 del corte del VD', 'folio e17'],
+      /* ⚠️ ADAPTADO EN LA TANDA TEP (2026-10-29), Y ESTE CASO HIZO EXACTAMENTE SU TRABAJO. Es el
+         guardian de que ninguna cadena «folio N» se pierda de una superficie, y cazo que esta
+         tanda saco «folio e17» de la ficha del posoperatorio. Lo saco a proposito: esa cita era
+         FALSA —censadas las 58 hojas de la ESC 2019, el documento no contiene un solo «17 mm», y
+         su folio 497.e17 dice 16—. El corte pasa a la AHA/ACC 2026, Tabla 4, folio e989, asi que
+         lo que se vigila ahora es el folio NUEVO. El guardian sigue en pie. */
+      ['ficha POP: el folio e989 del corte del VD', 'folio e989'],
       ['ficha POP: el apartado y la tabla de la cirugia mitral', 'Tabla 3, folio 701'],
       ['ficha POP: la banda sin fuente de la precarga', 'Censada la biblioteca'],
       ['ficha POP: las tres reservas del pie', 'La RVS se compara sin indexar'],
@@ -93733,8 +93803,11 @@ caso('TC-544', 'C1: VExUS dice lo que la Figura 7 de Rola 2021 rotula y su Evide
 
     ex.push(['  DENOMINADOR E: el bloque del POCUS del VD tiene filas que leer',
       pCon.indexOf('TAPSE') > -1 && pCon.indexOf('VD/VI') > -1, 'largo=' + pCon.length]);
+    /* ⚠️ ADAPTADO EN LA TANDA TEP (2026-10-29): el badge del POCUS deriva su operador y su
+       numero del corte, que paso a «mayor que 0,9» (AHA/ACC 2026, Tabla 4, folio e989). Con 1,3 el
+       veredicto es el MISMO que antes; lo que cambia es como se escribe el corte al lado. */
     ex.push(['(E1) con el VD/VI cargado en VD/AD el POCUS lo publica y lo gradua con SU corte',
-      pCon.indexOf('VD/VI1.3') > -1 && pCon.indexOf('dilatación (≥1.0)') > -1,
+      pCon.indexOf('VD/VI1.3') > -1 && pCon.indexOf('dilatación (>0.9)') > -1,
       JSON.stringify(pCon.slice(pCon.indexOf('VD/VI'), pCon.indexOf('VD/VI') + 50))]);
     ex.push(['(E2) y deja de pedirlo en «Completar»',
       pCon.indexOf('VD/VI (tab VD/AD)') < 0, 'sigue pidiendolo=' + (pCon.indexOf('VD/VI (tab VD/AD)') > -1)]);
@@ -94226,6 +94299,325 @@ caso('TC-545', 'Tanda C2: el campo del derrame se llama por lo que mide y «Bali
         catch (e) { return 'EXC'; } })()]);
 
     return { extra: ex };
+  })();
+`);
+
+/* -- TC-546 ---------------------------------------------------------------------------------
+   Tanda TEP (29/10/2026). Fija los DOS cortes nuevos por sus bordes, la cita que los sostiene en
+   cada superficie, y las dos piezas de redaccion -McConnell sin adjetivos y la linea del eco-.
+   ⚠️ LOS CONTROLES NEGATIVOS SON LA MITAD DEL CASO: el corte de la probabilidad de HTP, la ESC
+   2019 que SIGUE citada donde corresponde, el escenario sin un dato del modulo, y el 0,90 exacto
+   del posoperatorio, que es lo unico que distingue «comparten el numero» de «comparten el
+   predicado».
+   ⚠️ LA GEOMETRIA DE LOS GLOBOS SE MIDE CON LA PESTANA ABIERTA: generarInforme() cambia de
+   pestana y deja todo el bloque en 0x0, que se lee como «el boton no se dibujo».
+   -------------------------------------------------------------------------------------------- */
+caso('TC-546', 'Tanda TEP: los cortes del VD por la AHA/ACC 2026 -TAPSE <17 mm y VD/VI >0,9, con el 17,0 y el 0,90 exactos SIN contar-, la cita «ESC 2019, folio e17» retirada de las superficies del TAPSE y del VD/VI y reemplazada por «AHA/ACC 2026, Tabla 4, folio e989», el VD/VI de la probabilidad de HTP intacto en 1,0, el signo de McConnell sin adjetivos en la pantalla y en la hoja del PDF con sus cifras en el globo, la linea del eco orientativo en pantalla con su globo de clase 3 y 64 %, y el papel sin ninguna de las dos frases, sin la Salvedad y sin moverse en el escenario ajeno', `
+  return (async () => {
+  const ex = [];
+  /* Los helpers son propios del caso: el runner no expone ninguno. */
+  const EL  = function (id) { return document.getElementById(id); };
+  const T   = function (id) { const e = EL(id); return e ? (e.textContent || '').trim() : 'NO EXISTE'; };
+  const V   = function (id) { const e = EL(id); return e ? e.value : null; };
+  const FN  = function (n) { return typeof window[n] === 'function'; };
+  const UMB = function (n) { const u = window[n]; return (typeof u === 'number') ? u : null; };
+  const NL  = String.fromCharCode(10);
+  const S   = function (id, v) { const e = EL(id); if (!e) return false;
+    e.value = v;
+    e.dispatchEvent(new Event('input', { bubbles: true }));
+    e.dispatchEvent(new Event('change', { bubbles: true }));
+    return true; };
+  const esp = function () { return new Promise(function (r) { setTimeout(r, 30); }); };
+  const limpiarOverlays = function () {
+    ['modalAvisoEco','login-overlay'].forEach(function (id) {
+      const m = EL(id); if (m) m.style.display = 'none'; }); };
+  /* La PSAP es READONLY y se DERIVA: 4*VRT^2 + PmAD. Con la VCI en 18 mm y colapso >50 la PmAD
+     es 3, asi que la VRT la elige. */
+  const BASE = { vci_diam:'18', vci_col:'>50' };
+  const escena = function (campos) {
+    try { __t.limpiar(); } catch (e) {}
+    limpiarOverlays();
+    Object.keys(BASE).forEach(function (k) { S(k, BASE[k]); });
+    Object.keys(campos).forEach(function (k) { S(k, campos[k]); });
+    try { if (FN('calcPmAD')) calcPmAD(); } catch (e) {}
+    try { if (FN('calcPSAP')) calcPSAP(); } catch (e) {}
+    try { if (FN('calcTEP')) calcTEP(); } catch (e) {}
+  };
+  const SIG = { tep_mcconnell:'si', tep_signo6060:'no', tep_tabique_d:'no' };
+  const con = function (extra) { const o = {}; Object.keys(SIG).forEach(function (k) { o[k] = SIG[k]; });
+    Object.keys(extra).forEach(function (k) { o[k] = extra[k]; }); return o; };
+  const nPos = function () { const t = T('tep-score'); const i = t.indexOf('/');
+    return i < 0 ? null : Number(t.slice(0, i)); };
+
+  /* ══ DENOMINADORES ══════════════════════════════════════════════════════════════════════ */
+  ex.push(['(D1) DENOMINADOR: existen calcTEP, el dueno del predicado y las dos constantes',
+    FN('calcTEP') && FN('tepVdViDilatado') &&
+    UMB('TEP_TAPSE_BAJO_MAX') !== null && UMB('TEP_VDVI_DILAT_MIN') !== null,
+    'tapse=' + UMB('TEP_TAPSE_BAJO_MAX') + ' vdvi=' + UMB('TEP_VDVI_DILAT_MIN') +
+    ' fn=' + FN('tepVdViDilatado')]);
+  ex.push(['(D2) DENOMINADOR: las constantes valen lo que publica la Tabla 4 de la AHA/ACC 2026',
+    UMB('TEP_TAPSE_BAJO_MAX') === 17 && UMB('TEP_VDVI_DILAT_MIN') === 0.9,
+    'tapse=' + UMB('TEP_TAPSE_BAJO_MAX') + ' vdvi=' + UMB('TEP_VDVI_DILAT_MIN')]);
+  /* ⚠️ LAS DOS CONSTANTES DE TAPSE HOY COINCIDEN EN 17 Y SIGUEN SIENDO DOS. Hasta esta tanda el
+     control era que fueran DISTINTAS (16 contra 17), que es lo que media TC-510. Con el numero
+     igual eso ya no distingue nada, asi que lo que se fija es que sean DOS LECTURAS SEPARADAS:
+     mover una en el arbol no mueve la otra. */
+  ex.push(['(D3) DENOMINADOR: el TAPSE del score de TEP y el de la pestana VD son DOS constantes separadas, hoy con el mismo numero',
+    UMB('TEP_TAPSE_BAJO_MAX') === 17 && UMB('UMBRAL_TAPSE_NORMAL') === 17 &&
+    (function () { const a = Object.getOwnPropertyDescriptor(window, 'TEP_TAPSE_BAJO_MAX');
+      const b = Object.getOwnPropertyDescriptor(window, 'UMBRAL_TAPSE_NORMAL');
+      return !!a && !!b; })(),
+    'tep=' + UMB('TEP_TAPSE_BAJO_MAX') + ' vd=' + UMB('UMBRAL_TAPSE_NORMAL')]);
+
+  /* ══ (A) EL TAPSE EN SUS CUATRO VALORES ══════════════════════════════════════════════════ */
+  escena(con({ tapse:'16' })); await esp();
+  const t16 = { n: nPos(), fila: T('tep-tapse-interp'), vd: T('tapse-interp') };
+  escena(con({ tapse:'16.9' })); await esp();
+  const t169 = { n: nPos(), fila: T('tep-tapse-interp') };
+  escena(con({ tapse:'17' })); await esp();
+  const t17 = { n: nPos(), fila: T('tep-tapse-interp') };
+  escena(con({ tapse:'18' })); await esp();
+  const t18 = { n: nPos(), fila: T('tep-tapse-interp') };
+  ex.push(['(A1) TAPSE 16 mm SUMA al score y la capsula nombra el corte nuevo',
+    t16.n === 2 && t16.fila.indexOf('bajo para TEP') > -1 && t16.fila.indexOf('<17 mm') > -1 &&
+    t16.fila.indexOf('16 mm)') < 0,
+    't16=' + JSON.stringify(t16)]);
+  ex.push(['(A2) TAPSE 16,9 tambien suma', t169.n === 2 && t169.fila.indexOf('bajo para TEP') > -1,
+    't169=' + JSON.stringify(t169)]);
+  ex.push(['(A3) TAPSE 17,0 EXACTO NO suma — el operador es estricto',
+    t17.n === 1 && t17.fila.indexOf('no bajo') > -1, 't17=' + JSON.stringify(t17)]);
+  ex.push(['(A4) CONTROL NEGATIVO: TAPSE 18 tampoco suma',
+    t18.n === 1 && t18.fila.indexOf('no bajo') > -1, 't18=' + JSON.stringify(t18)]);
+  ex.push(['(A5) CONTROL: con ese mismo TAPSE de 16 la pestana VD gradua por SU cuenta y nombra su propio corte',
+    t16.vd.indexOf('disfunci') > -1 && t16.vd.indexOf('17') > -1, 'vd=' + t16.vd]);
+
+  /* ══ (B) EL VD/VI EN SUS CUATRO VALORES ══════════════════════════════════════════════════ */
+  escena(con({ tapse:'22', tep_vdvi:'0.90' })); await esp();
+  const v090 = { n: nPos(), fila: T('tep-vdvi-interp') };
+  escena(con({ tapse:'22', tep_vdvi:'0.91' })); await esp();
+  const v091 = { n: nPos(), fila: T('tep-vdvi-interp') };
+  escena(con({ tapse:'22', tep_vdvi:'1.00' })); await esp();
+  const v100 = { n: nPos(), fila: T('tep-vdvi-interp') };
+  escena(con({ tapse:'22', tep_vdvi:'0.70' })); await esp();
+  const v070 = { n: nPos(), fila: T('tep-vdvi-interp') };
+  ex.push(['(B1) VD/VI 0,90 EXACTO NO es dilatacion — el operador es estricto',
+    v090.n === 1 && v090.fila.indexOf('normal') > -1 && v090.fila.indexOf('0.9') > -1,
+    'v090=' + JSON.stringify(v090)]);
+  ex.push(['(B2) VD/VI 0,91 SI es dilatacion y la capsula nombra el corte nuevo',
+    v091.n === 2 && v091.fila.indexOf('dilataci') > -1 && v091.fila.indexOf('>0.9') > -1,
+    'v091=' + JSON.stringify(v091)]);
+  ex.push(['(B3) VD/VI 1,00 sigue siendo dilatacion', v100.n === 2 && v100.fila.indexOf('dilataci') > -1,
+    'v100=' + JSON.stringify(v100)]);
+  ex.push(['(B4) CONTROL NEGATIVO: VD/VI 0,70 no es dilatacion',
+    v070.n === 1 && v070.fila.indexOf('normal') > -1, 'v070=' + JSON.stringify(v070)]);
+  /* ⚠️ EL ROTULO ESTATICO DEL CAMPO SE DESINCRONIZO DOS VECES EN LA HISTORIA DE ESTA ZONA. */
+  ex.push(['(B5) el rotulo escrito del campo VD/VI dice el MISMO corte que aplica la capsula',
+    (function () { const e = EL('tep_vdvi'); if (!e) return 'NO EXISTE';
+      const fg = e.closest('.fg'); const t = fg ? (fg.textContent || '') : '';
+      return t.indexOf('>0,9') > -1 && t.indexOf('1,0') < 0; })() === true,
+    (function () { const e = EL('tep_vdvi'); const fg = e ? e.closest('.fg') : null;
+      return fg ? (fg.textContent || '').replace(/\\s+/g, ' ').trim().slice(0, 90) : 'NO'; })()]);
+
+  /* ══ (C) EL CORTE DE LA PROBABILIDAD DE HTP NO SE MOVIO ══════════════════════════════════ */
+  ex.push(['(C1) CONTROL: el VD/VI de la probabilidad de HTP sigue en 1,0 y es OTRA constante',
+    UMB('VD_VI_HTP_MIN') === 1.0 && UMB('VD_VI_HTP_MIN') !== UMB('TEP_VDVI_DILAT_MIN'),
+    'htp=' + UMB('VD_VI_HTP_MIN') + ' tep=' + UMB('TEP_VDVI_DILAT_MIN')]);
+  /* ⚠️ NO SE LE PREGUNTA AL BADGE DE LA CATEGORIA A, Y LA PRIMERA VERSION DE ESTE CONTROL SI.
+     Ese badge AGREGA varios signos de la categoria -no solo el cociente-, asi que decia «signo
+     presente» en 1,00 y en 1,01 por igual y la condicion no podia distinguir nada: pasaba en
+     verde sobre cualquier corte. Se le pregunta al DUENO UNICO, vdViEstado, que es el que
+     aplica «mayor que VD_VI_HTP_MIN» y el que leen la tabla del VD del PDF, el PPT y la categoria A. */
+  const htpAlt = function (v) {
+    try { __t.limpiar(); } catch (e) {}
+    limpiarOverlays();
+    S('vd_vi', v);
+    if (!FN('vdViEstado')) return 'SIN FN';
+    const r = vdViEstado();
+    return { alt: r.alt, fuente: r.fuente, val: r.val }; };
+  const hA090 = htpAlt('0.90'); await esp();
+  const hA100 = htpAlt('1.00'); await esp();
+  const hA101 = htpAlt('1.01'); await esp();
+  ex.push(['(C2) DENOMINADOR: el dueno del VD/VI de HTP lee el numero en las tres escenas',
+    hA090.fuente === 'numero' && hA100.fuente === 'numero' && hA101.fuente === 'numero',
+    JSON.stringify([hA090, hA100, hA101])]);
+  ex.push(['(C3) CONTROL: con vd_vi 1,00 EXACTO el dueno de HTP NO lo da por alterado, y con 1,01 si',
+    hA100.alt === false && hA101.alt === true,
+    JSON.stringify({ v100: hA100, v101: hA101 })]);
+  ex.push(['(C4) CONTROL NEGATIVO: con vd_vi 0,90 —que para TEP ya es el borde— el de HTP sigue sin alterarse',
+    hA090.alt === false, JSON.stringify(hA090)]);
+
+  /* ══ (D) LA CITA VIEJA NO ESTA EN NINGUNA SUPERFICIE ═════════════════════════════════════ */
+  const abrirRefTep = function () {
+    limpiarOverlays();
+    try { showTab('refs'); } catch (e) {}
+    try { if (FN('refSubInit')) refSubInit(); } catch (e) {}
+    /* ⚠️ LA FICHA VIVE EN LA SUBPESTANA «fun», y refSubTab EXIGE su segundo argumento. */
+    try {
+      let btn = null;
+      Array.prototype.forEach.call(document.querySelectorAll('[onclick]'), function (b) {
+        const oc = b.getAttribute('onclick') || '';
+        if (!btn && oc.indexOf('refSubTab') > -1 && oc.indexOf('fun') > -1) btn = b; });
+      if (FN('refSubTab')) refSubTab('fun', btn);
+    } catch (e) {}
+    try { if (FN('toggleRef')) toggleRef('tep', null); } catch (e) {}
+    const c = EL('ref-tep');
+    if (c) c.style.display = '';
+    return c ? (c.textContent || '').replace(/\\s+/g, ' ').trim() : 'NO EXISTE'; };
+  const refTxt = abrirRefTep();
+  ex.push(['(D4) DENOMINADOR: la ficha de Referencias del TEP tiene contenido',
+    refTxt.length > 400 && refTxt.indexOf('McConnell') > -1, 'len=' + refTxt.length]);
+  ex.push(['(D5) la ficha publica los DOS cortes nuevos con la AHA/ACC 2026 y su folio',
+    refTxt.indexOf('< 17 mm') > -1 && refTxt.indexOf('> 0,9') > -1 &&
+    refTxt.indexOf('AHA/ACC 2026') > -1 && refTxt.indexOf('e989') > -1,
+    refTxt.slice(refTxt.indexOf('Dilataci'), refTxt.indexOf('Dilataci') + 180)]);
+  ex.push(['(D6) la ficha ya NO atribuye el TAPSE ni el VD/VI a la ESC 2019 folio 497.e17',
+    refTxt.indexOf('497.e17') < 0,
+    refTxt.indexOf('497.e17') > -1 ? refTxt.slice(Math.max(0, refTxt.indexOf('497.e17') - 110), refTxt.indexOf('497.e17') + 40) : 'ausente']);
+  ex.push(['(D7) CONTROL NEGATIVO: la ESC 2019 SIGUE citada donde si corresponde — McConnell, el 60/60 y el tabique en D',
+    refTxt.indexOf('497.e14') > -1 && refTxt.indexOf('497.e15') > -1,
+    'e14=' + (refTxt.indexOf('497.e14') > -1) + ' e15=' + (refTxt.indexOf('497.e15') > -1)]);
+
+  /* ══ (E) McCONNELL SIN ADJETIVOS, EN PANTALLA Y EN EL PAPEL ══════════════════════════════ */
+  escena(con({ tapse:'12', vmax_it:'3.8', tep_vdvi:'1.3' })); await esp();
+  const mccPant = T('tep-mcconnell-interp');
+  let hoja = '';
+  try { hoja = FN('amiloTextoTEP') ? amiloTextoTEP() : 'SIN FN'; } catch (e) { hoja = 'EXC'; }
+  const hojaMcc = (hoja.split(NL).filter(function (l) { return l.indexOf('McConnell') > -1; })[0] || '');
+  ex.push(['(E1) DENOMINADOR: la capsula y la hoja del PDF tienen la fila de McConnell',
+    mccPant.indexOf('Presente') > -1 && hojaMcc.length > 10,
+    'pant=' + mccPant + ' | hoja=' + hojaMcc]);
+  ex.push(['(E2) la capsula dice «Presente» SIN adjetivo',
+    mccPant.indexOf('altamente') < 0 && mccPant.indexOf('espec') < 0, 'pant=' + mccPant]);
+  ex.push(['(E3) la hoja del PDF dice «Presente» SIN adjetivo — era la superficie firmada que lo llevaba',
+    hojaMcc.indexOf('altamente') < 0 && hojaMcc.indexOf('espec') < 0, 'hoja=' + hojaMcc]);
+
+  /* ══ (F) LOS DOS GLOBOS ⓘ ════════════════════════════════════════════════════════════════
+     ⚠️ LA GEOMETRIA SE MIDE CON LA PESTANA ABIERTA. generarInforme() cambia de pestana, asi que
+     medir despues de llamarlo da 0x0 sobre un boton que SI se dibuja. */
+  const globo = function (clave) {
+    limpiarOverlays();
+    try { showTab('hemodinamica'); } catch (e) {}
+    const sc = EL('tep-seccion'); if (sc) sc.style.display = '';
+    const b = document.querySelector('[data-vinfo="' + clave + '"]');
+    /* ⚠️ DEVUELVE UNA FORMA COMPLETA Y NO UN {ERROR}: con el boton ausente —que es justo lo que
+       pasa contra el arbol de ANTES de esta tanda— un {ERROR} deja gM.t en undefined y el caso
+       muere por EXCEPCION en la primera condicion que lo lea. Un caso que cae por excepcion no
+       dice CUAL invariante se rompio, y este archivo pide que ninguna caiga asi. */
+    if (!b) return { w: 0, h: 0, t: 'NO EXISTE EL BOTON ' + clave };
+    const g = b.getBoundingClientRect();
+    b.click();
+    const card = EL('vinfo-card');
+    const t = card ? (card.textContent || '').replace(/\\s+/g, ' ').trim() : 'SIN TARJETA';
+    try { if (FN('vInfoCerrar')) vInfoCerrar(true); } catch (e) {}
+    return { w: Math.round(g.width), h: Math.round(g.height), t: t }; };
+  const gM = globo('tep-mcconnell');
+  ex.push(['(F1) DENOMINADOR: el globo de McConnell existe, mide 44x44 y abre con contenido',
+    gM.w === 44 && gM.h === 44 && typeof gM.t === 'string' && gM.t.length > 300,
+    JSON.stringify({ w: gM.w, h: gM.h, len: gM.t ? gM.t.length : 0 })]);
+  ex.push(['(F2) el globo de McConnell trae la sensibilidad, la especificidad, que no es patognomonico y el infarto del VD',
+    gM.t.indexOf('77 %') > -1 && gM.t.indexOf('94 %') > -1 &&
+    gM.t.indexOf('patognom') > -1 && gM.t.indexOf('infarto') > -1,
+    (gM.t || '').slice(0, 150)]);
+  ex.push(['(F3) y dice de QUIEN reproduce las cifras, porque el trabajo original no esta en la biblioteca',
+    gM.t.indexOf('Hotelling') > -1 && gM.t.indexOf('1996') > -1, '']);
+  ex.push(['(F4) y la clase con que la AHA/ACC 2026 lo lista',
+    gM.t.indexOf('clase 1') > -1 && gM.t.indexOf('B-NR') > -1 && gM.t.indexOf('e986') > -1, '']);
+  const gE = globo('tep-eco-dx');
+  ex.push(['(F5) DENOMINADOR: el globo del eco existe, mide 44x44 y abre con contenido',
+    gE.w === 44 && gE.h === 44 && typeof gE.t === 'string' && gE.t.length > 300,
+    JSON.stringify({ w: gE.w, h: gE.h, len: gE.t ? gE.t.length : 0 })]);
+  ex.push(['(F6) el globo del eco trae la clase, el nivel, la especificidad y los dos folios',
+    gE.t.indexOf('clase 3') > -1 && gE.t.indexOf('B-NR') > -1 && gE.t.indexOf('64 %') > -1 &&
+    gE.t.indexOf('e986') > -1 && gE.t.indexOf('e988') > -1,
+    (gE.t || '').slice(0, 160)]);
+
+  /* ══ (G) LA LINEA VISIBLE, Y QUE NO ENTRE AL PAPEL ═══════════════════════════════════════ */
+  const FR1 = 'orientan la evaluaci' + String.fromCharCode(243) + 'n del ventr' + String.fromCharCode(237) + 'culo derecho';
+  const FR2 = 'no recomienda la ecocardiograf';
+  limpiarOverlays();
+  try { showTab('hemodinamica'); } catch (e) {}
+  const scG = EL('tep-seccion'); if (scG) scG.style.display = '';
+  const btnEco = document.querySelector('[data-vinfo="tep-eco-dx"]');
+  const parEco = btnEco ? btnEco.closest('p') : null;
+  const parTxt = parEco ? (parEco.textContent || '').replace(/\\s+/g, ' ').trim() : 'NO EXISTE';
+  ex.push(['(G1) la linea del eco esta VISIBLE en la seccion de TEP, y sin cita',
+    parTxt.indexOf(FR1) > -1 && parTxt.indexOf('AHA') < 0 && parTxt.indexOf('e986') < 0,
+    parTxt.slice(0, 140)]);
+  ex.push(['(G2) CONTROL NEGATIVO: la seccion NO repite la frase vieja que decia lo mismo',
+    parTxt.indexOf('Orientaci' + String.fromCharCode(243) + 'n ecocardiogr') < 0, parTxt.slice(0, 140)]);
+
+  /* El papel, con el modulo INTEGRADO, que es el unico escenario en que puede publicarse. */
+  escena(con({ tapse:'12', vmax_it:'3.8', tep_vdvi:'1.3' }));
+  S('nombre', 'TC546'); S('ci', '546'); S('peso', '80'); S('talla', '172');
+  try { if (FN('amiloIntegrar') && FN('amiloIntegrado') && !amiloIntegrado('tep')) amiloIntegrar('tep'); } catch (e) {}
+  try { if (FN('generarInforme')) generarInforme(); } catch (e) {}
+  await esp();
+  const inf = (EL('informe_texto') || {}).value || '';
+  const sum = (EL('en_suma') || {}).value || '';
+  let hoja2 = '';
+  try { hoja2 = FN('amiloTextoTEP') ? amiloTextoTEP() : 'SIN FN'; } catch (e) { hoja2 = 'EXC'; }
+  ex.push(['(G3) DENOMINADOR: las tres superficies tienen contenido de TEP para auditar',
+    inf.indexOf('sobrecarga del ventr') > -1 && hoja2.indexOf('McConnell') > -1 && inf.length > 200,
+    'inf=' + inf.length + ' hoja=' + hoja2.length + ' suma=' + sum.length]);
+  ex.push(['(G4) NINGUNA de las dos frases entra al informe, al EN SUMA ni a la hoja del PDF',
+    inf.indexOf(FR1) < 0 && inf.indexOf(FR2) < 0 &&
+    sum.indexOf(FR1) < 0 && sum.indexOf(FR2) < 0 &&
+    hoja2.indexOf(FR1) < 0 && hoja2.indexOf(FR2) < 0, '']);
+  ex.push(['(G5) ni la clase, ni el nivel, ni la especificidad del 64 % llegan al papel',
+    inf.indexOf('64 %') < 0 && hoja2.indexOf('64 %') < 0 && sum.indexOf('64 %') < 0 &&
+    inf.indexOf('B-NR') < 0 && hoja2.indexOf('B-NR') < 0, '']);
+  ex.push(['(G6) la «Salvedad» sigue sin salir en la hoja del PDF',
+    hoja2.indexOf('Salvedad') < 0, hoja2.slice(0, 90)]);
+  ex.push(['(G7) el informe publica el conteo con el corte NUEVO — 4 de 6 con TAPSE 12 y VD/VI 1,3',
+    inf.indexOf('4 de 6 criterios positivos') > -1,
+    (inf.split(NL).filter(function (l) { return l.indexOf('sobrecarga del ventr') > -1; })[0] || '').slice(0, 130)]);
+
+  /* ══ (H) CONTROLES DE LO QUE NO SE TOCA ══════════════════════════════════════════════════ */
+  ex.push(['(H1) CONTROL: el Excel sigue en 440 columnas',
+    (function () { if (!FN('_labExcelRow')) return 'SIN FN';
+      const campos = {};
+      Array.prototype.forEach.call(document.querySelectorAll('input[id],select[id],textarea[id]'),
+        function (e) { if (e.type !== 'button' && e.id) campos[e.id] = (e.type === 'checkbox') ? (e.checked ? '1' : '') : e.value; });
+      const fila = window._labExcelRow({ campos: campos, fecha: '2026-10-28' });
+      return fila ? Object.keys(fila).length : 0; })() === 440,
+    'columnas']);
+  ex.push(['(H2) CONTROL: una funcion duena del Laboratorio sigue contestando igual',
+    (function () { if (!FN('_labEstenSev')) return 'SIN FN';
+      return window._labEstenSev({ campos: { em_grado: 'severa' } }, 'em_grado') === 'Severa'; })() === true,
+    'el Laboratorio responde']);
+  /* ⚠️ EL POSOPERATORIO SIGUE EL CORTE NUEVO POR DECISION DE MAICOL, y en el 0,90 EXACTO no se
+     mueve: es la prueba de que los seis consumidores comparten el MISMO predicado y no solo el
+     mismo numero. Con un «mayor o igual» en uno solo, esta condicion se pone roja. */
+  const pocus = function (v) {
+    try { __t.limpiar(); } catch (e) {}
+    limpiarOverlays();
+    S('tep_vdvi', v); S('tapse', '14');
+    try { if (FN('popPocusSync')) popPocusSync(); } catch (e) {}
+    return T('pop-pocus-vd'); };
+  const p090 = pocus('0.90'); await esp();
+  const p095 = pocus('0.95'); await esp();
+  ex.push(['(H3) DENOMINADOR: el cuadro POCUS del posoperatorio publica la fila del VD/VI',
+    p090.indexOf('VD/VI') > -1 && p090.length > 60, 'len=' + p090.length]);
+  ex.push(['(H4) el posoperatorio NO gradua dilatacion con VD/VI 0,90 exacto, igual que la capsula',
+    p090.indexOf('normal') > -1 && p090.indexOf('dilataci') < 0, p090.slice(0, 120)]);
+  ex.push(['(H5) y SI la gradua con 0,95, que es la banda que esta tanda movio',
+    p095.indexOf('dilataci') > -1, p095.slice(0, 120)]);
+
+  /* ══ (I) ESCENARIO AJENO — nada del modulo, nada se mueve ════════════════════════════════ */
+  try { __t.limpiar(); } catch (e) {}
+  limpiarOverlays();
+  ['fevi','ddfvi','ai_vol','im_grado'].forEach(function (k, i) { S(k, ['45','58','98','2'][i]); });
+  S('nombre', 'TC546b'); S('ci', '5462');
+  try { if (FN('generarInforme')) generarInforme(); } catch (e) {}
+  await esp();
+  const infA = (EL('informe_texto') || {}).value || '';
+  ex.push(['(I1) DENOMINADOR: el escenario ajeno produce informe',
+    infA.length > 80, 'len=' + infA.length]);
+  ex.push(['(I2) CONTROL NEGATIVO: sin un dato del modulo, el informe no nombra el conteo de TEP ni las frases nuevas',
+    infA.indexOf('sobrecarga del ventr') < 0 && infA.indexOf(FR1) < 0 && infA.indexOf(FR2) < 0,
+    infA.slice(0, 120)]);
+
+  return { extra: ex };
   })();
 `);
 

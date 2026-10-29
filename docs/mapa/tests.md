@@ -370,3 +370,25 @@ de escribir un caso que cense texto de pantalla: `document.body.textContent` **t
 fuente de los diecisiete `<script>` inline**, y un chequeo sobre un `toast` que el caso no dispara
 no puede fallar nunca. Dieciséis mutaciones dirigidas, 16/16 muertas; **M12 sobrevivió al primer
 barrido** y era un hueco real.
+
+
+---
+
+## Puntero — la tanda «TEP» (2026-10-29)
+
+**TC-546** — 30 condiciones, seis denominadores y ocho controles negativos. Cae contra el árbol
+anterior por **20 condiciones y ninguna por excepción**. Ficha y detalle en
+**`docs/mapa/tep-aha2026.md`** §9.
+
+**Arneses nuevos:** `scripts/_mut_tep.py` (14 mutaciones dirigidas, worktree, guarda de md5,
+14/14 muertas en el primer barrido) y `scripts/_probe_tepg.mjs` (A/B de bordes, sólo lectura).
+
+**Casos adaptados, con el motivo escrito en cada uno (DIEZ):** TC-168, TC-471, TC-500, TC-502,
+TC-507, TC-510, TC-534, TC-535, TC-537 y TC-544. **Siete los destapó la corrida completa y no el
+censo**, porque son conteos de inventario que no nombran nada de lo que la tanda tocó. Tabla en
+`docs/mapa/tep-aha2026.md` §9.
+
+⚠️ **TRES TRAMPAS NUEVAS**, en `docs/mapa/tep-aha2026.md` §8: `generarInforme()` cambia de pestaña
+y deja los globos en 0×0; el filtro del informe de TEP tiene **dos ramas** y medir sólo la de
+«criterios incompletos» da un denominador de cero; y el badge de la categoría A de HTP **agrega
+varios signos**, así que un control que le pregunte a él pasa en verde sobre cualquier corte.

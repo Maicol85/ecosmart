@@ -220,3 +220,17 @@ commits, sus dependencias y las doce trampas. En una línea, lo que toca acá:
   punto decimal intacto.
 - **Aorta**: `aoSegGrado` devuelve un solo grado, `'dilatada'`, **y el corte no se movió**.
 - **Diastólica**: la frase de «no clasificable» describe en vez de pedir un campo.
+
+
+---
+
+## Puntero — la tanda «TEP» (2026-10-29)
+
+⚠️ **LOS DOS CORTES DE LA TABLA DE LA SECCIÓN 2 DE ESTE MAPA CAMBIARON DE GUÍA Y DE VALOR.**
+Hoy el **TAPSE es `< 17 mm`** y el **VD/VI es `> 0,9`**, los dos por la **AHA/ACC 2026, Tabla 4,
+folio e989**, y el predicado del VD/VI tiene un dueño único, `tepVdViDilatado`, que leen los seis
+consumidores. La PSAP, McConnell, el 60/60 y el tabique en D **no se movieron**.
+
+Todo está en **`docs/mapa/tep-aha2026.md`**: por qué esto revierte al R7 sin contradecirlo, la
+cita falsa que se cerró, el efecto autorizado sobre el posoperatorio, los dos globos ⓘ nuevos y
+las cinco trampas medidas.

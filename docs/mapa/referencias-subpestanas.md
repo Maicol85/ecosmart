@@ -423,3 +423,15 @@ No cambió ningún dato clínico. Movió notas de trabajo al globo ⓘ y a `docs
 dejó una sola cita al final de cada bloque, sacó las mayúsculas de en medio y dejó cada contenido
 una sola vez por sección. **Lo que esta tanda hizo está en `docs/mapa/a-evidencia-textos.md`**, y
 el caso que lo fija es **TC-537** (ficha en `docs/mapa/tests-fichas-537.md`).
+
+
+---
+
+## Puntero — la tanda «TEP» (2026-10-29)
+
+La ficha `ref-tep` (subpestaña **`fun`**) cambió de fuente en **dos** de sus filas: el TAPSE y el
+cociente VD/VI pasan a la **AHA/ACC 2026, Tabla 4, folio e989**. La ESC 2019 **sigue** sosteniendo
+McConnell, el signo 60/60 y el tabique en D. Y la fila «¿Falla del ventrículo derecho?» de la
+ficha del **posoperatorio** tenía una cita falsa, que se cerró.
+
+Detalle en **`docs/mapa/tep-aha2026.md`** §4.

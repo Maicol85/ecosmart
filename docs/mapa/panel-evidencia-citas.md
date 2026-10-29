@@ -112,3 +112,19 @@ pasa a tener **dos** entradas: `vexus2020` (Beaubien-Souligny, la graduación) y
 buscar el PDF por el apellido correcto.
 
 **`docs/mapa/c1-hemodinamica.md` § 1.**
+
+
+---
+
+## Puntero — la tanda «TEP» (2026-10-29)
+
+Entrada nueva en `IND_REFS`: **`ahaAccTep2026`** — Creager y cols., *Circulation*
+2026;153:e977-e1051. Regla de folio: **folio = «e» + (hoja del PDF + 976)**, comprobada en el pie
+impreso de tres hojas.
+
+Las filas del VD/VI y del TAPSE de `_indTEP` pasan de citar `escTep2019` a citar esta entrada, y
+por la **numeración por sección** eso corre la ESC 2019 de `[1]` a `[2]` en esa sección — que es
+el mecanismo funcionando, no un defecto. Ver **`docs/mapa/tep-aha2026.md`**.
+
+⚠️ **Hotelling 2024 NO entra a este registro**, y es deliberado: su contenido vive en un globo ⓘ
+con su propio campo `fuente`, y ninguna fila lo cita con corchete.

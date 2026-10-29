@@ -226,3 +226,18 @@ cerrar**, así que para seguir tabulando hace falta uno más.
 dos tarjetas) · `teclado` · `aislamiento` (con las dos rutas de repintado) · `convive`.
 
 **Cobertura: TC-451**, nueve condiciones, tres denominadores y dos controles negativos.
+
+
+---
+
+## Puntero — la tanda «TEP» (2026-10-29)
+
+Dos entradas nuevas del registro `VINFO`, que pasa de 60 a **62**:
+
+- **`'tep-mcconnell'`** — el rendimiento del signo: 77 % / 94 %, VPP 71 %, VPN 96 %, que no es
+  patognomónico y que el infarto del VD puede parecerse. ⚠️ Las cifras se citan **por quien las
+  reproduce** (Hotelling 2024), porque el trabajo original de McConnell no está en la biblioteca.
+- **`'tep-eco-dx'`** — la clase 3 «sin beneficio», nivel B-NR, y la especificidad del 64 %.
+  ⚠️ Ese 64 % es la especificidad **global**, no la del paciente inestable.
+
+Los dos botones van con `vinfo-btn-44` y miden 44×44. Ver **`docs/mapa/tep-aha2026.md`** §5 y §6.

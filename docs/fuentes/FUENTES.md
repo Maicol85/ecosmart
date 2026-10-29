@@ -6593,3 +6593,114 @@ arriba):
 | Precarga del posoperatorio (12-18 mmHg) | — | **sin cambios** — diseño del 18/09 | — | — |
 
 **Fecha de consulta de las dos lecturas en imagen de esta tanda: 28/10/2026.**
+
+---
+
+# La tanda TEP — los cortes del VD por la AHA/ACC 2026 (2026-10-29)
+
+**Decisión de Maicol del 28/10/2026:** en los cortes del ventrículo derecho para embolia pulmonar
+manda la AHA/ACC 2026; el signo de McConnell se redacta de forma descriptiva; el eco se presenta
+como orientativo, con el detalle en el ⓘ y el papel descriptivo; y **la app no asigna ninguna
+categoría de riesgo de TEP**.
+
+## Las fuentes, y cómo se leyeron
+
+### 1 · AHA/ACC 2026 de embolia pulmonar — `ahaAccTep2026` (ENTRADA NUEVA)
+
+Creager MA, et al. *2026 AHA/ACC/ACCP/ACEP/CHEST/SCAI/SHM/SIR/SVM/SVN Guideline for the Evaluation
+and Management of Acute Pulmonary Embolism*. **Circulation 2026;153:e977-e1051.**
+doi:10.1161/CIR.0000000000001415. Original en inglés.
+
+**Regla de folio: folio = «e» + (hoja del PDF + 976)**, comprobada en el pie impreso de las tres
+hojas que se citan — hoja 13 → `e989`, hoja 10 → `e986`, hoja 12 → `e988`.
+
+**Verificada EN IMAGEN a 400 ppp.** Transcripción literal de lo que se citó:
+
+**Tabla 4 — «Optimal Methods of RV Dysfunction Assessment on Echocardiogram»** (hoja 13, folio
+e989), columna «Definition of Parameter»:
+
+| Parámetro | Técnica recomendada | Definición |
+|---|---|---|
+| RV dimension | 1) telediástole en eje largo paraesternal centrado en el VD; 2) apical centrada en el VD | 1) `EDD ≥30 mm`; 2) `RV basal EDD ≥41 mm` |
+| RV/LV | cociente telediastólico (apical o subcostal) | **`RV/LV >0.9`** |
+| TAPSE | excursión sistólica de la pared libre del VD, modo M en el anillo tricuspídeo lateral | **`TAPSE <1.7 cm is abnormal`** |
+| TDI S′Velocity | Doppler pulsado en el anillo tricuspídeo lateral, vista centrada en el VD | `TDI S' 9.5 cm/s is abnormal` |
+| TR velocity | Doppler continuo, varias ventanas, la velocidad más alta | `≥2.9 m/sec suggests pulmonary hypertension` |
+
+⚠️ **LA FILA DE LA ONDA S′ NO PUBLICA OPERADOR.** Escribe «TDI S' 9.5 cm/s is abnormal», sin `<`
+ni `≤`, a diferencia de las otras cuatro. **Por eso no se cita como corte.**
+
+**Recomendación 12 — Clase 1, Nivel B-NR** (hoja 10, folio e986): «In patients with acute PE who
+undergo transthoracic echocardiography, RV dysfunction should be assessed and reported by the
+following parameters: RV/LV end-diastolic ratio; RV end-diastolic diameter; tricuspid annular
+plane systolic excursion (TAPSE); estimated right ventricular systolic pressure; RV free wall
+hypokinesis with sparing of the apex (McConnell's sign); tricuspid systolic velocity; paradoxical
+septal motion; and IVC respirophasic collapse to assist with risk stratification.»
+
+**Recomendación 9 — Clase «3: No Benefit», Nivel B-NR** (hoja 10, folio e986): «In patients with
+suspected acute PE, an echocardiogram is not recommended to confirm or refute the diagnosis of
+PE.»
+
+**Texto de apoyo de la recomendación 9** (hoja 12, folio e988): «The performance of
+echocardiography to detect PE improves in patients with hemodynamic compromise, but the overall
+specificity remains suboptimal (64%); therefore, the diagnosis of PE should be confirmed with a
+direct and dedicated PE imaging test.»
+
+**Tabla 5** (hoja 13, folio e989) publica las categorías clínicas **A a E** de este documento.
+**La aplicación NO las asigna**, por decisión de Maicol.
+
+### 2 · ESC 2019 de embolia pulmonar — `escTep2019` (entrada ya registrada)
+
+⚠️ **CENSADO EL DOCUMENTO ENTERO: sus 58 hojas NO contienen un solo «17 mm».** La única aparición
+de un corte de TAPSE es «TAPSE < 16 mm», en el cuerpo del folio 497.e17. **Esto es lo que hacía
+falsa la cita que esta tanda cerró.**
+
+Verificado en imagen, hoja 14, folio 497.e14, literal: «La detección de signos ecocardiográficos
+de sobrecarga por presión del VD ayuda a distinguir la TEP aguda de la hipocinesia o acinesia de
+la pared libre del VD debido a infarto del VD, que puede semejar el signo de McConnell.» **Esta
+frase es la única de este documento que esta tanda cita de nuevo.**
+
+### 3 · Hotelling 2024 — el signo de McConnell
+
+Hotelling J, Bruno E, Greathouse F, Walsh K, Oliveros E, Brailovsky Y, Darki A, West FM.
+**«Echocardiography and Pulmonary Embolism»**. In: Grodzin CJ et al. (eds.), *PERT Consortium
+Handbook of Pulmonary Embolism*. © PERT 2024. doi:10.1007/978-3-030-70904-4_67-1.
+
+**Verificada EN IMAGEN a 500 ppp, hoja 8**, sección «McConnell's Sign», literal: «This finding has
+a 77% sensitivity and a 94% specificity for the diagnosis of APE, with a positive predictive value
+of 71% and a negative predictive value of 96% (McConnell et al. 1996).» · «Thus, the presence of a
+McConnell's sign should raise high suspicion for APE, but this finding is **not pathognomonic**.»
+
+⚠️ **EL TRABAJO ORIGINAL DE McCONNELL (1996) NO ESTÁ EN LA BIBLIOTECA.** Por eso las dos cifras se
+citan **por quien las reproduce**, y el globo lo dice con todas las letras. Es la regla de «lo que
+no se leyó en texto completo no se cita».
+
+⚠️ **ESTE DOCUMENTO NO ESTÁ EN `IND_REFS`**, y es deliberado: su contenido vive en un globo ⓘ, que
+lleva su propio campo `fuente`, y **ninguna fila del panel lo cita con corchete**.
+
+## Cambios de evidencia
+
+| Qué | Antes | Ahora | Fuente | Commit |
+|---|---|---|---|---|
+| `TEP_TAPSE_BAJO_MAX` | 16 mm | **17 mm**, operador `<` | AHA/ACC 2026, Tabla 4, folio e989 | TEP-1 |
+| `TEP_VDVI_DILAT_MIN` | 1,0, operador `>=` | **0,9, operador `>`** | idem | TEP-1 |
+| Dueño del predicado | ninguno — seis copias del operador | **`tepVdViDilatado`** | — | TEP-1 |
+| Badge del VD/VI de la cápsula | «dilatación VD (≥1.0)» | «dilatación VD (>0.9)» | idem | TEP-1 |
+| Rótulo escrito del campo `tep_vdvi` | «Patológico: ≥1,0» | «Patológico: >0,9» | idem | TEP-1 |
+| Ficha de Referencias, fila del VD/VI | «≥ 1,0 · ESC 2019, folio 497.e17 y Figura 3 B» | «> 0,9 · AHA/ACC 2026, Tabla 4 (folio e989)» | idem | TEP-1 |
+| Ficha de Referencias, fila del TAPSE | «< 16 mm · ESC 2019, folio 497.e17 y Figura 3 G» | «< 17 mm · AHA/ACC 2026, Tabla 4 (folio e989)» | idem | TEP-1 |
+| Ficha del **posoperatorio**, «¿Falla del VD?» | «TAPSE <17 mm · VD/VI ≥1,0 · **ESC 2019**, folio e17» — **cita falsa** | «TAPSE <17 mm · VD/VI >0,9 · **AHA/ACC 2026**, Tabla 4, folio e989» | idem | TEP-1 |
+| Evidencia, filas del VD/VI y del TAPSE | citaban `escTep2019` | citan `ahaAccTep2026` | idem | TEP-1 |
+| Nota final de `escTep2019` | «la aplicación aplica el del cuerpo» | la app ya no gradúa con este documento; la discrepancia queda como propiedad de la fuente | — | TEP-1 |
+| Cápsula de McConnell | «Presente — altamente específico de TEP ✓» | «Presente ✓» | — (decisión de Maicol) | TEP-2 |
+| Hoja del PDF, fila de McConnell | llevaba el mismo adjetivo | «Signo de McConnell: Presente ✓» | idem | TEP-2 |
+| ⓘ `tep-mcconnell` | **no existía** | 77 % / 94 % / VPP 71 % / VPN 96 %, no patognomónico, infarto del VD, clase 1 · B-NR | Hotelling 2024 hoja 8 · ESC 2019 folio 497.e14 · AHA/ACC 2026 folio e986 | TEP-2 |
+| Primera línea de la tarjeta de TEP | «Orientación ecocardiográfica de disfunción VD por sobrecarga aguda de presión (TEP/HTP aguda).» | «Los hallazgos ecocardiográficos orientan la evaluación del ventrículo derecho.» | — (decisión de Maicol; sin cita, regla R2) | TEP-3 |
+| ⓘ `tep-eco-dx` | **no existía** | clase 3 «sin beneficio», nivel B-NR, especificidad 64 % | AHA/ACC 2026, recomendación 9 (folio e986) y su texto de apoyo (folio e988) | TEP-3 |
+| Registro `VINFO` | 60 entradas | **62** | — | TEP-2 / TEP-3 |
+| «Salvedad» de la hoja del PDF | **ya estaba retirada** (C-E2, 21/10) | sin cambios — se **confirmó midiendo** en los dos árboles | — | TEP-3 |
+| `VD_VI_HTP_MIN` | 1,0 con `>` | **sin cambios** | ESC/ERS 2022 Tabla 10 folio 28 · ASE 2025 Tabla 8 folio 173 | — |
+| `UMBRAL_TAPSE_NORMAL` | 17 mm | **sin cambios** — coincide en el número con el de TEP y no es el mismo corte | ASE 2025, Tabla 1, folio 145 | — |
+| Categorías de riesgo de `_indTEP` | Tabla 8 de la ESC 2019 | **sin cambios** — reportadas, no retiradas | ESC 2019, Tabla 8, folio 497.e20 | — |
+
+**Fecha de consulta de las tres lecturas en imagen de esta tanda: 29/10/2026.**

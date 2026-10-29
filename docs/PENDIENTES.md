@@ -9164,3 +9164,83 @@ ETT Avanzado del PDF y el PPT. **I / II / III / IV** lo usan `forrCuadrante`, `_
 La **regla** es una sola desde el C2-4b; los **rótulos** son de cada superficie. No se unificaron
 porque unificarlos cambiaría el texto de un informe firmado. Los ejes del gráfico tampoco se
 tocaron: decisión de Maicol.
+
+---
+
+# Tanda TEP (2026-10-29) — lo declarado
+
+## TEP-a · Las tres referencias de la Tabla 4 que la app no tiene
+
+La fila `RV/LV >0.9` de la **Tabla 4** de la AHA/ACC 2026 cita **[42, 51]**, y la del TAPSE cita
+**[44, 51]**. Ninguno de esos tres trabajos está en la biblioteca, así que **el corte se cita a la
+guía y no al estudio primario**, que es lo correcto, pero quiere decir que no se pudo verificar
+cómo esos trabajos derivaron el 0,9 ni el 1,7 cm.
+
+**Lo que falta:** conseguir las referencias 42, 44 y 51 y registrarlas.
+
+## TEP-b · El trabajo original de McConnell (1996) no está en la biblioteca
+
+Las cifras del globo —77 %, 94 %, VPP 71 %, VPN 96 %— se citan **como las reproduce Hotelling
+2024**, y el texto lo dice. **No se leyó el original.**
+
+**Lo que falta:** McConnell MV y colaboradores, *Am J Cardiol* 1996. Con el original leído, la
+cita del globo puede pasar a ser directa.
+
+## TEP-c · La sección de TEP no vive en «la pestaña de ventrículo derecho y TEP»
+
+La orden de esta tanda la ubicaba ahí. **Medido: vive en `tab-hemodinamica`**, la pestaña
+**🫀 Hemodinámica**, dentro de la tarjeta `tep-seccion`. No hay ninguna pestaña que se llame
+«ventrículo derecho y TEP»: el VD vive en su propia pestaña y el TEP en Hemodinámica.
+
+**Decidir:** si conviene mudarla, o si la ubicación actual es la correcta y lo que hay que
+corregir es la documentación que la nombra de otra forma.
+
+## TEP-d · La app SÍ asigna categorías de riesgo de TEP, en el panel de Evidencia
+
+Respuesta al punto 3d, **reportada y no retirada**, como pedía la orden.
+
+`_indTEP` publica **cinco categorías de la Tabla 8 de la ESC 2019** —«Riesgo ALTO»,
+«INTERMEDIO-ALTO», «INTERMEDIO-BAJO», «INTERMEDIO» y «BAJO»— más una rama «la tabla no publica
+esta combinación». Se deciden con **las cuatro respuestas que el médico contesta en el panel**
+(`tep.ih`, `tep.vd`, `tep.pesi`, `tep.tropo`), **nunca con el conteo del eco**.
+
+**Ejemplo medido:** con «Inestabilidad hemodinámica = Sí» y «Disfunción del ventrículo derecho =
+Sí», la sección publica «**Riesgo ALTO** — Inestabilidad hemodinámica con disfunción del
+ventrículo derecho…».
+
+**Dónde NO aparece, verificado:** la cápsula de pantalla, el informe narrativo, el EN SUMA, la
+hoja del PDF y el PPT. El span `tep-estratificacion` que las publicaba se retiró en el C-E2 y hoy
+**no existe en el archivo** (censado: cero ocurrencias).
+
+**Decidir:** si esas categorías se quedan donde están —que es lo que la decisión (4) parece
+permitir, porque el panel no es el papel firmado— o si también salen.
+
+## TEP-e · Las categorías A a E de la AHA/ACC 2026 no están en ninguna parte
+
+La **Tabla 5** (hoja 13, folio e989) publica el esquema de categorías clínicas **A a E** de este
+documento. La app **no lo implementa**, que es lo que la decisión (4) pide.
+
+**Queda escrito** para que nadie lo agregue creyendo que falta: está ausente a propósito.
+
+## TEP-f · TC-476 y TC-478 son intermitentes por una carrera propia
+
+Los dos miden que la maquinaria `numdec` haya tomado el campo `vd_vi` (clase `numdec` e
+`inputmode=decimal`). Con la máquina cargada, el caso lee **antes** de que esa pasada termine y
+reporta `INPUT//null`.
+
+**Medido, y no es de esta tanda:** los dos árboles convierten **384** inputs, con `vd_vi` en
+`INPUT/numdec/decimal` y **cero errores de consola**, y los dos casos pasan **3 de 3** al
+repetirlos sin carga.
+
+**Lo que falta:** que los dos casos **esperen** a que la conversión termine en vez de leer el
+atributo en el primer turno, igual que `pdfTxt` tiene que esperar a `window.jspdf` (**E-h**).
+
+## TEP-g · El pie del cuadro POCUS vuelve a poder mentir
+
+Dice «los cortes son los que la app ya aplica en la cápsula de TEP (TAPSE 17 mm · VD/VI 0.9)».
+El **VD/VI** sale del dueño único, así que no puede desincronizarse. El **TAPSE** sale de
+`UMBRAL_TAPSE_NORMAL` (ASE 2025) mientras la cápsula usa `TEP_TAPSE_BAJO_MAX` (AHA/ACC 2026):
+**hoy coinciden en 17 y el día que una de las dos guías lo mueva, ese pie afirma algo falso.**
+
+**Decidir:** si ese cuadro debe leer el del TEP —que es lo que su propio texto afirma— o si el
+texto debe decir que son dos cortes de dos fuentes.
