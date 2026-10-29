@@ -91435,11 +91435,22 @@ caso('TC-537', 'Tanda A: las ocho Evidencias compactas despiertas a la vez sin u
        la misma dependencia de orden que TC-507 pago en la tanda AJ7: verde con --solo y rojo en
        el suite. */
     const tvd = document.querySelector('#ref-vd2 table.ev-tabla');
-    const fvd = tvd ? [].slice.call(tvd.rows).map(r => [].slice.call(r.cells).map(c => N(c.textContent)))
-      .filter(f => /disfunción leve/.test(f[0] || ''))[0] : null;
-    ex.push(['(C4) la fila de la banda leve dice el valor y «Decisión de la aplicación», sin repetirlo',
-      !!fvd && fvd[1] === 'de 15 a 20 %' && fvd[2] === 'Decisión de la aplicación',
-      fvd ? JSON.stringify(fvd) : 'FILA NO ENCONTRADA']);
+    /* ⚠️ ADAPTADO EN LA TANDA G (G-2d, 2026-10-29), Y ESTE ES EL MOTIVO.
+       Hasta hoy la fila tenia TRES celdas y esta condicion exigia que la TERCERA dijera
+       «Decision de la aplicacion», o sea que ese texto estuviera bajo la cabecera «Mujer» —que
+       es exactamente el defecto que A-a declaro y que el 2d de esta tanda viene a cerrar—. Hoy
+       son DOS celdas: la segunda ocupa «Varon» y «Mujer» con un colspan de 2, porque la fuente
+       no separa por sexo.
+       SIGUE PUDIENDO FALLAR, y por tres lados: el valor de la banda tiene que estar -es lo que
+       mi primer intento borro-, el origen tambien, y la celda tiene que ocupar DOS columnas:
+       volver a las tres celdas pone la condicion en rojo. */
+    const trVd = tvd ? [].slice.call(tvd.rows).filter(r => /disfunción leve/.test(N(r.cells[0] ? r.cells[0].textContent : '')))[0] : null;
+    const fvd = trVd ? [].slice.call(trVd.cells).map(c => N(c.textContent)) : null;
+    const cspVd = trVd && trVd.cells[1] ? trVd.cells[1].colSpan : 0;
+    ex.push(['(C4) la fila de la banda leve dice el valor y «Decisión de la aplicación» en UNA celda que ocupa las dos columnas de sexo',
+      !!fvd && fvd.length === 2 && cspVd === 2
+      && fvd[1].indexOf('de 15 a 20 %') > -1 && fvd[1].indexOf('Decisión de la aplicación') > -1,
+      fvd ? (JSON.stringify(fvd) + ' colspan=' + cspVd) : 'FILA NO ENCONTRADA']);
     const fpop = FP ? FP.querySelector('table') : null;
     ex.push(['(C5) las DIECISEIS filas de la ficha del posoperatorio siguen, cada una con su ⓘ',
       !!fpop && fpop.rows.length - 1 === 16

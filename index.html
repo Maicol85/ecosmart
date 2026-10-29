@@ -980,8 +980,13 @@
      campo —que es justo lo que la orden prohíbe—. `.pac-id-mk` es (0,1,0) y `button` es
      (0,0,1): gana por especificidad, igual que la excepción del header doce reglas más arriba.
      ⚠️ Y EL ÁREA TÁCTIL NO SE PIERDE: la extiende un `::after` absoluto, que no ocupa lugar en
-     el flujo —el patrón que el botón del «porqué» de la vista 2D ya usa—. Queda en 40 × 40,
-     medible con `elementFromPoint`, sin agrandar un píxel de lo que se ve.
+     el flujo —el patrón que el botón del «porqué» de la vista 2D ya usa—, sin agrandar un píxel
+     de lo que se ve.
+     ⚠️ ESTE COMENTARIO DECÍA «Queda en 40 × 40» Y ERA FALSO (G-2, 2026-10-29). Se deriva de los
+     números de abajo: `left:-14px;right:-14px` sobre una caja de 7 px dan **35**, y
+     `top:-15px;bottom:-15px` sobre 11 px dan **41**. Medido con `elementFromPoint` a 1000, 768 y
+     390 px: **35 × 41**, con las cuatro esquinas devolviendo el propio botón. No se movió ningún
+     valor; lo que se corrige es la cifra que el comentario afirmaba.
      ⚠️ EL GLIFO SALE DEL CSS Y NO DE JS: así el círculo y el `aria-pressed` no pueden
      desincronizarse —uno es el estado y el otro lo deriva—, que es el defecto que este archivo
      ya pagó con los rótulos cableados al lado de una constante.
@@ -2088,7 +2093,21 @@
 /* ── Botón de válvula con severidad integrada ──
    Cada válvula tiene [Insuficiencia][🟡 Severidad ▼] y [Estenosis][🟡 Severidad ▼].
    El wrap es relative porque el dropdown se posiciona absolute sobre él. */
-#tab-valvulas .valv-btn-wrap{position:relative;display:flex;align-items:stretch;gap:6px;flex:1;min-width:0;}
+/* ⚠️ LA FILA APILA SOLA, Y LOS 200 px NO SON UN NUMERO INVENTADO: SON LA MEDICION (G-2e).
+   A 390 px la pastilla «Insuficiencia» quedaba en 50 px de caja —48 utiles— para un rotulo que
+   mide 61: se leia «Insuficienc». Las ocho pastillas de las cuatro valvulas, a 390 y a 360 px.
+   El ancho que necesita la pastilla se DERIVA, no se elige: la columna de severidad mide 104 px
+   y es `flex-shrink:0`, el `gap` interno son 6 y el padding del boton 14+14, asi que para que
+   entre un rotulo de 61 px hace falta `61 + 28 + 6 + 104 = 199` px de `.valv-btn-wrap`. Con
+   `flex-basis:200px` la fila cae sola a una pastilla por renglon en cuanto las dos no entran,
+   sin ninguna media query y sin un breakpoint que haya que recordar — el mismo argumento que el
+   `auto-fit` de `.valv-morf-row--tres` doce reglas mas abajo.
+   ⚠️ POR ENCIMA NO CAMBIA NADA: `flex:1` es `1 1 0%` y `flex:1 1 200px` reparte igual el sobrante
+   en cuanto las dos caben, asi que las dos pastillas siguen midiendo `(100% - 8px)/2` — que es de
+   donde `.valv-morf-row--tres` deriva su ancho, y lo que TC-522 vigila. Medido a 1440, 1000 y
+   768 px: identico a HEAD. */
+#tab-valvulas .valv-pills-row{flex-wrap:wrap;}
+#tab-valvulas .valv-btn-wrap{position:relative;display:flex;align-items:stretch;gap:6px;flex:1 1 200px;min-width:0;}
 #tab-valvulas .valv-btn-wrap .valv-pill{flex:1;min-width:0;}
 /* min-height:44px = mínimo táctil (acá NO se hace el override a 0 que usan las viejas pills) */
 #tab-valvulas .valv-sev-btn{font-size:11px;padding:4px 10px;border-radius:6px;border:1px solid #b45309;background:#fef3c7;color:#92400e;cursor:pointer;white-space:nowrap;flex-shrink:0;min-height:44px;min-width:44px;display:inline-flex;align-items:center;justify-content:center;font-family:inherit;font-weight:600;align-self:center;}
@@ -5826,7 +5845,7 @@ window.cerrarSesionReal = cerrarSesionReal;
                onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();vmCarpIrAlEte()}"></div>
         </div>
       </div>
-      <div style="display:flex;gap:8px;margin-bottom:12px;">
+      <div class="valv-pills-row" style="display:flex;gap:8px;margin-bottom:12px;">
         <div class="valv-btn-wrap">
           <button type="button" class="btn btn-ghost valv-pill" id="pill-insuf-mitral" onclick="toggleValvPill('mitral','insuf')">Insuficiencia</button>
           <div class="valv-sev-col">
@@ -6943,7 +6962,7 @@ window.cerrarSesionReal = cerrarSesionReal;
           <select id="va_morf" onchange="valvProtSync()"><option>Trivalva normal</option><option>Bicúspide</option><option>Calcificada</option><option>Reumática</option><option value="Prótesis biológica">Prótesis biológica (SAVR)</option><option value="Prótesis mecánica">Prótesis mecánica (SAVR)</option><option>TAVI</option><option>Endocarditis</option><option>Carcinoide</option></select>
         </div>
       </div>
-      <div style="display:flex;gap:8px;margin-bottom:12px;">
+      <div class="valv-pills-row" style="display:flex;gap:8px;margin-bottom:12px;">
         <div class="valv-btn-wrap">
           <button type="button" class="btn btn-ghost valv-pill" id="pill-insuf-aortica" onclick="toggleValvPill('aortica','insuf')">Insuficiencia</button>
           <div class="valv-sev-col">
@@ -7481,7 +7500,7 @@ window.cerrarSesionReal = cerrarSesionReal;
                firmado y dentro de una celda de datos. -->
         </div>
       </div>
-      <div style="display:flex;gap:8px;margin-bottom:12px;">
+      <div class="valv-pills-row" style="display:flex;gap:8px;margin-bottom:12px;">
         <div class="valv-btn-wrap">
           <button type="button" class="btn btn-ghost valv-pill" id="pill-insuf-tricuspide" onclick="toggleValvPill('tricuspide','insuf')">Insuficiencia</button>
           <div class="valv-sev-col">
@@ -8077,7 +8096,7 @@ window.cerrarSesionReal = cerrarSesionReal;
            y `bloque-insuf-pulmonar`, que es lo que `toggleValvPill` exige para no salir por su
            `return` temprano. La EP autogradúa (calcVP) y tiene su aviso rojo §5 (clave `ep` del
            registro); la IP NO autogradúa y NO está en el registro, así que no lleva aviso rojo. -->
-      <div style="display:flex;gap:8px;margin-bottom:12px;">
+      <div class="valv-pills-row" style="display:flex;gap:8px;margin-bottom:12px;">
         <div class="valv-btn-wrap">
           <button type="button" class="btn btn-ghost valv-pill" id="pill-insuf-pulmonar" onclick="toggleValvPill('pulmonar','insuf')">Insuficiencia</button>
           <div class="valv-sev-col">
@@ -45223,10 +45242,29 @@ function _evRefTabla(filas, refIdx) {
           CUARENTA Y OCHO filas en sus cinco llamadas y `fuente` lo trae UNA, asi que las otras
           cuarenta y siete se pintan exactamente igual y el cambio no alcanza a ninguna banda de
           guia. */
-    [f.h, f.fuente || f.m].forEach(function (x) {
-      const td = document.createElement('td'); td.textContent = x;
-      td.style.color = 'var(--text)'; tr.appendChild(td);
-    });
+    /* ⚠️ CON `fuente`, UNA SOLA CELDA QUE OCUPA LAS DOS COLUMNAS (G-2d, 2026-10-29).
+       Antes se pintaba en el lugar de la celda de la DERECHA, o sea bajo la cabecera «Mujer»:
+       la tabla afirmaba que «Decisión de la aplicación» era el valor de la mujer. Combinar las
+       dos celdas es la solución mínima, porque no toca la cabecera, no parte la tabla y no
+       alcanza a ninguna otra fila. Medido: por este armador pasan CUARENTA Y SIETE filas en sus
+       cinco llamadas y `fuente` la trae UNA —la banda de disfunción leve del strain de pared
+       libre—, así que las otras cuarenta y seis se pintan exactamente igual. */
+    if (f.fuente) {
+      /* ⚠️ LA CELDA COMBINADA LLEVA EL VALOR **Y** SU ORIGEN, Y ESO NO ES UN ADORNO.
+         El primer intento puso solo `f.fuente` y BORRO la banda «de 15 a 20 %» de la tabla:
+         una perdida de contenido clinico que la sonda de pantalla no ve —la fila seguia
+         existiendo— y que caza TC-535 (F1), que exige ese valor. El valor es el dato; el origen
+         dice de donde sale. Los dos entran en la celda que ocupa «Varon» y «Mujer», que es
+         justo lo que la fila quiere decir: la fuente NO separa por sexo. */
+      const td = document.createElement('td');
+      td.textContent = f.h + ' · ' + f.fuente;
+      td.colSpan = 2; td.style.color = 'var(--text)'; tr.appendChild(td);
+    } else {
+      [f.h, f.m].forEach(function (x) {
+        const td = document.createElement('td'); td.textContent = x;
+        td.style.color = 'var(--text)'; tr.appendChild(td);
+      });
+    }
     t.appendChild(tr);
   });
   return t;
@@ -45387,7 +45425,22 @@ function evRefPintar(id) {
       w.className = 'ev-ref';
       w.appendChild(_evDiv('ev-rot', 'Senos de Valsalva — ' + g.rot
         + (nSin ? (' [' + nSin + ']') : '')));
-      w.appendChild(_evNomoSvg(g, null, null, null));
+      /* ⚠️ EL GRÁFICO DE REFERENCIAS SE DIBUJA MÁS GRANDE Y SU CITA SE SEPARA (G-2b, 2026-10-29).
+         `_evNomoSvg` lo arma con `viewBox="0 0 316 150"`, `width="100%"` y `height="150"`. Con
+         `preserveAspectRatio` por omisión el dibujo queda ATADO A LOS 150 px DE ALTO y se centra
+         en una caja de 1194 px: medido, se renderizaba a su tamaño nativo de 316×150 perdido en
+         el medio del renglón. Soltando el alto —`height:auto` con el mismo viewBox— y poniéndole
+         un techo de ancho, pasa a 560×266 a 1440 px, que es 1,77 veces lo de antes, y sigue
+         escalando solo por debajo (a 390 px da ~340×161).
+         ⚠️ NO SE TOCA `_evNomoSvg` NI `AOR_G`: el MISMO armador dibuja la tarjeta ⓘ de la raíz,
+         que ya entra bien en sus 300 px. El cambio vive en este lugar de llamada y en ningún otro.
+         ⚠️ Y LA CITA NO SE PEGA: la fila `.ev-cat` de abajo trae `margin-top:1px`, así que la
+         ecuación quedaba a 4 px del eje. El aire va en el margen INFERIOR del gráfico y no en
+         `.ev-cat`, que es una clase compartida por todo el panel. No cambia ningún valor ni
+         ningún texto. */
+      const svgN = _evNomoSvg(g, null, null, null);
+      svgN.style.cssText = 'display:block;width:100%;max-width:560px;height:auto;margin:2px auto 10px;';
+      w.appendChild(svgN);
       w.appendChild(_evDiv('ev-cat', 'y = ' + _evNum(g.a, 2) + ' + ' + _evNum(g.b, 2)
         + 'x · error estándar ' + _evNum(g.see, 2) + ' cm · r = ' + _evNum(g.r, 2)
         + ' · rango dibujado ' + _evNum(g.bsaMin, 2) + ' a ' + _evNum(g.bsaMax, 2) + ' m²',
