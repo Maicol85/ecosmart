@@ -10200,6 +10200,22 @@ window.cerrarSesionReal = cerrarSesionReal;
           </div><!-- /#pop_mon_body -->
         </div><!-- /#pop_mon_acc -->
         </div><!-- /#pop_mon_slot -->
+        <!-- ══ LA PRESION ARTERIAL MEDIA POR LINEA ARTERIAL (POP-V2-3, 29/10/2026) ══════════
+             La opcion «Presion arterial invasiva solamente» del selector de monitoreo no abria
+             NINGUN campo: el medico elegia el dispositivo y no habia donde cargar lo unico que
+             ese dispositivo mide. Medido en HEAD.
+             ⚠️ ES EL UNICO CAMPO GUARDADO QUE ESTA TANDA AGREGA, y esta autorizado. El censo
+             pasa de 1025 a 1026 y el Excel NO se mueve: `LAB_XLS_MAP` es una lista explicita y
+             no tiene un solo `pop_` —verificado antes de escribirlo, igual que con el lactato—.
+             ⚠️ NO SE BORRA AL CAMBIAR DE DISPOSITIVO, y es deliberado: se LEE con compuerta, que
+             es lo que `pamEfectiva` ya hace con la PAM del Swan. Borrar destruiria un dato de un
+             estudio guardado; leer con compuerta no. -->
+        <div class="fg" id="pop_pai_wrap" style="display:none;margin-bottom:14px;">
+          <label for="pop_pai_pam">PAM por línea arterial (mmHg)</label>
+          <input type="number" id="pop_pai_pam" step="1" min="0" inputmode="decimal"
+                 placeholder="mmHg" oninput="popHemoSync();pamAvisoSync();popSync()">
+          <div style="font-size:10px;color:var(--text2);margin-top:4px;line-height:1.5;">Presión medida por el catéter arterial. Es la primera de la cascada: le gana a la que se tipea en el Perfil hemodinámico y a la calculada de PAS y PAD.</div>
+        </div>
     </section>
     <section class="pop-card" data-pop="pop-soporte">
       <!-- ══ UN DESPLEGABLE CERRADO, CON EL CONTADOR EN EL ENCABEZADO (POP-V2-1) ══════════
@@ -49102,20 +49118,36 @@ const PAM_FUENTE_LBL = {
      hoja del PDF del posoperatorio los imprime, y cambiarlos movería un papel firmado. La
      calculada comparte el de la tipeada porque hasta hoy viajaba dentro del mismo campo y se
      publicaba con ese mismo texto. */
-  inv: 'medida (Swan-Ganz)', tip: 'de Hemodinámica', calc: 'de Hemodinámica'
+  inv: 'medida (Swan-Ganz)', tip: 'de Hemodinámica', calc: 'de Hemodinámica',
+  /* ⚠️ LA LINEA ARTERIAL ES UN ROTULO NUEVO Y NO MUEVE NINGUN PAPEL YA FIRMADO (POP-V2-3): el
+     campo `pop_pai_pam` nace en esta tanda, asi que ningun estudio guardado puede traerlo y
+     ninguna hoja del PDF existente puede cambiar de texto. Lleva la palabra «medida», que es lo
+     que el pedido pide y lo que la distingue de la tipeada y de la calculada. */
+  art: 'medida (línea arterial)'
 };
 const PAM_FUENTE_DET = {
   /* Los largos son SÓLO para el aviso de pantalla. No entran al informe, al EN SUMA, al PDF ni
      al PPT. */
   inv: 'medida por catéter (Swan-Ganz)', tip: 'tipeada en Hemodinámica',
-  calc: 'calculada de PAS y PAD del Doppler aórtico'
+  calc: 'calculada de PAS y PAD del Doppler aórtico',
+  art: 'medida por línea arterial'
 };
 function pamEfectiva() {
   const out = { val: null, clave: null, fuente: null, detalle: null, cargadas: [], difieren: [] };
-  let inv = null;
+  /* ⚠️ EL PRIMER ESCALON SON LAS MEDIDAS POR CATETER, Y SON DOS (POP-V2-3). Las dos se leen
+     CON COMPUERTA del dispositivo elegido —lo que no se ve no decide, que es la misma regla que
+     `popPatron` aplica a los valores del PiCCO—, asi que no pueden competir entre si: el
+     selector de monitoreo tiene una sola opcion por vez. Se declaran como dos claves distintas
+     porque la hoja del PDF imprime el rotulo, y «medida (Swan-Ganz)» sobre una linea arterial
+     seria una medicion atribuida a un cateter que el paciente no tiene.
+     ⚠️ EL PiCCO NO TIENE CAMPO DE PAM EN ESTA APP, censado: sus cinco campos son GC, IC, ITBVI,
+     EVLWI y SVRI. Agregarselo seria un SEGUNDO campo guardado y esta tanda autoriza uno solo,
+     asi que se reporta y no se agrega. Ver `docs/PENDIENTES.md` → POP-b. */
+  let inv = null, invClave = 'inv';
   try {
     const mon = (document.getElementById('pop_monitor') || {}).value || '';
-    if (mon === 'swan') inv = v('pop_sw_pam');
+    if (mon === 'swan') { inv = v('pop_sw_pam'); invClave = 'inv'; }
+    else if (mon === 'pai') { inv = v('pop_pai_pam'); invClave = 'art'; }
   } catch (e) {}
   /* ⚠️ LA CALCULADA GANA CON EL VALOR QUE LA APP MATERIALIZÓ, NO CON EL CRUDO, y lo destapó el
      A/B: `aoPresionSync` escribe `pam.toFixed(0)` dentro de `hemo_pam`, así que lo que hoy
@@ -49134,7 +49166,7 @@ function pamEfectiva() {
       el.dataset.derivadoDe !== undefined && el.dataset.derivadoDe === el.value;
     if (hp !== null) { if (esNuestro) calc = hp; else tip = hp; }
   } catch (e) {}
-  const cand = [['inv', inv], ['tip', tip], ['calc', calc]];
+  const cand = [[invClave, inv], ['tip', tip], ['calc', calc]];
   cand.forEach(function (p) { if (p[1] !== null) out.cargadas.push({ clave: p[0], val: p[1] }); });
   /* El crudo entra a `cargadas` SÓLO para la comparación, y sólo si no está ya materializado:
      es lo que hace que «tipeé 95 y el Doppler dice 87» muestre el aviso. */
@@ -58987,8 +59019,13 @@ window.popMonToggle = popMonToggle;
 function popMonSync() {
   var acc = document.getElementById('pop_mon_acc');
   var slot = document.getElementById('pop_mon_slot');
-  if (!acc) return;
   var mon = (document.getElementById('pop_monitor') || {}).value || '';
+  /* El campo de la linea arterial se ve SOLO con ese monitoreo elegido (POP-V2-3). Va antes de
+     la guarda de abajo: el acordeon y este campo son dos envoltorios distintos, y si el
+     acordeon no existiera este campo tampoco se mostraria nunca. */
+  var paiW = document.getElementById('pop_pai_wrap');
+  if (paiW) paiW.style.display = (mon === 'pai') ? 'block' : 'none';
+  if (!acc) return;
   var hay = mon === 'swan' || mon === 'picco';
   acc.style.display = hay ? 'block' : 'none';
   if (!hay) { _popMonVisto = null; if (slot) slot.style.minHeight = ''; return; }
