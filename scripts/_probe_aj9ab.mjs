@@ -159,6 +159,27 @@ const MEDIR = `(() => {
     .map(d => N((d.querySelector('summary') || {}).textContent)).join(' || ') : 'SIN PANEL';
   out._evCompactas = cu ? cu.querySelectorAll('[data-ind-compacta]').length : -1;
   out._evTexto = N(cu ? cu.textContent : '');
+  /* ══ COMMIT 5 · LA FICHA DE REFERENCIAS ═══════════════════════════════════════════════
+     Su texto, su reparto en subpestanas -el paso que la tanda J se olvido con constriccion- y
+     el boton «Ver referencia» de las tres tarjetas i de esta tanda. */
+  try {
+    out._refStrain = N((document.getElementById('ref-strain') || {}).textContent);
+    out._refStrainFilas = document.querySelectorAll('#ref-strain table tr').length;
+    out._refSubFun = (typeof REF_SUBTAB !== 'undefined') ? REF_SUBTAB.fun.join(',') : 'SIN REGISTRO';
+    out._refSubTodas = (typeof REF_SUBTAB !== 'undefined')
+      ? Object.keys(REF_SUBTAB).map(k => k + ':' + REF_SUBTAB[k].length).join(' ') : 'SIN REGISTRO';
+    /* El invariante: toda entrada ref-<id> con encabezado propio tiene que estar en ALGUNA
+       subpestana. Sin esto, «la ficha existe» no se distingue de «la ficha se encuentra». */
+    const todas = (typeof REF_SUBTAB !== 'undefined')
+      ? [].concat.apply([], Object.keys(REF_SUBTAB).map(k => REF_SUBTAB[k].slice())) : [];
+    out._refSinPanel = [].slice.call(document.querySelectorAll('h2.card-head'))
+      .map(h => (String(h.getAttribute('onclick') || '').match(/toggleRef\\('([a-z0-9_-]+)'/) || [])[1])
+      .filter(Boolean).filter(id => todas.indexOf(id) < 0).join(',') || 'ninguna';
+    out._vinfoRefAJ9 = (typeof VINFO_REF !== 'undefined')
+      ? ['contr-territorio', 'patrones-sgl', 'amil-apice'].map(k => k + '->' + (VINFO_REF[k] || 'SIN')).join(' ')
+      : 'SIN REGISTRO';
+    out._vinfoRefAssert = (typeof _vinfoRefAssert === 'function') ? (_vinfoRefAssert().join(' | ') || 'sin fallas') : 'SIN FN';
+  } catch (e) { out._refStrain = 'EXC ' + String(e).slice(0, 90) }
   ['ref-pop', 'ref-pulmon', 'ref-cardiotox', 'co-referencia-seccion'].forEach(id => {
     out['_ficha_' + id] = N((document.getElementById(id) || {}).textContent);
   });

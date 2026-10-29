@@ -19412,6 +19412,47 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
   </div>
 
 
+  <!-- ⚠️ LA FICHA DE CONTRACTILIDAD Y SGL (AJ9-5). La pantalla de Contractilidad y SGL no
+       tenía un solo lugar que dijera de dónde sale cada valor: ni los cortes del SGL, ni los
+       patrones, ni los territorios, ni el 2,9 del score. Cada fila con su fuente, su tabla o su
+       figura, su hoja y su folio, LEÍDOS EN IMAGEN en el PDF original.
+       ⚠️ VA A `REF_SUBTAB` EN EL MISMO COMMIT, por la lección que `constriccion` dejó en la
+       tanda J: una ficha que no entra en el reparto existe, se abre y el buscador la indexa,
+       pero el médico que navegue por las solapas no la encuentra nunca.
+       ⚠️ ES REFERENCIAS Y NO EVIDENCIA, que es lo que la orden pide: Evidencia es para lo que
+       la guía dice que se HAGA, y acá no hay ninguna conducta.
+       ⚠️ SIN CLASE NI NIVEL, y no es un olvido: ninguno de estos documentos publica la escala
+       I / IIa / IIb / III para estos valores. Son cortes y rendimientos, no recomendaciones.
+       ⚠️ LO QUE NO TIENE FUENTE LLEVA EL CHIP y lo dice en la celda de la derecha. -->
+  <div class="card">
+    <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleRef('strain',this)">
+      📉 Contractilidad y strain longitudinal (SGL)
+      <span style="float:right;">▶</span>
+    </h2>
+    <div id="ref-strain" style="display:none;" class="card-body">
+      <table style="width:100%;border-collapse:collapse;font-size:12px;">
+        <tr style="background:var(--section-head);"><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Criterio</th><th style="padding:6px 8px;text-align:center;color:var(--accent2);">Corte</th><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Fuente</th></tr>
+        <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;">SGL <b>normal</b></td><td style="padding:5px 8px;text-align:center;">m&aacute;s negativo que &minus;18 %</td><td style="padding:5px 8px;">ASE 2025 &middot; consenso cl&iacute;nico <b>1</b>, hoja 11, folio <b>995</b></td></tr>
+        <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;">SGL <b>lim&iacute;trofe</b></td><td style="padding:5px 8px;text-align:center;">&minus;16 % a &minus;18 %</td><td style="padding:5px 8px;">ASE 2025 &middot; consenso cl&iacute;nico <b>1</b>, hoja 11, folio <b>995</b>. Los dos bordes caen de este lado</td></tr>
+        <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;">SGL <b>anormal</b></td><td style="padding:5px 8px;text-align:center;">menos negativo que &minus;16 %</td><td style="padding:5px 8px;">ASE 2025 &middot; consenso cl&iacute;nico <b>1</b>, hoja 11, folio <b>995</b></td></tr>
+        <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;">Preservaci&oacute;n apical <span style="font-size:10px;color:var(--text2);">(patrones del ojo de buey)</span></td><td style="padding:5px 8px;text-align:center;">promedio del &aacute;pex m&aacute;s de 2 veces el promedio del resto</td><td style="padding:5px 8px;">ASE 2025 &middot; consenso cl&iacute;nico <b>2</b>, hoja 12, folio <b>996</b>. La <b>Figura 6</b> de ese folio ilustra seis patrones, uno de ellos una insuficiencia renal terminal que imita la preservaci&oacute;n apical</td></tr>
+        <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;">Relaci&oacute;n apical relativa</td><td style="padding:5px 8px;text-align:center;">&aacute;pex dividido por la suma de basal y medio, mayor que 1,0</td><td style="padding:5px 8px;">Phelan D y cols., <i>Heart</i> 2012;98:1442-1448, folio <b>1442</b>. Sensibilidad 93 %, especificidad 82 %, 55 pacientes. Medida <b>s&oacute;lo con equipos General Electric</b> (Vivid 7 y Vivid 9 con EchoPAC)</td></tr>
+        <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;">Relaci&oacute;n &aacute;pice/base del <b>score</b> de amiloidosis</td><td style="padding:5px 8px;text-align:center;">&gt; 2,9 &rarr; 3 puntos</td><td style="padding:5px 8px;">Boldrini M y cols., <i>JACC: Cardiovascular Imaging</i> &middot; <b>Tabla 3</b>, hoja 29. Se define <b>septal</b> y se mide en <b>cuatro c&aacute;maras</b> (hojas 8, 17 y 18), con equipos General Electric y Philips. Sensibilidad 67 % y especificidad 77 % en la cohorte de pared engrosada (hoja 27)</td></tr>
+        <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;">Score de amiloidosis <b>diagn&oacute;stico</b></td><td style="padding:5px 8px;text-align:center;">&ge; 8 puntos</td><td style="padding:5px 8px;">Garc&iacute;a-Pav&iacute;a P y cols., <i>Eur Heart J</i> 2021;42:1554-1568 &middot; <b>Tabla 2</b>, folio <b>1558</b></td></tr>
+        <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;">Relaci&oacute;n &aacute;pice/base en la amiloidosis <b>AL</b></td><td style="padding:5px 8px;text-align:center;">&gt; 3,1</td><td style="padding:5px 8px;">Boldrini, tabla de rendimiento de la hoja <b>27</b>. Sensibilidad 51 %, especificidad 88 %. <b>No es el corte que esta aplicaci&oacute;n usa</b>: el score que publica es el de pared engrosada</td></tr>
+        <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;">Modelo de segmentos</td><td style="padding:5px 8px;text-align:center;">17 para perfusi&oacute;n &middot; 16 para motilidad</td><td style="padding:5px 8px;">Lang RM y cols., <i>J Am Soc Echocardiogr</i> 2015;28:1-39, folio <b>12</b>. Con 17, el &aacute;pex queda fuera de la lectura de motilidad porque su excursi&oacute;n y su engrosamiento son imperceptibles</td></tr>
+        <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;">Territorios coronarios</td><td style="padding:5px 8px;text-align:center;">DA 1, 2, 7, 8, 13, 14 y 17 &middot; CD 3, 4, 9, 10 y 15 &middot; CX 5, 6, 11, 12 y 16</td><td style="padding:5px 8px;">Cerqueira MD y cols., <i>J Nucl Cardiol</i> 2002;9:240-5 &middot; <b>Figura 5</b> y texto del folio <b>244</b>. La coronaria derecha, <b>cuando es dominante</b>; la circunfleja, <b>en general</b></td></tr>
+        <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;">Segmento 17 &mdash; el &aacute;pex</td><td style="padding:5px 8px;text-align:center;">el de mayor variabilidad</td><td style="padding:5px 8px;">Cerqueira, folio <b>244</b>: puede depender de cualquiera de las tres arterias</td></tr>
+        <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;"><span style="display:inline-block;border:1px solid var(--border);border-radius:4px;color:var(--text2);padding:1px 5px;margin-right:4px;font-size:9px;letter-spacing:.3px;">CRITERIO DE ECOSMART</span>Los rangos &laquo;SGL t&iacute;pico&raquo; de los quince patrones</td><td style="padding:5px 8px;text-align:center;">ilustrativos</td><td style="padding:5px 8px;">Ning&uacute;n documento de la biblioteca publica rangos de SGL por patr&oacute;n. Se censaron uno por uno</td></tr>
+        <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;"><span style="display:inline-block;border:1px solid var(--border);border-radius:4px;color:var(--text2);padding:1px 5px;margin-right:4px;font-size:9px;letter-spacing:.3px;">CRITERIO DE ECOSMART</span>La escala de motilidad incluye <b>aneurisma</b></td><td style="padding:5px 8px;text-align:center;">cinco grados</td><td style="padding:5px 8px;">Lang 2015, folio 12, publica <b>cuatro</b> &mdash;normal o hiperquin&eacute;tico, hipoquin&eacute;tico, aquin&eacute;tico y disquin&eacute;tico&mdash; y no lo incluye</td></tr>
+      </table>
+      <div style="margin-top:10px;font-size:11px;color:var(--text2);line-height:1.6;">
+        <b>Fuente:</b> Thomas JD y colaboradores, <i>Journal of the American Society of Echocardiography</i>, 2025;38:985-1020 &middot; Lang RM y colaboradores, 2015;28:1-39 &middot; Cerqueira MD y colaboradores, <i>Journal of Nuclear Cardiology</i>, 2002;9:240-5 &middot; Phelan D y colaboradores, <i>Heart</i>, 2012;98:1442-1448 &middot; Garc&iacute;a-Pav&iacute;a P y colaboradores, <i>European Heart Journal</i>, 2021;42:1554-1568 &middot; Boldrini M y colaboradores, <i>JACC: Cardiovascular Imaging</i>.
+<details style="display:inline-block;vertical-align:top;margin-left:3px;"><summary style="cursor:pointer;list-style:none;display:inline;font-weight:700;color:var(--accent2);" aria-label="Ver el detalle: las fuentes de contractilidad y strain">&#9432;</summary><div style="margin-top:4px;font-weight:400;">El documento de los 17 segmentos que se ley&oacute; es el publicado en el <i>Journal of Nuclear Cardiology</i>; el comit&eacute; que lo redact&oacute; es el grupo de la American Heart Association sobre segmentaci&oacute;n miocárdica, nombrado en su primera hoja. El folio que esta ficha cita, <b>244</b>, es el de esa versi&oacute;n.<br>El art&iacute;culo de Boldrini es un manuscrito aceptado y sus p&aacute;ginas no llevan folio de revista: se cita <b>por tabla y por hoja</b>.<br>La relaci&oacute;n &aacute;pice/base del score y la preservaci&oacute;n apical de los patrones <b>no son el mismo n&uacute;mero ni la misma medida</b>: aquella es septal y en cuatro c&aacute;maras, &eacute;sta compara el promedio del &aacute;pex con el del resto.<br>Los valores de strain dependen del fabricante y de la versi&oacute;n del programa: la propia ASE 2025 recomienda comparar con el mismo equipo y la misma versi&oacute;n. El registro completo est&aacute; en el archivo de fuentes del proyecto.</div></details>
+      </div>
+    </div>
+  </div>
+
   <!-- ⚠️ LA FICHA DEL POSOPERATORIO (G5, 24/10/2026). Cada fila con su fuente y su folio,
        VISTOS en el PDF original de la biblioteca. Lo que NO tiene fuente lleva el chip y lo dice:
        un corchete sobre «no pude verificar» se lee como si hubiera un criterio detras.
@@ -69332,7 +69373,11 @@ const REF_SUBTAB = Object.freeze({
      lo uno ni lo otro. Las 28 entradas indexadas no se mueven. */
   calc:  Object.freeze([]),
   dim:   Object.freeze(['ai', 'vi2', 'vi', 'vd2', 'ad']),
-  fun:   Object.freeze(['htp', 'tep', 'hfapeff']),
+  /* ⚠️ `strain` SE AGREGA ACÁ EN EL MISMO COMMIT QUE LA FICHA (AJ9-5), por la lección que
+     `constriccion` dejó en la tanda J: una ficha fuera de este reparto existe, se abre desde su
+     encabezado y el buscador la indexa, pero el médico que navegue por las solapas no la
+     encuentra nunca. Va en FUNCIÓN porque el SGL y la motilidad son función sistólica del VI. */
+  fun:   Object.freeze(['htp', 'tep', 'hfapeff', 'strain']),
   valv:  Object.freeze(['nativas', 'protesicas']),
   ao:    Object.freeze(['ao2', 'ao', 'aocx']),
   /* `fop` va PEGADA a `burbujas` porque son el mismo tema: la ficha del FOP remite a la del
@@ -69851,7 +69896,11 @@ const VINFO_REF = Object.freeze({
      Referencias que le faltaba existe desde este commit, y el invariante de esta tabla es que
      una tarjeta con entrada LLEVA boton. Siguen sin boton cuatro: `tarj-insuf-pulmonar`,
      `tarj-esten-tricuspide`, `tarj-esten-pulmonar` y `et-avt-cont`. */
-  'pul-balik': 'pulmon'
+  'pul-balik': 'pulmon',
+  /* ⚠️ LAS TRES TARJETAS DE LA AJ9 LLEVAN BOTÓN DESDE QUE SU ENTRADA EXISTE, que es el
+     invariante de esta tabla. `ref-strain` nace en el commit 5 y las tres apuntan ahí: las
+     tres citan sus mismas filas. */
+  'contr-territorio': 'strain', 'patrones-sgl': 'strain', 'amil-apice': 'strain'
 });
 function _vinfoRefAssert() {
   const malas = [];
