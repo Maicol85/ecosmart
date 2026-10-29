@@ -1415,7 +1415,13 @@
                  min-height:40px; font-size:11px; font-weight:700; letter-spacing:.4px;
                  text-transform:uppercase; color:var(--accent2); font-family:inherit; }
   .pop-mon-arrow { display:inline-block; transition:transform .2s; font-size:10px; }
-  .pop-mon-body { max-height:250px; overflow:auto; padding:0 10px 10px; }
+  /* ⚠️ SIN `max-height` NI SCROLL PROPIO (POP-V2-1). Medido en HEAD a 1440 px con el Swan
+     elegido: el cuerpo medía 250 px de caja para 406 px de contenido, o sea 156 px escondidos
+     detrás de un scroll dentro de una página que ya se desplaza — y a 1000 px, 250 para 367.
+     La caja existía para que lo que la pantalla crecía no dependiera del dispositivo, en una
+     maqueta de DOS dimensiones donde plegar movía las otras columnas. En una sola columna
+     plegar sólo mueve lo de abajo, que es lo que un acordeón hace. */
+  .pop-mon-body { padding:0 10px 10px; }
   /* ⚠️ EN EL CELULAR NO SE ACOTA NI SE RESERVA, Y ES DELIBERADO. Por debajo de 768 px la
      grilla del dispositivo pasa a UNA columna, así que los siete campos del Swan miden el triple
      de alto: dentro de una caja de 250 px con scroll propio, el médico tendría que desplazar un
@@ -1435,7 +1441,14 @@
      transparente, fallando en silencio. Las variables reales son `--bg2`/`--bg3`.
      Y el borde va en 1px, no en 0,5: en pantallas no-retina 0,5px redondea a 0 o a 1 según el
      navegador, así que la misma card se vería con borde en una máquina y sin él en otra. */
-  .pop-grid { display:grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap:10px; align-items:start; }
+  /* ══ UNA SOLA COLUMNA, DE ARRIBA HACIA ABAJO (POP-V2-1, 29/10/2026) ══════════════════════
+     El reparto en tres columnas de la tanda G2 ubicaba cada tarjeta por su `grid-area`, asi que
+     el ORDEN VISUAL y el del marcado no coincidian: a 1440 px se leia hemodinamica, esquema,
+     contexto, soporte —medido—, y el medico carga los datos en el orden del marcado. Hoy el
+     orden es UNO: contexto y monitoreo, farmacos, hemodinamica, POCUS, dibujo y conclusion.
+     El dibujo y su texto se reparten en DOS columnas DENTRO de su tarjeta (`.pop-esq-par`),
+     que es lo que la demo aprobada muestra. */
+  .pop-grid { display:grid; grid-template-columns: minmax(0,1fr); gap:10px; align-items:start; }
   .pop-card { background:var(--bg2); border:1px solid var(--border); border-radius:12px;
               padding:12px 14px; min-width:0; }
   /* El botón centrado y fuera de las cards, con el disclaimer debajo. */
@@ -1452,18 +1465,19 @@
      ⚠️ EL CORTE ES 1100 px Y NO 768: con dos columnas de ~400 px el esquema queda en 400 px de
      ancho y los rótulos de dentro del dibujo se enciman. Entre 768 y 1100 px vale la maqueta de
      DOS columnas de siempre y el esquema se lleva las dos. */
+  /* ⚠️ ACA VIVIA EL REPARTO EN TRES COLUMNAS POR `grid-template-areas` (G2). Se retira con el
+     orden nuevo: el reparto por areas es justo lo que separaba el orden visual del orden de
+     tabulacion, y el pedido de esta tanda es que coincidan. `.pop-card-wide` se conserva porque
+     ya no hace nada en una sola columna y sacarlo moveria el marcado de la conclusion.
+     ══ EL DIBUJO Y SU TEXTO, LADO A LADO DESDE 1100 px ══════════════════════════════════════
+     El corte es 1100 y no 768 por la misma medicion de la G2: con la tarjeta de ~400 px el
+     dibujo queda en 400 px de ancho y los rotulos de dentro se enciman. En UNA columna, a
+     1100 px de ventana la tarjeta mide ~1030 px, asi que el dibujo se lleva ~620 — mas que los
+     458 que tenia en el reparto de tres columnas, medido. */
   @media (min-width: 1100px) {
-    .pop-grid { grid-template-columns: minmax(0,1fr) minmax(0,1.35fr) minmax(0,1fr);
-                grid-template-areas: "hemo esq ctx" "hemo esq sop" "pocus pocus pocus" "concl concl concl"; }
-    .pop-grid > [data-pop="pop-ctx"]     { grid-area: ctx; }
-    .pop-grid > [data-pop="pop-hemo"]    { grid-area: hemo; }
-    .pop-grid > [data-pop="pop-esq"]     { grid-area: esq; }
-    .pop-grid > [data-pop="pop-soporte"] { grid-area: sop; }
-    .pop-grid > [data-pop="pop-pocus"]   { grid-area: pocus; }
-    .pop-grid > [data-pop="pop-concl"]   { grid-area: concl; }
-  }
-  @media (min-width: 769px) and (max-width: 1099px) {
-    .pop-grid > [data-pop="pop-esq"] { grid-column: 1 / -1; }
+    .pop-esq-par { display:grid; grid-template-columns: minmax(0,1.35fr) minmax(0,1fr);
+                   gap:14px; align-items:start; }
+    .pop-esq-par > .pop-esq-txt { margin-top:0; }
   }
   /* El dibujo escala con su caja y no al revés: `width:100%` y `height:auto` sobre un `viewBox`.
      `--bg3` y `--border` ya se usan en esta misma zona; no entra un color nuevo. */
@@ -1491,8 +1505,28 @@
   .pop-droga input:checked ~ .pop-droga-dot,
   .pop-droga-chk input:checked + .pop-droga-dot { background:var(--green); opacity:1; }
   /* Subgrilla 2x2 del POCUS. Colapsa a una columna con la card, no antes. */
-  .pop-pocus-grid { display:grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap:10px; }
-  @media (max-width: 768px) { .pop-pocus-grid { grid-template-columns: 1fr; } }
+  /* ══ EL POCUS: DOS COLUMNAS DESDE 1100 px, Y SUS CAMPOS CON UN PISO DE 170 px ══════════
+     ⚠️ MEDIDO EN HEAD, Y ERA EL SEGUNDO DEFECTO DEL PEDIDO: a 1000 px los SEIS selectores de
+     pleura y pulmón quedaban recortados, con 9, 13 y 43 px de ancho útil para opciones que
+     necesitan 100 a 110. La cadena era la tarjeta en media pantalla (~470 px) por dos columnas
+     de esta subgrilla (~230) por tres columnas del `.grid-3` de adentro (~70). A 1440, 768 y
+     390 px no pasaba: 0 de 6.
+     Se arregla por los DOS lados, porque uno solo no alcanza: la subgrilla pasa a dos columnas
+     sólo desde 1100 px, y el `.grid-3` de adentro pasa a `auto-fit` con un piso de 170 px, que
+     es lo que garantiza el ancho útil aunque la tarjeta se angoste por otra causa. */
+  .pop-pocus-grid { display:grid; grid-template-columns: minmax(0,1fr); gap:10px; }
+  @media (min-width: 1100px) { .pop-pocus-grid { grid-template-columns: repeat(2, minmax(0,1fr)); } }
+  .pop-pocus-grid .grid-3 { grid-template-columns: repeat(auto-fit, minmax(170px,1fr)); }
+  /* ══ EL DESPLEGABLE DE FARMACOS ══ Cerrado por omision; el contador lo escribe `popSync`. */
+  .pop-farm > summary { cursor:pointer; list-style:none; display:flex; align-items:center;
+                        gap:8px; min-height:32px; margin-bottom:0; }
+  .pop-farm > summary::-webkit-details-marker { display:none; }
+  .pop-farm > summary::before { content:'\25B8'; font-size:11px; color:var(--text2);
+                                transition:transform .2s; flex:0 0 auto; }
+  .pop-farm[open] > summary::before { transform:rotate(90deg); }
+  .pop-farm[open] > summary { margin-bottom:10px; }
+  .pop-farm-cnt { font-weight:400; text-transform:none; letter-spacing:0; color:var(--text2);
+                  font-size:10.5px; }
 
   /* ══ CONFIGURACIÓN — siete tarjetas temáticas ══
      Dos columnas en escritorio y una apilada en móvil. `align-items:start` evita que una
@@ -10088,7 +10122,7 @@ window.cerrarSesionReal = cerrarSesionReal;
   <div id="pop-seccion" style="display:none;">
     <div class="pop-grid">
     <section class="pop-card" data-pop="pop-ctx">
-      <div class="pop-card-tit">🩺 Contexto quirúrgico</div>
+      <div class="pop-card-tit">🩺 Contexto quirúrgico y monitoreo</div>
         <div class="grid-3">
           <div class="fg"><label for="pop_cx_tipo">Tipo de cirugía</label>
             <select id="pop_cx_tipo">
@@ -10116,29 +10150,11 @@ window.cerrarSesionReal = cerrarSesionReal;
         <!-- La opción 0 es VACÍA y no «Ninguna»: un default que afirma es lo que este archivo
              documenta tres veces (los selects del TEER, las etiologías de la válvula pulmonar).
              «Ninguna cirugía» y «nadie lo consignó» no son lo mismo en un post-operatorio. -->
-    </section>
-    <section class="pop-card" data-pop="pop-hemo">
-      <div class="pop-card-tit">📈 Datos hemodinámicos</div>
-        <!-- ⚠️ LACTATO — CAMPO OPCIONAL QUE LA APP NO INTERPRETA (G1, 24/10/2026).
-             Entra al estudio por el barrido genérico de `input[id]` y sale al informe como un
-             dato más, SIN banda, sin «elevado» y sin corte: ninguna de las fuentes de este
-             módulo publica un punto de corte de lactato aplicable acá — Unic-Stojanovic 2025 lo
-             nombra como «pista diagnóstica» sin cifra—, y escribir uno sería inventarlo.
-             NO agrega columna al Excel: `LAB_XLS_MAP` es una lista EXPLÍCITA y no tiene un solo
-             `pop_`. Verificado antes de escribirlo. -->
-        <div class="grid-3" style="margin-bottom:12px;">
-          <div class="fg"><label for="pop_lactato">Lactato (mmol/L)</label>
-            <input type="number" id="pop_lactato" step="0.1" min="0" inputmode="decimal" placeholder="mmol/L"></div>
-        </div>
-
-        <!-- Las tres subsecciones se muestran segun pop_monitor. La de ECO va SIEMPRE: es la
-             que esta app sabe medir, y con «Ninguno» es la unica.
-             ⚠️ LAS DOS DEL DISPOSITIVO VIVEN DENTRO DEL ACORDEÓN `pop_mon_acc` (G1): sus ids y
-             sus `oninput` no cambian, sólo el envoltorio. Lo gobierna `popMonSync`. -->
-        <!-- ⚠️ LOS DOS RÓTULOS «Swan-Ganz — valores medidos» / «PiCCO — valores medidos» QUE
-             ENCABEZABAN CADA BLOQUE SE RETIRARON: hoy ese texto lo dice el encabezado del
-             acordeón (`pop_mon_lbl`), y dejarlos daba el MISMO rótulo dos veces seguidas, uno
-             debajo del otro. Visto en la captura, no deducido. -->
+        <!-- ══ EL RECUADRO DEL DISPOSITIVO VIVE ACA, JUNTO AL SELECTOR QUE LO ABRE (POP-V2-1) ══
+             Hasta esta tanda estaba dentro de «Datos hemodinamicos», o sea DOS tarjetas mas abajo
+             que el `<select>` que lo hace aparecer: el medico elegia el dispositivo y lo que se
+             abria quedaba fuera de la vista. Sus ids y sus `oninput` NO cambian; lo que cambia es
+             donde esta el envoltorio. Lo gobierna `popMonSync`, igual que antes. -->
         <div class="pop-mon-slot" id="pop_mon_slot">
         <div class="pop-mon-acc" id="pop_mon_acc" style="display:none;">
           <button type="button" class="pop-mon-sum" id="pop_mon_sum" aria-expanded="true"
@@ -10184,44 +10200,16 @@ window.cerrarSesionReal = cerrarSesionReal;
           </div><!-- /#pop_mon_body -->
         </div><!-- /#pop_mon_acc -->
         </div><!-- /#pop_mon_slot -->
-
-        <div style="font-size:11px;font-weight:700;color:var(--accent2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.4px;">Ecocardiografía</div>
-        <div class="calc-box">
-          <div class="calc-row"><span class="calc-lbl">TSVI · VTI · FC (de Hemodinámica)</span><span id="pop-eco-src">—</span></div>
-          <div class="calc-row"><span class="calc-lbl">GC estimado</span><span id="pop-eco-gc">—</span></div>
-          <div class="calc-row"><span class="calc-lbl">IC estimado</span><span id="pop-eco-ic">—</span></div>
-          <div style="font-size:10px;color:var(--text2);margin-top:6px;line-height:1.5;">Estimación ecocardiográfica — sale de los MISMOS campos y la misma fórmula que la cápsula «Perfil hemodinámico» de esta pestaña. Si falta alguno, el valor no se inventa.</div>
-        </div>
-
-        <div id="pop-comp-wrap" style="display:none;margin-top:12px;">
-          <div class="calc-box">
-            <div style="font-size:11px;font-weight:700;color:var(--accent2);margin-bottom:6px;">Concordancia Swan vs Eco</div>
-            <div class="calc-row"><span class="calc-lbl">GC Swan</span><span id="pop-comp-sw">—</span></div>
-            <div class="calc-row"><span class="calc-lbl">GC Eco</span><span id="pop-comp-eco">—</span></div>
-            <div class="calc-row"><span class="calc-lbl">Diferencia</span><span id="pop-comp-dif">—</span></div>
-            <div style="font-size:10px;color:var(--text2);margin-top:6px;line-height:1.5;" id="pop-comp-nota"></div>
-          </div>
-        </div>
-    </section>
-    <!-- ══ EL ESQUEMA DEL POSOPERATORIO (G2, 24/10/2026) ══════════════════════════════
-         La ESCENA SALE SOLO DE LOS DATOS CARGADOS: no hay un selector de patrón, ni un botón de
-         ejemplo, ni un valor por omisión. Sin datos el dibujo se ve en gris y lo dice.
-         TODO LO QUE EL DIBUJO MUESTRA EXISTE TAMBIÉN COMO TEXTO, en `#pop-esq-txt`: el dibujo no
-         es la única forma de leer el dato —ni para quien usa un lector de pantalla, ni para el
-         papel—. El `role="img"` con su `aria-label` describe la escena completa.
-         El contenido del SVG lo construye `popEsqPintar()` con `createElementNS`: ni un nodo se
-         arma concatenando texto en `innerHTML`. -->
-    <section class="pop-card" data-pop="pop-esq">
-      <div class="pop-card-tit">🫀 Esquema del posoperatorio</div>
-      <div class="pop-esq-wrap">
-        <svg id="pop-esq-svg" class="pop-esq-svg" viewBox="0 0 600 496" role="img"
-             aria-label="Esquema del posoperatorio: las cuatro cavidades, los grandes vasos, los pulmones y el soporte, dibujados con los datos cargados."></svg>
-      </div>
-      <div id="pop-esq-txt" class="pop-esq-txt" aria-live="polite"></div>
-      <div style="font-size:10px;color:var(--text2);margin-top:8px;line-height:1.5;">Esquema ilustrativo: el tamaño de las cavidades y el grosor de los vasos acompañan a los valores cargados, no son una medición del paciente. Los colores y los números salen de los mismos dueños que gradua el resto de la app.</div>
     </section>
     <section class="pop-card" data-pop="pop-soporte">
-      <div class="pop-card-tit">💉 Soporte y drogas vasoactivas</div>
+      <!-- ══ UN DESPLEGABLE CERRADO, CON EL CONTADOR EN EL ENCABEZADO (POP-V2-1) ══════════
+           Las once drogas y la asistencia circulatoria ocupaban media pantalla en un paciente
+           que no esta recibiendo ninguna. Cerrado por omision y con el numero de marcados en el
+           `<summary>`, lo que se ve sin abrirlo es exactamente el dato que importa.
+           ⚠️ EL CONTADOR LO ESCRIBE `popSync` y no el navegador: `<details>` no cuenta nada. Va
+           en un `<span>` propio para que el rotulo fijo no se reescriba en cada tecla. -->
+      <details class="pop-farm" id="pop_farmacos_det">
+        <summary class="pop-card-tit pop-farm-sum" id="pop_farmacos_sum">💉 Fármacos vasoactivos y asistencia circulatoria<span id="pop_farmacos_cnt" class="pop-farm-cnt"></span></summary>
         <div style="font-size:11px;font-weight:700;color:var(--accent2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.4px;">Drogas vasoactivas</div>
         <div class="pop-drogas">
         <div class="pop-droga">
@@ -10384,10 +10372,62 @@ window.cerrarSesionReal = cerrarSesionReal;
           <div class="fg" id="pop_ecmo_wrap" style="display:none;"><label for="pop_ecmo_flujo">Flujo (ECMO)</label>
             <input type="number" id="pop_ecmo_flujo" step="0.1" min="0" inputmode="decimal" placeholder="L/min"></div>
         </div>
+      </details>
+    </section>
+    <section class="pop-card" data-pop="pop-hemo">
+      <div class="pop-card-tit">📈 Datos hemodinámicos</div>
+        <!-- ⚠️ LACTATO — CAMPO OPCIONAL QUE LA APP NO INTERPRETA (G1, 24/10/2026).
+             Entra al estudio por el barrido genérico de `input[id]` y sale al informe como un
+             dato más, SIN banda, sin «elevado» y sin corte: ninguna de las fuentes de este
+             módulo publica un punto de corte de lactato aplicable acá — Unic-Stojanovic 2025 lo
+             nombra como «pista diagnóstica» sin cifra—, y escribir uno sería inventarlo.
+             NO agrega columna al Excel: `LAB_XLS_MAP` es una lista EXPLÍCITA y no tiene un solo
+             `pop_`. Verificado antes de escribirlo. -->
+        <div class="grid-3" style="margin-bottom:12px;">
+          <div class="fg"><label for="pop_lactato">Lactato (mmol/L)</label>
+            <input type="number" id="pop_lactato" step="0.1" min="0" inputmode="decimal" placeholder="mmol/L"></div>
+        </div>
+
+        <!-- Las tres subsecciones se muestran segun pop_monitor. La de ECO va SIEMPRE: es la
+             que esta app sabe medir, y con «Ninguno» es la unica.
+             ⚠️ LAS DOS DEL DISPOSITIVO VIVEN DENTRO DEL ACORDEÓN `pop_mon_acc` (G1): sus ids y
+             sus `oninput` no cambian, sólo el envoltorio. Lo gobierna `popMonSync`. -->
+        <!-- ⚠️ LOS DOS RÓTULOS «Swan-Ganz — valores medidos» / «PiCCO — valores medidos» QUE
+             ENCABEZABAN CADA BLOQUE SE RETIRARON: hoy ese texto lo dice el encabezado del
+             acordeón (`pop_mon_lbl`), y dejarlos daba el MISMO rótulo dos veces seguidas, uno
+             debajo del otro. Visto en la captura, no deducido. -->
+
+        <div style="font-size:11px;font-weight:700;color:var(--accent2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.4px;">Ecocardiografía</div>
+        <div class="calc-box">
+          <div class="calc-row"><span class="calc-lbl">TSVI · VTI · FC (de Hemodinámica)</span><span id="pop-eco-src">—</span></div>
+          <div class="calc-row"><span class="calc-lbl">GC estimado</span><span id="pop-eco-gc">—</span></div>
+          <div class="calc-row"><span class="calc-lbl">IC estimado</span><span id="pop-eco-ic">—</span></div>
+          <div style="font-size:10px;color:var(--text2);margin-top:6px;line-height:1.5;">Estimación ecocardiográfica — sale de los MISMOS campos y la misma fórmula que la cápsula «Perfil hemodinámico» de esta pestaña. Si falta alguno, el valor no se inventa.</div>
+        </div>
+
+        <div id="pop-comp-wrap" style="display:none;margin-top:12px;">
+          <div class="calc-box">
+            <div style="font-size:11px;font-weight:700;color:var(--accent2);margin-bottom:6px;">Concordancia Swan vs Eco</div>
+            <div class="calc-row"><span class="calc-lbl">GC Swan</span><span id="pop-comp-sw">—</span></div>
+            <div class="calc-row"><span class="calc-lbl">GC Eco</span><span id="pop-comp-eco">—</span></div>
+            <div class="calc-row"><span class="calc-lbl">Diferencia</span><span id="pop-comp-dif">—</span></div>
+            <div style="font-size:10px;color:var(--text2);margin-top:6px;line-height:1.5;" id="pop-comp-nota"></div>
+          </div>
+        </div>
     </section>
     <section class="pop-card" data-pop="pop-pocus">
       <div class="pop-card-tit">🔎 Evaluación POCUS</div>
       <div class="pop-pocus-grid">
+        <!-- ══ EL VENTRICULO DERECHO VA PRIMERO (POP-V2-1) ═══════════════════════════════
+             Es lo que el medico mira primero en un posoperatorio y lo unico de este bloque que
+             ya viene sincronizado: ninguno de sus cuatro valores se carga aca. Detras van
+             pericardio, pleura y pulmon, que son los que si se consignan.
+             ⚠️ LA RELACION VD/VI ES DE SOLO LECTURA Y VIENE DE LA PESTANA VD/AD: no hay, ni
+             hubo nunca, un campo de VD/VI en este modulo. Lo publica `popPocusSync` leyendo
+             `vdViEstado`, el lector unico (C1-3b). -->
+        <div style="font-size:11px;font-weight:700;color:var(--accent2);margin-bottom:6px;text-transform:uppercase;letter-spacing:.4px;">Ventrículo derecho</div>
+        <div class="calc-box"><div id="pop-pocus-vd">—</div></div>
+
         <!-- PERICARDIO · PLEURA · PULMON · VD. Los dos extremos se SINCRONIZAN con lo que la
              app ya calcula (dptEstado y los campos de VD/Doppler) y los dos del medio son campos
              nuevos. Ninguna subseccion define un criterio propio. -->
@@ -10413,10 +10453,29 @@ window.cerrarSesionReal = cerrarSesionReal;
           <div class="fg"><label for="pop_pulmon_neumo">Neumotórax</label><select id="pop_pulmon_neumo" onchange="popPocusSync()"><option value="" selected>— no evaluado —</option><option value="ausente">Ausente</option><option value="sospecha">Sospecha</option><option value="presente">Presente</option></select></div>
         </div>
         <div class="calc-box" style="margin:8px 0 14px;"><div id="pop-pocus-pulmon">—</div></div>
-
-        <div style="font-size:11px;font-weight:700;color:var(--accent2);margin-bottom:6px;text-transform:uppercase;letter-spacing:.4px;">Ventrículo derecho</div>
-        <div class="calc-box"><div id="pop-pocus-vd">—</div></div>
       </div><!-- /.pop-pocus-grid -->
+    </section>
+    <!-- ══ EL ESQUEMA DEL POSOPERATORIO (G2, 24/10/2026) ══════════════════════════════
+         La ESCENA SALE SOLO DE LOS DATOS CARGADOS: no hay un selector de patrón, ni un botón de
+         ejemplo, ni un valor por omisión. Sin datos el dibujo se ve en gris y lo dice.
+         TODO LO QUE EL DIBUJO MUESTRA EXISTE TAMBIÉN COMO TEXTO, en `#pop-esq-txt`: el dibujo no
+         es la única forma de leer el dato —ni para quien usa un lector de pantalla, ni para el
+         papel—. El `role="img"` con su `aria-label` describe la escena completa.
+         El contenido del SVG lo construye `popEsqPintar()` con `createElementNS`: ni un nodo se
+         arma concatenando texto en `innerHTML`. -->
+    <section class="pop-card" data-pop="pop-esq">
+      <div class="pop-card-tit">🫀 Esquema del posoperatorio</div>
+      <!-- ══ EL DIBUJO A LA IZQUIERDA Y SU TEXTO A LA DERECHA (POP-V2-1) ══════════════════
+           Lado a lado desde 1100 px y apilados por debajo, que es la maqueta aprobada. El texto
+           NO es una leyenda: dice lo MISMO que el dibujo, fila por fila. -->
+      <div class="pop-esq-par">
+      <div class="pop-esq-wrap">
+        <svg id="pop-esq-svg" class="pop-esq-svg" viewBox="0 0 600 496" role="img"
+             aria-label="Esquema del posoperatorio: las cuatro cavidades, los grandes vasos, los pulmones y el soporte, dibujados con los datos cargados."></svg>
+      </div>
+      <div id="pop-esq-txt" class="pop-esq-txt" aria-live="polite"></div>
+      </div><!-- /.pop-esq-par -->
+      <div style="font-size:10px;color:var(--text2);margin-top:8px;line-height:1.5;">Esquema ilustrativo: el tamaño de las cavidades y el grosor de los vasos acompañan a los valores cargados, no son una medición del paciente. Los colores y los números salen de los mismos dueños que gradua el resto de la app.</div>
     </section>
     <section class="pop-card pop-card-wide" data-pop="pop-concl">
       <div class="pop-card-tit">🧠 Conclusión hemodinámica</div>
@@ -44064,6 +44123,37 @@ const VINFO = Object.freeze({
      ⚠️ Y NO SE ATRIBUYE LA FORMULA A NINGUN AUTOR, a proposito: el enunciado D6_11 la publica
      citando [154-156] JUNTAS -Balik 2006, Peris 2010 y Remerand 2010- y no dice de cual es.
      El censo de los tres esta en `docs/fuentes/FUENTES.md`. */
+  /* ══ LA NOTA LARGA DE LA VASOPLEJIA, EN UN GLOBO (POP-V2-1, 29/10/2026) ══════════════════
+     Vivía en el cuerpo de la conclusión hemodinámica: seis renglones con las dos fuentes, sus
+     tres criterios cada una, la errata de unidad del segundo y la aclaración de que ninguna es
+     una guía, todo dentro del recuadro que el médico lee para ver el patrón. Entra acá ÍNTEGRA
+     —no se resume ni se recorta— y en la línea visible queda una sola oración.
+     Las dos fuentes son las que ya citaba esa nota, leídas en imagen en su PDF original por la
+     tanda G3; esta tanda no abrió ningún PDF y no agrega ni mueve un solo dato: el texto es el
+     que estaba, con su misma letra. Ver `docs/fuentes/FUENTES.md` → «La tanda POP-V2».
+     ⚠️ NO LLEVA CLASE NI NIVEL, y es correcto: las dos publican una DEFINICIÓN y ninguna es una
+     guía, así que no hay recomendación de la cual tomar una clase. */
+  'pop-vaso': {
+    tit: 'Vasoplejia tras circulación extracorpórea — definición propuesta',
+    lee: 'La etiqueta exige las TRES cosas a la vez: presión arterial media por debajo de 65 mmHg, '
+       + 'índice cardíaco por encima de 2,2 L/min/m² y resistencia vascular sistémica por debajo '
+       + 'de 800 dinas·s·cm⁻⁵. La resistencia se compara SIN INDEXAR; el SVRI del PiCCO entra '
+       + 'desindexado por la superficie corporal. Sin presión arterial media cargada no se aplica '
+       + 'la etiqueta: no se asume que esté baja.',
+    fuente: 'Unic-Stojanovic D, Koster A, Erdoes G, Milojevic M. «Vasoplegic syndrome in cardiac '
+          + 'surgery». Interdiscip CardioVasc Thorac Surg 2025;40(4):ivaf075, hoja 1 de 4 — los tres '
+          + 'criterios, incluida la PAM. · Busse LW, Barker N, Petersen C. «Vasoplegic syndrome '
+          + 'following cardiothoracic surgery». Crit Care 2020;24:36, página 1 de 11 — índice '
+          + 'cardíaco por encima de 2,2 y resistencia por debajo de 800, dentro de las 24 h de la '
+          + 'circulación extracorpórea; ese artículo NO nombra la presión arterial media, y su '
+          + 'unidad del índice sale impresa con una errata («L/kg/m²» por L/min/m²).',
+    ojo: 'Ninguna de las dos es una guía: la primera es un editorial y la segunda una revisión, y '
+       + 'las dos dicen que no hay una definición universal de vasoplejia. El corte de presión '
+       + 'arterial media sale sólo de la primera. Por eso la pantalla la rotula como definición '
+       + 'propuesta y no como criterio establecido. Los otros dos cortes no son propios de este '
+       + 'módulo: el del índice cardíaco es la banda que la app ya aplica en esta pestaña y el de '
+       + 'la resistencia es su banda de vasodilatación.'
+  },
   'pul-balik': {
     tit: 'Volumen aproximado del derrame pleural',
     formula: 'V (ml) = D (mm) × 20',
@@ -58867,7 +58957,7 @@ var POP_DROGAS = ['nor','adr','dob','mil','vaso','levo','dop','ter','ntg','ntp']
    ⚠️ `offsetHeight` DA 0 CON LA SECCIÓN PLEGADA, y ese cero NO se guarda: con el POP cerrado
    —que es como arranca la pestaña— el acordeón no tiene geometría, y escribir `min-height:0px`
    ahí hubiera dejado la reserva en cero para siempre. Sólo se anota una medición > 0. */
-var _popMonAbierto = true, _popMonVisto = null, _popMonAlto = 0;
+var _popMonAbierto = true, _popMonVisto = null;
 function _popMonPintar() {
   var b = document.getElementById('pop_mon_body');
   var a = document.getElementById('pop_mon_arrow');
@@ -58885,16 +58975,20 @@ function popMonSync() {
   var mon = (document.getElementById('pop_monitor') || {}).value || '';
   var hay = mon === 'swan' || mon === 'picco';
   acc.style.display = hay ? 'block' : 'none';
-  if (!hay) { _popMonVisto = null; _popMonAlto = 0; if (slot) slot.style.minHeight = ''; return; }
+  if (!hay) { _popMonVisto = null; if (slot) slot.style.minHeight = ''; return; }
   var lbl = document.getElementById('pop_mon_lbl');
   if (lbl) lbl.textContent = (mon === 'swan' ? 'Swan-Ganz' : 'PiCCO') + ' — valores medidos';
   /* Cambiar de dispositivo vuelve a abrirlo: son campos distintos y el médico acaba de pedirlos. */
-  if (_popMonVisto !== mon) { _popMonVisto = mon; _popMonAbierto = true; _popMonAlto = 0; }
+  if (_popMonVisto !== mon) { _popMonVisto = mon; _popMonAbierto = true; }
   _popMonPintar();
-  if (slot) {
-    if (_popMonAbierto) { var h = acc.offsetHeight; if (h > 0) _popMonAlto = h; }
-    slot.style.minHeight = _popMonAlto > 0 ? _popMonAlto + 'px' : '';
-  }
+  /* ⚠️ ACA VIVIA LA RESERVA DE HUECO (G1), Y SE RETIRA CON EL ORDEN NUEVO (POP-V2-1).
+     `popMonSync` medía el alto del acordeón abierto y se lo ponía al `slot` como `min-height`
+     para que plegarlo no moviera el borde de la tarjeta de al lado — un problema de la maqueta
+     de TRES COLUMNAS, donde plegar una tarjeta recolocaba las otras dos. En una sola columna
+     plegar mueve lo de abajo y nada más, que es lo que un acordeón hace; mantener la reserva
+     dejaría un rectángulo vacío del alto del recuadro cada vez que el médico lo pliega.
+     Se limpia el `min-height` que un árbol ya cargado pudiera traer puesto. */
+  if (slot) slot.style.minHeight = '';
 }
 window.popMonSync = popMonSync;
 function popHemoSync() {
@@ -59447,24 +59541,37 @@ function popConclSync() {
        Las TRES ramas son excluyentes: o la etiqueta está puesta, o falta la PAM, o la PAM está
        por encima del corte. Decir «no hay vasoplejia» sin decir por qué es lo mismo que
        callarse. */
-    (r.patrones.some(function (p) { return p.k === 'vasoplejia'; })
-      ? '<div style="font-size:10px;color:var(--text2);margin-top:6px;line-height:1.5;">' +
-        'Vasoplejia: definición PROPUESTA por Unic-Stojanovic 2025 (PAM &lt;65 mmHg + IC &gt;2,2 + RVS &lt;800) ' +
-        'y por Busse 2020 (IC &gt;2,2 + RVS &lt;800, dentro de las 24 h de la circulación extracorpórea; ' +
-        'ese artículo no nombra la PAM). Ninguna de las dos es una guía y ninguna publica una ' +
-        'definición universal. La RVS se compara SIN INDEXAR' +
-        (r.pamFuente ? '. PAM ' + r.pam.toFixed(0) + ' mmHg, ' + escHtml(r.pamFuente) : '') + '.</div>'
-      : r.vasoSinPam
-      ? '<div style="font-size:10px;color:var(--text2);margin-top:6px;line-height:1.5;">' +
-        'Resistencia vascular baja con índice cardíaco conservado. NO se aplica la etiqueta de ' +
-        'vasoplejia: esa definición exige además una PAM por debajo de ' + POP_VASO_PAM_MAX +
-        ' mmHg, y no hay PAM cargada (Swan-Ganz o Hemodinámica).</div>'
-      : r.vasoPamAlta
-      ? '<div style="font-size:10px;color:var(--text2);margin-top:6px;line-height:1.5;">' +
-        'Resistencia vascular baja con índice cardíaco conservado y PAM ' + r.pam.toFixed(0) +
-        ' mmHg, de ' + POP_VASO_PAM_MAX + ' mmHg o más: no se cumple la definición propuesta de ' +
-        'vasoplejia.</div>'
-      : '') +
+    /* ⚠️ LA NOTA LARGA PASO AL GLOBO ⓘ `pop-vaso` (POP-V2-1, 29/10/2026), CON SU CONTENIDO
+       INTEGRO: las dos fuentes, sus tres criterios, la errata de unidad del segundo y la
+       aclaracion de que ninguna es una guia. Eran seis renglones dentro del recuadro que el
+       medico lee para ver el patron. Lo que queda en la linea visible es UNA oracion por rama,
+       mas el globo — que es la regla R2 de esta tanda: las citas van en el ⓘ, y en la linea
+       visible a lo sumo una.
+       LAS TRES RAMAS SIGUEN SIENDO EXCLUYENTES y ninguna se calla: o la etiqueta esta puesta, o
+       falta la PAM, o la PAM esta por encima del corte. Decir «no hay vasoplejia» sin decir por
+       que es lo mismo que callarse.
+       El boton va SIN nada interpolado adentro: su clave es un literal de este archivo. Es la
+       regla `ceibo-interp-en-string-de-handler`, que existe porque el parser decodifica la
+       entidad ANTES de compilar el manejador. */
+    (function () {
+      var _g = ' <button type="button" class="vinfo-btn vinfo-btn-44" data-vinfo="pop-vaso" '
+             + 'aria-expanded="false" aria-label="Informaci&oacute;n sobre la definici&oacute;n '
+             + 'propuesta de vasoplejia" onclick="vInfoClic(this)">&#9432;</button>';
+      var _d = function (t) { return '<div style="font-size:10px;color:var(--text2);margin-top:6px;'
+             + 'line-height:1.5;">' + t + _g + '</div>'; };
+      if (r.patrones.some(function (p) { return p.k === 'vasoplejia'; }))
+        return _d('Vasoplejia: definición propuesta, no criterio establecido' +
+          (r.pamFuente ? '. PAM ' + r.pam.toFixed(0) + ' mmHg, ' + escHtml(r.pamFuente) : '') + '.');
+      if (r.vasoSinPam)
+        return _d('Resistencia vascular baja con índice cardíaco conservado. No se aplica la ' +
+          'etiqueta de vasoplejia: falta la PAM, que esa definición exige por debajo de ' +
+          POP_VASO_PAM_MAX + ' mmHg.');
+      if (r.vasoPamAlta)
+        return _d('Resistencia vascular baja con índice cardíaco conservado y PAM ' +
+          r.pam.toFixed(0) + ' mmHg, de ' + POP_VASO_PAM_MAX + ' mmHg o más: no se cumple la ' +
+          'definición propuesta de vasoplejia.');
+      return '';
+    })() +
     /* ⚠️ LA DECLARACIÓN DE LA RVS NO PUEDE COLGAR DEL IC. Colgaba, y con un IC rechazado por
        banda —que anula `icFuente`— desaparecía también la fuente de una RVS que SÍ está calculada
        y publicada dos filas más arriba: un número sin decir de dónde salió, que es lo que estas
@@ -60143,6 +60250,28 @@ function popSync() {
     w.style.display = vis[id] ? 'block' : 'none';
     if (!vis[id]) { var c = document.getElementById(campo[id]); if (c) c.value = ''; }
   });
+  /* ══ EL CONTADOR DEL DESPLEGABLE DE FARMACOS (POP-V2-1) ════════════════════════════════
+     `<details>` no cuenta nada: el numero de marcados lo escribe esta funcion, que es la que ya
+     corre con cada casilla de droga (`onchange="popSync()"`) y con el tipo de asistencia. Se
+     cuentan las ONCE drogas mas la asistencia circulatoria consignada que NO sea «ninguna»:
+     «ninguna» es una respuesta, no un soporte en curso, y contarla diria «1 marcado» sobre un
+     paciente sin asistencia.
+     Va en un `<span>` propio y con `textContent`: el rotulo fijo del `<summary>` no se reescribe
+     en cada tecla, y nada interpolado entra al marcado. */
+  try {
+    var _cnt = document.getElementById('pop_farmacos_cnt');
+    if (_cnt) {
+      var _n = 0;
+      POP_DROGAS.forEach(function (k) {
+        var c = document.getElementById('pop_' + k + '_activa');
+        if (c && c.checked) _n++;
+      });
+      var _as = (document.getElementById('pop_asist_tipo') || {}).value || '';
+      if (_as && _as !== 'ninguna') _n++;
+      _cnt.textContent = _n ? (' · ' + _n + ' marcado' + (_n > 1 ? 's' : ''))
+                            : ' · ninguno marcado';
+    }
+  } catch (e) { console.error('[popSync] contador:', e); }
   /* El bloque 3 depende de `pop_monitor`, que vive en el bloque 1: un solo punto de entrada. */
   try { popHemoSync(); } catch (e) { console.error('[popSync] popHemoSync:', e); }
   try { popPocusSync(); } catch (e) { console.error('[popSync] popPocusSync:', e); }
@@ -69916,6 +70045,10 @@ const VINFO_REF = Object.freeze({
      una tarjeta con entrada LLEVA boton. Siguen sin boton cuatro: `tarj-insuf-pulmonar`,
      `tarj-esten-tricuspide`, `tarj-esten-pulmonar` y `et-avt-cont`. */
   'pul-balik': 'pulmon',
+  /* `pop-vaso` apunta a la ficha `#ref-pop`, que existe desde la tanda G y publica la vasoplejia
+     entre sus dieciséis filas. El invariante de esta tabla es que una tarjeta CON entrada lleva
+     botón «Ver referencia». */
+  'pop-vaso': 'pop',
   /* ⚠️ LAS TRES TARJETAS DE LA AJ9 LLEVAN BOTÓN DESDE QUE SU ENTRADA EXISTE, que es el
      invariante de esta tabla. `ref-strain` nace en el commit 5 y las tres apuntan ahí: las
      tres citan sus mismas filas. */
