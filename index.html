@@ -9939,15 +9939,21 @@ window.cerrarSesionReal = cerrarSesionReal;
                hecho: el <select> dice que patron vio el medico y esto dice cuanto. No vota -las
                reglas de conteo no tienen fuente y esta orden las excluye-, se publica con su
                corte al lado. -->
-          <div class="fg" style="margin-top:8px;"><label>Cociente de inversión diastólica espiratoria hepática — significativo &gt;<span id="cvr-lbl-coc">0,78</span></label>
+          <!-- ⚠️ EL TEXTO LARGO PASO AL GLOBO ⓘ (C2-2, 2026-10-28). Eran cinco renglones de
+               letra chica debajo del campo, con la gu&iacute;a, su apartado, dos porcentajes y
+               una figura del suplemento: es una cita, y las citas van al ⓘ, a la bibliograf&iacute;a
+               de la secci&oacute;n o a la ficha de Referencias (regla R2), no en la l&iacute;nea
+               visible. Queda UNA l&iacute;nea que dice qu&eacute; es el cociente.
+               ⚠️ NO SE PERDIO NI UN DATO: el 0,78, la sensibilidad, la especificidad, el
+               apartado 11.9.3, la Figura S1 y el redondeo a 0,8 est&aacute;n enteros en la
+               tarjeta `cvr-coc`, verificado palabra por palabra.
+               ⚠️ NI UN CORTE SE MOVIO: el `>0,78` lo sigue fijando el mismo due&ntilde;o, y la
+               fila «Lectura» dice lo mismo de los dos lados del borde. -->
+          <div class="fg" style="margin-top:8px;"><label>Cociente de inversión diastólica espiratoria hepática — significativo &gt;<span id="cvr-lbl-coc">0,78</span> <button type="button" class="vinfo-btn vinfo-btn-44" data-vinfo="cvr-coc" aria-expanded="false" aria-label="Informaci&oacute;n sobre el cociente de inversi&oacute;n diast&oacute;lica espiratoria hep&aacute;tica" onclick="vInfoClic(this)">&#9432;</button></label>
             <input type="number" id="cvr_hep_coc" step="0.01" placeholder="cociente" oninput="cvrSync()" onchange="cvrCambio()">
             <div class="calc-row" style="margin-top:4px;"><span class="calc-lbl">Lectura</span><span id="cvr-coc-eval" style="font-weight:700;">no cargado</span></div>
             <div style="font-size:10px;color:var(--text2);line-height:1.5;margin-top:4px;">
               Velocidad del flujo espiratorio invertido sobre el flujo anter&oacute;grado.
-              El <b>0,78</b> es el valor del texto de la gu&iacute;a (ESC 2025, apartado 11.9.3:
-              sensibilidad 87 %, especificidad 91 %). Su <b>Figura S1</b> del material
-              suplementario lo <b>redondea a &gt;0,8</b>: entre 0,78 y 0,80 las dos cifras de la
-              misma gu&iacute;a dan resultados distintos.
             </div>
           </div>
           <div class="fg" style="margin-top:8px;"><label>Engrosamiento pericárdico (TC/RMC)</label>
@@ -9985,20 +9991,22 @@ window.cerrarSesionReal = cerrarSesionReal;
              multimodal no invasiva no es concluyente» (11.9.3, folio 63), Clase IIa · Nivel C
              (Recommendation Table 24, folio 64). Vive en la Evidencia de constriccion.
              En su lugar va de donde sale cada corte, que es lo que esta pantalla no decia. -->
+        <!-- ⚠️ EL TEXTO LARGO PASO AL GLOBO ⓘ (C2-2, 2026-10-28). Eran once renglones con una
+             cita (Pieske 2019, folio 3303), dos cortes transcritos y tres afirmaciones de
+             alcance. Queda UNA l&iacute;nea con lo que el m&eacute;dico necesita saber mirando
+             la conclusi&oacute;n: que parte de esta secci&oacute;n es criterio de la
+             aplicaci&oacute;n y no de una gu&iacute;a. El resto vive en la tarjeta
+             `cvr-ecosmart`, entera y sin perder un dato.
+             ⚠️ Y SE VA EL «NO» EN MAYUSCULA de «NO son cortes de la distinci&oacute;n» (regla
+             R3): es una negaci&oacute;n en medio de una frase, no un r&oacute;tulo. La frase
+             dice lo mismo sin gritar. -->
         <div style="border-top:1px solid var(--border); margin:10px 0 0;"></div>
         <div style="font-size:10px; color:var(--text2); line-height:1.55; margin-top:6px;">
           <span style="display:inline-block; border:1px solid var(--border); border-radius:4px;
                        padding:1px 5px; margin-right:4px; font-size:9px; letter-spacing:.3px;">CRITERIO DE ECOSMART</span>
-          El <b>e&#39; lateral de 10 cm/s</b> y el <b>E/e&#39; de 15</b> NO son cortes de la
-          distinci&oacute;n entre constricci&oacute;n y restricci&oacute;n: salen de los criterios
-          mayores de funci&oacute;n diast&oacute;lica del HFA-PEFF (Pieske 2019, folio 3303), que
-          los publica como «e&#39; lateral &lt;10 cm/s» y «E/e&#39; promedio septal-lateral
-          &ge;15». Usarlos ac&aacute; es una decisi&oacute;n de la aplicaci&oacute;n.
-          Y las <b>reglas de conteo</b> de esta secci&oacute;n &mdash;cu&aacute;ntos criterios
-          hacen falta de cada lado, y cu&aacute;les cuentan&mdash; <b>no tienen fuente</b>:
-          ninguna gu&iacute;a de la biblioteca publica un recuento as&iacute;.
-          El <b>e&#39; medial</b> en tres tramos y el <b>cociente de la vena suprahep&aacute;tica</b>
-          s&iacute; son de la gu&iacute;a: ver la ficha de Referencias.
+          Parte de los cortes de esta secci&oacute;n y sus reglas de conteo son decisi&oacute;n de
+          la aplicaci&oacute;n.
+          <button type="button" class="vinfo-btn vinfo-btn-44" data-vinfo="cvr-ecosmart" aria-expanded="false" aria-label="Informaci&oacute;n sobre qu&eacute; cortes de esta secci&oacute;n son de gu&iacute;a y cu&aacute;les son criterio de la aplicaci&oacute;n" onclick="vInfoClic(this)">&#9432;</button>
         </div>
       </div>
 
@@ -43450,6 +43458,34 @@ const VINFO = Object.freeze({
        + 'El Doppler venoso intrarrenal es técnicamente difícil de obtener, y una enfermedad del parénquima renal puede alterar su patrón.',
     fuente: 'Rola P y colaboradores, Ultrasound J 2021;13:32, página 9, leída en imagen.',
     ojo: 'Por esas limitaciones el artículo pide no interpretar ninguno de estos estudios de forma aislada: el protocolo completo —vena cava, suprahepática, porta e intrarrenal— es lo que sostiene la lectura, y un componente suelto no la reemplaza.'
+  },
+  /* ══ LAS DOS TARJETAS DE CONSTRICCION vs RESTRICCION (C2-2, 2026-10-28) ═══════════════════
+     Lo que vivia en letra chica DEBAJO de los dos campos de esa seccion, entero: no se redacto
+     nada de memoria ni se resumio. Cada dato de los textos retirados esta aca -el 0,78, la
+     sensibilidad, la especificidad, el apartado, la figura del suplemento, el folio de Pieske y
+     los dos cortes que esa guia publica-, verificado palabra por palabra contra el original.
+     ⚠️ NINGUNA DE LAS DOS LLEVA ENTRADA EN `VINFO_REF`, y es correcto: el cociente de la vena
+     suprahepatica y el e' medial YA tienen su ficha en Referencias, a la que la segunda tarjeta
+     manda con sus palabras; crear una entrada nueva seria escribir contenido clinico que esta
+     tanda no tiene orden de escribir. Suben de cuatro a seis las tarjetas sin boton.
+     ⚠️ SIN CLASE NI NIVEL EN LA PRIMERA: el 0,78 es un corte diagnostico con su rendimiento, no
+     una recomendacion. La ESC 2025 SI publica clase y nivel para el cateterismo de esta misma
+     seccion, y eso vive en la Evidencia de constriccion, donde ya estaba. */
+  'cvr-coc': {
+    tit: 'Cociente de inversión diastólica espiratoria hepática',
+    formula: 'velocidad del flujo espiratorio invertido / velocidad del flujo anterógrado',
+    lee: 'Significativo por encima de 0,78.\n'
+       + 'Con ese corte, la guía publica una sensibilidad del 87 % y una especificidad del 91 %.',
+    fuente: 'ESC/EACTS 2025, apartado 11.9.3.',
+    ojo: 'El 0,78 es el valor del texto de la guía. Su Figura S1 del material suplementario lo redondea a «más de 0,8», así que entre 0,78 y 0,80 las dos cifras de la misma guía dan resultados distintos. Esta aplicación usa el valor del texto.'
+  },
+  'cvr-ecosmart': {
+    tit: 'Qué es de la guía y qué es criterio de la aplicación',
+    lee: 'El e\u2019 lateral de 10 cm/s y el E/e\u2019 de 15 no son cortes de la distinción entre constricción y restricción: salen de los criterios mayores de función diastólica del HFA-PEFF, que los publica como «e\u2019 lateral por debajo de 10 cm/s» y «E/e\u2019 promedio septal-lateral de 15 o más». Usarlos acá es una decisión de la aplicación.\n'
+       + 'Las reglas de conteo de esta sección —cuántos criterios hacen falta de cada lado, y cuáles cuentan— no tienen fuente: ninguna guía de la biblioteca publica un recuento así.\n'
+       + 'El e\u2019 medial en tres tramos y el cociente de la vena suprahepática sí son de la guía: están en la ficha de Referencias de esta sección.',
+    fuente: 'Pieske B y colaboradores, consenso HFA-PEFF, folio 3303, para los dos cortes del HFA-PEFF.',
+    ojo: 'Que un corte sea criterio de la aplicación no lo vuelve arbitrario: es un dato que la guía publica para otra pregunta. Lo que no tiene respaldo es usarlo para ESTA, y por eso se declara.'
   },
   'hemo-forr': {
     tit: 'Perfil de Forrester — alcance y bordes',
