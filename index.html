@@ -24312,11 +24312,41 @@ const PCP_COEF_A = 1.24, PCP_COEF_B = 1.9;
    `_labForrester`— y además DENTRO de la cadena que imprime la cápsula («con congestión (PCP
    >15)»), que es la forma más segura de que el rótulo y el operador se separen. El diagrama de
    Forrester lo necesita como número para dibujar la divisoria, así que se extrae acá y los cuatro
-   lo leen. Mismo valor: no es un cambio clínico.
-   EL PEDIDO DEL 2026-09-16 PROPONÍA 18 y NO se aplicó: con la línea en 18 y los colores saliendo
-   de `_labForrester` —que corta en 15— todo punto entre 15 y 18 saldría pintado de «húmedo» por
-   debajo de la línea de «seco», o sea un diagrama que se contradice solo. */
-const UMBRAL_PCP_HUMEDO = 15;
+   lo leen.
+
+   ══ PASA DE 15 A 18 (C2-4b, 2026-10-28) ════════════════════════════════════════════════════
+   DECISION DE MAICOL del 6/10/2026, que acepta expresamente que cambien los estudios guardados
+   y la distribucion del Laboratorio: «diagrama de Forrester con corte de 18 mmHg». El pedido del
+   16/09 ya proponia 18 y quedo sin aplicar porque entonces la linea dibujada y el color salian
+   de dos lugares distintos y el diagrama se habria contradicho solo; desde el C1-4a el cuadrante
+   lo decide `forrCuadrante` en un unico lugar, asi que mover el numero mueve las dos cosas
+   juntas y esa objecion ya no corre.
+
+   ⚠️ EL 18 ES EL DEL ARTICULO ORIGINAL, y esta VERIFICADO, no supuesto. Lo registra
+   `docs/fuentes/FUENTES.md`, leido EN IMAGEN de la Tabla 52-9 de Braunwald (folio 1125), que
+   reproduce a Forrester J, Diamond G, Chatterjee K, et al. N Engl J Med 1976;295:1356: los
+   subgrupos III y IV se separan en «PECP <18» y «PECP >18», y el texto dice que la congestion
+   pulmonar se percibe cuando la presion de enclavamiento SUPERA las 18 mmHg. El articulo de 1976
+   NO esta en la biblioteca -censados los PDF uno por uno el 28/10/2026, los once que contienen
+   «Forrester» son Diamond-Forrester o listas de autores-, asi que no se cita ninguna fuente
+   nueva en pantalla: la que ya estaba es la que sostiene el numero.
+
+   ⚠️ QUIEN SE MUEVE CON ESTA CONSTANTE, CENSADO ANTES DE TOCARLA. Son CUATRO lectores y los
+   cuatro cambian a la vez, que es el punto de que viva en un solo lugar:
+     1. `forrCuadrante` -> la capsula del Forrester, el grafico y el diagrama del Laboratorio;
+     2. el pie del diagrama del Laboratorio, que imprime el numero;
+     3. el pie de la diapositiva del PPT, que tambien lo imprime;
+     4. la capsula «Perfil hemodinamico», en su anotacion «con congestion (PCP >N)».
+   El cuarto NO es el Forrester: es la nota que se le cuelga al shock cardiogenico. Se mueve
+   igual, a proposito: dos cortes de congestion distintos en la MISMA pantalla -uno diciendo 15
+   y el otro 18- es peor que uno solo. Declarado en el reporte de la tanda.
+
+   ⚠️ QUIEN NO SE MUEVE, Y POR QUE. La clasificacion pre/poscapilar de HTP usa el literal `15`
+   tres veces unas lineas mas abajo y NO es este corte: es la definicion de HTP poscapilar de la
+   ESC/ERS 2022 (presion de enclavamiento por encima de 15 mmHg), que coincide en el numero y no
+   en el criterio. Y el POSOPERATORIO usa su propia banda de precarga de 12 a 18 mmHg, que es el
+   diseño del 18/09 y esta orden excluye expresamente. */
+const UMBRAL_PCP_HUMEDO = 18;
 window.UMBRAL_PCP_HUMEDO = UMBRAL_PCP_HUMEDO;
 /* ⚠️ SE DERIVA DE LOS DOS COEFICIENTES, NO SE ESCRIBE A MANO (2026-10-06). El texto decía
    «1.24 × (E/e') + 1.9» con los dos números tipeados, al lado de las constantes que hacen la
@@ -26413,14 +26443,31 @@ function calcHemo() {
          y ninguna mas: el cuerpo del informe narrativo y el EN SUMA no leen este span. */
       forEl.innerHTML = badge('gray', forrFaltaTxt(ic !== null, pcp !== null));
     } else {
-      const humedo = pcp > UMBRAL_PCP_HUMEDO;   // congestión
-      const frio   = ic < 2.2;   // hipoperfusión
-      let cls, txt;
-      if (!frio && !humedo)     { cls = 'green';  txt = 'Perfil A (tibio-seco) — Normal, sin congestión ni hipoperfusión'; }
-      else if (!frio && humedo) { cls = 'yellow'; txt = 'Perfil B (tibio-húmedo) — Congestión sin hipoperfusión'; }
-      else if (frio && !humedo) { cls = 'orange'; txt = 'Perfil L (frío-seco) — Hipoperfusión sin congestión'; }
-      else                      { cls = 'red';    txt = 'Perfil C (frío-húmedo) — Shock cardiogénico (congestión + hipoperfusión)'; }
-      forEl.innerHTML = badge(cls, txt);
+      /* ══ LA CAPSULA PREGUNTA AL CLASIFICADOR UNICO (C2-4b, 2026-10-28) ═══════════════════
+         Tenia su PROPIA cascada, con `ic < 2.2` escrito como LITERAL -sin leer `FORR_IC_CORTE`-
+         y su propio `pcp > UMBRAL_PCP_HUMEDO`. O sea que la misma app clasificaba el cuadrante
+         en DOS lugares: aca y en `forrCuadrante`, que el C1-4a habia extraido justamente para
+         que el grafico de esta pestaña y el diagrama del Laboratorio no pudieran discrepar.
+         La capsula se habia quedado afuera de esa extraccion, y era la tercera copia.
+         Con el literal, mover `FORR_IC_CORTE` cambiaba el grafico y los dos diagramas y dejaba
+         esta linea -la que viaja al informe integrado, a la hoja del PDF y al PPT- clasificando
+         con el numero viejo. Hoy hay UN dueño de los dos operadores.
+         ⚠️ EL VOCABULARIO SE QUEDA ACA, y es deliberado: `forrCuadrante` devuelve I/II/III/IV y
+         esta capsula habla de A/B/L/C. La REGLA es una sola; los rotulos son de cada superficie.
+         Los dos vocabularios que conviven en la app estan declarados en el reporte (punto 4e).
+         ⚠️ EL MAPA VIVE EN LA FUNCION Y NO EN UN `const` DE NIVEL SUPERIOR: `calcHemo` y
+         `forrCuadrante` estan en bloques <script> distintos, y un `const` de nivel superior no
+         llega al otro bloque -solo llegan los `window.X = X`-. Es la zona muerta que este
+         archivo ya documenta como «aborta el script entero». */
+      const _cuad = forrCuadrante(ic, pcp);
+      const _P = { I:   ['green',  'Perfil A (tibio-seco) — Normal, sin congestión ni hipoperfusión'],
+                   II:  ['yellow', 'Perfil B (tibio-húmedo) — Congestión sin hipoperfusión'],
+                   III: ['orange', 'Perfil L (frío-seco) — Hipoperfusión sin congestión'],
+                   IV:  ['red',    'Perfil C (frío-húmedo) — Shock cardiogénico (congestión + hipoperfusión)'] };
+      const _p = _P[_cuad];
+      /* `_cuad` es null solo si uno de los dos es null, y esa rama ya se atendio arriba. El
+         `|| gris` es el fail-safe: antes que publicar un cuadrante inventado, no publicar. */
+      forEl.innerHTML = _p ? badge(_p[0], _p[1]) : badge('gray', forrFaltaTxt(ic !== null, pcp !== null) || '—');
     }
   }
   /* ══ EL DIAGRAMA: ACA SE REGISTRAN LOS NUMEROS, NO SE PINTA (C1-4, corregido al medir) ══════
@@ -26440,6 +26487,16 @@ function calcHemo() {
   if (perfilEl) {
     if (ic === null || rvs === null) {
       perfilEl.innerHTML = badge('gray', 'Requiere IC + RVS (VFD/VFS, FC, PAM, PVC, ASC)');
+    /* ⚠️ ESTAS TRES RAMAS NO SON EL FORRESTER, Y SUS `2.2` NO SE MOVIERON (C2-4a, 2026-10-28).
+       Son la capsula «Perfil hemodinamico», que cruza IC con RVS -no con PCP- para separar el
+       shock cardiogenico del distributivo y del mixto. Su criterio es otro y esta orden lo
+       excluye, asi que conservan su `<` estricto aunque `forrCuadrante` haya pasado a `<=` y
+       `_icBanda` ya usara `<=`. Censado y declarado en el reporte de la tanda: con un indice
+       cardiaco de 2,2 EXACTOS, la app dice hoy «bajo» en `hemo-ic`, «frio» en el Forrester y
+       NO entra en estas tres ramas. Es una discrepancia conocida, no un olvido.
+       ⚠️ LA ANOTACION «con congestion (PCP >N)» SI SE MOVIO, de 15 a 18, porque lee la
+       constante. Es a proposito: dos cortes de congestion distintos en la misma pantalla se
+       leen como un error de la app. */
     } else if (ic < 2.2 && rvs > 1200) {
       const cong = (pcp !== null && pcp > UMBRAL_PCP_HUMEDO) ? (' con congestión (PCP >' + UMBRAL_PCP_HUMEDO + ')') : '';
       perfilEl.innerHTML = badge('red', 'Shock cardiogénico — GC bajo + RVS elevada' + cong);
@@ -26483,6 +26540,14 @@ function calcHemo() {
       htpEl.innerHTML = badge('gray', 'Requiere PAPm (PSAP) + PCP (E/e\')');
     } else if (papm <= HP_PAPM_MIN) {
       htpEl.innerHTML = badge('green', 'Sin HTP (PAPm ≤' + HP_PAPM_MIN + ' mmHg)');
+    /* ⚠️ ESTOS TRES `15` NO SON EL CORTE DE CONGESTION DEL FORRESTER (C2-4a, 2026-10-28), y
+       por eso NO leen `UMBRAL_PCP_HUMEDO` ni se movieron con el a 18. Son la definicion de HTP
+       POSCAPILAR de la ESC/ERS 2022 —presion de enclavamiento por encima de 15 mmHg—, que
+       coincide en el numero y no en el criterio: una cosa es «este paciente esta congestivo» y
+       otra «esta hipertension pulmonar tiene componente poscapilar».
+       Hasta el C2-4b los dos numeros eran 15 y parecian el mismo corte escrito dos veces.
+       Quedan como literales a proposito: extraerlos a una constante propia seria agregar un
+       numero nuevo, que esta orden prohibe. Declarado en el inventario del reporte. */
     } else if (rvp === null) {
       htpEl.innerHTML = (pcp <= 15
         ? badge('yellow', 'HTP precapilar posible — confirmar RVP (cateterismo derecho)')
@@ -43483,13 +43548,21 @@ const VINFO = Object.freeze({
     fuente: 'Pieske B y colaboradores, consenso HFA-PEFF, folio 3303, para los dos cortes del HFA-PEFF.',
     ojo: 'Que un corte sea criterio de la aplicación no lo vuelve arbitrario: es un dato que la guía publica para otra pregunta. Lo que no tiene respaldo es usarlo para ESTA, y por eso se declara.'
   },
+  /* ⚠️ ESTE TEXTO Y EL DE `forrLin` YA DESCRIBIAN 18 Y «2,2 o menos» ANTES DE LA TANDA C2, Y
+     ERAN FALSOS: el codigo cortaba en 15 y en `< 2,2`. El C1 los midio y los dejo sin tocar, con
+     la discrepancia declarada en `docs/PENDIENTES.md` -> C1-a y C1-b, porque cambiar un texto
+     clinico no es decision de una tanda. El C2-4b movio el CODIGO a lo que estos dos textos
+     dicen, asi que desde hoy son verdaderos y no hubo nada que reescribir.
+     ⚠️ LO UNICO QUE SE TOCO SON DOS MAYUSCULAS DE EN MEDIO (regla R3): «LOS DOS BORDES EXACTOS
+     NO ESTAN DEFINIDOS» al abrir y «SUPERA» en la ultima oracion. Ni un numero, ni una cita, ni
+     un folio se movieron. */
   'hemo-forr': {
     tit: 'Perfil de Forrester — alcance y bordes',
     lee: 'Cruza perfusión y congestión en cuatro cuadrantes: A sin una ni otra, B con congestión sola, L con hipoperfusión sola y C con las dos.\n'
        + 'Se construyó midiendo el gasto cardíaco y la presión de enclavamiento al mismo tiempo, con catéter en la arteria pulmonar, en pacientes con infarto agudo de miocardio.\n'
        + 'Acá los dos ejes son estimaciones por eco: el índice cardíaco sale del tracto de salida y la presión capilar de la relación E/e\u2019.',
     fuente: 'Forrester y colaboradores, New England Journal of Medicine 1976;295:1356, reproducida en Braunwald, Tratado de Cardiología, 10.ª edición española, Elsevier 2016, Tabla 52-9 y texto del folio 1125.',
-    ojo: 'LOS DOS BORDES EXACTOS NO ESTÁN DEFINIDOS. Con un índice cardíaco de 2,2 justo, la app marca hipoperfusión, y la clasificación original dice «por debajo de 2,2», de modo que no resuelve ese valor exacto. Lo mismo del otro lado: la app no define la presión capilar de 18 exacta, porque la congestión aparece cuando esa presión SUPERA 18.'
+    ojo: 'Los dos bordes exactos no están definidos. Con un índice cardíaco de 2,2 justo, la app marca hipoperfusión, y la clasificación original dice «por debajo de 2,2», de modo que no resuelve ese valor exacto. Lo mismo del otro lado: la app no define la presión capilar de 18 exacta, porque la congestión aparece cuando esa presión supera 18.'
   },
   /* ══ EL GLOBO DE LA CLASIFICACIÓN DE RIESGO BASAL (tanda D, 2026-10-27) ════════════════════
      Acá viven las CITAS, LAS CLASES Y LOS NIVELES de la calculadora, que es la regla R2 de esta
@@ -85107,6 +85180,14 @@ function _indHemo(){
     { txt:'Fuente: guía de corazón derecho, folio 167.', refs:['aseDer2025'] }
   ];
 
+  /* ⚠️ LAS CUATRO LINEAS SE VERIFICARON CONTRA EL CODIGO EL 28/10/2026 (C2-4c) Y NO SE TOCO
+     NINGUNA. La tercera decia «marca hipoperfusion con un indice cardiaco de 2,2 o menos» y «la
+     congestion aparece cuando la presion capilar supera 18» cuando el codigo cortaba en `< 2,2`
+     y en 15: era la discrepancia que el C1 declaro en `docs/PENDIENTES.md` -> C1-a y C1-b. El
+     C2-4b movio el codigo a eso, asi que hoy la linea describe lo que la app hace.
+     ⚠️ LA SEGUNDA LINEA ES LA FUENTE Y SIGUE SIENDO LA MISMA: los dos cortes del folio 1125 de
+     Braunwald, que reproduce el articulo original de 1976. Ese articulo NO esta en la
+     biblioteca -censado el 28/10- asi que no se agrego ninguna cita nueva. */
   const forrLin = [
     { txt:'La clasificación nació midiendo simultáneamente el gasto cardíaco y la presión de enclavamiento capilar pulmonar, con catéter en la arteria pulmonar, en una serie amplia de pacientes con infarto agudo de miocardio (folio 1125). Ése es el escenario en el que está validada.', refs:['braunwald2016'] },
     { txt:'El libro describe la hipoperfusión como clínicamente evidente cuando el índice cardíaco cae por debajo de 2,2 L/min/m², y la congestión pulmonar cuando la presión de enclavamiento supera los 18 mmHg (folio 1125). Ninguno de los dos valores exactos queda definido.', refs:['braunwald2016'] },
@@ -127786,8 +127867,8 @@ const FORR_EJE = { icMin: 1.0, icMax: 4.0, pcpMin: 0, pcpMax: 30 };
    Los dos operadores viven aca y nadie mas los escribe. Era una EXTRACCION PURA de las dos
    lineas que `_labICPCP` ya tenia, con los mismos cortes y los mismos operadores, byte por byte:
 
-     humedo = pcp >  UMBRAL_PCP_HUMEDO   (15)   -> una PCP de 15 EXACTOS no es congestion
-     frio   = ic  <  FORR_IC_CORTE       (2,2)  -> un IC de 2,2 EXACTOS no es hipoperfusion
+     humedo = pcp >  UMBRAL_PCP_HUMEDO   (18)   -> una PCP de 18 EXACTOS no es congestion
+     frio   = ic  <= FORR_IC_CORTE       (2,2)  -> un IC de 2,2 EXACTOS SI es hipoperfusion
 
    ⚠️ SE EXTRAE PORQUE AHORA HAY DOS DIBUJOS. El comentario de `_labICPCP` ya lo advertia para el
    diagrama del Laboratorio —«con dos implementaciones, el punto podria caer en un cuadrante y el
@@ -127804,7 +127885,7 @@ const FORR_EJE = { icMin: 1.0, icMax: 4.0, pcpMin: 0, pcpMax: 30 };
    `docs/PENDIENTES.md` -> C1-a y C1-b, que es donde van las discrepancias de texto clinico. */
 function forrCuadrante(ic, pcp) {
   if (ic === null || pcp === null || !isFinite(ic) || !isFinite(pcp)) return null;
-  const humedo = pcp > UMBRAL_PCP_HUMEDO, frio = ic < FORR_IC_CORTE;
+  const humedo = pcp > UMBRAL_PCP_HUMEDO, frio = ic <= FORR_IC_CORTE;
   return (!frio && !humedo) ? 'I' : (humedo && !frio) ? 'II' : (frio && !humedo) ? 'III' : 'IV';
 }
 window.forrCuadrante = forrCuadrante;
