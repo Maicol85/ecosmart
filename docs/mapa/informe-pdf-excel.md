@@ -432,3 +432,17 @@ positivo. `sglNegTxt` conserva literal lo que ya viene negativo.
 **El rótulo «normal / limítrofe / anormal» NO baja al papel**: es sólo de pantalla.
 
 → **`docs/mapa/aj9-sgl-patrones.md`** § 2 y § 3
+
+---
+
+## ⇢ Puntero — la tanda «POP-V2» (2026-10-29)
+
+El módulo **«POP Cirugía Cardíaca»** se reordenó de arriba hacia abajo —contexto y monitoreo,
+fármacos en un desplegable, hemodinámica, POCUS con el VD primero, dibujo y conclusión—, la dosis
+de las vasoactivas **se calcula sola**, apareció la **PAM por línea arterial** en el primer
+escalón del dueño único, el dibujo sumó **Impella, ECMO venovenoso y el timing del balón**, la
+conclusión publica **señales sueltas con su valor** y el **patrón y las cinco preguntas salieron
+del PPT**.
+
+**Todo en `docs/mapa/pop-v2-posoperatorio.md`**, con la tabla de lo que los mapas anteriores decían
+y dejó de ser cierto. El caso que lo fija es **TC-548**; los pendientes, **POP-a** a **POP-h**.

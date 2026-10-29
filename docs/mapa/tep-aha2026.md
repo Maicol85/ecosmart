@@ -220,3 +220,17 @@ fuentes distintas. Y **(D4) de TC-534** nació para cazar un pie que decía «VD
 mano mientras la constante valía 1,0; hoy la constante **vale** 0,9 y el pie lo **deriva**, que es
 justo lo contrario del defecto. Buscar el literal ya no distinguía las dos cosas: hoy se exige que
 el pie imprima el valor de la constante, sea cual sea.
+
+---
+
+## ⇢ Puntero — la tanda «POP-V2» (2026-10-29)
+
+El módulo **«POP Cirugía Cardíaca»** se reordenó de arriba hacia abajo —contexto y monitoreo,
+fármacos en un desplegable, hemodinámica, POCUS con el VD primero, dibujo y conclusión—, la dosis
+de las vasoactivas **se calcula sola**, apareció la **PAM por línea arterial** en el primer
+escalón del dueño único, el dibujo sumó **Impella, ECMO venovenoso y el timing del balón**, la
+conclusión publica **señales sueltas con su valor** y el **patrón y las cinco preguntas salieron
+del PPT**.
+
+**Todo en `docs/mapa/pop-v2-posoperatorio.md`**, con la tabla de lo que los mapas anteriores decían
+y dejó de ser cierto. El caso que lo fija es **TC-548**; los pendientes, **POP-a** a **POP-h**.

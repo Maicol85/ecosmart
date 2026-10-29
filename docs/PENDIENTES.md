@@ -9588,3 +9588,129 @@ sobre el archivo.
 
 **Decidir:** si `check_backticks.py` pasa a correr `node --check` sobre cada `.mjs` que toca, o
 si se documenta que el chequeo real es ése.
+
+---
+
+## Tanda POP-V2 · el posoperatorio reordenado (2026-10-29) — DECLARADO y NO arreglado
+
+## POP-a · La vasopresina (y la terlipresina) llevan mcg/kg/min, que es una unidad POR PESO
+
+La orden de esta tanda dice, textual, «la vasopresina no se dosifica por peso: conservá su unidad
+actual». Las dos cosas no pueden ser verdad a la vez: la unidad que esta app le declara hoy —en el
+`placeholder` y en el `aria-label` de `pop_vaso_dosis`— es **mcg/kg/min**, que sí es por peso.
+
+Se hizo lo único que no afirma nada nuevo: la vasopresina **no escribe su dosis sola** —se le
+sigue mostrando la estimación al lado, con una línea que dice por qué no se escribe— y la unidad
+**no se tocó**.
+
+**La terlipresina está en la misma situación** y la orden no la nombra: la app le declara
+mcg/kg/min y en la práctica se dosifica en bolos de mg. Se trata como lo que la app declara, o
+sea con dosis automática.
+
+**Decidir:** si las dos cambian de unidad —vasopresina a U/min, terlipresina a mg— sabiendo que
+eso es un rótulo clínico en una superficie que el médico lee, y que la dosis de un estudio
+guardado quedaría con la unidad vieja.
+
+## POP-b · El PiCCO no tiene campo de PAM, y la cascada lo nombra como si lo tuviera
+
+La orden describe el primer escalón del dueño único como «la medida por catéter (Swan-Ganz,
+**PiCCO** o línea arterial)». Censado: los cinco campos del PiCCO de este módulo son `pop_picco_gc`,
+`pop_picco_ic`, `pop_picco_itbvi`, `pop_picco_evlwi` y `pop_picco_svri`. **No hay PAM.**
+
+Con «PiCCO» elegido, `pamEfectiva` cae al segundo escalón —la tipeada en Hemodinámica— y la hoja
+del PDF la rotula «de Hemodinámica», que es correcto pero no es lo que la orden describe.
+
+Agregarle el campo sería un **segundo campo guardado**, y esta tanda autoriza uno solo.
+
+**Decidir:** si se autoriza `pop_picco_pam` con su rótulo «medida (PiCCO)».
+
+## POP-c · La RVS de `popPatron` sigue sin leer el dueño único, y ahora se ve
+
+La tanda C1 dejó esto declarado: la tercera rama de `popPatron` calcula la resistencia con
+`v('hemo_pam')` directo, no con `pamEfectiva()`. La cápsula «Perfil hemodinámico» **sí** lee el
+dueño único desde el C1-3a.
+
+**La línea arterial lo hace visible.** Medido en esta tanda:
+
+| escena | cápsula de Hemodinámica | `popPatron` |
+|---|---|---|
+| sólo línea arterial 62 | **1009** dinas·s·cm⁻⁵ | **ninguna** |
+| línea arterial 62 + tipeada 95 | **1009** | **1574** |
+
+O sea dos resistencias del mismo paciente en la misma pestaña, y la del módulo es la que viaja a
+su hoja del PDF cuando está integrado.
+
+**No se tocó:** cambiar la fuente de la RVS del módulo mueve un número clínico en una superficie
+firmada, y esta orden no lo lista.
+
+**Decidir:** si `popPatron` pregunta a `pamEfectiva()` en su tercera rama, sabiendo que eso cambia
+la RVS publicada de los estudios donde las dos fuentes difieren.
+
+## POP-d · El timing del balón no sobrevive a reabrir el estudio
+
+`#pop-bcia-timing` va con **guion medio** y entra en las dos listas de «esto no es del estudio»,
+porque la orden autoriza **un solo** campo guardado nuevo y ése es la PAM por línea arterial.
+
+**El precio:** el médico elige «verificado» o «inconsistente», cierra el estudio, lo reabre y el
+selector vuelve a «Sin verificar». No llega a ninguna superficie firmada, así que el papel no
+miente — pero una observación clínica que el médico hizo se pierde.
+
+**Decidir:** si se autoriza `pop_bcia_timing` como segundo campo guardado (censo 1026 → 1027 de
+campos del estudio; el Excel **no** se movería: `LAB_XLS_MAP` no tiene un solo `pop_`).
+
+## POP-e · «Edema pulmonar» es un diagnóstico que este módulo no emite
+
+El punto 5c de la orden pide que la conclusión «nombre el derrame pleural y el **edema pulmonar**
+cuando están cargados». El módulo de POCUS de esta misma pantalla llama a eso **«síndrome
+intersticial»**, y la quinta pregunta lo gradúa como **«congestión pulmonar»**. «Edema pulmonar»
+no aparece en ninguna otra superficie de este módulo.
+
+Se usó el vocabulario que la app ya tiene: «Líneas B difusas bilaterales — síndrome intersticial,
+que es el signo de congestión pulmonar que esta pantalla gradúa».
+
+**Decidir:** si el módulo estrena la palabra «edema pulmonar», sabiendo que es un diagnóstico y
+que hoy la app describe el signo.
+
+## POP-f · `popAbrirEnEscritorio` es código muerto desde la tanda G
+
+Recorre cinco ids —`pop-ctx`, `pop-soporte`, `pop-hemo`, `pop-pocus`, `pop-concl`— que **no
+existen**: las secciones del módulo llevan `data-pop`, no `id`. Censado: cero coincidencias de
+`id="pop-ctx"` y compañía en todo el archivo. Es un no-op desde que la G las convirtió en
+tarjetas.
+
+No se tocó porque esta tanda tiene un tipo de cambio por commit y borrar código muerto no es
+ninguno de los siete.
+
+**Decidir:** si se retira la función con su llamada, o si se le devuelven los ids.
+
+## POP-g · Cinco arneses de A/B miden el PPT con todas las casillas apagadas
+
+`generarPPT` carga el estudio guardado en el formulario (`pdfDeInformeGuardado`) y la reposición
+lee las casillas de `c[el.id + '__chk']`, no de `c[el.id]`. El estudio sintético que el arnés
+heredado construye **no tiene esa clave**, así que todas las casillas vuelven apagadas.
+
+Medido: la franja de drogas del posoperatorio decía «sin infusión activa» sobre una escena con la
+noradrenalina marcada, **en los dos árboles**. Es un denominador envenenado del arnés, no un
+defecto de la app, pero tapa cualquier diferencia que dependa de una casilla.
+
+Corregido en `scripts/_probe_popab.mjs`. **Siguen con el defecto** `_probe_r2ab.mjs`,
+`_probe_aab.mjs`, `_probe_bab.mjs`, `_probe_c1ab.mjs` y `_probe_c2ab.mjs`.
+
+**Decidir:** si se corrige en los cinco, o si se documenta que las tandas R2, A, B, C1 y C2
+midieron su PPT con las casillas apagadas.
+
+## POP-h · El PPT imprime la CLAVE de la droga, no su nombre
+
+La rama del posoperatorio del PPT busca el nombre con
+`document.querySelector('label[for="pop_<k>_activa"]')`, y ese `label` **no existe**: en el
+marcado la etiqueta **envuelve** al `input` y no lleva `for`. El `|| k` de respaldo hace que la
+diapositiva imprima `nor 0.2` donde debería decir `Noradrenalina 0.2`.
+
+Medido en los dos árboles: es un defecto preexistente que esta tanda **destapó** al corregir el
+estudio sintético del arnés (POP-g), no uno que haya introducido.
+
+**No se tocó:** corregirlo cambia el texto de una superficie firmada y no está en la lista de
+diferencias que esta orden autoriza.
+
+**Decidir:** si el PPT lee el nombre de `c.parentNode.textContent`, que es de donde ya lo leen
+`amiloTextoPOP` y `popEsquema`.

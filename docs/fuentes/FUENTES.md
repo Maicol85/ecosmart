@@ -7006,3 +7006,70 @@ sensibilidad 51 % y especificidad 88 %.
 | Clase y nivel en esa ficha | — | **ninguna**: estos documentos no los publican para estos valores | — | AJ9-5 |
 
 **Fecha de consulta de las seis lecturas en imagen de esta tanda: 29/10/2026.**
+
+---
+
+## La tanda POP-V2 — el corte de lactato del posoperatorio (2026-10-29)
+
+**Las dos fuentes se leyeron EN IMAGEN sobre el PDF original**, a 400 y 500 ppp, y no sobre el
+texto extraído: el signo «mayor que» es justo lo que una extracción se come —la lección que la
+AJ9 pagó con los signos menos del strain— y con el corte del lado equivocado el aviso saldría al
+revés. **Es estricto en las dos.**
+
+### Las dos fuentes, transcritas
+
+| documento | archivo en disco | hoja · folio | lo que dice, literal |
+|---|---|---|---|
+| **Sinha SS, Morrow DA, Kapur NK, Kataria R, Roswell RO.** «2025 Concise Clinical Guidance: An ACC Expert Consensus Statement on the Evaluation and Management of Cardiogenic Shock». *J Am Coll Cardiol* 2025;**85(16):1618-1641** | `22_Hemodinamica_avanzada/sinha-et-al-2025-2025-concise-clinical-guidance-an-acc-expert-consensus-statement-on-the-evaluation-and-management-of.pdf` | **hoja 5 · folio 1622** | *«… a venous or arterial blood gas with evidence of metabolic acidosis, and elevated venous or arterial lactate (>2 mmol/L).»* |
+| **Consenso de Shock Cardiogénico**, Sociedad Argentina de Cardiología. *Rev Argent Cardiol* 2024;**92 Supl. 3**, agosto 2024, ISSN 0034-7000 | `19_Pulmon_POCUS/COMPLETO-B-52.pdf` | **hoja 15 · folio 7** | *«El dosaje de ácido láctico es un excelente marcador de hipoperfusión tisular de oxígeno. Valores de AL > 2 mEq/L son indicadores de hipoxia celular.»* |
+
+**La regla de folio del ACC 2025 se comprobó en el pie impreso de cuatro hojas seguidas:**
+folio = hoja + 1617 (hoja 2 → 1619, hoja 3 → 1620, hoja 4 → 1621, hoja 5 → **1622**).
+**La del consenso argentino se comprobó en su encabezado:** folio = hoja − 8 (hoja 14 → 6,
+hoja 15 → **7**).
+
+### ⚠️ TRES PREMISAS DE LA ORDEN ERAN FALSAS, Y ESTÁN MEDIDAS
+
+1. **El consenso argentino NO está en la hoja 11: está en la 15.** La hoja 5 es su índice, donde
+   «Lactato» aparece dos veces apuntando a los folios 7 y 17.
+2. **Y está ARCHIVADO EN LA CARPETA EQUIVOCADA**, con un nombre que no lo nombra:
+   `19_Pulmon_POCUS/COMPLETO-B-52.pdf`. Un censo **por nombre de archivo** no lo encuentra —es el
+   mismo tropiezo que «VEXUS Tola.pdf», que la C1 documenta—. Se censó **por contenido** sobre
+   los **185 PDF** de las 28 carpetas de la biblioteca, abriendo las dos primeras hojas de cada
+   uno.
+3. **El consenso argentino publica el corte en mEq/L, no en mmol/L.** Para el lactato son
+   numéricamente equivalentes, pero la unidad impresa es otra y así se transcribe.
+
+### Lo que esas fuentes publican y la app NO aplica
+
+- El consenso argentino publica además **lactato ≥ 5 mmol/L** y **pH < 7,2** como predictores de
+  mortalidad a 30 días (hoja 25, sección 4.1.1), y el **3,1 mmol/L** a la hora 8 como el valor de
+  mayor poder de discriminación del subestudio del IABP-SHOCK II. **Ninguno de los tres se
+  aplica**: la app muestra una señal con su valor y no gradúa pronóstico.
+- Las dos fuentes usan el corte de 2 dentro de la clasificación **SCAI del shock** —el consenso
+  argentino dice textualmente que «su elevación determina el estadio C»—. **Esta app no asigna
+  etapas SCAI ni emite la etiqueta «shock cardiogénico»** (decisión de Maicol, 28/10/2026), y eso
+  se declara en el globo ⓘ `pop-senales`.
+
+### El corte que NO tiene fuente, y se declara
+
+El **piso de la banda de precarga, 12 mmHg** (`POP_PCP_PRECARGA_MIN`), es criterio propio de esta
+aplicación desde el primer commit del módulo y **ninguna de las dos fuentes lo publica**. Sale a
+una constante en esta tanda para que el número esté una sola vez, no porque haya aparecido una
+fuente.
+
+### Cambios de evidencia
+
+| qué | antes | hoy | por qué | commit |
+|---|---|---|---|---|
+| Corte de lactato | **no existía** — el módulo lo declaraba como dato sin interpretar | `POP_LACTATO_ALTO = 2`, estricto, que enciende una **señal** | las dos fuentes nuevas lo publican; el módulo no tenía ninguna que lo hiciera | POP-V2-5 |
+| Corte de congestión del módulo | **18 escrito a mano**, cuatro veces | `UMBRAL_PCP_HUMEDO` | coincidía en el número con el dueño que ya tenía; era una segunda copia | POP-V2-5 |
+| Piso de precarga del módulo | **12 escrito a mano**, cuatro veces | `POP_PCP_PRECARGA_MIN`, **sin fuente y declarado** | el número estaba dos veces dentro de la misma función | POP-V2-5 |
+| Nota larga de la vasoplejia | en el cuerpo de la conclusión, seis renglones | globo ⓘ `pop-vaso`, **íntegra** | R2: las citas van en el ⓘ, y en la línea visible a lo sumo una | POP-V2-1 |
+| Las dos fuentes del lactato | — | globo ⓘ `pop-senales` | la línea visible no lleva cita | POP-V2-5 |
+| Rótulo «medida (línea arterial)» | — | `PAM_FUENTE_LBL.art` | la hoja del PDF imprime el rótulo, y «medida (Swan-Ganz)» sobre una línea arterial atribuiría la medición a un catéter que el paciente no tiene | POP-V2-3 |
+| Patrón y cinco preguntas en el PPT | se publicaban | **fuera** | el papel del posoperatorio es descriptivo desde la G4, y el PPT era la única superficie firmada que seguía concluyendo | POP-V2-6 |
+| Rótulo del patrón con el gasto bajo | «Sin patrón de bajo gasto ni vasoplejia» | «Índice cardíaco bajo, sin un patrón que lo explique» | el rótulo negaba lo que el número de arriba afirmaba | POP-V2-5 |
+
+**Ningún corte clínico se movió de valor en esta tanda.** Los cinco que la conclusión usa valen
+hoy lo mismo que el 28/10: 2,2 · 18 · 12 · 17 · 0,9.

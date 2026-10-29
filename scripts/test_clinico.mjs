@@ -66080,7 +66080,12 @@ caso('TC-471', 'Valvulas D1: la insuficiencia mitral en TRES columnas de SEIS co
     /* ⚠️ ADAPTADO EN LA AJ9 (2026-10-29): 62 -> 65. Las TRES nuevas son contr-territorio,
        patrones-sgl y amil-apice. NINGUNA esta en Valvulas, que es la pestana que este caso
        mide: lo que cambia es el denominador del registro, no lo que el caso afirma. */
-    Object.keys(VINFO).length === 65,
+    /* ⚠️ ADAPTADO EN LA POP-V2 (2026-10-29): 65 -> 67. Las DOS nuevas son pop-vaso —la nota
+       larga de la vasoplejia, que salio del cuerpo de la conclusion— y pop-senales —las cuatro
+       senales de alarma con las dos fuentes del corte de lactato—. NINGUNA esta en Valvulas, que
+       es la pestana que este caso mide: lo que cambia es el denominador del registro, no lo que
+       el caso afirma. */
+    Object.keys(VINFO).length === 67,
     'registro=' + (HAY_INFO ? Object.keys(VINFO).join(',') : 'SIN REGISTRO')]);
   ex.push(['(H) y la tarjeta se coloca SIEMPRE dentro de la pantalla, sin cortarse',
     (function(){ const b = document.querySelector('[data-vinfo="avm-thp"]');
@@ -77376,7 +77381,11 @@ caso('TC-500', 'Tanda Q: las OCHO tarjetas i de las valvulas arriba de su pastil
   /* ⚠️ ADAPTADO EN LA AJ9 (2026-10-29): 62 -> 65. Las TRES nuevas son contr-territorio,
      patrones-sgl y amil-apice. Lo que esta condicion afirma no cambia: que el mecanismo exista
      y que el registro este completo. */
-  ex.push(['DENOMINADOR: el mecanismo de los globos existe y el registro tiene las 65 entradas',
+  /* ⚠️ ADAPTADO EN LA POP-V2 (2026-10-29): 65 -> 67. Las dos entradas nuevas son pop-vaso y
+     pop-senales, las tarjetas donde esa tanda puso la nota larga de la vasoplejia y las dos
+     fuentes del corte de lactato. Lo que esta condicion afirma no cambia: que el mecanismo
+     exista y que el registro este completo. */
+  ex.push(['DENOMINADOR: el mecanismo de los globos existe y el registro tiene las 67 entradas',
     /* ⚠️ ADAPTADO EN LA TANDA D: 56 -> 57. La entrada nueva es co-riesgo-basal, el globo de la
        clasificacion de riesgo cardiovascular basal, donde viven las clases y los niveles que la
        regla R2 saca de la linea visible. Lo que esta condicion afirma no cambia: que el
@@ -77391,7 +77400,7 @@ caso('TC-500', 'Tanda Q: las OCHO tarjetas i de las valvulas arriba de su pastil
     /* ⚠️ ADAPTADO EN LA TANDA TEP (2026-10-29): 60 -> 62, por tep-eco-dx y tep-mcconnell,
        los dos globos de la seccion de sobrecarga del VD. NINGUNO esta en Valvulas: lo que
        cambia es el denominador del registro, no lo que esta condicion afirma. */
-    FN('vInfoClic') && !!CARD() && !!REG() && Object.keys(REG() || {}).length === 65,
+    FN('vInfoClic') && !!CARD() && !!REG() && Object.keys(REG() || {}).length === 67,
     'VINFO=' + (REG() ? Object.keys(REG()).length : 'SIN REGISTRO') + ' card=' + !!CARD()]);
   ex.push(['(A1) los OCHO botones de lesion existen, son BUTTON, sin atributo title y con aria-expanded',
     CLAVES.every(function (k) { const b = BTN(k);
@@ -78628,8 +78637,11 @@ caso('TC-502', 'Tanda P: Referencias en CINCO subpestanas sin perder una entrada
   /* ⚠️ ADAPTADO EN LA AJ9 (2026-10-29): 41 -> 44, y el total de claves 56 -> 65. Las TRES
      que entran son contr-territorio, patrones-sgl y amil-apice, que llevan boton desde el mismo
      commit que creo su entrada ref-strain -que es el invariante de esta tabla-. */
-  ex.push(['(C1) DENOMINADOR: 44 de las 65 claves de tarjeta tienen entrada de Referencias',
-    Object.keys(MAPA).length === 44, 'n=' + Object.keys(MAPA).length]);
+  /* ⚠️ ADAPTADO EN LA POP-V2 (2026-10-29): 44 -> 46, y el total de claves 65 -> 67. Las DOS
+     que entran son pop-vaso y pop-senales, que llevan boton porque la ficha ref-pop ya existe
+     desde la tanda G — que es el invariante de esta tabla: una tarjeta CON entrada lleva boton. */
+  ex.push(['(C1) DENOMINADOR: 46 de las 67 claves de tarjeta tienen entrada de Referencias',
+    Object.keys(MAPA).length === 46, 'n=' + Object.keys(MAPA).length]);
   ex.push(['(C2) el assert del mapeo no encuentra ninguna clave rota ni ningun destino inexistente',
     (function () { try { return FN('_vinfoRefAssert') && window._vinfoRefAssert().length === 0; } catch (e) { return false; } })(),
     (function () { try { return window._vinfoRefAssert().join(' | ') || 'cero'; } catch (e) { return 'EXC'; } })()]);
@@ -89680,12 +89692,16 @@ caso('TC-534', 'Tanda G: la grilla de drogas sin la columna vacia y el acordeon 
       && (ESCRITORIO ? topAntes === topPlegado : true),
     'ancho=' + ANCHO + ' abierto=' + topAntes + ' plegado=' + topPlegado +
     ' vuelta=' + topVuelta + ' body=' + bodyPlegado]);
-  ex.push(['(A7b) y la reserva del hueco esta escrita: el slot recibe un min-height en pixeles con dispositivo',
-    (ESCRITORIO ? /px$/.test(ST('pop_mon_slot').minHeight || '')
-                : (typeof popMonSync === 'function'
-                   && String(popMonSync).indexOf('minHeight') > -1
-                   && String(popMonSync).indexOf('offsetHeight') > -1)),
-    'slot=' + (ST('pop_mon_slot').minHeight || '(no existe)')]);
+  /* ADAPTADA POR LA TANDA POP-V2 (29/10/2026). Media que el acordeon RESERVARA su hueco con un
+     min-height en pixeles. Esa reserva existia para que plegarlo no recolocara las otras dos
+     columnas de una maqueta de TRES, y esa maqueta se retiro: hoy el modulo es UNA columna de
+     arriba hacia abajo, donde plegar mueve lo de abajo y nada mas, que es lo que un acordeon
+     hace. Mantenerla dejaria un rectangulo vacio del alto del recuadro cada vez que el medico lo
+     pliega. Lo que se mide ahora es lo contrario, y con el mismo rigor: que NO queda reserva. */
+  ex.push(['(A7b) ADAPTADA (POP-V2): el slot YA NO reserva hueco — esa reserva era de la maqueta de tres columnas',
+    (ST('pop_mon_slot').minHeight || '') === '' &&
+    (typeof popMonSync === 'function' && String(popMonSync).indexOf('offsetHeight') < 0),
+    'slot=' + JSON.stringify(ST('pop_mon_slot').minHeight || '')]);
   /* El lactato: campo opcional, sin banda, sin columna de Excel. */
   ex.push(['(A8) el lactato existe, arranca vacio y es un campo DEL ESTUDIO',
     !!EL2('pop_lactato') && EL2('pop_lactato').value === ''
@@ -89707,17 +89723,24 @@ caso('TC-534', 'Tanda G: la grilla de drogas sin la columna vacia y el acordeon 
   ex.push(['(B2) y NINGUN nodo del dibujo lleva un atributo de evento',
     !!svg && svg.querySelectorAll('[onclick],[onload],[onerror],[onmouseover]').length === 0,
     'con atributo=' + (svg ? svg.querySelectorAll('[onclick],[onload],[onerror],[onmouseover]').length : 'NO')]);
-  ex.push(['(B3) el reparto en TRES columnas vive en una media query de 1100 px, con el esquema al centro',
-    (function(){ try { let hit = false;
+  /* ADAPTADA POR LA TANDA POP-V2 (29/10/2026). Media el reparto en TRES columnas por
+     grid-template-areas. Ese reparto es JUSTO lo que separaba el orden visual del orden del
+     marcado —medido a 1440 px: se leia hemodinamica, esquema, contexto, soporte— y el pedido de
+     esa tanda es que coincidan. Hoy la unica media query de 1100 px del modulo reparte el DIBUJO
+     y su TEXTO dentro de su tarjeta, que es la maqueta aprobada. Se sigue leyendo la REGLA y no
+     la geometria, porque el arnes corre en una ventana angosta. */
+  ex.push(['(B3) ADAPTADA (POP-V2): a 1100 px se reparten el DIBUJO y su texto, y ya no hay areas de tres columnas',
+    (function(){ try { let par = false, areas = false;
       for (const h of document.styleSheets) { let rs; try { rs = h.cssRules } catch (e) { continue }
         for (const r of rs) {
           if (r.type !== CSSRule.MEDIA_RULE) continue;
           if (String(r.conditionText || r.media.mediaText).indexOf('1100px') < 0) continue;
           for (const q of r.cssRules) {
             const t = String(q.cssText || '');
-            if (t.indexOf('.pop-grid') > -1 && t.indexOf('grid-template-areas') > -1
-                && t.indexOf('hemo esq ctx') > -1) hit = true; } } }
-      return hit } catch (e) { return false } })(), 'regla de 1100 px con las areas']);
+            if (t.indexOf('.pop-esq-par') > -1 && t.indexOf('grid-template-columns') > -1) par = true;
+            if (t.indexOf('hemo esq ctx') > -1) areas = true; } } }
+      return par && !areas } catch (e) { return false } })(),
+    'regla de 1100 px del dibujo y su texto']);
   /* La escena: lo que el dibujo publica sale SOLO de los datos cargados. */
   __t.limpiar(); abrirPOP();
   pon({ peso:'80', talla:'175', pop_cx_tipo:'cabg', pop_cx_horas:'6', pop_monitor:'swan',
@@ -89767,11 +89790,17 @@ caso('TC-534', 'Tanda G: la grilla de drogas sin la columna vacia y el acordeon 
   pon({ pop_asist_tipo:'ecmo_va', pop_ecmo_flujo:'4.0' });
   try { popSync() } catch (e) {}
   const vEcmo = vis();
-  ex.push(['(B10) con BALON se ven el balon y el aumento diastolico; con ECMO, el puente y su rotulo',
-    vBcia.txt.indexOf('Balón') > -1 && vBcia.txt.indexOf('aumento diastólico') > -1
+  /* ADAPTADA POR LA TANDA POP-V2 (29/10/2026). El rotulo del balon ya no dice «aumento
+     diastolico» a secas: lleva su TIMING —«(timing sin verificar)», «(timing verificado)» o
+     «timing inconsistente: revisar el inflado»—, que es el aviso que esa tanda agrega. La
+     comparacion pasa de igualdad a SUBCADENA, y lo demas se exige igual. */
+  ex.push(['(B10) ADAPTADA (POP-V2): con BALON se ven el balon y el aumento diastolico CON su timing; con ECMO, el puente y su rotulo',
+    vBcia.txt.indexOf('Balón') > -1
+      && vBcia.txt.some(function (t) { return String(t).indexOf('aumento diastólico') > -1; })
+      && vBcia.txt.some(function (t) { return String(t).indexOf('timing') > -1; })
       && vBcia.txt.indexOf('ECMO VA') === -1
       && vEcmo.txt.indexOf('ECMO VA') > -1 && vEcmo.txt.indexOf('Balón') === -1,
-    'bcia=' + vBcia.txt.join('|').slice(0, 90) + ' // ecmo=' + vEcmo.txt.join('|').slice(0, 90)]);
+    'bcia=' + vBcia.txt.join('|').slice(0, 120) + ' // ecmo=' + vEcmo.txt.join('|').slice(0, 90)]);
   ex.push(['(B11) el derrame pleural derecho se dibuja y se rotula, y las lineas B difusas prenden cuatro',
     vEcmo.txt.some(t => t.indexOf('derrame pleural D moderado') > -1) && vEcmo.lineas >= 8,
     'elipses=' + vEcmo.elipses + ' lineas=' + vEcmo.lineas + ' | ' + vEcmo.txt.join('|').slice(0, 120)]);
@@ -89869,14 +89898,27 @@ caso('TC-534', 'Tanda G: la grilla de drogas sin la columna vacia y el acordeon 
     V2.lbl + ' | ' + V2.decl.slice(-170)]);
   ex.push(['(C4) IC 2,20 exacto (el borde) -> SIN etiqueta', V3.k !== 'vasoplejia', V3.lbl + ' ic=' + V3.ic]);
   ex.push(['(C5) RVS 800,0 (el borde) -> SIN etiqueta', V4.k !== 'vasoplejia', V4.lbl + ' rvs=' + V4.rvs]);
-  ex.push(['(C6) SIN PAM cargada -> SIN etiqueta, y la pantalla nombra la PAM que falta',
-    V5.k !== 'vasoplejia' && V5.sinPam === true && V5.decl.indexOf('no hay PAM cargada') > -1,
+  /* ADAPTADA POR LA TANDA POP-V2 (29/10/2026). La nota larga de la vasoplejia paso al globo i
+     pop-vaso con su contenido integro, y en la linea visible quedo UNA oracion por rama. La rama
+     sigue siendo la misma y sigue nombrando lo que falta: lo que cambio es su redaccion. */
+  ex.push(['(C6) ADAPTADA (POP-V2): SIN PAM cargada -> SIN etiqueta, y la linea corta sigue nombrando la PAM que falta',
+    V5.k !== 'vasoplejia' && V5.sinPam === true && V5.decl.indexOf('falta la PAM') > -1,
     V5.lbl + ' | ' + V5.decl.slice(-180)]);
   ex.push(['(C7) sin peso ni talla el SVRI NO se desindexa: la resistencia queda sin calcular y no hay etiqueta',
     V6.k !== 'vasoplejia' && V6.rvs === null, V6.lbl + ' rvs=' + V6.rvs]);
-  ex.push(['(C8) y con la etiqueta puesta la pantalla la rotula DEFINICION PROPUESTA, con las dos fuentes',
-    V1.decl.indexOf('definición PROPUESTA') > -1 && V1.decl.indexOf('Unic-Stojanovic 2025') > -1
-      && V1.decl.indexOf('Busse 2020') > -1 && V1.decl.indexOf('SIN INDEXAR') > -1,
+  /* ADAPTADA POR LA TANDA POP-V2 (29/10/2026). Las dos fuentes y el «sin indexar» salieron de la
+     linea visible y viven INTEGRAS en el globo i pop-vaso, que es la regla R2 de esa tanda: las
+     citas van en el globo o en Referencias, y en la linea visible a lo sumo una. Nada se perdio,
+     y el caso lo exige por los DOS lados: que la linea lo rotule como definicion propuesta y que
+     el REGISTRO siga publicando las dos fuentes. */
+  ex.push(['(C8) ADAPTADA (POP-V2): la linea la rotula definicion propuesta y el globo conserva las dos fuentes y el «sin indexar»',
+    (function () {
+      const enLinea = V1.decl.indexOf('definición propuesta') > -1;
+      if (typeof VINFO === 'undefined') return 'SIN REGISTRO';
+      const t = JSON.stringify(VINFO['pop-vaso'] || {});
+      return enLinea && t.indexOf('Unic-Stojanovic') > -1 && t.indexOf('Busse') > -1 &&
+             t.indexOf('SIN INDEXAR') > -1;
+    })() === true,
     V1.decl.slice(-320)]);
 
   /* ══ (D) EL DERRAME PLEURAL: su chip y el volumen con su cita ════════════════════════════ */
@@ -95101,6 +95143,562 @@ caso('TC-547', 'Tanda AJ9: los dos cortes del SGL de la ASE 2025 en sus siete bo
   return { extra: ex };
   })();
 `);
+
+/* -- TC-548 ---------------------------------------------------------------------------------
+   Tanda POP-V2. Fija la pestana del posoperatorio reordenada, la dosis automatica de las
+   vasoactivas, la PAM por linea arterial dentro del dueno unico, los tres dispositivos del
+   dibujo con el timing del balon, los cuatro cortes de la conclusion en sus bordes, las cuatro
+   senales sueltas, el caso que midio el medico, y lo que publica cada superficie.
+   ⚠️ SIETE DENOMINADORES. Sin ellos, «el dibujo no muestra el Impella» no se distingue de «el
+   SVG no se monto», «la dosis no se escribio» no se distingue de «la droga no esta marcada», y
+   «el informe no nombra el patron» no se distingue de «el informe salio vacio».
+   ⚠️ LAS ESCENAS DE BORDE SE ARMAN CON LA SUPERFICIE CORPORAL REAL. getBSA() con peso 70 y
+   talla 170 da 1,818118685772619, y el gasto cardiaco de cada borde sale de IC x SC. Con una
+   superficie SUPUESTA de 1,8277 el «2,2 exacto» daba 2,212 —del lado normal— y el borde no se
+   probaba. Cada escena publica su IC medido en el diagnostico.
+   ⚠️ EL CASO TIENE QUE PODER CORRER CONTRA HEAD, donde el desplegable, el campo de la linea
+   arterial, el selector de timing, los nodos del dibujo y las senales NO EXISTEN: ninguna
+   lectura supone que el nodo esta, y todas devuelven una forma completa. Un getComputedStyle
+   sobre null mata el caso con una excepcion y no distingue «la app no lo tiene» de «la sonda
+   esta rota» — la leccion de TC-534 y de TC-546.
+   -------------------------------------------------------------------------------------------- */
+caso('TC-548', 'Tanda POP-V2: la pestana del posoperatorio con su orden de arriba hacia abajo y el desplegable de farmacos con su contador, la dosis que se calcula sola y la que el medico escribe a mano con su «Volver al calculo», la PAM por linea arterial en el primer escalon del dueno unico, el dibujo con Impella, ECMO venovenoso, balon con sus tres timings, derrame pleural y lineas B, los cortes del indice cardiaco, el lactato, el TAPSE y el VD/VI en sus bordes con las cuatro senales sueltas, el caso del medico que ya no dice «sin patron», y el patron y las cinco preguntas fuera del informe, del EN SUMA, de la hoja del PDF y del PPT', `
+  return (async () => {
+  const ex = [];
+  const EL = function (id) { return document.getElementById(id); };
+  const T  = function (id) { const e = EL(id); return e ? (e.textContent || '').trim() : 'NO EXISTE'; };
+  const V  = function (id) { const e = EL(id); return e ? e.value : null; };
+  const FN = function (n) { return typeof window[n] === 'function'; };
+  const NUM = function (n) { const u = window[n]; return (typeof u === 'number') ? u : null; };
+  const esp = function (ms) { return new Promise(function (r) { setTimeout(r, ms || 60); }); };
+  const limpiarOverlays = function () {
+    ['modalAvisoEco', 'login-overlay'].forEach(function (id) {
+      const m = EL(id); if (m) m.style.display = 'none'; }); };
+  const S = function (id, v) { const e = EL(id); if (!e) return false;
+    e.value = v;
+    e.dispatchEvent(new Event('input', { bubbles: true }));
+    e.dispatchEvent(new Event('change', { bubbles: true }));
+    return true; };
+  /* La casilla va por su GESTO: popSync corre desde el onchange y es quien abre la fila de la
+     dosis, quien escribe el contador y quien BORRA la dilucion al apagarla. Ponerle checked sin
+     despachar el evento deja una escena que no llega a la zona. */
+  const CHK = function (id, on) { const e = EL(id); if (!e) return false;
+    e.checked = !!on; e.dispatchEvent(new Event('change', { bubbles: true })); return true; };
+  const gen = function (estilo) {
+    try { if (FN('setEstiloInforme')) setEstiloInforme(estilo || 'estandar'); } catch (e) {}
+    try { if (FN('generarInforme')) generarInforme(); } catch (e) {}
+    return { inf: (EL('informe_texto') || {}).value || '', suma: (EL('en_suma') || {}).value || '' };
+  };
+  /* El dibujo responde a data-pop-esq, no a su posicion entre los setenta hijos del SVG. */
+  const DIB = function (k) {
+    const svg = EL('pop-esq-svg'); if (!svg) return 'SIN SVG';
+    const e = svg.querySelector('[data-pop-esq="' + k + '"]');
+    return e ? (e.getAttribute('display') || 'inline') : 'NO EXISTE';
+  };
+  const DIBTXT = function (k) {
+    const svg = EL('pop-esq-svg'); if (!svg) return 'SIN SVG';
+    const e = svg.querySelector('[data-pop-esq="' + k + '"]');
+    return e ? (e.textContent || '') : 'NO EXISTE';
+  };
+  const LINEASB = function () {
+    const svg = EL('pop-esq-svg'); if (!svg) return -1;
+    const n = svg.querySelectorAll('[data-pop-esq="lineaB"]');
+    if (!n.length) return -1;
+    return Array.prototype.slice.call(n).filter(function (e) {
+      return (e.getAttribute('display') || 'inline') !== 'none'; }).length;
+  };
+  const PAT = function () { try { const r = popPatron();
+    return r && r.pat ? r.pat : { k: 'EXC', lbl: 'EXC' }; } catch (e) { return { k: 'EXC', lbl: String(e).slice(0, 60) }; } };
+  const SEN = function () { try { const r = popPatron();
+    return (r && r.senales) ? r.senales.map(function (x) { return x.k; }) : []; } catch (e) { return ['EXC']; } };
+  const SENTXT = function () { try { const r = popPatron();
+    return (r && r.senales) ? r.senales.map(function (x) { return x.txt; }).join(' || ') : 'SIN CAMPO'; } catch (e) { return 'EXC'; } };
+  const IC = function () { try { const r = popPatron();
+    return r.ic === null ? null : Number(r.ic.toFixed(3)); } catch (e) { return 'EXC'; } };
+  const PAM = function () { try { const r = pamEfectiva();
+    return r ? (String(r.val) + '/' + String(r.fuente)) : 'null'; } catch (e) { return 'EXC'; } };
+  const BSA = function () { try { return getBSA(); } catch (e) { return null; } };
+  const base = function () {
+    try { __t.limpiar(); } catch (e) {}
+    limpiarOverlays();
+    try { if (FN('setViewMode')) setViewMode('avanzado'); } catch (e) {}
+    try { if (FN('applyViewMode')) applyViewMode(); } catch (e) {}
+    S('nombre', 'TC548'); S('documento', '5480');
+    S('peso', '70'); S('talla', '170');
+  };
+  const pop = function (o) {
+    base();
+    Object.keys(o || {}).forEach(function (k) { S(k, o[k]); });
+    try { if (FN('popSync')) popSync(); } catch (e) {}
+  };
+  const NTILDE = String.fromCharCode(241);
+  const OACUTE = String.fromCharCode(243);
+  const AACUTE = String.fromCharCode(225);
+  const IACUTE = String.fromCharCode(237);
+
+  /* ══ (D) DENOMINADORES ═══════════════════════════════════════════════════════════════════ */
+  base();
+  try { if (FN('popSync')) popSync(); } catch (e) {}
+  await esp();
+  ex.push(['(D1) DENOMINADOR: la seccion del posoperatorio y sus SEIS tarjetas existen',
+    (function () { const s = EL('pop-seccion');
+      return !!s && s.querySelectorAll('[data-pop]').length === 6; })() === true,
+    'tarjetas=' + (EL('pop-seccion') ? EL('pop-seccion').querySelectorAll('[data-pop]').length : 'SIN SECCION')]);
+  ex.push(['(D2) DENOMINADOR: las cinco funciones duenas del modulo existen',
+    FN('popPatron') && FN('popEsquema') && FN('popEsqPintar') && FN('popSync') && FN('pamEfectiva'),
+    'popPatron=' + FN('popPatron') + ' popEsquema=' + FN('popEsquema')]);
+  ex.push(['(D3) DENOMINADOR: la superficie corporal con peso 70 y talla 170 es la que fija los bordes',
+    (function () { const b = BSA(); return b !== null && Math.abs(b - 1.818118685772619) < 1e-9; })() === true,
+    'bsa=' + BSA()]);
+  ex.push(['(D4) DENOMINADOR: el SVG del esquema esta montado y tiene nodos',
+    (function () { try { popEsqPintar(); } catch (e) {}
+      const s = EL('pop-esq-svg'); return !!s && s.childElementCount > 30; })() === true,
+    'nodos=' + (EL('pop-esq-svg') ? EL('pop-esq-svg').childElementCount : 'SIN SVG')]);
+  ex.push(['(D5) DENOMINADOR: las DIEZ drogas del modulo estan declaradas y NUEVE se dosifican por peso',
+    (function () { if (typeof POP_DROGAS === 'undefined') return 'SIN REGISTRO';
+      const p = (typeof POP_DROGAS_PESO !== 'undefined') ? POP_DROGAS_PESO : null;
+      return POP_DROGAS.length === 10 && !!p && p.length === 9 && p.indexOf('vaso') < 0; })() === true,
+    'drogas=' + (typeof POP_DROGAS === 'undefined' ? 'SIN' : POP_DROGAS.length) +
+    ' porPeso=' + (typeof POP_DROGAS_PESO === 'undefined' ? 'NO EXISTE' : POP_DROGAS_PESO.length)]);
+  ex.push(['(D6) DENOMINADOR: los cinco cortes de la conclusion tienen dueno y valen lo de siempre',
+    NUM('POP_LACTATO_ALTO') === 2 && NUM('UMBRAL_PCP_HUMEDO') === 18 &&
+    NUM('POP_PCP_PRECARGA_MIN') === 12 && NUM('UMBRAL_TAPSE_NORMAL') === 17 &&
+    NUM('TEP_VDVI_DILAT_MIN') === 0.9,
+    'lac=' + NUM('POP_LACTATO_ALTO') + ' pcp=' + NUM('UMBRAL_PCP_HUMEDO') +
+    ' prec=' + NUM('POP_PCP_PRECARGA_MIN') + ' tapse=' + NUM('UMBRAL_TAPSE_NORMAL') +
+    ' vdvi=' + NUM('TEP_VDVI_DILAT_MIN')]);
+  ex.push(['(D7) DENOMINADOR: el modulo vacio no clasifica y su boton de integrar esta apagado',
+    (function () { const r = PAT(); const b = EL('pop_integrar');
+      return r.k === 'insuficiente' && !!b && b.disabled === true; })() === true,
+    'patron=' + PAT().k + ' btn=' + (EL('pop_integrar') ? EL('pop_integrar').disabled : 'SIN BOTON')]);
+
+  /* ══ (A) EL ORDEN DE LOS BLOQUES Y EL DESPLEGABLE CON SU CONTADOR ════════════════════════ */
+  const ORDEN = 'pop-ctx,pop-soporte,pop-hemo,pop-pocus,pop-esq,pop-concl';
+  const ORDEN_HOY = (function () { const s = EL('pop-seccion'); if (!s) return 'SIN SECCION';
+    return Array.prototype.slice.call(s.querySelectorAll('[data-pop]'))
+      .map(function (c) { return c.getAttribute('data-pop'); }).join(','); })();
+  ex.push(['(A1) el marcado va de arriba hacia abajo: contexto, farmacos, hemodinamica, POCUS, dibujo, conclusion',
+    ORDEN_HOY === ORDEN, ORDEN_HOY]);
+  const ORDEN_TAB = (function () { const s = EL('pop-seccion'); if (!s) return 'SIN SECCION';
+    const vistas = [];
+    Array.prototype.slice.call(s.querySelectorAll('input, select, button, summary')).forEach(function (e) {
+      const p = e.closest ? e.closest('[data-pop]') : null;
+      const k = p ? p.getAttribute('data-pop') : '(fuera)';
+      if (!vistas.length || vistas[vistas.length - 1] !== k) vistas.push(k);
+    });
+    return vistas.filter(function (k) { return k !== '(fuera)'; }).join(','); })();
+  ex.push(['(A2) el ORDEN DE TABULACION coincide con el del marcado: es el orden en que el medico carga',
+    ORDEN_TAB === 'pop-ctx,pop-soporte,pop-hemo,pop-pocus', ORDEN_TAB]);
+  ex.push(['(A3) el recuadro del dispositivo vive DENTRO de la tarjeta de contexto, junto al selector que lo abre',
+    (function () { const a = EL('pop_mon_slot'); if (!a) return 'NO EXISTE';
+      const c = a.closest ? a.closest('[data-pop]') : null;
+      return c ? c.getAttribute('data-pop') : 'SIN TARJETA'; })() === 'pop-ctx']);
+  /* ⚠️ EL SCROLL DEL RECUADRO SE EXIGE LEYENDO LA REGLA, no midiendo la caja. El arnes corre en
+     una ventana ANGOSTA y no se puede redimensionar mientras el caso corre, asi que por debajo
+     de 769 px la consulta de medios ya ponia max-height:none y la geometria daria «no
+     scrollea» en los DOS arboles. Lo que se mira es la regla de document.styleSheets, que es
+     la leccion de TC-522, TC-529 y TC-534. */
+  ex.push(['(A4b) el recuadro del dispositivo YA NO tiene scroll propio: ninguna regla base le pone max-height',
+    (function () {
+      let visto = 'sin regla';
+      try {
+        for (const h of Array.prototype.slice.call(document.styleSheets)) {
+          let rs = null; try { rs = h.cssRules; } catch (e) { continue; }
+          if (!rs) continue;
+          for (const r of Array.prototype.slice.call(rs)) {
+            if (r.type !== 1) continue;
+            if (String(r.selectorText || '').indexOf('.pop-mon-body') < 0) continue;
+            const mh = r.style.getPropertyValue('max-height');
+            if (mh) visto = mh;
+          }
+        }
+      } catch (e) { return 'EXC'; }
+      return visto === 'sin regla';
+    })() === true,
+    'regla base de .pop-mon-body']);
+  ex.push(['(A4) el desplegable de farmacos existe y arranca CERRADO',
+    (function () { const d = EL('pop_farmacos_det');
+      return !!d && d.tagName === 'DETAILS' && d.open === false; })() === true,
+    'det=' + (EL('pop_farmacos_det') ? EL('pop_farmacos_det').tagName + '/open=' + EL('pop_farmacos_det').open : 'NO EXISTE')]);
+  ex.push(['(A5) sin nada marcado, el encabezado dice «ninguno marcado»',
+    T('pop_farmacos_cnt').indexOf('ninguno marcado') > -1, T('pop_farmacos_cnt')]);
+  pop({ pop_asist_tipo: 'bcia' });
+  CHK('pop_nor_activa', true);
+  CHK('pop_dob_activa', true);
+  await esp();
+  ex.push(['(A6) el contador suma las drogas MAS la asistencia consignada: dos drogas y un balon dan tres',
+    T('pop_farmacos_cnt').indexOf('3 marcados') > -1, T('pop_farmacos_cnt')]);
+  pop({ pop_asist_tipo: 'ninguna' });
+  CHK('pop_nor_activa', true);
+  await esp();
+  ex.push(['(A7) CONTROL NEGATIVO: «Ninguna» asistencia NO cuenta como soporte en curso',
+    T('pop_farmacos_cnt').indexOf('1 marcado') > -1 && T('pop_farmacos_cnt').indexOf('2 marcados') < 0,
+    T('pop_farmacos_cnt')]);
+  ex.push(['(A8) la relacion VD/VI del POCUS es de SOLO LECTURA: no hay un campo editable de VD/VI en el modulo',
+    (function () { const s = EL('pop-seccion'); if (!s) return 'SIN SECCION';
+      return s.querySelectorAll('input[id*="vdvi"], input[id*="vd_vi"], select[id*="vd_vi"]').length === 0; })() === true]);
+
+  /* ══ (B) LA DOSIS: automatica, a mano, «Volver al calculo», sin peso y el borrado ═════════ */
+  pop({ pop_monitor: 'swan', pop_sw_gc: '3.2', pop_sw_pam: '70' });
+  CHK('pop_nor_activa', true);
+  S('pop_nor_diluc_mg', '4'); S('pop_nor_diluc_ml', '100'); S('pop_nor_veloc', '21');
+  await esp(120);
+  ex.push(['(B0) DENOMINADOR: la droga quedo marcada y su fila abierta',
+    (function () { const c = EL('pop_nor_activa'), w = EL('pop_nor_wrap');
+      return !!c && c.checked === true && !!w && w.style.display !== 'none'; })() === true,
+    'chk=' + (EL('pop_nor_activa') ? EL('pop_nor_activa').checked : 'NO') +
+    ' wrap=' + (EL('pop_nor_wrap') ? EL('pop_nor_wrap').style.display : 'NO')]);
+  ex.push(['(B1) la dosis se ESCRIBE SOLA: 4 mg en 100 ml a 21 ml/h con 70 kg da 0,20 mcg/kg/min',
+    V('pop_nor_dosis') === '0.20', 'dosis=' + JSON.stringify(V('pop_nor_dosis'))]);
+  ex.push(['(B2) y la linea lo dice, sin boton «usar»',
+    T('pop_nor_calc').indexOf('calculada con el peso') > -1 && T('pop_nor_calc').indexOf('usar') < 0,
+    T('pop_nor_calc')]);
+  S('pop_nor_dosis', '0.35');
+  await esp(120);
+  /* ⚠️ EL MARCADOR ES «Dosis cargada a mano», NO «a mano» A SECAS, y esto lo cazo el propio
+     caso: la linea AUTOMATICA termina con «podes escribir otra dosis a mano», asi que buscar
+     «a mano» da positivo en las DOS y (B5) y (B9) salian rojas con la dosis correcta. */
+  ex.push(['(B3) una dosis escrita A MANO no se pisa, y queda marcada',
+    V('pop_nor_dosis') === '0.35' && T('pop_nor_calc').indexOf('Dosis cargada a mano') > -1,
+    'dosis=' + JSON.stringify(V('pop_nor_dosis')) + ' linea=' + T('pop_nor_calc')]);
+  ex.push(['(B4) con la dosis a mano aparece «Volver al calculo» y el calculo se publica al lado para comparar',
+    (function () { const o = EL('pop_nor_calc');
+      return !!o && o.querySelectorAll('[data-pop-volver]').length === 1 &&
+             (o.textContent || '').indexOf('0.20') > -1; })() === true,
+    T('pop_nor_calc')]);
+  (function () { const o = EL('pop_nor_calc');
+    const b = o ? o.querySelector('[data-pop-volver]') : null;
+    if (b) b.click(); })();
+  await esp(120);
+  ex.push(['(B5) «Volver al calculo» devuelve la dosis calculada',
+    V('pop_nor_dosis') === '0.20' && T('pop_nor_calc').indexOf('Dosis cargada a mano') < 0 &&
+    T('pop_nor_calc').indexOf('calculada con el peso') > -1,
+    'dosis=' + JSON.stringify(V('pop_nor_dosis')) + ' linea=' + T('pop_nor_calc')]);
+  S('pop_nor_dosis', '');
+  await esp(400);
+  ex.push(['(B6) borrar la dosis la deja BORRADA: el barrido no la repuebla 220 ms despues',
+    V('pop_nor_dosis') === '', 'dosis=' + JSON.stringify(V('pop_nor_dosis'))]);
+  pop({ pop_monitor: 'swan' });
+  S('peso', '');
+  CHK('pop_nor_activa', true);
+  S('pop_nor_diluc_mg', '4'); S('pop_nor_diluc_ml', '100'); S('pop_nor_veloc', '21');
+  await esp(120);
+  ex.push(['(B7) sin peso cargado no se inventa una dosis y la linea nombra lo que falta',
+    V('pop_nor_dosis') === '' && T('pop_nor_calc').indexOf('completar el peso') > -1,
+    'dosis=' + JSON.stringify(V('pop_nor_dosis')) + ' linea=' + T('pop_nor_calc')]);
+  pop({ pop_monitor: 'swan', pop_sw_gc: '3.2' });
+  CHK('pop_nor_activa', true);
+  S('pop_nor_diluc_mg', '4'); S('pop_nor_diluc_ml', '100'); S('pop_nor_veloc', '21');
+  await esp(120);
+  const _dosisAntes = V('pop_nor_dosis');
+  CHK('pop_nor_activa', false);
+  await esp(120);
+  ex.push(['(B8) al desmarcar la droga se borran la dosis Y los tres campos de la dilucion',
+    _dosisAntes === '0.20' && V('pop_nor_dosis') === '' && V('pop_nor_diluc_mg') === '' &&
+    V('pop_nor_diluc_ml') === '' && V('pop_nor_veloc') === '' && T('pop_nor_calc') === '',
+    'antes=' + JSON.stringify(_dosisAntes) + ' dosis=' + JSON.stringify(V('pop_nor_dosis')) +
+    ' mg=' + JSON.stringify(V('pop_nor_diluc_mg'))]);
+  CHK('pop_nor_activa', true);
+  S('pop_nor_diluc_mg', '4'); S('pop_nor_diluc_ml', '100'); S('pop_nor_veloc', '21');
+  await esp(120);
+  ex.push(['(B9) y al volver a marcarla la dosis se calcula otra vez: la marca de «a mano» no sobrevivio',
+    V('pop_nor_dosis') === '0.20' && T('pop_nor_calc').indexOf('Dosis cargada a mano') < 0 &&
+    T('pop_nor_calc').indexOf('calculada con el peso') > -1,
+    'dosis=' + JSON.stringify(V('pop_nor_dosis')) + ' linea=' + T('pop_nor_calc')]);
+  pop({ pop_monitor: 'swan', pop_sw_gc: '3.2' });
+  CHK('pop_vaso_activa', true);
+  S('pop_vaso_diluc_mg', '4'); S('pop_vaso_diluc_ml', '100'); S('pop_vaso_veloc', '21');
+  await esp(120);
+  ex.push(['(B10) CONTROL NEGATIVO: la vasopresina publica el calculo y NO escribe su dosis sola',
+    V('pop_vaso_dosis') === '' && T('pop_vaso_calc').indexOf('0.20') > -1 &&
+    T('pop_vaso_calc').indexOf('no se escribe sola') > -1,
+    'dosis=' + JSON.stringify(V('pop_vaso_dosis')) + ' linea=' + T('pop_vaso_calc')]);
+
+  /* ══ (C) LA LINEA ARTERIAL Y EL DUENO UNICO DE LA PAM ════════════════════════════════════ */
+  ex.push(['(C0) DENOMINADOR: el campo de la PAM por linea arterial existe',
+    !!EL('pop_pai_pam'), 'existe=' + !!EL('pop_pai_pam')]);
+  pop({ pop_monitor: 'swan' });
+  await esp();
+  ex.push(['(C1) sin el monitoreo de presion invasiva elegido, el campo NO se muestra',
+    (function () { const w = EL('pop_pai_wrap');
+      return !!w && w.style.display === 'none'; })() === true,
+    'display=' + (EL('pop_pai_wrap') ? EL('pop_pai_wrap').style.display : 'NO EXISTE')]);
+  pop({ pop_monitor: 'pai' });
+  await esp();
+  ex.push(['(C2) con «Presion arterial invasiva solamente» el campo SI se muestra',
+    (function () { const w = EL('pop_pai_wrap');
+      return !!w && w.style.display !== 'none'; })() === true,
+    'display=' + (EL('pop_pai_wrap') ? EL('pop_pai_wrap').style.display : 'NO EXISTE')]);
+  pop({ pop_monitor: 'pai', pop_pai_pam: '62' });
+  await esp();
+  ex.push(['(C3) sola, la linea arterial manda y se rotula «medida»',
+    PAM() === '62/medida (l' + IACUTE + 'nea arterial)', PAM()]);
+  pop({ pop_monitor: 'pai', pop_pai_pam: '62', hemo_pam: '95' });
+  await esp();
+  ex.push(['(C4) la linea arterial le GANA a la PAM tipeada en el Perfil hemodinamico',
+    PAM().indexOf('62/') === 0, PAM()]);
+  pop({ pop_monitor: 'swan', pop_sw_pam: '58', pop_pai_pam: '62' });
+  await esp();
+  ex.push(['(C5) con el Swan-Ganz elegido manda SU PAM: la del otro dispositivo no se ve y no decide',
+    PAM() === '58/medida (Swan-Ganz)', PAM()]);
+  pop({ hemo_pam: '95' });
+  await esp();
+  ex.push(['(C6) CONTROL NEGATIVO: sin monitoreo invasivo, la tipeada sigue mandando como siempre',
+    PAM() === '95/de Hemodin' + AACUTE + 'mica', PAM()]);
+  pop({ pop_monitor: 'pai' });
+  await esp();
+  ex.push(['(C7) CONTROL NEGATIVO: con el monitoreo elegido y el campo vacio no hay PAM',
+    PAM() === 'null/null', PAM()]);
+
+  /* ══ (E) EL DIBUJO ═══════════════════════════════════════════════════════════════════════ */
+  pop({ pop_monitor: 'swan', pop_sw_gc: '3.2', pop_sw_pam: '70' });
+  await esp();
+  ex.push(['(E0) CONTROL NEGATIVO: sin asistencia, los cuatro dispositivos estan ocultos',
+    DIB('impella') === 'none' && DIB('ecmovv') === 'none' && DIB('ecmova') === 'none' &&
+    DIB('balon') === 'none',
+    'imp=' + DIB('impella') + ' vv=' + DIB('ecmovv') + ' va=' + DIB('ecmova') + ' bal=' + DIB('balon')]);
+  pop({ pop_monitor: 'swan', pop_sw_gc: '3.2', pop_sw_pam: '70', pop_asist_tipo: 'impella' });
+  await esp();
+  ex.push(['(E1) con Impella se dibuja el cuerpo Y su helice, y nada mas',
+    DIB('impella') === 'inline' && DIB('helice') !== 'NO EXISTE' &&
+    DIB('ecmovv') === 'none' && DIB('ecmova') === 'none',
+    'imp=' + DIB('impella') + ' hel=' + DIB('helice')]);
+  pop({ pop_monitor: 'swan', pop_sw_gc: '3.2', pop_sw_pam: '70', pop_asist_tipo: 'ecmo_vv' });
+  await esp();
+  ex.push(['(E2) el ECMO VENOVENOSO tiene su propio cano, distinto del venoarterial',
+    DIB('ecmovv') === 'inline' && DIB('ecmova') === 'none', 'vv=' + DIB('ecmovv') + ' va=' + DIB('ecmova')]);
+  ex.push(['(E3) y el texto accesible dice lo que hace: drena la cava y devuelve a la auricula derecha',
+    (function () { const t = T('pop-esq-txt');
+      return t.indexOf('venovenoso') > -1 && t.indexOf('drena') > -1; })() === true,
+    T('pop-esq-txt').indexOf('venovenoso') > -1 ? 'nombra el dispositivo' : T('pop-esq-txt').slice(0, 60)]);
+  pop({ pop_monitor: 'swan', pop_sw_gc: '3.2', pop_sw_pam: '70', pop_asist_tipo: 'ecmo_va' });
+  await esp();
+  ex.push(['(E4) CONTROL NEGATIVO: con ECMO VENOARTERIAL se dibuja el otro cano y no el venovenoso',
+    DIB('ecmova') === 'inline' && DIB('ecmovv') === 'none', 'va=' + DIB('ecmova') + ' vv=' + DIB('ecmovv')]);
+  pop({ pop_monitor: 'swan', pop_sw_gc: '3.2', pop_sw_pam: '70', pop_asist_tipo: 'bcia' });
+  await esp();
+  ex.push(['(E5) con el balon marcado aparece el selector de timing',
+    (function () { const w = EL('pop-bcia-timing-wrap');
+      return !!w && w.style.display !== 'none'; })() === true,
+    'wrap=' + (EL('pop-bcia-timing-wrap') ? EL('pop-bcia-timing-wrap').style.display : 'NO EXISTE')]);
+  ex.push(['(E6) timing sin verificar: el rotulo lo dice con TEXTO, no solo con color',
+    DIBTXT('timing').indexOf('sin verificar') > -1, DIBTXT('timing')]);
+  S('pop-bcia-timing', 'verificado');
+  try { if (FN('popEsqPintar')) popEsqPintar(); } catch (e) {}
+  await esp();
+  ex.push(['(E7) timing verificado: el rotulo cambia de texto',
+    DIBTXT('timing').indexOf('verificado') > -1 && DIBTXT('timing').indexOf('sin verificar') < 0,
+    DIBTXT('timing')]);
+  S('pop-bcia-timing', 'inconsistente');
+  try { if (FN('popEsqPintar')) popEsqPintar(); } catch (e) {}
+  await esp();
+  ex.push(['(E8) timing inconsistente: el rotulo manda a revisar el inflado',
+    DIBTXT('timing').indexOf('revisar el inflado') > -1, DIBTXT('timing')]);
+  ex.push(['(E9) el balon se infla en la DIASTOLE y no en la sistole, por su dueno unico',
+    (function () { if (!FN('popEsqBalonRx')) return 'NO EXISTE popEsqBalonRx';
+      const sis = [0, 0.1, 0.2, 0.34].map(popEsqBalonRx);
+      const dia = [0.45, 0.6, 0.89].map(popEsqBalonRx);
+      return sis.every(function (x) { return x === 2; }) &&
+             dia.every(function (x) { return x === 11; }) &&
+             popEsqBalonRx(1) === 2; })() === true,
+    FN('popEsqBalonRx') ? ('sistole=' + [0, 0.2, 0.34].map(popEsqBalonRx).join(',') +
+      ' diastole=' + [0.45, 0.6, 0.89].map(popEsqBalonRx).join(',')) : 'NO EXISTE']);
+  /* ⚠️ SE LE PREGUNTA A LAS DOS LISTAS PARALELAS, NO A UNA. _noEsDelEstudio gobierna el
+     recolector de campos y _CAMPOS_FUERA_DEL_ESTUDIO gobierna «el formulario tiene datos»:
+     con una sola condicion, sacar el prefijo de la otra lista pasa en verde. Es la leccion que
+     el D-11 dejo escrita para data-espejo, donde el selector y el cuerpo son dos listas. */
+  ex.push(['(E10) el selector de timing NO es un campo del estudio, por las DOS listas paralelas',
+    (function () { if (!FN('_noEsDelEstudio')) return 'SIN FN';
+      const dos = (typeof _CAMPOS_FUERA_DEL_ESTUDIO !== 'undefined')
+        ? _CAMPOS_FUERA_DEL_ESTUDIO.test('pop-bcia-timing') : 'NO EXISTE';
+      return _noEsDelEstudio('pop-bcia-timing') === true && dos === true &&
+             _noEsDelEstudio('pop_bcia_ratio') === false &&
+             _noEsDelEstudio('pop_pai_pam') === false; })() === true,
+    'noEsDelEstudio=' + (FN('_noEsDelEstudio') ? _noEsDelEstudio('pop-bcia-timing') : 'SIN FN') +
+    ' fueraDelEstudio=' + (typeof _CAMPOS_FUERA_DEL_ESTUDIO !== 'undefined'
+      ? _CAMPOS_FUERA_DEL_ESTUDIO.test('pop-bcia-timing') : 'NO EXISTE')]);
+  pop({ pop_monitor: 'swan', pop_sw_gc: '3.2', pop_sw_pam: '70',
+        pop_pleura_der: 'severo', pop_pleura_izq: 'moderado', pop_pulmon_lineasb: 'difusas' });
+  await esp();
+  ex.push(['(E11) el dibujo reacciona al derrame pleural de los DOS lados',
+    DIB('pleuraD') === 'inline' && DIB('pleuraI') === 'inline',
+    'D=' + DIB('pleuraD') + ' I=' + DIB('pleuraI')]);
+  ex.push(['(E12) y a las lineas B difusas: las OCHO encendidas, cuatro por lado',
+    LINEASB() === 8, 'lineasB=' + LINEASB()]);
+  pop({ pop_monitor: 'swan', pop_sw_gc: '3.2', pop_sw_pam: '70', pop_pulmon_lineasb: 'ausentes' });
+  await esp();
+  ex.push(['(E13) CONTROL NEGATIVO: sin lineas B no se dibuja ninguna y el derrame queda oculto',
+    LINEASB() === 0 && DIB('pleuraD') === 'none' && DIB('pleuraI') === 'none',
+    'lineasB=' + LINEASB() + ' D=' + DIB('pleuraD')]);
+
+  /* ══ (F) LOS CORTES EN SUS BORDES Y LAS CUATRO SENALES ═══════════════════════════════════ */
+  const GC = function (ic) { const b = BSA(); return b === null ? '0' : String(ic * b); };
+  const bordeIC = function (ic) {
+    pop({ pop_monitor: 'swan', pop_sw_gc: GC(ic), pop_sw_pam: '70', pop_sw_pad: '10', pop_sw_pcp: '14' });
+  };
+  bordeIC(2.1); await esp();
+  ex.push(['(F1) indice cardiaco 2,1: bajo',
+    IC() === 2.1 && PAT().k === 'bajo_sin_patron', 'ic=' + IC() + ' patron=' + PAT().k]);
+  bordeIC(2.2); await esp();
+  ex.push(['(F2) indice cardiaco 2,2 EXACTO: cae del lado BAJO, igual que _icBanda',
+    IC() === 2.2 && PAT().k === 'bajo_sin_patron', 'ic=' + IC() + ' patron=' + PAT().k]);
+  bordeIC(2.3); await esp();
+  ex.push(['(F3) indice cardiaco 2,3: NO es bajo',
+    IC() === 2.3 && PAT().k === 'sin_patron', 'ic=' + IC() + ' patron=' + PAT().k]);
+  pop({ pop_monitor: 'swan', pop_sw_gc: GC(2.3), pop_sw_pam: '70', pop_sw_pad: '10',
+        pop_sw_pcp: '14', pop_lactato: '2.0' });
+  await esp();
+  ex.push(['(F4) lactato 2,0 EXACTO: NO enciende la senal, porque el corte es estricto',
+    SEN().indexOf('lactato') < 0, 'senales=' + SEN().join(',')]);
+  pop({ pop_monitor: 'swan', pop_sw_gc: GC(2.3), pop_sw_pam: '70', pop_sw_pad: '10',
+        pop_sw_pcp: '14', pop_lactato: '2.1' });
+  await esp();
+  ex.push(['(F5) lactato 2,1: enciende la senal, y la senal DICE SU VALOR',
+    SEN().indexOf('lactato') > -1 && SENTXT().indexOf('2.1') > -1, SENTXT()]);
+  const bordeTapse = function (t) {
+    pop({ pop_monitor: 'swan', pop_sw_gc: GC(2.3), pop_sw_pam: '70', pop_sw_pad: '10',
+          pop_sw_pcp: '22', tapse: t });
+  };
+  bordeTapse('16'); await esp();
+  ex.push(['(F6) TAPSE 16 con presion capilar alta: enciende la senal de falla cardiaca',
+    SEN().indexOf('pcp_vd') > -1, 'senales=' + SEN().join(',')]);
+  bordeTapse('17'); await esp();
+  ex.push(['(F7) TAPSE 17 EXACTO: NO la enciende, porque el corte es «menor de 17»',
+    SEN().indexOf('pcp_vd') < 0, 'senales=' + SEN().join(',')]);
+  bordeTapse('18'); await esp();
+  ex.push(['(F8) TAPSE 18: tampoco',
+    SEN().indexOf('pcp_vd') < 0, 'senales=' + SEN().join(',')]);
+  const RESP = function (q) { try { const r = popPatron();
+    const f = (r.preguntas || []).filter(function (x) { return String(x.q).indexOf(q) > -1; })[0];
+    return f ? (f.cls + '|' + f.r) : 'SIN PREGUNTA'; } catch (e) { return 'EXC'; } };
+  pop({ pop_monitor: 'swan', pop_sw_gc: GC(2.3), pop_sw_pam: '70', tapse: '20', tep_vdvi: '0.90' });
+  await esp();
+  ex.push(['(F9) VD/VI 0,90 EXACTO: NO es dilatacion, porque el operador es estricto',
+    RESP('Falla del VD').indexOf('green|') === 0, RESP('Falla del VD')]);
+  pop({ pop_monitor: 'swan', pop_sw_gc: GC(2.3), pop_sw_pam: '70', tapse: '20', tep_vdvi: '0.91' });
+  await esp();
+  ex.push(['(F10) VD/VI 0,91: si lo es',
+    RESP('Falla del VD').indexOf('orange|') === 0, RESP('Falla del VD')]);
+  pop({ pop_monitor: 'swan', pop_sw_gc: GC(2.3), pop_sw_pam: '70', pop_sw_pad: '10', pop_sw_pcp: '14' });
+  CHK('pop_nor_activa', true);
+  await esp();
+  ex.push(['(F11) senal 1: gasto adecuado CON soporte en curso, y nombra la droga',
+    SEN().indexOf('soporte') > -1 && SENTXT().indexOf('drogas o del dispositivo') > -1, SENTXT()]);
+  pop({ pop_monitor: 'swan', pop_sw_gc: GC(2.3), pop_sw_pam: '70', pop_sw_pad: '10', pop_sw_pcp: '22' });
+  await esp();
+  ex.push(['(F12) senal 3: presion capilar por encima del corte con gasto aparentemente adecuado',
+    SEN().indexOf('pcp') > -1 && SENTXT().indexOf('congesti') > -1, SENTXT()]);
+  ex.push(['(F13) con senales y sin patron de bajo gasto, el rotulo NO dice «sin patron» a secas',
+    PAT().k === 'sin_patron_senales' && PAT().lbl.indexOf('se' + NTILDE + 'ales de alarma') > -1,
+    PAT().k + ' | ' + PAT().lbl]);
+  pop({ pop_monitor: 'swan', pop_sw_gc: GC(2.3), pop_sw_pam: '70', pop_sw_pad: '10', pop_sw_pcp: '14' });
+  await esp();
+  ex.push(['(F14) CONTROL NEGATIVO: sin soporte ni lactato alto, la pregunta del gasto NO lleva aviso',
+    (function () { try { const g = (popPatron().preguntas || [])[0];
+      return !!g && String(g.aviso || '').length === 0; } catch (e) { return 'EXC'; } })() === true,
+    (function () { try { return JSON.stringify((popPatron().preguntas || [])[0].aviso); } catch (e) { return 'EXC'; } })()]);
+  pop({ pop_monitor: 'swan', pop_sw_gc: GC(2.3), pop_sw_pam: '70', pop_sw_pad: '10',
+        pop_sw_pcp: '14', pop_lactato: '3.4' });
+  await esp();
+  ex.push(['(F15) y con el lactato alto el aviso aparece, nombrando el motivo',
+    (function () { try { const g = (popPatron().preguntas || [])[0];
+      return !!g && String(g.aviso || '').indexOf('no concluye por s') > -1; } catch (e) { return false; } })() === true,
+    (function () { try { return String((popPatron().preguntas || [])[0].aviso || ''); } catch (e) { return 'EXC'; } })()]);
+  pop({ pop_monitor: 'swan', pop_sw_gc: GC(1.8), pop_sw_pam: '70', pop_sw_pad: '10',
+        pop_sw_pcp: '22', pop_lactato: '3.4' });
+  CHK('pop_nor_activa', true);
+  await esp();
+  ex.push(['(F16) CONTROL NEGATIVO: con el gasto BAJO las tres primeras senales no se emiten — avisan de un gasto que PARECE adecuado',
+    SEN().indexOf('soporte') < 0 && SEN().indexOf('lactato') < 0 && SEN().indexOf('pcp') < 0,
+    'senales=' + SEN().join(',')]);
+
+  /* ══ (G) EL CASO QUE MIDIO EL MEDICO ═════════════════════════════════════════════════════ */
+  pop({ pop_monitor: 'swan', pop_sw_gc: GC(1.57), pop_sw_pam: '58', pop_sw_pad: '10',
+        pop_sw_pcp: '14', tapse: '12', pop_cx_horas: '6', pop_cx_tipo: 'cabg' });
+  await esp();
+  ex.push(['(G0) DENOMINADOR: la escena del medico da indice cardiaco 1,57, PAM 58 y TAPSE 12',
+    IC() === 1.57 && PAM() === '58/medida (Swan-Ganz)' && V('tapse') === '12',
+    'ic=' + IC() + ' pam=' + PAM() + ' tapse=' + V('tapse')]);
+  ex.push(['(G1) con indice cardiaco 1,57 la conclusion YA NO dice «Sin patron de bajo gasto»',
+    PAT().lbl.indexOf('Sin patr') < 0, PAT().k + ' | ' + PAT().lbl]);
+  ex.push(['(G2) dice que el indice cardiaco esta bajo y que ningun patron lo explica',
+    PAT().k === 'bajo_sin_patron' && PAT().lbl.indexOf('ndice card') > -1, PAT().lbl]);
+  ex.push(['(G3) y la caja de la conclusion lo publica, con su chip de criterio propio',
+    T('pop-concl-box').indexOf(PAT().lbl) > -1 && T('pop-concl-box').indexOf('Criterio de EcoSmart') > -1,
+    T('pop-concl-box').slice(0, 120)]);
+
+  /* ══ (H) QUE PUBLICA CADA SUPERFICIE ═════════════════════════════════════════════════════ */
+  pop({ pop_monitor: 'swan', pop_sw_gc: '3.2', pop_sw_pam: '58', pop_sw_pad: '14',
+        pop_sw_pcp: '22', tapse: '12', tep_vdvi: '1.1', pop_cx_horas: '6',
+        pop_cx_tipo: 'cabg', pop_lactato: '3.4' });
+  await esp();
+  try { if (FN('amiloBuildCard')) amiloBuildCard(); } catch (e) {}
+  try { if (FN('amiloIntegrar')) amiloIntegrar('pop'); } catch (e) {}
+  await esp(200);
+  const _hoja = (function () { try { return amiloTextoPOP(); } catch (e) { return 'EXC'; } })();
+  const _r1 = gen('estandar');
+  await esp();
+  ex.push(['(H0) DENOMINADOR: el modulo esta integrado, emite su hoja y el informe sale',
+    (function () { const i = FN('amiloIntegrado') ? amiloIntegrado('pop') : false;
+      return i === true && _hoja.length > 400 && _r1.inf.length > 80; })() === true,
+    'integrado=' + (FN('amiloIntegrado') ? amiloIntegrado('pop') : 'SIN FN') +
+    ' hoja=' + _hoja.length + ' inf=' + _r1.inf.length]);
+  ex.push(['(H1) la hoja PostCEC del PDF NO publica el patron ni las cinco preguntas',
+    _hoja.indexOf('Patr' + OACUTE + 'n hemodin') < 0 &&
+    _hoja.indexOf('Gasto card') < 0 && _hoja.indexOf('Precarga adecuada') < 0,
+    'hoja=' + _hoja.slice(0, 80)]);
+  ex.push(['(H2) y SI publica el lactato cargado, como un dato',
+    _hoja.indexOf('Lactato | 3.4') > -1,
+    (_hoja.split(String.fromCharCode(10)).filter(function (l) { return l.indexOf('Lactato') === 0; })[0] || 'sin linea')]);
+  ex.push(['(H3) el cuerpo del informe no nombra el patron del posoperatorio',
+    _r1.inf.indexOf('Patr' + OACUTE + 'n hemodin') < 0, 'len=' + _r1.inf.length]);
+  ex.push(['(H4) el EN SUMA lleva su linea PostCEC y NO el rotulo del patron',
+    _r1.suma.indexOf('PostCEC') > -1 && _r1.suma.indexOf('Patr' + OACUTE + 'n') < 0,
+    (_r1.suma.split(String.fromCharCode(10)).filter(function (l) { return l.indexOf('PostCEC') > -1; })[0] || 'sin linea')]);
+  ex.push(['(H5) la pantalla SI publica el patron y las cinco preguntas, con la linea que dice que no viajan al papel',
+    (function () { const c = T('pop-concl-box');
+      return c.indexOf('Patr' + OACUTE + 'n detectado') > -1 &&
+             c.indexOf('Gasto card') > -1 &&
+             c.indexOf('se quedan en esta pantalla') > -1; })() === true,
+    T('pop-concl-box').slice(0, 100)]);
+  ex.push(['(H6) y publica las senales de alarma con su globo',
+    (function () { const c = EL('pop-concl-box'); if (!c) return 'NO EXISTE';
+      return (c.textContent || '').indexOf('Se' + NTILDE + 'ales de alarma') > -1 &&
+             c.querySelectorAll('[data-vinfo="pop-senales"]').length === 1; })() === true,
+    T('pop-concl-box').slice(0, 90)]);
+  ex.push(['(H7) las DOS tarjetas nuevas estan en el registro y apuntan a la ficha del posoperatorio',
+    (function () { if (typeof VINFO === 'undefined' || typeof VINFO_REF === 'undefined') return 'SIN REGISTRO';
+      return !!VINFO['pop-vaso'] && !!VINFO['pop-senales'] &&
+             VINFO_REF['pop-vaso'] === 'pop' && VINFO_REF['pop-senales'] === 'pop'; })() === true]);
+  ex.push(['(H8) el globo de las senales cita sus DOS fuentes y la linea visible no lleva cita',
+    (function () { if (typeof VINFO === 'undefined') return 'SIN REGISTRO';
+      const f = String((VINFO['pop-senales'] || {}).fuente || '');
+      const c = T('pop-concl-box');
+      return f.indexOf('J Am Coll Cardiol') > -1 && f.indexOf('Rev Argent Cardiol') > -1 &&
+             c.indexOf('J Am Coll Cardiol') < 0 && c.indexOf('Rev Argent Cardiol') < 0; })() === true]);
+
+  /* ══ (I) SIN POSOPERATORIO, NADA SE MUEVE ════════════════════════════════════════════════ */
+  base();
+  S('fevi', '55'); S('ddfvi', '48'); S('ai_vol', '30');
+  try { if (FN('popSync')) popSync(); } catch (e) {}
+  const _r2 = gen('estandar');
+  await esp();
+  ex.push(['(I0) DENOMINADOR: el escenario sin posoperatorio produce informe',
+    _r2.inf.length > 80, 'len=' + _r2.inf.length]);
+  ex.push(['(I1) CONTROL NEGATIVO: sin datos del posoperatorio, ni el informe ni el EN SUMA lo nombran',
+    _r2.inf.indexOf('PostCEC') < 0 && _r2.suma.indexOf('PostCEC') < 0,
+    'inf=' + (_r2.inf.indexOf('PostCEC') > -1) + ' suma=' + (_r2.suma.indexOf('PostCEC') > -1)]);
+  ex.push(['(I2) CONTROL NEGATIVO: el modulo vacio no se puede integrar',
+    (function () { const b = EL('pop_integrar'); return !!b && b.disabled === true; })() === true,
+    'btn=' + (EL('pop_integrar') ? EL('pop_integrar').disabled : 'SIN BOTON')]);
+  ex.push(['(I3) CONTROL NEGATIVO: sin datos, el dibujo no enciende ningun dispositivo ni ninguna linea B',
+    DIB('impella') === 'none' && DIB('ecmovv') === 'none' && DIB('balon') === 'none' && LINEASB() === 0,
+    'imp=' + DIB('impella') + ' lineasB=' + LINEASB()]);
+
+  return { extra: ex };
+  })();
+`);
+
 
 
 let servidor, chrome;

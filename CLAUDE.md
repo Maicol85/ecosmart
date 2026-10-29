@@ -77,6 +77,7 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Tocar el BLOQUE del ETT avanzado**: el barrido que lo mantiene al día, la marca de «editado a mano» y su campo persistido, el aviso ámbar, la confirmación al reintegrar o **la pregunta del RESULTADO del paso 3 del HFA-PEFF** | `docs/mapa/aj3-ett-avanzado.md` |
 | **Tocar CUÁNDO se actualiza un campo ESPEJO —los 28 `*_ro`, los `data-espejo` y los textos calculados que leen otra pestaña— o DE QUIÉN sale la PAM**: el registro `ESPEJOS_VIVOS`, el barrido colgado del debounce de 220 ms, las seis exclusiones con su motivo, `pamEfectiva()` y su aviso de discrepancia | `docs/mapa/b-espejos-pam.md` |
 | **Tocar el POSOPERATORIO de cirugía cardíaca**: la grilla de drogas, el acordeón de monitoreo, el lactato, el esquema animado con sus cavidades y sus caños, la vasoplejia con la PAM, los grados del derrame pleural, lo que sale al informe y lo que se queda en la pantalla, su ficha de Referencias o su Evidencia | `docs/mapa/g-posoperatorio.md` |
+| **Tocar algo que la tanda POP-V2 movió del POSOPERATORIO** (29/10): el orden de la pestaña y el desplegable de fármacos, la dosis que se calcula sola con sus dos marcas, la PAM por línea arterial, el Impella, el ECMO venovenoso o el timing del balón, las cuatro señales sueltas de la conclusión, o el patrón fuera del PPT | `docs/mapa/pop-v2-posoperatorio.md` |
 | **Tocar algo que la tanda AJ6 movió** (24/10): el cuerpo del informe de la Fallot reparada —el esquema, la fila vacía y la conducta retirada—, su Evidencia compacta con la prosa en el ⓘ, la ecografía pulmonar en cuatro columnas, o Referencias y Calculadoras dejando de ser módulos opcionales con el buscador que tapa las fichas | `docs/mapa/aj6-fallot-pulmon-refs.md` |
 | **Tocar algo que la tanda AJ7 movió** (24/10): la línea de Fallot del EN SUMA y su `resumen`, la línea de presión de llenado del HF-PEFF, la fila «Descripción» del ateroma, el retiro automático del bloque integrado y el aviso al exportar, el VOTO del strain del VD y su banda en Referencias, el bloqueo del Tipo de IM y el Carpentier con prótesis, el rótulo que se achica, las dos conductas de constricción, la compuerta de su Evidencia, el aviso de VExUS armado con `join`, o el dueño único del corte de HTP | `docs/mapa/aj7-correcciones.md` |
 | **Tocar el CARPENTIER de la mitral —quién es su dueño y dónde se dice—, el AVISO de la Evidencia de la TRICÚSPIDE, el strain del VD por debajo de 15 %, o las dos TABLAS de la OREJUELA** | `docs/mapa/e-carpentier-tricuspide-orejuela.md` |
@@ -166,8 +167,9 @@ Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la v
 ## Qué es EcoSmart y cómo se trabaja
 
 - App clínica de ecocardiografía en **un solo `index.html`**: HTML + CSS + JS inline, sin build,
-  sin frameworks. Hoy **9,98 MB / 140.189 líneas**, medido con `wc -c` y `wc -l` el 2026-10-29 al
-  cierre de la tanda **AJ9**, sobre el árbol ya sellado (`v20261029-1110`, md5 `fc77acb0`).
+  sin frameworks. Hoy **10,02 MB / 140.761 líneas**, medido con `wc -c` y `wc -l` el 2026-10-29 al
+  cierre de la tanda **POP-V2**, sobre el árbol ya sellado (`v20261029-1425`, md5 `f72a928c`).
+  (Antes: 9,98 MB / 140.189 al cierre del AJ9, sello `v20261029-1110`, md5 `fc77acb0`.)
   ⚠️ **Y ESTE RENGLÓN SE HABÍA QUEDADO SIETE TANDAS ATRÁS**: decía «9,79 MB / 138.038 líneas»,
   que es el cierre de la tanda **E** del 27/10, mientras la D, el D-9, el D-10, el D-11, la C1,
   la C2, la TEP y la G escribían su delta en su propia sección sin tocar éste, que es el que se
@@ -1759,3 +1761,134 @@ línea: el archivo creció y un informe de auditoría viejo apunta a otro archiv
   «La tanda AJ9» con las seis fuentes transcritas, la tabla de premisas falsas y la de «Cambios
   de evidencia» de veintisiete filas, y `docs/PENDIENTES.md` → **SIETE** cosas declaradas
   (**AJ9-a** a **AJ9-g**).
+
+### El posoperatorio reordenado — «POP-V2» (2026-10-29)
+
+- **SIETE commits.** `a8b8fad` (1) · `74ca213` (2) · `7eba352` (3) · `892fd84` (4) · `31a4e39` (5)
+  · `2a01ba9` (6) · el de cobertura y documentación. Sello **`v20261029-1425`**, md5 de
+  `index.html` **`f72a928c`**. Al empezar, `origin/main` = `HEAD` = **`c1a0ef9`**, el cierre de la
+  tanda AJ9, ya publicado.
+  **El push lo corre Maicol: esta tanda tenía orden expresa de NO pushear.**
+
+- **EL DEFECTO QUE EL MÉDICO MIDIÓ, EN UNA LÍNEA: con índice cardíaco 1,57 la conclusión decía
+  «Sin patrón de bajo gasto» ocho renglones debajo de «IC 1.57 — bajo».** Los cuatro patrones
+  exigen combinaciones, y un paciente con el gasto bajo y todo lo demás en rango no cae en
+  ninguna: «ninguno de los cuatro patrones» no es «sin bajo gasto». Hoy dice «Índice cardíaco
+  bajo, sin un patrón que lo explique con los datos cargados».
+
+- **LOS DOS DEFECTOS DE PANTALLA, MEDIDOS ANTES Y DESPUÉS a 1440 / 1000 / 768 / 390 px.** El
+  recuadro del Swan-Ganz tenía **250 px de caja para 406 de contenido** a 1440 px y 250 para 367 a
+  1000: hoy ninguno de los cuatro anchos scrollea. Y los **SEIS** selectores del POCUS quedaban
+  recortados a 1000 px, con 9, 13 y 43 px de ancho útil para opciones que necesitan 100 a 110:
+  hoy 0 de 6 en los cuatro anchos. Arreglado **por los dos lados** —la subgrilla y el piso de
+  170 px del `.grid-3` de adentro—, porque uno solo no alcanzaba.
+
+- **CUATRO PREMISAS DE LA ORDEN ERAN FALSAS, Y ESTÁN MEDIDAS.**
+  1. **El dibujo YA reaccionaba al derrame pleural y a las líneas B** desde la G2 —`plR`, `plL` y
+     los cuatro pares de `bl`—. Lo que faltaba son el Impella y el ECMO venovenoso, que
+     `popEsqTexto` ya nombraba en el texto y el dibujo no tenía.
+  2. **El consenso argentino del lactato está en la hoja 15, no en la 11**, y **archivado en la
+     carpeta equivocada**: `19_Pulmon_POCUS/COMPLETO-B-52.pdf`. Censado **por contenido** sobre
+     los 185 PDF de la biblioteca, porque por nombre de archivo no aparece.
+  3. **El PiCCO no tiene campo de PAM en esta app**, censado: sus cinco campos son GC, IC, ITBVI,
+     EVLWI y SVRI. → **POP-b**.
+  4. **La RVS «ya la lee del dueño único» es verdad para la cápsula y FALSA para `popPatron`**,
+     cuya tercera rama sigue leyendo `v('hemo_pam')`. Medido: con sólo la línea arterial cargada,
+     la cápsula publica 1009 y el módulo ninguna; con las dos, 1009 contra 1574. → **POP-c**.
+
+- **LA DOSIS SE CALCULA SOLA, Y GANA LA ÚLTIMA EDICIÓN DEL MÉDICO.** Dos marcas de runtime y
+  ninguna persistida: `data-pop-auto` («lo escribió la app») y `data-pop-mano` («lo escribió una
+  persona», puesta por el `oninput`). La segunda es lo único que hace que **borrar** la dosis la
+  deje borrada —sin ella el barrido de espejos la repuebla 220 ms después, que es el defecto que
+  el D-9, el D-10 y el D-11 pagaron tres veces—. Las dos entran en la lista cerrada de «Nuevo
+  estudio», en el **selector y en el cuerpo**. Una dosis de un estudio viejo no se pisa por
+  construcción: viene sin `data-pop-auto`.
+
+- ⚠️ **EL SELECTOR DE TIMING DEL BALÓN NO ES UN CAMPO GUARDADO, Y ES UNA DECISIÓN FORZADA.** La
+  orden autoriza **un solo** campo nuevo y ése es la PAM por línea arterial. Va con guion MEDIO
+  —`pop-bcia-timing`— y entra en las DOS listas paralelas. **El precio, declarado: el timing no
+  sobrevive a cerrar y reabrir el estudio.** → **POP-d**.
+
+- **LAS DOS FUENTES DEL CORTE DE LACTATO SE LEYERON EN IMAGEN**, a 400 y 500 ppp, porque el signo
+  «mayor que» es justo lo que una extracción de texto se come: ACC 2025 (Sinha, *J Am Coll
+  Cardiol* 2025;85(16):1618-1641, **hoja 5, folio 1622**) y el Consenso de Shock Cardiogénico de
+  la SAC (*Rev Argent Cardiol* 2024;92 Supl. 3, **hoja 15, folio 7**). Las dos cortan en 2 y las
+  dos son **estrictas**. Las citas van en el globo ⓘ `pop-senales`.
+  **La app NO asigna etapas SCAI ni emite «shock cardiogénico»**, y las dos fuentes usan ese
+  mismo corte para definir el estadio C — que es justo lo que acá no se publica.
+
+- **LOS CORTES 12 Y 18 ESTABAN ESCRITOS A MANO, CUATRO VECES CADA UNO.** El 18 coincidía en el
+  número con `UMBRAL_PCP_HUMEDO` y era una segunda copia; el 12 es criterio propio y ahora tiene
+  su constante. **Ningún número cambió.**
+
+- **EL PATRÓN Y LAS CINCO PREGUNTAS SALIERON DEL PPT**, que era la **única** superficie firmada
+  que seguía publicándolos: 35 textos → 29. El informe, el EN SUMA y la hoja del PDF ya no los
+  llevaban desde la G4. ⚠️ **El Laboratorio NO se tocó**: su fuente son estudios guardados antes
+  de la G4 y no se migra nada, que es lo que la orden manda hacer si el patrón sale ahí.
+
+- **A/B contra HEAD, UNO POR COMMIT**, con el control positivo de pantalla al lado: commit 1,
+  **cero** diferencias de superficie firmada en 5.409 claves; commit 2, **cinco** y las cinco
+  autorizadas —el campo de la dosis, el bloque integrado, la hoja del PDF y el PPT pasan de
+  «Vasoactivos | Noradrenalina» a «… Noradrenalina 0.2 mcg/kg/min»—; commit 3, el campo nuevo y
+  su línea «PAM | 62 mmHg (medida (línea arterial))»; commit 4, **cero** en 10.844 claves;
+  commit 5, **dos**, las dos el rótulo del patrón en el PPT de las escenas integradas, que el
+  commit 6 retira; commit 6, **cinco**, las cinco en el PPT. Excel en **440** columnas con las
+  mismas claves en todos.
+  ⚠️ **LAS ESCENAS DE BORDE NO CAÍAN EN EL BORDE.** Se había supuesto una superficie corporal de
+  1,8277 y la que esta app calcula con peso 70 y talla 170 es **1,818118685772619**: el «2,2
+  exacto» daba **2,212**, del lado normal. Recalculadas preguntándole a `getBSA()`.
+
+- **Línea base al cierre: suite 559/563**, en once lotes **cubriendo los 563 casos distintos**
+  —contados nombre por nombre—, con el pendrive `DISK_IMG` **montado y listando nombres reales al
+  abrir, entre lotes y al cerrar** y el md5 de `index.html` **idéntico** antes y después
+  (`f72a928c`). Los rojos son **TC-223, TC-376, TC-390 y TC-406**, los cuatro de siempre, **y
+  ninguno más**: **TC-358 salió VERDE**. Semgrep **124 WARNING / 0 ERROR**. Excel **440**
+  columnas, sin una sola clave `pop_`. Censo del script **1025 → 1027** (+1 campo guardado
+  autorizado, +1 control de pantalla), **0 huérfanos**; el juego de campos **guardados** se movió
+  en exactamente uno, medido con `_camposN` en el A/B. Celular **63 hallazgos a 360 px y 72 a
+  390, 17 ALTA en cada ancho** — idénticos a la base. 17 bloques de JS inline parsean.
+- **14/14 MUTACIONES DIRIGIDAS MUERTAS EN EL PRIMER BARRIDO**, en 1 min 26 s, en worktree y nunca
+  sobre el vivo, con guarda de md5. **Tres de las catorce no revierten nada: aplican de más** —el
+  lactato de 2,0 exactos, el TAPSE de 17 exactos y el VD/VI de 0,90 exactos—, porque las
+  condiciones que las matan son **controles negativos**. Y **la 13 rompe LAS DOS listas a la vez**:
+  una mutación que rompa una sola la tapa la otra, que es la lección del D-11.
+- **TC-548 cae contra HEAD por 51 de sus 82 condiciones y NINGUNA por excepción.** Las 31 que
+  pasan en los dos árboles son los denominadores y los controles negativos.
+- **CHROME Y WEBKIT COINCIDEN EN LOS DIECISÉIS CRUCES CADA UNO** (dos motores × 1440, 1000, 768 y
+  390 px × dos temas × dos escenas): **cero** scroll del recuadro, **cero** selectores recortados,
+  **cero** desplazamiento horizontal del cuerpo, **cero** textos recortados y **cero errores de
+  consola y de página**, con los tres órdenes coincidiendo y los globos en 44×44 con los **cinco
+  puntos dando el propio botón**. La diferencia entre motores es de **1 px** en el alto del
+  recuadro. ⚠️ **WebKit de Playwright no es Safari, y se declara.**
+  **Escribir no se volvió más lento**: quince teclas reales, media **0,61 ms** contra 0,67 en
+  HEAD, máximo 1,3 contra 1,5, y el barrido de espejos **5,8 ms** contra 7,1 — con la dosis
+  escribiéndose de verdad en el árbol nuevo y vacía en HEAD, que es el denominador.
+- **CINCO CASOS VIEJOS ADAPTADOS, cada uno con el motivo escrito**: **TC-534** (cinco
+  condiciones: la reserva de hueco, el reparto por áreas, el rótulo del balón con su timing y las
+  dos de la vasoplejia), **TC-471**, **TC-500** y **TC-502** (el registro de globos, 65 → **67**,
+  y el mapeo a Referencias 44 → **46**).
+- **`index.html` pasó de 9,98 MB / 140.189 líneas a 10,02 MB / 140.761** — medido con `wc -c` y
+  `wc -l` DESPUÉS de sellar. (MB de 10⁶: `wc -c` dividido por 1e6.)
+
+- ⚠️ **UNA TRAMPA DE INSTRUMENTACIÓN QUE VALE PARA CINCO ARNESES VIEJOS: una casilla se persiste
+  como `<id>__chk`, no como `<id>`.** El estudio sintético del arnés de A/B heredado no tenía esa
+  clave, así que `generarPPT` —que carga el estudio en el formulario— reponía **todas** las
+  casillas apagadas: la franja de drogas decía «sin infusión activa» sobre una escena con la
+  noradrenalina marcada, **en los dos árboles**. Corregido en `_probe_popab.mjs`; siguen con el
+  defecto `_probe_r2ab`, `_probe_aab`, `_probe_bab`, `_probe_c1ab` y `_probe_c2ab`. → **POP-g**.
+  Y al corregirlo se destapó que **el PPT imprime la CLAVE de la droga** (`nor 0.2`) y no su
+  nombre, porque el `label[for=…]` que busca no existe. Preexistente, no tocado. → **POP-h**.
+
+- ⚠️ **Y DOS MÁS, DE LAS QUE CUESTAN UNA CORRIDA.** (1) `#login-overlay` es `position:fixed` y
+  tapa la página entera: sin descartarlo, `elementFromPoint` da **0 de 5 puntos** sobre un globo
+  que mide 44×44 de verdad. (2) **`check_backticks.py` no distingue el cuerpo de un caso del
+  comentario de bloque que lo precede**: una limpieza que borre «todos los acentos graves del
+  bloque» se lleva los del comentario del caso siguiente, que son legítimos. Costó restaurar
+  **TC-534 entero desde git**.
+
+- **Dónde está todo:** `docs/mapa/pop-v2-posoperatorio.md` (**mapa NUEVO**, 20,1 KB, con la tabla
+  de lo que `g-posoperatorio.md` decía y dejó de ser cierto), **siete mapas con un puntero cada
+  uno** —medidos ANTES de escribir, todos por debajo de 28 KB—, `docs/fuentes/FUENTES.md` → «La
+  tanda POP-V2» con las dos fuentes transcritas, sus dos reglas de folio comprobadas en el pie
+  impreso y la tabla «Cambios de evidencia» de ocho filas, y `docs/PENDIENTES.md` → **OCHO** cosas
+  declaradas (**POP-a** a **POP-h**).

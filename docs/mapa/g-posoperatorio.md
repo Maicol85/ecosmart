@@ -341,3 +341,17 @@ rojo con VD/VI entre 0,9 y 1,0, y en el **0,90 exacto no cambia nada**.
 Y la fila «¿Falla del ventrículo derecho?» de su ficha de Referencias llevaba una **cita falsa**
 —«ESC 2019, folio e17» para un TAPSE de 17 mm que ese documento no publica—. Ver
 **`docs/mapa/tep-aha2026.md`** §3 y §4, y `docs/PENDIENTES.md` → **TEP-g**.
+
+---
+
+## ⇢ Puntero — la tanda «POP-V2» (2026-10-29)
+
+El módulo **«POP Cirugía Cardíaca»** se reordenó de arriba hacia abajo —contexto y monitoreo,
+fármacos en un desplegable, hemodinámica, POCUS con el VD primero, dibujo y conclusión—, la dosis
+de las vasoactivas **se calcula sola**, apareció la **PAM por línea arterial** en el primer
+escalón del dueño único, el dibujo sumó **Impella, ECMO venovenoso y el timing del balón**, la
+conclusión publica **señales sueltas con su valor** y el **patrón y las cinco preguntas salieron
+del PPT**.
+
+**Todo en `docs/mapa/pop-v2-posoperatorio.md`**, con la tabla de lo que los mapas anteriores decían
+y dejó de ser cierto. El caso que lo fija es **TC-548**; los pendientes, **POP-a** a **POP-h**.
