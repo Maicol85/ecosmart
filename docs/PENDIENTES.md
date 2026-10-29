@@ -9244,3 +9244,137 @@ El **VD/VI** sale del dueño único, así que no puede desincronizarse. El **TAP
 
 **Decidir:** si ese cuadro debe leer el del TEP —que es lo que su propio texto afirma— o si el
 texto debe decir que son dos cortes de dos fuentes.
+
+---
+
+# Tanda G — pantallas y anchos (F) más la aorta integrada (AJ8) (2026-10-29)
+
+## La medición del COMMIT 1, con su denominador
+
+Sonda nueva: `scripts/_probe_gpant.mjs`. Recorre **27 puertas** —las 17 pestañas más las 10
+subpestañas con barra propia— a **1000, 768 y 390 px**, en tema **claro y oscuro**, con un estudio
+**lleno** (1.042 campos escritos) y uno **vacío**: **324 cruces**. Abre lo colapsado con el gesto
+real de cada cabecera y abre y mide **618 tarjetas ⓘ**. Mide siete cosas: desplazamiento
+horizontal del cuerpo, texto recortado, elementos superpuestos, controles por debajo de 44 px
+donde esa regla existe, SVG que desborda o queda chico, tablas sin scroll dentro de su contenedor,
+y lo que se sale del viewport.
+
+**Línea base medida sobre el sello `v20261029-0019`:** **30 ALTA · 36 MEDIA · 738 BAJA**, y
+**cero** desplazamiento horizontal del cuerpo, **cero** tablas sin scroll, **cero** elementos
+superpuestos, **cero** elementos fuera del viewport y **cero** errores de consola en los 324
+cruces. Las **30 ALTA son una sola causa**: diez pastillas de la pestaña Válvulas con el rótulo
+recortado a 390 px.
+
+⚠️ **LA PRIMERA CORRIDA DECÍA 44 ALTA Y VEINTICUATRO ERAN MÍAS.** La sonda medía el área táctil
+con `getBoundingClientRect`, y este archivo extiende el área de varios botones con un `::after`
+**absoluto**, que no ocupa lugar en el flujo y que el rect no ve. Medido con `elementFromPoint`:
+`#pac-id-mk-ci` y `#pac-id-mk-matricula` informan **7×11 px de caja** y su área táctil real es
+**35×41**, con las cuatro esquinas devolviendo el propio botón. No son un defecto: son el patrón
+que el J3 documenta para no estirar la línea del rótulo a 44 px y desplazar el campo.
+⚠️ **Y el comentario de ese CSS dice «Queda en 40 × 40», que es falso**: `left:-14px;right:-14px`
+sobre una caja de 7 px dan **35**, y `top:-15px;bottom:-15px` sobre 11 px dan **41**. Corregido en
+el COMMIT 2 — es un comentario, no un valor.
+
+⚠️ **La severidad NO es la de `check_mobile.js` y no se suman.** Son dos instrumentos con
+denominadores distintos: aquél mide 360 y 390 px en un tema; éste mide tres anchos, dos temas y
+dos escenas por puerta. La línea base del celular que la orden fija —63 a 360 px y 72 a 390, con
+17 ALTA— se sigue midiendo con `check_mobile.js`.
+
+## F-a · Los 522 globos ⓘ de 16×12 px — BAJA, y es el estado conocido
+
+De los **63** globos del archivo, sólo **8** llevan `vinfo-btn-44`. Los otros 55 son `vinfo-btn` a
+secas y miden **16×12, 15×11 o 17×13 px** según el ancho. Repartidos por los 324 cruces dan 522
+hallazgos.
+
+⚠️ **Marcarlos ALTA sepulta lo que importa, y por eso no se hace.** Con ellos en ALTA el reporte
+salía con **1.068** hallazgos de esa gravedad en vez de 44; es la misma lección que
+`check_mobile.js` tiene escrita sobre los 56 ALTA de checkboxes etiquetados. ALTA queda para la
+**regresión**: un globo que *lleva* la clase de 44 y mide menos. Hoy no hay ninguno.
+
+**Decidir:** si la clase `vinfo-btn-44` pasa a ser la de todos los globos. El precio está medido
+en la tanda AJ7: un área de 44×44 encajada con `margin:-16px` tapa 16 px del campo de abajo, así
+que la mudanza no es poner una clase, es rehacer el espaciado de cada fila que lleva un globo.
+
+## F-b · Ciento veinte botones entre 28 y 44 px de área táctil — BAJA
+
+Por debajo del mínimo de WCAG 2.5.5 pero alcanzables, y **medidos por su área táctil real**, no
+por su caja. Los tres grupos: 68 de **44×35**, 28 de **44×29** y 24 de **35×41** (los dos
+marcadores de «este dato va al PDF», que son los del `::after`). No se tocaron.
+
+## F-c · Los 96 SVG de muestra de Config — BAJA
+
+Las miniaturas de tema y de diseño del panel de Configuración miden **94×54 px** (algunas 66×54)
+con 18 a 27 nodos cada una. Son **muestras por diseño**, no gráficos de datos: se ven chicas
+porque son una vista previa. Quedan como están.
+
+## F-d · Doce tarjetas ⓘ que se leen scrolleando — MEDIA
+
+Su contenido es más alto que la caja y se alcanza scrolleando dentro de la tarjeta
+(`overflow:auto`, **no se pierde nada**), pero se lee cortada. Medidas, peor primero:
+
+| Tarjeta | Ancho de ventana | Contenido | Caja |
+|---|---|---|---|
+| `co-riesgo-basal` | 390 px | 950 px | 571 px |
+| `tarj-insuf-mitral` | 390 px | 804 px | 452 px |
+| `tarj-esten-mitral` | 390 px | 658 px | 452 px |
+| `vd-fun-card` | 390 px | 646 px | 621 px |
+| `vi-geo` | 1000 y 390 px | 615 px | 564 / 445 px |
+| `vi-card` | 1000 y 390 px | 591 px | 547 / 438 px |
+| `hemo-ic` | 1000, 768 y 390 px | 582 px | 549 / 462 / 559 px |
+| `hemo-rvs` | 1000 y 768 px | 553 px | 530 / 482 px |
+
+(Doce tarjetas distintas en 36 cruces; la lista es la de la corrida final.)
+
+**Decidir:** si la altura de la tarjeta debe poder usar toda la pantalla en vez de sólo el lado
+del globo donde se coloca. Hoy se acota al lado elegido **a propósito**, para que la tarjeta nunca
+tape su propio ancla —si lo tapa, el segundo toque, que es una de las tres formas de cierre, no
+llega al botón—. Cambiar eso reabre ese defecto, así que no se tocó.
+
+## F-e · El punto 2a no se reproduce, y está medido
+
+La orden describe, en la pestaña **⚪ Pericardio y pulmón** a 1000 px y menos, «una frase con su
+dibujo que no entra en la columna». **No ocurre.** Medido en los 12 cruces de esa puerta
+—1000, 768 y 390 px × dos temas × lleno y vacío— con 114 elementos visibles en la escena llena y
+las dos secciones abiertas con su gesto real: **cero** hallazgos de cualquier gravedad, y cero
+desplazamiento horizontal.
+
+Se le dio además la oportunidad que el barrido genérico no le daba: la rama del **derrame pleural
+presente**, que es la que despliega «Distancia máxima entre pleuras (mm)» con su globo, más la
+consolidación presente y las seis zonas marcadas, medida a **1200, 1000, 900 y 768 px**. Cero
+elementos fuera de su columna en los cuatro anchos. Y la única tarjeta ⓘ de la pestaña,
+`pul-balik`, mide **300×431 px** y entra entera a 1440, 1000, 768 y 390 px.
+
+**Y la pestaña no tiene ningún SVG**: censado, cero. El único dibujo de esa pantalla es la grilla
+de zonas por hemitórax, que son casillas y entran en las dos columnas en los cuatro anchos.
+
+**Decidir:** si el hallazgo era de otra pestaña, o de un estado que esta medición no alcanzó. Sin
+un estado concreto que lo muestre no se puede arreglar sin inventar el defecto.
+
+## F-f · El punto 2c NO se puede resolver con el mecanismo de ancho, y está medido
+
+La orden pide que el globo `co-riesgo-basal` «entre entero a 390 px con el mecanismo de ancho por
+clave que ya existe, sin cambiar su texto». **Ese mecanismo no puede hacerlo**, y no es una
+opinión: `_vInfoColocar` calcula `w = max(150, min(ancho, vw - 16))`, así que a 390 px el ancho se
+topa en **374** para cualquier valor de la clave.
+
+Medido con la clave puesta en **300, 374, 560, 640, 900 y 2000**, a 390×844 y a 390×900:
+
+| `ancho` | Ancho real | Caja | Contenido | ¿Entra? |
+|---|---|---|---|---|
+| 300 | 300 px | 298×520 | 298×**1140** | no |
+| 374 | 374 px | 372×520 | 372×**950** | no |
+| 560 | **374 px** | 372×520 | 372×**950** | no |
+| 640 | **374 px** | 372×520 | 372×**950** | no |
+| 900 | **374 px** | 372×520 | 372×**950** | no |
+| 2000 | **374 px** | 372×520 | 372×**950** | no |
+
+A 768 y a 1440 px el mismo barrido confirma los números que la tanda D dejó escritos: con 560 el
+contenido queda en **662** contra 648 de hueco —los catorce píxeles— y con **640** entra en 614.
+
+**Lo que falta es una decisión, no un ancho.** El problema es de **alto**, no de ancho: el
+contenido mide 950 px y la pantalla entera a 390×844 deja como mucho 828. Ninguna anchura lo
+arregla y acortar el texto cuesta una clase o un calendario, que es justo lo que **D-i** declara.
+El camino que D-i propone —una ficha en Referencias para `co-riesgo-basal`, que además le daría el
+botón «Ver referencia» que hoy no tiene— sigue siendo el que resuelve las dos cosas a la vez.
+
+**Esta parte se paró y se reporta, no se aplicó.**
