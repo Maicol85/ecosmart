@@ -9861,3 +9861,44 @@ denominador envenenado — exactamente el defecto que esta tanda encontró en su
 guion del TRIV. **Son de tandas cerradas y no se corrigieron**, que es lo que la regla T9 manda
 para los arneses viejos. El que vuelva a usar uno de ellos tiene que cambiar ese id por
 `vd-strain-interp` antes de creerle al resultado.
+
+---
+
+## Tanda IMÁGENES (2026-10-29) — lo que el commit 1 midió y hay que reportar
+
+### IMG-a · El video de un estudio borrado sobrevive para siempre, y está MEDIDO
+
+Las tres bases de contenido tienen tres suertes distintas al borrar un estudio:
+
+| Base | Store | Recolector | Quién lo llama |
+|---|---|---|---|
+| `ceibomed_img` | `imagenes` | `CeiboImg.recolectar` | `imgRecolectarHuerfanas`, desde `eliminarInforme`, `limpiarTodosInformes` y `eliminarInformeYVolver` |
+| `ceibomed_cine` | `cineloops` | `CeiboCine.recolectar` | `cineRecolectarHuerfanos`, **sólo al entrar a la pestaña 🖼️ Imágenes** |
+| `ceibomed_video` | `videos` | **no existe** | — |
+
+Medido en el entorno de prueba: se sembró un estudio con un video de 32.768 bytes, se borró el
+estudio y se corrieron **los dos** recolectores que la app tiene. `CeiboImg.recolectar` se llevó
+las 3 imágenes huérfanas; `CeiboVideo.uso()` siguió devolviendo `{n:1, bytes:32768}`. Los bytes
+del video quedan en disco sin ningún estudio dueño y sin ninguna vía que los alcance.
+
+**No se borró nada** —la orden prohíbe migrar o borrar imágenes— y **no se agregó el
+recolector**: `CeiboVideo` no tiene índice de huérfanos y escribir uno es una decisión sobre
+borrado de dato clínico, que es de Maicol. Lo que esta tanda sí hace es no empeorarlo: la página
+nueva de imágenes lista por estudio vivo, así que un video huérfano no aparece en pantalla.
+
+### IMG-b · La barra de memoria de Guardados pone DOS denominadores en la misma línea
+
+La línea principal dice, textual, `█░░░░░░░░░<1% · 769 KB usado`, y esos dos números no son del
+mismo conjunto:
+
+- el **porcentaje** sale de `navigator.storage.estimate()`, o sea del **origen entero** —todas
+  las bases, más `localStorage`— sobre la cuota del navegador;
+- los **KB** salen de `CeiboImg.uso().bytes`, o sea **sólo** del store `imagenes`.
+
+Medido sobre la misma siembra de 12 imágenes: origen 795.798 bytes, imágenes 786.964. La
+diferencia es chica hoy porque casi todo el consumo del origen SON las imágenes, y crece con
+cada cineloop y cada video guardado — que no entran en los KB que la línea publica. El detalle
+desplegable sí los separa bien («💾 780 KB usados de 10240.8 MB disponibles», que es el origen).
+
+**Reportado y no corregido**: cambiar un texto de pantalla o el número que publica es decisión de
+Maicol. Esta tanda no lo toca.
