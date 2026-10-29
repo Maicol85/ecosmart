@@ -9556,12 +9556,13 @@ window.cerrarSesionReal = cerrarSesionReal;
         </div>
         <div class="fg"><label>Relación VD/VI (manual si no calculado)</label>
           <input type="number" id="tep_vdvi" placeholder="ratio" step="0.01" oninput="calcTEP()">
-          <!-- ⚠️ EL ROTULO DECIA «≥0.9» Y EL CORTE APLICADO ES 1,0 DESDE EL R7 (20/10/2026): era un
-               resto del corte de TOMOGRAFIA que esa tanda retiro. Se corrige en el C-E1
-               (21/10/2026) y se deja ESCRITO, no derivado de `TEP_VDVI_DILAT_MIN`, porque es
-               marcado estatico; la capsula de al lado SI lo deriva, asi que los dos se comparan
-               en TC-510. Fuente: ESC 2019 de TEP, folio 497.e17. -->
-          <span style="font-size:10px;color:var(--text2);">Patológico: ≥1,0</span>
+          <!-- ⚠️ ESTE ROTULO SE DESINCRONIZO DOS VECES, Y POR ESO SE COMPARA EN UN CASO. Decia
+               «≥0.9» con el corte en 1,0 (hasta el C-E1) y «≥1,0» con el corte en 0,9 seria el
+               mismo defecto al reves. Se deja ESCRITO, no derivado de `TEP_VDVI_DILAT_MIN`,
+               porque es marcado estatico; la capsula de al lado SI lo deriva, asi que los dos se
+               comparan en TC-510 y en TC-546.
+               Fuente: AHA/ACC 2026, Tabla 4, folio e989 -«RV/LV >0.9»-. -->
+          <span style="font-size:10px;color:var(--text2);">Patológico: &gt;0,9</span>
         </div>
       </div>
 
@@ -18945,12 +18946,12 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
           <th style="padding:6px 8px;text-align:left;color:var(--accent2);">Fuente</th></tr>
         <tr style="border-bottom:1px solid var(--border);">
           <td style="padding:5px 8px;">Dilataci&oacute;n del VD &mdash; cociente de di&aacute;metros VD/VI en cuatro c&aacute;maras</td>
-          <td style="padding:5px 8px;text-align:center;font-weight:700;">&ge; 1,0</td>
-          <td style="padding:5px 8px;">ESC 2019 de TEP, folio 497.e17 y Figura 3 B (folio 497.e15)</td></tr>
+          <td style="padding:5px 8px;text-align:center;font-weight:700;">&gt; 0,9</td>
+          <td style="padding:5px 8px;">AHA/ACC 2026 de embolia pulmonar, Tabla 4 (folio e989)</td></tr>
         <tr style="border-bottom:1px solid var(--border);background:var(--bg3);">
           <td style="padding:5px 8px;">Funci&oacute;n sist&oacute;lica del VD &mdash; TAPSE</td>
-          <td style="padding:5px 8px;text-align:center;font-weight:700;">&lt; 16 mm</td>
-          <td style="padding:5px 8px;">ESC 2019 de TEP, folio 497.e17 y Figura 3 G (folio 497.e15)</td></tr>
+          <td style="padding:5px 8px;text-align:center;font-weight:700;">&lt; 17 mm</td>
+          <td style="padding:5px 8px;">AHA/ACC 2026 de embolia pulmonar, Tabla 4 (folio e989)</td></tr>
         <tr style="border-bottom:1px solid var(--border);">
           <td style="padding:5px 8px;">Presi&oacute;n sist&oacute;lica pulmonar estimada</td>
           <td style="padding:5px 8px;text-align:center;font-weight:700;">&ge; 35 mmHg</td>
@@ -19390,7 +19391,7 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
         <tr style="border-bottom:1px solid var(--border);background:var(--bg3)"><td style="padding:5px 8px;">&iquest;Gasto card&iacute;aco adecuado?</td><td style="padding:5px 8px;text-align:center;">IC &gt;2,2 L/min/m&sup2;</td><td style="padding:5px 8px;">Consenso de Shock Cardiog&eacute;nico de la SAC, <i>Rev Argent Cardiol</i>, 2024 <details style="display:inline-block;vertical-align:top;margin-left:3px;"><summary style="cursor:pointer;list-style:none;display:inline;font-weight:700;color:var(--accent2);" aria-label="Ver el detalle de la fuente: gasto card&iacute;aco adecuado">&#9432;</summary><div style="margin-top:4px;font-weight:400;color:var(--text2);">92 Supl 3 &middot; <b>Tabla 1, folio 2</b>, columna del <i>Shock Trial</i>: &laquo;IC &le;2,2 y PEP &gt;15&raquo;. Es una tabla <b>comparativa</b> de cuatro definiciones, no una recomendaci&oacute;n propia, y su unidad sale impresa sin indexar.</div></details></td></tr>
         <tr style="border-bottom:1px solid var(--border)"><td style="padding:5px 8px;"><span style="display:inline-block;border:1px solid var(--border);border-radius:4px;color:var(--text2);padding:1px 5px;margin-right:4px;font-size:9px;letter-spacing:.3px;">CRITERIO DE ECOSMART</span>&iquest;Precarga suficiente?</td><td style="padding:5px 8px;text-align:center;">PCP de 12 a 18 mmHg</td><td style="padding:5px 8px;"><b>Sin fuente.</b> <details style="display:inline-block;vertical-align:top;margin-left:3px;"><summary style="cursor:pointer;list-style:none;display:inline;font-weight:700;color:var(--accent2);" aria-label="Ver el detalle de la fuente: precarga suficiente">&#9432;</summary><div style="margin-top:4px;font-weight:400;color:var(--text2);">Censada la biblioteca: ninguna de las fuentes de este m&oacute;dulo publica esa banda. El consenso de la SAC 2024 publica &laquo;PEP &gt;15&raquo; dentro de una definici&oacute;n de shock, que no es lo mismo que un rango de precarga adecuada.</div></details></td></tr>
         <tr style="border-bottom:1px solid var(--border);background:var(--bg3)"><td style="padding:5px 8px;">&iquest;Compromiso hemodin&aacute;mico peric&aacute;rdico?</td><td style="padding:5px 8px;text-align:center;">lo consigna el m&eacute;dico</td><td style="padding:5px 8px;">Se lee del m&oacute;dulo de <b>Derrame peric&aacute;rdico / Taponamiento</b> de esta misma pesta&ntilde;a <details style="display:inline-block;vertical-align:top;margin-left:3px;"><summary style="cursor:pointer;list-style:none;display:inline;font-weight:700;color:var(--accent2);" aria-label="Ver el detalle de la fuente: compromiso hemodin&aacute;mico peric&aacute;rdico">&#9432;</summary><div style="margin-top:4px;font-weight:400;color:var(--text2);">Es donde la aplicaci&oacute;n lo pregunta. Este m&oacute;dulo no define un segundo criterio de taponamiento.</div></details></td></tr>
-        <tr style="border-bottom:1px solid var(--border)"><td style="padding:5px 8px;">&iquest;Falla del ventr&iacute;culo derecho?</td><td style="padding:5px 8px;text-align:center;">TAPSE &lt;17 mm &middot; VD/VI &ge;1,0</td><td style="padding:5px 8px;"><b>ESC 2019</b> de tromboembolia pulmonar <details style="display:inline-block;vertical-align:top;margin-left:3px;"><summary style="cursor:pointer;list-style:none;display:inline;font-weight:700;color:var(--accent2);" aria-label="Ver el detalle de la fuente: falla del ventr&iacute;culo derecho">&#9432;</summary><div style="margin-top:4px;font-weight:400;color:var(--text2);"><b>folio e17</b>. Son los mismos dos cortes que aplica la c&aacute;psula de tromboembolia pulmonar de esta pesta&ntilde;a &mdash; TAPSE por debajo de 17 mm y VD/VI de 1,0 o m&aacute;s &mdash;: no se grad&uacute;an de otra forma ac&aacute;.</div></details></td></tr>
+        <tr style="border-bottom:1px solid var(--border)"><td style="padding:5px 8px;">&iquest;Falla del ventr&iacute;culo derecho?</td><td style="padding:5px 8px;text-align:center;">TAPSE &lt;17 mm &middot; VD/VI &gt;0,9</td><td style="padding:5px 8px;"><b>AHA/ACC 2026</b> de embolia pulmonar <details style="display:inline-block;vertical-align:top;margin-left:3px;"><summary style="cursor:pointer;list-style:none;display:inline;font-weight:700;color:var(--accent2);" aria-label="Ver el detalle de la fuente: falla del ventr&iacute;culo derecho">&#9432;</summary><div style="margin-top:4px;font-weight:400;color:var(--text2);"><b>Tabla 4, folio e989</b>. Son los mismos dos cortes que aplica la c&aacute;psula de sobrecarga del ventr&iacute;culo derecho &mdash; TAPSE por debajo de 17 mm y VD/VI por encima de 0,9 &mdash;: no se grad&uacute;an de otra forma ac&aacute;.</div></details></td></tr>
         <tr style="border-bottom:1px solid var(--border);background:var(--bg3)"><td style="padding:5px 8px;"><span style="display:inline-block;border:1px solid var(--border);border-radius:4px;color:var(--text2);padding:1px 5px;margin-right:4px;font-size:9px;letter-spacing:.3px;">CRITERIO DE ECOSMART</span>Falla del VD <b>por poscarga</b> o <b>por contractilidad</b></td><td style="padding:5px 8px;text-align:center;">PAP media &gt;20 mmHg</td><td style="padding:5px 8px;"><b>La partici&oacute;n no tiene fuente</b>; el n&uacute;mero s&iacute;: <b>ESC/ERS 2022</b> de hipertensi&oacute;n pulmonar <details style="display:inline-block;vertical-align:top;margin-left:3px;"><summary style="cursor:pointer;list-style:none;display:inline;font-weight:700;color:var(--accent2);" aria-label="Ver el detalle de la fuente: falla del VD por poscarga o por contractilidad">&#9432;</summary><div style="margin-top:4px;font-weight:400;color:var(--text2);">Ninguna de las fuentes de este m&oacute;dulo cuelga &laquo;poscarga&raquo; o &laquo;contractilidad&raquo; de ese umbral. El n&uacute;mero es la definici&oacute;n de hipertensi&oacute;n pulmonar de la ESC/ERS 2022. Sin PAP media no se parte, y se dice.</div></details></td></tr>
         <tr style="border-bottom:1px solid var(--border)"><td style="padding:5px 8px;">Hipertensi&oacute;n pulmonar &mdash; definici&oacute;n</td><td style="padding:5px 8px;text-align:center;">PAP media &gt;20 mmHg &middot; poscapilar con PCP &gt;15 &middot; RVP &gt;2 UW</td><td style="padding:5px 8px;"><b>ESC/ERS 2022</b> de hipertensi&oacute;n pulmonar <details style="display:inline-block;vertical-align:top;margin-left:3px;"><summary style="cursor:pointer;list-style:none;display:inline;font-weight:700;color:var(--accent2);" aria-label="Ver el detalle de la fuente: definici&oacute;n de hipertensi&oacute;n pulmonar">&#9432;</summary><div style="margin-top:4px;font-weight:400;color:var(--text2);">El corte de la resistencia vascular pulmonar &mdash; 2 UW &mdash; es la &uacute;nica unidad de corte que la aplicaci&oacute;n usa para esa resistencia.</div></details></td></tr>
         <tr style="border-bottom:1px solid var(--border);background:var(--bg3)"><td style="padding:5px 8px;">Volumen aproximado del derrame pleural</td><td style="padding:5px 8px;text-align:center;">V (ml) = D (mm) &times; 20</td><td style="padding:5px 8px;"><b>Volpicelli G</b> y col., <i>Intensive Care Med</i>, 2026 <details style="display:inline-block;vertical-align:top;margin-left:3px;"><summary style="cursor:pointer;list-style:none;display:inline;font-weight:700;color:var(--accent2);" aria-label="Ver el detalle de la fuente: volumen del derrame pleural">&#9432;</summary><div style="margin-top:4px;font-weight:400;color:var(--text2);">Enunciado <b>D6_11, hoja 19</b>. Sus l&iacute;mites est&aacute;n en el globo &#9432; del bloque de pleura: dec&uacute;bito supino, corte transversal lateral sobre el &aacute;ngulo costofr&eacute;nico, y validada en pacientes cr&iacute;ticos bajo ventilaci&oacute;n invasiva.</div></details></td></tr>
@@ -23556,38 +23557,55 @@ window.UMBRAL_TAP_HTP = UMBRAL_TAP_HTP;
    decía normal ≤40, el Laboratorio ≤35, y el informe tenía su propia cascada—, así que
    una PSAP de 38 era «normal» en una pantalla y «HTP leve» en el informe firmado. */
 const UMBRAL_PSAP_ELEVADA = 35;  // mmHg
-/* ══ LA DILATACION DEL VD EN EL ALGORITMO DE TEP — `>= 1,0` (R7, 2026-10-20) ═════════════════
-   DECISION DE MAICOL con la fuente leida: ESC 2019 de TEP, folio e17. El `>= 0,9` que la app
-   aplicaba es un corte de TOMOGRAFIA, no de ecocardiografia, y esta tanda lo lleva al de la guia.
+/* ══ LA DILATACION DEL VD EN EL ALGORITMO DE TEP — `> 0,9` (TEP-1, 2026-10-28) ══════════════
+   DECISION DE MAICOL: en los cortes del ventriculo derecho para embolia pulmonar manda la
+   AHA/ACC 2026. Fuente leida EN IMAGEN a 400 ppp: Creager y cols., Circulation 2026;153:e977-
+   e1051, Tabla 4 «Optimal Methods of RV Dysfunction Assessment on Echocardiogram», hoja 13,
+   folio e989 -fila «RV/LV», definicion del parametro: «RV/LV >0.9»-.
 
-   ⚠️ UN SOLO DUEÑO PARA LOS CUATRO CONSUMIDORES: la capsula de TEP, el score del informe firmado,
-   el POCUS del VD y el patron hemodinamico del POP escribian cada uno su `0.9`. Con cuatro copias,
-   mover el corte en una deja a las otras tres publicando el otro numero sobre el mismo paciente.
+   ⚠️ EL OPERADOR ES `>` ESTRICTO, asi que el 0,90 EXACTO NO es dilatacion. La tabla escribe
+   «>0.9» y no «>=0,9»; se leyo el glifo en la imagen, no en la capa de texto.
 
-   ⚠️ NO ES EL CORTE DE LA PROBABILIDAD DE HTP, que es `VD_VI_HTP_MIN` -tambien 1,0, tambien `>`-
-   y vive en la pestaña VD con otra fuente (ESC/ERS 2022, Tabla 10, folio 28; ASE 2025, Tabla 8,
-   folio 173). Son dos campos distintos -`tep_vdvi` y `vd_vi`- y dos preguntas distintas; que hoy
-   coincidan en el numero no los convierte en el mismo corte, y el operador tampoco es el mismo:
-   aca `>=` y alla `>`, asi que el 1,00 EXACTO cuenta aca y no cuenta alla. */
-const TEP_VDVI_DILAT_MIN = 1.0;   // ratio — `>=` (ESC 2019 de TEP, folio e17)
+   ⚠️ ESTO REVIERTE EL R7, Y NO PORQUE AQUEL SE HUBIERA EQUIVOCADO. El R7 subio el corte de 0,9
+   a 1,0 argumentando que el 0,9 era un corte de TOMOGRAFIA y no de ecocardiografia, y con la
+   ESC 2019 sobre la mesa tenia razon. Lo que cambio es la fuente: la Tabla 4 de la AHA/ACC 2026
+   publica el 0,9 como parametro de ECOCARDIOGRAMA -el titulo de la tabla lo dice-, asi que hoy
+   el 0,9 tiene fuente ecocardiografica propia.
+
+   ⚠️ UN SOLO DUEÑO DEL PREDICADO, NO DEL NUMERO. Hasta hoy los seis consumidores compartian la
+   constante y cada uno escribia su `>=`. Con el operador movido a `>`, compartir el numero ya no
+   alcanza: el que se quedara con `>=` graduaria el 0,90 exacto al reves que la capsula, sobre el
+   mismo paciente. Por eso lo que se comparte es `tepVdViDilatado`.
+
+   ⚠️ NO ES EL CORTE DE LA PROBABILIDAD DE HTP, que es `VD_VI_HTP_MIN` -1,0 con `>`- y vive en la
+   pestaña VD con otra fuente (ESC/ERS 2022, Tabla 10, folio 28; ASE 2025, Tabla 8, folio 173).
+   Son dos campos distintos -`tep_vdvi` y `vd_vi`- y dos preguntas distintas, y desde esta tanda
+   ya ni siquiera coinciden en el numero: 0,9 aca y 1,0 alla. NO se movio. */
+const TEP_VDVI_DILAT_MIN = 0.9;   // ratio — `>` (AHA/ACC 2026, Tabla 4, folio e989)
 window.TEP_VDVI_DILAT_MIN = TEP_VDVI_DILAT_MIN;
-/* ══ EL TAPSE DEL SCORE DE TEP — `< 16 mm`, Y NO ES EL DE LA PESTAÑA VD (C-E1, 2026-10-21) ═══
-   DECISION DE MAICOL con la fuente leida en el PDF original: ESC 2019 de TEP, cuerpo del folio
-   497.e17 -«un cociente de los diametros del VD/VI >= 1,0 y una TAPSE < 16 mm son los hallazgos
-   que se asocian mas frecuentemente con un pronostico desfavorable»- y Figura 3, panel G, folio
-   497.e15 -«TAPSE disminuido medido en modo M (< 16 mm)»-. Los dos leidos renderizando la pagina,
-   porque la extraccion de texto de ese PDF se come el glifo `>=`.
+/* El DUEÑO UNICO de «¿esta dilatado?». Los seis consumidores -la capsula de TEP, el score del
+   informe firmado, la seccion de Evidencia, y el POCUS, el patron hemodinamico y el esquema del
+   posoperatorio- preguntan aca. Con `null` devuelve `false`, que es lo que las seis ramas ya
+   hacian con su propia guarda. */
+function tepVdViDilatado(vdvi) { return vdvi !== null && vdvi !== undefined && vdvi > TEP_VDVI_DILAT_MIN; }
+window.tepVdViDilatado = tepVdViDilatado;
+/* ══ EL TAPSE DEL SCORE DE TEP — `< 17 mm` (TEP-1, 2026-10-28) ══════════════════════════════
+   DECISION DE MAICOL: manda la AHA/ACC 2026. Fuente leida EN IMAGEN a 400 ppp: Tabla 4, hoja 13,
+   folio e989 -fila «TAPSE», definicion del parametro: «TAPSE <1.7 cm is abnormal»-. 1,7 cm son
+   17 mm, y el operador es `<` ESTRICTO, asi que el 17,0 EXACTO no cuenta.
 
-   ⚠️ NO SE REUSA `UMBRAL_TAPSE_NORMAL`, Y ESA ES TODA LA DECISION. Esa constante vale 17 mm
-   (ASE 2025, Tabla 1, folio 145, «TAPSE > 1.7 cm») y la leen la pestaña VD, el cuadro de
-   referencias, el PDF, el POCUS del posoperatorio y el patron hemodinamico. Son dos preguntas
-   distintas -«¿hay disfuncion sistolica del VD?» contra «¿hay un hallazgo de mal pronostico en
-   TEP agudo?»- con dos fuentes distintas, asi que un TAPSE de 16,0 a 16,9 mm es NORMAL para el
-   score de TEP y DISFUNCION para la pestaña VD. Cada seccion lo dice con su propia fuente.
+   ⚠️ VENIA DE 16 mm CON LA ESC 2019, Y ESA CITA SE VA ENTERA. La ESC 2019 publica «TAPSE < 16 mm»
+   en el cuerpo del folio 497.e17 y en la Figura 3, panel G, folio 497.e15; censado el documento
+   completo, sus 58 hojas NO contienen un solo «17 mm». Con el cambio de fuente el numero y la
+   cita se mueven juntos: dejar 17 citando a la ESC 2019 era la cita falsa que esta tanda vino a
+   cerrar.
 
-   ⚠️ Y EL OPERADOR ES `<` ESTRICTO EN LAS DOS APARICIONES DE LA FUENTE, asi que el 16,0 EXACTO
-   NO cuenta. Se verifico en la imagen de las dos. */
-const TEP_TAPSE_BAJO_MAX = 16;    // mm — `<` (ESC 2019 de TEP, folio e17 y Figura 3 G, folio e15)
+   ⚠️ AHORA COINCIDE EN EL NUMERO CON `UMBRAL_TAPSE_NORMAL`, Y SIGUEN SIENDO DOS CORTES. Esa
+   constante vale 17 mm por la ASE 2025, Tabla 1, folio 145 («TAPSE > 1.7 cm»), y contesta «¿hay
+   disfuncion sistolica del VD?»; esta contesta «¿hay un hallazgo de mal pronostico en TEP
+   agudo?». Que dos fuentes distintas corten en el mismo numero no las convierte en una: el dia
+   que una de las dos guias lo mueva, se mueve una sola. NO se fusionaron. */
+const TEP_TAPSE_BAJO_MAX = 17;    // mm — `<` (AHA/ACC 2026, Tabla 4, folio e989)
 window.TEP_TAPSE_BAJO_MAX = TEP_TAPSE_BAJO_MAX;
 /* El corte ALTO de la banda de cohorte de PSAP. No es un umbral clínico de la guía sino la
    frontera de la tercera banda del filtro del Laboratorio — pero estaba escrito TRES veces (los
@@ -28086,8 +28104,8 @@ window.tepHayDatos = tepHayDatos;
 
 /* ══ calcTEP — SOBRECARGA AGUDA DEL VD (TEP) ═══════════════════════════════════════════════
    LOS SEIS CRITERIOS QUE CUENTAN y su fuente, uno por uno (C-E1, 2026-10-21):
-     · VD/VI       `>= TEP_VDVI_DILAT_MIN` (1,0)   · ESC 2019 de TEP, folio e17 y Figura 3 B
-     · TAPSE       `<  TEP_TAPSE_BAJO_MAX`  (16)   · ESC 2019 de TEP, folio e17 y Figura 3 G
+     · VD/VI       `tepVdViDilatado()`  (> 0,9)   · AHA/ACC 2026, Tabla 4, folio e989
+     · TAPSE       `<  TEP_TAPSE_BAJO_MAX`  (17)   · AHA/ACC 2026, Tabla 4, folio e989
      · PSAP        `>= UMBRAL_PSAP_ELEVADA` (35)   · ASE 2025, Tabla 1, folio 145 (normal <= 34)
      · McConnell, signo 60/60 y tabique en D       · ESC 2019 de TEP, §4.9 (folio e14) y Figura 3
 
@@ -28183,20 +28201,24 @@ function calcTEP() {
   // 2. VD/VI
   const vdviEl = document.getElementById('tep-vdvi-interp');
   if (vdvi !== null) {
-    const patol = vdvi >= TEP_VDVI_DILAT_MIN;
+    const patol = tepVdViDilatado(vdvi);
     if (patol) score++;
     criterios.push('VD/VI');
-    /* El rotulo sale de la constante: con el numero escrito a mano, el dia que se mueva el corte
-       la capsula dice uno y el score cuenta el otro. */
+    /* El rotulo sale de la constante y el predicado del dueño unico: con el numero escrito a
+       mano, el dia que se mueva el corte la capsula dice uno y el score cuenta el otro.
+       ⚠️ EL OPERADOR DEL ROTULO TAMBIEN SALE DEL CORTE: la AHA/ACC 2026 escribe «>0.9», asi que
+       el badge rojo dice `>` y el verde `≤`. Con `≥`/`<` el 0,90 exacto se leia como dilatado
+       en la pantalla y no contaba en el score, sobre el mismo paciente. */
     if (vdviEl) vdviEl.innerHTML = patol
-      ? badge('red',    'VD/VI ' + vdvi + ' — dilatación VD (≥' + TEP_VDVI_DILAT_MIN.toFixed(1) + ') ✓')
-      : badge('green',  'VD/VI ' + vdvi + ' — normal (<' + TEP_VDVI_DILAT_MIN.toFixed(1) + ')');
+      ? badge('red',    'VD/VI ' + vdvi + ' — dilatación VD (>' + TEP_VDVI_DILAT_MIN.toFixed(1) + ') ✓')
+      : badge('green',  'VD/VI ' + vdvi + ' — normal (≤' + TEP_VDVI_DILAT_MIN.toFixed(1) + ')');
   } else if (vdviEl) vdviEl.textContent = '—';
 
   // 3. TAPSE
   const tapseEl = document.getElementById('tep-tapse-interp');
   if (tapse !== null) {
-    /* EL CORTE ES EL DE TEP (16 mm) Y NO EL DE LA PESTAÑA VD (17 mm): ver `TEP_TAPSE_BAJO_MAX`.
+    /* EL CORTE ES EL DE TEP Y NO EL DE LA PESTAÑA VD: ver `TEP_TAPSE_BAJO_MAX`. Desde la tanda
+       TEP coinciden en 17 mm con DOS fuentes distintas, y siguen siendo dos cortes.
        Los dos rotulos salen de la constante, porque con el numero escrito a mano el dia que se
        mueva el corte la capsula dice uno y el score cuenta el otro. */
     const patol = tapse < TEP_TAPSE_BAJO_MAX;
@@ -56590,15 +56612,16 @@ function generarInforme(opts) {
     if (!tepHayDatos()) return;
 
     /* LOS MISMOS SEIS CRITERIOS Y LOS MISMOS CORTES QUE `calcTEP`, que es donde estan
-       documentados. El TAPSE usa `TEP_TAPSE_BAJO_MAX` (16 mm, ESC 2019 de TEP) y NO
-       `UMBRAL_TAPSE_NORMAL` (17 mm, ASE 2025), que es el de la pestaña VD; la PSAP usa `>=`. */
+       documentados. El TAPSE usa `TEP_TAPSE_BAJO_MAX` (17 mm, AHA/ACC 2026, Tabla 4) y NO
+       `UMBRAL_TAPSE_NORMAL` (17 mm, ASE 2025), que es el de la pestaña VD: coinciden en el
+       numero y no son el mismo corte. La dilatacion la decide `tepVdViDilatado`; la PSAP `>=`. */
     let score = 0;
     /* ⚠️ EL DENOMINADOR SE CUENTA CON LA MISMA REGLA QUE `calcTEP` (AJ2-10, 2026-10-23): los
        tres cuantitativos cuentan si tienen valor, y los tres cualitativos cuentan SIEMPRE,
        porque si alguno quedo en «no evaluado» este bloque ya salio por el `return` de arriba.
        Sin esto la linea tendria que afirmar «de 6» con tres criterios medidos. */
     let _tepTotal = 3;
-    if (vdvi !== null && vdvi >= TEP_VDVI_DILAT_MIN) score++;
+    if (tepVdViDilatado(vdvi)) score++;
     if (tapse !== null && tapse < TEP_TAPSE_BAJO_MAX) score++;
     if (psap !== null && psap >= UMBRAL_PSAP_ELEVADA) score++;
     if (vdvi  !== null) _tepTotal++;
@@ -58491,7 +58514,7 @@ function popPocusSync() {
   if (vdvi === null && !_vdviSel) pend.push('VD/VI (tab VD/AD)');
   if (psap === null) pend.push('PSAP (tab Doppler)');
   const tapseBaja = tapse !== null && tapse < uT;
-  const vdDil = vdvi !== null && vdvi >= TEP_VDVI_DILAT_MIN;
+  const vdDil = tepVdViDilatado(vdvi);
   let concl;
   if (tapse === null && vdvi === null) concl = badge('yellow', 'Sin datos para concluir');
   else if (tapseBaja && vdDil) concl = badge('red', 'Disfunción del VD con dilatación — descartar taponamiento y TEP');
@@ -58503,18 +58526,22 @@ function popPocusSync() {
     fila('VD/VI', vdvi === null
          ? (_vdviSel ? _vdviSel + ' ' + badge('yellow', 'tramo elegido, sin número: no se gradúa acá') : '—')
          : vdvi + ' ' + badge(vdDil ? 'red' : 'green',
-         vdDil ? 'dilatación (≥' + TEP_VDVI_DILAT_MIN.toFixed(1) + ')'
-               : 'normal (<' + TEP_VDVI_DILAT_MIN.toFixed(1) + ')')) +
+         vdDil ? 'dilatación (>' + TEP_VDVI_DILAT_MIN.toFixed(1) + ')'
+               : 'normal (≤' + TEP_VDVI_DILAT_MIN.toFixed(1) + ')')) +
     fila('McConnell', mcc === 'si' ? badge('red', 'Presente') : mcc === 'no' ? badge('green', 'Ausente') : '—') +
     fila('PSAP', psap === null ? '—' : psap + ' mmHg') +
     fila('Conclusión', concl) +
     (pend.length ? '<div style="font-size:10px;color:var(--text2);margin-top:6px;line-height:1.5;">Completar: ' + pend.join(' · ') + '</div>' : '') +
-    /* ⚠️ ESTA LÍNEA DECÍA «VD/VI 0,9» CON EL NÚMERO ESCRITO A MANO, Y LA CONSTANTE VALE 1,0.
-       `TEP_VDVI_DILAT_MIN` es 1,0 desde la tanda R (ESC 2019 de TEP, folio e17), y las DOS filas
-       de arriba de este mismo cuadro ya lo imprimen bien porque lo leen de la constante: el
-       badge decía «dilatación (≥1.0)» y el pie, dos renglones más abajo, «VD/VI 0,9». NO se
-       movió ningún corte: lo que se corrige es una DECLARACIÓN FALSA. Hoy sale de la constante,
-       como el TAPSE de al lado, así que el día que se mueva no puede volver a desincronizarse. */
+    /* ⚠️ ESTE PIE YA FUE FALSO DOS VECES, Y POR DOS MOTIVOS DISTINTOS. Primero tenía el VD/VI
+       escrito a mano en 0,9 con la constante en 1,0 (corregido en el C1, derivándolo). Después,
+       hasta la tanda TEP, afirmaba «los cortes son los que la app aplica en la cápsula de TEP»
+       con un TAPSE de 17 mm, mientras esa cápsula cortaba en 16: la declaración era verdadera
+       para el VD/VI y falsa para el TAPSE, en el mismo renglón.
+       ⚠️ HOY LOS DOS NÚMEROS COINCIDEN, Y SIGUEN SALIENDO DE DOS CONSTANTES. Este cuadro lee
+       `UMBRAL_TAPSE_NORMAL` (17 mm, ASE 2025) y la cápsula de TEP lee `TEP_TAPSE_BAJO_MAX`
+       (17 mm, AHA/ACC 2026, Tabla 4): coinciden en el número desde esta tanda y NO se
+       fusionaron, así que el día que una de las dos guías lo mueva este pie vuelve a mentir.
+       El VD/VI sí es el mismo dueño en los dos: `tepVdViDilatado`. */
     '<div style="font-size:10px;color:var(--text2);margin-top:6px;line-height:1.5;">Los cortes son los que la app ya aplica en la cápsula de TEP de esta pestaña (TAPSE ' + uT + ' mm · VD/VI ' + TEP_VDVI_DILAT_MIN.toFixed(1) + '). No se gradúan de otra forma acá.</div>');
 }
 window.popPocusSync = popPocusSync;
@@ -58646,7 +58673,7 @@ function popPatron() {
   if (vdvi === null && v('vd_bas') && v('ddfvi')) vdvi = PF((v('vd_bas') / v('ddfvi')).toFixed(2));
   const uT = (typeof UMBRAL_TAPSE_NORMAL !== 'undefined') ? UMBRAL_TAPSE_NORMAL : 17;
   const tapseBaja = tapse !== null && tapse < uT;
-  const vdDil = vdvi !== null && vdvi >= TEP_VDVI_DILAT_MIN;
+  const vdDil = tepVdViDilatado(vdvi);
 
   /* ⚠️ LA PREGUNTA «¿TAPONAMIENTO?» LA CONTESTA EL MEDICO (R6, 2026-10-20). Antes salia de
      `dptEstado().clave === 'taponamiento'`, o sea de la regla de «tres criterios» que esta tanda
@@ -58860,7 +58887,7 @@ window.popConclSync = popConclSync;
    ⚠️ NI UN CORTE NUEVO. Las tres cosas que el dibujo COLOREA preguntan por la banda que la app
    ya tiene dueño:
      · el VI      -> `_icBanda`, la misma de la cápsula «Perfil hemodinámico» y del bloque 3;
-     · el VD      -> `UMBRAL_TAPSE_NORMAL` y `TEP_VDVI_DILAT_MIN`, los de la cápsula de TEP;
+     · el VD      -> `UMBRAL_TAPSE_NORMAL` y `tepVdViDilatado`, los de la cápsula de TEP;
      · el pulmón  -> `RVP_ELEVADA_UW` (ESC/ERS 2022), la única unidad de corte de la RVP.
    LA AD Y LA AI NO SE COLOREAN, y es deliberado: esta app NO tiene una banda de PVC ni de PCP
    —la de 12 a 18 del diseño es criterio propio, declarado como tal en la conclusión— y pintar
@@ -58927,7 +58954,7 @@ function popEsquema() {
   const uT = (typeof UMBRAL_TAPSE_NORMAL !== 'undefined') ? UMBRAL_TAPSE_NORMAL : 17;
   const tapse = r.tapse, vdvi = r.vdvi;
   const tapseBaja = tapse !== null && tapse < uT;
-  const vdDil = vdvi !== null && vdvi >= TEP_VDVI_DILAT_MIN;
+  const vdDil = tepVdViDilatado(vdvi);
   const hayVD = tapse !== null || vdvi !== null;
   /* LA PARTICIÓN POR PAP ES CRITERIO DE ECOSMART: ninguna fuente de la biblioteca cuelga
      «poscarga» o «contractilidad» de ese umbral. El número es el de la ESC/ERS 2022. Sin PAP
@@ -76002,6 +76029,36 @@ const IND_REFS = Object.freeze([
          'cuadro clinico (IIa B) y considerar la prueba de esfuerzo cardiopulmonar en el ' +
          'sintomatico con probabilidad intermedia (IIb C). Folio 27 — la ecocardiografia por si ' +
          'sola no confirma el diagnostico, que es hemodinamico y requiere cateterismo derecho.' },
+  /* ── AÑADIDA 2026-10-28 (tanda TEP). VERIFICADA EN IMAGEN a 400 ppp: la Tabla 4 y su pie en la
+     hoja 13, las recomendaciones 9 y 12 con su COR y su LOE en la hoja 10, y el texto de apoyo de
+     la recomendacion 9 en la hoja 12. Regla de folio: folio = «e» + (hoja del PDF + 976),
+     comprobada en el pie impreso de las tres hojas (13 → e989, 10 → e986, 12 → e988).
+     ⚠️ LA TABLA 4 NO PUBLICA UN OPERADOR PARA LA ONDA S′. Escribe «TDI S' 9.5 cm/s is abnormal»,
+     sin `<` ni `<=`, a diferencia de las otras cuatro filas. No se cita como corte por eso. */
+  { k:'ahaAccTep2026',
+    full:'AHA/ACC/ACCP/ACEP/CHEST/SCAI/SHM/SIR/SVM/SVN 2026 — Guideline for the Evaluation and ' +
+         'Management of Acute Pulmonary Embolism. Creager MA, et al. Circulation ' +
+         '2026;153:e977-e1051. doi:10.1161/CIR.0000000000001415. Verificada sobre el original en ' +
+         'ingles. Tabla 4 «Optimal Methods of RV Dysfunction Assessment on Echocardiogram», ' +
+         'hoja 13, folio e989 — RV/LV: cociente telediastolico (apical o subcostal), «RV/LV ' +
+         '>0.9»; TAPSE: «TAPSE <1.7 cm is abnormal»; dimension del VD: «EDD >=30 mm» en el eje ' +
+         'largo paraesternal centrado en el VD y «RV basal EDD >=41 mm» en la apical; onda S′ ' +
+         'por Doppler tisular: «TDI S\' 9.5 cm/s is abnormal»; velocidad de regurgitacion ' +
+         'tricuspidea: «>=2.9 m/sec suggests pulmonary hypertension». Recomendacion 12, ' +
+         'Clase 1, Nivel B-NR, hoja 10, folio e986 — en los pacientes con embolia pulmonar aguda ' +
+         'a los que se les hace un ecocardiograma transtoracico, la disfuncion del ventriculo ' +
+         'derecho debe evaluarse e informarse con el cociente VD/VI, el diametro telediastolico ' +
+         'del VD, el TAPSE, la presion sistolica estimada del VD, la hipocinesia de la pared ' +
+         'libre del VD con el apex respetado (signo de McConnell), la velocidad sistolica ' +
+         'tricuspidea, el movimiento septal paradojico y el colapso respirofasico de la cava ' +
+         'inferior. Recomendacion 9, Clase 3 «sin beneficio», Nivel B-NR, hoja 10, folio e986 — ' +
+         'en los pacientes con sospecha de embolia pulmonar aguda, el ecocardiograma no esta ' +
+         'recomendado para confirmar ni para descartar el diagnostico. Texto de apoyo de esa ' +
+         'recomendacion, hoja 12, folio e988 — el rendimiento del ecocardiograma para detectar ' +
+         'embolia pulmonar mejora en los pacientes con compromiso hemodinamico, pero la ' +
+         'especificidad global sigue siendo suboptima (64 %), asi que el diagnostico debe ' +
+         'confirmarse con una prueba de imagen directa y dedicada. Tabla 5, hoja 13, folio e989 ' +
+         '— las categorias clinicas A a E de este documento, que la aplicacion NO asigna.' },
   { k:'escTep2019',
     full:'Konstantinides SV, Meyer G, Becattini C, et al. Guia ESC 2019 para el diagnostico y ' +
          'tratamiento de la embolia pulmonar aguda. Rev Esp Cardiol. 2020;73(6):497.e1-497.e58. ' +
@@ -76031,8 +76088,12 @@ const IND_REFS = Object.freeze([
          'Folio 497.e15 — en la sospecha de TEP de riesgo alto, la ausencia de signos ' +
          'ecocardiograficos de sobrecarga o disfuncion del VD practicamente excluye la TEP como ' +
          'causa de la inestabilidad hemodinamica. ⚠️ La Figura 3 B escribe el cociente con ' +
-         '«> 1,0» y el cuerpo del folio 497.e17 con «>= 1,0»: la aplicacion aplica el del cuerpo, ' +
-         'que es el que no suaviza, y la discrepancia queda declarada.' },
+         '«> 1,0» y el cuerpo del folio 497.e17 con «>= 1,0»; desde la tanda TEP (28/10/2026) ' +
+         'la aplicacion NO grada el cociente ni el TAPSE con este documento —los toma de la ' +
+         'Tabla 4 de la AHA/ACC 2026—, asi que esa discrepancia ya no decide nada en la app y ' +
+         'queda registrada como propiedad de la fuente. Este documento sigue sosteniendo la ' +
+         'estratificacion de riesgo de la Tabla 8 y la nota sobre el infarto del ventriculo ' +
+         'derecho que puede semejar el signo de McConnell.' },
   { k:'asePandian2023',
     full:'Pandian NG, Kim JK, Arias-Godinez JA, et al. Recommendations for the Use of ' +
          'Echocardiography in the Evaluation of Rheumatic Heart Disease: A Report from the ' +
@@ -83673,17 +83734,22 @@ function _indTEP(){
   const uV = _indUmb('TEP_VDVI_DILAT_MIN'), uT = _indUmb('TEP_TAPSE_BAJO_MAX'),
         uP = _indUmb('UMBRAL_PSAP_ELEVADA');
   if (uV == null || uT == null || uP == null) return { filas: [_indSinUmbral('Criterios del VD')] };
+  /* El predicado sale del dueño unico, igual que el cociente. Si la funcion no estuviera, la
+     seccion lo dice con el mismo cartel que usa para un umbral ausente, en vez de graduar con
+     una copia del operador. */
+  if (!_indFn('tepVdViDilatado')) return { filas: [_indSinUmbral('Criterios del VD')] };
+  const vdDil = tepVdViDilatado(vdvi);
 
   const marcaSi = b => b ? 'ok' : 'none';
   const filas = [
     _indFila('Cociente de diámetros VD/VI', vdvi != null ? _indNum(vdvi, 2, '') : '—',
-      vdvi == null ? 'ask' : marcaSi(vdvi >= uV),
-      vdvi == null ? 'sin medir' : (vdvi >= uV ? 'dilatación del VD (≥ ' + uV.toFixed(1) + ')'
-                                              : 'por debajo del corte (' + uV.toFixed(1) + ')'), 'escTep2019'),
+      vdvi == null ? 'ask' : marcaSi(vdDil),
+      vdvi == null ? 'sin medir' : (vdDil ? 'dilatación del VD (> ' + uV.toFixed(1) + ')'
+                                              : 'por debajo del corte (≤ ' + uV.toFixed(1) + ')'), 'ahaAccTep2026'),
     _indFila('TAPSE', tapse != null ? _indNum(tapse, 1, 'mm') : '—',
       tapse == null ? 'ask' : marcaSi(tapse < uT),
       tapse == null ? 'sin medir' : (tapse < uT ? 'por debajo del corte de TEP (< ' + uT + ' mm)'
-                                                : 'no bajo para TEP (≥ ' + uT + ' mm)'), 'escTep2019'),
+                                                : 'no bajo para TEP (≥ ' + uT + ' mm)'), 'ahaAccTep2026'),
     _indFila('Presión sistólica pulmonar estimada', psap != null ? _indNum(psap, 0, 'mmHg') : '—',
       psap == null ? 'ask' : marcaSi(psap >= uP),
       psap == null ? 'sin estimar — se deriva de la velocidad de regurgitación tricuspídea'
