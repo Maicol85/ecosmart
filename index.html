@@ -9526,8 +9526,17 @@ window.cerrarSesionReal = cerrarSesionReal;
   <div class="card">
     <div class="card-body">
 
+      <!-- ⚠️ LA LINEA PEDIDA VA EN EL LUGAR DE LA QUE DECIA CASI LO MISMO (TEP-3, 28/10/2026).
+           Esta linea decia «Orientación ecocardiográfica de disfunción VD por sobrecarga aguda de
+           presión (TEP/HTP aguda)», que es el mismo contenido con otras palabras: agregarla al
+           lado habria dejado la tarjeta afirmando dos veces que el eco orienta, y una tercera en
+           el cartel ambar de mas abajo. Lo que esa linea aportaba -para que sirve la tarjeta- ya
+           lo dice su titulo, «Evaluación de sobrecarga del VD».
+           SIN CITA EN LA LINEA, por decision de Maicol: el detalle y la clase viven en el ⓘ.
+           SOLO PANTALLA: ninguna de las dos frases entra al informe, al EN SUMA, al PDF ni al
+           PPT -`amiloTextoTEP` lee spans concretos y este parrafo no es uno-. -->
       <p style="font-size:11px;color:var(--text2);margin-bottom:12px;">
-        Orientación ecocardiográfica de disfunción VD por sobrecarga aguda de presión (TEP/HTP aguda).
+        Los hallazgos ecocardiográficos orientan la evaluación del ventrículo derecho. <button type="button" class="vinfo-btn vinfo-btn-44" data-vinfo="tep-eco-dx" aria-expanded="false" style="font-size:13px;" aria-label="Informaci&oacute;n sobre el papel de la ecocardiograf&iacute;a en el diagn&oacute;stico de la embolia pulmonar" onclick="vInfoClic(this)">&#9432;</button>
         Se calculan automáticamente los valores disponibles del estudio actual.
       </p>
 
@@ -43541,6 +43550,23 @@ const VINFO = Object.freeze({
      y acotado a la frase que sostiene la unica linea de conducta de la Evidencia.
      ⚠️ SIN CLASE NI NIVEL: es una serie de casos con revision conceptual, no una guia de
      practica clinica. Escribirlos seria inventarlos. */
+  /* ══ EL PAPEL DEL ECO EN EL DIAGNOSTICO (TEP-3, 2026-10-28) ══════════════════════════════
+     La recomendacion y la cifra se leyeron EN IMAGEN a 400 ppp: la recomendacion 9 con su COR y
+     su LOE en la hoja 10, folio e986, y su texto de apoyo con el 64 % en la hoja 12, folio e988.
+     ⚠️ LA CLASE 3 DE ESTE DOCUMENTO SE ESCRIBE «3: No Benefit», y se traduce «sin beneficio».
+     No es «perjudicial», que es la otra clase 3 del mismo esquema.
+     ⚠️ EL 64 % ES LA ESPECIFICIDAD GLOBAL, no la del paciente inestable. La guia dice que el
+     rendimiento MEJORA con compromiso hemodinamico y que aun asi la especificidad global sigue
+     siendo suboptima; recortarlo a «64 % en el paciente inestable» seria invertir la frase. */
+  'tep-eco-dx': {
+    tit: 'La ecocardiografía en la embolia pulmonar',
+    lee: 'La AHA/ACC 2026 no recomienda la ecocardiografía para confirmar ni para descartar el diagnóstico de embolia pulmonar: clase 3, sin beneficio; nivel B-NR.\n'
+       + 'La mayoría de los pacientes con embolia pulmonar aguda no muestran disfunción del ventrículo derecho, y los signos de disfunción tienen baja sensibilidad para el diagnóstico.\n'
+       + 'El rendimiento mejora en los pacientes con compromiso hemodinámico, pero la especificidad global sigue siendo subóptima: 64 %.\n'
+       + 'Por eso el diagnóstico debe confirmarse con una prueba de imagen directa y dedicada.',
+    fuente: 'AHA/ACC 2026 de embolia pulmonar, recomendación 9, folio e986; su texto de apoyo, folio e988. Leídos en imagen.',
+    ojo: 'Lo que esta sección evalúa es el ventrículo derecho, no la presencia de una embolia pulmonar. Por eso sus hallazgos se publican como descripción y no como diagnóstico.'
+  },
   /* ══ EL SIGNO DE McCONNELL (TEP-2, 2026-10-28) ════════════════════════════════════════════
      Lo que la capsula decia con un adjetivo -«altamente específico de TEP»- pasa a estar dicho
      con las cifras y con su fuente. El trabajo ORIGINAL de McConnell (1996) NO esta en la
