@@ -188,6 +188,44 @@ const MEDIR = `(() => {
       ? ['18', '-18', '18.50', '-18.50', '+18', '0', ''].map(x => JSON.stringify(x) + '->'
           + JSON.stringify(sglNegTxt(x))).join(' ') : 'SIN FN';
   } catch (e) { out._signo = 'EXC' }
+  /* ══ COMMIT 2 · LOS TERRITORIOS ══════════════════════════════════════════════════════════
+     El REPARTO tiene que salir IDENTICO -la tanda no lo toca- y el aviso y el globo son el
+     control positivo: sin ellos, «cero diferencias» no se distingue de «la sonda no mira». */
+  try {
+    out._terrReparto = (typeof CONTR_TERRITORIO !== 'undefined')
+      ? Object.keys(CONTR_TERRITORIO).sort().map(k => k + '=' + CONTR_TERRITORIO[k]).join(' ')
+      : 'SIN CONSTANTE';
+  } catch (e) { out._terrReparto = 'EXC' }
+  try {
+    const bl = document.querySelector('[data-vinfo="contr-territorio"]');
+    out._pant_terrBoton = bl ? 'SI' : 'NO';
+    const pan = bl ? bl.closest('div').parentNode : null;
+    out._pant_terrPanel = pan ? N(pan.textContent) : 'NO EXISTE';
+    out._pant_terrGlobo = (typeof VINFO !== 'undefined' && VINFO['contr-territorio'])
+      ? N(JSON.stringify(VINFO['contr-territorio'])) : 'SIN TARJETA';
+    /* ⚠️ EL GLOBO NO ABRE CON LA PESTANA CERRADA, y la primera version de esta sonda lo midio
+       VACIO sobre una tarjeta que si funciona: _vInfoAbrir llama a _vInfoColocar, que
+       devuelve null cuando el boton no tiene caja, y entonces la tarjeta NI SE ABRE. Es la
+       trampa que este repo ya documenta: showTab no le da caja a lo que esta dentro de una
+       seccion colapsada, asi que hay que abrir la pestana Y la seccion. */
+    if (bl && typeof vInfoClic === 'function') {
+      try { if (typeof showTab === 'function') showTab('contractilidad') } catch (x) {}
+      try { const h = document.querySelector('#sacc-contr .sacc-hdr');
+            if (h && h.getAttribute('aria-expanded') !== 'true') h.click() } catch (x) {}
+      out._pant_terrBotonCaja = (function () { const r = bl.getBoundingClientRect();
+        return Math.round(r.width) + 'x' + Math.round(r.height) })();
+      vInfoClic(bl);
+      const c = document.getElementById('vinfo-card');
+      out._pant_terrGloboAbierto = c ? N(c.textContent).slice(0, 1200) : 'NO ABRE';
+      vInfoClic(bl);
+    } else { out._pant_terrGloboAbierto = 'SIN BOTON' }
+  } catch (e) { out._pant_terrGlobo = 'EXC ' + String(e).slice(0, 80) }
+  /* ⚠️ Y EL WMSI: la orden manda PARAR si existe uno en esta pestana. El unico de la app vive
+     en el bloque muerto de Eco Estres, asi que se cuenta por su prefijo propio. */
+  try {
+    out._wmsi = Object.keys(window).filter(k => /wmsi/i.test(k)).sort().join(',') || 'ninguno';
+    out._wmsiNodos = [].slice.call(document.querySelectorAll('[id*="wmsi"]')).map(n => n.id).join(',') || 'ninguno';
+  } catch (e) { out._wmsi = 'EXC' }
   /* El rotulo de la alerta del Laboratorio que lee el corte anormal. */
   try {
     out._labAlertas = (typeof _labIndicadoresList === 'function')

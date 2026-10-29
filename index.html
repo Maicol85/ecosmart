@@ -10570,10 +10570,15 @@ window.cerrarSesionReal = cerrarSesionReal;
 
         <!-- DERECHA: territorio coronario -->
         <div style="background:var(--bg3);border-radius:10px;padding:10px 14px;font-size:11px;color:var(--text2);min-width:170px;">
-          <div style="font-size:12px;color:var(--accent2);font-weight:600;margin-bottom:6px;">Territorio coronario (borde)</div>
+          <div style="font-size:12px;color:var(--accent2);font-weight:600;margin-bottom:6px;">Territorio coronario (borde) <button type="button" class="vinfo-btn vinfo-btn-44" data-vinfo="contr-territorio" aria-expanded="false" style="font-size:13px;" aria-label="Informaci&oacute;n sobre el reparto de los 17 segmentos entre las tres arterias coronarias" onclick="vInfoClic(this)">&#9432;</button></div>
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;"><span style="width:18px;height:4px;background:#3ea8ff;display:inline-block;border-radius:2px;"></span>DA — 1,2,7,8,13,14,17</div>
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;"><span style="width:18px;height:4px;background:#3ecf8e;display:inline-block;border-radius:2px;"></span>CD — 3,4,9,10,15</div>
           <div style="display:flex;align-items:center;gap:8px;"><span style="width:18px;height:4px;background:#ff7ab8;display:inline-block;border-radius:2px;"></span>CX — 5,6,11,12,16</div>
+          <!-- ⚠️ EL AVISO VA EN LA PANTALLA Y NO EN EL GLOBO (AJ9-2). La fuente del reparto lo
+               dice con todas las letras —«tremendous variability», folio 244— y un médico que
+               mira los tres colores sin abrir el ⓘ se lleva la idea de que el borde es fijo.
+               La cita y el detalle sí van en el ⓘ, que es la regla R2 de la casa. -->
+          <div style="font-size:10.5px;color:var(--text2);margin-top:8px;line-height:1.45;">La distribución varía entre pacientes.</div>
         </div>
 
       </div>
@@ -44032,6 +44037,42 @@ const VINFO = Object.freeze({
        + 'declara, en su apartado B.2.1 (folio 14), que ningún score ha demostrado ser superior a otro y '
        + 'que todos tienen un valor predictivo limitado del resultado de la comisurotomía mitral con '
        + 'balón, que depende de otros hallazgos clínicos y ecocardiográficos.'
+  },
+  /* ══ EL REPARTO DE LOS 17 SEGMENTOS ENTRE LAS TRES CORONARIAS (AJ9-2) ════════════════
+     EL REPARTO NO SE TOCÓ, y se verificó antes de escribir: `CONTR_TERRITORIO` coincide
+     segmento por segmento con la Figura 5 de la fuente. Lo que faltaba era decir con qué
+     reservas lo publica la propia fuente —la coronaria derecha sólo cuando es dominante, la
+     circunfleja «en general», y el ápex repartible entre las tres—, porque tres colores
+     planos en pantalla se leen como un borde anatómico fijo.
+     LEÍDO EN IMAGEN: hoja 5, folio 244, Figura 5 y el párrafo «Assignment of Segments to
+     Coronary Arterial Territories».
+     ⚠️ EL DOCUMENTO DE LA BIBLIOTECA ES LA VERSIÓN DEL *JOURNAL OF NUCLEAR CARDIOLOGY*
+     (2002;9:240-5), no la de *Circulation* 105:539-542. El comité es el mismo —el grupo de
+     redacción de la American Heart Association sobre segmentación miocárdica, nombrado en su
+     primera hoja—, pero el folio que se cita es el de la versión que se leyó.
+     ⚠️ LA DIFERENCIA DEL SEGMENTO 15 ENTRE LANG Y CERQUEIRA NO SE ESCRIBIÓ, Y NO ES UN
+     OLVIDO: la Figura 5 de Lang 2015 (folio 13) es un dibujo anatómico con categorías de color
+     —incluidas «RCA o LAD» y «LAD o CX»— y NO numera los segmentos, así que no hay hoja de
+     ese documento donde el 15 quede asignado a la descendente anterior. Declarado en
+     `docs/PENDIENTES.md` → AJ9-a. */
+  'contr-territorio': {
+    ancho: 360,
+    tit: 'Territorios coronarios de los 17 segmentos',
+    lee: 'Descendente anterior: 1, 2, 7, 8, 13, 14 y 17.\n'
+       + 'Coronaria derecha: 3, 4, 9, 10 y 15, cuando es dominante.\n'
+       + 'Circunfleja: 5, 6, 11, 12 y 16, en general.\n'
+       + 'El segmento 17, el ápex, es el de mayor variabilidad: puede depender de cualquiera de '
+       + 'las tres arterias.\n'
+       + 'El modelo de 17 segmentos es el que se recomienda para perfusión. Para motilidad se '
+       + 'recomienda el de 16, porque la excursión y el engrosamiento de la punta del ápex son '
+       + 'imperceptibles; EcoSmart mantiene el de 17 con el ápex.',
+    fuente: 'Cerqueira MD y cols., grupo de redacción de la American Heart Association sobre '
+       + 'segmentación miocárdica, J Nucl Cardiol 2002;9:240-5 — Figura 5 y texto del folio 244. '
+       + 'Lang RM y cols., J Am Soc Echocardiogr 2015;28:1-39 — recomendaciones del folio 12, '
+       + 'para los 16 frente a los 17 segmentos.',
+    ojo: 'La distribución varía entre pacientes: la propia fuente habla de una variabilidad '
+       + 'enorme en la irrigación de cada segmento. El diagrama muestra el borde del territorio; '
+       + 'la atribución la hace el médico.'
   },
   'oai-ref': { ancho: 360, dyn: function () { return _otrRefClon('ref-oai') } },
   'ai-card': { ancho: 348, dyn: function () { return evTarjetaAI() } },
