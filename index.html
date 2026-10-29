@@ -10784,7 +10784,10 @@ window.cerrarSesionReal = cerrarSesionReal;
 
         <!-- CAMPOS (derecha) -->
         <div style="display:flex;flex-direction:column;gap:14px;min-width:230px;align-self:center;">
-          <div class="fg"><label>SGL global (%)</label><input type="number" id="sgl_gls" placeholder="%" step="0.1" oninput="const s=document.getElementById('sgl'); if(s&&s.value!==this.value)s.value=this.value; calcSGL();"></div>
+          <div class="fg"><label>SGL global (%)</label><input type="number" id="sgl_gls" placeholder="%" step="0.1" oninput="const s=document.getElementById('sgl'); if(s&&s.value!==this.value)s.value=this.value; calcSGL();">
+            <!-- Rótulo de la ASE 2025, SÓLO pantalla. Lo pinta `sglRotuloPintar`, el mismo dueño
+                 que la fila de cálculo de AI/VI; no hay un segundo criterio acá. -->
+            <div id="sgl-interp-tab" style="font-size:12px;font-weight:600;min-height:16px;margin-top:2px;"></div></div>
           <div class="fg"><label>Comentarios / notas de strain</label><textarea id="sgl_notas" placeholder="Observaciones de strain..." style="min-height:120px;"></textarea></div>
         </div>
 
@@ -19476,7 +19479,12 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
              · «Riesgo muy alto: FEVI <50%» contradecía a la tabla: FEVI <50% son 2 puntos, y
                2-3 puntos es ALTO. Muy alto arranca en 4. La línea confundía «marcador de alto
                riesgo» con «banda de riesgo global», que es lo que decide la frecuencia de control. -->
-        <b style="color:var(--accent2);">SGL normal:</b> más negativo que -18% · <b>deteriorado: &gt;-16%</b> (menos negativo es peor)<br>
+        <!-- ⚠️ LOS DOS NÚMEROS LOS ESCRIBE `sglCortesPintar` DESDE SUS CONSTANTES (AJ9-1b). No
+             hay un corte tecleado en este marcado: con el −18 y el −16 a mano, esta ficha y el
+             rótulo de la pantalla de SGL podían separarse sin que nadie se enterara, y es
+             justamente lo que ya pasó una vez —ver el comentario de arriba: la línea afirmaba
+             el umbral AL REVÉS—. -->
+        <b style="color:var(--accent2);">SGL normal:</b> <span data-sgl-corte="normal"></span> · <b>deteriorado: <span data-sgl-corte="anormal"></span></b> (menos negativo es peor)<br>
         <!-- ⚠️ CORREGIDO (R2-E6, 2026-10-21): el ECO va cada 2 CICLOS y lo que va en CADA ciclo
              son los BIOMARCADORES. Guia ESC 2022 de cardio-oncologia, folio 4259, dos
              recomendaciones distintas de la misma tabla: «TTE is recommended ... every 2 cycles
@@ -24623,6 +24631,89 @@ function feviClasificar(fevi) {
 window.FEVI_LEVE_MIN = FEVI_LEVE_MIN; window.FEVI_MODERADA_MIN = FEVI_MODERADA_MIN;
 window.FEVI_CATS = FEVI_CATS; window.feviClasificar = feviClasificar;
 window.FEVI_CRITERIO_TXT = FEVI_CRITERIO_TXT;
+
+/* ══ LOS DOS CORTES DEL SGL — ASE 2025, hoja 11, folio 995 ════════════════════════════
+   Consenso clínico 1 del documento de strain de la ASE: «Normal LV myocardial GLS is more
+   negative than −18%. Borderline GLS is −16% to −18%. Abnormal GLS is less negative than
+   −16%» (Thomas JD y cols., J Am Soc Echocardiogr 2025;38:985-1020). LEÍDO EN IMAGEN, y hacía
+   falta: el extractor de texto plano se come los signos menos de ese párrafo y devuelve «18%»
+   y «16%» en POSITIVO, así que un `pdftotext` habría publicado los dos cortes del lado
+   equivocado del cero —que es exactamente el defecto que este archivo ya documentó una vez
+   para la ficha de cardio-oncología: «un signo invertido en un umbral se lee igual de bien
+   que el correcto»—.
+
+   ⚠️ LOS DOS BORDES SE LOS LLEVA EL TRAMO LIMÍTROFE. «more negative than −18» deja el −18
+   EXACTO fuera de lo normal, y «less negative than −16» deja el −16 EXACTO fuera de lo
+   anormal: el tramo que la guía escribe «−16% to −18%» es cerrado de los dos lados.
+
+   ⚠️ NO SON LOS ÚNICOS 16 Y 18 DE LA APP, Y LOS OTROS NO LEEN DE ACÁ A PROPÓSITO:
+   · `BSE_GRIS_GLS_MIN`/`MAX` son la zona gris de función SISTÓLICA de la BSE 2024 (pág. 35),
+     dentro del algoritmo diastólico: coinciden en el número y no en el criterio;
+   · `hfaicos_gls_alt` («GLS basal deteriorado») y el «GLS < 16 %» del HFA-PEFF son criterios
+     PUNTUADOS de dos scores, y un score sólo vale con los cortes con los que se validó;
+   · el −13 de `amCalcSGL` es del score de amiloidosis (García-Pavía 2021, Tabla 2, folio 1558);
+   · `eeEvalGLS` —−16 y −20, con el rótulo «borderline»— vive en el bloque de Eco Estrés.
+   Mover este corte NO mueve ninguno de ellos, y es deliberado. */
+const SGL_NORMAL_MAX  = -18;   // % — normal: MÁS negativo que −18 (borde `<`)
+const SGL_ANORMAL_MIN = -16;   // % — anormal: MENOS negativo que −16 (borde `>`)
+const SGL_CATS = Object.freeze([
+  Object.freeze({ clave:'normal',    rot:'normal',    col:'#22d36a' }),
+  Object.freeze({ clave:'limitrofe', rot:'limítrofe', col:'#fbbf24' }),
+  Object.freeze({ clave:'anormal',   rot:'anormal',   col:'#f87171' }),
+]);
+/* −|x|. El campo #sgl no tiene `min` y nunca lo tuvo, así que el strain llega tipeado con los
+   dos signos; sin esto, un +18 perfectamente NORMAL caería del lado anormal de los dos cortes.
+   Es la misma convención que `amiloEspejoHaciaApp` ya aplica al escribir el strain hacia el
+   estudio y la que el Laboratorio usa para promediar. */
+function sglNeg(x) {
+  const n = PF(x);
+  if (n === null || n === undefined || !isFinite(n)) return null;
+  const a = Math.abs(n);
+  return a === 0 ? 0 : -a;
+}
+/* La versión de TEXTO, que es la que viaja al papel. CONSERVA LITERAL lo que el médico escribió
+   cuando ya es negativo —«-18.50» sigue saliendo «-18.50»— y sólo le antepone el signo al
+   positivo. Normalizar también el número convertiría «18.50» en «-18.5» y, peor, cambiaría el
+   papel de estudios que HOY salen bien; la única diferencia que esta tanda viene a producir es
+   la del signo. */
+function sglNegTxt(sgl) {
+  const t = String(sgl === null || sgl === undefined ? '' : sgl).trim();
+  if (!t) return '';
+  const n = PF(t);
+  if (n === null || !isFinite(n) || n <= 0) return t;
+  return '-' + t.replace(/^\+/, '');
+}
+function sglClasificar(x) {
+  const n = sglNeg(x);
+  if (n === null) return null;
+  if (n <  SGL_NORMAL_MAX)  return SGL_CATS[0];
+  if (n <= SGL_ANORMAL_MIN) return SGL_CATS[1];
+  return SGL_CATS[2];
+}
+/* El texto de cada corte, para el marcado estático que los nombra. */
+function sglCorteTxt(k) {
+  if (k === 'normal')    return 'más negativo que ' + SGL_NORMAL_MAX + '%';
+  if (k === 'anormal')   return '>' + SGL_ANORMAL_MIN + '%';
+  if (k === 'limitrofe') return SGL_ANORMAL_MIN + '% a ' + SGL_NORMAL_MAX + '%';
+  return '';
+}
+/* ⚠️ EL ATRIBUTO ES `data-sgl-corte` Y NO `data-corte`, y no es cosmetica la diferencia:
+   `imCortesPintar` barre `document.querySelectorAll('[data-corte]')` —el documento ENTERO, no
+   su cuadro— y le pasa la clave a `imCorteTxt`. Compartir el atributo le entregaría estos
+   spans para que los pise con el corte de otra válvula.
+   Corre UNA vez, acá mismo: los dos cortes no dependen de ningún campo —al revés que el jet/AI
+   de la IM, que cambia con la prótesis— y el marcado que los nombra está por encima de este
+   `<script>`, así que ya fue parseado. */
+function sglCortesPintar() {
+  document.querySelectorAll('[data-sgl-corte]').forEach(function (el) {
+    el.textContent = sglCorteTxt(el.getAttribute('data-sgl-corte'));
+  });
+}
+try { sglCortesPintar(); } catch (e) {}
+window.SGL_NORMAL_MAX = SGL_NORMAL_MAX; window.SGL_ANORMAL_MIN = SGL_ANORMAL_MIN;
+window.SGL_CATS = SGL_CATS; window.sglClasificar = sglClasificar;
+window.sglNeg = sglNeg; window.sglNegTxt = sglNegTxt;
+window.sglCorteTxt = sglCorteTxt; window.sglCortesPintar = sglCortesPintar;
 window.UMBRAL_TAPSE_NORMAL = UMBRAL_TAPSE_NORMAL;
 
 function v(id) {
@@ -26402,9 +26493,43 @@ function calcSGL() {
      alcanza, y la etiqueta pegada al lado dice que no. Un informe firmado no puede
      contradecirse en un renglón.
      El `if (!sgl) return` temprano se sacó a propósito: sin él, borrar el campo dejaba
-     colgado el último valor mostrado. Ahora vacío se muestra vacío. */
-  el.textContent = sgl ? `SGL ${sgl}%` : '—';
+     colgado el último valor mostrado. Ahora vacío se muestra vacío.
+
+     ⚠️ Y DESDE LA AJ9 EL RÓTULO VUELVE, PERO SÓLO A LA PANTALLA. Lo que lo había sacado no
+     era la idea de clasificar: era que convivían TRES umbrales y el PDF FIRMADO se
+     contradecía en un renglón. Hoy hay un solo dueño —`SGL_NORMAL_MAX` y `SGL_ANORMAL_MIN`,
+     con su fuente leída en imagen— y el rótulo NO baja al papel: el informe, el EN SUMA, el
+     PDF y el PPT siguen publicando el número solo. El informe es descriptivo. */
+  sglRotuloPintar();
 }
+/* ══ EL RÓTULO DE PANTALLA — UN SOLO DUEÑO PARA LOS DOS NODOS (AJ9-1d) ═══════════════════
+   El SGL se ve en DOS pantallas —la fila de cálculo de AI/VI (`#sgl-interp`) y la pestaña de
+   Contractilidad y SGL, al lado de «SGL global» (`#sgl-interp-tab`)—, y son el MISMO dato. Con
+   dos pintores, el día que un corte se mueva las dos pantallas dirían cosas distintas del mismo
+   paciente a dos pestañas de distancia, que es el defecto que este archivo persigue desde
+   `CONTR_TERRITORIO`.
+   ⚠️ LEE LOS DOS CAMPOS —`sgl` y, si está vacío, `sgl_gls`— con la MISMA regla que el informe
+   narrativo: el estado asimétrico llega desde un import o un registro legacy, y un rótulo que
+   dijera «—» sobre un estudio cuyo informe SÍ publica el SGL sería peor que no tenerlo. */
+function sglRotuloPintar() {
+  const crudo = (sv('sgl') || '').trim() || (sv('sgl_gls') || '').trim();
+  /* ⚠️ EL CERO SE TRATA COMO VACÍO, Y ES LO QUE HEAD YA HACÍA: su `sgl ? ... : '—'` leía
+     `v('sgl')`, que devuelve el Número, así que un 0 caía del lado falso. Sin esta línea el
+     rótulo pasaría a decir «SGL 0% · anormal» donde hoy dice «—», que es una diferencia que
+     esta tanda no viene a producir. El informe SÍ publica el 0 y sigue publicándolo igual:
+     allá el dato es una cadena y '0' es truthy. */
+  const txt = (PF(crudo) === 0) ? '' : sglNegTxt(crudo);
+  const cat = txt ? sglClasificar(crudo) : null;
+  const linea = txt ? ('SGL ' + txt + '%' + (cat ? ' · ' + cat.rot : '')) : '';
+  const el = document.getElementById('sgl-interp');
+  if (el) { el.textContent = linea || '—'; el.style.color = cat ? cat.col : ''; }
+  /* En la pestaña, VACÍO y no «—»: ahí el rótulo va pegado al campo, y un guión al lado de un
+     input vacío se lee como un valor por omisión. En la fila de cálculo el «—» es el formato de
+     todas sus hermanas y se conserva. */
+  const et = document.getElementById('sgl-interp-tab');
+  if (et) { et.textContent = linea; et.style.color = cat ? cat.col : ''; }
+}
+window.sglRotuloPintar = sglRotuloPintar;
 
 // ══ HEMODINÁMICA VI ══
 /* ══ SEAMS HEMODINÁMICOS COMPARTIDOS — 2026-09-18 ═════════════════════════════════════════
@@ -53663,7 +53788,13 @@ function generarInforme(opts) {
 
   // Fragmentos FUNCIÓN SISTÓLICA / FEVI (para la oración 1)
   // SGL: mismo dato en #sgl (AI/VI) y #sgl_gls (SGL) → tomar el que tenga valor. Va junto a la FEVI.
-  const _sglV = (sv('sgl') || '').trim() || (sv('sgl_gls') || '').trim();
+  /* ⚠️ EL PAPEL PUBLICA EL VALOR NEGATIVO (AJ9-1c). El campo acepta lo que el médico escriba
+     —no tiene `min` y nunca lo tuvo—, así que la base trae strain tipeado con los dos signos;
+     el informe firmado salía «SGL 18%», que leído literal es un strain POSITIVO, o sea imposible. `sglNegTxt` sólo le antepone el signo al positivo: lo que ya viene negativo
+     sale LITERAL, con los decimales que el médico escribió.
+     ⚠️ VA EL NÚMERO Y NO SU CATEGORÍA, y es lo mismo que esta zona ya decide para la FEVI del
+     strain del VD: el rótulo «normal / limítrofe / anormal» es de PANTALLA. */
+  const _sglV = sglNegTxt((sv('sgl') || '').trim() || (sv('sgl_gls') || '').trim());
   let feviFragC = '', feviFragE = '', feviFragN = '';
   if (fevi !== null) {
     let feviConcepto, feviSuma, feviNarr, feviTail;
@@ -65633,7 +65764,9 @@ function generarPDFReal(_aj) {
   /* Sólo el número. Sin «Normal / Zona gris / Anormal»: la clasificación del SGL la hace el
      médico en el narrativo, no la tabla de mediciones. Ver el comentario largo en calcSGL —
      acá vivía la MITAD del informe firmado que se contradecía con su propia referencia. */
-  const sglS   = sglN ? sglN + '%' : null;
+  /* El valor NEGATIVO (AJ9-1c), por el mismo motivo que el informe narrativo: un «SGL 18%» en
+     la tabla de mediciones de un PDF firmado afirma un strain positivo. Sigue SIN rótulo. */
+  const sglS   = sglN ? sglNeg(sglN) + '%' : null;
 
   /* VDFVI indexado. Su banda se agregó a `DCM_RANGO` el 2026-09-27: hasta entonces era el único
      campo de esta tarjeta sin validar, al revés que su gemelo telesistólico de abajo. */
@@ -67373,7 +67506,8 @@ function generarPDFReal(_aj) {
       };
     }
     if (_incSgl && _hayBE) {
-      const _gls = (typeof sv === 'function') ? sv('sgl_gls').trim() : '';
+      /* Negativo (AJ9-1c). El PDF y el PPT comparten este dato y lo publicaban crudo los dos. */
+      const _gls = (typeof sglNegTxt === 'function') ? sglNegTxt(sv('sgl_gls')) : ((typeof sv === 'function') ? sv('sgl_gls').trim() : '');
       const _nt  = (typeof sv === 'function') ? sv('sgl_notas').trim() : '';
       const _body = [ _gls ? ('SGL global: ' + _gls + ' %') : '', _nt ].filter(Boolean).join('\n');
       _colSgl = {
@@ -99916,10 +100050,11 @@ function _pptDesdeFormulario(inf, tema, presentador){
            verde ambiguo en una afirmación explícita. */
         const cw = (W - 1.15) / 2, xI = 0.5, xD = 0.5 + cw + 0.15;
         const yTit = 0.95, yTope = H - 0.72;
-        const _glsTxt = (typeof sv === 'function') ? String(sv('sgl_gls') || '').trim() : '';
+        /* Negativo (AJ9-1c), igual que la hoja de strain del PDF. */
+        const _glsTxt = (typeof sglNegTxt === 'function') ? sglNegTxt(sv('sgl_gls')) : ((typeof sv === 'function') ? String(sv('sgl_gls') || '').trim() : '');
         const _notas  = (typeof sv === 'function') ? String(sv('sgl_notas') || '').trim() : '';
         const _cuerpoSgl = [
-          _glsTxt ? ('SGL global: ' + _pptTxt(_glsTxt) + ' %') : (gls != null ? ('SGL global: ' + gls + ' %') : ''),
+          _glsTxt ? ('SGL global: ' + _pptTxt(_glsTxt) + ' %') : (gls != null ? ('SGL global: ' + sglNeg(gls) + ' %') : ''),
           _pptTxt(_notas)
         ].filter(Boolean).join('\n');
 
@@ -116766,7 +116901,7 @@ function _labIndicadoresList(infs) {
     /* «|GLS| < 16 %» y NO «GLS ≤ -16 %». El filtro es `Math.abs(g) < 16`, o sea strain PEOR que
        −16 (−14, −12…). Escribirlo como «≤ -16 %» nombra el conjunto complementario: −20 entra
        en el rótulo y no en el filtro, −14 entra en el filtro y contradice el rótulo. */
-    { lbl: '|GLS| < 16 % con FEVI ≥50 % — revisar',
+    { lbl: '|GLS| < ' + Math.abs(SGL_ANORMAL_MIN) + ' % con FEVI ≥50 % — revisar',
       /* El rótulo describe el FILTRO, no dictamina. Decía «GLS anormal», y eso ya no lo afirma
          ninguna de las tres superficies del ESTUDIO: el formulario (calcSGL), la tabla del PDF
          firmado y el PPT dejaron de clasificar el SGL a propósito. El mismo estudio salía sin
@@ -116780,8 +116915,11 @@ function _labIndicadoresList(infs) {
          OJO — este 16 es un umbral de ESTE filtro de auditoría, no «el corte de calcSGL»:
          calcSGL ya no clasifica nada. Es el mismo número que usa el criterio menor de
          HFA-PEFF más arriba, pero por coincidencia de guía, no porque uno derive del otro. */
+      /* ⚠️ Y DESDE LA AJ9 EL 16 SALE DE `SGL_ANORMAL_MIN`, con el valor IDENTICO. Lo de arriba
+         sigue valiendo entero —este filtro no dictamina y el valor absoluto se mantiene—; lo
+         único que cambia es que el número deja de estar tecleado dos veces en el archivo. */
       casos: infs.filter(i => { const g = _labGls(i), f = _labFevi(i);
-        return g !== null && Math.abs(g) < 16 && f !== null && f >= 50; }) },
+        return g !== null && Math.abs(g) < Math.abs(SGL_ANORMAL_MIN) && f !== null && f >= 50; }) },
   ];
 }
 
@@ -122820,7 +122958,11 @@ const DCM_RANGO_CLIN = {
   e_sep:[7,20], e_lat:[10,25],
   vmax_ao:[0.5,2.5], gmedio_ao:[1,10], em_gmedio:[1,5],
   itv_tsvi:[18,26], diam_tsvi:[18,26], em_vtimit:[8,20],
-  sgl:[-25,-18], vci_diam:[10,21],
+  /* El techo de la banda NORMAL del SGL es el corte de la ASE 2025, no un número propio: con
+     el −18 escrito acá a mano, mover el corte dejaba el cartel de plausibilidad afirmando otra
+     cosa que el rótulo de la fila de cálculo, sobre el mismo campo. El piso −25 sí es propio
+     —es el borde de lo medible, no un criterio— y por eso no tiene cita. */
+  sgl:[-25, SGL_NORMAL_MAX], vci_diam:[10,21],
   /* `null` = sin piso de normalidad. Antes estos seis llevaban el piso de PLAUSIBILIDAD
      copiado de DCM_RANGO, así que el cartel afirmaba que el rango normal de la raíz aórtica
      «empieza» en 10 mm. Y tres bandas eran más angostas que lo normal —el AT pulmonar llega a
@@ -129007,12 +129149,18 @@ function _labAdvancedRender(infs, n) {
   if (!oncoArr.length) { empty('lab-adv-onco-stats', 'cardio-oncología'); empty('lab-adv-onco-bars', 'cardio-oncología'); }
   else {
     const caida = oncoArr.filter(i => { const b = _labNum(i, 'co_fevi_basal'), a = _labNum(i, 'co_fevi_actual'); return b !== null && a !== null && (b - a) >= 10; }).length;
-    const glsAn = oncoArr.filter(i => { const g = _labNum(i, 'co_gls_actual'); return g !== null && g > -18; }).length;
+    /* El −18 sale de `SGL_NORMAL_MAX` y no de un número tecleado: es el corte de normalidad de
+       la ASE 2025, el mismo que publica el rótulo de la pantalla.
+       ⚠️ EL SIGNO NO SE CORRIGIÓ, Y SE DECLARA (AJ9-c): `g > -18` cuenta como anormal TODO lo
+       tipeado en POSITIVO, que es el mismo defecto que el filtro de auditoría de más abajo ya
+       cerró con `Math.abs`. Arreglarlo mueve la distribución publicada del Laboratorio, y eso
+       está fuera de esta orden. */
+    const glsAn = oncoArr.filter(i => { const g = _labNum(i, 'co_gls_actual'); return g !== null && g > SGL_NORMAL_MAX; }).length;
     const pctO = x => oncoArr.length ? Math.round(x / oncoArr.length * 100) + '%' : '0%';
     setHtml('lab-adv-onco-stats',
       stat('Pacientes en seguimiento onco-cardíaco', oncoArr.length + ' (' + pctS(oncoArr.length) + ')') +
       stat('Caída de FEVI ≥10 puntos', caida + ' (' + pctO(caida) + ')') +
-      stat('GLS anormal en control (peor que -18%)', glsAn + ' (' + pctO(glsAn) + ')'));
+      stat('GLS anormal en control (peor que ' + SGL_NORMAL_MAX + '%)', glsAn + ' (' + pctO(glsAn) + ')'));
     const farmMap = { antracicline: 'Antraciclinas', trastuzumab: 'Trastuzumab / anti-HER2', inmunoterapia: 'Inmunoterapia (ICI)', vegf: 'Anti-VEGF', bcr_abl: 'BCR-ABL', radioterapia: 'Radioterapia', otro: 'Otro' };
     /* `_lblDe` y no `farmMap[f] || 'Otro'`: con f='constructor' el `||` NO cae al fallback
        —devuelve la función heredada del prototipo, que es truthy— y la clave del contador
