@@ -9378,3 +9378,36 @@ El camino que D-i propone —una ficha en Referencias para `co-riesgo-basal`, qu
 botón «Ver referencia» que hoy no tiene— sigue siendo el que resuelve las dos cosas a la vez.
 
 **Esta parte se paró y se reporta, no se aplicó.**
+
+## G-a · Los tres `2.2` del Perfil hemodinámico se alinearon, y su efecto hoy es CERO — medido
+
+El COMMIT 3 cerró **C2-c**: las tres comparaciones del «Perfil hemodinámico» —shock cardiogénico,
+perfil distributivo y la línea gris de IC con RVS baja— leen `FORR_IC_CORTE` en vez de un literal
+`2.2`, y pasaron de `<` a `<=` (la tercera, de `>=` a `>`, para que la partición siga siendo
+exhaustiva y el 2,2 no caiga en dos ramas).
+
+⚠️ **PERO EL BORDE ES INALCANZABLE EN ESA CÁPSULA, Y ESTÁ MEDIDO.** El índice cardíaco que llega a
+`calcHemo` tiene **una sola fuente**: el volumen sistólico por TSVI, o sea
+`π × (Ø/20)² × VTI × FC / 1000 / ASC`. Barrido de **3.812.589 combinaciones** —nueve diámetros,
+121 frecuencias y 3.501 valores de VTI— sobre el `double` que el código produce:
+**cero dan 2,2 exactos**. Lo más cerca que se llega es **2,1999990587652083**, a 9,4 × 10⁻⁷.
+
+Consecuencia: la diferencia entre `<` y `<=` **no se puede observar hoy** en esa cápsula, y el A/B
+de este commit da cero diferencias por esa razón y no porque la sonda no mire. Las nueve escenas
+medidas —IC 2,1999 / 2,1999990 / 2,64 cruzados con RVS alta, baja y media— dan el mismo texto
+**antes y después**, palabra por palabra.
+
+El cambio igual vale: quita el literal duplicado, deja un solo dueño del número y pasa a ser
+observable el día que esa cápsula reciba un índice cardíaco **tipeado**. Hoy el único tipeado es
+`pop_picco_ic`, que no entra por acá y que lee `_icBanda`.
+
+**Lo que queda, y por eso esto es un pendiente:** `_icBanda` (línea del seam compartido con el
+posoperatorio) **sigue escribiendo el literal `2.2`** en vez de leer `FORR_IC_CORTE`. Su
+comportamiento ya es el correcto —`<= 2.2`— así que cambiarlo no movía nada y no se tocó, pero es
+el mismo corte escrito dos veces. **Decidir** si pasa a leer la constante.
+
+⚠️ **Y UNA PREMISA DE LA ORDEN ES FALSA, MEDIDA:** el punto 3 dice que no se toque «el semáforo
+del posoperatorio, cuyo diseño es "IC mayor de 2,2"». **El posoperatorio no tiene corte propio**:
+usa `_icBanda` y `_rvsBanda`, las mismas de Hemodinámica. Su propio comentario lo dice —«el pedido
+de POP-2 traía su propia escala (1.8 / 2.2) y NO se aplicó — decisión de Maicol: manda la de la
+app»—. No había nada que excluir.

@@ -26537,20 +26537,29 @@ function calcHemo() {
   if (perfilEl) {
     if (ic === null || rvs === null) {
       perfilEl.innerHTML = badge('gray', 'Requiere IC + RVS (VFD/VFS, FC, PAM, PVC, ASC)');
-    /* ⚠️ ESTAS TRES RAMAS NO SON EL FORRESTER, Y SUS `2.2` NO SE MOVIERON (C2-4a, 2026-10-28).
-       Son la capsula «Perfil hemodinamico», que cruza IC con RVS -no con PCP- para separar el
-       shock cardiogenico del distributivo y del mixto. Su criterio es otro y esta orden lo
-       excluye, asi que conservan su `<` estricto aunque `forrCuadrante` haya pasado a `<=` y
-       `_icBanda` ya usara `<=`. Censado y declarado en el reporte de la tanda: con un indice
-       cardiaco de 2,2 EXACTOS, la app dice hoy «bajo» en `hemo-ic`, «frio» en el Forrester y
-       NO entra en estas tres ramas. Es una discrepancia conocida, no un olvido.
+    /* ⚠️ LAS TRES RAMAS DEL «PERFIL HEMODINAMICO» LEEN `FORR_IC_CORTE` Y YA NO UN LITERAL
+       (G-3, 2026-10-29, cierra C2-c). Siguen sin ser el Forrester -cruzan IC con RVS y no con
+       presion capilar-, pero el corte de hipoperfusion es el MISMO 2,2, y la decision del
+       medico del 21/10/2026 es que «2,2 o menos es bajo». Hasta hoy tenian `<` estricto, asi
+       que con un indice cardiaco de 2,2 EXACTOS la app decia «bajo» en `hemo-ic` y «frio» en el
+       Forrester y NO entraba en ninguna de las tres: el mismo paciente, tres respuestas.
+       ⚠️ NO HAY UN NUMERO NUEVO: se reemplaza el literal por la constante que ya existe, y la
+       tercera rama -que era `ic >= 2.2`- pasa a `> FORR_IC_CORTE` para que la particion siga
+       siendo exhaustiva y el 2,2 no caiga en dos ramas a la vez.
+       ⚠️ LEER LA CONSTANTE DESDE ACA ES SEGURO Y YA HAY PRECEDENTE: `FORR_IC_CORTE` se declara
+       ~101.000 lineas mas abajo, en el MISMO bloque de script, pero esto corre dentro de
+       `calcHemo`, que se invoca en runtime -no durante la evaluacion del bloque-, igual que la
+       llamada a `forrCuadrante` que esta funcion ya hace cuarenta lineas mas arriba.
+       ⚠️ `_icBanda` SIGUE ESCRIBIENDO EL LITERAL `2.2`, y se declara en vez de tocarlo: su
+       comportamiento ya es el correcto (`<= 2.2`) y cambiarlo no movia nada. Queda como
+       duplicacion conocida -> docs/PENDIENTES.md G-a.
        ⚠️ LA ANOTACION «con congestion (PCP >N)» SI SE MOVIO, de 15 a 18, porque lee la
        constante. Es a proposito: dos cortes de congestion distintos en la misma pantalla se
        leen como un error de la app. */
-    } else if (ic < 2.2 && rvs > 1200) {
+    } else if (ic <= FORR_IC_CORTE && rvs > 1200) {
       const cong = (pcp !== null && pcp > UMBRAL_PCP_HUMEDO) ? (' con congestión (PCP >' + UMBRAL_PCP_HUMEDO + ')') : '';
       perfilEl.innerHTML = badge('red', 'Shock cardiogénico — GC bajo + RVS elevada' + cong);
-    } else if (rvs < 800 && ic >= 2.2) {
+    } else if (rvs < 800 && ic > FORR_IC_CORTE) {
       /* ══ EL PERFIL DISTRIBUTIVO QUEDA, Y DECLARA QUE ES CRITERIO PROPIO (J2-E1, 2026-10-24) ══
          Ninguna de las fuentes de la biblioteca publica «RVS < 800 con IC conservado» como una
          categoría con nombre: el 800 sale de `_rvsBanda`, que es la escala de la casa. Se deja
@@ -26564,7 +26573,7 @@ function calcHemo() {
          a la línea base. Los dos operandos salen de `badge`, que escapa su texto, así que el
          hallazgo sería un falso positivo — pero una línea base que sube sin motivo es ruido que
          termina tapando el hallazgo de verdad. */
-    } else if (ic < 2.2 && rvs < 800) {
+    } else if (ic <= FORR_IC_CORTE && rvs < 800) {
       /* ══ ACÁ SALEN LA ETIQUETA Y EL «CONSIDERAR» (J2-E1, 2026-10-24, decisión de Maicol) ════
          Decía «GC bajo con RVS baja — considerar shock mixto/distributivo». Dos problemas: el
          «considerar» es una CONDUCTA, y esta app describe; y «shock mixto/distributivo» es un
