@@ -20982,7 +20982,6 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
       <div class="form-row cols3">
         <div><label>Espesor relativo calculado</label><input id="rwt-result" readonly style="background:#f5f7fa;font-weight:700;color:var(--purple)"></div>
       </div>
-      <div style="margin-top:8px;text-align:right;"><button type="button" class="crit-calc-btn" onclick="event.stopPropagation();amTraerDeFormulario('rwt')">↓ Traer del formulario</button></div>
     </div>
     <div class="criterio-item" id="crit-ee" onclick="toggleCrit('crit-ee','ett-ee',1)">
       <div class="criterio-check" id="chk-ee">—</div>
@@ -21000,7 +20999,6 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
         <div><label>e' promedio (cm/s)</label><input type="number" id="ee-ep" placeholder="Ej: 5" step="0.5" oninput="calcEE();amiloGestoEnModulo('ee-ep')" onchange="amCalcAutoColapsar('ee')"></div>
         <div><label>E/e' calculado</label><input id="ee-result" readonly style="background:#f5f7fa;font-weight:700;color:var(--purple)"></div>
       </div>
-      <div style="margin-top:8px;text-align:right;"><button type="button" class="crit-calc-btn" onclick="event.stopPropagation();amTraerDeFormulario('ee')">↓ Traer del formulario</button></div>
     </div>
     <div class="criterio-item" id="crit-tapse" onclick="toggleCrit('crit-tapse','ett-tapse',2)">
       <div class="criterio-check" id="chk-tapse">—</div>
@@ -21015,7 +21013,6 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
     <div class="crit-calc" id="calc-tapse" hidden>
       <label>TAPSE medido (mm)</label>
       <input type="number" id="tapse-val" placeholder="Ej: 16" step="1" min="5" max="35" oninput="calcTAPSE();amiloGestoEnModulo('tapse-val')" onchange="amCalcAutoColapsar('tapse')" style="max-width:200px">
-      <div style="margin-top:8px;text-align:right;"><button type="button" class="crit-calc-btn" onclick="event.stopPropagation();amTraerDeFormulario('tapse')">↓ Traer del formulario</button></div>
     </div>
     <div class="criterio-item" id="crit-sgl" onclick="toggleCrit('crit-sgl','ett-sgl',1)">
       <div class="criterio-check" id="chk-sgl">—</div>
@@ -21030,7 +21027,6 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
     <div class="crit-calc" id="calc-sgl" hidden>
       <label>SGL medido (%)</label>
       <input type="number" id="sgl-val" placeholder="Ej: -12" step="0.5" min="-25" max="0" oninput="amCalcSGL();amiloGestoEnModulo('sgl-val')" onchange="amCalcAutoColapsar('sgl')" style="max-width:200px">
-      <div style="margin-top:8px;text-align:right;"><button type="button" class="crit-calc-btn" onclick="event.stopPropagation();amTraerDeFormulario('sgl')">↓ Traer del formulario</button></div>
     </div>
     <div class="criterio-item" id="crit-apice" onclick="toggleCrit('crit-apice','ett-apice',3)">
       <div class="criterio-check" id="chk-apice">—</div>
@@ -96440,62 +96436,34 @@ var _AM_FUENTE = {
   sgl:   function(){ var x = v('sgl'); return [ x === null ? null : -Math.abs(x) ]; }
 };
 
-/* Rellena los insumos de un cálculo desde su fuente SÓLO SI ESTÁN VACÍOS, y sólo cuando el
-   médico abre el calculador — nunca durante una restauración.
+/* ══ EL BOTON «↓ Traer del formulario» SE RETIRO, Y CON EL SUS DOS FUNCIONES ═══════════════
+   (C2-3, 2026-10-28, decision de Maicol.)
 
-   Las dos condiciones son deliberadas y cierran el mismo riesgo por dos lados: un estudio ya
-   guardado no puede cambiar de score al reabrirlo. Si el campo trae valor, el valor guardado
-   manda; si la carga la dispara una ruta de restauración, no corre. Es la regla de
-   `imgPersistir`: no se pisa lo que el médico decidió, y no se decide por él en una ruta
-   automática. Lo rellenado queda EDITABLE — si no coincide con lo que midió, lo pisa. */
-function amAutoLlenar(k) {
-  var f = _AM_FUENTE[k]; if (!f) return false;
-  var cfg = _AM_CALC[k]; if (!cfg) return false;
-  var vals; try { vals = f(); } catch (e) { return false; }
-  /* DOS PASADAS: primero se resuelve qué se puede escribir, y recién si están TODOS se escribe.
-     Con una sola pasada, un insumo faltante dejaba el otro ya escrito —`ee-ep` cargado y `ee-e`
-     vacío—: no cambiaba el score, pero dejaba el calculador a medias con un número que el
-     médico no puso. Y con el recálculo colgado de ahí, la mitad faltante hacía que la función
-     de cálculo cayera en su rama «falta un dato» y `amCalcSinDato` DESMARCARA el criterio,
-     restando 1 punto (E/e') o 3 (RWT) sobre un estudio ya firmado. */
-  var plan = [];
-  for (var i = 0; i < cfg.ins.length; i++) {
-    var el = document.getElementById(cfg.ins[i]);
-    if (!el) return false;
-    if (String(el.value || '').trim() !== '') continue;         // lo cargado manda
-    var n = vals[i];
-    if (n === null || n === undefined || isNaN(n)) return false; // falta un insumo: no se escribe nada
-    plan.push([el, Math.round(n * 10) / 10]);
-  }
-  /* ⚠️ MARCADO COMO REFLEJO (D-9). Sin la marca no hay forma de distinguir un insumo que trajo
-     esta maquinaria de uno que el médico midió acá, y entonces no se puede vaciar el primero sin
-     arriesgarse a borrar el segundo. Es la misma marca que usa el registro de espejos. */
-  plan.forEach(function (p) { p[0].value = p[1]; p[0].dataset.espejo = '1'; });
-  return plan.length > 0;
-}
-window.amAutoLlenar = amAutoLlenar;
+   Eran `amTraerDeFormulario(k)` -el manejador de los CUATRO botones, uno por criterio con
+   fuente: RWT, E/e', TAPSE y SGL- y `amAutoLlenar(k)`, su unico trabajo, mas los dos
+   `window.X = X`. Se retiran enteras porque el boton era su unico llamador: el D-10 ya le
+   habia sacado la otra llamada, la del barrido, por redundante.
 
-/* El botón «↓ Traer del formulario» de cada calculador.
+   ⚠️ POR QUE SE RETIRA, MEDIDO EN EL D-11 Y NO SUPUESTO. Desde que el reflejo en vivo manda
+   (D-9 y D-11), cada insumo del modulo vale lo que dice su fuente en todo momento, asi que
+   cuando el medico apretaba el boton no quedaba NADA vacio que llenar: `amAutoLlenar` devolvia
+   `false` en los cuatro criterios que lo tienen, y de 22 valores fotografiados no cambiaba
+   ninguno. Y como devolvia `false`, el boton mostraba «⚠️ No hay datos suficientes cargados en
+   las otras pestañas para este criterio» JUSTO CUANDO ESTABAN TODOS CARGADOS: un control que no
+   hace nada y ademas avisa al reves.
 
-   El autollenado colgaba de ABRIR el acordeón, y eso estaba mal por dos motivos que las dos
-   revisiones señalaron por separado: (a) abrir es el gesto de MIRAR —uno toca «Calcular ▾» para
-   ver de dónde salió un criterio— y ahí no puede cambiar el score; (b) sobre un criterio que el
-   médico había DESTILDADO a propósito, el recálculo lo volvía a marcar en silencio, porque
-   `toggleCrit` limpia el origen al destildar (deliberadamente, ver su comentario) y
-   `amAplicarCalc` sólo respeta `'manual'`.
+   ⚠️ LO QUE NO SE TOCO, Y ESTA VERIFICADO UNO POR UNO: el score y su marcado automatico, el
+   pasaje de datos al algoritmo diagnostico, la sincronizacion en los dos sentidos del D-11, el
+   tercer estado de origen (`manual` / `nomanual`) y la etiqueta del boton violeta. Ninguno
+   pasaba por estas dos funciones.
 
-   Detrás de un botón, traer el dato es una decisión del médico y no un efecto colateral de
-   inspeccionar. `toggleCrit` y `amAplicarCalc` quedan sin tocar. */
-function amTraerDeFormulario(k) {
-  if (!amAutoLlenar(k)) {
-    if (typeof toast === 'function') toast('⚠️ No hay datos suficientes cargados en las otras pestañas para este criterio');
-    return;
-  }
-  var rec = { rwt:'calcRWT', ee:'calcEE', tapse:'calcTAPSE', sgl:'amCalcSGL' }[k];
-  if (rec && typeof window[rec] === 'function') { try { window[rec](); } catch (e) {} }
-  if (typeof toast === 'function') toast('↓ Valores traídos del formulario — editables');
-}
-window.amTraerDeFormulario = amTraerDeFormulario;
+   ⚠️ LA MARCA `data-espejo = '1'` NO SE PIERDE: la ponia `amAutoLlenar` y la pone tambien
+   `_amiloReflejarDesdeApp`, que es quien escribe hoy. Censado: son los tres unicos lugares de
+   la app que la escriben, y el tercero es el espejo de los campos `*_ro`.
+
+   ⚠️ NINGUN CAMPO GUARDADO, NINGUNA COLUMNA DE EXCEL Y NINGUNA ENTRADA DEL CENSO SE VAN CON
+   ellas: los cuatro botones no tenian `id` y las dos funciones no escriben ningun campo nuevo.
+   Verificado por A/B -1025 campos y 440 columnas antes y despues-. */
 
 // Valor con el que se evalúa el criterio. Se RECOMPUTA desde los campos crudos en vez
 // de leer el campo de resultado: ese guarda el valor redondeado (toFixed), y un RWT de
@@ -96748,7 +96716,8 @@ function amCalcSinDato(k) {
    compara nada, sólo trae el insumo y deja que decidan `_AM_CALC[k].ok` y `amAplicarCalc`.
 
    ⚠️ TRES COSAS QUE NO HACE, Y CADA UNA CIERRA UN RIESGO CONOCIDO.
-   1. NO PISA UN VALOR CARGADO. `amAutoLlenar` escribe sólo sobre un insumo VACÍO, así que un
+   1. NO PISA UN VALOR CARGADO. `amAutoLlenar` escribía sólo sobre un insumo VACÍO (retirada en
+      el C2-3 con su botón), así que un
       estudio ya guardado no puede cambiar de score al reabrirlo.
    2. NO REVIVE UNA MARCA QUE EL MÉDICO QUITÓ. Hasta esta tanda, destildar una fila borraba el
       origen y el siguiente recálculo la volvía a marcar en silencio: `amAplicarCalc` sólo
@@ -96776,8 +96745,9 @@ function amiloAutoMarcarTodos() {
        escribía los que estuvieran vacíos. Con dos mecanismos cubriendo lo mismo, romper
        cualquiera de los dos no cambia nada — es exactamente lo que en el D-9 dejó cuatro
        mutaciones vivas, y acá dejó dos.
-       Queda UN dueño del llenado. `amAutoLlenar` sigue existiendo para el botón «↓ Traer del
-       formulario», que es un gesto explícito del médico y no una pasada automática.
+       Queda UN dueño del llenado. ⚠️ Y DESDE EL C2-3 `amAutoLlenar` YA NO EXISTE: su único
+       llamador era el botón «↓ Traer del formulario», que se retiró porque con el reflejo en
+       vivo no quedaba nada vacío que llenar y avisaba lo contrario de lo que pasaba.
        ⚠️ LO QUE SE PIERDE, DECLARADO: el autollenado era todo-o-nada por criterio —no escribía
        un insumo si faltaba otro— y el reflejo sigue a cada dato por separado. Así que el
        calculador puede mostrar uno de dos insumos, con el criterio sin marcar. Es más
@@ -96968,7 +96938,9 @@ function amiloEspejoDesdeApp() {
    sola `e′` el promedio no queda vacío: pasa a ser la que quedó. Una versión que sólo vaciara
    cuando la fuente desaparece dejaba el promedio con el valor de las DOS, o sea un número que
    ninguna medición sostiene.
-   ⚠️ Y TOCA SÓLO LO QUE ESTA MAQUINARIA ESCRIBIÓ. La marca `espejo` —que pone `amAutoLlenar`—
+   ⚠️ Y TOCA SÓLO LO QUE ESTA MAQUINARIA ESCRIBIÓ. La marca `espejo` —que pone esta misma
+   función, unas líneas más abajo; hasta el C2-3 la ponía también `amAutoLlenar`, retirada con
+   el botón «↓ Traer del formulario»—
    es lo único que distingue un reflejo de una medición que el médico hizo en el calculador. Sin
    ella no se puede vaciar el primero sin arriesgarse a borrar el segundo, y el `oninput` del
    campo la quita en cuanto el médico escribe ahí. */
