@@ -894,10 +894,23 @@ impecable.
   TC-488, TC-499, TC-500, TC-501, TC-502, TC-509, TC-511, TC-519, TC-520, TC-529, TC-532,
   TC-533, TC-535, TC-537 y TC-544.
 
-- **Línea base al cierre: suite 556/560**, cubriendo los 560 casos, con el pendrive `DISK_IMG`
-  **montado y listando nombres reales al abrir, entre lotes y al cerrar**, y el md5 de
-  `index.html` **idéntico** antes y después. Los rojos son **TC-223, TC-376, TC-390 y TC-406**,
-  los cuatro de siempre, **y ninguno más**: TC-358 y TC-507 salieron verdes.
+- **Línea base al cierre: suite 555/560**, cubriendo los 560 casos en once lotes y en UNA SOLA
+  PASADA sobre el árbol sellado, con el pendrive `DISK_IMG` **montado y listando nombres reales
+  al abrir, entre lotes y al cerrar**, y el md5 de `index.html` **idéntico** antes y después.
+  Los rojos son **TC-223, TC-376, TC-390 y TC-406**, los cuatro de siempre, más **TC-358**, que
+  es el **intermitente por el CDN de jsPDF** que la tanda E ya declara en **E-h**.
+  **TC-507 salió VERDE.**
+  ⚠️ **ESTA CIFRA DECÍA 556/560 CON TC-358 EN VERDE, Y ERA UN RECUENTO COMPUESTO.** Salía de
+  sumar TRES corridas con DOS versiones distintas de `test_clinico.mjs` —los diez primeros lotes
+  antes de adaptar TC-520, el lote 11 aparte y el lote 10 de nuevo después—, que no es una línea
+  base: es un promedio de árboles que nunca existieron juntos. La corrida limpia, de una sola
+  pasada y con el archivo de tests final, da **555/560**.
+  ⚠️ **Y TC-358 ES INTERMITENTE DE VERDAD, MEDIDO LAS DOS VECES.** Salió verde en la primera
+  pasada y **rojo** en la limpia; repetido su lote, **rojo otra vez**. Verificado como manda este
+  archivo —mismo directorio, mismos scripts, alternando sólo `index.html`—: **cae idéntico contra
+  `c53d350`**, con el mismo diagnóstico `antes=NO HAY jsPDF || despues=NO HAY jsPDF` en los dos
+  árboles. No es de esta tanda. **El próximo que lo vea rojo no tiene que mirar la conexión:
+  tiene que hacer esperar a `pdfTxt`**, que lee `window.jspdf` sin esperarlo.
   Semgrep **124 WARNING / 0 ERROR**. Excel **440** columnas. Censo **1025**, 0 huérfanos nuevos.
   Celular **63 hallazgos a 360 px y 72 a 390, 17 ALTA en cada ancho** — idénticos a la base.
 - **CHROME Y WEBKIT COINCIDEN EN LOS OCHO CRUCES, y son idénticos a HEAD**: 21 de 22 pestañas con
