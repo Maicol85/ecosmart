@@ -775,7 +775,10 @@ const PPT = `(async () => {
       if (typeof s.addTable === 'function') {
         const oTb = s.addTable.bind(s);
         s.addTable = function (filas, ...r) { reg.tablas++;
-          reg.textos.push('[TABLA] ' + JSON.stringify(filas).slice(0, 1200)); return oTb(filas, ...r) };
+          /* ADVERTENCIA: 1200 caracteres NO alcanzan. La franja de drogas del posoperatorio cae
+             DENTRO de la tabla de contexto, y con el recorte en 1200 la dosis quedaba cortada: el
+             A/B del commit 2 daba cero sobre el PPT sin que eso probara nada. Medido. */
+          reg.textos.push('[TABLA] ' + JSON.stringify(filas).slice(0, 6000)); return oTb(filas, ...r) };
       }
       return s; };
     p.writeFile = function () { return Promise.resolve(true) };
@@ -791,6 +794,15 @@ const PPT = `(async () => {
   const campos = {};
   document.querySelectorAll('input[id], select[id], textarea[id]').forEach(e => {
     campos[e.id] = (e.type === 'checkbox') ? (e.checked ? '1' : '') : String(e.value || '');
+    /* ADVERTENCIA: UNA CASILLA SE PERSISTE COMO <id>__chk, NO COMO <id>, Y ESTA SONDA LO TENIA
+       MAL. generarPPT carga el estudio guardado en el formulario -pdfDeInformeGuardado- y la
+       reposicion lee c[el.id + '__chk']; sin esa clave, TODAS las casillas vuelven apagadas.
+       Medido: la franja de drogas del posoperatorio decia «sin infusion activa» sobre una
+       escena con la noradrenalina marcada, en los DOS arboles, asi que el A/B daba cero sobre
+       el PPT sin que eso probara nada. Es un denominador envenenado del arnes, no un defecto de
+       la app. Viene heredado de _probe_r2ab.mjs: las sondas de las tandas R2, A, B, C1 y C2
+       tienen el mismo defecto y midieron su PPT con todas las casillas apagadas. */
+    if (e.type === 'checkbox') campos[e.id + '__chk'] = e.checked ? '1' : '0';
   });
   campos.informe_texto = String((document.getElementById('informe_texto') || {}).value || '');
   campos.en_suma = String((document.getElementById('en_suma') || {}).value || '');
@@ -854,8 +866,13 @@ try {
        salen vacios en los dos lados. Medido: sin esta espera el control positivo daba cero. */
     await new Promise((r) => setTimeout(r, 500));
     OUT[k] = await pg.evaluate(MEDIR);
-    OUT[k]._pdf = await pg.evaluate(PDF);
+    /* ADVERTENCIA: EL PPT VA ANTES DEL PDF, Y SE MIDIO POR QUE. Con el PDF primero, la franja
+       de drogas del posoperatorio salia «sin infusion activa» en la diapositiva sobre una
+       escena con la noradrenalina MARCADA: generar el PDF deja las casillas del modulo en otro
+       estado, asi que el A/B del commit 2 daba cero sobre el PPT sin que eso probara nada.
+       Es un denominador envenenado, no una diferencia. Medido en los dos arboles. */
     OUT[k]._ppt = await pg.evaluate(PPT);
+    OUT[k]._pdf = await pg.evaluate(PDF);
     console.log('-- escena ' + k + ' medida (campos=' + OUT[k]._camposN + ' excel=' + OUT[k]._excelN
       + ' secciones de Evidencia=' + OUT[k]._evN + ' compactas=' + OUT[k]._evCompactas
       + ' ppt=' + (OUT[k]._ppt || {}).n + ') --');

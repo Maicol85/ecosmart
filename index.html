@@ -10215,7 +10215,7 @@ window.cerrarSesionReal = cerrarSesionReal;
         <div class="pop-droga">
           <label class="pop-droga-chk"><input type="checkbox" id="pop_nor_activa" onchange="popSync()"><span class="pop-droga-dot"></span><span>Noradrenalina</span></label>
           <div class="pop-droga-dosis" id="pop_nor_wrap" style="display:none;">
-            <input type="number" id="pop_nor_dosis" step="0.01" min="0" inputmode="decimal" placeholder="mcg/kg/min" aria-label="Dosis de Noradrenalina en mcg/kg/min">
+            <input type="number" id="pop_nor_dosis" step="0.01" min="0" inputmode="decimal" placeholder="mcg/kg/min" aria-label="Dosis de Noradrenalina en mcg/kg/min" oninput="popDosisMano('nor')">
             <div class="pop-diluc" style="display:flex;gap:4px;align-items:center;margin-top:4px;flex-wrap:wrap;">
               <input type="number" id="pop_nor_diluc_mg" step="0.1" min="0" inputmode="decimal" placeholder="mg" style="width:62px;" aria-label="Noradrenalina: miligramos de la dilución" oninput="popDosisDilucion('nor')">
               <span style="font-size:10px;color:var(--text2);">en</span>
@@ -10228,7 +10228,7 @@ window.cerrarSesionReal = cerrarSesionReal;
         <div class="pop-droga">
           <label class="pop-droga-chk"><input type="checkbox" id="pop_adr_activa" onchange="popSync()"><span class="pop-droga-dot"></span><span>Adrenalina</span></label>
           <div class="pop-droga-dosis" id="pop_adr_wrap" style="display:none;">
-            <input type="number" id="pop_adr_dosis" step="0.01" min="0" inputmode="decimal" placeholder="mcg/kg/min" aria-label="Dosis de Adrenalina en mcg/kg/min">
+            <input type="number" id="pop_adr_dosis" step="0.01" min="0" inputmode="decimal" placeholder="mcg/kg/min" aria-label="Dosis de Adrenalina en mcg/kg/min" oninput="popDosisMano('adr')">
             <div class="pop-diluc" style="display:flex;gap:4px;align-items:center;margin-top:4px;flex-wrap:wrap;">
               <input type="number" id="pop_adr_diluc_mg" step="0.1" min="0" inputmode="decimal" placeholder="mg" style="width:62px;" aria-label="Adrenalina: miligramos de la dilución" oninput="popDosisDilucion('adr')">
               <span style="font-size:10px;color:var(--text2);">en</span>
@@ -10241,7 +10241,7 @@ window.cerrarSesionReal = cerrarSesionReal;
         <div class="pop-droga">
           <label class="pop-droga-chk"><input type="checkbox" id="pop_dob_activa" onchange="popSync()"><span class="pop-droga-dot"></span><span>Dobutamina</span></label>
           <div class="pop-droga-dosis" id="pop_dob_wrap" style="display:none;">
-            <input type="number" id="pop_dob_dosis" step="0.01" min="0" inputmode="decimal" placeholder="mcg/kg/min" aria-label="Dosis de Dobutamina en mcg/kg/min">
+            <input type="number" id="pop_dob_dosis" step="0.01" min="0" inputmode="decimal" placeholder="mcg/kg/min" aria-label="Dosis de Dobutamina en mcg/kg/min" oninput="popDosisMano('dob')">
             <div class="pop-diluc" style="display:flex;gap:4px;align-items:center;margin-top:4px;flex-wrap:wrap;">
               <input type="number" id="pop_dob_diluc_mg" step="0.1" min="0" inputmode="decimal" placeholder="mg" style="width:62px;" aria-label="Dobutamina: miligramos de la dilución" oninput="popDosisDilucion('dob')">
               <span style="font-size:10px;color:var(--text2);">en</span>
@@ -10254,7 +10254,7 @@ window.cerrarSesionReal = cerrarSesionReal;
         <div class="pop-droga">
           <label class="pop-droga-chk"><input type="checkbox" id="pop_mil_activa" onchange="popSync()"><span class="pop-droga-dot"></span><span>Milrinona</span></label>
           <div class="pop-droga-dosis" id="pop_mil_wrap" style="display:none;">
-            <input type="number" id="pop_mil_dosis" step="0.01" min="0" inputmode="decimal" placeholder="mcg/kg/min" aria-label="Dosis de Milrinona en mcg/kg/min">
+            <input type="number" id="pop_mil_dosis" step="0.01" min="0" inputmode="decimal" placeholder="mcg/kg/min" aria-label="Dosis de Milrinona en mcg/kg/min" oninput="popDosisMano('mil')">
             <div class="pop-diluc" style="display:flex;gap:4px;align-items:center;margin-top:4px;flex-wrap:wrap;">
               <input type="number" id="pop_mil_diluc_mg" step="0.1" min="0" inputmode="decimal" placeholder="mg" style="width:62px;" aria-label="Milrinona: miligramos de la dilución" oninput="popDosisDilucion('mil')">
               <span style="font-size:10px;color:var(--text2);">en</span>
@@ -10267,7 +10267,7 @@ window.cerrarSesionReal = cerrarSesionReal;
         <div class="pop-droga">
           <label class="pop-droga-chk"><input type="checkbox" id="pop_vaso_activa" onchange="popSync()"><span class="pop-droga-dot"></span><span>Vasopresina</span></label>
           <div class="pop-droga-dosis" id="pop_vaso_wrap" style="display:none;">
-            <input type="number" id="pop_vaso_dosis" step="0.01" min="0" inputmode="decimal" placeholder="mcg/kg/min" aria-label="Dosis de Vasopresina en mcg/kg/min">
+            <input type="number" id="pop_vaso_dosis" step="0.01" min="0" inputmode="decimal" placeholder="mcg/kg/min" aria-label="Dosis de Vasopresina en mcg/kg/min" oninput="popDosisMano('vaso')">
             <div class="pop-diluc" style="display:flex;gap:4px;align-items:center;margin-top:4px;flex-wrap:wrap;">
               <input type="number" id="pop_vaso_diluc_mg" step="0.1" min="0" inputmode="decimal" placeholder="mg" style="width:62px;" aria-label="Vasopresina: miligramos de la dilución" oninput="popDosisDilucion('vaso')">
               <span style="font-size:10px;color:var(--text2);">en</span>
@@ -10280,7 +10280,7 @@ window.cerrarSesionReal = cerrarSesionReal;
         <div class="pop-droga">
           <label class="pop-droga-chk"><input type="checkbox" id="pop_levo_activa" onchange="popSync()"><span class="pop-droga-dot"></span><span>Levosimendan</span></label>
           <div class="pop-droga-dosis" id="pop_levo_wrap" style="display:none;">
-            <input type="number" id="pop_levo_dosis" step="0.01" min="0" inputmode="decimal" placeholder="mcg/kg/min" aria-label="Dosis de Levosimendan en mcg/kg/min">
+            <input type="number" id="pop_levo_dosis" step="0.01" min="0" inputmode="decimal" placeholder="mcg/kg/min" aria-label="Dosis de Levosimendan en mcg/kg/min" oninput="popDosisMano('levo')">
             <div class="pop-diluc" style="display:flex;gap:4px;align-items:center;margin-top:4px;flex-wrap:wrap;">
               <input type="number" id="pop_levo_diluc_mg" step="0.1" min="0" inputmode="decimal" placeholder="mg" style="width:62px;" aria-label="Levosimendan: miligramos de la dilución" oninput="popDosisDilucion('levo')">
               <span style="font-size:10px;color:var(--text2);">en</span>
@@ -10293,7 +10293,7 @@ window.cerrarSesionReal = cerrarSesionReal;
         <div class="pop-droga">
           <label class="pop-droga-chk"><input type="checkbox" id="pop_dop_activa" onchange="popSync()"><span class="pop-droga-dot"></span><span>Dopamina</span></label>
           <div class="pop-droga-dosis" id="pop_dop_wrap" style="display:none;">
-            <input type="number" id="pop_dop_dosis" step="0.01" min="0" inputmode="decimal" placeholder="mcg/kg/min" aria-label="Dosis de Dopamina en mcg/kg/min">
+            <input type="number" id="pop_dop_dosis" step="0.01" min="0" inputmode="decimal" placeholder="mcg/kg/min" aria-label="Dosis de Dopamina en mcg/kg/min" oninput="popDosisMano('dop')">
             <div class="pop-diluc" style="display:flex;gap:4px;align-items:center;margin-top:4px;flex-wrap:wrap;">
               <input type="number" id="pop_dop_diluc_mg" step="0.1" min="0" inputmode="decimal" placeholder="mg" style="width:62px;" aria-label="Dopamina: miligramos de la dilución" oninput="popDosisDilucion('dop')">
               <span style="font-size:10px;color:var(--text2);">en</span>
@@ -10306,7 +10306,7 @@ window.cerrarSesionReal = cerrarSesionReal;
         <div class="pop-droga">
           <label class="pop-droga-chk"><input type="checkbox" id="pop_ter_activa" onchange="popSync()"><span class="pop-droga-dot"></span><span>Terlipresina</span></label>
           <div class="pop-droga-dosis" id="pop_ter_wrap" style="display:none;">
-            <input type="number" id="pop_ter_dosis" step="0.01" min="0" inputmode="decimal" placeholder="mcg/kg/min" aria-label="Dosis de Terlipresina en mcg/kg/min">
+            <input type="number" id="pop_ter_dosis" step="0.01" min="0" inputmode="decimal" placeholder="mcg/kg/min" aria-label="Dosis de Terlipresina en mcg/kg/min" oninput="popDosisMano('ter')">
             <div class="pop-diluc" style="display:flex;gap:4px;align-items:center;margin-top:4px;flex-wrap:wrap;">
               <input type="number" id="pop_ter_diluc_mg" step="0.1" min="0" inputmode="decimal" placeholder="mg" style="width:62px;" aria-label="Terlipresina: miligramos de la dilución" oninput="popDosisDilucion('ter')">
               <span style="font-size:10px;color:var(--text2);">en</span>
@@ -10319,7 +10319,7 @@ window.cerrarSesionReal = cerrarSesionReal;
         <div class="pop-droga">
           <label class="pop-droga-chk"><input type="checkbox" id="pop_ntg_activa" onchange="popSync()"><span class="pop-droga-dot"></span><span>Nitroglicerina</span></label>
           <div class="pop-droga-dosis" id="pop_ntg_wrap" style="display:none;">
-            <input type="number" id="pop_ntg_dosis" step="0.01" min="0" inputmode="decimal" placeholder="mcg/kg/min" aria-label="Dosis de Nitroglicerina en mcg/kg/min">
+            <input type="number" id="pop_ntg_dosis" step="0.01" min="0" inputmode="decimal" placeholder="mcg/kg/min" aria-label="Dosis de Nitroglicerina en mcg/kg/min" oninput="popDosisMano('ntg')">
             <div class="pop-diluc" style="display:flex;gap:4px;align-items:center;margin-top:4px;flex-wrap:wrap;">
               <input type="number" id="pop_ntg_diluc_mg" step="0.1" min="0" inputmode="decimal" placeholder="mg" style="width:62px;" aria-label="Nitroglicerina: miligramos de la dilución" oninput="popDosisDilucion('ntg')">
               <span style="font-size:10px;color:var(--text2);">en</span>
@@ -10332,7 +10332,7 @@ window.cerrarSesionReal = cerrarSesionReal;
         <div class="pop-droga">
           <label class="pop-droga-chk"><input type="checkbox" id="pop_ntp_activa" onchange="popSync()"><span class="pop-droga-dot"></span><span>Nitroprusiato</span></label>
           <div class="pop-droga-dosis" id="pop_ntp_wrap" style="display:none;">
-            <input type="number" id="pop_ntp_dosis" step="0.01" min="0" inputmode="decimal" placeholder="mcg/kg/min" aria-label="Dosis de Nitroprusiato en mcg/kg/min">
+            <input type="number" id="pop_ntp_dosis" step="0.01" min="0" inputmode="decimal" placeholder="mcg/kg/min" aria-label="Dosis de Nitroprusiato en mcg/kg/min" oninput="popDosisMano('ntp')">
             <div class="pop-diluc" style="display:flex;gap:4px;align-items:center;margin-top:4px;flex-wrap:wrap;">
               <input type="number" id="pop_ntp_diluc_mg" step="0.1" min="0" inputmode="decimal" placeholder="mg" style="width:62px;" aria-label="Nitroprusiato: miligramos de la dilución" oninput="popDosisDilucion('ntp')">
               <span style="font-size:10px;color:var(--text2);">en</span>
@@ -10343,7 +10343,7 @@ window.cerrarSesionReal = cerrarSesionReal;
           </div>
         </div>
         </div>
-        <p style="font-size:11px;color:var(--text2);margin:8px 0 0;line-height:1.5;">La dosis aparece al marcar la droga. Al desmarcarla se <b>borra</b>: una dosis escondida viajaría igual dentro del estudio y podría llegar al informe sin que nadie la vea.</p>
+        <p style="font-size:11px;color:var(--text2);margin:8px 0 0;line-height:1.5;">La fila aparece al marcar la droga. Con el peso del paciente y la dilución cargados, la dosis se <b>calcula sola</b>; si escribís otra, queda marcada «a mano» y aparece «Volver al cálculo». Al desmarcar la droga se <b>borra</b> todo: una dosis escondida viajaría igual dentro del estudio y podría llegar al informe sin que nadie la vea.</p>
 
         <div style="font-size:11px;font-weight:700;color:var(--accent2);margin:16px 0 8px;text-transform:uppercase;letter-spacing:.4px;">Asistencia circulatoria</div>
         <div class="grid-2">
@@ -58924,6 +58924,22 @@ function _noEsDelEstudio(id) {
      el final de `limpiarCampos`, que NO pasa por ese embudo. Con una sola, «Nuevo estudio»
      dejaba las filas de dosis del paciente anterior abiertas. */
 var POP_DROGAS = ['nor','adr','dob','mil','vaso','levo','dop','ter','ntg','ntp'];
+/* ══ LAS QUE SE DOSIFICAN POR PESO (POP-V2-2, 29/10/2026) ════════════════════════════════════
+   Son las que llevan la dosis AUTOMATICA: con el peso del paciente, los mg y los ml de la
+   dilucion y los ml/h, `popDosisDilucion` escribe `pop_<k>_dosis` sola.
+   ⚠️ LA VASOPRESINA QUEDA AFUERA POR ORDEN EXPRESA, y su unidad NO se toca. Lo que esta orden
+   dice es «la vasopresina no se dosifica por peso: conserva su unidad actual», y la unidad que
+   esta app le declara hoy es mcg/kg/min —en el `placeholder` y en el `aria-label` del campo—,
+   que SI es una unidad por peso. Las dos cosas no pueden ser verdad a la vez: o la unidad del
+   campo esta mal o la droga si se dosifica asi. Cambiar un rotulo clinico no es de esta tanda,
+   asi que se hace lo unico que no afirma nada nuevo: la vasopresina NO escribe su dosis sola
+   —se le sigue mostrando la estimacion al lado, como hasta hoy— y la discrepancia se reporta.
+   Ver `docs/PENDIENTES.md` → POP-a.
+   ⚠️ LA TERLIPRESINA TAMBIEN LLEVA mcg/kg/min EN ESTA APP y en la practica se dosifica en bolos
+   de mg; la orden no la nombra, asi que se trata como lo que la app declara. Reportado en el
+   mismo lugar. */
+var POP_DROGAS_PESO = POP_DROGAS.filter(function (k) { return k !== 'vaso'; });
+window.POP_DROGAS_PESO = POP_DROGAS_PESO;
 /* ══ POP · BLOQUE 3 — datos hemodinámicos (2026-09-18) ══
    TRES cosas que NO se reimplementaron, y son la mitad del trabajo:
    · el GC por eco sale de `_hemoGCEco`, el MISMO seam que usa la cápsula de Hemodinámica;
@@ -60164,27 +60180,91 @@ window.popEsqPintar = popEsqPintar;
    NO PISA LA DOSIS TIPEADA A MANO. El resultado se muestra al lado como sugerencia y el médico
    decide: escribir sobre `pop_<k>_dosis` destruiría un valor que puede venir de la bomba, y es
    el defecto de «un campo auto que se calcula una vez» por la puerta contraria. El botón copia. */
+/* ══ LA DOSIS SE CALCULA SOLA, Y GANA LA ULTIMA EDICION DEL MEDICO (POP-V2-2, 29/10/2026) ════
+   Hasta esta tanda el calculo se mostraba al lado como sugerencia con un boton «usar», y la
+   dosis que viaja al estudio —y a la hoja del PDF y al PPT— quedaba vacia hasta que alguien lo
+   apretaba. Medido en HEAD con el caso conocido del pedido: la linea decia «≈ 0.20 mcg/kg/min
+   usar» y `pop_nor_dosis` estaba VACIO.
+   HOY `pop_<k>_dosis` LO ESCRIBE ESTA FUNCION, con DOS marcas de runtime y ninguna persistida:
+     · `data-pop-auto` guarda el valor que la app escribio. Si el campo todavia vale eso, es
+       nuestro y se puede reescribir — es el mismo predicado `esNuestro` que `aoPresionSync` y
+       `pamEfectiva` usan para la PAM, y existe por el mismo motivo: no pisar lo del medico.
+     · `data-pop-mano` la pone el `oninput` del campo de la dosis, o sea un gesto humano, y es
+       lo unico que hace que un campo VACIO siga vacio. Sin ella, borrar la dosis no se podia:
+       la pasada siguiente la volvia a escribir. Es el defecto que el D-9, el D-10 y el D-11
+       pagaron tres veces en el modulo de amiloidosis, y la leccion que quedo es «el campo del
+       estudio es el dueno y gana la ultima edicion».
+   ⚠️ LAS DOS MARCAS ENTRAN EN LA LISTA CERRADA DE «Nuevo estudio», en el SELECTOR y en el
+   CUERPO, que son dos listas. Una marca de runtime que sobrevive manda sobre el paciente
+   siguiente: en una maquina compartida eso es el dato de otro paciente decidiendo.
+   ⚠️ UNA DOSIS DE UN ESTUDIO VIEJO NO SE PISA, y es por construccion: viene sin `data-pop-auto`
+   —el `dataset` no se persiste—, asi que `esNuestro` es falso y la dosis queda como esta,
+   marcada «a mano», con el calculo publicado al lado para comparar. Verificado en el A/B.
+   ⚠️ NO SE DISPARA `input` AL ESCRIBIR. `el.value = x` no dispara nada, asi que no hay bucle con
+   el `oninput` que pone la marca de mano. El boton «Volver al calculo» tampoco lo dispara. */
+function _popDosisMano(el, calc) {
+  if (!el) return false;
+  if (el.dataset.popMano === '1') return true;
+  if (el.value === '') return false;
+  return !(el.dataset.popAuto !== undefined && el.dataset.popAuto === el.value);
+}
+/* El `oninput` del campo de la dosis. Marca que lo escribio una persona —tambien cuando lo deja
+   VACIO, que es el caso que no se podia resolver sin marca— y repinta la linea. */
+function popDosisMano(k) {
+  const el = document.getElementById('pop_' + k + '_dosis');
+  if (el) { el.dataset.popMano = '1'; delete el.dataset.popAuto; }
+  try { popDosisDilucion(k); } catch (e) {}
+}
+window.popDosisMano = popDosisMano;
+/* «Volver al calculo»: saca la marca de mano y deja que la funcion de arriba vuelva a escribir. */
+function popDosisVolver(k) {
+  const el = document.getElementById('pop_' + k + '_dosis');
+  if (el) { delete el.dataset.popMano; delete el.dataset.popAuto; el.value = ''; }
+  try { popDosisDilucion(k); } catch (e) {}
+}
+window.popDosisVolver = popDosisVolver;
 function popDosisDilucion(k) {
   const out = document.getElementById('pop_' + k + '_calc');
   if (!out) return;
+  const el = document.getElementById('pop_' + k + '_dosis');
   const mg = v('pop_' + k + '_diluc_mg'), ml = v('pop_' + k + '_diluc_ml'), vel = v('pop_' + k + '_veloc');
   const peso = v('peso');
+  /* Sin dilucion no hay nada que calcular, y lo que el medico haya escrito a mano se queda:
+     vaciar la dosis porque falta un ml seria borrarle un dato que puede venir de la bomba. */
   if (mg === null || ml === null || vel === null || ml <= 0) { out.textContent = ''; return; }
   if (peso === null || peso <= 0) { out.textContent = '— completar el peso del paciente'; return; }
   const d = (mg * 1000 / ml) * vel / 60 / peso;
-  /* Se arma y se asigna UNA vez: `innerHTML = a + b + c` es lo que matchea la regla sintáctica
-     del ruleset, y la línea base es 123 — la casa no suma warnings aunque el hallazgo sea falso
-     positivo. Lo interpolado es un número con toFixed y la clave de la droga, que es un literal
-     de `POP_DROGAS`. */
-  /* SIN `onclick` INLINE: la clave viaja en `data-pop-usar` y el clic se atiende por delegación.
-     Interpolar dentro de un handler es lo que la regla `ceibo-interp-en-string-de-handler` existe
-     para atajar —el parser decodifica la entidad ANTES de compilar el handler, así que ahí el
-     escape no protege—. Hoy `k` es un literal de `POP_DROGAS` y sería inocuo, pero es el mismo
-     patrón que `#pltz-grid` ya resolvió así, y el ruleset no suma warnings. */
-  const _hd = '≈ <b>' + d.toFixed(2) + '</b> mcg/kg/min &nbsp;'
-    + '<button type="button" class="btn btn-ghost" data-pop-usar="' + escHtml(k) + '" '
-    + 'style="padding:1px 7px;font-size:10px;">usar</button>';
-  out.innerHTML = _hd;
+  /* ⚠️ LA VASOPRESINA NO ESCRIBE SU DOSIS SOLA. Ver la nota de `POP_DROGAS_PESO`. */
+  if (POP_DROGAS_PESO.indexOf(k) < 0) {
+    out.textContent = '≈ ' + d.toFixed(2) + ' mcg/kg/min con el peso y la dilución — no se '
+                    + 'escribe sola: esta droga no se dosifica por peso.';
+    return;
+  }
+  const _mano = _popDosisMano(el, d);
+  if (!_mano && el) { el.value = d.toFixed(2); el.dataset.popAuto = el.value; }
+  if (_mano) {
+    /* El boton va SIN nada interpolado adentro del manejador: la clave viaja en un atributo de
+       datos y el clic se atiende por delegacion. Es la regla
+       `ceibo-interp-en-string-de-handler`, que existe porque el parser decodifica la entidad
+       ANTES de compilar el manejador. */
+    /* Se arma y se asigna UNA vez: `innerHTML = a + b + c` es lo que matchea la regla sintáctica
+       `ceibo-xss-innerhtml-concat`, y la línea base del ruleset es 124 — la casa no suma warnings
+       aunque el hallazgo sea falso positivo. Medido: con la concatenación en la asignación el
+       conteo pasaba a 125. Lo interpolado es un número con `toFixed` y la clave de la droga, que
+       es un literal de `POP_DROGAS`. */
+    const _hd = 'Dosis cargada a mano. El cálculo con la dilución daría ≈ <b>'
+      + d.toFixed(2) + '</b> mcg/kg/min. '
+      + '<button type="button" class="btn btn-ghost" data-pop-volver="' + escHtml(k) + '" '
+      + 'style="padding:1px 7px;font-size:10px;">Volver al cálculo</button>';
+    out.innerHTML = _hd;
+    return;
+  }
+  out.textContent = '≈ ' + d.toFixed(2) + ' mcg/kg/min — calculada con el peso y la dilución; '
+                  + 'podés escribir otra dosis a mano.';
+  return;
+  /* ⚠️ ACA VIVIA EL BOTON «usar» Y SU `innerHTML`. Se retira: la dosis ya no se sugiere, se
+     escribe. Lo que queda interpolado en marcado es el boton «Volver al calculo» de arriba, con
+     el mismo patron de delegacion por atributo de datos. */
 }
 window.popDosisDilucion = popDosisDilucion;
 /* ══ LAS DIEZ DILUCIONES DE UNA (B-1, 2026-10-27) ════════════════════════════════════════════
@@ -60195,27 +60275,28 @@ window.popDosisDilucion = popDosisDilucion;
    la página. Es el síntoma S2 de esta tanda, medido antes de tocar nada.
    Esta función es lo que el barrido de espejos llama: una entrada en el registro por módulo, no
    diez. Es idempotente —`popDosisDilucion` reescribe el mismo `innerHTML` con los mismos
-   insumos— y no escribe ningún campo: `pop_<k>_dosis` lo decide el médico o el botón «usar». */
+   insumos—.
+   ⚠️ Y DESDE EL POP-V2-2 SÍ ESCRIBE UN CAMPO DEL ESTUDIO: `pop_<k>_dosis`. Este renglón decía
+   «no escribe ningún campo» y dejó de ser cierto, que es justo la clase de declaración vencida
+   que este archivo persigue. Lo que lo hace seguro es la marca `data-pop-mano`: lo que el médico
+   escribe —o borra— en ese campo no se pisa, así que el barrido no puede deshacer un gesto. Sin
+   esa marca sería el defecto del D-9: un campo que no se podía borrar porque el barrido lo
+   repoblaba 220 ms después. */
 function popDosisTodas() {
   (window.POP_DROGAS || []).forEach(function (k) {
     try { popDosisDilucion(k); } catch (e) { console.warn('[popDosisTodas] ' + k, e); }
   });
 }
 window.popDosisTodas = popDosisTodas;
-function popDosisCopiar(k) {
-  const mg = v('pop_' + k + '_diluc_mg'), ml = v('pop_' + k + '_diluc_ml'), vel = v('pop_' + k + '_veloc');
-  const peso = v('peso');
-  if (mg === null || ml === null || vel === null || ml <= 0 || peso === null || peso <= 0) return;
-  const e = document.getElementById('pop_' + k + '_dosis');
-  if (e) { e.value = ((mg * 1000 / ml) * vel / 60 / peso).toFixed(2); e.dispatchEvent(new Event('input', { bubbles: true })); }
-}
-window.popDosisCopiar = popDosisCopiar;
-/* Delegación sobre el contenedor de drogas, registrada UNA vez: `popDosisDilucion` reescribe el
-   `innerHTML` de cada fila en cada tecla, así que enganchar por botón acumularía un listener por
+/* ⚠️ ACA VIVIA `popDosisCopiar`, que era lo que el boton «usar» llamaba. Se retira con el:
+   escribir la dosis es hoy el trabajo de `popDosisDilucion`, y el unico gesto que queda es el
+   de VOLVER al calculo. Nadie mas la llamaba —censado.
+   Delegación sobre el documento, registrada UNA vez: `popDosisDilucion` reescribe el
+   `innerHTML` de la fila en cada tecla, así que enganchar por botón acumularía un listener por
    pulsación. Es la misma guarda de idempotencia que `initPdfPlantillas`. */
 document.addEventListener('click', function (ev) {
-  const b = ev.target && ev.target.closest ? ev.target.closest('[data-pop-usar]') : null;
-  if (b) popDosisCopiar(b.getAttribute('data-pop-usar'));
+  const b = ev.target && ev.target.closest ? ev.target.closest('[data-pop-volver]') : null;
+  if (b) popDosisVolver(b.getAttribute('data-pop-volver'));
 });
 function popSync() {
   POP_DROGAS.forEach(function (k) {
@@ -60233,7 +60314,11 @@ function popSync() {
        la dosis: guardarInforme barre input[id] sin mirar visibilidad y viajarían dentro del
        estudio. */
     if (!on) {
-      if (dosis) dosis.value = '';
+      /* ⚠️ Y SE VAN LAS DOS MARCAS DE RUNTIME (POP-V2-2). Sin esto, apagar una droga con la
+         dosis escrita a mano y volverla a prender dejaba el campo vacio pero `data-pop-mano`
+         puesta, asi que la dosis NO se volvia a calcular: el medico veia «Dosis cargada a mano»
+         sobre un campo vacio. Medido al escribir el caso. */
+      if (dosis) { dosis.value = ''; delete dosis.dataset.popMano; delete dosis.dataset.popAuto; }
       ['_diluc_mg','_diluc_ml','_veloc'].forEach(function (sfx) {
         var f = document.getElementById('pop_' + k + sfx); if (f) f.value = '';
       });
@@ -60253,7 +60338,7 @@ function popSync() {
   /* ══ EL CONTADOR DEL DESPLEGABLE DE FARMACOS (POP-V2-1) ════════════════════════════════
      `<details>` no cuenta nada: el numero de marcados lo escribe esta funcion, que es la que ya
      corre con cada casilla de droga (`onchange="popSync()"`) y con el tipo de asistencia. Se
-     cuentan las ONCE drogas mas la asistencia circulatoria consignada que NO sea «ninguna»:
+     cuentan las DIEZ drogas mas la asistencia circulatoria consignada que NO sea «ninguna»:
      «ninguna» es una respuesta, no un soporte en curso, y contarla diria «1 marcado» sobre un
      paciente sin asistencia.
      Va en un `<span>` propio y con `textContent`: el rotulo fijo del `<summary>` no se reescribe
@@ -60687,10 +60772,16 @@ function limpiarCampos(silencioso) {
      ⚠️ ACÁ ENTRARON TAMBIÉN `amilo-esc` Y `amilo-propio`, las dos marcas del D-10, y las dos se
      RETIRARON en el D-11 junto con las reglas que las leían: con «gana la última edición» no hay
      permiso que guardar ni desacuerdo que conservar. */
-  document.querySelectorAll('[data-derivado-de],[data-sugerido],[data-espejo-de],[data-espejo-vivo],[data-espejo-inferido],[data-params-disc],[data-grado-volum],[data-fuera-banda],[data-espejo="1"]').forEach(el => {
+  /* ⚠️ Y LAS DOS MARCAS DE LA DOSIS DEL POSOPERATORIO (POP-V2-2) ENTRAN ACA, en el SELECTOR y
+     en el CUERPO, que son dos listas —como este bloque ya advierte dos veces—. `data-pop-mano`
+     dice «esta dosis la escribio una persona» y `data-pop-auto` «este valor lo escribio la app»:
+     las dos viven en el nodo, asi que sin esta linea sobrevivirian a «Nuevo estudio» y la dosis
+     del paciente A dejaria sin calcular la del paciente B, o al reves. */
+  document.querySelectorAll('[data-derivado-de],[data-sugerido],[data-espejo-de],[data-espejo-vivo],[data-espejo-inferido],[data-params-disc],[data-grado-volum],[data-fuera-banda],[data-espejo="1"],[data-pop-mano],[data-pop-auto]').forEach(el => {
     delete el.dataset.derivadoDe; delete el.dataset.sugerido; delete el.dataset.espejoDe;
     delete el.dataset.espejoVivo; delete el.dataset.espejoInferido;
     delete el.dataset.paramsDisc; delete el.dataset.gradoVolum;
+    delete el.dataset.popMano; delete el.dataset.popAuto;
     /* ⚠️ SOLO LA MARCA DE RUNTIME, Y ESTO LO ENCONTRÓ TC-514 EN ROJO (D-11). `data-espejo` se usa
        para DOS cosas en este archivo: la marca que el reflejo de amiloidosis pone en vivo —valor
        `'1'`— y una DECLARACIÓN estática en el marcado, sin valor, que dice «este campo es un
