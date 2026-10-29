@@ -459,3 +459,16 @@ incluido**, y se fueron las dos marcas del D-10 (`amiloEsc` y `amiloPropio`) con
 leían. En la lista cerrada de «Nuevo estudio» quedó **`data-espejo`**, que es la que sigue viva.
 La etiqueta del botón violeta la repinta `amCalcLabelSync`, que corre en **cada** recálculo y no
 sólo al tocar el botón.
+
+---
+
+## § 8 · La tanda «C2» (2026-10-28) — el botón «↓ Traer del formulario», retirado
+
+Puntero. El relato vive en **`docs/mapa/c2-pulmon-constriccion-forrester.md`** §4.
+
+Decisión de Maicol, tomada después de que el D-11 midiera que el botón no hace nada: con el
+reflejo en vivo no quedaba nada vacío que llenar, `amAutoLlenar` devolvía `false` en los cuatro
+criterios y el aviso decía «No hay datos suficientes cargados» justo cuando estaban todos
+cargados. Se fueron los cuatro botones, `amTraerDeFormulario`, `amAutoLlenar` y sus dos
+`window.X = X`. **Nada más del módulo se tocó**, y la marca `data-espejo = '1'` no se pierde: la
+escribe también `_amiloReflejarDesdeApp`.

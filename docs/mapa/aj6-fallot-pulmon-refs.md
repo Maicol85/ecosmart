@@ -380,3 +380,13 @@ propia (`innerWidth < 1100`).
    devuelve y nadie la publica; `clave` no cambió.
 
 Todo en **`docs/mapa/aj7-correcciones.md` § 1**. Cierra AJ6-a y AJ6-b.
+
+---
+
+## ➜ La tanda «C2» (2026-10-28) — la pantalla pulmonar perdió su botón de integrar
+
+Puntero. El relato vive en **`docs/mapa/c2-pulmon-constriccion-forrester.md`** §2.
+
+Las **cuatro columnas no se tocaron**, ni un campo cambió de columna. Lo que salió de debajo de
+la conclusión es el botón «📎 Integrar al informe», con el bloque «Eco Pulmonar» del ETT Avanzado
+al que integraba: desde la C2 el eco pulmonar llega al cuerpo del informe **por el dato**.

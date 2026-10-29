@@ -9052,3 +9052,115 @@ Medido: con PAM tipeada en 90, HEAD decía `1385 dinas·s·cm⁻⁵` y hoy dice
 Se aplicó así porque el punto 3a lo pide por su nombre y da el ejemplo de la redacción. **Si la
 intención era limitar el añadido al caso del catéter**, es un `if` de una línea sobre
 `_pamRvs.clave === 'inv'`. Decide Maicol.
+
+---
+
+# La tanda C2 (2026-10-28) — lo que queda declarado
+
+## C2-a · El médico perdió el interruptor del eco pulmonar, y es el precio del 1h
+
+Hasta esta tanda el eco pulmonar llegaba al informe **sólo si el médico apretaba «📎 Integrar al
+informe»**. El C2-1h retiró el bloque «Eco Pulmonar» del ETT Avanzado porque publicaba, palabra
+por palabra, lo que el cuerpo del informe ya publica —y el PPT lo imprimía dos veces—, y con él
+se fue el botón.
+
+`pulAvanzadoIntegrado` preguntaba por `amiloEnInforme`, o sea por el registro: sin la entrada, el
+predicado quedaba **falso para siempre** y el informe habría quedado mudo sobre el pulmón. Por eso
+la compuerta pasó a ser el **dato** (`pulAvanzadoHayDatos`).
+
+**Medido:** un estudio con eco pulmonar cargado y **sin** integrar pasa de informe mudo a informe
+con sus líneas. Antes: nada. Hoy: «Derrame pleural bilateral moderado (volumen estimado por
+ecografía de aproximadamente 500 ml).»
+
+**Decide Maicol.** Si el interruptor tiene que volver, la forma barata es un checkbox propio de la
+pantalla pulmonar —no una entrada en `amiloSecs`, que es lo que traía el bloque duplicado—. Un
+`if` de una línea sobre ese campo en el bloque 13c alcanza.
+
+## C2-b · La anotación de congestión del «Perfil hemodinámico» se movió con la constante
+
+`UMBRAL_PCP_HUMEDO` pasó de 15 a 18, y tiene **cuatro** lectores. Tres son el Forrester —la
+cápsula, el gráfico y el diagrama del Laboratorio— y el cuarto **no**: es la anotación que la
+cápsula «Perfil hemodinámico» le cuelga al shock cardiogénico, «con congestión (PCP >N)».
+
+Se movió igual, a propósito: dos cortes de congestión distintos en la **misma pantalla** —uno
+diciendo 15 y el otro 18— se leen como un error de la app. Pero es una decisión de redacción
+clínica que esta tanda no tenía orden explícita de tomar, y por eso se declara.
+
+**Medido:** con IC bajo, RVS alta y PCP de 17, HEAD decía «Shock cardiogénico — GC bajo + RVS
+elevada con congestión (PCP >15)» y hoy dice «Shock cardiogénico — GC bajo + RVS elevada», porque
+17 ya no supera el corte.
+
+Si la intención era mover **sólo** el Forrester, hace falta una segunda constante para esa
+anotación. Decide Maicol.
+
+## C2-c · Los tres `ic < 2.2` del «Perfil hemodinámico» conservan su operador estricto
+
+`forrCuadrante` pasó a `<=` y `_icBanda` ya usaba `<=`, así que con un índice cardíaco de **2,2
+exactos** la app dice hoy «bajo» en `hemo-ic`, «frío» en el Forrester y **no entra** en las tres
+ramas del «Perfil hemodinámico» —shock cardiogénico, distributivo y mixto—, que siguen con `<`.
+
+**No se tocaron porque son otro criterio**: cruzan IC con **RVS**, no con presión capilar, y esta
+orden los excluye. Queda declarado como discrepancia conocida, no como olvido.
+
+## C2-d · El bloque de ETT Avanzado se llevó un campo guardado: `am-txt-pulm`
+
+Retirar la entrada `pulm` de `amiloSecs` retira el textarea que `amiloBuildCard` construía, así
+que **el censo de campos del DOM baja uno** en las escenas donde la tarjeta se arma: 962 → 961.
+
+- El **Excel sigue en 440 columnas**: `am-txt-*` nunca fue columna.
+- El censo oficial de `detectar_huerfanos.py` **no cambia**: ese cuenta campos nombrados en el JS.
+- **Los estudios ya guardados conservan su `am-txt-pulm`** —no se migró nada— y al reabrirlos ese
+  texto queda sin lector. El contenido pulmonar vuelve a salir solo, compuesto desde los campos
+  `pua_*` que el mismo estudio guarda.
+
+## C2-e · El PPT perdió su diapositiva «Ecografía Pulmonar», y es lo que el 1h pedía
+
+Leía `am-txt-pulm`. El contenido **no se pierde**: las primeras diapositivas del mazo llevan
+`informe_texto`, y desde el B-E3 ese informe ya trae las frases del pulmón en su cuerpo. Lo que
+desaparece es la **copia** — «el contenido pulmonar queda publicado UNA vez», que es lo que la
+orden pide.
+
+## C2-f · Faltan en la biblioteca las tres referencias del enunciado D6_11
+
+Censado el 28/10/2026: **no están Balik 2006, ni Peris 2010, ni Remérand 2010**, que son las
+[154–156] que el consenso cita juntas para la fórmula del volumen del derrame. Lo que la app
+publica sale del consenso, que **sí** está y se leyó en imagen. Ninguna de las tres se cita en
+pantalla.
+
+## C2-g · El artículo original de Forrester tampoco está, y esta vez se censó por contenido
+
+Se abrieron todos los PDF de las 28 carpetas buscando «Forrester»: **once lo contienen y ninguno
+es el artículo** —nueve son la regla de Diamond-Forrester y dos son listas de autores—. Los dos
+cortes salen de Braunwald, folio 1125, que lo reproduce y que ya estaba citado en pantalla. **No
+se agregó ninguna fuente nueva.**
+
+## C2-h · El efecto en los estudios guardados y en el Laboratorio: la regla, no el recuento
+
+La orden pide «cuántos estudios cambian de cuadrante». **No se leyó el almacenamiento real del
+médico** —la regla de seguridad de esta tanda lo prohíbe, y la sonda corre sobre un perfil limpio
+de Playwright, con `localStorage` vacío—, así que lo que se puede dar es la **regla exacta**, que
+es determinista:
+
+- **Cambian de «húmedo» a «seco»** todos los estudios con presión capilar estimada **mayor de 15 y
+  menor o igual a 18 mmHg**. En la fórmula de Nagueh (`1,24 × E/e′ + 1,9`) eso es un **E/e′ entre
+  10,57 y 12,98**, que es una banda frecuente.
+- **Cambian de «caliente» a «frío»** los que tengan un índice cardíaco de **exactamente 2,2**.
+- Ningún otro estudio se mueve.
+
+Sobre los cuadrantes: un estudio en **II** con PCP en esa banda pasa a **I**; uno en **IV**, a
+**III**. La distribución del Laboratorio se corre en ese sentido. **No se migró ni se borró nada**:
+el cuadrante se recalcula al abrir el estudio, no está guardado.
+
+**Lo que falta medir**, y que sólo Maicol puede hacer con su navegador: abrir el Laboratorio sobre
+sus estudios reales y anotar la distribución por cuadrante antes y después. La guía de prueba del
+reporte lo deja como paso.
+
+## C2-i · Los dos vocabularios de cuadrante siguen conviviendo (4e, sólo reportado)
+
+**A / B / L / C** lo usa la cápsula `hemo-forrester` y, por ella, el informe integrado, la hoja de
+ETT Avanzado del PDF y el PPT. **I / II / III / IV** lo usan `forrCuadrante`, `_labICPCP` /
+`_labForrester`, el gráfico de Hemodinámica y el diagrama del Laboratorio.
+
+La **regla** es una sola desde el C2-4b; los **rótulos** son de cada superficie. No se unificaron
+porque unificarlos cambiaría el texto de un informe firmado. Los ejes del gráfico tampoco se
+tocaron: decisión de Maicol.

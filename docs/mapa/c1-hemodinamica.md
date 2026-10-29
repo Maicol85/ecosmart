@@ -233,3 +233,19 @@ ven. Medido: el A/B del commit aislado da **cero** diferencias en las superficie
 (`_labForrPuntos`), con jitter determinista y clic para abrir el estudio. No conoce al paciente
 que está cargado en el formulario. Esta tanda **no lo tocó**; la idea de que también ubique al
 paciente en curso queda anotada en `PENDIENTES.md`.
+
+---
+
+## ➜ La tanda «C2» (2026-10-28) — el Forrester corta en 18 y en «2,2 o menos»
+
+Puntero. El relato vive en **`docs/mapa/c2-pulmon-constriccion-forrester.md`** §5.
+
+Cierra **C1-a** y **C1-b**: el ⓘ `hemo-forr` y la tercera línea de `forrLin` ya describían 18 y
+«2,2 o menos», y eran falsos. La C2 movió el **código** a eso —decisión de Maicol del 6/10 y del
+21/10—, así que los dos textos no hubo que reescribirlos; sólo se bajaron dos mayúsculas de en
+medio.
+
+`UMBRAL_PCP_HUMEDO` pasó de 15 a **18** y `forrCuadrante` de `ic <` a `ic <=`. Y la **cápsula**
+`hemo-forrester`, que tenía su propia cascada con `ic < 2.2` escrito como literal, pasó a
+preguntarle a `forrCuadrante`: era la tercera copia de la regla, y justo la que viaja al informe
+integrado, a la hoja del PDF y al PPT.

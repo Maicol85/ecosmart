@@ -312,3 +312,14 @@ columnas idéntico.
 **Está todo en `docs/mapa/referencias-subpestanas.md`**: el reparto (`REF_SUBTAB`), el índice del
 buscador y su normalización, el mapeo `VINFO_REF` con las cinco tarjetas que no llevan botón, la
 tabla `AO_CX_T` con su folio por fila y su sondeo del dueño, y nueve trampas medidas.
+
+---
+
+## ➜ La tanda «C2» (2026-10-28) — dos tarjetas nuevas, y el registro pasa a 60
+
+Puntero. El relato vive en **`docs/mapa/c2-pulmon-constriccion-forrester.md`** §3.
+
+`cvr-coc` y `cvr-ecosmart`, las dos de constricción vs restricción. **Ninguna lleva entrada en
+`VINFO_REF`**, a propósito: el cociente de la vena suprahepática y el e′ medial ya tienen su ficha
+en Referencias, a la que la segunda tarjeta manda con sus palabras. Las tarjetas sin botón suben
+de **diecisiete a diecinueve** y el registro de **58 a 60**.

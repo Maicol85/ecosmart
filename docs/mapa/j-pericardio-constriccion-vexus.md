@@ -216,3 +216,17 @@ Evidencia dejó de publicar conducta por grado.
 **Todo eso vive en `docs/mapa/c1-hemodinamica.md` § 1.** Antes de tocar un rótulo de VExUS,
 leerlo: la discrepancia del grado 1 entre el texto y la figura está documentada ahí, y «corregir»
 el grado 1 a «leve» sería deshacerla.
+
+---
+
+## ➜ La tanda «C2» (2026-10-28) — los dos textos largos al globo ⓘ
+
+Puntero. El relato vive en **`docs/mapa/c2-pulmon-constriccion-forrester.md`** §3.
+
+Los dos bloques de letra chica de constricción vs restricción —el del cociente hepático, con el
+0,78, su sensibilidad, su especificidad, el apartado 11.9.3 y la Figura S1; y el «Criterio de
+EcoSmart», con los dos cortes del HFA-PEFF, el folio 3303 y las reglas de conteo sin fuente—
+pasaron a las tarjetas **`cvr-coc`** y **`cvr-ecosmart`**, con su contenido íntegro. En pantalla
+quedó una línea corta en cada lugar.
+
+**Ningún corte, recuento, veredicto ni lectura cambió**, medido a los dos lados de 0,78.

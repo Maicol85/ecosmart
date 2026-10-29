@@ -6474,3 +6474,122 @@ afirmación de la app.
 discrepancias de borde que se encontraron —el corte de congestión que dos textos clínicos
 declaran en 18 cuando la app usa 15, y el borde del índice cardíaco— quedaron **reportadas y sin
 tocar**: ver `docs/PENDIENTES.md` → **C1-a** y **C1-b**.
+
+---
+
+# La tanda C2 — eco pulmonar, constricción, el botón de amiloidosis y el Forrester (2026-10-28)
+
+## Lo que se leyó EN IMAGEN
+
+### Volpicelli G y colaboradores — consenso internacional de ecografía pulmonar
+
+**`19_Pulmon_POCUS/ICM_26_Internationalevidence-basedrecommendationsforpoint-of-carelungultrasound.pdf`**
+— *International evidence-based recommendations for point-of-care lung ultrasound — 2025 focused
+update of the 2012 recommendations*, Volpicelli G, Gargani L, Zieleskiewicz L y cols.,
+*Intensive Care Medicine*, © **2026**, DOI `10.1007/s00134-026-08487-2`. 32 hojas.
+
+**Hoja 19, enunciado D6_11, renderizado a 400 ppp y leído en imagen el 28/10/2026.** Transcripción
+de lo que sostiene la fórmula de la app:
+
+> *Quantifying pleural effusion* · **D6_11 [154–156]**: el volumen del derrame pleural puede
+> estimarse de forma aproximada con ecografía pulmonar.
+> *Comment*: un método práctico de semicuantificación consiste en un **corte transversal lateral
+> sobre el ángulo costofrénico con el paciente en decúbito supino**. Visualizado el espacio máximo
+> que ocupa el derrame, se mide la **distancia máxima (D) entre la pleura parietal y la visceral**
+> (Fig. 4F). La fórmula que puede usarse para estimar el volumen aproximado (V) es
+> **V (ml) = D (mm) × 20**. Esta fórmula **se validó en pacientes críticos en unidades de cuidados
+> intensivos bajo ventilación invasiva**. En otros escenarios donde el paciente puede examinarse
+> sentado, otros métodos basados en adquisición multiplanar pueden ofrecer mayor exactitud; no hay
+> evidencia fuerte para recomendarlos.
+
+> ⚠️ **EL CONSENSO NO ATRIBUYE LA FÓRMULA A NINGÚN AUTOR.** El enunciado cita **[154–156]
+> JUNTAS**, y las tres son, verificadas en la bibliografía del mismo PDF:
+> · **154** — Balik M, Plasil P, Waldauf P et al (2006) *Ultrasound estimation of volume of pleural
+>   fluid in mechanically ventilated patients*. Intensive Care Med.
+> · **155** — Peris A, Tutino L, Zagli G et al (2010) *The use of point-of-care bedside lung
+>   ultrasound significantly reduces the number of radiographs and computed tomography scans in
+>   critically ill patients*. Anesth Analg 111:687–692.
+> · **156** — Remérand F, Dellamonica J, Mao Z et al (2010) *Multiplane ultrasound approach to
+>   quantify pleural effusion at the bedside*. Intensive Care Med 36:656–664.
+>
+> Por eso la C2-1b retiró de **todas las superficies visibles** la atribución a «Balik M»: la app
+> afirmaba una autoría que su propia fuente no establece. La fórmula, sus números y su alcance no
+> se movieron.
+
+> ⚠️ **LAS TRES REFERENCIAS FALTAN EN LA BIBLIOTECA.** Censado el 28/10/2026 por nombre de archivo
+> sobre las 28 carpetas: no hay Balik 2006, ni Peris 2010, ni Remérand 2010. El mapa
+> `otros-pericardio-pulmon.md` §6 ya lo había censado por contenido para Balik. **No se cita
+> ninguna de las tres en pantalla**: lo que la app publica sale del consenso, que sí está.
+
+### Forrester — los dos cortes
+
+**El artículo original NO está en la biblioteca**, y esta vez se censó por contenido: se abrieron
+todos los PDF de las 28 carpetas buscando «Forrester». **Once lo contienen, y ninguno es el
+artículo**: nueve son la regla de **Diamond-Forrester** de probabilidad pre-test de enfermedad
+coronaria y dos son listas de autores. Verificado el 28/10/2026.
+
+Los dos cortes que la C2-4b aplicó salen de la entrada que este mismo archivo ya tenía, leída en
+imagen por una tanda anterior: **Braunwald, Tratado de Cardiología, 10.ª ed. española, Tabla 52-9
+y texto del folio 1125**, que reproduce a **Forrester J, Diamond G, Chatterjee K, et al. N Engl J
+Med 1976;295:1356** — subgrupo III «PECP <18, IC <2,2», subgrupo IV «PECP >18, IC <2,2», y el
+texto: «la hipoperfusión suele hacerse clínicamente evidente cuando el índice cardíaco cae por
+debajo de 2,2 l/min/m², mientras que la congestión pulmonar se percibe cuando la presión de
+enclavamiento **supera** las 18 mmHg».
+
+**No se citó ninguna fuente nueva en pantalla.** La que ya estaba es la que sostiene el número.
+
+## Las notas que salieron de la pantalla, textuales
+
+El C2-2 movió al globo ⓘ dos textos que estaban en letra chica. **Ni un dato, ni una cita, ni un
+folio, ni un porcentaje se perdió**; lo que sigue es lo que decían, para que se pueda comparar.
+
+**Debajo del campo del cociente hepático** (hoy en la tarjeta `cvr-coc`):
+> Velocidad del flujo espiratorio invertido sobre el flujo anterógrado. El **0,78** es el valor
+> del texto de la guía (ESC 2025, apartado 11.9.3: sensibilidad 87 %, especificidad 91 %). Su
+> **Figura S1** del material suplementario lo **redondea a >0,8**: entre 0,78 y 0,80 las dos
+> cifras de la misma guía dan resultados distintos.
+
+**Debajo de «Conclusión»** (hoy en la tarjeta `cvr-ecosmart`):
+> CRITERIO DE ECOSMART · El **e′ lateral de 10 cm/s** y el **E/e′ de 15** NO son cortes de la
+> distinción entre constricción y restricción: salen de los criterios mayores de función
+> diastólica del HFA-PEFF (Pieske 2019, folio 3303), que los publica como «e′ lateral <10 cm/s» y
+> «E/e′ promedio septal-lateral ≥15». Usarlos acá es una decisión de la aplicación. Y las
+> **reglas de conteo** de esta sección —cuántos criterios hacen falta de cada lado, y cuáles
+> cuentan— **no tienen fuente**: ninguna guía de la biblioteca publica un recuento así. El **e′
+> medial** en tres tramos y el **cociente de la vena suprahepática** sí son de la guía: ver la
+> ficha de Referencias.
+
+**Y de la ficha de Referencias de eco pulmonar** (retirada, no mudada — la sostiene la nota de
+arriba):
+> Título: «International evidence-based recommendations for point-of-care lung ultrasound — 2025
+> focused update of the 2012 recommendations». La fórmula del derrame es de **Balik M** y
+> colaboradores, *Intensive Care Medicine* 2006, que ese consenso cita como referencia 154 del
+> enunciado **D6_11**.
+
+## Cambios de evidencia
+
+| Qué | Antes | Después | Fuente | Commit |
+|---|---|---|---|---|
+| Rótulo del campo del derrame | «Balik (mm)» | «Distancia máxima entre pleuras (mm)» | Volpicelli 2026, D6_11, hoja 19 | C2-1 |
+| Frase del volumen, informe y EN SUMA | «aproximadamente 500 ml, según fórmula de Balik» | «volumen estimado por ecografía de aproximadamente 500 ml» | idem — el consenso no atribuye | C2-1 |
+| Atribución en la ficha de Referencias | «La fórmula del derrame es de **Balik M** y colaboradores… referencia 154» | «El consenso **no atribuye** la fórmula del derrame a ningún autor… citando tres referencias juntas» | idem | C2-1 |
+| ⓘ `pul-balik` | sin acentos | mismo contenido, con sus acentos; re-verificado en imagen | idem | C2-1 |
+| Orden del derrame y la consolidación en el EN SUMA | consolidación primero, pegadas | derrame primero, en dos oraciones | — (no es dato de guía) | C2-1 |
+| Línea «Patrón global» del informe | en el papel | sólo en pantalla | — | C2-1 |
+| «Correlacionar con la clínica» | llegaba al informe por la línea del patrón | sólo en pantalla | — | C2-1 |
+| El informe pulmonar | un párrafo corrido | una línea por hallazgo | — | C2-1 |
+| Bloque «Eco Pulmonar» del ETT Avanzado | tarjeta, textarea, botón y diapositiva del PPT | retirado; el contenido queda publicado una vez | — | C2-1 |
+| Texto del cociente hepático | cinco renglones en pantalla | una línea; contenido íntegro en `cvr-coc` | ESC/EACTS 2025, 11.9.3 y Figura S1 | C2-2 |
+| Texto del «Criterio de EcoSmart» | once renglones en pantalla, con «NO» en mayúscula | una línea; contenido íntegro en `cvr-ecosmart` | Pieske 2019, folio 3303 | C2-2 |
+| Registro `VINFO` | 58 entradas | 60 | — | C2-2 |
+| Tarjetas ⓘ sin botón «Ver referencia» | diecisiete | diecinueve | — | C2-2 |
+| Botón «↓ Traer del formulario» ×4 | presentes, sin efecto y avisando al revés | retirados | — (medición del D-11) | C2-3 |
+| `UMBRAL_PCP_HUMEDO` | 15 | **18** | Braunwald Tabla 52-9, folio 1125 (Forrester 1976) | C2-4 |
+| Operador del índice cardíaco en `forrCuadrante` | `ic <` 2,2 | `ic <=` 2,2 | idem | C2-4 |
+| Cápsula `hemo-forrester` | cascada propia con `ic < 2.2` literal | pregunta a `forrCuadrante` | — | C2-4 |
+| Anotación «con congestión (PCP >N)» de `hemo-perfil` | «>15» | «>18» (lee la misma constante) | idem | C2-4 |
+| ⓘ `hemo-forr` | «LOS DOS BORDES…» y «SUPERA 18» | mismas palabras en minúscula | — (regla R3) | C2-4 |
+| Clasificación pre/poscapilar de HTP | `pcp <= 15` ×3 | **sin cambios** — es la definición ESC/ERS 2022 | ESC/ERS 2022 | — |
+| Precarga del posoperatorio (12-18 mmHg) | — | **sin cambios** — diseño del 18/09 | — | — |
+
+**Fecha de consulta de las dos lecturas en imagen de esta tanda: 28/10/2026.**

@@ -249,3 +249,20 @@ del neumotórax—; y el enunciado que dice que el punto pulmón **confirma** el
 
 ⚠️ **NO SE CREÓ UNA EVIDENCIA, Y LA FICHA DICE POR QUÉ**: ese consenso no publica clase ni nivel,
 sus enunciados llevan grado de acuerdo entre panelistas.
+
+---
+
+## ➜ La tanda «C2» (2026-10-28) — el derrame sin autor y el bloque de ETT Avanzado retirado
+
+Puntero. El relato vive en **`docs/mapa/c2-pulmon-constriccion-forrester.md`** §1 y §2.
+
+El campo pasó a llamarse **«Distancia máxima entre pleuras (mm)»** y la frase del volumen dice
+«volumen estimado por ecografía de aproximadamente X ml», **sin autor**: el consenso que sostiene
+la fórmula (Volpicelli 2026, enunciado D6_11, hoja 19, releído **en imagen**) cita [154-156]
+juntas —Balik 2006, Peris 2010 y Remérand 2010— y no se la atribuye a ninguna. El id `pua_balik`,
+el campo guardado `pul_balik`, la columna del Excel y la cuenta **no se movieron**.
+
+El informe pasó a **una línea por hallazgo**, el EN SUMA pone el **derrame antes** que la
+consolidación en dos oraciones, la línea «Patrón global» salió del papel y el bloque «Eco
+Pulmonar» del ETT Avanzado se retiró entero —con su botón de integrar y su diapositiva del PPT—.
+La compuerta del informe pasó a ser el **dato**.

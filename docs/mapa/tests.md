@@ -360,3 +360,13 @@ Ficha en **`docs/mapa/tests-fichas-540.md`** (archivo propio: `tests-fichas.md` 
 31 contra HEAD. Sus cinco trampas de arnés —los acentos graves del cuerpo, `VINFO` fuera de
 `window`, el botón del globo midiendo 0 × 0, el disparador fabricado que tapaba el defecto de
 limpieza, y la marca `hfaicos_manual` que sobrevive a `limpiar()`— están en esa ficha.
+
+## ⚠️ TC-545 — la tanda C2 (2026-10-28)
+
+Ficha en **`docs/mapa/tests-fichas-545.md`** (archivo propio: `tests-fichas.md` está en 34,2 KB).
+
+Cinco bloques con su denominador cada uno, y **dos decisiones de método** que conviene leer antes
+de escribir un caso que cense texto de pantalla: `document.body.textContent` **trae el código
+fuente de los diecisiete `<script>` inline**, y un chequeo sobre un `toast` que el caso no dispara
+no puede fallar nunca. Dieciséis mutaciones dirigidas, 16/16 muertas; **M12 sobrevivió al primer
+barrido** y era un hueco real.

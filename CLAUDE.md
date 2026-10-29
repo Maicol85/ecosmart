@@ -792,6 +792,138 @@ impecable.
   transcriptas fila por fila y la tabla «Cambios de evidencia» de catorce filas, y
   `docs/PENDIENTES.md` → **OCHO** cosas declaradas (**E-a** a **E-h**).
 
+### El eco pulmonar, la constricción, el botón de amiloidosis y el Forrester — «C2» (2026-10-28)
+
+- **SEIS commits.** `9eefa81` (C2-1) · `5fc5078` (C2-2) · `3761bc4` (C2-3) · `f771c30` (C2-4) ·
+  `c7fe199` (C2-5) · el de cobertura y documentación. Sello **`v20261028-2250`**, md5 de
+  `index.html` **`7fef59e4`**. Al empezar, `origin/main` = `HEAD` = **`c53d350`**, el cierre del
+  C1, ya publicado. **El push lo corre Maicol: esta tanda tenía orden expresa de NO pushear.**
+
+- **LA FUENTE DEL PULMÓN SE LEYÓ EN IMAGEN, A 400 ppp, Y DIO VUELTA UNA ATRIBUCIÓN.** El
+  enunciado **D6_11** del consenso de Volpicelli (*Intensive Care Med* **2026**, hoja 19)
+  publica la fórmula `V (ml) = D (mm) × 20` citando **[154–156] JUNTAS** —Balik 2006, Peris 2010
+  y Remérand 2010— y **no se la atribuye a ninguna**. La app decía «según fórmula de Balik» en el
+  informe firmado, en el EN SUMA, en el rótulo del campo y en la ficha de Referencias: afirmaba
+  una autoría que su propia fuente no establece. **Se retiró de las cuatro superficies
+  visibles.** La fórmula, sus números y su guarda de rango no se movieron.
+  ⚠️ **Las tres referencias faltan en la biblioteca**, censado por nombre sobre las 28 carpetas.
+
+- **EL ARTÍCULO ORIGINAL DE FORRESTER TAMPOCO ESTÁ, Y ESTA VEZ SE CENSÓ POR CONTENIDO.** Se
+  abrieron todos los PDF buscando «Forrester»: **once lo contienen y ninguno es el artículo** —
+  nueve son la regla de Diamond-Forrester y dos son listas de autores. El 18 y el 2,2 salen de la
+  entrada que `FUENTES.md` ya tenía leída **en imagen**: Braunwald, Tabla 52-9, folio 1125, que
+  reproduce a Forrester 1976. **No se citó ninguna fuente nueva en pantalla.**
+
+- **EL DEFECTO MÁS GRANDE QUE CERRÓ, EN UNA LÍNEA: la cápsula del Forrester era la TERCERA copia
+  de la regla, y justo la que llega al papel.** Tenía su propia cascada con `ic < 2.2` escrito
+  como **literal**, sin leer `FORR_IC_CORTE`. El C1-4a había extraído `forrCuadrante` para que el
+  gráfico y el diagrama del Laboratorio no pudieran discrepar, y la cápsula se había quedado
+  afuera: mover la constante cambiaba los dos diagramas y dejaba **la línea que viaja al informe
+  integrado, a la hoja del PDF y al PPT** clasificando con el número viejo.
+
+- ⚠️ **LOS DOS TEXTOS DEL FORRESTER NO HUBO QUE REESCRIBIRLOS: EL CÓDIGO SE MOVIÓ A ELLOS.** El ⓘ
+  `hemo-forr` y la tercera línea de `forrLin` ya decían 18 y «2,2 o menos», y **eran falsos** —el
+  código cortaba en 15 y en `< 2,2`—. Es la discrepancia que el C1 declaró en **C1-a** y **C1-b**.
+  Lo único que se tocó son **dos mayúsculas de en medio** (regla R3).
+
+- ⚠️ **RETIRAR EL BLOQUE DE ETT AVANZADO SIN TOCAR LA COMPUERTA HABRÍA DEJADO EL INFORME MUDO.**
+  `pulAvanzadoIntegrado` preguntaba por `amiloEnInforme`, o sea por el registro: sin la entrada
+  `pulm`, el predicado quedaba **falso para siempre**. La compuerta pasó a ser el **dato**.
+  **El precio, declarado: el médico pierde el interruptor** —cargado es publicado—. → **C2-a**.
+
+- ⚠️ **Y EL A/B DEL MISMO COMMIT DESTAPÓ UNA REGRESIÓN MÍA.** `_ccMods` contaba `pulm` como
+  módulo integrado; retirado el bloque, un estudio cuyo **único** hallazgo es pulmonar y no sube
+  al EN SUMA salía «Estudio sin alteraciones estructurales ni funcionales significativas»
+  mientras el cuerpo decía «Deslizamiento pleural reducido en ambos hemitórax». Cerrada con
+  `ccMarcarParrafo()`, que es el helper que existe para eso.
+
+- **EL PPT IMPRIMÍA EL PULMÓN DOS VECES, Y ESO ES LO QUE EL 1h VENÍA A ARREGLAR.** Tenía una
+  diapositiva «Ecografía Pulmonar» que leía `am-txt-pulm`, y las primeras diapositivas ya llevan
+  `informe_texto`, que desde el B-E3 trae las frases del pulmón. **La hoja del PDF no existía**:
+  `enCuerpo:true` ya la descartaba desde el AJ2-9, verificado antes de tocar nada.
+
+- **EL BOTÓN «↓ Traer del formulario» SE RETIRÓ PORQUE NO HACÍA NADA Y AVISABA AL REVÉS**, medido
+  en el D-11: `amAutoLlenar` devolvía `false` en los cuatro criterios y el aviso decía «No hay
+  datos suficientes cargados» justo cuando estaban todos. Se fueron los cuatro botones, sus dos
+  funciones y sus dos `window.X = X`. **Nada más del módulo se tocó.**
+
+- ⚠️ **LA CONSTANTE DE CONGESTIÓN TIENE CUATRO LECTORES Y EL CUARTO NO ES EL FORRESTER.** Es la
+  anotación «con congestión (PCP >N)» de la cápsula «Perfil hemodinámico». Se movió igual, a
+  propósito —dos cortes de congestión en la misma pantalla se leen como un error—, y está
+  **medido**: con PCP de 17, HEAD decía «Shock cardiogénico — GC bajo + RVS elevada con
+  congestión (PCP >15)» y hoy dice «Shock cardiogénico — GC bajo + RVS elevada». → **C2-b**.
+  Los tres `pcp <= 15` de la clasificación pre/poscapilar **no se movieron**: son la definición
+  de HTP poscapilar de la ESC/ERS 2022, que coincide en el número y no en el criterio.
+
+- **A/B CONTRA HEAD, UNO POR COMMIT, Y LAS DIFERENCIAS DE SUPERFICIE FIRMADA SON SÓLO LAS
+  AUTORIZADAS.** Commit 1: 66 diferencias, **todas en las ocho escenas pulmonares** (en `ajeno`,
+  la única es el textarea retirado). Commit 2: **CERO**. Commit 3: **CERO**. Commit 4: **CERO**
+  sin el módulo integrado y **TRES** con él —`am-txt-hemo`, la hoja del PDF y el PPT—, que son
+  las tres que la orden autoriza. Denominadores: 20 escenas, 21.223 claves, 8.800 celdas de Excel.
+  ⚠️ **La escena con el bloque INTEGRADO hubo que agregarla**: sin ella, «cero en superficie
+  firmada» no se distingue de «la sonda no mira una escena donde el cambio pueda actuar».
+
+- ⚠️ **LAS ESCENAS DE BORDE NO CAEN EN EL BORDE, Y LA CÁPSULA LO ESCONDE.** El índice cardíaco
+  sale de una cadena de cinco campos y la presión capilar de Nagueh, y la cápsula los imprime
+  **redondeados**: una escena que muestra «18.0» puede valer 18,04. Los bordes se le preguntan al
+  **dueño directo** con los números exactos, y la coincidencia cápsula↔dueño se monta aparte.
+
+- **DIECISÉIS MUTACIONES DIRIGIDAS, 16/16 MUERTAS**, en worktree y nunca sobre el vivo, con
+  guarda de md5. Dos no revierten un arreglo: lo **aplican de más**, porque las condiciones que
+  las matan son controles negativos. ⚠️ **M12 sobrevivió al primer barrido y era un hueco real**:
+  el control usaba `indexOf` y la clasificación pre/poscapilar escribe su 15 **tres** veces, así
+  que mover **una sola** pasaba en verde.
+
+- ⚠️ **DOS TRAMPAS DE MÉTODO NUEVAS, Y LAS DOS COSTARON UNA CORRIDA.** (1)
+  `document.body.textContent` **trae el código fuente de los diecisiete `<script>` inline**: el
+  censo de «Balik» daba positivo sobre los comentarios que explican por qué se retiró — el arnés
+  se medía a sí mismo. (2) Una condición sobre un `toast` que el caso no dispara **pasa en los
+  dos árboles**: no puede fallar.
+
+- ⚠️ **EL LOTE 11 DE LA SUITE NO CORRIÓ EN LA PRIMERA PASADA, Y CASI NO SE NOTA.** El
+  `while IFS= read -r` **saltea la última línea cuando no termina en salto**, así que los diez
+  casos finales —`TC-536` a `TC-545`, o sea **el caso nuevo de esta tanda**— quedaron sin
+  ejecutar y el log mostraba diez lotes de 55 como si fuera todo. Se corrió aparte: **10/10**.
+
+- ⚠️ **Y TC-520 CAYÓ POR MI CAMBIO SIN QUE EL CENSO LO VIERA.** Afirma «amiloSecs publica
+  **diecisiete** modulos» y no nombra `pulm` en ninguna parte, así que grepear por esa clave no
+  lo encontró. **Lo destapó la corrida completa**, que es justo para lo que está. Adaptado a
+  dieciséis, con la condición reforzada: hoy exige además que `pulm` no esté en el registro.
+
+- **DIECIOCHO CASOS VIEJOS ADAPTADOS, cada uno con el motivo escrito**: TC-156, TC-157, TC-471,
+  TC-488, TC-499, TC-500, TC-501, TC-502, TC-509, TC-511, TC-519, TC-520, TC-529, TC-532,
+  TC-533, TC-535, TC-537 y TC-544.
+
+- **Línea base al cierre: suite 556/560**, cubriendo los 560 casos, con el pendrive `DISK_IMG`
+  **montado y listando nombres reales al abrir, entre lotes y al cerrar**, y el md5 de
+  `index.html` **idéntico** antes y después. Los rojos son **TC-223, TC-376, TC-390 y TC-406**,
+  los cuatro de siempre, **y ninguno más**: TC-358 y TC-507 salieron verdes.
+  Semgrep **124 WARNING / 0 ERROR**. Excel **440** columnas. Censo **1025**, 0 huérfanos nuevos.
+  Celular **63 hallazgos a 360 px y 72 a 390, 17 ALTA en cada ancho** — idénticos a la base.
+- **CHROME Y WEBKIT COINCIDEN EN LOS OCHO CRUCES, y son idénticos a HEAD**: 21 de 22 pestañas con
+  caja, cero scroll horizontal, **cero textos recortados** y **cero errores de consola y de
+  página** en los dos motores. El rótulo nuevo entra entero (213 × 14 px en Chrome, 212 × 13 en
+  WebKit) y los dos globos nuevos miden 44 × 44 con los **cinco puntos dando el propio botón**.
+  **Escribir no se volvió más lento**: doce teclas, media **1,06 ms** contra 1,33 en HEAD, máximo
+  2,0 contra 2,1, y el barrido 5,9 ms contra 7,0.
+  ⚠️ **WebKit de Playwright no es Safari, y se declara.** Y el binario de chromium de Playwright
+  **sigue sin estar** en esta máquina (está el 1234 y el paquete pide el 1248), así que Chrome va
+  por el del sistema: sin `channel: 'chrome'` la sonda devuelve los cuatro cruces **vacíos**, que
+  en un volcado se lee igual que «no hubo diferencias».
+- **`index.html` pasó de 9,89 MB / 139.274 líneas a 9,91 MB / 139.443** — medido con `wc -c` y
+  `wc -l` DESPUÉS de sellar. (MB de 10⁶: `wc -c` dividido por 1e6.)
+
+- **Dónde está todo:** `docs/mapa/c2-pulmon-constriccion-forrester.md` (**mapa NUEVO**, 12,2 KB),
+  la ficha del caso en `docs/mapa/tests-fichas-545.md` (**archivo propio**), **siete mapas con un
+  puntero cada uno** —medidos ANTES de escribir, todos por debajo de 35 KB—,
+  `docs/fuentes/FUENTES.md` → «La tanda C2» con el enunciado D6_11 transcripto, las tres notas
+  que salieron de pantalla **textuales** y la tabla «Cambios de evidencia» de veintiuna filas, y
+  `docs/PENDIENTES.md` → **NUEVE** cosas declaradas (**C2-a** a **C2-i**).
+  ⚠️ **Y LOS DOS MAPAS QUE ESTABAN AL TECHO SE PARTIERON** (C2-5): `informe-pdf-excel.md` 34,4 →
+  **25,8 KB**, con el Excel a `docs/mapa/excel-laboratorio.md` (10,5 KB); y `tests.md` 34,8 →
+  **23,5 KB**, con los arneses de A/B y de mutación a `docs/mapa/arneses-ab-mutacion.md`
+  (13,5 KB). **Cero líneas perdidas**, verificado una por una contra HEAD.
+
 ## Procedencia — dónde está el origen de cada regla
 
 Cada bloque de arriba sale de una sección del historial. Títulos exactos para `grep`:

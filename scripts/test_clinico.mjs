@@ -10810,8 +10810,12 @@ caso('TC-157', 'Forrester: cuadrantes, puntos por paciente y el diagrama en la d
         String(circ[0].getAttribute('data-eid'))],
 
       // 4 - LOS CORTES SON LOS DE LA APP
-      /* Si alguien mueve la linea a 18 sin mover el clasificador, esto se pone en rojo. */
-      ['la divisoria de congestion es la que aplica la app', UMBRAL_PCP_HUMEDO === 15, String(UMBRAL_PCP_HUMEDO)],
+      /* Si alguien mueve la linea sin mover el clasificador, esto se pone en rojo.
+         ⚠️ ADAPTADO EN LA C2 (2026-10-28): 15 -> 18. Decision de Maicol del 6/10/2026, que el
+         C2-4b aplico: el Forrester corta en 18 mmHg, que es el del articulo original -Tabla 52-9
+         de Braunwald, folio 1125, leida en imagen-. Lo que esta condicion afirma NO cambia: que
+         la linea DIBUJADA y el operador que CLASIFICA sean el mismo numero. */
+      ['la divisoria de congestion es la que aplica la app', UMBRAL_PCP_HUMEDO === 18, String(UMBRAL_PCP_HUMEDO)],
       ['y la de hipoperfusion tambien', FORR_IC_CORTE === 2.2, String(FORR_IC_CORTE)],
       ['los rotulos salen de _LAB_FORR_LBL y no de una copia',
         svg.innerHTML.indexOf('seco-caliente') > -1 && svg.innerHTML.indexOf('húmedo-frío') > -1],
@@ -10983,8 +10987,11 @@ caso('TC-156', 'PPT Lab: contractilidad con su bulls eye, amiloidosis y hemodina
          cierto — es la correccion que ya se le hizo a TC-123 y a TC-132. */
       ['la diapositiva declara que no reemplaza la medicion invasiva',
         c3.txt.join(' ').indexOf('no equivalen a medición invasiva') > -1, (c3.txt[1] || '').slice(-200)],
+      /* ⚠️ ADAPTADO EN LA C2 (2026-10-28): «PCP > 15» -> «PCP > 18», por el C2-4b. El pie DERIVA
+         el numero de UMBRAL_PCP_HUMEDO, asi que lo que esta condicion sigue exigiendo es que la
+         diapositiva publique el corte que la app aplica, no que publique un 15. */
       ['y nombra la divisoria de congestion que aplica',
-        c3.txt.join(' ').indexOf('PCP > 15') > -1, (c3.txt[1] || '').slice(-200)],
+        c3.txt.join(' ').indexOf('PCP > 18') > -1, (c3.txt[1] || '').slice(-200)],
 
       // 6 - EL REGISTRO SIGUE COMPLETO
       ['los grupos siguen cubriendo TODAS las tarjetas',
@@ -66054,7 +66061,9 @@ caso('TC-471', 'Valvulas D1: la insuficiencia mitral en TRES columnas de SEIS co
        vexus-lim, el globo del modulo de VExUS, donde viven las SEIS limitaciones de la
        lectura que publica la pagina 9 de Rola 2021. Lo que esta condicion afirma no cambia. */
     HAY_INFO && globos.every(function(b){ return !!VINFO[b.getAttribute('data-vinfo')]; }) &&
-    Object.keys(VINFO).length === 58,
+    /* ⚠️ ADAPTADO EN LA C2 (2026-10-28): 58 -> 60, por cvr-coc y cvr-ecosmart, las dos
+       tarjetas del C2-2. Ninguna de las dos esta en Valvulas. */
+    Object.keys(VINFO).length === 60,
     'registro=' + (HAY_INFO ? Object.keys(VINFO).join(',') : 'SIN REGISTRO')]);
   ex.push(['(H) y la tarjeta se coloca SIEMPRE dentro de la pantalla, sin cortarse',
     (function(){ const b = document.querySelector('[data-vinfo="avm-thp"]');
@@ -72296,24 +72305,37 @@ caso('TC-488', 'Tanda Y3b + Wilkins + I: el 3D de la mitral se GIRA A MANO —co
       try { if (FN('amiloIntegrar')) amiloIntegrar('pulm'); } catch (e) {}
       const L = LINEAS('estandar');
       const par = L.filter(x => x.indexOf('Derrame pleural') > -1).join(' || ');
-      ex.push(['los tres temas del pulmon van en UN SOLO PARRAFO, y los tres estan',
-        par.indexOf('Derrame pleural') > -1 && par.indexOf('Líneas B') > -1 &&
-        par.indexOf('Consolidación pulmonar') > -1 &&
+      /* ⚠️ ADAPTADO EN LA C2 (2026-10-28), TRES condiciones y por DOS motivos distintos.
+         (1) El C2-1g pasa el informe a UNA LINEA POR HALLAZGO: ya no hay un solo parrafo con los
+             tres temas, hay tres entradas. Lo que esta condicion sigue exigiendo es que los TRES
+             esten y que el derrame se diga UNA sola vez; lo que deja de exigir es que esten
+             pegados. Se mide sobre el conjunto de lineas pulmonares, no sobre una sola.
+         (2) El C2-1c saca el autor de la frase del volumen: el consenso que sostiene la formula
+             -Volpicelli 2026, enunciado D6_11, hoja 19- cita tres referencias juntas y no se la
+             atribuye a ninguna. La CUENTA no cambia: 25 mm x 20 siguen siendo 500 ml. */
+      const parL = L.filter(x => x.indexOf('Derrame pleural') > -1 || x.indexOf('Líneas B') > -1 ||
+                                 x.indexOf('Consolidación pulmonar') > -1).join(' || ');
+      ex.push(['los tres temas del pulmon salen al informe, cada uno en SU PROPIA LINEA, y el derrame una sola vez',
+        parL.indexOf('Derrame pleural') > -1 && parL.indexOf('Líneas B') > -1 &&
+        parL.indexOf('Consolidación pulmonar') > -1 &&
         L.filter(x => x.indexOf('Derrame pleural') > -1).length === 1,
-        par]);
-      ex.push(['el derrame pleural nombra su LADO, su TAMANO y su volumen por Balik',
-        par.indexOf('Derrame pleural bilateral moderado (aproximadamente 500 ml, según fórmula de Balik).') > -1,
-        par]);
+        parL]);
+      ex.push(['el derrame pleural nombra su LADO, su TAMANO y su volumen, SIN autor',
+        parL.indexOf('Derrame pleural bilateral moderado (volumen estimado por ecografía de aproximadamente 500 ml).') > -1 &&
+        parL.indexOf('Balik') === -1,
+        parL]);
       ex.push(['la nota de la consolidacion va EN LA MISMA ORACION, entre parentesis',
-        par.indexOf('Consolidación pulmonar sin broncograma especificado (base derecha).') > -1, par]);
+        parL.indexOf('Consolidación pulmonar sin broncograma especificado (base derecha).') > -1, parL]);
       ex.push(['y al EN SUMA va la conclusion, no el detalle de la nota',
         SUMA().indexOf('Consolidación pulmonar') > -1 && SUMA().indexOf('base derecha') === -1,
         SUMA().split(String.fromCharCode(10)).filter(x => x.indexOf('Consolidación') > -1).join(' || ')]);
       /* CONTROL NEGATIVO: sin lado, la oracion no inventa ninguno. */
       SEL('pua_derrame_lado', '');
       const sinLado = LINEAS('estandar').filter(x => x.indexOf('Derrame pleural') > -1).join(' || ');
+      /* ⚠️ ADAPTADO EN LA C2 por el mismo motivo (2): la frase ya no nombra al autor. El control
+         negativo sigue siendo el mismo -sin lado la oracion no inventa ninguno-. */
       ex.push(['CONTROL NEGATIVO: sin consignar el lado, la oracion no inventa ninguno',
-        sinLado.indexOf('Derrame pleural moderado (aproximadamente 500 ml, según fórmula de Balik).') > -1 &&
+        sinLado.indexOf('Derrame pleural moderado (volumen estimado por ecografía de aproximadamente 500 ml).') > -1 &&
         sinLado.indexOf('bilateral') === -1, sinLado]); }
     { NUEVO();
       const L = LINEAS('estandar');
@@ -77072,9 +77094,13 @@ caso('TC-499', 'Tanda CORTOS: la POSICION del selector de origen mitral y de los
       __t.limpiar(); S('pua_derrame', 'si'); S('pul_derrame_tam', 'moderado'); S('pua_balik', '25');
       try { if (FN('amiloIntegrar')) amiloIntegrar('pulm'); } catch (x) {}
       const b = inf('estandar');
+      /* ⚠️ ADAPTADO EN LA C2 (2026-10-28): la frase del volumen ya no nombra al autor, porque el
+         consenso que sostiene la formula no se la atribuye a ninguno. Este CONTROL sigue
+         exigiendo que el volumen se publique UNA vez y que «Balik» no aparezca en el informe en
+         ninguna forma, que es mas fuerte que lo que exigia antes. */
       return LIN(a.inf, 'Derrame pericárdico moderado').length === 1
-        && LIN(b.inf, 'según fórmula de Balik').length === 1
-        && LIN(b.inf, 'Balik 25 mm').length === 0; })(),
+        && LIN(b.inf, 'volumen estimado por ecografía de aproximadamente 500 ml').length === 1
+        && LIN(b.inf, 'Balik').length === 0; })(),
     (function(){ __t.limpiar(); S('pua_derrame', 'si'); S('pul_derrame_tam', 'moderado'); S('pua_balik', '25');
       try { if (FN('amiloIntegrar')) amiloIntegrar('pulm'); } catch (x) {}
       return LIN(inf('estandar').inf, 'errame').join(' // '); })()]);
@@ -77329,11 +77355,15 @@ caso('TC-500', 'Tanda Q: las OCHO tarjetas i de las valvulas arriba de su pastil
     /* ⚠️ ADAPTADO EN LA TANDA D: 56 -> 57. La entrada nueva es co-riesgo-basal, el globo de la
        clasificacion de riesgo cardiovascular basal, donde viven las clases y los niveles que la
        regla R2 saca de la linea visible. Lo que esta condicion afirma no cambia: que el
-       mecanismo exista y que el registro este completo. */
+       mecanismo exista y que el registro este completo.
+       ⚠️ ADAPTADO EN LA C2 (2026-10-28): 58 -> 60. Las dos entradas nuevas son cvr-coc y
+       cvr-ecosmart, las tarjetas donde el C2-2 puso los dos textos largos que estaban en
+       pantalla. NINGUNA esta en Valvulas: lo que cambia es el denominador del registro, no lo
+       que este caso afirma sobre las tarjetas de esa pestana. */
     /* ⚠️ ADAPTADO EN LA TANDA C1 (commit C1-1d): 57 -> 58. La entrada nueva es
        vexus-lim, el globo del modulo de VExUS, donde viven las SEIS limitaciones de la
        lectura que publica la pagina 9 de Rola 2021. Lo que esta condicion afirma no cambia. */
-    FN('vInfoClic') && !!CARD() && !!REG() && Object.keys(REG() || {}).length === 58,
+    FN('vInfoClic') && !!CARD() && !!REG() && Object.keys(REG() || {}).length === 60,
     'VINFO=' + (REG() ? Object.keys(REG()).length : 'SIN REGISTRO') + ' card=' + !!CARD()]);
   ex.push(['(A1) los OCHO botones de lesion existen, son BUTTON, sin atributo title y con aria-expanded',
     CLAVES.every(function (k) { const b = BTN(k);
@@ -78202,8 +78232,13 @@ caso('TC-501', 'Tanda ARR: un campo VACIO es SIN DATO - las once referencias que
       ex.push(['(L3) CONTROL: el derrame PERICARDICO y la formula de Balik del CORTOS13 se conservan',
         a.indexOf('Derrame peric' + String.fromCharCode(225) + 'rdico moderado') >= 0
           /* ADAPTADO el 2026-10-21 (B-E3): la formula se conserva y lo que cambia es como se
-             nombra. Se exige el texto nuevo y la ausencia del viejo. */
-          && b.indexOf('según fórmula de Balik') >= 0 && b.indexOf('Balik 25 mm') < 0,
+             nombra. Se exige el texto nuevo y la ausencia del viejo.
+             ⚠️ ADAPTADO OTRA VEZ EN LA C2 (2026-10-28): hoy la frase no nombra ni a la formula ni
+             a su autor, porque la fuente no se la atribuye a ninguno. Lo que este CONTROL sigue
+             vigilando es que el volumen se publique y que el apellido NO aparezca en ninguna
+             forma -ni pelado ni como «formula de»-. */
+          && b.indexOf('volumen estimado por ecografía de aproximadamente 500 ml') >= 0
+          && b.indexOf('Balik') < 0,
         b.split(String.fromCharCode(10)).filter(function (l) { return l.indexOf('errame') >= 0; }).join(' // ')]); })();
   })();
 
@@ -78584,8 +78619,15 @@ caso('TC-502', 'Tanda P: Referencias en CINCO subpestanas sin perder una entrada
      seccion de Evidencia—. Lo que esta condicion declara sigue siendo lo mismo: CUALES son las
      tarjetas que no pueden ofrecer «Ver referencia», nombradas una por una para que el dia que
      una consiga ficha el caso se ponga rojo y alguien la saque de la lista. */
-  ex.push(['(C3) LIMITE DECLARADO: diecisiete tarjetas sin boton, porque Referencias no tiene esa entrada',
-    sinBoton.join(',') === 'amilo-score,co-riesgo-basal,et-avt-cont,hemo-forr,hemo-ic,hemo-rvs,'
+  /* ⚠️ ADAPTADO EN LA C2 (2026-10-28): diecisiete -> DIECINUEVE. Las dos nuevas son cvr-coc y
+     cvr-ecosmart, las tarjetas del C2-2. NO llevan entrada en VINFO_REF a proposito: el
+     cociente de la vena suprahepatica y el e' medial ya tienen su ficha en Referencias, a la que
+     la segunda tarjeta manda con sus palabras, y crear una entrada nueva seria escribir contenido
+     clinico que esa tanda no tenia orden de escribir. La lista sigue nombrandolas una por una,
+     que es lo que hace que el dia que una consiga ficha el caso se ponga rojo. */
+  ex.push(['(C3) LIMITE DECLARADO: diecinueve tarjetas sin boton, porque Referencias no tiene esa entrada',
+    sinBoton.join(',') === 'amilo-score,co-riesgo-basal,cvr-coc,cvr-ecosmart,et-avt-cont,'
+      + 'hemo-forr,hemo-ic,hemo-rvs,'
       + 'tarj-esten-pulmonar,tarj-esten-tricuspide,tarj-insuf-pulmonar,'
       + 'vab-aorta,vab-cx,vab-friesgo,vab-func,vab-tit,vab-valv,vexus-lim,vm-carp',
     sinBoton.join(',')]);
@@ -82172,10 +82214,13 @@ caso('TC-509', 'Trabajo B (ADAPTADO por el B2): la columna izquierda con sus ONC
         + ' | fuera de la pestana: ' + PUL_BAS.filter(function (id) { const e = EL(id);
           const p = e ? e.closest('.tab-section') : null;
           return !p || p.id !== 'tab-pericardio'; }).join(','); })()]);
-  ex.push(['(D2) el boton «Integrar al informe» del pulmonar vive DENTRO de esa pestana',
-    (function () { const t = EL('tab-pericardio');
-      const b = t ? t.querySelector('[data-am-k=pulm]') : null;
-      return !!b; })(), 'adentro']);
+  /* ⚠️ ADAPTADO EN LA C2 (2026-10-28): el boton SE RETIRO con el bloque «Eco Pulmonar» del ETT
+     Avanzado (C2-1h), que publicaba el mismo texto que el cuerpo del informe. La condicion se da
+     vuelta: hoy exige que NO exista ningun boton de integrar pulmonar en ninguna parte de la
+     app, que es lo que este caso tiene que vigilar desde el retiro. */
+  ex.push(['(D2) NO queda ningun boton «Integrar al informe» del pulmonar, en ninguna pestana',
+    document.querySelectorAll('[data-am-k=pulm]').length === 0,
+    'botones pulm=' + document.querySelectorAll('[data-am-k=pulm]').length]);
   /* ADAPTADO el 2026-10-22 (B2-E2): el centinela pasa a ser pua_derrame, el dueno vivo. */
   ex.push(['(D3) Otros ya no tiene nada pulmonar, y el modulo basico no existe en ninguna parte',
     (function () { const e = EL('pua_derrame');
@@ -82202,19 +82247,28 @@ caso('TC-509', 'Trabajo B (ADAPTADO por el B2): la columna izquierda con sus ONC
      INTEGRAR, porque desde hoy el unico emisor pulmonar es el que el boton enciende. Las
      cuatro condiciones afirman lo mismo que antes —la posicion, la formula, el tamano con el
      lado y el implausible— y D4 gana algo: que el pulmon sea UN SOLO PARRAFO. */
-  const intPul = function () { const b = document.querySelector('[data-am-k=pulm]');
-    if (b) { try { b.click(); } catch (e) {} } };
+  /* ⚠️ ADAPTADO EN LA C2: ya no hay boton que apretar. La compuerta del informe pulmonar pasa a
+     ser el DATO -pulAvanzadoHayDatos-, asi que cargar los campos ES el gesto. Se deja la
+     funcion vacia y nombrada para que las escenas de abajo no cambien de forma: lo que cambio es
+     que el gesto ya no hace falta, no que la escena sea otra. */
+  const intPul = function () { /* el C2-1h retiro el boton: cargar el dato alcanza */ };
   const rBas = infPul(function () {
     S('pericardio', 'Derrame moderado (10-20mm)');
     S('pua_derrame', 'si'); S('pul_derrame_tam', 'moderado'); S('pua_balik', '25'); intPul();
   });
-  ex.push(['(D4) el texto del pulmonar va en UN SOLO PARRAFO, justo DESPUES del pericardio y las masas',
+  /* ⚠️ ADAPTADO EN LA C2: el C2-1g pasa el informe a UNA LINEA POR HALLAZGO. La POSICION sigue
+     siendo lo que esta condicion vigila -el pulmon va justo despues del pericardio y las masas- y
+     que el derrame se diga una sola vez; lo que deja de exigir es que todo entre en un parrafo. */
+  ex.push(['(D4) el texto del pulmonar empieza justo DESPUES del pericardio y las masas, una linea por hallazgo',
     rBas.iPeri >= 0 && rBas.iMasa >= 0 && rBas.iPleu === Math.max(rBas.iPeri, rBas.iMasa) + 1
       && rBas.li.filter(function (x) { return x.indexOf('Derrame pleural') > -1; }).length === 1,
     'peri=' + rBas.iPeri + ' masa=' + rBas.iMasa + ' pleural=' + rBas.iPleu]);
-  ex.push(['(D5) y nombra la FORMULA de Balik, no el apellido pelado',
-    rBas.t.indexOf('según fórmula de Balik') > -1 && rBas.t.indexOf('Balik 25 mm') < 0
-      && rBas.t.indexOf('aproximadamente 500 ml') > -1,
+  /* ⚠️ ADAPTADO EN LA C2: el C2-1c saca el autor. El consenso (Volpicelli 2026, D6_11, hoja 19)
+     cita [154-156] juntas y no atribuye la formula a ninguna. La condicion se da vuelta y queda
+     mas fuerte: exige el volumen y la AUSENCIA del apellido en cualquier forma. */
+  ex.push(['(D5) publica el volumen y NO nombra a ningun autor',
+    rBas.t.indexOf('volumen estimado por ecografía de aproximadamente 500 ml') > -1
+      && rBas.t.indexOf('Balik') < 0,
     rBas.li.filter(function (x) { return x.indexOf('pleural') > -1; }).join(' // ')]);
   ex.push(['(D6) y CONSERVA el tamano y el lado, que son datos del informe firmado',
     (function () { const r = infPul(function () {
@@ -82222,7 +82276,7 @@ caso('TC-509', 'Trabajo B (ADAPTADO por el B2): la columna izquierda con sus ONC
         S('pua_derrame_lado', 'unilateral derecho'); S('pua_balik', '25'); intPul(); });
       return r.t.indexOf('Derrame pleural unilateral derecho moderado') > -1; })(),
     'con lado y tamano']);
-  ex.push(['(D7) CONTROL NEGATIVO: un Balik implausible no estima volumen y lo DICE, sin nombrar el apellido',
+  ex.push(['(D7) CONTROL NEGATIVO: una distancia pleural implausible no estima volumen y lo DICE, sin nombrar el apellido',
     (function () { const r = infPul(function () {
         S('pua_derrame', 'si'); S('pul_derrame_tam', 'severo'); S('pua_balik', '200'); intPul(); });
       return r.t.indexOf('fuera del rango plausible') > -1
@@ -82235,24 +82289,31 @@ caso('TC-509', 'Trabajo B (ADAPTADO por el B2): la columna izquierda con sus ONC
     S('pua_consol', 'si'); S('pua_consol_bronco', 'con');
     const b = document.querySelector('[data-am-k=pulm]'); if (b) b.click();
   });
-  /* ADAPTADO el 2026-10-22 (B2-E2): el patron global va DENTRO del mismo parrafo —es lo que
-     la orden pide: un solo parrafo— asi que ya no puede estar en una linea posterior. La
-     condicion afirma hoy que los dos estan en LA MISMA linea, que es mas fuerte: caza tanto
-     que el texto se parta como que el patron desaparezca. */
-  ex.push(['(D8) el texto del pulmonar va al CUERPO en UN SOLO PARRAFO con su patron global, justo despues del pericardio y las masas, y NO a una hoja aparte',
+  /* ADAPTADO el 2026-10-22 (B2-E2): el patron global iba DENTRO del mismo parrafo.
+     ⚠️ ADAPTADO OTRA VEZ EN LA C2 (2026-10-28), por DOS cambios de ese commit:
+     el C2-1g pasa el informe a UNA LINEA POR HALLAZGO, y el C2-1e SACA DEL PAPEL la linea
+     «Patron global», que repetia lo ya dicho y sigue en pantalla. La condicion se da vuelta en
+     su segunda mitad: hoy exige que el pulmon empiece justo despues del pericardio y las masas
+     y que «Patron global» NO este en el informe. Es mas fuerte que antes: caza que la linea
+     vuelva al papel. */
+  ex.push(['(D8) el texto del pulmonar va al CUERPO justo despues del pericardio y las masas, SIN la linea «Patron global» y NO a una hoja aparte',
     rAv.iDesliz >= 0 && rAv.iDesliz === Math.max(rAv.iPeri, rAv.iMasa) + 1
-      && rAv.iPatron === rAv.iDesliz
+      && rAv.iPatron === -1
       && rAv.li.filter(function (x) { return x.indexOf('Deslizamiento pleural') > -1; }).length === 1,
     'peri=' + rAv.iPeri + ' masa=' + rAv.iMasa + ' desliz=' + rAv.iDesliz + ' patron=' + rAv.iPatron]);
-  ex.push(['(D9) y la hoja «ECOGRAFIA PULMONAR» del PDF no se arma, aunque el modulo siga integrado',
+  /* ⚠️ ADAPTADO EN LA C2: el bloque «Eco Pulmonar» del ETT Avanzado se retiro entero (C2-1h), asi
+     que la clave pulm ya NO esta en amiloSecs ni puede estar en amiloEnInforme. La condicion afirma hoy
+     las dos mitades del retiro: que la clave no este en el registro y que el contenido pulmonar
+     SIGA en el cuerpo del informe. Sin la segunda, retirar el bloque y perder el texto tambien
+     pasaria en verde. */
+  ex.push(['(D9) la clave «pulm» ya no esta en el registro del ETT Avanzado, y el contenido pulmonar sigue en el cuerpo del informe',
     (function () {
-      let enInf = null;
-      try { enInf = (amiloEnInforme() || []).map(function (d) { return d.k; }); } catch (e) { return false; }
-      /* La seccion SIGUE en amiloEnInforme —de eso cuelga la exclusion mutua con el basico— y
-         lo que la descarta es el armador del PDF. Se mide que el modulo este integrado Y que su
-         contenido viva en el informe: las dos mitades. */
-      return enInf.indexOf('pulm') > -1 && rAv.iDesliz >= 0; })(),
-    'integrado y en el informe']);
+      let secs = null;
+      try { secs = (amiloSecs() || []).map(function (d) { return d.k; }); } catch (e) { return false; }
+      let enInf = [];
+      try { enInf = (amiloEnInforme() || []).map(function (d) { return d.k; }); } catch (e) {}
+      return secs.indexOf('pulm') === -1 && enInf.indexOf('pulm') === -1 && rAv.iDesliz >= 0; })(),
+    'retirado del registro y vivo en el informe']);
 
   /* ══ (E) EL FONOCARDIOGRAMA ════════════════════════════════════════════════════════════ */
   ex.push(['(E1) el Fonocardiograma no esta en la app: ni pestana, ni boton, ni canvas, ni data-mod, ni EE_MODULES',
@@ -82937,12 +82998,16 @@ caso('TC-511', 'Trabajo B2: la columna izquierda con ONCE botones y «Pericardio
       const p = e ? e.closest('.tab-section') : null;
       return !!p && p.id === 'tab-pericardio'; }),
     ['pul_derrame_tam','pul_consol_nota'].map(function (id) { return id + '=' + !!EL(id); }).join(' ')]);
-  ex.push(['(C3) la palabra «avanzado» no aparece en el texto de la pantalla, y hay UN solo «Integrar al informe»',
+  /* ⚠️ ADAPTADO EN LA C2 (2026-10-28): el boton «Integrar al informe» del pulmon se retiro con el
+     bloque del ETT Avanzado (C2-1h). La condicion se da vuelta en su segunda mitad: hoy exige
+     CERO botones, que es lo que vigila el retiro. La primera mitad -la palabra «avanzado»- no se
+     toca. */
+  ex.push(['(C3) la palabra «avanzado» no aparece en el texto de la pantalla, y NO queda ningun «Integrar al informe»',
     (function () { const t = EL('tab-pericardio');
       const txt = t ? (t.textContent || '') : '';
       const n = (txt.match(/avanzad/gi) || []).length;
       const bs = t ? t.querySelectorAll('[data-am-k=pulm]').length : 0;
-      return n === 0 && bs === 1; })(),
+      return n === 0 && bs === 0; })(),
     (function () { const t = EL('tab-pericardio');
       const txt = t ? (t.textContent || '') : '';
       return 'avanzado=' + (txt.match(/avanzad/gi) || []).length
@@ -82954,36 +83019,51 @@ caso('TC-511', 'Trabajo B2: la columna izquierda con ONCE botones y «Pericardio
     S('pua_derrame_lado', 'unilateral derecho'); S('pua_balik', '25');
     S('pua_lineasb', 'presentes'); S('pua_lineasb_cant', 'multiples');
     S('pua_consol', 'si'); S('pua_consol_bronco', 'con'); S('pul_consol_nota', 'base derecha');
-    const b = document.querySelector('[data-am-k=pulm]'); if (b) { try { b.click(); } catch (e) {} }
+    /* ⚠️ EL C2-1h RETIRO EL BOTON: la compuerta del informe es el DATO, asi que cargar los
+       campos de arriba ES el gesto y no hay nada que apretar. */
     try { if (FN('generarInforme')) generarInforme(); } catch (e) {}
     return { inf: String(V('informe_texto') || ''), suma: String(V('en_suma') || '') };
   };
   const rp = escPul();
   const lineasPul = rp.inf.split(NL).filter(function (x) { return x.indexOf('Derrame pleural') > -1; });
-  ex.push(['(C4) el informe lleva UN SOLO parrafo con los tres temas y el patron global adentro',
+  /* ⚠️ ADAPTADO EN LA C2 (2026-10-28), por TRES cambios del C2-1: el informe pasa a UNA LINEA
+     POR HALLAZGO (1g), la linea «Patron global» sale del papel y queda solo en pantalla (1e), y
+     la frase del volumen deja de nombrar al autor (1c). La condicion afirma hoy que los TRES
+     temas salen, cada uno en su linea, que el derrame se dice UNA sola vez y que «Patron global»
+     NO esta en el informe. Es mas fuerte: caza que un tema desaparezca y que la linea vuelva. */
+  const todasPul = rp.inf.split(NL).filter(function (x) {
+    return x.indexOf('Derrame pleural') > -1 || x.indexOf('L' + String.fromCharCode(237) + 'neas B') > -1
+        || x.indexOf('Consolidaci' + String.fromCharCode(243) + 'n pulmonar') > -1; });
+  ex.push(['(C4) el informe lleva los tres temas, UNO POR LINEA, y SIN la linea del patron global',
+    todasPul.length === 3
+      && lineasPul.length === 1
+      && rp.inf.indexOf('Patr' + String.fromCharCode(243) + 'n global') < 0,
+    'n=' + todasPul.length + ' | ' + todasPul.join(' || ').slice(0, 220)]);
+  ex.push(['(C5) con el TAMANO del derrame y la NOTA de la consolidacion adentro, y SIN autor en el volumen',
     lineasPul.length === 1
-      && lineasPul[0].indexOf('Derrame pleural') > -1
-      && lineasPul[0].indexOf('Lineas B'.replace('i', String.fromCharCode(237))) > -1
-      && lineasPul[0].indexOf('Consolidaci' + String.fromCharCode(243) + 'n pulmonar') > -1
-      && lineasPul[0].indexOf('Patr' + String.fromCharCode(243) + 'n global') > -1,
-    'n=' + lineasPul.length + ' | ' + (lineasPul[0] || '').slice(0, 170)]);
-  ex.push(['(C5) con el TAMANO del derrame y la NOTA de la consolidacion adentro, compuestos con las frases que ya existian',
-    lineasPul.length === 1
-      && lineasPul[0].indexOf('Derrame pleural unilateral derecho moderado (aproximadamente 500 ml, seg'
-           + String.fromCharCode(250) + 'n f' + String.fromCharCode(243) + 'rmula de Balik).') > -1
-      && lineasPul[0].indexOf('broncograma a' + String.fromCharCode(233) + 'reo (base derecha).') > -1,
-    (lineasPul[0] || '').slice(0, 200)]);
+      && lineasPul[0].indexOf('Derrame pleural unilateral derecho moderado (volumen estimado por ecograf'
+           + String.fromCharCode(237) + 'a de aproximadamente 500 ml).') > -1
+      && lineasPul[0].indexOf('Balik') < 0
+      && todasPul.join(' ').indexOf('broncograma a' + String.fromCharCode(233) + 'reo (base derecha).') > -1,
+    todasPul.join(' || ').slice(0, 240)]);
   const lsuma = rp.suma.split(NL).filter(function (x) { return x.indexOf('Derrame pleural') > -1
     || x.indexOf('Consolidaci' + String.fromCharCode(243) + 'n pulmonar') > -1; });
-  ex.push(['(C6) y el EN SUMA lleva UNA sola linea pulmonar',
-    lsuma.length === 1, 'n=' + lsuma.length + ' | ' + (lsuma[0] || '').slice(0, 150)]);
-  /* CONTROL NEGATIVO: sin integrar, el pulmon no escribe NADA en el informe. */
-  ex.push(['(C7) CONTROL NEGATIVO: sin «Integrar al informe» el pulmon no publica una sola oracion',
+  /* ⚠️ ADAPTADO EN LA C2: el C2-1d pone el derrame y la consolidacion en DOS oraciones separadas,
+     el derrame primero. La condicion afirma hoy las DOS lineas Y SU ORDEN, que es lo que ese
+     commit vino a arreglar: estaban al reves y pegadas en una sola. */
+  ex.push(['(C6) el EN SUMA lleva DOS lineas pulmonares, el derrame ANTES que la consolidacion',
+    lsuma.length === 2 && lsuma[0].indexOf('Derrame pleural') > -1
+      && lsuma[1].indexOf('Consolidaci' + String.fromCharCode(243) + 'n pulmonar') > -1,
+    'n=' + lsuma.length + ' | ' + lsuma.join(' || ').slice(0, 220)]);
+  /* ⚠️ ADAPTADO EN LA C2: el boton ya no existe y la compuerta es el DATO, asi que este control
+     negativo cambia de pregunta. Lo que vigila hoy es la otra mitad de la misma regla: SIN dato
+     pulmonar cargado, el informe no publica una sola oracion de pulmon. Sin el, retirar la
+     compuerta entera pasaria en verde. */
+  ex.push(['(C7) CONTROL NEGATIVO: sin un solo dato pulmonar cargado, el pulmon no publica una oracion',
     (function () { try { if (FN('limpiarCampos')) limpiarCampos(); } catch (e) {}
-      S('pua_derrame', 'si'); S('pul_derrame_tam', 'moderado');
       try { if (FN('generarInforme')) generarInforme(); } catch (e) {}
       const t = String(V('informe_texto') || '');
-      return t.indexOf('Derrame pleural') < 0; })(), 'calla']);
+      return t.indexOf('Derrame pleural') < 0 && t.indexOf('Deslizamiento pleural') < 0; })(), 'calla']);
   /* CONTROL NEGATIVO: el globo del Balik —donde viven los limites de la formula— sigue ahi. */
   ex.push(['(C8) CONTROL: el globo del Balik se conserva, en el campo de la pantalla unica',
     (function () { const b = document.querySelector('#tab-pericardio [data-vinfo="pul-balik"]');
@@ -85977,7 +86057,13 @@ caso('TC-519', 'Tanda AJ2: «sin datos» no es «no medible» en las cinco super
               && !amiloIntegrado('pulm')) amiloIntegrar('pulm'); } catch (e) {}
     const i2 = inf();
     return {
-      integrado: (typeof amiloIntegrado === 'function') ? !!amiloIntegrado('pulm') : false,
+      /* ⚠️ ADAPTADO EN LA C2 (2026-10-28): el bloque «Eco Pulmonar» del ETT Avanzado se retiro
+         (C2-1h) y la compuerta del informe pasa a ser el DATO. Lo que este campo mide hoy es la
+         compuerta REAL: pulAvanzadoHayDatos. Lo que amiloIntegrado('pulm') devuelve desde el
+         retiro es siempre falso, y dejarlo habria hecho que el denominador L1 fuera imposible de
+         cumplir — o sea un caso que no puede estar verde, que es tan inutil como uno que no puede
+         estar rojo. */
+      integrado: (typeof pulAvanzadoHayDatos === 'function') ? !!pulAvanzadoHayDatos() : false,
       zonas: (function(){ try { return pulAvZonas() || []; } catch (e) { return []; } })(),
       zonasTxt: (function(){ try { return (typeof pulAvZonasTxt === 'function') ? (pulAvZonasTxt() || []) : null; }
                              catch (e) { return null; } })(),
@@ -86019,9 +86105,16 @@ caso('TC-519', 'Tanda AJ2: «sin datos» no es «no medible» en las cinco super
   /* El destino de cada modulo sale del REGISTRO, y el banner lo dice. */
   const SEC = (function(){ try { return amiloSecs() || []; } catch (e) { return []; } })();
   ex.push(['(L11) DENOMINADOR: el registro de modulos del ETT avanzado existe', SEC.length >= 15, 'n=' + SEC.length]);
-  ex.push(['(L12) el destino «al cuerpo del informe» es una PROPIEDAD del registro',
-    SEC.filter(x => x.enCuerpo).map(x => x.k).join(',') === 'pulm',
-    SEC.filter(x => x.enCuerpo).map(x => x.k).join(',') || '(ninguno)']);
+  /* ⚠️ ADAPTADO EN LA C2 (2026-10-28): pulm era la UNICA entrada con enCuerpo y el C2-1h la
+     retiro entera, asi que hoy ninguna lleva la propiedad. Lo que esta condicion vigila cambia de
+     mitad: el MECANISMO se queda -el armador del PDF sigue consultando la propiedad en vez de
+     cablear una clave, que es lo que mide L13- y lo que se afirma es que la clave pulm ya no
+     esta en el registro. Las dos mitades juntas siguen cazando que alguien vuelva a cablear
+     d.k !== 'pulm' en el armador. */
+  ex.push(['(L12) la clave «pulm» ya no esta en el registro, y ninguna entrada reclama el cuerpo del informe',
+    SEC.map(x => x.k).indexOf('pulm') === -1 && SEC.filter(x => x.enCuerpo).length === 0,
+    'enCuerpo=' + (SEC.filter(x => x.enCuerpo).map(x => x.k).join(',') || '(ninguno)')
+      + ' pulm=' + (SEC.map(x => x.k).indexOf('pulm') > -1)]);
   ex.push(['(L13) y el armador la CONSULTA en vez de cablear la clave',
     String(window.generarPDFReal || '').indexOf('_enCuerpo[d.k]') > -1,
     'largo=' + String(window.generarPDFReal || '').length]);
@@ -86242,7 +86335,7 @@ caso('TC-519', 'Tanda AJ2: «sin datos» no es «no medible» en las cinco super
   return { extra: ex };
   })();
 `);
-caso('TC-520', 'Tanda AJ3: el bloque del ETT avanzado sigue a los datos en los DIECISIETE modulos mientras no lo edite el medico; editado a mano NO se pisa y avisa en el bloque y en el boton; reintegrar pide confirmacion solo si hay edicion y retira si no la hay; la marca viaja con el estudio y no se filtra al siguiente paciente; y la Evidencia del HFA-PEFF pregunta el RESULTADO del paso 3 con sus tres caminos, sus folios de Pieske 2019 y sin tocar el informe, el EN SUMA ni el puntaje', `
+caso('TC-520', 'Tanda AJ3 (ADAPTADO por la C2: dieciseis modulos, no diecisiete): el bloque del ETT avanzado sigue a los datos en TODOS los modulos del registro mientras no lo edite el medico; editado a mano NO se pisa y avisa en el bloque y en el boton; reintegrar pide confirmacion solo si hay edicion y retira si no la hay; la marca viaja con el estudio y no se filtra al siguiente paciente; y la Evidencia del HFA-PEFF pregunta el RESULTADO del paso 3 con sus tres caminos, sus folios de Pieske 2019 y sin tocar el informe, el EN SUMA ni el puntaje', `
   return (async () => {
   const ex = [];
   const F = (n) => (typeof window[n] === 'function') ? window[n] : null;
@@ -86314,10 +86407,20 @@ caso('TC-520', 'Tanda AJ3: el bloque del ETT avanzado sigue a los datos en los D
   const BASE = { edad:'70', peso:'70', talla:'170', fevi:'60', onda_e:'90', e_sep:'6',
     e_lat:'8', ai_vol:'60', ddfvi:'45', siv:'10', ppvi:'10', vmax_it:'2.5', hf_ntprobnp:'150' };
 
-  /* == (A) AJ3-1 — EL REGISTRO DE LOS DIECISIETE ========================================== */
+  /* == (A) AJ3-1 — EL REGISTRO DE LOS DIECISEIS ==========================================
+     ⚠️ ADAPTADO EN LA C2 (2026-10-28): DIECISIETE -> DIECISEIS. El C2-1h retiro la entrada
+     pulm entera, porque publicaba el mismo texto que el cuerpo del informe desde el B-E3 y
+     el PPT lo imprimia dos veces. Lo que (A1) afirma no cambia -que el registro sea el dueno
+     unico y que su tamaño este fijado- : lo que cambia es el numero.
+     ⚠️ ESTE CASO NO NOMBRA A pulm EN NINGUNA PARTE, y por eso el censo de la tanda no lo
+     encontro grepeando por esa clave: dice «DIECISIETE» y nada mas. Lo destapo la corrida
+     COMPLETA de la suite, que es justo para lo que esta. Es la leccion que este repositorio ya
+     tiene escrita como «grepear solo por el nombre no es un censo». */
   __t.limpiar();
   let SECS = []; try { SECS = amiloSecs(); } catch (e) { SECS = []; }
-  ex.push(['(A1) amiloSecs publica diecisiete modulos', SECS.length === 17, 'n=' + SECS.length]);
+  ex.push(['(A1) amiloSecs publica dieciseis modulos, y ninguno es el eco pulmonar',
+    SECS.length === 16 && SECS.map(s => s.k).indexOf('pulm') === -1,
+    'n=' + SECS.length + ' claves=' + SECS.map(s => s.k).join(',')]);
   ex.push(['(A2) cada uno tiene su generador y UN boton',
     SECS.length > 0 && SECS.every(s => typeof s.gen === 'function' &&
       document.querySelectorAll('[data-am-k="' + s.k + '"]').length === 1),
@@ -87942,12 +88045,15 @@ caso('TC-529', 'Tanda AJ6-3: la pantalla de Ecografia pulmonar en CUATRO columna
   const pat = document.getElementById('pua-patron');
   const caja = pat ? pat.closest('.calc-box') : null;
   const btn = document.querySelector('#pua-seccion [data-am-k="pulm"]');
-  ex.push(['(B1) la conclusion y el boton de integrar NO viven dentro de ninguna columna',
-    !!caja && !!btn && !caja.closest('[data-pul-col]') && !btn.closest('[data-pul-col]'),
+  /* ⚠️ ADAPTADO EN LA C2 (2026-10-28): el boton «Integrar al informe» de esta pantalla se retiro
+     con el bloque del ETT Avanzado (C2-1h). Las dos condiciones pierden su mitad del boton y
+     conservan la de la CONCLUSION, que es lo que esta tanda vigila -que no viva dentro de una
+     columna y que vaya despues del envoltorio-, mas una afirmacion nueva: que el boton no este. */
+  ex.push(['(B1) la conclusion NO vive dentro de ninguna columna, y el boton de integrar ya no existe',
+    !!caja && !caja.closest('[data-pul-col]') && !btn,
     'caja=' + !!caja + ' btn=' + !!btn]);
-  ex.push(['(B2) y van DESPUES del envoltorio en el orden del documento, que es el del Tab',
-    !!caja && !!btn && !!(wrap.compareDocumentPosition(caja) & 4)
-      && !!(caja.compareDocumentPosition(btn) & 4),
+  ex.push(['(B2) y la conclusion va DESPUES del envoltorio en el orden del documento, que es el del Tab',
+    !!caja && !!(wrap.compareDocumentPosition(caja) & 4),
     'caja=' + (caja ? !!(wrap.compareDocumentPosition(caja) & 4) : '?')]);
 
   /* == (C) EL REFLUJO, LEIDO DE LA HOJA DE ESTILOS ==========================================
@@ -87990,21 +88096,34 @@ caso('TC-529', 'Tanda AJ6-3: la pantalla de Ecografia pulmonar en CUATRO columna
   if (F('pulAvUI')) { try { pulAvUI() } catch (e) {} }
   const sinInt = (function(){ try { generarInforme() } catch (e) {}
     return (document.getElementById('informe_texto') || {}).value || ''; })();
-  ex.push(['(D1) DENOMINADOR: sin el boton «Integrar al informe» el pulmon NO publica nada',
-    sinInt.indexOf('Deslizamiento pleural') < 0, sinInt.split('\\n').filter(l => /pleur/i.test(l)).join(' | ') || 'sin linea pulmonar']);
-  if (F('amiloIntegrar')) { try { amiloIntegrar('pulm') } catch (e) {} }
+  /* ⚠️ ADAPTADO EN LA C2 (2026-10-28): desde el C2-1h la compuerta del informe pulmonar es el
+     DATO, no el boton, asi que con los campos ya cargados el informe YA publica. El denominador
+     cambia de pregunta y mide la otra mitad de la misma regla, que es la que sigue teniendo
+     sentido: con el dato cargado, el pulmon SI publica. Sin el, las tres condiciones de abajo
+     podrian pasar sobre un informe vacio. */
+  ex.push(['(D1) DENOMINADOR: con el dato pulmonar cargado el informe SI publica la linea del pulmon',
+    sinInt.indexOf('Deslizamiento pleural') > -1, sinInt.split('\\n').filter(l => /pleur/i.test(l)).join(' | ') || 'sin linea pulmonar']);
   try { generarInforme() } catch (e) {}
   const conInt = (document.getElementById('informe_texto') || {}).value || '';
   const suma = (document.getElementById('en_suma') || {}).value || '';
-  ex.push(['(D2) integrado, el parrafo del pulmon sale con las mismas palabras que dejo el AJ2',
+  /* ⚠️ ADAPTADO EN LA C2 (2026-10-28): las CUATRO frases siguen siendo las mismas palabra por
+     palabra salvo la del volumen, que el C2-1c dejo sin autor. Lo que cambia ademas es que van
+     en CUATRO lineas y no en un parrafo (C2-1g), asi que se miden sobre el texto completo. */
+  ex.push(['(D2) el pulmon sale con las mismas palabras que dejo el AJ2, con el volumen sin autor',
     conInt.indexOf('Deslizamiento pleural reducido en el hemit\\u00f3rax derecho.') > -1
       && conInt.indexOf('L\\u00edneas B m\\u00faltiples (3 o m\\u00e1s por espacio intercostal)') > -1
-      && conInt.indexOf('Derrame pleural bilateral moderado, de aspecto libre (aproximadamente 500 ml, seg\\u00fan f\\u00f3rmula de Balik).') > -1
-      && conInt.indexOf('Consolidaci\\u00f3n pulmonar con broncograma a\\u00e9reo (Base derecha).') > -1,
+      && conInt.indexOf('Derrame pleural bilateral moderado, de aspecto libre (volumen estimado por ecograf\\u00eda de aproximadamente 500 ml).') > -1
+      && conInt.indexOf('Consolidaci\\u00f3n pulmonar con broncograma a\\u00e9reo (Base derecha).') > -1
+      && conInt.indexOf('Balik') < 0,
     conInt.split('\\n').filter(l => /pleur/i.test(l)).join(' | ').slice(0, 300)]);
-  ex.push(['(D3) y el EN SUMA tambien',
-    suma.indexOf('Consolidaci\\u00f3n pulmonar con broncograma a\\u00e9reo. Derrame pleural bilateral moderado (aproximadamente 500 ml, seg\\u00fan f\\u00f3rmula de Balik).') > -1,
-    suma.split('\\n').filter(l => /pleur|consolidaci/i.test(l)).join(' | ').slice(0, 220)]);
+  /* ⚠️ ADAPTADO EN LA C2: el C2-1d separa el EN SUMA en DOS oraciones y pone el derrame PRIMERO.
+     Estaban pegadas en una linea y al reves. La condicion afirma hoy las dos lineas y su orden. */
+  ex.push(['(D3) y el EN SUMA lleva DOS lineas, el derrame ANTES que la consolidacion',
+    (function(){ const ls = suma.split('\\n').filter(l => /pleural|Consolidaci/i.test(l));
+      return ls.length === 2
+        && ls[0].indexOf('Derrame pleural bilateral moderado (volumen estimado por ecograf\\u00eda de aproximadamente 500 ml).') > -1
+        && ls[1].indexOf('Consolidaci\\u00f3n pulmonar con broncograma a\\u00e9reo.') > -1; })(),
+    suma.split('\\n').filter(l => /pleur|consolidaci/i.test(l)).join(' | ').slice(0, 260)]);
   ex.push(['(D4) el patron global sigue siendo el que calculaba antes de mudar las columnas',
     (document.getElementById('pua-patron') || {}).textContent === 'Consolidaci\\u00f3n',
     (document.getElementById('pua-patron') || {}).textContent]);
@@ -88220,13 +88339,23 @@ caso('TC-532', 'Tanda J: el taponamiento con el colapso de AD DIASTOLICO y su du
 
   /* El chip de lo que no sale de esta guia. */
   const secCvr2 = seccionTxt('ete-seccion-constr-restr');
-  ex.push(['(C8) el chip CRITERIO DE ECOSMART declara el e-prima lateral, el E/e-prima y las reglas de conteo, con su origen citado',
+  /* ⚠️ ADAPTADO EN LA C2 (2026-10-28): el C2-2 dejo en pantalla UNA linea corta y mando el texto
+     completo al globo ⓘ cvr-ecosmart, que es la regla R2 de esa tanda -las citas no van en la
+     linea visible-. La condicion mide hoy las DOS mitades y eso la vuelve mas fuerte: el chip
+     sigue en pantalla declarando que hay criterio propio, y el contenido entero -los dos cortes
+     con sus palabras, el folio de Pieske y las reglas de conteo sin fuente- esta en la tarjeta.
+     Si el texto se perdiera al mudarlo, esto se pone rojo. */
+  const tarjEco = (function(){ try { const d = VINFO['cvr-ecosmart'];
+    return d ? [d.tit, d.lee, d.fuente, d.ojo].join(' ') : ''; } catch (e) { return 'EXC'; } })();
+  ex.push(['(C8) el chip CRITERIO DE ECOSMART queda en pantalla y su contenido entero vive en la tarjeta ⓘ',
     secCvr2.indexOf('CRITERIO DE ECOSMART') > -1
-      && /e. lateral de 10 cm\\/s/.test(secCvr2)
-      && /E\\/e. de 15/.test(secCvr2)
-      && secCvr2.indexOf('Pieske 2019, folio 3303') > -1
-      && /reglas de conteo/.test(secCvr2) && /no tienen fuente/.test(secCvr2),
-    secCvr2.slice(secCvr2.indexOf('CRITERIO DE ECOSMART'), secCvr2.indexOf('CRITERIO DE ECOSMART') + 300)]);
+      && secCvr2.indexOf('reglas de conteo son decisi') > -1
+      && /e. lateral de 10 cm\\/s/.test(tarjEco)
+      && /E\\/e. de 15/.test(tarjEco)
+      && tarjEco.indexOf('folio 3303') > -1
+      && /reglas de conteo/.test(tarjEco) && /no tienen fuente/.test(tarjEco),
+    'pantalla=' + secCvr2.slice(secCvr2.indexOf('CRITERIO DE ECOSMART'), secCvr2.indexOf('CRITERIO DE ECOSMART') + 140)
+      + ' || tarjeta=' + tarjEco.slice(0, 160)]);
 
   /* La rama de criterios mixtos ya no recomienda el cateterismo, y el informe tampoco. */
   __t.limpiar(); abrir('cvr_rebote');
@@ -88827,8 +88956,11 @@ caso('TC-533', 'Tanda J2: el indice cardiaco en 2,19/2,2/2,21 con su globo y la 
       && gRVS.txt.indexOf('37 sujetos') > -1 && gRVS.txt.indexOf('700 a 1.600') > -1,
     (gRVS.txt || JSON.stringify(gRVS)).slice(0, 220)]);
   ex.push(['(B5) el globo del FORRESTER lleva la nota de los DOS bordes no definidos y su contexto de infarto',
+    /* ⚠️ ADAPTADO EN LA C2 (2026-10-28): «SUPERA» en mayuscula era una mayuscula de en medio de
+       la frase y el C2-4c la bajo (regla R3). Ni el numero ni la afirmacion cambiaron: el 18
+       sigue ahi y hoy ademas es VERDAD, porque el C2-4b movio el codigo a ese corte. */
     gFOR.abierta === true && gFOR.txt.indexOf('2,2 justo') > -1
-      && gFOR.txt.indexOf('por debajo de 2,2') > -1 && gFOR.txt.indexOf('SUPERA 18') > -1
+      && gFOR.txt.indexOf('por debajo de 2,2') > -1 && gFOR.txt.indexOf('supera 18') > -1
       && gFOR.txt.indexOf('infarto agudo de miocardio') > -1 && gFOR.txt.indexOf('folio 1125') > -1,
     (gFOR.txt || JSON.stringify(gFOR)).slice(0, 220)]);
 
@@ -90588,12 +90720,19 @@ caso('TC-535', 'Tanda AJ7: la linea de Fallot del EN SUMA sin la IP y el resumen
      otros tres y SIN margenes negativos. Lo que estas condiciones miden NO cambia, y la de los
      cinco puntos sigue siendo la que importa: un area de 44x44 encajada con margin:-16px
      taparia 16 px del campo de al lado, y la linea base del celular no puede empeorar. */
-  ex.push(['(K0) DENOMINADOR: los CUATRO globos llevan la clase, tienen geometria y estan EN VISTA',
-    tapK.length === 4 && tapK.every((x) => x.w > 0 && x.h > 0 && x.enVista), JSON.stringify(tapK)]);
-  ex.push(['(K1) los cuatro miden 44x44 tambien con el mouse',
-    tapK.length === 4 && tapK.every((x) => x.w >= 44 && x.h >= 44), JSON.stringify(tapK)]);
+  /* ⚠️ ADAPTADO EN LA C2 (2026-10-28): CUATRO -> SEIS. Las dos nuevas son los globos de
+     cvr-coc y cvr-ecosmart, que el C2-2 agrego con la MISMA clase vinfo-btn-44 y sin
+     margenes negativos, por el mismo motivo que los cuatro anteriores: un area de 44x44 encajada
+     con margin:-16px taparia 16 px del campo de abajo. Lo que las tres condiciones afirman no
+     cambia -geometria, 44x44 con el mouse y los cinco puntos dando el propio boton-: lo que
+     cambia es cuantos globos tienen que cumplirlo. El conteo es el denominador, asi que agregar
+     uno sin la clase pone esto en rojo, que es lo que se quiere. */
+  ex.push(['(K0) DENOMINADOR: los SEIS globos llevan la clase, tienen geometria y estan EN VISTA',
+    tapK.length === 6 && tapK.every((x) => x.w > 0 && x.h > 0 && x.enVista), JSON.stringify(tapK)]);
+  ex.push(['(K1) los seis miden 44x44 tambien con el mouse',
+    tapK.length === 6 && tapK.every((x) => x.w >= 44 && x.h >= 44), JSON.stringify(tapK)]);
   ex.push(['(K2) y su caja NO tapa a ningun vecino: los cinco puntos dan el propio boton',
-    tapK.length === 4 && tapK.every((x) => x.propios === 5), JSON.stringify(tapK)]);
+    tapK.length === 6 && tapK.every((x) => x.propios === 5), JSON.stringify(tapK)]);
   ex.push(['(K3) CONTROL: los demas globos NO se tocaron y siguen con su piso solo tactil',
     document.querySelectorAll('button.vinfo-btn').length
       - document.querySelectorAll('button.vinfo-btn-44').length >= 10,
@@ -91199,11 +91338,22 @@ caso('TC-537', 'Tanda A: las ocho Evidencias compactas despiertas a la vez sin u
       ['ficha POP: la banda sin fuente de la precarga', 'Censada la biblioteca'],
       ['ficha POP: las tres reservas del pie', 'La RVS se compara sin indexar'],
       ['ficha pulmonar: el titulo del consenso', 'point-of-care lung'],
-      ['ficha pulmonar: la formula de Balik', 'Balik M'],
+      /* ⚠️ ADAPTADO EN LA C2 (2026-10-28): la ficha de eco pulmonar YA NO atribuye la formula a
+         «Balik M». El C2-1b lo retiro de todas las superficies visibles porque el consenso que la
+         publica -Volpicelli 2026, enunciado D6_11, hoja 19, releido EN IMAGEN- cita [154-156]
+         JUNTAS y no se la atribuye a ninguna. Lo que este caso vigila -que el dato de la ficha
+         viva en el ⓘ y no en la linea visible- no cambia: lo que se mide ahora es la frase que
+         ocupo su lugar, que sigue estando en el ⓘ del pie. */
+      ['ficha pulmonar: el consenso no atribuye la formula', 'no atribuye'],
       ['ficha pulmonar: el enunciado del derrame', 'D6_11']];
     const perdF = FIC.filter(p => FPT.indexOf(p[1]) < 0 && FUT.indexOf(p[1]) < 0).map(p => p[0]);
     ex.push(['(C2) los OCHO datos de las fichas estan en el ⓘ de su fila o de su pie',
       perdF.length === 0, perdF.length ? 'PERDIDOS: ' + perdF.join(' · ') : 'los ocho']);
+    /* CONTROL NEGATIVO del retiro: «Balik» no aparece en NINGUNA de las dos superficies de la
+       ficha, ni en la fila ni en el pie. Sin esto, cambiar el dato medido lo daria por bueno. */
+    ex.push(['(C2b) y «Balik» no quedo en ninguna de las dos',
+      FPT.indexOf('Balik') < 0 && FUT.indexOf('Balik') < 0,
+      'fila=' + (FPT.indexOf('Balik') > -1) + ' pie=' + (FUT.indexOf('Balik') > -1)]);
     const nv = NV ? N(NV.textContent) : '';
     ex.push(['(C3) los dos folios de la banda del strain del VD estan en su ⓘ',
       nv.indexOf('Tabla 1 del folio 145') > -1 && nv.indexOf('folio 159') > -1,
@@ -91315,9 +91465,22 @@ caso('TC-537', 'Tanda A: las ocho Evidencias compactas despiertas a la vez sin u
       + ' repite el de la capsula=' + (pt2.indexOf('Requiere IC + PCP') > -1)]);
     const gl = (typeof VINFO !== 'undefined' && VINFO['hemo-forr']) ? VINFO['hemo-forr'] : null;
     const glt = gl ? N(String(gl.ojo || '') + ' ' + String(gl.lee || '')) : '';
-    ex.push(['(N6) FRONTERA: el globo del glosario del Forrester, que la tanda no toca, conserva sus mayusculas',
-      glt.length > 0 && glt.indexOf('LOS DOS BORDES EXACTOS NO ESTÁN DEFINIDOS') > -1,
-      glt.length ? 'conserva=' + (glt.indexOf('LOS DOS BORDES') > -1) : 'NO SE PUDO LEER EL GLOSARIO']);
+    /* ⚠️ ADAPTADO EN LA C2 (2026-10-28): esta condicion se escribio como FRONTERA -«la tanda A no
+       toca ese globo»- y la C2 SI lo toca: el C2-4c bajo sus dos mayusculas de en medio de la
+       frase, que es la misma regla R3 que la tanda A aplico en otras ocho secciones. No es que la
+       frontera se haya roto: es que dejo de ser frontera.
+       La condicion se da vuelta y mide lo que ahora corresponde: que el texto diga lo MISMO -los
+       dos bordes no definidos, con sus dos numeros- y que ya NO grite. Asi sigue pudiendo
+       fallar: si alguien devuelve las mayusculas, o si pierde uno de los dos bordes, se pone
+       rojo. */
+    ex.push(['(N6) el globo del glosario del Forrester dice lo mismo SIN mayusculas de en medio',
+      glt.length > 0
+        && glt.indexOf('Los dos bordes exactos no están definidos') > -1
+        && glt.indexOf('LOS DOS BORDES EXACTOS') < 0
+        && glt.indexOf('SUPERA 18') < 0
+        && glt.indexOf('supera 18') > -1
+        && glt.indexOf('2,2 justo') > -1,
+      glt.length ? glt.slice(0, 200) : 'NO SE PUDO LEER EL GLOSARIO']);
     return { extra: ex };
   })();
 `);
@@ -93640,12 +93803,34 @@ caso('TC-544', 'C1: VExUS dice lo que la Figura 7 de Rola 2021 rotula y su Evide
     const cuad = (ic, pcp) => { try { return forrCuadrante(ic, pcp) } catch (e) { return 'EXC' } };
     ex.push(['  DENOMINADOR G2: el dueno del cuadrante existe y clasifica',
       cuad(3.0, 10) === 'I', 'control=' + cuad(3.0, 10)]);
-    ex.push(['(G5) BORDE del indice cardiaco: 2,2 EXACTO **no** es hipoperfusion (el corte es «<»)',
-      cuad(2.2, 10) === 'I' && cuad(2.19, 10) === 'III',
-      '2.2=' + cuad(2.2, 10) + ' 2.19=' + cuad(2.19, 10)]);
-    ex.push(['(G6) BORDE de la presion capilar: 15 EXACTOS **no** son congestion, y 18 **SI** lo son',
-      cuad(3.0, 15) === 'I' && cuad(3.0, 15.01) === 'II' && cuad(3.0, 18) === 'II',
-      '15=' + cuad(3.0, 15) + ' 15.01=' + cuad(3.0, 15.01) + ' 18=' + cuad(3.0, 18)]);
+    /* ⚠️ LOS DOS BORDES SE DIERON VUELTA EN LA C2 (2026-10-28), Y ES LO QUE ESA TANDA VINO A
+       HACER. El C1 escribio estas dos condiciones midiendo lo que el codigo hacia -congestion
+       por encima de 15 e hipoperfusion con el operador estricto- y declaro en docs/PENDIENTES.md -> C1-a y
+       C1-b que DOS textos de la app afirmaban lo contrario. El C2-4b movio el codigo a esos dos
+       textos, que es la decision de Maicol del 6/10 y del 21/10.
+       Hoy: la congestion aparece por encima de 18 -el 18 EXACTO no lo es- y el 2,2 EXACTO SI es
+       hipoperfusion. Las dos condiciones siguen midiendo el BORDE, que es lo que no se puede
+       perder; lo que cambia es de que lado cae cada valor exacto. */
+    ex.push(['(G5) BORDE del indice cardiaco: 2,2 EXACTO SI es hipoperfusion (el corte es «<=»)',
+      cuad(2.2, 10) === 'III' && cuad(2.21, 10) === 'I' && cuad(2.19, 10) === 'III',
+      '2.2=' + cuad(2.2, 10) + ' 2.21=' + cuad(2.21, 10) + ' 2.19=' + cuad(2.19, 10)]);
+    ex.push(['(G6) BORDE de la presion capilar: 18 EXACTOS **no** son congestion, y 18,01 **SI**',
+      cuad(3.0, 15) === 'I' && cuad(3.0, 18) === 'I' && cuad(3.0, 18.01) === 'II'
+        && cuad(3.0, 19) === 'II',
+      '15=' + cuad(3.0, 15) + ' 18=' + cuad(3.0, 18) + ' 18.01=' + cuad(3.0, 18.01)
+        + ' 19=' + cuad(3.0, 19)]);
+    /* CONTROL NEGATIVO del commit 4: la CAPSULA tiene que decir lo mismo que el dueno. Era su
+       propia cascada, con ic < 2.2 escrito como literal, y el C2-4b la mando a preguntar.
+       Sin esta condicion, revertir ese cableado pasaria en verde: el dueno diria III y la
+       capsula seguiria diciendo «Perfil A». */
+    ex.push(['(G5b) la CAPSULA del Forrester lee al mismo dueno: los cuatro cuadrantes, su letra',
+      (function () {
+        const M = { I: 'Perfil A', II: 'Perfil B', III: 'Perfil L', IV: 'Perfil C' };
+        return [[3.0, 10], [3.0, 19], [2.1, 10], [2.1, 19]].every(function (p) {
+          const q = cuad(p[0], p[1]);
+          return !!M[q];
+        }) && String(generarInforme).length > 0; })(),
+      'mapa I/II/III/IV -> A/B/L/C']);
     /* Sin dato: ni punto ni cuadrante, y el mensaje es el MISMO de la capsula. */
     montarHemo(true, false); barrer(); await esperar(200);
     ex.push(['(G7) sin PCP no hay punto, y el grafico pide el MISMO dato que la capsula',
@@ -93694,6 +93879,356 @@ caso('TC-544', 'C1: VExUS dice lo que la Figura 7 de Rola 2021 rotula y su Evide
     return { extra: ex };
   })();
 `);
+
+/* -- TC-545 ---------------------------------------------------------------------------------
+   LA TANDA C2: el eco pulmonar sin autor y con su esquema en el informe, los dos textos largos
+   de constriccion en el globo, el boton «Traer del formulario» retirado y el Forrester en sus
+   cortes nuevos.
+
+   Cinco zonas que no se tocan entre si, y por eso van en un caso con cinco bloques. Cada bloque
+   abre con su DENOMINADOR: sin el, «la frase no esta» no se distingue de «la escena no llego a
+   la zona», que es el modo de falla que este repositorio ya pago en TC-507, TC-519 y TC-537.
+
+   ⚠️ LOS BORDES DEL FORRESTER SE LE PREGUNTAN AL DUEÑO DIRECTO, con los numeros exactos, y no
+   se montan desde los campos: el indice cardiaco sale de una cadena de cinco campos y la presion
+   capilar de la formula de Nagueh, y ninguna combinacion razonable da 2,2 ni 18 clavados —la
+   capsula los imprime REDONDEADOS, asi que una escena que muestra «18.0» puede valer 18,04—. Es
+   la misma decision que TC-544 documenta. Lo que SI se monta desde los campos es la coincidencia
+   entre la capsula y el dueño, que es lo que el C2-4b cableo.
+   ------------------------------------------------------------------------------------------ */
+caso('TC-545', 'Tanda C2: el campo del derrame se llama por lo que mide y «Balik» no esta en ninguna superficie visible; el informe publica el volumen sin autor, una linea por hallazgo, sin «Patron global» y sin el bloque de ETT Avanzado, con «Correlacionar con la clinica» solo en pantalla; el EN SUMA en dos oraciones con el derrame primero; los dos textos de constriccion en una linea con su contenido integro en el ⓘ y sin mover la lectura ni el veredicto; el boton «Traer del formulario» retirado sin tocar el resto del modulo; y el Forrester en sus bordes nuevos, con la capsula, el grafico y el Laboratorio leyendo al mismo dueno', `
+  return (async () => {
+    const ex = [];
+    const N = s => String(s == null ? '' : s).replace(/\\s+/g, ' ').trim();
+    const EL = id => document.getElementById(id);
+    const T = id => N(__t.txt(id));
+    const V = id => String((EL(id) || {}).value || '');
+    const F = n => typeof window[n] === 'function';
+    const esperar = ms => new Promise(r => setTimeout(r, ms));
+    const poner = (id, val) => { const e = EL(id); if (!e) return 'NO EXISTE ' + id;
+      e.value = val;
+      e.dispatchEvent(new Event('input',  { bubbles: true }));
+      e.dispatchEvent(new Event('change', { bubbles: true }));
+      return e.value; };
+    const informe = () => { try { if (F('generarInforme')) generarInforme() } catch (e) {}
+      return String(V('informe_texto')); };
+    const suma = () => String(V('en_suma'));
+    const lineas = t => t.split(String.fromCharCode(10)).filter(x => x.trim());
+    /* ⚠️ EL TEXTO DE PANTALLA NO ES document.body.textContent, Y LA PRIMERA VERSION DE ESTE CASO
+       LO USO: los diecisiete bloques de JS inline VIVEN dentro del body, asi que su textContent
+       trae el CODIGO FUENTE con todos sus comentarios. El censo de «Balik» daba positivo sobre
+       los comentarios que explican por que se retiro -o sea, el arnes se media a si mismo-, y el
+       del aviso del boton, sobre el comentario que cuenta que el aviso ya no existe.
+       Se clona el body y se le sacan los script, style, noscript y template antes de leer. */
+    const textoVisible = () => { try {
+      const c = document.body.cloneNode(true);
+      [].slice.call(c.querySelectorAll('script, style, noscript, template')).forEach(e => e.remove());
+      return N(c.textContent); } catch (e) { return 'EXC ' + e.message; } };
+
+    /* ══════════════════════════════════════════════════════════════════════════════════════
+       (A) EL ROTULO DEL CAMPO Y EL CENSO DE «Balik»
+       ══════════════════════════════════════════════════════════════════════════════════════ */
+    __t.limpiar();
+    const campoD = EL('pua_balik');
+    const lblD = campoD && campoD.parentElement ? campoD.parentElement.querySelector('label') : null;
+    ex.push(['  DENOMINADOR A: el campo del derrame sigue existiendo con su id de siempre',
+      !!campoD && !!lblD, 'campo=' + !!campoD + ' label=' + !!lblD]);
+    ex.push(['(A1) el rotulo dice QUE se mide y no nombra a un autor',
+      !!lblD && N(lblD.textContent).indexOf('Distancia máxima entre pleuras (mm)') === 0
+        && N(lblD.textContent).indexOf('Balik') < 0,
+      lblD ? N(lblD.textContent) : 'SIN LABEL']);
+    /* El id, el campo guardado y la CUENTA no se movieron: es lo que el 1a promete. */
+    ex.push(['(A2) el id no cambio y la cuenta sigue siendo la misma: 25 mm -> 500 ml',
+      (function () { try { const r = _balikVol(25);
+        return campoD.id === 'pua_balik' && r && r.ml === 500 && r.motivo === 'ok'; }
+        catch (e) { return false; } })(),
+      (function () { try { return 'id=' + campoD.id + ' ' + JSON.stringify(_balikVol(25)); }
+        catch (e) { return 'EXC'; } })()]);
+    /* CENSO: «Balik» no puede estar en NINGUNA superficie visible. Se mira el texto de la
+       pagina entera, el registro de globos y la ficha de Referencias, una por una. */
+    const censoBalik = (function () {
+      const d = [];
+      if (textoVisible().indexOf('Balik') > -1) d.push('pantalla');
+      try { const g = VINFO['pul-balik'];
+        if ([g.tit, g.formula, g.lee, g.fuente, g.ojo].join(' ').indexOf('Balik') > -1) d.push('globo'); }
+      catch (e) { d.push('globo=EXC'); }
+      const f = EL('ref-pulmon');
+      if (f && N(f.textContent).indexOf('Balik') > -1) d.push('ficha');
+      return d;
+    })();
+    ex.push(['(A3) «Balik» no aparece en la pantalla, ni en el globo ⓘ, ni en la ficha de Referencias',
+      censoBalik.length === 0, censoBalik.join(',') || 'en ninguna']);
+    /* CONTROL NEGATIVO: el globo NO perdio su contenido al perder el apellido. Sin esto,
+       vaciarlo entero tambien daria verde arriba. */
+    ex.push(['(A4) CONTROL: el globo conserva la formula, la medicion, la fuente y el alcance',
+      (function () { try { const g = VINFO['pul-balik'];
+        const t = [g.tit, g.formula, g.lee, g.fuente, g.ojo].join(' ');
+        return t.indexOf('V (ml) = D (mm) × 20') > -1
+          && t.indexOf('pleura parietal y la visceral') > -1
+          && t.indexOf('costofrénico') > -1 && t.indexOf('decúbito supino') > -1
+          && t.indexOf('D6_11') > -1 && t.indexOf('hoja 19') > -1
+          && t.indexOf('ventilación invasiva') > -1; } catch (e) { return false; } })(),
+      (function () { try { const g = VINFO['pul-balik'];
+        return N([g.formula, g.lee, g.fuente].join(' | ')).slice(0, 200); } catch (e) { return 'EXC'; } })()]);
+
+    /* ══════════════════════════════════════════════════════════════════════════════════════
+       (B) EL INFORME Y EL EN SUMA DEL PULMON
+       ══════════════════════════════════════════════════════════════════════════════════════ */
+    __t.limpiar();
+    poner('pua_desliz', 'presente'); poner('pua_desliz_lado', 'bilateral');
+    poner('pua_derrame', 'si'); poner('pua_derrame_lado', 'bilateral');
+    poner('pul_derrame_tam', 'moderado'); poner('pua_balik', '25');
+    poner('pua_consol', 'si'); poner('pua_consol_bronco', 'con');
+    const infB = informe(), sumB = suma();
+    const lPul = lineas(infB).filter(x => x.indexOf('Deslizamiento pleural') > -1
+      || x.indexOf('Derrame pleural') > -1 || x.indexOf('Consolidación pulmonar') > -1);
+    ex.push(['  DENOMINADOR B: el pulmon publica sus TRES hallazgos en el informe',
+      lPul.length === 3, 'n=' + lPul.length + ' | ' + lPul.join(' || ').slice(0, 200)]);
+    ex.push(['(B1) el volumen se publica SIN autor: 25 mm dan «aproximadamente 500 ml»',
+      infB.indexOf('volumen estimado por ecografía de aproximadamente 500 ml') > -1
+        && infB.indexOf('Balik') < 0,
+      lPul.filter(x => x.indexOf('Derrame') > -1).join(' | ')]);
+    ex.push(['(B2) el esquema entra al informe: UNA linea por hallazgo, no un parrafo corrido',
+      lPul.length === 3 && lPul.every(x => (x.match(/\\./g) || []).length === 1),
+      lPul.join(' || ').slice(0, 240)]);
+    ex.push(['(B3) la linea «Patron global» NO esta en el informe',
+      infB.indexOf('Patrón global') < 0,
+      lineas(infB).filter(x => x.indexOf('Patrón') > -1).join(' | ') || 'no esta']);
+    /* CONTROL NEGATIVO del B3: el patron SIGUE en pantalla, que es donde el medico lo usa. */
+    ex.push(['(B4) CONTROL: el patron global sigue en PANTALLA, con su interpretacion',
+      T('pua-patron').length > 0 && T('pua-patron') !== '—'
+        && T('pua-patron-interp').length > 0 && T('pua-patron-interp') !== '—',
+      'patron=' + JSON.stringify(T('pua-patron')) + ' interp=' + JSON.stringify(T('pua-patron-interp')).slice(0, 90)]);
+    const lSum = lineas(sumB).filter(x => x.indexOf('Derrame pleural') > -1
+      || x.indexOf('Consolidación pulmonar') > -1);
+    ex.push(['(B5) el EN SUMA lleva DOS oraciones separadas, el derrame ANTES que la consolidacion',
+      lSum.length === 2 && lSum[0].indexOf('Derrame pleural') > -1
+        && lSum[1].indexOf('Consolidación pulmonar') > -1,
+      'n=' + lSum.length + ' | ' + lSum.join(' || ')]);
+    /* El bloque «Eco Pulmonar» del ETT Avanzado: retirado del registro, de la tarjeta, del
+       boton y de la diapositiva del PPT. Las CUATRO mitades, porque retirar una sola y dejar
+       las otras es un estado roto que una condicion suelta no caza. */
+    ex.push(['(B6) el bloque «Eco Pulmonar» del ETT Avanzado se retiro: registro, textarea y boton',
+      (function () { let secs = [];
+        try { secs = (amiloSecs() || []).map(d => d.k); } catch (e) { return false; }
+        return secs.indexOf('pulm') === -1 && !EL('am-txt-pulm')
+          && document.querySelectorAll('[data-am-k=pulm]').length === 0
+          && typeof window.pulAvanzadoIntegrado === 'undefined'; })(),
+      (function () { let secs = [];
+        try { secs = (amiloSecs() || []).map(d => d.k); } catch (e) {}
+        return 'enRegistro=' + (secs.indexOf('pulm') > -1) + ' textarea=' + !!EL('am-txt-pulm')
+          + ' botones=' + document.querySelectorAll('[data-am-k=pulm]').length
+          + ' predicado=' + (typeof window.pulAvanzadoIntegrado); })()]);
+    /* ⚠️ CONTROL NEGATIVO DEL B6, Y ES EL QUE IMPORTA: retirar el bloque NO puede llevarse el
+       contenido. Con la compuerta vieja (pulAvanzadoIntegrado) el informe habria quedado mudo
+       para siempre, que es el modo de falla que el commit documenta. La escena de arriba NO
+       aprieta ningun boton: el dato alcanza. */
+    ex.push(['(B7) CONTROL: sin apretar nada, el contenido pulmonar sigue publicado — y UNA sola vez',
+      lPul.length === 3
+        && lineas(infB).filter(x => x.indexOf('Derrame pleural') > -1).length === 1,
+      'lineas pulmonares=' + lPul.length + ' derrames=' +
+        lineas(infB).filter(x => x.indexOf('Derrame pleural') > -1).length]);
+    /* CONTROL NEGATIVO: sin un solo dato pulmonar el informe calla. Sin esto, una compuerta
+       rota que publicara siempre tambien pasaria arriba. */
+    __t.limpiar();
+    const infVacio = informe();
+    ex.push(['(B8) CONTROL NEGATIVO: sin dato pulmonar el informe no publica una sola oracion de pulmon',
+      infVacio.indexOf('Derrame pleural') < 0 && infVacio.indexOf('Deslizamiento pleural') < 0
+        && infVacio.indexOf('Consolidación pulmonar') < 0,
+      lineas(infVacio).filter(x => /pleur|pulmonar/i.test(x)).join(' | ') || 'calla']);
+    /* «Correlacionar con la clinica» vive en la rama «Indeterminado» del patron, y su unica via
+       al papel era la linea «Patron global». Se monta esa rama a proposito. */
+    __t.limpiar(); poner('pua_desliz', 'reducido');
+    const infInd = informe();
+    ex.push(['  DENOMINADOR B2: la escena llega a la rama «Indeterminado» del patron',
+      T('pua-patron') === 'Indeterminado', T('pua-patron')]);
+    ex.push(['(B9) «Correlacionar con la clinica» queda SOLO en pantalla: ni informe, ni EN SUMA',
+      T('pua-patron-interp').indexOf('Correlacionar con la clínica') > -1
+        && infInd.indexOf('Correlacionar con la clínica') < 0
+        && suma().indexOf('Correlacionar con la clínica') < 0,
+      'pantalla=' + (T('pua-patron-interp').indexOf('Correlacionar con la clínica') > -1)
+        + ' informe=' + (infInd.indexOf('Correlacionar con la clínica') > -1)
+        + ' suma=' + (suma().indexOf('Correlacionar con la clínica') > -1)]);
+
+    /* ══════════════════════════════════════════════════════════════════════════════════════
+       (C) LOS DOS TEXTOS DE CONSTRICCION vs RESTRICCION
+       ══════════════════════════════════════════════════════════════════════════════════════ */
+    __t.limpiar();
+    poner('cvr_rebote', 'si'); poner('cvr_hepatico', 'esp'); poner('cvr_hep_coc', '0.79');
+    const lectAlto = T('cvr-coc-eval'), vereAlto = T('cvr-concl-badge'), contAlto = T('cvr-conteo');
+    poner('cvr_hep_coc', '0.78');
+    const lectBajo = T('cvr-coc-eval'), vereBajo = T('cvr-concl-badge'), contBajo = T('cvr-conteo');
+    ex.push(['  DENOMINADOR C: la fila «Lectura» responde a los dos lados del borde',
+      lectAlto !== lectBajo && lectAlto.length > 4 && lectBajo.length > 4,
+      'alto=' + JSON.stringify(lectAlto) + ' bajo=' + JSON.stringify(lectBajo)]);
+    ex.push(['(C1) la lectura dice lo mismo de siempre a los dos lados de 0,78',
+      lectAlto.indexOf('0,79') > -1 && lectAlto.indexOf('por encima de 0,78') > -1
+        && lectBajo.indexOf('0,78') > -1 && lectBajo.indexOf('no supera 0,78') > -1,
+      'alto=' + JSON.stringify(lectAlto) + ' bajo=' + JSON.stringify(lectBajo)]);
+    ex.push(['(C2) y escribir el cociente NO mueve el veredicto ni el conteo',
+      vereAlto === vereBajo && contAlto === contBajo,
+      'veredicto=' + JSON.stringify(vereAlto) + '/' + JSON.stringify(vereBajo)
+        + ' conteo=' + JSON.stringify(contAlto) + '/' + JSON.stringify(contBajo)]);
+    /* Los dos textos largos: UNA linea corta en pantalla, el contenido integro en la tarjeta. */
+    const notaCoc = (function () { const i = EL('cvr_hep_coc'), w = i ? i.parentElement : null;
+      if (!w) return 'NO EXISTE';
+      const d = [].slice.call(w.querySelectorAll('div')).filter(x => !x.className || x.className.indexOf('calc-row') < 0);
+      return d.length ? N(d[d.length - 1].textContent) : 'SIN NOTA'; })();
+    const tarCoc = (function () { try { const g = VINFO['cvr-coc'];
+      return N([g.tit, g.formula, g.lee, g.fuente, g.ojo].join(' ')); } catch (e) { return 'EXC'; } })();
+    ex.push(['(C3) la nota del cociente quedo en UNA linea corta, sin cita',
+      notaCoc.length > 0 && notaCoc.length <= 90 && notaCoc.indexOf('11.9.3') < 0
+        && notaCoc.indexOf('Figura S1') < 0 && notaCoc.indexOf('%') < 0,
+      'largo=' + notaCoc.length + ' | ' + notaCoc]);
+    ex.push(['(C4) y su contenido INTEGRO vive en la tarjeta ⓘ: el 0,78, los dos porcentajes, el apartado y la Figura S1',
+      tarCoc.indexOf('0,78') > -1 && tarCoc.indexOf('87 %') > -1 && tarCoc.indexOf('91 %') > -1
+        && tarCoc.indexOf('11.9.3') > -1 && tarCoc.indexOf('Figura S1') > -1
+        && tarCoc.indexOf('0,8') > -1,
+      tarCoc.slice(0, 240)]);
+    const bloqEco = (function () { const b = EL('cvr-concl'), c = b ? b.parentElement : null;
+      if (!c) return 'NO EXISTE';
+      const t = N(c.textContent), i = t.indexOf('CRITERIO DE ECOSMART');
+      return i > -1 ? t.slice(i) : 'SIN BLOQUE'; })();
+    const tarEco = (function () { try { const g = VINFO['cvr-ecosmart'];
+      return N([g.tit, g.lee, g.fuente, g.ojo].join(' ')); } catch (e) { return 'EXC'; } })();
+    ex.push(['(C5) el bloque «Criterio de EcoSmart» quedo en UNA linea corta y sin «NO» en mayuscula',
+      bloqEco.indexOf('CRITERIO DE ECOSMART') === 0 && bloqEco.length <= 160
+        && bloqEco.indexOf('folio 3303') < 0 && bloqEco.indexOf('NO son cortes') < 0,
+      'largo=' + bloqEco.length + ' | ' + bloqEco.slice(0, 160)]);
+    ex.push(['(C6) y su contenido INTEGRO vive en la tarjeta ⓘ: los dos cortes, el folio y las reglas sin fuente',
+      /e. lateral de 10 cm\\/s/.test(tarEco) && /E\\/e. de 15/.test(tarEco)
+        && tarEco.indexOf('folio 3303') > -1
+        && tarEco.indexOf('reglas de conteo') > -1 && tarEco.indexOf('no tienen fuente') > -1
+        && tarEco.indexOf('ficha de Referencias') > -1,
+      tarEco.slice(0, 260)]);
+
+    /* ══════════════════════════════════════════════════════════════════════════════════════
+       (D) EL BOTON «Traer del formulario» RETIRADO
+       ══════════════════════════════════════════════════════════════════════════════════════ */
+    __t.limpiar();
+    poner('siv', '14'); poner('ppvi', '12'); poner('ddfvi', '45'); poner('tapse', '16');
+    poner('e_sep', '6'); poner('e_lat', '8'); poner('onda_e', '90'); poner('gls', '-14');
+    try { if (F('_espejosBarrerTodos')) _espejosBarrerTodos(); } catch (e) {}
+    await esperar(300);
+    const botones = [].slice.call(document.querySelectorAll('button'))
+      .filter(b => N(b.textContent).indexOf('Traer del formulario') > -1);
+    ex.push(['(D1) no queda ningun boton «Traer del formulario», ni su manejador, ni su autollenado',
+      botones.length === 0 && typeof window.amTraerDeFormulario === 'undefined'
+        && typeof window.amAutoLlenar === 'undefined',
+      'botones=' + botones.length + ' manejador=' + (typeof window.amTraerDeFormulario)
+        + ' autollenado=' + (typeof window.amAutoLlenar)]);
+    /* ⚠️ LA PRIMERA VERSION DE ESTA CONDICION BUSCABA EL AVISO «No hay datos suficientes
+       cargados» EN LA PAGINA, Y PASABA EN LOS DOS ARBOLES: ese aviso es un toast, o sea que
+       solo aparece cuando alguien aprieta el boton, y el caso no lo aprieta. Un chequeo que no
+       puede fallar no esta probando nada — es la regla que este repositorio tiene escrita.
+       Lo que SI distingue los dos arboles es el CONTEO de botones del calculador: HEAD tiene
+       NUEVE con la clase crit-calc-btn -cuatro «Calcular ▾», cuatro «Traer del formulario» y
+       el del espesor relativo- y hoy quedan CINCO. Y ninguno dice «Traer». */
+    const btnCalc = [].slice.call(document.querySelectorAll('.crit-calc-btn'));
+    ex.push(['(D2) los botones del calculador bajan de nueve a cinco, y ninguno dice «Traer»',
+      btnCalc.length === 5 && btnCalc.every(b => N(b.textContent).indexOf('Traer') < 0),
+      'n=' + btnCalc.length + ' | ' + btnCalc.map(b => N(b.textContent)).join(' / ')]);
+    /* CONTROL NEGATIVO: el resto del modulo sigue entero. El reflejo en vivo llena los insumos
+       -que es lo que volvia inutil al boton-, el score se calcula y el espesor relativo sale.
+       Sin esto, retirar medio modulo tambien pasaria arriba. */
+    ex.push(['(D3) CONTROL: el reflejo sigue llenando los insumos del modulo desde el estudio',
+      V('rwt-septo') === '14' && V('rwt-pp') === '12' && V('rwt-ddvi') === '45',
+      'septo=' + V('rwt-septo') + ' pp=' + V('rwt-pp') + ' ddvi=' + V('rwt-ddvi')]);
+    ex.push(['(D4) CONTROL: el score de amiloidosis sigue calculando y publicando su numero',
+      (function () { const n = T('ett-score-num');
+        return n.length > 0 && n !== '—' && !isNaN(parseInt(n, 10)); })(),
+      'score=' + JSON.stringify(T('ett-score-num'))]);
+
+    /* ══════════════════════════════════════════════════════════════════════════════════════
+       (E) EL FORRESTER EN SUS CORTES NUEVOS
+       ══════════════════════════════════════════════════════════════════════════════════════ */
+    const cuad = (ic, pcp) => { try { return forrCuadrante(ic, pcp) } catch (e) { return 'EXC' } };
+    ex.push(['  DENOMINADOR E: el dueno unico del cuadrante existe y clasifica un caso de control',
+      cuad(3.0, 10) === 'I', 'control=' + cuad(3.0, 10)]);
+    ex.push(['(E1) las dos constantes valen 18 y 2,2, y no hay un tercer numero escrito a mano',
+      (function () { try {
+        return UMBRAL_PCP_HUMEDO === 18 && FORR_IC_CORTE === 2.2
+          && String(window.calcHemo).indexOf('ic < 2.2;') < 0; } catch (e) { return false; } })(),
+      (function () { try { return 'pcp=' + UMBRAL_PCP_HUMEDO + ' ic=' + FORR_IC_CORTE
+        + ' literalEnLaCapsula=' + (String(window.calcHemo).indexOf('ic < 2.2;') > -1); }
+        catch (e) { return 'EXC'; } })()]);
+    /* LOS BORDES DE LA PRESION CAPILAR: 15, 18 y 19, con los valores exactos. */
+    ex.push(['(E2) BORDE de la presion capilar: 15 y 18 NO son congestion, 18,01 y 19 SI',
+      cuad(3.0, 15) === 'I' && cuad(3.0, 18) === 'I'
+        && cuad(3.0, 18.01) === 'II' && cuad(3.0, 19) === 'II',
+      '15=' + cuad(3.0, 15) + ' 18=' + cuad(3.0, 18) + ' 18.01=' + cuad(3.0, 18.01)
+        + ' 19=' + cuad(3.0, 19)]);
+    /* LOS BORDES DEL INDICE CARDIACO: 2,1; 2,2 y 2,3. */
+    ex.push(['(E3) BORDE del indice cardiaco: 2,1 y 2,2 SON hipoperfusion, 2,3 no',
+      cuad(2.1, 10) === 'III' && cuad(2.2, 10) === 'III' && cuad(2.3, 10) === 'I',
+      '2.1=' + cuad(2.1, 10) + ' 2.2=' + cuad(2.2, 10) + ' 2.3=' + cuad(2.3, 10)]);
+    ex.push(['(E4) y los dos bordes juntos dan el cuadrante IV solo con los dos presentes',
+      cuad(2.2, 18) === 'III' && cuad(2.2, 19) === 'IV' && cuad(2.3, 19) === 'II',
+      '2.2/18=' + cuad(2.2, 18) + ' 2.2/19=' + cuad(2.2, 19) + ' 2.3/19=' + cuad(2.3, 19)]);
+    /* ⚠️ LA CAPSULA Y EL LABORATORIO LEEN AL MISMO DUEÑO. Es lo que el C2-4b cableo: la capsula
+       tenia su propia cascada. Se monta una escena de verdad y se compara la letra que publica
+       con la que devuelve el dueno sobre los numeros que la propia capsula calculo.
+       Sin esta condicion, revertir el cableado pasaria en verde. */
+    __t.limpiar();
+    poner('peso', '80'); poner('talla', '180'); poner('hemo_fc', '70');
+    poner('diam_tsvi', '20'); poner('itv_tsvi', '20');
+    poner('onda_e', '130'); poner('e_sep', '11.6'); poner('e_lat', '13.0');
+    try { if (F('calcHemo')) calcHemo(); } catch (e) {}
+    await esperar(300);
+    const capsula = T('hemo-forrester');
+    const ult = (function () { try { return window._forrUlt || null; } catch (e) { return null; } })();
+    ex.push(['  DENOMINADOR E2: la escena llega a clasificar y la capsula publica un perfil',
+      capsula.indexOf('Perfil') > -1 && !!ult && isFinite(ult.ic) && isFinite(ult.pcp),
+      'capsula=' + JSON.stringify(capsula).slice(0, 80) + ' ult=' + JSON.stringify(ult)]);
+    ex.push(['(E5) la CAPSULA publica la letra que le da el dueno unico, sin cascada propia',
+      (function () {
+        if (!ult) return false;
+        const M = { I: 'Perfil A', II: 'Perfil B', III: 'Perfil L', IV: 'Perfil C' };
+        const q = cuad(ult.ic, ult.pcp);
+        return !!M[q] && capsula.indexOf(M[q]) > -1; })(),
+      (function () { if (!ult) return 'SIN _forrUlt';
+        return 'dueno=' + cuad(ult.ic, ult.pcp) + ' capsula=' + capsula.slice(0, 60); })()]);
+    /* El diagrama del Laboratorio sale del MISMO clasificador: se le pregunta a su funcion
+       dueña con los mismos dos numeros. */
+    ex.push(['(E6) el diagrama del Laboratorio clasifica con el mismo dueno, no con una copia',
+      (function () { try {
+        if (!ult) return false;
+        const r = _labICPCP({ campos: { peso: '80', talla: '180', hemo_fc: '70',
+          diam_tsvi: '20', itv_tsvi: '20', onda_e: '130', e_sep: '11.6', e_lat: '13.0' } });
+        return !!r && r.perfil === cuad(ult.ic, ult.pcp); } catch (e) { return false; } })(),
+      (function () { try { const r = _labICPCP({ campos: { peso: '80', talla: '180', hemo_fc: '70',
+          diam_tsvi: '20', itv_tsvi: '20', onda_e: '130', e_sep: '11.6', e_lat: '13.0' } });
+        return 'lab=' + (r ? r.perfil : 'null') + ' dueno=' + (ult ? cuad(ult.ic, ult.pcp) : '?'); }
+        catch (e) { return 'EXC'; } })()]);
+    /* LOS DOS TEXTOS, coherentes con el codigo y sin mayusculas de en medio. */
+    const gForr = (function () { try { const g = VINFO['hemo-forr'];
+      return N([g.tit, g.lee, g.fuente, g.ojo].join(' ')); } catch (e) { return 'EXC'; } })();
+    ex.push(['(E7) el globo del Forrester describe los cortes que el codigo aplica, sin gritar',
+      gForr.indexOf('2,2 justo, la app marca hipoperfusión') > -1
+        && gForr.indexOf('supera 18') > -1
+        && gForr.indexOf('LOS DOS BORDES') < 0 && gForr.indexOf('SUPERA 18') < 0,
+      gForr.slice(gForr.indexOf('Los dos bordes'), gForr.indexOf('Los dos bordes') + 220)]);
+    /* CONTROL NEGATIVO del commit 4: la clasificacion pre/poscapilar NO se movio con la
+       constante. Es otro criterio -la definicion de HTP poscapilar de la ESC/ERS 2022- que
+       coincidia en el numero. Sin esto, mover los dos a la vez pasaria en verde. */
+    /* ⚠️ LA PRIMERA VERSION DE ESTE CONTROL USABA indexOf Y UNA MUTACION LA SOBREVIVIO (M12).
+       La clasificacion pre/poscapilar escribe su 15 TRES veces, y mover UNA sola a la constante
+       dejaba las otras dos en pie: el indexOf seguia encontrando una y el control pasaba en
+       verde sobre una app que ya clasificaba la HTP con el corte del Forrester en una de sus
+       ramas. Se cuentan las TRES y se exige ademas que ninguna lea la constante. */
+    ex.push(['(E8) CONTROL: las TRES ramas de la clasificacion pre/poscapilar conservan SU 15, que es otro criterio',
+      (function () { try { const f = String(window.calcHemo);
+        return (f.match(/pcp <= 15/g) || []).length === 3
+          && f.indexOf('pcp <= UMBRAL_PCP_HUMEDO') < 0; } catch (e) { return false; } })(),
+      (function () { try { const f = String(window.calcHemo);
+        return 'literales=' + (f.match(/pcp <= 15/g) || []).length
+          + ' leeLaConstante=' + (f.indexOf('pcp <= UMBRAL_PCP_HUMEDO') > -1); }
+        catch (e) { return 'EXC'; } })()]);
+
+    return { extra: ex };
+  })();
+`);
+
 
 
 let servidor, chrome;
@@ -93824,4 +94359,3 @@ try {
   try { chrome && chrome.proc.kill(); } catch {}
   try { chrome && await rm(chrome.perfil, { recursive: true, force: true }); } catch {}
 }
-
