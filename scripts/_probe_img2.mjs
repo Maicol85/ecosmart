@@ -19,6 +19,8 @@
 import { createServer } from 'node:http';
 import { spawn } from 'node:child_process';
 import { readFile, mkdtemp, rm } from 'node:fs/promises';
+import { readdirSync, statSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
 import { rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, dirname, extname, isAbsolute, basename } from 'node:path';
@@ -576,6 +578,193 @@ window.__I2 = {
       });
     }) },
 
+  /* ── EL ARMADO DEL PPT (commit 4) ─────────────────────────────────────────────────────────
+     Se prende la casilla REAL, se eligen miniaturas con clics REALES y se mide el orden, el
+     limite y el aviso. El archivo se genera de verdad y se verifica desde node. */
+  pptPrender() {
+    var chk = document.getElementById('ig-ppt-on');
+    if (!chk) return 'NO EXISTE ig-ppt-on';
+    chk.checked = true;
+    chk.dispatchEvent(new Event('change', { bubbles:true }));
+    return new Promise(function(res){ setTimeout(function(){
+      res({ on: (typeof _igImgPpt !== 'undefined') ? _igImgPpt : 'NO EXISTE',
+            tope: (typeof IG_IMG_PPT_MAX !== 'undefined') ? IG_IMG_PPT_MAX : 'NO EXISTE',
+            por: (typeof IG_IMG_PPT_POR !== 'undefined') ? IG_IMG_PPT_POR : 'NO EXISTE',
+            botonesPor: Array.prototype.map.call(
+              document.querySelectorAll('#ig-img-side-ppt .ig-vista-btn'),
+              function(b){ return (b.textContent||'').trim() + '=' + b.getAttribute('aria-pressed') }),
+            exportar: (function(){ var e = document.getElementById('ig-ppt-exportar');
+              if (!e) return 'NO EXISTE';
+              var r = e.getBoundingClientRect();
+              return (e.textContent||'').trim() + ' ' + Math.round(r.width) + 'x' + Math.round(r.height) })(),
+            texto: (function(){ var c = document.getElementById('ig-img-side-ppt');
+              return c ? (c.textContent||'').replace(/[ \\t\\n]+/g,' ').trim().slice(0,220) : null })() });
+    }, 400) }) },
+
+  /* Elige n miniaturas EN ORDEN y mide el numero de orden que queda en cada una. */
+  pptElegir(n) {
+    /* TODOS los meses abiertos: con uno solo no hay 24 miniaturas y el tope no se puede probar.
+       Se abren por su boton real, que es lo que las construye. */
+    Array.prototype.forEach.call(
+      document.querySelectorAll('#ig-img-lista .ig-mes-grupo.cerrado .ig-mes'),
+      function(h){ h.click() });
+    var ths = document.querySelectorAll('#ig-img-lista .ig-img-th');
+    var tope = Math.min(n, ths.length);
+    var pedidos = [];
+    for (var i = 0; i < tope; i++) pedidos.push(ths[i].dataset.igN);
+    /* Se clickean de atras para adelante a proposito: asi el ORDEN DE ELECCION no coincide con
+       el orden de la grilla y la lista puede equivocarse de forma visible. */
+    var orden = [];
+    for (var k = tope - 1; k >= 0; k--) {
+      var t = document.querySelector('#ig-img-lista .ig-img-th[data-ig-n="' + pedidos[k] + '"]');
+      if (t) { t.click(); orden.push(pedidos[k]); }
+    }
+    return new Promise(function(res){ setTimeout(function(){
+      var sel = (typeof _igImgSel !== 'undefined') ? _igImgSel.map(function(x){ return x.n }) : 'NO EXISTE';
+      var ords = Array.prototype.map.call(document.querySelectorAll('#ig-img-lista .ig-img-ord'),
+        function(o){ return o.closest('.ig-img-th').dataset.igN + ':' + (o.textContent||'').trim() });
+      res({ pedidos: pedidos, ordenDeClic: orden, seleccion: sel,
+            insigniasEnGrilla: ords.sort(),
+            seleccionadas: document.querySelectorAll('#ig-img-lista .ig-img-th.sel').length,
+            filas: document.querySelectorAll('#ig-img-side-ppt .ig-img-it').length,
+            cabecera: (function(){ var c = document.getElementById('ig-img-side-ppt');
+              var ps = c ? c.querySelectorAll('p') : [];
+              return ps.length ? (ps[0].textContent||'').trim() : null })(),
+            res: (function(){ var e = document.getElementById('ig-ppt-res');
+              return e ? (e.textContent||'').trim() : 'NO EXISTE' })() });
+    }, 500) }) },
+
+  /* El LIMITE: se intenta sumar una mas por encima del tope. */
+  pptLimite() {
+    var ths = document.querySelectorAll('#ig-img-lista .ig-img-th');
+    var antes = (typeof _igImgSel !== 'undefined') ? _igImgSel.length : -1;
+    var libre = null;
+    for (var i = 0; i < ths.length; i++) {
+      if (!ths[i].classList.contains('sel')) { libre = ths[i]; break }
+    }
+    if (!libre) return Promise.resolve({ err:'no hay miniatura libre' });
+    var nLibre = libre.dataset.igN;
+    libre.click();
+    return new Promise(function(res){ setTimeout(function(){
+      res({ antes: antes,
+            despues: (typeof _igImgSel !== 'undefined') ? _igImgSel.length : -1,
+            intentada: nLibre,
+            entro: (typeof _igImgSel !== 'undefined') &&
+                   _igImgSel.some(function(x){ return String(x.n) === String(nLibre) }),
+            res: (function(){ var e = document.getElementById('ig-ppt-res');
+              return e ? (e.textContent||'').trim() : 'NO EXISTE' })() });
+    }, 400) }) },
+
+  /* Reordenar con las flechas y sacar con la cruz. */
+  pptReordenar() {
+    var filas = document.querySelectorAll('#ig-img-side-ppt .ig-img-it');
+    if (filas.length < 2) return Promise.resolve({ err:'menos de dos filas' });
+    var antes = _igImgSel.map(function(x){ return x.n });
+    var bajar = filas[0].querySelectorAll('button');
+    var bt = null;
+    Array.prototype.forEach.call(bajar, function(b){ if ((b.textContent||'').trim() === '\u2193') bt = b });
+    if (!bt) return Promise.resolve({ err:'sin flecha' });
+    bt.click();
+    return new Promise(function(res){ setTimeout(function(){
+      var medio = _igImgSel.map(function(x){ return x.n });
+      var f2 = document.querySelectorAll('#ig-img-side-ppt .ig-img-it');
+      var cruz = null;
+      Array.prototype.forEach.call(f2[0].querySelectorAll('button'), function(b){
+        if ((b.textContent||'').trim() === '\u2715') cruz = b });
+      if (cruz) cruz.click();
+      setTimeout(function(){
+        res({ antes: antes, trasBajar: medio,
+              trasSacar: _igImgSel.map(function(x){ return x.n }) });
+      }, 400);
+    }, 400) }) },
+
+  /* La TAPA: se abre el visor en modo tapa desde la columna, se mueve el cuadrado y se cierra. */
+  pptTapar() {
+    var filas = document.querySelectorAll('#ig-img-side-ppt .ig-img-it');
+    if (!filas.length) return Promise.resolve({ err:'sin filas' });
+    var bt = null;
+    Array.prototype.forEach.call(filas[0].querySelectorAll('button'), function(b){
+      if ((b.textContent||'').trim().indexOf('Tapar') === 0) bt = b });
+    if (!bt) return Promise.resolve({ err:'sin boton de tapar' });
+    bt.click();
+    return new Promise(function(res){ setTimeout(function(){
+      var m = document.getElementById('ig-imgv-msk');
+      var info = document.getElementById('ig-imgv-info');
+      var pie = document.getElementById('ig-imgv-pie');
+      var est = { mascaraVisible: m ? getComputedStyle(m).display !== 'none' : 'NO EXISTE',
+                  info: info ? (info.textContent||'').trim() : null,
+                  pie: pie ? (pie.textContent||'').trim() : null,
+                  medirOculto: (function(){ var e = document.getElementById('ig-imgv-medir');
+                    return e ? getComputedStyle(e).display === 'none' : 'NO EXISTE' })(),
+                  irOculto: (function(){ var e = document.getElementById('ig-imgv-ir');
+                    return e ? getComputedStyle(e).display === 'none' : 'NO EXISTE' })(),
+                  estrellaOculta: (function(){ var e = document.getElementById('ig-imgv-star');
+                    return e ? getComputedStyle(e).display === 'none' : 'NO EXISTE' })(),
+                  tapaGuardada: (typeof _igImgTapas !== 'undefined') ? _igImgTapas.size : 'NO EXISTE',
+                  rect: (typeof _igImgTapas !== 'undefined' && _igImgTapas.size)
+                    ? JSON.parse(JSON.stringify(_igImgTapas.values().next().value)) : null };
+      var cerrar = document.getElementById('ig-imgv-cerrar');
+      if (cerrar) cerrar.click();
+      setTimeout(function(){
+        var f2 = document.querySelectorAll('#ig-img-side-ppt .ig-img-it');
+        est.botonesTrasTapar = f2.length
+          ? Array.prototype.map.call(f2[0].querySelectorAll('button'),
+              function(b){ return (b.textContent||'').trim() }) : null;
+        res(est);
+      }, 500);
+    }, 700) }) },
+
+  /* El AVISO PREVIO: tiene que aparecer ANTES de generar nada. */
+  pptAviso() {
+    var e = document.getElementById('ig-ppt-exportar');
+    if (!e) return Promise.resolve('NO EXISTE');
+    e.click();
+    return new Promise(function(res){ setTimeout(function(){
+      var ov = document.getElementById('ig-ppt-aviso-ov');
+      var tx = document.getElementById('ig-ppt-aviso-txt');
+      res({ abierto: !!ov && ov.classList.contains('open'),
+            texto: tx ? (tx.textContent||'').trim() : null,
+            nombraElNombre: tx ? (tx.textContent||'').indexOf('nombre') > -1 : null,
+            botones: Array.prototype.map.call(
+              document.querySelectorAll('#ig-ppt-aviso-ov button'),
+              function(b){ var r = b.getBoundingClientRect();
+                return (b.textContent||'').trim() + ' ' + Math.round(r.width) + 'x' + Math.round(r.height) }) });
+    }, 400) }) },
+
+  /* «Volver y tapar» NO genera nada. */
+  pptVolver() {
+    var b = document.getElementById('ig-ppt-volver');
+    if (!b) return 'NO EXISTE';
+    b.click();
+    var ov = document.getElementById('ig-ppt-aviso-ov');
+    return { abierto: !!ov && ov.classList.contains('open'),
+             res: (function(){ var e = document.getElementById('ig-ppt-res');
+               return e ? (e.textContent||'').trim() : 'NO EXISTE' })() } },
+
+  /* «Exportar igual» SI genera. Devuelve el texto del resultado. */
+  pptExportar() {
+    var e = document.getElementById('ig-ppt-exportar');
+    if (!e) return Promise.resolve('NO EXISTE');
+    e.click();
+    return new Promise(function(res){ setTimeout(function(){
+      var sg = document.getElementById('ig-ppt-seguir');
+      if (sg) sg.click();
+      /* El armado lee 24 dataURL de IndexedDB, quema las tapas en canvas y comprime el zip. */
+      var t0 = Date.now();
+      var mirar = function(){
+        var r = document.getElementById('ig-ppt-res');
+        var txt = r ? (r.textContent||'').trim() : '';
+        if (txt.indexOf('PPT generado') === 0 || txt.indexOf('No se pudo') === 0 ||
+            txt.indexOf('Ninguna') === 0 || Date.now() - t0 > 45000) {
+          res({ res: txt, ms: Date.now() - t0,
+                avisoCerrado: (function(){ var o = document.getElementById('ig-ppt-aviso-ov');
+                  return !(o && o.classList.contains('open')) })() });
+          return;
+        }
+        setTimeout(mirar, 400);
+      };
+      mirar();
+    }, 400) }) },
   /* ── Que borrar un estudio se lleva sus imagenes (punto 2e) ─────────────────────────────── */
   borrarEstudio() {
     var ests;
@@ -614,6 +803,14 @@ async function main() {
   const t = targetInfos.find((x) => x.type === 'page' && x.url.includes('127.0.0.1'));
   const { sessionId } = await cdp.send('Target.attachToTarget', { targetId: t.targetId, flatten: true });
   await cdp.send('Runtime.enable', {}, sessionId);
+  /* LAS DESCARGAS VAN A UN DIRECTORIO PROPIO, para poder abrir el .pptx y mirar adentro: un PPT
+     que se genera y no se verifica es una salida nueva de la que sabemos que no tiro una
+     excepcion, nada mas. */
+  const DESC = await mkdtemp(join(tmpdir(), 'ecosmart-img2-desc-'));
+  try { await cdp.send('Browser.setDownloadBehavior',
+    { behavior: 'allow', downloadPath: DESC, eventsEnabled: true }); }
+  catch (e) { try { await cdp.send('Page.setDownloadBehavior',
+    { behavior: 'allow', downloadPath: DESC }, sessionId); } catch (e2) {} }
   const errores = [];
   await cdp.send('Log.enable', {}, sessionId).catch(() => {});
 
@@ -677,9 +874,61 @@ async function main() {
     J('window.__I2.sobreviveAlGuardado(document.querySelector("#ig-img-lista .ig-img-th").dataset.igUuid, parseInt(document.querySelector("#ig-img-lista .ig-img-th").dataset.igIdx,10))'), 60000);
   out.desmarcar = await paso('desmarcar borra la nota', J('window.__I2.desmarcar(0)'), 60000);
 
+  /* ── El armado del PPT (commit 4) ───────────────────────────────────────────────────────── */
+  out.pptPrender = await paso('prender el armado', J('window.__I2.pptPrender()'), 30000);
+  out.pptElegir = await paso('elegir 5 en orden inverso', J('window.__I2.pptElegir(5)'), 60000);
+  out.pptReordenar = await paso('reordenar y sacar', J('window.__I2.pptReordenar()'), 30000);
+  out.pptTapar = await paso('tapar datos', J('window.__I2.pptTapar()'), 60000);
+  out.pptAviso = await paso('el aviso previo', J('window.__I2.pptAviso()'), 30000);
+  out.pptVolver = await paso('volver y tapar', J('window.__I2.pptVolver()'), 30000);
+  /* El LIMITE: se eligen hasta el tope y se intenta una mas. */
+  /* La seleccion se SUELTA antes de medir el tope: los pasos anteriores dejaron elegidas y
+     «2 de 24» no prueba un limite de 24. */
+  out.pptSoltar = await paso('soltar la seleccion',
+    J('(function(){ var c=document.getElementById("ig-ppt-on"); c.checked=false; c.dispatchEvent(new Event("change",{bubbles:true})); return window.__I2.pptPrender() })()'), 30000);
+  out.pptHastaElTope = await paso('elegir hasta el tope', J('window.__I2.pptElegir(26)'), 120000);
+  out.pptLimite = await paso('una mas por encima del tope', J('window.__I2.pptLimite()'), 30000);
+  out.pptExportar = await paso('exportar de verdad', J('window.__I2.pptExportar()'), 120000);
+
   out.borrarEstudio = await paso('borrar un estudio', J('window.__I2.borrarEstudio()'), 60000);
   out.aInformes = await paso('volver a informes', J('window.__I2.cambiar("inf")'), 30000);
   out.botonesAlVolver = await paso('botones al volver', J('window.__I2.botones()'), 30000);
+
+  /* ── EL ARCHIVO, ABIERTO DE VERDAD ────────────────────────────────────────────────────────
+     Se lista el zip y se lee el XML de la primera diapositiva: se cuenta cuantas diapositivas
+     tiene, cuantas imagenes embebio y -lo que importa- que NINGUN nombre de paciente aparezca
+     en ningun XML del archivo. */
+  out.archivoPpt = (() => {
+    try {
+      const nombres = readdirSync(DESC).filter(f => f.endsWith('.pptx'));
+      if (!nombres.length) return { err: 'no se descargo ningun .pptx', dir: DESC,
+                                    hay: readdirSync(DESC) };
+      const f = join(DESC, nombres[0]);
+      const bytes = statSync(f).size;
+      const lista = execFileSync('unzip', ['-Z1', f], { encoding: 'utf8' }).trim().split('\n');
+      const slides = lista.filter(x => /^ppt\/slides\/slide\d+\.xml$/.test(x));
+      const medios = lista.filter(x => x.startsWith('ppt/media/'));
+      let textos = [];
+      for (const sl of slides) {
+        const xml = execFileSync('unzip', ['-p', f, sl], { encoding: 'utf8' });
+        const m = xml.match(/<a:t>([^<]*)<\/a:t>/g) || [];
+        textos = textos.concat(m.map(x => x.replace(/<\/?a:t>/g, '')));
+      }
+      /* El censo de fuga: los nombres que la siembra uso. Si alguno aparece en cualquier XML del
+         archivo, el PPT esta publicando el paciente. */
+      let fuga = [];
+      /* `[Content_Types].xml` se SALTA: `unzip -p` trata los corchetes como patron glob y falla
+         con «filename not matched», que tiraba el bloque entero. No lleva texto de contenido. */
+      for (const parte of lista.filter(x => x.endsWith('.xml') && x.indexOf('[') < 0)) {
+        const xml = execFileSync('unzip', ['-p', f, parte], { encoding: 'utf8' });
+        if (/Siembra \d+/.test(xml)) fuga.push(parte);
+      }
+      return { nombre: nombres[0], bytes, nombraPaciente: /Siembra/.test(nombres[0]),
+               diapositivas: slides.length, medios: medios.length,
+               textos: [...new Set(textos)].slice(0, 40),
+               xmlConNombreDePaciente: fuga };
+    } catch (e) { return { err: e.message }; }
+  })();
 
   const despues = await md5(join(RAIZ, 'index.html'));
   out.md5_index_despues = despues;
@@ -688,6 +937,7 @@ async function main() {
   console.log('__CIERRE_OK__');
   cdp.close(); proc.kill(); srv.close();
   try { await rm(perfil, { recursive: true, force: true }); } catch {}
+  try { await rm(DESC, { recursive: true, force: true }); } catch {}
   process.exit(0);
 }
 main().catch((e) => { console.error('FALLO:', e.message); process.exit(1); });

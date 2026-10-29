@@ -94458,6 +94458,27 @@ const _igImgBlobs = new Map();            /* uuid -> imgs[] CON dataURL; acotada
 const IG_IMG_CACHE_MAX = 40;              /* ~600 imágenes de calidad media, ~40 MB */
 let _igImgIO = null;                      /* el IntersectionObserver vivo */
 let _igImgGen = 0;                        /* invalida un pintado tardío */
+/* ── El armado del PPT ──────────────────────────────────────────────────────────────────────
+   `IG_IMG_PPT_MAX` sale de la demo aprobada (`maxEl = 24`), no de una estimación: la orden pide
+   tomar el límite de ahí. Las imágenes se eligen EN ORDEN —el orden de elección, reordenable— y
+   ése es el orden del mazo.
+   `_igImgTapas` guarda el rectángulo negro de cada imagen en FRACCIONES de su ancho y alto, no
+   en píxeles: el visor la muestra a 460 px de ancho y el PPT la exporta a su resolución
+   original, así que un rectángulo en píxeles del visor taparía otra cosa en el archivo. */
+const IG_IMG_PPT_MAX = 24;
+const IG_IMG_PPT_POR = [1, 2, 4];
+let _igImgPpt = false;                    /* la casilla «Armar PPT» */
+let _igImgPor = 1;                        /* imágenes por diapositiva */
+let _igImgSel = [];                       /* [{uuid, idx, n}] en el ORDEN de elección */
+const _igImgTapas = new Map();            /* 'uuid/idx' -> {x,y,w,h} en fracciones */
+let _igImgExportando = false;             /* un solo mazo a la vez */
+
+const _igClave = (uuid, idx) => uuid + '/' + idx;
+function _igImgSelPos(uuid, idx) {
+  for (let i = 0; i < _igImgSel.length; i++)
+    if (_igImgSel[i].uuid === uuid && _igImgSel[i].idx === idx) return i;
+  return -1;
+}
 
 function igImgInvalidar() {
   _igImgIndice = null;
@@ -94622,6 +94643,19 @@ function igImgAdornar(boton, it) {
   boton.appendChild(st);
   /* La nota se anuncia con un ✎ y su texto va en el `title`, nunca interpolado en marcado: lo
      escribe el médico y acá entra crudo desde el store. */
+  /* El número de ORDEN de elección, en el grupo izquierdo de la franja. Sólo existe mientras se
+     está armando un mazo: fuera de ese modo, un círculo azul numerado se leería como una
+     segunda numeración de la imagen. */
+  const pos = _igImgSelPos(it.uuid, it.idx);
+  if (_igImgPpt && pos >= 0) {
+    boton.classList.add('sel');
+    const o = document.createElement('span');
+    o.className = 'ig-img-ord';
+    o.textContent = String(pos + 1);
+    o.title = 'Posición ' + (pos + 1) + ' en el PPT';
+    const izq = boton.querySelector('.ig-img-pie > span:first-child');
+    (izq || boton).appendChild(o);
+  }
   if (it.star && it.nota) {
     const nb = document.createElement('span');
     nb.className = 'ig-img-nb';
@@ -94769,8 +94803,130 @@ function igImgPintar(estudios) {
 }
 window.igImgPintar = igImgPintar;
 
-/* Punto de extensión de la columna derecha: el armado del PPT lo agrega el commit 4. */
-function igImgSidePintar(mostradas, total) { return { mostradas, total }; }
+/* ── La columna derecha: «PowerPoint» ───────────────────────────────────────────────────────
+   Se reconstruye en cada pintado, igual que la grilla, así que todo va por DOM y con
+   `addEventListener`: un atributo `onclick` acá infla cada botón a 44 px por la regla táctil
+   global y la lista de 24 filas no entraría en 232 px de ancho. */
+function igImgSidePintar(mostradas, total) {
+  const cont = document.getElementById('ig-img-side-ppt');
+  if (!cont) return { mostradas, total };
+  cont.textContent = '';
+  const h = document.createElement('h4');
+  h.textContent = 'PowerPoint';
+  cont.appendChild(h);
+  const lab = document.createElement('label');
+  lab.style.cssText = 'display:flex;gap:6px;align-items:center;min-height:30px;';
+  const chk = document.createElement('input');
+  chk.type = 'checkbox';
+  chk.id = 'ig-ppt-on';
+  chk.checked = _igImgPpt;
+  chk.style.cssText = 'width:auto;margin:0;';
+  chk.addEventListener('change', () => {
+    _igImgPpt = chk.checked;
+    /* Apagar el armado SUELTA la selección y las tapas: dejarlas vivas hacía que el mazo
+       siguiente saliera con las imágenes del anterior, que es el defecto que el PPT del estudio
+       ya documenta para `_pptImgSel`. */
+    if (!_igImgPpt) { _igImgSel = []; _igImgTapas.clear(); igImgRes(''); }
+    if (typeof renderInformesGuardados === 'function') renderInformesGuardados();
+  });
+  lab.appendChild(chk);
+  lab.appendChild(document.createTextNode(' Armar PPT'));
+  cont.appendChild(lab);
+  if (!_igImgPpt) {
+    const ay = document.createElement('div');
+    ay.style.cssText = 'font-size:10.5px;line-height:1.5;margin-top:4px;';
+    ay.textContent = 'Al prenderlo, cada toque sobre una miniatura la suma al mazo en el orden en que la elegís.';
+    cont.appendChild(ay);
+    return { mostradas, total };
+  }
+  /* Por diapositiva: 1, 2 o 4 */
+  const fila = document.createElement('div');
+  fila.style.cssText = 'display:flex;gap:5px;align-items:center;margin:7px 0;flex-wrap:wrap;';
+  fila.appendChild(document.createTextNode('Por diapositiva'));
+  IG_IMG_PPT_POR.forEach(k => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'ig-vista-btn';
+    b.textContent = String(k);
+    b.setAttribute('aria-pressed', _igImgPor === k ? 'true' : 'false');
+    b.addEventListener('click', () => { _igImgPor = k; igImgSidePintar(mostradas, total); });
+    fila.appendChild(b);
+  });
+  cont.appendChild(fila);
+  const lst = document.createElement('div');
+  cont.appendChild(lst);
+  if (!_igImgSel.length) {
+    const p = document.createElement('p');
+    p.style.cssText = 'margin:6px 0;line-height:1.5;';
+    p.textContent = 'Tocá miniaturas para sumarlas, en el orden en que las elegís. (0 de ' + IG_IMG_PPT_MAX + ')';
+    lst.appendChild(p);
+  } else {
+    const hd = document.createElement('p');
+    hd.style.cssText = 'margin:4px 0;';
+    const hojas = Math.ceil(_igImgSel.length / _igImgPor);
+    hd.textContent = _igImgSel.length + ' de ' + IG_IMG_PPT_MAX + ' · ' + hojas +
+                     ' diapositiva' + (hojas === 1 ? '' : 's');
+    lst.appendChild(hd);
+    _igImgSel.forEach((it, i) => {
+      const r = document.createElement('div');
+      r.className = 'ig-img-it';
+      const cn = document.createElement('span');
+      cn.className = 'cn';
+      cn.textContent = String(it.n);
+      cn.title = 'Número de la imagen';
+      r.appendChild(cn);
+      const im = document.createElement('img');
+      im.alt = '';
+      im.decoding = 'async';
+      igImgBlobs(it.uuid).then(imgs => {
+        const sl = (imgs && imgs[it.idx]) ? imgs[it.idx] : null;
+        if (sl && sl.dataURL) im.src = sl.dataURL;
+      });
+      r.appendChild(im);
+      const bt = document.createElement('div');
+      bt.className = 'bt';
+      const mk = (txt, fn, ti) => {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'ig-vista-btn';
+        b.textContent = txt;
+        if (ti) b.title = ti;
+        b.setAttribute('aria-label', (ti || txt) + ' — imagen ' + it.n);
+        b.addEventListener('click', fn);
+        bt.appendChild(b);
+      };
+      const tapada = _igImgTapas.has(_igClave(it.uuid, it.idx));
+      mk(tapada ? 'Editar tapa' : 'Tapar datos',
+         () => igImgVisorAbrir(it.uuid, it.idx, it.n, true),
+         tapada ? 'Mover o estirar el cuadrado negro' : 'Tapar los datos del paciente en la imagen');
+      if (tapada) mk('Sin tapa', () => {
+        _igImgTapas.delete(_igClave(it.uuid, it.idx));
+        igImgSidePintar(mostradas, total);
+      }, 'Quitar el cuadrado negro');
+      mk('↑', () => { if (i > 0) { const [x] = _igImgSel.splice(i, 1); _igImgSel.splice(i - 1, 0, x);
+                                   if (typeof renderInformesGuardados === 'function') renderInformesGuardados(); } }, 'Subir');
+      mk('↓', () => { if (i < _igImgSel.length - 1) { const [x] = _igImgSel.splice(i, 1); _igImgSel.splice(i + 1, 0, x);
+                                   if (typeof renderInformesGuardados === 'function') renderInformesGuardados(); } }, 'Bajar');
+      mk('✕', () => igImgSelToggle(it.uuid, it.idx, it.n), 'Sacar del PPT');
+      r.appendChild(bt);
+      lst.appendChild(r);
+    });
+  }
+  const exp = document.createElement('button');
+  exp.type = 'button';
+  exp.className = 'btn';
+  exp.id = 'ig-ppt-exportar';
+  exp.style.cssText = 'margin-top:8px;width:100%;min-height:44px;';
+  exp.textContent = '📊 Exportar PPT';
+  exp.addEventListener('click', () => igImgPptPedir());
+  cont.appendChild(exp);
+  const res = document.createElement('div');
+  res.className = 'ig-img-res';
+  res.id = 'ig-ppt-res';
+  res.style.display = 'none';
+  cont.appendChild(res);
+  return { mostradas, total };
+}
 
 /* ── El cambio de vista ───────────────────────────────────────────────────────────────────── */
 function igVistaCambiar(v) {
@@ -94870,7 +95026,33 @@ function igImgStarClic(boton) {
   return true;
 }
 function igImgThClic(th) {
-  igImgVisorAbrir(th.dataset.igUuid, parseInt(th.dataset.igIdx, 10), parseInt(th.dataset.igN, 10), false);
+  const uuid = th.dataset.igUuid, idx = parseInt(th.dataset.igIdx, 10);
+  const n = parseInt(th.dataset.igN, 10);
+  /* Armando un mazo, el toque ELIGE; fuera de ese modo, ABRE. Es lo que hace la demo aprobada, y
+     la alternativa —un segundo control de selección en cada celda— no entra en 94×70 px. */
+  if (_igImgPpt) { igImgSelToggle(uuid, idx, n); return; }
+  igImgVisorAbrir(uuid, idx, n, false);
+}
+
+function igImgSelToggle(uuid, idx, n) {
+  const pos = _igImgSelPos(uuid, idx);
+  if (pos >= 0) { _igImgSel.splice(pos, 1); igImgRes(''); }
+  else {
+    if (_igImgSel.length >= IG_IMG_PPT_MAX) {
+      igImgRes('Límite de ' + IG_IMG_PPT_MAX + ' imágenes por PPT. Sacá alguna para sumar otra.');
+      return;
+    }
+    _igImgSel.push({ uuid, idx, n });
+    igImgRes('');
+  }
+  if (typeof renderInformesGuardados === 'function') renderInformesGuardados();
+}
+
+function igImgRes(txt) {
+  const e = document.getElementById('ig-ppt-res');
+  if (!e) return;
+  e.textContent = txt || '';
+  e.style.display = txt ? '' : 'none';
 }
 
 /* ── Visor de una imagen guardada ──────────────────────────────────────────────────────────── */
@@ -94899,6 +95081,13 @@ function igImgVisorCablear() {
   if (st) st.addEventListener('click', () => igImgVisorStar());
   const ta = document.getElementById('ig-imgv-nota');
   if (ta) ta.addEventListener('blur', () => { igImgNotaGuardar(); });
+  igImgTapaCablear();
+  const volver = document.getElementById('ig-ppt-volver');
+  if (volver) volver.addEventListener('click', () => igImgPptAviso(false));
+  const seguir = document.getElementById('ig-ppt-seguir');
+  if (seguir) seguir.addEventListener('click', () => { igImgPptAviso(false); igImgPptExportar(); });
+  const aov = document.getElementById('ig-ppt-aviso-ov');
+  if (aov) aov.addEventListener('click', ev => { if (ev.target === aov) igImgPptAviso(false); });
 }
 
 function igImgVisorCerrar() {
@@ -94910,7 +95099,11 @@ function igImgVisorCerrar() {
   const im = document.getElementById('ig-imgv-img');
   /* Se suelta el `dataURL`: son decenas de KB por imagen y el visor se abre muchas veces. */
   if (im) im.removeAttribute('src');
+  const eraTapa = !!(_igVisor && _igVisor.tapa);
   _igVisor = null;
+  /* Volver de tapar repinta la columna: el botón de esa fila pasa a decir «Editar tapa» y
+     aparece «Sin tapa». Sin esto, el médico tapa y la columna sigue ofreciendo tapar. */
+  if (eraTapa && typeof renderInformesGuardados === 'function') renderInformesGuardados();
 }
 window.igImgVisorCerrar = igImgVisorCerrar;
 
@@ -94933,7 +95126,14 @@ function igImgVisorAbrir(uuid, idx, numero, modoTapa) {
          (inf.fecha_estudio ? inf.fecha_estudio.split('-').reverse().join('/') : '—'))
       : 'El estudio de esta imagen ya no está guardado.';
   }
-  if (pie) pie.textContent = 'Abrir una imagen no la guarda en ningún estudio.';
+  if (pie) pie.textContent = modoTapa
+    ? 'Arrastrá el cuadrado negro sobre los datos y estirá la esquina amarilla. Después tocá «Cerrar».'
+    : 'Abrir una imagen no la guarda en ningún estudio.';
+  /* EN MODO TAPA NO SE MUESTRA EL PACIENTE, y no es una omisión: lo que el médico está mirando
+     es lo que va a salir en el PPT, y ahí la imagen lleva sólo su número. Ver el nombre al lado
+     de la imagen que se está por anonimizar invita a creer que el nombre viaja. */
+  if (info && modoTapa) info.textContent = 'En el PPT esta imagen lleva sólo su número ' +
+    numero + ', sin el nombre del paciente.';
   const im = document.getElementById('ig-imgv-img');
   if (im) { im.removeAttribute('src'); }
   igImgBlobs(uuid).then(imgs => {
@@ -94954,7 +95154,28 @@ function igImgVisorExtender(uuid, idx, meta) {
   const box = document.getElementById('ig-imgv-nota-box');
   const ta = document.getElementById('ig-imgv-nota');
   const m = document.getElementById('ig-imgv-msk');
-  if (m) m.style.display = 'none';
+  const tapa = !!(_igVisor && _igVisor.tapa);
+  if (m) {
+    if (tapa) {
+      const k = _igClave(_igVisor.uuid, _igVisor.idx);
+      if (!_igImgTapas.has(k)) _igImgTapas.set(k, { x: 0.02, y: 0.02, w: 0.40, h: 0.16 });
+      m.style.display = '';
+      igImgTapaPintar();
+    } else m.style.display = 'none';
+  }
+  /* En modo tapa se esconden los controles que no son de tapar: la estrella, la nota, «Medir» e
+     «Ir al estudio». Es un paso de una exportación, no la ficha de la imagen. */
+  ['ig-imgv-medir', 'ig-imgv-ir'].forEach(id => {
+    const e = document.getElementById(id);
+    if (e) e.style.display = tapa ? 'none' : '';
+  });
+  if (tapa) {
+    const bs0 = document.getElementById('ig-imgv-star');
+    const bx0 = document.getElementById('ig-imgv-nota-box');
+    if (bs0) bs0.style.display = 'none';
+    if (bx0) bx0.style.display = 'none';
+    return meta;
+  }
   const star = !!(meta && meta.star);
   if (bs) {
     bs.style.display = '';
@@ -95010,6 +95231,88 @@ function igImgVisorStar() {
     });
 }
 
+/* ── El cuadrado negro de «Tapar datos» ──────────────────────────────────────────────────────
+   Se guarda en FRACCIONES del ancho y del alto de la imagen, nunca en píxeles del visor: el
+   visor la muestra a 460 px y el PPT la exporta a su resolución original —800×600 en calidad
+   media—, así que un rectángulo en píxeles del visor taparía otra parte de la imagen en el
+   archivo. Con fracciones, lo que se ve es lo que se tapa.
+   No hay desenfoque automático ni interruptor de «ocultar nombres»: no estaba aprobado. */
+function igImgTapaPintar() {
+  const m = document.getElementById('ig-imgv-msk');
+  if (!m || !_igVisor) return;
+  const k = _igImgTapas.get(_igClave(_igVisor.uuid, _igVisor.idx));
+  if (!k) return;
+  m.style.left = (k.x * 100) + '%';
+  m.style.top = (k.y * 100) + '%';
+  m.style.width = (k.w * 100) + '%';
+  m.style.height = (k.h * 100) + '%';
+}
+
+let _igTapaDrag = null;
+function igImgTapaCablear() {
+  const m = document.getElementById('ig-imgv-msk');
+  const vw = document.getElementById('ig-imgv-vw');
+  if (!m || !vw) return;
+  m.addEventListener('pointerdown', ev => {
+    if (!_igVisor || !_igVisor.tapa) return;
+    const k = _igImgTapas.get(_igClave(_igVisor.uuid, _igVisor.idx));
+    if (!k) return;
+    const r = vw.getBoundingClientRect();
+    _igTapaDrag = { modo: (ev.target && ev.target.id === 'ig-imgv-hdl') ? 'r' : 'm',
+                    sx: ev.clientX, sy: ev.clientY,
+                    k: { x: k.x, y: k.y, w: k.w, h: k.h }, W: r.width, H: r.height };
+    try { m.setPointerCapture(ev.pointerId); } catch (e) {}
+    ev.preventDefault();
+  });
+  m.addEventListener('pointermove', ev => {
+    if (!_igTapaDrag || !_igVisor) return;
+    const k = _igImgTapas.get(_igClave(_igVisor.uuid, _igVisor.idx));
+    if (!k) return;
+    const dx = (ev.clientX - _igTapaDrag.sx) / (_igTapaDrag.W || 1);
+    const dy = (ev.clientY - _igTapaDrag.sy) / (_igTapaDrag.H || 1);
+    if (_igTapaDrag.modo === 'm') {
+      k.x = Math.max(0, Math.min(1 - k.w, _igTapaDrag.k.x + dx));
+      k.y = Math.max(0, Math.min(1 - k.h, _igTapaDrag.k.y + dy));
+    } else {
+      k.w = Math.max(0.06, Math.min(1 - k.x, _igTapaDrag.k.w + dx));
+      k.h = Math.max(0.05, Math.min(1 - k.y, _igTapaDrag.k.h + dy));
+    }
+    igImgTapaPintar();
+  });
+  m.addEventListener('pointerup', () => { _igTapaDrag = null; });
+  m.addEventListener('pointercancel', () => { _igTapaDrag = null; });
+}
+
+/* Quema la tapa DENTRO de la imagen y devuelve un JPEG nuevo. Es lo único que tapa de verdad:
+   un rectángulo dibujado en el visor no viaja al archivo. Si algo falla se devuelve `null` y el
+   llamador NO exporta esa imagen: exportarla sin tapa sería publicar el dato que el médico pidió
+   cubrir. */
+function igImgQuemarTapa(dataURL, tapa) {
+  return new Promise(resolve => {
+    if (!tapa) { resolve(dataURL); return; }
+    const im = new Image();
+    let listo = false;
+    const fin = v => { if (!listo) { listo = true; resolve(v); } };
+    /* Reloj propio: una imagen que no decodifica deja la promesa dormida y el export colgado. */
+    setTimeout(() => fin(null), 8000);
+    im.onload = () => {
+      try {
+        const cv = document.createElement('canvas');
+        cv.width = im.naturalWidth || im.width;
+        cv.height = im.naturalHeight || im.height;
+        const cx = cv.getContext('2d');
+        cx.drawImage(im, 0, 0);
+        cx.fillStyle = '#000';
+        cx.fillRect(Math.round(tapa.x * cv.width), Math.round(tapa.y * cv.height),
+                    Math.round(tapa.w * cv.width), Math.round(tapa.h * cv.height));
+        fin(cv.toDataURL('image/jpeg', 0.85));
+      } catch (e) { fin(null); }
+    };
+    im.onerror = () => fin(null);
+    im.src = dataURL;
+  });
+}
+
 /* La metadata de UNA imagen desde el índice ya leído, sin volver a IndexedDB. */
 function igImgMeta(uuid, idx) {
   if (!_igImgIndice) return null;
@@ -95017,6 +95320,125 @@ function igImgMeta(uuid, idx) {
   return (r && r.slots && r.slots[idx]) ? r.slots[idx] : null;
 }
 window.igImgMeta = igImgMeta;
+
+/* ── El AVISO PREVIO y el armado del mazo ────────────────────────────────────────────────────
+   El aviso es un paso propio y no un `confirm()`: tiene que poder decir POR QUÉ —muchas capturas
+   del ecógrafo traen el nombre del paciente quemado en la imagen, y la franja donde lo ponen
+   cambia según el equipo— y su botón de volver tiene que llevar a tapar, no sólo a cancelar. */
+function igImgPptAviso(mostrar) {
+  const ov = document.getElementById('ig-ppt-aviso-ov');
+  if (!ov) return;
+  if (mostrar) ov.classList.add('open'); else ov.classList.remove('open');
+}
+
+function igImgPptPedir() {
+  if (!_igImgSel.length) { igImgRes('Elegí al menos una imagen.'); return; }
+  const txt = document.getElementById('ig-ppt-aviso-txt');
+  if (txt) {
+    const sinTapa = _igImgSel.filter(it => !_igImgTapas.has(_igClave(it.uuid, it.idx))).length;
+    txt.textContent = 'El PPT no lleva el nombre de ningún paciente: cada imagen va con su ' +
+      'número. Pero muchas capturas del ecógrafo traen el nombre quemado dentro de la imagen, y ' +
+      'la franja donde lo imprime cambia según el equipo. ' +
+      (sinTapa ? ('Quedan ' + sinTapa + ' de ' + _igImgSel.length +
+                  ' imagen(es) sin tapar: revisalas antes de exportar.')
+               : 'Las ' + _igImgSel.length + ' imágenes elegidas tienen su tapa puesta.');
+  }
+  igImgPptAviso(true);
+}
+window.igImgPptPedir = igImgPptPedir;
+
+/* Arma el mazo. REUSA la maquinaria del PPT del estudio —`PptxGenJS`, los temas de `PPT_TEMAS`,
+   `PPT_FONT`, el saneado de `_pptTxt`, el filtro `_pptEsImagen` y la descarga por
+   `_pptxDescargarSaneado`— y no agrega ninguna librería.
+
+   LO QUE NO LLEVA, y es el punto 4a: ni el nombre del paciente, ni su documento, ni la fecha del
+   estudio, ni el nombre del archivo lo nombra. Cada imagen va con SU NÚMERO, que es el mismo que
+   la pantalla muestra en la miniatura, así que el médico puede volver de la diapositiva a la
+   imagen. El pie lleva el disclaimer médico-legal, que es material que se proyecta ante colegas.
+   El centro y el médico NO van: salen del estudio que esté cargado en el formulario, que puede
+   no ser ninguno de los de las imágenes elegidas. */
+function igImgPptExportar() {
+  if (_igImgExportando) return;
+  if (!_igImgSel.length) { igImgRes('Elegí al menos una imagen.'); return; }
+  if (typeof PptxGenJS === 'undefined') {
+    igImgRes('No se pudo cargar la librería de PowerPoint. Revisá la conexión a internet.');
+    return;
+  }
+  _igImgExportando = true;
+  igImgRes('Armando el PPT…');
+  const elegidas = _igImgSel.slice();
+  const por = (IG_IMG_PPT_POR.indexOf(_igImgPor) >= 0) ? _igImgPor : 1;
+  /* Las imágenes se leen por estudio y EN SERIE: 24 lecturas en paralelo sobre IndexedDB con
+     dataURL de 65 KB cada una es un pico de memoria sin ninguna ganancia de tiempo. */
+  const leer = (i, acc) => {
+    if (i >= elegidas.length) return Promise.resolve(acc);
+    const it = elegidas[i];
+    return igImgBlobs(it.uuid).then(imgs => {
+      const sl = (imgs && imgs[it.idx]) ? imgs[it.idx] : null;
+      if (!sl || !_pptEsImagen(sl)) { acc.push({ it, dataURL: null }); return acc; }
+      return igImgQuemarTapa(sl.dataURL, _igImgTapas.get(_igClave(it.uuid, it.idx)) || null)
+        .then(d => { acc.push({ it, dataURL: d, tapada: _igImgTapas.has(_igClave(it.uuid, it.idx)) }); return acc; });
+    }).then(a => leer(i + 1, a));
+  };
+  leer(0, []).then(lista => {
+    const buenas = lista.filter(x => x.dataURL);
+    const perdidas = lista.length - buenas.length;
+    if (!buenas.length) {
+      igImgRes('Ninguna de las imágenes elegidas se pudo preparar. No se generó el PPT.');
+      _igImgExportando = false;
+      return;
+    }
+    let tema = 'dark';
+    try { const t = localStorage.getItem(PPT_TEMA_KEY);
+          if (t && Object.prototype.hasOwnProperty.call(PPT_TEMAS, t)) tema = t; } catch (e) {}
+    const C = PPT_TEMAS[tema];
+    const P = new PptxGenJS();
+    P.layout = 'LAYOUT_16x9';
+    const W = 10, H = 5.63, HB = H - 0.62;
+    const grilla = n => n <= 1 ? [1, 1] : n === 2 ? [2, 1] : [2, 2];
+    const hojas = Math.ceil(buenas.length / por);
+    for (let i = 0; i < buenas.length; i += por) {
+      const bloque = buenas.slice(i, i + por);
+      const [cols, rows] = grilla(por);
+      const cw = W / cols, ch = HB / rows;
+      const s = P.addSlide();
+      s.background = { color: C.bg };
+      bloque.forEach((x, k) => {
+        const cx = k % cols, cy = Math.floor(k / cols);
+        try {
+          s.addImage({ data: x.dataURL, x: cx * cw, y: cy * ch, w: cw, h: ch,
+                       sizing: { type: 'contain', w: cw, h: ch } });
+        } catch (e) { console.warn('[PPT imágenes] omitida', e); }
+        /* EL NÚMERO, Y NADA MÁS. Es el único texto que identifica la imagen. */
+        s.addText(_pptTxt(String(x.it.n)),
+          { x: cx * cw + 0.08, y: cy * ch + 0.08, w: 0.6, h: 0.26, fontSize: 12,
+            color: C.txt, fill: { color: C.bg }, fontFace: PPT_FONT, align: 'left' });
+      });
+      s.addShape(P.ShapeType.line,
+        { x: 0.4, y: H - 0.62, w: W - 0.8, h: 0, line: { color: C.teal, width: 1 } });
+      s.addText(DISC_PPT, { x: 0.4, y: H - 0.5, w: W - 0.8, h: 0.3, fontSize: 7,
+                            color: C.txt2, fontFace: PPT_FONT });
+    }
+    const fecha = new Date().toISOString().split('T')[0];
+    /* El nombre del archivo no nombra a nadie: se descarga a la carpeta de descargas, donde
+       queda a la vista de cualquiera que use la máquina. */
+    const nombre = 'EcoSmart_Imagenes_' + fecha + '.pptx';
+    return _pptxDescargarSaneado(P, nombre).then(() => {
+      const tapadas = buenas.filter(x => x.tapada).length;
+      igImgRes('PPT generado: ' + hojas + ' diapositiva' + (hojas === 1 ? '' : 's') + ' (' + por +
+               ' por diapositiva), ' + buenas.length + ' ' +
+               (buenas.length === 1 ? 'imagen numerada' : 'imágenes numeradas') + ', ' +
+               tapadas + ' con datos tapados y sin el nombre de ningún paciente.' +
+               (perdidas ? ' ' + perdidas + ' no se pudieron preparar y quedaron afuera.' : ''));
+      if (typeof toast === 'function') toast('✅ PPT de imágenes generado');
+    });
+  }).catch(e => {
+    console.error('[igImgPptExportar]', e);
+    igImgRes('No se pudo generar el PPT.');
+    if (typeof toast === 'function') toast('❌ No se pudo generar el PPT de imágenes');
+  }).then(() => { _igImgExportando = false; });
+}
+window.igImgPptExportar = igImgPptExportar;
 
 /* «📏 Medir» abre el estudio y lleva a su pestaña de imágenes, que es donde vive el visor con
    medición (`medImagenAbrir` trabaja sobre `imgSlots`, o sea sobre el estudio CARGADO). Abrir el
@@ -100777,6 +101199,10 @@ const PPT_TEMAS = {
 const PPT_TEMA_KEY = 'ecosmart_ppt_tema';
 const PPT_C = PPT_TEMAS.dark;   // se usa fuera de la generación (nada hoy); dentro se resuelve por tema
 const PPT_FONT = 'Arial';
+/* El disclaimer médico-legal del PPT. Vivía dentro de `_pptDesdeFormulario` y subió acá cuando
+   la pantalla de imágenes pasó a emitir su propio mazo: con dos copias, el día que una se
+   corrija la MISMA app proyecta dos salvedades distintas ante colegas. El texto no cambió. */
+const DISC_PPT = 'Esta herramienta es de apoyo clínico. No reemplaza el juicio médico ni constituye una recomendación diagnóstica o terapéutica.';
 
 /* Todo lo que entra al PPT pasa por acá. PptxGenJS escribe XML: un `&`, un `<` o un `>` en
    el nombre del paciente o en una nota rompe el archivo o se cuela como marcado. La librería
@@ -101484,7 +101910,6 @@ function _pptDesdeFormulario(inf, tema, presentador){
   const nueva = () => { const s = P.addSlide(); s.background = { color: PPT_C.bg }; return s; };
   /* El disclaimer va en TODAS las diapositivas, igual que en el PDF. Es material que se
      proyecta ante colegas, y el PDF ya tuvo el bug de una hoja sin la salvedad. */
-  const DISC_PPT = 'Esta herramienta es de apoyo clínico. No reemplaza el juicio médico ni constituye una recomendación diagnóstica o terapéutica.';
   const conPie = s => {
     s.addShape(P.ShapeType.line, { x:0.4, y:H-0.62, w:W-0.8, h:0, line:{ color:PPT_C.teal, width:1 } });
     s.addText(pie, { x:0.4, y:H-0.56, w:W-0.8, h:0.22, fontSize:11, color:PPT_C.txt2, fontFace:PPT_FONT });
