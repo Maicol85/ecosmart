@@ -86894,10 +86894,22 @@ caso('TC-521', 'Tanda AJ4: la raiz aortica con UN SOLO criterio de dilatacion en
     window.aoSegDil(SG(), 33) === false && TXT('ao-interp').indexOf('Normal') > -1,
     'dil=' + window.aoSegDil(SG(), 33) + ' capsula=' + TXT('ao-interp')]);
   set({ ao_sin: '33.2' });
-  ex.push(['(B3) 22,13 si cruza, y la CAPSULA dice que lo que vota es el indice y no el diametro',
+  /* ADAPTADO en la tanda Y (commit 3, punto ii): la capsula dejo de decir «Dilatada (iDA >22
+     mm/m2)» y pasa a decir CUANTO DIO - «iDA de N mm/m2 (dilatada, iDA >22 mm/m2)» -, que es lo
+     que el medico pidio el 29/10/2026: el valor del indice es el unico dato que no se puede leer
+     en ningun otro lado de esa pantalla. Lo que este caso vigila -que el votante sea el INDICE y
+     no el diametro- se conserva entero, y gana la mitad del valor medido.
+     ⚠️ Y ESTA ESCENA CAE JUSTO EN EL BORDE DE REDONDEO: el indice es 22,13 y el numero se
+     redondea con el MISMO Math.round que el informe ya usa, asi que la capsula dice «iDA de 22
+     mm/m2 (dilatada, iDA >22 mm/m2)», que leido literal se contradice. No se cambio el redondeo
+     -seria mover una convencion que el papel comparte, y eso es decision de Maicol-: queda
+     declarado en docs/PENDIENTES.md -> Y-c. La condicion lo fija TAL COMO ES, para que el dia que
+     se decida cambiarlo este caso se ponga rojo. */
+  ex.push(['(B3) 22,13 si cruza, y la CAPSULA dice el VALOR del indice y que es el que vota',
     window.aoSegDil(SG(), 33.2) === true
-      && TXT('ao-interp').indexOf('Dilatada') > -1
-      && TXT('ao-interp').indexOf('iDA') > -1,
+      && TXT('ao-interp').indexOf('dilatada') > -1
+      && TXT('ao-interp').indexOf('iDA de 22 mm/m\u00b2') > -1
+      && TXT('ao-interp').indexOf('iDA >22 mm/m\u00b2') > -1,
     TXT('ao-interp')]);
   /* ADAPTADO EN LA TANDA G (G-4, 2026-10-29, punto iv): cuando el voto lo da el INDICE y no el
      diametro, el papel lo dice -«(dilatada por indice, N mm/m2)»-. Esta escena es justo esa: un

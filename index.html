@@ -4078,7 +4078,18 @@ window.cerrarSesionReal = cerrarSesionReal;
                Sin esto el cuadro gris se queda con el del paciente anterior hasta que se toque
                un campo del Doppler mitral —el desfase que esta app ya pagó en la tanda del
                2026-10-12—. La ventana no se atrasa: tiene su oyente de documento. -->
-          <select id="sexo" onchange="if (typeof calcDiastol==='function') calcDiastol();">
+          <!-- ⚠️ `sexoRecalcSync` DESDE LA TANDA Y (commit 3, pedido del médico del 29/10/2026).
+               Hasta hoy el `onchange` sólo llamaba a `calcDiastol`, así que cargar o cambiar el
+               sexo dejaba las cápsulas de AI/VI y de la AORTA con la clasificación del sexo
+               anterior —o con la de «sin sexo»— hasta que el médico tocara OTRO campo. Medido en
+               Chrome ANTES de tocar nada: con la raíz en 38 mm y sexo femenino, `ao-interp`
+               seguía diciendo «No se puede clasificar sin el sexo», y `ai-diam-interp` seguía
+               diciendo «Normal (≤40mm)» sobre un diámetro de 39 mm que en una mujer es dilatado.
+               El informe NO estaba atrasado —se regenera entero cada vez—; lo que se atrasaba
+               era la PANTALLA, que es desde donde el médico decide.
+               `calcDiastol` se mudó adentro del dueño único: un solo lugar que diga qué se
+               re-evalúa con el sexo. -->
+          <select id="sexo" onchange="sexoRecalcSync()">
             <option value="">—</option>
             <option value="M">Masculino</option>
             <option value="F">Femenino</option>
@@ -25484,8 +25495,14 @@ function calcAorta() {
     /* ⚠️ LA SEGUNDA PUERTA SE DECLARA EN EL ROTULO. Con una raiz de 38 mm en una persona de
        talla baja el voto lo da el INDICE y no el diametro: sin esta rama la capsula decia
        «Dilatada (≥40mm)» sobre un 38, que se lee como un error de la aplicacion. */
+    /* ⚠️ Y DICE CUANTO DIO (tanda Y, commit 3, punto ii). Hasta hoy la pastilla decia
+       «Dilatada (iDA >22 mm/m²)»: nombraba el corte y escondia el valor, que es el unico dato
+       que el medico no puede leer en ningun otro lado de esta pantalla. El numero se redondea a
+       un entero con el MISMO `Math.round` que el informe ya usa para este indice —es un indice,
+       no una medida directa—, para que la pantalla y el papel no puedan decir dos numeros. */
     else if (sg.idaMax != null && _ref != null && m.val < _ref)
-                                     txt = 'Dilatada (iDA >' + sg.idaMax + ' mm/m²)';
+                                     txt = 'iDA de ' + Math.round(m.ida) + ' mm/m² (dilatada, iDA >'
+                                         + sg.idaMax + ' mm/m²)';
     /* ⚠️ UN SOLO ROTULO, CON SU CORTE Y SIN GRADO (AJ2-6, 23/10/2026). Las tres ramas decian
        «Dilat. leve (≥40 y ≤45mm)», «Dilat. moderada (>45 y ≤50mm)» y «Dilat. severa (>50mm)»:
        la escala que esta tanda retira. El operador sigue saliendo de `aoSegSim`, que lo deriva
@@ -45455,6 +45472,45 @@ function aiviSexoSync() {
 }
 window.AIVI_SEXO_PARAMS = AIVI_SEXO_PARAMS;
 window.aiviSexoCambian = aiviSexoCambian; window.aiviSexoSync = aiviSexoSync;
+
+/* ══ EL SEXO SE RE-EVALUA EN EL ACTO — DUEÑO UNICO (tanda Y, commit 3, 2026-10-29) ═══════════
+   PEDIDO DEL MEDICO. Hasta hoy el `onchange` del sexo llamaba SOLO a `calcDiastol`, asi que
+   cargarlo o cambiarlo dejaba la pantalla con la clasificacion del sexo anterior hasta que se
+   tocara otro campo.
+
+   ⚠️ QUE SE RE-EVALUA, Y NO ES UNA SUPOSICION: salio de un BARRIDO sobre los 137 candidatos
+   —todos los `calc*` de `window` mas los de `RECALC_MODULOS`—, llamando a cada uno sobre un
+   estudio con el sexo recien cargado y mirando cuales movian alguno de los 1.824 nodos de la
+   foto. Movieron DOS:
+     · `calcBSA`, que encadena `calcAI`, `calcVI` y `calcAo`: mueve `ai-diam-interp`,
+       `vdfvi-idx-interp`, `vsfvi-idx-interp` y `geom-val`;
+     · `calcAorta`, que mueve `ao-interp` («No se puede clasificar sin el sexo» -> «Dilatada
+       (>=36mm)»).
+   Se llaman `calcAI` y `calcVI` DIRECTO y no `calcBSA`: ese encadena ademas `calcAo`, que
+   ESCRIBE el grado de la estenosis aortica, y un cambio de sexo no puede mover una afirmacion
+   de severidad. El peso y la talla no cambiaron, asi que no hay nada que recalcular ahi.
+
+   ⚠️ UN SEXO VACIO NO ESCRIBE NADA: estos tres son PINTORES —escriben texto en cápsulas— y con
+   el sexo vacio repintan con `sexoEfectivo`, que es lo que la pantalla ya hacia. Ninguno escribe
+   un campo del estudio, y el A/B lo mide clave por clave sobre los 962 campos.
+
+   ⚠️ SIN TEMPORIZADOR NUEVO Y SIN ENTRAR EN `ESPEJOS_VIVOS`: cuelga del GESTO, que es el
+   mecanismo que esta pantalla ya usa (`calcDiastol` estaba ahi desde la BSE 2024). El aviso
+   naranja `aiviSexoSync` NO se agrega aca: ya tiene su OYENTE DE DOCUMENTO sobre `input`, y un
+   `<select>` lo dispara —medido—. Dos mecanismos para el mismo trabajo es lo que hace que una
+   mutacion sobreviva.
+
+   ⚠️ CADA LLAMADA VA EN SU PROPIO `try`: si una tirara, las otras tienen que repintar igual.
+   Devuelve que corrio, para que el caso de prueba tenga denominador. */
+function sexoRecalcSync() {
+  const r = { diast: false, ai: false, vi: false, aorta: false };
+  if (typeof calcDiastol === 'function') { try { calcDiastol(); r.diast = true } catch (e) {} }
+  if (typeof calcAI      === 'function') { try { calcAI();      r.ai    = true } catch (e) {} }
+  if (typeof calcVI      === 'function') { try { calcVI();      r.vi    = true } catch (e) {} }
+  if (typeof calcAorta   === 'function') { try { calcAorta();   r.aorta = true } catch (e) {} }
+  return r;
+}
+window.sexoRecalcSync = sexoRecalcSync;
 /* El oyente de documento: el sexo, el peso y la talla viven en la pestaña Datos y los ocho
    parámetros en AI/VI, así que colgarse de cada campo es como uno se queda sin cablear. */
 document.addEventListener('input', function () { try { aiviSexoSync() } catch (e) {} }, true);
@@ -57137,8 +57193,20 @@ function generarInforme(opts) {
        «de calibre normal», que es exactamente la afirmacion que esta tanda viene a retirar. */
     const aoS  = aoM.filter(x => x.sinSexo);
     const aoOK = aoM.filter(x => !x.dil && !x.sinSexo);
-    const sinC = aoS.length ? (' ' + aoS.map(x => x.sg.lblC + ' ' + x.val + ' mm').join(', ') +
-      ' — no se puede clasificar sin el sexo.') : '';
+    /* ⚠️ EL PAPEL DICE SOLO EL DIAMETRO (tanda Y, commit 3, punto i, pedido del medico del
+       29/10/2026). Hasta hoy esta cola agregaba «— no se puede clasificar sin el sexo.» al
+       informe FIRMADO. Es una nota sobre el ESTADO DE CARGA del formulario, no un hallazgo del
+       estudio: el documento firmado describe lo que se midio, y lo que falta cargar se le dice
+       al medico en la PANTALLA, que conserva su cartel naranja y su capsula gris con esa misma
+       frase. Lo que queda en el papel es el diametro, sin adjetivo, que es lo que la decision
+       del G-4 ya habia establecido para esta franja.
+       ⚠️ DOS REDACCIONES PORQUE EL NARRATIVO NO USA ROTULOS EN MAYUSCULA: la cola en version
+       conciso/estandar lleva `lblC` («Raiz aortica») y la narrativa lleva `lbl` en minuscula,
+       igual que la rama de calibre normal de dos lineas mas abajo. Antes la narrativa salia de
+       un `replace` sobre la frase que esta tanda retira, asi que tenia que dejar de depender de
+       ella. */
+    const sinC = aoS.length ? (' ' + aoS.map(x => x.sg.lblC + ' ' + x.val + ' mm').join(', ') + '.') : '';
+    const sinCNar = aoS.length ? (' ' + aoS.map(x => x.sg.lbl + ' ' + x.val + ' mm').join(', ') + '.') : '';
     if (aoF.length && !aoD.length) {
       /* Hay un valor fuera de escala y ninguno dilatado: NO se afirma normalidad. El médico ve
          qué segmento revisar en vez de un informe que dice «normal» sobre un dato ilegible. */
@@ -57168,8 +57236,7 @@ function generarInforme(opts) {
       inf.push(estiloPick(
         'Aorta torácica:' + sinC + colaOK + _vabFenoCola(),
         'Aorta torácica:' + sinC + colaOK + _vabFenoCola(),
-        'A nivel de la aorta torácica,' + sinC.replace(' — no se puede clasificar sin el sexo.',
-          ', sin el sexo cargado no se puede clasificar su calibre.') + colaOK + _vabFenoCola()));
+        'A nivel de la aorta torácica,' + sinCNar + colaOK + _vabFenoCola()));
     } else {
       const cad = aoD.map(x => x.sg.lblC + ' ' + x.val + ' mm (' + gFrase(x) + ')').join('; ');
       /* Sólo la raíz lleva el «a nivel de …»: su medición se toma en los senos de Valsalva, que
