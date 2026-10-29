@@ -40,6 +40,7 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Buscar un CORTE o una BANDA de plausibilidad** de cualquier válvula, con su fuente | `docs/mapa/valvulas-constantes.md` |
 | **Tocar la MARCA DE MANUAL de una pastilla, el selector binario de la estenosis mitral, el VIOLETA de «Significativa», el VTI de entrada tricuspídeo, la CASILLA DE PISA de «Incluir en el informe» o lo que «Nuevo estudio» deja vivo** | `docs/mapa/valvulas-manual-binario.md` |
 | **Tocar el CRITERIO DE DILATACIÓN DE LA RAÍZ AÓRTICA** —el corte por sexo, el índice de dimensión aórtica, el dueño `aoSegRef`/`aoSegIda`/`aoSegDil`, el globo ⓘ, el cruce entre las pantallas de BICÚSPIDE y de COARTACIÓN, o lo que la tanda AJ4 tocó de la Evidencia de la VAB | `docs/mapa/aj4-raiz-aortica.md` |
+| **Tocar la SINCRONIZACIÓN de los dos campos de la raíz aórtica, el grado «sin sexo cargado», el voto del índice en el papel, las dos líneas nuevas del ⓘ de la raíz, los tres arreglos de pantalla de la tanda G o su sonda sistemática** | `docs/mapa/g-raiz-aortica.md` |
 | **Tocar una AORTOPATÍA —Marfan, Loeys-Dietz, Turner, ACTA2, Ehlers-Danlos vascular—, la COARTACIÓN, el texto de la VAB o el MOTOR DE EVIDENCIA DE AORTA**: la tabla y el folio de cada síndrome, el corte de dilatación con su dueño, el cuestionario o las recomendaciones por debajo de 45 mm | `docs/mapa/aorta-aortopatias-evidencia.md` |
 | **Tocar un CORTE o un OPERADOR del VD, de la AD, de la VCI o de la RAÍZ AÓRTICA**: la Tabla 1 de la ASE 2025, su evaluador, los cuatro grados de cada parámetro o el «40 mm o más» del seno | `docs/mapa/corazon-derecho-ase2025.md` |
 | **Tocar algo de la tanda AJ1**: los cortes del VD de la versión de MAYO, el strain de pared libre sin sexo, la coartación reparada, el índice de dimensión aórtica, el Ehlers-Danlos del EN SUMA, el corte alternativo de la IM secundaria o el flujo reverso de la aorta descendente | `docs/mapa/aj1-ajustes.md` |
@@ -1499,3 +1500,116 @@ línea: el archivo creció y un informe de auditoría viejo apunta a otro archiv
   `docs/fuentes/FUENTES.md` → «La tanda TEP» con la Tabla 4 transcripta fila por fila, las tres
   frases literales y la tabla «Cambios de evidencia» de veintiuna filas, y `docs/PENDIENTES.md` →
   **SIETE** cosas declaradas (**TEP-a** a **TEP-g**).
+
+### Las pantallas, los anchos y la raíz aórtica — «G» (2026-10-29)
+
+- **CINCO commits, y la orden pedía nueve.** `4b9fde9` (G-1) · `8f920c2` (G-2) · `dfcae42` (G-3) ·
+  `9b0e67f` (G-4) · `3d08988` (G-4c) · el de cobertura y documentación. Sello **`v20261029-0759`**.
+  Al empezar, `origin/main` = `HEAD` = **`8ef908e`**, el cierre de la tanda TEP, ya publicado.
+  **El push lo corre Maicol: esta tanda tenía orden expresa de NO pushear.**
+  ⚠️ **LOS COMMITS 5, 6, 7 y 8 NO SE HICIERON, y no quedaron a medias: ninguna línea de la app se
+  tocó por ellos.** Están declarados en `docs/PENDIENTES.md` → **G-b**, con las cuatro fuentes ya
+  leídas en imagen y transcritas, que es la mitad del trabajo.
+
+- **EL DEFECTO MÁS GRANDE QUE CERRÓ, EN UNA LÍNEA: una raíz de 43 mm cargada en la pantalla de
+  aortopatía hereditaria no llegaba al informe firmado.** La cápsula decía «—», el informe no
+  nombraba la aorta y el EN SUMA tampoco. El diámetro vivía en **dos campos guardados que no se
+  hablaban** —`ao_sin` y `marfan_ao_seno`— y el único puente era `_indAo`, que toma el máximo de
+  los dos: un arreglo que admite que pueden discrepar.
+
+- ⚠️ **EL ESPEJO SIMÉTRICO HABRÍA ROTO EL LABORATORIO, Y POR ESO ES CONDICIONAL.** Medido: con
+  `ao_sin` = 40 y nada más, `marfanEstado().hayDatos` pasaba de `false` a **`true`**, o sea que la
+  tarjeta de aortopatía se encendía y el módulo concluía «Aortopatía hereditaria — falta declarar
+  el síndrome» sobre un paciente que no tiene ninguna; el **Laboratorio** cuenta un estudio como
+  «Marfan/EHAT» con `marfan_ao_seno !== ''`, así que su panel habría pasado a incluirlos todos; y
+  la columna de Excel habría pasado a traer valor siempre. El papel firmado no corría riesgo
+  —ese bloque está detrás de «Integrar al informe», verificado—, pero las otras tres sí.
+  La regla que quedó: **módulo → estudio siempre; estudio → módulo sólo si el módulo está en uso.**
+
+- **SIN SEXO CARGADO, LA RAÍZ ENTRE 36 Y 40 mm YA NO SE CLASIFICA.** Medido en HEAD: sin sexo,
+  36 y 39 mm daban «Normal (<40mm)» en la cápsula y «Aorta torácica de calibre normal» en el
+  informe **firmado**, sobre un dato que en la mitad de la población es un hallazgo. Y el cableado
+  tenía **dos trampas** que habrían afirmado lo contrario: `dil: grado !== 'normal'` lo contaba
+  como dilatado, y `aoM.filter(x => !x.dil)` lo metía entre los normales.
+
+- **TRES PREMISAS DE LA ORDEN ERAN FALSAS, Y ESTÁN MEDIDAS.**
+  1. **El punto 2a no se reproduce.** Cero hallazgos en los 12 cruces de «Pericardio y pulmón», y
+     cero también con el derrame pleural presente medido a 1200, 1000, 900 y 768 px. **La pestaña
+     no tiene ningún SVG** y su única tarjeta ⓘ entra entera en los cuatro anchos. → **F-e**.
+  2. **El punto 2c no se puede resolver con el mecanismo de ancho por clave.** Medido con la clave
+     en 300, 374, 560, 640, 900 y 2000: a 390 px el ancho se topa en **374** para todos y el
+     contenido mide **950 px** en una caja de 520. El problema es de **alto**. → **F-f**.
+  3. **El posoperatorio NO tiene un corte propio de índice cardíaco.** Usa `_icBanda` y
+     `_rvsBanda`, las mismas de Hemodinámica, y su propio comentario lo dice desde POP-2. No había
+     nada que excluir.
+  Y una cuarta, de la PARTE AJ8: **la Tabla 38 no es «UNA sola recomendación IIb·B»**: tiene
+  **ocho**, y la de los ocho factores es una de ellas (leída en imagen, folio 80).
+
+- ⚠️ **EL CAMBIO DEL COMMIT 3 ES CORRECTO Y SU EFECTO OBSERVABLE HOY ES CERO, MEDIDO.** El índice
+  cardíaco que llega a la cápsula del «Perfil hemodinámico» tiene una sola fuente y pasa por π.
+  Barrido de **3.812.589 combinaciones**: **cero** dan 2,2 exactos; lo más cerca es
+  **2,1999990587652083**. La diferencia entre `<` y `<=` no se puede observar ahí. → **G-a**.
+
+- ⚠️ **TRES CALIBRACIONES DE LA SONDA DE PANTALLA, Y LAS TRES CAMBIARON EL NÚMERO FINAL.** Los
+  globos se contaban **dos veces**; marcar ALTA los 55 globos sin la regla de 44 daba **1.068**
+  ALTA en vez de 30; y **el área táctil no es el rect**: este archivo la extiende con un `::after`
+  absoluto que `getBoundingClientRect` no ve — `#pac-id-mk-ci` informa 7×11 px de caja y su área
+  real es **35×41**, medido con `elementFromPoint`. Eran 24 ALTA falsas.
+
+- **LA MEDICIÓN DE PANTALLA, ANTES Y DESPUÉS** (324 cruces: 27 puertas × 3 anchos × 2 temas × 2
+  escenas, con 618 tarjetas ⓘ abiertas):
+
+  | | ALTA | MEDIA | BAJA | scroll del cuerpo | tablas sin scroll | superpuestos | errores de consola |
+  |---|---|---|---|---|---|---|---|
+  | **antes** | **30** | 36 | 738 | 0 | 0 | 0 | 0 |
+  | **después** | **0** | 38 | 738 | 0 | 0 | 0 | 0 |
+
+  Las 30 ALTA eran **una sola causa**: diez pastillas de Válvulas con el rótulo recortado a 390 px
+  («Insuficienc»). Las dos MEDIA nuevas son tarjetas ⓘ que scrollean, en la pestaña cuya fila ahora
+  apila.
+
+- ⚠️ **MI ARREGLO DEL 2d BORRÓ UNA BANDA CLÍNICA Y LO CAZÓ UN CASO.** La primera versión de la
+  celda combinada se quedó sólo con «Decisión de la aplicación» y **borró «de 15 a 20 %»** de la
+  tabla del VD: una pérdida de contenido que ninguna sonda de geometría ve, porque la fila seguía
+  existiendo. La encontró **TC-535 (F1)**. La celda lleva el valor **y** su origen.
+
+- **A/B contra HEAD, uno por commit**: commit 2, **cero** diferencias en 62 escenas, 65.766 claves
+  y 27.280 celdas de Excel; commit 3, **cero**; commit 4, **cero** en ese mismo arnés.
+  ⚠️ **Ese cero del commit 4 es el CONTROL NEGATIVO, no la prueba**: ninguna de esas 62 escenas
+  carga la raíz sin sexo ni con el índice votando. La prueba es la sonda dedicada
+  `_probe_graiz.mjs`, con **22 escenas**, donde cambian **seis** y son las seis buscadas, con
+  `ajeno` y las otras quince idénticas.
+
+- **NUEVE CASOS VIEJOS ADAPTADOS, cada uno con el motivo escrito**, y siete de ellos por la misma
+  causa —medían la raíz en escenas **sin sexo cargado**—: **TC-41**, **TC-494** (dos condiciones),
+  **TC-501** (H0, al que le faltaba la edad), **TC-502** (D3), **TC-519** (J3 y J13), **TC-521**
+  (B4, que ahora exige además que el informe nombre el índice) y **TC-537** (C4, que exigía que
+  «Decisión de la aplicación» estuviera bajo la cabecera «Mujer» — justo el defecto que el 2d
+  cierra).
+
+- **Línea base al cierre: suite 557/561** en once lotes **cubriendo los 561 casos**, con el
+  pendrive `DISK_IMG` **montado y listando nombres reales al abrir, entre lotes y al cerrar**, y
+  el md5 de `index.html` **idéntico** antes y después (`534a375b`). Los rojos son **TC-223,
+  TC-376, TC-390 y TC-406**, los cuatro de siempre, **y ninguno más**: **TC-358 salió VERDE**.
+  Semgrep **124 WARNING / 0 ERROR**. Censo **sin huérfanos nuevos**. Excel **440** columnas.
+  Celular **63 hallazgos a 360 px y 72 a 390, 17 ALTA en cada ancho** — idénticos a la base.
+- **CHROME Y WEBKIT COINCIDEN EN LOS OCHO CRUCES** (dos motores × 1440, 1000, 768 y 390 px × dos
+  temas): **cero** desplazamiento horizontal del cuerpo, **cero** textos recortados y **cero**
+  errores de consola y de página en los dos motores; las **8/8 pastillas con caja y 0 recortadas**
+  en los cuatro anchos; la raíz sin sexo diciendo «No se puede clasificar sin el sexo» y con sexo
+  femenino «Dilatada (≥36mm)»; el globo de la raíz en **356×573** (Chrome) y **356×572** (WebKit),
+  entrando entero, sin «En este paciente», con las dos líneas nuevas y «folio 71» **una sola vez**;
+  el nomograma en **560×266** con su cita a 10 px; y la fila del VD con **dos celdas y colspan 2**.
+  ⚠️ **WebKit de Playwright no es Safari, y se declara.** Y el binario de chromium de Playwright
+  **sigue sin estar** en esta máquina, así que Chrome va por el del sistema con
+  `channel:'chrome'`: sin eso la sonda devuelve los cruces vacíos.
+- **`index.html` pasó de 9,92 MB / 139.564 líneas a 9,94 MB / 139.828** — medido con `wc -c` y
+  `wc -l` DESPUÉS de sellar. (MB de 10⁶: `wc -c` dividido por 1e6.) El diff son **306 líneas
+  agregadas y 42 quitadas**.
+
+- **Dónde está todo:** `docs/mapa/g-raiz-aortica.md` (**mapa NUEVO**, 8,7 KB), el puntero en
+  `docs/mapa/aj4-raiz-aortica.md`, `docs/fuentes/FUENTES.md` → «La tanda G» con las **cuatro
+  fuentes transcritas en imagen** —Figura 5 folio 28 con sus ocho segmentos por sexo, apartado
+  9.2.1.1 folio 71 literal, Tabla 38 folio 80 con sus ocho recomendaciones y sus ocho factores, y
+  Tabla 62 folio 114— y la tabla «Cambios de evidencia» de dieciséis filas, y
+  `docs/PENDIENTES.md` → **F-a** a **F-f** y **G-a** a **G-f**.

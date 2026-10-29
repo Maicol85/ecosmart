@@ -6704,3 +6704,135 @@ lleva su propio campo `fuente`, y **ninguna fila del panel lo cita con corchete*
 | Categorías de riesgo de `_indTEP` | Tabla 8 de la ESC 2019 | **sin cambios** — reportadas, no retiradas | ESC 2019, Tabla 8, folio 497.e20 | — |
 
 **Fecha de consulta de las tres lecturas en imagen de esta tanda: 29/10/2026.**
+
+---
+
+## La tanda G — pantallas y anchos, y la raíz aórtica (2026-10-29)
+
+**Documento:** Mazzolai L y cols., «Guía ESC 2024 sobre el diagnóstico y el tratamiento de la
+enfermedad arterial periférica y aórtica», edición de la SEC en español, 199 hojas
+(`06_Aorta/Mazzolai_2024_Aorta.pdf`). La biblioteca **solo tiene la edición en español**, y eso se
+declara: la lección de la ESC/EACTS 2025 —cuya traducción se comió una palabra y dio vuelta un
+hallazgo entero— vale acá también, así que **ningún hallazgo de wording se cierra con este
+documento**; lo que se cita son números, tablas y la forma de los enunciados.
+
+**Regla de folio de este documento, comprobada en el pie impreso: folio = hoja del PDF**, 0-based.
+La hoja de índice 71 lleva impreso «71» en su encabezado; lo mismo las 28, 80 y 114. Sin offset.
+
+### Figura 5 — folio 28, leída en imagen a 200 ppp
+
+Pie literal: «**Anatomía y segmentos aórticos y valores en el límite superior de la normalidad de
+las dimensiones aórticas.** Los números representan los 11 segmentos basados en la clasificación
+de la *Society for Vascular Surgery/Society of Thoracic Surgeons* (SVS/STS) para intervenciones
+quirúrgicas y endovasculares¹³⁶.»
+
+⚠️ **Son valores EN EL LÍMITE SUPERIOR DE LA NORMALIDAD, no umbrales de dilatación.** Lo dice su
+propio pie, y es lo que confirma la lectura de Cowork.
+
+| Segmento, como lo rotula la figura | ♂ | ♀ |
+|---|---|---|
+| Seno de Valsalva **(< 22 mm/m²)** | 40 mm | **34 mm** |
+| Unión sinotubular | 38 mm | 33 mm |
+| Aorta ascendente | 40 mm | 36 mm |
+| Arco aórtico proximal | 37 mm | 34 mm |
+| Arco aórtico medio | 34 mm | 31 mm |
+| Aorta descendente proximal | 29 mm | 26 mm |
+| Aorta descendente distal | 23 mm | 20 mm |
+| Aorta abdominal | 23 mm | 19 mm |
+
+⚠️ **La figura rotula la raíz «seno de Valsalva» y le da 34 mm a la mujer, no 36.** Confirmado.
+⚠️ **Y el «(< 22 mm/m²)» cuelga del seno de Valsalva**, o sea del mismo segmento: es lo que
+sostiene que el índice de dimensión aórtica sea una segunda puerta **de la raíz** y no de los
+otros cuatro segmentos.
+⚠️ **La duda de Cowork sobre la descendente queda resuelta: el orden es ♂ y después ♀.** La
+figura pone el símbolo de varón a la izquierda y el de mujer a la derecha en las ocho cajas, así
+que proximal 29/26 y distal 23/20 son varón/mujer. **El arco aórtico viene partido en dos tramos
+—proximal y medio— y la app tiene uno solo**, que es lo que el COMMIT 6 iba a declarar.
+
+### Apartado 9.2.1.1 «Definiciones» — folio 71, leído en imagen
+
+Literal: «La dilatación aórtica es la segunda aortopatía más frecuente, después de la
+aterosclerosis, y se define como un diámetro aórtico mayor a 2 desviaciones estándar del diámetro
+medio previsto según la edad, el sexo y el tamaño corporal (puntuación z > 2). **En la práctica
+clínica se puede sospechar de dilatación de la raíz aórtica cuando el diámetro aórtico es > 40 mm
+en hombres adultos y > 36 mm en mujeres**¹³⁸ʼ¹⁴⁹ʼ⁸⁶⁹ **o con un diámetro indexado/ASC [índice de
+dimensión aórtica (iDA)] > 22 mm/m².** En valores extremos de ASC o edad se recomienda el uso de
+la escala Z (para su cálculo véase la sección 5.4).»
+
+⚠️ **NO es una recomendación: no lleva clase ni nivel.** Está dentro de «9.2.1.1 Definiciones» y
+su verbo es «se puede sospechar». Confirma la lectura de Cowork.
+⚠️ **Y SUS OPERADORES SON ESTRICTOS —`> 40` y `> 36`—, mientras la app cuenta el valor EXACTO
+como dilatado** (`incRef:true`, decisión de Maicol del VS5, 2026-10-17). **Se reporta y no se
+corrige**, que es lo que el punto 4a pedía: mover eso es decisión de Maicol.
+
+### Tabla 38 — folio 80, leída en imagen
+
+Título: «Recomendaciones sobre la cirugía de la dilatación de raíz aórtica y de la aorta
+ascendente **con válvula aórtica tricúspide** (véase también la tabla de evidencia 11)».
+
+⚠️ **UNA PREMISA DE LA ORDEN ES FALSA: la Tabla 38 NO es «UNA sola recomendación IIb·B».** Tiene
+**ocho** recomendaciones, y la de los factores es **una de ellas**:
+
+| # | Recomendación (resumida) | Clase | Nivel |
+|---|---|---|---|
+| 1 | Cirugía con VAo tricúspide y diámetro máximo **≥ 55 mm** | I | B |
+| 2 | Reemplazo de raíz con preservación valvular en centros con experiencia | I | B |
+| 3 | AVK de por vida tras Bentall con prótesis mecánica | I | B |
+| 4 | Dilatación de ascendente tubular, riesgo bajo: reemplazo con **> 52 mm** | IIa | B |
+| 5 | Cirugía por enfermedad de la VAo tricúspide con dilatación concomitante: **≥ 45 mm**, o en otros casos **≥ 50 mm** | IIa | B |
+| 6 | Aspirina 75-100 mg/día los 3 primeros meses tras cirugía con preservación valvular | IIa | C |
+| 7 | Cirugía cardiaca no valvular aórtica con dilatación concomitante **≥ 50 mm**: cirugía aórtica concomitante | IIa | C |
+| 8 | **Reemplazo de ascendente o raíz con ≥ 50 mm en candidatos de riesgo bajo con cualquiera de los ocho factores** | **IIb** | **B** |
+
+**Los ocho factores de la fila 8, verificados uno por uno en imagen** —coinciden exactamente con
+la lectura de Cowork—: crecimiento del diámetro aórtico **≥ 3 mm al año**; hipertensión
+resistente^d; baja estatura **< 1,69 m**; fenotipo de raíz aórtica; longitud aórtica^e **> 11 cm**;
+edad **< 50 años**; deseo de embarazo; coartación aórtica.
+
+Notas al pie, literales: ^c «Riesgo individual del paciente **< 3 %**». ^d «Hipertensión que no se
+puede controlar adecuadamente pese a la administración de **tres o más fármacos** recomendados por
+un médico con experiencia en el tratamiento de la hipertensión». ^e «La distancia curvilínea en la
+línea central aórtica entre la unión ventriculoaórtica y el origen de la arteria innominada».
+Y el pie de la tabla remite a la sección 10 para la aorta hereditaria y la bicúspide, lo que
+confirma que la Tabla 38 es **de válvula tricúspide**.
+
+### Tabla 62 — folio 114, leída en imagen (Marfan)
+
+| # | Recomendación (resumida) | Clase | Nivel |
+|---|---|---|---|
+| 1 | Cirugía indicada con SM y enfermedad de la raíz, senos **≥ 50 mm** | I | B |
+| 2 | Reemplazo de raíz y ascendente con preservación valvular en SM o EATH con dilatación de raíz | I | B |
+| 3 | Puede considerarse cirugía con SM y aneurisma de raíz **≥ 45 mm** y factores de riesgo^c | IIa | C |
+| 4 | SM con aneurisma de ascendente, arco, descendente o abdominal **≥ 50 mm** | IIa | C |
+
+Nota ^c, literal: «Historia familiar de disección aórtica con dimensiones aórticas pequeñas
+(< 50 mm); hipertensión refractaria (persistente a pesar de tratamiento con tres o más
+antihipertensivos prescritos por un médico con experiencia en el tratamiento de la hipertensión);
+y crecimiento rápido de la aorta (tasa de crecimiento anual ≥ 3 mm en adultos)». **Coincide
+palabra por palabra con `MARFAN_FR_TXT.marfan` de la app.**
+
+⚠️ **DISCREPANCIA ENCONTRADA Y NO CORREGIDA.** La fila 3 dice **«≥ 45 mm»** y la app aplica
+`maxAo > 45` —estricto—, así que **con 45,0 mm exactos la guía da IIa y la app no**. Se reporta y
+se espera: mover un corte clínico es decisión de Maicol. → `docs/PENDIENTES.md` **G-c**.
+
+### Tabla «Cambios de evidencia» de esta tanda
+
+| Qué | Antes | Ahora | Fuente | Commit |
+|---|---|---|---|---|
+| Grado de la raíz **sin sexo cargado**, entre 36 y 40 mm | «normal», con el corte del varón | **no se clasifica** (`sinsexo`) | decisión de Maicol | G-4 |
+| Cápsula de la raíz en esa franja | «Normal (<40mm)» | «No se puede clasificar sin el sexo» | idem | G-4 |
+| Informe en esa franja | «Aorta torácica de calibre normal (Raíz aórtica 39 mm).» | «Aorta torácica: Raíz aórtica 39 mm — no se puede clasificar sin el sexo.» | idem | G-4 |
+| Informe cuando el voto lo da el índice | «Raíz aórtica 32 mm (dilatada).» | «Raíz aórtica 32 mm (dilatada por índice, 23 mm/m²).» | idem | G-4 |
+| EN SUMA en ese caso | «Dilatación raíz aórtica (32 mm).» | «Dilatación raíz aórtica (32 mm, por índice, 23 mm/m²).» | idem | G-4 |
+| Raíz cargada sólo en la pantalla de aortopatía | el informe **no nombraba la aorta** | llega a la cápsula, al informe y al EN SUMA | idem | G-4 |
+| ⓘ de la raíz, línea «En este paciente» | existía | **retirada** (la pastilla de al lado ya lo dice, regla R4) | idem | G-4c |
+| ⓘ de la raíz, dos líneas nuevas | no existían | «se puede sospechar», sin clase ni nivel · Figura 5 da 34 mm en la mujer como límite superior normal | ESC 2024, apartado 9.2.1.1 folio 71 y Figura 5 folio 28, **leídas en imagen** | G-4c |
+| Tres comparaciones del «Perfil hemodinámico» | literal `2.2` con `<` y `>=` | leen `FORR_IC_CORTE` con `<=` y `>` | decisión de Maicol del 21/10/2026 | G-3 |
+| Fila de la banda leve del strain del VD en Referencias | «Decisión de la aplicación» bajo la cabecera «Mujer» | una celda que ocupa las dos columnas, con el valor **y** su origen | — | G-2 |
+| Nomograma de la raíz en Referencias | 316×150 px perdido en una caja de 1194 | 560×266 px, con su cita a 10 px | — | G-2 |
+| Rótulos de las ocho pastillas de Válvulas a 390 px | recortados («Insuficienc») | enteros; la fila apila sola | — | G-2 |
+| Cortes de la raíz (40 / 36 / 22) y sus operadores | — | **sin cambios** | ESC 2024, apartado 9.2.1.1, folio 71 | — |
+| Los otros cuatro segmentos de la aorta | — | **sin cambios**: el COMMIT 6 no se hizo | — | — |
+| Aortopatía hereditaria en el informe y el EN SUMA | clase y umbral en el papel | **sin cambios**: el COMMIT 5 no se hizo | — | — |
+
+**Fecha de consulta de las cuatro lecturas en imagen de esta tanda: 29/10/2026.**

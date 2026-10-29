@@ -250,3 +250,21 @@ No cambió ningún dato clínico. Movió notas de trabajo al globo ⓘ y a `docs
 dejó una sola cita al final de cada bloque, sacó las mayúsculas de en medio y dejó cada contenido
 una sola vez por sección. **Lo que esta tanda hizo está en `docs/mapa/a-evidencia-textos.md`**, y
 el caso que lo fija es **TC-537** (ficha en `docs/mapa/tests-fichas-537.md`).
+
+---
+
+## ⚠️ La tanda G volvió a mover esta zona (2026-10-29)
+
+Tres cosas de este mapa dejaron de ser toda la verdad, y el detalle vive en
+`docs/mapa/g-raiz-aortica.md`:
+
+1. **La raíz es UN solo dato.** `ao_sin` y `marfan_ao_seno` se sincronizan: módulo → estudio
+   siempre, estudio → módulo sólo si el módulo está en uso. El § 1 de este mapa decía que había
+   un solo dueño del criterio; ahora también hay un solo dueño del **número**.
+2. **Sin sexo cargado, la raíz entre 36 y 40 mm NO se clasifica.** `aoSegGrado` devuelve un grado
+   nuevo, `sinsexo`. La tabla del § 3 de acá dice que sin sexo se usa el corte del varón: eso
+   **ya no es cierto** para esa franja. Sigue siéndolo por encima de 40 y por debajo de 36.
+3. **El papel nombra el índice cuando el índice dio el voto** (`aoSegPorIda`). El § 3 decía que
+   el informe «no cambia nada propio»: hoy sí.
+4. **El ⓘ perdió la línea «En este paciente»**, que el § 4 de acá describe como conservada y
+   declarada. La decisión se tomó en la tanda G.

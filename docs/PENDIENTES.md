@@ -9411,3 +9411,84 @@ del posoperatorio, cuyo diseño es "IC mayor de 2,2"». **El posoperatorio no ti
 usa `_icBanda` y `_rvsBanda`, las mismas de Hemodinámica. Su propio comentario lo dice —«el pedido
 de POP-2 traía su propia escala (1.8 / 2.2) y NO se aplicó — decisión de Maicol: manda la de la
 app»—. No había nada que excluir.
+
+## G-b · Los COMMITS 5, 6, 7 y 8 de la tanda G NO SE HICIERON
+
+La orden pedía nueve commits. Se cerraron **cinco** —el 1, el 2, el 3, el 4 y el 4c—, cada uno con
+su A/B, sus casos y su medición. Los cuatro de la PARTE AJ8 que faltan quedan **declarados y sin
+empezar en el código**, no a medio hacer: ninguna línea de la app se tocó por ellos.
+
+**Lo que sí queda hecho para el que siga, y es la mitad del trabajo:**
+
+- **Las cuatro fuentes están leídas EN IMAGEN y transcritas** en `docs/fuentes/FUENTES.md` →
+  «La tanda G»: la **Figura 5** (folio 28) con sus ocho segmentos por sexo y la duda de la
+  descendente resuelta (♂ primero), el **apartado 9.2.1.1** (folio 71) literal, la **Tabla 38**
+  (folio 80) con sus ocho recomendaciones y los ocho factores uno por uno, y la **Tabla 62**
+  (folio 114) de Marfan con su nota ^c.
+- **La regla de folio de ese documento está comprobada**: folio = hoja del PDF, 0-based, sin
+  offset, verificado en el pie impreso de cuatro páginas.
+- **El inventario de la raíz está hecho y medido** (→ `docs/mapa/g-raiz-aortica.md` § 1).
+
+**Lo que falta, por commit:**
+
+- **COMMIT 5** — los índices aórticos calculados solos (`marfan_ita` fuera de la pantalla, la
+  clave guardada intacta) y la aortopatía hereditaria publicada en el informe y el EN SUMA **sólo**
+  con el síndrome, el diámetro y «dilatada», sin umbral, clase, nivel ni índice —salvo Turner—.
+  Hoy el EN SUMA dice «Aortopatía por … con indicación quirúrgica Clase I/IIa/IIb (…)», que es lo
+  que el punto (ii) retira. **El punto 5a exige verificar antes que la Evidencia ya traiga esos
+  umbrales, clases y niveles**: de las tres tablas que nombra, la **62 ya está leída en imagen**;
+  faltan la **66** (folio 116, Loeys-Dietz) y la **67**.
+- **COMMIT 6** — los otros segmentos contra la Figura 5. Los valores ya están transcritos. Lo que
+  falta es el cableado: unión sinotubular y ascendente por sexo con el texto «por encima del
+  límite superior de lo normal (ESC 2024, Figura 5)», y el cayado y la descendente con su chip
+  «Criterio de EcoSmart». ⚠️ **Y la Figura 5 parte el arco en DOS tramos —proximal 37/34 y medio
+  34/31— mientras la app tiene uno solo**, que es justamente lo que esa decisión manda declarar.
+- **COMMIT 7** — bicúspide nombrada una sola vez y la coartación al EN SUMA. **No se midió nada**
+  de esta parte: el punto 7a empieza por «verificá primero si ya están resueltos estos
+  pendientes», y esa verificación no se hizo.
+- **COMMIT 8** — los ocho factores de la Tabla 38 con tres estados. La orden misma (T7) lo nombra
+  como el que puede quedar incompleto. ⚠️ **Está medido que hoy la Evidencia cuenta TRES factores
+  y la tabla tiene OCHO**: `nFact` en `_indAo` es `crecimiento + familiar + embarazo`, así que un
+  paciente cuyo único factor es la hipertensión resistente o la longitud aórtica **no dispara la
+  recomendación**. Es un defecto con consecuencia clínica y sigue abierto.
+
+## G-c · La Tabla 62 dice «≥ 45 mm» y la app aplica «> 45» — REPORTADO, NO CORREGIDO
+
+Leída en imagen (folio 114), la fila 3 de la Tabla 62 dice: «Puede considerarse la cirugía en
+pacientes con SM y un aneurisma de la raíz aórtica con un diámetro máximo **≥ 45 mm** y factores
+de riesgo adicionales» — **IIa · C**.
+
+`marfanEstado` aplica `maxAo > 45`, estricto. **Con 45,0 mm exactos la guía da IIa y la app no.**
+
+Es el mismo tipo de discrepancia que el apartado 9.2.1.1 tiene con la raíz —la guía escribe
+`> 40` y la app cuenta el 40,0 exacto como dilatado, al revés— y las dos se dejan como están:
+**mover un corte clínico es decisión de Maicol**, que es lo que la regla de este repositorio manda.
+
+**Decidir:** si los dos operadores se alinean a lo que la guía escribe, o si la app conserva los
+suyos y lo declara en el ⓘ.
+
+## G-d · El `incRef` de la raíz va al revés que su fuente, y conviven a propósito
+
+El apartado 9.2.1.1 escribe **`> 40`** y **`> 36`**: estrictos. La app cuenta el valor **exacto**
+como dilatado (`incRef:true`, decisión de Maicol del VS5, 2026-10-17), así que 40,0 mm exactos son
+dilatados acá y no en la guía.
+
+**No se tocó, que es lo que el punto 4a pide** («Mantené los operadores actuales de los cortes
+(40, 36) en los bordes y reportalos»). Queda escrito para que nadie lo «arregle» creyendo que es
+un descuido: está decidido y la fuente ahora está transcrita al lado.
+
+## G-e · Un estudio guardado con la raíz en los DOS campos y con valores distintos no se reconcilia
+
+`aoRaizReconciliar` sólo copia cuando **uno de los dos está vacío**. Con los dos cargados y
+distintos —un estado legítimo de un estudio viejo, porque hasta esta tanda no se sincronizaban— no
+toca nada: elegir cuál vale es decidir por el médico, y reescribir lo guardado es justo lo que la
+regla «no migrar estudios guardados» prohíbe.
+
+La discrepancia queda a la vista: `_indAo` ya toma el máximo de los dos y lo publica.
+
+**Decidir:** si esa reconciliación debe avisar en pantalla, o si conviene dejarla muda.
+
+## G-f · `_icBanda` sigue escribiendo el literal 2.2
+
+Ver **G-a**. Es el mismo corte escrito dos veces; su comportamiento ya es el correcto, así que no
+se tocó.
