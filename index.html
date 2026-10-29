@@ -10802,7 +10802,7 @@ window.cerrarSesionReal = cerrarSesionReal;
 
   <!-- ═══ Patrones de Strain — Referencia (integrado en SGL) ═══ -->
   <div style="border-top:2px solid var(--border);margin:28px 0 0"></div>
-  <div style="font-size:16px;font-weight:800;margin:16px 0 12px;color:var(--text)">📊 Patrones de Strain — Referencia</div>
+  <div style="font-size:16px;font-weight:800;margin:16px 0 12px;color:var(--text)">📊 Patrones de Strain — Referencia <button type="button" class="vinfo-btn vinfo-btn-44" data-vinfo="patrones-sgl" aria-expanded="false" style="font-size:13px;" aria-label="Informaci&oacute;n sobre de d&oacute;nde salen los patrones de strain y sus rangos de SGL" onclick="vInfoClic(this)">&#9432;</button></div>
 <div id="sp-root">
 <div class="sp-main">
   <!-- ACORDEÓN 1 — Cómo usar esta herramienta (colapsado por defecto) -->
@@ -44055,6 +44055,39 @@ const VINFO = Object.freeze({
      —incluidas «RCA o LAD» y «LAD o CX»— y NO numera los segmentos, así que no hay hoja de
      ese documento donde el 15 quede asignado a la descendente anterior. Declarado en
      `docs/PENDIENTES.md` → AJ9-a. */
+  /* ══ DE DÓNDE SALEN LOS PATRONES Y SUS RANGOS (AJ9-3) ══════════════════════════
+     Las citas largas van acá y no en las tarjetas de los quince patrones, que es la regla R2:
+     en la línea visible, a lo sumo una. Lo que cada tarjeta lleva pegado es el rótulo
+     «Criterio de EcoSmart (ilustrativo)», que es lo mínimo para que un rango sin fuente no se
+     lea como un corte validado.
+     ⚠️ LA ADVERTENCIA DEL FABRICANTE LA DA LA PROPIA ASE 2025 —consenso clínico 2 del folio
+     995—, así que no es una salvedad nuestra; y la de los equipos GE sale del método de
+     Phelan, que incluyó sólo estudios hechos en Vivid 7 o Vivid 9 con EchoPAC porque eran los
+     únicos analizables con su programa.
+     ⚠️ EL 2,9 NO ES ESTO, y por eso se nombra: ese corte es del SCORE de amiloidosis, se mide
+     SEPTAL y en cuatro cámaras, y tiene su propia tarjeta. */
+  'patrones-sgl': {
+    ancho: 380,
+    tit: 'Los patrones de strain y de dónde salen',
+    lee: 'Los rangos «SGL típico» de cada patrón son un criterio de la aplicación, '
+       + 'ilustrativo: ningún documento de la biblioteca publica rangos de SGL por patrón.\n'
+       + 'La preservación apical de la amiloidosis se define como el promedio del ápex más de '
+       + '2 veces el promedio del resto.\n'
+       + 'El patrón de la miocardiopatía hipertrófica no lleva relación ápice/base: no hay '
+       + 'fuente que la publique.\n'
+       + 'La relación ápice/base de 2,9 es del score de amiloidosis, que es otra pregunta y se '
+       + 'mide de otra forma.\n'
+       + 'La insuficiencia renal terminal puede dar un patrón que imita la preservación apical.',
+    fuente: 'ASE 2025 (Thomas JD y cols., J Am Soc Echocardiogr 2025;38:985-1020) — consenso '
+       + 'clínico 2 y Figura 6 del folio 996, para la preservación apical y para los seis '
+       + 'patrones que esa figura ilustra. Phelan D y cols., Heart 2012;98:1442-1448, folio '
+       + '1442 — la misma idea dicha de otra forma: el ápex dividido por la suma de basal y '
+       + 'medio, con corte de 1,0, sensibilidad 93 % y especificidad 82 % en 55 pacientes.',
+    ojo: 'Phelan 2012 se midió sólo con equipos General Electric (Vivid 7 y Vivid 9 con '
+       + 'EchoPAC). La ASE 2025 advierte que los valores de strain dependen del fabricante y de '
+       + 'la versión del programa, y que conviene comparar con el mismo equipo y la misma '
+       + 'versión.'
+  },
   'contr-territorio': {
     ancho: 360,
     tit: 'Territorios coronarios de los 17 segmentos',
@@ -98177,8 +98210,18 @@ const PATRONES = [
   {
     id: 'amiloidosis', categoria: 'infiltrativa', nombre: 'Amiloidosis Cardíaca',
     sub: 'Apical sparing — bandera de Japón', sgl: 'SGL típico: -10 a -15%',
-    descripcion: 'Patrón patognomónico: hipocinesia basal y media (anillo externo e intermedio) con ápex conservado (anillo central rojo). Relación ápice/base > 2.9.',
-    hallazgos: '→ Anillo externo (basal): hipocinético-acinético (salmón/lila)\n→ Anillo medio: hipocinético moderado\n→ Anillo apical y apex: conservado (rojo)\n→ Relación ápice/base strain > 2.9\n→ HVI concéntrica ≥12mm inexplicable',
+    /* ⚠️ LA DEFINICIÓN ES LA DE LA ASE 2025 Y NO UN NÚMERO PROPIO (AJ9-3a). Decía
+       «Relación ápice/base > 2.9», que es el corte del SCORE de amiloidosis —otra pregunta,
+       otra fuente y otra forma de medirlo: Boldrini lo define SEPTAL y en cuatro cámaras—.
+       La preservación apical de la que habla este patrón es la del consenso clínico 2 del
+       documento de strain de la ASE: el promedio del ápex más de 2 veces el promedio del
+       resto. Hoja 12, folio 996, leído en imagen. Las citas van en el ⓘ de la sección.
+       ⚠️ LA PALABRA «PATOGNOMÓNICO» SE REPORTA Y NO SE TOCA. La biblioteca no la sostiene:
+       Phelan 2012 publica sensibilidad 93 % y especificidad 82 %, y la propia Figura 6 de la
+       ASE 2025 ilustra una insuficiencia renal terminal con un patrón que lo imita. Cambiar
+       un rótulo clínico es decisión de Maicol: `docs/PENDIENTES.md` → AJ9-d. */
+    descripcion: 'Patrón patognomónico: hipocinesia basal y media (anillo externo e intermedio) con ápex conservado (anillo central rojo). Preservación apical: el promedio del ápex más de 2 veces el promedio del resto.',
+    hallazgos: '→ Anillo externo (basal): hipocinético-acinético (salmón/lila)\n→ Anillo medio: hipocinético moderado\n→ Anillo apical y apex: conservado (rojo)\n→ Preservación apical: promedio del ápex más de 2 veces el promedio del resto\n→ HVI concéntrica ≥12mm inexplicable',
     badge: 'teal',
     colores: [C.AC, C.AC, C.AC, C.AC, C.AC, C.AC, C.H3, C.H3, C.H3, C.H3, C.H3, C.H3, C.N, C.N, C.N, C.N, C.N]
   },
@@ -98202,7 +98245,10 @@ const PATRONES = [
     id: 'sobrecarga-presion', categoria: 'sobrecarga', nombre: 'Sobrecarga de presión',
     sub: 'HTA severa / EAo — base comprometida', sgl: 'SGL típico: -14 a -18%',
     descripcion: 'Hipocinesia preferencial en anillo basal (externo) con preservación apical. Gradiente base-ápex presente pero menos marcado que en amiloidosis.',
-    hallazgos: '→ Hipocinesia basal (anillo externo)\n→ Ápex conservado (diferencial con amiloidosis: menos marcado)\n→ HVI concéntrica con FEVI conservada\n→ Relación ápice/base <2.9 (vs >2.9 en amiloidosis)',
+    /* La comparación con la amiloidosis se dice con la MISMA definición que el patrón de
+       amiloidosis usa desde el AJ9-3a: con el 2,9 acá y la preservación apical allá, los dos
+       patrones hermanos se contradecían a dos tarjetas de distancia. */
+    hallazgos: '→ Hipocinesia basal (anillo externo)\n→ Ápex conservado (diferencial con amiloidosis: menos marcado)\n→ HVI concéntrica con FEVI conservada\n→ Sin preservación apical: el promedio del ápex no llega al doble del resto',
     badge: 'amber',
     colores: [C.H3, C.H3, C.H3, C.H3, C.H3, C.H3, C.H1, C.H1, C.H1, C.H1, C.H1, C.H1, C.N, C.N, C.N, C.N, C.N]
   },
@@ -98223,6 +98269,23 @@ const PATRONES = [
     colores: [C.H2, C.H2, C.H2, C.H2, C.H2, C.H2, C.H2, C.H2, C.H2, C.H2, C.H2, C.H2, C.H1, C.H1, C.H1, C.H1, C.H1]
   },
 ];
+
+/* ══ EL RÓTULO DEL RANGO DE SGL DE CADA PATRÓN (AJ9-3c) ════════════════════════════
+   Los quince rangos «SGL típico: …» NO salen de ningún documento de la biblioteca: se
+   censaron uno por uno y ninguno tiene fuente. Publicarlos sin decirlo los hace parecer un
+   corte validado, que es justo lo que el panel de Evidencia de esta casa no permite.
+   El rótulo va PEGADO al rango y no en una nota de sección: el acordeón se abre de a un
+   patrón, así que una nota arriba la ve quien no necesita el aviso.
+   ⚠️ LOS RANGOS NO SE TOCARON. Cambiar un rango clínico es decisión de Maicol; lo único que
+   se agrega es de dónde salen. Y el «< -20%» del patrón normal sigue como estaba, aunque el
+   corte de normalidad de la aplicación sea −18: declarado en `docs/PENDIENTES.md` → AJ9-b.
+   ⚠️ UN SOLO DUEÑO PARA LOS DOS LECTORES: la grilla de acordeones y el panel de detalle.
+   Con el texto escrito dos veces, el día que el rótulo cambie una de las dos vistas se
+   quedaría atrás sobre el MISMO patrón. */
+function patronSglTxt(p) {
+  return (p && p.sgl ? p.sgl : '') + '\nCriterio de EcoSmart (ilustrativo)';
+}
+window.patronSglTxt = patronSglTxt;
 
 var catActual = 'todas';
 var patronSeleccionado = null;
@@ -98251,7 +98314,7 @@ function renderGrid() {
       + '<div class="patron-acc-body">'
         + '<div class="patron-acc-be">' + svgStr + '</div>'
         + '<div class="patron-acc-info">'
-          + '<div class="detalle-sgl">' + p.sgl + '</div>'
+          + '<div class="detalle-sgl" style="white-space:pre-line;">' + patronSglTxt(p) + '</div>'
           + '<div class="detalle-patron">' + p.descripcion + '</div>'
           + '<div class="detalle-hallazgos">' + p.hallazgos.replace(/\n/g,'<br>') + '</div>'
         + '</div>'
@@ -98274,7 +98337,7 @@ function selPatron(id) {
   var svgEl   = document.getElementById('detalle-svg');
   panel.className = 'detalle-panel show';
   if(titleEl)  titleEl.textContent  = patronSeleccionado.nombre + ' — ' + patronSeleccionado.sub;
-  if(sglEl)    sglEl.textContent    = patronSeleccionado.sgl;
+  if(sglEl)  { sglEl.style.whiteSpace = 'pre-line'; sglEl.textContent = patronSglTxt(patronSeleccionado); }
   if(patronEl) patronEl.textContent = patronSeleccionado.descripcion;
   if(hallEl)   hallEl.innerHTML     = patronSeleccionado.hallazgos.replace(/\n/g,'<br>');
   if(svgEl) {

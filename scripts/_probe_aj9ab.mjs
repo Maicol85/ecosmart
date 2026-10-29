@@ -226,6 +226,45 @@ const MEDIR = `(() => {
     out._wmsi = Object.keys(window).filter(k => /wmsi/i.test(k)).sort().join(',') || 'ninguno';
     out._wmsiNodos = [].slice.call(document.querySelectorAll('[id*="wmsi"]')).map(n => n.id).join(',') || 'ninguno';
   } catch (e) { out._wmsi = 'EXC' }
+  /* ══ COMMIT 3 · LOS PATRONES DEL OJO DE BUEY ═════════════════════════════════════════════
+     Los quince rangos textuales -que NO se tocan-, los dos patrones que la tanda reescribe y
+     el rotulo ilustrativo. El registro PATRONES es la fuente; la grilla y el panel de detalle
+     son sus dos lectores. */
+  try {
+    out._patN = (typeof PATRONES !== 'undefined') ? PATRONES.length : -1;
+    out._patRangos = (typeof PATRONES !== 'undefined')
+      ? PATRONES.map(p => p.id + '=' + p.sgl).join(' | ') : 'SIN REGISTRO';
+    out._patAmil = (typeof PATRONES !== 'undefined')
+      ? N(JSON.stringify((PATRONES.filter(p => p.id === 'amiloidosis')[0] || {}))) : 'SIN REGISTRO';
+    out._patPres = (typeof PATRONES !== 'undefined')
+      ? N(JSON.stringify((PATRONES.filter(p => p.id === 'sobrecarga-presion')[0] || {}))) : 'SIN REGISTRO';
+    /* Los patrones de MCH: NINGUNO puede nombrar una relacion apice/base. */
+    out._patMch = (typeof PATRONES !== 'undefined')
+      ? PATRONES.filter(p => /mch/.test(p.id)).map(p => p.id + ':'
+          + (/pice.base|2[.,]9/.test(p.sgl + p.descripcion + p.hallazgos) ? 'CON RATIO' : 'sin ratio')).join(' ')
+      : 'SIN REGISTRO';
+    /* Cuantas veces aparece el 2.9 en los quince patrones: tiene que ser CERO. */
+    out._pat29 = (typeof PATRONES !== 'undefined')
+      ? PATRONES.filter(p => /2[.,]9/.test(p.sgl + p.descripcion + p.hallazgos)).map(p => p.id).join(',') || 'ninguno'
+      : 'SIN REGISTRO';
+  } catch (e) { out._patRangos = 'EXC ' + String(e).slice(0, 80) }
+  /* Los DOS lectores del rotulo, pintados de verdad. */
+  try {
+    if (typeof renderGrid === 'function') renderGrid();
+    const g = document.getElementById('patron-grid');
+    const cel = g ? g.querySelectorAll('.detalle-sgl') : [];
+    out._pant_patGrillaN = cel.length;
+    out._pant_patGrilla = [].slice.call(cel).map(x => N(x.textContent)).join(' | ');
+  } catch (e) { out._pant_patGrilla = 'EXC' }
+  try {
+    if (typeof selPatron === 'function') selPatron('amiloidosis');
+    out._pant_patDetalle = N((document.getElementById('det-sgl') || {}).textContent)
+      + ' || ' + N((document.getElementById('det-hallazgos') || {}).textContent);
+  } catch (e) { out._pant_patDetalle = 'EXC' }
+  try {
+    out._pant_patGlobo = (typeof VINFO !== 'undefined' && VINFO['patrones-sgl'])
+      ? N(JSON.stringify(VINFO['patrones-sgl'])) : 'SIN TARJETA';
+  } catch (e) { out._pant_patGlobo = 'EXC' }
   /* El rotulo de la alerta del Laboratorio que lee el corte anormal. */
   try {
     out._labAlertas = (typeof _labIndicadoresList === 'function')
