@@ -4237,7 +4237,7 @@ window.cerrarSesionReal = cerrarSesionReal;
         <div class="grid-3">
           <div class="fg">
             <label>Ao sinusal (mm)</label>
-            <input type="number" id="ao_sin" placeholder="mm" oninput="calcAorta()">
+            <input type="number" id="ao_sin" placeholder="mm" oninput="aoRaizSync('aivi');calcAorta()">
           </div>
           <div class="fg">
             <label>Ao sinotubular (mm)</label>
@@ -15685,7 +15685,7 @@ z
           </select>
         </div>
         <div class="fg"><label>Aorta sinusal (mm)</label>
-          <input type="number" id="marfan_ao_seno" placeholder="mm" oninput="marfanSync()">
+          <input type="number" id="marfan_ao_seno" placeholder="mm" oninput="aoRaizSync('marfan');marfanSync()">
         </div>
         <div class="fg"><label>Aorta ascendente (mm)</label>
           <input type="number" id="marfan_ao_ascendente" placeholder="mm" oninput="marfanSync()">
@@ -24177,17 +24177,151 @@ function aoSegGrado(sg, x, src) {
      segmentos. Lo que se retira es el REPARTO por encima de ese corte.
      ⚠️ Y EL DE LA RAIZ SI SE MOVIO EN LA MUJER (AJ4-1, 23/10/2026): `aoSegDil` le pregunta a
      `aoSegRef`, que en ese segmento lee `refSexo`. El del varon no cambio. */
+  /* ══ SIN SEXO CARGADO, LA RAIZ NO SE CLASIFICA (G-4, 2026-10-29, decision de Maicol) ══════
+     Entre el corte de la mujer y el del varon -36 inclusive a 40 exclusive- el mismo numero es
+     NORMAL en un varon y DILATADO en una mujer. Hasta hoy `sexoEfectivo` devolvia el corte del
+     VARON cuando el sexo faltaba, asi que una raiz de 39 mm salia «Aorta toracica de calibre
+     normal» en el informe FIRMADO sobre un dato que en la mitad de la poblacion es un hallazgo.
+     Medido en HEAD: sin sexo, 36 y 39 mm dan «Normal (<40mm)» en la capsula y «de calibre
+     normal» en el informe.
+     ⚠️ LA SEGUNDA PUERTA MANDA: si el INDICE vota -iDA por encima de 22 mm/m2- la raiz esta
+     dilatada en los dos sexos y el sexo deja de importar, asi que no se entra en esta rama.
+     ⚠️ Y POR ENCIMA DE 40 TAMPOCO: ahi esta dilatada en los dos sexos. Por debajo de 36,
+     normal en los dos. La franja sin respuesta es SOLO la de en medio.
+     ⚠️ LOS CORTES NO SE ESCRIBEN: salen de `sg.refSexo`, el mismo mapa que usa `aoSegRef`. */
+  if (sg.refSexo && typeof sexoFalta === 'function' && sexoFalta(src)) {
+    const _vals = Object.keys(sg.refSexo).map(function (k) { return sg.refSexo[k] });
+    const _bajo = Math.min.apply(null, _vals), _alto = Math.max.apply(null, _vals);
+    const _ida = aoSegIda(sg, x, src);
+    const _votaIda = (sg.idaMax != null && _ida != null && _ida > sg.idaMax);
+    if (!_votaIda && x >= _bajo && x < _alto) return 'sinsexo';
+  }
   if (aoSegDil(sg, x, src)) return 'dilatada';
   return 'normal';
 }
 window.aoSegGrado = aoSegGrado;
+/* ¿El voto de dilatacion lo dio el INDICE y no el diametro? (G-4, punto iv.)
+   Sirve para que el PAPEL nombre el indice SOLO cuando fue el que decidio: con un diametro que
+   ya alcanza el corte, agregar «por indice» afirmaria que el diametro no alcanzaba. */
+function aoSegPorIda(sg, x, src) {
+  if (!sg || sg.idaMax == null) return false;
+  const r = aoSegRef(sg, src);
+  if (r != null && x >= r) return false;
+  const ida = aoSegIda(sg, x, src);
+  return ida != null && ida > sg.idaMax;
+}
+window.aoSegPorIda = aoSegPorIda;
+/* ══ LA RAIZ AORTICA ES UN SOLO DATO (G-4, punto i, 2026-10-29, decision de Maicol) ══════════
+   QUE ARREGLA, MEDIDO EN HEAD ANTES DE ESCRIBIR UNA LINEA. El diametro de la raiz se podia
+   cargar en DOS lugares -`ao_sin`, en AI/VI → «Aorta toracica», y `marfan_ao_seno`, en
+   C. Congenitas → «Marfan / aortopatia hereditaria»- y NO se hablaban. Con 43 mm cargados solo
+   en el modulo de Marfan, la capsula de la aorta decia «—», el informe NO nombraba la aorta y
+   el EN SUMA tampoco: el documento firmado se callaba una raiz de 43 mm. El unico puente era
+   `_indAo`, en el panel de Evidencia, que toma el MAXIMO de los dos — un arreglo que admite que
+   pueden discrepar.
+
+   EL MODELO ES EL DEL D-11, que es la decision mas reciente sobre este patron: un dato vive en
+   un campo, se edita por DOS puertas y GANA LA ULTIMA EDICION. Lo que el medico teclea o borra
+   en cualquiera de los dos va al otro tecla por tecla, el vacio incluido.
+
+   ⚠️ CUELGA DEL GESTO Y NO DEL BARRIDO DE ESPEJOS, y eso es una regla de este archivo, no una
+   preferencia: `ESPEJOS_VIVOS` excluye expresamente a los pintores que ESCRIBEN CAMPOS DEL
+   ESTUDIO -por eso `popSync` y `calcVD` estan afuera-, y esto escribe uno. Va en el `oninput`
+   de los dos campos, que es un gesto.
+
+   ⚠️ LA GUARDA DE REENTRADA NO ES DECORATIVA: escribir en el destino despacha su propio
+   `input`, que vuelve a llamar aca con el origen invertido. Sin la bandera son dos funciones
+   llamandose para siempre.
+
+   ⚠️ SE COPIA EL TEXTO CRUDO Y NO UN NUMERO PARSEADO: un campo a medio escribir -un «3» que va
+   a ser «38»- tiene que viajar tal cual, y el vacio tambien. Es la misma regla que el D-11
+   escribio para los ocho datos compartidos del modulo de amiloidosis. */
+let _aoRaizEnCurso = false;
+/* ⚠️ EL SENTIDO ESTUDIO → MODULO ES CONDICIONAL, Y ESO NO ES TIMIDEZ: ES UNA CONSECUENCIA
+   MEDIDA. Con el espejo simetrico, escribir la raiz en AI/VI poblaba `marfan_ao_seno` en TODO
+   estudio con aorta, y ese campo es lo que decide tres cosas fuera de aca:
+     · `marfanEstado().hayDatos` -que es `sind || seno || asc || ita`- pasaba a `true`, asi que
+       la tarjeta de aortopatia se encendia con su badge «cargada» y el modulo concluia
+       «Aortopatia hereditaria — falta declarar el sindrome» sobre un paciente que no tiene
+       ninguna. Medido: con `ao_sin` = 40 y nada mas, `hayDatos` pasaba de false a true;
+     · el LABORATORIO cuenta un estudio como «Marfan/EHAT» con `marfan_ao_seno !== ''`, asi que
+       su panel habria empezado a incluir todos los estudios con raiz medida. El Laboratorio
+       esta FUERA de esta tanda;
+     · la columna de Excel «Marfan/EHAT aorta sinusal (mm)» habria pasado a traer valor en todo
+       estudio con aorta.
+   El papel firmado NO corria riesgo -el bloque de aortopatia esta detras del boton «Integrar al
+   informe», verificado-, pero las otras tres si.
+   LA REGLA QUE QUEDA, y es la del D-9: EL CAMPO DEL ESTUDIO ES EL DUENO. Lo que se teclea en el
+   modulo va SIEMPRE al estudio -ese sentido es incondicional, y es el que arregla el silencio
+   del informe-. El sentido inverso solo corre cuando el MODULO YA ESTA EN USO, o sea cuando el
+   medico declaro un sindrome o cargo alguno de sus otros campos. Un estudio con la aorta
+   medida y sin aortopatia no toca una sola clave del modulo. */
+function _aoRaizModuloEnUso() {
+  const ids = ['marfan_sindrome', 'marfan_ao_ascendente', 'marfan_ita', 'marfan_factores_riesgo'];
+  for (let i = 0; i < ids.length; i++) {
+    const e = document.getElementById(ids[i]);
+    if (e && String(e.value || '').trim() !== '') return true;
+  }
+  const b = document.getElementById('marfan_ao_seno');
+  return !!(b && String(b.value || '').trim() !== '');
+}
+window._aoRaizModuloEnUso = _aoRaizModuloEnUso;
+function aoRaizSync(origen) {
+  if (_aoRaizEnCurso) return;
+  const a = document.getElementById('ao_sin'), b = document.getElementById('marfan_ao_seno');
+  if (!a || !b) return;
+  if (origen !== 'marfan' && !_aoRaizModuloEnUso()) return;
+  const src = (origen === 'marfan') ? b : a;
+  const dst = (origen === 'marfan') ? a : b;
+  if (dst.value === src.value) return;
+  _aoRaizEnCurso = true;
+  try {
+    dst.value = src.value;
+    dst.dispatchEvent(new Event('input', { bubbles: true }));
+    dst.dispatchEvent(new Event('change', { bubbles: true }));
+  } finally { _aoRaizEnCurso = false; }
+}
+window.aoRaizSync = aoRaizSync;
+/* ══ AL CARGAR UN ESTUDIO GUARDADO ══════════════════════════════════════════════════════════
+   Entra en `RECALC_MODULOS`, que es el embudo de las CINCO rutas de restauracion -y no en
+   `ESPEJOS_VIVOS`, por la razon de arriba-.
+
+   ⚠️ SOLO RECONCILIA CUANDO UNO DE LOS DOS ESTA VACIO, Y ESO ES DELIBERADO. Un estudio viejo
+   puede tener los dos cargados con numeros DISTINTOS -antes no se sincronizaban, asi que es un
+   estado legitimo-. Pisarle uno al medico seria decidir por el cual de sus dos mediciones vale,
+   y ademas es el tipo de reescritura silenciosa que la regla «no migrar estudios guardados»
+   prohibe. Cuando difieren se dejan los dos como estan y la discrepancia queda a la vista: el
+   panel de Evidencia ya toma el maximo y lo dice. Declarado en docs/PENDIENTES.md. */
+function aoRaizReconciliar() {
+  const a = document.getElementById('ao_sin'), b = document.getElementById('marfan_ao_seno');
+  if (!a || !b) return;
+  const va = String(a.value || '').trim(), vb = String(b.value || '').trim();
+  if (va === vb) return;
+  if (va !== '' && vb !== '') return;   // los dos cargados y distintos: no se toca nada
+  /* El estudio → modulo solo si el modulo ya esta en uso, por lo de arriba. El modulo →
+     estudio siempre: es lo que hace que una raiz cargada solo en la pantalla de aortopatia
+     llegue al informe. */
+  if (va !== '' && !_aoRaizModuloEnUso()) return;
+  const src = (va !== '') ? a : b, dst = (va !== '') ? b : a;
+  dst.value = src.value;
+  dst.dispatchEvent(new Event('input', { bubbles: true }));
+  dst.dispatchEvent(new Event('change', { bubbles: true }));
+}
+window.aoRaizReconciliar = aoRaizReconciliar;
 function aoSegsMedidos() {
   return AO_SEGS.map(function(sg){
     const x = v(sg.k);
     if (!x) return null;
     const grado = aoSegGrado(sg, x);
-    if (grado === 'fuera') return { sg: sg, val: x, grado: 'fuera', dil: false, fuera: true };
-    return { sg: sg, val: x, grado: grado, dil: grado !== 'normal', fuera: false };
+    if (grado === 'fuera') return { sg: sg, val: x, grado: 'fuera', dil: false, fuera: true,
+                                    sinSexo: false, porIda: false, ida: null };
+    /* ⚠️ `dil` COMPARA CONTRA 'dilatada' Y NO CONTRA 'normal' (G-4). Con el grado nuevo
+       `sinsexo`, un `grado !== 'normal'` lo habria contado como DILATADO: el informe habria
+       afirmado una dilatacion justo en la franja donde la app dice que no puede clasificar. */
+    const _porIda = (grado === 'dilatada') && aoSegPorIda(sg, x);
+    return { sg: sg, val: x, grado: grado, dil: grado === 'dilatada', fuera: false,
+             sinSexo: grado === 'sinsexo', porIda: _porIda,
+             ida: _porIda ? aoSegIda(sg, x) : null };
   }).filter(Boolean);
 }
 window.aoSegsMedidos = aoSegsMedidos;
@@ -25004,7 +25138,9 @@ const AO_INTERP_EL = { ao_sin: 'ao-interp', ao_st: 'ao-st-interp', ao_tub: 'ao-t
 /* ⚠️ DOS COLORES Y NO CUATRO (AJ2-6, 23/10/2026): el amarillo, el naranja y el rojo eran los
    tres grados retirados. Queda el naranja de «hay un hallazgo», y el color NUNCA es lo unico que
    informa: la capsula escribe «Dilatada» con su corte al lado. */
-const AO_BADGE_COLOR = { normal:'green', dilatada:'orange' };
+/* ⚠️ EL GRIS DE `sinsexo` NO ES UN GRADO: dice «no se puede contestar», que no es ni normal ni
+   dilatada. Y el color no es lo unico que informa — la capsula escribe la frase completa. */
+const AO_BADGE_COLOR = { normal:'green', dilatada:'orange', sinsexo:'gray' };
 function calcAorta() {
   /* ⚠️ SE RECORRE `AO_SEGS` COMPLETO Y NO `aoSegsMedidos()` (ARR2, 2026-10-18). Ese lector
      FILTRA los segmentos sin dato (`if (!x) return null` + `.filter(Boolean)`) porque el informe
@@ -25027,6 +25163,10 @@ function calcAorta() {
        (≥36mm)». Escribirlo a mano habria dejado el rotulo mintiendo sobre el voto de al lado. */
     const _ref = aoSegRef(sg);
     if (m.grado === 'fuera')         txt = 'Valor fuera de rango (' + sg.min + '-' + sg.max + ' mm) — verificar';
+    /* ⚠️ SIN SEXO Y EN LA FRANJA DE EN MEDIO, LA CAPSULA NO CLASIFICA (G-4). El aviso naranja
+       de «Falta el sexo…» que ya existe sigue saliendo por su cuenta: este rotulo dice que ESTE
+       campo no tiene respuesta, y aquel dice que es el sexo lo que falta. */
+    else if (m.grado === 'sinsexo')  txt = 'No se puede clasificar sin el sexo';
     else if (m.grado === 'normal')   txt = 'Normal (' + aoSegSim(sg, 'normal') + _ref + 'mm)';
     /* ⚠️ LA SEGUNDA PUERTA SE DECLARA EN EL ROTULO. Con una raiz de 38 mm en una persona de
        talla baja el voto lo da el INDICE y no el diametro: sin esta rama la capsula decia
@@ -56362,48 +56502,78 @@ function generarInforme(opts) {
        «moderadamente» y «severamente» por el grado de `aoSegGrado`, que es la escala sin fuente
        que esta tanda retira. El DIAMETRO se conserva en las dos redacciones. */
     const gTxt = m => (m && m.sg && m.sg.m) ? 'dilatado' : 'dilatada';
+    /* ⚠️ EL PAPEL NOMBRA EL INDICE SOLO CUANDO EL INDICE DIO EL VOTO (G-4, punto iv).
+       Con un diametro que ya alcanza el corte, agregar «por indice» afirmaria que el diametro
+       no alcanzaba. `porIda` lo decide `aoSegPorIda`, que es el mismo dueno que usa la capsula.
+       El numero se redondea a un entero: es un indice, no una medida directa. */
+    const gFrase = m => gTxt(m) + (m.porIda && m.ida != null
+      ? ' por índice, ' + Math.round(m.ida) + ' mm/m²' : '');
+    /* ⚠️ LOS SEGMENTOS SIN CLASIFICAR NO SON NI NORMALES NI DILATADOS (G-4, punto iii).
+       Van en su propio conjunto: sin esto caerian en `okM` y el informe FIRMADO los llamaria
+       «de calibre normal», que es exactamente la afirmacion que esta tanda viene a retirar. */
+    const aoS  = aoM.filter(x => x.sinSexo);
+    const aoOK = aoM.filter(x => !x.dil && !x.sinSexo);
+    const sinC = aoS.length ? (' ' + aoS.map(x => x.sg.lblC + ' ' + x.val + ' mm').join(', ') +
+      ' — no se puede clasificar sin el sexo.') : '';
     if (aoF.length && !aoD.length) {
       /* Hay un valor fuera de escala y ninguno dilatado: NO se afirma normalidad. El médico ve
          qué segmento revisar en vez de un informe que dice «normal» sobre un dato ilegible. */
       inf.push('Aorta torácica: ' + aoF.map(x => x.sg.lblC + ' ' + x.val + ' mm').join(', ') +
                ' — valor fuera de rango plausible, verificar la medición.' +
-               (aoM.length ? ' ' + aoM.map(x => x.sg.lblC + ' ' + x.val + ' mm').join(', ') + ' de calibre normal.' : ''));
+               (aoOK.length ? ' ' + aoOK.map(x => x.sg.lblC + ' ' + x.val + ' mm').join(', ') + ' de calibre normal.' : '') +
+               sinC);
     } else if (!aoM.length) {
       /* SILENCIO. Antes afirmaba «Aorta torácica de calibre normal» sin un solo segmento medido:
          una normalidad declarada en el informe firmado sobre algo que nadie midió. Es el mismo
          criterio que el módulo pulmonar —no negar ni afirmar lo no evaluado— y acá pesa más,
          porque no medir la aorta es lo habitual en un ETT de rutina. Si no hay medición, la
          aorta no se nombra. */
-    } else if (!aoD.length) {
-      const vals = aoM.map(x => x.sg.lblC + ' ' + x.val + ' mm').join(', ');
+    } else if (!aoD.length && !aoS.length) {
+      const vals = aoOK.map(x => x.sg.lblC + ' ' + x.val + ' mm').join(', ');
       inf.push(estiloPick(
-        'Aorta torácica de calibre normal (' + aoM.map(x => x.val + ' mm').join(' · ') + ').' + _vabFenoCola(),
+        'Aorta torácica de calibre normal (' + aoOK.map(x => x.val + ' mm').join(' · ') + ').' + _vabFenoCola(),
         'Aorta torácica de calibre normal (' + vals + ').' + _vabFenoCola(),
         'La aorta torácica es de calibre normal, con ' + vals.toLowerCase() + '.' + _vabFenoCola()));
+    } else if (!aoD.length) {
+      /* ⚠️ NINGUNO DILATADO PERO ALGUNO SIN CLASIFICAR: NO SE AFIRMA NORMALIDAD (G-4, iii).
+         El diametro sale SIN ADJETIVO, que es lo que la decision pide para el papel. La pantalla
+         dice ademas por que -«No se puede clasificar sin el sexo»- y el aviso naranja que ya
+         existia sigue nombrando a la raiz. */
+      const valsOK = aoOK.map(x => x.sg.lblC + ' ' + x.val + ' mm').join(', ');
+      const colaOK = aoOK.length ? (' ' + valsOK + ' de calibre normal.') : '';
+      inf.push(estiloPick(
+        'Aorta torácica:' + sinC + colaOK + _vabFenoCola(),
+        'Aorta torácica:' + sinC + colaOK + _vabFenoCola(),
+        'A nivel de la aorta torácica,' + sinC.replace(' — no se puede clasificar sin el sexo.',
+          ', sin el sexo cargado no se puede clasificar su calibre.') + colaOK + _vabFenoCola()));
     } else {
-      const cad = aoD.map(x => x.sg.lblC + ' ' + x.val + ' mm (' + gTxt(x) + ')').join('; ');
+      const cad = aoD.map(x => x.sg.lblC + ' ' + x.val + ' mm (' + gFrase(x) + ')').join('; ');
       /* Sólo la raíz lleva el «a nivel de …»: su medición se toma en los senos de Valsalva, que
          es un sitio distinto del segmento que se nombra. En los otros dos el sitio y el segmento
          son el mismo y la cláusula quedaba redundante («la unión sinotubular … a nivel de la
          unión sinotubular»). */
-      const nar = aoD.map(x => (x.sg.m ? 'el ' : 'la ') + x.sg.lbl + ' se encuentra ' + gTxt(x) +
+      const nar = aoD.map(x => (x.sg.m ? 'el ' : 'la ') + x.sg.lbl + ' se encuentra ' + gFrase(x) +
                                (x.sg.k === 'ao_sin' ? ', con un diámetro a nivel de los ' + x.sg.med + ' de ' : ', de ') +
                                x.val + ' mm').join('; ');
       /* Los segmentos medidos y NORMALES se citan igual: sin ellos, «aorta ascendente dilatada»
          sobre un informe que midió las tres deja al lector sin saber si las otras dos se vieron. */
-      const okM = aoM.filter(x => !x.dil);
+      /* ⚠️ `aoOK` Y NO `aoM.filter(x => !x.dil)`: ese filtro metia a los SIN CLASIFICAR entre
+         los normales y el informe firmado los llamaba «de calibre normal» (G-4, iii). */
+      const okM = aoOK;
       const okC = okM.length ? ' ' + okM.map(x => x.sg.lblC + ' ' + x.val + ' mm').join(', ') + ' de calibre normal.' : '';
       inf.push(estiloPick(
-        'Aorta torácica: ' + cad + '.' + okC + _vabFenoCola(),
-        'Aorta torácica: ' + cad + '.' + okC + _vabFenoCola(),
+        'Aorta torácica: ' + cad + '.' + okC + sinC + _vabFenoCola(),
+        'Aorta torácica: ' + cad + '.' + okC + sinC + _vabFenoCola(),
         'A nivel de la aorta torácica, ' + nar + ', hallazgo que amerita control evolutivo del calibre aórtico.' +
           (okM.length ? ' El resto de los segmentos medidos es de calibre normal (' +
-            okM.map(x => x.sg.lbl + ' ' + x.val + ' mm').join(', ') + ').' : '') + _vabFenoCola()));
+            okM.map(x => x.sg.lbl + ' ' + x.val + ' mm').join(', ') + ').' : '') + sinC + _vabFenoCola()));
       /* Sin artículo, como las cuatro líneas que ya existían («Dilatación unión sinotubular»).
          Agregarlo obligaba a reescribir las cuatro para que el En Suma no quedara con dos
          estilos, y nada lo pedía. */
       aoD.forEach(x => suma.push('Dilatación ' + (x.sg.k === 'ao_sin' ? 'raíz aórtica' : x.sg.lbl) +
-                                 ' (' + x.val + ' mm).'));
+                                 ' (' + x.val + ' mm' +
+                                 (x.porIda && x.ida != null ? ', por índice, ' + Math.round(x.ida) + ' mm/m²' : '') +
+                                 ').'));
     }
   }
 
@@ -59779,7 +59949,11 @@ function RECALC_MODULOS() {
      automaticos con el «requiere …» del formulario vacio al lado de un VDFVI y una FEVI ya
      poblados. No puede migrar nada: no escribe ningun campo del estudio, los dos nodos que
      toca son `vauto-` y el tercero un `<div>` de texto. */
-  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','asiaMmSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','dtTapSync','etOndaESync','papmEstSync','calcDopTric','etTsvdSync','calcET','vpVmaxSync','ipIncongruenciaSync','itRefFuenteSync','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccSegSync','vpSync','popSync','sglOrigenSync','calcVenaPulm','valvProtSync','eaTaviEspejar','imEspejosRestaurar','eteVmAvisoSync','vmCarpLegadoSync','vmCarpOrigenSync','vmProtBloqSync','vmMorfFitSync','vdStrainPlSync','emPdfValsSync','emCuadroRefRepintar','emContFaAvisoSync','imCortesPintar','imContAvisoPintar','itIncongruenciaSync','aoEspejosRestaurar','tangoRestaurar','diastExclSync','diastFcAvisoSync','diastBseEprimaAvisoSync','diastBseGrisAvisoSync','diastStrainMarcaSync','vdMarcaSync','vdTeiAvisoSync','hfPepSync','hfPepPintar','viVolAutoSync','eaAvaiGradoPintar','eaPvlPintar','imPvlPintar','vdTapsePsapSync','ipApDiamSync','vdViSelSync','htpApSync','htpTablaPintar','m3dBotonSync','contrPdfSync','sglPdfSync','eteQxPdfSync','otrBurbUI','v2dCerrar','aiviSexoSync','vtDviAuto','sincronizarTEERDesdeGlobal','calcETE',
+  /* ⚠️ `aoRaizReconciliar` VA PRIMERO (G-4, 2026-10-29): la raiz es UN solo dato con dos
+     puertas, y un estudio guardado puede traerla en una sola. Si corriera despues de
+     `marfanSync` o de `calcAorta`, esos dos ya habrian pintado con el campo vacio. Solo copia
+     cuando uno de los dos esta vacio; con los dos cargados y distintos no toca nada. */
+  return ['aoRaizReconciliar','tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','asiaMmSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','dtTapSync','etOndaESync','papmEstSync','calcDopTric','etTsvdSync','calcET','vpVmaxSync','ipIncongruenciaSync','itRefFuenteSync','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccSegSync','vpSync','popSync','sglOrigenSync','calcVenaPulm','valvProtSync','eaTaviEspejar','imEspejosRestaurar','eteVmAvisoSync','vmCarpLegadoSync','vmCarpOrigenSync','vmProtBloqSync','vmMorfFitSync','vdStrainPlSync','emPdfValsSync','emCuadroRefRepintar','emContFaAvisoSync','imCortesPintar','imContAvisoPintar','itIncongruenciaSync','aoEspejosRestaurar','tangoRestaurar','diastExclSync','diastFcAvisoSync','diastBseEprimaAvisoSync','diastBseGrisAvisoSync','diastStrainMarcaSync','vdMarcaSync','vdTeiAvisoSync','hfPepSync','hfPepPintar','viVolAutoSync','eaAvaiGradoPintar','eaPvlPintar','imPvlPintar','vdTapsePsapSync','ipApDiamSync','vdViSelSync','htpApSync','htpTablaPintar','m3dBotonSync','contrPdfSync','sglPdfSync','eteQxPdfSync','otrBurbUI','v2dCerrar','aiviSexoSync','vtDviAuto','sincronizarTEERDesdeGlobal','calcETE',
           /* `pamAvisoSync` (B-2) repinta la línea del dueño único de la PAM. Entra acá por lo
              mismo que los demás: las cinco rutas de restauración pueblan asignando `.value`,
              que no dispara `input`, así que al reabrir un estudio con dos PAM que difieren el

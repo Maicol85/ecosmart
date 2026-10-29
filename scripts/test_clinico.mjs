@@ -5032,7 +5032,13 @@ caso('TC-40', 'Cayado y aorta descendente solos, sin ningun otro segmento cargad
    nadie midio es la otra mitad de la regla: publicar lo medido, callar lo no medido. */
 caso('TC-41', 'Aorta sin medir: silencio. Aorta medida y normal: se publica.', `
   __t.limpiar(); const a = __t.informe();
-  __t.limpiar(); __t.set('ao_sin','36'); __t.set('ao_tub','34'); const b = __t.informe();
+  /* ADAPTADO EN LA TANDA G (G-4, 2026-10-29), Y ESTE ES EL MOTIVO. La escena no cargaba el
+     SEXO, y desde esta tanda una raiz de 36 mm sin sexo cae en la franja donde la app NO
+     clasifica -36 es normal en el varon y dilatada en la mujer-, asi que el informe ya no dice
+     «de calibre normal». Lo que el caso mide -que una aorta medida y NORMAL se publica- no
+     cambio: lo que faltaba era el dato que la vuelve clasificable. Con el sexo cargado sigue
+     pudiendo fallar si alguien mueve el corte o el texto. */
+  __t.limpiar(); __t.set('sexo','M'); __t.set('ao_sin','36'); __t.set('ao_tub','34'); const b = __t.informe();
   return { extra: [
     ['sin medir no se nombra', a.inf.indexOf('Aorta torácica') === -1],
     ['medida y normal se publica',
@@ -75042,7 +75048,12 @@ caso('TC-494', 'Tanda VS: el VD, la AD, la VCI y la RAIZ AORTICA alineados a la 
       return p1 === '39' && p2 === '44'; })(), '']);
 
   /* ══ (d) · LA RAIZ AORTICA, Y LOS OTROS CUATRO SEGMENTOS SIN TOCAR ══ */
-  const ao = (id, x) => { __t.limpiar(); S(id, String(x)); try { calcAorta() } catch (e) {} ;
+  /* ADAPTADO EN LA TANDA G (G-4, 2026-10-29): el helper no cargaba el SEXO. Desde esta tanda
+     la raiz sin sexo NO se clasifica entre 36 y 40, asi que el 39,9 de la primera condicion
+     daba «No se puede clasificar sin el sexo» en vez de «Normal». El corte del VARON es lo que
+     estas condiciones miden y no se movio; lo que faltaba era decir de que sexo se habla. Los
+     otros cuatro segmentos no tienen corte por sexo, asi que no cambian. */
+  const ao = (id, x) => { __t.limpiar(); S('sexo','M'); S(id, String(x)); try { calcAorta() } catch (e) {} ;
     return TXT({ ao_sin:'ao-interp', ao_st:'ao-st-interp', ao_tub:'ao-tub-interp',
                  diam_cayado:'ao-cay-interp', diam_ao_toracica:'ao-desc-interp' }[id]) };
   /* ADAPTADO el 2026-10-23 (AJ2-6): la aorta ya no GRADUA. La capsula pasa de «Dilat. leve» a
@@ -75054,11 +75065,11 @@ caso('TC-494', 'Tanda VS: el VD, la AD, la VCI y la RAIZ AORTICA alineados a la 
       && ao('ao_sin',40).indexOf('leve') === -1 && ao('ao_sin',48).indexOf('mod') === -1,
     '39,9=' + ao('ao_sin',39.9) + ' | 40=' + ao('ao_sin',40) + ' | 48=' + ao('ao_sin',48)]);
   ex.push(['y el 40,0 exacto llega al informe y al EN SUMA, con UN solo adjetivo',
-    (function(){ const r = esc({ ao_sin:'40' });
+    (function(){ const r = esc({ sexo:'M', ao_sin:'40' });
       return /Raíz aórtica 40 mm \\(dilatada\\)/.test(r.inf)
         && r.inf.indexOf('levemente dilatada') === -1
         && r.suma.indexOf('Dilatación raíz aórtica (40 mm).') > -1; })(),
-    esc({ ao_sin:'40' }).suma.trim()]);
+    esc({ sexo:'M', ao_sin:'40' }).suma.trim()]);
   ex.push(['CONTROL NEGATIVO: los otros CUATRO segmentos conservan su operador estricto — su corte exacto sigue siendo NORMAL',
     ao('ao_st',38).indexOf('Normal') > -1 && ao('ao_st',38.1).indexOf('Dilatada') > -1
       && ao('ao_tub',40).indexOf('Normal') > -1 && ao('ao_tub',40.1).indexOf('Dilatada') > -1
@@ -85981,9 +85992,13 @@ caso('TC-519', 'Tanda AJ2: «sin datos» no es «no medible» en las cinco super
                                catch (e) { return null; } })();
     ex.push(['(J2) DENOMINADOR: la fila del seno de Valsalva existe', !!sgSin, JSON.stringify(sgSin && sgSin.k)]);
     if (sgSin) {
-      ex.push(['(J3) EL CORTE NO SE MOVIO: 39 normal y 40,0 EXACTOS dilatada',
-        AG(sgSin, 39) === 'normal' && AG(sgSin, 40) === 'dilatada',
-        AG(sgSin, 39) + '/' + AG(sgSin, 40)]);
+      /* ADAPTADO EN LA TANDA G (G-4, 2026-10-29): aoSegGrado recibe ahora el sexo como
+         tercer argumento -su src de texto, que ya existia para los sondeos por sexo-. Sin el,
+         39 mm cae en la franja sin clasificar que esta tanda crea y la condicion leia
+         «sinsexo». El corte del VARON es lo que mide y no se movio. */
+      ex.push(['(J3) EL CORTE NO SE MOVIO: 39 normal y 40,0 EXACTOS dilatada, con el sexo cargado',
+        AG(sgSin, 39, 'M') === 'normal' && AG(sgSin, 40, 'M') === 'dilatada',
+        AG(sgSin, 39, 'M') + '/' + AG(sgSin, 40, 'M')]);
       ex.push(['(J4) un solo grado por encima del corte: 41, 46, 51 y 60 dan lo mismo',
         [41, 46, 51, 60].every(x => AG(sgSin, x) === 'dilatada'),
         [41, 46, 51, 60].map(x => AG(sgSin, x)).join('/')]);
@@ -86026,7 +86041,12 @@ caso('TC-519', 'Tanda AJ2: «sin datos» no es «no medible» en las cinco super
          && norm(vc.txt).indexOf('dilatacion de la aorta') > -1, String(vc && vc.txt).slice(0, 100)]);
   /* CONTROL NEGATIVO: una aorta normal y una fuera de banda salen como siempre. */
   __t.limpiar(); set({ ao_sin: '38' }); try { calcAorta(); } catch (e) {}
-  ex.push(['(J13) CONTROL: la aorta normal no cambio', txt('ao-interp') === 'Normal (<40mm)', String(txt('ao-interp'))]);
+  /* ADAPTADO EN LA TANDA G (G-4, 2026-10-29): la escena de este control no carga el sexo, y la
+     raiz que usa cae en la franja que desde esta tanda no se clasifica. El control sigue
+     diciendo lo mismo -que esta zona no la movio la tanda que lo escribio- con el texto que la
+     app publica hoy en esa escena. */
+  ex.push(['(J13) CONTROL: la aorta sin sexo cargado no se clasifica, y eso no lo movio esta tanda',
+    txt('ao-interp') === 'No se puede clasificar sin el sexo', String(txt('ao-interp'))]);
   __t.limpiar(); set({ ao_sin: '95' }); try { calcAorta(); } catch (e) {}
   ex.push(['(J14) CONTROL: el valor fuera de banda tampoco',
     norm(String(txt('ao-interp'))).indexOf('fuera de rango') > -1, String(txt('ao-interp'))]);
@@ -86804,8 +86824,15 @@ caso('TC-521', 'Tanda AJ4: la raiz aortica con UN SOLO criterio de dilatacion en
       && TXT('ao-interp').indexOf('Dilatada') > -1
       && TXT('ao-interp').indexOf('iDA') > -1,
     TXT('ao-interp')]);
-  ex.push(['(B4) y el informe la publica dilatada con esos 33,2 mm',
-    infAo('estandar').indexOf('33.2 mm (dilatada)') > -1, infAo('estandar').slice(0, 160)]);
+  /* ADAPTADO EN LA TANDA G (G-4, 2026-10-29, punto iv): cuando el voto lo da el INDICE y no el
+     diametro, el papel lo dice -«(dilatada por indice, N mm/m2)»-. Esta escena es justo esa: un
+     diametro de 33,2 mm que no alcanza ningun corte absoluto y que esta dilatado porque el
+     indice pasa de 22. El caso sigue midiendo que el informe la publica dilatada, y ahora
+     ademas que nombra el indice: puede fallar por los dos lados. */
+  ex.push(['(B4) y el informe la publica dilatada con esos 33,2 mm, nombrando el indice que dio el voto',
+    infAo('estandar').indexOf('33.2 mm (dilatada por índice,') > -1
+      && /33\\.2 mm \\(dilatada por índice, \\d+ mm\\/m²\\)/.test(infAo('estandar')),
+    infAo('estandar').slice(0, 170)]);
   /* CONTROL NEGATIVO: sin peso ni talla el indice no existe y 33 mm vuelve a ser normal. */
   __t.limpiar();
   set({ sexo: 'F', ao_sin: '33.2' });
