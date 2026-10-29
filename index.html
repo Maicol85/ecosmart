@@ -10387,6 +10387,23 @@ window.cerrarSesionReal = cerrarSesionReal;
             </select></div>
           <div class="fg" id="pop_ecmo_wrap" style="display:none;"><label for="pop_ecmo_flujo">Flujo (ECMO)</label>
             <input type="number" id="pop_ecmo_flujo" step="0.1" min="0" inputmode="decimal" placeholder="L/min"></div>
+          <!-- ══ EL TIMING DEL BALON (POP-V2-4, 29/10/2026) ═══════════════════════════════════
+               ⚠️ VA CON GUION MEDIO —`pop-bcia-timing`— Y ESO NO ES ESTETICA: esta tanda autoriza
+               UN solo campo guardado nuevo (la PAM por linea arterial, commit 3), y un
+               `<select id>` con guion bajo lo tomaria el recolector generico y seria el SEGUNDO.
+               El prefijo `pop-bcia-` entra en las DOS listas paralelas —`_noEsDelEstudio` y
+               `_CAMPOS_FUERA_DEL_ESTUDIO`—, que es la convencion que `hfpep-`, `vauto-`,
+               `vabchk-`, `vab-anim-`, `otr-asia-` y `ref-` ya siguen.
+               EL PRECIO, DECLARADO: el timing NO sobrevive a cerrar y reabrir el estudio, y no
+               llega a ninguna superficie firmada. Es coherente con «el dibujo es solo de
+               pantalla», y hacerlo persistente exige autorizar un segundo campo.
+               Ver `docs/PENDIENTES.md` → POP-d. -->
+          <div class="fg" id="pop-bcia-timing-wrap" style="display:none;"><label for="pop-bcia-timing">Timing del balón</label>
+            <select id="pop-bcia-timing" onchange="popEsqPintar()">
+              <option value="" selected>Sin verificar</option>
+              <option value="verificado">Verificado</option>
+              <option value="inconsistente">Inconsistente: revisar el inflado</option>
+            </select></div>
         </div>
       </details>
     </section>
@@ -58918,7 +58935,12 @@ function _noEsDelEstudio(id) {
      campos, y al reabrirlo las rutas de restauracion lo recorren. Sin el prefijo, ese valor
      volveria a tratarse como campo del estudio. El modulo esta copiado en
      docs/para-cardiosalud/fonocardiograma/. */
-  return /^(login-|ig-|lab-|cfg-|exp-|filtro-|adv-|asoc-|pdf-|lgal-|fcg-|hfpep-|vauto-|vabchk-|vab-anim-|otr-asia-|ref-|(?:b-)?cine-)/.test(id);
+  /* `pop-bcia-` es el SELECTOR DE TIMING DEL BALON (POP-V2-4, 2026-10-29). NO es del estudio, y
+     la razon es explicita: esta tanda autoriza UN solo campo guardado nuevo y ese es la PAM por
+     linea arterial. Es un control de PANTALLA que decide el rotulo del dibujo, y el dibujo es
+     solo de pantalla. Guion MEDIO, asi que este prefijo no alcanza a `pop_bcia_ratio` ni a
+     ningun otro campo del modulo, que van con guion BAJO. */
+  return /^(login-|ig-|lab-|cfg-|exp-|filtro-|adv-|asoc-|pdf-|lgal-|fcg-|hfpep-|vauto-|vabchk-|vab-anim-|otr-asia-|pop-bcia-|ref-|(?:b-)?cine-)/.test(id);
 }
 
 /* ══ Repintado de módulos al cargar un estudio ═══════════════════════════════════════════
@@ -59748,6 +59770,18 @@ function popEsquema() {
   const asist = sv2('pop_asist_tipo');
   const bcia = asist === 'bcia';
   const ecmoVA = asist === 'ecmo_va';
+  /* ══ LOS DOS DISPOSITIVOS QUE EL DIBUJO NO TENIA, Y EL TIMING DEL BALON (POP-V2-4) ══════════
+     El esquema ya REACCIONABA al derrame pleural y a las lineas B —`plR`, `plL` y los cuatro
+     pares de `bl` estan cableados a `pleD`, `pleI` y `lineasB` desde la G2, verificado leyendo
+     `_popEsqEstatico` y medido en el A/B—, asi que la premisa del pedido («hoy solo reacciona a
+     la asistencia mecanica») es FALSA y esta medida. Lo que de verdad faltaba son el Impella y
+     el ECMO venovenoso: `popEsqTexto` los nombraba en el equivalente en texto y el dibujo no
+     tenia un solo nodo para ninguno de los dos.
+     El timing del balon es un control de PANTALLA, no un campo del estudio: ver la nota del
+     marcado y `_noEsDelEstudio`. */
+  const impella = asist === 'impella';
+  const ecmoVV = asist === 'ecmo_vv';
+  const bciaTiming = bcia ? (sv2('pop-bcia-timing') || '') : '';
   const drogas = (window.POP_DROGAS || []).map(function (k) {
     const c = document.getElementById('pop_' + k + '_activa');
     if (!c || !c.checked) return null;
@@ -59768,7 +59802,8 @@ function popEsquema() {
     hayVD: hayVD, vdRama: vdRama,
     hayDerrame: hayDerrame, compresion: compresion,
     pleD: pleD, pleI: pleI, lineasB: lineasB,
-    asist: asist, bcia: bcia, ecmoVA: ecmoVA, drogas: drogas,
+    asist: asist, bcia: bcia, ecmoVA: ecmoVA, impella: impella, ecmoVV: ecmoVV,
+    bciaTiming: bciaTiming, drogas: drogas,
     /* Los CUATRO colores del dibujo, resueltos acá para que el SVG no decida nada. */
     cVI: icB ? (icB.cls === 'green' ? 'ok' : icB.cls === 'yellow' ? 'warn' : 'bad') : 'none',
     cVD: !hayVD ? 'none' : (tapseBaja && vdDil) ? 'bad' : (tapseBaja || vdDil) ? 'warn' : 'ok',
@@ -59853,14 +59888,17 @@ function popEsqMontar() {
   /* ── DERRAME PLEURAL Y LÍNEAS B ── */
   /* El tinte sale del color fuerte con `fill-opacity`: `--blue-pale` no resuelve fuera de
      `.amilo-root` y un `fill` sin resolver cae en NEGRO. Mismo motivo que `_popEsqC`. */
-  n.plR = _popEsqNodo('ellipse', { cx:58, cy:252, rx:22, ry:11, fill:'var(--accent2)',
+  /* Las marcas `data-pop-esq` las agrega el POP-V2-4 para que una sonda pueda preguntar por un
+     nodo del dibujo por su NOMBRE y no por su posicion en el SVG: con 68 hijos, contar indices
+     es una medicion que se rompe al agregar cualquier cosa. */
+  n.plR = _popEsqNodo('ellipse', { 'data-pop-esq':'pleuraD', cx:58, cy:252, rx:22, ry:11, fill:'var(--accent2)',
     'fill-opacity':0.22, stroke:'var(--accent2)', 'stroke-width':1.5, display:'none' }, svg);
-  n.plL = _popEsqNodo('ellipse', { cx:132, cy:252, rx:22, ry:11, fill:'var(--accent2)',
+  n.plL = _popEsqNodo('ellipse', { 'data-pop-esq':'pleuraI', cx:132, cy:252, rx:22, ry:11, fill:'var(--accent2)',
     'fill-opacity':0.22, stroke:'var(--accent2)', 'stroke-width':1.5, display:'none' }, svg);
   n.bl = [];
   for (let i = 0; i < 4; i++) {
-    n.bl.push([_popEsqNodo('line', { x1:38+i*8, y1:196, x2:38+i*8, y2:232, stroke:'var(--accent2)', 'stroke-width':2, display:'none' }, svg),
-               _popEsqNodo('line', { x1:126+i*8, y1:196, x2:126+i*8, y2:232, stroke:'var(--accent2)', 'stroke-width':2, display:'none' }, svg)]);
+    n.bl.push([_popEsqNodo('line', { 'data-pop-esq':'lineaB', x1:38+i*8, y1:196, x2:38+i*8, y2:232, stroke:'var(--accent2)', 'stroke-width':2, display:'none' }, svg),
+               _popEsqNodo('line', { 'data-pop-esq':'lineaB', x1:126+i*8, y1:196, x2:126+i*8, y2:232, stroke:'var(--accent2)', 'stroke-width':2, display:'none' }, svg)]);
   }
   /* ⚠️ UNA SOLA LÍNEA PARA LOS DOS LADOS. Con un rótulo centrado debajo de cada pulmón, el del
      lado derecho —que empieza en x 58— se salía del `viewBox` por la izquierda y se veía
@@ -59871,8 +59909,16 @@ function popEsqMontar() {
   n.pv = _popEsqVaso(svg, 'M166 160 L238 160 L238 118 L408 118 L408 172'); n.pv.set(7);
   n.vc = _popEsqVaso(svg, 'M284 372 L284 178 L330 178');
   n.ao = _popEsqVaso(svg, 'M410 257 L490 257 L490 110 Q490 62 530 62 Q570 62 570 110 L570 322');
-  n.ecmo = _popEsqNodo('path', { d:'M284 372 L284 388 L570 388 L570 322', fill:'none',
+  n.ecmo = _popEsqNodo('path', { 'data-pop-esq':'ecmova', d:'M284 372 L284 388 L570 388 L570 322', fill:'none',
     stroke:'var(--accent2)', 'stroke-width':3, 'stroke-dasharray':'8 6', display:'none' }, svg);
+  /* ══ ECMO VENOVENOSO ══ Drena la vena cava y devuelve a la AURICULA DERECHA: no sostiene la
+     circulacion, oxigena. Por eso su cano no toca la aorta —el venoarterial si— y por eso el
+     dibujo los distingue con dos trazados distintos y con su rotulo, no con el color.
+     Las coordenadas son las de la demo aprobada: sale de la cava en x 284, se aparta a x 262,
+     sube a y 200 y entra a la AD en x 300. */
+  n.ecmoVV = _popEsqNodo('path', { 'data-pop-esq':'ecmovv', d:'M284 340 L262 340 L262 200 L300 200',
+    fill:'none', stroke:'var(--accent2)', 'stroke-width':3, 'stroke-dasharray':'8 6',
+    display:'none' }, svg);
   _popEsqTexto(svg, 530, 48, 'Aorta', 16, 500);
   _popEsqTexto(svg, 292, 348, 'Vena cava', 15, 500, 'start', 'var(--text2)');
   /* ⚠️ DOS LINEAS CORTAS Y NO UNA LARGA. Entre el borde del pulmon y el ventriculo derecho hay
@@ -59883,6 +59929,8 @@ function popEsqMontar() {
   n.pcpT = _popEsqTexto(svg, 323, 106, '', 15, 500, 'middle', 'var(--text2)');
   n.ecmoT = _popEsqTexto(svg, 430, 382, 'ECMO VA', 15, 500, 'middle', 'var(--accent2)');
   n.ecmoT.setAttribute('display', 'none');
+  n.ecmoVVT = _popEsqTexto(svg, 256, 196, 'ECMO VV', 15, 500, 'end', 'var(--accent2)');
+  n.ecmoVVT.setAttribute('display', 'none');
   n.drogT = _popEsqTexto(svg, 330, 408, '', 15, 400, 'middle', 'var(--text2)');
   n.vcT = _popEsqTexto(svg, 292, 366, '', 14, 400, 'start', 'var(--text2)');
   /* ── CUADRO PULMONAR ── Gradiente transpulmonar y resistencia vascular pulmonar. */
@@ -59911,10 +59959,27 @@ function popEsqMontar() {
   n.tVD = _popEsqTexto(svg, 0, 0, 'VD', 17, 500);
   n.tVI = _popEsqTexto(svg, 0, 0, 'VI', 17, 500);
   /* ── BALÓN DE CONTRAPULSACIÓN ── */
-  n.balon = _popEsqNodo('ellipse', { cx:570, cy:215, rx:3, ry:34, fill:'var(--accent2)',
+  n.balon = _popEsqNodo('ellipse', { 'data-pop-esq':'balon', cx:570, cy:215, rx:3, ry:34, fill:'var(--accent2)',
     'fill-opacity':0.22, stroke:'var(--accent2)', 'stroke-width':1.5, display:'none' }, svg);
   n.balonT = _popEsqTexto(svg, 570, 262, 'Balón', 15, 500, 'middle', 'var(--accent2)');
   n.balonT.setAttribute('display', 'none');
+  /* ══ EL IMPELLA, CON UNA HELICE QUE GIRA ══ Cruza la valvula aortica desde el ventriculo
+     izquierdo hacia la aorta: por eso su cuerpo se dibuja ENCIMA del VI y su salida apunta a la
+     raiz. La helice son dos lineas cruzadas que giran en el bucle; una linea quieta no se
+     distingue de un cateter que no esta funcionando, que es lo que el pedido vino a cambiar.
+     Las coordenadas son las de la demo aprobada. */
+  n.impG = _popEsqNodo('g', { 'data-pop-esq':'impella', display:'none' }, svg);
+  _popEsqNodo('rect', { x:392, y:250, width:84, height:14, rx:7, fill:'var(--accent2)',
+    'fill-opacity':0.22, stroke:'var(--accent2)', 'stroke-width':1.5 }, n.impG);
+  _popEsqNodo('path', { d:'M392 257 q-10 0 -10 12', fill:'none', stroke:'var(--accent2)',
+    'stroke-width':1.5 }, n.impG);
+  n.prop = _popEsqNodo('g', { 'data-pop-esq':'helice' }, n.impG);
+  _popEsqNodo('line', { x1:456, y1:257, x2:466, y2:257, stroke:'var(--accent2)',
+    'stroke-width':2.5, 'stroke-linecap':'round' }, n.prop);
+  _popEsqNodo('line', { x1:461, y1:251, x2:461, y2:263, stroke:'var(--accent2)',
+    'stroke-width':2.5, 'stroke-linecap':'round' }, n.prop);
+  n.impT = _popEsqTexto(svg, 434, 282, 'Impella', 15, 500, 'middle', 'var(--accent2)');
+  n.impT.setAttribute('display', 'none');
   /* ── CURVA DE PRESIÓN ARTERIAL ── */
   _popEsqNodo('rect', { x:20, y:414, width:560, height:72, rx:8, fill:'var(--bg2)',
     stroke:'var(--border)', 'stroke-width':1 }, svg);
@@ -59924,6 +59989,7 @@ function popEsqMontar() {
   n.cur = _popEsqNodo('line', { x1:140, y1:420, x2:140, y2:482, stroke:'var(--accent2)',
     'stroke-width':1.5 }, svg);
   n.augT = _popEsqTexto(svg, 218, 434, 'aumento diastólico', 14, 500, 'middle', 'var(--accent2)');
+  n.augT.setAttribute('data-pop-esq', 'timing');
   n.augT.setAttribute('display', 'none');
   n.pamT = _popEsqTexto(svg, 572, 434, '', 14, 500, 'end', 'var(--text2)');
 
@@ -60053,8 +60119,23 @@ function _popEsqEstatico(d, g) {
   n.balon.setAttribute('display', d.bcia ? 'inline' : 'none');
   n.balonT.setAttribute('display', d.bcia ? 'inline' : 'none');
   n.augT.setAttribute('display', d.bcia ? 'inline' : 'none');
+  /* ══ EL AVISO DE TIMING DEL BALON (POP-V2-4) ══ Tres estados, y el estado NO depende solo del
+     color: cada uno tiene su propio TEXTO. Un rotulo que cambiara de gris a rojo diciendo lo
+     mismo seria ilegible en una impresion y para quien no distingue esos dos colores, que es la
+     regla P1 de esta tanda. */
+  const _tim = d.bciaTiming === 'verificado'
+    ? ['aumento diastólico (timing verificado)', 'var(--text)']
+    : d.bciaTiming === 'inconsistente'
+    ? ['timing inconsistente: revisar el inflado', 'var(--red)']
+    : ['aumento diastólico (timing sin verificar)', 'var(--text2)'];
+  n.augT.textContent = _tim[0];
+  n.augT.setAttribute('fill', _tim[1]);
   n.ecmo.setAttribute('display', d.ecmoVA ? 'inline' : 'none');
   n.ecmoT.setAttribute('display', d.ecmoVA ? 'inline' : 'none');
+  n.ecmoVV.setAttribute('display', d.ecmoVV ? 'inline' : 'none');
+  n.ecmoVVT.setAttribute('display', d.ecmoVV ? 'inline' : 'none');
+  n.impG.setAttribute('display', d.impella ? 'inline' : 'none');
+  n.impT.setAttribute('display', d.impella ? 'inline' : 'none');
   n.drogT.textContent = d.drogas.length ? 'Vasoactivos: ' + d.drogas.join(', ') : 'Sin vasoactivos marcados';
   n.paT.textContent = (d.paps !== null && d.papd !== null)
     ? 'AP ' + d.paps + '/' + d.papd
@@ -60134,11 +60215,23 @@ function popEsqTexto(d) {
     ? ('derrame pericárdico' + (d.compresion
         ? ', con compromiso hemodinámico consignado por el médico.' : ', sin compromiso consignado.'))
     : 'sin derrame consignado.');
+  /* ⚠️ LOS CUATRO DISPOSITIVOS SE DESCRIBEN POR LO QUE HACEN, no por su nombre (POP-V2-4). El
+     equivalente en texto no es una leyenda del dibujo: es la unica forma de leerlo para quien
+     usa un lector de pantalla, y «Impella» a secas no dice ni donde esta ni que mueve.
+     El TIMING del balon entra aca con su estado, porque es lo que el rotulo del dibujo publica y
+     lo que el medico tiene que poder leer sin ver el dibujo. */
   const sop = [];
-  if (d.bcia) sop.push('balón de contrapulsación, que se infla en la diástole y se desinfla antes de la sístole');
-  if (d.ecmoVA) sop.push('ECMO venoarterial, que lleva sangre de la aurícula derecha a la aorta');
-  if (d.asist === 'impella') sop.push('Impella');
-  if (d.asist === 'ecmo_vv') sop.push('ECMO venovenoso');
+  if (d.bcia) sop.push('balón de contrapulsación en la aorta descendente, que se infla en la '
+    + 'diástole y se desinfla antes de la sístole — '
+    + (d.bciaTiming === 'verificado' ? 'timing verificado'
+       : d.bciaTiming === 'inconsistente' ? 'timing inconsistente: revisar el inflado'
+       : 'timing sin verificar'));
+  if (d.ecmoVA) sop.push('ECMO venoarterial, que lleva sangre de la vena cava a la aorta');
+  if (d.impella) sop.push('Impella, una bomba axial que cruza la válvula aórtica y mueve sangre '
+    + 'del ventrículo izquierdo a la aorta');
+  if (d.ecmoVV) sop.push('ECMO venovenoso, que drena la vena cava y devuelve a la aurícula '
+    + 'derecha: oxigena, no sostiene la circulación');
+  if (d.asist === 'otro') sop.push('asistencia circulatoria consignada como «otro»');
   fila('Soporte y vasoactivos',
     (sop.length ? sop.join('; ') : 'sin asistencia circulatoria consignada') + '. ' +
     (d.drogas.length ? 'Vasoactivos: ' + d.drogas.join(', ') + '.' : 'Sin vasoactivos marcados.'));
@@ -60149,6 +60242,25 @@ function popEsqTexto(d) {
     (d.rvs !== null ? ' Resistencia vascular sistémica ' + d.rvs.toFixed(0) + ' dinas·s·cm⁻⁵ — ' +
        d.rvsBanda.txt + (d.rvsFuente ? ', con ' + d.rvsFuente : '') + '.' : ''));
   if (!d.suficiente && d.motivo) fila('Falta', d.motivo + '.');
+  /* ══ EL TEXTO ACCESIBLE DEL DIBUJO, CON LA SITUACION DEL PACIENTE (POP-V2-4) ════════════════
+     El `aria-label` del SVG era FIJO: describia las piezas del dibujo —«las cuatro cavidades,
+     los grandes vasos, los pulmones y el soporte»— y no decia nada de ESTE paciente, asi que un
+     lector de pantalla anunciaba lo mismo en un posoperatorio sin datos y en uno con ECMO. Hoy
+     dice en una linea donde esta el paciente: el patron, el indice cardiaco, la presion arterial
+     media y el soporte en curso. El detalle completo sigue debajo, fila por fila, en
+     `#pop-esq-txt`, que es lo que este bloque arma. */
+  const svgN = document.getElementById('pop-esq-svg');
+  if (svgN) {
+    const _p = [];
+    _p.push(d.patron && d.patron.lbl ? d.patron.lbl : 'sin clasificar');
+    if (d.ic !== null) _p.push('índice cardíaco ' + d.ic.toFixed(2) + ' L/min/m²');
+    if (d.pam !== null) _p.push('presión arterial media ' + d.pam.toFixed(0) + ' mmHg');
+    _p.push(sop.length ? 'con ' + sop.map(function (t) { return t.split(',')[0].split(' — ')[0]; }).join(' y ')
+                       : 'sin asistencia circulatoria');
+    if (d.drogas.length) _p.push('con ' + d.drogas.length + ' vasoactivo' + (d.drogas.length > 1 ? 's' : ''));
+    svgN.setAttribute('aria-label', 'Esquema del posoperatorio. ' + _p.join('; ') +
+      '. El detalle completo está en el texto que sigue al dibujo.');
+  }
   return L.join('\n');
 }
 window.popEsqTexto = popEsqTexto;
@@ -60157,6 +60269,21 @@ window.popEsqTexto = popEsqTexto;
    Un solo `requestAnimationFrame` vivo como mucho. `popEsqArrancar` es idempotente: si ya hay
    uno, no pide otro — lo llaman el observador y `popEsqPintar`, y sin la guarda veinte aperturas
    dejarían veinte bucles pintando el mismo SVG. */
+/* ══ EL RADIO DEL BALON EN FUNCION DE LA FASE DEL LATIDO (POP-V2-4) ══════════════════════════
+   Se saca del bucle a su propia funcion por una sola razon: asi se puede COMPROBAR que el balon
+   se infla en la DIASTOLE y no en la sistole, sin depender de atrapar un cuadro de animacion en
+   el instante justo. La sistole de este dibujo es la fase 0 a 0,35 —es la misma particion que
+   usa el latido de las cavidades, tres lineas mas arriba— y ahi el radio es el minimo; el
+   inflado sube entre 0,35 y 0,45, se mantiene hasta 0,9 y baja antes de volver a la sistole.
+   2 es el radio desinflado (el del `ellipse` en el montaje) y 11 el inflado. */
+function popEsqBalonRx(fase) {
+  const u = fase < 0.35 ? 0
+          : fase < 0.45 ? (fase - 0.35) / 0.1
+          : fase < 0.9 ? 1
+          : (1 - fase) / 0.1;
+  return 2 + 9 * Math.max(0, Math.min(1, u));
+}
+window.popEsqBalonRx = popEsqBalonRx;
 function popEsqFrame(ahora) {
   _popEsq.rafId = 0;
   const n = _popEsq.n, g = _popEsq.g;
@@ -60173,11 +60300,11 @@ function popEsqFrame(ahora) {
   n.ao.set(g.aoW * (1 + 0.15 * s)); n.pa.set(g.paW * (1 + 0.1 * s)); n.vc.set(g.vc);
   const cx = (140 + fase * 420).toFixed(1);
   n.cur.setAttribute('x1', cx); n.cur.setAttribute('x2', cx);
-  if (d.bcia) {
-    const u = fase < 0.35 ? 0 : (fase < 0.45 ? (fase - 0.35) / 0.1 : (fase < 0.9 ? 1 : (1 - fase) / 0.1));
-    n.balon.setAttribute('rx', (2 + 9 * Math.max(0, u)).toFixed(1));
-  }
+  if (d.bcia) n.balon.setAttribute('rx', popEsqBalonRx(fase).toFixed(1));
   if (d.ecmoVA) n.ecmo.setAttribute('stroke-dashoffset', (-(ahora / 40) % 14).toFixed(1));
+  if (d.ecmoVV) n.ecmoVV.setAttribute('stroke-dashoffset', (-(ahora / 40) % 14).toFixed(1));
+  /* La helice del Impella gira CONTINUO y no con el latido: una bomba axial no pulsa. */
+  if (d.impella) n.prop.setAttribute('transform', 'rotate(' + ((ahora / 3) % 360).toFixed(0) + ' 461 257)');
   if (!_popEsq.reduce && _popEsq.visible) _popEsq.rafId = requestAnimationFrame(popEsqFrame);
 }
 function popEsqArrancar() {
@@ -60364,9 +60491,11 @@ function popSync() {
   });
   var t = (document.getElementById('pop_asist_tipo') || {}).value || '';
   var vis = { pop_bcia_wrap: t === 'bcia', pop_impella_wrap: t === 'impella',
-              pop_ecmo_wrap: t === 'ecmo_va' || t === 'ecmo_vv' };
+              pop_ecmo_wrap: t === 'ecmo_va' || t === 'ecmo_vv',
+              /* El timing se ve SOLO con el balon marcado (POP-V2-4). */
+              'pop-bcia-timing-wrap': t === 'bcia' };
   var campo = { pop_bcia_wrap: 'pop_bcia_ratio', pop_impella_wrap: 'pop_impella_nivel',
-                pop_ecmo_wrap: 'pop_ecmo_flujo' };
+                pop_ecmo_wrap: 'pop_ecmo_flujo', 'pop-bcia-timing-wrap': 'pop-bcia-timing' };
   Object.keys(vis).forEach(function (id) {
     var w = document.getElementById(id); if (!w) return;
     w.style.display = vis[id] ? 'block' : 'none';
@@ -64792,7 +64921,10 @@ function _autoSaveDebounced(){ clearTimeout(_autosaveTimer); _autosaveTimer = se
    paralela de siempre: `editarInforme` lo usa para decidir qué NO vaciar al abrir un estudio,
    y `_autosaveRestore` para decidir qué NO cuenta como evidencia de formulario empezado.
    Los dos están en el bloque 8, así que se comparte por referencia y no por `window`. */
-var _CAMPOS_FUERA_DEL_ESTUDIO = /^(cfg-|firma-|lab-|ig-|med-|logo|lgal-|tema|pdf-|filtro-|adv-|asoc-|exp-|alg-|ett-|rwt-|ee-|ap-|rev-|login-|fcg-|centro_tipo$|ecoAdvSelect$)/;
+/* `pop-bcia-` entra en las DOS listas: ver la nota de `_noEsDelEstudio`. El selector y esta
+   expresion son dos listas paralelas, y agregarlo a una sola lo deja contando como «el
+   formulario tiene datos» sobre un control de pantalla. */
+var _CAMPOS_FUERA_DEL_ESTUDIO = /^(cfg-|firma-|lab-|ig-|med-|logo|lgal-|tema|pdf-|filtro-|adv-|asoc-|exp-|alg-|ett-|rwt-|ee-|ap-|rev-|login-|fcg-|pop-bcia-|centro_tipo$|ecoAdvSelect$)/;
 
 /* ¿El formulario tiene algo del ESTUDIO cargado? Una sola definición para las DOS preguntas que
    la necesitan, que son la misma vista desde los dos lados:
