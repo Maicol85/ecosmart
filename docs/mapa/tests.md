@@ -423,3 +423,13 @@ del PPT**.
 
 **Todo en `docs/mapa/pop-v2-posoperatorio.md`**, con la tabla de lo que los mapas anteriores decían
 y dejó de ser cierto. El caso que lo fija es **TC-548**; los pendientes, **POP-a** a **POP-h**.
+
+---
+
+## → TC-549 — la tanda Y, Parte 1 (2026-10-29)
+
+Cinco bloques: el strain en Referencias y ausente debajo del campo (A), el TRIV por sus dos
+puertas con el corte del papel intacto (B), el sexo re-evaluando en el acto (C), la raíz en el
+papel y la pastilla con el valor del índice (D), y el estudio **ajeno** como control negativo (E).
+Cae contra HEAD por **20 condiciones y ninguna por excepción**; **13/13 mutaciones dirigidas
+muertas** (`scripts/_mut_y.py`, en un worktree). → `docs/mapa/y-vd-sexo-aorta.md`

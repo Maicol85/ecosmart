@@ -581,3 +581,11 @@ No cambió ningún dato clínico. Movió notas de trabajo al globo ⓘ y a `docs
 dejó una sola cita al final de cada bloque, sacó las mayúsculas de en medio y dejó cada contenido
 una sola vez por sección. **Lo que esta tanda hizo está en `docs/mapa/a-evidencia-textos.md`**, y
 el caso que lo fija es **TC-537** (ficha en `docs/mapa/tests-fichas-537.md`).
+
+---
+
+## → La tanda Y (2026-10-29): el cuadro pasa a ONCE filas y la columna 1 a SIETE campos
+
+El **strain de pared libre** se mudó de debajo de su campo a este cuadro, debajo del índice de
+Tei, y el **TRIV tricuspídeo** ganó un segundo campo en la columna 1, fila 7. Las filas
+condicionales pasan de tres a **cuatro**. → `docs/mapa/y-vd-sexo-aorta.md`

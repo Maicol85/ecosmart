@@ -9452,20 +9452,29 @@ empezar en el código**, no a medio hacer: ninguna línea de la app se tocó por
   paciente cuyo único factor es la hipertensión resistente o la longitud aórtica **no dispara la
   recomendación**. Es un defecto con consecuencia clínica y sigue abierto.
 
-## G-c · La Tabla 62 dice «≥ 45 mm» y la app aplica «> 45» — REPORTADO, NO CORREGIDO
+## ~~G-c · La Tabla 62 dice «≥ 45 mm» y la app aplica «> 45»~~ — **CERRADO: ERA FALSO** (tanda Y, 2026-10-29)
 
-Leída en imagen (folio 114), la fila 3 de la Tabla 62 dice: «Puede considerarse la cirugía en
-pacientes con SM y un aneurisma de la raíz aórtica con un diámetro máximo **≥ 45 mm** y factores
-de riesgo adicionales» — **IIa · C**.
+⚠️ **ESTE PENDIENTE ERA UN ERROR DE LECTURA MÍO, Y QUEDA ESCRITO PARA QUE NADIE LO «ARREGLE».**
 
-`marfanEstado` aplica `maxAo > 45`, estricto. **Con 45,0 mm exactos la guía da IIa y la app no.**
+La fila 3 de la Tabla 62 (folio 114, releída en imagen en la tanda Y) dice efectivamente
+«… un diámetro máximo de los senos aórticos **≥ 45 mm** y factores de riesgo adicionales^c» —
+**IIa · C**. Lo que es falso es la segunda mitad: **`marfanEstado` NO aplica `maxAo > 45` para el
+Marfan, aplica `maxAo >= u.iia` con `UMBRAL.marfan.iia = 45`.** O sea que **ya está alineado**.
 
-Es el mismo tipo de discrepancia que el apartado 9.2.1.1 tiene con la raíz —la guía escribe
-`> 40` y la app cuenta el 40,0 exacto como dilatado, al revés— y las dos se dejan como están:
-**mover un corte clínico es decisión de Maicol**, que es lo que la regla de este repositorio manda.
+**Medido sobre el árbol de HEAD**, con síndrome de Marfan y factores de riesgo consignados:
 
-**Decidir:** si los dos operadores se alinean a lo que la guía escribe, o si la app conserva los
-suyos y lo declara en el ⓘ.
+| diámetro | clave | texto |
+|---|---|---|
+| 44,9 mm | `sin_indicacion` | «sin criterios quirúrgicos aórticos actuales» |
+| **45,0 mm** | **`cx_iia`** | «considerar cirugía de la aorta (ESC 2024, Tabla 62 · folio 114, Clase IIa · Nivel C desde 45 mm con factores)» |
+| 45,1 mm | `cx_iia` | ídem |
+| 50,0 mm | `cx_i` | «cirugía de la aorta indicada (… Clase I · Nivel B desde 50 mm …)» |
+
+**El `maxAo > 45` que este pendiente citaba es el de LOEYS-DIETZ**, dentro de
+`if (sind === 'lds')`, y ahí el operador estricto es **correcto**: su Tabla 66 (folio 116) dice
+«cuando el diámetro es **SUPERIOR A** 45 mm». Las dos ramas están bien y no hay nada que mover.
+
+**G-d sigue abierto y es otra cosa**: el `incRef` de la raíz, que va al revés que su fuente.
 
 ## G-d · El `incRef` de la raíz va al revés que su fuente, y conviven a propósito
 
@@ -9714,3 +9723,141 @@ diferencias que esta orden autoriza.
 
 **Decidir:** si el PPT lee el nombre de `c.parentNode.textContent`, que es de donde ya lo leen
 `amiloTextoPOP` y `popEsquema`.
+
+
+## La tanda Y, Parte 1 (2026-10-29) — lo declarado y lo que quedó sin hacer
+
+### Y-a · El censo del script pasó de 1027 a 1028, y es un control de PANTALLA
+
+El campo nuevo `vd-triv` —el espejo del TRIV tricuspídeo en VD / AD— es un `<input>`, así que
+`detectar_huerfanos.py` lo cuenta. **No es un campo guardado**: su prefijo entra en
+`_noEsDelEstudio`, el recolector no lo toma, el juego de campos guardados de todo estudio que se
+guarde desde hoy no se movió y el Excel sigue en **440** columnas con las mismas claves.
+Medido en Chrome: el recolector da 946 campos y `vd-triv` no está entre ellos.
+
+**No hay nada que decidir**: queda escrito para que la próxima medición del censo no lo lea como
+un campo guardado nuevo.
+
+### Y-b · El corte de 75 ms del TRIV no tiene fuente — EL COLOR Y EL SIGNIFICADO ESTÁN PARADOS
+
+La orden pedía que, por encima de 75 ms, las **dos** referencias del TRIV lo marcaran en amarillo,
+y que la referencia nueva de VD / AD llevara el mismo texto y la misma fuente que la del Doppler.
+Las dos cosas estaban condicionadas a **verificar el corte y su fuente en la biblioteca, en
+imagen**. Se verificó y **no se pudo**:
+
+| Qué | Valor | Dónde |
+|---|---|---|
+| ASE 2025 de corazón derecho, texto | **≤ 73 ms** «in normal healthy adults» | hoja 28, folio 168 |
+| ASE 2025, **Tabla 6**, fila «RV IVRT, ms» | **≤ 73 / > 73** | hoja 29, folio 169 |
+| `DT_TRIV_HTP_PANEL` (pantalla, «a favor de HTP») | **75** | **sin fuente publicada** |
+| `DT_TRIV_HTP` (informe firmado, signos indirectos) | **60** | **sin fuente registrada** |
+
+Y los 73 ms de la guía contestan **otra pregunta**: son criterio de **pseudonormal** en la función
+diastólica del VD, no de hipertensión pulmonar. El código ya declara, desde el 2026-10-07, que el
+75 es «el comentario de pantalla que pidió Maicol para este cuadro».
+
+**Lo que SÍ se hizo** (la orden lo autoriza sin condición): el campo nuevo y la sincronización en
+los dos sentidos.
+
+**Decidir, y es decisión clínica:**
+1. **dejar el 75 como criterio propio** y darle el amarillo y la referencia nueva, declarándolo
+   con el chip «CRITERIO DE ECOSMART» y **sin corchete**, como la banda leve del strain del VD; o
+2. **mover el corte a los 73 ms de la ASE 2025** — pero eso cambia un corte clínico, y además el
+   73 es de otra pregunta, así que habría que decidir primero qué afirma esa fila; o
+3. dejarlo como está, con el campo en las dos pestañas y el significado sólo en el Doppler.
+
+### Y-c · La pastilla de la raíz puede decir «iDA de 22 mm/m² (dilatada, iDA >22 mm/m²)»
+
+El valor del índice se redondea con el **mismo `Math.round`** que el informe ya usa para él, así
+que un índice entre 22,0 y 22,5 se imprime como «22» justo al lado del corte «>22» y la frase se
+lee como una contradicción.
+
+**Medido:** peso 45, talla 156, raíz 31 mm → superficie 1,3965 m², índice **22,1996** → la pastilla
+dice «iDA de 22 mm/m² (dilatada, iDA >22 mm/m²)». Con peso 45 y talla 150 el índice es 22,64 y
+dice 23, que se lee bien.
+
+**El informe tiene el mismo efecto desde el G-4** («dilatada por índice, 22 mm/m²»), así que no es
+nuevo: lo que esta tanda hizo fue ponerlo al lado del corte, donde se ve.
+
+**No se cambió el redondeo**: es la convención que la pantalla y el papel comparten, y moverla es
+decisión de Maicol. **TC-521 (B3) lo fija tal como es**, para que se ponga rojo el día que se
+decida. **Decidir:** una decimal en las dos superficies, o dejarlo.
+
+### Y-d · COMMIT 4 de la orden — la aorta: índices solos y aortopatía en el papel — **NO SE HIZO**
+
+Ninguna línea de la app se tocó por este commit. Lo que ya está medido y listo para la próxima
+sesión:
+
+- **4b: no hay nada que alinear.** Medido — ver `G-c`, que era un pendiente falso y queda cerrado.
+- **4a: la Evidencia de aortopatías ya trae clases, niveles, tablas y folios**, medido con el
+  panel renderizado sobre un Marfan de 46 mm con factores: publica tres recomendaciones Clase I ·
+  Nivel C de la **Tabla 60 (folio 113)**, nombra la **Tabla 62 (folio 114)** y la **Tabla 63
+  (folio 114)**, y transcribe el apartado 9.2.1.1 (folio 71) y la Figura 24 (folio 76).
+  **PERO le falta lo que el informe publica hoy**: las filas de la Tabla 62 como
+  **recomendaciones aplicables** —«≥ 50 mm, Clase I · Nivel B» y «≥ 45 mm con factores, Clase IIa
+  · Nivel C»—. Hoy el 45 sólo aparece bajo «Lo que falta para decidir otras filas», y el 50 no
+  aparece. La Tabla 62 ya está **transcrita fila por fila en imagen** en `FUENTES.md` → «La tanda
+  Y», así que agregarlas no exige volver a abrir el PDF.
+- **(i) los índices solos:** el campo `marfan_ita` vive en `#marfan-ita-wrap`, que ya nace con
+  `display:none` y lo muestra `marfanSync` sólo para Turner. El índice de Turner tendría que
+  salir de `marfan_ao_ascendente / getBSA()`.
+  ⚠️ **Y ACÁ HAY UNA DECISIÓN QUE LA ORDEN NO TOMA, Y POR ESO SE PARÓ:** `marfan_ita` es un campo
+  **guardado** y una **columna de Excel** («Marfan/EHAT índice tamaño aórtico (mm/m2)»), y además
+  el Laboratorio lo lee (`_labCampoRaw(i,'marfan_ita')`) para decidir si un estudio cuenta como
+  Marfan/EHAT. Si el valor se **calcula y se escribe solo**, eso es un automatismo escribiendo en
+  el estudio, que es justo lo que el modelo «un dato, dos puertas» del D-11 prohíbe. Si se
+  **calcula y no se escribe**, la columna de Excel queda vacía para todo estudio nuevo y el
+  Laboratorio deja de contarlos — y el Laboratorio está **fuera** de esta tanda.
+  **Decidir cuál de las dos**, o una tercera.
+- **(ii) la aortopatía en el papel:** medido en HEAD, hoy el informe publica
+  «… Síndrome de Marfan con diámetro aórtico máximo 46 mm con factores de riesgo — considerar
+  cirugía de la aorta (ESC 2024, Tabla 62 · folio 114, Clase IIa · Nivel C desde 45 mm con
+  factores).» y el EN SUMA «Aortopatía por síndrome de Marfan con indicación quirúrgica Clase IIa
+  (ESC 2024, Tabla 62 · folio 114).» Los dos emisores están en el mismo bloque, alrededor de la
+  línea 58.320 (`/* ── Marfan / EHAT — aortopatía hereditaria ── */`). El trabajo es reescribir
+  las ramas de `marfanEstado` para que el `txt` que va al papel no lleve umbral, clase, nivel ni
+  tabla, **conservándolos** para la Evidencia — hoy son **la misma cadena**, así que hay que
+  partirla en dos.
+
+### Y-e · COMMIT 5 de la orden — los otros segmentos (Figura 5) — **NO SE HIZO**
+
+Ninguna línea se tocó. La **Figura 5 (folio 28)** ya está transcrita en imagen en `FUENTES.md` →
+«La tanda G», con sus ocho segmentos por sexo y con la duda de la descendente **resuelta**
+(el símbolo de varón va a la izquierda: proximal 29/26 y distal 23/20 son varón/mujer).
+
+Lo que falta decidir y hacer: `AO_SEGS` tiene **cinco** segmentos (`ao_sin`, `ao_st`, `ao_tub`,
+`diam_cayado`, `diam_ao_toracica`) y la figura tiene **ocho**; el **arco viene partido en dos
+tramos** (proximal 37/34 y medio 34/31) y la app tiene uno solo, y la **descendente** también
+(proximal y distal) y la app tiene una. La orden sólo pide alinear la **unión sinotubular** y la
+**aorta ascendente**, que sí tienen correspondencia directa, con el texto «por encima del límite
+superior de lo normal (ESC 2024, Figura 5)» y **no** «dilatada». Hoy `AO_REF` da `st:38` y
+`tub:40` sin sexo; la figura da 38/33 y 40/36.
+
+### Y-f · COMMIT 6 de la orden — bicúspide y coartación — **NO SE HIZO**
+
+Ninguna línea se tocó. **El punto 6b sí se contestó**: la Tabla 38 (folio 80) se leyó en imagen y
+está transcrita fila por fila en `FUENTES.md` → «La tanda Y». **Tiene OCHO recomendaciones**, la
+de los ocho factores es la **fila 8 (IIb · B)**, y el valor de 50 mm aplica a **tres** filas
+distintas (la 5, la 7 y la 8) — que es de dónde venía la discrepancia entre las dos lecturas
+previas: las dos eran ciertas y describían cosas distintas.
+
+Lo que queda sin hacer es 6a: la coartación con sus tres textos largos al ⓘ, la coartación en el
+EN SUMA, el «sin alteraciones» que no puede convivir con una bicúspide o una coartación, y la
+Evidencia de la bicúspide con cada umbral una sola vez.
+
+### Y-g · PARTE 2 ENTERA (commits 8 a 13) — **NO SE HIZO**
+
+Ninguna línea se tocó, y **las referencias visuales aprobadas en `docs/3d/` no se abrieron ni se
+modificaron**. Queda entera: medir cómo y dónde se guardan hoy las imágenes, la sonda de
+rendimiento con 100 a 120 estudios sintéticos, la página «Imágenes guardadas» de Guardados, la
+estrella de imagen con su nota, la privacidad y el armado del PPT, y la función común que guarda
+un esquema de la app como imagen con el primer uso en la orejuela.
+
+### Y-h · Cinco arneses viejos leen el nodo del strain que esta tanda retiró
+
+`_probe_aj5.mjs`, `_probe_aj7.mjs`, `_probe_te.mjs`, `_probe_ewk.mjs` y `_ab_e.mjs` leen
+`vd_strain_pl-grado`, que ya no existe: devolverán «NO EXISTE» en los dos árboles, que es un
+denominador envenenado — exactamente el defecto que esta tanda encontró en su propia sonda con el
+guion del TRIV. **Son de tandas cerradas y no se corrigieron**, que es lo que la regla T9 manda
+para los arneses viejos. El que vuelva a usar uno de ellos tiene que cambiar ese id por
+`vd-strain-interp` antes de creerle al resultado.

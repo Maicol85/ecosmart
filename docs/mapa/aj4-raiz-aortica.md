@@ -268,3 +268,13 @@ Tres cosas de este mapa dejaron de ser toda la verdad, y el detalle vive en
    el informe «no cambia nada propio»: hoy sí.
 4. **El ⓘ perdió la línea «En este paciente»**, que el § 4 de acá describe como conservada y
    declarada. La decisión se tomó en la tanda G.
+
+---
+
+## → La tanda Y (2026-10-29): el papel y la pastilla
+
+El informe firmado deja de decir «— no se puede clasificar sin el sexo» y publica **sólo el
+diámetro**; la pantalla conserva la frase entera. Y la pastilla, cuando el voto lo da el índice,
+pasa de «Dilatada (iDA >22 mm/m²)» a «**iDA de 23 mm/m² (dilatada, iDA >22 mm/m²)**», con el
+mismo `Math.round` que el informe ya usaba. El criterio de dilatación **no se movió**.
+→ `docs/mapa/y-vd-sexo-aorta.md` §4

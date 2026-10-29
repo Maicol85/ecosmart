@@ -1933,7 +1933,15 @@ caso('TC-457', 'Pared del VD e indice de Tei (DTI): los dos cortes por sus dos l
     // ── DENOMINADORES ────────────────────────────────────────────────────────────────────────
     ['DENOMINADOR: los dos campos nuevos existen en el DOM', existen.length === 0, 'faltan: ' + existen.join(',')],
     ['DENOMINADOR: las dos filas nuevas del cuadro existen', filasNuevas.length === 0, 'faltan: ' + filasNuevas.join(',')],
-    ['DENOMINADOR: el cuadro del VD tiene DIEZ filas (7 + FEVD + Qp + VD/VI)', cajaVD === 10, 'filas=' + cajaVD],
+    /* ADAPTADO en la tanda Y (commit 1): DIEZ -> ONCE. La fila nueva es la del STRAIN DE PARED
+       LIBRE, que vino de debajo de su campo por pedido del medico del 29/10/2026 y va debajo del
+       indice de Tei. El invariante que este caso vigila -que el cuadro no pierda ni gane filas
+       sin que nadie se entere- se conserva entero.
+       ⚠️ ESTE DENOMINADOR SE ME PASO DEL CENSO: grepeé el conteo de filas de este cuadro y
+       encontre el de TC-476, que es el mismo invariante escrito con otras palabras. Lo destapo
+       la CORRIDA COMPLETA, que es justo para lo que esta. Es el mismo modo de falla que la
+       tanda C2 documenta con TC-520. */
+    ['DENOMINADOR: el cuadro del VD tiene ONCE filas (7 + FEVD + Qp + VD/VI + strain)', cajaVD === 11, 'filas=' + cajaVD],
     /* ADAPTADO (VS, 2026-10-17): el 0,55 del Tei sigue siendo el corte de la banda LEVE, pero
        la constante pasa a derivarse de la tabla ASE25_T1: el valor NO se movio. */
     ['DENOMINADOR: los cortes son los de la guia, y el del Doppler PULSADO esta declarado aparte',
@@ -95771,6 +95779,263 @@ caso('TC-548', 'Tanda POP-V2: la pestana del posoperatorio con su orden de arrib
   ex.push(['(I3) CONTROL NEGATIVO: sin datos, el dibujo no enciende ningun dispositivo ni ninguna linea B',
     DIB('impella') === 'none' && DIB('ecmovv') === 'none' && DIB('balon') === 'none' && LINEASB() === 0,
     'imp=' + DIB('impella') + ' lineasB=' + LINEASB()]);
+
+  return { extra: ex };
+  })();
+`);
+
+/* -- TC-549 ---------------------------------------------------------------------------------
+   Tanda Y, Parte 1 (commits 1 a 3). Tres cambios y un control de lo que NO se movio.
+
+   ADVERTENCIA PARA EL QUE EDITE ESTE CASO: el cuerpo es un template literal. Un acento grave
+   -aunque este dentro de un comentario- cierra la cadena y el archivo deja de parsear con un
+   SyntaxError que apunta decenas de lineas ANTES del culpable. `node --check` sobre el archivo
+   es lo unico que lo caza; check_backticks.py no distingue el comentario del cuerpo.
+
+   DENOMINADORES, y por que cada uno hace falta:
+     · (A0) el cuadro de referencias del VD existe y tiene sus once filas. Sin esto, buscar la
+       fila del strain en un cuadro vacio da «no esta» y el caso pasaria en verde sobre una
+       pestania rota.
+     · (B0) los DOS campos del TRIV existen. Medir la sincronizacion con uno solo da «iguales»
+       siempre.
+     · (C0) el estudio llega a la zona del sexo: con el peso, la talla y los siete parametros
+       cargados, `aiviSexoCambian()` tiene que devolver una lista NO vacia. Sin ese denominador,
+       «nada quedo viejo» no se distingue de «no habia nada que mover».
+     · (D0) la superficie corporal es la que la escena supone. El indice sale de ahi.
+
+   CONTROLES NEGATIVOS:
+     · (A7) la marca de plausibilidad NO se mudo -sigue debajo del campo-;
+     · (B7) el corte del PAPEL (60 ms) no se movio con el de pantalla (75);
+     · (C7) un estudio SIN sexo y con la raiz por debajo de 36 sale normal, igual que antes;
+     · (E) un estudio AJENO -sin VD, sin TRIV, sin aorta- tiene informe, EN SUMA y Excel
+       identicos, que es lo que la orden exige fuera de las diferencias permitidas.          */
+caso('TC-549', 'Tanda Y (Parte 1): el resultado del strain del VD en el cuadro de REFERENCIAS y no debajo del campo; el TRIV tricuspideo con sus DOS puertas sincronizadas en los dos sentidos sin campo guardado nuevo y sin mover el corte de 60 ms del papel; el sexo re-evaluando la pantalla en el ACTO con su dueno unico; la raiz aortica sin sexo diciendo SOLO el diametro en los tres estilos y la pastilla publicando el VALOR del indice; y los CONTROLES de lo que no se podia mover', `
+  return (async () => {
+  const ex = [];
+  const F = (n) => (typeof window[n] === 'function') ? window[n] : null;
+  const EL = (id) => document.getElementById(id) || null;
+  const T = (id) => { const e = EL(id); return e ? (e.textContent || '').replace(/\\s+/g, ' ').trim() : 'NO EXISTE'; };
+  const V = (id) => { const e = EL(id); return e ? String(e.value || '') : 'NO EXISTE'; };
+  const VIS = (id) => { const e = EL(id); if (!e) return 'NO EXISTE';
+    return getComputedStyle(e).display !== 'none'; };
+  const S = (id, v) => { const e = EL(id); if (!e) return 'NO EXISTE ' + id;
+    e.value = v; e.dispatchEvent(new Event('input', { bubbles: true }));
+    e.dispatchEvent(new Event('change', { bubbles: true })); return e.value; };
+  const esperar = (ms) => new Promise(r => setTimeout(r, ms));
+  /* El estilo de informe es estado de SESION: un caso anterior puede haberlo dejado en
+     narrativo, donde las frases son otras. Lo fija este helper, que es la leccion de TC-547. */
+  const linea = (est, re) => { try {
+      if (F('setEstiloInforme')) setEstiloInforme(est);
+      if (F('generarInforme')) generarInforme();
+      const t = (EL('informe_texto') || {}).value || '';
+      return t.split('\\n').filter(l => re.test(l)).join(' // ');
+    } catch (e) { return 'EXC: ' + e.message; } };
+  const suma = (re) => ((EL('en_suma') || {}).value || '').split('\\n').filter(l => re.test(l)).join(' // ');
+
+  /* ══ A · EL STRAIN DE PARED LIBRE, EN REFERENCIAS Y NO DEBAJO DEL CAMPO ═══════════════════ */
+  __t.limpiar();
+  try { showTab('vd'); } catch (e) {}
+  const cajaVD = EL('vd-tei-interp') ? EL('vd-tei-interp').closest('.calc-box') : null;
+  const filasVD = cajaVD ? Array.prototype.slice.call(cajaVD.querySelectorAll('.calc-row')).map(r => {
+    const v = r.querySelector('span[id]:not(.calc-lbl)'); return v ? v.id : '?'; }) : [];
+  ex.push(['(A0) DENOMINADOR: el cuadro de referencias del VD existe y tiene ONCE filas',
+    filasVD.length === 11, filasVD.join(',')]);
+  ex.push(['(A1) el resultado YA NO esta debajo del campo: el nodo vd_strain_pl-grado se retiro',
+    !EL('vd_strain_pl-grado'), String(!!EL('vd_strain_pl-grado'))]);
+  ex.push(['(A2) y SI esta en el cuadro, en la fila que sigue a la del indice de Tei',
+    filasVD.indexOf('vd-strain-interp') === filasVD.indexOf('vd-tei-interp') + 1,
+    filasVD.join(',')]);
+  /* El TEXTO no cambio: las cuatro bandas, una por una, con las palabras que ya publicaba. */
+  const bandaStrain = (v) => { S('vd_strain_pl', v);
+    return { vis: VIS('row-vd-strain-interp'), txt: T('vd-strain-interp'),
+             marca: T('vd_strain_pl-marca') }; };
+  const sN = bandaStrain('-21'), sL = bandaStrain('-18'), sB = bandaStrain('-12');
+  ex.push(['(A3) normal, leve y por debajo de leve se leen en la fila con el MISMO texto de antes',
+    sN.txt.indexOf('normal (más de 20 %') > -1 &&
+    sL.txt.indexOf('leve (de 15 a 20 %') > -1 &&
+    sB.txt.indexOf('por debajo de leve') > -1 &&
+    sB.txt.indexOf('no tiene corte de moderada ni de severa') > -1,
+    sN.txt + ' | ' + sL.txt + ' | ' + sB.txt]);
+  ex.push(['(A4) y la fila se VE en las tres',
+    sN.vis === true && sL.vis === true && sB.vis === true,
+    JSON.stringify([sN.vis, sL.vis, sB.vis])]);
+  const sCero = bandaStrain('0'), sOut = bandaStrain('185');
+  ex.push(['(A5) un 0 y un valor fuera de banda NO abren la fila: no hay nada que interpretar',
+    sCero.vis === false && sOut.vis === false,
+    JSON.stringify([sCero.vis, sOut.vis])]);
+  S('vd_strain_pl', '');
+  ex.push(['(A6) con el campo vacio la fila esta escondida y su span dice «—», como las otras diez',
+    VIS('row-vd-strain-interp') === false && T('vd-strain-interp') === '\\u2014',
+    String(VIS('row-vd-strain-interp')) + ' / ' + T('vd-strain-interp')]);
+  ex.push(['(A7) CONTROL NEGATIVO: la marca «(revisar)» de la banda de plausibilidad NO se mudo',
+    sOut.marca.indexOf('revisar') > -1 &&
+    (function () { const m = EL('vd_strain_pl-marca'), c = EL('vd_strain_pl');
+      return !!m && !!c && m.closest('.fg') === c.closest('.fg'); })(),
+    sOut.marca]);
+
+  /* ══ B · EL TRIV TRICUSPIDEO, DOS PUERTAS Y UN SOLO DATO ══════════════════════════════════ */
+  __t.limpiar();
+  ex.push(['(B0) DENOMINADOR: los DOS campos del TRIV existen y son distintos',
+    !!EL('dt_triv') && !!EL('vd-triv') && EL('dt_triv') !== EL('vd-triv'),
+    'dueno=' + !!EL('dt_triv') + ' espejo=' + !!EL('vd-triv')]);
+  S('dt_triv', '80');
+  const b1 = { d: V('dt_triv'), e: V('vd-triv') };
+  S('vd-triv', '64');
+  const b2 = { d: V('dt_triv'), e: V('vd-triv') };
+  ex.push(['(B1) los dos sentidos copian, y gana la ULTIMA edicion',
+    b1.d === '80' && b1.e === '80' && b2.d === '64' && b2.e === '64',
+    JSON.stringify([b1, b2])]);
+  S('vd-triv', '');
+  const b3 = { d: V('dt_triv'), e: V('vd-triv') };
+  S('dt_triv', '70'); S('dt_triv', '');
+  const b4 = { d: V('dt_triv'), e: V('vd-triv') };
+  ex.push(['(B2) borrar en uno borra en el otro, por las DOS puertas',
+    b3.d === '' && b3.e === '' && b4.d === '' && b4.e === '',
+    JSON.stringify([b3, b4])]);
+  /* El embudo de restauracion copia del DUENO al espejo, no al reves: una recarga no puede
+     reponer un valor que el medico borro en la pestania del Doppler. */
+  S('dt_triv', '55');
+  { const e = EL('vd-triv'); if (e) e.value = '999'; }
+  try { if (F('_recalcModulos')) _recalcModulos('TC-549'); } catch (e) {}
+  ex.push(['(B3) el embudo de restauracion copia del DUENO al espejo, aunque esten desincronizados',
+    V('dt_triv') === '55' && V('vd-triv') === '55',
+    V('dt_triv') + ' / ' + V('vd-triv')]);
+  ex.push(['(B4) el espejo NO es un campo del estudio, y el dueno SI',
+    F('_noEsDelEstudio') ? (_noEsDelEstudio('vd-triv') === true && _noEsDelEstudio('dt_triv') === false) : 'SIN FN',
+    F('_noEsDelEstudio') ? ('espejo=' + _noEsDelEstudio('vd-triv') + ' dueno=' + _noEsDelEstudio('dt_triv')) : 'SIN FN']);
+  ex.push(['(B5) asi que el recolector no lo toma: el juego de campos guardados no lo incluye',
+    (function () { if (!F('_noEsDelEstudio')) return 'SIN FN';
+      let hay = false;
+      document.querySelectorAll('input[id], select[id], textarea[id]').forEach(e => {
+        if (!_noEsDelEstudio(e.id) && e.id === 'vd-triv') hay = true; });
+      return hay === false; })() === true, 'recolector']);
+  ex.push(['(B6) el campo vive en la pestania VD / AD, en la columna 1, debajo de la FEVD',
+    (function () { const e = EL('vd-triv'); if (!e) return false;
+      const fg = e.closest('.fg'); const cl = fg ? String(fg.className) : '';
+      const g = e.closest('.vd-grid');
+      if (!g || cl.indexOf('vd-c1') < 0) return false;
+      const ids = Array.prototype.slice.call(g.querySelectorAll('input[id]')).map(x => x.id);
+      return ids.indexOf('vd-triv') === ids.indexOf('fevd') + 1; })(),
+    (function () { const e = EL('vd-triv'); const fg = e && e.closest('.fg');
+      return fg ? fg.className : 'NO EXISTE'; })()]);
+  /* CONTROL NEGATIVO: el corte que gobierna el PAPEL es OTRO y esta tanda no lo toco. */
+  __t.limpiar();
+  S('dt_triv', '76');
+  ex.push(['(B7) CONTROL: el corte del PAPEL sigue en 60 ms y el de PANTALLA en 75, y son dos',
+    window.DT_TRIV_HTP_PANEL === 75 &&
+    (F('htpIndirectosFrase') ? htpIndirectosFrase().indexOf('> 60 ms') > -1 : 'SIN FN') === true &&
+    T('dt_triv_ref').indexOf('>75 ms: a favor de HTP') > -1,
+    'panel=' + window.DT_TRIV_HTP_PANEL + ' frase=' + (F('htpIndirectosFrase') ? htpIndirectosFrase() : '?') +
+    ' fila=' + T('dt_triv_ref')]);
+
+  /* ══ C · EL SEXO SE RE-EVALUA EN EL ACTO ══════════════════════════════════════════════════ */
+  __t.limpiar();
+  ['peso','talla','edad','ai_diam','ao_sin','ddfvi','dsfvi','siv','ppvi','vdfvi','vsfvi']
+    .forEach((k, i) => S(k, ['70','170','60','39','38','55','37','11','11','140','55'][i]));
+  await esperar(500);
+  const cambian = F('aiviSexoCambian') ? aiviSexoCambian() : [];
+  ex.push(['(C0) DENOMINADOR: con el sexo vacio hay SIETE parametros cargados que cambian de categoria segun el sexo',
+    cambian.length === 7, cambian.length + ': ' + cambian.join(' | ')]);
+  const foto = () => ({ ao: T('ao-interp'), ai: T('ai-diam-interp'),
+                        vdf: T('vdfvi-idx-interp'), vsf: T('vsfvi-idx-interp'), geo: T('geom-val') });
+  const antesSexo = foto();
+  ex.push(['(C1) DENOMINADOR: sin sexo, la raiz de 38 mm NO se clasifica y el diametro AP de 39 mm sale normal',
+    antesSexo.ao.indexOf('No se puede clasificar sin el sexo') > -1 &&
+    antesSexo.ai.indexOf('Normal') > -1,
+    JSON.stringify(antesSexo)]);
+  S('sexo', 'F');
+  await esperar(250);
+  const alGesto = foto();
+  try { if (F('_recalcModulos')) _recalcModulos('TC-549'); if (F('calcBSA')) calcBSA(); } catch (e) {}
+  await esperar(250);
+  const trasEmbudo = foto();
+  const viejos = Object.keys(alGesto).filter(k => String(alGesto[k]) !== String(trasEmbudo[k]));
+  ex.push(['(C2) el gesto solo ya deja los CINCO nodos en su valor nuevo: ninguno queda viejo',
+    viejos.length === 0, 'quedaron viejos: ' + viejos.join(',') + ' || ' + JSON.stringify(alGesto)]);
+  ex.push(['(C3) y el valor nuevo es el de la mujer: la raiz dilatada desde 36 y el diametro AP dilatado',
+    alGesto.ao.indexOf('Dilatada') > -1 && alGesto.ao.indexOf('36') > -1 &&
+    alGesto.ai.indexOf('Dilatada') > -1,
+    alGesto.ao + ' | ' + alGesto.ai]);
+  ex.push(['(C4) el dueno unico existe y corre sus cuatro pintores',
+    F('sexoRecalcSync') ? JSON.stringify(sexoRecalcSync()) === JSON.stringify({ diast:true, ai:true, vi:true, aorta:true }) : 'SIN FN',
+    F('sexoRecalcSync') ? JSON.stringify(sexoRecalcSync()) : 'SIN FN']);
+  S('sexo', '');
+  await esperar(250);
+  ex.push(['(C5) y vaciar el sexo tambien re-evalua: la raiz vuelve a no clasificarse',
+    T('ao-interp').indexOf('No se puede clasificar sin el sexo') > -1 &&
+    T('ai-diam-interp').indexOf('Normal') > -1,
+    T('ao-interp') + ' | ' + T('ai-diam-interp')]);
+
+  /* ══ D · LA RAIZ EN EL PAPEL Y LA PASTILLA ════════════════════════════════════════════════ */
+  const esc = (campos) => { __t.limpiar();
+    Object.keys(campos).forEach(k => S(k, campos[k]));
+    return { cap: T('ao-interp'),
+             est: linea('estandar', /aorta/i), nar: linea('narrativo', /aorta/i),
+             con: linea('conciso', /aorta/i), sum: suma(/aort|Dilataci/i) }; };
+  const d35 = esc({ peso:'70', talla:'170', ao_sin:'35' });
+  const d36 = esc({ peso:'70', talla:'170', ao_sin:'36' });
+  const d39 = esc({ peso:'70', talla:'170', ao_sin:'39' });
+  const d40 = esc({ peso:'70', talla:'170', ao_sin:'40' });
+  ex.push(['(D1) sin sexo y en la franja de en medio, el papel dice SOLO el diametro en los TRES estilos',
+    d39.est === 'Aorta torácica: Raíz aórtica 39 mm.' &&
+    d39.con === 'Aorta torácica: Raíz aórtica 39 mm.' &&
+    d39.nar === 'A nivel de la aorta torácica, raíz aórtica 39 mm.',
+    d39.est + ' // ' + d39.nar]);
+  ex.push(['(D2) y NINGUNO de los tres lleva ya la frase de «no se puede clasificar»',
+    [d36, d39].every(d => [d.est, d.nar, d.con].every(t => t.indexOf('no se puede clasificar') < 0)),
+    d36.est + ' // ' + d36.nar]);
+  ex.push(['(D3) pero la PANTALLA la conserva: la pastilla sigue diciendo por que no clasifica',
+    d36.cap.indexOf('No se puede clasificar sin el sexo') > -1 &&
+    d39.cap.indexOf('No se puede clasificar sin el sexo') > -1,
+    d36.cap + ' | ' + d39.cap]);
+  ex.push(['(D4) CONTROL: por debajo de 36 sigue saliendo normal, y en 40 dilatada, sin sexo',
+    d35.est.indexOf('de calibre normal') > -1 &&
+    d40.est.indexOf('(dilatada)') > -1 && d40.sum.indexOf('Dilatación raíz aórtica (40 mm)') > -1,
+    d35.est + ' // ' + d40.est + ' // ' + d40.sum]);
+  ex.push(['(D5) CONTROL: con el sexo cargado el papel NO cambio — 39 mm es normal en el varon y dilatada en la mujer',
+    (function () { const h = esc({ peso:'70', talla:'170', sexo:'M', ao_sin:'39' });
+      const m = esc({ peso:'70', talla:'170', sexo:'F', ao_sin:'39' });
+      return h.est.indexOf('de calibre normal') > -1 && m.est.indexOf('(dilatada)') > -1; })(),
+    'varon/mujer']);
+  /* La segunda puerta: el indice. Peso 45 y talla 150 dan 1,369 m2, asi que 30 mm da 21,9 -no
+     cruza- y 31 mm da 22,6 -cruza-. Los dos quedan MUY por debajo de 36, asi que el unico
+     votante posible es el indice. */
+  const bsaChica = (function () { __t.limpiar(); S('peso','45'); S('talla','150');
+    return F('getBSA') ? getBSA() : null; })();
+  ex.push(['(D0) DENOMINADOR: con 45 kg y 150 cm la superficie corporal es 1,369 m2',
+    bsaChica !== null && Math.abs(bsaChica - 1.3693) < 0.001, String(bsaChica)]);
+  const i21 = esc({ peso:'45', talla:'150', ao_sin:'30' });
+  const i22 = esc({ peso:'45', talla:'150', ao_sin:'31' });
+  ex.push(['(D6) la pastilla publica el VALOR del indice cuando es el que vota',
+    i22.cap.indexOf('iDA de 23 mm/m\\u00b2') > -1 && i22.cap.indexOf('(dilatada, iDA >22 mm/m\\u00b2)') > -1,
+    i22.cap]);
+  ex.push(['(D7) y el papel lo nombra igual que antes, con el mismo redondeo',
+    i22.est.indexOf('(dilatada por índice, 23 mm/m²)') > -1 &&
+    i22.sum.indexOf('por índice, 23 mm/m²') > -1,
+    i22.est + ' // ' + i22.sum]);
+  ex.push(['(D8) CONTROL: con el indice por debajo de 22 no vota nadie y la raiz sale normal',
+    i21.cap.indexOf('Normal') > -1 && i21.est.indexOf('de calibre normal') > -1,
+    i21.cap + ' // ' + i21.est]);
+
+  /* ══ E · EL CONTROL NEGATIVO DE LA TANDA ══════════════════════════════════════════════════
+     Un estudio AJENO -sin strain, sin TRIV, sin aorta y sin sexo- no puede haber cambiado en
+     ninguna superficie firmada. Sin esta seccion, las diferencias de arriba no se distinguen de
+     «la tanda movio el papel en todas partes». */
+  const aj = esc({ im_vc:'8', onda_e:'110', e_sep:'5', e_lat:'6', ai_vol:'70' });
+  ex.push(['(E1) un estudio ajeno no nombra la aorta en ninguno de los tres estilos',
+    aj.est === '' && aj.nar === '' && aj.con === '',
+    JSON.stringify([aj.est, aj.nar, aj.con])]);
+  ex.push(['(E2) y la fila del strain y el espejo del TRIV estan vacios y escondidos',
+    VIS('row-vd-strain-interp') === false && V('vd-triv') === '' && V('dt_triv') === '',
+    String(VIS('row-vd-strain-interp')) + ' / ' + V('vd-triv') + ' / ' + V('dt_triv')]);
+  ex.push(['(E3) el Excel sigue en 440 columnas',
+    (function () { if (!F('_labExcelRow') || !F('_noEsDelEstudio')) return 'SIN FN';
+      const campos = {};
+      document.querySelectorAll('input[id], select[id], textarea[id]').forEach(e => {
+        if (_noEsDelEstudio(e.id)) return;
+        campos[e.id] = (e.type === 'checkbox') ? (e.checked ? '1' : '') : String(e.value || ''); });
+      return Object.keys(_labExcelRow({ campos: campos, fecha: '2026-10-29' })).length; })() === 440,
+    'columnas']);
 
   return { extra: ex };
   })();

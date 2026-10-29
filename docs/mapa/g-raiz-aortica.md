@@ -181,3 +181,16 @@ proyecto, o el conteo de errores de consola del lado viejo no vale.**
 lateral se reemplaza por el desplegable móvil (`#ecoAdvSelect`). Verificado **idéntico en HEAD**
 en los dos motores: no lo causó esta tanda. Un conteo de «pestañas con caja» que no distinga ese
 ancho se lee como una pantalla rota.
+
+---
+
+## → La tanda Y (2026-10-29): el sexo re-evalúa en el acto, y `G-c` era falso
+
+El grado `sinsexo` sigue igual en la pantalla y **sale del papel**: el informe publica sólo el
+diámetro. Y cargar o cambiar el sexo ya re-evalúa las cápsulas de AI/VI y de la aorta, con
+`sexoRecalcSync`, el dueño único colgado del gesto.
+
+⚠️ **`G-c` ERA UN PENDIENTE FALSO Y QUEDA CERRADO.** La app **ya aplica `≥ 45`** para el Marfan
+(`UMBRAL.marfan.iia = 45` con `maxAo >= u.iia`): medido, 45,0 mm exactos dan `cx_iia`. El
+`maxAo > 45` que ese pendiente citaba es el de **Loeys-Dietz**, y ahí el estricto es correcto.
+→ `docs/mapa/y-vd-sexo-aorta.md` §3 y §5

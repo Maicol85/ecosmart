@@ -7073,3 +7073,122 @@ fuente.
 
 **Ningún corte clínico se movió de valor en esta tanda.** Los cinco que la conclusión usa valen
 hoy lo mismo que el 28/10: 2,2 · 18 · 12 · 17 · 0,9.
+
+## La tanda Y, Parte 1 — el strain en Referencias, el TRIV y el sexo (2026-10-29)
+
+**Esta tanda NO estableció ningún corte clínico nuevo.** Lo que se leyó en imagen se leyó para
+**decidir si se podía escribir algo**, y en los dos casos la respuesta fue que no: el corte del
+TRIV no tiene fuente, y el borde de la Tabla 62 no había nada que alinear. Las dos lecturas están
+abajo porque el próximo que mire esta zona necesita saber qué se abrió y qué dijo.
+
+### ASE 2025 de corazón derecho — el IVRT del VD, leído en imagen
+
+**Documento:** Mukherjee M y cols., «ASE Guidelines for the Echocardiographic Assessment of the
+Right Heart», *J Am Soc Echocardiogr* 2025;38(3) — `03_VD_y_corazon_derecho/ASE-Right-Heart-Guidelines-May-2025.pdf`,
+46 hojas. **Regla de folio comprobada en el pie impreso: folio = hoja del PDF + 140.** La hoja 28
+lleva impreso «168» y la 29 «169».
+
+**Hoja 28, folio 168 — texto, literal:** «IVRT can also be included into diastolic assessment and
+is typically **≤73 ms** in normal healthy adults.»
+
+**Hoja 29, folio 169 — Tabla 6, fila «RV IVRT, ms»**, verificada glifo por glifo sobre la imagen
+renderizada a 500 ppp:
+
+| Parámetro | Normal | Disfunción |
+|---|---|---|
+| RV IVRT, ms | **≤ 73** | **> 73** |
+
+La tabla es la de la **función diastólica del VD** —sus otras filas son RVWT, tamaño y variación
+inspiratoria de la VCI, E/A, DT, flujo anterógrado diastólico de la AP, S/D y predominio
+diastólico de las venas suprahepáticas, e′/a′ y E/e′—.
+
+⚠️ **EL 73 CONTESTA OTRA PREGUNTA QUE EL 75 DE LA APP.** La app usa `DT_TRIV_HTP_PANEL = 75` como
+comentario de pantalla «a favor de HTP», y `DT_TRIV_HTP = 60` para la frase de signos indirectos
+del informe **firmado**. **Ninguno de los dos está en la biblioteca**, y el 73 que sí está es un
+criterio de **pseudonormal**, no de hipertensión pulmonar.
+
+⚠️ **POR ESO EL COLOR Y EL SIGNIFICADO DE LA REFERENCIA DEL TRIV NO SE ESCRIBIERON.** La orden los
+condicionaba a verificar el corte en la biblioteca, en imagen; se verificó y no se pudo. El campo y
+la sincronización sí se hicieron. → `docs/PENDIENTES.md` **Y-b**.
+
+### ESC 2024 de aorta — Tabla 62, folio 114, releída en imagen
+
+**Documento:** `06_Aorta/Mazzolai_2024_Aorta.pdf`, edición de la SEC en español, 199 hojas.
+**Regla de folio: folio = hoja del PDF**, 0-based, comprobada en el encabezado impreso.
+
+«**Recomendaciones - tabla 62.** Recomendaciones sobre la cirugía aórtica en el síndrome de
+Marfan», sus cuatro filas, transcritas de la imagen:
+
+| # | Recomendación | Clase | Nivel |
+|---|---|---|---|
+| 1 | Cirugía indicada con SM y enfermedad de la raíz aórtica con un diámetro máximo de los senos aórticos **≥ 50 mm** | I | B |
+| 2 | Reemplazo de raíz y ascendente con preservación valvular en SM o EATH con dilatación de raíz | I | B |
+| 3 | **Puede considerarse** la cirugía con SM y aneurisma de la raíz con un diámetro máximo de los senos **≥ 45 mm** y factores de riesgo adicionales^c | **IIa** | **C** |
+| 4 | SM con aneurisma de ascendente, arco, torácica descendente o abdominal **≥ 50 mm**: considerar reemplazo del segmento aneurismático | IIa | C |
+
+⚠️ **Y EL 4b NO TENÍA NADA QUE ALINEAR: LA APP YA APLICA `≥ 45`.** Medido con `marfanEstado()`
+sobre el árbol de HEAD, con síndrome de Marfan y factores de riesgo consignados:
+**44,9 mm → `sin_indicacion`** · **45,0 mm → `cx_iia`**, «considerar cirugía de la aorta (ESC 2024,
+Tabla 62 · folio 114, Clase IIa · Nivel C desde 45 mm con factores)» · 45,1 → igual · 50 → `cx_i`.
+El dueño es `UMBRAL.marfan.iia = 45` con `maxAo >= u.iia`.
+
+**El `maxAo > 45` que `G-c` citaba es el de LOEYS-DIETZ**, dentro de `if (sind === 'lds')`, y ahí
+el operador estricto es **correcto**: su Tabla 66 (folio 116) dice «cuando el diámetro es SUPERIOR
+A 45 mm». **`G-c` era un pendiente falso** y queda corregido en `docs/PENDIENTES.md`.
+
+### ESC 2024 de aorta — Tabla 38, folio 80, leída en imagen (punto 6b: SÓLO LEER Y REPORTAR)
+
+«**Recomendaciones - tabla 38.** Recomendaciones sobre la cirugía de la dilatación de raíz aórtica
+y de la aorta ascendente **con válvula aórtica tricúspide** (véase también la tabla de evidencia
+11)». **Tiene OCHO recomendaciones**, transcritas de la imagen:
+
+| # | Recomendación | Clase | Nivel |
+|---|---|---|---|
+| 1 | Cirugía recomendada con dilatación de raíz o ascendente con VAo tricúspide y diámetro máximo **≥ 55 mm** | I | B |
+| 2 | Reemplazo de la raíz con preservación valvular en centros con experiencia y resultados duraderos | I | B |
+| 3 | AVK de por vida en todos los sometidos a Bentall con prótesis valvular mecánica | I | B |
+| 4 | Dilatación de ascendente **tubular**, candidatos a cirugía con riesgo estimado bajo^c: considerar reemplazo cuando el diámetro máximo es **> 52 mm** | IIa | B |
+| 5 | Cirugía por enfermedad de la VAo tricúspide con dilatación concomitante de raíz o ascendente tubular y riesgo bajo: considerar reemplazo cuando el diámetro máximo es **≥ 45 mm, o en otros casos ≥ 50 mm** | IIa | B |
+| 6 | Aspirina 75-100 mg/día los 3 primeros meses tras cirugía con preservación valvular cuando no hay otras indicaciones basales de ACO | IIa | C |
+| 7 | Cirugía cardiaca **no valvular aórtica** con dilatación concomitante de ascendente o raíz **≥ 50 mm**: considerar cirugía aórtica concomitante | IIa | C |
+| 8 | **Se puede considerar** el reemplazo de ascendente o de raíz con un diámetro máximo **≥ 50 mm** en pacientes con dilatación de la aorta proximal, candidatos a cirugía con riesgo quirúrgico estimado bajo^c, **que presentan cualquiera de los ocho factores** | **IIb** | **B** |
+
+**Los ocho factores de la fila 8**, literales: crecimiento del diámetro aórtico **≥ 3 mm al año** ·
+hipertensión resistente^d · baja estatura **< 1,69 m** · fenotipo de raíz aórtica · longitud
+aórtica^e **> 11 cm** · edad **< 50 años** · deseo de embarazo · coartación aórtica.
+
+**Notas al pie, literales:** ^c «Riesgo individual del paciente **< 3%**». ^d «Hipertensión que no
+se puede controlar adecuadamente pese a la administración de **tres o más fármacos** recomendados
+por un médico con experiencia en el tratamiento de la hipertensión». ^e «La distancia curvilínea
+en la línea central aórtica entre la unión ventriculoaórtica y el origen de la arteria
+innominada». Y: «Para la enfermedad hereditaria de la aorta torácica y el aneurisma aórtico
+torácico relacionado con válvula aórtica bicúspide **referimos al lector a la sección 10**».
+
+⚠️ **LAS DOS LECTURAS PREVIAS QUE DISCREPABAN SON LAS DOS CIERTAS, Y DESCRIBEN COSAS DISTINTAS.**
+«Una sola recomendación IIb·B con ocho factores» es la **fila 8**; «ocho recomendaciones» es la
+**tabla entera**. No hay contradicción que resolver.
+
+⚠️ **EL VALOR DE 50 mm APLICA A TRES FILAS DISTINTAS**, y por eso se prestaba a confusión:
+la **5** («o en otros casos ≥ 50 mm», IIa·B), la **7** (cirugía cardiaca no valvular aórtica,
+IIa·C) y la **8** (riesgo bajo con cualquiera de los ocho factores, IIb·B).
+
+**No se implementó nada por este punto**, que es lo que la orden pide: la pantalla de la bicúspide
+y la Evidencia no se tocaron.
+
+### Tabla «Cambios de evidencia» de esta tanda
+
+| Qué | Antes | Ahora | Fuente | Commit |
+|---|---|---|---|---|
+| Dónde se lee el resultado del strain de pared libre del VD | debajo del campo | fila del **cuadro de referencias**, debajo del índice de Tei | pedido del médico del 29/10/2026 | Y-1 |
+| Su TEXTO | las tres bandas con sus cortes | **idéntico**, carácter por carácter | — | Y-1 |
+| El TRIV tricuspídeo | un solo campo, en Doppler | **dos puertas**, sincronizadas en los dos sentidos | pedido del médico | Y-2 |
+| El corte de 75 ms y su texto «a favor de HTP» | en la referencia del Doppler | **igual — no se movió ni se copió** | parado: la biblioteca publica 73 ms y para otra pregunta | Y-2 |
+| El corte de 60 ms del informe firmado | `htpIndirectosFrase` | **igual** | — | Y-2 |
+| Qué se re-evalúa al cargar o cambiar el sexo | sólo `calcDiastol` | además `calcAI`, `calcVI` y `calcAorta` | pedido del médico | Y-3 |
+| Informe, raíz sin sexo entre 36 y 40 mm | «Raíz aórtica 39 mm — no se puede clasificar sin el sexo.» | «Raíz aórtica 39 mm.» | pedido del médico | Y-3 |
+| Pantalla en esa franja | «No se puede clasificar sin el sexo» | **igual** | — | Y-3 |
+| EN SUMA en esa franja | sin línea | **igual** | — | Y-3 |
+| Pastilla de la raíz cuando vota el índice | «Dilatada (iDA >22 mm/m²)» | «iDA de 23 mm/m² (dilatada, iDA >22 mm/m²)» | pedido del médico | Y-3 |
+| El redondeo del índice | `Math.round`, en el informe | **el mismo**, ahora también en la pastilla | — | Y-3 |
+| El borde de 45 mm de la Tabla 62 | **ya era `≥`** | **igual — no había nada que alinear** | medido; `G-c` era falso | — |
+

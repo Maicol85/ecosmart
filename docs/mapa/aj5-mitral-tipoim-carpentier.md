@@ -357,3 +357,13 @@ valor y el Narrativo no.
 - `vmCarpLegadoSync` lleva una **guarda de repintado** nueva.
 
 **`docs/mapa/e-carpentier-tricuspide-orejuela.md` §§ 1 y 2.**
+
+---
+
+## → La tanda Y (2026-10-29): el resultado del strain se lee en Referencias
+
+`#vd_strain_pl-grado` se retiró. El resultado vive en la fila `#row-vd-strain-interp` del cuadro
+de referencias de la pestaña, debajo del índice de Tei, con el **mismo texto**. Lo que **no** se
+movió es `#vd_strain_pl-marca`, la marca «(revisar)» de la banda de plausibilidad, que sigue al
+lado del campo que hay que corregir. Los cortes, el voto y la banda no se tocaron.
+→ `docs/mapa/y-vd-sexo-aorta.md` §1

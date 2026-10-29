@@ -45,6 +45,7 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Tocar un CORTE o un OPERADOR del VD, de la AD, de la VCI o de la RAÍZ AÓRTICA**: la Tabla 1 de la ASE 2025, su evaluador, los cuatro grados de cada parámetro o el «40 mm o más» del seno | `docs/mapa/corazon-derecho-ase2025.md` |
 | **Tocar algo de la tanda AJ1**: los cortes del VD de la versión de MAYO, el strain de pared libre sin sexo, la coartación reparada, el índice de dimensión aórtica, el Ehlers-Danlos del EN SUMA, el corte alternativo de la IM secundaria o el flujo reverso de la aorta descendente | `docs/mapa/aj1-ajustes.md` |
 | **Tocar el VENTRÍCULO DERECHO**: sus TRES columnas de campos, el orden del cuadro de referencias, la disfunción sistólica, la pared graduada, el Tei, la FEVD, la relación VD/VI o el Qp | `docs/mapa/vd-derecho.md` |
+| **Tocar el RESULTADO del strain del VD en Referencias, el TRIV tricuspídeo por sus dos puertas, el recálculo al cargar el SEXO, o la raíz aórtica sin sexo en el papel y el valor del índice en su pastilla** | `docs/mapa/y-vd-sexo-aorta.md` |
 | **Tocar la casilla de la FAC, la mudanza del DIÁMETRO DE LA ARTERIA PULMONAR o el selector de VD/VI** (la tanda G3, partida a archivo propio) | `docs/mapa/vd-g3-campos.md` |
 | **Tocar una TARJETA ⓘ de AD/VCI, del VD o de la AORTA, el NOMOGRAMA de los senos de Valsalva, o sus entradas de Referencias** | `docs/mapa/evidencia-derecho-aorta.md` |
 | **Tocar el cociente TAPSE/PSAP o el color del aviso del Tei** (el DIÁMETRO DE LA ARTERIA PULMONAR se mudó al VD en el G3) | `docs/mapa/tapse-psap-ap.md` |
@@ -167,9 +168,9 @@ Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la v
 ## Qué es EcoSmart y cómo se trabaja
 
 - App clínica de ecocardiografía en **un solo `index.html`**: HTML + CSS + JS inline, sin build,
-  sin frameworks. Hoy **10,02 MB / 140.761 líneas**, medido con `wc -c` y `wc -l` el 2026-10-29 al
-  cierre de la tanda **POP-V2**, sobre el árbol ya sellado (`v20261029-1425`, md5 `f72a928c`).
-  (Antes: 9,98 MB / 140.189 al cierre del AJ9, sello `v20261029-1110`, md5 `fc77acb0`.)
+  sin frameworks. Hoy **10,04 MB / 140.965 líneas**, medido con `wc -c` y `wc -l` el 2026-10-29 al
+  cierre de la tanda **Y, Parte 1**, sobre el árbol ya sellado (`v20261029-1647`, md5 `7ef7a5de`).
+  (Antes: 10,02 MB / 140.761 al cierre de POP-V2, sello `v20261029-1425`, md5 `f72a928c`.)
   ⚠️ **Y ESTE RENGLÓN SE HABÍA QUEDADO SIETE TANDAS ATRÁS**: decía «9,79 MB / 138.038 líneas»,
   que es el cierre de la tanda **E** del 27/10, mientras la D, el D-9, el D-10, el D-11, la C1,
   la C2, la TEP y la G escribían su delta en su propia sección sin tocar éste, que es el que se
@@ -1761,6 +1762,139 @@ línea: el archivo creció y un informe de auditoría viejo apunta a otro archiv
   «La tanda AJ9» con las seis fuentes transcritas, la tabla de premisas falsas y la de «Cambios
   de evidencia» de veintisiete filas, y `docs/PENDIENTES.md` → **SIETE** cosas declaradas
   (**AJ9-a** a **AJ9-g**).
+
+### El strain en Referencias, el TRIV y el sexo — «Y, Parte 1» (2026-10-29)
+
+- **CUATRO commits, y la orden pedía TRECE.** `b7d110e` (Y-1) · `505a9ee` (Y-2) · `1d1e591` (Y-3)
+  · el de cobertura y documentación. Sello **`v20261029-1647`**, md5 de `index.html`
+  **`7ef7a5de`**. Al empezar, `origin/main` = `HEAD` = **`2180c69`**, el cierre de POP-V2, ya
+  publicado, con el pendrive `DISK_IMG` montado y listando nombres reales.
+  **El push lo corre Maicol: esta tanda tenía orden expresa de NO pushear.**
+  ⚠️ **LOS COMMITS 4, 5 y 6 DE LA PARTE 1 Y LA PARTE 2 ENTERA NO SE HICIERON, y no quedaron a
+  medias: ninguna línea de la app se tocó por ellos.** Están declarados uno por uno en
+  `docs/PENDIENTES.md` → **Y-d** a **Y-g**, con los inventarios y las mediciones ya hechas. Y el
+  punto **6b** —que era «sólo leer y reportar»— **sí se contestó**.
+
+- **EL HALLAZGO MÁS GRANDE, EN UNA LÍNEA: el corte de 75 ms del TRIV no existe en la biblioteca.**
+  La orden condicionaba el color y el significado de las dos referencias a verificarlo **en
+  imagen**. Se verificó: la ASE 2025 de corazón derecho publica **≤ 73 ms** —hoja 28, folio 168,
+  «IVRT … is typically ≤73 ms in normal healthy adults», y **Tabla 6**, hoja 29, folio 169,
+  «RV IVRT, ms: ≤73 / >73»— y lo hace para **otra pregunta**: la función diastólica del VD, no
+  «a favor de HTP». El 75 de `DT_TRIV_HTP_PANEL` es una decisión de pantalla ya declarada en el
+  archivo y **sin fuente publicada**; el 60 que gobierna el informe firmado tampoco la tiene.
+  **El campo y la sincronización sí se hicieron**, que es lo que la orden deja sin condición.
+  → **Y-b**.
+
+- **DOS PREMISAS DE LA ORDEN ERAN FALSAS, Y ESTÁN MEDIDAS.**
+  1. **El 4b no tenía nada que alinear.** La app **ya aplica `≥ 45`** para el Marfan
+     (`UMBRAL.marfan.iia = 45` con `maxAo >= u.iia`): medido sobre HEAD, 44,9 mm da
+     `sin_indicacion` y **45,0 exactos dan `cx_iia`**, «Clase IIa · Nivel C desde 45 mm con
+     factores». El `maxAo > 45` que `G-c` citaba es el de **Loeys-Dietz**, y ahí el estricto es
+     **correcto** porque su Tabla 66 dice «SUPERIOR A 45 mm». **`G-c` era un pendiente falso y
+     queda cerrado en `docs/PENDIENTES.md`**, con la medición al lado.
+  2. **La suite no tenía 553 casos: tenía 563** al abrir —TC-1 a TC-548 sin huecos ni duplicados
+     más quince TC-GR—, contado nombre por nombre.
+
+- ⚠️ **EL DEFECTO DEL SEXO ERA DE PANTALLA Y NO DEL PAPEL, Y ESO CAMBIA DÓNDE SE ARREGLA.** El
+  `onchange` del sexo llamaba sólo a `calcDiastol`, así que las cápsulas de AI/VI y de la aorta se
+  quedaban con la clasificación del sexo anterior. Medido en HEAD: con la raíz en 38 mm y sexo
+  femenino, `ao-interp` seguía diciendo «No se puede clasificar sin el sexo» y `ai-diam-interp`
+  «Normal (≤40mm)» sobre 39 mm, que en una mujer es dilatado. **El informe no estaba atrasado** —se
+  regenera entero cada vez—: lo que se atrasaba era la pantalla, que es desde donde se decide.
+
+- **QUÉ SE RE-EVALÚA NO ES UNA SUPOSICIÓN: salió de un barrido sobre los 137 candidatos.** Todos
+  los `calc*` de `window` más los de `RECALC_MODULOS`, llamados uno por uno sobre un estudio con
+  el sexo recién cargado, mirando cuáles movían alguno de los **1.824 nodos** de la foto. Movieron
+  **dos**: `calcBSA` —que encadena `calcAI`, `calcVI` y `calcAo`— y `calcAorta`. `sexoRecalcSync`
+  llama a `calcAI` y `calcVI` **directo** y no a `calcBSA`, porque ése arrastra `calcAo`, que
+  **escribe el grado** de la estenosis aórtica, y un cambio de sexo no puede mover una afirmación
+  de severidad.
+
+- **EL AVISO NARANJA NO SE AGREGÓ AL DUEÑO ÚNICO, Y ESO ES DELIBERADO.** `aiviSexoSync` ya tiene
+  su oyente de documento sobre `input`, y un `<select>` lo dispara —medido—. Dos mecanismos para
+  el mismo trabajo es lo que hace que una mutación sobreviva.
+
+- **EL EN SUMA NO PERDIÓ NINGUNA FRASE, PORQUE NUNCA LA TUVO.** El punto (i) pedía que el informe
+  y el EN SUMA dijeran sólo el diámetro: medido en las quince escenas del A/B, el EN SUMA **no
+  tiene línea** para una raíz sin clasificar, ni antes ni después. Agregarle el diámetro habría
+  metido una línea en el resumen de hallazgos de todo estudio con la raíz medida y sin sexo.
+
+- ⚠️ **EL DENOMINADOR DE MI PROPIA SONDA ESTABA ENVENENADO, Y EL A/B DEL COMMIT 2 DABA CERO SIN
+  PROBAR NADA.** Buscaba el espejo del TRIV con guion **bajo** (`vd_triv`) y el campo va con guion
+  **medio** (`vd-triv`): decía «NO EXISTE» en los **dos** árboles. Lo destapó mirar el volcado, no
+  la lectura. Corregido antes de medir: hoy el denominador publica que el espejo toma el valor
+  (74, 76) y que no es campo del estudio.
+
+- **13/13 MUTACIONES DIRIGIDAS MUERTAS**, en un worktree y nunca sobre el vivo, con guarda de md5.
+  **Tres de las trece no revierten nada: la aplican de más** —la 05 hace que la fila del strain se
+  vea con un 0 o con un valor fuera de banda, la 10 que el sexo deje de re-evaluar la aorta y la
+  12 que el papel vuelva a llevar la frase—, porque las condiciones que las matan son **controles
+  negativos**. Y la **08 rompe las dos puertas a la vez**, que es la lección del D-11.
+  ⚠️ **DOS MUTACIONES NO APLICARON AL PRIMER BARRIDO Y NINGUNA ERA FALTA DE COBERTURA: las dos
+  estaban mal escritas.** La 02 no contaba el `style="display:none;"` del marcado, y la 06 se
+  anclaba en `if (dst.value === src.value) return …`, que aparece **seis** veces en el archivo
+  —es el patrón de todos los espejos de la casa—.
+
+- **A/B contra HEAD, uno por commit, y las diferencias de superficie firmada son SÓLO las
+  autorizadas.** Commit 1: **cero** en 9 escenas, 10.010 claves y 3.960 celdas de Excel, con 27
+  diferencias de pantalla como control positivo. Commit 2: **cero** en 8 escenas —los bordes
+  74/75/76 del corte de pantalla y 59/60/61 del del papel—, 8.896 claves y 3.520 celdas. Commit 3:
+  **DOCE**, todas en `yAo36` y `yAo39`, las dos escenas con la raíz cargada **sin sexo**, sobre 15
+  escenas, 16.694 claves y 6.600 celdas.
+
+- ⚠️ **EL ACENTO GRAVE DENTRO DE UN COMENTARIO COSTÓ DOS CORRIDAS, Y `check_backticks.py` NO CAZÓ
+  NINGUNA.** Las dos veces fue un id escrito entre acentos graves dentro del comentario de un
+  caso, y el cuerpo de un caso es un template literal. **Lo que sirve es `node --check` sobre el
+  archivo.** Sus cuatro hallazgos siguen siendo los de `_probe_aj2.mjs`, preexistentes y falsos.
+
+- **CHROME Y WEBKIT COINCIDEN EN LOS DIECISÉIS CRUCES** (dos motores × 1440, 1000, 768 y 390 px ×
+  dos temas), **valor por valor**, y son **idénticos a HEAD** en todo lo que no es el cambio:
+  **cero** errores de consola y de página en los dos motores y en los dos árboles, **cero**
+  desplazamiento horizontal del cuerpo, **cero** textos recortados, el rótulo «TRIV por Doppler
+  tisular (ms)» entero en los cuatro anchos y 17/17 pestañas con caja a 1440 y 1000 px (11 a 768 y
+  390, que es el desplegable móvil y es **idéntico en HEAD**). Las tres diferencias son
+  exactamente las que la tanda introduce.
+  ⚠️ **WebKit de Playwright no es Safari, y se declara.** El binario de chromium de Playwright
+  sigue sin estar en esta máquina, así que Chrome va por el del sistema con `channel:'chrome'`:
+  sin eso la sonda devuelve los cruces vacíos.
+
+- **Línea base al cierre: suite 560/564**, en once lotes **cubriendo los 564 casos distintos**
+  —contados nombre por nombre, no por la suma de los lotes—, en UNA sola pasada sobre el árbol
+  sellado, con el pendrive `DISK_IMG` **montado y listando nombres reales al abrir, ENTRE LOTES y
+  al cerrar** y el md5 de `index.html` **idéntico** antes y después (`7ef7a5de`). Los rojos son
+  **TC-223, TC-376, TC-390 y TC-406**, los cuatro de siempre, **y ninguno más**: **TC-358 salió
+  VERDE**.
+  ⚠️ **Y LA PRIMERA CORRIDA COMPLETA DIO 559/564 CON UN ROJO MÁS, QUE ERA MÍO**, y por eso esa
+  cifra no es la línea base: **TC-457** tiene su propio denominador del cuadro del VD y se me
+  pasó del censo. Está adaptado y la cifra de arriba sale de la corrida **limpia**, de una sola
+  pasada con el archivo de tests final.
+- **Semgrep 124 WARNING / 0 ERROR.** Excel **440** columnas con las mismas claves. Celular **63
+  hallazgos a 360 px y 72 a 390, 17 ALTA en cada ancho** — idénticos a la base. Censo **1027 →
+  1028**: **+1 control de pantalla y CERO campos guardados nuevos**, declarado en **Y-a**. 17
+  bloques de JS inline parsean. Sin huérfanos nuevos.
+- **`index.html` pasó de 10,02 MB / 140.761 líneas a 10,04 MB / 140.965** — medido con `wc -c` y
+  `wc -l` DESPUÉS de sellar. (MB de 10⁶: `wc -c` dividido por 1e6.)
+
+- **CUATRO CASOS VIEJOS ADAPTADOS, cada uno con el motivo escrito**: **TC-476** y **TC-478** (el
+  cuadro del VD pasa de diez a once filas y de tres a cuatro condicionales; la grilla, de
+  diecisiete a dieciocho campos y la columna 1 de seis a siete), **TC-521 (B3)** (la pastilla de
+  la raíz dejó de esconder el valor del índice) y **TC-457** (el mismo conteo de once filas).
+  ⚠️ **TC-457 SE ME PASÓ DEL CENSO Y LO DESTAPÓ LA CORRIDA COMPLETA.** Tiene su propio
+  denominador —«el cuadro del VD tiene DIEZ filas (7 + FEVD + Qp + VD/VI)»— que es **el mismo
+  invariante que TC-476 escrito con otras palabras**, así que grepear el conteo encontró uno y no
+  el otro. Es el mismo modo de falla que la tanda C2 documenta con TC-520: una afirmación de
+  inventario no se encuentra buscando el nombre de lo que tocaste.
+  ⚠️ **Y TC-526 GANÓ TRES CONDICIONES EN VEZ DE SÓLO MUDARSE**: que el nodo viejo ya no existe,
+  que la fila sigue a la del Tei y que la marca de plausibilidad **no** se movió — para que pueda
+  volver a fallar si alguien repone el nodo de debajo del campo.
+
+- **Dónde está todo:** `docs/mapa/y-vd-sexo-aorta.md` (**mapa NUEVO**, 11,8 KB), **cinco mapas con
+  un puntero cada uno** —medidos ANTES de escribir, todos por debajo de 35 KB; ⚠️
+  `vd-derecho.md` quedó en **34,4 KB**, a 626 bytes del techo, así que la próxima tanda que lo
+  toque tiene que partirlo—, `docs/fuentes/FUENTES.md` → «La tanda Y, Parte 1» con la Tabla 6 de
+  la ASE 2025, la Tabla 62 y la **Tabla 38 transcritas fila por fila en imagen** y la tabla
+  «Cambios de evidencia» de doce filas, y `docs/PENDIENTES.md` → **OCHO** cosas declaradas
+  (**Y-a** a **Y-h**) más el cierre de **`G-c`**.
 
 ### El posoperatorio reordenado — «POP-V2» (2026-10-29)
 
