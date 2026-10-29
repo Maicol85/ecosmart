@@ -21077,7 +21077,11 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
     <div class="criterio-item" id="crit-apice" onclick="toggleCrit('crit-apice','ett-apice',3)">
       <div class="criterio-check" id="chk-apice">—</div>
       <div style="flex:1">
-        <div class="criterio-nombre">Relación ápice/base de strain &gt; 2.9</div>
+        <!-- ⚠️ EL `stopPropagation` NO ES OPCIONAL: el contenedor `.criterio-item` lleva un
+             `onclick="toggleCrit(...)"`, así que sin él abrir el globo MARCA el criterio y le
+             suma tres puntos al score. Es el mismo motivo por el que el botón «Calcular» de
+             al lado ya lo lleva. -->
+        <div class="criterio-nombre">Relación ápice/base de strain &gt; 2.9 <button type="button" class="vinfo-btn vinfo-btn-44" data-vinfo="amil-apice" aria-expanded="false" style="font-size:13px;" aria-label="Informaci&oacute;n sobre de d&oacute;nde sale el corte de 2,9 y c&oacute;mo se midi&oacute;" onclick="event.stopPropagation();vInfoClic(this)">&#9432;</button></div>
         <div class="criterio-def">Patrón de "apical sparing": strain apical relativamente preservado vs base y segmentos medios. Hallazgo muy específico de amiloidosis cardíaca</div>
       </div>
       <button type="button" class="crit-calc-btn" id="calcbtn-apice" onclick="event.stopPropagation();amCalcToggle('apice')">Calcular ▾</button>
@@ -44066,6 +44070,43 @@ const VINFO = Object.freeze({
      únicos analizables con su programa.
      ⚠️ EL 2,9 NO ES ESTO, y por eso se nombra: ese corte es del SCORE de amiloidosis, se mide
      SEPTAL y en cuatro cámaras, y tiene su propia tarjeta. */
+  /* ══ DE DÓNDE SALE EL 2,9 DEL SCORE DE AMILOIDOSIS (AJ9-4) ══════════════════════
+     EL CORTE NO SE TOCA: un score sólo vale con los cortes con los que se validó, y el 2,9 es
+     el de la Tabla 3 de Boldrini y el de la Tabla 2 de García-Pavía. Lo que faltaba era decir
+     CÓMO se midió, que es lo que decide si el número que el médico teclea es el mismo que el
+     del estudio que lo validó.
+     LEÍDO EN IMAGEN: Boldrini, Tabla 3 de la hoja 29 —SAB > 2,9, tres puntos—, la hoja 8
+     —«septal longitudinal systolic apex to base ratio»—, las hojas 17 y 18 —la medición en
+     cuatro cámaras, y los dos fabricantes— y la hoja 27 —el rendimiento—. García-Pavía,
+     Tabla 2 de la hoja 5, folio 1558.
+     ⚠️ LO QUE LA APP CALCULA NO DICE DE QUÉ PAREDES SALE, Y SE REPORTA SIN TOCARLO (AJ9-e):
+     `calcApice` divide el valor absoluto del campo «Strain apical» por el del campo «Strain
+     basal», los dos genéricos, así que el mismo paciente da un número si el médico teclea
+     los promedios globales y otro si teclea los septales de cuatro cámaras. Y el texto del
+     criterio dice «vs base y segmentos medios», que es el denominador de PHELAN y no el de
+     este corte. Cambiar el cálculo o el texto de un criterio puntuado es decisión de Maicol.
+     ⚠️ EL CORTE DE LA AMILOIDOSIS AL ES OTRO Y NO SALE DE LA TABLA 3: el score AL no tiene
+     fila SAB. El >3,1 está en la tabla de rendimiento de la hoja 27. */
+  'amil-apice': {
+    ancho: 380,
+    tit: 'La relación ápice/base del score',
+    lee: 'El corte de 2,9 se validó sobre la relación SEPTAL del strain, medida en la vista '
+       + 'de cuatro cámaras.\n'
+       + 'Cohorte de pared engrosada: sensibilidad 67 % y especificidad 77 %.\n'
+       + 'Equipos General Electric y Philips.\n'
+       + 'Vale tres puntos del score, que se considera diagnóstico a partir de ocho.\n'
+       + 'En la amiloidosis por cadenas livianas el corte que mejor rinde es otro, 3,1, con '
+       + 'sensibilidad 51 % y especificidad 88 %.\n'
+       + 'No es lo mismo que la preservación apical de los patrones del ojo de buey: aquella se '
+       + 'define como el promedio del ápex más de 2 veces el promedio del resto.',
+    fuente: 'Boldrini M, Cappelli F, Chacko L y cols., JACC: Cardiovascular Imaging — Tabla 3 '
+       + 'de la hoja 29 para el corte y los puntos, hoja 8 para la definición septal, hojas 17 '
+       + 'y 18 para la vista de cuatro cámaras y los dos fabricantes, y hoja 27 para el '
+       + 'rendimiento. García-Pavía P y cols., Eur Heart J 2021;42:1554-1568 — Tabla 2 del '
+       + 'folio 1558, que es la que publica el score con sus tres puntos.',
+    ojo: 'La aplicación pide un strain apical y uno basal sin decir de qué paredes: el valor '
+       + 'con el que el corte se validó es el septal de cuatro cámaras.'
+  },
   'patrones-sgl': {
     ancho: 380,
     tit: 'Los patrones de strain y de dónde salen',

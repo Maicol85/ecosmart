@@ -65,6 +65,16 @@ const ESCENAS = {
   sgl_negdec:{ campos: { fevi: '55', sgl: '-18.5' } },
   /* El dato tipeado en la PESTANA de Contractilidad y SGL y no en AI/VI. */
   sgl_tab:   { campos: { fevi: '55', sgl_gls: '-17' } },
+  /* COMMIT 4 · el criterio del 2,9 del score de amiloidosis, en sus tres bordes. La relacion
+     la calcula |apical| / |basal|, asi que 17.4/6 = 2.90 justo, 17.46/6 = 2.91 y 17.34/6 =
+     2.89. El corte es ESTRICTO: el 2,90 exacto NO suma. */
+  amil289:   { campos: { 'ap-apic': '-17.34', 'ap-base': '-6' } },
+  amil290:   { campos: { 'ap-apic': '-17.4',  'ap-base': '-6' } },
+  amil291:   { campos: { 'ap-apic': '-17.46', 'ap-base': '-6' } },
+  /* El MISMO paciente medido de dos formas, que es lo que el punto 4 manda reportar: el
+     septal de cuatro camaras -lo que el corte valido- contra el promedio GLOBAL. */
+  amilSept:  { campos: { 'ap-apic': '-18', 'ap-base': '-6' } },
+  amilGlob:  { campos: { 'ap-apic': '-18', 'ap-base': '-7.5' } },
   /* CONTROL NEGATIVO: un estudio cargado SIN SGL. Ninguna superficie puede cambiar. */
   ajeno:     { campos: { im_vc: '8', ea_dtsvi: '20', itv_tsvi: '20', itv_ao: '100', vmax_ao: '4.5',
                          onda_e: '110', e_sep: '5', e_lat: '6', ai_vol: '70', peso: '80', talla: '180' } }
@@ -265,6 +275,32 @@ const MEDIR = `(() => {
     out._pant_patGlobo = (typeof VINFO !== 'undefined' && VINFO['patrones-sgl'])
       ? N(JSON.stringify(VINFO['patrones-sgl'])) : 'SIN TARJETA';
   } catch (e) { out._pant_patGlobo = 'EXC' }
+  /* ══ COMMIT 4 · EL 2,9 DEL SCORE ════════════════════════════════════════════════════════
+     El corte CONSERVADO -su valor, su operador y sus tres puntos- y el globo que explica de
+     donde sale. El control que importa: abrir el globo NO puede marcar el criterio, porque el
+     contenedor lleva su propio onclick que suma tres puntos. */
+  out._amilRel     = T('ap-result');
+  out._amilCrit    = T('ett-apice');
+  out._amilChk     = N((document.getElementById('chk-apice') || {}).textContent);
+  out._amilScore   = N((document.getElementById('ett-score-num') || {}).textContent);
+  out._amilCritTxt = N((document.querySelector('#crit-apice .criterio-nombre') || {}).textContent);
+  out._amilDef     = N((document.querySelector('#crit-apice .criterio-def') || {}).textContent);
+  try {
+    out._pant_amilGlobo = (typeof VINFO !== 'undefined' && VINFO['amil-apice'])
+      ? N(JSON.stringify(VINFO['amil-apice'])) : 'SIN TARJETA';
+  } catch (e) { out._pant_amilGlobo = 'EXC' }
+  /* El control de que el globo no marca el criterio: se CLICKEA de verdad -no se llama a
+     vInfoClic-, porque lo que se quiere probar es que el evento no sube al contenedor. */
+  try {
+    const bA = document.querySelector('#crit-apice [data-vinfo="amil-apice"]');
+    if (bA) {
+      const antes = T('ett-apice') + '|' + N((document.getElementById('ett-score-num') || {}).textContent);
+      bA.click();
+      const despues = T('ett-apice') + '|' + N((document.getElementById('ett-score-num') || {}).textContent);
+      out._amilGloboNoMarca = (antes === despues) ? ('NO MARCA (' + antes + ')') : ('MARCA ' + antes + ' -> ' + despues);
+      bA.click();
+    } else { out._amilGloboNoMarca = 'SIN BOTON' }
+  } catch (e) { out._amilGloboNoMarca = 'EXC ' + String(e).slice(0, 70) }
   /* El rotulo de la alerta del Laboratorio que lee el corte anormal. */
   try {
     out._labAlertas = (typeof _labIndicadoresList === 'function')
