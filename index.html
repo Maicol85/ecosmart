@@ -597,6 +597,14 @@
        La regla `.ip-ap-col2` que mandaba ese campo a la columna del «Ancho del jet» se RETIRO
        con el: su `.grid-2` vuelve a tener DOS hijos, una sola fila y ningun hueco. */
     .vd-grid > .vd-r6 { grid-row: 6; }
+    /* ⚠️ LA FILA 7 NACIÓ EN LA TANDA Y (commit 2, 2026-10-29) PARA LA COLUMNA 1: el TRIV por
+       Doppler tisular entra al final de los parámetros de función, debajo de la FEVD. Va al
+       final y no entre el Tei y el strain —que sería lo semántico, porque los dos son Doppler
+       tisular— para no mover de fila a dos campos que ya tienen su posición explícita y su caso
+       de prueba sobre el orden del Tab. Las columnas 2 y 3 se quedan con su hueco de abajo, que
+       es la razón de ser de la posición explícita: con flujo automático el séptimo campo de la
+       columna 1 se habría ido a la fila 1 de la columna 2. */
+    .vd-grid > .vd-r7 { grid-row: 7; }
   }
   /* ══ CARD ══ */
   .card {
@@ -4743,6 +4751,36 @@ window.cerrarSesionReal = cerrarSesionReal;
           <label>FEVD (%)</label>
           <input type="number" id="fevd" placeholder="%" oninput="calcVD()">
         </div>
+        <div class="fg vd-c1 vd-r7">
+          <!-- ⚠️ EL TRIV TRICUSPÍDEO, SEGUNDA PUERTA DE UN DATO QUE YA EXISTE (tanda Y, commit 2,
+               pedido del médico del 29/10/2026). El dato guardado es `dt_triv`, en la pestaña
+               Doppler → bloque tricuspídeo, y éste es su ESPEJO: el médico lo quiere poder cargar
+               y mirar también desde acá.
+               ⚠️ SIN CAMPO GUARDADO NUEVO, QUE ES LO QUE LA ORDEN EXIGE. El id va con GUION MEDIO
+               —`vd-triv`— y el prefijo entra en `_noEsDelEstudio`, así que el recolector no lo
+               toma: el juego de campos guardados de todo estudio que se guarde desde hoy no se
+               mueve, el Excel queda en 440 columnas y no hay una segunda copia del número que al
+               reabrir pueda contradecir al dueño. Es exactamente el reparto de `hfpep-`,
+               `vauto-` y `otr-asia-`, que este archivo ya documenta.
+               ⚠️ NO ES `triv` NI ES `tvia`. `triv` es el del VENTRÍCULO IZQUIERDO y vive en
+               Diastólica junto al TDE y al THP; `tvia` es el TIEMPO DE ACELERACIÓN PULMONAR y es
+               el campo de la fila 1 de esta misma columna. Son tres mediciones distintas.
+               ⚠️ GANA LA ÚLTIMA EDICIÓN Y BORRAR EN UNO BORRA EN EL OTRO: lo resuelve
+               `vdTrivSync`, calcado de `dtTapSync`. Va PRIMERO en el `oninput`, igual que
+               `dtTapSync` en el TAP y `itVmaxSync` en la Vmax IT: el espejo se copia antes de que
+               nadie calcule, para que los lectores vean el valor nuevo en la misma pasada.
+               ⚠️ SIN REFERENCIA Y SIN COLOR, Y ESO ESTÁ PARADO A PROPÓSITO (tanda Y, commit 2).
+               La orden condicionaba el significado y el amarillo a verificar el corte de 75 ms en
+               la biblioteca, EN IMAGEN. Se verificó y NO se pudo: la ASE 2025 de corazón derecho
+               publica 73 ms —hoja 28, folio 168, «IVRT … is typically ≤73 ms in normal healthy
+               adults», y Tabla 6, hoja 29, folio 169, «RV IVRT, ms: ≤73 / >73»— y lo hace para
+               OTRA pregunta, la función diastólica del VD, no para «a favor de HTP». El 75 de
+               `DT_TRIV_HTP_PANEL` es una decisión de pantalla ya declarada en este archivo y sin
+               fuente publicada. Ver `docs/PENDIENTES.md` → Y-b. -->
+          <label>TRIV por Doppler tisular (ms)</label>
+          <input type="number" id="vd-triv" step="1" placeholder="ms" oninput="vdTrivSync('vd-triv');calcDopTric()">
+          <span style="font-size:10px;color:var(--text2);">Es el mismo dato que el de <b>Doppler</b> → tricúspide. No es el TRIV del ventrículo izquierdo, que se carga en <b>Diastólica</b>.</span>
+        </div>
         <!-- ── COLUMNA 2 ───────────────────────────────────────────────────────────────────── -->
         <div class="fg vd-c2 vd-r1">
           <label>VD basal (mm)</label>
@@ -5697,8 +5735,11 @@ window.cerrarSesionReal = cerrarSesionReal;
           <input type="text" id="papm_est" readonly placeholder="—" style="color:var(--accent2);">
         </div>
         <div class="fg"><label>TRIV por Doppler tisular (ms)</label>
-          <input type="number" id="dt_triv" step="1" placeholder="ms" oninput="calcDopTric()">
-          <span style="font-size:10px;color:var(--text2);">No es el TRIV del ventrículo izquierdo, que se carga en <b>Diastólica</b>.</span></div>
+          <!-- ⚠️ `vdTrivSync` PRIMERO, igual que `dtTapSync` en el TAP y `itVmaxSync` en la Vmax
+               IT: el espejo de la pestaña VD/AD (`vd-triv`, tanda Y) se copia ANTES de que nadie
+               calcule, para que los lectores vean el valor nuevo en la misma pasada. -->
+          <input type="number" id="dt_triv" step="1" placeholder="ms" oninput="vdTrivSync('dt_triv');calcDopTric()">
+          <span style="font-size:10px;color:var(--text2);">Es el mismo dato que el de <b>VD / AD</b>. No es el TRIV del ventrículo izquierdo, que se carga en <b>Diastólica</b>.</span></div>
         <div class="fg"></div>
       </div>
       <div style="font-size:11.5px;font-weight:700;color:var(--accent2);margin:14px 0 4px;">Llenado y relajación del ventrículo derecho</div>
@@ -51537,6 +51578,50 @@ function dtTapSync(origenId) {
 }
 window.dtTapSync = dtTapSync;
 
+/* ══ EL TRIV TRICUSPIDEO ES UN DATO CON DOS CAMPOS (tanda Y, commit 2, 2026-10-29) ═══════════
+   PEDIDO DEL MEDICO. `dt_triv` (pestaña Doppler, bloque tricuspideo) es el DUEÑO y el unico que
+   se guarda; `vd-triv` (pestaña VD / AD, columna 1, fila 7) es su ESPEJO, para poder cargarlo y
+   mirarlo desde la pantalla donde vive el resto de la funcion del ventriculo derecho.
+
+   ⚠️ EL ESPEJO NO ES UN CAMPO DEL ESTUDIO, y por eso va con GUION MEDIO: el prefijo `vd-triv`
+   entra en `_noEsDelEstudio`, asi que el recolector no lo toma, el juego de campos guardados no
+   se mueve y el Excel queda en 440 columnas. Persistirlo dejaria una SEGUNDA copia del numero
+   que al reabrir puede contradecir al dueño — el motivo escrito de `hfpep-`, `vauto-` y
+   `otr-asia-`. El reparto es el contrario al de `dt_tap`, que SI se guarda: aquel nacio antes de
+   que existiera esta regla y no se toca en esta tanda.
+
+   ⚠️ GANA LA ULTIMA EDICION, Y BORRAR EN UNO BORRA EN EL OTRO: la cadena vacia se copia igual
+   que un numero. Es el modelo «un dato, dos puertas» que el D-11 dejo escrito.
+
+   NO HAY BUCLE, Y NO ES POR LA GUARDA: asignar `.value` por codigo no dispara `oninput`, asi que
+   el espejo no se re-dispara solo. `_vdTrivSinc` esta para el dia en que alguien despache un
+   `input` a mano —los arneses de prueba lo hacen—, exactamente como documentan `itVmaxSync` y
+   `dtTapSync`.
+
+   ⚠️ LA SALIDA TEMPRANA POR VALOR IGUAL EVITA EL SALTO DEL CARET, igual que en `itVmaxSync`:
+   escribir `dst.value` con el mismo contenido mueve el cursor al final del campo.
+
+   ⚠️ SIN TEMPORIZADOR NUEVO Y FUERA DE `ESPEJOS_VIVOS`: cuelga del GESTO (`oninput` de los dos
+   campos) y de `RECALC_MODULOS`, que es el embudo de las cinco rutas de restauracion y donde se
+   la llama SIN argumento, o sea copiando del DUEÑO al espejo. Es el reparto de `dtTapSync` y de
+   `etOndaESync`. `ESPEJOS_VIVOS` excluye a proposito a los pintores que ESCRIBEN campos del
+   estudio, y este escribe `dt_triv` cuando el gesto viene del lado de VD / AD. */
+var _vdTrivSinc = false;
+function vdTrivSync(origenId) {
+  if (_vdTrivSinc) return null;
+  _vdTrivSinc = true;
+  try {
+    const a = document.getElementById('dt_triv'), b = document.getElementById('vd-triv');
+    if (!a || !b) return null;
+    const src = (origenId === 'vd-triv') ? b : a;
+    const dst = (origenId === 'vd-triv') ? a : b;
+    if (dst.value === src.value) return { copio: false, valor: src.value };
+    dst.value = src.value;   /* borrar en uno borra en el otro: '' se copia igual que un numero */
+    return { copio: true, valor: src.value };
+  } finally { _vdTrivSinc = false; }
+}
+window.vdTrivSync = vdTrivSync;
+
 /* ══ LA ONDA E TRICUSPIDEA ES UN DATO CON DOS CAMPOS (CORTOS3, 2026-10-17) ════════════════════
    DECISION DE MAICOL. `dt_onda_e` (pestaña Doppler, bloque tricuspideo, rotulado «Onda E
    tricuspidea (cm/s)») y `et_e_vmax` (pestaña Valvulas, bloque de la protesis) son la MISMA
@@ -59015,7 +59100,14 @@ function _noEsDelEstudio(id) {
      linea arterial. Es un control de PANTALLA que decide el rotulo del dibujo, y el dibujo es
      solo de pantalla. Guion MEDIO, asi que este prefijo no alcanza a `pop_bcia_ratio` ni a
      ningun otro campo del modulo, que van con guion BAJO. */
-  return /^(login-|ig-|lab-|cfg-|exp-|filtro-|adv-|asoc-|pdf-|lgal-|fcg-|hfpep-|vauto-|vabchk-|vab-anim-|otr-asia-|pop-bcia-|ref-|(?:b-)?cine-)/.test(id);
+  /* `vd-triv` es el ESPEJO del TRIV tricuspideo en la pestaña VD / AD (tanda Y, commit 2,
+     2026-10-29). NO es del estudio: el dato vive en `dt_triv`, que es su unico dueño y el unico
+     que viaja. Persistir el espejo dejaria una segunda copia del numero que al reabrir puede
+     contradecir al dueño —el motivo escrito de `hfpep-`— y seria una clave nueva en TODO estudio
+     que se guarde desde hoy. Guion MEDIO, asi que este prefijo no alcanza a `vd_vi`, `vd_bas` ni
+     a ningun otro campo del estudio, que van con guion BAJO; el unico id que empieza asi es el
+     del espejo. */
+  return /^(login-|ig-|lab-|cfg-|exp-|filtro-|adv-|asoc-|pdf-|lgal-|fcg-|hfpep-|vauto-|vabchk-|vab-anim-|otr-asia-|pop-bcia-|vd-triv|ref-|(?:b-)?cine-)/.test(id);
 }
 
 /* ══ Repintado de módulos al cargar un estudio ═══════════════════════════════════════════
@@ -60884,7 +60976,7 @@ function RECALC_MODULOS() {
      puertas, y un estudio guardado puede traerla en una sola. Si corriera despues de
      `marfanSync` o de `calcAorta`, esos dos ya habrian pintado con el campo vacio. Solo copia
      cuando uno de los dos esta vacio; con los dos cargados y distintos no toca nada. */
-  return ['aoRaizReconciliar','tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','asiaMmSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','dtTapSync','etOndaESync','papmEstSync','calcDopTric','etTsvdSync','calcET','vpVmaxSync','ipIncongruenciaSync','itRefFuenteSync','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccSegSync','vpSync','popSync','sglOrigenSync','calcVenaPulm','valvProtSync','eaTaviEspejar','imEspejosRestaurar','eteVmAvisoSync','vmCarpLegadoSync','vmCarpOrigenSync','vmProtBloqSync','vmMorfFitSync','vdStrainPlSync','emPdfValsSync','emCuadroRefRepintar','emContFaAvisoSync','imCortesPintar','imContAvisoPintar','itIncongruenciaSync','aoEspejosRestaurar','tangoRestaurar','diastExclSync','diastFcAvisoSync','diastBseEprimaAvisoSync','diastBseGrisAvisoSync','diastStrainMarcaSync','vdMarcaSync','vdTeiAvisoSync','hfPepSync','hfPepPintar','viVolAutoSync','eaAvaiGradoPintar','eaPvlPintar','imPvlPintar','vdTapsePsapSync','ipApDiamSync','vdViSelSync','htpApSync','htpTablaPintar','m3dBotonSync','contrPdfSync','sglPdfSync','eteQxPdfSync','otrBurbUI','v2dCerrar','aiviSexoSync','vtDviAuto','sincronizarTEERDesdeGlobal','calcETE',
+  return ['aoRaizReconciliar','tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','asiaMmSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','dtTapSync','vdTrivSync','etOndaESync','papmEstSync','calcDopTric','etTsvdSync','calcET','vpVmaxSync','ipIncongruenciaSync','itRefFuenteSync','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccSegSync','vpSync','popSync','sglOrigenSync','calcVenaPulm','valvProtSync','eaTaviEspejar','imEspejosRestaurar','eteVmAvisoSync','vmCarpLegadoSync','vmCarpOrigenSync','vmProtBloqSync','vmMorfFitSync','vdStrainPlSync','emPdfValsSync','emCuadroRefRepintar','emContFaAvisoSync','imCortesPintar','imContAvisoPintar','itIncongruenciaSync','aoEspejosRestaurar','tangoRestaurar','diastExclSync','diastFcAvisoSync','diastBseEprimaAvisoSync','diastBseGrisAvisoSync','diastStrainMarcaSync','vdMarcaSync','vdTeiAvisoSync','hfPepSync','hfPepPintar','viVolAutoSync','eaAvaiGradoPintar','eaPvlPintar','imPvlPintar','vdTapsePsapSync','ipApDiamSync','vdViSelSync','htpApSync','htpTablaPintar','m3dBotonSync','contrPdfSync','sglPdfSync','eteQxPdfSync','otrBurbUI','v2dCerrar','aiviSexoSync','vtDviAuto','sincronizarTEERDesdeGlobal','calcETE',
           /* `pamAvisoSync` (B-2) repinta la línea del dueño único de la PAM. Entra acá por lo
              mismo que los demás: las cinco rutas de restauración pueblan asignando `.value`,
              que no dispara `input`, así que al reabrir un estudio con dos PAM que difieren el

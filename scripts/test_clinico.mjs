@@ -67703,11 +67703,17 @@ caso('TC-476', 'Tanda G1: el VD en tres columnas con su orden de Tab, las filas 
        vd_strain_pl, entre el indice de Tei y la FEVD, asi que la columna 1 pasa a SEIS y la
        FEVD baja a vd-r6. Lo que este caso vigila -que el orden del MARCADO sea el de las
        columnas, que es el que recorre el Tab- se conserva entero. */
-    const ESPERADO = ['tvia','tapse','s_prime','vd_tei','vd_strain_pl','fevd','vd_bas','vd_mid','vd_long',
+    /* ADAPTADO en la tanda Y (commit 2): DIECISIETE -> DIECIOCHO. El campo nuevo es el ESPEJO
+       del TRIV tricuspideo, vd-triv, al final de la columna 1 (fila 7), debajo de la FEVD. Va
+       con GUION MEDIO porque NO es un campo del estudio -su dueno es dt_triv, en la pestania
+       Doppler- y por eso el prefijo entra en _noEsDelEstudio. Lo que este caso vigila -que el
+       orden del MARCADO sea el de las columnas, que es el que recorre el Tab- se conserva
+       entero: el campo esta en el DOM despues de la FEVD, que es donde se ve. */
+    const ESPERADO = ['tvia','tapse','s_prime','vd_tei','vd_strain_pl','fevd','vd-triv','vd_bas','vd_mid','vd_long',
                       'vd_vi','vd_pared','tsvd_diametro','vti_tsvd','ip_ap_diam','vd_area_d',
                       'vd_area_s','vd_fac'];
     const orden = grid ? Array.prototype.slice.call(grid.querySelectorAll('input[id]')).map(e => e.id) : [];
-    ex.push(['los DIECISIETE campos estan en el orden de COLUMNAS, que es el que recorre el Tab',
+    ex.push(['los DIECIOCHO campos estan en el orden de COLUMNAS, que es el que recorre el Tab',
       orden.join(',') === ESPERADO.join(','), orden.join(',')]);
     /* Cada campo declara su celda, y ninguna celda se repite. */
     const celdas = grid ? Array.prototype.slice.call(grid.querySelectorAll('.fg')).map(fg => {
@@ -67717,9 +67723,9 @@ caso('TC-476', 'Tanda G1: el VD en tres columnas con su orden de Tab, las filas 
       return c + ':' + r; }) : [];
     /* ADAPTADO 2026-10-15 (G3): quince -> dieciseis casillas.
        ADAPTADO 2026-10-24 (AJ5-5): dieciseis -> DIECISIETE, por el strain de pared libre. */
-    ex.push(['las diecisiete casillas estan declaradas y NINGUNA se repite',
-      celdas.length === 17 && celdas.indexOf('?:?') < 0 &&
-      new Set(celdas).size === 17, celdas.join(' ')]);
+    ex.push(['las dieciocho casillas estan declaradas y NINGUNA se repite',
+      celdas.length === 18 && celdas.indexOf('?:?') < 0 &&
+      new Set(celdas).size === 18, celdas.join(' ')]);
     /* NI UN tabindex: con uno positivo el Tab deja de seguir el orden del documento. */
     ex.push(['NO hay ni un tabindex en la grilla del VD',
       grid ? grid.querySelectorAll('[tabindex]').length === 0 : false,
@@ -67735,7 +67741,7 @@ caso('TC-476', 'Tanda G1: el VD en tres columnas con su orden de Tab, las filas 
     S('vd_area_d', '20'); S('vd_area_s', '12');
     const sinFoco = ESPERADO.filter(id => { const e = EL(id); if (!e) return true;
       e.focus(); return document.activeElement !== e; });
-    ex.push(['los dieciseis campos reciben el foco', sinFoco.length === 0, 'no enfocan: ' + sinFoco.join(',')]);
+    ex.push(['los dieciocho campos reciben el foco', sinFoco.length === 0, 'no enfocan: ' + sinFoco.join(',')]);
 
     /* ══ B · LAS FILAS QUE SOLO SE VEN CON DATO ════════════════════════════════════════════ */
     const caja = EL('vd-tam') ? EL('vd-tam').closest('.calc-box') : null;
@@ -68536,10 +68542,16 @@ caso('TC-478', 'Tanda G3: la casilla de la FAC vuelve a estar VISIBLE con su men
        vd_strain_pl, entre el indice de Tei y la FEVD, asi que la columna 1 pasa a SEIS y la
        FEVD baja a vd-r6. Lo que este caso vigila -que el orden del MARCADO sea el de las
        columnas, que es el que recorre el Tab- se conserva entero. */
-    const ESPERADO = ['tvia','tapse','s_prime','vd_tei','vd_strain_pl','fevd','vd_bas','vd_mid','vd_long',
+    /* ADAPTADO en la tanda Y (commit 2): DIECISIETE -> DIECIOCHO. El campo nuevo es el ESPEJO
+       del TRIV tricuspideo, vd-triv, al final de la columna 1 (fila 7), debajo de la FEVD. Va
+       con GUION MEDIO porque NO es un campo del estudio -su dueno es dt_triv, en la pestania
+       Doppler- y por eso el prefijo entra en _noEsDelEstudio. Lo que este caso vigila -que el
+       orden del MARCADO sea el de las columnas, que es el que recorre el Tab- se conserva
+       entero: el campo esta en el DOM despues de la FEVD, que es donde se ve. */
+    const ESPERADO = ['tvia','tapse','s_prime','vd_tei','vd_strain_pl','fevd','vd-triv','vd_bas','vd_mid','vd_long',
                       'vd_vi','vd_pared','tsvd_diametro','vti_tsvd','ip_ap_diam','vd_area_d',
                       'vd_area_s','vd_fac'];
-    ex.push(['(A) los DIECISIETE campos estan en el orden de COLUMNAS, que es el que recorre el Tab',
+    ex.push(['(A) los DIECIOCHO campos estan en el orden de COLUMNAS, que es el que recorre el Tab',
       campos.join(',') === ESPERADO.join(','), campos.join(',')]);
     ex.push(['(A) el diametro de la arteria pulmonar es el TERCERO de la columna 3',
       (function(){ const e = EL('ip_ap_diam'); if (!e) return false;
@@ -68547,16 +68559,17 @@ caso('TC-478', 'Tanda G3: la casilla de la FAC vuelve a estar VISIBLE con su men
         return cl.indexOf('vd-c3') > -1 && cl.indexOf('vd-r3') > -1 && !!e.closest('.vd-grid'); })(),
       (function(){ const e = EL('ip_ap_diam'); const fg = e && e.closest('.fg');
         return fg ? fg.className : 'NO EXISTE'; })()]);
-    /* La columna 3 tiene SEIS y las otras dos CINCO: ese desbalance es lo que hace necesaria la
-       posicion explicita, porque con flujo automatico el sexto se iria a la columna 1. */
+    /* ADAPTADO en la tanda Y (commit 2): la columna 1 pasa a SIETE con el espejo del TRIV
+       tricuspideo en la fila 7. El desbalance -7, 5 y 6- es lo que hace necesaria la posicion
+       explicita, porque con flujo automatico el septimo de la columna 1 se iria a la columna 2. */
     const porCol = { 1: 0, 2: 0, 3: 0 };
     if (grid) Array.prototype.slice.call(grid.querySelectorAll('.fg')).forEach(fg => {
       const m = String(fg.className || '').match(/vd-c(\\d)/); if (m) porCol[m[1]]++; });
     /* ADAPTADO el 2026-10-24 (AJ5-5): ahora son DOS las columnas de seis -la 1 y la 3- y la 2 se
        queda con cinco. El desbalance sigue siendo lo que hace NECESARIA la posicion explicita:
        con flujo automatico el sexto campo de la columna 3 se iria a la fila 1 de la columna 1. */
-    ex.push(['(A) las columnas 1 y 3 tienen SEIS campos y la 2 tiene CINCO',
-      porCol[1] === 6 && porCol[2] === 5 && porCol[3] === 6, JSON.stringify(porCol)]);
+    ex.push(['(A) la columna 1 tiene SIETE campos, la 3 SEIS y la 2 CINCO',
+      porCol[1] === 7 && porCol[2] === 5 && porCol[3] === 6, JSON.stringify(porCol)]);
     ex.push(['(A) la NOVENA regla de posicion (vd-r6) esta en el fuente',
       fuente.indexOf('.vd-grid > .vd-r6 { grid-row: 6; }') > -1, '']);
     ex.push(['(A) y la DECLARACION .ip-ap-col2 del G1 ya no existe: el campo se MOVIO, no se duplico',
