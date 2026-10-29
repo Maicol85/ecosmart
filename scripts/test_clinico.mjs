@@ -67637,10 +67637,13 @@ caso('TC-476', 'Tanda G1: el VD en tres columnas con su orden de Tab, las filas 
     const FN = (n) => (typeof window[n] === 'function');
 
     /* ── DENOMINADORES ─────────────────────────────────────────────────────────────────── */
+    /* ADAPTADO en la tanda Y (commit 1): once -> TRECE nodos. Se suman la fila del strain de
+       pared libre y su span, que son los que la mudanza crea. */
     const nuevos = ['vd-qp-interp','fevd-interp','vd-vi-interp','row-fevd-interp','row-fac-interp',
                     'row-vd-vi-interp','fg-vd-fac','row-tapse-psap','tapse-psap-interp',
-                    'ip_ap_diam','ip_ap_diam-marca'].filter(id => !EL(id));
-    ex.push(['DENOMINADOR: los once nodos nuevos existen en el DOM', nuevos.length === 0,
+                    'ip_ap_diam','ip_ap_diam-marca',
+                    'row-vd-strain-interp','vd-strain-interp'].filter(id => !EL(id));
+    ex.push(['DENOMINADOR: los trece nodos nuevos existen en el DOM', nuevos.length === 0,
       'faltan: ' + nuevos.join(',')]);
     const fns = ['vdQpCalc','vdRefVisSync','vdViEstado','vdTapsePsap','vdTapsePsapSync',
                  'ipApDiamVal','ipApDiamSync'].filter(n => !FN(n));
@@ -67736,21 +67739,31 @@ caso('TC-476', 'Tanda G1: el VD en tres columnas con su orden de Tab, las filas 
 
     /* ══ B · LAS FILAS QUE SOLO SE VEN CON DATO ════════════════════════════════════════════ */
     const caja = EL('vd-tam') ? EL('vd-tam').closest('.calc-box') : null;
-    ex.push(['DENOMINADOR: el cuadro del VD tiene DIEZ filas',
-      caja ? caja.querySelectorAll('.calc-row').length === 10 : false,
+    /* ADAPTADO en la tanda Y (commit 1): DIEZ -> ONCE filas. La nueva es el STRAIN DE PARED
+       LIBRE, que vino de debajo de su campo por pedido del medico del 29/10/2026 y va debajo del
+       indice de Tei, que es lo que la orden pide. El invariante que este caso vigila -que el
+       cuadro se lea en el MISMO orden que las columnas de campos- se conserva entero: el strain
+       es el quinto campo de la columna 1 y su fila es la quinta del cuadro. */
+    ex.push(['DENOMINADOR: el cuadro del VD tiene ONCE filas',
+      caja ? caja.querySelectorAll('.calc-row').length === 11 : false,
       caja ? String(caja.querySelectorAll('.calc-row').length) : 'NO EXISTE']);
     /* El orden del cuadro es el de las columnas de campos. */
-    const ORDEN_FILAS = ['tap-interp','tapse-interp','sprime-interp','vd-tei-interp','fevd-interp',
+    const ORDEN_FILAS = ['tap-interp','tapse-interp','sprime-interp','vd-tei-interp',
+                         'vd-strain-interp','fevd-interp',
                          'vd-tam','vd-vi-interp','vd-pared-interp','vd-qp-interp','fac-interp'];
     const filasReales = caja ? Array.prototype.slice.call(caja.querySelectorAll('.calc-row')).map(r => {
       const v = r.querySelector('span[id]:not(.calc-lbl)'); return v ? v.id : '?'; }) : [];
     ex.push(['el cuadro se lee en el MISMO orden que las columnas de campos',
       filasReales.join(',') === ORDEN_FILAS.join(','), filasReales.join(',')]);
     __t.limpiar();
-    ex.push(['con el formulario vacio, las TRES filas condicionales estan escondidas',
+    /* ADAPTADO en la tanda Y (commit 1): TRES -> CUATRO filas condicionales. La cuarta es la
+       del strain de pared libre, que se esconde sin un strain usable -que es exactamente lo que
+       se veia cuando el resultado vivia debajo del campo: ahi el pintor dejaba el texto vacio-. */
+    ex.push(['con el formulario vacio, las CUATRO filas condicionales estan escondidas',
       VIS('row-fevd-interp') === false && VIS('row-fac-interp') === false &&
-      VIS('row-vd-vi-interp') === false,
-      JSON.stringify([VIS('row-fevd-interp'), VIS('row-fac-interp'), VIS('row-vd-vi-interp')])]);
+      VIS('row-vd-vi-interp') === false && VIS('row-vd-strain-interp') === false,
+      JSON.stringify([VIS('row-fevd-interp'), VIS('row-fac-interp'), VIS('row-vd-vi-interp'),
+                      VIS('row-vd-strain-interp')])]);
     /* ADAPTADO 2026-10-15 (G3): la CASILLA de la FAC ya NO se esconde —decision de Maicol: la
        quiere a la vista como antes del G1— y lo que se esconde sigue siendo su FILA del cuadro.
        La condicion pasa a afirmar lo CONTRARIO de lo que afirmaba, y ademas el mensaje nuevo:
@@ -87619,9 +87632,21 @@ caso('TC-526', 'Tanda AJ5-5: el strain de pared libre del VD entre el indice de 
     if (F('showTab')) showTab('vd');
     Object.keys(o).forEach(k => pon(k, o[k]));
     if (F('_recalcModulos')) _recalcModulos('TC-526');
+    /* ADAPTADO en la tanda Y (commit 1): el resultado de la interpretacion se mudo de debajo
+       del campo (el nodo vd_strain_pl-grado, retirado) a la fila vd-strain-interp del cuadro de
+       REFERENCIAS de la pestania, debajo del indice de Tei, por pedido del medico del
+       29/10/2026. El TEXTO es el mismo, asi que las condiciones que lo miden no cambian: lo que
+       cambia es de donde se lee. La marca -el «(revisar)» de la banda de plausibilidad- NO se
+       movio y sigue debajo del campo, que es donde hay que corregir el dedazo.
+       ⚠️ SIN ACENTOS GRAVES EN ESTE COMENTARIO: el cuerpo del caso es un template literal y uno
+       solo cierra la cadena, con un SyntaxError que apunta decenas de lineas antes. */
     return { val: (document.getElementById('vd_strain_pl') || {}).value,
              cat: F('vdStrainPlCat') ? vdStrainPlCat((document.getElementById('vd_strain_pl') || {}).value) : 'SIN FN',
-             grado: T('vd_strain_pl-grado'), marca: T('vd_strain_pl-marca'),
+             grado: T('vd-strain-interp'), gradoVis: (function(){
+               const e = document.getElementById('row-vd-strain-interp');
+               return e ? getComputedStyle(e).display !== 'none' : 'NO EXISTE'; })(),
+             bajoCampo: !!document.getElementById('vd_strain_pl-grado'),
+             marca: T('vd_strain_pl-marca'),
              c: linea('conciso'), e: linea('estandar'), n: linea('narrativo'),
              s: (document.getElementById('en_suma') || {}).value || '' }; };
 
@@ -87647,6 +87672,33 @@ caso('TC-526', 'Tanda AJ5-5: el strain de pared libre del VD entre el indice de 
   ex.push(['(A4) el corte de normalidad es el MISMO que el dueno del modulo de Deformacion',
     F('_vdStrainPlAssert') ? _vdStrainPlAssert().length === 0 : false,
     F('_vdStrainPlAssert') ? JSON.stringify(_vdStrainPlAssert()) : 'SIN FN']);
+  /* AGREGADAS en la tanda Y (commit 1): el resultado se lee en el cuadro de REFERENCIAS y ya no
+     debajo del campo. Van aca y no solo en TC-549 para que este caso -el dueno del campo- pueda
+     volver a fallar si alguien repone el nodo viejo. */
+  ex.push(['(A5) el resultado NO esta debajo del campo: el nodo vd_strain_pl-grado se retiro',
+    !document.getElementById('vd_strain_pl-grado'),
+    String(!!document.getElementById('vd_strain_pl-grado'))]);
+  ex.push(['(A6) y SI esta en el cuadro de referencias, en la fila que sigue a la del indice de Tei',
+    (function () {
+      const fila = document.getElementById('row-vd-strain-interp');
+      const tei  = document.getElementById('vd-tei-interp');
+      if (!fila || !tei) return false;
+      const caja = tei.closest('.calc-box');
+      if (!caja || fila.closest('.calc-box') !== caja) return false;
+      const filas = Array.prototype.slice.call(caja.querySelectorAll('.calc-row'));
+      return filas.indexOf(fila) === filas.indexOf(tei.closest('.calc-row')) + 1;
+    })(),
+    (function () { const t = document.getElementById('vd-tei-interp');
+      const caja = t ? t.closest('.calc-box') : null;
+      return caja ? Array.prototype.slice.call(caja.querySelectorAll('.calc-row')).map(r => {
+        const v = r.querySelector('span[id]:not(.calc-lbl)'); return v ? v.id : '?'; }).join(',')
+        : 'NO CAJA'; })()]);
+  /* La marca de plausibilidad NO se movio: es un control negativo de la mudanza. */
+  ex.push(['(A7) CONTROL: la marca «(revisar)» de la banda SIGUE debajo del campo y no se mudo',
+    (function () { const m = document.getElementById('vd_strain_pl-marca');
+      const c = document.getElementById('vd_strain_pl');
+      return !!m && !!c && m.closest('.fg') === c.closest('.fg'); })(),
+    String(!!document.getElementById('vd_strain_pl-marca'))]);
 
   /* == (B) LOS CUATRO BORDES, POR LOS DOS SIGNOS ============================================ */
   const B = {};

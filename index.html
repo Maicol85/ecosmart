@@ -4723,7 +4723,17 @@ window.cerrarSesionReal = cerrarSesionReal;
           <label>Strain de pared libre del VD (%)</label>
           <input type="number" id="vd_strain_pl" placeholder="-18" step="0.1" oninput="vdStrainPlNorm(this);vdStrainPlSync();calcVD()">
           <div id="vd_strain_pl-marca" style="font-size:10px;color:var(--yellow);margin-top:3px;min-height:14px;"></div>
-          <div id="vd_strain_pl-grado" style="font-size:10px;margin-top:3px;min-height:14px;"></div>
+          <!-- ⚠️ EL RESULTADO DE LA INTERPRETACIÓN YA NO VIVE ACÁ (tanda Y, commit 1, pedido del
+               médico del 29/10/2026). Hasta hoy este hueco llevaba `#vd_strain_pl-grado`, debajo
+               del campo; el resultado se mudó al CUADRO DE REFERENCIAS de esta misma pestaña,
+               a la fila `#row-vd-strain-interp`, debajo del índice de Tei, que es donde ya se
+               leen el TAPSE, la onda S′ y el Tei. El TEXTO no cambió —la banda leve, el «por
+               debajo de leve» sin graduar y la mención de que la fuente no publica cortes de
+               moderada ni de severa son los mismos—: cambió dónde se ve.
+               ⚠️ LO QUE SÍ SIGUE ACÁ es `#vd_strain_pl-marca`, y no es el resultado: es la marca
+               «(revisar)» de la banda de PLAUSIBILIDAD —el dedazo de 185 por 18,5—, que la pinta
+               `vdMarcaSync`, su dueño genérico, y que tiene que estar al lado del campo que hay
+               que corregir y no en un cuadro de interpretación. -->
         </div>
         <div class="fg vd-c1 vd-r6">
           <!-- ⚠️ `calcVD()` EN EL `oninput` ES NUEVO (G1) Y NO ES DECORATIVO: desde esta tanda la
@@ -4869,10 +4879,14 @@ window.cerrarSesionReal = cerrarSesionReal;
            último columna 3 (el volumen sistólico pulmonar, que sale del Ø y el VTI del TSVD, y la
            FAC). Antes el orden era semántico —estructura, función, aceleración pulmonar— y lo que
            pidió Maicol es que el cuadro se lea en el mismo orden en que se cargan los campos.
-           ⚠️ TRES FILAS SÓLO SE VEN CON DATO, y las gobierna `vdRefVisSync`: la FEVD y la FAC
-           cuando su número existe. Se esconde la FILA entera y no sólo el texto: el barrido
-           genérico de `.calc-box .calc-row span[id]` de `limpiarCampos` ya pone el span en «—»,
-           y lo que ningún barrido toca es el `display` de su `.calc-row`. -->
+           ⚠️ CUATRO FILAS SÓLO SE VEN CON DATO, y las gobierna `vdRefVisSync`: la FEVD y la FAC
+           cuando su número existe, la relación VD/VI cuando está ALTERADA, y —desde la tanda Y—
+           el STRAIN DE PARED LIBRE cuando hay un valor usable. Se esconde la FILA entera y no
+           sólo el texto: el barrido genérico de `.calc-box .calc-row span[id]` de
+           `limpiarCampos` ya pone el span en «—», y lo que ningún barrido toca es el `display`
+           de su `.calc-row`.
+           ⚠️ ESTE RENGLÓN DECÍA «TRES» Y NOMBRABA SÓLO A LA FEVD Y A LA FAC, dejando afuera la
+           relación VD/VI, que se esconde desde el G1 por su VEREDICTO y no por falta de dato. -->
       <div class="calc-box">
         <div class="calc-row">
           <span class="calc-lbl">TAP — aceleración pulmonar</span>
@@ -4903,6 +4917,21 @@ window.cerrarSesionReal = cerrarSesionReal;
              D2-2 y el mismo arreglo que recibieron los otros cinco avisos de la app. NO cambia ni
              el texto ni la logica: el cartel sale en las mismas escenas. -->
         <div id="vd-tei-aviso" style="display:none;font-size:11px;font-weight:700;color:var(--orange);margin-top:4px;line-height:1.3;overflow-wrap:break-word;"></div>
+        <!-- ⚠️ EL STRAIN DE PARED LIBRE, DEBAJO DEL ÍNDICE DE TEI (tanda Y, commit 1, pedido del
+             médico del 29/10/2026). Vino de debajo de su campo (`#vd_strain_pl-grado`, retirado):
+             el médico lo quiere donde ya se leen las otras interpretaciones de esta pestaña.
+             ⚠️ VA DESPUÉS DEL AVISO DEL TEI Y NO ENTRE LA FILA DEL TEI Y SU AVISO: ese cartel es
+             del Tei —lo escribe `vdTeiAvisoSync`— y meterle una fila en medio lo dejaría colgando
+             de un parámetro que no es el suyo. «Debajo del Tei» se cumple igual.
+             ⚠️ SÓLO SE VE CON UN STRAIN USABLE, que es lo que hacía debajo del campo: ahí el
+             pintor dejaba el texto VACÍO sin valor, así que una fila permanente que dijera
+             «Strain de pared libre —» sobre un formulario vacío sería un cambio de lo que se ve y
+             no una mudanza. La esconde `vdRefVisSync`, el dueño único del `display` de las filas
+             condicionales de este cuadro, con sus tres columnas. -->
+        <div class="calc-row" id="row-vd-strain-interp" style="display:none;">
+          <span class="calc-lbl">Strain de pared libre — función VD</span>
+          <span id="vd-strain-interp">—</span>
+        </div>
         <div class="calc-row" id="row-fevd-interp" style="display:none;">
           <span class="calc-lbl">FEVD (3D) — función sistólica VD</span>
           <span id="fevd-interp">—</span>
@@ -27760,11 +27789,18 @@ window.vdStrainPlCat = vdStrainPlCat;
 function vdStrainPlSync() {
   /* La marca de banda la pinta su dueño genérico, que ya recorre `VD_NUEVOS_BANDA`. */
   if (typeof vdMarcaSync === 'function') { try { vdMarcaSync(); } catch (e) {} }
-  const el = document.getElementById('vd_strain_pl-grado');
+  /* ⚠️ DESDE LA TANDA Y (commit 1) ESCRIBE EN EL CUADRO DE REFERENCIAS Y NO DEBAJO DEL CAMPO.
+     El nodo se llama `vd-strain-interp` y no `vd_strain_pl-grado`: en este cuadro la convención
+     es `<param>-interp` dentro de `row-<param>-interp`, igual que el Tei y la FEVD, y el barrido
+     genérico `.calc-box .calc-row span[id]:not(.calc-lbl)` de `limpiarCampos` lo alcanza.
+     Por eso el estado «sin strain usable» escribe «—» y no cadena vacía: es lo que ese barrido
+     deja y lo que dicen las otras nueve filas. No se ve igual, porque sin strain usable
+     `vdRefVisSync` esconde la fila entera. */
+  const el = document.getElementById('vd-strain-interp');
   if (!el) return;
   const inp = document.getElementById('vd_strain_pl');
   const cat = vdStrainPlCat(inp ? inp.value : '');
-  if (!cat) { el.textContent = ''; el.style.color = ''; return; }
+  if (!cat) { el.textContent = '\u2014'; el.style.color = ''; return; }
   el.textContent = VD_STRAIN_PL_TXT[cat]
     + (cat === 'normal' ? ' (más de ' + VD_STRAIN_PL_NORMAL + ' % en valor absoluto)'
      : cat === 'leve'   ? ' (de ' + VD_STRAIN_PL_LEVE + ' a ' + VD_STRAIN_PL_NORMAL + ' % en valor absoluto)'
@@ -27983,7 +28019,16 @@ function vdRefVisSync() {
      no para certificar que no esta. Es la decision de Maicol («mostrada si esta alterada»). */
   const _vi = (typeof vdViEstado === 'function') ? vdViEstado() : { alt: false };
   _ver('row-vd-vi-interp', !!_vi.alt);
-  return { fevd: v('fevd') !== null, fac: _hayFac, vdvi: !!_vi.alt };
+  /* ⚠️ EL STRAIN DE PARED LIBRE (tanda Y, commit 1). Su fila se esconde cuando NO hay un strain
+     usable, que es exactamente lo que se veía cuando el resultado vivía debajo del campo: ahí el
+     pintor dejaba el texto vacío. Se le pregunta a `vdStrainPlCat` sobre el valor del campo y no
+     a `v('vd_strain_pl')`: el dueño de «¿hay un strain usable?» descarta además el 0 y el valor
+     fuera de la banda de plausibilidad, y una fila visible sobre un 185 afirmaría que hay algo
+     que interpretar. UN SOLO dueño del `display`: el pintor no lo toca. */
+  const _hayStrain = (typeof vdStrainPlCat === 'function')
+    && vdStrainPlCat((document.getElementById('vd_strain_pl') || {}).value) !== null;
+  _ver('row-vd-strain-interp', _hayStrain);
+  return { fevd: v('fevd') !== null, fac: _hayFac, vdvi: !!_vi.alt, strain: _hayStrain };
 }
 window.vdRefVisSync = vdRefVisSync;
 
