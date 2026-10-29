@@ -1211,6 +1211,80 @@
   .ig-mes-grupo.cerrado .ig-mes-chev{ transform:rotate(-90deg); }
   @media (prefers-reduced-motion: reduce){ .ig-mes-chev{ transition:none; } }
   .ig-num{ color:var(--text2); font-weight:600; font-variant-numeric:tabular-nums; }
+
+  /* ══ «IMÁGENES GUARDADAS» — la segunda vista de Guardados ════════════════════════════════
+     Las clases nuevas llevan prefijo `ig-img-`; los MESES reusan `.ig-mes*`, que es lo que hace
+     que las dos vistas se plieguen igual, con el mismo teclado y el mismo `aria-expanded`. Un
+     juego propio de clases de mes habría sido la primera forma de que los dos plegados se
+     separaran en la próxima edición. */
+  .ig-vista-btn{ display:inline-flex; align-items:center; gap:5px; min-height:30px;
+    background:var(--bg3); border:1px solid var(--border); color:var(--text2);
+    font-family:inherit; font-size:11px; font-weight:600; padding:6px 11px; border-radius:7px;
+    cursor:pointer; white-space:nowrap; text-transform:none; letter-spacing:normal; }
+  .ig-vista-btn[aria-pressed="true"]{ background:var(--accent2,#4da3ff); color:#fff;
+    border-color:var(--accent2,#4da3ff); }
+  /* El estado NO depende sólo del color (P1): el botón activo lleva además `aria-pressed` y un
+     punto antepuesto por CSS, así que se distingue en escala de grises y lo anuncia el lector. */
+  .ig-vista-btn[aria-pressed="true"]::before{ content:'\25CF'; font-size:9px; }
+  .ig-img-main{ display:grid; grid-template-columns:minmax(0,1fr) 232px; gap:14px; align-items:start; }
+  @media (max-width:720px){ .ig-img-main{ grid-template-columns:minmax(0,1fr); } }
+  .ig-img-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(94px,1fr));
+    gap:6px; padding:2px 0 10px; }
+  .ig-img-th{ position:relative; border:2px solid transparent; border-radius:6px; overflow:hidden;
+    background:#000; aspect-ratio:4/3; cursor:pointer; padding:0; width:100%; display:block; }
+  .ig-img-th img{ display:block; width:100%; height:100%; object-fit:cover; }
+  .ig-img-th.sel{ border-color:var(--accent2,#4da3ff); }
+  .ig-img-th.vacia{ background:repeating-linear-gradient(45deg,#1a1a1a,#1a1a1a 6px,#222 6px,#222 12px); }
+  .ig-img-n{ position:absolute; left:3px; top:3px; background:rgba(0,0,0,.68); color:#fff;
+    font-size:10px; line-height:1.6; border-radius:4px; padding:0 5px; font-variant-numeric:tabular-nums; }
+  .ig-img-vb{ position:absolute; left:3px; bottom:3px; background:rgba(0,0,0,.68); color:#fff;
+    font-size:10px; line-height:1.6; border-radius:4px; padding:0 5px; }
+  .ig-img-eq{ position:absolute; right:3px; bottom:3px; background:rgba(0,0,0,.68); color:#fff;
+    font-size:9px; line-height:1.7; border-radius:4px; padding:0 4px; letter-spacing:.3px; }
+  .ig-img-ord{ position:absolute; left:3px; bottom:3px; background:var(--accent2,#4da3ff);
+    color:#fff; font-size:10px; border-radius:50%; width:19px; height:19px; text-align:center;
+    line-height:19px; font-variant-numeric:tabular-nums; }
+  /* La estrella de IMAGEN es naranja; la de «Casos de interés» del ESTUDIO es amarilla
+     (#f5c842, ver `igItemHTML`). Dos colores distintos a propósito: son dos marcas distintas y
+     en la misma pantalla se verían como la misma. */
+  .ig-img-st{ position:absolute; right:0; top:0; width:30px; height:30px; font-size:15px;
+    line-height:30px; text-align:center; color:#f0a020; text-shadow:0 0 3px #000;
+    background:none; border:none; cursor:pointer; padding:0; }
+  .ig-img-st.off{ color:rgba(255,255,255,.6); }
+  .ig-img-nb{ position:absolute; right:4px; bottom:3px; font-size:10px; color:#fff;
+    background:rgba(0,0,0,.62); border-radius:4px; padding:0 4px; }
+  .ig-img-side{ background:var(--bg3); border:1px solid var(--border); border-radius:8px;
+    padding:9px; font-size:11px; color:var(--text2); }
+  .ig-img-side h4{ font-size:12px; font-weight:600; margin:10px 0 6px; color:var(--text); }
+  .ig-img-side h4:first-child{ margin-top:0; }
+  .ig-img-bs{ display:flex; flex-wrap:wrap; gap:4px; }
+  .ig-img-it{ display:grid; grid-template-columns:22px 58px minmax(0,1fr); gap:5px;
+    align-items:center; padding:5px 0; border-top:1px solid var(--border); }
+  .ig-img-it img{ width:58px; height:43px; border-radius:4px; background:#000; object-fit:cover; display:block; }
+  .ig-img-it .cn{ background:var(--accent2,#4da3ff); color:#fff; border-radius:50%; width:21px;
+    height:21px; text-align:center; line-height:21px; font-size:10px; }
+  .ig-img-it .bt{ display:flex; flex-wrap:wrap; gap:3px; }
+  .ig-img-it .bt button{ padding:3px 7px; font-size:10px; min-height:28px; }
+  .ig-img-res{ background:var(--bg2); border-left:3px solid var(--accent2,#4da3ff);
+    border-radius:6px; padding:7px 9px; font-size:11px; line-height:1.5; margin:8px 0 0; }
+  .ig-img-vac{ padding:18px; text-align:center; color:var(--text2); font-size:12px; }
+  /* Visor de una imagen guardada y aviso previo al PPT: dos superposiciones propias, con el
+     mismo patrón de `#igio-ov` —`position:fixed` y `display:none` por omisión—. */
+  .ig-img-ov{ position:fixed; inset:0; background:rgba(0,0,0,.62); z-index:9000;
+    display:none; align-items:center; justify-content:center; padding:14px; overflow:auto; }
+  .ig-img-ov.open{ display:flex; }
+  .ig-img-md{ background:var(--bg2); border:1px solid var(--border); border-radius:10px;
+    padding:13px; max-width:min(560px,100%); max-height:92vh; overflow:auto; }
+  .ig-img-vw{ position:relative; width:min(460px,100%); aspect-ratio:4/3; background:#000;
+    border-radius:7px; overflow:hidden; touch-action:none; }
+  .ig-img-vw img{ display:block; width:100%; height:100%; object-fit:contain; }
+  .ig-img-msk{ position:absolute; background:#000; border:2px dashed #e8c14a; cursor:move; }
+  .ig-img-hdl{ position:absolute; right:-1px; bottom:-1px; width:16px; height:16px;
+    background:#e8c14a; cursor:nwse-resize; }
+  .ig-img-pi{ background:var(--bg3); border-radius:6px; padding:6px 9px; font-size:11px;
+    color:var(--text2); margin:6px 0; }
+  .ig-img-warn{ background:var(--bg3); border-left:3px solid var(--yellow,#e8c14a);
+    border-radius:6px; padding:9px 11px; font-size:12px; line-height:1.55; margin:0 0 11px; }
   /* Laboratorio — mismo estilo azul que Informe/Guardados, en la esquina derecha */
   .tabs-lab-wrap { flex-shrink: 0; display: flex; align-items: center; }
   .tab-lab { background: var(--accent); color: #fff; border: none; cursor: pointer; border-radius: 8px 0 0 8px; padding: 12px 10px; font-size: 11px; font-weight: 700; box-shadow: -3px 2px 10px rgba(0,0,0,0.35); transition: background .15s; }
@@ -20958,7 +21032,17 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
              el mismo detalle como TOAST —dos presentaciones del mismo dato, y la de arriba se
              va sola a los tres segundos— y la regla táctil global matchea por el ATRIBUTO
              (`[onclick]{min-height:44px}`), así que inflaba esta línea de la cabecera. -->
-        <span id="ig-img-storage" style="font-weight:400;text-transform:none;letter-spacing:normal;"></span>
+        <!-- Los DOS botones de vista y la barra de memoria van en el MISMO contenedor, que es
+             lo que los mantiene juntos a la derecha cuando `space-between` del h2 reparte la
+             fila. Sueltos, el `justify-content` los separaba y la barra se iba al medio. -->
+        <span style="display:inline-flex;align-items:center;gap:9px;flex-wrap:wrap;font-weight:400;text-transform:none;letter-spacing:normal;">
+          <!-- SIN atributo `onclick`: la regla táctil global matchea por el ATRIBUTO
+               (`[onclick]{min-height:44px}`) y en esta cabecera eso infla la fila. Los cablea
+               `igImgCablear()` con addEventListener, igual que la fila de la barra. -->
+          <button type="button" class="ig-vista-btn" id="ig-vista-inf" data-ig-vista="inf" aria-pressed="true" aria-controls="ig-lista" title="Ver los estudios guardados">Informes guardados</button>
+          <button type="button" class="ig-vista-btn" id="ig-vista-img" data-ig-vista="img" aria-pressed="false" aria-controls="ig-img-view" title="Ver todas las imágenes de todos los estudios">Imágenes guardadas</button>
+          <span id="ig-img-storage"></span>
+        </span>
       </h2>
       <div class="card-body">
         <!-- Fila: disparadores de filtros (izquierda) · acciones de datos (derecha) -->
@@ -20974,7 +21058,7 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
             <input type="file" id="ig-import-file" accept=".json,application/json" style="display:none" onchange="if(this.files&&this.files[0]){importarInformesJSON(this.files[0]);this.value='';}">
             <input type="file" id="lab-import-xlsx" accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" style="display:none" onchange="if(this.files&&this.files[0]){labImportarXLSX(this.files[0]);this.value='';}">
             <input type="file" id="ig-import-dcm" accept=".dcm,.DCM,.chm,.CHM,application/dicom" multiple style="display:none" onchange="if(this.files&&this.files.length){dcmImportarSR(this.files);this.value='';}">
-            <button class="btn btn-danger" onclick="limpiarTodosInformes()" title="Eliminar todos los informes">🗑️ Eliminar todos</button>
+            <button class="btn btn-danger" id="ig-btn-borrar-todos" onclick="limpiarTodosInformes()" title="Eliminar todos los informes">🗑️ Eliminar todos</button>
           </div>
         </div>
 
@@ -21017,7 +21101,7 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
         <!-- Contador + desplegables de datos, en la misma fila -->
         <div style="display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin:-4px 0 10px;">
           <div id="ig-contador" style="font-size:.82rem;color:var(--text2);"></div>
-          <div style="display:flex;gap:6px;align-items:center;">
+          <div id="ig-io-acciones" style="display:flex;gap:6px;align-items:center;">
             <div class="igio-wrap">
               <button type="button" class="igio-btn" id="igio-btn-exp" aria-haspopup="true" aria-expanded="false" aria-controls="igio-menu-exp"
                       onclick="igIOToggle('exp')" title="Exportar estudios">📤 Exportar <span class="igio-chev">▾</span></button>
@@ -21143,6 +21227,69 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
             <div class="ig-empty-sub">Completá un estudio y presioná "💾 Guardar Informe" en la sección Informe / En Suma</div>
           </div>
         </div>
+
+        <!-- ═══ «IMÁGENES GUARDADAS» ═══════════════════════════════════════════════════════
+             Vive DENTRO de la misma tarjeta y DEBAJO de los mismos filtros a propósito: los
+             filtros son los de arriba y se aplican por el ESTUDIO de cada imagen, así que
+             duplicarlos acá habría sido la primera forma de que las dos pantallas filtraran
+             distinto. Lo que se esconde al cambiar de vista es sólo la lista de estudios y las
+             tres acciones que son suyas (Eliminar todos, Exportar e Importar). -->
+        <div id="ig-img-view" style="display:none;">
+          <div class="ig-img-main">
+            <div id="ig-img-lista"></div>
+            <aside class="ig-img-side" id="ig-img-side">
+              <h4>Mostrar</h4>
+              <div class="ig-img-bs">
+                <button type="button" class="ig-vista-btn" data-ig-imgf="all"  aria-pressed="true">Todas</button>
+                <button type="button" class="ig-vista-btn" data-ig-imgf="img"  aria-pressed="false">Imágenes</button>
+                <button type="button" class="ig-vista-btn" data-ig-imgf="vid"  aria-pressed="false">Videos</button>
+                <button type="button" class="ig-vista-btn" data-ig-imgf="star" aria-pressed="false" title="Sólo las imágenes marcadas con la estrella de imagen">⭐ De interés</button>
+              </div>
+              <div id="ig-img-side-ppt"></div>
+            </aside>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ Visor de una imagen guardada ═══════════════════════════════════════════════════
+       Superposición propia y no el visor de cineloop: ése necesita un loop con sus fragmentos
+       JPEG y sus regiones de escala, y acá lo que hay es un slot. El botón «📏 Medir» abre el
+       visor de verdad, que es el que mide. -->
+  <div class="ig-img-ov" id="ig-imgv-ov">
+    <div class="ig-img-md">
+      <div style="display:flex;align-items:center;gap:8px;margin:0 0 7px;flex-wrap:wrap;">
+        <b id="ig-imgv-tit" style="font-size:13px;font-weight:600;"></b>
+        <span style="flex:1;"></span>
+        <button type="button" class="btn btn-ghost" id="ig-imgv-star" style="min-height:44px;"></button>
+        <button type="button" class="btn btn-ghost" id="ig-imgv-medir" style="min-height:44px;" title="Abrir esta imagen en el visor con medición">📏 Medir</button>
+        <button type="button" class="btn btn-ghost" id="ig-imgv-cerrar" style="min-height:44px;">Cerrar</button>
+      </div>
+      <div class="ig-img-pi" id="ig-imgv-info"></div>
+      <div class="ig-img-vw" id="ig-imgv-vw">
+        <img id="ig-imgv-img" alt="Imagen guardada del estudio">
+        <div class="ig-img-msk" id="ig-imgv-msk" style="display:none;"><div class="ig-img-hdl" id="ig-imgv-hdl"></div></div>
+      </div>
+      <div id="ig-imgv-nota-box" style="margin-top:7px;display:none;">
+        <label for="ig-imgv-nota" style="font-size:11px;color:var(--text2);">Nota de la imagen</label>
+        <textarea id="ig-imgv-nota" rows="2" maxlength="300" placeholder="Por qué es de interés (opcional)"></textarea>
+      </div>
+      <div style="display:flex;gap:6px;margin-top:7px;flex-wrap:wrap;">
+        <button type="button" class="btn btn-ghost" id="ig-imgv-ir" style="min-height:44px;">Ir al estudio</button>
+      </div>
+      <p id="ig-imgv-pie" style="font-size:11px;color:var(--text2);line-height:1.5;margin:7px 0 0;"></p>
+    </div>
+  </div>
+
+  <!-- Aviso PREVIO al PPT. Es un paso aparte y no un `confirm()`: el texto tiene que poder
+       decir por qué, y el botón de volver tiene que llevar a tapar. -->
+  <div class="ig-img-ov" id="ig-ppt-aviso-ov">
+    <div class="ig-img-md" style="max-width:440px;">
+      <p class="ig-img-warn" id="ig-ppt-aviso-txt"></p>
+      <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;">
+        <button type="button" class="btn btn-ghost" id="ig-ppt-volver" style="min-height:44px;">Volver y tapar</button>
+        <button type="button" class="btn" id="ig-ppt-seguir" style="min-height:44px;">Exportar igual</button>
       </div>
     </div>
   </div>
@@ -23592,6 +23739,11 @@ function showTab(id) {
      lee— y además sincroniza el markup que ya esté en pantalla, así que sirve antes y después.
      `typeof` porque esta función vive ~39.000 líneas más arriba, en otro bloque <script>. */
   if (id === 'guardados' && typeof igMesesReset === 'function') igMesesReset();
+  /* El cableado de la vista de IMÁGENES, en la misma puerta y por el mismo motivo: su módulo
+     vive en otro bloque <script>, de ahí el `typeof`. Es idempotente —se arma una sola vez— así
+     que llamarlo en cada entrada no acumula oyentes. Se hace acá ADEMÁS de al arrancar porque
+     en una app servida por `file://` el arranque puede correr antes de que exista el markup. */
+  if (id === 'guardados' && typeof igImgCablear === 'function') igImgCablear();
   /* ACA SE REPINTABA EL CAJON DOPPLER AL ENTRAR A LA TAB, y se saco (2026-09-24): el cajon vive
      dentro del overlay del visor, asi que ninguna pestana puede mostrarlo ni esconderlo. */
   /* El seguimiento de Cardio-Oncología está indexado por paciente, así que hay que
@@ -92958,6 +93110,35 @@ const CeiboImg = (function () {
         };
       }).then(r => r || 0);
     },
+    /* ÍNDICE SIN LOS `dataURL`. Es lo que hace posible la pantalla «Imágenes guardadas»: con
+       110 estudios de 15 imágenes el store entero son 108 MB —medido en el commit 1— y leerlo
+       con `getAll()` los materializa TODOS en memoria de una vez (221 MB de heap, también
+       medido). Con un cursor el pico es un registro: se copia la metadata de cada slot y el
+       `dataURL` se descarta en la iteración siguiente.
+       Los `dataURL` se piden después, por estudio y sólo cuando una miniatura entra en pantalla.
+       `n` va aparte de `slots.length` por si algún registro viejo trae un slot sin dataURL: la
+       grilla dibuja un hueco en vez de una miniatura muda. */
+    indice() {
+      return _tx('readonly', (os, ok) => {
+        const out = [];
+        const q = os.openCursor();
+        q.onsuccess = () => {
+          const c = q.result;
+          if (!c) { ok(out); return; }
+          const r = c.value || {};
+          out.push({ uuid: r.uuid, bytes: (typeof r.bytes === 'number' ? r.bytes : 0),
+                     ts: String(r.ts || ''),
+                     slots: (r.imgs || []).map(sl => ({
+                       ampliada: !!sl.ampliada,
+                       calidad: (typeof sl.calidad === 'string' ? sl.calidad : 'media'),
+                       origen: (sl.origen === 'visor' ? 'visor' : 'estudio'),
+                       video: !!sl.videoId,
+                       videoNombre: String(sl.videoNombre || ''),
+                       chars: (sl.dataURL ? String(sl.dataURL).length : 0) })) });
+          c.continue();
+        };
+      }).then(r => r || []);
+    },
     // {estudios, bytes} de lo guardado, para la barra de Config.
     uso() {
       return _tx('readonly', (os, ok) => {
@@ -94028,7 +94209,19 @@ function igListaEnPantalla(){ return _igEnPantallaDetalle().lista; }
 window.igListaEnPantalla = igListaEnPantalla;
 window._igEnPantallaDetalle = _igEnPantallaDetalle;
 
+/* ⚠️ `igPintar` ES EL ÚNICO PUNTO POR EL QUE PASAN LAS DOS CADENAS DE FILTRADO —la larga de
+   `aplicarFiltros` y la corta de `igRepintarTodoSinFiltrar`—, y por eso la vista de IMÁGENES se
+   engancha acá y no en una de las dos. Enganchada en `renderizarListaFiltrada` se habría
+   quedado sorda a la corta; duplicada en las dos, las dos pantallas podrían filtrar distinto.
+   Es el mismo argumento que este archivo ya escribió para `_igPintadosIds`.
+   `finally`: una excepción al pintar la lista de estudios no puede dejar la página de imágenes
+   mostrando el resultado del filtro anterior. */
 function igPintar(filtrados){
+  try { _igPintarInformes(filtrados); }
+  finally { try { igImgSync(filtrados); } catch (e) { console.error('igImgSync', e); } }
+}
+
+function _igPintarInformes(filtrados){
   const lista = document.getElementById('ig-lista');
   const vacio = document.getElementById('ig-vacio');
   const cont  = document.getElementById('ig-contador');
@@ -94149,6 +94342,12 @@ window.igMesToggle = igMesToggle;
    explícitamente. Es el reseteo de entrada, y se llama sólo desde esas dos puertas. */
 function igMesesReset() {
   igMesesAbiertos.clear();
+  /* Los meses de la OTRA vista y su índice, por las mismas dos puertas. El índice se invalida
+     acá y no en `igVistaCambiar` porque los que ESCRIBEN imágenes viven en otras pestañas
+     —`imgPersistir`, el visor, el importador—: entrar a Guardados es el único momento en que
+     hace falta releer, y es un lugar en vez de cinco. */
+  if (typeof igImgMesesAbiertos !== 'undefined') igImgMesesAbiertos.clear();
+  if (typeof igImgInvalidar === 'function') igImgInvalidar();
   document.querySelectorAll('.ig-mes-grupo').forEach(g => {
     g.classList.add('cerrado');
     const b = g.querySelector('.ig-mes');
@@ -94156,6 +94355,494 @@ function igMesesReset() {
   });
 }
 window.igMesesReset = igMesesReset;
+
+/* ══════════════ «IMÁGENES GUARDADAS» — la segunda vista de Guardados ═════════════════════════
+   Decisiones del médico del 26/10/2026, y la referencia visual es
+   `docs/3d/demo_guardados_imagenes_esquema_aprobado.html`.
+
+   Lo que esta pantalla NO hace, y es deliberado:
+   · no tiene filtros propios — usa los de arriba, aplicados por el ESTUDIO de cada imagen, y
+     los numéricos entran por el mismo camino porque el enganche está en `igPintar`;
+   · no borra imágenes — la demo aprobada no lo trae, así que no se agrega;
+   · no toca el informe, el EN SUMA, el PDF ni el Excel. La única salida nueva es el PPT que se
+     arma desde acá.
+
+   Y lo que sostiene el rendimiento, con los números del commit 1 al lado:
+   · los meses arrancan PLEGADOS y un mes plegado no construye una sola miniatura;
+   · el índice se lee con un cursor y SIN los `dataURL` (`CeiboImg.indice`), así que 1.650
+     imágenes son ~170 KB de metadata en vez de 108 MB de cadenas;
+   · los `dataURL` se piden por estudio y sólo cuando una miniatura entra en pantalla, con una
+     caché acotada a `IG_IMG_CACHE_MAX` estudios. Sin el tope, bajar hasta el final de un año de
+     estudios deja los 108 MB en memoria igual. */
+
+let igVista = 'inf';                      /* 'inf' | 'img' — «Informes guardados» por omisión */
+const igImgMesesAbiertos = new Set();     /* juego PROPIO: plegar un mes acá no plega el de allá */
+let _igImgFiltro = 'all';                 /* all | img | vid | star — la columna derecha */
+let _igImgIndice = null;                  /* null = sin leer todavía */
+let _igImgCargando = null;                /* la lectura en vuelo, para no lanzar dos */
+const _igImgBlobs = new Map();            /* uuid -> imgs[] CON dataURL; acotada */
+const IG_IMG_CACHE_MAX = 40;              /* ~600 imágenes de calidad media, ~40 MB */
+let _igImgIO = null;                      /* el IntersectionObserver vivo */
+let _igImgGen = 0;                        /* invalida un pintado tardío */
+
+function igImgInvalidar() {
+  _igImgIndice = null;
+  _igImgCargando = null;
+  _igImgBlobs.clear();
+}
+window.igImgInvalidar = igImgInvalidar;
+
+function igImgIndiceCargar() {
+  if (_igImgCargando) return _igImgCargando;
+  if (typeof CeiboImg === 'undefined' || !CeiboImg.indice) {
+    _igImgIndice = [];
+    return Promise.resolve([]);
+  }
+  _igImgCargando = CeiboImg.indice().then(r => {
+    _igImgIndice = Array.isArray(r) ? r : [];
+    _igImgCargando = null;
+    return _igImgIndice;
+  }).catch(() => { _igImgIndice = []; _igImgCargando = null; return []; });
+  return _igImgCargando;
+}
+
+/* Los `dataURL` de UN estudio, con caché acotada por orden de llegada. `Map` conserva el orden
+   de inserción, así que el primero de `keys()` es el más viejo. */
+function igImgBlobs(uuid) {
+  if (_igImgBlobs.has(uuid)) return Promise.resolve(_igImgBlobs.get(uuid));
+  if (typeof CeiboImg === 'undefined') return Promise.resolve(null);
+  return CeiboImg.leer(uuid).then(imgs => {
+    if (imgs === null) return null;          /* no se pudo leer: no es «no tiene» */
+    while (_igImgBlobs.size >= IG_IMG_CACHE_MAX) {
+      const vieja = _igImgBlobs.keys().next().value;
+      if (vieja === undefined) break;
+      _igImgBlobs.delete(vieja);
+    }
+    _igImgBlobs.set(uuid, imgs);
+    return imgs;
+  }).catch(() => null);
+}
+
+function igImgPasaTipo(meta) {
+  if (_igImgFiltro === 'img')  return !meta.video;
+  if (_igImgFiltro === 'vid')  return !!meta.video;
+  if (_igImgFiltro === 'star') return !!meta.star;
+  return true;
+}
+
+/* El observador se rearma en cada pintado: los nodos que miraba ya no existen. `root:null` —el
+   viewport— porque la grilla scrollea con la página, no en una caja propia. */
+function igImgIOApagar() {
+  if (_igImgIO) { try { _igImgIO.disconnect(); } catch (e) {} _igImgIO = null; }
+}
+function igImgIORearmar() {
+  igImgIOApagar();
+  if (!('IntersectionObserver' in window)) return null;
+  _igImgIO = new IntersectionObserver(entradas => {
+    entradas.forEach(e => {
+      if (!e.isIntersecting) return;
+      const d = e.target;
+      if (_igImgIO) { try { _igImgIO.unobserve(d); } catch (err) {} }
+      igImgPintarMiniatura(d);
+    });
+  }, { rootMargin: '150px' });
+  return _igImgIO;
+}
+
+/* Pone la imagen de UNA miniatura. Es el único lugar que toca un `dataURL` en la grilla. */
+function igImgPintarMiniatura(d) {
+  if (!d || d.dataset.igCargada === '1') return;
+  d.dataset.igCargada = '1';
+  const uuid = d.dataset.igUuid, idx = parseInt(d.dataset.igIdx, 10);
+  igImgBlobs(uuid).then(imgs => {
+    const sl = (imgs && imgs[idx]) ? imgs[idx] : null;
+    if (!sl || !sl.dataURL) { d.classList.add('vacia'); return; }
+    const im = document.createElement('img');
+    im.loading = 'lazy';
+    im.decoding = 'async';
+    im.alt = '';                 /* decorativa: el rótulo accesible lo lleva el botón */
+    im.src = sl.dataURL;
+    d.insertBefore(im, d.firstChild);
+  });
+}
+
+/* Llena un mes: construye sus miniaturas y las pone a observar. Se llama al pintar (sólo para
+   los meses abiertos) y al abrir uno. */
+function igImgLlenarMes(grupo) {
+  if (!grupo || grupo.dataset.igLleno === '1') return;
+  const caja = grupo.querySelector('.ig-mes-items');
+  if (!caja) return;
+  let items = [];
+  try { items = JSON.parse(grupo.dataset.igItems || '[]'); } catch (e) { items = []; }
+  grupo.dataset.igLleno = '1';
+  const grid = document.createElement('div');
+  grid.className = 'ig-img-grid';
+  const io = _igImgIO || igImgIORearmar();
+  items.forEach(it => {
+    /* Un <button> y no un <div>: se opera con Enter y Espacio y el lector lo anuncia como
+       control. El rótulo accesible nombra el número, el paciente y la fecha. */
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'ig-img-th';
+    b.dataset.igUuid = it.uuid;
+    b.dataset.igIdx  = String(it.idx);
+    b.dataset.igN    = String(it.n);
+    const quien = it.nombre + ' · ' + it.fecha;
+    b.title = 'Imagen ' + it.n + ' · ' + quien;
+    b.setAttribute('aria-label', 'Abrir la imagen ' + it.n + ' de ' + quien);
+    const n = document.createElement('span');
+    n.className = 'ig-img-n';
+    n.textContent = it.n;
+    b.appendChild(n);
+    if (it.video) {
+      const v = document.createElement('span');
+      v.className = 'ig-img-vb';
+      v.textContent = '▶';
+      b.appendChild(v);
+    }
+    if (it.esquema) {
+      const q = document.createElement('span');
+      q.className = 'ig-img-eq';
+      q.textContent = 'esquema';
+      b.appendChild(q);
+    }
+    igImgAdornar(b, it);
+    grid.appendChild(b);
+    if (io) io.observe(b); else igImgPintarMiniatura(b);
+  });
+  caja.appendChild(grid);
+}
+
+/* Punto de extensión de la miniatura: la estrella de imagen la agrega el commit 3 y el número de
+   orden del PPT el commit 4. Vacío acá, para que la grilla tenga UN solo constructor. */
+function igImgAdornar(boton, it) { return boton; }
+
+function igImgMesToggle(btn) {
+  const grupo = btn.closest('.ig-mes-grupo');
+  if (!grupo) return;
+  const mes = grupo.dataset.mes;
+  const cerrado = grupo.classList.toggle('cerrado');
+  btn.setAttribute('aria-expanded', String(!cerrado));
+  if (cerrado) igImgMesesAbiertos.delete(mes);
+  else { igImgMesesAbiertos.add(mes); igImgLlenarMes(grupo); }
+}
+window.igImgMesToggle = igImgMesToggle;
+
+/* ── El pintado ────────────────────────────────────────────────────────────────────────────────
+   `estudios` son los que pasaron TODOS los filtros, tal como los recibió `igPintar`: la pantalla
+   de imágenes no vuelve a filtrar nada, y por eso no puede discrepar con la de estudios.
+
+   La NUMERACIÓN es la posición de la imagen en el TOTAL guardado —del estudio más nuevo al más
+   viejo y, dentro de un estudio, por su orden en la grilla—, no en la lista filtrada: igual que
+   el «N.º» de un estudio, así «12» identifica siempre a la misma imagen cambien o no los
+   filtros. Es además el número con el que la imagen viaja al PPT. */
+function igImgPintar(estudios) {
+  const cont = document.getElementById('ig-img-lista');
+  if (!cont) return;
+  const gen = ++_igImgGen;
+  if (!_igImgIndice) {
+    cont.textContent = '';
+    const esp = document.createElement('div');
+    esp.className = 'ig-img-vac';
+    esp.textContent = 'Leyendo las imágenes guardadas…';
+    cont.appendChild(esp);
+    igImgIndiceCargar().then(() => { if (gen === _igImgGen) igImgPintar(estudios); });
+    return;
+  }
+  igImgIOApagar();
+  const porUuid = new Map();
+  _igImgIndice.forEach(r => { if (r && r.uuid) porUuid.set(r.uuid, r); });
+
+  let todos = [];
+  try { todos = getInformes().slice().sort(igCmpFecha); } catch (e) { todos = []; }
+  const nro = new Map();
+  let n = 0;
+  todos.forEach(inf => {
+    const r = porUuid.get(inf && inf.uuid);
+    if (!r) return;
+    r.slots.forEach((m, i) => { nro.set(inf.uuid + '/' + i, ++n); });
+  });
+  const totalImgs = n;
+
+  const vis = (Array.isArray(estudios) ? estudios : []).slice().sort(igCmpFecha);
+  const grupos = new Map();
+  let mostradas = 0;
+  vis.forEach(inf => {
+    const r = porUuid.get(inf && inf.uuid);
+    if (!r) return;
+    const k = igMesLbl(inf.fecha_estudio);
+    r.slots.forEach((m, i) => {
+      if (!igImgPasaTipo(m)) return;
+      if (!grupos.has(k)) grupos.set(k, []);
+      grupos.get(k).push({ uuid: inf.uuid, idx: i, n: nro.get(inf.uuid + '/' + i) || 0,
+                           id: inf.id, nombre: String(inf.nombre || '—'),
+                           fecha: inf.fecha_estudio ? inf.fecha_estudio.split('-').reverse().join('/') : '—',
+                           video: !!m.video, esquema: !!m.esquema, star: !!m.star,
+                           nota: String(m.nota || '') });
+      mostradas++;
+    });
+  });
+
+  cont.textContent = '';
+  if (!totalImgs) {
+    const v = document.createElement('div');
+    v.className = 'ig-img-vac';
+    /* Se dice POR QUÉ puede no haber ninguna: el toggle «Guardar imágenes con los estudios»
+       viene apagado de fábrica, así que «no hay imágenes» es el estado normal de una app recién
+       instalada y no una pérdida de datos. */
+    v.appendChild(document.createTextNode('No hay imágenes guardadas.'));
+    v.appendChild(document.createElement('br'));
+    const p = document.createElement('span');
+    p.style.cssText = 'font-size:11px;';
+    p.textContent = (typeof imgGuardadoActivo === 'function' && !imgGuardadoActivo())
+      ? 'La opción «Guardar imágenes con los estudios» está apagada en Configuración: las imágenes viven sólo en la sesión.'
+      : 'Las imágenes se guardan con el estudio desde la pestaña 🖼️ Imágenes.';
+    v.appendChild(p);
+    cont.appendChild(v);
+    igImgSidePintar(0, 0);
+    return;
+  }
+  if (!grupos.size) {
+    const v = document.createElement('div');
+    v.className = 'ig-img-vac';
+    v.textContent = 'Ninguna imagen coincide con los filtros activos.';
+    cont.appendChild(v);
+    igImgSidePintar(0, totalImgs);
+    return;
+  }
+
+  igImgIORearmar();
+  const frag = document.createDocumentFragment();
+  grupos.forEach((items, k) => {
+    const cerrado = !igImgMesesAbiertos.has(k);
+    const grupo = document.createElement('div');
+    grupo.className = 'ig-mes-grupo' + (cerrado ? ' cerrado' : '');
+    grupo.dataset.mes = k;
+    /* Los items del mes viajan en el dataset y las miniaturas se construyen al ABRIRLO. Con
+       1.650 imágenes, construirlas todas al pintar cuesta 103 ms de DOM y 221 MB de heap
+       (medido en el commit 1); así cuesta 12 ms y 99 imágenes. */
+    grupo.dataset.igItems = JSON.stringify(items);
+    const h = document.createElement('button');
+    h.type = 'button';
+    h.className = 'ig-mes';
+    h.setAttribute('aria-expanded', String(!cerrado));
+    const chev = document.createElement('span');
+    chev.className = 'ig-mes-chev';
+    chev.setAttribute('aria-hidden', 'true');
+    chev.textContent = '▾';
+    h.appendChild(chev);
+    const txt = document.createElement('span');
+    txt.className = 'ig-mes-txt';
+    txt.textContent = '── ' + k + ' (' + items.length + ' ' + (items.length === 1 ? 'imagen' : 'imágenes') + ') ──';
+    h.appendChild(txt);
+    grupo.appendChild(h);
+    const caja = document.createElement('div');
+    caja.className = 'ig-mes-items';
+    grupo.appendChild(caja);
+    frag.appendChild(grupo);
+  });
+  cont.appendChild(frag);
+  const pie = document.createElement('div');
+  pie.style.cssText = 'font-size:.78rem;color:var(--text2);margin:6px 0 2px;';
+  pie.id = 'ig-img-contador';
+  pie.textContent = 'Mostrando ' + mostradas + ' de ' + totalImgs + ' ' + (totalImgs === 1 ? 'imagen' : 'imágenes');
+  cont.appendChild(pie);
+  /* Los meses que el médico tenía abiertos se llenan ahora; el resto, al abrirlos. */
+  cont.querySelectorAll('.ig-mes-grupo:not(.cerrado)').forEach(g => igImgLlenarMes(g));
+  igImgSidePintar(mostradas, totalImgs);
+}
+window.igImgPintar = igImgPintar;
+
+/* Punto de extensión de la columna derecha: el armado del PPT lo agrega el commit 4. */
+function igImgSidePintar(mostradas, total) { return { mostradas, total }; }
+
+/* ── El cambio de vista ───────────────────────────────────────────────────────────────────── */
+function igVistaCambiar(v) {
+  const n = (v === 'img') ? 'img' : 'inf';
+  if (n === igVista) return;
+  igVista = n;
+  igImgMesesAbiertos.clear();
+  if (n === 'img') igImgInvalidar();   /* al entrar se relee: pudo guardarse una imagen */
+  document.querySelectorAll('[data-ig-vista]').forEach(b => {
+    b.setAttribute('aria-pressed', b.dataset.igVista === n ? 'true' : 'false');
+  });
+  if (typeof renderInformesGuardados === 'function') renderInformesGuardados();
+}
+window.igVistaCambiar = igVistaCambiar;
+
+/* Esconde y muestra lo que es de cada vista. El `display` original se guarda en el dataset la
+   primera vez: `#ig-io-acciones` es un `display:flex` EN LÍNEA, y restaurarlo con `''` lo
+   dejaba en `block` —los dos desplegables apilados—, que es el defecto que este archivo ya
+   documenta para `[hidden]` y el banner de versión. */
+function _igMostrar(id, mostrar) {
+  const e = document.getElementById(id);
+  if (!e) return;
+  if (e.dataset.igDisp === undefined) e.dataset.igDisp = e.style.display || '';
+  e.style.display = mostrar ? e.dataset.igDisp : 'none';
+}
+
+function igImgSync(filtrados) {
+  const box = document.getElementById('ig-img-view');
+  if (!box) return;                      /* app sin la pantalla nueva: no hay nada que hacer */
+  const enImg = (igVista === 'img');
+  box.style.display = enImg ? 'block' : 'none';
+  _igMostrar('ig-lista', !enImg);
+  /* `#ig-vacio` lo gobierna `_igPintarInformes` en TODOS sus caminos, así que acá sólo se lo
+     esconde: devolverle un valor pisaría el que acaba de calcular. */
+  if (enImg) { const v = document.getElementById('ig-vacio'); if (v) v.style.display = 'none'; }
+  ['ig-btn-borrar-todos', 'ig-io-acciones'].forEach(id => _igMostrar(id, !enImg));
+  if (!enImg) { igImgIOApagar(); return; }
+  igImgPintar(filtrados);
+}
+window.igImgSync = igImgSync;
+
+/* ── Cableado ──────────────────────────────────────────────────────────────────────────────────
+   TODO por delegación y con `addEventListener`, sin un solo atributo `onclick`: la regla táctil
+   global matchea por el ATRIBUTO (`[onclick]{min-height:44px}`) y en una miniatura de 94×70 eso
+   infla la celda y rompe la grilla. Delegado además porque la grilla se reconstruye en cada
+   pintado y en cada apertura de mes. */
+let _igImgCableado = false;
+function igImgCablear() {
+  if (_igImgCableado) return;
+  const inf = document.getElementById('ig-vista-inf');
+  const img = document.getElementById('ig-vista-img');
+  if (!inf || !img) return;
+  _igImgCableado = true;
+  document.querySelectorAll('[data-ig-vista]').forEach(b => {
+    b.addEventListener('click', () => igVistaCambiar(b.dataset.igVista));
+  });
+  document.querySelectorAll('[data-ig-imgf]').forEach(b => {
+    b.addEventListener('click', () => {
+      _igImgFiltro = b.dataset.igImgf;
+      document.querySelectorAll('[data-ig-imgf]').forEach(x => {
+        x.setAttribute('aria-pressed', x === b ? 'true' : 'false');
+      });
+      if (typeof renderInformesGuardados === 'function') renderInformesGuardados();
+    });
+  });
+  const lista = document.getElementById('ig-img-lista');
+  if (lista) lista.addEventListener('click', ev => {
+    const st = ev.target.closest ? ev.target.closest('.ig-img-st') : null;
+    if (st) { ev.stopPropagation(); igImgStarClic(st); return; }
+    const mes = ev.target.closest ? ev.target.closest('.ig-mes') : null;
+    if (mes) { igImgMesToggle(mes); return; }
+    const th = ev.target.closest ? ev.target.closest('.ig-img-th') : null;
+    if (th) igImgThClic(th);
+  });
+  igImgVisorCablear();
+}
+window.igImgCablear = igImgCablear;
+
+/* Puntos de extensión del clic: la estrella es del commit 3 y la selección para el PPT del 4. */
+function igImgStarClic(boton) { return false; }
+function igImgThClic(th) {
+  igImgVisorAbrir(th.dataset.igUuid, parseInt(th.dataset.igIdx, 10), parseInt(th.dataset.igN, 10), false);
+}
+
+/* ── Visor de una imagen guardada ──────────────────────────────────────────────────────────── */
+let _igVisor = null;    /* {uuid, idx, n, inf, tapa} de la imagen abierta */
+
+function igImgVisorCablear() {
+  const cerrar = document.getElementById('ig-imgv-cerrar');
+  if (!cerrar) return;
+  cerrar.addEventListener('click', () => igImgVisorCerrar());
+  const ov = document.getElementById('ig-imgv-ov');
+  if (ov) ov.addEventListener('click', ev => { if (ev.target === ov) igImgVisorCerrar(); });
+  document.addEventListener('keydown', ev => {
+    if (ev.key !== 'Escape') return;
+    const o = document.getElementById('ig-imgv-ov');
+    if (o && o.classList.contains('open')) igImgVisorCerrar();
+  });
+  const ir = document.getElementById('ig-imgv-ir');
+  if (ir) ir.addEventListener('click', () => {
+    if (!_igVisor || _igVisor.id == null) return;
+    igImgVisorCerrar();
+    if (typeof verDetalleInforme === 'function') verDetalleInforme(_igVisor.id);
+  });
+  const medir = document.getElementById('ig-imgv-medir');
+  if (medir) medir.addEventListener('click', () => igImgVisorMedir());
+}
+
+function igImgVisorCerrar() {
+  const ov = document.getElementById('ig-imgv-ov');
+  if (ov) ov.classList.remove('open');
+  const im = document.getElementById('ig-imgv-img');
+  /* Se suelta el `dataURL`: son decenas de KB por imagen y el visor se abre muchas veces. */
+  if (im) im.removeAttribute('src');
+  _igVisor = null;
+}
+window.igImgVisorCerrar = igImgVisorCerrar;
+
+function igImgVisorAbrir(uuid, idx, numero, modoTapa) {
+  const ov = document.getElementById('ig-imgv-ov');
+  if (!ov) return;
+  let inf = null;
+  try { inf = getInformes().filter(i => i && i.uuid === uuid)[0] || null; } catch (e) {}
+  _igVisor = { uuid, idx, n: numero, id: inf ? inf.id : null, tapa: !!modoTapa };
+  const tit = document.getElementById('ig-imgv-tit');
+  const info = document.getElementById('ig-imgv-info');
+  const pie = document.getElementById('ig-imgv-pie');
+  const meta = igImgMeta(uuid, idx);
+  if (tit) tit.textContent = 'Imagen ' + numero + (meta && meta.video ? ' · video' : '');
+  /* EN LA APP SE VE EL ESTUDIO Y EL PACIENTE (punto 4a). Por `textContent`, nunca por
+     `innerHTML`: el nombre es dato del paciente y acá entra crudo desde el store. */
+  if (info) {
+    info.textContent = inf
+      ? ((inf.nombre || '—') + ' · ' + (inf.ci || '—') + ' · ' +
+         (inf.fecha_estudio ? inf.fecha_estudio.split('-').reverse().join('/') : '—'))
+      : 'El estudio de esta imagen ya no está guardado.';
+  }
+  if (pie) pie.textContent = 'Abrir una imagen no la guarda en ningún estudio.';
+  const im = document.getElementById('ig-imgv-img');
+  if (im) { im.removeAttribute('src'); }
+  igImgBlobs(uuid).then(imgs => {
+    if (!_igVisor || _igVisor.uuid !== uuid || _igVisor.idx !== idx) return;   /* llegó tarde */
+    const sl = (imgs && imgs[idx]) ? imgs[idx] : null;
+    if (im && sl && sl.dataURL) im.src = sl.dataURL;
+    else if (pie) pie.textContent = 'No se pudo leer esta imagen.';
+  });
+  igImgVisorExtender(uuid, idx, meta);
+  ov.classList.add('open');
+}
+window.igImgVisorAbrir = igImgVisorAbrir;
+
+/* Punto de extensión del visor: la estrella con su nota la agrega el commit 3 y el cuadrado de
+   tapar datos el commit 4. */
+function igImgVisorExtender(uuid, idx, meta) {
+  ['ig-imgv-star', 'ig-imgv-nota-box'].forEach(id => {
+    const e = document.getElementById(id);
+    if (e) e.style.display = 'none';
+  });
+  const m = document.getElementById('ig-imgv-msk');
+  if (m) m.style.display = 'none';
+  return meta;
+}
+
+/* La metadata de UNA imagen desde el índice ya leído, sin volver a IndexedDB. */
+function igImgMeta(uuid, idx) {
+  if (!_igImgIndice) return null;
+  const r = _igImgIndice.filter(x => x && x.uuid === uuid)[0];
+  return (r && r.slots && r.slots[idx]) ? r.slots[idx] : null;
+}
+window.igImgMeta = igImgMeta;
+
+/* «📏 Medir» abre el estudio y lleva a su pestaña de imágenes, que es donde vive el visor con
+   medición (`medImagenAbrir` trabaja sobre `imgSlots`, o sea sobre el estudio CARGADO). Abrir el
+   visor de medición sobre un slot que no está en el formulario mediría una imagen que la app no
+   tiene abierta, y la medición se guarda contra el estudio en pantalla. */
+function igImgVisorMedir() {
+  if (!_igVisor || _igVisor.id == null) {
+    if (typeof toast === 'function') toast('⚠️ El estudio de esta imagen ya no está guardado');
+    return;
+  }
+  /* El id y el índice se copian ANTES de cerrar: `igImgVisorCerrar` pone `_igVisor` en null, así
+     que leerlo después abre el detalle de `undefined`. */
+  const id = _igVisor.id, idx = _igVisor.idx;
+  igImgVisorCerrar();
+  if (typeof verDetalleInforme === 'function') verDetalleInforme(id);
+  if (typeof toast === 'function')
+    toast('Abrí el estudio y entrá a 🖼️ Imágenes: ahí la imagen ' + (idx + 1) + ' se mide con «📏 Medir»');
+}
 
 /* ⚠️ REPINTAR NO PUEDE TIRAR LOS FILTROS QUE EL MÉDICO TIENE PUESTOS.
    `igFiltrar(null)` NO es «sin filtros»: su argumento es el conjunto de PARTIDA, y adentro
@@ -139372,6 +140059,13 @@ function _orthListaRender(cont, lista) {
 /* Un solo listener delegado: la lista se reconstruye en cada filtrado, así que enganchar por
    fila acumularía uno por tecla tipeada. Y el id va por `data-`, nunca interpolado en un
    `onclick`, donde el escape no protege porque el parser decodifica antes de compilar. */
+/* Cableado de los dos botones de vista de Guardados al arrancar. Idempotente; la otra puerta
+   es `showTab('guardados')`. */
+if (typeof igImgCablear === 'function') {
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', igImgCablear);
+  else igImgCablear();
+}
+
 if (!window._orthListaCableada) {
   window._orthListaCableada = true;
   document.addEventListener('click', function (ev) {
