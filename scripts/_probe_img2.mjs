@@ -458,6 +458,124 @@ window.__I2 = {
                primerSlot: r.length ? r[0].slots[0] : null };
     }) },
 
+  /* ── LA ESTRELLA DE IMAGEN y su nota ─────────────────────────────────────────────────────
+     Se clickea la estrella REAL de la miniatura, no se llama al escritor: el punto es que el
+     gesto llegue a disco y vuelva a la pantalla. Y se mide que NO es la misma marca que «Casos
+     de interes» del estudio -color distinto y clave distinta-. */
+  estrella(i) {
+    var ths = document.querySelectorAll('#ig-img-lista .ig-img-th');
+    var t = ths[i || 0];
+    if (!t) return Promise.resolve({ err:'sin miniatura ' + i });
+    var st = t.querySelector('.ig-img-st');
+    if (!st) return Promise.resolve('NO EXISTE .ig-img-st');
+    var uuid = t.dataset.igUuid, idx = parseInt(t.dataset.igIdx, 10);
+    var antes = { clase: st.className, txt: (st.textContent||'').trim(),
+                  pressed: st.getAttribute('aria-pressed'),
+                  color: getComputedStyle(st).color,
+                  w: Math.round(st.getBoundingClientRect().width),
+                  h: Math.round(st.getBoundingClientRect().height) };
+    st.click();
+    return new Promise(function(res){ setTimeout(function(){
+      /* La grilla se repinta entera, asi que la miniatura es OTRO nodo: se la busca de nuevo. */
+      var t2 = document.querySelector('#ig-img-lista .ig-img-th[data-ig-uuid="' + uuid + '"][data-ig-idx="' + idx + '"]');
+      var st2 = t2 ? t2.querySelector('.ig-img-st') : null;
+      CeiboImg.leer(uuid).then(function(imgs){
+        var sl = (imgs && imgs[idx]) ? imgs[idx] : null;
+        res({ antes: antes,
+              despues: st2 ? { clase: st2.className, txt: (st2.textContent||'').trim(),
+                               pressed: st2.getAttribute('aria-pressed'),
+                               color: getComputedStyle(st2).color } : 'sin nodo',
+              enDisco: sl ? { star: !!sl.star, nota: String(sl.nota||''),
+                              esquema: !!sl.esquema, tieneDataURL: !!sl.dataURL } : 'sin slot',
+              /* El color de la estrella del ESTUDIO, para la comparacion del punto 3a. */
+              colorCasoInteres: '#f5c842',
+              metaEnIndice: (typeof igImgMeta === 'function') ? igImgMeta(uuid, idx) : 'NO EXISTE' });
+      });
+    }, 600) }) },
+
+  /* La nota: se abre el visor de una imagen YA marcada, se escribe y se cierra. */
+  nota(i, texto) {
+    var ths = document.querySelectorAll('#ig-img-lista .ig-img-th');
+    var t = ths[i || 0];
+    if (!t) return Promise.resolve({ err:'sin miniatura' });
+    var uuid = t.dataset.igUuid, idx = parseInt(t.dataset.igIdx, 10);
+    t.click();
+    return new Promise(function(res){ setTimeout(function(){
+      var bs = document.getElementById('ig-imgv-star');
+      var box = document.getElementById('ig-imgv-nota-box');
+      var ta = document.getElementById('ig-imgv-nota');
+      var est0 = { starTxt: bs ? (bs.textContent||'').trim() : 'NO EXISTE',
+                   notaVisible: box ? getComputedStyle(box).display !== 'none' : 'NO EXISTE',
+                   maxlength: ta ? ta.getAttribute('maxlength') : 'NO EXISTE' };
+      if (!ta) return res({ est0: est0, err:'sin textarea' });
+      ta.value = texto;
+      ta.dispatchEvent(new Event('input', { bubbles:true }));
+      ta.dispatchEvent(new Event('blur', { bubbles:true }));
+      setTimeout(function(){
+        var cerrar = document.getElementById('ig-imgv-cerrar');
+        if (cerrar) cerrar.click();
+        setTimeout(function(){
+          CeiboImg.leer(uuid).then(function(imgs){
+            var sl = (imgs && imgs[idx]) ? imgs[idx] : null;
+            var t2 = document.querySelector('#ig-img-lista .ig-img-th[data-ig-uuid="' + uuid + '"][data-ig-idx="' + idx + '"]');
+            var nb = t2 ? t2.querySelector('.ig-img-nb') : null;
+            res({ est0: est0,
+                  enDisco: sl ? { star: !!sl.star, nota: String(sl.nota||'') } : 'sin slot',
+                  badge: nb ? { txt: (nb.textContent||'').trim(), title: nb.title } : 'sin badge' });
+          });
+        }, 500);
+      }, 300);
+    }, 600) }) },
+
+  /* Desmarcar BORRA la nota: una nota sin estrella no existe. */
+  desmarcar(i) {
+    var ths = document.querySelectorAll('#ig-img-lista .ig-img-th');
+    var t = ths[i || 0];
+    if (!t) return Promise.resolve({ err:'sin miniatura' });
+    var uuid = t.dataset.igUuid, idx = parseInt(t.dataset.igIdx, 10);
+    var st = t.querySelector('.ig-img-st');
+    if (!st) return Promise.resolve('NO EXISTE');
+    st.click();
+    return new Promise(function(res){ setTimeout(function(){
+      CeiboImg.leer(uuid).then(function(imgs){
+        var sl = (imgs && imgs[idx]) ? imgs[idx] : null;
+        res({ enDisco: sl ? { star: !!sl.star, nota: String(sl.nota||'') } : 'sin slot' });
+      });
+    }, 600) }) },
+
+  /* El filtro de la columna derecha, que es el que usa ESTA estrella. */
+  filtroCol(cual) {
+    var b = document.querySelector('[data-ig-imgf="' + cual + '"]');
+    if (!b) return 'NO EXISTE';
+    b.click();
+    var p = document.getElementById('ig-img-contador');
+    var cont = document.getElementById('ig-img-lista');
+    return { filtro: cual, pie: p ? (p.textContent||'').trim() : null,
+             vacio: (function(){ var v = cont ? cont.querySelector('.ig-img-vac') : null;
+                                 return v ? (v.textContent||'').trim() : null })(),
+             grupos: cont ? cont.querySelectorAll('.ig-mes-grupo').length : null,
+             pressed: Array.prototype.map.call(document.querySelectorAll('[data-ig-imgf]'),
+               function(x){ return x.dataset.igImgf + '=' + x.getAttribute('aria-pressed') }) } },
+
+  /* Que la estrella de imagen SOBREVIVE a un guardado del estudio por el formulario, que es la
+     via por la que imgPersistir reescribe el juego entero desde imgSlots. */
+  sobreviveAlGuardado(uuid, idx) {
+    if (typeof imgRestaurar !== 'function' || typeof imgPersistir !== 'function')
+      return Promise.resolve('NO EXISTE');
+    return imgRestaurar(uuid).then(function(n){
+      var enSlot = (typeof imgSlots !== 'undefined' && imgSlots[idx])
+        ? { star: !!imgSlots[idx].star, nota: String(imgSlots[idx].nota||''),
+            esquema: !!imgSlots[idx].esquema } : 'sin slot';
+      return Promise.resolve(imgPersistir(uuid)).then(function(ok){
+        return CeiboImg.leer(uuid).then(function(imgs){
+          var sl = (imgs && imgs[idx]) ? imgs[idx] : null;
+          return { restauradas: n, enSlotTrasRestaurar: enSlot, persistio: ok,
+                   enDiscoTrasGuardar: sl ? { star: !!sl.star, nota: String(sl.nota||''),
+                                              esquema: !!sl.esquema } : 'sin slot' };
+        });
+      });
+    }) },
+
   /* ── Que borrar un estudio se lleva sus imagenes (punto 2e) ─────────────────────────────── */
   borrarEstudio() {
     var ests;
@@ -549,6 +667,15 @@ async function main() {
   out.filtros.numVal   = await paso('numerico valor', J('window.__I2.filtro("adv-fevi-lt","40")'), 30000);
   out.filtros.limpiar5 = await paso('limpiar', J('window.__I2.limpiar()'), 30000);
   out.filtros.tras     = await paso('la pagina tras limpiar', J('window.__I2.filtro("ig-buscar","")'), 30000);
+
+  /* ── La estrella de imagen (commit 3) ───────────────────────────────────────────────────── */
+  out.estrella = await paso('marcar la primera imagen', J('window.__I2.estrella(0)'), 60000);
+  out.nota = await paso('escribir la nota', J('window.__I2.nota(0, "Chorro excentrico de prueba")'), 60000);
+  out.filtroStar = await paso('filtro de la columna derecha', J('window.__I2.filtroCol("star")'), 30000);
+  out.filtroTodas = await paso('volver a todas', J('window.__I2.filtroCol("all")'), 30000);
+  out.sobrevive = await paso('la marca sobrevive a guardar el estudio',
+    J('window.__I2.sobreviveAlGuardado(document.querySelector("#ig-img-lista .ig-img-th").dataset.igUuid, parseInt(document.querySelector("#ig-img-lista .ig-img-th").dataset.igIdx,10))'), 60000);
+  out.desmarcar = await paso('desmarcar borra la nota', J('window.__I2.desmarcar(0)'), 60000);
 
   out.borrarEstudio = await paso('borrar un estudio', J('window.__I2.borrarEstudio()'), 60000);
   out.aInformes = await paso('volver a informes', J('window.__I2.cambiar("inf")'), 30000);
