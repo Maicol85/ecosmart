@@ -333,3 +333,16 @@ columnas idéntico.
 **Está todo en `docs/mapa/referencias-subpestanas.md`**: el reparto (`REF_SUBTAB`), el índice del
 buscador y su normalización, el mapeo `VINFO_REF` con las cinco tarjetas que no llevan botón, la
 tabla `AO_CX_T` con su folio por fila y su sondeo del dueño, y nueve trampas medidas.
+
+---
+
+## Lo que la tanda AJ9 agregó al registro (2026-10-29) — puntero
+
+Tres tarjetas ⓘ nuevas, las tres con su botón «Ver referencia» a `ref-strain` desde el mismo
+commit que creó esa entrada: `contr-territorio` (los territorios coronarios de los 17
+segmentos), `patrones-sgl` (de dónde salen los patrones del ojo de buey y sus rangos) y
+`amil-apice` (de dónde sale el corte de 2,9 del score de amiloidosis).
+
+El registro pasa de **62 a 65** entradas.
+
+→ **`docs/mapa/aj9-sgl-patrones.md`**

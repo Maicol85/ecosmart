@@ -9492,3 +9492,99 @@ La discrepancia queda a la vista: `_indAo` ya toma el máximo de los dos y lo pu
 
 Ver **G-a**. Es el mismo corte escrito dos veces; su comportamiento ya es el correcto, así que no
 se tocó.
+
+---
+
+# Tanda AJ9 (2026-10-29) — lo declarado
+
+## AJ9-a · La diferencia del segmento 15 entre Lang y Cerqueira no se pudo verificar
+
+La orden pide escribir en el ⓘ de los territorios que **Lang 2015 asigna el segmento 15 a la
+descendente anterior** y Cerqueira a la coronaria derecha. **No hay hoja de Lang 2015 donde eso
+se pueda leer**: su **Figura 5** (folio 13) es un dibujo anatómico con categorías de color
+—RCA, LAD, CX, «RCA o CX», «LAD o CX» y «RCA o LAD»— y **no numera los segmentos**. La Figura 4
+(folio 12) sí los numera, pero es la orientación de las vistas apicales, no el territorio.
+
+**Se paró esa parte y no se escribió.** Citar una diferencia que la fuente no publica sería
+inventar una cita.
+
+**Decidir:** si hay otro documento de la biblioteca que la sostenga, o si la diferencia se retira
+del pedido.
+
+## AJ9-b · El patrón «Normal» sigue diciendo «SGL típico: < -20%»
+
+El corte de normalidad de la aplicación es **−18** desde esta tanda, y el rango ilustrativo del
+patrón normal sigue en **−20**. Los dos conviven en la misma pestaña, a dos pantallas de
+distancia: el rótulo de la fila de cálculo clasifica un −19 como **normal** y la tarjeta del
+patrón sugiere que lo típico empieza en −20.
+
+**No se tocó porque cambiar un rango clínico es decisión de Maicol**, y el punto 3c de la orden
+pide explícitamente conservarlos con su rótulo ilustrativo. Hoy el rango lleva pegado «Criterio
+de EcoSmart (ilustrativo)», así que ya no se lee como un corte validado.
+
+**Decidir:** si los rangos de los patrones se alinean con los cortes de la ASE 2025 o se quedan
+como ilustración.
+
+## AJ9-c · El panel de cardio-oncología del Laboratorio cuenta mal el strain tipeado en positivo
+
+`glsAn` filtra con `g > SGL_NORMAL_MAX` sobre `co_gls_actual`, y ese campo acepta los dos signos:
+**todo lo tipeado en positivo cuenta como anormal**. Es el mismo defecto que el filtro de
+auditoría de la misma pantalla ya cerró con `Math.abs`.
+
+El número NO se movió en esta tanda —sólo dejó de estar tecleado—, porque arreglar el signo
+**mueve la distribución publicada del Laboratorio** y eso está fuera de la orden.
+
+**Decidir:** aplicar `Math.abs` ahí también, sabiendo que el porcentaje publicado va a cambiar.
+
+## AJ9-d · «Patognomónico» en el patrón de amiloidosis
+
+La descripción del patrón dice «Patrón patognomónico». La biblioteca no lo sostiene: Phelan 2012
+publica sensibilidad **93 %** y especificidad **82 %** —o sea casi uno de cada cinco controles da
+positivo— y la propia **Figura 6** de la ASE 2025 ilustra una **insuficiencia renal terminal con
+un patrón que lo imita**.
+
+**Se reporta y no se corrige**: cambiar un rótulo clínico es decisión de Maicol. El aviso del
+imitador sí entró, en la tarjeta ⓘ de la sección.
+
+## AJ9-e · La app no dice de qué paredes sale la relación ápice/base del score
+
+`calcApice` divide el valor absoluto del campo «Strain apical» por el del campo «Strain basal»,
+los dos **genéricos**. Boldrini define el SAB como la relación **septal**, medida en la vista de
+**cuatro cámaras**.
+
+**Ejemplo medido, el mismo paciente de las dos formas:** apical −18 % y basal −6 % (septal de
+cuatro cámaras) → **3,00**, criterio marcado, **+3 puntos**. El mismo apical −18 % con un basal
+**global** de −7,5 % → **2,40**, sin marcar, **0 puntos**. Son tres puntos de un score que se
+considera diagnóstico desde ocho.
+
+Y hay un tercer mezclado: el texto del criterio dice «strain apical relativamente preservado
+**vs base y segmentos medios**», que es el denominador de **Phelan** —ápex sobre la suma de basal
+y medio, con corte de 1,0— y no el de este corte, que es ápex sobre base.
+
+**El corte conserva su valor, que es lo que la orden pide.** La procedencia está hoy en la
+tarjeta ⓘ.
+
+**Decidir:** si los rótulos de los dos campos pasan a decir «septal, cuatro cámaras» y si el
+texto del criterio se corrige.
+
+## AJ9-f · El Excel sigue exportando el SGL con el signo que el médico tecleó
+
+La columna `GLS (%)` exporta `sgl` crudo. En un estudio con el strain tipeado en positivo, el
+informe firmado dice «SGL −18 %» y la columna dice **18**.
+
+**No se tocó a propósito**: la orden prohíbe cambiar una columna de Excel sin parar y reportarlo,
+y reescribir el campo del estudio habría tocado lo que el médico escribió. El Laboratorio ya
+promedia en valor absoluto, así que su media no se ve afectada.
+
+**Decidir:** si la columna publica el valor negativo, sabiendo que eso cambia el Excel de los
+estudios con strain positivo.
+
+## AJ9-g · `check_backticks.py` no caza un acento grave dentro de un comentario del template
+
+Cuatro veces en esta tanda un backtick dentro de un comentario de una sonda o de un caso cerró el
+template literal y mató el archivo con un `SyntaxError` que apunta decenas de líneas antes del
+culpable. **El chequeo no lo encontró ninguna de las cuatro**: lo que sirve es `node --check`
+sobre el archivo.
+
+**Decidir:** si `check_backticks.py` pasa a correr `node --check` sobre cada `.mjs` que toca, o
+si se documenta que el chequeo real es ése.

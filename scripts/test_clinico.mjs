@@ -66077,7 +66077,10 @@ caso('TC-471', 'Valvulas D1: la insuficiencia mitral en TRES columnas de SEIS co
     /* ⚠️ ADAPTADO EN LA TANDA TEP (2026-10-29): 60 -> 62, por tep-eco-dx y tep-mcconnell,
        los dos globos de la seccion de sobrecarga del VD. NINGUNO esta en Valvulas: lo que
        cambia es el denominador del registro, no lo que esta condicion afirma. */
-    Object.keys(VINFO).length === 62,
+    /* ⚠️ ADAPTADO EN LA AJ9 (2026-10-29): 62 -> 65. Las TRES nuevas son contr-territorio,
+       patrones-sgl y amil-apice. NINGUNA esta en Valvulas, que es la pestana que este caso
+       mide: lo que cambia es el denominador del registro, no lo que el caso afirma. */
+    Object.keys(VINFO).length === 65,
     'registro=' + (HAY_INFO ? Object.keys(VINFO).join(',') : 'SIN REGISTRO')]);
   ex.push(['(H) y la tarjeta se coloca SIEMPRE dentro de la pantalla, sin cortarse',
     (function(){ const b = document.querySelector('[data-vinfo="avm-thp"]');
@@ -77370,7 +77373,10 @@ caso('TC-500', 'Tanda Q: las OCHO tarjetas i de las valvulas arriba de su pastil
   /* ADAPTADO el 2026-10-24 (tanda J2, commits J2-1 y J2-5): 52 -> 56. Las CUATRO nuevas son
      hemo-ic, hemo-rvs, hemo-forr y amilo-score. NINGUNA esta en Valvulas: lo que cambia es el
      denominador del registro, no lo que este caso afirma sobre las tarjetas de esa pestana. */
-  ex.push(['DENOMINADOR: el mecanismo de los globos existe y el registro tiene las 56 entradas',
+  /* ⚠️ ADAPTADO EN LA AJ9 (2026-10-29): 62 -> 65. Las TRES nuevas son contr-territorio,
+     patrones-sgl y amil-apice. Lo que esta condicion afirma no cambia: que el mecanismo exista
+     y que el registro este completo. */
+  ex.push(['DENOMINADOR: el mecanismo de los globos existe y el registro tiene las 65 entradas',
     /* ⚠️ ADAPTADO EN LA TANDA D: 56 -> 57. La entrada nueva es co-riesgo-basal, el globo de la
        clasificacion de riesgo cardiovascular basal, donde viven las clases y los niveles que la
        regla R2 saca de la linea visible. Lo que esta condicion afirma no cambia: que el
@@ -77385,7 +77391,7 @@ caso('TC-500', 'Tanda Q: las OCHO tarjetas i de las valvulas arriba de su pastil
     /* ⚠️ ADAPTADO EN LA TANDA TEP (2026-10-29): 60 -> 62, por tep-eco-dx y tep-mcconnell,
        los dos globos de la seccion de sobrecarga del VD. NINGUNO esta en Valvulas: lo que
        cambia es el denominador del registro, no lo que esta condicion afirma. */
-    FN('vInfoClic') && !!CARD() && !!REG() && Object.keys(REG() || {}).length === 62,
+    FN('vInfoClic') && !!CARD() && !!REG() && Object.keys(REG() || {}).length === 65,
     'VINFO=' + (REG() ? Object.keys(REG()).length : 'SIN REGISTRO') + ' card=' + !!CARD()]);
   ex.push(['(A1) los OCHO botones de lesion existen, son BUTTON, sin atributo title y con aria-expanded',
     CLAVES.every(function (k) { const b = BTN(k);
@@ -78500,8 +78506,12 @@ caso('TC-502', 'Tanda P: Referencias en CINCO subpestanas sin perder una entrada
   /* ADAPTADO el 2026-10-24 (tanda G, commit G5): 34 -> 35. La que entra es la ficha del
      POSOPERATORIO DE CIRUGIA CARDIACA, en «Otros hallazgos», pegada a la de eco pulmonar porque
      el posoperatorio usa la formula del derrame pleural de esa misma ficha. */
-  ex.push(['(A2) DENOMINADOR: el censo encuentra las 35 entradas de la pestana',
-    censo.n === 35, 'n=' + censo.n]);
+  /* ⚠️ ADAPTADO EN LA AJ9 (2026-10-29): 35 -> 36. La que entra es ref-strain, la ficha de
+     Contractilidad y strain longitudinal, en la subpestana «Funcion», que pasa de tres entradas
+     a cuatro. Lo que esta condicion vigila -que el reparto no pierda ni duplique una entrada- no
+     cambia; lo que cambia es el denominador. */
+  ex.push(['(A2) DENOMINADOR: el censo encuentra las 36 entradas de la pestana',
+    censo.n === 36, 'n=' + censo.n]);
   ex.push(['(A2b) y la que entro es la de constriccion, en la subpestana Otros hallazgos',
     censo.filas.some(f => f.id === 'constriccion' && f.sub === 'otros'),
     JSON.stringify(censo.filas.filter(f => f.id === 'constriccion'))]);
@@ -78520,8 +78530,11 @@ caso('TC-502', 'Tanda P: Referencias en CINCO subpestanas sin perder una entrada
   /* ADAPTADO el 2026-10-24 (tanda G, commit G5): «Otros hallazgos» pasa de 11 a 12, por la
      ficha del posoperatorio. Los otros cuatro repartos no se movieron, que es lo que esta
      condicion protege. */
-  ex.push(['(A4) el reparto es 5 Dimensiones + 3 Funcion + 12 Valvulas + 3 Aorta + 12 Otros',
-    porSub.dim === 5 && porSub.fun === 3 && porSub.valv === 12 && porSub.ao === 3 && porSub.otros === 12,
+  /* ⚠️ ADAPTADO EN LA AJ9: Funcion pasa de 3 a 4 por ref-strain. Las otras cuatro
+     subpestanas no se tocan, y eso es parte de lo que la condicion exige: que la entrada nueva
+     caiga en UNA sola. */
+  ex.push(['(A4) el reparto es 5 Dimensiones + 4 Funcion + 12 Valvulas + 3 Aorta + 12 Otros',
+    porSub.dim === 5 && porSub.fun === 4 && porSub.valv === 12 && porSub.ao === 3 && porSub.otros === 12,
     JSON.stringify(porSub)]);
   /* Clic REAL en cada boton: activa SU panel y apaga los otros cuatro. */
   const subEstado = [];
@@ -78573,8 +78586,9 @@ caso('TC-502', 'Tanda P: Referencias en CINCO subpestanas sin perder una entrada
      Los dos agrupadores -nativas y protesicas- siguen fuera del indice. */
   /* ADAPTADO el 2026-10-24 (tanda G, commit G5): 32 -> 33, por la ficha del posoperatorio.
      Los dos agrupadores -nativas y protesicas- siguen fuera del indice. */
-  ex.push(['(B1) DENOMINADOR: el buscador existe y su indice tiene las 33 entradas (35 menos los dos agrupadores)',
-    !!EL('ref-busca') && (function () { try { return FN('_refIndiceArmar') && window._refIndiceArmar(true).length === 33; } catch (e) { return false; } })(),
+  /* ⚠️ ADAPTADO EN LA AJ9: 33 -> 34, por ref-strain. Los dos agrupadores siguen fuera. */
+  ex.push(['(B1) DENOMINADOR: el buscador existe y su indice tiene las 34 entradas (36 menos los dos agrupadores)',
+    !!EL('ref-busca') && (function () { try { return FN('_refIndiceArmar') && window._refIndiceArmar(true).length === 34; } catch (e) { return false; } })(),
     'indice=' + (function () { try { return window._refIndiceArmar(true).length; } catch (e) { return 'EXC'; } })()]);
   ex.push(['(B2) «RWT» encuentra la GEOMETRIA DEL VI y dice su subpestana',
     !bRWT.err && bRWT.n > 0 && bRWT.ids.indexOf('vi') >= 0 && bRWT.subs.indexOf('Dimensiones') >= 0,
@@ -78611,8 +78625,11 @@ caso('TC-502', 'Tanda P: Referencias en CINCO subpestanas sin perder una entrada
      score con sus folios—. Lo que este denominador vigila no cambia. */
   /* ADAPTADO el 2026-10-24 (tanda J2, commit J2-7): 40 -> 41. La que entra es pul-balik, que
      deja de ser una tarjeta sin boton porque su ficha de Referencias ya existe. */
-  ex.push(['(C1) DENOMINADOR: 41 de las 56 claves de tarjeta tienen entrada de Referencias',
-    Object.keys(MAPA).length === 41, 'n=' + Object.keys(MAPA).length]);
+  /* ⚠️ ADAPTADO EN LA AJ9 (2026-10-29): 41 -> 44, y el total de claves 56 -> 65. Las TRES
+     que entran son contr-territorio, patrones-sgl y amil-apice, que llevan boton desde el mismo
+     commit que creo su entrada ref-strain -que es el invariante de esta tabla-. */
+  ex.push(['(C1) DENOMINADOR: 44 de las 65 claves de tarjeta tienen entrada de Referencias',
+    Object.keys(MAPA).length === 44, 'n=' + Object.keys(MAPA).length]);
   ex.push(['(C2) el assert del mapeo no encuentra ninguna clave rota ni ningun destino inexistente',
     (function () { try { return FN('_vinfoRefAssert') && window._vinfoRefAssert().length === 0; } catch (e) { return false; } })(),
     (function () { try { return window._vinfoRefAssert().join(' | ') || 'cero'; } catch (e) { return 'EXC'; } })()]);
@@ -81425,7 +81442,13 @@ caso('TC-507', 'Tanda R: la VAB muestra la lesion PRESENTE sin grado con un solo
   try { if (typeof showTab === 'function') showTab('referencias'); } catch (e) {}
   try { if (typeof toggleRef === 'function') toggleRef('vd2', null); } catch (e) {}
   try { if (typeof evRefPintar === 'function') evRefPintar('vd2'); } catch (e) {}
-  ex.push(['(I8) los DIECISEIS chips «Criterio de EcoSmart» estan y el prefijo de las notas tambien',
+  /* ⚠️ ADAPTADO EN LA AJ9 (2026-10-29): 16 -> 18. Los DOS que entran son los de la ficha
+     nueva ref-strain: los quince rangos «SGL tipico» de los patrones del ojo de buey, que no
+     salen de ningun documento de la biblioteca, y el quinto grado «aneurisma» de la escala de
+     motilidad, que Lang 2015 no incluye -publica cuatro-. Los dos son marcado ESTATICO, asi que
+     no dependen de que alguien abra la ficha. Lo que esta condicion vigila -que lo que no tiene
+     fuente lo diga- no cambia; lo que cambia es el denominador. */
+  ex.push(['(I8) los DIECIOCHO chips «Criterio de EcoSmart» estan y el prefijo de las notas tambien',
     (function(){ let n = 0;
       Array.prototype.forEach.call(document.querySelectorAll('span'), x => {
         if ((x.textContent || '').trim() === 'CRITERIO DE ECOSMART') n++; });
@@ -81484,7 +81507,7 @@ caso('TC-507', 'Tanda R: la VAB muestra la lesion PRESENTE sin grado con un solo
             Corriendo este caso SOLO el chip no existia y el conteo daba 15; despues de un caso
             que abriera Referencias, 16. Se PINTA ACA antes de contar, que es lo unico que hace
             el denominador estable — y de paso es lo que el medico ve cuando entra a la ficha. */
-      return n === 16 && _ecoPref === 'Criterio de EcoSmart: '; })(),
+      return n === 18 && _ecoPref === 'Criterio de EcoSmart: '; })(),
     (function(){ let n = 0;
       Array.prototype.forEach.call(document.querySelectorAll('span'), x => {
         if ((x.textContent || '').trim() === 'CRITERIO DE ECOSMART') n++; });
@@ -82428,7 +82451,10 @@ caso('TC-509', 'Trabajo B (ADAPTADO por el B2): la columna izquierda con sus ONC
       const t = EL('tab-refs');
       const n = t ? [].slice.call(t.querySelectorAll('h2.card-head'))
         .filter(function (h) { return (h.getAttribute('onclick') || '').indexOf("toggleRef('") > -1; }).length : -1;
-      return n === 35 && !!EL('ref-fop') && !!EL('ref-hfapeff') && !!EL('ref-constriccion')
+      /* ⚠️ ADAPTADO EN LA AJ9 (2026-10-29): 35 -> 36, por ref-strain en la subpestana
+         «Funcion». Lo que esta condicion vigila -que sean SEIS subpestanas y que el censo no
+         pierda una entrada- no cambia. */
+      return n === 36 && !!EL('ref-fop') && !!EL('ref-hfapeff') && !!EL('ref-constriccion')
         && !!EL('ref-pulmon') && !!EL('ref-pop'); })(),
     (function () { const t = EL('tab-refs');
       const n = t ? [].slice.call(t.querySelectorAll('h2.card-head'))
@@ -90790,6 +90816,28 @@ caso('TC-535', 'Tanda AJ7: la linea de Fallot del EN SUMA sin la IP y el resumen
   const tapK = (function(){
     const out = [];
     Array.prototype.forEach.call(document.querySelectorAll('button.vinfo-btn-44'), (b) => {
+      /* ⚠️ ADAPTADO EN LA AJ9: PRIMERO SE ABRE LA SECCION POR SU ENCABEZADO, Y DESPUES SE
+         FUERZAN LOS display. Forzar a secas da una caja BASURA cuando el acordeon esta
+         cerrado: medido, a los 756 px de ancho que da este Chrome headless -el mismo numero
+         que esta suite ya documenta en otro caso- la seccion de Contractilidad mide 70 px, o
+         sea solo su encabezado, y el boton de adentro informa un rect que SE SUPERPONE con ese
+         encabezado. Pasa IGUAL en HEAD: es una limitacion del arnes, no de la app. Es la misma
+         trampa que la C2 documenta -showTab no le da caja a lo que esta dentro de una seccion
+         colapsada- y el mismo motivo por el que check_mobile.js abre todo antes de medir. */
+      let n0 = b.parentNode;
+      while (n0 && n0.nodeType === 1 && n0 !== document.body) {
+        if (n0.classList && n0.classList.contains('sacc')) {
+          const h0 = n0.querySelector('.sacc-hdr');
+          if (h0 && h0.getAttribute('aria-expanded') !== 'true') { try { h0.click() } catch (e) {} }
+          /* Y SE LE SACA LA ANIMACION. la clase sacc-body abre con max-height y una transicion de
+             0,3 s: medir en el acto lee la caja de MITAD de la animacion, y los hijos informan
+             un rect que se superpone con el encabezado. Eso era todo -no habia ningun solape
+             real-, y costo media docena de mediciones averiguarlo. */
+          const b0 = n0.querySelector('.sacc-body');
+          if (b0) { b0.style.transition = 'none'; b0.style.maxHeight = 'none'; b0.style.overflow = 'visible'; }
+          n0.classList.add('open');
+        }
+        n0 = n0.parentNode; }
       let n = b.parentNode;
       while (n && n.nodeType === 1 && n !== document.body) {
         if (getComputedStyle(n).display === 'none') n.style.display = 'block';
@@ -90829,12 +90877,19 @@ caso('TC-535', 'Tanda AJ7: la linea de Fallot del EN SUMA sin la IP y el resumen
      condiciones exigen no cambia; lo que cambia es cuantos globos tienen que cumplirlo, y el
      conteo ES el denominador: agregar uno sin la clase pone esto en rojo, que es lo que se
      quiere. Medido en los dos motores: los ocho dan 44x44 y los cinco puntos dan el propio. */
-  ex.push(['(K0) DENOMINADOR: los OCHO globos llevan la clase, tienen geometria y estan EN VISTA',
-    tapK.length === 8 && tapK.every((x) => x.w > 0 && x.h > 0 && x.enVista), JSON.stringify(tapK)]);
-  ex.push(['(K1) los ocho miden 44x44 tambien con el mouse',
-    tapK.length === 8 && tapK.every((x) => x.w >= 44 && x.h >= 44), JSON.stringify(tapK)]);
+  /* ⚠️ ADAPTADO EN LA AJ9 (2026-10-29): OCHO -> ONCE. Los tres nuevos son contr-territorio,
+     patrones-sgl y amil-apice, que nacen con la clase vinfo-btn-44 y SIN margenes negativos.
+     Lo que estas tres condiciones exigen no cambia; lo que cambia es cuantos globos tienen que
+     cumplirlo, y el conteo ES el denominador: agregar uno sin la clase pone esto en rojo.
+     ⚠️ Y SE CAMBIO EL METODO, no solo el numero: ver el comentario de tapK mas arriba. El de
+     los territorios vive en una seccion que a 756 px queda CERRADA, y medirlo sin abrirla daba
+     CERO puntos propios sobre un boton que a 1440 px da los cinco. */
+  ex.push(['(K0) DENOMINADOR: los ONCE globos llevan la clase, tienen geometria y estan EN VISTA',
+    tapK.length === 11 && tapK.every((x) => x.w > 0 && x.h > 0 && x.enVista), JSON.stringify(tapK)]);
+  ex.push(['(K1) los once miden 44x44 tambien con el mouse',
+    tapK.length === 11 && tapK.every((x) => x.w >= 44 && x.h >= 44), JSON.stringify(tapK)]);
   ex.push(['(K2) y su caja NO tapa a ningun vecino: los cinco puntos dan el propio boton',
-    tapK.length === 8 && tapK.every((x) => x.propios === 5), JSON.stringify(tapK)]);
+    tapK.length === 11 && tapK.every((x) => x.propios === 5), JSON.stringify(tapK)]);
   ex.push(['(K3) CONTROL: los demas globos NO se tocaron y siguen con su piso solo tactil',
     document.querySelectorAll('button.vinfo-btn').length
       - document.querySelectorAll('button.vinfo-btn-44').length >= 10,
@@ -94670,6 +94725,382 @@ caso('TC-546', 'Tanda TEP: los cortes del VD por la AHA/ACC 2026 -TAPSE <17 mm y
   })();
 `);
 
+
+
+/* -- TC-547 ---------------------------------------------------------------------------------
+   Tanda AJ9. Fija los dos cortes del SGL de la ASE 2025 con sus SIETE bordes, el signo, el
+   rotulo que es SOLO de pantalla, el aviso y la cita de los territorios, los patrones del ojo
+   de buey, el 2,9 del score que NO se movio y la ficha de Referencias nueva.
+   ⚠️ CINCO DENOMINADORES. Sin ellos, «el informe no dice limitrofe» no se distingue de «el
+   informe salio vacio», y «los quince rangos llevan el rotulo» no se distingue de «la grilla
+   no pinto ninguna celda» — que es como un chequeo pasa en verde sin probar nada.
+   ⚠️ NO SE BUSCA LA PALABRA «limitrofe» EN TODO EL INFORME: aparece 19 veces en el archivo y
+   el generador la usa para otros datos. Lo que se mira es el FRAGMENTO que sigue a «SGL ».
+   -------------------------------------------------------------------------------------------- */
+caso('TC-547', 'Tanda AJ9: los dos cortes del SGL de la ASE 2025 en sus siete bordes -18,1 normal, 18 y 16 limitrofes, 15,9 anormal-, el signo positivo publicado negativo sin reescribir el campo ni la columna de Excel, el rotulo SOLO en pantalla y ausente del informe, el EN SUMA y el PDF, el aviso de variabilidad de los territorios con su cita y el reparto sin cambios, el patron de amiloidosis con la definicion de la ASE y sin el 2,9, los quince rangos con su rotulo ilustrativo, el corte del score conservado en sus tres bordes con el globo que no lo marca, y la ficha de Referencias en su subpestana', `
+  return (async () => {
+  const ex = [];
+  const EL = function (id) { return document.getElementById(id); };
+  const T  = function (id) { const e = EL(id); return e ? (e.textContent || '').trim() : 'NO EXISTE'; };
+  const V  = function (id) { const e = EL(id); return e ? e.value : null; };
+  const FN = function (n) { return typeof window[n] === 'function'; };
+  const NUM = function (n) { const u = window[n]; return (typeof u === 'number') ? u : null; };
+  /* ⚠️ LA PALABRA SE ARMA POR CODIGOS porque el cuerpo del caso es un template y conviene
+     no depender de como se guarde la tilde. Y se escribio MAL la primera vez -la tilde en la
+     i equivocada, «limitrofe» con el acento en la primera-, asi que tres condiciones salieron
+     rojas sobre una pantalla correcta: el diagnostico decia «SGL -16% limitrofe» y el caso
+     decia que no estaba. l-i-m-i(tilde)-t-r-o-f-e. */
+  const LIM = String.fromCharCode(108, 105, 109, 237, 116, 114, 111, 102, 101);
+  const PUNTO = String.fromCharCode(183);
+  const RAYA = String.fromCharCode(8212);
+  const S  = function (id, v) { const e = EL(id); if (!e) return false;
+    e.value = v;
+    e.dispatchEvent(new Event('input', { bubbles: true }));
+    e.dispatchEvent(new Event('change', { bubbles: true }));
+    return true; };
+  const esp = function () { return new Promise(function (r) { setTimeout(r, 40); }); };
+  const limpiarOverlays = function () {
+    ['modalAvisoEco', 'login-overlay'].forEach(function (id) {
+      const m = EL(id); if (m) m.style.display = 'none'; }); };
+  /* ⚠️ EL ESTILO DE INFORME ES ESTADO DE SESION, Y ESO HIZO CAER AL CASO EN LA CORRIDA
+     COMPLETA. Aislado salia verde; en el lote 11 el informe tenia 904 caracteres y ninguna
+     aparicion de «SGL », porque un caso anterior lo habia dejado en NARRATIVO, donde la frase
+     es «y un strain longitudinal global de -18%». El dato estaba y la condicion no lo veia.
+     Es la misma clase de dependencia de orden que este repo documenta para TC-507 y TC-537. */
+  const gen = function (estilo) {
+    try { if (FN('setEstiloInforme')) setEstiloInforme(estilo || 'estandar'); } catch (e) {}
+    try { if (FN('generarInforme')) generarInforme(); } catch (e) {}
+    return { inf: (EL('informe_texto') || {}).value || '', suma: (EL('en_suma') || {}).value || '' };
+  };
+  /* El fragmento que sigue a «SGL » — 36 caracteres alcanzan para el numero y el rotulo. */
+  const tras = function (txt, marca) { const i = String(txt || '').indexOf(marca);
+    return i < 0 ? '' : String(txt).slice(i, i + 36); };
+  const sinRotulo = function (frag) { const f = String(frag || '');
+    return ['normal', 'anormal', LIM].every(function (r) { return f.indexOf(r) < 0; }); };
+  /* La escena: FEVI cargada -el informe publica el SGL PEGADO a la FEVI, asi que sin ella la
+     frase no se emite y el chequeo pasaria sobre una superficie que no salio- y el SGL. */
+  /* ⚠️ EL MODO DE VISTA SE FUERZA A «AVANZADO», Y LO PIDIO LA CORRIDA COMPLETA. Aislado el
+     caso salia verde y en el lote 11 caia por (B0) con el informe emitido -904 caracteres- y
+     SIN la frase del SGL: un caso anterior deja la app en modo basico, donde el campo #sgl no
+     esta disponible, asi que S('sgl', ...) no pega y el informe sale sin el dato. Es la misma
+     clase de dependencia de orden que este repo ya documenta para TC-507 y TC-537. */
+  const escena = function (sgl, campo) {
+    try { __t.limpiar(); } catch (e) {}
+    limpiarOverlays();
+    try { if (FN('setViewMode')) setViewMode('avanzado'); } catch (e) {}
+    try { if (FN('applyViewMode')) applyViewMode(); } catch (e) {}
+    S('nombre', 'TC547'); S('documento', '5470');
+    S('fevi', '55');
+    S(campo || 'sgl', sgl);
+    try { if (FN('calcVI')) calcVI(); } catch (e) {}
+    try { if (FN('calcSGL')) calcSGL(); } catch (e) {}
+  };
+
+  /* ══ DENOMINADORES ══════════════════════════════════════════════════════════════════════ */
+  ex.push(['(D1) DENOMINADOR: existen las dos constantes y sus seis funciones duenas',
+    NUM('SGL_NORMAL_MAX') !== null && NUM('SGL_ANORMAL_MIN') !== null &&
+    FN('sglClasificar') && FN('sglNeg') && FN('sglNegTxt') && FN('sglRotuloPintar') &&
+    FN('sglCortesPintar') && FN('patronSglTxt'),
+    'max=' + NUM('SGL_NORMAL_MAX') + ' min=' + NUM('SGL_ANORMAL_MIN')]);
+  ex.push(['(D2) DENOMINADOR: las constantes valen lo que publica el consenso clinico 1 de la ASE 2025',
+    NUM('SGL_NORMAL_MAX') === -18 && NUM('SGL_ANORMAL_MIN') === -16,
+    'max=' + NUM('SGL_NORMAL_MAX') + ' min=' + NUM('SGL_ANORMAL_MIN')]);
+  ex.push(['(D3) DENOMINADOR: los DOS nodos de pantalla del rotulo y los dos campos existen',
+    !!EL('sgl-interp') && !!EL('sgl-interp-tab') && !!EL('sgl') && !!EL('sgl_gls'),
+    'interp=' + !!EL('sgl-interp') + ' tab=' + !!EL('sgl-interp-tab')]);
+  ex.push(['(D4) DENOMINADOR: hay quince patrones y la grilla los pinta',
+    (function () { if (typeof PATRONES === 'undefined') return 'SIN REGISTRO';
+      try { if (FN('renderGrid')) renderGrid(); } catch (e) {}
+      const g = EL('patron-grid');
+      const n = g ? g.querySelectorAll('.detalle-sgl').length : 0;
+      return PATRONES.length === 15 && n === 15; })() === true,
+    'patrones=' + (typeof PATRONES === 'undefined' ? 'SIN' : PATRONES.length)]);
+  ex.push(['(D5) DENOMINADOR: la ficha ref-strain existe y tiene su tabla poblada',
+    !!EL('ref-strain') && document.querySelectorAll('#ref-strain table tr').length >= 13,
+    'filas=' + document.querySelectorAll('#ref-strain table tr').length]);
+
+  /* ══ (A) LOS SIETE BORDES, EN EL DUENO Y EN LOS DOS NODOS DE PANTALLA ════════════════════ */
+  const BORDES = [['-18.1', 'normal'], ['-18', 'limitrofe'], ['-17.9', 'limitrofe'],
+                  ['-16.1', 'limitrofe'], ['-16', 'limitrofe'], ['-15.9', 'anormal'],
+                  ['-20', 'normal']];
+  const malDueno = [], malPant = [], malTab = [];
+  for (let i = 0; i < BORDES.length; i++) {
+    const b = BORDES[i];
+    const c = FN('sglClasificar') ? (sglClasificar(b[0]) || {}).clave : 'SIN FN';
+    if (c !== b[1]) malDueno.push(b[0] + '=' + c);
+    escena(b[0]); await esp();
+    const p = T('sgl-interp'), t = T('sgl-interp-tab');
+    if (p.indexOf('SGL ' + b[0] + '%') < 0) malPant.push(b[0] + ' num=' + p);
+    if (p.indexOf(PUNTO) < 0) malPant.push(b[0] + ' sin rotulo=' + p);
+    if (t !== p) malTab.push(b[0] + ' pant=' + p + ' tab=' + t);
+  }
+  ex.push(['(A1) los siete bordes clasifican como manda la ASE 2025: -18,1 y -20 normales, -18 a -16 limitrofes, -15,9 anormal',
+    malDueno.length === 0, malDueno.join(' ')]);
+  ex.push(['(A2) la fila de calculo publica el numero Y el rotulo en los siete bordes',
+    malPant.length === 0, malPant.join(' | ').slice(0, 220)]);
+  ex.push(['(A3) la pestana de Contractilidad y SGL publica EXACTAMENTE lo mismo que la fila de calculo',
+    malTab.length === 0, malTab.join(' | ').slice(0, 220)]);
+  escena('-16'); await esp();
+  ex.push(['(A4) el -16 EXACTO es limitrofe y no anormal, que es el borde que la guia se lleva',
+    T('sgl-interp').indexOf(LIM) > -1, T('sgl-interp')]);
+  escena('-18'); await esp();
+  ex.push(['(A5) el -18 EXACTO es limitrofe y no normal',
+    T('sgl-interp').indexOf(LIM) > -1, T('sgl-interp')]);
+  ex.push(['(A6) la banda de normalidad del cartel de plausibilidad lee la MISMA constante',
+    (function () { if (typeof DCM_RANGO_CLIN === 'undefined') return 'SIN REGISTRO';
+      const b = DCM_RANGO_CLIN.sgl; return !!b && b[1] === NUM('SGL_NORMAL_MAX'); })() === true,
+    'banda=' + (typeof DCM_RANGO_CLIN === 'undefined' ? 'SIN' : JSON.stringify(DCM_RANGO_CLIN.sgl))]);
+  ex.push(['(A7) la ficha de cardio-oncologia publica los DOS cortes pintados desde las constantes',
+    (function () { const f = T('ref-cardiotox');
+      return f.indexOf('-18%') > -1 && f.indexOf('>-16%') > -1; })() === true,
+    tras(T('ref-cardiotox'), 'SGL normal')]);
+  ex.push(['(A8) la alerta del Laboratorio nombra el corte anormal desde la constante',
+    (function () { if (!FN('_labIndicadoresList')) return 'SIN FN';
+      const l = _labIndicadoresList([]).map(function (x) { return x.lbl; }).join(' | ');
+      return l.indexOf('|GLS| < ' + Math.abs(NUM('SGL_ANORMAL_MIN')) + ' %') > -1; })() === true,
+    'alertas']);
+
+  /* ══ (B) EL SIGNO ════════════════════════════════════════════════════════════════════════ */
+  escena('18'); await esp();
+  const gPos = gen('estandar');
+  await esp();
+  const infPos = gPos.inf, sumPos = gPos.suma;
+  const narPos = gen('narrativo').inf;
+  gen('estandar');
+  ex.push(['(B0) DENOMINADOR: el campo tomo el valor y la escena produce informe y EN SUMA con la frase del SGL',
+    V('sgl') === '18' && infPos.length > 60 && infPos.indexOf('SGL') > -1 && sumPos.indexOf('SGL') > -1,
+    'campo=' + V('sgl') + ' fevi=' + V('fevi') + ' len=' + infPos.length + ' frag=' + tras(infPos, 'SGL ')]);
+  ex.push(['(B1b) y el estilo NARRATIVO, que lo dice con otras palabras, tambien lo publica negativo',
+    narPos.indexOf('strain longitudinal global de -18%') > -1,
+    tras(narPos, 'strain longitudinal global')]);
+  ex.push(['(B1) el informe publica el SGL NEGATIVO aunque el medico lo haya tipeado positivo',
+    infPos.indexOf('SGL -18%') > -1 && infPos.indexOf('SGL 18%') < 0,
+    tras(infPos, 'SGL ')]);
+  ex.push(['(B2) el EN SUMA tambien',
+    sumPos.indexOf('SGL -18%') > -1 && sumPos.indexOf('SGL 18%') < 0, tras(sumPos, 'SGL ')]);
+  ex.push(['(B3) el CAMPO del estudio NO se reescribe: sigue valiendo lo que el medico escribio',
+    V('sgl') === '18' && V('sgl_gls') === '18', 'sgl=' + V('sgl') + ' gls=' + V('sgl_gls')]);
+  ex.push(['(B4) la columna de Excel tampoco, y el Excel sigue en 440 columnas',
+    (function () { if (!FN('_labExcelRow')) return 'SIN FN';
+      const campos = {};
+      Array.prototype.forEach.call(document.querySelectorAll('input[id],select[id],textarea[id]'),
+        function (e) { if (e.type !== 'button' && e.id) campos[e.id] = (e.type === 'checkbox') ? (e.checked ? '1' : '') : e.value; });
+      const fila = window._labExcelRow({ campos: campos, fecha: '2026-10-29' });
+      return !!fila && Object.keys(fila).length === 440 && String(fila['GLS (%)']) === '18'; })() === true,
+    'columnas y valor']);
+  ex.push(['(B5) el rotulo de pantalla clasifica por el valor NEGATIVO: un +18 es limitrofe y no anormal',
+    T('sgl-interp').indexOf('-18%') > -1 && T('sgl-interp').indexOf(LIM) > -1,
+    T('sgl-interp')]);
+  escena('-18.5'); await esp();
+  const gNeg = gen('estandar'); await esp();
+  ex.push(['(B6) CONTROL: lo que ya viene negativo sale LITERAL, con sus decimales y sin reescribir',
+    gNeg.inf.indexOf('SGL -18.5%') > -1, tras(gNeg.inf, 'SGL ')]);
+  escena('18.5'); await esp();
+  const gDec = gen('estandar'); await esp();
+  ex.push(['(B7) y el positivo con decimales conserva los suyos: 18.5 sale -18.5 y no -18',
+    gDec.inf.indexOf('SGL -18.5%') > -1, tras(gDec.inf, 'SGL ')]);
+
+  /* ══ (C) EL ROTULO ES SOLO DE PANTALLA ═══════════════════════════════════════════════════ */
+  escena('-18'); await esp();
+  const gL = gen('estandar'); await esp();
+  const infL = gL.inf, sumL = gL.suma;
+  ex.push(['(C0) DENOMINADOR: la escena limitrofe produce informe con la frase del SGL y el rotulo EN PANTALLA',
+    infL.indexOf('SGL -18%') > -1 && T('sgl-interp').indexOf(PUNTO) > -1,
+    'pant=' + T('sgl-interp')]);
+  ex.push(['(C1) el informe publica el numero SOLO: ni normal, ni limitrofe, ni anormal pegados al SGL',
+    sinRotulo(tras(infL, 'SGL ')), tras(infL, 'SGL ')]);
+  ex.push(['(C2) el EN SUMA tampoco', sinRotulo(tras(sumL, 'SGL ')), tras(sumL, 'SGL ')]);
+  /* ⚠️ SE ESPERA A jsPDF ANTES DE MIRARLO. Leer window.jspdf sin esperarlo es la carrera
+     que deja a TC-358 rojo de forma intermitente, con un diagnostico -«NO HAY jsPDF»- que
+     parece un problema de conexion y no lo es: la libreria llega del CDN en menos de un
+     segundo. Sin esta espera, estas dos condiciones salian rojas en la primera corrida. */
+  for (let i = 0; i < 80 && (typeof window.jspdf === 'undefined' || !window.jspdf.jsPDF); i++) {
+    await new Promise(function (r) { setTimeout(r, 100); });
+  }
+  let pdfTxt = '', pdfErr = '';
+  try {
+    if (typeof window.jspdf !== 'undefined' && window.jspdf.jsPDF) {
+      const Orig = window.jspdf.jsPDF;
+      const reg = [];
+      window.jspdf.jsPDF = function () { const d = new Orig(arguments[0]);
+        const ot = d.text.bind(d);
+        d.text = function (t, x, y) { reg.push(String(t)); return ot.apply(null, arguments); };
+        d.save = function () { return d; }; d.output = function () { return ''; }; return d; };
+      Object.keys(Orig).forEach(function (k) { try { window.jspdf.jsPDF[k] = Orig[k]; } catch (e) {} });
+      /* El emisor real es _pdfAjustarA4, igual que en la sonda de A/B de esta tanda; con
+         generarPDF solo, el espia no registraba un solo texto y las dos condiciones salian
+         rojas con el diagnostico VACIO, que se lee igual que «el PDF no trae el SGL». */
+      try {
+        if (FN('_pdfAjustarA4')) await _pdfAjustarA4();
+        else if (FN('generarPDF')) await generarPDF();
+        else pdfErr = 'SIN EMISOR';
+      } catch (e) { pdfErr = 'EXC ' + e.message; }
+      await new Promise(function (r) { setTimeout(r, 400); });
+      window.jspdf.jsPDF = Orig;
+      pdfTxt = reg.join(' | ');
+    } else { pdfErr = 'NO HAY jsPDF'; }
+  } catch (e) { pdfErr = 'EXC ' + e.message; }
+  ex.push(['(C3) DENOMINADOR: el PDF se genero y trae el SGL',
+    pdfTxt.indexOf('SGL') > -1, pdfErr || pdfTxt.slice(0, 110)]);
+  ex.push(['(C4) el PDF publica el numero SOLO, sin el rotulo',
+    pdfTxt.indexOf('SGL') > -1 && sinRotulo(tras(pdfTxt, 'SGL')), tras(pdfTxt, 'SGL')]);
+
+  /* ══ (D) LOS TERRITORIOS ═════════════════════════════════════════════════════════════════ */
+  const REPARTO = { basal_anterior: 'DA', basal_anteroseptal: 'DA', mid_anterior: 'DA',
+    mid_anteroseptal: 'DA', apical_anterior: 'DA', apical_septal: 'DA', apex: 'DA',
+    basal_inferoseptal: 'CD', basal_inferior: 'CD', mid_inferoseptal: 'CD', mid_inferior: 'CD',
+    apical_inferior: 'CD', basal_inferolateral: 'CX', basal_anterolateral: 'CX',
+    mid_inferolateral: 'CX', mid_anterolateral: 'CX', apical_lateral: 'CX' };
+  ex.push(['(D6) DENOMINADOR: el reparto de los 17 segmentos existe y tiene 17 entradas',
+    typeof CONTR_TERRITORIO !== 'undefined' && Object.keys(CONTR_TERRITORIO).length === 17,
+    'n=' + (typeof CONTR_TERRITORIO === 'undefined' ? 'SIN' : Object.keys(CONTR_TERRITORIO).length)]);
+  ex.push(['(D7) el reparto NO se movio: coincide segmento por segmento con la Figura 5 de Cerqueira',
+    (function () { if (typeof CONTR_TERRITORIO === 'undefined') return 'SIN REGISTRO';
+      const mal = Object.keys(REPARTO).filter(function (k) {
+        return CONTR_TERRITORIO_NOMBRE[CONTR_TERRITORIO[k]] !== REPARTO[k]; });
+      return mal.length === 0 ? true : mal.join(','); })() === true,
+    'reparto']);
+  ex.push(['(D8) el aviso de variabilidad esta en la PANTALLA, no solo en el globo',
+    (function () { const b = document.querySelector('[data-vinfo="contr-territorio"]');
+      if (!b) return 'SIN BOTON';
+      const pan = b.closest('div').parentNode;
+      const t = pan ? (pan.textContent || '') : '';
+      return t.indexOf(String.fromCharCode(118, 97, 114, 237, 97) + ' entre pacientes') > -1; })() === true,
+    'aviso']);
+  ex.push(['(D9) la tarjeta i trae las TRES reservas de la fuente: dominante, en general y el segmento 17',
+    (function () { if (typeof VINFO === 'undefined' || !VINFO['contr-territorio']) return 'SIN TARJETA';
+      const t = JSON.stringify(VINFO['contr-territorio']);
+      return t.indexOf('dominante') > -1 && t.indexOf('en general') > -1 &&
+             t.indexOf('mayor variabilidad') > -1 && t.indexOf('244') > -1; })() === true,
+    'tarjeta']);
+  ex.push(['(D10) CONTROL: no hay ningun indice de motilidad -WMSI- en esta pestana',
+    document.querySelectorAll('#tab-contractilidad [id*="wmsi"]').length === 0 &&
+    document.querySelectorAll('#tab-sgl [id*="wmsi"]').length === 0,
+    'nodos=' + document.querySelectorAll('[id*="wmsi"]').length]);
+
+  /* ══ (E) LOS PATRONES ════════════════════════════════════════════════════════════════════ */
+  ex.push(['(E1) el patron de amiloidosis usa la definicion de la ASE 2025 y NO el 2,9 del score',
+    (function () { if (typeof PATRONES === 'undefined') return 'SIN REGISTRO';
+      const p = PATRONES.filter(function (x) { return x.id === 'amiloidosis'; })[0];
+      if (!p) return 'SIN PATRON';
+      const t = p.sgl + p.descripcion + p.hallazgos;
+      return t.indexOf('2 veces') > -1 && t.indexOf('2.9') < 0 && t.indexOf('2,9') < 0; })() === true,
+    'amiloidosis']);
+  ex.push(['(E2) NINGUNO de los quince patrones nombra ya el 2,9',
+    (function () { if (typeof PATRONES === 'undefined') return 'SIN REGISTRO';
+      const con = PATRONES.filter(function (p) {
+        const t = p.sgl + p.descripcion + p.hallazgos;
+        return t.indexOf('2.9') > -1 || t.indexOf('2,9') > -1; }).map(function (p) { return p.id; });
+      return con.length === 0 ? true : con.join(','); })() === true,
+    'con 2,9']);
+  ex.push(['(E3) los patrones de MCH siguen SIN relacion apice/base',
+    (function () { if (typeof PATRONES === 'undefined') return 'SIN REGISTRO';
+      return PATRONES.filter(function (p) { return p.id.indexOf('mch') === 0; })
+        .filter(function (p) { const t = p.sgl + p.descripcion + p.hallazgos;
+          return t.indexOf('pice') > -1 && t.indexOf('base') > -1; }).length === 0; })() === true,
+    'mch']);
+  ex.push(['(E4) los QUINCE rangos llevan el rotulo ilustrativo, en el dueno',
+    (function () { if (typeof PATRONES === 'undefined' || !FN('patronSglTxt')) return 'SIN FN';
+      return PATRONES.filter(function (p) {
+        return patronSglTxt(p).indexOf('Criterio de EcoSmart (ilustrativo)') < 0; }).length === 0; })() === true,
+    'rotulos']);
+  ex.push(['(E5) y los DOS lectores lo publican: la grilla de acordeones y el panel de detalle',
+    (function () {
+      try { if (FN('renderGrid')) renderGrid(); } catch (e) {}
+      const g = EL('patron-grid');
+      const cel = g ? [].slice.call(g.querySelectorAll('.detalle-sgl')) : [];
+      if (cel.length !== 15) return 'grilla=' + cel.length;
+      const malG = cel.filter(function (c) { return (c.textContent || '').indexOf('ilustrativo') < 0; }).length;
+      try { if (FN('selPatron')) selPatron('amiloidosis'); } catch (e) {}
+      const d = T('det-sgl');
+      return malG === 0 && d.indexOf('ilustrativo') > -1; })() === true,
+    'lectores']);
+  ex.push(['(E6) la tarjeta i de la seccion trae las citas y la advertencia de los fabricantes',
+    (function () { if (typeof VINFO === 'undefined' || !VINFO['patrones-sgl']) return 'SIN TARJETA';
+      const t = JSON.stringify(VINFO['patrones-sgl']);
+      return t.indexOf('996') > -1 && t.indexOf('1442') > -1 &&
+             t.indexOf('General Electric') > -1 && t.indexOf('fabricante') > -1; })() === true,
+    'tarjeta']);
+
+  /* ══ (F) EL 2,9 DEL SCORE, QUE NO SE MOVIO ═══════════════════════════════════════════════ */
+  const api = function (apic, base) {
+    try { __t.limpiar(); } catch (e) {}
+    limpiarOverlays();
+    S('ap-apic', apic); S('ap-base', base);
+    try { if (FN('calcApice')) calcApice(); } catch (e) {}
+    return { rel: V('ap-result'), pts: V('ett-apice') };
+  };
+  const b289 = api('-17.34', '-6'), b290 = api('-17.4', '-6'), b291 = api('-17.46', '-6');
+  ex.push(['(F0) DENOMINADOR: la relacion se calcula y da los tres bordes buscados',
+    b289.rel === '2.89' && b290.rel === '2.90' && b291.rel === '2.91',
+    b289.rel + ' / ' + b290.rel + ' / ' + b291.rel]);
+  ex.push(['(F1) el corte del score sigue siendo ESTRICTO en 2,9: el 2,90 exacto NO suma y el 2,91 vale 3 puntos',
+    b289.pts === '0' && b290.pts === '0' && b291.pts === '3',
+    b289.pts + ' / ' + b290.pts + ' / ' + b291.pts]);
+  ex.push(['(F2) la tarjeta i dice que el valor es SEPTAL, de cuatro camaras y con que equipos, y su rendimiento',
+    (function () { if (typeof VINFO === 'undefined' || !VINFO['amil-apice']) return 'SIN TARJETA';
+      const t = JSON.stringify(VINFO['amil-apice']);
+      return t.indexOf('SEPTAL') > -1 && t.indexOf('cuatro c') > -1 &&
+             t.indexOf('Philips') > -1 && t.indexOf('67 %') > -1 && t.indexOf('77 %') > -1 &&
+             t.indexOf('1558') > -1; })() === true,
+    'tarjeta']);
+  ex.push(['(F3) la tarjeta distingue este corte de la preservacion apical de los patrones',
+    (function () { if (typeof VINFO === 'undefined' || !VINFO['amil-apice']) return 'SIN TARJETA';
+      return JSON.stringify(VINFO['amil-apice']).indexOf('2 veces') > -1; })() === true, 'tarjeta']);
+  ex.push(['(F4) abrir el globo NO marca el criterio: el contenedor lleva su propio onclick que suma tres puntos',
+    (function () {
+      const b = document.querySelector('#crit-apice [data-vinfo="amil-apice"]');
+      if (!b) return 'SIN BOTON';
+      const antes = V('ett-apice');
+      b.click();
+      const despues = V('ett-apice');
+      try { b.click(); } catch (e) {}
+      return antes === despues ? true : (antes + ' -> ' + despues); })() === true,
+    'el globo no marca']);
+
+  /* ══ (G) LA FICHA DE REFERENCIAS ═════════════════════════════════════════════════════════ */
+  ex.push(['(G1) la ficha trae los folios de las seis fuentes',
+    (function () { const f = T('ref-strain');
+      return ['995', '996', '1442', '1558', '244'].every(function (n) { return f.indexOf(n) > -1; }); })() === true,
+    T('ref-strain').slice(0, 110)]);
+  ex.push(['(G2) y las DOS filas sin fuente llevan el chip de criterio de la aplicacion',
+    (T('ref-strain').match(/CRITERIO DE ECOSMART/g) || []).length === 2,
+    'chips=' + ((T('ref-strain').match(/CRITERIO DE ECOSMART/g) || []).length)]);
+  ex.push(['(G3) la ficha ESTA en una subpestana: existe y no queda suelta fuera del reparto',
+    (function () { if (typeof REF_SUBTAB === 'undefined') return 'SIN REGISTRO';
+      const todas = [].concat.apply([], Object.keys(REF_SUBTAB).map(function (k) { return REF_SUBTAB[k].slice(); }));
+      return todas.indexOf('strain') > -1; })() === true,
+    'fun=' + (typeof REF_SUBTAB === 'undefined' ? 'SIN' : REF_SUBTAB.fun.join(','))]);
+  ex.push(['(G4) las TRES tarjetas i de la tanda apuntan a esa ficha, y el assert de VINFO_REF no encuentra fallas',
+    (function () { if (typeof VINFO_REF === 'undefined') return 'SIN REGISTRO';
+      const ok = ['contr-territorio', 'patrones-sgl', 'amil-apice']
+        .every(function (k) { return VINFO_REF[k] === 'strain'; });
+      const as = FN('_vinfoRefAssert') ? _vinfoRefAssert() : ['SIN FN'];
+      return ok && as.length === 0; })() === true,
+    'vinfo_ref']);
+  ex.push(['(G5) la ficha NO cita a Biering-Sorensen ni a Jiang, que no estan en el registro de fuentes',
+    (function () { const f = T('ref-strain');
+      return f.indexOf('Biering') < 0 && f.indexOf('Jiang') < 0; })() === true, 'citas']);
+
+  /* ══ (H) ESCENARIO AJENO — nada del SGL, nada se mueve ═══════════════════════════════════ */
+  try { __t.limpiar(); } catch (e) {}
+  limpiarOverlays();
+  S('nombre', 'TC547b'); S('documento', '5471');
+  ['fevi', 'ddfvi', 'ai_vol', 'im_grado'].forEach(function (k, i) { S(k, ['45', '58', '98', '2'][i]); });
+  const infA = gen('estandar').inf;
+  await esp();
+  ex.push(['(H1) DENOMINADOR: el escenario ajeno produce informe',
+    infA.length > 80, 'len=' + infA.length]);
+  ex.push(['(H2) CONTROL NEGATIVO: sin SGL, el informe no lo nombra y el rotulo de pantalla queda vacio',
+    infA.indexOf('SGL') < 0 && T('sgl-interp') === RAYA && T('sgl-interp-tab') === '',
+    'pant=' + T('sgl-interp') + ' tab=' + JSON.stringify(T('sgl-interp-tab'))]);
+  escena('0'); await esp();
+  ex.push(['(H3) CONTROL NEGATIVO: el cero se sigue tratando como vacio, que es lo que HEAD hacia',
+    T('sgl-interp') === RAYA, T('sgl-interp')]);
+
+  return { extra: ex };
+  })();
+`);
 
 
 let servidor, chrome;

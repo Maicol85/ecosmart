@@ -417,3 +417,18 @@ La hoja PostCEC del PDF y la línea del EN SUMA pasan a ser **descriptivas**: si
 las cinco preguntas y sin conducta. Entran el lactato, la PAM, la PAD, la PAP, el gradiente
 transpulmonar y la RVP. El Excel sigue en **440 columnas** y `LAB_XLS_MAP` no tiene un solo
 `pop_`. Qué sale por dónde: **`docs/mapa/g-posoperatorio.md`** §5.
+
+---
+
+## El SGL en el papel tras la tanda AJ9 (2026-10-29) — puntero
+
+El informe narrativo (tres estilos), el EN SUMA, la tabla de mediciones del PDF, la hoja de
+strain del PDF y el PPT publican el SGL **con signo negativo**, aunque el médico lo haya tipeado
+positivo. `sglNegTxt` conserva literal lo que ya viene negativo.
+
+**El campo del estudio y la columna `GLS (%)` del Excel NO se reescriben**, y eso está declarado:
+`docs/PENDIENTES.md` → **AJ9-f**.
+
+**El rótulo «normal / limítrofe / anormal» NO baja al papel**: es sólo de pantalla.
+
+→ **`docs/mapa/aj9-sgl-patrones.md`** § 2 y § 3

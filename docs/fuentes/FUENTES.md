@@ -6836,3 +6836,173 @@ se espera: mover un corte clínico es decisión de Maicol. → `docs/PENDIENTES.
 | Aortopatía hereditaria en el informe y el EN SUMA | clase y umbral en el papel | **sin cambios**: el COMMIT 5 no se hizo | — | — |
 
 **Fecha de consulta de las cuatro lecturas en imagen de esta tanda: 29/10/2026.**
+
+---
+
+## La tanda AJ9 — el SGL, los territorios, los patrones y el 2,9 del score (2026-10-29)
+
+**Las seis fuentes se leyeron EN IMAGEN**, hoja por hoja, en el PDF original de la biblioteca.
+
+### 1 · Los dos cortes del SGL — ASE 2025, hoja 11, folio 995
+
+Thomas JD y cols., «Clinical Applications of Strain Echocardiography: A Clinical Consensus…»,
+*Journal of the American Society of Echocardiography* 2025;38(11):985-1020,
+doi 10.1016/j.echo.2025.07.007. Archivo: `17- Doppler tisular y strain/Strain-2025-Guideline-2.pdf`.
+**Folio = hoja + 984**, comprobado en el pie impreso.
+
+**Clinical Consensus Statements**, enunciado **1**, transcrito literal:
+
+> «Normal LV myocardial GLS is more negative than −18%. Borderline GLS is −16% to −18%.
+> Abnormal GLS is less negative than −16%.»
+
+Y el enunciado **2** del mismo folio, que es el que sostiene la advertencia del fabricante:
+
+> «Normal ranges of GLS are subject to changes in software version. Comparisons in GLS should
+> ideally use the same software vendor and software version, care should be taken when comparing
+> values derived from different vendors.»
+
+⚠️ **LEERLO EN IMAGEN NO ERA UN FORMALISMO: EL EXTRACTOR DE TEXTO PLANO SE COME LOS SIGNOS MENOS
+DE ESE PÁRRAFO** y devuelve «18%» y «16%» en positivo. Un `pdftotext` habría publicado los dos
+cortes del lado equivocado del cero.
+
+### 2 · La preservación apical — ASE 2025, hoja 12, folio 996
+
+Enunciado **2** de los Clinical Consensus Statements de ese folio:
+
+> «GLS should be obtained and reported in patients with increased LV mass, on the basis that an
+> apical sparing of regional LS (mean of the apex >2 times the mean of the rest of the heart)
+> points toward the possibility of cardiac amyloidosis.»
+
+La **Figura 6** del mismo folio trae **seis** paneles: (A) MCH de variante neutra con función
+septal relativamente comprometida; (B) MCH apical; (C) MCH apical con aneurisma apical y
+disquinesia; (D) amiloidosis por transtirretina con patrón de preservación apical relativa;
+(E) **insuficiencia renal terminal con un patrón que imita la preservación apical relativa**;
+(F) takotsubo con compromiso de los segmentos medios a apicales y preservación de los basales.
+
+### 3 · Los territorios coronarios — Cerqueira 2002, hoja 5, folio 244
+
+Cerqueira MD y cols., *Journal of Nuclear Cardiology* 2002;9:240-5,
+doi 10.1067/mnc.2002.123122. Archivo:
+`01_VI_y_camaras/Standardized_Myocardial_Segmentation_and_Nomenclat.pdf`.
+
+⚠️ **ES LA VERSIÓN DEL *JOURNAL OF NUCLEAR CARDIOLOGY*, NO LA DE *CIRCULATION* 105:539-542**, que
+es la que la orden nombra. El comité es el mismo —su primera hoja nombra al «American Heart
+Association Writing Group on Myocardial Segmentation and Registration for Cardiac Imaging»— pero
+**el folio que se cita es el de la versión que se leyó**.
+
+Del apartado «Assignment of Segments to Coronary Arterial Territories» y de la Figura 5:
+
+- hay una variabilidad enorme en la irrigación de cada segmento;
+- los segmentos 1, 2, 7, 8, 13, 14 y 17 se asignan a la descendente anterior;
+- los segmentos 3, 4, 9, 10 y 15, a la coronaria derecha **cuando es dominante**;
+- los segmentos 5, 6, 11, 12 y 16, **en general**, a la circunfleja;
+- la mayor variabilidad está en el **segmento 17**, el ápex, que puede depender de cualquiera de
+  las tres arterias;
+- la recomendación del apartado admite expresamente la variabilidad anatómica.
+
+**El reparto de `CONTR_TERRITORIO` coincide segmento por segmento.** No se tocó.
+
+### 4 · Los modelos de 16 y 17 segmentos — Lang 2015, hoja 12, folio 12
+
+Lang RM y cols., *J Am Soc Echocardiogr* 2015;28:1-39. Archivo:
+`01_VI_y_camaras/Chamber-quantification.-Guidelines-and-standards.-ASE-2015.pdf`
+(**la inglesa**; la traducción española del mismo repositorio no se usó, por la regla de la
+casa). De sus «Recommendations» del folio 12: el modelo de **17** segmentos se recomienda para
+perfusión y el de **16** para motilidad, porque la excursión y el engrosamiento de la punta del
+ápex son imperceptibles; y la escala de motilidad que propone tiene **cuatro** grados —normal o
+hiperquinético, hipoquinético, aquinético y disquinético—.
+
+⚠️ **LA DIFERENCIA DEL SEGMENTO 15 NO SE PUDO VERIFICAR, Y POR ESO NO SE ESCRIBIÓ.** La
+**Figura 5** del folio 13 es un dibujo anatómico con categorías de color —RCA, LAD, CX, «RCA o
+CX», «LAD o CX» y «RCA o LAD»— y **no numera los segmentos**. No hay hoja de ese documento donde
+el 15 quede asignado a la descendente anterior. → `docs/PENDIENTES.md` **AJ9-a**.
+
+### 5 · La relación apical relativa — Phelan 2012, folio 1442
+
+Phelan D, Collier P, Thavendiranathan P y cols., *Heart* 2012;98:1442-1448,
+doi 10.1136/heartjnl-2012-302353. Archivo:
+`01_VI_y_camaras/Relative_apical_sparing_of_longitudinal_strain_usi.pdf`.
+
+- **55** pacientes consecutivos con amiloidosis cardíaca contra **30** controles con hipertrofia
+  (15 con miocardiopatía hipertrófica y 15 con estenosis aórtica).
+- Definición: strain apical medio dividido por la suma del basal medio y el medio medio.
+- Corte **1,0**: sensibilidad **93 %**, especificidad **82 %**, área bajo la curva 0,94.
+- **Sólo equipos General Electric**: se incluyeron únicamente estudios hechos en Vivid 7 o
+  Vivid 9, analizados con EchoPAC, porque eran los únicos analizables con su programa.
+- **No publica relación ápice/base para la miocardiopatía hipertrófica**: la usa como control.
+
+### 6 · El 2,9 del score — García-Pavía 2021 (folio 1558) y Boldrini 2020
+
+García-Pavía P y cols., *Eur Heart J* 2021;42:1554-1568, doi 10.1093/eurheartj/ehab072.
+**Tabla 2**, hoja 5, folio **1558**, apartado «Multiparametric echocardiographic score ≥8 points»:
+
+| Criterio | Puntos |
+|---|---|
+| Espesor relativo (IVS+PWT)/LVEDD > 0,6 | 3 |
+| Onda E / e′ > 11 | 1 |
+| TAPSE ≤ 19 mm | 2 |
+| Strain longitudinal global, valor absoluto ≤ −13 % | 1 |
+| **Relación ápice/base del strain longitudinal sistólico > 2,9** | **3** |
+
+**No dice si es septal ni en qué vista se mide.**
+
+Boldrini M, Cappelli F, Chacko L y cols., «Multiparametric echocardiography scores for the
+diagnosis of cardiac amyloidosis», *JACC: Cardiovascular Imaging* (manuscrito aceptado, **se cita
+por tabla y por hoja**). Archivo: `09_Amiloidosis/Fontana_…_JACCCVI.pdf`.
+
+- **Tabla 3, hoja 29** — score IWT: espesor relativo > 0,6 (3 pt), E/e′ > 11 (1 pt),
+  TAPSE ≤ 19 mm (2 pt), strain ≥ −13 % (1 pt) y **SAB > 2,9 (3 pt)**.
+- **Hoja 8** — el SAB se define como la relación **septal** del strain longitudinal sistólico
+  ápex-base.
+- **Hojas 17 y 18** — la medición se hizo en la vista de **cuatro cámaras**, y los valores se
+  compararon entre **dos fabricantes, GE y Philips**.
+- **Hoja 27** — rendimiento del SAB en la cohorte de pared engrosada: área bajo la curva 0,77,
+  corte > 2,9, **sensibilidad 67 % (63-71)** y **especificidad 77 % (72-81)**.
+
+⚠️ **EL CORTE DE LA AMILOIDOSIS AL NO ESTÁ EN LA TABLA 3, CONTRA LO QUE DICE LA ORDEN: el score
+AL no tiene fila SAB.** El **> 3,1** vive en la tabla de rendimiento de la hoja 27, con
+sensibilidad 51 % y especificidad 88 %.
+
+### Lo que la orden dice y la biblioteca desmiente
+
+| Premisa de la orden | Lo medido |
+|---|---|
+| «Biering-Sørensen 2023 NO está en la biblioteca» | **SÍ está**, en `01_VI_y_camaras`. No se cita igual, porque la orden lo prohíbe |
+| «Cerqueira 2002, *Circulation* 105:539-542» | el archivo es la versión del *J Nucl Cardiol* 2002;9:240-5 |
+| «Lang 2015 asigna el segmento 15 a la descendente anterior» | **no se puede verificar**: su Figura 5 no numera los segmentos |
+| «en amiloidosis AL el corte es otro (>3,1)» **en la Tabla 3** | el 3,1 está en la tabla ROC de la hoja 27; la Tabla 3 del AL **no tiene** fila SAB |
+| «los 16 patrones» | son **quince** |
+| «la carpeta 01 de VI» para el consenso de strain | está en `17- Doppler tisular y strain` |
+| «la app rotula su modelo AHA» | **cero** apariciones de esa sigla en el bloque de contractilidad y SGL |
+
+### Tabla «Cambios de evidencia» de esta tanda
+
+| Qué | Antes | Ahora | Fuente | Commit |
+|---|---|---|---|---|
+| Corte de SGL **normal** | sin dueño; −18 tecleado en cuatro lugares | `SGL_NORMAL_MAX` = −18, borde `<` | ASE 2025, consenso 1, folio 995 | AJ9-1 |
+| Corte de SGL **anormal** | ídem, −16 tecleado | `SGL_ANORMAL_MIN` = −16, borde `>` | ídem | AJ9-1 |
+| Rótulo del SGL en pantalla | sólo el número | «SGL −18% · limítrofe», con color | ídem | AJ9-1 |
+| Rótulo en el informe, EN SUMA, PDF y PPT | no había | **sigue sin haber** | el informe es descriptivo | AJ9-1 |
+| SGL tipeado en positivo, en el papel | «SGL 18%» | «SGL −18%» | decisión de Maicol | AJ9-1 |
+| Campo `#sgl`, `#sgl_gls` y columna `GLS (%)` | lo que el médico escriba | **sin cambios** | — | AJ9-1 |
+| Banda de normalidad del cartel de plausibilidad | `[-25, -18]` tecleado | `[-25, SGL_NORMAL_MAX]` | ASE 2025 | AJ9-1 |
+| Ficha de cardio-oncología, los dos cortes | tecleados | pintados desde las constantes, valor idéntico | ídem | AJ9-1 |
+| Panel y filtro del Laboratorio | `-18` y `16` tecleados | leen las constantes, valores idénticos | ídem | AJ9-1 |
+| `BSE_GRIS_GLS`, HFA-ICOS, HFA-PEFF, `amCalcSGL`, `eeEvalGLS`, `CO_UMBRAL_GLS_REL` | — | **sin cambios**, con el motivo escrito | otras guías / otros scores | — |
+| Aviso de variabilidad de los territorios | no había | «La distribución varía entre pacientes» en pantalla | Cerqueira, folio 244 | AJ9-2 |
+| Reserva «cuando es dominante», «en general», segmento 17 | no estaban | en la tarjeta ⓘ `contr-territorio` | ídem | AJ9-2 |
+| Reparto de los 17 segmentos | — | **sin cambios** | ídem | — |
+| Diferencia del segmento 15 entre Lang y Cerqueira | no estaba | **sigue sin estar**: no se pudo verificar | — | — |
+| Escala de motilidad con «aneurisma» | cinco grados | **sin cambios**, declarado con chip en Referencias | Lang 2015 publica cuatro, folio 12 | AJ9-5 |
+| Patrón de amiloidosis | «Relación ápice/base > 2.9» | «el promedio del ápex más de 2 veces el promedio del resto» | ASE 2025, consenso 2, folio 996 | AJ9-3 |
+| Patrón de sobrecarga de presión | «Relación ápice/base <2.9 (vs >2.9 en amiloidosis)» | «Sin preservación apical: el promedio del ápex no llega al doble del resto» | ídem | AJ9-3 |
+| Patrones de MCH | sin relación ápice/base | **sin cambios** | no hay fuente | — |
+| Los quince rangos «SGL típico» | sin decir de dónde salen | **sin cambios**, con «Criterio de EcoSmart (ilustrativo)» pegado | ninguna | AJ9-3 |
+| «Patognomónico» en el patrón de amiloidosis | — | **sin cambios**, reportado | Phelan da 93 % y 82 %; la Figura 6 muestra un imitador | AJ9-3 |
+| Corte de 2,9 del score y sus tres puntos | — | **sin cambios** | Boldrini Tabla 3 · García-Pavía Tabla 2 folio 1558 | AJ9-4 |
+| De dónde sale ese 2,9 | no se decía | tarjeta ⓘ: septal, cuatro cámaras, GE y Philips, S 67 % y E 77 % | Boldrini hojas 8, 17, 18 y 27 | AJ9-4 |
+| Cómo calcula la app esa relación | dos campos genéricos | **sin cambios**, reportado con ejemplo medido | — | AJ9-4 |
+| Ficha de Referencias de contractilidad y SGL | no existía | trece filas con tabla, folio y hoja | las seis fuentes | AJ9-5 |
+| Clase y nivel en esa ficha | — | **ninguna**: estos documentos no los publican para estos valores | — | AJ9-5 |
+
+**Fecha de consulta de las seis lecturas en imagen de esta tanda: 29/10/2026.**

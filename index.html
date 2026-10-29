@@ -10570,7 +10570,7 @@ window.cerrarSesionReal = cerrarSesionReal;
 
         <!-- DERECHA: territorio coronario -->
         <div style="background:var(--bg3);border-radius:10px;padding:10px 14px;font-size:11px;color:var(--text2);min-width:170px;">
-          <div style="font-size:12px;color:var(--accent2);font-weight:600;margin-bottom:6px;">Territorio coronario (borde) <button type="button" class="vinfo-btn vinfo-btn-44" data-vinfo="contr-territorio" aria-expanded="false" style="font-size:13px;" aria-label="Informaci&oacute;n sobre el reparto de los 17 segmentos entre las tres arterias coronarias" onclick="vInfoClic(this)">&#9432;</button></div>
+          <div style="font-size:12px;color:var(--accent2);font-weight:600;margin-bottom:6px;">Territorio coronario (borde)</div>
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;"><span style="width:18px;height:4px;background:#3ea8ff;display:inline-block;border-radius:2px;"></span>DA — 1,2,7,8,13,14,17</div>
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;"><span style="width:18px;height:4px;background:#3ecf8e;display:inline-block;border-radius:2px;"></span>CD — 3,4,9,10,15</div>
           <div style="display:flex;align-items:center;gap:8px;"><span style="width:18px;height:4px;background:#ff7ab8;display:inline-block;border-radius:2px;"></span>CX — 5,6,11,12,16</div>
@@ -10578,7 +10578,17 @@ window.cerrarSesionReal = cerrarSesionReal;
                dice con todas las letras —«tremendous variability», folio 244— y un médico que
                mira los tres colores sin abrir el ⓘ se lleva la idea de que el borde es fijo.
                La cita y el detalle sí van en el ⓘ, que es la regla R2 de la casa. -->
-          <div style="font-size:10.5px;color:var(--text2);margin-top:8px;line-height:1.45;">La distribución varía entre pacientes.</div>
+          <!-- ⚠️ EL ⓘ VA EN LA LÍNEA DEL AVISO Y NO EN EL ENCABEZADO, Y LO PIDIÓ UNA MEDICIÓN
+               (AJ9-6). En el encabezado —un renglón de 12 px pegado al borde superior de su
+               recuadro— el botón de 44×44 se superpone con el encabezado de la sección: medido
+               con `elementFromPoint` a los 756 px que da este Chrome, sus cuatro esquinas daban
+               un vecino y sólo el centro daba el propio botón. A 1440 px no se veía. Acá abajo,
+               con su propia línea y `min-height` de 44, los CINCO puntos dan el propio botón en
+               los dos anchos. Un área táctil que se superpone con la de al lado es peor que una
+               chica: es la misma clase de defecto que la AJ7 documentó para los márgenes
+               negativos.
+               Y además se lee mejor: la salvedad y su cita quedan juntas. -->
+          <div style="font-size:10.5px;color:var(--text2);margin-top:8px;line-height:1.45;display:flex;align-items:center;gap:6px;min-height:44px;"><span>La distribución varía entre pacientes.</span><button type="button" class="vinfo-btn vinfo-btn-44" data-vinfo="contr-territorio" aria-expanded="false" style="font-size:13px;" aria-label="Informaci&oacute;n sobre el reparto de los 17 segmentos entre las tres arterias coronarias" onclick="vInfoClic(this)">&#9432;</button></div>
         </div>
 
       </div>
@@ -60791,6 +60801,15 @@ function limpiarCampos(silencioso) {
   { const _bm = document.getElementById('bloque-masa'); if (_bm) _bm.style.display = 'none'; }
   // Displays calculados / interpretativos → —
   document.querySelectorAll('.calc-box .calc-row span[id]:not(.calc-lbl)').forEach(el => el.innerHTML = '—');
+  /* ⚠️ EL RÓTULO DEL SGL DE LA PESTAÑA SE REPINTA ACÁ, Y LO CAZÓ TC-547 (AJ9-6). El barrido de
+     arriba alcanza a `#sgl-interp` —es un `span[id]` dentro de un `.calc-row` de un
+     `.calc-box`— pero NO a `#sgl-interp-tab`, que es un `<div>` al lado del campo «SGL global»
+     en otra pestaña. Medido: después de «Nuevo estudio» la fila de cálculo volvía a «—» y la
+     pestaña seguía anunciando «SGL -18% · limítrofe», o sea el strain del paciente ANTERIOR.
+     Es la misma clase de fuga que este archivo ya documenta para los toggles de `localStorage`.
+     Va el PINTOR y no un vaciado a mano, porque el pintor es el dueño único de los dos nodos:
+     con el formulario recién limpiado devuelve «—» arriba y vacío abajo, que es lo correcto. */
+  { if (typeof sglRotuloPintar === 'function') { try { sglRotuloPintar(); } catch (e) {} } }
   /* ⚠️ EL AVISO DE MECANISMO SECUNDARIO SE VACÍA A MANO, NO SE DEJA EN «—» NI SE RE-DERIVA. El
      barrido de arriba lo alcanza —es un `span[id]` dentro de un `.calc-row`— pero lo pone en «—», y
      un guión en un renglón de advertencia amarillo es ruido: no significa «no hay dato», no
@@ -137226,8 +137245,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261029-0759';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793271575247;                 /* eco-build-ms */
+const ECO_BUILD    = '20261029-1110';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793283056204;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -137313,7 +137332,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261029-0759</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261029-1110</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

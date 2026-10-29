@@ -435,3 +435,15 @@ McConnell, el signo 60/60 y el tabique en D. Y la fila «¿Falla del ventrículo
 ficha del **posoperatorio** tenía una cita falsa, que se cerró.
 
 Detalle en **`docs/mapa/tep-aha2026.md`** §4.
+
+---
+
+## La ficha de la tanda AJ9 (2026-10-29) — puntero
+
+`ref-strain`, «Contractilidad y strain longitudinal (SGL)», con trece filas y su columna de
+fuente. Va en la subpestaña **Función**, que pasa de tres entradas a cuatro, y **se agrega a
+`REF_SUBTAB` en el mismo commit que la ficha** —la lección que `constriccion` dejó en la tanda J—.
+
+El censo de entradas pasa de **35 a 36**.
+
+→ **`docs/mapa/aj9-sgl-patrones.md`** § 7

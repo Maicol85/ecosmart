@@ -61,6 +61,7 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Ver por dónde sale un dato** (informe narrativo, EN SUMA, PDF, PPT) | `docs/mapa/informe-pdf-excel.md` |
 | **Tocar una COLUMNA del EXCEL del Laboratorio**: `LAB_XLS_MAP`, las 440 claves, los tipos, los alias de cabecera del importador o las dos columnas del G2 | `docs/mapa/excel-laboratorio.md` |
 | **Tocar la IMPORTACIÓN del Excel**: el guardián de columnas, las listas de valores, los rangos, el mensaje de las columnas calculadas o la exportación JSON | `docs/mapa/importacion-excel.md` |
+| **Tocar un CORTE del SGL, el SIGNO del strain en el papel, el RÓTULO de pantalla, los TERRITORIOS coronarios con su aviso, los PATRONES del ojo de buey o el 2,9 del score de amiloidosis** | `docs/mapa/aj9-sgl-patrones.md` |
 | **Tocar CONTRACTILIDAD**: el botón «Incluir bull's eye en PDF» y de qué depende que el bull's eye entre al papel, la fila de tres bloques, la tabla de colores o el interior del 3D del VENTRÍCULO | `docs/mapa/contractilidad-3d-vi.md` |
 | **Tocar una TARJETA ⓘ de AI/VI, el REGISTRO DE EVIDENCIA o una entrada de Referencias**: las fichas, los estados, el sondeo del dueño, el gráfico de geometría | `docs/mapa/registro-evidencia.md` |
 | **Tocar un CORTE POR SEXO de la AI o del VI**: el diámetro AP, el DDVI en cuatro categorías, el DSVI, los espesores, la masa, los volúmenes, la FEVI en cuatro, el dueño del sexo efectivo o el AVISO de que falta el sexo | `docs/mapa/ai-vi-por-sexo.md` |
@@ -165,10 +166,12 @@ Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la v
 ## Qué es EcoSmart y cómo se trabaja
 
 - App clínica de ecocardiografía en **un solo `index.html`**: HTML + CSS + JS inline, sin build,
-  sin frameworks. Hoy **9,79 MB / 138.038 líneas**, medido con `wc -c` y `wc -l` el 2026-10-27 al
-  cierre de la tanda **E**, sobre el árbol ya sellado (`v20261027-1511`). Las 63 líneas que
-  esa tanda sumó son **todas comentarios**: el diff de `index.html` no tiene una sola línea
-  ejecutable.
+  sin frameworks. Hoy **9,98 MB / 140.189 líneas**, medido con `wc -c` y `wc -l` el 2026-10-29 al
+  cierre de la tanda **AJ9**, sobre el árbol ya sellado (`v20261029-1110`, md5 `fc77acb0`).
+  ⚠️ **Y ESTE RENGLÓN SE HABÍA QUEDADO SIETE TANDAS ATRÁS**: decía «9,79 MB / 138.038 líneas»,
+  que es el cierre de la tanda **E** del 27/10, mientras la D, el D-9, el D-10, el D-11, la C1,
+  la C2, la TEP y la G escribían su delta en su propia sección sin tocar éste, que es el que se
+  lee para presupuestar contexto. **2.151 líneas de diferencia.**
   ⚠️ **Y ESTE RENGLÓN SE QUEDÓ DOS TANDAS ATRÁS OTRA VEZ**: decía «9,46 MB / 134.230 líneas», que
   es el cierre del AJ6, mientras la J y la J2 escribían su delta en su propia sección sin tocar
   éste, que es el que se lee para presupuestar contexto. **1.310 líneas de diferencia.**
@@ -1613,3 +1616,146 @@ línea: el archivo creció y un informe de auditoría viejo apunta a otro archiv
   9.2.1.1 folio 71 literal, Tabla 38 folio 80 con sus ocho recomendaciones y sus ocho factores, y
   Tabla 62 folio 114— y la tabla «Cambios de evidencia» de dieciséis filas, y
   `docs/PENDIENTES.md` → **F-a** a **F-f** y **G-a** a **G-f**.
+
+### El SGL, los territorios, los patrones y el 2,9 del score — «AJ9» (2026-10-29)
+
+- **SEIS commits.** `85be8fc` (AJ9-1) · `6293326` (AJ9-2) · `931f4a3` (AJ9-3) · `aa19998` (AJ9-4)
+  · `5a1171d` (AJ9-5) · el de cobertura y documentación. Sello **`v20261029-1110`**, md5 de
+  `index.html` **`fc77acb0`**. Al empezar, `origin/main` = `HEAD` = **`a973f81`**, el cierre de
+  la tanda G, ya publicado.
+  **El push lo corre Maicol: esta tanda tenía orden expresa de NO pushear.**
+
+- **LAS SEIS FUENTES SE LEYERON EN IMAGEN, Y EN UNA DE ELLAS ESO DECIDÍA EL SIGNO.** El
+  extractor de texto plano **se come los signos menos** del consenso clínico 1 de la ASE 2025 y
+  devuelve «18%» y «16%» en POSITIVO: un `pdftotext` habría publicado los dos cortes del lado
+  equivocado del cero. Hoja 11, folio **995**, verificado glifo por glifo.
+
+- **EL DEFECTO MÁS GRANDE QUE CERRÓ, EN UNA LÍNEA: el −18 y el −16 estaban TECLEADOS en cuatro
+  lugares sin dueño**, y el campo del strain —que no tiene `min` y nunca lo tuvo— llegaba al
+  informe firmado como «SGL 18%», que leído literal es un strain positivo, o sea imposible.
+
+- **SIETE PREMISAS DE LA ORDEN ERAN FALSAS, Y ESTÁN MEDIDAS.**
+  1. **Biering-Sørensen 2023 SÍ está en la biblioteca** (`01_VI_y_camaras`). No se cita igual,
+     porque la orden lo prohíbe.
+  2. **La diferencia del segmento 15 entre Lang y Cerqueira no se puede verificar**: la Figura 5
+     de Lang 2015 (folio 13) es un dibujo anatómico con categorías de color —incluidas «RCA o
+     LAD» y «LAD o CX»— y **no numera los segmentos**. Se paró y no se escribió. → **AJ9-a**.
+  3. **El corte AL de 3,1 no está en la Tabla 3 de Boldrini**: el score AL **no tiene fila SAB**.
+     El 3,1 vive en la tabla de rendimiento de la hoja 27.
+  4. **Cerqueira en la biblioteca es la versión del *Journal of Nuclear Cardiology*** (2002;9:240-5,
+     folio **244**), no la de *Circulation* 105:539-542.
+  5. **Los patrones son quince, no dieciséis.**
+  6. **La app no rotula su modelo «AHA» en esa pestaña**: cero apariciones de esa sigla en las
+     700 líneas del bloque de contractilidad y SGL. No había etiqueta que convertir en cita.
+  7. **«Strain ASE 2025» vive en `17- Doppler tisular y strain`**, no en la carpeta 01.
+
+- **WMSI: NO EXISTE en esta pestaña**, verificado de dos formas —cero claves con «wmsi» en el
+  objeto global y cero nodos del DOM con «wmsi» en su id—. El único de la aplicación es
+  `eeUpdateWMSI`, dentro del bloque muerto de Eco Estrés.
+
+- ⚠️ **EL CAMPO DEL ESTUDIO Y LA COLUMNA DE EXCEL NO SE REESCRIBEN, Y ES UNA DECISIÓN.** El
+  campo acepta lo que el médico escriba; lo que publica negativo es el PAPEL. Verificado escena
+  por escena contra HEAD: ni un valor de campo ni una columna cambian. El precio —el Excel de un
+  estudio con strain positivo sigue diciendo 18 mientras el informe dice −18— está declarado en
+  **AJ9-f**, porque cambiar una columna de Excel exige parar y reportar.
+
+- ⚠️ **EL RÓTULO SE FILTRABA ENTRE PACIENTES, Y LO CAZÓ TC-547 SOBRE MI PROPIO COMMIT 1.** El
+  barrido de `limpiarCampos` alcanza a `#sgl-interp` —un `span[id]` dentro de un `.calc-row` de
+  un `.calc-box`— pero **no** a `#sgl-interp-tab`, que es un `<div>` en otra pestaña. Medido:
+  después de «Nuevo estudio» la fila volvía a «—» y la pestaña seguía anunciando
+  «SGL -18% · limítrofe», o sea el strain del paciente ANTERIOR.
+
+- ⚠️ **ABRIR EL GLOBO DEL 2,9 LE SUMABA TRES PUNTOS AL SCORE.** El contenedor `.criterio-item`
+  lleva su propio `onclick="toggleCrit(...)"`, así que el botón necesita `stopPropagation` —el
+  mismo motivo por el que el botón «Calcular» de al lado ya lo lleva—. Lo fija TC-547 (F4),
+  clickeando de verdad y no llamando a `vInfoClic`.
+
+- **TRES PARTES SE PARARON Y SE REPORTARON, NO SE APLICARON**: la diferencia del segmento 15
+  (**AJ9-a**); la palabra «patognomónico» del patrón de amiloidosis, que la biblioteca no
+  sostiene —Phelan publica 93 % y 82 %, y la Figura 6 ilustra una insuficiencia renal terminal
+  que lo imita— (**AJ9-d**); y el signo del filtro de cardio-oncología del Laboratorio, que
+  cuenta como anormal todo lo tipeado en positivo (**AJ9-c**).
+
+- **LA RESPUESTA AL PUNTO 4, CON EJEMPLO MEDIDO.** `calcApice` divide el valor absoluto del
+  campo «Strain apical» por el del campo «Strain basal», los dos **genéricos**; Boldrini define
+  el SAB como la relación **septal**, en **cuatro cámaras**. El mismo paciente: apical −18 % y
+  basal −6 % → **3,00**, criterio marcado, **+3 puntos**; el mismo apical con un basal GLOBAL de
+  −7,5 % → **2,40**, sin marcar, **0 puntos**. Son tres puntos de un score diagnóstico desde
+  ocho. **El corte no se movió**: 2,89 → 0 · **2,90 → 0** · 2,91 → 3.
+
+- **A/B contra HEAD, uno por commit, y las diferencias de superficie firmada son SÓLO las
+  autorizadas.** Commit 1: 14 escenas de 1467 claves, **cero** diferencias en las once escenas
+  con SGL negativo y en los dos controles; las únicas son las **20 por escena** con SGL
+  POSITIVO, y son el signo. Commits 2, 3, 4 y 5: **CERO** diferencias de superficie firmada, con
+  el control positivo de pantalla al lado. Denominadores por escena: informe en los tres
+  estilos, EN SUMA, las **440** columnas de Excel clave por clave, 961 campos, el Laboratorio por
+  sus ocho funciones dueñas, el PDF generado de verdad en sus **seis** plantillas y el PPT.
+
+- **12/12 MUTACIONES DIRIGIDAS MUERTAS EN EL PRIMER BARRIDO**, en worktree y nunca sobre el
+  vivo, con guarda de md5. **Dos de las doce no revierten nada: aplican de más** —la 05 hace que
+  el rótulo se cuele al informe firmado y la 11 que el 2,90 exacto sume—, y existen porque las
+  condiciones que las matan son **controles negativos**.
+
+- ⚠️ **TC-547 SALÍA VERDE AISLADO Y ROJO EN LA CORRIDA COMPLETA, Y LA CAUSA ERA MÍA: el estilo
+  de informe es estado de SESIÓN.** Un caso anterior lo dejaba en **narrativo**, donde la frase
+  es «y un strain longitudinal global de −18%» y no «SGL −18%»: el dato estaba y la condición no
+  lo veía, con el informe emitido en 904 caracteres. Hoy el caso fija el estilo con un helper
+  propio, y de paso gana una condición que mide el **narrativo** aparte.
+
+- ⚠️ **Y TC-535 CAYÓ POR UNA ANIMACIÓN, NO POR UNA MAQUETA.** `.sacc-body` abre con `max-height`
+  y una transición de **0,3 s**: medir en el acto lee la caja de MITAD de la animación y los
+  hijos informan un rect que se superpone con el encabezado de su propia sección, así que
+  `elementFromPoint` devolvía el encabezado en las cuatro esquinas. **No había ningún solape
+  real** —a 1440 px el mismo botón daba los cinco puntos propios— y costó media docena de
+  mediciones averiguarlo. El arnés ahora abre la sección **y le saca la animación** antes de
+  medir.
+
+- **SIETE CASOS VIEJOS ADAPTADOS, cada uno con el motivo escrito**: **TC-471** y **TC-500** (el
+  registro de globos, 62 → **65**), **TC-502** (el censo de Referencias 35 → **36**, el reparto
+  de Función 3 → **4**, el índice del buscador 33 → **34** y el mapeo de tarjetas 41 → **44**),
+  **TC-507** (los chips «Criterio de EcoSmart», 16 → **18**), **TC-509** (el mismo censo) y
+  **TC-535** (los globos de 44×44, ocho → **once**, y su MÉTODO).
+
+- **Línea base al cierre: suite 558/562**, en once lotes **cubriendo los 562 casos distintos**
+  —contados nombre por nombre, no por la suma de los lotes—, en UNA sola pasada sobre el árbol
+  sellado, con el pendrive `DISK_IMG` **montado y listando nombres reales al abrir, ENTRE LOTES y
+  al cerrar** y el md5 de `index.html` **idéntico** antes y después (`fc77acb0`). Los rojos son
+  **TC-223, TC-376, TC-390 y TC-406**, los cuatro de siempre, **y ninguno más**: **TC-358 salió
+  VERDE**. La corrida tarda **10,7 min**.
+  ⚠️ **Y LA PRIMERA CORRIDA COMPLETA DIO 556/562 CON DOS ROJOS MÁS, LOS DOS MÍOS**, y por eso
+  esa cifra no es la línea base: **TC-507** contaba los chips «Criterio de EcoSmart» y mi ficha
+  nueva agrega dos, y **TC-547** caía por el estilo de informe que un caso anterior deja en
+  narrativo. Los dos están cerrados y la cifra de arriba sale de la corrida **limpia**, de una
+  sola pasada con el archivo de tests final.
+  Semgrep **124 WARNING / 0 ERROR**. Excel **440** columnas. Censo **1025** campos, **0
+  huérfanos**. Celular **63 hallazgos a 360 px y 72 a 390, 17 ALTA en cada ancho** — idénticos a
+  HEAD, medidos en un worktree con el mismo script. 17 bloques de JS inline parsean.
+- **CHROME Y WEBKIT COINCIDEN EN LOS OCHO CRUCES** (dos motores × 1440 y 390 px × dos temas),
+  **valor por valor**: 17/17 pestañas con caja, **cero** desplazamiento horizontal del cuerpo,
+  **cero** textos recortados y **cero errores de consola y de página en los dos motores**; el
+  rótulo idéntico en los dos nodos y en las cuatro bandas —con el `+18` saliendo
+  «SGL -18% · limítrofe» y el campo intacto en 18—; la ficha con sus 14 filas, sus cinco folios
+  y sus dos chips; y los **tres globos nuevos en 44×44 con los CINCO puntos dando el propio
+  botón**, también a 390 px —que es lo que confirma que el fallo de TC-535 era la animación y no
+  la maqueta—.
+  **Escribir no se volvió más lento**: trece teclas reales, media **0,32 ms** en los dos árboles,
+  máximo 1,9 contra **1,8**, y el barrido de espejos 4,5 contra **4,7 ms**.
+  ⚠️ **WebKit de Playwright no es Safari, y se declara.**
+
+- **`index.html` pasó de 9,94 MB / 139.828 líneas a 9,98 MB / 140.189** — medido con `wc -c` y
+  `wc -l` DESPUÉS de sellar. (MB de 10⁶: `wc -c` dividido por 1e6.)
+
+- ⚠️ **EL ACENTO GRAVE DENTRO DE UN COMENTARIO COSTÓ CUATRO CORRIDAS, Y `check_backticks.py` NO
+  CAZÓ NINGUNA.** El cuerpo de una sonda o de un caso es un template literal: un backtick
+  —aunque esté en un comentario— cierra la cadena y el archivo deja de parsear con un
+  `SyntaxError` que apunta decenas de líneas antes del culpable. **Lo que sirve es `node --check`
+  sobre el archivo.** → **AJ9-g**. Y su hermana: una barra invertida escrita simple en un heredoc
+  de Python llega al template como ninguna —`/pice\/base/` salió «Invalid regular expression
+  flags» y `/toggleRef\('…'/` salió «Unterminated group»—.
+
+- **Dónde está todo:** `docs/mapa/aj9-sgl-patrones.md` (**mapa NUEVO**, 14,9 KB), la ficha del
+  caso en `docs/mapa/tests-fichas-547.md` (**archivo propio**), **seis mapas con un puntero cada
+  uno** —medidos ANTES de escribir, todos por debajo de 29 KB—, `docs/fuentes/FUENTES.md` →
+  «La tanda AJ9» con las seis fuentes transcritas, la tabla de premisas falsas y la de «Cambios
+  de evidencia» de veintisiete filas, y `docs/PENDIENTES.md` → **SIETE** cosas declaradas
+  (**AJ9-a** a **AJ9-g**).

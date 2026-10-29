@@ -392,3 +392,20 @@ censo**, porque son conteos de inventario que no nombran nada de lo que la tanda
 y deja los globos en 0×0; el filtro del informe de TEP tiene **dos ramas** y medir sólo la de
 «criterios incompletos» da un denominador de cero; y el badge de la categoría A de HTP **agrega
 varios signos**, así que un control que le pregunte a él pasa en verde sobre cualquier corte.
+
+---
+
+## El caso de la tanda AJ9 (2026-10-29) — puntero
+
+**TC-547**, treinta y seis condiciones con cinco denominadores. Su ficha vive en archivo propio:
+**`docs/mapa/tests-fichas-547.md`**.
+
+Adaptados en la misma tanda, cada uno con su motivo escrito en el código: **TC-471** y
+**TC-500** (el registro de globos, 62 → 65), **TC-502** (el censo de Referencias 35 → 36, el
+reparto de Función 3 → 4, el índice del buscador 33 → 34 y el mapeo de tarjetas 41 → 44),
+**TC-509** (el mismo censo) y **TC-535** (los globos de 44×44, ocho → once, **y su método**).
+
+⚠️ **EL MÉTODO DE TC-535 CAMBIÓ, NO SÓLO EL NÚMERO.** `.sacc-body` abre con `max-height` y una
+transición de 0,3 s: medir en el acto lee la caja de mitad de la animación y los hijos informan
+un rect que se superpone con el encabezado de su propia sección. Hoy el arnés abre la sección
+**y le saca la animación** antes de medir.

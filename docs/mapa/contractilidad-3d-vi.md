@@ -193,3 +193,17 @@ el mismo 54 con la misma emulación. No es una regresión de esta tanda.
    la usa.
 5. ⚠️ **EL COLOR COMPUTADO SE LEE DEL TEMA ANTERIOR SIN UNA VUELTA DE ESPERA** tras cambiar la
    clase `light-mode`.
+
+---
+
+## 5 · Lo que la tanda AJ9 movió (2026-10-29) — puntero
+
+El **panel «Territorio coronario (borde)»** ganó el aviso «La distribución varía entre
+pacientes» y una tarjeta ⓘ con la cita. **El reparto de `CONTR_TERRITORIO` NO se tocó**:
+coincide segmento por segmento con la Figura 5 de Cerqueira 2002, verificado antes de escribir.
+
+También: los dos cortes del SGL con su dueño único, el signo del strain en el papel, el rótulo
+de pantalla, los quince patrones del ojo de buey con su rótulo ilustrativo, el 2,9 del score de
+amiloidosis y la ficha de Referencias nueva.
+
+→ **`docs/mapa/aj9-sgl-patrones.md`**

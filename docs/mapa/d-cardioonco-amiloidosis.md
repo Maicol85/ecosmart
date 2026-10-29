@@ -472,3 +472,20 @@ criterios y el aviso decía «No hay datos suficientes cargados» justo cuando e
 cargados. Se fueron los cuatro botones, `amTraerDeFormulario`, `amAutoLlenar` y sus dos
 `window.X = X`. **Nada más del módulo se tocó**, y la marca `data-espejo = '1'` no se pierde: la
 escribe también `_amiloReflejarDesdeApp`.
+
+---
+
+## § 8 · El 2,9 del score y los cortes del SGL — la tanda AJ9 (2026-10-29) — puntero
+
+**EL CORTE DEL SCORE NO SE MOVIÓ**: 2,89 → 0 puntos, **2,90 → 0 puntos**, 2,91 → 3 puntos. Lo
+que se agregó es una tarjeta ⓘ con de dónde sale —relación **septal**, en **cuatro cámaras**,
+con equipos GE y Philips, S 67 % y E 77 %— y la distinción con la preservación apical de los
+patrones, que es otra medida.
+
+**Se reporta sin tocar**: la app calcula la relación desde dos campos genéricos que no dicen de
+qué paredes salen.
+
+Y la ficha de Referencias de cardio-oncología ya no tiene el −18 y el −16 tecleados: los pinta
+`sglCortesPintar` desde sus constantes.
+
+→ **`docs/mapa/aj9-sgl-patrones.md`** § 6
