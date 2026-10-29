@@ -9533,7 +9533,7 @@ window.cerrarSesionReal = cerrarSesionReal;
 
       <!-- Campos nuevos -->
       <div class="grid-2" style="margin-bottom:10px;">
-        <div class="fg"><label>Signo de McConnell</label>
+        <div class="fg"><label>Signo de McConnell <button type="button" class="vinfo-btn vinfo-btn-44" data-vinfo="tep-mcconnell" aria-expanded="false" style="font-size:13px;" aria-label="Informaci&oacute;n sobre el rendimiento del signo de McConnell" onclick="vInfoClic(this)">&#9432;</button></label>
           <select id="tep_mcconnell" onchange="calcTEP()">
             <option value="ne" selected>No evaluado</option>
             <option value="no">No</option>
@@ -18938,7 +18938,11 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
            de la biblioteca sostiene. Los tres se corrigieron. La especificidad «~94 %» del signo
            de McConnell tampoco esta publicada en la fuente y se retiro: lo que la guia dice es
            que esos hallazgos tienen valor predictivo positivo alto y aparecen en cerca del 20 %
-           de los pacientes no seleccionados. -->
+           de los pacientes no seleccionados.
+           ⚠️ ESA CIFRA VOLVIO EN EL TEP-2 (28/10/2026), Y NO ES UNA MARCHA ATRAS. El C-E3 la
+           retiro porque estaba atribuida a ESTE documento, que no la publica; hoy vive en el
+           globo ⓘ del campo de McConnell, citada a quien si la publica -Hotelling 2024, hoja 8,
+           que reproduce a McConnell 1996-. La ficha sigue sin afirmarla. -->
       <table style="width:100%;border-collapse:collapse;font-size:12px;">
         <tr style="background:var(--section-head);">
           <th style="padding:6px 8px;text-align:left;color:var(--accent2);">Criterio</th>
@@ -28250,7 +28254,13 @@ function calcTEP() {
   if (mcconnell) { score++; criterios.push('McConnell'); }
   if (mcEl) mcEl.innerHTML = mcSel === 'ne'
     ? badge('gray',  'No evaluado')
-    : mcconnell ? badge('red', 'Presente — altamente específico de TEP ✓') : badge('green', 'Ausente');
+    /* ⚠️ «altamente específico de TEP» SE RETIRA (TEP-2, 28/10/2026) — DECISION DE MAICOL: el
+       signo se redacta de forma descriptiva. Este span NO es solo pantalla: `amiloTextoTEP` lo
+       lee y lo publica en la hoja del PDF, asi que el adjetivo viajaba al papel firmado. Las
+       cifras que lo sostienen viven ahora en el globo ⓘ, con su fuente. El ✓ se conserva porque
+       es la marca de «suma al score» que ya llevan el signo 60/60 y el tabique en D, no un
+       adjetivo. */
+    : mcconnell ? badge('red', 'Presente ✓') : badge('green', 'Ausente');
 
   // 6. Signo 60/60
   const s60El = document.getElementById('tep-6060-interp');
@@ -43531,6 +43541,25 @@ const VINFO = Object.freeze({
      y acotado a la frase que sostiene la unica linea de conducta de la Evidencia.
      ⚠️ SIN CLASE NI NIVEL: es una serie de casos con revision conceptual, no una guia de
      practica clinica. Escribirlos seria inventarlos. */
+  /* ══ EL SIGNO DE McCONNELL (TEP-2, 2026-10-28) ════════════════════════════════════════════
+     Lo que la capsula decia con un adjetivo -«altamente específico de TEP»- pasa a estar dicho
+     con las cifras y con su fuente. El trabajo ORIGINAL de McConnell (1996) NO esta en la
+     biblioteca, asi que las dos cifras se citan por quien las reproduce y se dice que se las
+     cita asi: es la regla de «lo que no se leyo en texto completo no se cita».
+     ⚠️ LA ESPECIFICIDAD DEL 94 % YA HABIA ESTADO EN LA APP Y SE RETIRO EN EL C-E3, con razon:
+     estaba atribuida a la ESC 2019, que no la publica. Vuelve con la fuente que si la publica.
+     ⚠️ LA AHA/ACC 2026 NO GRADUA EL SIGNO: su recomendacion 12 (Clase 1, Nivel B-NR, folio e986)
+     lo lista entre los parametros a informar, y eso es lo unico que se le atribuye. */
+  'tep-mcconnell': {
+    tit: 'Signo de McConnell — qué rinde y qué no',
+    lee: 'Hipocinesia o acinesia de la pared libre del ventrículo derecho con el ápex respetado.\n'
+       + 'Sensibilidad del 77 % y especificidad del 94 % para el diagnóstico de embolia pulmonar aguda, con un valor predictivo positivo del 71 % y un valor predictivo negativo del 96 %.\n'
+       + 'No es patognomónico: otros mecanismos de isquemia del ventrículo derecho pueden producirlo sin embolia pulmonar.\n'
+       + 'La hipocinesia o acinesia de la pared libre por infarto del ventrículo derecho puede parecerse al signo.\n'
+       + 'La AHA/ACC 2026 lo lista entre los parámetros de disfunción del ventrículo derecho que deben informarse (clase 1, nivel B-NR).',
+    fuente: 'Las dos cifras, como las reproduce Hotelling J y colaboradores, «Echocardiography and Pulmonary Embolism», PERT Consortium Handbook of Pulmonary Embolism, 2024, hoja 8, leída en imagen, citando a McConnell y colaboradores, 1996 — el trabajo original no está en la biblioteca. El infarto del ventrículo derecho que puede semejarlo, ESC 2019 de embolia pulmonar, apartado 4.9, folio 497.e14. La recomendación 12, AHA/ACC 2026, folio e986.',
+    ojo: 'Una especificidad alta con una sensibilidad del 77 % significa que su ausencia no descarta la embolia pulmonar, y que su presencia orienta sin confirmarla.'
+  },
   'vexus-lim': {
     tit: 'VExUS — las limitaciones que da el artículo',
     lee: 'La vena cava puede verse comprimida por la presión intraabdominal, con independencia de la presión de la aurícula derecha.\n'
