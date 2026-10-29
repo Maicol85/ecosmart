@@ -365,45 +365,70 @@ const ESCENAS = {
                 sel: { pop_monitor: 'swan', pop_pleura_der: 'severo', pop_pleura_izq: 'moderado',
                        pop_pulmon_lineasb: 'difusas' } },
   /* ── LOS BORDES DE LOS CORTES DE LA CONCLUSION ────────────────────────────────────────────
-     SC 1,8277 con peso 70 / talla 170. GC = IC x SC:
-       IC 2,1 -> GC 3,838   IC 2,2 -> GC 4,021   IC 2,3 -> GC 4,204
+     ⚠️ LA PRIMERA VERSION DE ESTAS ESCENAS NO CAIA EN EL BORDE, Y ES LA TRAMPA QUE ESTE
+     REPOSITORIO DOCUMENTA: se habia supuesto una superficie corporal de 1,8277 y la que esta
+     app calcula con peso 70 / talla 170 es 1,818118685772619 (Mosteller). Con los GC de esa
+     cuenta, la escena del «2,2 exacto» daba IC 2,212 —o sea del lado NORMAL— y el borde no se
+     estaba probando. Medido preguntandole a `getBSA()` en el navegador, no de memoria.
+     GC = IC x SC, con esa SC:  2,1 -> 3,8180   2,2 -> 3,99986  2,3 -> 4,1817   1,57 -> 2,8544.
+     La vuelta esta comprobada: los cuatro GC dan 2,100, 2,200, 2,300 y 1,570.
      La PAM se deja en 70 para que la vasoplejia no se mezcle con el borde del IC. */
-  icB21: { campos: { peso:'70', talla:'170', pop_sw_gc:'3.838', pop_sw_pam:'70', pop_sw_pad:'10',
+  icB21: { campos: { peso:'70', talla:'170', pop_sw_gc:'3.8180', pop_sw_pam:'70', pop_sw_pad:'10',
                      pop_sw_pcp:'14' }, sel: { pop_monitor:'swan' } },
-  icB22: { campos: { peso:'70', talla:'170', pop_sw_gc:'4.021', pop_sw_pam:'70', pop_sw_pad:'10',
+  icB22: { campos: { peso:'70', talla:'170', pop_sw_gc:'3.99986', pop_sw_pam:'70', pop_sw_pad:'10',
                      pop_sw_pcp:'14' }, sel: { pop_monitor:'swan' } },
-  icB23: { campos: { peso:'70', talla:'170', pop_sw_gc:'4.204', pop_sw_pam:'70', pop_sw_pad:'10',
+  icB23: { campos: { peso:'70', talla:'170', pop_sw_gc:'4.1817', pop_sw_pam:'70', pop_sw_pad:'10',
                      pop_sw_pcp:'14' }, sel: { pop_monitor:'swan' } },
-  lacB20: { campos: { peso:'70', talla:'170', pop_sw_gc:'4.204', pop_sw_pam:'70', pop_sw_pad:'10',
+  lacB20: { campos: { peso:'70', talla:'170', pop_sw_gc:'4.1817', pop_sw_pam:'70', pop_sw_pad:'10',
                       pop_sw_pcp:'14', pop_lactato:'2.0' }, sel: { pop_monitor:'swan' } },
-  lacB21: { campos: { peso:'70', talla:'170', pop_sw_gc:'4.204', pop_sw_pam:'70', pop_sw_pad:'10',
+  lacB21: { campos: { peso:'70', talla:'170', pop_sw_gc:'4.1817', pop_sw_pam:'70', pop_sw_pad:'10',
                       pop_sw_pcp:'14', pop_lactato:'2.1' }, sel: { pop_monitor:'swan' } },
-  tapB16: { campos: { peso:'70', talla:'170', pop_sw_gc:'3.2', pop_sw_pam:'70', tapse:'16',
-                      tep_vdvi:'0.80' }, sel: { pop_monitor:'swan' } },
-  tapB17: { campos: { peso:'70', talla:'170', pop_sw_gc:'3.2', pop_sw_pam:'70', tapse:'17',
-                      tep_vdvi:'0.80' }, sel: { pop_monitor:'swan' } },
-  tapB18: { campos: { peso:'70', talla:'170', pop_sw_gc:'3.2', pop_sw_pam:'70', tapse:'18',
-                      tep_vdvi:'0.80' }, sel: { pop_monitor:'swan' } },
-  vdviB90: { campos: { peso:'70', talla:'170', pop_sw_gc:'3.2', pop_sw_pam:'70', tapse:'20',
+  /* ⚠️ LOS BORDES DEL VD VAN CON EL GASTO NO BAJO, Y ESO HACE AL BORDE OBSERVABLE. Con el IC
+     bajo, los tres TAPSE daban el MISMO rotulo —«Indice cardiaco bajo, sin un patron»—, asi que
+     mover el TAPSE de 16 a 18 no cambiaba nada que la sonda pudiera ver: un borde que no se
+     puede ver no esta probado. Con el gasto por encima del corte y la presion capilar alta, el
+     TAPSE decide la cuarta senal, y ahi si se distingue 16 de 17. */
+  tapB16: { campos: { peso:'70', talla:'170', pop_sw_gc:'4.1817', pop_sw_pam:'70', pop_sw_pad:'10',
+                      pop_sw_pcp:'22', tapse:'16', tep_vdvi:'0.80' }, sel: { pop_monitor:'swan' } },
+  tapB17: { campos: { peso:'70', talla:'170', pop_sw_gc:'4.1817', pop_sw_pam:'70', pop_sw_pad:'10',
+                      pop_sw_pcp:'22', tapse:'17', tep_vdvi:'0.80' }, sel: { pop_monitor:'swan' } },
+  tapB18: { campos: { peso:'70', talla:'170', pop_sw_gc:'4.1817', pop_sw_pam:'70', pop_sw_pad:'10',
+                      pop_sw_pcp:'22', tapse:'18', tep_vdvi:'0.80' }, sel: { pop_monitor:'swan' } },
+  /* El VD/VI decide el COLOR de la pregunta «¿Falla del VD?»: 0,90 exacto no es dilatacion
+     (el operador es estricto) y 0,91 si. */
+  vdviB90: { campos: { peso:'70', talla:'170', pop_sw_gc:'4.1817', pop_sw_pam:'70', tapse:'20',
                        tep_vdvi:'0.90' }, sel: { pop_monitor:'swan' } },
-  vdviB91: { campos: { peso:'70', talla:'170', pop_sw_gc:'3.2', pop_sw_pam:'70', tapse:'20',
+  vdviB91: { campos: { peso:'70', talla:'170', pop_sw_gc:'4.1817', pop_sw_pam:'70', tapse:'20',
                        tep_vdvi:'0.91' }, sel: { pop_monitor:'swan' } },
   /* ── LAS CUATRO SENALES SUELTAS DEL COMMIT 5 ──────────────────────────────────────────────
      Todas con el IC por ENCIMA del corte, que es la condicion de las cuatro: gasto aparentemente
      adecuado. GC 4,204 -> IC 2,3. */
-  senSop: { campos: { peso:'70', talla:'170', pop_sw_gc:'4.204', pop_sw_pam:'70', pop_sw_pad:'10',
+  senSop: { campos: { peso:'70', talla:'170', pop_sw_gc:'4.1817', pop_sw_pam:'70', pop_sw_pad:'10',
                       pop_sw_pcp:'14' }, chk: ['pop_nor_activa'], sel: { pop_monitor:'swan' } },
-  senLac: { campos: { peso:'70', talla:'170', pop_sw_gc:'4.204', pop_sw_pam:'70', pop_sw_pad:'10',
+  senLac: { campos: { peso:'70', talla:'170', pop_sw_gc:'4.1817', pop_sw_pam:'70', pop_sw_pad:'10',
                       pop_sw_pcp:'14', pop_lactato:'3.4' }, sel: { pop_monitor:'swan' } },
-  senPcp: { campos: { peso:'70', talla:'170', pop_sw_gc:'4.204', pop_sw_pam:'70', pop_sw_pad:'10',
+  senPcp: { campos: { peso:'70', talla:'170', pop_sw_gc:'4.1817', pop_sw_pam:'70', pop_sw_pad:'10',
                       pop_sw_pcp:'22' }, sel: { pop_monitor:'swan' } },
-  senVd:  { campos: { peso:'70', talla:'170', pop_sw_gc:'4.204', pop_sw_pam:'70', pop_sw_pad:'10',
+  senVd:  { campos: { peso:'70', talla:'170', pop_sw_gc:'4.1817', pop_sw_pam:'70', pop_sw_pad:'10',
                       pop_sw_pcp:'22', tapse:'12' }, sel: { pop_monitor:'swan' } },
   /* ⚠️ EL CASO QUE MIDIO EL MEDICO: IC 1,57 con PAM 58 y TAPSE 12, donde la conclusion decia
      «Sin patron de bajo gasto ni vasoplejia». GC = 1,57 x 1,8277 = 2,870. */
-  medico: { campos: { peso:'70', talla:'170', pop_sw_gc:'2.870', pop_sw_pam:'58', pop_sw_pad:'10',
+  medico: { campos: { peso:'70', talla:'170', pop_sw_gc:'2.8544', pop_sw_pam:'58', pop_sw_pad:'10',
                       pop_sw_pcp:'14', tapse:'12', pop_lactato:'4.2' },
             sel: { pop_monitor:'swan' } },
+  /* ⚠️ EL DENOMINADOR DE «CERO EN SUPERFICIE FIRMADA» DEL COMMIT 5. El rotulo del patron lo
+     imprime la diapositiva del PPT del paciente, pero SOLO si el modulo esta integrado: sin una
+     escena integrada donde el rotulo CAMBIE, un cero no se distingue de «ninguna escena llega a
+     esa superficie». Esta es el caso del medico —IC 1,57— con el modulo integrado, que es
+     exactamente donde el rotulo pasa de «Sin patron de bajo gasto ni vasoplejia» a «Indice
+     cardiaco bajo, sin un patron que lo explique». */
+  medicoInt: { campos: { peso:'70', talla:'170', pop_sw_gc:'2.8544', pop_sw_pam:'58', pop_sw_pad:'10',
+                         pop_sw_pcp:'14', tapse:'12', pop_lactato:'4.2', pop_cx_horas:'6' },
+               sel: { pop_monitor:'swan', pop_cx_tipo:'cabg' }, integrar: ['pop'] },
+  /* Y una integrada con el gasto NO bajo y senales, que es el otro rotulo nuevo. */
+  senSopInt: { campos: { peso:'70', talla:'170', pop_sw_gc:'4.1817', pop_sw_pam:'70', pop_sw_pad:'10',
+                         pop_sw_pcp:'14', pop_lactato:'3.4', pop_cx_horas:'6' },
+               sel: { pop_monitor:'swan', pop_cx_tipo:'cabg' }, integrar: ['pop'] },
   ajeno:   { campos: { im_vc: '8', ea_dtsvi: '20', itv_tsvi: '20', itv_ao: '100', vmax_ao: '4.5',
                        onda_e: '110', e_sep: '5', e_lat: '6', ai_vol: '70', peso: '80', talla: '180' } }
 };

@@ -44166,6 +44166,36 @@ const VINFO = Object.freeze({
      que estaba, con su misma letra. Ver `docs/fuentes/FUENTES.md` → «La tanda POP-V2».
      ⚠️ NO LLEVA CLASE NI NIVEL, y es correcto: las dos publican una DEFINICIÓN y ninguna es una
      guía, así que no hay recomendación de la cual tomar una clase. */
+  /* ══ LAS SEÑALES DE ALARMA Y EL CORTE DE LACTATO (POP-V2-5, 29/10/2026) ══════════════════
+     Las DOS fuentes del corte se leyeron EN IMAGEN sobre el PDF original —a 400 y 500 ppp—, no
+     sobre el texto extraído: el signo «mayor que» es justo lo que una extracción se come, y con
+     el corte del lado equivocado el aviso saldría al revés. Es ESTRICTO en las dos.
+     ⚠️ LA SEGUNDA ESTABA ARCHIVADA EN LA CARPETA EQUIVOCADA de la biblioteca —dentro de
+     `19_Pulmon_POCUS/`, con el nombre `COMPLETO-B-52.pdf`—, así que un censo por nombre de
+     archivo no la encuentra. Censada por CONTENIDO sobre los 185 PDF. Y la hoja no es la 11 que
+     decía la orden: es la 15. Todo en `docs/fuentes/FUENTES.md`. */
+  'pop-senales': {
+    tit: 'Señales de alarma con el gasto aparentemente adecuado',
+    lee: 'Un índice cardíaco por encima del corte no cierra la evaluación por sí solo. Las cuatro '
+       + 'señales dicen su valor y ninguna asigna un estadio: con soporte en curso el gasto puede '
+       + 'depender de las drogas o del dispositivo; un lactato por encima de 2 mmol/L indica '
+       + 'hipoxia celular; una presión capilar por encima del corte de congestión con el gasto '
+       + 'conservado es congestión pulmonar; y una presión capilar alta con el TAPSE bajo es '
+       + 'falla cardíaca aunque el gasto sea normal.',
+    fuente: 'Lactato por encima de 2 — Sinha SS y cols. «2025 Concise Clinical Guidance: An ACC '
+          + 'Expert Consensus Statement on the Evaluation and Management of Cardiogenic Shock». '
+          + 'J Am Coll Cardiol 2025;85(16):1618-1641, hoja 5, folio 1622: «elevated venous or '
+          + 'arterial lactate (>2 mmol/L)». · Consenso de Shock Cardiogénico, Sociedad Argentina '
+          + 'de Cardiología. Rev Argent Cardiol 2024;92 Supl. 3, hoja 15, folio 7: «Valores de AL '
+          + '> 2 mEq/L son indicadores de hipoxia celular». El corte de congestión y los del '
+          + 'ventrículo derecho son los que esta app ya aplica en esta misma pestaña.',
+    ojo: 'Esta aplicación NO asigna etapas SCAI del shock ni emite la etiqueta «shock '
+       + 'cardiogénico» como una conclusión calculada: muestra señales sueltas con su valor y la '
+       + 'decisión es del médico. El segundo documento usa ese mismo corte de lactato para '
+       + 'definir el estadio C de esa clasificación, que es justo lo que acá no se publica. El '
+       + 'piso de la banda de precarga, 12 mmHg, es criterio de esta aplicación y no sale de '
+       + 'ninguna de las dos fuentes.'
+  },
   'pop-vaso': {
     tit: 'Vasoplejia tras circulación extracorpórea — definición propuesta',
     lee: 'La etiqueta exige las TRES cosas a la vez: presión arterial media por debajo de 65 mmHg, '
@@ -59352,6 +59382,31 @@ const POP_IC_PLAUSIBLE_MIN = 0.5, POP_IC_PLAUSIBLE_MAX = 10;
    número de esa definición que esta app no tenía ya con dueño: el «IC > 2,2» es `_icBanda` y el
    «RVS < 800» es `_rvsBanda`. Ver la nota larga en `popPatron`. */
 const POP_VASO_PAM_MAX = 65;
+/* ══ EL LACTATO PASA A TENER UN CORTE, Y SUS DOS FUENTES SE LEYERON EN IMAGEN (POP-V2-5) ══════
+   Hasta esta tanda el lactato era un dato que la app NO interpretaba, y el motivo escrito era
+   que «ninguna de las fuentes de este módulo publica un punto de corte aplicable». Era cierto
+   para las fuentes que el módulo tenía; estas dos son nuevas y las dos publican el mismo corte:
+     · Sinha SS y cols. «2025 Concise Clinical Guidance: An ACC Expert Consensus Statement on the
+       Evaluation and Management of Cardiogenic Shock». J Am Coll Cardiol 2025;85(16):1618-1641,
+       hoja 5, folio 1622 — «elevated venous or arterial lactate (>2 mmol/L)».
+     · Consenso de Shock Cardiogénico, Sociedad Argentina de Cardiología. Rev Argent Cardiol
+       2024;92 Supl. 3, hoja 15, folio 7 — «Valores de AL > 2 mEq/L son indicadores de hipoxia
+       celular».
+   Las dos leídas EN IMAGEN a 400 y 500 ppp sobre el PDF original, no sobre el texto extraído: el
+   signo «mayor que» es justo lo que una extracción se come, y con el corte del lado equivocado
+   el aviso saldría al revés. Es ESTRICTO en las dos.
+   ⚠️ EL CORTE NO GRADÚA NI DIAGNOSTICA: enciende una SEÑAL que dice el valor. La app no asigna
+   etapas SCAI ni la etiqueta «shock cardiogénico» (decisión del médico, 28/10/2026), y el
+   segundo documento usa ese corte justo para definir el estadio C — que es lo que acá no se
+   emite. Las citas van en el globo ⓘ `pop-senales`, no en la línea visible. */
+const POP_LACTATO_ALTO = 2;
+window.POP_LACTATO_ALTO = POP_LACTATO_ALTO;
+/* El piso de la banda de precarga del módulo. ⚠️ NO TIENE FUENTE y es criterio propio, declarado
+   como tal desde el primer día («Los cortes 12/18 de precarga son los del pedido»). Sale a una
+   constante para que el número esté UNA vez: estaba escrito dos veces dentro de `popPatron`.
+   El techo NO es propio: es `UMBRAL_PCP_HUMEDO`. */
+const POP_PCP_PRECARGA_MIN = 12;
+window.POP_PCP_PRECARGA_MIN = POP_PCP_PRECARGA_MIN;
 function popPatron() {
   const asc = (typeof getBSA === 'function') ? getBSA() : null;
 
@@ -59466,6 +59521,26 @@ function popPatron() {
   try { tapo = (document.getElementById('pericardio_hemo') || {}).value === 'si'; } catch (e) {}
 
   const lb = (document.getElementById('pop_pulmon_lineasb') || {}).value || '';
+  /* ══ LO QUE LAS SEÑALES SUELTAS NECESITAN (POP-V2-5) ═══════════════════════════════════════
+     El lactato, el soporte en curso y los dos derrames pleurales. El soporte son las DROGAS
+     marcadas más una asistencia circulatoria consignada que no sea «ninguna»: «ninguna» es una
+     respuesta, no un soporte en curso. */
+  const lactato = v('pop_lactato');
+  const _drogasOn = (window.POP_DROGAS || []).filter(function (k) {
+    const c = document.getElementById('pop_' + k + '_activa');
+    return c && c.checked;
+  }).map(function (k) {
+    const c = document.getElementById('pop_' + k + '_activa');
+    return c && c.parentNode ? (c.parentNode.textContent || '').trim() : k;
+  });
+  const _asisVal = (document.getElementById('pop_asist_tipo') || {}).value || '';
+  const _asisTxt = (function () {
+    const e = document.getElementById('pop_asist_tipo');
+    if (!e || !e.value || e.value === 'ninguna') return '';
+    return e.options[e.selectedIndex] ? e.options[e.selectedIndex].text : e.value;
+  })();
+  const haySoporte = _drogasOn.length > 0 || !!_asisTxt;
+  const lacAlto = lactato !== null && lactato > POP_LACTATO_ALTO;
 
   /* ── PREGUNTAS BINARIAS ── Cada una nombra de dónde sale su banda. */
   const preg = [];
@@ -59474,16 +59549,31 @@ function popPatron() {
      «¿Gasto cardíaco adecuado?» salía al resumen firmado como «Gasto cardíaco adecuado», o sea
      diciendo exactamente lo contrario. Es el defecto del «NO CONTRAINDICADO» que este archivo
      documenta, en el campo que más se lee y se copia. */
+  /* ⚠️ EL AVISO «NO CONCLUYE POR SÍ SOLO» VA EN SU PROPIO CAMPO, Y NO DENTRO DE `r` (POP-V2-5).
+     `r` lo imprime la diapositiva del PPT del paciente, que es una superficie FIRMADA, y esta
+     orden dice que el commit 5 es SÓLO de pantalla. `aviso` lo lee únicamente `popConclSync`.
+     Medido: con el aviso dentro de `r`, el A/B del commit 5 mostraba una diferencia en el PPT. */
   preg.push({ q:'¿Gasto cardíaco adecuado?', cls: icB ? (icB.cls === 'green' ? 'green' : icB.cls) : 'yellow',
               hallazgo:'bajo gasto',
+              aviso: (icB && !(icB.txt === 'bajo') && (haySoporte || lacAlto))
+                ? 'no concluye por sí solo: ' + [haySoporte ? 'hay soporte en curso' : '',
+                    lacAlto ? 'el lactato está por encima de ' + POP_LACTATO_ALTO + ' mmol/L' : '']
+                    .filter(Boolean).join(' y ')
+                : '',
               r: icB ? ('IC ' + ic.toFixed(2) + ' L/min/m² — ' + icB.txt + ', por ' + icFuente)
                      : (icFuera !== null ? 'IC ' + icFuera.toFixed(2) + ' fuera de rango — no vota'
                                          : 'sin IC calculable') });
+  /* ⚠️ EL 12 Y EL 18 ESTABAN ESCRITOS A MANO, CUATRO VECES CADA UNO (POP-V2-5). El 18 coincide
+     en el número con `UMBRAL_PCP_HUMEDO`, que es el corte de congestión que el Forrester, la
+     cápsula «Perfil hemodinámico» y el diagrama del Laboratorio ya leen; el 12 es criterio
+     propio de este módulo y no tiene otro dueño. Hoy los dos salen de una constante, así que el
+     día que uno se mueva no queda una copia clasificando distinto el mismo paciente en la misma
+     pantalla. **Ningún número cambió**: los dos valen lo mismo que antes. */
   preg.push({ q:'¿Precarga adecuada?',
-              hallazgo: pcp === null ? '' : (pcp < 12 ? 'precarga baja' : pcp > 18 ? 'congestión' : ''),
-              cls: pcp === null ? 'yellow' : (pcp >= 12 && pcp <= 18) ? 'green' : 'yellow',
+              hallazgo: pcp === null ? '' : (pcp < POP_PCP_PRECARGA_MIN ? 'precarga baja' : pcp > UMBRAL_PCP_HUMEDO ? 'congestión' : ''),
+              cls: pcp === null ? 'yellow' : (pcp >= POP_PCP_PRECARGA_MIN && pcp <= UMBRAL_PCP_HUMEDO) ? 'green' : 'yellow',
               r: pcp === null ? 'sin PCP' : (pcp.toFixed(0) + ' mmHg — ' +
-                 (pcp < 12 ? 'sugiere hipovolemia' : pcp > 18 ? 'sugiere congestión' : 'en rango') +
+                 (pcp < POP_PCP_PRECARGA_MIN ? 'sugiere hipovolemia' : pcp > UMBRAL_PCP_HUMEDO ? 'sugiere congestión' : 'en rango') +
                  ' (' + pcpFuente + ')') });
   preg.push({ q:'¿Compromiso hemodinámico pericárdico?', cls: tapo ? 'red' : 'green',
               hallazgo:'compromiso hemodinámico pericárdico',
@@ -59493,9 +59583,9 @@ function popPatron() {
               hallazgo:'falla del ventrículo derecho',
               r: (tapse === null && vdvi === null) ? 'sin TAPSE ni VD/VI'
                  : ('TAPSE ' + (tapse === null ? '—' : tapse + ' mm') + ' · VD/VI ' + (vdvi === null ? '—' : vdvi)) });
-  const congest = lb === 'difusas' && pcp !== null && pcp > 18;
+  const congest = lb === 'difusas' && pcp !== null && pcp > UMBRAL_PCP_HUMEDO;
   preg.push({ q:'¿Congestión pulmonar?', cls: congest ? 'red' : 'green', hallazgo:'congestión pulmonar',
-              r: congest ? 'líneas B difusas con PCP > 18' : (lb === 'difusas' ? 'líneas B difusas sin PCP elevada' : 'no') });
+              r: congest ? 'líneas B difusas con PCP > ' + UMBRAL_PCP_HUMEDO : (lb === 'difusas' ? 'líneas B difusas sin PCP elevada' : 'no') });
 
   /* ── PATRÓN ── El taponamiento se evalúa PRIMERO: es la conducta más urgente y no se diluye
      en un «mixto». Los demás se acumulan y si hay más de uno, el patrón es mixto. */
@@ -59504,8 +59594,8 @@ function popPatron() {
   const icBajo = icB && (icB.txt === 'bajo' || icB.txt === 'límite');
   const rvsAlta = rvsB && (rvsB.cls === 'red' || rvsB.cls === 'yellow');
   const rvsBaja = rvsB && rvsB.cls === 'orange';
-  if (icBajo && pcp !== null && pcp < 12 && rvsAlta) pats.push({ k:'hipovolemia', lbl:'Hipovolemia', cls:'orange' });
-  if (icBajo && pcp !== null && pcp > 18 && rvsAlta) pats.push({ k:'falla_vi', lbl:'Falla del ventrículo izquierdo', cls:'red' });
+  if (icBajo && pcp !== null && pcp < POP_PCP_PRECARGA_MIN && rvsAlta) pats.push({ k:'hipovolemia', lbl:'Hipovolemia', cls:'orange' });
+  if (icBajo && pcp !== null && pcp > UMBRAL_PCP_HUMEDO && rvsAlta) pats.push({ k:'falla_vi', lbl:'Falla del ventrículo izquierdo', cls:'red' });
   if (icBajo && tapseBaja && vdDil) pats.push({ k:'falla_vd', lbl:'Falla del ventrículo derecho', cls:'red' });
   /* ⚠️ LA VASOPLEJIA EXIGE LAS TRES COSAS, Y LA PAM ERA LA QUE FALTABA (G3, 2026-10-24).
      LAS DOS FUENTES, LEÍDAS EN IMAGEN EN EL PDF ORIGINAL:
@@ -59567,13 +59657,67 @@ function popPatron() {
      así que meterle el motivo la habría partido en tres frases —una con un número distinto por
      estudio— y cada variante sería una fila propia del gráfico, del PPT y del PDF de auditoría.
      El motivo se publica en su propia línea del panel y en el `title` del botón. */
+  /* ══ LAS CUATRO SEÑALES SUELTAS (POP-V2-5) ═══════════════════════════════════════════════
+     Son SEÑALES CON SU VALOR, no una clasificación: la app no asigna etapas SCAI ni emite la
+     etiqueta «shock cardiogénico» (decisión del médico, 28/10/2026). Cada una dice el número que
+     la enciende, porque un aviso sin su valor no se puede auditar.
+     Las TRES primeras exigen el gasto POR ENCIMA del corte —son justamente las que avisan de que
+     un gasto aparentemente adecuado puede no serlo—; la cuarta no, porque una presión capilar
+     alta con el TAPSE bajo es falla cardíaca con el gasto donde esté. */
+  const senales = [];
+  if (icB && !icBajo && haySoporte) {
+    const _q = _drogasOn.concat(_asisTxt ? [_asisTxt] : []).join(', ');
+    senales.push({ k:'soporte', cls:'orange',
+      txt:'Gasto adecuado CON soporte en curso (' + _q + '): puede depender de las drogas o del dispositivo.' });
+  }
+  if (icB && !icBajo && lacAlto) {
+    senales.push({ k:'lactato', cls:'orange',
+      txt:'Lactato ' + lactato + ' mmol/L, por encima de ' + POP_LACTATO_ALTO +
+          ', con gasto aparentemente adecuado.' });
+  }
+  if (icB && !icBajo && pcp !== null && pcp > UMBRAL_PCP_HUMEDO) {
+    senales.push({ k:'pcp', cls:'orange',
+      txt:'Presión capilar ' + pcp.toFixed(0) + ' mmHg, por encima de ' + UMBRAL_PCP_HUMEDO +
+          ', con gasto aparentemente adecuado: congestión pulmonar.' });
+  }
+  if (pcp !== null && pcp > UMBRAL_PCP_HUMEDO && tapseBaja) {
+    senales.push({ k:'pcp_vd', cls:'red',
+      txt:'Presión capilar ' + pcp.toFixed(0) + ' mmHg con TAPSE ' + tapse +
+          ' mm: falla cardíaca aunque el gasto sea normal.' });
+  }
+
+  /* ⚠️ EL RÓTULO YA NO TRANQUILIZA DE MÁS, Y ESTE ERA EL DEFECTO QUE EL MÉDICO MIDIÓ: con índice
+     cardíaco 1,57, presión arterial media 58 y TAPSE 12 la conclusión decía «Sin patrón de bajo
+     gasto ni vasoplejia por los datos cargados» — o sea NEGABA el bajo gasto ocho renglones
+     debajo de «IC 1.57 — bajo». La causa: los cuatro patrones exigen combinaciones (bajo gasto
+     MÁS una presión capilar fuera de rango MÁS una resistencia, o bajo gasto MÁS las dos del
+     VD), y un paciente con el gasto bajo y todo lo demás en rango no cae en ninguna. «Ninguno de
+     los cuatro patrones» no es «sin bajo gasto».
+     Hoy son TRES rótulos distintos y ninguno afirma lo que el número niega:
+       · gasto bajo sin patrón que lo explique  -> lo dice, y nombra el índice;
+       · gasto no bajo con señales              -> «con señales de alarma», y las lista;
+       · gasto no bajo y sin señales            -> el rótulo de siempre.
+     ⚠️ EL VOCABULARIO SIGUE SIENDO CERRADO: el motivo y las señales van APARTE, nunca dentro del
+     rótulo, porque el Laboratorio agrupa su distribución por ese texto. Ver el comentario de
+     abajo, que ya lo decía. */
   let pat;
   if (!icB && !tapo) pat = { k:'insuficiente', lbl:'Datos insuficientes para clasificar', cls:'yellow' };
+  else if (!pats.length && icBajo)
+    pat = { k:'bajo_sin_patron', cls:'orange',
+            lbl:'Índice cardíaco bajo, sin un patrón que lo explique con los datos cargados' };
+  else if (!pats.length && senales.length)
+    pat = { k:'sin_patron_senales', cls:'orange',
+            lbl:'Sin patrón de bajo gasto por el índice cardíaco, con señales de alarma' };
   else if (!pats.length) pat = { k:'sin_patron', lbl:'Sin patrón de bajo gasto ni vasoplejia por los datos cargados', cls:'green' };
   else if (pats.length === 1) pat = pats[0];
   else pat = { k:'mixto', lbl:'Mixto — ' + pats.map(x => x.lbl.toLowerCase()).join(' + '), cls:'red' };
 
   return { pat: pat, patrones: pats, preguntas: preg, motivo: icB || tapo ? null : motivo,
+           senales: senales, lactato: lactato, lacAlto: lacAlto,
+           haySoporte: haySoporte, soporte: _drogasOn.concat(_asisTxt ? [_asisTxt] : []),
+           pleD: (document.getElementById('pop_pleura_der') || {}).value || '',
+           pleI: (document.getElementById('pop_pleura_izq') || {}).value || '',
+           lineasB: lb,
            ic: ic, icBanda: icB, icFuente: icFuente, icFuera: icFuera,
            pcp: pcp, pcpFuente: pcpFuente, rvs: rvs, rvsBanda: rvsB, rvsFuente: rvsFuente,
            pam: pam, pamFuente: pamFuente, pamBaja: pamBaja,
@@ -59600,10 +59744,47 @@ function popConclSync() {
      de `popPatron` desde el primer día—, así que lleva el chip de la casa. Y desde este commit
      NO viaja al informe, al EN SUMA ni a la hoja del PDF: el papel firmado describe. La línea de
      abajo lo dice en la pantalla, para que nadie lo busque en el papel. */
-  const _h =
+  /* ══ LAS SEÑALES SUELTAS VAN ARRIBA DE TODO (POP-V2-5) ═══════════════════════════════════
+     Antes que el patrón y antes que las cinco preguntas, que es donde el médico mira primero.
+     Cada una dice su VALOR y ninguna asigna un estadio: la app no emite etapas SCAI ni la
+     etiqueta «shock cardiogénico». El globo ⓘ lleva las dos fuentes del corte de lactato; la
+     línea visible no lleva cita, que es la regla R2 de esta tanda. */
+  const _gSen = ' <button type="button" class="vinfo-btn vinfo-btn-44" data-vinfo="pop-senales" '
+    + 'aria-expanded="false" aria-label="Informaci&oacute;n sobre las se&ntilde;ales de alarma y '
+    + 'el corte de lactato" onclick="vInfoClic(this)">&#9432;</button>';
+  const _senHTML = (r.senales && r.senales.length)
+    ? '<div style="margin-bottom:8px;">' +
+      '<div style="font-size:11px;font-weight:700;color:var(--accent2);text-transform:uppercase;'
+      + 'letter-spacing:.4px;margin-bottom:6px;">Señales de alarma' + _gSen + '</div>' +
+      r.senales.map(function (x) {
+        return '<div class="calc-row"><span>' + badge(x.cls, '!') + ' ' + escHtml(x.txt) + '</span></div>';
+      }).join('') + '</div>'
+    : '';
+  const _h = _senHTML +
     fila('Patrón detectado (orientativo)',
          badge(r.pat.cls, r.pat.lbl) + ' ' + badge('gray', 'Criterio de EcoSmart')) +
-    r.preguntas.map(q => fila(q.q, badge(q.cls, q.r))).join('') +
+    /* El aviso de la pregunta del gasto va al lado de su respuesta y SOLO en pantalla: `q.r`,
+       que es lo que el PPT imprime, no se toca. */
+    r.preguntas.map(function (q) {
+      return fila(q.q, badge(q.cls, q.r) + (q.aviso ? ' <span style="font-size:10px;color:var(--text2);">— ' + escHtml(q.aviso) + '</span>' : ''));
+    }).join('') +
+    /* ⚠️ LA CONCLUSIÓN NOMBRA EL DERRAME PLEURAL Y LAS LÍNEAS B CUANDO ESTÁN CARGADOS (5c). Con
+       el vocabulario que esta app ya usa: su propio bloque de POCUS llama «síndrome
+       intersticial» a las líneas B difusas y «congestión pulmonar» a la pregunta que las
+       gradúa. «Edema pulmonar» es un diagnóstico que este módulo no emite en ninguna otra
+       superficie, así que no se estrena acá; está reportado en PENDIENTES → POP-e. */
+    (function () {
+      const PL = { leve:'leve (menos de 1 cm)', moderado:'moderado (de 1 a 3 cm)',
+                   severo:'severo (más de 3 cm)', ausente:'ausente' };
+      const _p = [r.pleD ? 'derecho ' + (PL[r.pleD] || r.pleD) : '',
+                  r.pleI ? 'izquierdo ' + (PL[r.pleI] || r.pleI) : ''].filter(Boolean).join(' · ');
+      const _l = r.lineasB === 'difusas'
+        ? 'Líneas B difusas bilaterales — síndrome intersticial, que es el signo de congestión pulmonar que esta pantalla gradúa.'
+        : r.lineasB === 'focales' ? 'Líneas B focales.' : '';
+      if (!_p && !_l) return '';
+      return '<div style="font-size:11px;color:var(--text2);margin-top:6px;line-height:1.5;">' +
+             (_p ? 'Derrame pleural ' + escHtml(_p) + '. ' : '') + escHtml(_l) + '</div>';
+    })() +
     '<div style="font-size:10px;color:var(--text2);margin-top:6px;line-height:1.5;">El patrón y las cinco preguntas se quedan en esta pantalla: el informe, el EN SUMA y la hoja del PDF del posoperatorio describen lo medido y lo observado, sin patrón y sin conducta.</div>' +
     /* El MOTIVO va en su propia línea y no dentro del rótulo del patrón: aquél es vocabulario
        cerrado para el Laboratorio. Ver el comentario de `popPatron`. */
@@ -70309,6 +70490,7 @@ const VINFO_REF = Object.freeze({
      entre sus dieciséis filas. El invariante de esta tabla es que una tarjeta CON entrada lleva
      botón «Ver referencia». */
   'pop-vaso': 'pop',
+  'pop-senales': 'pop',
   /* ⚠️ LAS TRES TARJETAS DE LA AJ9 LLEVAN BOTÓN DESDE QUE SU ENTRADA EXISTE, que es el
      invariante de esta tabla. `ref-strain` nace en el commit 5 y las tres apuntan ahí: las
      tres citan sus mismas filas. */
