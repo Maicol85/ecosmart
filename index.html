@@ -4507,12 +4507,12 @@ window.cerrarSesionReal = cerrarSesionReal;
             <span id="ao-tub-interp">—</span>
           </div>
           <div class="calc-row">
-            <span class="calc-lbl">Cayado aórtico</span>
-            <span id="ao-cay-interp">—</span>
+            <span class="calc-lbl">Cayado a&oacute;rtico <button type="button" class="vinfo-btn vinfo-btn-44" data-vinfo="ao-cay-card" aria-expanded="false" aria-label="Corte del cayado a&oacute;rtico y valores de la gu&iacute;a por tramo y sexo" onclick="vInfoClic(this)">&#9432;</button></span>
+            <span id="ao-cay-interp">&mdash;</span>
           </div>
           <div class="calc-row">
-            <span class="calc-lbl">Ao torácica descendente</span>
-            <span id="ao-desc-interp">—</span>
+            <span class="calc-lbl">Ao tor&aacute;cica descendente <button type="button" class="vinfo-btn vinfo-btn-44" data-vinfo="ao-desc-card" aria-expanded="false" aria-label="Corte de la aorta tor&aacute;cica descendente y valores de la gu&iacute;a por tramo y sexo" onclick="vInfoClic(this)">&#9432;</button></span>
+            <span id="ao-desc-interp">&mdash;</span>
           </div>
         </div>
       </div>
@@ -24619,6 +24619,43 @@ window.AO_DIL_MM = AO_DIL_MM; window.aoDilCorte = aoDilCorte;
 const AO_IDA_MAX = 22;   // mm/m2 — por ENCIMA de este valor hay dilatacion por indice
 window.AO_IDA_MAX = AO_IDA_MAX;
 const AO_REF = Object.freeze({ sin: 40, st: 38, tub: 40, cay: 40, desc: 35 });
+/* ══ LOS OCHO TRAMOS DE LA FIGURA 5 DE LA ESC 2024 (AORTA-2, commit 1, 2026-10-30) ═══════════
+   LEIDA EN IMAGEN a 200 ppp sobre la edicion INGLESA («ESC 2024 aorta.pdf», hoja 26), con el
+   folio 3563 comprobado en el pie impreso; la edicion de la SEC la publica en su hoja 29, folio
+   28. Su titulo es «Anatomy and aortic segments and UPPER NORMAL VALUES for aortic dimensions»:
+   lo que da es el LIMITE SUPERIOR DE LO NORMAL por tramo y por sexo, no un umbral de gravedad
+   ni una indicacion quirurgica. Por eso lo que la app afirma por encima de ese valor es «por
+   encima del limite superior de lo normal» y no «dilatada», que es una palabra con consecuencia
+   clinica que esta figura no autoriza.
+
+   ⚠️ SOLO DOS DE LOS OCHO SE APLICAN, Y ES DECISION DEL MEDICO (opcion 1 de la orden del
+   30/10/2026): la UNION SINOTUBULAR y la AORTA ASCENDENTE, que son los dos tramos con
+   correspondencia DIRECTA con un campo de esta aplicacion. El cayado se mide en la app como UN
+   campo y la figura lo parte en proximal y medio con numeros distintos; la descendente, igual,
+   en proximal y distal. Elegir uno de los dos seria decidir por el medico que tramo midio, asi
+   que esos dos conservan su corte propio y lo DECLARAN con el chip «Criterio de EcoSmart».
+   Los valores de los ocho viven igual aca porque el globo ⓘ de esos dos campos los publica.
+
+   ⚠️ EL SENO DE VALSALVA NO SE TOCA. La figura le da 34 mm en la mujer y la app aplica 36, del
+   apartado 9.2.1.1, que es la decision vigente del medico (AJ4-1). La discrepancia esta
+   declarada arriba, en el comentario de `AO_DIL_MM`, y en `docs/fuentes/FUENTES.md`. Que el
+   numero este en esta tabla NO lo pone en juego: `AO_SEGS.ao_sin` sigue leyendo `AO_DIL_MM`. */
+const AO_FIG5 = Object.freeze({
+  sin:     Object.freeze({ rot: 'Seno de Valsalva',            M: 40, F: 34 }),
+  st:      Object.freeze({ rot: 'Uni\u00f3n sinotubular',         M: 38, F: 33 }),
+  tub:     Object.freeze({ rot: 'Aorta ascendente',            M: 40, F: 36 }),
+  cayProx: Object.freeze({ rot: 'Cayado proximal',             M: 37, F: 34 }),
+  cayMed:  Object.freeze({ rot: 'Cayado medio',                M: 34, F: 31 }),
+  descProx:Object.freeze({ rot: 'Descendente proximal',        M: 29, F: 26 }),
+  descDist:Object.freeze({ rot: 'Descendente distal',          M: 23, F: 20 }),
+  abd:     Object.freeze({ rot: 'Aorta abdominal',             M: 23, F: 19 })
+});
+window.AO_FIG5 = AO_FIG5;
+/* Los dos que SI se aplican, en la forma que `aoSegRef` consume (`{M, F}` y nada mas): ningun
+   segmento escribe un numero a mano y el globo lee la misma tabla de arriba. */
+const AO_ST_MM  = Object.freeze({ M: AO_FIG5.st.M,  F: AO_FIG5.st.F });
+const AO_TUB_MM = Object.freeze({ M: AO_FIG5.tub.M, F: AO_FIG5.tub.F });
+window.AO_ST_MM = AO_ST_MM; window.AO_TUB_MM = AO_TUB_MM;
 /* Bandas por segmento. La línea de NORMALIDAD sale de AO_REF y el resto son los grados:
      ao_sin / ao_tub → normal ≤40 · leve 41-45 · moderada 46-50 · severa >50
      ao_st           → normal ≤38 · leve 39-44 · moderada 45-49 · severa ≥50
@@ -24643,14 +24680,32 @@ const AO_SEGS = Object.freeze([
      es el corte del VARÓN y es lo que `aoSegRef` devuelve sin sexo cargado; ningún lector
      escribe un número a mano. */
   Object.freeze({ k:'ao_sin', lbl:'raíz aórtica',        lblC:'Raíz aórtica',        med:'senos de Valsalva',    ref:AO_REF.sin, refSexo:AO_DIL_MM, idaMax:AO_IDA_MAX, incRef:true, min:10, max:90 }),
-  Object.freeze({ k:'ao_st',  lbl:'unión sinotubular',   lblC:'Unión sinotubular',   med:'unión sinotubular',    ref:AO_REF.st,  min:10, max:80 }),
-  Object.freeze({ k:'ao_tub', lbl:'aorta ascendente',    lblC:'Aorta ascendente',    med:'aorta ascendente',     ref:AO_REF.tub, min:10, max:90 }),
+  /* ⚠️ `fig5:true` = ESTE SEGMENTO SE JUZGA CON LA FIGURA 5 (AORTA-2, commit 1, 2026-10-30).
+     Dos cosas a la vez, y las dos viven acá, al lado del valor, para que ninguna superficie
+     tenga que recordarlas: el corte pasa a depender del SEXO —`refSexo`, la misma propiedad que
+     la raíz ya usaba— y lo que se afirma por encima deja de ser «dilatada».
+     ⚠️ EL OPERADOR NO SE MOVIÓ, Y ESO HUBO QUE DEFENDERLO. Estos dos NO llevan `incRef`, así
+     que su corte sigue cayendo del lado NORMAL: 38,0 mm exactos en un varón son normales, igual
+     que en HEAD. La rama de `refSexo` de `aoSegDil` comparaba con `>=` fijo —era la rama de la
+     raíz, que sí tiene `incRef`—, y heredarla habría movido el borde de los dos segmentos sin
+     que ninguna orden lo pidiera. Hoy esa rama pregunta por `incRef`, igual que la otra.
+     ⚠️ `ref` SE CONSERVA y es el corte del VARÓN, que es lo que `aoSegRef` devuelve cuando el
+     mapa por sexo no tiene la clave. Los dos números coinciden con los de HEAD —38 y 40—, así
+     que un varón sale IDÉNTICO: lo único que cambia es la mujer y la franja sin sexo. */
+  Object.freeze({ k:'ao_st',  lbl:'unión sinotubular',   lblC:'Unión sinotubular',   med:'unión sinotubular',    ref:AO_REF.st,  refSexo:AO_ST_MM,  fig5:true, min:10, max:80 }),
+  Object.freeze({ k:'ao_tub', lbl:'aorta ascendente',    lblC:'Aorta ascendente',    med:'aorta ascendente',     ref:AO_REF.tub, refSexo:AO_TUB_MM, fig5:true, min:10, max:90 }),
   /* `m:true` = sustantivo MASCULINO. Los cuatro segmentos viejos son femeninos («la raíz», «la
      unión», «la aorta»), así que el narrativo tenía el artículo y el adjetivo cableados en
      femenino. El cayado es el primero masculino y salía «la cayado aórtico se encuentra
      levemente dilatada» en el informe firmado. */
-  Object.freeze({ k:'diam_cayado',      lbl:'cayado aórtico',            lblC:'Cayado aórtico',            med:'cayado',                   ref:AO_REF.cay,  min:10, max:80, m:true }),
-  Object.freeze({ k:'diam_ao_toracica', lbl:'aorta torácica descendente', lblC:'Ao torácica descendente',  med:'aorta torácica descendente', ref:AO_REF.desc, min:8,  max:70 })
+  /* ⚠️ `ecosmart:true` = EL CORTE DE ESTE SEGMENTO NO TIENE FUENTE, Y LA PANTALLA LO DICE
+     (AORTA-2, commit 1). La Figura 5 parte el cayado en proximal (37/34) y medio (34/31) y la
+     descendente en proximal (29/26) y distal (23/20), y esta aplicación tiene UN campo para
+     cada uno: no hay correspondencia directa, así que el corte sigue siendo el propio y se
+     DECLARA con el chip gris, que es la convención de la casa para un criterio sin fuente. Los
+     valores de la guía por tramo y sexo los publica el globo ⓘ de cada fila. */
+  Object.freeze({ k:'diam_cayado',      lbl:'cayado aórtico',            lblC:'Cayado aórtico',            med:'cayado',                   ref:AO_REF.cay,  ecosmart:true, min:10, max:80, m:true }),
+  Object.freeze({ k:'diam_ao_toracica', lbl:'aorta torácica descendente', lblC:'Ao torácica descendente',  med:'aorta torácica descendente', ref:AO_REF.desc, ecosmart:true, min:8,  max:70 })
 ]);
 /* ⚠️ LOS TRES TRAMOS DEL SCORE, Y NINGUNO AFIRMA UN RESULTADO (I-E1, 22/10/2026).
    Los cortes (≤ 8 / 9-11 / > 11) son los del original y NO se tocan: Wilkins 1988, folio 307,
@@ -24833,16 +24888,26 @@ window.marfanItaEfectivo = marfanItaEfectivo;
 /* ⚠️ EL PREDICADO DE LA RAÍZ TIENE DOS PUERTAS Y LA SEGUNDA ES ESTRICTA (AJ4-1): el diámetro
    contra el corte por sexo con el valor INCLUIDO, o el índice por ENCIMA de 22 mm/m². Los otros
    cuatro segmentos no cambiaron ni un carácter. */
+/* ⚠️ EL OPERADOR SALE DE `incRef` EN LAS DOS RAMAS (AORTA-2, commit 1, 2026-10-30). Esta rama
+   tenía el `>=` ESCRITO, porque hasta hoy el único segmento que entraba era la raíz, que sí
+   cuenta su corte como dilatado. Con la unión sinotubular y la aorta ascendente entrando por
+   `refSexo`, ese `>=` les habría movido el borde: 38,0 y 40,0 exactos pasaban de normales a
+   dilatados sin que ninguna orden lo pidiera, y en el informe FIRMADO. Hoy las dos ramas
+   preguntan lo mismo, que además es lo que `aoSegSim` ya dibuja en el rótulo. */
+function aoSegPasa(sg, x, r) {
+  if (r == null) return false;
+  return sg && sg.incRef ? (x >= r) : (x > r);
+}
 function aoSegDil(sg, x, src) {
   if (!sg) return false;
   if (sg.refSexo || sg.idaMax != null) {
-    const r = aoSegRef(sg, src);
-    if (r != null && x >= r) return true;
+    if (aoSegPasa(sg, x, aoSegRef(sg, src))) return true;
     const ida = aoSegIda(sg, x, src);
-    return ida != null && ida > sg.idaMax;
+    return sg.idaMax != null && ida != null && ida > sg.idaMax;
   }
-  return sg.incRef ? (x >= sg.ref) : (x > sg.ref);
+  return aoSegPasa(sg, x, sg.ref);
 }
+window.aoSegPasa = aoSegPasa;
 window.aoSegDil = aoSegDil;
 /* El simbolo del operador de normalidad y el de dilatacion, derivados del mismo `incRef`. */
 function aoSegSim(sg, lado) {
@@ -24850,6 +24915,29 @@ function aoSegSim(sg, lado) {
   return (lado === 'normal') ? (inc ? '<' : '≤') : (inc ? '≥' : '>');
 }
 window.aoSegSim = aoSegSim;
+/* ══ QUE SE AFIRMA POR ENCIMA DEL CORTE — DUENO UNICO (AORTA-2, commit 1, 2026-10-30) ═══════
+   DECISION DEL MEDICO. La Figura 5 publica «upper normal values», o sea el LIMITE SUPERIOR DE
+   LO NORMAL por tramo y sexo: por encima de el lo que se puede afirmar es eso y no «dilatada»,
+   que es una palabra con consecuencia clinica que la figura no autoriza. Los segmentos que
+   siguen juzgando con otro criterio —la raiz por el apartado 9.2.1.1, el cayado y la
+   descendente por el criterio propio— conservan «dilatada» y su concordancia de genero.
+
+   ⚠️ LA CITA NO VA EN LA MISMA FRASE EN LAS DOS SUPERFICIES, Y ES DELIBERADO. La PANTALLA dice
+   «(ESC 2024, Figura 5)» —regla R2: las citas viven en la pantalla, en el ⓘ o en Referencias—;
+   el PAPEL FIRMADO no lleva citas ni notas metodologicas, que es una regla de este repositorio
+   y la misma que la orden repite en su encabezado («clase, nivel, umbral y tabla viven en la
+   Evidencia»). Por eso hay dos funciones y no una con un `if` adentro: el que escribe el papel
+   no puede alcanzar la cadena de la cita ni por descuido.
+   ⚠️ SIN CONCORDANCIA DE GENERO: «por encima del limite superior de lo normal» es invariable,
+   asi que `sg.m` no interviene. Los dos segmentos que la usan son femeninos de todos modos. */
+const AO_FIG5_TXT = 'por encima del l\u00edmite superior de lo normal';
+const AO_FIG5_CITA = 'ESC 2024, Figura 5';
+function aoSegDicho(sg) {
+  if (sg && sg.fig5) return AO_FIG5_TXT;
+  return (sg && sg.m) ? 'dilatado' : 'dilatada';
+}
+window.aoSegDicho = aoSegDicho;
+window.AO_FIG5_TXT = AO_FIG5_TXT; window.AO_FIG5_CITA = AO_FIG5_CITA;
 function aoSegGrado(sg, x, src) {
   if (x === null || x === undefined || !isFinite(x) || !x) return null;
   if (x < sg.min || x > sg.max) return 'fuera';
@@ -24878,11 +24966,18 @@ function aoSegGrado(sg, x, src) {
      normal en los dos. La franja sin respuesta es SOLO la de en medio.
      ⚠️ LOS CORTES NO SE ESCRIBEN: salen de `sg.refSexo`, el mismo mapa que usa `aoSegRef`. */
   if (sg.refSexo && typeof sexoFalta === 'function' && sexoFalta(src)) {
+    /* ⚠️ LA FRANJA SE DERIVA DEL OPERADOR, NO SE ESCRIBE (AORTA-2, commit 1, 2026-10-30).
+       Decía `x >= _bajo && x < _alto`, que es la franja correcta para la RAÍZ —que cuenta su
+       corte como dilatado— y la EQUIVOCADA para un segmento con `>` estricto: en la unión
+       sinotubular daba «no se puede clasificar» sobre 33,0 exactos, que son normales en los dos
+       sexos, y en cambio clasificaba 38,0, que es normal en el varón y está por encima del
+       límite en la mujer. La franja ambigua es, por definición, donde el corte del sexo BAJO ya
+       votó y el del ALTO todavía no — y eso lo contesta el mismo `aoSegPasa` que decide. */
     const _vals = Object.keys(sg.refSexo).map(function (k) { return sg.refSexo[k] });
     const _bajo = Math.min.apply(null, _vals), _alto = Math.max.apply(null, _vals);
     const _ida = aoSegIda(sg, x, src);
     const _votaIda = (sg.idaMax != null && _ida != null && _ida > sg.idaMax);
-    if (!_votaIda && x >= _bajo && x < _alto) return 'sinsexo';
+    if (!_votaIda && aoSegPasa(sg, x, _bajo) && !aoSegPasa(sg, x, _alto)) return 'sinsexo';
   }
   if (aoSegDil(sg, x, src)) return 'dilatada';
   return 'normal';
@@ -24893,8 +24988,7 @@ window.aoSegGrado = aoSegGrado;
    ya alcanza el corte, agregar «por indice» afirmaria que el diametro no alcanzaba. */
 function aoSegPorIda(sg, x, src) {
   if (!sg || sg.idaMax == null) return false;
-  const r = aoSegRef(sg, src);
-  if (r != null && x >= r) return false;
+  if (aoSegPasa(sg, x, aoSegRef(sg, src))) return false;
   const ida = aoSegIda(sg, x, src);
   return ida != null && ida > sg.idaMax;
 }
@@ -25954,8 +26048,20 @@ function calcAorta() {
        «Dilat. leve (≥40 y ≤45mm)», «Dilat. moderada (>45 y ≤50mm)» y «Dilat. severa (>50mm)»:
        la escala que esta tanda retira. El operador sigue saliendo de `aoSegSim`, que lo deriva
        del mismo `incRef` que decide el voto. */
+    /* ⚠️ EL ROTULO DEL SEGMENTO POR FIGURA 5 DICE LA FRASE Y SU CITA (AORTA-2, commit 1). La
+       primera letra se pone aca y no en la constante: el informe la usa EN MEDIO de una oracion
+       y la capsula la usa al principio. Una constante con la mayuscula adentro habria metido
+       una mayuscula en medio de la frase del papel, que es la regla R3. */
+    else if (sg.fig5)                txt = AO_FIG5_TXT.charAt(0).toUpperCase() + AO_FIG5_TXT.slice(1)
+                                         + ' (' + aoSegSim(sg, 'dil') + _ref + 'mm \u2014 ' + AO_FIG5_CITA + ')';
     else                             txt = 'Dilatada (' + aoSegSim(sg, 'dil') + _ref + 'mm)';
-    refSync(idSpan, badge(m.grado === 'fuera' ? 'red' : AO_BADGE_COLOR[m.grado], txt));
+    /* ⚠️ EL CHIP VA EN LOS DOS SEGMENTOS SIN FUENTE Y EN CUALQUIER GRADO, tambien en «Normal»
+       (AORTA-2, commit 1): lo que no tiene fuente es el CORTE, asi que la afirmacion de
+       normalidad descansa en el mismo criterio propio que la de lo contrario. Sale de
+       `sg.ecosmart`, que vive al lado del valor; la cadena es la misma que el resto de la
+       aplicacion usa, porque TC-507 la cuenta. */
+    refSync(idSpan, badge(m.grado === 'fuera' ? 'red' : AO_BADGE_COLOR[m.grado], txt)
+      + (sg.ecosmart && m.grado !== 'fuera' ? ' ' + badge('gray', 'Criterio de EcoSmart') : ''));
   });
 }
 
@@ -26351,6 +26457,14 @@ const EV_FECHA_VS     = '2026-10-17';
 /* La re-verificacion del AJ1: la Tabla 1 y el texto del strain, leidos EN IMAGEN en la
    version de MAYO y comparados contra la de febrero. */
 const EV_FECHA_AJ1    = '2026-10-22';
+const EV_FECHA_AO2    = '2026-10-30';   // tanda AORTA-2: Figura 5 y Tabla 68 leidas en imagen
+/* ⚠️ LA EDICION INGLESA ES LA PRIMARIA EN ESTA FICHA Y EN LAS QUE VENGAN (AORTA-2, 30/10/2026).
+   Las fichas anteriores citan la traduccion de la SEC, cuyo folio es «hoja menos uno»; la
+   inglesa (Eur Heart J 2024;45:3538-3700, 163 hojas) tiene folio = hoja + 3537, comprobado en
+   el pie impreso. Las citas NUEVAS llevan los dos folios, que es lo que la orden pide; las
+   viejas NO se reescriben, porque reescribir una cita verificada sin volver a abrirla es
+   inventarla. */
+const EV_GUIA_ESC2024AO_EN = 'Mazzolai L y col., 2024 ESC Guidelines for the management of peripheral arterial and aortic diseases. Eur Heart J 2024;45:3538-3700 (edición inglesa)';
 
 const EV_REG = Object.freeze([
   /* ── AURICULA IZQUIERDA ────────────────────────────────────────────────────────────────── */
@@ -26680,12 +26794,15 @@ const EV_REG = Object.freeze([
   /* ── AORTA TORACICA ──────────────────────────────────────────────── */
   Object.freeze({
     id: 'AOR-001', zona: 'AI/VI — Aorta torácica', dato: 'Cortes de dilatación de los segmentos distintos de la raíz',
-    /* ⚠️ LA RAIZ SALIO DE ESTA FICHA (AJ4-1, 23/10/2026): su corte pasó a la ESC 2024 y lo
-       respalda `AOR-004`, que está verificada. Lo que queda acá son los CUATRO segmentos que
-       siguen sin fuente — y la Figura 5 de la ESC 2024 (folio 28), que publica límites
-       superiores de normalidad POR SEXO para todos, le da la razón a UNO y no a los otros tres.
-       No se mueve ningún número: es contenido clínico y se REPORTA. Ver PENDIENTES → AJ4-c. */
-    valor: 'Aorta ascendente: dilatada por encima de 40 mm. Unión sinotubular: por encima de 38. Cayado: por encima de 40. Aorta torácica descendente: por encima de 35. Un solo corte para los dos sexos y sin ajuste por superficie corporal ni por edad. La raíz aórtica ya no se juzga con este criterio: ver la ficha AOR-004',
+    /* ⚠️ LA RAIZ SALIO DE ESTA FICHA (AJ4-1, 23/10/2026) Y LA UNION SINOTUBULAR Y LA
+       ASCENDENTE SALIERON EN LA TANDA AORTA-2 (30/10/2026). Quedan DOS, y es lo que cierra
+       `AJ4-c`: aquella entrada reportaba que la Figura 5 publica limites por sexo para todos
+       los tramos y que la app no los aplicaba. Hoy los aplica en los dos segmentos con
+       correspondencia DIRECTA; los otros dos no la tienen —la figura los parte en dos tramos
+       cada uno— y conservan su corte propio, que la pantalla DECLARA con el chip gris.
+       Su `tipo` sigue siendo «criterio propio» y su `estado` «por verificar», y eso es correcto
+       para lo que queda: no hay fuente que publique UN corte para el cayado entero. */
+    valor: 'Cayado aórtico: dilatado por encima de 40 mm. Aorta torácica descendente: por encima de 35 mm. Un solo corte para los dos sexos y sin ajuste por superficie corporal ni por edad. Son los dos únicos segmentos que esta aplicación sigue juzgando con un criterio propio, y la pantalla lo declara con el chip «Criterio de EcoSmart». La Figura 5 de la guía parte cada uno en dos tramos con números distintos —cayado proximal y medio, descendente proximal y distal— y esta aplicación los mide en un solo campo, así que no hay correspondencia directa: los valores de la guía por tramo y sexo se publican en el globo de cada fila y en la ficha AOR-005. La raíz aórtica se juzga con AOR-004 y la unión sinotubular y la aorta ascendente con AOR-005',
     duenio: 'aoSegGrado / AO_SEGS y AO_REF',
     guia: '', ubicacion: '', folio: '', hoja_pdf: null,
     doi: '', fuente_original: '', tipo: 'criterio propio de EcoSmart',
@@ -26705,6 +26822,20 @@ const EV_REG = Object.freeze([
     doi: '10.1093/eurheartj/ehae179', fuente_original: '', tipo: 'guía',
     estado: 'verificado', fecha_verificacion: EV_FECHA_AJ1,
     fuente_una_linea: 'ESC 2024 de enfermedad aórtica (Mazzolai), apartado 9.2.1.1 (folio 71) y Figura 24 (folio 76)',
+  }),
+  /* ⚠️ LA FICHA DE LOS DOS SEGMENTOS QUE PASARON A LA GUIA (AORTA-2, commit 1, 30/10/2026).
+     Nace VERIFICADA: la Figura 5 se leyo EN IMAGEN a 200 ppp sobre la edicion inglesa, hoja 26,
+     con el folio 3563 comprobado en el pie impreso de esa misma hoja. Los ocho tramos se
+     transcriben enteros aunque la app aplique dos, porque el globo ⓘ del cayado y de la
+     descendente los publica y esta ficha es donde se auditan. */
+  Object.freeze({
+    id: 'AOR-005', zona: 'AI/VI — Aorta torácica', dato: 'Límite superior de lo normal por tramo y por sexo (Figura 5)',
+    valor: 'Valores en el límite superior de lo normal, en milímetros, varón y mujer: seno de Valsalva 40 y 34 (con índice de dimensión aórtica por debajo de 22 mm/m²); unión sinotubular 38 y 33; aorta ascendente 40 y 36; cayado proximal 37 y 34; cayado medio 34 y 31; aorta descendente proximal 29 y 26; aorta descendente distal 23 y 20; aorta abdominal 23 y 19. La aplicación aplica por sexo sólo la unión sinotubular y la aorta ascendente, que son los dos tramos con correspondencia directa con un campo del formulario, y afirma «por encima del límite superior de lo normal» y no «dilatada», que es lo que esta figura publica. El cayado y la aorta torácica descendente conservan su corte propio porque la figura los parte en dos tramos con números distintos y la aplicación los mide en un solo campo. El seno de Valsalva se juzga con el apartado 9.2.1.1 (40 y 36), por decisión de Maicol',
+    duenio: 'AO_FIG5 / AO_ST_MM y AO_TUB_MM — aoSegRef, aoSegDil y aoSegDicho',
+    guia: EV_GUIA_ESC2024AO_EN, ubicacion: 'Figura 5', folio: '3563 (edición inglesa) · 28 (edición SEC)', hoja_pdf: 26,
+    doi: '10.1093/eurheartj/ehae179', fuente_original: '', tipo: 'guía',
+    estado: 'verificado', fecha_verificacion: EV_FECHA_AO2,
+    fuente_una_linea: 'ESC 2024 de enfermedad aórtica (Mazzolai), Figura 5, folio 3563 de la edición inglesa (folio 28 de la edición SEC)',
   }),
   Object.freeze({
     id: 'AOR-002', zona: 'AI/VI — Aorta torácica', dato: 'Nomogramas del diámetro de los senos de Valsalva por superficie corporal',
@@ -45049,6 +45180,9 @@ const VINFO = Object.freeze({
   'vd-tam-card': { ancho: 356, dyn: function () { return evTarjetaVDTam() } },
   'vd-fun-card': { ancho: 356, dyn: function () { return evTarjetaVDFun() } },
   'ao-card': { ancho: 356, dyn: function () { return evTarjetaAo() } },
+  /* Los DOS segmentos con criterio propio (AORTA-2): dos claves, UN constructor. */
+  'ao-cay-card':  { ancho: 356, dyn: function () { return evTarjetaAoSegs('cay') } },
+  'ao-desc-card': { ancho: 356, dyn: function () { return evTarjetaAoSegs('desc') } },
   /* ══ LAS OCHO TARJETAS DE VALVULAS («Q1», 2026-10-17) ═══════════════════════════════════
      Una por lesion. Las ocho llaman al MISMO constructor con dos argumentos: no hay ocho
      funciones que puedan divergir entre si, y el ancho es el de las de M —356 px— porque las
@@ -45969,6 +46103,17 @@ const AIVI_SEXO_PARAMS = Object.freeze([
   Object.freeze({ k: 'ao_sin', nombre: 'la raíz aórtica',
     val: () => vPlaus('ao_sin'),
     cat: (x, sx) => String(aoSegDil(AO_SEGS.find(function(s){ return s.k === 'ao_sin' }), x, sx)) }),
+  /* ⚠️ LA UNION SINOTUBULAR Y LA AORTA ASCENDENTE ENTRAN ACA DESDE LA TANDA AORTA-2
+     (30/10/2026): sus cortes pasaron a depender del sexo —38/33 y 40/36, Figura 5 de la ESC
+     2024, folio 3563—, asi que sin sexo cargado el aviso tiene que NOMBRARLAS, igual que a la
+     raiz. La categoria se le pregunta a `aoSegDil`, el dueno unico; aca no hay un solo numero
+     escrito. Viven en la misma pestana que el aviso, a la vista de quien carga el dato. */
+  Object.freeze({ k: 'ao_st', nombre: 'la unión sinotubular',
+    val: () => vPlaus('ao_st'),
+    cat: (x, sx) => String(aoSegDil(AO_SEGS.find(function(s){ return s.k === 'ao_st' }), x, sx)) }),
+  Object.freeze({ k: 'ao_tub', nombre: 'la aorta ascendente',
+    val: () => vPlaus('ao_tub'),
+    cat: (x, sx) => String(aoSegDil(AO_SEGS.find(function(s){ return s.k === 'ao_tub' }), x, sx)) }),
   Object.freeze({ k: 'ddfvi', nombre: 'el diámetro diastólico del ventrículo izquierdo',
     val: () => vPlaus('ddfvi'),
     cat: (x, sx) => String(viDimCat(x, sx)) }),
@@ -46434,6 +46579,76 @@ function _evNomoSvg(g, bsa, diamMm, corteMm) {
    ⚠️ LAS DOS LECTURAS SON INDEPENDIENTES Y PUEDEN DISCREPAR, y eso es informacion: el corte
    unico no mira ni la edad ni el tamano del paciente y el nomograma si. Por eso la tercera
    linea dice que es una orientacion. */
+/* ══ EL GLOBO DEL CAYADO Y DE LA DESCENDENTE (AORTA-2, commit 1, 2026-10-30) ════════════════
+   Lo pide la decision del medico: esos dos conservan su corte propio «con el chip Criterio de
+   EcoSmart y su ⓘ muestra los valores de la guia por tramo y sexo».
+
+   ⚠️ UN SOLO CONSTRUCTOR PARA LOS DOS GLOBOS, con el segmento por argumento, que es el patron
+   de `qvTarjeta` y de las ocho tarjetas de valvula. Con dos funciones, el dia que la tabla se
+   toque habria que acordarse de las dos, y la que se olvida es la que se ve.
+   ⚠️ LOS NUMEROS SALEN DE `AO_FIG5` Y EL CORTE PROPIO DE `AO_SEGS`: la tarjeta no escribe un
+   solo numero a mano, asi que no puede decir algo distinto de lo que la capsula de al lado
+   aplica. La cita va acá y no en el papel, que es la regla R2.
+   ⚠️ LA TARJETA NO JUZGA A ESTE PACIENTE: publica la tabla y el corte que la app aplica. Decir
+   «en este paciente…» seria una segunda redaccion del veredicto que la capsula ya da a dos
+   dedos de distancia, que es lo que el AJ4-2 saco del globo de la raiz. */
+const AO_SEGS_CARD = Object.freeze({
+  cay:  Object.freeze({ k: 'diam_cayado',      tit: 'Cayado a\u00f3rtico \u2014 corte y valores de la gu\u00eda',
+                        tramos: ['cayProx', 'cayMed'] }),
+  desc: Object.freeze({ k: 'diam_ao_toracica', tit: 'Aorta tor\u00e1cica descendente \u2014 corte y valores de la gu\u00eda',
+                        tramos: ['descProx', 'descDist'] })
+});
+function evTarjetaAoSegs(cual) {
+  const D = AO_SEGS_CARD[cual];
+  const fr = document.createDocumentFragment();
+  const h = document.createElement('h4');
+  h.id = 'vinfo-tit';
+  h.textContent = D ? D.tit : 'Aorta tor\u00e1cica';
+  fr.appendChild(h);
+  if (!D) { fr.appendChild(_evDiv('ev-avi', 'Segmento no reconocido.')); return fr }
+  const sg = (typeof AO_SEGS !== 'undefined') ? AO_SEGS.find(function (x) { return x.k === D.k }) : null;
+  /* (1) EL CORTE QUE LA APLICACION APLICA, con su operador y su declaracion de origen. */
+  if (sg) fr.appendChild(_evDiv('ev-cat',
+    'Esta aplicaci\u00f3n lo llama dilatado con ' + aoSegSim(sg, 'dil') + ' ' + sg.ref
+    + ' mm, el mismo valor en el var\u00f3n y en la mujer. Es un criterio propio de EcoSmart y no '
+    + 'sale de ninguna gu\u00eda de la biblioteca.',
+    { 'data-ev-cat': 'ao-seg-propio' }));
+  /* (2) POR QUE NO SE ALINEO CON LA FIGURA 5, que es la pregunta que el globo viene a contestar. */
+  fr.appendChild(_evDiv('ev-avi',
+    'La gu\u00eda parte este segmento en DOS tramos con n\u00fameros distintos y esta aplicaci\u00f3n lo '
+    + 'mide en un solo campo, as\u00ed que no hay correspondencia directa: elegir uno de los dos '
+    + 'tramos ser\u00eda decidir cu\u00e1l se midi\u00f3. Los valores de la gu\u00eda se publican abajo.',
+    { 'data-ev-aviso': 'ao-seg-sin-corresp' }));
+  /* (3) LA TABLA ENTERA DE LA FIGURA 5, por tramo y por sexo. Los dos tramos de ESTE segmento
+     van primero y marcados; los otros seis van despues, porque la figura es una sola y el
+     medico que abre este globo esta mirando una aorta completa. */
+  const tabla = document.createElement('table');
+  tabla.className = 'ev-tabla';
+  tabla.setAttribute('data-ev-tabla', 'ao-fig5');
+  const thead = document.createElement('tr');
+  ['Tramo', 'Var\u00f3n', 'Mujer'].forEach(function (t) {
+    const th = document.createElement('th'); th.textContent = t; thead.appendChild(th);
+  });
+  tabla.appendChild(thead);
+  const orden = D.tramos.concat(Object.keys(AO_FIG5).filter(function (k) { return D.tramos.indexOf(k) < 0 }));
+  orden.forEach(function (k) {
+    const g = AO_FIG5[k];
+    const tr = document.createElement('tr');
+    const propio = D.tramos.indexOf(k) >= 0;
+    [(propio ? '\u25b8 ' : '') + g.rot, g.M + ' mm', g.F + ' mm'].forEach(function (t) {
+      const td = document.createElement('td'); td.textContent = t;
+      if (propio) td.style.fontWeight = '700';
+      tr.appendChild(td);
+    });
+    tabla.appendChild(tr);
+  });
+  fr.appendChild(tabla);
+  fr.appendChild(_evDiv('ev-fte',
+    'Valores en el l\u00edmite superior de lo normal. ' + AO_FIG5_CITA
+    + ', folio 3563 de la edici\u00f3n inglesa (folio 28 de la edici\u00f3n de la SEC).'));
+  return fr;
+}
+window.evTarjetaAoSegs = evTarjetaAoSegs;
 function evTarjetaAo() {
   const fr = document.createDocumentFragment();
   const h = document.createElement('h4');
@@ -46735,7 +46950,7 @@ function evRefPintar(id) {
     host.dataset.evPintado = '1';
   }
   if (id === 'ao2') {
-    const B = _evRefBiblio(['AOR-001', 'AOR-002', 'AOR-003', 'AOR-004']);
+    const B = _evRefBiblio(['AOR-001', 'AOR-002', 'AOR-003', 'AOR-004', 'AOR-005']);
     host.appendChild(_evRefTabla([
       /* ⚠️ EL SIMBOLO SE DERIVA DE `AO_SEGS` (VS5/VS6): la raíz es el único segmento que cuenta
          su propio corte como dilatado, así que su fila dice «≥ 40 mm» y las otras cuatro «>».
@@ -46748,8 +46963,21 @@ function evRefPintar(id) {
       { ficha: 'AOR-004', rot: 'Raíz aórtica — dilatada',
         h: aoSegSim(AO_SEGS.find(x => x.k === 'ao_sin'), 'dil') + ' ' + AO_DIL_MM.M + ' mm',
         m: aoSegSim(AO_SEGS.find(x => x.k === 'ao_sin'), 'dil') + ' ' + AO_DIL_MM.F + ' mm' },
-      { ficha: 'AOR-001', rot: 'Unión sinotubular — dilatada', h: '> 38 mm', m: '> 38 mm' },
-      { ficha: 'AOR-001', rot: 'Aorta ascendente — dilatada', h: '> 40 mm', m: '> 40 mm' },
+      /* ⚠️ LAS DOS PRIMERAS CAMBIARON DE FICHA Y DE ROTULO (AORTA-2, commit 1, 2026-10-30):
+         su corte dejo de ser criterio propio y pasa a la Figura 5 de la ESC 2024, que lo
+         publica POR SEXO, asi que las dos columnas dicen numeros distintos porque el corte los
+         dice. El rotulo deja de decir «dilatada» por el mismo motivo que la capsula y el
+         informe: lo que la figura publica es el limite superior de lo normal.
+         Los numeros salen de `AO_ST_MM` y `AO_TUB_MM` y el simbolo de `aoSegSim`, que lo deriva
+         del mismo `incRef` que decide el voto: aca no hay nada escrito a mano.
+         ⚠️ EL CAYADO Y LA DESCENDENTE SIGUEN EN `AOR-001`, que es la ficha del criterio propio,
+         y ahora son las UNICAS dos que quedan en ella. */
+      { ficha: 'AOR-005', rot: 'Unión sinotubular — por encima del límite normal',
+        h: aoSegSim(AO_SEGS.find(x => x.k === 'ao_st'), 'dil') + ' ' + AO_ST_MM.M + ' mm',
+        m: aoSegSim(AO_SEGS.find(x => x.k === 'ao_st'), 'dil') + ' ' + AO_ST_MM.F + ' mm' },
+      { ficha: 'AOR-005', rot: 'Aorta ascendente — por encima del límite normal',
+        h: aoSegSim(AO_SEGS.find(x => x.k === 'ao_tub'), 'dil') + ' ' + AO_TUB_MM.M + ' mm',
+        m: aoSegSim(AO_SEGS.find(x => x.k === 'ao_tub'), 'dil') + ' ' + AO_TUB_MM.F + ' mm' },
       { ficha: 'AOR-001', rot: 'Cayado — dilatado', h: '> 40 mm', m: '> 40 mm' },
       { ficha: 'AOR-001', rot: 'Aorta torácica descendente — dilatada', h: '> 35 mm', m: '> 35 mm' },
       { ficha: 'AOR-003', rot: 'Senos de Valsalva — normales', h: '3,4 ± 0,3 cm', m: '3,0 ± 0,3 cm' },
@@ -57820,7 +58048,11 @@ function generarInforme(opts) {
        ⚠️ UN SOLO ADJETIVO (AJ2-6, 23/10/2026): los dos mapas repartian «levemente»,
        «moderadamente» y «severamente» por el grado de `aoSegGrado`, que es la escala sin fuente
        que esta tanda retira. El DIAMETRO se conserva en las dos redacciones. */
-    const gTxt = m => (m && m.sg && m.sg.m) ? 'dilatado' : 'dilatada';
+    /* ⚠️ SALE DE `aoSegDicho`, EL DUENO UNICO (AORTA-2, commit 1, 2026-10-30): los dos
+       segmentos de la Figura 5 afirman «por encima del limite superior de lo normal» y los
+       otros tres conservan «dilatada/dilatado» con su concordancia. Sin cita: el papel firmado
+       no lleva citas, y la de la Figura 5 vive en la capsula de pantalla y en el globo ⓘ. */
+    const gTxt = m => aoSegDicho(m && m.sg);
     /* ⚠️ EL PAPEL NOMBRA EL INDICE SOLO CUANDO EL INDICE DIO EL VOTO (G-4, punto iv).
        Con un diametro que ya alcanza el corte, agregar «por indice» afirmaria que el diametro
        no alcanzaba. `porIda` lo decide `aoSegPorIda`, que es el mismo dueno que usa la capsula.
@@ -57907,14 +58139,34 @@ function generarInforme(opts) {
          La redaccion de la union es la del ejemplo de la orden -«…, con dilatacion de la raiz
          aortica (43 mm).»-, con el articulo por el genero del segmento; el nombre y el valor
          son los mismos que la linea suelta ya publicaba. */
+      /* ⚠️ EL EN SUMA DICE LO MISMO QUE EL INFORME, Y HASTA LA TANDA AORTA-2 NO LO DECIA. Las
+         dos redacciones de abajo tenian «Dilatación» y «con dilatación» ESCRITOS, asi que un
+         segmento de la Figura 5 salia «Aorta torácica: Unión sinotubular 34 mm (por encima del
+         límite superior de lo normal).» en el cuerpo y «Dilatación unión sinotubular (34 mm).»
+         en el resumen del MISMO documento firmado: la palabra que el commit 1 viene a retirar
+         sobrevivia en la superficie que mas se lee y se copia.
+         El sustantivo sale del mismo `sg.fig5` que decide el adjetivo del cuerpo; la rama de la
+         bicuspide conserva su redaccion —«, con dilatación de la raíz aórtica (43 mm).»— porque
+         la raiz NO es un segmento de la Figura 5 y su palabra no cambio. */
       aoD.forEach((x, _i) => {
         const _n = (x.sg.k === 'ao_sin' ? 'raíz aórtica' : x.sg.lbl);
         const _v = x.val + ' mm' +
                    (x.porIda && x.ida != null ? ', por índice, ' + aoIdaTxt(x.ida) + ' mm/m²' : '');
         if (_i === 0 && _vabSumaTxt) {
           _vabSumaDicha = true;
-          suma.push(_vabSumaTxt + ', con dilatación ' + (x.sg.m ? 'del ' : 'de la ') + _n +
-                    ' (' + _v + ').');
+          /* La union con la bicuspide tiene DOS redacciones, no una con la frase enchufada: con
+             «dilatación» el segmento va de complemento —«con dilatación de la raíz aórtica»— y
+             con la frase de la Figura 5 va de SUJETO —«con la unión sinotubular por encima del
+             límite superior de lo normal»—, porque «con por encima de…» no es castellano. */
+          suma.push(_vabSumaTxt + (x.sg.fig5
+            ? ', con ' + (x.sg.m ? 'el ' : 'la ') + _n + ' ' + AO_FIG5_TXT
+            : ', con dilatación ' + (x.sg.m ? 'del ' : 'de la ') + _n) +
+            ' (' + _v + ').');
+        } else if (x.sg.fig5) {
+          /* La mayuscula del renglon va ACA y no en la constante, que el cuerpo usa en medio de
+             una oracion (regla R3). */
+          const _f = AO_FIG5_TXT.charAt(0).toUpperCase() + AO_FIG5_TXT.slice(1);
+          suma.push(_f + ': ' + _n + ' (' + _v + ').');
         } else {
           suma.push('Dilatación ' + _n + ' (' + _v + ').');
         }
@@ -71508,6 +71760,9 @@ function refBuscar() {
 const VINFO_REF = Object.freeze({
   'ai-card': 'ai', 'vi-card': 'vi2', 'vi-geo': 'vi2',
   'ad-card': 'ad', 'vd-tam-card': 'vd2', 'vd-fun-card': 'vd2', 'ao-card': 'ao2',
+  /* Los dos globos de los segmentos con criterio propio (AORTA-2) mandan a la MISMA ficha
+     de aorta: su tabla es la que publica AOR-005 y su corte el que publica AOR-001. */
+  'ao-cay-card': 'ao2', 'ao-desc-card': 'ao2',
   'tarj-insuf-mitral': 'im', 'tarj-esten-mitral': 'em',
   'tarj-insuf-aortica': 'ia', 'tarj-esten-aortica': 'eao',
   'tarj-insuf-tricuspide': 'it', 'tarj-diast': 'vi', 'ea-pvl': 'pao',
@@ -141776,8 +142031,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261030-1550';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793386204862;                 /* eco-build-ms */
+const ECO_BUILD    = '20261030-1710';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793391011605;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -141863,7 +142118,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261030-1550</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261030-1710</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
