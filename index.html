@@ -44675,7 +44675,13 @@ const VINFO = Object.freeze({
        + 'enorme en la irrigación de cada segmento. El diagrama muestra el borde del territorio; '
        + 'la atribución la hace el médico.'
   },
-  'oai-ref': { ancho: 360, dyn: function () { return _otrRefClon('ref-oai') } },
+  /* ⚠️ YA NO CLONA LA FICHA DE REFERENCIAS (A3, 30/10/2026). Decisión de Maicol: el ⓘ general
+     de la orejuela se reescribe con otro enfoque —la enfermedad de la orejuela, el riesgo de
+     ictus, la morfología, cómo se mide la velocidad, el trombo y las dimensiones— y NO repite lo
+     de los dispositivos, que vive en el ⓘ ámbar de «Medidas de la orejuela». Con el clon se iban
+     además el pie «Ficha de la pestaña Referencias» y la frase sobre los rangos de tamaño, que
+     la orden manda retirar de acá. */
+  'oai-ref': { ancho: 360, dyn: function () { return _oaiRefGlobo() } },
   'ai-card': { ancho: 348, dyn: function () { return evTarjetaAI() } },
   'vi-card': { ancho: 360, dyn: function () { return evTarjetaVI() } },
   /* ⚠️ LA GEOMETRIA VA EN SU PROPIO GLOBO Y NO DENTRO DE LA TARJETA DEL VENTRICULO, y es una
@@ -91317,6 +91323,114 @@ function _oaiTabla(cab, filas, fmt) {
   });
   return t;
 }
+/* ══ EL ⓘ GENERAL DE LA OREJUELA (A3, 30/10/2026) ═════════════════════════════════════════════
+   Decisión de Maicol. Siete bloques de un tema cada uno, con las cuatro fuentes numeradas al
+   final: eso es lo que pide la regla R2 —en la línea visible, a lo sumo una cita— y la R4 —cada
+   contenido una sola vez—.
+
+   ⚠️ LAS CUATRO FUENTES SE LEYERON EN IMAGEN el 2026-10-30, hoja por hoja, y lo que no coincidió
+   NO se escribió. Las tres frases que se pararon están en `docs/fuentes/FUENTES.md` → «La TANDA
+   NOCTURNA, Parte A», con el motivo de cada una:
+     · «lo normal es 40 cm/s o más» — ninguna de las cuatro publica un valor normal; el «normal»
+       de la oración de Hahn 2013 es el del RITMO SINUSAL, no el de la velocidad;
+     · «antes de la ablación» — censadas las tres fuentes de la orejuela, ninguna lo recomienda;
+     · «en vistas medioesofágicas» junto al volumen de muestra — esa oración no nombra la ventana.
+   Y dos fuentes que la orden nombraba NO entran: «Hahn 2021, hojas 47, 52 y 53» no está en la
+   biblioteca, y los folios 3355 y 3359 de la ESC 2024 de fibrilación auricular son dronedarona y
+   ablación en insuficiencia cardíaca, no la orejuela.
+
+   ⚠️ NO SE ARMA CON `innerHTML`. Todo el texto es constante de este archivo y ni un dato del
+   médico entra acá, pero el patrón de la casa para estas tarjetas es construir nodos —es el de
+   `oaiTablasGlobo`, justo abajo—, y mantenerlo es lo que hace que agregar un párrafo mañana no
+   sea la puerta por la que entre una concatenación. */
+const OAI_GLOBO = Object.freeze([
+  ['Por qué importa',
+   'En la fibrilación auricular no valvular, el 90 % de los trombos de la aurícula izquierda ' +
+   'están en la orejuela [1]. En alrededor del 75 % de los pacientes con un episodio ' +
+   'cardioembólico el émbolo sale de ella [3]. El trombo en la orejuela y una velocidad de ' +
+   'vaciamiento reducida son predictores independientes de tromboembolia [1]; el contraste ' +
+   'espontáneo es predictor independiente de ictus en la fibrilación auricular [2].'],
+  ['Morfología',
+   'Ala de pollo (menor riesgo) · coliflor (mayor riesgo) · cactus · veleta. Frecuencias ' +
+   'descritas: ala de pollo cerca del 48 %, cactus cerca del 30 %, veleta cerca del 19 % y ' +
+   'coliflor cerca del 3 % [2].'],
+  ['Velocidad de vaciamiento',
+   'Doppler pulsado con el volumen de muestra a 1 o 2 cm del orificio, dentro de la cavidad [4]. ' +
+   'Por debajo de 20 cm/s se asocia con contraste espontáneo, formación de trombo y eventos ' +
+   'embólicos; por encima de 40 cm/s se predice mayor probabilidad de mantener el ritmo sinusal ' +
+   'tras la cardioversión [4]. En un subestudio del SPAF, una velocidad pico de 27 cm/s o menos ' +
+   'fue predictor independiente de tromboembolia, con un riesgo relativo de 1,7 [3]. Después de ' +
+   'la cardioversión la orejuela puede quedar aturdida, con más contraste espontáneo y ' +
+   'velocidades más bajas [3].'],
+  ['Trombo',
+   'Conviene descartarlo antes de la cardioversión [3] y antes del cierre percutáneo [1]. El ETE ' +
+   'tiene una sensibilidad del 100 % y una especificidad del 99 % para el trombo de la orejuela, ' +
+   'pero puede pasar por alto trombos de menos de 2 mm [4]. Lo imitan los músculos pectíneos ' +
+   'prominentes [1] y un artefacto de reverberación del ligamento de Marshall, el reborde con la ' +
+   'vena pulmonar superior izquierda [4]. El trombo organizado es una masa bien delimitada, muy ' +
+   'reflectante y de consistencia uniforme; el contraste espontáneo no es delimitado ni uniforme ' +
+   'y tiene aspecto de humo en movimiento. Ante la duda, observar más tiempo en un plano o usar ' +
+   'imagen multiplano simultánea [4].'],
+  ['Contraste espontáneo',
+   'La graduación en cuatro grados —ausente, leve, moderado y severo— es propia de la ' +
+   'aplicación: las fuentes lo describen como un continuo entre humo, barro y trombo, y no ' +
+   'publican cortes.'],
+  ['Medidas',
+   'El orificio y la profundidad se miden al menos en cuatro ángulos —0, 45, 90 y 135 grados— y ' +
+   'en la fase de mayor tamaño [2]. El punto de referencia del orificio difiere entre los ' +
+   'fabricantes, que publican su propia forma de medir, y por eso la aplicación no publica uno ' +
+   '[2]. Los tamaños de los dispositivos están en el ⓘ de «Medidas de la orejuela».'],
+  ['Lo que no se pudo verificar',
+   'Ninguna de las cuatro fuentes publica un valor normal de la velocidad de vaciamiento, ni ' +
+   'dice cuántos latidos promediar.']
+]);
+const OAI_GLOBO_FUENTES = Object.freeze([
+  '[1] Meier B y cols., consenso EHRA/EAPCI de la orejuela, Europace 2014;16:1397-1416 — ' +
+  'folios 1397 y 1401.',
+  '[2] Glikson M y cols., consenso EHRA/EAPCI de la orejuela, EuroIntervention 2020;15:1133-1180 ' +
+  '— folios 1134, 1138 y 1140.',
+  '[3] Saric M y cols., ASE, J Am Soc Echocardiogr 2016;29:1-42 — folios 10, 12 y 13.',
+  '[4] Hahn RT y cols., ASE/SCA de ETE, J Am Soc Echocardiogr 2013;26(9):921-964 — ' +
+  'folios 953 y 954.'
+]);
+/* El chip «CRITERIO DE ECOSMART» marca el bloque del contraste espontáneo, que es el único que
+   afirma algo que ninguna fuente publica: la graduación en cuatro grados. Es marcado estático,
+   igual que el chip del recuadro de abajo. */
+function _oaiRefGlobo() {
+  const cont = document.createElement('div');
+  cont.style.cssText = 'font-size:12px;line-height:1.55;';
+  OAI_GLOBO.forEach(function (par) {
+    const d = document.createElement('div');
+    d.style.cssText = 'margin-bottom:7px;';
+    const b = document.createElement('b');
+    b.style.cssText = 'color:var(--accent2);';
+    b.textContent = par[0] + '. ';
+    d.appendChild(b);
+    if (par[0] === 'Contraste espontáneo') {
+      const chip = document.createElement('span');
+      chip.style.cssText = 'border:1px solid var(--border);border-radius:4px;padding:1px 5px;' +
+        'margin-right:5px;font-size:9px;letter-spacing:.3px;color:var(--text2);white-space:nowrap;';
+      chip.textContent = 'CRITERIO DE ECOSMART';
+      d.appendChild(chip);
+    }
+    d.appendChild(document.createTextNode(par[1]));
+    cont.appendChild(d);
+  });
+  const f = document.createElement('div');
+  f.style.cssText = 'font-size:10px;color:var(--text2);line-height:1.45;margin-top:8px;' +
+                    'border-top:1px solid var(--border);padding-top:6px;';
+  const ft = document.createElement('b');
+  ft.textContent = 'Fuentes. ';
+  f.appendChild(ft);
+  OAI_GLOBO_FUENTES.forEach(function (x, i) {
+    if (i) f.appendChild(document.createElement('br'));
+    f.appendChild(document.createTextNode(x));
+  });
+  cont.appendChild(f);
+  return cont;
+}
+window._oaiRefGlobo = _oaiRefGlobo;
+
 function oaiTablasGlobo() {
   const g = document.createElement('details');
   g.style.cssText = 'display:inline-block;vertical-align:top;margin-top:3px;';
@@ -140218,8 +140332,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261030-0158';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793336339746;                 /* eco-build-ms */
+const ECO_BUILD    = '20261030-0159';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793336364640;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -140305,7 +140419,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261030-0158</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261030-0159</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

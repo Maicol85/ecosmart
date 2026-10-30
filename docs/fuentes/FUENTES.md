@@ -7257,3 +7257,110 @@ folio, ni una frase clínica se movió, y está medido por dos caminos: el A/B d
 147.032 claves y sus 58.080 celdas de Excel, y el A/B dedicado con la orejuela **cargada**, donde
 el informe sale idéntico al carácter (612 caracteres), el EN SUMA idéntico y las 440 columnas del
 Excel idénticas clave por clave.
+
+---
+
+## La TANDA NOCTURNA, Parte A — la orejuela del ETE (2026-10-30)
+
+Las seis fuentes del ⓘ nuevo de «Orejuela izquierda» se **leyeron en imagen** antes de escribir
+una sola frase, renderizando cada hoja a 300-450 ppp con PyMuPDF. Lo que no coincidió con el
+borrador de la orden **no se escribió**, y está en la tabla de «premisas falsas» de más abajo.
+
+### Las cuatro fuentes que SÍ sostienen el ⓘ
+
+| Clave | Documento | Dónde vive | Regla de folio |
+|---|---|---|---|
+| **[1] Meier 2014** | Meier B y cols., consenso EHRA/EAPCI de la orejuela, *Europace* 2014;16:1397-1416 | `23_Orejuela_izquierda/Meier_2014_EHRA-EAPCI_consenso_orejuela_Europace.pdf` | folio = hoja + 1396 (hoja 2 → 1398, comprobado en el pie impreso) |
+| **[2] Glikson 2020** | Glikson M y cols., consenso EHRA/EAPCI de la orejuela, *EuroIntervention* 2020;**15**:1133-1180 | `23_Orejuela_izquierda/Glikson_2020_EHRA-EAPCI_consenso_orejuela_EuroIntervention.pdf` | folio = hoja + 1132 (hoja 8 → 1140, impreso al pie de esa hoja) |
+| **[3] Saric 2016** | Saric M y cols., ASE, fuente embólica cardíaca, *J Am Soc Echocardiogr* 2016;29:1-42 | `21_Otros_hallazgos/Saric_2016_ASE_Fuente_embolica_masas.pdf` | folio = hoja (hoja 13 → 13, hoja 42 → 42) |
+| **[4] Hahn 2013** | Hahn RT y cols., ASE/SCA, ETE multiplano, *J Am Soc Echocardiogr* 2013;26(9):921-964 | `14- ETE/PIIS0894731713005622.pdf` | folio = hoja + 920 (hoja 33 → 953, impreso al pie) |
+
+⚠️ **La revista de Glikson es el VOLUMEN 15, no el 16.** El pie de cada hoja imprime
+«EuroIntervention 2020;15:1133-1180».
+
+### Lo verificado, frase por frase
+
+- **El 90 %.** Meier 2014, folio 1397, literal: «It has been shown that in patients with
+  non-valvular AF, 90% of thrombi are located in the LAA.» La misma oración sigue: «Thrombi
+  detected in the LAA as well as a reduced LAA peak flow velocity were identified as independent
+  predictors of an increased thrombo-embolic risk». **Son DOS los predictores que esa frase
+  nombra, no tres** — ver la nota del contraste espontáneo más abajo.
+- **El 75 %.** Saric 2016, folio 10, literal: «It is estimated that in approximately 75% of
+  patients with cardioembolic episodes, emboli arise from the LAA and are thus presumed to be
+  caused by atrial fibrillation.» ⚠️ El original dice «75 % de los PACIENTES con episodios
+  cardioembólicos», no «75 % de los émbolos»: el ⓘ lo escribe como lo dice la fuente.
+- **El contraste espontáneo como predictor independiente** NO sale de Meier: sale de
+  Glikson 2020, folio 1134, literal: «Spontaneous echocardiographic contrast (SEC or smoke) seen
+  during echocardiographic imaging, a surrogate for stasis, is an independent predictor for
+  strokes in AF. Likewise, a reduction in LAA peak flow velocities indicative of stasis is an
+  independent risk factor for stroke in patients with AF.» Y lo es **de ictus**, no de
+  tromboembolia en general. El ⓘ separa las dos afirmaciones con sus dos citas.
+- **Las cuatro frecuencias.** Glikson 2020, folio 1138, literal: «The most commonly adopted one
+  consists of four shapes: chicken-wing (~48%; presence of a significant bend), windsock (~19%;
+  single dominant lobe without a significant bend), cactus (~30%; dominant central lobe with
+  multiple secondary lobes), and cauliflower (~3%; short LAA without a dominant lobe that
+  branches into several lobes)». ⚠️ **Llevan «~»**, y el ⓘ dice «cerca del».
+- **El volumen de muestra a 1-2 cm.** Hahn 2013, a caballo de los folios 953 y 954: «The pulsed
+  Doppler sample volume is typically placed 1 to 2 cm from the orifice within the chamber.»
+  ⚠️ Esa oración **no dice «en vistas medioesofágicas»**, así que el ⓘ no lo dice: escribe
+  «dentro de la cavidad», que es lo que la fuente publica.
+- **El 20 y el 40 cm/s.** Hahn 2013, folio 954, literal: «LA appendage emptying velocities of
+  <20 cm/sec were associated with spontaneous echocardiographic contrast, thrombus formation, and
+  embolic events. LA appendage emptying velocities >40 cm/sec predict a greater likelihood of
+  sustained normal sinus rhythm after cardioversion from atrial fibrillation.»
+- **El 27 cm/s.** Saric 2016, folio 13, literal: «In a substudy of the Stroke Prevention in Atrial
+  Fibrillation trial… The presence of LAA clot (relative risk, 3.5), LAA peak flow velocity
+  ≤27 cm/sec (relative risk, 1.7), and aortic plaque (relative risk, 2.1) were all associated with
+  thromboembolic events.» ⚠️ Es **≤27**, con riesgo relativo 1,7, y en el subestudio del SPAF.
+- **El aturdimiento tras la cardioversión.** Saric 2016, folio 12: «The phenomenon of LAA
+  "stunning" was demonstrated on TEE by an increase in the intensity of SEC and the decrease in
+  LAA Doppler flow velocities immediately after cardioversion of atrial fibrillation.»
+- **Sensibilidad 100 %, especificidad 99 % y los trombos de menos de 2 mm.** Hahn 2013,
+  folio 953, literal: «The sensitivity and specificity of TEE to diagnose thrombus in the LA
+  appendage are 100% and 99%, respectively, but because of the complex nature of this structure,
+  small (<2 mm) thrombi can be missed.»
+- **Los músculos pectíneos.** Meier 2014, folio 1401: «in patients with prominent pectinate
+  muscles which may be falsely interpreted as LAA thrombus».
+- **El reborde.** Hahn 2013, folio 953: «Not infrequently, the ligament of Marshall causes a
+  reverberation artifact that can be confused with thrombus. In this situation, a better position
+  for imaging the LA appendage requires a deeper probe position in which the ridge is no longer
+  between the cavity of the LA appendage and the probe.» ⚠️ Lo que confunde es un **artefacto de
+  reverberación del ligamento de Marshall**, no el reborde tomado por una masa: el ⓘ lo dice así.
+- **Trombo contra contraste espontáneo.** Hahn 2013, folio 953: «Organized thrombus is defined
+  echocardiographically as a well-circumscribed, highly reflective mass with different texture
+  from the atrial wall and uniform consistency. Spontaneous echocardiographic contrast, on the
+  other hand, will not be well circumscribed or have uniform consistency. Its location may be
+  dynamic with a "smokelike" appearance due to its slow motion.» Y para la duda: «prolonged
+  observation in a single plane or using simultaneous multiple-plane imaging may be required to
+  differentiate sludge from thrombus».
+- **Descartar el trombo antes del cierre.** Meier 2014, folio 1401: «It is important to confirm
+  the absence of LAA thrombi prior to LAA occlusion.» **Antes de la cardioversión**: Saric 2016,
+  folio 13, que es donde está el fundamento del ACUTE.
+- **Los cuatro ángulos.** Glikson 2020, folio 1140, literal: «For TOE measurements, both the LAA
+  orifice and depth should be measured in at least four angles (0, 45, 90 and 135°), at the
+  cardiac phase with largest dimension (end-systole)». Y en la misma hoja: «measurements of the
+  LAA for device sizing can be different for devices, and manufacturer instructions for use
+  should be adhered to», que es lo que sostiene «el punto de referencia difiere».
+
+### Lo que se PARÓ y NO se escribió
+
+| Frase del borrador | Por qué no entró |
+|---|---|
+| «Lo normal es 40 cm/s o más» | **Ninguna de las cuatro fuentes publica un valor normal de la velocidad de vaciamiento.** Hahn 2013 dice que por encima de 40 cm/s se predice mantener el **ritmo sinusal normal** tras la cardioversión: el adjetivo «normal» de esa oración es del ritmo, no de la velocidad. La app ya tenía escrito, en la ficha de Referencias, que la guía da los números y no los nombres. |
+| «antes de la cardioversión, **la ablación** y el cierre percutáneo» | La cardioversión y el cierre están verificados. **La ablación no**: censadas las tres fuentes de la orejuela, ninguna recomienda descartar el trombo antes de una ablación —Meier la nombra sólo para dar la incidencia de trombo en pacientes anticoagulados que van a ablación—. El ⓘ dice las dos que sí. |
+| «en vistas medioesofágicas» junto al volumen de muestra | La oración de Hahn 2013 que publica el 1-2 cm **no nombra la ventana**. |
+| «Hahn 2021 (ASE, ETE en intervenciones estructurales), hojas 47, 52 y 53» | **Ese documento NO está en la biblioteca.** Lo que hay es Little SH, Rigolin VH y cols. (Hahn figura entre los autores), *Recommendations for Special Competency in Echocardiographic Guidance of Structural Heart Disease Interventions*, ASE, en `Estandar Informe/ASE ECO cardiopat estructural.pdf`, de **16 hojas**: las hojas 47, 52 y 53 no existen. Su hoja 12 sí publica los cuatro ángulos («at the following imaging angles: 0, 45, 90, and 135»), pero el ⓘ cita a Glikson, que es la fuente que se leyó para ese punto. |
+| «ESC 2024 de fibrilación auricular, folios 3355 y 3359» | La guía **sí está** en la biblioteca, archivada en la carpeta equivocada (`22_Hemodinamica_avanzada/ehae176.pdf`, Van Gelder IC y cols., *Eur Heart J* 2024;45:3314-3414; folio = hoja + 3313). **Pero esos dos folios no hablan de la orejuela**: el 3355 es dronedarona y el ensayo CASTLE-AF, y el 3359 es ablación en insuficiencia cardíaca. Lo que esa guía publica sobre la orejuela está en los folios 3346 a 3349 y son **recomendaciones de cierre percutáneo**, que es justo lo que este ⓘ tiene prohibido llevar. No se cita. |
+
+### Fechas de consulta (regla R5: sólo acá, nunca en pantalla)
+
+Las cuatro fuentes del ⓘ se leyeron en imagen el **2026-10-30**. Las lecturas previas de Cowork
+del 30/10/2026 que la orden menciona no se usaron como respaldo: cada número se volvió a abrir.
+
+### Tabla «Cambios de evidencia» de esta parte
+
+| Qué | Antes | Después | Fuente |
+|---|---|---|---|
+| ⓘ «Orejuela izquierda» | clonaba la ficha `ref-oai`, con el bloque de dispositivos, la frase «Ninguna guía de la biblioteca publica rangos de tamaño de dispositivo…» y el pie «Ficha de la pestaña Referencias» | texto propio, con siete bloques y cuatro fuentes numeradas; sin dispositivos, sin esa frase y sin ese pie | [1] [2] [3] [4] |
+| Graduación del contraste espontáneo en cuatro grados | sin marca en el ⓘ | dice que es **criterio de la aplicación** | ninguna: las fuentes lo describen como un continuo |
+| Valor «normal» de la velocidad de vaciamiento | no se afirmaba | **sigue sin afirmarse**, y ahora el ⓘ lo declara | — |
