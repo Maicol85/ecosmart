@@ -16080,6 +16080,19 @@ z
         </div>
         <div class="fg"><label>Aorta sinusal (mm)</label>
           <input type="number" id="marfan_ao_seno" placeholder="mm" oninput="aoRaizSync('marfan');marfanSync()">
+          <!-- ⚠️ LA LECTURA DE LA RAÍZ CARGADA EN AI/VI (COR-4a, 2026-10-30) ══════════════════
+               Observado por el médico: con la aorta sinusal cargada en AI/VI, esta pantalla no
+               la mostraba hasta que se escribía algo acá. La causa es el espejo CONDICIONAL del
+               G-4: el sentido estudio → módulo sólo corre con el módulo YA EN USO, y lo hace por
+               una razón medida que no cambió —poblar `marfan_ao_seno` en todo estudio con aorta
+               encendería la tarjeta de aortopatía, metería esos estudios en el panel
+               «Marfan/EHAT» del Laboratorio y le pondría valor a una columna de Excel—.
+               Lo que cambia es que ahora SE MUESTRA sin escribirse: este `<span>` es de SOLO
+               LECTURA. Su `id` va con guión MEDIO, así que `_noEsDelEstudio` lo deja fuera del
+               recolector y no es un campo guardado. En cuanto el médico teclea acá, su dato
+               gana y el espejo del G-4 lo lleva a AI/VI como ya hacía — un dato, dos puertas,
+               gana la última edición. -->
+          <span id="marfan-ao-lectura" style="font-size:10px;color:var(--text2);"></span>
         </div>
         <div class="fg"><label>Aorta ascendente (mm)</label>
           <input type="number" id="marfan_ao_ascendente" placeholder="mm" oninput="marfanSync()">
@@ -61715,7 +61728,14 @@ function ESPEJOS_VIVOS() {
              un solo campo del estudio —el sentido módulo → app cuelga del `oninput` del propio
              calculador, que es un gesto, y no de este barrido—, que es la regla con la que este
              registro excluye a `popSync` y a `calcVD`. */
-          'amiloScoreSync'];
+          'amiloScoreSync',
+          /* COR-4a: la lectura de la raíz cargada en AI/VI, y el mensaje de lo que falta para el
+             índice de Turner. `marfanSync` SÓLO PINTA —el valor va a un `<span>` de guión medio
+             y a `marfan-ita-val`, y `marfan_ita` sigue sin que nadie lo escriba desde el B2—, así
+             que cumple la regla con la que este registro excluye a `popSync` y a `calcVD`. Sin
+             esto, cargar la aorta en AI/VI no se vería en la pantalla de aortopatía hasta el
+             próximo gesto dentro de ese módulo, que es justo lo que el médico reportó. */
+          'marfanSync'];
 }
 function _espejosBarrerTodos() {
   ESPEJOS_VIVOS().forEach(function (fn) {
@@ -74103,15 +74123,55 @@ function marfanSync() {
      `marfan_ita` no se toca, así que ningún recálculo le mete un número al estudio. Y se dice
      de DÓNDE sale: un valor que viene de un estudio viejo y uno recién calculado se ven igual,
      y no son lo mismo. */
+  /* ══ LA LECTURA DE LA RAÍZ CARGADA EN AI/VI (COR-4a, 2026-10-30) ═══════════════════════════
+     Sólo cuando el campo de este módulo está VACÍO: con los dos cargados mandaría el de acá, y
+     repetir el número al lado del campo que lo contiene no dice nada. No escribe nada.
+     ⚠️ VA ANTES DE LA SALIDA TEMPRANA DE `!r.hayDatos`, por la misma razón que el hint de los
+     factores de riesgo: es un nodo que ningún barrido genérico alcanza, así que se limpia donde
+     el flujo pasa SIEMPRE. Sin esto, la lectura del paciente anterior sobrevive a «Nuevo
+     estudio» — la trampa de `vab-coa-aviso` que TC-116 ya cazó una vez. */
+  { const le = document.getElementById('marfan-ao-lectura');
+    if (le) {
+      const _mio = String((document.getElementById('marfan_ao_seno') || {}).value || '').trim();
+      const _est = String((document.getElementById('ao_sin') || {}).value || '').trim();
+      le.textContent = (!_mio && _est)
+        ? 'Seno de Valsalva ' + _est + ' mm — tomado de AI/VI.' : '';
+    } }
+  /* ⚠️ EL MENSAJE DICE QUÉ FALTA, UNO POR UNO (COR-4b, 2026-10-30; pedido del médico). Decía
+     «falta el diámetro ascendente, o el peso, o la talla» —los tres con «o», sin decir cuál—, y
+     el médico elegía Turner y no veía ningún número ni sabía por qué. El molde es el del
+     Forrester: se nombran los que faltan de verdad.
+     ⚠️ LA SUPERFICIE CORPORAL SE PIDE POR SUS DOS INSUMOS y no por `getBSA()`, porque es lo que
+     el médico puede cargar: «falta la superficie corporal» no le dice dónde ir. */
   { const ef = marfanItaEfectivo();
     const vv = document.getElementById('marfan-ita-val');
     const oo = document.getElementById('marfan-ita-origen');
     if (vv) vv.textContent = ef ? (Math.round(ef.val * 10) / 10).toFixed(1).replace('.', ',') + ' mm/m²' : '—';
+    const _falta = function () {
+      const _n = function (id) { const e = document.getElementById(id);
+        const r = e ? String(e.value || '').trim() : '';
+        if (!r) return null;
+        const x = parseFloat(r.replace(',', '.'));
+        return (isFinite(x) && x > 0) ? x : null; };
+      /* ⚠️ CADA UNO DICE DÓNDE SE CARGA, y eso salió de una medición. La aorta ascendente que
+         el índice usa es `marfan_ao_ascendente`, el campo de ESTA pantalla, y NO está espejada
+         con `ao_tub` de AI/VI —el espejo del G-4 cubre sólo la raíz—. Medido: con la ascendente
+         cargada en AI/VI y Turner elegido, el mensaje decía «falta la aorta ascendente» sobre
+         una pantalla donde el médico creía haberla cargado. El peso y la talla viven en
+         «Datos». Queda declarado en `docs/PENDIENTES.md` → COR-d. */
+      const f = [];
+      if (_n('marfan_ao_ascendente') == null) f.push('la aorta ascendente de esta pantalla');
+      if (_n('peso') == null) f.push('el peso (en «Datos»)');
+      if (_n('talla') == null) f.push('la talla (en «Datos»)');
+      if (!f.length) return 'faltan datos para calcularlo';
+      if (f.length === 1) return 'falta ' + f[0];
+      return 'faltan ' + f.slice(0, -1).join(', ') + ' y ' + f[f.length - 1];
+    };
     if (oo) oo.textContent = !ef
-      ? 'Se calcula con la aorta ascendente y la superficie corporal: falta el diámetro ascendente, o el peso, o la talla.'
+      ? 'Se calcula con la aorta ascendente y la superficie corporal (peso y talla): ' + _falta() + '.'
       : (ef.origen === 'calculado'
           ? 'Calculado con la aorta ascendente y la superficie corporal (ESC 2024, Tabla 58).'
-          : 'Valor guardado de este estudio: no se puede recalcular sin el diámetro ascendente, el peso y la talla.'); }
+          : 'Valor guardado de este estudio: ' + _falta() + ' para recalcularlo.'); }
   const el = document.getElementById('marfan-resultado'); if (!el) return;
   while (el.firstChild) el.removeChild(el.firstChild);
   const r = marfanEstado();
