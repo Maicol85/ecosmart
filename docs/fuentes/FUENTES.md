@@ -7489,3 +7489,103 @@ Referencias **no** gana una entrada: el globo entra en la lista de «tarjetas si
 | Índice de tamaño aórtico de Turner | campo TIPEADO | **calculado** con la aorta ascendente y la superficie corporal | Tabla 58, folio 3640 («ascending ASI») |
 | iDA de la raíz | entero | **un decimal** | — (es una convención de presentación) |
 | Informe y EN SUMA de la aortopatía hereditaria | umbral, clase, nivel y tabla con su folio | **el síndrome, el diámetro y «dilatada»**; el índice sólo en Turner | lo retirado vive en la pantalla y en la Evidencia |
+
+---
+
+# La TANDA CORRECCIONES (2026-10-30)
+
+Seis commits de código. **Una sola fuente nueva**, leída en imagen; el resto de la tanda no
+escribe contenido clínico.
+
+## La fuente nueva, leída EN IMAGEN
+
+| Clave | Documento | Dónde vive | Regla de folio |
+|---|---|---|---|
+| **`meier2014`** | Meier B, Blaauw Y, Khattab AA, et al. *EHRA/EAPCI expert consensus statement on catheter-based left atrial appendage occlusion.* Europace 2014;16:1397-1416 | `23_Orejuela_izquierda/Meier_2014_EHRA-EAPCI_consenso_orejuela_Europace.pdf` | folio = hoja + 1396, **comprobado en el pie impreso de la hoja 5: «1401»** |
+
+**Apartado «Pre-procedural assessment», folio 1401, hoja 5, renderizada a 400 ppp.** Literal:
+
+> «It is important to confirm the absence of LAA thrombi prior to LAA occlusion. The presence of
+> mobile thrombi is a contraindication for percutaneous LAA occlusion, since dislodgement of
+> thrombus may occur with manipulation of sheaths or devices in the LAA. Currently, TOE is
+> considered the reference technique for the detection of thrombi in the LAA.»
+
+⚠️ **Ese apartado NO lleva clase ni nivel de evidencia**: es texto de consenso y no una tabla de
+recomendaciones. La fila de la Evidencia lo publica como tal.
+
+⚠️ **La frase del consenso habla de trombos MÓVILES, y la aplicación no registra la movilidad
+del trombo.** La línea de la Evidencia nombra la condición de la fuente sin afirmar que este
+trombo la cumpla.
+
+⚠️ **La primera oración de ese apartado ya estaba verificada** en este archivo, en la sección de
+la orejuela («Descartar el trombo antes del cierre»). Lo que esta tanda agrega es la **segunda**,
+que es la que sostiene el hecho que el informe dejó de decir.
+
+## Lo que NO tiene fuente, y se rotula
+
+**El corte de 75 ms del TRIV tricuspídeo sigue sin fuente verificada en la biblioteca**, y eso no
+cambió: la ASE 2025 de corazón derecho publica **≤ 73 ms** (hoja 28, folio 168, y Tabla 6, hoja
+29, folio 169) y lo hace para la **función diastólica del VD**, que es otra pregunta. Lo que
+cambió es que ese mismo 75 gobierna ahora también el informe firmado, así que la declaración
+pasa a importar más: está en `docs/PENDIENTES.md` → **Y-b**, y el ⓘ «El TRIV del ventrículo
+derecho» sigue diciendo de dónde sale cada número (Howard 2012 y Cabrita 2013, ninguno en la
+biblioteca, leídos por Cowork el 29/10).
+
+**La frase «gradiente AD-VD probablemente subestimado por disfunción del VD» es un CRITERIO DEL
+MÉDICO sin fuente verificada en la biblioteca.** Se pidió a Cowork una búsqueda y no hay nada
+verificado. Va rotulada **«CRITERIO DE ECOSMART — sin fuente verificada en la biblioteca»** en
+dos lugares:
+- el ⓘ «El TRIV del ventrículo derecho», en su bloque de lectura;
+- la Evidencia de hipertensión pulmonar (`_indHTP`), bloque **«Lo que esta aplicación agrega y la
+  guía no publica»**, junto con el corte de 75 ms.
+
+El **informe firmado no lleva ese rótulo**, y es la regla de la casa: el papel no lleva citas ni
+notas metodológicas. El panel explica; el papel afirma.
+
+## Lo que sí sale de una fuente ya verificada, y no se movió
+
+**«La velocidad de la insuficiencia tricuspídea no llega a rango de hipertensión pulmonar» es
+`HTP_VRT_BAJA_MAX`**, 2,8 m/s **inclusive**: la banda de probabilidad baja de la **Figura 5 de la
+ESC/ERS 2022, folio 28**, que esta aplicación ya aplicaba. No es un corte nuevo.
+
+**«Ventrículo derecho disfuncionante» es el `OR` de cinco parámetros** —TAPSE, onda S′, FAC,
+índice de Tei y strain de pared libre, cada uno contra su banda de la **Tabla 1 de la ASE 2025**—
+que el informe ya usaba para decir «disfunción sistólica». Lo único que cambió es que ahora tiene
+un dueño único, `vdDisfPresente()`. No es un criterio nuevo.
+
+## La demo aprobada, como referencia de dibujo
+
+`docs/3d/demo_orejuela_esquema_aprobado.html` **no es una fuente clínica**: es la maqueta
+aprobada por el médico. De ella salen, sin reinterpretar, la geometría de la aurícula izquierda,
+la elipse de la vena pulmonar superior izquierda, los dos puntos del anillo mitral, el grosor y
+la punta de la línea del ostium, las dos capas de la silueta y el **receso** donde se adhiere el
+trombo. También sus dos colores, que entran a la aplicación como `--esq-superficie` y
+`--esq-acento-bg` con los valores de la demo en los dos temas.
+
+**«Manga de viento» es el nombre de la demo**, y es el que traduce *windsock* de la clasificación
+descriptiva de la guía de ETE de la ASE que el ⓘ de la orejuela ya citaba (Glikson 2020, folio
+1138, con sus cuatro frecuencias). «Veleta» no es esa traducción. **El valor guardado sigue
+siendo `veleta`**: cambiarlo sería migrar estudios guardados.
+
+## Cambios de evidencia
+
+| Qué | Antes | Ahora | Fuente | Commit |
+|---|---|---|---|---|
+| El veredicto de aptitud de la orejuela en el informe firmado | «no apto para cierre percutáneo (trombo presente)» | **retirado**; el papel publica las medidas | — (la app no hace recomendaciones) | COR-1 |
+| El hecho del trombo móvil | no estaba en ninguna superficie | fila de Evidencia, sin clase ni nivel | Meier 2014, folio 1401, **leído en imagen** | COR-1 |
+| El corte del TRIV del informe firmado | 60 ms | **75 ms**, estricto | decisión del médico; **sin fuente**, declarado | COR-2 |
+| El corte del TRIV de pantalla | 75 ms | **el mismo 75**, una sola constante | ídem | COR-2 |
+| La frase con la IT no medida | «Presenta elementos indirectos de HTP (…)» | «Velocidad de la insuficiencia tricuspídea no medida; con elementos a favor…» / «Con elementos a favor…» | decisión del médico | COR-2 |
+| El gradiente subestimado | no existía | paréntesis con IT baja + VD disfuncionante | **CRITERIO DE ECOSMART**, rotulado | COR-2 |
+| «no llega a rango de HTP» | — | `HTP_VRT_BAJA_MAX` 2,8 m/s inclusive | ESC/ERS 2022, Figura 5, folio 28 (ya aplicada) | COR-2 |
+| El rótulo de la morfología | «Veleta» | **«Manga de viento»** | la demo aprobada; *windsock* de Glikson 2020, folio 1138 | COR-6 |
+| El valor guardado de esa morfología | `veleta` | **`veleta`**, sin cambio | — | COR-6 |
+
+## Notas de trabajo (R1)
+
+- **El ⓘ del TRIV y la Evidencia de HTP llevan el rótulo; el informe no.** No es una omisión:
+  es la regla del panel de Evidencia de este repositorio.
+- **No se abrió ningún PDF más que el de Meier.** Todo lo demás que esta tanda cita sale del
+  registro verificado de este archivo, escrito por las tandas que leyeron el original.
+- **El barrido de veredictos del papel firmado** (1c) está en
+  `docs/mapa/cor-correcciones.md` § 1, con su denominador: 64 escenas y 1.315.598 caracteres.

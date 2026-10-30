@@ -474,3 +474,12 @@ decimal en las tres superficies, y la aortopatía hereditaria publicando el sín
 «dilatada» **sin** umbral, clase, nivel ni tabla.
 
 ⚠️ **El commit B4 no se hizo y este caso no lo mide** → `docs/PENDIENTES.md` → **NOC-B-a**.
+
+---
+
+## TC-553 — la TANDA CORRECCIONES (2026-10-30)
+
+Su ficha vive en **`docs/mapa/tests-fichas-553.md`**, en archivo propio. **59 condiciones** en
+siete bloques, uno por commit más el control del estudio ajeno. **Cae contra HEAD por 35 de las
+59, y ninguna por excepción**: las 24 que pasan en los dos árboles son los denominadores y los
+controles negativos.

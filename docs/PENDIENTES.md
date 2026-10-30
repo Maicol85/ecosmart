@@ -10174,3 +10174,86 @@ y la talla cargados, y con superficie corporal el cajón gana la fila del AVA in
 idéntico.** En la corrida completa de once lotes los dos salen verdes, porque el lote que los
 contiene es otro. Es el mismo modo de falla que el AJ7 documentó con TC-507 y la tanda A con
 TC-537: una condición que depende de lo que dejó el caso anterior.
+
+---
+
+# La TANDA CORRECCIONES (2026-10-30) — lo que se paró y se declara
+
+### COR-a · «Considerar mayor complejidad para el cierre percutáneo» sigue en el papel firmado
+
+El barrido 1c —64 escenas y 1.315.598 caracteres de superficie firmada, contra trece palabras de
+veredicto y conducta— encontró **tres frases y nada más**. Una se retiró (el «no apto»). Esta es
+la segunda, y **vive en la misma sección de la orejuela**:
+
+> «Orejuela izquierda multilobulada sin trombo. **Considerar mayor complejidad para el cierre
+> percutáneo.**»
+
+Sale con tres o más lóbulos y sin trombo pendiente. Su propio comentario argumenta que es «una
+nota sobre la ANATOMÍA … no una recomendación de conducta: no dice si cerrar ni con qué», y la
+orden de esta tanda sólo manda retirar **el veredicto de aptitud**. Queda **reportada y sin
+tocar**: empieza con un verbo de conducta en un documento que la aplicación declara descriptivo,
+y decidir si eso se retira es de Maicol.
+
+### COR-b · El cuadro de referencias del VD no sigue el orden nuevo de la grilla
+
+El COR-3 reordenó los dieciocho campos a tres columnas de seis. **El cuadro de referencias de
+abajo NO se reordenó**, y el comentario del marcado que decía «las referencias de abajo siguen
+ESE mismo orden» dejó de ser cierto —está corregido en el código—.
+
+No se tocó porque el pedido es sobre la grilla de CAMPOS, y porque **tres casos de prueba cuentan
+ese cuadro fila por fila** (TC-457, TC-476 y TC-549, con su conteo de doce filas y cuatro
+condicionales). Reordenarlo es otra tanda.
+
+### COR-c · Hay DOS cuentas de «disfunción del VD» en la aplicación
+
+El COR-2c extrajo `vdDisfPresente()` como dueño único del `OR` de cinco parámetros que el informe
+firmado usa. **No es la única cuenta de esa pregunta que existe**: la vista 2D de válvulas cuenta
+cuántos de los textos `tapse-interp`, `sprime-interp` y `fac-interp` dicen «disfunci» para elegir
+el trazo del dibujo —**tres** parámetros, no cinco, y sin el índice de Tei ni el strain—.
+
+No se unificó, y por un motivo: la de la vista 2D es un **heurístico de trazo** que no afirma
+nada en ninguna superficie firmada, y le pregunta a los TEXTOS ya pintados en vez de a los
+valores. Unificarlas cambiaría el dibujo de estudios que hoy se ven de una manera. **Medir primero
+cuántos estudios reales cambiarían de trazo.**
+
+### COR-d · La aorta ascendente de AI/VI no está espejada con la de Marfan
+
+El espejo del G-4 cubre **sólo la raíz** (`ao_sin` ↔ `marfan_ao_seno`). La **ascendente** tiene
+dos campos que no se hablan: `ao_tub` en AI/VI y `marfan_ao_ascendente` en la pantalla de
+aortopatía, que es el que el índice de tamaño aórtico del síndrome de Turner divide.
+
+Medido: con la ascendente cargada en AI/VI y Turner elegido, el mensaje decía «falta la aorta
+ascendente» sobre una pantalla donde el médico creía haberla cargado. **El COR-4b lo hace menos
+confuso** —el mensaje dice ahora «la aorta ascendente **de esta pantalla**»— pero no lo cierra.
+
+No se espejó porque **es exactamente el riesgo que el G-4 midió para la raíz**: `marfanEstado()`
+cuenta `asc` entre sus datos, así que poblarlo desde AI/VI encendería la tarjeta de aortopatía en
+todo estudio con la ascendente medida, y el Laboratorio y una columna de Excel cambiarían con
+ella. El espejo tendría que ser **condicional**, como el de la raíz, y eso es una decisión.
+
+### COR-e · La inclusión en el PDF no sobrevive a cerrar y reabrir el estudio
+
+El COR-5 pone el esquema incluido en `imgSlots`, que es memoria. Con Config **prendido**, al
+guardar el estudio la imagen se escribe en disco y vuelve con él, así que ahí sí sobrevive. Con
+Config **apagado** la inclusión vale para la sesión y nada más.
+
+Es consecuencia directa de **5c**, que prohíbe campos guardados nuevos y manda reusar el
+mecanismo de las imágenes del estudio. Queda declarado porque el médico puede esperar lo
+contrario: el botón dice «Incluir en el PDF» y no «Incluir en el PDF de ahora».
+
+### COR-f · TC-551 mide el chorro sin pausar, y es intermitente
+
+En una corrida en lote, las condiciones **(C1)** y **(C3)** de TC-551 cayeron con «chorro false»;
+corrido solo, el caso pasa **3 de 3**. La causa es del caso y no de la aplicación: el chorro de
+insuficiencia **sólo se dibuja en sístole**, y esas dos condiciones leen su atributo `d` sin
+pausar la animación, así que lo que miden depende del instante.
+
+**No se tocó**: es un caso de otra tanda y arreglarlo es cambiar lo que mide. El que lo vea rojo
+tiene que pausar antes de leer, no mirar el dibujo.
+
+### COR-g · El commit 7 de la orden no existía como tal
+
+La orden numera siete commits y el séptimo es «cobertura y documentación». Se hizo. **Lo que no
+se hizo es ningún cambio de código fuera de los seis primeros**, y eso es deliberado: la orden
+dice que los commits van en orden de prioridad y que si hay que dejar algo afuera es el 6. No
+hizo falta dejar nada afuera.

@@ -289,3 +289,25 @@ orejuela está en **`docs/mapa/noc-a-orejuela.md`**:
 - el guardado automático de `oaiEsqGuardarDiferido` **sale temprano** mientras el médico haya
   elegido un cuadro con «Incluir en el PDF» para ese mismo estudio (`_oaiEsqManualUuid`);
 - el motivo «el guardado de imágenes está apagado» ahora **dice dónde se prende**.
+
+---
+
+## → La TANDA CORRECCIONES (2026-10-30) — puntero
+
+Vive en **`docs/mapa/cor-correcciones.md`**, en archivo propio. Lo que esta zona perdió o ganó:
+
+- **§ 1** · el informe de la orejuela publica las medidas con mayúscula y **sin veredicto de
+  aptitud**; «no apto para cierre percutáneo (trombo presente)» se fue y el hecho pasó a la
+  Evidencia con Meier 2014, folio 1401. Incluye el **barrido 1c** de veredictos del papel
+  firmado, con su denominador.
+- **§ 2** · **un solo corte de 75 ms** para el TRIV: `DT_TRIV_HTP_PANEL` se retiró. Y las tres
+  formas de la frase de elementos a favor de hipertensión pulmonar, con `vdDisfPresente()` como
+  dueño único de «VD disfuncionante».
+- **§ 3** · la grilla de VD/AD en **tres columnas de seis**, sin la fila 7, con el VD/VI y su
+  selector en una fila.
+- **§ 4** · la raíz de AI/VI **leída** en la pantalla de Marfan sin escribirse, y el mensaje del
+  índice de Turner nombrando lo que falta.
+- **§ 5** · «Incluir en el PDF» **independiente de Config** y con el estudio sin guardar, como
+  interruptor. El inventario 5a está medido generando el PDF de verdad.
+- **§ 6** · el dibujo de la orejuela **portado de la demo**: aurícula izquierda, VPSI, sin el
+  triángulo del VI, trombo adentro, dos capas de silueta y «Manga de viento».

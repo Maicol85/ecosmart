@@ -5358,8 +5358,15 @@ caso('TC-49', 'TAP < 105 ms sin IT: elementos indirectos de HTP, sin inventar PS
        segundo pasa a afirmarse con DIENTES —por la ausencia de «PSAP estimada» y de «mmHg» en la
        linea de la tricuspide— en vez de depender de una frase concreta: asi el caso sigue cazando
        una PSAP inventada aunque la redaccion vuelva a cambiar. */
+    /* ⚠️ ADAPTADO EN LA TANDA CORRECCIONES (COR-2c, 30/10/2026). Esta escena NO mide la
+       velocidad de la insuficiencia tricuspidea y no declara ninguna, asi que la oracion pasa a
+       la forma CORTA que la decision del medico fija: la rama que la emite ya escribio «no es
+       posible estimar la PSAP», y decir ademas que la velocidad no esta medida sobre un
+       paciente del que se acaba de afirmar que NO tiene insuficiencia se lee como una
+       contradiccion. LA INTENCION DEL CASO NO CAMBIA: los elementos a favor se nombran y la
+       PSAP no se inventa. El EN SUMA no se toco. */
     debe: ['sin estenosis ni insuficiencia, por lo que no es posible estimar la PSAP.',
-           'Presenta elementos indirectos de HTP (TAP < 105 ms).'],
+           'Con elementos a favor de hipertensión pulmonar (TAP < 105 ms).'],
     debeSuma: ['Presenta elementos indirectos de HTP (TAP < 105 ms), sin PSAP estimable.'],
     extra: [['y NO se inventa ninguna PSAP ni gradiente: la linea de la tricuspide no trae numeros',
       (function(){ const li = r.inf.split(String.fromCharCode(10))
@@ -9234,16 +9241,23 @@ caso('TC-133', 'Doppler tricuspideo: E/A, E/e y los dos signos INDIRECTOS de HTP
     if (o.tap  != null) __t.set('tvia', String(o.tap));
     return { r: dopTricEstado(), f: dopTricFrase(), inf: __t.informe() };
   }
-  const t70 = e({ triv:70 }), t60 = e({ triv:60 }), t55 = e({ triv:55 });
+  /* ⚠️ ADAPTADO EN LA TANDA CORRECCIONES (COR-2b, 30/10/2026). El corte del TRIV del PAPEL
+     paso de 60 a 75 ms por decision del medico, con UNA sola constante para la pantalla y el
+     informe. Los valores se movieron para seguir midiendo LO MISMO -un valor por encima del
+     corte, el corte EXACTO, y uno por debajo-, no para que el caso pase: 80 esta arriba, 75 es
+     el borde estricto y 70 ahora esta abajo. El TAP no se toco. */
+  const t80 = e({ triv:80 }), t75 = e({ triv:75 }), t70b = e({ triv:70 });
+  const t70 = t80;                       /* el escenario «por encima del corte» */
+  const t60 = t75, t55 = t70b;           /* el borde exacto y uno por debajo */
   const p95 = e({ tap:95 }), p110 = e({ tap:110 });
-  const ambos = e({ triv:70, tap:95 });
-  const nada  = e({ triv:55, tap:110 });
+  const ambos = e({ triv:80, tap:95 });
+  const nada  = e({ triv:70, tap:110 });
   /* LA OTRA RAMA. La linea de la valvula tricuspide tiene DOS: con PSAP calculable y sin ella.
      Los casos de arriba no miden IT, asi que solo ejercian la segunda — una redaccion vieja
      dejada en la primera sobrevivia. Con vmax_it y VCI la PSAP se calcula y entra la otra. */
   __t.limpiar(); __t.set('vd_bas','40'); __t.set('vmax_it','2.8');
   __t.set('vci_diam','18'); __t.set('vci_col','>50');
-  __t.set('dt_triv','70'); __t.set('tvia','95');
+  __t.set('dt_triv','80'); __t.set('tvia','95');
   const conPsap = { inf: __t.informe() };
   const cocientes = e({ E:90, A:70, ep:8 });
   const soloE = e({ E:90 });
@@ -9251,18 +9265,24 @@ caso('TC-133', 'Doppler tricuspideo: E/A, E/e y los dos signos INDIRECTOS de HTP
   __t.limpiar(); __t.set('vd_bas','40');
   const vacio = { r: dopTricEstado(), f: dopTricFrase(), inf: __t.informe() };
   const FR = 'Presenta elementos indirectos de HTP';
+  /* ⚠️ Y LA REDACCION DEPENDE DE SI LA IT ESTA MEDIDA (COR-2c, 30/10/2026). Estas escenas NO
+     cargan vmax_it ni declaran insuficiencia, asi que caen en la forma CORTA: la rama que las
+     emite ya escribio «no es posible estimar la PSAP», y repetir que la velocidad no esta
+     medida sobre un paciente del que se acaba de decir que no tiene insuficiencia se leia como
+     una contradiccion. La escena conPsap, que SI mide la IT, conserva la redaccion de HEAD. */
+  const FRC = 'Con elementos a favor de hipertensión pulmonar';
   return { extra: [
     // LA FRASE UNICA, en sus cuatro combinaciones.
-    ['solo TAP 95 ms', p95.inf.inf.indexOf(FR + ' (TAP < 105 ms).') > -1],
-    ['solo TRIV 70 ms', t70.inf.inf.indexOf(FR + ' (TRIV tricuspídeo > 60 ms).') > -1],
+    ['solo TAP 95 ms', p95.inf.inf.indexOf(FRC + ' (TAP < 105 ms).') > -1],
+    ['solo TRIV 80 ms', t70.inf.inf.indexOf(FRC + ' (TRIV tricuspídeo > 75 ms).') > -1],
     ['los dos, en una sola frase',
-      ambos.inf.inf.indexOf(FR + ' (TAP < 105 ms y TRIV tricuspídeo > 60 ms).') > -1],
+      ambos.inf.inf.indexOf(FRC + ' (TAP < 105 ms y TRIV tricuspídeo > 75 ms).') > -1],
     ['y el TAP se nombra UNA sola vez', ambos.inf.inf.split('TAP < 105 ms').length - 1 === 1],
-    ['con TAP 110 y TRIV 55 no aparece nada', nada.inf.inf.indexOf(FR) === -1],
-    ['con los campos vacios tampoco', vacio.inf.inf.indexOf(FR) === -1],
+    ['con TAP 110 y TRIV 70 no aparece nada', nada.inf.inf.indexOf(FR) === -1 && nada.inf.inf.indexOf(FRC) === -1],
+    ['con los campos vacios tampoco', vacio.inf.inf.indexOf(FR) === -1 && vacio.inf.inf.indexOf(FRC) === -1],
     // Los dos lados de cada corte.
-    ['TRIV 60 exactos NO cuenta: el corte es >60', t60.inf.inf.indexOf('TRIV tricuspídeo') === -1],
-    ['TRIV 55 tampoco', t55.inf.inf.indexOf('TRIV tricuspídeo') === -1],
+    ['TRIV 75 exactos NO cuenta: el corte es >75 y sigue siendo estricto', t60.inf.inf.indexOf('TRIV tricuspídeo') === -1],
+    ['TRIV 70 tampoco, que con el corte viejo SI contaba', t55.inf.inf.indexOf('TRIV tricuspídeo') === -1],
     ['TAP 110 no cuenta', p110.inf.inf.indexOf('TAP < 105') === -1],
     // El texto viejo no vuelve, en ninguna de las dos ramas.
     ['no queda la redaccion vieja',
@@ -9270,12 +9290,14 @@ caso('TC-133', 'Doppler tricuspideo: E/A, E/e y los dos signos INDIRECTOS de HTP
       ambos.inf.inf.indexOf('Se evidencian elementos indirectos') === -1],
     ['y tampoco en la rama con PSAP calculable, que es la otra mitad',
       conPsap.inf.inf.indexOf('Se suman elementos indirectos') === -1 &&
-      conPsap.inf.inf.indexOf('Presenta elementos indirectos de HTP (TAP < 105 ms y TRIV tricuspídeo > 60 ms).') > -1],
+      conPsap.inf.inf.indexOf('Presenta elementos indirectos de HTP (TAP < 105 ms y TRIV tricuspídeo > 75 ms).') > -1],
     // EN SUMA: la misma frase, y solo sin PSAP estimable — como antes.
     ['al EN SUMA va la frase nueva con los dos signos',
-      ambos.inf.suma.indexOf(FR + ' (TAP < 105 ms y TRIV tricuspídeo > 60 ms), sin PSAP estimable.') > -1],
+      ambos.inf.suma.indexOf(FR + ' (TAP < 105 ms y TRIV tricuspídeo > 75 ms), sin PSAP estimable.') > -1],
+    /* El EN SUMA NO se toco: su redaccion sigue siendo la de HEAD, y eso es parte de lo que
+       este caso tiene que seguir fijando. */
     ['y el TRIV solo tambien llega al EN SUMA',
-      t70.inf.suma.indexOf('TRIV tricuspídeo > 60 ms') > -1],
+      t70.inf.suma.indexOf('TRIV tricuspídeo > 75 ms') > -1],
     // UNIDADES: cm/s.
     ['el campo dice cm/s, no m/s', (function(){
       const l = document.querySelector('label[for], .fg label');
@@ -57755,8 +57777,11 @@ caso('TC-417', 'Tricuspide — la tabla de textos: 15 escenas del informe (presi
       S14.tri],
     ['y NO reaparece la negacion activa que A3 elimino',
       S14.tri.indexOf('Sin criterios de ET significativa') === -1, S14.tri],
-    ['S15 los elementos indirectos de HTP siguen saliendo, sin inventar PSAP',
-      S15.tri.indexOf('Presenta elementos indirectos de HTP (TAP < 105 ms).') > -1 &&
+    /* ⚠️ ADAPTADA EN LA TANDA CORRECCIONES (COR-2c, 30/10/2026): la escena no mide la Vmax de
+       la IT, asi que la oracion toma la forma corta. Lo que el caso fija -que los elementos a
+       favor salen y que la PSAP no se inventa- no cambio. */
+    ['S15 los elementos a favor de HTP siguen saliendo, sin inventar PSAP',
+      S15.tri.indexOf('Con elementos a favor de hipertensión pulmonar (TAP < 105 ms).') > -1 &&
       S15.tri.indexOf('PSAP estimada') === -1, S15.tri],
 
     // ── A1.1 · LAS CINCO MORFOLOGIAS ETIOLOGICAS EN ORACION APARTE ────────────────────────────
@@ -67782,8 +67807,13 @@ caso('TC-476', 'Tanda G1: el VD en tres columnas con su orden de Tab, las filas 
        Doppler- y por eso el prefijo entra en _noEsDelEstudio. Lo que este caso vigila -que el
        orden del MARCADO sea el de las columnas, que es el que recorre el Tab- se conserva
        entero: el campo esta en el DOM despues de la FEVD, que es donde se ve. */
-    const ESPERADO = ['tvia','tapse','s_prime','vd_tei','vd_strain_pl','fevd','vd-triv','vd_bas','vd_mid','vd_long',
-                      'vd_vi','vd_pared','tsvd_diametro','vti_tsvd','ip_ap_diam','vd_area_d',
+    /* ⚠️ ADAPTADO EN LA TANDA CORRECCIONES (COR-3, 30/10/2026). Pedido del medico: la grilla
+       pasa a TRES columnas de SEIS. El TRIV sube debajo de la onda S prima -los dos se miden con
+       Doppler tisular-, el indice de Tei baja al lugar que ocupaba el strain y la FEVD cruza al
+       final de la columna 2, al lado de la FAC. Lo que este caso fija NO cambia: que el orden
+       del MARCADO sea el de las COLUMNAS, que es el que recorre el Tab. */
+    const ESPERADO = ['tvia','tapse','s_prime','vd-triv','vd_strain_pl','vd_tei','vd_bas','vd_mid','vd_long',
+                      'vd_vi','vd_pared','fevd','tsvd_diametro','vti_tsvd','ip_ap_diam','vd_area_d',
                       'vd_area_s','vd_fac'];
     const orden = grid ? Array.prototype.slice.call(grid.querySelectorAll('input[id]')).map(e => e.id) : [];
     ex.push(['los DIECIOCHO campos estan en el orden de COLUMNAS, que es el que recorre el Tab',
@@ -68626,8 +68656,13 @@ caso('TC-478', 'Tanda G3: la casilla de la FAC vuelve a estar VISIBLE con su men
        Doppler- y por eso el prefijo entra en _noEsDelEstudio. Lo que este caso vigila -que el
        orden del MARCADO sea el de las columnas, que es el que recorre el Tab- se conserva
        entero: el campo esta en el DOM despues de la FEVD, que es donde se ve. */
-    const ESPERADO = ['tvia','tapse','s_prime','vd_tei','vd_strain_pl','fevd','vd-triv','vd_bas','vd_mid','vd_long',
-                      'vd_vi','vd_pared','tsvd_diametro','vti_tsvd','ip_ap_diam','vd_area_d',
+    /* ⚠️ ADAPTADO EN LA TANDA CORRECCIONES (COR-3, 30/10/2026). Pedido del medico: la grilla
+       pasa a TRES columnas de SEIS. El TRIV sube debajo de la onda S prima -los dos se miden con
+       Doppler tisular-, el indice de Tei baja al lugar que ocupaba el strain y la FEVD cruza al
+       final de la columna 2, al lado de la FAC. Lo que este caso fija NO cambia: que el orden
+       del MARCADO sea el de las COLUMNAS, que es el que recorre el Tab. */
+    const ESPERADO = ['tvia','tapse','s_prime','vd-triv','vd_strain_pl','vd_tei','vd_bas','vd_mid','vd_long',
+                      'vd_vi','vd_pared','fevd','tsvd_diametro','vti_tsvd','ip_ap_diam','vd_area_d',
                       'vd_area_s','vd_fac'];
     ex.push(['(A) los DIECIOCHO campos estan en el orden de COLUMNAS, que es el que recorre el Tab',
       campos.join(',') === ESPERADO.join(','), campos.join(',')]);
@@ -68646,8 +68681,11 @@ caso('TC-478', 'Tanda G3: la casilla de la FAC vuelve a estar VISIBLE con su men
     /* ADAPTADO el 2026-10-24 (AJ5-5): ahora son DOS las columnas de seis -la 1 y la 3- y la 2 se
        queda con cinco. El desbalance sigue siendo lo que hace NECESARIA la posicion explicita:
        con flujo automatico el sexto campo de la columna 3 se iria a la fila 1 de la columna 1. */
-    ex.push(['(A) la columna 1 tiene SIETE campos, la 3 SEIS y la 2 CINCO',
-      porCol[1] === 7 && porCol[2] === 5 && porCol[3] === 6, JSON.stringify(porCol)]);
+    /* ⚠️ ADAPTADA EN LA TANDA CORRECCIONES (COR-3): el reparto desbalanceado que el G3 y la
+       tanda Y dejaron se cambio por TRES columnas de SEIS, sin huecos, que es lo que el medico
+       pidio para que los espacios entre campos queden iguales. */
+    ex.push(['(A) las TRES columnas tienen SEIS campos cada una',
+      porCol[1] === 6 && porCol[2] === 6 && porCol[3] === 6, JSON.stringify(porCol)]);
     ex.push(['(A) la NOVENA regla de posicion (vd-r6) esta en el fuente',
       fuente.indexOf('.vd-grid > .vd-r6 { grid-row: 6; }') > -1, '']);
     ex.push(['(A) y la DECLARACION .ip-ap-col2 del G1 ya no existe: el campo se MOVIO, no se duplico',
@@ -87779,15 +87817,19 @@ caso('TC-526', 'Tanda AJ5-5: el strain de pared libre del VD entre el indice de 
   __t.limpiar();
   if (F('showTab')) showTab('vd');
   const campo = document.getElementById('vd_strain_pl');
-  const tei = document.getElementById('vd_tei'), fevd = document.getElementById('fevd');
-  const orden = (function () { if (!campo || !tei || !fevd) return null;
-    const p = (e) => e.compareDocumentPosition(campo);
-    return { teiAntes: !!(tei.compareDocumentPosition(campo) & 4),
-             fevdDespues: !!(campo.compareDocumentPosition(fevd) & 4) }; })();
+  const tei = document.getElementById('vd_tei'), triv = document.getElementById('vd-triv');
+  const orden = (function () { if (!campo || !tei || !triv) return null;
+    return { trivAntes: !!(triv.compareDocumentPosition(campo) & 4),
+             teiDespues: !!(campo.compareDocumentPosition(tei) & 4) }; })();
   ex.push(['(A1) DENOMINADOR: el campo existe y es el que la orden pide',
     !!campo && campo.tagName === 'INPUT', campo ? campo.id : 'NO EXISTE']);
-  ex.push(['(A2) esta DESPUES del indice de Tei y ANTES de la FEVD en el orden del documento, que es el del Tab',
-    !!orden && orden.teiAntes && orden.fevdDespues, JSON.stringify(orden)]);
+  /* ⚠️ ADAPTADA EN LA TANDA CORRECCIONES (COR-3): el strain ya no esta entre el Tei y la FEVD.
+     El pedido del medico deja la columna 1 en TAP, TAPSE, S prima, TRIV, strain e indice de Tei,
+     y la FEVD cruza a la columna 2. Lo que el caso fija sigue siendo una relacion de ORDEN en el
+     documento -que es la del Tab-, no una posicion absoluta: hoy el strain va DESPUES del TRIV y
+     ANTES del indice de Tei. */
+  ex.push(['(A2) esta DESPUES del TRIV y ANTES del indice de Tei en el orden del documento, que es el del Tab',
+    !!orden && orden.trivAntes && orden.teiDespues, JSON.stringify(orden)]);
   /* La condicion de la orden se verifico antes: el selector de tramo existe SOLO en la relacion
      VD/VI, no en el TAPSE ni en la onda S prima, asi que este campo tampoco lo lleva. */
   ex.push(['(A3) CONTROL: ni el TAPSE ni la onda S prima tienen selector de tramo, y este tampoco',
@@ -92669,8 +92711,16 @@ caso('TC-539', 'Tanda E: el Carpentier con UN SOLO dato -gana el ETE, el campo d
     try { if (F('generarInforme')) generarInforme(); } catch (x) {}
     const D_tr = N(__t.val('informe_texto'));
     const D_trLin = (String(D_tr).split('.').filter(l => /ostium/i.test(l))[0] || '');
-    ex.push(['(D8) CONTROL NEGATIVO: la rama del TROMBO se conserva -es contraindicacion, no un rango-',
-      /no apto para cierre percutáneo \\(trombo presente\\)/.test(D_trLin),
+    /* ⚠️ INVERTIDA EN LA TANDA CORRECCIONES (COR-1a, 30/10/2026). La tanda E habia DEJADO esa
+       rama con tres motivos escritos, y la orden del medico los releva: la aplicacion no hace
+       recomendaciones, y «no apto para cierre percutaneo» es un veredicto de aptitud aunque lo
+       sostenga una contraindicacion absoluta. El HECHO pasa a la Evidencia con Meier 2014,
+       folio 1401. La condicion se INVIERTE y gana dientes: ademas de que el veredicto no este,
+       exige que la oracion publique lo hallado y medido, con mayuscula y con su sujeto — asi
+       sigue pudiendo caer si alguien repone el juicio o se come el sujeto. */
+    ex.push(['(D8) la rama del TROMBO tambien se fue: la oracion publica las medidas y nada mas',
+      /apto para cierre/.test(D_tr) === false &&
+      /Orejuela izquierda: ostium \\d+ mm/.test(D_tr),
       JSON.stringify(D_trLin)]);
 
     /* ══ (E) CONTROL DE QUE NADA MAS SE MOVIO ══════════════════════════════════════════
@@ -96003,23 +96053,33 @@ caso('TC-549', 'Tanda Y (Parte 1): el resultado del strain del VD en el cuadro d
       document.querySelectorAll('input[id], select[id], textarea[id]').forEach(e => {
         if (!_noEsDelEstudio(e.id) && e.id === 'vd-triv') hay = true; });
       return hay === false; })() === true, 'recolector']);
-  ex.push(['(B6) el campo vive en la pestania VD / AD, en la columna 1, debajo de la FEVD',
+  /* ⚠️ ADAPTADA EN LA TANDA CORRECCIONES (COR-3): el TRIV subio a la columna 1 DEBAJO DE LA
+     ONDA S PRIMA -los dos se miden con Doppler tisular- y la FEVD cruzo a la columna 2. Lo que
+     el caso fija sigue siendo que el campo vive en la grilla del VD, en la columna 1 y en una
+     posicion declarada; cambia cual. */
+  ex.push(['(B6) el campo vive en la pestania VD / AD, en la columna 1, debajo de la onda S prima',
     (function () { const e = EL('vd-triv'); if (!e) return false;
       const fg = e.closest('.fg'); const cl = fg ? String(fg.className) : '';
       const g = e.closest('.vd-grid');
       if (!g || cl.indexOf('vd-c1') < 0) return false;
       const ids = Array.prototype.slice.call(g.querySelectorAll('input[id]')).map(x => x.id);
-      return ids.indexOf('vd-triv') === ids.indexOf('fevd') + 1; })(),
+      return ids.indexOf('vd-triv') === ids.indexOf('s_prime') + 1; })(),
     (function () { const e = EL('vd-triv'); const fg = e && e.closest('.fg');
       return fg ? fg.className : 'NO EXISTE'; })()]);
   /* CONTROL NEGATIVO: el corte que gobierna el PAPEL es OTRO y esta tanda no lo toco. */
   __t.limpiar();
   S('dt_triv', '76');
-  ex.push(['(B7) CONTROL: el corte del PAPEL sigue en 60 ms y el de PANTALLA en 75, y son dos',
-    window.DT_TRIV_HTP_PANEL === 75 &&
-    (F('htpIndirectosFrase') ? htpIndirectosFrase().indexOf('> 60 ms') > -1 : 'SIN FN') === true &&
+  /* ⚠️ INVERTIDA EN LA TANDA CORRECCIONES (COR-2b, 30/10/2026). Esta condicion fijaba
+     exactamente lo que el medico mando cambiar: que hubiera DOS cortes, 60 para el papel y 75
+     para la pantalla. Hoy hay UNO -75, estricto- y DT_TRIV_HTP_PANEL se retiro. La condicion
+     mide ahora lo contrario, y con el mismo valor de 76 ms: que la pantalla y el papel digan
+     el MISMO numero, que es lo que esta tanda vino a garantizar. */
+  ex.push(['(B7) el corte es UNO SOLO: la pantalla y el papel dicen los mismos 75 ms',
+    typeof window.DT_TRIV_HTP_PANEL === 'undefined' && DT_TRIV_HTP === 75 &&
+    (F('htpIndirectosFrase') ? htpIndirectosFrase().indexOf('> 75 ms') > -1 : 'SIN FN') === true &&
     T('dt_triv_ref').indexOf('>75 ms: a favor de HTP') > -1,
-    'panel=' + window.DT_TRIV_HTP_PANEL + ' frase=' + (F('htpIndirectosFrase') ? htpIndirectosFrase() : '?') +
+    'panel=' + (typeof window.DT_TRIV_HTP_PANEL !== 'undefined' ? window.DT_TRIV_HTP_PANEL : 'retirada') +
+    ' corte=' + DT_TRIV_HTP + ' frase=' + (F('htpIndirectosFrase') ? htpIndirectosFrase() : '?') +
     ' fila=' + T('dt_triv_ref')]);
 
   /* ══ C · EL SEXO SE RE-EVALUA EN EL ACTO ══════════════════════════════════════════════════ */
@@ -96830,18 +96890,33 @@ caso('TC-551', 'Tanda NOCTURNA A: el esquema de la orejuela al lado de los campo
     ' · guardado ' + (F('imgGuardadoActivo') ? imgGuardadoActivo() : 'NO FN')]);
   const rInc = F('oaiEsqIncluirPDF') ? await oaiEsqIncluirPDF() : { ok: false, motivo: 'NO EXISTE' };
   const esq1 = (typeof CeiboImg !== 'undefined' && CeiboImg.esquemas) ? await CeiboImg.esquemas(U) : [];
-  ex.push(['(D4) «Incluir en el PDF» guarda UNA imagen de esquema, con la clave de la orejuela',
-    !!rInc.ok && esq1.length === 1 && esq1[0].clave === 'orejuela',
-    'ok ' + rInc.ok + ' · ' + esq1.length + ' esquema(s) · ' + (esq1[0] ? esq1[0].clave : '-') +
+  /* ⚠️ ADAPTADA EN LA TANDA CORRECCIONES (COR-5, 30/10/2026). «Incluir en el PDF» ya NO
+     escribe en la lista esqs de IndexedDB: pone el esquema como un SLOT de imgSlots, que es
+     lo UNICO que el PDF imprime. Medido sobre HEAD generando el PDF de verdad: con la ruta
+     vieja el PDF salia con CERO imagenes, con Config prendido y con el estudio guardado, porque
+     CeiboImg.leer devuelve solo imgs y los esquemas nunca volvian. Lo que el caso fija -UNA
+     sola imagen de esquema, identificada por la clave de la orejuela- no cambia; cambia donde
+     vive. */
+  const slotsEsq = (typeof imgSlots !== 'undefined')
+    ? imgSlots.filter(x => x && x.dataURL && x.esqClave === 'orejuela') : [];
+  ex.push(['(D4) «Incluir en el PDF» deja UNA imagen de esquema entre las del estudio',
+    !!rInc.ok && slotsEsq.length === 1 && esq1.length === 0,
+    'ok ' + rInc.ok + ' · slots ' + slotsEsq.length + ' · esqs ' + esq1.length +
     (rInc.motivo ? ' · ' + rInc.motivo : '')]);
   /* LA CONVIVENCIA: el automatico NO pisa el cuadro elegido mientras siga abierto el estudio. */
-  const ts1 = esq1[0] ? esq1[0].ts : null;
+  const d1 = slotsEsq[0] ? slotsEsq[0].dataURL : null;
   pon('oai_ostium_diam', '27');
   await esperar(1500);                       /* mas que el diferido de 700 ms */
+  const slots2 = (typeof imgSlots !== 'undefined')
+    ? imgSlots.filter(x => x && x.dataURL && x.esqClave === 'orejuela') : [];
   const esq2 = (typeof CeiboImg !== 'undefined' && CeiboImg.esquemas) ? await CeiboImg.esquemas(U) : [];
+  /* ⚠️ ADAPTADA EN LA TANDA CORRECCIONES (COR-5): «la elegida explicitamente gana» ya no
+     cuelga del uuid -que vale null mientras el estudio no este guardado- sino de que HAYA un
+     esquema incluido. El automatico tampoco escribe en esqs mientras eso sea cierto. */
   ex.push(['(D5) el guardado automatico NO pisa el cuadro que el medico eligio',
-    esq2.length === 1 && !!ts1 && esq2[0].ts === ts1,
-    (ts1 || 'NO') + ' -> ' + (esq2[0] ? esq2[0].ts : 'NO') + ' · ' + esq2.length + ' esquema(s)']);
+    slots2.length === 1 && !!d1 && slots2[0].dataURL === d1 && esq2.length === 0,
+    'slots ' + slots2.length + ' · igual=' + (!!d1 && slots2[0] && slots2[0].dataURL === d1) +
+    ' · esqs ' + esq2.length]);
   if (F('oaiEsqSeguir')) oaiEsqSeguir();
   await esperar(120);
   const s1 = foto(); await esperar(420); const s2 = foto();
@@ -97038,10 +97113,13 @@ caso('TC-552', 'Tanda NOCTURNA B: el TRIV del VD en sus DOS referencias con los 
 
   try {
   /* -- (Z) LO QUE TIENE QUE EXISTIR ------------------------------------------------------- */
-  ex.push(['(Z1) las dos constantes del TRIV siguen SEPARADAS: 75 de pantalla y 60 del papel',
-    typeof DT_TRIV_HTP_PANEL !== 'undefined' && DT_TRIV_HTP_PANEL === 75 &&
-    typeof DT_TRIV_HTP !== 'undefined' && DT_TRIV_HTP === 60,
-    'panel=' + (typeof DT_TRIV_HTP_PANEL !== 'undefined' ? DT_TRIV_HTP_PANEL : 'NO') +
+  /* ⚠️ INVERTIDA EN LA TANDA CORRECCIONES (COR-2b, 30/10/2026): lo que este caso fijaba -dos
+     constantes separadas- es justo lo que el medico mando unificar. Hoy hay UNA, vale 75 y la
+     de pantalla se retiro. */
+  ex.push(['(Z1) hay UNA sola constante del TRIV y vale 75: la de pantalla se retiro',
+    typeof window.DT_TRIV_HTP_PANEL === 'undefined' &&
+    typeof DT_TRIV_HTP !== 'undefined' && DT_TRIV_HTP === 75,
+    'panel=' + (typeof window.DT_TRIV_HTP_PANEL !== 'undefined' ? window.DT_TRIV_HTP_PANEL : 'retirada') +
     ' informe=' + (typeof DT_TRIV_HTP !== 'undefined' ? DT_TRIV_HTP : 'NO')]);
   ex.push(['(Z2) la fila nueva, su globo y el dueno unico del texto existen',
     !!EL('row-vd-triv-ref') && !!EL('vd-triv-ref') &&
@@ -97116,9 +97194,12 @@ caso('TC-552', 'Tanda NOCTURNA B: el TRIV del VD en sus DOS referencias con los 
   const f65 = F('htpIndirectosFrase') ? htpIndirectosFrase() : 'NO FN';
   pon('vd-triv', '55'); if (F('calcDopTric')) calcDopTric();
   const f55 = F('htpIndirectosFrase') ? htpIndirectosFrase() : 'NO FN';
-  ex.push(['(B2) CONTROL: la frase del informe sigue cortando en 60, no en 75',
-    f65.indexOf('TRIV tricuspídeo > 60 ms') > -1 && f55 === '',
-    'con 65: ' + f65 + ' | con 55: ' + JSON.stringify(f55)]);
+  /* ⚠️ INVERTIDA EN LA TANDA CORRECCIONES (COR-2b): la frase del informe corta en 75, no en 60.
+     Con 65 ms -que con el corte viejo SI entraba- hoy no hay frase, y con 55 tampoco. La
+     condicion conserva sus dos valores para que el cambio quede medido en el mismo caso. */
+  ex.push(['(B2) la frase del informe corta en 75: con 65 ms ya no sale, y con 55 tampoco',
+    f65 === '' && f55 === '',
+    'con 65: ' + JSON.stringify(f65) + ' | con 55: ' + JSON.stringify(f55)]);
 
   /* == (C) EL INDICE DE TAMANIO AORTICO ===================================================== */
   if (F('limpiarCampos')) limpiarCampos();
@@ -97303,6 +97384,421 @@ caso('TC-552', 'Tanda NOCTURNA B: el TRIV del VD en sus DOS referencias con los 
   } finally {
     try { if (F('limpiarCampos')) limpiarCampos(); } catch (e) {}
   }
+  return { extra: ex };
+  })();
+`);
+
+/* -- TC-553 ---------------------------------------------------------------------------------
+   TANDA CORRECCIONES (2026-10-30), commits 1 a 6.
+
+   Las letras son las de las condiciones. Cada bloque abre con su DENOMINADOR, que es lo que
+   impide que «no aparece» y «no se midio» se lean igual, y cierra con sus controles negativos.
+
+   ⚠️ EL ESTILO DE INFORME ES ESTADO DE SESION, y este caso lo fija: un caso anterior puede
+   dejarlo en narrativo, donde la frase de la orejuela dice otra cosa. Es lo que la tanda AJ9
+   pago con TC-547.
+   ⚠️ NO USA `calcOAI()` A MANO PARA FABRICAR UN DISPARADOR: los campos se ponen despachando
+   `input`, que es el gesto real. Es la leccion de TC-519.
+*/
+caso('TC-553', 'Tanda CORRECCIONES: el informe de la orejuela publica las medidas con mayuscula y SIN veredicto de aptitud, con el hecho del trombo movil en la Evidencia; UN solo corte de 75 ms para el TRIV en pantalla y en el papel, con las tres formas de la frase de elementos a favor de HTP y sin mover la categoria de probabilidad; la grilla de VD/AD en tres columnas de SEIS con el VD/VI y su selector en una fila; la raiz de AI/VI LEIDA en Marfan sin escribirse y el indice de Turner diciendo que le falta; «Incluir en el PDF» independiente de Config y con el estudio sin guardar; y el dibujo de la orejuela portado de la demo -auricula izquierda, VPSI, sin el triangulo del VI, trombo adentro y «Manga de viento»-', `
+  return (async () => {
+  const ex = [];
+  const F = (n) => (typeof window[n] === 'function') ? window[n] : null;
+  const EL = (id) => document.getElementById(id) || null;
+  const T = (id) => { const e = EL(id); return e ? (e.textContent || '').replace(/[ \\t\\n\\r]+/g, ' ').trim() : 'NO EXISTE'; };
+  const V = (id) => { const e = EL(id); return e ? String(e.value || '') : 'NO EXISTE'; };
+  const pon = (id, v) => { const e = EL(id); if (!e) return 'NO ' + id;
+    e.value = String(v); e.dispatchEvent(new Event('input', { bubbles: true }));
+    e.dispatchEvent(new Event('change', { bubbles: true })); return e.value; };
+  const esperar = (ms) => new Promise(r => setTimeout(r, ms));
+  const limpiar = () => { try { if (F('limpiarCampos')) limpiarCampos(true) } catch (e) {} };
+  /* El estilo se fija SIEMPRE antes de leer el informe. */
+  const inf = () => { try { if (F('setEstiloInforme')) setEstiloInforme('estandar') } catch (e) {}
+    try { if (F('generarInforme')) generarInforme() } catch (e) {}
+    return V('informe_texto'); };
+  const suma = () => V('en_suma');
+
+  try {
+  /* ═══ (A) EL INFORME DE LA OREJUELA, SIN VEREDICTO (commit 1) ═══════════════════════════ */
+  limpiar();
+  pon('oai_ostium_diam', '26'); pon('oai_profundidad', '37');
+  pon('oai_trombo', 'si'); pon('oai_lobulos', '2');
+  await esperar(350);
+  const iA = inf();
+  const lineaA = (iA.split('\\n').filter(l => l.indexOf('ostium 26 mm') > -1)[0] || '');
+  ex.push(['(A0) DENOMINADOR: el informe publica la linea de las medidas de la orejuela',
+    lineaA.length > 10, 'linea=' + JSON.stringify(lineaA.slice(0, 120)) + ' informe=' + iA.length + ' car.']);
+  ex.push(['(A1) arranca con MAYUSCULA y con su sujeto',
+    lineaA.indexOf('Orejuela izquierda: ostium 26 mm, profundidad 37 mm.') === 0, lineaA.slice(0, 90)]);
+  ex.push(['(A2) NINGUN veredicto de aptitud en el informe entero',
+    iA.toLowerCase().indexOf('apto') === -1 && iA.toLowerCase().indexOf('no apto') === -1,
+    'apto en pos ' + iA.toLowerCase().indexOf('apto')]);
+  ex.push(['(A3) el EN SUMA tampoco lleva veredicto',
+    suma().toLowerCase().indexOf('apto') === -1, suma().slice(0, 110)]);
+  /* El parrafo de arriba ya dijo el trombo: R4, y por eso la oracion no lo repite. */
+  ex.push(['(A4) el trombo se dice UNA vez por seccion -el parrafo de arriba-, no dos',
+    iA.indexOf('con trombo confirmado') > -1 && lineaA.indexOf('trombo') === -1,
+    'arriba=' + (iA.indexOf('con trombo confirmado') > -1) + ' en la linea=' + (lineaA.indexOf('trombo') > -1)]);
+  /* Con SOLO el ostium la oracion sale igual: su compuerta no es la del parrafo de arriba. */
+  limpiar(); pon('oai_ostium_diam', '22'); await esperar(300);
+  const iA2 = inf();
+  ex.push(['(A5) con SOLO el ostium la oracion sale con su sujeto',
+    iA2.indexOf('Orejuela izquierda: ostium 22 mm.') > -1, iA2.slice(0, 140)]);
+  /* CONTROL NEGATIVO: sin ostium ni profundidad NO hay oracion de medidas. */
+  limpiar(); pon('oai_trombo', 'si'); await esperar(300);
+  const iA3 = inf();
+  ex.push(['(A6) CONTROL NEGATIVO: con trombo y SIN medidas no hay oracion de medidas',
+    iA3.indexOf('Orejuela izquierda: ostium') === -1 && iA3.indexOf('con trombo confirmado') > -1,
+    iA3.slice(0, 150)]);
+  /* El gate de los lobulos NO se toco. */
+  limpiar(); pon('oai_ostium_diam', '26'); pon('oai_profundidad', '37');
+  pon('oai_lobulos', '3'); pon('oai_trombo', 'si'); await esperar(300);
+  const iA4 = inf();
+  limpiar(); pon('oai_ostium_diam', '26'); pon('oai_profundidad', '37');
+  pon('oai_lobulos', '3'); pon('oai_trombo', 'no'); await esperar(300);
+  const iA5 = inf();
+  ex.push(['(A7) el gate de los lobulos SIGUE: con trombo no aparece la nota de complejidad',
+    iA4.indexOf('Considerar mayor complejidad') === -1, iA4.slice(0, 150)]);
+  ex.push(['(A8) CONTROL NEGATIVO del gate: sin trombo y con 3 lobulos SI aparece',
+    iA5.indexOf('Considerar mayor complejidad') > -1, iA5.slice(0, 150)]);
+  /* El hecho, con su fuente, en la Evidencia. */
+  limpiar(); pon('oai_trombo', 'si'); await esperar(300);
+  let evTxt = '';
+  try { if (F('indicRender')) indicRender(); } catch (e) {}
+  await esperar(350);
+  evTxt = T('indic-cuerpo');
+  ex.push(['(A9) DENOMINADOR: el panel de Evidencia esta pintado',
+    evTxt.length > 200, 'panel=' + evTxt.length + ' car.']);
+  ex.push(['(A10) la Evidencia publica el hecho del trombo MOVIL con su fuente',
+    evTxt.indexOf('trombos MOVILES'.replace('MOVILES', 'M\\u00d3VILES')) > -1 &&
+    evTxt.indexOf('folio 1401') > -1,
+    'movil=' + (evTxt.indexOf('M\\u00d3VILES') > -1) + ' folio=' + (evTxt.indexOf('folio 1401') > -1)]);
+
+  /* ═══ (B) EL TRIV: UN SOLO CORTE DE 75 ms (commit 2) ════════════════════════════════════ */
+  ex.push(['(B0) DENOMINADOR: hay UNA sola constante y vale 75',
+    typeof DT_TRIV_HTP !== 'undefined' && DT_TRIV_HTP === 75 &&
+    typeof window.DT_TRIV_HTP_PANEL === 'undefined',
+    'DT_TRIV_HTP=' + (typeof DT_TRIV_HTP !== 'undefined' ? DT_TRIV_HTP : 'NO') +
+    ' PANEL=' + (typeof window.DT_TRIV_HTP_PANEL !== 'undefined' ? window.DT_TRIV_HTP_PANEL : 'retirada')]);
+  const frase = async (triv) => { limpiar();
+    pon('dt_triv', triv); pon('vmax_it', '3.6'); pon('tvia', '120'); pon('ad_area', '14');
+    await esperar(350); return inf(); };
+  const f74 = await frase('74'), f75 = await frase('75'), f76 = await frase('76');
+  ex.push(['(B1) el operador es ESTRICTO: 75 exactos NO es elemento a favor, 76 si',
+    f75.indexOf('elementos indirectos de HTP') === -1 &&
+    f76.indexOf('elementos indirectos de HTP (TRIV tricusp') > -1,
+    '75=' + (f75.indexOf('elementos indirectos') > -1) + ' 76=' + (f76.indexOf('elementos indirectos') > -1)]);
+  ex.push(['(B2) 74 ms tampoco: el corte VIEJO de 60 ya no gobierna el papel',
+    f74.indexOf('elementos indirectos de HTP') === -1, f74.indexOf('TRIV tricusp') > -1 ? 'nombra el TRIV' : 'no lo nombra']);
+  ex.push(['(B3) el informe nombra el corte NUEVO y no el viejo',
+    f76.indexOf('> 75 ms') > -1 && f76.indexOf('> 60 ms') === -1, f76.indexOf('> 75 ms') > -1 ? 'dice 75' : 'NO dice 75']);
+  /* (i) · la IT no medida. Con IT declarada va la forma larga; sin IT, la corta. */
+  limpiar(); pon('dt_triv', '80'); pon('tvia', '95'); pon('ad_area', '14');
+  pon('it_grado', '2'); await esperar(400);
+  const fLarga = inf();
+  limpiar(); pon('dt_triv', '80'); pon('tvia', '95'); pon('ad_area', '14'); await esperar(400);
+  const fCorta = inf();
+  ex.push(['(B4) (i) con IT declarada y SIN Vmax: se dice que la velocidad no esta medida',
+    fLarga.indexOf('Velocidad de la insuficiencia tricusp') > -1 &&
+    fLarga.indexOf('con elementos a favor de hipertensi') > -1, fLarga.slice(0, 40) + ' | larga=' + (fLarga.indexOf('no medida') > -1)]);
+  ex.push(['(B5) (i) SIN IT: la forma corta, porque esa rama ya dijo que no se puede estimar la PSAP',
+    fCorta.indexOf('Con elementos a favor de hipertensi') > -1 &&
+    fCorta.indexOf('Velocidad de la insuficiencia tricusp') === -1,
+    'corta=' + (fCorta.indexOf('Con elementos a favor') > -1)]);
+  /* (ii) · el gradiente subestimado, con sus TRES controles negativos. */
+  const sub = async (o) => { limpiar();
+    pon('vmax_it', o.vrt); pon('dt_triv', o.triv); pon('tvia', o.tap);
+    if (o.tapse) pon('tapse', o.tapse); if (o.sp) pon('s_prime', o.sp);
+    pon('ad_area', '14'); await esperar(400); return inf(); };
+  const sOK  = await sub({ vrt:'2.4', triv:'80', tap:'95', tapse:'12', sp:'7' });
+  const sVd  = await sub({ vrt:'2.4', triv:'80', tap:'95', tapse:'22', sp:'12' });
+  const sIt  = await sub({ vrt:'3.6', triv:'80', tap:'95', tapse:'12', sp:'7' });
+  const sEl  = await sub({ vrt:'2.4', triv:'50', tap:'120', tapse:'12', sp:'7' });
+  const PAR = 'gradiente AD-VD probablemente subestimado';
+  ex.push(['(B6) (ii) IT baja + VD disfuncionante + elementos: se agrega el parentesis',
+    sOK.indexOf(PAR) > -1, sOK.indexOf(PAR) > -1 ? 'presente' : sOK.slice(0, 160)]);
+  ex.push(['(B7) CONTROL NEGATIVO: con el VD NORMAL no se agrega',
+    sVd.indexOf(PAR) === -1 && sVd.indexOf('elementos indirectos de HTP') > -1,
+    'parentesis=' + (sVd.indexOf(PAR) > -1) + ' frase=' + (sVd.indexOf('elementos indirectos') > -1)]);
+  ex.push(['(B8) CONTROL NEGATIVO: con la IT EN RANGO de HTP no se agrega',
+    sIt.indexOf(PAR) === -1 && sIt.indexOf('elementos indirectos de HTP') > -1,
+    'parentesis=' + (sIt.indexOf(PAR) > -1)]);
+  ex.push(['(B9) CONTROL NEGATIVO: sin elementos a favor no hay frase ni parentesis',
+    sEl.indexOf(PAR) === -1 && sEl.indexOf('elementos indirectos de HTP') === -1 &&
+    sEl.indexOf('Con elementos a favor') === -1, sEl.slice(0, 120)]);
+  /* El dueno de «VD disfuncionante» existe y es el mismo OR. */
+  ex.push(['(B10) vdDisfPresente es el dueno unico y contesta por los cinco parametros',
+    !!F('vdDisfPresente'), typeof window.vdDisfPresente]);
+  /* ⚠️ ESTAS DOS NACIERON DE UNA MUTACION QUE SOBREVIVIO. Las escenas de arriba hacen
+     disfuncionante al VD con TAPSE 12 y onda S prima 7, asi que una mutacion que le sacara la
+     FAC y el indice de Tei al dueno pasaba en verde: los otros dos parametros la tapaban. Son
+     CINCO y cada uno cuenta SOLO si esta medido, asi que hay que ejercitarlos de a uno. */
+  const soloUno = async (campo, val) => { limpiar();
+    pon('vmax_it', '2.4'); pon('dt_triv', '80'); pon('tvia', '95');
+    pon('ad_area', '14'); pon(campo, val); await esperar(400); return inf(); };
+  const sFac = await soloUno('vd_fac', '22');
+  const sTei = await soloUno('vd_tei', '0.6');
+  const sNin = await soloUno('ad_area', '14');
+  ex.push(['(B10b) la FAC SOLA alcanza para que el VD sea disfuncionante',
+    sFac.indexOf(PAR) > -1, sFac.indexOf(PAR) > -1 ? 'presente' : sFac.slice(0, 150)]);
+  ex.push(['(B10c) el indice de Tei SOLO tambien alcanza',
+    sTei.indexOf(PAR) > -1, sTei.indexOf(PAR) > -1 ? 'presente' : sTei.slice(0, 150)]);
+  ex.push(['(B10d) CONTROL NEGATIVO: sin ningun parametro de funcion medido NO alcanza',
+    sNin.indexOf(PAR) === -1 && sNin.indexOf('elementos indirectos de HTP') > -1,
+    'parentesis=' + (sNin.indexOf(PAR) > -1) + ' frase=' + (sNin.indexOf('elementos indirectos') > -1)]);
+  /* La categoria de probabilidad de HTP NO cambia con y sin TRIV. */
+  limpiar(); pon('vmax_it', '3.2'); pon('vd_bas', '45'); pon('tapse', '18');
+  if (F('htpTablaPintar')) htpTablaPintar(); await esperar(350);
+  const _cat = () => [T('htp2022-catA'), T('htp2022-catB'), T('htp2022-catC'),
+                      T('htp2022-prob'), T('htp2022-vrt-interp')].join(' | ');
+  pon('dt_triv', ''); if (F('htpTablaPintar')) htpTablaPintar(); await esperar(300);
+  const catSin = _cat();
+  pon('dt_triv', '110'); if (F('htpTablaPintar')) htpTablaPintar(); await esperar(300);
+  const catCon = _cat();
+  ex.push(['(B11) DENOMINADOR: la tabla de probabilidad esta DESPIERTA',
+    catSin.indexOf('Probabilidad') > -1 || catSin.indexOf('probabilidad') > -1 ||
+    catSin.replace(/[ |]/g, '').length > 6, catSin]);
+  ex.push(['(B12) la categoria de probabilidad de HTP NO cambia con el TRIV',
+    catSin === catCon, catSin + '  ||  ' + catCon]);
+
+  /* ═══ (C) LA GRILLA DE VD/AD, 3 x 6 (commit 3) ══════════════════════════════════════════ */
+  /* ⚠️ HAY QUE ABRIR LA PESTAÑA Y EL ACORDEON: con la seccion cerrada los controles informan
+     0x0 y las condiciones de geometria caen sobre un denominador vacio. Es la trampa de
+     showTab que este repositorio documenta desde la tanda E. */
+  try { if (F('showTab')) showTab('vd'); } catch (e) {}
+  try { if (F('secToggle')) secToggle('vd'); } catch (e) {}
+  await esperar(350);
+  const fgs = [].slice.call(document.querySelectorAll('.vd-grid .fg'));
+  const cel = fgs.map(function (dv) {
+    const c = (dv.className.match(/vd-c([0-9])/) || [])[1];
+    const r = (dv.className.match(/vd-r([0-9])/) || [])[1];
+    const i = dv.querySelector('input[id],select[id]');
+    return { c: Number(c), r: Number(r), id: i ? i.id : null };
+  });
+  ex.push(['(C0) DENOMINADOR: la grilla del VD tiene sus DIECIOCHO campos',
+    cel.length === 18 && cel.every(function (x) { return x.id && x.c && x.r }),
+    'campos=' + cel.length]);
+  const porCol = function (n) { return cel.filter(function (x) { return x.c === n }).length };
+  ex.push(['(C1) las TRES columnas tienen SEIS campos cada una',
+    porCol(1) === 6 && porCol(2) === 6 && porCol(3) === 6,
+    porCol(1) + '/' + porCol(2) + '/' + porCol(3)]);
+  const colTxt = function (n) { return cel.filter(function (x) { return x.c === n })
+    .sort(function (a, b) { return a.r - b.r }).map(function (x) { return x.id }).join(','); };
+  ex.push(['(C2) la columna 1: TAP, TAPSE, S\\u2032, TRIV, strain, Tei',
+    colTxt(1) === 'tvia,tapse,s_prime,vd-triv,vd_strain_pl,vd_tei', colTxt(1)]);
+  ex.push(['(C3) la columna 2 termina en la FEVD, al lado de la FAC',
+    colTxt(2) === 'vd_bas,vd_mid,vd_long,vd_vi,vd_pared,fevd' &&
+    colTxt(3).split(',')[5] === 'vd_fac', colTxt(2) + ' | c3r6=' + colTxt(3).split(',')[5]]);
+  /* No quedan huecos: no hay fila 7. */
+  ex.push(['(C4) no quedo ninguna fila 7',
+    cel.every(function (x) { return x.r <= 6 }), 'maxima fila=' + Math.max.apply(null, cel.map(function (x) { return x.r }))]);
+  /* El orden del MARCADO es el orden visual, que es lo que fija el Tab. */
+  const ordenMarcado = cel.map(function (x) { return x.id }).join(',');
+  const ordenVisual = [1,2,3].map(colTxt).join(',');
+  ex.push(['(C5) el orden del MARCADO es el orden visual -el Tab los recorre como se ven-',
+    ordenMarcado === ordenVisual, ordenMarcado === ordenVisual ? 'coinciden' : ordenMarcado + '  ||  ' + ordenVisual]);
+  /* El numero y el selector de VD/VI, en la MISMA fila. */
+  { const a = EL('vd_vi'), b = EL('vd_vi_sel');
+    const ra = a ? a.getBoundingClientRect() : null, rb = b ? b.getBoundingClientRect() : null;
+    ex.push(['(C6) DENOMINADOR: los dos controles de VD/VI tienen caja',
+      !!(ra && rb && ra.width && rb.width), ra && rb ? Math.round(ra.width) + 'x' + Math.round(ra.height) + ' / ' + Math.round(rb.width) + 'x' + Math.round(rb.height) : 'SIN CAJA']);
+    ex.push(['(C7) el numero y el selector estan UNO AL LADO DEL OTRO, en una sola fila',
+      !!(ra && rb && Math.abs(ra.bottom - rb.bottom) < 6 && rb.left > ra.left),
+      ra && rb ? 'bottom ' + Math.round(ra.bottom) + ' vs ' + Math.round(rb.bottom) + ', left ' + Math.round(ra.left) + ' vs ' + Math.round(rb.left) : 'SIN CAJA']); }
+
+  /* ═══ (D) LA RAIZ EN MARFAN Y EL INDICE DE TURNER (commit 4) ════════════════════════════ */
+  limpiar(); pon('ao_sin', '39'); pon('peso', '70'); pon('talla', '175');
+  await esperar(450);
+  ex.push(['(D0) DENOMINADOR: el nodo de la lectura existe',
+    T('marfan-ao-lectura') !== 'NO EXISTE', JSON.stringify(T('marfan-ao-lectura'))]);
+  ex.push(['(D1) la raiz cargada en AI/VI se LEE en la pantalla de Marfan',
+    T('marfan-ao-lectura').indexOf('Seno de Valsalva 39 mm') > -1 &&
+    T('marfan-ao-lectura').indexOf('AI/VI') > -1, T('marfan-ao-lectura')]);
+  ex.push(['(D2) y NO se escribio en el estudio: el campo del modulo sigue vacio',
+    V('marfan_ao_seno') === '', JSON.stringify(V('marfan_ao_seno'))]);
+  /* ⚠️ ELEGIR EL SINDROME NO COPIA NADA, Y ESO SE MIDIO: el espejo del G-4 cuelga del
+     oninput de los dos campos, no de un barrido, asi que poner el sindrome DESPUES de la raiz
+     no dispara ninguna copia. La lectura sigue mostrandose, que es lo correcto. */
+  pon('marfan_sindrome', 'marfan'); await esperar(450);
+  ex.push(['(D3) elegir el sindrome no copia nada: la lectura sigue y el campo sigue vacio',
+    T('marfan-ao-lectura').indexOf('Seno de Valsalva 39 mm') > -1 && V('marfan_ao_seno') === '',
+    'lectura=' + JSON.stringify(T('marfan-ao-lectura')) + ' campo=' + JSON.stringify(V('marfan_ao_seno'))]);
+  /* CONTROL NEGATIVO de verdad: el GESTO del medico. Su dato gana y la lectura sobra. */
+  pon('marfan_ao_seno', '43'); await esperar(500);
+  ex.push(['(D3b) CONTROL NEGATIVO: tecleando en Marfan su dato GANA y la lectura desaparece',
+    T('marfan-ao-lectura') === '' && V('marfan_ao_seno') === '43' && V('ao_sin') === '43',
+    'lectura=' + JSON.stringify(T('marfan-ao-lectura')) + ' marfan=' + V('marfan_ao_seno') +
+    ' aivi=' + V('ao_sin')]);
+  /* El mensaje de Turner nombra lo que falta. */
+  limpiar(); pon('marfan_sindrome', 'turner'); pon('peso', '45'); pon('talla', '145');
+  await esperar(450);
+  const m1 = T('marfan-ita-origen');
+  pon('talla', ''); await esperar(450);
+  const m2 = T('marfan-ita-origen');
+  ex.push(['(D4) DENOMINADOR: con Turner el bloque del indice se muestra',
+    EL('marfan-ita-wrap') && getComputedStyle(EL('marfan-ita-wrap')).display !== 'none', m1.slice(0, 90)]);
+  ex.push(['(D5) el mensaje NOMBRA lo que falta -la aorta ascendente-',
+    m1.indexOf('falta la aorta ascendente') > -1 && m1.indexOf('o el peso, o la talla') === -1, m1]);
+  ex.push(['(D6) con DOS faltantes los nombra a los dos',
+    m2.indexOf('faltan') > -1 && m2.indexOf('la talla') > -1 && m2.indexOf('aorta ascendente') > -1, m2]);
+
+  /* ═══ (E) «INCLUIR EN EL PDF», INDEPENDIENTE (commit 5) ═════════════════════════════════ */
+  limpiar();
+  try { if (F('imgVaciar')) imgVaciar(); } catch (e) {}
+  /* Config APAGADO y el estudio SIN GUARDAR: el escenario que HEAD no podia. */
+  try { localStorage.setItem(IMG_CFG_KEY, '0'); } catch (e) {}
+  pon('oai_morfologia', 'cactus'); pon('oai_ostium_diam', '26');
+  pon('oai_profundidad', '37'); pon('oai_vel_vac', '18');
+  await esperar(500);
+  const nSlots = function () { return (typeof imgSlots !== 'undefined')
+    ? imgSlots.filter(function (s) { return s && s.dataURL }).length : -1; };
+  ex.push(['(E0) DENOMINADOR: Config APAGADO, estudio SIN guardar y el dibujo existe',
+    (F('imgGuardadoActivo') ? !imgGuardadoActivo() : false) &&
+    (typeof _imgUuidActual === 'undefined' || !_imgUuidActual) &&
+    !!(EL('oai-esq') && EL('oai-esq').querySelector('svg')),
+    'cfg=' + (F('imgGuardadoActivo') ? imgGuardadoActivo() : '?') +
+    ' uuid=' + (typeof _imgUuidActual !== 'undefined' ? String(_imgUuidActual) : '?') +
+    ' slots=' + nSlots()]);
+  ex.push(['(E1) CONTROL NEGATIVO: sin apretar el boton no hay ningun esquema incluido',
+    F('esqEstaIncluido') ? !esqEstaIncluido('orejuela') : false, 'slots=' + nSlots()]);
+  if (F('oaiEsqIncluirPDF')) { try { await oaiEsqIncluirPDF(); } catch (e) {} }
+  await esperar(600);
+  ex.push(['(E2) incluir FUNCIONA con Config apagado y el estudio sin guardar',
+    (F('esqEstaIncluido') ? esqEstaIncluido('orejuela') : false) && nSlots() === 1,
+    'incluido=' + (F('esqEstaIncluido') ? esqEstaIncluido('orejuela') : '?') + ' slots=' + nSlots()]);
+  ex.push(['(E3) el boton CAMBIA DE COLOR y lo dice con palabras, no solo con el color',
+    !!(EL('oai-esq-pdf') && EL('oai-esq-pdf').classList.contains('btn-primary') &&
+       T('oai-esq-pdf').indexOf('Incluido') > -1 &&
+       EL('oai-esq-pdf').getAttribute('aria-pressed') === 'true'),
+    T('oai-esq-pdf') + ' primary=' + (EL('oai-esq-pdf') ? EL('oai-esq-pdf').classList.contains('btn-primary') : '?')]);
+  if (F('oaiEsqIncluirPDF')) { try { await oaiEsqIncluirPDF(); } catch (e) {} }
+  await esperar(500);
+  ex.push(['(E4) se puede QUITAR: el interruptor vuelve',
+    (F('esqEstaIncluido') ? !esqEstaIncluido('orejuela') : false) && nSlots() === 0 &&
+    T('oai-esq-pdf').indexOf('Incluir') > -1,
+    'incluido=' + (F('esqEstaIncluido') ? esqEstaIncluido('orejuela') : '?') +
+    ' slots=' + nSlots() + ' boton=' + T('oai-esq-pdf')]);
+
+  /* ═══ (F) EL DIBUJO PORTADO DE LA DEMO (commit 6) ═══════════════════════════════════════ */
+  limpiar();
+  /* ⚠️ HAY QUE ABRIR LA PESTAÑA Y LA SECCION, y esto costo una corrida: sin caja, TODOS los
+     getBoundingClientRect dan 0, y la condicion (F7) -que compara dos cajas- pasaba comparando
+     CEROS contra CEROS. Un denominador vacio que se lee igual que «el trombo esta adentro». */
+  try { if (F('showTab')) showTab('ete'); } catch (e) {}
+  try { const c = EL('ete-seccion-oai'); if (c) c.style.display = ''; } catch (e) {}
+  await esperar(250);
+  pon('oai_morfologia', 'cactus'); pon('oai_ostium_diam', '26');
+  pon('oai_profundidad', '37'); pon('oai_trombo', 'si');
+  await esperar(500);
+  const svg = EL('oai-esq') ? EL('oai-esq').querySelector('svg') : null;
+  const paths = svg ? [].slice.call(svg.querySelectorAll('path')) : [];
+  const dde = function (p) { return p.getAttribute('d') || ''; };
+  const _cajaSvg = svg ? svg.getBoundingClientRect() : null;
+  ex.push(['(F0) DENOMINADOR: el SVG del esquema existe, tiene trazos y TIENE CAJA',
+    !!svg && paths.length > 6 && !!(_cajaSvg && _cajaSvg.width > 50),
+    'paths=' + paths.length + ' caja=' + (_cajaSvg ? Math.round(_cajaSvg.width) + 'x' + Math.round(_cajaSvg.height) : 'NO')]);
+  ex.push(['(F1) la AURICULA IZQUIERDA esta dibujada, con las coordenadas de la demo',
+    paths.some(function (p) { return dde(p).indexOf('M16 70 Q16 26 60 26') === 0 }),
+    'ai=' + paths.some(function (p) { return dde(p).indexOf('M16 70') === 0 })]);
+  ex.push(['(F2) la VPSI es una ELIPSE y no un rotulo suelto',
+    !!(svg && svg.querySelector('ellipse')) && T('oai-esq').indexOf('VPSI') > -1,
+    'elipses=' + (svg ? svg.querySelectorAll('ellipse').length : 0)]);
+  ex.push(['(F3) el TRIANGULO del ventriculo izquierdo NO se dibuja',
+    !paths.some(function (p) { return dde(p).indexOf('M48 164 C60 200') === 0 }) &&
+    !paths.some(function (p) { return dde(p).indexOf('M150 164 C142 196') === 0 }),
+    'triangulo=' + paths.filter(function (p) { return dde(p).indexOf('M48 164 C60 200') === 0 }).length]);
+  /* La silueta en DOS capas: cada atributo d de silueta aparece DOS veces. */
+  let sils = [];
+  try { sils = F('_oaiSiluetas') ? (_oaiSiluetas('cactus') || []) : []; } catch (e) {}
+  /* ⚠️ EL clipPath DEL TROMBO LLEVA UNA COPIA DE CADA SILUETA, asi que contar sobre TODOS los
+     paths daba TRES por trazo y la condicion caia sobre una copia que no se dibuja. Se cuentan
+     solo los que NO estan dentro de un <defs>. */
+  const dibujados = paths.filter(function (p) { return !p.closest('defs'); });
+  const capas = sils.length ? sils.map(function (d) {
+    return dibujados.filter(function (p) { return dde(p) === d }).length; }) : [];
+  ex.push(['(F4) DENOMINADOR: la silueta del cactus tiene sus TRES trazos',
+    sils.length === 3, 'trazos=' + sils.length]);
+  ex.push(['(F5) la silueta se dibuja en DOS capas -contorno y relleno claro-',
+    capas.length === 3 && capas.every(function (n) { return n === 2 }), 'capas por trazo=' + capas.join(',')]);
+  /* El TROMBO, DENTRO de la caja de la orejuela. */
+  const bb = function (el) { try { const b = el.getBBox();
+    return { x: b.x, y: b.y, w: b.width, h: b.height }; } catch (e) { return null } };
+  const silEls = dibujados.filter(function (p) { return sils.indexOf(dde(p)) > -1; });
+  const tg = svg ? svg.querySelector('g[clip-path]') : null;
+  const tp = tg ? tg.querySelector('path') : null;
+  /* ⚠️ LA CAJA NO SIRVE PARA MEDIR ESTO, Y COSTO DOS CORRIDAS AVERIGUARLO. getBoundingClientRect
+     IGNORA el clip-path: con el trombo devuelto a la punta de la linea guia -el defecto que el
+     medico vio- su caja seguia dando los mismos numeros aunque el recorte se lo comiera. Y la
+     primera version comparaba ademas una caja de getBBox contra una renderizada, o sea dos cosas
+     distintas.
+     LO QUE SI LO MIDE es isPointInFill sobre las siluetas: se muestrean dieciseis puntos del
+     borde del trombo y se cuenta cuantos caen DENTRO de alguna silueta. En el receso el blob se
+     apoya en la pared y la mayoria cae adentro; en la PUNTA, donde la silueta ya se afino a unos
+     pocos pixeles de radio, casi ninguno. */
+  /* ⚠️ SE LEE EL TRANSFORM DEL PATH DIBUJADO, NO EL DUEÑO, y esto lo destapo una mutacion que
+     sobrevivio: la primera version preguntaba por _oaiSpec, o sea por la variable, asi que una
+     mutacion que cambiara DONDE SE DIBUJA el trombo sin tocar esa variable pasaba en verde. Lo
+     que el caso tiene que mirar es el dibujo. */
+  let dentro = false, diag = 'sin trombo';
+  const _tr = tp ? String(tp.getAttribute('transform') || '') : '';
+  /* ⚠️ LAS BARRAS VAN DOBLES: este cuerpo vive dentro de un template literal, que consume una.
+     Con barras simples la expresion llegaba al navegador con los parentesis como GRUPOS DE
+     CAPTURA en vez de literales, no matcheaba nunca, y la condicion decia «sin trombo» sobre un
+     dibujo que si lo tiene. Es la trampa que este repositorio documenta desde la tanda B. */
+  const _mTr = _tr.match(/translate\\(([-0-9.]+) ([-0-9.]+)\\)\\s*rotate\\(([-0-9.]+)\\)/);
+  if (silEls.length && tp && _mTr && typeof _oaiSpec !== 'undefined' && _oaiSpec) {
+    const sp = { cx: parseFloat(_mTr[1]), cy: parseFloat(_mTr[2]), ang: parseFloat(_mTr[3]),
+                 rx: _oaiSpec.rx, ry: _oaiSpec.ry };
+    const a0 = sp.ang * Math.PI / 180;
+    const ca = Math.cos(a0), sa = Math.sin(a0);
+    let n = 0, tot = 0;
+    for (let q = 0; q < 16; q++) {
+      const th = 2 * Math.PI * q / 16;
+      const lx = sp.rx * 0.8 * Math.cos(th), ly = sp.ry * 0.8 * Math.sin(th);
+      const px = sp.cx + lx * ca - ly * sa, py = sp.cy + lx * sa + ly * ca;
+      tot++;
+      const pt = svg.createSVGPoint(); pt.x = px; pt.y = py;
+      if (silEls.some(function (e) { try { return e.isPointInFill(pt) } catch (x) { return false } })) n++;
+    }
+    /* El umbral es 9 de 16, y sale de MEDIR los dos lados: en el receso dan 11 -el trombo se
+       apoya en la pared, asi que parte de su borde la toca por fuera- y en la PUNTA de la linea
+       guia, que es el defecto, dan 4. El 9 separa los dos sin quedar pegado a ninguno. */
+    dentro = n >= 9;
+    diag = n + ' de ' + tot + ' puntos del trombo caen DENTRO de la orejuela; centro ' +
+           Math.round(sp.cx) + ',' + Math.round(sp.cy);
+  }
+  ex.push(['(F6b) DENOMINADOR: el receso del trombo esta calculado',
+    typeof _oaiSpec !== 'undefined' && !!_oaiSpec,
+    (typeof _oaiSpec !== 'undefined' && _oaiSpec) ? JSON.stringify(_oaiSpec) : 'SIN SPEC']);
+  ex.push(['(F7) el TROMBO queda DENTRO de la orejuela, en su receso', dentro, diag]);
+  /* «Manga de viento» como rotulo, con el valor guardado intacto. */
+  const opt = EL('oai_morfologia') ? [].slice.call(EL('oai_morfologia').options)
+    .filter(function (o) { return o.value === 'veleta' })[0] : null;
+  ex.push(['(F8) el rotulo dice «Manga de viento» y el valor guardado sigue siendo veleta',
+    !!opt && opt.text.indexOf('Manga de viento') === 0 && opt.value === 'veleta',
+    opt ? JSON.stringify(opt.text) + ' value=' + opt.value : 'SIN OPCION']);
+  ex.push(['(F9) en toda la pagina no queda ningun rotulo «Veleta»',
+    document.body.innerText.indexOf('Veleta') === -1,
+    'pos=' + document.body.innerText.indexOf('Veleta')]);
+
+  /* ═══ (G) UN ESTUDIO AJENO NO SE MUEVE ══════════════════════════════════════════════════ */
+  limpiar();
+  pon('im_vc', '8'); pon('onda_e', '110'); pon('e_sep', '5'); pon('e_lat', '6');
+  pon('ai_vol', '70'); pon('peso', '80'); pon('talla', '180');
+  await esperar(400);
+  const iG = inf(), sG = suma();
+  ex.push(['(G0) DENOMINADOR: el estudio ajeno emite informe y EN SUMA',
+    iG.length > 200 && sG.length > 10, 'informe=' + iG.length + ' suma=' + sG.length]);
+  ex.push(['(G1) el estudio ajeno no nombra la orejuela, el TRIV ni la aortopatia',
+    iG.indexOf('Orejuela izquierda') === -1 && iG.indexOf('TRIV tricusp') === -1 &&
+    iG.indexOf('elementos a favor de hipertensi') === -1,
+    'orejuela=' + (iG.indexOf('Orejuela') > -1) + ' triv=' + (iG.indexOf('TRIV') > -1)]);
+  ex.push(['(G2) y tampoco lleva ningun veredicto de aptitud',
+    iG.toLowerCase().indexOf('apto') === -1 && sG.toLowerCase().indexOf('apto') === -1,
+    'pos=' + iG.toLowerCase().indexOf('apto')]);
+
+  } catch (e) { ex.push(['EXCEPCION', false, String(e && e.message ? e.message : e)]); }
+  finally { try { if (F('limpiarCampos')) limpiarCampos(); } catch (e) {} }
   return { extra: ex };
   })();
 `);

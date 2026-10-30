@@ -44,7 +44,8 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Tocar una AORTOPATÍA —Marfan, Loeys-Dietz, Turner, ACTA2, Ehlers-Danlos vascular—, la COARTACIÓN, el texto de la VAB o el MOTOR DE EVIDENCIA DE AORTA**: la tabla y el folio de cada síndrome, el corte de dilatación con su dueño, el cuestionario o las recomendaciones por debajo de 45 mm | `docs/mapa/aorta-aortopatias-evidencia.md` |
 | **Tocar un CORTE o un OPERADOR del VD, de la AD, de la VCI o de la RAÍZ AÓRTICA**: la Tabla 1 de la ASE 2025, su evaluador, los cuatro grados de cada parámetro o el «40 mm o más» del seno | `docs/mapa/corazon-derecho-ase2025.md` |
 | **Tocar algo de la tanda AJ1**: los cortes del VD de la versión de MAYO, el strain de pared libre sin sexo, la coartación reparada, el índice de dimensión aórtica, el Ehlers-Danlos del EN SUMA, el corte alternativo de la IM secundaria o el flujo reverso de la aorta descendente | `docs/mapa/aj1-ajustes.md` |
-| **Tocar el VENTRÍCULO DERECHO**: sus TRES columnas de campos, el orden del cuadro de referencias, la disfunción sistólica, la pared graduada, el Tei, la FEVD, la relación VD/VI o el Qp | `docs/mapa/vd-derecho.md` |
+| **Tocar el VENTRÍCULO DERECHO**: sus TRES columnas de campos, el orden del cuadro de referencias, la disfunción sistólica, la pared graduada, el Tei, la FEVD, la relación VD/VI o el Qp | `docs/mapa/vd-derecho.md` · la tanda G1 en `docs/mapa/vd-g1-columnas.md` |
+| **Tocar algo que la TANDA CORRECCIONES movió** (30/10): el informe de la orejuela sin veredicto de aptitud, el corte ÚNICO de 75 ms del TRIV con las tres formas de la frase de elementos a favor de HTP, la grilla de VD/AD en tres columnas de SEIS, la raíz leída en Marfan, «Incluir en el PDF» independiente de Config, o el dibujo de la orejuela portado de la demo | `docs/mapa/cor-correcciones.md` |
 | **Tocar el RESULTADO del strain del VD en Referencias, el TRIV tricuspídeo por sus dos puertas, el recálculo al cargar el SEXO, o la raíz aórtica sin sexo en el papel y el valor del índice en su pastilla** | `docs/mapa/y-vd-sexo-aorta.md` |
 | **Tocar la casilla de la FAC, la mudanza del DIÁMETRO DE LA ARTERIA PULMONAR o el selector de VD/VI** (la tanda G3, partida a archivo propio) | `docs/mapa/vd-g3-campos.md` |
 | **Tocar una TARJETA ⓘ de AD/VCI, del VD o de la AORTA, el NOMOGRAMA de los senos de Valsalva, o sus entradas de Referencias** | `docs/mapa/evidencia-derecho-aorta.md` |
@@ -2431,3 +2432,125 @@ línea: el archivo creció y un informe de auditoría viejo apunta a otro archiv
   NOCTURNA, Parte B» con las seis tablas y la Figura 5 transcritas **en imagen**, la tabla de las
   ocho ubicaciones verificadas y la de «Cambios de evidencia», y `docs/PENDIENTES.md` → **SIETE**
   cosas declaradas (**NOC-B-a** a **NOC-B-g**).
+
+### El informe de la orejuela, el TRIV a 75, VD/AD y el dibujo de la demo — «CORRECCIONES» (2026-10-30)
+
+- **SIETE commits, y los SEIS de código se hicieron enteros.** `1853085` (COR-1) · `48461eb`
+  (COR-2) · `03e8919` (COR-3) · `b9493e8` (COR-4) · `37f2bf2` (COR-5) · `67c6f7d` (COR-6) · el de
+  cobertura y documentación. Al empezar, `origin/main` = `HEAD` = **`9c479cc`**, el cierre de la
+  TANDA NOCTURNA Parte B, ya publicado, con el pendrive `DISK_IMG` montado y listando nombres
+  reales. **El push lo corre Maicol: esta tanda tenía orden expresa de NO pushear.**
+
+- **EL DEFECTO MÁS GRANDE QUE CERRÓ, EN UNA LÍNEA: el informe firmado declaraba a un paciente
+  «no apto para cierre percutáneo», y la aplicación no hace recomendaciones.** La tanda E había
+  dejado esa rama con tres motivos escritos; la orden del médico los releva. Hoy sale «Orejuela
+  izquierda: ostium 26 mm, profundidad 37 mm.», con mayúscula y con su sujeto —que hace falta de
+  verdad: el párrafo de arriba corre con otra compuerta y puede no existir—.
+
+- **EL BARRIDO 1c, CON SU DENOMINADOR: 64 escenas y 1.315.598 caracteres** de superficie firmada
+  —informe en tres estilos, EN SUMA, el PDF generado de verdad y el PPT— contra trece palabras de
+  veredicto y conducta. **TRES frases distintas, y nada más.** Una se retiró; las otras dos
+  —«Considerar mayor complejidad para el cierre percutáneo» de la orejuela y «El grado VEXUS debe
+  integrarse con la clínica»— quedan **reportadas y sin tocar** (→ **COR-a**). **El EN SUMA no
+  publica ninguna y el PPT tampoco.**
+
+- ⚠️ **UN SOLO CORTE DE 75 ms, Y ESO REVIERTE LO QUE ESTE ARCHIVO DECLARABA.** `DT_TRIV_HTP_PANEL`
+  **se retiró** —no quedó como alias— y con ella el párrafo que decía que los dos umbrales tenían
+  que seguir separados. Es una **decisión del médico**, del 9 y del 30 de octubre. El operador
+  sigue siendo **estricto**: 75 exactos no es elemento a favor, 76 sí.
+
+- **LA FRASE DE ELEMENTOS A FAVOR DE HTP TIENE TRES FORMAS Y UN SOLO DUEÑO**, que las cuatro ramas
+  de `tricLine` consumen sin saber cuál salió. **Ningún corte nuevo**: «no llega a rango de HTP»
+  es `HTP_VRT_BAJA_MAX` (2,8 m/s inclusive, ESC/ERS 2022, Figura 5, folio 28) y «VD
+  disfuncionante» es `vdDisfPresente()`, el mismo `OR` de cinco parámetros que el informe ya
+  usaba, extraído a dueño único porque vivía en un bloque que **cierra 1.800 líneas antes** de la
+  línea tricuspídea.
+  ⚠️ **La frase del gradiente subestimado es un CRITERIO DEL MÉDICO sin fuente verificada**, y va
+  rotulada «CRITERIO DE ECOSMART — sin fuente verificada en la biblioteca» en el ⓘ del TRIV y en
+  la Evidencia de HTP. El papel no lleva el rótulo: no lleva citas.
+  ⚠️ **La categoría de probabilidad de HTP NO cambia**, medido en las 64 escenas sobre sus cinco
+  cápsulas: cero diferencias.
+
+- **LA GRILLA DE VD/AD QUEDÓ EN 3 × 6, SIN UN SOLO HUECO**, así que los espacios entre campos son
+  iguales en las tres columnas. La fila 7 del CSS se retiró. **Ningún `id` cambió.**
+  ⚠️ **El cuadro de referencias de abajo NO se reordenó**, y el renglón del código que decía que
+  lo seguía dejó de ser cierto → **COR-b**.
+
+- ⚠️ **EL INVENTARIO 5a FUE EL HALLAZGO DE LA TANDA: «Incluir en el PDF» NO INCLUÍA NADA.** Medido
+  generando el PDF de verdad sobre HEAD: **cero imágenes**, con Config apagado **y** con Config
+  prendido. Llamaba a `esqGuardarComoImagen`, que escribe en la lista `esqs`, y **`CeiboImg.leer`
+  devuelve sólo `imgs`**, que es lo único que el PDF imprime. El botón se llamaba así y el PDF no
+  lo incluía nunca. Hoy pone el esquema como **slot de `imgSlots`**: con el estudio SIN GUARDAR y
+  Config apagado, el PDF pasa de **0 a 1** imagen, y al guardar con Config prendido llega **1** al
+  disco. Sin un campo guardado nuevo.
+
+- **LA COMPARACIÓN OBLIGATORIA CONTRA LA DEMO DA CERO PÍXELES.** Seis escenas, viewBox verificado
+  igual (`0 0 340 350`): la aurícula izquierda, la VPSI, la orejuela, la línea del ostium, la de
+  profundidad, el recuadro del Doppler y el **trombo** dan **`[0,0,0,0]`** en las seis, y el
+  triángulo del VI sale «ausente» en las seis. El chorro y el contraste **no se comparan por caja**
+  —las dos páginas animan por su cuenta— y se comparan por estructura.
+  ⚠️ **La causa de «el trombo queda fuera»: la portada anterior no trajo el bloque `o.rec` de
+  `taper`.** La app lo ponía en `OAI_ESQ_TIP`, la **punta** de la línea guía, donde la silueta ya
+  se afinó. Hoy sale del **receso**, con un `clip-path` como red.
+
+- ⚠️ **DOS DE LAS 24 MUTACIONES SOBREVIVIERON AL PRIMER BARRIDO, Y LAS DOS ERAN COBERTURA QUE
+  FALTABA.** La 10 porque todas las escenas del gradiente subestimado hacen disfuncionante al VD
+  con **TAPSE y onda S′**, así que los otros tres parámetros tapaban al que se mutaba. La 22
+  porque **(F7) pasaba sobre un denominador vacío** —sin abrir la pestaña, todos los
+  `getBoundingClientRect` daban 0 y la condición comparaba ceros contra ceros— y porque, una vez
+  arreglado, **`getBoundingClientRect` ignora el `clip-path`** y la condición preguntaba por el
+  **dueño** (`_oaiSpec`) en vez de por el **dibujo**. Se cerró con `isPointInFill`: en el receso
+  dan **11 de 16**, en la punta **4**.
+
+- **DIEZ CASOS VIEJOS ADAPTADOS, cada uno con el motivo escrito**: **TC-133** y **TC-49** (los
+  valores del TRIV y la forma corta de la frase), **TC-417** (ídem), **TC-476** y **TC-478** (el
+  orden de la grilla y el conteo por columna), **TC-526** (el strain ya no está entre el Tei y la
+  FEVD), **TC-539** (la rama del trombo, **invertida**), **TC-549** (dos: la posición del TRIV y
+  las dos constantes, **invertida**), **TC-551** (el esquema ya no va a `esqs`) y **TC-552**
+  (dos, **invertidas**).
+
+- **Línea base al cierre: suite 564/568**, en once lotes **cubriendo los 568 casos distintos**
+  —contados nombre por nombre, no por la suma de los lotes—, en UNA sola pasada sobre el árbol
+  sellado, con el pendrive `DISK_IMG` **montado y listando nombres reales al abrir, ENTRE LOS
+  ONCE LOTES y al cerrar** y el md5 de `index.html` **idéntico** antes y después
+  (`3abd61f7`). Los rojos son **TC-223, TC-376, TC-390 y TC-406**, los cuatro de siempre, **y
+  ninguno más**: **TC-358 salió VERDE**, y TC-262, TC-419, TC-507 y TC-131 también.
+  **24/24 mutaciones dirigidas muertas**, en worktree y nunca sobre el vivo, con guarda de md5.
+  Semgrep **124 WARNING / 0 ERROR**. Excel **440** columnas con las mismas claves. Campos
+  guardados **idénticos**, ni uno nuevo ni uno perdido. Censo **sin huérfanos nuevos**. Celular
+  **65 hallazgos a 360 px y 74 a 390, 17 ALTA en cada ancho** — la línea base exacta. 17 bloques
+  de JS inline parsean.
+- **CHROME Y WEBKIT COINCIDEN EN LOS VEINTICUATRO CRUCES** (dos motores × 1440, 1200, 1000, 768,
+  500 y 390 px × dos temas), valor por valor: **cero errores de consola y de página** en los dos
+  motores y en los dos árboles, **cero desplazamiento horizontal del cuerpo**, **cero textos
+  recortados**, la grilla en **6/6/6** en los 24, el VD/VI y su selector en la **misma fila** en
+  los 24, el dibujo con aurícula, VPSI y trombo y **sin** el triángulo en los 24, y el papel con
+  la oración de la orejuela, «> 75 ms» y **sin** «apto» en los 24.
+  ⚠️ **EL PUNTO 7 NO REPRODUCE NADA: cero diferencias contra HEAD en los 24 cruces.** La columna
+  izquierda, los botones de arriba y las pestañas se adaptan exactamente igual entre 500 y
+  1200 px. El «desorden pasajero» que el médico vio no se reprodujo.
+  ⚠️ **WebKit de Playwright no es Safari, y se declara.** Chrome va por el del sistema con
+  `channel: 'chrome'`.
+- ⚠️ **ESCRIBIR CUESTA 0,14 ms MÁS (3,6 %), Y SE DECLARA.** Medido con la sonda DEDICADA
+  `_probe_oaitecla.mjs`, **alternando los dos árboles** en tres rondas de cinco: HEAD media
+  **3,94 ms** (2,81 a 4,38) contra **4,08 ms** (2,29 a 4,46). El escenario es el más caro
+  —contraste severo con 56 partículas, trombo y la animación corriendo— y el costo es el del
+  dibujo nuevo: el SVG pasa de **6.615 a 10.194 caracteres** por la aurícula izquierda, la VPSI
+  y la segunda capa de la silueta.
+  ⚠️ **LA MEDICIÓN DE LA SONDA DE DOS MOTORES NO SIRVE PARA ESTO, y por eso hizo falta la
+  dedicada**: daba 0,55-2,22 ms en HEAD contra 1,39-2,77 en el nuevo, porque las dos corridas van
+  una después de la otra y la segunda compite con lo que dejó la primera. Es exactamente la
+  trampa que la TANDA NOCTURNA Parte A documentó.
+- **`index.html` pasó de 10,19 MB / 143.550 líneas a 10,23 MB / 144.055** — medido con `wc -c` y
+  `wc -l` DESPUÉS de sellar. (MB de 10⁶.) Sello **`v20261030-1148`**, md5 de `index.html`
+  **`3abd61f7`**.
+
+- **Dónde está todo:** `docs/mapa/cor-correcciones.md` (**mapa NUEVO**, 13,9 KB), la ficha del
+  caso en `docs/mapa/tests-fichas-553.md` (**archivo propio**), **seis mapas con un puntero cada
+  uno** —medidos ANTES de escribir—, `docs/fuentes/FUENTES.md` → «La TANDA CORRECCIONES» con
+  Meier 2014 transcripto en imagen y su tabla de cambios de evidencia, y `docs/PENDIENTES.md` →
+  **SIETE** cosas declaradas (**COR-a** a **COR-g**).
+  ⚠️ **Y `vd-derecho.md` SE PARTIÓ**: estaba en **34,4 KB**, a 626 bytes del techo, y el COR-3
+  tenía que escribirle un puntero. La tanda G1 salió a `docs/mapa/vd-g1-columnas.md` (12,5 KB) y
+  el mapa volvió a **24,4 KB**. Es la primera vez en varias tandas que la regla se aplica **antes**
+  de cruzar el techo y no después.
