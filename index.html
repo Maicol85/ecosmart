@@ -15185,6 +15185,21 @@ z
              ancho de la tarjeta y el dibujo queda chico y centrado en una franja vacia. -->
         <div id="oai-esq" style="max-width:360px;margin:0 auto;" role="img" aria-label="Esquema de la orejuela izquierda con las medidas cargadas"></div>
         <svg width="0" height="0" style="position:absolute;width:0;height:0;overflow:hidden;" aria-hidden="true"><path id="oai-esq-tmp" d=""/></svg>
+        <!-- ══ LOS TRES CONTROLES DEL MOVIMIENTO (A2) ══════════════════════════════════════
+             «Pausar» congela el cuadro, «Seguir» retoma donde quedó e «Incluir en el PDF»
+             guarda ESE cuadro como la imagen de esquema del estudio. Los pinta `oaiEsqCtrlSync`:
+             con `prefers-reduced-motion` los dos primeros no aparecen, porque no hay nada que
+             pausar, y el tercero sí, porque guardar no es animar.
+             ⚠️ Alto de 44 px: es la regla de area tactil que esta hoja ya aplica a los botones,
+             y estos tres estan dentro de una tarjeta que se usa en el celular. -->
+        <div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:8px;">
+          <button type="button" class="btn btn-ghost" id="oai-esq-pausar" style="min-height:44px;"
+                  onclick="oaiEsqPausar()">⏸ Pausar</button>
+          <button type="button" class="btn btn-ghost" id="oai-esq-seguir" style="min-height:44px;display:none;"
+                  onclick="oaiEsqSeguir()">▶ Seguir</button>
+          <button type="button" class="btn btn-ghost" id="oai-esq-pdf" style="min-height:44px;"
+                  onclick="oaiEsqIncluirPDF()">📄 Incluir en el PDF</button>
+        </div>
         <p style="font-size:10px;color:var(--text2);line-height:1.5;margin:4px 0 0;">
           VM: válvula mitral. VI: ventrículo izquierdo. VPSI: vena pulmonar superior izquierda.
           Cx: arteria circunfleja. Dibujo esquemático y original, no a escala.
@@ -91436,9 +91451,17 @@ window.esqGuardarComoImagen = esqGuardarComoImagen;
    publica son los tres números que el médico cargó. La elegibilidad vive en su recuadro, con sus
    tablas y sus fuentes, y duplicarla acá sería una segunda voz sobre la misma pregunta.
 
-   ⚠️ SIN ANIMACIÓN, a diferencia de la demo. Lo que se guarda es una imagen fija, así que animar
-   la pantalla dejaría el dibujo guardado distinto del que el médico está mirando; y la regla P1
-   pide respetar `prefers-reduced-motion`, que con un dibujo estático se cumple por construcción. */
+   ⚠️ CON MOVIMIENTO DESDE EL A2 (30/10/2026), Y CON UN SOLO EMISOR. El problema que el
+   comentario anterior describía —«animar la pantalla dejaría el dibujo guardado distinto del que
+   el médico está mirando»— es real y se resuelve pasándole la FASE a `oaiEsqSVG`: el cuadro que
+   se rasteriza es el que la pantalla está mostrando en ese instante, porque sale de la misma
+   función con el mismo número. Y el médico guarda con el dibujo PAUSADO, así que elige cuál.
+   Las reglas de movimiento —apertura de las valvas, tamaño del chorro, posición de cada
+   partícula de contraste— viven cada una en UNA función, y las llaman los dos caminos: el que
+   arma la cadena y el que mueve los atributos cuadro a cuadro. Dos mecanismos para el mismo
+   trabajo es lo que hace que una mutación sobreviva, y este archivo lo pagó tres veces.
+   ⚠️ `prefers-reduced-motion` deja un CUADRO QUIETO, no un dibujo distinto: es el mismo emisor
+   con una fase fija. Y la animación NO corre con la sección plegada ni con la pestaña oculta. */
 const OAI_ESQ_W = 340, OAI_ESQ_H = 350;
 /* Las siluetas y sus datos, portados de la demo aprobada. `PATHS` son las líneas guía que
    `_oaiTaper` engrosa, y `LOBES` los lóbulos del brócoli. La clave de cada una es la del
@@ -91454,6 +91477,168 @@ const OAI_ESQ_PATHS = {
 };
 const OAI_ESQ_LOBES = [[200,102,22,30,3],[218,118,16,14,5],[238,134,19,18,7],[226,160,18,17,11],[204,146,13,14,13]];
 const OAI_ESQ_TIP = { veleta:[227,183], ala:[216,179], coliflor:[228,194], cactus:[225,193] };
+
+/* ══ LAS REGLAS DEL MOVIMIENTO (A2) ═══════════════════════════════════════════════════════════
+   Portadas de la demo aprobada. Cada una es el ÚNICO dueño de su regla y la llaman los dos
+   caminos —el emisor de la cadena y el animador— para que no puedan discrepar. */
+
+/* La frecuencia con que se anima. ⚠️ NO PUBLICA NADA: cuando el estudio no trae frecuencia
+   devuelve 70 lpm para que el dibujo se mueva y `cargada` en false, y ese 70 no entra en ningún
+   campo, ni en el informe, ni en el EN SUMA, ni en el Excel. La frecuencia del estudio vive en
+   `ao_fc` y `hemo_fc`, que `aoFcSync` mantiene espejados: se lee el que tenga valor. */
+const OAI_FC_ANIM = 70;
+function _oaiFcAnim() {
+  for (const id of ['ao_fc', 'hemo_fc']) {
+    const e = document.getElementById(id);
+    const n = e ? parseFloat(String(e.value || '').replace(',', '.')) : NaN;
+    if (isFinite(n) && n >= 30 && n <= 200) return { lpm: n, cargada: true };
+  }
+  return { lpm: OAI_FC_ANIM, cargada: false };
+}
+
+/* Apertura de las valvas y tamaño del chorro a lo largo del ciclo, con la fase en [0,1).
+   Sístole de 0 a 0,35 —valvas cerradas, chorro—; apertura de 0,35 a 0,45; diástole abierta
+   hasta 0,88; cierre hasta 1. Son las curvas de la demo, sin cambiarles un número. */
+const _oaiApertura = p => p < 0.35 ? 0
+                        : p < 0.45 ? _oaiSm((p - 0.35) / 0.10)
+                        : p < 0.88 ? 1
+                        : 1 - _oaiSm((p - 0.88) / 0.12);
+const _oaiJetS = p => p < 0.35 ? _oaiSm(Math.min(1, p / 0.1))
+                    : p < 0.42 ? 1 - _oaiSm((p - 0.35) / 0.07)
+                    : 0;
+
+/* El GRADO DE INSUFICIENCIA MITRAL SE LEE DE VÁLVULAS Y NO TIENE CAMPO PROPIO, que es lo que
+   pide la orden. El dueño del vocabulario es `_emRegurgGrado`, que ya resuelve los dos formatos
+   —0 a 4 del formulario y «Severa»/«Moderada» de un backup importado— y devuelve `null` cuando
+   no se puede leer. `null` NO es «no hay»: con null no se dibuja chorro, igual que con 0. */
+const OAI_IM_JET = [null, [34, 12], [60, 20], [78, 25], [96, 30]];  /* largo y ancho por grado */
+const OAI_IM_GAP = [0, 1, 3, 6, 8];                                 /* separación de los bordes */
+function _oaiImGrado() {
+  const g = (typeof _emRegurgGrado === 'function') ? _emRegurgGrado('im_grado') : null;
+  return (typeof g === 'number' && g >= 1 && g <= 4) ? g : 0;
+}
+
+/* Las dos valvas. `o` es la apertura (0 cerrada, 1 abierta) y `g` el grado, que separa los
+   bordes libres: una mitral severa no cierra. */
+function _oaiValvas(o, g) {
+  const Hl = [48, 164], Hr = [150, 164], sep = OAI_IM_GAP[g] || 0;
+  const tl = [_oaiLerp(97 - sep, 60, o), _oaiLerp(157, 204, o)];
+  const tr = [_oaiLerp(101 + sep, 138, o), _oaiLerp(157, 204, o)];
+  const q = (H, T, lado) => {
+    const mx = (H[0] + T[0]) / 2 + lado * 7 * (1 - o * 0.6);
+    const my = (H[1] + T[1]) / 2 - 7 * (1 - o);
+    return 'M' + H[0] + ' ' + H[1] + 'Q' + _oaiF1(mx) + ' ' + _oaiF1(my) +
+           ' ' + _oaiF1(T[0]) + ' ' + _oaiF1(T[1]);
+  };
+  return [q(Hl, tl, -1), q(Hr, tr, 1)];
+}
+
+/* ⚠️ EL CHORRO ES CENTRAL SIEMPRE, Y ESO ES UN HALLAZGO, NO UNA SIMPLIFICACIÓN.
+   La demo aprobada orienta el chorro con DOS datos: el Carpentier y el VELO AFECTADO —en el
+   tipo II va hacia el lado opuesto al velo que prolapsa, y en los dos tipos III hacia el mismo
+   lado del velo restringido—. El Carpentier existe en la app, en dos campos espejados
+   (`vm_carp` en Válvulas y `ete_carpentier` en el ETE, que sincroniza `vmCarpPropagar`).
+   **El velo afectado NO existe**: censado el documento entero, no hay ningún campo guardado que
+   diga qué velo o qué festón está comprometido —la vista quirúrgica dibuja los seis festones
+   pero no persiste cuál se eligió—. Y agregarlo sería agregar un campo guardado, que esta tanda
+   tiene prohibido. Con el Carpentier solo no se puede decidir un lado: el tipo II manda el
+   chorro a un lado o al otro según el velo, y sin ese dato las dos respuestas son igual de
+   probables. Dibujar uno sería inventar una dirección. Declarado en `docs/PENDIENTES.md`. */
+function _oaiChorroAng() { return -12; }
+function _oaiChorroLargo() { return 1; }
+/* La silueta del chorro, que no cambia con la fase, y su transformación, que sí. Partidas en dos
+   porque el animador sólo tiene que tocar la segunda. */
+function _oaiChorroD(g) {
+  const m = OAI_IM_JET[g];
+  if (!m) return '';
+  const len = m[0], w = m[1];
+  return 'M-2 0 C' + (-w / 2) + ' ' + _oaiF1(-len * 0.3) + ' ' + (-w / 2) + ' ' +
+         _oaiF1(-len * 0.75) + ' 0 ' + (-len) + ' C' + (w / 2) + ' ' + _oaiF1(-len * 0.75) +
+         ' ' + (w / 2) + ' ' + _oaiF1(-len * 0.3) + ' 2 0 Z';
+}
+/* El CONTRASTE ESPONTÁNEO: partículas que recorren la silueta, más unas sueltas en la cavidad.
+   El número, el radio y la opacidad salen del grado; la POSICIÓN sale de la fase del remolino, y
+   es la misma función la que la calcula para la cadena y para el animador.
+   ⚠️ EL CACHÉ SE REARMA SÓLO CUANDO CAMBIA LA MORFOLOGÍA O EL GRADO. Medir la longitud de arco
+   de las guías con `getPointAtLength` fuerza el layout, y hacerlo en cada cuadro es lo que
+   volvería lenta la escritura. */
+const OAI_SEC_N      = { leve: 8,   moderado: 22,  severo: 46 };
+const OAI_SEC_R      = { leve: 1.4, moderado: 1.8, severo: 2.3 };
+const OAI_SEC_OP     = { leve: 0.5, moderado: 0.7, severo: 0.9 };
+const OAI_SEC_LIBRES = { leve: 0,   moderado: 4,   severo: 10 };
+let _oaiSecCache = null;
+function _oaiSecArmar(morf, grado) {
+  const k = morf + '|' + grado;
+  if (_oaiSecCache && _oaiSecCache.k === k) return _oaiSecCache;
+  const tmp = document.getElementById('oai-esq-tmp');
+  const lineas = [];
+  let tot = 0;
+  if (tmp) (OAI_ESQ_PATHS[morf] || []).forEach(g => {
+    tmp.setAttribute('d', g[0]);
+    let L = 0;
+    try { L = tmp.getTotalLength(); } catch (e) { return; }
+    if (!L) return;
+    const pts = [];
+    for (let i = 0; i <= 40; i++) { const q = tmp.getPointAtLength(L * i / 40); pts.push([q.x, q.y]); }
+    lineas.push({ pts: pts, w: g[1], len: L });
+    tot += L;
+  });
+  const n = OAI_SEC_N[grado] || 0, libres = OAI_SEC_LIBRES[grado] || 0;
+  const r = _oaiRnd(77), parts = [];
+  for (let i = 0; i < n && lineas.length; i++) {
+    let x = r() * tot, li = 0;
+    for (let j = 0; j < lineas.length; j++) {
+      if (x <= lineas[j].len || j === lineas.length - 1) { li = j; break; }
+      x -= lineas[j].len;
+    }
+    parts.push({ ln: li, s0: r() * 2, sp: 0.03 + 0.05 * r(), ph: r() * 6.28,
+                 jx: (r() - 0.5) * 1.6 * lineas[li].w, jy: (r() - 0.5) * 1.6 * lineas[li].w });
+  }
+  for (let i = 0; i < libres; i++)
+    parts.push({ ln: -1, bx: 122 + r() * 54, by: 72 + r() * 52, ph: r() * 6.28, sp: 0.03 + 0.05 * r() });
+  _oaiSecCache = { k: k, lineas: lineas, parts: parts,
+                   r: OAI_SEC_R[grado] || 0, op: OAI_SEC_OP[grado] || 0 };
+  return _oaiSecCache;
+}
+const _oaiTri = x => 1 - Math.abs(((x % 2) + 2) % 2 - 1);
+function _oaiSecPos(p, c, t) {
+  if (p.ln < 0) return [p.bx + 6 * Math.sin(t * p.sp * 40 + p.ph),
+                        p.by + 6 * Math.cos(t * p.sp * 35 + p.ph)];
+  const ln = c.lineas[p.ln];
+  const u = _oaiTri(p.s0 + p.sp * t * 6) * 40;
+  const i0 = Math.min(39, Math.floor(u)), f = u - i0, a = ln.pts[i0], b = ln.pts[i0 + 1];
+  return [_oaiLerp(a[0], b[0], f) + p.jx * (0.6 + 0.4 * Math.sin(t * 3 + p.ph)) + 2 * Math.sin(t * 7 + p.ph),
+          _oaiLerp(a[1], b[1], f) + p.jy * (0.6 + 0.4 * Math.cos(t * 2.6 + p.ph)) + 2 * Math.cos(t * 5 + p.ph)];
+}
+/* La velocidad del remolino sigue a la de vaciamiento. ⚠️ NO JUZGA: el dibujo no dice si está
+   alta o baja ni pinta ninguna referencia de normalidad; el corte de 40 cm/s vive en el recuadro
+   de abajo, con su folio. Acá 40 es sólo el punto donde el remolino va a velocidad 1. */
+function _oaiRemolinoK() {
+  const v = _oaiNum('oai_vel_vac');
+  if (v === '') return 0.5;
+  return Math.max(0.03, Math.min(4, Math.pow(parseFloat(v) / 40, 2)));
+}
+
+/* El TROMBO, en el fondo de la orejuela. «Sospecha» va más chico, translúcido y con el borde
+   punteado; «confirmado», sólido. El rótulo va a la DERECHA y por debajo del de la profundidad,
+   con 16 px de separación, para que no se pisen: es la misma regla del A1. */
+function _oaiTromboSVG(morf, estado, C, L) {
+  if (estado !== 'si' && estado !== 'sospecha') return '';
+  const t = OAI_ESQ_TIP[morf];
+  if (!t) return '';
+  const sus = estado === 'sospecha', k = sus ? 0.72 : 1;
+  const d = _oaiBlob(0, 0, 10 * k, 15 * k, 31, 12, sus ? 0.4 : 0.32);
+  return '<path d="' + d + '" transform="translate(' + t[0] + ' ' + t[1] + ')" fill="' + C.tenue +
+         '" fill-opacity="' + (sus ? '0.28' : '0.7') + '" stroke="' + C.tenue +
+         '" stroke-width="1.2"' + (sus ? ' stroke-dasharray="3 2"' : '') + '/>' +
+         L(t[0] + 14, t[1] + 42, sus ? 'sospecha de trombo' : 'trombo', 'start', 11, C.tenue);
+}
+
+function _oaiChorroTr(s) {
+  return 'translate(99 158) rotate(' + _oaiChorroAng() + ') scale(1 ' +
+         _oaiF1(s * _oaiChorroLargo()) + ')';
+}
+
 
 const _oaiF1 = x => Math.round(x * 10) / 10;
 const _oaiLerp = (a, b, u) => a + (b - a) * u;
@@ -91540,8 +91725,18 @@ function _oaiNum(id) {
 }
 
 /* ÚNICO EMISOR DEL DIBUJO. Lo usan la pantalla y la imagen que se guarda, así que no pueden
-   mostrar cosas distintas: el médico guarda lo que está viendo. */
-function oaiEsqSVG() {
+   mostrar cosas distintas: el médico guarda lo que está viendo.
+   ⚠️ TOMA LA FASE, Y ESO ES LO QUE SOSTIENE ESA FRASE CON EL DIBUJO EN MOVIMIENTO. `fase` es el
+   punto del ciclo cardíaco en [0,1) y `remolino` el reloj del contraste espontáneo. El animador
+   mueve los atributos cuadro a cuadro, pero con las MISMAS funciones, y el guardado llama acá
+   con la fase congelada: lo que se rasteriza es el cuadro que está en pantalla.
+   Sin argumentos se emite el cuadro quieto —valvas cerradas si hay insuficiencia, medio
+   abiertas si no—, que es lo que se dibuja con `prefers-reduced-motion`. */
+function oaiEsqSVG(fase, remolino) {
+  const quieto = (typeof fase !== 'number');
+  const gIM = _oaiImGrado();
+  const p = quieto ? (gIM >= 1 ? 0.2 : 0.6) : fase;
+  const t = (typeof remolino === 'number') ? remolino : 0;
   const C = {
     linea: esqColor('--text', '#e8eaed'),
     tenue: esqColor('--text2', '#9aa0a6'),
@@ -91574,12 +91769,46 @@ function oaiEsqSVG() {
   g += '<circle cx="188" cy="76" r="3" fill="' + C.linea + '"/>' + L(180, 80, 'reborde', 'end');
   g += L(176, 68, 'VPSI', 'end');
   g += L(176, 200, 'VM') + L(99, 246, 'VI', 'middle');
+  /* ── LAS VALVAS Y EL CHORRO (A2) ────────────────────────────────────────────────────────────
+     Van ANTES de la silueta para que la orejuela quede por encima: el chorro nace en el plano
+     de la mitral y no tiene por qué taparla. Los dos nodos llevan `id`: son los únicos que el
+     animador toca, y así no hay una segunda lista de qué se mueve. */
+  { const vv = _oaiValvas(_oaiApertura(p), gIM);
+    g += '<path id="oai-lf1" d="' + vv[0] + '" fill="none" stroke="' + C.tenue +
+         '" stroke-width="3" stroke-linecap="round"/>';
+    g += '<path id="oai-lf2" d="' + vv[1] + '" fill="none" stroke="' + C.tenue +
+         '" stroke-width="3" stroke-linecap="round"/>';
+    const dj = _oaiChorroD(gIM);
+    g += '<path id="oai-mr" d="' + (dj && _oaiJetS(p) > 0.02 ? dj : '') + '" transform="' +
+         _oaiChorroTr(_oaiJetS(p)) + '" fill="' + C.rojo + '" fill-opacity="0.8"/>'; }
   /* La silueta. Dos capas, como en la demo: el contorno y el relleno más claro. */
-  sil.forEach(p => {
-    g += '<path d="' + p + '" fill="' + C.acento + '" stroke="' + C.acento +
+  /* ⚠️ EL PARÁMETRO SE LLAMA `dSil` Y NO `p`: desde el A2 hay un `p` en el ámbito de la función
+     —la fase del ciclo— y reusar la letra acá lo tapaba dentro del bucle. */
+  sil.forEach(dSil => {
+    g += '<path d="' + dSil + '" fill="' + C.acento + '" stroke="' + C.acento +
          '" stroke-width="2.5" stroke-linejoin="round" fill-opacity="0.9"/>';
   });
   if (!sil.length) g += L(212, 130, 'sin morfología cargada', 'middle', 10, C.tenue);
+  /* ── EL CONTRASTE ESPONTÁNEO Y EL TROMBO (A2), dibujados según SUS campos ───────────────── */
+  { const gs = (document.getElementById('oai_sec') || {}).value || '';
+    const c = _oaiSecArmar(morf, gs);
+    if (c.parts.length) {
+      /* ⚠️ EL COLOR Y LA OPACIDAD VAN EN EL GRUPO; EL RADIO, NO, Y ESO ESTÁ MEDIDO.
+         `fill` y `opacity` son propiedades heredadas, así que ponerlas una vez en el `<g>`
+         ahorra unos 1.600 caracteres de cadena por repintado con 56 partículas, y el repintado
+         corre una vez por tecla: medido, la cadena del dibujo pasa de 8.307 a 6.712 caracteres
+         sin cambiar un píxel.
+         ⚠️ `r` NO SE HEREDA, aunque en SVG 2 sea una propiedad de geometría. Medido en los dos
+         motores sobre un documento mínimo: con `r` en el `<g>`, el círculo informa un `getBBox`
+         de 0 × 0 y `getComputedStyle(...).r` da `0px` —en Chrome Y en WebKit—, o sea que el
+         contraste espontáneo habría quedado INVISIBLE sin un solo error de consola. La primera
+         versión de este bloque lo ponía en el grupo. Va en cada círculo. */
+      g += '<g id="oai-sec" fill="' + C.tenue + '" opacity="' + c.op + '">';
+      c.parts.forEach(pt => { const q = _oaiSecPos(pt, c, t);
+        g += '<circle cx="' + _oaiF1(q[0]) + '" cy="' + _oaiF1(q[1]) + '" r="' + c.r + '"/>'; });
+      g += '</g>';
+    }
+    g += _oaiTromboSVG(morf, (document.getElementById('oai_trombo') || {}).value || '', C, L); }
   /* El OSTIUM: la línea entre sus dos extremos, con el valor cargado. */
   const colO = o ? C.medida : C.borde;
   g += '<line x1="186" y1="92" x2="187" y2="142" stroke="' + colO + '" stroke-width="2.5"/>';
@@ -91621,6 +91850,141 @@ function oaiEsqSVG() {
 }
 window.oaiEsqSVG = oaiEsqSVG;
 
+/* ══ EL ANIMADOR (A2) ═════════════════════════════════════════════════════════════════════════
+   ⚠️ NO VUELVE A ARMAR LA CADENA EN CADA CUADRO. Serializar los cuatro kilobytes del SVG y
+   asignarlos a `innerHTML` sesenta veces por segundo es lo que volvería lenta la escritura, y la
+   orden pide que no empeore. Lo que se mueve son CUATRO cosas: las dos valvas, el chorro y las
+   partículas del contraste, y se mueven con las MISMAS funciones que usa el emisor. */
+let _oaiAnimRAF = null, _oaiT0 = 0, _oaiRemolino = 0, _oaiUltMs = 0;
+let _oaiCuadroN = 0;
+let _oaiPausado = false, _oaiFasePausa = 0, _oaiRemPausa = 0;
+/* El uuid del estudio cuyo cuadro eligió el médico. Mientras coincida con el estudio abierto, el
+   guardado automático NO pisa esa imagen: es la convivencia que pide el punto 2b. No se
+   persiste, así que al reabrir el estudio el automático vuelve a mandar — y eso es correcto: la
+   elección fue sobre un cuadro de ESTA sesión, no una preferencia del estudio. */
+let _oaiEsqManualUuid = null;
+
+function _oaiReducido() {
+  try { return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches); }
+  catch (e) { return false; }
+}
+/* ⚠️ UNA SOLA PREGUNTA CUBRE LOS TRES CASOS que la orden pide. `offsetParent` es null con
+   cualquier ancestro en `display:none`, así que la sección plegada y la pestaña oculta dan el
+   mismo no; `document.hidden` cubre la pestaña del navegador en segundo plano. */
+function _oaiVisible() {
+  const c = document.getElementById('oai-esq-caja');
+  return !!(c && c.offsetParent !== null && !document.hidden);
+}
+function _oaiFaseAhora(ms) {
+  if (_oaiPausado) return _oaiFasePausa;
+  const per = 60000 / _oaiFcAnim().lpm;
+  return (((ms - _oaiT0) % per) + per) % per / per;
+}
+/* Mueve el cuadro. Los `id` de los nodos animados son la lista cerrada de lo que se mueve: no
+   hay una segunda declaración en ningún lado, porque el emisor los escribe con esos mismos id. */
+function _oaiPintarCuadro(fa, re, saltar) {
+  const g = _oaiImGrado();
+  const vv = _oaiValvas(_oaiApertura(fa), g);
+  const a = document.getElementById('oai-lf1'), b = document.getElementById('oai-lf2');
+  if (a) a.setAttribute('d', vv[0]);
+  if (b) b.setAttribute('d', vv[1]);
+  const mr = document.getElementById('oai-mr');
+  if (mr) {
+    const sj = _oaiJetS(fa), dj = _oaiChorroD(g);
+    mr.setAttribute('d', (dj && sj > 0.02) ? dj : '');
+    mr.setAttribute('transform', _oaiChorroTr(sj));
+  }
+  /* ⚠️ LAS PARTÍCULAS SE MUEVEN UN CUADRO SÍ Y UNO NO, Y ESO ES UNA DECISIÓN MEDIDA. Son
+     hasta 56, o sea 112 escrituras de atributo por cuadro: el grueso del trabajo del animador.
+     El humo del contraste espontáneo es un efecto difuso y a la mitad de cuadros se ve igual
+     —no hay un borde que delate el salto, como sí lo habría en las valvas o en el chorro, que
+     siguen moviéndose en todos—. `saltar` es false cuando el cuadro lo pide una PAUSA o un
+     repintado, porque ahí no hay cuadro siguiente que compense. */
+  const sg = document.getElementById('oai-sec');
+  if (sg && _oaiSecCache && !saltar) {
+    const cs = sg.children, c = _oaiSecCache;
+    for (let i = 0; i < cs.length && i < c.parts.length; i++) {
+      const q = _oaiSecPos(c.parts[i], c, re);
+      cs[i].setAttribute('cx', _oaiF1(q[0]));
+      cs[i].setAttribute('cy', _oaiF1(q[1]));
+    }
+  }
+}
+function _oaiTick(ms) {
+  _oaiAnimRAF = null;
+  if (_oaiPausado) return;                      /* pausado no se reagenda: el reloj queda quieto */
+  if (_oaiReducido()) { _oaiPintarCuadro(_oaiFasePausa, _oaiRemPausa); return; }
+  if (!_oaiVisible()) { _oaiUltMs = 0; _oaiAnimArmar(); return; }
+  const dt = Math.min(0.1, (ms - (_oaiUltMs || ms)) / 1000);
+  _oaiUltMs = ms;
+  _oaiRemolino += dt * _oaiRemolinoK();
+  _oaiCuadroN++;
+  _oaiPintarCuadro(_oaiFaseAhora(ms), _oaiRemolino, (_oaiCuadroN & 1) === 1);
+  _oaiAnimArmar();
+}
+function _oaiAnimArmar() {
+  if (_oaiAnimRAF || _oaiPausado) return;
+  if (typeof requestAnimationFrame !== 'function') return;
+  _oaiAnimRAF = requestAnimationFrame(_oaiTick);
+}
+function _oaiAnimParar() {
+  if (_oaiAnimRAF && typeof cancelAnimationFrame === 'function') cancelAnimationFrame(_oaiAnimRAF);
+  _oaiAnimRAF = null;
+}
+
+/* ══ LOS TRES CONTROLES (2b) ══════════════════════════════════════════════════════════════════ */
+function oaiEsqPausar() {
+  _oaiFasePausa = _oaiFaseAhora(typeof performance !== 'undefined' ? performance.now() : Date.now());
+  _oaiRemPausa = _oaiRemolino;
+  _oaiPausado = true;
+  _oaiAnimParar();
+  _oaiPintarCuadro(_oaiFasePausa, _oaiRemPausa);
+  oaiEsqCtrlSync();
+}
+window.oaiEsqPausar = oaiEsqPausar;
+function oaiEsqSeguir() {
+  /* Retoma DONDE QUEDÓ y no desde cero: sin esto, cada «Seguir» daba un salto del latido. */
+  const per = 60000 / _oaiFcAnim().lpm;
+  _oaiT0 = (typeof performance !== 'undefined' ? performance.now() : Date.now()) - _oaiFasePausa * per;
+  _oaiPausado = false;
+  _oaiUltMs = 0;
+  oaiEsqCtrlSync();
+  _oaiAnimArmar();
+}
+window.oaiEsqSeguir = oaiEsqSeguir;
+/* Guarda EL CUADRO QUE SE ESTÁ VIENDO como imagen de esquema del estudio, y desde ese momento el
+   guardado automático no lo pisa mientras siga abierto el mismo estudio. Una sola imagen por
+   estudio sale de `CeiboImg.guardarEsquema`, que reemplaza por clave: no hay dos. */
+function oaiEsqIncluirPDF() {
+  const est = document.getElementById('oai-esq-estado');
+  const ahora = (typeof performance !== 'undefined' ? performance.now() : Date.now());
+  const fa = _oaiPausado ? _oaiFasePausa : _oaiFaseAhora(ahora);
+  const re = _oaiPausado ? _oaiRemPausa : _oaiRemolino;
+  if (est) est.textContent = ' Guardando el cuadro…';
+  return esqGuardarComoImagen('orejuela', 'Esquema de la orejuela', oaiEsqSVG(fa, re),
+                              OAI_ESQ_W * 2, OAI_ESQ_H * 2).then(r => {
+    if (r.ok) {
+      _oaiEsqManualUuid = (typeof _imgUuidActual !== 'undefined') ? _imgUuidActual : null;
+      if (est) est.textContent = ' Este cuadro quedó guardado en las imágenes del estudio.';
+      if (typeof igImgInvalidar === 'function') igImgInvalidar();
+    } else if (est) {
+      est.textContent = ' No se incluyó: ' + r.motivo + '.';
+    }
+    return r;
+  });
+}
+window.oaiEsqIncluirPDF = oaiEsqIncluirPDF;
+/* Qué botón se ve. Con movimiento reducido no hay nada que pausar —el cuadro ya está quieto—,
+   así que esos dos no se ofrecen; «Incluir en el PDF» sigue, porque guardar no es animar. */
+function oaiEsqCtrlSync() {
+  const red = _oaiReducido();
+  const pz = document.getElementById('oai-esq-pausar');
+  const sg = document.getElementById('oai-esq-seguir');
+  if (pz) pz.style.display = (red || _oaiPausado) ? 'none' : '';
+  if (sg) sg.style.display = (!red && _oaiPausado) ? '' : 'none';
+}
+window.oaiEsqCtrlSync = oaiEsqCtrlSync;
+
 /* ¿Hay algo que dibujar? Con los cuatro campos vacíos el esquema no se muestra ni se guarda: una
    silueta sin morfología y sin medidas no dice nada y ocuparía disco en todos los estudios. */
 function oaiEsqHayDatos() {
@@ -91646,11 +92010,22 @@ function oaiEsqSync() {
      pacientes porque el barrido de `limpiarCampos` no lo alcanzaba.
      Lo destapó la corrida COMPLETA del suite: TC-550 daba verde aislado y rojo en su lote,
      porque un caso anterior ya había pintado el esquema. */
-  if (!hay) { cont.innerHTML = ''; return; }
+  if (!hay) { _oaiAnimParar(); cont.innerHTML = ''; return; }
   /* `innerHTML` con marcado que esta función ARMA, y los únicos datos del médico que entran son
      tres números pasados por `parseFloat` y el valor de un `<select>` cerrado, que además sólo
      elige entre cuatro siluetas. Los textos van por `escHtml`. */
-  cont.innerHTML = oaiEsqSVG();
+  /* ⚠️ SE REDIBUJA EN LA FASE EN QUE ESTABA, no en cero: sin esto, cada tecla del ostium
+     devolvía el latido al principio y el dibujo temblaba mientras se escribe. Pausado, se
+     redibuja en el cuadro elegido, que es lo que «Pausar» promete. */
+  const ahora = (typeof performance !== 'undefined' ? performance.now() : Date.now());
+  if (_oaiReducido()) {
+    cont.innerHTML = oaiEsqSVG();
+    _oaiAnimParar();
+  } else {
+    cont.innerHTML = oaiEsqSVG(_oaiFaseAhora(ahora), _oaiPausado ? _oaiRemPausa : _oaiRemolino);
+    if (!_oaiPausado) _oaiAnimArmar();
+  }
+  oaiEsqCtrlSync();
 }
 window.oaiEsqSync = oaiEsqSync;
 
@@ -91674,6 +92049,12 @@ function oaiEsqGuardarDiferido() {
   _oaiEsqTimer = setTimeout(() => {
     _oaiEsqTimer = null;
     if (!oaiEsqHayDatos()) return;
+    /* ⚠️ EL CUADRO QUE EL MÉDICO ELIGIÓ GANA (2b). Mientras siga abierto el mismo estudio, el
+       guardado automático no lo reemplaza: elegir un cuadro y que lo pise el siguiente tecleo
+       es la promesa que el botón no cumple. Se compara por uuid, así que abrir OTRO estudio
+       devuelve el mando al automático sin ninguna limpieza explícita. */
+    const _uu = (typeof _imgUuidActual !== 'undefined') ? _imgUuidActual : null;
+    if (_oaiEsqManualUuid && _uu && _oaiEsqManualUuid === _uu) return;
     const firma = [(document.getElementById('oai_morfologia') || {}).value || '',
                    _oaiNum('oai_ostium_diam'), _oaiNum('oai_profundidad'),
                    _oaiNum('oai_vel_vac'),
@@ -91682,7 +92063,11 @@ function oaiEsqGuardarDiferido() {
     const est = document.getElementById('oai-esq-estado');
     /* Se rasteriza al DOBLE del tamaño de pantalla: la imagen se mira después en grande en la
        pantalla de imágenes guardadas, y a 1× el texto de las medidas queda blando. */
-    esqGuardarComoImagen('orejuela', 'Esquema de la orejuela', oaiEsqSVG(),
+    /* El cuadro que se guarda es EL QUE ESTÁ EN PANTALLA: misma función, misma fase. */
+    const _ah = (typeof performance !== 'undefined' ? performance.now() : Date.now());
+    const _sv = _oaiReducido() ? oaiEsqSVG()
+              : oaiEsqSVG(_oaiFaseAhora(_ah), _oaiPausado ? _oaiRemPausa : _oaiRemolino);
+    esqGuardarComoImagen('orejuela', 'Esquema de la orejuela', _sv,
                          OAI_ESQ_W * 2, OAI_ESQ_H * 2).then(r => {
       if (r.ok) {
         _oaiEsqUltimo = firma;
@@ -139833,8 +140218,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261030-0144';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793335457576;                 /* eco-build-ms */
+const ECO_BUILD    = '20261030-0158';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793336339746;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -139920,7 +140305,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261030-0144</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261030-0158</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
