@@ -1941,7 +1941,11 @@ caso('TC-457', 'Pared del VD e indice de Tei (DTI): los dos cortes por sus dos l
        encontre el de TC-476, que es el mismo invariante escrito con otras palabras. Lo destapo
        la CORRIDA COMPLETA, que es justo para lo que esta. Es el mismo modo de falla que la
        tanda C2 documenta con TC-520. */
-    ['DENOMINADOR: el cuadro del VD tiene ONCE filas (7 + FEVD + Qp + VD/VI + strain)', cajaVD === 11, 'filas=' + cajaVD],
+    /* ADAPTADO (TANDA NOCTURNA B1, 30/10/2026): DOCE. La fila nueva es la del TRIV por Doppler
+       tisular, que el medico pidio el 29/10 como DATO DE REFERENCIA en el cuadro de VD/AD. No
+       vota, no entra en la probabilidad de HTP y no toca el papel: lo que cambia es el
+       denominador de este caso, no lo que afirma. */
+    ['DENOMINADOR: el cuadro del VD tiene DOCE filas (7 + FEVD + Qp + VD/VI + strain + TRIV)', cajaVD === 12, 'filas=' + cajaVD],
     /* ADAPTADO (VS, 2026-10-17): el 0,55 del Tei sigue siendo el corte de la banda LEVE, pero
        la constante pasa a derivarse de la tabla ASE25_T1: el valor NO se movio. */
     ['DENOMINADOR: los cortes son los de la guia, y el del Doppler PULSADO esta declarado aparte',
@@ -66093,7 +66097,10 @@ caso('TC-471', 'Valvulas D1: la insuficiencia mitral en TRES columnas de SEIS co
        senales de alarma con las dos fuentes del corte de lactato—. NINGUNA esta en Valvulas, que
        es la pestana que este caso mide: lo que cambia es el denominador del registro, no lo que
        el caso afirma. */
-    Object.keys(VINFO).length === 67,
+    /* ADAPTADO (TANDA NOCTURNA B1, 30/10/2026): 68. La entrada nueva es vd-triv, el globo de
+       la fila de referencia del TRIV del VD. NO esta en Valvulas, que es la pestana que este
+       caso mide: lo que cambia es el denominador del registro, no lo que el caso afirma. */
+    Object.keys(VINFO).length === 68,
     'registro=' + (HAY_INFO ? Object.keys(VINFO).join(',') : 'SIN REGISTRO')]);
   ex.push(['(H) y la tarjeta se coloca SIEMPRE dentro de la pantalla, sin cortarse',
     (function(){ const b = document.querySelector('[data-vinfo="avm-thp"]');
@@ -67758,11 +67765,16 @@ caso('TC-476', 'Tanda G1: el VD en tres columnas con su orden de Tab, las filas 
        indice de Tei, que es lo que la orden pide. El invariante que este caso vigila -que el
        cuadro se lea en el MISMO orden que las columnas de campos- se conserva entero: el strain
        es el quinto campo de la columna 1 y su fila es la quinta del cuadro. */
-    ex.push(['DENOMINADOR: el cuadro del VD tiene ONCE filas',
-      caja ? caja.querySelectorAll('.calc-row').length === 11 : false,
+    /* ADAPTADO (TANDA NOCTURNA B1, 30/10/2026): DOCE, por la fila del TRIV. */
+    ex.push(['DENOMINADOR: el cuadro del VD tiene DOCE filas',
+      caja ? caja.querySelectorAll('.calc-row').length === 12 : false,
       caja ? String(caja.querySelectorAll('.calc-row').length) : 'NO EXISTE']);
     /* El orden del cuadro es el de las columnas de campos. */
-    const ORDEN_FILAS = ['tap-interp','tapse-interp','sprime-interp','vd-tei-interp',
+    /* ADAPTADO (TANDA NOCTURNA B1, 30/10/2026): vd-triv-ref entra DESPUES de la onda S' y
+       ANTES del indice de Tei, que es donde el medico lo pidio. El invariante que este caso
+       vigila -que el cuadro se lea en el MISMO orden que las columnas de campos- se conserva: el
+       TRIV es el campo que sigue a la S' en la columna 1 de la pestana. */
+    const ORDEN_FILAS = ['tap-interp','tapse-interp','sprime-interp','vd-triv-ref','vd-tei-interp',
                          'vd-strain-interp','fevd-interp',
                          'vd-tam','vd-vi-interp','vd-pared-interp','vd-qp-interp','fac-interp'];
     const filasReales = caja ? Array.prototype.slice.call(caja.querySelectorAll('.calc-row')).map(r => {
@@ -77419,7 +77431,10 @@ caso('TC-500', 'Tanda Q: las OCHO tarjetas i de las valvulas arriba de su pastil
      pop-senales, las tarjetas donde esa tanda puso la nota larga de la vasoplejia y las dos
      fuentes del corte de lactato. Lo que esta condicion afirma no cambia: que el mecanismo
      exista y que el registro este completo. */
-  ex.push(['DENOMINADOR: el mecanismo de los globos existe y el registro tiene las 67 entradas',
+  /* ADAPTADO (TANDA NOCTURNA B1, 30/10/2026): 67 -> 68. La entrada nueva es vd-triv, el globo
+     de la fila de referencia del TRIV del ventriculo derecho, donde viven las tres fuentes que
+     la regla R2 saca de la linea visible. Lo que esta condicion afirma no cambia. */
+  ex.push(['DENOMINADOR: el mecanismo de los globos existe y el registro tiene las 68 entradas',
     /* ⚠️ ADAPTADO EN LA TANDA D: 56 -> 57. La entrada nueva es co-riesgo-basal, el globo de la
        clasificacion de riesgo cardiovascular basal, donde viven las clases y los niveles que la
        regla R2 saca de la linea visible. Lo que esta condicion afirma no cambia: que el
@@ -77434,7 +77449,7 @@ caso('TC-500', 'Tanda Q: las OCHO tarjetas i de las valvulas arriba de su pastil
     /* ⚠️ ADAPTADO EN LA TANDA TEP (2026-10-29): 60 -> 62, por tep-eco-dx y tep-mcconnell,
        los dos globos de la seccion de sobrecarga del VD. NINGUNO esta en Valvulas: lo que
        cambia es el denominador del registro, no lo que esta condicion afirma. */
-    FN('vInfoClic') && !!CARD() && !!REG() && Object.keys(REG() || {}).length === 67,
+    FN('vInfoClic') && !!CARD() && !!REG() && Object.keys(REG() || {}).length === 68,
     'VINFO=' + (REG() ? Object.keys(REG()).length : 'SIN REGISTRO') + ' card=' + !!CARD()]);
   ex.push(['(A1) los OCHO botones de lesion existen, son BUTTON, sin atributo title y con aria-expanded',
     CLAVES.every(function (k) { const b = BTN(k);
@@ -78723,12 +78738,16 @@ caso('TC-502', 'Tanda P: Referencias en CINCO subpestanas sin perder una entrada
      clase 3 de la recomendacion 9- NO esta en esa ficha, y ponerlo ahi seria publicar el mismo
      contenido dos veces (regla R4). La lista sigue nombrandolas una por una, que es lo que hace
      que el dia que una consiga ficha el caso se ponga rojo. */
-  ex.push(['(C3) LIMITE DECLARADO: veintiuna tarjetas sin boton, porque Referencias no tiene esa entrada',
+  /* ADAPTADO (TANDA NOCTURNA B1, 30/10/2026): veintidos. vd-triv entra en la lista porque
+     Referencias no tiene una entrada para el TRIV del VD: sus tres fuentes NO estan en la
+     biblioteca -Howard 2012, Cabrita 2013 y Brechot 2008-, asi que el globo las nombra y la
+     pestana de Referencias no las publica. Declarado en docs/PENDIENTES.md. */
+  ex.push(['(C3) LIMITE DECLARADO: veintidos tarjetas sin boton, porque Referencias no tiene esa entrada',
     sinBoton.join(',') === 'amilo-score,co-riesgo-basal,cvr-coc,cvr-ecosmart,et-avt-cont,'
       + 'hemo-forr,hemo-ic,hemo-rvs,'
       + 'tarj-esten-pulmonar,tarj-esten-tricuspide,tarj-insuf-pulmonar,'
       + 'tep-eco-dx,tep-mcconnell,'
-      + 'vab-aorta,vab-cx,vab-friesgo,vab-func,vab-tit,vab-valv,vexus-lim,vm-carp',
+      + 'vab-aorta,vab-cx,vab-friesgo,vab-func,vab-tit,vab-valv,vd-triv,vexus-lim,vm-carp',
     sinBoton.join(',')]);
   /* Cuatro tarjetas, una de cada familia. La de la aorta y la del VI viven en AI/VI, la de la
      valvula en Valvulas y la del test de burbuja detras de su propia seccion. */
@@ -95838,8 +95857,10 @@ caso('TC-549', 'Tanda Y (Parte 1): el resultado del strain del VD en el cuadro d
   const cajaVD = EL('vd-tei-interp') ? EL('vd-tei-interp').closest('.calc-box') : null;
   const filasVD = cajaVD ? Array.prototype.slice.call(cajaVD.querySelectorAll('.calc-row')).map(r => {
     const v = r.querySelector('span[id]:not(.calc-lbl)'); return v ? v.id : '?'; }) : [];
-  ex.push(['(A0) DENOMINADOR: el cuadro de referencias del VD existe y tiene ONCE filas',
-    filasVD.length === 11, filasVD.join(',')]);
+  /* ADAPTADO (TANDA NOCTURNA B1, 30/10/2026): DOCE, por la fila del TRIV, que va entre la de la
+     onda S' y la del indice de Tei. */
+  ex.push(['(A0) DENOMINADOR: el cuadro de referencias del VD existe y tiene DOCE filas',
+    filasVD.length === 12, filasVD.join(',')]);
   ex.push(['(A1) el resultado YA NO esta debajo del campo: el nodo vd_strain_pl-grado se retiro',
     !EL('vd_strain_pl-grado'), String(!!EL('vd_strain_pl-grado'))]);
   ex.push(['(A2) y SI esta en el cuadro, en la fila que sigue a la del indice de Tei',

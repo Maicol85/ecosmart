@@ -5055,6 +5055,26 @@ window.cerrarSesionReal = cerrarSesionReal;
           <span class="calc-lbl">S' — función sistólica VD</span>
           <span id="sprime-interp">—</span>
         </div>
+        <!-- ⚠️ EL TRIV DEL VD, DEBAJO DE LA ONDA S′ (B1, 30/10/2026; decisión del médico del
+             29/10). Hasta acá el dato existía en esta pestaña —el campo `vd-triv`, espejado con
+             `dt_triv` por `vdTrivSync`— pero su REFERENCIA sólo se leía en Doppler → tricúspide.
+             Es el mismo texto, emitido por el mismo dueño (`_dtTrivRefTxt`), para que las dos
+             filas no puedan decir cosas distintas sobre el mismo número.
+             ⚠️ ES UN DATO DE REFERENCIA Y NADA MÁS: no vota, no entra en la probabilidad de HTP,
+             no toca el informe, el EN SUMA, el PDF, el PPT ni el Excel. El corte de 75 ms es el
+             de pantalla (`DT_TRIV_HTP_PANEL`); el informe firmado usa `DT_TRIV_HTP` (60) y esa
+             frase NO se tocó.
+             ⚠️ LA FILA NO SE DIBUJA SIN VALOR, y la esconde `vdRefVisSync`, que es el dueño
+             único del `display` de las filas condicionales de este cuadro: el pintor no lo toca.
+             ⚠️ EL AMARILLO NO ES LA ÚNICA SEÑAL: el texto dice «(>75 ms: a favor de HTP)», que
+             es lo que se lee con el color apagado, en impresión o con daltonismo. -->
+        <div class="calc-row" id="row-vd-triv-ref" style="display:none;">
+          <span class="calc-lbl">TRIV (DTI) — dato de referencia
+            <button type="button" class="vinfo-btn" data-vinfo="vd-triv" aria-expanded="false"
+                    aria-label="De d&oacute;nde sale el corte de 75 ms del TRIV del ventr&iacute;culo derecho"
+                    onclick="vInfoClic(this)">&#9432;</button></span>
+          <span id="vd-triv-ref">—</span>
+        </div>
         <div class="calc-row">
           <span class="calc-lbl">Índice de Tei (DTI) — función VD</span>
           <span id="vd-tei-interp">—</span>
@@ -28306,7 +28326,14 @@ function vdRefVisSync() {
   const _hayStrain = (typeof vdStrainPlCat === 'function')
     && vdStrainPlCat((document.getElementById('vd_strain_pl') || {}).value) !== null;
   _ver('row-vd-strain-interp', _hayStrain);
-  return { fevd: v('fevd') !== null, fac: _hayFac, vdvi: !!_vi.alt, strain: _hayStrain };
+  /* ⚠️ EL TRIV (B1, 30/10/2026). Su fila se esconde cuando no hay un valor USABLE, y «usable» no
+     es «el campo tiene algo»: `dopTricEstado` descarta lo que cae fuera de la banda de 20 a
+     120 ms, y una fila visible sobre un 400 afirmaría que hay algo que interpretar. Se le
+     pregunta al dueño del texto, que es el mismo que la pinta. */
+  const _hayTriv = (typeof _dtTrivRefTxt === 'function') && _dtTrivRefTxt() !== null;
+  _ver('row-vd-triv-ref', _hayTriv);
+  return { fevd: v('fevd') !== null, fac: _hayFac, vdvi: !!_vi.alt, strain: _hayStrain,
+           triv: _hayTriv };
 }
 window.vdRefVisSync = vdRefVisSync;
 
@@ -30784,17 +30811,38 @@ window.dopTricEstado = dopTricEstado;
    cifras de la PAP media: el rótulo y la comparación tienen que moverse juntos. */
 const DT_TRIV_HTP_PANEL = 75, DT_TDE_ACORT = 120;
 
+/* ⚠️ EL ÚNICO DUEÑO DEL TEXTO DEL TRIV. Devuelve `null` sin un valor usable —y «usable» es lo
+   que ya decide `dopTricEstado` con su banda de plausibilidad de 20 a 120 ms—, o la cadena y la
+   marca de que está por encima del corte. Lo llaman las DOS filas que lo muestran. */
+function _dtTrivRefTxt() {
+  const r = (typeof dopTricEstado === 'function') ? dopTricEstado() : null;
+  if (!r || r.triv == null) return null;
+  const alto = r.triv > DT_TRIV_HTP_PANEL;
+  return { txt: r.triv + ' ms' + (alto ? ' (>' + DT_TRIV_HTP_PANEL + ' ms: a favor de HTP)' : ''),
+           alto: alto };
+}
+window._dtTrivRefTxt = _dtTrivRefTxt;
+
 function calcDopTric(){
   const r = dopTricEstado();
   const set = (id, t) => { const el = document.getElementById(id); if (el) el.textContent = t; };
   set('dt_ea', r.ea != null ? r.ea.toFixed(2) : '—');
   set('dt_ee_prime', r.eep != null ? r.eep.toFixed(1) : '—');
-  /* El TRIV se lee de `r.triv`, que es el número ya parseado por `dopTricEstado`. El comentario
-     sale SÓLO por encima del corte; con 75 o menos va el valor solo. */
-  set('dt_triv_ref', r.triv != null
-    ? r.triv + ' ms' + (r.triv > DT_TRIV_HTP_PANEL
-        ? ' (>' + DT_TRIV_HTP_PANEL + ' ms: a favor de HTP)' : '')
-    : '—');
+  /* ⚠️ EL TEXTO DEL TRIV TIENE UN DUEÑO ÚNICO Y DOS FILAS QUE LO MUESTRAN (B1, 30/10/2026).
+     `_dtTrivRefTxt` arma la cadena y dice si está por encima del corte; esta función pinta las
+     DOS —la de Doppler → tricúspide y la de VD/AD—, así que no pueden discrepar sobre el mismo
+     número. El comentario sale SÓLO por encima del corte; con 75 o menos va el valor solo. */
+  { const t = _dtTrivRefTxt();
+    const _pinta = (id) => { const el = document.getElementById(id); if (!el) return;
+      if (!t) { el.textContent = '—'; el.style.color = ''; return; }
+      el.textContent = t.txt;
+      /* El amarillo es la SEGUNDA señal, no la única: el texto ya dice «a favor de HTP». */
+      el.style.color = t.alto ? 'var(--yellow)' : ''; };
+    _pinta('dt_triv_ref');
+    _pinta('vd-triv-ref'); }
+  /* El `display` de la fila nueva lo decide su dueño único, que es `vdRefVisSync`. Se lo llama
+     desde acá porque el TRIV se teclea en DOS campos y ninguno de los dos pasa por `calcVD`. */
+  if (typeof vdRefVisSync === 'function') { try { vdRefVisSync(); } catch (e) {} }
   /* El TDE no pasa por `dopTricEstado` —no vota en nada— así que se lee directo. */
   const tde = v('dt_tde');
   set('dt_tde_ref', tde != null
@@ -44681,6 +44729,34 @@ const VINFO = Object.freeze({
      de los dispositivos, que vive en el ⓘ ámbar de «Medidas de la orejuela». Con el clon se iban
      además el pie «Ficha de la pestaña Referencias» y la frase sobre los rangos de tamaño, que
      la orden manda retirar de acá. */
+  /* ══ EL TRIV DEL VD (B1, 30/10/2026) ══════════════════════════════════════════════════════
+     ⚠️ LAS TRES FUENTES NO ESTÁN EN LA BIBLIOTECA, y eso se declara en `docs/fuentes/FUENTES.md`
+     → «La TANDA NOCTURNA, Parte B»: las leyó Cowork el 29/10/2026 —Howard 2012 de acceso libre;
+     Cabrita 2013 y Bréchot 2008, sólo el resumen—. Por eso la tarjeta dice de dónde viene cada
+     número y qué tipo de trabajo es cada uno, en vez de presentarlos como un criterio.
+     ⚠️ Y DICE QUE NO SUMA A LA PROBABILIDAD DE HTP, que es lo que lo separa de los signos de la
+     tabla: es un dato de apoyo y la app lo trata como tal. */
+  'vd-triv': {
+    ancho: 380,
+    tit: 'El TRIV del ventrículo derecho',
+    lee: 'Medido con Doppler tisular en el anillo tricuspídeo lateral, prolongado —más de 75 ms— '
+       + 'orienta a hipertensión pulmonar.\n'
+       + 'Es un dato de apoyo, no un criterio validado.\n'
+       + 'Se prolonga también en la miocardiopatía hipertrófica, en el bloqueo de rama derecha y '
+       + 'en la disfunción del ventrículo derecho.\n'
+       + 'Puede salir normal con presión auricular derecha alta o con insuficiencia tricuspídea '
+       + 'significativa.\n'
+       + 'Conviene corregirlo por la frecuencia cardíaca.\n'
+       + 'No suma a la probabilidad de hipertensión pulmonar.',
+    fuente: 'El corte de 75 ms viene de un consenso —Howard LS y cols., Eur Respir Rev '
+       + '2012;21:239-248: normal menos de 75 ms, anormal 75 ms o más— y de un estudio que lo '
+       + 'comparó con la presión pulmonar estimada por ecografía, sin cateterismo —Cabrita IZ y '
+       + 'cols., Eur Heart J Cardiovasc Imaging 2013;14:51-55: sensibilidad 94 % y especificidad '
+       + '97 %—. Un TRIV de 40 ms o menos hizo improbable la hipertensión pulmonar en un estudio '
+       + 'pequeño con cateterismo: Bréchot N y cols., Eur J Echocardiogr 2008;9:547-554.',
+    ojo: 'No es el TRIV del ventrículo izquierdo, que se carga en Diastólica. Y el corte de '
+       + '75 ms es el de esta referencia de pantalla: la frase del informe usa otro.'
+  },
   'oai-ref': { ancho: 360, dyn: function () { return _oaiRefGlobo() } },
   'ai-card': { ancho: 348, dyn: function () { return evTarjetaAI() } },
   'vi-card': { ancho: 360, dyn: function () { return evTarjetaVI() } },
@@ -140385,8 +140461,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261030-0233';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793338391449;                 /* eco-build-ms */
+const ECO_BUILD    = '20261030-0239';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793338773446;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -140472,7 +140548,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261030-0233</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261030-0239</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
