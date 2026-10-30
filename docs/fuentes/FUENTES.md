@@ -7364,3 +7364,128 @@ del 30/10/2026 que la orden menciona no se usaron como respaldo: cada número se
 | ⓘ «Orejuela izquierda» | clonaba la ficha `ref-oai`, con el bloque de dispositivos, la frase «Ninguna guía de la biblioteca publica rangos de tamaño de dispositivo…» y el pie «Ficha de la pestaña Referencias» | texto propio, con siete bloques y cuatro fuentes numeradas; sin dispositivos, sin esa frase y sin ese pie | [1] [2] [3] [4] |
 | Graduación del contraste espontáneo en cuatro grados | sin marca en el ⓘ | dice que es **criterio de la aplicación** | ninguna: las fuentes lo describen como un continuo |
 | Valor «normal» de la velocidad de vaciamiento | no se afirmaba | **sigue sin afirmarse**, y ahora el ⓘ lo declara | — |
+
+---
+
+## La TANDA NOCTURNA, Parte B — AORTA-1 (2026-10-30)
+
+### La fuente primaria, y su regla de folio
+
+`06_Aorta/ESC 2024 aorta.pdf` — Mazzolai L y cols., *2024 ESC Guidelines for the management of
+peripheral arterial and aortic diseases*, **Eur Heart J 2024;45:3538-3700**, 163 hojas. Es la
+edición **INGLESA** y es la fuente primaria. La edición SEC —`Mazzolai_2024_Aorta.pdf`, 199
+hojas— queda como cotejo.
+
+**Regla de folio: folio = hoja + 3537**, comprobada en el pie impreso de tres hojas distintas
+(hoja 10 → 3547, hoja 26 → 3563, hoja 105 → 3642).
+
+⚠️ **LAS CITAS QUE LA APP YA TENÍA NO SE REESCRIBIERON**, que es lo que la orden pide: siguen con
+el folio de la **edición SEC** —`MARFAN_FTE` dice «Tabla 62 · folio 114», «Tabla 66 · folio 116»,
+«Tabla 58 · folio 111», «Tabla 38 · folio 80» y «Tabla 59 · folio 112»—. Esta tanda **no agregó
+ninguna cita nueva a la pantalla**, así que no hubo ninguna que llevara los dos folios.
+
+### Las ocho ubicaciones de la orden, verificadas una por una
+
+| Qué | Hoja | Folio | ¿Coincide con la orden? |
+|---|---|---|---|
+| Figura 5 | 26 | 3563 | sí |
+| Tabla 38 (válvula tricúspide) | 74 | 3611 | sí |
+| Apartado 9.2.1.1 | 66 | 3603 | sí |
+| Tabla 57 | 101 | 3638 | — |
+| Tabla 58 (Turner) | 103 | 3640 | sí |
+| Tabla 59 (Ehlers-Danlos vascular) | 104 | 3641 | sí |
+| Tabla 62 (Marfan) | 105 | 3642 | sí |
+| Tabla 66 (Loeys-Dietz) | 106-107 | 3643-3644 | sí |
+| Tabla 67 (ACTA2) | 108 | 3645 | sí |
+| Tabla 68 (bicúspide) | 110-111 | 3647-3648 | sí |
+
+### Lo leído EN IMAGEN
+
+**Figura 5 — hoja 26, folio 3563.** Título literal: «Anatomy and aortic segments and **upper
+normal values** for aortic dimensions». Los ocho segmentos, varón / mujer:
+
+| Segmento | Varón | Mujer |
+|---|---|---|
+| Seno de Valsalva | 40 mm | 34 mm |
+| Unión sinotubular | 38 mm | 33 mm |
+| Aorta ascendente | 40 mm | 36 mm |
+| Cayado proximal | 37 mm | 34 mm |
+| Cayado medio | 34 mm | 31 mm |
+| Descendente proximal | 29 mm | 26 mm |
+| Descendente distal | 23 mm | 20 mm |
+| Aorta abdominal | 23 mm | 19 mm |
+
+El seno de Valsalva lleva además **(<22 mm/m²)**. **Los ocho coinciden con los de la orden.**
+
+⚠️ **LA FIGURA 5 Y EL APARTADO 9.2.1.1 NO DICEN LO MISMO DEL SENO, Y LA APP SIGUE AL APARTADO.**
+El apartado 9.2.1.1 (folio 3603) dice literal: «aortic root dilatation can be suspected in male
+adults when aortic diameter is **>40 mm** and in females at **>36 mm**, or with an indexed
+diameter/BSA (aortic size index [ASI]) **>22 mm/m²**». La Figura 5 da **40 / 34** para el seno de
+Valsalva. La app aplica **40 / 36**, que es el del apartado, verificado por la tanda G. **No se
+tocó**; queda declarado en `docs/PENDIENTES.md` → **NOC-B-e**.
+
+**Tabla 62 — Marfan — folio 3642.** Cuatro recomendaciones:
+1. «Surgery is indicated in patients with MFS who have aortic root disease with a maximal aortic
+   sinus diameter **≥50 mm**» — **I · B**
+2. «Surgery to replace the aortic root and ascending aorta, using the **valve-sparing** surgery
+   technique, is recommended…» — **I · B**
+3. «Surgery **should be considered** in patients with MFS who have an aortic root aneurysm with a
+   maximal aortic sinus diameter **≥45 mm** and additional risk factors» — **IIa · C**
+4. «…aneurysm of the ascending aorta, aortic arch, descending thoracic aorta, or abdominal aorta
+   of **≥50 mm**… should be considered» — **IIa · C**
+
+Nota c (factores adicionales): historia familiar de disección con diámetros pequeños (<50 mm),
+hipertensión resistente (tres o más antihipertensivos) y crecimiento ≥3 mm al año.
+
+⚠️ **EL INGLÉS DICE «SHOULD BE CONSIDERED» PARA EL ≥45 mm, Y LA APP YA LO DICE ASÍ.** Censado:
+el único «puede considerarse» de la app con un umbral es el de **Turner >25 mm/m², que es Clase
+IIb**, donde «may be considered» es la formulación correcta. **No hubo nada que corregir.**
+
+**Tabla 66 — Loeys-Dietz — folio 3644.** «Aortic root replacement should be considered… if the
+aortic root diameter **exceeds 45 mm**» — **IIa · C**; y ajustar el umbral según el gen —
+**IIb · C**. ⚠️ **«Exceeds» es ESTRICTO**, así que el `> 45` de la app es correcto, y eso está
+medido: 45,0 no indica y 45,1 sí.
+
+**Tabla 67 — ACTA2 — folio 3645.** «Prophylactic aortic root surgery should be considered with an
+aortic diameter **≥45 mm, or lower in cases with other risk factors**» — **IIa · C**.
+
+**Tabla 58 — Turner — folio 3640.** «≥15 years of age, have an ascending **ASI >23 mm/m²**, an
+**AHI >23 mm/m**, a **z-score >3.5**, and have associated risk factors… or are planning
+pregnancy» — **IIa · C**; y «**ASI >25 mm/m²**, **AHI >25 mm/m**, **z-score >4**, and who do not
+have associated risk factors» — **IIb · C**.
+
+⚠️ **EL ÍNDICE SE CALCULA SOBRE LA AORTA ASCENDENTE**, que es lo que dice «ascending ASI»: por eso
+el B2 lo deriva de `marfan_ao_ascendente` y no del seno.
+⚠️ **LA TABLA PUBLICA DOS ÍNDICES Y LA APP APLICA UNO.** Además del ASI (diámetro ÷ superficie
+corporal) está el **AHI** (diámetro ÷ talla, mm/m), y los dos cortes van con un **z-score**. La
+app sólo tiene el ASI. Declarado en `docs/PENDIENTES.md` → **NOC-B-d**.
+
+**Tabla 59 — Ehlers-Danlos vascular — folio 3641.** Vigilancia vascular regular — **I · C**; y
+celiprolol — **IIa · B**. ⚠️ **No publica ningún umbral de diámetro**, que es lo que la app ya
+dice.
+
+### Lo que se buscó y NO está en la app
+
+**La aspirina tras cirugía con preservación valvular.** La orden pedía corregirla al sentido de la
+edición inglesa si la app la mencionaba. Censado el documento entero: los tres usos de «aspirina»
+son de otra cosa —pericarditis posterior al infarto, placas aórticas y la Tabla 22 del
+posoperatorio—. **No hubo nada que corregir.**
+
+### Las tres fuentes del ⓘ del TRIV, que NO están en la biblioteca
+
+Howard LS y cols., *Eur Respir Rev* 2012;21:239-248 (acceso libre); Cabrita IZ y cols., *Eur Heart
+J Cardiovasc Imaging* 2013;14:51-55 (sólo resumen); Bréchot N y cols., *Eur J Echocardiogr*
+2008;9:547-554 (sólo resumen). **Las leyó Cowork el 29/10/2026**, y por eso el globo dice de dónde
+viene cada número y qué tipo de trabajo es cada uno, en vez de presentarlos como un criterio.
+Referencias **no** gana una entrada: el globo entra en la lista de «tarjetas sin botón».
+
+### Tabla «Cambios de evidencia» de esta parte
+
+| Qué | Antes | Después | Fuente |
+|---|---|---|---|
+| Fila del TRIV en las referencias de VD/AD | no existía | «TRIV (DTI) — dato de referencia», con el mismo texto que la de Doppler tricúspide | ninguna nueva: el 75 es decisión de pantalla ya declarada |
+| ⓘ del TRIV | no existía | las tres fuentes nombradas, diciendo que es un dato de apoyo y que no suma a la probabilidad de HTP | Howard 2012, Cabrita 2013, Bréchot 2008 |
+| Corte del TRIV del informe firmado | 60 ms | **60 ms, sin tocar** | — |
+| Índice de tamaño aórtico de Turner | campo TIPEADO | **calculado** con la aorta ascendente y la superficie corporal | Tabla 58, folio 3640 («ascending ASI») |
+| iDA de la raíz | entero | **un decimal** | — (es una convención de presentación) |
+| Informe y EN SUMA de la aortopatía hereditaria | umbral, clase, nivel y tabla con su folio | **el síndrome, el diámetro y «dilatada»**; el índice sólo en Turner | lo retirado vive en la pantalla y en la Evidencia |

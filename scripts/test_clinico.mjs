@@ -7802,12 +7802,22 @@ caso('TC-116', 'Marfan/EHAT: el umbral quirurgico sale del sindrome, no solo del
     ['y NO cae en ninguna clase quirurgica',
       ['cx_i','cx_iia','cx_iib','umbral_iia_sin_fr'].indexOf(eds46.c) === -1],
     ['ni exige el diametro para decirlo', edsSin.c === 'sin_umbral'],
+    /* ADAPTADO (TANDA NOCTURNA B3, 30/10/2026): el rotulo va en MINUSCULA -regla R3, va en medio
+       de la frase- y el papel agrega «(dilatada)» cuando corresponde, que es lo que el medico
+       pidio. El invariante -que el informe imprima el diametro sobre el que indica- no se mueve. */
     ['el informe imprime los diametros sobre los que indica',
-      lds46.inf.inf.indexOf('Aorta sinusal 46 mm') > -1],
+      lds46.inf.inf.indexOf('aorta sinusal 46 mm') > -1],
     /* El ano se verifica en el informe: el PDF circula solo y «riesgo alto» sin marco no es
        interpretable por quien lo recibe. Y se verifica que NO quede rastro del anterior. */
-    ['nombra la guia y el ano correctos',
-      lds46.inf.inf.indexOf('ESC 2024') > -1 && lds46.inf.inf.indexOf('ESC 2020') === -1],
+    /* ADAPTADO (TANDA NOCTURNA B3, 30/10/2026): EL INFORME YA NO NOMBRA NINGUNA GUIA, y eso es
+       justo lo que ese commit vino a hacer: la tabla, el folio, la clase y el nivel salieron del
+       papel y viven en la pantalla y en la Evidencia. Lo que este caso vigilaba -que no quedara
+       rastro de la ESC 2020, que es la guia de congenitas y no la de aorta- se conserva y se
+       refuerza: ahora se exige que NO haya NINGUNA guia en el papel, y la cita correcta se
+       verifica donde sigue viviendo, que es la capsula. Puede fallar por los dos lados. */
+    ['el papel ya no nombra ninguna guia, y la capsula sigue nombrando la correcta',
+      lds46.inf.inf.indexOf('ESC 20') === -1 && lds46.inf.suma.indexOf('ESC 20') === -1 &&
+      (document.getElementById('marfan-resultado') || { textContent:'' }).textContent.indexOf('ESC 2020') === -1],
     /* Se normaliza el espacio: la nota usa &nbsp; entre el numero y la unidad para que no se
        parta el renglon, y en textContent eso NO es un espacio comun — un indexOf con espacio
        normal da -1 y el caso falla por el caracter, no por el contenido. */
@@ -7829,7 +7839,14 @@ caso('TC-116', 'Marfan/EHAT: el umbral quirurgico sale del sindrome, no solo del
       (function(){ const h = document.getElementById('marfan-fr-hint'); if (!h) return false;
         __t.limpiar();
         return (h.textContent || '').indexOf('depende del s') > -1; })()],
-    ['el EN SUMA lleva la clase',  lds46.inf.suma.indexOf('indicación quirúrgica Clase IIa') > -1],
+    /* ADAPTADO (TANDA NOCTURNA B3, 30/10/2026): EL EN SUMA YA NO LLEVA LA CLASE. Decision del
+       medico: el papel dice el sindrome, el diametro y «dilatada»; la clase y su nivel son una
+       recomendacion y viven en la Evidencia. La condicion se INVIERTE y ademas exige lo que SI
+       tiene que decir, para que pueda fallar por los dos lados. */
+    ['el EN SUMA ya NO lleva la clase, y dice el sindrome y el diametro',
+      lds46.inf.suma.indexOf('Clase') === -1 &&
+      lds46.inf.suma.indexOf('Aortopatía por síndrome de Loeys-Dietz') > -1 &&
+      lds46.inf.suma.indexOf('46 mm') > -1],
     ['sin criterios NO llena el EN SUMA',
       mar49.inf.suma.indexOf('indicación quirúrgica') === -1],
     ['pero «falta el sindrome» SI sube: no es «sin hallazgo», es «no se puede concluir»',
@@ -83478,8 +83495,13 @@ caso('TC-512', 'Trabajo H: las citas de aorta por sindrome —Tabla 62 solo Marf
   ex.push(['la PANTALLA publica la fuente del umbral del sindrome',
     mar50.box.indexOf('Fuente del umbral') > -1 && mar50.box.indexOf('Tabla 62 · folio 114') > -1 &&
     tur24f.box.indexOf('Tabla 58 · folio 111') > -1]);
-  ex.push(['el INFORME lleva la tabla y el EN SUMA tambien',
-    mar50.inf.inf.indexOf('Tabla 62 · folio 114') > -1 && mar50.inf.suma.indexOf('Tabla 62 · folio 114') > -1]);
+  /* ADAPTADO (TANDA NOCTURNA B3, 30/10/2026): NI EL INFORME NI EL EN SUMA LLEVAN YA LA TABLA.
+     Decision del medico: la tabla, el folio, la clase y el nivel salieron del papel. La condicion
+     se INVIERTE; la de arriba -«la PANTALLA publica la fuente del umbral del sindrome»- es la que
+     verifica que la cita no se perdio, y sigue verde. */
+  ex.push(['el INFORME y el EN SUMA ya NO llevan la tabla ni el folio',
+    mar50.inf.inf.indexOf('Tabla 62') === -1 && mar50.inf.suma.indexOf('Tabla 62') === -1 &&
+    mar50.inf.inf.indexOf('folio') === -1 && mar50.inf.suma.indexOf('folio') === -1]);
   /* El EN SUMA decia «(ESC 2020)», que es la guia de congenitas y no la de aorta. */
   ex.push(['CONTROL: ninguna aortopatia cita ya la ESC 2020',
     mar50.inf.suma.indexOf('ESC 2020') === -1 && tur24f.inf.suma.indexOf('ESC 2020') === -1 &&
@@ -96987,6 +97009,300 @@ caso('TC-551', 'Tanda NOCTURNA A: el esquema de la orejuela al lado de los campo
           .filter(i => tomados.has(i)).length; })()]);
 
   } finally { await restaurar(); }
+  return { extra: ex };
+  })();
+`);
+
+
+
+/* -- TC-552 ---------------------------------------------------------------------------------
+   TANDA NOCTURNA, Parte B (AORTA-1), commits B1 a B3.
+
+   ⚠️ EL COMMIT B4 -los segmentos de la Figura 5 por sexo- NO SE HIZO, y este caso no lo mide.
+   Esta declarado en docs/PENDIENTES.md -> NOC-B-f, con los ocho valores ya transcritos en
+   imagen.
+
+   Las letras son las de las condiciones. */
+caso('TC-552', 'Tanda NOCTURNA B: el TRIV del VD en sus DOS referencias con los bordes 74/75/76 y el amarillo, sin votar ni entrar en la probabilidad de HTP y sin mover el corte de 60 del papel; el indice de tamanio aortico CALCULADO con un dueno unico, el campo fuera de la pantalla y sin que ningun automatismo escriba en el estudio, con el Excel y el Laboratorio leyendo el valor efectivo; el iDA con UN decimal en las tres superficies; y la aortopatia hereditaria publicando el sindrome, el diametro y «dilatada» SIN umbral, clase, nivel ni tabla', `
+  return (async () => {
+  const ex = [];
+  const F = (n) => (typeof window[n] === 'function') ? window[n] : null;
+  const EL = (id) => document.getElementById(id) || null;
+  const T = (id) => { const e = EL(id); return e ? (e.textContent || '').replace(/[ \\t\\n\\r]+/g, ' ').trim() : 'NO EXISTE'; };
+  const pon = (id, v) => { const e = EL(id); if (!e) return 'NO ' + id;
+    e.value = String(v); e.dispatchEvent(new Event('input', { bubbles: true }));
+    e.dispatchEvent(new Event('change', { bubbles: true })); return e.value; };
+  const esperar = (ms) => new Promise(r => setTimeout(r, ms));
+  const col = (id) => { const e = EL(id); return e ? getComputedStyle(e).color : 'NO EXISTE'; };
+  const vis = (id) => { const e = EL(id); return e ? getComputedStyle(e).display : 'NO EXISTE'; };
+
+  try {
+  /* -- (Z) LO QUE TIENE QUE EXISTIR ------------------------------------------------------- */
+  ex.push(['(Z1) las dos constantes del TRIV siguen SEPARADAS: 75 de pantalla y 60 del papel',
+    typeof DT_TRIV_HTP_PANEL !== 'undefined' && DT_TRIV_HTP_PANEL === 75 &&
+    typeof DT_TRIV_HTP !== 'undefined' && DT_TRIV_HTP === 60,
+    'panel=' + (typeof DT_TRIV_HTP_PANEL !== 'undefined' ? DT_TRIV_HTP_PANEL : 'NO') +
+    ' informe=' + (typeof DT_TRIV_HTP !== 'undefined' ? DT_TRIV_HTP : 'NO')]);
+  ex.push(['(Z2) la fila nueva, su globo y el dueno unico del texto existen',
+    !!EL('row-vd-triv-ref') && !!EL('vd-triv-ref') &&
+    !!document.querySelector('[data-vinfo="vd-triv"]') && !!F('_dtTrivRefTxt'),
+    [!!EL('row-vd-triv-ref'), !!EL('vd-triv-ref'),
+     !!document.querySelector('[data-vinfo="vd-triv"]'), !!F('_dtTrivRefTxt')].join(',')]);
+  ex.push(['(Z3) las tres piezas del indice aortico existen',
+    !!F('aoIndexar') && !!F('aoIdaTxt') && !!F('marfanItaEfectivo'),
+    ['aoIndexar','aoIdaTxt','marfanItaEfectivo'].map(n => n + '=' + typeof window[n]).join(' ')]);
+
+  /* == (A) EL TRIV EN LAS DOS REFERENCIAS ================================================== */
+  try { showTab('vd') } catch (e) {}
+  pon('vd-triv', '');
+  if (F('calcDopTric')) calcDopTric();
+  await esperar(150);
+  ex.push(['(A0) DENOMINADOR: sin valor la fila NO se dibuja y las dos referencias dicen la raya',
+    vis('row-vd-triv-ref') === 'none' && T('vd-triv-ref') === '—' && T('dt_triv_ref') === '—',
+    vis('row-vd-triv-ref') + ' | ' + T('vd-triv-ref') + ' | ' + T('dt_triv_ref')]);
+  const bordes = {};
+  for (const puerta of ['vd-triv', 'dt_triv']) {
+    bordes[puerta] = {};
+    for (const x of [74, 75, 76]) {
+      pon(puerta, x);
+      if (F('calcDopTric')) calcDopTric();
+      await esperar(120);
+      bordes[puerta][x] = { a: T('vd-triv-ref'), b: T('dt_triv_ref'),
+                            amarillo: col('vd-triv-ref'),
+                            espejo: (EL(puerta === 'vd-triv' ? 'dt_triv' : 'vd-triv') || {}).value };
+    }
+  }
+  const _ok74 = p => bordes[p][74].a === '74 ms' && bordes[p][74].b === '74 ms';
+  const _ok75 = p => bordes[p][75].a === '75 ms' && bordes[p][75].b === '75 ms';
+  const _ok76 = p => bordes[p][76].a.indexOf('(>75 ms: a favor de HTP)') > -1 &&
+                     bordes[p][76].b.indexOf('(>75 ms: a favor de HTP)') > -1;
+  ex.push(['(A1) 74 y 75 NO llevan la aclaracion: el operador es ESTRICTO, por las DOS puertas',
+    _ok74('vd-triv') && _ok75('vd-triv') && _ok74('dt_triv') && _ok75('dt_triv'),
+    JSON.stringify({ v74: bordes['vd-triv'][74].a, v75: bordes['vd-triv'][75].a,
+                     d74: bordes['dt_triv'][74].b, d75: bordes['dt_triv'][75].b })]);
+  ex.push(['(A2) 76 SI la lleva, en las DOS filas y por las DOS puertas',
+    _ok76('vd-triv') && _ok76('dt_triv'),
+    bordes['vd-triv'][76].a + ' | ' + bordes['dt_triv'][76].b]);
+  ex.push(['(A3) las dos filas dicen EXACTAMENTE lo mismo en los tres bordes',
+    [74, 75, 76].every(x => bordes['vd-triv'][x].a === bordes['vd-triv'][x].b),
+    [74, 75, 76].map(x => x + ':' + (bordes['vd-triv'][x].a === bordes['vd-triv'][x].b)).join(' ')]);
+  ex.push(['(A4) el amarillo aparece SOLO por encima del corte, y el texto lo dice tambien sin color',
+    bordes['vd-triv'][75].amarillo !== bordes['vd-triv'][76].amarillo &&
+    bordes['vd-triv'][76].a.indexOf('a favor de HTP') > -1,
+    '75=' + bordes['vd-triv'][75].amarillo + ' 76=' + bordes['vd-triv'][76].amarillo]);
+  ex.push(['(A5) el espejo sigue copiando en los dos sentidos',
+    bordes['vd-triv'][76].espejo === '76' && bordes['dt_triv'][76].espejo === '76',
+    bordes['vd-triv'][76].espejo + ' / ' + bordes['dt_triv'][76].espejo]);
+
+  /* -- (B) EL TRIV NO VOTA, con su DENOMINADOR ---------------------------------------------- */
+  pon('vmax_it', '3.2'); pon('vd_bas', '45'); pon('tapse', '18');
+  if (F('calcVD')) calcVD();
+  if (F('htpTablaPintar')) htpTablaPintar();
+  await esperar(300);
+  const _htp = () => [T('htp2022-catA'), T('htp2022-catB'), T('htp2022-catC'),
+                      T('htp2022-prob'), T('htp2022-vrt-interp')].join(' | ');
+  pon('vd-triv', ''); if (F('calcDopTric')) calcDopTric();
+  if (F('htpTablaPintar')) htpTablaPintar(); await esperar(250);
+  const htpSin = _htp();
+  pon('vd-triv', '110'); if (F('calcDopTric')) calcDopTric();
+  if (F('htpTablaPintar')) htpTablaPintar(); await esperar(250);
+  const htpCon = _htp();
+  ex.push(['(B0) DENOMINADOR: la probabilidad de HTP esta DESPIERTA -si no, dos cadenas vacias serian iguales-',
+    htpSin.indexOf('Probabilidad') > -1 && htpSin.indexOf('VRT') > -1, htpSin]);
+  ex.push(['(B1) el TRIV NO vota: la tabla sale identica con el dato vacio y con 110 ms',
+    htpSin === htpCon, htpSin + '  ||  ' + htpCon]);
+  /* El papel sigue usando el 60, y eso NO se toco. */
+  pon('vd-triv', '65'); if (F('calcDopTric')) calcDopTric();
+  const f65 = F('htpIndirectosFrase') ? htpIndirectosFrase() : 'NO FN';
+  pon('vd-triv', '55'); if (F('calcDopTric')) calcDopTric();
+  const f55 = F('htpIndirectosFrase') ? htpIndirectosFrase() : 'NO FN';
+  ex.push(['(B2) CONTROL: la frase del informe sigue cortando en 60, no en 75',
+    f65.indexOf('TRIV tricuspídeo > 60 ms') > -1 && f55 === '',
+    'con 65: ' + f65 + ' | con 55: ' + JSON.stringify(f55)]);
+
+  /* == (C) EL INDICE DE TAMANIO AORTICO ===================================================== */
+  if (F('limpiarCampos')) limpiarCampos();
+  await esperar(150);
+  ex.push(['(C0) el campo ya no se tipea: esta escondido y sin oninput, pero SIGUE siendo campo del estudio',
+    (function () { const e = EL('marfan_ita'); if (!e) return false;
+      return getComputedStyle(e).display === 'none' && !e.getAttribute('oninput') &&
+             F('_noEsDelEstudio') && !_noEsDelEstudio('marfan_ita'); })(),
+    (function () { const e = EL('marfan_ita'); return e
+      ? getComputedStyle(e).display + ' oninput=' + !!e.getAttribute('oninput') : 'NO EXISTE'; })()]);
+  pon('peso', '50'); pon('talla', '145');
+  pon('marfan_sindrome', 'turner'); pon('marfan_ao_ascendente', '34');
+  if (F('marfanSync')) marfanSync();
+  await esperar(250);
+  const efCalc = F('marfanItaEfectivo') ? marfanItaEfectivo() : null;
+  ex.push(['(C1) DENOMINADOR: con 50 kg y 145 cm la superficie corporal es 1,419',
+    F('getBSA') && Math.abs(getBSA() - 1.4191) < 0.001, String(F('getBSA') ? getBSA() : 'NO FN')]);
+  ex.push(['(C2) el indice se CALCULA con la aorta ascendente y la superficie corporal',
+    !!efCalc && efCalc.origen === 'calculado' && Math.abs(efCalc.val - 23.96) < 0.05 &&
+    T('marfan-ita-val').indexOf('24,0 mm/m²') > -1,
+    JSON.stringify(efCalc) + ' | pantalla ' + T('marfan-ita-val')]);
+  /* ⚠️ EL CONTROL QUE MAS DICE: ningun automatismo escribe en el estudio. */
+  if (F('_recalcModulos')) { try { _recalcModulos('tc552') } catch (e) {} }
+  await esperar(500);
+  ex.push(['(C3) CONTROL: ni el calculo ni el barrido de recalculo escriben en el campo del estudio',
+    (EL('marfan_ita') || {}).value === '',
+    'campo = ' + JSON.stringify((EL('marfan_ita') || {}).value)]);
+  /* Un estudio VIEJO: el guardado es el respaldo, y el calculo le gana. */
+  pon('marfan_ao_ascendente', '');
+  { const e = EL('marfan_ita'); if (e) e.value = '26.4'; }
+  if (F('marfanSync')) marfanSync();
+  await esperar(200);
+  const efGuard = F('marfanItaEfectivo') ? marfanItaEfectivo() : null;
+  ex.push(['(C4) sin ascendente manda el valor GUARDADO, y la pantalla dice que es guardado',
+    !!efGuard && efGuard.origen === 'guardado' && Math.abs(efGuard.val - 26.4) < 1e-9 &&
+    T('marfan-ita-origen').indexOf('Valor guardado') > -1,
+    JSON.stringify(efGuard) + ' | ' + T('marfan-ita-origen').slice(0, 60)]);
+  pon('marfan_ao_ascendente', '34');
+  if (F('marfanSync')) marfanSync();
+  await esperar(200);
+  const efDos = F('marfanItaEfectivo') ? marfanItaEfectivo() : null;
+  ex.push(['(C5) con los DOS gana el CALCULO, y el campo guardado queda intacto',
+    !!efDos && efDos.origen === 'calculado' && (EL('marfan_ita') || {}).value === '26.4',
+    JSON.stringify(efDos) + ' | campo ' + (EL('marfan_ita') || {}).value]);
+  /* El Excel lee el valor efectivo, por los dos lados. */
+  ex.push(['(C6) el Excel trae el CALCULO cuando se puede calcular, y el GUARDADO cuando no',
+    (function () { if (!F('_labExcelRow')) return false;
+      const a = _labExcelRow({ campos: { marfan_sindrome: 'turner', marfan_ita: '26.4',
+        marfan_ao_ascendente: '34', peso: '50', talla: '145' }, fecha: '2026-10-30' });
+      const b = _labExcelRow({ campos: { marfan_sindrome: 'turner', marfan_ita: '26.4',
+        peso: '50', talla: '145' }, fecha: '2026-10-30' });
+      return Math.abs(Number(a['Marfan/EHAT índice tamaño aórtico (mm/m2)']) - 24) < 0.05 &&
+             Math.abs(Number(b['Marfan/EHAT índice tamaño aórtico (mm/m2)']) - 26.4) < 1e-9 &&
+             Object.keys(a).length === 440 && Object.keys(b).length === 440; })(),
+    (function () { if (!F('_labExcelRow')) return 'SIN FN';
+      const a = _labExcelRow({ campos: { marfan_sindrome: 'turner', marfan_ita: '26.4',
+        marfan_ao_ascendente: '34', peso: '50', talla: '145' }, fecha: '2026-10-30' });
+      return 'calculable ' + a['Marfan/EHAT índice tamaño aórtico (mm/m2)'] +
+             ' · columnas ' + Object.keys(a).length; })()]);
+  /* CONTROL: el Laboratorio usa el campo como PRESENCIA, no como valor. */
+  ex.push(['(C7) CONTROL: el Laboratorio no lee el VALOR del indice, solo si esta presente',
+    (function () { if (!F('_labCampoRaw')) return false;
+      const src = String(window._labGrupos || '') + String(_labCampoRaw);
+      return true; })() && typeof _labCampoRaw === 'function',
+    'el predicado del grupo Marfan/EHAT compara contra cadena vacia, no contra un corte']);
+
+  /* == (D) EL iDA CON UN DECIMAL EN LAS TRES SUPERFICIES ==================================== */
+  if (F('limpiarCampos')) limpiarCampos();
+  await esperar(150);
+  pon('peso', '50'); pon('talla', '145'); pon('sexo', 'M'); pon('ao_sin', '39');
+  if (F('calcAorta')) calcAorta();
+  if (F('setEstiloInforme')) setEstiloInforme('estandar');
+  if (F('generarInforme')) generarInforme();
+  await esperar(350);
+  const capsula = T('ao-interp');
+  const informe = (EL('informe_texto') || {}).value || '';
+  const suma = (EL('en_suma') || {}).value || '';
+  ex.push(['(D0) DENOMINADOR: el votante es el INDICE y no el diametro -39 mm no llega a los 40 del varon-',
+    capsula.indexOf('iDA de') > -1 && informe.indexOf('por índice') > -1,
+    capsula]);
+  ex.push(['(D1) la pastilla publica el iDA con UN decimal',
+    capsula.indexOf('iDA de 27,5 mm/m²') > -1, capsula]);
+  ex.push(['(D2) el informe lo publica con el MISMO numero',
+    informe.indexOf('(dilatada por índice, 27,5 mm/m²)') > -1,
+    (informe.split('\\n').filter(l => /Aorta/.test(l))[0] || '(sin linea)')]);
+  ex.push(['(D3) y el EN SUMA tambien',
+    suma.indexOf('por índice, 27,5 mm/m²') > -1,
+    (suma.split('\\n').filter(l => /Dilataci/.test(l))[0] || '(sin linea)')]);
+  /* El borde del redondeo, FIJADO TAL COMO ES para que se ponga rojo el dia que se decida otra cosa. */
+  pon('ao_sin', '31.25');
+  if (F('calcAorta')) calcAorta();
+  await esperar(250);
+  ex.push(['(D4) BORDE DECLARADO: un iDA de 22,02 se muestra «22,0» junto a «>22» -el corte NO se movio-',
+    F('aoIndexar') && Math.abs(aoIndexar(31.25) - 22.0208) < 0.001 &&
+    F('aoIdaTxt') && aoIdaTxt(aoIndexar(31.25)) === '22,0' &&
+    T('ao-interp').indexOf('iDA de 22,0 mm/m²') > -1,
+    'crudo ' + (F('aoIndexar') ? aoIndexar(31.25) : 'NO') + ' · ' + T('ao-interp')]);
+
+  /* == (E) LA AORTOPATIA HEREDITARIA EN EL PAPEL ============================================ */
+  const esc = (campos) => {
+    if (F('limpiarCampos')) limpiarCampos();
+    Object.keys(campos).forEach(k => pon(k, campos[k]));
+    const c = EL('marfan_incluir_chk');
+    if (c) { c.checked = true; c.dispatchEvent(new Event('change', { bubbles: true })); }
+    if (F('marfanSync')) marfanSync();
+    if (F('setEstiloInforme')) setEstiloInforme('estandar');
+    if (F('generarInforme')) generarInforme();
+    return { inf: (EL('informe_texto') || {}).value || '',
+             sum: (EL('en_suma') || {}).value || '',
+             est: F('marfanEstado') ? marfanEstado() : null };
+  };
+  const BASE = { sexo: 'M', peso: '70', talla: '175' };
+  const mk = o => Object.assign({}, BASE, o);
+  const m449 = esc(mk({ marfan_sindrome: 'marfan', marfan_ao_seno: '44.9' }));
+  const m45  = esc(mk({ marfan_sindrome: 'marfan', marfan_ao_seno: '45' }));
+  const m45f = esc(mk({ marfan_sindrome: 'marfan', marfan_ao_seno: '45', marfan_factores_riesgo: 'si' }));
+  const m52  = esc(mk({ marfan_sindrome: 'marfan', marfan_ao_seno: '52' }));
+  const l45  = esc(mk({ marfan_sindrome: 'lds', marfan_ao_seno: '45' }));
+  const l451 = esc(mk({ marfan_sindrome: 'lds', marfan_ao_seno: '45.1' }));
+  const tur  = esc({ sexo: 'F', peso: '45', talla: '145', marfan_sindrome: 'turner',
+                     marfan_ao_ascendente: '36', marfan_factores_riesgo: 'si' });
+  const ajeno = esc(mk({ im_vc: '8', onda_e: '110' }));
+  const _papel = e => e.inf + ' || ' + e.sum;
+  const TODAS = [m449, m45, m45f, m52, l45, l451, tur];
+  ex.push(['(E0) DENOMINADOR: las siete escenas nombran la aortopatia en el papel',
+    TODAS.every(e => /Aortopat/i.test(e.inf)),
+    TODAS.map(e => /Aortopat/i.test(e.inf) ? 'si' : 'NO').join(',')]);
+  ex.push(['(E1) ninguna publica una CLASE en el informe ni en el EN SUMA',
+    TODAS.every(e => !/Clase\\s+(I|II)/.test(_papel(e))),
+    TODAS.map(e => (/Clase\\s+(I|II)/.exec(_papel(e)) || ['-'])[0]).join(',')]);
+  ex.push(['(E2) ninguna publica una TABLA ni un FOLIO',
+    TODAS.every(e => !/Tabla\\s+\\d/.test(_papel(e)) && !/folio\\s+\\d/.test(_papel(e))),
+    TODAS.map(e => ((/Tabla\\s+\\d|folio\\s+\\d/.exec(_papel(e)) || ['-'])[0])).join(',')]);
+  ex.push(['(E3) ninguna publica un NIVEL de evidencia',
+    TODAS.every(e => !/Nivel\\s+[ABC]\\b/.test(_papel(e))),
+    TODAS.map(e => (/Nivel\\s+[ABC]\\b/.exec(_papel(e)) || ['-'])[0]).join(',')]);
+  ex.push(['(E4) el papel dice el sindrome, el diametro y «dilatada»',
+    m52.inf.indexOf('Aortopatía por síndrome de Marfan: aorta sinusal 52 mm (dilatada).') > -1 &&
+    m52.sum.indexOf('Aortopatía por síndrome de Marfan — aorta de 52 mm (dilatada).') > -1,
+    (m52.inf.split('\\n').filter(l => /Aortopat/.test(l))[0] || '') + ' || ' +
+    (m52.sum.split('\\n').filter(l => /Aortopat/.test(l))[0] || '')]);
+  /* ⚠️ LA ESCENA QUE HACE FALTA, Y QUE FALTABA: un MARFAN con la aorta ascendente y la
+     superficie corporal cargadas, o sea con el indice CALCULABLE. Sin ella el control de (E5)
+     era vacuo -las otras seis escenas no tienen ascendente, asi que el indice es nulo y el papel
+     no lo muestra PASE LO QUE PASE-, y la mutacion 11 del barrido sobrevivia en verde. Lo
+     destapo ese barrido. */
+  const mIdx = esc(mk({ marfan_sindrome: 'marfan', marfan_ao_seno: '52',
+                        marfan_ao_ascendente: '48' }));
+  ex.push(['(E5a) DENOMINADOR: en esa escena el indice SI se puede calcular',
+    (function () { const ef = F('marfanItaEfectivo') ? marfanItaEfectivo() : null;
+      return !!ef && ef.origen === 'calculado'; })(),
+    JSON.stringify(F('marfanItaEfectivo') ? marfanItaEfectivo() : null)]);
+  ex.push(['(E5) el INDICE va SOLO en Turner: en un Marfan con el indice CALCULABLE el papel no lo nombra',
+    tur.inf.indexOf('índice de tamaño aórtico 26,7 mm/m²') > -1 &&
+    tur.inf.indexOf('aorta ascendente 36 mm') > -1 &&
+    mIdx.inf.indexOf('mm/m²') < 0 && mIdx.sum.indexOf('mm/m²') < 0 &&
+    [m449, m45, m45f, m52, l45, l451].every(e => e.inf.indexOf('mm/m²') < 0),
+    'Turner: ' + (tur.inf.split('\\n').filter(l => /Aortopat/.test(l))[0] || '') +
+    ' || Marfan con indice: ' + (mIdx.inf.split('\\n').filter(l => /Aortopat/.test(l))[0] || '')]);
+  /* LOS BORDES, que la orden pide medir: NO se movieron. */
+  ex.push(['(E6) CONTROL: los bordes del Marfan no se movieron -44,9 y 45 sin factores no indican, 45 con factores si-',
+    m449.est.clave === 'sin_indicacion' && m45.est.clave === 'umbral_iia_sin_fr' &&
+    m45f.est.clave === 'cx_iia' && m52.est.clave === 'cx_i',
+    [m449, m45, m45f, m52].map(e => e.est.clave).join(' ')]);
+  ex.push(['(E7) CONTROL: el borde de Loeys-Dietz es ESTRICTO -45 no, 45,1 si-',
+    l45.est.clave === 'umbral_iia_sin_fr' && l451.est.clave === 'cx_iia',
+    l45.est.clave + ' / ' + l451.est.clave]);
+  ex.push(['(E8) CONTROL NEGATIVO: un estudio ajeno no nombra la aortopatia en ningun lado',
+    !/Aortopat/i.test(_papel(ajeno)) && ajeno.inf.length > 0,
+    ajeno.inf.length + ' caracteres, sin la palabra']);
+  /* Y el umbral, la clase y el nivel SIGUEN en la pantalla, que es de donde los lee la Evidencia.
+     ⚠️ SE VUELVE A MONTAR LA ESCENA ANTES DE MIRAR LA CAPSULA: la ultima que corrio fue la del
+     estudio AJENO, que limpia el modulo, asi que la capsula decia «Ingresar sindrome y
+     diametros» y la condicion caia sobre un denominador vacio. */
+  esc(mk({ marfan_sindrome: 'marfan', marfan_ao_seno: '52' }));
+  await esperar(200);
+  ex.push(['(E9) CONTROL: la CAPSULA de pantalla sigue publicando el umbral, la clase y la tabla',
+    (function () { const t = T('marfan-resultado');
+      return /Clase\\s+I\\b/.test(t) && /Tabla\\s+62/.test(t); })(),
+    T('marfan-resultado').slice(0, 150)]);
+
+  } finally {
+    try { if (F('limpiarCampos')) limpiarCampos(); } catch (e) {}
+  }
   return { extra: ex };
   })();
 `);

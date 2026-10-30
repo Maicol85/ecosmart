@@ -90,6 +90,7 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Tocar algo que la tanda R movió**: la lesión presente sin grado de la VAB, los cortes del TEER, la severidad de la disfunción del VD, el área de la AI, los grados del derrame, el taponamiento que ya no concluye, el VD/VI del TEP o los criterios declarados de Referencias | `docs/mapa/tanda-r-referencias.md` |
 | **Tocar la sección de la VÁLVULA AÓRTICA BICÚSPIDE**: la disposición en tres columnas, las seis tarjetas ⓘ, los factores de riesgo con casilla, el DIBUJO y sus puntos sensibles, **la SIMETRÍA DE LAS CÚSPIDES y el ÁNGULO con que se dibuja**, **los SEIS dibujos por tipo y la ANIMACIÓN de la apertura**, **la FUNCIÓN VALVULAR derivada**, **el RESUMEN esquemático y su texto en Evidencia**, la morfología que sigue al tipo de fusión, la descripción del informe, el PDF o el recordatorio de la coartación | `docs/mapa/vab-bicuspide.md` |
 | **Visor de cineloop, medición, calibración, IndexedDB** | `docs/mapa/imagenes-visor.md` |
+| **Tocar el TRIV del VD en las referencias de VD/AD o de Doppler tricúspide, el ÍNDICE DE TAMAÑO AÓRTICO del síndrome de Turner, el iDA de la raíz con su decimal, o lo que la AORTOPATÍA HEREDITARIA publica en el informe y en el EN SUMA** | `docs/mapa/noc-b-aorta.md` |
 | **Tocar el ESQUEMA DE LA OREJUELA del ETE —su lugar al lado de los campos, los rótulos que se pisaban, el movimiento del latido, el chorro leído de Válvulas, el contraste espontáneo o los tres controles—, el ⓘ de «Orejuela izquierda», o el BORRADO de los videos y cineloops de un estudio** | `docs/mapa/noc-a-orejuela.md` |
 | **Tocar la pantalla «IMÁGENES GUARDADAS» de Guardados, la ESTRELLA DE IMAGEN con su nota, el PPT armado desde ahí o la FUNCIÓN COMÚN que guarda un esquema de la app como imagen —con su primer uso en la orejuela—**: los dos botones, los meses plegados, el índice sin `dataURL`, las dos listas del registro (`imgs` y `esqs`), el límite de 24, el cuadrado de tapar datos o por qué pintar y guardar son dos funciones | `docs/mapa/img-guardadas.md` |
 | **Tocar algo que la tanda AJ2 corrigió** (23/10): la VRT «sin datos» frente a «no medible», el tipo de IM vacío, la coartación sin gradiente, la aorta que ya no gradúa, el ateroma sin riesgo embólico con el grosor completando el grado, el HF-PEFF sin FEVI y la negrita de su hoja, el eco pulmonar «bilateral», el score de TEP con un solo vocabulario y su maqueta en tres grupos, el EN SUMA que ya no niega lo que el informe describe, los dos buscadores o las tildes | `docs/mapa/aj2-correcciones.md` |
@@ -2315,3 +2316,118 @@ línea: el archivo creció y un informe de auditoría viejo apunta a otro archiv
   medidos ANTES de escribir—, `docs/fuentes/FUENTES.md` → «La TANDA NOCTURNA, Parte A» con las
   cuatro fuentes transcritas frase por frase, la tabla de lo que se paró y la de «Cambios de
   evidencia», y `docs/PENDIENTES.md` → **OCHO** cosas declaradas (**NOC-A-a** a **NOC-A-h**).
+
+### El TRIV, el índice aórtico y la aortopatía en el papel — «TANDA NOCTURNA, Parte B» (2026-10-30)
+
+- **CUATRO commits, y la orden pedía CINCO.** `9e70ba6` (B1) · `779902a` (B2) · el de B3 · el de
+  cobertura y documentación. Al empezar, `origin/main` = **`33568df`** con los seis commits de la
+  Parte A sin pushear. **El push lo corre Maicol: esta tanda tenía orden expresa de NO pushear.**
+  ⚠️ **EL COMMIT B4 NO SE HIZO, y no quedó a medias: ninguna línea de la app se tocó por él.**
+  Son DOS cambios clínicos sobre el papel firmado —cortes nuevos por sexo para la unión
+  sinotubular y la ascendente, y un vocabulario nuevo para graduarlos— y empezarlo sin poder
+  cerrar la parte por completo habría dejado un cambio clínico a medias. Está declarado en
+  `docs/PENDIENTES.md` → **NOC-B-a**, con **los ocho valores de la Figura 5 ya transcritos en
+  imagen** y el inventario del lado de la app, que es la mitad del trabajo.
+
+- **LA REGLA DE FOLIO DE LA EDICIÓN INGLESA SE COMPROBÓ EN EL PIE IMPRESO, EN TRES HOJAS
+  DISTINTAS: folio = hoja + 3537** (hoja 10 → 3547, hoja 26 → 3563, hoja 105 → 3642). **Las ocho
+  ubicaciones que la orden da son correctas**, verificadas una por una.
+  ⚠️ **Y LAS CITAS QUE LA APP YA TENÍA NO SE REESCRIBIERON**, que es lo que la orden pide: siguen
+  con el folio de la edición SEC. Esta parte **no agregó ninguna cita nueva a la pantalla**.
+
+- **EL DEFECTO QUE CERRÓ EL B3, EN UNA LÍNEA: el informe firmado publicaba una recomendación con
+  su clase, su nivel y su tabla.** Medido en diez escenas —los cinco síndromes, los bordes
+  44,9 / 45 / 45,1 del Marfan y 45 / 45,1 de Loeys-Dietz, y un estudio ajeno—: antes, **cinco**
+  publicaban una clase en el papel, **las diez** la tabla y el folio y **dos** el umbral. Después:
+  **cero** en las diez. El panel explica; el papel afirma.
+
+- ⚠️ **EL ÍNDICE SÓLO EN TURNER ES NUEVO, Y NO ES COSMÉTICO.** Desde el B2 el índice **se
+  calcula**, así que sin esa condición habría aparecido en el informe de **cualquier** aortopatía
+  con la aorta ascendente y la superficie corporal cargadas.
+
+- ⚠️ **NADA AUTOMÁTICO ESCRIBE EL ÍNDICE EN EL ESTUDIO, Y ESTÁ MEDIDO.** Tras calcularlo y tras
+  una pasada completa de `_recalcModulos`, el campo `marfan_ita` sigue **vacío**. Es la lección
+  que el D-9, el D-10 y el D-11 pagaron tres veces.
+
+- **TRES PREMISAS DE LA ORDEN SE VERIFICARON Y NO HUBO NADA QUE CORREGIR.** (1) El inglés dice
+  «should be considered» para el ≥45 mm del Marfan y **la app ya lo dice así**: su único «puede
+  considerarse» con umbral es el de Turner >25, que es Clase IIb, donde «may be considered» es lo
+  correcto. (2) **La app no menciona aspirina tras cirugía con preservación valvular**: censado el
+  documento entero, los tres usos de la palabra son de otra cosa. (3) **El Laboratorio no cambia**:
+  su único uso de `marfan_ita` es un predicado de presencia, no una lectura de valor, así que no
+  hubo nada que parar.
+
+- ⚠️ **LA FIGURA 5 Y EL APARTADO 9.2.1.1 NO DICEN LO MISMO DEL SENO DE VALSALVA EN LA MUJER**: la
+  figura da 34 mm y el apartado 36. La app aplica el del apartado, que es el que la tanda G
+  verificó. **Reportado y sin tocar** → **NOC-B-e**.
+
+- ⚠️ **UNA MUTACIÓN SOBREVIVIÓ Y ERA UN CONTROL VACUO.** (E5) afirmaba que el índice va sólo en
+  Turner, pero sus seis escenas no-Turner **no tenían aorta ascendente**, así que el índice era
+  nulo y el papel no lo mostraba *pase lo que pase*. Se cerró con una escena de Marfan **con el
+  índice calculable** y su propio denominador. **14/14 muertas** tras cerrarla.
+  ⚠️ **Y cuatro mutaciones salieron «NO APLICA» la primera vez** porque el worktree se creó antes
+  de commitear el B3: el veredicto es honesto —no dice «muerta»— pero cuesta una corrida.
+
+- **TC-552 cae contra el cierre de la Parte A por 22 de sus condiciones y NINGUNA por excepción.**
+
+- ⚠️ **TC-262 y TC-419 FALLAN EN CIERTOS LOTES Y NO ES DE ESTA TANDA.** Verificado en un worktree
+  sobre el commit B1, con los mismos scripts y el mismo lote: **falla idéntico**, con
+  `ao:AVAi (BSA 2.00)`. Es dependencia de orden preexistente → **NOC-B-g**.
+
+- **ONCE casos viejos adaptados, cada uno con el motivo escrito**: **TC-457**, **TC-476** y
+  **TC-549** (el cuadro del VD pasa de once a doce filas, y el orden de TC-476 gana la fila nueva
+  entre la S′ y el Tei), **TC-471** y **TC-500** (el registro de globos, 67 → 68), **TC-502** (las
+  tarjetas sin botón, 21 → 22), **TC-116** (el texto de «falta el índice»), **TC-131** (el
+  round-trip, con dos condiciones NUEVAS que lo miden por los dos lados), **TC-512** y **TC-521**
+  (el iDA con un decimal), y **TC-116** y **TC-512** otra vez, por las cuatro condiciones que afirmaban la clase, la tabla y el folio en el papel.
+
+- ⚠️ **UNA REGEX ESCRITA EN UN HEREDOC DE BASH NO LLEVA EL MISMO NÚMERO DE BARRAS QUE UNA ESCRITA
+  DESDE PYTHON.** `/[ \\\\t\\\\n]+/` en un heredoc sin interpolación llega al template como
+  `/[ \\t\\n]+/`, que es «espacio, barra invertida, t o n»: la sonda **se comía las t y las n** del
+  texto medido, y el volcado decía «Calculado co la aor a asce de e». Es la hermana de la trampa
+  de la barra simple que este archivo ya documenta.
+
+- **A/B contra el cierre de la Parte A: 140 escenas, 157.204 claves y 61.600 celdas de Excel. Las
+  36 diferencias de superficie firmada son UNA SOLA COSA**, el iDA pasando de entero a un decimal
+  —«23 mm/m²» → «22,6» y «26» → «26,0»—, en el informe (tres estilos), el EN SUMA, los campos, el
+  Excel, el PDF y el PPT de las **tres** escenas que tienen un iDA que vota. **Excel en 440
+  columnas.** Las 280 de pantalla son los dos controles positivos: el registro de globos (67 → 68)
+  y las filas del cuadro del VD (11 → 12).
+  ⚠️ **NINGUNA DE LAS 140 ESCENAS INTEGRA LA AORTOPATÍA AL INFORME**, así que **el cero del B3 en
+  ese A/B no prueba nada**: su medición es la sonda dedicada `_probe_aohered.mjs`, con diez
+  escenas y el estudio ajeno de control.
+
+- **Línea base al cierre: suite 563/567**, en once lotes **cubriendo los 567 casos distintos**, en
+  UNA sola pasada sobre el árbol sellado, con el pendrive `DISK_IMG` **montado y listando nombres
+  reales al abrir, ENTRE LOS ONCE LOTES y al cerrar**, y el md5 de `index.html` **idéntico** antes
+  y después. Los rojos son **TC-223, TC-376, TC-390 y TC-406**, los cuatro de siempre, **y ninguno
+  más**: **TC-358 salió VERDE**. Semgrep **124 WARNING / 0 ERROR**. Censo **1029 campos, 0
+  huérfanos**. Excel **440** columnas. Celular **65 a 360 px y 74 a 390, 17 ALTA en cada ancho**,
+  idénticos a la base. 17 bloques de JS inline parsean.
+  ⚠️ **Y LA PRIMERA CORRIDA COMPLETA DIO 561/567 CON DOS ROJOS MÁS, LOS DOS MÍOS**, y por eso esa
+  cifra no es la línea base: **TC-116** y **TC-512** tenían condiciones que afirman que el informe
+  y el EN SUMA llevan la clase, la tabla y el folio —justo lo que el B3 retira— y **el censo no
+  las encontró** porque las busqué por el nombre de lo que toqué y ellas lo dicen con otras
+  palabras. Es el modo de falla que la C2 documenta con TC-520. Las cuatro condiciones están
+  **invertidas**, no borradas, y exigen además lo que el papel SÍ tiene que decir.
+
+- **CHROME Y WEBKIT COINCIDEN EN LOS DIECISÉIS CRUCES** (dos motores × 1440, 1000, 768 y 390 px ×
+  dos temas), valor por valor: la fila del TRIV oculta sin valor y visible con él, 75 sin
+  aclaración y 76 con ella **en amarillo**, el cuadro del VD en **doce** filas, el globo con sus
+  **tres fuentes** dentro de la pantalla, el índice en «24,0 mm/m²», el iDA en «27,5 mm/m²», el
+  papel **sin clase, sin tabla y sin folio** y la cápsula **todavía con la cita**; **cero**
+  desplazamiento horizontal, **cero** textos recortados y **cero errores de consola y de página en
+  los dos motores**.
+  ⚠️ **EL ⓘ NUEVO DABA 0/5 A 390 px Y ERA LA ANIMACIÓN, NO LA MAQUETA.** Lo tapaba `sacc-hdr`, el
+  encabezado del acordeón, que a mitad de su transición de 0,3 s informa un rect superpuesto con
+  su propio cuerpo. Es la trampa que la tanda AJ9 ya documenta. Quitando la transición da
+  **5/5**, y el barrido de celular no suma ni un hallazgo ALTA.
+
+- **`index.html` pasó de 10,17 MB / 143.336 líneas a 10,19 MB / 143.550** — medido con `wc -c` y
+  `wc -l` DESPUÉS de sellar. (MB de 10⁶.)
+
+- **Dónde está todo:** `docs/mapa/noc-b-aorta.md` (**mapa NUEVO**, 8,4 KB), la ficha del caso en
+  `docs/mapa/tests-fichas-552.md` (**archivo propio**), `docs/fuentes/FUENTES.md` → «La TANDA
+  NOCTURNA, Parte B» con las seis tablas y la Figura 5 transcritas **en imagen**, la tabla de las
+  ocho ubicaciones verificadas y la de «Cambios de evidencia», y `docs/PENDIENTES.md` → **SIETE**
+  cosas declaradas (**NOC-B-a** a **NOC-B-g**).

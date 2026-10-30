@@ -462,3 +462,15 @@ los campos, los rótulos que se pisaban, el movimiento con sus tres controles, e
 ⚠️ **El ancho de ventana no se puede cambiar desde el cuerpo de un caso**, así que el lugar se
 fija por la regla del CSSOM y por la coherencia con `matchMedia`; la geometría real en los cuatro
 anchos la mide `scripts/_probe_oaiwk.mjs`, en dos motores.
+
+---
+
+## Puntero · TC-552 (TANDA NOCTURNA, Parte B, 2026-10-30)
+
+La ficha vive en **`docs/mapa/tests-fichas-552.md`**. Fija el TRIV del VD en sus dos referencias
+—con los bordes 74/75/76, el amarillo y el control de que no vota—, el índice de tamaño aórtico
+**calculado** con su dueño único y sin que ningún automatismo escriba en el estudio, el iDA con un
+decimal en las tres superficies, y la aortopatía hereditaria publicando el síndrome, el diámetro y
+«dilatada» **sin** umbral, clase, nivel ni tabla.
+
+⚠️ **El commit B4 no se hizo y este caso no lo mide** → `docs/PENDIENTES.md` → **NOC-B-a**.

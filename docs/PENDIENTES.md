@@ -10074,3 +10074,103 @@ el guardado automático vuelve a mandar y el primer tecleo reemplaza el cuadro e
 deliberado**: la elección fue sobre un cuadro de esa sesión y no es una preferencia del estudio, y
 persistirla sería un campo guardado nuevo, que esta tanda tiene prohibido. Declarado porque el
 médico puede esperar lo contrario.
+
+---
+
+## TANDA NOCTURNA — Parte B (AORTA-1), 2026-10-30
+
+### NOC-B-a · EL COMMIT B4 NO SE HIZO, y no quedó a medias
+
+Los segmentos de la Figura 5 por sexo —alinear la **unión sinotubular** y la **aorta ascendente**
+a los valores de la guía, con el texto «por encima del límite superior de lo normal» en vez de
+«dilatada», y el cayado y la descendente conservando su corte con el chip «Criterio de
+EcoSmart»— **no se implementó. Ninguna línea de la app se tocó por él.**
+
+**El motivo es de capacidad, y es explícito.** Ese commit son DOS cambios clínicos distintos
+sobre el papel firmado —cortes nuevos por sexo y un vocabulario nuevo para graduar— y cada uno
+necesita sus bordes medidos por segmento y por sexo, antes y después, más la adaptación de los
+casos que hoy afirman «dilatada» para esos dos segmentos. Empezarlo y no poder cerrar la Parte B
+por completo —suite, A/B, dos motores— habría dejado un cambio clínico a medias, que es
+exactamente lo que la orden prohíbe.
+
+**La mitad del trabajo ya está hecha**: los ocho valores de la Figura 5 están transcritos **en
+imagen**, con su folio comprobado en el pie impreso, en `docs/fuentes/FUENTES.md` → «La TANDA
+NOCTURNA, Parte B». Y el inventario del lado de la app también:
+
+- `AO_REF` vale hoy `{ sin:40, st:38, tub:40, cay:40, desc:35 }` y **sólo la raíz** tiene corte
+  por sexo (`refSexo: AO_DIL_MM`, 40/36) y segunda puerta por índice (`idaMax: 22`);
+- los dos segmentos que la orden quiere alinear son `ao_st` (38 → **38/33**) y `ao_tub`
+  (40 → **40/36**);
+- el cayado (40) y la torácica descendente (35) **no tienen correspondencia directa** con la
+  figura, que parte el cayado en proximal (37/34) y medio (34/31) y la descendente en proximal
+  (29/26) y distal (23/20);
+- `aoSegRef` ya resuelve el corte por sexo con `refSexo`, y `aoSegDil` ya tiene la rama que lo
+  usa. ⚠️ Esa rama compara con `>=` sin mirar `incRef`: hoy da igual porque el único segmento con
+  `refSexo` es la raíz, que **sí** lleva `incRef:true` por decisión de Maicol. Para los dos
+  nuevos hace falta el operador **estricto** —la figura publica «upper normal values», o sea que
+  el valor del corte es normal—, así que esa rama tiene que pasar a respetar `incRef`.
+
+### NOC-B-b · El borde del redondeo del iDA, un decimal más abajo
+
+El B2-2c dejó el iDA con **un decimal** en la pastilla, el informe y el EN SUMA, y el redondeo es
+**para mostrar, nunca para decidir**: la dilatación se decide con el valor crudo. Eso deja un
+borde: un iDA de **22,0208** se muestra «22,0» junto a «>22», o sea que leído literal se
+contradice. Medido con una raíz de 31,25 mm y superficie corporal 1,4191.
+
+**Esto CIERRA el pendiente `Y-c`** para la escena que lo motivó —un índice de 22,13 que el entero
+mostraba como «22» y que ahora dice «22,1»— y corre el problema un decimal. Es inherente a
+redondear para mostrar: redondear antes de comparar movería el borde, que es peor. Si se quiere
+cerrarlo del todo, la salida es no mostrar el valor cuando cae dentro de un decimal del corte, o
+mostrar dos decimales en ese caso. Es decisión de Maicol.
+
+### NOC-B-c · El round-trip del Excel cambia para la columna del índice
+
+Desde el B2 la columna «Marfan/EHAT índice tamaño aórtico (mm/m2)» exporta el valor **calculado**
+—aorta ascendente ÷ superficie corporal— y no el campo. Consecuencia medida: en un estudio con
+ascendente 44,2 y superficie 2,00 y un índice guardado de 23,5, la columna trae **22,1**, y al
+reimportar el campo queda en 22,1.
+
+**No cambia nada aguas abajo**, y está medido por los dos lados: en un estudio donde el índice se
+puede calcular el valor guardado **no lo lee nadie** —gana el cálculo—, así que la conclusión, la
+cápsula y la propia columna salen idénticas; en un estudio donde NO se puede calcular, la columna
+trae el guardado y el round-trip es exacto. `TC-131` lo fija con dos condiciones nuevas.
+
+Queda declarado porque es un cambio en lo que esa columna significa, y el round-trip es un
+invariante que este repositorio cuida.
+
+### NOC-B-d · La Tabla 58 publica DOS índices y un z-score, y la app aplica uno
+
+La Tabla 58 (Turner, folio 3640) condiciona sus dos recomendaciones a **tres** medidas a la vez:
+el **ASI** (diámetro ÷ superficie corporal, mm/m²), el **AHI** (diámetro ÷ talla, mm/m) y el
+**z-score**. La app sólo tiene el ASI, así que su cascada se cumple con una de las tres.
+
+**No se tocó**: agregar el AHI y el z-score son dos medidas nuevas, y el z-score además necesita
+un nomograma que la app no tiene para ese segmento. Es decisión de Maicol.
+
+### NOC-B-e · La Figura 5 y el apartado 9.2.1.1 no dicen lo mismo del seno, y la app sigue al apartado
+
+El apartado 9.2.1.1 (folio 3603) da **>40 mm en el varón y >36 mm en la mujer** para la
+dilatación de la raíz; la **Figura 5** (folio 3563) da **40 y 34** como límite superior normal del
+seno de Valsalva. La app aplica **40 / 36**, que es el del apartado y lo que la tanda G verificó.
+
+**No se tocó, y se reporta**: son dos partes del MISMO documento que publican cortes distintos
+para la misma medición en la mujer. Cambiar el de la mujer de 36 a 34 movería el grado de la raíz
+de todas las pacientes entre esos dos valores, y eso es decisión de Maicol.
+
+### NOC-B-f · La Parte C no se empezó
+
+La orden la condiciona a que A y B cierren sin rojos y a que quede capacidad. A cerró sin rojos
+nuevos; B cierra con tres de sus cinco commits y el cuarto declarado arriba. **La Parte C no se
+empezó: ninguna línea de la bicúspide, de la coartación ni de los cuestionarios de factores de
+riesgo se tocó.**
+
+### NOC-B-g · TC-262 y TC-419 fallan por dependencia de orden, y no es de esta tanda
+
+Los dos tienen la condición «ni aparecio ninguna de mas» sobre el inventario de filas del cajón
+Doppler, y en ciertos lotes la rompen con **`ao:AVAi (BSA 2.00)`**: un caso anterior deja el peso
+y la talla cargados, y con superficie corporal el cajón gana la fila del AVA indexada.
+
+**Verificado en un worktree sobre el commit B1, con los mismos scripts y el mismo lote: falla
+idéntico.** En la corrida completa de once lotes los dos salen verdes, porque el lote que los
+contiene es otro. Es el mismo modo de falla que el AJ7 documentó con TC-507 y la tanda A con
+TC-537: una condición que depende de lo que dejó el caso anterior.
