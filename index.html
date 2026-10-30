@@ -16078,11 +16078,11 @@ z
     <div class="grid-3" style="margin-top:10px;">
       <div class="fg"><label>Gradiente pico-pico invasivo (mmHg)</label>
         <input type="number" id="coa_gradiente_picopico" placeholder="mmHg" oninput="coaSync()">
-        <span style="font-size:10px;color:var(--text2);">Criterio ESC 2020 para indicar intervención. Confirmar de forma invasiva; la anestesia general puede subestimarlo.</span>
+        <span style="font-size:10px;color:var(--text2);">Es el criterio de indicaci&oacute;n: se mide de forma invasiva.</span>
       </div>
       <div class="fg"><label>Estenosis relativa al diámetro aórtico a nivel del diafragma (%)</label>
         <input type="number" id="coa_estenosis_relativa" placeholder="%" oninput="coaSync()">
-        <span style="font-size:10px;color:var(--text2);">Umbral Clase IIb: ≥50 % independiente del gradiente.</span>
+        <span style="font-size:10px;color:var(--text2);">Estrechamiento respecto de la aorta al diafragma.</span>
       </div>
       <div class="fg"><label>HTA confirmada</label>
         <select id="coa_hta" onchange="coaSync()">
@@ -16090,7 +16090,7 @@ z
           <option value="no">No</option>
           <option value="si">Sí</option>
         </select>
-        <span style="font-size:10px;color:var(--text2);">Diagnóstico por monitoreo ambulatorio de 24 h en brazo derecho.</span>
+        <span style="font-size:10px;color:var(--text2);">Por monitoreo ambulatorio de 24 h.</span>
       </div>
     </div>
     <div class="fg" style="margin-top:10px;">
@@ -16100,7 +16100,15 @@ z
       </label>
     </div>
     <div class="calc-box" style="margin-top:12px;">
-      <div class="calc-row"><span class="calc-lbl">Conclusión</span><span id="coa-concl" class="calc-val">—</span></div>
+      <!-- ⚠️ EL GLOBO DE LOS TRES CRITERIOS (AORTA-2, commit 2, 2026-10-30). Los tres campos de
+           arriba llevaban cada uno un texto largo con una cita suelta —«Criterio ESC 2020 para
+           indicar intervención…», «Umbral Clase IIb: ≥50 %…» y «Diagnóstico por monitoreo
+           ambulatorio de 24 h en brazo derecho»—, o sea tres citas repartidas por la pantalla y
+           ninguna con su folio. Hoy cada campo lleva una línea corta y el texto COMPLETO vive
+           acá, con lo que a cada uno le faltaba y con su folio comprobado en el pie impreso.
+           UN globo y no tres: los tres textos son el mismo criterio leído en tres campos, y
+           tres tarjetas que se tocan por separado son tres textos que pueden divergir. -->
+      <div class="calc-row"><span class="calc-lbl">Conclusi&oacute;n <button type="button" class="vinfo-btn vinfo-btn-44" data-vinfo="coa-card" aria-expanded="false" aria-label="Criterios de la coartaci&oacute;n: gradiente pico-pico, estrechamiento relativo e hipertensi&oacute;n" onclick="vInfoClic(this)">&#9432;</button></span><span id="coa-concl" class="calc-val">&mdash;</span></div>
     </div>
     <!-- ══ EL ESPEJO DE LA SECCION DE BICUSPIDE (AJ4-4, 2026-10-23) ════════════════════════
          Es DESCRIPTIVO y de PANTALLA: no llega al informe, al EN SUMA, al PDF, al PPT ni al
@@ -45181,6 +45189,7 @@ const VINFO = Object.freeze({
   'vd-fun-card': { ancho: 356, dyn: function () { return evTarjetaVDFun() } },
   'ao-card': { ancho: 356, dyn: function () { return evTarjetaAo() } },
   /* Los DOS segmentos con criterio propio (AORTA-2): dos claves, UN constructor. */
+  'coa-card':     { ancho: 356, dyn: function () { return evTarjetaCoa() } },
   'ao-cay-card':  { ancho: 356, dyn: function () { return evTarjetaAoSegs('cay') } },
   'ao-desc-card': { ancho: 356, dyn: function () { return evTarjetaAoSegs('desc') } },
   /* ══ LAS OCHO TARJETAS DE VALVULAS («Q1», 2026-10-17) ═══════════════════════════════════
@@ -46649,6 +46658,51 @@ function evTarjetaAoSegs(cual) {
   return fr;
 }
 window.evTarjetaAoSegs = evTarjetaAoSegs;
+/* ══ EL GLOBO DE LOS TRES CRITERIOS DE LA COARTACION (AORTA-2, commit 2, 2026-10-30) ════════
+   VERIFICADO EN IMAGEN a 200 ppp: ESC 2020 de cardiopatias congenitas del adulto (Baumgartner,
+   Eur Heart J 2021;42:563-645), edicion INGLESA, hoja 42 — folio 604 comprobado en el pie
+   impreso de esa misma hoja, asi que folio = hoja + 562.
+
+   ⚠️ NO SE PIERDE UN DATO DE LOS TRES TEXTOS QUE SALIERON DE LA PANTALLA, y se agregan los dos
+   que les FALTABAN y que la lectura en imagen destapo:
+     1. El pico-pico de 20 mmHg o mas indica una coartacion hemodinamicamente significativa
+        «EN AUSENCIA DE COLATERALES BIEN DESARROLLADAS» — la pantalla no lo decia, y es la
+        condicion que vuelve enganoso justo al paciente que mas colaterales tiene.
+     2. El estrechamiento del 50 % o mas NO es «Clase IIb» a secas, que es lo que decia la
+        pantalla: es Clase IIa en el HIPERTENSO y Clase IIb en el NORMOTENSO. El codigo de
+        `coaConclusion` ya reparte las dos ramas bien; el texto de al lado publicaba una sola.
+   ⚠️ LA CITA VA ACA Y NO EN EL PAPEL (regla R2): el informe firmado no lleva citas. */
+function evTarjetaCoa() {
+  const fr = document.createDocumentFragment();
+  const h = document.createElement('h4');
+  h.id = 'vinfo-tit';
+  h.textContent = 'Coartaci\u00f3n \u2014 los tres criterios';
+  fr.appendChild(h);
+  const bl = function (rot, txt) {
+    fr.appendChild(_evDiv('ev-rot', rot));
+    fr.appendChild(_evDiv('ev-cat', txt));
+  };
+  bl('Gradiente pico-pico invasivo',
+     'El cateterismo con manometr\u00eda, con un gradiente pico-pico de 20 mmHg o m\u00e1s, indica una '
+   + 'coartaci\u00f3n hemodin\u00e1micamente significativa cuando no hay colaterales bien desarrolladas, '
+   + 'y se hace en el contexto del tratamiento intervencionista. Con el paciente bajo anestesia '
+   + 'general la medici\u00f3n invasiva del gradiente puede subestimarse. Es el criterio de '
+   + 'indicaci\u00f3n: el Doppler no lo reemplaza.');
+  bl('Estrechamiento relativo',
+     'El estrechamiento del 50 % o m\u00e1s respecto del di\u00e1metro de la aorta al diafragma indica '
+   + 'tratamiento percut\u00e1neo a considerar en el paciente hipertenso (Clase IIa \u00b7 Nivel C), aunque '
+   + 'el pico-pico invasivo sea menor de 20 mmHg, y a considerar como posible en el normotenso '
+   + '(Clase IIb \u00b7 Nivel C), en los dos casos cuando sea t\u00e9cnicamente factible.');
+  bl('Hipertensi\u00f3n arterial',
+     'El diagn\u00f3stico se debe considerar por monitoreo ambulatorio de presi\u00f3n arterial de 24 horas '
+   + 'en el brazo derecho, que detecta mejor la hipertensi\u00f3n que una toma aislada. Es la '
+   + 'condici\u00f3n que separa la Clase I de la Clase IIa en la tabla de intervenci\u00f3n.');
+  fr.appendChild(_evDiv('ev-fte',
+    'ESC 2020 de cardiopat\u00edas cong\u00e9nitas del adulto (Baumgartner), tabla de recomendaciones de '
+  + 'intervenci\u00f3n en coartaci\u00f3n y recoartaci\u00f3n y apartado 4.6.3, folio 604 de la edici\u00f3n inglesa.'));
+  return fr;
+}
+window.evTarjetaCoa = evTarjetaCoa;
 function evTarjetaAo() {
   const fr = document.createDocumentFragment();
   const h = document.createElement('h4');
@@ -58178,6 +58232,19 @@ function generarInforme(opts) {
      DESPUES del bloque de la aorta para que el orden del resumen no cambie cuando si hay
      dilatacion: en los dos casos la bicuspide se lee en el mismo lugar. */
   if (_vabSumaTxt && !_vabSumaDicha) { suma.push(_vabSumaTxt + '.'); _vabSumaDicha = true; }
+
+  /* ⚠️ LA COARTACION SUBE AUNQUE LA SECCION NO ESTE INTEGRADA (AORTA-2, commit 2, 2b(ii)).
+     Con el checkbox TILDADO no se emite: ahi la publica `ccSumaLinea('coa')`, con el veredicto
+     que el medico decidio integrar, y las dos juntas dirian el mismo hallazgo dos veces en el
+     mismo resumen. Es la misma guarda que la bicuspide de arriba.
+     Va DESPUES del bloque de la aorta y de la bicuspide para que el orden del resumen no cambie
+     segun lo que haya cargado: la coartacion se lee siempre en el mismo lugar. */
+  (function () {
+    const chk = document.getElementById('coart_incluir_chk');
+    if (chk && chk.checked) return;
+    const t = (typeof coaSumaFrase === 'function') ? coaSumaFrase() : null;
+    if (t) suma.push(t);
+  })();
 
   // ── 13) Pericardio + masas (juntas) ──
   {
@@ -73426,6 +73493,42 @@ function coaRatio(fuera, src){
   const d = coaBanda(coaNV('coa_ao_desc', src), 2, 60, fuera, 'aorta descendente');
   return (i!=null && d!=null && d>0) ? i/d : null;
 }
+/* ══ LA COARTACION EN EL EN SUMA, ESTE O NO INTEGRADA AL INFORME ════════════════════════════
+   (AORTA-2, commit 2, punto 2b(ii), 2026-10-30). DECISION DEL MEDICO.
+
+   QUE ARREGLA, MEDIDO EN EL ARBOL DEL COMMIT 1 ANTES DE ESCRIBIR UNA LINEA: con una coartacion
+   nativa de istmo 8 mm y gradiente medio 25 mmHg cargada —o sea con `coaConclusion()` en
+   «significativa»— y la seccion SIN integrar, el EN SUMA decia «Estudio sin alteraciones
+   estructurales ni funcionales significativas» y el cuerpo del informe no la nombraba. El
+   resumen que se lee y se copia negaba un hallazgo que estaba cargado.
+
+   ⚠️ ES DESCRIPTIVA Y NADA MAS, y eso la separa de `ccSumaLinea('coa')`. Aquella es la linea
+   del medico que INTEGRO la seccion y publica el veredicto de `coaConclusion`; esta nombra la
+   lesion y sus medidas. El encabezado de la orden lo fija: «el informe y el EN SUMA describen;
+   clase, nivel, umbral y tabla viven en la Evidencia». Por eso esta funcion no toca `c.txt` ni
+   el mapa `DX`: toma de la conclusion UNA sola cosa, que exista.
+
+   ⚠️ LAS DOS NUNCA SALEN JUNTAS: el unico lugar de llamada pregunta por el checkbox, y con la
+   seccion integrada esta no se emite. Es la misma guarda que `ccSumaLinea('vab')` ya usa.
+   ⚠️ NO ES UN CAMPO NUEVO NI UNA COLUMNA: lee los que ya existen. */
+const COA_SUMA_SIT = Object.freeze({ recoartacion: 'recoartación post-intervención',
+                                     nativa: 'nativa', post_stent: 'post-stent',
+                                     post_cirugia: 'post-cirugía' });
+function coaSumaFrase(src) {
+  const c = (typeof coaConclusion === 'function') ? coaConclusion(src) : null;
+  if (!c) return null;
+  const sv2 = id => src ? String(src[id] == null ? '' : src[id]).trim()
+                        : (document.getElementById(id) || {}).value || '';
+  const nv = id => (typeof coaNV === 'function') ? coaNV(id, src) : null;
+  const sit = COA_SUMA_SIT[sv2('coa_situacion')];
+  const p = [];
+  const ist = nv('coa_istmo'); if (ist != null) p.push('istmo ' + ist + ' mm');
+  const gm = nv('coa_gmedio'); if (gm != null) p.push('gradiente medio ' + gm + ' mmHg');
+  const pp = nv('coa_gradiente_picopico'); if (pp != null) p.push('pico-pico invasivo ' + pp + ' mmHg');
+  const est = nv('coa_estenosis_relativa'); if (est != null) p.push('estrechamiento ' + est + ' %');
+  return 'Coartación de aorta' + (sit ? ' ' + sit : '') + (p.length ? ' (' + p.join(', ') + ')' : '') + '.';
+}
+window.coaSumaFrase = coaSumaFrase;
 function coaConclusion(src){
   /* `src` es un estudio GUARDADO (`inf.campos`); sin el se lee el formulario, exactamente como
      antes. Es el patron que ya usaban `eisenEstado(src)`, `dptEstado` y `cvrEstado`, y es lo que
@@ -85086,7 +85189,7 @@ function _indVAB(){
       : _ge(asc, 45) ? '45–49 mm — Clase IIa C sólo si hay cirugía valvular aórtica prevista' : ''),
     _indFila('Raíz aórtica (senos)', _indNum(raiz, 0, 'mm'),
       _ge(raiz, 50) ? 'alarm' : (_ge(raiz, 45) ? 'warn' : (raiz != null ? 'none' : 'ask')),
-      _ge(raiz, 50) ? '≥ 50 mm — cirugía Clase I B SI el fenotipo es de raíz'
+      _ge(raiz, 50) ? '≥ 50 mm — cirugía Clase I B si el fenotipo es de raíz'
       : _ge(raiz, 45) ? '≥ 45 mm — Clase IIa C si hay cirugía valvular aórtica prevista' : ''),
     _indFila('Morfología de la válvula aórtica', morf || '—',
       morf === 'Bicúspide' ? 'ok' : 'ask',
@@ -85134,8 +85237,17 @@ function _indVAB(){
        secciones mas abajo; queda aca porque es la que trae los diametros que la sostienen, que
        es el mismo criterio con que el AJ4-5 resolvio las otras dos duplicaciones de este panel.
        El folio se agrega acá: antes estaba sólo en la copia que se retira. */
+    /* ⚠️ LA LINEA DE GUIA DEJO DE REPETIR LOS UMBRALES (AORTA-2, commit 2, punto 2b(iii),
+       2026-10-30). Decia «Cirugía Clase I · Nivel B con diámetro máximo ≥ 55 mm, y Clase I ·
+       Nivel B desde 50 mm en el fenotipo de raíz. Todo lo demás es Clase IIa», o sea los dos
+       umbrales de Clase I por TERCERA vez en la misma seccion: ya estaban en la fila de la
+       aorta ascendente, en la de la raiz y en el bloque de recomendaciones. Medido antes de
+       tocar nada en la escena de una bicuspide con ascendente 52 mm y raiz 47: «55 mm» salia 2
+       veces, «52 mm» 3, «50 mm» 4 y «45 mm» 4.
+       Lo que queda es de DONDE sale la seccion, que es lo que esta linea existe para decir y lo
+       unico que no esta en ningun otro lado. */
     guia: { ref:'esc2024ao',
-      txt:'Cirugía Clase I · Nivel B con diámetro máximo ≥ 55 mm, y Clase I · Nivel B desde 50 mm en el fenotipo de raíz. Todo lo demás es Clase IIa (ESC 2024, Tabla 68, folio 119).' },
+      txt:'Los umbrales de esta sección salen de la tabla de recomendaciones de la aortopatía asociada a válvula aórtica bicúspide de la ESC 2024 (Tabla 68, folio 119).' },
     notas: [
       /* ⚠️ LA LÍNEA «Conclusión de la app: …» SE RETIRA (AJ4-5). Era el texto de
          `vabConclusion()` ENTERO, y la sección «Válvula aórtica bicúspide — conclusión» de este
@@ -85148,13 +85260,18 @@ function _indVAB(){
          gatillo aislado es…», que es una advertencia contra una lectura ajena y no un dato. Los
          datos —clase, nivel, tabla y folio— se conservan enteros; la historia de por qué hubo
          que escribirlo así vive en `docs/fuentes/FUENTES.md`. */
-      'La distinción entre el fenotipo de raíz y el fenotipo ascendente decide la conducta: la Clase I desde 50 mm corresponde al fenotipo de raíz; en el fenotipo ascendente el umbral aislado es un diámetro por encima de 52 mm (Clase IIa · Nivel B) y la Clase I es desde 55 mm (Tabla 68, folio 119).',
+      /* ⚠️ SIN LOS TRES NUMEROS (AORTA-2, commit 2, 2b(iii)): los publican las dos filas de
+         arriba y el bloque de recomendaciones. Lo que esta nota aporta y no esta en ningun otro
+         lado es QUE el fenotipo cambia el umbral, y eso se conserva entero. */
+      'La distinción entre el fenotipo de raíz y el fenotipo ascendente decide qué umbral se aplica: el fenotipo de raíz tiene el suyo propio, más bajo que el del fenotipo ascendente aislado. Los dos figuran en las filas de arriba, con su clase y su nivel.',
       'Clase IIa · Nivel C desde 50 mm con riesgo quirúrgico bajo y alguno de estos factores: edad menor de 50 años, talla baja, longitud de la aorta ascendente de 11 cm o más, crecimiento de 3 mm o más al año, antecedente familiar de síndrome aórtico agudo, coartación aórtica, hipertensión resistente, cirugía cardíaca concomitante no valvular aórtica o deseo de embarazo (Tabla 68, folio 119).',
-      /* ⚠️ REDACCIÓN NEUTRA (AJ4-5): decía «Los dos umbrales Clase I que circulan … son de la
-         ESC 2014», que es una corrección dirigida al lector. Se publica lo que la edición vigente
-         clasifica, con su clase, su nivel y su folio; la comparación entre ediciones queda en
-         `docs/fuentes/FUENTES.md`. */
-      'En la edición vigente de la guía, las dos filas de 50 mm con factores de riesgo y de 45 mm con cirugía valvular programada son Clase IIa · Nivel C, y figuran en su tabla de recomendaciones modificadas (Tabla 68, folio 119).',
+      /* ⚠️ ESTA NOTA SE RETIRA (AORTA-2, commit 2, 2b(iii)). Decia «las dos filas de 50 mm con
+         factores de riesgo y de 45 mm con cirugía valvular programada son Clase IIa · Nivel C»:
+         los dos umbrales con su clase y su nivel por CUARTA vez: ya estaban en la fila de la
+         ascendente, en la de la raiz y en el bloque de recomendaciones. No aportaba un dato que
+         no estuviera: aportaba el contraste con la edicion ANTERIOR de la guia, que el AJ4-5 ya
+         habia retirado de la redaccion. La comparacion entre ediciones vive en
+         `docs/fuentes/FUENTES.md`, que es donde se audita. */
       /* ⚠️ LA SEGUNDA FUENTE DE LA CUARTA RECOMENDACION, QUE SALIO DE LA LINEA VISIBLE (R2). */
       { txt:'El reemplazo de la aorta en el mismo acto quirúrgico lo publica también la ESC/EACTS 2025 de valvulopatías, en su apartado 7.4, folio 4660, que remite a la guía de aorta.', refs:['esc2024ao'] }
     ].filter(Boolean) };
@@ -142031,8 +142148,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261030-1710';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793391011605;                 /* eco-build-ms */
+const ECO_BUILD    = '20261030-1721';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793391669300;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -142118,7 +142235,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261030-1710</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261030-1721</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
