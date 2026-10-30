@@ -53527,6 +53527,15 @@ function hfaicosEstado() {
   const farmEl = document.getElementById('co_farmaco');
   const farmaco = farmEl ? farmEl.value : '';
   const col = coT4Columna(farmaco);
+  /* ⚠️ SIN FÁRMACO NO HAY CATEGORÍA (decisión de Maicol, 2026-10-30). La Tabla 4 tiene una
+     columna POR FÁRMACO —la misma casilla vale distinto en cada una—, así que sin fármaco no hay
+     columna que aplicar; y el puntaje propio tampoco contesta, porque es el puntaje de un
+     tratamiento que todavía no se eligió. Antes, con el selector vacío, una hipertensión sola
+     salía «Riesgo MEDIO» y tres factores «Riesgo ALTO», con su derivación, y eso bajaba al
+     informe firmado cuando el módulo estaba integrado.
+     Las casillas de factores NO se tocan: quedan disponibles, que es la otra mitad de la
+     decisión. Lo único que se suspende es el veredicto. */
+  const clasifica = !!farmaco;
   const edad = num('co_edad');
 
   /* El antecedente CV de un estudio GUARDADO ANTES DE LA PARTICIÓN: la casilla vieja tildada y
@@ -53590,9 +53599,9 @@ function hfaicosEstado() {
   const b = BANDAS[clave];
 
   return { pts, max, clave, porPuntos, mandaFarmaco, farmaco, col,
-           banda: b.txt, cls: b.cls,
-           seguimiento: _hfaicosSeguimiento(col, clave),
-           derivacion: _hfaicosDerivacion(clave),
+           banda: b.txt, cls: b.cls, clasifica,
+           seguimiento: clasifica ? _hfaicosSeguimiento(col, clave) : '',
+           derivacion: clasifica ? _hfaicosDerivacion(clave) : '',
            hallazgos: _hfaicosHallazgos(),
            cvSinEspecificar, fueraDeTabla,
            factores: presentes.map(f => f.lbl),
@@ -53635,6 +53644,25 @@ function calcHFAICOS() {
        módulo integrado— se quedaba con la banda ANTERIOR. O sea: la pantalla decía «ingresar
        factores» y el papel firmado seguía diciendo «riesgo muy alto» del paciente de antes.
        Un reseteo que no repinta todas sus superficies no es un reseteo. */
+    if (typeof hfaicosPublicarBasal === 'function') hfaicosPublicarBasal();
+    return;
+  }
+  /* ⚠️ SIN FÁRMACO SE PUBLICA EL PEDIDO Y NO UN VEREDICTO. Lo que se suspende es todo lo que
+     depende de la categoría: el puntaje, la banda, la línea de alcance, la derivación y el
+     calendario de eco. Lo que NO depende de ella se conserva, porque retirarlo sería un segundo
+     cambio que nadie pidió: la línea del antecedente sin especificar y la de enfermedad CV previa
+     o hallazgos anormales, que es la última fila de la Recomendaciones-tabla 1 y vale en
+     cualquier categoría —incluso en ninguna—.
+     ⚠️ Y ESTE MENSAJE NO LLEGA AL PAPEL: `hfaicosPublicarBasal` publica en ese caso la misma
+     pastilla gris que ya usaba cuando no hay datos, que es texto de pantalla y no del informe. */
+  if (!r.clasifica) {
+    fila('Clasificación de EcoSmart (orientativa)', pill('gray', 'Elegí el fármaco para calcular el riesgo'));
+    if (r.cvSinEspecificar) {
+      fila('Antecedente cardiovascular previo sin especificar', txt('Elegir cuál: insuficiencia cardíaca o miocardiopatía, cardiopatía isquémica o valvulopatía severa, o arritmia.', true));
+    }
+    if (r.hallazgos.length) {
+      fila('Enfermedad CV previa o hallazgos anormales', txt(r.hallazgos.join(', ') + '. Se recomienda derivación a cardiología.', true));
+    }
     if (typeof hfaicosPublicarBasal === 'function') hfaicosPublicarBasal();
     return;
   }
@@ -53813,6 +53841,20 @@ function hfaicosTexto() {
      que «7/13 puntos» al lado de «riesgo muy alto» sería un número que no explica la banda.
      El informe circula solo: tiene que decir con qué regla se clasificó. */
   const p = [];
+  /* ⚠️ SIN FÁRMACO NO SE AFIRMA UNA CATEGORÍA EN EL PAPEL. Se calla la oración que la anuncia,
+     la derivación, el calendario y la línea de «clasificación orientativa» —las cuatro salen de
+     la banda—, y queda lo que es descriptivo y ya existía palabra por palabra: los factores
+     consignados, el antecedente sin especificar y los hallazgos anormales. Ninguna cadena nueva
+     entra al informe firmado por este cambio. */
+  if (!r.clasifica) {
+    p.push(r.factores.length
+      ? 'Factores presentes: ' + r.factores.join(', ') + '.'
+      : 'No se consignaron factores de riesgo del paciente.');
+    if (r.cvSinEspecificar) p.push('Consta un antecedente cardiovascular previo sin especificar, que no se puntuó.');
+    if (r.hallazgos.length) p.push('Enfermedad cardiovascular previa o hallazgos anormales en la evaluación basal: '
+      + r.hallazgos.join(', ') + '.');
+    return p.join(' ');
+  }
   if (r.col) {
     p.push('Evaluación de riesgo cardiovascular basal según la tabla de estratificación de la guía '
       + 'ESC 2022 de cardio-oncología para '
@@ -53872,7 +53914,11 @@ function hfaicosPublicarBasal() {
     };
     var _val = function (t) { var sp = document.createElement('span');
       sp.className = 'calc-val'; sp.style.fontWeight = '400'; sp.textContent = t; return sp; };
-    if (_hfa && _hfa.hayDatos) {
+    /* ⚠️ `_hfa.clasifica` Y NO SÓLO `hayDatos`: sin fármaco no hay banda, y lo que se publica es
+       la MISMA pastilla gris de siempre. El mensaje «Elegí el fármaco…» es de pantalla y no entra
+       acá, porque este contenedor es el que viaja a la hoja del PDF, al PPT y al cuerpo del
+       informe cuando el módulo está integrado. */
+    if (_hfa && _hfa.hayDatos && _hfa.clasifica) {
       var _b = document.createElement('span');
       _b.className = 'badge badge-' + (BADGE_CLS_OK.indexOf(_hfa.cls) >= 0 ? _hfa.cls : 'gray');
       /* El puntaje entre paréntesis sólo en el camino propio: en el de la Tabla 4 no hay un
