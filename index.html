@@ -63316,6 +63316,18 @@ function imgVaciar() {
   imgSlots.length = 0; imgSlots.push(null, null);
   imgSlotCount = 2;
   imgSwapSel = null;
+  /* ⚠️ LA MARCA DE «LO ELIGIÓ UNA PERSONA» SE VA CON LOS SLOTS (COR-5b, 2026-10-30), y no es
+     opcional: desde este commit `_oaiEsqManualUuid` vale 'manual' y ya no se compara contra un
+     uuid, así que sobreviviría a «Nuevo estudio» y bloquearía el guardado automático del
+     esquema del paciente SIGUIENTE. Es exactamente la trampa que el D-10 y el D-11 pagaron dos
+     veces con `data-pop-mano` y `data-espejo`: una marca nueva que no entra en la lista de
+     limpieza manda sobre el estudio que viene. Va acá y no en `limpiarCampos` porque la
+     inclusión VIVE en `imgSlots`, que es lo que esta función vacía.
+     ⚠️ Y SE LLAMA POR SU FUNCIÓN EXPORTADA Y NO POR LA VARIABLE: `_oaiEsqManualUuid` es un `let` de OTRO
+     bloque `<script>` inline, así que desde acá no existe —`typeof` daría 'undefined' y la
+     asignación habría creado una global distinta, sin un solo error—. Es la clase de fallo
+     silencioso que este archivo ya documenta para la zona muerta de un `const`. */
+  if (typeof oaiEsqOlvidarManual === 'function') { try { oaiEsqOlvidarManual(); } catch (e) {} }
   if (typeof imgRender === 'function') { try { imgRender(); } catch(e){} }
 }
 window.imgVaciar = imgVaciar;
@@ -92050,6 +92062,76 @@ function esqGuardarComoImagen(clave, nombre, svgTxt, ancho, alto) {
 }
 window.esqGuardarComoImagen = esqGuardarComoImagen;
 
+/* ══ «INCLUIR EN EL PDF» — INDEPENDIENTE DE CONFIG Y DEL GUARDADO (COR-5, 2026-10-30) ════════
+   DECISIÓN DEL MÉDICO. Hasta hoy el botón llamaba a `esqGuardarComoImagen`, que exige DOS
+   condiciones —el interruptor de Config prendido y el estudio ya guardado— y escribe en la
+   lista `esqs` de IndexedDB. Medido: `CeiboImg.leer` devuelve SÓLO `imgs`, así que `imgRestaurar`
+   nunca traía los esquemas de vuelta a `imgSlots`, que es lo ÚNICO que el PDF imprime. O sea
+   que el botón se llamaba «Incluir en el PDF» y el PDF no lo incluía nunca, y encima avisaba
+   «No se incluyó: el estudio todavía no está guardado» cuando el médico recién empezaba.
+
+   EL MECANISMO NUEVO, EN UNA LÍNEA: incluir pone el esquema como un SLOT de `imgSlots`, que es
+   la misma lista en memoria que lleva las capturas del estudio. De ahí salen las tres
+   propiedades que la orden pide, sin un solo campo guardado nuevo:
+     (b) el PDF imprime `imgSlots` en su página «Imágenes del estudio», así que funciona con o
+         sin Config y CON EL ESTUDIO SIN GUARDAR;
+     (c) al guardar el estudio, `imgPersistir` escribe `imgSlots` en disco SI Config está
+         prendido — o sea que la imagen queda «pendiente» y se guarda sola con el estudio;
+     (a) y con Config apagado no se escribe nada en el estudio, que es lo que ese interruptor
+         significa.
+   ⚠️ UNA SOLA IMAGEN DE ESQUEMA POR ESTUDIO: el slot se identifica por `esqClave` y se
+   REEMPLAZA, nunca se agrega una segunda. Y la elegida explícitamente GANA: mientras haya un
+   esquema incluido a mano, el guardado automático diferido no escribe (ver
+   `oaiEsqGuardarDiferido`).
+   ⚠️ `imgMarcarEditado()` SE LLAMA EN LAS DOS PUERTAS, y no es decorativo: `_imgEditado` es lo
+   que autoriza a `imgPersistir` a borrar del disco cuando `imgSlots` queda vacío. Sin marcarlo,
+   quitar el único esquema incluido de un estudio ya guardado lo dejaba en disco. */
+function esqSlotIdx(clave) {
+  if (typeof imgSlots === 'undefined') return -1;
+  for (let i = 0; i < imgSlots.length; i++)
+    if (imgSlots[i] && imgSlots[i].esqClave === clave) return i;
+  return -1;
+}
+window.esqSlotIdx = esqSlotIdx;
+function esqEstaIncluido(clave) { return esqSlotIdx(clave) >= 0; }
+window.esqEstaIncluido = esqEstaIncluido;
+function esqQuitarDelPDF(clave) {
+  const i = esqSlotIdx(clave);
+  if (i < 0) return false;
+  imgSlots[i] = null;
+  if (typeof imgMarcarEditado === 'function') imgMarcarEditado();
+  if (typeof imgEnsureLen === 'function') imgEnsureLen();
+  if (typeof imgRender === 'function') { try { imgRender(); } catch (e) {} }
+  if (typeof igImgInvalidar === 'function') { try { igImgInvalidar(); } catch (e) {} }
+  return true;
+}
+window.esqQuitarDelPDF = esqQuitarDelPDF;
+/* Devuelve `{ok, motivo}` y no tira, igual que `esqGuardarComoImagen`. */
+function esqIncluirEnPDF(clave, nombre, svgTxt, ancho, alto) {
+  if (typeof imgSlots === 'undefined')
+    return Promise.resolve({ ok: false, motivo: 'las imágenes del estudio no están disponibles' });
+  return esqRasterizar(svgTxt, ancho, alto).then(d => {
+    if (!d) return { ok: false, motivo: 'no se pudo dibujar la imagen' };
+    const ent = { dataURL: d, ampliada: false, calidad: 'esquema', origen: 'app',
+                  esquema: true, esqClave: clave, esqNombre: nombre };
+    const i = esqSlotIdx(clave);
+    if (i >= 0) { ent.star = imgSlots[i].star; ent.nota = imgSlots[i].nota; imgSlots[i] = ent; }
+    else {
+      /* El primer hueco libre; si no hay, se agrega uno. Nunca pisa una captura del médico. */
+      let j = -1;
+      for (let k = 0; k < imgSlots.length; k++) if (!imgSlots[k]) { j = k; break; }
+      if (j < 0) { imgSlots.push(ent); if (typeof imgSlotCount !== 'undefined') imgSlotCount = imgSlots.length; }
+      else imgSlots[j] = ent;
+    }
+    if (typeof imgMarcarEditado === 'function') imgMarcarEditado();
+    if (typeof imgEnsureLen === 'function') imgEnsureLen();
+    if (typeof imgRender === 'function') { try { imgRender(); } catch (e) {} }
+    if (typeof igImgInvalidar === 'function') { try { igImgInvalidar(); } catch (e) {} }
+    return { ok: true, motivo: '' };
+  }).catch(() => ({ ok: false, motivo: 'no se pudo preparar la imagen' }));
+}
+window.esqIncluirEnPDF = esqIncluirEnPDF;
+
 /* ══ EL ESQUEMA DE LA OREJUELA IZQUIERDA ══════════════════════════════════════════════════════
    El diseño sale de `docs/3d/demo_orejuela_esquema_aprobado.html`: la silueta de la orejuela por
    morfología, la línea del ostium con su valor, la línea de la profundidad y el trazo del Doppler
@@ -92471,6 +92553,14 @@ let _oaiPausado = false, _oaiFasePausa = 0, _oaiRemPausa = 0;
    persiste, así que al reabrir el estudio el automático vuelve a mandar — y eso es correcto: la
    elección fue sobre un cuadro de ESTA sesión, no una preferencia del estudio. */
 let _oaiEsqManualUuid = null;
+/* La única puerta desde fuera de este bloque `<script>`: la llama `imgVaciar` en «Nuevo
+   estudio». Repinta el botón además de olvidar la marca, porque los dos estados tienen que
+   moverse juntos. */
+function oaiEsqOlvidarManual() {
+  _oaiEsqManualUuid = null;
+  if (typeof oaiEsqPdfBtnSync === 'function') { try { oaiEsqPdfBtnSync(); } catch (e) {} }
+}
+window.oaiEsqOlvidarManual = oaiEsqOlvidarManual;
 
 function _oaiReducido() {
   try { return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches); }
@@ -92560,21 +92650,50 @@ function oaiEsqSeguir() {
   _oaiAnimArmar();
 }
 window.oaiEsqSeguir = oaiEsqSeguir;
-/* Guarda EL CUADRO QUE SE ESTÁ VIENDO como imagen de esquema del estudio, y desde ese momento el
-   guardado automático no lo pisa mientras siga abierto el mismo estudio. Una sola imagen por
-   estudio sale de `CeiboImg.guardarEsquema`, que reemplaza por clave: no hay dos. */
+/* ══ «INCLUIR EN EL PDF» ES UN INTERRUPTOR (COR-5b, 2026-10-30) ══════════════════════════════
+   Incluye EL CUADRO QUE SE ESTÁ VIENDO, o lo quita si ya estaba. Pasa por `esqIncluirEnPDF`,
+   que lo pone como un slot de `imgSlots`: funciona con Config apagado y con el estudio sin
+   guardar, que es lo que la orden pide. El estado se ve en el COLOR del botón y en su rótulo,
+   no sólo en la línea de estado — el color solo no basta con daltonismo ni en impresión.
+   ⚠️ EL CUADRO QUE SE GUARDA ES EL QUE SE ESTÁ VIENDO: la fase sale de la misma función que
+   dibuja la pantalla, así que el médico elige cuál pausando. Eso no cambió. */
+const OAI_PDF_TXT = Object.freeze({ on: '✓ Incluido en el PDF', off: '📄 Incluir en el PDF' });
+function oaiEsqPdfBtnSync() {
+  const b = document.getElementById('oai-esq-pdf');
+  if (!b) return;
+  const on = (typeof esqEstaIncluido === 'function') && esqEstaIncluido('orejuela');
+  b.textContent = on ? OAI_PDF_TXT.on : OAI_PDF_TXT.off;
+  b.classList.toggle('btn-primary', !!on);
+  b.classList.toggle('btn-ghost', !on);
+  b.setAttribute('aria-pressed', on ? 'true' : 'false');
+  b.title = on ? 'Quitar el dibujo del PDF' : 'Incluir el dibujo en el PDF';
+}
+window.oaiEsqPdfBtnSync = oaiEsqPdfBtnSync;
 function oaiEsqIncluirPDF() {
   const est = document.getElementById('oai-esq-estado');
+  if (typeof esqEstaIncluido === 'function' && esqEstaIncluido('orejuela')) {
+    esqQuitarDelPDF('orejuela');
+    _oaiEsqManualUuid = null;
+    oaiEsqPdfBtnSync();
+    if (est) est.textContent = ' El dibujo ya no se incluye en el PDF.';
+    return Promise.resolve({ ok: true, quitado: true });
+  }
   const ahora = (typeof performance !== 'undefined' ? performance.now() : Date.now());
   const fa = _oaiPausado ? _oaiFasePausa : _oaiFaseAhora(ahora);
   const re = _oaiPausado ? _oaiRemPausa : _oaiRemolino;
-  if (est) est.textContent = ' Guardando el cuadro…';
-  return esqGuardarComoImagen('orejuela', 'Esquema de la orejuela', oaiEsqSVG(fa, re),
-                              OAI_ESQ_W * 2, OAI_ESQ_H * 2).then(r => {
+  if (est) est.textContent = ' Preparando el cuadro…';
+  return esqIncluirEnPDF('orejuela', 'Esquema de la orejuela', oaiEsqSVG(fa, re),
+                         OAI_ESQ_W * 2, OAI_ESQ_H * 2).then(r => {
+    oaiEsqPdfBtnSync();
     if (r.ok) {
-      _oaiEsqManualUuid = (typeof _imgUuidActual !== 'undefined') ? _imgUuidActual : null;
-      if (est) est.textContent = ' Este cuadro quedó guardado en las imágenes del estudio.';
-      if (typeof igImgInvalidar === 'function') igImgInvalidar();
+      /* La marca de «lo eligió una persona» deja de colgar del uuid: antes se comparaba contra
+         `_imgUuidActual`, que es `null` hasta que el estudio se guarda, así que con un estudio
+         nuevo el guardado automático pisaba el cuadro elegido en la pasada siguiente. */
+      _oaiEsqManualUuid = 'manual';
+      if (est) est.textContent = (typeof imgGuardadoActivo === 'function' && imgGuardadoActivo())
+        ? ' Este cuadro se incluye en el PDF y se guardará con el estudio.'
+        : ' Este cuadro se incluye en el PDF. Para guardarlo con el estudio, prendé «Guardar '
+          + 'imágenes con los estudios» en la pestaña «⚙️ Config».';
     } else if (est) {
       est.textContent = ' No se incluyó: ' + r.motivo + '.';
     }
@@ -92583,13 +92702,14 @@ function oaiEsqIncluirPDF() {
 }
 window.oaiEsqIncluirPDF = oaiEsqIncluirPDF;
 /* Qué botón se ve. Con movimiento reducido no hay nada que pausar —el cuadro ya está quieto—,
-   así que esos dos no se ofrecen; «Incluir en el PDF» sigue, porque guardar no es animar. */
+   así que esos dos no se ofrecen; «Incluir en el PDF» sigue, porque incluir no es animar. */
 function oaiEsqCtrlSync() {
   const red = _oaiReducido();
   const pz = document.getElementById('oai-esq-pausar');
   const sg = document.getElementById('oai-esq-seguir');
   if (pz) pz.style.display = (red || _oaiPausado) ? 'none' : '';
   if (sg) sg.style.display = (!red && _oaiPausado) ? '' : 'none';
+  oaiEsqPdfBtnSync();
 }
 window.oaiEsqCtrlSync = oaiEsqCtrlSync;
 
@@ -92661,8 +92781,13 @@ function oaiEsqGuardarDiferido() {
        guardado automático no lo reemplaza: elegir un cuadro y que lo pise el siguiente tecleo
        es la promesa que el botón no cumple. Se compara por uuid, así que abrir OTRO estudio
        devuelve el mando al automático sin ninguna limpieza explícita. */
-    const _uu = (typeof _imgUuidActual !== 'undefined') ? _imgUuidActual : null;
-    if (_oaiEsqManualUuid && _uu && _oaiEsqManualUuid === _uu) return;
+    /* ⚠️ LA MARCA YA NO CUELGA DEL uuid (COR-5b, 2026-10-30). Antes se comparaba contra
+       `_imgUuidActual`, que vale `null` mientras el estudio no esté guardado: con un estudio
+       NUEVO el guardado automático pisaba en la pasada siguiente el cuadro que el médico acababa
+       de elegir, que es justo la promesa que el botón hace. Hoy basta con que haya un esquema
+       incluido a mano — «la elegida explícitamente gana», sin condición de guardado. */
+    if (_oaiEsqManualUuid) return;
+    if (typeof esqEstaIncluido === 'function' && esqEstaIncluido('orejuela')) return;
     const firma = [(document.getElementById('oai_morfologia') || {}).value || '',
                    _oaiNum('oai_ostium_diam'), _oaiNum('oai_profundidad'),
                    _oaiNum('oai_vel_vac'),
