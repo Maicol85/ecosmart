@@ -44821,7 +44821,16 @@ function _vInfoColocar(clave) {
      scrollea adentro, que es para lo que esta el `overflow:auto`. */
   const _abajo = B - (r0.bottom + 6), _arriba = (r0.top - 6) - T;
   const _lado = (_abajo >= _arriba) ? 'abajo' : 'arriba';
-  c.style.maxHeight = Math.max(80, Math.floor(_lado === 'abajo' ? _abajo : _arriba)) + 'px';
+  /* ⚠️ Y ADEMÁS SE ACOTA A LA VENTANA, QUE NO ES REDUNDANTE (A3, 30/10/2026).
+     Con el botón DENTRO de la pantalla, `_abajo` y `_arriba` ya son menores que el alto útil y
+     este `min` no cambia nada: las ochenta y pico de tarjetas anteriores no se mueven un píxel.
+     Pero cuando el ancla queda por DEBAJO del pliegue, `r0.top` puede valer más que `innerHeight`
+     y entonces `_arriba` da un hueco mayor que la pantalla entera: la tarjeta deja de scrollear
+     y se sale por abajo. Lo destapó el ⓘ nuevo de la orejuela, que con 3.092 caracteres medía
+     1.215 px en una ventana de 900 a 768 y a 390 px —el de HEAD, de 1.882 caracteres, cabía en
+     ese hueco falso y no lo notaba—. Medido en Chrome y en WebKit, en los dos temas. */
+  const _hueco = Math.min(_lado === 'abajo' ? _abajo : _arriba, B - T);
+  c.style.maxHeight = Math.max(80, Math.floor(_hueco)) + 'px';
   /* ⚠️ UNA CLAVE CON `dyn` SE PINTA POR NODOS Y NO POR innerHTML. Lo que entra ahi son valores
      del paciente y un dibujo: construirlo concatenando HTML es la regla de Semgrep que esta
      tanda tiene escrita, y ademas un SVG puesto por innerHTML no hereda el espacio de nombres
@@ -140376,8 +140385,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261030-0203';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793336580220;                 /* eco-build-ms */
+const ECO_BUILD    = '20261030-0215';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793337332071;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -140463,7 +140472,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261030-0203</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261030-0215</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
