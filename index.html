@@ -1612,6 +1612,25 @@
   .pop-pocus-grid { display:grid; grid-template-columns: minmax(0,1fr); gap:10px; }
   @media (min-width: 1100px) { .pop-pocus-grid { grid-template-columns: repeat(2, minmax(0,1fr)); } }
   .pop-pocus-grid .grid-3 { grid-template-columns: repeat(auto-fit, minmax(170px,1fr)); }
+  /* ══ LA FILA DE LA OREJUELA: CAMPOS A LA IZQUIERDA, DIBUJO A LA DERECHA (A1, 30/10/2026) ══
+     Medido en HEAD: el dibujo quedaba APILADO debajo de los campos en los cuatro anchos
+     —1440, 1000, 768 y 390—, con los tres rect con caja, asi que no era un cero de medicion.
+     El medico lo pidio a la DERECHA; la demo aprobada lo tiene a la izquierda, y en ese punto
+     manda el medico.
+     ⚠️ EL CORTE VA SOBRE LA VENTANA Y NO SOBRE EL CONTENEDOR, a proposito: con `flex-wrap` el
+     punto de quiebre depende del ancho que le quede a la tarjeta, que cambia con la pestana y
+     con el plan, y entonces «a partir de unos 900 px» deja de ser una afirmacion medible. Con
+     la consulta de medios, 899 apila y 900 no, y eso es lo que fija el caso.
+     ⚠️ Y EL `margin-top` DEL DIBUJO SALIO DEL `style=` EN LINEA: un estilo en linea le gana a
+     esta hoja, asi que el margen de la version apilada reaparecia en la version lado a lado y
+     dejaba el dibujo descolgado del borde de arriba de los campos. El `display:none` en linea
+     SI se queda: lo gobierna `oaiEsqSync`. */
+  #oai-fila > #oai-esq-caja { margin-top:10px; }
+  @media (min-width: 900px) {
+    #oai-fila { display:flex; gap:14px; align-items:flex-start; }
+    #oai-fila > .grid-3 { flex:1 1 auto; min-width:0; }
+    #oai-fila > #oai-esq-caja { flex:0 0 360px; margin-top:0; }
+  }
   /* ══ EL DESPLEGABLE DE FARMACOS ══ Cerrado por omision; el contador lo escribe `popSync`. */
   .pop-farm > summary { cursor:pointer; list-style:none; display:flex; align-items:center;
                         gap:8px; min-height:32px; margin-bottom:0; }
@@ -15086,6 +15105,7 @@ z
           <button type="button" class="vinfo-btn" data-vinfo="oai-ref" aria-expanded="false" aria-label="Informaci&oacute;n de referencia sobre la orejuela izquierda" onclick="vInfoClic(this)">&#9432;</button>
         </label>
       </div>
+      <div id="oai-fila">
       <div class="grid-3">
         <div class="fg"><label>Morfología OAI</label>
           <select id="oai_morfologia" onchange="calcOAI();oaiEsqGesto()">
@@ -15152,6 +15172,26 @@ z
           <input type="number" id="oai_area_ostium" placeholder="cm²" oninput="calcOAI()">
         </div>
       </div>
+      <!-- ═══ ESQUEMA DE LA OREJUELA ══════════════════════════════════════════════════════
+           Dibujo esquemático y original, no a escala, armado con los datos cargados. NO JUZGA:
+           no dice «apta» ni «no apta» —eso es decisión de Maicol y no está pedido— y lo único
+           que publica son las medidas que el médico escribió arriba.
+           El `<path id="oai-esq-tmp">` es el medidor de longitud de arco que necesita el motor
+           de las siluetas (`getPointAtLength`): tiene que estar en el DOM para medir, y va
+           fuera de la vista con `width:0`. -->
+      <div id="oai-esq-caja" style="display:none;">
+        <div style="font-size:11px;font-weight:600;color:var(--text2);margin-bottom:4px;">Esquema de la orejuela</div>
+        <!-- `max-width` con el ancho natural del dibujo: sin el, el <svg> se estira a todo el
+             ancho de la tarjeta y el dibujo queda chico y centrado en una franja vacia. -->
+        <div id="oai-esq" style="max-width:360px;margin:0 auto;" role="img" aria-label="Esquema de la orejuela izquierda con las medidas cargadas"></div>
+        <svg width="0" height="0" style="position:absolute;width:0;height:0;overflow:hidden;" aria-hidden="true"><path id="oai-esq-tmp" d=""/></svg>
+        <p style="font-size:10px;color:var(--text2);line-height:1.5;margin:4px 0 0;">
+          VM: válvula mitral. VI: ventrículo izquierdo. VPSI: vena pulmonar superior izquierda.
+          Cx: arteria circunfleja. Dibujo esquemático y original, no a escala.
+          <span id="oai-esq-estado"></span>
+        </p>
+      </div>
+      </div><!-- /#oai-fila -->
       <div class="calc-box" style="margin-top:10px;">
         <div class="calc-row"><span class="calc-lbl">Velocidad vaciamiento</span><span id="oai-vel-interp">—</span></div>
         <!-- ⚠️ LA NOTA Y EL CHIP VAN EN NODOS PROPIOS Y SE ESCRIBEN CON `textContent` (I-E1):
@@ -15174,25 +15214,6 @@ z
              medida cae dentro de un rango. -->
         <div class="calc-row"><span class="calc-lbl" style="font-weight:700;">⚖️ Medidas de la orejuela</span><span id="oai-elegibilidad">—</span></div>
         <div class="calc-row"><span id="oai-notas" style="font-size:11px;color:var(--yellow);"></span></div>
-      </div>
-      <!-- ═══ ESQUEMA DE LA OREJUELA ══════════════════════════════════════════════════════
-           Dibujo esquemático y original, no a escala, armado con los datos cargados. NO JUZGA:
-           no dice «apta» ni «no apta» —eso es decisión de Maicol y no está pedido— y lo único
-           que publica son las medidas que el médico escribió arriba.
-           El `<path id="oai-esq-tmp">` es el medidor de longitud de arco que necesita el motor
-           de las siluetas (`getPointAtLength`): tiene que estar en el DOM para medir, y va
-           fuera de la vista con `width:0`. -->
-      <div id="oai-esq-caja" style="margin-top:10px;display:none;">
-        <div style="font-size:11px;font-weight:600;color:var(--text2);margin-bottom:4px;">Esquema de la orejuela</div>
-        <!-- `max-width` con el ancho natural del dibujo: sin el, el <svg> se estira a todo el
-             ancho de la tarjeta y el dibujo queda chico y centrado en una franja vacia. -->
-        <div id="oai-esq" style="max-width:360px;margin:0 auto;" role="img" aria-label="Esquema de la orejuela izquierda con las medidas cargadas"></div>
-        <svg width="0" height="0" style="position:absolute;width:0;height:0;overflow:hidden;" aria-hidden="true"><path id="oai-esq-tmp" d=""/></svg>
-        <p style="font-size:10px;color:var(--text2);line-height:1.5;margin:4px 0 0;">
-          VM: válvula mitral. VI: ventrículo izquierdo. VPSI: vena pulmonar superior izquierda.
-          Cx: arteria circunfleja. Dibujo esquemático y original, no a escala.
-          <span id="oai-esq-estado"></span>
-        </p>
       </div>
       <div class="fg" style="margin-top:8px;"><label>Notas OAI</label>
         <textarea id="oai_notas" placeholder="Observaciones adicionales..."></textarea>
@@ -91543,7 +91564,13 @@ function oaiEsqSVG() {
   g += '<path d="M40 164 C70 150 120 150 150 164" fill="none" stroke="' + C.linea + '" stroke-width="2.5"/>';
   g += '<path d="M48 164 C60 200 80 226 99 232" fill="none" stroke="' + C.borde + '" stroke-width="2"/>';
   g += '<path d="M150 164 C142 196 126 220 110 230" fill="none" stroke="' + C.borde + '" stroke-width="2"/>';
-  g += '<circle cx="196" cy="154" r="5" fill="' + C.rojo + '"/>' + L(203, 170, 'Cx', 'start', 10, C.rojo);
+  /* ⚠️ EL ROTULO «Cx» VA A LA IZQUIERDA DE SU PUNTO, Y NO A LA DERECHA COMO EN LA DEMO.
+     Medido en HEAD sobre los 640 combos de la grilla: la linea punteada de la PROFUNDIDAD
+     —que sale de (186,117) hacia la punta de la silueta— cruzaba la caja del rotulo en los
+     640, o sea siempre y con cualquier morfologia. A la derecha no hay lugar: la linea baja
+     justo por ahi para las cuatro puntas. A la izquierda, en la franja y=168..180, la linea
+     ya va por x=211 o mas en la mas tendida de las cuatro, asi que no la cruza ninguna. */
+  g += '<circle cx="196" cy="154" r="5" fill="' + C.rojo + '"/>' + L(190, 176, 'Cx', 'end', 10, C.rojo);
   g += '<circle cx="188" cy="76" r="3" fill="' + C.linea + '"/>' + L(180, 80, 'reborde', 'end');
   g += L(176, 68, 'VPSI', 'end');
   g += L(176, 200, 'VM') + L(99, 246, 'VI', 'middle');
@@ -91562,7 +91589,14 @@ function oaiEsqSVG() {
   const colD = d ? C.medida : C.borde;
   g += '<line x1="186" y1="117" x2="' + tip[0] + '" y2="' + tip[1] +
        '" stroke="' + colD + '" stroke-width="2.5" stroke-dasharray="6 4"/>';
-  if (d) g += L(tip[0], tip[1] + 22, 'prof. ' + d + ' mm', 'middle', 11, C.medida);
+  /* ⚠️ EL VALOR DE LA PROFUNDIDAD VA A LA DERECHA DE LA PUNTA, NO CENTRADO DEBAJO.
+     Centrado, con la morfologia «ala de pollo» —punta en (216,179)— la caja caia en
+     x 188..244 / y 193..204 y se pisaba con «VM», que esta en 176..196 / 192..203: medido,
+     160 de los 640 combos de la grilla, o sea la cuarta parte, que es justo esa morfologia
+     con cualquier ostium, profundidad y velocidad. Anclado al principio y corrido 14 px a la
+     derecha arranca en 230 y «VM» termina en 196. El rotulo mas largo —«prof. 50 mm», 11 px—
+     mide unos 58, asi que el borde derecho queda en 300 de los 340 del lienzo. */
+  if (d) g += L(tip[0] + 14, tip[1] + 26, 'prof. ' + d + ' mm', 'start', 11, C.medida);
   /* El DOPPLER PULSADO con la velocidad de vaciamiento. El trazo es ilustrativo: la altura sigue
      al número cargado y no hay ninguna referencia de normalidad dibujada, porque el esquema no
      juzga. */
@@ -139799,8 +139833,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261029-2147';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793321248882;                 /* eco-build-ms */
+const ECO_BUILD    = '20261030-0144';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793335457576;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -139886,7 +139920,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261029-2147</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261030-0144</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
