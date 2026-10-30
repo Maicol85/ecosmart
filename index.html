@@ -58208,10 +58208,29 @@ function generarInforme(opts) {
          rango de tamaño, la orden de esta tanda no la nombra, y el parrafo de arriba depende de
          ella: su propio comentario dice que sin ese gate el informe salia con dos parrafos
          seguidos donde uno manda a considerar el cierre y el otro declara al paciente no apto.
-         Retirarla es decision de Maicol -> `docs/PENDIENTES.md` E-d. */
-      let aptitud = '';
-      if (oTrombo === 'si') aptitud = 'no apto para cierre percutáneo (trombo presente)';
-      etePars.push(dimParts.join(', ') + (aptitud ? ' — ' + aptitud : '') + '.');
+         Retirarla es decision de Maicol -> `docs/PENDIENTES.md` E-d.
+         ══ Y LA RAMA DEL TROMBO SE FUE TAMBIEN (COR-1a, 2026-10-30). DECISION DE MAICOL ══════
+         El E-4a habia dejado «no apto para cierre percutaneo (trombo presente)» por tres motivos
+         que esta orden releva: que era una contraindicacion y no un rango, que la orden de esa
+         tanda no la nombraba, y que el parrafo de los lobulos dependia del gate. Los dos
+         primeros caen -LA APLICACION NO HACE RECOMENDACIONES, y un veredicto de aptitud lo es
+         aunque lo sostenga una contraindicacion absoluta-; el tercero NO: el gate de
+         `oLob === '3' && oTrombo !== 'si' && oTrombo !== 'sospecha'` SIGUE EN PIE unas lineas
+         mas arriba y no se toca, asi que la nota de complejidad tampoco aparece con trombo.
+         El HECHO -que el trombo movil contraindica el cierre percutaneo- pasa a la EVIDENCIA,
+         con su fuente leida en imagen: Meier 2014, EHRA/EAPCI, folio 1401.
+         ══ Y LA ORACION ARRANCA CON MAYUSCULA, con su SUJETO ════════════════════════════════
+         Observado por el medico: salia «ostium 26 mm, profundidad 37 mm — no apto …», o sea un
+         renglon del informe firmado empezando en minuscula. El sujeto hace falta de verdad y no
+         es cosmetico: el parrafo 2 corre con `hasOAI` -velocidad, contraste, trombo o lobulos- y
+         ESTE con ostium o profundidad, asi que un ETE que solo mide la orejuela publica esta
+         oracion SIN el parrafo de arriba, y sin sujeto queda sin decir de que habla.
+         ⚠️ «trombo presente» NO SE REPITE ACA, y es la regla R4 de la orden -cada contenido una
+         vez por seccion- ganandole al ejemplo que la misma orden da. Medido: con `oTrombo` en
+         «si», `hasOAI` es SIEMPRE verdadero, asi que el parrafo de arriba YA publico «Orejuela
+         izquierda con trombo confirmado» en la oracion anterior. El unico camino a esta oracion
+         sin ese parrafo es con el trombo SIN contestar, y ahi no hay trombo que nombrar. */
+      etePars.push('Orejuela izquierda: ' + dimParts.join(', ') + '.');
     }
 
     // 4. Aorta ETE
@@ -78270,7 +78289,22 @@ const IND_REFS = Object.freeze([
          'inexplicada, n = 923, área bajo la curva 0,87. Con 8 puntos o más: sensibilidad 46 % ' +
          '(intervalo 42-50) y especificidad 98 % (intervalo 95-99). ' +
          '⚠️ EN LA MISMA TABLA CONVIVE EL SCORE «AL», que tiene cuatro parámetros y otra ' +
-         'cohorte: los valores citados son los del IWT, que es el que esta aplicación calcula.' }
+         'cohorte: los valores citados son los del IWT, que es el que esta aplicación calcula.' },
+  /* ══ COR-1b, 2026-10-30 ══════════════════════════════════════════════════════════════════
+     Entra al registro porque el informe firmado DEJÓ de decir «no apto para cierre percutáneo
+     (trombo presente)» y el hecho que lo sostenía tiene que vivir en algún lado con su fuente.
+     Leída EN IMAGEN a 400 ppp, folio comprobado en el pie impreso de la hoja 5. */
+  { k:'meier2014',
+    full:'Meier B, Blaauw Y, Khattab AA, et al. EHRA/EAPCI expert consensus statement on ' +
+         'catheter-based left atrial appendage occlusion. Europace 2014;16:1397-1416. ' +
+         'Verificada sobre el original en inglés. Regla de folio: folio = hoja del PDF + 1396, ' +
+         'comprobada en el pie impreso. Apartado «Pre-procedural assessment», folio 1401, ' +
+         'hoja 5, leído EN IMAGEN, literal: «It is important to confirm the absence of LAA ' +
+         'thrombi prior to LAA occlusion. The presence of mobile thrombi is a contraindication ' +
+         'for percutaneous LAA occlusion, since dislodgement of thrombus may occur with ' +
+         'manipulation of sheaths or devices in the LAA.» ' +
+         '⚠️ ESE APARTADO NO LLEVA CLASE NI NIVEL DE EVIDENCIA: es texto de consenso, no una ' +
+         'tabla de recomendaciones, y se publica como tal.' }
 ]);
 
 /* Clave → número. Se arma UNA vez desde `IND_REFS`.
@@ -86113,7 +86147,20 @@ function _indETETrombo(){
   } else {
     faltan.push({ txt:'Falta consignar si el paciente es candidato a comisurotomía mitral percutánea: de eso dependen cuatro filas de la guía de valvulopatías.', refs:null });
   }
+  /* ══ EL HECHO DEL TROMBO MÓVIL, CON SU FUENTE (COR-1b, 2026-10-30) ═══════════════════════
+     Viene a cubrir lo que el informe firmado dejó de decir en el mismo commit: el papel publica
+     las medidas y nada más, y el hecho vive acá. Es un HECHO y no una conducta — dice que el
+     trombo móvil contraindica el cierre, no qué hacer con este paciente —, y por eso NO lleva
+     clase ni nivel: el apartado de Meier es texto de consenso y no una tabla de
+     recomendaciones. La movilidad del trombo la app no la registra, así que la línea nombra la
+     condición de la fuente sin afirmar que este trombo la cumpla. */
+  const oaiL = [{ txt:'La presencia de trombos MÓVILES es una contraindicación para el cierre ' +
+                       'percutáneo de la orejuela, porque la manipulación de las vainas o del ' +
+                       'dispositivo puede desprenderlos. Ese apartado no publica clase ni nivel ' +
+                       'de evidencia. La aplicación no registra la movilidad del trombo.',
+                  refs:['meier2014'] }];
   const bloques = [
+    { tit:'Trombo y cierre percutáneo — consenso EHRA/EAPCI (folio 1401)', lineas: oaiL },
     { tit:'Cardioversión — guía de fibrilación auricular (Tabla 15, folio 3355)', lineas: cvL,
       nota:'El informe y la conclusión de la app son DESCRIPTIVOS: la conducta se publica acá y no en el papel firmado.' },
     { tit:'Comisurotomía mitral percutánea — guía de valvulopatías (Tabla 8, folio 4682)', lineas: pmcL }
@@ -86129,7 +86176,7 @@ function _indETETrombo(){
     guia: { ref:'esc2025vc',
       txt:'El trombo en la aurícula izquierda figura entre las contraindicaciones de la comisurotomía mitral percutánea en la estenosis mitral reumática; cuando está en la orejuela, la nota al pie de esa tabla admite considerar el procedimiento bajo condiciones (Tabla 8 de contraindicaciones, folio 4682).',
       nota:'Esa tabla de contraindicaciones NO publica clase ni nivel de evidencia; las filas de cardioversión, que sí los llevan, salen de la guía de fibrilación auricular.' },
-    notas: cvL.concat(pmcL).map(function(l){ return l.txt }) };
+    notas: oaiL.concat(cvL, pmcL).map(function(l){ return l.txt }) };
 }
 
 /* ══ REPARABILIDAD DE LA VALVULA MITRAL (I-E3, 22/10/2026) ══════════════════════════════════
