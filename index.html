@@ -20566,12 +20566,20 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
           <option value="inmunoterapia">Inmunoterapia (ICI)</option>
           <option value="vegf">Anti-VEGF / Bevacizumab</option>
           <option value="bcr_abl">BCR-ABL inhibidor (imatinib)</option>
+          <!-- ⚠️ DOS OPCIONES NUEVAS (tanda D2). La Tabla 4 tiene columna para las dos y hasta
+               ahora el selector no las ofrecía, así que esos pacientes no tenían dónde caer. NO
+               agregan un campo guardado ni una columna de Excel: `co_farmaco` y la columna
+               «Fármaco cardiotóxico» ya existían. Lo que agregan son dos VALORES al vocabulario
+               de esa columna, en los dos mapas —el de etiquetas y el inverso del importador—,
+               que es lo que mantiene vivo el round-trip. Ningún estudio guardado cambia. -->
+          <option value="mieloma">Mieloma m&uacute;ltiple (inhibidores de proteasoma, IMiD)</option>
+          <option value="raf_mek">Inhibidores RAF/MEK</option>
           <option value="radioterapia">Radioterapia toraxica</option>
           <option value="otro">Otro</option>
         </select>
         </div>
         <div style="font-size:10.5px;color:var(--text2);line-height:1.45;margin-top:6px;">
-          Con antraciclinas o anti-HER2 la clasificaci&oacute;n sale de la tabla de la gu&iacute;a; con los dem&aacute;s, del puntaje propio.
+          La clasificaci&oacute;n sale de la tabla de la gu&iacute;a, que tiene una columna por f&aacute;rmaco. Inmunoterapia, radioterapia y &laquo;Otro&raquo; no tienen columna y van con el puntaje propio.
         </div>
       </div>
     </div>
@@ -53358,24 +53366,42 @@ function hfaicosMax() {
    O sea: cualquier VH manda; si no, cualquier H o cinco puntos moderados dan alto; 2 a 4 puntos
    moderados dan moderado; 0 o 1 punto da bajo.
 
-   ⚠️ SÓLO DOS COLUMNAS, Y ES DELIBERADO. La tabla trae seis —antraciclinas, anti-HER2, anti-VEGF,
-   BCR-ABL, mieloma múltiple y RAF/MEK—. La orden de esta tanda aplica las dos primeras y deja las
-   otras explícitamente sin tocar; están transcritas en `docs/fuentes/FUENTES.md` y declaradas en
-   `docs/PENDIENTES.md` para el día que se implementen. Un fármaco sin columna acá no pasa por este
-   camino: lo atiende el puntaje propio de la aplicación, que se rotula como tal en pantalla. */
+   LAS SEIS COLUMNAS ESTÁN APLICADAS (tanda D2, 2026-10-30). La tabla trae seis —antraciclinas,
+   anti-HER2, anti-VEGF, BCR-ABL, mieloma múltiple y RAF/MEK— y las seis se leyeron en imagen a
+   420 ppp para esta tanda, celda por celda. Un fármaco sin columna acá —inmunoterapia,
+   radioterapia y «Otro»— no pasa por este camino: la tabla NO TIENE columna para ellos, y los
+   atiende el puntaje propio de la aplicación, que se rotula como tal en pantalla.
+
+   ⚠️ `hfaicos_cv_coron` ES UNA CASILLA Y SON TRES FILAS DE LA TABLA —«Severe VHD», «MI or PCI or
+   CABG» y «Stable angina»—, y en cuatro de las seis columnas las tres NO valen lo mismo. Se aplica
+   el MAYOR de las tres, que es el lado seguro y el mismo criterio que la nota al pie g. El precio,
+   declarado en `docs/PENDIENTES.md` → D2-a: con anti-VEGF, un paciente cuyo ÚNICO antecedente sea
+   una valvulopatía severa —«–» en esa columna— se clasifica como si tuviera un infarto («VH»).
+   Partir la casilla en tres sería agregar campos guardados, que esta tanda tiene prohibido. */
 function coT4Pesos() {
   return {
-    hfaicos_hta:       { antracicline:'M1', trastuzumab:'M1' },   // Hypertension
-    hfaicos_dm:        { antracicline:'M1', trastuzumab:'M1' },   // DM
-    hfaicos_obesidad:  { antracicline:'M1', trastuzumab:'M1' },   // Obesity (BMI >30 kg/m2)
-    hfaicos_tabaco:    { antracicline:'M1', trastuzumab:'M1' },   // Current smoker / smoking history
-    hfaicos_cv_ic:     { antracicline:'VH', trastuzumab:'VH' },   // HF / cardiomyopathy / CTRCD
-    hfaicos_cv_coron:  { antracicline:'H',  trastuzumab:'H'  },   // MI o PCI o CABG · angina estable · severe VHD
-    hfaicos_cv_arrit:  { antracicline:null, trastuzumab:'M2' },   // Arrhythmia (nota a) — «–» en antraciclinas
-    hfaicos_fevi_lim:  { antracicline:'M2', trastuzumab:'M2' },   // LVEF 50-54%
-    hfaicos_fevi_red:  { antracicline:'H',  trastuzumab:'H'  },   // LVEF <50%
-    hfaicos_troponina: { antracicline:'M1', trastuzumab:'M2' },   // Elevated baseline cTn (nota b)
-    hfaicos_bnp:       { antracicline:'M1', trastuzumab:'M2' }    // Elevated baseline NP (nota b)
+    // Hypertension
+    hfaicos_hta:       { antracicline:'M1', trastuzumab:'M1', vegf:'H',  bcr_abl:'M2',  mieloma:'M1', raf_mek:'M2' },
+    // DM (nota e)
+    hfaicos_dm:        { antracicline:'M1', trastuzumab:'M1', vegf:'M1', bcr_abl:'M1',  mieloma:'M1', raf_mek:'M1' },
+    // Obesity (BMI >30 kg/m2)
+    hfaicos_obesidad:  { antracicline:'M1', trastuzumab:'M1', vegf:'M1', bcr_abl:'M1',  mieloma:'M1', raf_mek:'M1' },
+    // Current smoker / significant smoking history
+    hfaicos_tabaco:    { antracicline:'M1', trastuzumab:'M1', vegf:'M1', bcr_abl:'H',   mieloma:'M1', raf_mek:'M1' },
+    // HF / cardiomyopathy / CTRCD
+    hfaicos_cv_ic:     { antracicline:'VH', trastuzumab:'VH', vegf:'VH', bcr_abl:'H',   mieloma:'VH', raf_mek:'VH' },
+    // Severe VHD · MI o PCI o CABG · Stable angina — el MAYOR de las tres filas (ver el aviso de arriba)
+    hfaicos_cv_coron:  { antracicline:'H',  trastuzumab:'H',  vegf:'VH', bcr_abl:null,  mieloma:null, raf_mek:'H' },
+    // Arrhythmia (nota a) — «–» en antraciclinas
+    hfaicos_cv_arrit:  { antracicline:null, trastuzumab:'M2', vegf:'M2', bcr_abl:'M2',  mieloma:'M2', raf_mek:'M1' },
+    // LVEF 50-54%
+    hfaicos_fevi_lim:  { antracicline:'M2', trastuzumab:'M2', vegf:'M2', bcr_abl:null,  mieloma:'M2', raf_mek:'M2' },
+    // LVEF <50%
+    hfaicos_fevi_red:  { antracicline:'H',  trastuzumab:'H',  vegf:'H',  bcr_abl:'H',   mieloma:'H',  raf_mek:'H'  },
+    // Elevated baseline cTn (nota b)
+    hfaicos_troponina: { antracicline:'M1', trastuzumab:'M2', vegf:'M1', bcr_abl:null,  mieloma:'M2', raf_mek:'M2' },
+    // Elevated baseline NP (nota b)
+    hfaicos_bnp:       { antracicline:'M1', trastuzumab:'M2', vegf:'M1', bcr_abl:null,  mieloma:'H',  raf_mek:'M2' }
     /* `hfaicos_edad` NO está acá: la tabla tiene DOS filas de edad para estas dos columnas
        —«Age >=80 years» alto y «Age 65-79 years» moderado 2— y cuál se aplica depende del número,
        no de la casilla. Lo resuelve `_coT4Edad`.
@@ -53387,23 +53413,35 @@ function coT4Pesos() {
 }
 window.coT4Pesos = coT4Pesos;
 
-/* Qué columna de la Tabla 4 le toca a cada valor del selector de fármaco. Lo que no está acá no
-   tiene columna aplicada: `inmunoterapia` y `radioterapia` NO TIENEN COLUMNA EN LA TABLA, y
-   `vegf` y `bcr_abl` sí la tienen pero esta tanda no la implementa. Los cuatro van por el
-   puntaje propio, con su línea. */
+/* Qué columna de la Tabla 4 le toca a cada valor del selector de fármaco. Lo que no está acá NO
+   TIENE COLUMNA EN LA TABLA: `inmunoterapia`, `radioterapia` y `otro` van por el puntaje propio
+   de la aplicación, con su línea de alcance. Desde la tanda D2 no queda ningún fármaco que tenga
+   columna en la guía y no la aplique. */
 function coT4Columna(farmaco) {
-  if (farmaco === 'antracicline') return 'antracicline';
-  if (farmaco === 'trastuzumab')  return 'trastuzumab';
-  return null;
+  const COL = { antracicline:'antracicline', trastuzumab:'trastuzumab',
+                vegf:'vegf', bcr_abl:'bcr_abl', mieloma:'mieloma', raf_mek:'raf_mek' };
+  return COL[farmaco] || null;
 }
 window.coT4Columna = coT4Columna;
 
-/* Las dos filas de edad. Con la casilla «Edad >=65» tildada y SIN edad cargada se aplica la fila
-   de 65-79, que es la MENOR de las dos: la casilla afirma «65 o más» y no «80 o más», así que
-   subir a la fila de alto sobre un dato que nadie cargó sería inventarlo. */
-function _coT4Edad(edad) {
-  if (edad !== null && edad >= 80) return 'H';
-  return 'M2';
+/* ══ LAS FILAS DE EDAD, QUE NO SON LAS MISMAS EN CADA COLUMNA ════════════════════════════════
+   La Tabla 4 reparte la edad en CINCO filas y cada columna usa las suyas:
+     · antraciclinas y anti-HER2 → «Age >=80» H · «Age 65-79» M2
+     · anti-VEGF                 → «Age >=75» H · «Age 65-74» M1
+     · BCR-ABL                   → «Age >=75» H · «Age 65-74» M2 · «Age >=60» M1
+     · mieloma múltiple          → «Age >=75» H · «Age 65-74» M1
+     · RAF/MEK                   → las cuatro filas valen M1
+   La app tiene UNA casilla de edad, así que sólo puede emitir una celda: se aplica la fila MÁS
+   ESPECÍFICA que el paciente cumple, y entre dos que cumple a la vez —en BCR-ABL, «65-74» y
+   «>=60»— la mayor. Sumar las dos sería contar la misma edad dos veces.
+   SIN edad cargada se aplica la fila MENOR de la columna: la casilla afirma «65 o más» y no
+   «80 o más», así que subir a la fila de alto sobre un dato que nadie cargó sería inventarlo. */
+function _coT4Edad(edad, col) {
+  if (col === 'raf_mek') return 'M1';                                  // las cuatro filas son M1
+  if (col === 'vegf')    return (edad !== null && edad >= 75) ? 'H' : 'M1';
+  if (col === 'bcr_abl') return (edad !== null && edad >= 75) ? 'H' : 'M2';
+  if (col === 'mieloma') return (edad !== null && edad >= 75) ? 'H' : 'M1';
+  return (edad !== null && edad >= 80) ? 'H' : 'M2';                   // antraciclinas y anti-HER2
 }
 const _CO_T4_PTS = Object.freeze({ M1: 1, M2: 2 });
 const _HFAICOS_ORDEN = ['bajo', 'medio', 'alto', 'muy_alto'];
@@ -53550,7 +53588,7 @@ function hfaicosEstado() {
     let hayVH = false, hayH = false;
     pts = 0; max = null;
     presentes.forEach(f => {
-      const cel = (f.id === 'hfaicos_edad') ? _coT4Edad(edad)
+      const cel = (f.id === 'hfaicos_edad') ? _coT4Edad(edad, col)
                 : (PES[f.id] ? PES[f.id][col] : undefined);
       if (cel === undefined) { fueraDeTabla.push(f.lbl); return; }  // no tiene fila en la tabla
       if (cel === null) return;                                      // «–»: la fila no suma acá
@@ -53702,16 +53740,14 @@ function calcHFAICOS() {
 }
 window.calcHFAICOS = calcHFAICOS;
 
-/* La línea que rotula el puntaje propio. Dos textos y no uno, porque las dos situaciones son
-   distintas: hay fármacos para los que la Tabla 4 NO TIENE COLUMNA —inmunoterapia y
-   radioterapia— y otros para los que la tiene y esta versión todavía no la aplica. Decirle al
-   médico «la guía no lo define» sobre un fármaco que la guía sí define sería falso.
+/* La línea que rotula el puntaje propio. UN SOLO TEXTO desde la tanda D2: el segundo decía
+   «todavía no se aplica la tabla de la guía para este fármaco» y existía porque anti-VEGF y
+   BCR-ABL tenían columna y no se aplicaba. Hoy las seis columnas están aplicadas, así que los
+   únicos fármacos que llegan acá —inmunoterapia, radioterapia y «Otro»— son exactamente los que
+   NO TIENEN columna en la tabla, y para los tres la frase correcta es la misma.
    Sin citas de guía acá: la explicación completa va en el globo ⓘ. */
 function _hfaicosAlcance(farmaco) {
-  const SIN_COLUMNA = ['inmunoterapia', 'radioterapia'];
-  return SIN_COLUMNA.indexOf(farmaco) >= 0
-    ? 'Puntaje propio de la aplicación; la guía no lo define para este fármaco.'
-    : 'Puntaje propio de la aplicación; todavía no se aplica la tabla de la guía para este fármaco.';
+  return 'Puntaje propio de la aplicación; la guía no lo define para este fármaco.';
 }
 
 /* ══ LA COLUMNA DE PUNTOS DE LA PANTALLA SIGUE AL FÁRMACO ═════════════════════════════════════
@@ -53743,7 +53779,7 @@ function _hfaicosPintarPuntos(col) {
     if (!sp) return;
     if (f.legado) { sp.textContent = '—'; return; }
     if (!col) { sp.textContent = f.pts + (f.pts === 1 ? ' pt' : ' pts'); return; }
-    const cel = (f.id === 'hfaicos_edad') ? _coT4Edad(isFinite(edadN) ? edadN : null)
+    const cel = (f.id === 'hfaicos_edad') ? _coT4Edad(isFinite(edadN) ? edadN : null, col)
               : (PES[f.id] ? PES[f.id][col] : undefined);
     sp.textContent = (cel === undefined || cel === null) ? '—' : ROT[cel];
   });
@@ -53841,6 +53877,19 @@ function hfaicosTexto() {
      que «7/13 puntos» al lado de «riesgo muy alto» sería un número que no explica la banda.
      El informe circula solo: tiene que decir con qué regla se clasificó. */
   const p = [];
+  /* ⚠️ EL NOMBRE DE LA COLUMNA SALE DE UNA TABLA Y NO DE UN TERNARIO (tanda D2). Esto era
+     `r.col === 'antracicline' ? 'antraciclinas' : 'terapias dirigidas contra HER2'`, que era
+     cierto mientras las columnas aplicadas fueran dos: con las seis, el informe FIRMADO de un
+     paciente con mieloma múltiple decía «según la tabla … para terapias dirigidas contra HER2».
+     Lo encontró el A/B del commit 2 con la escena `f_mieloma_bnp`. */
+  const COLNOM = {
+    antracicline: 'antraciclinas',
+    trastuzumab:  'terapias dirigidas contra HER2',
+    vegf:         'inhibidores del factor de crecimiento endotelial vascular',
+    bcr_abl:      'inhibidores BCR-ABL',
+    mieloma:      'terapias para mieloma múltiple',
+    raf_mek:      'inhibidores RAF y MEK'
+  };
   /* ⚠️ SIN FÁRMACO NO SE AFIRMA UNA CATEGORÍA EN EL PAPEL. Se calla la oración que la anuncia,
      la derivación, el calendario y la línea de «clasificación orientativa» —las cuatro salen de
      la banda—, y queda lo que es descriptivo y ya existía palabra por palabra: los factores
@@ -53858,7 +53907,7 @@ function hfaicosTexto() {
   if (r.col) {
     p.push('Evaluación de riesgo cardiovascular basal según la tabla de estratificación de la guía '
       + 'ESC 2022 de cardio-oncología para '
-      + (r.col === 'antracicline' ? 'antraciclinas' : 'terapias dirigidas contra HER2')
+      + (COLNOM[r.col] || r.col)
       + ': riesgo ' + r.banda.toLowerCase() + '.');
   } else {
     p.push('Evaluación de riesgo cardiovascular basal con la clasificación orientativa de EcoSmart: puntaje '
@@ -125833,8 +125882,11 @@ const LAB_XLS_ETIQ = {
   dpt_local:         { circ:'Circunferencial', post:'Posterior', ant:'Anterior', locul:'Loculado', mixto:'Mixto' },
   cvr_hepatico:      { normal:'Normal', esp:'Reversión espiratoria', insp:'Reversión inspiratoria' },
   cvr_pericardio_tc: { engrosado:'Engrosado', normal:'Normal', calcificado:'Calcificado' },
+  /* ⚠️ `mieloma` y `raf_mek` son de la tanda D2: dos VALORES nuevos de una columna que ya
+     existía, no una columna nueva. El Excel sigue en 440 y ningún estudio guardado cambia. */
   co_farmaco: { antracicline:'Antraciclinas', trastuzumab:'Trastuzumab / Anti-HER2', inmunoterapia:'Inmunoterapia (ICI)',
-                vegf:'Anti-VEGF / Bevacizumab', bcr_abl:'BCR-ABL (imatinib)', radioterapia:'Radioterapia torácica', otro:'Otro' },
+                vegf:'Anti-VEGF / Bevacizumab', bcr_abl:'BCR-ABL (imatinib)', mieloma:'Mieloma múltiple',
+                raf_mek:'Inhibidores RAF/MEK', radioterapia:'Radioterapia torácica', otro:'Otro' },
   co_riesgo_cv: { '0':'Ninguno', '1':'1 factor', '2':'2 factores', '3':'3 o más factores o IC previa' },
   co_troponi: { no:'No', si:'Sí' },
   hf_ritmo: { auto:'Automático', rs:'Ritmo sinusal', fa:'Fibrilación auricular' },
@@ -125941,7 +125993,9 @@ const LAB_XLS_VOCAB_NUEVOS = {
   co_farmaco: { antracicline:'antracicline', antraciclinas:'antracicline', trastuzumab:'trastuzumab',
                 'anti-her2':'trastuzumab', inmunoterapia:'inmunoterapia', ici:'inmunoterapia',
                 vegf:'vegf', 'anti-vegf':'vegf', bevacizumab:'vegf', bcr_abl:'bcr_abl', 'bcr-abl':'bcr_abl',
-                imatinib:'bcr_abl', radioterapia:'radioterapia', otro:'otro' },
+                imatinib:'bcr_abl', mieloma:'mieloma', 'mieloma multiple':'mieloma',
+                'mieloma múltiple':'mieloma', raf_mek:'raf_mek', 'raf/mek':'raf_mek',
+                'inhibidores raf/mek':'raf_mek', radioterapia:'radioterapia', otro:'otro' },
   co_riesgo_cv: { '0':'0', ninguno:'0', '1':'1', '2':'2', '3':'3' },
   co_troponi: { '':'', no:'no', si:'si', 'sí':'si', '1':'si', '0':'no' },
   hf_ritmo: { auto:'auto', automatico:'auto', '':'auto', rs:'rs', sinusal:'rs', 'ritmo sinusal':'rs',
