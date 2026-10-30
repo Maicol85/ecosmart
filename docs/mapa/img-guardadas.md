@@ -272,3 +272,20 @@ botones, la página, el índice y el visor dan «NO EXISTE», o sea que la sonda
 
 Las sondas: `scripts/_probe_img1.mjs` (`--censo` y `--perf`, reutilizable) y
 `scripts/_probe_img2.mjs`. Las mutaciones: `scripts/_mut_img.py`.
+
+---
+
+## Puntero · lo que la TANDA NOCTURNA, Parte A le movió al esquema de la orejuela (2026-10-30)
+
+El esquema de la orejuela que esta tanda creó **se mudó de lugar, se puso en movimiento y gana
+tres controles**. Lo de acá sigue describiendo la **función común** (`esqGuardarComoImagen`,
+`esqRasterizar`, `CeiboImg.guardarEsquema`), que no se tocó. Lo que cambió del esquema de la
+orejuela está en **`docs/mapa/noc-a-orejuela.md`**:
+
+- la caja del dibujo ya **no vive después del recuadro de resultados**: es hermana de la grilla
+  de campos dentro de `#oai-fila`, y a partir de 900 px va a la derecha;
+- `oaiEsqSVG` **toma la fase** (`oaiEsqSVG(fase, remolino)`), y lo que se rasteriza es el cuadro
+  que está en pantalla;
+- el guardado automático de `oaiEsqGuardarDiferido` **sale temprano** mientras el médico haya
+  elegido un cuadro con «Incluir en el PDF» para ese mismo estudio (`_oaiEsqManualUuid`);
+- el motivo «el guardado de imágenes está apagado» ahora **dice dónde se prende**.

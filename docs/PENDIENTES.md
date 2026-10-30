@@ -9956,3 +9956,121 @@ estudio guardado le escribiría un esquema que nadie pidió**. La consecuencia, 
 estudio que ya está guardado con datos de orejuela **no** recibe su esquema al abrirlo. Lo recibe
 en cuanto alguien toca un campo, o al guardarlo de nuevo. Si se quiere que los estudios viejos lo
 tengan, eso es una migración y necesita su propia orden.
+
+---
+
+## TANDA NOCTURNA — Parte A (la orejuela del ETE y los videos), 2026-10-30
+
+### NOC-A-a · El chorro de insuficiencia es CENTRAL siempre: falta el «velo afectado»
+
+La demo aprobada orienta el chorro con **dos** datos: el Carpentier y el velo afectado —en el
+tipo II va hacia el lado opuesto al velo que prolapsa, y en los dos tipos III hacia el mismo lado
+del velo restringido—. El Carpentier **sí existe** en la app, en dos campos espejados (`vm_carp`
+en Válvulas y `ete_carpentier` en el ETE, que sincroniza `vmCarpPropagar`).
+
+**El velo afectado NO existe**, censado el documento entero: no hay ningún campo guardado que
+diga qué velo o qué festón está comprometido. La vista quirúrgica dibuja los seis festones pero
+no persiste cuál se eligió. Con el Carpentier solo no se puede decidir un lado —el tipo II manda
+el chorro a un lado o al otro **según el velo**—, así que dibujar uno sería inventar una
+dirección. El chorro queda central, y su TAMAÑO sí sigue al grado leído de Válvulas.
+
+**Lo que costaría:** un campo guardado nuevo, que esta tanda tiene prohibido agregar, más su
+columna de Excel si se quiere que viaje. Es decisión de Maicol.
+
+### NOC-A-b · «Lo normal es 40 cm/s o más» NO se escribió, y no es un olvido
+
+El borrador del ⓘ lo pedía. **Ninguna de las cuatro fuentes leídas publica un valor normal de la
+velocidad de vaciamiento.** Lo que Hahn 2013 dice en el folio 954 es que por encima de 40 cm/s se
+predice mayor probabilidad de mantener el **ritmo sinusal normal** tras la cardioversión: el
+adjetivo «normal» de esa oración es del ritmo, no de la velocidad. La ficha de Referencias de la
+app ya decía, desde la I-E2, que «la guía da los números y no los nombres».
+
+El ⓘ lo declara en su bloque «Lo que no se pudo verificar». Si Maicol quiere publicar un valor
+normal, hace falta una fuente que lo publique.
+
+### NOC-A-c · «Hahn 2021 (ASE, ETE en intervenciones estructurales)» no está en la biblioteca
+
+La orden lo citaba con las hojas 47, 52 y 53. Censadas las 186 PDF, lo que hay es **Little SH,
+Rigolin VH y cols.** (Hahn figura entre los autores), *Recommendations for Special Competency in
+Echocardiographic Guidance of Structural Heart Disease Interventions*, ASE, en
+`Estandar Informe/ASE ECO cardiopat estructural.pdf`, de **16 hojas**: las hojas 47, 52 y 53 no
+existen. Su hoja 12 sí publica los cuatro ángulos, pero el ⓘ cita a Glikson, que es la fuente que
+se leyó para ese punto. **No se citó lo que no se pudo abrir.**
+
+### NOC-A-d · Los folios 3355 y 3359 de la ESC 2024 de FA no hablan de la orejuela
+
+La guía **sí está** en la biblioteca —Van Gelder IC y cols., *Eur Heart J* 2024;45:3314-3414—
+pero archivada en la carpeta equivocada: `22_Hemodinamica_avanzada/ehae176.pdf`. Censada por
+contenido, porque por nombre de archivo no aparece. La regla de folio es hoja + 3313.
+
+**Los dos folios que la orden nombra son de otra cosa:** el 3355 (hoja 42) es dronedarona y el
+ensayo CASTLE-AF, y el 3359 (hoja 46) es ablación en insuficiencia cardíaca. Lo que esa guía
+publica sobre la orejuela está en los folios 3346 a 3349 y son **recomendaciones de cierre
+percutáneo**, que es justo lo que este ⓘ tiene prohibido llevar. No se citó.
+
+Queda pendiente **moverla a su carpeta** (`24_Arritmias_y_sincope`), que es un cambio en la
+biblioteca y no en el proyecto.
+
+### NOC-A-e · La ficha `ref-oai` de Referencias sigue repitiendo lo que ahora dice el ⓘ
+
+La orden pide que «la ficha de Referencias del tema, si existe, no repita el texto: lo cite».
+**No se hizo, y el motivo es el costo medido.** Hasta el A3 el ⓘ CLONABA esa ficha, así que había
+un solo texto; desde el A3 el ⓘ tiene el suyo y la ficha quedó con su contenido anterior, que se
+superpone en tres puntos: la morfología, la velocidad de vaciamiento con el folio 954 y el SEC.
+
+Vaciar esos tres bloques de la ficha saca de **Referencias**: el bloque de la velocidad con su
+cita, y el chip **«CRITERIO DE ECOSMART»** de esa ficha. Ese chip lo CUENTA `TC-507`, y los
+censos de Referencias de `TC-471`, `TC-500`, `TC-502` y `TC-509` cuentan fichas y entradas. No es
+un cambio de redacción: es un cambio de inventario de Referencias, y hay que decidir **qué queda
+en la ficha** —lo razonable es que queden las dos tablas de dispositivos, que el ⓘ no lleva—.
+Es decisión de Maicol y necesita su propia orden.
+
+### NOC-A-f · Los huérfanos YA EXISTENTES de video y cineloop NO se pudieron contar
+
+El A4 cierra la causa —`CeiboVideo` no tenía recolector y nadie llamaba al de `CeiboCine`— y
+desde ahora **las bajas sí se los llevan**. Lo que quedó sin hacer es el recuento de los que ya
+están huérfanos, y el motivo es que **viven en el perfil de Chrome del médico**: la orden prohíbe
+tocar el almacenamiento real y toda prueba va en el entorno de prueba. Desde una sonda con perfil
+temporal esas bases están vacías por construcción, así que un cero ahí no significa nada.
+
+**Cómo contarlos, sin borrar nada** — abrir EcoSmart en el navegador de siempre, abrir la consola
+y pegar esto, que sólo LEE:
+
+```js
+(async () => {
+  const vivos = new Set((getInformes() || []).map(i => i && i.uuid).filter(Boolean));
+  const cine = (typeof CeiboCine !== 'undefined')
+    ? await new Promise(r => { const q = indexedDB.open('ceibomed_cine');
+        q.onsuccess = e => { const db = e.target.result;
+          const t = db.transaction(db.objectStoreNames[0]).objectStore(db.objectStoreNames[0]).getAll();
+          t.onsuccess = () => r(t.result || []); }; }) : [];
+  const vid = await new Promise(r => { const q = indexedDB.open('ceibomed_video');
+      q.onsuccess = e => { const db = e.target.result;
+        const t = db.transaction(db.objectStoreNames[0]).objectStore(db.objectStoreNames[0]).getAll();
+        t.onsuccess = () => r(t.result || []); }; });
+  const hc = cine.filter(x => !vivos.has(x.uuid)), hv = vid.filter(x => !vivos.has(x.uuid));
+  console.log('estudios vivos:', vivos.size,
+              '· cineloops huerfanos:', hc.length, 'de', cine.length,
+              '· videos huerfanos:', hv.length, 'de', vid.length,
+              '· bytes huerfanos:', [...hc, ...hv].reduce((a, x) => a + (x.bytes || 0), 0));
+})();
+```
+
+Para **borrarlos** —que esta tanda NO hace— alcanza con una baja cualquiera desde hoy, porque el
+recolector nuevo recoge todo lo que no tenga estudio dueño, no sólo lo del estudio que se borra.
+
+### NOC-A-g · La frase del trombo no nombra la ablación
+
+El borrador decía «hay que descartarlo antes de la cardioversión, la ablación y el cierre
+percutáneo». La cardioversión (Saric 2016, folio 13) y el cierre (Meier 2014, folio 1401) están
+verificados. **La ablación no**: censadas las tres fuentes de la orejuela, ninguna recomienda
+descartar el trombo antes de una ablación —Meier la nombra sólo para dar la incidencia de trombo
+en pacientes anticoagulados que van a ablación—. El ⓘ dice las dos que sí.
+
+### NOC-A-h · El cuadro que el médico elige NO sobrevive a reabrir el estudio
+
+`_oaiEsqManualUuid` es una variable de ejecución y no se persiste, así que al reabrir el estudio
+el guardado automático vuelve a mandar y el primer tecleo reemplaza el cuadro elegido. **Es
+deliberado**: la elección fue sobre un cuadro de esa sesión y no es una preferencia del estudio, y
+persistirla sería un campo guardado nuevo, que esta tanda tiene prohibido. Declarado porque el
+médico puede esperar lo contrario.

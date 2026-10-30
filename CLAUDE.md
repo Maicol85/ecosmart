@@ -90,6 +90,7 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Tocar algo que la tanda R movió**: la lesión presente sin grado de la VAB, los cortes del TEER, la severidad de la disfunción del VD, el área de la AI, los grados del derrame, el taponamiento que ya no concluye, el VD/VI del TEP o los criterios declarados de Referencias | `docs/mapa/tanda-r-referencias.md` |
 | **Tocar la sección de la VÁLVULA AÓRTICA BICÚSPIDE**: la disposición en tres columnas, las seis tarjetas ⓘ, los factores de riesgo con casilla, el DIBUJO y sus puntos sensibles, **la SIMETRÍA DE LAS CÚSPIDES y el ÁNGULO con que se dibuja**, **los SEIS dibujos por tipo y la ANIMACIÓN de la apertura**, **la FUNCIÓN VALVULAR derivada**, **el RESUMEN esquemático y su texto en Evidencia**, la morfología que sigue al tipo de fusión, la descripción del informe, el PDF o el recordatorio de la coartación | `docs/mapa/vab-bicuspide.md` |
 | **Visor de cineloop, medición, calibración, IndexedDB** | `docs/mapa/imagenes-visor.md` |
+| **Tocar el ESQUEMA DE LA OREJUELA del ETE —su lugar al lado de los campos, los rótulos que se pisaban, el movimiento del latido, el chorro leído de Válvulas, el contraste espontáneo o los tres controles—, el ⓘ de «Orejuela izquierda», o el BORRADO de los videos y cineloops de un estudio** | `docs/mapa/noc-a-orejuela.md` |
 | **Tocar la pantalla «IMÁGENES GUARDADAS» de Guardados, la ESTRELLA DE IMAGEN con su nota, el PPT armado desde ahí o la FUNCIÓN COMÚN que guarda un esquema de la app como imagen —con su primer uso en la orejuela—**: los dos botones, los meses plegados, el índice sin `dataURL`, las dos listas del registro (`imgs` y `esqs`), el límite de 24, el cuadrado de tapar datos o por qué pintar y guardar son dos funciones | `docs/mapa/img-guardadas.md` |
 | **Tocar algo que la tanda AJ2 corrigió** (23/10): la VRT «sin datos» frente a «no medible», el tipo de IM vacío, la coartación sin gradiente, la aorta que ya no gradúa, el ateroma sin riesgo embólico con el grosor completando el grado, el HF-PEFF sin FEVI y la negrita de su hoja, el eco pulmonar «bilateral», el score de TEP con un solo vocabulario y su maqueta en tres grupos, el EN SUMA que ya no niega lo que el informe describe, los dos buscadores o las tildes | `docs/mapa/aj2-correcciones.md` |
 | **Tocar algo de la tanda I**: el TRAMO del score de Wilkins, la orejuela y sus dispositivos, la reparabilidad mitral con el rango de tenting, las DOS escalas de ateroma, las tres secciones de Evidencia de la ETE, las notas al pie de la estenosis tricuspídea o la INSUFICIENCIA PULMONAR en Fallot reparada con sus dos guías | `docs/mapa/tanda-i-ete.md` |
@@ -2183,3 +2184,134 @@ línea: el archivo creció y un informe de auditoría viejo apunta a otro archiv
   tabla «Cambios de evidencia» **vacía a propósito** porque esta tanda no escribe contenido
   clínico, y `docs/PENDIENTES.md` → **SIETE** cosas declaradas (**IMG-a** a **IMG-g**) más el
   cierre de **Y-g**.
+
+### La orejuela del ETE y los videos al borrar — «TANDA NOCTURNA, Parte A» (2026-10-30)
+
+- **SEIS commits**, y la orden pedía cinco: el sexto lo pidió una medición de la sonda de dos
+  motores. `427aa06` (A1) · `6b589b6` (A2) · `42c4ccb` (A3) · `b9f824d` (A4) · `08dd2e9` (A3-b)
+  · el de cobertura y documentación. Al empezar, `origin/main` = `HEAD` = **`33568df`**, el
+  cierre de la tanda IMÁGENES, ya publicado, con el pendrive `DISK_IMG` montado y listando
+  nombres reales. **El push lo corre Maicol: esta tanda tenía orden expresa de NO pushear.**
+
+- **LOS DOS DEFECTOS QUE EL MÉDICO REPORTÓ ESTÁN MEDIDOS, NO ESTIMADOS**, sobre una grilla de
+  **640 combinaciones** —cuatro morfologías × ostium 10 a 40 × profundidad 10 a 50 × velocidad
+  10 a 80—: el dibujo quedaba **apilado debajo** de los campos en los cuatro anchos, con los tres
+  rect con caja; «VM» y «prof. N mm» se pisaban en **160 de 640** —que es exactamente la
+  morfología «ala de pollo» con cualquier medida—; y la línea punteada de la profundidad cruzaba
+  la caja del rótulo «Cx» en **640 de 640**. Después: **lado a lado con el dibujo a la derecha
+  desde 900 px**, y **0 y 0**.
+
+- ⚠️ **EL CHORRO DE INSUFICIENCIA ES CENTRAL SIEMPRE, Y ES UN HALLAZGO.** La demo lo orienta con
+  el Carpentier **y el velo afectado**; el Carpentier existe en dos campos espejados y **el velo
+  afectado NO existe en toda la app** —censado el documento entero—. Con el Carpentier solo no se
+  puede decidir un lado: el tipo II manda el chorro a un lado o al otro **según el velo**.
+  Agregarlo sería un campo guardado nuevo, que esta tanda tiene prohibido. → **NOC-A-a**.
+
+- **EL CUADRO QUE SE GUARDA ES EL QUE SE ESTÁ VIENDO**, y eso es lo que sostiene animar sin
+  romper la promesa del comentario anterior: `oaiEsqSVG` toma la **fase**, y el animador mueve los
+  atributos cuadro a cuadro **con las mismas funciones**. Medido: tras «Incluir en el PDF»,
+  teclear otro ostium y esperar 1,5 s —más que el diferido de 700 ms— deja el `ts` **idéntico**.
+
+- ⚠️ **`r` NO SE HEREDA DE UN `<g>`, Y LA PRIMERA VERSIÓN DEL AHORRO DE CADENA LO PONÍA AHÍ.**
+  Medido en Chrome **y** en WebKit sobre un documento mínimo: el círculo informa un `getBBox` de
+  **0 × 0** y `getComputedStyle(...).r` da **`0px`**, o sea que el contraste espontáneo habría
+  quedado **invisible sin un solo error de consola**. `fill` y `opacity` sí se heredan y van en el
+  grupo, que ahorra 1.600 caracteres de cadena por repintado. Lo fija **TC-551 (C0b)** y la
+  mutación **09**.
+
+- **LAS CUATRO FUENTES DEL ⓘ SE LEYERON EN IMAGEN, Y TRES FRASES SE PARARON.** No se escribió
+  «lo normal es 40 cm/s o más» —el «normal» de la oración de Hahn 2013 es el del **ritmo
+  sinusal**, no el de la velocidad—, ni «antes de la ablación» —ninguna de las tres fuentes de la
+  orejuela lo recomienda—, ni «en vistas medioesofágicas» junto al volumen de muestra.
+
+- ⚠️ **DOS FUENTES QUE LA ORDEN NOMBRABA NO ENTRARON.** «Hahn 2021, hojas 47, 52 y 53» **no está
+  en la biblioteca** —lo que hay es el documento de la ASE de competencia en intervenciones
+  estructurales, de 16 hojas—; y los **folios 3355 y 3359 de la ESC 2024 de FA son dronedarona y
+  ablación en insuficiencia cardíaca**, no la orejuela (su contenido de orejuela está en
+  3346-3349 y son recomendaciones de cierre, que este ⓘ tiene prohibido llevar). Esa guía está
+  además archivada en `22_Hemodinamica_avanzada`. → **NOC-A-c** y **NOC-A-d**.
+
+- **EL DEFECTO DE A4, EN UNA LÍNEA: `CeiboVideo` no tenía recolector y al de `CeiboCine` no lo
+  llamaba nadie** —su propio comentario decía «Sin esto, eliminar un estudio dejaría sus
+  cineloops ocupando disco para siempre»—. Los tres caminos de borrado llamaban sólo al de
+  imágenes. Hoy `imgRecolectarHuerfanas` recoge **las tres tiendas**, que es una puerta única y no
+  tres parches. Los huérfanos que **ya existen** no se contaron —viven en el perfil del médico— y
+  el fragmento de consola para contarlos, que sólo lee, está en **NOC-A-f**.
+
+- ⚠️ **EL SEXTO COMMIT LO PIDIÓ UNA MEDICIÓN, Y ES UN DEFECTO LATENTE QUE EL ⓘ NUEVO DESTAPÓ.**
+  `_vInfoColocar` acota el alto de la tarjeta al hueco del lado donde la pone, pero cuando el
+  ancla queda **por debajo del pliegue** ese hueco da mayor que la pantalla entera. El ⓘ de la
+  orejuela —3.092 caracteres— medía **360 × 1215 px en una ventana de 900** a 768 y a 390; el de
+  HEAD —1.882— cabía en ese hueco falso y nadie lo había visto. Con un `Math.min` contra el alto
+  útil queda en **360 × 884** y, con el botón dentro de la pantalla, **no mueve un píxel** de las
+  ochenta y pico de tarjetas anteriores.
+
+- ⚠️ **EL TIEMPO DE ESCRITURA EMPEORA 0,19 ms (≈5 %), Y SE DECLARA.** HEAD 3,85 a 4,27 ms contra
+  4,02 a 4,23 en este árbol, en dos corridas independientes de cinco rondas cada una, en el
+  escenario **más caro**: contraste severo con 56 partículas, trombo, IM severa y la animación
+  corriendo. **Sin contraste espontáneo los dos árboles son indistinguibles.** El costo es el de
+  dibujar el contraste, que es lo que la orden pide en 2a; las partículas moviéndose un cuadro sí
+  y uno no y el color en el grupo son lo que lo dejan en 0,19 y no en más.
+  ⚠️ **Hizo falta una sonda DEDICADA** (`scripts/_probe_oaitecla.mjs`): la misma función de teclas
+  dio **1,42 ms corrida temprano y 2,90 ms corrida tarde sobre el MISMO árbol**, y un microbanco
+  de 60 iteraciones antes **calienta el JIT** y baja el número a la mitad. Comparar los dos
+  árboles con la tecla en posiciones distintas es comparar dos cosas que no son la misma.
+
+- **14/14 MUTACIONES DIRIGIDAS MUERTAS**, en worktree y nunca sobre el vivo, con guarda de md5.
+  **Tres de las catorce no revierten nada: la aplican de más** —la 06 escribe la frecuencia de la
+  animación en el campo del estudio, la 11 hace que el recolector de video borre todo sin mirar
+  qué estudios están vivos, y la 13 que el ⓘ afirme el valor normal que ninguna fuente publica—,
+  porque las condiciones que las matan son **controles negativos**.
+  ⚠️ **Dos sobrevivieron al primer barrido y las dos estaban MAL ESCRITAS**: la 04 agregaba un
+  `div` vacío **después** del cierre de la fila, que no cambia de quién es hermana la caja, y la
+  13 no encontraba su ancla.
+
+- **TC-551 cae contra HEAD por 30 de sus 52 condiciones y NINGUNA por excepción.** Las 22 que
+  pasan en los dos árboles son los denominadores y los controles negativos.
+
+- **CHROME Y WEBKIT COINCIDEN EN LOS DIECISÉIS CRUCES** (dos motores × 1440, 1000, 768 y 390 px ×
+  dos temas), valor por valor: lado a lado a 1440 y 1000, apilado a 768 y 390; el dibujo en 360 px
+  (328 a 390); los tres controles en **44 px de alto**; el ⓘ con sus **ocho bloques**, sin el
+  bloque de dispositivos, dentro de la ventana y con scroll interno; el ⓘ **ámbar idéntico a HEAD
+  en los dieciséis**; **cero** desplazamiento horizontal del cuerpo, **cero** textos recortados y
+  **cero errores de consola y de página** en los dos motores y en los dos árboles.
+  ⚠️ **WebKit de Playwright no es Safari, y se declara.** Chrome va por el del sistema con
+  `channel:'chrome'`.
+  ⚠️ **Y UN `elementFromPoint` FUERA DEL VIEWPORT DA null**, no «tapado»: los tres controles caen
+  en y=986 con una ventana de 900 de alto y la primera versión de la sonda daba **0/5** sobre
+  botones que miden 44 × 44 de verdad y no están tapados por nada. Hay que traerlos a la vista
+  antes de medir.
+
+- **A/B contra HEAD con 140 escenas, 157.204 claves y 61.600 celdas de Excel: CERO diferencias de
+  superficie firmada** —informe en tres estilos, EN SUMA, las **440** columnas clave por clave,
+  los campos, el Laboratorio por sus ocho funciones dueñas, el PDF generado de verdad y el PPT—.
+  Las **141** diferencias de pantalla son el control positivo: 140 son la fila nueva y la única
+  de texto del dibujo es la palabra «trombo» en la escena que lo carga. **«juzga» sigue en false
+  en las ocho escenas de orejuela.**
+
+- **Línea base al cierre: suite 562/566**, en once lotes **cubriendo los 566 casos distintos**
+  —contados nombre por nombre, no por la suma de los lotes—, en UNA sola pasada, con el pendrive
+  `DISK_IMG` **montado y listando nombres reales al abrir, ENTRE LOS ONCE LOTES y al cerrar** y el
+  md5 de `index.html` **idéntico** antes y después (`8ecbe4bc`). Los rojos son **TC-223, TC-376,
+  TC-390 y TC-406**, los cuatro de siempre, **y ninguno más**: **TC-358 salió VERDE**. Semgrep **124 WARNING / 0 ERROR**. Censo **1029
+  campos, 0 huérfanos nuevos**. Excel **440** columnas. 17 bloques de JS inline parsean.
+  ⚠️ **LA LÍNEA BASE DEL CELULAR DE LA ORDEN ESTABA VENCIDA: no es 63 y 72, es 65 y 74**, con 17
+  ALTA en cada ancho. El 63/72 es el de **antes** de la tanda IMÁGENES, cuya propia bitácora ya
+  escribe 65/74. Medido en los dos árboles con el mismo script: **65 a 360 px y 74 a 390, con 17
+  ALTA**, idénticos uno por uno.
+  ⚠️ **Y EL ARNÉS DE LOTES CORRIÓ CERO CASOS Y DIJO QUE TODO BIEN**, la primera vez: usaba
+  `mapfile`, que **no existe en el bash 3.2 de macOS**, contó cero casos, no ejecutó nada y aun
+  así imprimió su marcador de cierre. Hoy el script exige el denominador y compara lo ejecutado
+  contra lo leído.
+
+- **`index.html` pasó de 10,14 MB / 142.750 líneas a 10,17 MB / 143.336** — medido con `wc -c` y
+  `wc -l` DESPUÉS de sellar. (MB de 10⁶: `wc -c` dividido por 1e6.) Sello **`v20261030-0233`**,
+  md5 de `index.html` **`b43c7af5`**.
+
+- **Dónde está todo:** `docs/mapa/noc-a-orejuela.md` (**mapa NUEVO**, 13,0 KB), la ficha del caso
+  en `docs/mapa/tests-fichas-551.md` (**archivo propio**, porque `tests-fichas.md` está en
+  34,2 KB), **tres mapas con un
+  puntero cada uno** —`tests.md` incluido— —`img-guardadas.md` 18,3 KB y `e-carpentier-tricuspide-orejuela.md` 20,8 KB,
+  medidos ANTES de escribir—, `docs/fuentes/FUENTES.md` → «La TANDA NOCTURNA, Parte A» con las
+  cuatro fuentes transcritas frase por frase, la tabla de lo que se paró y la de «Cambios de
+  evidencia», y `docs/PENDIENTES.md` → **OCHO** cosas declaradas (**NOC-A-a** a **NOC-A-h**).

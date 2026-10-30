@@ -96474,6 +96474,447 @@ caso('TC-550', 'Tanda IMAGENES: los dos botones de Guardados con «Informes guar
 `);
 
 
+/* -- TC-551 ---------------------------------------------------------------------------------
+   TANDA NOCTURNA, Parte A. Fija lo que los cuatro commits mueven, con los denominadores
+   declarados y con controles negativos de lo que NO se podia mover.
+
+   ⚠️ EL ANCHO DE VENTANA NO SE PUEDE CAMBIAR DESDE EL CUERPO DE UN CASO -eso es
+   Emulation.setDeviceMetricsOverride, del lado del runner-, y el arnes corre a ~756 px, donde
+   la fila APILA. Asi que el lugar se fija por DOS caminos que si son falsables aca:
+     1. la ESTRUCTURA -la grilla y la caja son hermanas dentro de #oai-fila, y la grilla va
+        primero-, que es lo que hace posible el lado a lado; revertir el marcado la rompe;
+     2. la REGLA -una consulta de medios de min-width 900 px que le pone display:flex a
+        #oai-fila y un ancho fijo a la caja-, leida del CSSOM; borrar la regla la rompe;
+     3. y la COHERENCIA: a este ancho, lo que matchMedia dice tiene que ser lo que la geometria
+        hace. La geometria REAL en los cuatro anchos la mide _probe_oaiwk.mjs, en dos motores.
+
+   ⚠️ LOS ROTULOS SE MIDEN SOBRE UNA GRILLA, no sobre un valor. El defecto que el medico
+   reporto -«VM» pisado por «prof. N mm»- aparecia SOLO con la morfologia «ala de pollo», o sea
+   160 de 640 combinaciones: un caso con una sola escena puede pasar en verde sobre el defecto.
+
+   ⚠️ LA ANIMACION SE MIDE CON DOS FOTOS SEPARADAS POR RELOJ REAL, y las tres condiciones
+   negativas -pausado, plegado y con los campos vacios- son lo que impide que «se mueve» pase
+   en verde contra cualquier arbol. */
+caso('TC-551', 'Tanda NOCTURNA A: el esquema de la orejuela al lado de los campos y sin rotulos que se pisen; el latido a la frecuencia del estudio con las valvas, el chorro leido de Valvulas, el contraste y el trombo; Pausar, Seguir e Incluir en el PDF con UNA sola imagen por estudio; el globo nuevo sin el bloque de dispositivos y con el ambar intacto; la leyenda que dice donde se prende el guardado; y los recolectores de las TRES tiendas', `
+  return (async () => {
+  const ex = [];
+  const F = (n) => (typeof window[n] === 'function') ? window[n] : null;
+  const EL = (id) => document.getElementById(id) || null;
+  const T = (id) => { const e = EL(id); return e ? (e.textContent || '').replace(/[ \\t\\n]+/g, ' ').trim() : 'NO EXISTE'; };
+  const pon = (id, v) => { const e = EL(id); if (!e) return 'NO ' + id;
+    e.value = String(v); e.dispatchEvent(new Event('input', { bubbles: true }));
+    e.dispatchEvent(new Event('change', { bubbles: true })); return e.value; };
+  const esperar = (ms) => new Promise(r => setTimeout(r, ms));
+
+  const prevTog = (function(){ try { return localStorage.getItem('cfg-guardar-imagenes') } catch(e){ return null } })();
+  /* OCHO CARACTERES COMO MINIMO: _uuidValido exige largo >= 8. */
+  const U = 'tc551-orejuela';
+  let restaurado = false;
+  const restaurar = async () => {
+    if (restaurado) return; restaurado = true;
+    try { if (F('oaiEsqSeguir')) oaiEsqSeguir(); } catch (e) {}
+    try { if (typeof CeiboImg !== 'undefined') await CeiboImg.borrar(U); } catch (e) {}
+    try { if (prevTog === null) localStorage.removeItem('cfg-guardar-imagenes');
+          else localStorage.setItem('cfg-guardar-imagenes', prevTog); } catch (e) {}
+    try { if (F('limpiarCampos')) limpiarCampos(); } catch (e) {}
+  };
+
+  try {
+  /* -- (Z) LO QUE TIENE QUE EXISTIR. Van como condiciones y no como salida temprana: contra
+     HEAD el caso tiene que caer diciendo QUE falta, no por una excepcion -leccion de TC-546-. */
+  ex.push(['(Z1) la fila #oai-fila existe y tiene a la grilla y a la caja del dibujo como hermanas, la grilla PRIMERO',
+    (function(){ const f = EL('oai-fila'); if (!f) return false;
+      const g = f.querySelector(':scope > .grid-3'), c = f.querySelector(':scope > #oai-esq-caja');
+      if (!g || !c) return false;
+      const h = [].slice.call(f.children);
+      return h.indexOf(g) > -1 && h.indexOf(c) > h.indexOf(g); })(),
+    (function(){ const f = EL('oai-fila'); return f ? [].slice.call(f.children).map(x => x.id || x.className).join(' | ') : 'NO EXISTE'; })()]);
+  ex.push(['(Z2) los tres controles del movimiento existen',
+    !!EL('oai-esq-pausar') && !!EL('oai-esq-seguir') && !!EL('oai-esq-pdf'),
+    ['oai-esq-pausar','oai-esq-seguir','oai-esq-pdf'].map(i => i + '=' + !!EL(i)).join(' ')]);
+  ex.push(['(Z3) las funciones del movimiento y de los controles existen',
+    ['oaiEsqSVG','oaiEsqSync','oaiEsqGesto','oaiEsqPausar','oaiEsqSeguir','oaiEsqIncluirPDF',
+     'oaiEsqCtrlSync','_oaiRefGlobo'].every(n => typeof window[n] === 'function'),
+    ['oaiEsqPausar','oaiEsqSeguir','oaiEsqIncluirPDF','_oaiRefGlobo'].map(n => n + '=' + (typeof window[n])).join(' ')]);
+  ex.push(['(Z4) las TRES tiendas tienen recolector',
+    (typeof CeiboImg !== 'undefined' && !!CeiboImg.recolectar) &&
+    (typeof CeiboCine !== 'undefined' && !!CeiboCine.recolectar) &&
+    (typeof CeiboVideo !== 'undefined' && !!CeiboVideo.recolectar),
+    'img=' + (typeof CeiboImg !== 'undefined' && !!CeiboImg.recolectar) +
+    ' cine=' + (typeof CeiboCine !== 'undefined' && !!CeiboCine.recolectar) +
+    ' video=' + (typeof CeiboVideo !== 'undefined' && !!CeiboVideo.recolectar)]);
+
+  /* -- MONTAJE: la pestania ETE y la seccion de la orejuela ABIERTAS. Sin abrir el acordeon la
+     geometria da 0x0 sobre un dibujo que si se pinta, y «sin solapes» pasaria en verde sobre
+     cualquier arbol -es la trampa del denominador que este repositorio documenta-. */
+  try { showTab('ete'); } catch (e) {}
+  { const sec = EL('ete-seccion-oai');
+    if (sec && getComputedStyle(sec).display === 'none') sec.style.display = 'block'; }
+  pon('oai_morfologia', 'ala'); pon('oai_ostium_diam', '22');
+  pon('oai_profundidad', '37'); pon('oai_vel_vac', '24');
+  await esperar(350);
+  const cajaVis = EL('oai-esq-caja') ? getComputedStyle(EL('oai-esq-caja')).display !== 'none' : false;
+  const haySvg = !!document.querySelector('#oai-esq svg');
+  ex.push(['(D0) DENOMINADOR: la caja del esquema se muestra y hay un SVG adentro',
+    cajaVis && haySvg,
+    'caja ' + (EL('oai-esq-caja') ? getComputedStyle(EL('oai-esq-caja')).display : 'NO') + ' · svg ' + haySvg]);
+
+  /* -- (A) EL LUGAR ----------------------------------------------------------------------- */
+  const reglaFila = (function(){
+    let hallada = null;
+    for (const h of [].slice.call(document.styleSheets)) {
+      let rs = null; try { rs = h.cssRules; } catch (e) { continue; }
+      if (!rs) continue;
+      for (const r of [].slice.call(rs)) {
+        if (r.type !== 4) continue;                       /* 4 = CSSMediaRule */
+        if (!/min-width:\\s*900px/.test(r.conditionText || '')) continue;
+        for (const q of [].slice.call(r.cssRules || [])) {
+          if ((q.selectorText || '').indexOf('#oai-fila') === 0 &&
+              (q.style || {}).display === 'flex') hallada = q.cssText;
+        }
+      }
+    }
+    return hallada;
+  })();
+  ex.push(['(A1) la regla de 900 px le pone display:flex a #oai-fila',
+    !!reglaFila, String(reglaFila || 'NO HAY REGLA')]);
+  ex.push(['(A2) a este ancho, lo que dice la consulta de medios es lo que hace la geometria',
+    (function(){ const f = EL('oai-fila'); if (!f) return false;
+      const ancho = window.matchMedia('(min-width: 900px)').matches;
+      return (getComputedStyle(f).display === 'flex') === ancho; })(),
+    'ventana ' + window.innerWidth + ' px · min-900 ' +
+      window.matchMedia('(min-width: 900px)').matches + ' · display ' +
+      (EL('oai-fila') ? getComputedStyle(EL('oai-fila')).display : 'NO')]);
+  ex.push(['(A3) el dibujo conserva el ancho de la demo y no se achico',
+    (function(){ const e = EL('oai-esq'); if (!e) return false;
+      return Math.round(e.getBoundingClientRect().width) >= 320; })(),
+    (EL('oai-esq') ? Math.round(EL('oai-esq').getBoundingClientRect().width) : 'NO') + ' px']);
+
+  /* -- (B) LOS ROTULOS, sobre una grilla de 64 combinaciones ------------------------------ */
+  const grilla = (function(){
+    const svg = () => document.querySelector('#oai-esq svg');
+    const cajas = (s) => { const out = [];
+      [].forEach.call(s.querySelectorAll('text'), e => { let b = null;
+        try { b = e.getBBox(); } catch (x) { return; }
+        if (!b || !b.width) return;
+        out.push({ t: (e.textContent||'').trim(), x1: b.x, y1: b.y, x2: b.x + b.width, y2: b.y + b.height }); });
+      return out; };
+    const lineas = (s) => [].slice.call(s.querySelectorAll('line')).map((e, i) => ({
+      id: e.getAttribute('id') || ('linea' + i),
+      ax: parseFloat(e.getAttribute('x1')), ay: parseFloat(e.getAttribute('y1')),
+      bx: parseFloat(e.getAttribute('x2')), by: parseFloat(e.getAttribute('y2')) }));
+    /* Liang-Barsky: exacto, no muestrea. */
+    const cruza = (L, C) => { let t0 = 0, t1 = 1;
+      const dx = L.bx - L.ax, dy = L.by - L.ay;
+      const ps = [-dx, dx, -dy, dy], qs = [L.ax - C.x1, C.x2 - L.ax, L.ay - C.y1, C.y2 - L.ay];
+      for (let i = 0; i < 4; i++) { const pp = ps[i], qq = qs[i];
+        if (pp === 0) { if (qq < 0) return false; }
+        else { const rr = qq / pp;
+          if (pp < 0) { if (rr > t1) return false; if (rr > t0) t0 = rr; }
+          else { if (rr < t0) return false; if (rr < t1) t1 = rr; } } }
+      return t0 <= t1; };
+    let combos = 0, conPar = 0, conCruce = 0, textosMin = 99;
+    const pares = {}, cruces = {};
+    ['ala','coliflor','cactus','veleta'].forEach(m => {
+      [10,40].forEach(o => { [10,30,50].forEach(d => { [10,40,80].forEach(v => {
+        pon('oai_morfologia', m); pon('oai_ostium_diam', o);
+        pon('oai_profundidad', d); pon('oai_vel_vac', v);
+        if (F('oaiEsqSync')) oaiEsqSync();
+        const s = svg(); if (!s) return;
+        combos++;
+        const ts = cajas(s), ls = lineas(s);
+        textosMin = Math.min(textosMin, ts.length);
+        let hayPar = false, hayCruce = false;
+        for (let i = 0; i < ts.length; i++) for (let j = i + 1; j < ts.length; j++)
+          if (ts[i].x1 < ts[j].x2 && ts[j].x1 < ts[i].x2 &&
+              ts[i].y1 < ts[j].y2 && ts[j].y1 < ts[i].y2) {
+            hayPar = true; pares[ts[i].t + ' / ' + ts[j].t] = 1; }
+        for (let i = 0; i < ls.length; i++) for (let j = 0; j < ts.length; j++)
+          if (cruza(ls[i], ts[j])) { hayCruce = true; cruces[ls[i].id + ' / ' + ts[j].t] = 1; }
+        if (hayPar) conPar++;
+        if (hayCruce) conCruce++;
+      }); }); });
+    });
+    return { combos, conPar, conCruce, textosMin,
+             pares: Object.keys(pares), cruces: Object.keys(cruces) };
+  })();
+  ex.push(['(B0) DENOMINADOR: la grilla recorrio sus 72 combinaciones y cada dibujo trae al menos 7 rotulos',
+    grilla.combos === 72 && grilla.textosMin >= 7,
+    grilla.combos + ' combos · minimo de rotulos ' + grilla.textosMin]);
+  ex.push(['(B1) ningun par de rotulos se pisa, en ninguna combinacion',
+    grilla.conPar === 0, grilla.conPar + ' de ' + grilla.combos + ' · ' + grilla.pares.join(' ; ')]);
+  ex.push(['(B2) ninguna linea del dibujo cruza la caja de un rotulo',
+    grilla.conCruce === 0, grilla.conCruce + ' de ' + grilla.combos + ' · ' + grilla.cruces.join(' ; ')]);
+
+  /* -- (C) EL MOVIMIENTO ------------------------------------------------------------------ */
+  pon('oai_morfologia', 'ala'); pon('oai_ostium_diam', '22');
+  pon('oai_profundidad', '37'); pon('oai_vel_vac', '24');
+  pon('oai_sec', 'severo'); pon('oai_trombo', 'si'); pon('im_grado', '4');
+  if (F('oaiEsqSync')) oaiEsqSync();
+  await esperar(250);
+  const foto = () => { const g = (i) => { const e = EL(i); return e ? e.getAttribute('d') : null; };
+    const mr = EL('oai-mr'), sec = EL('oai-sec');
+    return { lf1: g('oai-lf1'), lf2: g('oai-lf2'),
+             mrTr: mr ? mr.getAttribute('transform') : null,
+             secN: sec ? sec.children.length : 0,
+             sec0: sec && sec.children[0]
+                   ? sec.children[0].getAttribute('cx') + ',' + sec.children[0].getAttribute('cy') : null }; };
+  ex.push(['(C0) DENOMINADOR: el dibujo trae las dos valvas, el chorro y las particulas del contraste',
+    (function(){ const f = foto(); return !!f.lf1 && !!f.lf2 && f.mrTr !== null && f.secN > 0; })(),
+    JSON.stringify((function(){ const f = foto(); return { valvas: !!f.lf1 && !!f.lf2, chorro: f.mrTr !== null, particulas: f.secN }; })())]);
+  ex.push(['(C0b) el radio de las particulas esta en CADA circulo y no heredado del grupo -r NO se hereda, medido en los dos motores-',
+    (function(){ const sec = EL('oai-sec'); if (!sec || !sec.children[0]) return false;
+      const c = sec.children[0];
+      if (!c.getAttribute('r')) return false;
+      let b = null; try { b = c.getBBox(); } catch (x) { return false; }
+      return !!b && b.width > 0; })(),
+    (function(){ const sec = EL('oai-sec'); if (!sec || !sec.children[0]) return 'SIN PARTICULAS';
+      const c = sec.children[0]; let b = null; try { b = c.getBBox(); } catch (x) { b = null; }
+      return 'r=' + c.getAttribute('r') + ' bbox=' + (b ? Math.round(b.width) : 'EXC'); })()]);
+  const f1 = foto(); await esperar(420); const f2 = foto();
+  ex.push(['(C1) con la seccion abierta, las valvas y el chorro se mueven solos',
+    f1.lf1 !== f2.lf1 && f1.mrTr !== f2.mrTr,
+    'valvas ' + (f1.lf1 !== f2.lf1) + ' · chorro ' + (f1.mrTr !== f2.mrTr)]);
+  ex.push(['(C2) el contraste espontaneo tambien se mueve',
+    !!f1.sec0 && !!f2.sec0 && f1.sec0 !== f2.sec0,
+    (f1.sec0 || 'NO') + ' -> ' + (f2.sec0 || 'NO')]);
+  /* El chorro sale de Valvulas y NO de un campo propio. */
+  ex.push(['(C3) el chorro lee el grado de Valvulas por _emRegurgGrado y no por un campo propio de la orejuela',
+    (function(){ if (!F('_emRegurgGrado')) return false;
+      if (_emRegurgGrado('im_grado') !== 4) return false;
+      const d4 = (EL('oai-mr') || {}).getAttribute ? EL('oai-mr').getAttribute('d') : '';
+      pon('im_grado', '1'); if (F('oaiEsqSync')) oaiEsqSync();
+      const d1 = (EL('oai-mr') || {}).getAttribute ? EL('oai-mr').getAttribute('d') : '';
+      pon('im_grado', '0'); if (F('oaiEsqSync')) oaiEsqSync();
+      const d0 = (EL('oai-mr') || {}).getAttribute ? EL('oai-mr').getAttribute('d') : '';
+      pon('im_grado', '4'); if (F('oaiEsqSync')) oaiEsqSync();
+      return !!d4 && !!d1 && d4 !== d1 && d0 === '' &&
+             !document.getElementById('oai_im_grado'); })(),
+    'el grado 4, el 1 y el 0 dan tres chorros distintos, y no hay campo oai_im_grado']);
+  /* CONTROL NEGATIVO de la frecuencia: sin cargar anima a 70 y NO lo publica. */
+  ex.push(['(C4) sin frecuencia cargada se anima a 70 lpm y ese 70 no queda en ningun campo',
+    (function(){ if (typeof _oaiFcAnim !== 'function') return false;
+      pon('ao_fc', ''); pon('hemo_fc', '');
+      const f = _oaiFcAnim();
+      return f.lpm === 70 && f.cargada === false &&
+             (EL('ao_fc') || {}).value === '' && (EL('hemo_fc') || {}).value === ''; })(),
+    'anima a ' + (typeof _oaiFcAnim === 'function' ? JSON.stringify(_oaiFcAnim()) : 'NO EXISTE') +
+    ' · ao_fc=«' + ((EL('ao_fc')||{}).value || '') + '» hemo_fc=«' + ((EL('hemo_fc')||{}).value || '') + '»']);
+  ex.push(['(C5) con la frecuencia cargada se anima con ESA',
+    (function(){ pon('ao_fc', '96');
+      const f = (typeof _oaiFcAnim === 'function') ? _oaiFcAnim() : null;
+      pon('ao_fc', '');
+      return !!f && f.lpm === 96 && f.cargada === true; })(),
+    'leida de ao_fc']);
+
+  /* -- (D) PAUSAR, INCLUIR Y SEGUIR -------------------------------------------------------- */
+  const vis = (i) => { const e = EL(i); return e ? (getComputedStyle(e).display !== 'none') : false; };
+  ex.push(['(D1) antes de pausar se ofrece «Pausar» y no «Seguir»',
+    vis('oai-esq-pausar') && !vis('oai-esq-seguir'),
+    'pausar ' + vis('oai-esq-pausar') + ' · seguir ' + vis('oai-esq-seguir')]);
+  if (F('oaiEsqPausar')) oaiEsqPausar();
+  await esperar(120);
+  const p1 = foto(); await esperar(420); const p2 = foto();
+  ex.push(['(D2) pausado, el cuadro queda quieto y se ofrece «Seguir»',
+    p1.lf1 === p2.lf1 && p1.mrTr === p2.mrTr && p1.sec0 === p2.sec0 &&
+    vis('oai-esq-seguir') && !vis('oai-esq-pausar'),
+    'valvas ' + (p1.lf1 === p2.lf1) + ' · chorro ' + (p1.mrTr === p2.mrTr) +
+    ' · contraste ' + (p1.sec0 === p2.sec0) + ' · seguir ' + vis('oai-esq-seguir')]);
+  /* El guardado necesita un uuid y el toggle prendido: sin eso «Incluir» sale por su guarda y
+     el caso mediria la guarda, no el guardado. */
+  try { if (F('cfgToggleGuardarImagenes')) cfgToggleGuardarImagenes(true); } catch (e) {}
+  try { if (F('imgPersistir')) await imgPersistir(U); } catch (e) {}
+  const uuidOk = (typeof _imgUuidActual !== 'undefined') && _imgUuidActual === U;
+  ex.push(['(D3) DENOMINADOR: el estudio de prueba esta montado y el guardado de imagenes prendido',
+    uuidOk && F('imgGuardadoActivo') && imgGuardadoActivo(),
+    'uuid ' + (typeof _imgUuidActual !== 'undefined' ? _imgUuidActual : 'NO') +
+    ' · guardado ' + (F('imgGuardadoActivo') ? imgGuardadoActivo() : 'NO FN')]);
+  const rInc = F('oaiEsqIncluirPDF') ? await oaiEsqIncluirPDF() : { ok: false, motivo: 'NO EXISTE' };
+  const esq1 = (typeof CeiboImg !== 'undefined' && CeiboImg.esquemas) ? await CeiboImg.esquemas(U) : [];
+  ex.push(['(D4) «Incluir en el PDF» guarda UNA imagen de esquema, con la clave de la orejuela',
+    !!rInc.ok && esq1.length === 1 && esq1[0].clave === 'orejuela',
+    'ok ' + rInc.ok + ' · ' + esq1.length + ' esquema(s) · ' + (esq1[0] ? esq1[0].clave : '-') +
+    (rInc.motivo ? ' · ' + rInc.motivo : '')]);
+  /* LA CONVIVENCIA: el automatico NO pisa el cuadro elegido mientras siga abierto el estudio. */
+  const ts1 = esq1[0] ? esq1[0].ts : null;
+  pon('oai_ostium_diam', '27');
+  await esperar(1500);                       /* mas que el diferido de 700 ms */
+  const esq2 = (typeof CeiboImg !== 'undefined' && CeiboImg.esquemas) ? await CeiboImg.esquemas(U) : [];
+  ex.push(['(D5) el guardado automatico NO pisa el cuadro que el medico eligio',
+    esq2.length === 1 && !!ts1 && esq2[0].ts === ts1,
+    (ts1 || 'NO') + ' -> ' + (esq2[0] ? esq2[0].ts : 'NO') + ' · ' + esq2.length + ' esquema(s)']);
+  if (F('oaiEsqSeguir')) oaiEsqSeguir();
+  await esperar(120);
+  const s1 = foto(); await esperar(420); const s2 = foto();
+  ex.push(['(D6) «Seguir» retoma el movimiento',
+    s1.lf1 !== s2.lf1 && vis('oai-esq-pausar') && !vis('oai-esq-seguir'),
+    'valvas ' + (s1.lf1 !== s2.lf1) + ' · pausar ' + vis('oai-esq-pausar')]);
+  /* CONTROL NEGATIVO: con la seccion plegada la animacion no corre. */
+  { const sec = EL('ete-seccion-oai'); if (sec) sec.style.display = 'none'; }
+  await esperar(150);
+  const q1 = foto(); await esperar(420); const q2 = foto();
+  ex.push(['(D7) CONTROL: con la seccion plegada la animacion no corre',
+    q1.lf1 === q2.lf1 && q1.sec0 === q2.sec0,
+    'valvas ' + (q1.lf1 === q2.lf1) + ' · contraste ' + (q1.sec0 === q2.sec0)]);
+  { const sec = EL('ete-seccion-oai'); if (sec) sec.style.display = 'block'; }
+  if (F('oaiEsqSync')) oaiEsqSync();
+  await esperar(200);
+
+  /* -- (E) EL GLOBO NUEVO, Y EL AMBAR COMO CONTROL ----------------------------------------- */
+  const gTxt = (function(){
+    const b = document.querySelector('[data-vinfo="oai-ref"]');
+    if (!b || !F('vInfoClic')) return 'NO EXISTE';
+    try { vInfoClic(b); } catch (e) { return 'EXC'; }
+    const c = EL('vinfo-card');
+    const t = c ? (c.textContent || '').replace(/[ \\t\\n]+/g, ' ').trim() : 'SIN TARJETA';
+    try { if (F('vInfoCerrar')) vInfoCerrar(true); } catch (e) {}
+    return t;
+  })();
+  ex.push(['(E0) DENOMINADOR: el globo de la orejuela abre y trae texto',
+    gTxt.length > 1500, gTxt.length + ' caracteres']);
+  ex.push(['(E1) el globo trae los SIETE bloques y la lista de fuentes',
+    ['Por qué importa','Morfología','Velocidad de vaciamiento','Trombo','Contraste espontáneo',
+     'Medidas','Lo que no se pudo verificar','Fuentes'].every(x => gTxt.indexOf(x) > -1),
+    ['Por qué importa','Morfología','Velocidad de vaciamiento','Trombo','Contraste espontáneo',
+     'Medidas','Lo que no se pudo verificar','Fuentes'].filter(x => gTxt.indexOf(x) < 0).join(' | ') || 'los ocho']);
+  ex.push(['(E2) el globo NO lleva el bloque de dispositivos, ni la frase de los rangos, ni el pie de Referencias',
+    !/Dispositivos de cierre|Ninguna guía de la biblioteca|Ficha de la pestaña Referencias|Amulet|WATCHMAN/.test(gTxt),
+    ['Dispositivos de cierre','Ninguna guía de la biblioteca','Ficha de la pestaña Referencias','Amulet','WATCHMAN']
+      .filter(x => gTxt.indexOf(x) > -1).join(' | ') || 'ninguno de los cinco']);
+  ex.push(['(E3) el globo marca la graduacion del contraste espontaneo como criterio de la aplicacion',
+    gTxt.indexOf('CRITERIO DE ECOSMART') > -1 && gTxt.indexOf('propia de la aplicación') > -1,
+    'chip ' + (gTxt.indexOf('CRITERIO DE ECOSMART') > -1)]);
+  ex.push(['(E4) el globo cita las CUATRO fuentes con corchetes numerados',
+    (gTxt.match(/\\[[1-4]\\]/g) || []).length >= 10 &&
+    gTxt.indexOf('Europace 2014;16:1397-1416') > -1 &&
+    gTxt.indexOf('EuroIntervention 2020;15:1133-1180') > -1 &&
+    gTxt.indexOf('J Am Soc Echocardiogr 2016;29:1-42') > -1 &&
+    gTxt.indexOf('J Am Soc Echocardiogr 2013;26(9):921-964') > -1,
+    (gTxt.match(/\\[[1-4]\\]/g) || []).length + ' corchetes']);
+  /* Lo que NO se escribio porque la fuente no lo sostiene. */
+  ex.push(['(E5) el globo NO afirma un valor normal de la velocidad, y lo declara',
+    !/Lo normal es 40|lo normal es 40/.test(gTxt) &&
+    gTxt.indexOf('Ninguna de las cuatro fuentes publica un valor normal') > -1,
+    'la declaracion esta y la afirmacion no']);
+  ex.push(['(E6) el globo nombra la cardioversion y el cierre, y NO la ablacion, para descartar el trombo',
+    /descartarlo antes de la cardioversión/.test(gTxt) &&
+    gTxt.indexOf('antes del cierre percutáneo') > -1 &&
+    gTxt.indexOf('ablación') < 0,
+    'ablacion presente: ' + (gTxt.indexOf('ablación') > -1)]);
+  /* CONTROL: el globo AMBAR de «Medidas de la orejuela» NO cambio. */
+  pon('oai_ostium_diam', '22');
+  if (F('calcOAI')) calcOAI();
+  await esperar(150);
+  const ambar = (function(){ const n = EL('oai-notas'); if (!n) return 'NO EXISTE';
+    const d = n.querySelector('details');
+    return d ? (d.textContent || '').replace(/[ \\t\\n]+/g, ' ').trim() : 'SIN DETAILS'; })();
+  ex.push(['(E7) CONTROL: el globo ambar sigue trayendo las dos tablas de dispositivos con sus rangos',
+    ambar.indexOf('Amplatzer Amulet') > -1 && ambar.indexOf('WATCHMAN FLX Pro') > -1 &&
+    ambar.indexOf('Tabla 2') > -1 && ambar.indexOf('Tabla 78') > -1,
+    ambar.length + ' caracteres · Amulet ' + (ambar.indexOf('Amplatzer Amulet') > -1) +
+    ' · Watchman ' + (ambar.indexOf('WATCHMAN FLX Pro') > -1)]);
+
+  /* -- (F) LA LEYENDA DEL GUARDADO APAGADO ------------------------------------------------- */
+  const motivo = await (async () => {
+    try { localStorage.setItem('cfg-guardar-imagenes', '0'); } catch (e) {}
+    if (!F('esqGuardarComoImagen')) return 'NO EXISTE';
+    const r = await esqGuardarComoImagen('tc551', 'x', '<svg xmlns="http://www.w3.org/2000/svg"></svg>', 10, 10);
+    return (r && r.motivo) || '(sin motivo)';
+  })();
+  ex.push(['(F1) la leyenda del guardado apagado dice la pestania, la seccion y el nombre de la casilla',
+    motivo.indexOf('apagado') > -1 && motivo.indexOf('Config') > -1 &&
+    motivo.indexOf('Imágenes del estudio') > -1 &&
+    motivo.indexOf('Guardar imágenes con los estudios') > -1,
+    motivo]);
+  ex.push(['(F2) CONTROL: el estado por omision del guardado de imagenes sigue apagado',
+    (function(){ try { localStorage.removeItem('cfg-guardar-imagenes'); } catch (e) {}
+      return F('imgGuardadoActivo') ? imgGuardadoActivo() === false : false; })(),
+    'sin la clave en localStorage, imgGuardadoActivo da ' +
+      (F('imgGuardadoActivo') ? String(imgGuardadoActivo()) : 'NO FN')]);
+
+  /* -- (G) BORRAR UN ESTUDIO SE LLEVA SUS VIDEOS Y CINELOOPS ------------------------------- */
+  const gRec = await (async () => {
+    if (typeof CeiboVideo === 'undefined' || !CeiboVideo.recolectar) return { err: 'sin CeiboVideo' };
+    const A = 'tc551-video-aaa', B = 'tc551-video-bbb';
+    const mkBlob = () => new Blob([new Uint8Array(64)], { type: 'video/mp4' });
+    const sem = async (u) => { try { await CeiboVideo.guardar(u, [{ id: 'v-' + u, nombre: 'p.mp4',
+      tipo: 'video/mp4', bytes: 64, blob: mkBlob() }]); } catch (e) {} };
+    await sem(A); await sem(B);
+    const antesA = (await CeiboVideo.leer(A) || []).length;
+    const antesB = (await CeiboVideo.leer(B) || []).length;
+    /* Se recoge con B VIVO y A muerto: si el recolector borrara todo, B caeria tambien y la
+       condicion lo dice. Es el control negativo. */
+    const n = await CeiboVideo.recolectar([B]);
+    const despA = (await CeiboVideo.leer(A) || []).length;
+    const despB = (await CeiboVideo.leer(B) || []).length;
+    try { await CeiboVideo.recolectar([]); } catch (e) {}
+    return { antesA, antesB, n, despA, despB };
+  })();
+  ex.push(['(G0) DENOMINADOR: los dos videos de prueba quedaron escritos',
+    gRec.antesA === 1 && gRec.antesB === 1,
+    JSON.stringify(gRec)]);
+  ex.push(['(G1) el recolector de video se lleva el huerfano y NO toca el del estudio vivo',
+    gRec.despA === 0 && gRec.despB === 1 && gRec.n >= 1,
+    'A ' + gRec.antesA + '->' + gRec.despA + ' · B ' + gRec.antesB + '->' + gRec.despB +
+    ' · recolectados ' + gRec.n]);
+  ex.push(['(G2) la puerta unica de recoleccion nombra a las tres tiendas',
+    (function(){ if (!F('imgRecolectarHuerfanas')) return false;
+      const src = String(imgRecolectarHuerfanas);
+      return /CeiboImg\\.recolectar/.test(src) && /CeiboCine\\.recolectar/.test(src) &&
+             /CeiboVideo\\.recolectar/.test(src); })(),
+    (function(){ if (!F('imgRecolectarHuerfanas')) return 'NO FN';
+      const src = String(imgRecolectarHuerfanas);
+      return ['CeiboImg','CeiboCine','CeiboVideo'].map(x =>
+        x + '=' + new RegExp(x + '\\\\.recolectar').test(src)).join(' '); })()]);
+
+  /* -- (H) EL PAPEL NO SE MOVIO ------------------------------------------------------------ */
+  const excelN = (function(){ if (!F('_labExcelRow') || !F('_noEsDelEstudio')) return 'SIN FN';
+    const campos = {};
+    document.querySelectorAll('input[id], select[id], textarea[id]').forEach(e => {
+      if (_noEsDelEstudio(e.id)) return;
+      campos[e.id] = (e.type === 'checkbox') ? (e.checked ? '1' : '') : String(e.value || ''); });
+    document.querySelectorAll('input[type=checkbox][id]').forEach(e => {
+      if (_noEsDelEstudio(e.id)) return; campos[e.id + '__chk'] = e.checked ? '1' : '0'; });
+    return Object.keys(_labExcelRow({ campos: campos, fecha: '2026-10-30' })).length; })();
+  ex.push(['(H1) el Excel sigue en 440 columnas con la orejuela, su esquema y su movimiento cargados',
+    excelN === 440, String(excelN)]);
+  const inf = (function(){ try { if (F('setEstiloInforme')) setEstiloInforme('estandar');
+      if (F('generarInforme')) generarInforme(); } catch (e) {}
+    return ((EL('informe_texto') || {}).value || '') + ' || ' + ((EL('en_suma') || {}).value || ''); })();
+  ex.push(['(H2) ni el informe ni el EN SUMA nombran el esquema, el latido ni la frecuencia de la animacion',
+    inf.length > 0 && !/esquema/i.test(inf) && !/70 lpm/.test(inf) && !/latido/i.test(inf),
+    inf.length + ' caracteres']);
+  /* ⚠️ LA PRIMERA VERSION DE ESTA CONDICION PREGUNTABA POR _noEsDelEstudio('oai-esq-estado')
+     Y ERA FALSA: ese predicado es una lista de PREFIJOS y oai- no esta en ella, asi que
+     devuelve false. No importaba: oai-esq-estado es un <span>, y el recolector de
+     guardarInforme barre input[id], select[id], textarea[id], asi que un span no entra
+     nunca. El invariante que SI hay que fijar es que ninguno de los nodos que esta parte
+     agrega sea un campo del estudio, y eso se pregunta mirando lo que el recolector toma. */
+  ex.push(['(H3) CONTROL: ningun nodo que esta parte agrega entra en los campos del estudio',
+    (function(){ if (!F('_noEsDelEstudio')) return false;
+      const tomados = new Set();
+      document.querySelectorAll('input[id], select[id], textarea[id]').forEach(e => {
+        if (!_noEsDelEstudio(e.id)) tomados.add(e.id); });
+      const nuevos = ['oai-fila','oai-esq-pausar','oai-esq-seguir','oai-esq-pdf',
+                      'oai-lf1','oai-lf2','oai-mr','oai-sec'];
+      /* DENOMINADOR: el barrido tiene que haber tomado algo, si no «ninguno entra» pasa solo. */
+      return tomados.size > 500 && tomados.has('oai_ostium_diam') &&
+             nuevos.every(i => !tomados.has(i)) &&
+             !document.getElementById('oai_fc_anim') && !document.getElementById('oai_im_grado'); })(),
+    (function(){ if (!F('_noEsDelEstudio')) return 'NO FN';
+      const tomados = new Set();
+      document.querySelectorAll('input[id], select[id], textarea[id]').forEach(e => {
+        if (!_noEsDelEstudio(e.id)) tomados.add(e.id); });
+      return tomados.size + ' campos tomados · de los 8 nodos nuevos entran ' +
+        ['oai-fila','oai-esq-pausar','oai-esq-seguir','oai-esq-pdf','oai-lf1','oai-lf2','oai-mr','oai-sec']
+          .filter(i => tomados.has(i)).length; })()]);
+
+  } finally { await restaurar(); }
+  return { extra: ex };
+  })();
+`);
+
+
 
 let servidor, chrome;
 try {

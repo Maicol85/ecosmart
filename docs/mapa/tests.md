@@ -449,3 +449,16 @@ sin juzgar. Cae contra HEAD por **siete** condiciones y ninguna por excepción; 
 Sus cuatro trampas de método —un uuid de siete caracteres que no se guarda, la grilla ordenada al
 revés de lo que supone el caso, los nodos que se desprenden en cada repintado y `S()` despachando
 justo el evento que guarda— están en esa ficha.
+
+---
+
+## Puntero · TC-551 (TANDA NOCTURNA, Parte A, 2026-10-30)
+
+La ficha vive en **`docs/mapa/tests-fichas-551.md`**, en archivo propio porque
+`tests-fichas.md` está en 34,2 KB. Fija el esquema de la orejuela del ETE: su lugar al lado de
+los campos, los rótulos que se pisaban, el movimiento con sus tres controles, el ⓘ nuevo con el
+ámbar como control, la leyenda del guardado apagado y los recolectores de las tres tiendas.
+
+⚠️ **El ancho de ventana no se puede cambiar desde el cuerpo de un caso**, así que el lugar se
+fija por la regla del CSSOM y por la coherencia con `matchMedia`; la geometría real en los cuatro
+anchos la mide `scripts/_probe_oaiwk.mjs`, en dos motores.

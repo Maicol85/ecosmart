@@ -340,3 +340,22 @@ dice «apta» ni «no apta» y no nombra ningún dispositivo — la elegibilidad
 imagen del estudio, marcado «esquema», una sola copia por estudio.
 
 Está en `docs/mapa/img-guardadas.md` → «La función común de esquemas, y el primero».
+
+---
+
+## Puntero · la TANDA NOCTURNA, Parte A y la orejuela (2026-10-30)
+
+**Las dos tablas de dispositivos de la ficha `ref-oai` no se tocaron**, y siguen siendo lo que
+esta sección describe. Lo que cambió es **quién las muestra**:
+
+- el ⓘ general de «Orejuela izquierda» **dejó de clonar la ficha**. `VINFO['oai-ref']` pasa de
+  `_otrRefClon('ref-oai')` a `_oaiRefGlobo()`, con texto propio de siete bloques y cuatro
+  fuentes numeradas, y **sin** el bloque de dispositivos, sin la frase de los rangos de tamaño y
+  sin el pie «Ficha de la pestaña Referencias»;
+- el ⓘ **ámbar** de «Medidas de la orejuela» (`oaiTablasGlobo`) **no cambió**, y TC-551 (E7) lo
+  cuenta como control;
+- la ficha `ref-oai` **tampoco cambió**, y eso es una decisión declarada: hacerla «citar en vez
+  de repetir» saca de Referencias el bloque de la velocidad y su chip «CRITERIO DE ECOSMART», que
+  varios casos cuentan → `docs/PENDIENTES.md` **NOC-A-e**.
+
+Todo lo demás de la Parte A está en **`docs/mapa/noc-a-orejuela.md`**.
