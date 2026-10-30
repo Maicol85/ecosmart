@@ -486,3 +486,14 @@ No cambió ningún dato clínico. Movió notas de trabajo al globo ⓘ y a `docs
 dejó una sola cita al final de cada bloque, sacó las mayúsculas de en medio y dejó cada contenido
 una sola vez por sección. **Lo que esta tanda hizo está en `docs/mapa/a-evidencia-textos.md`**, y
 el caso que lo fija es **TC-537** (ficha en `docs/mapa/tests-fichas-537.md`).
+
+
+## → La TANDA AORTA-2 (2026-10-30) — puntero
+
+La sección de la **válvula aórtica bicúspide** pasó a tener **dos bloques visibles**: los cinco
+umbrales de cirugía de la **Tabla 68**, uno por línea y una sola vez cada uno, y las
+recomendaciones no quirúrgicas. Y es la primera sección del panel que **pregunta nueve cosas**
+con `_indFilaOrigen`: los nueve factores de riesgo, con tres estados, leyendo el campo guardado
+cuando lo hay y ofreciendo el control cuando no.
+
+→ **`docs/mapa/ao2-segmentos-bicuspide.md`** § 4

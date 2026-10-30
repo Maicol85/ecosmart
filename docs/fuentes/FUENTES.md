@@ -7682,3 +7682,179 @@ que respalda sólo la insuficiencia tricuspídea grave y es otra cosa.
   repositorio para no citar por número de página de PDF.
 - **Las tres salvedades van en el texto que se publica**, no sólo acá: una cita sin ellas haría
   que la fuente respalde algo que no dice.
+
+---
+
+# La tanda AORTA-2 (2026-10-30)
+
+Tres commits de código. **Fuente primaria: la edición INGLESA.** «ESC 2024 aorta.pdf» (carpeta
+`06_Aorta`; Mazzolai L y col., *Eur Heart J* 2024;45:3538-3700, doi 10.1093/eurheartj/ehae179,
+**163 hojas**), con **folio = hoja + 3537**, comprobado en el pie impreso de cada hoja citada. La
+edición de la SEC («Mazzolai_2024_Aorta.pdf», 199 hojas, folio = hoja − 1) se usó sólo de cotejo.
+Las citas nuevas llevan **los dos folios**.
+
+## 1 · Figura 5 — hoja 26, folio 3563 (SEC: hoja 29, folio 28), LEÍDA EN IMAGEN a 200 ppp
+
+Título: «Anatomy and aortic segments and **upper normal values** for aortic dimensions». Los ocho
+recuadros, transcritos tramo por tramo (varón y mujer, en milímetros):
+
+| Tramo | Varón | Mujer |
+|---|---|---|
+| Sinus of Valsalva (<22 mm/m²) | 40 | 34 |
+| Sinotubular junction | 38 | 33 |
+| Ascending aorta | 40 | 36 |
+| Proximal aortic arch | 37 | 34 |
+| Mid aortic arch | 34 | 31 |
+| Proximal descending aorta | 29 | 26 |
+| Distal descending aorta | 23 | 20 |
+| Abdominal aorta | 23 | 19 |
+
+**Los ocho coinciden con los que la orden anticipa.** Lo que la figura publica es el **límite
+superior de lo normal**, no un umbral de gravedad ni una indicación quirúrgica: por eso la
+aplicación afirma «por encima del límite superior de lo normal» y no «dilatada».
+
+⚠️ **La figura le da al seno de Valsalva 34 mm en la mujer y la aplicación aplica 36**, del
+apartado 9.2.1.1. Es la discrepancia que el AJ4-1 ya declaró y que **no se tocó**: es decisión de
+Maicol y sigue vigente.
+
+## 2 · Recommendation Table 68 — hojas 110 y 111, folios 3647 y 3648, LEÍDA EN IMAGEN
+
+«Recommendations for bicuspid aortic valve-associated aortopathy management». Las diez filas, con
+su clase y su nivel; en **negrita** las cinco que esta tanda publica como umbrales de cirugía:
+
+| Recomendación | Clase | Nivel |
+|---|---|---|
+| Con el primer diagnóstico de válvula bicúspide, ecocardiografía transtorácica inicial para medir los diámetros de la aorta a varios niveles | I | B |
+| **Cirugía de la aortopatía bicúspide con un diámetro aórtico máximo ≥ 55 mm** | **I** | **B** |
+| **Cirugía de la aortopatía bicúspide de fenotipo de raíz^c con un diámetro máximo ≥ 50 mm** | **I** | **B** |
+| Tomografía o resonancia de toda la aorta torácica en el diagnóstico inicial, ante discrepancias entre controles, o cuando el diámetro supera 45 mm | I | C |
+| Cribado por ecocardiografía de familiares de primer grado con fenotipo de raíz^c o insuficiencia aórtica aislada | I | C |
+| Vigilancia seriada por ecocardiografía con un diámetro máximo > 40 mm, sin indicación de cirugía o tras cirugía valvular aislada: al año y después cada 2 o 3 años si está estable | I | C |
+| Cribado por ecocardiografía de los familiares de primer grado de TODOS los pacientes con válvula bicúspide | IIa | B |
+| **Con riesgo quirúrgico bajo y fenotipo ascendente^d, cirugía a considerar con un diámetro máximo > 52 mm** | **IIa** | **B** |
+| **Con riesgo quirúrgico bajo y fenotipo ascendente, cirugía a considerar con ≥ 50 mm si concurre alguno de los nueve factores** | **IIa** | **C** |
+| **En el paciente que se opera de la válvula aórtica, reemplazo de la raíz o de la ascendente con ≥ 45 mm** | **IIa** | **C** |
+
+**Los nueve factores**, literales de la hoja 111: `Age <50 years` · `Shorter stature^e` ·
+`Ascending aortic length ≥11 cm^f` · `Aortic diameter growth rate ≥3 mm per year^g` ·
+`Family history of acute aortic syndrome` · `Aortic coarctation` · `Resistant hypertension^h` ·
+`Concomitant non-aortic-valve cardiac surgery` · `Desire for pregnancy`.
+
+**Las notas al pie**, transcritas:
+
+- **^c** Root phenotype = aortic dilatation with sinus diameter > tubular diameter.
+- **^d** Ascending phenotype = aortic dilatation with tubular diameter > sinus diameter.
+- **^e** Patient height between 1.50 and 1.69 m (yielding a CSA/h ratio >13 cm²/m).
+- **^f** Curvilinear distance at aortic centreline between the ventriculo-aortic junction and the
+  origin of the innominate artery.
+- **^g** In order to ascertain real rapid growth, side-by-side re-evaluation of images obtained
+  with the same modality and technique should be performed.
+- **^h** Hypertension persisting notwithstanding three or more antihypertensive medications
+  prescribed by a physician with experience in hypertension treatment, including diuretics.
+
+### La diferencia de traducción, que decide el verbo
+
+Texto del cuerpo, **fuera de la tabla**, hoja 110, folio 3647, literal:
+
+> «Surgery at >50 mm **may also be considered** in a shared decision with the patient, taking
+> lifestyle and psychological factors into consideration.»
+
+«May be considered» es el verbo de la **Clase IIb**; la edición de la SEC lo traduce «**se debe**
+considerar», que es el de la **IIa**. Se usa el sentido del **inglés**, y la aplicación no le pone
+clase a esa línea: la tabla no se la da.
+
+## 3 · Recommendation Table 38 — hoja 74, folio 3611, LEÍDA EN IMAGEN (sólo inventario)
+
+«Recommendations for surgery in aortic root and ascending aorta dilatation associated with
+**tricuspid** aortic valve». Ocho recomendaciones, y **el 50 mm aparece en TRES filas con
+condiciones distintas**, así que no puede mostrarse como un umbral único:
+
+| Recomendación | Clase | Nivel |
+|---|---|---|
+| Cirugía con dilatación de raíz o ascendente y diámetro máximo ≥ 55 mm | I | B |
+| Reemplazo de raíz con **preservación valvular**, en centros con experiencia y resultados duraderos esperables | I | B |
+| **AVK de por vida** en todo paciente con Bentall con prótesis mecánica | I | B |
+| Ascendente tubular con riesgo quirúrgico bajo^c: reemplazo a considerar con **> 52 mm** | IIa | B |
+| En cirugía de la válvula aórtica tricúspide con dilatación concomitante y riesgo bajo: reemplazo a considerar con **≥ 45 mm, otherwise ≥ 50 mm** | IIa | B |
+| **Aspirina** 75-100 mg/día los primeros 3 meses tras cirugía con preservación valvular, sin otra indicación de anticoagulación | IIa | C |
+| Cirugía cardíaca **no** valvular aórtica con dilatación concomitante ≥ **50 mm**: cirugía aórtica concomitante a considerar | IIa | C |
+| Reemplazo a considerar con **≥ 50 mm** y riesgo bajo^c si concurre alguno de **ocho** factores | IIb | B |
+
+**Los ocho factores de la Tabla 38** son una lista **distinta** de los nueve de la Tabla 68:
+crecimiento ≥3 mm/año · hipertensión resistente^d · **talla baja < 1,69 m** (sin el rango
+1,50-1,69 ni el cociente área/talla) · **fenotipo de raíz** · longitud aórtica **> 11 cm** (no
+«≥ 11») · edad < 50 años · deseo de embarazo · coartación aórtica. **No** tiene historia familiar
+de síndrome aórtico agudo ni cirugía cardíaca concomitante, que sí están en la 68.
+
+⚠️ **La fila del «≥ 45 mm, otherwise ≥ 50 mm» es ambigua en el original** y así figura: la guía no
+dice cuál es la condición que separa los dos números. **No se implementó nada de la tricúspide.**
+
+## 4 · ESC 2020 de cardiopatías congénitas del adulto — hoja 42, folio 604, LEÍDA EN IMAGEN
+
+Baumgartner H y col., *Eur Heart J* 2021;42:563-645, edición inglesa («ESC congenitos en ingles
+2020.pdf», carpeta `08_Cardiopatias_congenitas`, 84 hojas). **Folio = hoja + 562**, comprobado en
+el pie impreso de la hoja 42.
+
+«Recommendations for intervention in coarctation and re-coarctation of the aorta», las cuatro
+filas:
+
+| Recomendación | Clase | Nivel |
+|---|---|---|
+| Reparación de coartación o recoartación en el **hipertenso**^c con gradiente no invasivo aumentado confirmado de forma invasiva (pico-pico ≥ 20 mmHg), con preferencia por el stent cuando sea técnicamente factible | I | C |
+| Stent a considerar en el **hipertenso**^c con estrechamiento ≥ 50 % respecto del diámetro aórtico al diafragma, **aunque** el pico-pico invasivo sea < 20 mmHg | IIa | C |
+| Stent a considerar en el **normotenso**^c con gradiente no invasivo aumentado confirmado de forma invasiva (pico-pico ≥ 20 mmHg) | IIa | C |
+| Stent **puede** considerarse en el **normotenso**^c con estrechamiento ≥ 50 %, aunque el pico-pico sea < 20 mmHg | IIb | C |
+
+**Nota ^c**, literal: «Right arm ambulatory blood pressure monitoring **should be considered** for
+the diagnosis of hypertension.»
+
+Y del apartado 4.6.3 de la misma hoja, literal:
+
+> «Cardiac catheterization with manometry (a peak-to-peak gradient ≥20 mmHg) indicates a
+> haemodynamically significant CoA **in the absence of well-developed collaterals** and is
+> performed in the setting of interventional treatment. It should be noted that, in patients under
+> general anaesthesia, invasive measurement of gradient may be underestimated.»
+
+### Lo que a los tres textos de la pantalla les FALTABA, y que esta lectura destapó
+
+1. **«En ausencia de colaterales bien desarrolladas»** no estaba en ningún lado de la pantalla, y
+   es la condición que vuelve engañoso justo al paciente que más colaterales tiene.
+2. **El 50 % de estrechamiento no es «Clase IIb» a secas**, que es lo que el hint decía: es **IIa
+   en el hipertenso** y **IIb en el normotenso**. El código de `coaConclusion` ya repartía las dos
+   ramas bien; el texto de al lado publicaba una sola.
+3. El monitoreo de 24 h en brazo derecho **«se debe considerar»**, no es obligatorio.
+
+## Cambios de evidencia
+
+| Qué | Antes | Ahora | Fuente | Commit |
+|---|---|---|---|---|
+| Corte de la unión sinotubular | 38 mm, un solo valor para los dos sexos, criterio propio | **38 en el varón y 33 en la mujer** | Figura 5, folios 3563 / 28, en imagen | AO2-1 |
+| Corte de la aorta ascendente | 40 mm, un solo valor, criterio propio | **40 en el varón y 36 en la mujer** | ídem | AO2-1 |
+| Qué se afirma por encima de esos dos cortes | «dilatada» | **«por encima del límite superior de lo normal»** | ídem: la figura publica límites de normalidad, no gravedad | AO2-1 |
+| Operador de esos dos cortes | `>` estricto | **`>` estricto**, sin mover | — (la rama por sexo tenía el `>=` de la raíz escrito; se derivó de `incRef`) | AO2-1 |
+| Corte del seno de Valsalva | 40 / 36 (apartado 9.2.1.1) | **igual**, sin tocar | — (decisión de Maicol del AJ4-1; la figura dice 34 en la mujer) | — |
+| Corte del cayado y de la descendente | 40 y 35, criterio propio | **igual**, y ahora lo **declara** el chip gris | — (la figura parte cada uno en dos tramos; no hay correspondencia directa) | AO2-1 |
+| Ficha de los dos segmentos alineados | `AOR-001`, «criterio propio», por verificar | **`AOR-005`, guía, verificada** | Figura 5 | AO2-1 |
+| Hint del gradiente pico-pico | «Criterio ESC 2020 para indicar intervención. Confirmar de forma invasiva; la anestesia general puede subestimarlo.» | línea corta + texto completo en el ⓘ, **con la ausencia de colaterales** | ESC 2020, folio 604, en imagen | AO2-2 |
+| Hint del estrechamiento relativo | «Umbral Clase IIb: ≥50 % independiente del gradiente.» | línea corta + ⓘ con **IIa en el hipertenso y IIb en el normotenso** | ídem | AO2-2 |
+| Hint de la hipertensión | «Diagnóstico por monitoreo ambulatorio de 24 h en brazo derecho.» | línea corta + ⓘ con «se debe considerar» | ídem, nota ^c | AO2-2 |
+| La coartación en el EN SUMA sin integrar | no aparecía; el resumen decía «sin alteraciones» | **línea descriptiva**: situación, istmo, gradientes | — (decisión del médico; sin clase ni folio) | AO2-2 |
+| «cirugía Clase I B **SI** el fenotipo es de raíz» | con la mayúscula en medio | **«si»** | — (regla R3) | AO2-2 |
+| Los cinco umbrales de la bicúspide | repetidos hasta cuatro veces en la misma sección | **una vez cada uno**, en `VAB_T68` | Tabla 68, folios 3647-3648, en imagen | AO2-2 y AO2-3 |
+| El «más de 50 mm» en decisión compartida | no estaba | **está, y sin clase** | texto del cuerpo, folio 3647; la SEC lo traduce con el verbo de la IIa y se usa el del inglés | AO2-3 |
+| Los nueve factores | dos estados: marcada o «no cuenta» | **tres estados**: sí, no, sin dato | — (decisión del médico; la lista ya era la de la Tabla 68) | AO2-3 |
+| Las cuatro notas al pie de la Tabla 68 | el rango 1,50-1,69 estaba en el código, sin publicarse | **publicadas** en una nota de la sección | Tabla 68, hoja 111, folio 3648 | AO2-3 |
+| Los ocho factores de la Tabla 38 (tricúspide) | — | **sólo inventariados**, nada implementado | Tabla 38, folio 3611, en imagen | — |
+
+## Notas de trabajo (R1)
+
+- **Esta tanda abrió DOS documentos**, los dos en su edición inglesa y los dos renderizados a
+  200 ppp: la ESC 2024 de aorta (hojas 26, 74, 110 y 111) y la ESC 2020 de cardiopatías
+  congénitas del adulto (hoja 42). **El pie impreso se leyó en cada hoja antes de usar el folio.**
+- **La regla de folio de la edición inglesa de la ESC 2024 se comprobó en cuatro hojas**:
+  26 → 3563, 74 → 3611, 110 → 3647 y 111 → 3648. La de la ESC 2020, en la hoja 42 → 604.
+- **Las citas viejas no se reescribieron.** Las fichas anteriores citan la traducción de la SEC,
+  cuyo folio es «hoja menos uno»; reescribir una cita verificada sin volver a abrirla es
+  inventarla. Las **nuevas** llevan los dos folios, que es lo que la orden pide.
+- **Lo que la lectura desmintió se reporta y no se corrige**: el corte del seno de Valsalva en la
+  mujer sigue siendo 36 por decisión de Maicol, aunque la Figura 5 diga 34.

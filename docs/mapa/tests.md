@@ -499,3 +499,9 @@ perdió o ganó:
 - Las sondas: `_probe_aj1ab.mjs`, `_ab_aj1diff.mjs`, `_probe_aj1pdf.mjs` —geometría del PDF—,
   `_probe_aj1min.mjs` —la fila, con gestos reales—, `_mut_aj1.py` y `_probe_ajustes1wk.mjs` —que NO es `_probe_aj1wk.mjs`, el de la tanda AJ1 del 23/10—.
 
+
+## → TC-555 — TANDA AORTA-2 (2026-10-30)
+
+La ficha vive en **`docs/mapa/tests-fichas-555.md`** (archivo propio, porque `tests-fichas.md`
+está en 34,2 KB). Cae contra HEAD por **26 condiciones y ninguna por excepción**, y sobrevive a
+**14 mutaciones dirigidas** (`scripts/_mut_ao2.py`).

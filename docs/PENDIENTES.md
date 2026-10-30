@@ -10348,3 +10348,131 @@ agregar `noPdf` a esas dos allowlists —dos palabras—, pero es cambiar lo que
 registro persistido de cada estudio con imágenes, y eso es decisión de Maicol.
 
 Es la misma clase de salvedad que `COR-e` declara para «Incluir en el PDF» con Config apagado.
+
+---
+
+# TANDA AORTA-2 (2026-10-30) — lo declarado
+
+## AO2-a · INVENTARIO de la válvula aórtica TRICÚSPIDE (punto 3c) — sólo reportado
+
+La orden pide inventariar y **no implementar nada**. Esto es el inventario.
+
+**Qué trae hoy la aplicación para la dilatación aórtica con válvula tricúspide.** No hay un módulo
+de «aorta tricúspide»: lo que hay es la **aortopatía hereditaria no sindrómica** (`marfan_sindrome`
+= `ehat` u `otro`), cuyos umbrales la propia aplicación declara tomados de la Tabla 38 —
+`MARFAN_FTE.ehat` y `MARFAN_FTE.otro` dicen «ESC 2024, Tabla 38 · folio 80» (folio de la edición
+SEC; el de la inglesa es **3611**)— y cuya lista de factores publica `MARFAN_FR_TXT.ehat`:
+«crecimiento de 3 mm o más al año, hipertensión resistente, estatura menor de 1,69 m, fenotipo de
+raíz aórtica, longitud aórtica mayor de 11 cm, edad menor de 50 años, deseo de embarazo o
+coartación aórtica».
+
+**Qué DIFIERE de la Tabla 38, leída en imagen** (hoja 74, folio 3611; la transcripción completa
+está en `docs/fuentes/FUENTES.md` → «La tanda AORTA-2» § 3):
+
+| La Tabla 38 publica | Qué hace hoy la aplicación |
+|---|---|
+| **Ocho** recomendaciones | Publica **un umbral por síndrome** y la lista de factores; no publica las ocho |
+| **≥ 55 mm** — I·B | Lo aplica como umbral del `ehat` |
+| Reemplazo de raíz con **preservación valvular** — I·B | **No figura** en ninguna superficie |
+| **AVK de por vida** con Bentall mecánico — I·B | **No figura** |
+| Ascendente tubular con riesgo bajo, **> 52 mm** — IIa·B | **No figura** |
+| Cirugía de la válvula con **≥ 45 mm, «otherwise» ≥ 50 mm** — IIa·B | **No figura**; y la fila es **ambigua en el original** |
+| **Aspirina** 75-100 mg/día 3 meses tras cirugía con preservación valvular — IIa·C | **No figura** |
+| Cirugía cardíaca no valvular aórtica con **≥ 50 mm** — IIa·C | **No figura** |
+| **≥ 50 mm** con riesgo bajo y alguno de **ocho** factores — IIb·B | La lista de factores SÍ está, pero **sin su umbral, sin su clase y sin su nivel** |
+
+**La diferencia que más importa: el 50 mm aparece en TRES filas con condiciones distintas** —la
+cirugía valvular concomitante, la cirugía cardíaca no valvular y los ocho factores—, así que no
+puede mostrarse como un umbral único. Hoy la aplicación no lo muestra en ninguna de las tres.
+
+**Y la lista de factores de la Tabla 38 NO es la de la Tabla 68**, aunque se parezcan: la 38 tiene
+«fenotipo de raíz» y «talla baja < 1,69 m» a secas, y **no** tiene historia familiar de síndrome
+aórtico agudo ni cirugía cardíaca concomitante; la 68 tiene esas dos, no tiene el fenotipo de raíz
+y define la talla como «entre 1,50 y 1,69 m con cociente área/talla > 13 cm²/m». `MARFAN_FR_TXT`
+publica hoy la de la **38**, que es la correcta para el `ehat`.
+
+**No se tocó nada.** Implementar las ocho recomendaciones es contenido clínico nuevo sobre el
+papel firmado y es decisión de Maicol.
+
+## AO2-b · La línea INTEGRADA de la coartación en el EN SUMA publica clase y guía
+
+Con la sección **integrada al informe**, `ccSumaLinea('coa')` publica su mapa `DX`, que incluye
+«indicación de intervención Clase I ESC 2020», «indicación a considerar Clase IIa ESC 2020» y
+«indicación posible Clase IIb ESC 2020». **Medido** en el árbol del commit 1 y en el de cierre:
+con pico-pico 25 mmHg e hipertensión confirmada, el EN SUMA dice «Coartación de aorta nativa —
+istmo 8 mm — gradiente medio 25 mmHg — **indicación de intervención Clase I ESC 2020**».
+
+Eso choca con el encabezado de esta orden —«el informe y el EN SUMA describen; clase, nivel,
+umbral y tabla viven en la Evidencia»—, pero **cambiarlo no está en los puntos de la orden**, y la
+orden además protege expresamente el texto de una de esas claves («Coartación de aorta
+post-cirugía — en seguimiento — datos incompletos para clasificarla»). Por la regla 4, **se paró y
+se reporta**.
+
+La línea que esta tanda SÍ agregó —la de la sección **sin** integrar— es descriptiva: sin clase,
+sin nivel y sin tabla. Así que hoy el EN SUMA dice una cosa u otra según el interruptor, y eso
+está declarado.
+
+## AO2-c · La conclusión de la coartación lleva clase, nivel, tabla y folio al informe
+
+`coaConclusion().txt` arma frases como «…con indicación de intervención **Clase I · Nivel C (ESC
+2024, Tabla 69 · folio 121)**…», y ese texto llega al **cuerpo del informe** por el bloque de
+coartación de `generarInforme` (gateado por `coart_incluir_chk`). Es la misma clase de cosa que
+`AO2-b`, un nivel más arriba: el papel firmado llevando una cita y una clase.
+
+**No se tocó**, por el mismo motivo, y es la frontera más grande que esta tanda deja abierta.
+
+## AO2-d · Un segmento «sin clasificar» no bloquea la negación global del EN SUMA
+
+Medido en los dos árboles, idéntico: con la unión sinotubular en 38 mm y **sin sexo cargado**, la
+cápsula dice «No se puede clasificar sin el sexo», el cuerpo del informe dice «Aorta torácica:
+Unión sinotubular 38 mm.» y el **EN SUMA dice «Estudio sin alteraciones estructurales ni
+funcionales significativas.»**
+
+O sea que el resumen afirma normalidad sobre un segmento que la aplicación se negó expresamente a
+clasificar. Es **preexistente** —la raíz hace lo mismo desde el G-4, verificado en HEAD— y es la
+misma clase de defecto que el punto 2b(ii) cierra para la bicúspide y la coartación. La orden no
+lo nombra, así que **se reporta**. El arreglo sería marcar el párrafo (`ccMarcarParrafo`) cuando
+hay segmentos en la franja ambigua, que haría que el resumen dijera «Sin otras alteraciones… — ver
+los hallazgos descritos en el cuerpo del informe».
+
+## AO2-e · Lo contestado en el panel sobre los nueve factores no viaja con el estudio
+
+Es el **costo declarado del punto 3b**, y la orden lo anticipa. El mecanismo que la Evidencia usa
+para sus preguntas clínicas (`_indClin`) es **efímero a propósito**: su propio comentario explica
+que no puede ser un campo del formulario porque `guardarInforme` barrería esas respuestas al
+Excel, al backup y al informe firmado de cada estudio.
+
+Entonces: un factor contestado en el panel vale para la sesión. Lo que **sí** persiste es lo que
+un estudio viejo ya tenga en `vab_fr_*`, y la Evidencia lo lee con prioridad (`_indOrigen`).
+Hacerlo persistir exigiría escribir desde el panel al campo guardado —un mecanismo que la
+Evidencia no tiene— o un campo nuevo, que la orden prohíbe. **Se paró y se reporta con su costo**,
+que es lo que el punto 3b pide.
+
+## AO2-f · `vabFrChk` y `vabFrChkSync` quedaron sin elemento que tocar
+
+Las seis casillas `vabchk-*` salieron de la pantalla, así que esas dos funciones recorren el mapa
+y no encuentran nada. **No se borraron**: `vabSync` y `limpiarCampos` las llaman, y retirarlas
+obliga a cambiarles la forma a esas dos. `VAB_FR_CHK` **sí** sigue haciendo falta —es la lista de
+los seis campos guardados y de ahí los vacía «Nuevo estudio»—. Es código muerto declarado, de tres
+líneas, y la próxima tanda que toque esa zona puede retirarlo.
+
+## AO2-g · Dos mapas quedaron a menos de 1 KB del techo
+
+Medidos al cerrar: **`docs/mapa/congenitas-otros.md` en 34,5 KB** y
+**`docs/mapa/panel-evidencia.md` en 34,1 KB**. Los dos recibieron un puntero de esta tanda. **La
+próxima tanda que necesite escribir en cualquiera de los dos tiene que partirlo primero**, que es
+la regla de `ecosmart/CLAUDE.md` y lo que esta tanda hizo con `vab-bicuspide.md` (33,9 → 18,3 KB,
+con las secciones 10 y 11 a `docs/mapa/vab-cuspides-dibujos.md`).
+
+## Cerrado por esta tanda
+
+- **`AJ4-c`** — «la Figura 5 publica límites superiores de normalidad POR SEXO para todos los
+  tramos y la app no los aplica». Hoy los aplica en los **dos** segmentos con correspondencia
+  directa (unión sinotubular y aorta ascendente); los otros dos no la tienen —la figura los parte
+  en dos tramos cada uno— y conservan su corte propio, que la pantalla **declara** con el chip
+  gris. La ficha `AOR-001` quedó con esos dos y lo dice; la `AOR-005` nace verificada.
+- **`AJ1-e`** — «`vab-bicuspide.md` quedó en 33,9 KB, a 1,1 KB del techo: la próxima tanda que lo
+  toque tiene que partirlo». Esta tanda tenía que escribirle un puntero y lo **partió antes** de
+  escribirlo: las secciones 10 y 11 salieron a `docs/mapa/vab-cuspides-dibujos.md` (16,9 KB) y el
+  mapa volvió a **18,3 KB**, con un puntero de seis líneas. Cero líneas perdidas, movidas byte por
+  byte.

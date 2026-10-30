@@ -300,3 +300,17 @@ Vive en **`docs/mapa/cor-correcciones.md`**, en archivo propio. Lo que esta zona
   interruptor. El inventario 5a está medido generando el PDF de verdad.
 - **§ 6** · el dibujo de la orejuela **portado de la demo**: aurícula izquierda, VPSI, sin el
   triángulo del VI, trombo adentro, dos capas de silueta y «Manga de viento».
+
+
+## → La TANDA AORTA-2 (2026-10-30) — puntero
+
+La parte **B4** que la TANDA NOCTURNA dejó sin hacer se hizo acá: **la unión sinotubular y la
+aorta ascendente pasaron a la Figura 5 de la ESC 2024**, por sexo —38/33 y 40/36—, y lo que
+afirman por encima del corte es «por encima del límite superior de lo normal» y no «dilatada».
+**La raíz no se tocó**: sigue con el apartado 9.2.1.1 y con su índice de dimensión aórtica, y sus
+cinco bordes por sexo salen idénticos, medidos. Cierra el pendiente **AJ4-c**.
+
+El cayado y la aorta torácica descendente conservan su corte propio, lo **declaran** con el chip
+«Criterio de EcoSmart» y ganaron un globo ⓘ con los ocho tramos de la figura por sexo.
+
+→ **`docs/mapa/ao2-segmentos-bicuspide.md`**

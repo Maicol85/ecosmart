@@ -194,3 +194,13 @@ diámetro. Y cargar o cambiar el sexo ya re-evalúa las cápsulas de AI/VI y de 
 (`UMBRAL.marfan.iia = 45` con `maxAo >= u.iia`): medido, 45,0 mm exactos dan `cx_iia`. El
 `maxAo > 45` que ese pendiente citaba es el de **Loeys-Dietz**, y ahí el estricto es correcto.
 → `docs/mapa/y-vd-sexo-aorta.md` §3 y §5
+
+
+## → La TANDA AORTA-2 (2026-10-30) — puntero
+
+La franja **«no se puede clasificar sin el sexo»** que el G-4 creó para la raíz dejó de estar
+escrita: hoy se **deriva** del mismo operador que decide el voto (`aoSegPasa`), porque al entrar
+la unión sinotubular y la aorta ascendente —que cortan con `>` estricto— la comparación
+`x >= _bajo && x < _alto` daba la franja al revés en esos dos. El de la raíz **no se movió**.
+
+→ **`docs/mapa/ao2-segmentos-bicuspide.md`** § 2

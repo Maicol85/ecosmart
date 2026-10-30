@@ -15914,6 +15914,13 @@ z
           </div>
         </div>
         <div style="flex:1 1 340px;min-width:0;">
+          <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:0 0 8px;">Factores de riesgo <button type="button" class="vinfo-btn" data-vinfo="vab-friesgo" aria-expanded="false" aria-label="Factores de riesgo" onclick="vInfoClic(this)">&#9432;</button></div>
+          <!-- ⚠️ EL ROTULO Y SU GLOBO SE QUEDAN, Y LAS CASILLAS NO (AORTA-2, commit 3a). El
+               médico que abre esta pantalla buscando los factores tiene que encontrar DONDE se
+               contestan ahora; con el bloque entero retirado, los nueve desaparecían de la
+               pestaña sin decir a dónde fueron. Y el globo es el único lugar de esta pantalla
+               que explica qué son, así que sacarlo habría perdido contenido. -->
+          <div style="font-size:11px;color:var(--text2);margin:0 0 8px;line-height:1.5;">Los nueve factores se contestan en la pesta&ntilde;a <b>Evidencia</b>, en la secci&oacute;n de la v&aacute;lvula a&oacute;rtica bic&uacute;spide, con tres estados: s&iacute;, no y sin dato. Tres de los nueve &mdash;la edad, la talla y la coartaci&oacute;n&mdash; los deriva la aplicaci&oacute;n de lo que ya tiene.</div>
           <!-- ══ LOS SEIS FACTORES SALEN DE ESTA PANTALLA (AORTA-2, commit 3a, 2026-10-30) ══
                DECISION DEL MEDICO: los factores se preguntan SOLO en la Evidencia, con tres
                estados. Acá quedan «solo las casillas que alimentan el informe, el EN SUMA, el
@@ -142285,8 +142292,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261030-1729';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793392167086;                 /* eco-build-ms */
+const ECO_BUILD    = '20261030-1830';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793395819524;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -142372,7 +142379,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261030-1729</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261030-1830</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

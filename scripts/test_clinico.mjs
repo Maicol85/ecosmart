@@ -522,10 +522,17 @@ caso('TC-15', 'Aorta ascendente 52 mm con seno vacio', `
   /* «Aorta ascendente» con mayuscula: es \`sg.lblC\`, el rotulo corto de AO_SEGS, y asi lo
      imprime el estilo estandar. La primera version del test buscaba minuscula y fallaba por el
      test, no por la app — se verifico el texto real antes de cambiar nada. */
+  /* ADAPTADO (TANDA AORTA-2, commit 1, 30/10/2026). La aorta ascendente pasa al limite superior
+     de lo normal de la Figura 5 de la ESC 2024, que es lo que esa figura publica, asi que por
+     encima del corte el papel afirma «por encima del limite superior de lo normal» y no
+     «dilatada». Lo que este caso vigila NO cambia: que un seno VACIO no haga que el informe
+     afirme «Aorta toracica de calibre normal» sobre una ascendente de 52 mm, y que el hallazgo
+     llegue al EN SUMA con su diametro. Se agrega a noDebe la palabra retirada, para que el caso
+     pueda volver a fallar si alguien la repone. */
   return { inf: r.inf, suma: r.suma,
-    debe: ['Aorta ascendente 52 mm', 'dilatada'],
-    noDebe: ['Aorta torácica de calibre normal'],
-    debeSuma: ['Dilatación aorta ascendente'] };
+    debe: ['Aorta ascendente 52 mm', 'por encima del límite superior de lo normal'],
+    noDebe: ['Aorta torácica de calibre normal', 'Aorta ascendente 52 mm (dilatada)'],
+    debeSuma: ['Por encima del límite superior de lo normal: aorta ascendente (52 mm).'] };
 `);
 
 // ═══ GRUPO 8 — Sincronias ═══════════════════════════════════════════════════════════════════
@@ -5018,13 +5025,26 @@ caso('TC-39', 'Aorta: cada segmento dilatado llega al narrativo Y al EN SUMA, si
   __t.set('ao_sin','44'); __t.set('ao_st','40'); __t.set('ao_tub','47');
   __t.set('diam_cayado','44'); __t.set('diam_ao_toracica','40');
   const r = __t.informe();
+  /* ADAPTADO (TANDA AORTA-2, commit 1, 30/10/2026). DOS de los cinco segmentos cambiaron lo que
+     AFIRMAN: la union sinotubular y la aorta ascendente pasaron a la Figura 5 de la ESC 2024,
+     que publica el LIMITE SUPERIOR DE LO NORMAL por sexo, asi que dicen «por encima del limite
+     superior de lo normal». Los otros TRES —la raiz, el cayado y la descendente— no se movieron
+     ni una letra, y con ellos sigue entera la prueba de CONCORDANCIA DE GENERO, que es lo que
+     este caso cubre: el cayado es el unico masculino y sigue diciendo «dilatado».
+     La escena es de VARON (limpiar deja el sexo vacio y el lector del corte devuelve el del varon),
+     y los cinco valores siguen por encima de su corte en ese sexo: 44, 40, 47, 44 y 40. */
   return { inf: r.inf, suma: r.suma,
-    debe: ['Raíz aórtica 44 mm (dilatada)', 'Unión sinotubular 40 mm (dilatada)',
-           'Aorta ascendente 47 mm (dilatada)', 'Cayado aórtico 44 mm (dilatado)',
+    debe: ['Raíz aórtica 44 mm (dilatada)',
+           'Unión sinotubular 40 mm (por encima del límite superior de lo normal)',
+           'Aorta ascendente 47 mm (por encima del límite superior de lo normal)',
+           'Cayado aórtico 44 mm (dilatado)',
            'Ao torácica descendente 40 mm (dilatada)'],
-    noDebe: ['levemente dilatad', 'moderadamente dilatad', 'severamente dilatad'],
-    debeSuma: ['Dilatación raíz aórtica (44 mm).', 'Dilatación unión sinotubular (40 mm).',
-               'Dilatación aorta ascendente (47 mm).', 'Dilatación cayado aórtico (44 mm).',
+    noDebe: ['levemente dilatad', 'moderadamente dilatad', 'severamente dilatad',
+             'Unión sinotubular 40 mm (dilatada)', 'Aorta ascendente 47 mm (dilatada)'],
+    debeSuma: ['Dilatación raíz aórtica (44 mm).',
+               'Por encima del límite superior de lo normal: unión sinotubular (40 mm).',
+               'Por encima del límite superior de lo normal: aorta ascendente (47 mm).',
+               'Dilatación cayado aórtico (44 mm).',
                'Dilatación aorta torácica descendente (40 mm).'] };
 `);
 
@@ -5753,8 +5773,15 @@ caso('TC-66', 'VAB: aorta de 56 mm dispara la indicacion Clase I de la ESC 2024'
      texto no se encuentra buscando las palabras con que la escribe OTRO caso.
      NO PIERDE PODER: sigue exigiendo el diametro, y lo que el caso viene a fijar -que 56 mm
      disparen la Clase I- lo mide su bloque extra, que no se toco. */
+  /* ADAPTADO EN LA TANDA AORTA-2 (commit 1, 30/10/2026), CON EL MOTIVO ESCRITO. La aorta
+     ascendente dejo de juzgarse con un corte propio y pasa al limite superior de lo normal de
+     la Figura 5 de la ESC 2024 —40 mm en el varon y 36 en la mujer—, asi que por encima el
+     informe y el EN SUMA afirman «por encima del limite superior de lo normal» y no
+     «dilatacion». Lo que este caso vigila NO se movio: la escena sigue siendo una aorta de
+     56 mm, el EN SUMA sigue nombrando la bicuspide UNA vez unida a la linea de la aorta con su
+     diametro, y la Clase I la mide su bloque extra, que no se toco. */
   return { suma: r.suma,
-    debeSuma: ['Válvula aórtica bicúspide, con dilatación de la aorta ascendente (56 mm).'],
+    debeSuma: ['Válvula aórtica bicúspide, con la aorta ascendente por encima del límite superior de lo normal (56 mm).'],
     /* ADAPTADO el 2026-10-20 (Y3f4): el cuadro de la seccion ya NO publica el parrafo de
        vabConclusion -pasa a un resumen ESQUEMATICO y descriptivo, sin guias ni umbrales- y ese
        texto se consulta en la pestana Evidencia. Lo que este caso fija -que una aorta de 56 mm
@@ -66203,10 +66230,12 @@ caso('TC-471', 'Valvulas D1: la insuficiencia mitral en TRES columnas de SEIS co
        senales de alarma con las dos fuentes del corte de lactato—. NINGUNA esta en Valvulas, que
        es la pestana que este caso mide: lo que cambia es el denominador del registro, no lo que
        el caso afirma. */
-    /* ADAPTADO (TANDA NOCTURNA B1, 30/10/2026): 68. La entrada nueva es vd-triv, el globo de
+    /* ADAPTADO (TANDA AORTA-2, 30/10/2026): 68 -> 71. Las TRES entradas nuevas son coa-card,
+       ao-cay-card y ao-desc-card.
+/* ADAPTADO (TANDA NOCTURNA B1, 30/10/2026): 68. La entrada nueva es vd-triv, el globo de
        la fila de referencia del TRIV del VD. NO esta en Valvulas, que es la pestana que este
        caso mide: lo que cambia es el denominador del registro, no lo que el caso afirma. */
-    Object.keys(VINFO).length === 68,
+    Object.keys(VINFO).length === 71,
     'registro=' + (HAY_INFO ? Object.keys(VINFO).join(',') : 'SIN REGISTRO')]);
   ex.push(['(H) y la tarjeta se coloca SIEMPRE dentro de la pantalla, sin cortarse',
     (function(){ const b = document.querySelector('[data-vinfo="avm-thp"]');
@@ -74513,7 +74542,11 @@ caso('TC-492', 'Tanda M: las DIECISEIS FICHAS nuevas del registro de evidencia d
        que el normal no distingue sexo. Una segunda entrada del mismo documento con otro
        localizador es lo que la regla de bibliografia por seccion ya hace en ao2. */
     ex.push(['la bibliografia de cada seccion numera desde [1] y sale SOLO de fichas verificado',
-      refs.ad.bib === 3 && refs.vd2.bib === 2 && refs.ao2.bib === 3
+      /* ADAPTADO (TANDA AORTA-2, 30/10/2026): ao2 pasa de TRES entradas a CUATRO. La nueva es
+         AOR-005, la Figura 5 de la ESC 2024 con sus ocho tramos por sexo, leida en imagen sobre
+         la edicion INGLESA (hoja 26, folio 3563). Nace verificada, asi que el control de que la
+         bibliografia sale SOLO de fichas verificadas sigue en pie. */
+      refs.ad.bib === 3 && refs.vd2.bib === 2 && refs.ao2.bib === 4
         && String(refs.ao2.txt||'').indexOf('Figura 13') > -1 && String(refs.ao2.txt||'').indexOf('Tabla 14') > -1,
       'ad=' + refs.ad.bib + ' vd2=' + refs.vd2.bib + ' ao2=' + refs.ao2.bib]);
     /* ADAPTADO (VS, 2026-10-17): el diametro longitudinal pasó de «por verificar» a verificado
@@ -75243,10 +75276,20 @@ caso('TC-494', 'Tanda VS: el VD, la AD, la VCI y la RAIZ AORTICA alineados a la 
         && r.inf.indexOf('levemente dilatada') === -1
         && r.suma.indexOf('Dilatación raíz aórtica (40 mm).') > -1; })(),
     esc({ sexo:'M', ao_sin:'40' }).suma.trim()]);
+  /* ADAPTADO (TANDA AORTA-2, 30/10/2026). La condicion medía que los CUATRO segmentos distintos
+     de la raiz conservaran su operador ESTRICTO y, de paso, que dijeran «Dilatada» por encima
+     del corte. Lo segundo dejo de ser cierto para DOS de ellos: la union sinotubular y la
+     aorta ascendente pasaron a la Figura 5 de la ESC 2024, que publica el LIMITE SUPERIOR DE
+     LO NORMAL por sexo, asi que por encima afirman «por encima del limite superior de lo
+     normal» y no «dilatada». Lo que esta condicion vino a fijar —que el operador sigue siendo
+     ESTRICTO, o sea que el corte exacto cae del lado NORMAL— no se movio ni un milimetro, y es
+     lo que se conserva: la escena es de VARON, que es donde los dos cortes valen lo mismo que
+     antes (38 y 40). El cayado y la descendente no cambiaron nada. */
   ex.push(['CONTROL NEGATIVO: los otros CUATRO segmentos conservan su operador estricto — su corte exacto sigue siendo NORMAL',
-    ao('ao_st',38).indexOf('Normal') > -1 && ao('ao_st',38.1).indexOf('Dilatada') > -1
-      && ao('ao_tub',40).indexOf('Normal') > -1 && ao('ao_tub',40.1).indexOf('Dilatada') > -1
-      && ao('diam_cayado',40).indexOf('Normal') > -1 && ao('diam_ao_toracica',35).indexOf('Normal') > -1,
+    ao('ao_st',38).indexOf('Normal') > -1 && ao('ao_st',38.1).indexOf('l\u00edmite superior') > -1
+      && ao('ao_tub',40).indexOf('Normal') > -1 && ao('ao_tub',40.1).indexOf('l\u00edmite superior') > -1
+      && ao('diam_cayado',40).indexOf('Normal') > -1 && ao('diam_cayado',40.1).indexOf('Dilatad') > -1
+      && ao('diam_ao_toracica',35).indexOf('Normal') > -1,
     'st=' + ao('ao_st',38) + ' tub=' + ao('ao_tub',40)]);
   ex.push(['el simbolo del rotulo sale del dueno: la raiz dice mayor-o-igual y los otros cuatro estricto',
     ao('ao_sin',42).indexOf('≥40') > -1 && ao('ao_tub',42).indexOf('>40') > -1
@@ -75379,15 +75422,21 @@ caso('TC-494', 'Tanda VS: el VD, la AD, la VCI y la RAIZ AORTICA alineados a la 
       && refs.ad.txt.indexOf('< 21 mm') < 0,
     'viejos presentes=' + ['≥ 17 mm','< 25 %','> 86 mm'].filter(x => refs.vd2.txt.indexOf(x) > -1).join(',')]);
   ex.push(['la raiz aortica publica su operador propio en Referencias y los otros cuatro el suyo',
+    /* ADAPTADO (TANDA AORTA-2): el «> 38 mm» sigue, en la columna del VARON, y la de la MUJER
+       dice «> 33 mm», que es el corte de la Figura 5. El del cayado y el de la descendente no
+       se movieron. */
     refs.ao2.txt.indexOf('≥ 40 mm') > -1 && refs.ao2.txt.indexOf('> 38 mm') > -1
-      && refs.ao2.txt.indexOf('> 35 mm') > -1,
+      && refs.ao2.txt.indexOf('> 33 mm') > -1 && refs.ao2.txt.indexOf('> 35 mm') > -1,
     'raiz=' + (refs.ao2.txt.indexOf('≥ 40 mm') > -1)]);
   /* ADAPTADO el 2026-10-22 (AJ1): la bibliografia de ref-vd2 pasa de UNA entrada a DOS por la
      ficha del strain de pared libre, que cita el mismo documento en otro sitio (folio 159). Las
      doce barras no se mueven: el strain entra como FILA de la tabla y no como barra, porque su
      dueno es un corte binario y no las cuatro bandas de la Tabla 1. */
   ex.push(['Referencias gana las dos barras de las areas del VD y su bibliografia queda en DOS entradas',
-    refs.vd2.barras === 12 && refs.vd2.bib === 2 && refs.ad.bib === 3 && refs.ao2.bib === 3,  /* AJ1-E7: ao2 gana la ficha AOR-004 */
+    /* ADAPTADO (TANDA AORTA-2, 30/10/2026): ao2 pasa de TRES entradas a CUATRO. La nueva es
+       AOR-005, la Figura 5 de la ESC 2024 con sus ocho tramos por sexo, que es la que sostiene
+       los dos segmentos que este commit alineo a la guia. */
+    refs.vd2.barras === 12 && refs.vd2.bib === 2 && refs.ad.bib === 3 && refs.ao2.bib === 4,
     'barras=' + refs.vd2.barras + ' bib ad/vd2/ao2=' + refs.ad.bib + '/' + refs.vd2.bib + '/' + refs.ao2.bib]);
 
   /* ══ (h) · EL REGISTRO ══ */
@@ -77553,7 +77602,7 @@ caso('TC-500', 'Tanda Q: las OCHO tarjetas i de las valvulas arriba de su pastil
   /* ADAPTADO (TANDA NOCTURNA B1, 30/10/2026): 67 -> 68. La entrada nueva es vd-triv, el globo
      de la fila de referencia del TRIV del ventriculo derecho, donde viven las tres fuentes que
      la regla R2 saca de la linea visible. Lo que esta condicion afirma no cambia. */
-  ex.push(['DENOMINADOR: el mecanismo de los globos existe y el registro tiene las 68 entradas',
+  ex.push(['DENOMINADOR: el mecanismo de los globos existe y el registro tiene las 71 entradas',
     /* ⚠️ ADAPTADO EN LA TANDA D: 56 -> 57. La entrada nueva es co-riesgo-basal, el globo de la
        clasificacion de riesgo cardiovascular basal, donde viven las clases y los niveles que la
        regla R2 saca de la linea visible. Lo que esta condicion afirma no cambia: que el
@@ -77568,7 +77617,8 @@ caso('TC-500', 'Tanda Q: las OCHO tarjetas i de las valvulas arriba de su pastil
     /* ⚠️ ADAPTADO EN LA TANDA TEP (2026-10-29): 60 -> 62, por tep-eco-dx y tep-mcconnell,
        los dos globos de la seccion de sobrecarga del VD. NINGUNO esta en Valvulas: lo que
        cambia es el denominador del registro, no lo que esta condicion afirma. */
-    FN('vInfoClic') && !!CARD() && !!REG() && Object.keys(REG() || {}).length === 68,
+    /* ADAPTADO (TANDA AORTA-2, 30/10/2026): 68 -> 71, por coa-card, ao-cay-card y ao-desc-card. */
+    FN('vInfoClic') && !!CARD() && !!REG() && Object.keys(REG() || {}).length === 71,
     'VINFO=' + (REG() ? Object.keys(REG()).length : 'SIN REGISTRO') + ' card=' + !!CARD()]);
   ex.push(['(A1) los OCHO botones de lesion existen, son BUTTON, sin atributo title y con aria-expanded',
     CLAVES.every(function (k) { const b = BTN(k);
@@ -78808,8 +78858,11 @@ caso('TC-502', 'Tanda P: Referencias en CINCO subpestanas sin perder una entrada
   /* ⚠️ ADAPTADO EN LA POP-V2 (2026-10-29): 44 -> 46, y el total de claves 65 -> 67. Las DOS
      que entran son pop-vaso y pop-senales, que llevan boton porque la ficha ref-pop ya existe
      desde la tanda G — que es el invariante de esta tabla: una tarjeta CON entrada lleva boton. */
-  ex.push(['(C1) DENOMINADOR: 46 de las 67 claves de tarjeta tienen entrada de Referencias',
-    Object.keys(MAPA).length === 46, 'n=' + Object.keys(MAPA).length]);
+  /* ADAPTADO (TANDA AORTA-2, 30/10/2026): 46 -> 48 con entrada, y el total 67 -> 70. Las dos
+     entradas nuevas son ao-cay-card y ao-desc-card, que mandan a la ficha de aorta; el de la
+     coartacion entra al total y NO tiene entrada de Referencias, porque la coartacion no tiene ficha. */
+  ex.push(['(C1) DENOMINADOR: 48 de las 70 claves de tarjeta tienen entrada de Referencias',
+    Object.keys(MAPA).length === 48, 'n=' + Object.keys(MAPA).length]);
   ex.push(['(C2) el assert del mapeo no encuentra ninguna clave rota ni ningun destino inexistente',
     (function () { try { return FN('_vinfoRefAssert') && window._vinfoRefAssert().length === 0; } catch (e) { return false; } })(),
     (function () { try { return window._vinfoRefAssert().join(' | ') || 'cero'; } catch (e) { return 'EXC'; } })()]);
@@ -78861,8 +78914,13 @@ caso('TC-502', 'Tanda P: Referencias en CINCO subpestanas sin perder una entrada
      Referencias no tiene una entrada para el TRIV del VD: sus tres fuentes NO estan en la
      biblioteca -Howard 2012, Cabrita 2013 y Brechot 2008-, asi que el globo las nombra y la
      pestana de Referencias no las publica. Declarado en docs/PENDIENTES.md. */
-  ex.push(['(C3) LIMITE DECLARADO: veintidos tarjetas sin boton, porque Referencias no tiene esa entrada',
-    sinBoton.join(',') === 'amilo-score,co-riesgo-basal,cvr-coc,cvr-ecosmart,et-avt-cont,'
+  /* ADAPTADO (TANDA AORTA-2, 30/10/2026): veintidos -> VEINTITRES. La nueva es el globo de los
+     tres criterios de la coartacion: Referencias no tiene una ficha de coartacion, asi que la
+     tarjeta publica su pie de fuente —ESC 2020 de congenitas del adulto, folio 604— y no lleva
+     boton «Ver referencia». Es el mismo limite declarado que las otras veintidos; los DOS globos
+     de los segmentos aorticos SI tienen entrada y por eso no estan en esta lista. */
+  ex.push(['(C3) LIMITE DECLARADO: veintitres tarjetas sin boton, porque Referencias no tiene esa entrada',
+    sinBoton.join(',') === 'amilo-score,co-riesgo-basal,coa-card,cvr-coc,cvr-ecosmart,et-avt-cont,'
       + 'hemo-forr,hemo-ic,hemo-rvs,'
       + 'tarj-esten-pulmonar,tarj-esten-tricuspide,tarj-insuf-pulmonar,'
       + 'tep-eco-dx,tep-mcconnell,'
@@ -79832,52 +79890,49 @@ caso('TC-504', 'Tanda Y3d: los rotulos de feston visibles en las TRES vistas y e
     !!EL('vab-svg') && !!EL('vab-dibujo-host'),
     EL('vab-svg') ? 'hay svg' : 'NO EXISTE']);
 
-  /* ══ (E) LOS FACTORES DE RIESGO CON CASILLA ═══════════════════════════════════════════ */
+  /* ══ (E) LOS FACTORES DE RIESGO — INVERTIDO EN LA TANDA AORTA-2 (30/10/2026) ═════════════
+     ADAPTADO, y las seis condiciones estan INVERTIDAS, no borradas. Lo que median —que los seis
+     factores se marcan con una CASILLA en la pantalla de la bicuspide, que marcar y destildar
+     mueve el conteo, y que un estudio guardado con «no» reabre sin marcar— es exactamente lo
+     que el commit 3a de la tanda AORTA-2 retira, por decision del medico: los nueve factores se
+     preguntan SOLO en la Evidencia, con TRES estados, y «sin marcar» deja de significar «no».
+     Lo que estas condiciones fijan ahora es lo contrario: que las casillas NO estan, que los
+     seis campos guardados SI estan y vacios, que el mapa que los enumera se conserva —lo lee
+     la funcion de limpiar campos— y que «Nuevo estudio» los sigue vaciando. La cobertura de los tres estados
+     esta en TC-555, bloques (C) y (D). */
   const CHK = OB('VAB_FR_CHK');
-  ex.push(['(DENOM E) las SEIS casillas existen y son checkbox',
-    !!CHK && Object.keys(CHK).length === 6
-      && Object.keys(CHK).every(k => { const e = EL(k); return e && e.type === 'checkbox'; }),
+  ex.push(['(DENOM E) el mapa de los SEIS factores sigue existiendo: lo lee «Nuevo estudio»',
+    !!CHK && Object.keys(CHK).length === 6,
     CHK ? Object.keys(CHK).join(',') : 'SIN VAB_FR_CHK']);
-  ex.push(['(E1) y su dato sigue viviendo en los mismos campos ocultos',
+  ex.push(['(E1) sus seis campos guardados siguen vivos y ocultos',
     !!CHK && Object.keys(CHK).every(k => { const e = EL(CHK[k]); return e && e.type === 'hidden'; }),
     CHK ? Object.keys(CHK).map(k => CHK[k]).join(',') : 'SIN VAB_FR_CHK']);
+  ex.push(['(E2) INVERTIDA: las SEIS casillas ya NO estan en la pantalla de la bicuspide',
+    !!CHK && Object.keys(CHK).every(k => !EL(k)),
+    CHK ? (Object.keys(CHK).filter(k => !!EL(k)).join(',') || 'ninguna') : '-']);
   const FR = () => { try { return FN('vabFactores') ? vabFactores() : null; } catch (e) { return null; } };
   __t.limpiar();
   try { if (FN('vabSync')) vabSync(); } catch (e) {}
   const _fr0 = FR();
-  CLIC('vabchk-hta');
-  const _fr1 = FR();
-  CLIC('vabchk-embarazo');
-  const _fr2 = FR();
-  CLIC('vabchk-hta');
-  const _fr3 = FR();
-  ex.push(['(E2) marcar y destildar mueve el conteo: 0 -> 1 -> 2 -> 1',
-    (_fr0 || {}).n === 0 && (_fr1 || {}).n === 1 && (_fr2 || {}).n === 2 && (_fr3 || {}).n === 1,
-    [(_fr0 || {}).n, (_fr1 || {}).n, (_fr2 || {}).n, (_fr3 || {}).n].join(' -> ')]);
-  ex.push(['(E3) la casilla escribe el campo que viaja, con los MISMOS valores de siempre',
-    VAL('vab_fr_embarazo') === 'si' && VAL('vab_fr_hta') === '',
-    'embarazo=' + JSON.stringify(VAL('vab_fr_embarazo')) + ' hta=' + JSON.stringify(VAL('vab_fr_hta'))]);
-  ex.push(['(E4) la fila dice cuantos estan MARCADOS, no «ninguno de los evaluados»',
+  ex.push(['(E3) INVERTIDA: el conteo arranca en CERO y los nueve estados suman nueve',
+    (_fr0 || {}).n === 0 &&
+    (((_fr0 || {}).presentes || []).length + ((_fr0 || {}).ausentes || []).length
+      + ((_fr0 || {}).sinEvaluar || []).length) === 9,
+    'n=' + (_fr0 || {}).n + ' sd=' + (((_fr0 || {}).sinEvaluar) || []).length]);
+  ex.push(['(E4) la fila del resumen dice cuantos estan marcados, no «ninguno de los evaluados»',
     TXT('vab-fr').indexOf('marcado') > -1 && TXT('vab-fr').indexOf('de los evaluados') < 0,
     TXT('vab-fr').slice(0, 80)]);
-  /* MIGRACION: los cuatro valores que puede traer un estudio guardado. */
-  const _migra = {};
-  ['si','no','no_eval',''].forEach(val => {
-    const e = EL('vab_fr_hta'); if (e) e.value = val;
-    try { if (FN('vabFrChkSync')) vabFrChkSync(); } catch (x) {}
-    const cb = EL('vabchk-hta');
-    _migra[val || 'vacio'] = cb ? cb.checked : 'NO EXISTE';
-  });
-  ex.push(['(E5) un estudio guardado con «si» reabre MARCADO; «no» y «no consta», sin marcar',
-    _migra.si === true && _migra.no === false && _migra.no_eval === false && _migra.vacio === false,
-    JSON.stringify(_migra)]);
-  /* «Nuevo estudio» destilda. */
-  const e5 = EL('vab_fr_hta'); if (e5) e5.value = 'si';
-  try { if (FN('vabFrChkSync')) vabFrChkSync(); } catch (x) {}
+  /* El rotulo y su globo se QUEDAN en la pantalla, y la linea nueva dice donde se contestan. */
+  ex.push(['(E5) INVERTIDA: la pantalla conserva el globo de los factores y dice donde se contestan',
+    !!document.querySelector('[data-vinfo="vab-friesgo"]') &&
+    (document.getElementById('vab-fr-grid') || {}).hidden === true,
+    'globo=' + !!document.querySelector('[data-vinfo="vab-friesgo"]')]);
+  /* «Nuevo estudio» sigue vaciando los seis campos: sin eso un factor sobreviviria al cambio de
+     paciente, que es el defecto que el D-11 pago tres veces. */
+  const e5 = EL('vab_fr_hta'); if (e5) { e5.value = 'si'; }
   __t.limpiar();
-  ex.push(['(E6) «Nuevo estudio» vacia el campo Y destilda la casilla',
-    VAL('vab_fr_hta') === '' && EL('vabchk-hta') && EL('vabchk-hta').checked === false,
-    'campo=' + JSON.stringify(VAL('vab_fr_hta')) + ' chk=' + (EL('vabchk-hta') ? EL('vabchk-hta').checked : '?')]);
+  ex.push(['(E6) «Nuevo estudio» vacia el campo guardado',
+    VAL('vab_fr_hta') === '', 'campo=' + JSON.stringify(VAL('vab_fr_hta'))]);
   /* La conclusion NUNCA afirma «sin factores de riesgo». */
   __t.limpiar(); SEL('va_morf','Bicúspide');
   __t.set('ao_tub','51'); SEL('vab_riesgo_qx','si');
@@ -84428,12 +84483,18 @@ caso('TC-514', 'Tanda D2: el corte del aneurisma del septum con el operador ESTR
   ex.push(['(E1) con TRIVALVA la seccion de la VAB no se activa a ningun diametro',
     T38.vab === null && T41.vab === null && T56.vab === null,
     JSON.stringify([T38.vab, T41.vab, T56.vab])]);
+  /* ADAPTADO (TANDA AORTA-2, commit 3a, 30/10/2026): la seccion pasa de CINCO filas a
+     CATORCE. Las nueve nuevas son los nueve factores de riesgo de la Tabla 68, que desde este
+     commit se PREGUNTAN en la Evidencia con tres estados en vez de marcarse con una casilla en
+     la pantalla de la bicuspide. Lo que estas dos condiciones vigilan —que la seccion no se
+     active con una valvula trivalva ni por debajo del corte de dilatacion, y que el tipo de
+     fusion sea la otra puerta— no se movio. */
   ex.push(['(E2) con BICUSPIDE se activa desde el corte de dilatacion y no a 38 mm',
-    B38.vab === null && B41.vab === 5 && B56.vab === 5,
+    B38.vab === null && B41.vab === 14 && B56.vab === 14,
     JSON.stringify([B38.vab, B41.vab, B56.vab])]);
   ex.push(['(E3) y el TIPO de fusion es la otra puerta',
     (function(){ __t.limpiar(); __t.set('vab_tipo','fused_rl'); __t.set('ao_tub','41');
-      return SECVAB() === 5; })(), '']);
+      return SECVAB() === 14; })(), '']);
   /* ⚠️ ADAPTADO el 2026-10-22 (AJ1-E4): la seccion de aorta pasa de DIEZ filas a ONCE porque
      gana la del INDICE DE DIMENSION AORTICA, que se dibuja SIEMPRE —tambien sin superficie
      corporal, con 'ask'— para que su ausencia no se lea como un valor normal. Lo que este
@@ -87029,10 +87090,15 @@ caso('TC-521', 'Tanda AJ4: la raiz aortica con UN SOLO criterio de dilatacion en
   ex.push(['(A1) las tres funciones nuevas existen y AO_SEGS esta exportada',
     !!F('aoSegRef') && !!F('aoSegIda') && !!F('aoSegDil') && !!(window.AO_SEGS && window.AO_SEGS.length === 5),
     'ref=' + typeof window.aoSegRef + ' ida=' + typeof window.aoSegIda + ' segs=' + ((window.AO_SEGS || []).length)]);
-  ex.push(['(A2) DENOMINADOR: el corte efectivo de la raiz cambia con el sexo y los otros cuatro NO',
-    !!SG() && window.aoSegRef(SG(), 'M') === 40 && window.aoSegRef(SG(), 'F') === 36
-      && (window.AO_SEGS || []).filter(s => s.k !== 'ao_sin')
-           .every(s => window.aoSegRef(s, 'M') === window.aoSegRef(s, 'F') && window.aoSegRef(s, 'M') === s.ref),
+  /* ADAPTADO (TANDA AORTA-2, 30/10/2026): «los otros cuatro NO» dejo de ser cierto para dos de
+     ellos. Lo que este denominador existe para fijar es que la RAIZ cambia de corte con el sexo
+     —40 en el varon y 36 en la mujer, del apartado 9.2.1.1—, y eso no se movio; lo que se
+     agrega es que los OTROS DOS que ahora cortan por sexo lo hacen con los numeros de la Figura
+     5, que son distintos, y que el cayado y la descendente siguen con un corte unico. */
+  ex.push(['(A2) DENOMINADOR: el corte efectivo de la raiz cambia con el sexo —40 y 36— y el cayado y la descendente NO',
+    window.aoSegRef(SG(), 'M') === 40 && window.aoSegRef(SG(), 'F') === 36
+      && (window.AO_SEGS || []).filter(x => x.k === 'diam_cayado' || x.k === 'diam_ao_toracica')
+           .every(x => !x.refSexo),
     'M=' + window.aoSegRef(SG(), 'M') + ' F=' + window.aoSegRef(SG(), 'F')]);
   ex.push(['(A3) el operador del DIAMETRO es inclusivo por los dos lados y en los dos sexos',
     window.aoSegDil(SG(), 40, 'M') === true && window.aoSegDil(SG(), 39.9, 'M') === false
@@ -87047,11 +87113,21 @@ caso('TC-521', 'Tanda AJ4: la raiz aortica con UN SOLO criterio de dilatacion en
   ex.push(['(A5) CONTROL: un sondeo por sexo no tiene superficie corporal y el indice no vota',
     window.aoSegIda(SG(), 33, 'F') === null && window.aoSegIda(SG(), 33, 'M') === null,
     String(window.aoSegIda(SG(), 33, 'F'))]);
-  /* CONTROL NEGATIVO: los otros cuatro segmentos no tienen segunda puerta. */
-  ex.push(['(A6) CONTROL: ningun otro segmento tiene indice ni corte por sexo',
+  /* CONTROL NEGATIVO: los otros cuatro segmentos no tienen segunda puerta.
+     ADAPTADO (TANDA AORTA-2, 30/10/2026). Lo que el caso vigila es la SEGUNDA PUERTA —el indice
+     de dimension aortica—, que sigue siendo exclusiva de la raiz: ningun otro segmento la tiene
+     y ninguno indexa. Lo que dejo de ser cierto es la otra mitad de la condicion, «ni corte por
+     sexo»: desde el commit 1 la union sinotubular y la aorta ascendente cortan por sexo con la
+     Figura 5 de la ESC 2024. Se separa en dos afirmaciones para que cada una pueda fallar por
+     su cuenta: el indice sigue siendo de la raiz sola, y los que cortan por sexo son
+     EXACTAMENTE esos tres y no mas. */
+  ex.push(['(A6) CONTROL: el indice de dimension aortica sigue siendo exclusivo de la raiz',
     (window.AO_SEGS || []).filter(s => s.k !== 'ao_sin')
-      .every(s => s.idaMax == null && !s.refSexo && window.aoSegIda(s, 50) === null),
+      .every(s => s.idaMax == null && window.aoSegIda(s, 50) === null),
     (window.AO_SEGS || []).map(s => s.k + ':' + (s.idaMax == null ? '-' : s.idaMax)).join(' ')]);
+  ex.push(['(A6b) y los segmentos con corte por sexo son EXACTAMENTE la raiz, la union sinotubular y la ascendente',
+    (window.AO_SEGS || []).filter(s => !!s.refSexo).map(s => s.k).join(',') === 'ao_sin,ao_st,ao_tub',
+    (window.AO_SEGS || []).filter(s => !!s.refSexo).map(s => s.k).join(',')]);
 
   /* == (B) EL INDICE, LA SEGUNDA PUERTA, CON SUPERFICIE CORPORAL EXACTA ====================
      54 kg y 150 cm dan una superficie de 1,50 m2 EXACTOS, asi que 33,0 mm es un indice de
@@ -87238,17 +87314,32 @@ caso('TC-521', 'Tanda AJ4: la raiz aortica con UN SOLO criterio de dilatacion en
        saco «(ESC 2024, Tabla 68, folio 119)» de las cuatro recomendaciones —se repetia en cada
        una— y agrego una QUINTA linea de fuente al final del bloque. Las cuatro recomendaciones
        siguen siendo cuatro y siguen visibles, que es lo que el caso vigila. */
-    !!rVab && (rVab.bloques || []).length === 1 && !rVab.bloques[0].plegado && lVab.length === 5,
+    /* ADAPTADO (TANDA AORTA-2, commit 3): la seccion tiene DOS bloques visibles y no uno. El
+       primero son los CINCO umbrales de cirugia de la Tabla 68, que esta tanda saco de la prosa
+       y puso uno por linea, mas el texto del cuerpo de la guia y el balance de los nueve
+       factores —siete lineas—; el segundo son las recomendaciones NO quirurgicas, que pasaron de
+       cuatro mas la fuente a TRES mas la fuente, porque la cuarta era la misma fila de 45 mm
+       que el bloque de arriba ya publica. Lo que el caso sigue vigilando es que ninguno nazca
+       plegado detras del «Ver detalle». */
+    !!rVab && (rVab.bloques || []).length === 2
+      && (rVab.bloques || []).every(b => !b.plegado) && lVab.length === 11,
     'bloques=' + ((rVab && rVab.bloques) || []).length + ' lineas=' + lVab.length]);
   ex.push(['(G2) cada recomendacion lleva su clase, y la tabla con su folio sale UNA vez al final',
     /* ADAPTADO en la tanda A (commit A-2): antes se exigia el folio en las CUATRO; hoy se exige
        en UNA sola —la de cierre— y se exige que NO este en las otras cuatro, que es lo que la
        regla R2 pide y lo que impide que la repeticion vuelva sin que nada chille. */
-    lVab.length === 5
+    /* ADAPTADO (TANDA AORTA-2, commit 3): el folio sigue saliendo UNA sola vez y en la linea de
+       cierre, que es lo que la regla R2 pide; lo que cambia es que ahora la linea de cierre es
+       la ULTIMA de las once y que las dos de «Clase I · Nivel C» son las que quedaron en el
+       segundo bloque. Se agrega que los CINCO umbrales de cirugia esten, uno por linea. */
+    lVab.length === 11
       && lVab.filter(l => l.indexOf('Tabla 68, folio 119') > -1).length === 1
-      && lVab[4].indexOf('Fuente:') === 0
+      && lVab[10].indexOf('Fuente:') === 0
       && lVab.filter(l => l.indexOf('Clase I \\u00b7 Nivel C') === 0).length === 2
-      && lVab.filter(l => l.indexOf('Clase IIa \\u00b7 Nivel C') === 0).length === 1,
+      && lVab.filter(l => /^Clase I+a? \\u00b7 Nivel [ABC] \\u2014 (Cirug|Con riesgo|En el paciente)/.test(l)).length === 5
+      /* DOS y no una: el umbral de 50 mm con factores y el de 45 mm con cirugia valvular son
+         las dos de Clase IIa · Nivel C de la Tabla 68, y esta tanda las publica a las dos. */
+      && lVab.filter(l => l.indexOf('Clase IIa \\u00b7 Nivel C') === 0).length === 2,
     JSON.stringify(lVab.map(l => l.slice(0, 40)))]);
   ex.push(['(G3) el panel ya NO dice dos veces la conclusion de la app',
     !!rVab && (rVab.notas || []).every(n => String(n).indexOf('Conclusi\\u00f3n de la app') === -1)
@@ -91191,12 +91282,20 @@ caso('TC-535', 'Tanda AJ7: la linea de Fallot del EN SUMA sin la IP y el resumen
      ⚠️ Y SE CAMBIO EL METODO, no solo el numero: ver el comentario de tapK mas arriba. El de
      los territorios vive en una seccion que a 756 px queda CERRADA, y medirlo sin abrirla daba
      CERO puntos propios sobre un boton que a 1440 px da los cinco. */
-  ex.push(['(K0) DENOMINADOR: los ONCE globos llevan la clase, tienen geometria y estan EN VISTA',
-    tapK.length === 11 && tapK.every((x) => x.w > 0 && x.h > 0 && x.enVista), JSON.stringify(tapK)]);
-  ex.push(['(K1) los once miden 44x44 tambien con el mouse',
-    tapK.length === 11 && tapK.every((x) => x.w >= 44 && x.h >= 44), JSON.stringify(tapK)]);
+  /* ⚠️ ADAPTADO EN LA TANDA AORTA-2 (2026-10-30): ONCE -> CATORCE. Los tres nuevos son
+     ao-cay-card, ao-desc-card y coa-card, que nacen con la clase vinfo-btn-44 y SIN margenes
+     negativos. Lo que estas tres condiciones exigen no cambia; lo que cambia es cuantos globos
+     tienen que cumplirlo, y el conteo ES el denominador. Medido en los dos motores y en los
+     cuatro anchos: los tres dan 44x44 y los cinco puntos dan el propio boton, tambien a 390 px.
+     ⚠️ LOS TRES VIVEN EN SECCIONES QUE NACEN PLEGADAS —la aorta en AI/VI y la coartacion en
+     C. Congenitas—, asi que hay que abrir la pestana Y el acordeon antes de medir: sin eso dan
+     0x0 y cero puntos propios sobre botones que si se dibujan. */
+  ex.push(['(K0) DENOMINADOR: los CATORCE globos llevan la clase, tienen geometria y estan EN VISTA',
+    tapK.length === 14 && tapK.every((x) => x.w > 0 && x.h > 0 && x.enVista), JSON.stringify(tapK)]);
+  ex.push(['(K1) los catorce miden 44x44 tambien con el mouse',
+    tapK.length === 14 && tapK.every((x) => x.w >= 44 && x.h >= 44), JSON.stringify(tapK)]);
   ex.push(['(K2) y su caja NO tapa a ningun vecino: los cinco puntos dan el propio boton',
-    tapK.length === 11 && tapK.every((x) => x.propios === 5), JSON.stringify(tapK)]);
+    tapK.length === 14 && tapK.every((x) => x.propios === 5), JSON.stringify(tapK)]);
   ex.push(['(K3) CONTROL: los demas globos NO se tocaron y siguen con su piso solo tactil',
     document.querySelectorAll('button.vinfo-btn').length
       - document.querySelectorAll('button.vinfo-btn-44').length >= 10,
@@ -91718,9 +91817,20 @@ caso('TC-537', 'Tanda A: las ocho Evidencias compactas despiertas a la vez sin u
       && PT.indexOf('Clase IIa · Nivel B para todos los pacientes con válvula bicúspide') > -1,
       'raiz=' + (PT.indexOf('Clase I · Nivel C con fenotipo de raíz') > -1)
       + ' todos=' + (PT.indexOf('Clase IIa · Nivel B para todos') > -1)]);
+    /* ADAPTADO (TANDA AORTA-2, commit 2b(iii) y commit 3): la frase que este chequeo contaba
+       —«Cirugía Clase I · Nivel B con diámetro máximo ≥ 55 mm…»— era la linea de fuente de la
+       seccion de la bicuspide, y esta tanda la retiro porque repetia por TERCERA vez los dos
+       umbrales de Clase I que ya publicaban la fila de medida y el bloque de recomendaciones.
+       Lo que el caso vigila —que un umbral quirurgico no se diga dos veces en el panel— se
+       conserva INVERTIDO y reforzado: ese texto ya no esta, y el umbral de 55 mm sale UNA sola
+       vez en todo el panel. */
+    /* ⚠️ EL CONTEO VA SOBRE LA FRASE Y NO SOBRE «55 mm» A SECAS: el panel entero tiene otras
+       secciones que usan ese umbral con todo derecho —la aortopatia hereditaria no sindromica lo
+       publica desde su propia tabla—, asi que contar el numero suelto medía otra cosa. */
     const nUmb = (PT.match(/Cirugía Clase I · Nivel B con diámetro máximo/g) || []).length;
-    ex.push(['(B4) la linea de umbrales quirurgicos sale UNA sola vez en todo el panel',
-      nUmb === 1, 'apariciones=' + nUmb]);
+    const n55 = (PT.match(/Cirugía de la aortopatía bicúspide con un diámetro aórtico máximo de 55 mm o más/g) || []).length;
+    ex.push(['(B4) INVERTIDA: la linea vieja de umbrales ya no esta, y el umbral de 55 mm de la bicuspide sale UNA sola vez',
+      nUmb === 0 && n55 === 1, 'vieja=' + nUmb + ' 55mm=' + n55]);
     /* (B5) EL CAMBIO CENTRAL DE LA TANDA: el orden. En las OCHO secciones compactas la grilla
        de datos tiene que ser lo PRIMERO del cuerpo, y las recomendaciones ir despues. Hasta la
        tanda A el modo compacto invertia eso para las ocho. Se mide seccion por seccion. */
@@ -98231,6 +98341,301 @@ caso('TC-554', 'Tanda AJUSTES-1: el cactus sin riesgo, los lobulos sin la nota d
     'display=' + (EL('inf-min-fila') ? getComputedStyle(EL('inf-min-fila')).display : 'NO EXISTE')]);
 
   } catch (e) { ex.push(['EXCEPCION en el caso', false, String(e && e.message || e).slice(0, 200)]); }
+  return { extra: ex };
+  })();
+`);
+
+/* -- TC-555 ---------------------------------------------------------------------------------
+   TANDA AORTA-2 (2026-10-30), commits 1 a 3.
+
+   Las letras son las de las condiciones. Cada bloque abre con su DENOMINADOR -lo que impide
+   que «no aparece» y «no se midio» se lean igual- y cierra con sus controles negativos.
+
+   ADVERTENCIAS DE METODO, todas pagadas en este repositorio:
+   - EL ESTILO DE INFORME ES ESTADO DE SESION y este caso lo fija antes de cada lectura: un caso
+     anterior puede dejarlo en narrativo, donde las frases dicen otra cosa (lo pago TC-547).
+   - NO SE LLAMA A LOS CALCULADORES A MANO para fabricar un disparador: los campos se ponen
+     despachando input, que es el gesto real (lo pago TC-519).
+   - EL SEXO SE PONE ANTES QUE EL DIAMETRO y se espera al barrido: los dos segmentos nuevos
+     cortan por sexo y leerlos en el mismo tick da el corte del varon.
+   - SIN ACENTOS GRAVES EN ESTE COMENTARIO NI EN EL CUERPO: los dos viven dentro de un template.
+*/
+caso('TC-555', 'Tanda AORTA-2: la union sinotubular y la aorta ascendente por sexo con la Figura 5 y la frase «por encima del limite superior de lo normal» en las tres superficies, el cayado y la descendente con su chip y su globo; la coartacion en el EN SUMA este o no integrada y sin «sin alteraciones» con bicuspide o coartacion; y la Evidencia de la bicuspide con los CINCO umbrales de la Tabla 68 una sola vez y los NUEVE factores en tres estados sin inferir, con las seis casillas fuera de la pantalla y sus claves guardadas intactas', `
+  return (async () => {
+  const ex = [];
+  const F = (n) => (typeof window[n] === 'function') ? window[n] : null;
+  const EL = (id) => document.getElementById(id) || null;
+  const T = (id) => { const e = EL(id); return e ? (e.textContent || '').replace(/[ \\t\\n\\r]+/g, ' ').trim() : 'NO EXISTE'; };
+  const V = (id) => { const e = EL(id); return e ? String(e.value || '') : 'NO EXISTE'; };
+  const pon = (id, v) => { const e = EL(id); if (!e) return 'NO ' + id;
+    e.value = String(v); e.dispatchEvent(new Event('input', { bubbles: true }));
+    e.dispatchEvent(new Event('change', { bubbles: true })); return e.value; };
+  const esperar = (ms) => new Promise(r => setTimeout(r, ms));
+  const limpiar = () => { try { if (F('limpiarCampos')) limpiarCampos(true) } catch (e) {} };
+  const inf = () => { try { if (F('setEstiloInforme')) setEstiloInforme('estandar') } catch (e) {}
+    try { if (F('generarInforme')) generarInforme() } catch (e) {}
+    return V('informe_texto'); };
+  const infEn = (st) => { try { if (F('setEstiloInforme')) setEstiloInforme(st) } catch (e) {}
+    try { if (F('generarInforme')) generarInforme() } catch (e) {}
+    return V('informe_texto'); };
+  const suma = () => V('en_suma');
+  const base = async (sexo) => { limpiar(); await esperar(60);
+    pon('nombre', 'Prueba AO2'); pon('documento', '555');
+    pon('peso', '70'); pon('talla', '170'); if (sexo) pon('sexo', sexo);
+    await esperar(260); };
+  const FRASE = 'por encima del l\\u00edmite superior de lo normal';
+
+  try {
+
+  /* ══ A — LOS SEGMENTOS DE LA FIGURA 5, POR SEXO ═══════════════════════════════════════════ */
+  /* (A0) DENOMINADOR: los dos segmentos tocados tienen corte POR SEXO y los otros tres NO.
+     Sin esto, todo lo de abajo puede dar «normal» porque el motor no esta cableado. */
+  const _segs = (window.AO_SEGS || []).map(function (s) {
+    return s.k + ':' + (s.refSexo ? (s.refSexo.M + '/' + s.refSexo.F) : '-') + (s.fig5 ? ':fig5' : '') + (s.ecosmart ? ':eco' : '');
+  }).join(' ');
+  ex.push(['(A0) DENOMINADOR: ao_st 38/33 y ao_tub 40/36 con marca fig5; cayado y descendente sin corte por sexo y con marca ecosmart',
+    _segs.indexOf('ao_st:38/33:fig5') > -1 && _segs.indexOf('ao_tub:40/36:fig5') > -1 &&
+    _segs.indexOf('diam_cayado:-:eco') > -1 && _segs.indexOf('diam_ao_toracica:-:eco') > -1, _segs]);
+
+  /* (A1) EL BORDE DEL VARON NO SE MOVIO: 38,0 exactos siguen siendo NORMALES. Es la condicion
+     que caza que la rama por sexo de aoSegDil se quede con el >= de la raiz. */
+  await base('M'); pon('ao_st', '38'); await esperar(260);
+  const a1 = T('ao-st-interp');
+  ex.push(['(A1) varon con 38,0 mm en la union sinotubular: sigue NORMAL', /Normal/.test(a1), a1]);
+
+  /* (A2) LA MUJER CON 34: por encima del limite, y la palabra «dilatada» NO aparece. */
+  await base('F'); pon('ao_st', '34'); await esperar(260);
+  const a2 = T('ao-st-interp'), a2i = inf(), a2s = suma();
+  ex.push(['(A2) mujer con 34 mm: la capsula dice la frase de la Figura 5 y no «dilatada»',
+    a2.toLowerCase().indexOf(FRASE) > -1 && a2.toLowerCase().indexOf('dilatada') === -1, a2]);
+  ex.push(['(A2b) y la capsula trae el corte de la mujer y la cita', /33mm/.test(a2) && /Figura 5/.test(a2), a2]);
+  ex.push(['(A3) el INFORME dice la frase y no «dilatada» para ese segmento',
+    a2i.toLowerCase().indexOf(FRASE) > -1 && a2i.indexOf('sinotubular 34 mm (dilatada)') === -1,
+    a2i.split('\\n').filter(function (l) { return /sinotubular/i.test(l) }).join(' | ')]);
+  ex.push(['(A4) el EN SUMA dice la frase y no «Dilatacion union sinotubular»',
+    a2s.toLowerCase().indexOf(FRASE) > -1 && a2s.indexOf('Dilataci\\u00f3n uni\\u00f3n sinotubular') === -1, a2s]);
+  /* Y EL PAPEL NO LLEVA LA CITA: la Figura 5 vive en la pantalla y en el globo. */
+  ex.push(['(A5) el informe y el EN SUMA NO llevan la cita de la figura',
+    a2i.indexOf('Figura 5') === -1 && a2s.indexOf('Figura 5') === -1,
+    'inf=' + a2i.indexOf('Figura 5') + ' suma=' + a2s.indexOf('Figura 5')]);
+
+  /* (A6) CONTROL NEGATIVO DEL BORDE: 33,0 exactos en la mujer son NORMALES. Sin esta, mover el
+     corte un milimetro para abajo pasaria inadvertido. */
+  await base('F'); pon('ao_st', '33'); await esperar(260);
+  const a6 = T('ao-st-interp');
+  ex.push(['(A6) CONTROL: mujer con 33,0 mm sigue normal', /Normal/.test(a6), a6]);
+
+  /* (A7)(A8) LA ASCENDENTE, los dos lados de su borde en la mujer. */
+  await base('F'); pon('ao_tub', '37'); await esperar(260);
+  const a7 = T('ao-tub-interp');
+  ex.push(['(A7) mujer con 37 mm en la ascendente: por encima del limite, corte 36',
+    a7.toLowerCase().indexOf(FRASE) > -1 && /36mm/.test(a7), a7]);
+  await base('F'); pon('ao_tub', '36'); await esperar(260);
+  const a8 = T('ao-tub-interp');
+  ex.push(['(A8) CONTROL: mujer con 36,0 mm sigue normal', /Normal/.test(a8), a8]);
+
+  /* (A9) SIN SEXO, EN LA FRANJA AMBIGUA, NO SE CLASIFICA y el papel dice SOLO el diametro. */
+  await base(''); pon('ao_st', '35'); await esperar(260);
+  const a9 = T('ao-st-interp'), a9i = inf();
+  ex.push(['(A9) sin sexo y en la franja: la capsula no clasifica', /sin el sexo/i.test(a9), a9]);
+  ex.push(['(A9b) y el informe dice solo el diametro, sin adjetivo',
+    /sinotubular 35 mm\\./.test(a9i) && a9i.toLowerCase().indexOf(FRASE) === -1,
+    a9i.split('\\n').filter(function (l) { return /sinotubular/i.test(l) }).join(' | ')]);
+  /* (A10) CONTROL NEGATIVO: sin sexo y FUERA de la franja -32 mm- si se clasifica. */
+  await base(''); pon('ao_st', '32'); await esperar(260);
+  const a10 = T('ao-st-interp');
+  ex.push(['(A10) CONTROL: sin sexo con 32 mm si se clasifica, normal', /Normal/.test(a10), a10]);
+  /* (A10b)(A10c) LOS DOS BORDES DE LA FRANJA SIN SEXO, que es lo unico que distingue la franja
+     derivada del operador de la que estaba escrita con el >= de la raiz: 33,0 es normal en los
+     DOS sexos y 38,0 es normal en el varon y esta por encima del limite en la mujer. */
+  await base(''); pon('ao_st', '33'); await esperar(260);
+  const a10b = T('ao-st-interp');
+  ex.push(['(A10b) CONTROL: sin sexo con 33,0 mm —normal en los dos sexos— SI se clasifica',
+    /Normal/.test(a10b), a10b]);
+  await base(''); pon('ao_st', '38'); await esperar(260);
+  const a10c = T('ao-st-interp');
+  ex.push(['(A10c) sin sexo con 38,0 mm —normal en el varon y no en la mujer— NO se clasifica',
+    /sin el sexo/i.test(a10c), a10c]);
+
+  /* (A11) LA RAIZ NO SE MOVIO: sigue diciendo «Dilatada» con su corte del apartado 9.2.1.1. */
+  await base('F'); pon('ao_sin', '38'); await esperar(260);
+  const a11 = T('ao-interp');
+  ex.push(['(A11) CONTROL: la raiz conserva «Dilatada» y su corte de 36 en la mujer',
+    /Dilatada/.test(a11) && /36mm/.test(a11) && a11.toLowerCase().indexOf(FRASE) === -1, a11]);
+
+  /* (A12) EL CHIP de los dos segmentos con criterio propio, y el control de que los otros NO. */
+  await base('M'); pon('diam_cayado', '41'); pon('ao_st', '39'); await esperar(260);
+  const a12c = T('ao-cay-interp'), a12s = T('ao-st-interp');
+  ex.push(['(A12) el cayado lleva el chip «Criterio de EcoSmart»', /Criterio de EcoSmart/.test(a12c), a12c]);
+  ex.push(['(A13) CONTROL: la union sinotubular NO lo lleva', !/Criterio de EcoSmart/.test(a12s), a12s]);
+
+  /* (A14) LOS DOS GLOBOS NUEVOS publican los OCHO tramos de la Figura 5 por sexo. */
+  const _g = (c) => { try { const n = F('evTarjetaAoSegs') ? evTarjetaAoSegs(c) : null;
+      const w = document.createElement('div'); if (n) w.appendChild(n);
+      return (w.textContent || '').replace(/[ \\t\\n\\r]+/g, ' ').trim(); } catch (e) { return 'ERR ' + e.message } };
+  const gCay = _g('cay'), gDesc = _g('desc');
+  const _ocho = (t) => ['Seno de Valsalva', 'Uni\\u00f3n sinotubular', 'Aorta ascendente', 'Cayado proximal',
+                        'Cayado medio', 'Descendente proximal', 'Descendente distal', 'Aorta abdominal']
+                        .filter(function (r) { return t.indexOf(r) > -1 }).length;
+  ex.push(['(A14) el globo del cayado trae los OCHO tramos y declara el criterio propio',
+    _ocho(gCay) === 8 && /criterio propio de EcoSmart/.test(gCay), 'tramos=' + _ocho(gCay) + ' len=' + gCay.length]);
+  ex.push(['(A15) el de la descendente tambien, y los dos traen su folio',
+    _ocho(gDesc) === 8 && /3563/.test(gCay) && /3563/.test(gDesc), 'tramos=' + _ocho(gDesc)]);
+  /* (A16) CONTROL NEGATIVO: el globo NO juzga a este paciente. */
+  ex.push(['(A16) CONTROL: el globo no dice nada de ESTE paciente',
+    gCay.indexOf('En este paciente') === -1 && gCay.indexOf('41 mm') === -1, 'ok']);
+
+  /* ══ B — LA COARTACION Y LA BICUSPIDE EN EL EN SUMA ═══════════════════════════════════════ */
+  const ponCoa = async () => { pon('coa_loc', 'istmo'); pon('coa_situacion', 'nativa');
+    pon('coa_istmo', '8'); pon('coa_ao_desc', '20'); pon('coa_gmedio', '25'); await esperar(260); };
+  /* (B0) DENOMINADOR: la coartacion CONCLUYE. Sin esto, «no aparece en el EN SUMA» se confunde
+     con «la escena no cargo una coartacion». */
+  await base('M'); await ponCoa();
+  const b0 = (function () { try { const c = F('coaConclusion') ? coaConclusion() : null; return c ? c.clave : 'null' } catch (e) { return 'ERR' } })();
+  ex.push(['(B0) DENOMINADOR: coaConclusion concluye «significativa»', b0 === 'significativa', b0]);
+  /* El EN SUMA lo escribe el MISMO generarInforme, asi que se lee DESPUES: leerlo antes da el
+     del bloque anterior, y eso se ve igual que «la linea no se emite». */
+  inf(); const b1s = suma();
+  ex.push(['(B1) la coartacion SIN integrar llega al EN SUMA', /Coartaci\\u00f3n de aorta nativa/.test(b1s), b1s]);
+  ex.push(['(B2) y el EN SUMA ya no dice «sin alteraciones»', !/sin alteraciones estructurales/i.test(b1s), b1s]);
+  /* (B3) Y ES DESCRIPTIVA: sin clase, sin nivel y sin tabla, que es lo que el encabezado fija. */
+  ex.push(['(B3) la linea es descriptiva: sin clase, sin nivel y sin folio',
+    !/Clase I/.test(b1s) && !/Nivel /.test(b1s) && !/folio/.test(b1s), b1s]);
+  /* (B4) CONTROL NEGATIVO: con la seccion INTEGRADA la linea no se dice dos veces. */
+  const chk = EL('coart_incluir_chk');
+  if (chk && !chk.checked) { chk.checked = true; chk.dispatchEvent(new Event('change', { bubbles: true })); }
+  await esperar(260); inf();
+  const b4 = suma(), b4n = (b4.match(/Coartaci\\u00f3n de aorta/g) || []).length;
+  ex.push(['(B4) CONTROL: con la seccion integrada la coartacion se dice UNA sola vez', b4n === 1, 'n=' + b4n]);
+
+  /* (B5) LA BICUSPIDE SOLA: el AJ1-3 ya la nombraba. Se VERIFICA, no se rehace. */
+  await base('M'); pon('va_morf', 'Bic\\u00faspide'); await esperar(300); inf();
+  const b5 = suma(), b5n = (b5.match(/V\\u00e1lvula a\\u00f3rtica bic\\u00faspide/g) || []).length;
+  ex.push(['(B5) la bicuspide sola llega al EN SUMA UNA vez y sin «sin alteraciones»',
+    b5n === 1 && !/sin alteraciones estructurales/i.test(b5), 'n=' + b5n + ' :: ' + b5]);
+
+  /* (B6) LAS DOS JUNTAS: cada una una vez. */
+  await base('M'); pon('va_morf', 'Bic\\u00faspide'); await ponCoa(); inf();
+  const b6 = suma();
+  ex.push(['(B6) bicuspide y coartacion juntas: las dos, una vez cada una',
+    (b6.match(/V\\u00e1lvula a\\u00f3rtica bic\\u00faspide/g) || []).length === 1 &&
+    (b6.match(/Coartaci\\u00f3n de aorta/g) || []).length === 1, b6]);
+
+  /* (B7) CONTROL NEGATIVO: la seccion TOCADA pero sin conclusion posible sigue negando. */
+  await base('M'); pon('coa_loc', 'istmo'); await esperar(260); inf();
+  const b7 = suma();
+  ex.push(['(B7) CONTROL: coartacion sin conclusion posible: el EN SUMA sigue negando',
+    /sin alteraciones estructurales/i.test(b7), b7]);
+  /* (B8) CONTROL NEGATIVO: un estudio ajeno. */
+  await base('M'); pon('ao_tub', '30'); await esperar(260); inf();
+  const b8 = suma();
+  ex.push(['(B8) CONTROL: estudio sin aorta dilatada, sin bicuspide y sin coartacion',
+    /sin alteraciones estructurales/i.test(b8) && !/Coartaci\\u00f3n/.test(b8), b8]);
+
+  /* ══ C — LA TABLA 68 Y LOS NUEVE FACTORES ════════════════════════════════════════════════ */
+  await base('M'); pon('va_morf', 'Bic\\u00faspide'); pon('ao_tub', '52'); pon('ao_sin', '47');
+  await esperar(300);
+  const R = (function () { try { return F('_indVAB') ? _indVAB() : null } catch (e) { return null } })();
+  /* (C0) DENOMINADOR: la seccion de Evidencia esta DESPIERTA y trae filas. */
+  ex.push(['(C0) DENOMINADOR: la seccion de la bicuspide se pinta y trae filas',
+    !!(R && R.filas && R.filas.length), R ? ('filas=' + R.filas.length) : 'null']);
+  const _lineas = (R && R.bloques ? R.bloques : []).reduce(function (a, b) {
+    return a.concat((b.lineas || []).map(function (l) { return typeof l === 'string' ? l : (l && l.txt) || '' })) }, []);
+  const _todo = _lineas.join(' \\u00b7 ') + ' \\u00b7 ' +
+    (R && R.filas ? R.filas.map(function (f) { return (f.lbl || '') + '=' + (f.val || '') + '|' + (f.marca || '') + '|' + (f.nota || '') }).join(' \\u00b7 ') : '') +
+    ' \\u00b7 ' + ((R && R.guia && R.guia.txt) || '') + ' \\u00b7 ' +
+    (R && R.notas ? R.notas.map(function (l) { return typeof l === 'string' ? l : (l && l.txt) || '' }).join(' \\u00b7 ') : '');
+
+  /* (C1) LOS CINCO UMBRALES DE LA TABLA 68, cada uno con su clase y su nivel. */
+  const _cinco = ['Cirug\\u00eda de la aortopat\\u00eda bic\\u00faspide con un di\\u00e1metro a\\u00f3rtico m\\u00e1ximo de 55 mm o m\\u00e1s',
+                  'Cirug\\u00eda con un di\\u00e1metro de 50 mm o m\\u00e1s cuando el fenotipo es de ra\\u00edz',
+                  'cirug\\u00eda a considerar con m\\u00e1s de 52 mm',
+                  'cirug\\u00eda a considerar desde 50 mm si concurre alguno de los nueve factores',
+                  'reemplazo de la ra\\u00edz o de la aorta ascendente en el mismo acto con 45 mm o m\\u00e1s'];
+  const _hay = _cinco.filter(function (t) { return _lineas.some(function (l) { return l.indexOf(t) > -1 }) }).length;
+  ex.push(['(C1) los CINCO umbrales de la Tabla 68 estan, uno por linea', _hay === 5, 'hay=' + _hay]);
+  ex.push(['(C2) y cada uno lleva su clase y su nivel',
+    _lineas.filter(function (l) { return /^Clase I+a? \\u00b7 Nivel [ABC] \\u2014 Cirug|^Clase IIa \\u00b7 Nivel [BC] \\u2014 (Con riesgo|En el paciente)/.test(l) }).length === 5,
+    _lineas.filter(function (l) { return /^Clase/.test(l) }).length + ' lineas con clase']);
+  /* (C3) CADA UMBRAL UNA SOLA VEZ: el 55 y el 45 son los que estaban repetidos. */
+  const _n55 = (_todo.match(/55 mm/g) || []).length, _n45 = (_todo.match(/45 mm/g) || []).length;
+  ex.push(['(C3) «55 mm» aparece UNA vez en toda la seccion', _n55 === 1, 'n=' + _n55]);
+  ex.push(['(C4) «45 mm» aparece dos veces y son DOS recomendaciones distintas (cirugia y control por imagen)',
+    _n45 === 2, 'n=' + _n45]);
+  /* (C5) EL TEXTO FUERA DE LA TABLA VA SIN CLASE: la SEC dice «se debe» y el ingles «may». */
+  const _dec = _lineas.filter(function (l) { return l.indexOf('decisi\\u00f3n compartida') > -1 })[0] || '';
+  ex.push(['(C5) la decision compartida esta y NO lleva clase', !!_dec && !/Clase /.test(_dec), _dec.slice(0, 90)]);
+
+  /* (C6) LAS NUEVE FILAS DE FACTORES. */
+  const _frLbl = ['Edad menor de 50 a\\u00f1os', 'Talla entre 1,50 y 1,69 m', 'Coartaci\\u00f3n de aorta',
+    'Longitud de la aorta ascendente', 'Crecimiento del di\\u00e1metro', 'Antecedente familiar de s\\u00edndrome a\\u00f3rtico agudo',
+    'Hipertensi\\u00f3n arterial resistente', 'Cirug\\u00eda card\\u00edaca concomitante no valvular a\\u00f3rtica', 'Deseo de embarazo'];
+  const _frFilas = (R && R.filas ? R.filas : []).filter(function (f) {
+    return _frLbl.some(function (t) { return String(f.lbl || '').indexOf(t) === 0 }) });
+  ex.push(['(C6) las NUEVE filas de factores estan en la seccion', _frFilas.length === 9, 'n=' + _frFilas.length]);
+  /* (C7) TRES ESTADOS SIN INFERIR: sin contestar nada, ninguno vale «no» y el conteo es CERO. */
+  const _fr0 = (function () { try { return F('vabFactores') ? vabFactores() : null } catch (e) { return null } })();
+  const _c7 = _fr0 ? [(_fr0.presentes || []).length, (_fr0.ausentes || []).length, (_fr0.sinEvaluar || []).length] : [0, 0, 0];
+  ex.push(['(C7) DENOMINADOR: los tres estados suman NUEVE',
+    !!_fr0 && (_c7[0] + _c7[1] + _c7[2]) === 9,
+    'si=' + _c7[0] + ' no=' + _c7[1] + ' sd=' + _c7[2]]);
+  ex.push(['(C8) sin contestar, el conteo de presentes es CERO y la seccion dice que falta preguntar',
+    !!(_fr0 && _fr0.n === 0) && /sin contestar/.test(_todo) && /no cuenta como/.test(_todo),
+    _fr0 ? ('n=' + _fr0.n) : 'null']);
+  /* (C9) CONTESTAR «no» NO SUMA, y es el control que distingue tres estados de dos. */
+  pon('vab_fr_hta', 'no'); await esperar(300);
+  /* ⚠️ LA LISTA DE AUSENTES NO EXISTE EN EL ARBOL ANTERIOR, asi que leerlo sin guarda mata el caso con un
+     TypeError y el informe dice «EXCEPCION» en vez de decir que invariante se rompio. Es la
+     leccion que la tanda TEP pago con TC-546: caer por excepcion no es caer. */
+  const _fr1 = vabFactores() || {};
+  const _au1 = _fr1.ausentes || [], _sd1 = _fr1.sinEvaluar || [];
+  ex.push(['(C9) contestar «no» mueve el factor a ausentes y NO suma al conteo',
+    _fr1.n === 0 && _au1.indexOf('hipertensi\\u00f3n arterial resistente') > -1 &&
+    _sd1.indexOf('hipertensi\\u00f3n arterial resistente') === -1,
+    'n=' + _fr1.n + ' no=' + _au1.length + ' sd=' + _sd1.length]);
+  /* (C10) CONTESTAR «si» SI SUMA. */
+  pon('vab_fr_hta', 'si'); await esperar(300);
+  const _fr2 = vabFactores() || {};
+  ex.push(['(C10) contestar «si» suma al conteo', _fr2.n === 1 &&
+    (_fr2.presentes || []).indexOf('hipertensi\\u00f3n arterial resistente') > -1, 'n=' + _fr2.n]);
+  /* (C11) Y LA FILA DE LA EVIDENCIA LO LEE DEL ESTUDIO, sin control que dibujar. */
+  const R2 = _indVAB() || { filas: [] };
+  const _fHta = (R2.filas || []).filter(function (f) { return String(f.lbl || '').indexOf('Hipertensi\\u00f3n arterial resistente') === 0 })[0];
+  ex.push(['(C11) con el campo guardado cargado, la fila lo LEE y no dibuja control',
+    !!_fHta && _fHta.val === 'S\\u00ed' && !_fHta.ctrl, _fHta ? (_fHta.val + ' ctrl=' + !!_fHta.ctrl) : 'sin fila']);
+  /* (C12) Y VACIO, LA FILA PREGUNTA. */
+  pon('vab_fr_hta', ''); await esperar(300);
+  const _fHta0 = ((_indVAB() || {}).filas || []).filter(function (f) { return String(f.lbl || '').indexOf('Hipertensi\\u00f3n arterial resistente') === 0 })[0];
+  ex.push(['(C12) con el campo vacio, la fila ofrece las dos opciones y dice «Sin dato»',
+    !!(_fHta0 && _fHta0.ctrl && _fHta0.ctrl.ops && _fHta0.ctrl.ops.length === 2 && _fHta0.marca === 'ask'),
+    _fHta0 ? ('ctrl=' + !!_fHta0.ctrl + ' marca=' + _fHta0.marca) : 'sin fila']);
+
+  /* ══ D — LAS CASILLAS RETIRADAS, Y LAS CLAVES GUARDADAS INTACTAS ══════════════════════════ */
+  const _chks = ['vabchk-familiar', 'vabchk-hta', 'vabchk-crecimiento', 'vabchk-longitud', 'vabchk-cx', 'vabchk-embarazo'];
+  const _campos = ['vab_fr_familiar', 'vab_fr_hta', 'vab_fr_crecimiento', 'vab_fr_longitud', 'vab_fr_cx', 'vab_fr_embarazo'];
+  ex.push(['(D1) las SEIS casillas ya no estan en la pantalla',
+    _chks.filter(function (i) { return !!EL(i) }).length === 0,
+    _chks.filter(function (i) { return !!EL(i) }).join(',') || 'ninguna']);
+  ex.push(['(D2) DENOMINADOR: los SEIS campos guardados siguen existiendo',
+    _campos.filter(function (i) { return !!EL(i) }).length === 6,
+    _campos.filter(function (i) { return !!EL(i) }).length + '/6']);
+  /* (D3) CONTROL NEGATIVO: «Nuevo estudio» los sigue vaciando. Sin esto, un factor sobreviviria
+     al cambio de paciente, que es el defecto que el D-11 pago tres veces. */
+  pon('vab_fr_cx', 'si'); limpiar(); await esperar(260);
+  ex.push(['(D3) CONTROL: «Nuevo estudio» vacia los seis campos',
+    _campos.every(function (i) { return V(i) === '' }), _campos.map(function (i) { return V(i) }).join('|')]);
+
+  /* ══ E — EL ESTUDIO SIN AORTA NO SE MOVIO ═════════════════════════════════════════════════ */
+  await base('M'); pon('ddfvi', '48'); await esperar(260);
+  const e1i = infEn('estandar'), e1n = infEn('narrativo'), e1s = suma();
+  ex.push(['(E1) un estudio sin un solo segmento aortico no nombra la aorta en ningun estilo',
+    e1i.indexOf('Aorta tor\\u00e1cica') === -1 && e1n.indexOf('aorta tor\\u00e1cica') === -1,
+    'est=' + e1i.indexOf('Aorta tor\\u00e1cica') + ' nar=' + e1n.indexOf('aorta tor\\u00e1cica')]);
+  ex.push(['(E2) y su EN SUMA no trae ni la frase de la Figura 5 ni la coartacion',
+    e1s.toLowerCase().indexOf(FRASE) === -1 && e1s.indexOf('Coartaci\\u00f3n') === -1, e1s]);
+
+  } catch (e) { ex.push(['EXCEPCION', false, String(e && e.message ? e.message : e)]); }
+  finally { try { if (F('limpiarCampos')) limpiarCampos(); } catch (e) {} }
   return { extra: ex };
   })();
 `);

@@ -39,6 +39,8 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Tocar la FUGA PARAVALVULAR de una prótesis QUIRÚRGICA**, aórtica o mitral: el motor único, los tres campos nuevos, la marca de origen o por qué la mitral no ofrece extensión circunferencial | `docs/mapa/protesis-fuga-pvl.md` |
 | **Buscar un CORTE o una BANDA de plausibilidad** de cualquier válvula, con su fuente | `docs/mapa/valvulas-constantes.md` |
 | **Tocar la MARCA DE MANUAL de una pastilla, el selector binario de la estenosis mitral, el VIOLETA de «Significativa», el VTI de entrada tricuspídeo, la CASILLA DE PISA de «Incluir en el informe» o lo que «Nuevo estudio» deja vivo** | `docs/mapa/valvulas-manual-binario.md` |
+| **Tocar un CORTE DE SEGMENTO AÓRTICO de la Figura 5** —la unión sinotubular o la aorta ascendente por sexo, la frase «por encima del límite superior de lo normal», el chip del cayado y la descendente con su globo, la coartación en el EN SUMA, los tres textos de su pantalla, o los cinco umbrales de la Tabla 68 con sus nueve factores en tres estados | `docs/mapa/ao2-segmentos-bicuspide.md` |
+| **Tocar las CÚSPIDES de la bicúspide, sus SEIS dibujos o la animación de la apertura** | `docs/mapa/vab-cuspides-dibujos.md` |
 | **Tocar el CRITERIO DE DILATACIÓN DE LA RAÍZ AÓRTICA** —el corte por sexo, el índice de dimensión aórtica, el dueño `aoSegRef`/`aoSegIda`/`aoSegDil`, el globo ⓘ, el cruce entre las pantallas de BICÚSPIDE y de COARTACIÓN, o lo que la tanda AJ4 tocó de la Evidencia de la VAB | `docs/mapa/aj4-raiz-aortica.md` |
 | **Tocar la SINCRONIZACIÓN de los dos campos de la raíz aórtica, el grado «sin sexo cargado», el voto del índice en el papel, las dos líneas nuevas del ⓘ de la raíz, los tres arreglos de pantalla de la tanda G o su sonda sistemática** | `docs/mapa/g-raiz-aortica.md` |
 | **Tocar una AORTOPATÍA —Marfan, Loeys-Dietz, Turner, ACTA2, Ehlers-Danlos vascular—, la COARTACIÓN, el texto de la VAB o el MOTOR DE EVIDENCIA DE AORTA**: la tabla y el folio de cada síndrome, el corte de dilatación con su dueño, el cuestionario o las recomendaciones por debajo de 45 mm | `docs/mapa/aorta-aortopatias-evidencia.md` |
@@ -180,8 +182,9 @@ Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la v
 ## Qué es EcoSmart y cómo se trabaja
 
 - App clínica de ecocardiografía en **un solo `index.html`**: HTML + CSS + JS inline, sin build,
-  sin frameworks. Hoy **10,14 MB / 142.743 líneas**, medido con `wc -c` y `wc -l` el 2026-10-29 al
-  cierre de la tanda **IMÁGENES**, sobre el árbol ya sellado (`v20261029-2127`, md5 `ca2c048e`).
+  sin frameworks. Hoy **10,32 MB / 145.243 líneas**, medido con `wc -c` y `wc -l` el 2026-10-30 al
+  cierre de la tanda **AORTA-2**, sobre el árbol ya sellado (`v20261030-1830`, md5 `5ddfacc3`).
+  (Antes: 10,14 MB / 142.743 al cierre de IMÁGENES, sello `v20261029-2127`, md5 `ca2c048e`.)
   (Antes: 10,04 MB / 140.965 al cierre de la Y, Parte 1, sello `v20261029-1647`, md5 `7ef7a5de`.)
   (Antes: 10,02 MB / 140.761 al cierre de POP-V2, sello `v20261029-1425`, md5 `f72a928c`.)
   ⚠️ **Y ESTE RENGLÓN SE HABÍA QUEDADO SIETE TANDAS ATRÁS**: decía «9,79 MB / 138.038 líneas»,
@@ -2701,3 +2704,159 @@ línea: el archivo creció y un informe de auditoría viejo apunta a otro archiv
   `docs/PENDIENTES.md` → **SIETE** cosas declaradas (**AJ1-a** a **AJ1-g**).
   ⚠️ **`vab-bicuspide.md` quedó en 33,9 KB, a 1,1 KB del techo**: la próxima tanda que lo toque
   tiene que partirlo (**AJ1-e**).
+
+### Los segmentos de la Figura 5, la coartación y la Tabla 68 — «AORTA-2» (2026-10-30)
+
+- **CUATRO commits, y los tres de código se hicieron enteros.** `13a7e58` (AO2-1) · `fa7c865`
+  (AO2-2) · `2e61d47` (AO2-3) · el de cobertura y documentación. Sello **`v20261030-1830`**, md5
+  de `index.html` **`5ddfacc3`**. Al empezar, `origin/main` = `HEAD` = **`ad0067f`**, el cierre de
+  la tanda AJUSTES-1, ya publicado, con el pendrive `DISK_IMG` montado y listando nombres reales.
+  **El push lo corre Maicol: esta tanda tenía orden expresa de NO pushear.**
+
+- **LAS CUATRO FUENTES SE LEYERON EN IMAGEN A 200 ppp, Y EL PIE IMPRESO SE COMPROBÓ EN CADA
+  HOJA.** La edición **inglesa** de la ESC 2024 de aorta (163 hojas, folio = hoja + 3537,
+  verificado en cuatro hojas): **Figura 5** en la hoja 26 → folio **3563**; **Tabla 68** en las
+  hojas 110 y 111 → folios **3647** y **3648**; **Tabla 38** en la hoja 74 → folio **3611**. Y la
+  edición inglesa de la ESC 2020 de cardiopatías congénitas del adulto (84 hojas, folio =
+  hoja + 562): la tabla de intervención en coartación y el apartado 4.6.3 en la hoja 42 → folio
+  **604**. Los ocho valores de la Figura 5, los cinco umbrales y los nueve factores de la Tabla 68
+  y las ocho recomendaciones de la Tabla 38 **coinciden uno por uno con lo que la orden anticipa**.
+
+- **EL DEFECTO MÁS GRANDE QUE CERRÓ, EN UNA LÍNEA: una unión sinotubular de 34 mm en una mujer
+  salía «Aorta torácica de calibre normal» en el informe FIRMADO.** Y el EN SUMA remataba con
+  «Estudio sin alteraciones estructurales ni funcionales significativas». Medido en HEAD antes de
+  escribir una línea. El corte de ese segmento era 38 mm para los dos sexos y la Figura 5 publica
+  33 en la mujer.
+
+- ⚠️ **DOS ARREGLOS QUE NADIE PIDIÓ Y QUE HABÍA QUE HACER, LOS DOS SOBRE EL BORDE DE UN CORTE.**
+  1. **`aoSegDil` tenía el `>=` ESCRITO en la rama de `refSexo`.** Era la rama de la raíz, que sí
+     cuenta su corte como dilatado. Al entrar la unión sinotubular y la ascendente por esa rama,
+     ese `>=` les habría movido el borde: **38,0 y 40,0 exactos pasaban de normales a dilatados en
+     el informe firmado**, sin que ninguna orden lo pidiera. Hoy las dos ramas preguntan por
+     `incRef` a través de `aoSegPasa`, que es el dueño único del operador.
+  2. **La franja «no se puede clasificar sin el sexo» estaba escrita** como
+     `x >= _bajo && x < _alto`, que es correcta para la raíz y **equivocada** para un segmento con
+     `>` estricto: daba «no se puede clasificar» sobre 33,0 exactos —normales en los dos sexos— y
+     en cambio clasificaba 38,0, que es normal en el varón y está por encima del límite en la
+     mujer. Hoy se deriva del mismo `aoSegPasa`. Lo fijan **TC-555 (A10b)** y **(A10c)**, que
+     nacieron del barrido de mutaciones: sin ellas, la mutación 04 sobrevivía.
+
+- **DOS PREMISAS DE LA ORDEN ERAN FALSAS, Y ESTÁN MEDIDAS.**
+  1. **La lista de factores de la bicúspide NO salía de la Tabla 38.** `vabFactores` ya aplicaba
+     los **nueve de la Tabla 68** —tres derivados y seis preguntados— y su propio comentario lo
+     declara desde el Y3d5. No había defecto que corregir. Lo que sí había era **inferencia**: la
+     casilla tenía dos estados y el comentario del Y3d5 lo decía con todas las letras —«sin marcar
+     = no cuenta»—, así que un factor sin contestar pesaba igual que uno descartado.
+  2. **La coartación YA llegaba al EN SUMA**, pero sólo con la sección integrada al informe. Sin
+     integrar, con `coaConclusion` en «significativa», el resumen decía «sin alteraciones».
+
+- **LAS SEIS CASILLAS SALIERON DE LA PANTALLA, Y LA DECISIÓN SE MIDIÓ EN VEZ DE SUPONERSE.** El
+  criterio de la orden es «quedan sólo las casillas que alimentan el informe, el EN SUMA, el PDF o
+  el Excel»: en tres escenas —ascendente 51 mm con riesgo bajo, 56 mm y 42 mm— se encendió cada
+  uno de los seis por separado y el informe y el EN SUMA salieron **idénticos en los dieciocho
+  cruces**. Lo único que mueven es `vabConclusion().txt`, que hoy llega **sólo al panel**: el
+  `etePars` de la bicúspide se retiró en el Y3d8 y su `ccHoja('vab', …)` del PDF en el Y3f6.
+
+- **NI UN CAMPO GUARDADO NUEVO NI UNA COLUMNA DE EXCEL, Y ESTÁ MEDIDO POR DIFERENCIA DE ids.** Los
+  seis `vab_fr_*` ya eran campos de texto —la casilla era `vabchk-*`, con guión medio, y nunca se
+  guardó—, así que el tercer estado entra en el valor: `''` es «sin dato». Censo de campos
+  guardados: **946 ids en HEAD y 946 hoy, con el mismo juego exacto**, cero nuevos y cero
+  perdidos. `LAB_XLS_MAP` no tiene una sola entrada `vab_`, censado.
+
+- ⚠️ **EL «MÁS DE 50 mm» VA SIN CLASE, Y ES UNA DIFERENCIA DE TRADUCCIÓN.** El inglés dice
+  «Surgery at >50 mm **may also be considered** in a shared decision», que es el verbo de la Clase
+  IIb; la edición de la SEC lo pasa a «**se debe** considerar», que es el de la IIa. Se usa el
+  sentido del inglés y no se le pone clase, porque es texto del cuerpo y la tabla no se la da.
+
+- ⚠️ **LOS TRES «50 mm» QUE QUEDAN EN LA EVIDENCIA NO SON UNA REPETICIÓN**: son tres
+  recomendaciones distintas —el fenotipo de raíz, el fenotipo ascendente con factores y la
+  decisión compartida—, que es justo lo que la orden dice de la Tabla 38. Medido antes y después
+  en la escena de una bicúspide con ascendente 52 y raíz 47: «55 mm» 2 → **1**, «52 mm» 3 → 1,
+  «50 mm» 4 → **3** y «45 mm» 4 → **2**.
+
+- **TRES PARTES SE PARARON Y SE REPORTARON, NO SE APLICARON.** La línea **integrada** del EN SUMA
+  de la coartación, que publica «indicación de intervención Clase I ESC 2020» (→ **AO2-b**);
+  `coaConclusion().txt`, que lleva clase, nivel, tabla y folio al **cuerpo del informe** (→
+  **AO2-c**); y la negación global del EN SUMA sobre un segmento en la franja «sin sexo», que es
+  preexistente y la raíz ya la tenía desde el G-4 (→ **AO2-d**).
+
+- **14/14 MUTACIONES DIRIGIDAS MUERTAS EN EL PRIMER BARRIDO**, en 3 min 19 s, en worktree y nunca
+  sobre el vivo, con guarda de md5 antes y después. **Cuatro de las catorce no revierten nada: la
+  aplican de más** —el chip a todos los segmentos, la cita de la figura en el papel firmado, la
+  coartación publicada también con la sección integrada y la clase agregada a la línea
+  descriptiva—, porque las condiciones que las matan son **controles negativos**. La **03** y la
+  **04** son el mismo error por dos puertas y van separadas a propósito: cada una sobrevive si la
+  otra la tapa.
+
+- **TC-555 cae contra HEAD por 26 condiciones y NINGUNA por excepción.** Las que pasan en los dos
+  árboles son los denominadores y los controles negativos.
+
+- **A/B contra HEAD: 132 escenas, 147.032 claves y 58.080 celdas de Excel. Las 50 diferencias de
+  superficie firmada están en CINCO escenas y son las autorizadas** —`yAoSeg`, `yAoSegM`, `vab`,
+  `yCoa` y `yVabCoa`—. Las otras **127 escenas dan cero**, `ajeno` y `vacio` incluidos. Y dentro
+  de las escenas que cambian hay un control propio: el cayado y la descendente siguen diciendo
+  «Dilatación» al lado de los dos que cambiaron, y la raíz también. Excel en **440** columnas con
+  las mismas claves en todas.
+
+- **Línea base al cierre: suite 565/570**, en once lotes **cubriendo los 570 casos distintos**
+  —contados nombre por nombre, no por la suma de los lotes—, en UNA sola pasada sobre el árbol
+  sellado, con el pendrive `DISK_IMG` **montado y verificado al abrir, ENTRE LOS ONCE LOTES y al
+  cerrar** y el md5 de `index.html` **idéntico** antes y después (`5ddfacc3`). Los rojos son
+  **TC-223, TC-376, TC-390 y TC-406**, los cuatro de siempre, más **TC-551**, que es el
+  intermitente que `COR-f` declara y que la orden anticipa: corrido aislado pasa **2 de 2**.
+  **TC-358 salió VERDE**, y TC-262, TC-419 y TC-507 también.
+  ⚠️ **Y LA PRIMERA CORRIDA COMPLETA DIO 561/570 CON CINCO ROJOS MÁS, LOS CINCO MÍOS**, y por eso
+  esa cifra no es la línea base: **TC-15** y **TC-39** (la palabra que el commit 1 retira),
+  **TC-492** (la bibliografía de aorta, 3 → 4 entradas), **TC-514** (la sección de la bicúspide,
+  5 → 14 filas) y **TC-535** (los globos de 44×44, 11 → 14). **Los cinco se me pasaron del censo**,
+  y es el mismo modo de falla que este archivo ya documenta tres veces: grepeé por las palabras
+  con que escribe la frase el caso que SÍ encontré, y estos la escriben con otras.
+
+- **Semgrep 124 WARNING / 0 ERROR**, la línea base. **Excel 440** columnas. **Censo 946 ids, el
+  mismo juego exacto que HEAD.** Sin huérfanos nuevos. 17 bloques de JS inline parsean.
+- **CELULAR: MEJORÓ.** 59 hallazgos a 360 px y 68 a 390, con **17 ALTA en cada ancho** — los 17 de
+  la línea base. HEAD daba 65 y 74 con los mismos 17: los **seis** que bajan en cada ancho son las
+  seis casillas retiradas, que eran `toque-chico` de severidad MEDIA.
+- **CHROME Y WEBKIT COINCIDEN EN LOS DIECISÉIS CRUCES** (dos motores × 1440, 1000, 768 y 390 px ×
+  dos temas), **valor por valor**, y son idénticos a HEAD en todo lo que no es el cambio: **cero
+  errores de consola y de página** en los dos motores y en los dos árboles, **cero** desplazamiento
+  horizontal del cuerpo, **cero** textos recortados y las mismas 17 de 25 pestañas con caja. Los
+  **tres globos nuevos miden 44×44 con los CINCO puntos dando el propio botón** y su tarjeta sale
+  en 356×414 **dentro de la pantalla**, también a 390 px.
+  ⚠️ **WEBKIT DE PLAYWRIGHT NO ES SAFARI, y se declara.** Chrome va por el del sistema con
+  `channel: 'chrome'`.
+  ⚠️ **Y LOS TRES GLOBOS DABAN 0×0 Y 0/5 EN LOS DIECISÉIS CRUCES**, en los dos árboles, hasta que
+  la sonda abrió la **pestaña Y el acordeón** por su botón real: abrir la pestaña no le da caja a
+  la tarjeta. Un cero en los dos lados se lee igual que «no cambió».
+
+- **`index.html` pasó de 10,28 MB / 144.727 líneas a 10,32 MB / 145.243** — medido con `wc -c` y
+  `wc -l` DESPUÉS de sellar. (MB de 10⁶.) El diff son **633 líneas agregadas y 117 quitadas**.
+
+- ⚠️ **EL ACENTO GRAVE DENTRO DE UN COMENTARIO COSTÓ CINCO CORRIDAS, EN DOS ARCHIVOS.** Siempre
+  igual: un identificador escrito entre acentos graves dentro del comentario de un caso o de una
+  sonda, y los dos cuerpos son template literals. `check_backticks.py` **no cazó ninguna** —mira
+  el cuerpo, no el comentario de bloque que lo precede—; lo que sirve es **`node --check`** sobre
+  el archivo. Es la quinta tanda seguida que lo paga.
+
+- **TRECE CASOS VIEJOS ADAPTADOS, cada uno con el motivo escrito**: **TC-15** y **TC-39** (la
+  palabra que los dos segmentos dejan de afirmar; TC-39 conserva entera la prueba de concordancia
+  de género, porque los otros tres segmentos no se movieron), **TC-66** (la línea del EN SUMA de
+  la bicúspide), **TC-471**, **TC-500** y **TC-502** (el registro de globos, 68 → **71**, y el
+  mapeo a Referencias 46 → **48**), **TC-492** y **TC-494** (la bibliografía de aorta, 3 → **4**
+  entradas, por `AOR-005`), **TC-504** (**seis condiciones INVERTIDAS**: las casillas ya no
+  están), **TC-514** (la sección de la bicúspide, 5 → **14** filas), **TC-521** (el control del
+  índice separado del del corte por sexo, y el bloque de recomendaciones en **dos**), **TC-535**
+  (los globos de 44×44, once → **catorce**) y **TC-537** (**invertida**: la línea vieja de
+  umbrales ya no está).
+
+- **Dónde está todo:** `docs/mapa/ao2-segmentos-bicuspide.md` (**mapa NUEVO**, 12,9 KB), la ficha
+  del caso en `docs/mapa/tests-fichas-555.md` (**archivo propio**), **seis mapas con un puntero
+  cada uno** —medidos ANTES de escribir—, `docs/fuentes/FUENTES.md` → «La tanda AORTA-2» con las
+  cuatro fuentes transcritas tabla por tabla y la tabla «Cambios de evidencia» de dieciocho filas,
+  y `docs/PENDIENTES.md` → **SIETE** cosas declaradas (**AO2-a** a **AO2-g**), con el inventario
+  completo de la válvula aórtica tricúspide, más el cierre de **`AJ4-c`** y de **`AJ1-e`**.
+  ⚠️ **Y `vab-bicuspide.md` SE PARTIÓ ANTES DE ESCRIBIRLE EL PUNTERO**, que es la regla: estaba en
+  **33,9 KB**, sus secciones 10 y 11 salieron a `docs/mapa/vab-cuspides-dibujos.md` (16,9 KB) y el
+  mapa volvió a **18,3 KB**. Cero líneas perdidas, movidas byte por byte. Es la primera vez en
+  cinco tandas que la regla se aplica **antes** de cruzar el techo. Quedan esperando
+  `congenitas-otros.md` (34,5 KB) y `panel-evidencia.md` (34,1 KB) → **AO2-g**.

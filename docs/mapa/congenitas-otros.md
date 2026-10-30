@@ -572,3 +572,14 @@ los once pintores que quedaban viejos** son de esta zona.
 
 Hoy `tvSync`, `dapSync`, `coaSync`, `vapSync`, `ebsSync`, `tgaSync`, `dsavSync`, `cvpaSync` y
 `eteShuntSync` están en `ESPEJOS_VIVOS()`. **Ver `docs/mapa/b-espejos-pam.md`.**
+
+
+## → La TANDA AORTA-2 (2026-10-30) — puntero, la COARTACIÓN
+
+Dos cosas. **Los tres textos largos de la pantalla** —el del gradiente pico-pico, el del
+estrechamiento relativo y el de la hipertensión— pasaron a una línea corta cada uno, con el texto
+completo en un globo ⓘ nuevo en la fila «Conclusión», verificado en imagen contra la ESC 2020 de
+cardiopatías congénitas del adulto (hoja 42, folio 604). **Y la coartación llega al EN SUMA esté o
+no integrada al informe**, con una línea descriptiva: sin clase, sin nivel y sin tabla.
+
+→ **`docs/mapa/ao2-segmentos-bicuspide.md`** § 3
