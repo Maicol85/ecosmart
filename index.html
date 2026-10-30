@@ -20820,33 +20820,26 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
       (edad, FEVI basal, el bucket de riesgo CV y la dosis): el GLS basal absoluto, la troponina y el
       BNP/NT-proBNP basales, el tabaquismo, la obesidad y el sexo no tienen campo en este modulo.</div>
     <div style="font-size:11.5px;color:var(--yellow);border-left:3px solid var(--yellow);padding:6px 8px;margin-bottom:10px;line-height:1.5;">
-      <b>Estas tres tablas ya no describen cómo clasifica la aplicación.</b> Con antraciclinas y
-      con anti-HER2 la calculadora aplica la tabla de estratificación de la guía: cada factor vale
-      distinto según el fármaco, y la banda sale de esa tabla y no de un total sobre un máximo.
-      Con los demás fármacos la calculadora usa un puntaje propio y lo dice en su línea de alcance.
-      Las tablas de abajo se conservan como referencia de lectura; sus puntos y sus cortes
-      <b>no son los que deciden</b>.<br>
+      <b>Las tablas A y C son las que la calculadora aplica</b>, y se dibujan desde las mismas
+      funciones con las que clasifica: la A es la matriz de factor por fármaco y la C es su regla
+      de combinación. Con inmunoterapia, radioterapia y «Otro» no hay columna y la calculadora usa
+      un puntaje propio, que declara en su línea de alcance.<br>
+      <b>La tabla B es sólo lectura y no decide nada.</b> Agrupa fármacos en bandas de riesgo, que
+      no es lo que hace la tabla de la guía —ahí el fármaco es una columna, nunca un piso—, así que
+      <b>sus bandas no entran en la clasificación</b>.<br>
       <b>Una sola banda en el informe firmado.</b> La <b>Calculadora de Riesgo CV</b> de esta misma
       pestaña es la única que clasifica, y su resultado es el que aparece en la hoja de
       cardio-oncología del PDF, en el PPT y, si se integra, en el cuerpo narrativo.
     </div>
-    <div style="font-size:11.5px;font-weight:700;color:var(--text);margin-bottom:4px;">A · Factores de riesgo del paciente</div>
-    <table style="width:100%;border-collapse:collapse;font-size:11.5px;margin-bottom:10px;">
-      <tr style="background:var(--section-head);"><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Factor</th><th style="padding:6px 8px;text-align:left;color:var(--accent2);width:70px;">Puntos</th></tr>
-      <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;">Edad &gt;=65 años</td><td style="padding:5px 8px;">1</td></tr>
-      <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;">Sexo femenino (antraciclinas / RT)</td><td style="padding:5px 8px;">1</td></tr>
-      <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;">HTA</td><td style="padding:5px 8px;">1</td></tr>
-      <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;">Diabetes mellitus</td><td style="padding:5px 8px;">1</td></tr>
-      <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;">Obesidad (IMC &gt;30)</td><td style="padding:5px 8px;">1</td></tr>
-      <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;">Tabaquismo activo</td><td style="padding:5px 8px;">1</td></tr>
-      <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;">Enfermedad CV previa (IC, CAD, FA, ACV)</td><td style="padding:5px 8px;">2</td></tr>
-      <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;">FEVI basal 50-54%</td><td style="padding:5px 8px;">1</td></tr>
-      <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;">FEVI basal &lt;50%</td><td style="padding:5px 8px;">2</td></tr>
-      <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;">GLS basal deteriorado (&gt;-16%)</td><td style="padding:5px 8px;">1</td></tr>
-      <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;">Troponina basal elevada</td><td style="padding:5px 8px;">1</td></tr>
-      <tr style="background:var(--bg3);"><td style="padding:5px 8px;">BNP / NT-proBNP basal elevado</td><td style="padding:5px 8px;">1</td></tr>
-    </table>
-
+    <div style="font-size:11.5px;font-weight:700;color:var(--text);margin-bottom:4px;">A &middot; Factores de riesgo, por f&aacute;rmaco</div>
+    <div style="font-size:11px;color:var(--text2);margin:0 0 6px;">La misma casilla vale distinto en cada columna, y hay celdas que no suman. El corte de edad es de 80 a&ntilde;os con antraciclinas y anti-HER2, y de 75 con los dem&aacute;s.</div>
+    <!-- ⚠️ ESTA TABLA SE DIBUJA, NO SE ESCRIBE (tanda D2). Sale de `coT4Pesos()` y de
+         `_coT4Edad()`, que son las MISMAS funciones con las que clasifica la calculadora de
+         arriba, asi que no puede contradecirla. Lo que vivia aca era una lista de puntos FIJOS
+         por factor -1 pt, 2 pts- que la tanda D habia dejado de usar.
+         El contenedor lleva `overflow-x:auto` porque son siete columnas: en un telefono la
+         alternativa es que las celdas se partan en una letra por renglon. -->
+    <div id="co-t4-matriz" style="overflow-x:auto;margin-bottom:10px;"></div>
     <div style="font-size:11.5px;font-weight:700;color:var(--text);margin-bottom:4px;">B · Riesgo por farmaco</div>
     <table style="width:100%;border-collapse:collapse;font-size:11.5px;margin-bottom:10px;">
       <tr style="background:var(--section-head);"><th style="padding:6px 8px;text-align:left;color:var(--accent2);width:90px;">Riesgo</th><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Fármacos</th></tr>
@@ -20866,21 +20859,12 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
       <tr style="background:var(--bg3);"><td style="padding:5px 8px;font-weight:700;color:var(--green);">Bajo</td><td style="padding:5px 8px;">Hormonoterapia (tamoxifeno, inhibidores de aromatasa, análogos GnRH), alcaloides de la vinca, taxanos</td></tr>
     </table>
 
-    <div style="font-size:11.5px;font-weight:700;color:var(--text);margin-bottom:4px;">C · Clasificacion de riesgo global</div>
-    <table style="width:100%;border-collapse:collapse;font-size:11.5px;margin-bottom:10px;">
-      <tr style="background:var(--section-head);"><th style="padding:6px 8px;text-align:left;color:var(--accent2);width:90px;">Riesgo global</th><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Criterio</th></tr>
-      <!-- PUNTOS, no «factores». Decía «>=4 factores», «2-3 factores», «1 factor» — y la sección A
-           de arriba, que es de donde se llega acá, reparte PUNTOS: hay filas que valen 2. Contar
-           filas y sumar puntos dan distinto en cuanto el paciente tiene enfermedad CV previa o
-           FEVI <50%: con esos dos solos son 2 FILAS («Alto» por el texto viejo) y 4 PUNTOS («Muy
-           alto»), o sea una banda de diferencia y otra agenda de control. La Calculadora de Riesgo
-           CV de esta misma pestaña suma puntos, que es lo que hace el HFA-ICOS; la tabla se alinea
-           a eso y deja de contradecirla. Lo verifica TC-108. -->
-      <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;font-weight:700;color:var(--red);">Muy alto</td><td style="padding:5px 8px;">&gt;=4 puntos de la sección A <b>o</b> fármaco de muy alto riesgo</td></tr>
-      <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;font-weight:700;color:var(--orange);">Alto</td><td style="padding:5px 8px;">2-3 puntos <b>o</b> fármaco de alto riesgo</td></tr>
-      <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;font-weight:700;color:var(--yellow);">Medio</td><td style="padding:5px 8px;">1 punto <b>o</b> fármaco de medio riesgo</td></tr>
-      <tr style="background:var(--bg3);"><td style="padding:5px 8px;font-weight:700;color:var(--green);">Bajo</td><td style="padding:5px 8px;">0 puntos <b>y</b> fármaco de bajo riesgo</td></tr>
-    </table>
+    <div style="font-size:11.5px;font-weight:700;color:var(--text);margin-bottom:4px;">C &middot; C&oacute;mo se combinan</div>
+    <!-- ⚠️ TAMBIEN SE DIBUJA (tanda D2). Los dos cortes salen de `_CO_T4_CORTES`, que es la
+         constante que lee la cascada de `hfaicosEstado`: mover el corte mueve los dos a la vez.
+         Lo que decia antes era «>=4 puntos de la seccion A o farmaco de muy alto riesgo», que es
+         el esquema viejo y ademas el PISO POR FARMACO que la Tabla 4 no tiene. -->
+    <div id="co-t4-regla" style="margin-bottom:10px;"></div>
 
     </div>
     <div class="co-ref-pane" data-coref-pane="clases" style="display:none;">
@@ -44864,16 +44848,18 @@ const VINFO = Object.freeze({
     ancho: 640,
     tit: 'Clasificación de riesgo cardiovascular basal — qué aplica y qué no',
     formula: 'Cualquier factor muy alto → muy alto · cualquier factor alto, o 5 o más puntos moderados → alto · 2 a 4 puntos moderados → moderado · 0 o 1 punto → bajo',
-    lee: 'Con antraciclinas y con terapias dirigidas contra HER2 la clasificación sale de la tabla de la guía tal cual, sin pisos ni cortes propios de la aplicación: el fármaco elige la COLUMNA, y cada factor de riesgo vale distinto en cada columna.\n'
-       + 'Por eso un paciente sin factores de riesgo que va a recibir un anti-HER2 es de riesgo BAJO.\n'
+    lee: 'Sin fármaco elegido la calculadora no clasifica: la tabla de la guía tiene una columna por fármaco, así que sin fármaco no hay columna que aplicar.\n'
+       + 'Con los seis fármacos de la tabla —antraciclinas, terapias dirigidas contra HER2, inhibidores del factor de crecimiento endotelial vascular, inhibidores BCR-ABL, terapias para mieloma múltiple e inhibidores RAF y MEK— la clasificación sale de la tabla tal cual, sin pisos ni cortes propios de la aplicación: el fármaco elige la COLUMNA, y cada factor de riesgo vale distinto en cada columna.\n'
+       + 'Por eso un paciente sin factores de riesgo que va a recibir un anti-HER2 es de riesgo BAJO, y por eso la misma hipertensión arterial vale un punto con antraciclinas y es riesgo alto con un anti-VEGF.\n'
        + 'El único piso de la tabla es su nota al pie: antraciclina y trastuzumab administrados de forma concurrente son riesgo alto.\n'
-       + 'Con los demás fármacos la aplicación usa un puntaje propio y lo dice en la línea de alcance: la tabla de la guía no tiene columna para la inmunoterapia ni para la radioterapia, y las que sí tiene —anti-VEGF, BCR-ABL, mieloma múltiple y RAF/MEK— todavía no están implementadas.\n'
+       + 'La tabla de la guía NO tiene columna para la inmunoterapia, para la radioterapia ni para un fármaco sin especificar: con esos tres la aplicación usa un puntaje propio y lo dice en la línea de alcance.\n'
        + 'Derivación a cardiología: en riesgo alto y muy alto se recomienda antes del tratamiento, salvo urgencia oncológica (Clase I · Nivel C); en riesgo moderado se puede considerar, sin demorar el tratamiento (Clase IIb · Nivel C); en riesgo bajo la guía recomienda empezar sin demora (Clase I · Nivel C). Con enfermedad cardiovascular previa o hallazgos anormales en la evaluación basal, la derivación se recomienda en cualquier categoría (Clase I · Nivel C). La derivación es a cardio-oncología donde exista; si no, a un cardiólogo con experiencia en pacientes con cáncer.\n'
        + 'Calendario de eco: con antraciclinas en riesgo alto y muy alto, cada dos ciclos y dentro de los 3 meses de terminar (Clase I · Nivel C), y en todos dentro de los 12 meses de terminar (Clase I · Nivel B); con anti-HER2, cada 3 meses y dentro de los 12 meses de terminar (Clase I · Nivel B).',
-    fuente: 'Tabla de estratificación de riesgo basal y su regla de combinación · Lyon AR, López-Fernández T, Couch LS y col., «2022 ESC Guidelines on cardio-oncology», Eur Heart J 2022;43(41):4229-4361, Tabla 4, folios 4246 y 4247, leída en imagen.\n'
+    fuente: 'Tabla de estratificación de riesgo basal y su regla de combinación · Lyon AR, López-Fernández T, Couch LS y col., «2022 ESC Guidelines on cardio-oncology», Eur Heart J 2022;43(41):4229-4361, Tabla 4, folios 4246 y 4247 (hojas 18 y 19 de la edición inglesa), con sus seis columnas, leída en imagen.\n'
           + 'Derivación por categoría, con sus clases y niveles · el mismo documento, Recomendaciones-tabla 1, folio 4249, hoja 21, leída en imagen; la definición de «hallazgos anormales» es su nota g y la de la derivación su nota d.\n'
           + 'Calendario con antraciclinas · Recomendaciones-tabla 7, folio 4259. Calendario con anti-HER2 · Recomendaciones-tabla 8, folio 4261.',
-    ojo: 'La calculadora recoge los factores de riesgo que se pueden obtener del ecocardiograma y de los datos basales cargados, no los de la tabla entera. Para los hallazgos anormales de la evaluación basal no ve el ECG basal ni una valvulopatía, miocardiopatía o enfermedad pericárdica moderada o grave no conocida: si los hay, corresponde derivar aunque la calculadora no los muestre. Y no distingue si la antraciclina se dio ANTES del anti-HER2 o de forma concurrente —la tabla les da pesos distintos—, así que con una dosis de antraciclinas cargada toma el lado seguro.'
+    ojo: 'La casilla de infarto, angioplastia, cirugía coronaria, angina estable o valvulopatía severa junta TRES filas de la tabla, que en cuatro de las seis columnas no valen lo mismo: se aplica la mayor de las tres, que es el lado seguro. Con un anti-VEGF eso clasifica como muy alto a un paciente cuyo único antecedente sea una valvulopatía severa, a la que esa columna no le da peso.\n'
+       + 'La calculadora recoge los factores de riesgo que se pueden obtener del ecocardiograma y de los datos basales cargados, no los de la tabla entera. Para los hallazgos anormales de la evaluación basal no ve el ECG basal ni una valvulopatía, miocardiopatía o enfermedad pericárdica moderada o grave no conocida: si los hay, corresponde derivar aunque la calculadora no los muestre. Y no distingue si la antraciclina se dio ANTES del anti-HER2 o de forma concurrente —la tabla les da pesos distintos—, así que con una dosis de antraciclinas cargada toma el lado seguro.'
   },
   /* ══ EL GLOBO DEL SCORE DE AMILOIDOSIS (J2-E5, 2026-10-24) ═════════════════════════════════
      Las DOS fuentes están verificadas: el folio 1556 del documento de posición en el texto del
@@ -53444,6 +53430,25 @@ function _coT4Edad(edad, col) {
   return (edad !== null && edad >= 80) ? 'H' : 'M2';                   // antraciclinas y anti-HER2
 }
 const _CO_T4_PTS = Object.freeze({ M1: 1, M2: 2 });
+/* Los dos cortes de la regla de combinación de la Tabla 4, al pie de su hoja 19: «moderate risk
+   (M) = moderate risk factors with a total of 2-4 points; high risk (H) = ... a total of >=5
+   points OR any high-risk factor». Viven acá y no tecleados en la cascada porque desde la tanda
+   D2 los lee TAMBIÉN la tabla de referencia de la sub-pestaña HFA-ICOS: con el número escrito en
+   dos lugares, una tabla estática que contradice al clasificador de al lado es de lo peor que le
+   puede pasar a esta pestaña, y esta misma sección ya lo pagó una vez. */
+const _CO_T4_CORTES = Object.freeze({ alto: 5, medio: 2 });
+/* El rótulo de cada celda de la Tabla 4, compartido por la columna de puntos de la calculadora
+   y por la matriz de referencia. Dos mapas con los mismos cuatro rótulos se desincronizan. */
+function _coT4Rot(cel) {
+  const ROT = { VH: 'muy alto', H: 'alto', M2: '2 pts', M1: '1 pt' };
+  return (cel === undefined || cel === null) ? '\u2014' : ROT[cel];
+}
+/* Los nombres de las seis columnas, en el orden de la tabla. Los usan la matriz de referencia y
+   -en su forma larga- la oración del informe. */
+function coT4Cols() {
+  return [['antracicline', 'Antraciclinas'], ['trastuzumab', 'Anti-HER2'], ['vegf', 'Anti-VEGF'],
+          ['bcr_abl', 'BCR-ABL'], ['mieloma', 'Mieloma múltiple'], ['raf_mek', 'RAF/MEK']];
+}
 const _HFAICOS_ORDEN = ['bajo', 'medio', 'alto', 'muy_alto'];
 
 /* Suma del camino PROPIO de la aplicación (el de los fármacos sin columna aplicada). Es el mismo
@@ -53597,8 +53602,8 @@ function hfaicosEstado() {
       else pts += _CO_T4_PTS[cel];
     });
     if (hayVH)               clave = 'muy_alto';
-    else if (hayH || pts >= 5) clave = 'alto';
-    else if (pts >= 2)       clave = 'medio';
+    else if (hayH || pts >= _CO_T4_CORTES.alto) clave = 'alto';
+    else if (pts >= _CO_T4_CORTES.medio)        clave = 'medio';
     else                     clave = 'bajo';
 
     /* ⚠️ EL ÚNICO PISO DE LA TABLA 4, Y ES SU NOTA AL PIE «g»: «High risk if anthracycline
@@ -53773,7 +53778,6 @@ function _hfaicosPintarPuntos(col) {
   const PES = col ? coT4Pesos() : null;
   const edadEl = document.getElementById('co_edad');
   const edadN = edadEl ? parseFloat(String(edadEl.value).replace(',', '.')) : NaN;
-  const ROT = { VH:'muy alto', H:'alto', M2:'2 pts', M1:'1 pt' };
   hfaicosFactores().forEach(f => {
     const sp = document.querySelector('[data-hfa-pts-de="' + f.id + '"]');
     if (!sp) return;
@@ -53781,7 +53785,7 @@ function _hfaicosPintarPuntos(col) {
     if (!col) { sp.textContent = f.pts + (f.pts === 1 ? ' pt' : ' pts'); return; }
     const cel = (f.id === 'hfaicos_edad') ? _coT4Edad(isFinite(edadN) ? edadN : null, col)
               : (PES[f.id] ? PES[f.id][col] : undefined);
-    sp.textContent = (cel === undefined || cel === null) ? '—' : ROT[cel];
+    sp.textContent = _coT4Rot(cel);
   });
 }
 
@@ -53940,7 +53944,73 @@ window.hfaicosTexto = hfaicosTexto;
 /* Subtabs de «Referencia rapida». Solo muestra y oculta: no hay estado que guardar ni nada que
    recalcular, y por eso NO entra en RECALC_MODULOS ni en limpiarCampos — que pestaña de una tabla
    de consulta estaba abierta no es un dato del paciente. */
+/* ══ LA MATRIZ DE REFERENCIA Y LA REGLA DE COMBINACIÓN ════════════════════════════════════════
+   Las tablas A y C de la sub-pestaña «HFA-ICOS» publicaban el esquema de puntos FIJOS que la
+   calculadora dejó de usar en la tanda D: la A repartía «1 pt / 2 pts» por factor, sin mirar el
+   fármaco, y la C clasificaba con «>=4 puntos de la sección A o fármaco de muy alto riesgo».
+   Desde la tanda D2 las dos se DIBUJAN desde el mismo dueño que clasifica —`coT4Pesos()`,
+   `_coT4Edad()` y `_CO_T4_CORTES`—, así que no pueden contradecirlo: no hay dos números que
+   mantener de acuerdo, hay uno solo leído dos veces. Es la lección que esta misma sección pagó
+   con sus dos tablas anteriores.
+   Sin citas de guía acá, que es la regla R2: la tabla, su folio y sus clases viven en el ⓘ. */
+function coT4RefPintar() {
+  const cont = document.getElementById('co-t4-matriz');
+  if (!cont) return;
+  const COLS = coT4Cols();
+  const PES = coT4Pesos();
+  const esc = function (t) { const d = document.createElement('div'); d.textContent = t; return d.innerHTML };
+  const celda = function (txt, cab) {
+    return '<t' + (cab ? 'h' : 'd') + ' style="padding:5px 8px;text-align:' + (cab ? 'center' : 'center')
+      + ';white-space:nowrap;' + (cab ? 'color:var(--accent2);' : '') + '">' + esc(txt) + '</t' + (cab ? 'h' : 'd') + '>';
+  };
+  let h = '<table style="width:100%;border-collapse:collapse;font-size:11px;">';
+  h += '<tr style="background:var(--section-head);"><th style="padding:5px 8px;text-align:left;color:var(--accent2);">Factor</th>';
+  COLS.forEach(function (c) { h += celda(c[1], true) });
+  h += '</tr>';
+  /* Las filas salen del catálogo de la calculadora, no de una lista aparte: agregar una casilla
+     la agrega acá sola. Las que NO tienen fila en la tabla de la guía se saltean, porque una
+     fila entera de guiones se lee como «la tabla la contempla y no suma». */
+  let i = 0;
+  hfaicosFactores().forEach(function (f) {
+    if (f.legado || !PES[f.id]) return;
+    i++;
+    h += '<tr style="border-bottom:1px solid var(--border);' + (i % 2 ? '' : 'background:var(--bg3);') + '">';
+    h += '<td style="padding:5px 8px;">' + esc(f.lbl) + '</td>';
+    COLS.forEach(function (c) { h += celda(_coT4Rot(PES[f.id][c[0]])) });
+    h += '</tr>';
+  });
+  /* Las DOS filas de edad, derivadas de `_coT4Edad` y no escritas a mano: cada columna tiene su
+     propio corte, así que la fila se nombra por el lado del corte y no por un número. */
+  [['Edad por encima del corte de la columna', 90], ['Edad por debajo del corte, o sin el año cargado', 66]].forEach(function (fila) {
+    i++;
+    h += '<tr style="border-bottom:1px solid var(--border);' + (i % 2 ? '' : 'background:var(--bg3);') + '">';
+    h += '<td style="padding:5px 8px;">' + esc(fila[0]) + '</td>';
+    COLS.forEach(function (c) { h += celda(_coT4Rot(_coT4Edad(fila[1], c[0]))) });
+    h += '</tr>';
+  });
+  h += '</table>';
+  cont.innerHTML = h;
+  /* La regla de combinación, con los MISMOS dos cortes que usa la cascada. */
+  const reg = document.getElementById('co-t4-regla');
+  if (reg) {
+    const F = function (band, color, txt) {
+      return '<tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;font-weight:700;color:var(--'
+        + color + ');width:90px;">' + band + '</td><td style="padding:5px 8px;">' + esc(txt) + '</td></tr>';
+    };
+    reg.innerHTML = '<table style="width:100%;border-collapse:collapse;font-size:11.5px;">'
+      + '<tr style="background:var(--section-head);"><th style="padding:6px 8px;text-align:left;color:var(--accent2);width:90px;">Riesgo</th>'
+      + '<th style="padding:6px 8px;text-align:left;color:var(--accent2);">Criterio</th></tr>'
+      + F('Muy alto', 'red', 'Cualquier factor de la columna marcado como «muy alto».')
+      + F('Alto', 'orange', 'Cualquier factor marcado como «alto», o ' + _CO_T4_CORTES.alto + ' puntos o más entre los moderados.')
+      + F('Medio', 'yellow', 'De ' + _CO_T4_CORTES.medio + ' a ' + (_CO_T4_CORTES.alto - 1) + ' puntos entre los moderados.')
+      + F('Bajo', 'green', 'Ningún factor, o un solo factor de 1 punto.')
+      + '</table>';
+  }
+}
+window.coT4RefPintar = coT4RefPintar;
+
 function coRefTab(k) {
+  if (k === 'hfaicos') { try { coT4RefPintar() } catch (x) {} }
   document.querySelectorAll('.co-ref-pane').forEach(p => {
     p.style.display = (p.dataset.corefPane === k) ? '' : 'none';
   });
