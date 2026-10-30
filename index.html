@@ -326,6 +326,30 @@
   #hdr-pdf-quick{display:none;background:#1a3a5c}
   /* Disparadores de los acordeones de filtros en Guardados: más chicos y de otro color que
      los botones de acción (Exportar/Importar/Eliminar), para no confundirlos con ellos. */
+  /* ══ LA FILA DE MINIATURAS DE LA TARJETA «En Suma / Conclusión» (AJ1-5, 30/10/2026) ═══════
+     Lo que va al PDF, visible en la pantalla del informe. `display:none` de fábrica: sin una
+     sola inclusión la fila NO se ve, y por eso no agrega aire entre el recuadro del caso de
+     interés y la fila de botones. Lo prende y lo apaga `infMinPintar()`.
+     El lado de la miniatura es 56 px, que es lo que pide la orden; el botón de quitar y los dos
+     de orden son de 22 px y viven DENTRO de la miniatura, así que la fila no crece por ellos.
+     ⚠️ `touch-action:none` en la miniatura arrastrable: sin eso, en un celular el gesto de
+     arrastre lo toma el scroll de la página y la tarjeta no se mueve. */
+  #inf-min-fila{display:none;margin:0 0 10px;padding:8px 10px;background:var(--bg3);border:1px solid var(--border);border-radius:8px}
+  #inf-min-fila .inf-min-cab{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px}
+  #inf-min-cont{font-size:.78rem;font-weight:700;color:var(--text)}
+  #inf-min-fila .inf-min-ayuda{font-size:10px;color:var(--text2);flex:1 1 180px;min-width:0}
+  #inf-min-lista{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-start}
+  .inf-min{position:relative;width:56px;flex:0 0 56px}
+  .inf-min img{width:56px;height:56px;object-fit:cover;border-radius:5px;border:1px solid var(--border);display:block;background:var(--bg2)}
+  .inf-min[draggable="true"]{cursor:grab;touch-action:none}
+  .inf-min.inf-min-drag{opacity:.45}
+  .inf-min-et{display:block;font-size:9px;line-height:1.25;color:var(--text2);text-align:center;margin-top:2px}
+  .inf-min-x{position:absolute;top:-6px;right:-6px;width:22px;height:22px;border-radius:50%;border:1px solid var(--border);background:var(--bg2);color:var(--text2);font-size:11px;line-height:1;cursor:pointer;padding:0}
+  .inf-min-x:hover{border-color:var(--red);color:var(--red)}
+  .inf-min-ord{display:flex;justify-content:center;gap:2px;margin-top:1px}
+  .inf-min-ord button{width:22px;height:22px;border-radius:4px;border:1px solid var(--border);background:var(--bg2);color:var(--text2);font-size:10px;line-height:1;cursor:pointer;padding:0}
+  .inf-min-ord button:disabled{opacity:.35;cursor:default}
+  .inf-min-ord button:not(:disabled):hover{border-color:var(--accent);color:var(--accent)}
   .ig-filtro-btn{display:inline-flex;align-items:center;gap:5px;background:#3a3f52;border:1px solid #4a5068;color:var(--text2);font-family:inherit;font-size:11px;font-weight:600;padding:4px 10px;border-radius:7px;cursor:pointer;white-space:nowrap}
   .ig-filtro-btn:hover{border-color:var(--accent)}
   /* Paneles desplegables de esos filtros: mismo gris que el botón que los abre. */
@@ -21124,6 +21148,24 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
           🎓 Marcar como <strong>caso de interés</strong>
           <span style="color:var(--text2);font-weight:400;">(ateneo / docencia / publicación)</span>
         </label>
+      </div>
+      <!-- ══ LA FILA DE MINIATURAS DE LO QUE VA AL PDF (AJ1-5, 30/10/2026) ══════════════════
+           PEDIDO DEL MEDICO. Hasta hoy las imagenes incluidas en el PDF solo se veian AL ABRIR
+           el PDF: desde esta pantalla no habia forma de saber que se iba a imprimir ni en que
+           orden. Va DEBAJO del recuadro del caso de interes y ANTES de «Regenerar Informe»,
+           que es donde la orden la pide.
+           ⚠️ SIN NADA INCLUIDO NO SE VE, y por eso no agrega aire entre el recuadro de arriba y
+           la fila de botones: el `display` de fabrica es `none` y lo gobierna `infMinPintar()`.
+           El `margin-top:10px` de la fila de botones no se toca. -->
+      <div id="inf-min-fila" role="group" aria-label="Imágenes incluidas en el PDF">
+        <div class="inf-min-cab">
+          <span id="inf-min-cont">🖼️ En el PDF: 0</span>
+          <span class="inf-min-ayuda">La ✕ quita la imagen del PDF; no la borra del estudio —queda
+            en «🖼️ Imágenes del estudio» y se puede volver a incluir—. Las capturas se reordenan
+            arrastrando o con ◀ ▶, y ese es el orden en que se imprimen; los diagramas van en su
+            propia sección del PDF y no se reordenan.</span>
+        </div>
+        <div id="inf-min-lista"></div>
       </div>
       <div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;">
         <button class="btn btn-primary" onclick="generarInformeConEvolucion()">🔄 Regenerar Informe</button>
@@ -61600,6 +61642,11 @@ if (document.readyState === 'loading')
   document.addEventListener('DOMContentLoaded', function () { popAbrirEnEscritorio(); popSync(); });
 else { popAbrirEnEscritorio(); popSync(); }
 
+/* ⚠️ `infMinPintar` ESTÁ EN ESTA LISTA ADEMÁS DE EN `ESPEJOS_VIVOS` (AJ1-5), y no es una
+   redundancia: este embudo es el de la RESTAURACIÓN —abrir un estudio guardado y «Nuevo
+   estudio»—, que puebla asignando `.value` y no dispara `input`, así que el barrido con
+   debounce no corre. Sin esta entrada, la fila de miniaturas quedaba con las imágenes del
+   paciente anterior. Sólo pinta: no escribe un campo. */
 function RECALC_MODULOS() {
   /* `tvSync` va PRIMERO: repone los cinco espejos de arritmia ventricular, y `mchSync`,
      `tdfSync` y `mcaSync` pintan a partir de ellos. Al final igual, porque tvSync los vuelve a
@@ -61719,7 +61766,11 @@ function RECALC_MODULOS() {
              sin esto reabrir un estudio dejaba el diagrama con el punto del paciente anterior—.
              Va DESPUÉS de todos: lee `_forrUlt`, que lo deja `calcHemo`, y las rutas de
              restauración lo llaman por su lado. */
-          'hemoForrGrafSync'];
+          'hemoForrGrafSync',
+          /* AJ1-5: la fila de miniaturas, al FINAL. Va detrás de los tres `*PdfSync` que esta
+             lista ya llamaba —`contrPdfSync`, `sglPdfSync` y `eteQxPdfSync`— y de `calcOAI`,
+             así que pinta con el estado ya repuesto y no con el del paciente anterior. */
+          'infMinPintar'];
 }
 function _recalcModulos(etiqueta) {
   RECALC_MODULOS().forEach(function(fn){
@@ -61814,7 +61865,14 @@ function ESPEJOS_VIVOS() {
              que cumple la regla con la que este registro excluye a `popSync` y a `calcVD`. Sin
              esto, cargar la aorta en AI/VI no se vería en la pantalla de aortopatía hasta el
              próximo gesto dentro de ese módulo, que es justo lo que el médico reportó. */
-          'marfanSync'];
+          'marfanSync',
+          /* AJ1-5: la fila de miniaturas de lo que va al PDF. Entra acá por DOS disparadores que
+             sus otros tres enganches no ven: la casilla del jet post-TAVI y la captura del 3D del
+             ventrículo izquierdo, que no pasan ni por `_pdfToggleBtnState` ni por `imgRender`.
+             SÓLO PINTA —lee `imgSlots`, seis compuertas y nada más, y escribe un `<div>` sin id
+             de campo—, que es la regla con la que este registro excluye a `popSync` y a
+             `calcVD`. */
+          'infMinPintar'];
 }
 function _espejosBarrerTodos() {
   ESPEJOS_VIVOS().forEach(function (fn) {
@@ -69810,7 +69868,7 @@ function generarPDFReal(_aj) {
   try {
     const _esqI = (typeof esqSlotIdx === 'function') ? esqSlotIdx('orejuela') : -1;
     const _secOAI = _amEte.find(d => d.k === 'oai');
-    if (_esqI >= 0 && _secOAI && imgSlots[_esqI] && imgSlots[_esqI].dataURL) {
+    if (_esqI >= 0 && _secOAI && imgSlots[_esqI] && imgSlots[_esqI].dataURL && !imgSlots[_esqI].noPdf) {
       const _d = imgSlots[_esqI].dataURL;
       const _pr = doc.getImageProperties(_d);
       const _w = 55, _h = _w * (_pr.height / _pr.width);
@@ -69867,8 +69925,10 @@ function generarPDFReal(_aj) {
     /* `!s.videoId`: el slot de un VIDEO lleva su primer cuadro como miniatura, y sin este
        filtro el informe firmado saldría con un cuadro que el médico NO eligió —el primero del
        archivo—. Lo que sale es el cuadro que captura a mano, que ocupa otro slot como imagen. */
-    /* `_oaiSlotUsado` queda afuera: su dibujo ya se estampo al lado de su tabla. */
-    const _loaded = imgSlots.filter((s, i) => s && s.dataURL && !s.videoId && i !== _oaiSlotUsado);
+    /* `_oaiSlotUsado` queda afuera: su dibujo ya se estampo al lado de su tabla.
+       `s.noPdf` es la marca que pone la ✕ de la fila de miniaturas (AJ1-5c): la imagen sigue en
+       el estudio y en «Imagenes del estudio», y no se imprime. */
+    const _loaded = imgSlots.filter((s, i) => s && s.dataURL && !s.videoId && !s.noPdf && i !== _oaiSlotUsado);
     if (_loaded.length) {
       // _bot usa el MISMO presupuesto dinámico que checkPage: la banda de firma
       // cambia de alto según cuántas filas tenga, y con un valor fijo una imagen
@@ -108159,10 +108219,265 @@ function bullseyeDataURL(getColor){
   c.beginPath(); c.arc(cx,cy,rAI,0,2*Math.PI); c.fillStyle=getColor('apex'); c.fill(); c.lineWidth=1; c.strokeStyle='#cfd6e6'; c.stroke();
   return cv.toDataURL('image/png');
 }
+/* ══════════════════════════════════════════════════════════════════════════════════════════
+   LA FILA DE MINIATURAS DE LO QUE VA AL PDF — «AJ1-5» (2026-10-30)
+   ══════════════════════════════════════════════════════════════════════════════════════════
+   PEDIDO DEL MEDICO. Las imagenes incluidas en el PDF solo se veian al abrir el PDF.
+
+   ── DONDE VIVE HOY LA INCLUSION Y EL ORDEN (respuesta al punto 5d) ───────────────────────
+   Son DOS mecanismos distintos y no se unificaron:
+     · CAPTURAS -y el esquema de la orejuela-: viven en `imgSlots`, la lista en memoria de las
+       imagenes del estudio. Estar en la lista ES estar en el PDF, y el ORDEN de impresion es
+       el orden del array (`_loaded` lo conserva). Se persisten en IndexedDB -`ceibomed_img`,
+       lista `imgs`, por uuid del estudio- cuando «Guardar imagenes con los estudios» esta
+       prendido y el estudio se guarda. NO son campos del formulario ni columnas del Excel.
+     · DIAGRAMAS DE TOGGLE -contractilidad, strain, bicuspide, vista quirurgica mitral-: su
+       inclusion vive en un `input` oculto POR DIAGRAMA, que SI es un campo guardado del
+       estudio y viaja con el (`contr_be_pdf`, `sgl_be_pdf`, `vab_pdf`, `ete_qx_pdf`). El jet
+       post-TAVI usa una casilla (`ete_tavi_incluir_chk`) y la captura del 3D no se persiste.
+   ⚠️ NINGUN CAMPO GUARDADO NUEVO, y por eso el ORDEN de los diagramas no se toca: cada uno
+   tiene su propia seccion en el PDF, en un lugar que decide el codigo, asi que no hay ningun
+   orden que almacenar. Reordenarlos exigiria inventar uno y persistirlo. La orden manda parar
+   esa parte, y se para -> `docs/PENDIENTES.md` AJ1-d.
+   ⚠️ LA ✕ DE UNA CAPTURA NO LA BORRA DEL ESTUDIO: marca `noPdf` en el slot, que es una
+   propiedad del objeto que ya se persiste -no un campo del formulario ni una columna de
+   Excel-. La imagen sigue en «🖼️ Imagenes del estudio», con un cartel y un boton para volver
+   a incluirla. Un registro viejo no la trae, asi que abre incluido, igual que hoy.
+
+   ── QUIEN REPINTA, Y POR QUE SON CUATRO ENGANCHES Y NO UNO ────────────────────────────────
+   Cada uno cubre un disparador que los otros no ven, y se midio:
+     1. `_pdfToggleBtnState` — los cuatro botones de toggle. Un clic en un boton NO despacha
+        `input`, asi que el barrido de espejos no se entera.
+     2. `imgRender` — todo lo que mueve `imgSlots`: agregar o borrar una captura, incluir o
+        quitar el esquema de la orejuela, cambiar la calidad.
+     3. `ESPEJOS_VIVOS` — la casilla del jet post-TAVI y la captura del 3D, que no pasan por
+        ninguno de los dos anteriores. Entra ahi porque SOLO PINTA: no escribe un campo.
+     4. `RECALC_MODULOS` — el embudo de restauracion: abrir un estudio guardado y «Nuevo
+        estudio». Sin el, la fila quedaba con las miniaturas del paciente anterior.
+   ══════════════════════════════════════════════════════════════════════════════════════════ */
+/* El registro de los diagramas de toggle. Las compuertas son las MISMAS expresiones que usa
+   `generarPDFReal`; el dia que una cambie hay que cambiar las dos, y por eso TC-554 compara el
+   contador de la fila contra las imagenes que el PDF emite de verdad. */
+const INF_MIN_DIAG = Object.freeze([
+  { k:'contr', lbl:'Contractilidad', campo:'contr_be_pdf',
+    on:  () => (typeof contrPdfOn === 'function') && contrPdfOn() && typeof bullseyeDataURL === 'function',
+    data:() => bullseyeDataURL(id => (CONTR_MOTILIDAD[(contrEstado[id] || 0)] || CONTR_MOTILIDAD[0]).color) },
+  /* La misma guarda que el PDF: ademas del toggle se exige que el medico haya PINTADO
+     segmentos, porque `strainEstado` vacio deja los 17 en «Normal». */
+  { k:'sgl', lbl:'Strain (SGL)', campo:'sgl_be_pdf',
+    on:  () => (typeof sglPdfOn === 'function') && sglPdfOn() && typeof bullseyeDataURL === 'function'
+               && typeof strainEstado === 'object'
+               && Object.keys(strainEstado).some(k => (strainEstado[k] || 0) > 0),
+    data:() => bullseyeDataURL(id => strainColor(id)) },
+  /* Y la del VAB: el toggle, que haya filas que decir y que el dibujo salga. */
+  { k:'vab', lbl:'Bicúspide', campo:'vab_pdf',
+    on:  () => (typeof vabPdfOn === 'function') && vabPdfOn()
+               && (typeof vabPdfFilas === 'function') && !!vabPdfFilas()
+               && typeof vabDataURL === 'function' && !!vabDataURL(),
+    data:() => vabDataURL() },
+  { k:'eteqx', lbl:'Vista quirúrgica', campo:'ete_qx_pdf',
+    on:  () => (typeof eteQxPdfOn === 'function') && eteQxPdfOn() && typeof eteQxDataURL === 'function',
+    data:() => eteQxDataURL() },
+  { k:'tavi', lbl:'Jet post-TAVI', chk:'ete_tavi_incluir_chk',
+    on:  () => { const c = document.getElementById('ete_tavi_incluir_chk');
+                 return !!(c && c.checked && typeof eteEpcHoras === 'function'
+                           && typeof eteEpcDataURL === 'function' && eteEpcHoras().length > 0) },
+    data:() => eteEpcDataURL() },
+  /* La captura del 3D no tiene toggle propio: su unica puerta ya exige las dos condiciones. */
+  { k:'lv3d', lbl:'3D del VI',
+    on:  () => !!((typeof window.lv3dCapturaParaPDF === 'function') && window.lv3dCapturaParaPDF()),
+    data:() => { const c = window.lv3dCapturaParaPDF(); return c ? c.url : null } }
+]);
+window.INF_MIN_DIAG = INF_MIN_DIAG;
+
+/* Las capturas que HOY se imprimen, con su indice en `imgSlots`: es el orden de impresion. */
+function infMinCapturas() {
+  if (typeof imgSlots === 'undefined') return [];
+  const out = [];
+  imgSlots.forEach(function (s, i) {
+    if (s && s.dataURL && !s.videoId && !s.noPdf && !s.esquema) out.push({ i: i, slot: s });
+  });
+  return out;
+}
+/* El esquema de la orejuela viaja como slot, asi que es «diagrama» para la fila y «captura»
+   para `imgSlots`. Se lista aparte para que NO se pueda reordenar: su lugar en el PDF lo
+   decide el codigo -junto a su tabla o en la pagina de imagenes-, no este array. */
+function infMinEsquemas() {
+  if (typeof imgSlots === 'undefined') return [];
+  const out = [];
+  imgSlots.forEach(function (s, i) {
+    if (s && s.dataURL && !s.noPdf && s.esquema) out.push({ i: i, slot: s });
+  });
+  return out;
+}
+
+function infMinQuitarCaptura(i) {
+  if (typeof imgSlots === 'undefined' || !imgSlots[i]) return;
+  imgSlots[i].noPdf = true;
+  if (typeof imgMarcarEditado === 'function') imgMarcarEditado();
+  if (typeof imgRender === 'function') { try { imgRender() } catch (e) {} }
+  infMinPintar();
+}
+window.infMinQuitarCaptura = infMinQuitarCaptura;
+function infMinReincluir(i) {
+  if (typeof imgSlots === 'undefined' || !imgSlots[i]) return;
+  delete imgSlots[i].noPdf;
+  if (typeof imgMarcarEditado === 'function') imgMarcarEditado();
+  if (typeof imgRender === 'function') { try { imgRender() } catch (e) {} }
+  infMinPintar();
+}
+window.infMinReincluir = infMinReincluir;
+/* Quitar un diagrama es apagar SU propia puerta, que es la misma que el medico usa desde su
+   pestaña: no hay un segundo estado que pueda discrepar. */
+function infMinQuitarDiag(k) {
+  const d = INF_MIN_DIAG.filter(function (x) { return x.k === k })[0];
+  if (!d) return;
+  if (d.k === 'esq') return;
+  if (d.campo) { const e = document.getElementById(d.campo); if (e) e.value = ''; }
+  else if (d.chk) { const c = document.getElementById(d.chk);
+                    if (c) { c.checked = false; c.dispatchEvent(new Event('change', { bubbles: true })) } }
+  else if (d.k === 'lv3d') { const c = document.getElementById('lv3d-pdf-chk');
+                             if (c) { c.checked = false; c.dispatchEvent(new Event('change', { bubbles: true })) } }
+  ['contrPdfSync', 'sglPdfSync', 'vabPdfSync', 'eteQxPdfSync'].forEach(function (f) {
+    if (typeof window[f] === 'function') { try { window[f]() } catch (e) {} } });
+  infMinPintar();
+}
+window.infMinQuitarDiag = infMinQuitarDiag;
+/* El ORDEN de las capturas es el orden de `imgSlots`, asi que mover una es intercambiarla con
+   la captura vecina —NO con el slot vecino, que puede estar vacio o llevar un esquema—. */
+function infMinMover(i, dir) {
+  const caps = infMinCapturas();
+  const pos = caps.map(function (c) { return c.i }).indexOf(i);
+  if (pos < 0) return;
+  const otro = pos + (dir < 0 ? -1 : 1);
+  if (otro < 0 || otro >= caps.length) return;
+  const a = caps[pos].i, b = caps[otro].i;
+  const t = imgSlots[a]; imgSlots[a] = imgSlots[b]; imgSlots[b] = t;
+  if (typeof imgMarcarEditado === 'function') imgMarcarEditado();
+  if (typeof imgRender === 'function') { try { imgRender() } catch (e) {} }
+  infMinPintar();
+  const n = document.querySelector('#inf-min-lista [data-min-i="' + b + '"] .inf-min-ord button');
+  if (n) n.focus();
+}
+window.infMinMover = infMinMover;
+
+let _infMinDragI = null;
+function infMinPintar() {
+  const caja = document.getElementById('inf-min-fila');
+  const lista = document.getElementById('inf-min-lista');
+  if (!caja || !lista) return;
+  const caps = infMinCapturas();
+  const esqs = infMinEsquemas();
+  const diags = INF_MIN_DIAG.filter(function (d) { try { return !!d.on() } catch (e) { return false } });
+  const n = caps.length + esqs.length + diags.length;
+  if (!n) { caja.style.display = 'none'; lista.textContent = ''; 
+            const c0 = document.getElementById('inf-min-cont');
+            if (c0) c0.textContent = '🖼️ En el PDF: 0';
+            return; }
+  /* ⚠️ `'block'` Y NO `''`. El `display:none` de fabrica lo pone la HOJA DE ESTILOS, no un
+     estilo en linea: vaciar la propiedad en linea devuelve el control a la hoja y la fila queda
+     oculta con sus miniaturas adentro. Medido -la sonda informaba «oculta | n=1»-. Es la hermana
+     de la trampa que la TANDA NOCTURNA ya documento para el `margin-top` del esquema. */
+  caja.style.display = 'block';
+  const cont = document.getElementById('inf-min-cont');
+  if (cont) cont.textContent = '🖼️ En el PDF: ' + n;
+  lista.textContent = '';
+  /* ⚠️ SE CONSTRUYE POR NODOS, nunca concatenando HTML con un dataURL adentro: es la regla de
+     la casa y lo que mantiene a Semgrep en su linea base. El `src` pasa ademas por la misma
+     allowlist de esquema que la grilla de imagenes (`_imgSrcOK`), porque escapar no alcanza en
+     un `src`: un `http://` externo es HTML valido y filtra igual. */
+  /* ⚠️ EL AVISO DE LA ✕ CAMBIA SEGUN EL TIPO, y la primera version no lo hacia: un diagrama de
+     toggle NO tiene ninguna imagen en el estudio -lo que se apaga es su propia puerta-, asi que
+     decirle al lector de pantalla «no borra la imagen del estudio» era afirmar algo que no
+     existe. Las capturas y el esquema de la orejuela si viven en `imgSlots`. */
+  const tarjeta = function (dataURL, etiqueta, titulo, quitar, orden, avisoX) {
+    const d = document.createElement('div');
+    d.className = 'inf-min';
+    const im = document.createElement('img');
+    const ok = (typeof _imgSrcOK === 'function') ? _imgSrcOK(dataURL) : false;
+    im.src = ok ? dataURL : '';
+    im.alt = titulo;
+    im.title = titulo;
+    d.appendChild(im);
+    const et = document.createElement('span');
+    et.className = 'inf-min-et'; et.textContent = etiqueta;
+    d.appendChild(et);
+    const x = document.createElement('button');
+    x.type = 'button'; x.className = 'inf-min-x'; x.textContent = '✕';
+    x.title = avisoX ? ('Quitar del PDF — ' + avisoX) : 'Quitar del PDF';
+    x.setAttribute('aria-label', 'Quitar del PDF: ' + titulo + (avisoX ? ('. ' + avisoX[0].toUpperCase() + avisoX.slice(1) + '.') : '.'));
+    x.addEventListener('click', quitar);
+    d.appendChild(x);
+    if (orden) d.appendChild(orden);
+    return d;
+  };
+  caps.forEach(function (c, pos) {
+    const ord = document.createElement('div');
+    ord.className = 'inf-min-ord';
+    [['◀', -1, 'Mover antes'], ['▶', 1, 'Mover después']].forEach(function (b) {
+      const bt = document.createElement('button');
+      bt.type = 'button'; bt.textContent = b[0];
+      bt.title = b[2]; bt.setAttribute('aria-label', b[2] + ' la captura ' + (pos + 1));
+      bt.disabled = (b[1] < 0) ? (pos === 0) : (pos === caps.length - 1);
+      bt.addEventListener('click', function () { infMinMover(c.i, b[1]) });
+      ord.appendChild(bt);
+    });
+    const t = tarjeta(c.slot.dataURL, 'captura', 'Captura ' + (pos + 1) + ' de ' + caps.length,
+                      function () { infMinQuitarCaptura(c.i) }, ord,
+                      'no borra la imagen del estudio');
+    t.setAttribute('data-min-i', c.i);
+    t.setAttribute('data-min-tipo', 'captura');
+    /* Arrastre: la alternativa accesible son las dos flechas de arriba, que hacen lo mismo. */
+    t.setAttribute('draggable', 'true');
+    t.addEventListener('dragstart', function (e) { _infMinDragI = c.i; t.classList.add('inf-min-drag');
+      try { e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', String(c.i)) } catch (x) {} });
+    t.addEventListener('dragend', function () { _infMinDragI = null; t.classList.remove('inf-min-drag') });
+    t.addEventListener('dragover', function (e) { e.preventDefault() });
+    t.addEventListener('drop', function (e) {
+      e.preventDefault();
+      if (_infMinDragI === null || _infMinDragI === c.i) return;
+      const orig = _infMinDragI; _infMinDragI = null;
+      const lst = infMinCapturas().map(function (z) { return z.i });
+      const de = lst.indexOf(orig), a = lst.indexOf(c.i);
+      if (de < 0 || a < 0) return;
+      /* Se mueve de a un paso para que el resultado sea el MISMO que el de las flechas: dos
+         mecanismos que reordenan distinto es la forma de que la pantalla y el papel discrepen. */
+      const paso = de < a ? 1 : -1;
+      for (let k = de; k !== a; k += paso) infMinMover(lst[k], paso);
+    });
+    lista.appendChild(t);
+  });
+  esqs.forEach(function (c) {
+    const nom = c.slot.esqNombre || 'Esquema';
+    const t = tarjeta(c.slot.dataURL, 'diagrama', nom,
+                      function () { infMinQuitarCaptura(c.i) }, null,
+                      'no borra la imagen del estudio');
+    t.setAttribute('data-min-i', c.i);
+    t.setAttribute('data-min-tipo', 'diagrama');
+    lista.appendChild(t);
+  });
+  diags.forEach(function (d) {
+    let url = null;
+    try { url = d.data() } catch (e) { url = null }
+    const t = tarjeta(url || '', 'diagrama', d.lbl,
+                      function () { infMinQuitarDiag(d.k) }, null,
+                      'se vuelve a incluir desde su propia pestaña');
+    t.setAttribute('data-min-i', d.k);
+    t.setAttribute('data-min-tipo', 'diagrama');
+    lista.appendChild(t);
+  });
+}
+window.infMinPintar = infMinPintar;
+
 window.bullseyeDataURL = bullseyeDataURL;
 
 // ══ Toggles de inclusión en PDF ══
-function _pdfToggleBtnState(id, on){ const b=document.getElementById(id); if(b){ b.classList.toggle('btn-primary', on); b.classList.toggle('btn-ghost', !on); } }
+/* ⚠️ Y REPINTA LA FILA DE MINIATURAS (AJ1-5). Este helper lo llaman los CUATRO botones de
+   inclusion en el PDF -contractilidad, strain, bicuspide y vista quirurgica mitral- y sus
+   cuatro `*Sync`, asi que es el unico lugar donde hace falta engancharlo para los cuatro. Un
+   clic en un boton NO despacha `input`, asi que el barrido de espejos no se entera. */
+function _pdfToggleBtnState(id, on){ const b=document.getElementById(id); if(b){ b.classList.toggle('btn-primary', on); b.classList.toggle('btn-ghost', !on); }
+  if (typeof infMinPintar === 'function') { try { infMinPintar() } catch(e){} } }
 /* ══ EL BOTON «INCLUIR BULL'S EYE EN PDF» — «K1» (2026-10-16) ═════════════════════════════════
    UN SOLO DUENIO DEL ESTADO: el campo `contr_be_pdf`, que es del ESTUDIO. Antes era la clave
    `contractilidad_incluir_pdf` de `localStorage`, una preferencia global que sobrevivia a «Nuevo
@@ -108486,6 +108801,9 @@ function imgRenderCountBtns(){
 function imgRender(){
   imgEnsureLen();
   imgRenderCountBtns();
+  /* ⚠️ LA FILA DE MINIATURAS SIGUE A `imgSlots` (AJ1-5): agregar o borrar una captura, incluir
+     o quitar el esquema de la orejuela y cambiar la calidad pasan todos por aca. */
+  if (typeof infMinPintar === 'function') { try { infMinPintar() } catch(e){} }
   const grid = document.getElementById('img-grid'); if(!grid) return;
   grid.innerHTML = '';
   imgSlots.forEach((slot, idx)=>{
@@ -108509,6 +108827,17 @@ function imgRender(){
            el de imágenes. Sin el `typeof`, un bloque que deje de parsear —ya pasó dos veces en
            este archivo— se llevaría puesta la grilla ENTERA por un cartel. */
         + (typeof _imgAvisoMedir === 'function' ? _imgAvisoMedir(slot) : '')
+        /* ⚠️ EL CARTEL DE «QUITADA DEL PDF» (AJ1-5c, 30/10/2026). La ✕ de la fila de miniaturas
+           de la tarjeta «En Suma / Conclusion» marca `noPdf` en el slot: la imagen NO se borra
+           del estudio y tiene que poder volver a incluirse, que es lo que la orden promete y lo
+           que el texto de ayuda de esa fila dice. Sin este boton, la promesa seria falsa. */
+        + (slot.noPdf ? '<span style="position:absolute;bottom:6px;left:6px;right:6px;display:flex;' +
+            'align-items:center;justify-content:space-between;gap:6px;background:var(--bg3);' +
+            'border:1px solid var(--border);border-radius:6px;padding:3px 6px;font-size:10px;' +
+            'color:var(--text2);">Fuera del PDF' +
+            '<button type="button" onclick="infMinReincluir(' + idx + ')" style="border:1px solid var(--border);' +
+            'background:var(--bg2);color:var(--text);border-radius:5px;font-size:10px;padding:2px 6px;' +
+            'cursor:pointer;">Incluir en el PDF</button></span>' : '')
         + '<button type="button" title="Eliminar" onclick="imgRemove(event,'+idx+')" style="position:absolute;top:6px;right:6px;width:22px;height:22px;border-radius:50%;border:none;background:var(--red);color:#fff;font-size:12px;cursor:pointer;line-height:1;">✕</button>'
         + _imgSelectorCalidad(slot, idx);
     } else {
