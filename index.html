@@ -69428,25 +69428,35 @@ function generarPDFReal(_aj) {
     if (_vabOn && _vabFilas && typeof vabDataURL === 'function') {
       const _vData = vabDataURL();
       if (_vData) {
-        /* 70 de dibujo + la banda + una fila por caracteristica. */
-        checkPage(92 + _vabFilas.length * 5);
+        /* ══ EL RESUMEN VA AL COSTADO DEL DIBUJO, NO DEBAJO (AJ1-2b, 30/10/2026) ════════════
+           Pedido del medico. El bloque ocupaba 70 mm de dibujo CENTRADO mas una fila por
+           caracteristica debajo -unos 103 mm con cinco filas-, o sea media pagina para cinco
+           datos. Con el dibujo a la izquierda y la tabla a su derecha, a la MISMA altura, el
+           bloque queda en unos 51 mm: la mitad.
+           ⚠️ LOS TEXTOS NO CAMBIAN: `vabPdfFilas()` es el mismo dueño y devuelve las mismas
+           filas con las mismas palabras. Lo unico que se mueve es donde se estampan.
+           ⚠️ EL DIBUJO BAJA DE 70 A 48 mm, que es lo que deja lugar para la tabla al lado sin
+           que el bloque crezca: 48 de dibujo contra 25 de tabla (cinco filas de 5 mm). */
+        const _vW = 48, _vH = _vW;
+        const _vTabX = mL + _vW + 8;
+        const _vAlto = Math.max(_vH, _vabFilas.length * 5);
+        checkPage(_BAR_H + 4 + _vAlto + 6);
         drawBar('VÁLVULA AÓRTICA BICÚSPIDE');
         y += _aire(3);
-        const _vW = Math.min(pgW, 70), _vH = _vW;
-        const _vX = mL + (pgW - _vW) / 2;
-        doc.addImage(_vData, 'PNG', _vX, y, _vW, _vH);
-        y += _vH + 5;
+        const _vY0 = y;
+        doc.addImage(_vData, 'PNG', mL, _vY0, _vW, _vH);
         /* La TABLA, con las MISMAS palabras del informe: el rotulo a la izquierda y el valor a
            continuacion, que es el formato de las otras tablas de caracteristicas del papel. */
-        fn(8); tc(30, 30, 30);
+        let _vTy = _vY0 + 4;
         _vabFilas.forEach(function (f) {
           fb(8); tc(TEMA[0], TEMA[1], TEMA[2]);
-          doc.text(_sanML(f[0]) + ':', mL, y);
+          doc.text(_sanML(f[0]) + ':', _vTabX, _vTy);
           const _w = doc.getTextWidth(_sanML(f[0]) + ': ');
           fn(8); tc(30, 30, 30);
-          doc.text(_sanML(f[1]), mL + _w + 1, y);
-          y += 5;
+          doc.text(_sanML(f[1]), _vTabX + _w + 1, _vTy);
+          _vTy += 5;
         });
+        y = _vY0 + _vAlto;
         y += _aire(3);
       }
     }
@@ -69737,7 +69747,36 @@ function generarPDFReal(_aj) {
      y no tocar el armador. */
   const _enCuerpo = {}; amiloSecs().forEach(function (s) { if (s.enCuerpo) _enCuerpo[s.k] = 1; });
   const _amEtt = _amDatos.filter(d => d.grupo !== 'ete' && !_esAmilo(d) && !_enCuerpo[d.k]).map(d => ({ tit: d.tit, txt: d.txt }));
-  const _amEte = _amDatos.filter(d => d.grupo === 'ete').map(d => ({ tit: d.tit, txt: d.txt }));
+  const _amEte = _amDatos.filter(d => d.grupo === 'ete').map(d => ({ k: d.k, tit: d.tit, txt: d.txt }));
+  /* ══ EL DIBUJO DE LA OREJUELA NO SE IMPRIME DOS VECES (AJ1-2a, 30/10/2026) ════════════════
+     Pedido del medico. Hasta hoy el esquema incluido entraba SIEMPRE en la pagina «Imagenes
+     del estudio», aunque el informe ya trajera la tabla «Mediciones de la orejuela izquierda»
+     unas paginas antes: el mismo dibujo dos veces en el mismo documento firmado.
+     La regla es la de la orden, y tiene dos lados:
+       · con la seccion de la orejuela INCLUIDA -o sea integrada al informe, que es lo que pone
+         su tabla en la hoja del ETE-, el dibujo va JUNTO a esa tabla y se saca de la pagina de
+         imagenes;
+       · sin ella, el dibujo se queda en «Imagenes del estudio» y se le pone al lado el resumen
+         corto de `oaiResumenPDF()`, para que no sea un dibujo sin un numero que lo ubique.
+     ⚠️ EL SLOT NO SE TOCA. `_oaiSlotUsado` es el INDICE que la pagina de imagenes tiene que
+     saltear; `imgSlots` queda como estaba, asi que el estudio se guarda igual y la fila de
+     miniaturas lo sigue mostrando. Sacarlo de la lista habria sido borrar una imagen del
+     estudio para resolver un problema de maquetacion.
+     ⚠️ EL ANCHO ES FIJO (55 mm) Y EL ALTO SALE DE LA IMAGEN, no al reves: desde el AJ1-1d el
+     lienzo mide 340x350 o 340x262 segun haya velocidad de vaciamiento, asi que un alto fijo
+     deformaria uno de los dos. */
+  let _oaiSlotUsado = -1;
+  try {
+    const _esqI = (typeof esqSlotIdx === 'function') ? esqSlotIdx('orejuela') : -1;
+    const _secOAI = _amEte.find(d => d.k === 'oai');
+    if (_esqI >= 0 && _secOAI && imgSlots[_esqI] && imgSlots[_esqI].dataURL) {
+      const _d = imgSlots[_esqI].dataURL;
+      const _pr = doc.getImageProperties(_d);
+      const _w = 55, _h = _w * (_pr.height / _pr.width);
+      _secOAI.img = { dataURL: _d, w: _w, h: _h };
+      _oaiSlotUsado = _esqI;
+    }
+  } catch (e) { console.error('[PDF] orejuela junto a su tabla:', e); _oaiSlotUsado = -1; }
   if (_amAmilo.length) {
     doc.addPage();
     /* El orden lo fija `amiloSecs()` («ett» antes que «alg»), que es el mismo que ve el médico
@@ -69787,7 +69826,8 @@ function generarPDFReal(_aj) {
     /* `!s.videoId`: el slot de un VIDEO lleva su primer cuadro como miniatura, y sin este
        filtro el informe firmado saldría con un cuadro que el médico NO eligió —el primero del
        archivo—. Lo que sale es el cuadro que captura a mano, que ocupa otro slot como imagen. */
-    const _loaded = imgSlots.filter(s => s && s.dataURL && !s.videoId);
+    /* `_oaiSlotUsado` queda afuera: su dibujo ya se estampo al lado de su tabla. */
+    const _loaded = imgSlots.filter((s, i) => s && s.dataURL && !s.videoId && i !== _oaiSlotUsado);
     if (_loaded.length) {
       // _bot usa el MISMO presupuesto dinámico que checkPage: la banda de firma
       // cambia de alto según cuántas filas tenga, y con un valor fijo una imagen
@@ -69799,8 +69839,37 @@ function generarPDFReal(_aj) {
       const _dim = (data, maxW, maxH) => { const p = doc.getImageProperties(data); const r = p.height / p.width; let w = maxW, h = w * r; if (h > maxH) { h = maxH; w = h / r; } return { w, h }; };
       _imgPage();
       let i = 0;
+      /* El resumen corto que acompaña al esquema de la orejuela cuando el informe NO trae su
+         tabla. Se calcula UNA vez, fuera del bucle. */
+      const _oaiRes = (typeof oaiResumenPDF === 'function') ? (oaiResumenPDF() || []) : [];
       while (i < _loaded.length) {
         const im = _loaded[i];
+        /* ══ EL ESQUEMA DE LA OREJUELA, CON SU RESUMEN AL LADO (AJ1-2a) ══════════════════════
+           Solo llega aca cuando el informe NO incluyo la seccion de la orejuela: si la
+           incluyo, el dibujo ya se estampo junto a su tabla y este slot no esta en `_loaded`.
+           Fila propia -no se aparea con otra imagen-, dibujo a la izquierda y el resumen a la
+           derecha. Sin datos cargados `_oaiRes` sale vacio y el esquema cae al reparto normal
+           de dos por fila, que es lo que la orden pide («si no hay datos, sin resumen»). */
+        if (im.esquema && im.esqClave === 'orejuela' && _oaiRes.length) {
+          const d = _dim(im.dataURL, _half, 80);
+          const _altoRes = 5 + _oaiRes.length * 4.6;
+          const rowH = Math.max(d.h, _altoRes);
+          if (_iy + rowH > _bot) _imgPage();
+          doc.addImage(im.dataURL, 'JPEG', mL + (_half - d.w) / 2, _iy, d.w, d.h);
+          const _rx = mL + _half + _gap;
+          fb(8.5); tc(TEMA[0], TEMA[1], TEMA[2]);
+          doc.text(_sanML('Orejuela izquierda'), _rx, _iy + 4);
+          let _ry = _iy + 10;
+          _oaiRes.forEach(function (fl) {
+            fn(8); tc(90, 90, 90);
+            doc.text(_sanML(fl[0]), _rx, _ry);
+            fn(8); tc(20, 20, 20);
+            doc.text(_sanML(fl[1]), _rx + (_half - _gap) * 0.52, _ry);
+            _ry += 4.6;
+          });
+          _iy += rowH + _gap; i++;
+          continue;
+        }
         if (im.ampliada) {
           // Agrupar ampliadas de a dos por página: slot 0 = mitad superior, slot 1 = mitad inferior
           if (_ampOnPage >= 2) _imgPage();
@@ -99214,6 +99283,52 @@ function amiloTextoOAI() {
   return L.join('\n');
 }
 
+/* ══ EL RESUMEN CORTO DE LA OREJUELA, PARA EL DIBUJO SUELTO (AJ1-2a, 30/10/2026) ═══════════
+   Lo que va AL LADO del dibujo cuando el informe NO incluye la seccion de la orejuela y el
+   medico igual incluyo el esquema: sin ese resumen, la pagina «Imagenes del estudio» publica
+   un dibujo de una orejuela sin un solo numero que lo ubique.
+   SOLO LAS LINEAS CON DATO CARGADO, y la lista es la de la orden: morfologia y lobulos,
+   ostium y profundidad, velocidad, contraste espontaneo, trombo, insuficiencia mitral y
+   Carpentier. Sin datos devuelve una lista vacia y no se dibuja resumen.
+   ⚠️ SIN ETIQUETAS DE RIESGO NI DE APTITUD, que es lo que pide la orden. Por eso la
+   morfologia NO sale de `_amSelTxt`: el texto del `<option>` lleva la cola «— menor riesgo
+   tromboembolico» / «— mayor riesgo tromboembolico», y la tabla de la hoja del ETE SI la
+   publica (eso es de otra tanda). `_oaiMorfCorta` corta en el guion largo, asi que el dia que
+   una etiqueta cambie las dos se mueven juntas y no hay un segundo vocabulario.
+   ⚠️ EL GRADO DE LA INSUFICIENCIA MITRAL SALE DE `_emRegurgGrado`, el MISMO dueño que el
+   dibujo consume por `_oaiImGrado`, y sus palabras de `_CC_GRADO`, el mapa que el EN SUMA ya
+   usa: por construccion el dibujo y su resumen no pueden discrepar. */
+function _oaiMorfCorta() {
+  const sl = document.getElementById('oai_morfologia');
+  if (!sl || !sl.value) return '';
+  const t = String((sl.options[sl.selectedIndex] || {}).text || '');
+  return t.split(' — ')[0].trim();
+}
+window._oaiMorfCorta = _oaiMorfCorta;
+function oaiResumenPDF() {
+  const F = [];
+  const sv2 = (id) => { const e = document.getElementById(id); return e ? String(e.value || '').trim() : ''; };
+  const morf = _oaiMorfCorta(), lob = _amSelTxt('oai_lobulos');
+  if (morf || lob) F.push(['Morfología', [morf, lob].filter(Boolean).join(' · ')]);
+  const ost = sv2('oai_ostium_diam'), prof = sv2('oai_profundidad');
+  if (ost)  F.push(['Ostium', ost + ' mm']);
+  if (prof) F.push(['Profundidad', prof + ' mm']);
+  const vel = sv2('oai_vel_vac');
+  if (vel) F.push(['Vel. de vaciamiento', vel + ' cm/s']);
+  const sec = _amSelTxt('oai_sec');
+  if (sec) F.push(['Contraste espontáneo', sec]);
+  const tr = _amSelTxt('oai_trombo');
+  if (tr) F.push(['Trombo', tr]);
+  /* La IM y el Carpentier: el dibujo los DIBUJA -el chorro y su tamaño-, asi que sin estas dos
+     lineas el lector ve un chorro sin saber de que grado es. */
+  const im = (typeof _oaiImGrado === 'function') ? _oaiImGrado() : 0;
+  if (im) F.push(['Insuficiencia mitral', _CC_GRADO[String(im)] || String(im)]);
+  const carp = sv2('vm_carp');
+  if (carp) F.push(['Carpentier', carp]);
+  return F;
+}
+window.oaiResumenPDF = oaiResumenPDF;
+
 function amiloTextoAortaETE() {
   const L = ['## Aorta torácica por ETE'];
   const filas = [
@@ -100669,6 +100784,25 @@ function amiloDibujarSecciones(doc, secs, g) {
     secs.forEach((sec, i) => {
       if (i) alto += H * 1.2;
       filas.push({ t:'bar', txt: amiloSanPDF(sec.tit) }); alto += 8.5 + 1.5;
+      /* ══ UNA SECCION PUEDE LLEVAR UN DIBUJO A SU DERECHA (AJ1-2a, 30/10/2026) ═══════════
+         `sec.img = {dataURL, w, h}`. Cuando esta, las filas de ESA seccion se parten contra un
+         ancho util menor -el que queda a la izquierda del dibujo- y el dibujo se estampa a la
+         altura de la primera fila. Es lo que evita que el PDF publique la tabla de la orejuela
+         y, cuatro paginas despues, el mismo dibujo otra vez.
+         ⚠️ EL ANCHO VIAJA EN CADA FILA (`w`) Y NO EN UNA VARIABLE DEL BUCLE. `plan()` corre
+         hasta SIETE veces -una por cuerpo de letra probado- y el bucle de dibujo es otro
+         recorrido: una variable compartida dejaria la tabla medida a un ancho y dibujada a
+         otro, que es exactamente el defecto que esta funcion ya documenta haber cerrado con la
+         escala de la fuente.
+         ⚠️ TODA la seccion va angosta, no solo las filas que caen al lado del dibujo. La tabla
+         de la orejuela mide nueve filas -unos 39 mm- contra unos 57 del dibujo, asi que la
+         distincion no se puede observar; y hacerla dependeria del alto, que es justo lo que
+         `plan()` todavia no sabe cuando parte el texto. */
+      const _img = sec.img || null;
+      const _aw  = _img ? (pgW - _img.w - 5) : pgW;
+      let _imgIdx = -1;
+      if (_img) { filas.push({ t:'img', img: _img, extra: 0 }); _imgIdx = filas.length - 1; }
+      const _alto0 = alto;
       String(sec.txt || '').split('\n').forEach(raw => {
         const l = amiloSanPDF(raw).trim();
         if (!l) return;
@@ -100683,8 +100817,8 @@ function amiloDibujarSecciones(doc, secs, g) {
            quien redacta la hoja, que es quien sabe si eso es un dato o una advertencia. */
         else if (l.indexOf('!!') === 0) {
           fi(sz);
-          const ls = doc.splitTextToSize(l.replace(/^!!\s*/, ''), pgW - 10);
-          filas.push({ t:'nota', ls: ls, n: ls.length });
+          const ls = doc.splitTextToSize(l.replace(/^!!\s*/, ''), _aw - 10);
+          filas.push({ t:'nota', ls: ls, n: ls.length, w: _aw });
           alto += H * ls.length + _NOTA_PAD * 2;
         }
         /* `**` al principio de una fila de tabla = la columna del VALOR va en NEGRITA (AJ2-8c,
@@ -100702,14 +100836,17 @@ function amiloDibujarSecciones(doc, secs, g) {
           const _fuerte = l.indexOf('**') === 0;
           const par = (_fuerte ? l.slice(2).trim() : l).split(' | ');
           fn(sz);
-          const la = doc.splitTextToSize(par[0].trim(), pgW * 0.50 - 4);
+          const la = doc.splitTextToSize(par[0].trim(), _aw * 0.50 - 4);
           if (_fuerte) fb(sz); else fn(sz);
-          const lb = doc.splitTextToSize(par.slice(1).join(' | ').trim(), pgW * 0.46);
+          const lb = doc.splitTextToSize(par.slice(1).join(' | ').trim(), _aw * 0.46);
           const n  = Math.max(la.length, lb.length);
-          filas.push({ t:'kv', a: la, b: lb, n: n, fuerte: _fuerte }); alto += H * n;
+          filas.push({ t:'kv', a: la, b: lb, n: n, fuerte: _fuerte, w: _aw }); alto += H * n;
         }
-        else { fn(sz); doc.splitTextToSize(l, pgW - 4).forEach(w => { filas.push({ t:'txt', txt:w }); alto += H; }); }
+        else { fn(sz); doc.splitTextToSize(l, _aw - 4).forEach(w => { filas.push({ t:'txt', txt:w, w: _aw }); alto += H; }); }
       });
+      /* Lo que el dibujo sobresale por debajo de su tabla. Se mide ACA y se suma al alto del
+         bloque, para que el autoajuste A4 elija el cuerpo de letra sobre el alto REAL. */
+      if (_img) { const _ex = Math.max(0, _img.h + 2 - (alto - _alto0)); filas[_imgIdx].extra = _ex; alto += _ex; }
     });
     return { filas, alto, H };
   };
@@ -100739,12 +100876,17 @@ function amiloDibujarSecciones(doc, secs, g) {
      en la hoja. Es la misma función cuyo comentario sostiene que medir y dibujar tienen
      que coincidir. */
   let _secPrev = null;
+  /* Lo que el dibujo de la seccion en curso sobresale por debajo de su tabla. Se cobra al
+     cerrar la seccion -en la barra siguiente o al final-, no al dibujarlo: si se cobrara en el
+     acto, la tabla empezaria DEBAJO del dibujo en vez de a su izquierda. */
+  let _imgExtra = 0;
   p.filas.forEach((f, i) => {
-    if (f.t === 'bar') { if (_secPrev !== null) y += p.H * 1.2; _secPrev = i; }
+    if (f.t === 'bar') { if (_secPrev !== null) { y += _imgExtra; _imgExtra = 0; y += p.H * 1.2; } _secPrev = i; }
     if (!cabe) {
       const altoFila = (f.t === 'bar') ? 10
                      : (f.t === 'kv')   ? p.H * f.n
                      : (f.t === 'nota') ? p.H * f.n + _NOTA_PAD * 2
+                     : (f.t === 'img')  ? 0
                      : p.H + (f.t === 'sub' ? 1.6 : 0);
       // Un título de sección no queda huérfano al pie: se corta antes.
       const necesita = (f.t === 'bar') ? altoFila + p.H * 2 : altoFila;
@@ -100768,13 +100910,21 @@ function amiloDibujarSecciones(doc, secs, g) {
       doc.setFillColor(Math.round(T[0] + (255 - T[0]) * 0.93),
                        Math.round(T[1] + (255 - T[1]) * 0.93),
                        Math.round(T[2] + (255 - T[2]) * 0.93));
-      doc.rect(mL, y, pgW, altoN, 'F');
+      doc.rect(mL, y, f.w || pgW, altoN, 'F');
       doc.setFillColor(T[0], T[1], T[2]); doc.rect(mL, y, 1.1, altoN, 'F');
       fi(sz); doc.setTextColor(70,70,70);
       f.ls.forEach((t, i2) => doc.text(t, mL + 4.5, y + _NOTA_PAD + p.H * 0.78 + i2 * p.H));
       y += altoN;
+    } else if (f.t === 'img') {
+      /* El dibujo, pegado al margen derecho y a la altura de la primera fila de su seccion.
+         `try/catch` por lo mismo que los otros bloques de imagen del PDF: una excepcion aca
+         aborta el documento entero y el medico se queda sin archivo y sin mensaje. */
+      try { doc.addImage(f.img.dataURL, 'PNG', mL + pgW - f.img.w, y, f.img.w, f.img.h); }
+      catch (e) { console.error('[PDF] dibujo al lado de la tabla:', e); }
+      _imgExtra = f.extra || 0;
     } else if (f.t === 'kv') {
-      const xVal = mL + pgW * 0.52;
+      const _w = f.w || pgW;
+      const xVal = mL + _w * 0.52;
       fn(sz); doc.setTextColor(90,90,90);  f.a.forEach((t,i2) => doc.text(t, mL + 2, y + i2 * p.H));
       /* La columna del VALOR en negrita cuando la fila lo pidio con `**`. La etiqueta se queda
          en normal y en gris: lo que destaca es el dato, no el rotulo. */
@@ -100786,6 +100936,7 @@ function amiloDibujarSecciones(doc, secs, g) {
       doc.text(f.txt, mL + 2, y); y += p.H;
     }
   });
+  y += _imgExtra;
   return y;
 }
 window.amiloDibujarSecciones = amiloDibujarSecciones;
