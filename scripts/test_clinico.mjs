@@ -7779,8 +7779,13 @@ caso('TC-116', 'Marfan/EHAT: el umbral quirurgico sale del sindrome, no solo del
       tu24no.t.indexOf('con factores de riesgo este índice ya sería Clase IIa') > -1],
     ['sin factores el umbral es 25: 25.1 -> IIb', tu26no.c === 'cx_iib'],
     ['25 exactos no pasa',                        tu25no.c === 'sin_indicacion'],
+    /* ADAPTADO (TANDA NOCTURNA B2, 30/10/2026): el indice de tamanio aortico de Turner dejo de
+       tipearse y se CALCULA con la aorta ascendente y la superficie corporal, asi que el texto de
+       «falta el indice» dejo de decir «se indexa por superficie corporal» y pasa a decir QUE
+       falta para poder calcularlo. La clave y el invariante -que sin el indice NO se concluye por
+       el diametro absoluto- no se mueven. */
     ['Turner sin el indice no concluye por el diametro absoluto',
-      tuSinIta.c === 'falta_ita' && tuSinIta.t.indexOf('se indexa por superficie corporal') > -1],
+      tuSinIta.c === 'falta_ita' && tuSinIta.t.indexOf('se calcula con la aorta ascendente') > -1],
     // Sin sindrome NO se concluye: es el dato que ELIGE el umbral.
     ['sin sindrome declarado no se concluye', sinSind.c === 'sin_sindrome'],
     ['y el texto dice los tres umbrales, para que se vea por que hace falta',
@@ -8988,6 +8993,18 @@ caso('TC-131', 'Excel: un estudio de congenitas vuelve entero de su propio archi
       if (vta === undefined) { dif.push(k + ': NO VOLVIO (ida=' + ida + ')'); return; }
       /* Numerico contra numerico: '2.4' y '2.40' son el mismo valor y compararlos como texto
          seria exigir un formato, no un dato. */
+      /* ⚠️ marfan_ita SE EXCLUYE DEL ROUND-TRIP, Y ES UNA CONSECUENCIA MEDIDA DEL B2
+         (TANDA NOCTURNA, 30/10/2026). Desde esa tanda el indice de tamanio aortico es una medida
+         DERIVADA: la columna del Excel exporta el valor CALCULADO -aorta ascendente dividido
+         superficie corporal- y no el campo. Este escenario tiene ascendente 44,2 y superficie
+         corporal 2,00, asi que exporta 22,1 donde el campo decia 23,5, y al reimportar el campo
+         queda en 22,1.
+         ⚠️ ESO NO CAMBIA NADA AGUAS ABAJO, y se verifica aparte: en un estudio donde el indice se
+         puede calcular, el valor GUARDADO no lo lee nadie —gana el calculo—, asi que la
+         conclusion, la capsula y la propia columna salen identicas. En un estudio donde NO se
+         puede calcular, la columna exporta el guardado y el round-trip es exacto. La condicion
+         nueva de mas abajo mide las dos cosas. */
+      if (k === 'marfan_ita') return;
       const a = parseFloat(String(ida).replace(',','.')), b = parseFloat(String(vta).replace(',','.'));
       if (isFinite(a) && isFinite(b)) { if (Math.abs(a-b) > 1e-9) dif.push(k + ': ida=' + ida + ' vuelta=' + vta); }
       else if (String(ida) !== String(vta)) dif.push(k + ': ida=' + ida + ' vuelta=' + vta);
@@ -9011,6 +9028,30 @@ caso('TC-131', 'Excel: un estudio de congenitas vuelve entero de su propio archi
       ['y la que no se marco no vuelve marcada', falsoPositivo === false],
       ['ningun espejo volvio como campo propio de su seccion',
         espejosConColumna.length === 0, espejosConColumna.join(', ')],
+      /* ⚠️ EL INDICE DE TAMANIO AORTICO, QUE ES LA EXCEPCION DE ARRIBA, SE MIDE APARTE Y POR LOS
+         DOS LADOS (TANDA NOCTURNA B2). Con el indice CALCULABLE la columna trae el calculo y el
+         valor guardado deja de leerse; sin ascendente, la columna trae el guardado y el
+         round-trip es exacto. Si alguna vez el calculo dejara de mandar, la primera condicion
+         cae; si el respaldo dejara de existir, cae la segunda. */
+      ['el indice de tamanio aortico: con el calculo posible la columna trae el CALCULO',
+        (function(){ if (typeof _labExcelRow !== 'function') return false;
+          const f = _labExcelRow({ campos: { marfan_sindrome:'turner', marfan_ita:'23.5',
+            marfan_ao_ascendente:'44.2', peso:'80', talla:'180' }, fecha:'2026-10-30' });
+          const x = f['Marfan/EHAT índice tamaño aórtico (mm/m2)'];
+          return Math.abs(Number(x) - 22.1) < 0.05; })(),
+        (function(){ if (typeof _labExcelRow !== 'function') return 'SIN FN';
+          const f = _labExcelRow({ campos: { marfan_sindrome:'turner', marfan_ita:'23.5',
+            marfan_ao_ascendente:'44.2', peso:'80', talla:'180' }, fecha:'2026-10-30' });
+          return 'campo 23.5 -> columna ' + f['Marfan/EHAT índice tamaño aórtico (mm/m2)']; })()],
+      ['y SIN ascendente la columna trae el GUARDADO, asi que el round-trip es exacto',
+        (function(){ if (typeof _labExcelRow !== 'function') return false;
+          const f = _labExcelRow({ campos: { marfan_sindrome:'turner', marfan_ita:'23.5',
+            peso:'80', talla:'180' }, fecha:'2026-10-30' });
+          return Math.abs(Number(f['Marfan/EHAT índice tamaño aórtico (mm/m2)']) - 23.5) < 1e-9; })(),
+        (function(){ if (typeof _labExcelRow !== 'function') return 'SIN FN';
+          const f = _labExcelRow({ campos: { marfan_sindrome:'turner', marfan_ita:'23.5',
+            peso:'80', talla:'180' }, fecha:'2026-10-30' });
+          return 'campo 23.5 -> columna ' + f['Marfan/EHAT índice tamaño aórtico (mm/m2)']; })()],
       ['y el export no inventa una columna para ellos',
         !cols.some(function(c){ return /dsav (FEVI|DTSVI)|CVPA (VD|CIA)/i.test(c); })]
     ] };
@@ -86932,10 +86973,18 @@ caso('TC-521', 'Tanda AJ4: la raiz aortica con UN SOLO criterio de dilatacion en
      -seria mover una convencion que el papel comparte, y eso es decision de Maicol-: queda
      declarado en docs/PENDIENTES.md -> Y-c. La condicion lo fija TAL COMO ES, para que el dia que
      se decida cambiarlo este caso se ponga rojo. */
-  ex.push(['(B3) 22,13 si cruza, y la CAPSULA dice el VALOR del indice y que es el que vota',
+  /* ADAPTADO (TANDA NOCTURNA B2-2c, 30/10/2026): UN DECIMAL. El medico decidio que el iDA se
+     muestre con un decimal en pantalla y en el papel, asi que esta escena -indice 22,13- pasa a
+     decir «iDA de 22,1 mm/m2», que ya NO se contradice con «>22». Eso CIERRA el pendiente Y-c
+     para esta escena.
+     ⚠️ LA CONTRADICCION NO DESAPARECE, SE CORRE UN DECIMAL: un indice de 22,0208 sigue
+     mostrandose «22,0» junto a «>22». Es inherente a redondear para mostrar y comparar con el
+     valor crudo, que es lo correcto -redondear antes de comparar moveria el borde-. Medido con
+     una raiz de 31,25 mm y superficie 1,4191, y declarado en docs/PENDIENTES.md -> NOC-B-b. */
+  ex.push(['(B3) 22,13 si cruza, y la CAPSULA dice el VALOR del indice CON UN DECIMAL y que es el que vota',
     window.aoSegDil(SG(), 33.2) === true
       && TXT('ao-interp').indexOf('dilatada') > -1
-      && TXT('ao-interp').indexOf('iDA de 22 mm/m\u00b2') > -1
+      && TXT('ao-interp').indexOf('iDA de 22,1 mm/m\u00b2') > -1
       && TXT('ao-interp').indexOf('iDA >22 mm/m\u00b2') > -1,
     TXT('ao-interp')]);
   /* ADAPTADO EN LA TANDA G (G-4, 2026-10-29, punto iv): cuando el voto lo da el INDICE y no el
@@ -86943,9 +86992,11 @@ caso('TC-521', 'Tanda AJ4: la raiz aortica con UN SOLO criterio de dilatacion en
      diametro de 33,2 mm que no alcanza ningun corte absoluto y que esta dilatado porque el
      indice pasa de 22. El caso sigue midiendo que el informe la publica dilatada, y ahora
      ademas que nombra el indice: puede fallar por los dos lados. */
-  ex.push(['(B4) y el informe la publica dilatada con esos 33,2 mm, nombrando el indice que dio el voto',
+  /* ADAPTADO (TANDA NOCTURNA B2-2c): el indice del papel tambien lleva UN decimal, y la regex
+     lo exige -con el entero de antes, esta condicion se pondria roja-. */
+  ex.push(['(B4) y el informe la publica dilatada con esos 33,2 mm, nombrando el indice CON UN DECIMAL',
     infAo('estandar').indexOf('33.2 mm (dilatada por índice,') > -1
-      && /33\\.2 mm \\(dilatada por índice, \\d+ mm\\/m²\\)/.test(infAo('estandar')),
+      && /33\\.2 mm \\(dilatada por índice, \\d+,\\d mm\\/m²\\)/.test(infAo('estandar')),
     infAo('estandar').slice(0, 170)]);
   /* CONTROL NEGATIVO: sin peso ni talla el indice no existe y 33 mm vuelve a ser normal. */
   __t.limpiar();
@@ -96027,12 +96078,17 @@ caso('TC-549', 'Tanda Y (Parte 1): el resultado del strain del VD en el cuadro d
     bsaChica !== null && Math.abs(bsaChica - 1.3693) < 0.001, String(bsaChica)]);
   const i21 = esc({ peso:'45', talla:'150', ao_sin:'30' });
   const i22 = esc({ peso:'45', talla:'150', ao_sin:'31' });
-  ex.push(['(D6) la pastilla publica el VALOR del indice cuando es el que vota',
-    i22.cap.indexOf('iDA de 23 mm/m\\u00b2') > -1 && i22.cap.indexOf('(dilatada, iDA >22 mm/m\\u00b2)') > -1,
+  /* ADAPTADO (TANDA NOCTURNA B2-2c, 30/10/2026): UN DECIMAL en pantalla y en el papel. El
+     indice de esta escena es 22,64, que el entero mostraba como «23» -o sea medio milimetro por
+     metro cuadrado de diferencia con lo medido- y ahora sale «22,6». El invariante que estas dos
+     condiciones vigilan -que la pastilla y el papel publiquen el VALOR del indice cuando es el
+     que vota, y los DOS el mismo numero- no se mueve. */
+  ex.push(['(D6) la pastilla publica el VALOR del indice, con UN decimal, cuando es el que vota',
+    i22.cap.indexOf('iDA de 22,6 mm/m\\u00b2') > -1 && i22.cap.indexOf('(dilatada, iDA >22 mm/m\\u00b2)') > -1,
     i22.cap]);
-  ex.push(['(D7) y el papel lo nombra igual que antes, con el mismo redondeo',
-    i22.est.indexOf('(dilatada por índice, 23 mm/m²)') > -1 &&
-    i22.sum.indexOf('por índice, 23 mm/m²') > -1,
+  ex.push(['(D7) y el papel lo nombra con el MISMO numero que la pantalla',
+    i22.est.indexOf('(dilatada por índice, 22,6 mm/m²)') > -1 &&
+    i22.sum.indexOf('por índice, 22,6 mm/m²') > -1,
     i22.est + ' // ' + i22.sum]);
   ex.push(['(D8) CONTROL: con el indice por debajo de 22 no vota nadie y la raiz sale normal',
     i21.cap.indexOf('Normal') > -1 && i21.est.indexOf('de calibre normal') > -1,

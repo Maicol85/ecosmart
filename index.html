@@ -16045,9 +16045,20 @@ z
         </div>
       </div>
       <div class="grid-3" style="margin-top:10px;">
+        <!-- ⚠️ EL ÍNDICE YA NO SE TIPEA (B2, 30/10/2026). Decisión del médico: es una medida
+             DERIVADA y se calcula sola, con la aorta ascendente y la superficie corporal, que es
+             lo que la Tabla 58 de la ESC 2024 indexa.
+             ⚠️ EL `<input>` SE QUEDA, ESCONDIDO Y SIN `oninput`, Y NO ES UN RESTO: es un campo
+             GUARDADO con su columna en el Excel, y sacarlo del documento cambiaría el juego de
+             campos de todo estudio que se guarde desde hoy y borraría la columna. Lo que cambia
+             es que ya nadie lo escribe —ni el médico ni ningún automatismo— y que quien manda es
+             `marfanItaEfectivo`. Un estudio viejo con el índice tipeado lo conserva y lo usa
+             como respaldo cuando el cálculo no se puede hacer.
+             El valor va en un `<span>` de guión MEDIO, que el recolector del estudio no toma. -->
         <div class="fg" id="marfan-ita-wrap" style="display:none;"><label>Índice de tamaño aórtico (mm/m&sup2;)</label>
-          <input type="number" id="marfan_ita" placeholder="mm/m2" step="0.1" oninput="marfanSync()">
-          <span style="font-size:10px;color:var(--text2);">Solo para Turner: el umbral se indexa por superficie corporal porque la talla baja hace que un diametro absoluto normal sea patologico.</span>
+          <input type="number" id="marfan_ita" step="0.1" style="display:none;" tabindex="-1" aria-hidden="true">
+          <div style="font-size:13px;font-weight:600;padding:6px 0;"><span id="marfan-ita-val">&mdash;</span></div>
+          <span id="marfan-ita-origen" style="font-size:10px;color:var(--text2);">Solo para Turner: se calcula con la aorta ascendente y la superficie corporal, porque la talla baja hace que un diametro absoluto normal sea patologico.</span>
         </div>
         <div class="fg"><label>Factores de riesgo</label>
           <select id="marfan_factores_riesgo" onchange="marfanSync()">
@@ -24613,16 +24624,70 @@ window.aoSegRef = aoSegRef;
    corporal: devuelve null y la banda que se dibuja es la del diámetro puro. Leer el peso y la
    talla del formulario en un sondeo que pregunta «¿qué pasaría con el otro sexo?» mezclaría dos
    pacientes en la misma respuesta. */
-function aoSegIda(sg, x, src) {
-  if (!sg || sg.idaMax == null) return null;
-  if (x === null || x === undefined || !isFinite(x) || !(x > 0)) return null;
+/* ⚠️ UN SOLO DUEÑO DE «DIÁMETRO DIVIDIDO SUPERFICIE CORPORAL» (B2, 30/10/2026). Antes la
+   cuenta estaba acá, dentro de `aoSegIda`, y el índice del síndrome de Turner se TIPEABA: dos
+   caminos para el mismo cociente, y el tipeado podía contradecir al calculado sobre el mismo
+   paciente. Hoy los dos salen de esta función.
+   ⚠️ UN SONDEO POR SEXO —`src` como texto— NO TIENE PACIENTE, así que tampoco tiene superficie
+   corporal: devuelve null. Leer el peso y la talla del formulario en un sondeo que pregunta
+   «¿qué pasaría con el otro sexo?» mezclaría dos pacientes en la misma respuesta. */
+/* ⚠️ UN SOLO DUEÑO DEL TEXTO DEL iDA (B2-2c, 30/10/2026). Decisión del médico: UN decimal, en
+   pantalla y en el papel. Hasta hoy los tres lugares que lo imprimen —la pastilla de la raíz, el
+   informe narrativo y el EN SUMA— hacían `Math.round(ida)`, o sea un entero, y el comentario de
+   cada uno decía «es un índice, no una medida directa».
+   ⚠️ EL REDONDEO ES PARA MOSTRAR, NUNCA PARA DECIDIR. La dilatación la decide `aoSegPorIda` con
+   el valor CRUDO: un iDA de 22,04 es mayor que 22 y se muestra «22,0». Esa coincidencia aparente
+   —el número mostrado igual al corte y la pastilla diciendo «dilatada»— es real y está declarada
+   en `docs/PENDIENTES.md` → NOC-B-b. Redondear antes de comparar movería el borde. */
+function aoIdaTxt(ida) {
+  if (ida == null || !isFinite(ida)) return null;
+  return (Math.round(ida * 10) / 10).toFixed(1).replace('.', ',');
+}
+window.aoIdaTxt = aoIdaTxt;
+
+function aoIndexar(mm, src) {
+  if (mm === null || mm === undefined || !isFinite(mm) || !(mm > 0)) return null;
   if (src !== undefined && src !== null && typeof src !== 'object') return null;
   if (typeof getBSA !== 'function') return null;
   const b = src ? getBSA(src) : getBSA();
   if (b == null || !isFinite(b) || !(b > 0)) return null;
-  return x / b;
+  return mm / b;
+}
+window.aoIndexar = aoIndexar;
+
+function aoSegIda(sg, x, src) {
+  if (!sg || sg.idaMax == null) return null;
+  return aoIndexar(x, src);
 }
 window.aoSegIda = aoSegIda;
+
+/* ══ EL VALOR EFECTIVO DEL ÍNDICE DE TAMAÑO AÓRTICO DEL SÍNDROME DE TURNER (B2) ═══════════════
+   Decisión del médico: es una medida DERIVADA y se calcula sola. La Tabla 58 de la ESC 2024
+   indexa la **aorta ascendente** —«ascending ASI >23 mm/m²»—, así que eso es lo que se divide.
+
+   «Efectivo» quiere decir: el CALCULADO cuando hay diámetro ascendente y superficie corporal;
+   si no se puede calcular, el valor GUARDADO de un estudio viejo, de sólo lectura. Nunca los
+   dos: con un valor guardado y un cálculo posible, manda el cálculo, porque el guardado es una
+   foto de otra medición.
+
+   ⚠️ NADA AUTOMÁTICO ESCRIBE EN EL ESTUDIO. `marfan_ita` sigue siendo un campo guardado y
+   conserva su columna de Excel, pero desde esta tanda **ninguna función le asigna un valor**:
+   lo que llevan el Excel, el Laboratorio y la conclusión es lo que devuelve esta función. Es la
+   lección que el D-9, el D-10 y el D-11 pagaron tres veces.
+
+   Devuelve `{ val, origen }` con `origen` en 'calculado' | 'guardado', o null. */
+function marfanItaEfectivo(src) {
+  const _raw = id => src ? src[id] : (document.getElementById(id) || {}).value;
+  const _n = id => { const r = _raw(id);
+    if (r === undefined || r === null || r === '') return null;
+    const x = parseFloat(String(r).replace(',', '.'));
+    return isFinite(x) && x > 0 ? x : null; };
+  const calc = aoIndexar(_n('marfan_ao_ascendente'), src);
+  if (calc != null) return { val: calc, origen: 'calculado' };
+  const guardado = _n('marfan_ita');
+  return guardado != null ? { val: guardado, origen: 'guardado' } : null;
+}
+window.marfanItaEfectivo = marfanItaEfectivo;
 /* ⚠️ EL PREDICADO DE LA RAÍZ TIENE DOS PUERTAS Y LA SEGUNDA ES ESTRICTA (AJ4-1): el diámetro
    contra el corte por sexo con el valor INCLUIDO, o el índice por ENCIMA de 22 mm/m². Los otros
    cuatro segmentos no cambiaron ni un carácter. */
@@ -25738,10 +25803,10 @@ function calcAorta() {
     /* ⚠️ Y DICE CUANTO DIO (tanda Y, commit 3, punto ii). Hasta hoy la pastilla decia
        «Dilatada (iDA >22 mm/m²)»: nombraba el corte y escondia el valor, que es el unico dato
        que el medico no puede leer en ningun otro lado de esta pantalla. El numero se redondea a
-       un entero con el MISMO `Math.round` que el informe ya usa para este indice —es un indice,
-       no una medida directa—, para que la pantalla y el papel no puedan decir dos numeros. */
+       UN DECIMAL por el MISMO `aoIdaTxt` que el informe y el EN SUMA usan (B2-2c, 30/10/2026),
+       para que la pantalla y el papel no puedan decir dos numeros. Hasta esa tanda era un entero. */
     else if (sg.idaMax != null && _ref != null && m.val < _ref)
-                                     txt = 'iDA de ' + Math.round(m.ida) + ' mm/m² (dilatada, iDA >'
+                                     txt = 'iDA de ' + aoIdaTxt(m.ida) + ' mm/m² (dilatada, iDA >'
                                          + sg.idaMax + ' mm/m²)';
     /* ⚠️ UN SOLO ROTULO, CON SU CORTE Y SIN GRADO (AJ2-6, 23/10/2026). Las tres ramas decian
        «Dilat. leve (≥40 y ≤45mm)», «Dilat. moderada (>45 y ≤50mm)» y «Dilat. severa (>50mm)»:
@@ -57496,9 +57561,10 @@ function generarInforme(opts) {
     /* ⚠️ EL PAPEL NOMBRA EL INDICE SOLO CUANDO EL INDICE DIO EL VOTO (G-4, punto iv).
        Con un diametro que ya alcanza el corte, agregar «por indice» afirmaria que el diametro
        no alcanzaba. `porIda` lo decide `aoSegPorIda`, que es el mismo dueno que usa la capsula.
-       El numero se redondea a un entero: es un indice, no una medida directa. */
+       El numero sale de `aoIdaTxt`, con UN decimal (B2-2c, 30/10/2026): hasta esa tanda era un
+       entero, y el redondeo es para MOSTRAR, nunca para decidir. */
     const gFrase = m => gTxt(m) + (m.porIda && m.ida != null
-      ? ' por índice, ' + Math.round(m.ida) + ' mm/m²' : '');
+      ? ' por índice, ' + aoIdaTxt(m.ida) + ' mm/m²' : '');
     /* ⚠️ LOS SEGMENTOS SIN CLASIFICAR NO SON NI NORMALES NI DILATADOS (G-4, punto iii).
        Van en su propio conjunto: sin esto caerian en `okM` y el informe FIRMADO los llamaria
        «de calibre normal», que es exactamente la afirmacion que esta tanda viene a retirar. */
@@ -57574,7 +57640,7 @@ function generarInforme(opts) {
          estilos, y nada lo pedía. */
       aoD.forEach(x => suma.push('Dilatación ' + (x.sg.k === 'ao_sin' ? 'raíz aórtica' : x.sg.lbl) +
                                  ' (' + x.val + ' mm' +
-                                 (x.porIda && x.ida != null ? ', por índice, ' + Math.round(x.ida) + ' mm/m²' : '') +
+                                 (x.porIda && x.ida != null ? ', por índice, ' + aoIdaTxt(x.ida) + ' mm/m²' : '') +
                                  ').'));
     }
   }
@@ -73702,10 +73768,21 @@ function marfanEstado(src) {
     const n = parseFloat(String(r).replace(',', '.')); return isFinite(n) && n > 0 ? n : null; };
   const sv2 = id => { const r = _raw(id); return (r === undefined || r === null) ? '' : String(r); };
   const sind = sv2('marfan_sindrome'), fr = sv2('marfan_factores_riesgo');
-  const seno = nv('marfan_ao_seno'), asc = nv('marfan_ao_ascendente'), ita = nv('marfan_ita');
+  const seno = nv('marfan_ao_seno'), asc = nv('marfan_ao_ascendente');
+  /* ⚠️ EL ÍNDICE YA NO SE LEE DEL CAMPO: SALE DE SU DUEÑO (B2, 30/10/2026). `marfanItaEfectivo`
+     devuelve el CALCULADO cuando hay ascendente y superficie corporal, y si no el guardado de un
+     estudio viejo. El campo `marfan_ita` sigue existiendo y guardándose; lo que cambia es que ya
+     nadie lo TIPEA y que esta evaluación no lo mira directo.
+     ⚠️ SE REDONDEA A UN DECIMAL PARA MOSTRARLO Y NO PARA DECIDIR: `ita` es el valor crudo, que
+     es el que se compara con los cortes, e `itaTxt` es lo que sale escrito. Redondear antes de
+     comparar movería el borde —un 23,04 mostrado como «23,0» seguiría siendo mayor que 23—. */
+  const _itaEf = marfanItaEfectivo(src);
+  const ita = _itaEf ? _itaEf.val : null;
+  const itaOrigen = _itaEf ? _itaEf.origen : null;
+  const itaTxt = ita != null ? (Math.round(ita * 10) / 10).toFixed(1).replace('.', ',') : null;
   const hayDatos = !!(sind || seno != null || asc != null || ita != null);
   if (!hayDatos) return { hayDatos:false };
-  const base = { hayDatos:true, sind, seno, asc, ita, fr,
+  const base = { hayDatos:true, sind, seno, asc, ita, itaTxt, itaOrigen, fr,
                  sindTxt: _tieneClave(MARFAN_SIND_TXT, sind) ? MARFAN_SIND_TXT[sind] : 'Aortopatía' };
   /* Sin síndrome no se concluye. No es un dato que falte para completar la ficha: es el que
      ELIGE el umbral. Con 47 mm, un Loeys-Dietz tiene indicación Clase I y una EHAT no tiene
@@ -73724,19 +73801,19 @@ function marfanEstado(src) {
   const fteS = _tieneClave(MARFAN_FTE, sind) ? MARFAN_FTE[sind] : 'ESC 2024';
   if (sind === 'turner') {
     if (ita == null) return Object.assign(base, { clave:'falta_ita',
-      txt:'Síndrome de Turner — falta el índice de tamaño aórtico (mm/m²): en Turner el umbral se indexa por superficie corporal, porque la talla baja hace que un diámetro absoluto normal sea patológico' });
+      txt:'Síndrome de Turner — falta el índice de tamaño aórtico (mm/m²): se calcula con la aorta ascendente y la superficie corporal, así que hace falta el diámetro ascendente y el peso y la talla del paciente' });
     /* DOS cortes DISTINTOS, no uno con dos ramas (ESC 2024, Tabla 62): con factores de riesgo el
        umbral baja a 23, y sin ellos se espera a 25. La versión anterior usaba 25 para las dos
        ramas, así que una Turner con ASI 24 y antecedente familiar de disección salía «sin
        criterios» — el escenario exacto en que el umbral bajo existe. */
     if (ita > 23 && conFR) return Object.assign(base, { clave:'cx_iia',
-      txt:'Síndrome de Turner con índice de tamaño aórtico ' + ita + ' mm/m² (>23) y factores de riesgo — considerar cirugía de la aorta (' + MARFAN_FTE.turner + ', Clase IIa · Nivel C)' });
+      txt:'Síndrome de Turner con índice de tamaño aórtico ' + itaTxt + ' mm/m² (>23) y factores de riesgo — considerar cirugía de la aorta (' + MARFAN_FTE.turner + ', Clase IIa · Nivel C)' });
     if (ita > 25) return Object.assign(base, { clave:'cx_iib',
-      txt:'Síndrome de Turner con índice de tamaño aórtico ' + ita + ' mm/m² (>25) sin factores de riesgo — puede considerarse cirugía de la aorta (' + MARFAN_FTE.turner + ', Clase IIb · Nivel C)' });
+      txt:'Síndrome de Turner con índice de tamaño aórtico ' + itaTxt + ' mm/m² (>25) sin factores de riesgo — puede considerarse cirugía de la aorta (' + MARFAN_FTE.turner + ', Clase IIb · Nivel C)' });
     /* Entre 23 y 25 SIN factores no hay indicación, pero el texto nombra el umbral que se cruza
        con ellos: es la información que decide el intervalo del próximo control. */
     return Object.assign(base, { clave:'sin_indicacion',
-      txt:'Síndrome de Turner con índice de tamaño aórtico ' + ita + ' mm/m² — sin criterios quirúrgicos aórticos actuales (' + MARFAN_FTE.turner + ')' +
+      txt:'Síndrome de Turner con índice de tamaño aórtico ' + itaTxt + ' mm/m² — sin criterios quirúrgicos aórticos actuales (' + MARFAN_FTE.turner + ')' +
           (ita > 23 ? '; con factores de riesgo este índice ya sería Clase IIa' : '') + '. Seguimiento' });
   }
   /* ══ EHLERS-DANLOS VASCULAR — SIN UMBRAL DE DIÁMETRO, Y VA ANTES DE EXIGIRLO ═══════════════
@@ -73826,6 +73903,19 @@ function marfanSync() {
   const wrap = document.getElementById('marfan-ita-wrap');
   const sind = (document.getElementById('marfan_sindrome') || {}).value || '';
   if (wrap) wrap.style.display = (sind === 'turner') ? '' : 'none';
+  /* ⚠️ SE PINTA, NO SE ESCRIBE (B2, 30/10/2026). El valor efectivo va a un `<span>`; el campo
+     `marfan_ita` no se toca, así que ningún recálculo le mete un número al estudio. Y se dice
+     de DÓNDE sale: un valor que viene de un estudio viejo y uno recién calculado se ven igual,
+     y no son lo mismo. */
+  { const ef = marfanItaEfectivo();
+    const vv = document.getElementById('marfan-ita-val');
+    const oo = document.getElementById('marfan-ita-origen');
+    if (vv) vv.textContent = ef ? (Math.round(ef.val * 10) / 10).toFixed(1).replace('.', ',') + ' mm/m²' : '—';
+    if (oo) oo.textContent = !ef
+      ? 'Se calcula con la aorta ascendente y la superficie corporal: falta el diámetro ascendente, o el peso, o la talla.'
+      : (ef.origen === 'calculado'
+          ? 'Calculado con la aorta ascendente y la superficie corporal (ESC 2024, Tabla 58).'
+          : 'Valor guardado de este estudio: no se puede recalcular sin el diámetro ascendente, el peso y la talla.'); }
   const el = document.getElementById('marfan-resultado'); if (!el) return;
   while (el.firstChild) el.removeChild(el.firstChild);
   const r = marfanEstado();
@@ -83982,7 +84072,11 @@ function _indAo(){
   const emb   = _indClinGet('ao.embarazo');
   const cxotra= _indClinGet('ao.cxotra');
   const nFact = (oCre.val === 'si' ? 1 : 0) + (oFam.val === 'si' ? 1 : 0) + (emb === 'si' ? 1 : 0);
-  const S = { max:max, raiz:raiz, asc:asc, corte:corte, ita:_indN('marfan_ita'),
+  /* ⚠️ EL ÍNDICE SALE DE SU DUEÑO Y NO DEL CAMPO (B2, 30/10/2026). Dejarlo leyendo
+     `marfan_ita` directo sería la segunda voz que este commit vino a sacar: la cápsula, el
+     Excel y la conclusión dirían el valor calculado y el panel el tipeado de otra medición. */
+  const _itaEf = (typeof marfanItaEfectivo === 'function') ? marfanItaEfectivo() : null;
+  const S = { max:max, raiz:raiz, asc:asc, corte:corte, ita: _itaEf ? _itaEf.val : null,
               cxvalv: oCx.val || null, cxotra: cxotra, embarazo: emb,
               riesgo: oRie.val || null, nFact: nFact };
   const filas = [
@@ -121923,7 +122017,14 @@ function _labExcelRow(inf) {
     'Marfan/EHAT síndrome': _labXlsEtiq('marfan_sindrome', c.marfan_sindrome),
     'Marfan/EHAT aorta sinusal (mm)': rnd(num('marfan_ao_seno'),1),
     'Marfan/EHAT aorta ascendente (mm)': rnd(num('marfan_ao_ascendente'),1),
-    'Marfan/EHAT índice tamaño aórtico (mm/m2)': rnd(num('marfan_ita'),1),
+    /* ⚠️ LA COLUMNA LEE EL VALOR EFECTIVO Y NO EL CAMPO (B2, 30/10/2026). El índice es una
+       medida derivada: con la aorta ascendente y la superficie corporal del estudio se calcula,
+       y sin ellas vale el guardado de un estudio viejo. La CLAVE y el NOMBRE de la columna no se
+       mueven, así que el Excel sigue en 440 columnas con los mismos encabezados.
+       El estudio NO se toca: esto LEE `campos`, no escribe en él. */
+    'Marfan/EHAT índice tamaño aórtico (mm/m2)': (function(){
+      const ef = (typeof marfanItaEfectivo === 'function') ? marfanItaEfectivo(c) : null;
+      return ef ? rnd(ef.val, 1) : ''; })(),
     'Marfan/EHAT factores de riesgo': _labXlsEtiq('marfan_factores_riesgo', c.marfan_factores_riesgo),
     'Coartación G. pico-pico invasivo (mmHg)': rnd(num('coa_gradiente_picopico'),0),
     'Coartación estenosis relativa (%)': rnd(num('coa_estenosis_relativa'),0),
@@ -140461,8 +140562,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261030-0239';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793338773446;                 /* eco-build-ms */
+const ECO_BUILD    = '20261030-0250';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793339417975;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -140548,7 +140649,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261030-0239</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261030-0250</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
