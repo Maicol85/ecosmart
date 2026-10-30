@@ -15184,7 +15184,18 @@ z
             <option value="">—</option>
             <option value="ala">Ala de pollo — menor riesgo tromboembólico</option>
             <option value="coliflor">Coliflor — mayor riesgo tromboembólico</option>
-            <option value="cactus">Cactus — riesgo intermedio</option>
+            <!-- ⚠️ EL CACTUS PIERDE «— riesgo intermedio» (AJ1-1a, 30/10/2026). DECISION DE
+                 MAICOL. Ninguna fuente de la biblioteca le asigna un riesgo al cactus: las
+                 otras DOS superficies que nombran las cuatro morfologias —la ficha `ref-oai`
+                 de Referencias y la entrada «Morfologia» de `OAI_GLOBO`— ya decian «Ala de
+                 pollo (menor riesgo) · coliflor (mayor riesgo) · cactus · manga de viento»,
+                 o sea SIN riesgo para las dos ultimas. Este `<option>` era la unica que lo
+                 afirmaba. El ala de pollo y la coliflor NO se tocan: su riesgo si esta en la
+                 fuente. EL `value` NO SE TOCA: es un campo guardado.
+                 ⚠️ «Manga de viento — riesgo intermedio» SIGUE DICIENDOLO y NO se tocó: la
+                 orden nombra sólo el cactus, y cambiar un rótulo clínico que no nombra es
+                 decisión de Maicol -> `docs/PENDIENTES.md` AJ1-a. -->
+            <option value="cactus">Cactus</option>
             <!-- ⚠️ EL RÓTULO ES «Manga de viento» Y EL VALOR SIGUE SIENDO `veleta` (COR-6a,
                  30/10/2026). Es el nombre que usa la demo aprobada y el que traduce «windsock»
                  de la clasificación descriptiva de la guía de ETE; «veleta» es otra cosa.
@@ -58352,8 +58363,19 @@ function generarInforme(opts) {
          mismo cierre. El trombo en orejuela es contraindicación absoluta hasta resolverse con
          anticoagulación: una nota de planificación técnica encima invierte la prioridad de
          lectura. La sospecha entra en el mismo gate — todavía no está descartado. */
-      if (oLob === '3' && oTrombo !== 'si' && oTrombo !== 'sospecha')
-        s += ' Considerar mayor complejidad para el cierre percutáneo.';
+      /* ══ «Considerar mayor complejidad para el cierre percutáneo» SALIO DEL PAPEL ══════════
+         (AJ1-1b, 30/10/2026). DECISION DE MAICOL, y es la misma que el COR-1a tomo para «no
+         apto para cierre percutaneo»: LA APLICACION NO HACE RECOMENDACIONES. «Considerar» es
+         una conducta, y el informe firmado describe lo hallado. Con tres o mas lobulos el
+         informe dice SOLO el numero de lobulos, que ya viaja en el sujeto `_suj`
+         («Orejuela izquierda multilobulada …»), asi que no se pierde ningun HECHO.
+         ⚠️ Y CON ELLA SE VA SU GATE. El `oLob === '3' && oTrombo !== 'si' && …` existia para
+         que la nota no apareciera al lado del veredicto de aptitud del parrafo 3; ese veredicto
+         ya no existe (COR-1a) y la nota tampoco, asi que el gate no gobierna nada.
+         ⚠️ LA FRASE NO EXISTE EN LA EVIDENCIA NI EN REFERENCIAS, censado el documento entero:
+         su UNICA aparicion era esta. O sea que el contenido no «pasa» a ningun lado — se
+         pierde. La orden la rotula «si existe», y no existe: declarado en
+         `docs/PENDIENTES.md` AJ1-b, por si Maicol la quiere en la Evidencia con su fuente. */
       const sN = 'En el estudio transesofágico, ' + s.charAt(0).toLowerCase() + s.slice(1);
       etePars.push(estiloInforme === 'narrativo' ? sN : s);
     }
@@ -92169,6 +92191,21 @@ window.esqIncluirEnPDF = esqIncluirEnPDF;
    ⚠️ `prefers-reduced-motion` deja un CUADRO QUIETO, no un dibujo distinto: es el mismo emisor
    con una fase fija. Y la animación NO corre con la sección plegada ni con la pestaña oculta. */
 const OAI_ESQ_W = 340, OAI_ESQ_H = 350;
+/* ══ EL LIENZO SE ACORTA CUANDO NO HAY VELOCIDAD DE VACIAMIENTO (AJ1-1d, 30/10/2026) ═══════
+   La orden retira el recuadro «Doppler pulsado» cuando el campo esta vacio. El recuadro ocupa
+   y 276..342 del lienzo de 350, asi que dejarlo fuera sin acortar el lienzo deja 74 px de
+   vacio al pie — en la pantalla, en la imagen guardada y en el PDF, donde ademas se lee como
+   un dibujo cortado. `OAI_ESQ_H_SD` es el alto sin ese recuadro.
+   ⚠️ EL 262 NO ES UN NUMERO ELEGIDO A OJO: el elemento mas bajo del dibujo es el rotulo «VI»,
+   cuya linea de base esta en y=246 con cuerpo 10, o sea descendentes hasta ~250. Medido con
+   `getBBox` sobre el SVG entero en las cuatro morfologias: nada baja de 252.
+   ⚠️ UN SOLO DUEÑO, `_oaiEsqAlto()`, porque el alto lo necesitan TRES lugares: el emisor y los
+   DOS rasterizadores (el del boton «Incluir en el PDF» y el del guardado automatico), que
+   rasterizan al doble. Con el alto escrito tres veces, la imagen guardada saldria con el
+   lienzo de 350 y el dibujo de 262 reescalado dentro — o recortado. */
+const OAI_ESQ_H_SD = 262;
+function _oaiEsqAlto() { return _oaiNum('oai_vel_vac') ? OAI_ESQ_H : OAI_ESQ_H_SD; }
+window._oaiEsqAlto = _oaiEsqAlto;
 /* Las siluetas y sus datos, portados de la demo aprobada. `PATHS` son las líneas guía que
    `_oaiTaper` engrosa, y `LOBES` los lóbulos del brócoli. La clave de cada una es la del
    desplegable de la app, no la de la demo: «veleta» es la manga de viento y «coliflor» el
@@ -92621,11 +92658,18 @@ function oaiEsqSVG(fase, remolino) {
   if (d) g += L(tip[0] + 14, tip[1] + 26, 'prof. ' + d + ' mm', 'start', 11, C.medida);
   /* El DOPPLER PULSADO con la velocidad de vaciamiento. El trazo es ilustrativo: la altura sigue
      al número cargado y no hay ninguna referencia de normalidad dibujada, porque el esquema no
-     juzga. */
-  g += '<rect x="10" y="276" width="320" height="66" rx="4" fill="none" stroke="' + C.borde + '"/>';
-  g += L(18, 292, 'Doppler pulsado');
-  g += '<line x1="16" y1="332" x2="324" y2="332" stroke="' + C.borde + '"/>';
+     juzga.
+     ⚠️ SIN VELOCIDAD CARGADA EL RECUADRO NO SE DIBUJA (AJ1-1d, 30/10/2026). DECISION DE MAICOL.
+     Antes salia siempre: el marco, la linea de base, el rotulo «Doppler pulsado» y, a la
+     derecha, «sin velocidad cargada». Un registro de Doppler rotulado y vacio dentro de un
+     dibujo que viaja al PDF firmado se lee como «se registro y no habia flujo», que no es lo
+     mismo que «no se midio». Lo que queda es el dibujo de la orejuela, y el lienzo se acorta
+     a `OAI_ESQ_H_SD` para que no quede el hueco (ver `_oaiEsqAlto`). */
+  const HH = v ? OAI_ESQ_H : OAI_ESQ_H_SD;
   if (v) {
+    g += '<rect x="10" y="276" width="320" height="66" rx="4" fill="none" stroke="' + C.borde + '"/>';
+    g += L(18, 292, 'Doppler pulsado');
+    g += '<line x1="16" y1="332" x2="324" y2="332" stroke="' + C.borde + '"/>';
     const h = Math.min(parseFloat(v), 100) * 0.34;
     let pk = '';
     for (let i = 0; i < 6; i++) {
@@ -92634,11 +92678,9 @@ function oaiEsqSVG(fase, remolino) {
     }
     g += '<path d="' + pk + '" fill="none" stroke="' + C.medida + '" stroke-width="2"/>';
     g += L(322, 292, v + ' cm/s', 'end', 11, C.medida);
-  } else {
-    g += L(322, 292, 'sin velocidad cargada', 'end', 10, C.tenue);
   }
-  return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + OAI_ESQ_W + ' ' + OAI_ESQ_H +
-         '" width="' + OAI_ESQ_W + '" height="' + OAI_ESQ_H + '" role="img">' +
+  return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + OAI_ESQ_W + ' ' + HH +
+         '" width="' + OAI_ESQ_W + '" height="' + HH + '" role="img">' +
          '<rect width="100%" height="100%" fill="' + C.fondo + '" fill-opacity="0"/>' + g + '</svg>';
 }
 window.oaiEsqSVG = oaiEsqSVG;
@@ -92786,7 +92828,7 @@ function oaiEsqIncluirPDF() {
   const re = _oaiPausado ? _oaiRemPausa : _oaiRemolino;
   if (est) est.textContent = ' Preparando el cuadro…';
   return esqIncluirEnPDF('orejuela', 'Esquema de la orejuela', oaiEsqSVG(fa, re),
-                         OAI_ESQ_W * 2, OAI_ESQ_H * 2).then(r => {
+                         OAI_ESQ_W * 2, _oaiEsqAlto() * 2).then(r => {
     oaiEsqPdfBtnSync();
     if (r.ok) {
       /* La marca de «lo eligió una persona» deja de colgar del uuid: antes se comparaba contra
@@ -92904,7 +92946,7 @@ function oaiEsqGuardarDiferido() {
     const _sv = _oaiReducido() ? oaiEsqSVG()
               : oaiEsqSVG(_oaiFaseAhora(_ah), _oaiPausado ? _oaiRemPausa : _oaiRemolino);
     esqGuardarComoImagen('orejuela', 'Esquema de la orejuela', _sv,
-                         OAI_ESQ_W * 2, OAI_ESQ_H * 2).then(r => {
+                         OAI_ESQ_W * 2, _oaiEsqAlto() * 2).then(r => {
       if (r.ok) {
         _oaiEsqUltimo = firma;
         if (est) est.textContent = ' Guardado en las imágenes del estudio.';
@@ -93065,9 +93107,15 @@ function calcOAI() {
 
   const el = document.getElementById('oai-elegibilidad');
   const notasEl = document.getElementById('oai-notas');
-  if (trombo === 'si') {
-    el.innerHTML = badge('red','NO apto — trombo presente');
-  } else if (diam || prof) {
+  /* ══ LA RAMA DEL TROMBO SE RETIRA (AJ1-1c, 30/10/2026). DECISION DE MAICOL, que releva la
+     reserva escrita abajo y cierra `E-d`. «NO apto — trombo presente» es un VEREDICTO DE
+     APTITUD, y la aplicacion no los emite aunque lo sostenga una contraindicacion absoluta.
+     Sin esta rama la cascada cae sola donde corresponde: con medidas cargadas la pastilla dice
+     «Medidas publicadas — sin veredicto de aptitud», y sin ellas «Completar mediciones».
+     EL HECHO DEL TROMBO NO SE PIERDE por tres caminos que no se tocan: la fila «Trombo» del
+     recuadro de hallazgos, la oracion del informe («Orejuela izquierda con trombo confirmado»)
+     y la Evidencia, con Meier 2014, folio 1401 (`_indETETrombo`, puesta por el COR-1a). */
+  if (diam || prof) {
     /* ══ EL BADGE DEJA DE DAR UN VEREDICTO POR RANGO (E-4a, 2026-10-27) ═══════════════════
        DECISION DE MAICOL. Tenia TRES ramas de juicio y las tres se van:
          · verde «Ostium dentro de la zona de anclaje del Amplatzer Amulet (11 a 31 mm)»,
