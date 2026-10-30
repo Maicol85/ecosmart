@@ -7192,3 +7192,68 @@ y la Evidencia no se tocaron.
 | El redondeo del índice | `Math.round`, en el informe | **el mismo**, ahora también en la pastilla | — | Y-3 |
 | El borde de 45 mm de la Tabla 62 | **ya era `≥`** | **igual — no había nada que alinear** | medido; `G-c` era falso | — |
 
+
+---
+
+## La tanda IMÁGENES — el banco de imágenes de Guardados y el esquema de la orejuela (2026-10-29)
+
+⚠️ **ESTA TANDA NO ABRIÓ NINGUNA GUÍA, Y NO TIENE POR QUÉ.** No escribe contenido clínico: lo que
+hace es una pantalla que lista imágenes ya guardadas, una marca por imagen, una exportación a
+PowerPoint y un dibujo esquemático que publica las medidas que el médico cargó. La regla R6 de su
+orden lo dice: «Nada clínico se inventa: esta tanda no escribe contenido clínico nuevo». **La tabla
+«Cambios de evidencia» va vacía a propósito**, igual que en la tanda B.
+
+El único texto con contenido clínico que el esquema podría haber publicado es un juicio de aptitud
+—«apta» / «no apta» para un cierre percutáneo— y **no se escribió**: la orden lo prohíbe
+expresamente y la elegibilidad sigue viviendo en su recuadro, con sus dos tablas de fabricante y
+sus folios, que la tanda E dejó verificadas y que esta tanda no tocó.
+
+### Las referencias visuales aprobadas, y qué se tomó de cada una
+
+| Archivo en `docs/3d/` | Qué se tomó | Qué NO |
+|---|---|---|
+| `demo_guardados_imagenes_esquema_aprobado.html` | los dos botones en la fila del título, los meses plegables con miniaturas numeradas, la columna derecha con sus cuatro filtros, el armado del PPT con el **límite de 24** y los repartos **1 / 2 / 4**, el cuadrado negro de tapar datos, el aviso previo y la estrella de imagen con su nota | las etiquetas por tipo (2D, color, Doppler): **en la demo no son rótulos visibles**, son los cuatro dibujos sintéticos con que genera las imágenes de ejemplo, así que no hay nada que implementar. Y el **borrado** de imágenes desde la página, que la demo no trae |
+| `demo_orejuela_esquema_aprobado.html` | las cuatro siluetas con su motor de geometría, la línea del ostium, la de la profundidad, el trazo del Doppler pulsado y los rótulos anatómicos | la **animación** (lo que se guarda es una imagen fija) y el cuestionario de trombo, que no estaba pedido |
+| `demo_tga_3d_esquema_aprobado.html` | **nada**: se leyó para medir el costo de su librería | la librería (three.js r128) y su texto de «qué mirar en la ecografía», que la propia demo declara sin verificar |
+
+### Lo que cuesta la librería 3D de la TGA, medido y no estimado
+
+`https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js` responde **200 con 603.445
+bytes**. Incluirla dentro del archivo único costaría **0,60 MB** tal cual, o **0,81 MB** si fuera
+por `data:` URL en base64. Sobre un `index.html` de 10,14 MB es un **+6,0 %**. No se agregó.
+
+Los **hosts externos** de la app hoy son **dos**, con seis scripts entre ellos:
+
+| Host | Scripts |
+|---|---|
+| `cdnjs.cloudflare.com` | jsPDF 2.5.1, Chart.js 4.4.1, xlsx 0.18.5, qrcode-generator 1.4.4, pdf.js 3.11.174 |
+| `cdn.jsdelivr.net` | PptxGenJS 3.12.0 |
+
+Hay además un enlace a `www.orthanc-server.com` en el panel de Orthanc, que es documentación y no
+un recurso que la app cargue.
+
+### Notas de trabajo que NO van en pantalla (regla R1)
+
+- **El peso real de una imagen guardada**, medido pasando una captura sintética de 1024×768 por
+  `_imgComprimir`, que es la puerta única de compresión de la app: `mini` (400×300, q 0,50) da
+  **11.711** caracteres de `dataURL`; `media` (800×600, q 0,65), que es la calidad por omisión, da
+  **65.183** —unos 48.870 bytes—; y `orig` no recomprime: devuelve la fuente, 600.662.
+- **Lo que publica la barra de memoria de Guardados** son dos números de conjuntos distintos: el
+  porcentaje sale de `navigator.storage.estimate()` —el origen entero— y los KB de
+  `CeiboImg.uso().bytes` —sólo el store de imágenes—. Está declarado en `PENDIENTES.md` → IMG-b y
+  no se tocó, porque cambiar un texto de pantalla es decisión de Maicol.
+- **El video de un estudio borrado sobrevive a los dos recolectores que la app tiene**, medido:
+  `CeiboVideo` no tiene `recolectar` y nadie lo llama. → `PENDIENTES.md` IMG-a.
+- **El presupuesto de rendimiento** de la pantalla nueva, con 110 estudios y 1.650 imágenes
+  (108,75 MB de `dataURL`): leer el store entero con `getAll()` 49-53 ms; armar las 1.650
+  miniaturas de una vez 103 ms de DOM, 290 ms hasta pintar y 221 MB de heap; con
+  `IntersectionObserver` 12 ms de DOM, 78 ms y 99 imágenes creadas. El índice sin `dataURL` por
+  cursor: 137 ms y 174.571 caracteres de metadata.
+
+### Tabla «Cambios de evidencia» de esta tanda
+
+**Vacía a propósito.** Ni un corte, ni un umbral, ni una clase, ni un nivel, ni una tabla, ni un
+folio, ni una frase clínica se movió, y está medido por dos caminos: el A/B de 132 escenas con sus
+147.032 claves y sus 58.080 celdas de Excel, y el A/B dedicado con la orejuela **cargada**, donde
+el informe sale idéntico al carácter (612 caracteres), el EN SUMA idéntico y las 440 columnas del
+Excel idénticas clave por clave.

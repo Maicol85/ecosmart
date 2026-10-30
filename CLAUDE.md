@@ -84,12 +84,13 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Tocar el CARPENTIER de la mitral —quién es su dueño y dónde se dice—, el AVISO de la Evidencia de la TRICÚSPIDE, el strain del VD por debajo de 15 %, o las dos TABLAS de la OREJUELA** | `docs/mapa/e-carpentier-tricuspide-orejuela.md` |
 | **Tocar algo de ECO ESTRÉS, o entender por qué su código sigue en el archivo sin interfaz**: las cinco piezas (A), las compartidas (B), las que tocan algo guardado (C), las TRES compuertas, las CUATRO familias «ee» —tres vivas— o la calculadora de probabilidad pre-test de la ESC 2019 que vive adentro | `docs/mapa/eco-estres-inventario.md` |
 | **Montar un A/B o un barrido de MUTACIÓN, o leer una trampa de instrumentación** | `docs/mapa/arneses-ab-mutacion.md` |
-| **Agregar o correr un caso de prueba** | `docs/mapa/tests.md` · fichas en `docs/mapa/tests-fichas-538.md` (TC-538), `docs/mapa/tests-fichas-537.md` (TC-537), `docs/mapa/tests-fichas-536.md` (TC-536), `docs/mapa/tests-fichas-535.md` (TC-535), `docs/mapa/tests-fichas-532.md` (TC-532), `docs/mapa/tests-fichas.md` (TC-499 en adelante), `docs/mapa/tests-fichas-496-498.md`, `docs/mapa/tests-fichas-491-495.md` y `docs/mapa/tests-fichas-481-490.md` |
+| **Agregar o correr un caso de prueba** | `docs/mapa/tests.md` · fichas en `docs/mapa/tests-fichas-550.md` (TC-550), `docs/mapa/tests-fichas-538.md` (TC-538), `docs/mapa/tests-fichas-537.md` (TC-537), `docs/mapa/tests-fichas-536.md` (TC-536), `docs/mapa/tests-fichas-535.md` (TC-535), `docs/mapa/tests-fichas-532.md` (TC-532), `docs/mapa/tests-fichas.md` (TC-499 en adelante), `docs/mapa/tests-fichas-496-498.md`, `docs/mapa/tests-fichas-491-495.md` y `docs/mapa/tests-fichas-481-490.md` |
 | **Tocar el DIBUJO ESTÁTICO de la mitral en ETE**: la tabla única de festones por ángulo, la geometría, la línea del plano, el giro, las tres vistas con sus LETRAS DE FESTÓN, **la ORIENTACIÓN de la TRANSGÁSTRICA**, el PDF, los CUATRO DIBUJOS DE MEDIDAS TEER, **los CRITERIOS TEER y sus cortes** o **el ESPEJO de la FEVI y el DSFVI del TEER** | `docs/mapa/mitral-dibujo-estatico.md` |
 | **Tocar algo que la tanda R2 corrigió** (21/10): las cinco opciones del derrame y la traducción del token viejo, el repintado de la VAB con el gesto de la pastilla, los seis puntos de la probabilidad de HTP, el e′ medial en tres tramos, el espesor relativo y el criterio por eco de la amiloidosis, el SGL y la calculadora de cardio-oncología, el síndrome intersticial difuso por zonas, el índice cardiaco y la RVS, o la orejuela | `docs/mapa/tanda-r2-correcciones.md` |
 | **Tocar algo que la tanda R movió**: la lesión presente sin grado de la VAB, los cortes del TEER, la severidad de la disfunción del VD, el área de la AI, los grados del derrame, el taponamiento que ya no concluye, el VD/VI del TEP o los criterios declarados de Referencias | `docs/mapa/tanda-r-referencias.md` |
 | **Tocar la sección de la VÁLVULA AÓRTICA BICÚSPIDE**: la disposición en tres columnas, las seis tarjetas ⓘ, los factores de riesgo con casilla, el DIBUJO y sus puntos sensibles, **la SIMETRÍA DE LAS CÚSPIDES y el ÁNGULO con que se dibuja**, **los SEIS dibujos por tipo y la ANIMACIÓN de la apertura**, **la FUNCIÓN VALVULAR derivada**, **el RESUMEN esquemático y su texto en Evidencia**, la morfología que sigue al tipo de fusión, la descripción del informe, el PDF o el recordatorio de la coartación | `docs/mapa/vab-bicuspide.md` |
 | **Visor de cineloop, medición, calibración, IndexedDB** | `docs/mapa/imagenes-visor.md` |
+| **Tocar la pantalla «IMÁGENES GUARDADAS» de Guardados, la ESTRELLA DE IMAGEN con su nota, el PPT armado desde ahí o la FUNCIÓN COMÚN que guarda un esquema de la app como imagen —con su primer uso en la orejuela—**: los dos botones, los meses plegados, el índice sin `dataURL`, las dos listas del registro (`imgs` y `esqs`), el límite de 24, el cuadrado de tapar datos o por qué pintar y guardar son dos funciones | `docs/mapa/img-guardadas.md` |
 | **Tocar algo que la tanda AJ2 corrigió** (23/10): la VRT «sin datos» frente a «no medible», el tipo de IM vacío, la coartación sin gradiente, la aorta que ya no gradúa, el ateroma sin riesgo embólico con el grosor completando el grado, el HF-PEFF sin FEVI y la negrita de su hoja, el eco pulmonar «bilateral», el score de TEP con un solo vocabulario y su maqueta en tres grupos, el EN SUMA que ya no niega lo que el informe describe, los dos buscadores o las tildes | `docs/mapa/aj2-correcciones.md` |
 | **Tocar algo de la tanda I**: el TRAMO del score de Wilkins, la orejuela y sus dispositivos, la reparabilidad mitral con el rango de tenting, las DOS escalas de ateroma, las tres secciones de Evidencia de la ETE, las notas al pie de la estenosis tricuspídea o la INSUFICIENCIA PULMONAR en Fallot reparada con sus dos guías | `docs/mapa/tanda-i-ete.md` |
 | **Tocar la ESTENOSIS MITRAL en el LABORATORIO**: las seis categorías, las dos casillas del filtro, el gráfico de distribución, el PDF de auditoría o el PPT | `docs/mapa/laboratorio-estenosis-mitral.md` |
@@ -161,6 +162,13 @@ y los seis que recibieron un puntero quedaron medidos ANTES de escribirlo, que e
 **`informe-pdf-excel.md` queda a 600 bytes del techo: la próxima tanda que lo toque tiene que
 partirlo.**
 
+⚠️ **Al 2026-10-29, tras la tanda IMÁGENES, el mapa nuevo nació chico** —`img-guardadas.md`,
+**17,3 KB**— y los cuatro que recibieron un puntero quedaron medidos ANTES de escribirlo, que es
+la regla: `tests.md` **27,7 KB**, `informe-pdf-excel.md` 27,2 (no se tocó),
+`imagenes-visor.md` **20,8 KB**, `e-carpentier-tricuspide-orejuela.md` **19,8 KB** y
+`arneses-ab-mutacion.md` **15,0 KB**. La ficha del caso salió a archivo propio
+(`tests-fichas-550.md`, 6,2 KB) en vez de engordar `tests.md`.
+
 Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la ventana.
 
 ---
@@ -168,8 +176,9 @@ Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la v
 ## Qué es EcoSmart y cómo se trabaja
 
 - App clínica de ecocardiografía en **un solo `index.html`**: HTML + CSS + JS inline, sin build,
-  sin frameworks. Hoy **10,04 MB / 140.965 líneas**, medido con `wc -c` y `wc -l` el 2026-10-29 al
-  cierre de la tanda **Y, Parte 1**, sobre el árbol ya sellado (`v20261029-1647`, md5 `7ef7a5de`).
+  sin frameworks. Hoy **10,14 MB / 142.743 líneas**, medido con `wc -c` y `wc -l` el 2026-10-29 al
+  cierre de la tanda **IMÁGENES**, sobre el árbol ya sellado (`v20261029-2127`, md5 `ca2c048e`).
+  (Antes: 10,04 MB / 140.965 al cierre de la Y, Parte 1, sello `v20261029-1647`, md5 `7ef7a5de`.)
   (Antes: 10,02 MB / 140.761 al cierre de POP-V2, sello `v20261029-1425`, md5 `f72a928c`.)
   ⚠️ **Y ESTE RENGLÓN SE HABÍA QUEDADO SIETE TANDAS ATRÁS**: decía «9,79 MB / 138.038 líneas»,
   que es el cierre de la tanda **E** del 27/10, mientras la D, el D-9, el D-10, el D-11, la C1,
@@ -2026,3 +2035,151 @@ línea: el archivo creció y un informe de auditoría viejo apunta a otro archiv
   tanda POP-V2» con las dos fuentes transcritas, sus dos reglas de folio comprobadas en el pie
   impreso y la tabla «Cambios de evidencia» de ocho filas, y `docs/PENDIENTES.md` → **OCHO** cosas
   declaradas (**POP-a** a **POP-h**).
+
+### El banco de imágenes de Guardados y el esquema de la orejuela — «IMÁGENES» (2026-10-29)
+
+- **SEIS commits, y los seis se hicieron.** `8a81823` (1) · `06af475` (2) · `72a26d4` (3) ·
+  `f0ee02d` (4) · `9751f05` (5) · el de cobertura y documentación. Sello **`v20261029-2147`**,
+  md5 de `index.html` **`e936a1c6`**. (El árbol se **reselló**: el primer sello, `v20261029-2127`,
+  quedó atrás por el arreglo que la corrida completa destapó.) Al empezar, `origin/main` = `HEAD` = **`21c9b87`**, el
+  cierre de la tanda Y, ya publicado, con el pendrive `DISK_IMG` montado y listando nombres
+  reales. **El push lo corre Maicol: esta tanda tenía orden expresa de NO pushear.**
+  Cierra **Y-g**, que era esta tanda entera declarada como no hecha.
+
+- **EL PAPEL NO SE MOVIÓ, Y ESTÁ MEDIDO POR DOS CAMINOS QUE NO SON EL MISMO.** El A/B general
+  (`_probe_yab.mjs`, 132 escenas, 147.032 claves y 58.080 celdas de Excel) da **CERO diferencias**
+  en superficie firmada y cero en pantalla, en los cuatro commits que tocan código.
+  ⚠️ **Y ese cero es un control NEGATIVO para el commit 5**: ninguna de esas 132 escenas carga la
+  orejuela, así que sobre el esquema no prueba nada. La prueba es `_probe_img2.mjs --file <HEAD>`
+  con la orejuela **cargada** y el esquema ya guardado: informe en los tres estilos **idéntico al
+  carácter** (612), EN SUMA idéntico, **440** columnas de Excel idénticas clave por clave y los
+  campos guardados iguales.
+
+- **DÓNDE SE GUARDA UN ESQUEMA, QUE ES LA DECISIÓN DE DISEÑO DE LA TANDA.** En el mismo registro
+  de `ceibomed_img`, pero en una **segunda lista** (`esqs`) y NO entre los slots. Así
+  `CeiboImg.leer` sigue devolviendo sólo `imgs` y **ningún emisor existente tiene que filtrar
+  nada** — que es lo que garantiza que el papel no se mueva. La alternativa, meterlo entre los
+  slots con una marca, exigía filtrarlo en **CINCO** lectores maduros (el PDF del formulario, el
+  PDF de un estudio guardado, el PPT, su selector y el exportador de backup) y el primer olvido
+  publicaba un esquema dentro de un informe firmado. El precio es un `get` antes del `put` en
+  `CeiboImg.guardar`, declarado.
+
+- ⚠️ **PINTAR Y GUARDAR SON DOS FUNCIONES, Y ES LA LECCIÓN QUE EL D-9, EL D-10 Y EL D-11 PAGARON
+  TRES VECES.** `calcOAI` está en `RECALC_MODULOS`, así que lo corre el barrido de 220 ms y lo
+  corre la restauración de un estudio guardado: si el guardado colgara de ahí, **abrir un estudio
+  viejo le escribiría un esquema que nadie pidió**, o sea migrar estudios guardados. `oaiEsqSync`
+  sólo pinta; `oaiEsqGesto` guarda, y lo llaman los cuatro `oninput`. Medido con su denominador:
+  el dibujo SÍ se repinta con los valores nuevos y el registro conserva el mismo `ts`.
+
+- **EL PPT SE PROBÓ ABRIENDO EL ARCHIVO, no sólo generándolo.** Se descarga a un directorio
+  propio, se lista el zip y se lee el XML de cada diapositiva: 24 diapositivas, 25 medios,
+  1.393.967 bytes, y los **únicos** textos del mazo son los números de imagen y el disclaimer.
+  Censo sobre los 24 XML: **ningún nombre de paciente**, y el nombre del archivo tampoco.
+
+- **EL LÍMITE DE 24 Y LOS REPARTOS 1 / 2 / 4 SALEN DE LA DEMO APROBADA**, no de una estimación
+  (`maxEl = 24`). Medido: con 24 elegidas, clickear la 25 no suma nada. Y el orden es el de
+  **elección**: clickeadas de la 26 a la 3, la 26 queda en la posición 1.
+
+- **TRES PREMISAS DE LA ORDEN SE MIDIERON Y NO ERAN LO QUE DECÍAN.**
+  1. **La barra de memoria no dice «5,2 MB usados» de una sola cosa**: el porcentaje sale de
+     `navigator.storage.estimate()` —el **origen entero**— y los KB de `CeiboImg.uso().bytes`
+     —**sólo** el store de imágenes—. Dos denominadores en la misma línea. → **IMG-b**.
+  2. **«Si se borra el estudio, se van sus imágenes» es verdad para las imágenes y FALSO para el
+     video**: `CeiboVideo` no tiene recolector y nadie lo llama. Medido: se sembró un video de
+     32.768 bytes, se borró su estudio, corrieron los dos recolectores que la app tiene y el
+     registro **sobrevive**. Reportado sin borrar nada. → **IMG-a**.
+  3. **Las etiquetas por tipo (2D, color, Doppler) no están en la demo como rótulos**: son los
+     cuatro dibujos sintéticos con que genera sus imágenes de ejemplo. No había nada que
+     implementar. → **IMG-d**.
+
+- **EL PRESUPUESTO DE RENDIMIENTO, MEDIDO ANTES DE ESCRIBIR LA PANTALLA** (110 estudios × 15
+  imágenes = 1.650 miniaturas, 108,75 MB de `dataURL`): leer el store entero 49-53 ms; armar las
+  1.650 miniaturas de una vez 103 ms de DOM, 290 ms hasta pintar y **221 MB de heap**; con
+  `IntersectionObserver` 12 ms y 99 imágenes creadas. **Lo que se construyó cumple**: índice sin
+  `dataURL` por cursor en 137 ms y 174.571 caracteres de metadata, con los meses **plegados**
+  —3 ms síncronos, 22 ms hasta pintar, 12 grupos y CERO miniaturas— y 1 ms de clic para abrir un
+  mes de 135, con 72 imágenes cargadas.
+
+- **LOS FILTROS NO SE DUPLICARON, Y POR ESO NO PUEDEN DISCREPAR.** El enganche es `igPintar`, el
+  único punto por el que pasan las dos cadenas de filtrado. Medido: 11 estudios → 165 imágenes,
+  63 → 945, 13 → 195, FEVI clínico 33 → 495 y el **numérico** 30 → 450, o sea estudios × 15
+  exacto en los cinco. Las mutaciones 06 y 07 lo matan por separado.
+
+- **18/18 MUTACIONES MUERTAS**, en worktree y nunca sobre el vivo, con guarda de md5.
+  ⚠️ **LA 17 SOBREVIVIÓ AL PRIMER BARRIDO Y ERA UN HUECO REAL**: la condición (F6) llamaba a
+  `imgPersistir` **sin restaurar antes**, y `imgPersistir` sale temprano si no hay slots vivos, así
+  que no llegaba a `CeiboImg.guardar` y no podía fallar. Es el «freno que tapa al que se muta».
+  Cerrada restaurando primero, que además es el camino real —abrir un estudio y volver a
+  guardarlo—. **Tres de las dieciocho no revierten nada: la aplican de más** (el esquema juzga, el
+  barrido escribe, el esquema entra entre los slots).
+
+- ⚠️ **TC-550 TUVO CUATRO DEFECTOS PROPIOS Y LOS CUATRO SON TRAMPAS DE MÉTODO**, escritas en su
+  ficha: un uuid de **siete** caracteres que `_uuidValido` rechaza —el síntoma era «0 grupos», que
+  se lee como que la pantalla no pinta—; la grilla ordenada por fecha **descendente**, así que la
+  primera miniatura no es la del primer estudio sembrado y la estrella se escribía en el otro
+  uuid; los nodos que se **desprenden** en cada repintado, con lo que elegir cinco elegía una; y
+  `S()` despachando `input`, que es justo el evento que GUARDA, con lo que el control del barrido
+  medía el gesto del médico.
+
+- ⚠️ **Y EL ACENTO GRAVE COSTÓ CUATRO CORRIDAS, EN TRES ARCHIVOS DISTINTOS.** El cuerpo de un caso
+  y el de una sonda inyectada son template literals. `node --check` caza el del caso; **no caza el
+  de la sonda**, porque el `.mjs` sigue parseando: ahí lo que sirve es `new Function(cuerpo)` sobre
+  lo que está entre los acentos graves. Y su hermana, también pagada dos veces: **una barra
+  invertida simple no sobrevive al template literal** — `/[ \t\n]+/` escrito con una barra llegó al
+  navegador con el tabulador literal adentro de la clase y los dieciséis cruces salieron con
+  «Unterminated regular expression literal», que en un volcado se lee como un error de la app.
+
+- **CHROME Y WEBKIT COINCIDEN EN LOS DIECISÉIS CRUCES** (dos motores × 1440, 1000, 768 y 390 px ×
+  dos temas), **valor por valor**: 2 grupos y 11 imágenes, el mes abierto con sus 5 miniaturas y
+  las 5 cargadas, **cero** desplazamiento horizontal del cuerpo, **cero** textos recortados y
+  **cero errores de consola y de página en los dos motores**; la estrella en **44×44 con los CINCO
+  puntos dando el propio botón** también a 390 px; los cuatro botones del visor en 44 de alto; el
+  esquema entrando entero (360 px a 1440, 328 a 390) con sus tres siluetas del cactus y sin
+  juzgar. La única diferencia entre motores son 8 px en el ancho del visor.
+  ⚠️ **WebKit de Playwright no es Safari, y se declara.** Y el binario de chromium de Playwright
+  sigue sin estar en esta máquina: Chrome va por el del sistema con `channel:'chrome'`.
+  ⚠️ **A 390 px la barra de memoria baja de renglón**, y es el `flex-wrap` que esa cabecera ya
+  tenía: los dos botones siguen juntos y en la fila del título a 1440 y a 1000 px.
+
+- **Celular: 65 hallazgos a 360 px y 74 a 390, con 17 ALTA en cada ancho — los 17 de la línea
+  base.** Los **dos** nuevos de cada ancho son `toque-chico` **MEDIA**: los dos botones de vista,
+  de 30 px de alto y con rótulo, igual que los `.ig-filtro-btn` de al lado, que ya estaban así.
+  Subirlos a 44 infla la cabecera, que es la trampa que este archivo ya documenta para el header.
+
+- **Censo 1028 → 1029: UN control de pantalla nuevo y CERO campos guardados nuevos.** Es
+  `ig-imgv-nota`, el textarea de la nota, y el prefijo `ig-` de `_noEsDelEstudio` lo deja afuera
+  de `campos` — verificado por diff de ids contra HEAD y fijado por la condición (H3).
+  ⚠️ **La primera versión de la sonda contó un campo de más**: su bucle de casillas no aplicaba
+  `_noEsDelEstudio`, que `guardarInforme` sí aplica a los dos barridos, y tomaba `ig-ppt-on__chk`.
+  Un falso positivo de censo, que es justo lo que esa medición está para evitar.
+
+- **Línea base al cierre: suite 561/565**, en once lotes **cubriendo los 565 casos distintos**
+  —contados nombre por nombre, no por la suma de los lotes—, en UNA sola pasada sobre el árbol
+  sellado, con el pendrive `DISK_IMG` **montado y listando nombres reales al abrir, ENTRE LOTES y
+  al cerrar** y el md5 de `index.html` **idéntico** antes y después (`e936a1c6`). Los rojos son
+  **TC-223, TC-376, TC-390 y TC-406**, los cuatro de siempre, **y ninguno más**: **TC-358 salió
+  VERDE**.
+  ⚠️ **Y LA PRIMERA CORRIDA COMPLETA DIO 560/565 CON UN ROJO MÁS, QUE ERA MÍO**, y por eso esa
+  cifra no es la línea base: **TC-550** caía por su propio denominador (F0) porque `oaiEsqSync`
+  escondía la caja del esquema **sin vaciarla**, así que el dibujo del paciente anterior seguía
+  en el documento y un caso anterior del lote ya lo había pintado. El arreglo está en el commit 6
+  y la cifra de arriba sale de la corrida **limpia**, de una sola pasada sobre el árbol resellado.
+
+- **Semgrep 124 WARNING / 0 ERROR**, la línea base. **Excel 440** columnas con las mismas claves.
+  **Sin huérfanos nuevos.** 17 bloques de JS inline parsean.
+
+- **Lo que se PARÓ y se reportó, no se aplicó**: la TGA, la CIA y la CIV (punto 5c), con el costo
+  de la librería 3D medido —**603.445 bytes**, 0,60 MB inline o 0,81 MB en base64, un **+6,0 %**
+  sobre un archivo de 10,14 MB— y los dos hosts externos censados; el borrado de imágenes desde la
+  página, que la demo aprobada no trae; y las etiquetas por tipo, que tampoco.
+
+- **`index.html` pasó de 10,04 MB / 140.965 líneas a 10,14 MB / 142.750** — medido con `wc -c` y
+  `wc -l` DESPUÉS de sellar. (MB de 10⁶: `wc -c` dividido por 1e6.)
+
+- **Dónde está todo:** `docs/mapa/img-guardadas.md` (**mapa NUEVO**, 17,3 KB), la ficha del caso en
+  `docs/mapa/tests-fichas-550.md` (**archivo propio**), **cuatro mapas con un puntero cada uno**
+  —medidos ANTES de escribir, todos por debajo de 28 KB—, `docs/fuentes/FUENTES.md` → «La tanda
+  IMÁGENES» con las tres referencias visuales, el costo de la librería y las notas de trabajo, y su
+  tabla «Cambios de evidencia» **vacía a propósito** porque esta tanda no escribe contenido
+  clínico, y `docs/PENDIENTES.md` → **SIETE** cosas declaradas (**IMG-a** a **IMG-g**) más el
+  cierre de **Y-g**.

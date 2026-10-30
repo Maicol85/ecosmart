@@ -91605,7 +91605,14 @@ function oaiEsqSync() {
   if (!caja || !cont) return;
   const hay = oaiEsqHayDatos();
   caja.style.display = hay ? 'block' : 'none';
-  if (!hay) return;
+  /* ⚠️ SIN DATOS SE VACÍA, NO SE ESCONDE NOMÁS. Un `display:none` deja el dibujo del paciente
+     ANTERIOR adentro de la caja: no se ve, pero sigue en el documento después de «Nuevo
+     estudio», y es contenido derivado de los datos de otra persona. Es el mismo defecto que la
+     tanda AJ9 pagó con `#sgl-interp-tab`, donde el rótulo del strain se filtraba entre
+     pacientes porque el barrido de `limpiarCampos` no lo alcanzaba.
+     Lo destapó la corrida COMPLETA del suite: TC-550 daba verde aislado y rojo en su lote,
+     porque un caso anterior ya había pintado el esquema. */
+  if (!hay) { cont.innerHTML = ''; return; }
   /* `innerHTML` con marcado que esta función ARMA, y los únicos datos del médico que entran son
      tres números pasados por `parseFloat` y el valor de un `<select>` cerrado, que además sólo
      elige entre cuatro siluetas. Los textos van por `escHtml`. */
@@ -139792,8 +139799,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261029-1647';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793303227201;                 /* eco-build-ms */
+const ECO_BUILD    = '20261029-2147';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793321248882;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -139879,7 +139886,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261029-1647</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261029-2147</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

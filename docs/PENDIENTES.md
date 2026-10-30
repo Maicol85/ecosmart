@@ -9845,7 +9845,15 @@ Lo que queda sin hacer es 6a: la coartación con sus tres textos largos al ⓘ, 
 EN SUMA, el «sin alteraciones» que no puede convivir con una bicúspide o una coartación, y la
 Evidencia de la bicúspide con cada umbral una sola vez.
 
-### Y-g · PARTE 2 ENTERA (commits 8 a 13) — **NO SE HIZO**
+### Y-g · PARTE 2 ENTERA (commits 8 a 13) — **CERRADO el 2026-10-29 por la tanda IMÁGENES**
+
+Los seis commits se hicieron: la medición de dónde y cómo se guardan las imágenes con su sonda de
+rendimiento reutilizable, la página «Imágenes guardadas» de Guardados, la estrella de imagen con su
+nota, la privacidad y el armado del PPT, y la función común que guarda un esquema de la app como
+imagen del estudio con su primer uso en la orejuela. Lo que quedó declarado de esa tanda son
+**IMG-a** a **IMG-g**, arriba. El texto original de este pendiente queda debajo.
+
+### Y-g (texto original) · PARTE 2 ENTERA (commits 8 a 13) — **NO SE HIZO**
 
 Ninguna línea se tocó, y **las referencias visuales aprobadas en `docs/3d/` no se abrieron ni se
 modificaron**. Queda entera: medir cómo y dónde se guardan hoy las imágenes, la sonda de
@@ -9902,3 +9910,49 @@ desplegable sí los separa bien («💾 780 KB usados de 10240.8 MB disponibles�
 
 **Reportado y no corregido**: cambiar un texto de pantalla o el número que publica es decisión de
 Maicol. Esta tanda no lo toca.
+
+### IMG-c · Un esquema NO entra al backup, y se pierde al resetear el navegador
+
+`exportBackup` lee las imágenes por `CeiboImg.leer(uuid)`, que devuelve **sólo `imgs`** —los slots
+del estudio—. Los esquemas viven en `esqs`, en el mismo registro, y esa lista no se exporta: un
+backup de nivel «Informes + imágenes» no los lleva, no sobreviven a un reseteo del navegador y un
+import que promete reemplazar todo los deja fuera.
+
+Es el mismo patrón que la deuda de CardioSalud documenta para `cardiosalud_syntax`, y se declara
+por el mismo motivo: tocar el exportador cambia el formato del backup, y eso es otra orden. El
+costo real es acotado —un esquema se vuelve a generar solo en cuanto el médico toca cualquiera de
+los cuatro campos de la orejuela— pero la imagen que estaba guardada no es la que vuelve.
+
+### IMG-d · Las etiquetas por tipo (2D, color, Doppler) no se implementaron, y es correcto
+
+El punto 3b de la orden dice: «Si la demo aprobada trae otras etiquetas por tipo (2D, color,
+Doppler), implementalas solo si están en la demo». **Censada la demo: no las trae como rótulos.**
+Lo que tiene es un array `TYPES` con cuatro valores —`2d`, `dop`, `col`, `mm`— que usa **para
+generar los dibujos sintéticos** de sus 40 imágenes de ejemplo, no para etiquetarlas en pantalla:
+ninguna miniatura ni el visor muestran ese valor. No hay nada que implementar, y si alguna vez se
+quiere, hace falta decidir de dónde saldría el tipo de una imagen real —el DICOM lo declara, un JPG
+importado no—.
+
+### IMG-e · El PPT de imágenes no se probó en PowerPoint, sólo en el formato
+
+El archivo se genera y se abre: 24 diapositivas, 25 medios, 1,39 MB, los textos censados uno por
+uno y cero nombres de paciente en los 24 XML. Lo que **no** se hizo es abrirlo en PowerPoint o en
+Keynote y mirarlo. Va por `_pptxDescargarSaneado`, que es el camino que ya corrige el defecto de
+`[Content_Types].xml` que hacía pedir reparación, así que el riesgo es bajo — pero está declarado.
+
+### IMG-f · El espacio que ocupa el esquema no se le avisa al médico
+
+Un esquema de la orejuela pesa unos 40.000 caracteres de `dataURL`, o sea del orden de media
+captura en calidad media, y se escribe solo. `CeiboImg.uso()` lo cuenta —y la barra de memoria lo
+incluye en sus KB, con `esquemas` como contador propio— pero no hay ningún aviso de que la app
+empezó a guardar imágenes que el médico no capturó. Con un esquema por estudio y 500 estudios son
+~20 MB. Decidir si eso merece un aviso, o un interruptor propio, es de Maicol.
+
+### IMG-g · El esquema sólo se guarda si el médico toca uno de los cuatro campos
+
+Es deliberado y es la mitad del punto que el D-9, el D-10 y el D-11 pagaron tres veces: el
+guardado cuelga del gesto y no del barrido de recálculo, porque si colgara del barrido **abrir un
+estudio guardado le escribiría un esquema que nadie pidió**. La consecuencia, declarada: un
+estudio que ya está guardado con datos de orejuela **no** recibe su esquema al abrirlo. Lo recibe
+en cuanto alguien toca un campo, o al guardarlo de nuevo. Si se quiere que los estudios viejos lo
+tengan, eso es una migración y necesita su propia orden.

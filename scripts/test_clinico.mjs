@@ -96041,6 +96041,438 @@ caso('TC-549', 'Tanda Y (Parte 1): el resultado del strain del VD en el cuadro d
   })();
 `);
 
+/* -- TC-550 ---------------------------------------------------------------------------------
+   Tanda IMAGENES (commits 2 a 5). La pantalla «Imagenes guardadas» de Guardados, la estrella de
+   imagen con su nota, la privacidad y el armado del PPT, y la funcion comun que guarda el
+   esquema de la orejuela.
+
+   ADVERTENCIA PARA EL QUE EDITE ESTE CASO: el cuerpo es un template literal. Un acento grave
+   -aunque este dentro de un comentario- cierra la cadena y el archivo deja de parsear con un
+   SyntaxError que apunta decenas de lineas ANTES del culpable. `node --check` sobre el archivo
+   es lo unico que lo caza; check_backticks.py no distingue el comentario del cuerpo.
+
+   AISLAMIENTO: el suite corre los 565 casos en UNA pagina y comparte su IndexedDB. Este caso
+   siembra DOS estudios con imagenes, mide, y en el finally restaura la lista que habia y borra
+   sus propios registros. Sin eso, los estudios sembrados quedan vivos para los casos siguientes
+   -que es como TC-131 dejaba un modal abierto y TC-252 media debajo de el-.
+
+   DENOMINADORES, y por que cada uno hace falta:
+     · (A0) los DOS botones existen. Sin esto, medir cual esta activo da «NO EXISTE» en los dos
+       y la condicion pasaria en verde sobre una cabecera rota.
+     · (B0) hay imagenes sembradas Y el toggle de guardado esta encendido. Un conteo de
+       miniaturas sobre cero imagenes da cero y se lee como «el lazy funciona».
+     · (C0) el pie publica el total. Sin el, «filtro aplicado» no se distingue de «la pagina no
+       se repinto».
+     · (F0) el esquema tiene datos que dibujar. Con los cuatro campos vacios no se dibuja ni se
+       guarda, asi que medir el guardado ahi da cero sin probar nada.
+
+   CONTROLES NEGATIVOS:
+     · (A4) al volver a «Informes guardados», los tres controles que son suyos recuperan su
+       display ORIGINAL -flex, no block-;
+     · (C4) limpiar los filtros devuelve el total;
+     · (D3) desmarcar la estrella BORRA la nota;
+     · (E4) «Volver y tapar» no genera ningun mazo;
+     · (F3) ABRIR un estudio guardado NO le escribe un esquema;
+     · (F4) el esquema no toca los slots del estudio, y (H2) no aparece en lo que lee el PDF.  */
+caso('TC-550', 'Tanda IMAGENES: los dos botones de Guardados con «Informes guardados» activo por omision; los meses plegados con las miniaturas numeradas y su enlace al estudio; los filtros -incluidos los numericos- aplicados por el ESTUDIO de cada imagen; la estrella de IMAGEN con su nota, distinta de «Casos de interes»; el PPT con solo el numero, su aviso previo, el orden de eleccion y el limite; la funcion comun guardando el esquema de la orejuela una sola vez y sin juzgar; y los CONTROLES de lo que no se podia mover', `
+  return (async () => {
+  const ex = [];
+  const F = (n) => (typeof window[n] === 'function') ? window[n] : null;
+  const EL = (id) => document.getElementById(id) || null;
+  const T = (id) => { const e = EL(id); return e ? (e.textContent || '').replace(/\\s+/g, ' ').trim() : 'NO EXISTE'; };
+  const DISP = (id) => { const e = EL(id); return e ? getComputedStyle(e).display : 'NO EXISTE'; };
+  const S = (id, v) => { const e = EL(id); if (!e) return 'NO EXISTE ' + id;
+    e.value = String(v); e.dispatchEvent(new Event('input', { bubbles: true }));
+    e.dispatchEvent(new Event('change', { bubbles: true })); return e.value; };
+  const esperar = (ms) => new Promise(r => setTimeout(r, ms));
+  const clic = (sel) => { const e = document.querySelector(sel); if (!e) return false; e.click(); return true; };
+  /* NINGUN CLIC DIRECTO SOBRE UN NODO QUE PUEDE NO ESTAR: un click sobre undefined mata el caso
+     con un TypeError y el diagnostico no dice QUE invariante se rompio -es la leccion de
+     TC-546-. Este helper devuelve false y la condicion correspondiente cae con su motivo. */
+  const clicEl = (e) => { if (!e || !e.click) return false; e.click(); return true; };
+
+  const prevLista = (typeof CeiboStore !== 'undefined') ? CeiboStore.getLocal() : [];
+  const prevTog = (function(){ try { return localStorage.getItem('cfg-guardar-imagenes') } catch(e){ return null } })();
+  /* ⚠️ OCHO CARACTERES COMO MINIMO: _uuidValido exige largo mayor o igual a 8, asi que
+     'tc550-a' -siete- hacia que CeiboImg.guardar devolviera false sin escribir nada, y la
+     pagina salia vacia. Costo una corrida entera averiguarlo, porque el sintoma era «0 grupos»
+     y eso se lee como que la pantalla no pinta. */
+  const U1 = 'tc550-uno', U2 = 'tc550-dos';
+  let restaurado = false;
+  const restaurar = async () => {
+    if (restaurado) return; restaurado = true;
+    try { if (typeof CeiboImg !== 'undefined') { await CeiboImg.borrar(U1); await CeiboImg.borrar(U2); } } catch (e) {}
+    try { await CeiboStore.setLocal(prevLista); } catch (e) {}
+    try { if (prevTog === null) localStorage.removeItem('cfg-guardar-imagenes');
+          else localStorage.setItem('cfg-guardar-imagenes', prevTog); } catch (e) {}
+    try { if (F('igImgInvalidar')) igImgInvalidar(); } catch (e) {}
+    try { if (F('igVistaCambiar')) igVistaCambiar('inf'); } catch (e) {}
+    try { if (F('renderInformesGuardados')) renderInformesGuardados(); } catch (e) {}
+  };
+
+  try {
+  /* ── (Z) LO QUE TIENE QUE EXISTIR ────────────────────────────────────────────────────────────
+     Van PRIMERO y como condiciones, no como una guarda que devuelve: contra HEAD el caso tiene
+     que caer por varias condiciones y con un diagnostico que diga QUE falta, no por una sola
+     salida temprana -es la leccion de TC-546, que caia por excepcion y no decia nada-. */
+  ex.push(['(Z1) los dos botones de vista existen en la cabecera de Guardados',
+    !!EL('ig-vista-inf') && !!EL('ig-vista-img'),
+    (EL('ig-vista-inf') ? 'inf' : 'NO EXISTE') + ' / ' + (EL('ig-vista-img') ? 'img' : 'NO EXISTE')]);
+  ex.push(['(Z2) la pagina de imagenes, su lista y su columna derecha existen',
+    !!EL('ig-img-view') && !!EL('ig-img-lista') && !!EL('ig-img-side') && !!EL('ig-img-side-ppt'),
+    [EL('ig-img-view'), EL('ig-img-lista'), EL('ig-img-side'), EL('ig-img-side-ppt')].map(x => !!x).join(',')]);
+  ex.push(['(Z3) el visor de una imagen guardada y el aviso previo del PPT existen',
+    !!EL('ig-imgv-ov') && !!EL('ig-imgv-img') && !!EL('ig-imgv-nota') &&
+    !!EL('ig-ppt-aviso-ov') && !!EL('ig-ppt-aviso-txt'),
+    [EL('ig-imgv-ov'), EL('ig-imgv-img'), EL('ig-imgv-nota'), EL('ig-ppt-aviso-ov')].map(x => !!x).join(',')]);
+  ex.push(['(Z4) la caja del esquema de la orejuela y el medidor de longitud de arco existen',
+    !!EL('oai-esq-caja') && !!EL('oai-esq') && !!EL('oai-esq-tmp') && !!EL('oai-esq-estado'),
+    [EL('oai-esq-caja'), EL('oai-esq'), EL('oai-esq-tmp')].map(x => !!x).join(',')]);
+  ex.push(['(Z5) CeiboImg tiene las cuatro operaciones nuevas',
+    typeof CeiboImg !== 'undefined' && !!CeiboImg.indice && !!CeiboImg.marcar &&
+    !!CeiboImg.guardarEsquema && !!CeiboImg.esquemas,
+    (typeof CeiboImg === 'undefined') ? 'sin CeiboImg'
+      : ['indice','marcar','guardarEsquema','esquemas'].map(k => k + '=' + !!CeiboImg[k]).join(' ')]);
+  ex.push(['(Z6) las funciones de la pantalla y de la funcion comun existen',
+    ['igVistaCambiar','igImgPintar','igImgSync','igImgCablear','igImgInvalidar',
+     'esqGuardarComoImagen','esqRasterizar','oaiEsqSVG','oaiEsqSync','oaiEsqGesto']
+      .every(n => typeof window[n] === 'function'),
+    ['igVistaCambiar','igImgPintar','esqGuardarComoImagen','oaiEsqSVG','oaiEsqGesto']
+      .map(n => n + '=' + (typeof window[n])).join(' ')]);
+  if (typeof CeiboImg === 'undefined' || !CeiboImg.indice) {
+    ex.push(['(A0) DENOMINADOR: sin CeiboImg.indice() no hay pantalla de imagenes que medir',
+      false, 'NO EXISTE — el resto de las condiciones no se pudo evaluar']);
+    return { extra: ex };
+  }
+  try { localStorage.setItem('cfg-guardar-imagenes', '1'); } catch (e) {}
+
+  /* Dos imagenes por estudio, hechas con un canvas: lo que importa es que sean JPEG validos que
+     pasen _imgSrcOK, no su contenido. El indice las distingue por su posicion. */
+  const jpeg = (txt) => { const cv = document.createElement('canvas');
+    cv.width = 80; cv.height = 60; const cx = cv.getContext('2d');
+    cx.fillStyle = '#123'; cx.fillRect(0, 0, 80, 60);
+    cx.fillStyle = '#fff'; cx.font = '14px sans-serif'; cx.fillText(String(txt), 6, 34);
+    return cv.toDataURL('image/jpeg', 0.7); };
+  const mk = (id, uuid, nom, fecha, fevi, interes) => ({ id: id, uuid: uuid, nombre: nom,
+    ci: String(id), doc_tipo: 'CI', fecha_estudio: fecha, fecha_guardado: fecha + 'T10:00:00Z',
+    campos: { nombre: nom, fevi: fevi, caso_interes: (interes ? '1' : ''), informe_texto: 't' } });
+  await CeiboStore.setLocal([ mk(998000550001, U1, 'TC550 Uno', '2026-03-10', '58', true),
+                              mk(998000550002, U2, 'TC550 Dos', '2026-04-12', '32', false) ]);
+  await CeiboImg.guardar(U1, [{ dataURL: jpeg('A1'), calidad: 'media', origen: 'estudio' },
+                              { dataURL: jpeg('A2'), calidad: 'media', origen: 'visor' }]);
+  await CeiboImg.guardar(U2, [{ dataURL: jpeg('B1'), calidad: 'media', origen: 'estudio' },
+                              { dataURL: jpeg('B2'), calidad: 'media', origen: 'estudio' }]);
+  if (F('igImgInvalidar')) igImgInvalidar();
+  if (F('showTab')) { try { showTab('guardados'); } catch (e) {} }
+  if (F('igImgCablear')) igImgCablear();
+  if (F('renderInformesGuardados')) renderInformesGuardados();
+  await esperar(500);
+
+  /* ── (A) LOS DOS BOTONES ────────────────────────────────────────────────────────────────── */
+  const bi = EL('ig-vista-inf'), bg = EL('ig-vista-img');
+  ex.push(['(A0) DENOMINADOR: los dos botones existen y la barra de memoria esta en su misma fila',
+    !!bi && !!bg && (function(){ const a = bg.getBoundingClientRect(),
+      b = (EL('ig-img-storage') || { getBoundingClientRect: () => ({ top: -999 }) }).getBoundingClientRect();
+      return Math.abs(a.top - b.top) < 26; })(),
+    (bi ? T('ig-vista-inf') : 'NO EXISTE') + ' / ' + (bg ? T('ig-vista-img') : 'NO EXISTE')]);
+  ex.push(['(A1) «Informes guardados» es el ACTIVO POR OMISION',
+    !!bi && bi.getAttribute('aria-pressed') === 'true' &&
+    !!bg && bg.getAttribute('aria-pressed') === 'false' &&
+    (typeof igVista !== 'undefined' && igVista === 'inf'),
+    (bi ? bi.getAttribute('aria-pressed') : '?') + ' / ' + (bg ? bg.getAttribute('aria-pressed') : '?') +
+    ' / ' + (typeof igVista !== 'undefined' ? igVista : 'NO EXISTE')]);
+  const dispInf = { lista: DISP('ig-lista'), borrar: DISP('ig-btn-borrar-todos'), io: DISP('ig-io-acciones') };
+  clicEl(bg); await esperar(600);
+  ex.push(['(A1b) DENOMINADOR: el cableado de los dos botones esta puesto y la vista cambio',
+    (typeof igVista !== 'undefined' && igVista === 'img') &&
+    (typeof _igImgCableado !== 'undefined' && _igImgCableado === true),
+    'vista=' + (typeof igVista !== 'undefined' ? igVista : '?') +
+    ' cableado=' + (typeof _igImgCableado !== 'undefined' ? _igImgCableado : '?') +
+    ' tabActiva=' + (function(){ const t = EL('tab-guardados');
+      return t ? t.classList.contains('active') : 'NO EXISTE'; })()]);
+  ex.push(['(A2) al elegir imagenes se muestra la pagina nueva y se esconden la lista, Eliminar todos, Exportar e Importar',
+    DISP('ig-img-view') !== 'none' && DISP('ig-lista') === 'none' &&
+    DISP('ig-btn-borrar-todos') === 'none' && DISP('ig-io-acciones') === 'none',
+    DISP('ig-img-view') + ' / ' + DISP('ig-lista') + ' / ' + DISP('ig-btn-borrar-todos') + ' / ' + DISP('ig-io-acciones')]);
+
+  /* ── (B) MESES PLEGABLES, NUMERACION Y ENLACE ───────────────────────────────────────────── */
+  const grupos = () => document.querySelectorAll('#ig-img-lista .ig-mes-grupo');
+  const minis = () => document.querySelectorAll('#ig-img-lista .ig-img-th');
+  ex.push(['(B0) DENOMINADOR: hay cuatro imagenes en dos meses y el guardado esta encendido',
+    grupos().length === 2 && T('ig-img-contador').indexOf('4 de 4') > -1 &&
+    (F('imgGuardadoActivo') ? imgGuardadoActivo() : false),
+    grupos().length + ' grupos · ' + T('ig-img-contador')]);
+  ex.push(['(B1) los meses nacen PLEGADOS, con aria-expanded false y CERO miniaturas construidas',
+    grupos().length > 0 && [].every.call(grupos(), g => g.classList.contains('cerrado') &&
+      (g.querySelector('.ig-mes') || {}).getAttribute('aria-expanded') === 'false') &&
+    minis().length === 0,
+    [].map.call(grupos(), g => g.dataset.mes + '=' + g.classList.contains('cerrado')).join(' ') +
+    ' · minis=' + minis().length]);
+  const h0 = document.querySelector('#ig-img-lista .ig-mes');
+  if (h0) h0.click(); await esperar(700);
+  const ths = [].slice.call(minis());
+  ex.push(['(B2) al abrir un mes por su boton aparecen sus miniaturas NUMERADAS',
+    ths.length === 2 && ths.map(t => t.dataset.igN).join(',') === '1,2' &&
+    [].map.call(document.querySelectorAll('#ig-img-lista .ig-img-n'), n => n.textContent).join(',') === '1,2',
+    ths.length + ' miniaturas · ' + ths.map(t => t.dataset.igN).join(',')]);
+  ex.push(['(B3) cada miniatura nombra su ESTUDIO -el enlace de donde viene- en el title y en el rotulo accesible',
+    ths.length > 0 && /TC550/.test(ths[0].title) && /\\d{2}\\/\\d{2}\\/\\d{4}/.test(ths[0].title) &&
+    /Abrir la imagen 1 de TC550/.test(ths[0].getAttribute('aria-label') || ''),
+    (ths[0] || {}).title + ' // ' + (ths[0] ? ths[0].getAttribute('aria-label') : '')]);
+  clicEl(ths[0]); await esperar(700);
+  ex.push(['(B4) el visor abre en grande, con el paciente a la vista y el boton de ir al estudio',
+    DISP('ig-imgv-ov') !== 'none' && /TC550/.test(T('ig-imgv-info')) &&
+    T('ig-imgv-tit') === 'Imagen 1' && T('ig-imgv-ir') === 'Ir al estudio' &&
+    !!(EL('ig-imgv-img') || {}).getAttribute && !!EL('ig-imgv-img').getAttribute('src'),
+    T('ig-imgv-tit') + ' // ' + T('ig-imgv-info')]);
+  if (EL('ig-imgv-cerrar')) EL('ig-imgv-cerrar').click(); await esperar(400);
+
+  /* ── (C) LOS FILTROS, POR EL ESTUDIO DE CADA IMAGEN ─────────────────────────────────────── */
+  ex.push(['(C0) DENOMINADOR: el pie publica el total de imagenes',
+    T('ig-img-contador') === 'Mostrando 4 de 4 imágenes', T('ig-img-contador')]);
+  S('ig-buscar', 'TC550 Dos'); if (F('aplicarFiltros')) aplicarFiltros(); await esperar(500);
+  const pieBusq = T('ig-img-contador');
+  ex.push(['(C1) el buscador filtra por el ESTUDIO: un estudio de dos deja sus DOS imagenes',
+    pieBusq === 'Mostrando 2 de 4 imágenes' && T('ig-contador').indexOf('1 de 2') > -1,
+    pieBusq + ' // ' + T('ig-contador')]);
+  S('ig-buscar', ''); if (F('aplicarFiltros')) aplicarFiltros(); await esperar(400);
+  /* EL NUMERICO, que es el que entra por la cadena LARGA de aplicarFiltros. */
+  const chk = EL('adv-fevi-lt-on'); if (chk) { chk.checked = true; chk.dispatchEvent(new Event('change', { bubbles: true })); }
+  S('adv-fevi-lt', '40'); if (F('aplicarFiltros')) aplicarFiltros(); await esperar(500);
+  const pieNum = T('ig-img-contador');
+  ex.push(['(C2) el filtro NUMERICO tambien se aplica por el estudio -FEVI menor a 40 deja un estudio y sus dos imagenes-',
+    pieNum === 'Mostrando 2 de 4 imágenes' && T('ig-contador').indexOf('1 de 2') > -1,
+    pieNum + ' // ' + T('ig-contador')]);
+  if (F('limpiarFiltros')) limpiarFiltros(); if (F('limpiarFiltroFechas')) limpiarFiltroFechas();
+  await esperar(500);
+  ex.push(['(C4) CONTROL: limpiar los filtros devuelve el total',
+    T('ig-img-contador') === 'Mostrando 4 de 4 imágenes', T('ig-img-contador')]);
+
+  /* ── (D) LA ESTRELLA DE IMAGEN Y SU NOTA ────────────────────────────────────────────────── */
+  const h1 = document.querySelector('#ig-img-lista .ig-mes-grupo.cerrado .ig-mes');
+  if (h1) h1.click(); await esperar(600);
+  const st0 = document.querySelector('#ig-img-lista .ig-img-st');
+  const colorEstudio = (function(){ const b = document.querySelector('.ig-btn-star');
+    return b ? getComputedStyle(b).color : ''; })();
+  ex.push(['(D0) DENOMINADOR: la miniatura trae su estrella, apagada y anunciada',
+    !!st0 && st0.classList.contains('off') && st0.getAttribute('aria-pressed') === 'false' &&
+    /interés/.test(st0.getAttribute('aria-label') || ''),
+    st0 ? (st0.className + ' / ' + st0.getAttribute('aria-label')) : 'NO EXISTE']);
+  const colorApagado = st0 ? getComputedStyle(st0).color : '';
+  /* ⚠️ EL UUID SALE DE LA MINIATURA, NO SE SUPONE. La grilla ordena por fecha DESCENDENTE, asi
+     que la primera miniatura es la del estudio mas NUEVO -U2, 12/04- y no U1. La primera version
+     de este caso marcaba la estrella ahi y despues la buscaba en U1: la pantalla decia que
+     estaba marcada y el disco de U1 decia que no, con las dos cosas ciertas. */
+  const uStar = st0 ? st0.dataset.igUuid : null;
+  const iStar = st0 ? parseInt(st0.dataset.igIdx, 10) : -1;
+  clicEl(st0); await esperar(800);
+  const st1 = document.querySelector('#ig-img-lista .ig-img-th .ig-img-st');
+  const enDisco1 = await CeiboImg.leer(uStar);
+  ex.push(['(D1) la estrella de IMAGEN marca, se anuncia y queda en disco en el SLOT -no en campos-',
+    !!st1 && !st1.classList.contains('off') && st1.getAttribute('aria-pressed') === 'true' &&
+    !!(enDisco1 && enDisco1[iStar] && enDisco1[iStar].star === true),
+    (st1 ? st1.className : '?') + ' // ' + uStar + '[' + iStar + ']=' +
+    JSON.stringify(enDisco1 && enDisco1[iStar] ? { star: enDisco1[iStar].star } : null)]);
+  ex.push(['(D2) y su color es DISTINTO del de «Casos de interes» del estudio',
+    (st1 ? getComputedStyle(st1).color : 'x') === 'rgb(240, 160, 32)' &&
+    (st1 ? getComputedStyle(st1).color : 'x') !== colorApagado,
+    (st1 ? getComputedStyle(st1).color : '?') + ' contra el amarillo del estudio #f5c842']);
+  /* La NOTA, por el visor, que es donde vive su control de 44 px. */
+  clicEl(document.querySelector('#ig-img-lista .ig-img-th')); await esperar(700);
+  const notaVis = DISP('ig-imgv-nota-box');
+  const ta = EL('ig-imgv-nota');
+  if (ta) { ta.value = 'Nota de prueba TC550'; ta.dispatchEvent(new Event('blur', { bubbles: true })); }
+  await esperar(800);
+  const enDisco2 = await CeiboImg.leer(uStar);
+  ex.push(['(D3) la nota se escribe en el visor -con su caja visible solo si la estrella esta puesta- y queda en disco',
+    notaVis !== 'none' && (ta ? ta.getAttribute('maxlength') === '300' : false) &&
+    !!(enDisco2 && enDisco2[iStar] && enDisco2[iStar].nota === 'Nota de prueba TC550'),
+    notaVis + ' // ' + JSON.stringify(enDisco2 && enDisco2[iStar] ? enDisco2[iStar].nota : null)]);
+  if (EL('ig-imgv-cerrar')) EL('ig-imgv-cerrar').click(); await esperar(700);
+  ex.push(['(D4) la miniatura anuncia que tiene nota, con el texto en su title',
+    (function(){ const nb = document.querySelector('#ig-img-lista .ig-img-nb');
+      return !!nb && nb.title === 'Nota de prueba TC550'; })(),
+    (document.querySelector('#ig-img-lista .ig-img-nb') || {}).title || 'sin senalador']);
+  /* El filtro de la columna derecha usa ESTA estrella. */
+  if (clic('[data-ig-imgf="star"]')) await esperar(600);
+  ex.push(['(D5) el filtro «de interes» de la columna usa la estrella de IMAGEN y no «Casos de interes» del estudio',
+    T('ig-img-contador') === 'Mostrando 1 de 4 imágenes', T('ig-img-contador')]);
+  if (clic('[data-ig-imgf="all"]')) await esperar(600);
+  /* CONTROL: desmarcar borra la nota. */
+  const st2 = document.querySelector('#ig-img-lista .ig-img-th .ig-img-st');
+  clicEl(st2); await esperar(800);
+  const enDisco3 = await CeiboImg.leer(uStar);
+  ex.push(['(D6) CONTROL: desmarcar la estrella BORRA la nota -una nota sin estrella no existe-',
+    !!(enDisco3 && enDisco3[iStar] && enDisco3[iStar].star === false && !enDisco3[iStar].nota),
+    JSON.stringify(enDisco3 && enDisco3[iStar] ? { star: enDisco3[iStar].star, nota: enDisco3[iStar].nota } : null)]);
+
+  /* ── (E) EL PPT: ORDEN, LIMITE Y AVISO ──────────────────────────────────────────────────── */
+  const chkPpt = EL('ig-ppt-on');
+  if (chkPpt) { chkPpt.checked = true; chkPpt.dispatchEvent(new Event('change', { bubbles: true })); }
+  await esperar(600);
+  ex.push(['(E0) DENOMINADOR: el armado se prende, con el tope y los tres repartos de la demo aprobada',
+    (typeof IG_IMG_PPT_MAX !== 'undefined' && IG_IMG_PPT_MAX === 24) &&
+    (typeof IG_IMG_PPT_POR !== 'undefined' && IG_IMG_PPT_POR.join(',') === '1,2,4') &&
+    (typeof _igImgPpt !== 'undefined' && _igImgPpt === true),
+    (typeof IG_IMG_PPT_MAX !== 'undefined' ? IG_IMG_PPT_MAX : '?') + ' / ' +
+    (typeof IG_IMG_PPT_POR !== 'undefined' ? IG_IMG_PPT_POR.join(',') : '?')]);
+  /* Se eligen al REVES: asi el orden de eleccion no coincide con el de la grilla. */
+  const nros = [].map.call(document.querySelectorAll('#ig-img-lista .ig-img-th'), t => t.dataset.igN);
+  /* ⚠️ CADA CLIC REPINTA LA GRILLA ENTERA, asi que la miniatura se vuelve a BUSCAR antes de cada
+     uno: una lista de nodos capturada al principio queda desprendida del documento despues del
+     primer clic y los demas no hacen nada —la primera version de este caso elegia UNA sola y
+     reportaba «elegidas 4» como si fuera el orden—. */
+  for (let i = nros.length - 1; i >= 0; i--) {
+    clicEl(document.querySelector('#ig-img-lista .ig-img-th[data-ig-n="' + nros[i] + '"]'));
+    await esperar(280);
+  }
+  const sel = (typeof _igImgSel !== 'undefined') ? _igImgSel.map(x => String(x.n)) : [];
+  ex.push(['(E1) el orden del mazo es el de ELECCION y no el de la grilla',
+    sel.join(',') === nros.slice().reverse().join(',') && sel.length === nros.length,
+    'grilla ' + nros.join(',') + ' · elegidas ' + sel.join(',')]);
+  ex.push(['(E2) las miniaturas elegidas llevan su numero de ORDEN, distinto del numero de la imagen',
+    (function(){ const o = document.querySelectorAll('#ig-img-lista .ig-img-ord');
+      if (o.length !== sel.length) return false;
+      const prim = document.querySelector('#ig-img-lista .ig-img-th[data-ig-n="' + nros[0] + '"] .ig-img-ord');
+      return !!prim && prim.textContent === String(sel.length); })(),
+    [].map.call(document.querySelectorAll('#ig-img-lista .ig-img-ord'), o => o.textContent).join(',')]);
+  if (EL('ig-ppt-exportar')) EL('ig-ppt-exportar').click(); await esperar(500);
+  const avTxt = T('ig-ppt-aviso-txt');
+  ex.push(['(E3) exportar abre primero el AVISO, que dice que el mazo no lleva el nombre y que la captura puede traerlo',
+    DISP('ig-ppt-aviso-ov') !== 'none' && /no lleva el nombre de ningún paciente/.test(avTxt) &&
+    /quemado dentro de la imagen/.test(avTxt) && /sin tapar/.test(avTxt),
+    DISP('ig-ppt-aviso-ov') + ' // ' + avTxt.slice(0, 150)]);
+  if (EL('ig-ppt-volver')) EL('ig-ppt-volver').click(); await esperar(400);
+  ex.push(['(E4) CONTROL: «Volver y tapar» cierra el aviso y NO arma ningun mazo',
+    DISP('ig-ppt-aviso-ov') === 'none' && T('ig-ppt-res') === '',
+    DISP('ig-ppt-aviso-ov') + ' // ' + T('ig-ppt-res')]);
+  if (chkPpt) { chkPpt.checked = false; chkPpt.dispatchEvent(new Event('change', { bubbles: true })); }
+  await esperar(400);
+
+  /* ── (F) LA FUNCION COMUN Y EL ESQUEMA DE LA OREJUELA ───────────────────────────────────── */
+  if (F('showTab')) { try { showTab('ete'); } catch (e) {} }
+  const secOai = EL('ete-seccion-oai');
+  if (secOai && getComputedStyle(secOai).display === 'none') secOai.style.display = 'block';
+  if (typeof _imgUuidActual !== 'undefined') _imgUuidActual = U2;
+  ex.push(['(F0) DENOMINADOR: con los cuatro campos vacios el esquema NO se dibuja ni ocupa lugar',
+    (function(){ ['oai_morfologia','oai_ostium_diam','oai_profundidad','oai_vel_vac'].forEach(id => S(id, ''));
+      if (F('oaiEsqSync')) oaiEsqSync();
+      return DISP('oai-esq-caja') === 'none' && !document.querySelector('#oai-esq svg'); })(),
+    DISP('oai-esq-caja')]);
+  S('oai_morfologia', 'ala'); if (F('oaiEsqGesto')) oaiEsqGesto();
+  S('oai_ostium_diam', '21'); if (F('oaiEsqGesto')) oaiEsqGesto();
+  S('oai_profundidad', '26'); if (F('oaiEsqGesto')) oaiEsqGesto();
+  await esperar(1400);
+  const svgTxt = (function(){ const s2 = document.querySelector('#oai-esq svg');
+    return s2 ? (s2.textContent || '').trim() : ''; })();
+  ex.push(['(F1) el esquema se dibuja con las DOS medidas cargadas y NO juzga: ni apta, ni no apta, ni ningun dispositivo',
+    /Ø 21 mm/.test(svgTxt) && /prof\\. 26 mm/.test(svgTxt) &&
+    !/apta|no apta|elegib|Watchman|Amulet|contraindic/i.test(svgTxt),
+    svgTxt.slice(0, 120)]);
+  /* DENOMINADOR DEL GUARDADO, y la primera version de este caso no lo tenia: sin el, «no hay
+     esquema en disco» no se distingue de «el dibujo no se armo» ni de «no habia donde guardar».
+     El estado de la pantalla DICE el motivo, que es para lo que se escribio. */
+  ex.push(['(F1b) DENOMINADOR: el dibujo trae su silueta, hay estudio abierto y el guardado esta encendido',
+    (document.querySelectorAll('#oai-esq svg path[stroke-linejoin]').length > 0) &&
+    (typeof _imgUuidActual !== 'undefined' && _imgUuidActual === U2) &&
+    (F('imgGuardadoActivo') ? imgGuardadoActivo() : false),
+    'siluetas=' + document.querySelectorAll('#oai-esq svg path[stroke-linejoin]').length +
+    ' uuid=' + (typeof _imgUuidActual !== 'undefined' ? _imgUuidActual : '?') +
+    ' activo=' + (F('imgGuardadoActivo') ? imgGuardadoActivo() : '?') +
+    ' estado=' + T('oai-esq-estado')]);
+  const esqs1 = await CeiboImg.esquemas(U2);
+  const slots2 = await CeiboImg.leer(U2);
+  ex.push(['(F2) se guarda SOLO en las imagenes del estudio, marcado esquema y con UNA sola copia',
+    esqs1.length === 1 && esqs1[0].clave === 'orejuela' && esqs1[0].esquema === true &&
+    String(esqs1[0].dataURL).indexOf('data:image/jpeg;base64,') === 0,
+    esqs1.length + ' esquema(s) · ' + (esqs1[0] ? esqs1[0].clave : '?')]);
+  ex.push(['(F4) CONTROL: los SLOTS del estudio no se tocan -el esquema no es una captura-',
+    (slots2 || []).length === 2 && (slots2 || []).every(s2 => !s2.esquema),
+    (slots2 || []).length + ' slots']);
+  const ts1 = esqs1[0] ? esqs1[0].ts : null;
+  const du1 = esqs1[0] ? esqs1[0].dataURL : null;
+  S('oai_profundidad', '30'); if (F('oaiEsqGesto')) oaiEsqGesto();
+  await esperar(1400);
+  const esqs2 = await CeiboImg.esquemas(U2);
+  ex.push(['(F5) al cambiar un dato la imagen guardada se ACTUALIZA, y sigue habiendo una sola',
+    esqs2.length === 1 && !!esqs2[0] && esqs2[0].ts !== ts1 && esqs2[0].dataURL !== du1,
+    esqs2.length + ' esquema(s) · ts cambio ' + (!!esqs2[0] && esqs2[0].ts !== ts1) +
+    ' · estado ' + T('oai-esq-estado')]);
+  /* CONTROL: el barrido y la restauracion NO escriben. */
+  const ts2 = esqs2[0] ? esqs2[0].ts : null;
+  /* ⚠️ EL VALOR SE PONE SIN DISPARAR input, y esto es el control. S() despacha input, y el
+     oninput del campo llama a oaiEsqGesto, o sea al camino que SI guarda: con S() este
+     control medía el gesto del medico y daba «escribio», que es lo contrario de lo que viene a
+     probar. Asi se reproduce lo que hace la RESTAURACION de un estudio guardado: poner el valor
+     y recalcular. */
+  { const e = EL('oai_ostium_diam'); if (e) e.value = '23'; }
+  if (F('calcOAI')) calcOAI();
+  if (F('_recalcModulos')) { try { _recalcModulos(); } catch (e) {} }
+  await esperar(1400);
+  const esqs3 = await CeiboImg.esquemas(U2);
+  ex.push(['(F3) CONTROL: el barrido de recalculo REPINTA pero NO escribe -abrir un estudio guardado no le agrega un esquema-',
+    esqs3.length === 1 && !!esqs3[0] && esqs3[0].ts === ts2 &&
+    /Ø 23 mm/.test((document.querySelector('#oai-esq svg') || { textContent: '' }).textContent),
+    'ts igual=' + (!!esqs3[0] && esqs3[0].ts === ts2) + ' · pantalla=' +
+    ((document.querySelector('#oai-esq svg') || { textContent: '' }).textContent || '').slice(0, 60)]);
+
+  /* El esquema tiene que SOBREVIVIR a guardar el estudio: imgPersistir reescribe el juego entero
+     desde imgSlots, que NO contiene el esquema, asi que sin la conservacion explicita un put
+     pelado se lo lleva en el primer guardado. Se entra por imgPersistir, que es el embudo real. */
+  /* ⚠️ HAY QUE RESTAURAR ANTES DE PERSISTIR, Y LA PRIMERA VERSION DE ESTA CONDICION NO LO HACIA:
+     imgPersistir sale temprano si no hay slots vivos y la bandera de editado esta baja, asi que
+     sin cargar las imagenes del estudio en el formulario NO llamaba a CeiboImg.guardar y la
+     condicion no podia fallar. Lo destapo la mutacion 17, que sobrevivio al primer barrido: es el
+     «freno que tapa al que se muta» que este repositorio ya documenta. Con imgRestaurar primero,
+     el camino es el real -abrir un estudio guardado y volver a guardarlo-. */
+  const restauradas = F('imgRestaurar') ? await imgRestaurar(U2) : 0;
+  const slotsAntesG = (await CeiboImg.leer(U2) || []).length;
+  if (F('imgPersistir')) { try { await imgPersistir(U2); } catch (e) {} }
+  await esperar(600);
+  const esqsTrasGuardar = await CeiboImg.esquemas(U2);
+  ex.push(['(F6) el esquema SOBREVIVE a guardar el estudio -imgPersistir reescribe los slots, no los esquemas-',
+    restauradas === 2 && slotsAntesG === 2 &&
+    esqsTrasGuardar.length === 1 && esqsTrasGuardar[0].clave === 'orejuela',
+    restauradas + ' restauradas · ' + slotsAntesG + ' slots antes · ' +
+    esqsTrasGuardar.length + ' esquema(s) despues']);
+
+  /* ── (G) BORRAR UN ESTUDIO SE LLEVA SUS IMAGENES ────────────────────────────────────────── */
+  const antesG = (await CeiboImg.leer(U1) || []).length;
+  await CeiboStore.setLocal(CeiboStore.getLocal().filter(i => i.uuid !== U1));
+  const recolectados = await (F('imgRecolectarHuerfanas') ? imgRecolectarHuerfanas() : Promise.resolve(0));
+  const despuesG = (await CeiboImg.leer(U1) || []).length;
+  ex.push(['(G1) borrar un estudio se lleva sus imagenes, y sin tocar las del otro',
+    antesG === 2 && recolectados >= 1 && despuesG === 0 &&
+    (await CeiboImg.leer(U2) || []).length === 2,
+    antesG + ' -> ' + despuesG + ' · recolectados ' + recolectados]);
+
+  /* ── (H) EL PAPEL NO SE MOVIO ───────────────────────────────────────────────────────────── */
+  const excelN = (function(){ if (!F('_labExcelRow') || !F('_noEsDelEstudio')) return 'SIN FN';
+    const campos = {};
+    document.querySelectorAll('input[id], select[id], textarea[id]').forEach(e => {
+      if (_noEsDelEstudio(e.id)) return;
+      campos[e.id] = (e.type === 'checkbox') ? (e.checked ? '1' : '') : String(e.value || ''); });
+    document.querySelectorAll('input[type=checkbox][id]').forEach(e => {
+      if (_noEsDelEstudio(e.id)) return; campos[e.id + '__chk'] = e.checked ? '1' : '0'; });
+    return Object.keys(_labExcelRow({ campos: campos, fecha: '2026-10-29' })).length; })();
+  ex.push(['(H1) el Excel sigue en 440 columnas con la orejuela y su esquema cargados', excelN === 440, String(excelN)]);
+  const inf = (function(){ try { if (F('setEstiloInforme')) setEstiloInforme('estandar');
+      if (F('generarInforme')) generarInforme(); } catch (e) {}
+    return ((EL('informe_texto') || {}).value || '') + ' || ' + ((EL('en_suma') || {}).value || ''); })();
+  ex.push(['(H2) ni el informe ni el EN SUMA nombran el esquema ni la imagen',
+    inf.length > 0 && !/esquema/i.test(inf) && !/Imágenes guardadas/i.test(inf),
+    inf.length + ' caracteres, sin la palabra esquema']);
+  ex.push(['(H3) la nota y la estrella NO son campos del estudio -el prefijo ig- las deja afuera-',
+    (function(){ if (!F('_noEsDelEstudio')) return false;
+      return _noEsDelEstudio('ig-imgv-nota') && _noEsDelEstudio('ig-ppt-on') &&
+             !_noEsDelEstudio('oai_ostium_diam'); })(),
+    'ig-imgv-nota e ig-ppt-on fuera, oai_ostium_diam adentro']);
+
+  } finally { await restaurar(); }
+  return { extra: ex };
+  })();
+`);
+
 
 
 let servidor, chrome;

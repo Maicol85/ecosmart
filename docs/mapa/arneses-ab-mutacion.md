@@ -169,3 +169,28 @@ Estas son las que cuestan sesiones enteras.
   lo re-verifiqué — `grep` cuenta 356 registros `caso('TC-…')` en el archivo a 5137c30 — ⚠️ no
   verificado: no corrí la suite en este pase, así que no sé si la diferencia con el 352 son casos
   agregados después de esa medición.*
+
+
+---
+
+## Los arneses de la tanda IMÁGENES (2026-10-29)
+
+`scripts/_probe_img1.mjs` — **reutilizable**, dos partes. `--censo` mide dónde y cómo se guardan
+las imágenes, qué publica la barra de memoria, las imágenes sin estudio y la tira de miniaturas por
+su camino real; `--perf --estudios N --imgs M` siembra un conjunto sintético en el entorno de
+prueba y mide leer la base, armar el DOM y pintar, con y sin lazy, más la memoria del renderer.
+Los números del presupuesto están en `docs/mapa/img-guardadas.md`.
+
+`scripts/_probe_img2.mjs` — la pantalla nueva entera, y además **el PPT abierto de verdad**:
+descarga el `.pptx` a un directorio propio, lista el zip y lee el XML de cada diapositiva para
+censar que ningún nombre de paciente aparezca en el archivo. ⚠️ `unzip -p` trata los corchetes de
+`[Content_Types].xml` como patrón glob y falla con «filename not matched»: ese archivo se saltea.
+
+`scripts/_mut_img.py` — dieciocho mutaciones dirigidas a TC-550.
+
+⚠️ **Dos trampas de template literal que costaron corridas en esta tanda.** El cuerpo de la sonda
+inyectada es un template literal: un acento grave adentro —comentarios incluidos— lo cierra, y
+`node --check` sobre el .mjs **no** lo caza porque el archivo sigue parseando. Lo que sirve es
+`new Function(cuerpo)` sobre lo que está entre los acentos graves. Y una barra invertida simple
+escrita desde un heredoc de Python llega al template como **ninguna**: `/\s+/` se volvió `/s+/` y
+el censo de texto borraba las eses en silencio.

@@ -327,3 +327,16 @@ Las mutaciones dirigidas están en `scripts/_mut_e.py`, y las sondas en
 `scripts/_probe_te.mjs` (medición paso a paso, con gestos reales) y `scripts/_ab_e.mjs` (el A/B de
 superficies firmadas, calcado de `_probe_bab.mjs`, que es el único de la familia **sin** el defecto
 del `RECALC_MODULOS.forEach`).
+
+
+---
+
+## El esquema de la orejuela — tanda IMÁGENES (2026-10-29)
+
+La orejuela ganó un **dibujo esquemático** debajo de su recuadro, con la silueta por morfología, la
+línea del ostium con su valor, la de la profundidad y el trazo del Doppler pulsado. **No juzga**: no
+dice «apta» ni «no apta» y no nombra ningún dispositivo — la elegibilidad sigue siendo del recuadro
+`oai-elegibilidad` con sus dos tablas y sus folios, y eso no se tocó. El dibujo se guarda solo como
+imagen del estudio, marcado «esquema», una sola copia por estudio.
+
+Está en `docs/mapa/img-guardadas.md` → «La función común de esquemas, y el primero».

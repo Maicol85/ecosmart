@@ -433,3 +433,19 @@ puertas con el corte del papel intacto (B), el sexo re-evaluando en el acto (C),
 papel y la pastilla con el valor del índice (D), y el estudio **ajeno** como control negativo (E).
 Cae contra HEAD por **20 condiciones y ninguna por excepción**; **13/13 mutaciones dirigidas
 muertas** (`scripts/_mut_y.py`, en un worktree). → `docs/mapa/y-vd-sexo-aorta.md`
+
+
+---
+
+## TC-550 — tanda IMÁGENES (2026-10-29)
+
+La ficha vive en **archivo propio**, `docs/mapa/tests-fichas-550.md`: la pantalla «Imágenes
+guardadas» con sus dos botones, los meses plegados y las miniaturas numeradas, los filtros
+aplicados por el estudio de cada imagen —los numéricos incluidos—, la estrella de imagen con su
+nota, el PPT con su límite de 24 y su aviso previo, y el esquema de la orejuela guardándose solo
+sin juzgar. Cae contra HEAD por **siete** condiciones y ninguna por excepción; lo cubren
+**dieciocho** mutaciones dirigidas (`scripts/_mut_img.py`).
+
+Sus cuatro trampas de método —un uuid de siete caracteres que no se guarda, la grilla ordenada al
+revés de lo que supone el caso, los nodos que se desprenden en cada repintado y `S()` despachando
+justo el evento que guarda— están en esa ficha.

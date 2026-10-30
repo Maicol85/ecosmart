@@ -192,3 +192,17 @@ método (`_simpIniciar`, `_strainIniciar`, `_larsIniciar`, `_vdIniciar`).
 - `_cineRecorteMedir` y `_cineBBoxCuadro`: el recorte sale de un bounding box del cuadro decodificado; no se leyó el umbral de negro ni cuántos cuadros muestrea.
 - `_cinePptMs`, `_cineAMp4` y vecinas: hay un camino de cineloop hacia PPT/MP4; sólo se confirmaron los nombres.
 - Nada de este mapa se verificó en Chrome: es lectura de código sobre `5137c30`, no una medición.
+
+
+---
+
+## La pantalla «Imágenes guardadas» y los esquemas — tanda IMÁGENES (2026-10-29)
+
+El registro de `ceibomed_img` tiene desde esta tanda **dos listas**: `imgs`, que son los slots de
+este módulo y lo único que `CeiboImg.leer` devuelve, y `esqs`, los esquemas que la app dibuja y
+guarda sola. Cada slot lleva además `star`, `nota` y `esquema`. Nada de este módulo cambió de
+comportamiento: `imgRestaurar` sigue poblando `imgSlots` desde `imgs`, el PDF y el PPT del estudio
+siguen leyendo lo mismo, y `CeiboImg.guardar` conserva los esquemas que ya estaban en disco.
+
+La pantalla que lista todas las imágenes de todos los estudios, la estrella de imagen, el PPT
+armado desde ahí y la función común de esquemas están en `docs/mapa/img-guardadas.md`.
