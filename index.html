@@ -44943,12 +44943,21 @@ const VINFO = Object.freeze({
        + 'significativa.\n'
        + 'Conviene corregirlo por la frecuencia cardíaca.\n'
        + 'No suma a la probabilidad de hipertensión pulmonar.\n'
-       + 'CRITERIO DE ECOSMART — sin fuente verificada en la biblioteca: cuando la velocidad '
+       + 'CRITERIO DE ECOSMART, respaldado en parte por la ASE 2025: cuando la velocidad '
        + 'de la insuficiencia tricuspídea está medida pero no llega a rango de hipertensión '
        + 'pulmonar y el ventrículo derecho está disfuncionante, el informe agrega que el '
        + 'gradiente aurícula derecha-ventrículo derecho probablemente está subestimado por esa '
-       + 'disfunción. Es un criterio clínico del médico; ninguna de las fuentes de la '
-       + 'biblioteca lo publica.',
+       + 'disfunción. La guía de corazón derecho de la ASE 2025 lo sostiene en parte: su '
+       + 'Tabla 5 (folio 165) lista «falla significativa del ventrículo derecho y disfunción '
+       + 'contráctil» como fuente de subestimación de la evaluación hemodinámica, y el folio '
+       + '164 dice que en la hipertensión pulmonar grave con falla derecha la contractilidad '
+       + 'reducida deja la presión sistólica estimada poco confiable.\n'
+       + 'Tres salvedades, y por eso el rótulo dice «en parte». La fuente habla de falla '
+       + 'significativa del ventrículo derecho, y esta aplicación publica la frase con '
+       + 'cualquiera de los cinco parámetros de disfunción. El folio 164 nombra el gradiente '
+       + 'entre el ventrículo derecho y la arteria pulmonar, no el de aurícula derecha a '
+       + 'ventrículo derecho que la frase menciona; a ese lo sostiene la Tabla 5, que no '
+       + 'nombra ningún gradiente. Y el «probablemente» es una inferencia del médico.',
     fuente: 'El corte de 75 ms viene de un consenso —Howard LS y cols., Eur Respir Rev '
        + '2012;21:239-248: normal menos de 75 ms, anormal 75 ms o más— y de un estudio que lo '
        + 'comparó con la presión pulmonar estimada por ecografía, sin cateterismo —Cabrita IZ y '
@@ -57007,9 +57016,14 @@ function generarInforme(opts) {
              28, que esta app ya aplica. «VD disfuncionante» tampoco: es `vdDisfPresente()`, el
              mismo `OR` de cinco parámetros con el que el informe decide decir «disfunción
              sistólica» unos párrafos más arriba.
-             ⚠️ ESA FRASE ES UN CRITERIO DEL MÉDICO Y NO TIENE FUENTE VERIFICADA EN LA
-             BIBLIOTECA. Está rotulada «CRITERIO DE ECOSMART — sin fuente verificada en la
-             biblioteca» en el ⓘ de la sección de HTP y en la Evidencia, y anotada en
+             ⚠️ ESA FRASE ES UN CRITERIO DEL MÉDICO Y LA ASE 2025 LA RESPALDA EN PARTE
+             (AJ1-4, 30/10/2026). Hasta esa tanda estaba rotulada «sin fuente verificada en la
+             biblioteca»; hoy el rótulo dice «CRITERIO DE ECOSMART, respaldado en parte por la
+             ASE 2025», con los folios 164 y 165 leídos en imagen y las TRES salvedades escritas
+             al lado —la fuente habla de falla SIGNIFICATIVA del ventrículo derecho, el folio 164
+             nombra el gradiente ventrículo derecho-arteria pulmonar y no el de aurícula derecha
+             a ventrículo derecho, y el «probablemente» es del médico—. Vive en el ⓘ «El TRIV del
+             ventrículo derecho» y en la Evidencia de HTP, y está anotado en
              `docs/fuentes/FUENTES.md`. El informe firmado no lleva ese rótulo porque no lleva
              citas ni notas metodológicas: el panel explica y el papel afirma.
        ⚠️ LA CATEGORÍA DE PROBABILIDAD DE HTP NO SE TOCA. `_htp2022Core` no lee el TRIV ni esta
@@ -78609,6 +78623,10 @@ const IND_REFS = Object.freeze([
          'Folio 162, tabla de fórmulas del cálculo hemodinámico no invasivo; folio 167, los dos ' +
          'bloques de recomendaciones sobre informar la presión capilar y la resistencia vascular ' +
          'pulmonar estimadas. ' +
+         'Folio 164, las fuentes de error de la presión sistólica estimada; Tabla 5 (folio 165), ' +
+         '«Common sources of error for hemodynamic assessment», cuya primera fila —«Significant ' +
+         'RV failure and contractile dysfunction»— lleva su única marca en la columna ' +
+         '«Underestimation». Los dos leídos en imagen, con el folio comprobado en el pie impreso. ' +
          '⚠️ ESOS DOS BLOQUES NO LLEVAN CLASE NI NIVEL: este documento no usa esa escala.' },
   { k:'sacShock2024',
     full:'Consenso de Shock Cardiogénico. Sociedad Argentina de Cardiología. ' +
@@ -86305,12 +86323,36 @@ function _indHTP(){
         + 'cateterismo, y ninguno de los dos está en la biblioteca; el ⓘ «El TRIV del '
         + 'ventrículo derecho» dice de dónde sale cada número. No suma a la probabilidad.',
       refs:null },
-    { txt:'CRITERIO DE ECOSMART — sin fuente verificada en la biblioteca. Con la velocidad de '
+    /* ══ ESTA ENTRADA DEJO DE SER «sin fuente verificada» (AJ1-4, 30/10/2026) ═══════════════
+       Cowork encontro la fuente y los dos folios se leyeron EN IMAGEN, con el folio comprobado
+       en el pie impreso de cada hoja: hoja 24 -> 164 y hoja 25 -> 165, que es la regla
+       `folio = hoja + 140` que `aseDer2025` ya declara.
+       ⚠️ EL RESPALDO ES PARCIAL Y SE DICE CUAL ES LA PARTE. La Tabla 5 (folio 165) tiene una
+       sola marca en la columna «Underestimation» para la fila «Significant RV failure and
+       contractile dysfunction», y no nombra ningun gradiente; el folio 164 si nombra uno, pero
+       es el de ventriculo derecho a arteria pulmonar, no el de auricula derecha a ventriculo
+       derecho que la frase de la app menciona. Y la fuente dice falla SIGNIFICATIVA mientras la
+       app publica la frase con cualquiera de los cinco parametros de `vdDisfPresente()`.
+       Las tres salvedades van escritas: citar la fuente sin ellas la haria respaldar algo que
+       no dice, que es justo lo que la regla de citacion de este repositorio prohibe.
+       ⚠️ LA FRASE DEL PAPEL NO CAMBIA, y es lo que la orden pide: el informe firmado no lleva
+       citas ni notas metodologicas. */
+    { txt:'CRITERIO DE ECOSMART, respaldado en parte por la ASE 2025. Con la velocidad de '
         + 'la insuficiencia tricuspídea medida pero sin llegar a rango de hipertensión pulmonar '
         + 'y el ventrículo derecho disfuncionante, el informe agrega que el gradiente aurícula '
-        + 'derecha-ventrículo derecho probablemente está subestimado por esa disfunción. Es un '
-        + 'criterio clínico del médico. No suma a la probabilidad.',
-      refs:null }
+        + 'derecha-ventrículo derecho probablemente está subestimado por esa disfunción. La '
+        + 'guía de corazón derecho de la ASE 2025 lo sostiene en parte, en los folios 164 y '
+        + '165: la Tabla 5 (folio 165) lista «falla significativa del ventrículo derecho y '
+        + 'disfunción contráctil» como fuente de subestimación de la evaluación hemodinámica, y '
+        + 'el folio 164 dice que en la hipertensión pulmonar grave con falla derecha la '
+        + 'contractilidad reducida deja la presión sistólica estimada poco confiable. La fuente '
+        + 'habla de falla significativa del ventrículo derecho y esta aplicación publica la '
+        + 'frase con cualquiera de sus cinco parámetros de disfunción; el folio 164 nombra el '
+        + 'gradiente entre el ventrículo derecho y la arteria pulmonar, no el de aurícula '
+        + 'derecha a ventrículo derecho, que lo sostiene la Tabla 5 sin nombrar ningún '
+        + 'gradiente; y el «probablemente» es una inferencia del médico. No suma a la '
+        + 'probabilidad.',
+      refs:['aseDer2025'] }
   ];
   const bloques = [ { tit:'Lo que esta aplicación agrega y la guía no publica', lineas: _propios },
     { tit:'Pasos que propone la guía', lineas: lineas,
