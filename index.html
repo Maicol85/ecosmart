@@ -597,14 +597,20 @@
        La regla `.ip-ap-col2` que mandaba ese campo a la columna del «Ancho del jet» se RETIRO
        con el: su `.grid-2` vuelve a tener DOS hijos, una sola fila y ningun hueco. */
     .vd-grid > .vd-r6 { grid-row: 6; }
-    /* ⚠️ LA FILA 7 NACIÓ EN LA TANDA Y (commit 2, 2026-10-29) PARA LA COLUMNA 1: el TRIV por
-       Doppler tisular entra al final de los parámetros de función, debajo de la FEVD. Va al
-       final y no entre el Tei y el strain —que sería lo semántico, porque los dos son Doppler
-       tisular— para no mover de fila a dos campos que ya tienen su posición explícita y su caso
-       de prueba sobre el orden del Tab. Las columnas 2 y 3 se quedan con su hueco de abajo, que
-       es la razón de ser de la posición explícita: con flujo automático el séptimo campo de la
-       columna 1 se habría ido a la fila 1 de la columna 2. */
-    .vd-grid > .vd-r7 { grid-row: 7; }
+    /* ⚠️ LA FILA 7 SE RETIRÓ EN EL COR-3 (2026-10-30), Y CON ELLA EL ÚNICO HUECO DE LA GRILLA.
+       La tanda Y la había abierto para meter el TRIV al final de la columna 1 «para no mover de
+       fila a dos campos que ya tienen su posición explícita»; el pedido del médico es
+       exactamente lo contrario —el TRIV debajo de la onda S′, porque los dos se miden con
+       Doppler tisular— y la reorganización deja las TRES columnas con SEIS campos cada una:
+         columna 1 · TAP · TAPSE · S′ · TRIV · strain de pared libre · índice de Tei
+         columna 2 · VD basal · medio · longitudinal · VD/VI · pared · FEVD
+         columna 3 · diám. TSVD · VTI TSVD · diám. arteria pulmonar · área d · área s · FAC
+       ⚠️ 18 CAMPOS EN 3 × 6 SIN UN SOLO HUECO, así que los espacios entre campos quedan
+       iguales en las tres columnas, que es lo que el pedido llama «simétrico». La FEVD queda en
+       la fila 6 de la columna 2, al lado de la FAC del VD, que es la fila 6 de la columna 3.
+       ⚠️ LA POSICIÓN EXPLÍCITA SIGUE HACIENDO FALTA aunque ya no haya desbalance: la casilla de
+       la FAC es el último campo de su columna y con flujo automático un campo escondido haría
+       subir a uno de OTRA columna. Es el motivo que el G1 declaró y no cambió. */
   }
   /* ══ CARD ══ */
   .card {
@@ -4766,17 +4772,26 @@ window.cerrarSesionReal = cerrarSesionReal;
           <button type="button" class="vinfo-btn" data-vinfo="vd-fun-card" aria-expanded="false"
                   aria-label="Cortes y referencia de la función del ventrículo derecho" onclick="vInfoClic(this)">&#9432;</button></span>
       </div>
-      <!-- ══ LOS DIECISIETE CAMPOS EN TRES COLUMNAS (G1 · G3, 2026-10-15 · AJ5-5, 2026-10-24) ══
-           ⚠️ DIECISIETE Y NO DIECISÉIS DESDE LA AJ5-5: el strain de pared libre entra en la
-           columna 1, entre el índice de Tei y la FEVD, así que esa columna pasa a SEIS campos y la
-           FEVD baja a `vd-r6` — la fila 6 ya existía, la había abierto el G3 para la columna 3.
-           Decisión de Maicol: columna 1 = TAP · TAPSE · S' · índice de Tei · STRAIN · FEVD; columna 2 =
-           VD basal · medio · longitudinal · relación VD/VI · pared; columna 3 = Diám. TSVD ·
-           VTI TSVD · diámetro de la arteria pulmonar · área telediastólica · área telesistólica ·
-           FAC. Las referencias de abajo siguen ESE mismo orden.
-           ⚠️ LA COLUMNA 3 TIENE SEIS Y LAS OTRAS DOS CINCO (G3): el diámetro de la arteria
-           pulmonar se mudó acá desde la insuficiencia de la válvula pulmonar, en TERCER lugar,
-           debajo del VTI TSVD. Debajo de la FEVD y de la pared queda un hueco, que es lo correcto.
+      <!-- ══ LOS DIECIOCHO CAMPOS EN TRES COLUMNAS DE SEIS (COR-3, 2026-10-30) ══════════════
+           Pedido del médico del 30/10, y reemplaza el reparto que venían dejando el G1, el G3,
+           la AJ5-5 y la tanda Y. Las TRES columnas quedan con SEIS campos, sin un solo hueco:
+             columna 1 · TAP · TAPSE · S′ · TRIV por Doppler tisular · strain de pared libre ·
+                         índice de Tei
+             columna 2 · VD basal · VD medio · VD longitudinal · relación VD/VI · pared · FEVD
+             columna 3 · Diám. TSVD · VTI TSVD · diámetro de la arteria pulmonar ·
+                         área telediastólica · área telesistólica · FAC
+           Los tres movimientos del pedido: el TRIV sube debajo de la onda S′ —los dos se miden
+           con Doppler tisular—, el índice de Tei baja al lugar que ocupaba el strain, y la FEVD
+           cruza al final de la columna 2, al lado de la FAC del VD.
+           ⚠️ 18 = 3 × 6, ASÍ QUE LOS ESPACIOS ENTRE CAMPOS QUEDAN IGUALES EN LAS TRES COLUMNAS.
+           La fila 7 que la tanda Y había abierto para el TRIV se retiró del CSS con el cambio.
+           ⚠️ EL CUADRO DE REFERENCIAS DE ABAJO NO SE REORDENÓ, y el renglón que decía «las
+           referencias de abajo siguen ESE mismo orden» dejó de ser cierto. El pedido de esta
+           tanda es sobre la grilla de CAMPOS y nada más; reordenar el cuadro mueve un
+           invariante que tres casos de prueba cuentan fila por fila. Queda declarado en
+           `docs/PENDIENTES.md` → COR-b.
+           ⚠️ NINGÚN `id` CAMBIÓ, así que no se movió ni un campo guardado ni una columna de
+           Excel: lo único que cambia es en qué celda de la grilla se dibuja cada uno.
            Es el mecanismo de la grilla del Doppler mitral (`docs/mapa/doppler-mitral-grilla.md`)
            y por las MISMAS dos razones:
              1. EL ORDEN DEL MARCADO ES EL DEL TAB. Los dieciséis `.fg` están acá en orden de
@@ -4785,8 +4800,9 @@ window.cerrarSesionReal = cerrarSesionReal;
                 un número que nadie mantiene sincronizado con el marcado.
              2. LA POSICIÓN ES EXPLÍCITA Y NO DE FLUJO (`vd-cN` / `vd-rM`, nueve reglas de CSS).
                 Un `grid-auto-flow: column` daría el mismo dibujo con cero reglas, pero el flujo
-                REACOMODA, y acá hay dos columnas de cinco y una de seis: con flujo automático el
-                sexto campo de la columna 3 se iría a la fila 1 de la columna 1.
+                REACOMODA. Con las tres columnas parejas eso ya no basta para romperlo solo, pero
+                la casilla de la FAC —último campo de su columna— sigue pudiendo esconderse, y
+                entonces subiría un campo de OTRA columna.
                 ⚠️ EN EL G1 EL MOTIVO ERA OTRO —la casilla de la FAC se escondía sin dato— y desde
                 el G3 esa casilla está SIEMPRE VISIBLE: lo que la sostiene hoy es el desbalance de
                 columnas, que es igual de real.
@@ -4794,7 +4810,7 @@ window.cerrarSesionReal = cerrarSesionReal;
            columna y el orden visual es el del marcado, que es el del Tab: no hace falta ninguna
            regla de posición para que coincidan. -->
       <div class="grid-3 vd-grid">
-        <!-- ── COLUMNA 1 ───────────────────────────────────────────────────────────────────── -->
+        <!-- ── COLUMNA 1 ─────────────────────────────────────────────────────────────────── -->
         <div class="fg vd-c1 vd-r1">
           <label>TAP (ms)</label>
           <!-- `dtTapSync` PRIMERO, igual que `itVmaxSync` en la Vmax IT: el espejo del Doppler
@@ -4810,14 +4826,36 @@ window.cerrarSesionReal = cerrarSesionReal;
           <input type="number" id="s_prime" placeholder="cm/s" oninput="calcVD()">
         </div>
         <div class="fg vd-c1 vd-r4">
-          <!-- ⚠️ SE TIPEA COMO COCIENTE Y NO EN PORCENTAJE: el RV MPI es ADIMENSIONAL (nota de
-               la Tabla 3 de la ASE 2025, folio 156) y su corte por DTI es 0,55. De ahí el
-               `placeholder` «0,55»: es el valor del corte, puesto a la vista justamente para que
-               un 55 tipeado se vea raro antes de mandarlo. Un 55 igual queda MARCADO
-               «(revisar)» por su banda, y no se corrige ni cambia ninguna cuenta. -->
-          <label>Índice de Tei (DTI)</label>
-          <input type="number" id="vd_tei" placeholder="0,55" step="0.01" oninput="vdMarcaSync();calcVD()">
-          <div id="vd_tei-marca" style="font-size:10px;color:var(--yellow);margin-top:3px;min-height:14px;"></div>
+          <!-- ⚠️ EL TRIV TRICUSPÍDEO, SEGUNDA PUERTA DE UN DATO QUE YA EXISTE (tanda Y, commit 2,
+               pedido del médico del 29/10/2026). El dato guardado es `dt_triv`, en la pestaña
+               Doppler → bloque tricuspídeo, y éste es su ESPEJO: el médico lo quiere poder cargar
+               y mirar también desde acá.
+               ⚠️ SIN CAMPO GUARDADO NUEVO, QUE ES LO QUE LA ORDEN EXIGE. El id va con GUION MEDIO
+               —`vd-triv`— y el prefijo entra en `_noEsDelEstudio`, así que el recolector no lo
+               toma: el juego de campos guardados de todo estudio que se guarde desde hoy no se
+               mueve, el Excel queda en 440 columnas y no hay una segunda copia del número que al
+               reabrir pueda contradecir al dueño. Es exactamente el reparto de `hfpep-`,
+               `vauto-` y `otr-asia-`, que este archivo ya documenta.
+               ⚠️ NO ES `triv` NI ES `tvia`. `triv` es el del VENTRÍCULO IZQUIERDO y vive en
+               Diastólica junto al TDE y al THP; `tvia` es el TIEMPO DE ACELERACIÓN PULMONAR y es
+               el campo de la fila 1 de esta misma columna. Son tres mediciones distintas.
+               ⚠️ GANA LA ÚLTIMA EDICIÓN Y BORRAR EN UNO BORRA EN EL OTRO: lo resuelve
+               `vdTrivSync`, calcado de `dtTapSync`. Va PRIMERO en el `oninput`, igual que
+               `dtTapSync` en el TAP y `itVmaxSync` en la Vmax IT: el espejo se copia antes de que
+               nadie calcule, para que los lectores vean el valor nuevo en la misma pasada.
+               ⚠️ SIN REFERENCIA Y SIN COLOR, Y ESO ESTÁ PARADO A PROPÓSITO (tanda Y, commit 2).
+               La orden condicionaba el significado y el amarillo a verificar el corte de 75 ms en
+               la biblioteca, EN IMAGEN. Se verificó y NO se pudo: la ASE 2025 de corazón derecho
+               publica 73 ms —hoja 28, folio 168, «IVRT … is typically ≤73 ms in normal healthy
+               adults», y Tabla 6, hoja 29, folio 169, «RV IVRT, ms: ≤73 / >73»— y lo hace para
+               OTRA pregunta, la función diastólica del VD, no para «a favor de HTP». El 75 de
+               el 75 es una decisión de pantalla ya declarada en este archivo y sin fuente
+               publicada. Ver `docs/PENDIENTES.md` → Y-b.
+               ⚠️ Y DESDE EL COR-2b ESE MISMO 75 GOBIERNA TAMBIÉN EL INFORME FIRMADO: hay un solo
+               corte, `DT_TRIV_HTP`, y la referencia de esta fila ya no es «sólo de pantalla». -->
+          <label>TRIV por Doppler tisular (ms)</label>
+          <input type="number" id="vd-triv" step="1" placeholder="ms" oninput="vdTrivSync('vd-triv');calcDopTric()">
+          <span style="font-size:10px;color:var(--text2);">Es el mismo dato que el de <b>Doppler</b> → tricúspide. No es el TRIV del ventrículo izquierdo, que se carga en <b>Diastólica</b>.</span>
         </div>
         <div class="fg vd-c1 vd-r5">
           <!-- ══ STRAIN DE PARED LIBRE DEL VD — AJ5-5 (2026-10-24, decisión de Maicol) ════════
@@ -4861,46 +4899,16 @@ window.cerrarSesionReal = cerrarSesionReal;
                que corregir y no en un cuadro de interpretación. -->
         </div>
         <div class="fg vd-c1 vd-r6">
-          <!-- ⚠️ `calcVD()` EN EL `oninput` ES NUEVO (G1) Y NO ES DECORATIVO: desde esta tanda la
-               FILA de referencia de la FEVD aparece y desaparece con el dato, y sin el manejador
-               el campo se cargaba sin que nada repintara el cuadro. El campo NO cambia de id, no
-               entra en el narrativo y sigue viajando al PDF y al Excel como hasta hoy. -->
-          <label>FEVD (%)</label>
-          <input type="number" id="fevd" placeholder="%" oninput="calcVD()">
+          <!-- ⚠️ SE TIPEA COMO COCIENTE Y NO EN PORCENTAJE: el RV MPI es ADIMENSIONAL (nota de
+               la Tabla 3 de la ASE 2025, folio 156) y su corte por DTI es 0,55. De ahí el
+               `placeholder` «0,55»: es el valor del corte, puesto a la vista justamente para que
+               un 55 tipeado se vea raro antes de mandarlo. Un 55 igual queda MARCADO
+               «(revisar)» por su banda, y no se corrige ni cambia ninguna cuenta. -->
+          <label>Índice de Tei (DTI)</label>
+          <input type="number" id="vd_tei" placeholder="0,55" step="0.01" oninput="vdMarcaSync();calcVD()">
+          <div id="vd_tei-marca" style="font-size:10px;color:var(--yellow);margin-top:3px;min-height:14px;"></div>
         </div>
-        <div class="fg vd-c1 vd-r7">
-          <!-- ⚠️ EL TRIV TRICUSPÍDEO, SEGUNDA PUERTA DE UN DATO QUE YA EXISTE (tanda Y, commit 2,
-               pedido del médico del 29/10/2026). El dato guardado es `dt_triv`, en la pestaña
-               Doppler → bloque tricuspídeo, y éste es su ESPEJO: el médico lo quiere poder cargar
-               y mirar también desde acá.
-               ⚠️ SIN CAMPO GUARDADO NUEVO, QUE ES LO QUE LA ORDEN EXIGE. El id va con GUION MEDIO
-               —`vd-triv`— y el prefijo entra en `_noEsDelEstudio`, así que el recolector no lo
-               toma: el juego de campos guardados de todo estudio que se guarde desde hoy no se
-               mueve, el Excel queda en 440 columnas y no hay una segunda copia del número que al
-               reabrir pueda contradecir al dueño. Es exactamente el reparto de `hfpep-`,
-               `vauto-` y `otr-asia-`, que este archivo ya documenta.
-               ⚠️ NO ES `triv` NI ES `tvia`. `triv` es el del VENTRÍCULO IZQUIERDO y vive en
-               Diastólica junto al TDE y al THP; `tvia` es el TIEMPO DE ACELERACIÓN PULMONAR y es
-               el campo de la fila 1 de esta misma columna. Son tres mediciones distintas.
-               ⚠️ GANA LA ÚLTIMA EDICIÓN Y BORRAR EN UNO BORRA EN EL OTRO: lo resuelve
-               `vdTrivSync`, calcado de `dtTapSync`. Va PRIMERO en el `oninput`, igual que
-               `dtTapSync` en el TAP y `itVmaxSync` en la Vmax IT: el espejo se copia antes de que
-               nadie calcule, para que los lectores vean el valor nuevo en la misma pasada.
-               ⚠️ SIN REFERENCIA Y SIN COLOR, Y ESO ESTÁ PARADO A PROPÓSITO (tanda Y, commit 2).
-               La orden condicionaba el significado y el amarillo a verificar el corte de 75 ms en
-               la biblioteca, EN IMAGEN. Se verificó y NO se pudo: la ASE 2025 de corazón derecho
-               publica 73 ms —hoja 28, folio 168, «IVRT … is typically ≤73 ms in normal healthy
-               adults», y Tabla 6, hoja 29, folio 169, «RV IVRT, ms: ≤73 / >73»— y lo hace para
-               OTRA pregunta, la función diastólica del VD, no para «a favor de HTP». El 75 de
-               el 75 es una decisión de pantalla ya declarada en este archivo y sin fuente
-               publicada. Ver `docs/PENDIENTES.md` → Y-b.
-               ⚠️ Y DESDE EL COR-2b ESE MISMO 75 GOBIERNA TAMBIÉN EL INFORME FIRMADO: hay un solo
-               corte, `DT_TRIV_HTP`, y la referencia de esta fila ya no es «sólo de pantalla». -->
-          <label>TRIV por Doppler tisular (ms)</label>
-          <input type="number" id="vd-triv" step="1" placeholder="ms" oninput="vdTrivSync('vd-triv');calcDopTric()">
-          <span style="font-size:10px;color:var(--text2);">Es el mismo dato que el de <b>Doppler</b> → tricúspide. No es el TRIV del ventrículo izquierdo, que se carga en <b>Diastólica</b>.</span>
-        </div>
-        <!-- ── COLUMNA 2 ───────────────────────────────────────────────────────────────────── -->
+        <!-- ── COLUMNA 2 ─────────────────────────────────────────────────────────────────── -->
         <div class="fg vd-c2 vd-r1">
           <label>VD basal (mm)</label>
           <input type="number" id="vd_bas" placeholder="mm" oninput="calcVD()">
@@ -4930,7 +4938,22 @@ window.cerrarSesionReal = cerrarSesionReal;
                ni la fila nueva ni la probabilidad de HTP, que la lee. El valor que publican los
                tres lectores es el mismo; lo que cambia es CUÁNDO se repinta. -->
           <label>VD/VI ratio</label>
-          <input type="number" id="vd_vi" placeholder="ratio" step="0.01" oninput="calcVD()">
+          <!-- ⚠️ EL NÚMERO Y EL SELECTOR, UNO AL LADO DEL OTRO Y DE MENOR ANCHO (COR-3b-iv,
+               2026-10-30; pedido del médico). Hasta acá iban apilados, con un rótulo propio de
+               diez píxeles en el medio, y el campo ocupaba el ancho entero de la columna para un
+               número de cuatro caracteres. Ahora comparten una fila `flex`: el número toma 1 de
+               ancho y el selector 1,15 —el selector necesita algo más porque su opción más larga
+               es «≤ 1» más la flecha del control—, con un `min-width: 0` en los dos para que
+               `flex` pueda encogerlos por debajo de su ancho intrínseco. Por debajo de 420 px la
+               fila ENVUELVE y vuelven a quedar apilados, que es lo que mantiene los dos
+               controles usables en el teléfono sin ningún breakpoint nuevo.
+               ⚠️ NI EL `id`, NI EL `oninput`, NI EL `onchange`, NI EL ORDEN DEL MARCADO CAMBIAN:
+               el número sigue primero y el selector después, así que el Tab los recorre en el
+               mismo orden que antes y `vdViSelSync` sigue siendo el dueño de las cuatro reglas
+               que los sincronizan. Lo único que cambia es la caja. -->
+          <div style="display:flex;gap:6px;align-items:flex-end;flex-wrap:wrap;">
+            <input type="number" id="vd_vi" placeholder="ratio" step="0.01" oninput="calcVD()"
+                   style="flex:1 1 90px;min-width:0;">
           <!-- ══ EL SELECTOR DE LA RELACIÓN VD/VI (G3, 2026-10-15, decisión de Maicol) ═════════
                CONVIVE con el número, no lo reemplaza: el médico pidió poder ELEGIR cuando no
                midió el cociente, y el campo numérico sigue siendo el dato cuando existe.
@@ -4951,19 +4974,34 @@ window.cerrarSesionReal = cerrarSesionReal;
                BAJO, así que `_noEsDelEstudio` no lo excluye— y «Nuevo estudio» lo devuelve a
                «—» por el barrido de `select` a `selectedIndex = 0`.
                ⚠️ EL `>= 0,9` DE LA PANTALLA DE TEP ES OTRO CAMPO (`tep_vdvi`) Y NO SE TOCA. -->
-          <label style="font-weight:400;color:var(--text2);font-size:10px;margin-top:4px;">Sin medición, elegí el tramo</label>
-          <select id="vd_vi_sel" onchange="vdViSelClic(this)">
-            <option value="">&mdash;</option>
-            <option value="le1">&le; 1</option>
-            <option value="gt1">&gt; 1</option>
-          </select>
+            <select id="vd_vi_sel" onchange="vdViSelClic(this)" aria-label="Sin medición, elegí el tramo de la relación VD/VI"
+                    style="flex:1 1.15 104px;min-width:0;">
+              <option value="">&mdash;</option>
+              <option value="le1">&le; 1</option>
+              <option value="gt1">&gt; 1</option>
+            </select>
+          </div>
+          <!-- El rótulo pasa DEBAJO de la fila y se queda: dice para qué sirve el selector, y
+               sin él un desplegable con «—», «≤ 1» y «> 1» al lado de un campo numérico no se
+               explica solo. Lo que se fue es el `margin-top`, que separaba dos controles que
+               ahora están en la misma línea. El `aria-label` del `select` repite ese texto
+               porque el rótulo ya no lo precede en el orden de lectura. -->
+          <span style="font-weight:400;color:var(--text2);font-size:10px;">Sin medición, elegí el tramo</span>
         </div>
         <div class="fg vd-c2 vd-r5">
           <label>Pared del VD (mm)</label>
           <input type="number" id="vd_pared" placeholder="mm" step="0.1" oninput="vdMarcaSync();calcVD()">
           <div id="vd_pared-marca" style="font-size:10px;color:var(--yellow);margin-top:3px;min-height:14px;"></div>
         </div>
-        <!-- ── COLUMNA 3 ───────────────────────────────────────────────────────────────────── -->
+        <div class="fg vd-c2 vd-r6">
+          <!-- ⚠️ `calcVD()` EN EL `oninput` ES NUEVO (G1) Y NO ES DECORATIVO: desde esta tanda la
+               FILA de referencia de la FEVD aparece y desaparece con el dato, y sin el manejador
+               el campo se cargaba sin que nada repintara el cuadro. El campo NO cambia de id, no
+               entra en el narrativo y sigue viajando al PDF y al Excel como hasta hoy. -->
+          <label>FEVD (%)</label>
+          <input type="number" id="fevd" placeholder="%" oninput="calcVD()">
+        </div>
+        <!-- ── COLUMNA 3 ─────────────────────────────────────────────────────────────────── -->
         <div class="fg vd-c3 vd-r1">
           <!-- Diámetro del TSVD: vive ACÁ, con el resto de las medidas del ventrículo derecho,
                y CIA/CIV lo muestra como espejo de solo lectura — igual que ya hace con el TSVI
@@ -56931,12 +56969,11 @@ function generarInforme(opts) {
              sistólica» unos párrafos más arriba.
              ⚠️ ESA FRASE ES UN CRITERIO DEL MÉDICO Y NO TIENE FUENTE VERIFICADA EN LA
              BIBLIOTECA. Está rotulada «CRITERIO DE ECOSMART — sin fuente verificada en la
-             biblioteca» en el ⓘ del TRIV y en la Evidencia de HTP, y anotada en
+             biblioteca» en el ⓘ de la sección de HTP y en la Evidencia, y anotada en
              `docs/fuentes/FUENTES.md`. El informe firmado no lleva ese rótulo porque no lleva
              citas ni notas metodológicas: el panel explica y el papel afirma.
        ⚠️ LA CATEGORÍA DE PROBABILIDAD DE HTP NO SE TOCA. `_htp2022Core` no lee el TRIV ni esta
-       oración; lo único que cambia es la redacción del cuerpo. Medido con y sin TRIV en las 64
-       escenas del A/B: cero diferencias en las cinco cápsulas de la probabilidad. */
+       oración; lo único que cambia es la redacción del cuerpo. Medido con y sin TRIV. */
     const _htpInd = (function(){
       const i = (typeof htpIndirectosFrase === 'function') ? htpIndirectosFrase() : '';
       if (!i) return '';
