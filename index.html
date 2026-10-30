@@ -15914,53 +15914,33 @@ z
           </div>
         </div>
         <div style="flex:1 1 340px;min-width:0;">
-          <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:0 0 8px;">Factores de riesgo <button type="button" class="vinfo-btn" data-vinfo="vab-friesgo" aria-expanded="false" aria-label="Factores de riesgo" onclick="vInfoClic(this)">&#9432;</button></div>
-          <!-- ══ Y3d5: LOS SEIS FACTORES PASAN A CASILLA (2026-10-19) ════════════════════
-               DECISION DE MAICOL: marcada = presente; sin marcar = no cuenta. Los tres que se
-               derivan solos -edad <50, talla 1,50-1,69 m y coartacion- siguen siendo etiquetas
-               automaticas y no se preguntan.
-               ⚠️ LA CASILLA NO ES EL CAMPO. El dato sigue viviendo en el `<input type="hidden">`
-               `vab_fr_*` con los MISMOS valores de siempre ('si' / ''), porque es el que tiene
-               columna de Excel y vocabulario de reimportacion: una casilla con id propio se
-               guardaria como `<id>__chk` y le cambiaria el nombre y el valor a esa columna. La
-               casilla visible lleva el prefijo `vabchk-` con guion MEDIO, que `_noEsDelEstudio`
-               excluye -el patron de `hfpep-` y `vauto-`-, asi que NO agrega ni una clave al
-               juego de campos guardados.
-               ⚠️ ESTUDIOS GUARDADOS: «si» reabre MARCADO; «no» y «no_eval» reabren SIN marcar.
-               No se migra nada: el valor guardado queda como esta y lo que se deriva es la
-               casilla. Un estudio con «No» que se vuelva a guardar pasa a '' -la casilla no
-               distingue «no» de «no consta»-, y es el precio de la casilla, declarado. -->
-          <div id="vab-fr-grid" class="grid-2">
-            <div class="fg"><label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
-              <input type="checkbox" id="vabchk-familiar" onchange="vabFrChk(this)" style="width:auto;margin:0;flex:0 0 auto;">
-              <span>Familiar con síndrome aórtico agudo</span></label>
-              <input type="hidden" id="vab_fr_familiar" value="">
-            </div>
-            <div class="fg"><label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
-              <input type="checkbox" id="vabchk-longitud" onchange="vabFrChk(this)" style="width:auto;margin:0;flex:0 0 auto;">
-              <span>Longitud Ao ascendente ≥11 cm</span></label>
-              <input type="hidden" id="vab_fr_longitud" value="">
-            </div>
-            <div class="fg"><label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
-              <input type="checkbox" id="vabchk-hta" onchange="vabFrChk(this)" style="width:auto;margin:0;flex:0 0 auto;">
-              <span>Hipertensión arterial resistente</span></label>
-              <input type="hidden" id="vab_fr_hta" value="">
-            </div>
-            <div class="fg"><label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
-              <input type="checkbox" id="vabchk-cx" onchange="vabFrChk(this)" style="width:auto;margin:0;flex:0 0 auto;">
-              <span>Cirugía cardíaca concomitante</span></label>
-              <input type="hidden" id="vab_fr_cx" value="">
-            </div>
-            <div class="fg"><label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
-              <input type="checkbox" id="vabchk-crecimiento" onchange="vabFrChk(this)" style="width:auto;margin:0;flex:0 0 auto;">
-              <span>Crecimiento ≥3 mm/año</span></label>
-              <input type="hidden" id="vab_fr_crecimiento" value="">
-            </div>
-            <div class="fg"><label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
-              <input type="checkbox" id="vabchk-embarazo" onchange="vabFrChk(this)" style="width:auto;margin:0;flex:0 0 auto;">
-              <span>Deseo de embarazo</span></label>
-              <input type="hidden" id="vab_fr_embarazo" value="">
-            </div>
+          <!-- ══ LOS SEIS FACTORES SALEN DE ESTA PANTALLA (AORTA-2, commit 3a, 2026-10-30) ══
+               DECISION DEL MEDICO: los factores se preguntan SOLO en la Evidencia, con tres
+               estados. Acá quedan «solo las casillas que alimentan el informe, el EN SUMA, el
+               PDF o el Excel», y estas seis NO alimentan ninguna de las cuatro — MEDIDO antes
+               de retirarlas, no supuesto: en tres escenas (ascendente 51 mm con riesgo bajo,
+               56 mm y 42 mm) se encendió cada uno de los seis por separado y el informe y el
+               EN SUMA salieron IDENTICOS en los dieciocho cruces. Lo único que mueven es
+               `vabConclusion().txt`, y ese texto hoy llega SOLO al panel de Evidencia: el
+               `etePars` de la bicúspide se retiró en el Y3d8 y su `ccHoja('vab', p, c.txt,
+               null)` del PDF se retiró con la hoja en el Y3f6 — las dos líneas siguen en el
+               archivo, comentadas, en el bloque del informe. `LAB_XLS_MAP` no tiene una sola
+               entrada `vab_`, censado.
+               ⚠️ LOS SEIS CAMPOS GUARDADOS SE QUEDAN, VACIOS Y OCULTOS, y eso es la orden
+               textual: «su clave guardada no se borra». Un estudio viejo con 'si' adentro lo
+               sigue trayendo y la Evidencia lo LEE —`_indOrigen` le da prioridad al dato del
+               estudio sobre lo contestado en el panel—, así que nada de lo ya firmado cambia
+               de significado y no se migra ni un registro. Lo que se fue es la CASILLA
+               (`vabchk-*`, guión medio, nunca fue un campo guardado) y con ella la inferencia
+               que el Y3d5 declaró: «sin marcar» no vuelve a querer decir «no».
+               ⚠️ `vab-fr-grid` CONSERVA SU id: lo conoce el resto del archivo. -->
+          <div id="vab-fr-grid" class="grid-2" hidden>
+            <input type="hidden" id="vab_fr_familiar" value="">
+            <input type="hidden" id="vab_fr_longitud" value="">
+            <input type="hidden" id="vab_fr_hta" value="">
+            <input type="hidden" id="vab_fr_cx" value="">
+            <input type="hidden" id="vab_fr_crecimiento" value="">
+            <input type="hidden" id="vab_fr_embarazo" value="">
           </div>
           <div class="calc-box" style="margin-top:10px;">
             <!-- ⚠️ EL RESUMEN ES ESQUEMATICO Y DESCRIPTIVO DESDE EL 2026-10-20 («Y3f4»).
@@ -74481,10 +74461,15 @@ function vabFactores(src){
   const sv2 = id => _ccSv(id, src);
   const nv  = id => _ccNv(id, src);
   const edad = nv('edad'), talla = nv('talla');
-  const presentes = [], sinEvaluar = [];
+  const presentes = [], ausentes = [], sinEvaluar = [];
+  /* ⚠️ TRES DESTINOS Y NO DOS (AORTA-2, commit 3a). `anota` repartia en «presente» o «sin
+     evaluar» y el tercer caso —evaluado y AUSENTE— se perdia: el factor desaparecia de la
+     cuenta sin que nadie pudiera saber si se habia descartado o si nadie lo habia mirado. Hoy
+     cada uno cae en uno de los tres y la suma de los tres es siempre NUEVE. */
   const anota = (cond, txt, evaluado) => {
     if (cond) presentes.push(txt);
-    else if (!evaluado) sinEvaluar.push(txt);
+    else if (evaluado) ausentes.push(txt);
+    else sinEvaluar.push(txt);
   };
   anota(edad != null && edad > 0 && edad < 50, 'edad menor de 50 años', edad != null && edad > 0);
   /* Talla baja: la ESC la define como 1,50-1,69 m, equivalente a un área transversal indexada
@@ -74516,25 +74501,56 @@ function vabFactores(src){
   if (coaConcluye) presentes.push('coartación de aorta documentada en este estudio');
   else if (coaTocada) sinEvaluar.push('coartación de aorta (sección iniciada pero sin conclusión)');
   else sinEvaluar.push('coartación de aorta');
+  /* ══ LOS SEIS QUE SE PREGUNTAN, CON TRES ESTADOS (AORTA-2, commit 3a, 2026-10-30) ══════════
+     DECISION DEL MEDICO (24 al 26/10/2026, aplicada acá a la bicúspide): los factores se
+     preguntan SOLO en la Evidencia, con tres estados —sí, no, sin dato—, la aplicación LEE de
+     otros módulos lo que ya tiene (edad, talla y coartación) y PREGUNTA sólo el resto, y la
+     Evidencia NO infiere: «sin dato» no cuenta como «no».
+
+     HASTA HOY ERAN DOS ESTADOS Y SE INFERIA. El comentario del Y3d5 lo decía con todas las
+     letras: «una casilla tiene dos estados y los dos son respuestas: marcada = presente, sin
+     marcar = no cuenta», y declaraba el precio —«un estudio guardado con "No consta" reabre sin
+     marcar y deja de listarse como pendiente»—. O sea que un factor que nadie contestó pesaba
+     exactamente lo mismo que uno descartado, y eso es inferir.
+
+     ⚠️ NI UN CAMPO GUARDADO NUEVO NI UNA COLUMNA DE EXCEL, que es la condición del punto 3b.
+     Los seis `vab_fr_*` YA son campos de texto —no casillas: la casilla era `vabchk-*`, con
+     guión medio, y nunca se guardó—, así que el tercer estado entra en el valor: '' es «sin
+     dato», que es lo que esos campos ya valen de fábrica. Ninguna clave nace ni se borra, y
+     `LAB_XLS_MAP` no tiene una sola entrada `vab_`, censado.
+
+     ⚠️ DOS ORIGENES Y UN SOLO DUEÑO DE LA RESPUESTA. El campo guardado manda; si está vacío, se
+     lee lo contestado en el panel (`_indClin`, efímero, que es el mecanismo que la Evidencia ya
+     usa para sus preguntas clínicas y que NO viaja con el estudio). Vive acá y no en `_indVAB`
+     para que la sección de Evidencia y la conclusión no puedan contestar distinto sobre el
+     mismo paciente — que es como este archivo paga las dos copias de un predicado.
+     ⚠️ CON `src` —un estudio ARCHIVADO— EL PANEL NO SE CONSULTA: `_indClin` es del paciente que
+     está en pantalla, y leerlo sobre un registro mezclaría dos pacientes. Es la misma regla que
+     `vabFuncionDerivada` ya aplica con `sevCalcPublicable`. */
   const preg = [
-    ['vab_fr_familiar',   'antecedente familiar de síndrome aórtico agudo'],
-    ['vab_fr_hta',        'hipertensión arterial resistente'],
-    ['vab_fr_crecimiento','crecimiento del diámetro ≥3 mm/año'],
-    ['vab_fr_longitud',   'longitud de la aorta ascendente ≥11 cm'],
-    ['vab_fr_cx',         'cirugía cardíaca concomitante no valvular aórtica'],
-    ['vab_fr_embarazo',   'deseo de embarazo']
+    ['vab_fr_familiar',   'antecedente familiar de síndrome aórtico agudo', 'vab.fr.familiar'],
+    ['vab_fr_hta',        'hipertensión arterial resistente',               'vab.fr.hta'],
+    ['vab_fr_crecimiento','crecimiento del diámetro ≥3 mm/año',             'vab.fr.crecimiento'],
+    ['vab_fr_longitud',   'longitud de la aorta ascendente ≥11 cm',         'vab.fr.longitud'],
+    ['vab_fr_cx',         'cirugía cardíaca concomitante no valvular aórtica', 'vab.fr.cx'],
+    ['vab_fr_embarazo',   'deseo de embarazo',                              'vab.fr.embarazo']
   ];
-  /* ⚠️ DESDE EL Y3d5 LOS SEIS SE MARCAN CON UNA CASILLA, ASI QUE NO HAY «SIN EVALUAR». Una
-     casilla tiene dos estados y los dos son respuestas: marcada = presente, sin marcar = no
-     cuenta. El tercer argumento va en `true` SIEMPRE, que es lo que saca a los seis de
-     `sinEvaluar`. Los TRES derivados -edad, talla y coartacion- siguen pudiendo quedar sin
-     evaluar, porque ahi la ausencia del dato es real: nadie cargo la edad.
-     ⚠️ CONSECUENCIA DECLARADA: un estudio guardado con «No consta» reabre sin marcar y deja de
-     listarse como pendiente. Es el precio de la casilla y lo cubre la conclusion, que desde
-     este commit NUNCA afirma «sin factores de riesgo». */
-  preg.forEach(function(p){ anota(sv2(p[0]) === 'si', p[1], true); });
-  return { presentes: presentes, sinEvaluar: sinEvaluar, n: presentes.length };
+  preg.forEach(function (p) {
+    const guardado = String(sv2(p[0]) || '').trim();
+    let r = (guardado === 'si' || guardado === 'no') ? guardado : null;
+    if (r === null && !src && typeof _indClinGet === 'function') {
+      const m = _indClinGet(p[2]);
+      if (m === 'si' || m === 'no') r = m;
+    }
+    if (r === 'si') presentes.push(p[1]);
+    else if (r === 'no') ausentes.push(p[1]);
+    else sinEvaluar.push(p[1]);
+  });
+  /* `n` sigue siendo la cuenta de los PRESENTES y nada más: es lo que decide la recomendación
+     de 50 mm, y un factor sin contestar no la alimenta. */
+  return { presentes: presentes, ausentes: ausentes, sinEvaluar: sinEvaluar, n: presentes.length };
 }
+window.vabFactores = vabFactores;
 /* ══ MARFAN / EHAT — aortopatía hereditaria (ESC 2024) ══════════════════════════════════════
    Evaluación PURA; `marfanSync` sólo pinta y el informe sólo escribe. El umbral depende del
    SÍNDROME y no sólo del diámetro: aplicar el umbral del Marfan a un Loeys-Dietz son 5 mm de
@@ -75976,6 +75992,13 @@ window.VAB_DIB_HIT = VAB_DIB_HIT; window.VAB_DIB_FUSION = VAB_DIB_FUSION;
    `VAB_FR_CHK` es el reparto casilla -> campo, y de el salen las DOS direcciones: el gesto del
    medico (`vabFrChk`) y la reposicion desde el estudio (`vabFrChkSync`). Una lista sola, porque
    dos listas de lo mismo se separan el dia que entre un factor. */
+/* ⚠️ DESDE LA TANDA AORTA-2 (commit 3a, 2026-10-30) ESTE MAPA YA NO TIENE CASILLAS QUE
+   SINCRONIZAR: los seis `vabchk-*` salieron de la pantalla y los factores se preguntan en la
+   Evidencia. Se CONSERVA porque sigue siendo la lista de los seis campos guardados, y de ahi la
+   lee `limpiarCampos` para vaciarlos en «Nuevo estudio» — borrarlo dejaria los seis
+   sobreviviendo al cambio de paciente, que es el defecto que el D-11 pago tres veces.
+   `vabFrChk` y `vabFrChkSync` quedan sin elemento que tocar y por eso no hacen nada; se dejan
+   en pie para que `vabSync` y `limpiarCampos` no tengan que cambiar de forma. */
 const VAB_FR_CHK = Object.freeze({
   'vabchk-familiar':    'vab_fr_familiar',
   'vabchk-hta':         'vab_fr_hta',
@@ -85180,17 +85203,44 @@ function _indVAB(){
   const conc = _indFn('vabConclusion');
   const C = conc ? conc() : null;
   const morf = _indS('va_morf'), cx = _indS('vab_cx_valvular'), riesgo = _indS('vab_riesgo_qx');
+  /* ══ LOS CINCO UMBRALES DE LA TABLA 68, UNA SOLA VEZ CADA UNO (AORTA-2, commit 3, 30/10)
+     Leida EN IMAGEN a 200 ppp sobre la edicion INGLESA, hojas 110 y 111, folios 3647 y 3648
+     comprobados en el pie impreso de cada una. Viven en UNA constante y la consultan las dos
+     cosas que los necesitan —las filas de medida, que dicen cual aplica, y el bloque de
+     recomendaciones, que los publica—, asi que el numero esta escrito una vez y la pantalla no
+     puede decir dos. Es lo que el punto 2b(iii) empezo y este commit termina.
+     ⚠️ EL `mas de 50 mm` NO ES UNA FILA DE LA TABLA: es texto del cuerpo (folio 3647), «Surgery
+     at >50 mm MAY ALSO BE CONSIDERED in a shared decision with the patient». La traduccion de
+     la SEC lo pasa a «se debe considerar», que es el verbo de la Clase IIa; se usa el sentido
+     del INGLES, que es el de la Clase IIb, y por eso no lleva clase: la tabla no se la da. */
+  const VAB_T68 = Object.freeze([
+    Object.freeze({ k:'cx55',  mm:55, op:'>=', cls:'Clase I · Nivel B',
+      txt:'Cirugía de la aortopatía bicúspide con un diámetro aórtico máximo de 55 mm o más.' }),
+    Object.freeze({ k:'raiz50', mm:50, op:'>=', cls:'Clase I · Nivel B',
+      txt:'Cirugía con un diámetro de 50 mm o más cuando el fenotipo es de raíz.' }),
+    Object.freeze({ k:'asc52', mm:52, op:'>',  cls:'Clase IIa · Nivel B',
+      txt:'Con riesgo quirúrgico bajo y fenotipo ascendente, cirugía a considerar con más de 52 mm.' }),
+    Object.freeze({ k:'asc50', mm:50, op:'>=', cls:'Clase IIa · Nivel C',
+      txt:'Con riesgo quirúrgico bajo y fenotipo ascendente, cirugía a considerar desde 50 mm si concurre alguno de los nueve factores de abajo.' }),
+    Object.freeze({ k:'cx45',  mm:45, op:'>=', cls:'Clase IIa · Nivel C',
+      txt:'En el paciente que se opera de la válvula aórtica, reemplazo de la raíz o de la aorta ascendente en el mismo acto con 45 mm o más.' })
+  ]);
+  const _t68 = k => VAB_T68.find(function (x) { return x.k === k });
+  /* ⚠️ LAS FILAS DE MEDIDA YA NO REPITEN EL NUMERO NI LA CLASE: dicen CUAL de los umbrales de
+     abajo alcanza este paciente. Con el numero escrito acá y en el bloque, cada umbral salia
+     dos veces en la misma seccion —medido: «50 mm» cuatro veces— y mover uno obligaba a
+     acordarse del otro. El `marca` sigue siendo el semaforo de la fila. */
   const filas = [
     _indFila('Aorta ascendente (tubular)', _indNum(asc, 0, 'mm'),
       _ge(asc, 55) ? 'alarm' : (_ge(asc, 45) ? 'warn' : (asc != null ? 'none' : 'ask')),
-      _ge(asc, 55) ? '≥ 55 mm — cirugía Clase I B'
-      : _gt(asc, 52) ? '> 52 mm — Clase IIa B en fenotipo ascendente con riesgo quirúrgico bajo'
-      : _ge(asc, 50) ? '50–52 mm — Clase IIa C sólo si concurre un factor de riesgo'
-      : _ge(asc, 45) ? '45–49 mm — Clase IIa C sólo si hay cirugía valvular aórtica prevista' : ''),
+      _ge(asc, 55) ? 'alcanza el umbral de cirugía de la primera recomendación de abajo'
+      : _gt(asc, 52) ? 'alcanza el umbral del fenotipo ascendente con riesgo quirúrgico bajo'
+      : _ge(asc, 50) ? 'en la banda que exige además alguno de los nueve factores de abajo'
+      : _ge(asc, 45) ? 'en la banda que sólo indica algo si hay cirugía valvular aórtica prevista' : ''),
     _indFila('Raíz aórtica (senos)', _indNum(raiz, 0, 'mm'),
       _ge(raiz, 50) ? 'alarm' : (_ge(raiz, 45) ? 'warn' : (raiz != null ? 'none' : 'ask')),
-      _ge(raiz, 50) ? '≥ 50 mm — cirugía Clase I B si el fenotipo es de raíz'
-      : _ge(raiz, 45) ? '≥ 45 mm — Clase IIa C si hay cirugía valvular aórtica prevista' : ''),
+      _ge(raiz, 50) ? 'alcanza el umbral del fenotipo de raíz, si el fenotipo es ése'
+      : _ge(raiz, 45) ? 'en la banda que sólo indica algo si hay cirugía valvular aórtica prevista' : ''),
     _indFila('Morfología de la válvula aórtica', morf || '—',
       morf === 'Bicúspide' ? 'ok' : 'ask',
       morf === 'Bicúspide' ? 'confirma que corresponde la tabla de aortopatía bicúspide'
@@ -85200,8 +85250,60 @@ function _indVAB(){
       cx === 'si' ? 'baja el umbral de la cirugía de la aorta' : ''),
     _indFila('Riesgo quirúrgico bajo (< 3 %)', riesgo === 'si' ? 'Sí' : (riesgo === 'no' ? 'No' : 'No consta'),
       riesgo === 'si' ? 'warn' : (riesgo === 'no' ? 'none' : 'ask'),
-      riesgo === 'si' ? 'condición de las Clases IIa por debajo de 55 mm; solo no alcanza ningún criterio' : '')
+      riesgo === 'si' ? 'condición de las dos recomendaciones de fenotipo ascendente; solo no alcanza ningún criterio' : '')
   ];
+  /* ══ LOS NUEVE FACTORES, PREGUNTADOS ACA Y CON TRES ESTADOS (AORTA-2, commit 3a) ═══════════
+     DECISION DEL MEDICO. Tres se DERIVAN de lo que la aplicacion ya tiene —la edad, la talla y
+     la propia seccion de coartacion— y se muestran de solo lectura; los otros seis se
+     PREGUNTAN acá y en ningun otro lado.
+
+     ⚠️ EL DUENO DE LA RESPUESTA ES `vabFactores`, NO ESTA SECCION. Acá sólo se dibuja lo que
+     aquella contesta, y por eso la conclusión de la sección de al lado y estas nueve filas no
+     pueden decir cosas distintas del mismo paciente. `_indOrigen` le da prioridad al dato
+     GUARDADO sobre lo contestado en el panel, que es la regla de esa función: con el campo
+     cargado el control no se dibuja, porque no hay respuesta que dar.
+     ⚠️ «SIN DATO» NO CUENTA COMO «NO», y es el punto entero: un factor sin contestar no
+     alimenta la recomendación de 50 mm y se lista como pendiente. */
+  const VAB_FR_FILAS = [
+    { lbl:'Edad menor de 50 años',               txt:'edad menor de 50 años',                        deriv:true },
+    { lbl:'Talla entre 1,50 y 1,69 m',           txt:'talla entre 1,50 y 1,69 m',                    deriv:true },
+    { lbl:'Coartación de aorta',                 txt:'coartación de aorta',                          deriv:true, pref:true },
+    { lbl:'Longitud de la aorta ascendente ≥ 11 cm', txt:'longitud de la aorta ascendente ≥11 cm',   campo:'vab_fr_longitud',    clave:'vab.fr.longitud' },
+    { lbl:'Crecimiento del diámetro ≥ 3 mm/año', txt:'crecimiento del diámetro ≥3 mm/año',           campo:'vab_fr_crecimiento', clave:'vab.fr.crecimiento' },
+    { lbl:'Antecedente familiar de síndrome aórtico agudo', txt:'antecedente familiar de síndrome aórtico agudo', campo:'vab_fr_familiar', clave:'vab.fr.familiar' },
+    { lbl:'Hipertensión arterial resistente',    txt:'hipertensión arterial resistente',             campo:'vab_fr_hta',         clave:'vab.fr.hta' },
+    { lbl:'Cirugía cardíaca concomitante no valvular aórtica', txt:'cirugía cardíaca concomitante no valvular aórtica', campo:'vab_fr_cx', clave:'vab.fr.cx' },
+    { lbl:'Deseo de embarazo',                   txt:'deseo de embarazo',                            campo:'vab_fr_embarazo',    clave:'vab.fr.embarazo' }
+  ];
+  const F = (typeof vabFactores === 'function') ? vabFactores() : { presentes:[], ausentes:[], sinEvaluar:[], n:0 };
+  /* ⚠️ EL ESTADO SE BUSCA POR EL TEXTO QUE `vabFactores` PUBLICA, no por una segunda cascada:
+     la coartación es el único cuyo texto cambia según el caso —«…documentada en este estudio» o
+     «…(sección iniciada pero sin conclusión)»—, así que lleva `pref` y se compara por prefijo. */
+  const _estado = function (f) {
+    const hay = function (lista) {
+      return (lista || []).some(function (t) { return f.pref ? t.indexOf(f.txt) === 0 : t === f.txt });
+    };
+    return hay(F.presentes) ? 'si' : (hay(F.ausentes) ? 'no' : null);
+  };
+  const OPS_SN = [{ v:'si', t:'Sí' }, { v:'no', t:'No' }];
+  VAB_FR_FILAS.forEach(function (f) {
+    const e = _estado(f);
+    if (f.deriv) {
+      filas.push(_indFila(f.lbl,
+        e === 'si' ? 'Sí' : (e === 'no' ? 'No' : 'Sin dato'),
+        e === 'si' ? 'warn' : (e === 'no' ? 'none' : 'ask'),
+        e == null ? 'lo deriva la aplicación de otro módulo: mientras ese dato falte, no cuenta ni a favor ni en contra'
+                  : 'lo deriva la aplicación; no se pregunta acá'));
+      return;
+    }
+    const o = _indOrigen(_indS(f.campo), f.clave);
+    filas.push(_indFilaOrigen(f.lbl, o, OPS_SN, function (val) {
+      return { txt: val === 'si' ? 'Sí' : (val === 'no' ? 'No' : 'Sin dato'),
+               marca: val === 'si' ? 'warn' : (val === 'no' ? 'none' : 'ask'),
+               nota: val == null ? 'sin dato no cuenta como «no»: mientras no se conteste, este factor no alimenta la recomendación que los exige.' : '' };
+    }));
+  });
+
   /* ══ LAS CUATRO RECOMENDACIONES PASAN AL BLOQUE VISIBLE (AJ4-5, 23/10/2026) ══════════════════
      DECISIÓN DE MAICOL. Vivían en `notas`, que el marco del panel pinta DENTRO del «Ver detalle»
      y ese nace PLEGADO: eran las cuatro filas que esta sección existe para publicar —el control
@@ -85211,6 +85313,12 @@ function _indVAB(){
      se pinta con `plegado:false`, y cada línea lleva su `refs` para entrar en la numeración.
      Las cuatro están verificadas en el original, Recomendaciones-tabla 68, folio 119 (hoja 120),
      releída entera en esta tanda. */
+  /* ⚠️ LOS CINCO UMBRALES SE DERIVAN DE `VAB_T68` Y NO SE ESCRIBEN ACA (AORTA-2, commit 3):
+     una sola transcripcion por fila, y la fila de medida de arriba dice cual alcanza sin
+     repetir el numero. */
+  const _vabT68Lineas = VAB_T68.map(function (r) {
+    return { txt: r.cls + ' — ' + r.txt, refs: null };
+  });
   const _vabRecom = [
     { txt:'Clase I · Nivel C — Con el diámetro aórtico máximo por encima de 40 mm y sin indicación de cirugía, o tras una cirugía valvular aislada: ecocardiografía transtorácica seriada al año y, después, cada 2 o 3 años si el paciente sigue estable. Por debajo de 40 mm esa tabla no publica ningún intervalo.',
       refs: null },
@@ -85218,8 +85326,11 @@ function _indVAB(){
       refs: null },
     { txt:'Cribado con ecocardiografía de los familiares de primer grado: Clase I · Nivel C con fenotipo de raíz o insuficiencia aórtica aislada, y Clase IIa · Nivel B para todos los pacientes con válvula bicúspide.',
       refs: null },
-    { txt:'Clase IIa · Nivel C — En el paciente que se somete a cirugía de la válvula aórtica, con la raíz o la aorta ascendente de 45 mm o más, se debe considerar el reemplazo de la aorta en el mismo acto.',
-      refs: null },
+    /* ⚠️ LA CUARTA RECOMENDACION SALE DE ACA (AORTA-2, commit 3): es la MISMA fila de la Tabla
+       68 que `VAB_T68.cx45` publica arriba —«reemplazo de la raíz o de la aorta ascendente en
+       el mismo acto con 45 mm o más», Clase IIa · Nivel C—, y desde este commit los cinco
+       umbrales de cirugía viven en un solo lugar. Su segunda fuente —el apartado 7.4 de la
+       ESC/EACTS 2025— sigue en la nota de abajo, con su folio. */
     /* ⚠️ UNA SOLA CITA, AL FINAL DEL BLOQUE (tanda A, regla R2): «(ESC 2024, Tabla 68, folio
        119)» salia en las CUATRO filas. La segunda fuente de la cuarta fila —el apartado 7.4 de
        la ESC/EACTS 2025 de valvulopatias— esta en el ⓘ de la seccion, con su folio. */
@@ -85229,9 +85340,26 @@ function _indVAB(){
     { txt:'Fuente: ESC 2024 de aorta, Tabla 68, folio 119.',
       refs: ['esc2024ao'] }
   ];
+  /* ⚠️ EL BALANCE DE LOS NUEVE, Y LO QUE FALTA PREGUNTAR. La orden lo pide con todas las
+     letras: «si no hay ningún "sí", dice qué falta preguntar». Sale de `vabFactores`, que es el
+     dueño, y la suma de los tres estados es siempre nueve. */
+  const _frLinea = (function () {
+    const n = F.presentes.length, no = F.ausentes.length, sd = F.sinEvaluar.length;
+    if (n) return { txt:'Factores presentes: ' + n + ' de 9 (' + F.presentes.join('; ') + ').'
+      + (sd ? ' Sin contestar: ' + F.sinEvaluar.join('; ') + '.' : ' Los otros ' + no + ' están contestados que no.'),
+      refs:null };
+    if (sd) return { txt:'Ningún factor consta como presente, y quedan ' + sd + ' sin contestar: '
+      + F.sinEvaluar.join('; ') + '. Mientras no se contesten, la recomendación que los exige no se sostiene en ninguno — «sin dato» no cuenta como «no».', refs:null };
+    return { txt:'Los nueve factores están contestados y ninguno está presente.', refs:null };
+  })();
   return { filas: filas,
     aviso: (C && C.clave === 'contradiccion') ? C.txt : '',
-    bloques: [ { tit:'Recomendaciones aplicables de la guía', lineas: _vabRecom } ],
+    bloques: [ { tit:'Umbrales de cirugía de la Tabla 68', lineas: _vabT68Lineas.concat([
+        /* Fuera de la tabla, en el cuerpo del mismo folio: el verbo es el de la Clase IIb y la
+           tabla no le da clase, asi que no se le pone. Ver la nota de `VAB_T68`. */
+        { txt:'Por encima de 50 mm la cirugía puede considerarse además en una decisión compartida con el paciente, teniendo en cuenta su estilo de vida y los factores psicológicos. La guía lo dice fuera de la tabla y no le asigna clase.', refs:null },
+        _frLinea ]) },
+      { tit:'Recomendaciones aplicables de la guía', lineas: _vabRecom } ],
     /* ⚠️ ESTA ES LA UNICA SECCION DEL PANEL QUE PUBLICA LOS UMBRALES QUIRURGICOS (tanda A,
        punto 2e). La seccion «Valvula aortica bicuspide — conclusion» decia la MISMA frase, dos
        secciones mas abajo; queda aca porque es la que trae los diametros que la sostienen, que
@@ -85264,7 +85392,16 @@ function _indVAB(){
          arriba y el bloque de recomendaciones. Lo que esta nota aporta y no esta en ningun otro
          lado es QUE el fenotipo cambia el umbral, y eso se conserva entero. */
       'La distinción entre el fenotipo de raíz y el fenotipo ascendente decide qué umbral se aplica: el fenotipo de raíz tiene el suyo propio, más bajo que el del fenotipo ascendente aislado. Los dos figuran en las filas de arriba, con su clase y su nivel.',
-      'Clase IIa · Nivel C desde 50 mm con riesgo quirúrgico bajo y alguno de estos factores: edad menor de 50 años, talla baja, longitud de la aorta ascendente de 11 cm o más, crecimiento de 3 mm o más al año, antecedente familiar de síndrome aórtico agudo, coartación aórtica, hipertensión resistente, cirugía cardíaca concomitante no valvular aórtica o deseo de embarazo (Tabla 68, folio 119).',
+      /* ⚠️ ESTA NOTA SE RETIRA (AORTA-2, commit 3): listaba los nueve factores y su umbral en
+         prosa, y desde este commit los nueve son FILAS que se contestan, con el umbral en el
+         bloque de arriba. Dejarla era publicar la misma lista dos veces y, peor, en un lugar
+         donde no se puede contestar. Las notas al pie de la tabla —la estatura entre 1,50 y
+         1,69 m con cociente área/talla mayor de 13 cm²/m, la longitud medida en la línea media
+         desde la unión ventrículo-aórtica hasta el origen del tronco braquiocefálico, el
+         crecimiento comprobado con imágenes lado a lado de la misma técnica y la hipertensión
+         que persiste pese a tres o más fármacos, diuréticos incluidos— viven abajo, en una
+         nota propia, porque son lo que define CADA factor y no se podían perder. */
+      'Las definiciones de la tabla: la talla baja es una estatura entre 1,50 y 1,69 m, equivalente a un cociente entre el área transversal y la talla mayor de 13 cm²/m; la longitud de la aorta ascendente se mide sobre la línea media del vaso, entre la unión ventrículo-aórtica y el origen del tronco braquiocefálico; para afirmar el crecimiento hay que comparar imágenes lado a lado obtenidas con la misma técnica; y la hipertensión resistente es la que persiste pese a tres o más fármacos antihipertensivos indicados por un médico con experiencia, diuréticos incluidos.',
       /* ⚠️ ESTA NOTA SE RETIRA (AORTA-2, commit 2, 2b(iii)). Decia «las dos filas de 50 mm con
          factores de riesgo y de 45 mm con cirugía valvular programada son Clase IIa · Nivel C»:
          los dos umbrales con su clase y su nivel por CUARTA vez: ya estaban en la fila de la
@@ -142148,8 +142285,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261030-1721';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793391669300;                 /* eco-build-ms */
+const ECO_BUILD    = '20261030-1729';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793392167086;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -142235,7 +142372,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261030-1721</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261030-1729</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
