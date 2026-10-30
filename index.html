@@ -60,6 +60,14 @@
     --border: #2a3050;
     --accent: #4f8ef7;
     --accent2: #7ec8e3;
+    /* ══ LOS DOS COLORES DEL ESQUEMA DE LA OREJUELA (COR-6a, 2026-10-30) ════════════════════
+       Valores de `docs/3d/demo_orejuela_esquema_aprobado.html`, tema oscuro: su `--surface-2`
+       y su `--bg-accent`. Nacen con prefijo propio porque la app no tiene ninguna variable
+       equivalente —`--bg2` es el fondo de las tarjetas y `--accent2` el acento saturado—, y
+       porque lo único que las usa es el dibujo: nombrarlas por su dueño impide que alguien las
+       reutilice y después no se pueda cambiar el esquema sin mover otra pantalla. */
+    --esq-superficie: #363632;
+    --esq-acento-bg: #0c447c;
     --text: #e8ecf4;
     --text2: #9aa3bc;
     --green: #3ecf8e;
@@ -102,6 +110,9 @@
     --border: #d6dce6;
     --accent: #2f6fe0;
     --accent2: #1f5fb8;
+    /* Los mismos dos del esquema de la orejuela, en el tema claro de la demo. */
+    --esq-superficie: #e9e9e4;
+    --esq-acento-bg: #e6f1fb;
     --text: #1a2233;
     --text2: #5b6478;
     --green: #1f9d6c;
@@ -15174,7 +15185,12 @@ z
             <option value="ala">Ala de pollo — menor riesgo tromboembólico</option>
             <option value="coliflor">Coliflor — mayor riesgo tromboembólico</option>
             <option value="cactus">Cactus — riesgo intermedio</option>
-            <option value="veleta">Veleta — riesgo intermedio</option>
+            <!-- ⚠️ EL RÓTULO ES «Manga de viento» Y EL VALOR SIGUE SIENDO `veleta` (COR-6a,
+                 30/10/2026). Es el nombre que usa la demo aprobada y el que traduce «windsock»
+                 de la clasificación descriptiva de la guía de ETE; «veleta» es otra cosa.
+                 EL `value` NO SE TOCA: es un campo guardado, viaja al Excel y vive en los
+                 estudios ya guardados. Cambiarlo sería migrar estudios guardados. -->
+            <option value="veleta">Manga de viento — riesgo intermedio</option>
           </select>
         </div>
         <div class="fg"><label>Número de lóbulos</label>
@@ -19576,7 +19592,7 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
            y la aplicacion tampoco. Y NO publica los nombres «estasis leve» y «estasis severa»:
            los numeros son de la guia y los rotulos son propios, de ahi el chip. -->
       <div style="font-size:12px;color:var(--text);line-height:1.8;">
-        <b style="color:var(--accent2);">Morfología:</b> Ala de pollo (menor riesgo) · Coliflor (mayor riesgo) · Cactus · Veleta<br>
+        <b style="color:var(--accent2);">Morfología:</b> Ala de pollo (menor riesgo) · Coliflor (mayor riesgo) · Cactus · Manga de viento<br>
         <b style="color:var(--accent2);">Velocidad de vaciamiento:</b> por debajo de <b>20 cm/s</b> se
         asocia con contraste espontáneo, formación de trombo y eventos embólicos; por encima de
         <b>40 cm/s</b> se predice mayor probabilidad de mantener el ritmo sinusal tras la
@@ -91849,9 +91865,9 @@ const OAI_GLOBO = Object.freeze([
    'vaciamiento reducida son predictores independientes de tromboembolia [1]; el contraste ' +
    'espontáneo es predictor independiente de ictus en la fibrilación auricular [2].'],
   ['Morfología',
-   'Ala de pollo (menor riesgo) · coliflor (mayor riesgo) · cactus · veleta. Frecuencias ' +
-   'descritas: ala de pollo cerca del 48 %, cactus cerca del 30 %, veleta cerca del 19 % y ' +
-   'coliflor cerca del 3 % [2].'],
+   'Ala de pollo (menor riesgo) · coliflor (mayor riesgo) · cactus · manga de viento. ' +
+   'Frecuencias descritas: ala de pollo cerca del 48 %, cactus cerca del 30 %, manga de viento ' +
+   'cerca del 19 % y coliflor cerca del 3 % [2].'],
   ['Velocidad de vaciamiento',
    'Doppler pulsado con el volumen de muestra a 1 o 2 cm del orificio, dentro de la cavidad [4]. ' +
    'Por debajo de 20 cm/s se asocia con contraste espontáneo, formación de trombo y eventos ' +
@@ -92312,16 +92328,32 @@ function _oaiRemolinoK() {
 /* El TROMBO, en el fondo de la orejuela. «Sospecha» va más chico, translúcido y con el borde
    punteado; «confirmado», sólido. El rótulo va a la DERECHA y por debajo del de la profundidad,
    con 16 px de separación, para que no se pisen: es la misma regla del A1. */
+/* ⚠️ EL TROMBO VA EN EL RECESO Y RECORTADO POR LA SILUETA (COR-6a, 2026-10-30). Las DOS cosas,
+   y cada una cierra una mitad del defecto que el médico vio:
+     · la POSICIÓN sale de `_oaiSpec`, el punto sobre la pared interna que `_oaiTaper` calcula
+       —antes salía de `OAI_ESQ_TIP`, la punta de la línea guía, donde la silueta ya se afinó—;
+     · el RECORTE (`clip-path`) es la red: con la coliflor, cuyos cinco lóbulos no tienen una
+       pared continua, un blob centrado en el receso igual puede asomar entre dos lóbulos. La
+       demo recorta por la unión de las siluetas y acá se hace igual.
+   El tamaño también sale de `_oaiSpec`: la demo usa rx 10 / ry 16 para las tres morfologías con
+   línea guía y rx 10 / ry 15 para la coliflor. El rótulo va FUERA del recorte —si no, se
+   recortaría con el trombo— y a la derecha del receso. */
 function _oaiTromboSVG(morf, estado, C, L) {
   if (estado !== 'si' && estado !== 'sospecha') return '';
-  const t = OAI_ESQ_TIP[morf];
-  if (!t) return '';
+  const sp = _oaiSpec;
+  if (!sp) return '';
   const sus = estado === 'sospecha', k = sus ? 0.72 : 1;
-  const d = _oaiBlob(0, 0, 10 * k, 15 * k, 31, 12, sus ? 0.4 : 0.32);
-  return '<path d="' + d + '" transform="translate(' + t[0] + ' ' + t[1] + ')" fill="' + C.tenue +
+  const d = _oaiBlob(0, 0, sp.rx * k, sp.ry * k, 31, 12, sus ? 0.4 : 0.32);
+  const clip = _oaiClip.length
+    ? '<clipPath id="oai-esq-lc">' + _oaiClip.map(x => '<path d="' + x + '"/>').join('') + '</clipPath>'
+    : '';
+  return '<defs>' + clip + '</defs>' +
+         '<g' + (clip ? ' clip-path="url(#oai-esq-lc)"' : '') + '>' +
+         '<path d="' + d + '" transform="translate(' + _oaiF1(sp.cx) + ' ' + _oaiF1(sp.cy) +
+         ') rotate(' + _oaiF1(sp.ang) + ')" fill="' + C.tenue +
          '" fill-opacity="' + (sus ? '0.28' : '0.7') + '" stroke="' + C.tenue +
-         '" stroke-width="1.2"' + (sus ? ' stroke-dasharray="3 2"' : '') + '/>' +
-         L(t[0] + 14, t[1] + 42, sus ? 'sospecha de trombo' : 'trombo', 'start', 11, C.tenue);
+         '" stroke-width="1.2"' + (sus ? ' stroke-dasharray="3 2"' : '') + '/></g>' +
+         L(_oaiF1(sp.cx + 18), _oaiF1(sp.cy + 20), sus ? 'sospecha' : 'trombo', 'start', 11, C.tenue);
 }
 
 function _oaiChorroTr(s) {
@@ -92379,6 +92411,23 @@ function _oaiTaper(d, o) {
     Ls.push([pts[i][0] + nx * hl, pts[i][1] + ny * hl]);
     Rs.push([pts[i][0] - nx * hu, pts[i][1] - ny * hu]);
   }
+  /* ⚠️ EL RECESO DEL TROMBO, QUE LA PORTADA ANTERIOR SE DEJÓ EN LA DEMO (COR-6a, 2026-10-30).
+     Es LA causa de que «el trombo quede FUERA de la orejuela», que es lo que el médico vio.
+     La demo calcula acá un punto `spec` sobre el borde INTERNO de la silueta —la fracción
+     `o.ti` del recorrido, desplazada 1,5 px hacia adentro— y dibuja el trombo ahí, adherido a
+     la pared. La versión de la tanda nocturna no portó este bloque y usaba `OAI_ESQ_TIP`, que
+     es la PUNTA de la línea guía: ahí la silueta ya se afinó a `o.e` píxeles de radio, así que
+     un blob de 10 × 15 sobresale por los cuatro lados. Mismo cálculo que la demo, carácter por
+     carácter, incluido el ángulo. */
+  if (o.rec) {
+    const j = Math.round(N * o.ti);
+    const a3 = pts[j - 1], b3 = pts[j + 1];
+    let tx3 = b3[0] - a3[0], ty3 = b3[1] - a3[1];
+    const l3 = Math.sqrt(tx3 * tx3 + ty3 * ty3) || 1;
+    tx3 /= l3; ty3 /= l3;
+    _oaiSpec = { cx: Rs[j][0] + (-ty3) * 1.5, cy: Rs[j][1] + tx3 * 1.5,
+                 ang: Math.atan2(-tx3, ty3) * 180 / Math.PI, rx: 10, ry: 16 };
+  }
   const e = pts[N], pp = pts[N - 1];
   let ex = e[0] - pp[0], ey = e[1] - pp[1];
   const el = Math.sqrt(ex * ex + ey * ey) || 1;
@@ -92392,8 +92441,13 @@ function _oaiTaper(d, o) {
   return _oaiCerrada(Ls.concat(cap, Rs.reverse()));
 }
 
+/* El receso donde se adhiere el trombo, y el recorte que lo mantiene DENTRO de la orejuela. Los
+   escribe `_oaiSiluetas` en cada pasada: son estado derivado de la morfología, igual que en la
+   demo, y no sobreviven a un cambio de forma. */
+let _oaiSpec = null, _oaiClip = [];
 function _oaiSiluetas(k) {
   const ds = [];
+  _oaiSpec = null;
   if (k === 'veleta')   ds.push(_oaiTaper(OAI_ESQ_PATHS.veleta[0][0],   { b:25, e:8,  k:0.6, rec:true, ti:0.62 }));
   if (k === 'ala')      ds.push(_oaiTaper(OAI_ESQ_PATHS.ala[0][0],      { b:25, e:7,  k:0.6, rec:true, ti:0.74 }));
   if (k === 'cactus') {
@@ -92401,8 +92455,14 @@ function _oaiSiluetas(k) {
     ds.push(_oaiTaper(OAI_ESQ_PATHS.cactus[1][0], { b:8,  e:6,  k:1 }));
     ds.push(_oaiTaper(OAI_ESQ_PATHS.cactus[2][0], { b:7,  e:5,  k:1 }));
   }
-  if (k === 'coliflor') OAI_ESQ_LOBES.forEach(b => ds.push(_oaiBlob(b[0], b[1], b[2], b[3], b[4], 9, 0.12)));
-  return ds.filter(Boolean);
+  if (k === 'coliflor') {
+    OAI_ESQ_LOBES.forEach(b => ds.push(_oaiBlob(b[0], b[1], b[2], b[3], b[4], 9, 0.12)));
+    /* La coliflor no tiene línea guía con receso: la demo le fija el punto a mano. */
+    _oaiSpec = { cx: 240, cy: 170, ang: 35, rx: 10, ry: 15 };
+  }
+  const out = ds.filter(Boolean);
+  _oaiClip = out;
+  return out;
 }
 
 /* El número tal como lo escribió el médico, con una decimal y sin inventar ceros. Devuelve '' si
@@ -92434,6 +92494,12 @@ function oaiEsqSVG(fase, remolino) {
     acento: esqColor('--accent2', '#4da3ff'),
     rojo: esqColor('--red', '#e06c6c'),
     medida: esqColor('--yellow', '#e8c14a'),
+    /* El fondo de la cavidad y el de la orejuela. `--esq-superficie` y `--esq-acento-bg` nacen
+       en esta tanda, con los valores de la demo en los dos temas: no hay en la app ninguna
+       variable equivalente a su `--surface-2` ni a su `--bg-accent`, y sin ellas la aurícula
+       sale sin relleno y la orejuela vuelve a quedar oscura. */
+    panel: esqColor('--esq-superficie', '#e9e9e4'),
+    acentoBg: esqColor('--esq-acento-bg', '#e6f1fb'),
     fondo: '#ffffff'
   };
   const morf = (document.getElementById('oai_morfologia') || {}).value || '';
@@ -92444,11 +92510,30 @@ function oaiEsqSVG(fase, remolino) {
     '<text x="' + x + '" y="' + y + '" text-anchor="' + (anchor || 'start') + '" font-size="' +
     (sz || 10) + '" fill="' + (col || C.tenue) + '" font-family="sans-serif">' + escHtml(t) + '</text>';
   let g = '';
-  /* El contexto: anillo mitral, ventrículo y la circunfleja. Es lo que vuelve legible dónde está
-     la orejuela; sin él, la silueta es una mancha. */
-  g += '<path d="M40 164 C70 150 120 150 150 164" fill="none" stroke="' + C.linea + '" stroke-width="2.5"/>';
-  g += '<path d="M48 164 C60 200 80 226 99 232" fill="none" stroke="' + C.borde + '" stroke-width="2"/>';
-  g += '<path d="M150 164 C142 196 126 220 110 230" fill="none" stroke="' + C.borde + '" stroke-width="2"/>';
+  /* ══ EL CONTEXTO, PORTADO DE LA DEMO TAL CUAL (COR-6a, 2026-10-30) ═══════════════════════════
+     Tres cosas que el médico señaló comparando las dos pantallas, y las tres son del contexto:
+       · FALTABA LA AURÍCULA IZQUIERDA. La demo la dibuja en dos capas —un relleno de superficie
+         y su contorno—, y su borde INFERIOR es el plano del anillo mitral: no hay una curva
+         aparte. La portada anterior se había quedado sólo con esa curva («M40 164 C70 150 …»),
+         que es una reinterpretación: sin la cavidad, la silueta de la orejuela sale de la nada.
+       · SOBRABA EL TRIÁNGULO DEL VENTRÍCULO IZQUIERDO. Eran las dos curvas que bajaban del
+         anillo hacia (99,232) y (110,230). Tienen la forma de las valvas y se confundían con
+         ellas; la demo no las tiene. Se OMITEN, que es lo que la orden manda, y el rótulo «VI»
+         se conserva porque la demo sí lo lleva.
+       · FALTABA LA VENA PULMONAR SUPERIOR IZQUIERDA. La demo la dibuja como una elipse con su
+         rótulo adentro; acá había sólo el rótulo suelto, así que «VPSI» nombraba un hueco.
+     Los dos puntos del anillo —(48,164) y (150,164)— también son de la demo: marcan dónde se
+     insertan las valvas.
+     ⚠️ LAS COORDENADAS NO SE TOCARON NI UN DECIMAL: están copiadas del marcado de la demo. */
+  g += '<path d="M16 70 Q16 26 60 26 L150 26 Q178 26 184 52 L187 112 Q188 142 174 164 L38 164 ' +
+       'Q16 164 16 140 Z" fill="' + C.panel + '" stroke="none"/>';
+  g += '<path d="M38 164 Q16 164 16 140 L16 70 Q16 26 60 26 L150 26 Q178 26 184 52 L187 112 ' +
+       'Q188 142 174 164" fill="none" stroke="' + C.linea + '" stroke-width="1"/>';
+  g += L(46, 50, 'AI', 'middle');
+  g += '<ellipse cx="166" cy="28" rx="22" ry="15" fill="' + C.panel + '" stroke="' + C.linea +
+       '" stroke-width="1"/>' + L(166, 32, 'VPSI', 'middle');
+  g += '<circle cx="48" cy="164" r="3" fill="' + C.linea + '"/>' +
+       '<circle cx="150" cy="164" r="3" fill="' + C.linea + '"/>';
   /* ⚠️ EL ROTULO «Cx» VA A LA IZQUIERDA DE SU PUNTO, Y NO A LA DERECHA COMO EN LA DEMO.
      Medido en HEAD sobre los 640 combos de la grilla: la linea punteada de la PROFUNDIDAD
      —que sale de (186,117) hacia la punta de la silueta— cruzaba la caja del rotulo en los
@@ -92457,7 +92542,10 @@ function oaiEsqSVG(fase, remolino) {
      ya va por x=211 o mas en la mas tendida de las cuatro, asi que no la cruza ninguna. */
   g += '<circle cx="196" cy="154" r="5" fill="' + C.rojo + '"/>' + L(190, 176, 'Cx', 'end', 10, C.rojo);
   g += '<circle cx="188" cy="76" r="3" fill="' + C.linea + '"/>' + L(180, 80, 'reborde', 'end');
-  g += L(176, 68, 'VPSI', 'end');
+  /* Los cuatro rótulos del plano valvular, con las coordenadas de la demo. «VI» baja a 246 y no
+     a los 224 de la demo porque acá el triángulo del ventrículo no se dibuja: a 224 el rótulo
+     quedaba flotando a media altura de un hueco. */
+  g += L(34, 182, 'P', 'middle') + L(160, 180, 'A', 'middle');
   g += L(176, 200, 'VM') + L(99, 246, 'VI', 'middle');
   /* ── LAS VALVAS Y EL CHORRO (A2) ────────────────────────────────────────────────────────────
      Van ANTES de la silueta para que la orejuela quede por encima: el chorro nace en el plano
@@ -92471,13 +92559,24 @@ function oaiEsqSVG(fase, remolino) {
     const dj = _oaiChorroD(gIM);
     g += '<path id="oai-mr" d="' + (dj && _oaiJetS(p) > 0.02 ? dj : '') + '" transform="' +
          _oaiChorroTr(_oaiJetS(p)) + '" fill="' + C.rojo + '" fill-opacity="0.8"/>'; }
-  /* La silueta. Dos capas, como en la demo: el contorno y el relleno más claro. */
-  /* ⚠️ EL PARÁMETRO SE LLAMA `dSil` Y NO `p`: desde el A2 hay un `p` en el ámbito de la función
+  /* ══ LA SILUETA, EN LAS DOS CAPAS DE LA DEMO (COR-6a, 2026-10-30) ════════════════════════
+     El comentario anterior decía «dos capas, como en la demo» y había UNA SOLA: un relleno de
+     acento a opacidad 0,9. Eso es lo que el médico vio como «la orejuela es muy oscura y no se
+     ve el contraste espontáneo» — las partículas del contraste son grises y se dibujan ENCIMA
+     de la silueta, así que sobre un acento saturado desaparecen.
+     La demo emite DOS paths por cada trazo: el de abajo con el acento como relleno Y como
+     contorno, y el de arriba con `--bg-accent`, un fondo tintado del acento. El resultado es
+     un contorno marcado con el interior claro, que es donde el contraste se lee.
+     ⚠️ LOS DOS BUCLES VAN COMPLETOS Y UNO DESPUÉS DEL OTRO, no intercalados: con la coliflor
+     son CINCO lóbulos que se solapan, y alternando contorno-relleno-contorno-relleno el relleno
+     del primero tapaba el contorno del segundo.
+     ⚠️ EL PARÁMETRO SE LLAMA `dSil` Y NO `p`: desde el A2 hay un `p` en el ámbito de la función
      —la fase del ciclo— y reusar la letra acá lo tapaba dentro del bucle. */
   sil.forEach(dSil => {
     g += '<path d="' + dSil + '" fill="' + C.acento + '" stroke="' + C.acento +
-         '" stroke-width="2.5" stroke-linejoin="round" fill-opacity="0.9"/>';
+         '" stroke-width="2.5" stroke-linejoin="round"/>';
   });
+  sil.forEach(dSil => { g += '<path d="' + dSil + '" fill="' + C.acentoBg + '"/>'; });
   if (!sil.length) g += L(212, 130, 'sin morfología cargada', 'middle', 10, C.tenue);
   /* ── EL CONTRASTE ESPONTÁNEO Y EL TROMBO (A2), dibujados según SUS campos ───────────────── */
   { const gs = (document.getElementById('oai_sec') || {}).value || '';
@@ -92501,13 +92600,17 @@ function oaiEsqSVG(fase, remolino) {
     g += _oaiTromboSVG(morf, (document.getElementById('oai_trombo') || {}).value || '', C, L); }
   /* El OSTIUM: la línea entre sus dos extremos, con el valor cargado. */
   const colO = o ? C.medida : C.borde;
-  g += '<line x1="186" y1="92" x2="187" y2="142" stroke="' + colO + '" stroke-width="2.5"/>';
+  /* ⚠️ GROSOR 3 Y PUNTA REDONDA, QUE ES LA CLASE `.ms` DE LA DEMO. La portada anterior la
+     dibujaba a 2,5 y con punta cuadrada, así que la línea nacía y moría medio píxel antes que
+     sus dos extremos y se veía despegada de ellos. */
+  g += '<line x1="186" y1="92" x2="187" y2="142" stroke="' + colO +
+       '" stroke-width="3" stroke-linecap="round"/>';
   g += '<circle cx="186" cy="92" r="4" fill="' + colO + '"/><circle cx="187" cy="142" r="4" fill="' + colO + '"/>';
   if (o) g += L(176, 122, 'Ø ' + o + ' mm', 'end', 11, C.medida);
   /* La PROFUNDIDAD: desde la línea del ostium hasta el fondo de la orejuela. */
   const colD = d ? C.medida : C.borde;
   g += '<line x1="186" y1="117" x2="' + tip[0] + '" y2="' + tip[1] +
-       '" stroke="' + colD + '" stroke-width="2.5" stroke-dasharray="6 4"/>';
+       '" stroke="' + colD + '" stroke-width="3" stroke-linecap="round" stroke-dasharray="6 4"/>';
   /* ⚠️ EL VALOR DE LA PROFUNDIDAD VA A LA DERECHA DE LA PUNTA, NO CENTRADO DEBAJO.
      Centrado, con la morfologia «ala de pollo» —punta en (216,179)— la caja caia en
      x 188..244 / y 193..204 y se pisaba con «VM», que esta en 176..196 / 192..203: medido,
@@ -124506,7 +124609,11 @@ const LAB_XLS_ETIQ = {
                    funcional_isq:'Funcional isquémica', funcional_aur:'Funcional auricular (FA)',
                    endocarditis:'Endocarditis', congenita:'Congénita',
                    prot_bio:'Prótesis biológica', prot_mec:'Prótesis mecánica' },
-  oai_morfologia: { ala:'Ala de pollo', coliflor:'Coliflor', cactus:'Cactus', veleta:'Veleta' },
+  /* ⚠️ EL RÓTULO CAMBIA Y LA CLAVE NO (COR-6a, 2026-10-30). La columna sigue siendo la misma y
+     su clave `veleta` también; lo que cambia es el texto que se exporta en la celda. El
+     importador acepta las DOS escrituras —ver su mapa de alias— para que el round-trip de un
+     Excel exportado antes de hoy siga entrando. */
+  oai_morfologia: { ala:'Ala de pollo', coliflor:'Coliflor', cactus:'Cactus', veleta:'Manga de viento' },
   oai_lobulos: { '1':'1 lóbulo', '2':'2 lóbulos', '3':'3 o más lóbulos' },
   oai_trombo: { no:'No', sospecha:'Sospecha', si:'Sí — confirmado' },
   oai_sec: { ausente:'Ausente', leve:'Leve', moderado:'Moderado', severo:'Severo (barro)' },
@@ -124609,7 +124716,10 @@ const LAB_XLS_VOCAB_NUEVOS = {
   ete_etiologia: { '':'', barlow:'barlow', dfe:'dfe', reumatica:'reumatica', funcional_isq:'funcional_isq',
                    funcional_aur:'funcional_aur', endocarditis:'endocarditis', congenita:'congenita',
                    prot_bio:'prot_bio', prot_mec:'prot_mec' },
-  oai_morfologia: { '':'', ala:'ala', 'ala de pollo':'ala', coliflor:'coliflor', cactus:'cactus', veleta:'veleta' },
+  /* «manga de viento» es el rótulo desde el COR-6a; «veleta» se conserva para que un Excel
+     exportado antes de esa fecha siga entrando con su valor. Las dos caen en la misma clave. */
+  oai_morfologia: { '':'', ala:'ala', 'ala de pollo':'ala', coliflor:'coliflor', cactus:'cactus',
+                    veleta:'veleta', 'manga de viento':'veleta' },
   /* Declarar la columna como `vocab` en `LAB_XLS_MAP` y NO poner el vocabulario acá rechaza la
      FILA ENTERA al reimportar —nombre, CI, FEVI, informe, todo— porque el bucle que propaga las
      etiquetas sólo AMPLÍA vocabularios existentes, no los crea. Y el error que ve el médico es
@@ -135999,7 +136109,7 @@ function labEteRender(infs, n) {
       stat('Diámetro del ostium', _promTxt(_promPos(oaiArr.map(i => _labNum(i,'oai_ostium_diam'))), 1, ' mm')) +
       stat('Profundidad', _promTxt(_promPos(oaiArr.map(i => _labNum(i,'oai_profundidad'))), 1, ' mm')) +
       stat('Área del ostium', _promTxt(_promPos(oaiArr.map(i => _labNum(i,'oai_area_ostium'))), 2, ' cm²')));
-    const MORF_L = { ala:'Ala de pollo', coliflor:'Coliflor', cactus:'Cactus', veleta:'Veleta' };
+    const MORF_L = { ala:'Ala de pollo', coliflor:'Coliflor', cactus:'Cactus', veleta:'Manga de viento' };
     // Mismo motivo que `op` en el bloque TAVI: la clave es un valor del estudio.
     const om = _oai.morf;
     if (Object.keys(om).length && typeof _labPieDash === 'function') {
