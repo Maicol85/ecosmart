@@ -373,6 +373,15 @@ const ESCENAS = {
                     vab_simetria: 'muy_asimetrica', ea_grado: 'moderada', ia_grado: '2' } },
   /* Una bicuspide SIN ninguna caracteristica mas que la morfologia: el borde del parentesis. */
   aSumaVabPel:{ campos: { peso: '70', talla: '170' }, sel: { sexo: 'M', va_morf: 'Bicúspide' } },
+  /* ⚠️ LA ESCENA DEL EJEMPLO LITERAL DE LA ORDEN, y hace falta una PROPIA. `vabFuncionDerivada`
+     devuelve `null` -no 'normal'- cuando NINGUNA de las dos lesiones tiene dato: su propia nota
+     dice que «normofuncionante» exige que la valvula haya sido EVALUADA, no que las dos lesiones
+     esten en su valor de fabrica. Asi que «sin estenosis ni insuficiencia» solo aparece con flujo
+     aortico cargado, que es lo que esta escena agrega. Sin ella, el A/B no puede distinguir «la
+     clausula de funcion no se escribio» de «la escena no llega a esa rama». */
+  aSumaVabNorm:{ campos: { ao_sin: '43', peso: '70', talla: '170', vmax_ao: '1.6',
+                           itv_ao: '28', itv_tsvi: '22', diam_tsvi: '21' },
+             sel: { sexo: 'M', va_morf: 'Bicúspide', vab_tipo: 'fused_rl', vab_rafe: 'si' } },
   aSumaNoVab:{ campos: { ao_sin: '43', peso: '70', talla: '170' }, sel: { sexo: 'M' } },
   /* ── COMMIT 4 · LA FRASE DEL GRADIENTE ──────────────────────────────────────────────────
      Misma escena que `cSubest` del COR: IT medida sin rango de HTP + VD disfuncionante. El

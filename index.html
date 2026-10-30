@@ -57721,6 +57721,14 @@ function generarInforme(opts) {
     }
   }
 
+  /* ══ LA BICUSPIDE SE NOMBRA UNA SOLA VEZ (AJ1-3a, 30/10/2026) ═══════════════════════════
+     `_vabSumaDicha` dice si la frase ya viajo pegada a una linea de dilatacion. Con dilatacion
+     se UNE a esa linea -que es el ejemplo literal de la orden-; sin ella va en linea propia,
+     despues del bloque de la aorta. La bandera vive ACA y no dentro del bloque 12 porque el
+     bloque es un `{ ... }` y un `let` suyo no se ve despues. */
+  let _vabSumaDicha = false;
+  const _vabSumaTxt = (typeof vabSumaFrase === 'function') ? vabSumaFrase() : null;
+
   // ── 12) Aorta torácica (los CINCO segmentos) ──
   /* Antes esta cascada miraba SÓLO `ao_sin`. Con el seno vacío caía al `else` y afirmaba «Aorta
      torácica de calibre normal» aunque `ao_tub` tuviera 52 mm — y la tabla del PDF, dos páginas
@@ -57818,12 +57826,31 @@ function generarInforme(opts) {
       /* Sin artículo, como las cuatro líneas que ya existían («Dilatación unión sinotubular»).
          Agregarlo obligaba a reescribir las cuatro para que el En Suma no quedara con dos
          estilos, y nada lo pedía. */
-      aoD.forEach(x => suma.push('Dilatación ' + (x.sg.k === 'ao_sin' ? 'raíz aórtica' : x.sg.lbl) +
-                                 ' (' + x.val + ' mm' +
-                                 (x.porIda && x.ida != null ? ', por índice, ' + aoIdaTxt(x.ida) + ' mm/m²' : '') +
-                                 ').'));
+      /* ⚠️ LA BICUSPIDE SE UNE A LA PRIMERA LINEA DE DILATACION, NO A TODAS (AJ1-3a). Con dos
+         segmentos dilatados, repetir la frase en cada uno la diria dos veces en el mismo
+         resumen, que es lo que la orden prohibe. Las demas lineas salen como siempre.
+         La redaccion de la union es la del ejemplo de la orden -«…, con dilatacion de la raiz
+         aortica (43 mm).»-, con el articulo por el genero del segmento; el nombre y el valor
+         son los mismos que la linea suelta ya publicaba. */
+      aoD.forEach((x, _i) => {
+        const _n = (x.sg.k === 'ao_sin' ? 'raíz aórtica' : x.sg.lbl);
+        const _v = x.val + ' mm' +
+                   (x.porIda && x.ida != null ? ', por índice, ' + aoIdaTxt(x.ida) + ' mm/m²' : '');
+        if (_i === 0 && _vabSumaTxt) {
+          _vabSumaDicha = true;
+          suma.push(_vabSumaTxt + ', con dilatación ' + (x.sg.m ? 'del ' : 'de la ') + _n +
+                    ' (' + _v + ').');
+        } else {
+          suma.push('Dilatación ' + _n + ' (' + _v + ').');
+        }
+      });
     }
   }
+
+  /* Sin una sola linea de dilatacion a la que pegarse, la bicuspide va en linea propia. Va
+     DESPUES del bloque de la aorta para que el orden del resumen no cambie cuando si hay
+     dilatacion: en los dos casos la bicuspide se lee en el mismo lugar. */
+  if (_vabSumaTxt && !_vabSumaDicha) { suma.push(_vabSumaTxt + '.'); _vabSumaDicha = true; }
 
   // ── 13) Pericardio + masas (juntas) ──
   {
@@ -73949,6 +73976,46 @@ function _vabFenoCola(){
   return f ? ' Fenotipo aortopático ' + f + '.' : '';
 }
 window._vabFenoCola = _vabFenoCola;
+/* ══ LA FRASE CORTA DE LA BICUSPIDE PARA EL EN SUMA (AJ1-3a, 30/10/2026) ═══════════════════
+   PEDIDO DEL MEDICO. El informe describia la bicuspide en la linea de la valvula aortica
+   -`vabFraseValv`, desde el Y3d8- y el EN SUMA no la nombraba: con la raiz dilatada decia solo
+   «Dilatacion raiz aortica (43 mm).», y con la bicuspide SOLA decia «Estudio sin alteraciones
+   estructurales ni funcionales significativas.» Las dos cosas medidas contra HEAD.
+   ⚠️ LA REDACCION NO SE REESCRIBE: sale de las MISMAS constantes que el informe y que el
+   resumen de pantalla -`VAB_SUMA_FENO`, `VAB_INF_RAFE`, `VAB_INF_DOSVELOS`,
+   `VAB_INF_CUSPIDES`-, que es la regla que `vabResumenPintar` ya tiene escrita: un segundo
+   juego de rotulos se separa del primero en la primera tanda que mueva una etiqueta.
+   ⚠️ LA COMPUERTA ES LA MORFOLOGIA, NO «Integrar al informe». La linea vieja
+   (`ccSumaLinea('vab')`) solo sale con la seccion integrada, y el caso que el medico describe
+   es el de una bicuspide cargada en VALVULAS con la seccion de la VAB sin tocar.
+   ⚠️ LA FUNCION SOLO SE DICE SI EL EN SUMA NO TRAE YA SU PROPIA LINEA. `_ccSumaTieneAo` mira
+   lo que el bloque 8 ya empujo -«EAo moderada.», «IAo moderada.»-, y repetirlo aca diria el
+   mismo hallazgo dos veces en el mismo resumen. Es la misma guarda que `ccSumaLinea('vab')`
+   ya usaba, y la razon por la que el ejemplo de la orden -«sin estenosis ni insuficiencia»-
+   es justo el caso en que NO hay linea propia que repetir.
+   Las palabras de la funcion son las que la app ya usa: `VAB_FUNC_TXT` para las tres lesiones
+   y «sin estenosis ni insuficiencia» para la normal, que es la que escribe el resumen de
+   pantalla desde el Y3f4. Ningun vocabulario nuevo. */
+function vabSumaFrase(src){
+  const sv2 = id => _ccSv(id, src);
+  if (sv2('va_morf') !== VAB_MORF_BIC) return null;
+  const tipo = sv2('vab_tipo'), rafe = sv2('vab_rafe'), sim = sv2('vab_simetria');
+  const p = [];
+  const feTipo = _ccLbl(VAB_SUMA_FENO, tipo);
+  if (feTipo) p.push('fenotipo ' + feTipo);
+  const esDosSenos = tipo === 'dos_senos_ll' || tipo === 'dos_senos_ap';
+  const rf = esDosSenos ? VAB_INF_DOSVELOS : _ccLbl(VAB_INF_RAFE, rafe);
+  if (rf) p.push(rf.replace(/^con /, ''));
+  const sn = _ccLbl(VAB_INF_CUSPIDES, sim);
+  if (sn) p.push(sn);
+  if (!(typeof _ccSumaTieneAo === 'function' && _ccSumaTieneAo())) {
+    const f = (typeof vabFuncionDerivada === 'function') ? vabFuncionDerivada(src) : null;
+    if (f === 'normal') p.push('sin estenosis ni insuficiencia');
+    else if (f && VAB_FUNC_TXT[f]) p.push(VAB_FUNC_TXT[f]);
+  }
+  return 'Válvula aórtica bicúspide' + (p.length ? ' (' + p.join(', ') + ')' : '');
+}
+window.vabSumaFrase = vabSumaFrase;
 window.vabFraseValv = vabFraseValv; window.VAB_INF_FENO = VAB_INF_FENO;
 window.VAB_SUMA_FENO = VAB_SUMA_FENO;
 window.VAB_INF_CUSPIDES = VAB_INF_CUSPIDES; window.VAB_INF_RAFE = VAB_INF_RAFE;
@@ -77191,6 +77258,22 @@ function ccSumaLinea(sec){
     /* ⚠️ LA SIGLA CORTA Y NO LA EXPANDIDA: el EN SUMA es un resumen, y «VAB fenotipo R-L
        (fusión derecha-izquierda) (rafe calcificado)» deja dos parentesis seguidos sobre la
        misma linea. La expansion queda en el informe, que es donde se describe. */
+    /* ══ CON LA FRASE NUEVA EN PIE, ESTA LINEA YA NO DESCRIBE (AJ1-3a, 30/10/2026) ════════
+       `vabSumaFrase()` publica fenotipo, rafe, cuspides y funcion desde el bloque 12, y lo
+       hace para TODA bicuspide cargada -no solo para la seccion integrada-. Repetirlo aca
+       daria «Valvula aortica bicuspide (fenotipo R-L, rafe calcificado, …)» y, dos renglones
+       abajo, «VAB fenotipo R-L (rafe calcificado), normofuncionante.»: el mismo hallazgo dos
+       veces en el mismo resumen, que es la regla R4.
+       Lo que esta linea SIGUE publicando es lo que la otra no dice: el `dx`, o sea la
+       DISCREPANCIA con la morfologia de Valvulas, las medidas fuera de rango y la aorta sin
+       medir. Esos tres no son descripciones de la valvula sino avisos sobre el estado del
+       registro, y son justo los que importan cuando la morfologia NO es bicuspide y por eso
+       `vabSumaFrase()` devuelve null. */
+    const _yaDicha = (typeof vabSumaFrase === 'function') && !!vabSumaFrase();
+    if (_yaDicha) {
+      const _dx0 = L(DX, c.clave);
+      return _dx0 ? ('Válvula aórtica bicúspide — ' + _dx0) : null;
+    }
     const feRafe = _ccLbl(VAB_INF_RAFE, _ccS('vab_rafe'));
     const feTipo = _ccLbl(VAB_SUMA_FENO, tipo);
     let l = 'VAB' + (feTipo ? ' fenotipo ' + feTipo : '')
