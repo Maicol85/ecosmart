@@ -4892,8 +4892,10 @@ window.cerrarSesionReal = cerrarSesionReal;
                publica 73 ms —hoja 28, folio 168, «IVRT … is typically ≤73 ms in normal healthy
                adults», y Tabla 6, hoja 29, folio 169, «RV IVRT, ms: ≤73 / >73»— y lo hace para
                OTRA pregunta, la función diastólica del VD, no para «a favor de HTP». El 75 de
-               `DT_TRIV_HTP_PANEL` es una decisión de pantalla ya declarada en este archivo y sin
-               fuente publicada. Ver `docs/PENDIENTES.md` → Y-b. -->
+               el 75 es una decisión de pantalla ya declarada en este archivo y sin fuente
+               publicada. Ver `docs/PENDIENTES.md` → Y-b.
+               ⚠️ Y DESDE EL COR-2b ESE MISMO 75 GOBIERNA TAMBIÉN EL INFORME FIRMADO: hay un solo
+               corte, `DT_TRIV_HTP`, y la referencia de esta fila ya no es «sólo de pantalla». -->
           <label>TRIV por Doppler tisular (ms)</label>
           <input type="number" id="vd-triv" step="1" placeholder="ms" oninput="vdTrivSync('vd-triv');calcDopTric()">
           <span style="font-size:10px;color:var(--text2);">Es el mismo dato que el de <b>Doppler</b> → tricúspide. No es el TRIV del ventrículo izquierdo, que se carga en <b>Diastólica</b>.</span>
@@ -5060,10 +5062,11 @@ window.cerrarSesionReal = cerrarSesionReal;
              `dt_triv` por `vdTrivSync`— pero su REFERENCIA sólo se leía en Doppler → tricúspide.
              Es el mismo texto, emitido por el mismo dueño (`_dtTrivRefTxt`), para que las dos
              filas no puedan decir cosas distintas sobre el mismo número.
-             ⚠️ ES UN DATO DE REFERENCIA Y NADA MÁS: no vota, no entra en la probabilidad de HTP,
-             no toca el informe, el EN SUMA, el PDF, el PPT ni el Excel. El corte de 75 ms es el
-             de pantalla (`DT_TRIV_HTP_PANEL`); el informe firmado usa `DT_TRIV_HTP` (60) y esa
-             frase NO se tocó.
+             ⚠️ NO VOTA Y NO ENTRA EN LA PROBABILIDAD DE HTP, y eso NO cambió: la categoría
+             ecocardiográfica de probabilidad sale de `_htp2022Core` y el TRIV no es uno de sus
+             insumos. Lo que SÍ cambió en el COR-2 es que el mismo corte de 75 ms gobierna ahora
+             la frase de elementos a favor de HTP del informe firmado: hay UNA sola constante,
+             `DT_TRIV_HTP`, y el campo deja de ser «sólo de pantalla».
              ⚠️ LA FILA NO SE DIBUJA SIN VALOR, y la esconde `vdRefVisSync`, que es el dueño
              único del `display` de las filas condicionales de este cuadro: el pintor no lo toca.
              ⚠️ EL AMARILLO NO ES LA ÚNICA SEÑAL: el texto dice «(>75 ms: a favor de HTP)», que
@@ -28009,6 +28012,42 @@ function vdSprimeCat(x) {
    ⚠️ FALLA CERRADA: ante cualquier excepcion devuelve `null`, o sea la frase de hoy sin grado.
    El rango va de MENOS a MAS grave, derivado de `ASE25_GRADOS`, que es el orden de gravedad que
    la tabla ya declara: escribirlo a mano seria una segunda copia de ese orden. */
+/* ══ ¿ESTE VENTRÍCULO DERECHO ESTÁ DISFUNCIONANTE? (COR-2c, 2026-10-30) ═════════════════════
+   NO INVENTA NINGÚN CORTE: es EXACTAMENTE el `OR` que `generarInforme` ya calculaba a mano para
+   decidir si el informe firmado dice «disfunción sistólica» —`tapseBajo || spBajo || facBajo ||
+   teiAlt || strVota`—, extraído a un dueño único. Cada parámetro cuenta SÓLO si está medido, y
+   uno alcanza; cada uno pide su banda a la función que ya la publica en el cuadro de
+   referencias, así que la frase del papel y el badge de la pantalla no pueden discrepar.
+   ⚠️ POR QUÉ HIZO FALTA EXTRAERLO. El `OR` vivía como `const` DENTRO del bloque
+   `if (hayTam || hayFunc || …)` que abre y cierra mucho antes de la línea de la válvula
+   tricúspide, así que la frase nueva del COR-2c —«gradiente AD-VD probablemente subestimado por
+   disfunción del VD»— no lo podía leer. Copiar el `OR` habría dejado DOS reglas para la misma
+   pregunta en el mismo documento firmado, que es el defecto que este repositorio persigue.
+   ⚠️ LA OTRA CUENTA DE «DISFUNCIÓN DEL VD» DE LA APP NO ES ÉSTA Y NO SE TOCÓ: la vista 2D cuenta
+   cuántos de los textos `tapse-interp`, `sprime-interp` y `fac-interp` dicen «disfunci» para
+   elegir el dibujo. Es un heurístico de trazo, con tres parámetros y no cinco, y no afirma nada
+   en ninguna superficie firmada. Queda declarado en `docs/PENDIENTES.md` → COR-c.
+   ⚠️ LA FEVD NO VOTA, igual que en el original: no estaba en ese `OR`.
+   Falla CERRADA: ante cualquier excepción devuelve `false`, o sea el texto de hoy sin el
+   paréntesis nuevo. */
+function vdDisfPresente(src) {
+  try {
+    const nv = (id) => { const r = src ? src[id] : (document.getElementById(id) || {}).value;
+      if (r === undefined || r === null || String(r).trim() === '') return null;
+      const n = parseFloat(String(r).replace(',', '.')); return isFinite(n) ? n : null; };
+    const anorm = (g) => g !== null && g !== undefined && g !== 'normal';
+    const tapse = nv('tapse'), sp = nv('s_prime'), fac = nv('vd_fac'), tei = nv('vd_tei');
+    const str = (typeof vdStrainPlVal === 'function') ? vdStrainPlVal() : null;
+    const strCat = (str !== null && typeof vdStrainPlCat === 'function') ? vdStrainPlCat(str) : null;
+    return !!((tapse !== null && anorm(vdTapseCat(tapse)))
+           || (sp    !== null && anorm(vdSprimeCat(sp)))
+           || (fac   !== null && anorm(vdFacCat(fac)))
+           || (tei   !== null && anorm(vdTeiCat(tei)))
+           || strCat === 'leve' || strCat === 'bajo_leve');
+  } catch (e) { return false; }
+}
+window.vdDisfPresente = vdDisfPresente;
+
 function vdDisfGrado(tapse, sprime) {
   try {
     const bandasDe = (clave, x) => {
@@ -30806,7 +30845,23 @@ window.dptCambio = dptCambio; window.cvrCambio = cvrCambio;
    Medido sobre los 95 estudios reales el 2026-09-16: el impacto hoy es CERO —el campo es nuevo—,
    y para el TAP ya era el comportamiento buscado. Si algún día el conteo de HTP se infla por
    estudios con sólo el TRIV alterado, mirar acá. */
-const DT_TRIV_HTP = 60, DT_TAP_HTP = 105;
+/* ⚠️ EL CORTE PASÓ DE 60 A 75 ms Y LAS DOS CONSTANTES SE FUNDIERON EN UNA (COR-2b,
+   2026-10-30). DECISIÓN DEL MÉDICO, de los días 9 y 30 de octubre, y REVIERTE lo que el bloque
+   de `DT_TRIV_HTP_PANEL` declaraba un poco más abajo: ese comentario decía que los dos umbrales
+   tenían que seguir separados porque contestaban preguntas distintas —el 60 el informe firmado
+   y el 75 la pantalla—, y la decisión de Maicol es que la pregunta es UNA SOLA: «¿hay un
+   elemento a favor de hipertensión pulmonar?». Una pantalla que dice «a favor de HTP» a los
+   76 ms sobre un informe que ya lo decía a los 61 es la misma medición contestándose distinto a
+   sí misma, en dos superficies del mismo estudio.
+   `DT_TRIV_HTP_PANEL` SE RETIRÓ: no quedó como alias. Un alias no puede divergir, pero sí puede
+   hacer creer que hay dos cortes, y el archivo entero venía arrastrando esa lectura.
+   ⚠️ EL OPERADOR ES ESTRICTO Y SIGUE SIÉNDOLO en los dos lectores: 75 exactos NO es un elemento
+   a favor, 76 sí. Era así en `dopTricEstado` y en `_dtTrivRefTxt` antes de esta tanda, así que
+   el cambio es el número y nada más.
+   ⚠️ NINGUNA FUENTE DE LA BIBLIOTECA PUBLICA ESTE 75, y sigue declarado en `docs/PENDIENTES.md`
+   → Y-b: la ASE 2025 de corazón derecho publica ≤ 73 ms (folio 168 y Tabla 6, folio 169) y lo
+   hace para la función diastólica del VD, que es otra pregunta. Es un CRITERIO DE ECOSMART. */
+const DT_TRIV_HTP = 75, DT_TAP_HTP = 105;
 
 /* ══ LA FRASE ÚNICA DE LOS SIGNOS INDIRECTOS ═════════════════════════════════════════════════
    Devuelve «(TAP < 105 ms)», «(TRIV tricuspídeo > 60 ms)», los dos unidos por «y», o '' si no
@@ -30863,18 +30918,15 @@ window.dopTricEstado = dopTricEstado;
    Son de PANTALLA y de pantalla nada más: ninguna entra en la probabilidad de HTP, en el informe,
    en el EN SUMA, en el PDF, en el PPT ni en el Excel.
 
-   ⚠️ `DT_TRIV_HTP_PANEL` (75) NO ES `DT_TRIV_HTP` (60) Y LOS DOS TIENEN QUE SEGUIR SEPARADOS.
-   El 60 gobierna la frase de signos indirectos de hipertensión pulmonar que publica el informe
-   FIRMADO (`htpIndirectosFrase`); el 75 es el comentario de pantalla que pidió Maicol para este
-   cuadro. Unificarlos cambiaría una frase del informe —que es decisión suya, no de esta tanda— y
-   es exactamente el mismo precedente que `VD_BAS_NORMAL_MAX` (41) contra `vdBasCat` (>45) y que
-   `DT_TRIV_HTP` contra el `RV IVRT > 73 ms` de la Tabla 6: la misma medición contestando
-   preguntas distintas con cortes distintos. Este archivo dice explícitamente que NO hay que
-   unificarlos. Queda declarado.
+   ⚠️ EL PÁRRAFO QUE ESTABA ACÁ DECÍA QUE `DT_TRIV_HTP_PANEL` (75) Y `DT_TRIV_HTP` (60) TENÍAN
+   QUE SEGUIR SEPARADOS, Y DEJÓ DE SER CIERTO EL 30/10/2026. Lo revierte una decisión del médico
+   y el motivo está escrito entero en el bloque de `DT_TRIV_HTP`, unas líneas más arriba: hay UN
+   solo corte, 75 ms, con operador estricto, y lo leen la pantalla y el informe firmado. La
+   constante `DT_TRIV_HTP_PANEL` se retiró; lo que queda acá es `DT_TDE_ACORT`, que no se tocó.
 
    El comentario de cada fila sale de SU constante y no de un literal, por lo mismo que las siete
    cifras de la PAP media: el rótulo y la comparación tienen que moverse juntos. */
-const DT_TRIV_HTP_PANEL = 75, DT_TDE_ACORT = 120;
+const DT_TDE_ACORT = 120;
 
 /* ⚠️ EL ÚNICO DUEÑO DEL TEXTO DEL TRIV. Devuelve `null` sin un valor usable —y «usable» es lo
    que ya decide `dopTricEstado` con su banda de plausibilidad de 20 a 120 ms—, o la cadena y la
@@ -30882,8 +30934,8 @@ const DT_TRIV_HTP_PANEL = 75, DT_TDE_ACORT = 120;
 function _dtTrivRefTxt() {
   const r = (typeof dopTricEstado === 'function') ? dopTricEstado() : null;
   if (!r || r.triv == null) return null;
-  const alto = r.triv > DT_TRIV_HTP_PANEL;
-  return { txt: r.triv + ' ms' + (alto ? ' (>' + DT_TRIV_HTP_PANEL + ' ms: a favor de HTP)' : ''),
+  const alto = r.triv > DT_TRIV_HTP;
+  return { txt: r.triv + ' ms' + (alto ? ' (>' + DT_TRIV_HTP + ' ms: a favor de HTP)' : ''),
            alto: alto };
 }
 window._dtTrivRefTxt = _dtTrivRefTxt;
@@ -30923,7 +30975,7 @@ function calcDopTric(){
   if (typeof dtvdAlgoRefrescar === 'function') dtvdAlgoRefrescar();
 }
 window.calcDopTric = calcDopTric;
-window.DT_TRIV_HTP_PANEL = DT_TRIV_HTP_PANEL; window.DT_TDE_ACORT = DT_TDE_ACORT;
+window.DT_TDE_ACORT = DT_TDE_ACORT;
 
 /* ══ FUNCIÓN DIASTÓLICA DEL VD — ASE 2025, Tabla 6 ═══════════════════════════════════════════
    Guía aplicada: **Mukherjee et al., «Guidelines for the Echocardiographic Assessment of the
@@ -44812,15 +44864,23 @@ const VINFO = Object.freeze({
        + 'Puede salir normal con presión auricular derecha alta o con insuficiencia tricuspídea '
        + 'significativa.\n'
        + 'Conviene corregirlo por la frecuencia cardíaca.\n'
-       + 'No suma a la probabilidad de hipertensión pulmonar.',
+       + 'No suma a la probabilidad de hipertensión pulmonar.\n'
+       + 'CRITERIO DE ECOSMART — sin fuente verificada en la biblioteca: cuando la velocidad '
+       + 'de la insuficiencia tricuspídea está medida pero no llega a rango de hipertensión '
+       + 'pulmonar y el ventrículo derecho está disfuncionante, el informe agrega que el '
+       + 'gradiente aurícula derecha-ventrículo derecho probablemente está subestimado por esa '
+       + 'disfunción. Es un criterio clínico del médico; ninguna de las fuentes de la '
+       + 'biblioteca lo publica.',
     fuente: 'El corte de 75 ms viene de un consenso —Howard LS y cols., Eur Respir Rev '
        + '2012;21:239-248: normal menos de 75 ms, anormal 75 ms o más— y de un estudio que lo '
        + 'comparó con la presión pulmonar estimada por ecografía, sin cateterismo —Cabrita IZ y '
        + 'cols., Eur Heart J Cardiovasc Imaging 2013;14:51-55: sensibilidad 94 % y especificidad '
        + '97 %—. Un TRIV de 40 ms o menos hizo improbable la hipertensión pulmonar en un estudio '
        + 'pequeño con cateterismo: Bréchot N y cols., Eur J Echocardiogr 2008;9:547-554.',
-    ojo: 'No es el TRIV del ventrículo izquierdo, que se carga en Diastólica. Y el corte de '
-       + '75 ms es el de esta referencia de pantalla: la frase del informe usa otro.'
+    ojo: 'No es el TRIV del ventrículo izquierdo, que se carga en Diastólica. El corte de '
+       + '75 ms es UNO SOLO desde el 30/10/2026: gobierna esta referencia y la frase de '
+       + 'elementos a favor de hipertensión pulmonar del informe firmado. Antes el informe '
+       + 'cortaba en 60 ms.'
   },
   'oai-ref': { ancho: 360, dyn: function () { return _oaiRefGlobo() } },
   'ai-card': { ancho: 348, dyn: function () { return evTarjetaAI() } },
@@ -55129,7 +55189,12 @@ function generarInforme(opts) {
       const strCat  = (strVD !== null && typeof vdStrainPlCat === 'function')
                         ? vdStrainPlCat(strVD) : null;
       const strVota = strCat === 'leve' || strCat === 'bajo_leve';
-      const vdDisf = tapseBajo || spBajo || facBajo || teiAlt || strVota;
+      /* ⚠️ EL `OR` SE LE PIDE AL DUEÑO (COR-2c, 2026-10-30) y no se calcula acá: la frase nueva
+         del gradiente subestimado, 1.800 líneas más abajo, necesita la misma respuesta y este
+         `const` no llega hasta allá. Los cinco predicados locales de arriba siguen existiendo
+         porque los leen otras ramas de este mismo bloque. */
+      const vdDisf = (typeof vdDisfPresente === 'function')
+        ? vdDisfPresente() : (tapseBajo || spBajo || facBajo || teiAlt || strVota);
 
       const tamTxt  = hayTam  ? VD_TAM_TXT[vdTamGrado] : null;
       /* ⚠️ EL GRADO SE LE PIDE AL DUEÑO Y NO SE CALCULA ACA (R3, 2026-10-20). `vdDisfGrado` lee
@@ -56846,8 +56911,46 @@ function generarInforme(opts) {
        Y LA RAMA SIN NINGUNA LESIÓN TAMPOCO: ahí lo que sigue es «, sin estenosis ni insuficiencia»,
        que no empieza por «con» y no colisiona. El corte es la colisión, no la morfología. */
     const _vtMorfAparte = /^con\s/.test(vtDe || '');
-    const _htpInd = (function(){ const i = (typeof htpIndirectosFrase === 'function') ? htpIndirectosFrase() : '';
-      return i ? ` Presenta elementos indirectos de HTP ${i}.` : ''; })();
+    /* ══ LA ORACIÓN DE LOS ELEMENTOS A FAVOR DE HTP, EN TRES FORMAS (COR-2c, 2026-10-30) ══════
+       Decisión del médico del 30/10. `htpIndirectosFrase()` sigue siendo el dueño de la LISTA
+       —«(TRIV tricuspídeo > 75 ms y TAP < 105 ms)»— y esto decide cómo se la presenta. Un solo
+       lugar y cuatro ramas de `tricLine` que lo consumen sin saber cuál salió, que es lo que
+       impide que dos ramas digan cosas distintas del mismo paciente.
+         (i) LA IT NO ESTÁ MEDIDA y hay elementos → se dice que no está medida y se nombran.
+             ⚠️ CON UNA IT DECLARADA PERO SIN Vmax va la forma larga; SIN NINGUNA IT va la corta,
+             porque las dos ramas que llegan ahí ya escribieron «no es posible estimar la PSAP» y
+             decir además «velocidad de la insuficiencia tricuspídea no medida» sobre un paciente
+             del que se acaba de afirmar que NO tiene insuficiencia se lee como una contradicción.
+             Es la regla R4 de la orden —cada contenido una vez por sección— resolviendo el borde.
+        (ii) LA IT ESTÁ MEDIDA, NO LLEGA A RANGO DE HTP y el VD está disfuncionante → se agrega
+             que el gradiente probablemente está subestimado.
+             ⚠️ «NO LLEGA A RANGO DE HTP» NO ES UN CORTE NUEVO: es `HTP_VRT_BAJA_MAX` (2,8 m/s,
+             INCLUSIVE), la banda de probabilidad BAJA de la Figura 5 de la ESC/ERS 2022, folio
+             28, que esta app ya aplica. «VD disfuncionante» tampoco: es `vdDisfPresente()`, el
+             mismo `OR` de cinco parámetros con el que el informe decide decir «disfunción
+             sistólica» unos párrafos más arriba.
+             ⚠️ ESA FRASE ES UN CRITERIO DEL MÉDICO Y NO TIENE FUENTE VERIFICADA EN LA
+             BIBLIOTECA. Está rotulada «CRITERIO DE ECOSMART — sin fuente verificada en la
+             biblioteca» en el ⓘ del TRIV y en la Evidencia de HTP, y anotada en
+             `docs/fuentes/FUENTES.md`. El informe firmado no lleva ese rótulo porque no lleva
+             citas ni notas metodológicas: el panel explica y el papel afirma.
+       ⚠️ LA CATEGORÍA DE PROBABILIDAD DE HTP NO SE TOCA. `_htp2022Core` no lee el TRIV ni esta
+       oración; lo único que cambia es la redacción del cuerpo. Medido con y sin TRIV en las 64
+       escenas del A/B: cero diferencias en las cinco cápsulas de la probabilidad. */
+    const _htpInd = (function(){
+      const i = (typeof htpIndirectosFrase === 'function') ? htpIndirectosFrase() : '';
+      if (!i) return '';
+      if (itTrv === null) {
+        return hayIT
+          ? ` Velocidad de la insuficiencia tricuspídea no medida; con elementos a favor de hipertensión pulmonar ${i}.`
+          : ` Con elementos a favor de hipertensión pulmonar ${i}.`;
+      }
+      const _sinRango = (typeof HTP_VRT_BAJA_MAX === 'number') && itTrv <= HTP_VRT_BAJA_MAX;
+      const _disf = (typeof vdDisfPresente === 'function') ? vdDisfPresente() : false;
+      return ` Presenta elementos indirectos de HTP ${i}`
+           + ((_sinRango && _disf) ? ' (gradiente AD-VD probablemente subestimado por disfunción del VD)' : '')
+           + '.';
+    })();
     /* ⚠️ A5 · LA MORFOLOGÍA SUBE AL EN SUMA EN LÍNEA PROPIA Y ANTES DE LAS VALVULOPATÍAS
        (decisión de Maicol, 2026-10-05). Hasta hoy no subía —el comentario de `vtDe` lo declaraba
        «por simetría con la mitral y la aórtica»— y esa simetría se rompe a propósito sólo en la
@@ -85888,7 +85991,30 @@ function _indHTP(){
      probabilidad del eco MAS el cuadro clínico. */
   lineas.push({ txt:'Clase IIa · Nivel B — con base en la probabilidad estimada por ecocardiografía se deben considerar otras pruebas diagnósticas según el cuadro clínico, es decir los síntomas y los factores de riesgo o entidades asociadas a HAP o HPTEC (Recomendaciones - tabla 2, folio 36).', refs:['escErs2022'] });
 
-  const bloques = [ { tit:'Pasos que propone la guía', lineas: lineas,
+  /* ══ LO QUE LA APP AGREGA Y LA GUÍA NO PUBLICA (COR-2d, 2026-10-30) ══════════════════════
+     Son las DOS afirmaciones de esta zona que no salen de la Figura 5 ni de ninguna fuente
+     verificada, y van rotuladas para que se lean como lo que son. El informe firmado NO lleva
+     este rótulo: no lleva citas ni notas metodológicas, y es acá donde se explica.
+     ⚠️ NINGUNA DE LAS DOS ENTRA EN LA PROBABILIDAD: la categoría la decide `_htp2022Core` con
+     los signos de la Figura 5, y el TRIV no es uno de ellos. Medido con y sin TRIV.
+     ⚠️ Y LAS DOS ENTRAN TAMBIÉN EN `notas`, que es lo que se pinta dentro del «Ver detalle»:
+     dejarlas afuera publicaría la mitad del razonamiento de la sección. */
+  const _propios = [
+    { txt:'CRITERIO DE ECOSMART — sin fuente verificada en la biblioteca. Un TRIV tricuspídeo '
+        + 'por encima de 75 ms se publica como elemento a favor de hipertensión pulmonar. El '
+        + 'corte viene de un consenso y de un estudio comparado con ecocardiografía, no con '
+        + 'cateterismo, y ninguno de los dos está en la biblioteca; el ⓘ «El TRIV del '
+        + 'ventrículo derecho» dice de dónde sale cada número. No suma a la probabilidad.',
+      refs:null },
+    { txt:'CRITERIO DE ECOSMART — sin fuente verificada en la biblioteca. Con la velocidad de '
+        + 'la insuficiencia tricuspídea medida pero sin llegar a rango de hipertensión pulmonar '
+        + 'y el ventrículo derecho disfuncionante, el informe agrega que el gradiente aurícula '
+        + 'derecha-ventrículo derecho probablemente está subestimado por esa disfunción. Es un '
+        + 'criterio clínico del médico. No suma a la probabilidad.',
+      refs:null }
+  ];
+  const bloques = [ { tit:'Lo que esta aplicación agrega y la guía no publica', lineas: _propios },
+    { tit:'Pasos que propone la guía', lineas: lineas,
     nota:'El informe y la conclusión de la app son DESCRIPTIVOS: publican la probabilidad y los signos. Las pruebas siguientes se publican acá y no en el papel firmado.' } ];
   if (faltan.length) bloques.push({ tit:'Lo que falta contestar para decidir otros pasos', lineas: faltan });
 
@@ -85896,7 +86022,7 @@ function _indHTP(){
     guia: { ref:'escErs2022',
       txt:'La ecocardiografía es la prueba no invasiva de primera línea ante la sospecha de hipertensión pulmonar (Clase I · Nivel B), y se recomienda asignar una probabilidad con la velocidad pico de regurgitación tricuspídea y los signos adicionales de la Tabla 10 (Clase I · Nivel B). El umbral de VRT se mantiene en 2,8 m/s pese a la definición hemodinámica actualizada (Clase I · Nivel C). Recomendaciones - tabla 2, folio 36.',
       nota:'El diagnóstico de hipertensión pulmonar es hemodinámico y requiere cateterismo cardíaco derecho: la ecocardiografía por sí sola no lo confirma (folio 27).' },
-    notas: lineas.map(function (l) { return l.txt; }) };
+    notas: _propios.concat(lineas).map(function (l) { return l.txt; }) };
 }
 
 /* ── Insuficiencia cardíaca con fracción de eyección preservada — HFA-PEFF ─────────────────
