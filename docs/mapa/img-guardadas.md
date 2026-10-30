@@ -311,3 +311,20 @@ Vive en **`docs/mapa/cor-correcciones.md`**, en archivo propio. Lo que esta zona
   interruptor. El inventario 5a está medido generando el PDF de verdad.
 - **§ 6** · el dibujo de la orejuela **portado de la demo**: aurícula izquierda, VPSI, sin el
   triángulo del VI, trombo adentro, dos capas de silueta y «Manga de viento».
+
+---
+
+## → La TANDA AJUSTES-1 (2026-10-30) — puntero
+
+Vive en **`docs/mapa/aj1-orejuela-pdf-ensuma.md`**, en archivo propio. Lo que esta zona
+perdió o ganó:
+
+- **la fila de miniaturas** de la tarjeta «En Suma / Conclusión» muestra lo que va al PDF:
+  capturas y diagramas, con su etiqueta, su contador y su título accesible.
+- **`noPdf`**, una propiedad del slot, saca una captura del papel **sin borrarla** del estudio;
+  la grilla de «Imágenes del estudio» muestra un cartel «Fuera del PDF» con su botón para
+  volver a incluirla.
+- **el orden de `imgSlots` es el de impresión**, y se cambia arrastrando o con ◀ ▶.
+- ningún campo guardado nuevo: el orden de los **diagramas** no se toca, y esa parte se paró
+  (`AJ1-d`).
+

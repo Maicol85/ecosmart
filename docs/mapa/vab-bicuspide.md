@@ -571,3 +571,18 @@ dentro de cada escena).
   cuenta por clave— y no se migra ningún estudio guardado.
 
 Detalle en **`docs/mapa/aj4-raiz-aortica.md`** § 2, § 5 y § 6.
+
+---
+
+## → La TANDA AJUSTES-1 (2026-10-30) — puntero
+
+Vive en **`docs/mapa/aj1-orejuela-pdf-ensuma.md`**, en archivo propio. Lo que esta zona
+perdió o ganó:
+
+- **el EN SUMA la nombra**: `vabSumaFrase()` publica «Válvula aórtica bicúspide (fenotipo …)»
+  para TODA bicúspide cargada en Válvulas —no sólo con la sección integrada—, unida a la línea
+  de la aorta cuando hay dilatación. `ccSumaLinea('vab')` deja de describir y conserva su `dx`.
+- **el bloque del PDF cambia de maqueta**: el dibujo baja de 70 a 48 mm y va a la izquierda, con
+  `vabPdfFilas()` —los MISMOS textos— a su derecha y a la misma altura. El bloque pasa de
+  **100,6 a 53,6 mm**.
+

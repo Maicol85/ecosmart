@@ -10257,3 +10257,94 @@ La orden numera siete commits y el séptimo es «cobertura y documentación». S
 se hizo es ningún cambio de código fuera de los seis primeros**, y eso es deliberado: la orden
 dice que los commits van en orden de prioridad y que si hay que dejar algo afuera es el 6. No
 hizo falta dejar nada afuera.
+
+
+---
+
+## Tanda AJUSTES-1 (2026-10-30)
+
+### AJ1-a · «Manga de viento — riesgo intermedio» sigue diciendo un riesgo que la fuente no da
+
+La orden del 30/10 saca «— riesgo intermedio» del **cactus** con el argumento de que ninguna
+fuente de la biblioteca le asigna riesgo a esa morfología. **El mismo argumento vale para la
+manga de viento**, y su `<option>` lo sigue diciendo.
+
+Medido: las otras DOS superficies que nombran las cuatro formas —la ficha `ref-oai` de
+Referencias y la entrada «Morfología» de `OAI_GLOBO`— publican «ala de pollo (menor riesgo) ·
+coliflor (mayor riesgo) · cactus · manga de viento», o sea **sin riesgo para las dos últimas**.
+El `<select>` era el único lugar donde las dos lo afirmaban, y hoy lo afirma una sola.
+
+**No se tocó** porque la orden nombra sólo el cactus, y cambiar un rótulo clínico que no nombra
+es decisión de Maicol. El cambio es de una línea: el texto del `<option value="veleta">`; el
+`value` **no** se toca, que es campo guardado.
+
+### AJ1-b · «Considerar mayor complejidad» salió del papel y no quedó en ningún lado
+
+La orden manda retirar la frase del informe y, «si existe en la Evidencia o en Referencias»,
+rotularla «CRITERIO DE ECOSMART — sin fuente verificada». **Censado el documento entero: no
+existe en ninguna de las dos.** Su única aparición era el papel.
+
+O sea que el contenido —que una orejuela multilobulada complica el sellado del dispositivo— **se
+perdió de la aplicación**. El hecho anatómico no: el informe sigue diciendo «Orejuela izquierda
+multilobulada».
+
+**Qué falta decidir:** si ese contenido va a la Evidencia de la orejuela, y con qué fuente. La
+biblioteca tiene la ASE 2021 de ETE (folio 50), que manda **medir** la profundidad y la zona de
+anclaje en los cuatro planos pero no publica nada sobre el número de lóbulos.
+
+### AJ1-c · Contractilidad y SGL no tienen el resumen al costado
+
+La orden pide verificarlo y reportar si no. Se verificó: su maqueta es **«cada una con su imagen
+arriba y su texto debajo»**, con la leyenda de colores al costado en 34 mm reservados. O sea que
+el resumen va **debajo**, no al lado, al revés que la VAB después del AJ1-2b.
+
+**No se tocó**: la orden dice «si no, reportalo». Cambiarlo es rehacer `_dibujarFila`, que
+reparte hasta tres columnas —contractilidad, strain y la captura del 3D— con una regla que cubre
+las ocho combinaciones de tres casillas independientes; moverles el texto al costado reduce el
+ancho de imagen de cada columna y hay que volver a medir los ocho casos.
+
+### AJ1-d · El orden de los diagramas en la fila de miniaturas
+
+La orden lo pide explícitamente y lo condiciona: «si el orden o la inclusión de los diagramas
+exige un campo guardado nuevo, PARÁ esa parte y reportala».
+
+**Lo exige.** Cada diagrama tiene hoy **su propia sección** en el PDF, en un lugar que decide el
+código —el bull's eye de contractilidad y el de strain comparten fila, la bicúspide va después
+del reloj del TAVI, la vista quirúrgica mitral después—. No hay ningún orden almacenado:
+inventarlo significa crear un campo por diagrama o una lista, y persistirla.
+
+En la fila **se ven y se pueden quitar**, que es lo que la orden pide de ellos.
+
+### AJ1-e · `vab-bicuspide.md` quedó a 1,1 KB del techo
+
+Medido **antes** de escribirle el puntero: 33,2 KB; después, **33,9**. El techo que este
+repositorio se fijó es 35 KB. **La próxima tanda que lo toque tiene que partirlo**, igual que
+hicieron la C2 con `informe-pdf-excel.md` y la COR con `vd-derecho.md`.
+
+### AJ1-f · El resumen de la orejuela se calcula aunque no se use
+
+`oaiResumenPDF()` corre una vez por generación de PDF, dentro del bloque de imágenes, aunque el
+esquema no esté incluido o no haya ninguna imagen. Es barato —lee ocho campos— y se calcula
+fuera del bucle, que es lo que importaba. Se anota por si alguna vez ese bloque se mueve a un
+lugar donde el costo sí cuente.
+
+### AJ1-g · La ✕ de una captura vale para la sesión, no para el estudio guardado
+
+`noPdf` es una propiedad del slot y **no viaja al disco**. Las dos puertas que lo impiden son
+allowlists explícitas, leídas en el código:
+
+- `CeiboImg.guardar` escribe `{dataURL, ampliada, calidad, star, nota, esquema, videoId,
+  videoNombre}` y nada más;
+- `imgRestaurar` reconstruye cada slot con esa misma lista.
+
+O sea que el médico que quita una captura del PDF, **guarda el estudio y lo vuelve a abrir**, se
+la encuentra incluida otra vez. La imagen **no se pierde** —se sigue guardando, que es lo que la
+orden pide—; lo que no sobrevive es la exclusión.
+
+**No se tocó**, y el motivo es la regla 4 de la orden: si una decisión no está en la orden, se
+para. La orden dice que la ✕ quita del PDF y no borra la imagen, y que se puede volver a
+incluir; **no dice que la exclusión tenga que sobrevivir a cerrar el estudio**. Hacerla durar es
+agregar `noPdf` a esas dos allowlists —dos palabras—, pero es cambiar lo que se escribe en el
+registro persistido de cada estudio con imágenes, y eso es decisión de Maicol.
+
+Es la misma clase de salvedad que `COR-e` declara para «Incluir en el PDF» con Config apagado.

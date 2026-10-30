@@ -7589,3 +7589,96 @@ siendo `veleta`**: cambiarlo sería migrar estudios guardados.
   registro verificado de este archivo, escrito por las tandas que leyeron el original.
 - **El barrido de veredictos del papel firmado** (1c) está en
   `docs/mapa/cor-correcciones.md` § 1, con su denominador: 64 escenas y 1.315.598 caracteres.
+
+
+---
+
+# La tanda AJUSTES-1 (2026-10-30)
+
+## La ASE 2025 de corazón derecho, folios 164 y 165 — leídos EN IMAGEN
+
+**Mukherjee M, Rudski LG, Addetia K, et al.** *Guidelines for the Echocardiographic Assessment
+of the Right Heart in Adults and Special Considerations in Pulmonary Hypertension:
+Recommendations from the American Society of Echocardiography.* J Am Soc Echocardiogr
+2025;38(3):141-186. Archivo: `03_VD_y_corazon_derecho/ASE-Right-Heart-Guidelines-May-2025.pdf`.
+
+**La regla de folio se comprobó en el PIE IMPRESO de las dos hojas**, no se dedujo:
+hoja 24 → «164   Mukherjee, M et al»; hoja 25 → «Mukherjee, M et al   165». Es la
+`folio = hoja + 140` que la entrada `aseDer2025` del registro ya declaraba.
+
+### Folio 164 — las fuentes de error de la presión sistólica estimada (literal)
+
+> «Several hemodynamic factors may also influence RVSP accuracy. **In severe PH with right heart
+> failure, reduced RV contractility and decreased PA compliance impair the ability of the RV to
+> generate sufficient force, resulting in a diminished RV-PA pressure gradient and unreliable
+> RVSP measurements.** Assessing RVSP in the context of hemodynamically significant TR is also
+> nuanced. Inadequate TR signal strength may underestimate RVSP, while severe TR with turbulent
+> flow can result in a high velocity regurgitant signal leading to potential overestimation of
+> RVSP. In FTR and/or malcoaptation of the tricuspid leaflets, the Doppler envelope can be
+> truncated due to early equalization of RA-RV pressures as evidenced by laminar TR flow and a
+> triangular CW Doppler signal contour, leading to underestimation of the RA-RV gradient.»
+
+⚠️ **El gradiente que esa oración dice que disminuye es el RV-PA**, no el RA-RV. La
+subestimación del **RA-RV** que el mismo folio nombra está atribuida a otra cosa: al truncamiento
+del sobre Doppler por igualación precoz de presiones en la insuficiencia tricuspídea funcional.
+
+### Tabla 5, folio 165 — transcrita fila por fila, en imagen
+
+**«Common sources of error for hemodynamic assessment»**
+
+| Source of error | Underestimation | Overestimation |
+|---|:---:|:---:|
+| **Significant RV failure and contractile dysfunction** | **X** | |
+| TR jet signal over-gaining | | X |
+| High output or hyperkinetic RV | | X |
+| Atrial fibrillation and velocity after a premature contraction or pause, if a higher velocity is used | | X |
+| Pulmonic stenosis | | X |
+| RAP estimation\* | X | X |
+| Limitations of the simplified Bernoulli equation | X | X |
+| Unfavorable Theta angle >20 degrees (angle between ultrasound beam and direction of blood velocity) | X | |
+
+⚠️ **La tabla NO nombra ningún gradiente**: habla de la evaluación hemodinámica.
+
+### Qué se escribió con esto, y qué NO
+
+**Se escribió**: que la guía sostiene «en parte» la frase del gradiente AD-VD subestimado, con
+los dos folios, y las **tres salvedades** —falla *significativa* contra cualquiera de los cinco
+parámetros de `vdDisfPresente()`; el gradiente que el folio 164 nombra es otro; y el
+«probablemente» es del médico—.
+
+**NO se escribió** que la ASE 2025 respalde la frase sin reservas, ni se citó la ESC/ERS 2022,
+que respalda sólo la insuficiencia tricuspídea grave y es otra cosa.
+
+## Lo que se paró y se reportó
+
+| Qué pedía la orden | Qué se encontró | Qué se hizo |
+|---|---|---|
+| El rótulo «CRITERIO DE ECOSMART — sin fuente verificada» sobre «Considerar mayor complejidad», *si existe en la Evidencia o en Referencias* | **No existe**: censado el documento entero, su única aparición era el papel | se retiró del papel y se declaró la pérdida (`AJ1-b`) |
+| «Verificá Contractilidad y SGL: si ya tienen el resumen al lado, no los cambies; si no, reportalo» | su resumen va **debajo** del dibujo, con la leyenda de colores al costado | **reportado, no tocado** (`AJ1-c`) |
+| El orden de los diagramas en la fila de miniaturas | exigiría inventar un orden y persistirlo, o sea un campo guardado nuevo | **parado** (`AJ1-d`) |
+| «Cactus — riesgo intermedio» pierde el riesgo | **«Manga de viento — riesgo intermedio» también lo dice**, y la orden no la nombra | **reportado, no tocado** (`AJ1-a`) |
+
+## Cambios de evidencia
+
+| Qué | Antes | Ahora | Fuente | Commit |
+|---|---|---|---|---|
+| El riesgo del cactus en el selector de morfología | «Cactus — riesgo intermedio» | **«Cactus»** | ninguna fuente de la biblioteca se lo asigna; las otras dos superficies ya no lo decían | AJ1-1 |
+| El riesgo de la manga de viento | «— riesgo intermedio» | **igual**, sin tocar | — (fuera de la orden) | — |
+| El riesgo del ala de pollo y de la coliflor | menor / mayor | **igual** | Glikson 2020, folio 1138 (ya citada) | — |
+| «Considerar mayor complejidad para el cierre percutáneo» en el papel | con 3+ lóbulos y sin trombo | **retirada** | — (la app no hace recomendaciones) | AJ1-1 |
+| La pastilla «Medidas de la orejuela» con trombo | «NO apto — trombo presente» | «Medidas publicadas — sin veredicto de aptitud» | — (ídem) | AJ1-1 |
+| El recuadro «Doppler pulsado» sin velocidad cargada | se dibujaba, con «sin velocidad cargada» | **no se dibuja**; el lienzo baja a 262 px | — (decisión del médico) | AJ1-1 |
+| La línea de la bicúspide en el EN SUMA | no existía / «VAB fenotipo R-L (rafe calcificado).» | «Válvula aórtica bicúspide (fenotipo …)» | las MISMAS constantes del informe | AJ1-3 |
+| El rótulo de la frase del gradiente AD-VD | «CRITERIO DE ECOSMART — sin fuente verificada en la biblioteca» | **«CRITERIO DE ECOSMART, respaldado en parte por la ASE 2025»**, con los folios 164 y 165 y tres salvedades | ASE 2025, folio 164 y Tabla 5 folio 165, **leídos en imagen** | AJ1-4 |
+| La frase del gradiente en el papel | «(gradiente AD-VD probablemente subestimado por disfunción del VD)» | **igual**, sin tocar | — | AJ1-4 |
+| El corte de 75 ms del TRIV | «sin fuente verificada» | **igual**: sigue sin fuente | — | — |
+
+## Notas de trabajo (R1)
+
+- **Esta tanda abrió UN solo PDF**, el de la ASE 2025 de corazón derecho, y las dos hojas se
+  leyeron renderizadas a 500 y 600 ppp. Todo lo demás que cita sale del registro verificado de
+  este archivo.
+- **El pie impreso se leyó en las dos hojas antes de usar el folio**, que es la regla de este
+  repositorio para no citar por número de página de PDF.
+- **Las tres salvedades van en el texto que se publica**, no sólo acá: una cita sin ellas haría
+  que la fuente respalde algo que no dice.

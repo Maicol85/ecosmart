@@ -344,10 +344,29 @@
   .inf-min[draggable="true"]{cursor:grab;touch-action:none}
   .inf-min.inf-min-drag{opacity:.45}
   .inf-min-et{display:block;font-size:9px;line-height:1.25;color:var(--text2);text-align:center;margin-top:2px}
-  .inf-min-x{position:absolute;top:-6px;right:-6px;width:22px;height:22px;border-radius:50%;border:1px solid var(--border);background:var(--bg2);color:var(--text2);font-size:11px;line-height:1;cursor:pointer;padding:0}
+  /* ⚠️ `min-width:0; min-height:0` NO ES OPCIONAL, Y NO LLEVA `!important`. La regla táctil
+     global de este archivo es `button, [role=button], .btn, …, [onclick] { min-height:44px;
+     min-width:44px }`, así que estos tres botones —declarados en 22 px— salían a 44×44 y se
+     DESBORDABAN de su miniatura de 56: medido con `elementFromPoint`, la ✕ daba 1 de 5 puntos
+     propios —las otras cuatro caían sobre la imagen y sobre la tarjeta vecina— y las dos flechas
+     sumaban 90 px dentro de un hueco de 56, así que la segunda pisaba la flecha de al lado.
+     `.inf-min-x` es (0,1,0) y `button` es (0,0,1): gana por especificidad, igual que
+     `.pac-id-mk` y que la excepción del header.
+     ⚠️ Y EL ÁREA TÁCTIL NO SE PIERDE: la extiende un `::after` absoluto, que no ocupa lugar en
+     el flujo. Es el mismo patrón que el marcador de documento ya usa.
+     ⚠️ EL `::after` DE LA ✕ CRECE HACIA LA IZQUIERDA Y HACIA ABAJO, no hacia la derecha: la
+     tarjeta vecina viene DESPUÉS en el orden del documento, así que pinta encima y un área que
+     se metiera en su hueco devolvería la vecina en vez de la ✕. */
+  .inf-min-x{position:absolute;top:-6px;right:-6px;width:22px;height:22px;min-width:0;min-height:0;border-radius:50%;border:1px solid var(--border);background:var(--bg2);color:var(--text2);font-size:11px;line-height:1;cursor:pointer;padding:0}
+  .inf-min-x::after{content:'';position:absolute;left:-22px;right:-4px;top:-14px;bottom:-8px}
   .inf-min-x:hover{border-color:var(--red);color:var(--red)}
   .inf-min-ord{display:flex;justify-content:center;gap:2px;margin-top:1px}
-  .inf-min-ord button{width:22px;height:22px;border-radius:4px;border:1px solid var(--border);background:var(--bg2);color:var(--text2);font-size:10px;line-height:1;cursor:pointer;padding:0}
+  .inf-min-ord button{position:relative;width:27px;height:30px;min-width:0;min-height:0;border-radius:4px;border:1px solid var(--border);background:var(--bg2);color:var(--text2);font-size:10px;line-height:1;cursor:pointer;padding:0}
+  /* 27 × 44 por flecha: el ALTO llega al mínimo táctil y el ancho es el que cabe —dos áreas de
+     44 de ancho en un hueco de 56 se solapan, y un toque cerca del borde movería la captura
+     para el otro lado—. Medido: 27 × 44, con los cinco puntos devolviendo el propio botón. La
+     vía accesible completa son el Tab y el Enter, que la orden pide y estos botones dan. */
+  .inf-min-ord button::after{content:'';position:absolute;left:0;right:0;top:-7px;bottom:-7px}
   .inf-min-ord button:disabled{opacity:.35;cursor:default}
   .inf-min-ord button:not(:disabled):hover{border-color:var(--accent);color:var(--accent)}
   .ig-filtro-btn{display:inline-flex;align-items:center;gap:5px;background:#3a3f52;border:1px solid #4a5068;color:var(--text2);font-family:inherit;font-size:11px;font-weight:600;padding:4px 10px;border-radius:7px;cursor:pointer;white-space:nowrap}
@@ -141757,8 +141776,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261030-1148';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793371701791;                 /* eco-build-ms */
+const ECO_BUILD    = '20261030-1550';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793386204862;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -141844,7 +141863,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261030-1148</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261030-1550</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

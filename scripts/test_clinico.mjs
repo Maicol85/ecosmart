@@ -5741,8 +5741,20 @@ caso('TC-66', 'VAB: aorta de 56 mm dispara la indicacion Clase I de la ESC 2024'
      aorta queda en su PROPIA linea, la que el bloque de la aorta ya empuja -repetir los dos
      diametros ahi los decia DOS veces en el mismo resumen-. Lo que este caso fija -que una
      aorta de 56 mm dispare la Clase I- no cambio y es lo que sigue midiendo su extra. */
+  /* ADAPTADO EN LA TANDA AJUSTES-1 (AJ1-3a, 30/10/2026), CON EL MOTIVO ESCRITO. El EN SUMA
+     pedia DOS lineas sueltas -«Dilatación aorta ascendente (56 mm).» y «VAB.»- y hoy las dos
+     son UNA: el pedido del medico es que el resumen NOMBRE la bicuspide y la una a la linea de
+     la aorta cuando hay dilatacion. Esta escena no carga tipo, rafe ni cuspides y la valvula no
+     esta medida, asi que la frase sale sin parentesis, que es lo correcto: no se afirma nada que
+     nadie consigno.
+     ⚠️ ESTE CASO SE ME PASO DEL CENSO Y LO DESTAPO LA CORRIDA COMPLETA. Grepee la suite por
+     «VAB fenotipo», que es como la escriben TC-504 y TC-506, y este la escribe «VAB.» a secas.
+     Es el mismo modo de falla que la tanda C2 documenta con TC-520: una afirmacion sobre el
+     texto no se encuentra buscando las palabras con que la escribe OTRO caso.
+     NO PIERDE PODER: sigue exigiendo el diametro, y lo que el caso viene a fijar -que 56 mm
+     disparen la Clase I- lo mide su bloque extra, que no se toco. */
   return { suma: r.suma,
-    debeSuma: ['Dilatación aorta ascendente (56 mm).', 'VAB.'],
+    debeSuma: ['Válvula aórtica bicúspide, con dilatación de la aorta ascendente (56 mm).'],
     /* ADAPTADO el 2026-10-20 (Y3f4): el cuadro de la seccion ya NO publica el parrafo de
        vabConclusion -pasa a un resumen ESQUEMATICO y descriptivo, sin guias ni umbrales- y ese
        texto se consulta en la pestana Evidencia. Lo que este caso fija -que una aorta de 56 mm
@@ -6042,12 +6054,23 @@ caso('TC-77', 'Orejuela: el trombo confirmado se DESCRIBE y manda sobre la morfo
     ] };
 `);
 
-caso('TC-78', 'Orejuela multilobulada sin trombo: sale la nota de complejidad', `
+/* ⚠️ INVERTIDO EN LA TANDA AJUSTES-1 (AJ1-1b, 30/10/2026), CON EL MOTIVO ESCRITO. Este caso se
+   llamaba «sale la nota de complejidad» y exigia «Considerar mayor complejidad para el cierre
+   percutaneo.» en el informe firmado. DECISION DE MAICOL: esa frase es una CONDUCTA y la
+   aplicacion no las publica, asi que salio del papel junto con su gate de trombo.
+   NO PIERDE PODER: lo que el caso fija ahora es que el hecho -la orejuela MULTILOBULADA- sigue
+   dicho, y que la conducta NO esta en NINGUNA de las dos superficies de texto que el estudio
+   guarda. Puede volver a fallar por los dos lados. */
+caso('TC-78', 'Orejuela multilobulada sin trombo: se dicen los lobulos y NO la nota de complejidad', `
   __t.limpiar(); __t.set('oai_lobulos','3'); __t.set('oai_trombo','no');
   const r = __t.informe();
   return { inf: r.inf,
-    debe: ['Orejuela izquierda multilobulada sin trombo.',
-           'Considerar mayor complejidad para el cierre percutáneo.'] };
+    debe: ['Orejuela izquierda multilobulada sin trombo.'],
+    noDebe: ['Considerar mayor complejidad para el cierre percutáneo'],
+    extra: [
+      ['la conducta retirada tampoco esta en el EN SUMA',
+        String(r.suma || '').indexOf('mayor complejidad') === -1, String(r.suma || '').slice(0, 160)]
+    ] };
 `);
 
 // ═══ GRUPO 25 — Campos derivados y sincronias ═══════════════════════════════════════════════
@@ -79996,9 +80019,17 @@ caso('TC-504', 'Tanda Y3d: los rotulos de feston visibles en las TRES vistas y e
      aortica cargada, asi que la app no afirma que la valvula sea normofuncionante y la linea
      queda corta: es exactamente la regla «sin datos en Valvulas no se dice nada». Lo que el caso
      fija -que el EN SUMA sea CORTO, con la sigla y el rafe entre parentesis- no cambio. */
-  ex.push(['(H5) el EN SUMA es corto, con la sigla y el rafe entre parentesis',
-    _est.suma.indexOf('VAB fenotipo R-L (rafe calcificado).') > -1,
-    _est.suma.split(String.fromCharCode(10)).filter(l => l.indexOf('VAB') > -1)[0] || 'NO ESTA']);
+  /* ⚠️ ADAPTADO EN LA TANDA AJUSTES-1 (AJ1-3a, 30/10/2026), CON EL MOTIVO ESCRITO. El EN SUMA
+     decia «VAB fenotipo R-L (rafe calcificado).» y hoy dice «Válvula aórtica bicúspide (fenotipo
+     R-L, rafe calcificado, cúspides simétricas)», unida a la linea de la dilatacion. El pedido
+     del medico fue justamente ese: que el resumen NOMBRE la valvula con sus caracteristicas
+     breves en vez de una sigla. NO PIERDE PODER: sigue exigiendo que el fenotipo y el rafe esten
+     y que se digan UNA sola vez -la condicion cuenta las apariciones-. */
+  ex.push(['(H5) el EN SUMA nombra la bicuspide UNA vez, con fenotipo, rafe y cuspides',
+    _est.suma.indexOf('Válvula aórtica bicúspide (fenotipo R-L, rafe calcificado, cúspides simétricas)') > -1
+      && (_est.suma.match(/bic[úu]spide/g) || []).length === 1
+      && _est.suma.indexOf('VAB fenotipo') < 0,
+    _est.suma.split(String.fromCharCode(10)).filter(l => l.indexOf('bicúspide') > -1 || l.indexOf('VAB') > -1)[0] || 'NO ESTA']);
   /* Los TRES estilos dan la misma informacion. */
   const _nar = (function(){ setEstiloInforme('narrativo'); return MONTAR(); })();
   const _con = (function(){ setEstiloInforme('conciso');  return MONTAR(); })();
@@ -80023,10 +80054,15 @@ caso('TC-504', 'Tanda Y3d: los rotulos de feston visibles en las TRES vistas y e
   SEL('vab_tipo','fused_rl'); SEL('vab_rafe','si'); SEL('vab_simetria','simetrica');
   SEL('vab_funcion','estenosis'); __t.chk('vab_incluir_chk', true);
   const _les = __t.informe();
-  ex.push(['(H8) con estenosis el EN SUMA la dice UNA vez y la VAB no la repite',
+  /* ⚠️ ADAPTADO EN LA TANDA AJUSTES-1 (AJ1-3a), CON EL MOTIVO ESCRITO. Misma razon que (H5).
+     Lo que este caso fija -que la lesion se diga UNA sola vez y que la linea de la valvula NO la
+     repita- es lo mismo de antes y se exige igual: _ccSumaTieneAo sigue siendo la guarda. */
+  ex.push(['(H8) con estenosis el EN SUMA la dice UNA vez y la linea de la valvula no la repite',
     _les.suma.indexOf('EAo severa.') > -1
-      && _les.suma.indexOf('VAB fenotipo R-L (rafe calcificado).') > -1,
-    _les.suma.split(String.fromCharCode(10)).filter(l => l.indexOf('VAB') > -1 || l.indexOf('EAo') > -1).join(' | ')]);
+      && _les.suma.indexOf('Válvula aórtica bicúspide (fenotipo R-L, rafe calcificado') > -1
+      && _les.suma.indexOf('estenosis ni insuficiencia') < 0
+      && (_les.suma.match(/EAo/g) || []).length === 1,
+    _les.suma.split(String.fromCharCode(10)).filter(l => l.indexOf('bicúspide') > -1 || l.indexOf('EAo') > -1).join(' | ')]);
   /* CONTROL: con otra morfologia la frase de la aortica no cambia. */
   __t.limpiar(); SEL('va_morf','Trivalva normal');
   __t.set('ao_sin','38'); __t.set('ao_tub','42');
@@ -80789,14 +80825,24 @@ caso('TC-506', 'Tanda Y3f: la FEVI y el DSFVI como UN SOLO valor en los dos sent
   ex.push(['(E2) el EN SUMA ya no lleva el encabezado de congenitas',
     _e1.suma.indexOf('Cardiopatías congénitas y miocardiopatías genéticas:') < 0,
     (_e1.suma.split(String.fromCharCode(10)).filter(l => l.indexOf('VAB') > -1)[0] || 'NO ESTA')]);
-  ex.push(['(E3) y la linea de la VAB es corta, sin «normofuncionante» porque no hay medicion',
-    _e1.suma.indexOf('VAB fenotipo R-L (rafe calcificado).') > -1,
-    (_e1.suma.split(String.fromCharCode(10)).filter(l => l.indexOf('VAB') > -1)[0] || 'NO ESTA')]);
+  /* ⚠️ ADAPTADO EN LA TANDA AJUSTES-1 (AJ1-3a), CON EL MOTIVO ESCRITO. La linea pasa de la
+     sigla a «Válvula aórtica bicúspide (…)», que es el pedido del medico. Lo que este caso fija
+     -que SIN medicion de la valvula no se afirme nada de su funcion- no cambio: la regla es la
+     de vabFuncionDerivada, que devuelve null cuando ninguna de las dos lesiones tiene dato. */
+  ex.push(['(E3) la linea nombra la bicuspide y NO afirma la funcion, porque no hay medicion',
+    _e1.suma.indexOf('Válvula aórtica bicúspide (fenotipo R-L, rafe calcificado)') > -1
+      && _e1.suma.indexOf('sin estenosis ni insuficiencia') < 0
+      && _e1.suma.indexOf('normofuncionante') < 0,
+    (_e1.suma.split(String.fromCharCode(10)).filter(l => l.indexOf('bicúspide') > -1)[0] || 'NO ESTA')]);
   /* CON la valvula medida y sin lesion, la linea SI agrega «, normofuncionante». */
   const _e2 = (function(){ const r = _montar(); __t.set('vmax_ao', '1.5'); return __t.informe(); })();
-  ex.push(['(E4) con la valvula medida y sin lesion, la linea agrega «, normofuncionante»',
-    _e2.suma.indexOf('VAB fenotipo R-L (rafe calcificado), normofuncionante.') > -1,
-    (_e2.suma.split(String.fromCharCode(10)).filter(l => l.indexOf('VAB') > -1)[0] || 'NO ESTA')]);
+  /* ⚠️ ADAPTADO EN LA TANDA AJUSTES-1 (AJ1-3a), CON EL MOTIVO ESCRITO. La palabra pasa de
+     «normofuncionante» a «sin estenosis ni insuficiencia», que es la que el resumen de pantalla
+     ya usaba desde el Y3f4 y la que el ejemplo de la orden del medico da textual. El invariante
+     es el mismo: CON la valvula medida y sin lesion, la linea SI afirma la funcion. */
+  ex.push(['(E4) con la valvula medida y sin lesion, la linea agrega «sin estenosis ni insuficiencia»',
+    _e2.suma.indexOf('Válvula aórtica bicúspide (fenotipo R-L, rafe calcificado, sin estenosis ni insuficiencia)') > -1,
+    (_e2.suma.split(String.fromCharCode(10)).filter(l => l.indexOf('bicúspide') > -1)[0] || 'NO ESTA')]);
   /* DERRAME Y MASAS: una sola oracion cuando los dos son la negacion, en los TRES estilos. */
   const _pm = (estilo, peri, masa) => {
     setEstiloInforme(estilo); __t.limpiar();
@@ -97457,10 +97503,18 @@ caso('TC-553', 'Tanda CORRECCIONES: el informe de la orejuela publica las medida
   limpiar(); pon('oai_ostium_diam', '26'); pon('oai_profundidad', '37');
   pon('oai_lobulos', '3'); pon('oai_trombo', 'no'); await esperar(300);
   const iA5 = inf();
-  ex.push(['(A7) el gate de los lobulos SIGUE: con trombo no aparece la nota de complejidad',
-    iA4.indexOf('Considerar mayor complejidad') === -1, iA4.slice(0, 150)]);
-  ex.push(['(A8) CONTROL NEGATIVO del gate: sin trombo y con 3 lobulos SI aparece',
-    iA5.indexOf('Considerar mayor complejidad') > -1, iA5.slice(0, 150)]);
+  /* ⚠️ LAS DOS INVERTIDAS EN LA TANDA AJUSTES-1 (AJ1-1b, 30/10/2026), CON EL MOTIVO ESCRITO.
+     (A7) medía que el GATE del trombo frenara la nota de complejidad, y (A8) que sin trombo la
+     nota SI apareciera. La nota salio del papel entero -es una conducta- y con ella su gate, que
+     existia solo para no chocar con el veredicto de aptitud que el COR-1a ya habia retirado.
+     Lo que las dos fijan ahora es que la frase no esta en NINGUNO de los dos escenarios, y el
+     DENOMINADOR sigue siendo el mismo: los tres lobulos se dicen igual. */
+  ex.push(['(A7) con trombo y 3 lobulos: se dicen los lobulos y NO la nota de complejidad',
+    iA4.indexOf('Considerar mayor complejidad') === -1 && iA4.indexOf('multilobulada') > -1,
+    iA4.slice(0, 150)]);
+  ex.push(['(A8) sin trombo y 3 lobulos: tampoco aparece, y los lobulos se siguen diciendo',
+    iA5.indexOf('Considerar mayor complejidad') === -1 && iA5.indexOf('multilobulada') > -1,
+    iA5.slice(0, 150)]);
   /* El hecho, con su fuente, en la Evidencia. */
   limpiar(); pon('oai_trombo', 'si'); await esperar(300);
   let evTxt = '';
@@ -97799,6 +97853,384 @@ caso('TC-553', 'Tanda CORRECCIONES: el informe de la orejuela publica las medida
 
   } catch (e) { ex.push(['EXCEPCION', false, String(e && e.message ? e.message : e)]); }
   finally { try { if (F('limpiarCampos')) limpiarCampos(); } catch (e) {} }
+  return { extra: ex };
+  })();
+`);
+
+/* -- TC-554 ---------------------------------------------------------------------------------
+   TANDA AJUSTES-1 (2026-10-30), commits 1 a 5.
+
+   Las letras son las de las condiciones. Cada bloque abre con su DENOMINADOR -lo que impide
+   que «no aparece» y «no se midio» se lean igual- y cierra con sus controles negativos.
+
+   ADVERTENCIAS DE METODO, todas pagadas en este repositorio:
+   - EL ESTILO DE INFORME ES ESTADO DE SESION y este caso lo fija antes de cada lectura: un caso
+     anterior puede dejarlo en narrativo, donde las frases dicen otra cosa (lo pago TC-547).
+   - NO SE LLAMA A LOS CALCULADORES A MANO para fabricar un disparador: los campos se ponen
+     despachando input, que es el gesto real (lo pago TC-519).
+   - INCLUIR EL ESQUEMA EN EL PDF ES UN INTERRUPTOR y imgSlots sobrevive entre bloques: se quita
+     antes de incluir, siempre.
+   - LAS MINIATURAS SE OPERAN CLICKEANDO SUS BOTONES, no llamando a infMinMover.
+   - SIN ACENTOS GRAVES EN ESTE COMENTARIO NI EN EL CUERPO: los dos viven dentro de un template.
+*/
+caso('TC-554', 'Tanda AJUSTES-1: el cactus sin riesgo, los lobulos sin la nota de complejidad, la pastilla sin veredicto y el Doppler ausente sin velocidad; el PDF con el dibujo de la orejuela JUNTO a su tabla y sin repetirlo, o en Imagenes del estudio con su resumen al lado; la VAB con su resumen AL COSTADO y la mitad de alto; el EN SUMA nombrando la bicuspide UNA vez; la frase del gradiente con su cita de la ASE 2025 sin tocar el papel; y la fila de miniaturas con sus etiquetas, su contador, su quitar-sin-borrar y su reordenado accesible', `
+  return (async () => {
+  const ex = [];
+  const F = (n) => (typeof window[n] === 'function') ? window[n] : null;
+  const EL = (id) => document.getElementById(id) || null;
+  const T = (id) => { const e = EL(id); return e ? (e.textContent || '').replace(/[ \\t\\n\\r]+/g, ' ').trim() : 'NO EXISTE'; };
+  const V = (id) => { const e = EL(id); return e ? String(e.value || '') : 'NO EXISTE'; };
+  const pon = (id, v) => { const e = EL(id); if (!e) return 'NO ' + id;
+    e.value = String(v); e.dispatchEvent(new Event('input', { bubbles: true }));
+    e.dispatchEvent(new Event('change', { bubbles: true })); return e.value; };
+  const esperar = (ms) => new Promise(r => setTimeout(r, ms));
+  const limpiar = () => { try { if (F('limpiarCampos')) limpiarCampos(true) } catch (e) {}
+                          try { if (F('esqQuitarDelPDF')) esqQuitarDelPDF('orejuela') } catch (e) {} };
+  const inf = () => { try { if (F('setEstiloInforme')) setEstiloInforme('estandar') } catch (e) {}
+    try { if (F('generarInforme')) generarInforme() } catch (e) {}
+    return V('informe_texto'); };
+  const infEn = (st) => { try { if (F('setEstiloInforme')) setEstiloInforme(st) } catch (e) {}
+    try { if (F('generarInforme')) generarInforme() } catch (e) {}
+    return V('informe_texto'); };
+  const suma = () => V('en_suma');
+  /* El PDF generado DE VERDAD, con COORDENADAS: lo que el commit 2 mueve es la composicion y no
+     los textos, asi que un espia que solo guarde palabras no lo puede ver. */
+  const pdfGeo = async () => {
+    if (typeof window.jspdf === 'undefined' || !window.jspdf.jsPDF) return { err: 'SIN JSPDF', imgs: [], txt: [] };
+    const Orig = window.jspdf.jsPDF;
+    const reg = { imgs: [], txt: [], pags: 0 };
+    window.jspdf.jsPDF = function () {
+      const d = new Orig(arguments[0]);
+      const oAdd = d.addPage.bind(d);
+      d.addPage = function () { reg.pags++; return oAdd.apply(d, arguments) };
+      const ot = d.text.bind(d);
+      d.text = function (t, x, y) { reg.txt.push({ p: reg.pags, t: String(t).slice(0, 80),
+        x: Math.round(Number(x) * 10) / 10, y: Math.round(Number(y) * 10) / 10 });
+        return ot.apply(d, arguments) };
+      const oi = d.addImage.bind(d);
+      d.addImage = function (data, fmt, x, y, w, h) {
+        reg.imgs.push({ p: reg.pags, x: Math.round(Number(x) * 10) / 10, y: Math.round(Number(y) * 10) / 10,
+          w: Math.round(Number(w) * 10) / 10, h: Math.round(Number(h) * 10) / 10,
+          f: String(data || '').slice(-30, -14) });
+        return oi.apply(d, arguments) };
+      d.save = function () { return true }; d.output = function () { return '' };
+      return d;
+    };
+    Object.keys(Orig).forEach(function (k) { try { window.jspdf.jsPDF[k] = Orig[k] } catch (e) {} });
+    try { if (F('_pdfAjustarA4')) await _pdfAjustarA4() } catch (e) { reg.err = String(e).slice(0, 120) }
+    window.jspdf.jsPDF = Orig;
+    return reg;
+  };
+
+  try {
+  /* ═══ (A) LA OREJUELA SIN RECOMENDACIONES NI RUIDO (commit 1) ═══════════════════════════ */
+  const sel = EL('oai_morfologia');
+  const opts = sel ? [].slice.call(sel.options).map(function (o) { return o.value + '=' + o.text }) : [];
+  ex.push(['(A0) DENOMINADOR: el selector de morfologia tiene sus cuatro formas',
+    opts.length === 5 && opts.join(' ').indexOf('cactus=') > -1, opts.join(' | ')]);
+  ex.push(['(A1) el CACTUS pierde «riesgo intermedio» y su value NO cambia',
+    opts.filter(function (o) { return o.indexOf('cactus=') === 0 })[0] === 'cactus=Cactus',
+    opts.filter(function (o) { return o.indexOf('cactus=') === 0 })[0] || 'NO ESTA']);
+  ex.push(['(A2) CONTROL NEGATIVO: el ala de pollo y la coliflor conservan su riesgo',
+    opts.join(' ').indexOf('ala=Ala de pollo — menor riesgo') > -1 &&
+    opts.join(' ').indexOf('coliflor=Coliflor — mayor riesgo') > -1,
+    opts.filter(function (o) { return o.indexOf('ala=') === 0 || o.indexOf('coliflor=') === 0 }).join(' | ')]);
+
+  limpiar();
+  pon('oai_ostium_diam', '26'); pon('oai_profundidad', '37');
+  pon('oai_vel_vac', '30'); pon('oai_lobulos', '3'); pon('oai_trombo', 'no');
+  await esperar(350);
+  const iA = inf(), nA = infEn('narrativo'), cA = infEn('conciso');
+  inf();
+  ex.push(['(A3) DENOMINADOR: con tres lobulos el informe los nombra',
+    iA.indexOf('Orejuela izquierda multilobulada') > -1, iA.slice(0, 160)]);
+  ex.push(['(A4) y NO dice «mayor complejidad» en NINGUNO de los tres estilos ni en el EN SUMA',
+    iA.indexOf('mayor complejidad') === -1 && nA.indexOf('mayor complejidad') === -1 &&
+    cA.indexOf('mayor complejidad') === -1 && suma().indexOf('mayor complejidad') === -1,
+    'est=' + (iA.indexOf('mayor complejidad') > -1) + ' nar=' + (nA.indexOf('mayor complejidad') > -1) +
+    ' con=' + (cA.indexOf('mayor complejidad') > -1)]);
+
+  limpiar(); pon('oai_ostium_diam', '26'); pon('oai_profundidad', '37'); pon('oai_trombo', 'si');
+  await esperar(350);
+  ex.push(['(A5) la pastilla con TROMBO y medidas publica las medidas y NO un veredicto',
+    T('oai-elegibilidad').indexOf('Medidas publicadas') > -1 &&
+    T('oai-elegibilidad').indexOf('NO apto') === -1, T('oai-elegibilidad')]);
+  limpiar(); pon('oai_trombo', 'si'); await esperar(350);
+  ex.push(['(A6) CONTROL NEGATIVO: con trombo y SIN medidas dice «Completar mediciones»',
+    T('oai-elegibilidad').indexOf('Completar mediciones') > -1 &&
+    T('oai-elegibilidad').indexOf('NO apto') === -1, T('oai-elegibilidad')]);
+
+  limpiar(); pon('oai_morfologia', 'ala'); pon('oai_ostium_diam', '26');
+  pon('oai_profundidad', '37'); pon('oai_vel_vac', '30'); await esperar(350);
+  const svgCon = F('oaiEsqSVG') ? String(oaiEsqSVG(0, 0)) : '';
+  const altoCon = F('_oaiEsqAlto') ? _oaiEsqAlto() : -1;
+  ex.push(['(A7) DENOMINADOR: CON velocidad el esquema trae el recuadro del Doppler y mide 350',
+    svgCon.indexOf('Doppler pulsado') > -1 && svgCon.indexOf('30 cm/s') > -1 &&
+    svgCon.indexOf('viewBox="0 0 340 350"') > -1 && altoCon === 350,
+    'doppler=' + (svgCon.indexOf('Doppler pulsado') > -1) + ' alto=' + altoCon + ' len=' + svgCon.length]);
+  pon('oai_vel_vac', ''); await esperar(350);
+  const svgSin = F('oaiEsqSVG') ? String(oaiEsqSVG(0, 0)) : '';
+  const altoSin = F('_oaiEsqAlto') ? _oaiEsqAlto() : -1;
+  ex.push(['(A8) SIN velocidad el recuadro no se dibuja y el lienzo se acorta a 262',
+    svgSin.indexOf('Doppler pulsado') === -1 && svgSin.indexOf('sin velocidad cargada') === -1 &&
+    svgSin.indexOf('y="276"') === -1 && svgSin.indexOf('viewBox="0 0 340 262"') > -1 && altoSin === 262,
+    'doppler=' + (svgSin.indexOf('Doppler pulsado') > -1) + ' alto=' + altoSin +
+    ' sinVel=' + (svgSin.indexOf('sin velocidad cargada') > -1)]);
+  ex.push(['(A9) el dibujo de la PANTALLA usa el MISMO dueño del alto y conserva la silueta',
+    (function () { const c = EL('oai-esq'), g = c ? c.querySelector('svg') : null;
+      return !!g && g.getAttribute('height') === String(altoSin) && svgSin.indexOf('<path') > -1; })(),
+    (function () { const c = EL('oai-esq'), g = c ? c.querySelector('svg') : null;
+      return g ? ('h=' + g.getAttribute('height') + ' esperado=' + altoSin) : 'SIN SVG' })()]);
+
+  /* ═══ (B) EL PDF SIN REPETIR, Y LA VAB AL COSTADO (commit 2) ════════════════════════════ */
+  limpiar();
+  pon('oai_morfologia', 'ala'); pon('oai_ostium_diam', '26'); pon('oai_profundidad', '37');
+  pon('oai_vel_vac', '30'); pon('oai_sec', 'leve'); pon('oai_lobulos', '2'); pon('oai_trombo', 'no');
+  await esperar(350);
+  try { if (F('amiloIntegrar')) amiloIntegrar('oai') } catch (e) {}
+  if (F('oaiEsqIncluirPDF')) { try { await oaiEsqIncluirPDF() } catch (e) {} }
+  await esperar(600);
+  inf();
+  const gB = await pdfGeo();
+  const tabB = (gB.txt || []).filter(function (t) { return t.t === 'OREJUELA IZQUIERDA' })[0] || null;
+  const pagsImgB = (gB.txt || []).filter(function (t) { return t.t.indexOf('genes del estudio') > -1 })
+                                 .map(function (t) { return t.p });
+  const junto = tabB ? (gB.imgs || []).filter(function (i) { return i.p === tabB.p && i.x > 100 }) : [];
+  ex.push(['(B0) DENOMINADOR: la hoja del ETE trae la tabla de la orejuela y el dibujo esta incluido',
+    !!tabB && (F('esqEstaIncluido') ? esqEstaIncluido('orejuela') : false),
+    'tabla=' + (tabB ? ('pag ' + tabB.p) : 'NO') + ' incl=' + (F('esqEstaIncluido') ? esqEstaIncluido('orejuela') : '?')]);
+  ex.push(['(B1) el dibujo va JUNTO a su tabla: misma pagina y a la derecha',
+    junto.length === 1 && junto[0].x > 100 && junto[0].w > 40 && junto[0].w < 70,
+    JSON.stringify(junto)]);
+  ex.push(['(B2) y NO se repite: no hay pagina «Imagenes del estudio»',
+    pagsImgB.length === 0, 'paginas=' + JSON.stringify(pagsImgB)]);
+
+  limpiar();
+  pon('oai_morfologia', 'ala'); pon('oai_ostium_diam', '26'); pon('oai_profundidad', '37');
+  pon('oai_vel_vac', '30'); pon('oai_sec', 'leve'); pon('oai_lobulos', '2'); pon('oai_trombo', 'no');
+  await esperar(350);
+  if (F('oaiEsqIncluirPDF')) { try { await oaiEsqIncluirPDF() } catch (e) {} }
+  await esperar(600);
+  inf();
+  const gB2 = await pdfGeo();
+  const pagsImgB2 = (gB2.txt || []).filter(function (t) { return t.t.indexOf('genes del estudio') > -1 })
+                                   .map(function (t) { return t.p });
+  const resB2 = (gB2.txt || []).filter(function (t) { return pagsImgB2.indexOf(t.p) > -1 &&
+    /Orejuela izquierda|Ostium|Profundidad|vaciamiento|Contraste espont|Morfolog/.test(t.t) });
+  ex.push(['(B3) sin la seccion integrada el dibujo va a «Imagenes del estudio» CON su resumen al lado',
+    pagsImgB2.length === 1 && resB2.length >= 5 &&
+    resB2.every(function (t) { return t.x > 95 }),
+    'pag=' + JSON.stringify(pagsImgB2) + ' resumen=' + resB2.map(function (t) { return t.t + '@' + t.x }).join(', ')]);
+  ex.push(['(B4) el resumen NO lleva etiquetas de riesgo ni de aptitud',
+    resB2.map(function (t) { return t.t }).join(' ').indexOf('riesgo') === -1 &&
+    (gB2.txt || []).filter(function (t) { return pagsImgB2.indexOf(t.p) > -1 })
+      .map(function (t) { return t.t }).join(' ').indexOf('apto') === -1,
+    resB2.map(function (t) { return t.t }).join(' | ')]);
+
+  limpiar();
+  if (F('oaiEsqIncluirPDF')) { try { await oaiEsqIncluirPDF() } catch (e) {} }
+  await esperar(600);
+  inf();
+  const gB3 = await pdfGeo();
+  const pagsImgB3 = (gB3.txt || []).filter(function (t) { return t.t.indexOf('genes del estudio') > -1 })
+                                   .map(function (t) { return t.p });
+  const resB3 = (gB3.txt || []).filter(function (t) { return pagsImgB3.indexOf(t.p) > -1 &&
+    /Orejuela izquierda|Ostium|Profundidad/.test(t.t) });
+  ex.push(['(B5) CONTROL NEGATIVO: sin datos de orejuela el dibujo entra SIN resumen',
+    pagsImgB3.length === 1 && resB3.length === 0,
+    'pag=' + JSON.stringify(pagsImgB3) + ' resumen=' + resB3.length]);
+
+  limpiar();
+  pon('va_morf', 'Bicúspide'); pon('vab_tipo', 'fused_rl'); pon('vab_rafe', 'si');
+  pon('vab_simetria', 'simetrica'); pon('ao_sin', '42'); pon('peso', '70'); pon('talla', '170');
+  pon('sexo', 'M'); pon('vab_pdf', '1');
+  await esperar(350);
+  inf();
+  const gV = await pdfGeo();
+  const banda = (gV.txt || []).filter(function (t) { return /BICÚSPIDE/.test(t.t) })[0] || null;
+  const feno = (gV.txt || []).filter(function (t) { return t.t === 'Fenotipo:' })[0] || null;
+  const dib = banda ? (gV.imgs || []).filter(function (i) {
+    return i.p === banda.p && i.y > banda.y && i.y < banda.y + 30 })[0] : null;
+  ex.push(['(B6) DENOMINADOR: el bloque de la VAB se emite, con su banda, su dibujo y su tabla',
+    !!banda && !!dib && !!feno, 'banda=' + (banda ? banda.y : 'NO') +
+    ' dib=' + (dib ? (dib.x + ',' + dib.y + ' ' + dib.w) : 'NO') + ' feno=' + (feno ? (feno.x + ',' + feno.y) : 'NO')]);
+  ex.push(['(B7) el dibujo va a la IZQUIERDA y la tabla a su DERECHA, a la misma altura',
+    !!dib && !!feno && dib.x < 20 && feno.x > dib.x + dib.w && Math.abs(feno.y - dib.y) < 12,
+    'dib x=' + (dib ? dib.x : '?') + ' w=' + (dib ? dib.w : '?') +
+    ' | fila1 x=' + (feno ? feno.x : '?') + ' dy=' + (dib && feno ? Math.round(feno.y - dib.y) : '?')]);
+  ex.push(['(B8) y el bloque ocupa aproximadamente la mitad: menos de 70 mm de la banda al pie',
+    !!dib && !!banda && (dib.y + dib.h - banda.y) < 70 && (dib.y + dib.h - banda.y) > 30,
+    'alto=' + (dib && banda ? Math.round((dib.y + dib.h - banda.y) * 10) / 10 : '?') + ' mm']);
+
+  /* ═══ (C) EL EN SUMA NOMBRA LA BICUSPIDE (commit 3) ═════════════════════════════════════ */
+  limpiar();
+  pon('va_morf', 'Bicúspide'); pon('vab_tipo', 'fused_rl'); pon('vab_rafe', 'si');
+  pon('vab_simetria', 'simetrica'); pon('peso', '70'); pon('talla', '170'); pon('sexo', 'M');
+  await esperar(350);
+  inf();
+  const sC1 = suma();
+  ex.push(['(C0) DENOMINADOR: la bicuspide esta cargada y su dueño publica la frase',
+    (F('vabSumaFrase') ? !!vabSumaFrase() : false) && V('va_morf') === 'Bicúspide',
+    'frase=' + (F('vabSumaFrase') ? String(vabSumaFrase()) : 'SIN FN')]);
+  ex.push(['(C1) sin dilatacion va en linea propia, y el EN SUMA NO dice «sin alteraciones»',
+    sC1.indexOf('Válvula aórtica bicúspide (fenotipo R-L, rafe calcificado, cúspides simétricas).') > -1 &&
+    sC1.indexOf('sin alteraciones') === -1, sC1.replace(/\\n/g, ' | ').slice(0, 220)]);
+  pon('ao_sin', '43'); await esperar(350);
+  inf();
+  const sC2 = suma();
+  ex.push(['(C2) con dilatacion se UNE a esa linea, y la bicuspide se nombra UNA sola vez',
+    sC2.indexOf('Válvula aórtica bicúspide (fenotipo R-L, rafe calcificado, cúspides simétricas), con dilatación de la raíz aórtica (43 mm).') > -1 &&
+    (sC2.match(/bicúspide/g) || []).length === 1 &&
+    sC2.indexOf('Dilatación raíz aórtica (43 mm).') === -1,
+    sC2.replace(/\\n/g, ' | ').slice(0, 260)]);
+  limpiar();
+  pon('ao_sin', '43'); pon('peso', '70'); pon('talla', '170'); pon('sexo', 'M');
+  await esperar(350);
+  inf();
+  const sC3 = suma();
+  ex.push(['(C3) CONTROL NEGATIVO: sin bicuspide el EN SUMA sale como siempre',
+    sC3.indexOf('Dilatación raíz aórtica (43 mm).') > -1 &&
+    sC3.indexOf('bicúspide') === -1 &&
+    (F('vabSumaFrase') ? vabSumaFrase() === null : false),
+    sC3.replace(/\\n/g, ' | ').slice(0, 200)]);
+
+  /* ═══ (D) LA FRASE DEL GRADIENTE, CON SU FUENTE (commit 4) ══════════════════════════════ */
+  limpiar();
+  pon('vmax_it', '2.4'); pon('dt_triv', '80'); pon('tvia', '95');
+  pon('tapse', '12'); pon('s_prime', '7'); pon('ad_area', '14');
+  await esperar(400);
+  const iD = inf();
+  ex.push(['(D0) DENOMINADOR: la escena llega a la frase del gradiente en el papel',
+    iD.indexOf('gradiente AD-VD probablemente subestimado por disfunción del VD') > -1,
+    (iD.split('\\n').filter(function (l) { return l.indexOf('subestimado') > -1 })[0] || 'NO ESTA').slice(0, 170)]);
+  let evD = '';
+  try { if (F('indicRender')) indicRender() } catch (e) {}
+  await esperar(400);
+  evD = T('indic-cuerpo');
+  ex.push(['(D1) la Evidencia lleva el rotulo nuevo, los DOS folios y el matiz de «significativa»',
+    evD.indexOf('CRITERIO DE ECOSMART, respaldado en parte por la ASE 2025') > -1 &&
+    evD.indexOf('folios 164 y 165') > -1 &&
+    evD.indexOf('falla significativa del ventrículo derecho') > -1,
+    'rotulo=' + (evD.indexOf('respaldado en parte por la ASE 2025') > -1) +
+    ' folios=' + (evD.indexOf('folios 164 y 165') > -1) +
+    ' matiz=' + (evD.indexOf('falla significativa') > -1)]);
+  ex.push(['(D2) el PAPEL no lleva el rotulo ni la cita: el informe firmado no lleva citas',
+    iD.indexOf('CRITERIO DE ECOSMART') === -1 && iD.indexOf('ASE 2025') === -1 &&
+    iD.indexOf('folio') === -1 && suma().indexOf('ASE 2025') === -1,
+    'rotulo=' + (iD.indexOf('CRITERIO DE ECOSMART') > -1) + ' folio=' + (iD.indexOf('folio') > -1)]);
+  ex.push(['(D3) CONTROL NEGATIVO: el OTRO criterio de esa zona sigue «sin fuente verificada»',
+    evD.indexOf('sin fuente verificada en la biblioteca') > -1,
+    'sigue=' + (evD.indexOf('sin fuente verificada en la biblioteca') > -1)]);
+
+  /* ═══ (E) LA FILA DE MINIATURAS (commit 5) ══════════════════════════════════════════════ */
+  limpiar();
+  try { if (typeof imgSlots !== 'undefined') { imgSlots.length = 0;
+    if (typeof imgSlotCount !== 'undefined') imgSlotCount = 2;
+    if (F('imgEnsureLen')) imgEnsureLen(); if (F('imgRender')) imgRender(); } } catch (e) {}
+  await esperar(400);
+  ex.push(['(E0) DENOMINADOR: sin una sola inclusion la fila NO se ve',
+    (function () { const f = EL('inf-min-fila'); return !!f && getComputedStyle(f).display === 'none' })(),
+    'display=' + (EL('inf-min-fila') ? getComputedStyle(EL('inf-min-fila')).display : 'NO EXISTE')]);
+  const P1 = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+  const P2 = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
+  pon('oai_morfologia', 'ala'); pon('oai_ostium_diam', '26'); pon('oai_profundidad', '37');
+  pon('oai_vel_vac', '30');
+  await esperar(300);
+  try { if (typeof imgSlots !== 'undefined') { imgSlots.length = 0;
+    imgSlots.push({ dataURL: P1, ampliada: false, calidad: 'alta' });
+    imgSlots.push({ dataURL: P2, ampliada: false, calidad: 'alta' });
+    if (typeof imgSlotCount !== 'undefined') imgSlotCount = 2;
+    if (F('imgEnsureLen')) imgEnsureLen(); if (F('imgRender')) imgRender(); } } catch (e) {}
+  if (F('oaiEsqIncluirPDF')) { try { await oaiEsqIncluirPDF() } catch (e) {} }
+  await esperar(600);
+  const leer = function () {
+    const f = EL('inf-min-fila');
+    const it = f ? [].slice.call(f.querySelectorAll('[data-min-i]')) : [];
+    return { vis: f ? getComputedStyle(f).display !== 'none' : false, n: it.length,
+      cont: T('inf-min-cont'),
+      ets: it.map(function (e) { const s = e.querySelector('.inf-min-et'); return s ? s.textContent : '?' }).join(','),
+      tits: it.map(function (e) { const i = e.querySelector('img'); return i ? (i.getAttribute('title') || '') : '?' }).join(' | '),
+      ord: it.map(function (e) { return e.querySelectorAll('.inf-min-ord button').length }).join(','),
+      foco: it.map(function (e) { return [].slice.call(e.querySelectorAll('.inf-min-ord button'))
+        .every(function (b) { return b.tagName === 'BUTTON' && b.tabIndex >= 0 }) ? '1' : '0' }).join(','),
+      aria: it.map(function (e) { const x = e.querySelector('.inf-min-x');
+        return x ? (x.getAttribute('aria-label') || '') : '?' }).join(' | ') };
+  };
+  const L1 = leer();
+  ex.push(['(E1) con inclusiones la fila SE VE, con su contador y una miniatura por cosa',
+    L1.vis === true && L1.n === 3 && L1.cont.indexOf('En el PDF: 3') > -1,
+    'vis=' + L1.vis + ' n=' + L1.n + ' cont=' + L1.cont]);
+  ex.push(['(E2) cada miniatura lleva su etiqueta y su titulo accesible',
+    L1.ets === 'captura,captura,diagrama' &&
+    L1.tits.indexOf('Captura 1 de 2') > -1 && L1.tits.indexOf('Esquema de la orejuela') > -1,
+    'ets=' + L1.ets + ' | tits=' + L1.tits]);
+  ex.push(['(E3) las CAPTURAS tienen dos flechas enfocables y el DIAGRAMA no tiene ninguna',
+    L1.ord === '2,2,0' && L1.foco.indexOf('1,1') === 0 &&
+    L1.aria.indexOf('No borra la imagen del estudio') > -1,
+    'ord=' + L1.ord + ' foco=' + L1.foco + ' | aria=' + L1.aria.slice(0, 130)]);
+  const ordPdf = async function () { const g = await pdfGeo();
+    const M = { hKmMIQ: 'A', WjR9aw: 'B' }; const o = [];
+    (g.imgs || []).forEach(function (i) { Object.keys(M).forEach(function (k) {
+      if (String(i.f).indexOf(k) > -1) o.push(M[k]) }) });
+    return o.join(''); };
+  inf();
+  const o1 = await ordPdf();
+  const prim = document.querySelector('#inf-min-lista [data-min-tipo=captura]');
+  const flecha = prim ? prim.querySelectorAll('.inf-min-ord button')[1] : null;
+  if (flecha) flecha.click();
+  await esperar(450);
+  inf();
+  const o2 = await ordPdf();
+  ex.push(['(E4) DENOMINADOR + la flecha cambia el ORDEN en que el PDF imprime las capturas',
+    o1 === 'AB' && o2 === 'BA', 'antes=' + o1 + ' despues=' + o2]);
+  const nSlots = function () { return (typeof imgSlots !== 'undefined')
+    ? imgSlots.filter(function (s) { return s && s.dataURL }).length : -1 };
+  const slotsAntes = nSlots();
+  const prim2 = document.querySelector('#inf-min-lista [data-min-tipo=captura]');
+  const equis = prim2 ? prim2.querySelector('.inf-min-x') : null;
+  if (equis) equis.click();
+  await esperar(450);
+  inf();
+  const o3 = await ordPdf();
+  const reinc = [].slice.call(document.querySelectorAll('#img-grid button'))
+    .filter(function (b) { return /Incluir en el PDF/.test(b.textContent || '') });
+  ex.push(['(E5) la ✕ QUITA del PDF y NO borra: el slot sigue y la grilla ofrece reincluirla',
+    o3 === 'A' && nSlots() === slotsAntes && reinc.length === 1 && leer().n === 2,
+    'pdf=' + o3 + ' slots=' + slotsAntes + '->' + nSlots() + ' boton=' + reinc.length + ' fila=' + leer().n]);
+  if (reinc[0]) reinc[0].click();
+  await esperar(450);
+  inf();
+  const o4 = await ordPdf();
+  ex.push(['(E6) y se puede VOLVER A INCLUIR desde «Imagenes del estudio»',
+    o4 === 'BA' && leer().n === 3, 'pdf=' + o4 + ' fila=' + leer().n]);
+  limpiar();
+  try { if (F('imgVaciar')) imgVaciar() } catch (e) {}
+  try { if (F('_recalcModulos')) _recalcModulos('tc554') } catch (e) {}
+  await esperar(450);
+  const L2 = leer();
+  ex.push(['(E7) CONTROL NEGATIVO: «Nuevo estudio» vacia la fila y la esconde',
+    L2.vis === false && L2.n === 0 && L2.cont.indexOf('En el PDF: 0') > -1,
+    'vis=' + L2.vis + ' n=' + L2.n + ' cont=' + L2.cont]);
+
+  /* ═══ (F) EL CONTROL GLOBAL: UN ESTUDIO AJENO ══════════════════════════════════════════ */
+  limpiar();
+  pon('im_vc', '8'); pon('onda_e', '110'); pon('e_sep', '5'); pon('e_lat', '6');
+  pon('ai_vol', '70'); pon('peso', '80'); pon('talla', '180');
+  await esperar(400);
+  const iF = inf(), sF = suma();
+  ex.push(['(F1) DENOMINADOR: el estudio ajeno publica su informe',
+    iF.length > 300, 'informe=' + iF.length + ' car.']);
+  ex.push(['(F2) y NO menciona nada de esta tanda: ni orejuela, ni bicuspide, ni la cita',
+    iF.indexOf('Orejuela') === -1 && iF.indexOf('bicúspide') === -1 &&
+    iF.indexOf('ASE 2025') === -1 && sF.indexOf('bicúspide') === -1 &&
+    iF.indexOf('mayor complejidad') === -1,
+    'orejuela=' + (iF.indexOf('Orejuela') > -1) + ' vab=' + (iF.indexOf('bicúspide') > -1)]);
+  ex.push(['(F3) y la fila de miniaturas sigue oculta en un estudio sin imagenes',
+    (function () { const f = EL('inf-min-fila');
+      return !!f && getComputedStyle(f).display === 'none' })(),
+    'display=' + (EL('inf-min-fila') ? getComputedStyle(EL('inf-min-fila')).display : 'NO EXISTE')]);
+
+  } catch (e) { ex.push(['EXCEPCION en el caso', false, String(e && e.message || e).slice(0, 200)]); }
   return { extra: ex };
   })();
 `);

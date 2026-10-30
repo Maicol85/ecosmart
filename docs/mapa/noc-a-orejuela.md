@@ -245,3 +245,24 @@ Vive en **`docs/mapa/cor-correcciones.md`**, en archivo propio. Lo que esta zona
   interruptor. El inventario 5a está medido generando el PDF de verdad.
 - **§ 6** · el dibujo de la orejuela **portado de la demo**: aurícula izquierda, VPSI, sin el
   triángulo del VI, trombo adentro, dos capas de silueta y «Manga de viento».
+
+---
+
+## → La TANDA AJUSTES-1 (2026-10-30) — puntero
+
+Vive en **`docs/mapa/aj1-orejuela-pdf-ensuma.md`**, en archivo propio. Lo que esta zona
+perdió o ganó:
+
+- **§ 1** · el `<option>` del **cactus** pierde «— riesgo intermedio»; el `value` no se toca.
+  «Manga de viento» sigue diciéndolo y está declarado (`AJ1-a`).
+- **§ 1** · «Considerar mayor complejidad para el cierre percutáneo» **sale del papel**, y con
+  ella su gate de trombo. No existía en la Evidencia ni en Referencias: el contenido se pierde
+  (`AJ1-b`).
+- **§ 1** · la pastilla `#oai-elegibilidad` deja de decir «NO apto — trombo presente». Cierra
+  `E-d`.
+- **§ 1** · **sin velocidad de vaciamiento el recuadro «Doppler pulsado» no se dibuja**, y el
+  lienzo se acorta de 350 a **262** px. Un dueño único, `_oaiEsqAlto()`, porque el alto lo
+  necesitan el emisor y los DOS rasterizadores.
+- **§ 2** · en el PDF, el dibujo va **junto a la tabla** de la orejuela cuando el informe la
+  incluye, y a «Imágenes del estudio» **con un resumen corto al lado** cuando no.
+

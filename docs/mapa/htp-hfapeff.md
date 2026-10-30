@@ -350,3 +350,19 @@ Vive en **`docs/mapa/cor-correcciones.md`**, en archivo propio. Lo que esta zona
   interruptor. El inventario 5a está medido generando el PDF de verdad.
 - **§ 6** · el dibujo de la orejuela **portado de la demo**: aurícula izquierda, VPSI, sin el
   triángulo del VI, trombo adentro, dos capas de silueta y «Manga de viento».
+
+---
+
+## → La TANDA AJUSTES-1 (2026-10-30) — puntero
+
+Vive en **`docs/mapa/aj1-orejuela-pdf-ensuma.md`**, en archivo propio. Lo que esta zona
+perdió o ganó:
+
+- **la frase del gradiente AD-VD subestimado deja de ser «sin fuente verificada»**: el rótulo
+  pasa a «CRITERIO DE ECOSMART, respaldado en parte por la ASE 2025», con los folios 164 y 165
+  leídos en imagen y las TRES salvedades escritas al lado —la fuente habla de falla
+  **significativa**, el folio 164 nombra el gradiente ventrículo derecho-arteria pulmonar y no el
+  de aurícula derecha a ventrículo derecho, y el «probablemente» es del médico—.
+- **la frase del papel no cambia**, y el otro criterio de esa zona —el corte de 75 ms del TRIV—
+  sigue sin fuente verificada.
+

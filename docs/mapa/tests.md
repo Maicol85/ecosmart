@@ -483,3 +483,19 @@ Su ficha vive en **`docs/mapa/tests-fichas-553.md`**, en archivo propio. **59 co
 siete bloques, uno por commit más el control del estudio ajeno. **Cae contra HEAD por 35 de las
 59, y ninguna por excepción**: las 24 que pasan en los dos árboles son los denominadores y los
 controles negativos.
+
+---
+
+## → La TANDA AJUSTES-1 (2026-10-30) — puntero
+
+Vive en **`docs/mapa/aj1-orejuela-pdf-ensuma.md`**, en archivo propio. Lo que esta zona
+perdió o ganó:
+
+- **TC-554** es el caso de la tanda; su ficha vive en `docs/mapa/tests-fichas-554.md`, en
+  archivo propio porque `tests-fichas.md` estaba en 34,2 KB.
+- **Cuatro casos viejos adaptados**: TC-78 y TC-553 (A7)(A8), invertidos porque la nota de
+  complejidad salió del papel; TC-504 (H5)(H8) y TC-506 (E3)(E4), por la línea nueva del EN
+  SUMA de la bicúspide.
+- Las sondas: `_probe_aj1ab.mjs`, `_ab_aj1diff.mjs`, `_probe_aj1pdf.mjs` —geometría del PDF—,
+  `_probe_aj1min.mjs` —la fila, con gestos reales—, `_mut_aj1.py` y `_probe_ajustes1wk.mjs` —que NO es `_probe_aj1wk.mjs`, el de la tanda AJ1 del 23/10—.
+

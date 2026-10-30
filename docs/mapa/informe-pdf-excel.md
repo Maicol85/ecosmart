@@ -446,3 +446,18 @@ del PPT**.
 
 **Todo en `docs/mapa/pop-v2-posoperatorio.md`**, con la tabla de lo que los mapas anteriores decían
 y dejó de ser cierto. El caso que lo fija es **TC-548**; los pendientes, **POP-a** a **POP-h**.
+
+---
+
+## → La TANDA AJUSTES-1 (2026-10-30) — puntero
+
+Vive en **`docs/mapa/aj1-orejuela-pdf-ensuma.md`**, en archivo propio. Lo que esta zona
+perdió o ganó:
+
+- **el dibujo de la orejuela no se imprime dos veces**: `amiloDibujarSecciones` aprendió a
+  llevar `sec.img`, con el ancho útil viajando en cada fila; `_oaiSlotUsado` es el índice que la
+  página «Imágenes del estudio» saltea. Sin la sección integrada, el esquema se queda en esa
+  página con el resumen de `oaiResumenPDF()` al lado.
+- **el bloque de la VAB** pasa a dibujo a la izquierda y tabla al costado (100,6 → 53,6 mm).
+- **`noPdf`** en un slot de `imgSlots` lo saca del papel sin borrarlo del estudio.
+

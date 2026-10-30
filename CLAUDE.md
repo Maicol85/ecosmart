@@ -43,6 +43,7 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Tocar la SINCRONIZACIÓN de los dos campos de la raíz aórtica, el grado «sin sexo cargado», el voto del índice en el papel, las dos líneas nuevas del ⓘ de la raíz, los tres arreglos de pantalla de la tanda G o su sonda sistemática** | `docs/mapa/g-raiz-aortica.md` |
 | **Tocar una AORTOPATÍA —Marfan, Loeys-Dietz, Turner, ACTA2, Ehlers-Danlos vascular—, la COARTACIÓN, el texto de la VAB o el MOTOR DE EVIDENCIA DE AORTA**: la tabla y el folio de cada síndrome, el corte de dilatación con su dueño, el cuestionario o las recomendaciones por debajo de 45 mm | `docs/mapa/aorta-aortopatias-evidencia.md` |
 | **Tocar un CORTE o un OPERADOR del VD, de la AD, de la VCI o de la RAÍZ AÓRTICA**: la Tabla 1 de la ASE 2025, su evaluador, los cuatro grados de cada parámetro o el «40 mm o más» del seno | `docs/mapa/corazon-derecho-ase2025.md` |
+| **Tocar algo que la TANDA AJUSTES-1 movió** (30/10): el rótulo del cactus, la nota de complejidad retirada del papel, la pastilla de la orejuela sin veredicto, el recuadro del Doppler que no se dibuja sin velocidad; el dibujo de la orejuela JUNTO a su tabla en el PDF o con su resumen al lado; la VAB con su resumen al costado; el EN SUMA nombrando la bicúspide; la cita de la ASE 2025 de la frase del gradiente; o la FILA DE MINIATURAS de lo que va al PDF | `docs/mapa/aj1-orejuela-pdf-ensuma.md` |
 | **Tocar algo de la tanda AJ1**: los cortes del VD de la versión de MAYO, el strain de pared libre sin sexo, la coartación reparada, el índice de dimensión aórtica, el Ehlers-Danlos del EN SUMA, el corte alternativo de la IM secundaria o el flujo reverso de la aorta descendente | `docs/mapa/aj1-ajustes.md` |
 | **Tocar el VENTRÍCULO DERECHO**: sus TRES columnas de campos, el orden del cuadro de referencias, la disfunción sistólica, la pared graduada, el Tei, la FEVD, la relación VD/VI o el Qp | `docs/mapa/vd-derecho.md` · la tanda G1 en `docs/mapa/vd-g1-columnas.md` |
 | **Tocar algo que la TANDA CORRECCIONES movió** (30/10): el informe de la orejuela sin veredicto de aptitud, el corte ÚNICO de 75 ms del TRIV con las tres formas de la frase de elementos a favor de HTP, la grilla de VD/AD en tres columnas de SEIS, la raíz leída en Marfan, «Incluir en el PDF» independiente de Config, o el dibujo de la orejuela portado de la demo | `docs/mapa/cor-correcciones.md` |
@@ -2554,3 +2555,149 @@ línea: el archivo creció y un informe de auditoría viejo apunta a otro archiv
   tenía que escribirle un puntero. La tanda G1 salió a `docs/mapa/vd-g1-columnas.md` (12,5 KB) y
   el mapa volvió a **24,4 KB**. Es la primera vez en varias tandas que la regla se aplica **antes**
   de cruzar el techo y no después.
+
+### La orejuela, el PDF sin repetir, el EN SUMA de la bicúspide y la fila de miniaturas — «AJUSTES-1» (2026-10-30)
+
+- **SEIS commits, y los cinco de código se hicieron enteros.** `612dd82` (AJ1-1) · `05569e8`
+  (AJ1-2) · `cc6e0fd` (AJ1-3) · `3f6e436` (AJ1-4) · `ed321eb` (AJ1-5) · el de cobertura y
+  documentación. Sello **`v20261030-1550`**, md5 de `index.html` **`a45f1edd`**. Al empezar,
+  `origin/main` = **`9c479cc`** con **siete** commits locales sin pushear y `HEAD` = **`ac5d1b4`**,
+  el cierre de la TANDA CORRECCIONES, que es lo que la orden pedía verificar.
+  **El push lo corre Maicol: esta tanda tenía orden expresa de NO pushear.**
+
+- **LA FUENTE SE LEYÓ EN IMAGEN Y EL FOLIO SE COMPROBÓ EN EL PIE IMPRESO DE LAS DOS HOJAS.** La
+  ASE 2025 de corazón derecho (Mukherjee), hoja 24 → «164 Mukherjee, M et al» y hoja 25 →
+  «Mukherjee, M et al 165». **Coinciden con lo que la orden anticipa**, así que el commit 4 se
+  aplicó: el folio 164 dice que en la hipertensión pulmonar grave con falla derecha la
+  contractilidad reducida deja la presión sistólica estimada poco confiable, y la **Tabla 5**
+  del folio 165 lista «Significant RV failure and contractile dysfunction» con su **única** marca
+  en la columna «Underestimation».
+
+- ⚠️ **EL RESPALDO ES PARCIAL Y SE DICEN TRES SALVEDADES, UNA DE LAS CUALES NO ESTABA EN LA
+  ORDEN.** Las dos que la orden nombra —la fuente habla de falla **significativa** del ventrículo
+  derecho, y el «probablemente» es del médico— y una tercera que salió de leer el folio: **el
+  folio 164 nombra el gradiente ventrículo derecho-arteria pulmonar, no el de aurícula derecha a
+  ventrículo derecho** que la frase menciona; a ése lo sostiene la Tabla 5, que no nombra ningún
+  gradiente. Citar la fuente sin esa salvedad la haría respaldar algo que no dice.
+
+- **EL DEFECTO MÁS GRANDE QUE CERRÓ, EN UNA LÍNEA: con una bicúspide cargada y nada más, el EN
+  SUMA decía «Estudio sin alteraciones estructurales ni funcionales significativas».** Medido en
+  HEAD. Es exactamente lo que la orden prohíbe, y lo cierra `vabSumaFrase()`, que nombra la
+  válvula para TODA bicúspide cargada en Válvulas —no sólo con la sección integrada, que era la
+  compuerta de la línea vieja—.
+
+- **TRES PREMISAS DE LA ORDEN SE VERIFICARON Y NO ERAN LO QUE DECÍAN.**
+  1. **«Considerar mayor complejidad» no existe en la Evidencia ni en Referencias**, censado el
+     documento entero: su única aparición era el papel. La orden la rotula «si existe», así que
+     no hubo nada que rotular y el contenido **se pierde** → **AJ1-b**.
+  2. **Contractilidad y SGL no tienen el resumen al costado**: su maqueta es «imagen arriba,
+     texto debajo», con la leyenda de colores al lado en 34 mm. **Reportado, no tocado** →
+     **AJ1-c**.
+  3. **El cactus no es el único `<option>` que afirma un riesgo sin fuente**: «Manga de viento —
+     riesgo intermedio» lo sigue diciendo, y la orden no la nombra → **AJ1-a**.
+
+- ⚠️ **EL ORDEN DE LOS DIAGRAMAS EN LA FILA SE PARÓ, Y ES LA CONDICIÓN QUE LA PROPIA ORDEN PONE.**
+  Cada diagrama tiene su propia sección en el PDF, en un lugar que decide el código: no hay
+  ningún orden almacenado, así que reordenarlos exige inventarlo y persistirlo, o sea un campo
+  guardado nuevo → **AJ1-d**. En la fila **se ven y se pueden quitar**, que es lo que la orden
+  pide de ellos.
+
+- **DÓNDE VIVE HOY LA INCLUSIÓN Y EL ORDEN (el punto 5d), que son DOS mecanismos y no se
+  unificaron:** las **capturas** y el **esquema de la orejuela** viven en `imgSlots`, en memoria,
+  y a IndexedDB (`ceibomed_img`, lista `imgs`, por uuid) sólo si Config está prendido y el
+  estudio se guarda; **el orden del array ES el de impresión**. Los **diagramas de toggle**
+  tienen su inclusión en un `input` oculto por diagrama, que sí es campo guardado y **ya
+  existía**: `contr_be_pdf`, `sgl_be_pdf`, `vab_pdf`, `ete_qx_pdf`. **Ningún campo guardado
+  nuevo.**
+
+- ⚠️ **LA ✕ DE UNA CAPTURA MARCA `noPdf` Y NO BORRA, Y ESO OBLIGÓ A UN CONTROL EN OTRA
+  PANTALLA.** La imagen sigue en «🖼️ Imágenes del estudio» con un cartel «Fuera del PDF» y un
+  botón «Incluir en el PDF»: sin ese botón, el texto de ayuda de la fila —que promete que se
+  puede volver a incluir— sería falso.
+  ⚠️ **Y `noPdf` NO VIAJA AL DISCO, LEÍDO EN EL CÓDIGO**: `CeiboImg.guardar` e `imgRestaurar` son
+  allowlists explícitas que no lo incluyen, así que la exclusión vale para la **sesión**: quien
+  guarde el estudio y lo reabra se la encuentra incluida otra vez. La imagen no se pierde.
+  **No se tocó** —hacerla durar es cambiar lo que se escribe en el registro persistido de cada
+  estudio con imágenes— y queda declarado en **AJ1-g**.
+
+- ⚠️ **LA REGLA TÁCTIL GLOBAL INFLABA LOS BOTONES DE LA FILA Y LOS SACABA DE SU MINIATURA.** Lo
+  destapó la sonda de dos motores: la ✕, declarada en 22 px, salía a **44×44** por
+  `button { min-height:44px; min-width:44px }` y daba **1 de 5 puntos propios** —las otras cuatro
+  caían sobre la imagen y sobre la tarjeta vecina—, y las dos flechas sumaban 90 px dentro de un
+  hueco de 56. Se cerró con el patrón que `.pac-id-mk` ya usa: `min-width:0; min-height:0` más un
+  `::after` absoluto. Medido: **45×41 la ✕ y 27×41 cada flecha, con los cinco puntos devolviendo
+  el propio botón en los 24 cruces**. El ancho de las flechas es el que cabe: dos áreas de 44 en
+  un hueco de 56 se solapan, y un toque cerca del borde movería la captura para el otro lado.
+
+- **14/14 MUTACIONES DIRIGIDAS MUERTAS EN EL PRIMER BARRIDO**, en worktree y nunca sobre el vivo,
+  con guarda de md5 antes y después. **Tres de las catorce no revierten nada: la aplican de
+  más** —el recuadro del Doppler que no se dibuja nunca, el resumen que sale sin un solo dato y
+  la frase de la bicúspide sobre una válvula que no lo es—, porque las condiciones que las matan
+  son **controles negativos**. **La 05 rompe el dueño único por un solo lado a propósito**: el
+  emisor deja de acortar el lienzo y `_oaiEsqAlto()` sigue devolviendo 262, que es la mutación
+  que prueba que tener el alto escrito en dos lugares produce una imagen reescalada. **La 10
+  rompe las dos mitades de la maqueta de la VAB a la vez**, que es la lección del D-11.
+
+- **TC-554 cae contra HEAD por 26 de sus condiciones y NINGUNA por excepción.** Las que pasan en
+  los dos árboles son los denominadores y los controles negativos.
+
+- **EL PDF SE MIDIÓ CON COORDENADAS, Y HACÍA FALTA UNA SONDA PROPIA.** El A/B heredado guarda el
+  texto de cada `doc.text` y la cantidad de figuras, así que un cambio de composición que no toca
+  una palabra **le sale idéntico**: medido, el A/B del commit 2 daba UNA sola diferencia y ni la
+  VAB ni el resumen aparecían. Con `_probe_aj1pdf.mjs`: la escena de la orejuela integrada pierde
+  **una página entera** y su dibujo aparece en `146,30 55×56,6` junto a la tabla; la de la VAB
+  pasa de dibujo centrado de 70×70 con la tabla debajo —bloque de **100,6 mm**— a dibujo de 48×48
+  a la izquierda con la tabla a 65 mm a la misma altura —bloque de **53,6 mm**—.
+
+- **A/B contra HEAD, 29 escenas, 33.189 claves y 12.760 celdas de Excel: 57 diferencias de
+  superficie firmada y las 57 son las autorizadas.** Seis en `aLob3` —la frase retirada, en los
+  tres estilos, el campo, el Excel y el PDF—; dos `_pdf`, que son la composición del commit 2; y
+  49 en las **siete** escenas con bicúspide cargada, todas en el EN SUMA (tres estilos, campo,
+  Excel, PDF y PPT). `vacio`, `ajeno`, `aSumaNoVab` —la misma raíz dilatada **sin** bicúspide— y
+  los once controles de orejuela dan **cero**. Excel en **440** columnas con las mismas claves y
+  el censo de campos sin moverse (946 y 962, idénticos).
+
+- **CHROME Y WEBKIT COINCIDEN EN LOS 24 CRUCES** (dos motores × 1440, 1200, 1000, 768, 500 y
+  390 px × dos temas), **cero diferencias entre motores**, y son **idénticos a HEAD en todo lo que
+  no es el cambio**: **cero** desplazamiento horizontal del cuerpo, **cero** textos recortados y
+  **cero errores de consola y de página** en los dos motores y en los dos árboles, con las mismas
+  25 pestañas y el mismo desplegable móvil por debajo de 768 px. Lo que cambia son los cinco
+  campos de la tanda, en los 24. **Escribir no se volvió más lento**: trece teclas reales, media
+  **2,41 ms** en Chrome y 3,15 en WebKit, con el barrido en 5 a 6 ms.
+  ⚠️ **WebKit de Playwright no es Safari, y se declara.** Chrome va por el del sistema con
+  `channel: 'chrome'`.
+
+- **Línea base al cierre: suite 564/569**, en once lotes **cubriendo los 569 casos distintos** —contados nombre por nombre, no por la suma de los lotes—, en UNA sola pasada sobre el árbol sellado, con el pendrive `DISK_IMG` **montado y verificado al abrir, ENTRE LOS ONCE LOTES y al cerrar** y el md5 de `index.html` **idéntico** antes y después (`a45f1edd`). Los rojos son **TC-223, TC-376, TC-390 y TC-406**, los cuatro de siempre, más **TC-551**, que es el intermitente que `COR-f` ya declara —mide el chorro de la orejuela sin pausar la animación— y que **pasa 2 de 2 corrido aislado**, verificado. **TC-358 salió VERDE.**
+  ⚠️ **Y LA PRIMERA CORRIDA COMPLETA DIO 563/569 CON UN ROJO MÁS, QUE ERA MÍO**, y por eso esa cifra no es la línea base: **TC-66**. Está adaptado y la cifra de arriba sale de la corrida **limpia**, de una sola pasada con el archivo de tests final.
+
+- **Semgrep 124 WARNING / 0 ERROR**, la línea base. **Excel 440** columnas con las mismas claves.
+  **Sin huérfanos nuevos.** 17 bloques de JS inline parsean. **Celular: 65 hallazgos a 360 px y
+  74 a 390, con 17 ALTA en cada ancho** — la línea base exacta, antes y después del arreglo
+  táctil de la fila.
+
+- **CINCO CASOS VIEJOS ADAPTADOS, cada uno con el motivo escrito**: **TC-78** y **TC-553
+  (A7)(A8)**, invertidos porque la nota de complejidad salió del papel; **TC-504 (H5)(H8)**,
+  **TC-506 (E3)(E4)** y **TC-66**, por la línea nueva del EN SUMA de la bicúspide.
+  ⚠️ **TC-66 SE ME PASÓ DEL CENSO Y LO DESTAPÓ LA CORRIDA COMPLETA.** Grepeé la suite por «VAB
+  fenotipo», que es como la escriben TC-504 y TC-506, y TC-66 la escribe **«VAB.»** a secas. Es el
+  mismo modo de falla que la C2 documenta con TC-520 y la Y con TC-457: una afirmación sobre el
+  texto no se encuentra buscando las palabras con que la escribe **otro** caso.
+
+- ⚠️ **Y UN RESBALÓN PROPIO, CORREGIDO: `scripts/_probe_aj1wk.mjs` YA EXISTÍA.** Es la sonda de
+  dos motores de la tanda **AJ1** del 23/10 (commit `92198c3`), y escribir la de esta tanda con
+  ese nombre la **sobrescribió**. Se restauró desde HEAD **byte por byte** —10.139 bytes,
+  verificado— y la de esta tanda se llama **`_probe_ajustes1wk.mjs`**. Los otros cinco nombres se
+  censaron contra HEAD y ninguno existía. **Dos tandas con la misma sigla**: el mapa de aquélla es
+  `docs/mapa/aj1-ajustes.md` y el de ésta es `docs/mapa/aj1-orejuela-pdf-ensuma.md`.
+
+- **`index.html` pasó de 10,23 MB / 144.055 líneas a 10,28 MB / 144.727 líneas** — medido con `wc -c` y `wc -l`
+  DESPUÉS de sellar. (MB de 10⁶: `wc -c` dividido por 1e6.)
+
+- **Dónde está todo:** `docs/mapa/aj1-orejuela-pdf-ensuma.md` (**mapa NUEVO**, 19,6 KB), la ficha
+  del caso en `docs/mapa/tests-fichas-554.md` (**archivo propio**, porque `tests-fichas.md` estaba
+  en 34,2 KB), **siete mapas con un puntero cada uno** —medidos ANTES de escribir—,
+  `docs/fuentes/FUENTES.md` → «La tanda AJUSTES-1» con el folio 164 literal, la Tabla 5
+  transcrita fila por fila y la tabla «Cambios de evidencia» de diez filas, y
+  `docs/PENDIENTES.md` → **SIETE** cosas declaradas (**AJ1-a** a **AJ1-g**).
+  ⚠️ **`vab-bicuspide.md` quedó en 33,9 KB, a 1,1 KB del techo**: la próxima tanda que lo toque
+  tiene que partirlo (**AJ1-e**).

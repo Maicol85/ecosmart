@@ -234,3 +234,20 @@ comentarios de sus sondas:
    idempotente. Y el detector del triángulo del VI matcheaba la **valva posterior**, que también
    arranca en «M48 164»: se veía en que su ancho cambiaba con el grado de la insuficiencia, cosa
    que un trazo estático no hace.
+
+---
+
+## → La TANDA AJUSTES-1 (2026-10-30) — puntero
+
+Vive en **`docs/mapa/aj1-orejuela-pdf-ensuma.md`**, en archivo propio. Lo que esta zona
+perdió o ganó:
+
+- **§ 1** · la nota «Considerar mayor complejidad para el cierre percutáneo» —que el COR-1a
+  había dejado en pie con su gate— **sale del papel**, y el gate con ella: el veredicto de
+  aptitud del que dependía ya no existe. Era una de las dos frases que el barrido 1c había
+  reportado sin tocar, así que `COR-a` queda reducido a la de VExUS.
+- **§ 1** · la pastilla de «Medidas de la orejuela» pierde su última rama de juicio, «NO apto
+  — trombo presente». Cierra `E-d`.
+- **§ 5** · el esquema incluido con «Incluir en el PDF» ya **no se imprime dos veces**: con la
+  sección de la orejuela integrada va junto a su tabla y sale de la página de imágenes.
+
