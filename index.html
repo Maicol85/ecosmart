@@ -58696,22 +58696,59 @@ function generarInforme(opts) {
       const r = marfanEstado();
       if (!r.hayDatos) return;
       const f1 = n => (n == null || !isFinite(n)) ? null : String(Math.round(n * 10) / 10);
+      /* ══ EL PAPEL DICE EL SÍNDROME, EL DIÁMETRO Y SI ESTÁ DILATADA. NADA MÁS (B3, 30/10/2026).
+         Decisión del médico. Hasta hoy el cuerpo publicaba `r.txt`, que arrastra el UMBRAL, la
+         CLASE, el NIVEL y la TABLA con su folio —«Clase I · Nivel B desde 50 mm para síndrome de
+         Marfan (ESC 2024, Tabla 62 · folio 114)»—, y el EN SUMA decía «con indicación quirúrgica
+         Clase IIa». Eso es una recomendación con su grado de evidencia, y el lugar de una
+         recomendación es el panel de Evidencia: el panel explica, el papel afirma. Es la misma
+         regla que la tanda AJ7 aplicó a la Fallot y la C2 al pulmón.
+         ⚠️ `r.txt` NO SE BORRA NI SE REESCRIBE: lo sigue publicando la pantalla —la cápsula de
+         `marfanSync`— y de ahí lo lee el panel. Lo que cambia es QUIÉN lo muestra.
+         ⚠️ «DILATADA» SALE DEL DUEÑO ÚNICO DE ESA PALABRA, que es `aoSegDil`, el mismo que
+         decide la dilatación en la pestaña de la aorta. Escribir acá un corte propio habría sido
+         la tercera copia del criterio.
+         ⚠️ EL ÍNDICE VA SÓLO EN TURNER, y eso es nuevo: desde el B2 el índice se CALCULA, así que
+         sin esta condición aparecería en el informe de cualquier aortopatía con la ascendente y
+         la superficie corporal cargadas. En Turner sí va, porque es un síndrome de talla baja y
+         ahí el valor indexado es el que significa algo. */
+      const _dilSeg = (k, mm) => {
+        if (mm == null || !isFinite(mm)) return false;
+        if (typeof AO_SEGS === 'undefined' || typeof aoSegDil !== 'function') return false;
+        const sg = AO_SEGS.filter(x => x.k === k)[0];
+        return sg ? aoSegDil(sg, mm) === true : false;
+      };
+      const _mm = (lbl, k, mm) => f1(mm)
+        ? lbl + ' ' + f1(mm) + ' mm' + (_dilSeg(k, mm) ? ' (dilatada)' : '') : null;
+      /* ⚠️ EN MINÚSCULA, QUE ES LA REGLA R3: van en medio de la frase. */
       const p = [];
-      if (f1(r.seno)) p.push('Aorta sinusal ' + f1(r.seno) + ' mm');
-      if (f1(r.asc))  p.push('Aorta ascendente ' + f1(r.asc) + ' mm');
-      if (f1(r.ita))  p.push('Índice de tamaño aórtico ' + f1(r.ita) + ' mm/m²');
-      if (r.fr === 'si') p.push('Con factores de riesgo de progresión');
-      etePars.push((p.length ? p.join('. ') + '. ' : '') + r.txt + '.'); ccMarcarParrafo();
-      /* Al EN SUMA sólo lo ACCIONABLE: las tres clases de indicación. «Sin criterios» y los
-         estados incompletos quedan en el cuerpo — una conclusión que no cambia ninguna conducta
-         llenaría el resumen y le quitaría peso a las que sí. */
+      { const x = _mm('aorta sinusal', 'ao_sin', r.seno); if (x) p.push(x); }
+      { const x = _mm('aorta ascendente', 'ao_tub', r.asc); if (x) p.push(x); }
+      if (r.sind === 'turner' && f1(r.ita)) p.push('índice de tamaño aórtico ' + (r.itaTxt || f1(r.ita)) + ' mm/m²');
+      /* ⚠️ SIN «Aortopatía por aortopatía hereditaria». Con los síndromes sin nombre propio
+         —`ehat` y `otro`— la etiqueta YA ES «aortopatía hereditaria», así que anteponerle
+         «Aortopatía por» la repite. Se pregunta por la etiqueta y no por el token, que es lo que
+         sigue valiendo el día que se agregue un sexto síndrome sin nombre. */
+      const _enc = /^aortopat/i.test(r.sindTxt)
+        ? r.sindTxt.charAt(0).toUpperCase() + r.sindTxt.slice(1)
+        : 'Aortopatía por ' + r.sindTxt;
+      etePars.push(_enc + (p.length ? ': ' + p.join(', ') : '') + '.');
+      ccMarcarParrafo();
+      /* Al EN SUMA sólo lo que la aortopatía AGREGA: el síndrome y su diámetro máximo. Sigue
+         entrando en los mismos estados que antes —los tres accionables y los dos incompletos—,
+         porque cambiar CUÁNDO aparece sería otra decisión; lo que se retira es la clase, la
+         tabla y el folio. */
       if (r.clave === 'cx_i' || r.clave === 'cx_iia' || r.clave === 'cx_iib') {
-        const CL = { cx_i:'Clase I', cx_iia:'Clase IIa', cx_iib:'Clase IIb' };
-        /* ⚠️ LA GUÍA ERA LA EQUIVOCADA: decía «(ESC 2020)» sobre umbrales que salen de la ESC
-           2024 de enfermedad aórtica, y ésa es la guía de cardiopatías congénitas del adulto.
-           Corregido en el trabajo «H». La TABLA la elige el síndrome y vive en `MARFAN_FTE`. */
-        sumaCC('Aortopatía por ' + r.sindTxt + ' con indicación quirúrgica ' + CL[r.clave] +
-               ' (' + (typeof MARFAN_FTE === 'object' && MARFAN_FTE[r.sind] ? MARFAN_FTE[r.sind] : 'ESC 2024') + ').');
+        const _max = (r.seno != null && r.asc != null) ? Math.max(r.seno, r.asc)
+                   : (r.seno != null ? r.seno : r.asc);
+        const _k = (r.asc != null && (r.seno == null || r.asc >= r.seno)) ? 'ao_tub' : 'ao_sin';
+        const _d = f1(_max) ? ' — aorta de ' + f1(_max) + ' mm' + (_dilSeg(_k, _max) ? ' (dilatada)' : '') : '';
+        const _i = (r.sind === 'turner' && f1(r.ita))
+          ? (_d ? ', índice ' : ' — índice ') + (r.itaTxt || f1(r.ita)) + ' mm/m²' : '';
+        const _encS = /^aortopat/i.test(r.sindTxt)
+          ? r.sindTxt.charAt(0).toUpperCase() + r.sindTxt.slice(1)
+          : 'Aortopatía por ' + r.sindTxt;
+        sumaCC(_encS + _d + _i + '.');
       } else if (r.clave === 'sin_sindrome' || r.clave === 'falta_ita') {
         /* Estos dos SÍ suben: no son «sin hallazgo», son «no se puede concluir», y el umbral que
            falta es el que decide operar. Dejarlos sólo en el cuerpo los vuelve invisibles. */
@@ -140562,8 +140599,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261030-0250';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793339417975;                 /* eco-build-ms */
+const ECO_BUILD    = '20261030-0300';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793340032489;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -140649,7 +140686,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261030-0250</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261030-0300</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
