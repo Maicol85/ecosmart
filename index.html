@@ -20788,11 +20788,11 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
     </table>
 
     <table style="width:100%;border-collapse:collapse;font-size:11.5px;">
-      <tr style="background:var(--section-head);"><th style="padding:6px 8px;text-align:left;color:var(--accent2);">F&aacute;rmaco</th><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Toxicidad principal</th><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Monitoreo recomendado</th></tr>
+      <tr style="background:var(--section-head);"><th style="padding:6px 8px;text-align:left;color:var(--accent2);">F&aacute;rmaco</th><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Toxicidad principal</th><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Monitoreo recomendado <button type="button" class="vinfo-btn vinfo-btn-44" data-vinfo="co-monitoreo" aria-expanded="false" style="font-size:13px;" aria-label="Detalle del monitoreo de inmunoterapia y de inhibidores del factor de crecimiento endotelial vascular" onclick="vInfoClic(this)">&#9432;</button></th></tr>
       <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;font-weight:700;">Antraciclinas</td><td style="padding:5px 8px;">Miocardiopat&iacute;a dosis-dependiente</td><td style="padding:5px 8px;">Basal + a los 3 y 12 meses de terminar; durante el tto <b>cada 2 ciclos</b> en riesgo alto y muy alto. Los <b>biomarcadores</b> van antes de <b>cada ciclo</b></td></tr>
       <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;font-weight:700;">Trastuzumab</td><td style="padding:5px 8px;">Disfunci&oacute;n VI reversible</td><td style="padding:5px 8px;">Eco basal, cada 3 meses durante tto</td></tr>
-      <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;font-weight:700;">ICI (anti-PD1/PDL1)</td><td style="padding:5px 8px;">Miocarditis autoinmune (rara, grave)</td><td style="padding:5px 8px;">ECG y troponina basal y ante s&iacute;ntomas</td></tr>
-      <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;font-weight:700;">Anti-VEGF</td><td style="padding:5px 8px;">HTA, trombosis, disfunci&oacute;n VI</td><td style="padding:5px 8px;">PA, eco si s&iacute;ntomas o FEVI l&iacute;mite</td></tr>
+      <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;font-weight:700;">ICI (anti-PD1/PDL1)</td><td style="padding:5px 8px;">Miocarditis autoinmune (rara, grave)</td><td style="padding:5px 8px;">Basal: evaluaci&oacute;n CV, ECG, eco, troponina y p&eacute;ptidos. Despu&eacute;s: ECG y troponina en los ciclos 2, 3 y 4, y luego cada 3 ciclos</td></tr>
+      <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;font-weight:700;">Anti-VEGF</td><td style="padding:5px 8px;">HTA, trombosis, disfunci&oacute;n VI</td><td style="padding:5px 8px;">Presi&oacute;n arterial en cada visita y domiciliaria diaria el primer ciclo. Eco basal y, el primer a&ntilde;o, cada 3 o 4 meses seg&uacute;n el riesgo</td></tr>
       <tr><td style="padding:5px 8px;font-weight:700;">Radioterapia tor&aacute;cica</td><td style="padding:5px 8px;">Pericarditis, EAC, valvulopat&iacute;a tard&iacute;a</td><td style="padding:5px 8px;">Eco <b>desde los 5 a&ntilde;os</b> post-RT y luego <b>cada 5 a&ntilde;os</b> (IIa C)</td></tr>
     </table>
     <!-- ═══ HFA-ICOS y cardiotoxicidad por clase (agregadas 2026-09-15) ═══════════════════
@@ -20908,7 +20908,7 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
         <td style="padding:5px 8px;">Generalmente reversible</td>
         <td style="padding:5px 8px;">IC &#10003; · HTA &#10003;&#10003;&#10003; · Arritmia - · Isquemia &#10003; · QT &#10003; · Pericarditis -</td>
         <td style="padding:5px 8px;">No aplica</td>
-        <td style="padding:5px 8px;">Basal + PA. PA en cada visita (la HTA es frecuente). Eco si FEVI límite o síntomas. Eco al finalizar el tto.</td>
+        <td style="padding:5px 8px;">Presi&oacute;n arterial en cada visita y domiciliaria diaria el primer ciclo. Eco basal y, el primer a&ntilde;o, cada 3 o 4 meses seg&uacute;n el riesgo. Ver el globo de la subtab &laquo;Cardiotoxicidad&raquo; para el detalle por riesgo.</td>
         <td style="padding:5px 8px;">Rinon, pulmon no microcitico, colon, higado, tiroides, ovario, GIST (sunitinib)</td>
       </tr>
       <tr style="border-bottom:1px solid var(--border);background:var(--bg3);">
@@ -20917,7 +20917,7 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
         <td style="padding:5px 8px;">Variable — la miocarditis puede ser fatal</td>
         <td style="padding:5px 8px;">IC &#10003;&#10003; · HTA - · Arritmia &#10003;&#10003; · Isquemia - · QT - · Pericarditis &#10003;&#10003;</td>
         <td style="padding:5px 8px;">No aplica</td>
-        <td style="padding:5px 8px;">Basal + troponina + ECG. Eco SOLO si síntomas o troponina elevada. Si hay miocarditis: urgente — suspender y hospitalizar.</td>
+        <td style="padding:5px 8px;">Basal: evaluaci&oacute;n CV, ECG, eco, troponina y p&eacute;ptidos. Despu&eacute;s: ECG y troponina en los ciclos 2, 3 y 4, y luego cada 3 ciclos. Ver el globo de la subtab &laquo;Cardiotoxicidad&raquo; para el detalle por riesgo.</td>
         <td style="padding:5px 8px;">Melanoma, pulmon, rinon, vejiga, cabeza y cuello, linfoma de Hodgkin, multiples tumores solidos</td>
       </tr>
       <tr style="border-bottom:1px solid var(--border);">
@@ -20978,7 +20978,7 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
     </div>
     </div>
     <div class="co-ref-pane" data-coref-pane="monit" style="display:none;">
-    <div style="font-size:11.5px;color:var(--text2);margin-bottom:10px;line-height:1.5;">Que eco pedir y cuando, por clase. Es la <b>misma</b> columna de la subtab «Cardiotoxicidad», puesta sola para consultarla sin leer las otras seis. Con antraciclinas el eco va <b>cada 2 ciclos</b> en riesgo alto y muy alto; los <b>biomarcadores</b> antes de <b>cada ciclo</b> (ESC 2022, folio 4259).</div>
+    <div style="font-size:11.5px;color:var(--text2);margin-bottom:10px;line-height:1.5;">Que eco pedir y cuando, por clase. Repite la columna de la subtab «Cardiotoxicidad» para las clases que las dos tienen, puesta sola para consultarla sin leer las otras seis, y agrega las clases que aquella no lista. Con antraciclinas el eco va <b>cada 2 ciclos</b> en riesgo alto y muy alto; los <b>biomarcadores</b> antes de <b>cada ciclo</b> (ESC 2022, folio 4259).</div>
     <table style="width:100%;border-collapse:collapse;font-size:11.5px;">
       <tr style="background:var(--section-head);"><th style="padding:6px 8px;text-align:left;color:var(--accent2);width:32%;">Clase</th><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Seguimiento ecocardiogr&aacute;fico</th></tr>
       <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;font-weight:700;">Antraciclinas</td><td style="padding:5px 8px;">Basal obligatorio. Durante el tto: <b>cada 2 ciclos</b> en riesgo alto y muy alto; los <b>biomarcadores</b> antes de cada ciclo. A los 3 y 12 meses de terminar. Si la FEVI cae &gt;=10 pp o baja de 50%: graduar la CTRCD con la subtab «CTRCD» de esta sección.</td></tr>
@@ -20996,8 +20996,8 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
            respaldaria con una fuente verificada algo que esa fuente no dice. Lo que queda es la
            remision a la subtab CTRCD, que es la que gradua y define la conducta. -->
       <tr style="border-bottom:1px solid var(--border); background:var(--bg3);"><td style="padding:5px 8px;font-weight:700;">Anti-HER2</td><td style="padding:5px 8px;">Basal obligatorio. Eco cada 3 meses durante el tto. Si la FEVI cae &gt;=10 pp o baja de 50%: graduar la CTRCD con la subtab «CTRCD» de esta sección, que es la que define la conducta.</td></tr>
-      <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;font-weight:700;">Inhibidores VEGF/VEGFR</td><td style="padding:5px 8px;">Basal + PA. PA en cada visita (la HTA es frecuente). Eco si FEVI límite o síntomas. Eco al finalizar el tto.</td></tr>
-      <tr style="border-bottom:1px solid var(--border); background:var(--bg3);"><td style="padding:5px 8px;font-weight:700;">ICI — Inmunoterapia</td><td style="padding:5px 8px;">Basal + troponina + ECG. Eco SOLO si síntomas o troponina elevada. Si hay miocarditis: urgente — suspender y hospitalizar.</td></tr>
+      <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;font-weight:700;">Inhibidores VEGF/VEGFR</td><td style="padding:5px 8px;">Presi&oacute;n arterial en cada visita y domiciliaria diaria el primer ciclo. Eco basal y, el primer a&ntilde;o, cada 3 o 4 meses seg&uacute;n el riesgo. Ver el globo de la subtab &laquo;Cardiotoxicidad&raquo; para el detalle por riesgo.</td></tr>
+      <tr style="border-bottom:1px solid var(--border); background:var(--bg3);"><td style="padding:5px 8px;font-weight:700;">ICI — Inmunoterapia</td><td style="padding:5px 8px;">Basal: evaluaci&oacute;n CV, ECG, eco, troponina y p&eacute;ptidos. Despu&eacute;s: ECG y troponina en los ciclos 2, 3 y 4, y luego cada 3 ciclos. Ver el globo de la subtab &laquo;Cardiotoxicidad&raquo; para el detalle por riesgo.</td></tr>
       <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;font-weight:700;">Fluoropirimidinas</td><td style="padding:5px 8px;">Basal. ECG durante la infusión IV de 5-FU. Eco URGENTE si hay dolor toracico durante la infusión (vasoespasmo).</td></tr>
       <tr style="border-bottom:1px solid var(--border); background:var(--bg3);"><td style="padding:5px 8px;font-weight:700;">Agentes alquilantes</td><td style="padding:5px 8px;">Basal. Eco antes de cada ciclo de alta dosis. Monitoreo durante la infusión en altas dosis.</td></tr>
       <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;font-weight:700;">Inhibidores BCR-ABL</td><td style="padding:5px 8px;">Basal. Eco anual o si hay síntomas. Si aparece derrame pericárdico: reducir dosis o suspender el dasatinib.</td></tr>
@@ -44860,6 +44860,38 @@ const VINFO = Object.freeze({
           + 'Calendario con antraciclinas · Recomendaciones-tabla 7, folio 4259. Calendario con anti-HER2 · Recomendaciones-tabla 8, folio 4261.',
     ojo: 'La casilla de infarto, angioplastia, cirugía coronaria, angina estable o valvulopatía severa junta TRES filas de la tabla, que en cuatro de las seis columnas no valen lo mismo: se aplica la mayor de las tres, que es el lado seguro. Con un anti-VEGF eso clasifica como muy alto a un paciente cuyo único antecedente sea una valvulopatía severa, a la que esa columna no le da peso.\n'
        + 'La calculadora recoge los factores de riesgo que se pueden obtener del ecocardiograma y de los datos basales cargados, no los de la tabla entera. Para los hallazgos anormales de la evaluación basal no ve el ECG basal ni una valvulopatía, miocardiopatía o enfermedad pericárdica moderada o grave no conocida: si los hay, corresponde derivar aunque la calculadora no los muestre. Y no distingue si la antraciclina se dio ANTES del anti-HER2 o de forma concurrente —la tabla les da pesos distintos—, así que con una dosis de antraciclinas cargada toma el lado seguro.'
+  },
+  /* ══ EL MONITOREO DE INMUNOTERAPIA Y DE ANTI-VEGF (tanda D2, 2026-10-30) ════════════════════
+     Cierra `D-g`. Las dos filas de «Monitoreo recomendado» decían «ECG y troponina basal y ante
+     síntomas» y «PA, eco si síntomas o FEVI límite», que es MENOS de lo que la guía publica: la
+     primera se saltea el eco basal, los péptidos y los controles por ciclo, y la segunda se
+     saltea la presión domiciliaria y el calendario de eco del primer año.
+     LA LÍNEA VISIBLE DICE LO ESENCIAL Y EL DETALLE VIVE ACÁ, que es la regla R2: las clases, los
+     niveles y las dos fuentes no van ni a la tabla ni al papel.
+     ⚠️ LO QUE NO SE ESCRIBIÓ: el protocolo de la inmunoterapia reparte cada estudio en DOS
+     columnas de riesgo —bajo y alto— y las define por un criterio propio (doble bloqueo,
+     combinación con tratamiento cardiotóxico, eventos adversos no cardiovasculares por el mismo
+     fármaco, disfunción o enfermedad cardiovascular previa) que NO es la categoría de la
+     calculadora de esta pestaña. Se dice cuál es, y no se la mezcla con la banda de riesgo basal.
+     ⚠️ Y NINGUNA DE LAS DOS FILAS LLEGA AL PAPEL: son tablas de la sub-pestaña «Referencia
+     rápida», que no alimentan el informe, el EN SUMA, el PDF ni el PPT. Verificado en el A/B. */
+  'co-monitoreo': {
+    /* Ancho propio por el mismo motivo que `co-riesgo-basal`: con los 300 px de la tarjeta
+       estándar este texto se corta. Medido en los dos motores. */
+    ancho: 620,
+    tit: 'Monitoreo de inmunoterapia y de inhibidores del factor de crecimiento endotelial vascular',
+    lee: 'Inmunoterapia, al inicio: evaluación cardiovascular —examen físico, presión arterial, perfil lipídico y hemoglobina glicosilada—, electrocardiograma, troponina y péptidos natriuréticos, los cuatro con Clase I; y ecocardiograma, que en riesgo bajo puede considerarse (Clase IIb) y en riesgo alto se recomienda (Clase I).\n'
+       + 'Inmunoterapia, durante el tratamiento: electrocardiograma y troponina en los ciclos 2, 3 y 4 y después cada 3 ciclos hasta terminar, para detectar toxicidad subclínica (Clase IIa). La evaluación cardiovascular se repite cada 3 ciclos.\n'
+       + 'Inmunoterapia de más de 12 meses: evaluación cardiovascular, electrocardiograma y péptidos cada 6 a 12 meses; en riesgo bajo pueden considerarse (Clase IIb) y en riesgo alto se recomiendan (Clase I).\n'
+       + 'El riesgo alto de ese protocolo es el doble bloqueo, la combinación con otro tratamiento cardiotóxico, un evento adverso no cardiovascular por el mismo fármaco, o disfunción o enfermedad cardiovascular previa. No es la categoría de la calculadora de riesgo basal de esta pestaña.\n'
+       + 'Anti-VEGF, presión arterial: en cada visita (Clase I), y domiciliaria diaria durante el primer ciclo, después de cada aumento de dosis y cada 2 a 3 semanas en adelante (Clase I).\n'
+       + 'Anti-VEGF, electrocardiograma: con riesgo moderado o alto de prolongación del QTc, control mensual los primeros 3 meses y cada 3 a 6 meses después (Clase I).\n'
+       + 'Anti-VEGF, ecocardiograma basal: se recomienda en riesgo alto y muy alto (Clase I) y debe considerarse en riesgo bajo y moderado (Clase IIa).\n'
+       + 'Anti-VEGF, ecocardiograma el primer año: cada 3 meses en riesgo alto y muy alto (Clase IIa) y cada 4 meses en riesgo moderado (Clase IIb); en tratamiento prolongado, cada 6 a 12 meses en riesgo moderado y alto (Clase IIa). En pacientes seleccionados de riesgo alto y muy alto debe considerarse un eco adicional a las 4 semanas de empezar, sobre todo si no hay vigilancia con biomarcadores.\n'
+       + 'Anti-VEGF, péptidos natriuréticos: en riesgo moderado, basales y cada 4 meses el primer año (Clase IIb); en riesgo alto y muy alto, basales, a las 4 semanas y cada 3 meses el primer año (Clase IIa).',
+    fuente: 'Inmunoterapia · Lyon AR, López-Fernández T, Couch LS y col., «2022 ESC Guidelines on cardio-oncology», Eur Heart J 2022;43(41):4229-4361, Figura 20 «Immune checkpoint inhibitors surveillance protocol», folio 4273 (hoja 45 de la edición inglesa), leída en imagen; las clases salen de los colores de su leyenda y la definición de riesgo alto de su nota b.\n'
+          + 'Anti-VEGF · el mismo documento, Recomendaciones-tabla 10, folio 4264 (hoja 36), leída en imagen; el eco adicional a las 4 semanas es su nota e.',
+    ojo: 'Los ciclos del protocolo de inmunoterapia son los del tratamiento oncológico, no meses: la frecuencia depende de cada esquema. Y el nivel de evidencia de las dos fuentes es C en todas sus filas salvo donde se indique: son recomendaciones de consenso, no de ensayo.'
   },
   /* ══ EL GLOBO DEL SCORE DE AMILOIDOSIS (J2-E5, 2026-10-24) ═════════════════════════════════
      Las DOS fuentes están verificadas: el folio 1556 del documento de posición en el texto del
