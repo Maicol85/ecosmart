@@ -91544,8 +91544,16 @@ window.esqRasterizar = esqRasterizar;
 function esqGuardarComoImagen(clave, nombre, svgTxt, ancho, alto) {
   if (typeof CeiboImg === 'undefined' || !CeiboImg.guardarEsquema)
     return Promise.resolve({ ok: false, motivo: 'sin almacenamiento' });
+  /* ⚠️ EL MOTIVO DICE DÓNDE SE PRENDE (A4-4b, 30/10/2026). Decía sólo «el guardado de imágenes
+     está apagado», que es el estado de fábrica —`imgGuardadoActivo` pregunta por
+     `localStorage['cfg-guardar-imagenes'] === '1'` y esa clave no existe hasta que alguien toca
+     el control—, así que el médico leía un reproche sin saber qué hacer. El interruptor es la
+     casilla «Guardar imágenes con los estudios», en la pestaña «⚙️ Config», sección «🖼️ Imágenes
+     del estudio». El estado por omisión NO se toca: sigue apagado. */
   if (typeof imgGuardadoActivo === 'function' && !imgGuardadoActivo())
-    return Promise.resolve({ ok: false, motivo: 'el guardado de imágenes está apagado' });
+    return Promise.resolve({ ok: false, motivo: 'el guardado de imágenes está apagado — se ' +
+      'activa en la pestaña «⚙️ Config», sección «🖼️ Imágenes del estudio», con la casilla ' +
+      '«Guardar imágenes con los estudios»' });
   const uuid = (typeof _imgUuidActual !== 'undefined') ? _imgUuidActual : null;
   if (!uuid) return Promise.resolve({ ok: false, motivo: 'el estudio todavía no está guardado' });
   return esqRasterizar(svgTxt, ancho, alto).then(d => {
@@ -96839,7 +96847,26 @@ function imgRecolectarHuerfanas() {
      recolectar mapea a uuid y lo descarta, así que quedaría fuera del conjunto de vivos. Ante
      la duda no se recolecta. */
   if (infs.some(i => !_uuidValido(i && i.uuid))) return Promise.resolve(0);
-  return CeiboImg.recolectar(infs.map(i => i.uuid)).catch(() => 0);
+  const vivos = infs.map(i => i.uuid);
+  /* ⚠️ LAS TRES TIENDAS SE RECOGEN ACÁ, Y NO EN CADA CAMINO DE BORRADO (A4, 30/10/2026).
+     Hay TRES caminos que borran un estudio —`eliminarInforme`, `eliminarInformeYVolver` y
+     `limpiarTodosInformes`— y los tres llamaban a esta función. Enganchar los cineloops y los
+     videos en cada uno sería tres listas paralelas, y la cuarta que se agregue mañana se olvida
+     de una: es el defecto que este archivo ya pagó con el selector y el cuerpo de «Nuevo
+     estudio», donde la misma marca había que ponerla en DOS lados.
+     Las dos guardas de arriba valen igual para las tres tiendas: si la lista de estudios no se
+     pudo leer, o si algún estudio vivo no tiene un uuid válido, no se recoge NADA — ante la duda
+     no se borra.
+     ⚠️ EL VALOR QUE DEVUELVE SIGUE SIENDO EL DE LAS IMÁGENES, a propósito: TC-550 (G1) exige
+     `recolectados >= 1` sobre ese número, y cambiarlo por un objeto lo pondría en rojo sin que
+     nada del comportamiento hubiera empeorado. Los otros dos se recogen igual; lo que no cambia
+     es qué se informa. */
+  const pCine = (typeof CeiboCine !== 'undefined' && CeiboCine.recolectar)
+    ? CeiboCine.recolectar(vivos).catch(() => 0) : Promise.resolve(0);
+  const pVid = (typeof CeiboVideo !== 'undefined' && CeiboVideo.recolectar)
+    ? CeiboVideo.recolectar(vivos).catch(() => 0) : Promise.resolve(0);
+  return Promise.all([CeiboImg.recolectar(vivos).catch(() => 0), pCine, pVid])
+    .then(r => r[0]);
 }
 window.imgRecolectarHuerfanas = imgRecolectarHuerfanas;
 
@@ -115108,6 +115135,23 @@ const CeiboVideo = (function () {
     },
     borrarTodo() {
       return _tx('readwrite', (os, ok) => { os.clear(); ok(true); }).then(r => !!(r.ok && r.val));
+    },
+    /* ⚠️ ESTE RECOLECTOR NO EXISTÍA, Y ESE ERA EL DEFECTO (A4, 30/10/2026; cierra IMG-a).
+       `CeiboImg` y `CeiboCine` tenían el suyo; esta tienda sólo tenía `borrarTodo`, así que al
+       borrar un estudio sus VIDEOS quedaban en disco para siempre. Un video de un estudio
+       borrado es dato del paciente que sobrevive al borrado, que es peor que ocupar espacio.
+       Mismo contrato que los otros dos: se borra lo que ya no tiene estudio dueño. Va por el
+       índice `uuid`, que es el que esta tienda ya usa en `guardar` y en `leer`. */
+    recolectar(uuidsVivos) {
+      const vivos = new Set((uuidsVivos || []).filter(_uuidValido));
+      return _tx('readwrite', (os, ok) => {
+        const q = os.getAll();
+        q.onsuccess = () => {
+          const muertos = (q.result || []).filter(r => !vivos.has(r.uuid));
+          muertos.forEach(r => os.delete(r.id));
+          ok(muertos.length);
+        };
+      }).then(r => (r.ok && r.val) || 0);
     },
     uso() {
       return _tx('readonly', (os, ok) => {
@@ -140332,8 +140376,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261030-0159';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793336364640;                 /* eco-build-ms */
+const ECO_BUILD    = '20261030-0203';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793336580220;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -140419,7 +140463,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261030-0159</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261030-0203</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
