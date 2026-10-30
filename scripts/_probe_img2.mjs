@@ -765,6 +765,153 @@ window.__I2 = {
       };
       mirar();
     }, 400) }) },
+  /* ── EL ESQUEMA DE LA OREJUELA y la funcion comun (commit 5) ──────────────────────────────
+     Se abre la pestania ETE por su boton real, se cargan los cuatro campos con gestos de verdad
+     y se mide: que el dibujo salga, que NO juzgue, que se guarde SOLO, que haya UNA sola copia y
+     que se actualice al cambiar un dato. Y los dos controles: que un estudio reabierto NO reciba
+     un esquema que nadie pidio, y que los slots del estudio no se toquen. */
+  esqAbrir() {
+    try { showTab('ete') } catch(e) {
+      try { document.querySelectorAll('.tab-section').forEach(function(x){ x.classList.remove('active') });
+            var t = document.getElementById('tab-ete'); if (t) t.classList.add('active') } catch(e2){}
+    }
+    /* La seccion de la orejuela es un acordeon: sin abrirla, su contenido no tiene caja y la
+       geometria da 0x0 sobre un dibujo que si se pinta. */
+    try { if (typeof toggleEteSeccion === 'function') toggleEteSeccion('oai') } catch(e) {}
+    var sec = document.getElementById('ete-seccion-oai');
+    if (sec && getComputedStyle(sec).display === 'none') sec.style.display = 'block';
+    return { seccion: !!sec && getComputedStyle(sec).display !== 'none',
+             caja: (function(){ var c = document.getElementById('oai-esq-caja');
+               return c ? getComputedStyle(c).display : 'NO EXISTE' })(),
+             medidor: !!document.getElementById('oai-esq-tmp') } },
+
+  esqPoner(campos) {
+    var out = {};
+    Object.keys(campos).forEach(function(k){
+      var e = document.getElementById(k);
+      if (!e) { out[k] = 'NO EXISTE'; return }
+      e.value = String(campos[k]);
+      e.dispatchEvent(new Event('input', { bubbles:true }));
+      e.dispatchEvent(new Event('change', { bubbles:true }));
+      out[k] = e.value;
+    });
+    return out },
+
+  esqMirar() {
+    var caja = document.getElementById('oai-esq-caja');
+    var cont = document.getElementById('oai-esq');
+    var svg = cont ? cont.querySelector('svg') : null;
+    var txt = svg ? (svg.textContent || '') : '';
+    return { cajaVisible: caja ? getComputedStyle(caja).display !== 'none' : 'NO EXISTE',
+             haySvg: !!svg,
+             siluetas: svg ? svg.querySelectorAll('path[stroke-linejoin]').length : 0,
+             textos: txt.replace(/\u00a0/g,' ').trim(),
+             juzga: /apta|no apta|elegib|Watchman|Amulet|contraindic/i.test(txt),
+             ancho: (function(){ var r = cont ? cont.getBoundingClientRect() : null;
+               return r ? Math.round(r.width) : null })(),
+             alto: (function(){ var r = cont ? cont.getBoundingClientRect() : null;
+               return r ? Math.round(r.height) : null })(),
+             estado: (function(){ var e = document.getElementById('oai-esq-estado');
+               return e ? (e.textContent||'').trim() : 'NO EXISTE' })() } },
+
+  esqEsperarGuardado(uuid) {
+    return new Promise(function(res){ setTimeout(function(){
+      if (typeof CeiboImg === 'undefined' || !CeiboImg.esquemas) return res('NO EXISTE');
+      Promise.all([CeiboImg.esquemas(uuid), CeiboImg.leer(uuid), CeiboImg.uso()])
+        .then(function(rs){
+          var es = rs[0] || [];
+          res({ esquemas: es.length,
+                claves: es.map(function(e){ return e.clave }),
+                nombres: es.map(function(e){ return e.nombre }),
+                prefijo: es.length ? String(es[0].dataURL).slice(0,23) : null,
+                chars: es.length ? String(es[0].dataURL).length : 0,
+                marcado: es.length ? !!es[0].esquema : null,
+                slots: (rs[1] || []).length,
+                uso: rs[2],
+                estado: (function(){ var e = document.getElementById('oai-esq-estado');
+                  return e ? (e.textContent||'').trim() : 'NO EXISTE' })() });
+        });
+    }, 1600) }) },
+
+  esqUnaSolaCopia(uuid) {
+    var set = function(id, v){ var e = document.getElementById(id); if (!e) return;
+      e.value = String(v); e.dispatchEvent(new Event('input', { bubbles:true })) };
+    set('oai_profundidad', '30');
+    return new Promise(function(res){ setTimeout(function(){
+      set('oai_profundidad', '31');
+      setTimeout(function(){
+        CeiboImg.esquemas(uuid).then(function(es){
+          var cont = document.getElementById('oai-esq');
+          var svg = cont ? cont.querySelector('svg') : null;
+          res({ esquemas: es.length, claves: es.map(function(e){ return e.clave }),
+                enPantalla: svg ? (svg.textContent||'').trim() : null,
+                chars: es.length ? String(es[0].dataURL).length : 0 });
+        });
+      }, 1800);
+    }, 1800) }) },
+
+  esqAlReabrir(uuid) {
+    if (typeof imgRestaurar !== 'function') return Promise.resolve('NO EXISTE');
+    var antes = null, ts0 = null;
+    return CeiboImg.esquemas(uuid).then(function(es){
+      antes = es.length; ts0 = es.length ? es[0].ts : null;
+      try { if (typeof limpiarCampos === 'function') limpiarCampos(true) } catch(e) {}
+      var set = function(id, v){ var e = document.getElementById(id); if (e) e.value = String(v) };
+      set('oai_morfologia','cactus'); set('oai_ostium_diam','22'); set('oai_profundidad','28');
+      try { if (typeof calcOAI === 'function') calcOAI() } catch(e) {}
+      try { if (typeof _recalcModulos === 'function') _recalcModulos() } catch(e) {}
+      return new Promise(function(res){ setTimeout(function(){
+        CeiboImg.esquemas(uuid).then(function(es2){
+          var cont = document.getElementById('oai-esq');
+          var svg = cont ? cont.querySelector('svg') : null;
+          res({ antes: antes, despues: es2.length,
+                tsAntes: ts0, tsDespues: es2.length ? es2[0].ts : null,
+                escribio: es2.length !== antes || (es2.length && ts0 && es2[0].ts !== ts0),
+                pintoEnPantalla: !!svg,
+                textoEnPantalla: svg ? (svg.textContent||'').trim().slice(0,80) : null });
+        });
+      }, 1600) });
+    }) },
+  /* ── LAS CUATRO SUPERFICIES FIRMADAS CON LA OREJUELA CARGADA ──────────────────────────────
+     ⚠️ ES EL DENOMINADOR DEL COMMIT 5, Y SIN EL EL A/B GENERAL NO PRUEBA NADA: ninguna de las
+     132 escenas de _probe_yab.mjs carga la orejuela, asi que su «cero diferencias» sobre el
+     esquema es un control NEGATIVO. Aca se carga la orejuela, se deja que el esquema se guarde,
+     y se miden el informe en sus tres estilos, el EN SUMA, las columnas del Excel y los campos.
+     Contra HEAD tienen que salir IDENTICOS: el esquema no es un slot y no llega al papel. */
+  esqSuperficies() {
+    var inf = function(est){
+      try { if (typeof setEstiloInforme === 'function') setEstiloInforme(est) } catch(e){}
+      try { if (typeof generarInforme === 'function') generarInforme() } catch(e){ return 'EXC' }
+      return (document.getElementById('informe_texto') || {}).value || '' };
+    var campos = {};
+    document.querySelectorAll('input[id], select[id], textarea[id]').forEach(function(e){
+      try { if (typeof _noEsDelEstudio === 'function' && _noEsDelEstudio(e.id)) return } catch(x){}
+      campos[e.id] = (e.type === 'checkbox') ? (e.checked ? '1' : '') : String(e.value || '') });
+    /* ⚠️ EL FILTRO VA TAMBIEN EN EL BUCLE DE LAS CASILLAS, y la primera version de esta sonda
+       no lo tenia: guardarInforme lo aplica a los DOS barridos, asi que sin el la sonda
+       contaba ig-ppt-on__chk -la casilla «Armar PPT», que _noEsDelEstudio excluye por su
+       prefijo ig-- y reportaba un campo guardado nuevo que la app no guarda. Un falso
+       positivo de censo, que es justo lo que esta medicion esta para evitar. */
+    document.querySelectorAll('input[type=checkbox][id]').forEach(function(e){
+      try { if (typeof _noEsDelEstudio === 'function' && _noEsDelEstudio(e.id)) return } catch(x){}
+      campos[e.id + '__chk'] = e.checked ? '1' : '0' });
+    var fila = 'SIN _labExcelRow';
+    try { if (typeof _labExcelRow === 'function')
+      fila = _labExcelRow({ nombre:'P', ci:'1', fecha_estudio:'2026-10-29', campos: campos }) } catch(e) { fila = 'EXC' }
+    var est = inf('estandar'), con = inf('conciso'), nar = inf('narrativo');
+    inf('estandar');
+    return { estandar: est, conciso: con, narrativo: nar,
+             suma: (document.getElementById('en_suma') || {}).value || '',
+             excelN: (fila && typeof fila === 'object') ? Object.keys(fila).length : fila,
+             excelFila: fila,
+             camposN: Object.keys(campos).length,
+             /* El denominador del denominador: que la orejuela ESTE cargada. Sin esto, comparar
+                dos informes de normalidad no distingue nada. */
+             denom: { morf: (document.getElementById('oai_morfologia')||{}).value || '',
+                      ostium: (document.getElementById('oai_ostium_diam')||{}).value || '',
+                      prof: (document.getElementById('oai_profundidad')||{}).value || '',
+                      vel: (document.getElementById('oai_vel_vac')||{}).value || '',
+                      nombraOrejuela: /orejuela/i.test(est) } } },
   /* ── Que borrar un estudio se lleva sus imagenes (punto 2e) ─────────────────────────────── */
   borrarEstudio() {
     var ests;
@@ -864,6 +1011,31 @@ async function main() {
   out.filtros.numVal   = await paso('numerico valor', J('window.__I2.filtro("adv-fevi-lt","40")'), 30000);
   out.filtros.limpiar5 = await paso('limpiar', J('window.__I2.limpiar()'), 30000);
   out.filtros.tras     = await paso('la pagina tras limpiar', J('window.__I2.filtro("ig-buscar","")'), 30000);
+
+  /* ── El esquema de la orejuela (commit 5) ──────────────────────────────────────────────────
+     Va antes de la estrella y del PPT: usa el estudio sembrado 0 como estudio abierto. */
+  out.esqAbrir = await paso('abrir la seccion de la orejuela', J('window.__I2.esqAbrir()'), 30000);
+  out.esqVacio = await paso('el esquema sin datos', J('window.__I2.esqMirar()'), 20000);
+  out.esqPonerUuid = await paso('poner el estudio sembrado como actual',
+    J('(function(){ _imgUuidActual = "sem-10000"; try{ localStorage.setItem("cfg-guardar-imagenes","1") }catch(e){} return { uuid: _imgUuidActual, activo: imgGuardadoActivo() } })()'), 20000);
+  out.esqPoner = await paso('cargar los cuatro campos',
+    J('window.__I2.esqPoner({ oai_morfologia:"ala", oai_ostium_diam:"21", oai_profundidad:"26", oai_vel_vac:"48" })'), 30000);
+  out.esqMirar = await paso('mirar el dibujo', J('window.__I2.esqMirar()'), 20000);
+  out.esqGuardado = await paso('el esquema en disco', J('window.__I2.esqEsperarGuardado("sem-10000")'), 60000);
+  out.esqMorfologias = await paso('las cuatro morfologias', `(function(){
+    var out = {};
+    ['ala','coliflor','cactus','veleta'].forEach(function(m){
+      var e = document.getElementById('oai_morfologia');
+      e.value = m; e.dispatchEvent(new Event('change', { bubbles:true }));
+      var r = window.__I2.esqMirar();
+      out[m] = { siluetas: r.siluetas, juzga: r.juzga, textos: r.textos.slice(0,70) };
+    });
+    return JSON.stringify(out);
+  })()`, 30000);
+  out.esqSuperficies = await paso('las cuatro superficies con la orejuela cargada',
+    J('window.__I2.esqSuperficies()'), 90000);
+  out.esqUnaCopia = await paso('una sola copia', J('window.__I2.esqUnaSolaCopia("sem-10000")'), 60000);
+  out.esqAlReabrir = await paso('CONTROL: reabrir no escribe', J('window.__I2.esqAlReabrir("sem-10000")'), 60000);
 
   /* ── La estrella de imagen (commit 3) ───────────────────────────────────────────────────── */
   out.estrella = await paso('marcar la primera imagen', J('window.__I2.estrella(0)'), 60000);

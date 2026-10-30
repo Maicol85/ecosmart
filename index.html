@@ -15088,7 +15088,7 @@ z
       </div>
       <div class="grid-3">
         <div class="fg"><label>Morfología OAI</label>
-          <select id="oai_morfologia" onchange="calcOAI()">
+          <select id="oai_morfologia" onchange="calcOAI();oaiEsqGesto()">
             <option value="">—</option>
             <option value="ala">Ala de pollo — menor riesgo tromboembólico</option>
             <option value="coliflor">Coliflor — mayor riesgo tromboembólico</option>
@@ -15129,7 +15129,7 @@ z
           </select>
         </div>
         <div class="fg"><label>Vel. vaciamiento (cm/s)</label>
-          <input type="number" id="oai_vel_vac" placeholder="cm/s" oninput="calcOAI()">
+          <input type="number" id="oai_vel_vac" placeholder="cm/s" oninput="calcOAI();oaiEsqGesto()">
         </div>
         <div class="fg"><label>Vel. llenado (cm/s)</label>
           <input type="number" id="oai_vel_llen" placeholder="cm/s">
@@ -15143,10 +15143,10 @@ z
           </select>
         </div>
         <div class="fg"><label>Diámetro ostium (mm)</label>
-          <input type="number" id="oai_ostium_diam" placeholder="mm" oninput="calcOAI()">
+          <input type="number" id="oai_ostium_diam" placeholder="mm" oninput="calcOAI();oaiEsqGesto()">
         </div>
         <div class="fg"><label>Profundidad OAI (mm)</label>
-          <input type="number" id="oai_profundidad" placeholder="mm" oninput="calcOAI()">
+          <input type="number" id="oai_profundidad" placeholder="mm" oninput="calcOAI();oaiEsqGesto()">
         </div>
         <div class="fg"><label>Área ostium (cm²) <span style="font-weight:400;color:var(--text2);font-size:10px;">auto ← diámetro · sobreescribible</span></label>
           <input type="number" id="oai_area_ostium" placeholder="cm²" oninput="calcOAI()">
@@ -15174,6 +15174,25 @@ z
              medida cae dentro de un rango. -->
         <div class="calc-row"><span class="calc-lbl" style="font-weight:700;">⚖️ Medidas de la orejuela</span><span id="oai-elegibilidad">—</span></div>
         <div class="calc-row"><span id="oai-notas" style="font-size:11px;color:var(--yellow);"></span></div>
+      </div>
+      <!-- ═══ ESQUEMA DE LA OREJUELA ══════════════════════════════════════════════════════
+           Dibujo esquemático y original, no a escala, armado con los datos cargados. NO JUZGA:
+           no dice «apta» ni «no apta» —eso es decisión de Maicol y no está pedido— y lo único
+           que publica son las medidas que el médico escribió arriba.
+           El `<path id="oai-esq-tmp">` es el medidor de longitud de arco que necesita el motor
+           de las siluetas (`getPointAtLength`): tiene que estar en el DOM para medir, y va
+           fuera de la vista con `width:0`. -->
+      <div id="oai-esq-caja" style="margin-top:10px;display:none;">
+        <div style="font-size:11px;font-weight:600;color:var(--text2);margin-bottom:4px;">Esquema de la orejuela</div>
+        <!-- `max-width` con el ancho natural del dibujo: sin el, el <svg> se estira a todo el
+             ancho de la tarjeta y el dibujo queda chico y centrado en una franja vacia. -->
+        <div id="oai-esq" style="max-width:360px;margin:0 auto;" role="img" aria-label="Esquema de la orejuela izquierda con las medidas cargadas"></div>
+        <svg width="0" height="0" style="position:absolute;width:0;height:0;overflow:hidden;" aria-hidden="true"><path id="oai-esq-tmp" d=""/></svg>
+        <p style="font-size:10px;color:var(--text2);line-height:1.5;margin:4px 0 0;">
+          VM: válvula mitral. VI: ventrículo izquierdo. VPSI: vena pulmonar superior izquierda.
+          Cx: arteria circunfleja. Dibujo esquemático y original, no a escala.
+          <span id="oai-esq-estado"></span>
+        </p>
       </div>
       <div class="fg" style="margin-top:8px;"><label>Notas OAI</label>
         <textarea id="oai_notas" placeholder="Observaciones adicionales..."></textarea>
@@ -91301,6 +91320,354 @@ window.oaiTablasGlobo = oaiTablasGlobo;
 window.OAI_AMULET_TABLA = OAI_AMULET_TABLA; window.OAI_WATCH_TABLA = OAI_WATCH_TABLA;
 window.OAI_FAB_AMULET = OAI_FAB_AMULET; window.OAI_FAB_WATCH = OAI_FAB_WATCH;
 window.OAI_WATCH_PROF = OAI_WATCH_PROF;
+
+/* ══════════════ ESQUEMAS DE LA APP GUARDADOS COMO IMAGEN DEL ESTUDIO ═════════════════════════
+   LA FUNCIÓN COMÚN. Toma un `<svg>` que la app dibujó a partir de los datos cargados, lo
+   convierte en una imagen y la guarda SOLA en las imágenes del estudio, marcada «esquema», sin
+   que el médico tenga que capturar nada.
+
+   DÓNDE QUEDA, Y POR QUÉ AHÍ. En el MISMO registro de `ceibomed_img` que las imágenes del
+   estudio, pero en una segunda lista —`esqs`— y no entre los slots. Un esquema no es una captura
+   del ecógrafo: no ocupa un espacio de la grilla, no se imprime en el PDF, no entra al PPT del
+   estudio ni lo elige nadie. Con esa separación, `CeiboImg.leer` sigue devolviendo exactamente
+   lo que devolvía y NINGÚN emisor existente tiene que filtrar nada — que es lo que garantiza que
+   el papel no se mueva. La alternativa, meterlo entre los slots con una marca, exigía filtrarlo
+   en cinco lectores maduros (el PDF del formulario, el PDF de un estudio guardado, el PPT, su
+   selector y el exportador de backup) y el primer olvido publicaba un esquema en un informe
+   firmado.
+
+   TRES COSAS QUE ESTA FUNCIÓN NO HACE, a propósito:
+   · no captura la pantalla — rasteriza el SVG, así que lo que se guarda no depende del tema, del
+     zoom ni de lo que haya encima;
+   · no acumula copias — la clave identifica QUÉ esquema es, y volver a guardarlo reemplaza el
+     anterior;
+   · no pregunta nada. Si no hay dónde guardar (el toggle apagado o el estudio todavía sin uuid)
+     devuelve el motivo y no molesta: el esquema se vuelve a intentar cuando el estudio se guarda.
+
+   Los COLORES van literales en el marcado y no como `var(--…)`: un SVG rasterizado se decodifica
+   fuera del documento, donde las variables de CSS no existen, y el dibujo saldría negro sobre
+   negro. Se resuelven contra el tema vivo al emitir. */
+
+const ESQ_PIE = 'Esquema ilustrativo generado a partir de los datos cargados. No es una imagen del estudio ni está a escala.';
+
+function esqColor(nombre, porOmision) {
+  try {
+    const v = getComputedStyle(document.documentElement).getPropertyValue(nombre).trim();
+    return v || porOmision;
+  } catch (e) { return porOmision; }
+}
+
+/* Rasteriza una cadena de marcado SVG a un JPEG. `ancho` es el ancho de salida en píxeles: se
+   dibuja al doble del tamaño de pantalla para que el texto no quede blando al verlo en grande. */
+function esqRasterizar(svgTxt, ancho, alto) {
+  return new Promise(resolve => {
+    let listo = false;
+    const fin = v => { if (!listo) { listo = true; resolve(v); } };
+    /* Reloj propio: una imagen que no decodifica deja la promesa dormida para siempre y el
+       barrido que la llamó se cuelga sin decir nada. Es la trampa que la tanda B pagó. */
+    setTimeout(() => fin(null), 8000);
+    try {
+      const url = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgTxt);
+      const im = new Image();
+      im.onload = () => {
+        try {
+          const cv = document.createElement('canvas');
+          cv.width = ancho; cv.height = alto;
+          const cx = cv.getContext('2d');
+          /* Fondo OPACO: un JPEG no tiene canal alfa, así que sin esto el fondo transparente
+             del SVG sale negro y el dibujo —que es oscuro— desaparece. */
+          cx.fillStyle = '#ffffff';
+          cx.fillRect(0, 0, ancho, alto);
+          cx.drawImage(im, 0, 0, ancho, alto);
+          fin(cv.toDataURL('image/jpeg', 0.9));
+        } catch (e) { fin(null); }
+      };
+      im.onerror = () => fin(null);
+      im.src = url;
+    } catch (e) { fin(null); }
+  });
+}
+window.esqRasterizar = esqRasterizar;
+
+/* Guarda el esquema `clave` del estudio abierto. Devuelve `{ok, motivo}` y no tira: la llaman
+   barridos, y una excepción ahí se traga sin que nadie lo sepa. */
+function esqGuardarComoImagen(clave, nombre, svgTxt, ancho, alto) {
+  if (typeof CeiboImg === 'undefined' || !CeiboImg.guardarEsquema)
+    return Promise.resolve({ ok: false, motivo: 'sin almacenamiento' });
+  if (typeof imgGuardadoActivo === 'function' && !imgGuardadoActivo())
+    return Promise.resolve({ ok: false, motivo: 'el guardado de imágenes está apagado' });
+  const uuid = (typeof _imgUuidActual !== 'undefined') ? _imgUuidActual : null;
+  if (!uuid) return Promise.resolve({ ok: false, motivo: 'el estudio todavía no está guardado' });
+  return esqRasterizar(svgTxt, ancho, alto).then(d => {
+    if (!d) return { ok: false, motivo: 'no se pudo dibujar la imagen' };
+    return CeiboImg.guardarEsquema(uuid, clave, d, nombre)
+      .then(ok => ({ ok: !!ok, motivo: ok ? '' : 'no se pudo escribir' }));
+  }).catch(() => ({ ok: false, motivo: 'no se pudo guardar' }));
+}
+window.esqGuardarComoImagen = esqGuardarComoImagen;
+
+/* ══ EL ESQUEMA DE LA OREJUELA IZQUIERDA ══════════════════════════════════════════════════════
+   El diseño sale de `docs/3d/demo_orejuela_esquema_aprobado.html`: la silueta de la orejuela por
+   morfología, la línea del ostium con su valor, la línea de la profundidad y el trazo del Doppler
+   pulsado con la velocidad de vaciamiento, sobre el contexto del anillo mitral y el ventrículo.
+
+   NO JUZGA. No dice «apta» ni «no apta», no gradúa y no nombra ningún dispositivo: lo único que
+   publica son los tres números que el médico cargó. La elegibilidad vive en su recuadro, con sus
+   tablas y sus fuentes, y duplicarla acá sería una segunda voz sobre la misma pregunta.
+
+   ⚠️ SIN ANIMACIÓN, a diferencia de la demo. Lo que se guarda es una imagen fija, así que animar
+   la pantalla dejaría el dibujo guardado distinto del que el médico está mirando; y la regla P1
+   pide respetar `prefers-reduced-motion`, que con un dibujo estático se cumple por construcción. */
+const OAI_ESQ_W = 340, OAI_ESQ_H = 350;
+/* Las siluetas y sus datos, portados de la demo aprobada. `PATHS` son las líneas guía que
+   `_oaiTaper` engrosa, y `LOBES` los lóbulos del brócoli. La clave de cada una es la del
+   desplegable de la app, no la de la demo: «veleta» es la manga de viento y «coliflor» el
+   brócoli. */
+const OAI_ESQ_PATHS = {
+  veleta:   [['M184 101 C209 100 225 116 227 142 C227 152 227 157 227 159', 8]],
+  ala:      [['M184 100 C205 96 224 94 232 108 C238 120 236 134 218 156', 7]],
+  cactus:   [['M184 101 C203 103 219 117 225 141 C226 151 226 158 225 164', 8],
+             ['M216 121 C231 124 239 136 240 153', 4],
+             ['M221 147 C210 151 203 158 201 170', 3]],
+  coliflor: [['M186 101 C210 108 228 128 232 160', 14], ['M214 124 C228 122 240 128 244 144', 6]]
+};
+const OAI_ESQ_LOBES = [[200,102,22,30,3],[218,118,16,14,5],[238,134,19,18,7],[226,160,18,17,11],[204,146,13,14,13]];
+const OAI_ESQ_TIP = { veleta:[227,183], ala:[216,179], coliflor:[228,194], cactus:[225,193] };
+
+const _oaiF1 = x => Math.round(x * 10) / 10;
+const _oaiLerp = (a, b, u) => a + (b - a) * u;
+const _oaiSm = x => x * x * (3 - 2 * x);
+const _oaiRnd = s => () => { s = (s * 9301 + 49297) % 233280; return s / 233280; };
+
+function _oaiCerrada(pts) {
+  const n = pts.length;
+  let d = '';
+  for (let i = 0; i < n; i++) {
+    const p0 = pts[i], p1 = pts[(i + 1) % n];
+    if (i === 0) { const pm = pts[n - 1];
+      d += 'M' + _oaiF1((pm[0] + p0[0]) / 2) + ' ' + _oaiF1((pm[1] + p0[1]) / 2); }
+    d += 'Q' + _oaiF1(p0[0]) + ' ' + _oaiF1(p0[1]) + ' ' +
+         _oaiF1((p0[0] + p1[0]) / 2) + ' ' + _oaiF1((p0[1] + p1[1]) / 2);
+  }
+  return d + 'Z';
+}
+function _oaiBlob(cx, cy, rx, ry, seed, n, amp) {
+  const r = _oaiRnd(seed), pts = [];
+  for (let i = 0; i < n; i++) {
+    const a = 2 * Math.PI * i / n, k = 1 + amp * (r() * 2 - 1);
+    pts.push([cx + rx * k * Math.cos(a), cy + ry * k * Math.sin(a)]);
+  }
+  return _oaiCerrada(pts);
+}
+/* Engrosa una línea guía hasta volverla una silueta cerrada, midiendo su longitud de arco con
+   `getPointAtLength`. Necesita un `<path>` EN EL DOM: un path creado con `createElementNS` y no
+   insertado devuelve longitud 0 en Chrome, y la silueta sale vacía sin ningún error. */
+function _oaiTaper(d, o) {
+  const tmp = document.getElementById('oai-esq-tmp');
+  if (!tmp) return '';
+  tmp.setAttribute('d', d);
+  let L = 0;
+  try { L = tmp.getTotalLength(); } catch (e) { return ''; }
+  if (!L) return '';
+  const N = 28, pts = [];
+  for (let i = 0; i <= N; i++) { const q = tmp.getPointAtLength(L * i / N); pts.push([q.x, q.y]); }
+  const Ls = [], Rs = [];
+  for (let i = 0; i <= N; i++) {
+    const a = pts[Math.max(0, i - 1)], b = pts[Math.min(N, i + 1)];
+    let tx = b[0] - a[0], ty = b[1] - a[1];
+    const len = Math.sqrt(tx * tx + ty * ty) || 1;
+    tx /= len; ty /= len;
+    const nx = -ty, ny = tx, t = i / N;
+    const hl = _oaiLerp(o.b, o.e, _oaiSm(t));
+    const hu = _oaiLerp(o.b, o.e, _oaiSm(Math.pow(t, o.k)));
+    Ls.push([pts[i][0] + nx * hl, pts[i][1] + ny * hl]);
+    Rs.push([pts[i][0] - nx * hu, pts[i][1] - ny * hu]);
+  }
+  const e = pts[N], pp = pts[N - 1];
+  let ex = e[0] - pp[0], ey = e[1] - pp[1];
+  const el = Math.sqrt(ex * ex + ey * ey) || 1;
+  ex /= el; ey /= el;
+  const nx2 = -ey, ny2 = ex, cap = [];
+  for (let k = 1; k <= 5; k++) {
+    const a2 = Math.PI * k / 6;
+    cap.push([e[0] + nx2 * o.e * Math.cos(a2) + ex * o.e * Math.sin(a2),
+              e[1] + ny2 * o.e * Math.cos(a2) + ey * o.e * Math.sin(a2)]);
+  }
+  return _oaiCerrada(Ls.concat(cap, Rs.reverse()));
+}
+
+function _oaiSiluetas(k) {
+  const ds = [];
+  if (k === 'veleta')   ds.push(_oaiTaper(OAI_ESQ_PATHS.veleta[0][0],   { b:25, e:8,  k:0.6, rec:true, ti:0.62 }));
+  if (k === 'ala')      ds.push(_oaiTaper(OAI_ESQ_PATHS.ala[0][0],      { b:25, e:7,  k:0.6, rec:true, ti:0.74 }));
+  if (k === 'cactus') {
+    ds.push(_oaiTaper(OAI_ESQ_PATHS.cactus[0][0], { b:25, e:13, k:0.6, rec:true, ti:0.7 }));
+    ds.push(_oaiTaper(OAI_ESQ_PATHS.cactus[1][0], { b:8,  e:6,  k:1 }));
+    ds.push(_oaiTaper(OAI_ESQ_PATHS.cactus[2][0], { b:7,  e:5,  k:1 }));
+  }
+  if (k === 'coliflor') OAI_ESQ_LOBES.forEach(b => ds.push(_oaiBlob(b[0], b[1], b[2], b[3], b[4], 9, 0.12)));
+  return ds.filter(Boolean);
+}
+
+/* El número tal como lo escribió el médico, con una decimal y sin inventar ceros. Devuelve '' si
+   no hay dato: el esquema dibuja la línea en gris y no publica ningún valor. */
+function _oaiNum(id) {
+  const e = document.getElementById(id);
+  if (!e) return '';
+  const n = parseFloat(String(e.value || '').replace(',', '.'));
+  return isFinite(n) ? String(Math.round(n * 10) / 10) : '';
+}
+
+/* ÚNICO EMISOR DEL DIBUJO. Lo usan la pantalla y la imagen que se guarda, así que no pueden
+   mostrar cosas distintas: el médico guarda lo que está viendo. */
+function oaiEsqSVG() {
+  const C = {
+    linea: esqColor('--text', '#e8eaed'),
+    tenue: esqColor('--text2', '#9aa0a6'),
+    borde: esqColor('--border', '#3a3f52'),
+    acento: esqColor('--accent2', '#4da3ff'),
+    rojo: esqColor('--red', '#e06c6c'),
+    medida: esqColor('--yellow', '#e8c14a'),
+    fondo: '#ffffff'
+  };
+  const morf = (document.getElementById('oai_morfologia') || {}).value || '';
+  const o = _oaiNum('oai_ostium_diam'), d = _oaiNum('oai_profundidad'), v = _oaiNum('oai_vel_vac');
+  const sil = _oaiSiluetas(morf);
+  const tip = OAI_ESQ_TIP[morf] || [225, 185];
+  const L = (x, y, t, anchor, sz, col) =>
+    '<text x="' + x + '" y="' + y + '" text-anchor="' + (anchor || 'start') + '" font-size="' +
+    (sz || 10) + '" fill="' + (col || C.tenue) + '" font-family="sans-serif">' + escHtml(t) + '</text>';
+  let g = '';
+  /* El contexto: anillo mitral, ventrículo y la circunfleja. Es lo que vuelve legible dónde está
+     la orejuela; sin él, la silueta es una mancha. */
+  g += '<path d="M40 164 C70 150 120 150 150 164" fill="none" stroke="' + C.linea + '" stroke-width="2.5"/>';
+  g += '<path d="M48 164 C60 200 80 226 99 232" fill="none" stroke="' + C.borde + '" stroke-width="2"/>';
+  g += '<path d="M150 164 C142 196 126 220 110 230" fill="none" stroke="' + C.borde + '" stroke-width="2"/>';
+  g += '<circle cx="196" cy="154" r="5" fill="' + C.rojo + '"/>' + L(203, 170, 'Cx', 'start', 10, C.rojo);
+  g += '<circle cx="188" cy="76" r="3" fill="' + C.linea + '"/>' + L(180, 80, 'reborde', 'end');
+  g += L(176, 68, 'VPSI', 'end');
+  g += L(176, 200, 'VM') + L(99, 246, 'VI', 'middle');
+  /* La silueta. Dos capas, como en la demo: el contorno y el relleno más claro. */
+  sil.forEach(p => {
+    g += '<path d="' + p + '" fill="' + C.acento + '" stroke="' + C.acento +
+         '" stroke-width="2.5" stroke-linejoin="round" fill-opacity="0.9"/>';
+  });
+  if (!sil.length) g += L(212, 130, 'sin morfología cargada', 'middle', 10, C.tenue);
+  /* El OSTIUM: la línea entre sus dos extremos, con el valor cargado. */
+  const colO = o ? C.medida : C.borde;
+  g += '<line x1="186" y1="92" x2="187" y2="142" stroke="' + colO + '" stroke-width="2.5"/>';
+  g += '<circle cx="186" cy="92" r="4" fill="' + colO + '"/><circle cx="187" cy="142" r="4" fill="' + colO + '"/>';
+  if (o) g += L(176, 122, 'Ø ' + o + ' mm', 'end', 11, C.medida);
+  /* La PROFUNDIDAD: desde la línea del ostium hasta el fondo de la orejuela. */
+  const colD = d ? C.medida : C.borde;
+  g += '<line x1="186" y1="117" x2="' + tip[0] + '" y2="' + tip[1] +
+       '" stroke="' + colD + '" stroke-width="2.5" stroke-dasharray="6 4"/>';
+  if (d) g += L(tip[0], tip[1] + 22, 'prof. ' + d + ' mm', 'middle', 11, C.medida);
+  /* El DOPPLER PULSADO con la velocidad de vaciamiento. El trazo es ilustrativo: la altura sigue
+     al número cargado y no hay ninguna referencia de normalidad dibujada, porque el esquema no
+     juzga. */
+  g += '<rect x="10" y="276" width="320" height="66" rx="4" fill="none" stroke="' + C.borde + '"/>';
+  g += L(18, 292, 'Doppler pulsado');
+  g += '<line x1="16" y1="332" x2="324" y2="332" stroke="' + C.borde + '"/>';
+  if (v) {
+    const h = Math.min(parseFloat(v), 100) * 0.34;
+    let pk = '';
+    for (let i = 0; i < 6; i++) {
+      const x0 = 48 + i * 44;
+      pk += 'M' + x0 + ' 332L' + (x0 + 11) + ' ' + _oaiF1(332 - h) + 'L' + (x0 + 22) + ' 332';
+    }
+    g += '<path d="' + pk + '" fill="none" stroke="' + C.medida + '" stroke-width="2"/>';
+    g += L(322, 292, v + ' cm/s', 'end', 11, C.medida);
+  } else {
+    g += L(322, 292, 'sin velocidad cargada', 'end', 10, C.tenue);
+  }
+  return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + OAI_ESQ_W + ' ' + OAI_ESQ_H +
+         '" width="' + OAI_ESQ_W + '" height="' + OAI_ESQ_H + '" role="img">' +
+         '<rect width="100%" height="100%" fill="' + C.fondo + '" fill-opacity="0"/>' + g + '</svg>';
+}
+window.oaiEsqSVG = oaiEsqSVG;
+
+/* ¿Hay algo que dibujar? Con los cuatro campos vacíos el esquema no se muestra ni se guarda: una
+   silueta sin morfología y sin medidas no dice nada y ocuparía disco en todos los estudios. */
+function oaiEsqHayDatos() {
+  const morf = (document.getElementById('oai_morfologia') || {}).value || '';
+  return !!(morf || _oaiNum('oai_ostium_diam') || _oaiNum('oai_profundidad') || _oaiNum('oai_vel_vac'));
+}
+
+let _oaiEsqTimer = null;
+let _oaiEsqUltimo = '';     /* la última firma guardada, para no reescribir lo mismo */
+
+/* Pinta el esquema en pantalla. Barato: es una asignación de marcado, sin leer ni escribir disco.
+   Lo llama `calcOAI`, o sea el mismo gesto del médico que ya recalcula el recuadro. */
+function oaiEsqSync() {
+  const caja = document.getElementById('oai-esq-caja');
+  const cont = document.getElementById('oai-esq');
+  if (!caja || !cont) return;
+  const hay = oaiEsqHayDatos();
+  caja.style.display = hay ? 'block' : 'none';
+  if (!hay) return;
+  /* `innerHTML` con marcado que esta función ARMA, y los únicos datos del médico que entran son
+     tres números pasados por `parseFloat` y el valor de un `<select>` cerrado, que además sólo
+     elige entre cuatro siluetas. Los textos van por `escHtml`. */
+  cont.innerHTML = oaiEsqSVG();
+}
+window.oaiEsqSync = oaiEsqSync;
+
+/* ⚠️ `oaiEsqSync` SÓLO PINTA, Y ESTA FUNCIÓN ES LA QUE GUARDA. La diferencia es quién llamó.
+   `calcOAI` está en `RECALC_MODULOS`, así que lo corre el barrido de 220 ms y lo corre la
+   restauración al abrir un estudio guardado: si el guardado colgara de ahí, ABRIR un estudio
+   viejo le escribiría un esquema que nadie pidió, que es exactamente «migrar estudios
+   guardados». La escritura cuelga del gesto del médico —el `oninput` de cada uno de los cuatro
+   campos— y del 💾. Es la lección que el D-9, el D-10 y el D-11 pagaron tres veces. */
+function oaiEsqGesto() {
+  oaiEsqSync();
+  oaiEsqGuardarDiferido();
+}
+window.oaiEsqGesto = oaiEsqGesto;
+
+/* El guardado va DIFERIDO 700 ms y con firma: tecleando «12» en el ostium pasan dos cambios, y
+   sin esperar se rasterizan y escriben dos imágenes de las que una sobra. La firma evita además
+   reescribir la misma imagen cuando el médico vuelve a tocar algo que no cambió el dibujo. */
+function oaiEsqGuardarDiferido() {
+  if (_oaiEsqTimer) clearTimeout(_oaiEsqTimer);
+  _oaiEsqTimer = setTimeout(() => {
+    _oaiEsqTimer = null;
+    if (!oaiEsqHayDatos()) return;
+    const firma = [(document.getElementById('oai_morfologia') || {}).value || '',
+                   _oaiNum('oai_ostium_diam'), _oaiNum('oai_profundidad'),
+                   _oaiNum('oai_vel_vac'),
+                   (typeof _imgUuidActual !== 'undefined' ? _imgUuidActual : '')].join('|');
+    if (firma === _oaiEsqUltimo) return;
+    const est = document.getElementById('oai-esq-estado');
+    /* Se rasteriza al DOBLE del tamaño de pantalla: la imagen se mira después en grande en la
+       pantalla de imágenes guardadas, y a 1× el texto de las medidas queda blando. */
+    esqGuardarComoImagen('orejuela', 'Esquema de la orejuela', oaiEsqSVG(),
+                         OAI_ESQ_W * 2, OAI_ESQ_H * 2).then(r => {
+      if (r.ok) {
+        _oaiEsqUltimo = firma;
+        if (est) est.textContent = ' Guardado en las imágenes del estudio.';
+        /* El índice de la pantalla de imágenes queda viejo: se invalida para que al entrar a
+           Guardados aparezca el esquema nuevo y no el de hace dos mediciones. */
+        if (typeof igImgInvalidar === 'function') igImgInvalidar();
+      } else if (est) {
+        /* El motivo se DICE. Un esquema que no se guarda y no avisa es la promesa que el informe
+           no cumple: el médico cree que quedó anotado. */
+        est.textContent = ' No se guardó como imagen: ' + r.motivo + '.';
+      }
+    });
+  }, 700);
+}
+window.oaiEsqGuardarDiferido = oaiEsqGuardarDiferido;
+
+/* Segunda puerta: al GUARDAR el estudio. Hasta ese momento no hay uuid, así que el esquema de un
+   estudio nuevo no tiene dónde ir —y es el caso normal, porque el médico mide y después guarda—.
+   `_oaiEsqUltimo` se limpia para que la firma no bloquee este intento. */
+function oaiEsqAlGuardarEstudio() {
+  _oaiEsqUltimo = '';
+  if (oaiEsqHayDatos()) oaiEsqGuardarDiferido();
+}
+window.oaiEsqAlGuardarEstudio = oaiEsqAlGuardarEstudio;
+
 function calcOAI() {
   const vel = v('oai_vel_vac');
   const sec = sv('oai_sec');
@@ -91480,6 +91847,11 @@ function calcOAI() {
      congelación era preexistente para morfología, trombo y velocidad; este cambio le sumaba un
      campo más sin vía de invalidación. */
   if (typeof amiloRefrescarSiIntacto === 'function') amiloRefrescarSiIntacto('oai');
+  /* El ESQUEMA se REPINTA acá —es armar marcado, barato— y NO se guarda: a `calcOAI` la corre
+     también el barrido de 220 ms y la restauración de un estudio guardado, y guardar desde ahí
+     le escribiría un esquema a un estudio viejo que nadie pidió. La escritura cuelga de
+     `oaiEsqGesto`, en el `oninput` de los cuatro campos. */
+  if (typeof oaiEsqSync === 'function') { try { oaiEsqSync(); } catch (e) {} }
 }
 
 /* ══ EL GRADO QUE LE CORRESPONDE A UN ESPESOR, EN LA ESCALA QUE LA APP APLICA (I-E1) ══════
@@ -93111,11 +93483,67 @@ const CeiboImg = (function () {
       /* `.then(r => r)` y no `.then(() => true)`: descartar el resultado del borrado hacía que
          «quitar todas las imágenes y guardar» cantara éxito aunque el delete fallara, y las
          imágenes que el médico había descartado reaparecían al reabrir el estudio. */
-      if (!limpias.length) return this.borrar(uuid);
+      /* ⚠️ LOS ESQUEMAS VIVEN EN `esqs`, NO EN `imgs`, Y HAY QUE CONSERVARLOS ACÁ.
+         Un esquema es una imagen que DIBUJA LA APP a partir de los datos cargados, no una
+         captura del ecógrafo: no ocupa un espacio de la grilla, no se imprime en el PDF, no va
+         al PPT del estudio ni al backup, y no lo elige nadie. Por eso vive en una segunda
+         lista del mismo registro y no entre los slots.
+         Esa separación es lo que hace que NINGÚN emisor existente tenga que filtrarlo: `leer`
+         devuelve `imgs` tal cual, así que el PDF, el PPT, la grilla, el selector y el
+         exportador siguen viendo exactamente lo que veían. La alternativa —meterlo entre los
+         slots con una marca— exigía filtrarlo en CINCO lectores maduros, y el primero que se
+         olvidara publicaría un esquema dentro de un informe firmado.
+         El precio es este `get`: `guardar` corre en cada guardado del estudio y sin leer antes
+         un `put` pelado se llevaría los esquemas puestos. Está declarado en PENDIENTES.md. */
       return _tx('readwrite', (os, ok) => {
-        os.put({ uuid, imgs: limpias, bytes: _bytes(limpias), ts: new Date().toISOString() });
-        ok(true);
+        const q = os.get(uuid);
+        q.onsuccess = () => {
+          const prev = q.result;
+          const esqs = (prev && Array.isArray(prev.esqs))
+            ? prev.esqs.filter(e => e && _imgSrcOK(e.dataURL)) : [];
+          if (!limpias.length && !esqs.length) { os.delete(uuid); ok(true); return; }
+          const reg = { uuid, imgs: limpias, bytes: _bytes(limpias) + _bytes(esqs),
+                        ts: new Date().toISOString() };
+          if (esqs.length) reg.esqs = esqs;
+          os.put(reg);
+          ok(true);
+        };
       }).then(r => r === true);
+    },
+
+    /* ── EL ESQUEMA: una sola imagen por CLAVE y por estudio ───────────────────────────────
+       `clave` identifica QUÉ esquema es —'orejuela' es el primero—, así que volver a guardarlo
+       REEMPLAZA el anterior en vez de acumular copias, que es lo que el punto 5b pide. No hay
+       id al azar: con uno, cada cambio de un milímetro dejaría otra imagen en disco. */
+    guardarEsquema(uuid, clave, dataURL, nombre) {
+      if (!_uuidValido(uuid) || !clave || !_imgSrcOK(dataURL)) return Promise.resolve(false);
+      return _tx('readwrite', (os, ok) => {
+        const q = os.get(uuid);
+        q.onsuccess = () => {
+          const prev = q.result;
+          const imgs = (prev && Array.isArray(prev.imgs)) ? prev.imgs : [];
+          let esqs = (prev && Array.isArray(prev.esqs)) ? prev.esqs.slice() : [];
+          const ent = { clave: String(clave), nombre: String(nombre || clave),
+                        dataURL: dataURL, esquema: true, ts: new Date().toISOString() };
+          const i = esqs.findIndex(e => e && e.clave === ent.clave);
+          /* La estrella y la nota de un esquema SOBREVIVEN a que el dibujo se redibuje: lo que
+             cambia es la imagen, no la marca que el médico le puso. */
+          if (i >= 0) { ent.star = !!esqs[i].star; ent.nota = esqs[i].nota || undefined; esqs[i] = ent; }
+          else esqs.push(ent);
+          os.put({ uuid, imgs: imgs, esqs: esqs,
+                   bytes: _bytes(imgs) + _bytes(esqs), ts: new Date().toISOString() });
+          ok(true);
+        };
+      }).then(r => r === true);
+    },
+
+    /* Los esquemas de un estudio, sin los slots. */
+    esquemas(uuid) {
+      if (!_uuidValido(uuid)) return Promise.resolve([]);
+      return _tx('readonly', (os, ok) => {
+        const q = os.get(uuid);
+        q.onsuccess = () => ok((q.result && Array.isArray(q.result.esqs)) ? q.result.esqs : []);
+      }).then(r => r || []);
     },
     /* Devuelve el array, o **null** si NO SE PUDO LEER. La distinción es crítica: antes las dos
        situaciones daban `[]`, y el llamador traducía «falló la lectura» a «este estudio no tiene
@@ -93168,9 +93596,15 @@ const CeiboImg = (function () {
           const c = q.result;
           if (!c) { ok(out); return; }
           const r = c.value || {};
+          /* LOS ESQUEMAS VAN AL FINAL Y EN ESE ORDEN, siempre. `igImgBlobs` concatena igual, así
+             que el índice `idx` de la pantalla significa lo mismo en los dos lados: sin ese
+             acuerdo, el médico abre la imagen 7 y se le muestra otra. */
+          const _sl = (r.imgs || []).concat(
+            (r.esqs || []).map(e => ({ dataURL: e.dataURL, esquema: true, star: e.star,
+                                       nota: e.nota, calidad: 'esquema', origen: 'app' })));
           out.push({ uuid: r.uuid, bytes: (typeof r.bytes === 'number' ? r.bytes : 0),
                      ts: String(r.ts || ''),
-                     slots: (r.imgs || []).map(sl => ({
+                     slots: _sl.map(sl => ({
                        ampliada: !!sl.ampliada,
                        calidad: (typeof sl.calidad === 'string' ? sl.calidad : 'media'),
                        origen: (sl.origen === 'visor' ? 'visor' : 'estudio'),
@@ -93198,8 +93632,13 @@ const CeiboImg = (function () {
         const q = os.get(uuid);
         q.onsuccess = () => {
           const r = q.result;
-          if (!r || !Array.isArray(r.imgs) || !r.imgs[i]) { ok(null); return; }
-          const sl = r.imgs[i];
+          if (!r) { ok(null); return; }
+          /* El índice recorre primero los slots y después los esquemas, igual que `indice()`:
+             es el mismo acuerdo de orden, en el único otro lugar que lo necesita. */
+          const nImgs = Array.isArray(r.imgs) ? r.imgs.length : 0;
+          const esEsq = i >= nImgs;
+          const sl = esEsq ? ((Array.isArray(r.esqs) ? r.esqs : [])[i - nImgs]) : (r.imgs || [])[i];
+          if (!sl) { ok(null); return; }
           if (parche && 'star' in parche)    sl.star = !!parche.star;
           if (parche && 'nota' in parche)    sl.nota = String(parche.nota || '').slice(0, IG_IMG_NOTA_MAX);
           if (parche && 'esquema' in parche) sl.esquema = !!parche.esquema;
@@ -93222,9 +93661,13 @@ const CeiboImg = (function () {
           /* `imgs` es el CONTEO de imágenes, distinto de `estudios`: un estudio puede tener
              varias. Es aditivo —los consumidores existentes leen `estudios` y `bytes`— y lo
              necesita el contador de la barra de memoria. */
+          /* Los ESQUEMAS se cuentan: ocupan disco igual que una captura, y una barra de memoria
+             que no los contara diría menos de lo que hay. `esqs` entra en `imgs` y en `bytes`. */
           ok({ estudios: rs.length,
-               imgs: rs.reduce((n, r) => n + ((r.imgs || []).length), 0),
-               bytes: rs.reduce((n, r) => n + (typeof r.bytes === 'number' ? r.bytes : _bytes(r.imgs || [])), 0) });
+               imgs: rs.reduce((n, r) => n + ((r.imgs || []).length) + ((r.esqs || []).length), 0),
+               esquemas: rs.reduce((n, r) => n + ((r.esqs || []).length), 0),
+               bytes: rs.reduce((n, r) => n + (typeof r.bytes === 'number' ? r.bytes
+                                 : (_bytes(r.imgs || []) + _bytes(r.esqs || []))), 0) });
         };
       }).then(r => r || { estudios: 0, imgs: 0, bytes: 0 });
     },
@@ -94102,7 +94545,7 @@ function guardarInforme(onDone) {
       informes.unshift(nuevoInforme);
       eeCurrentInformeId = nuevoInforme.estudioId;
       _guardarConSemaforo(informes, _okN => {
-        if (_okN) { imgPersistir(nuevoInforme.uuid); toast('💾 Informe guardado como nuevo'); _autosaveDescartar(); }   // el error lo avisa CeiboStore
+        if (_okN) { imgPersistir(nuevoInforme.uuid); _esqAlGuardar(); toast('💾 Informe guardado como nuevo'); _autosaveDescartar(); }   // el error lo avisa CeiboStore
         if (onDone) onDone(_okN);
       });
     };
@@ -94122,7 +94565,7 @@ function guardarInforme(onDone) {
       else informes.unshift(nuevoInforme);
       eeCurrentInformeId = (idx >= 0) ? informes[idx].estudioId : nuevoInforme.estudioId;
       _guardarConSemaforo(informes, _okO => {
-        if (_okO) { imgPersistir((idx >= 0 ? informes[idx] : nuevoInforme).uuid); toast('🔄 Informe sobreescrito correctamente'); _autosaveDescartar(); }
+        if (_okO) { imgPersistir((idx >= 0 ? informes[idx] : nuevoInforme).uuid); _esqAlGuardar(); toast('🔄 Informe sobreescrito correctamente'); _autosaveDescartar(); }
         if (onDone) onDone(_okO);
       });
     };
@@ -94130,7 +94573,7 @@ function guardarInforme(onDone) {
     informes.unshift(nuevoInforme);
     eeCurrentInformeId = nuevoInforme.estudioId;
     return _guardarConSemaforo(informes, _ok => {
-      if (_ok) { imgPersistir(nuevoInforme.uuid); toast('💾 Informe guardado correctamente'); _autosaveDescartar(); }
+      if (_ok) { imgPersistir(nuevoInforme.uuid); _esqAlGuardar(); toast('💾 Informe guardado correctamente'); _autosaveDescartar(); }
       if (onDone) onDone(_ok);
     });
   }
@@ -94506,7 +94949,17 @@ function igImgIndiceCargar() {
 function igImgBlobs(uuid) {
   if (_igImgBlobs.has(uuid)) return Promise.resolve(_igImgBlobs.get(uuid));
   if (typeof CeiboImg === 'undefined') return Promise.resolve(null);
-  return CeiboImg.leer(uuid).then(imgs => {
+  /* ⚠️ EL MISMO ORDEN QUE `CeiboImg.indice()`: primero los slots, después los esquemas. Las dos
+     listas se recorren por el mismo `idx`, así que invertir una de las dos hace que la pantalla
+     abra una imagen y muestre otra — y las dos son imágenes válidas del mismo estudio, o sea que
+     nada lo delataría. */
+  return Promise.all([CeiboImg.leer(uuid),
+                      CeiboImg.esquemas ? CeiboImg.esquemas(uuid) : Promise.resolve([])])
+    .then(([slots, esqs]) => {
+      if (slots === null && (!esqs || !esqs.length)) return null;
+      return (slots || []).concat((esqs || []).map(e => ({ dataURL: e.dataURL, esquema: true,
+                                                           star: e.star, nota: e.nota })));
+    }).then(imgs => {
     if (imgs === null) return null;          /* no se pudo leer: no es «no tiene» */
     while (_igImgBlobs.size >= IG_IMG_CACHE_MAX) {
       const vieja = _igImgBlobs.keys().next().value;
@@ -95812,6 +96265,20 @@ window.limpiarFiltroFechas = limpiarFiltroFechas;
 
    Las vías que sólo reescriben el `id` —_sanearIds, _nuevoIdUnico— NO orfanan nada, porque la
    clave es el uuid. Ése era todo el punto de agregarlo. */
+/* ⚠️ LOS ESQUEMAS SE REINTENTAN AL GUARDAR EL ESTUDIO, Y ES LA SEGUNDA PUERTA.
+   `esqGuardarComoImagen` necesita el uuid del estudio, y hasta que el médico aprieta 💾 no hay
+   ninguno: el flujo normal es medir primero y guardar después, así que sin esta puerta el
+   esquema de un estudio nuevo no se guardaría NUNCA —sólo el de uno reabierto—.
+   Va en un embudo propio y no repetido en las tres salidas de `guardarInforme` para que el día
+   que haya un segundo esquema no haya que acordarse de tres lugares. Las tres salidas llaman
+   acá; el `typeof` es porque el módulo de la orejuela vive en otro bloque <script>. */
+function _esqAlGuardar() {
+  if (typeof oaiEsqAlGuardarEstudio === 'function') {
+    try { oaiEsqAlGuardarEstudio(); } catch (e) {}
+  }
+}
+window._esqAlGuardar = _esqAlGuardar;
+
 function imgRecolectarHuerfanas() {
   if (typeof CeiboImg === 'undefined') return Promise.resolve(0);
   /* La guarda anterior sólo miraba el caso «lista vacía», y encima era casi tautológica:
