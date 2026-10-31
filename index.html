@@ -18028,6 +18028,14 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
         <div class="fg"><label>Tipo</label>
           <select id="tga_tipo" onchange="tgaSync()">
             <option value="">—</option>
+            <!-- ⚠️ `dtga` ES UN VALOR NUEVO DE UN CAMPO QUE YA EXISTE (TGA-1), no un campo ni una
+                 columna: el Excel no se mueve y el Laboratorio tampoco, cuyo único uso de
+                 `tga_tipo` es el predicado de presencia `!== ''`. Hace falta porque los otros tres
+                 valores FUSIONAN la anatomía con la cirugía —`mustard` y `senning` SON el switch
+                 auricular—, así que sin él no hay forma de decir «d-TGA» sin afirmar una cirugía.
+                 El rótulo «completa» sale de la propia orden del médico, que lo escribe en el
+                 ejemplo de redacción del informe; no se inventó acá. -->
+            <option value="dtga">TGA completa (d-TGA)</option>
             <option value="cctga">ccTGA — congénitamente corregida</option>
             <option value="mustard">Post-Mustard</option>
             <option value="senning">Post-Senning</option>
@@ -18044,6 +18052,26 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
         </div>
         <div class="fg"><label>Diámetro del VD sistémico (de VD / AD)</label>
           <input type="text" id="tga_dilatacion_ro" readonly tabindex="-1" placeholder="—" style="opacity:.7;"></div>
+      </div>
+      <!-- ⚠️ LA CIRUGIA SE MUESTRA SOLO CON `tga_tipo = dtga`, y el motivo no es maqueta.
+           Con `cctga` la demo aprobada IGNORA la cirugía (`var o=(a==='dtga')?op:'none'`), y con
+           `mustard` o `senning` la cirugía YA la dice el propio tipo: ofrecerla ahí dejaría
+           armar «Post-Mustard + Jatene», que es una contradicción que ningún lector podría
+           resolver. `tgaEjes()` es el dueño único de esa derivación.
+           ⚠️ SOLO DOS DE LOS CUATRO VALORES AUTORIZADOS, Y ESTA PARADO EL RESTO. La orden
+           autoriza además «switch arterial (Jatene)» y «Rastelli». En los dos, el ventrículo
+           sistémico es el IZQUIERDO, y `tgaConclusion` abre el informe FIRMADO con «el
+           ventrículo derecho es el ventrículo sistémico» y sigue con tres oraciones más que
+           dependen de eso. Publicarlos exigía reescribir frases del informe, que es decisión del
+           médico. Declarado en docs/PENDIENTES.md → TGA-a. -->
+      <div class="grid-3" id="tga-cirugia-row" style="margin-top:10px;display:none;">
+        <div class="fg"><label>Cirugía realizada</label>
+          <select id="tga_cirugia" onchange="tgaSync()">
+            <option value="">—</option>
+            <option value="ninguna">Sin cirugía</option>
+            <option value="auricular">Switch auricular (Mustard o Senning)</option>
+          </select>
+        </div>
       </div>
       <div class="grid-3" style="margin-top:10px;">
         <div class="fg"><label>IT sistémica — grado (de Válvulas)</label>
@@ -78369,7 +78397,7 @@ function ccSumaLinea(sec){
     const obstr = _ccS('tga_obstr_subaortica'), bav = _ccS('tga_bav'), civ = _ccS('tga_civ_residual');
     const gsub = B(_ccNum('tga_grad_subaortico'), 0, 250, 'gradiente subaórtico');
     const civG = B(_ccNum('tga_civ_grad'), 0, 200, 'gradiente de la CIV residual');
-    const TT = { cctga:'congénitamente corregida', mustard:'post-Mustard', senning:'post-Senning' };
+    const TT = { dtga:'completa (d-TGA)', cctga:'congénitamente corregida', mustard:'post-Mustard', senning:'post-Senning' };
     const cab = 'TGA' + (L(TT, tipo) ? ' ' + L(TT, tipo) : '');
     const fz = cierraFuera(cab); if (fz) return fz;
     if (!tipo && !fvd && !it) return null;
@@ -90566,6 +90594,45 @@ function _ccContr(src) {
   if (typeof fl === 'string') { try { fl = JSON.parse(fl); } catch (e) { fl = null; } }
   return { peor: peor, difusa: !!(fl && fl.difusa), disqSep: !!(fl && fl.disqSep) };
 }
+/* ══ LOS DOS EJES DE LA TGA — DUENO UNICO (TGA-1) ════════════════════════════════════════════
+   El campo `tga_tipo` trae la anatomía y la cirugía FUSIONADAS: `mustard` y `senning` son a la
+   vez «d-TGA» y «switch auricular». Esta función es el ÚNICO lugar donde esa fusión se deshace,
+   y la leen el diagrama 3D, la línea de texto de la hoja del PDF y el informe. Con la derivación
+   copiada en cada consumidor, un `mustard` podría dibujarse como un switch y describirse como
+   otra cosa en el mismo estudio.
+
+   Devuelve:
+     anat       '' | 'dtga' | 'ltga'   — la anatomía, en el vocabulario de la demo
+     cir        '' | 'ninguna' | 'auricular'  — la cirugía; '' es SIN DATO y no «sin cirugía»
+     cirDeTipo  true cuando la cirugía la dice el propio `tga_tipo` (mustard / senning)
+     cirIgnorada true cuando hay cirugía cargada que la demo NO aplica a esta anatomía
+
+   ⚠️ CON L-TGA LA CIRUGIA NO SE APLICA, y es la demo la que lo decide: su `scenario()` hace
+   `var o=(a==='dtga')?op:'none'`, o sea que con `ltga` no dibuja ninguna cirugía. La orden pide
+   «conservá los valores que la demo permita y reportá lo que no»: el valor guardado NO se borra
+   —nada automático escribe en el estudio— y acá se informa como `cirIgnorada`.
+   ⚠️ `jatene` y `rastelli` NO ESTAN en el vocabulario, y no es un olvido: ver la nota del
+   marcado de `tga-cirugia-row` y docs/PENDIENTES.md → TGA-a. */
+const TGA_CIR_VAL = Object.freeze(['ninguna', 'auricular']);
+const TGA_CIR_LBL = Object.freeze({ ninguna:'sin cirugía', auricular:'switch auricular (Mustard o Senning)' });
+/* La etiqueta que viaja al Excel. Va con mayúscula inicial porque es una CELDA y no parte de una
+   oración, igual que las demás categóricas de la planilla; `TGA_CIR_LBL` es la del texto. Dos
+   rótulos del mismo valor son dos usos distintos, no una duplicación: el importador acepta las
+   dos escrituras. */
+const TGA_CIR_XLS = Object.freeze({ ninguna:'Sin cirugía', auricular:'Switch auricular (Mustard o Senning)' });
+function tgaEjes(src) {
+  const _sv = id => _ccSv(id, src);
+  const tipo = _sv('tga_tipo'), cru = _sv('tga_cirugia');
+  const cir = (TGA_CIR_VAL.indexOf(cru) >= 0) ? cru : '';
+  if (!tipo) return { tipo:'', anat:'', cir:'', cirDeTipo:false, cirIgnorada:false };
+  if (tipo === 'cctga')
+    return { tipo:tipo, anat:'ltga', cir:'', cirDeTipo:false, cirIgnorada:!!cir };
+  if (tipo === 'mustard' || tipo === 'senning')
+    return { tipo:tipo, anat:'dtga', cir:'auricular', cirDeTipo:true, cirIgnorada:!!cir };
+  /* `dtga`: la cirugía es la del campo propio, y '' queda '' — «sin dato» no es «sin cirugía». */
+  return { tipo:tipo, anat:'dtga', cir:cir, cirDeTipo:false, cirIgnorada:false };
+}
+window.tgaEjes = tgaEjes; window.TGA_CIR_LBL = TGA_CIR_LBL;
 function tgaConclusion(src){
   const _tgaSv = id => _ccSv(id, src), _tgaNv = id => _ccNv(id, src);
   /* El diámetro sale de `vd_bas` («VD basal»), que la app ya mide: un segundo campo para la
@@ -90580,7 +90647,10 @@ function tgaConclusion(src){
                      bav === 'si' || civ === 'si' || civG != null);
   if (!hayDato) return null;
 
-  const TIPO = { cctga:'congénitamente corregida (ccTGA)', mustard:'post-Mustard', senning:'post-Senning' };
+  /* ⚠️ `dtga` ENTRA ACA EN EL MISMO COMMIT QUE EL VALOR: sin su rótulo, `TIPO[tipo] || tipo`
+     publicaba el token crudo «dtga» en el informe FIRMADO. El rótulo «completa» es el de la
+     orden del médico. */
+  const TIPO = { dtga:'completa (d-TGA)', cctga:'congénitamente corregida (ccTGA)', mustard:'post-Mustard', senning:'post-Senning' };
   const partes = ['Transposición de grandes arterias ' + (tipo ? (TIPO[tipo] || tipo) : 'corregida') +
                   ': el ventrículo derecho es el ventrículo sistémico'];
   const FUNC = { normal:'normal', leve:'con disfunción leve', moderada:'con disfunción moderada', severa:'con disfunción severa' };
@@ -90641,6 +90711,15 @@ function tgaSync(){
   const ITT = { '1':'Leve', '2':'Moderada', '3':'Moderada-severa', '4':'Severa' };
   ro('tga_it_ro', _ccLbl(ITT, _tgaSv('it_grado')));
   ro('tga_dilatacion_ro', _tgaNv('vd_bas') != null ? _tgaNv('vd_bas') + ' mm' : '');
+  /* ⚠️ MOSTRAR Y ESCONDER, NUNCA BORRAR. La fila se oculta con `mustard`, `senning`, `cctga` y
+     sin tipo, pero el VALOR guardado se deja intacto: nada automático escribe en el estudio, que
+     es la regla que el D-9, el D-10 y el D-11 pagaron tres veces. Un médico que cargó la cirugía
+     y después cambió el tipo no pierde el dato al volver atrás. El campo oculto sigue
+     persistiéndose —`guardarInforme` barre `select[id]` sin mirar el display—, así que tampoco
+     desaparece del estudio ni del Excel. */
+  const _ej = tgaEjes();
+  const _fila = document.getElementById('tga-cirugia-row');
+  if (_fila) _fila.style.display = (_ej.tipo === 'dtga') ? '' : 'none';
   const c = tgaConclusion();
   txt('tga-concl', c ? c.txt : '—');
 }
@@ -124983,7 +125062,7 @@ function _labExcelRow(inf) {
     'TdF síntomas': _cc3e(c.tdf_sintomas),
     'TdF capacidad ejercicio': _cc3e(c.tdf_ejercicio),
     'TdF taquicardia ventricular': _cc3e(c.tdf_tv),
-    'TGA tipo': _ccLbl({cctga:'ccTGA',mustard:'Post-Mustard',senning:'Post-Senning'}, c.tga_tipo),
+    'TGA tipo': _ccLbl({dtga:'TGA completa (d-TGA)',cctga:'ccTGA',mustard:'Post-Mustard',senning:'Post-Senning'}, c.tga_tipo),
     'TGA función VD sistémico': _ccLbl({normal:'Normal',leve:'Disfunción leve',moderada:'Disfunción moderada',severa:'Disfunción severa'}, c.tga_func_vd),
     'TGA obstrucción subaórtica': _cc3e(c.tga_obstr_subaortica),
     'TGA gradiente subaórtico (mmHg)': rnd(num('tga_grad_subaortico'),0),
@@ -125160,7 +125239,16 @@ function _labExcelRow(inf) {
         'CVR variación E tricúspide (%)': rnd(num('resp_var_tric'),0),
         'CVR conclusión':        (hayCvr && pc.cvr) ? (pc.cvr.clave || '') : ''
       };
-    })()
+    })(),
+    /* ══ TGA-1: LA CIRUGIA REALIZADA — COLUMNA NUEVA, Y VA AL FINAL ════════════════════════
+       Va escrita como la ÚLTIMA clave del objeto, que es donde la orden la pide. El lugar que
+       ocupa en la planilla lo decide `_labOrdenarCols`, que primero recorre `LAB_XLS_MAP` en su
+       orden y DESPUÉS reagrupa por bloque: con la entrada al final del mapa, la columna sale
+       ÚLTIMA de su bloque —«15 · CARDIOPATIAS COMPLEJAS», por el prefijo «TGA» que ese bloque
+       declara— y ninguna de las 440 anteriores cambia de encabezado ni de orden relativo.
+       Medido y declarado en el reporte: es la última de SU BLOQUE y no la última del archivo,
+       porque forzar eso exigía un bloque nuevo o un nombre que no matcheara ningún prefijo. */
+    'TGA cirugía realizada': _ccLbl(TGA_CIR_XLS, c.tga_cirugia)
   };
 }
 /* ══ MÓDULOS DEL EXPORTADOR ══════════════════════════════════════════════════════════════════
@@ -126665,7 +126753,10 @@ const LAB_XLS_MAP = [
   // Amiloidosis
   ['Score amiloidosis ETT',  'alg-ett-score',  'num'],
   ['Motivo evaluación amiloidosis', 'alg-motivo', 'opcion'],
-  ['Sparkling',              'ett-sparkling',  'vocab']
+  ['Sparkling',              'ett-sparkling',  'vocab'],
+
+  // TGA-1 — la cirugía realizada. Al final: ver la nota de la columna en `_labExcelRow`.
+  ['TGA cirugía realizada',  'tga_cirugia',    'vocab']
 ];
 /* Ventanas de plausibilidad para el importador. _labXlsNum sólo verifica que el valor PARSEE:
    una talla de 1,70 (metros en vez de cm) o un peso de 7 entraban sin chistar, y peso/talla son
@@ -127301,8 +127392,19 @@ LAB_XLS_VOCAB.mca_mov_regional = { normal:'normal', conservada:'normal',
   aneurisma:'aneurisma', 'aneurisma localizado':'aneurisma' };
 LAB_XLS_VOCAB.tga_tipo = { cctga:'cctga', 'congenitamente corregida':'cctga',
   'tga congenitamente corregida':'cctga', 'l-tga':'cctga',
+  /* TGA-1: el valor nuevo entra con sus alias EN EL MISMO COMMIT. Sin esto, el round-trip de un
+     Excel exportado con «TGA completa (d-TGA)» se RECHAZA con error —no se ignora—, que es lo
+     que el comentario de este bloque documenta. `_labXlsVocab` ya prueba además la forma corta
+     sin paréntesis, así que «tga completa» entra por la clave de abajo. */
+  dtga:'dtga', 'd-tga':'dtga', 'tga completa':'dtga', 'tga completa (d-tga)':'dtga',
+  'transposicion completa':'dtga', completa:'dtga',
   mustard:'mustard', 'post-mustard':'mustard', 'post mustard':'mustard',
   senning:'senning', 'post-senning':'senning', 'post senning':'senning' };
+/* TGA-1 — la cirugía realizada. Dos valores y no cuatro: ver docs/PENDIENTES.md → TGA-a. */
+LAB_XLS_VOCAB.tga_cirugia = { ninguna:'ninguna', 'sin cirugia':'ninguna', 'no operada':'ninguna',
+  auricular:'auricular', 'switch auricular':'auricular',
+  'switch auricular (mustard o senning)':'auricular',
+  mustard:'auricular', senning:'auricular' };
 LAB_XLS_VOCAB.fop_burbujas = { pocas:'pocas', leve:'pocas', '<5':'pocas', 'menos de 5':'pocas',
                                moderado:'moderado', moderada:'moderado', '5-20':'moderado',
                                abundante:'abundante', severo:'abundante', severa:'abundante', '>20':'abundante' };
@@ -127484,7 +127586,8 @@ const LAB_XLS_OPCIONES = {
   ebs_func_vd:'Normal · Reducida leve · Reducida moderada · Reducida severa',
   tdf_func_vd:'Normal · Disfunción leve · Disfunción moderada · Disfunción severa',
   tga_func_vd:'Normal · Disfunción leve · Disfunción moderada · Disfunción severa',
-  tga_tipo:'ccTGA · Post-Mustard · Post-Senning',
+  tga_tipo:'TGA completa (d-TGA) · ccTGA · Post-Mustard · Post-Senning',
+  tga_cirugia:'Sin cirugía · Switch auricular (Mustard o Senning)',
   ebs_tsv:'Sí · No · No consta', ebs_vias:'Sí · No · No consta',
   ebs_sintomas:'Sí · No · No consta', ebs_ejercicio:'Sí · No · No consta',
   ebs_progresion:'Sí · No · No consta',
@@ -143411,8 +143514,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261031-0432';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793431974329;                 /* eco-build-ms */
+const ECO_BUILD    = '20261031-0803';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793444612250;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -143498,7 +143601,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261031-0432</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261031-0803</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
