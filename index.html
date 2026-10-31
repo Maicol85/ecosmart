@@ -93368,10 +93368,46 @@ window.diagGuardarIncluidos = diagGuardarIncluidos;
    ⚠️ `imgMarcarEditado()` SE LLAMA EN LAS DOS PUERTAS, y no es decorativo: `_imgEditado` es lo
    que autoriza a `imgPersistir` a borrar del disco cuando `imgSlots` queda vacío. Sin marcarlo,
    quitar el único esquema incluido de un estudio ya guardado lo dejaba en disco. */
+/* ══ EL ESQUEMA REABIERTO SE ADOPTA (AJUSTES-2, commit 3, punto 3b) ══════════════════════════
+   LA CAUSA DEL «A VECES SALE Y A VECES NO», MEDIDA CON EL PDF GENERADO DE VERDAD SOBRE HEAD,
+   en una matriz de trece combinaciones (ver `_probe_ajustes2oai.mjs`):
+
+     caso                        boton que se VE        slots  esqClave   esqEstaIncluido  PDF
+     B  incluir                  ✓ Incluido en el PDF     1    orejuela   true              1
+     C  incluir DOS veces        📄 Incluir en el PDF     0    —          false             0
+     G  incluir + guardar        ✓ Incluido en el PDF     1    orejuela   true              1
+     H  incluir+guardar+REABRIR  📄 Incluir en el PDF     1    SIN CLAVE  FALSE             1
+     L  …y el medico lo toca     ✓ Incluido en el PDF     2    SIN CLAVE,orejuela  true     2  ←
+     M  …y lo toca otra vez      📄 Incluir en el PDF     1    SIN CLAVE  false             1
+
+   EL PDF SIEMPRE FUE DETERMINISTA: lo incluido sale en las trece. Lo que NO era determinista
+   es lo que el medico CREE, y de ahi sale el dibujo repetido. Al reabrir un estudio guardado
+   el slot vuelve con `esquema:true` pero SIN `esqClave` —esa propiedad no esta en ninguna de
+   las dos allowlists de IndexedDB—, asi que `esqEstaIncluido('orejuela')` da false y el boton
+   anuncia «📄 Incluir en el PDF» sobre un estudio donde el dibujo YA esta. El medico le cree,
+   lo toca, y el PDF imprime el dibujo DOS VECES (caso L). Tocarlo de nuevo vuelve a uno, y el
+   boton vuelve a mentir: eso es el «a veces si y a veces no».
+
+   LA CORRECCION, SIN PERSISTIR NINGUNA PROPIEDAD NUEVA: un slot de esquema que vuelve del
+   disco sin clave se ADOPTA, y solo cuando hay EXACTAMENTE UNO. Con dos o mas huerfanos no se
+   adopta ninguno —adoptar el equivocado seria peor que no adoptar— y el comportamiento queda
+   como hoy, sin empeorar. Es una marca de RUNTIME: no se escribe en disco, no toca el estudio
+   y no mueve una sola superficie firmada.
+
+   ⚠️ LA CAUSA RAIZ NO SE ARREGLA ACA, Y SE REPORTA. Lo correcto seria persistir `esqClave` y
+   `esqNombre` en las dos allowlists, pero son DOS propiedades mas y la orden autoriza UNA
+   —la que el commit 2 ya uso para `noPdf`—. Su costo esta en `docs/PENDIENTES.md` → AJ2-a.
+
+   ⚠️ POR QUE ACA Y NO EN `imgRestaurar`: ese es el punto por el que el slot entra, pero ahi no
+   se sabe QUE esquema es. Esta funcion si: la clave es su argumento. */
 function esqSlotIdx(clave) {
   if (typeof imgSlots === 'undefined') return -1;
   for (let i = 0; i < imgSlots.length; i++)
     if (imgSlots[i] && imgSlots[i].esqClave === clave) return i;
+  const huerfanos = [];
+  for (let i = 0; i < imgSlots.length; i++)
+    if (imgSlots[i] && imgSlots[i].esquema && !imgSlots[i].esqClave) huerfanos.push(i);
+  if (huerfanos.length === 1) { imgSlots[huerfanos[0]].esqClave = clave; return huerfanos[0]; }
   return -1;
 }
 window.esqSlotIdx = esqSlotIdx;
