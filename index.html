@@ -18121,13 +18121,26 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
            los arrays de puntos, `scenario()`, el armado y la animacion son los de la demo, y la
            comparacion de las dos esta medida en el reporte de la tanda.
 
-           ⚠️ TODOS LOS CONTROLES DE ESTA CAJA VAN CON PREFIJO `tga-3d-` Y GUION MEDIO, y eso NO
-           es cosmetica: `guardarInforme` barre `input[id]`, `select[id]` y `textarea[id]`, asi
-           que sin el prefijo en la lista de `_noEsDelEstudio` la casilla «Ver por dentro», el
-           numero de la frecuencia y el resto se persistirian como campos del estudio — seis
-           claves nuevas en TODO estudio que se guarde desde hoy, cuando la orden autoriza UNO.
-           Es exactamente lo que el A/B destapo con `vab-anim-scrub`. El unico campo del estudio
-           de esta caja es NINGUNO: la cirugia vive arriba, en `tga_cirugia`.
+           ⚠️ TODOS LOS CONTROLES DE ESTA CAJA VAN CON PREFIJO `tga-3d-` Y GUION MEDIO, Y ADEMAS
+           CON `data-ui`. Son TRES listas y hubo que escribirlo en las tres; cada una me costo un
+           rojo:
+             1 · `_noEsDelEstudio` — decide que se GUARDA. Sin el prefijo, los controles se
+                 persistirian como campos del estudio: seis claves nuevas en TODO estudio que se
+                 guarde desde hoy, cuando la orden autoriza UNO. Es lo que el A/B destapo con
+                 `vab-anim-scrub`.
+             2 · `_CAMPOS_FUERA_DEL_ESTUDIO` — decide si el formulario «tiene datos». `tga-3d-fc`
+                 es un `input[type=number]` con `value="70"` en el marcado, asi que
+                 `limpiarCampos` lo vaciaba y `_formTieneDatos` veia un campo distinto de su valor
+                 por defecto: «Nuevo estudio» PREGUNTABA sobre un formulario vacio y el
+                 autoguardado creia que el formulario ya estaba empezado y **NO restauraba el
+                 borrador**. Tres casos en rojo: TC-159, TC-246 y TC-247.
+             3 · `data-ui` — se lo pide `secAutoOpen`, que ABRE un acordeon cuando encuentra
+                 adentro un control con valor. La casilla «Nombres» viene marcada y la frecuencia
+                 trae 70, asi que entrar a «CC complejas» abria la seccion de la TGA sola. Un
+                 rojo mas: TC-514. Y acá `data-ui` es lo correcto y no un prefijo: ese barrido NO
+                 tiene regex donde registrar uno, y su propio comentario lo dice.
+           El unico campo del estudio de esta caja es NINGUNO: la cirugia vive arriba, en
+           `tga_cirugia`.
 
            ⚠️ «Corazon normal» ES UNA VISTA DE REFERENCIA, no un dato (decision del medico): es un
            boton que se prende y se apaga, no escribe nada y al apagarlo vuelve a la anatomia del
@@ -18149,11 +18162,11 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
                   aria-pressed="false" onclick="tga3dNormToggle()"
                   title="Mostrar un corazón normal como referencia; no es un dato del paciente">🫀 Corazón normal (referencia)</button>
           <label class="chk-toque" style="display:inline-flex;align-items:center;gap:5px;min-height:44px;">
-            <input type="checkbox" id="tga-3d-ins" onchange="tga3dInsSync()"> Ver por dentro</label>
+            <input type="checkbox" id="tga-3d-ins" data-ui onchange="tga3dInsSync()"> Ver por dentro</label>
           <label class="chk-toque" style="display:inline-flex;align-items:center;gap:5px;min-height:44px;">
-            <input type="checkbox" id="tga-3d-nom" checked onchange="tga3dNomSync()"> Nombres</label>
+            <input type="checkbox" id="tga-3d-nom" data-ui checked onchange="tga3dNomSync()"> Nombres</label>
           <label for="tga-3d-fc" style="display:inline-flex;align-items:center;gap:5px;">Frecuencia cardíaca (lpm)
-            <input type="number" id="tga-3d-fc" value="70" min="30" max="200" step="1" inputmode="numeric"
+            <input type="number" id="tga-3d-fc" data-ui value="70" min="30" max="200" step="1" inputmode="numeric"
                    style="width:62px;" oninput="tga3dFcSync()"></label>
           <button type="button" class="btn btn-ghost" id="tga-3d-pausar" style="min-height:44px;"
                   onclick="tga3dPausar()">⏸ Pausar</button>
@@ -66959,7 +66972,15 @@ function _autoSaveDebounced(){ clearTimeout(_autosaveTimer); _autosaveTimer = se
 /* `pop-bcia-` entra en las DOS listas: ver la nota de `_noEsDelEstudio`. El selector y esta
    expresion son dos listas paralelas, y agregarlo a una sola lo deja contando como «el
    formulario tiene datos» sobre un control de pantalla. */
-var _CAMPOS_FUERA_DEL_ESTUDIO = /^(cfg-|firma-|lab-|ig-|med-|logo|lgal-|tema|pdf-|filtro-|adv-|asoc-|exp-|alg-|ett-|rwt-|ee-|ap-|rev-|login-|fcg-|pop-bcia-|centro_tipo$|ecoAdvSelect$)/;
+/* ⚠️ `tga-3d-` ENTRA ACA Y EN `_noEsDelEstudio`, Y SON DOS LISTAS (TGA-2). Agregarlo a una
+   sola dejó TRES casos en rojo —TC-159, TC-246 y TC-247— y el defecto NO era de pantalla:
+   `tga-3d-fc` es un `input[type=number]` con `value="70"` en el marcado, así que
+   `limpiarCampos` lo vaciaba y `_formTieneDatos` veía un campo distinto de su valor por
+   defecto. Consecuencias medidas: «Nuevo estudio» PREGUNTABA sobre un formulario vacío, y
+   —peor— `_autosaveRestore` creía que el formulario ya estaba empezado y **NO restauraba el
+   borrador**. Es la lección del D-11 con `data-espejo`: el selector y el cuerpo son dos
+   listas, y acá son dos regex. */
+var _CAMPOS_FUERA_DEL_ESTUDIO = /^(cfg-|firma-|lab-|ig-|med-|logo|lgal-|tema|pdf-|filtro-|adv-|asoc-|exp-|alg-|ett-|rwt-|ee-|ap-|rev-|login-|fcg-|pop-bcia-|tga-3d-|centro_tipo$|ecoAdvSelect$)/;
 
 /* ¿El formulario tiene algo del ESTUDIO cargado? Una sola definición para las DOS preguntas que
    la necesitan, que son la misma vista desde los dos lados:
@@ -90967,7 +90988,15 @@ const _tga3d = { cargando:false, listo:false, fallo:false, ref:false, ins:false,
 function tga3dComs(src) {
   const _sv = id => _ccSv(id, src), _nv = id => _ccNv(id, src);
   const cia = !!(_sv('ete_cia_tipo') || _nv('ete_cia_tam_max') != null || _nv('ete_cia_tam_min') != null);
-  const fop = !!(_sv('fop_tunel') || _sv('fop_shunt_reposo') === 'si' || _sv('fop_shunt_valsalva') === 'si');
+  /* ⚠️ `fop_tunel` ES LA LONGITUD DEL TUNEL EN MILIMETROS, un campo NUMERICO, y se lee con `_nv`
+     y no con `_sv`: leerlo como texto funcionaba por casualidad y lo destapo el caso de prueba.
+     Y la condicion NO es la del `hayDato` de `fopConclusion`, a proposito: ese predicado lo
+     llena tambien un test de burbujas NEGATIVO —que es justo como se DESCARTA un foramen oval—,
+     asi que usarlo habria dibujado una comunicacion interauricular sobre un paciente en el que
+     el medico acaba de descartarla. Lo que cuenta acá es que la comunicacion EXISTA: un tunel
+     medido (no se mide el tunel de un foramen que no esta) o un shunt documentado. */
+  const fop = !!(_nv('fop_tunel') != null || _sv('fop_shunt_reposo') === 'si' ||
+                 _sv('fop_shunt_valsalva') === 'si');
   const civ = !!(_sv('ete_civ_tipo') || _nv('ete_civ_tam') != null || _sv('tga_civ_residual') === 'si');
   const pda = !!(_sv('dap_tipo') || _nv('dap_diam') != null);
   return { asd: (cia || fop), vsd: civ, pda: pda };
@@ -144357,8 +144386,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261031-0805';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793444717487;                 /* eco-build-ms */
+const ECO_BUILD    = '20261031-0847';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793447254793;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -144444,7 +144473,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261031-0805</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261031-0847</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

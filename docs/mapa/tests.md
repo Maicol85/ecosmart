@@ -552,3 +552,22 @@ El visor con video, el motor de tercios del PDF y el papel sin guías. TC-559 mi
 dirigidas, 20/20 muertas, con reparto limpio —cada caso discrimina su parte—.
 
 → fichas en `docs/mapa/tests-fichas-558.md` · mapa en `docs/mapa/img3-visor-tercios.md`
+
+---
+
+## TC-561, TC-562 y TC-563 — tanda TGA (2026-10-31)
+
+Fichas en **`docs/mapa/tests-fichas-561.md`** (archivo propio: este mapa estaba en 33,2 KB y
+`tests-fichas.md` en 34,2).
+
+- **TC-561** los campos nuevos: la fila que se muestra sólo con d-TGA, el valor que no se borra al
+  esconderse, el Excel en 441 con la nueva última de su bloque, y el round-trip en los dos sentidos.
+- **TC-562** el diagrama: la geometría contra la demo en los cuatro escenarios alcanzables y las
+  tres comunicaciones, la carga diferida y el registro del PDF. **No baja la librería 3D**: mide lo
+  puro, porque un caso de la suite que dependiera de la red sería el intermitente que TC-358 ya es.
+- **TC-563** el papel, y el **guardián de una PARADA**: su bloque C pasa en los dos árboles a
+  propósito — mide que la recomendación de desfibrilador de la MCH **no** vive fuera del papel, que
+  es la condición para poder podarla. El día que entre a la Evidencia, se pone rojo.
+
+**Barrido de mutaciones**: `scripts/_mut_tga.py`, catorce dirigidas, **14/14 muertas**. Cada una
+declara **su** caso; correr los tres por cada mutación habría tapado un reparto mal hecho.

@@ -355,3 +355,25 @@ privacidad ampliado; el bucle **no se puede marcar** con PptxGenJS 3.12.0, verif
 Y el **esquema de la orejuela ya no se imprime acá**: es un diagrama del motor de tercios.
 
 → `docs/mapa/img3-visor-tercios.md`
+
+---
+
+## Un solo lugar donde se coloca el slot — tanda TGA (2026-10-31)
+
+Puntero. El detalle está en **`docs/mapa/tga-diagrama-3d.md`** § 4.
+
+`esqIncluirEnPDF` recibía un `<svg>` y lo rasterizaba; el diagrama 3D de la transposición es
+**WebGL** y ya tiene su `dataURL`. En vez de una segunda copia del cuerpo, el cuerpo salió a
+**`_esqPonerSlot(clave, nombre, dataURL)`** y hoy las dos puertas terminan ahí:
+
+| función | qué recibe | quién la usa |
+|---|---|---|
+| `esqIncluirEnPDF` | un `<svg>` + ancho y alto | la orejuela |
+| `esqIncluirEnPDFImg` | un `dataURL` ya hecho | el diagrama 3D de la TGA |
+
+Con el cuerpo copiado, un arreglo al reemplazo del slot, a la conservación de la estrella o a la
+invalidación del índice llegaría a una de las dos y no a la otra.
+
+⚠️ **`preserveDrawingBuffer: true` hace falta en el renderer de WebGL.** Sin él, `toDataURL` sobre
+el lienzo devuelve un PNG **en blanco** en cuanto el navegador ya limpió el buffer, y «Incluir en el
+PDF» habría guardado una imagen vacía **sin un solo error de consola**.

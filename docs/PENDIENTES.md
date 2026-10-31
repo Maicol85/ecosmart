@@ -10741,3 +10741,180 @@ copió a la app.
 ### Cierra AJ2-e (en parte)
 Las once secciones de `CC_PPT` dejaron de publicar la guía en el PPT, **menos la
 miocardiopatía hipertrófica** → IMG3-g.
+
+---
+
+# TANDA TGA (2026-10-31) — el diagrama 3D de la transposición
+
+### TGA-a · Jatene y Rastelli, PARADOS: el informe firmado afirma lo contrario para ellos
+La autorización del médico da **cuatro** valores de cirugía; esta tanda publica **dos**
+(`ninguna`, `auricular`). Faltan «switch arterial (Jatene)» y «Rastelli».
+
+**Por qué se paró.** En los dos, el ventrículo sistémico es el **izquierdo**. `tgaConclusion` abre
+el informe **firmado** con «el ventrículo derecho es el ventrículo sistémico» y sigue con tres
+oraciones más que dependen de eso:
+- «Función del ventrículo **derecho** sistémico …»
+- «Diámetro basal del ventrículo sistémico …» (lee `vd_bas`)
+- «Insuficiencia de la válvula auriculoventricular sistémica (**tricúspide**) …»
+
+Publicar Jatene o Rastelli exigía reescribir esas cuatro frases del informe, que es decisión del
+médico. Lo mismo vale para la **conducta** de la cascada —«el deterioro del ventrículo derecho
+sistémico es progresivo y es la principal causa de muerte en esta población»—, que es verdadera
+para la ccTGA y el switch auricular y no para el switch arterial.
+
+**Y hay dos textos de PANTALLA que esta tanda tampoco tocó y que ya quedan inexactos:**
+1. El **título de la sección** dice «TGA — Transposición de grandes arterias **corregida**». Con
+   `tga_tipo = dtga` + «sin cirugía» —una d-TGA no operada— la palabra «corregida» no corresponde.
+2. El **párrafo de encabezado** de la sección afirma «el ventrículo derecho es el ventrículo
+   sistémico, y su deterioro progresivo es inevitable». Es verdadero para ccTGA, para el switch
+   auricular y para la d-TGA no operada —o sea para **todo lo que esta tanda publica**— y sería
+   falso el día que entren Jatene o Rastelli.
+
+**Salida.** Decidir el wording de las cuatro frases del informe, del título y del párrafo para un
+ventrículo sistémico izquierdo; después, agregar los dos valores a `TGA_CIR_VAL`, `TGA_CIR_LBL`,
+`TGA_CIR_XLS` y `LAB_XLS_VOCAB.tga_cirugia`, y las dos ramas de `tga3dEscena` ya portadas de la
+demo (`jat` y `ras`), cuya geometría está **medida y es idéntica a la demo** en
+`scripts/_probe_tga2demo.mjs` — las 10 diferencias de ese barrido son exactamente estos dos
+escenarios.
+
+### TGA-b · El «qué mirar en la ecografía» de la demo, sin verificar (cierra en parte IMG3-j)
+Decisión (b) del médico: es de ejemplo y **no se implementa**. Lo que la app publica en pantalla es
+la **descripción anatómica** de cada escenario, portada de la demo; las oraciones «Qué mirar: …»
+—raíz neoaórtica, estenosis supravalvular pulmonar, función del VD sistémico, gradiente del
+conducto, CIV residual— **no se copiaron**. Están en `docs/3d/demo_tga_3d_esquema_aprobado.html`,
+objeto `INFO`, claves `mus`, `jat` y `ras`.
+
+**Y la descripción anatómica que SÍ se copió tampoco está verificada contra una guía**: sale de la
+demo, que es material de referencia del médico y no un documento leído en texto completo. Por eso
+el globo ⓘ del diagrama **no lleva una sola cita** y explica sólo de dónde saca el dibujo cada
+cosa, que es verificable en el código. **Salida**: verificar las dos cosas contra las guías de
+congénitas (Cowork) y, si corresponde, citarlas en el ⓘ.
+
+### TGA-c · La Parte B PARADA: la recomendación de la MCH no vive fuera del papel
+El commit 4 pedía separar, en el PPT de congénitas, el **recuento** de la **recomendación** de la
+miocardiopatía hipertrófica, retirando la segunda del texto visible — «verificalo antes de retirar;
+si no está en la Evidencia o el ⓘ con su fuente, PARÁ y reportá».
+
+**Se verificó y no está.** Censo con control positivo:
+
+| dónde | menciones de «desfibrilador» |
+|---|---|
+| el papel (`mchConclusion().txt` + `.resumen`) | **2** ← control positivo del censo |
+| la Evidencia de la MCH (`_indMCH()`, despierta) | **0** — es toda sobre terapia de reducción septal, Clase I · B |
+| los **74** globos ⓘ (registro `VINFO`) | **0** |
+| las **62** fichas de Referencias | **0** |
+
+El texto exacto es `AHA/ACC 2020: N factores mayores de 5 — desfibrilador razonable (Clase IIa)
+(M sin evaluar)`, y el podador lo deja **entero** porque retirar el segmento perdería el recuento
+`M`, que es la guarda «ningún número medido puede desaparecer».
+
+**Retirarlo del PPT lo perdería de la aplicación entera**, y escribirlo en la Evidencia sería
+contenido clínico nuevo, que la orden prohíbe. **Salida**: escribir la recomendación de la AHA/ACC
+2020 en la Evidencia de la MCH con su tabla y su folio —leídos en texto completo— y recién después
+podar el PPT. `TC-563` bloque C es el guardián: el día que entre, sus condiciones se ponen rojas.
+
+### TGA-d · Un defecto del podador del PPT, preexistente y no tocado
+Medido sobre `_ccPptPodar` con una escena de MCH que **sí** se poda: el resultado queda con
+**dos puntos colgados** —«… (detalle en el cuerpo del informe)**.:** consta realce tardío …»— porque
+los segmentos que nombran una guía se descartan y su separador (`:`) sobrevive pegado al anterior.
+Es de IMÁGENES-3 y no de esta tanda; afecta a toda sección cuyo texto empiece con el nombre de una
+guía seguido de dos puntos. **Salida**: limpiar el separador huérfano en el paso 2 del podador.
+
+### TGA-e · PptxGenJS 3.12.0 emite dos shapes con el mismo `id` en la misma diapositiva
+Medido sobre el paquete que genera de verdad: una diapositiva con dos cuadros de texto y un video
+sale con `<p:cNvPr id="3">` **dos veces** —el segundo texto y el video—. Un `spid` duplicado es
+ambiguo para cualquier árbol de tiempo que apunte a un shape. El experimento de abajo le pone al
+video un id libre justamente por eso. Es un defecto de la librería, no de la app, y hoy no
+molesta porque la app no escribe `p:timing`. **Salida**: tenerlo en cuenta el día que se integre
+el bucle.
+
+### TGA-f · El experimento del bucle del video en el PPT (IMG3-a) — listo para abrir
+**Fuera del producto. Nada se integró a la app.**
+
+**Archivo para abrir en PowerPoint:**
+`/Users/maicoldossantos/Desktop/ceibo-experimento-ppt-bucle/experimento_bucle_video.pptx`
+(65.683 bytes, 41 partes, con un MP4 H.264 de 8.689 bytes y 2 segundos adentro).
+
+**Qué hay que mirar al abrirlo**: (1) si PowerPoint pide **reparar** — y si al reparar **borra** la
+diapositiva; (2) si el video **se repite solo** hasta que se lo detiene.
+
+**El XML que se escribió**, dentro de `ppt/slides/slide1.xml`, después de `</p:clrMapOvr>`:
+
+```xml
+<p:timing><p:tnLst><p:par>
+ <p:cTn id="1" dur="indefinite" restart="never" nodeType="tmRoot"><p:childTnLst>
+  <p:video><p:cMediaNode vol="80000" showWhenStopped="1">
+   <p:cTn id="2" fill="hold" display="0" repeatCount="indefinite">
+    <p:stCondLst><p:cond delay="indefinite"/></p:stCondLst>
+   </p:cTn>
+   <p:tgtEl><p:spTgt spid="10"/></p:tgtEl>
+  </p:cMediaNode></p:video>
+ </p:childTnLst></p:cTn>
+</p:par></p:tnLst></p:timing>
+```
+
+**La fuente de cada pieza, leída:**
+
+| pieza | de dónde sale |
+|---|---|
+| `p:timing` es padre de `p:tnLst` | Microsoft Learn, página de **TimeNodeList**: «Parent Elements: timing (§19.3.1.48); tmpl (§19.5.84)» |
+| `p:par` es hijo de `p:tnLst` | la misma página |
+| `p:video` es hijo de `childTnLst` / `subTnLst` / `tnLst` | Microsoft Learn, página de **Video** |
+| `p:cMediaNode` es el único hijo declarado de `p:video` | la misma página (§19.5.29) |
+| `p:cMediaNode` es padre de `p:cTn` | Microsoft Learn, página de **CommonTimeNode**: «Parent Elements: cBhvr (§19.5.22); **cMediaNode (§19.5.29)**; …» |
+| `repeatCount` es atributo de `p:cTn` | la misma página: «This attribute describes the number of times the element should repeat, in units of thousandths. The possible values … are defined by the *ST_TLTime* simple type (§19.7.38)» |
+| `p:tgtEl` > `p:spTgt spid` apunta al shape del video | el **ejemplo** de la página de Video: «its child spTgt element specifies that the shape which contains the video to be played has a shape ID of 4» |
+
+**⚠️ LO QUE NO ESTÁ VERIFICADO, Y POR ESO ESTO ES UN EXPERIMENTO:**
+- **El valor del bucle.** Las páginas de Microsoft Learn **no contienen la palabra «indefinite»**
+  ni listan valores literales de `repeatCount`: remiten a `ST_TLTime` (§19.7.38), que **no se pudo
+  leer en el texto de ISO/IEC 29500-1**. La reproducción del esquema de **datypic**
+  (`http://www.datypic.com/sc/ooxml/t-p_ST_TLTime.html`) lo describe como «Union of:
+  `xsd:unsignedInt` | from type `p:ST_TLTimeIndefinite` … Valid value: **indefinite**», y es la
+  **única** fuente leída que admite el literal. **No es la norma: es una reproducción de tercero.**
+- Los atributos del nodo raíz (`dur`, `restart`, `nodeType`) y del nodo de medio (`vol`,
+  `showWhenStopped`, `fill`, `display`) son **valores convencionales elegidos acá**; ninguna de las
+  páginas leídas los prescribe para este caso.
+- **No se encontró** ninguna página que diga qué escribe la interfaz de PowerPoint para «Repetir
+  hasta detener».
+
+**Validación hecha** (la hace el propio script): ZIP coherente (`testzip`), **20 de 20** partes XML
+bien formadas, 41 partes, `repeatCount="indefinite"` presente, `spTgt spid="10"`, el MP4 embebido,
+y **sin ids de shape duplicados**. ⚠️ La primera versión del XML tenía un `</p:spTgt>` sobrante
+tras una etiqueta autocerrada y la validación lo cazó: **19 de 20**.
+
+**Reproducible**: `node scripts/_exp_pptbucle_gen.mjs <dir>` y luego
+`python3 scripts/_exp_pptbucle.py <dir>`.
+
+**Si el médico dice que repite y no pide reparar**, el siguiente paso es integrarlo en
+`_pptxDescargarSaneado`, que ya post-procesa el paquete con JSZip. **Si pide reparar**, el
+experimento que sigue es el mismo XML con `repeatCount` **numérico** (por ejemplo `999000`, que son
+999 repeticiones en milésimas), que es el otro miembro de la unión `ST_TLTime`.
+
+### TGA-g · La columna nueva es la última de su BLOQUE, no la última del archivo
+La orden pide la columna «al final». `_labOrdenarCols` recorre `LAB_XLS_MAP` en su orden y
+**después** reagrupa por bloque, así que con la entrada al final del mapa la columna sale última de
+«15 · CARDIOPATÍAS COMPLEJAS» —por el prefijo «TGA» que ese bloque declara— y queda en el **índice
+292 de 441**. Las 440 anteriores conservan su encabezado y su orden relativo, medido contra HEAD.
+Forzarla al final del archivo exigía un bloque nuevo o un nombre que no matcheara ningún prefijo.
+**Salida**: confirmar que así está bien, o decidir cuál de las dos.
+
+### TGA-h · TC-557 es un INTERMITENTE NUEVO, y no es de esta tanda
+Apareció rojo en la corrida completa y se caracterizó como manda este repositorio —mismo
+directorio, mismos scripts, alternando sólo `index.html`—:
+
+| árbol | corridas | rojas |
+|---|---|---|
+| HEAD (`c5dc409`) | 9 | **2** |
+| el de esta tanda | 6 | **2** |
+
+Siempre la **misma** condición: `(D4) el ⓘ de la fila mide 44x44 y sus CINCO puntos dan el propio
+botón`, con el diagnóstico `00000 44x44` — el botón **mide bien** y los cinco puntos dan `null`,
+que es la firma de `elementFromPoint` **fuera del viewport**, una trampa que este repositorio ya
+documenta para otras sondas.
+
+**No es una regresión**: falla igual en los dos árboles, en la misma proporción. **Salida**: en
+`(D4)`, traer el botón a la vista con `scrollIntoView` —y verificar que quedó dentro— antes de
+pedir los cinco puntos, que es lo que hacen las sondas de esta tanda. Mientras tanto, sumarlo a la
+lista de intermitentes conocidos junto a TC-358, TC-551 y TC-182: **repetir su lote antes de
+declararlo**.

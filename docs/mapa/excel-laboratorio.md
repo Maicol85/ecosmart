@@ -160,3 +160,21 @@ con `wc -c` **ANTES** de escribir, que es lo que `ecosmart/CLAUDE.md` pide desde
 ---
 
 ---
+
+---
+
+## La columna 441 — tanda TGA (2026-10-31)
+
+Puntero. El detalle está en **`docs/mapa/tga-diagrama-3d.md`** § 6.
+
+**«TGA cirugía realizada»**, 440 → **441**. Va escrita como la última clave de `_labExcelRow` y
+como la última entrada de `LAB_XLS_MAP`, así que sale **última de su bloque** —«15 · CARDIOPATÍAS
+COMPLEJAS», por el prefijo «TGA»— en el índice **292 de 441**. Las 440 anteriores conservan su
+encabezado y su orden relativo, medido contra HEAD con `_labOrdenarCols` en los dos árboles.
+
+⚠️ **Es la última de SU BLOQUE y no la última del archivo**: `_labOrdenarCols` reagrupa por bloque
+**después** de recorrer el mapa. → `docs/PENDIENTES.md` → `TGA-g`.
+
+⚠️ **El valor nuevo `tga_tipo = dtga` entró con sus alias de importación en el MISMO commit.** Sin
+eso, el round-trip de un Excel exportado con «TGA completa (d-TGA)» se **rechaza con error**, no se
+ignora — es lo que el comentario de `LAB_XLS_VOCAB_NUEVOS` documenta.

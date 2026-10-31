@@ -230,3 +230,22 @@ trece sin cambio.
 - **El marcador de reemplazo `ID` aparece dentro de la palabra `VIDEOS`** (`V-ID-EOS`).
 - **El acento grave dentro de un comentario del template**, cuatro veces en tres archivos.
   `check_backticks.py` no caza ninguno; **`node --check` los caza todos**.
+
+---
+
+## La fila octava del registro — tanda TGA (2026-10-31)
+
+Puntero. El detalle está en **`docs/mapa/tga-diagrama-3d.md`** § 4.
+
+`PDF_DIAG_REG` pasa de **siete a ocho** filas: `{ k:'tga3d', w:1, fam:'cc', lbl:'Transposición de
+grandes arterias — esquema 3D' }`, al final, detrás de la CIA.
+
+⚠️ **El comentario del motor decía «agregar otro congénito no toca este bloque» y era FALSO por un
+renglón.** La exclusión del motor estaba escrita `k === 'cia' && _ciaEnSuHoja`, una bandera para la
+CIA, así que un segundo congénito se estampaba debajo del texto de su módulo **y** volvía a entrar
+al motor: el mismo dibujo **dos veces** en el informe firmado. Hoy es `_ccEnSuHoja`, un array, y
+ahora sí agregar un congénito es una fila del registro y su recolector.
+
+⚠️ **El recolector del esquema 3D va ANTES de la hoja de congénitas, y es por el orden de
+ejecución** — no junto al de la orejuela, que va después. Esa hoja lee `_dg` unas cuatrocientas
+líneas más abajo pero **antes** del bloque de la orejuela.

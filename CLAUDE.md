@@ -104,6 +104,7 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Tocar la ESTENOSIS MITRAL en el LABORATORIO**: las seis categorías, las dos casillas del filtro, el gráfico de distribución, el PDF de auditoría o el PPT | `docs/mapa/laboratorio-estenosis-mitral.md` |
 | **Tocar la VISTA 2D de las válvulas**: el lector único del estado, las tarjetas, la tabla de cavidades, el dibujo, los chorros o el «por qué» | `docs/mapa/vista-2d-valvulas.md` |
 | **Tocar el PANEL EN LÍNEA de la vista 2D**: el botón que prende y apaga, el apagado automático, la sincronía en vivo, el alto del dibujo o la línea de fase | `docs/mapa/vista-2d-en-linea.md` |
+| **Tocar el DIAGRAMA 3D DE LA TRANSPOSICIÓN**: los dos ejes y su dueño único, el valor `dtga`, el campo de cirugía, las comunicaciones leídas de sus pestañas, la carga diferida con SRI, «Incluir en el PDF» o la cirugía en el papel | `docs/mapa/tga-diagrama-3d.md` |
 | **Orientarse en otro módulo** (Congénitas, Laboratorio, PPT, Cardio-Onco, Pericardio) | `docs/mapa/congenitas-otros.md` |
 | **Tocar algo que la tanda C1 movió** (28/10): los cuatro rótulos de VExUS contra la Figura 7 de Rola 2021 y su Evidencia sin conducta por grado, la casilla de HTP que dice «sin evaluar», los tres mensajes del Forrester con su dueño único, la RVS leyendo `pamEfectiva` con el origen de sus insumos, el POCUS del posoperatorio viendo el `vd_vi` de VD/AD, o el DIAGRAMA DE FORRESTER de la pestaña de Hemodinámica con sus dos cortes | `docs/mapa/c1-hemodinamica.md` |
 | **Tocar la CALCULADORA DE RIESGO CV de cardio-oncología —la Tabla 4 y sus seis columnas, las filas de edad, la casilla sin fármaco—, las TRES TABLAS de la sub-pestaña HFA-ICOS o el MONITOREO de inmunoterapia y anti-VEGF** | `docs/mapa/d2-cardioonco-tabla4.md` |
@@ -185,8 +186,9 @@ Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la v
 ## Qué es EcoSmart y cómo se trabaja
 
 - App clínica de ecocardiografía en **un solo `index.html`**: HTML + CSS + JS inline, sin build,
-  sin frameworks. Hoy **10,40 MB / 146.362 líneas**, medido con `wc -c` y `wc -l` el 2026-10-31 al
-  cierre de la tanda **IMÁGENES-3**, sobre el árbol ya sellado (`v20261031-0432`, md5 `899080d4`).
+  sin frameworks. Hoy **10,47 MB / 147.337 líneas**, medido con `wc -c` y `wc -l` el 2026-10-31 al
+  cierre de la tanda **TGA**, sobre el árbol ya sellado (`v20261031-0829`, md5 `382467e7`).
+  (Antes: 10,40 MB / 146.362 al cierre de IMÁGENES-3, sello `v20261031-0432`, md5 `899080d4`.)
   (Antes: 10,37 MB / 145.915 al cierre de AJUSTES-2, sello `v20261031-0106`, md5 `5d3a6fe2`.)
   (Antes: 10,34 MB / 145.470 al cierre de D2, sello `v20261030-2056`, md5 `ce4dd1ac`.)
   (Antes: 10,32 MB / 145.243 al cierre de AORTA-2, sello `v20261030-1830`, md5 `5ddfacc3`.)
@@ -211,8 +213,9 @@ Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la v
   sobre el mismo `md5` de ese sello: **medirlo antes de presupuestar contexto**, no leer esto.
   ⚠️ Y esta cifra también se escribió mal una vez —128.226— por medirla **antes** del segundo
   sello: hay que medirla **al final**, cuando `index.html` ya no se toca más.
-  Las únicas dependencias son jsPDF, XLSX y
-  PptxGenJS por CDN. Se abre como archivo local y corre en Chrome.
+  Las dependencias por CDN son jsPDF, XLSX, Chart.js, qrcode, pdf.js y PptxGenJS, todas con su
+  hash SRI, más **three.js r128**, que desde la tanda TGA (31/10) se carga **sólo al abrir la
+  sección de la TGA** y también con su hash. Se abre como archivo local y corre en Chrome.
 - Lo que produce es un **informe firmado**: narrativo, EN SUMA, PDF, PPT y Excel del Laboratorio.
   Un dato que se carga y no sale en ninguno de esos destinos desapareció sin aviso.
 - **Una tarea acotada por prompt.** Si el pedido trae varias cosas, se hacen por etapas con un
@@ -1003,6 +1006,261 @@ Cada bloque de arriba sale de una sección del historial. Títulos exactos para 
 (2026-09-09)`. Antes de reabrir un hallazgo viejo por número de línea, mirar qué hay HOY en esa
 línea: el archivo creció y un informe de auditoría viejo apunta a otro archivo
 (`### Un hallazgo de auditoría por NÚMERO DE LÍNEA apunta a otro archivo`).
+
+### El diagrama 3D de la transposición — «TGA» (2026-10-31)
+
+- **SEIS commits, y los tres de código se hicieron.** `b85f3ea` (TGA-1) · `0c1337d` (TGA-2) ·
+  `7f6540b` (TGA-3) · el de cobertura y documentación. Al empezar, `origin/main` = `HEAD` =
+  **`c5dc409`**, el cierre de IMÁGENES-3, ya publicado, md5 de `index.html` **`899080d4`**.
+  **El push lo corre Maicol: esta tanda tenía orden expresa de NO pushear.**
+  Cierra **IMG3-h**, que era esta tanda entera declarada como no hecha, y en parte **IMG3-j**.
+
+- **EL INVENTARIO DIO VUELTA LA PARTE A, Y ES LO PRIMERO QUE HAY QUE SABER.** La orden autoriza
+  hasta CUATRO campos guardados nuevos: la cirugía realizada y, **sólo si no existen**, las tres
+  comunicaciones. **Las CUATRO comunicaciones ya existen** —CIA y CIV en «CIA / CIV», el foramen
+  oval en su sección y el ductus en la suya—, así que por la condición expresa de la orden se
+  agregaron **cero**: el diagrama las LEE de ahí. Y **la cirugía NO tenía campo propio**: está
+  fusionada dentro de `tga_tipo`, donde `mustard` y `senning` SON el switch auricular.
+  Resultado: **UN** campo guardado nuevo, `tga_cirugia`.
+
+- ⚠️ **Y UN CAMPO SOLO NACÍA MUERTO, ASÍ QUE HUBO QUE AGREGAR UN VALOR A UNO QUE YA EXISTÍA.** Con
+  `cctga` la demo IGNORA la cirugía (`var o=(a==='dtga')?op:'none'`) y con `mustard`/`senning` la
+  cirugía ya la dice el tipo: sin una anatomía **d-TGA** el campo nuevo no tiene dónde aplicarse.
+  `tga_tipo` gana el valor `dtga`. **No es un campo ni una columna** —el Excel no se mueve por él y
+  el Laboratorio tampoco, cuyo único uso de `tga_tipo` es el predicado de presencia `!== ''`— y el
+  rótulo «completa» **sale de la propia orden**, que lo escribe en su ejemplo de redacción del
+  informe. Su rótulo entró en los **TRES** mapas que lo publican en el MISMO commit: sin eso,
+  `TIPO[tipo] || tipo` publicaba el token crudo «dtga» en el informe **firmado**.
+
+- ⚠️ **JATENE Y RASTELLI ESTÁN PARADOS, Y ES EL LÍMITE QUE EL INVENTARIO FORZÓ.** La orden autoriza
+  cuatro valores de cirugía; se publican **dos**. En Jatene y en Rastelli el ventrículo sistémico es
+  el **izquierdo**, y `tgaConclusion` abre el informe **firmado** con «el ventrículo derecho es el
+  ventrículo sistémico» y sigue con tres oraciones más que dependen de eso. Publicarlos exigía
+  reescribir cuatro frases del informe, que es decisión de Maicol. Y hay dos textos de PANTALLA que
+  quedan inexactos y tampoco se tocaron: el **título** de la sección dice «corregida» —y una d-TGA
+  no operada no lo es— y su **párrafo de encabezado** afirma que el VD es el sistémico. → **TGA-a**.
+
+- **LA COMPARACIÓN OBLIGATORIA CON LA DEMO: 20 DE 20 ESCENARIOS ALCANZABLES, IDÉNTICOS.** No se
+  comparan píxeles: se corre el `scenario()` de la demo y el `tga3dEscena()` de la app con los
+  MISMOS datos y se comparan campo por campo —puntos, colores, radios, extras y rótulos—. Treinta
+  escenarios (6 combinaciones × 5 juegos de comunicaciones): **20 IGUALES** —corazón normal, d-TGA
+  sin cirugía, d-TGA con switch auricular y L-TGA, en los cinco juegos— y **10 distintos**, que son
+  exactamente los cinco de Jatene y los cinco de Rastelli. El `scenario()` de la demo es una IIFE y
+  no exporta nada: se **extrae** el texto de sus constantes y de su función por marcas literales
+  —verificando que cada una aparezca **una sola vez**, así que si la demo cambia la extracción falla
+  ruidosamente— y se evalúa en una página en blanco.
+
+- ⚠️ **UN DEFECTO LATENTE DE LA DEMO, QUE SE PORTÓ Y SE ARREGLÓ.** El reloj que
+  `requestAnimationFrame` pasa es el del COMIENZO del cuadro y puede ser anterior al
+  `performance.now()` tomado antes de construir la geometría: el primer `dt` sale **negativo**,
+  `flowT` se va por debajo de cero y `getPointAt` recibe un parámetro negativo. three.js no lo
+  valida: revienta con «Cannot read properties of undefined (reading 'x')» dentro de la librería
+  minificada — **un error de consola que parece de la librería y es del reloj**. Pasa UNA vez, en el
+  primer cuadro, y después nunca más, que es lo que lo hace difícil de ver. Tres guardas y las tres
+  hacen falta: `Math.max(0,…)`, el doble módulo de `u`, y el reloj puesto en hora justo antes de
+  arrancar el bucle. Encontrarlo costó cinco mediciones: parchear `getPointAt` **después** de que
+  `tga3dInit` corre no lo caza, porque ya pasó.
+
+- ⚠️ **Y LA CARGA DIFERIDA NO ERA LO QUE YO HABÍA ESCRITO.** `offsetParent` NO detecta el acordeón
+  plegado —`secToggle` cierra con `max-height:0`, no con `display:none`—, así que con la sección
+  CERRADA el predicado daba `true` y la librería se bajaba igual. La decisión del médico dice «sólo
+  al abrir la sección de la TGA»; sin la pregunta por la clase `open`, la garantía era «al abrir la
+  pestaña». Lo destapó una medición, no la lectura.
+
+- **EL HASH SRI SE VERIFICÓ POR DOS CAMINOS INDEPENDIENTES Y COINCIDEN**, que es lo que este archivo
+  manda: la API de cdnjs y `openssl` sobre el archivo bajado. three.js **r128**, con `integrity`,
+  `crossorigin` y `referrerpolicy`, como los otros seis scripts de CDN de la app. El `onerror` cubre
+  los dos fallos que importan —sin internet y hash que no coincide—, y en los dos el resto de la
+  sección sigue funcionando porque nada más de la TGA depende de la librería. **`index.html` no
+  crece por la librería.**
+
+- ⚠️ **LA EXCLUSIÓN DE LA FAMILIA `cc` DEL MOTOR DE TERCIOS ERA UNA BANDERA DE LA CIA, Y EL
+  COMENTARIO DEL MOTOR DECÍA LO CONTRARIO.** Decía «agregar otro congénito no toca este bloque» y
+  era **falso por un renglón**: la exclusión estaba escrita `k === 'cia' && _ciaEnSuHoja`, así que un
+  segundo congénito se estampaba debajo del texto de su módulo **y** volvía a entrar al motor — el
+  mismo dibujo **DOS VECES** en el informe firmado. Hoy es una LISTA.
+  Y el recolector del esquema 3D va **antes** de la hoja de congénitas y no junto al de la orejuela:
+  esa hoja lee `_dg` cuatrocientas líneas más abajo pero **antes** del bloque de la orejuela.
+
+- **UN SOLO LUGAR DONDE SE COLOCA EL SLOT.** `esqIncluirEnPDF` recibe un `<svg>` y lo rasteriza; el
+  diagrama 3D es WebGL y ya tiene su `dataURL`. El cuerpo salió a `_esqPonerSlot` y las dos puertas
+  terminan ahí. ⚠️ Y **`preserveDrawingBuffer: true` hace falta**: sin él `toDataURL` sobre el
+  lienzo devuelve un PNG **en blanco** en cuanto el navegador limpió el buffer, y «Incluir en el
+  PDF» habría guardado una imagen vacía **sin un solo error de consola**.
+
+- **LA CIRUGÍA SE DICE UNA SOLA VEZ, Y ES POR CONSTRUCCIÓN.** `tgaCirFrase()` devuelve cadena vacía
+  para `mustard` y `senning`, que ya la nombran en su propio rótulo, así que no hay escenario en que
+  el papel la diga dos veces. Es el defecto que la tanda E pagó con el Carpentier, que se decía
+  hasta TRES veces en el mismo informe firmado. **Sin dato no dice nada**: «sin dato» no es «sin
+  cirugía».
+
+- ⚠️ **LA PARTE B SE PARÓ, Y LA MEDICIÓN ES LO QUE LA PARA.** El commit 4 pedía retirar del PPT de
+  congénitas la recomendación de desfibrilador de la miocardiopatía hipertrófica, «verificando antes
+  que esté en la Evidencia o el ⓘ con su fuente; si no está, PARÁ». **No está**: cero menciones en la
+  Evidencia de la MCH —que es toda sobre terapia de reducción septal—, cero en los **74** globos ⓘ y
+  cero en las **62** fichas de Referencias, con el **control positivo** de que el papel sí la dice
+  dos veces. Retirarla la perdería de la aplicación entera, y escribirla en la Evidencia sería
+  contenido clínico nuevo. **TC-563 bloque C es el guardián de esa parada** y pasa en los dos
+  árboles a propósito: el día que la recomendación entre, se pone rojo. → **TGA-c**.
+
+- **LA PARTE C: EL ARCHIVO ESTÁ LISTO PARA ABRIR, Y EL VALOR DEL BUCLE NO ESTÁ VERIFICADO.**
+  `~/Desktop/ceibo-experimento-ppt-bucle/experimento_bucle_video.pptx`, 65.683 bytes, con un MP4
+  H.264 de 8.689 bytes y 2 segundos. ZIP coherente, **20 de 20** partes XML bien formadas,
+  `repeatCount="indefinite"` y `spTgt spid="10"`. El árbol `p:timing > p:tnLst > p:par > p:cTn >
+  p:childTnLst > p:video > p:cMediaNode > p:cTn + p:tgtEl` está respaldado pieza por pieza por
+  Microsoft Learn, con la cita de cada una en **TGA-f**. ⚠️ **Pero el VALOR del bucle no**: esas
+  páginas **no contienen la palabra «indefinite»** y remiten a `ST_TLTime` (§19.7.38), que no se
+  pudo leer en el texto de la norma; la única fuente leída que admite el literal es la reproducción
+  del esquema de **datypic**, que es un tercero. Por eso es un experimento y no una implementación.
+  ⚠️ **Y la validación cazó un error mío**: la primera versión tenía un `</p:spTgt>` sobrante tras
+  una etiqueta autocerrada → 19 de 20 partes bien formadas.
+
+- ⚠️ **PptxGenJS 3.12.0 EMITE DOS SHAPES CON EL MISMO `id` EN LA MISMA DIAPOSITIVA**, medido sobre
+  el paquete que genera de verdad: el segundo cuadro de texto y el video salen los dos con
+  `id="3"`. Un `spid` duplicado es ambiguo y podría por sí solo hacer que PowerPoint se queje,
+  confundiendo el experimento, así que al video se le puso un id libre. → **TGA-e**.
+
+- **A/B contra HEAD: 159 escenas, 26.928 claves, y CERO diferencias de superficie firmada en 155.**
+  Las 4 que cambian son exactamente las que cargan el valor de anatomía nuevo, en 8 de 8 superficies
+  —informe en tres estilos, EN SUMA en tres, PDF y PPT—. `vacio`, `ajeno`, `tgaMus`, `tgaSen`,
+  `tgaCc`, `tgaMusCir`, `tgaSinInt` y `tgaVacio` dan **cero**. Ejemplo: «Transposición de grandes
+  arterias **corregida**» → «… **completa (d-TGA)**», y el EN SUMA «TGA — VD sistémico con
+  disfunción leve» → «TGA **completa (d-TGA)** — VD sistémico con disfunción leve». Excel 440 → 441
+  con «Switch auricular (Mustard o Senning)» en la columna nueva; campos guardados 962 → 963.
+  ⚠️ **Ese A/B se corrió sobre los commits 1 y 2**, antes del 3: la granularidad por commit del 3 la
+  da `_probe_tga3.mjs` con sus ocho escenas, sus denominadores y sus controles.
+
+- **14/14 MUTACIONES DIRIGIDAS MUERTAS**, en worktree y nunca sobre el vivo, con guarda de md5 antes
+  y después. **Cuatro de las catorce no revierten nada: la aplican de más**, porque las condiciones
+  que las matan son controles negativos. Cada mutación declara **su** caso: correr los tres por cada
+  una habría tapado un reparto mal hecho — y eso es justo lo que pasó.
+  ⚠️ **DOS SOBREVIVIERON AL PRIMER BARRIDO Y ME DIJERON COSAS DISTINTAS.** La **05** estaba mal
+  repartida —apuntaba a TC-561, que mira el Excel y no el informe— **y además destapó un hueco
+  real**: el caso se llama «d-TGA un valor nuevo» y no miraba que el token crudo no llegara al
+  papel. Se reparó a TC-563 **y** nació la condición (D7). La **10** estaba **mal escrita**: cambiaba
+  `o` en la cabecera de la escena, pero la rama de L-TGA **no lee `o` en ninguna línea** —todo lo que
+  depende de la cirugía está detrás de un `a === 'dtga'`—, así que no inyectaba ningún defecto. Lo
+  que hacía falta era inyectarlo DENTRO de la rama, y entonces el control negativo (C5) la mata.
+
+- ⚠️ **EL ACENTO GRAVE DENTRO DE MIS PROPIOS COMENTARIOS COSTÓ CUATRO CORRIDAS, Y ES LA OCTAVA TANDA
+  SEGUIDA QUE LO PAGA.** Siempre igual: un identificador entre acentos graves dentro del comentario
+  de un caso, y el cuerpo de un caso es un template literal. `check_backticks.py` **no cazó
+  ninguna**; **`node --check` las cazó todas**. Lo que acabó funcionando fue contar los acentos
+  graves del bloque nuevo después de cada edición y exigir el número exacto.
+  ⚠️ **Y la barra invertida simple, dos veces.** `/[ \t\n\r]+/g` escrito con UNA barra llega al
+  navegador con un salto de línea **real** dentro del literal de expresión regular: «Invalid regular
+  expression: missing /». Se cerró **no usando ninguna expresión regular**, que es lo que la tanda
+  AJUSTES-2 ya había aprendido.
+
+- ⚠️ **TRES TRAMPAS DE DENOMINADOR, Y LAS TRES COSTARON UNA CORRIDA.** (1) **La sección de la TGA
+  vive en la sub-pestaña «CC complejas» (`#tab-congenitas2`)**, no en «congenitas»: abrir sólo la
+  primera deja todo su árbol bajo un `display:none`, `offsetParent` da null, TODO
+  `getBoundingClientRect` da 0×0 y el diagrama parece no existir. (2) **Su acordeón YA VIENE
+  ABIERTO**: un click a ciegas lo cierra, y entonces el diagrama no carga. (3)
+  **`page.evaluate(cadena, arg)` DESCARTA el argumento** —queda `undefined` de los dos lados y dos
+  resultados vacíos comparan iguales—, así que el `scenario()` de la demo se inyecta con
+  `addScriptTag`.
+
+- ⚠️ **Y UN DEFECTO QUE EL CASO DE PRUEBA ENCONTRÓ EN MI PROPIO PREDICADO.** `fop_tunel` es la
+  **longitud del túnel en milímetros**, un campo numérico, y lo estaba leyendo como texto: funcionaba
+  por casualidad. Y el predicado del FOP **no** es el `hayDato` de `fopConclusion`, a propósito: ese
+  lo llena también un test de burbujas **negativo** —que es justo como se **descarta** un foramen
+  oval—, así que usarlo habría dibujado una comunicación interauricular sobre un paciente en el que
+  el médico acaba de descartarla.
+
+- **Semgrep 124 WARNING / 0 ERROR**, la línea base, sin un aviso nuevo. **Excel 440 → 441**, con las
+  440 anteriores **idénticas en encabezado y en orden relativo**, medido contra HEAD con
+  `_labOrdenarCols` en los dos árboles: una agregada, cero perdidas. **Censo 1024 → 1028**: **+1
+  campo guardado** (`tga_cirugia`, el autorizado) y **+3 controles de pantalla** con prefijo
+  `tga-3d-`, declarado en `_noEsDelEstudio` y fijado por TC-561 (F2). **Sin huérfanos nuevos.**
+  17 bloques de JS inline parsean.
+
+- **DOCE CASOS VIEJOS ADAPTADOS, cada uno con el motivo escrito.** Diez por el Excel de 440 a 441
+  —**TC-135, TC-457, TC-463, TC-464, TC-319, TC-429, TC-430, TC-440, TC-466, TC-470**—, más
+  **TC-471** (el registro de globos, 73 → 74) y **TC-559** (el registro del motor de tercios, 7 → 8
+  filas, y su cadena de orden).
+  ⚠️ **Y LA PRIMERA PASADA DEL CENSO ENCONTRÓ CUATRO DE LAS DIEZ, NO LAS DIEZ.** Grepeé «440» con
+  los filtros obvios y las otras seis lo escriben con otras palabras —`xls.n === 440`,
+  `Object.keys(xl).length === 440`, `cols === 440`, `total === 440`, `excelCols() === 440`—. Hubo que
+  barrer **toda** comparación `=== 440` en líneas que hablaran del Excel: **161 líneas** en la
+  primera pasada y **42 más** en la segunda. Es el modo de falla que este archivo ya documenta seis
+  veces, y esta vez el número es el que lo hace evidente.
+  ⚠️ **Dos nombres de caso NO se tocaron**, y es a propósito: «TC-477 · el Excel **pasa** a 440
+  columnas» es una afirmación HISTÓRICA de su propia tanda, no un invariante vivo.
+
+- **DOS MOTORES, DIECISÉIS CRUCES CADA UNO** (Chrome del sistema y WebKit de Playwright × 1440,
+  1000, 768 y 390 px × dos temas), **y coinciden valor por valor**: la sección abre, three.js
+  **no está** sin tipo cargado y entra en **r128** con tipo, lienzo 560×420 —302×420 a 390 px—,
+  los seis controles a la vista, los seis rótulos del dibujo, la fila de cirugía visible, el globo
+  en 380×414 **dentro de la pantalla** y **sin una sola cita**, **cero** desplazamiento horizontal
+  del cuerpo, **cero** textos recortados y **CERO errores de consola y de página en los dos
+  motores**. El papel idéntico en los dos. La única diferencia entre motores son **9 px** en el
+  ancho del botón «Corazón normal» (208 contra 217), que es la métrica de su texto.
+  ⚠️ **LOS CUATRO BOTONES DEL DIBUJO MIDEN 44 px Y NINGÚN PUNTO CAE EN OTRO CONTROL, pero NO dan
+  5/5, y la razón es geométrica.** Son `.btn`, con `border-radius: 7px`: el punto a 2 px de la
+  esquina cae **fuera** de la forma redondeada y `elementFromPoint` devuelve el contenedor flex
+  —que no es un control y no hace nada—. Exigir 5/5 sobre un rectángulo redondeado es exigir algo
+  que la geometría no da; lo que se cuenta es que un toque no caiga en **otro control**, y eso da
+  4 de 4 en los dieciséis cruces. Los globos **cuadrados** de 44×44 con `vinfo-btn-44` sí dan 5/5,
+  y los mide TC-535.
+  ⚠️ **WEBKIT DE PLAYWRIGHT NO ES SAFARI, y se declara.** Chrome va por el del sistema con
+  `channel: 'chrome'`.
+  ⚠️ **Y LA SONDA MIDIÓ SOBRE UN DENOMINADOR VACÍO DOS VECES ANTES DE SERVIR**: registraba el
+  estado del acordeón **antes** de abrirlo —la sección nace cerrada, y por eso los controles llevan
+  `data-ui`—, y no marcaba «Integrar al informe», cuya ausencia deja el papel **sin una palabra de
+  la TGA**: «SIN LÍNEA» se lee como que el commit 3 no funciona.
+
+- ⚠️ **LA SUITE COMPLETA ENCONTRÓ TRES REGRESIONES MÍAS Y SEIS CONTEOS SIN ADAPTAR, Y LAS TRES
+  REGRESIONES SON EL MISMO DEFECTO: EL PREFIJO ESTÁ EN TRES LISTAS Y YO LO ESCRIBÍ EN UNA.**
+  TC-159, TC-246 y TC-247 **pasan contra HEAD y fallaban en mi árbol**, verificado en un worktree.
+  1. `_noEsDelEstudio` decide qué **se guarda** — ésa la había puesto.
+  2. `_CAMPOS_FUERA_DEL_ESTUDIO` decide si el formulario **«tiene datos»**. `tga-3d-fc` es un
+     `input[type=number]` con `value="70"` en el marcado, así que `limpiarCampos` lo vaciaba y
+     `_formTieneDatos` veía un campo distinto de su valor por defecto: **«Nuevo estudio» PREGUNTABA
+     sobre un formulario vacío** y —peor— **el autoguardado creía que el formulario ya estaba
+     empezado y NO restauraba el borrador**.
+  3. **`data-ui`**, que se lo pide `secAutoOpen`: abre un acordeón cuando encuentra adentro un
+     control con valor. La casilla «Nombres» viene marcada y la frecuencia trae 70, así que
+     **entrar a «CC complejas» abría la sección de la TGA sola** → TC-514.
+  Y acá `data-ui` es lo correcto y **no** un prefijo: ese barrido no tiene regex donde registrar
+  uno, y **su propio comentario lo dice**. Es la lección del D-11 con `data-espejo` por tercera vez.
+  Las tres listas quedan fijadas por TC-561 **(F2)**, **(F5)**, **(F6)** y **(F7)**, y por las
+  mutaciones **08**, **15** y **16** — una por puerta, porque romper una sola la tapan las otras.
+
+- **16/16 MUTACIONES DIRIGIDAS MUERTAS** en el barrido final, en worktree y nunca sobre el vivo,
+  con guarda de md5 antes y después.
+
+- **Línea base al cierre: suite 573/578**, en once lotes **cubriendo los 578 casos distintos**
+  —contados nombre por nombre, no por la suma de los lotes—, en UNA sola pasada sobre el árbol
+  sellado, con el pendrive `DISK_IMG` **montado y verificado al abrir, ENTRE LOS ONCE LOTES y al
+  cerrar**, y el md5 de `index.html` **idéntico** antes y después (`bb9739ab`). Los rojos son
+  **TC-223, TC-376, TC-390 y TC-406**, los cuatro de siempre, más **TC-557**.
+  **TC-358, TC-551 y TC-182 salieron VERDES.**
+  ⚠️ **TC-557 ES UN INTERMITENTE NUEVO Y NO ES DE ESTA TANDA**, caracterizado como manda este
+  archivo —mismo directorio, mismos scripts, alternando sólo `index.html`—: **2 rojas de 9** contra
+  HEAD y **2 de 6** en el árbol nuevo, siempre la misma condición `(D4)` y siempre con el mismo
+  diagnóstico `00000 44x44`, que es la firma de `elementFromPoint` fuera del viewport. → **TGA-h**.
+  ⚠️ **Y LA PRIMERA CORRIDA COMPLETA DIO 564/578 CON NUEVE ROJOS MÁS**, y por eso esa cifra no es
+  la línea base: **tres regresiones mías** —TC-159, TC-246 y TC-247, el defecto de las tres listas—
+  y **seis conteos sin adaptar** —TC-477, TC-479, TC-500, TC-502, TC-514 y TC-535—. Los nueve están
+  cerrados y la cifra de arriba sale de la corrida **limpia**, de una sola pasada sobre el árbol
+  sellado.
+
+- **Semgrep 124 WARNING / 0 ERROR.** **Excel 441** columnas. **Censo 1028**, 0 huérfanos nuevos.
+  **Celular 59 hallazgos a 360 px y 68 a 390, con 17 ALTA en cada ancho** — la línea base exacta.
+  17 bloques de JS inline parsean.
+
+- **`index.html` pasó de 10,40 MB / 146.362 líneas a 10,47 MB / 147.337** — medido con `wc -c` y
+  `wc -l` DESPUÉS de sellar. (MB de 10⁶.) Sello **`v20261031-0847`**, md5 **`bb9739ab`**.
+
+- **Dónde está todo:** `docs/mapa/tga-diagrama-3d.md` (**mapa NUEVO**, 13,4 KB), las fichas de los
+  tres casos en `docs/mapa/tests-fichas-561.md` (**archivo propio**), **cinco mapas con un puntero
+  cada uno** —medidos ANTES de escribir, todos por debajo de 35 KB—,
+  `docs/fuentes/FUENTES.md` → «La tanda TGA» con su tabla «Cambios de evidencia» **vacía a
+  propósito** y los dos censos con su control positivo, y `docs/PENDIENTES.md` → **OCHO** cosas
+  declaradas (**TGA-a** a **TGA-h**) más el cierre de **IMG3-h** y, en parte, de **IMG3-j**.
+  ⚠️ **`congenitas-otros.md` (34,5 KB) NO se tocó**, que es lo que la orden pide. `tests.md` quedó
+  en **34,4 KB**: la próxima tanda que lo toque tiene que partirlo.
 
 ### La calculadora de riesgo CV y el score de amiloidosis — «D» (2026-10-27)
 

@@ -474,3 +474,24 @@ congénitas. La bicúspide, la orejuela y la CIA cambiaron su tabla por una **l�
 con el mismo dueño de las palabras.
 
 → `docs/mapa/img3-visor-tercios.md`
+
+---
+
+## La TGA en el papel y el esquema 3D en el PDF — tanda TGA (2026-10-31)
+
+Puntero. El detalle está en **`docs/mapa/tga-diagrama-3d.md`**.
+
+- La **cirugía realizada** entra al cuerpo del informe y al EN SUMA aposicionada al tipo, **una
+  sola vez**, desde el dueño único `tgaCirFrase()`. Que se diga una sola vez es por construcción:
+  devuelve cadena vacía para `mustard` y `senning`, que ya la nombran en su propio rótulo. Sin dato
+  **no dice nada** — «sin dato» no es «sin cirugía».
+- `tga_tipo` gana el valor `dtga`, rotulado «completa (d-TGA)» en los **tres** mapas que lo
+  publican: el `TIPO` del informe, el `TT` del EN SUMA y el `_ccLbl` de la columna de Excel. Los
+  tres en el mismo commit: sin su rótulo, `TIPO[tipo]` o-bien `tipo` publicaba el token crudo
+  «dtga» en el papel firmado.
+- El **esquema 3D** entra al PDF como diagrama de familia `cc`, o sea **debajo del texto de
+  congénitas**, con su línea de texto armada sólo de lo cargado (`tga3dLineaPDF`).
+- ⚠️ **La exclusión de la familia `cc` del motor de tercios pasó de una BANDERA a una LISTA**
+  (`_ccEnSuHoja`): estaba escrita `k === 'cia' && _ciaEnSuHoja`, así que un segundo congénito se
+  estampaba debajo del texto **y** volvía a entrar al motor — el mismo dibujo **dos veces** en el
+  informe firmado.

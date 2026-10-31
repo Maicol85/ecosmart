@@ -8153,3 +8153,78 @@ Ninguna de las frases retiradas era la única aparición de su fuente.
 ### Cambios de evidencia
 *(vacía a propósito: esta tanda no cambió ningún contenido clínico. La única fila es la cita
 agregada al ⓘ, arriba.)*
+
+---
+
+# La tanda TGA (2026-10-31) — el diagrama 3D de la transposición
+
+## Tabla «Cambios de evidencia»
+
+**VACÍA A PROPÓSITO.** Esta tanda **no agregó, no quitó y no movió una sola cita, clase, nivel,
+tabla, folio ni corte clínico.** Lo que publica es descripción de lo cargado: la anatomía y la
+cirugía que el médico eligió, y las comunicaciones que ya viven en sus módulos. El globo ⓘ del
+diagrama **no lleva una sola cita**, y el motivo está escrito abajo.
+
+## Por qué el ⓘ del diagrama no cita nada
+
+Las tres cosas que el dibujo necesitaría respaldar —la descripción anatómica de la d-TGA, la de la
+L-TGA y la de cada cirugía— vienen de `docs/3d/demo_tga_3d_esquema_aprobado.html`, que es material
+de referencia **del médico** y no una guía leída en texto completo. La regla de este repositorio es
+que **lo que no se leyó no se cita**, así que el globo explica **qué muestra** el dibujo y **de
+dónde saca cada cosa** —qué campo da la anatomía, qué campo da la cirugía, de qué pestaña sale cada
+comunicación—, que es verificable en el código y no necesita fuente clínica.
+
+Las oraciones «Qué mirar en la ecografía» de la demo **no se implementaron**: es la decisión (b) del
+médico. Queda en `docs/PENDIENTES.md` → `TGA-b`.
+
+## Notas de trabajo
+
+### El hash SRI de three.js r128, verificado por dos caminos
+El 2026-10-31, los dos **coinciden**:
+
+```
+sha512-dLxUelApnYxpLt6K2iomGngnHO83iUvZytA3YjDUCjT0HDOHKXnVYdf3hU4JjM8uEhxf9nD1/ey98U3t2vZ0qQ==
+```
+
+- `curl -s "https://api.cdnjs.com/libraries/three.js/r128?fields=sri"` → campo `three.min.js`
+- `curl -s ".../r128/three.min.js" | openssl dgst -sha512 -binary | openssl base64 -A`
+
+### El formato OOXML del bucle de video — lo leído y lo NO verificado
+Para el experimento de la Parte C se leyeron tres páginas de Microsoft Learn y una reproducción de
+esquema de tercero. **El valor del bucle no quedó verificado contra la norma**, y por eso el
+resultado es un archivo para que el médico abra y no una implementación. El detalle completo —cada
+pieza del XML con la página de la que sale, y la lista de lo que no se pudo verificar— está en
+`docs/PENDIENTES.md` → `TGA-f`.
+
+Lo que sí quedó establecido, con cita:
+- **`p:cTn`** es el elemento que lleva `repeatCount`, y su descripción verbatim es «This attribute
+  describes the number of times the element should repeat, in units of thousandths. The possible
+  values for this attribute are defined by the *ST_TLTime* simple type (§19.7.38)» — Microsoft
+  Learn, página de `CommonTimeNode`.
+- **`p:timing`** es padre de **`p:tnLst`** — Microsoft Learn, página de `TimeNodeList`: «Parent
+  Elements: timing (§19.3.1.48); tmpl (§19.5.84)».
+- **`p:video`** tiene a **`p:cMediaNode`** como único hijo declarado (§19.5.29) — Microsoft Learn,
+  página de `Video`.
+- **`p:tgtEl` > `p:spTgt spid`** es cómo el nodo de medio apunta al shape del video; sale del
+  **ejemplo** de esa página, no de una definición.
+
+**No verificado**: que `repeatCount` admita el literal `indefinite`. Las páginas de Microsoft Learn
+**no contienen esa palabra**; la única fuente leída que la admite es la reproducción del esquema de
+datypic (`t-p_ST_TLTime.html`), que describe `ST_TLTime` como unión de `xsd:unsignedInt` y
+`ST_TLTimeIndefinite` con valor válido `indefinite`. La página de `MediaNode` dio **404**.
+
+### Dos censos de esta tanda, con su control positivo
+
+**1 · La recomendación de desfibrilador de la miocardiopatía hipertrófica NO vive fuera del
+papel.** Es lo que deja la Parte B parada:
+
+| dónde | menciones |
+|---|---|
+| el papel | **2** ← control positivo |
+| la Evidencia de la MCH | 0 |
+| los 74 globos ⓘ | 0 |
+| las 62 fichas de Referencias | 0 |
+
+**2 · Las cuatro comunicaciones de la demo YA existen en la app**, así que por la condición expresa
+de la orden no se agregó ninguna: CIA y CIV en `sacc-cc-shunt`, el foramen oval en `sacc-cc-fop` y
+el ductus en `sacc-cc-dap`.
