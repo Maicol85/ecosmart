@@ -98715,12 +98715,22 @@ function igImgPptPedir() {
   const txt = document.getElementById('ig-ppt-aviso-txt');
   if (txt) {
     const sinTapa = _igImgSel.filter(it => !_igImgTapas.has(_igClave(it.uuid, it.idx))).length;
+    /* ⚠️ LOS VIDEOS SE NOMBRAN APARTE (decisión del médico, 30/10/2026). «Tapar datos» quema un
+       rectángulo negro sobre UN cuadro, así que sobre un video tapa el cuadro que va al mazo y
+       nada más: los demás cuadros del clip no pasan por acá. En este mazo eso alcanza —de un
+       video va sólo su primer cuadro—, pero el PPT del estudio incrusta el clip COMPLETO y ahí
+       no hay tapa ninguna, y el médico que leyó este aviso va a creer que sí. */
+    const nVid = _igImgSel.filter(it => { const m = igImgMeta(it.uuid, it.idx); return !!(m && m.video) }).length;
     txt.textContent = 'El PPT no lleva el nombre de ningún paciente: cada imagen va con su ' +
       'número. Pero muchas capturas del ecógrafo traen el nombre quemado dentro de la imagen, y ' +
       'la franja donde lo imprime cambia según el equipo. ' +
       (sinTapa ? ('Quedan ' + sinTapa + ' de ' + _igImgSel.length +
                   ' imagen(es) sin tapar: revisalas antes de exportar.')
-               : 'Las ' + _igImgSel.length + ' imágenes elegidas tienen su tapa puesta.');
+               : 'Las ' + _igImgSel.length + ' imágenes elegidas tienen su tapa puesta.') +
+      (nVid ? ' Hay ' + nVid + ' video(s) entre lo elegido: de un video va sólo su primer cuadro, ' +
+              'y «Tapar datos» tapa ese cuadro y nada más. Un video puede traer el nombre del ' +
+              'paciente en pantalla durante todo el clip, y en el PPT del estudio —que sí ' +
+              'incrusta el clip completo— no hay tapa que lo cubra.' : '');
   }
   igImgPptAviso(true);
 }
@@ -98736,6 +98746,10 @@ window.igImgPptPedir = igImgPptPedir;
    imagen. El pie lleva el disclaimer médico-legal, que es material que se proyecta ante colegas.
    El centro y el médico NO van: salen del estudio que esté cargado en el formulario, que puede
    no ser ninguno de los de las imágenes elegidas. */
+function _igPptUsable(sl) {
+  return !!(sl && sl.dataURL && (typeof _imgSrcOK !== 'function' || _imgSrcOK(sl.dataURL)));
+}
+
 function igImgPptExportar() {
   if (_igImgExportando) return;
   if (!_igImgSel.length) { igImgRes('Elegí al menos una imagen.'); return; }
@@ -98745,6 +98759,16 @@ function igImgPptExportar() {
   }
   _igImgExportando = true;
   igImgRes('Armando el PPT…');
+  /* ⚠️ ESTE MAZO LLEVA EL PRIMER CUADRO DE UN VIDEO, Y NO EL VIDEO. Es el «deja el cuadro fijo»
+     del pedido del 30/10/2026: el bucle NO se puede marcar en un .pptx con la librería que la
+     app tiene —PptxGenJS 3.12.0 no escribe `p:timing` ni `repeatCount`, verificado leyendo sus
+     477 KB y leyendo el XML de un paquete generado de verdad—, así que este camino se queda con
+     el cuadro. Hasta hoy dejaba la miniatura AFUERA con el mensaje «no se pudieron preparar»,
+     que sobre una imagen que el médico eligió a mano se lee como una falla del archivo y no
+     como una decisión de la app.
+     Se usa un predicado PROPIO y no `_pptEsImagen`: ése excluye el póster de un video a
+     propósito y lo leen el PPT del estudio —donde el video tiene su diapositiva— y su selector.
+     Cambiarlo allá metería el póster DOS veces en el mazo del estudio. */
   const elegidas = _igImgSel.slice();
   const por = (IG_IMG_PPT_POR.indexOf(_igImgPor) >= 0) ? _igImgPor : 1;
   /* Las imágenes se leen por estudio y EN SERIE: 24 lecturas en paralelo sobre IndexedDB con
@@ -98754,9 +98778,11 @@ function igImgPptExportar() {
     const it = elegidas[i];
     return igImgBlobs(it.uuid).then(imgs => {
       const sl = (imgs && imgs[it.idx]) ? imgs[it.idx] : null;
-      if (!sl || !_pptEsImagen(sl)) { acc.push({ it, dataURL: null }); return acc; }
+      if (!sl || !_igPptUsable(sl)) { acc.push({ it, dataURL: null }); return acc; }
+      const esVid = !!(sl && sl.videoId);
       return igImgQuemarTapa(sl.dataURL, _igImgTapas.get(_igClave(it.uuid, it.idx)) || null)
-        .then(d => { acc.push({ it, dataURL: d, tapada: _igImgTapas.has(_igClave(it.uuid, it.idx)) }); return acc; });
+        .then(d => { acc.push({ it, dataURL: d, video: esVid,
+                                tapada: _igImgTapas.has(_igClave(it.uuid, it.idx)) }); return acc; });
     }).then(a => leer(i + 1, a));
   };
   leer(0, []).then(lista => {
@@ -98804,10 +98830,17 @@ function igImgPptExportar() {
     const nombre = 'EcoSmart_Imagenes_' + fecha + '.pptx';
     return _pptxDescargarSaneado(P, nombre).then(() => {
       const tapadas = buenas.filter(x => x.tapada).length;
+      const vids = buenas.filter(x => x.video).length;
       igImgRes('PPT generado: ' + hojas + ' diapositiva' + (hojas === 1 ? '' : 's') + ' (' + por +
                ' por diapositiva), ' + buenas.length + ' ' +
                (buenas.length === 1 ? 'imagen numerada' : 'imágenes numeradas') + ', ' +
                tapadas + ' con datos tapados y sin el nombre de ningún paciente.' +
+               /* Se DICE que de un video va el cuadro: una diapositiva con el primer cuadro de
+                  un clip es indistinguible de una captura, y el médico que lo eligió espera
+                  poder reproducirlo. */
+               (vids ? ' ' + vids + (vids === 1 ? ' es el primer cuadro de un video'
+                                                : ' son el primer cuadro de un video') +
+                       ' — este mazo no reproduce video; el video se incluye desde el PPT del estudio.' : '') +
                (perdidas ? ' ' + perdidas + ' no se pudieron preparar y quedaron afuera.' : ''));
       if (typeof toast === 'function') toast('✅ PPT de imágenes generado');
     });
@@ -104972,6 +105005,17 @@ const _PPT_IMG_LAYOUT_DEF = 2;
    ARCHIVO al cargarlo en un slot y éste es el TOTAL de video que entra al .pptx. Coinciden hoy
    en 50 y el día que uno cambie no tiene por qué arrastrar al otro. */
 const PPT_VIDEO_AVISO_MB = 50;
+/* ⚠️ EL SEGUNDO UMBRAL, Y NO REEMPLAZA AL PRIMERO (decisión del médico, 30/10/2026). A los
+   50 MB de video el aviso dice que el archivo «puede ser grande»; a los 100 MB de ARCHIVO ya
+   no entra en un correo, PowerPoint tarda en abrirlo y varios servidores lo rechazan, así que
+   el aviso tiene que decir eso y no lo mismo otra vez.
+   DE DÓNDE SALE LA ESTIMACIÓN, MEDIDA: los videos entran al .pptx como partes del zip y ya
+   vienen comprimidos, así que el zip no los infla —no es base64 dentro del XML, que sí
+   costaría un tercio más—. Medido sobre un paquete real: 13.411 bytes de video dan un .pptx de
+   129.834, o sea los bytes del video más unos 116 KB de mazo. El resto de las diapositivas son
+   decenas de KB, así que la suma de los videos más ese piso es la estimación del archivo. */
+const PPT_PPTX_AVISO_MB = 100;
+const PPT_PPTX_PISO_BYTES = 150 * 1024;    // el mazo sin videos, redondeado hacia arriba
 
 /* ÚNICO filtro de «esto es una imagen fija del estudio», compartido por el selector y por el
    generador. Que sea uno solo es lo que sostiene la alineación de índices: `_pptImgSel.sel` son
@@ -105311,9 +105355,18 @@ function _pptElegirImagenes(imgs, vids, cb) {
        al archivo: el resto del mazo son decenas de KB. Para los MP4 es el tamaño real del blob;
        para un cineloop, la estimación por bitrate — la única disponible antes de codificar. */
     const bytes = vSel.reduce((a, v) => a + (v.bytes || 0), 0);
-    if (bytes > PPT_VIDEO_AVISO_MB * 1048576 &&
-        !confirm('El PPT con videos puede ser grande. ¿Querés continuar?\n\n' +
-                 'Los videos elegidos ocupan alrededor de ' + _cineMB(bytes) + '.')) return;
+    /* UN SOLO aviso y no dos encadenados: con `if/else` el médico contesta una vez. El de 100 MB
+       manda, porque dice lo mismo que el de 50 y además lo que pasa a ese tamaño. */
+    const estArch = bytes + PPT_PPTX_PISO_BYTES;
+    if (estArch > PPT_PPTX_AVISO_MB * 1048576) {
+      if (!confirm('El PPT va a pesar alrededor de ' + _cineMB(estArch) + '. ¿Querés continuar?\n\n' +
+                   'Por encima de ' + PPT_PPTX_AVISO_MB + ' MB el archivo no entra en un correo, ' +
+                   'PowerPoint tarda en abrirlo y algunos servidores lo rechazan.\n\n' +
+                   'Podés destildar algún video y generar un PPT por video.')) return;
+    } else if (bytes > PPT_VIDEO_AVISO_MB * 1048576) {
+      if (!confirm('El PPT con videos puede ser grande. ¿Querés continuar?\n\n' +
+                   'Los videos elegidos ocupan alrededor de ' + _cineMB(bytes) + '.')) return;
+    }
     cerrar();
     cb({ sel: sel, layout: layout, vids: vSel });
   }, 'generar'));
@@ -143153,8 +143206,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261031-0243';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793425431672;                 /* eco-build-ms */
+const ECO_BUILD    = '20261031-0302';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793426521145;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -143240,7 +143293,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261031-0243</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261031-0302</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
