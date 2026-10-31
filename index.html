@@ -69909,6 +69909,7 @@ function generarPDFReal(_aj) {
      comentario del cuerpo de más abajo describe para el texto.
      Cuando actúa, se re-deriva el ANCHO desde el alto: la imagen se achica, nunca se achata ni se
      recorta. Medido: sin el tope de ancho, esa misma captura llegaba a 166,5 mm. */
+  /* ⟶ SIN USO DESDE IMG3-3, por el mismo motivo. */
   const _PDF_CAP_ALTO_MAX = 170;
   /* ⚠️ TOPE DE ANCHO DE LA CAPTURA, Y EL MOTIVO ES TIPOGRÁFICO, no de maquetación.
      El PNG trae su texto DIBUJADO ADENTRO, así que el cuerpo de letra impreso no lo decide el PDF:
@@ -69919,6 +69920,9 @@ function generarPDFReal(_aj) {
      A 120 mm el pie cae a 13,0 pt y la leyenda de tonos a 8,5, que es el cuerpo del informe, y la
      imagen sigue siendo un 35 % más grande que en columna compartida. Medido en el PDF generado.
      Decisión de Maicol del 2026-10-04. */
+  /* ⟶ SIN USO DESDE IMG3-3: la escala de los dibujos la decide el motor de tercios, que los
+     ajusta a su franja. Se conserva la medicion que lo justificaba: la captura mas alta
+     —territorio, tres territorios— mide 105,2 mm. */
   const _PDF_CAP_ANCHO_MAX = 120;
   /* ⚠️ LA CAPTURA DEL 3D, Y NO HAY SEGUNDA COMPUERTA QUE OLVIDAR.
      `lv3dCapturaParaPDF()` ya exige las DOS cosas —captura en memoria Y casilla marcada— y devuelve
@@ -69930,195 +69934,42 @@ function generarPDFReal(_aj) {
      El `typeof` cubre el caso de que el módulo 3D no exista (la app abierta sin esa sección). */
   const _cap3d = (typeof window.lv3dCapturaParaPDF === 'function') ? window.lv3dCapturaParaPDF() : null;
   const _hayBE = typeof bullseyeDataURL === 'function';
-  if (((_incContr || _incSgl) && _hayBE) || _cap3d) {
-    // Columnas: cada una con su imagen arriba y su texto debajo
-    let _colContr = null, _colSgl = null, _colCap = null;
-    if (_incContr && _hayBE) {
+  /* ⟶ LOS DIAGRAMAS YA NO SE DIBUJAN ACÁ: SE RECOGEN (IMG3-3, 2026-10-31).
+     `_dg` es el mapa de lo que cada diagrama APORTA —sus dibujos, su leyenda y su línea de
+     texto— y el motor de tercios (`pdfDiagPack` + `_pdfDiagEmitir`) decide dónde va. El
+     comentario de arriba sobre la disposición en filas de dos columnas describe lo que este
+     bloque hacía hasta hoy y queda como historia: hoy la disposición la decide el motor, que
+     es el único dueño del orden, del tamaño y de la lista de excluidos.
+     LOS PRODUCTORES NO SE TOCAN: las mismas funciones y los mismos textos. Lo único que se
+     mueve es dónde se estampan. */
+  const _dg = {};
+  if ((_incContr || _incSgl) && _hayBE) {
+    const _dgP = [], _dgL = [];
+    if (_incContr) {
       if (typeof contrRenderInforme === 'function') contrRenderInforme();
-      const _ctLineas = (typeof contrGetLineasInforme === 'function') ? contrGetLineasInforme() : [];
-      const _ct = _ctLineas.join('\n');
-      _colContr = {
-        title: 'Contractilidad segmentaria',
-        rotulo: 'CONTRACTILIDAD',
-        data: bullseyeDataURL(id => (CONTR_MOTILIDAD[(contrEstado[id]||0)] || CONTR_MOTILIDAD[0]).color),
-        heading: _ct ? 'Hallazgos de motilidad:' : '',
-        body: _ct,
-        leyenda: CONTR_MOTILIDAD
-      };
+      const _ctL = (typeof contrGetLineasInforme === 'function') ? contrGetLineasInforme() : [];
+      _dgP.push({ data: bullseyeDataURL(id => (CONTR_MOTILIDAD[(contrEstado[id]||0)] || CONTR_MOTILIDAD[0]).color),
+                  sub: 'Motilidad', leyenda: CONTR_MOTILIDAD });
+      if (_ctL.length) _dgL.push(_ctL.join(' · '));
     }
-    if (_incSgl && _hayBE) {
-      /* Negativo (AJ9-1c). El PDF y el PPT comparten este dato y lo publicaban crudo los dos. */
-      const _gls = (typeof sglNegTxt === 'function') ? sglNegTxt(sv('sgl_gls')) : ((typeof sv === 'function') ? sv('sgl_gls').trim() : '');
+    if (_incSgl) {
+      /* Negativo (AJ9-1c): el PDF y el PPT comparten este dato y lo publicaban crudo los dos. */
+      const _gls = (typeof sglNegTxt === 'function') ? sglNegTxt(sv('sgl_gls'))
+                 : ((typeof sv === 'function') ? sv('sgl_gls').trim() : '');
       const _nt  = (typeof sv === 'function') ? sv('sgl_notas').trim() : '';
-      const _body = [ _gls ? ('SGL global: ' + _gls + ' %') : '', _nt ].filter(Boolean).join('\n');
-      _colSgl = {
-        title: 'Strain longitudinal (SGL)',
-        rotulo: 'STRAIN (SGL)',
-        data: bullseyeDataURL(id => strainColor(id)),
-        heading: _body ? 'Strain longitudinal (SGL):' : '',
-        body: _body,
-        leyenda: GE_STRAIN
-      };
+      _dgP.push({ data: bullseyeDataURL(id => strainColor(id)), sub: 'Strain (SGL)', leyenda: GE_STRAIN });
+      const _b = [ _gls ? ('SGL global ' + _gls + ' %') : '', _nt ].filter(Boolean).join(' · ');
+      if (_b) _dgL.push(_b);
     }
-    if (_cap3d) {
-      /* ⚠️ `ar` (alto/ancho) es lo que marca la diferencia entre esta columna y las dos dianas, y
-         es lo que impide que la imagen se deforme. Las dianas son CUADRADAS por construcción y el
-         código viejo escribía el mismo valor como ancho y como alto; el PNG del 3D no lo es —mide
-         680 × (380 + pie + leyenda), así que su proporción cambia según el modo— y escalarlo con
-         `_szImg, _szImg` lo habría achatado hasta volver esférico un ventrículo dilatado, que es
-         exactamente lo único que el diagrama afirma.
-         `leyenda` va SIN definir a propósito: la del 3D está pintada DENTRO del PNG (es la misma
-         que la de pantalla, por `lv3dTonoHex`), así que esta columna no reserva los 34 mm laterales
-         y usa todo su ancho — que es también lo que hace que el texto del pie se pueda leer. */
-      _colCap = {
-        title: 'Diagrama 3D del ventrículo izquierdo',
-        rotulo: 'DIAGRAMA 3D',
-        data: _cap3d.url,
-        ar: (_cap3d.alto && _cap3d.ancho) ? (_cap3d.alto / _cap3d.ancho) : 1,
-        heading: '',
-        body: ''
-      };
-    }
-    /* ⚠️ DISPOSICIÓN — DECISIÓN DE MAICOL DEL 2026-10-04, y la regla es UNA, no cuatro casos.
-       Fila 1 toma hasta dos columnas entre [bull's eye de motilidad, captura del 3D]. Si queda una
-       sola, el strain ocupa la segunda columna de esa misma fila, que es cómo salía hasta hoy; si
-       la fila 1 ya tiene dos, el strain baja a una fila propia debajo.
-       Escrito así porque la lista de casos del pedido cubría cuatro de las ocho combinaciones
-       posibles de tres casillas independientes, y las cuatro que faltaban —empezando por «captura
-       marcada y bull's eye NO marcado»— son alcanzables con un clic: las dos casillas siguen
-       independientes, ninguna prende ni apaga a la otra. Una regla cubre las ocho; una lista de
-       casos deja agujeros que se descubren con el PDF ya firmado. Se verifican los ocho. */
-    const _fila1 = [_colContr, _colCap].filter(Boolean);
-    const _fila2 = [];
-    if (_colSgl) { if (_fila1.length >= 2) _fila2.push(_colSgl); else _fila1.push(_colSgl); }
-    const _todas = _fila1.concat(_fila2);
-
-    /* Alto de imagen de una fila, para presupuestar el `checkPage`. El viejo `checkPage(88)` daba
-       por sentado que la imagen medía 54 y alcanzaba: la captura sola mide 105,2 mm de alto, que
-       con el bloque arrancando en y≈65 todavía entra en la hoja — así que HOY este cálculo no
-       cambia ninguna decisión, y así está medido en el arnés de mutaciones (M29 y M30 sobreviven,
-       declaradas). Se calcula igual porque el presupuesto de 88 era una coincidencia, no una
-       cota: con el bloque empezando más abajo —un informe con ETE, con imágenes, o con un texto
-       de motilidad largo— el sobrante se dibuja pasado el MediaBox y el visor lo recorta SIN
-       avisar, que es el mismo modo de falla que el comentario del cuerpo describe para el texto.
-       Tiene que dar lo MISMO que el cálculo de `_dibujarFila`, así que el día que cambie uno hay
-       que cambiar los dos: es el precio de presupuestar antes de dibujar. */
-    const _altoImgFila = (cols, colW) => cols.reduce((mx, col) => {
-      const legW = col.leyenda ? 34 : 0;
-      const dispo = colW - legW - 2;
-      const w = col.ar ? Math.min(_PDF_CAP_ANCHO_MAX, dispo) : Math.min(_PDF_DIANA_LADO, dispo);
-      return Math.max(mx, Math.min(w * (col.ar || 1), _PDF_CAP_ALTO_MAX));
-    }, 0);
-    const _anchoCol = cols => (pgW - (cols.length - 1) * 10) / cols.length;
-
-    const _dibujarFila = (_cols, _conSalto) => {
-      const _n = _cols.length, _gap = 10;
-      const _colW = (pgW - (_n - 1) * _gap) / _n;
-      /* La segunda fila no trae banda propia —es el mismo bloque— pero sí tiene que caber: sin
-         este `checkPage` el strain de abajo se dibujaba sobre la firma cuando la fila de arriba
-         llegaba larga. Con salto, arranca la hoja nueva en el margen de siempre. */
-      if (_conSalto) { checkPage(2 + _altoImgFila(_cols, _colW) + 20); y += _aire(2); }
-      const _startY = y;
-      /* Cada columna arranca en la MISMA página, no en la que dejó la anterior.
-         `_cols.map` compartía la página actual del documento: si el cuerpo de la columna 0
-         —los hallazgos de motilidad, que en un post-IAM con varios territorios necesitan 40-60
-         mm contra los ~9 que presupuesta el checkPage— desbordaba y llamaba addPage(), la
-         columna 1 arrancaba con `_cy = _startY` (una coordenada de la página ANTERIOR) pero
-         dibujando sobre la página NUEVA: el bull's eye del SGL caía a media hoja encima del
-         texto que acababa de pasar ahí. Y `y = max(_bottoms)` quedaba en una coordenada de otra
-         página, así que el checkPage siguiente saltaba una hoja de más.
-         Se lee como «desapareció el bull's eye» y no tiene nada que ver con el ETE: depende
-         del largo del texto de motilidad. */
-      const _pag0 = doc.internal.getCurrentPageInfo().pageNumber;
-      let _pagFin = _pag0;
-      const _bottoms = _cols.map((col, i) => {
-        doc.setPage(_pag0);
-        let _pagCol = _pag0;
-        const _cx0 = mL + i * (_colW + _gap);       // borde izquierdo de la columna
-        const _ccx = _cx0 + _colW / 2;              // centro de la columna
-        let _cy = _startY;
-        fb(7.5); tc(TEMA[0],TEMA[1],TEMA[2]); doc.text(col.title, _ccx, _cy, { align:'center' }); _cy += 2;
-        const _imgY = _cy;
-        const _legW = col.leyenda ? 34 : 0;
-        /* Ancho disponible y alto POR PROPORCIÓN. Para las dianas (`ar` sin definir) da exactamente
-           lo de antes: `min(54, _colW - _legW - 2)` y un alto igual al ancho. Para la captura usa
-           todo el ancho libre y deriva el alto de `ar`, con un tope de alto para que una captura en
-           columna única no se salga de la hoja; si el tope actúa, se re-deriva el ANCHO —nunca se
-           recorta ni se achata—.
-           ⚠️ El centrado divide `_colW - _legW`, SIN los 2 mm de aire, y no `_dispo`. Es como estaba
-           y hay que dejarlo así: centrar sobre `_dispo` corre la diana 1 mm a la izquierda, lo que
-           no se ve en una hoja pero hace distinto cada byte del PDF de todos los estudios que ya
-           salían bien — y entonces el A/B contra HEAD deja de poder distinguir un cambio real. */
-        const _dispo = _colW - _legW - 2;
-        let _imgW = col.ar ? Math.min(_PDF_CAP_ANCHO_MAX, _dispo) : Math.min(_PDF_DIANA_LADO, _dispo);
-        let _imgH = _imgW * (col.ar || 1);
-        if (_imgH > _PDF_CAP_ALTO_MAX) { _imgH = _PDF_CAP_ALTO_MAX; _imgW = _imgH / (col.ar || 1); }
-        const _imgX = _cx0 + _legW + (_colW - _legW - _imgW) / 2;
-        if (col.leyenda) {
-          const _lx = _cx0;
-          let _ly = _imgY + 4;
-          fb(7); tc(TEMA[0],TEMA[1],TEMA[2]); doc.text('Ref.:', _lx, _ly); _ly += 5;
-          col.leyenda.forEach(m => {
-            if (m.colors) {
-              m.colors.forEach((c2, _k) => {
-                const rgb2 = c2.match(/\w\w/g).map(h=>parseInt(h,16));
-                doc.setFillColor(rgb2[0],rgb2[1],rgb2[2]);
-                doc.rect(_lx + _k*4.2, _ly-3.2, 3.5, 3.5, 'F');
-              });
-              fn(7); tc(30,30,30); doc.text(m.nombre, _lx + m.colors.length*4.2 + 1.5, _ly); _ly += 5;
-            } else {
-              const rgb = m.color.match(/\w\w/g).map(h=>parseInt(h,16));
-              doc.setFillColor(rgb[0],rgb[1],rgb[2]);
-              doc.rect(_lx, _ly-3.2, 3.5, 3.5, 'F');
-              fn(7); tc(30,30,30); doc.text(m.nombre, _lx+5, _ly); _ly += 5;
-            }
-          });
-        }
-        doc.addImage(col.data, 'PNG', _imgX, _imgY, _imgW, _imgH);
-        _cy = _imgY + _imgH + 5;
-        if (col.body) {
-          fb(7.5); tc(TEMA[0],TEMA[1],TEMA[2]); doc.text(col.heading, _cx0, _cy); _cy += 5.2;
-          fn(8); tc(30,30,30);
-          /* El checkPage de arriba presupuesta la imagen y deja ~9 mm para el cuerpo.
-             Un post-IAM con varios territorios emite una frase por grupo y necesita 40-60:
-             sin tope, el sobrante se dibujaba encima de la firma y, pasados los 297 mm,
-             fuera del MediaBox — el visor lo recorta sin avisar y el informe sale firmado
-             SIN los hallazgos de motilidad, que es lo más accionable del estudio.
-             Se corta acá: lo que no entra pasa a la hoja siguiente. */
-          doc.splitTextToSize(_sanML(col.body), _colW).forEach(ln => {
-            if (_cy > _yMax) {
-              /* Se REUSA la página de continuación que abrió la columna anterior en vez de
-                 abrir una nueva por columna: si no, dos columnas largas producían dos hojas
-                 con media columna cada una. */
-              _pagCol++;
-              if (_pagCol > doc.internal.getNumberOfPages()) doc.addPage(); else doc.setPage(_pagCol);
-              _cy = 14; fn(8); tc(30,30,30);
-            }
-            doc.text(ln, _cx0, _cy); _cy += 4.8;
-          });
-        }
-        if (_pagCol > _pagFin) _pagFin = _pagCol;
-        return { pag: _pagCol, y: _cy };
-      });
-      /* La `y` de salida tiene que ser de la ÚLTIMA página escrita, no el máximo numérico de
-         coordenadas de páginas distintas. */
-      doc.setPage(_pagFin);
-      y = Math.max.apply(null, _bottoms.filter(b => b.pag === _pagFin).map(b => b.y)) + 4;
-    };
-
-    if (_todas.length) {
-      /* El rótulo de la banda: con UNA sola columna es su título en mayúsculas, como antes; con
-         varias se arman los `rotulo` cortos. Para contractilidad + strain eso devuelve
-         'CONTRACTILIDAD Y STRAIN (SGL)', idéntico a la cadena literal que había acá — por eso el
-         PDF de los casos que ya existían sale byte por byte igual que en HEAD. */
-      const _rs = _todas.map(c => c.rotulo);
-      checkPage(Math.max(88, 2 + _altoImgFila(_fila1, _anchoCol(_fila1)) + 20));
-      drawBar(_todas.length === 1 ? _todas[0].title.toUpperCase()
-              : (_rs.slice(0, -1).join(', ') + ' Y ' + _rs[_rs.length - 1]));
-      y += _aire(3);
-      _dibujarFila(_fila1);
-      if (_fila2.length) _dibujarFila(_fila2, true);
-    }
+    if (_dgP.length) _dg.contr = { partes: _dgP, linea: _dgL.join('  ·  ') };
+  }
+  if (_cap3d) {
+    /* `ar` (alto/ancho) sale de la captura y NO está cableada: el PNG del 3D no es cuadrado
+       —mide 680 × (380 + pie + leyenda)— y escalarlo con un lado fijo lo achataría hasta
+       volver esférico un ventrículo dilatado, que es lo único que el diagrama afirma. */
+    _dg.lv3d = { partes: [{ data: _cap3d.url,
+                            ar: (_cap3d.alto && _cap3d.ancho) ? (_cap3d.alto / _cap3d.ancho) : 1 }],
+                 linea: '' };
   }
 
   // ════════════════════════════════════════════════════════════
@@ -70220,87 +70071,37 @@ function generarPDFReal(_aj) {
      paciente, así que un reloj huérfano queda sin atribución.
      try/catch porque una excepción acá aborta generarPDFReal con páginas ya dibujadas: el
      médico se queda sin archivo y sin mensaje. Mejor el informe sin el reloj que sin informe. */
-  /* La imagen se genera ANTES de dibujar nada. drawBar pinta la banda y avanza y, así que
-     generarla después dejaba el encabezado ya estampado si toDataURL o addImage tiraban: el
-     informe salía con el título "JET PARAVALVULAR POST-TAVI" y nada debajo. Un encabezado
-     huérfano es peor que un reloj ausente — es el mismo malentendido ("se evaluó y no había")
-     más la apariencia de un fallo de impresión.
-     El gate incluye el checkbox de inclusión, no sólo la presencia de datos: todas las demás
-     salidas de TAVI lo respetan (la prosa del narrativo y el bloque estructurado), y sin esto
-     el médico que destilda "Integrar al informe" igual se encontraba la banda impresa. */
-  let _epcImg = null, _epcHoras = null;
+  /* ⟶ RECOGIDO POR EL MOTOR DE TERCIOS (IMG3-3). El gate y el motivo por el que la imagen se
+     genera antes de dibujar siguen valiendo; lo que ya no hay es barra de sección propia.
+     La leyenda del reloj pasa a la LÍNEA del diagrama, con el mismo vocabulario del dibujo. */
   try {
     const _epcChk = document.getElementById('ete_tavi_incluir_chk');
     if (_epcChk && _epcChk.checked && typeof eteEpcHoras === 'function' &&
         typeof eteEpcDataURL === 'function' && eteEpcHoras().length > 0) {
-      _epcHoras = eteEpcHoras();
-      _epcImg = eteEpcDataURL();
+      const _hs = eteEpcHoras();
+      _dg.tavi = { partes: [{ data: eteEpcDataURL() }],
+                   linea: 'Horas comprometidas: ' + _hs.join(', ') +
+                          '  ·  12 h VD (anterior), 3 h AP, 6 h AI (posterior), 9 h AD.' };
     }
-  } catch (_e) { _epcImg = null; }
-  if (_epcImg) {
-    const _epcLado = _PDF_DIANA_LADO;               // el reloj es 1:1, y del mismo lado que las dianas
-    checkPage(_BAR_H + 4 + _epcLado + 10);
-    drawBar('JET PARAVALVULAR POST-TAVI - LOCALIZACION HORARIA');
-    y += _aire(3);
-    doc.addImage(_epcImg, 'PNG', mL + (pgW - _epcLado) / 2, y, _epcLado, _epcLado);
-    y += _epcLado + 4;
-    fn(7); tc(90,90,90);
-    /* Mismo vocabulario que el dibujo: el canvas rotula VD arriba, AP a la derecha, AI abajo
-       y AD a la izquierda. Antes la leyenda decía "12 h anterior" para el mismo punto que la
-       imagen llama VD — dos nombres para el mismo reparo en la misma figura. */
-    const _epcTxt = _sanML('Horas comprometidas: ' + _epcHoras.join(', ') +
-      '  ·  Referencia: 12 h VD (anterior), 3 h AP, 6 h AI (posterior), 9 h AD.');
-    doc.text(_epcTxt, mL + (pgW - doc.getTextWidth(_epcTxt)) / 2, y);
-    y += _aire(6);
-  }
+  } catch (_e) { delete _dg.tavi; }
 
 
-  /* ══ VALVULA AORTICA BICUSPIDE — EL DIBUJO Y SU TABLA (Y3d9, 2026-10-19) ══════════════════
-     Mismo mecanismo que la vista quirurgica mitral de aca abajo y que el bull's eye: un
-     `input[type=hidden]` del ESTUDIO decide, y con el destildado el PDF no cambia en un byte.
-     ⚠️ EL GATE PIDE ADEMAS QUE HAYA ALGO QUE DIBUJAR: con la seccion vacia el dibujo es el
-     contorno de tres senos sin una sola linea de cierre, y una figura asi dentro de un informe
-     FIRMADO se lee como «se evaluo y es normal». Es la misma guarda que el donut de la CIA.
-     `try/catch` por lo mismo que el reloj del TAVI: una excepcion aca aborta el PDF entero. */
+  /* ⟶ RECOGIDO POR EL MOTOR DE TERCIOS (IMG3-3).
+     ⚠️ LA TABLA DE `vabPdfFilas()` PASA A SER UNA LÍNEA COMPACTA. Decisión del médico del
+     2026-10-30: «la bicúspide pasa a las hojas compartidas con un resumen compacto (hoy tiene
+     sección propia)». El DUEÑO de las palabras sigue siendo `vabPdfFilas()` —las mismas filas
+     con las mismas palabras— y lo que cambia es que van en una línea en vez de una fila por
+     dato. El gate no se mueve: pide el toggle, que haya filas que decir y que el dibujo salga.
+     `try/catch` por lo mismo que antes: una excepción acá aborta el PDF entero. */
   try {
     const _vabOn = (typeof vabPdfOn === 'function') && vabPdfOn();
     const _vabFilas = (typeof vabPdfFilas === 'function') ? vabPdfFilas() : null;
-    if (_vabOn && _vabFilas && typeof vabDataURL === 'function') {
+    if (_vabOn && _vabFilas && _vabFilas.length && typeof vabDataURL === 'function') {
       const _vData = vabDataURL();
-      if (_vData) {
-        /* ══ EL RESUMEN VA AL COSTADO DEL DIBUJO, NO DEBAJO (AJ1-2b, 30/10/2026) ════════════
-           Pedido del medico. El bloque ocupaba 70 mm de dibujo CENTRADO mas una fila por
-           caracteristica debajo -unos 103 mm con cinco filas-, o sea media pagina para cinco
-           datos. Con el dibujo a la izquierda y la tabla a su derecha, a la MISMA altura, el
-           bloque queda en unos 51 mm: la mitad.
-           ⚠️ LOS TEXTOS NO CAMBIAN: `vabPdfFilas()` es el mismo dueño y devuelve las mismas
-           filas con las mismas palabras. Lo unico que se mueve es donde se estampan.
-           ⚠️ EL DIBUJO BAJA DE 70 A 48 mm, que es lo que deja lugar para la tabla al lado sin
-           que el bloque crezca: 48 de dibujo contra 25 de tabla (cinco filas de 5 mm). */
-        const _vW = 48, _vH = _vW;
-        const _vTabX = mL + _vW + 8;
-        const _vAlto = Math.max(_vH, _vabFilas.length * 5);
-        checkPage(_BAR_H + 4 + _vAlto + 6);
-        drawBar('VÁLVULA AÓRTICA BICÚSPIDE');
-        y += _aire(3);
-        const _vY0 = y;
-        doc.addImage(_vData, 'PNG', mL, _vY0, _vW, _vH);
-        /* La TABLA, con las MISMAS palabras del informe: el rotulo a la izquierda y el valor a
-           continuacion, que es el formato de las otras tablas de caracteristicas del papel. */
-        let _vTy = _vY0 + 4;
-        _vabFilas.forEach(function (f) {
-          fb(8); tc(TEMA[0], TEMA[1], TEMA[2]);
-          doc.text(_sanML(f[0]) + ':', _vTabX, _vTy);
-          const _w = doc.getTextWidth(_sanML(f[0]) + ': ');
-          fn(8); tc(30, 30, 30);
-          doc.text(_sanML(f[1]), _vTabX + _w + 1, _vTy);
-          _vTy += 5;
-        });
-        y = _vY0 + _vAlto;
-        y += _aire(3);
-      }
+      if (_vData) _dg.vab = { partes: [{ data: _vData }],
+                              linea: _vabFilas.map(f => f[0] + ': ' + f[1]).join('  ·  ') };
     }
-  } catch (e) { console.error('[PDF] bloque VAB:', e); }
+  } catch (e) { console.error('[PDF] diagrama VAB:', e); delete _dg.vab; }
 
   /* ══ FORAMEN OVAL PERMEABLE — SU TABLA DE CARACTERISTICAS (D-E2, 2026-10-22) ══════════════
      Mismo mecanismo que la VAB de arriba, con DOS diferencias y las dos son de la orden: no
@@ -70332,47 +70133,12 @@ function generarPDFReal(_aj) {
     }
   } catch (e) { console.error('[PDF] bloque FOP:', e); }
 
+  /* ⟶ RECOGIDO POR EL MOTOR DE TERCIOS (IMG3-3). El dibujo entra con su leyenda de colores,
+     que ahora vive en `PDF_MITRAL_LEY` —a nivel de módulo— para que el motor la pueda pintar
+     con el mismo dibujante que las de las dianas. */
   if (typeof eteQxPdfOn === 'function' && eteQxPdfOn() && typeof eteQxDataURL === 'function') {
     const _mData = eteQxDataURL();
-    checkPage(125);
-    drawBar('VÁLVULA MITRAL — VISTA QUIRÚRGICA');
-    y += _aire(3);
-    /* ⚠️ EL DIBUJO ES CUADRADO DESDE EL Y3c2, asi que la proporcion cambia con el. El ancho baja
-       de 120 a 100 mm para contener el crecimiento del bloque: con 120 el alto pasaria de 66,9 a
-       120 mm. Con 100 queda en 100 x 100 y el bloque crece 33 mm, que es por lo que `checkPage`
-       sube de 92 a 125 — sin eso la imagen se corta al pie de pagina.
-       ⚠️ EL DIBUJO IMPRESO SE ACHICA Y SE DECLARA: el lienzo nuevo tiene aire a los costados
-       —el que el dibujo necesita para GIRAR en pantalla— asi que con 100 mm de caja el modelo
-       mide unos 57 mm de ancho contra los 76 del dibujo viejo. Recortar el lienzo del canvas al
-       contenido dejaria las cuatro marcas pegadas al borde. Esta en PENDIENTES. */
-    const _mW = Math.min(pgW, 100);
-    const _mH = _mW * (420 / 420);
-    const _mX = mL + (pgW - _mW) / 2;
-    doc.addImage(_mData, 'PNG', _mX, y, _mW, _mH);
-    y += _mH + 5;
-    // Leyenda de colores — igual formato que las otras leyendas del PDF
-    const _mLey = [
-      {nombre:'Normal',        color:'#ffffff'},
-      {nombre:'Prolapso',      color:'#f59e0b'},
-      {nombre:'Flail',         color:'#ef4444'},
-      {nombre:'Restricción',   color:'#3b82f6'},
-      {nombre:'Perforación',   color:'#8b5cf6'},
-      {nombre:'Calcificación', color:'#22c55e'}
-    ];
-    fn(7); const _mSw = 3.5, _mItemGap = 6;
-    let _mlx = mL, _mly = y;
-    _mLey.forEach(m => {
-      const _tw = doc.getTextWidth(m.nombre);
-      const _itemW = _mSw + 1.5 + _tw;
-      if (_mlx + _itemW > mR) { _mlx = mL; _mly += 6; }
-      const rgb = m.color.match(/\w\w/g).map(h=>parseInt(h,16));
-      doc.setFillColor(rgb[0],rgb[1],rgb[2]);
-      doc.setDrawColor(200,200,200);
-      doc.rect(_mlx, _mly-3.2, _mSw, _mSw, 'FD');
-      tc(30,30,30); doc.text(m.nombre, _mlx + _mSw + 1.5, _mly);
-      _mlx += _itemW + _mItemGap;
-    });
-    y = _mly + 4;
+    if (_mData) _dg.eteqx = { partes: [{ data: _mData, leyenda: PDF_MITRAL_LEY }], linea: '' };
   }
 
   /* Hojas que ocupó el CUERPO del informe. Se cuenta acá, ANTES de las hojas que se agregan
@@ -70659,6 +70425,115 @@ function generarPDFReal(_aj) {
     });
   }
 
+  /* ══ LAS HOJAS DE DIAGRAMAS, POR TERCIOS (IMG3-3, 2026-10-31) ═════════════════════════════
+     Un dibujante genérico y el motor. Acá no hay ninguna regla de orden ni de tamaño: todas
+     viven en `PDF_DIAG_REG` y en `pdfDiagPack`, que son puros y se pueden medir sin jsPDF.
+
+     ⚠️ POR QUÉ NADA SE CORTA (R-6): el alto de la LÍNEA se mide primero y se le resta al hueco
+     del dibujo, y el dibujo se escala para entrar en lo que queda. No hay ningún camino en el
+     que la imagen crezca más que su franja, así que no depende de que un presupuesto de
+     `checkPage` esté bien calculado — que es cómo este archivo ya se cortó dos veces. */
+  const _pdfTile = (box, k) => {
+    const t = _dg[k];
+    if (!t || !t.partes || !t.partes.length) return;
+    fb(8.5); tc(TEMA[0], TEMA[1], TEMA[2]);
+    doc.text(_sanML(pdfDiagLbl(k)), box.x, box.y + 4);
+    const _ln = t.linea ? doc.splitTextToSize(_sanML(t.linea), box.w) : [];
+    const _lnH = _ln.length ? (_ln.length * 3.3 + 2) : 0;
+    const _cy0 = box.y + 6;
+    const _subH = t.partes.some(p => p.sub) ? 4 : 0;
+    const _cH = Math.max(10, box.h - 6 - _lnH - _subH - 2);
+    const _n = t.partes.length, _gi = 4;
+    const _pw = (box.w - (_n - 1) * _gi) / _n;
+    t.partes.forEach((p, j) => {
+      const _x0 = box.x + j * (_pw + _gi);
+      const _legW = p.leyenda ? Math.min(26, _pw * 0.36) : 0;
+      const _dispo = _pw - _legW - (_legW ? 2 : 0);
+      const _ar = p.ar || 1;
+      let _w = _dispo, _h = _w * _ar;
+      if (_h > _cH) { _h = _cH; _w = _h / _ar; }
+      try { doc.addImage(p.data, 'PNG', _x0 + (_dispo - _w) / 2, _cy0 + (_cH - _h) / 2, _w, _h); }
+      catch (e) { console.error('[PDF] diagrama ' + k + ':', e); return; }
+      if (p.sub) { fn(7); tc(90, 90, 90); doc.text(_sanML(p.sub), _x0, _cy0 + _cH + 3); }
+      if (p.leyenda) {
+        /* La leyenda, en columna a la derecha del dibujo. Mismo formato que la de las dianas:
+           una muestra de color por fila, o varias en la misma fila cuando la entrada trae
+           `colors` —los grupos de territorios—. Si no entran todas en la franja, se para: una
+           leyenda a medias es peor que ninguna, porque no se sabe que falta. */
+        let _lx = _x0 + _dispo + 2, _ly = _cy0 + 4;
+        fb(7); tc(TEMA[0], TEMA[1], TEMA[2]); doc.text('Ref.:', _lx, _ly); _ly += 4.4;
+        p.leyenda.forEach(m => {
+          if (_ly > _cy0 + _cH) return;
+          if (m.colors) {
+            m.colors.forEach((c2, _k2) => {
+              const r2 = c2.match(/\w\w/g).map(h => parseInt(h, 16));
+              doc.setFillColor(r2[0], r2[1], r2[2]);
+              doc.rect(_lx + _k2 * 3.6, _ly - 2.8, 3, 3, 'F');
+            });
+            fn(6.5); tc(30, 30, 30);
+            doc.text(_sanML(m.nombre), _lx + m.colors.length * 3.6 + 1.2, _ly);
+          } else {
+            const rgb = String(m.color || '#ffffff').match(/\w\w/g).map(h => parseInt(h, 16));
+            doc.setFillColor(rgb[0], rgb[1], rgb[2]);
+            doc.setDrawColor(200, 200, 200);
+            doc.rect(_lx, _ly - 2.8, 3, 3, 'FD');
+            fn(6.5); tc(30, 30, 30); doc.text(_sanML(m.nombre), _lx + 4.2, _ly);
+          }
+          _ly += 4.4;
+        });
+      }
+    });
+    if (_ln.length) {
+      fn(7); tc(90, 90, 90);
+      _ln.forEach((l, i) => doc.text(l, box.x, box.y + box.h - _lnH + 3 + i * 3.3));
+    }
+  };
+
+  /* LA OREJUELA entra como diagrama SÓLO si su dibujo no se estampó junto a su tabla. Es la
+     regla del AJ1-2a y no se mueve: con la sección integrada, el dibujo va al lado de su tabla
+     y NO se repite; sin ella, es un diagrama como los demás, con su resumen de línea. */
+  let _oaiEsqIdx = -1;
+  try {
+    if (_oaiSlotUsado < 0 && typeof imgSlots !== 'undefined') {
+      const _ei = (typeof esqSlotIdx === 'function') ? esqSlotIdx('orejuela') : -1;
+      if (_ei >= 0 && imgSlots[_ei] && imgSlots[_ei].dataURL && !imgSlots[_ei].noPdf) {
+        const _rs = (typeof oaiResumenPDF === 'function') ? (oaiResumenPDF() || []) : [];
+        _dg.oai = { partes: [{ data: imgSlots[_ei].dataURL }],
+                    linea: _rs.map(f => f[0] + ': ' + f[1]).join('  ·  ') };
+        _oaiEsqIdx = _ei;
+      }
+    }
+  } catch (e) { console.error('[PDF] orejuela como diagrama:', e); _oaiEsqIdx = -1; }
+
+  const _diagClaves = PDF_DIAG_REG.map(d => d.k).filter(k => !!_dg[k]);
+  if (_diagClaves.length) {
+    const _pk = pdfDiagPack(_diagClaves, []);
+    const _top = 18, _bot = _yMax;
+    const _fH = (_bot - _top) / PDF_DIAG_FRANJAS;
+    const _gapD = 6, _halfD = (pgW - _gapD) / 2;
+    _pk.hojas.forEach(hoja => {
+      doc.addPage();
+      fc(TEMA[0], TEMA[1], TEMA[2]); doc.rect(0, 0, 210, 12, 'F');
+      fb(11); tc(255, 255, 255);
+      doc.text('Diagramas del estudio', 105, 8, { align: 'center' });
+      let _u = 0;
+      hoja.forEach(it => {
+        const _y0 = _top + (_u / PDF_DIAG_U) * _fH;
+        const _hh = (it.h / PDF_DIAG_U) * _fH;
+        if (it.t === 'diag') {
+          if (it.full) _pdfTile({ x: mL, y: _y0, w: pgW, h: _hh }, it.ids[0]);
+          else it.ids.forEach((k, j) =>
+            _pdfTile({ x: mL + j * (_halfD + _gapD), y: _y0, w: _halfD, h: _hh }, k));
+        }
+        _u += it.h;
+      });
+      y = _top + (_u / PDF_DIAG_U) * _fH;
+    });
+    /* Las notas del motor —hoy sólo la de la pareja excluida— van a la consola y NO al papel:
+       el informe describe, no explica su propia maquetación. */
+    if (_pk.notas.length) console.info('[PDF] diagramas: ' + _pk.notas.join(' '));
+  }
+
   // ════════════════════════════════════════════════════════════
   // IMÁGENES ADJUNTAS — página(s) adicional(es) al final
   // ════════════════════════════════════════════════════════════
@@ -70669,7 +70544,11 @@ function generarPDFReal(_aj) {
     /* `_oaiSlotUsado` queda afuera: su dibujo ya se estampo al lado de su tabla.
        `s.noPdf` es la marca que pone la ✕ de la fila de miniaturas (AJ1-5c): la imagen sigue en
        el estudio y en «Imagenes del estudio», y no se imprime. */
-    const _loaded = imgSlots.filter((s, i) => s && s.dataURL && !s.videoId && !s.noPdf && i !== _oaiSlotUsado);
+    /* `_oaiEsqIdx` se suma a `_oaiSlotUsado` (IMG3-3): el esquema de la orejuela es un
+       DIAGRAMA y ya se estampó en su franja, así que no vuelve a entrar acá. Los dos índices
+       valen -1 cuando no corresponde, y -1 nunca es un índice de `imgSlots`. */
+    const _loaded = imgSlots.filter((s, i) => s && s.dataURL && !s.videoId && !s.noPdf
+                                              && i !== _oaiSlotUsado && i !== _oaiEsqIdx);
     if (_loaded.length) {
       // _bot usa el MISMO presupuesto dinámico que checkPage: la banda de firma
       // cambia de alto según cuántas filas tenga, y con un valor fijo una imagen
@@ -70681,37 +70560,13 @@ function generarPDFReal(_aj) {
       const _dim = (data, maxW, maxH) => { const p = doc.getImageProperties(data); const r = p.height / p.width; let w = maxW, h = w * r; if (h > maxH) { h = maxH; w = h / r; } return { w, h }; };
       _imgPage();
       let i = 0;
-      /* El resumen corto que acompaña al esquema de la orejuela cuando el informe NO trae su
-         tabla. Se calcula UNA vez, fuera del bucle. */
-      const _oaiRes = (typeof oaiResumenPDF === 'function') ? (oaiResumenPDF() || []) : [];
+      /* ⟶ LA RAMA DEL ESQUEMA DE LA OREJUELA SE RETIRO (IMG3-3). Vivía acá para estampar el
+         dibujo con su resumen al lado cuando el informe no traía su tabla; hoy eso lo hace el
+         motor de tercios, y su slot queda fuera de `_loaded` por `_oaiEsqIdx`. Dejarla sería un
+         segundo lugar donde el mismo dibujo puede aparecer.
+         `_oaiRes` tampoco se calcula más acá: su único lector era esa rama. */
       while (i < _loaded.length) {
         const im = _loaded[i];
-        /* ══ EL ESQUEMA DE LA OREJUELA, CON SU RESUMEN AL LADO (AJ1-2a) ══════════════════════
-           Solo llega aca cuando el informe NO incluyo la seccion de la orejuela: si la
-           incluyo, el dibujo ya se estampo junto a su tabla y este slot no esta en `_loaded`.
-           Fila propia -no se aparea con otra imagen-, dibujo a la izquierda y el resumen a la
-           derecha. Sin datos cargados `_oaiRes` sale vacio y el esquema cae al reparto normal
-           de dos por fila, que es lo que la orden pide («si no hay datos, sin resumen»). */
-        if (im.esquema && im.esqClave === 'orejuela' && _oaiRes.length) {
-          const d = _dim(im.dataURL, _half, 80);
-          const _altoRes = 5 + _oaiRes.length * 4.6;
-          const rowH = Math.max(d.h, _altoRes);
-          if (_iy + rowH > _bot) _imgPage();
-          doc.addImage(im.dataURL, 'JPEG', mL + (_half - d.w) / 2, _iy, d.w, d.h);
-          const _rx = mL + _half + _gap;
-          fb(8.5); tc(TEMA[0], TEMA[1], TEMA[2]);
-          doc.text(_sanML('Orejuela izquierda'), _rx, _iy + 4);
-          let _ry = _iy + 10;
-          _oaiRes.forEach(function (fl) {
-            fn(8); tc(90, 90, 90);
-            doc.text(_sanML(fl[0]), _rx, _ry);
-            fn(8); tc(20, 20, 20);
-            doc.text(_sanML(fl[1]), _rx + (_half - _gap) * 0.52, _ry);
-            _ry += 4.6;
-          });
-          _iy += rowH + _gap; i++;
-          continue;
-        }
         if (im.ampliada) {
           // Agrupar ampliadas de a dos por página: slot 0 = mitad superior, slot 1 = mitad inferior
           if (_ampOnPage >= 2) _imgPage();
@@ -109702,6 +109557,128 @@ function bullseyeDataURL(getColor){
 /* El registro de los diagramas de toggle. Las compuertas son las MISMAS expresiones que usa
    `generarPDFReal`; el dia que una cambie hay que cambiar las dos, y por eso TC-554 compara el
    contador de la fila contra las imagenes que el PDF emite de verdad. */
+/* ══ LAS HOJAS DE DIAGRAMAS DEL PDF — EL MOTOR DE TERCIOS ═════════════════════════════════════
+   Reglas APROBADAS por el médico el 2026-10-30, y la referencia es
+   `docs/3d/demo_pdf_diagramas_tercios.html`, cuya lógica de armado se reproduce acá:
+
+     R-1  cada hoja tiene TRES FRANJAS de igual alto;
+     R-2  Contractilidad y SGL van SIEMPRE PRIMERO, juntos, a todo el ancho de una franja;
+     R-3  después los demás, DE A DOS POR FRANJA, en el orden fijo de `PDF_DIAG_REG`;
+     R-4  el texto de «Cardiopatías congénitas» va en hoja propia y los diagramas de ese
+          módulo van DEBAJO de su texto (lo resuelve esa hoja, no este motor);
+     R-5  las capturas del ecógrafo van DESPUÉS de todos los diagramas, de a dos por franja,
+          y si quedó lugar en la última hoja siguen ahí;
+     R-6  nunca se corta un diagrama: si no entra, pasa a la hoja siguiente.
+
+   ⚠️ POR QUÉ EL PROBLEMA NO SE ARREGLA MOVIENDO CADA BLOQUE. Hasta hoy cada diagrama se
+   dibujaba donde caía, con su propia barra de sección y su propio `checkPage`: el estudio de
+   prueba del médico salía con los diagramas repartidos en CINCO hojas, con la CIA lejos de su
+   texto de congénitas y la mitral sola en una hoja casi vacía — medido. Con siete emisores
+   independientes, cualquier regla de acomodo tiene que estar escrita siete veces y la primera
+   que quede mal da un informe FIRMADO mal maquetado.
+
+   ⚠️ UN SOLO DUEÑO DEL ORDEN, DEL TAMAÑO Y DE LOS EXCLUIDOS. `PDF_DIAG_REG` dice el orden
+   (su índice), el tamaño (`w`: 2 = franja completa, 1 = media) y la familia; `PDF_DIAG_EXC`
+   dice qué pareja no va junta. Agregar un diagrama es agregar una fila acá y su recolector:
+   el motor no se toca. */
+/* La leyenda de colores de la vista quirúrgica mitral. Vivía dentro del bloque que la
+   dibujaba; sube acá para que el dibujante genérico del motor la pinte con el mismo código que
+   las de las dianas. Los nombres y los colores son los mismos, verificados uno por uno. */
+const PDF_MITRAL_LEY = Object.freeze([
+  { nombre:'Normal',        color:'#ffffff' },
+  { nombre:'Prolapso',      color:'#f59e0b' },
+  { nombre:'Flail',         color:'#ef4444' },
+  { nombre:'Restricción',   color:'#3b82f6' },
+  { nombre:'Perforación',   color:'#8b5cf6' },
+  { nombre:'Calcificación', color:'#22c55e' }
+]);
+const PDF_DIAG_FRANJAS = 3;              /* franjas por hoja (R-1) */
+const PDF_DIAG_U = 2;                    /* unidades que ocupa una franja; la hoja son 6 */
+/* La ÚNICA pareja que nunca va junta. Es un dato y se puede ampliar sin tocar el motor, que es
+   lo que la orden pide. */
+const PDF_DIAG_EXC = Object.freeze([['tavi', 'vab']]);
+const PDF_DIAG_REG = Object.freeze([
+  { k:'contr', w:2, fam:'vi',  lbl:'Contractilidad y strain longitudinal (SGL)' },
+  { k:'lv3d',  w:1, fam:'vi',  lbl:'Diagrama 3D del ventrículo izquierdo' },
+  { k:'eteqx', w:1, fam:'ete', lbl:'Válvula mitral — vista quirúrgica' },
+  { k:'tavi',  w:1, fam:'ete', lbl:'Jet paravalvular post-TAVI' },
+  { k:'vab',   w:1, fam:'ete', lbl:'Válvula aórtica bicúspide' },
+  { k:'oai',   w:1, fam:'ete', lbl:'Orejuela izquierda' }
+]);
+window.PDF_DIAG_REG = PDF_DIAG_REG;
+const PDF_DIAG_FAM = Object.freeze({ vi:'Función del VI', ete:'ETE y valvulares', cc:'Congénitas' });
+function pdfDiagLbl(k) {
+  const d = PDF_DIAG_REG.filter(function (x) { return x.k === k })[0];
+  return d ? d.lbl : '';
+}
+function pdfDiagExcluidos(a, b) {
+  return PDF_DIAG_EXC.some(function (p) {
+    return (p[0] === a && p[1] === b) || (p[1] === a && p[0] === b);
+  });
+}
+window.pdfDiagExcluidos = pdfDiagExcluidos;
+
+/* Arma las hojas. PURA: recibe qué claves hay y qué capturas, y devuelve la lista de hojas con
+   sus franjas. No toca el documento, así que se puede medir sin generar un PDF — que es lo que
+   permite que un caso de prueba fije el acomodo sin depender de jsPDF.
+
+   `claves`  — las claves de `PDF_DIAG_REG` que tienen dibujo, en cualquier orden.
+   `caps`    — las capturas, en el orden de la fila de miniaturas: [{ i, ampliada }].
+   Devuelve  — { hojas: [ [item…] ], notas: [texto…] } donde cada item es
+               { t:'diag'|'cap', h, ids, full, primera }. */
+function pdfDiagPack(claves, caps) {
+  claves = claves || []; caps = caps || [];
+  const sel = PDF_DIAG_REG.filter(function (d) { return claves.indexOf(d.k) >= 0 });
+  const items = [], notas = [];
+  /* R-2: lo de franja completa primero, y Contractilidad+SGL es el único que lo es. */
+  sel.filter(function (d) { return d.w === 2 })
+     .forEach(function (d) { items.push({ t:'diag', h:PDF_DIAG_U, ids:[d.k], full:true }) });
+  /* R-3: los de media franja, de a dos, salteando la pareja excluida. El emparejado es por
+     orden de aparición: el primero libre que no esté excluido con el actual. */
+  const medias = sel.filter(function (d) { return d.w === 1 }).map(function (d) { return d.k });
+  const usado = {};
+  medias.forEach(function (a) {
+    if (usado[a]) return;
+    usado[a] = 1;
+    let b = null;
+    for (let i = 0; i < medias.length; i++) {
+      const x = medias[i];
+      if (usado[x] || x === a) continue;
+      if (pdfDiagExcluidos(a, x)) {
+        notas.push(pdfDiagLbl(a) + ' y ' + pdfDiagLbl(x) + ' no van juntos: quedan en franjas distintas.');
+        continue;
+      }
+      b = x; break;
+    }
+    if (b) usado[b] = 1;
+    items.push({ t:'diag', h:PDF_DIAG_U, ids: b ? [a, b] : [a], full:false });
+  });
+  /* R-5: las capturas, después de TODOS los diagramas, de a dos por franja y en el orden en que
+     vienen. Una captura AMPLIADA ocupa la franja entera: es la traducción mínima de lo que esa
+     marca significaba en la maqueta vieja (media página), y está declarada. */
+  let k = 0;
+  while (k < caps.length) {
+    if (caps[k].ampliada) { items.push({ t:'cap', h:PDF_DIAG_U, ids:[caps[k]], full:true, primera:k === 0 }); k++; }
+    else {
+      const dos = (k + 1 < caps.length && !caps[k + 1].ampliada) ? [caps[k], caps[k + 1]] : [caps[k]];
+      items.push({ t:'cap', h:PDF_DIAG_U, ids:dos, full:false, primera:k === 0 });
+      k += dos.length;
+    }
+  }
+  /* R-6: paginado por unidades. Lo que no entra abre hoja; nada se parte. */
+  const hojas = [];
+  let cur = null, libre = 0;
+  items.forEach(function (it) {
+    if (!cur || libre < it.h) { cur = []; hojas.push(cur); libre = PDF_DIAG_FRANJAS * PDF_DIAG_U; }
+    cur.push(it); libre -= it.h;
+  });
+  const vistas = {};
+  return { hojas: hojas, notas: notas.filter(function (n) {
+    if (vistas[n]) return false; vistas[n] = 1; return true;
+  }) };
+}
+window.pdfDiagPack = pdfDiagPack;
+
 const INF_MIN_DIAG = Object.freeze([
   { k:'contr', lbl:'Contractilidad', campo:'contr_be_pdf',
     on:  () => (typeof contrPdfOn === 'function') && contrPdfOn() && typeof bullseyeDataURL === 'function',
@@ -143206,8 +143183,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261031-0302';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793426521145;                 /* eco-build-ms */
+const ECO_BUILD    = '20261031-0326';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793427977919;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -143293,7 +143270,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261031-0302</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261031-0326</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
