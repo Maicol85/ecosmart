@@ -59634,8 +59634,13 @@ function generarInforme(opts) {
       /* ⚠️ LA APOSICION VA EN `p[0]` Y NO AL FINAL DEL PARRAFO (AJ2-5): pegada al `join`
          quedaria colgada de la ULTIMA medicion -«Aorta descendente 20 mm, post-cirugía»- y
          calificaria el dato equivocado. */
+      /* ⚠️ LA APOSICION VA EN LAS ONCE CLAVES (AJUSTES-2, commit 1), no solo en `incompleto`:
+         hasta hoy «nativa» viajaba DENTRO de `c.txt`, que sale del papel en este commit. Sin
+         este movimiento, el informe firmado de la coartacion nativa dejaria de decir que es
+         nativa. Con localizacion cargada va con coma —la forma que `incompleto` ya usaba—; sin
+         ella, pegada, que es la redaccion que pidio el medico: «Coartación de aorta nativa.» */
       const p = ['Coartación de aorta' + (loc ? ' de localización ' + (COA_LOC_TXT[loc] || loc) : '') +
-                 (c.clave === 'incompleto' && c.apos ? ', ' + c.apos : '')];
+                 (c.apos ? (loc ? ', ' : ' ') + c.apos : '')];
       if (f1(ist)) p.push('Diámetro del istmo ' + f1(ist) + ' mm');
       if (f1(asc)) p.push('Aorta ascendente ' + f1(asc) + ' mm');
       if (f1(desc)) p.push('Aorta descendente ' + f1(desc) + ' mm');
@@ -59665,11 +59670,19 @@ function generarInforme(opts) {
          parrafo de la coartacion del informe FIRMADO. Ver la nota de `coaSeguimiento`.
          ⚠️ Y SIN GRADIENTE LA CONCLUSION YA ESTA DICHA EN `p[0]` (AJ2-5): pegarla otra vez es
          el sustantivo repetido que esa orden cierra. En las demas claves queda LITERAL. */
-      const _coaInc = (c.clave === 'incompleto');
-      etePars.push(p.join('. ') + '.' + (_coaInc ? '' : ' ' + c.txt + '.')); ccMarcarParrafo();
-      /* La hoja recibe LAS MISMAS oraciones y LA MISMA conclusion que la linea de arriba: el
-         narrativo y la hoja no pueden discrepar porque no hay dos textos, hay uno repartido. */
-      ccHoja('coa', p, _coaInc ? null : c.txt, null);
+      /* ══ EL PAPEL DESCRIBE (AJUSTES-2, commit 1, decision del medico) ═══════════════════
+         `c.txt` ya NO llega al informe ni a la hoja del PDF: llevaba la guia, la clase, el
+         nivel, la tabla, la figura, el folio y la conducta. Lo que queda es `c.papel`, la
+         clausula descriptiva de `coaPapel`, PEGADA AL ULTIMO DATO IMPRESO en vez de abrir una
+         oracion propia —asi el informe dice «Gradiente medio 25 mmHg, con criterios de
+         significación por Doppler (mayor de 20 mmHg).» y no repite el sujeto—.
+         ⚠️ Y LA HOJA DEL PDF YA NO IMPRIME EL RECUADRO «Segun la guia», que es justo el que el
+         medico reporto: `ccHoja` lo escribe cuando su tercer argumento no esta vacio, asi que
+         va `null`. La clausula viaja DENTRO de `p`, de modo que el narrativo y la hoja siguen
+         diciendo lo mismo sin que haya dos textos. */
+      if (c.papel) p[p.length - 1] = p[p.length - 1] + c.papel;
+      etePars.push(p.join('. ') + '.'); ccMarcarParrafo();
+      ccHoja('coa', p, null, null);
       /* La significativa y la limítrofe sí van al EN SUMA: la primera indica intervención y la
          segunda manda a pedir una angio-RMN. Dejar una indicación de intervención sólo en el
          cuerpo del informe es exactamente lo que la conclusión existe para evitar. */
@@ -73723,6 +73736,62 @@ function coaRatio(fuera, src){
 const COA_SUMA_SIT = Object.freeze({ recoartacion: 'recoartación post-intervención',
                                      nativa: 'nativa', post_stent: 'post-stent',
                                      post_cirugia: 'post-cirugía' });
+/* ══ LO QUE LA COARTACION DICE EN EL PAPEL — DUEÑO UNICO (AJUSTES-2, commit 1, 2026-10-30) ═══
+   DECISION DEL MEDICO: el papel DESCRIBE. Las guias, las clases, los niveles, las tablas, las
+   figuras, los folios y las recomendaciones viven en la Evidencia, en Referencias o en el ⓘ.
+
+   QUE ARREGLA, MEDIDO EN HEAD ANTES DE ESCRIBIR UNA LINEA, con la coartacion nativa de istmo
+   8 mm y gradiente medio 25 mmHg que reporto el medico y la seccion INTEGRADA al informe:
+     · informe:  «… Gradiente medio 25 mmHg. Coartación nativa con criterios de significación
+                 por Doppler (gradiente medio 25 mmHg, por encima de los 20 mmHg de la ESC
+                 2024) — medir el gradiente pico-pico invasivo, que es el criterio de
+                 indicación de la ESC 2024 (Figura 44, folio 120).»
+     · EN SUMA:  «… — criterios de significación por Doppler — medir el pico-pico invasivo»
+     · PDF:      el recuadro «!!Segun la guia: <el mismo texto>»
+   Censo sobre las cuatro superficies firmadas de esa escena: «ESC 2024» 8 veces, «Figura 44»
+   4, «folio» 4 y «medir el gradiente pico-pico invasivo» 4. Con indicacion Clase I: «Clase I»
+   7, «Nivel C» 4, «Tabla 69» 4 y «ESC 2020» 3 —esta ultima es AO2-b, la linea del EN SUMA—.
+
+   ⚠️ POR QUE UN DUEÑO UNICO Y NO UN PARCHE POR EMISOR. `coaConclusion().txt` lo leen CUATRO
+   consumidores y dos de ellos NO son papel: la capsula de pantalla (`coa-concl`) y el panel de
+   Evidencia (su `aviso` y su fila «Según la guía»). Esos dos CONSERVAN la cita, que es lo que
+   la Parte B de la TANDA NOCTURNA ya decidio para la raiz aortica —«el papel sin clase, sin
+   tabla y sin folio y la capsula todavia con la cita»—. Con un parche por emisor, el dia que
+   se agregue un quinto consumidor nadie sabria cual de los dos textos le toca.
+
+   ⚠️ `papel` ES UNA CLAUSULA, NO UNA ORACION, y por eso arranca con coma. La redaccion que
+   pidio el medico pega la significacion al ULTIMO dato impreso —«Gradiente medio 25 mmHg, con
+   criterios de significación por Doppler (mayor de 20 mmHg).»— en vez de abrir una oracion
+   nueva que repetiria el sujeto «Coartación de aorta».
+
+   ⚠️ LAS TRES CLAVES DE INDICACION Y DOS DE LAS CINCO LIMITROFES DEVUELVEN null, y no se
+   pierde un dato: lo que decian era una recomendacion («Preferir stent cuando sea
+   técnicamente factible», «completar la evaluación antes de concluir») o un pedido de dato
+   («falta consignar si hay HTA confirmada»), y sus INSUMOS —el pico-pico invasivo, el
+   estrechamiento relativo y la HTA— los imprime el parrafo del informe desde siempre. */
+const COA_PAPEL = Object.freeze({
+  /* `via` discrimina las ramas que comparten clave; lo publica el clasificador sin mover un
+     solo umbral, para que este mapa no tenga que releer el 20 mmHg y quedar como segunda voz. */
+  significativa_gmedio: ', con criterios de significación por Doppler (mayor de 20 mmHg)',
+  significativa_cola:   ', con criterios de significación por Doppler (cola diastólica con gradiente no concluyente)',
+  sin_indicacion:       ', sin criterios de intervención actuales',
+  no_significativa:     ', sin gradiente significativo',
+  limitrofe_sin_gmedio: ', sin gradiente medio registrado',
+  limitrofe_gradiente:  ', con gradiente limítrofe',
+  limitrofe_istmo:      ', con istmo hipoplásico respecto de la aorta descendente y gradiente no significativo'
+});
+function coaPapel(c){
+  if (!c) return null;
+  /* `no_interpretable` se arma con la lista de lo que quedo fuera de banda. NO es una conducta
+     clinica: es la salvaguarda que impide que una Vmax cargada en cm/s haga que el informe
+     firmado niegue un gradiente. El comentario de su rama lo explica. */
+  if (c.clave === 'no_interpretable')
+    return ' — ' + ((c.fuera && c.fuera.length) ? c.fuera.join(' y ') : 'medidas') +
+           ' fuera de rango: revisar unidades antes de concluir';
+  const k = c.via ? (c.clave + '_' + c.via) : c.clave;
+  return Object.prototype.hasOwnProperty.call(COA_PAPEL, k) ? COA_PAPEL[k] : null;
+}
+window.coaPapel = coaPapel;
 function coaSumaFrase(src) {
   const c = (typeof coaConclusion === 'function') ? coaConclusion(src) : null;
   if (!c) return null;
@@ -73735,10 +73804,31 @@ function coaSumaFrase(src) {
   const gm = nv('coa_gmedio'); if (gm != null) p.push('gradiente medio ' + gm + ' mmHg');
   const pp = nv('coa_gradiente_picopico'); if (pp != null) p.push('pico-pico invasivo ' + pp + ' mmHg');
   const est = nv('coa_estenosis_relativa'); if (est != null) p.push('estrechamiento ' + est + ' %');
-  return 'Coartación de aorta' + (sit ? ' ' + sit : '') + (p.length ? ' (' + p.join(', ') + ')' : '') + '.';
+  /* La clausula descriptiva de `coaPapel`, que es la que el medico pidio para esta linea:
+     «Coartación de aorta nativa (istmo 8 mm, gradiente medio 25 mmHg), con criterios de
+     significación por Doppler (mayor de 20 mmHg).» Sin guia, sin clase y sin conducta. */
+  return 'Coartación de aorta' + (sit ? ' ' + sit : '') + (p.length ? ' (' + p.join(', ') + ')' : '')
+       + (c.papel || '') + '.';
 }
 window.coaSumaFrase = coaSumaFrase;
+/* ══ EL CLASIFICADOR QUEDA LITERAL; EL WRAPPER AGREGA LO DEL PAPEL ═══════════════════════
+   (AJUSTES-2, commit 1.) `_coaConclusionTxt` es el cuerpo de siempre, byte por byte salvo los
+   discriminadores `via`/`fuera` y la aposicion, que NO mueven ningun umbral ni ninguna palabra
+   de los textos que ya emitia. `coaConclusion` es el unico punto por el que pasan los seis
+   consumidores, y es donde se agregan `apos` y `papel`.
+   ⚠️ `apos` SE DEVUELVE EN LAS ONCE CLAVES, no solo en `incompleto`. Es lo que permite que el
+   cuerpo del informe diga «Coartación de aorta nativa.» en su primera oracion: hasta hoy la
+   situacion solo aparecia DENTRO de `c.txt` («Coartación nativa con criterios…»), asi que
+   retirar ese texto del papel sin mover la aposicion habria hecho desaparecer «nativa» del
+   informe firmado. Medido en HEAD: su p[0] dice «Coartación de aorta.» a secas. */
 function coaConclusion(src){
+  const c = _coaConclusionTxt(src);
+  if (!c) return null;
+  const sit = src ? String(src['coa_situacion'] == null ? '' : src['coa_situacion']).trim()
+                  : (document.getElementById('coa_situacion')?.value || '').trim();
+  return Object.assign({}, c, { apos: COA_SUMA_SIT[sit] || '', papel: coaPapel(c) });
+}
+function _coaConclusionTxt(src){
   /* `src` es un estudio GUARDADO (`inf.campos`); sin el se lee el formulario, exactamente como
      antes. Es el patron que ya usaban `eisenEstado(src)`, `dptEstado` y `cvrEstado`, y es lo que
      permite que el Laboratorio corra ESTE clasificador en vez de reimplementar el criterio: dos
@@ -73789,8 +73879,10 @@ function coaConclusion(src){
   /* La MISMA situacion dicha como aposicion, para la rama sin gradiente: ahi el sujeto ya lo
      puso el informe y lo que falta es calificarlo. `PRE` no se toca -lo usan las otras siete
      ramas como sujeto de su propia oracion-. */
-  const COA_SIT_APOS = { recoartacion:'recoartación post-intervención', nativa:'nativa',
-                         post_stent:'post-stent', post_cirugia:'post-cirugía' };
+  /* ⚠️ ERA UNA SEGUNDA COPIA, IDENTICA A `COA_SUMA_SIT` (AJUSTES-2, commit 1): dos mapas con
+     los mismos cuatro rotulos, y el dia que uno se corrija el informe y el EN SUMA dicen la
+     situacion con dos palabras distintas. Hoy apunta al dueño unico. */
+  const COA_SIT_APOS = COA_SUMA_SIT;
   const pre = PRE[sit] || 'Coartación de aorta';
   const postRep = (sit === 'post_stent' || sit === 'post_cirugia' || sit === 'recoartacion');
   /* ══ INDICACIÓN DE INTERVENCIÓN — SÓLO POR EL PICO-PICO INVASIVO (corregido 2026-09-15) ══
@@ -73840,6 +73932,7 @@ function coaConclusion(src){
      Manda a medir el pico-pico invasivo, que es el criterio de INDICACIÓN (Tabla 69, folio 121,
      y la misma Figura 44), no a intervenir. */
   if ((gm!=null && gm > 20) || cola) return { clave:'significativa',
+    via: (gm!=null && gm > 20) ? 'gmedio' : 'cola',
     txt: pre + ' con criterios de significación por Doppler' +
          (gm!=null && gm > 20 ? ' (gradiente medio ' + gm + ' mmHg, por encima de los 20 mmHg de la ESC 2024)' : '') +
          (cola && !(gm!=null && gm > 20) ? ' (cola diastólica con gradiente no concluyente)' : '') +
@@ -73847,7 +73940,7 @@ function coaConclusion(src){
   /* ⚠️ CON EL MÁXIMO ALTO Y EL MEDIO SIN MEDIR SE DICE QUÉ FALTA, en vez de concluir con el
      número que no es el de la guía. El máximo sigue describiendo la lesión y sigue mandando a
      completar estudio; lo que perdió es la potestad de afirmar la significación. */
-  if (g != null && g > 20 && gm == null) return { clave:'limitrofe',
+  if (g != null && g > 20 && gm == null) return { clave:'limitrofe', via:'sin_gmedio',
     txt: pre + ' con gradiente máximo por Doppler de ' + Math.round(g) + ' mmHg y sin gradiente MEDIO registrado — el criterio de sospecha de la ESC 2024 es el gradiente medio por encima de 20 mmHg (Figura 44, folio 120); medir el gradiente pico-pico invasivo, que es el criterio de indicación' };
   /* El gradiente MEDIO vota, pero sólo hacia «completar estudio», nunca hacia la indicación de
      intervención: el criterio de la ESC 2020 es el pico-pico INVASIVO > 20 mmHg, y el medio por
@@ -73857,16 +73950,16 @@ function coaConclusion(src){
      número no aparece en ninguno de sus seis criterios. Y el `gm >= 20` que queda acá sólo
      alcanza al 20,0 EXACTO, porque la rama de arriba se lleva todo lo que lo supera: el
      operador de la guía es `>` estricto. */
-  if ((g!=null && g >= 12) || (gm!=null && gm >= 20)) return { clave:'limitrofe',
+  if ((g!=null && g >= 12) || (gm!=null && gm >= 20)) return { clave:'limitrofe', via:'gradiente',
     txt: pre + ' con gradiente limítrofe — completar con angio-RMN o angio-TC y evaluar gradiente invasivo' };
-  if (r!=null && r < 0.6) return { clave:'limitrofe',
+  if (r!=null && r < 0.6) return { clave:'limitrofe', via:'istmo',
     txt: pre + ' con istmo hipoplásico respecto de la aorta descendente y gradiente no significativo — completar con imagen' };
   /* Las dos ramas que quedan niegan. Antes de negar, descartar que la negación venga de un
      número ilegible: una Vmax cargada en cm/s (300 por 3,0) da un gradiente de 360.000, se
      descarta por banda, y el informe firmado salía diciendo «sin gradiente significativo —
      seguimiento clínico» con «Gradiente máximo estimado 360000 mmHg» impreso dos renglones
      más arriba. Un error de unidad invertía la conducta, y hacia el lado benigno. */
-  if (fuera.length) return { clave:'no_interpretable',
+  if (fuera.length) return { clave:'no_interpretable', fuera: fuera.slice(),
     txt: pre + ' — ' + fuera.join(' y ') + ' fuera de rango: revisar unidades antes de concluir' };
   /* «Sin gradiente significativo» exige que se haya MEDIDO un gradiente. Con sólo la
      localización o las aortas cargadas no hay nada que sostenga la negación. */
@@ -77817,14 +77910,33 @@ function ccSumaLinea(sec){
     const g = (typeof coaGmax === 'function') ? coaGmax() : null;
     const gm = _ccNum('coa_gmedio'), ist = _ccNum('coa_istmo');
     const cola = !!document.getElementById('coa_diast_anterogrado')?.checked;
-    const DX = { significativa:'criterios de significación por Doppler — medir el pico-pico invasivo',
-                 indicacion_i:'indicación de intervención Clase I ESC 2020',
-                 indicacion_iia:'indicación a considerar Clase IIa ESC 2020',
-                 indicacion_iib:'indicación posible Clase IIb ESC 2020',
-                 sin_indicacion:'sin criterios de intervención (ESC 2020)',
-                 limitrofe:'gradiente limítrofe',
-                 no_significativa:'sin gradiente significativo',
-                 no_interpretable:'medidas fuera de rango — revisar unidades',
+    /* ══ EL EN SUMA DESCRIBE — CIERRA AO2-b (AJUSTES-2, commit 1, decision del medico) ═════
+       Las TRES claves de indicacion decian «indicación de intervención Clase I ESC 2020», que
+       es la linea que el pendiente AO2-b dejo declarada: una recomendacion con su clase y su
+       guia en el resumen de un informe FIRMADO. Hoy no publican veredicto y lo que se imprime
+       son sus INSUMOS —el pico-pico invasivo, el estrechamiento relativo y la hipertension—,
+       que son datos que el medico cargo y que el cuerpo del informe ya imprimia. El criterio,
+       la clase, el nivel, la tabla y el folio siguen enteros en la Evidencia de la coartacion
+       (su bloque «Recomendaciones aplicables de la guía», su `guia` y sus siete notas).
+       ⚠️ `significativa` PIERDE SOLO LA CONDUCTA: conserva «criterios de significación por
+       Doppler» —la redaccion que el medico pidio— y gana su umbral entre parentesis, igual que
+       en el informe y en la linea no integrada, por el dueño unico `coaPapel`.
+       ⚠️ `sin_indicacion`, `no_significativa`, `limitrofe` y `no_interpretable` se CONSERVAN:
+       no le dicen al medico que hacer, constatan que los datos no alcanzan un umbral o que una
+       medida no es legible. Lo unico que pierden es el nombre de la guia. */
+    /* ⚠️ EL VEREDICTO SALE DEL DUEÑO UNICO Y NO DE ESTE MAPA, Y LO DESTAPO EL A/B DE ESTE
+       MISMO COMMIT. Con el texto escrito a mano aca, la escena de la COLA DIASTOLICA sola
+       —sin gradiente medio medido— publicaba en el EN SUMA «criterios de significación por
+       Doppler (mayor de 20 mmHg)» mientras el informe, dos renglones mas arriba, decia
+       correctamente «(cola diastólica con gradiente no concluyente)»: el resumen afirmaba un
+       umbral de gradiente que ese paciente no tiene medido. Eran dos voces para la misma
+       frase, que es justo lo que `coaPapel` existe para evitar.
+       `papel` viene con su separador —', ' o ' — '— porque en el informe es una clausula; aca
+       la lista va con guiones, asi que se lo quita.
+       El mapa queda como RED para las dos claves que `coaPapel` no publica a proposito: la
+       `limitrofe` sin `via` (pico-pico sin hipertension consignada y criterios parciales) e
+       `incompleto`, que ni siquiera llega a usar el dx. */
+    const DX = { limitrofe:'gradiente limítrofe',
                  incompleto:'datos incompletos para clasificarla' };
     /* La compuerta deja pasar «significativa» aunque no haya números: la COLA DIASTÓLICA basta
        sola para esa clave, y es justo el signo que salva el caso en que el gradiente subestima.
@@ -77854,12 +77966,24 @@ function ccSumaLinea(sec){
     if (g != null) l += ' — gradiente máx. ' + _cc1(g) + ' mmHg';
     else if (gm != null) l += ' — gradiente medio ' + _cc1(gm) + ' mmHg';
     if (cola) l += ' — cola diastólica presente';
+    /* ══ LOS INSUMOS DE LA INDICACION, COMO DATOS (AJUSTES-2, commit 1) ═══════════════════
+       Las tres claves de indicacion dejaron de publicar su veredicto, asi que sin esto la
+       linea del EN SUMA de un paciente con criterio Clase I quedaba en «Coartación de aorta
+       nativa — istmo 8 mm» y el lector no veia POR QUE esta ahi. No es contenido clinico
+       nuevo: son los tres campos que el medico cargo y que el parrafo del informe imprime
+       desde siempre, con las mismas palabras. Van en las once claves, no solo en las de
+       indicacion: un pico-pico medido es un dato del estudio aunque no alcance el umbral. */
+    const _ppS = _ccNum('coa_gradiente_picopico'), _estS = _ccNum('coa_estenosis_relativa');
+    if (_ppS != null) l += ' — pico-pico invasivo ' + _cc1(_ppS) + ' mmHg';
+    if (_estS != null) l += ' — estrechamiento ' + _cc1(_estS) + ' %';
+    if (_ccS('coa_hta') === 'si') l += ' — hipertensión arterial confirmada';
     /* ⚠️ SIN GRADIENTE, EL EN SUMA PUBLICA EL HECHO Y NADA MAS (AJ2-5, 2026-10-23). Salian
        «— en seguimiento» -una conducta- y «— datos incompletos para clasificarla», que es
        estado interno del clasificador: lo que el lector necesita es que este paciente tiene una
        coartacion operada. Las otras claves quedan LITERALES, incluido el «en seguimiento» del
        operado con datos, que esta orden no toca. */
-    const dx = L(DX, c.clave);
+    const _pap = c.papel ? String(c.papel).replace(/^\s*(?:,|—)\s*/, '') : '';
+    const dx = _pap || L(DX, c.clave);
     if (c.clave === 'incompleto') return l;
     if (postRep && INDICA.indexOf(c.clave) === -1) l += ' — en seguimiento';
     return l + (dx ? ' — ' + dx : '');
@@ -105469,7 +105593,8 @@ function _pptDesdeFormulario(inf, tema, presentador){
       { chk:'ete_shunt_incluir_chk', sec:'cia', nom:'CIA — comunicación interauricular' },
       { chk:'ete_shunt_incluir_chk', sec:'civ', nom:'CIV — comunicación interventricular' },
       { chk:'ductus_incluir_chk',    sec:'dap', nom:'DAP — ductus arterioso permeable',    fn:'dapConclusion' },
-      { chk:'coart_incluir_chk',     sec:'coa', nom:'Coartación de aorta',                  fn:'coaConclusion' },
+      /* `papel:true` — la coartacion publica su CLAUSULA descriptiva y no `txt`. Ver abajo. */
+      { chk:'coart_incluir_chk',     sec:'coa', nom:'Coartación de aorta',                  fn:'coaConclusion', papel:true },
       { chk:'vap_incluir_chk',       sec:'vap', nom:'Ventana aortopulmonar',                fn:'vapConclusion' },
       { chk:'fop_incluir_chk',       sec:'fop', nom:'FOP — foramen oval permeable',         fn:'fopConclusion' },
       { chk:'vab_incluir_chk',       sec:'vab', nom:'VAB — válvula aórtica bicúspide',      fn:'vabConclusion' },
@@ -105519,7 +105644,28 @@ function _pptDesdeFormulario(inf, tema, presentador){
       if (d.fn && typeof window[d.fn] === 'function') {
         let cc = null;
         try { cc = window[d.fn](); } catch (e) { cc = null; }
-        if (cc) concl = _pptTxt(cc.resumen || cc.txt);
+        /* ══ LA COARTACION NO PROYECTA NI GUIA NI CONDUCTA (AJUSTES-2, commit 1) ════════
+           DECISION DEL MEDICO del 30/10/2026, y REVIERTE la del 2026-09-10 que el comentario
+           de arriba todavia explicaba: «el PPT es otro documento y otro uso -se proyecta en un
+           ateneo, donde la posicion de la guia es justamente lo que se discute- asi que la
+           fila "Conclusión según guías" si la lleva». El principio nuevo nombra las CUATRO
+           superficies: «el informe, el EN SUMA, el PDF y el PPT no recomiendan ni nombran
+           guias». Medido en HEAD, esta diapositiva era la UNICA que quedaba publicando
+           «Clase I · Nivel C (ESC 2024, Tabla 69 · folio 121) … Preferir stent cuando sea
+           técnicamente factible», y la encontro el censo del A/B sobre el PPT generado.
+           ⚠️ SOLO LA COARTACION. Las otras once entradas de `CC_PPT` quedan LITERALES: la
+           orden acota las diferencias a los estudios con coartacion cargada, y lo que esas
+           secciones publican se lista en el barrido del commit 6 para que lo decida el medico.
+           ⚠️ CON LA CLAUSULA VACIA LA FILA NO SE PINTA, y es lo correcto: `fila()` descarta el
+           valor vacio. En las tres claves de indicacion y en dos de las cinco limitrofes
+           `coaPapel` no publica veredicto, asi que la diapositiva muestra los HALLAZGOS -que
+           son la misma linea del EN SUMA, con el pico-pico, el estrechamiento y la HTA- y
+           ninguna conclusion segun guias, que es justo lo que ya no tiene. */
+        if (cc && d.papel) {
+          const _nuc = cc.papel ? String(cc.papel).replace(/^\s*(?:,|—)\s*/, '') : '';
+          concl = _nuc ? _pptTxt(_nuc.charAt(0).toUpperCase() + _nuc.slice(1)) : '';
+        }
+        else if (cc) concl = _pptTxt(cc.resumen || cc.txt);
       } else if (typeof ccQpQsDe === 'function' && typeof eteQpQsInterp === 'function') {
         const q = ccQpQsDe(d.sec);
         if (q != null) concl = _pptTxt(eteQpQsInterp(q));
@@ -142519,8 +142665,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261030-2056';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793404575184;                 /* eco-build-ms */
+const ECO_BUILD    = '20261030-2340';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793414424050;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -142606,7 +142752,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261030-2056</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261030-2340</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
