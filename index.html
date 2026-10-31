@@ -87253,6 +87253,261 @@ function _indCIV(){
    «Bicuspide». Vivia escrito solo aca; desde el D2-E3 lo lee tambien `_indVAB`, que no lo tenia.
    ⚠️ `va_morf` NO TIENE OPCION VACIA y `limpiarCampos` lo deja en «Trivalva normal», asi que
    solo el «Bicuspide» explicito afirma — es la misma salvedad que `vabConclusion` documenta. */
+/* ══ TRANSPOSICION DE GRANDES ARTERIAS — LAS RECOMENDACIONES DE LA GUIA (TGA-2, commit 2) ══════
+   PEDIDO DEL MEDICO (31/10/2026): que la Evidencia de congénitas diga las INDICACIONES y haga
+   PREGUNTAS clínicas para ubicar las recomendaciones que corresponden a lo encontrado, igual que
+   ya hace la Evidencia de la bicúspide. El molde es el de `_indVAB` y no se reescribió: tres
+   estados por pregunta, la aplicación LEE de otros módulos lo que ya tiene y PREGUNTA sólo el
+   resto, «sin dato» NO cuenta como «no», y lo contestado acá NO viaja con el estudio.
+
+   DONDE VIVE LA RESPUESTA: en `_indClin`, la memoria del panel —`Object.create(null)`, efímera,
+   que `_indClinLimpiar` vacía al cerrar el panel y «Nuevo estudio» también—. Es EXACTAMENTE el
+   mecanismo con el que la Evidencia de la bicúspide persiste las suyas cuando el campo guardado
+   está vacío; la diferencia es que la bicúspide tiene además seis `vab_fr_*` guardados y acá NO
+   hay ninguno, porque esta tanda tiene prohibido agregar campos. O sea: estas respuestas viven
+   sólo mientras el panel esté abierto, y eso se dice en cada fila.
+
+   LAS FUENTES, LEIDAS EN IMAGEN A 220 ppp SOBRE LA EDICION INGLESA (ESC 2020 de cardiopatías
+   congénitas del adulto, Baumgartner y cols., Eur Heart J 2021;42:563-645; 84 hojas,
+   folio = hoja + 562, comprobado en el pie impreso de las hojas 10, 42, 50 y 60):
+     · hoja 57, folio 619 — «Recommendations for intervention in transposition of the great
+       arteries after atrial switch operation» (once filas: cinco quirúrgicas, seis por catéter).
+     · hoja 58, folio 620 — «Recommendations for intervention in transposition of the great
+       arteries after arterial switch operation» (tres filas), el apartado 4.12.4.3 con la
+       recomendación I·C de la CIV residual tras Rastelli, y el apartado 4.12.5 de seguimiento.
+     · hoja 59, folio 621 — «Recommendations for intervention in congenitally corrected
+       transposition of the great arteries» (cuatro filas).
+     · hoja 60, folio 622 — «Recommendations for intervention in right ventricular to pulmonary
+       artery conduits» (dos filas), que es la tabla que gobierna el conducto del Rastelli porque
+       su apartado 4.14.1 nombra el procedimiento de Rastelli entre los que llevan conducto; y el
+       apartado 4.13.6, el seguimiento de la ccTGA.
+
+   ⚠️ LA GUIA NO PUBLICA NINGUNA TABLA DE INTERVENCION PARA LA d-TGA NO OPERADA DEL ADULTO, y es
+   un hallazgo, no un olvido de esta sección: las tres situaciones que el documento trata en el
+   adulto son el switch auricular, el switch arterial y el Rastelli. Con «sin cirugía» o sin dato
+   de cirugía el panel lo DICE en vez de callarse, que sería indistinguible de «no se evaluó».
+
+   ⚠️ NADA DE ESTA SECCION LLEGA AL PAPEL. El informe, el EN SUMA, el PDF, el PPT y la cápsula
+   `tga-concl` de la pantalla no leen una sola línea de acá: esta función no la llama ningún
+   emisor, sólo `IND_SECS`. Es la condición (7) del pedido y la fija el caso de prueba. */
+const TGA_IND_OPS = Object.freeze([{ v:'si', t:'Sí' }, { v:'no', t:'No' }]);
+/* ⚠️ CADA PREGUNTA NOMBRA LA RECOMENDACION QUE LA ORIGINA, y no hay ninguna que no salga de una
+   condición escrita en la hoja: es la condición (2) del pedido. `clave` es la de `_indClin`.
+   `grupo` las reparte: el panel muestra SOLO las del escenario cargado, porque preguntar por una
+   fuga del túnel auricular a un paciente operado con Jatene es ruido, no evidencia. */
+const TGA_IND_PREG = Object.freeze({
+  aur: Object.freeze([
+    { clave:'tga.ev.pvobstr',  lbl:'Obstrucción de la aurícula venosa pulmonar',
+      nota:'condición de la reparación quirúrgica Clase I · Nivel C, junto con los síntomas' },
+    { clave:'tga.ev.bafesten', lbl:'Estenosis del túnel auricular (baffle)',
+      nota:'condición de tres recomendaciones: la reparación quirúrgica y el stent con síntomas (las dos Clase I · Nivel C) y el stent sin síntomas (Clase IIb · Nivel C)' },
+    { clave:'tga.ev.baffuga',  lbl:'Fuga del túnel auricular (baffle leak)',
+      nota:'condición de cuatro recomendaciones, según los síntomas, la cianosis y la sobrecarga de volumen' },
+    { clave:'tga.ev.cianosis', lbl:'Cianosis en reposo o con el ejercicio, o sospecha firme de embolia paradójica',
+      nota:'con fuga del túnel y síntomas es la Clase I · Nivel C del cierre con stent cubierto o dispositivo' },
+    { clave:'tga.ev.sobrecarga', lbl:'Sobrecarga de volumen ventricular sustancial por el cortocircuito izquierda-derecha de la fuga',
+      nota:'es lo que lleva el cierre a Clase IIa · Nivel C en el paciente asintomático' },
+    { clave:'tga.ev.pmicd',    lbl:'El paciente necesita marcapasos o desfibrilador',
+      nota:'con una fuga del túnel, cerrarla con stent cubierto antes de colocar los electrodos transvenosos es Clase IIa · Nivel C' },
+    { clave:'tga.ev.fe40',     lbl:'Fracción de eyección del ventrículo sistémico por encima del 40 %',
+      nota:'es la condición que la guía escribe como «sin disfunción sistólica ventricular significativa» para la cirugía sobre la válvula auriculoventricular sistémica; la aplicación no tiene ese número, sólo la graduación cualitativa' }
+  ]),
+  jat: Object.freeze([
+    { clave:'tga.ev.coroisq',  lbl:'Estenosis coronaria que causa isquemia',
+      nota:'es la única Clase I · Nivel C de esta tabla' },
+    { clave:'tga.ev.neoao55',  lbl:'Raíz neoaórtica por encima de 55 mm, con talla adulta media',
+      nota:'condición de la cirugía de la raíz neoaórtica, Clase IIa · Nivel C; la aplicación no tiene campo para ese diámetro' },
+    { clave:'tga.ev.ramaest',  lbl:'Estenosis de una rama pulmonar con más del 50 % de reducción del diámetro',
+      nota:'condición del stent, Clase IIa · Nivel C, junto con una presión sistólica del ventrículo derecho por encima de 50 mmHg o una perfusión pulmonar reducida' },
+    { clave:'tga.ev.perfpulm', lbl:'Perfusión pulmonar reducida atribuible a esa estenosis',
+      nota:'es la alternativa a la presión sistólica del ventrículo derecho en esa misma recomendación' }
+  ]),
+  ras: Object.freeze([
+    { clave:'tga.ev.civsint',  lbl:'El cortocircuito izquierda-derecha de la comunicación interventricular residual causa síntomas o sobrecarga de volumen sustancial del ventrículo izquierdo',
+      nota:'es la condición de la recomendación Clase I · Nivel C del apartado 4.12.4.3' },
+    { clave:'tga.ev.ipsev',    lbl:'Insuficiencia pulmonar severa del conducto',
+      nota:'condición de las dos filas de la tabla del conducto; la guía anota que la fracción regurgitante por resonancia es mayor del 30 al 40 %' },
+    { clave:'tga.ev.rvotosev', lbl:'Obstrucción severa del tracto de salida del ventrículo derecho',
+      nota:'condición de la fila Clase IIa · Nivel C en el paciente asintomático' },
+    { clave:'tga.ev.cpet',     lbl:'Caída de la capacidad de ejercicio objetivada por ergoespirometría',
+      nota:'es uno de los cuatro criterios que la fila Clase IIa · Nivel C exige, y alcanza con uno' },
+    { clave:'tga.ev.vdprog',   lbl:'Dilatación progresiva del ventrículo derecho (volumen telesistólico indexado de 80 mL/m² o más, o telediastólico indexado de 160 mL/m² o más), o progresión de la insuficiencia tricuspídea a moderada o más',
+      nota:'otro de los cuatro criterios de esa misma fila; la aplicación no tiene volúmenes del ventrículo derecho por resonancia' },
+    { clave:'tga.ev.vddisfprog', lbl:'Deterioro progresivo de la función sistólica del ventrículo derecho',
+      nota:'otro de los cuatro criterios de esa misma fila' }
+  ]),
+  cc: Object.freeze([
+    { clave:'tga.ev.fe40',     lbl:'Fracción de eyección del ventrículo sistémico por encima del 40 %',
+      nota:'separa la Clase I y la Clase IIa de la Clase IIb; la aplicación no tiene ese número, sólo la graduación cualitativa' },
+    { clave:'tga.ev.vddilprog', lbl:'Dilatación progresiva del ventrículo derecho sistémico',
+      nota:'condición de la Clase IIa · Nivel C en el paciente asintomático' },
+    { clave:'tga.ev.pacing40', lbl:'Requerimiento de estimulación ventricular por encima del 40 %',
+      nota:'es la alternativa al bloqueo auriculoventricular completo en la recomendación de estimulación biventricular, Clase IIa · Nivel C' }
+  ])
+});
+/* Las recomendaciones, COPIADAS DE LA HOJA. Una cita al final del bloque (regla R2 / R4): el
+   folio de cada tabla va en el encabezado del bloque, que es donde se lee una vez. */
+const TGA_IND_RECS = Object.freeze({
+  aur: Object.freeze({ tit:'Indicaciones tras el switch auricular (Mustard o Senning) — ESC 2020, tabla de recomendaciones de intervención tras el switch auricular, hoja 57, folio 619', folios:'tabla de recomendaciones de intervención tras el switch auricular, hoja 57, folio 619', lineas:Object.freeze([
+    'Clase I · Nivel C — En el paciente sintomático con obstrucción de la aurícula venosa pulmonar, se recomienda la reparación quirúrgica (la intervención por catéter rara vez es posible).',
+    'Clase I · Nivel C — En el paciente sintomático con estenosis del túnel no abordable por catéter, se recomienda la reparación quirúrgica.',
+    'Clase I · Nivel C — En el paciente sintomático con fugas del túnel no abordables por cierre con catéter, se recomienda la reparación quirúrgica.',
+    'Clase IIa · Nivel C — Con insuficiencia severa de la válvula auriculoventricular sistémica (tricúspide) y sin disfunción sistólica ventricular significativa (fracción de eyección por encima del 40 %), debe considerarse la reparación o el reemplazo valvular, independientemente de los síntomas.',
+    'Clase III · Nivel C — El cerclaje de la arteria pulmonar en el adulto, como entrenamiento del ventrículo izquierdo con switch arterial posterior, no se recomienda.',
+    'Clase I · Nivel C — En el paciente sintomático con estenosis del túnel, se recomienda el stent cuando es técnicamente factible.',
+    'Clase I · Nivel C — En el paciente sintomático con fugas del túnel y cianosis en reposo o con el ejercicio, o con sospecha firme de embolia paradójica, se recomienda el stent cubierto o el cierre con dispositivo cuando es técnicamente factible.',
+    'Clase I · Nivel C — Con fugas del túnel y síntomas debidos al cortocircuito izquierda-derecha, se recomienda el stent cubierto o el cierre con dispositivo cuando es técnicamente factible.',
+    'Clase IIa · Nivel C — En el paciente asintomático con fugas del túnel y sobrecarga de volumen ventricular sustancial por el cortocircuito izquierda-derecha, debe considerarse el stent cubierto o el cierre con dispositivo cuando es técnicamente factible.',
+    'Clase IIa · Nivel C — En el paciente con una fuga del túnel que necesita marcapasos o desfibrilador, debe considerarse cerrarla con un stent cubierto, cuando es técnicamente factible, antes de colocar los electrodos transvenosos.',
+    'Clase IIb · Nivel C — En el paciente asintomático con estenosis del túnel, puede considerarse el stent cuando es técnicamente factible.'
+  ])}),
+  jat: Object.freeze({ tit:'Indicaciones tras el switch arterial (Jatene) — ESC 2020, tabla de recomendaciones de intervención tras el switch arterial, hoja 58, folio 620', folios:'tabla de recomendaciones de intervención tras el switch arterial, hoja 58, folio 620', lineas:Object.freeze([
+    'Clase I · Nivel C — Se recomienda el stent o la cirugía, según el sustrato, para la estenosis coronaria que causa isquemia.',
+    'Clase IIa · Nivel C — Debe considerarse la cirugía de la raíz neoaórtica cuando ésta supera los 55 mm, con talla adulta media. Para el reemplazo de la válvula neoaórtica por insuficiencia severa, la guía remite a las guías de valvulopatías, teniendo en cuenta que se trata de una reoperación técnicamente más difícil.',
+    'Clase IIa · Nivel C — Debe considerarse el stent de una rama pulmonar, independientemente de los síntomas, si hay más del 50 % de reducción del diámetro y una presión sistólica del ventrículo derecho por encima de 50 mmHg o una perfusión pulmonar reducida atribuible.'
+  ])}),
+  ras: Object.freeze({ tit:'Indicaciones tras el Rastelli — ESC 2020, apartado 4.12.4.3 (hoja 58, folio 620) y tabla del conducto ventrículo derecho-arteria pulmonar (hoja 60, folio 622)', folios:'apartado 4.12.4.3 (hoja 58, folio 620) y tabla de recomendaciones de intervención en el conducto ventrículo derecho-arteria pulmonar (hoja 60, folio 622)', lineas:Object.freeze([
+    'Clase I · Nivel C — Si el cortocircuito izquierda-derecha de una comunicación interventricular residual causa síntomas o una sobrecarga de volumen sustancial del ventrículo izquierdo, debe realizarse tratamiento quirúrgico o por catéter (apartado 4.12.4.3, hoja 58, folio 620).',
+    'Clase I · Nivel C — En el paciente sintomático con una presión sistólica del ventrículo derecho por encima de 60 mmHg —que puede ser menor si el flujo está reducido— o con insuficiencia pulmonar severa, debe intervenirse el conducto, con preferencia por la vía percutánea si es anatómicamente factible (tabla del conducto ventrículo derecho-arteria pulmonar, hoja 60, folio 622).',
+    'Clase IIa · Nivel C — En el paciente asintomático con obstrucción severa del tracto de salida del ventrículo derecho o insuficiencia pulmonar severa, debe considerarse la intervención, preferentemente por catéter si es anatómicamente factible, cuando además concurre al menos uno de estos cuatro criterios: caída de la capacidad de ejercicio objetivada por ergoespirometría; dilatación progresiva del ventrículo derecho hasta un volumen telesistólico indexado de 80 mL/m² o más o un telediastólico indexado de 160 mL/m² o más, o progresión de la insuficiencia tricuspídea a moderada o más; deterioro progresivo de la función sistólica del ventrículo derecho; o una presión sistólica del ventrículo derecho por encima de 80 mmHg (hoja 60, folio 622).',
+    'La misma tabla anota que la insuficiencia pulmonar severa corresponde a una fracción regurgitante por resonancia mayor del 30 al 40 %.'
+  ])}),
+  cc: Object.freeze({ tit:'Indicaciones en la transposición congénitamente corregida — ESC 2020, tabla de recomendaciones de intervención en la ccTGA, hoja 59, folio 621', folios:'tabla de recomendaciones de intervención en la transposición congénitamente corregida, hoja 59, folio 621', lineas:Object.freeze([
+    'Clase I · Nivel C — En el paciente sintomático con insuficiencia tricuspídea severa y función sistólica del ventrículo derecho sistémico conservada o levemente deprimida (fracción de eyección por encima del 40 %), está indicado el reemplazo de la válvula tricúspide.',
+    'Clase IIa · Nivel C — En el paciente asintomático con insuficiencia tricuspídea severa y dilatación progresiva del ventrículo derecho sistémico o función sistólica levemente deprimida (fracción de eyección por encima del 40 %), debe considerarse el reemplazo de la válvula tricúspide.',
+    'Clase IIa · Nivel C — Debe considerarse la estimulación biventricular ante un bloqueo auriculoventricular completo o un requerimiento de estimulación ventricular por encima del 40 %.',
+    'Clase IIb · Nivel C — En el paciente sintomático con insuficiencia tricuspídea severa y función sistólica del ventrículo derecho sistémico deprimida más que levemente (fracción de eyección del 40 % o menos), puede considerarse el reemplazo de la válvula tricúspide.'
+  ])})
+});
+function _indTGA(){
+  const ejF = _indFn('tgaEjes');
+  const ej = ejF ? ejF() : null;
+  if (!ej || !ej.tipo) return null;
+
+  /* El grupo sale de los DOS EJES y no del campo `tga_tipo`, que los trae fusionados: es el
+     mismo dueño que usa el dibujo y el informe. Sin él, un `mustard` caería en «sin cirugía». */
+  const grupo = (ej.anat === 'ltga') ? 'cc'
+              : (ej.cir === 'auricular') ? 'aur'
+              : (ej.cir === 'jatene') ? 'jat'
+              : (ej.cir === 'rastelli') ? 'ras' : null;
+
+  const sint = _indS('tga_sintomas'), bav = _indS('tga_bav');
+  const civ = _indS('tga_civ_residual'), civG = _indN('tga_civ_grad');
+  const it = _indS('it_grado'), fvd = _indS('tga_func_vd');
+  const psap = _indN('psap_calc');
+  const SN = v => (v === 'si' ? 'Sí' : (v === 'no' ? 'No' : (v === 'no_eval' ? 'No evaluada' : 'No consta')));
+
+  /* ── Lo que la aplicación YA TIENE: se lee, no se pregunta (condición 4 del pedido) ── */
+  /* El rótulo de la cirugía sale de `window.TGA_CIR_LBL`, que es su dueño único, y por `window`
+     y no por el identificador suelto: ese objeto es un `const` de otro bloque de script y un
+     `typeof` sobre su zona muerta TIRA en vez de devolver «undefined». */
+  const _CIRL = (window.TGA_CIR_LBL && typeof window.TGA_CIR_LBL === 'object') ? window.TGA_CIR_LBL : {};
+  const cirTxt = ej.cirDeTipo ? 'switch auricular (Mustard o Senning), por el tipo cargado'
+               : (ej.cir && _CIRL[ej.cir]) ? _CIRL[ej.cir]
+               : (ej.anat === 'ltga' ? 'no se aplica en esta anatomía' : 'sin dato');
+  const filas = [
+    _indFila('Anatomía', ej.anat === 'ltga' ? 'Congénitamente corregida (L-TGA)' : 'Transposición completa (d-TGA)', 'none',
+      'la lee del tipo cargado en la sección de la transposición'),
+    _indFila('Cirugía realizada', cirTxt, (grupo || ej.anat === 'ltga') ? 'none' : 'ask',
+      grupo ? 'decide qué tabla de la guía corresponde' : 'sin ella la guía no tiene tabla que aplicar en el adulto'),
+    _indFila('Síntomas', SN(sint), sint === 'si' ? 'warn' : (sint === 'no' ? 'none' : 'ask'),
+      sint === 'si' ? 'la mayoría de las recomendaciones de Clase I de estas tablas exigen el paciente sintomático'
+                    : (sint === 'no' ? 'quedan las recomendaciones del paciente asintomático' : 'sin ella no se puede saber qué fila de la tabla aplica'))
+  ];
+  if (grupo === 'aur' || grupo === 'cc') {
+    filas.push(_indFila('Función del ventrículo derecho sistémico',
+      fvd ? (_ccLbl({ normal:'Normal', leve:'Disfunción leve', moderada:'Disfunción moderada', severa:'Disfunción severa' }, fvd) || fvd) : 'No consta',
+      fvd === 'moderada' || fvd === 'severa' ? 'warn' : (fvd ? 'none' : 'ask'),
+      'la guía razona con la fracción de eyección y la aplicación guarda la graduación cualitativa: el número se pregunta abajo'));
+    filas.push(_indFila('Insuficiencia de la válvula auriculoventricular sistémica (tricúspide)',
+      _ccLbl({ '1':'Leve', '2':'Moderada', '3':'Moderada-severa', '4':'Severa' }, it) || 'No consta',
+      it === '4' ? 'warn' : (it ? 'none' : 'ask'),
+      it === '4' ? 'es la condición de las tres recomendaciones sobre la válvula' : ''));
+  }
+  filas.push(_indFila('Bloqueo auriculoventricular completo', SN(bav),
+    bav === 'si' ? 'warn' : (bav === 'no' ? 'none' : 'ask'),
+    grupo === 'cc' ? 'con él, la estimulación biventricular es Clase IIa · Nivel C' : ''));
+  if (grupo === 'ras') {
+    filas.push(_indFila('Comunicación interventricular residual',
+      SN(civ) + (civG != null ? ' (gradiente ' + civG + ' mmHg)' : ''),
+      civ === 'si' ? 'warn' : (civ === 'no' ? 'none' : 'ask'),
+      civ === 'si' ? 'es la condición de la recomendación Clase I · Nivel C del apartado 4.12.4.3' : ''));
+    filas.push(_indFila('Presión sistólica pulmonar estimada', _indNum(psap, 0, 'mmHg'),
+      _gt(psap, 80) ? 'alarm' : (_gt(psap, 60) ? 'warn' : (psap != null ? 'none' : 'ask')),
+      _gt(psap, 80) ? 'supera los 80 mmHg, que es uno de los cuatro criterios de la fila Clase IIa · Nivel C'
+      : _gt(psap, 60) ? 'supera los 60 mmHg, que con síntomas es la Clase I · Nivel C de la tabla del conducto'
+      : (psap != null ? '' : 'la estima la aplicación a partir de la velocidad de la insuficiencia tricuspídea')));
+  }
+  if (grupo === 'jat') {
+    filas.push(_indFila('Presión sistólica pulmonar estimada', _indNum(psap, 0, 'mmHg'),
+      _gt(psap, 50) ? 'warn' : (psap != null ? 'none' : 'ask'),
+      _gt(psap, 50) ? 'supera los 50 mmHg, que es una de las dos condiciones alternativas del stent de rama' : ''));
+  }
+
+  /* ── Las preguntas, con TRES estados. «Sin dato» no cuenta como «no». ── */
+  const pregs = (grupo && TGA_IND_PREG[grupo]) ? TGA_IND_PREG[grupo] : [];
+  const clinica = [], si = [], no = [], sd = [];
+  pregs.forEach(function (p) {
+    /* No hay campo guardado para ninguna de estas preguntas —esta tanda no puede agregarlos—,
+       así que el origen es siempre el panel. Se pasa por `_indOrigen` igual, con el valor de
+       origen nulo, para que el día que alguna tenga campo propio no haya que reescribir la fila:
+       es el mismo camino que la bicúspide usa para sus seis. */
+    const o = _indOrigen(null, p.clave);
+    if (o.val === 'si') si.push(p.lbl); else if (o.val === 'no') no.push(p.lbl); else sd.push(p.lbl);
+    clinica.push(_indFilaOrigen(p.lbl, o, TGA_IND_OPS, function (val) {
+      return { txt: val === 'si' ? 'Sí' : (val === 'no' ? 'No' : 'Sin dato'),
+               marca: val === 'si' ? 'warn' : (val === 'no' ? 'none' : 'ask'),
+               nota: p.nota + (val == null ? '. Sin dato no cuenta como «no»: mientras no se conteste, esta condición no sostiene ninguna recomendación' : '') };
+    }));
+  });
+
+  /* ── El balance, que es la condición (5): si ninguna está en «sí», qué falta preguntar ── */
+  const bloques = [];
+  const R = grupo ? TGA_IND_RECS[grupo] : null;
+  if (R) {
+    const lin = R.lineas.map(function (t) { return { txt:t, refs:null } });
+    if (si.length) {
+      lin.push({ txt:'Condiciones presentes en este paciente: ' + si.length + ' de ' + pregs.length + ' (' + si.join('; ') + ').'
+        + (sd.length ? ' Sin contestar: ' + sd.join('; ') + '.' : ' Las otras ' + no.length + ' están contestadas que no.'), refs:null });
+    } else if (sd.length) {
+      lin.push({ txt:'Ninguna condición consta como presente, y quedan ' + sd.length + ' sin contestar: ' + sd.join('; ')
+        + '. Mientras no se contesten, ninguna de las recomendaciones de arriba se sostiene en este paciente — «sin dato» no cuenta como «no».', refs:null });
+    } else {
+      lin.push({ txt:'Las ' + pregs.length + ' condiciones están contestadas y ninguna está presente.', refs:null });
+    }
+    /* El folio sale de su propio campo y NO de recortar el título: una expresión regular sobre
+       una cadena de pantalla se rompe en silencio el día que alguien le cambie un guión. */
+    lin.push({ txt:'Fuente: ESC 2020 de cardiopatías congénitas del adulto, ' + R.folios + '.', refs:['esc2020guch'] });
+    bloques.push({ tit:R.tit, lineas:lin });
+  } else {
+    bloques.push({ tit:'Sin cirugía cargada no hay tabla de intervención que aplicar', lineas:[
+      { txt:'La guía no publica ninguna tabla de indicaciones de intervención para la transposición completa no operada del adulto: las tres situaciones que trata son el switch auricular, el switch arterial y el Rastelli, cada una con su propia tabla. Mientras la cirugía no conste, el panel no puede decir qué recomendaciones corresponden.', refs:null },
+      { txt:'Fuente: ESC 2020 de cardiopatías congénitas del adulto, apartados 4.12.2 a 4.12.4, hojas 54 a 58, folios 616 a 620.', refs:['esc2020guch'] }
+    ]});
+  }
+  /* ── Las generales, para todas las situaciones ── */
+  const gen = [
+    { txt:'Todos los pacientes con transposición de grandes arterias, cualquiera sea el tipo de operación, deben verse al menos una vez al año en un centro especializado en cardiopatías congénitas del adulto, con atención a los problemas propios de su cirugía (apartado 4.12.5, hoja 58, folio 620).', refs:null }
+  ];
+  if (grupo === 'cc') gen.push({ txt:'Los pacientes con transposición congénitamente corregida necesitan seguimiento de por vida en un centro especializado, a intervalos anuales, en particular por los trastornos de conducción y por la disfunción del ventrículo subaórtico y de su válvula auriculoventricular (apartado 4.13.6, hoja 60, folio 622).', refs:null });
+  /* ⚠️ EL EMBARAZO Y EL EJERCICIO NO SE ESCRIBEN: la propia guía los remite a sus apartados
+     generales —3.4.6, 3.5.5 y 3.5.7— y no publica ninguna recomendación propia de la
+     transposición. Decirlo es lo honesto; inventar una sería contenido clínico nuevo. */
+  gen.push({ txt:'Para el ejercicio, el embarazo y la profilaxis de endocarditis, el apartado 4.12.6 (hoja 58, folio 620) remite a los apartados generales de la guía y no publica ninguna recomendación propia de la transposición.', refs:null });
+  gen.push({ txt:'Fuente: ESC 2020 de cardiopatías congénitas del adulto, apartados 4.12.5, 4.12.6 y 4.13.6.', refs:['esc2020guch'] });
+  bloques.push({ tit:'Seguimiento y consideraciones generales', lineas:gen });
+
+  return { filas: filas,
+    clinica: clinica.length ? clinica : null,
+    bloques: bloques,
+    guia: { ref:'esc2020guch',
+      txt:'Las indicaciones de esta sección salen de las tablas de recomendaciones de la transposición de grandes arterias de la ESC 2020 de cardiopatías congénitas del adulto (hojas 57 a 60, folios 619 a 622).' },
+    notas: [
+      'Lo que se contesta en esta sección no se guarda con el estudio: vive mientras el panel esté abierto y se pierde al cerrarlo o al empezar un estudio nuevo.',
+      'Las recomendaciones de esta sección no entran al informe, al EN SUMA, al PDF ni al PPT: el papel describe lo que se midió y las indicaciones se leen acá.'
+    ] };
+}
+
 function _indVABEsBicuspide(){
   return !!_indS('vab_tipo') || _indS('va_morf') === 'Bicúspide';
 }
@@ -89489,6 +89744,12 @@ const IND_SECS = [
      `IND_SECS` se recorre buscando la sección por el PREFIJO de su título. Verificado contra los
      veintitrés anteriores. */
   { tit:'Tetralogía de Fallot reparada — insuficiencia pulmonar', fn:_indTdFIP },
+  /* ⚠️ LA DE LA TANDA TGA-2 (31/10/2026). «Transposición de grandes arterias — indicaciones y
+     seguimiento» no es prefijo de ninguno de los veinticinco anteriores ni ninguno es prefijo
+     suyo: `IND_SECS` se recorre buscando la sección por el PREFIJO de su título, así que un
+     título que sea prefijo de otro deja una de las dos sin probar. Verificado: ninguno empieza
+     con «Transposición». Va al lado de la Fallot, que es la otra congénita compleja. */
+  { tit:'Transposición de grandes arterias — indicaciones y seguimiento', fn:_indTGA },
   /* ⚠️ LAS TRES DE LA TANDA J (24/10/2026), Y NINGUN TITULO ES PREFIJO DE OTRO NI DE LOS
      VEINTICUATRO ANTERIORES: `IND_SECS` se recorre buscando la seccion por el PREFIJO de su
      titulo, asi que un titulo que sea prefijo de otro deja una de las dos sin probar.
