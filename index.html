@@ -18057,9 +18057,12 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
            parrafo fijo que lo afirme contradice al dibujo y al informe del mismo paciente.
            Queda estructural: dice que cubre la seccion y nada clinico. El contenido que sale de
            aca NO se pierde de la aplicacion -lo dicen `TGA3D_INFO.ltga` y `TGA3D_INFO.mus` por
-           escenario, y `tgaConclusion` en el informe de esas anatomias-, salvo la clausula «su
-           insuficiencia pesa como pesaria una mitral», que es la unica prosa que deja de estar
-           en algun lado; declarado en docs/PENDIENTES.md → TGA2-b. -->
+           escenario, y `tgaConclusion` en el informe de esas anatomias-.
+           ⚠️ Y LA CLAUSULA «su insuficiencia pesa como pesaria una mitral» YA NO ESTA PERDIDA:
+           este comentario decia que era «la unica prosa que deja de estar en algun lado» y la
+           tanda AJUSTES-3 la movio, con sus palabras intactas, al ⓘ de esta seccion -el globo
+           `tga-3d`-, rotulada «Criterio de EcoSmart» porque la analogia no esta en ninguna hoja
+           leida. TGA2-b queda CERRADO. -->
       <p style="font-size:11px;color:var(--text2);margin:0 0 12px;line-height:1.5;">
         Esta sección cubre las cuatro anatomías del selector: la transposición completa (d-TGA), la congénitamente corregida (ccTGA) y las dos operadas con switch auricular.
         El dibujo, la conclusión de abajo y el informe describen lo que se cargue en el tipo y en la cirugía; con la d-TGA aparece además el campo de cirugía realizada.
@@ -45472,7 +45475,27 @@ const VINFO = Object.freeze({
        + 'cirugía realizada. «Corazón normal (referencia)» es una ayuda visual y NO un dato de '
        + 'este paciente, así que no se puede incluir en el informe. Y la librería 3D se baja de '
        + 'internet al abrir la sección: sin conexión el dibujo no aparece y el resto de la '
-       + 'sección —la conclusión, el informe y el PDF— funciona igual.'
+       + 'sección —la conclusión, el informe y el PDF— funciona igual.\n'
+       /* ⚠️ ESTA CLAUSULA VIENE DEL PARRAFO DE PANTALLA, Y SUS PALABRAS NO SE TOCARON (decisión
+          del médico, 31/10/2026). La TGA-2 retiró el párrafo que afirmaba que el ventrículo
+          derecho es el sistémico, porque es falso con Jatene y con Rastelli; de todo lo que
+          salió, lo único que no quedó en ningún otro lado era esta oración —lo demás lo dicen
+          `TGA3D_INFO.ltga` y `.mus`, verificado—, y `TGA2-b` la declaró perdida. Vuelve acá,
+          que es el único ⓘ de esta sección.
+          EL ANTECEDENTE SE EXPLICITA AFUERA de la oración: en el párrafo original «estos
+          pacientes» eran los de la TGA corregida, y suelta la frase se quedaba sin sujeto. Las
+          palabras de la cláusula son las mismas, carácter por carácter.
+          ⚠️ VA ROTULADA «Criterio de EcoSmart» PORQUE LA ANALOGIA NO ESTA EN NINGUNA HOJA LEIDA.
+          Lo que el registro verificado sí tiene es la recomendación 4 de la Tabla de intervención
+          tras switch auricular de la ESC 2020 —hoja 57, folio 619, IIa · C—, que manda considerar
+          la reparación o el reemplazo con insuficiencia severa de la auriculoventricular
+          sistémica «independientemente de los síntomas», que es el criterio de una mitral y no el
+          de una tricúspide nativa: respalda el CONCEPTO, no la frase. El folio y la clase no se
+          escriben acá porque esta línea no es una recomendación; viven en el panel de Evidencia
+          y en `docs/fuentes/FUENTES.md`. */
+       + 'Criterio de EcoSmart — en la transposición congénitamente corregida y tras el switch '
+       + 'auricular: La válvula tricúspide de estos pacientes es la auriculoventricular '
+       + 'sistémica: su insuficiencia pesa como pesaría una mitral.'
   },
   'oai-ref': { ancho: 360, dyn: function () { return _oaiRefGlobo() } },
   'ai-card': { ancho: 348, dyn: function () { return evTarjetaAI() } },
@@ -145435,8 +145458,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261031-2013';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793488402503;                 /* eco-build-ms */
+const ECO_BUILD    = '20261031-2016';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793488610268;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -145522,7 +145545,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261031-2013</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261031-2016</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
