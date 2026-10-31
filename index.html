@@ -2635,6 +2635,19 @@ html.light-mode #tab-valvulas .sev-lvl3{color:#7f1d1d;}
         crossorigin="anonymous" referrerpolicy="no-referrer"
         onload="pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'"></script>
 <style>
+/* ── Rotulos flotantes del diagrama 3D de la TGA (TGA-2) ──
+   `position:absolute` sobre el host, que es `position:relative`. `pointer-events:none` para que
+   no roben el arrastre del dibujo, y `translate(-50%,-50%)` porque la posicion que calcula la
+   proyeccion es el CENTRO del rotulo y no su esquina. */
+#tga-3d-cv .tga3d-lbl{position:absolute;transform:translate(-50%,-50%);pointer-events:none;
+  font-size:10.5px;font-weight:600;color:var(--text);background:var(--bg2);
+  border:1px solid var(--border);border-radius:4px;padding:1px 4px;white-space:nowrap;opacity:.92}
+#tga-3d-cv canvas{display:block;max-width:100%;border-radius:8px}
+/* Con movimiento reducido el dibujo arranca quieto; el CSS no puede pararlo porque el latido lo
+   mueve `requestAnimationFrame`, asi que la regla la aplica `tga3dArranque()`. Esto solo evita
+   la transicion del propio contenedor. */
+@media (prefers-reduced-motion: reduce){ #tga-3d-box *{transition:none !important} }
+
 /* ── Amiloidosis Calculator ── */
 /* --bg, --border, --text, --purple, --green, --red se heredan del sistema global (theme-aware) */
 .amilo-root{
@@ -18102,6 +18115,67 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
             <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
           </select>
         </div>
+      </div>
+      <!-- ══ EL DIAGRAMA 3D DE LA TRANSPOSICION (TGA-2) ══════════════════════════════════════
+           Portado de `docs/3d/demo_tga_3d_esquema_aprobado.html` SIN reinterpretar su geometria:
+           los arrays de puntos, `scenario()`, el armado y la animacion son los de la demo, y la
+           comparacion de las dos esta medida en el reporte de la tanda.
+
+           ⚠️ TODOS LOS CONTROLES DE ESTA CAJA VAN CON PREFIJO `tga-3d-` Y GUION MEDIO, y eso NO
+           es cosmetica: `guardarInforme` barre `input[id]`, `select[id]` y `textarea[id]`, asi
+           que sin el prefijo en la lista de `_noEsDelEstudio` la casilla «Ver por dentro», el
+           numero de la frecuencia y el resto se persistirian como campos del estudio — seis
+           claves nuevas en TODO estudio que se guarde desde hoy, cuando la orden autoriza UNO.
+           Es exactamente lo que el A/B destapo con `vab-anim-scrub`. El unico campo del estudio
+           de esta caja es NINGUNO: la cirugia vive arriba, en `tga_cirugia`.
+
+           ⚠️ «Corazon normal» ES UNA VISTA DE REFERENCIA, no un dato (decision del medico): es un
+           boton que se prende y se apaga, no escribe nada y al apagarlo vuelve a la anatomia del
+           paciente. Un `<option>` en `tga_tipo` habria significado «este paciente tiene el corazon
+           normal» dentro de una seccion de transposicion.
+
+           ⚠️ LA LIBRERIA SE CARGA AL ABRIR LA SECCION Y NO AL ARRANCAR, con version fija y su
+           hash SRI, como los otros cinco scripts de CDN de esta app. Sin internet el aviso lo
+           dice y el resto de la seccion sigue funcionando. -->
+      <div class="calc-box" id="tga-3d-box" style="margin-top:12px;">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
+          <span style="font-size:12px;font-weight:700;color:var(--accent2);">Diagrama 3D</span>
+          <button type="button" class="vinfo-btn vinfo-btn-44" data-vinfo="tga-3d"
+                  aria-label="Qué muestra el diagrama 3D" onclick="vInfoClic(this,event)">ⓘ</button>
+        </div>
+        <div id="tga-3d-aviso" style="font-size:11px;color:var(--text2);line-height:1.5;margin-bottom:8px;"></div>
+        <div id="tga-3d-ctrl" style="display:none;flex-wrap:wrap;gap:10px;align-items:center;font-size:11px;margin-bottom:8px;">
+          <button type="button" class="btn btn-ghost" id="tga-3d-norm" style="min-height:44px;"
+                  aria-pressed="false" onclick="tga3dNormToggle()"
+                  title="Mostrar un corazón normal como referencia; no es un dato del paciente">🫀 Corazón normal (referencia)</button>
+          <label class="chk-toque" style="display:inline-flex;align-items:center;gap:5px;min-height:44px;">
+            <input type="checkbox" id="tga-3d-ins" onchange="tga3dInsSync()"> Ver por dentro</label>
+          <label class="chk-toque" style="display:inline-flex;align-items:center;gap:5px;min-height:44px;">
+            <input type="checkbox" id="tga-3d-nom" checked onchange="tga3dNomSync()"> Nombres</label>
+          <label for="tga-3d-fc" style="display:inline-flex;align-items:center;gap:5px;">Frecuencia cardíaca (lpm)
+            <input type="number" id="tga-3d-fc" value="70" min="30" max="200" step="1" inputmode="numeric"
+                   style="width:62px;" oninput="tga3dFcSync()"></label>
+          <button type="button" class="btn btn-ghost" id="tga-3d-pausar" style="min-height:44px;"
+                  onclick="tga3dPausar()">⏸ Pausar</button>
+          <button type="button" class="btn btn-ghost" id="tga-3d-seguir" style="min-height:44px;display:none;"
+                  onclick="tga3dSeguir()">▶ Seguir</button>
+          <button type="button" class="btn btn-ghost" id="tga-3d-frente" style="min-height:44px;"
+                  onclick="tga3dFrente()">⤾ Vista de frente</button>
+          <button type="button" class="btn btn-ghost" id="tga-3d-pdf" style="min-height:44px;"
+                  onclick="tga3dIncluirPDF()">📄 Incluir en el PDF</button>
+        </div>
+        <div id="tga-3d-cv" role="img" tabindex="0"
+             aria-label="Modelo 3D esquemático del corazón y los grandes vasos en la transposición; se rota arrastrando"
+             style="width:100%;max-width:560px;min-height:40px;position:relative;cursor:grab;touch-action:none;"></div>
+        <div id="tga-3d-leg" style="display:none;gap:14px;flex-wrap:wrap;font-size:10.5px;color:var(--text2);margin-top:6px;">
+          <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#2f6fd0;"></span> sangre poco oxigenada</span>
+          <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#d8433b;"></span> sangre oxigenada</span>
+          <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#e08a1e;"></span> suturas y comunicaciones</span>
+        </div>
+        <p id="tga-3d-circ" style="font-size:10.5px;color:var(--text2);margin:8px 0 0;line-height:1.5;"></p>
+        <p id="tga-3d-txt" style="font-size:11px;color:var(--text);margin:6px 0 0;line-height:1.5;"></p>
+        <p id="tga-3d-ref" style="font-size:10.5px;color:var(--text2);margin:6px 0 0;line-height:1.5;"></p>
+        <p id="tga-3d-estado" style="font-size:10.5px;color:var(--text2);margin:6px 0 0;line-height:1.5;"></p>
       </div>
       <div class="calc-box" style="margin-top:12px;">
         <div class="calc-row"><span class="calc-lbl">Conclusión</span><span id="tga-concl" class="calc-val">—</span></div>
@@ -45325,6 +45399,34 @@ const VINFO = Object.freeze({
        + 'elementos a favor de hipertensión pulmonar del informe firmado. Antes el informe '
        + 'cortaba en 60 ms.'
   },
+  /* ⚠️ EL GLOBO DEL DIAGRAMA 3D NO LLEVA NI UNA CITA, Y NO ES UN OLVIDO (TGA-2). Las tres
+     fuentes que el dibujo necesitaría —la descripción anatómica de la d-TGA, de la L-TGA y de
+     cada cirugía— vienen de la demo aprobada, que es material de referencia del médico y NO una
+     guía leída en texto completo: la regla de este repositorio dice que lo que no se leyó no se
+     cita. Lo que el globo explica es QUE MUESTRA el dibujo y de dónde saca cada cosa, que es
+     verificable en el código. Las oraciones «Qué mirar en la ecografía» de la demo tampoco
+     están: es la decisión (b) del médico y queda en docs/PENDIENTES.md → TGA-b. */
+  'tga-3d': {
+    ancho: 380,
+    tit: 'El diagrama 3D de la transposición',
+    lee: 'Es un esquema, no una imagen del estudio y no está a escala. Dibuja dos cosas que '
+       + 'salen de lo que se cargó en esta sección: la ANATOMIA, que sale del campo «Tipo» '
+       + '—«TGA completa» es la discordancia ventriculoarterial y «ccTGA» la doble '
+       + 'discordancia—, y la CIRUGIA, que sale de «Cirugía realizada» cuando el tipo es «TGA '
+       + 'completa» y del propio tipo cuando es «Post-Mustard» o «Post-Senning».\n'
+       + 'Las COMUNICACIONES no tienen campo propio acá: las lee de sus propias pestañas. La '
+       + 'CIA de «CIA / CIV» y el foramen oval de la sección «FOP» cuentan las dos como '
+       + 'comunicación interauricular; la CIV, de «CIA / CIV» o de «CIV residual» de esta misma '
+       + 'sección; y el ductus, de la sección «DAP». Un dato, una sola puerta.\n'
+       + 'El color dice de qué está llena cada cavidad y cada vaso: azul, sangre poco '
+       + 'oxigenada; rojo, oxigenada; naranja, las suturas y las comunicaciones. «Ver por '
+       + 'dentro» vuelve transparente la pared para mostrar los túneles.',
+    ojo: 'Ni el dibujo ni los controles se guardan con el estudio: lo único que viaja es la '
+       + 'cirugía realizada. «Corazón normal (referencia)» es una ayuda visual y NO un dato de '
+       + 'este paciente, así que no se puede incluir en el informe. Y la librería 3D se baja de '
+       + 'internet al abrir la sección: sin conexión el dibujo no aparece y el resto de la '
+       + 'sección —la conclusión, el informe y el PDF— funciona igual.'
+  },
   'oai-ref': { ancho: 360, dyn: function () { return _oaiRefGlobo() } },
   'ai-card': { ancho: 348, dyn: function () { return evTarjetaAI() } },
   'vi-card': { ancho: 360, dyn: function () { return evTarjetaVI() } },
@@ -60636,7 +60738,14 @@ function _noEsDelEstudio(id) {
      que se guarde desde hoy. Guion MEDIO, asi que este prefijo no alcanza a `vd_vi`, `vd_bas` ni
      a ningun otro campo del estudio, que van con guion BAJO; el unico id que empieza asi es el
      del espejo. */
-  return /^(login-|ig-|lab-|cfg-|exp-|filtro-|adv-|asoc-|pdf-|lgal-|fcg-|hfpep-|vauto-|vabchk-|vab-anim-|otr-asia-|pop-bcia-|vd-triv|ref-|(?:b-)?cine-)/.test(id);
+  /* `tga-3d-` son los SEIS controles del diagrama 3D de la transposicion (TGA-2). NO son del
+     estudio: son controles del DIBUJO —ver por dentro, nombres, frecuencia del latido, pausa,
+     vista— y la orden dice expresamente que no se guardan. Sin este prefijo el recolector
+     generico los tomaria y el juego de campos guardados cambiaria en TODO estudio que se guarde
+     desde hoy, cuando esta tanda autoriza UN campo nuevo y es `tga_cirugia`. Es lo mismo que
+     destapo el A/B con `vab-anim-scrub`. Guion MEDIO, asi que este prefijo no alcanza a
+     `tga_tipo`, `tga_cirugia` ni a ningun otro `tga_*`, que van con guion BAJO. */
+  return /^(login-|ig-|lab-|cfg-|exp-|filtro-|adv-|asoc-|pdf-|lgal-|fcg-|hfpep-|vauto-|vabchk-|vab-anim-|otr-asia-|pop-bcia-|tga-3d-|vd-triv|ref-|(?:b-)?cine-)/.test(id);
 }
 
 /* ══ Repintado de módulos al cargar un estudio ═══════════════════════════════════════════
@@ -70142,6 +70251,25 @@ function generarPDFReal(_aj) {
     _dg.cia = { partes: [{ data: _ciaImg }], linea: _cp.join('  ·  ') };
   }
 
+  /* ── EL ESQUEMA 3D DE LA TRANSPOSICION (TGA-2) ──
+     ⚠️ SE RECOGE ACA Y NO JUNTO AL DE LA OREJUELA, y el motivo es el ORDEN DE EJECUCION: la
+     hoja de congénitas lee `_dg` unas cuatrocientas líneas más abajo pero ANTES del bloque de la
+     orejuela, así que un diagrama de familia `cc` recogido ahí llegaría tarde a su propia hoja y
+     caería al motor de tercios como si no tuviera texto bajo el cual ponerse. Medido.
+     La imagen es la que el médico incluyó con «Incluir en el PDF» y nada más: si no la incluyó,
+     no hay diagrama. Nada se rasteriza acá. */
+  let _tga3dEsqIdx = -1;
+  try {
+    if (typeof imgSlots !== 'undefined' && typeof esqSlotIdx === 'function') {
+      const _ti = esqSlotIdx('tga3d');
+      if (_ti >= 0 && imgSlots[_ti] && imgSlots[_ti].dataURL && !imgSlots[_ti].noPdf) {
+        const _tl = (typeof tga3dLineaPDF === 'function') ? (tga3dLineaPDF() || '') : '';
+        _dg.tga3d = { partes: [{ data: imgSlots[_ti].dataURL }], linea: _tl };
+        _tga3dEsqIdx = _ti;
+      }
+    }
+  } catch (e) { console.error('[PDF] esquema 3D de la TGA:', e); _tga3dEsqIdx = -1; }
+
   // ════════════════════════════════════════════════════════════
   // VISTA QUIRÚRGICA — VÁLVULA MITRAL (ETE) — antes de la firma
   // ════════════════════════════════════════════════════════════
@@ -70495,7 +70623,13 @@ function generarPDFReal(_aj) {
      El contenido viene de los `cc-txt-*`, que se guardan y se reponen con el estudio: por eso
      reimprimir un guardado da la hoja de ESE paciente y no la del que esté en pantalla. */
   const _ccSecs = (typeof ccEnInforme === 'function') ? (ccEnInforme() || []) : [];
-  let _ciaEnSuHoja = false;
+  /* ⚠️ ERA UNA BANDERA PARA LA CIA Y AHORA ES UNA LISTA (TGA-2). El comentario del motor dice
+     «agregar otro congénito no toca este bloque» y era FALSO por un renglón: la exclusión del
+     motor de tercios estaba escrita `k === 'cia' && _ciaEnSuHoja`, así que un segundo diagrama
+     de familia `cc` se estampaba debajo del texto Y volvía a entrar al motor — el mismo dibujo
+     DOS VECES en el informe firmado. Con la lista, agregar un congénito vuelve a ser una fila
+     del registro y su recolector. */
+  const _ccEnSuHoja = [];
   if (_ccSecs.length) {
     doc.addPage();
     y = amiloDibujarSecciones(doc, _ccSecs.map(d => ({ tit: d.tit, txt: d.txt })),
@@ -70519,7 +70653,7 @@ function generarPDFReal(_aj) {
       const _ch = Math.min(_fH1, _yMax - _cy);
       _pdfTile({ x: mL, y: _cy, w: pgW, h: _ch }, d.k);
       y = _cy + _ch;
-      _ciaEnSuHoja = true;
+      _ccEnSuHoja.push(d.k);
     });
   }
 
@@ -70588,13 +70722,14 @@ function generarPDFReal(_aj) {
   if (typeof imgSlots !== 'undefined') {
     imgSlots.forEach((s, i) => {
       if (!s || !s.dataURL || s.videoId || s.noPdf) return;
-      if (i === _oaiSlotUsado || i === _oaiEsqIdx) return;
+      if (i === _oaiSlotUsado || i === _oaiEsqIdx || i === _tga3dEsqIdx) return;
       _caps.push({ i: i, slot: s, ampliada: !!s.ampliada });
     });
   }
   /* La CIA entra al motor SOLO si no se estampó debajo de su texto. */
+  /* Los de familia `cc` que YA se estamparon debajo de su texto no vuelven a entrar. */
   const _diagClaves = PDF_DIAG_REG.map(d => d.k)
-    .filter(k => !!_dg[k] && !(k === 'cia' && _ciaEnSuHoja));
+    .filter(k => !!_dg[k] && _ccEnSuHoja.indexOf(k) < 0);
   if (_diagClaves.length || _caps.length) {
     const _pk = pdfDiagPack(_diagClaves, _caps);
     const _top = 18, _bot = _yMax;
@@ -90595,11 +90730,11 @@ function _ccContr(src) {
   return { peor: peor, difusa: !!(fl && fl.difusa), disqSep: !!(fl && fl.disqSep) };
 }
 /* ══ LOS DOS EJES DE LA TGA — DUENO UNICO (TGA-1) ════════════════════════════════════════════
-   El campo `tga_tipo` trae la anatomía y la cirugía FUSIONADAS: `mustard` y `senning` son a la
-   vez «d-TGA» y «switch auricular». Esta función es el ÚNICO lugar donde esa fusión se deshace,
-   y la leen el diagrama 3D, la línea de texto de la hoja del PDF y el informe. Con la derivación
-   copiada en cada consumidor, un `mustard` podría dibujarse como un switch y describirse como
-   otra cosa en el mismo estudio.
+   El diagrama de la demo necesita DOS ejes —anatomía y cirugía— y el campo `tga_tipo` los trae
+   FUSIONADOS: `mustard` y `senning` son a la vez «d-TGA» y «switch auricular». Esta función es
+   el ÚNICO lugar donde esa fusión se deshace, y la leen el diagrama 3D, la línea de texto de la
+   hoja del PDF y el informe. Con la derivación copiada en cada consumidor, un `mustard` podría
+   dibujarse como un switch y describirse como otra cosa en el mismo estudio.
 
    Devuelve:
      anat       '' | 'dtga' | 'ltga'   — la anatomía, en el vocabulario de la demo
@@ -90647,9 +90782,9 @@ function tgaConclusion(src){
                      bav === 'si' || civ === 'si' || civG != null);
   if (!hayDato) return null;
 
-  /* ⚠️ `dtga` ENTRA ACA EN EL MISMO COMMIT QUE EL VALOR: sin su rótulo, `TIPO[tipo] || tipo`
-     publicaba el token crudo «dtga» en el informe FIRMADO. El rótulo «completa» es el de la
-     orden del médico. */
+  /* ⚠️ `dtga` ENTRA ACA EN EL MISMO COMMIT QUE EL VALOR, y no en el que agrega la cirugía al
+     texto: sin su rótulo, `TIPO[tipo] || tipo` publicaba el token crudo «dtga» en el informe
+     FIRMADO. El rótulo «completa» es el de la orden del médico. */
   const TIPO = { dtga:'completa (d-TGA)', cctga:'congénitamente corregida (ccTGA)', mustard:'post-Mustard', senning:'post-Senning' };
   const partes = ['Transposición de grandes arterias ' + (tipo ? (TIPO[tipo] || tipo) : 'corregida') +
                   ': el ventrículo derecho es el ventrículo sistémico'];
@@ -90722,8 +90857,667 @@ function tgaSync(){
   if (_fila) _fila.style.display = (_ej.tipo === 'dtga') ? '' : 'none';
   const c = tgaConclusion();
   txt('tga-concl', c ? c.txt : '—');
+  if (typeof tga3dSync === 'function') { try { tga3dSync(); } catch (e) {} }
 }
 window.tgaSync = tgaSync; window.tgaConclusion = tgaConclusion;
+/* ══════════════ EL DIAGRAMA 3D DE LA TRANSPOSICION (TGA-2, 2026-10-31) ═══════════════════════
+   Portado de `docs/3d/demo_tga_3d_esquema_aprobado.html`. Los arrays de puntos, `tga3dEscena()`,
+   el armado y la animacion son los de la demo, nombre por nombre y numero por numero: la
+   comparacion de los cuatro escenarios alcanzables y de las tres comunicaciones esta medida.
+
+   ⚠️ LOS DOS EJES SALEN DE `tgaEjes()` Y NO SE LEEN ACA. Es el dueno unico de deshacer la fusion
+   anatomia/cirugia de `tga_tipo`; si el dibujo derivara la suya, un `mustard` podria dibujarse
+   como un switch y describirse como otra cosa en el mismo estudio.
+
+   ⚠️ LA LIBRERIA VA CON SU HASH SRI, como los otros cinco scripts de CDN de esta app. El hash se
+   verifico por DOS caminos independientes el 2026-10-31 y coinciden:
+     curl -s "https://api.cdnjs.com/libraries/three.js/r128?fields=sri"
+     curl -s ".../r128/three.min.js" | openssl dgst -sha512 -binary | openssl base64 -A
+   Sin `integrity` el navegador ejecuta lo que sea que devuelva el CDN, y este script corre con
+   acceso total a los datos del paciente. Al subir de version hay que recalcular el hash.
+
+   ⚠️ NADA DE ESTE BLOQUE ESCRIBE EN UN CAMPO DEL ESTUDIO. Los seis controles van con prefijo
+   `tga-3d-`, declarado en `_noEsDelEstudio`, y el unico dato que el dibujo lee y que viaja es
+   `tga_cirugia`, que escribe el medico. */
+const TGA3D_URL = 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js';
+const TGA3D_SRI = 'sha512-dLxUelApnYxpLt6K2iomGngnHO83iUvZytA3YjDUCjT0HDOHKXnVYdf3hU4JjM8uEhxf9nD1/ey98U3t2vZ0qQ==';
+const TGA3D_C = Object.freeze({ blue: 0x2f6fd0, red: 0xd8433b, grey: 0x9a9a95, orange: 0xe08a1e });
+const TGA3D_ALTO = 420;
+/* Los textos de la demo, con UNA poda declarada: las oraciones «Que mirar: …» NO se implementan.
+   Es la decision (b) del medico —son de ejemplo y hay que verificarlas contra las guias de
+   congenitas— y queda en docs/PENDIENTES.md → TGA-b. Lo que se conserva es la descripcion
+   anatomica, que es lo que el dibujo dibuja. */
+const TGA3D_INFO = Object.freeze({
+  norm: 'Corazon normal. Concordancia auriculoventricular y ventriculoarterial: la aorta nace del ventriculo izquierdo y la arteria pulmonar, del derecho. Los grandes vasos se cruzan.',
+  dtga: 'TGA completa (d-TGA). Concordancia auriculoventricular y discordancia ventriculoarterial: la aorta nace del ventriculo derecho y la pulmonar del izquierdo. Salen en paralelo, con la aorta por delante y a la derecha.',
+  ltga: 'TGA corregida (L-TGA). Doble discordancia: la sangre sigue el circuito normal, pero pasa por el ventriculo equivocado en cada lado. El ventriculo sistemico es el derecho morfologico, que queda a la izquierda del paciente.',
+  mus:  'Switch auricular (Mustard o Senning). Un tunel dentro de las auriculas cruza las dos corrientes. El ventriculo derecho queda como sistemico.'
+});
+const TGA3D_CIRC = Object.freeze({
+  norm: 'AD → VD → arteria pulmonar → pulmones → AI → VI → aorta → cuerpo',
+  dtga: 'AD → VD → AORTA → cuerpo   ·   AI → VI → ARTERIA PULMONAR → pulmones → AI   (dos circuitos en paralelo)',
+  ltga: 'AD → VI morfologico → arteria pulmonar → pulmones   ·   AI → VD morfologico → aorta',
+  mus:  'cavas → tunel → valvula mitral → VI → arteria pulmonar   ·   venas pulmonares → valvula tricuspide → VD → aorta'
+});
+const TGA3D_REF = Object.freeze({
+  norm: '', dtga: '', ltga: '',
+  mus: 'Tuneles dentro de las auriculas (con «Ver por dentro»): azul, la sangre de las cavas; rojo, la de las venas pulmonares.'
+});
+/* ── La geometria de la demo, verbatim ── */
+const _T3 = {
+SV:[[-1.6,3.0,-0.05],[-1.45,1.7,0.0],[-1.25,0.9,0.1],[-1.0,0.2,0.25],[-0.85,-0.6,0.4],[-0.7,-0.2,0.55],[-0.55,0.3,0.75]],
+PVR:[[-2.2,1.2,-1.4],[-1.4,1.2,-1.3],[-0.3,1.1,-0.9],[0.4,0.9,-0.7],[0.55,0.2,-0.3],[0.65,-0.7,-0.15],[0.5,-0.2,-0.1]],
+PVL:[[2.3,1.2,-1.4],[1.9,1.1,-1.1],[1.1,1.0,-0.85],[0.5,0.95,-0.7]],
+AO_ANT:[[-0.4,0.5,0.9],[-0.45,1.5,0.8],[-0.3,2.4,0.5],[0.3,2.9,0.2],[1.1,2.6,-0.4],[1.6,1.9,-0.8]],
+AO_N:[[0.35,0.4,-0.05],[0.3,1.2,-0.15],[0.45,2.1,-0.3],[0.9,2.6,-0.5],[1.5,2.3,-0.7],[1.7,1.6,-0.9]],
+PAP_T:[[0.35,0.3,-0.1],[0.4,1.3,-0.3],[0.5,2.0,-0.4]],
+PAP_R:[[0.5,2.0,-0.4],[-0.2,2.2,-0.7],[-1.2,2.1,-1.0],[-1.9,1.8,-1.3]],
+PAP_L:[[0.5,2.0,-0.4],[1.1,2.0,-0.7],[1.7,1.9,-0.95],[2.2,1.7,-1.2]],
+PAA_T:[[-0.4,0.5,0.9],[-0.2,1.4,0.75],[0.1,2.0,0.4]],
+PAA_R:[[0.1,2.0,0.4],[-0.6,2.3,-0.3],[-1.4,2.2,-0.9],[-1.9,1.8,-1.3]],
+PAA_L:[[0.1,2.0,0.4],[0.9,2.15,-0.1],[1.6,2.0,-0.8],[2.2,1.7,-1.2]],
+AO_LT:[[0.9,0.5,0.6],[0.95,1.5,0.5],[0.9,2.4,0.3],[1.2,2.9,0.0],[1.6,2.5,-0.5],[1.8,1.7,-0.8]],
+PA_LT:[[-0.3,0.4,-0.1],[-0.3,1.4,-0.4],[-0.1,2.0,-0.5]],
+PA_LT_R:[[-0.1,2.0,-0.5],[-0.7,2.2,-0.8],[-1.4,2.1,-1.0],[-1.9,1.8,-1.3]],
+PA_LT_L:[[-0.1,2.0,-0.5],[0.6,2.1,-0.8],[1.5,2.0,-1.0],[2.2,1.7,-1.2]],
+SV_LT:[[-1.6,3.0,-0.05],[-1.45,1.7,0.0],[-1.25,0.9,0.1],[-1.0,0.2,0.25],[-0.85,-0.6,0.4],[-0.6,-0.1,0.2],[-0.3,0.3,-0.05]],
+PV_LT:[[-2.2,1.2,-1.4],[-1.4,1.2,-1.3],[-0.3,1.1,-0.9],[0.45,0.9,-0.7],[0.6,0.2,-0.3],[0.7,-0.6,0.1],[0.8,-0.1,0.4],[0.9,0.4,0.6]],
+AOR:[0.32,0.26], PAR:[0.32,0.22], PBR:[0.22,0.2],
+LBV:[-0.9,-1.0,1.0], LBI:[0.9,-1.1,0.6]
+};
+function _t3cat(){ const o=[];
+  Array.prototype.forEach.call(arguments,function(a){ a.forEach(function(p){ const l=o[o.length-1];
+    if(!l||l[0]!==p[0]||l[1]!==p[1]||l[2]!==p[2]) o.push(p); }) });
+  return o; }
+/* ── El estado del dibujo. NADA de esto se persiste. ── */
+const _tga3d = { cargando:false, listo:false, fallo:false, ref:false, ins:false, noms:true,
+                 fc:70, pausado:false, raf:0, api:null, manual:false };
+/* ⚠️ LAS COMUNICACIONES SE LEEN DE SUS PROPIAS PESTANAS, no de campos nuevos: las CUATRO ya
+   existen en la app —CIA y CIV en «CIA / CIV», DAP en su seccion y FOP en la suya— y la orden
+   dice expresamente que entonces el diagrama las LEE de ahi. Un dato, dos puertas: un solo
+   campo guardado por comunicacion, el que su modulo ya tenia.
+   El criterio es el MISMO que el de cada modulo para decir «hay algo cargado», leido de sus
+   dueños: tipo o tamanio en CIA y CIV, tipo o diametro en el DAP, y el FOP cuenta como CIA. */
+function tga3dComs(src) {
+  const _sv = id => _ccSv(id, src), _nv = id => _ccNv(id, src);
+  const cia = !!(_sv('ete_cia_tipo') || _nv('ete_cia_tam_max') != null || _nv('ete_cia_tam_min') != null);
+  const fop = !!(_sv('fop_tunel') || _sv('fop_shunt_reposo') === 'si' || _sv('fop_shunt_valsalva') === 'si');
+  const civ = !!(_sv('ete_civ_tipo') || _nv('ete_civ_tam') != null || _sv('tga_civ_residual') === 'si');
+  const pda = !!(_sv('dap_tipo') || _nv('dap_diam') != null);
+  return { asd: (cia || fop), vsd: civ, pda: pda };
+}
+window.tga3dComs = tga3dComs;
+/* La clave de texto del escenario: la misma regla que la demo (`anat==='dtga'&&op!=='none'`). */
+function _tga3dClave(anat, cir) {
+  if (anat === 'dtga' && cir === 'auricular') return 'mus';
+  return anat || '';
+}
+/* ⚠️ UNA SOLA PREGUNTA PARA «SE VE». `offsetParent` es null con cualquier ancestro en
+   `display:none`, asi que la seccion plegada y la pestania oculta dan el mismo no. Es el mismo
+   predicado que `_oaiVisible`. */
+function _tga3dVisible() {
+  const c = document.getElementById('tga-3d-cv');
+  if (!c) return false;
+  try { if (document.hidden) return false } catch (e) {}
+  /* ⚠️ `offsetParent` NO ALCANZA, Y ESO LO DESTAPO LA MEDICION. Cubre la pestania oculta —ahi si
+     hay un `display:none` arriba— pero NO el acordeon plegado: `secToggle` lo cierra con
+     `max-height:0` y `overflow:hidden`, dejando el `display` en block, asi que con la seccion
+     CERRADA el predicado daba `true` y la libreria se bajaba igual. La decision del medico dice
+     «solo al abrir la seccion de la TGA», y sin esta linea la garantia era «al abrir la
+     pestania». Se le pregunta a la clase `open`, que es el dueno del estado del acordeon. */
+  const acc = c.closest('.sacc');
+  if (acc && !acc.classList.contains('open')) return false;
+  return !!c.offsetParent;
+}
+function _tga3dReducido() {
+  try { return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) }
+  catch (e) { return false }
+}
+/* ── La carga diferida, con SRI ── */
+function tga3dBoot() {
+  if (_tga3d.listo || _tga3d.cargando) return;
+  if (window.THREE) { _tga3d.listo = true; tga3dInit(); return; }
+  _tga3d.cargando = true;
+  const av = document.getElementById('tga-3d-aviso');
+  if (av) av.textContent = 'Cargando la librería 3D…';
+  const sc = document.createElement('script');
+  sc.src = TGA3D_URL;
+  sc.integrity = TGA3D_SRI;
+  sc.crossOrigin = 'anonymous';
+  sc.referrerPolicy = 'no-referrer';
+  /* ⚠️ EL `onerror` CUBRE LOS DOS FALLOS QUE IMPORTAN: sin internet y con el hash SRI que no
+     coincide. En los dos el navegador DESCARTA el script, y sin este aviso el dibujo
+     simplemente no aparece — que se lee igual que «la app esta rota». El resto de la seccion
+     sigue funcionando porque nada mas de la TGA depende de esta libreria. */
+  sc.onerror = function () {
+    _tga3d.cargando = false; _tga3d.fallo = true;
+    const a = document.getElementById('tga-3d-aviso');
+    if (a) a.textContent = 'No se pudo cargar la librería 3D (hace falta internet). '
+      + 'El resto de la sección funciona igual: la conclusión, el informe y el PDF no dependen del dibujo.';
+  };
+  sc.onload = function () {
+    _tga3d.cargando = false;
+    if (!window.THREE) { sc.onerror(); return; }
+    _tga3d.listo = true;
+    try { tga3dInit() } catch (e) { console.error('[TGA 3D] init:', e); _tga3d.fallo = true; }
+  };
+  document.head.appendChild(sc);
+}
+window.tga3dBoot = tga3dBoot;
+/* ══ LA ESCENA — PORTADA DE LA DEMO SIN REINTERPRETAR SU GEOMETRIA ═══════════════════════════
+   Misma firma de retorno que la demo: `{ch, ar, fl, ex, lb}`. La unica diferencia es de dONDE
+   salen `anat`, `cir` y las comunicaciones: en la demo son botones, aca son `tgaEjes()` y
+   `tga3dComs()`.
+   ⚠️ LA REGLA DE LA DEMO SOBRE LA CIRUGIA SE CONSERVA TAL CUAL: `var o=(a==='dtga')?op:'none'`,
+   o sea que con L-TGA no se dibuja ninguna cirugia. Por eso `tgaEjes` devuelve `cir:''` ahi, y
+   lo que el medico hubiera cargado se informa como `cirIgnorada` en vez de dibujarse. */
+function tga3dEscena(anat, cir, sh) {
+  const P = _T3, C = TGA3D_C;
+  const s = { ch:{ RA:C.blue, LA:C.red, RV:C.blue, LV:C.red }, ar:[], fl:[], ex:[], lb:[] };
+  s.lb.push(['AD',[-1.25,1.9,0.15]], ['AI',[0.5,1.8,-0.7]]);
+  s.fl.push({ p:P.PVL, c:C.red });
+  const a = anat, o = (a === 'dtga') ? (cir || 'none') : 'none';
+  if (a === 'norm') {
+    s.ar.push({ p:_t3cat(P.AO_N), c:C.red, r:P.AOR, br:1, from:'R' },
+              { p:_t3cat(P.PAA_T, P.PAA_R.slice(1)), c:C.blue, r:P.PAR, from:'L' },
+              { p:P.PAA_L, c:C.blue, r:P.PBR });
+    s.fl.push({ p:_t3cat(P.SV, P.PAA_T, P.PAA_L), c:C.blue }, { p:_t3cat(P.PVR, P.AO_N), c:C.red });
+    s.lb.push(['VD',P.LBV], ['VI',P.LBI], ['Ao',P.AO_N[2]], ['AP',P.PAA_T[1]]);
+  }
+  if (a === 'dtga' && o !== 'auricular') {
+    s.ar.push({ p:_t3cat(P.AO_ANT), c:C.blue, r:P.AOR, br:1, from:'L' });
+    s.lb.push(['VD',P.LBV], ['VI',P.LBI], ['Ao',P.AO_ANT[2]]);
+    s.ar.push({ p:_t3cat(P.PAP_T, P.PAP_R.slice(1)), c:C.red, r:P.PAR, from:'R' },
+              { p:P.PAP_L, c:C.red, r:P.PBR });
+    s.fl.push({ p:_t3cat(P.SV, P.AO_ANT), c:C.blue }, { p:_t3cat(P.PVR, P.PAP_T, P.PAP_L), c:C.red });
+    s.lb.push(['AP',P.PAP_T[1]]);
+    if (sh.asd) {
+      s.ex.push({ t:'ring', c:[-0.45,0.95,-0.3], r:0.24, ry:true, in:true });
+      s.fl.push({ p:[[-1.2,0.9,0.1],[-0.7,0.95,-0.15],[-0.15,1.0,-0.45],[0.3,1.0,-0.65]], c:C.blue, n:6, sp:0.5 },
+                { p:[[0.3,1.05,-0.6],[-0.15,1.05,-0.4],[-0.7,1.0,-0.1],[-1.2,0.95,0.1]], c:C.red, n:6, sp:0.5 });
+    }
+    if (sh.vsd) {
+      s.ex.push({ t:'ring', c:[-0.05,-0.9,0.2], r:0.28, ry:true, in:true });
+      s.fl.push({ p:[[-0.6,-0.9,0.4],[-0.1,-0.9,0.2],[0.3,-0.9,0.0],[0.6,-0.9,-0.1]], c:C.blue, n:6, sp:0.5 },
+                { p:[[0.6,-0.85,-0.1],[0.3,-0.85,0.0],[-0.1,-0.85,0.2],[-0.6,-0.85,0.4]], c:C.red, n:6, sp:0.5 });
+    }
+    if (sh.pda) {
+      const pd = [[0.55,2.1,-0.45],[0.75,2.35,-0.4],[0.9,2.6,-0.35]];
+      s.ex.push({ t:'tube', p:pd, r:0.12, c:C.orange });
+      s.fl.push({ p:pd, c:C.red, n:4, sp:0.5 }, { p:pd.slice().reverse(), c:C.blue, n:4, sp:0.5 });
+    }
+  }
+  if (a === 'dtga' && o === 'auricular') {
+    s.ch = { RA:C.red, LA:C.red, RV:C.red, LV:C.blue };
+    const bl = [[-1.6,3.0,-0.05],[-1.4,1.7,0.0],[-1.0,1.0,0.0],[-0.2,0.8,-0.3],[0.4,0.4,-0.3],[0.55,0.0,-0.25],[0.65,-0.7,-0.15],[0.5,-0.2,-0.1]];
+    const rd = [[-2.2,1.2,-1.4],[-1.4,1.2,-1.3],[-0.3,1.1,-0.9],[0.2,1.0,-0.6],[-0.4,0.9,0.0],[-0.9,0.4,0.2],[-0.95,0.0,0.3],[-0.85,-0.6,0.4],[-0.7,-0.2,0.55],[-0.55,0.3,0.75]];
+    s.ar.push({ p:_t3cat(P.AO_ANT), c:C.red, r:P.AOR, br:1, from:'L' },
+              { p:_t3cat(P.PAP_T, P.PAP_R.slice(1)), c:C.blue, r:P.PAR, from:'R' },
+              { p:P.PAP_L, c:C.blue, r:P.PBR });
+    s.fl.push({ p:_t3cat(bl, P.PAP_T, P.PAP_L), c:C.blue }, { p:_t3cat(rd, P.AO_ANT), c:C.red });
+    s.ex.push({ t:'tube', p:bl.slice(0,5), r:0.17, c:C.blue, op:0.5, in:true },
+              { t:'tube', p:rd.slice(2,7), r:0.17, c:C.red, op:0.5, in:true });
+    s.lb.push(['VD',P.LBV], ['VI',P.LBI], ['Ao',P.AO_ANT[2]], ['AP',P.PAP_T[1]]);
+  }
+  if (a === 'ltga') {
+    s.ar.push({ p:_t3cat(P.AO_LT), c:C.red, r:P.AOR, br:1, from:'R' },
+              { p:_t3cat(P.PA_LT, P.PA_LT_R.slice(1)), c:C.blue, r:P.PAR, from:'L' },
+              { p:P.PA_LT_L, c:C.blue, r:P.PBR });
+    s.fl.push({ p:_t3cat(P.SV_LT, P.PA_LT, P.PA_LT_L), c:C.blue }, { p:_t3cat(P.PV_LT, P.AO_LT), c:C.red });
+    s.lb.push(['VI morf.',P.LBV], ['VD morf.',P.LBI], ['Ao',P.AO_LT[2]], ['AP',P.PA_LT[1]]);
+  }
+  return s;
+}
+window.tga3dEscena = tga3dEscena;
+/* ══ EL MOTOR — tres.js. Se crea UNA vez y se reconstruye lo dinamico en cada `build()`. ══════ */
+function tga3dInit() {
+  const T = window.THREE, host = document.getElementById('tga-3d-cv');
+  if (!T || !host || _tga3d.api) return;
+  const Hh = TGA3D_ALTO;
+  const W0 = () => Math.max(220, host.clientWidth || 560);
+  const scene = new T.Scene(), cam = new T.PerspectiveCamera(38, W0() / Hh, 0.1, 100);
+  cam.position.set(0.1, 0.0, 12.5); cam.lookAt(0, -0.2, 0);
+  /* `preserveDrawingBuffer` HACE FALTA: sin el, `toDataURL` sobre el lienzo de WebGL devuelve un
+     PNG EN BLANCO en cuanto el navegador ya limpio el buffer, y «Incluir en el PDF» habria
+     guardado una imagen vacia sin un solo error de consola. La demo se salva porque rasteriza
+     inmediatamente despues de un `render`; aca el guardado puede llegar en cualquier momento. */
+  const rd = new T.WebGLRenderer({ antialias:true, alpha:true, preserveDrawingBuffer:true });
+  rd.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
+  rd.setSize(W0(), Hh);
+  host.appendChild(rd.domElement);
+  scene.add(new T.HemisphereLight(0xffffff, 0x6b4a40, 0.65));
+  const dl = new T.DirectionalLight(0xffffff, 0.75); dl.position.set(3, 5, 8); scene.add(dl);
+  const dl2 = new T.DirectionalLight(0xffd9c8, 0.25); dl2.position.set(-5, -2, 3); scene.add(dl2);
+  const root = new T.Group(); root.rotation.x = 0.05; scene.add(root);
+  let dyn = [], flows = [], pools = [], inOnly = [], lbs = [], shellsDyn = [];
+  const shells = [];
+  let time = 0, flowT = 0, last = performance.now(), drag = null;
+  const V = p => new T.Vector3(p[0], p[1], p[2]);
+  const cv = pts => new T.CatmullRomCurve3(pts.map(V));
+  const add = (m, keep) => { root.add(m); if (!keep) dyn.push(m); return m };
+  function hshape(rx, ry, rz, taper, seed) {
+    const g = new T.SphereGeometry(1, 56, 40), p = g.attributes.position, v = new T.Vector3();
+    for (let i = 0; i < p.count; i++) {
+      v.fromBufferAttribute(p, i);
+      const t = v.y < 0 ? Math.min(1, -v.y) : 0, f = 1 - taper * Math.pow(t, 1.5);
+      v.x *= rx * f; v.z *= rz * f; v.y *= ry;
+      if (seed) { const n = 1 + 0.018 * Math.sin(v.x * 4.1 + seed) * Math.cos(v.y * 3.3 + seed * 0.7)
+                            + 0.012 * Math.sin(v.z * 5.2 + v.y * 2.0); v.multiplyScalar(n); }
+      p.setXYZ(i, v.x, v.y, v.z);
+    }
+    g.computeVertexNormals(); return g;
+  }
+  function ttube(pts, r0, r1, col, opa, mat, keep) {
+    const cu = cv(pts), seg = 64, rs = 16, g = new T.TubeGeometry(cu, seg, 1, rs, false);
+    const pos = g.attributes.position, v = new T.Vector3();
+    for (let i = 0; i <= seg; i++) {
+      const t = i / seg, c = cu.getPointAt(t), r = r0 + (r1 - r0) * t;
+      for (let j = 0; j <= rs; j++) {
+        const idx = i * (rs + 1) + j;
+        v.fromBufferAttribute(pos, idx); v.sub(c).multiplyScalar(r).add(c); pos.setXYZ(idx, v.x, v.y, v.z);
+      }
+    }
+    g.computeVertexNormals();
+    let m;
+    if (mat) m = new T.Mesh(g, mat);
+    else { m = new T.Mesh(g, new T.MeshStandardMaterial({ color:col, roughness:0.45, metalness:0.0,
+             transparent:true, opacity:opa || 0.82 })); m.material.depthWrite = false; }
+    add(m, keep); return m;
+  }
+  function cone(a, b, r, mat) {
+    const da = V(b).sub(V(a)), L = da.length(), m = new T.Mesh(new T.ConeGeometry(r, L, 24, 1), mat);
+    m.position.copy(V(a).add(V(b)).multiplyScalar(0.5));
+    m.quaternion.setFromUnitVectors(new T.Vector3(0, 1, 0), da.normalize());
+    return m;
+  }
+  const matV = new T.MeshStandardMaterial({ color:0xa6423c, roughness:0.55, metalness:0.0 });
+  const matA = new T.MeshStandardMaterial({ color:0xbb5b58, roughness:0.6, metalness:0.0 });
+  const ghost = k => new T.MeshStandardMaterial({ color:k === 'v' ? 0xa6423c : 0xbb5b58,
+                        roughness:0.6, transparent:true, opacity:0.16, depthWrite:false });
+  function shell(g, mat, pos, rz, kind) {
+    const m = new T.Mesh(g, mat); m.position.set(pos[0], pos[1], pos[2]); m.rotation.z = rz || 0;
+    add(m, true); shells.push({ m:m, k:kind }); return m;
+  }
+  shell(hshape(1.0, 1.75, 0.62, 0.42, 2.1), matV, [-0.75, -1.2, 0.45], 0.12, 'v');
+  shell(hshape(1.1, 2.1, 0.95, 0.5, 1.3), matV, [0.65, -1.5, -0.1], 0.3, 'v');
+  shell(hshape(0.72, 0.95, 0.7, 0, 3.2), matA, [-1.25, 0.8, 0.1], 0, 'a');
+  shell(hshape(0.95, 0.62, 0.7, 0, 4.4), matA, [0.45, 0.95, -0.7], 0, 'a');
+  const ap1 = cone([-0.95, 1.35, 0.5], [-0.2, 1.7, 0.95], 0.32, matA); add(ap1, true);
+  const ap2 = cone([1.05, 1.1, 0.0], [1.4, 1.7, 0.55], 0.27, matA); add(ap2, true);
+  ttube([[-1.6,3.1,-0.05],[-1.5,2.3,0],[-1.4,1.55,0]], 0.22, 0.22, TGA3D_C.blue, 0.7, null, true);
+  ttube([[-1.3,-0.7,-0.1],[-1.25,-0.2,-0.05],[-1.25,0.25,0]], 0.22, 0.22, TGA3D_C.blue, 0.7, null, true);
+  ttube([[-2.2,1.2,-1.4],[-1.4,1.2,-1.3],[-0.4,1.1,-0.9]], 0.16, 0.16, TGA3D_C.red, 0.7, null, true);
+  ttube([[2.3,1.2,-1.4],[1.9,1.1,-1.1],[1.1,1.0,-0.85]], 0.16, 0.16, TGA3D_C.red, 0.7, null, true);
+  function setIns() {
+    const ins = _tga3d.ins;
+    shells.forEach(s => { s.m.material = ins ? ghost(s.k) : (s.k === 'v' ? matV : matA) });
+    shellsDyn.forEach(m => { m.material = ins ? ghost('v') : matV });
+    [ap1, ap2].forEach(m => { m.visible = !ins });
+    pools.forEach(p => { p.m.visible = ins });
+    inOnly.forEach(m => { m.visible = ins });
+  }
+  function build(anat, cir, sh) {
+    dyn.forEach(m => { root.remove(m); if (m.geometry) m.geometry.dispose() });
+    dyn = []; flows = []; pools = []; inOnly = []; shellsDyn = [];
+    lbs.forEach(l => l.el.remove()); lbs = [];
+    const s = tga3dEscena(anat, cir, sh);
+    const def = [['RA',[-1.25,0.8,0.1],[0.6,0.8,0.56],0,0,'a'], ['LA',[0.45,0.95,-0.7],[0.8,0.52,0.58],0,0,'a'],
+                 ['RV',[-0.75,-1.2,0.45],[0.84,1.5,0.48],0.12,0.4,'v'], ['LV',[0.65,-1.5,-0.1],[0.92,1.8,0.78],0.3,0.45,'v']];
+    def.forEach(d => {
+      const m = new T.Mesh(hshape(d[2][0], d[2][1], d[2][2], d[4], 0),
+        new T.MeshStandardMaterial({ color:s.ch[d[0]], roughness:0.35, transparent:true, opacity:0.6, depthWrite:false }));
+      m.position.set(d[1][0], d[1][1], d[1][2]); m.rotation.z = d[3]; add(m); pools.push({ m:m, k:d[5] });
+    });
+    s.ar.forEach(a => {
+      const r = a.r || [0.3, 0.24], t0 = a.p[0];
+      if (a.from) {
+        const inner = (a.from === 'L') ? [-0.75,-0.3,0.4] : [0.5,-0.4,-0.1];
+        const mid = [(inner[0]+t0[0])/2, (inner[1]+t0[1])/2, (inner[2]+t0[2])/2];
+        shellsDyn.push(ttube([inner, mid, t0], 0.44, 0.36, 0, 0, matV));
+      }
+      const bulb = new T.Mesh(new T.SphereGeometry(0.42, 20, 16),
+        new T.MeshStandardMaterial({ color:a.c, roughness:0.45, transparent:true, opacity:0.82 }));
+      bulb.material.depthWrite = false; bulb.scale.set(1, 0.85, 1);
+      bulb.position.set(t0[0], t0[1] + 0.1, t0[2]); add(bulb);
+      ttube(a.p, r[0], r[1], a.c, 0.82);
+      if (a.br) {
+        const cu = cv(a.p); let best = 0.5, by = -1e9;
+        for (let i = 0; i <= 40; i++) { const q = cu.getPointAt(i/40); if (q.y > by) { by = q.y; best = i/40 } }
+        [-0.07, 0, 0.07].forEach((d, k) => {
+          const u = Math.max(0.03, Math.min(0.97, best + d)), qq = cu.getPointAt(u);
+          ttube([[qq.x,qq.y,qq.z], [qq.x+(k-1)*0.1, qq.y+0.35, qq.z], [qq.x+(k-1)*0.2, qq.y+0.7, qq.z-0.05]],
+                0.1, 0.08, a.c, 0.82);
+        });
+      }
+    });
+    s.ex.forEach(e => {
+      let m = null;
+      if (e.t === 'tube') m = ttube(e.p, e.r, e.r, e.c, e.op || 0.9);
+      if (e.t === 'ring') {
+        m = new T.Mesh(new T.TorusGeometry(e.r, 0.045, 8, 24),
+              new T.MeshStandardMaterial({ color:e.col || TGA3D_C.orange, roughness:0.4 }));
+        m.position.set(e.c[0], e.c[1], e.c[2]); if (e.ry) m.rotation.y = Math.PI / 2; add(m);
+      }
+      if (e.t === 'sph') {
+        m = new T.Mesh(new T.SphereGeometry(e.r, 12, 10),
+              new T.MeshStandardMaterial({ color:e.col, roughness:0.5 }));
+        m.position.set(e.c[0], e.c[1], e.c[2]); add(m);
+      }
+      if (e.in && m) inOnly.push(m);
+    });
+    s.fl.forEach(f => {
+      const cu = cv(f.p), n = f.n || 14, ps = [];
+      for (let i = 0; i < n; i++) {
+        const q = new T.Mesh(new T.SphereGeometry(0.075, 8, 8), new T.MeshBasicMaterial({ color:f.c }));
+        add(q); ps.push({ m:q, u:i/n });
+      }
+      flows.push({ cu:cu, ps:ps, sp:f.sp || 0.18 });
+    });
+    s.lb.forEach(l => {
+      const el = document.createElement('div');
+      el.className = 'tga3d-lbl'; el.textContent = l[0];
+      el.style.display = _tga3d.noms ? '' : 'none';
+      host.appendChild(el);
+      lbs.push({ el:el, p:V(l[1]), t:l[0] });
+    });
+    setIns();
+    rd.render(scene, cam);
+  }
+  const sysf = p => { const sm = x => x*x*(3-2*x);
+    if (p < 0.12) return sm(p/0.12); if (p < 0.35) return 1;
+    if (p < 0.45) return 1 - sm((p-0.35)/0.10); return 0; };
+  function frame(now) {
+    _tga3d.raf = requestAnimationFrame(frame);
+    /* ⚠️ `Math.max(0, …)` Y NO SOLO `Math.min`, Y ES UN DEFECTO LATENTE DE LA DEMO QUE SE
+       ARREGLO ACA. El reloj que `requestAnimationFrame` pasa es el del COMIENZO del cuadro, y
+       puede ser ANTERIOR al `performance.now()` que se tomo arriba, antes de construir la
+       geometria: el primer `dt` sale NEGATIVO, `flowT` se va por debajo de cero y
+       `getPointAt` recibe un parametro negativo. three.js no lo valida: entra en
+       `getUtoTmapping`, sale con un indice fuera de rango y revienta con «Cannot read
+       properties of undefined (reading 'x')» dentro de la libreria minificada —un error de
+       consola que parece de la libreria y es del reloj—. Medido: pasa UNA vez, en el primer
+       cuadro, y despues nunca mas, que es lo que lo hace dificil de ver. */
+    const dt = Math.max(0, Math.min(0.1, (now - last) / 1000)); last = now;
+    /* ⚠️ CON LA SECCION CERRADA NO SE DIBUJA. El dibujo vive en un acordeon dentro de una
+       pestania: sin esta guarda el latido seguiria corriendo a 60 fps con el panel plegado y con
+       la pestania en otra cosa, que es trabajo de GPU por nada en una app que el medico tiene
+       abierta todo el dia. Es la misma razon por la que `m3dCalmo` existe. */
+    if (!_tga3dVisible()) return;
+    const fc = _tga3d.fc;
+    if (!_tga3d.pausado && fc > 0) { time += dt; flowT += dt * fc / 70 }
+    let f = 0;
+    if (fc > 0) { const per = 60 / fc; f = sysf((time % per) / per) }
+    shells.forEach(s => { const k = (s.k === 'v') ? (1 - 0.05*f) : (1 + 0.035*f); s.m.scale.set(k,k,k) });
+    pools.forEach(p => { const k = (p.k === 'v') ? (1 - 0.06*f) : (1 + 0.04*f); p.m.scale.set(k,k,k) });
+    flows.forEach(fl => { fl.ps.forEach(p => {
+      /* El doble modulo deja `u` en [0,1) incluso si `flowT` fuera negativo: es la segunda
+         mitad de la guarda de arriba, y las dos hacen falta —romper una sola la tapa la otra—. */
+      const u = (((p.u + flowT * fl.sp) % 1) + 1) % 1, q = fl.cu.getPointAt(u);
+      p.m.position.set(q.x, q.y, q.z);
+    }) });
+    root.updateMatrixWorld(true);
+    const w = host.clientWidth, h = Hh;
+    lbs.forEach(l => {
+      const v = l.p.clone().applyMatrix4(root.matrixWorld).project(cam);
+      l.sx = (v.x*0.5 + 0.5) * w; l.sy = (-v.y*0.5 + 0.5) * h;
+      l.el.style.left = l.sx + 'px'; l.el.style.top = l.sy + 'px';
+    });
+    rd.render(scene, cam);
+  }
+  /* ── El arrastre, y el TECLADO, que la demo no tiene y la orden pide ── */
+  host.addEventListener('pointerdown', e => { drag = { x:e.clientX, y:e.clientY };
+    try { host.setPointerCapture(e.pointerId) } catch (x) {} host.style.cursor = 'grabbing'; });
+  host.addEventListener('pointermove', e => {
+    if (!drag) return;
+    root.rotation.y += (e.clientX - drag.x) * 0.01;
+    root.rotation.x = Math.max(-0.9, Math.min(0.9, root.rotation.x + (e.clientY - drag.y) * 0.01));
+    drag = { x:e.clientX, y:e.clientY };
+  });
+  const up = () => { drag = null; host.style.cursor = 'grab' };
+  host.addEventListener('pointerup', up); host.addEventListener('pointercancel', up);
+  /* ⚠️ EL DIBUJO SE ROTA TAMBIEN CON EL TECLADO. Es `tabindex="0"` y `role="img"`, asi que recibe
+     foco: sin esto, rotar era una capacidad exclusiva del raton y el unico aviso era la etiqueta
+     accesible diciendo «se rota arrastrando». Las flechas giran y Inicio vuelve al frente. */
+  host.addEventListener('keydown', e => {
+    const K = { ArrowLeft:[-1,0], ArrowRight:[1,0], ArrowUp:[0,-1], ArrowDown:[0,1] }[e.key];
+    if (K) { root.rotation.y += K[0] * 0.12;
+             root.rotation.x = Math.max(-0.9, Math.min(0.9, root.rotation.x + K[1] * 0.12));
+             e.preventDefault(); return; }
+    if (e.key === 'Home') { root.rotation.set(0.05, 0, 0); e.preventDefault() }
+  });
+  const onResize = () => { const w2 = W0(); rd.setSize(w2, Hh); cam.aspect = w2 / Hh; cam.updateProjectionMatrix() };
+  window.addEventListener('resize', onResize);
+  _tga3d.api = {
+    build: build,
+    setIns: setIns,
+    noms: () => lbs.forEach(l => { l.el.style.display = _tga3d.noms ? '' : 'none' }),
+    frente: () => root.rotation.set(0.05, 0, 0),
+    resize: onResize,
+    /* La imagen que se guarda es EL CUADRO QUE SE ESTA VIENDO, con los rotulos dibujados encima
+       como hace la demo: el lienzo de WebGL no los tiene, porque son `<div>` posicionados. */
+    captura: () => {
+      rd.render(scene, cam);
+      const cvs = rd.domElement, o = document.createElement('canvas');
+      o.width = cvs.width; o.height = cvs.height;
+      const x = o.getContext('2d'), sc = cvs.width / Math.max(1, host.clientWidth);
+      x.fillStyle = '#ffffff'; x.fillRect(0, 0, o.width, o.height);
+      x.drawImage(cvs, 0, 0);
+      if (_tga3d.noms) {
+        x.font = '600 ' + (11 * sc) + 'px sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle';
+        lbs.forEach(l => {
+          if (l.sx == null) return;
+          const tw = x.measureText(l.t).width + 10 * sc, px = l.sx * sc, py = l.sy * sc;
+          x.fillStyle = 'rgba(255,255,255,0.9)'; x.fillRect(px - tw/2, py - 8*sc, tw, 16*sc);
+          x.fillStyle = '#1d1d1b'; x.fillText(l.t, px, py);
+        });
+      }
+      return { url:o.toDataURL('image/png'), ancho:o.width, alto:o.height };
+    }
+  };
+  tga3dArranque();
+  tga3dSync();
+  /* El reloj se pone en hora JUSTO antes de arrancar el bucle y no al entrar en la funcion:
+     entre las dos cosas se construye toda la geometria, y ese rato se le cargaba al primer
+     `dt`. Es la causa del parrafo de arriba, atacada por su raiz. */
+  last = performance.now();
+  _tga3d.raf = requestAnimationFrame(frame);
+}
+window.tga3dInit = tga3dInit;
+/* ⚠️ CON MOVIMIENTO REDUCIDO ARRANCA QUIETO, y lo arranca el medico. La orden lo pide asi: el
+   latido es movimiento automatico y `prefers-reduced-motion` dice que no lo haya. El cuadro se
+   dibuja igual —`build` hace su propio `render`—, lo que no corre es la animacion. */
+function tga3dArranque() {
+  if (_tga3d.manual) return;
+  if (_tga3dReducido()) _tga3d.pausado = true;
+  _tga3d.manual = true;
+}
+/* ══ EL EMBUDO: lee los datos, decide si hay dibujo y lo reconstruye ═════════════════════════
+   Lo llama `tgaSync`, que es quien corre al abrir la seccion, con cada gesto del medico y desde
+   `RECALC_MODULOS` —o sea tambien al reabrir un estudio guardado—. NO escribe nada. */
+function tga3dSync() {
+  const box = document.getElementById('tga-3d-box');
+  if (!box) return;
+  const av = document.getElementById('tga-3d-aviso');
+  const ctrl = document.getElementById('tga-3d-ctrl');
+  const leg = document.getElementById('tga-3d-leg');
+  const cvh = document.getElementById('tga-3d-cv');
+  const txt = (id, s) => { const e = document.getElementById(id); if (e) e.textContent = s };
+  const ej = tgaEjes();
+  /* La vista de referencia manda sobre el dato, y es lo unico que puede dibujar sin dato. */
+  const anat = _tga3d.ref ? 'norm' : ej.anat;
+  /* ⚠️ SIN TIPO DE TRANSPOSICION CARGADO NO SE DIBUJA, que es lo que la orden pide. Y tampoco se
+     carga la libreria: un acordeon abierto por curiosidad no tiene que bajar 600 KB. */
+  if (!anat) {
+    if (ctrl) ctrl.style.display = 'none';
+    if (leg) leg.style.display = 'none';
+    if (cvh) cvh.style.height = '0px';
+    ['tga-3d-circ', 'tga-3d-txt', 'tga-3d-ref', 'tga-3d-estado'].forEach(i => txt(i, ''));
+    if (av) av.textContent = 'Elegí el tipo de transposición para ver el diagrama, '
+      + 'o tocá «Corazón normal (referencia)» para ver el corazón normal.';
+    tga3dNormBtnSync();
+    return;
+  }
+  if (!_tga3d.listo) {
+    if (!_tga3dVisible()) return;          /* la seccion esta plegada: no se carga nada */
+    if (_tga3d.fallo) return;              /* ya aviso; no se reintenta en cada tecla */
+    tga3dBoot();
+    return;
+  }
+  if (av) av.textContent = '';
+  if (ctrl) ctrl.style.display = 'flex';
+  if (leg) leg.style.display = 'flex';
+  if (cvh) cvh.style.height = '';
+  const sh = _tga3d.ref ? { asd:false, vsd:false, pda:false } : tga3dComs();
+  const cir = _tga3d.ref ? '' : ej.cir;
+  if (_tga3d.api) { try { _tga3d.api.resize(); _tga3d.api.build(anat, cir, sh) }
+                    catch (e) { console.error('[TGA 3D] build:', e) } }
+  const k = _tga3dClave(anat, cir);
+  txt('tga-3d-circ', TGA3D_CIRC[k] || '');
+  txt('tga-3d-txt', TGA3D_INFO[k] || '');
+  txt('tga-3d-ref', TGA3D_REF[k] || '');
+  /* ── La linea de estado: SOLO lo cargado, y sin inferir ──
+     ⚠️ CON ANATOMIA Y SIN DATO DE CIRUGIA NO DICE «sin cirugia», que es lo que la orden pide
+     expresamente: el dibujo sale sin cirugia porque no hay nada que dibujar, y eso NO es lo
+     mismo que afirmar que el paciente no se operó. */
+  const est = [];
+  if (_tga3d.ref) est.push('Vista de referencia: corazón normal. No es un dato de este paciente.');
+  else {
+    if (ej.cirDeTipo) est.push('Cirugía: switch auricular, por el tipo cargado.');
+    else if (ej.cir) est.push('Cirugía: ' + (TGA_CIR_LBL[ej.cir] || ej.cir) + '.');
+    else if (ej.anat === 'dtga') est.push('Cirugía no cargada: el dibujo muestra la anatomía sin cirugía.');
+    if (ej.cirIgnorada) est.push('La cirugía cargada no se dibuja con este tipo.');
+    const c = [];
+    if (sh.asd) c.push('CIA o FOP'); if (sh.vsd) c.push('CIV'); if (sh.pda) c.push('DAP');
+    if (c.length) est.push('Comunicaciones cargadas: ' + c.join(', ') + '.');
+    /* Con L-TGA y con el switch auricular la demo no dibuja comunicaciones: se dice, en vez de
+       dejar al medico buscando un anillo que no va a aparecer. */
+    if (c.length && !(ej.anat === 'dtga' && !cir))
+      est.push('Con este escenario el diagrama no las dibuja.');
+  }
+  txt('tga-3d-estado', est.join(' '));
+  tga3dNormBtnSync();
+  tga3dCtrlSync();
+  tga3dPdfBtnSync();
+}
+window.tga3dSync = tga3dSync;
+/* ── Los controles. Ninguno escribe en el estudio. ── */
+function tga3dInsSync() {
+  const e = document.getElementById('tga-3d-ins');
+  _tga3d.ins = !!(e && e.checked);
+  if (_tga3d.api) _tga3d.api.setIns();
+}
+function tga3dNomSync() {
+  const e = document.getElementById('tga-3d-nom');
+  _tga3d.noms = !!(e && e.checked);
+  if (_tga3d.api) _tga3d.api.noms();
+}
+function tga3dFcSync() {
+  const e = document.getElementById('tga-3d-fc');
+  const n = e ? parseFloat(e.value) : NaN;
+  _tga3d.fc = isNaN(n) ? 0 : Math.max(30, Math.min(200, n));
+}
+function tga3dPausar() { _tga3d.pausado = true; tga3dCtrlSync() }
+function tga3dSeguir() { _tga3d.pausado = false; tga3dCtrlSync() }
+function tga3dFrente() { if (_tga3d.api) _tga3d.api.frente() }
+function tga3dCtrlSync() {
+  const pz = document.getElementById('tga-3d-pausar');
+  const sg = document.getElementById('tga-3d-seguir');
+  if (pz) pz.style.display = _tga3d.pausado ? 'none' : '';
+  if (sg) sg.style.display = _tga3d.pausado ? '' : 'none';
+}
+/* ⚠️ «CORAZON NORMAL» ES UN BOTON, NO UN DATO (decision del medico). Se prende y se apaga, no
+   escribe ningun campo, y al apagarlo el dibujo vuelve a la anatomia del paciente. El estado se
+   ve en el ROTULO y en `aria-pressed`, no solo en el color: el color solo no basta con
+   daltonismo ni en impresion. */
+function tga3dNormToggle() {
+  _tga3d.ref = !_tga3d.ref;
+  /* Con la referencia prendida y la libreria sin cargar hay que arrancarla: es el unico camino
+     por el que el dibujo puede existir sin un tipo cargado. */
+  if (_tga3d.ref && !_tga3d.listo && !_tga3d.fallo) { tga3dBoot(); tga3dNormBtnSync(); return }
+  tga3dSync();
+}
+function tga3dNormBtnSync() {
+  const b = document.getElementById('tga-3d-norm');
+  if (!b) return;
+  b.textContent = _tga3d.ref ? '✓ Corazón normal (referencia)' : '🫀 Corazón normal (referencia)';
+  b.setAttribute('aria-pressed', _tga3d.ref ? 'true' : 'false');
+  b.classList.toggle('btn-primary', !!_tga3d.ref);
+  b.classList.toggle('btn-ghost', !_tga3d.ref);
+  b.title = _tga3d.ref ? 'Volver a la anatomía de este paciente'
+                       : 'Mostrar un corazón normal como referencia; no es un dato del paciente';
+}
+window.tga3dInsSync = tga3dInsSync; window.tga3dNomSync = tga3dNomSync;
+window.tga3dFcSync = tga3dFcSync; window.tga3dPausar = tga3dPausar;
+window.tga3dSeguir = tga3dSeguir; window.tga3dFrente = tga3dFrente;
+window.tga3dNormToggle = tga3dNormToggle;
+/* ══ «INCLUIR EN EL PDF» — LA FUNCION COMUN DE IMAGENES ══════════════════════════════════════
+   Es un interruptor, igual que el de la orejuela (COR-5b): incluye el cuadro que se esta viendo
+   o lo quita si ya estaba. Pasa por `esqIncluirEnPDFImg`, que lo pone como slot de `imgSlots`,
+   asi que funciona con Config apagado y con el estudio sin guardar, y con Config prendido se
+   guarda con el estudio como los demas diagramas. UNA sola copia por estudio: la identifica
+   `esqClave`.
+   ⚠️ LA VISTA DE REFERENCIA NO SE PUEDE INCLUIR. Un corazon normal dentro del informe FIRMADO de
+   un paciente con transposicion se lee como el hallazgo del estudio. */
+const TGA3D_PDF_TXT = Object.freeze({ on:'✓ Incluido en el PDF', off:'📄 Incluir en el PDF' });
+function tga3dPdfBtnSync() {
+  const b = document.getElementById('tga-3d-pdf');
+  if (!b) return;
+  const on = (typeof esqEstaIncluido === 'function') && esqEstaIncluido('tga3d');
+  b.textContent = on ? TGA3D_PDF_TXT.on : TGA3D_PDF_TXT.off;
+  b.classList.toggle('btn-primary', !!on);
+  b.classList.toggle('btn-ghost', !on);
+  b.setAttribute('aria-pressed', on ? 'true' : 'false');
+  b.disabled = !!_tga3d.ref;
+  b.title = _tga3d.ref ? 'La vista de referencia no se incluye en el informe'
+                       : (on ? 'Quitar el dibujo del PDF' : 'Incluir el dibujo en el PDF');
+}
+window.tga3dPdfBtnSync = tga3dPdfBtnSync;
+function tga3dIncluirPDF() {
+  const est = document.getElementById('tga-3d-estado');
+  if (_tga3d.ref) {
+    if (est) est.textContent = ' La vista de referencia no se incluye en el informe: es un corazón normal, no este paciente.';
+    return Promise.resolve({ ok:false, motivo:'vista de referencia' });
+  }
+  if (typeof esqEstaIncluido === 'function' && esqEstaIncluido('tga3d')) {
+    esqQuitarDelPDF('tga3d');
+    tga3dPdfBtnSync();
+    if (est) est.textContent = ' El dibujo ya no se incluye en el PDF.';
+    return Promise.resolve({ ok:true, quitado:true });
+  }
+  if (!_tga3d.api) {
+    if (est) est.textContent = ' Todavía no hay dibujo que incluir.';
+    return Promise.resolve({ ok:false, motivo:'sin dibujo' });
+  }
+  const cap = _tga3d.api.captura();
+  return esqIncluirEnPDFImg('tga3d', 'Esquema 3D de la transposición', cap.url).then(r => {
+    tga3dPdfBtnSync();
+    if (est) est.textContent = r.ok
+      ? ((typeof imgGuardadoActivo === 'function' && imgGuardadoActivo())
+          ? ' Este cuadro se incluye en el PDF y se guardará con el estudio.'
+          : ' Este cuadro se incluye en el PDF. Para guardarlo con el estudio, prendé «Guardar '
+            + 'imágenes con los estudios» en la pestaña «⚙️ Config».')
+      : (' No se incluyó: ' + r.motivo + '.');
+    return r;
+  });
+}
+window.tga3dIncluirPDF = tga3dIncluirPDF;
+/* La LINEA DE TEXTO de la hoja del PDF. Sale SOLO de lo cargado —el tipo, la cirugia y las
+   comunicaciones— y no lleva ni conducta ni cita: el papel describe. Sin ninguno de los tres NO
+   HAY LINEA, que es la regla que `pdfMitralLinea` ya aplica. */
+function tga3dLineaPDF() {
+  const ej = tgaEjes();
+  if (!ej.anat) return '';
+  const p = [];
+  const TXT = { dtga:'TGA completa (d-TGA)', ltga:'TGA corregida (L-TGA)' };
+  p.push(TXT[ej.anat] || ej.anat);
+  if (ej.cirDeTipo) p.push('switch auricular');
+  else if (ej.cir) p.push(TGA_CIR_LBL[ej.cir] || ej.cir);
+  const sh = tga3dComs(), c = [];
+  if (sh.asd) c.push('CIA o FOP'); if (sh.vsd) c.push('CIV'); if (sh.pda) c.push('DAP');
+  if (c.length) p.push(c.join(', '));
+  return p.join('  ·  ');
+}
+window.tga3dLineaPDF = tga3dLineaPDF;
 window.mchScoreESC = mchScoreESC; window.mchAHA = mchAHA; window.mchExclusiones = mchExclusiones;
 window.mchGradMax = mchGradMax;
 function eteDDVIi(){
@@ -93576,30 +94370,49 @@ function esqQuitarDelPDF(clave) {
 }
 window.esqQuitarDelPDF = esqQuitarDelPDF;
 /* Devuelve `{ok, motivo}` y no tira, igual que `esqGuardarComoImagen`. */
+/* ⚠️ EL SLOT SE COLOCA EN UN SOLO LUGAR (TGA-2). `esqIncluirEnPDF` recibe un `<svg>` y lo
+   rasteriza; el diagrama 3D de la transposición es WebGL y ya tiene su `dataURL`, así que entra
+   por `esqIncluirEnPDFImg`. Las DOS terminan acá: con el cuerpo copiado, un arreglo futuro al
+   reemplazo del slot, a la conservación de la estrella o a la invalidación del índice llegaría a
+   una de las dos y no a la otra, que es el modo de falla que este archivo paga cada vez que hay
+   dos listas paralelas. */
+function _esqPonerSlot(clave, nombre, dataURL) {
+  const ent = { dataURL: dataURL, ampliada: false, calidad: 'esquema', origen: 'app',
+                esquema: true, esqClave: clave, esqNombre: nombre };
+  const i = esqSlotIdx(clave);
+  if (i >= 0) { ent.star = imgSlots[i].star; ent.nota = imgSlots[i].nota; imgSlots[i] = ent; }
+  else {
+    /* El primer hueco libre; si no hay, se agrega uno. Nunca pisa una captura del médico. */
+    let j = -1;
+    for (let k = 0; k < imgSlots.length; k++) if (!imgSlots[k]) { j = k; break; }
+    if (j < 0) { imgSlots.push(ent); if (typeof imgSlotCount !== 'undefined') imgSlotCount = imgSlots.length; }
+    else imgSlots[j] = ent;
+  }
+  if (typeof imgMarcarEditado === 'function') imgMarcarEditado();
+  if (typeof imgEnsureLen === 'function') imgEnsureLen();
+  if (typeof imgRender === 'function') { try { imgRender(); } catch (e) {} }
+  if (typeof igImgInvalidar === 'function') { try { igImgInvalidar(); } catch (e) {} }
+  return { ok: true, motivo: '' };
+}
 function esqIncluirEnPDF(clave, nombre, svgTxt, ancho, alto) {
   if (typeof imgSlots === 'undefined')
     return Promise.resolve({ ok: false, motivo: 'las imágenes del estudio no están disponibles' });
   return esqRasterizar(svgTxt, ancho, alto).then(d => {
     if (!d) return { ok: false, motivo: 'no se pudo dibujar la imagen' };
-    const ent = { dataURL: d, ampliada: false, calidad: 'esquema', origen: 'app',
-                  esquema: true, esqClave: clave, esqNombre: nombre };
-    const i = esqSlotIdx(clave);
-    if (i >= 0) { ent.star = imgSlots[i].star; ent.nota = imgSlots[i].nota; imgSlots[i] = ent; }
-    else {
-      /* El primer hueco libre; si no hay, se agrega uno. Nunca pisa una captura del médico. */
-      let j = -1;
-      for (let k = 0; k < imgSlots.length; k++) if (!imgSlots[k]) { j = k; break; }
-      if (j < 0) { imgSlots.push(ent); if (typeof imgSlotCount !== 'undefined') imgSlotCount = imgSlots.length; }
-      else imgSlots[j] = ent;
-    }
-    if (typeof imgMarcarEditado === 'function') imgMarcarEditado();
-    if (typeof imgEnsureLen === 'function') imgEnsureLen();
-    if (typeof imgRender === 'function') { try { imgRender(); } catch (e) {} }
-    if (typeof igImgInvalidar === 'function') { try { igImgInvalidar(); } catch (e) {} }
-    return { ok: true, motivo: '' };
+    return _esqPonerSlot(clave, nombre, d);
   }).catch(() => ({ ok: false, motivo: 'no se pudo preparar la imagen' }));
 }
 window.esqIncluirEnPDF = esqIncluirEnPDF;
+/* La variante para un dibujo que YA es una imagen —el lienzo de WebGL del diagrama 3D—. Devuelve
+   una promesa como la de arriba para que los dos sitios de llamada se escriban igual. */
+function esqIncluirEnPDFImg(clave, nombre, dataURL) {
+  if (typeof imgSlots === 'undefined')
+    return Promise.resolve({ ok: false, motivo: 'las imágenes del estudio no están disponibles' });
+  if (!dataURL) return Promise.resolve({ ok: false, motivo: 'no se pudo dibujar la imagen' });
+  try { return Promise.resolve(_esqPonerSlot(clave, nombre, dataURL)); }
+  catch (e) { return Promise.resolve({ ok: false, motivo: 'no se pudo preparar la imagen' }); }
+}
+window.esqIncluirEnPDFImg = esqIncluirEnPDFImg;
 
 /* ══ EL ESQUEMA DE LA OREJUELA IZQUIERDA ══════════════════════════════════════════════════════
    El diseño sale de `docs/3d/demo_orejuela_esquema_aprobado.html`: la silueta de la orejuela por
@@ -109858,7 +110671,11 @@ const PDF_DIAG_REG = Object.freeze([
   /* La CIA va al FINAL del orden y con familia propia porque su lugar natural es la hoja de
      congénitas (R-4). Sólo llega acá cuando ese módulo NO dejó texto, o sea cuando no hay hoja
      de congénitas bajo la cual ponerla — y entonces es un diagrama como los demás. */
-  { k:'cia',   w:1, fam:'cc',  lbl:'Comunicación interauricular — bordes' }
+  { k:'cia',   w:1, fam:'cc',  lbl:'Comunicación interauricular — bordes' },
+  /* TGA-2: el esquema 3D de la transposición. Familia `cc` por el mismo motivo que la CIA: su
+     lugar natural es DEBAJO del texto de congénitas (R-4), y sólo llega al motor cuando ese
+     módulo no dejó texto. Agregarlo fue una fila acá y su recolector; el motor no se tocó. */
+  { k:'tga3d', w:1, fam:'cc',  lbl:'Transposición de grandes arterias — esquema 3D' }
 ]);
 window.PDF_DIAG_REG = PDF_DIAG_REG;
 const PDF_DIAG_FAM = Object.freeze({ vi:'Función del VI', ete:'ETE y valvulares', cc:'Congénitas' });
@@ -143515,7 +144332,7 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
 const ECO_BUILD    = '20261031-0803';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793444612250;                 /* eco-build-ms */
+const ECO_BUILD_MS = 1793444637774;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
