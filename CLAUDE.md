@@ -94,6 +94,7 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Tocar algo que la tanda R2 corrigió** (21/10): las cinco opciones del derrame y la traducción del token viejo, el repintado de la VAB con el gesto de la pastilla, los seis puntos de la probabilidad de HTP, el e′ medial en tres tramos, el espesor relativo y el criterio por eco de la amiloidosis, el SGL y la calculadora de cardio-oncología, el síndrome intersticial difuso por zonas, el índice cardiaco y la RVS, o la orejuela | `docs/mapa/tanda-r2-correcciones.md` |
 | **Tocar algo que la tanda R movió**: la lesión presente sin grado de la VAB, los cortes del TEER, la severidad de la disfunción del VD, el área de la AI, los grados del derrame, el taponamiento que ya no concluye, el VD/VI del TEP o los criterios declarados de Referencias | `docs/mapa/tanda-r-referencias.md` |
 | **Tocar la sección de la VÁLVULA AÓRTICA BICÚSPIDE**: la disposición en tres columnas, las seis tarjetas ⓘ, los factores de riesgo con casilla, el DIBUJO y sus puntos sensibles, **la SIMETRÍA DE LAS CÚSPIDES y el ÁNGULO con que se dibuja**, **los SEIS dibujos por tipo y la ANIMACIÓN de la apertura**, **la FUNCIÓN VALVULAR derivada**, **el RESUMEN esquemático y su texto en Evidencia**, la morfología que sigue al tipo de fusión, la descripción del informe, el PDF o el recordatorio de la coartación | `docs/mapa/vab-bicuspide.md` |
+| **Tocar el VISOR de «Imágenes guardadas» con VIDEO, el PPT con el cuadro fijo y sus dos avisos, el MOTOR DE TERCIOS de las hojas de diagramas del PDF —el registro, el empaquetador, la CIA debajo del texto de congénitas y las capturas al final—, la CÁPSULA de la coartación sin guía, las dos citas que salieron del papel o el PODADOR del PPT de congénitas** | `docs/mapa/img3-visor-tercios.md` |
 | **Visor de cineloop, medición, calibración, IndexedDB** | `docs/mapa/imagenes-visor.md` |
 | **Tocar el TRIV del VD en las referencias de VD/AD o de Doppler tricúspide, el ÍNDICE DE TAMAÑO AÓRTICO del síndrome de Turner, el iDA de la raíz con su decimal, o lo que la AORTOPATÍA HEREDITARIA publica en el informe y en el EN SUMA** | `docs/mapa/noc-b-aorta.md` |
 | **Tocar el ESQUEMA DE LA OREJUELA del ETE —su lugar al lado de los campos, los rótulos que se pisaban, el movimiento del latido, el chorro leído de Válvulas, el contraste espontáneo o los tres controles—, el ⓘ de «Orejuela izquierda», o el BORRADO de los videos y cineloops de un estudio** | `docs/mapa/noc-a-orejuela.md` |
@@ -184,8 +185,9 @@ Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la v
 ## Qué es EcoSmart y cómo se trabaja
 
 - App clínica de ecocardiografía en **un solo `index.html`**: HTML + CSS + JS inline, sin build,
-  sin frameworks. Hoy **10,37 MB / 145.915 líneas**, medido con `wc -c` y `wc -l` el 2026-10-31 al
-  cierre de la tanda **AJUSTES-2**, sobre el árbol ya sellado (`v20261031-0106`, md5 `5d3a6fe2`).
+  sin frameworks. Hoy **10,40 MB / 146.362 líneas**, medido con `wc -c` y `wc -l` el 2026-10-31 al
+  cierre de la tanda **IMÁGENES-3**, sobre el árbol ya sellado (`v20261031-0432`, md5 `899080d4`).
+  (Antes: 10,37 MB / 145.915 al cierre de AJUSTES-2, sello `v20261031-0106`, md5 `5d3a6fe2`.)
   (Antes: 10,34 MB / 145.470 al cierre de D2, sello `v20261030-2056`, md5 `ce4dd1ac`.)
   (Antes: 10,32 MB / 145.243 al cierre de AORTA-2, sello `v20261030-1830`, md5 `5ddfacc3`.)
   (Antes: 10,14 MB / 142.743 al cierre de IMÁGENES, sello `v20261029-2127`, md5 `ca2c048e`.)
@@ -3024,6 +3026,147 @@ línea: el archivo creció y un informe de auditoría viejo apunta a otro archiv
   **invertida** y E1 con fármaco), **TC-101**, **TC-105**, **TC-106**, **TC-107** y **TC-508**.
 - **`index.html` pasó de 10,32 MB / 145.243 líneas a 10,34 MB / 145.470** — medido con `wc -c` y
   `wc -l` DESPUÉS de sellar. (MB de 10⁶.) El diff son **332 líneas agregadas y 105 quitadas**.
+
+### El visor con video, el motor de tercios del PDF y el papel sin guías — «IMÁGENES-3» (2026-10-31)
+
+- **DIEZ commits, y las PARTES A, B y C se hicieron enteras. LA PARTE D NO SE HIZO.**
+  `f6e3197` (1) · `69c9bff` (2) · `92ba745` (3) · `d172624` (4) · `822a261` (5) · `197df0d` (6)
+  · `6c8dc0f` (7) · `2ea773e` (8) · `0eecc32` (9) · el de cobertura y documentación.
+  Al empezar, `origin/main` = `HEAD` = **`07ffe05`**, el cierre de AJUSTES-2, ya publicado, con
+  el pendrive `DISK_IMG` montado y listando nombres reales.
+  **El push lo corre Maicol: esta tanda tenía orden expresa de NO pushear.**
+  ⚠️ **LA PARTE D —el diagrama 3D de la transposición de las grandes arterias— no se hizo, y no
+  quedó a medias: ninguna línea de la app se tocó por ella.** Su **inventario 10a sí está
+  hecho**, que es la mitad del trabajo, en `docs/PENDIENTES.md` → **IMG3-h**. Lo que decidió:
+  **el campo `tga_tipo` tiene TRES valores** —`cctga`, `mustard`, `senning`— y la demo necesita
+  dos ejes, anatomía (normal / d-TGA / L-TGA) y cirugía (ninguna / switch auricular / Jatene /
+  Rastelli), así que **sólo DOS de sus seis escenarios son alcanzables** con los datos que la
+  app tiene y la orden prohíbe campos guardados nuevos.
+
+- **EL DEFECTO MÁS GRANDE QUE CERRÓ, EN UNA LÍNEA: el estudio de prueba del médico pasa de
+  CINCO hojas a TRES, y sus diagramas de cinco hojas a UNA.** Medido con el PDF generado de
+  verdad: la CIA queda debajo de su texto de congénitas y Contractilidad+SGL, la mitral, el jet
+  post-TAVI y la orejuela entran en una sola hoja de diagramas. Son las **dos hojas** que la
+  demo aprobada da para ese preset.
+
+- **TRES PREMISAS DE LA ORDEN ERAN FALSAS, Y ESTÁN MEDIDAS.**
+  1. **El PPT del ESTUDIO ya incrustaba el video**, con su póster, su corrección de rotación y
+     la salvedad del `.mov`. Lo que no incluía nada era el PPT de «Imágenes guardadas».
+  2. **El FOP no tiene dibujo en la app**, contra lo que la demo supone: `fopPdfFilas()` es una
+     tabla y no hay ninguna función que dibuje un FOP, censado.
+  3. **La demo de tercios no lleva el sufijo `_aprobado`** con que la orden la nombra. Es el
+     único de los tres así. Su contenido coincide con lo que la orden describe, así que se usó
+     como referencia y se declara (**IMG3-d**).
+
+- ⚠️ **EL BUCLE DEL VIDEO EN EL PPT NO SE PUEDE MARCAR, Y SE PARÓ.** Verificado por dos
+  caminos: el XML de un paquete generado de verdad no tiene `<p:timing>`, ni `repeatCount`, ni
+  `cMediaNode`; y los **477.529 bytes** del bundle de PptxGenJS 3.12.0 tienen **cero**
+  apariciones de esos términos y de cualquier `loop*`. Escribirlo a mano post-procesando el zip
+  es posible —la app ya post-procesa— pero no se puede verificar sin PowerPoint y este archivo
+  ya documenta que una parte OOXML mal formada hace que PowerPoint pida reparar **y que al
+  reparar BORRE la diapositiva completa**. → **IMG3-a**, con el XML que haría falta.
+
+- **EL MOTOR DE TERCIOS ES DECLARATIVO Y SU EMPAQUETADOR ES PURO.** `PDF_DIAG_REG` es el único
+  dueño del orden, del tamaño y de la familia; `PDF_DIAG_EXC` dice qué pareja no va junta; y
+  `pdfDiagPack` devuelve las hojas sin tocar el documento, así que el acomodo se puede medir
+  sin generar un PDF. **Nada se corta por CONSTRUCCIÓN y no por presupuesto**: el alto de la
+  línea se mide primero y el dibujo se escala a lo que queda.
+  **Comparado contra la demo aprobada corriendo las dos lógicas lado a lado: 12 casos, 12
+  iguales, 0 distintos.**
+
+- ⚠️ **DOS DEFECTOS QUE ENCONTRARON MIS PROPIOS CONTROLES NEGATIVOS, SOBRE MIS PROPIOS
+  COMMITS.** `ete_seg_A1`..`ete_seg_P3` guardan un **entero** y el 0 es «Normal», así que la
+  línea de la mitral publicaba «0: A1, A2, A3, P1, P2, P3» en el papel de un paciente sin una
+  sola lesión marcada; y `im_grado` es **numérico con '0' de fábrica**, así que publicaba
+  «Insuficiencia mitral · 0». Los dos rótulos salen hoy de los dueños que ya existían
+  —`window.ETE_ESTADOS`, `_oaiImGrado()` y `_CC_GRADO`— y no de una segunda copia.
+
+- **EL PODADOR DEL PPT DE CONGÉNITAS PODA, NO REESCRIBE, Y TIENE TRES GUARDAS.** Parte el texto
+  por sus propios separadores y descarta el segmento que nombra una guía o lleva un verbo de
+  conducta. Las tres guardas nacieron de una medición sobre mi primera versión: los dos puntos
+  y «, que …» son separadores; la fuente se quita DENTRO del paréntesis; y **ningún número
+  medido puede desaparecer**. Y la regla de cierre es **todo o nada**: si sobrevive un marcador,
+  si se perdió un número o si no quedó nada, se devuelve el texto original y la sección queda
+  **parada**. Medido sobre veintidós estados: **ocho podadas, una parada** —la miocardiopatía
+  hipertrófica, que entrelaza la recomendación con un recuento (**IMG3-g**)— y trece sin cambio.
+
+- ⚠️ **EL RÓTULO DE LA DIASTÓLICA SON NUEVE, NO UNO.** La orden nombra «Incompleto — ASE 2025»;
+  medido, el mismo span publica además «DD Grado I/II/III», «DD — Presión elevada»,
+  «Indeterminado», «Datos insuficientes», «Función diastólica normal» y la variante de BSE 2024,
+  y las nueve llegan al PPT por la misma fila. Se podó en ese único punto y se declara
+  (**IMG3-i**).
+
+- **A/B contra HEAD con `_probe_ajustes2ab.mjs` —148 escenas, 166.040 claves y 65.120 celdas de
+  Excel— en los nueve commits.** Los commits 1, 2, 3, 5, 7 y 9 dan **CERO** diferencias de
+  superficie firmada; se declaran como CONTROL NEGATIVO cuando ninguna de esas escenas puede
+  ejercitar el cambio, y su medición es la sonda dedicada. El commit 8 da **172 diferencias y
+  todas son las autorizadas**: cuatro escenas pierden la cita de Beaubien-Souligny del informe
+  (tres estilos) y del PDF, y 148 cambian la fila del PPT de «Incompleto — ASE 2025» a
+  «Incompleto». **Excel: cero diferencias, 440 columnas, en los nueve.**
+
+- **20/20 MUTACIONES DIRIGIDAS MUERTAS EN EL PRIMER BARRIDO**, en 1 min 41 s, en un worktree y
+  nunca sobre el vivo, con guarda de md5. **El reparto es limpio**: las ocho de la Parte A matan
+  SOLO a TC-558, las seis de la Parte B SOLO a TC-559 y las seis de la Parte C SOLO a TC-560.
+  **Cuatro no revierten nada: la aplican de más**, porque las condiciones que las matan son
+  controles negativos.
+
+- **CUATRO CASOS VIEJOS ADAPTADOS, cada uno con el motivo escrito**: **TC-212** (el filtro de
+  slots cambió de nombre al retirarse la página «Imágenes adjuntas»; el invariante —el video no
+  sale en el PDF— no se movió), **TC-490** (el bull's eye ya no lleva una banda en mayúsculas
+  sino el rótulo de su franja), **TC-554** (B3 a B8: el esquema de la orejuela y el dibujo de la
+  bicúspide son tiles del motor, y **B7 queda INVERTIDA** porque la tabla ya no va a la derecha
+  sino que es una línea debajo) y **TC-557** (A9 **invertida** —la cápsula ya no nombra la
+  guía— y G2 adaptada —la salvedad se queda y la cita salió—).
+  ⚠️ **TC-554 falló primero por mi propio arnés**: buscaba el rótulo de la bicúspide con la
+  PRIMERA aparición, y el cuerpo del informe la nombra con las mismas palabras. Hay que buscarlo
+  en la hoja de diagramas.
+
+- **Línea base al cierre: suite 569/575**, en once lotes **cubriendo los 575 casos distintos**
+  —contados nombre por nombre, no por la suma de los lotes—, en UNA sola pasada sobre el árbol
+  sellado, con el pendrive `DISK_IMG` **montado y verificado al abrir, ENTRE LOS ONCE LOTES y al
+  cerrar** y el md5 de `index.html` **idéntico** antes y después (`899080d4`). Los rojos son
+  **TC-223, TC-376, TC-390 y TC-406**, los cuatro de siempre, más **TC-182 y TC-551**, los dos
+  intermitentes que la orden anticipa: **repetidos, los dos salen VERDE**. **TC-358 salió
+  VERDE**, y TC-262, TC-419 y TC-507 también.
+  ⚠️ **Y LA PRIMERA CORRIDA COMPLETA DIO 565/575 CON CUATRO ROJOS MÁS, LOS CUATRO MÍOS**, y por
+  eso esa cifra no es la línea base: TC-212, TC-490, TC-554 y TC-557. Los cuatro están adaptados
+  y la cifra de arriba sale de la corrida limpia, de una sola pasada con el archivo de tests
+  final.
+- **Semgrep 124 WARNING / 0 ERROR**, la línea base. **Excel 440** columnas con las mismas claves,
+  clave por clave, en los nueve A/B. **Censo 1023 → 1024**: el +1 cae en «Fuera del estudio (por
+  prefijo)» (92 → 93), que es el `<select>` de velocidad del visor con prefijo `ig-`; **cero
+  campos guardados nuevos y cero columnas de Excel**. Sin huérfanos nuevos. 17 bloques de JS
+  inline parsean.
+- **CELULAR: 59 hallazgos a 360 px y 68 a 390, con 17 ALTA en cada ancho** — la línea base
+  exacta que la orden declara.
+- **CHROME Y WEBKIT COINCIDEN EN LOS DIECISÉIS CRUCES** (dos motores × 1440, 1000, 768 y 390 px
+  × dos temas), con su CONTROL contra HEAD: **cero errores de consola y de página en los dos
+  motores y en los dos árboles**, cero desplazamiento horizontal del cuerpo, 17 de 25 pestañas
+  con caja y **los mismos dos textos recortados que HEAD** —los dos `.pac-id-mk`, preexistentes—.
+  La cápsula sin guía en los dieciséis; el ⓘ pasa de 356×420 a 356×530 y gana la Figura 44 y
+  **los dos folios**, dentro de la pantalla en los dieciséis; el reproductor y sus controles, que
+  en HEAD no existen, miden 413×310 y 413×44; «Medir» oculto sobre un video en los dieciséis; y
+  el modo grande lleva el modal de 441 a 1100 px a 1440, de 434 a 972 a 1000 y de 434 a 740 a
+  768, con el botón **oculto a 390** en los dos motores. Las diferencias entre motores son 2 px
+  en el video y 2 px en el botón.
+  ⚠️ **WebKit de Playwright no es Safari, y se declara.** Chrome va por el del sistema con
+  `channel: 'chrome'`.
+  ⚠️ **Y LA SONDA MIDIÓ SOBRE UN DENOMINADOR VACÍO DOS VECES ANTES DE SERVIR**: el visor vive
+  dentro de la pestaña Guardados —que no es un `.tab-btn` sino el botón flotante
+  `#floatBtnGuardados`— y su superposición, aunque sea `position:fixed`, informa 0×0 mientras su
+  contenedor está en `display:none`; y el globo es `#vinfo-card`, no `.vinfo-card`. Los dieciséis
+  cruces daban «todo bien» sobre cajas de cero.
+
+- **`index.html` pasó de 10,37 MB / 145.915 líneas a 10,40 MB / 146.362** — medido con `wc -c` y
+  `wc -l` DESPUÉS de sellar. (MB de 10⁶.) El diff son **885 líneas agregadas y 438 quitadas**.
+
+- **Dónde está todo:** `docs/mapa/img3-visor-tercios.md` (**mapa NUEVO**, 13,4 KB), las fichas
+  de los tres casos en `docs/mapa/tests-fichas-558.md` (**archivo propio**), **cuatro mapas con
+  un puntero cada uno** —medidos ANTES de escribir, todos por debajo de 34 KB—,
+  `docs/fuentes/FUENTES.md` → «La tanda IMÁGENES-3» con la única cita agregada y la tabla de lo
+  que salió de cada superficie y dónde sigue estando, y `docs/PENDIENTES.md` → **DIEZ** cosas
+  declaradas (**IMG3-a** a **IMG3-j**) más el cierre parcial de **AJ2-e**.
+  ⚠️ **`congenitas-otros.md` (34,5 KB) NO se tocó**, que es lo que la orden pide.
 
 ### La coartación sin guías, los diagramas guardados y el barrido del papel — «AJUSTES-2» (2026-10-31)
 

@@ -26133,14 +26133,20 @@ caso('TC-212', 'Slots: video MP4 para documentacion, con captura de cuadro y sin
          porque el cuerpo del caso es un template literal. */
       const src = await (await fetch(location.href, { cache:'no-store' })).text();
       R.fuenteLeido = src.length > 100000;
-      const iFil = src.indexOf('const _loaded = imgSlots.filter(');
+      /* ADAPTADO (IMG3-5, 2026-10-31): la pagina «Imagenes adjuntas» se retiro y las capturas
+         las coloca el motor de tercios, asi que el filtro ya no se llama _loaded. El
+         INVARIANTE no cambio —el video no sale en el PDF— y su unico lugar es el armado de
+         _caps. Se busca ese, y se sigue exigiendo que sea UNO SOLO. */
+      const iFil = src.indexOf('imgSlots.forEach((s, i) => {');
       R.hayFiltro = iFil >= 0;
-      const lineaFiltro = iFil >= 0 ? src.slice(iFil, src.indexOf(';', iFil)) : '';
+      /* El filtro son DOS guardas (la del slot y la de los dos indices del esquema), asi que
+         se toman 260 caracteres y no hasta el primer punto y coma. */
+      const lineaFiltro = iFil >= 0 ? src.slice(iFil, iFil + 260) : '';
       R.lineaFiltro = lineaFiltro.slice(0, 120);
-      R.filtroExcluyeVideo = lineaFiltro.indexOf('!s.videoId') >= 0;
+      R.filtroExcluyeVideo = lineaFiltro.indexOf('s.videoId') >= 0;
       /* y que sea el UNICO filtro de slots hacia el PDF: si aparece un segundo, este caso
          dejaria de cubrirlo y hay que enterarse. */
-      R.unSoloFiltro = src.split('const _loaded = imgSlots.filter(').length === 2;
+      R.unSoloFiltro = src.split('imgSlots.forEach((s, i) => {').length === 2;
       /* En runtime: el slot de video TIENE dataURL, o sea que sin el filtro entraria. Es el
          denominador de lo de arriba -sin dataURL, excluirlo seria gratis-. */
       R.videoTienePosterIgual = !!imgSlots[idx].dataURL;
@@ -73556,7 +73562,11 @@ caso('TC-490', 'Tanda K: el 3D de la MITRAL —el lienzo se limpia ENTERO y el c
       try { generarPDFReal(); } catch (e) { err = String(e && e.message || e); }
       finally { window.jspdf.jsPDF = orig; }
       const t = textos.join(String.fromCharCode(1));
-      return { err, imgs, be: t.indexOf('CONTRACTILIDAD') > -1, ley: t.indexOf('Hipoquinesia') > -1 }; };
+      /* ADAPTADO (IMG3-3, 2026-10-31): el bull-s eye ya no lleva una BANDA en mayusculas sino
+         el rotulo de su franja, «Contractilidad y strain longitudinal (SGL)». El invariante que
+         este caso mide —que el dibujo y su leyenda llegan al papel— no cambio: imgs y ley
+         siguen dando lo mismo. Se busca sin distinguir mayusculas. */
+      return { err, imgs, be: /contractilidad/i.test(t), ley: t.indexOf('Hipoquinesia') > -1 }; };
     const hayTr = () => { try { return FN('contrHayDatos') ? contrHayDatos() : 'SIN FN'; } catch (e) { return 'EXC'; } };
     const pdfSinTr = PDFBE();
     ex.push(['(D3) DENOMINADOR: la escena no tiene NINGUN trastorno sectorial cargado y el PDF se genera sin error',
@@ -98344,14 +98354,24 @@ caso('TC-554', 'Tanda AJUSTES-1: el cactus sin riesgo, los lobulos sin la nota d
   await esperar(600);
   inf();
   const gB2 = await pdfGeo();
-  const pagsImgB2 = (gB2.txt || []).filter(function (t) { return t.t.indexOf('genes del estudio') > -1 })
+  /* ══ ADAPTADO POR LA TANDA IMAGENES-3 (2026-10-31) ════════════════════════════════════════
+     El esquema de la orejuela y el dibujo de la bicuspide dejaron de tener seccion propia: hoy
+     son TILES del motor de tercios y viven en la hoja «Diagramas del estudio», cada uno con su
+     rotulo y su LINEA compacta. Lo que estas condiciones miden —que el dibujo llega al papel,
+     que lleva su resumen al lado cuando hay datos y que no lo lleva cuando no los hay, y que
+     el bloque ocupa aproximadamente la mitad de lo que ocupaba— no cambio; cambio DONDE se
+     estampa. (B7) queda INVERTIDA a proposito: la tabla ya no va a la derecha del dibujo sino
+     que es una linea DEBAJO, que es la maqueta aprobada. */
+  const pagsImgB2 = (gB2.txt || []).filter(function (t) { return t.t.indexOf('Diagramas del estudio') > -1 })
                                    .map(function (t) { return t.p });
   const resB2 = (gB2.txt || []).filter(function (t) { return pagsImgB2.indexOf(t.p) > -1 &&
-    /Orejuela izquierda|Ostium|Profundidad|vaciamiento|Contraste espont|Morfolog/.test(t.t) });
-  ex.push(['(B3) sin la seccion integrada el dibujo va a «Imagenes del estudio» CON su resumen al lado',
-    pagsImgB2.length === 1 && resB2.length >= 5 &&
-    resB2.every(function (t) { return t.x > 95 }),
-    'pag=' + JSON.stringify(pagsImgB2) + ' resumen=' + resB2.map(function (t) { return t.t + '@' + t.x }).join(', ')]);
+    /Ostium|Profundidad|vaciamiento|Contraste espont|Morfolog/.test(t.t) });
+  const rotB2 = (gB2.txt || []).filter(function (t) { return pagsImgB2.indexOf(t.p) > -1 &&
+    /Orejuela izquierda/.test(t.t) });
+  ex.push(['(B3) sin la seccion integrada el dibujo va a la hoja de diagramas CON su resumen',
+    pagsImgB2.length === 1 && rotB2.length === 1 && resB2.length >= 1,
+    'pag=' + JSON.stringify(pagsImgB2) + ' rotulo=' + rotB2.length +
+    ' resumen=' + resB2.map(function (t) { return t.t }).join(' / ')]);
   ex.push(['(B4) el resumen NO lleva etiquetas de riesgo ni de aptitud',
     resB2.map(function (t) { return t.t }).join(' ').indexOf('riesgo') === -1 &&
     (gB2.txt || []).filter(function (t) { return pagsImgB2.indexOf(t.p) > -1 })
@@ -98363,10 +98383,10 @@ caso('TC-554', 'Tanda AJUSTES-1: el cactus sin riesgo, los lobulos sin la nota d
   await esperar(600);
   inf();
   const gB3 = await pdfGeo();
-  const pagsImgB3 = (gB3.txt || []).filter(function (t) { return t.t.indexOf('genes del estudio') > -1 })
+  const pagsImgB3 = (gB3.txt || []).filter(function (t) { return t.t.indexOf('Diagramas del estudio') > -1 })
                                    .map(function (t) { return t.p });
   const resB3 = (gB3.txt || []).filter(function (t) { return pagsImgB3.indexOf(t.p) > -1 &&
-    /Orejuela izquierda|Ostium|Profundidad/.test(t.t) });
+    /Ostium|Profundidad/.test(t.t) });
   ex.push(['(B5) CONTROL NEGATIVO: sin datos de orejuela el dibujo entra SIN resumen',
     pagsImgB3.length === 1 && resB3.length === 0,
     'pag=' + JSON.stringify(pagsImgB3) + ' resumen=' + resB3.length]);
@@ -98378,20 +98398,27 @@ caso('TC-554', 'Tanda AJUSTES-1: el cactus sin riesgo, los lobulos sin la nota d
   await esperar(350);
   inf();
   const gV = await pdfGeo();
-  const banda = (gV.txt || []).filter(function (t) { return /BICÚSPIDE/.test(t.t) })[0] || null;
-  const feno = (gV.txt || []).filter(function (t) { return t.t === 'Fenotipo:' })[0] || null;
+  /* ⚠️ EL ROTULO HAY QUE BUSCARLO EN LA HOJA DE DIAGRAMAS. El cuerpo del informe nombra la
+     bicuspide con las mismas palabras, asi que tomar la PRIMERA aparicion daba un rotulo del
+     cuerpo y ningun dibujo debajo. Costo una corrida. */
+  const pagsDiagV = (gV.txt || []).filter(function (t) { return t.t.indexOf('Diagramas del estudio') > -1 })
+                                  .map(function (t) { return t.p });
+  const banda = (gV.txt || []).filter(function (t) { return pagsDiagV.indexOf(t.p) > -1 &&
+    /Válvula aórtica bicúspide/.test(t.t) })[0] || null;
+  const feno = (gV.txt || []).filter(function (t) { return pagsDiagV.indexOf(t.p) > -1 &&
+    t.t.indexOf('Fenotipo:') === 0 })[0] || null;
   const dib = banda ? (gV.imgs || []).filter(function (i) {
-    return i.p === banda.p && i.y > banda.y && i.y < banda.y + 30 })[0] : null;
-  ex.push(['(B6) DENOMINADOR: el bloque de la VAB se emite, con su banda, su dibujo y su tabla',
-    !!banda && !!dib && !!feno, 'banda=' + (banda ? banda.y : 'NO') +
-    ' dib=' + (dib ? (dib.x + ',' + dib.y + ' ' + dib.w) : 'NO') + ' feno=' + (feno ? (feno.x + ',' + feno.y) : 'NO')]);
-  ex.push(['(B7) el dibujo va a la IZQUIERDA y la tabla a su DERECHA, a la misma altura',
-    !!dib && !!feno && dib.x < 20 && feno.x > dib.x + dib.w && Math.abs(feno.y - dib.y) < 12,
-    'dib x=' + (dib ? dib.x : '?') + ' w=' + (dib ? dib.w : '?') +
-    ' | fila1 x=' + (feno ? feno.x : '?') + ' dy=' + (dib && feno ? Math.round(feno.y - dib.y) : '?')]);
-  ex.push(['(B8) y el bloque ocupa aproximadamente la mitad: menos de 70 mm de la banda al pie',
-    !!dib && !!banda && (dib.y + dib.h - banda.y) < 70 && (dib.y + dib.h - banda.y) > 30,
-    'alto=' + (dib && banda ? Math.round((dib.y + dib.h - banda.y) * 10) / 10 : '?') + ' mm']);
+    return i.p === banda.p && i.y > banda.y && i.y < banda.y + 90 })[0] : null;
+  ex.push(['(B6) DENOMINADOR: el diagrama de la VAB se emite, con su rotulo, su dibujo y su linea',
+    !!banda && !!dib && !!feno, 'rotulo=' + (banda ? banda.y : 'NO') +
+    ' dib=' + (dib ? (dib.x + ',' + dib.y + ' ' + dib.w) : 'NO') + ' linea=' + (feno ? (feno.x + ',' + feno.y) : 'NO')]);
+  ex.push(['(B7) INVERTIDA: la tabla ya no va a la derecha; es una LINEA debajo del dibujo',
+    !!dib && !!feno && feno.y > dib.y + dib.h - 1 && Math.abs(feno.x - banda.x) < 6,
+    'dib y=' + (dib ? dib.y : '?') + ' h=' + (dib ? dib.h : '?') +
+    ' | linea y=' + (feno ? feno.y : '?') + ' x=' + (feno ? feno.x : '?')]);
+  ex.push(['(B8) y el bloque entra en UNA franja: menos de 85 mm del rotulo al pie de la linea',
+    !!dib && !!banda && !!feno && (feno.y - banda.y) < 85 && (feno.y - banda.y) > 20,
+    'alto=' + (banda && feno ? Math.round((feno.y - banda.y) * 10) / 10 : '?') + ' mm']);
 
   /* ═══ (C) EL EN SUMA NOMBRA LA BICUSPIDE (commit 3) ═════════════════════════════════════ */
   limpiar();
@@ -99356,10 +99383,14 @@ caso('TC-557', 'Tanda AJUSTES-2: la coartacion en el papel sin recomendaciones n
     a8.indexOf('pico-pico') > -1 && a8.indexOf('Clase IIa') > -1 && a8.indexOf('folio 604') > -1,
     a8.slice(0, 150)]);
 
-  /* (A9) Y LA CAPSULA DE PANTALLA TAMBIEN: no es papel, conserva la cita. */
+  /* (A9) INVERTIDA (IMG3-7, 2026-10-31). El AJUSTES-2 saco la guia del PAPEL y dejo la capsula
+     como estaba; el medico pidio despues que la pantalla tampoco la lleve. La cita la conservan
+     el ⓘ de esa fila —que (A8) mide— y el panel de Evidencia, que lee c.txt y no esta
+     capsula. Se exigen las DOS cosas para que pueda volver a fallar. */
   const a9 = T('coa-concl');
-  ex.push(['(A9) la capsula de pantalla sigue con la cita de la ESC 2024 y la Figura 44',
-    a9.indexOf('ESC 2024') > -1 && a9.indexOf('Figura 44') > -1, a9.slice(0, 150)]);
+  ex.push(['(A9) la capsula de pantalla ya NO nombra la guia y SI describe el criterio',
+    a9.indexOf('ESC 2024') === -1 && a9.indexOf('Figura 44') === -1 &&
+    a9.indexOf('criterios de significaci') > -1 && a9.indexOf('20 mmHg') > -1, a9.slice(0, 150)]);
 
   /* ══ B — TODO DIAGRAMA INCLUIDO SE GUARDA (commit 2) ══════════════════════════════════════ */
   /* (B0) DENOMINADOR: el registro de diagramas existe y tiene sus seis entradas. */
@@ -99598,9 +99629,12 @@ caso('TC-557', 'Tanda AJUSTES-2: la coartacion en el papel sin recomendaciones n
     g0.indexOf('Los patrones venosos') > -1, g0.indexOf('Los patrones venosos') > -1 ? 'si' : 'NO LA PUBLICA']);
   ex.push(['(G1) «El grado VEXUS debe integrarse con la clinica» salio del papel',
     g0.indexOf('debe integrarse con la cl\\u00ednica') === -1, g0.indexOf('debe integrarse') > -1 ? 'SIGUE' : 'cero']);
-  ex.push(['(G2) CONTROL NEGATIVO: la salvedad descriptiva y su cita SE QUEDAN',
+  /* (G2) ADAPTADA (IMG3-8, 2026-10-31): la SALVEDAD se queda —describe cuando el patron
+     enganya— y la CITA BIBLIOGRAFICA salio del papel por decision del medico. Sigue entera en
+     IND_REFS.vexus2020, que es lo que el panel de Evidencia cita. */
+  ex.push(['(G2) la salvedad descriptiva SE QUEDA y la cita bibliografica SALIO del papel',
     g0.indexOf('fibrilaci\\u00f3n auricular y en ventilaci\\u00f3n mec\\u00e1nica') > -1 &&
-    g0.indexOf('Beaubien-Souligny') > -1, 'patrones+cita presentes']);
+    g0.indexOf('Beaubien-Souligny') === -1, 'cita presente=' + (g0.indexOf('Beaubien-Souligny') > -1)]);
   /* (G3) LA OTRA CONDUCTA: la insuficiencia mitral severa en estilo extenso. */
   limpiar(); await esperar(90);
   pon('nombre', 'Prueba AJ2 im'); pon('ci', '5575'); pon('im_vc', '8');
@@ -99890,6 +99924,131 @@ caso('TC-559', 'Tanda IMAGENES-3 parte B: el motor de tercios arma las hojas de 
   }
   ex.push(['(E12) con los seis segmentos en 0 la linea no nombra ninguno',
            e12, 'Insuficiencia mitral primaria · severa']);
+
+  return { extra: EXP };
+  })();
+`);
+
+/* -- TC-560 ---------------------------------------------------------------------------------
+   TANDA IMAGENES-3, PARTE C (2026-10-31). El papel y la pantalla sin guias.
+
+   ADVERTENCIA: no escribir acentos graves en ESTE comentario ni en el cuerpo de abajo.
+
+   DENOMINADORES: (G0) las tres funciones de la parte existen; (H0) la seccion de la coartacion
+   clasifica de verdad en la escena montada —sin eso, «la capsula no nombra la guia» pasa sobre
+   una capsula vacia—.
+   CONTROLES NEGATIVOS: (G3) el clasificador y su `txt` NO se mueven, que es lo que deja la
+   guia en la Evidencia; (I2) un rotulo sin guia no se toca; (J3) un texto descriptivo no se
+   poda; (J4) la poda que perderia un NUMERO medido no se aplica.
+   -------------------------------------------------------------------------------------- */
+caso('TC-560', 'Tanda IMAGENES-3 parte C: la capsula de la coartacion describe y no recomienda, con la guia, la figura y los dos folios en su ⓘ; la cita de Beaubien-Souligny fuera del papel con la salvedad intacta; el rotulo de la diastolica sin «ASE 2025» en el PPT; y el PPT de congenitas podado, con la seccion que no se puede podar sin romperla dejada entera', `
+  return (async () => {
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]),
+                 'dio «' + t[1] + '» · esperado «' + t[2] + '»']) };
+  const F = (n) => (typeof window[n] === 'function') ? window[n] : null;
+  const EL = (id) => document.getElementById(id) || null;
+  const T = (id) => { const e = EL(id); return e ? (e.textContent || '').replace(/[ \\t\\n\\r]+/g, ' ').trim() : 'NO EXISTE'; };
+  const pon = (id, v) => { const e = EL(id); if (!e) return 'NO ' + id;
+    e.value = String(v); e.dispatchEvent(new Event('input', { bubbles: true }));
+    e.dispatchEvent(new Event('change', { bubbles: true })); return e.value; };
+  const chk = (id, on) => { const e = EL(id); if (!e) return 'NO ' + id;
+    e.checked = !!on; e.dispatchEvent(new Event('change', { bubbles: true })); return e.checked; };
+  const esperar = (ms) => new Promise(r => setTimeout(r, ms));
+
+  /* ── (G0) DENOMINADOR ── */
+  ex.push(['(G0) las tres funciones de la parte C existen',
+           [F('coaPantalla') ? 'coaPantalla' : '', F('_pptSinGuia') ? '_pptSinGuia' : '',
+            F('_ccPptPodar') ? '_ccPptPodar' : ''].filter(Boolean).join('+'),
+           'coaPantalla+_pptSinGuia+_ccPptPodar']);
+
+  /* ══ (H) LA CAPSULA DE LA COARTACION ═══════════════════════════════════════════════════ */
+  try { if (F('limpiarCampos')) limpiarCampos(true) } catch (e) {}
+  await esperar(150);
+  chk('coart_incluir_chk', true);
+  pon('coa_situacion', 'nativa'); pon('coa_loc', 'istmica');
+  pon('coa_istmo', '8'); pon('coa_gmedio', '25'); pon('coa_ao_desc', '20');
+  try { if (F('calcCoartacion')) calcCoartacion(); } catch (e) {}
+  try { if (F('coaSync')) coaSync(); } catch (e) {}
+  await esperar(250);
+  const c1 = F('coaConclusion') ? coaConclusion() : null;
+  ex.push(['(H0) denominador: la seccion clasifica de verdad',
+           c1 ? (c1.clave + '/' + (c1.via || '-')) : 'SIN CONCLUSION', 'significativa/gmedio']);
+  ex.push(['(H1) la capsula describe el criterio y no nombra la guia',
+           T('coa-concl'),
+           'Coartación nativa con criterios de significación por Doppler (mayor de 20 mmHg).']);
+  /* CONTROL NEGATIVO: el CLASIFICADOR no se movio, y su txt sigue trayendo la guia — que es
+     lo que el panel de Evidencia lee. Si esto cambiara, la Evidencia habria perdido su cita. */
+  ex.push(['(G3) CONTROL NEGATIVO: el txt del clasificador sigue nombrando la ESC 2024',
+           c1 && String(c1.txt).indexOf('ESC 2024') > -1 ? 'si' : 'no', 'si']);
+  /* las tres palabras que la pantalla ya no puede llevar */
+  const cap = T('coa-concl');
+  ex.push(['(H2) la capsula no lleva guia, ni folio, ni conducta',
+           ['ESC', 'folio', 'Figura', 'Tabla', 'Clase', 'pico-pico'].filter(w => cap.indexOf(w) > -1).join(',') || 'ninguna',
+           'ninguna']);
+  /* el ⓘ de esa fila SI los lleva, y con los DOS folios */
+  let glo = '';
+  try { const fr = evTarjetaCoa(); const d = document.createElement('div'); d.appendChild(fr);
+        glo = (d.textContent || '').replace(/[ \\t\\n\\r]+/g, ' ').trim(); } catch (e) { glo = 'EXC'; }
+  ex.push(['(H3) el ⓘ trae la Figura 44, el criterio por Doppler y los DOS folios con su edicion',
+           [glo.indexOf('Figura 44') > -1 ? 'f44' : '', glo.indexOf('20 mmHg') > -1 ? 'corte' : '',
+            glo.indexOf('folio 120') > -1 ? 'sec' : '', glo.indexOf('folio 3649') > -1 ? 'inglesa' : ''].filter(Boolean).join('+'),
+           'f44+corte+sec+inglesa']);
+  /* las ramas de INDICACION describen lo medido, sin clase */
+  pon('coa_gradiente_picopico', '30'); pon('coa_hta', 'si');
+  try { if (F('coaSync')) coaSync(); } catch (e) {}
+  await esperar(250);
+  const c2 = F('coaConclusion') ? coaConclusion() : null;
+  ex.push(['(H4) la rama de indicacion describe la HTA y el pico-pico, sin clase ni guia',
+           F('coaPantalla') ? coaPantalla(c2) : 'SIN FN',
+           'Coartación nativa con hipertensión arterial confirmada, gradiente pico-pico invasivo 30 mmHg.']);
+
+  /* ══ (I) LAS DOS CITAS ════════════════════════════════════════════════════════════════ */
+  const sal = (typeof VEXUS_SALVEDAD !== 'undefined') ? String(VEXUS_SALVEDAD) : 'SIN VAR';
+  ex.push(['(I1) la salvedad del VExUS se queda y la cita bibliografica no',
+           (sal.indexOf('fibrilación auricular') > -1 ? 'salvedad' : 'SIN SALVEDAD') + '/' +
+           (sal.indexOf('Beaubien') > -1 ? 'CON CITA' : 'sin cita'),
+           'salvedad/sin cita']);
+  ex.push(['(I1b) la cita sigue entera en el registro de Evidencia',
+           (typeof IND_REFS !== 'undefined' &&
+            (IND_REFS.filter ? IND_REFS.filter(r => r.k === 'vexus2020')[0] : null) &&
+            String((IND_REFS.filter(r => r.k === 'vexus2020')[0] || {}).full || '').indexOf('Beaubien-Souligny') > -1)
+             ? 'si' : 'no', 'si']);
+  ex.push(['(I2) el rotulo de la diastolica entra al PPT sin la guia',
+           F('_pptSinGuia') ? _pptSinGuia('Incompleto — ASE 2025') : 'SIN FN', 'Incompleto']);
+  ex.push(['(I2b) CONTROL NEGATIVO: un rotulo SIN guia no se toca',
+           F('_pptSinGuia') ? _pptSinGuia('Función diastólica normal') : 'SIN FN',
+           'Función diastólica normal']);
+  ex.push(['(I2c) y las otras ocho etiquetas del mismo span tambien se podan',
+           F('_pptSinGuia') ? (_pptSinGuia('DD Grado III — ASE 2025') + '/' +
+                               _pptSinGuia('DD — Presión elevada (ASE 2025)')) : 'SIN FN',
+           'DD Grado III/DD — Presión elevada']);
+
+  /* ══ (J) EL PPT DE CONGENITAS ═════════════════════════════════════════════════════════ */
+  const P = F('_ccPptPodar');
+  ex.push(['(J1) se poda la conducta y queda el hallazgo',
+           P ? P('Ductus silente — sin repercusión hemodinámica; no requiere cierre').t : 'SIN FN',
+           'Ductus silente — sin repercusión hemodinámica']);
+  ex.push(['(J2) se poda la guia dentro del parentesis y queda el dato',
+           P ? P('Miocardiopatía arritmogénica: no se cumplen criterios diagnósticos (Task Force 2010: 0 puntos)').t : 'SIN FN',
+           'Miocardiopatía arritmogénica: no se cumplen criterios diagnósticos (0 puntos)']);
+  ex.push(['(J2b) y la clausula de conducta con su guia se va entera',
+           P ? P('Anomalía de Ebstein. Dilatación progresiva del ventrículo derecho — cirugía a considerar con independencia de los síntomas (ESC 2020, Clase IIa)').t : 'SIN FN',
+           'Anomalía de Ebstein. Dilatación progresiva del ventrículo derecho']);
+  /* CONTROL NEGATIVO: un texto descriptivo no se toca y no se declara parado. */
+  const j3 = P ? P('Tetralogía de Fallot reparada. Función del ventrículo derecho normal') : null;
+  ex.push(['(J3) CONTROL NEGATIVO: un texto descriptivo no se poda',
+           j3 ? (j3.t + ' | cambio=' + j3.cambio + ' parado=' + j3.parado) : 'SIN FN',
+           'Tetralogía de Fallot reparada. Función del ventrículo derecho normal | cambio=false parado=false']);
+  /* CONTROL NEGATIVO: si podar perderia un NUMERO medido, NO se poda nada. */
+  const j4 = P ? P('Miocardiopatía hipertrófica: 2 factores mayores de 5 — desfibrilador razonable (3 sin evaluar)') : null;
+  ex.push(['(J4) CONTROL NEGATIVO: no se poda si se perderia un numero medido',
+           j4 ? (j4.parado + '/' + (j4.t.indexOf('3 sin evaluar') > -1 ? 'conserva el 3' : 'PERDIO el 3')) : 'SIN FN',
+           'true/conserva el 3']);
+  /* y el anio NO cuenta como numero medido: si contara, nada se podria podar. */
+  const j5 = P ? P('Anomalía de Ebstein — cirugía indicada (ESC 2020, Clase I)') : null;
+  ex.push(['(J5) el anio de la guia no cuenta como numero medido',
+           j5 ? (j5.parado + '/' + j5.t) : 'SIN FN', 'false/Anomalía de Ebstein']);
 
   return { extra: EXP };
   })();

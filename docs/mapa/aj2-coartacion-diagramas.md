@@ -344,3 +344,16 @@ se confunda con «el PPT no trae la sección».
 8. **Sin abrir la pestaña por su BOTÓN REAL** todos los `getBoundingClientRect` dan 0×0.
 9. **Un patrón que es sufijo de otro** hace ambigua una mutación: los dos `noPdf` sólo difieren
    en la sangría, así que el de lectura aparecía **dos** veces. Van anclados en su línea anterior.
+
+---
+
+## ⟶ La tanda IMÁGENES-3 (2026-10-31) — puntero
+
+Lo que el AJUSTES-2 sacó del PAPEL de la coartación salió también de la **pantalla**:
+`coaPantalla(c, src)` es el dueño del texto de la cápsula, el clasificador no se movió y `c.txt`
+sigue siendo lo que lee el panel de Evidencia. El ⓘ `coa-card` recibió el criterio de sospecha
+por Doppler con la Figura 44 y **los dos folios** (120 de la SEC y 3649 de la inglesa).
+Y las **once secciones de `CC_PPT`** que el AJ2-e dejó literales se podan hoy con `_ccPptPodar`,
+menos la miocardiopatía hipertrófica, que queda declarada.
+
+→ `docs/mapa/img3-visor-tercios.md`

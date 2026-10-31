@@ -8094,3 +8094,62 @@ dos árboles**.
 ⚠️ **NINGÚN CORTE, UMBRAL, CLASE, NIVEL, TABLA NI FOLIO SE MOVIÓ.** Lo único que cambia es **en
 qué superficie se publica**. El 20 mmHg del Doppler, el 20 del pico-pico invasivo, el 50 % del
 estrechamiento, el 75 ms del TRIV y las cuatro clases de la coartación son los mismos.
+
+---
+
+## La tanda IMÁGENES-3 (2026-10-31)
+
+**Notas de trabajo, no contenido clínico.** Esta tanda **no agregó ni movió un solo corte, un
+umbral, una clase, un nivel, una tabla ni un folio del contenido clínico de la app.** Lo que
+hizo fue mover texto de una superficie a otra y cambiar la composición de unas hojas del PDF.
+Su tabla de «Cambios de evidencia» va vacía a propósito, con una sola excepción, que es la
+única cita que se **agregó**.
+
+### La única cita agregada: el ⓘ de la coartación
+
+| dónde | qué dice | fuente |
+|---|---|---|
+| ⓘ `coa-card`, bloque «Criterio de sospecha por Doppler» | el gradiente MEDIO por encima de 20 mmHg a través de la coartación es el criterio de SOSPECHA; ante ese hallazgo corresponde medir el gradiente pico-pico invasivo, que es el de INDICACIÓN | ESC 2024 de aorta, **Figura 44** |
+
+⚠️ **LOS DOS FOLIOS, CON SU EDICIÓN, PORQUE DISCREPAN.** La app cita «folio 120» en el panel de
+Evidencia y en `IND_REFS.f44`, que es la **edición en español de la SEC**. La lectura en imagen
+que la orden trae es la **edición inglesa**, donde la Figura 44 está en la hoja 112 y su folio
+impreso es el **3649**. Son el mismo contenido en dos ediciones. El ⓘ cita los dos; el registro
+no se movió. Declarado en `docs/PENDIENTES.md` → **IMG3-f**.
+
+⚠️ **ESTA TANDA NO ABRIÓ NINGÚN PDF DE GUÍA.** Los dos folios salen del enunciado de la orden,
+que a su vez los trae del AJUSTES-2, donde sí se leyó en imagen. El criterio de los 20 mmHg y
+su texto ya estaban en el panel de Evidencia de la app desde esa tanda, verificado antes de
+retirarlo de la pantalla.
+
+### Lo que SALIÓ de una superficie, y a dónde sigue estando
+
+| frase | salió de | sigue en |
+|---|---|---|
+| «…por encima de los 20 mmHg de la ESC 2024 — medir el gradiente pico-pico invasivo, que es el criterio de indicación de la ESC 2024 (Figura 44, folio 120).» | la cápsula de pantalla de la coartación | `c.txt`, que es lo que lee el panel de Evidencia, y el ⓘ de esa fila |
+| «Clase I · Nivel C (ESC 2024, Tabla 69 · folio 121)… Preferir stent…» y sus hermanas de las ramas de indicación | la cápsula de pantalla | `c.txt` y la Evidencia |
+| «Graduación de Beaubien-Souligny et al., Ultrasound J 2020;12(1):16.» | el informe y la hoja del PDF del VExUS | `IND_REFS.vexus2020`, entera, con su DOI y su Figura 1 leída en imagen |
+| «— ASE 2025» y sus ocho hermanas | la fila del PPT de la función diastólica | el span `#dd-interp` de pantalla, el ⓘ y la Evidencia de la diastólica |
+| «ESC 2020, Clase IIa», «Task Force 2010», «indicaciones de intervención» y las demás | el PPT de congénitas | el cuerpo del informe, el panel de Evidencia y el panel de criterios de cada módulo |
+
+### Verificado antes de retirar
+- la **ESC 2020** del Ebstein está en su sección del panel de Evidencia;
+- el **Task Force 2010** de la miocardiopatía arritmogénica encabeza su propio panel de
+  criterios («📋 Ver criterios») y el rótulo de pantalla «Interpretación Task Force 2010»;
+- la cita de **Beaubien-Souligny** ya estaba entera en `IND_REFS.vexus2020` y la citan las cinco
+  filas de VExUS del panel.
+Ninguna de las frases retiradas era la única aparición de su fuente.
+
+### Lecturas técnicas de esta tanda, que no son clínicas
+- **PptxGenJS 3.12.0** — los 477.529 bytes del bundle de `cdn.jsdelivr.net` tienen **cero**
+  apariciones de `repeatCount`, `p:timing`, `cMediaNode` y de cualquier `loop*`. El XML de un
+  paquete generado de verdad tampoco los trae. Ver `PENDIENTES.md` → **IMG3-a**.
+- **pdf.js 3.11.174** de cdnjs — se usó sólo en el arnés `_probe_img3raster.mjs`, para
+  rasterizar el PDF generado y mirar las hojas. **No entra a la app.**
+- **El tamaño de un `.pptx` con video** — medido: 13.411 bytes de video dan un paquete de
+  129.834, o sea los bytes del video más unos 116 KB de mazo. Los videos entran al zip ya
+  comprimidos y no se inflan.
+
+### Cambios de evidencia
+*(vacía a propósito: esta tanda no cambió ningún contenido clínico. La única fila es la cita
+agregada al ⓘ, arriba.)*

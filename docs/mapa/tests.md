@@ -542,3 +542,13 @@ de tocarlo:
   indistinguibles: la firma va por hash del dataURL entero.
 - La mutación **05 sobrevivió dos veces**: la primera porque ninguna condición miraba el PPT, y la
   segunda porque el arreglo **reproducía la expresión** del emisor en vez de ejecutarlo.
+
+---
+
+## ⟶ TC-558, TC-559 y TC-560 (tanda IMÁGENES-3, 2026-10-31) — puntero
+
+El visor con video, el motor de tercios del PDF y el papel sin guías. TC-559 mide el
+**empaquetador**, que es puro: no necesita jsPDF, así que no depende del CDN. Veinte mutaciones
+dirigidas, 20/20 muertas, con reparto limpio —cada caso discrimina su parte—.
+
+→ fichas en `docs/mapa/tests-fichas-558.md` · mapa en `docs/mapa/img3-visor-tercios.md`

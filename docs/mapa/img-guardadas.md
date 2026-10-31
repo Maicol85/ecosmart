@@ -341,3 +341,17 @@ También: `esqGuardarDataURL` (el núcleo que `esqGuardarComoImagen` comparte),
 `CeiboImg.borrarEsquema`, **`noPdf` en las dos allowlists** (cierra `AJ1-g`) y
 **`imgGuardadoActivo()` prendido por omisión** cuando nadie tocó el control.
 Todo en `docs/mapa/aj2-coartacion-diagramas.md` § 2.
+
+---
+
+## ⟶ La tanda IMÁGENES-3 (2026-10-31) — puntero
+
+El **visor** de esta pantalla reproduce video: `#ig-imgv-vid` con `loop` y `muted` y sin
+`autoplay`, sus controles, el botón de agrandar y «Medir» que no aparece sobre un video. Los
+bytes NO están en `CeiboImg`: el slot lleva su `videoId` y los bytes viven en `ceibomed_video`,
+así que hacen falta **dos** lecturas.
+El **PPT de este mazo** lleva el PRIMER CUADRO de un video (`_igPptUsable`), con su aviso de
+privacidad ampliado; el bucle **no se puede marcar** con PptxGenJS 3.12.0, verificado.
+Y el **esquema de la orejuela ya no se imprime acá**: es un diagrama del motor de tercios.
+
+→ `docs/mapa/img3-visor-tercios.md`

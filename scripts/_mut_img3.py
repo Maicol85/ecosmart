@@ -13,7 +13,7 @@ ROJO.
 SE CORRE EN UN WORKTREE O EN UNA COPIA, NUNCA SOBRE EL ARBOL VIVO.
 EXIGE LA LINEA RESULTADO EN LA SALIDA: sin ella el veredicto es NO CORRIO.
 
-CUATRO DE LAS CATORCE NO REVIERTEN NADA: LA APLICAN DE MAS. La 02 le pone `autoplay` al video
+SEIS de las veinte son de la PARTE C. CUATRO NO REVIERTEN NADA: LA APLICAN DE MAS. La 02 le pone `autoplay` al video
 —que es lo que `prefers-reduced-motion` prohibe—, la 03 esconde «Medir» tambien sobre una
 IMAGEN, la 06 hace que el PPT del ESTUDIO acepte el poster de un video —y entonces el poster
 entra DOS veces en ese mazo, una como imagen y otra dentro de su diapositiva— y la 14 le
@@ -25,7 +25,7 @@ import hashlib, os, re, subprocess, sys
 
 RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 IDX = os.path.join(RAIZ, 'index.html')
-CASOS = ['TC-558', 'TC-559']
+CASOS = ['TC-558', 'TC-559', 'TC-560']
 
 def md5(p):
     with open(p, 'rb') as f:
@@ -85,6 +85,31 @@ MUT = [
  ('13 la hoja pasa a tener DOS franjas en vez de tres',
   "const PDF_DIAG_FRANJAS = 3;",
   "const PDF_DIAG_FRANJAS = 2;"),
+
+ # == PARTE C . el papel y la pantalla sin guias ========================================
+ ('15 la capsula de la coartacion vuelve a publicar la guia y la conducta',
+  "  txt('coa-concl', coaPantalla(c));",
+  "  txt('coa-concl', c ? c.txt : '\u2014');"),
+
+ ('16 el ⓘ de la coartacion pierde el bloque del criterio por Doppler',
+  "  bl('Criterio de sospecha por Doppler',",
+  "  if (false) bl('Criterio de sospecha por Doppler',"),
+
+ ('17 la cita bibliografica vuelve al papel del VExUS',
+  "  + 'mecánica.';",
+  "  + 'mecánica. Graduación de Beaubien-Souligny et al., Ultrasound J 2020;12(1):16.';"),
+
+ ('18 el rotulo de la diastolica vuelve a llevar la guia al PPT',
+  "const _PPT_GUIA_RE = /\\s*[\u2014-]\\s*(?:ASE|BSE|EACVI)[^()]*$|\\s*\\((?:ASE|BSE|EACVI)[^()]*\\)\\s*$/;",
+  "const _PPT_GUIA_RE = /(?!)/;"),
+
+ ('19 el podador tira el parentesis entero y se lleva el dato',
+  "    const resto = dentro.replace(_CC_PPT_FTE, '').replace(/^[\\s,;:\u00b7\u2014-]+|[\\s,;:\u00b7\u2014-]+$/g, '').trim();\n    return resto ? ' (' + resto + ')' : '';",
+  "    return '';"),
+
+ ('20 se retira la guarda de que ningun numero medido desaparezca',
+  "  const parado = !r || perdidos.length > 0 || _CC_PPT_GUIA.test(r) || _CC_PPT_COND.test(r);",
+  "  const parado = !r || _CC_PPT_GUIA.test(r) || _CC_PPT_COND.test(r);"),
 
  ('14 DE MAS: la linea de la mitral vuelve a leer el grado CRUDO',
   "  const _ng = (typeof _oaiImGrado === 'function') ? _oaiImGrado() : 0;\n  const grado = _ng ? ((typeof _CC_GRADO === 'object' && _CC_GRADO[String(_ng)]) || String(_ng)) : '';",

@@ -10642,3 +10642,102 @@ Es el único caso en que el valor por omisión **no** aplica, y es deliberado: s
 se puede leer tampoco se va a poder escribir la preferencia, y prometer que se guarda sería la
 promesa que el informe no cumple. Si alguna vez se quiere que el modo privado también guarde, hay
 que decidir qué hacer con la preferencia, no sólo con el valor.
+
+---
+
+## Tanda IMÁGENES-3 (2026-10-31)
+
+### IMG3-a · El bucle del video en el PPT no se puede marcar con la librería que la app tiene
+Verificado por dos caminos: el XML de un paquete generado de verdad **no tiene** `<p:timing>`,
+ni `repeatCount`, ni `cMediaNode`, ni `<p:video>`; y los **477.529 bytes** del bundle de
+PptxGenJS 3.12.0 tienen **cero** apariciones de `repeatCount`, `p:timing`, `cMediaNode` y de
+cualquier `loop*`. «Repetir hasta detener» vive en el árbol de tiempos de la diapositiva.
+**Lo que haría falta**, para quien lo retome: un `<p:timing>` en la diapositiva con un
+`<p:video><p:cMediaNode vol="80000"><p:cTn id="N" fill="hold" display="0"
+repeatCount="indefinite">…</p:cTn><p:tgtEl><p:spTgt spid="3"/></p:tgtEl></p:cMediaNode></p:video>`,
+inyectado post-procesando el zip con el JSZip que `_pptxDescargarSaneado` ya usa. El `spid` es
+el `id` del `<p:cNvPr>` del `<p:pic>` que lleva el `videoFile` (medido: 3).
+**Por qué NO se hizo**: no se puede verificar sin PowerPoint, y este repositorio ya documenta
+que una parte OOXML mal formada hace que PowerPoint pida reparar **y que al reparar borre la
+diapositiva completa**. El video sigue incrustado como estaba.
+
+### IMG3-b · Una captura AMPLIADA pasó de media página a una franja
+La maqueta vieja repartía las ampliadas de a dos por página; el motor de tercios le da una
+franja entera, o sea un tercio de hoja. La orden dice «de a dos por franja» y no menciona la
+marca de ampliada; mapearla a franja completa es la traducción mínima de lo que significaba.
+**Salida**: decidir si una ampliada merece media hoja —que serían franja y media, lo que el
+motor no modela— o si un tercio alcanza.
+
+### IMG3-c · Un estudio con dos diagramas y nada más gana una hoja
+Medido: con el jet post-TAVI y la bicúspide, HEAD los dibujaba inline en la hoja del cuerpo
+(1 hoja) y hoy los diagramas tienen hoja propia (2). Es lo que R-1 pide y se paga una vez por
+estudio; las escenas con más diagramas **bajan** de hojas. **Salida**: si molesta, la regla
+sería «si los diagramas entran en lo que queda de la última hoja del cuerpo, no abrir hoja»,
+que rompe R-1.
+
+### IMG3-d · La demo de tercios no lleva el sufijo `_aprobado`
+La orden la nombra `demo_pdf_diagramas_tercios_aprobado.html` y el archivo es
+`docs/3d/demo_pdf_diagramas_tercios.html`. Es el único de los tres así. Su contenido coincide
+con lo que la orden describe —marcadores de lugar, R-1 a R-6— y su preset «Mi estudio de
+prueba» da las dos hojas que la orden espera, así que se usó como referencia.
+**Salida**: renombrarlo, o dejar escrito que ese es su nombre.
+
+### IMG3-e · «Hipoquinesia: cara (undefined)» en la línea de contractilidad
+Preexistente, no de esta tanda: `contrGetLineasInforme()` arma «Hipoquinesia: cara
+(undefined).» cuando el territorio no tiene nombre. Se ve en el papel firmado, y el motor de
+tercios lo hace más visible porque ahora esa línea va debajo del dibujo. **No se tocó**: es
+contenido clínico. Reproducible pintando `contrEstado['s1']=1`.
+
+### IMG3-f · El registro de Evidencia sigue citando el folio 120 de la SEC
+`IND_REFS.f44` dice «ESC 2024, Figura 44 · folio 120», que es la edición en español. La lectura
+en imagen que la orden trae es la inglesa, donde la Figura 44 está en la hoja 112 y su folio
+impreso es el **3649**. El ⓘ de la coartación cita **los dos con su edición**; el registro no
+se movió, porque cambiarlo toca la numeración del panel. **Salida**: decidir cuál edición es la
+de referencia del registro.
+
+### IMG3-g · El PPT de congénitas deja la miocardiopatía hipertrófica sin podar
+Su conclusión entrelaza la recomendación con el recuento —«AHA/ACC 2020: 2 factores mayores de
+5 — desfibrilador razonable (3 sin evaluar)»— y podarla perdía el 3, así que la guarda de
+«ningún número medido desaparece» la deja entera. Su diapositiva sigue nombrando la AHA/ACC y
+su clase. **Salida**: que el médico decida el texto descriptivo de esa sección; la app no lo
+puede derivar sin escribir contenido clínico nuevo.
+
+### IMG3-h · LA PARTE D NO SE HIZO — el diagrama 3D de la TGA
+Ninguna línea de la app se tocó por ella. El **inventario 10a sí está hecho** y es la mitad del
+trabajo:
+
+| lo que la demo necesita | lo que la app tiene |
+|---|---|
+| anatomía: `norm` / `dtga` / `ltga` | `tga_tipo` con tres valores: `cctga`, `mustard`, `senning` |
+| cirugía: `none` / `mus` / `jat` / `ras` | **no existe**: el tipo y la cirugía van en el mismo campo |
+| comunicaciones: CIA o FOP, CIV, DAP | `tga_civ_residual`; la CIA y el DAP viven en sus módulos |
+| frecuencia cardíaca | existe |
+| «ver por dentro», nombres, pausa, vista de frente | controles de pantalla, sin dato que guardar |
+
+**Lo alcanzable desde los datos de la app son DOS de los seis escenarios de la demo**:
+`cctga` → anatomía L-TGA sin cirugía, y `mustard`/`senning` → d-TGA con switch auricular. El
+corazón normal, la d-TGA sin cirugía con sus tres comunicaciones, el switch arterial (Jatene) y
+el Rastelli **no se pueden representar sin campos guardados nuevos**, que esta orden prohíbe.
+Otras dos cosas para quien lo retome: la librería sería `three.js r128` de cdnjs, que exige un
+`integrity` como los otros cuatro scripts del encabezado; y **capturar un canvas WebGL para el
+PDF exige `preserveDrawingBuffer:true`**, que la demo no pone, así que portarla «sin
+reinterpretar» y además capturarla pide una decisión que esta orden no toma.
+
+### IMG3-i · El rótulo de la diastólica se podó en sus NUEVE etiquetas, no sólo en «Incompleto»
+La orden nombra «Incompleto — ASE 2025». Medido: el mismo span publica además «DD Grado I/II/III
+— ASE 2025», «DD — Presión elevada (ASE 2025)», «Indeterminado», «Datos insuficientes»,
+«Función diastólica normal» y la variante de BSE 2024, y todas llegan al PPT por la misma fila.
+Sacarlo de una sola dejaba el mismo PPT citando la guía en ocho de las nueve escenas, así que
+se sacó en el único punto por el que las nueve pasan al papel. **Salida**: confirmar que es lo
+que el médico quería, o acotarlo a la etiqueta nombrada.
+
+### IMG3-j · El «qué mirar en la ecografía» de la demo de la TGA, sin verificar
+La demo trae, por escenario, un párrafo de «qué mirar» (raíz neoaórtica, estenosis supravalvular
+pulmonar, función del VD sistémico, gradiente del conducto…). La orden dice que es **de ejemplo
+y NO se implementa**, y que quede anotado para verificarlo contra la guía. Queda anotado: está
+en `docs/3d/demo_tga_3d_esquema_aprobado.html`, en el objeto `INFO`, y ninguna de sus frases se
+copió a la app.
+
+### Cierra AJ2-e (en parte)
+Las once secciones de `CC_PPT` dejaron de publicar la guía en el PPT, **menos la
+miocardiopatía hipertrófica** → IMG3-g.

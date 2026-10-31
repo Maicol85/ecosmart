@@ -461,3 +461,16 @@ perdió o ganó:
 - **el bloque de la VAB** pasa a dibujo a la izquierda y tabla al costado (100,6 → 53,6 mm).
 - **`noPdf`** en un slot de `imgSlots` lo saca del papel sin borrarlo del estudio.
 
+
+---
+
+## ⟶ La tanda IMÁGENES-3 (2026-10-31) — puntero
+
+Las hojas de **diagramas del PDF** ya no se emiten una por sección donde caen: hay un motor de
+tercios con `PDF_DIAG_REG` (orden, tamaño y familia), `PDF_DIAG_EXC` (la pareja que no va
+junta) y `pdfDiagPack`, que es **pura**. La página «Imágenes adjuntas» se retiró: las capturas
+las coloca el mismo motor, después de todos los diagramas. La CIA va debajo del texto de
+congénitas. La bicúspide, la orejuela y la CIA cambiaron su tabla por una **línea compacta**,
+con el mismo dueño de las palabras.
+
+→ `docs/mapa/img3-visor-tercios.md`
