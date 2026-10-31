@@ -69943,6 +69943,70 @@ function generarPDFReal(_aj) {
      LOS PRODUCTORES NO SE TOCAN: las mismas funciones y los mismos textos. Lo único que se
      mueve es dónde se estampan. */
   const _dg = {};
+  /* ══ LAS HOJAS DE DIAGRAMAS, POR TERCIOS (IMG3-3, 2026-10-31) ═════════════════════════════
+     Un dibujante genérico y el motor. Acá no hay ninguna regla de orden ni de tamaño: todas
+     viven en `PDF_DIAG_REG` y en `pdfDiagPack`, que son puros y se pueden medir sin jsPDF.
+
+     ⚠️ POR QUÉ NADA SE CORTA (R-6): el alto de la LÍNEA se mide primero y se le resta al hueco
+     del dibujo, y el dibujo se escala para entrar en lo que queda. No hay ningún camino en el
+     que la imagen crezca más que su franja, así que no depende de que un presupuesto de
+     `checkPage` esté bien calculado — que es cómo este archivo ya se cortó dos veces. */
+  const _pdfTile = (box, k) => {
+    const t = _dg[k];
+    if (!t || !t.partes || !t.partes.length) return;
+    fb(8.5); tc(TEMA[0], TEMA[1], TEMA[2]);
+    doc.text(_sanML(pdfDiagLbl(k)), box.x, box.y + 4);
+    const _ln = t.linea ? doc.splitTextToSize(_sanML(t.linea), box.w) : [];
+    const _lnH = _ln.length ? (_ln.length * 3.3 + 2) : 0;
+    const _cy0 = box.y + 6;
+    const _subH = t.partes.some(p => p.sub) ? 4 : 0;
+    const _cH = Math.max(10, box.h - 6 - _lnH - _subH - 2);
+    const _n = t.partes.length, _gi = 4;
+    const _pw = (box.w - (_n - 1) * _gi) / _n;
+    t.partes.forEach((p, j) => {
+      const _x0 = box.x + j * (_pw + _gi);
+      const _legW = p.leyenda ? Math.min(26, _pw * 0.36) : 0;
+      const _dispo = _pw - _legW - (_legW ? 2 : 0);
+      const _ar = p.ar || 1;
+      let _w = _dispo, _h = _w * _ar;
+      if (_h > _cH) { _h = _cH; _w = _h / _ar; }
+      try { doc.addImage(p.data, 'PNG', _x0 + (_dispo - _w) / 2, _cy0 + (_cH - _h) / 2, _w, _h); }
+      catch (e) { console.error('[PDF] diagrama ' + k + ':', e); return; }
+      if (p.sub) { fn(7); tc(90, 90, 90); doc.text(_sanML(p.sub), _x0, _cy0 + _cH + 3); }
+      if (p.leyenda) {
+        /* La leyenda, en columna a la derecha del dibujo. Mismo formato que la de las dianas:
+           una muestra de color por fila, o varias en la misma fila cuando la entrada trae
+           `colors` —los grupos de territorios—. Si no entran todas en la franja, se para: una
+           leyenda a medias es peor que ninguna, porque no se sabe que falta. */
+        let _lx = _x0 + _dispo + 2, _ly = _cy0 + 4;
+        fb(7); tc(TEMA[0], TEMA[1], TEMA[2]); doc.text('Ref.:', _lx, _ly); _ly += 4.4;
+        p.leyenda.forEach(m => {
+          if (_ly > _cy0 + _cH) return;
+          if (m.colors) {
+            m.colors.forEach((c2, _k2) => {
+              const r2 = c2.match(/\w\w/g).map(h => parseInt(h, 16));
+              doc.setFillColor(r2[0], r2[1], r2[2]);
+              doc.rect(_lx + _k2 * 3.6, _ly - 2.8, 3, 3, 'F');
+            });
+            fn(6.5); tc(30, 30, 30);
+            doc.text(_sanML(m.nombre), _lx + m.colors.length * 3.6 + 1.2, _ly);
+          } else {
+            const rgb = String(m.color || '#ffffff').match(/\w\w/g).map(h => parseInt(h, 16));
+            doc.setFillColor(rgb[0], rgb[1], rgb[2]);
+            doc.setDrawColor(200, 200, 200);
+            doc.rect(_lx, _ly - 2.8, 3, 3, 'FD');
+            fn(6.5); tc(30, 30, 30); doc.text(_sanML(m.nombre), _lx + 4.2, _ly);
+          }
+          _ly += 4.4;
+        });
+      }
+    });
+    if (_ln.length) {
+      fn(7); tc(90, 90, 90);
+      _ln.forEach((l, i) => doc.text(l, box.x, box.y + box.h - _lnH + 3 + i * 3.3));
+    }
+  };
+
   if ((_incContr || _incSgl) && _hayBE) {
     const _dgP = [], _dgL = [];
     if (_incContr) {
@@ -70000,58 +70064,33 @@ function generarPDFReal(_aj) {
     }
   } catch (_e) { _ciaImg = null; }
   if (_ciaImg && _ciaFilas) {
-    const _cL = _PDF_DIANA_LADO, _cGap = 8;
-    const _cTabX = mL + _cL + _cGap, _cTabW = pgW - _cL - _cGap;
+    /* ⟶ RECOGIDO POR EL MOTOR (IMG3-5). R-4: la CIA va DEBAJO de su texto, en la hoja de
+       «Cardiopatías congénitas», y no en una sección propia en medio del cuerpo — que es
+       exactamente el «la CIA lejos de su texto de congénitas» que el médico reportó.
+       ⚠️ LA TABLA DE NUEVE FILAS PASA A UNA LINEA COMPACTA, con las MISMAS palabras y los
+       MISMOS dueños: `eteCiaBordeMin`, `ccQpQsDe`, `eteQpQsInterp` y `CIA_DIR_TXT`. El estado
+       por color de cada borde deja de dibujarse —en una franja no hay lugar para una columna de
+       cuadraditos— y en su lugar va el valor en milímetros, que es el dato. */
     const _bm = (typeof eteCiaBordeMin === 'function') ? eteCiaBordeMin() : null;
     const _cq = (typeof ccQpQsDe === 'function') ? ccQpQsDe('cia') : null;
     const _cdir = sv('ete_cia_dir'), _cvel = v('ete_cia_vel');
-    /* La interpretación del Qp/Qs sale de `eteQpQsInterp`, que es la que ya publica el cuerpo
-       del informe. La especificación traía su propia escala («Mínimo/Moderado/Significativo»),
-       que es una CUARTA copia del mismo corte: la app diría «Shunt pequeño» dos párrafos más
-       arriba y «Mínimo» acá, sobre el mismo número. Se toma la primera oración de la existente. */
-    const _cqTxt = (_cdir === 'di' || _cq == null) ? '—' : String(eteQpQsInterp(_cq)).split(/\s*[—.]\s*/)[0];
-    const _filasExtra = [
-      ['Borde mínimo', _bm ? String(_bm.mm) : '—', _bm ? ('(' + _bm.nombre + ')') : '', null],
-      ['Dirección', (typeof CIA_DIR_TXT === 'object' && CIA_DIR_TXT[_cdir]) || '—', '', null],
-      ['Vel. del jet', _cvel != null ? (_cvel + ' m/s') : '—', '', null],
-      ['Qp/Qs', (_cdir === 'di' || _cq == null) ? '—' : (Math.round(_cq*100)/100).toFixed(2), _cqTxt, null]
-    ];
-    const _altoTabla = (_ciaFilas.length + _filasExtra.length + 1) * 5.2 + 6;
-    checkPage(_BAR_H + 4 + Math.max(_cL, _altoTabla) + 8);
-    drawBar('COMUNICACION INTERAURICULAR - BORDES');
-    y += _aire(3);
-    const _cy0 = y;
-    doc.addImage(_ciaImg, 'PNG', mL, _cy0, _cL, _cL);
-    let _ty = _cy0 + 4;
-    fb(7.5); tc(TEMA[0],TEMA[1],TEMA[2]);
-    doc.text('Borde', _cTabX, _ty);
-    doc.text('mm', _cTabX + _cTabW * 0.42, _ty, { align:'right' });
-    doc.text('Estado', _cTabX + _cTabW * 0.50, _ty);
-    _ty += 1.6;
-    doc.setDrawColor(200,200,200); doc.line(_cTabX, _ty, _cTabX + _cTabW, _ty); _ty += 4.2;
-    /* `_sanML` en TODO lo que sale de un campo: los nombres traen «/» y acentos (bien), pero la
-       interpretación del Qp/Qs y el nombre del borde mínimo vienen de mapas con raya larga, y
-       jsPDF pasa la línea ENTERA a UTF-16 ante un solo carácter fuera de WinAnsi. */
-    _ciaFilas.forEach(function(f){
-      fn(8); tc(30,30,30);
-      doc.text(_sanML(f.lbl), _cTabX, _ty);
-      doc.text(f.mm == null ? '—' : String(f.mm), _cTabX + _cTabW * 0.42, _ty, { align:'right' });
-      const rgb = f.col.fill.match(/\w\w/g).map(h => parseInt(h,16));
-      doc.setFillColor(rgb[0],rgb[1],rgb[2]);
-      doc.rect(_cTabX + _cTabW * 0.50, _ty - 2.8, 3.2, 3.2, 'F');
-      const _est = f.col.estado === 'sin' ? 'No medido'
-                 : f.col.estado.charAt(0).toUpperCase() + f.col.estado.slice(1);
-      doc.text(_sanML(_est), _cTabX + _cTabW * 0.50 + 4.5, _ty);
-      _ty += 5.2;
+    const _cqTxt = (_cdir === 'di' || _cq == null) ? '' : String(eteQpQsInterp(_cq)).split(/\s*[—.]\s*/)[0];
+    const _cp = [];
+    /* ⚠️ EL ESTADO DE CADA BORDE VA EN LA LINEA, y no se pierde. La tabla publicaba una columna
+       «Estado» —adecuado, borderline, no medido— que el texto de congénitas NO dice, así que
+       dejarla afuera habría sido la única pérdida real de este commit. Los bordes SIN medir no
+       se nombran: «si no hay datos, sin línea» vale también por dato. */
+    _ciaFilas.forEach(function (f) {
+      if (f.mm == null) return;
+      const _e = (f.col && f.col.estado && f.col.estado !== 'sin') ? (' (' + f.col.estado + ')') : '';
+      _cp.push(f.lbl + ' ' + f.mm + ' mm' + _e);
     });
-    doc.setDrawColor(200,200,200); doc.line(_cTabX, _ty - 3.4, _cTabX + _cTabW, _ty - 3.4);
-    _filasExtra.forEach(function(f){
-      fb(8); tc(30,30,30); doc.text(_sanML(f[0]), _cTabX, _ty);
-      fn(8); doc.text(_sanML(f[1]), _cTabX + _cTabW * 0.42, _ty, { align:'right' });
-      if (f[2]) { tc(90,90,90); doc.text(_sanML(f[2]), _cTabX + _cTabW * 0.50, _ty); }
-      _ty += 5.2;
-    });
-    y = Math.max(_cy0 + _cL, _ty) + 5;
+    if (_bm) _cp.push('borde mínimo ' + _bm.mm + ' mm (' + _bm.nombre + ')');
+    if (typeof CIA_DIR_TXT === 'object' && CIA_DIR_TXT[_cdir]) _cp.push(CIA_DIR_TXT[_cdir]);
+    if (_cvel != null) _cp.push('vel. del jet ' + _cvel + ' m/s');
+    if (!(_cdir === 'di' || _cq == null))
+      _cp.push('Qp/Qs ' + (Math.round(_cq * 100) / 100).toFixed(2) + (_cqTxt ? ' (' + _cqTxt + ')' : ''));
+    _dg.cia = { partes: [{ data: _ciaImg }], linea: _cp.join('  ·  ') };
   }
 
   // ════════════════════════════════════════════════════════════
@@ -70407,11 +70446,32 @@ function generarPDFReal(_aj) {
      El contenido viene de los `cc-txt-*`, que se guardan y se reponen con el estudio: por eso
      reimprimir un guardado da la hoja de ESE paciente y no la del que esté en pantalla. */
   const _ccSecs = (typeof ccEnInforme === 'function') ? (ccEnInforme() || []) : [];
+  let _ciaEnSuHoja = false;
   if (_ccSecs.length) {
     doc.addPage();
     y = amiloDibujarSecciones(doc, _ccSecs.map(d => ({ tit: d.tit, txt: d.txt })),
       { mL, pgW, tema: TEMA, yIni: 20, yFin: _yMax, fsa: _FSA,
         titPagina: 'ESTUDIO AVANZADO - CARDIOPATIAS CONGENITAS' });
+    /* ══ R-4: LOS DIAGRAMAS DE ESTE MODULO, DEBAJO DE SU TEXTO ═════════════════════════════
+       Hoy es la CIA y el registro dice cuáles son los de esta familia, así que agregar otro
+       congénito no toca este bloque. El hueco que queda bajo el texto se le entrega al
+       dibujante de franjas: si no llega a un tercio de hoja, el diagrama se escala a lo que
+       hay —nunca se corta— y si no queda nada, abre hoja propia con el mismo encabezado. */
+    PDF_DIAG_REG.filter(d => d.fam === 'cc' && _dg[d.k]).forEach(d => {
+      const _fH1 = (_yMax - 18) / PDF_DIAG_FRANJAS;
+      let _cy = y + 4;
+      if (_yMax - _cy < _fH1 * 0.62) {
+        doc.addPage();
+        fc(TEMA[0], TEMA[1], TEMA[2]); doc.rect(0, 0, 210, 12, 'F');
+        fb(11); tc(255, 255, 255);
+        doc.text('Cardiopatias congenitas', 105, 8, { align: 'center' });
+        _cy = 18;
+      }
+      const _ch = Math.min(_fH1, _yMax - _cy);
+      _pdfTile({ x: mL, y: _cy, w: pgW, h: _ch }, d.k);
+      y = _cy + _ch;
+      _ciaEnSuHoja = true;
+    });
   }
 
   // ── HOJA DEL ECOCARDIOGRAMA TRANSESOFÁGICO ──
@@ -70426,68 +70486,34 @@ function generarPDFReal(_aj) {
     });
   }
 
-  /* ══ LAS HOJAS DE DIAGRAMAS, POR TERCIOS (IMG3-3, 2026-10-31) ═════════════════════════════
-     Un dibujante genérico y el motor. Acá no hay ninguna regla de orden ni de tamaño: todas
-     viven en `PDF_DIAG_REG` y en `pdfDiagPack`, que son puros y se pueden medir sin jsPDF.
-
-     ⚠️ POR QUÉ NADA SE CORTA (R-6): el alto de la LÍNEA se mide primero y se le resta al hueco
-     del dibujo, y el dibujo se escala para entrar en lo que queda. No hay ningún camino en el
-     que la imagen crezca más que su franja, así que no depende de que un presupuesto de
-     `checkPage` esté bien calculado — que es cómo este archivo ya se cortó dos veces. */
-  const _pdfTile = (box, k) => {
-    const t = _dg[k];
-    if (!t || !t.partes || !t.partes.length) return;
-    fb(8.5); tc(TEMA[0], TEMA[1], TEMA[2]);
-    doc.text(_sanML(pdfDiagLbl(k)), box.x, box.y + 4);
-    const _ln = t.linea ? doc.splitTextToSize(_sanML(t.linea), box.w) : [];
-    const _lnH = _ln.length ? (_ln.length * 3.3 + 2) : 0;
-    const _cy0 = box.y + 6;
-    const _subH = t.partes.some(p => p.sub) ? 4 : 0;
-    const _cH = Math.max(10, box.h - 6 - _lnH - _subH - 2);
-    const _n = t.partes.length, _gi = 4;
-    const _pw = (box.w - (_n - 1) * _gi) / _n;
-    t.partes.forEach((p, j) => {
-      const _x0 = box.x + j * (_pw + _gi);
-      const _legW = p.leyenda ? Math.min(26, _pw * 0.36) : 0;
-      const _dispo = _pw - _legW - (_legW ? 2 : 0);
-      const _ar = p.ar || 1;
-      let _w = _dispo, _h = _w * _ar;
-      if (_h > _cH) { _h = _cH; _w = _h / _ar; }
-      try { doc.addImage(p.data, 'PNG', _x0 + (_dispo - _w) / 2, _cy0 + (_cH - _h) / 2, _w, _h); }
-      catch (e) { console.error('[PDF] diagrama ' + k + ':', e); return; }
-      if (p.sub) { fn(7); tc(90, 90, 90); doc.text(_sanML(p.sub), _x0, _cy0 + _cH + 3); }
-      if (p.leyenda) {
-        /* La leyenda, en columna a la derecha del dibujo. Mismo formato que la de las dianas:
-           una muestra de color por fila, o varias en la misma fila cuando la entrada trae
-           `colors` —los grupos de territorios—. Si no entran todas en la franja, se para: una
-           leyenda a medias es peor que ninguna, porque no se sabe que falta. */
-        let _lx = _x0 + _dispo + 2, _ly = _cy0 + 4;
-        fb(7); tc(TEMA[0], TEMA[1], TEMA[2]); doc.text('Ref.:', _lx, _ly); _ly += 4.4;
-        p.leyenda.forEach(m => {
-          if (_ly > _cy0 + _cH) return;
-          if (m.colors) {
-            m.colors.forEach((c2, _k2) => {
-              const r2 = c2.match(/\w\w/g).map(h => parseInt(h, 16));
-              doc.setFillColor(r2[0], r2[1], r2[2]);
-              doc.rect(_lx + _k2 * 3.6, _ly - 2.8, 3, 3, 'F');
-            });
-            fn(6.5); tc(30, 30, 30);
-            doc.text(_sanML(m.nombre), _lx + m.colors.length * 3.6 + 1.2, _ly);
-          } else {
-            const rgb = String(m.color || '#ffffff').match(/\w\w/g).map(h => parseInt(h, 16));
-            doc.setFillColor(rgb[0], rgb[1], rgb[2]);
-            doc.setDrawColor(200, 200, 200);
-            doc.rect(_lx, _ly - 2.8, 3, 3, 'FD');
-            fn(6.5); tc(30, 30, 30); doc.text(_sanML(m.nombre), _lx + 4.2, _ly);
-          }
-          _ly += 4.4;
-        });
-      }
-    });
-    if (_ln.length) {
-      fn(7); tc(90, 90, 90);
-      _ln.forEach((l, i) => doc.text(l, box.x, box.y + box.h - _lnH + 3 + i * 3.3));
+  /* Las CAPTURAS del ecógrafo y las fotos (R-5). De a dos por franja, en el orden de la fila de
+     miniaturas, y el encabezado «Imágenes del estudio» SOLO donde empiezan. Una captura marcada
+     como AMPLIADA ocupa la franja entera.
+     ⚠️ LA RELACION DE ASPECTO SALE DE LA IMAGEN, por `getImageProperties`, igual que en la
+     página que esto reemplaza: una captura de ecógrafo no es cuadrada y estirarla deforma una
+     imagen con mediciones. */
+  const _pdfCapTile = (box, items, primera, ampl) => {
+    let _y0 = box.y, _hh0 = box.h;
+    if (primera) {
+      fb(8.5); tc(TEMA[0], TEMA[1], TEMA[2]);
+      doc.text(_sanML('Imágenes del estudio'), box.x, box.y + 4);
+      _y0 = box.y + 6; _hh0 = box.h - 6;
     }
+    const _hDisp = Math.max(10, _hh0 - 2);
+    const _cols = ampl ? 1 : 2, _gi = 6;
+    const _pw = (box.w - (_cols - 1) * _gi) / _cols;
+    items.forEach((it, j) => {
+      const _d = it && it.slot && it.slot.dataURL;
+      if (!_d) return;
+      let _ar = 0.75;
+      try { const _pr = doc.getImageProperties(_d); if (_pr && _pr.width) _ar = _pr.height / _pr.width; }
+      catch (e) {}
+      let _w = _pw, _h = _w * _ar;
+      if (_h > _hDisp) { _h = _hDisp; _w = _h / _ar; }
+      const _x0 = box.x + j * (_pw + _gi);
+      try { doc.addImage(_d, 'JPEG', _x0 + (_pw - _w) / 2, _y0 + (_hDisp - _h) / 2, _w, _h); }
+      catch (e) { console.error('[PDF] captura:', e); }
+    });
   };
 
   /* LA OREJUELA entra como diagrama SÓLO si su dibujo no se estampó junto a su tabla. Es la
@@ -70506,9 +70532,22 @@ function generarPDFReal(_aj) {
     }
   } catch (e) { console.error('[PDF] orejuela como diagrama:', e); _oaiEsqIdx = -1; }
 
-  const _diagClaves = PDF_DIAG_REG.map(d => d.k).filter(k => !!_dg[k]);
-  if (_diagClaves.length) {
-    const _pk = pdfDiagPack(_diagClaves, []);
+  /* Las CAPTURAS, en el orden de la fila de miniaturas. El conjunto es EXACTAMENTE el que
+     imprimía la página «Imágenes del estudio»: con dataURL, sin video, sin la ✕ de la fila, y
+     sin el esquema de la orejuela por cualquiera de sus dos caminos. */
+  const _caps = [];
+  if (typeof imgSlots !== 'undefined') {
+    imgSlots.forEach((s, i) => {
+      if (!s || !s.dataURL || s.videoId || s.noPdf) return;
+      if (i === _oaiSlotUsado || i === _oaiEsqIdx) return;
+      _caps.push({ i: i, slot: s, ampliada: !!s.ampliada });
+    });
+  }
+  /* La CIA entra al motor SOLO si no se estampó debajo de su texto. */
+  const _diagClaves = PDF_DIAG_REG.map(d => d.k)
+    .filter(k => !!_dg[k] && !(k === 'cia' && _ciaEnSuHoja));
+  if (_diagClaves.length || _caps.length) {
+    const _pk = pdfDiagPack(_diagClaves, _caps);
     const _top = 18, _bot = _yMax;
     const _fH = (_bot - _top) / PDF_DIAG_FRANJAS;
     const _gapD = 6, _halfD = (pgW - _gapD) / 2;
@@ -70516,7 +70555,10 @@ function generarPDFReal(_aj) {
       doc.addPage();
       fc(TEMA[0], TEMA[1], TEMA[2]); doc.rect(0, 0, 210, 12, 'F');
       fb(11); tc(255, 255, 255);
-      doc.text('Diagramas del estudio', 105, 8, { align: 'center' });
+      /* El encabezado dice lo que la hoja TIENE: con una hoja de puras capturas, «Diagramas del
+         estudio» sería falso, y era el rótulo que la página vieja usaba para lo contrario. */
+      const _hayD = hoja.some(it => it.t === 'diag');
+      doc.text(_hayD ? 'Diagramas del estudio' : 'Imágenes del estudio', 105, 8, { align: 'center' });
       let _u = 0;
       hoja.forEach(it => {
         const _y0 = _top + (_u / PDF_DIAG_U) * _fH;
@@ -70525,6 +70567,11 @@ function generarPDFReal(_aj) {
           if (it.full) _pdfTile({ x: mL, y: _y0, w: pgW, h: _hh }, it.ids[0]);
           else it.ids.forEach((k, j) =>
             _pdfTile({ x: mL + j * (_halfD + _gapD), y: _y0, w: _halfD, h: _hh }, k));
+        } else if (it.t === 'cap') {
+          /* El encabezado del TILE sólo cuando la hoja NO es de puras capturas: si lo es, el
+             banner de arriba ya dice «Imágenes del estudio» y repetirlo dos veces en la misma
+             hoja se lee como dos secciones. Medido. */
+          _pdfCapTile({ x: mL, y: _y0, w: pgW, h: _hh }, it.ids, !!it.primera && _hayD, !!it.full);
         }
         _u += it.h;
       });
@@ -70535,63 +70582,13 @@ function generarPDFReal(_aj) {
     if (_pk.notas.length) console.info('[PDF] diagramas: ' + _pk.notas.join(' '));
   }
 
-  // ════════════════════════════════════════════════════════════
-  // IMÁGENES ADJUNTAS — página(s) adicional(es) al final
-  // ════════════════════════════════════════════════════════════
-  if (typeof imgSlots !== 'undefined') {
-    /* `!s.videoId`: el slot de un VIDEO lleva su primer cuadro como miniatura, y sin este
-       filtro el informe firmado saldría con un cuadro que el médico NO eligió —el primero del
-       archivo—. Lo que sale es el cuadro que captura a mano, que ocupa otro slot como imagen. */
-    /* `_oaiSlotUsado` queda afuera: su dibujo ya se estampo al lado de su tabla.
-       `s.noPdf` es la marca que pone la ✕ de la fila de miniaturas (AJ1-5c): la imagen sigue en
-       el estudio y en «Imagenes del estudio», y no se imprime. */
-    /* `_oaiEsqIdx` se suma a `_oaiSlotUsado` (IMG3-3): el esquema de la orejuela es un
-       DIAGRAMA y ya se estampó en su franja, así que no vuelve a entrar acá. Los dos índices
-       valen -1 cuando no corresponde, y -1 nunca es un índice de `imgSlots`. */
-    const _loaded = imgSlots.filter((s, i) => s && s.dataURL && !s.videoId && !s.noPdf
-                                              && i !== _oaiSlotUsado && i !== _oaiEsqIdx);
-    if (_loaded.length) {
-      // _bot usa el MISMO presupuesto dinámico que checkPage: la banda de firma
-      // cambia de alto según cuántas filas tenga, y con un valor fijo una imagen
-      // que llegaba al fondo quedaba tapada por el nombre del firmante.
-      const _gap = 6, _half = (pgW - _gap) / 2, _top = 18, _bot = _yMax;
-      const _halfH = (_bot - _top) / 2;   // altura de media página (para ampliadas)
-      let _iy, _ampOnPage = 0;            // ampliadas colocadas en la página actual (0/1/2)
-      const _imgPage = () => { doc.addPage(); fc(TEMA[0],TEMA[1],TEMA[2]); doc.rect(0,0,210,12,'F'); fb(11); tc(255,255,255); doc.text('Imágenes del estudio', 105, 8, {align:'center'}); _iy = _top; _ampOnPage = 0; };
-      const _dim = (data, maxW, maxH) => { const p = doc.getImageProperties(data); const r = p.height / p.width; let w = maxW, h = w * r; if (h > maxH) { h = maxH; w = h / r; } return { w, h }; };
-      _imgPage();
-      let i = 0;
-      /* ⟶ LA RAMA DEL ESQUEMA DE LA OREJUELA SE RETIRO (IMG3-3). Vivía acá para estampar el
-         dibujo con su resumen al lado cuando el informe no traía su tabla; hoy eso lo hace el
-         motor de tercios, y su slot queda fuera de `_loaded` por `_oaiEsqIdx`. Dejarla sería un
-         segundo lugar donde el mismo dibujo puede aparecer.
-         `_oaiRes` tampoco se calcula más acá: su único lector era esa rama. */
-      while (i < _loaded.length) {
-        const im = _loaded[i];
-        if (im.ampliada) {
-          // Agrupar ampliadas de a dos por página: slot 0 = mitad superior, slot 1 = mitad inferior
-          if (_ampOnPage >= 2) _imgPage();
-          else if (_ampOnPage === 0 && _iy > _top + 2) _imgPage();   // ya hay imágenes normales arriba → página nueva
-          const _slotTop = _top + _ampOnPage * _halfH;
-          const d = _dim(im.dataURL, pgW, _halfH - 8);               // ancho completo, alto máx = media página
-          doc.addImage(im.dataURL, 'JPEG', mL + (pgW - d.w) / 2, _slotTop + (_halfH - d.h) / 2, d.w, d.h);
-          _ampOnPage++;
-          _iy = _slotTop + _halfH;                                   // fin de la mitad usada
-          i++;
-        } else {
-          const im2 = (i + 1 < _loaded.length && !_loaded[i + 1].ampliada) ? _loaded[i + 1] : null;
-          const a = _dim(im.dataURL, _half, 80);
-          const b = im2 ? _dim(im2.dataURL, _half, 80) : null;
-          const rowH = Math.max(a.h, b ? b.h : 0);
-          if (_iy + rowH > _bot) _imgPage();
-          doc.addImage(im.dataURL, 'JPEG', mL + (_half - a.w) / 2, _iy, a.w, a.h);
-          if (im2) doc.addImage(im2.dataURL, 'JPEG', mL + _half + _gap + (_half - b.w) / 2, _iy, b.w, b.h);
-          _iy += rowH + _gap; i += im2 ? 2 : 1;
-        }
-      }
-      y = _iy;   // la firma continúa desde la última posición usada por las imágenes
-    }
-  }
+  /* ⟶ LA PAGINA «IMAGENES ADJUNTAS» SE RETIRO (IMG3-5). Las capturas del ecógrafo y las fotos
+     las coloca el motor de tercios, DESPUES de todos los diagramas y de a dos por franja, y si
+     quedó lugar en la última hoja de diagramas siguen ahí sin abrir hoja nueva (R-5). El
+     conjunto que se imprime es el MISMO —`_caps`, con el mismo filtro de video, de ✕ y del
+     esquema de la orejuela— y el encabezado «Imágenes del estudio» se estampa donde empiezan.
+     Lo que se pierde es el reparto de las AMPLIADAS de a dos por página: hoy una ampliada ocupa
+     una franja entera, que es un tercio de hoja contra la mitad de antes. Está declarado. */
 
   // ─── Firma + copyright al pie de todas las páginas ───
   // (las filas de la firma y su geometría se calcularon al inicio de la función)
@@ -109608,7 +109605,11 @@ const PDF_DIAG_REG = Object.freeze([
   { k:'eteqx', w:1, fam:'ete', lbl:'Válvula mitral — vista quirúrgica' },
   { k:'tavi',  w:1, fam:'ete', lbl:'Jet paravalvular post-TAVI' },
   { k:'vab',   w:1, fam:'ete', lbl:'Válvula aórtica bicúspide' },
-  { k:'oai',   w:1, fam:'ete', lbl:'Orejuela izquierda' }
+  { k:'oai',   w:1, fam:'ete', lbl:'Orejuela izquierda' },
+  /* La CIA va al FINAL del orden y con familia propia porque su lugar natural es la hoja de
+     congénitas (R-4). Sólo llega acá cuando ese módulo NO dejó texto, o sea cuando no hay hoja
+     de congénitas bajo la cual ponerla — y entonces es un diagrama como los demás. */
+  { k:'cia',   w:1, fam:'cc',  lbl:'Comunicación interauricular — bordes' }
 ]);
 window.PDF_DIAG_REG = PDF_DIAG_REG;
 const PDF_DIAG_FAM = Object.freeze({ vi:'Función del VI', ete:'ETE y valvulares', cc:'Congénitas' });
@@ -143232,8 +143233,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261031-0330';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793428221944;                 /* eco-build-ms */
+const ECO_BUILD    = '20261031-0340';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793428858764;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -143319,7 +143320,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261031-0330</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261031-0340</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
