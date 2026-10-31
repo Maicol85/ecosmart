@@ -70138,7 +70138,8 @@ function generarPDFReal(_aj) {
      con el mismo dibujante que las de las dianas. */
   if (typeof eteQxPdfOn === 'function' && eteQxPdfOn() && typeof eteQxDataURL === 'function') {
     const _mData = eteQxDataURL();
-    if (_mData) _dg.eteqx = { partes: [{ data: _mData, leyenda: PDF_MITRAL_LEY }], linea: '' };
+    if (_mData) _dg.eteqx = { partes: [{ data: _mData, leyenda: PDF_MITRAL_LEY }],
+                              linea: (typeof pdfMitralLinea === 'function') ? pdfMitralLinea() : '' };
   }
 
   /* Hojas que ocupó el CUERPO del informe. Se cuenta acá, ANTES de las hojas que se agregan
@@ -72416,6 +72417,10 @@ window.ETE_EPIGRAFE = ETE_EPIGRAFE; window.eteCorteFest = eteCorteFest;
      en las dos deja el segmento con el color del estado anterior mientras el resumen y el PDF
      publican el nombre nuevo. El assert de abajo lo caza al arrancar. */
   const ETE_ESTADOS = ["Normal","Prolapso","Flail","Restricción","Perforación","Calcificación"];
+  /* Se EXPORTA (IMG3-4): la línea de texto de la vista quirúrgica mitral del PDF necesita el
+     rótulo de cada lesión, y copiar el arreglo allá sería una segunda definición de los mismos
+     seis nombres — el día que uno cambie, el papel diría otra cosa que la pantalla. */
+  window.ETE_ESTADOS = ETE_ESTADOS;
   const ETE_FILL = {
     "Normal":"#ffffff55","Prolapso":"#f59e0b55","Flail":"#ef444455",
     "Restricción":"#3b82f655","Perforación":"#8b5cf655","Calcificación":"#22c55e55"
@@ -109607,6 +109612,50 @@ const PDF_DIAG_REG = Object.freeze([
 ]);
 window.PDF_DIAG_REG = PDF_DIAG_REG;
 const PDF_DIAG_FAM = Object.freeze({ vi:'Función del VI', ete:'ETE y valvulares', cc:'Congénitas' });
+/* ══ LA LINEA DE TEXTO DE LA VISTA QUIRURGICA MITRAL (IMG3-4, punto 4a) ═════════════════════
+   Sale SOLO de datos ya cargados: el tipo y el grado de la insuficiencia mitral, y los
+   segmentos que el médico marcó en el dibujo con su lesión. Sin ninguno de los tres NO HAY
+   LINEA, que es lo que la orden pide — una línea con rótulos y rayas debajo de un dibujo, en un
+   informe FIRMADO, se lee como «se evaluó y no había».
+
+   ⚠️ EL AGRUPADO ES EL MISMO QUE EL DE LA PANTALLA (`eteRenderAll` → `#ete-resumen`): lesión →
+   lista de segmentos, en el orden de los seis festones. Escribirlo distinto sería una segunda
+   definición del mismo resumen, y el día que la pantalla agrupe de otra forma el papel diría
+   otra cosa sobre el mismo dibujo.
+
+   ⚠️ LA FUENTE SON LOS SEIS `ete_seg_*` Y NO `eteEstado`. Los campos ocultos son el estado que
+   VIAJA con el estudio —`eteEstado` es la copia de la sesión, y su clave de `localStorage` era
+   global hasta que el 2026-10 se pasó a campos del estudio— así que reimprimiendo un guardado
+   esto da los segmentos de ESE paciente y no los del que esté en pantalla.
+
+   ⚠️ NO DICE NADA QUE EL DIBUJO NO DIBUJE: ni reparabilidad, ni conducta, ni score. El papel
+   describe. */
+const PDF_MITRAL_SEGS = Object.freeze(['A1', 'A2', 'A3', 'P1', 'P2', 'P3']);
+function pdfMitralLinea() {
+  const _sv = (id) => { const e = document.getElementById(id); return e ? String(e.value || '').trim() : '' };
+  const p = [];
+  const tipo = _sv('vm_tipo_im'), grado = _sv('im_grado');
+  if (tipo || grado) {
+    p.push('Insuficiencia mitral' + (tipo ? ' ' + tipo.toLowerCase() : '') +
+                                    (grado ? ' · ' + grado.toLowerCase() : ''));
+  }
+  /* ⚠️ `ete_seg_*` GUARDA UN ENTERO, NO UN NOMBRE, Y EL 0 ES «Normal»: los seis campos valen
+     '0' en todo estudio, así que tratar el valor como texto daba «0: A1, A2, A3, P1, P2, P3»
+     en el papel de un paciente SIN una sola lesión marcada. Medido, y costó una corrida. */
+  const LES = window.ETE_ESTADOS || [];
+  const grupos = {}, orden = [];
+  PDF_MITRAL_SEGS.forEach(function (sg) {
+    const n = parseInt(_sv('ete_seg_' + sg), 10);
+    if (!isFinite(n) || n <= 0 || n >= LES.length) return;
+    const les = LES[n];
+    if (!grupos[les]) { grupos[les] = []; orden.push(les); }
+    grupos[les].push(sg);
+  });
+  orden.forEach(function (les) { p.push(les + ': ' + grupos[les].join(', ')); });
+  return p.join('  ·  ');
+}
+window.pdfMitralLinea = pdfMitralLinea;
+
 function pdfDiagLbl(k) {
   const d = PDF_DIAG_REG.filter(function (x) { return x.k === k })[0];
   return d ? d.lbl : '';
@@ -143183,8 +143232,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261031-0326';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793427977919;                 /* eco-build-ms */
+const ECO_BUILD    = '20261031-0330';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793428221944;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -143270,7 +143319,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261031-0326</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261031-0330</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

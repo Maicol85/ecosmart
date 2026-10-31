@@ -78,7 +78,13 @@ const MONTAR = `(async (E) => {
   if (E.vab) { S('va_morf','Bicúspide'); S('vab_fenotipo','rl'); S('vab_tipo','fused_rl');
                S('vab_rafe','calcificado'); S('vab_pdf','1'); }
   /* ── mitral vista quirurgica ── */
-  if (E.eteqx) { S('im_grado','Severa'); S('im_mecanismo','flail'); S('ete_qx_pdf','1'); }
+  /* La vista quirurgica mitral: el grado, el TIPO de IM y los segmentos marcados, que es de
+     donde sale su linea de texto. Los seis campos son ete_seg_A1 a ete_seg_P3. */
+  if (E.eteqx) { S('im_grado','Severa'); S('vm_tipo_im','primaria');
+                 /* el valor es el INDICE en ETE_ESTADOS: 2=Flail, 1=Prolapso */
+                 S('ete_seg_A2','2'); S('ete_seg_P2','1');
+                 try{ if(typeof eteSegSync==='function') eteSegSync() }catch(e){}
+                 S('ete_qx_pdf','1'); }
   /* ── FOP: la casilla mas datos ── */
   /* Los campos del FOP son estos, verificados en fopPdfFilas: fop_presente y
      fop_burbujas='grado2' no existen y dejaban la tabla vacia. */
