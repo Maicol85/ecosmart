@@ -85067,6 +85067,21 @@ function _indCIA(){
   if (!tipo || (q == null && tam == null)) return null;
 
   const filas = [];
+  /* ⚠️ EL TIPO Y EL TAMANO SE LEEN, NO SE PREGUNTAN (TGA-2, commit 3), que es la condición (4)
+     del pedido: los dos ya viven en la pestaña «CIA / CIV» y la recomendación del cierre con
+     dispositivo nombra el ostium secundum por su nombre. Preguntarlos otra vez acá sería crear
+     la segunda fuente que `_indOrigen` existe para evitar. */
+  /* Los CINCO valores del selector, copiados de su marcado: un rótulo inventado acá publicaría
+     en el panel un nombre que la pantalla no usa. */
+  const _ciaTIPO = { secundum:'Ostium secundum', primum:'Ostium primum', sv_vcs:'Seno venoso VCS',
+                     sv_vci:'Seno venoso VCI', seno_coronario:'Seno coronario' };
+  filas.push(_indFila('Tipo de comunicación interauricular', _ccLbl(_ciaTIPO, tipo) || tipo || 'No consignado',
+    tipo === 'secundum' ? 'ok' : (tipo ? 'none' : 'ask'),
+    tipo === 'secundum' ? 'es el tipo que la recomendación de cierre con dispositivo nombra, Clase I · Nivel C'
+    : (tipo ? 'el cierre con dispositivo como método de elección es una recomendación del ostium secundum' : '')));
+  filas.push(_indFila('Tamaño máximo del defecto', _indNum(tam, 1, 'mm'), tam != null ? 'none' : 'ask',
+    tam != null ? 'la tabla no publica ningún umbral de tamaño: la indicación la decide la sobrecarga de volumen, no el diámetro'
+                : 'sin medir'));
   /* El Qp/Qs NO forma parte de la Clase I. La tabla operativa la define por sobrecarga de
      volumen del VD, ausencia de hipertensión pulmonar y ausencia de enfermedad del VI, «regardless
      of symptoms». El Qp/Qs > 1,5 —con >, no ≥— aparece sólo en las filas IIa y IIb, las de RVP
@@ -85103,13 +85118,101 @@ function _indCIA(){
     htpEvaluada ? (R.prob === 'ALTA' ? 'alarm' : (R.prob === 'INTERMEDIA' ? 'warn' : 'none')) : 'ask',
     htpEvaluada ? 'derivada de la VRT y los signos ecocardiográficos' : 'sin VRT medible ni signos consignados'));
 
+  /* ══ LAS RECOMENDACIONES Y LAS PREGUNTAS (TGA-2, commit 3) ════════════════════════════════
+     PEDIDO DEL MEDICO (31/10/2026), el mismo que el de la transposición: la Evidencia dice las
+     INDICACIONES y hace PREGUNTAS clínicas para ubicar la recomendación que corresponde. El
+     molde es el de `_indVAB` y el de `_indTGA`, y no se reescribió.
+
+     ⚠️ LO QUE ESTABA ANTES ERA UNA FILA DE SOLO LECTURA Y DOS NOTAS EN PROSA. La fila
+     «Resistencia vascular pulmonar < 3 UW» decía «—» y no se podía contestar, y la escalera
+     completa de resistencias vivía como prosa dentro de `notas`, o sea dentro del «Ver detalle»,
+     que nace PLEGADO. Las dos cosas se reemplazan: la escalera pasa a ser el bloque visible, con
+     su clase y su nivel por fila, y cada tramo de resistencia pasa a ser una pregunta.
+     La nota de la prosa se RETIRA porque publicarla además del bloque sería la misma lista dos
+     veces, que es el defecto que esta misma pestaña ya pagó con las tablas estáticas.
+
+     LA FUENTE, LEIDA EN IMAGEN a 220 ppp sobre la edición INGLESA de la ESC 2020 de cardiopatías
+     congénitas del adulto (folio = hoja + 562, comprobado en el pie impreso): la tabla
+     «Recommendations for intervention in atrial septal defect (native and residual)», hoja 30,
+     folio 592, con sus NUEVE filas y sus dos notas al pie; y el apartado 4.1.6 de seguimiento,
+     hoja 31, folio 593.
+
+     ⚠️ NADA DE ESTE BLOQUE LLEGA AL PAPEL. Lo lee `indicRender` y nadie más. */
+  const CIA_OPS = [{ v:'si', t:'Sí' }, { v:'no', t:'No' }];
+  const CIA_PREG = [
+    { clave:'cia.ev.vsaumentado', lbl:'Volumen latido del ventrículo derecho aumentado',
+      nota:'es la nota al pie c de la tabla: la sobrecarga de volumen del ventrículo derecho que la Clase I · Nivel B exige se define como agrandamiento del ventrículo derecho CON volumen latido aumentado, y el segundo término la aplicación no lo tiene' },
+    { clave:'cia.ev.rvp3', lbl:'Resistencia vascular pulmonar por debajo de 3 UW, medida por cateterismo',
+      nota:'cuando hay signos no invasivos de presión pulmonar elevada, es la condición que deja en pie la Clase I · Nivel B' },
+    { clave:'cia.ev.rvp35', lbl:'Resistencia vascular pulmonar entre 3 y 5 UW',
+      nota:'con cortocircuito izquierda-derecha significativo (Qp/Qs mayor que 1,5), el cierre pasa a Clase IIa · Nivel C' },
+    { clave:'cia.ev.rvp5', lbl:'Resistencia vascular pulmonar de 5 UW o más',
+      nota:'es la condición del cierre fenestrado (Clase IIb · Nivel C) y, si persiste pese al tratamiento dirigido, de la contraindicación (Clase III · Nivel C)' },
+    { clave:'cia.ev.rvpbaja5', lbl:'La resistencia bajó por debajo de 5 UW tras el tratamiento dirigido de la hipertensión arterial pulmonar',
+      nota:'es lo que habilita el cierre fenestrado Clase IIb · Nivel C' },
+    { clave:'cia.ev.vi', lbl:'Enfermedad del ventrículo izquierdo',
+      nota:'excluye la Clase I · Nivel B y obliga al test con balón, que es Clase I · Nivel C' },
+    { clave:'cia.ev.embparad', lbl:'Sospecha de embolia paradójica, con las otras causas excluidas',
+      nota:'con ausencia de hipertensión arterial pulmonar y de enfermedad del ventrículo izquierdo, el cierre es Clase IIa · Nivel C, independientemente del tamaño' },
+    { clave:'cia.ev.anciano', lbl:'Paciente de edad avanzada no apto para el cierre con dispositivo',
+      nota:'es la condición de la Clase I · Nivel C que manda sopesar el riesgo quirúrgico contra el beneficio' },
+    { clave:'cia.ev.eisen', lbl:'Fisiología de Eisenmenger, o desaturación con el ejercicio',
+      nota:'es la contraindicación, Clase III · Nivel C. La nota al pie d de la tabla dice que no hay datos para un corte preciso y que, por experiencia clínica, sería una caída de la saturación arterial por debajo del 90 %' }
+  ];
+  const clinica = [], _si = [], _no = [], _sd = [];
+  CIA_PREG.forEach(function (p) {
+    const o = _indOrigen(null, p.clave);
+    if (o.val === 'si') _si.push(p.lbl); else if (o.val === 'no') _no.push(p.lbl); else _sd.push(p.lbl);
+    clinica.push(_indFilaOrigen(p.lbl, o, CIA_OPS, function (val) {
+      return { txt: val === 'si' ? 'Sí' : (val === 'no' ? 'No' : 'Sin dato'),
+               marca: val === 'si' ? 'warn' : (val === 'no' ? 'none' : 'ask'),
+               nota: p.nota + (val == null ? '. Sin dato no cuenta como «no»: mientras no se conteste, esta condición no sostiene ninguna recomendación' : '') };
+    }));
+  });
+  const _balCIA = _si.length
+    ? { txt:'Condiciones presentes en este paciente: ' + _si.length + ' de ' + CIA_PREG.length + ' (' + _si.join('; ') + ').'
+        + (_sd.length ? ' Sin contestar: ' + _sd.join('; ') + '.' : ' Las otras ' + _no.length + ' están contestadas que no.'), refs:null }
+    : (_sd.length
+      ? { txt:'Ninguna condición consta como presente, y quedan ' + _sd.length + ' sin contestar: ' + _sd.join('; ')
+          + '. Mientras no se contesten, ninguna de las recomendaciones de arriba se sostiene en este paciente — «sin dato» no cuenta como «no».', refs:null }
+      : { txt:'Las ' + CIA_PREG.length + ' condiciones están contestadas y ninguna está presente.', refs:null });
+
   return { filas: filas,
-    clinica: [_indFila('Resistencia vascular pulmonar < 3 UW', '—', 'ask', 'es la compuerta de la guía y se mide por cateterismo, no por ecocardiograma')],
+    clinica: clinica,
+    bloques: [
+      { tit:'Indicación de cierre y método — ESC 2020, tabla de recomendaciones de intervención en la comunicación interauricular, hoja 30, folio 592', lineas:[
+        { txt:'Clase I · Nivel B — Con sobrecarga de volumen del ventrículo derecho y sin hipertensión arterial pulmonar (sin signos no invasivos de presión pulmonar elevada, o con resistencia vascular pulmonar por debajo de 3 UW confirmada por cateterismo si los hay) ni enfermedad del ventrículo izquierdo, se recomienda el cierre independientemente de los síntomas.', refs:null },
+        { txt:'Clase I · Nivel C — El cierre con dispositivo se recomienda como método de elección para la comunicación interauricular tipo ostium secundum cuando es técnicamente adecuado.', refs:null },
+        { txt:'Clase I · Nivel C — En el paciente de edad avanzada no apto para el cierre con dispositivo, se recomienda sopesar con cuidado el riesgo quirúrgico contra el beneficio potencial del cierre.', refs:null }
+      ]},
+      { tit:'Cuando la presión pulmonar está elevada — misma tabla, hoja 30, folio 592', lineas:[
+        { txt:'Clase I · Nivel C — Con signos no invasivos de presión pulmonar elevada, la medición invasiva de la resistencia vascular pulmonar es obligatoria.', refs:null },
+        { txt:'Clase IIa · Nivel C — Con resistencia vascular pulmonar entre 3 y 5 UW, debe considerarse el cierre cuando hay un cortocircuito izquierda-derecha significativo (Qp/Qs mayor que 1,5).', refs:null },
+        { txt:'Clase IIb · Nivel C — Con resistencia vascular pulmonar de 5 UW o más, puede considerarse el cierre FENESTRADO cuando la resistencia baja por debajo de 5 UW tras el tratamiento dirigido de la hipertensión arterial pulmonar y persiste un cortocircuito izquierda-derecha significativo (Qp/Qs mayor que 1,5).', refs:null },
+        { txt:'Clase III · Nivel C — El cierre no se recomienda en la fisiología de Eisenmenger, ni con hipertensión arterial pulmonar y resistencia de 5 UW o más pese al tratamiento dirigido, ni con desaturación con el ejercicio. La nota al pie d de la tabla aclara que no hay datos para un corte preciso y que, por experiencia clínica, correspondería a una caída de la saturación arterial por debajo del 90 %.', refs:null }
+      ]},
+      { tit:'Enfermedad del ventrículo izquierdo y embolia paradójica — misma tabla, hoja 30, folio 592', lineas:[
+        { txt:'Clase I · Nivel C — Con enfermedad del ventrículo izquierdo, se recomienda hacer el test con balón y sopesar con cuidado el beneficio de eliminar el cortocircuito izquierda-derecha contra el efecto negativo que el cierre puede tener por el aumento de la presión de llenado, considerando el cierre completo, el cierre fenestrado y el no cierre.', refs:null },
+        { txt:'Clase IIa · Nivel C — Ante la sospecha de embolia paradójica, excluidas las otras causas, debe considerarse el cierre independientemente del tamaño, siempre que no haya hipertensión arterial pulmonar ni enfermedad del ventrículo izquierdo.', refs:null },
+        _balCIA
+      ]},
+      { tit:'Seguimiento — ESC 2020, apartado 4.1.6, hoja 31, folio 593', lineas:[
+        { txt:'El control debe incluir la valoración del cortocircuito residual, el tamaño y la función del ventrículo derecho, la insuficiencia tricuspídea y la presión pulmonar por ecocardiografía, y la búsqueda de arritmias por la historia, el electrocardiograma y, sólo si está indicado, el Holter.', refs:null },
+        { txt:'El paciente reparado antes de los 25 años y sin secuelas ni lesiones residuales relevantes —sin cortocircuito residual, con presión pulmonar y ventrículo derecho normales y sin arritmias— no necesita seguimiento regular, aunque el paciente y su médico deben saber que las taquiarritmias pueden aparecer tarde.', refs:null },
+        { txt:'El paciente con cortocircuito residual, presión pulmonar elevada o arritmias, antes o después de la reparación, y el reparado en la edad adulta —en particular por encima de los 40 años— deben seguirse de forma regular, con evaluación en centros especializados y con intervalos que dependen de la gravedad de lo residual.', refs:null },
+        { txt:'Tras el cierre con dispositivo, el seguimiento es regular durante los dos primeros años y después, según los resultados, cada 3 a 5 años.', refs:null },
+        { txt:'Fuente: ESC 2020 de cardiopatías congénitas del adulto, hojas 30 y 31, folios 592 y 593.', refs:['esc2020guch'] }
+      ]}
+    ],
     guia: { ref:'esc2020guch',
-      txt:'Cierre Clase I · Nivel B con sobrecarga de volumen del VD y sin hipertensión pulmonar (sin signos no invasivos de PAP elevada, o RVP < 3 UW confirmada por cateterismo si los hay) ni enfermedad del VI, CON INDEPENDENCIA DE LOS SÍNTOMAS.' },
+      txt:'Las indicaciones de esta sección salen de la tabla de recomendaciones de intervención en la comunicación interauricular de la ESC 2020 de cardiopatías congénitas del adulto (hoja 30, folio 592).' },
     notas: [
-      'El corte es RVP < 3 UW, no < 5. La escalera completa: < 3 UW → Clase I B · 3–5 UW → Clase IIa C y sólo con shunt izquierda-derecha significativo (Qp/Qs > 1,5) · ≥ 5 UW → cierre FENESTRADO Clase IIb C, y sólo si la RVP baja de 5 tras tratamiento dirigido · Eisenmenger o ≥ 5 UW pese al tratamiento → Clase III C.',
-      'Un Qp/Qs menor que 1 indica shunt neto de derecha a izquierda, que es donde el cierre está contraindicado.'
+      /* ⚠️ LA ESCALERA DE RESISTENCIAS SE RETIRA DE ACA (TGA-2, commit 3): la publica el bloque
+         visible de arriba, fila por fila y con su clase y su nivel. Mantenerla sería la misma
+         lista dos veces y, peor, en un lugar donde no se puede contestar. */
+      'Un Qp/Qs menor que 1 indica shunt neto de derecha a izquierda, que es donde el cierre está contraindicado.',
+      'Lo que se contesta en esta sección no se guarda con el estudio: vive mientras el panel esté abierto y se pierde al cerrarlo o al empezar un estudio nuevo.',
+      'Las recomendaciones de esta sección no entran al informe, al EN SUMA, al PDF ni al PPT: el papel describe lo que se midió y las indicaciones se leen acá.'
     ] };
 }
 
