@@ -46832,6 +46832,20 @@ function evTarjetaCoa() {
     fr.appendChild(_evDiv('ev-rot', rot));
     fr.appendChild(_evDiv('ev-cat', txt));
   };
+  /* ⚠️ ESTE BLOQUE ENTRO CON EL IMG3-7, y es lo que salio de la capsula: el criterio de
+     SOSPECHA por Doppler y la conducta que lo sigue. Sin el, retirar el texto de la pantalla
+     habria perdido una cita que no estaba en ningun otro lado de esta tarjeta.
+     ⚠️ LOS DOS FOLIOS, CON SU EDICION, PORQUE DISCREPAN Y NO SE PUEDE ELEGIR UNO. La app cita
+     «folio 120» en el panel de Evidencia y en `IND_REFS.f44`, que es la edicion en espaniol de
+     la SEC; la lectura EN IMAGEN del documento es la edicion inglesa, donde la Figura 44 esta
+     en la hoja 112 y su folio impreso es el 3649. Son el mismo contenido en dos ediciones.
+     Reportado en PENDIENTES: el registro de Evidencia sigue con el folio de la SEC y moverlo
+     es otra orden. */
+  bl('Criterio de sospecha por Doppler',
+     'El gradiente MEDIO por encima de 20 mmHg a trav\u00e9s de la coartaci\u00f3n es el criterio de '
+   + 'SOSPECHA de la ESC 2024 de aorta (Figura 44; folio 120 de la edici\u00f3n en espa\u00f1ol de la SEC '
+   + 'y folio 3649 de la edici\u00f3n inglesa). Ante ese hallazgo corresponde medir el gradiente '
+   + 'pico-pico invasivo, que es el criterio de INDICACI\u00d3N: el Doppler sospecha, no indica.');
   bl('Gradiente pico-pico invasivo',
      'El cateterismo con manometr\u00eda, con un gradiente pico-pico de 20 mmHg o m\u00e1s, indica una '
    + 'coartaci\u00f3n hemodin\u00e1micamente significativa cuando no hay colaterales bien desarrolladas, '
@@ -73830,6 +73844,52 @@ function coaPapel(c){
   return Object.prototype.hasOwnProperty.call(COA_PAPEL, k) ? COA_PAPEL[k] : null;
 }
 window.coaPapel = coaPapel;
+
+/* ══ EL TEXTO QUE SE VE EN PANTALLA (IMG3-7, decision del medico del 2026-10-31) ═════════════
+   La capsula de la seccion decia, con istmo 8 mm y gradiente medio 25 mmHg:
+
+     «Coartación nativa con criterios de significación por Doppler (gradiente medio 25 mmHg, por
+      encima de los 20 mmHg de la ESC 2024) — medir el gradiente pico-pico invasivo, que es el
+      criterio de indicación de la ESC 2024 (Figura 44, folio 120).»
+
+   o sea una guia, una figura, un folio y una conducta, en la pantalla desde la que el medico
+   decide. El AJUSTES-2 saco todo eso del PAPEL y dejo la pantalla como estaba; esto cierra el
+   otro lado. Lo que se ve ahora es:
+
+     «Coartación nativa con criterios de significación por Doppler (mayor de 20 mmHg).»
+
+   ⚠️ EL CLASIFICADOR NO SE TOCA Y NINGUN UMBRAL SE MUEVE: `c.clave` y `c.via` siguen siendo los
+   mismos, y esta funcion solo elige las PALABRAS. `c.txt` queda intacto para el panel de
+   Evidencia, que es donde la guia SI va.
+
+   ⚠️ LAS TRES CLAVES DE INDICACION NO TIENEN CLAUSULA EN `COA_PAPEL` —su contenido era
+   justamente la clase y la conducta— asi que para ellas la pantalla dice LO QUE SE MIDIO: la
+   hipertension y los dos numeros. Se releen los campos, como ya hace `coaSumaFrase`; no es una
+   segunda regla, porque quien clasifica sigue siendo el clasificador. */
+const COA_PANT_SIN = Object.freeze({ incompleto: 'datos incompletos para clasificarla' });
+function coaPantalla(c, src) {
+  if (!c) return '—';
+  const base = 'Coartación' + (c.apos ? ' ' + c.apos : '');
+  if (c.papel) {
+    /* `no_interpretable` ya viene con su propio « — …»; los demas abren con coma. */
+    return base + (c.papel.indexOf(' — ') === 0 ? c.papel : c.papel.replace(/^,\s*/, ' ')) + '.';
+  }
+  const nv = id => (typeof coaNV === 'function') ? coaNV(id, src) : null;
+  const sv2 = id => src ? String(src[id] == null ? '' : src[id]).trim()
+                        : ((document.getElementById(id) || {}).value || '').trim();
+  const p = [];
+  const hta = sv2('coa_hta');
+  if (hta === 'si') p.push('con hipertensión arterial confirmada');
+  else if (hta === 'no') p.push('normotensa');
+  const pp = nv('coa_gradiente_picopico');
+  if (pp != null) p.push('gradiente pico-pico invasivo ' + pp + ' mmHg');
+  const est = nv('coa_estenosis_relativa');
+  if (est != null) p.push('estrechamiento ' + est + ' % respecto de la aorta al diafragma');
+  if (p.length) return base + ' ' + p.join(', ') + '.';
+  const sin = COA_PANT_SIN[c.clave];
+  return sin ? (base + ' — ' + sin + '.') : (base + '.');
+}
+window.coaPantalla = coaPantalla;
 function coaSumaFrase(src) {
   const c = (typeof coaConclusion === 'function') ? coaConclusion(src) : null;
   if (!c) return null;
@@ -74049,7 +74109,9 @@ function coaSync(){
   { const e = document.getElementById('coa_ao_asc_ro');
     if (e) { const a = (typeof v==='function') ? v('ao_tub') : null; e.value = (a!=null) ? a + ' mm' : ''; } }
   const c = coaConclusion();
-  txt('coa-concl', c ? c.txt : '—');
+  /* La PANTALLA describe; la guia, la figura, el folio y la conducta viven en el ⓘ de esta
+     misma fila y en el panel de Evidencia. `c.txt` sigue siendo el de siempre para ellos. */
+  txt('coa-concl', coaPantalla(c));
   /* El cruce con la seccion de bicuspide (AJ4-4). Va tambien desde aca y no solo desde el
      oyente: `coaSync` esta en RECALC_MODULOS y al final de `limpiarCampos`, que son los dos
      caminos por los que el formulario cambia SIN que nadie toque una tecla. */
@@ -143241,8 +143303,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261031-0352';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793429563469;                 /* eco-build-ms */
+const ECO_BUILD    = '20261031-0403';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793430202480;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -143328,7 +143390,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261031-0352</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261031-0403</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
