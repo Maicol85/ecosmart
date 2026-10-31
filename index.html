@@ -2910,13 +2910,29 @@ html.light-mode .amilo-root{
    en 7 px y el alto en 26 px por el relleno de la línea. Una regla que no gana se lee como un
    arreglo aplicado, que es peor que no tenerla. El redondeo y el relleno viven en el único dueño
    —el `style` en línea— y acá queda el mínimo táctil, que SÍ es de hoja de estilos. */
-/* ⚠️ EL ⓘ DE UN TÉRMINO ENTRA EN ESTA MISMA REGLA Y NO EN UNA PROPIA. Es un `<button>` de
-   verdad, así que la regla táctil global lo infla a 44 × 44: con el dedo eso es lo que se pide
-   —al menos 40 px de zona de toque— y con un mouse convertiría la celda del rótulo en una fila
-   de 44 px de alto por un glifo de 11 px. Mismo número, mismo corte y mismo dueño que la
-   botonera; una regla aparte sería un segundo lugar donde este piso puede divergir. */
+/* ⚠️ LA BOTONERA SALIÓ DE ESTA REGLA EL 31/10/2026, Y ESTÁ MEDIDO POR QUÉ (decisión del médico,
+   tanda AJUSTES-3). Hasta hoy la media query le bajaba el piso también a `[data-ind-clin]`, así
+   que con un mouse los botones de respuesta medían **22 px** —TGA2-h lo documenta— mientras el
+   comentario de `_indCtrlHTML` afirmaba que la regla global los gobernaba. Las dos cosas que
+   decidieron sacarla, las dos medidas en los dieciséis cruces de `_probe_aj3btn.mjs`:
+     · EL PANEL NO CRECE. Con el botón en 22 y con el botón en 44 el panel mide LO MISMO —818×745
+       a 1440 px y 364×729 a 390—, porque las filas de la tabla ya tenían ese alto por su propio
+       relleno. El costo que este comentario advertía («convertiría la celda en una fila de 44 px»)
+       no existe para la botonera: no se paga nada.
+     · CON 22 px HAY SOLAPE Y CON 44 NO. Medido: con puntero fino, CINCO de los 39 botones tienen
+       parte de su cuadrado táctil de 44 encima de OTRO botón de su misma botonera —las dos
+       preguntas del HFA-PEFF—; con el botón creciendo de verdad el flex los acomoda y el solape
+       es CERO en los dieciséis cruces. O sea que agrandar el área con un `::after` —el patrón de
+       `.pac-id-mk`— habría TAPADO un control vecino, que es justo lo que no se puede hacer.
+   Y no revierte la decisión del 2026-09-25, la cumple: aquélla dice «se conserva el piso y lo que
+   baja es el PESO VISUAL», y el peso visual lo bajan el relleno y el tamaño de letra del `style`
+   en línea, no el piso.
+   ⚠️ EL ⓘ DE UN TÉRMINO SE QUEDA ACÁ, y ahora es el único. Es un `<button>` de verdad, así que la
+   regla táctil global lo infla a 44 × 44: con el dedo eso es lo que se pide —al menos 40 px de
+   zona de toque— y con un mouse convertiría la celda del rótulo en una fila de 44 px de alto por
+   un glifo de 11 px. Ahí sí se paga, porque el glifo vive en la celda del ROTULO y no en una
+   botonera que ya ocupa el alto de la fila. */
 @media (pointer:fine){
-  #indic-cuerpo [data-ind-clin],
   #indic-cuerpo [data-ind-term]{ min-height:0;min-width:0 }
 }
 /* ⚠️ MÁS DE TRES OPCIONES: ENVUELVEN Y NO DESBORDAN. El `flex-wrap:wrap` lo pone la botonera en
@@ -80535,8 +80551,15 @@ function _indCtrlHTML(ctrl){
   const val = _indClinGet(ctrl.clave);
   return '<div style="display:flex;flex-wrap:wrap;gap:5px;">' + ctrl.ops.map(function(o){
     const on = val === o.v;
-    /* El alto lo fija la regla táctil global de `button` (44 px). No se pelea con ella: esto
-       se toca con el dedo en una tablet al lado del ecógrafo. */
+    /* El alto lo fija la regla táctil global de `button` (44 px), AHORA TAMBIÉN CON MOUSE: la
+       media query que se lo bajaba dejó de alcanzar a la botonera el 31/10/2026, y el motivo
+       está medido en su propio comentario. Esto se toca con el dedo en una tablet al lado del
+       ecógrafo. */
+    /* ⚠️ EL ESTADO NO PUEDE DEPENDER SÓLO DEL COLOR. `aria-pressed` ya cubría al lector de
+       pantalla, pero un médico con visión de color alterada veía tres pastillas que sólo se
+       diferencian por el relleno. La marca ✓ es una diferencia de FORMA, legible sin color. El
+       ancho del botón cambia al marcarlo y eso está bien: el botón ya cambia de color en el
+       mismo gesto, así que el reflejo del gesto no es una sorpresa. */
     return '<button type="button" data-ind-clin="' + _critEsc(ctrl.clave) + '"' +
       ' data-ind-val="' + _critEsc(o.v) + '" aria-pressed="' + (on ? 'true' : 'false') + '"' +
       /* ⚠️ EL REDONDEO Y EL RELLENO VIVEN **ACÁ**, que es su único dueño: una regla de hoja de
@@ -80546,7 +80569,8 @@ function _indCtrlHTML(ctrl){
       ' style="padding:4px 11px;font-size:11.5px;font-weight:700;border-radius:999px;cursor:pointer;' +
       'border:1px solid ' + (on ? 'var(--accent2)' : 'var(--border)') + ';' +
       'background:' + (on ? 'var(--accent2)' : 'var(--bg2)') + ';' +
-      'color:' + (on ? 'var(--bg2)' : 'var(--text2)') + ';">' + _critEsc(o.t) + '</button>';
+      'color:' + (on ? 'var(--bg2)' : 'var(--text2)') + ';">' +
+      (on ? '✓ ' : '') + _critEsc(o.t) + '</button>';
   }).join('') + '</div>';
 }
 
@@ -145411,8 +145435,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261031-2004';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793487888112;                 /* eco-build-ms */
+const ECO_BUILD    = '20261031-2013';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793488402503;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -145498,7 +145522,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261031-2004</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261031-2013</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
