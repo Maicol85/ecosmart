@@ -63584,8 +63584,24 @@ window._indClinVaciar = _indClinVaciar;
    La clave `cfg-` la excluye _noVaciar, así que «Nuevo estudio» no la resetea: es una
    preferencia del médico, no un dato del paciente. */
 const IMG_CFG_KEY = 'cfg-guardar-imagenes';
+/* ══ VIENE PRENDIDO CUANDO NADIE LO TOCO (AJUSTES-2, commit 2, punto 2f) ═════════════════════
+   DECISION DEL MEDICO del 30/10/2026. Hasta hoy la clave NO EXISTE hasta que alguien toca el
+   control, y `=== '1'` sobre `null` da false: el estado de fabrica era APAGADO, asi que un
+   navegador recien instalado no guardaba ninguna imagen con los estudios y nada lo decia.
+   ⚠️ EL VALOR YA ELEGIDO SE RESPETA, Y ES LA MITAD DEL PUNTO. Con la clave presente manda su
+   valor, incluido el '0': quien lo apago a proposito no quiere que la app se lo vuelva a
+   prender. Solo la AUSENCIA de la clave significa «nadie lo toco».
+   ⚠️ EL `catch` SIGUE DEVOLVIENDO false, y es deliberado: si `localStorage` no se puede leer
+   tampoco se va a poder escribir la preferencia, y prometer que se guarda seria la promesa que
+   el informe no cumple. Es el unico caso en que el valor por omision no aplica.
+   ⚠️ NO MIGRA NI ESCRIBE NADA. No se toca el almacenamiento: la funcion solo LEE. Un estudio
+   ya guardado no cambia —lo medido: sus imagenes y sus esquemas quedan como estaban—; lo que
+   cambia es lo que pasa con el PROXIMO estudio que se guarde en un navegador sin la clave.
+   La casilla de ⚙️ Config la pinta `cfgOnShow` desde esta misma funcion, asi que se muestra
+   marcada sola. Verificado en los tres estados: clave ausente, '1' y '0'. */
 function imgGuardadoActivo() {
-  try { return localStorage.getItem(IMG_CFG_KEY) === '1'; } catch (e) { return false; }
+  try { const v = localStorage.getItem(IMG_CFG_KEY); return v === null ? true : v === '1'; }
+  catch (e) { return false; }
 }
 window.imgGuardadoActivo = imgGuardadoActivo;
 
@@ -63720,6 +63736,25 @@ function imgRestaurar(uuid) {
                                         star: !!s.star,
                                         nota: (typeof s.nota === 'string' ? s.nota : undefined),
                                         esquema: !!s.esquema,
+                                        /* ══ `noPdf` SOBREVIVE A GUARDAR Y REABRIR — CIERRA AJ1-g
+                                           (AJUSTES-2, commit 2, punto 2d) ══════════════════
+                                           Es la UNICA propiedad que esta tanda agrega a los
+                                           registros de imagen, y es la que ATENCION autoriza.
+                                           La ✕ de la fila de miniaturas marca `noPdf` en el
+                                           slot: quita la imagen del PDF y NO la borra del
+                                           estudio. Hasta hoy las dos allowlists —la de
+                                           escritura y la de lectura— no la incluian, asi que
+                                           la exclusion valia solo para la SESION y el medico
+                                           que guardaba y reabria se la encontraba incluida
+                                           otra vez, sin que nada se lo dijera. La imagen nunca
+                                           se perdia; lo que no sobrevivia era el haberla
+                                           sacado del papel.
+                                           ⚠️ NI UN CAMPO DEL ESTUDIO NI UNA COLUMNA DE EXCEL:
+                                           vive en el objeto del slot, como `star`, `nota` y
+                                           `esquema`. Son ~10 bytes. Un registro viejo no la
+                                           trae y `!!undefined` es `false`, asi que abre
+                                           incluido, que es el comportamiento de siempre. */
+                                        noPdf: !!s.noPdf,
                                         videoId: (s.videoId || undefined),
                                         videoNombre: (s.videoNombre || undefined) }));
     while (imgSlots.length < 2) imgSlots.push(null);
@@ -93227,13 +93262,87 @@ function esqGuardarComoImagen(clave, nombre, svgTxt, ancho, alto) {
       '«Guardar imágenes con los estudios»' });
   const uuid = (typeof _imgUuidActual !== 'undefined') ? _imgUuidActual : null;
   if (!uuid) return Promise.resolve({ ok: false, motivo: 'el estudio todavía no está guardado' });
-  return esqRasterizar(svgTxt, ancho, alto).then(d => {
-    if (!d) return { ok: false, motivo: 'no se pudo dibujar la imagen' };
-    return CeiboImg.guardarEsquema(uuid, clave, d, nombre)
-      .then(ok => ({ ok: !!ok, motivo: ok ? '' : 'no se pudo escribir' }));
-  }).catch(() => ({ ok: false, motivo: 'no se pudo guardar' }));
+  return esqRasterizar(svgTxt, ancho, alto)
+    .then(d => esqGuardarDataURL(clave, nombre, d))
+    .catch(() => ({ ok: false, motivo: 'no se pudo guardar' }));
 }
 window.esqGuardarComoImagen = esqGuardarComoImagen;
+
+/* ══ EL MISMO GUARDADO, CON LA IMAGEN YA HECHA (AJUSTES-2, commit 2) ═════════════════════════
+   `esqGuardarComoImagen` rasteriza un SVG; los diagramas de toggle YA tienen su `data()` en
+   `INF_MIN_DIAG`, que devuelve un dataURL. Las TRES compuertas —hay almacenamiento, Config
+   prendido, el estudio tiene uuid— son las mismas, y por eso viven en una sola funcion: con
+   una copia por camino, el dia que una compuerta cambie uno de los dos la deja vieja.
+   Devuelve `{ok, motivo}` y NO TIRA: la llaman barridos. */
+function esqGuardarDataURL(clave, nombre, dataURL) {
+  if (typeof CeiboImg === 'undefined' || !CeiboImg.guardarEsquema)
+    return Promise.resolve({ ok: false, motivo: 'sin almacenamiento' });
+  if (typeof imgGuardadoActivo === 'function' && !imgGuardadoActivo())
+    return Promise.resolve({ ok: false, motivo: 'el guardado de imágenes está apagado — se ' +
+      'activa en la pestaña «⚙️ Config», sección «🖼️ Imágenes del estudio», con la casilla ' +
+      '«Guardar imágenes con los estudios»' });
+  const uuid = (typeof _imgUuidActual !== 'undefined') ? _imgUuidActual : null;
+  if (!uuid) return Promise.resolve({ ok: false, motivo: 'el estudio todavía no está guardado' });
+  if (!dataURL) return Promise.resolve({ ok: false, motivo: 'no se pudo dibujar la imagen' });
+  return CeiboImg.guardarEsquema(uuid, clave, dataURL, nombre)
+    .then(ok => ({ ok: !!ok, motivo: ok ? '' : 'no se pudo escribir' }))
+    .catch(() => ({ ok: false, motivo: 'no se pudo guardar' }));
+}
+window.esqGuardarDataURL = esqGuardarDataURL;
+
+/* ══ TODO DIAGRAMA INCLUIDO SE GUARDA CON EL ESTUDIO (AJUSTES-2, commit 2, punto 2b) ═════════
+   DECISION DEL MEDICO. LO QUE ARREGLA, MEDIDO EN HEAD ANTES DE ESCRIBIR UNA LINEA: con Config
+   PRENDIDO, los cuatro diagramas de toggle incluidos en el PDF y el estudio guardado de
+   verdad, IndexedDB quedaba con CERO imagenes y CERO esquemas para ese uuid. Ninguno de los
+   cuatro llegaba al estudio, y por lo tanto ninguno aparecia en «Imagenes guardadas». La
+   orejuela si, porque desde el COR-5 va por `imgSlots`.
+
+   ⚠️ VAN A `esqs` Y NO A `imgSlots`, Y ESO ES LO QUE DEJA EL PAPEL QUIETO. `imgSlots` es lo
+   que el PDF imprime en su pagina «Imagenes del estudio»; cada uno de estos cuatro YA tiene su
+   propia seccion en el PDF, asi que meterlos ahi los imprimiria DOS VECES. `CeiboImg.leer`
+   devuelve solo `imgs`, de modo que un esquema en `esqs` no llega a ninguna superficie firmada
+   —y la pantalla de «Imagenes guardadas» si lo ve, porque `igImgBlobs` concatena las dos
+   listas—. Es la misma separacion que el mapa de la tanda IMAGENES documenta.
+
+   ⚠️ UNA SOLA COPIA POR DIAGRAMA Y POR ESTUDIO: `guardarEsquema` identifica por `clave` y
+   REEMPLAZA. La clave es la `k` del registro, que es la del diagrama y no la del dibujo.
+
+   ⚠️ LA ELEGIDA EXPLICITAMENTE GANA: la orejuela entra por `imgSlots` cuando el medico la
+   incluye, y este barrido NO la toca —no esta en `INF_MIN_DIAG`—, asi que no hay dos caminos
+   escribiendo el mismo esquema.
+
+   ⚠️ LOS NO INCLUIDOS SE BORRAN, y hace falta: sin esto, quitar un diagrama del PDF y volver a
+   guardar dejaba su imagen vieja en el estudio para siempre. `guardarEsquema` no borra, asi
+   que se usa `borrarEsquema`.
+
+   ⚠️ CUELGA DE LA PUERTA DEL GUARDADO DEL ESTUDIO Y NO DE UN BARRIDO AUTOMATICO. Es la leccion
+   que el D-9, el D-10 y el D-11 pagaron tres veces: lo automatico no escribe. Guardar el
+   estudio SI es un gesto del medico, y ademas resuelve el «si el estudio todavia no esta
+   guardado, queda pendiente y se guarda con el estudio» — hasta el 💾 no hay uuid. */
+function diagGuardarIncluidos() {
+  if (typeof INF_MIN_DIAG === 'undefined') return Promise.resolve([]);
+  if (typeof imgGuardadoActivo === 'function' && !imgGuardadoActivo()) return Promise.resolve([]);
+  const uuid = (typeof _imgUuidActual !== 'undefined') ? _imgUuidActual : null;
+  if (!uuid) return Promise.resolve([]);
+  const tareas = INF_MIN_DIAG.map(function (d) {
+    let on = false;
+    try { on = !!d.on(); } catch (e) { on = false; }
+    if (!on) {
+      /* No incluido: si quedo uno viejo de este mismo estudio, se retira. */
+      if (CeiboImg && CeiboImg.borrarEsquema)
+        return CeiboImg.borrarEsquema(uuid, d.k).then(function (q) {
+          return { k: d.k, estado: q ? 'retirado' : 'no estaba' }; })
+          .catch(function () { return { k: d.k, estado: 'no estaba' } });
+      return Promise.resolve({ k: d.k, estado: 'no incluido' });
+    }
+    let u = null;
+    try { u = d.data ? d.data() : null; } catch (e) { u = null; }
+    return esqGuardarDataURL(d.k, d.lbl, u)
+      .then(function (r) { return { k: d.k, estado: r.ok ? 'guardado' : ('no: ' + r.motivo) } });
+  });
+  return Promise.all(tareas);
+}
+window.diagGuardarIncluidos = diagGuardarIncluidos;
 
 /* ══ «INCLUIR EN EL PDF» — INDEPENDIENTE DE CONFIG Y DEL GUARDADO (COR-5, 2026-10-30) ════════
    DECISIÓN DEL MÉDICO. Hasta hoy el botón llamaba a `esqGuardarComoImagen`, que exige DOS
@@ -95923,6 +96032,11 @@ const CeiboImg = (function () {
                                                nota: (typeof s.nota === 'string' && s.nota)
                                                        ? s.nota.slice(0, IG_IMG_NOTA_MAX) : undefined,
                                                esquema: !!s.esquema,
+                                               /* La otra mitad de AJ1-g: las DOS allowlists son
+                                                  dos listas, y agregar la marca a una sola deja
+                                                  el defecto en pie por el otro lado. Es la
+                                                  leccion que el D-11 pago con `data-espejo`. */
+                                               noPdf: !!s.noPdf,
                                                videoId: (s.videoId || undefined),
                                                videoNombre: (s.videoNombre || undefined) }));
       /* `.then(r => r)` y no `.then(() => true)`: descartar el resultado del borrado hacía que
@@ -95975,6 +96089,31 @@ const CeiboImg = (function () {
              cambia es la imagen, no la marca que el médico le puso. */
           if (i >= 0) { ent.star = !!esqs[i].star; ent.nota = esqs[i].nota || undefined; esqs[i] = ent; }
           else esqs.push(ent);
+          os.put({ uuid, imgs: imgs, esqs: esqs,
+                   bytes: _bytes(imgs) + _bytes(esqs), ts: new Date().toISOString() });
+          ok(true);
+        };
+      }).then(r => r === true);
+    },
+
+    /* ══ RETIRAR UN ESQUEMA (AJUSTES-2, commit 2) ═══════════════════════════════════════
+       Hace falta porque `diagGuardarIncluidos` tiene que poder DESHACER: quitar un diagrama
+       del PDF y volver a guardar el estudio dejaba su imagen vieja adentro para siempre, y el
+       medico veria en «Imagenes guardadas» un diagrama que ya no incluye.
+       ⚠️ NO TOCA `imgs`: reescribe el registro con la MISMA lista de slots. Borrar un esquema
+       no puede llevarse una captura del medico. Y si el estudio no tiene registro, no crea
+       uno: devuelve false y no escribe nada. */
+    borrarEsquema(uuid, clave) {
+      if (!_uuidValido(uuid) || !clave) return Promise.resolve(false);
+      return _tx('readwrite', (os, ok) => {
+        const q = os.get(uuid);
+        q.onsuccess = () => {
+          const prev = q.result;
+          if (!prev) { ok(false); return; }
+          const imgs = Array.isArray(prev.imgs) ? prev.imgs : [];
+          const esqs = (Array.isArray(prev.esqs) ? prev.esqs : [])
+                         .filter(e => !(e && e.clave === String(clave)));
+          if (esqs.length === (Array.isArray(prev.esqs) ? prev.esqs.length : 0)) { ok(false); return; }
           os.put({ uuid, imgs: imgs, esqs: esqs,
                    bytes: _bytes(imgs) + _bytes(esqs), ts: new Date().toISOString() });
           ok(true);
@@ -98720,6 +98859,13 @@ window.limpiarFiltroFechas = limpiarFiltroFechas;
 function _esqAlGuardar() {
   if (typeof oaiEsqAlGuardarEstudio === 'function') {
     try { oaiEsqAlGuardarEstudio(); } catch (e) {}
+  }
+  /* Los DIAGRAMAS DE TOGGLE (AJUSTES-2, commit 2). Entran por el mismo embudo que la orejuela
+     y por el mismo motivo: hasta el 💾 no hay uuid. Es la segunda puerta que el comentario de
+     arriba ya anticipaba —«el dia que haya un segundo esquema no haya que acordarse de tres
+     lugares»—, y este es ese dia. */
+  if (typeof diagGuardarIncluidos === 'function') {
+    try { diagGuardarIncluidos(); } catch (e) {}
   }
 }
 window._esqAlGuardar = _esqAlGuardar;
