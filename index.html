@@ -104958,6 +104958,77 @@ const PPT_PPTX_PISO_BYTES = 150 * 1024;    // el mazo sin videos, redondeado hac
    solo lugar —el rotulo de la funcion diastolica— y por eso la expresion puede ser simple: lo
    que recorta es «— ASE 2025», «(ASE 2025)», «— BSE 2024» y «— ASE/EACVI 2016», que son las
    formas que `badgeTxt` arma. No toca el medio de la frase. */
+/* ══ EL PPT DE CONGENITAS NO PROYECTA NI GUIA NI CONDUCTA (IMG3-9, 2026-10-31) ═══════════════
+   El AJUSTES-2 saco la guia de la diapositiva de la COARTACION y dejo las otras once literales,
+   «porque cambiarlas movería once secciones que están fuera del alcance de la orden» (AJ2-e).
+   Esta tanda las trae. El principio es el del medico: el PPT describe lo hallado y lo medido.
+
+   ⚠️ ESTO PODA, NO REESCRIBE, Y ESA ES LA DECISION DE DISENO. No se escribe una sola palabra
+   clinica nueva: se parte el texto en segmentos por sus propios separadores —el guion largo, el
+   punto y coma y el punto— y se descarta el segmento que nombra una guia, una sociedad, una
+   clase, un nivel, una tabla, una figura o un folio, o que lleva un verbo de conducta. Lo
+   demas queda tal cual.
+
+   ⚠️ Y ES TODO O NADA POR SECCION: si DESPUES de podar todavia queda un marcador, o si no quedo
+   nada, se devuelve el texto ORIGINAL sin tocar y la seccion se declara PARADA. Una conclusion
+   clinica a medio editar en una diapositiva que se proyecta en un ateneo es peor que una que
+   nombra la guia — y la orden lo dice: «si el contenido de una sección NO está en la Evidencia
+   o el ⓘ: PARÁ esa sección, reportala, y NO escribas contenido clínico nuevo».
+
+   ⚠️ SOLO EL PPT. El cuerpo del informe, el EN SUMA y el PDF de esas secciones NO pasan por
+   aca: sus emisores leen `txt` y `resumen` directamente. */
+const _CC_PPT_GUIA = /(?:\bESC\b|\bAHA\b|\bACC\b|\bASE\b|\bEACVI\b|\bSEC\b|Clase\s+I|Nivel\s+[ABC]\b|Tabla\s+\d|Figura\s+\d|folio|Task\s+Force|seg[uú]n la gu[ií]a|gu[ií]as?\b)/;
+/* Los cinco verbos que la orden nombra, mas los que dicen lo mismo con otra palabra:
+   «razonable» es la forma con que la AHA/ACC enuncia su Clase IIa, y «desfibrilador razonable»
+   es una recomendacion aunque no lleve ninguno de los cinco. Medido en la MCH. */
+const _CC_PPT_COND = /(?:\bconsiderar\b|puede considerarse|\bse considera\b|\bse recomienda\b|\brecomienda\b|\bindicad[oa]\b|\bindicaci[oó]n(?:es)?\b|\bpreferir\b|\brequiere\b|\bconducta\b|\bdebe[nr]?\b|\bcorresponde\b|\brazonable\b|\bse sugiere\b|\bcandidat[oa]\b)/i;
+/* La FUENTE sola: el nombre de la sociedad con su anio, la clase, el nivel, la tabla, la figura
+   o el folio, con el separador que la sigue. Se quita esto y NO el parentesis entero, porque un
+   parentesis puede traer la fuente Y un dato: «(Task Force 2010: 0 puntos)» lleva el puntaje. */
+const _CC_PPT_FTE = /\b(?:ESC|AHA(?:\/ACC)?|ACC|ASE|EACVI|SEC|Task\s+Force)\b(?:\s*\d{4})?(?:\s*§\s*[\d.]+)?\s*[,:;·—-]?\s*|Clase\s+I+[ab]?\b\s*[,:;·—-]?\s*|Nivel\s+[ABC]\b\s*[,:;·—-]?\s*|Tabla\s+\d+\w*\b\s*[,:;·—-]?\s*|Figura\s+\d+\w*\b\s*[,:;·—-]?\s*|folio\s+[\w.e]+\b\s*[,:;·—-]?\s*/g;
+function _ccPptPodar(t) {
+  const o = String(t == null ? '' : t);
+  if (!o) return { t: o, parado: false, cambio: false };
+  /* 1 · DENTRO de cada parentesis se quita la FUENTE. Si no queda nada, se va el parentesis. */
+  let r = o.replace(/\s*\(([^()]*)\)/g, function (m, dentro) {
+    if (!_CC_PPT_GUIA.test(dentro)) return m;
+    const resto = dentro.replace(_CC_PPT_FTE, '').replace(/^[\s,;:·—-]+|[\s,;:·—-]+$/g, '').trim();
+    return resto ? ' (' + resto + ')' : '';
+  });
+  /* 2 · los SEGMENTOS, por los separadores que el propio texto usa: el guion largo, el punto y
+     coma, el punto, los dos puntos y la subordinada explicativa «, que …». Se descarta el que
+     nombre una guia o lleve un verbo de conducta; el resto queda tal cual. */
+  const tok = r.split(/(\s*—\s*|;\s*|:\s*|,\s+que\s+|(?<=\.)\s+)/);
+  const out = [];
+  for (let i = 0; i < tok.length; i += 2) {
+    const seg = tok[i];
+    if (!seg || !seg.trim()) continue;
+    if (_CC_PPT_GUIA.test(seg) || _CC_PPT_COND.test(seg)) continue;
+    out.push((out.length ? (tok[i - 1] || ' ') : '') + seg);
+  }
+  r = out.join('').replace(/\s{2,}/g, ' ').replace(/\s+([.,;:])/g, '$1')
+       .replace(/[,;:—]\s*$/, '').replace(/,\s+que\s*$/, '').trim();
+  /* 3 · NINGUN NUMERO MEDIDO PUEDE DESAPARECER. Es la guarda que impide que podar una clausula
+     de conducta se lleve un dato: en la miocardiopatia hipertrofica, «desfibrilador razonable
+     (3 sin evaluar)» es una recomendacion PEGADA a un recuento, y sin esto el PPT perdia el 3.
+     Los anios quedan fuera de la cuenta —2020 es la ESC, no una medida— igual que los numerales
+     romanos de la clase, que no entran en esta expresion. Medido. */
+  const NUMS = function (x) {
+    return (String(x).match(/\d+(?:[.,]\d+)?/g) || []).filter(function (n) {
+      return !/^(?:19|20)\d{2}$/.test(n);
+    });
+  };
+  const perdidos = (function () {
+    const q = NUMS(r).slice();
+    return NUMS(o).filter(function (n) { const i = q.indexOf(n); if (i < 0) return true; q.splice(i, 1); return false });
+  })();
+  /* 4 · TODO O NADA. Si sobrevive un marcador, si se perdio un numero, o si no quedo nada, se
+     devuelve el ORIGINAL sin tocar y la seccion queda PARADA. */
+  const parado = !r || perdidos.length > 0 || _CC_PPT_GUIA.test(r) || _CC_PPT_COND.test(r);
+  return { t: parado ? o : r, parado: parado, cambio: (!parado && r !== o) };
+}
+window._ccPptPodar = _ccPptPodar;
+
 const _PPT_GUIA_RE = /\s*[—-]\s*(?:ASE|BSE|EACVI)[^()]*$|\s*\((?:ASE|BSE|EACVI)[^()]*\)\s*$/;
 function _pptSinGuia(t) { return String(t == null ? '' : t).replace(_PPT_GUIA_RE, '').trim(); }
 window._pptSinGuia = _pptSinGuia;
@@ -106089,6 +106160,9 @@ function _pptDesdeFormulario(inf, tema, presentador){
       { chk:'mca_incluir_chk',       sec:'mca', nom:'MCA — miocardiopatía arritmogénica',   fn:'mcaConclusion' }
     ];
     const secs = [];
+    /* Las secciones cuya conclusion NO se pudo podar sin romperla. Van a la consola y NO al
+       papel: la diapositiva no explica su propia edicion. */
+    const _ccPptParadas = [];
     CC_PPT.forEach(function(d){
       const chk = document.getElementById(d.chk);
       if (!chk || !chk.checked) return;
@@ -106149,10 +106223,18 @@ function _pptDesdeFormulario(inf, tema, presentador){
           const _nuc = cc.papel ? String(cc.papel).replace(/^\s*(?:,|—)\s*/, '') : '';
           concl = _nuc ? _pptTxt(_nuc.charAt(0).toUpperCase() + _nuc.slice(1)) : '';
         }
-        else if (cc) concl = _pptTxt(cc.resumen || cc.txt);
+        else if (cc) {
+          const _p = _ccPptPodar(cc.resumen || cc.txt);
+          if (_p.parado) _ccPptParadas.push(d.sec);
+          concl = _pptTxt(_p.t);
+        }
       } else if (typeof ccQpQsDe === 'function' && typeof eteQpQsInterp === 'function') {
         const q = ccQpQsDe(d.sec);
-        if (q != null) concl = _pptTxt(eteQpQsInterp(q));
+        if (q != null) {
+          const _p = _ccPptPodar(eteQpQsInterp(q));
+          if (_p.parado) _ccPptParadas.push(d.sec);
+          concl = _pptTxt(_p.t);
+        }
       }
       /* Filas EXTRA que el cuerpo del informe imprime y la línea del EN SUMA no lleva. Al sacar
          CIA/CIV de la diapositiva de ETE se perdieron dos que sí estaban: el DDVI indexado y la
@@ -106168,6 +106250,8 @@ function _pptDesdeFormulario(inf, tema, presentador){
       secs.push({ nom:d.nom, hall:_pptTxt(hall), concl:concl, extra:extra });
     });
 
+    if (_ccPptParadas.length)
+      console.info('[PPT congénitas] conclusión sin podar en: ' + _ccPptParadas.join(', '));
     if (secs.length) {
       const aFilas = function(lista){
         const F = [];
@@ -143327,8 +143411,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261031-0413';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793430811290;                 /* eco-build-ms */
+const ECO_BUILD    = '20261031-0427';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793431630748;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -143414,7 +143498,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261031-0413</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261031-0427</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
