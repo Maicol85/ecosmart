@@ -1359,6 +1359,16 @@
   .ig-img-vw{ position:relative; width:min(460px,100%); aspect-ratio:4/3; background:#000;
     border-radius:7px; overflow:hidden; touch-action:none; }
   .ig-img-vw img{ display:block; width:100%; height:100%; object-fit:contain; }
+  /* El VIDEO comparte la caja del visor, con `contain` y no `cover`: un clip del ecógrafo
+     recortado por el borde pierde justo la escala, que es lo que se mira. */
+  .ig-img-vw video{ display:block; width:100%; height:100%; object-fit:contain; background:#000; }
+  /* Tamaño GRANDE: la mayor parte de la ventana y NO pantalla completa, así que el encabezado
+     con el nombre del paciente y los botones quedan arriba y a la vista, que es la condición
+     del pedido. A 430 px o menos el botón que lo activa no se muestra: el visor ya ocupa el
+     ancho y agrandarlo no tiene a dónde crecer. */
+  .ig-img-md.grande{ max-width:min(1100px,100%); width:min(1100px,100%); }
+  .ig-img-md.grande .ig-img-vw{ width:100%; aspect-ratio:auto; height:58vh; }
+  @media (max-width:430px){ #ig-imgv-grande{ display:none; } }
   .ig-img-msk{ position:absolute; background:#000; border:2px dashed #e8c14a; cursor:move; }
   .ig-img-hdl{ position:absolute; right:-1px; bottom:-1px; width:16px; height:16px;
     background:#e8c14a; cursor:nwse-resize; }
@@ -21523,12 +21533,31 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
         <span style="flex:1;"></span>
         <button type="button" class="btn btn-ghost" id="ig-imgv-star" style="min-height:44px;"></button>
         <button type="button" class="btn btn-ghost" id="ig-imgv-medir" style="min-height:44px;" title="Abrir esta imagen en el visor con medición">📏 Medir</button>
+        <button type="button" class="btn btn-ghost" id="ig-imgv-grande" style="min-height:44px;" aria-pressed="false" title="Ver más grande, sin tapar el encabezado">Agrandar</button>
         <button type="button" class="btn btn-ghost" id="ig-imgv-cerrar" style="min-height:44px;">Cerrar</button>
       </div>
       <div class="ig-img-pi" id="ig-imgv-info"></div>
       <div class="ig-img-vw" id="ig-imgv-vw">
         <img id="ig-imgv-img" alt="Imagen guardada del estudio">
+        <!-- El <video> NATIVO, como el reproductor del formulario (`videoAbrir`): los controles,
+             el teclado y la accesibilidad salen gratis y no hay un segundo reproductor que
+             mantener. `loop` es el atributo, así que UN solo play repite sin parar; `muted`
+             porque estos clips no tienen sonido clínico; y sin `autoplay`, que es lo que
+             satisface `prefers-reduced-motion` por construcción: arranca con el play del médico. -->
+        <video id="ig-imgv-vid" loop muted playsinline preload="metadata"
+               style="display:none;" aria-label="Video guardado del estudio"></video>
         <div class="ig-img-msk" id="ig-imgv-msk" style="display:none;"><div class="ig-img-hdl" id="ig-imgv-hdl"></div></div>
+      </div>
+      <!-- Controles del video. Sólo se muestran con un video abierto. El estado va en el TEXTO
+           del botón y en `aria-pressed`, nunca sólo en el color. -->
+      <div id="ig-imgv-vctl" style="display:none;gap:6px;margin-top:7px;flex-wrap:wrap;align-items:center;">
+        <button type="button" class="btn btn-ghost" id="ig-imgv-play" style="min-height:44px;" aria-pressed="false">▶ Reproducir</button>
+        <button type="button" class="btn btn-ghost" id="ig-imgv-prev" style="min-height:44px;" title="Un cuadro atrás">− cuadro</button>
+        <button type="button" class="btn btn-ghost" id="ig-imgv-next" style="min-height:44px;" title="Un cuadro adelante">+ cuadro</button>
+        <label for="ig-imgv-vel" style="font-size:11px;color:var(--text2);">Velocidad</label>
+        <select id="ig-imgv-vel" style="min-height:44px;width:auto;">
+          <option value="0.5">0,5×</option><option value="1" selected>1×</option><option value="2">2×</option>
+        </select>
       </div>
       <div id="ig-imgv-nota-box" style="margin-top:7px;display:none;">
         <label for="ig-imgv-nota" style="font-size:11px;color:var(--text2);">Nota de la imagen</label>
@@ -98247,6 +98276,14 @@ function igImgRes(txt) {
 
 /* ── Visor de una imagen guardada ──────────────────────────────────────────────────────────── */
 let _igVisor = null;    /* {uuid, idx, n, inf, tapa} de la imagen abierta */
+/* La URL de objeto del video abierto. Vive mientras el visor está abierto y se revoca al
+   cerrar: sin esto, abrir veinte clips deja veinte blobs de decenas de MB retenidos por el
+   documento, que es una fuga que no se ve hasta que la pestaña se queda sin memoria. */
+let _igVisorVidURL = '';
+/* El paso del avance cuadro a cuadro. El cuadro por segundo REAL del clip no se conoce —el
+   navegador no lo publica— así que se usa 1/30 s y se dice: sobre un clip de 25/s el salto es
+   de un cuadro y pico, que para elegir el cuadro a mirar alcanza. */
+const IG_VID_PASO = 1 / 30;
 
 function igImgVisorCablear() {
   const cerrar = document.getElementById('ig-imgv-cerrar');
@@ -98267,6 +98304,39 @@ function igImgVisorCablear() {
   });
   const medir = document.getElementById('ig-imgv-medir');
   if (medir) medir.addEventListener('click', () => igImgVisorMedir());
+  const gr = document.getElementById('ig-imgv-grande');
+  if (gr) gr.addEventListener('click', () => igImgVisorGrande());
+  const vd = document.getElementById('ig-imgv-vid');
+  const pl = document.getElementById('ig-imgv-play');
+  if (pl) pl.addEventListener('click', () => {
+    const v = document.getElementById('ig-imgv-vid');
+    if (!v || !v.getAttribute('src')) return;
+    if (v.paused) { const p = v.play(); if (p && p.catch) p.catch(() => {}); }
+    else v.pause();
+  });
+  /* El rótulo del botón sigue al ESTADO REAL del elemento y no al clic: el video también se
+     pausa desde el teclado del navegador y desde el final de una pasada sin bucle, y un botón
+     que dijera «Pausar» sobre un video quieto es peor que no tener botón. */
+  if (vd) ['play', 'pause', 'ended'].forEach(ev => vd.addEventListener(ev, igImgVisorPlaySync));
+  const paso = d => {
+    const v = document.getElementById('ig-imgv-vid');
+    if (!v || !v.getAttribute('src')) return;
+    try { v.pause(); } catch (e) {}
+    const dur = isFinite(v.duration) ? v.duration : 0;
+    let t = (v.currentTime || 0) + d * IG_VID_PASO;
+    if (t < 0) t = 0;
+    if (dur && t > dur) t = dur;
+    try { v.currentTime = t; } catch (e) {}
+  };
+  const bp = document.getElementById('ig-imgv-prev');
+  if (bp) bp.addEventListener('click', () => paso(-1));
+  const bn = document.getElementById('ig-imgv-next');
+  if (bn) bn.addEventListener('click', () => paso(1));
+  const vel = document.getElementById('ig-imgv-vel');
+  if (vel) vel.addEventListener('change', () => {
+    const v = document.getElementById('ig-imgv-vid');
+    if (v) v.playbackRate = parseFloat(vel.value) || 1;
+  });
   const st = document.getElementById('ig-imgv-star');
   if (st) st.addEventListener('click', () => igImgVisorStar());
   const ta = document.getElementById('ig-imgv-nota');
@@ -98289,6 +98359,11 @@ function igImgVisorCerrar() {
   const im = document.getElementById('ig-imgv-img');
   /* Se suelta el `dataURL`: son decenas de KB por imagen y el visor se abre muchas veces. */
   if (im) im.removeAttribute('src');
+  /* Y se suelta el VIDEO: pausa, se quita el `src` y se revoca la URL de objeto. */
+  igImgVisorVideoSoltar();
+  /* El tamaño vuelve al normal. No se recuerda a propósito: el visor se abre desde una grilla
+     de miniaturas y cada imagen empieza en el mismo estado, que es lo predecible. */
+  igImgVisorGrande(false);
   const eraTapa = !!(_igVisor && _igVisor.tapa);
   _igVisor = null;
   /* Volver de tapar repinta la columna: el botón de esa fila pasa a decir «Editar tapa» y
@@ -98316,19 +98391,38 @@ function igImgVisorAbrir(uuid, idx, numero, modoTapa) {
          (inf.fecha_estudio ? inf.fecha_estudio.split('-').reverse().join('/') : '—'))
       : 'El estudio de esta imagen ya no está guardado.';
   }
+  /* ⚠️ EN MODO TAPA UN VIDEO SE TRATA COMO IMAGEN, y eso deja ese camino idéntico a HEAD. Tapar
+     datos es un paso de la exportación del PPT y lo que se tapa es el cuadro que va a la
+     diapositiva: un reproductor con un rectángulo negro encima arriba del cual el cuadro cambia
+     no sirve para elegir dónde va el rectángulo. */
+  const esVid = !!(meta && meta.video) && !modoTapa;
   if (pie) pie.textContent = modoTapa
     ? 'Arrastrá el cuadrado negro sobre los datos y estirá la esquina amarilla. Después tocá «Cerrar».'
-    : 'Abrir una imagen no la guarda en ningún estudio.';
+    : (esVid
+       ? 'Tocá «▶ Reproducir»: se repite sin parar hasta que lo pares. Sin sonido. Las mediciones se hacen dentro del estudio.'
+       : 'Abrir una imagen no la guarda en ningún estudio.');
   /* EN MODO TAPA NO SE MUESTRA EL PACIENTE, y no es una omisión: lo que el médico está mirando
      es lo que va a salir en el PPT, y ahí la imagen lleva sólo su número. Ver el nombre al lado
      de la imagen que se está por anonimizar invita a creer que el nombre viaja. */
   if (info && modoTapa) info.textContent = 'En el PPT esta imagen lleva sólo su número ' +
     numero + ', sin el nombre del paciente.';
   const im = document.getElementById('ig-imgv-img');
-  if (im) { im.removeAttribute('src'); }
+  if (im) { im.removeAttribute('src'); im.style.display = esVid ? 'none' : ''; }
+  /* Lo del visor anterior se suelta ANTES de pedir lo nuevo, no después: entre el clic y la
+     lectura de IndexedDB pasan milisegundos y el blob viejo no tiene por qué seguir vivo. */
+  igImgVisorVideoSoltar();
+  const vdn = document.getElementById('ig-imgv-vid');
+  if (vdn) vdn.style.display = esVid ? '' : 'none';
+  const ctl = document.getElementById('ig-imgv-vctl');
+  if (ctl) ctl.style.display = esVid ? 'flex' : 'none';
+  const vsel = document.getElementById('ig-imgv-vel');
+  if (vsel) vsel.value = '1';
+  if (vdn) vdn.playbackRate = 1;
+  igImgVisorPlaySync();
   igImgBlobs(uuid).then(imgs => {
     if (!_igVisor || _igVisor.uuid !== uuid || _igVisor.idx !== idx) return;   /* llegó tarde */
     const sl = (imgs && imgs[idx]) ? imgs[idx] : null;
+    if (esVid) { igImgVisorVideoCargar(uuid, idx, sl); return; }
     if (im && sl && sl.dataURL) im.src = sl.dataURL;
     else if (pie) pie.textContent = 'No se pudo leer esta imagen.';
   });
@@ -98353,12 +98447,19 @@ function igImgVisorExtender(uuid, idx, meta) {
       igImgTapaPintar();
     } else m.style.display = 'none';
   }
-  /* En modo tapa se esconden los controles que no son de tapar: la estrella, la nota, «Medir» e
-     «Ir al estudio». Es un paso de una exportación, no la ficha de la imagen. */
-  ['ig-imgv-medir', 'ig-imgv-ir'].forEach(id => {
+  /* En modo tapa se esconden los controles que no son de tapar: la estrella, la nota, «Medir»,
+     «Ir al estudio» y «Agrandar». Es un paso de una exportación, no la ficha de la imagen. */
+  ['ig-imgv-ir', 'ig-imgv-grande'].forEach(id => {
     const e = document.getElementById(id);
     if (e) e.style.display = tapa ? 'none' : '';
   });
+  /* ⚠️ «📏 Medir» NO APARECE SOBRE UN VIDEO, y sobre una imagen queda exactamente igual. No se
+     mide sobre video —`medFijaClic` exige `slot._dcmId`, que un video no tiene— así que el botón
+     llevaba al médico a un visor que iba a rechazarlo: un control que promete lo que el método
+     no hace es peor que no ofrecerlo. Las mediciones se hacen dentro del estudio.
+     `style.display = ''` y no `'block'`: devuelve el botón a lo que diga la hoja de estilos. */
+  const bmed = document.getElementById('ig-imgv-medir');
+  if (bmed) bmed.style.display = (tapa || (meta && meta.video)) ? 'none' : '';
   if (tapa) {
     const bs0 = document.getElementById('ig-imgv-star');
     const bx0 = document.getElementById('ig-imgv-nota-box');
@@ -98376,6 +98477,94 @@ function igImgVisorExtender(uuid, idx, meta) {
   if (ta) ta.value = (meta && meta.nota) ? meta.nota : '';
   return meta;
 }
+
+/* ── El VIDEO del visor ──────────────────────────────────────────────────────────────────────
+   Los bytes NO están en `CeiboImg`: el slot sólo lleva su `videoId` y los bytes viven en
+   `ceibomed_video`, que es una base aparte (ver el comentario de `CeiboVideo`). Así que el
+   visor de Guardados necesita DOS lecturas: `igImgBlobs` para el slot y `CeiboVideo.leer` para
+   el blob. Y no sirve `_videoBlobs`, que es la memoria del FORMULARIO: acá el estudio no está
+   abierto. */
+function igImgVisorVideoCargar(uuid, idx, sl) {
+  const vd = document.getElementById('ig-imgv-vid');
+  const pie = document.getElementById('ig-imgv-pie');
+  if (!vd) return;
+  /* El póster ES el primer cuadro: el slot de un video guarda ese cuadro como `dataURL`, que es
+     lo mismo que la miniatura de la grilla. Así el visor muestra algo desde el primer momento, y
+     si el blob no se puede leer igual queda el cuadro a la vista en vez de un rectángulo negro. */
+  if (sl && sl.dataURL) vd.poster = sl.dataURL;
+  const vid = sl && sl.videoId;
+  if (!vid || typeof CeiboVideo === 'undefined') {
+    if (pie) pie.textContent = 'De este video quedó el primer cuadro: sus bytes no están en el almacenamiento del navegador.';
+    return;
+  }
+  CeiboVideo.leer(uuid).then(rs => {
+    /* ⚠️ LA GUARDA VA ANTES DE CREAR LA URL, no después. Si el médico ya cerró el visor o abrió
+       otra imagen, crear la URL de objeto acá la deja viva sin nadie que la revoque: el que
+       cierra es `igImgVisorVideoSoltar`, que mira `_igVisorVidURL`, y esta URL no llegaría a
+       escribirse ahí. */
+    if (!_igVisor || _igVisor.uuid !== uuid || _igVisor.idx !== idx) return;
+    const rec = (rs || []).filter(r => r && r.id === vid && r.blob)[0];
+    if (!rec) {
+      if (pie) pie.textContent = 'De este video quedó el primer cuadro: sus bytes ya no están guardados.';
+      return;
+    }
+    let url = '';
+    try { url = URL.createObjectURL(rec.blob); } catch (e) { url = ''; }
+    if (!url) {
+      if (pie) pie.textContent = 'No se pudo abrir este video.';
+      return;
+    }
+    _igVisorVidURL = url;
+    vd.src = url;
+    igImgVisorPlaySync();
+  }).catch(() => {
+    if (pie) pie.textContent = 'No se pudo leer este video.';
+  });
+}
+
+/* Suelta lo que el visor tenga cargado. Se llama al cerrar Y al abrir otra imagen. */
+function igImgVisorVideoSoltar() {
+  const vd = document.getElementById('ig-imgv-vid');
+  const habia = !!_igVisorVidURL;
+  if (vd) {
+    try { vd.pause(); } catch (e) {}
+    vd.removeAttribute('poster');
+    /* `load()` sólo si HABÍA un `src`. Llamarlo sobre un elemento sin fuente hace que varios
+       navegadores escriban un error de medio en la consola, y acá la línea base es cero. */
+    if (habia) { vd.removeAttribute('src'); try { vd.load(); } catch (e) {} }
+  }
+  if (habia) { try { URL.revokeObjectURL(_igVisorVidURL); } catch (e) {} }
+  _igVisorVidURL = '';
+  igImgVisorPlaySync();
+}
+
+/* El rótulo del botón de reproducción. El ESTADO va en el texto y en `aria-pressed`, no en el
+   color: así se distingue en escala de grises y lo anuncia el lector de pantalla. */
+function igImgVisorPlaySync() {
+  const vd = document.getElementById('ig-imgv-vid');
+  const pl = document.getElementById('ig-imgv-play');
+  if (!pl) return;
+  const corriendo = !!(vd && vd.getAttribute('src') && !vd.paused);
+  pl.textContent = corriendo ? 'Pausar' : '▶ Reproducir';
+  pl.setAttribute('aria-pressed', corriendo ? 'true' : 'false');
+  pl.title = corriendo ? 'Pausar el video' : 'Reproducir en bucle, sin parar';
+}
+
+/* Alterna el tamaño del visor. Sin argumento alterna; con `false` vuelve al normal. */
+function igImgVisorGrande(poner) {
+  const ov = document.getElementById('ig-imgv-ov');
+  const md = ov ? ov.querySelector('.ig-img-md') : null;
+  if (!md) return;
+  const on = (poner === undefined) ? !md.classList.contains('grande') : !!poner;
+  md.classList.toggle('grande', on);
+  const b = document.getElementById('ig-imgv-grande');
+  if (b) {
+    b.textContent = on ? 'Tamaño normal' : 'Agrandar';
+    b.setAttribute('aria-pressed', on ? 'true' : 'false');
+    b.title = on ? 'Volver al tamaño normal' : 'Ver más grande, sin tapar el encabezado';
+  }
+}
+window.igImgVisorGrande = igImgVisorGrande;
 
 /* La nota se guarda al SALIR del campo y al cerrar el visor, no en cada tecla: son una escritura
    a IndexedDB por letra, y además el médico puede estar a mitad de una palabra. */
@@ -142964,8 +143153,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261031-0106';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793419618465;                 /* eco-build-ms */
+const ECO_BUILD    = '20261031-0243';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793425431672;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -143051,7 +143240,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261031-0106</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261031-0243</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
