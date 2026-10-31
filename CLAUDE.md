@@ -3592,9 +3592,12 @@ línea: el archivo creció y un informe de auditoría viejo apunta a otro archiv
 
 - **CUATRO SECCIONES DEL PANEL DE EVIDENCIA PREGUNTAN, CON EL MOLDE DE LA BICÚSPIDE Y SIN
   REESCRIBIRLO**: la transposición (nueva), la CIA, la CIV y la prevención de muerte súbita de la
-  miocardiopatía hipertrófica (nueva). **Veintiséis preguntas** de tres estados en total —7/4/6/3 en
-  la TGA según la cirugía, 9 en la CIA, 7 en la CIV y 3 en la MCH—, con las recomendaciones de la
-  guía agrupadas por situación, con su clase, su nivel, su hoja y su folio.
+  miocardiopatía hipertrófica (nueva). **TREINTA Y OCHO preguntas distintas** de tres estados: 19 en
+  la transposición —7 con el switch auricular, 4 con el arterial, 6 con el Rastelli y 3 con la
+  ccTGA, de las que la de la fracción de eyección del ventrículo sistémico la comparten el switch
+  auricular y la ccTGA—, 9 en la CIA, 7 en la CIV y 3 en la muerte súbita. El panel muestra sólo
+  las del escenario cargado. Las recomendaciones van agrupadas por situación, con su clase, su
+  nivel, su hoja y su folio.
 
 - **DÓNDE SE PERSISTEN LAS RESPUESTAS, que es lo que la orden pide reportar: en `_indClin`**, la
   memoria efímera del panel. Es el MISMO mecanismo con el que la Evidencia de la bicúspide guarda

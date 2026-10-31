@@ -11017,15 +11017,17 @@ dejen para más adelante; esta entrada es ese «más adelante», con lo que el t
 panel y no viajan con el estudio.
 
 ### TGA2-f · Las respuestas de la Evidencia no sobreviven a cerrar el panel, y eso es el diseño
-Las **veintiséis** preguntas que esta tanda agrega —siete, cuatro, seis y tres en la TGA según la
-cirugía; nueve en la CIA; siete en la CIV; tres en la muerte súbita— viven en `_indClin`, que
+Las **treinta y ocho** preguntas distintas que esta tanda agrega —19 en la TGA, repartidas en
+siete con el switch auricular, cuatro con el arterial, seis con el Rastelli y tres con la ccTGA, de
+las que una la comparten dos situaciones; nueve en la CIA; siete en la CIV; tres en la muerte
+súbita— viven en `_indClin`, que
 `_indClinLimpiar()` vacía al cerrar el panel. Es lo que la orden pide («lo contestado en el panel no
 viaja con el estudio») y es el mismo mecanismo de la bicúspide, pero con una diferencia: la
 bicúspide tiene además seis campos guardados, así que lo suyo sobrevive si se carga por ahí.
 
 **El precio**: un médico que conteste ocho preguntas de la CIA, cierre el panel y lo vuelva a abrir
 las encuentra todas en blanco.
-**Salida**: decidir si alguna de las veintiséis merece campo propio —ver **TGA2-e**— o si el panel
+**Salida**: decidir si alguna de las treinta y ocho merece campo propio —ver **TGA2-e**— o si el panel
 debería conservarlas mientras dure la sesión del estudio.
 
 ### TGA2-g · Dos mapas quedan al techo y uno no se pudo tocar
