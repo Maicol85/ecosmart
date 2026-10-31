@@ -77464,17 +77464,39 @@ function mchConclusion(src){
   { const _tv = tvEstado(src);
     if (_tv.sostenida && !ex.activas.length) partes.push('Se registró taquicardia ventricular sostenida en este estudio. El HCM Risk-SCD se desarrolló en prevención primaria y no está validado en pacientes con arritmia ventricular sostenida documentada: revisar si corresponde publicar el porcentaje y si el desfibrilador está indicado en prevención secundaria'); }
 
-  let resumen;
-  if (ex.activas.length) resumen = 'Miocardiopatía hipertrófica: el score HCM Risk-SCD no es aplicable (' + ex.activas.join('; ') + ')' +
-    (_mchSv('mch_ex_parada') === 'si' ? '; desfibrilador indicado en prevención secundaria' : '');
-  else if (esc.fuera)  resumen = 'Miocardiopatía hipertrófica: score de muerte súbita no calculado — ' + esc.fuera.join(' y ') + ' fuera de rango';
-  else if (esc.faltan) resumen = 'Miocardiopatía hipertrófica: score de muerte súbita no calculado, faltan ' + esc.faltan.length +
+  /* ══ `resumen` Y `papel` SALEN DE LAS MISMAS PIEZAS (AJUSTES-3, 31/10/2026) ═════════════════
+     `resumen` tiene DOS consumidores y los dos son papel firmado: la hoja del PDF
+     (`ccHoja('mch', p, c.resumen || c.txt, null)`) y la DIAPOSITIVA del PPT. Es el defecto que la
+     tanda AJ7 pagó con la Fallot: un `resumen` con la conducta adentro llega a los dos.
+     El principio del médico dice que el PPT describe y no recomienda, y `_ccPptPodar` NO podía
+     podar esta línea —medido: `parado: true`—, porque «desfibrilador razonable (Clase IIa)» está
+     PEGADO a «(1 sin evaluar)» y llevarse la recomendación se llevaba el 1. Es exactamente lo que
+     el comentario de la guarda 3 del podador anticipa, y lo que IMG3-g dejó declarado.
+     LA SALIDA NO ES REESCRIBIR EL TEXTO NI REORDENARLO: reordenar movería el PDF, que la orden de
+     esta tanda deja idéntico. Se separan la DESCRIPCIÓN de la CONDUCTA y se arman las dos salidas
+     con las mismas piezas: `resumen = desc + conducta`, que es byte por byte el de antes, y
+     `papel = desc`, que es el que va al PPT. Dos textos paralelos escritos a mano divergirían;
+     con una sola construcción no pueden. Es el mismo patrón que `coaPapel`. */
+  let _escDesc, _escCond = '';
+  if (ex.activas.length) {
+    _escDesc = 'Miocardiopatía hipertrófica: el score HCM Risk-SCD no es aplicable (' + ex.activas.join('; ') + ')';
+    if (_mchSv('mch_ex_parada') === 'si') _escCond = '; desfibrilador indicado en prevención secundaria';
+  }
+  else if (esc.fuera)  _escDesc = 'Miocardiopatía hipertrófica: score de muerte súbita no calculado — ' + esc.fuera.join(' y ') + ' fuera de rango';
+  else if (esc.faltan) _escDesc = 'Miocardiopatía hipertrófica: score de muerte súbita no calculado, faltan ' + esc.faltan.length +
     (esc.faltan.length === 1 ? ' dato' : ' datos') + ' (detalle en el cuerpo del informe)';
-  else resumen = 'Miocardiopatía hipertrófica: riesgo de muerte súbita a 5 años ' + esc.pct.toFixed(2) + ' % (HCM Risk-SCD, ESC), riesgo ' + esc.banda +
-    (esc.banda === 'alto' ? ' — desfibrilador a considerar (Clase IIa)'
+  else {
+    _escDesc = 'Miocardiopatía hipertrófica: riesgo de muerte súbita a 5 años ' + esc.pct.toFixed(2) + ' % (HCM Risk-SCD, ESC), riesgo ' + esc.banda;
+    _escCond = (esc.banda === 'alto' ? ' — desfibrilador a considerar (Clase IIa)'
      : esc.banda === 'intermedio' ? ' — desfibrilador puede considerarse (Clase IIb)'
      : _mod.length ? ' — con ' + _mod.join(' y ') + ', la ESC 2023 sitúa el desfibrilador en Clase IIb dentro de esta banda'
      : ' — desfibrilador no indicado de rutina');
+  }
+  let resumen = _escDesc + _escCond;
+  /* La descripción del PAPEL. El nombre de la guía sale del prefijo y el score se nombra por lo
+     que es —el porcentaje a 5 años—, no por su sigla: «HCM Risk-SCD» y «ESC» son el nombre del
+     modelo y de la sociedad. El NÚMERO no se toca. */
+  let papel = _escDesc.replace(' (HCM Risk-SCD, ESC)', '');
   /* El resumen arrastra los factores SIN EVALUAR. Sin eso, un paciente sin resonancia salía con
      «AHA/ACC 2020: ninguno de los factores evaluados» en el EN SUMA —que es donde el conteo se
      lee— mientras el cuerpo aclaraba que faltaba justo el estudio que cambia la conducta. El
@@ -77485,35 +77507,60 @@ function mchConclusion(src){
      evaluado», que es un `else if`, así que con los cinco mayores en blanco y una TVNS cargada el
      cuerpo publicaba Clase IIb y el EN SUMA no la mencionaba — sobre una clase de recomendación y
      con los dos textarea editables por separado. Ahora manda la clase. */
-  resumen += '. AHA/ACC 2020: ' + (aha.clase === 'iia'
-    ? aha.n + (aha.n === 1 ? ' factor mayor' : ' factores mayores') + ' de ' + MCH_AHA_N_MAYORES + ' — desfibrilador razonable (Clase IIa)'
+  /* El recuento de la AHA, partido igual: lo que CUENTA va a las dos salidas y lo que RECOMIENDA
+     sólo al resumen. El rótulo del papel nombra el concepto —«factores mayores de riesgo de
+     muerte súbita»— porque un recuento suelto («1 de 5») no dice de qué; es el nombre de la lista,
+     no una recomendación ni una guía. */
+  const _ahaCuenta = (aha.clase === 'iia'
+    ? aha.n + (aha.n === 1 ? ' factor mayor' : ' factores mayores') + ' de ' + MCH_AHA_N_MAYORES
     : aha.clase === 'iib'
-      ? 'ningún factor mayor, pero ' + aha.arbitros.join(' y ') + ' — desfibrilador puede considerarse (Clase IIb)'
+      ? 'ningún factor mayor, pero ' + aha.arbitros.join(' y ')
     : aha.arbitros.length ? 'consta ' + aha.arbitros.join(' y ') + ', pero quedan factores mayores sin evaluar: clase no establecida'
     : (aha.pendientes.length === MCH_AHA_N_MAYORES ? 'ningún factor evaluado'
-       : 'ninguno de los factores evaluados está presente'))
-    + (aha.pendientes.length && aha.pendientes.length < MCH_AHA_N_MAYORES
+       : 'ninguno de los factores evaluados está presente'));
+  const _ahaCond = (aha.clase === 'iia' ? ' — desfibrilador razonable (Clase IIa)'
+    : aha.clase === 'iib' ? ' — desfibrilador puede considerarse (Clase IIb)' : '');
+  const _ahaPend = (aha.pendientes.length && aha.pendientes.length < MCH_AHA_N_MAYORES
         ? ' (' + aha.pendientes.length + (aha.pendientes.length === 1 ? ' sin evaluar' : ' sin evaluar') + ')'
         : '');
+  resumen += '. AHA/ACC 2020: ' + _ahaCuenta + _ahaCond + _ahaPend;
+  /* ⚠️ EN EL PAPEL «(N sin evaluar)» VA PEGADO AL RECUENTO, que es a lo que califica. En el
+     `resumen` queda DESPUÉS de la conducta, como estaba: ese orden lo lee la hoja del PDF y esta
+     tanda lo deja idéntico. */
+  papel += '. Factores mayores de riesgo de muerte súbita: ' + _ahaCuenta + _ahaPend;
   /* La resonancia se nombra en el resumen, no sólo en el cuerpo: es el único factor de la lista
      que el ecocardiograma no puede ver, y un conteo bajo sin ella no significa lo mismo. */
-  if (_mchSv('mch_fibrosis_rmn') !== 'si' && _mchSv('mch_fibrosis_rmn') !== 'no')
+  if (_mchSv('mch_fibrosis_rmn') !== 'si' && _mchSv('mch_fibrosis_rmn') !== 'no') {
     resumen += '. No consta resonancia, que es uno de los factores mayores de la AHA y el eco no evalúa';
+    /* En el papel, sin la sigla: lo que importa es que falta el estudio que el eco no puede
+       hacer, y que es uno de los factores mayores. */
+    papel += '. No consta resonancia, que es uno de los factores mayores y el eco no evalúa';
+  }
   /* La TV sostenida sube al EN SUMA por la misma razón que la resonancia: cambia si el número
      de arriba corresponde, y el EN SUMA es donde se lee la conducta. */
   { const _tv = tvEstado(src);
-    if (_tv.sostenida && !ex.activas.length)
-      resumen += '. Taquicardia ventricular sostenida documentada: el score de la ESC no está validado en ese escenario'; }
+    if (_tv.sostenida && !ex.activas.length) {
+      resumen += '. Taquicardia ventricular sostenida documentada: el score de la ESC no está validado en ese escenario';
+      papel += '. Taquicardia ventricular sostenida documentada: el score no está validado en ese escenario';
+    } }
   /* Y la aplicabilidad no verificada del modelo europeo. */
-  if (!ex.activas.length && ex.pendientes.length)
-    resumen += '. Aplicabilidad del score de la ESC no verificada: ' + ex.pendientes.length +
+  if (!ex.activas.length && ex.pendientes.length) {
+    const _aplic = ': ' + ex.pendientes.length +
                (ex.pendientes.length === 1 ? ' exclusión sin contestar' : ' exclusiones sin contestar');
+    resumen += '. Aplicabilidad del score de la ESC no verificada' + _aplic;
+    papel += '. Aplicabilidad del score no verificada' + _aplic;
+  }
   /* La obstrucción severa sube también: cambia una conducta distinta de la del desfibrilador. */
-  if (grad != null && grad >= 50) resumen += '. Obstrucción severa en el tracto de salida (' + grad + ' mmHg)';
+  /* La obstrucción severa es una MEDIDA, no una conducta: va igual a las dos salidas. */
+  if (grad != null && grad >= 50) {
+    const _obs = '. Obstrucción severa en el tracto de salida (' + grad + ' mmHg)';
+    resumen += _obs; papel += _obs;
+  }
   /* `parrafos` sale de los MISMOS `partes` y de los cortes: no re-deriva nada. `txt` queda
      intacto para la tarjeta de pantalla y para el EN SUMA, que lo siguen usando. */
   const parrafos = _ccParrafos(partes, _cortes);
-  return { clave: clave, txt: partes.join('. '), parrafos: parrafos, resumen: resumen, esc: esc, aha: aha, ex: ex };
+  return { clave: clave, txt: partes.join('. '), parrafos: parrafos, resumen: resumen, papel: papel,
+           esc: esc, aha: aha, ex: ex };
 }
 function mchSync(){
   const txt = (id,s) => { const e=document.getElementById(id); if(e) e.textContent = s; };
@@ -79263,6 +79310,22 @@ const IND_REFS = Object.freeze([
      Es el mismo criterio con el que este registro ya tiene dos entradas de la ESC 2020 de
      congénitas (`esc2020guch` y `escGuchCiv`), y la misma razón por la que este repositorio cita
      siempre de la edición inglesa. */
+  /* ⚠️ ES LA 2024 Y NO LA 2020 (AJUSTES-3, 31/10/2026). La app cita «AHA/ACC 2020» en el informe
+     y en el EN SUMA, y esa guía NO está en la biblioteca —por eso la tanda IMAGENES-3 dejó la
+     poda del PPT parada en IMG3-g—. La que sí está es la de 2024, y se leyó EN IMAGEN: su
+     recomendación 3 coincide con lo que la app aplica en la CLASE (2a = IIa, «it is reasonable
+     to offer an ICD»), en el CRITERIO (≥1 factor mayor) y en los CINCO factores, uno por uno.
+     La etiqueta «2020» del papel NO se tocó: cambiar el año en el informe, el EN SUMA y el PDF
+     es contenido clínico fuera de lo que esta tanda autoriza. Declarado en docs/PENDIENTES.md. */
+  { k:'ahaMch2024',
+    full:'Ommen SR, Ho CY, Asif IM, et al. 2024 AHA/ACC/AMSSM/HRS/PACES/SCMR Guideline for the ' +
+         'Management of Hypertrophic Cardiomyopathy: A Report of the American Heart Association/' +
+         'American College of Cardiology Joint Committee on Clinical Practice Guidelines. ' +
+         'Circulation 2024;149(23):e1239-e1311. DOI: 10.1161/CIR.0000000000001250. ' +
+         'Regla de folio: folio = hoja del PDF + 1238, comprobada en el pie impreso de las hojas ' +
+         '26 y 29 («June 4, 2024  e1264» y «June 4, 2024  e1267»). Apartado 7.2 «Patient ' +
+         'Selection for ICD Placement», tabla «Recommendations for ICD Placement in High-Risk ' +
+         'Patients With HCM», hoja 29, folio e1267, leída en imagen a 200 ppp.' },
   { k:'esc2023miocEn',
     full:'Arbelo E, Protonotarios A, Gimeno JR, et al. 2023 ESC Guidelines for the management ' +
          'of cardiomyopathies. Eur Heart J 2023;44(37):3503-3626. Edición INGLESA. ' +
@@ -85750,6 +85813,22 @@ function _indMCHSCD(){
         { txt:'Clase IIb · Nivel B — En la banda de bajo riesgo, la presencia de una fracción de eyección por debajo del 50 % puede considerarse en una decisión compartida, con la misma salvedad sobre la falta de datos sólidos.', refs:null },
         _bal,
         { txt:'Fuente: ESC 2023 de miocardiopatías, edición inglesa, Tabla de recomendaciones 23, hojas 59 y 60, folios 3561 y 3562.', refs:['esc2023miocEn'] }
+      ]},
+      /* ⚠️ LA AHA/ACC ENTRA ACA PORQUE EL PPT LA DEJA DE DECIR (AJUSTES-3, 31/10/2026). La app
+         cuenta cinco factores mayores y publica su clase en el informe, en el EN SUMA y en el
+         PDF, y hasta hoy también en el PPT de congénitas; retirarla del PPT sin que viviera en
+         ningún lado la habría perdido de la aplicación, que es por lo que IMAGENES-3 paró esa
+         poda (IMG3-g) y por lo que TGA-2 sólo pudo cargar la ESC.
+         ⚠️ ES LA 2024 Y LA APP ROTULA «2020». La de 2020 no está en la biblioteca; la de 2024 sí,
+         y se leyó EN IMAGEN: coincide con lo que la app aplica en la clase, en el criterio y en
+         los cinco factores, uno por uno. La etiqueta del papel no se tocó — ver PENDIENTES. */
+      { tit:'Prevención primaria: la otra lista — AHA/ACC 2024 de miocardiopatía hipertrófica, apartado 7.2, hoja 29, folio e1267', lineas:[
+        { txt:'Clase IIa · Nivel B-NR — En el adulto con miocardiopatía hipertrófica y uno o más factores mayores de riesgo de muerte súbita, es razonable ofrecer un desfibrilador.', refs:null },
+        { txt:'Los cinco factores mayores que esa recomendación lista: muerte súbita atribuida de forma definitiva o probable a la miocardiopatía hipertrófica en uno o más familiares de primer grado o cercanos de 50 años o menos; hipertrofia masiva de 30 mm o más en cualquier segmento del ventrículo izquierdo; uno o más episodios recientes de síncope que la historia clínica haga sospechar arrítmico —o sea, improbablemente neurocardiogénico o ligado a la obstrucción del tracto de salida—; aneurisma apical del ventrículo izquierdo con cicatriz transmural o realce tardío; y disfunción sistólica del ventrículo izquierdo con fracción de eyección por debajo del 50 %.', refs:null },
+        { txt:'Clase IIb · Nivel B-NR — En adultos seleccionados SIN factores mayores tras la evaluación clínica, o en quienes la decisión siga siendo incierta, puede considerarse el desfibrilador si hay realce tardío extenso por resonancia con contraste o taquicardia ventricular no sostenida en el monitoreo ambulatorio.', refs:null },
+        { txt:'Clase III (Daño) · Nivel B-NR — En el paciente sin factores de riesgo no debe implantarse un desfibrilador; y tampoco debe implantarse con el solo propósito de permitir la participación en deportes de competición.', refs:null },
+        { txt:'Clase I · Nivel C-EO — Se recomienda aplicar el juicio clínico individual al valorar el peso pronóstico de cada factor dentro del perfil del paciente, con una discusión completa y equilibrada de la evidencia, los beneficios y los riesgos estimados, para que el paciente participe informado en la decisión.', refs:null },
+        { txt:'Fuente: AHA/ACC 2024 de miocardiopatía hipertrófica, tabla «Recommendations for ICD Placement in High-Risk Patients With HCM», hoja 29, folio e1267, leída en imagen.', refs:['ahaMch2024'] }
       ]}
     ],
     guia: { ref:'esc2023miocEn',
@@ -85757,7 +85836,8 @@ function _indMCHSCD(){
     notas: [
       'El umbral del realce tardío extenso se escribe distinto en dos lugares del mismo documento: la tabla dice «15 % o más» y la nota a de la Figura 16 dice «más del 15 %». Acá se usa el de la tabla, que es la recomendación.',
       'Lo que se contesta en esta sección no se guarda con el estudio: vive mientras el panel esté abierto y se pierde al cerrarlo o al empezar un estudio nuevo.',
-      'Las recomendaciones de esta sección no entran al informe, al EN SUMA, al PDF ni al PPT.'
+      'Las recomendaciones de esta sección no entran al informe, al EN SUMA, al PDF ni al PPT.',
+      'La app cuenta los cinco factores mayores de la lista de la AHA/ACC y publica su clase en el informe, en el EN SUMA y en el PDF, donde los rotula «AHA/ACC 2020». La edición leída acá es la de 2024, que coincide con lo que la app aplica en la clase, en el criterio y en los cinco factores; la etiqueta del año en esas tres superficies no se corrigió en esta tanda.'
     ] };
 }
 
@@ -108035,7 +108115,10 @@ function _pptDesdeFormulario(inf, tema, presentador){
       { chk:'vap_incluir_chk',       sec:'vap', nom:'Ventana aortopulmonar',                fn:'vapConclusion' },
       { chk:'fop_incluir_chk',       sec:'fop', nom:'FOP — foramen oval permeable',         fn:'fopConclusion' },
       { chk:'vab_incluir_chk',       sec:'vab', nom:'VAB — válvula aórtica bicúspide',      fn:'vabConclusion' },
-      { chk:'mch_incluir_chk',       sec:'mch', nom:'MCH — miocardiopatía hipertrófica',    fn:'mchConclusion' },
+      /* `papel:true` — la miocardiopatia hipertrofica publica su CLAUSULA descriptiva y no
+         `resumen`, por la misma razon que la coartacion: su `resumen` lo lee tambien la hoja del
+         PDF, y `_ccPptPodar` no podia podarlo sin llevarse un numero. Ver `mchConclusion`. */
+      { chk:'mch_incluir_chk',       sec:'mch', nom:'MCH — miocardiopatía hipertrófica',    fn:'mchConclusion', papel:true },
       { chk:'ebs_incluir_chk',       sec:'ebs', nom:'Anomalía de Ebstein',                  fn:'ebsConclusion' },
       { chk:'tdf_incluir_chk',       sec:'tdf', nom:'Tetralogía de Fallot reparada',        fn:'tdfConclusion' },
       { chk:'tga_incluir_chk',       sec:'tga', nom:'TGA — transposición de grandes arterias', fn:'tgaConclusion' },
@@ -145458,8 +145541,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261031-2016';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793488610268;                 /* eco-build-ms */
+const ECO_BUILD    = '20261031-2025';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793489137745;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -145545,7 +145628,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261031-2016</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261031-2025</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
