@@ -6024,7 +6024,15 @@ window.cerrarSesionReal = cerrarSesionReal;
         </div>
         <div class="calc-row"><span class="calc-lbl">E/A tricuspídeo</span><span id="dt_ea">—</span></div>
         <div class="calc-row"><span class="calc-lbl">E/e' tricuspídeo</span><span id="dt_ee_prime">—</span></div>
-        <div class="calc-row"><span class="calc-lbl">TRIV por Doppler tisular</span><span id="dt_triv_ref">—</span></div>
+        <!-- ⚠️ MISMA CLAVE `vd-triv`, NO UNA ENTRADA NUEVA (AJUSTES-2, commit 5). Dos botones
+             que abren el MISMO registro es literalmente «el mismo texto», que es lo que la orden
+             pide: con una entrada propia habria dos textos que el dia de manana pueden divergir.
+             La referencia de esta fila la escribe `calcDopTric` y el campo es `dt_triv`, espejado
+             con `vd-triv` por `vdTrivSync`. -->
+        <div class="calc-row"><span class="calc-lbl">TRIV por Doppler tisular
+            <button type="button" class="vinfo-btn vinfo-btn-44" data-vinfo="vd-triv" aria-expanded="false"
+                    aria-label="Qu&eacute; es el TRIV por Doppler tisular y c&oacute;mo se usa"
+                    onclick="vInfoClic(this)">&#9432;</button></span><span id="dt_triv_ref">—</span></div>
         <div class="calc-row"><span class="calc-lbl">TDE tricuspídeo</span><span id="dt_tde_ref">—</span></div>
         <div class="calc-row"><span class="calc-lbl">Función diastólica VD (ASE 2025, Tabla 6)</span><span id="dt_diast_ref">—</span></div>
       </div>
@@ -44410,6 +44418,34 @@ window._imPeorIntegrado = _imPeorIntegrado;
    muestra el `title` que su fila ya tenia, leido del DOM en el momento de abrir: no se duplica ni
    una palabra. Se reescriben en D2, y mientras tanto el medico ve en el dedo lo que antes solo
    veia con el mouse. Son `legado: true`. */
+/* ══ EL TRIV POR DOPPLER TISULAR — UN SOLO TEXTO PARA LOS TRES ⓘ ════════════════════════════
+   (AJUSTES-2, commit 5, 2026-10-31.) El medico pidio que el ⓘ de la FUNCION del VD en VD/AD y
+   el de la referencia del DOPPLER TRICUSPIDE digan lo mismo que el ⓘ ya aprobado de la fila
+   del TRIV, «con el MISMO texto, no lo reescribas». Con tres copias, el dia que una se corrija
+   la misma aplicacion explica el mismo parametro de tres maneras: por eso el texto vive aca y
+   los tres lo LEEN. Es el mismo motivo por el que `DISC_PPT` subio a nivel de modulo.
+   ⚠️ NI UNA PALABRA NUEVA NI UNA MENOS: son las seis lineas del `lee` de `vd-triv` y su
+   `fuente`, movidas tal cual. El bloque de CRITERIO DE ECOSMART NO entra: es otra cosa —la
+   frase del gradiente subestimado del informe— y sigue viviendo solo en su globo.
+   ⚠️ NO HAY CORTE NUEVO: el 75 ms es el de `DT_TRIV_HTP`, que el COR-2 dejo como dueño unico. */
+const TRIV_DTI_LEE =
+    'Medido con Doppler tisular en el anillo tricuspídeo lateral, prolongado —más de 75 ms— '
+  + 'orienta a hipertensión pulmonar.\n'
+  + 'Es un dato de apoyo, no un criterio validado.\n'
+  + 'Se prolonga también en la miocardiopatía hipertrófica, en el bloqueo de rama derecha y '
+  + 'en la disfunción del ventrículo derecho.\n'
+  + 'Puede salir normal con presión auricular derecha alta o con insuficiencia tricuspídea '
+  + 'significativa.\n'
+  + 'Conviene corregirlo por la frecuencia cardíaca.\n'
+  + 'No suma a la probabilidad de hipertensión pulmonar.';
+const TRIV_DTI_FUENTE =
+    'El corte de 75 ms viene de un consenso —Howard LS y cols., Eur Respir Rev '
+  + '2012;21:239-248: normal menos de 75 ms, anormal 75 ms o más— y de un estudio que lo '
+  + 'comparó con la presión pulmonar estimada por ecografía, sin cateterismo —Cabrita IZ y '
+  + 'cols., Eur Heart J Cardiovasc Imaging 2013;14:51-55: sensibilidad 94 % y especificidad '
+  + '97 %—. Un TRIV de 40 ms o menos hizo improbable la hipertensión pulmonar en un estudio '
+  + 'pequeño con cateterismo: Bréchot N y cols., Eur J Echocardiogr 2008;9:547-554.';
+
 const VINFO = Object.freeze({
   /* ══ LA FILA DE MINIATURAS DE LO QUE VA AL PDF (AJUSTES-2, commit 4a, 2026-10-31) ══════════
      Reemplaza al texto de ayuda que vivia en la cabecera de la fila. Es una explicacion de la
@@ -45190,15 +45226,9 @@ const VINFO = Object.freeze({
   'vd-triv': {
     ancho: 380,
     tit: 'El TRIV del ventrículo derecho',
-    lee: 'Medido con Doppler tisular en el anillo tricuspídeo lateral, prolongado —más de 75 ms— '
-       + 'orienta a hipertensión pulmonar.\n'
-       + 'Es un dato de apoyo, no un criterio validado.\n'
-       + 'Se prolonga también en la miocardiopatía hipertrófica, en el bloqueo de rama derecha y '
-       + 'en la disfunción del ventrículo derecho.\n'
-       + 'Puede salir normal con presión auricular derecha alta o con insuficiencia tricuspídea '
-       + 'significativa.\n'
-       + 'Conviene corregirlo por la frecuencia cardíaca.\n'
-       + 'No suma a la probabilidad de hipertensión pulmonar.\n'
+    /* El texto base sale del dueño unico `TRIV_DTI_LEE`, que comparten los tres ⓘ. Lo que
+       sigue es propio de ESTE globo y no se comparte: es la frase del informe, no el TRIV. */
+    lee: TRIV_DTI_LEE + '\n'
        + 'CRITERIO DE ECOSMART, respaldado en parte por la ASE 2025: cuando la velocidad '
        + 'de la insuficiencia tricuspídea está medida pero no llega a rango de hipertensión '
        + 'pulmonar y el ventrículo derecho está disfuncionante, el informe agrega que el '
@@ -45214,12 +45244,7 @@ const VINFO = Object.freeze({
        + 'entre el ventrículo derecho y la arteria pulmonar, no el de aurícula derecha a '
        + 'ventrículo derecho que la frase menciona; a ese lo sostiene la Tabla 5, que no '
        + 'nombra ningún gradiente. Y el «probablemente» es una inferencia del médico.',
-    fuente: 'El corte de 75 ms viene de un consenso —Howard LS y cols., Eur Respir Rev '
-       + '2012;21:239-248: normal menos de 75 ms, anormal 75 ms o más— y de un estudio que lo '
-       + 'comparó con la presión pulmonar estimada por ecografía, sin cateterismo —Cabrita IZ y '
-       + 'cols., Eur Heart J Cardiovasc Imaging 2013;14:51-55: sensibilidad 94 % y especificidad '
-       + '97 %—. Un TRIV de 40 ms o menos hizo improbable la hipertensión pulmonar en un estudio '
-       + 'pequeño con cateterismo: Bréchot N y cols., Eur J Echocardiogr 2008;9:547-554.',
+    fuente: TRIV_DTI_FUENTE,
     ojo: 'No es el TRIV del ventrículo izquierdo, que se carga en Diastólica. El corte de '
        + '75 ms es UNO SOLO desde el 30/10/2026: gobierna esta referencia y la frase de '
        + 'elementos a favor de hipertensión pulmonar del informe firmado. Antes el informe '
@@ -46484,6 +46509,12 @@ function evTarjetaVDTam() {
     corteEn: ['desde', 'hasta', 'hasta'],
     aviso: (num('vd_area_s') === null) ? 'Cargar el área telesistólica.' : '',
     ficha: 'DIM-VD-006' }));
+  /* UNA SOLA LINEA, que remite (AJUSTES-2, commit 5). La orden es explicita: los ⓘ de tamano
+     «llevan solo una linea que remite al de funcion (sin repetir el texto)». Repetirlo aca
+     seria la cuarta copia del mismo parrafo en la misma pantalla. */
+  fr.appendChild(_evDiv('ev-cat',
+    'El TRIV por Doppler tisular es un par\u00e1metro de FUNCI\u00d3N: su explicaci\u00f3n y sus fuentes '
+  + 'est\u00e1n en el \u24d8 de «Ventr\u00edculo derecho \u2014 funci\u00f3n».'));
   fr.appendChild(_evFuentesPie(['DIM-VD-001', 'DIM-VD-002', 'DIM-VD-003', 'DIM-VD-004',
                                 'DIM-VD-005', 'DIM-VD-006']));
   return fr;
@@ -46498,6 +46529,21 @@ window.evTarjetaVDTam = evTarjetaVDTam;
    grados de la Tabla 1 y `EV_COLOR` ya tiene su color —verde, amarillo, naranja y rojo—, asi que
    el override pintaria de rojo las cuatro bandas. El tiempo de aceleracion pulmonar lo conserva:
    es el unico que sigue teniendo dos bandas, porque esta orden lo deja como esta. */
+/* ══ EL BLOQUE DEL TRIV, PARA LAS TARJETAS DINAMICAS (AJUSTES-2, commit 5) ═══════════════════
+   Arma el mismo texto que el globo `vd-triv`, leyendo los dos dueños unicos. Devuelve un
+   fragmento por nodos —nunca `innerHTML` con texto concatenado—, que es la regla de la casa y
+   lo que mantiene a Semgrep en su linea base. */
+function _evBloqueTriv() {
+  const fr = document.createDocumentFragment();
+  fr.appendChild(_evDiv('ev-rot', 'TRIV por Doppler tisular'));
+  String(TRIV_DTI_LEE).split('\n').forEach(function (l) {
+    if (l) fr.appendChild(_evDiv('ev-cat', l));
+  });
+  fr.appendChild(_evDiv('ev-fte', TRIV_DTI_FUENTE));
+  return fr;
+}
+window._evBloqueTriv = _evBloqueTriv;
+
 function evTarjetaVDFun() {
   const fr = document.createDocumentFragment();
   const h = document.createElement('h4');
@@ -46543,6 +46589,14 @@ function evTarjetaVDFun() {
     valor: num('tvia'), colores: { htp: '--red' }, cat: _evCapsula('tap-interp'),
     aviso: (num('tvia') === null) ? 'Cargar el tiempo de aceleración pulmonar.' : '',
     ficha: 'FUN-VD-006' }));
+  /* ══ EL TRIV POR DOPPLER TISULAR (AJUSTES-2, commit 5, pedido del medico) ════════════════
+     Va en la tarjeta de FUNCION y no en la de tamano: el TRIV es un parametro funcional. El
+     texto sale de `_evBloqueTriv`, que lee los mismos dos dueños unicos que el globo
+     `vd-triv`, asi que los tres ⓘ no pueden divergir.
+     ⚠️ VA DESPUES DE LAS SEIS BARRAS Y ANTES DEL PIE DE FUENTES, y no lleva ficha: el TRIV no
+     tiene barra en este cuadro —no es uno de los parametros de la Tabla 1 de la ASE 2025— y
+     `_evFuentesPie` cosecha por ficha. Su fuente la dice su propio bloque. */
+  fr.appendChild(_evBloqueTriv());
   fr.appendChild(_evFuentesPie(['FUN-VD-001', 'FUN-VD-002', 'FUN-VD-003', 'FUN-VD-004',
                                 'FUN-VD-005', 'FUN-VD-006']));
   return fr;
