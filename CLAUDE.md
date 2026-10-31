@@ -105,6 +105,7 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Tocar la VISTA 2D de las válvulas**: el lector único del estado, las tarjetas, la tabla de cavidades, el dibujo, los chorros o el «por qué» | `docs/mapa/vista-2d-valvulas.md` |
 | **Tocar el PANEL EN LÍNEA de la vista 2D**: el botón que prende y apaga, el apagado automático, la sincronía en vivo, el alto del dibujo o la línea de fase | `docs/mapa/vista-2d-en-linea.md` |
 | **Tocar el DIAGRAMA 3D DE LA TRANSPOSICIÓN**: los dos ejes y su dueño único, el valor `dtga`, el campo de cirugía, las comunicaciones leídas de sus pestañas, la carga diferida con SRI, «Incluir en el PDF» o la cirugía en el papel | `docs/mapa/tga-diagrama-3d.md` |
+| **Tocar el PAPEL de la TGA operada con JATENE o con RASTELLI**, el dueño `TGA_CIR_OP`, o **agregar una sección al panel de Evidencia con PREGUNTAS de tres estados** —la de la transposición, la CIA, la CIV o la prevención de muerte súbita de la MCH—: dónde se persisten las respuestas, cómo se agrupan las recomendaciones por situación y qué quedó parado | `docs/mapa/t2-evidencia-congenitas.md` |
 | **Orientarse en otro módulo** (Congénitas, Laboratorio, PPT, Cardio-Onco, Pericardio) | `docs/mapa/congenitas-otros.md` |
 | **Tocar algo que la tanda C1 movió** (28/10): los cuatro rótulos de VExUS contra la Figura 7 de Rola 2021 y su Evidencia sin conducta por grado, la casilla de HTP que dice «sin evaluar», los tres mensajes del Forrester con su dueño único, la RVS leyendo `pamEfectiva` con el origen de sus insumos, el POCUS del posoperatorio viendo el `vd_vi` de VD/AD, o el DIAGRAMA DE FORRESTER de la pestaña de Hemodinámica con sus dos cortes | `docs/mapa/c1-hemodinamica.md` |
 | **Tocar la CALCULADORA DE RIESGO CV de cardio-oncología —la Tabla 4 y sus seis columnas, las filas de edad, la casilla sin fármaco—, las TRES TABLAS de la sub-pestaña HFA-ICOS o el MONITOREO de inmunoterapia y anti-VEGF** | `docs/mapa/d2-cardioonco-tabla4.md` |
@@ -186,8 +187,9 @@ Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la v
 ## Qué es EcoSmart y cómo se trabaja
 
 - App clínica de ecocardiografía en **un solo `index.html`**: HTML + CSS + JS inline, sin build,
-  sin frameworks. Hoy **10,47 MB / 147.337 líneas**, medido con `wc -c` y `wc -l` el 2026-10-31 al
-  cierre de la tanda **TGA**, sobre el árbol ya sellado (`v20261031-0829`, md5 `382467e7`).
+  sin frameworks. Hoy **10,54 MB / 148.070 líneas**, medido con `wc -c` y `wc -l` el 2026-10-31 al
+  cierre de la tanda **TGA-2**, sobre el árbol ya sellado (`v20261031-1138`, md5 `4379ca6b`).
+  (Antes: 10,47 MB / 147.337 al cierre de TGA, sello `v20261031-0847`, md5 `bb9739ab`.)
   (Antes: 10,40 MB / 146.362 al cierre de IMÁGENES-3, sello `v20261031-0432`, md5 `899080d4`.)
   (Antes: 10,37 MB / 145.915 al cierre de AJUSTES-2, sello `v20261031-0106`, md5 `5d3a6fe2`.)
   (Antes: 10,34 MB / 145.470 al cierre de D2, sello `v20261030-2056`, md5 `ce4dd1ac`.)
@@ -3559,3 +3561,151 @@ línea: el archivo creció y un informe de auditoría viejo apunta a otro archiv
   cosas declaradas (**AJ2-a** a **AJ2-g**) más el cierre de **AO2-b**, **AO2-c** y **AJ1-a**.
   ⚠️ **`congenitas-otros.md` (34,5 KB) NO se tocó**: está a 500 bytes del techo y la coartación
   vive ahí. **La próxima tanda que necesite escribirle tiene que partirlo** → **AJ2-b**.
+
+### Jatene y Rastelli, y la Evidencia de congénitas — «TGA-2» (2026-10-31)
+
+- **SEIS commits, y los cinco de código se hicieron enteros.** `5d0d942` (T2-1) · `1f60647` (T2-2)
+  · (T2-3) · `d902f59` (T2-4) · `d6ddb02` (T2-5) · el de cobertura y documentación. Al empezar,
+  `origin/main` = `HEAD` = **`61f6968`**, el cierre de la tanda TGA, ya publicado, con md5 de
+  `index.html` **`bb9739ab`** y el pendrive `DISK_IMG` montado.
+  **El push lo corre Maicol: esta tanda tenía orden expresa de NO pushear.**
+  Cierra **TGA-a** y, a medias, **IMG3-g**.
+
+- **EL DEFECTO MÁS GRANDE QUE CERRÓ, EN UNA LÍNEA: la d-TGA operada con switch arterial o con
+  Rastelli no se podía cargar, porque el informe firmado habría afirmado que el ventrículo derecho
+  es el sistémico y en esas dos cirugías es el IZQUIERDO.** La TGA-1 los había parado por eso. La
+  decisión del médico del 31/10 lo resuelve **por el lado del texto y no del campo**: con esas dos
+  cirugías el papel DESCRIBE —tipo, cirugía y datos neutros cargados— y no interpreta.
+
+- ⚠️ **TRES CAMPOS QUEDAN PARADOS Y SE REPORTAN, que es lo que la orden pide textualmente.**
+  `tga_func_vd`, `vd_bas` e `it_grado`: la redacción que esta sección tiene para los tres nombra el
+  ventrículo o la válvula **sistémico**, y escribirles otra es contenido clínico nuevo. El valor no
+  se borra —la fila de la función se esconde sin vaciarla— y el grado de insuficiencia tricuspídea
+  sigue saliendo por Válvulas. → **TGA2-a**.
+
+- **`TGA_CIR_OP` ES LA PIEZA NUEVA, Y ES UN DUEÑO ÚNICO.** La traducción al vocabulario de la demo
+  estaba escrita **dos veces** —en `_tga3dClave` y como la condición `o !== 'auricular'` de
+  `tga3dEscena`—. Con dos valores alcanzaba; con cuatro, esa forma manda `jatene` y `rastelli` a la
+  rama de la d-TGA sin operar, con la aorta del color equivocado.
+  **La comparación obligatoria con la demo da 30 de 30 escenarios IGUALES**, contra 20 de 30 en la
+  TGA-1.
+
+- **CUATRO SECCIONES DEL PANEL DE EVIDENCIA PREGUNTAN, CON EL MOLDE DE LA BICÚSPIDE Y SIN
+  REESCRIBIRLO**: la transposición (nueva), la CIA, la CIV y la prevención de muerte súbita de la
+  miocardiopatía hipertrófica (nueva). **Veintiséis preguntas** de tres estados en total —7/4/6/3 en
+  la TGA según la cirugía, 9 en la CIA, 7 en la CIV y 3 en la MCH—, con las recomendaciones de la
+  guía agrupadas por situación, con su clase, su nivel, su hoja y su folio.
+
+- **DÓNDE SE PERSISTEN LAS RESPUESTAS, que es lo que la orden pide reportar: en `_indClin`**, la
+  memoria efímera del panel. Es el MISMO mecanismo con el que la Evidencia de la bicúspide guarda
+  las suyas cuando el campo está vacío; **la diferencia es que la bicúspide tiene además seis campos
+  guardados** (`vab_fr_*`) y estas cuatro **no tienen ninguno**, porque la orden prohíbe agregarlos.
+  Pasan igual por `_indOrigen` con el valor de origen en `null`, para que el día que alguna tenga
+  campo propio no haya que reescribir la fila. El precio está en **TGA2-f**.
+
+- ⚠️ **LA GUÍA NO PUBLICA NINGUNA TABLA DE INTERVENCIÓN PARA LA d-TGA NO OPERADA DEL ADULTO**, y es
+  un hallazgo, no un olvido: las tres situaciones que la ESC 2020 trata en el adulto son el switch
+  auricular, el switch arterial y el Rastelli. Con «sin cirugía» o sin dato el panel lo DICE.
+  Tampoco hay recomendación propia de la transposición para el ejercicio, el embarazo ni la
+  profilaxis de endocarditis: el apartado 4.12.6 los remite a los apartados generales.
+
+- ⚠️ **LA PARTE C SE HIZO A MEDIAS, Y LO QUE LA PARA ES UNA FUENTE QUE NO ESTÁ.** La línea del PPT
+  de la miocardiopatía hipertrófica cita DOS guías: la ESC —que está, y cuya Tabla 23 entró entera
+  en la Evidencia como sección nueva— y la **AHA/ACC 2020**, que **NO está en la biblioteca**: lo
+  que hay en `11_Miocardiopatias` es la de **2024**. La línea es UNA sola cadena con las dos
+  mitades, así que podar la de la ESC publicaría media recomendación. → **TGA2-c**; **IMG3-g** sigue
+  abierto.
+
+- ⚠️ **EL A/B GENERAL DA UN CERO VACUO SOBRE EL COMMIT 5, Y SE DECLARA.** Ninguna de las 163 escenas
+  carga una miocardiopatía hipertrófica, así que su «cero diferencias» no distingue «no toca el
+  papel» de «la sonda no mira donde el cambio puede actuar». La medición que vale es
+  `scripts/_probe_t2c.mjs`, con la cardiopatía cargada.
+
+- **A/B contra HEAD, UNO POR COMMIT, con 163 escenas, 184.337 claves y 71.883 celdas de Excel.**
+  Commit 1: **62 diferencias de superficie firmada y las 62 están en las CINCO escenas de Jatene y
+  Rastelli**; las otras 158 —`tgaMus`, `tgaSen`, `tgaCc`, `tgaDtga`, `tgaDtgaAur`, `tgaMusCir`,
+  `tgaComs`, `tgaVacio`, `ajeno`, `vacio`— dan **cero**. Commits 2, 3, 4 y 5: **CERO** diferencias
+  de superficie firmada, con el control positivo de pantalla al lado (42, 15, 2 y 0 nodos del
+  panel). En la escena sin integrar lo único que cambia es el valor del campo y su columna, no el
+  texto: la compuerta de la casilla sigue en pie.
+
+- **14/14 MUTACIONES DIRIGIDAS MUERTAS EN EL PRIMER BARRIDO**, en worktree y nunca sobre el vivo,
+  con guarda de md5 antes y después. **Tres de las catorce no revierten nada: la aplican de más**
+  —el switch auricular cayendo también en la rama descriptiva, esconder la fila borrando el valor, y
+  «sin dato» contando como «no»—, porque las condiciones que las matan son **controles negativos**.
+  Cada mutación declara **su** caso: TC-564 el papel y el dibujo, TC-565 el panel de la TGA, TC-566
+  los de la CIA y la CIV, TC-567 el de la muerte súbita.
+
+- ⚠️ **EL ACENTO GRAVE DENTRO DE MIS PROPIOS COMENTARIOS COSTÓ TRES CORRIDAS, Y ES LA OCTAVA TANDA
+  SEGUIDA QUE LO PAGA.** Siempre igual: un identificador entre acentos graves dentro del comentario
+  de un caso, y el cuerpo de un caso es un template literal. `check_backticks.py` **no cazó
+  ninguna** —sus cuatro hallazgos siguen siendo los de `_probe_aj2.mjs`, preexistentes y falsos—;
+  **`node --check` las cazó todas**.
+
+- ⚠️ **TRES CONDICIONES DE MIS PROPIOS CASOS MEDÍAN SOBRE UN DENOMINADOR INCOMPLETO.** El **título**
+  del bloque del panel es texto de la pantalla y lleva la hoja y el folio, y la primera versión de
+  las tres sondas sólo juntaba las líneas: «el panel no cita el folio 592» daba cero sobre una
+  cadena que **sí** estaba. Y en TC-564 el color rojo de la demo se escribió **14173499** cuando es
+  **14172987** (`0xd8433b`).
+
+- **CUATRO CASOS NUEVOS, TC-564 a TC-567**, con sus denominadores y sus controles negativos, y los
+  cuatro **caen contra HEAD** sin caer por excepción: TC-564 por 24 condiciones, TC-566 por 19, y
+  TC-565 y TC-567 por su **denominador** —contra `61f6968` esas dos secciones del panel no existen,
+  y el caso lo dice en vez de reventar—.
+- **TRES CASOS VIEJOS ADAPTADOS, cada uno con el motivo escrito**: **TC-561** (el selector de
+  cirugía pasa de dos valores a cuatro, y su control negativo cambia «Jatene» por «Nikaidoh», que
+  es una variante real que la app no publica; gana además (E4b), el round-trip de los dos valores
+  nuevos), **TC-322** (las secciones del panel con escenario propio, y la escena B pasa de DOS a
+  TRES bibliografías porque esa miocardiopatía hipertrófica abre ahora dos secciones) y **TC-533**
+  (las secciones de `IND_SECS`, de 31 a 33).
+  ⚠️ **TC-561 LO DESTAPÓ LA CORRIDA COMPLETA Y NO EL CENSO**, y es el modo de falla que este
+  archivo ya documenta seis veces: grepeé por el nombre de lo que toqué y ese caso afirma el
+  vocabulario con otras palabras.
+- ⚠️ **LOS BOTONES DE RESPUESTA DEL PANEL MIDEN 22 px Y EL CÓDIGO DICE 44, Y ES PREEXISTENTE.**
+  Medido en los dos árboles: los 24 que la bicúspide ya tenía dan 22 px con `min-height: 0`. El
+  comentario de `_indCtrlHTML` afirma que la regla táctil global de 44 px los gobierna, y **no
+  gana**. `check_mobile.js` no lo ve porque el panel es un modal que ese barrido no abre. Lo que
+  esta tanda cambia es la escala: las preguntas pasan de 24 a cincuenta. → **TGA2-h**.
+- **Línea base al cierre: suite 576/582**, en once lotes **cubriendo los 582 casos distintos**
+  —contados nombre por nombre, no por la suma de los lotes—, en UNA sola pasada sobre el árbol
+  sellado, con el pendrive `DISK_IMG` **verificado al abrir, ENTRE LOS ONCE LOTES y al cerrar** y
+  el md5 de `index.html` **idéntico** antes y después (`4379ca6b`). Los rojos son **TC-223,
+  TC-376, TC-390 y TC-406**, los cuatro de siempre, más **TC-182 y TC-551**, los dos intermitentes
+  que la orden anticipa: **repetidos aislados, los dos salen VERDE**. **TC-358 y TC-557 salieron
+  VERDES.**
+  ⚠️ **Y LA PRIMERA CORRIDA COMPLETA DIO 576/582 CON UN ROJO MÁS, QUE ERA MÍO**, y por eso esa
+  cifra no es la línea base: **TC-561** afirmaba que el selector de cirugía tiene «SOLO los dos
+  valores que esta tanda publica» y usaba «jatene» como valor inventado en su control negativo.
+  Está adaptado y la cifra de arriba sale de la corrida **limpia**, de una sola pasada con el
+  archivo de tests final.
+- **14/14 MUTACIONES DIRIGIDAS MUERTAS EN EL PRIMER BARRIDO**, en worktree y nunca sobre el vivo,
+  con guarda de md5 antes y después.
+- **Semgrep 124 WARNING / 0 ERROR**, la línea base, sin un aviso nuevo. **Excel 441** columnas con
+  las mismas claves, clave por clave, en los cinco A/B. **Campos guardados 963, el mismo juego
+  exacto que HEAD**: cero nuevos y cero perdidos, medido por diferencia de ids. **Sin huérfanos
+  nuevos.** 17 bloques de JS inline parsean.
+- **CELULAR: 59 hallazgos a 360 px y 68 a 390, con 17 ALTA en cada ancho** — la línea base exacta.
+- **CHROME Y WEBKIT COINCIDEN EN LOS DIECISÉIS CRUCES** (dos motores × 1440, 1000, 768 y 390 px ×
+  dos temas), **valor por valor**: el título sin «corregida», el párrafo sin afirmar cuál es el
+  ventrículo sistémico, el selector de cirugía con sus cinco opciones, la fila de función del VD
+  **escondida** con el valor **intacto** en «moderada», el papel sin nombrar el ventrículo
+  sistémico, la sección de la transposición en el panel con sus cuatro preguntas y su folio, **cero
+  desplazamiento horizontal**, **cero textos recortados** y **CERO errores de consola y de página
+  en los dos motores**. La única diferencia entre motores es ninguna: el panel mide 818×745 en los
+  dos. ⚠️ **WebKit de Playwright no es Safari, y se declara.** Chrome va por el del sistema con
+  `channel: 'chrome'`.
+- **`index.html` pasó de 10,47 MB / 147.337 líneas a 10,54 MB / 148.070** — medido con `wc -c` y
+  `wc -l` DESPUÉS de sellar. (MB de 10⁶.) El diff son **792 líneas agregadas y 59 quitadas**.
+  Sello **`v20261031-1138`**, md5 **`4379ca6b`**.
+
+- **Dónde está todo:** `docs/mapa/t2-evidencia-congenitas.md` (**mapa NUEVO**, 12,4 KB), las fichas
+  de los cuatro casos en `docs/mapa/tests-fichas-564.md` (**archivo propio**, porque
+  `tests-fichas.md` está en 34,2 KB), **tres mapas con un puntero cada uno** —medidos ANTES de
+  escribir: `tga-diagrama-3d.md` 13,4 → 14,9 KB, `panel-evidencia.md` 34,1 → 34,5 y `tests.md`
+  34,4 → 34,6—, `docs/fuentes/FUENTES.md` → «La tanda TGA-2» con las **siete tablas transcriptas
+  fila por fila en imagen**, las dos reglas de folio comprobadas en el pie impreso y la tabla
+  «Cambios de evidencia» de quince filas, y `docs/PENDIENTES.md` → **OCHO** cosas declaradas
+  (**TGA2-a** a **TGA2-h**) más el cierre de **TGA-a** y el cierre parcial de **IMG3-g**.
+  ⚠️ **`congenitas-otros.md` (34,5 KB) NO se tocó**, que es lo que la orden pide. `panel-evidencia.md`
+  y `tests.md` quedan los dos a menos de 500 bytes del techo: **la próxima tanda que necesite
+  escribirles tiene que partirlos** → **TGA2-g**.

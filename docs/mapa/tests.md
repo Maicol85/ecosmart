@@ -571,3 +571,7 @@ Fichas en **`docs/mapa/tests-fichas-561.md`** (archivo propio: este mapa estaba 
 
 **Barrido de mutaciones**: `scripts/_mut_tga.py`, catorce dirigidas, **14/14 muertas**. Cada una
 declara **su** caso; correr los tres por cada mutación habría tapado un reparto mal hecho.
+
+**TC-564 a TC-567** (TGA-2, 31/10/2026): Jatene y Rastelli en el papel y en el dibujo, y los cuatro
+paneles de Evidencia con sus preguntas. Mutaciones: `scripts/_mut_t2.py`.
+→ fichas en **`docs/mapa/tests-fichas-564.md`**.

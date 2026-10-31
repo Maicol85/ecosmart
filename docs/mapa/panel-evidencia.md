@@ -497,3 +497,14 @@ con `_indFilaOrigen`: los nueve factores de riesgo, con tres estados, leyendo el
 cuando lo hay y ofreciendo el control cuando no.
 
 → **`docs/mapa/ao2-segmentos-bicuspide.md`** § 4
+
+---
+
+## Cuatro secciones más que preguntan (TGA-2, 2026-10-31)
+
+La transposición de grandes arterias, la CIA, la CIV y la prevención de muerte súbita de la
+miocardiopatía hipertrófica usan el mismo molde, con **veintiséis** preguntas de tres estados en
+total. Dónde se persisten las respuestas, cómo se agrupan las recomendaciones por situación y por
+qué la de la MCH es sección aparte:
+
+→ **`docs/mapa/t2-evidencia-congenitas.md`** § 2

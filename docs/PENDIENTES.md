@@ -10918,3 +10918,147 @@ documenta para otras sondas.
 pedir los cinco puntos, que es lo que hacen las sondas de esta tanda. Mientras tanto, sumarlo a la
 lista de intermitentes conocidos junto a TC-358, TC-551 y TC-182: **repetir su lote antes de
 declararlo**.
+
+---
+
+# TANDA TGA-2 (2026-10-31) — lo declarado
+
+### TGA2-a · Tres campos de la TGA quedan sin redacción neutra, y por eso no se publican con Jatene ni con Rastelli
+La orden del 31/10/2026 dice: «los datos cargados con la redacción que el informe ya usa para cada
+campo, SIN las oraciones del ventrículo derecho sistémico. Si algún campo cargado no tiene
+redacción neutra, PARÁ ese campo y reportalo». Son **tres**:
+
+| Campo | Lo que la sección dice hoy | Por qué no sirve |
+|---|---|---|
+| `tga_func_vd` | «Función del ventrículo derecho sistémico …» | en Jatene y Rastelli el sistémico es el **izquierdo** |
+| `vd_bas` | «Diámetro basal del ventrículo sistémico … mm» | ídem |
+| `it_grado` | «Insuficiencia de la válvula auriculoventricular sistémica (tricúspide) …» | ídem |
+
+**Qué se perdió, exactamente**: con esas dos cirugías, el párrafo de la TGA deja de nombrar los
+tres. El valor **no se borra** —nada automático escribe en el estudio, y la fila de la función se
+esconde sin vaciarla—, y el grado de insuficiencia tricuspídea **sigue saliendo por Válvulas**, que
+es su dueño, así que del informe no desaparece. Los otros dos sí dejan de verse en el papel de esos
+pacientes.
+
+**Salida**: decidir la redacción neutra de cada uno. Lo más corto sería «Función del ventrículo
+derecho», «Diámetro basal del ventrículo derecho» e «Insuficiencia tricuspídea», que son
+descripciones y no afirmaciones sobre cuál ventrículo sostiene la circulación — pero eso es
+contenido clínico y es decisión del médico.
+
+### TGA2-b · Una frase del párrafo de la sección de la TGA deja de estar en la aplicación
+El párrafo de encabezado pasó a ser neutro, y de sus dos oraciones:
+
+- «El **ventrículo derecho es el ventrículo sistémico**, y su deterioro progresivo es inevitable y
+  es la principal causa de muerte» → **sigue en la aplicación**: lo dicen `TGA3D_INFO.ltga` y
+  `TGA3D_INFO.mus` por escenario, y `tgaConclusion` en el informe de la ccTGA y del switch
+  auricular, con la frase completa de «la principal causa de muerte en esta población».
+- «La válvula tricúspide de estos pacientes es la auriculoventricular **sistémica**: su
+  insuficiencia pesa como pesaría una mitral» → la **primera mitad** sobrevive en el rótulo del
+  campo «IT sistémica — grado (de Válvulas)» y en la oración del informe; la **segunda** —«pesa
+  como pesaría una mitral»— es la única prosa que deja de estar en algún lado.
+
+**Salida**: decidir si esa comparación vuelve, y dónde. El lugar natural sería el ⓘ de la sección o
+su Evidencia, no un párrafo fijo que la afirma para las cuatro anatomías.
+
+### TGA2-c · La poda de la recomendación de desfibrilador del PPT sigue PARADA (IMG3-g)
+La Parte C se hizo **a medias por una fuente que no está**, y la regla de la orden es «si no se lee
+con certeza o la hoja no coincide: PARÁ y reportá sin cambiar el papel».
+
+| Mitad de la línea | Fuente que cita | ¿Está en la biblioteca? | Qué se hizo |
+|---|---|---|---|
+| «riesgo … — desfibrilador a considerar (Clase IIa, ESC)» | ESC 2023 de miocardiopatías | **sí** (`ehad194.pdf`) | se transcribió a la Evidencia, sección nueva `_indMCHSCD` |
+| «AHA/ACC 2020: N factores mayores de M — desfibrilador razonable (Clase IIa)» | AHA/ACC **2020** de MCH | **no** | nada |
+
+Lo que hay en `11_Miocardiopatias` es la guía de **2024** (Ommen y cols., *Circulation*
+2024;149:e1239-e1311, 137 hojas) y su resumen de una página, no la de 2020. La línea del PPT es
+**una sola cadena** con las dos mitades: retirar la de la ESC y dejar la de la AHA publicaría media
+recomendación, con la mitad que queda sin fuente verificable.
+
+**Salida**: (a) conseguir la guía AHA/ACC 2020 de miocardiopatía hipertrófica y transcribir su
+recomendación a la Evidencia, y recién entonces podar la línea entera; o (b) decidir que la app
+pasa a citar la AHA/ACC **2024**, que sí está — pero eso cambia lo que la aplicación afirma y es
+contenido clínico.
+
+### TGA2-d · La guía AHA/ACC 2025 de congénitas del adulto está en la carpeta 08 y no se usó
+Censo de `08_Cardiopatias_congenitas`, que la orden pide reportar:
+
+| Archivo | Qué es |
+|---|---|
+| `ESC congenitos en ingles 2020.pdf` | **la que se usó**: ESC 2020, edición inglesa, 84 hojas, folio = hoja + 562 |
+| `Baumgartner_2020_Cardiopatias_Congenitas.pdf` | la misma guía, traducción |
+| `gurvitz-et-al-2025-…-a.pdf` y `…-a-2.pdf` | **ACC/AHA/HRS/ISACHD/SCAI 2025**, *Circulation* 2026;153:e115-e251, 137 hojas. Dos copias de distinto md5 y el mismo contenido |
+| `krittanawong-et-al-2025-…guideline-at-a-glance.pdf` | su resumen de 7 páginas |
+| `jeaa314.pdf` | documento de posición EACVI/ESC sobre imagen en shunts simples, 13 hojas |
+| `ConCoronary_March2020.pdf`, `sachdeva-et-al-2020-…`, `VAB resumen consenso Mx.pdf` | no son guías de manejo de congénitas |
+
+**La ACC/AHA 2025 no se leyó ni se citó.** La orden nombra la ESC 2020 como fuente y pide del resto
+«decime qué hay». Sus recomendaciones de CIA, CIV y transposición podrían diferir de las de la ESC,
+y publicar las dos exige decidir cuál manda cuando discrepan.
+**Salida**: decidir si los paneles de congénitas pasan a publicar también la ACC/AHA 2025 y, si sí,
+cómo se presentan las discrepancias.
+
+### TGA2-e · Lo que las recomendaciones piden y la app no tiene campo para medir
+Salió de armar las preguntas: cada una de éstas es una condición que una recomendación nombra y que
+hoy se **pregunta** porque no hay dónde cargarla. La orden del 31/10 dice expresamente que la raíz
+neoaórtica, la estenosis supravalvular pulmonar y el gradiente del conducto **no se agreguen** y se
+dejen para más adelante; esta entrada es ese «más adelante», con lo que el trabajo encontró:
+
+| Dato | Para qué recomendación | Guía |
+|---|---|---|
+| Diámetro de la **raíz neoaórtica** | cirugía con más de 55 mm tras el switch arterial, Clase IIa · C | ESC 2020, folio 620 |
+| **Estenosis supravalvular pulmonar** y de ramas, con el porcentaje de reducción | stent de rama, Clase IIa · C | ESC 2020, folio 620 |
+| **Gradiente del conducto** ventrículo derecho-arteria pulmonar | las dos filas de la tabla del conducto | ESC 2020, folio 622 |
+| **Fracción de eyección del ventrículo sistémico** (número, no graduación) | separa Clase I, IIa y IIb en la ccTGA y en el switch auricular | ESC 2020, folios 619 y 621 |
+| **Volumen latido** del ventrículo derecho y del izquierdo | la nota al pie c de la sobrecarga de volumen, en CIA y en CIV | ESC 2020, folios 592 y 595 |
+| **Resistencia vascular pulmonar** por cateterismo | las cuatro bandas de CIA y las tres de CIV | ESC 2020, folios 592 y 595 |
+| **Volúmenes del ventrículo derecho** por resonancia (VTSVDi, VTDVDi) | uno de los cuatro criterios del conducto | ESC 2020, folio 622 |
+
+**Salida**: decidir cuáles pasan a ser campos guardados. Mientras no lo sean, se contestan en el
+panel y no viajan con el estudio.
+
+### TGA2-f · Las respuestas de la Evidencia no sobreviven a cerrar el panel, y eso es el diseño
+Las **veintiséis** preguntas que esta tanda agrega —siete, cuatro, seis y tres en la TGA según la
+cirugía; nueve en la CIA; siete en la CIV; tres en la muerte súbita— viven en `_indClin`, que
+`_indClinLimpiar()` vacía al cerrar el panel. Es lo que la orden pide («lo contestado en el panel no
+viaja con el estudio») y es el mismo mecanismo de la bicúspide, pero con una diferencia: la
+bicúspide tiene además seis campos guardados, así que lo suyo sobrevive si se carga por ahí.
+
+**El precio**: un médico que conteste ocho preguntas de la CIA, cierre el panel y lo vuelva a abrir
+las encuentra todas en blanco.
+**Salida**: decidir si alguna de las veintiséis merece campo propio —ver **TGA2-e**— o si el panel
+debería conservarlas mientras dure la sesión del estudio.
+
+### TGA2-g · Dos mapas quedan al techo y uno no se pudo tocar
+Medido con `wc -c` antes de escribir, que es la regla:
+
+| Mapa | Tamaño | Qué pasó |
+|---|---|---|
+| `congenitas-otros.md` | 34.540 B | **no se tocó**, que es lo que la orden pide |
+| `panel-evidencia.md` | 34.065 B | recibió un puntero corto |
+| `tests.md` | 34.410 B | recibió un puntero corto |
+
+**Salida**: la próxima tanda que necesite escribir en cualquiera de los tres tiene que partirlo
+primero.
+
+### TGA2-h · Los botones de respuesta del panel de Evidencia miden 22 px, y el código dice 44
+Lo destapó la sonda de dos motores de esta tanda, y **es preexistente**: medido en el árbol de
+`61f6968` y en el de hoy, los **24** botones que la Evidencia de la bicúspide ya tenía dan
+**22 px de alto** en los dos, con `min-height: 0px` y `padding: 4px 11px`.
+
+El comentario de `_indCtrlHTML` dice textualmente «El alto lo fija la regla táctil global de
+`button` (44 px). No se pelea con ella: esto se toca con el dedo en una tablet al lado del
+ecógrafo». **La regla global no gana**: algo de la hoja de estilos del panel la pisa con
+`min-height: 0`.
+
+**Qué cambió con esta tanda**: nada del mecanismo, pero las preguntas pasan de 24 a **cincuenta**
+—se agregan las 26 de la transposición, la CIA, la CIV y la muerte súbita—, así que el mismo
+defecto afecta a el doble de controles.
+
+⚠️ **`check_mobile.js` no lo ve**, y por eso no aparece en los 17 hallazgos ALTA: ese barrido abre
+las pestañas y los acordeones, pero el panel de Evidencia es un modal que se abre con su botón y
+queda fuera de la medición. Los 17 ALTA de 360 px y los 17 de 390 son los de la línea base, uno
+por uno.
+
+**Salida**: encontrar qué regla pisa el `min-height` global y decidir si estos botones suben a 44
+px —lo que ensancha cada fila del panel— o si se les extiende el área táctil con un `::after`
+absoluto, que es el patrón que `.pac-id-mk` y los globos `vinfo-btn-44` ya usan en este archivo.

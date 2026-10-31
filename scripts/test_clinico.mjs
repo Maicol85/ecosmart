@@ -47695,7 +47695,16 @@ caso('TC-322', 'Evidencia: citas numeradas POR SECCION, con un solo dueno de la 
          pop_cx_tipo alcanza; y su primera linea -los cinco criterios diagnosticos del sindrome
          post-lesion cardiaca- cita escPeri2025 SIEMPRE, con lo cual la seccion publica un
          corchete numerado sin que haya que contestar nada. */
-      ['Posoperatorio de cirugia cardiaca',  { pop_cx_tipo:'cabg' },                         'escPeri2025']
+      ['Posoperatorio de cirugia cardiaca',  { pop_cx_tipo:'cabg' },                         'escPeri2025'],
+      /* AGREGADAS el 2026-10-31 (tanda TGA-2, commits 2 y 5). Dos secciones nuevas, dos
+         escenarios. La de la transposicion abre con el TIPO cargado y nada mas -es su unica
+         compuerta- y el seed elige mustard, que ademas deja el grupo del switch auricular, que
+         es el que mas recomendaciones trae. La de muerte subita abre con mchConclusion, y el
+         aneurisma apical sola ya la satisface: es la rama del aneurisma de su hayDato.
+         ATENCION: LA CLAVE DE LA MCH LLEVA EL GUION LARGO. «Miocardiopatia hipertrofica» a secas
+         seria prefijo de la obstructiva y de esta, y el primer match se quedaria con la primera. */
+      ['Transposicion de grandes arterias',  { tga_tipo:'mustard' },                         'esc2020guch'],
+      ['Miocardiopatia hipertrofica \u2014 prevencion', { mch_aneurisma_apical:'si' },      'esc2023miocEn']
     ];
 
     const sembrar = campos => {
@@ -48070,12 +48079,18 @@ caso('TC-322', 'Evidencia: citas numeradas POR SECCION, con un solo dueno de la 
       ['y lista SOLO lo citado: con una seccion aortica, UNA entrada',
         R.A_items === 1 && R.A_tiene25 === true && R.A_tieneGuch === false,
         'items=' + R.A_items + ' 2025=' + R.A_tiene25 + ' guch=' + R.A_tieneGuch],
-      ['DOS secciones de guias distintas dan DOS bibliografias, una por seccion',
-        R.B_biblios === 2 && R.B_secs === 2 && R.B_items === 2 &&
+      /* ADAPTADO el 2026-10-31 (tanda TGA-2, commit 5): de DOS a TRES. La escena B siembra
+         vmax_ao y mch_grad_reposo, y desde este commit esa miocardiopatia hipertrofica abre
+         DOS secciones -la de reduccion septal, que cita la traduccion de la ESC 2023, y la de
+         prevencion de muerte subita, que cita la edicion inglesa- en vez de una. El invariante
+         no cambia y se vuelve MAS fuerte: tres secciones de tres documentos distintos dan tres
+         bibliografias, cada una hija de su seccion y cada una arrancando en [1]. */
+      ['TRES secciones de guias distintas dan TRES bibliografias, una por seccion',
+        R.B_biblios === 3 && R.B_secs === 3 && R.B_items === 3 &&
         R.B_tiene25 === true && R.B_tieneMioc === true,
         'biblios=' + R.B_biblios + ' secs=' + R.B_secs + ' items=' + R.B_items],
       ['cada una es HIJA de su seccion, nace CERRADA y su primera entrada es [1]',
-        R.B_cadaUna.length === 2 && R.B_cadaUna.every(function(x){
+        R.B_cadaUna.length === 3 && R.B_cadaUna.every(function(x){
           return x.propias === 1 && x.hija === true && x.cerrada === true &&
                  x.items === 1 && x.primer === '[1]'; }),
         JSON.stringify(R.B_cadaUna)],
@@ -48097,8 +48112,11 @@ caso('TC-322', 'Evidencia: citas numeradas POR SECCION, con un solo dueno de la 
       ['y marca UNA sola entrada, la del corchete que se toco',
         R.marcadas === 1 && R.marcadaCorrecta === true,
         'marcadas=' + R.marcadas + ' marcada=' + R.marcada + ' clave=' + clave],
+      /* ADAPTADO el 2026-10-31 (tanda TGA-2, commit 5): el conteo pasa de DOS a TRES por la
+         misma razon que la condicion de arriba. Lo que vigila -que el repintado no cierre la
+         bibliografia ni le pierda entradas- no cambia. */
       ['un repintado del panel CONSERVA la bibliografia abierta y sus entradas',
-        R.detTrasRepintado === true && R.biblioTrasRepintado === 2,
+        R.detTrasRepintado === true && R.biblioTrasRepintado === 3,
         'open=' + R.detTrasRepintado + ' items=' + R.biblioTrasRepintado],
       ['la marca del corchete SOBREVIVE al repintado, UNA sola y en SU seccion',
         R.marcadasTrasRepintado === 1 && R.marcaTrasRepintado === clave &&
@@ -90086,9 +90104,13 @@ caso('TC-533', 'Tanda J2: el indice cardiaco en 2,19/2,2/2,21 con su globo y la 
     'htp=' + (String(_htp2022Core).indexOf('vciD > 21') > -1) + ' peri=' + DPT_VCI_PLETORA_MM]);
   /* ADAPTADO el 2026-10-24 (tanda G, commit G6): de TREINTA a TREINTA Y UNA. La que entra es
      «Posoperatorio de cirugia cardiaca». Lo que esta condicion vigila -que las tres de la tanda J
-     sigan ahi- no cambia; lo que cambia es el denominador. */
-  ex.push(['(L4) CONTROL: las secciones del panel de Evidencia son TREINTA Y UNA, y las tres de la tanda J siguen ahi',
-    IND_SECS.length === 31
+     sigan ahi- no cambia; lo que cambia es el denominador.
+     ADAPTADO otra vez el 2026-10-31 (tanda TGA-2, commits 2 y 5): de TREINTA Y UNA a TREINTA Y
+     TRES. Las que entran son «Transposicion de grandes arterias — indicaciones y seguimiento» y
+     «Miocardiopatia hipertrofica — prevencion de muerte subita». El invariante -que las tres de
+     la tanda J sigan ahi- sigue siendo el mismo. */
+  ex.push(['(L4) CONTROL: las secciones del panel de Evidencia son TREINTA Y TRES, y las tres de la tanda J siguen ahi',
+    IND_SECS.length === 33
       && IND_SECS.some(s => s.tit.indexOf('Derrame peric') === 0)
       && IND_SECS.some(s => s.tit.indexOf('Constricci\\u00f3n peric') === 0)
       && IND_SECS.some(s => s.tit.indexOf('Congesti\\u00f3n venosa') === 0),
@@ -100140,8 +100162,13 @@ caso('TC-561', 'Tanda TGA-1: la cirugia realizada es UN campo guardado nuevo y d
            (opts('tga_tipo').indexOf('dtga') > -1 ? 'valor' : 'NO VALOR') + '/' +
            (typeof window.tgaEjes === 'function' ? 'dueno' : 'NO DUENO'),
            'campo/valor/dueno']);
-  ex.push(['(A1) el campo de cirugia tiene SOLO los dos valores que esta tanda publica',
-           opts('tga_cirugia'), '|ninguna|auricular']);
+  /* ADAPTADO el 2026-10-31 (tanda TGA-2, commit 1): de DOS valores a CUATRO. La TGA-1 habia
+     PARADO «switch arterial (Jatene)» y «Rastelli» porque el informe firmado abria afirmando que
+     el ventriculo derecho es el sistemico, y en esas dos cirugias es el izquierdo; la decision
+     del medico del 31/10 lo resolvio por el lado del TEXTO. Lo que esta condicion vigila -que el
+     selector publique EXACTAMENTE el vocabulario y ni un valor mas- no cambia. */
+  ex.push(['(A1) el campo de cirugia tiene los CUATRO valores autorizados y ni uno mas',
+           opts('tga_cirugia'), '|ninguna|auricular|jatene|rastelli']);
   ex.push(['(A2) el tipo conserva sus tres valores viejos y gana uno',
            opts('tga_tipo'), '|dtga|cctga|mustard|senning']);
 
@@ -100162,15 +100189,19 @@ caso('TC-561', 'Tanda TGA-1: la cirugia realizada es UN campo guardado nuevo y d
   ex.push(['(C3) d-TGA sin cirugia', EJ('dtga', 'ninguna'), 'dtga/ninguna/-/-']);
   ex.push(['(C4) Post-Senning: la cirugia la dice el tipo, y la cargada se ignora',
            EJ('senning', 'ninguna'), 'dtga/auricular/T/I']);
-  /* CONTROL NEGATIVO: un valor fuera del vocabulario no se cuela. */
+  /* CONTROL NEGATIVO: un valor fuera del vocabulario no se cuela.
+     ADAPTADO el 2026-10-31 (tanda TGA-2, commit 1): el valor inventado era «jatene», que desde
+     esta tanda ES del vocabulario. Se cambia por uno que no existe en ninguna version -«nikaidoh»,
+     que es una variante real de la tecnica de Rastelli y justamente por eso no esta en el
+     selector-. Lo que la condicion vigila no cambio ni un poco. */
   pon('tga_tipo', 'dtga');
   const sc = EL('tga_cirugia');
-  if (sc) { const o = document.createElement('option'); o.value = 'jatene'; o.textContent = 'x';
-            sc.appendChild(o); sc.value = 'jatene'; sc.dispatchEvent(new Event('change', { bubbles: true })); }
+  if (sc) { const o = document.createElement('option'); o.value = 'nikaidoh'; o.textContent = 'x';
+            sc.appendChild(o); sc.value = 'nikaidoh'; sc.dispatchEvent(new Event('change', { bubbles: true })); }
   ex.push(['(C5) CONTROL NEGATIVO: un valor que no esta en el vocabulario no se cuela',
            (function () { const e = FN('tgaEjes')(); return (e && e.cir === '') ? 'ignorado' : 'SE COLO' })(),
            'ignorado']);
-  if (sc) { const l = sc.querySelector('option[value="jatene"]'); if (l) l.remove(); sc.value = ''; }
+  if (sc) { const l = sc.querySelector('option[value="nikaidoh"]'); if (l) l.remove(); sc.value = ''; }
 
   /* ── (D) EL EXCEL ── */
   const cols = window._labOrdenarCols(Object.keys(window._labExcelRow({ id: 0, campos: {} })));
@@ -100209,8 +100240,17 @@ caso('TC-561', 'Tanda TGA-1: la cirugia realizada es UN campo guardado nuevo y d
   ex.push(['(E2) y la de «sin cirugia» tambien', V('tga_cirugia', 'Sin cirugía'), 'ninguna']);
   ex.push(['(E3) la etiqueta exportada del tipo nuevo vuelve a entrar',
            V('tga_tipo', 'TGA completa (d-TGA)'), 'dtga']);
+  /* ADAPTADO el 2026-10-31 (tanda TGA-2, commit 1): «Jatene» dejo de ser ajena -hoy es uno de
+     los cuatro valores y el importador la acepta escrita de tres formas-, asi que la etiqueta
+     ajena pasa a ser «Nikaidoh», una variante real de la tecnica de Rastelli que la app no
+     publica. La condicion mide lo mismo. Y se agrega (E4b), que es lo que la tanda SI cambio:
+     las dos escrituras del valor nuevo vuelven a entrar, que es lo que mantiene vivo el
+     round-trip de la columna. */
   ex.push(['(E4) CONTROL NEGATIVO: una etiqueta ajena al vocabulario se RECHAZA',
-           V('tga_cirugia', 'Jatene'), 'RECHAZADA']);
+           V('tga_cirugia', 'Nikaidoh'), 'RECHAZADA']);
+  ex.push(['(E4b) las etiquetas de los DOS valores nuevos vuelven a entrar',
+           V('tga_cirugia', 'Switch arterial (Jatene)') + '/' + V('tga_cirugia', 'Jatene') + '/' +
+           V('tga_cirugia', 'Rastelli'), 'jatene/jatene/rastelli']);
   ex.push(['(E5) los tres valores viejos del tipo siguen entrando',
            V('tga_tipo', 'ccTGA') + '/' + V('tga_tipo', 'Post-Mustard') + '/' + V('tga_tipo', 'Post-Senning'),
            'cctga/mustard/senning']);
@@ -100506,6 +100546,572 @@ caso('TC-563', 'Tanda TGA-3: la cirugia realizada se dice UNA sola vez en el cue
   })();
 `);
 
+
+/* -- TC-564 ---------------------------------------------------------------------------------
+   TANDA TGA-2, COMMIT 1 (2026-10-31). Jatene y Rastelli: el papel DESCRIBE y no interpreta.
+
+   ADVERTENCIA: no escribir acentos graves en ESTE comentario ni en el cuerpo de abajo.
+
+   DENOMINADORES: (A0) el dueno de la frase existe; (A1) la escena carga de verdad los TRES
+   campos que el papel tiene que callarse -funcion del VD sistemico, diametro basal e
+   insuficiencia tricuspidea-: sin ellos, «el informe no los dice» pasa sobre campos vacios y no
+   prueba nada; (D0) el acordeon de la TGA existe en el documento.
+   CONTROLES NEGATIVOS: (B1) a (B4) -con Post-Mustard, Post-Senning, ccTGA y d-TGA sin cirugia
+   el informe SIGUE abriendo con el ventriculo derecho sistemico, o sea que el cambio no se
+   derramo-; (C4) el dibujo de la d-TGA sin cirugia NO tiene los anillos naranjas del Jatene.
+   -------------------------------------------------------------------------------------- */
+caso('TC-564', 'Tanda TGA-2: con switch arterial (Jatene) y con Rastelli el informe y el EN SUMA dicen solo el tipo, la cirugia y los datos neutros cargados -sin una sola oracion del ventriculo derecho sistemico y sin conducta-, el dibujo los pinta como la demo, el titulo de la seccion es neutro y la fila de funcion del VD sistemico se esconde sin borrar su valor', `
+  return (async () => {
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]),
+                 'dio «' + t[1] + '» · esperado «' + t[2] + '»']) };
+  const EL = (id) => document.getElementById(id) || null;
+  const pon = (id, v) => { const e = EL(id); if (!e) return 'NO ' + id;
+    e.value = String(v); e.dispatchEvent(new Event('input', { bubbles: true }));
+    e.dispatchEvent(new Event('change', { bubbles: true })); return e.value; };
+  const tiene = (h, t) => String(h || '').indexOf(t) >= 0 ? 'si' : 'no';
+  /* ATENCION: todo lo nuevo por un accesor con guarda. Contra HEAD estas funciones existen pero
+     el VALOR «jatene» no, asi que un acceso directo no rompe; la guarda esta igual para que el
+     caso caiga por su condicion y nunca por excepcion. */
+  const FN = (n) => (typeof window[n] === 'function') ? window[n] : null;
+
+  ex.push(['(A0) DENOMINADOR: el dueno de la frase de la cirugia existe',
+           FN('tgaCirFrase') ? 'si' : 'NO', 'si']);
+
+  /* La escena carga los TRES campos parados Y los tres neutros. */
+  const esc = (cir, extra) => { try { if (typeof limpiarCampos === 'function') limpiarCampos(true); } catch (e) {}
+    pon('vd_bas', '45'); pon('it_grado', '4');
+    pon('tga_tipo', 'dtga'); pon('tga_cirugia', cir);
+    pon('tga_func_vd', 'moderada'); pon('tga_sintomas', 'si');
+    if (extra) { pon('tga_obstr_subaortica', 'si'); pon('tga_grad_subaortico', '60');
+                 pon('tga_civ_residual', 'si'); pon('tga_civ_grad', '35'); pon('tga_bav', 'si'); }
+    const c = FN('tgaConclusion') ? FN('tgaConclusion')() : null;
+    const sm = FN('ccSumaLinea') ? FN('ccSumaLinea')('tga') : null;
+    return { txt: c ? c.txt : '', res: c ? c.resumen : '', clave: c ? c.clave : 'NULL',
+             suma: sm ? String(sm) : '' }; };
+
+  const J = esc('jatene', false);
+  ex.push(['(A1) DENOMINADOR: los tres campos parados estan cargados de verdad',
+           (EL('tga_func_vd') || {}).value + '/' + (EL('vd_bas') || {}).value + '/' + (EL('it_grado') || {}).value,
+           'moderada/45/4']);
+  ex.push(['(A2) el cuerpo abre con el tipo y la cirugia, y nada mas',
+           J.txt, 'Transposición de grandes arterias completa (d-TGA) operada, con switch arterial (Jatene)']);
+  ex.push(['(A3) sin la oracion del ventriculo derecho sistemico',
+           tiene(J.txt, 'el ventrículo derecho es el ventrículo sistémico'), 'no']);
+  ex.push(['(A4) sin la funcion del VD sistemico, que esta CARGADA',
+           tiene(J.txt, 'Función del ventrículo derecho sistémico'), 'no']);
+  ex.push(['(A5) sin el diametro basal del ventriculo sistemico, que esta CARGADO',
+           tiene(J.txt, 'Diámetro basal del ventrículo sistémico'), 'no']);
+  ex.push(['(A6) sin la insuficiencia de la valvula AV sistemica, que esta CARGADA en severa',
+           tiene(J.txt, 'auriculoventricular sistémica'), 'no']);
+  ex.push(['(A7) y sin conducta ni guia: el papel describe',
+           tiene(J.txt, 'ESC 2020') + tiene(J.txt, 'a considerar') + tiene(J.txt, 'seguimiento'), 'nonono']);
+  ex.push(['(A8) la clave es la descriptiva', J.clave, 'descriptivo']);
+  ex.push(['(A9) el resumen que leen la hoja del PDF y el PPT es el MISMO texto',
+           J.res === J.txt ? 'igual' : 'DISTINTO', 'igual']);
+  ex.push(['(A10) el EN SUMA dice la misma linea, sin el VD sistemico',
+           J.suma, 'TGA completa (d-TGA) operada, con switch arterial (Jatene)']);
+
+  const R = esc('rastelli', false);
+  ex.push(['(A11) con Rastelli, el cuerpo', R.txt,
+           'Transposición de grandes arterias completa (d-TGA) operada, con Rastelli']);
+  ex.push(['(A12) y el EN SUMA', R.suma, 'TGA completa (d-TGA) operada, con Rastelli']);
+
+  const JD = esc('jatene', true);
+  ex.push(['(A13) los hallazgos NEUTROS si se publican: obstruccion, CIV residual y bloqueo AV',
+           tiene(JD.txt, 'Obstrucción subaórtica con gradiente de 60 mmHg') +
+           tiene(JD.txt, 'Comunicación interventricular residual con gradiente de 35 mmHg') +
+           tiene(JD.txt, 'Bloqueo auriculoventricular completo'), 'sisisi']);
+  ex.push(['(A14) pero el bloqueo AV sin la clausula que nombra la ccTGA',
+           tiene(JD.txt, 'complicación esperable en la ccTGA'), 'no']);
+  ex.push(['(A15) y el EN SUMA los lleva igual',
+           tiene(JD.suma, 'obstrucción subaórtica (gradiente 60 mmHg)') +
+           tiene(JD.suma, 'CIV residual (gradiente 35 mmHg)') +
+           tiene(JD.suma, 'bloqueo auriculoventricular completo'), 'sisisi']);
+  ex.push(['(A16) sin «función del VD sistémico no consignada», que es lo que decia antes',
+           tiene(JD.suma, 'VD sistémico'), 'no']);
+
+  /* ── (B) CONTROLES NEGATIVOS: los otros cuatro escenarios no se movieron ── */
+  const neg = (tipo, cir) => { try { if (typeof limpiarCampos === 'function') limpiarCampos(true); } catch (e) {}
+    pon('vd_bas', '45'); pon('tga_tipo', tipo); pon('tga_cirugia', cir);
+    pon('tga_func_vd', 'moderada'); pon('tga_sintomas', 'si');
+    const c = FN('tgaConclusion') ? FN('tgaConclusion')() : null;
+    return tiene(c ? c.txt : '', 'el ventrículo derecho es el ventrículo sistémico'); };
+  ex.push(['(B1) CONTROL NEGATIVO: Post-Mustard sigue abriendo con el VD sistemico', neg('mustard', ''), 'si']);
+  ex.push(['(B2) CONTROL NEGATIVO: Post-Senning tambien', neg('senning', ''), 'si']);
+  ex.push(['(B3) CONTROL NEGATIVO: la ccTGA tambien', neg('cctga', ''), 'si']);
+  ex.push(['(B4) CONTROL NEGATIVO: la d-TGA sin cirugia tambien', neg('dtga', 'ninguna'), 'si']);
+  ex.push(['(B5) CONTROL NEGATIVO: y sin dato de cirugia tambien', neg('dtga', ''), 'si']);
+
+  /* ── (C) EL DIBUJO, contra la demo ── */
+  const sh0 = { asd:false, vsd:false, pda:false };
+  const E = (cir) => { const f = FN('tga3dEscena'); if (!f) return null;
+    try { return f('dtga', cir, sh0) } catch (e) { return null } };
+  const naranjas = (s) => !s ? -1 : s.ex.filter(function (e) { return e.col === 0xe08a1e || e.c === 0xe08a1e }).length;
+  const eJ = E('jatene'), eR = E('rastelli'), eN = E(''), eA = E('auricular');
+  ex.push(['(C1) con Jatene el dibujo lleva los CUATRO elementos naranjas de la demo',
+           naranjas(eJ), 4]);
+  ex.push(['(C2) y la aorta sale del tronco posterior, como en el corazon normal',
+           eJ ? JSON.stringify(eJ.ar[0].p[0]) : 'NULL', '[0.35,0.4,-0.05]']);
+  /* 0xd8433b = 14172987 (rojo de la demo) y 0x2f6fd0 = 3108816 (azul). Escribirlos por su
+     numero es lo que hace medible la UNICA diferencia entre las dos ramas que comparten trazado. */
+  ex.push(['(C3) con Rastelli la aorta sale del tronco anterior y en ROJO',
+           eR ? (JSON.stringify(eR.ar[0].p[0]) + '/' + eR.ar[0].c) : 'NULL', '[-0.4,0.5,0.9]/14172987']);
+  ex.push(['(C4) CONTROL NEGATIVO: sin cirugia el dibujo no tiene ningun elemento naranja',
+           naranjas(eN), 0]);
+  ex.push(['(C5) y la aorta de la d-TGA sin operar sale AZUL del tronco anterior',
+           eN ? eN.ar[0].c : 'NULL', 3108816]);
+  ex.push(['(C6) CONTROL NEGATIVO: el switch auricular no cambio', naranjas(eA), 0]);
+  ex.push(['(C7) Rastelli lleva el conducto y el tunel que la demo pone como extras',
+           eR ? eR.ex.filter(function (e) { return e.t === 'tube' }).length : -1, 2]);
+
+  /* ── (D) EL TITULO Y LA FILA DE LA PANTALLA ── */
+  const hdr = document.querySelector('#sacc-cc-tga .sacc-hdr span[style]');
+  ex.push(['(D0) DENOMINADOR: el encabezado del acordeon de la TGA existe', hdr ? 'si' : 'NO', 'si']);
+  ex.push(['(D1) el titulo es neutro y ya no dice «corregida»',
+           hdr ? hdr.textContent.trim() : 'NULL', 'TGA — Transposición de grandes arterias']);
+  const parr = document.querySelector('#sacc-cc-tga .card-body p');
+  ex.push(['(D2) el parrafo tampoco afirma cual es el ventriculo sistemico',
+           tiene(parr ? parr.textContent : '', 'ventrículo sistémico'), 'no']);
+
+  const fila = EL('tga-funcvd-fg');
+  ex.push(['(D3) el grupo de «Funcion del VD sistemico» tiene su propio id', fila ? 'si' : 'NO', 'si']);
+  (function () { try { if (typeof limpiarCampos === 'function') limpiarCampos(true); } catch (e) {}
+    pon('tga_tipo', 'dtga'); pon('tga_func_vd', 'severa'); pon('tga_cirugia', 'jatene'); })();
+  ex.push(['(D4) con Jatene la fila se esconde', fila ? fila.style.display : 'NULL', 'none']);
+  ex.push(['(D5) pero el VALOR no se borra: nada automatico escribe en el estudio',
+           (EL('tga_func_vd') || {}).value, 'severa']);
+  pon('tga_cirugia', 'auricular');
+  ex.push(['(D6) y con el switch auricular vuelve a verse', fila ? (fila.style.display || 'vacio') : 'NULL', 'vacio']);
+
+  /* ── (E) EL EXCEL Y EL ROUND-TRIP ── */
+  pon('tga_cirugia', 'rastelli');
+  const xl = FN('construirFilaExcel') ? null : null;
+  const vocab = (typeof LAB_XLS_VOCAB !== 'undefined' && LAB_XLS_VOCAB) ? LAB_XLS_VOCAB.tga_cirugia : null;
+  ex.push(['(E1) el importador conoce las dos escrituras del valor nuevo',
+           vocab ? (String(vocab['switch arterial (jatene)']) + '/' + String(vocab.rastelli)) : 'SIN VOCAB',
+           'jatene/rastelli']);
+  ex.push(['(E2) y la etiqueta que viaja al Excel sale de su dueno',
+           (typeof TGA_CIR_XLS !== 'undefined' && TGA_CIR_XLS) ? TGA_CIR_XLS.jatene : 'SIN MAPA',
+           'Switch arterial (Jatene)']);
+
+  return { extra: EXP };
+  })();
+`);
+
+/* -- TC-565 ---------------------------------------------------------------------------------
+   TANDA TGA-2, COMMIT 2 (2026-10-31). La Evidencia de la transposicion: recomendaciones por
+   situacion, preguntas de tres estados, y el papel sin una sola frase de ellas.
+
+   ADVERTENCIA: no escribir acentos graves en ESTE comentario ni en el cuerpo de abajo.
+
+   DENOMINADORES: (A0) la seccion esta registrada en IND_SECS; (E0) el informe se emite de
+   verdad y tiene longitud -sin eso, «el papel no dice la recomendacion» pasa sobre una cadena
+   vacia-; (E5) CONTROL POSITIVO: la misma frase SI esta en el panel, que es lo que hace creible
+   el cero del papel.
+   CONTROLES NEGATIVOS: (G1) sin tipo cargado la seccion no aplica; (G2) en un estudio ajeno
+   tampoco; (C2) una respuesta en «no» NO convierte el balance en «todas contestadas».
+   -------------------------------------------------------------------------------------- */
+caso('TC-565', 'Tanda TGA-2: el panel de Evidencia de la transposicion publica las recomendaciones de la guia agrupadas por situacion -una tabla distinta por cirugia-, pregunta solo lo que las propias recomendaciones nombran con tres estados, lee de otros modulos lo que ya tiene, dice que falta preguntar cuando ninguna condicion esta en si, y ninguna de sus frases llega al informe, al EN SUMA ni a la capsula', `
+  return (async () => {
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]),
+                 'dio «' + t[1] + '» · esperado «' + t[2] + '»']) };
+  const EL = (id) => document.getElementById(id) || null;
+  const pon = (id, v) => { const e = EL(id); if (!e) return 'NO ' + id;
+    e.value = String(v); e.dispatchEvent(new Event('input', { bubbles: true }));
+    e.dispatchEvent(new Event('change', { bubbles: true })); return e.value; };
+  const tiene = (h, t) => String(h || '').indexOf(t) >= 0 ? 'si' : 'no';
+  const SECS = (typeof IND_SECS !== 'undefined' && IND_SECS) ? IND_SECS : [];
+  const sec = SECS.filter(function (x) { return x.tit.indexOf('Transposición de grandes arterias') === 0; })[0] || null;
+
+  ex.push(['(A0) DENOMINADOR: la seccion esta registrada en el panel', sec ? 'si' : 'NO', 'si']);
+  if (!sec) return { extra: EXP };
+
+  const limpiar = () => { try { if (typeof limpiarCampos === 'function') limpiarCampos(true); } catch (e) {}
+                          try { if (typeof _indClinLimpiar === 'function') _indClinLimpiar(); } catch (e) {} };
+  const montar = (tipo, cir) => { limpiar(); pon('tga_tipo', tipo); if (cir) pon('tga_cirugia', cir);
+    pon('tga_sintomas', 'si'); pon('tga_bav', 'no'); };
+  /* ATENCION: el TITULO del bloque es texto del panel y lleva la hoja y el folio. La primera
+     version de esta sonda solo juntaba las lineas y tres condiciones daban cero sobre cadenas que
+     si estaban: un denominador incompleto, no un hallazgo. */
+  const leer = () => { let R = null; try { R = sec.fn() } catch (e) { return { err: String(e && e.message) } }
+    if (!R) return { aplica: false };
+    const lin = []; (R.bloques || []).forEach(function (b) { lin.push(b.tit);
+      b.lineas.forEach(function (l) { lin.push(l.txt) }) });
+    const cl = { I:0, IIa:0, IIb:0, III:0 };
+    lin.forEach(function (t) {
+      if (t.indexOf('Clase I · ') === 0) cl.I++;
+      if (t.indexOf('Clase IIa') === 0) cl.IIa++;
+      if (t.indexOf('Clase IIb') === 0) cl.IIb++;
+      if (t.indexOf('Clase III') === 0) cl.III++; });
+    return { aplica: true, filas: (R.filas || []).length, preg: (R.clinica || []).length,
+             conCtrl: (R.clinica || []).filter(function (f) { return !!f.ctrl }).length,
+             bloques: (R.bloques || []).length, cl: cl, lin: lin,
+             marcas: (R.clinica || []).map(function (f) { return f.marca }).join(','),
+             bal: lin.filter(function (t) { return t.indexOf('sin contestar') >= 0 || t.indexOf('Condiciones presentes') >= 0 || t.indexOf('contestadas y ninguna') >= 0; })[0] || 'SIN BALANCE' }; };
+
+  montar('dtga', 'auricular');
+  const A = leer();
+  ex.push(['(A1) switch auricular: once recomendaciones de la tabla, por clase',
+           A.cl ? (A.cl.I + '/' + A.cl.IIa + '/' + A.cl.IIb + '/' + A.cl.III) : 'NULL', '6/3/1/1']);
+  ex.push(['(A2) con siete preguntas, todas con botonera', A.preg + '/' + A.conCtrl, '7/7']);
+  ex.push(['(A3) y dos bloques: el de la situacion y el general', A.bloques, 2]);
+
+  montar('dtga', 'jatene');
+  const J = leer();
+  ex.push(['(A4) switch arterial: tres recomendaciones y cuatro preguntas',
+           (J.cl.I + '/' + J.cl.IIa + '/' + J.cl.IIb + '/' + J.cl.III) + ' · ' + J.preg, '1/2/0/0 · 4']);
+  montar('dtga', 'rastelli');
+  const R = leer();
+  ex.push(['(A5) Rastelli: dos Clase I y una IIa, y seis preguntas',
+           (R.cl.I + '/' + R.cl.IIa) + ' · ' + R.preg, '2/1 · 6']);
+  montar('cctga', '');
+  const C = leer();
+  ex.push(['(A6) ccTGA: cuatro recomendaciones y tres preguntas',
+           (C.cl.I + '/' + C.cl.IIa + '/' + C.cl.IIb) + ' · ' + C.preg, '1/2/1 · 3']);
+  ex.push(['(A7) y gana un bloque de seguimiento propio', C.bloques, 2]);
+  ex.push(['(A8) la ccTGA publica su seguimiento anual por los trastornos de conduccion',
+           tiene(C.lin.join(' '), 'apartado 4.13.6, hoja 60, folio 622'), 'si']);
+
+  montar('dtga', 'ninguna');
+  const N = leer();
+  ex.push(['(A9) sin cirugia la guia no tiene tabla, y el panel lo DICE en vez de callarse',
+           tiene(N.lin.join(' '), 'no publica ninguna tabla de indicaciones de intervención para la transposición completa no operada'), 'si']);
+  ex.push(['(A10) y entonces no hay preguntas que hacer', N.preg, 0]);
+
+  /* ── (B) y (C): los TRES estados, y que «sin dato» no es «no» ── */
+  montar('dtga', 'auricular');
+  const B0 = leer();
+  ex.push(['(B1) sin contestar nada, las siete marcas son «falta el dato»',
+           B0.marcas, 'ask,ask,ask,ask,ask,ask,ask']);
+  ex.push(['(B2) y el balance dice cuantas faltan',
+           tiene(B0.bal, 'quedan 7 sin contestar'), 'si']);
+  try { _indClin['tga.ev.baffuga'] = 'si'; _indClin['tga.ev.cianosis'] = 'no'; } catch (e) {}
+  const B1 = leer();
+  ex.push(['(B3) contestada «si» la marca es de aviso y contestada «no» es de medido',
+           B1.marcas, 'ask,ask,warn,none,ask,ask,ask']);
+  ex.push(['(C1) el balance cuenta la presente y NOMBRA las que faltan',
+           tiene(B1.bal, 'Condiciones presentes en este paciente: 1 de 7') + tiene(B1.bal, 'Sin contestar'), 'sisi']);
+  /* El tercer estado se distingue de los otros DOS: la contestada «no» no entra en las
+     presentes y tampoco en la lista de lo que falta contestar. Esa doble ausencia es lo que
+     prueba que «no» y «sin dato» no son lo mismo. */
+  ex.push(['(C2) CONTROL NEGATIVO: la contestada «no» no esta ni entre las presentes ni entre las que faltan',
+           tiene(B1.bal, 'Cianosis'), 'no']);
+
+  /* ── (D) lee de otros modulos lo que ya tiene ── */
+  montar('dtga', 'auricular'); pon('tga_bav', 'si');
+  const D = leer();
+  ex.push(['(D1) el bloqueo AV se LEE del modulo y no se pregunta: la fila dice lo cargado',
+           (function () { const R = sec.fn();
+             const f = (R.filas || []).filter(function (x) { return x.lbl.indexOf('Bloqueo') === 0 })[0];
+             const q = (R.clinica || []).filter(function (x) { return x.lbl.indexOf('Bloqueo') === 0 }).length;
+             return (f ? f.val : 'SIN FILA') + '/' + q; })(), 'Sí/0']);
+  ex.push(['(D2) y los sintomas tambien', (function () { const R = sec.fn();
+             const f = (R.filas || []).filter(function (x) { return x.lbl === 'Síntomas' })[0];
+             return f ? f.val : 'SIN FILA'; })(), 'Sí']);
+
+  /* ── (E) EL PAPEL: ninguna frase de las recomendaciones ── */
+  limpiar();
+  pon('vd_bas', '48'); pon('it_grado', '4');
+  pon('tga_tipo', 'mustard'); pon('tga_func_vd', 'moderada'); pon('tga_sintomas', 'si');
+  try { const c = EL('tga_incluir_chk');
+        if (c && !c.checked && typeof eteInclToggle === 'function') eteInclToggle('tga_incluir_chk'); } catch (e) {}
+  try { _indClin['tga.ev.baffuga'] = 'si'; _indClin['tga.ev.pmicd'] = 'si'; } catch (e) {}
+  try { if (typeof generarInforme === 'function') generarInforme(); } catch (e) {}
+  await new Promise(function (r) { setTimeout(r, 400) });
+  const g = (id) => { const e = EL(id); return e ? String(e.value || e.textContent || '') : ''; };
+  const papel = g('informe_texto') + ' @@ ' + g('en_suma') + ' @@ ' + g('tga-concl') + ' @@ ' + g('cc-txt-tga');
+  ex.push(['(E0) DENOMINADOR: el informe se emitio y tiene cuerpo', g('informe_texto').length > 300 ? 'si' : 'NO', 'si']);
+  ex.push(['(E1) el papel no dice «stent cubierto»', tiene(papel, 'stent cubierto'), 'no']);
+  ex.push(['(E2) ni nombra el tunel auricular', tiene(papel, 'túnel auricular'), 'no']);
+  ex.push(['(E3) ni publica «folio 619»', tiene(papel, 'folio 619'), 'no']);
+  ex.push(['(E4) ni manda al centro especializado', tiene(papel, 'centro especializado'), 'no']);
+  montar('dtga', 'auricular');
+  const P = leer();
+  ex.push(['(E5) CONTROL POSITIVO: las cuatro frases SI estan en el panel',
+           tiene(P.lin.join(' '), 'stent cubierto') + tiene(P.lin.join(' '), 'túnel auricular') +
+           tiene(P.lin.join(' '), 'folio 619') + tiene(P.lin.join(' '), 'centro especializado'), 'sisisisi']);
+
+  /* ── (F) lo contestado no viaja con el estudio ── */
+  try { _indClin['tga.ev.baffuga'] = 'si'; } catch (e) {}
+  const antes = (typeof _indClin !== 'undefined') ? Object.keys(_indClin).length : -1;
+  try { if (typeof _indClinVaciar === 'function') _indClinVaciar(); } catch (e) {}
+  const despues = (typeof _indClin !== 'undefined') ? Object.keys(_indClin).length : -1;
+  ex.push(['(F1) «Nuevo estudio» vacia las respuestas del panel',
+           (antes > 0 ? 'habia' : 'NO HABIA') + '/' + despues, 'habia/0']);
+  ex.push(['(F2) y ninguna clave del panel es un campo del estudio',
+           document.querySelectorAll('[id^="tga.ev."]').length, 0]);
+
+  /* ── (G) CONTROLES NEGATIVOS de la compuerta ── */
+  limpiar();
+  ex.push(['(G1) CONTROL NEGATIVO: sin tipo cargado la seccion no aplica',
+           leer().aplica ? 'APLICA' : 'no', 'no']);
+  limpiar(); pon('im_vc', '8'); pon('onda_e', '110');
+  ex.push(['(G2) CONTROL NEGATIVO: en un estudio ajeno tampoco',
+           leer().aplica ? 'APLICA' : 'no', 'no']);
+
+  return { extra: EXP };
+  })();
+`);
+
+/* -- TC-566 ---------------------------------------------------------------------------------
+   TANDA TGA-2, COMMITS 3 Y 4 (2026-10-31). La Evidencia de la CIA y la de la CIV: las dos
+   tablas de la guia por situacion, y las filas de solo lectura convertidas en preguntas.
+
+   ADVERTENCIA: no escribir acentos graves en ESTE comentario ni en el cuerpo de abajo.
+
+   DENOMINADORES: (A0) las dos secciones estan registradas; (A1) la escena de CIA la DESPIERTA
+   -sin eso, contar recomendaciones da cero y parece que el bloque no existe-; (E0) el informe
+   se emite con cuerpo.
+   CONTROLES NEGATIVOS: (G1) y (G2), sin defecto cargado ninguna de las dos aplica; (C3) una
+   respuesta en «no» no vacia la lista de lo que falta; (E5) CONTROL POSITIVO, las frases SI
+   estan en el panel.
+   -------------------------------------------------------------------------------------- */
+caso('TC-566', 'Tanda TGA-2: los paneles de Evidencia de la comunicacion interauricular y de la interventricular publican las filas de su tabla de la guia con clase y nivel, agrupadas por situacion; las filas de solo lectura que tenian pasaron a ser preguntas de tres estados; leen de otros modulos el tipo y el tamano; y ninguna de sus frases llega al papel', `
+  return (async () => {
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]),
+                 'dio «' + t[1] + '» · esperado «' + t[2] + '»']) };
+  const EL = (id) => document.getElementById(id) || null;
+  const pon = (id, v) => { const e = EL(id); if (!e) return 'NO ' + id;
+    e.value = String(v); e.dispatchEvent(new Event('input', { bubbles: true }));
+    e.dispatchEvent(new Event('change', { bubbles: true })); return e.value; };
+  const tiene = (h, t) => String(h || '').indexOf(t) >= 0 ? 'si' : 'no';
+  const SECS = (typeof IND_SECS !== 'undefined' && IND_SECS) ? IND_SECS : [];
+  const buscar = (p) => SECS.filter(function (x) { return x.tit.indexOf(p) === 0 })[0] || null;
+  const sCIA = buscar('Comunicación interauricular'), sCIV = buscar('Comunicación interventricular');
+  ex.push(['(A0) DENOMINADOR: las dos secciones estan registradas',
+           (sCIA ? 'si' : 'NO') + '/' + (sCIV ? 'si' : 'NO'), 'si/si']);
+  if (!sCIA || !sCIV) return { extra: EXP };
+
+  const limpiar = () => { try { if (typeof limpiarCampos === 'function') limpiarCampos(true); } catch (e) {}
+                          try { if (typeof _indClinLimpiar === 'function') _indClinLimpiar(); } catch (e) {} };
+  const leer = (s) => { let R = null; try { R = s.fn() } catch (e) { return { err: String(e && e.message) } }
+    if (!R) return { aplica: false };
+    /* El TITULO del bloque lleva la hoja y el folio: tambien es texto del panel. */
+    const lin = []; (R.bloques || []).forEach(function (b) { lin.push(b.tit);
+      b.lineas.forEach(function (l) { lin.push(l.txt) }) });
+    const cl = { I:0, IIa:0, IIb:0, III:0 };
+    lin.forEach(function (t) {
+      if (t.indexOf('Clase I · ') === 0) cl.I++;
+      if (t.indexOf('Clase IIa') === 0) cl.IIa++;
+      if (t.indexOf('Clase IIb') === 0) cl.IIb++;
+      if (t.indexOf('Clase III') === 0) cl.III++; });
+    return { aplica: true, filas: R.filas || [], preg: (R.clinica || []).length,
+             conCtrl: (R.clinica || []).filter(function (f) { return !!f.ctrl }).length,
+             bloques: (R.bloques || []).length, cl: cl, lin: lin, guia: R.guia ? R.guia.ref : 'SIN GUIA',
+             notas: (R.notas || []).filter(Boolean),
+             marcas: (R.clinica || []).map(function (f) { return f.marca }).join(','),
+             bal: lin.filter(function (t) { return t.indexOf('sin contestar') >= 0 || t.indexOf('Condiciones presentes') >= 0 || t.indexOf('contestadas y ninguna') >= 0; })[0] || 'SIN BALANCE' }; };
+
+  /* ══ (A) LA COMUNICACION INTERAURICULAR ══ */
+  limpiar();
+  pon('ete_cia_tipo', 'secundum'); pon('ete_cia_tam_max', '18'); pon('vd_bas', '48');
+  const A = leer(sCIA);
+  ex.push(['(A1) DENOMINADOR: la escena despierta la seccion', A.aplica ? 'si' : 'NO', 'si']);
+  ex.push(['(A2) las nueve filas de la tabla, por clase',
+           A.cl.I + '/' + A.cl.IIa + '/' + A.cl.IIb + '/' + A.cl.III, '5/2/1/1']);
+  ex.push(['(A3) nueve preguntas, todas con botonera', A.preg + '/' + A.conCtrl, '9/9']);
+  ex.push(['(A4) cuatro bloques: cierre, presion pulmonar, VI y embolia, y seguimiento', A.bloques, 4]);
+  ex.push(['(A5) el tipo y el tamano se LEEN, no se preguntan',
+           (function () { const f = A.filas.filter(function (x) { return x.lbl.indexOf('Tipo de comunicación') === 0 })[0];
+             const t = A.filas.filter(function (x) { return x.lbl.indexOf('Tamaño') === 0 })[0];
+             return (f ? f.val : 'SIN') + '/' + (t ? t.val : 'SIN'); })(), 'Ostium secundum/18,0 mm']);
+  ex.push(['(A6) la escalera de resistencias ya no vive en prosa dentro de las notas',
+           A.notas.some(function (t) { return String(t).indexOf('La escalera completa') >= 0 }) ? 'SIGUE' : 'no', 'no']);
+  ex.push(['(A7) pero sus cuatro tramos si estan en el bloque visible, con clase y nivel',
+           tiene(A.lin.join(' '), 'por debajo de 3 UW confirmada por cateterismo') +
+           tiene(A.lin.join(' '), 'entre 3 y 5 UW') + tiene(A.lin.join(' '), 'de 5 UW o más'), 'sisisi']);
+  ex.push(['(A8) y el seguimiento cita su apartado', tiene(A.lin.join(' '), 'apartado 4.1.6, hoja 31, folio 593'), 'si']);
+  ex.push(['(A9) sin contestar nada, las nueve marcas son «falta el dato»',
+           A.marcas, 'ask,ask,ask,ask,ask,ask,ask,ask,ask']);
+  try { _indClin['cia.ev.rvp35'] = 'si'; _indClin['cia.ev.vi'] = 'no'; } catch (e) {}
+  const A2 = leer(sCIA);
+  ex.push(['(A10) los TRES estados se distinguen', A2.marcas, 'ask,ask,warn,ask,ask,none,ask,ask,ask']);
+  ex.push(['(A11) y el balance cuenta la presente', tiene(A2.bal, 'Condiciones presentes en este paciente: 1 de 9'), 'si']);
+  ex.push(['(C3) CONTROL NEGATIVO: la contestada «no» sigue fuera de las presentes y no vacia lo que falta',
+           tiene(A2.bal, 'Sin contestar') + tiene(A2.bal, 'Enfermedad del ventrículo izquierdo'), 'sino']);
+
+  /* ══ (B) LA COMUNICACION INTERVENTRICULAR ══ */
+  limpiar();
+  pon('ete_civ_tipo', 'perimembranosa'); pon('ete_civ_tam', '8'); pon('ete_civ_vel', '4.5'); pon('ddfvi', '62');
+  const B = leer(sCIV);
+  ex.push(['(B1) DENOMINADOR: la escena despierta la seccion', B.aplica ? 'si' : 'NO', 'si']);
+  ex.push(['(B2) las seis filas de la tabla, por clase',
+           B.cl.I + '/' + B.cl.IIa + '/' + B.cl.IIb + '/' + B.cl.III, '1/3/1/1']);
+  ex.push(['(B3) siete preguntas, todas con botonera', B.preg + '/' + B.conCtrl, '7/7']);
+  ex.push(['(B4) tres bloques: cierre, presion pulmonar y seguimiento', B.bloques, 3]);
+  ex.push(['(B5) las tres filas de solo lectura viejas ahora se contestan, y ninguna quedo como texto muerto',
+           (function () { const R = sCIV.fn(); const lbls = (R.clinica || []).map(function (x) { return x.lbl });
+             const hay = function (p) { return lbls.some(function (l) { return l.indexOf(p) >= 0 }) ? 'si' : 'no' };
+             return hay('endocarditis infecciosa') + hay('Prolapso de una valva aórtica') + hay('Resistencia vascular pulmonar'); })(),
+           'sisisi']);
+  ex.push(['(B6) y la cita de la seccion sigue siendo la que lleva la advertencia de divergencia',
+           B.guia, 'escGuchCiv']);
+  ex.push(['(B7) el seguimiento cita su apartado', tiene(B.lin.join(' '), 'apartado 4.2.5, hoja 33, folio 595'), 'si']);
+  ex.push(['(B8) sin contestar nada, las siete marcas son «falta el dato»',
+           B.marcas, 'ask,ask,ask,ask,ask,ask,ask']);
+  try { _indClin['civ.ev.ie'] = 'si'; } catch (e) {}
+  const B2 = leer(sCIV);
+  ex.push(['(B9) contestada una, su marca cambia y el balance la cuenta',
+           B2.marcas + ' · ' + (tiene(B2.bal, 'Condiciones presentes en este paciente: 1 de 7')),
+           'ask,ask,ask,ask,warn,ask,ask · si']);
+
+  /* ══ (E) EL PAPEL ══ */
+  limpiar();
+  pon('ete_cia_tipo', 'secundum'); pon('ete_cia_tam_max', '18'); pon('vd_bas', '48');
+  pon('ete_civ_tipo', 'perimembranosa'); pon('ete_civ_tam', '8');
+  try { const c = EL('ete_incluir_chk'); if (c && !c.checked && typeof eteInclToggle === 'function') eteInclToggle('ete_incluir_chk'); } catch (e) {}
+  try { _indClin['cia.ev.rvp35'] = 'si'; _indClin['civ.ev.ie'] = 'si'; } catch (e) {}
+  try { if (typeof generarInforme === 'function') generarInforme(); } catch (e) {}
+  await new Promise(function (r) { setTimeout(r, 400) });
+  const g = (id) => { const e = EL(id); return e ? String(e.value || e.textContent || '') : ''; };
+  const papel = g('informe_texto') + ' @@ ' + g('en_suma') + ' @@ ' + g('cc-txt-cia') + ' @@ ' + g('cc-txt-civ');
+  ex.push(['(E0) DENOMINADOR: el informe se emitio y tiene cuerpo', g('informe_texto').length > 300 ? 'si' : 'NO', 'si']);
+  ex.push(['(E1) el papel no publica «folio 592» ni «folio 595»',
+           tiene(papel, 'folio 592') + tiene(papel, 'folio 595'), 'nono']);
+  ex.push(['(E2) ni «cierre fenestrado»', tiene(papel, 'cierre FENESTRADO'), 'no']);
+  ex.push(['(E3) ni la nota al pie de la saturacion', tiene(papel, 'por debajo del 90 %'), 'no']);
+  limpiar();
+  pon('ete_cia_tipo', 'secundum'); pon('ete_cia_tam_max', '18'); pon('vd_bas', '48');
+  const P = leer(sCIA);
+  ex.push(['(E5) CONTROL POSITIVO: esas frases SI estan en el panel',
+           tiene(P.lin.join(' '), 'folio 592') + tiene(P.lin.join(' '), 'cierre FENESTRADO') +
+           tiene(P.lin.join(' '), 'por debajo del 90 %'), 'sisisi']);
+
+  /* ══ (G) CONTROLES NEGATIVOS ══ */
+  limpiar();
+  ex.push(['(G1) CONTROL NEGATIVO: sin CIA cargada la seccion no aplica', leer(sCIA).aplica ? 'APLICA' : 'no', 'no']);
+  ex.push(['(G2) CONTROL NEGATIVO: sin CIV cargada tampoco', leer(sCIV).aplica ? 'APLICA' : 'no', 'no']);
+
+  return { extra: EXP };
+  })();
+`);
+
+/* -- TC-567 ---------------------------------------------------------------------------------
+   TANDA TGA-2, COMMIT 5 (2026-10-31). La prevencion de muerte subita de la miocardiopatia
+   hipertrofica entra en la Evidencia; la poda del PPT sigue PARADA y aca se dice por que.
+
+   ADVERTENCIA: no escribir acentos graves en ESTE comentario ni en el cuerpo de abajo.
+
+   DENOMINADORES: (A1) la escena despierta la seccion; (C0) la conclusion de la MCH se emite de
+   verdad, porque «el PPT sigue diciendo la recomendacion» sobre un texto vacio no prueba nada.
+   CONTROLES NEGATIVOS: (E1) sin miocardiopatia hipertrofica cargada la seccion no aplica;
+   (A8) con el gradiente por debajo de 30 mmHg esta seccion SI aplica aunque la de reduccion
+   septal no -son dos preguntas distintas-; (B3) una respuesta en «no» no cuenta como presente.
+   -------------------------------------------------------------------------------------- */
+caso('TC-567', 'Tanda TGA-2: la tabla de recomendaciones 23 de la ESC 2023 -prevencion de muerte subita en la miocardiopatia hipertrofica- entra en el panel de Evidencia como seccion propia, con sus nueve filas, su clase y su nivel y tres preguntas de tres estados; lee el score y los dos hallazgos de la banda baja de sus duenos sin recalcular nada; y la poda de esa recomendacion en el PPT sigue PARADA porque la guia AHA/ACC 2020 que el mismo texto cita no esta en la biblioteca', `
+  return (async () => {
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]),
+                 'dio «' + t[1] + '» · esperado «' + t[2] + '»']) };
+  const EL = (id) => document.getElementById(id) || null;
+  const pon = (id, v) => { const e = EL(id); if (!e) return 'NO ' + id;
+    e.value = String(v); e.dispatchEvent(new Event('input', { bubbles: true }));
+    e.dispatchEvent(new Event('change', { bubbles: true })); return e.value; };
+  const tiene = (h, t) => String(h || '').indexOf(t) >= 0 ? 'si' : 'no';
+  const veces = (t, h) => String(h || '').split(t).length - 1;
+  const FN = (n) => (typeof window[n] === 'function') ? window[n] : null;
+  const SECS = (typeof IND_SECS !== 'undefined' && IND_SECS) ? IND_SECS : [];
+  const sec = SECS.filter(function (x) { return x.tit.indexOf('Miocardiopatía hipertrófica — prevención') === 0 })[0] || null;
+  ex.push(['(A0) DENOMINADOR: la seccion nueva esta registrada', sec ? 'si' : 'NO', 'si']);
+  if (!sec) return { extra: EXP };
+
+  const limpiar = () => { try { if (typeof limpiarCampos === 'function') limpiarCampos(true); } catch (e) {}
+                          try { if (typeof _indClinLimpiar === 'function') _indClinLimpiar(); } catch (e) {} };
+  const leer = () => { let R = null; try { R = sec.fn() } catch (e) { return { err: String(e && e.message) } }
+    if (!R) return { aplica: false };
+    /* El TITULO del bloque lleva la hoja y el folio: tambien es texto del panel. */
+    const lin = []; (R.bloques || []).forEach(function (b) { lin.push(b.tit);
+      b.lineas.forEach(function (l) { lin.push(l.txt) }) });
+    const cl = { I:0, IIa:0, IIb:0 };
+    lin.forEach(function (t) { if (t.indexOf('Clase I · ') === 0) cl.I++;
+      if (t.indexOf('Clase IIa') === 0) cl.IIa++; if (t.indexOf('Clase IIb') === 0) cl.IIb++; });
+    return { aplica: true, filas: R.filas || [], preg: (R.clinica || []).length,
+             conCtrl: (R.clinica || []).filter(function (f) { return !!f.ctrl }).length,
+             bloques: (R.bloques || []).length, cl: cl, lin: lin, guia: R.guia ? R.guia.ref : 'SIN GUIA',
+             marcas: (R.clinica || []).map(function (f) { return f.marca }).join(','),
+             bal: lin.filter(function (t) { return t.indexOf('sin contestar') >= 0 || t.indexOf('Condiciones presentes') >= 0; })[0] || 'SIN BALANCE' }; };
+
+  limpiar();
+  pon('mch_espesor', '18'); pon('mch_grad_valsalva', '70'); pon('mch_cf', 'iii_iv');
+  pon('mch_sam', 'si'); pon('mch_fam_ms', 'si'); pon('mch_sincope', 'si');
+  pon('mch_fibrosis_rmn', 'si'); pon('mch_aneurisma_apical', 'si');
+  const A = leer();
+  ex.push(['(A1) DENOMINADOR: la escena despierta la seccion', A.aplica ? 'si' : 'NO', 'si']);
+  ex.push(['(A2) las nueve filas de la Tabla 23, por clase',
+           A.cl.I + '/' + A.cl.IIa + '/' + A.cl.IIb, '4/2/3']);
+  ex.push(['(A3) tres preguntas, todas con botonera', A.preg + '/' + A.conCtrl, '3/3']);
+  ex.push(['(A4) tres bloques: secundaria, como se estima y cuando el desfibrilador', A.bloques, 3]);
+  ex.push(['(A5) cita la Tabla 23 con su hoja y su folio',
+           tiene(A.lin.join(' '), 'Tabla de recomendaciones 23, hoja 59, folio 3561') +
+           tiene(A.lin.join(' '), 'hoja 60, folio 3562'), 'sisi']);
+  ex.push(['(A6) la guia de la seccion cita la edicion INGLESA, que es la que se leyo',
+           A.guia, 'esc2023miocEn']);
+  ex.push(['(A6b) y esa entrada existe en el registro de citas, aparte de la traduccion',
+           (typeof IND_REF_IDX !== 'undefined' && IND_REF_IDX['esc2023miocEn'] ? 'si' : 'NO') + '/' +
+           (typeof IND_REF_IDX !== 'undefined' && IND_REF_IDX['esc2023mioc'] ? 'si' : 'NO'), 'si/si']);
+  ex.push(['(A7) el realce tardio y el aneurisma apical se LEEN del modulo',
+           (function () { const f = (n) => { const x = A.filas.filter(function (y) { return y.lbl.indexOf(n) === 0 })[0];
+             return x ? x.val : 'SIN'; };
+             return f('Realce tardío') + '/' + f('Aneurisma apical'); })(), 'Sí/Sí']);
+  /* CONTROL NEGATIVO de la compuerta: esta seccion NO es la de reduccion septal. */
+  limpiar();
+  pon('mch_espesor', '18'); pon('mch_grad_valsalva', '10'); pon('mch_sincope', 'si');
+  const SR = FN('_indMCH') ? FN('_indMCH')() : null;
+  ex.push(['(A8) CONTROL NEGATIVO: con el gradiente por debajo de 30 la de reduccion septal NO aplica y esta SI',
+           (SR ? 'APLICA' : 'no') + '/' + (leer().aplica ? 'si' : 'NO'), 'no/si']);
+
+  /* ── (B) los TRES estados ── */
+  limpiar();
+  pon('mch_espesor', '18'); pon('mch_grad_valsalva', '70'); pon('mch_sincope', 'si');
+  ex.push(['(B1) sin contestar nada, las tres marcas son «falta el dato»', leer().marcas, 'ask,ask,ask']);
+  try { _indClin['mch.scd.vida1a'] = 'si'; _indClin['mch.scd.evaldet'] = 'no'; } catch (e) {}
+  const B = leer();
+  ex.push(['(B2) los tres estados se distinguen', B.marcas, 'ask,warn,none']);
+  ex.push(['(B3) CONTROL NEGATIVO: la contestada «no» no entra en las presentes',
+           tiene(B.bal, 'Condiciones presentes en este paciente: 1 de 3') + tiene(B.bal, 'Sin contestar'), 'sisi']);
+
+  /* ── (C) EL PPT SIGUE PARADO, y aca se dice por que ── */
+  limpiar();
+  pon('mch_espesor', '18'); pon('mch_grad_valsalva', '70'); pon('mch_cf', 'iii_iv');
+  pon('mch_sam', 'si'); pon('mch_fam_ms', 'si'); pon('mch_sincope', 'si');
+  const cm = FN('mchConclusion') ? FN('mchConclusion')() : null;
+  ex.push(['(C0) DENOMINADOR: la conclusion de la MCH se emite de verdad', cm ? 'si' : 'NO', 'si']);
+  const papel = cm ? (cm.txt + ' ' + cm.resumen) : '';
+  ex.push(['(C1) el papel SIGUE diciendo la recomendacion de desfibrilador: la poda esta PARADA',
+           veces('desfibrilador', papel) > 0 ? 'la dice' : 'NO LA DICE', 'la dice']);
+  ex.push(['(C2) y sigue citando la AHA/ACC 2020, que es la fuente que NO esta en la biblioteca',
+           tiene(papel, 'AHA/ACC 2020'), 'si']);
+  const p = FN('_ccPptPodar') ? FN('_ccPptPodar')(cm ? (cm.resumen || cm.txt) : '') : { parado:'SIN FN', t:'' };
+  ex.push(['(C3) el podador la deja ENTERA, sin perder el recuento',
+           p.parado + '/' + (p.t === (cm.resumen || cm.txt) ? 'entera' : 'RECORTADA'), 'true/entera']);
+
+  /* ── (D) LO QUE SI CAMBIO: la mitad de la ESC ya vive en la Evidencia ── */
+  limpiar();
+  pon('mch_espesor', '18'); pon('mch_grad_valsalva', '70'); pon('mch_sincope', 'si');
+  const todo = JSON.stringify(leer().lin || []);
+  ex.push(['(D1) la recomendacion de desfibrilador de la ESC YA vive en la Evidencia',
+           veces('desfibrilador', todo) >= 5 ? 'si' : ('solo ' + veces('desfibrilador', todo)), 'si']);
+  ex.push(['(D2) con los dos umbrales del score y los dos hallazgos de la banda baja',
+           tiene(todo, 'del 6 % o más') + tiene(todo, 'entre el 4 % y el 6 %') +
+           tiene(todo, 'realce tardío extenso') + tiene(todo, 'por debajo del 50 %'), 'sisisisi']);
+  ex.push(['(D3) y la prevencion secundaria, que es la Clase I', tiene(todo, 'parada cardíaca'), 'si']);
+  /* CONTROL NEGATIVO: la seccion de reduccion septal sigue SIN la recomendacion, que es lo que
+     TC-563 (C2) mide y lo que hace que esas dos condiciones sigan siendo distintas. */
+  const sr2 = FN('_indMCH') ? JSON.stringify(FN('_indMCH')() || {}) : '';
+  ex.push(['(D4) CONTROL NEGATIVO: la seccion de reduccion septal sigue sin nombrarla',
+           veces('desfibrilador', sr2), 0]);
+
+  /* ── (E) CONTROL NEGATIVO de la compuerta ── */
+  limpiar();
+  ex.push(['(E1) CONTROL NEGATIVO: sin miocardiopatia cargada la seccion no aplica',
+           leer().aplica ? 'APLICA' : 'no', 'no']);
+
+  return { extra: EXP };
+  })();
+`);
 
 let servidor, chrome;
 try {

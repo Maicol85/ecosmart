@@ -210,3 +210,29 @@ mismo commit**: sin eso, el round-trip de un Excel exportado con «TGA completa 
 - Las fichas de los casos: `docs/mapa/tests-fichas-561.md`.
 - El experimento del bucle del PPT: `scripts/_exp_pptbucle.py` y
   `scripts/_exp_pptbucle_gen.mjs` → `docs/PENDIENTES.md` → `TGA-f`.
+
+---
+
+## La tanda TGA-2 (2026-10-31) — Jatene y Rastelli ya están publicados
+
+**`TGA-a` queda cerrado.** Los dos valores que esta tanda había parado entran al campo de cirugía,
+y lo que los hacía imposibles —que `tgaConclusion` abriera el informe firmado afirmando que el
+ventrículo derecho es el sistémico— se resolvió **por el lado del texto y no del campo**: con esas
+dos cirugías el papel describe y no interpreta.
+
+Lo que cambia de este mapa:
+
+- `TGA_CIR_VAL` tiene **cuatro** valores, y `TGA_CIR_LBL`, `TGA_CIR_XLS` y
+  `LAB_XLS_VOCAB.tga_cirugia` sus cuatro entradas.
+- **`TGA_CIR_OP` es nuevo y es el dueño único** de la traducción al vocabulario de la demo
+  (`auricular→mus`, `jatene→jat`, `rastelli→ras`). La condición `o !== 'auricular'` de
+  `tga3dEscena` ya no existe: con cuatro valores mandaba `jatene` y `rastelli` a la rama de la
+  d-TGA sin operar.
+- `tga3dEscena` tiene las ramas de la demo: `none` y `ras` comparten tronco y se separan por el
+  **color**; `jat` usa los trazados del corazón normal más cuatro elementos naranjas.
+- **La comparación con la demo da 30 de 30 iguales**, contra 20 de 30 en esta tanda:
+  `scripts/_probe_t2a_demo.mjs`. Este mapa dejó `scripts/_probe_tga2demo.mjs`, que **no se tocó**.
+- El título del acordeón y su párrafo pasan a redacción neutra, y la fila de función del VD
+  sistémico se esconde con esas dos cirugías.
+
+→ **`docs/mapa/t2-evidencia-congenitas.md`** § 1

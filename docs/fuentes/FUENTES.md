@@ -8228,3 +8228,268 @@ papel.** Es lo que deja la Parte B parada:
 **2 · Las cuatro comunicaciones de la demo YA existen en la app**, así que por la condición expresa
 de la orden no se agregó ninguna: CIA y CIV en `sacc-cc-shunt`, el foramen oval en `sacc-cc-fop` y
 el ductus en `sacc-cc-dap`.
+
+---
+
+# La tanda TGA-2 (2026-10-31) — la Evidencia de congénitas y la muerte súbita de la MCH
+
+Todo lo que sigue se leyó **EN IMAGEN a 220 ppp**. Ningún dato clínico de esta tanda sale de la
+memoria ni de una extracción de texto plano.
+
+## Las dos fuentes, y sus dos reglas de folio comprobadas en el pie impreso
+
+### 1 · ESC 2020 de cardiopatías congénitas del adulto, edición INGLESA
+
+`08_Cardiopatias_congenitas/ESC congenitos en ingles 2020.pdf` — Baumgartner H, De Backer J,
+Babu-Narayan SV, et al. *Eur Heart J* 2021;42(6):563-645. **84 hojas.**
+
+**Regla de folio: folio = hoja del PDF + 562.** Comprobada en el pie impreso de cuatro hojas:
+
+| hoja | folio impreso |
+|---|---|
+| 10 | 572 |
+| 42 | 604 |
+| 50 | 612 |
+| 60 | 622 |
+
+### 2 · ESC 2023 de miocardiopatías, edición INGLESA
+
+`11_Miocardiopatias/ehad194.pdf` — Arbelo E, Protonotarios A, Gimeno JR, et al.
+*Eur Heart J* 2023;44(37):3503-3626. **124 hojas.**
+
+**Regla de folio: folio = hoja del PDF + 3502.** Comprobada en el pie impreso:
+
+| hoja | folio impreso |
+|---|---|
+| 10 | 3512 |
+| 50 | 3552 |
+| 80 | 3582 |
+
+⚠️ **ES OTRA ENTRADA DEL REGISTRO, Y POR ESO SE AGREGÓ `esc2023miocEn`.** La entrada
+`esc2023mioc` que la app ya tenía describe la **traducción al español de la SEC**, cuyo folio sale
+de «hoja del PDF − 1». Citar los folios 3561 y 3562 bajo esa entrada mandaría al lector a otras
+páginas. Es el mismo criterio con el que el registro ya tiene dos entradas de la ESC 2020 de
+congénitas.
+
+---
+
+## ESC 2020 · TGA después del switch auricular — hoja 57, folio 619
+
+«Recommendations for intervention in transposition of the great arteries after atrial switch
+operation». **Once filas**, transcriptas una por una:
+
+| # | Recomendación (literal, traducida) | Clase | Nivel |
+|---|---|---|---|
+| **Indicaciones de intervención quirúrgica** ||||
+| 1 | En el paciente **sintomático** con obstrucción de la aurícula venosa pulmonar, se recomienda la reparación quirúrgica (la intervención por catéter rara vez es posible) | I | C |
+| 2 | En el paciente **sintomático** con estenosis del túnel no abordable por catéter, se recomienda la reparación quirúrgica | I | C |
+| 3 | En el paciente **sintomático** con fugas del túnel no abordables por cierre con catéter, se recomienda la reparación quirúrgica | I | C |
+| 4 | Con insuficiencia severa de la válvula auriculoventricular sistémica (tricúspide) y sin disfunción sistólica ventricular significativa (FE > 40 %), debe considerarse la reparación o el reemplazo valvular, **independientemente de los síntomas** | IIa | C |
+| 5 | El cerclaje de la arteria pulmonar en el adulto, como entrenamiento del ventrículo izquierdo con switch arterial posterior, **no se recomienda** | III | C |
+| **Indicaciones de intervención por catéter** ||||
+| 6 | En el paciente **sintomático** con estenosis del túnel, se recomienda el stent cuando es técnicamente factible | I | C |
+| 7 | En el paciente **sintomático** con fugas del túnel y cianosis en reposo o con el ejercicio, o con sospecha firme de embolia paradójica, se recomienda el stent cubierto o el cierre con dispositivo cuando es técnicamente factible | I | C |
+| 8 | Con fugas del túnel y síntomas debidos al cortocircuito izquierda-derecha, se recomienda el stent cubierto o el cierre con dispositivo cuando es técnicamente factible | I | C |
+| 9 | En el paciente **asintomático** con fugas del túnel y sobrecarga de volumen ventricular sustancial por el cortocircuito izquierda-derecha, debe considerarse el stent cubierto o el cierre con dispositivo cuando es técnicamente factible | IIa | C |
+| 10 | En el paciente con una fuga del túnel que necesita marcapasos o desfibrilador, debe considerarse cerrarla con un stent cubierto, cuando es técnicamente factible, **antes** de colocar los electrodos transvenosos | IIa | C |
+| 11 | En el paciente **asintomático** con estenosis del túnel, puede considerarse el stent cuando es técnicamente factible | IIb | C |
+
+## ESC 2020 · TGA después del switch arterial — hoja 58, folio 620
+
+«Recommendations for intervention in transposition of the great arteries after arterial switch
+operation». **Tres filas:**
+
+| # | Recomendación | Clase | Nivel |
+|---|---|---|---|
+| 1 | Se recomienda el stent o la cirugía, según el sustrato, para la **estenosis coronaria que causa isquemia** | I | C |
+| 2 | Debe considerarse la **cirugía de la raíz neoaórtica** cuando ésta supera los **55 mm**, con talla adulta media. Para el reemplazo de la válvula neoaórtica por insuficiencia severa, remite a las guías de valvulopatías «con consideraciones especiales» | IIa | C |
+| 3 | Debe considerarse el **stent de una rama pulmonar**, independientemente de los síntomas, si hay **más del 50 %** de reducción del diámetro **y** una presión sistólica del ventrículo derecho **por encima de 50 mmHg** o una perfusión pulmonar reducida atribuible | IIa | C |
+
+Nota al pie c: «al aplicar la guía ESC/EACTS 2017 de valvulopatías para decidir operar, hay que
+tener en cuenta que se trata de una reoperación y es técnicamente más difícil».
+
+## ESC 2020 · Rastelli — hoja 58, folio 620 (apartado 4.12.4.3)
+
+Texto del cuerpo, **no tabla**: «Si el cortocircuito izquierda-derecha a través de una CIV residual
+causa síntomas o una sobrecarga de volumen sustancial del ventrículo izquierdo, debe realizarse
+tratamiento quirúrgico o por catéter (**recomendación I C**)». Para la estenosis del conducto,
+remite al apartado 4.14.
+
+El apartado **4.14.1** (hoja 60, folio 622) nombra el **procedimiento de Rastelli** entre los
+defectos complejos que llevan conducto entre el ventrículo derecho y la arteria pulmonar, que es lo
+que hace que la tabla de abajo sea la que gobierna su conducto.
+
+## ESC 2020 · Conducto ventrículo derecho-arteria pulmonar — hoja 60, folio 622
+
+«Recommendations for intervention in right ventricular to pulmonary artery conduits». **Dos filas:**
+
+| # | Recomendación | Clase | Nivel |
+|---|---|---|---|
+| 1 | El paciente **sintomático** con presión sistólica del ventrículo derecho **> 60 mmHg** (puede ser menor si el flujo está reducido) o con **insuficiencia pulmonar severa**^c debe intervenirse, con preferencia por la vía percutánea (TPVI) si es anatómicamente factible | I | C |
+| 2 | El paciente **asintomático** con obstrucción severa del tracto de salida del ventrículo derecho o insuficiencia pulmonar severa debe considerarse para intervención, preferentemente por catéter si es anatómicamente factible, cuando hay **al menos uno** de: caída de la capacidad de ejercicio objetivada (CPET); dilatación progresiva del VD a VTSVDi ≥ 80 mL/m² o VTDVDi ≥ 160 mL/m², o progresión de la insuficiencia tricuspídea a moderada o más; deterioro progresivo de la función sistólica del VD; presión sistólica del VD > 80 mmHg | IIa | C |
+
+Nota al pie c: «fracción regurgitante por resonancia > 30-40 %».
+
+## ESC 2020 · Transposición congénitamente corregida — hoja 59, folio 621
+
+«Recommendations for intervention in congenitally corrected transposition of the great arteries».
+**Cuatro filas:**
+
+| # | Recomendación | Clase | Nivel |
+|---|---|---|---|
+| 1 | En el paciente **sintomático** con insuficiencia tricuspídea severa y función sistólica del VD sistémico conservada o levemente deprimida (**FE > 40 %**), **está indicado** el reemplazo de la válvula tricúspide | I | C |
+| 2 | En el paciente **asintomático** con insuficiencia tricuspídea severa y dilatación progresiva del VD sistémico o función sistólica levemente deprimida (**FE > 40 %**), debe considerarse el reemplazo | IIa | C |
+| 3 | Debe considerarse la **estimulación biventricular** ante bloqueo auriculoventricular completo o un requerimiento de estimulación ventricular **> 40 %** | IIa | C |
+| 4 | En el paciente **sintomático** con insuficiencia tricuspídea severa y función sistólica del VD sistémico deprimida **más que levemente** (**FE ≤ 40 %**), puede considerarse el reemplazo | IIb | C |
+
+## ESC 2020 · Seguimiento de la TGA y de la ccTGA
+
+- **4.12.5** (hoja 58, folio 620), literal: «Todos los pacientes con TGA, cualquiera sea el tipo de
+  operación, deben verse al menos una vez al año en un centro especializado en cardiopatías
+  congénitas del adulto, con atención a los problemas específicos descritos previamente». **Sin
+  clase**: es texto del cuerpo.
+- **4.12.6** (hoja 58, folio 620): ejercicio, embarazo y profilaxis de endocarditis **se remiten** a
+  los apartados 3.4.6, 3.5.5 y 3.5.7. **No hay recomendación propia de la transposición**, y por eso
+  el panel lo dice en vez de inventar una.
+- **4.13.6** (hoja 60, folio 622), literal: «Los pacientes con ccTGA necesitan seguimiento de por
+  vida en un centro especializado en cardiopatías congénitas del adulto, a intervalos anuales, en
+  particular por los trastornos de conducción y la disfunción del ventrículo subaórtico y de su
+  válvula auriculoventricular».
+
+⚠️ **LA GUÍA NO PUBLICA NINGUNA TABLA DE INTERVENCIÓN PARA LA d-TGA NO OPERADA DEL ADULTO.** Las
+tres situaciones que trata en el adulto son el switch auricular (4.12.2), el switch arterial
+(4.12.3) y el Rastelli (4.12.4). Censado sobre las 84 hojas: no hay otra tabla de recomendaciones
+de transposición. Es un hallazgo, no un olvido, y el panel lo dice.
+
+## ESC 2020 · Comunicación interauricular — hoja 30, folio 592
+
+«Recommendations for intervention in atrial septal defect (native and residual)». **Nueve filas:**
+
+| # | Recomendación | Clase | Nivel |
+|---|---|---|---|
+| 1 | Con **sobrecarga de volumen del VD**^c y **sin** hipertensión arterial pulmonar (sin signos no invasivos de PAP elevada, o con RVP **< 3 UW** confirmada por cateterismo si los hay) ni enfermedad del VI, se recomienda el cierre **independientemente de los síntomas** | I | **B** |
+| 2 | El **cierre con dispositivo** se recomienda como método de elección para el **ostium secundum** cuando es técnicamente adecuado | I | C |
+| 3 | En el paciente de **edad avanzada** no apto para el cierre con dispositivo, se recomienda sopesar con cuidado el riesgo quirúrgico contra el beneficio | I | C |
+| 4 | Con signos no invasivos de PAP elevada, la **medición invasiva de la RVP es obligatoria** | I | C |
+| 5 | Con **enfermedad del VI**, se recomienda hacer el **test con balón** y sopesar el beneficio de eliminar el cortocircuito contra el efecto negativo del cierre por el aumento de la presión de llenado, considerando cierre, cierre fenestrado y no cierre | I | C |
+| 6 | Ante **sospecha de embolia paradójica** (excluidas las otras causas), debe considerarse el cierre **independientemente del tamaño**, si no hay HAP ni enfermedad del VI | IIa | C |
+| 7 | Con **RVP 3-5 UW**, debe considerarse el cierre cuando hay cortocircuito izquierda-derecha significativo (**Qp:Qs > 1,5**) | IIa | C |
+| 8 | Con **RVP ≥ 5 UW**, puede considerarse el **cierre fenestrado** cuando la RVP baja de 5 UW tras el tratamiento dirigido de la HAP y persiste Qp:Qs > 1,5 | IIb | C |
+| 9 | El cierre **no se recomienda** en fisiología de Eisenmenger, con HAP y RVP ≥ 5 UW pese al tratamiento dirigido, o con desaturación en el ejercicio^d | III | C |
+
+Nota al pie **c**: «agrandamiento del VD con volumen latido aumentado».
+Nota al pie **d**: «hay pocos datos para un corte preciso, pero por experiencia clínica sería una
+caída de la saturación arterial de oxígeno < 90 %».
+
+**Seguimiento, apartado 4.1.6 (hoja 31, folio 593):** control del cortocircuito residual, tamaño y
+función del VD, insuficiencia tricuspídea y PAP por ecocardiografía, y arritmias por historia, ECG
+y —sólo si está indicado— Holter. El reparado antes de los 25 años sin secuelas ni residuos
+relevantes no necesita seguimiento regular, aunque paciente y médico deben saber de las
+taquiarritmias tardías. Con cortocircuito residual, PAP elevada o arritmias —antes o después de la
+reparación— y el reparado en la edad adulta (en particular > 40 años), seguimiento regular con
+evaluación en centros especializados. Tras el cierre con dispositivo, control regular los dos
+primeros años y después cada 3-5 años.
+
+## ESC 2020 · Comunicación interventricular — hoja 33, folio 595
+
+«Recommendations for intervention in ventricular septal defect (native and residual)». **Seis
+filas:**
+
+| # | Recomendación | Clase | Nivel |
+|---|---|---|---|
+| 1 | Con **sobrecarga de volumen del VI**^c y **sin** HAP (sin signos no invasivos de PAP elevada, o RVP **< 3 UW** confirmada por cateterismo si los hay), se recomienda el cierre **independientemente de los síntomas** | I | C |
+| 2 | **Sin** cortocircuito significativo pero con **episodios repetidos de endocarditis**, debe considerarse el cierre | IIa | C |
+| 3 | Con **prolapso de una valva aórtica** asociado al defecto que causa **insuficiencia aórtica progresiva**, debe considerarse la cirugía | IIa | C |
+| 4 | Con HAP y **RVP 3-5 UW**, debe considerarse el cierre si persiste Qp:Qs > 1,5 | IIa | C |
+| 5 | Con HAP y **RVP ≥ 5 UW**, puede considerarse el cierre si persiste Qp:Qs > 1,5, **pero exige una decisión individual cuidadosa en un centro experto** | IIb | C |
+| 6 | El cierre **no se recomienda** en fisiología de Eisenmenger ni con HAP severa (RVP ≥ 5 UW) que se presenta con desaturación en el ejercicio^d | III | C |
+
+Notas al pie **c** y **d**: idénticas a las de la CIA.
+
+**Seguimiento, apartado 4.2.5 (hoja 33, folio 595):** excluir o valorar por ecocardiografía la
+aparición de insuficiencia aórtica o tricuspídea, el grado del cortocircuito residual, la
+disfunción del VI, la elevación de la PAP y la aparición de un ventrículo derecho de doble cámara.
+Atención al bloqueo auriculoventricular completo: el que desarrolla bloqueo bifascicular o
+trifascicular transitorio tras el cierre queda en riesgo en años posteriores. Con defecto residual
+más que pequeño, lesiones valvulares o repercusión hemodinámica, control anual con evaluación en
+centros especializados. Con defecto pequeño (nativo o residual, VI y PAP normales, asintomático) y
+sin otra lesión, intervalos de 3-5 años pueden ser razonables. Tras el cierre con dispositivo,
+control regular los dos primeros años y después cada 2-5 años; tras el cierre quirúrgico sin
+anomalía residual, intervalos de 5 años.
+
+⚠️ **LA DIVERGENCIA DE LA CIV NO SE RESOLVIÓ, Y ESTA TRANSCRIPCIÓN LA HACE VISIBLE.** La entrada
+`escGuchCiv` del registro de citas declara desde antes de esta tanda que el criterio que la app
+aplica no es el de esta tabla —la guía indica el cierre por sobrecarga de volumen del VI sin HAP
+con independencia de los síntomas; su Qp/Qs es «> 1,5» y sólo dentro de los escenarios con HAP
+establecida; y el corte de DDVI indexado > 32 mm/m² **no figura en el documento**—. Corregirlo es
+contenido clínico y es decisión del médico.
+
+## ESC 2023 de miocardiopatías · prevención de muerte súbita en la MCH — hojas 59 y 60, folios 3561 y 3562
+
+«Recommendation Table 23 — Additional recommendations for prevention of sudden cardiac death in
+patients with hypertrophic cardiomyopathy». **Nueve filas:**
+
+| # | Recomendación | Clase | Nivel |
+|---|---|---|---|
+| **Prevención secundaria** ||||
+| 1 | Se recomienda implantar un desfibrilador en el paciente que **sobrevivió a una parada cardíaca** por taquicardia o fibrilación ventricular, o que tuvo **taquicardia ventricular sostenida espontánea con compromiso hemodinámico** | I | B |
+| **Prevención primaria** ||||
+| 2 | La **calculadora HCM Risk-SCD** se recomienda para estimar el riesgo de muerte súbita a 5 años en el paciente de **16 años o más** | I | B |
+| 3 | Los **modelos pediátricos validados** (p. ej. HCM Risk-Kids) se recomiendan en el **menor de 16 años** | I | B |
+| 4 | Se recomienda estimar el riesgo a 5 años en la **primera evaluación** y reevaluarlo **cada 1 o 2 años**, o cuando cambie la situación clínica | I | B |
+| 5 | Debe considerarse el desfibrilador con riesgo estimado a 5 años **≥ 6 %**, tras una evaluación clínica detallada que considere (i) el riesgo de complicaciones de por vida; (ii) el riesgo de mortalidad competitiva por la enfermedad y las comorbilidades; **Y** (iii) el impacto del desfibrilador en el estilo de vida, la situación socioeconómica y la salud psicológica | IIa | B |
+| 6 | Con **aneurisma apical del VI**, debe considerarse decidir el desfibrilador de prevención primaria con el HCM Risk-SCD o un modelo pediátrico validado, **y no sólo por la presencia del aneurisma** | IIa | B |
+| 7 | Puede considerarse el desfibrilador en pacientes concretos con riesgo estimado a 5 años **≥ 4 % y < 6 %**, tras la misma evaluación clínica detallada | IIb | B |
+| 8 | En la banda de **bajo riesgo (< 4 %)**, la presencia de **realce tardío extenso (≥ 15 %)** en la resonancia puede considerarse en una decisión compartida, reconociendo que faltan datos sólidos sobre el efecto de cuantificar la cicatriz en la estimación personalizada | IIb | B |
+| 9 | En la banda de **bajo riesgo (< 4 %)**, la presencia de **FEVI < 50 %** puede considerarse en una decisión compartida, con la misma salvedad | IIb | B |
+
+**La Figura 16** (hoja 59, folio 3561), en su cuadro de prevención secundaria, agrega la condición
+**«expectativa de vida ≥ 1 año»**.
+
+⚠️ **EL MISMO DOCUMENTO ESCRIBE EL UMBRAL DEL REALCE DE DOS FORMAS.** La fila 8 de la tabla dice
+**«≥ 15 %»** y la nota a de la Figura 16 dice **«> 15 %»**. Se usa el de la tabla, que es la
+recomendación, y la discrepancia queda dicha en las notas de la sección. **No se corrige nada**: es
+una discrepancia de la fuente, no de la app.
+
+---
+
+## Cambios de evidencia
+
+| # | Qué cambió | Dónde | Fuente |
+|---|---|---|---|
+| 1 | El informe y el EN SUMA de la d-TGA operada con **Jatene** o con **Rastelli** dejan de afirmar que el ventrículo derecho es el sistémico y dejan de publicar conducta | `tgaConclusion`, `ccSumaLinea('tga')` | decisión del médico, 31/10/2026 |
+| 2 | Tres campos de esa sección (`tga_func_vd`, `vd_bas`, `it_grado`) dejan de publicarse con esas dos cirugías | ídem | ídem · declarado en **TGA2-a** |
+| 3 | El bloqueo AV se publica **sin** la cláusula «complicación esperable en la ccTGA» | ídem | ídem |
+| 4 | El título del acordeón y su párrafo pasan a redacción neutra | pantalla de la TGA | ídem · declarado en **TGA2-b** |
+| 5 | **Sección nueva** del panel: «Transposición de grandes arterias — indicaciones y seguimiento», 11/3/4/4 recomendaciones según la cirugía, más las generales, y 7/4/6/3 preguntas | `_indTGA` | ESC 2020, hojas 57 a 60, folios 619 a 622 |
+| 6 | El panel dice que la guía **no publica tabla** para la d-TGA no operada del adulto | ídem | ESC 2020, apartados 4.12.2 a 4.12.4 |
+| 7 | El panel dice que el ejercicio, el embarazo y la profilaxis **no tienen recomendación propia** de la transposición | ídem | ESC 2020, apartado 4.12.6, hoja 58, folio 620 |
+| 8 | La Evidencia de la **CIA** publica las nueve filas de su tabla con clase y nivel, agrupadas, y nueve preguntas de tres estados | `_indCIA` | ESC 2020, hoja 30, folio 592 |
+| 9 | Su **seguimiento** entra como bloque propio | ídem | ESC 2020, apartado 4.1.6, hoja 31, folio 593 |
+| 10 | La escalera de resistencias de la CIA sale de la prosa de `notas` y pasa al bloque visible | ídem | ídem — **no cambió ningún número** |
+| 11 | La Evidencia de la **CIV** publica las seis filas de su tabla con clase y nivel, y siete preguntas | `_indCIV` | ESC 2020, hoja 33, folio 595 |
+| 12 | Su **seguimiento** entra como bloque propio | ídem | ESC 2020, apartado 4.2.5, hoja 33, folio 595 |
+| 13 | **Sección nueva** del panel: «Miocardiopatía hipertrófica — prevención de muerte súbita», nueve recomendaciones y tres preguntas | `_indMCHSCD` | ESC 2023, Tabla 23, hojas 59 y 60, folios 3561 y 3562 |
+| 14 | **Entrada nueva del registro de citas**: `esc2023miocEn`, la edición inglesa de la ESC 2023 de miocardiopatías, con su regla de folio | `IND_REFS` | — |
+| 15 | El panel declara que el umbral del realce se escribe de dos formas en el mismo documento | `_indMCHSCD`, notas | ESC 2023, Tabla 23 contra Figura 16 |
+
+**Lo que NO cambió**: ni un corte, ni un umbral, ni un rótulo de grado, ni una frase del informe
+fuera de las de la fila 1 a 4. El criterio de la CIV sigue siendo el de la app, con su divergencia
+declarada. Los cortes de la CIA, de la TGA y del score de la MCH no se tocaron.
+
+## Notas de trabajo
+
+### Censo de la carpeta 08, que la orden pide reportar
+Lo que hay está en `docs/PENDIENTES.md` → **TGA2-d**. En una línea: además de la ESC 2020 que se
+usó, está la **ACC/AHA/HRS/ISACHD/SCAI 2025** de congénitas del adulto (*Circulation*
+2026;153:e115-e251, 137 hojas, dos copias y un resumen), que **no se leyó ni se citó**.
+
+### Censo de la carpeta 11, y la fuente que falta
+La **AHA/ACC 2020** de miocardiopatía hipertrófica **no está**. Lo que hay es la de **2024** (Ommen
+y cols., *Circulation* 2024;149:e1239-e1311). Por eso la poda del PPT de la Parte C quedó PARADA →
+**TGA2-c**.
+
+### El documento de estudio de la carpeta 08 se usó SOLO como índice
+`Estudio/Tratamiento_08_Cardiopatias_congenitas_del_adulto.docx` no se cita en ninguna parte, que
+es lo que la orden manda. De hecho esta tanda ni lo abrió: las hojas se ubicaron buscando los
+títulos de las tablas en el texto del propio PDF y después se leyeron **en imagen**.
