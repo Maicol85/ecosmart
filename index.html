@@ -30197,9 +30197,16 @@ window.vexusCobertura = vexusCobertura;
    SALVEDAD descriptiva —dice cuando el patron enganya—, no una conducta; y la cita de
    Beaubien-Souligny es una cita descriptiva, que el punto 6b deja para que la decida el medico.
    Las dos quedan listadas en el reporte y en `docs/PENDIENTES.md` → AJ2-c. */
+/* ⚠️ LA CITA BIBLIOGRAFICA SALIO DE ACA (IMG3-8, decision del medico del 2026-10-31). Decia
+   «Graduación de Beaubien-Souligny et al., Ultrasound J 2020;12(1):16.» y viajaba al informe y
+   a la hoja del PDF: el papel describe, y una referencia bibliografica no describe a este
+   paciente. No se pierde — vive entera en `IND_REFS.vexus2020`, con su DOI, su figura y su
+   lectura en imagen, y es la que el panel de Evidencia cita en sus cinco filas de VExUS.
+   ⚠️ LA SALVEDAD SE QUEDA, y es lo que la orden manda: dice cuando el patron enganya, o sea
+   que describe una limitacion de la medicion de ESTE estudio. */
 const VEXUS_SALVEDAD = 'Los patrones venosos '
   + 'también se alteran, sin que haya congestión, en fibrilación auricular y en ventilación '
-  + 'mecánica. Graduación de Beaubien-Souligny et al., Ultrasound J 2020;12(1):16.';
+  + 'mecánica.';
 window.VEXUS_SALVEDAD = VEXUS_SALVEDAD;
 
 /* Estado del score leído del formulario en pantalla. */
@@ -104947,6 +104954,14 @@ const PPT_PPTX_PISO_BYTES = 150 * 1024;    // el mazo sin videos, redondeado hac
    filtro el mismo video saldría dos veces — como foto muda en la grilla y como video en su
    diapositiva. Lo que sí va a la grilla es el cuadro que se captura a mano, que ocupa otro slot
    y no lleva `videoId`. */
+/* Saca el nombre de la SOCIEDAD del final de un rotulo antes de que entre al PPT. Se usa en UN
+   solo lugar —el rotulo de la funcion diastolica— y por eso la expresion puede ser simple: lo
+   que recorta es «— ASE 2025», «(ASE 2025)», «— BSE 2024» y «— ASE/EACVI 2016», que son las
+   formas que `badgeTxt` arma. No toca el medio de la frase. */
+const _PPT_GUIA_RE = /\s*[—-]\s*(?:ASE|BSE|EACVI)[^()]*$|\s*\((?:ASE|BSE|EACVI)[^()]*\)\s*$/;
+function _pptSinGuia(t) { return String(t == null ? '' : t).replace(_PPT_GUIA_RE, '').trim(); }
+window._pptSinGuia = _pptSinGuia;
+
 function _pptEsImagen(s) { return !!(s && s.dataURL && !s.videoId && _imgSrcOK(s.dataURL)); }
 
 /* Lee las imágenes del estudio a exportar. Devuelve `null` si NO se pudieron leer —distinto de
@@ -105613,7 +105628,16 @@ function _pptDesdeFormulario(inf, tema, presentador){
     /* La VRT es el CUARTO criterio de la diastolica (ASE 2016) y no estaba en la hoja: sin
        ella la tabla muestra tres de los cuatro parametros que el grado usa. */
     fila(IZQ,'VRT', _pptNum('vmax_it'), ' m/s');
-    fila(IZQ,'Función diastólica', _pptSpan('dd-interp'));
+    /* ⚠️ SIN EL NOMBRE DE LA GUIA (IMG3-8). El rotulo de pantalla llega como «Incompleto — ASE
+       2025», y el PPT describe lo hallado y lo medido: el estado se queda y la guia se va.
+       MEDIDO, Y POR ESO SE SACA EN EL EMISOR Y NO EN UNA ETIQUETA: el mismo span publica NUEVE
+       rotulos —«DD Grado I — ASE 2025», «Indeterminado — ASE 2025», «Datos insuficientes — ASE
+       2025», y los demas— asi que sacarlo de uno solo dejaria el mismo PPT citando la guia en
+       ocho de las nueve escenas. La orden nombra «Incompleto — ASE 2025»; esto aplica el mismo
+       principio al unico lugar por el que los nueve pasan al papel, y queda reportado.
+       LA PANTALLA NO SE TOCA: `#dd-interp` sigue diciendo lo mismo, y el ⓘ y la Evidencia de la
+       diastolica siguen citando la ASE 2025 con su folio. */
+    fila(IZQ,'Función diastólica', _pptSinGuia(_pptSpan('dd-interp')));
     grupo(IZQ,'Doppler / función diastólica', n);
 
     n = DER.length;
@@ -143303,8 +143327,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261031-0403';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793430202480;                 /* eco-build-ms */
+const ECO_BUILD    = '20261031-0413';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793430811290;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -143390,7 +143414,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261031-0403</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261031-0413</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
