@@ -489,3 +489,24 @@ Y la ficha de Referencias de cardio-oncología ya no tiene el −18 y el −16 t
 `sglCortesPintar` desde sus constantes.
 
 → **`docs/mapa/aj9-sgl-patrones.md`** § 6
+
+---
+
+## § 9 · La tanda «D2» (2026-10-30) — la Tabla 4 entera, las tablas HFA-ICOS y el monitoreo — puntero
+
+**SIN FÁRMACO LA CALCULADORA YA NO CLASIFICA**: la Tabla 4 tiene una columna por fármaco, así que
+sin fármaco no hay columna que aplicar. El dueño es `hfaicosEstado().clasifica`, que apaga además
+`derivacion` y `seguimiento`. El mensaje es de pantalla y **no llega al papel**.
+
+**LAS SEIS COLUMNAS ESTÁN APLICADAS** —anti-VEGF, BCR-ABL, mieloma múltiple y RAF/MEK se sumaron
+a las dos que la tanda D había hecho—, con sus cinco filas de edad repartidas por columna. El
+selector ganó dos opciones **sin un campo guardado ni una columna de Excel nuevos**. Cierra
+**D-b**.
+
+**LAS TABLAS A Y C DE HFA-ICOS SE DIBUJAN DESDE EL MISMO DUEÑO QUE CLASIFICA**; la B no se tocó y
+se declara no vinculante. Cierra **D-c**.
+
+**EL MONITOREO DE INMUNOTERAPIA Y ANTI-VEGF** se corrigió en sus **tres** copias, con el detalle
+en el globo `co-monitoreo`. Cierra **D-g**.
+
+→ **`docs/mapa/d2-cardioonco-tabla4.md`**

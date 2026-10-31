@@ -104,6 +104,7 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Tocar el PANEL EN LÍNEA de la vista 2D**: el botón que prende y apaga, el apagado automático, la sincronía en vivo, el alto del dibujo o la línea de fase | `docs/mapa/vista-2d-en-linea.md` |
 | **Orientarse en otro módulo** (Congénitas, Laboratorio, PPT, Cardio-Onco, Pericardio) | `docs/mapa/congenitas-otros.md` |
 | **Tocar algo que la tanda C1 movió** (28/10): los cuatro rótulos de VExUS contra la Figura 7 de Rola 2021 y su Evidencia sin conducta por grado, la casilla de HTP que dice «sin evaluar», los tres mensajes del Forrester con su dueño único, la RVS leyendo `pamEfectiva` con el origen de sus insumos, el POCUS del posoperatorio viendo el `vd_vi` de VD/AD, o el DIAGRAMA DE FORRESTER de la pestaña de Hemodinámica con sus dos cortes | `docs/mapa/c1-hemodinamica.md` |
+| **Tocar la CALCULADORA DE RIESGO CV de cardio-oncología —la Tabla 4 y sus seis columnas, las filas de edad, la casilla sin fármaco—, las TRES TABLAS de la sub-pestaña HFA-ICOS o el MONITOREO de inmunoterapia y anti-VEGF** | `docs/mapa/d2-cardioonco-tabla4.md` |
 | **Tocar la HEMODINÁMICA, la CARDIO-ONCOLOGÍA, el SCORE DE AMILOIDOSIS o la ficha de ECO PULMONAR**: los tres ⓘ del índice cardíaco, la RVS y el Forrester; las dos ramas de RVS baja; el seguimiento tras radioterapia; las etiquetas del score que salieron; las TRES Evidencias nuevas o la ficha `ref-pulmon` | `docs/mapa/j2-hemo-onco-amiloide-pulmon.md` |
 | **Tocar el DERRAME y el TAPONAMIENTO, la CONSTRICCIÓN vs RESTRICCIÓN o VEXUS**: la fase y la duración del colapso de la aurícula derecha, los DOS cortes de plétora de VCI de la app, el aviso invasivo retirado, el cociente de la vena suprahepática, los dos operadores de VCI de VExUS o las tres Evidencias nuevas | `docs/mapa/j-pericardio-constriccion-vexus.md` |
 | **Saber DÓNDE ESTÁ una pantalla**: la columna izquierda y la fila de arriba, Pericardio y masas, las dos sub-pestañas de Otros, el eco pulmonar unificado, Calculadoras dentro de Referencias, C. Congénitas, el Fonocardiograma retirado o la frase de Balik | `docs/mapa/pestanas-reorganizacion.md` |
@@ -2860,3 +2861,163 @@ línea: el archivo creció y un informe de auditoría viejo apunta a otro archiv
   mapa volvió a **18,3 KB**. Cero líneas perdidas, movidas byte por byte. Es la primera vez en
   cinco tandas que la regla se aplica **antes** de cruzar el techo. Quedan esperando
   `congenitas-otros.md` (34,5 KB) y `panel-evidencia.md` (34,1 KB) → **AO2-g**.
+
+### La calculadora sin fármaco, las seis columnas de la Tabla 4 y el monitoreo — «D2» (2026-10-30)
+
+- **CINCO commits, y los cuatro de código se hicieron enteros.** `1866fd2` (D2-1) · `f973566`
+  (D2-2) · `1c03919` (D2-3) · `8c198a8` (D2-4) · el de cobertura y documentación. Sello
+  **`v20261030-2056`**, md5 de `index.html` **`ce4dd1ac`**. Al empezar, `origin/main` = `HEAD` =
+  **`5cc2a36`**, el cierre de la tanda AORTA-2, ya publicado, con el pendrive `DISK_IMG` montado
+  y listando nombres reales. **El push lo corre Maicol: esta tanda tenía orden expresa de NO
+  pushear.**
+
+- **LAS CUATRO FUENTES SE LEYERON EN IMAGEN, Y EL FOLIO SE COMPROBÓ EN EL PIE IMPRESO DE SIETE
+  HOJAS.** Guía ESC 2022 de cardio-oncología (Lyon y cols., *Eur Heart J* 2022;43:4229-4361),
+  edición **inglesa**, 133 hojas, **folio = hoja + 4228**: **Tabla 4** en las hojas 18 y 19,
+  folios **4246** y **4247**, con sus **seis** columnas celda por celda a 420 ppp;
+  **Recomendaciones-tabla 10** en la hoja 36, folio **4264**; **Figura 20** en la hoja 45, folio
+  **4273**; y **Recomendaciones-tabla 1** en la hoja 21, folio **4249**.
+  **Las seis columnas coinciden una por una con lo transcripto en `docs/PENDIENTES.md` → D-b**,
+  así que no hubo que parar ningún fármaco.
+
+- **EL DEFECTO MÁS GRANDE QUE CERRÓ, EN UNA LÍNEA: con el selector de fármaco vacío, la
+  calculadora clasificaba igual.** Medido en HEAD antes de tocar nada: una hipertensión sola salía
+  «Riesgo MEDIO (1/13 pts)» y tres factores «Riesgo ALTO (3/13 pts)», con su línea de derivación,
+  en la cápsula **y** en `co-riesgo-resultado`; y el informe **firmado** de un estudio integrado
+  publicaba «puntaje 2/13 puntos — riesgo alto» sobre un paciente sin tratamiento elegido. La
+  Tabla 4 tiene una columna **por fármaco**: sin fármaco no hay columna que aplicar.
+
+- **EL MENSAJE NUEVO NO LLEGA AL PAPEL, Y NINGUNA CADENA NUEVA TAMPOCO.**
+  `hfaicosPublicarBasal` publica la **misma** pastilla gris que ya usaba sin datos, y
+  `hfaicosTexto` se calla la oración de la categoría, la derivación, el calendario y la línea de
+  «clasificación orientativa», dejando las frases descriptivas que ya existían palabra por
+  palabra.
+
+- ⚠️ **EL A/B DEL COMMIT 2 DESTAPÓ UN DEFECTO DE ESE MISMO COMMIT.** `hfaicosTexto` nombraba la
+  columna con un **ternario binario**, cierto mientras las columnas aplicadas fueran dos: con las
+  seis, el informe **firmado** de un paciente con mieloma múltiple decía «según la tabla … para
+  **terapias dirigidas contra HER2**». Lo encontró la escena `f_mieloma_bnp`. Hoy el nombre sale
+  de una tabla por columna.
+
+- ⚠️ **LA CASILLA DE ANTECEDENTE CORONARIO SON TRES FILAS DE LA TABLA, Y EN CUATRO COLUMNAS NO
+  VALEN LO MISMO.** «Severe VHD», «MI or PCI or CABG» y «Stable angina»: con antraciclinas y
+  anti-HER2 las tres son H —por eso nada se movió—, con BCR-ABL y mieloma las tres son «–», con
+  RAF/MEK las tres son H, **y con anti-VEGF son –, VH y VH**. Se aplica el **mayor**, que es el
+  lado seguro y el mismo criterio que la nota al pie g. **El precio, declarado: con anti-VEGF, un
+  paciente cuyo único antecedente sea una valvulopatía severa se clasifica muy alto.** Partir la
+  casilla agregaría campos guardados → **D2-a**.
+
+- **DOS FÁRMACOS NUEVOS EN EL SELECTOR SIN UN CAMPO GUARDADO NI UNA COLUMNA DE EXCEL.** `mieloma`
+  y `raf_mek` no tenían dónde caer. `co_farmaco` y la columna «Fármaco cardiotóxico» ya existían:
+  lo que se agrega son dos **valores** al vocabulario, en el mapa de etiquetas **y** en el inverso
+  del importador, que es lo que mantiene vivo el round-trip. Medido: **Excel 440 → 440 columnas
+  con las mismas claves** y **censo 946 → 946 ids con el mismo juego**.
+
+- **LAS TABLAS A Y C DE HFA-ICOS SE DIBUJAN DESDE EL MISMO DUEÑO QUE CLASIFICA** (cierra **D-c**).
+  La A publicaba doce factores con puntos **fijos** iguales para todos los fármacos y la C
+  clasificaba con «≥4 puntos de la sección A **o** fármaco de muy alto riesgo», que es el piso por
+  fármaco que la Tabla 4 no tiene. **Ejemplo medido:** un paciente con hipertensión y nada más,
+  con un anti-VEGF, leía «1 punto → Medio» en A+C y la calculadora dos tarjetas más arriba decía
+  **ALTO**. Hoy `coT4RefPintar()` las arma desde `coT4Pesos()`, `_coT4Edad()` y `_CO_T4_CORTES`:
+  **66 celdas, cero discrepancias con el dueño.** **La tabla B no se tocó y se reporta**: agrupar
+  fármacos en bandas no tiene equivalente en la Tabla 4 → **D2-b**.
+
+- ⚠️ **LAS DOS FILAS DE MONITOREO NO ESTABAN EN UN LUGAR: ESTABAN EN TRES**, cada una con su
+  propia versión y las tres distintas —y la intro de una afirmaba ser «la MISMA columna» de otra
+  cuando no lo era—. Se corrigieron las **tres** (cierra **D-g**): dejar dos contradiciendo a la
+  que se arregla es el defecto que esta pestaña ya pagó con sus tablas estáticas. → **D2-f**.
+
+- **EL PUNTO 4b, VERIFICADO Y SIN TOCAR NADA: la derivación SÍ sigue la categoría de la guía.**
+  Releída en imagen la Recomendaciones-tabla 1: riesgo bajo «proceed … without delay» (I · C) y la
+  app no muestra acción; moderado «may be considered» (IIb · C); alto y muy alto «is recommended …
+  before anticancer therapy» (I · C). Las clases ya vivían en el globo.
+
+- **DOS MUTACIONES SOBREVIVIERON AL PRIMER BARRIDO, Y LAS DOS ERAN COBERTURA QUE FALTABA.** La 05
+  porque apagar la derivación en el dueño es **redundante** con las salidas tempranas de los dos
+  pintores —se cerró preguntándole al dueño, que es donde vive el contrato—; y la 15 porque el
+  control negativo del monitoreo corría sobre una escena **sin el módulo integrado**, donde nada
+  de cardio-oncología baja al informe: un control que no podía fallar. **15/15 muertas** tras
+  cerrarlas, en worktree y nunca sobre el vivo, con guarda de md5.
+
+- ⚠️ **EL ACENTO GRAVE DENTRO DE MI PROPIO COMENTARIO COSTÓ DOS CORRIDAS, Y `check_backticks.py`
+  NO CAZÓ NINGUNA.** Las dos veces fue un identificador entre acentos graves dentro del comentario
+  de un caso. **Lo que sirve es `node --check`.** Es la sexta tanda seguida que lo paga.
+
+- ⚠️ **Y DOS TRAMPAS NUEVAS DEL ARNÉS, LAS DOS PAGADAS.** (1) **Un caso agregado al FINAL del
+  archivo de tests no se ejecuta**: `CASOS` se consume en el bloque que arranca Chrome, que no
+  está al final, y la suite imprime **«0/0 ✓ sin regresiones»** sobre un caso que nunca corrió.
+  (2) **La tarjeta de un globo es `position:fixed`, así que su `offsetParent` es `null` aunque
+  esté abierta**: preguntar por `offsetParent` devolvía «NO VISIBLE» sobre una tarjeta de 620×476
+  perfectamente dibujada.
+
+- ⚠️ **Y SEMGREP SUBIÓ A 125 CON MI PRIMERA VERSIÓN DEL PINTOR**, por `ceibo-xss-innerhtml-concat`:
+  armaba las dos tablas concatenando `innerHTML`. Se reescribió con **nodos**, que es lo que
+  `calcHFAICOS` ya hacía y por el mismo motivo —«un warning más en la línea base es un warning que
+  el próximo lector tiene que volver a descartar a mano»—. Volvió a **124 / 0 ERROR**.
+
+- **A/B contra HEAD, uno por commit, y las diferencias de superficie son SÓLO las autorizadas.**
+  Commit 1: cambian las **cinco** escenas sin fármaco y con algo cargado, sobre 142; `sf_vacio`,
+  `ajeno` y las 135 con fármaco dan **cero**. Commit 2: cambian **58** —19 de anti-VEGF, 19 de
+  BCR-ABL, la de la nota g con anti-VEGF y 19 de «Otro», éstas **sólo** en la línea de alcance—;
+  antraciclinas, anti-HER2, inmunoterapia, radioterapia, las seis sin fármaco y el estudio ajeno
+  dan **cero**. Commits 3 y 4: **CERO** en las 142, con su control positivo al lado —la medición
+  dedicada, donde las dos tablas cambian por completo—.
+  ⚠️ **Y MIELOMA Y RAF/MEK SE MIDEN APARTE, con `--nuevos`**: sus opciones no existen en el árbol
+  viejo, y ponerle a un `<select>` un valor que no tiene lo deja en vacío, o sea que el A/B
+  mostraría diferencias donde el cambio no puede actuar.
+  ⚠️ **Y EL PRIMER A/B DIO «142 DE 142 CAMBIAN», QUE ERA MI PROPIA SONDA**: leía
+  `hfaicosEstado().clasifica`, una clave que HEAD no tiene, así que todas las escenas diferían por
+  ella. Se descarta en la comparación.
+
+- **Dónde está todo:** `docs/mapa/d2-cardioonco-tabla4.md` (**mapa NUEVO**, 12,2 KB), la ficha del
+  caso en `docs/mapa/tests-fichas-556.md` (**archivo propio**, porque `tests-fichas.md` está en
+  34,2 KB), el puntero en `docs/mapa/d-cardioonco-amiloidosis.md` § 9 y en `docs/mapa/tests.md`
+  —los dos medidos ANTES de escribir, 28,8 y 30,5 KB—, `docs/fuentes/FUENTES.md` → «La tanda D2»
+  con las cuatro fuentes transcritas tabla por tabla y su tabla «Cambios de evidencia» de
+  dieciséis filas, y `docs/PENDIENTES.md` → **SIETE** cosas declaradas (**D2-a** a **D2-g**).
+
+- **Línea base al cierre: suite 567/571**, en once lotes **cubriendo los 571 casos distintos**
+  —contados nombre por nombre, no por la suma de los lotes—, en UNA sola pasada sobre el árbol
+  sellado, con el pendrive `DISK_IMG` **montado y verificado al abrir, ENTRE LOS ONCE LOTES y al
+  cerrar** y el md5 de `index.html` **idéntico** antes y después (`ce4dd1ac`). Los rojos son
+  **TC-223, TC-376, TC-390 y TC-406**, los cuatro de siempre, **y ninguno más**: **TC-358 salió
+  VERDE**. **15/15 mutaciones dirigidas muertas** (2 min 43 s).
+  ⚠️ **Y LA PRIMERA CORRIDA COMPLETA DIO 561/571 CON SEIS ROJOS MÁS, LOS SEIS MÍOS**, y por eso
+  esa cifra no es la línea base: **TC-101**, **TC-105**, **TC-106** y **TC-107** medían el camino
+  del puntaje propio en escenas **sin fármaco**, donde desde el commit 1 ya no hay banda —se les
+  eligió «Otro», que no tiene columna y conserva exactamente esos cortes—; **TC-508 (H4)** barría
+  el **documento entero** exigiendo que «cada 3 ciclos» no apareciera en ninguna parte, y lo cazó
+  la fila de inmunoterapia, que ahora publica el suyo; y **TC-520** salió verde. **Los cinco se me
+  pasaron del censo**, y es el modo de falla que este archivo ya documenta cuatro veces: grepeé
+  por las palabras con que escribe la frase el caso que SÍ encontré.
+- **Semgrep 124 WARNING / 0 ERROR**, la línea base. **Excel 440** columnas con las mismas claves.
+  **Censo 946 ids, el mismo juego exacto que HEAD.** Sin huérfanos nuevos. 17 bloques de JS
+  inline parsean.
+- **CELULAR: 59 hallazgos a 360 px y 68 a 390, con 17 ALTA en cada ancho** — la línea base
+  exacta. El globo nuevo nace con `vinfo-btn-44` y no suma ni un hallazgo.
+- **CHROME Y WEBKIT COINCIDEN EN LOS DIECISÉIS CRUCES** (dos motores × 1440, 1000, 768 y 390 px ×
+  dos temas), **valor por valor**: la cápsula diciendo «Elegí el fármaco para calcular el riesgo»
+  y lo que lee el papel con su pastilla gris; la matriz en **14 filas × 7 columnas**; las **tres**
+  copias de cada fila de monitoreo; el globo en **44×44 con los CINCO puntos dando el propio
+  botón**, también a 390 px; su tarjeta **dentro de la pantalla** y con los dos folios; **cero**
+  desplazamiento horizontal del cuerpo, **cero** textos recortados y **cero errores de consola y
+  de página**. La única diferencia entre motores son **8 px** en el alto de la tarjeta a 768 px.
+  La matriz scrollea dentro de su contenedor **sólo a 390 px**, en los dos motores, que es el
+  patrón `overflow-x:auto` que el chequeo de celular acepta para siete columnas.
+  ⚠️ **WEBKIT DE PLAYWRIGHT NO ES SAFARI, y se declara.** Chrome va por el del sistema con
+  `channel: 'chrome'`: sin eso la sonda devuelve los cruces vacíos.
+  ⚠️ **EL ÚNICO ERROR DE CONSOLA DEL ÁRBOL DE HEAD ES DEL ARNÉS**, no de la app: se carga desde
+  una copia en el directorio temporal y ahí un recurso relativo no resuelve. El árbol vivo da cero.
+- **A/B GLOBAL contra HEAD, 142 escenas: 44 cambian en superficie firmada y son las autorizadas**
+  —las **cinco** sin fármaco, 19 de anti-VEGF, 19 de BCR-ABL y la de la nota g con anti-VEGF—.
+  `ajeno` y `sf_vacio` dan **cero**, y las 19 de «Otro» cambian **sólo en pantalla**, en su línea
+  de alcance.
+- **NUEVE CASOS VIEJOS ADAPTADOS en el censo, y SEIS MÁS que destapó la corrida completa**, cada
+  uno con el motivo escrito: **TC-72** (con una segunda lectura CON fármaco que le devuelve el
+  denominador a «la hoja trae SU banda»), **TC-99**, **TC-100** y **TC-108** (los títulos y los
+  cortes de las tablas A y C, y el aviso que dejó de ser cierto), **TC-471** y **TC-500** (el
+  registro de globos, 71 → **72**), **TC-502** (las tarjetas sin botón, veintitrés →
+  **veinticuatro**), **TC-535** (los globos de 44×44, catorce → **quince**), **TC-540** (D4
+  **invertida** y E1 con fármaco), **TC-101**, **TC-105**, **TC-106**, **TC-107** y **TC-508**.
+- **`index.html` pasó de 10,32 MB / 145.243 líneas a 10,34 MB / 145.470** — medido con `wc -c` y
+  `wc -l` DESPUÉS de sellar. (MB de 10⁶.) El diff son **332 líneas agregadas y 105 quitadas**.

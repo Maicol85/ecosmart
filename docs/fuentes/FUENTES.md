@@ -7858,3 +7858,153 @@ Y del apartado 4.6.3 de la misma hoja, literal:
   inventarla. Las **nuevas** llevan los dos folios, que es lo que la orden pide.
 - **Lo que la lectura desmintió se reporta y no se corrige**: el corte del seno de Valsalva en la
   mujer sigue siendo 36 por decisión de Maicol, aunque la Figura 5 diga 34.
+
+---
+
+## La tanda D2 (2026-10-30) — cardio-oncología: la Tabla 4 entera, las tablas HFA-ICOS y el monitoreo
+
+**TODO lo de abajo se leyó EN IMAGEN**, renderizando la página del PDF a 170-420 ppp, no sobre
+texto extraído. Documento: Lyon AR, López-Fernández T, Couch LS y col., «2022 ESC Guidelines on
+cardio-oncology», *Eur Heart J* 2022;43(41):4229-4361, edición **inglesa**
+(`12_Cardio_oncologia/Lyon_2022_Cardio_oncologia.pdf`, 133 hojas).
+
+**REGLA DE FOLIO: folio = hoja + 4228**, comprobada en el pie impreso de **siete** hojas
+(18→4246, 19→4247, 20→4248, 21→4249, 36→4264, 45→4273, 83→4311).
+
+### Tabla 4 — «Heart Failure Association–International Cardio-Oncology Society baseline cardiovascular toxicity risk stratification», hojas 18 y 19, folios 4246 y 4247
+
+Las **seis** columnas, transcritas celda por celda a 420 ppp. Sólo se listan las filas que la
+aplicación puede leer de sus casillas; la tabla trae además «Arterial vascular disease»,
+«Abnormal ankle-brachial pressure index», «PH», «Arterial thrombosis with TKI», «Venous
+thrombosis (DVT/PE)», «QTc ≥480 ms», «450 ≤ QTc < 480 ms (men); 460 ≤ QTc < 480 ms (women)»,
+«Prior PI CV toxicity», «Prior IMiD CV toxicity», «LV hypertrophy», «Cardiac amyloidosis»,
+«CVD 10-year risk score >20%», «Chronic kidney disease», «Proteinuria», «Hyperlipidaemia»,
+«Family history of thrombophilia», «Dexamethasone >160 mg/month», «Includes anthracycline before
+HER2-targeted therapy», «Anthracycline», «Trastuzumab», «RT to left chest or mediastinum» y
+«Non-anthracycline chemotherapy», que esta aplicación **no** tiene como campo.
+
+| Fila de la tabla | Antraciclinas | Anti-HER2 | Anti-VEGF | BCR-ABL | Mieloma | RAF/MEK |
+|---|---|---|---|---|---|---|
+| HF/cardiomyopathy/CTRCD | VH | VH | VH | H | VH | VH |
+| Severe VHD | H | H | – | – | – | H |
+| MI or PCI or CABG | H | H | VH | – | – | H |
+| Stable angina | H | H | VH | – | – | H |
+| Arrhythmia (nota a) | – | M2 | M2 | M2 | M2 | M1 |
+| LVEF <50% | H | H | H | H | H | H |
+| LVEF 50–54% | M2 | M2 | M2 | – | M2 | M2 |
+| Elevated baseline cTn (nota b) | M1 | M2 | M1 | – | M2 | M2 |
+| Elevated baseline NP (nota b) | M1 | M2 | M1 | – | H | M2 |
+| Age ≥80 years | H | H | – | – | – | M1 |
+| Age 65–79 years | M2 | M2 | – | – | – | M1 |
+| Age ≥75 years | – | – | H | H | H | M1 |
+| Age 65–74 years | – | – | M1 | M2 | M1 | M1 |
+| Age ≥60 years | – | – | – | M1 | – | – |
+| Hypertension (nota c) | M1 | M1 | H | M2 | M1 | M2 |
+| DM (nota e) | M1 | M1 | M1 | M1 | M1 | M1 |
+| Current smoker or significant smoking history | M1 | M1 | M1 | H | M1 | M1 |
+| Obesity (BMI >30 kg/m²) | M1 | M1 | M1 | M1 | M1 | M1 |
+
+**Regla de combinación, al pie de la hoja 19, literal:**
+> «Risk level: Low risk = no risk factors OR one moderate1 risk factor; moderate risk (M) =
+> moderate risk factors with a total of 2–4 points (Moderate 1 [M1] = 1 point; Moderate [M2] = 2
+> points); high risk (H) = moderate risk factors with a total of ≥5 points OR any high-risk
+> factor; very-high risk (VH) = any very-high risk factor.»
+
+**Notas al pie usadas:** ^a «AF, atrial flutter, ventricular tachycardia, or ventricular
+fibrillation». ^b «Elevated above the ULN of the local laboratory reference range». ^c «Systolic
+BP >140 mmHg or diastolic BP >90 mmHg, or on treatment». ^e «HbA1c >7.0% or >53 mmol/mol, or on
+treatment». ^g «High risk if anthracycline chemotherapy and trastuzumab delivered concurrently».
+
+**Contraste con lo transcripto en `docs/PENDIENTES.md` → D-b: coincide en todo.** No hubo una
+sola discrepancia, y por eso no se paró ningún fármaco.
+
+### Recomendaciones-tabla 10 — «Recommendations for baseline risk assessment and monitoring during vascular endothelial growth factor inhibitors», hoja 36, folio 4264
+
+| Recomendación | Clase | Nivel |
+|---|---|---|
+| BP measurement is recommended for patients treated with VEGFi, bevacizumab, or ramucirumab at every clinical visit. | I | C |
+| Daily home monitoring of BP for patients treated with VEGFi during the first cycle, after each increase of VEGFi dose, and every 2–3 weeks thereafter is recommended. | I | C |
+| In patients treated with VEGFi at moderate or high risk of QTc prolongation, QTc monitoring is recommended monthly during the first 3 months and every 3–6 months thereafter (nota d). | I | C |
+| Baseline echocardiography is recommended in high- and very high-risk patients treated with VEGFi or bevacizumab. | I | C |
+| Baseline echocardiography should be considered in low- and moderate-risk patients treated with a VEGFi or bevacizumab. | IIa | C |
+| Echocardiography may be considered every 4 months during the first year in moderate-risk patients receiving VEGFi or bevacizumab. | IIb | C |
+| Echocardiography should be considered every 3 months during the first year in high- and very high-risk patients receiving a VEGFi or bevacizumab (nota e). | IIa | C |
+| Echocardiography every 6–12 months should be considered in moderate- and high-risk patients with cancer who require long-term treatment with a VEGFi. | IIa | C |
+| NP may be considered at baseline and then every 4 months during the first year in moderate-risk patients receiving a VEGFi. | IIb | C |
+| NP should be considered at baseline, 4 weeks after starting treatment, and them every 3 months during the first year in high- and very high-risk patients receiving a VEGFi. | IIa | C |
+
+**Nota d:** «Consider an ECG 2 weeks after starting treatment in high-risk patients and new
+monitoring in the case of any dose increase». **Nota e:** «An additional echocardiography 4 weeks
+after starting treatment should be considered in selected high- and very high-risk patients
+according to local availability, especially if cardiac biomarker surveillance is not available».
+
+### Figura 20 — «Immune checkpoint inhibitors surveillance protocol», hoja 45, folio 4273
+
+Seis columnas: **Baseline · C2 · C3 · C4 · Every 3C ^c · Every 6 M–12 M ^d**. Las clases salen de
+los colores de su leyenda: verde Clase I, amarillo Clase IIa, naranja Clase IIb.
+
+| Estudio | Riesgo bajo | Riesgo alto ^b |
+|---|---|---|
+| CV assessment ^a | Baseline **I** · Every 3C **I** · Every 6-12M **IIb** | Baseline **I** · Every 3C **I** · Every 6-12M **I** |
+| ECG | Baseline **I** · C2, C3, C4 y Every 3C **IIa** · Every 6-12M **IIb** | Baseline **I** · C2, C3, C4 y Every 3C **IIa** · Every 6-12M **I** |
+| TTE | Baseline **IIb** | Baseline **I** |
+| cTn | Baseline **I** · C2, C3, C4 y Every 3C **IIa** | Baseline **I** · C2, C3, C4 y Every 3C **IIa** |
+| NP | Baseline **I** · Every 6-12M **IIb** | Baseline **I** · Every 6-12M **I** |
+
+**Nota a:** «Including physical examination, BP, lipid profile, and HbA1c». **Nota b:** «Dual ICI,
+combination ICI-cardiotoxic therapy, ICI-related non-CV events, prior CTRCD or CVD». **Nota c:**
+«Every three cycles until completion of therapy to detect subclinical ICI-related CV toxicity».
+**Nota d:** «In patients who require long-term (>12 months) ICI treatment».
+
+⚠️ **EL RIESGO ALTO DE ESTA FIGURA NO ES LA CATEGORÍA DE LA CALCULADORA.** Su nota b lo define
+por un criterio propio; mezclarlos haría que la banda de riesgo basal eligiera un calendario que
+no le corresponde. El globo lo dice.
+
+### Recomendaciones-tabla 1 — «Recommendations for a general approach to cardiovascular toxicity risk categorization», hoja 21, folio 4249
+
+Releída para el punto 4b, que pedía **verificar y reportar**, no cambiar:
+
+| Recomendación | Clase | Nivel |
+|---|---|---|
+| CV toxicity risk stratification ^c before starting potentially cardiotoxic anticancer therapy is recommended in all patients with cancer. | I | B |
+| Communicating the results of the CV toxicity risk assessment to the patient and other appropriate healthcare professionals is recommended. | I | C |
+| The use of HFA-ICOS risk assessment should be considered to stratify CV toxicity risk in patients with cancer scheduled to receive cardiotoxic anticancer therapy. | IIa | C |
+| It is recommended that patients categorized to be at low CV toxicity risk should proceed to anticancer therapy without delay. | I | C |
+| In patients categorized at moderate CV toxicity risk, cardiology referral ^d **may be considered** ^e. | IIb | C |
+| Cardiology referral ^d **is recommended** in high-risk and very high-risk patients before anticancer therapy ^f. | I | C |
+
+**La app coincide con las tres categorías**, y por eso no se tocó nada: en riesgo bajo no muestra
+acción, en moderado dice «se puede considerar derivar» y en alto y muy alto «derivación antes de
+iniciar el tratamiento, salvo urgencia oncológica».
+
+### Notas de trabajo (regla R1)
+
+- **La carpeta tiene DOS PDF de la guía** y sólo uno es la edición inglesa completa:
+  `Lyon_2022_Cardio_oncologia.pdf` (133 hojas). El otro, `Guía_ESC_2022_Cardiooncologia.pdf`, no
+  se usó.
+- **«Tabla 10» de la orden es la Recomendaciones-tabla 10**, no la «Table 10» del cuerpo del
+  artículo —que existe, está en la hoja 82, folio 4310, y es otra cosa—. Se verificó cuál era
+  antes de citarla.
+- **Las tablas de esta guía se leen bien a 170 ppp** y sus celdas se confirmaron a 420; no hizo
+  falta el tratamiento de las tablas que son imágenes.
+
+### Cambios de evidencia
+
+| Dónde | Qué decía | Qué dice | Fuente |
+|---|---|---|---|
+| calculadora, sin fármaco | clasificaba con el puntaje propio | «Elegí el fármaco para calcular el riesgo» | Tabla 4: una columna por fármaco |
+| `coT4Pesos`, anti-VEGF | sin columna | las once filas de su columna | Tabla 4, folios 4246-4247 |
+| `coT4Pesos`, BCR-ABL | sin columna | las once filas de su columna | ídem |
+| `coT4Pesos`, mieloma múltiple | ni siquiera estaba en el selector | las once filas de su columna | ídem |
+| `coT4Pesos`, RAF/MEK | ni siquiera estaba en el selector | las once filas de su columna | ídem |
+| `_coT4Edad` | dos filas, iguales para todos | cinco filas repartidas por columna | ídem |
+| línea de alcance | dos textos | uno: «la guía no lo define para este fármaco» | ya no queda fármaco con columna sin aplicar |
+| `hfaicosTexto` | nombraba «HER2» a toda columna que no fuera antraciclinas | el nombre de su propia columna | ídem |
+| tabla A de HFA-ICOS | doce factores con puntos fijos | la matriz de la Tabla 4, dibujada desde el dueño | ídem |
+| tabla C de HFA-ICOS | «≥4 puntos o fármaco de muy alto riesgo» | la regla de combinación de la tabla | pie de la hoja 19 |
+| tabla B de HFA-ICOS | bandas de riesgo por fármaco | **sin tocar**, declarada como no vinculante | no tiene equivalente en la Tabla 4 |
+| fila ICI de monitoreo (×3) | «ECG y troponina basal y ante síntomas» | basal completo y controles por ciclo | Figura 20, folio 4273 |
+| fila anti-VEGF de monitoreo (×3) | «PA, eco si síntomas o FEVI límite» | PA en cada visita y domiciliaria diaria, eco por riesgo | Rec.-tabla 10, folio 4264 |
+| globo `co-monitoreo` | no existía | el calendario completo por riesgo, con sus clases | las dos de arriba |
+| globo `co-riesgo-basal` | «las que sí tiene … todavía no están implementadas» | las seis columnas aplicadas | — |
+| derivación por categoría | — | **verificada y sin cambiar** | Rec.-tabla 1, folio 4249 |

@@ -505,3 +505,22 @@ perdió o ganó:
 La ficha vive en **`docs/mapa/tests-fichas-555.md`** (archivo propio, porque `tests-fichas.md`
 está en 34,2 KB). Cae contra HEAD por **26 condiciones y ninguna por excepción**, y sobrevive a
 **14 mutaciones dirigidas** (`scripts/_mut_ao2.py`).
+
+
+## → TC-556 — TANDA D2 (2026-10-30)
+
+La ficha vive en **`docs/mapa/tests-fichas-556.md`** (archivo propio, porque `tests-fichas.md`
+está en 34,2 KB). Cae contra HEAD por **26 condiciones y ninguna por excepción**, y sobrevive a
+**15 mutaciones dirigidas** (`scripts/_mut_d2.py`).
+
+- **Nueve casos viejos adaptados**: TC-72 (la hoja del PDF, con una segunda lectura CON fármaco
+  que le devuelve el denominador a «la hoja trae SU banda»), TC-99, TC-100 y TC-108 (los títulos
+  y los cortes de las tablas A y C, y el aviso que dejó de ser cierto), TC-471 y TC-500 (el
+  registro de globos, 71 → **72**), TC-502 (las tarjetas sin botón, veintitrés → **veinticuatro**),
+  TC-535 (los globos de 44×44, catorce → **quince**) y TC-540 (D4 **invertida** porque el
+  anti-VEGF ya aplica su columna, y E1 con fármaco porque sin él no hay banda que perder).
+- **Dos condiciones nacieron del barrido**: (A1d), que le pregunta al dueño y no sólo a los
+  pintores, y (D6a), el denominador que le faltaba al control del monitoreo.
+- Las sondas: `_probe_d2.mjs` —con `--nuevos`, porque las dos opciones nuevas del selector **no
+  existen en HEAD** y ponerle a un `<select>` un valor que no tiene lo deja en vacío—,
+  `_mut_d2.py` y `_probe_d2wk.mjs`.

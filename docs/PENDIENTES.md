@@ -10476,3 +10476,100 @@ con las secciones 10 y 11 a `docs/mapa/vab-cuspides-dibujos.md`).
   escribirlo: las secciones 10 y 11 salieron a `docs/mapa/vab-cuspides-dibujos.md` (16,9 KB) y el
   mapa volvió a **18,3 KB**, con un puntero de seis líneas. Cero líneas perdidas, movidas byte por
   byte.
+
+---
+
+# TANDA D2 (2026-10-30) — lo declarado
+
+## D2-a · La casilla de antecedente coronario junta tres filas de la Tabla 4, y con anti-VEGF no valen lo mismo
+
+**Qué pasa.** `hfaicos_cv_coron` cubre «Infarto, angioplastia o cirugía coronaria, angina estable
+o valvulopatía severa», que en la Tabla 4 son **tres filas separadas**: «Severe VHD», «MI or PCI
+or CABG» y «Stable angina».
+
+| Columna | Severe VHD | MI/PCI/CABG | Stable angina | Lo que aplica la app |
+|---|---|---|---|---|
+| antraciclinas | H | H | H | H — las tres coinciden |
+| anti-HER2 | H | H | H | H — las tres coinciden |
+| **anti-VEGF** | **–** | **VH** | **VH** | **VH** (el mayor) |
+| BCR-ABL | – | – | – | – |
+| mieloma múltiple | – | – | – | – |
+| RAF/MEK | H | H | H | H |
+
+**Qué se hizo.** Se aplica el **mayor** de las tres, que es el lado seguro y el mismo criterio que
+la nota al pie g ya usaba para la antraciclina concurrente. **El precio, medido:** con un
+anti-VEGF, un paciente cuyo único antecedente sea una **valvulopatía severa** —a la que esa
+columna no le da peso— se clasifica **muy alto**, igual que uno con un infarto.
+
+**Qué haría falta.** Partir la casilla en tres, como la tanda D partió la de antecedente CV. Eso
+agrega **dos campos guardados** (el censo pasaría de 946 a 948), y esta tanda tiene prohibido
+agregar ninguno. Es decisión de Maicol.
+
+## D2-b · La tabla B de HFA-ICOS no tiene equivalente en la Tabla 4
+
+**Qué pasa.** «B · Riesgo por fármaco» agrupa fármacos en cuatro bandas (muy alto, alto, medio,
+bajo). La Tabla 4 **no hace eso**: ahí el fármaco es una **columna**, nunca un piso ni una banda.
+
+**Qué se hizo.** No se tocó, que es lo que la orden pide para una tabla sin equivalente. Lo que
+cambió es el aviso de arriba, que ahora dice que las tablas A y C son las que la app aplica y que
+**las bandas de la B no entran en la clasificación**.
+
+**Qué haría falta.** Decidir entre retirarla, dejarla como está con su aviso, o reemplazarla por
+la fila de encabezados de la Tabla 4. Es contenido clínico y la orden no la nombra.
+
+## D2-c · «Radioterapia toraxica» sigue con la x, y corregirlo sigue cambiando el Excel
+
+**Es el pendiente D-d, que esta tanda vuelve a declarar sin resolver.** La etiqueta de la opción
+`radioterapia` del selector `co_farmaco` dice «Radioterapia **toraxica**»: le falta la tilde y
+tiene **x** donde va **c**. El mismo texto es lo que la columna «Fármaco cardiotóxico» del Excel
+publica, así que cambiarlo cambia un **valor** del Excel y el round-trip de reimportación.
+
+⚠️ **Y AHORA ES MÁS VISIBLE QUE ANTES**, porque las dos opciones que esta tanda agregó
+—«Mieloma múltiple (inhibidores de proteasoma, IMiD)» e «Inhibidores RAF/MEK»— están bien
+escritas y quedan al lado. Sigue necesitando orden expresa.
+
+## D2-d · La Central Illustration de Boldrini sigue sin estar en la copia de la biblioteca
+
+**Es el pendiente D-e, sin cambios.** La página de figuras del manuscrito trae **sólo las
+leyendas**: ninguna página del PDF contiene una imagen. La leyenda de la Central Illustration dice
+que propone cortes para los **dos** scores, con el IWT en su panel inferior, y eso no se puede
+verificar sin la versión publicada o una copia con las figuras. Esta tanda no lo tocó —no es
+cardio-oncología sino el score de amiloidosis— y lo repite porque la orden lo pide.
+
+## D2-e · El globo del monitoreo scrollea adentro, igual que el de la calculadora
+
+**Qué pasa.** La tarjeta de `co-monitoreo` sale en **620 × 476 px**, dentro de la pantalla y sin
+cortarse a lo ancho, pero sus **2989 caracteres** no entran en ese alto: lo que sobra scrollea
+adentro (`overflow:auto`, no se pierde nada).
+
+**Por qué no se acortó.** Ahí viven los dos calendarios completos por riesgo con sus clases y las
+dos fuentes con su folio, que es exactamente lo que la regla R2 manda sacar de la línea visible.
+Acortarlo costaría una de esas clases.
+
+**Qué haría falta.** Lo mismo que **D-i** propone para `co-riesgo-basal`: una ficha en Referencias
+para cardio-oncología resolvería las dos cosas a la vez, y les daría el botón «Ver referencia»
+que hoy ninguna de las dos tiene —el límite que **D-c** y TC-502 declaran—.
+
+## D2-f · Las filas de monitoreo viven en TRES tablas, y nada las ata
+
+**Qué pasa.** El monitoreo de cada clase farmacológica está escrito en tres lugares de la
+sub-pestaña «Referencia rápida»: la columna «Monitoreo recomendado» de **Cardiotoxicidad**, la
+tabla por clase de **Seguimiento** y la tabla de **Clases**. Las tres son HTML estático y nada
+impide que vuelvan a divergir: esta tanda las encontró diciendo **tres cosas distintas** de
+inmunoterapia y de anti-VEGF, y la intro de «Seguimiento» afirmaba ser «la misma columna» de la
+primera cuando no lo era.
+
+**Qué se hizo.** Se corrigieron las tres al mismo texto y la intro dejó de afirmarlo.
+
+**Qué haría falta.** Un dueño único —un registro de clase → texto, dibujado como la matriz de la
+Tabla 4— para que no puedan discrepar. Es un cambio de mecanismo que la orden no pide.
+
+## D2-g · La `_hfaicosAlcance` quedó con un solo texto y su parámetro sin usar
+
+**Qué pasa.** La función recibe `farmaco` y ya no lo mira: los tres fármacos que llegan al puntaje
+propio son exactamente los que no tienen columna en la tabla, así que la frase es la misma para
+los tres. Se dejó el parámetro porque el día que vuelva a haber un fármaco con columna sin aplicar
+—o uno al que la guía sí defina de otra forma— la rama vuelve, y el comentario lo dice.
+
+**Qué haría falta.** Nada, si no vuelve a pasar. Si se decide que nunca volverá, la función se
+puede reemplazar por una constante.

@@ -5892,6 +5892,12 @@ caso('TC-72', 'Cardio-onco: la hoja del PDF trae riesgo basal, funcion y conclus
   document.getElementById('hfaicos_cv_ic').checked = true;
   hfaicosToggle('hfaicos_cv_ic');
   const txt = amiloTextoCardioOnco();
+  /* ⚠️ ADAPTADO EN LA TANDA D2: sin farmaco elegido la calculadora YA NO CLASIFICA, asi que
+     esta lectura pasa a ser el control de que la hoja no inventa una banda, y la de abajo
+     —con antraciclinas— es la que le devuelve el denominador a «la hoja trae SU banda». Sin
+     esa segunda lectura, «no hay banda» se cumpliria sobre una hoja que nunca puede tenerla. */
+  __t.set('co_farmaco','antracicline');
+  const txtF = amiloTextoCardioOnco();
   return { extra: [
     ['caida de FEVI en pp',      txt.indexOf('Caída de FEVI | 15.0 pp') > -1],
     ['caida relativa de GLS',    txt.indexOf('Caída relativa de GLS | 25.0 %') > -1],
@@ -5899,7 +5905,12 @@ caso('TC-72', 'Cardio-onco: la hoja del PDF trae riesgo basal, funcion y conclus
     ['sin factores cargados la hoja NO inventa una banda: remite a la calculadora',
       sinFactores.indexOf('Completar en «Calculadora de Riesgo CV»') > -1 &&
       !/Riesgo (BAJO|MEDIO|ALTO|MUY ALTO)/.test(sinFactores)],
-    ['con la calculadora cargada, la hoja trae SU banda',
+    ['sin farmaco la hoja NO publica banda ni derivacion: la categoria se suspende entera',
+      !/Riesgo (BAJO|MEDIO|ALTO|MUY ALTO)/.test(txt)
+        && txt.indexOf('Derivación a cardiología') === -1
+        && txt.indexOf('Completar en «Calculadora de Riesgo CV»') > -1,
+      (txt.match(/Clasificaci[^|]{0,60}\|[^|]{0,60}/g) || []).slice(0, 1).join('')],
+    ['con la calculadora cargada Y el farmaco elegido, la hoja trae SU banda',
       /* ADAPTADO el 2026-10-21 (R2-E6): la calculadora de riesgo basal de la app NO es el
          HFA-ICOS y se renombra en todos lados, la hoja del PDF incluida. Lo que este caso vigila
          —que el PDF publique la banda del dueño y no una propia— no cambia; cambia el ROTULO. */
@@ -5909,15 +5920,23 @@ caso('TC-72', 'Cardio-onco: la hoja del PDF trae riesgo basal, funcion y conclus
          direcciones: con antraciclinas y anti-HER2 la clasificacion SI sale de la tabla de la
          guia, y con los demas farmacos NO. Lo que este caso vigila —que el PDF publique la banda
          del dueño y no una propia— no cambia. */
-      txt.indexOf('Clasificación de EcoSmart (orientativa) | Riesgo ALTO (2/13 pts)') > -1,
-      (txt.match(/Riesgo CV basal[^|]{0,60}\|[^|]{0,40}/g) || []).slice(0, 2).join(' // ')],
+      /* ⚠️ Y EL VALOR CAMBIO EN LA TANDA D2, no el invariante: con antraciclinas la
+         insuficiencia cardiaca previa es un factor MUY ALTO de la Tabla 4, y en el camino de la
+         tabla no hay un puntaje sobre un maximo que imprimir. */
+      txtF.indexOf('Clasificación de EcoSmart (orientativa) | Riesgo MUY ALTO') > -1,
+      (txtF.match(/Clasificaci[^|]{0,60}\|[^|]{0,40}/g) || []).slice(0, 2).join(' // ')],
     /* ⚠️ Y SIN FARMACO NO HAY CALENDARIO (tanda D): el calendario es del FARMACO y no de la
        banda. Lo que la hoja publica en su lugar es la DERIVACION, que si va por categoria. */
     ['sin farmaco no se publica un calendario que no es suyo',
       txt.indexOf('Seguimiento ecocardiográfico') === -1
         && txt.indexOf('Eco cada 2 ciclos durante el tratamiento') === -1],
-    ['y en su lugar publica la derivacion, que SI va por categoria',
-      txt.indexOf('Derivación a cardiología antes de iniciar el tratamiento') > -1],
+    /* ⚠️ ADAPTADO EN LA TANDA D2: la derivacion sale de la CATEGORIA, asi que sin farmaco no hay
+       ninguna que publicar. El invariante «va por categoria» se mide ahora en la lectura con
+       farmaco, donde la categoria existe. */
+    ['con el farmaco elegido publica la derivacion, que SI va por categoria',
+      txtF.indexOf('Derivación a cardiología antes de iniciar el tratamiento') > -1],
+    ['y con antraciclinas de riesgo muy alto publica SU calendario, que es del farmaco',
+      txtF.indexOf('cada dos ciclos') > -1],
     /* ⚠️ ADAPTADO el 2026-10-21: y la salvedad SEGUIA diciendo «Marco HFA-ICOS (ESC 2022)» dos
        filas debajo de un rotulo que el commit 6 ya habia pasado a «calculadora de EcoSmart», o
        sea el mismo papel firmado atribuyendo la banda a un marco que la app NO implementa y
@@ -5926,14 +5945,17 @@ caso('TC-72', 'Cardio-onco: la hoja del PDF trae riesgo basal, funcion y conclus
     /* ⚠️ Y LA SALVEDAD SE PARTIO EN DOS (tanda D), porque las dos situaciones son distintas de
        verdad: con antraciclinas o anti-HER2 la clasificacion SI sale de la tabla de la guia, y
        seguir diciendo «no es el HFA-ICOS» ahi seria falso en el otro sentido. */
+    /* ⚠️ ADAPTADO EN LA TANDA D2: con antraciclinas la clasificacion SALE de la tabla de la
+       guia, asi que la salvedad que corresponde es la del alcance de los factores recogidos y
+       NO la de «puntaje propio». Lo que el caso vigila —que el papel no le atribuya la banda al
+       HFA-ICOS— no cambia. */
     ['la salvedad declara el alcance, y ya no nombra al HFA-ICOS en el papel',
-      txt.indexOf('Puntaje propio de la aplicación') > -1
-        && txt.indexOf('no es el HFA-ICOS') === -1
-        && txt.indexOf('Marco HFA-ICOS (ESC 2022)') === -1,
-      (txt.match(/Salvedad[^|]{0,30}\|[^|]{0,90}/g) || []).slice(0, 1).join('')],
+      txtF.indexOf('Recoge sólo los factores de riesgo disponibles') > -1
+        && txtF.indexOf('no es el HFA-ICOS') === -1
+        && txtF.indexOf('Marco HFA-ICOS (ESC 2022)') === -1,
+      (txtF.match(/Alcance[^|]{0,30}\|[^|]{0,90}/g) || []).slice(0, 1).join('')],
     ['ya no queda rastro del score viejo',
-      txt.indexOf('Score orientativo') === -1 && txt.indexOf('pts)') > -1 &&
-      txt.indexOf('Riesgo MODERADO') === -1]
+      txtF.indexOf('Score orientativo') === -1 && txtF.indexOf('Riesgo MODERADO') === -1]
   ] };
 `);
 
@@ -6855,8 +6877,13 @@ caso('TC-101', 'HFA-ICOS: el puntaje y las cuatro bandas, por los dos lados de c
       cvTres.pts === 2 && cvTres.banda === 'ALTO'],
     // El denominador: doce filas NO son doce puntos.
     ['el maximo se deriva del catalogo y vale 13, no 12', hfaicosMax() === 13],
+    /* ⚠️ ADAPTADO EN LA TANDA D2: el texto del modulo no escribe el puntaje sin farmaco, asi
+       que la escena elige «Otro» —sin columna en la Tabla 4, o sea el camino propio intacto—. */
     ['y el texto publica ese denominador',
-      marcar(['hfaicos_hta']).pts === 1 && hfaicosTexto().indexOf('1/13 puntos') > -1],
+      (() => { const e = marcar(['hfaicos_hta']);
+        const sel = document.getElementById('co_farmaco');
+        if (sel) { sel.value = 'otro'; sel.dispatchEvent(new Event('change', { bubbles: true })); }
+        return e.pts === 1 && hfaicosTexto().indexOf('1/13 puntos') > -1; })()],
     /* LAS DOS LISTAS. Las doce filas son HTML estatico —tienen que existir en una carga limpia,
        si no, cargarEstudioPorId no tiene donde reponer lo guardado— y el puntaje vive en
        hfaicosFactores(), que es quien suma. Son dos copias de la misma lista, asi que el
@@ -7029,6 +7056,12 @@ caso('TC-105', 'HFA-ICOS: el parrafo entra al informe solo si se integro, y dice
   document.getElementById('hfaicos_edad').checked = true;
   document.getElementById('hfaicos_hta').checked = true;
   document.getElementById('hfaicos_cv_ic').checked = true;
+    /* ⚠️ ADAPTADO EN LA TANDA D2: la escena no tenia FARMACO, y desde el commit 1 sin
+       farmaco la calculadora NO publica categoria. Se elige «Otro», que es uno de los tres
+       que NO tienen columna en la Tabla 4 y por lo tanto conservan EXACTAMENTE el puntaje
+       propio y los cortes que esta condicion mide. El invariante no cambia; lo que cambia
+       es que ahora la escena llega a tener una banda que medir. */
+  __t.set('co_farmaco', 'otro');
   calcHFAICOS();
   __t.chk('hfaicos_incluir_chk', false);
   const sin = __t.informe();
@@ -7120,6 +7153,12 @@ caso('TC-106', 'HFA-ICOS: la calculadora entera viaja con el estudio y no se re-
        no prueba el repintado. Lo delato la mutacion que saca calcHFAICOS de RECALC_MODULOS. */
     ['hfaicos_hta','hfaicos_dm','hfaicos_obesidad','hfaicos_tabaco'].forEach(id => {
       document.getElementById(id).checked = true; });
+    /* ⚠️ ADAPTADO EN LA TANDA D2: la escena no tenia FARMACO, y desde el commit 1 sin
+       farmaco la calculadora NO publica categoria. Se elige «Otro», que es uno de los tres
+       que NO tienen columna en la Tabla 4 y por lo tanto conservan EXACTAMENTE el puntaje
+       propio y los cortes que esta condicion mide. El invariante no cambia; lo que cambia
+       es que ahora la escena llega a tener una banda que medir. */
+    __t.set('co_farmaco', 'otro');
     calcHFAICOS();
     const ruido = (__t.txt('hfaicos-resultado') || '').replace(/\\s+/g,' ').trim();
     __t.reabrir(g.estudioId);
@@ -7210,6 +7249,12 @@ caso('TC-107', 'HFA-ICOS: la exclusion, la marca del medico y la capsula, por la
        justo lo que el comentario de arriba vino a cerrar. Se usa la casilla nueva. */
     document.getElementById('hfaicos_cv_ic').checked = true;
     hfaicosToggle('hfaicos_cv_ic');
+    /* ⚠️ ADAPTADO EN LA TANDA D2: la escena no tenia FARMACO, y desde el commit 1 sin
+       farmaco la calculadora NO publica categoria. Se elige «Otro», que es uno de los tres
+       que NO tienen columna en la Tabla 4 y por lo tanto conservan EXACTAMENTE el puntaje
+       propio y los cortes que esta condicion mide. El invariante no cambia; lo que cambia
+       es que ahora la escena llega a tener una banda que medir. */
+    __t.set('co_farmaco', 'otro');
     const capsulaAntes = (__t.txt('hfaicos-resultado') || '').replace(/\\s+/g,' ').trim();
     const marcaGuardada = __t.val('hfaicos_manual');
     const g = await __t.guardar();
@@ -7275,10 +7320,15 @@ caso('TC-108', 'HFA-ICOS: la tabla de referencia y la calculadora dan la misma b
     if (typeof calcHFAICOS === 'function') calcHFAICOS();
     return hfaicosEstado(); })();
   return { extra: [
-    ['el aviso declara que esas tablas ya NO describen como clasifica la app',
-      ref.indexOf('ya no describen cómo clasifica la aplicación') > -1],
-    ['y que sus puntos y sus cortes no son los que deciden',
-      ref.indexOf('no son los que deciden') > -1],
+    /* ⚠️ ADAPTADO EN LA TANDA D2: las tablas A y C pasaron a dibujarse desde el MISMO dueno que
+       clasifica, asi que la afirmacion «ya no describen como clasifica la app» dejo de ser cierta
+       para ellas. La que no decide nada es la B, y eso es lo que el aviso dice hoy. El invariante
+       del caso -que el aviso describa el estado REAL y no el anterior- es el mismo. */
+    ['el aviso declara cuales tablas aplica la app y cual no decide',
+      ref.indexOf('Las tablas A y C son las que la calculadora aplica') > -1
+        && ref.indexOf('ya no describen cómo clasifica la aplicación') === -1],
+    ['y que las bandas de la tabla B no entran en la clasificacion',
+      ref.indexOf('no entran en la clasificación') > -1],
     /* SIN farmaco elegido la calculadora va por su camino propio, que conserva los cortes de
        siempre: esto es lo que el caso media antes y sigue siendo cierto por ese lado. */
     ['sin farmaco, el antecedente CV mas FEVI <50% son 4 puntos y MUY ALTO',
@@ -12631,8 +12681,15 @@ caso('TC-100', 'Cardio-onco: las dos pestañas de referencia dicen lo mismo', `
       legenda.indexOf('deteriorado: >-16%') > -1 && legenda.indexOf('menos negativo es peor') > -1],
     ['y ya no dice «<-16%», que apuntaba al reves',
       legenda.indexOf('subclínica: <-16%') === -1],
-    ['la tabla del marco HFA-ICOS usa el mismo signo',
-      onco.indexOf('GLS basal deteriorado (>-16%)') > -1],
+    /* ⚠️ ADAPTADO EN LA TANDA D2: la tabla A dejo de listar los factores con un puntaje fijo y
+       paso a ser la matriz de la guia, que NO tiene fila para el GLS basal -se salteo a
+       proposito: una fila entera de guiones se lee como «la tabla la contempla y no suma»-. El
+       signo del SGL se sigue midiendo donde la app lo escribe, que es la columna de puntos de la
+       calculadora, y ahi la etiqueta es la misma del catalogo. */
+    ['la calculadora usa el mismo signo para el GLS basal',
+      (document.querySelector('label[for], #hfaicos-factores') ? true : true) &&
+      ((window.hfaicosFactores ? hfaicosFactores() : []).some(function (f) {
+        return f.id === 'hfaicos_gls_alt' && f.lbl.indexOf('>-16%') > -1; }))],
 
     // 2 · Un solo calendario de eco para antraciclinas, en las tres superficies.
     ['la leyenda trae las dos bandas del calendario',
@@ -12661,9 +12718,14 @@ caso('TC-100', 'Cardio-onco: las dos pestañas de referencia dicen lo mismo', `
       legenda.indexOf('Riesgo muy alto HFA-ICOS:') === -1],
     ['dice que cada marcador vale 2 puntos y deja al paciente en ALTO',
       legenda.indexOf('2 puntos cada uno') > -1 && legenda.indexOf('riesgo alto (2-3 puntos)') > -1],
-    ['y que el muy alto empieza en 4, igual que la tabla',
-      legenda.indexOf('muy alto empieza en 4 puntos') > -1 && onco.indexOf('>=4 puntos') > -1],
-    ['los dos puntajes de FEVI basal siguen siendo los de la tabla',
+    /* ⚠️ ADAPTADO EN LA TANDA D2: el «>=4 puntos» era el corte de la tabla C vieja, que la
+       matriz de la guia reemplazo. La leyenda de la pestania Referencias NO se toco y sigue
+       diciendo lo suyo; lo que cambia es la tabla de cardio-oncologia, que ahora publica la
+       regla de combinacion de la guia. Se exige que el corte viejo YA NO este. */
+    ['la leyenda conserva su marcador de alto riesgo y la tabla ya no publica el corte viejo',
+      legenda.indexOf('muy alto empieza en 4 puntos') > -1 && onco.indexOf('>=4 puntos') === -1
+        && onco.indexOf('5 puntos o m\u00e1s') > -1],
+    ['los dos niveles de FEVI basal siguen siendo filas de la tabla',
       onco.indexOf('FEVI basal 50-54%') > -1 && onco.indexOf('FEVI basal <50%') > -1]
   ] };
 `);
@@ -12684,10 +12746,18 @@ caso('TC-99', 'Cardio-onco: las tablas de referencia no contradicen al clasifica
   const ref = (document.getElementById('co-referencia-seccion') || {}).textContent || '';
   // Tres factores de riesgo: para la tabla es «Alto», para la calculadora «MODERADO».
   return { extra: [
-    ['la tabla HFA-ICOS esta presente',
-      ref.indexOf('marco HFA-ICOS, ESC 2022') > -1 && ref.indexOf('Factores de riesgo del paciente') > -1],
-    ['con sus tres secciones',
-      ref.indexOf('Riesgo por farmaco') > -1 && ref.indexOf('Clasificacion de riesgo global') > -1],
+    /* ⚠️ ADAPTADO EN LA TANDA D2: la tabla A dejo de ser una lista de puntos FIJOS por factor y
+       paso a ser la matriz de factor por FARMACO, dibujada desde coT4Pesos(); y la C dejo de ser
+       «Clasificacion de riesgo global» con su piso por farmaco y paso a ser la regla de
+       combinacion de la tabla de la guia. Lo que el caso vigila —que las tres secciones esten y
+       que no contradigan al clasificador de al lado— no cambia; cambian sus TITULOS, y se exige
+       ademas que los viejos NO esten, para que el caso no vuelva a pasar con el esquema viejo. */
+    ['la tabla HFA-ICOS esta presente, con la matriz por farmaco',
+      ref.indexOf('marco HFA-ICOS, ESC 2022') > -1 && ref.indexOf('Factores de riesgo, por f\u00e1rmaco') > -1
+        && ref.indexOf('Factores de riesgo del paciente') === -1],
+    ['con sus tres secciones, y la C es la regla de combinacion',
+      ref.indexOf('Riesgo por farmaco') > -1 && ref.indexOf('C\u00f3mo se combinan') > -1
+        && ref.indexOf('Clasificacion de riesgo global') === -1],
     ['dice que se hace ANTES del tratamiento',
       ref.indexOf('ANTES') > -1 && ref.indexOf('iniciar el tratamiento') > -1],
     /* ⚠️ ADAPTADO EN LA TANDA D (commit D-2): la fila decia «Radioterapia toracica», sin tilde.
@@ -12758,15 +12828,20 @@ caso('TC-99', 'Cardio-onco: las tablas de referencia no contradicen al clasifica
        Lo que el caso ata sigue siendo lo mismo —que el aviso describa el estado de HOY y que
        ninguna tabla estatica se lea como el clasificador—, y por eso se exige ademas que las
        cadenas viejas NO esten: una condicion que acepta las dos formas no protege ninguna. */
-    ['el aviso dice que esas tablas ya no describen como clasifica la app',
-      ref.indexOf('ya no describen cómo clasifica la aplicación') > -1
-        && ref.indexOf('no son los que deciden') > -1],
+    /* ⚠️ ADAPTADO EN LA TANDA D2: la afirmacion anterior dejo de ser cierta para dos de las tres
+       tablas. Las A y C SI describen como clasifica la app —se dibujan desde el mismo dueno—, y
+       la que no decide nada es la B. El aviso tenia que cambiar o quedaba mintiendo al reves,
+       que es justo lo que este caso existe para impedir. */
+    ['el aviso dice cuales tablas aplica la app y cual no decide',
+      ref.indexOf('Las tablas A y C son las que la calculadora aplica') > -1
+        && ref.indexOf('no entran en la clasificación') > -1
+        && ref.indexOf('ya no describen cómo clasifica la aplicación') === -1],
     ['y los cortes viejos de la calculadora NO estan',
       ref.indexOf('NO usan la misma escala') === -1
         && ref.indexOf('edad desde 65 inclusive') === -1
         && ref.indexOf('Riesgo MODERADO (2 pts)') === -1],
     ['y nombra los DOS caminos: la tabla de la guia y el puntaje propio',
-      ref.indexOf('tabla de estratificación de la guía') > -1
+      ref.indexOf('tabla de la guía') > -1
         && ref.indexOf('puntaje propio') > -1],
     /* Este aviso ya cambio tres veces en el dia, y cada version describia un estado distinto de
        la app: primero decia que la tabla «no se imprime» (cierto entonces), despues que al
@@ -12777,7 +12852,13 @@ caso('TC-99', 'Cardio-onco: las tablas de referencia no contradicen al clasifica
     ['y ya no habla de dos emisores',
       ref.indexOf('bajan DOS bandas') === -1 && ref.indexOf('y no se imprime') === -1],
     ['ya NO promete que la tabla manda para decidir', ref.indexOf('manda esta tabla') === -1],
-    ['la tabla pone 2-3 puntos en Alto', ref.indexOf('2-3 puntos') > -1],
+    /* ⚠️ ADAPTADO EN LA TANDA D2: el «2-3 puntos» era el corte de la tabla C vieja, que ya no
+       existe. La regla que la reemplaza es la de la guia, y sus dos cortes salen de la MISMA
+       constante que usa la cascada: «5 puntos o mas» para alto y «de 2 a 4» para medio. Se
+       exige ademas que el corte viejo no este. */
+    ['la regla publica los cortes de la guia y no los de la tabla vieja',
+      ref.indexOf('5 puntos o m\u00e1s') > -1 && ref.indexOf('De 2 a 4 puntos') > -1
+        && ref.indexOf('2-3 puntos') === -1],
     // ECOS-07: no prestarle a un marco la autoridad de un score unico validado.
     ['la tabla se presenta como MARCO, no como score unico',
       ref.indexOf('Marco</b>, no score unico') > -1 || ref.indexOf('no score unico') > -1],
@@ -66230,12 +66311,16 @@ caso('TC-471', 'Valvulas D1: la insuficiencia mitral en TRES columnas de SEIS co
        senales de alarma con las dos fuentes del corte de lactato—. NINGUNA esta en Valvulas, que
        es la pestana que este caso mide: lo que cambia es el denominador del registro, no lo que
        el caso afirma. */
-    /* ADAPTADO (TANDA AORTA-2, 30/10/2026): 68 -> 71. Las TRES entradas nuevas son coa-card,
+    /* ADAPTADO (TANDA D2, 30/10/2026): 71 -> 72. La entrada nueva es co-monitoreo, el globo de
+       la columna «Monitoreo recomendado» de Cardio-Oncologia. NO esta en Valvulas, que es la
+       pestana que este caso mide: lo que cambia es el denominador del registro, no lo que el
+       caso afirma.
+       ADAPTADO (TANDA AORTA-2, 30/10/2026): 68 -> 71. Las TRES entradas nuevas son coa-card,
        ao-cay-card y ao-desc-card.
 /* ADAPTADO (TANDA NOCTURNA B1, 30/10/2026): 68. La entrada nueva es vd-triv, el globo de
        la fila de referencia del TRIV del VD. NO esta en Valvulas, que es la pestana que este
        caso mide: lo que cambia es el denominador del registro, no lo que el caso afirma. */
-    Object.keys(VINFO).length === 71,
+    Object.keys(VINFO).length === 72,
     'registro=' + (HAY_INFO ? Object.keys(VINFO).join(',') : 'SIN REGISTRO')]);
   ex.push(['(H) y la tarjeta se coloca SIEMPRE dentro de la pantalla, sin cortarse',
     (function(){ const b = document.querySelector('[data-vinfo="avm-thp"]');
@@ -77602,7 +77687,8 @@ caso('TC-500', 'Tanda Q: las OCHO tarjetas i de las valvulas arriba de su pastil
   /* ADAPTADO (TANDA NOCTURNA B1, 30/10/2026): 67 -> 68. La entrada nueva es vd-triv, el globo
      de la fila de referencia del TRIV del ventriculo derecho, donde viven las tres fuentes que
      la regla R2 saca de la linea visible. Lo que esta condicion afirma no cambia. */
-  ex.push(['DENOMINADOR: el mecanismo de los globos existe y el registro tiene las 71 entradas',
+  /* ADAPTADO (TANDA D2, 30/10/2026): 71 -> 72, por co-monitoreo. */
+  ex.push(['DENOMINADOR: el mecanismo de los globos existe y el registro tiene las 72 entradas',
     /* ⚠️ ADAPTADO EN LA TANDA D: 56 -> 57. La entrada nueva es co-riesgo-basal, el globo de la
        clasificacion de riesgo cardiovascular basal, donde viven las clases y los niveles que la
        regla R2 saca de la linea visible. Lo que esta condicion afirma no cambia: que el
@@ -77618,7 +77704,7 @@ caso('TC-500', 'Tanda Q: las OCHO tarjetas i de las valvulas arriba de su pastil
        los dos globos de la seccion de sobrecarga del VD. NINGUNO esta en Valvulas: lo que
        cambia es el denominador del registro, no lo que esta condicion afirma. */
     /* ADAPTADO (TANDA AORTA-2, 30/10/2026): 68 -> 71, por coa-card, ao-cay-card y ao-desc-card. */
-    FN('vInfoClic') && !!CARD() && !!REG() && Object.keys(REG() || {}).length === 71,
+    FN('vInfoClic') && !!CARD() && !!REG() && Object.keys(REG() || {}).length === 72,
     'VINFO=' + (REG() ? Object.keys(REG()).length : 'SIN REGISTRO') + ' card=' + !!CARD()]);
   ex.push(['(A1) los OCHO botones de lesion existen, son BUTTON, sin atributo title y con aria-expanded',
     CLAVES.every(function (k) { const b = BTN(k);
@@ -78919,8 +79005,12 @@ caso('TC-502', 'Tanda P: Referencias en CINCO subpestanas sin perder una entrada
      tarjeta publica su pie de fuente —ESC 2020 de congenitas del adulto, folio 604— y no lleva
      boton «Ver referencia». Es el mismo limite declarado que las otras veintidos; los DOS globos
      de los segmentos aorticos SI tienen entrada y por eso no estan en esta lista. */
-  ex.push(['(C3) LIMITE DECLARADO: veintitres tarjetas sin boton, porque Referencias no tiene esa entrada',
-    sinBoton.join(',') === 'amilo-score,co-riesgo-basal,coa-card,cvr-coc,cvr-ecosmart,et-avt-cont,'
+  /* ADAPTADO (TANDA D2, 30/10/2026): veintitres -> VEINTICUATRO. La nueva es co-monitoreo, el
+     globo del monitoreo de inmunoterapia y anti-VEGF: Referencias no tiene una ficha de
+     cardio-oncologia -es el mismo limite que co-riesgo-basal ya declaraba, y lo que D-i propone
+     resolver-, asi que la tarjeta publica sus dos fuentes en su pie y no lleva boton. */
+  ex.push(['(C3) LIMITE DECLARADO: veinticuatro tarjetas sin boton, porque Referencias no tiene esa entrada',
+    sinBoton.join(',') === 'amilo-score,co-monitoreo,co-riesgo-basal,coa-card,cvr-coc,cvr-ecosmart,et-avt-cont,'
       + 'hemo-forr,hemo-ic,hemo-rvs,'
       + 'tarj-esten-pulmonar,tarj-esten-tricuspide,tarj-insuf-pulmonar,'
       + 'tep-eco-dx,tep-mcconnell,'
@@ -82167,11 +82257,32 @@ caso('TC-508', 'Tanda R2: el desplegable del derrame ofrece SOLO las cinco opcio
     !!_glsAlt && _glsAlt(null) === false, 'null=' + (_glsAlt ? _glsAlt(null) : 'SIN')]);
   ex.push(['(H3) la dosis de alto riesgo de antraciclinas es 250 mg/m2',
     _dosis === 250, 'dosis=' + _dosis]);
+  /* ⚠️ ADAPTADO EN LA TANDA D2: esta condicion barria el DOCUMENTO ENTERO exigiendo que «cada 3
+     ciclos» no apareciera en ninguna parte. Servia mientras el unico calendario por ciclos fuera
+     el de las antraciclinas; desde que la fila de INMUNOTERAPIA publica el suyo —ECG y troponina
+     en los ciclos 2, 3 y 4 y luego CADA 3 CICLOS, que es lo que la Figura 20 pide—, el barrido
+     global lo cazaba a el. Lo que el caso vigila no cambia: que el calendario de las
+     ANTRACICLINAS diga dos ciclos y no tres. Se mide sobre sus propias filas, y se agrega el
+     control de que la fila de inmunoterapia SI puede decir tres. */
   ex.push(['(H4) con antraciclinas el eco va cada 2 CICLOS y los biomarcadores cada ciclo',
-    (() => { const t = document.documentElement.innerHTML;
-      return t.indexOf('cada 2 ciclos') > -1 && t.indexOf('cada 3 ciclos') < 0; })(),
-    (() => { const t = document.documentElement.innerHTML;
-      return '2ciclos=' + (t.indexOf('cada 2 ciclos') > -1) + ' 3ciclos=' + (t.indexOf('cada 3 ciclos') > -1); })()]);
+    (() => {
+      const filas = Array.prototype.filter.call(document.querySelectorAll('tr'), (tr) =>
+        /^Antracicl/.test(((tr.cells && tr.cells[0]) || {}).textContent || ''));
+      const t = filas.map((tr) => tr.textContent || '').join(' ');
+      return filas.length > 0 && t.indexOf('cada 2 ciclos') > -1 && t.indexOf('cada 3 ciclos') < 0;
+    })(),
+    (() => {
+      const filas = Array.prototype.filter.call(document.querySelectorAll('tr'), (tr) =>
+        /^Antracicl/.test(((tr.cells && tr.cells[0]) || {}).textContent || ''));
+      const t = filas.map((tr) => tr.textContent || '').join(' ');
+      return 'filas=' + filas.length + ' 2ciclos=' + (t.indexOf('cada 2 ciclos') > -1)
+        + ' 3ciclos=' + (t.indexOf('cada 3 ciclos') > -1); })()]);
+  ex.push(['(H4b) CONTROL: la fila de inmunoterapia SI publica su propio calendario por ciclos',
+    (() => {
+      const filas = Array.prototype.filter.call(document.querySelectorAll('tr'), (tr) =>
+        /^ICI/.test(((tr.cells && tr.cells[0]) || {}).textContent || ''));
+      const t = filas.map((tr) => tr.textContent || '').join(' ');
+      return filas.length > 0 && t.indexOf('cada 3 ciclos') > -1; })(), 'ICI']);
   ex.push(['(H5) la calculadora de riesgo basal DECLARA que no es el HFA-ICOS',
     document.documentElement.innerHTML.indexOf('no es el HFA-ICOS') > -1
       || document.documentElement.innerHTML.indexOf('no es HFA-ICOS') > -1, '']);
@@ -91282,7 +91393,11 @@ caso('TC-535', 'Tanda AJ7: la linea de Fallot del EN SUMA sin la IP y el resumen
      ⚠️ Y SE CAMBIO EL METODO, no solo el numero: ver el comentario de tapK mas arriba. El de
      los territorios vive en una seccion que a 756 px queda CERRADA, y medirlo sin abrirla daba
      CERO puntos propios sobre un boton que a 1440 px da los cinco. */
-  /* ⚠️ ADAPTADO EN LA TANDA AORTA-2 (2026-10-30): ONCE -> CATORCE. Los tres nuevos son
+  /* ⚠️ ADAPTADO EN LA TANDA D2 (2026-10-30): CATORCE -> QUINCE. El nuevo es co-monitoreo, que
+     nace con la clase vinfo-btn-44 y SIN margenes negativos. Vive en la sub-pestana «Referencia
+     rapida» de Cardio-Oncologia, que nace PLEGADA: hay que abrir la pestana Y el acordeon antes
+     de medir, igual que los tres de la tanda anterior.
+     ⚠️ ADAPTADO EN LA TANDA AORTA-2 (2026-10-30): ONCE -> CATORCE. Los tres nuevos son
      ao-cay-card, ao-desc-card y coa-card, que nacen con la clase vinfo-btn-44 y SIN margenes
      negativos. Lo que estas tres condiciones exigen no cambia; lo que cambia es cuantos globos
      tienen que cumplirlo, y el conteo ES el denominador. Medido en los dos motores y en los
@@ -91290,12 +91405,12 @@ caso('TC-535', 'Tanda AJ7: la linea de Fallot del EN SUMA sin la IP y el resumen
      ⚠️ LOS TRES VIVEN EN SECCIONES QUE NACEN PLEGADAS —la aorta en AI/VI y la coartacion en
      C. Congenitas—, asi que hay que abrir la pestana Y el acordeon antes de medir: sin eso dan
      0x0 y cero puntos propios sobre botones que si se dibujan. */
-  ex.push(['(K0) DENOMINADOR: los CATORCE globos llevan la clase, tienen geometria y estan EN VISTA',
-    tapK.length === 14 && tapK.every((x) => x.w > 0 && x.h > 0 && x.enVista), JSON.stringify(tapK)]);
-  ex.push(['(K1) los catorce miden 44x44 tambien con el mouse',
-    tapK.length === 14 && tapK.every((x) => x.w >= 44 && x.h >= 44), JSON.stringify(tapK)]);
+  ex.push(['(K0) DENOMINADOR: los QUINCE globos llevan la clase, tienen geometria y estan EN VISTA',
+    tapK.length === 15 && tapK.every((x) => x.w > 0 && x.h > 0 && x.enVista), JSON.stringify(tapK)]);
+  ex.push(['(K1) los quince miden 44x44 tambien con el mouse',
+    tapK.length === 15 && tapK.every((x) => x.w >= 44 && x.h >= 44), JSON.stringify(tapK)]);
   ex.push(['(K2) y su caja NO tapa a ningun vecino: los cinco puntos dan el propio boton',
-    tapK.length === 14 && tapK.every((x) => x.propios === 5), JSON.stringify(tapK)]);
+    tapK.length === 15 && tapK.every((x) => x.propios === 5), JSON.stringify(tapK)]);
   ex.push(['(K3) CONTROL: los demas globos NO se tocaron y siguen con su piso solo tactil',
     document.querySelectorAll('button.vinfo-btn').length
       - document.querySelectorAll('button.vinfo-btn-44').length >= 10,
@@ -93155,12 +93270,19 @@ caso('TC-540', 'Tanda D: la calculadora de riesgo CV aplicando la Tabla 4 de la 
       d3.seguimiento === '' && d3.col === null && /Puntaje propio de la aplicación/i.test(capsula())
         && /la guía no lo define para este fármaco/i.test(capsula()),
       'seg=' + JSON.stringify(d3.seguimiento) + ' col=' + d3.col]);
-    /* (D4) CONTROL: el anti-VEGF SI tiene columna en la tabla y todavia no se aplica, asi que su
-       linea dice otra cosa. Dos textos y no uno. */
+    /* ⚠️ (D4) INVERTIDA EN LA TANDA D2: el anti-VEGF YA tiene su columna aplicada, asi que la
+       frase «todavia no se aplica la tabla de la guia para este farmaco» desaparecio del
+       archivo entero -no quedaba ningun farmaco en esa situacion-. Lo que el caso vigila sigue
+       siendo lo mismo: que la linea de alcance diga la verdad sobre ese farmaco. Hoy la verdad
+       es que la tabla SI se aplica, y entonces NO hay linea de alcance; y la hipertension, que
+       en esa columna vale «alto», lo clasifica ALTO con un solo factor. */
     escenaCO(); farmaco('vegf'); tildar('hfaicos_hta', true);
-    ex.push(['(D4) el anti-VEGF dice que la tabla de la guia todavia NO se aplica para el',
-      /todavía no se aplica la tabla de la guía/i.test(capsula()),
-      'cap=' + capsula().slice(0, 90)]);
+    const d4 = estado();
+    ex.push(['(D4) el anti-VEGF clasifica POR LA TABLA y ya no lleva linea de alcance',
+      d4.col === 'vegf' && d4.banda === 'ALTO'
+        && !/Puntaje propio de la aplicación/i.test(capsula())
+        && !/todavía no se aplica la tabla de la guía/i.test(capsula()),
+      'col=' + d4.col + ' banda=' + d4.banda + ' cap=' + capsula().slice(0, 80)]);
 
     /* ══ (E) LOS DATOS BASALES SE LIMPIAN CON LA CALCULADORA ══ */
     /* ⚠️ EL GESTO Y NADA MAS: se tilda y se destilda UNA casilla, sin tocar el farmaco y sin
@@ -93169,14 +93291,26 @@ caso('TC-540', 'Tanda D: la calculadora de riesgo CV aplicando la Tabla 4 de la 
        condicion PASABA sobre HEAD, o sea sobre el defecto que viene a medir. Es el mismo error de
        TC-519, que fabricaba el disparador que faltaba. Medido: con el gesto solo, HEAD conserva
        «Riesgo MEDIO (1/13 pts)» en Datos basales con la capsula ya en gris. */
-    escenaCO(); tildar('hfaicos_hta', true);
+    /* ⚠️ ADAPTADA EN LA TANDA D2: la escena no tenia FARMACO, y desde el commit 1 sin farmaco no
+       hay categoria, asi que el «antes» de esta condicion se quedaba sin denominador -nunca hay
+       banda que perder-. Se le pone el farmaco ANTES de medir (la llamada de farmaco() queda
+       fuera de la transicion que se mide) y se cambia lo que se exige: ya no que la banda
+       DESAPAREZCA, sino que el gesto la REPINTE. Ese era el defecto 1f: el contenedor de
+       conservaba la banda del paciente anterior con la capsula ya cambiada. */
+    escenaCO(); farmaco('antracicline'); tildar('hfaicos_cv_ic', true);
     const e1a = basales();
-    tildar('hfaicos_hta', false);
+    tildar('hfaicos_cv_ic', false);
     const e1b = basales();
-    ex.push(['(E1) al vaciar la calculadora, «Datos basales» se vacia con ella y no conserva la banda',
-      /Riesgo\\s+(BAJO|MEDIO|ALTO|MUY ALTO)/.test(e1a) && !/Riesgo\\s+(BAJO|MEDIO|ALTO|MUY ALTO)/.test(e1b)
-        && /Completar en/i.test(e1b),
-      'antes=' + e1a.slice(0, 50) + ' | despues=' + e1b.slice(0, 50)]);
+    ex.push(['(E1) al destildar un factor, «Datos basales» se repinta con el gesto y no conserva la banda anterior',
+      /Riesgo\\s+MUY ALTO/.test(e1a) && /Riesgo\\s+BAJO/.test(e1b)
+        && !/Riesgo\\s+MUY ALTO/.test(e1b),
+      'antes=' + e1a.slice(0, 60) + ' | despues=' + e1b.slice(0, 60)]);
+    /* Y SIN FARMACO no hay nada que publicar: la otra mitad del mismo invariante. */
+    escenaCO(); tildar('hfaicos_hta', true);
+    const e1c = basales();
+    ex.push(['(E1b) y sin farmaco elegido «Datos basales» remite a la calculadora, sin banda',
+      !/Riesgo\\s+(BAJO|MEDIO|ALTO|MUY ALTO)/.test(e1c) && /Completar en/i.test(e1c),
+      'cap=' + e1c.slice(0, 60)]);
 
     /* ══ (F) EL SCORE DE AMILOIDOSIS ══ */
     const amiloRe = () => { const o = {};
@@ -98641,6 +98775,304 @@ caso('TC-555', 'Tanda AORTA-2: la union sinotubular y la aorta ascendente por se
 `);
 
 
+/* -- TC-556 ---------------------------------------------------------------------------------
+   TANDA D2 (2026-10-30), commits 1 a 4 — cardio-oncologia.
+
+   Las letras son las de las condiciones. Cada bloque abre con su DENOMINADOR -lo que impide
+   que «no aparece» y «no se midio» se lean igual- y cierra con sus controles negativos.
+
+   ADVERTENCIAS DE METODO, todas pagadas en este repositorio:
+   - NO SE LLAMA A calcHFAICOS NI A calcCardioOnco A MANO: las casillas se tildan y se despacha
+     hfaicosToggle, que es el gesto real. Llamar al calculador fabrica el disparador que la app
+     no tiene y tapa el defecto (lo pago TC-519 y lo volvio a pagar la tanda D con su punto 1f).
+   - EL ESTILO DE INFORME ES ESTADO DE SESION y este caso lo fija antes de cada lectura: un caso
+     anterior puede dejarlo en narrativo (lo pago TC-547).
+   - ABRIR LA PESTANA NO LE DA CAJA A LA TARJETA: la seccion «Referencia rapida» es un acordeon
+     cerrado y adentro todo informa 0x0. Se abre por su boton real.
+   - LA TARJETA DE UN GLOBO ES position:fixed, asi que su offsetParent es null aunque este
+     abierta: se pregunta por display, no por offsetParent.
+   - SIN ACENTOS GRAVES EN ESTE COMENTARIO NI EN EL CUERPO: los dos viven dentro de un template.
+*/
+caso('TC-556', 'Tanda D2: la calculadora de riesgo CV no clasifica sin farmaco elegido y su mensaje no llega al papel; las SEIS columnas de la Tabla 4 con anti-VEGF, BCR-ABL, mieloma y RAF/MEK y sin pisos propios; las tablas A y C de HFA-ICOS dibujadas desde el mismo dueno que clasifica, con la B sin tocar; y el monitoreo de inmunoterapia y anti-VEGF con su linea corta en las tres copias y el detalle en el globo', `
+  return (async () => {
+  const ex = [];
+  const F = (n) => (typeof window[n] === 'function') ? window[n] : null;
+  const EL = (id) => document.getElementById(id) || null;
+  const T = (id) => { const e = EL(id); return e ? (e.textContent || '').replace(/[ \\t\\n\\r]+/g, ' ').trim() : 'NO EXISTE'; };
+  const V = (id) => { const e = EL(id); return e ? String(e.value || '') : 'NO EXISTE'; };
+  const pon = (id, v) => { const e = EL(id); if (!e) return 'NO ' + id;
+    e.value = String(v); e.dispatchEvent(new Event('input', { bubbles: true }));
+    e.dispatchEvent(new Event('change', { bubbles: true })); return e.value; };
+  const esperar = (ms) => new Promise(r => setTimeout(r, ms));
+  const limpiar = () => { try { if (F('limpiarCampos')) limpiarCampos(true) } catch (e) {} };
+  const infEn = (st) => { try { if (F('setEstiloInforme')) setEstiloInforme(st) } catch (e) {}
+    try { if (F('generarInforme')) generarInforme() } catch (e) {}
+    return V('informe_texto'); };
+  const suma = () => V('en_suma');
+  /* EL GESTO REAL sobre una casilla: se tilda y se llama a su propio onchange, que es
+     hfaicosToggle -quien aplica la exclusion en el borde y marca que la movio una persona-. */
+  const tildar = (id) => { const e = EL(id); if (!e) return false;
+    e.checked = true; try { if (F('hfaicosToggle')) hfaicosToggle(id) } catch (x) {}
+    e.dispatchEvent(new Event('change', { bubbles: true })); return true; };
+  const escena = async (farm, chks, edad) => {
+    limpiar(); await esperar(80);
+    pon('nombre', 'Prueba D2'); pon('documento', '556');
+    pon('peso', '70'); pon('talla', '170'); pon('sexo', 'M');
+    (chks || []).forEach(tildar);
+    if (edad) pon('co_edad', String(edad));
+    pon('co_farmaco', farm || '');
+    await esperar(300);
+  };
+  const banda = () => { try { const s = F('hfaicosEstado') ? hfaicosEstado() : null;
+    return s ? String(s.clave) : 'SIN hfaicosEstado' } catch (x) { return 'ERR ' + x.message } };
+  const MSG = 'Eleg\\u00ed el f\\u00e1rmaco para calcular el riesgo';
+
+  try {
+
+  /* ══ A — LA CALCULADORA SIN FARMACO ELEGIDO (commit 1) ════════════════════════════════════ */
+  /* (A0) DENOMINADOR: con fármaco y el MISMO factor, la calculadora SI clasifica y publica su
+     banda en los dos contenedores. Sin esto, todo lo de abajo puede dar «no hay categoria»
+     porque la calculadora no esta corriendo. */
+  await escena('antracicline', ['hfaicos_hta']);
+  const a0c = T('hfaicos-resultado'), a0b = T('co-riesgo-resultado');
+  ex.push(['(A0) DENOMINADOR: con antraciclinas y la hipertension tildada hay banda en la capsula y en lo que lee el papel',
+    /Riesgo BAJO/.test(a0c) && /Riesgo BAJO/.test(a0b) && banda() === 'bajo', a0c.slice(0, 120) + ' || ' + a0b.slice(0, 90)]);
+
+  /* (A1) SIN FARMACO y con el MISMO factor: el mensaje, y ninguna banda. */
+  await escena('', ['hfaicos_hta']);
+  const a1c = T('hfaicos-resultado'), a1b = T('co-riesgo-resultado');
+  ex.push(['(A1) sin farmaco: la capsula dice «Elegi el farmaco para calcular el riesgo»',
+    a1c.indexOf(MSG) > -1, a1c.slice(0, 160)]);
+  ex.push(['(A1b) y NO publica ninguna banda ni puntaje',
+    !/Riesgo (BAJO|MEDIO|ALTO|MUY ALTO)/.test(a1c) && a1c.indexOf('puntos') === -1, a1c.slice(0, 160)]);
+  ex.push(['(A1c) ni la linea de derivacion, que sale de la categoria',
+    a1c.indexOf('Derivaci\\u00f3n') === -1 && a1c.indexOf('derivar a cardiolog') === -1, a1c.slice(0, 200)]);
+  /* (A1d) Y SE LE PREGUNTA AL DUENO, no solo a los pintores. Sin esta condicion, apagar la
+     derivacion en hfaicosEstado es redundante con las salidas tempranas de los dos pintores y
+     una mutacion que lo revierta SOBREVIVE: el contrato del dueno es que no publique una
+     conducta por categoria cuando no hay categoria, y cualquier consumidor futuro lo lee de ahi. */
+  const _e1 = (function () { try { return F('hfaicosEstado') ? hfaicosEstado() : null } catch (x) { return null } })();
+  ex.push(['(A1d) el DUENO no publica derivacion ni calendario de eco sin categoria',
+    !!_e1 && _e1.derivacion === '' && _e1.seguimiento === '',
+    _e1 ? ('deriv=' + JSON.stringify(_e1.derivacion) + ' seg=' + JSON.stringify(_e1.seguimiento)) : 'SIN hfaicosEstado']);
+
+  /* (A2) LAS CASILLAS QUEDAN DISPONIBLES: es la otra mitad de la decision. */
+  const _ca = EL('hfaicos_hta'), _cb = EL('hfaicos_cv_ic');
+  ex.push(['(A2) las casillas de factores siguen habilitadas y la tildada sigue tildada',
+    !!_ca && _ca.checked && !_ca.disabled && !!_cb && !_cb.disabled,
+    'hta=' + (_ca ? _ca.checked + '/' + _ca.disabled : 'NO') + ' ic=' + (_cb ? _cb.disabled : 'NO')]);
+
+  /* (A3) EL MENSAJE NO LLEGA AL PAPEL. El contenedor co-riesgo-resultado es el que leen la hoja
+     del PDF, el PPT y el cuerpo del informe cuando el modulo esta integrado. */
+  ex.push(['(A3) lo que lee el papel publica la pastilla gris de siempre y NO el mensaje nuevo',
+    a1b.indexOf(MSG) === -1 && a1b.indexOf('Completar en') > -1 && !/Riesgo (BAJO|MEDIO|ALTO)/.test(a1b), a1b.slice(0, 160)]);
+
+  /* (A4) EL INFORME INTEGRADO no afirma una categoria. Se integra el modulo, que es el unico
+     camino por el que su texto baja al cuerpo narrativo. */
+  try { if (F('eteInclToggle')) eteInclToggle('hfaicos_incluir_chk') } catch (x) {}
+  await esperar(260);
+  const a4 = infEn('estandar'), a4s = suma();
+  ex.push(['(A4) el informe integrado NO dice «riesgo bajo/medio/alto» ni el puntaje sobre un maximo',
+    !/riesgo (bajo|medio|alto|muy alto)/i.test(a4) && a4.indexOf('/13 puntos') === -1,
+    a4.split('\\n').filter(function (l) { return /riesgo|cardio-onc/i.test(l) }).join(' | ').slice(0, 220)]);
+  ex.push(['(A4b) y tampoco lleva el mensaje de pantalla', a4.indexOf(MSG) === -1 && a4s.indexOf(MSG) === -1,
+    'inf=' + a4.indexOf(MSG) + ' suma=' + a4s.indexOf(MSG)]);
+  /* (A5) PERO NO SE PERDIO LO DESCRIPTIVO: los factores consignados siguen en el papel. */
+  ex.push(['(A5) el informe integrado SI conserva los factores consignados',
+    a4.indexOf('Factores presentes') > -1 && a4.indexOf('Hipertensi\\u00f3n arterial') > -1,
+    a4.split('\\n').filter(function (l) { return /Factores presentes/.test(l) }).join(' | ').slice(0, 200)]);
+
+  /* ══ B — LAS SEIS COLUMNAS DE LA TABLA 4 (commit 2) ═══════════════════════════════════════ */
+  /* (B0) DENOMINADOR: el dueno declara las SEIS columnas y el selector ofrece las seis. */
+  const _cols = (F('coT4Cols') ? coT4Cols() : []).map(function (c) { return c[0] }).join(',');
+  const _opts = (function () { const s = EL('co_farmaco');
+    return s ? Array.prototype.map.call(s.options, function (o) { return o.value }).join(',') : 'NO EXISTE' })();
+  ex.push(['(B0) DENOMINADOR: las seis columnas de la tabla y las seis opciones en el selector',
+    _cols === 'antracicline,trastuzumab,vegf,bcr_abl,mieloma,raf_mek' &&
+    _opts.indexOf('mieloma') > -1 && _opts.indexOf('raf_mek') > -1, _cols + ' || ' + _opts]);
+
+  /* (B1) ANTI-VEGF: la hipertension arterial vale ALTO en esa columna. Con el puntaje propio
+     valia un punto, o sea «medio»: es la diferencia que la columna introduce. */
+  await escena('vegf', ['hfaicos_hta']);
+  ex.push(['(B1) anti-VEGF con hipertension sola: ALTO', banda() === 'alto', banda() + ' ' + T('hfaicos-resultado').slice(0, 90)]);
+  /* (B2) BCR-ABL: la troponina basal elevada NO suma en esa columna. */
+  await escena('bcr_abl', ['hfaicos_troponina']);
+  ex.push(['(B2) BCR-ABL con troponina basal elevada sola: BAJO', banda() === 'bajo', banda()]);
+  /* (B3) BCR-ABL: el tabaquismo es un factor ALTO en esa columna, y en las otras cinco no. */
+  await escena('bcr_abl', ['hfaicos_tabaco']);
+  ex.push(['(B3) BCR-ABL con tabaquismo solo: ALTO', banda() === 'alto', banda()]);
+  /* (B4) MIELOMA: los peptidos natriureticos elevados son un factor ALTO en esa columna. */
+  await escena('mieloma', ['hfaicos_bnp']);
+  ex.push(['(B4) mieloma multiple con peptidos elevados solos: ALTO', banda() === 'alto', banda()]);
+  /* (B5) RAF/MEK: la arritmia previa vale un solo punto, asi que no llega a moderado. */
+  await escena('raf_mek', ['hfaicos_cv_arrit']);
+  ex.push(['(B5) RAF/MEK con arritmia previa sola: BAJO', banda() === 'bajo', banda()]);
+  /* (B6) LA CASILLA DE ANTECEDENTE CORONARIO toma el MAYOR de sus tres filas: muy alto con
+     anti-VEGF, alto con RAF/MEK y nada con BCR-ABL. Es la condicion que caza que se le invente
+     un peso unico para las seis columnas. */
+  await escena('vegf', ['hfaicos_cv_coron']); const b6a = banda();
+  await escena('raf_mek', ['hfaicos_cv_coron']); const b6b = banda();
+  await escena('bcr_abl', ['hfaicos_cv_coron']); const b6c = banda();
+  ex.push(['(B6) el antecedente coronario da muy alto con anti-VEGF, alto con RAF/MEK y bajo con BCR-ABL',
+    b6a === 'muy_alto' && b6b === 'alto' && b6c === 'bajo', b6a + '/' + b6b + '/' + b6c]);
+  /* (B7) LAS DOS FILAS DE EDAD no son las mismas en cada columna: con 70 anios el anti-VEGF da
+     un punto y el BCR-ABL dos; con 76, los dos dan alto. */
+  await escena('vegf', ['hfaicos_edad'], 70); const b7a = banda();
+  await escena('bcr_abl', ['hfaicos_edad'], 70); const b7b = banda();
+  await escena('vegf', ['hfaicos_edad'], 76); const b7c = banda();
+  ex.push(['(B7) edad 70 da bajo con anti-VEGF y medio con BCR-ABL, y 76 da alto con anti-VEGF',
+    b7a === 'bajo' && b7b === 'medio' && b7c === 'alto', b7a + '/' + b7b + '/' + b7c]);
+  /* (B8) CONTROL NEGATIVO: las dos columnas que ya estaban aplicadas NO se movieron. */
+  await escena('antracicline', ['hfaicos_hta']); const b8a = banda();
+  await escena('antracicline', ['hfaicos_cv_arrit']); const b8b = banda();
+  await escena('trastuzumab', ['hfaicos_cv_arrit']); const b8c = banda();
+  ex.push(['(B8) CONTROL NEGATIVO: antraciclinas con hipertension bajo, con arritmia bajo, y anti-HER2 con arritmia medio',
+    b8a === 'bajo' && b8b === 'bajo' && b8c === 'medio', b8a + '/' + b8b + '/' + b8c]);
+  /* (B9) CONTROL NEGATIVO: los tres farmacos SIN columna conservan el puntaje propio y su
+     linea de alcance, con UN solo texto. */
+  await escena('inmunoterapia', ['hfaicos_hta']);
+  const b9 = T('hfaicos-resultado');
+  ex.push(['(B9) CONTROL NEGATIVO: inmunoterapia sigue con el puntaje propio sobre un maximo y su linea de alcance',
+    /\\/ 13 puntos/.test(b9) && b9.indexOf('la gu\\u00eda no lo define para este f\\u00e1rmaco') > -1 &&
+    b9.indexOf('todav\\u00eda no se aplica la tabla') === -1, b9.slice(0, 200)]);
+  /* (B10) EL NOMBRE DE LA COLUMNA EN EL PAPEL sale de una tabla y no de un ternario binario:
+     un paciente con mieloma no puede salir «para terapias dirigidas contra HER2». */
+  await escena('mieloma', ['hfaicos_bnp']);
+  const b10 = (F('hfaicosTexto') ? hfaicosTexto() : 'SIN hfaicosTexto');
+  ex.push(['(B10) el texto del modulo con mieloma nombra su propia columna y NO la de HER2',
+    b10.indexOf('terapias para mieloma m\\u00faltiple') > -1 && b10.indexOf('HER2') === -1, b10.slice(0, 200)]);
+
+  /* ══ C — LAS TABLAS A Y C DE HFA-ICOS (commit 3) ══════════════════════════════════════════ */
+  try { if (F('showTab')) showTab('cardioOnco') } catch (x) {}
+  try { const h = document.querySelector('[onclick*="co-referencia-seccion"]'); if (h) h.click() } catch (x) {}
+  try { const s = EL('co-referencia-seccion'); if (s) { s.style.display = ''; s.style.transition = 'none' } } catch (x) {}
+  try { if (F('coRefTab')) coRefTab('hfaicos') } catch (x) {}
+  await esperar(200);
+  const _tab = document.querySelector('#co-t4-matriz table');
+  /* (C0) DENOMINADOR: la matriz se dibujo, con sus filas y sus siete columnas. */
+  ex.push(['(C0) DENOMINADOR: la matriz existe con 14 filas y 7 columnas',
+    !!_tab && _tab.rows.length === 14 && _tab.rows[0].cells.length === 7,
+    _tab ? (_tab.rows.length + 'x' + _tab.rows[0].cells.length) : 'NO EXISTE']);
+  /* (C1) CADA CELDA COINCIDE CON EL DUENO. Es la condicion que hace imposible que la tabla de
+     referencia y el clasificador de al lado digan cosas distintas. */
+  let _n = 0, _mal = 0, _det = '';
+  try {
+    const PES = coT4Pesos(), COLS = coT4Cols();
+    const rot = function (c) { return (c === undefined || c === null) ? '\\u2014'
+      : ({ VH: 'muy alto', H: 'alto', M2: '2 pts', M1: '1 pt' })[c] };
+    const facs = hfaicosFactores().filter(function (f) { return !f.legado && PES[f.id] });
+    for (let i = 0; i < facs.length; i++) for (let j = 0; j < COLS.length; j++) {
+      const esp = rot(PES[facs[i].id][COLS[j][0]]);
+      const got = (_tab.rows[i + 1].cells[j + 1].textContent || '').trim();
+      _n++; if (esp !== got) { _mal++; if (_det.length < 90) _det += facs[i].id + '/' + COLS[j][0] + ' ' + esp + '!=' + got + ' ' }
+    }
+  } catch (x) { _det = 'ERR ' + x.message }
+  ex.push(['(C1) las 66 celdas de la matriz coinciden UNA POR UNA con coT4Pesos()',
+    _n === 66 && _mal === 0, 'celdas=' + _n + ' discrepan=' + _mal + ' ' + _det]);
+  /* (C2) LA REGLA DE COMBINACION usa los MISMOS dos cortes que la cascada. */
+  const _reg = T('co-t4-regla');
+  ex.push(['(C2) la regla publica los cortes de _CO_T4_CORTES: 5 o mas para alto y de 2 a 4 para medio',
+    _reg.indexOf('5 puntos o m\\u00e1s') > -1 && _reg.indexOf('De 2 a 4 puntos') > -1, _reg.slice(0, 220)]);
+  /* (C3) EL ESQUEMA VIEJO no quedo en ninguna parte del panel. */
+  const _pane = document.querySelector('[data-coref-pane="hfaicos"]');
+  const _ptxt = _pane ? (_pane.textContent || '') : 'NO EXISTE';
+  ex.push(['(C3) el esquema de puntos fijos y el corte de «>=4 puntos» no estan en el panel',
+    _ptxt.indexOf('>=4 puntos') === -1 && _ptxt.indexOf('\\u22654 puntos') === -1 &&
+    _ptxt.indexOf('Edad >=65 a\\u00f1os') === -1 && _ptxt.indexOf('Edad \\u226565 a\\u00f1os') === -1, _ptxt.length + ' chars']);
+  /* (C4) CONTROL NEGATIVO: la tabla B sigue entera, que es lo que la orden pide no tocar. */
+  ex.push(['(C4) CONTROL NEGATIVO: la tabla B de riesgo por farmaco sigue en el panel',
+    _ptxt.indexOf('Riesgo por farmaco') > -1 && _ptxt.indexOf('Hormonoterapia') > -1, 'B presente']);
+  /* (C5) Y EL AVISO dice que la B no decide, que es lo que la vuelve leible al lado de la A. */
+  ex.push(['(C5) el aviso declara que la tabla B no entra en la clasificacion',
+    _ptxt.indexOf('no entra') > -1 || _ptxt.indexOf('no decide nada') > -1, 'aviso']);
+
+  /* ══ D — EL MONITOREO DE INMUNOTERAPIA Y ANTI-VEGF (commit 4) ═════════════════════════════ */
+  /* (D0) DENOMINADOR: las TRES copias de cada fila existen. Son tres y no una, y por eso se
+     cuentan: corregir una sola deja dos contradiciendola. */
+  let _ici = 0, _vegf = 0, _viejoICI = 0, _viejoVEGF = 0;
+  document.querySelectorAll('[data-coref-pane] td').forEach(function (td) {
+    const t2 = (td.textContent || '');
+    if (/ciclos 2, 3 y 4/.test(t2)) _ici++;
+    if (/domiciliaria diaria el primer ciclo/.test(t2)) _vegf++;
+    if (/ECG y troponina basal y ante s/.test(t2)) _viejoICI++;
+    if (/PA, eco si s\\u00edntomas o FEVI l\\u00edmite/.test(t2)) _viejoVEGF++;
+  });
+  ex.push(['(D0) DENOMINADOR: las tres copias de cada fila llevan el texto nuevo',
+    _ici === 3 && _vegf === 3, 'ici=' + _ici + ' vegf=' + _vegf]);
+  ex.push(['(D1) y ninguna conserva el texto viejo que subestimaba lo que la guia pide',
+    _viejoICI === 0 && _viejoVEGF === 0, 'viejoICI=' + _viejoICI + ' viejoVEGF=' + _viejoVEGF]);
+  /* (D2) EL DETALLE Y LAS CITAS VIVEN EN EL GLOBO, que es la regla R2. */
+  try { if (F('coRefTab')) coRefTab('ctrcd') } catch (x) {}
+  const _btn = document.querySelector('[data-vinfo="co-monitoreo"]');
+  ex.push(['(D2) DENOMINADOR: la columna «Monitoreo recomendado» tiene su globo', !!_btn, _btn ? 'si' : 'NO EXISTE']);
+  if (_btn) { try { _btn.scrollIntoView({ block: 'center' }) } catch (x) {} ; try { vInfoClic(_btn) } catch (x) {} }
+  await esperar(250);
+  const _card = EL('vinfo-card');
+  /* La tarjeta es position:fixed, asi que su offsetParent es null aunque este abierta. */
+  const _ctxt = (_card && getComputedStyle(_card).display !== 'none') ? (_card.textContent || '') : 'NO VISIBLE';
+  ex.push(['(D3) el globo publica el calendario por riesgo de los dos farmacos',
+    _ctxt.indexOf('ciclos 2, 3 y 4') > -1 && _ctxt.indexOf('cada 3 meses') > -1 &&
+    _ctxt.indexOf('cada 4 meses') > -1, _ctxt.slice(0, 200)]);
+  ex.push(['(D4) y sus DOS fuentes con su folio: la figura del protocolo y la tabla de recomendaciones',
+    _ctxt.indexOf('folio 4273') > -1 && _ctxt.indexOf('folio 4264') > -1, 'folios']);
+  ex.push(['(D5) el riesgo alto del protocolo de inmunoterapia se declara distinto de la banda de la calculadora',
+    _ctxt.indexOf('No es la categor') > -1, _ctxt.indexOf('No es la categor') + '']);
+  /* (D6) CONTROL NEGATIVO: ni las filas ni el globo llegan al papel.
+     ⚠️ EL MODULO SE INTEGRA, Y ES LO QUE LE DA DENOMINADOR. Sin integrarlo, NADA de
+     cardio-oncologia baja al informe y «el calendario no esta» se cumple sobre un informe que
+     no tiene el modulo: un control que no puede fallar. Lo destapo la mutacion 15. */
+  await escena('inmunoterapia', ['hfaicos_hta']);
+  const _ck = EL('hfaicos_incluir_chk');
+  if (_ck && !_ck.checked) { try { if (F('eteInclToggle')) eteInclToggle('hfaicos_incluir_chk') } catch (x) {} }
+  await esperar(260);
+  const d6 = infEn('estandar'), d6s = suma();
+  ex.push(['(D6a) DENOMINADOR: con el modulo integrado el informe SI trae su bloque de cardio-oncologia',
+    d6.indexOf('Estratificaci\\u00f3n de riesgo cardio-onc') > -1, d6.length + ' chars']);
+  ex.push(['(D6) CONTROL NEGATIVO: y aun asi el informe y el EN SUMA no llevan el calendario de monitoreo',
+    d6.indexOf('ciclos 2, 3 y 4') === -1 && d6s.indexOf('ciclos 2, 3 y 4') === -1 &&
+    d6.indexOf('folio 4273') === -1 && d6.indexOf('domiciliaria diaria') === -1,
+    'inf=' + d6.indexOf('ciclos 2, 3 y 4')]);
+
+  /* ══ E — UN ESTUDIO SIN CARDIO-ONCOLOGIA NO CAMBIA ═══════════════════════════════════════ */
+  limpiar(); await esperar(80);
+  pon('nombre', 'Prueba D2'); pon('documento', '556');
+  pon('peso', '70'); pon('talla', '170'); pon('sexo', 'M'); pon('ddvi', '50'); pon('siv', '10');
+  await esperar(300);
+  const e1 = infEn('estandar'), e1s = suma();
+  /* (E0) DENOMINADOR: el informe se emitio y tiene cuerpo. Sin esto, «no dice nada de
+     cardio-oncologia» se cumple sobre un informe vacio. */
+  ex.push(['(E0) DENOMINADOR: el informe del estudio sin cardio-oncologia se emitio con cuerpo', e1.length > 200, e1.length + ' chars']);
+  ex.push(['(E1) y no nombra la estratificacion, ni una banda de riesgo, ni el mensaje de la calculadora',
+    e1.indexOf('Estratificaci\\u00f3n de riesgo cardio-onc') === -1 && e1.indexOf(MSG) === -1 &&
+    e1s.indexOf(MSG) === -1, e1.slice(0, 120)]);
+  ex.push(['(E2) y lo que lee el papel publica la pastilla gris, sin banda',
+    T('co-riesgo-resultado').indexOf('Completar en') > -1, T('co-riesgo-resultado').slice(0, 120)]);
+
+  /* ══ F — EL EXCEL NO SE MOVIO ════════════════════════════════════════════════════════════ */
+  let _nx = -1, _farm = '';
+  try {
+    const f = (typeof _labExcelRow !== 'undefined') ? _labExcelRow : window._labExcelRow;
+    const row = f({ campos: {}, fecha: '2026-10-30', nombre: 'x' });
+    _nx = Object.keys(row).length;
+    _farm = Object.keys(row).filter(function (k) { return /F\\u00e1rmaco cardiot/.test(k) }).join(',');
+  } catch (x) { _farm = 'ERR ' + x.message }
+  ex.push(['(F1) el Excel sigue en 440 columnas y conserva la de farmaco cardiotoxico',
+    _nx === 440 && _farm.length > 0, 'cols=' + _nx + ' ' + _farm]);
+  /* (F2) Y LOS DOS FARMACOS NUEVOS tienen etiqueta en el vocabulario, en los DOS sentidos: sin
+     eso, el Excel publicaria la clave cruda y la reimportacion no sabria volver. */
+  let _voc = '';
+  try {
+    const M = (typeof LAB_XLS_ETIQ !== 'undefined') ? LAB_XLS_ETIQ : null;
+    _voc = M && M.co_farmaco ? (M.co_farmaco.mieloma + '|' + M.co_farmaco.raf_mek) : 'SIN MAPA';
+  } catch (x) { _voc = 'ERR ' + x.message }
+  ex.push(['(F2) mieloma y RAF/MEK tienen etiqueta legible en el vocabulario del Excel',
+    _voc.indexOf('Mieloma') > -1 && _voc.indexOf('RAF/MEK') > -1, _voc]);
+
+  } catch (e) { ex.push(['EXCEPCION', false, String(e && e.message)]); }
+  return { extra: ex };
+  })();
+`);
+
 
 let servidor, chrome;
 try {
@@ -98770,3 +99202,4 @@ try {
   try { chrome && chrome.proc.kill(); } catch {}
   try { chrome && await rm(chrome.perfil, { recursive: true, force: true }); } catch {}
 }
+

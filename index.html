@@ -53990,56 +53990,81 @@ function coT4RefPintar() {
   if (!cont) return;
   const COLS = coT4Cols();
   const PES = coT4Pesos();
-  const esc = function (t) { const d = document.createElement('div'); d.textContent = t; return d.innerHTML };
-  const celda = function (txt, cab) {
-    return '<t' + (cab ? 'h' : 'd') + ' style="padding:5px 8px;text-align:' + (cab ? 'center' : 'center')
-      + ';white-space:nowrap;' + (cab ? 'color:var(--accent2);' : '') + '">' + esc(txt) + '</t' + (cab ? 'h' : 'd') + '>';
+  /* Se construye con NODOS, no concatenando `innerHTML`. No hay dato del paciente acá —todo sale
+     del catálogo y de la Tabla 4— pero la concatenación es el patrón que el ruleset local marca,
+     y un warning más en la línea base es un warning que el próximo lector tiene que volver a
+     descartar a mano. Es la misma decisión que `calcHFAICOS`. */
+  const cel = (txt, cab, izq) => {
+    const c = document.createElement(cab ? 'th' : 'td');
+    c.style.padding = '5px 8px';
+    c.style.textAlign = izq ? 'left' : 'center';
+    if (!izq) c.style.whiteSpace = 'nowrap';
+    if (cab) c.style.color = 'var(--accent2)';
+    c.textContent = txt;
+    return c;
   };
-  let h = '<table style="width:100%;border-collapse:collapse;font-size:11px;">';
-  h += '<tr style="background:var(--section-head);"><th style="padding:5px 8px;text-align:left;color:var(--accent2);">Factor</th>';
-  COLS.forEach(function (c) { h += celda(c[1], true) });
-  h += '</tr>';
+  const tab = document.createElement('table');
+  tab.style.width = '100%'; tab.style.borderCollapse = 'collapse'; tab.style.fontSize = '11px';
+  const cab = document.createElement('tr');
+  cab.style.background = 'var(--section-head)';
+  cab.appendChild(cel('Factor', true, true));
+  COLS.forEach(c => cab.appendChild(cel(c[1], true)));
+  tab.appendChild(cab);
+  const fila = (lbl, valor) => {
+    const tr = document.createElement('tr');
+    tr.style.borderBottom = '1px solid var(--border)';
+    if (tab.rows.length % 2 === 0) tr.style.background = 'var(--bg3)';
+    tr.appendChild(cel(lbl, false, true));
+    COLS.forEach(c => tr.appendChild(cel(valor(c[0]))));
+    tab.appendChild(tr);
+  };
   /* Las filas salen del catálogo de la calculadora, no de una lista aparte: agregar una casilla
      la agrega acá sola. Las que NO tienen fila en la tabla de la guía se saltean, porque una
      fila entera de guiones se lee como «la tabla la contempla y no suma». */
-  let i = 0;
-  hfaicosFactores().forEach(function (f) {
+  hfaicosFactores().forEach(f => {
     if (f.legado || !PES[f.id]) return;
-    i++;
-    h += '<tr style="border-bottom:1px solid var(--border);' + (i % 2 ? '' : 'background:var(--bg3);') + '">';
-    h += '<td style="padding:5px 8px;">' + esc(f.lbl) + '</td>';
-    COLS.forEach(function (c) { h += celda(_coT4Rot(PES[f.id][c[0]])) });
-    h += '</tr>';
+    fila(f.lbl, col => _coT4Rot(PES[f.id][col]));
   });
   /* Las DOS filas de edad, derivadas de `_coT4Edad` y no escritas a mano: cada columna tiene su
      propio corte, así que la fila se nombra por el lado del corte y no por un número. */
-  [['Edad por encima del corte de la columna', 90], ['Edad por debajo del corte, o sin el año cargado', 66]].forEach(function (fila) {
-    i++;
-    h += '<tr style="border-bottom:1px solid var(--border);' + (i % 2 ? '' : 'background:var(--bg3);') + '">';
-    h += '<td style="padding:5px 8px;">' + esc(fila[0]) + '</td>';
-    COLS.forEach(function (c) { h += celda(_coT4Rot(_coT4Edad(fila[1], c[0]))) });
-    h += '</tr>';
-  });
-  h += '</table>';
-  cont.innerHTML = h;
+  fila('Edad por encima del corte de la columna', col => _coT4Rot(_coT4Edad(90, col)));
+  fila('Edad por debajo del corte, o sin el año cargado', col => _coT4Rot(_coT4Edad(66, col)));
+  while (cont.firstChild) cont.removeChild(cont.firstChild);
+  cont.appendChild(tab);
   /* La regla de combinación, con los MISMOS dos cortes que usa la cascada. */
   const reg = document.getElementById('co-t4-regla');
-  if (reg) {
-    const F = function (band, color, txt) {
-      return '<tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;font-weight:700;color:var(--'
-        + color + ');width:90px;">' + band + '</td><td style="padding:5px 8px;">' + esc(txt) + '</td></tr>';
-    };
-    reg.innerHTML = '<table style="width:100%;border-collapse:collapse;font-size:11.5px;">'
-      + '<tr style="background:var(--section-head);"><th style="padding:6px 8px;text-align:left;color:var(--accent2);width:90px;">Riesgo</th>'
-      + '<th style="padding:6px 8px;text-align:left;color:var(--accent2);">Criterio</th></tr>'
-      + F('Muy alto', 'red', 'Cualquier factor de la columna marcado como «muy alto».')
-      + F('Alto', 'orange', 'Cualquier factor marcado como «alto», o ' + _CO_T4_CORTES.alto + ' puntos o más entre los moderados.')
-      + F('Medio', 'yellow', 'De ' + _CO_T4_CORTES.medio + ' a ' + (_CO_T4_CORTES.alto - 1) + ' puntos entre los moderados.')
-      + F('Bajo', 'green', 'Ningún factor, o un solo factor de 1 punto.')
-      + '</table>';
-  }
+  if (!reg) return;
+  const t2 = document.createElement('table');
+  t2.style.width = '100%'; t2.style.borderCollapse = 'collapse'; t2.style.fontSize = '11.5px';
+  const c2 = document.createElement('tr');
+  c2.style.background = 'var(--section-head)';
+  const h1 = cel('Riesgo', true, true); h1.style.width = '90px';
+  c2.appendChild(h1); c2.appendChild(cel('Criterio', true, true));
+  t2.appendChild(c2);
+  [['Muy alto', 'red', 'Cualquier factor de la columna marcado como «muy alto».'],
+   ['Alto', 'orange', 'Cualquier factor marcado como «alto», o ' + _CO_T4_CORTES.alto + ' puntos o más entre los moderados.'],
+   ['Medio', 'yellow', 'De ' + _CO_T4_CORTES.medio + ' a ' + (_CO_T4_CORTES.alto - 1) + ' puntos entre los moderados.'],
+   ['Bajo', 'green', 'Ningún factor, o un solo factor de 1 punto.']].forEach(f => {
+    const tr = document.createElement('tr');
+    tr.style.borderBottom = '1px solid var(--border)';
+    const b = cel(f[0], false, true);
+    b.style.fontWeight = '700'; b.style.color = 'var(--' + f[1] + ')'; b.style.width = '90px';
+    tr.appendChild(b); tr.appendChild(cel(f[2], false, true));
+    t2.appendChild(tr);
+  });
+  while (reg.firstChild) reg.removeChild(reg.firstChild);
+  reg.appendChild(t2);
 }
 window.coT4RefPintar = coT4RefPintar;
+/* ⚠️ Y SE PINTA UNA VEZ AL ARRANCAR, no solo al abrir la sub-pestaña. Las dos tablas son
+   contenido de REFERENCIA y no dependen del paciente, asi que no entran en RECALC_MODULOS ni en
+   limpiarCampos; pero si solo se pintaran con el gesto, quedarian VACIAS hasta que alguien
+   abriera esa sub-pestaña, y lo que lee el texto de la seccion entera -TC-99, TC-100 y TC-108-
+   mediria un contenedor vacio. Es el mismo motivo por el que TC-507 tuvo que pintar su ficha
+   antes de contar sus chips. */
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', function () { try { coT4RefPintar() } catch (x) {} }, { once: true });
+} else { try { coT4RefPintar() } catch (x) {} }
 
 function coRefTab(k) {
   if (k === 'hfaicos') { try { coT4RefPintar() } catch (x) {} }
@@ -142494,8 +142519,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261030-1830';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793395819524;                 /* eco-build-ms */
+const ECO_BUILD    = '20261030-2056';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793404575184;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -142581,7 +142606,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261030-1830</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261030-2056</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
