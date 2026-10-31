@@ -251,3 +251,13 @@ perdió o ganó:
 - **§ 5** · el esquema incluido con «Incluir en el PDF» ya **no se imprime dos veces**: con la
   sección de la orejuela integrada va junto a su tabla y sale de la página de imágenes.
 
+
+---
+
+## ⟶ Las dos conductas que quedaban salieron del papel: ver `aj2-coartacion-diagramas.md`
+
+La **TANDA AJUSTES-2** (31/10/2026) barrió **148 escenas y 3.072.850 caracteres** de superficie
+firmada y encontró sólo cinco menciones. Retiró las **dos** que eran conducta dirigida al médico:
+«El grado VEXUS debe integrarse con la clínica» —que `COR-a` ya declaraba— y la de la
+insuficiencia mitral severa. Las otras tres se listan en `PENDIENTES.md` → `AJ2-c`.
+El barrido completo está en `docs/mapa/aj2-coartacion-diagramas.md` § 6.

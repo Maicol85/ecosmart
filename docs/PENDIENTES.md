@@ -10573,3 +10573,72 @@ los tres. Se dejó el parámetro porque el día que vuelva a haber un fármaco c
 
 **Qué haría falta.** Nada, si no vuelve a pasar. Si se decide que nunca volverá, la función se
 puede reemplazar por una constante.
+
+---
+
+## Tanda AJUSTES-2 (2026-10-31)
+
+### AJ2-a · `esqClave` y `esqNombre` no se persisten, y por eso hubo que adoptar el huérfano
+**Qué pasa.** Al reabrir un estudio guardado, el slot del esquema vuelve con `esquema:true` pero
+**sin su clave**: ninguna de las dos allowlists de IndexedDB —`CeiboImg.guardar` e
+`imgRestaurar`— la incluye. Esa es la causa raíz del «a veces sale y a veces no» que el médico
+reportó: el botón decía «📄 Incluir en el PDF» sobre un estudio donde el dibujo ya estaba, y al
+tocarlo el PDF imprimía el dibujo **dos veces** (caso L de la matriz 3a).
+**Qué se hizo.** El commit 3 lo cierra **sin persistir nada**: `esqSlotIdx` adopta un esquema
+huérfano cuando hay **exactamente uno**.
+**Lo que falta, y su costo.** Persistir `esqClave` y `esqNombre` serían **dos propiedades más** en
+los registros de imagen, y la orden autoriza **una** —la que el commit 2 usó para `noPdf`—. Son
+~40 bytes por esquema. Con ellas, la adopción se podría retirar y el caso de **dos o más**
+esquemas en `imgSlots` quedaría cubierto; hoy, con dos huérfanos, no se adopta ninguno y el botón
+vuelve a mentir (es lo que mide TC-557 (C2) como control negativo). Hoy **sólo la orejuela** entra
+a `imgSlots`, así que el caso no se da.
+
+### AJ2-b · `congenitas-otros.md` está a 500 bytes del techo y no se tocó
+Mide **34.540 bytes**; el techo que este repo se fijó es ~35 KB. La coartación vive ahí y esta
+tanda la movió, pero escribirle el puntero lo cruzaría. **El mapa de la tanda salió a archivo
+propio** (`docs/mapa/aj2-coartacion-diagramas.md`, 21,1 KB) y el puntero se escribió en
+`ao2-segmentos-bicuspide.md` y en la tabla de `CLAUDE.md`. **La próxima tanda que necesite
+escribir en `congenitas-otros.md` tiene que partirlo primero.** `valvulas.md` (33,9 KB) sigue
+esperando lo mismo.
+
+### AJ2-c · Las TRES menciones del papel que el barrido 6a listó y NO tocó
+La orden dice retirar sólo las recomendaciones y **listar las demás para que las decida el
+médico**. Son éstas, con su módulo y su superficie:
+
+| frase | tipo | superficies | módulo |
+|---|---|---|---|
+| «Graduación de Beaubien-Souligny et al., Ultrasound J 2020;12(1):16.» | cita bibliográfica | informe, PDF | VExUS |
+| «Incompleto — ASE 2025» | cita de guía | PPT | función diastólica |
+| «Los patrones venosos también se alteran, sin que haya congestión, en fibrilación auricular y en ventilación mecánica.» | salvedad descriptiva | informe, PDF | VExUS |
+
+Y dos **avisos de registro**, que dicen que falta un dato para poder graduar y no qué hacer con el
+paciente: «Completar cociente E/A para determinar grado» y «No se puede estimar la presión de
+llenado del VI con los datos disponibles; completar los parámetros del segundo paso (Vol AI,
+LARS, S/D o TRIV)». Más el «— en seguimiento» de la coartación operada, que describe el estado del
+paciente y que la orden deja fuera del barrido.
+**Si el médico quiere que salgan**, la primera vive en `VEXUS_SALVEDAD`, la segunda en el badge
+que arma `R.badgeTxt = 'Incompleto — ASE 2025'` y la tercera en la misma constante que la primera.
+
+### AJ2-d · El rótulo «Conclusión según guías» del PPT es de las ONCE secciones
+La fila del PPT de congénitas se llama así para las doce entradas de `CC_PPT`. Esta tanda cambió
+**sólo** lo que publica la coartación; el **rótulo** sigue igual porque cambiarlo movería las once
+restantes, que están fuera del alcance de la orden. Hoy, en la coartación, ese rótulo encabeza una
+frase que no nombra ninguna guía.
+
+### AJ2-e · Las otras once secciones de `CC_PPT` siguen publicando su `txt` con la guía
+`dapConclusion`, `vapConclusion`, `fopConclusion`, `vabConclusion`, `mchConclusion`,
+`ebsConclusion`, `tdfConclusion`, `tgaConclusion`, `mcaConclusion` y las dos de shunt. La orden
+acota las diferencias a los estudios con coartación cargada, así que no se tocaron. Aplicarles el
+mismo principio del médico es una orden propia: son once textos clínicos.
+
+### AJ2-f · El punto 2f no cambia los estudios ya guardados, y se declara qué sí cambia
+`imgGuardadoActivo()` sólo **lee**: no migra ni escribe nada. Lo que cambia es lo que pasa con el
+**próximo** estudio que se guarde en un navegador que nunca tocó el control: sus imágenes y sus
+diagramas incluidos ahora **sí** se guardan. Un médico que prefiera lo contrario tiene que
+apagarlo en ⚙️ Config, y ese valor se respeta. **Ningún estudio existente se toca.**
+
+### AJ2-g · El `catch` de `imgGuardadoActivo` sigue devolviendo `false`
+Es el único caso en que el valor por omisión **no** aplica, y es deliberado: si `localStorage` no
+se puede leer tampoco se va a poder escribir la preferencia, y prometer que se guarda sería la
+promesa que el informe no cumple. Si alguna vez se quiere que el modo privado también guarde, hay
+que decidir qué hacer con la preferencia, no sólo con el valor.

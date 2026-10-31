@@ -208,3 +208,15 @@ python3 scripts/_mut_ao2.py            # EN UN WORKTREE, nunca sobre el árbol v
    template literals: un backtick en un comentario cierra la cadena. Costó **cuatro** corridas en
    esta tanda, en `test_clinico.mjs` y en `_probe_ao2wk.mjs`. `check_backticks.py` no lo caza:
    lo que sirve es `node --check` sobre el archivo.
+
+
+---
+
+## ⟶ La coartación salió del papel: ver `aj2-coartacion-diagramas.md`
+
+La **TANDA AJUSTES-2** (31/10/2026) cerró `AO2-b` y `AO2-c`: el informe, el EN SUMA, la hoja del
+PDF y la diapositiva del PPT de la coartación dejaron de llevar la guía, la clase, el nivel, la
+tabla, la figura, el folio y la conducta. El dueño único de lo que dice el papel es `coaPapel`,
+y `coaConclusion` pasó a ser un wrapper sobre `_coaConclusionTxt`.
+**La cápsula de pantalla y el panel de Evidencia conservan la cita**, y salen idénticos.
+Todo está en `docs/mapa/aj2-coartacion-diagramas.md` § 1.

@@ -39,6 +39,7 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Tocar la FUGA PARAVALVULAR de una prótesis QUIRÚRGICA**, aórtica o mitral: el motor único, los tres campos nuevos, la marca de origen o por qué la mitral no ofrece extensión circunferencial | `docs/mapa/protesis-fuga-pvl.md` |
 | **Buscar un CORTE o una BANDA de plausibilidad** de cualquier válvula, con su fuente | `docs/mapa/valvulas-constantes.md` |
 | **Tocar la MARCA DE MANUAL de una pastilla, el selector binario de la estenosis mitral, el VIOLETA de «Significativa», el VTI de entrada tricuspídeo, la CASILLA DE PISA de «Incluir en el informe» o lo que «Nuevo estudio» deja vivo** | `docs/mapa/valvulas-manual-binario.md` |
+| **Tocar la COARTACIÓN en el papel** —el dueño único `coaPapel`, la aposición de la situación, el recuadro «Según la guía» del PDF o la fila del PPT—, **el guardado de los DIAGRAMAS con el estudio**, el valor por omisión de «Guardar imágenes con los estudios», **la ✕ que sobrevive (`noPdf`)**, **la orejuela que «a veces salía y a veces no»**, el ⓘ de la fila de miniaturas, **los tres ⓘ del TRIV** o el BARRIDO del papel | `docs/mapa/aj2-coartacion-diagramas.md` |
 | **Tocar un CORTE DE SEGMENTO AÓRTICO de la Figura 5** —la unión sinotubular o la aorta ascendente por sexo, la frase «por encima del límite superior de lo normal», el chip del cayado y la descendente con su globo, la coartación en el EN SUMA, los tres textos de su pantalla, o los cinco umbrales de la Tabla 68 con sus nueve factores en tres estados | `docs/mapa/ao2-segmentos-bicuspide.md` |
 | **Tocar las CÚSPIDES de la bicúspide, sus SEIS dibujos o la animación de la apertura** | `docs/mapa/vab-cuspides-dibujos.md` |
 | **Tocar el CRITERIO DE DILATACIÓN DE LA RAÍZ AÓRTICA** —el corte por sexo, el índice de dimensión aórtica, el dueño `aoSegRef`/`aoSegIda`/`aoSegDil`, el globo ⓘ, el cruce entre las pantallas de BICÚSPIDE y de COARTACIÓN, o lo que la tanda AJ4 tocó de la Evidencia de la VAB | `docs/mapa/aj4-raiz-aortica.md` |
@@ -183,8 +184,10 @@ Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la v
 ## Qué es EcoSmart y cómo se trabaja
 
 - App clínica de ecocardiografía en **un solo `index.html`**: HTML + CSS + JS inline, sin build,
-  sin frameworks. Hoy **10,32 MB / 145.243 líneas**, medido con `wc -c` y `wc -l` el 2026-10-30 al
-  cierre de la tanda **AORTA-2**, sobre el árbol ya sellado (`v20261030-1830`, md5 `5ddfacc3`).
+  sin frameworks. Hoy **10,37 MB / 145.915 líneas**, medido con `wc -c` y `wc -l` el 2026-10-31 al
+  cierre de la tanda **AJUSTES-2**, sobre el árbol ya sellado (`v20261031-0106`, md5 `5d3a6fe2`).
+  (Antes: 10,34 MB / 145.470 al cierre de D2, sello `v20261030-2056`, md5 `ce4dd1ac`.)
+  (Antes: 10,32 MB / 145.243 al cierre de AORTA-2, sello `v20261030-1830`, md5 `5ddfacc3`.)
   (Antes: 10,14 MB / 142.743 al cierre de IMÁGENES, sello `v20261029-2127`, md5 `ca2c048e`.)
   (Antes: 10,04 MB / 140.965 al cierre de la Y, Parte 1, sello `v20261029-1647`, md5 `7ef7a5de`.)
   (Antes: 10,02 MB / 140.761 al cierre de POP-V2, sello `v20261029-1425`, md5 `f72a928c`.)
@@ -3021,3 +3024,137 @@ línea: el archivo creció y un informe de auditoría viejo apunta a otro archiv
   **invertida** y E1 con fármaco), **TC-101**, **TC-105**, **TC-106**, **TC-107** y **TC-508**.
 - **`index.html` pasó de 10,32 MB / 145.243 líneas a 10,34 MB / 145.470** — medido con `wc -c` y
   `wc -l` DESPUÉS de sellar. (MB de 10⁶.) El diff son **332 líneas agregadas y 105 quitadas**.
+
+### La coartación sin guías, los diagramas guardados y el barrido del papel — «AJUSTES-2» (2026-10-31)
+
+- **SIETE commits, y los SEIS de código se hicieron enteros.** `ed6ab4d` (1) · `3e40fbb` (2) ·
+  `8376605` (3) · `26e7dd3` (4) · `93cc85c` (5) · `aff0b87` (6) · el de cobertura y
+  documentación. Sello **`v20261031-0106`**, md5 de `index.html` **`5d3a6fe2`**. Al empezar,
+  `origin/main` = `HEAD` = **`420a67b`**, el cierre de la tanda D2, ya publicado, con el pendrive
+  `DISK_IMG` montado y listando nombres reales.
+  **El push lo corre Maicol: esta tanda tenía orden expresa de NO pushear.**
+
+- **EL PRINCIPIO QUE GOBIERNA LA TANDA, del médico, el 30/10:** *el papel describe; las guías,
+  las clases, los niveles, las tablas, los folios y las recomendaciones viven en la Evidencia, en
+  Referencias o en el ⓘ.* Las cuatro superficies: informe, EN SUMA, PDF y PPT.
+
+- **EL DEFECTO MÁS GRANDE QUE CERRÓ, EN UNA LÍNEA: el informe firmado de una coartación mandaba
+  a medir el gradiente pico-pico invasivo y citaba la ESC 2024 con su figura y su folio.** Medido
+  en HEAD con la escena del médico —istmo 8 mm, gradiente medio 25 mmHg, sección integrada—: el
+  censo de las cuatro superficies daba «ESC 2024» 8 veces, «Figura 44» 4, «folio» 4 y «medir el
+  gradiente pico-pico invasivo» 4; con indicación Clase I, «Clase I» 7 y «Tabla 69» 4. Hoy el
+  informe dice **«Coartación de aorta nativa. Diámetro del istmo 8 mm. Gradiente medio 25 mmHg,
+  con criterios de significación por Doppler (mayor de 20 mmHg).»**, literal al ejemplo que dio.
+  **Cierra AO2-b y AO2-c.**
+
+- **UN DUEÑO ÚNICO, `coaPapel`, Y NO UN PARCHE POR EMISOR.** `coaConclusion().txt` lo leen SEIS
+  consumidores y dos no son papel —la cápsula `coa-concl` y el panel de Evidencia—, que
+  **conservan la cita**, igual que la Parte B de la TANDA NOCTURNA decidió para la raíz aórtica.
+  Verificado: la sección de Evidencia, la tarjeta `evTarjetaCoa` y la cápsula salen **idénticas a
+  HEAD**, y el censo de sus diecisiete marcadores da el mismo número en los dos árboles.
+
+- ⚠️ **LA APOSICIÓN HUBO QUE MOVERLA A p[0], Y SIN ESO SE PERDÍA UNA PALABRA DEL PAPEL.** Hasta
+  hoy «nativa» viajaba DENTRO de `c.txt`: retirarlo sin mover la aposición habría hecho que el
+  informe firmado de una coartación nativa dejara de decir que lo es. Medido en HEAD: su p[0]
+  decía «Coartación de aorta.» a secas.
+
+- ⚠️ **EL A/B DESTAPÓ UN DEFECTO DEL PROPIO COMMIT 1.** Con el texto escrito a mano en el mapa
+  `DX`, la escena de la **cola diastólica sola** publicaba en el EN SUMA «(mayor de 20 mmHg)»
+  sobre un paciente **sin gradiente medio medido**, mientras el informe decía «(cola diastólica
+  con gradiente no concluyente)». Eran dos voces; hoy el EN SUMA lee el dueño único.
+
+- ⚠️ **Y REVIERTE, SÓLO PARA LA COARTACIÓN, LA DECISIÓN DEL 2026-09-10 SOBRE EL PPT**, que su
+  propio comentario todavía explicaba. El principio nuevo nombra las cuatro superficies. Las
+  otras once entradas de `CC_PPT` quedan literales → **AJ2-e**.
+
+- **EL SEGUNDO DEFECTO DEL MÉDICO, REPRODUCIDO Y MEDIDO: con Config prendido y cuatro diagramas
+  incluidos en el PDF, el estudio guardado quedaba con CERO imágenes y CERO esquemas.** Los
+  cuatro toggles sólo levantan un flag; el PDF rasteriza su canvas al generarse y nadie escribe
+  esa imagen. Hoy `diagGuardarIncluidos()` los guarda: **0 → 4**, con su marca «esquema», y la
+  pantalla «Imágenes guardadas» los ve (índice 1 → **5 slots**, cuatro con marca).
+  ⚠️ **VAN A `esqs` Y NO A `imgSlots`, y eso es lo que deja el papel quieto**: cada uno ya tiene
+  su sección propia en el PDF, así que entre los slots se imprimirían **dos veces**.
+
+- **«Guardar imágenes con los estudios» viene PRENDIDO cuando nadie lo tocó**, y el valor ya
+  elegido se respeta: clave ausente → `false` en HEAD y **`true`** hoy; `'0'` → false en los dos.
+  La función sólo LEE: **ningún estudio ya guardado cambia**.
+
+- **CIERRA AJ1-g: `noPdf` entra en las DOS allowlists de IndexedDB.** Son dos listas, y agregarla
+  a una sola deja el defecto en pie por el otro lado —la lección del D-11—. Medido: HEAD pierde
+  la marca al guardar y reabrir (0), hoy la conserva (1). **Es la única propiedad que esta tanda
+  agrega**, y es la que la orden autoriza.
+
+- ⚠️ **LA OREJUELA: EL PDF SIEMPRE FUE DETERMINISTA; LO QUE NO LO ERA ES LO QUE EL MÉDICO CREE.**
+  Matriz de **trece combinaciones generando el PDF de verdad**: lo incluido sale en las trece.
+  Al reabrir, el slot vuelve **sin `esqClave`** —no está en ninguna allowlist—, el botón anuncia
+  «📄 Incluir» sobre un dibujo que ya está, y **al tocarlo el PDF lo imprime DOS VECES** (caso L).
+  `esqSlotIdx` adopta el huérfano cuando hay exactamente uno; la causa raíz se declara en
+  **AJ2-a** porque persistir la clave serían dos propiedades más.
+
+- ⚠️ **UN SOLAPE TÁCTIL REAL EN LA FILA DE MINIATURAS, Y NO ERA COSMÉTICO.** De los cinco puntos
+  del ⓘ nuevo, la esquina inferior izquierda devolvía la **✕ de la primera miniatura**: su
+  `::after` se extiende 14 px hacia **arriba**, donde está la cabecera. **Tocar esa esquina
+  quitaba una imagen del PDF cuando el médico quería abrir la ayuda.**
+
+- **LA PREMISA DE 4b ERA FALSA: EL ARRASTRE YA EXISTÍA**, y funciona. Medido con gestos reales,
+  tres capturas de colores distintos y el PDF generado de verdad: la ▶ mueve, el arrastre mueve
+  y **el PDF imprime en ese mismo orden**. Las flechas dan 5/5 puntos con área táctil de 27×41.
+
+- **LOS TRES ⓘ DEL TRIV DICEN LO MISMO PORQUE LEEN EL MISMO DUEÑO** (`TRIV_DTI_LEE` y
+  `TRIV_DTI_FUENTE`). Censo de las doce frases: función del VD **0/12 → 12/12**, tamaño **0/12**
+  y **remite**, el globo idéntico. La fila del Doppler tricúspide **reusa la clave `vd-triv`**:
+  dos botones sobre el mismo registro es literalmente «el mismo texto».
+
+- **EL BARRIDO DEL PAPEL, CON SU DENOMINADOR: 148 escenas y 3.072.850 caracteres** —informe en
+  tres estilos, EN SUMA en tres, PDF en seis plantillas y PPT—. **El papel está casi limpio:
+  cinco menciones.** Se retiran las **dos** que son conducta dirigida al médico —«El grado VEXUS
+  debe integrarse con la clínica» (que `COR-a` ya declaraba) y la de la insuficiencia mitral
+  severa—, **las dos con su contenido ya en la Evidencia, verificado antes de retirarlas**. Las
+  otras tres se listan → **AJ2-c**.
+  ⚠️ **La lista de palabras de la orden no cubría las citas por AUTOR ni por REVISTA**, y la de
+  Beaubien-Souligny sólo apareció al ampliar el censo con esos dos patrones.
+
+- **VERIFICADO EN IMAGEN**: ESC 2024 de aorta, edición **inglesa**, hoja 112 → folio **3649**
+  (folio = hoja + 3537, comprobado contra el índice). Los **seis** criterios de la Figura 44, y el
+  **E** es «Mean gradient >20 mmHg across the CoA region on DUS», **estricto**.
+  ⚠️ **El «>35 mmHg peak gradient» que la extracción de texto devuelve es un rótulo DENTRO de la
+  imagen del panel E, no un criterio de la lista**: el comentario del trabajo H tiene razón.
+  ⚠️ **No se agregó ninguna cita**: la Evidencia y el ⓘ ya tenían todo lo que salió del papel.
+
+- **18/18 MUTACIONES DIRIGIDAS MUERTAS**, en worktree y nunca sobre el vivo, con guarda de md5.
+  **Cuatro de las dieciocho no revierten nada: la aplican de más**, porque las condiciones que
+  las matan son controles negativos. La **11** rompe las dos allowlists de `noPdf` a la vez y la
+  **02** y la **03** son el mismo error por dos puertas.
+  ⚠️ **LA 05 SOBREVIVIÓ DOS VECES, Y LAS DOS POR LA MISMA RAZÓN.** Ninguna condición miraba el
+  **PPT**. El primer arreglo **reproducía la expresión** del emisor en vez de ejecutarlo, así que
+  medía código escrito en el caso y no el de la app — un control que no podía fallar. Hoy
+  **(A10)** y **(A11)** espían `PptxGenJS` y generan el mazo.
+
+- **SIETE CASOS VIEJOS ADAPTADOS, cada uno con el motivo escrito**: **TC-113** (el EN SUMA ya no
+  declara la clase, **invertida**), **TC-145** (el toggle arranca prendido, **invertida** y
+  ampliada a los tres estados), **TC-175** (dos: la hoja sin el recuadro «Segun la guia», y la
+  que compara contra el clasificador pasa a exigir que el texto de **pantalla** no esté),
+  **TC-471** y **TC-500** (el registro de globos, 72 → **73**), **TC-502** (las tarjetas sin
+  botón, 24 → **25**), **TC-535** (los globos de 44×44, quince → **diecisiete**) y **TC-551**
+  (F2, el valor por omisión, **invertida** conservando lo que vigila).
+  ⚠️ **TRES DE LOS SIETE LOS DESTAPÓ LA CORRIDA COMPLETA, NO EL CENSO** —TC-145, TC-175 y
+  TC-551—, y es el modo de falla que este archivo ya documenta cinco veces.
+
+- ⚠️ **LA BARRA SIMPLE DENTRO DE UN TEMPLATE, DOS VECES, Y UNA ROMPIÓ UN CASO ENTERO.** Un
+  `split` por salto de línea escrito con una barra llega como un salto LITERAL entre comillas y
+  tira «Invalid or unexpected token»: **TC-113 caía por excepción**, no por su condición. Y en
+  otra, una clase de espacio llegó como la letra ese. **Las dos se cerraron no usando ninguna
+  expresión regular.** Más su hermana nueva: **la secuencia de cierre de comentario dentro de un
+  literal de expresión regular cierra el bloque `/* */` antes de tiempo.**
+
+- ⚠️ **EL ACENTO GRAVE DENTRO DE UN COMENTARIO, CINCO VECES, EN CUATRO ARCHIVOS.**
+  `check_backticks.py` **no cazó ninguna**; **`node --check` las cazó todas**. Es la séptima
+  tanda seguida que lo paga.
+
+- **Dónde está todo:** `docs/mapa/aj2-coartacion-diagramas.md` (**mapa NUEVO**, 21,1 KB), **siete
+  mapas con un puntero cada uno** —medidos ANTES de escribir, todos por debajo de 33 KB—,
+  `docs/fuentes/FUENTES.md` → «La tanda AJUSTES-2» con la Figura 44 transcripta criterio por
+  criterio y su tabla «Cambios de evidencia» de doce filas, y `docs/PENDIENTES.md` → **SIETE**
+  cosas declaradas (**AJ2-a** a **AJ2-g**) más el cierre de **AO2-b**, **AO2-c** y **AJ1-a**.
+  ⚠️ **`congenitas-otros.md` (34,5 KB) NO se tocó**: está a 500 bytes del techo y la coartación
+  vive ahí. **La próxima tanda que necesite escribirle tiene que partirlo** → **AJ2-b**.

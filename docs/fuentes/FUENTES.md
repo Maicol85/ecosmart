@@ -8008,3 +8008,89 @@ iniciar el tratamiento, salvo urgencia oncológica».
 | globo `co-monitoreo` | no existía | el calendario completo por riesgo, con sus clases | las dos de arriba |
 | globo `co-riesgo-basal` | «las que sí tiene … todavía no están implementadas» | las seis columnas aplicadas | — |
 | derivación por categoría | — | **verificada y sin cambiar** | Rec.-tabla 1, folio 4249 |
+
+---
+
+## La tanda AJUSTES-2 (2026-10-31)
+
+### Lo que se leyó EN IMAGEN
+
+**ESC 2024 de enfermedad arterial periférica y aórtica (Mazzolai y cols.), edición INGLESA**
+(`06_Aorta/ESC 2024 aorta.pdf`, 163 hojas). **Regla de folio comprobada contra el índice del
+propio documento: folio = hoja + 3537.** La hoja 112 → folio **3649**, y el índice de la hoja 7
+dice «Figure 44 Criteria for significant coarctation/re-coarctation of the aorta and management
+algorithm ……… 3649». Coincide.
+
+**Figura 44, hoja 112 (folio 3649)** — «Suspicion of significant (re)coarctation: **any of the
+following**», con SEIS criterios rotulados A a F:
+
+| | criterio, transcripto |
+|---|---|
+| A | Non invasive (right arm-to-leg) BP gradient >20 mmHg |
+| B | >50% narrowing on any imaging modality |
+| C | Abdominal antegrade diastolic flow on DUS |
+| D | Diastolic run off in the descending thoracic aorta on DUS |
+| **E** | **Mean gradient >20 mmHg across the CoA region on DUS** |
+| F | Collateral flow >30% on phase contrast CMR |
+
+Y el algoritmo: cateterismo → **≥20 mmHg** / **<20 mmHg** → medición de presión arterial e
+investigación → hipertensión → *Intervention (Class I)* con hipertensión y ≥20; *(Class IIa)* sin
+hipertensión y ≥20; *(Class IIa)* con <20, hipertensión y ≥50 % de estrechamiento; y si no,
+*Surveillance: TTE every year and CMR or CCT 3–5 years*.
+
+⚠️ **EL «>35 mmHg peak gradient» NO ES UN CRITERIO DE LA LISTA, y por eso esta fuente se lee en
+imagen.** Es un **rótulo dentro de la imagen ecocardiográfica del panel E**, que ilustra el
+trazado Doppler. La extracción de texto plano lo devuelve mezclado con los criterios —«…adient
+>20 mmHg across the CoA region on DUS … >35 mmHg peak gradient >20 mmHg mean gradient…»— y hace
+creer que el gradiente **máximo** es uno de los seis. **No lo es.** Confirma el comentario del
+trabajo H: «El máximo no figura en esa lista».
+
+⚠️ **La app cita esta figura como «folio 120», que es el de la edición de la SEC.** No se
+reescribió ninguna cita: esta tanda **no agregó ninguna**. Es la misma inconsistencia preexistente
+que la TANDA NOCTURNA Parte B declaró.
+
+### Lo que NO se agregó, y por qué
+
+**Nada.** El punto 1c pedía que la Evidencia y el ⓘ tuvieran, con su fuente, lo que salió del
+papel. **Ya lo tenían**, verificado antes de tocar nada y medido después:
+
+| lo que salió del papel | dónde ya estaba |
+|---|---|
+| el criterio por Doppler de más de 20 mmHg | nota de `_indCoAo`: «el criterio de SOSPECHA por Doppler de la ESC 2024 es el gradiente MEDIO por encima de 20 mmHg … (Figura 44, folio 120)» |
+| que el criterio de indicación es el pico-pico invasivo | la fila «Gradiente máximo por Doppler», la lista `clinica`, el bloque `guia` y el ⓘ `coa-card` («Es el criterio de indicación: el Doppler no lo reemplaza») |
+| la figura y el folio de la ESC 2024 | «Figura 44» ×4 y «folio 120» ×4 |
+| la clase y el nivel de la ESC 2020 | «Clase I» ×10, «Clase IIa» ×5, «Clase IIb» ×1, «Nivel C» ×3, «folio 604» |
+
+Medido en Chrome: la sección de Evidencia, la tarjeta `evTarjetaCoa` y la cápsula de pantalla
+salen **idénticas a HEAD**, y el censo de esos diecisiete marcadores da **el mismo número en los
+dos árboles**.
+
+### Notas de trabajo (regla R1)
+
+- La **edición inglesa** de la ESC 2024 de aorta tiene **163 hojas**; `Mazzolai_2024_Aorta.pdf`,
+  en la misma carpeta, tiene **199** y es otra edición. Para la regla folio = hoja + 3537 vale la
+  primera.
+- El barrido 6a necesitó **ampliar la lista de palabras de la orden**: no cubría las citas por
+  **autor** («et al.») ni por **revista** («año;volumen»), y la única cita bibliográfica que
+  queda en el papel —Beaubien-Souligny, *Ultrasound J* 2020;12(1):16— sólo apareció al agregarlos.
+
+### Cambios de evidencia
+
+| # | qué | antes | después | fuente |
+|---|---|---|---|---|
+| 1 | informe de la coartación | «…Coartación nativa con criterios de significación por Doppler (gradiente medio 25 mmHg, por encima de los 20 mmHg de la ESC 2024) — medir el gradiente pico-pico invasivo…(Figura 44, folio 120).» | «Coartación de aorta nativa. … Gradiente medio 25 mmHg, con criterios de significación por Doppler (mayor de 20 mmHg).» | decisión del médico |
+| 2 | EN SUMA no integrado | «Coartación de aorta nativa (istmo 8 mm, gradiente medio 25 mmHg).» | «…, con criterios de significación por Doppler (mayor de 20 mmHg).» | ídem |
+| 3 | EN SUMA integrado, claves de indicación | «indicación de intervención Clase I ESC 2020» | los INSUMOS: pico-pico invasivo, estrechamiento e hipertensión | ídem · cierra AO2-b |
+| 4 | hoja del PDF de la coartación | recuadro «!!Segun la guia: …» | sin recuadro | ídem · cierra AO2-c |
+| 5 | PPT, fila «Conclusión según guías» de la coartación | «Clase I · Nivel C (ESC 2024, Tabla 69 · folio 121) … Preferir stent…» | la cláusula descriptiva; vacía ⇒ la fila no se pinta | ídem (revierte la decisión del 2026-09-10 sólo para la coartación) |
+| 6 | `sin_indicacion` | «sin criterios de intervención actuales según la ESC 2024 (Tabla 69 · folio 121) — seguimiento recomendado» | «sin criterios de intervención actuales» | ídem |
+| 7 | las cuatro ramas `limitrofe` | pedían un estudio y citaban la guía | dos describen, dos no publican nada | ídem |
+| 8 | `<option>` de la orejuela | «Manga de viento — riesgo intermedio» | «Manga de viento» | ninguna fuente de la biblioteca le asigna riesgo · cierra AJ1-a |
+| 9 | informe y PDF, VExUS | «El grado VEXUS debe integrarse con la clínica.» | retirada; ya estaba en la Evidencia | decisión del médico · cierra COR-a en parte |
+| 10 | informe, insuficiencia mitral severa | «…requiere seguimiento ecocardiográfico periódico y evaluación de indicación de intervención según evolución clínica.» | «…hallazgo de relevancia clínica.» | ídem; la indicación con su clase ya vive en la Evidencia |
+| 11 | ⓘ de función del VD y fila del Doppler tricúspide | no decían nada del TRIV | el mismo texto del ⓘ ya aprobado, por un dueño único | pedido del médico; Howard 2012, Cabrita 2013 y Bréchot 2008, **sin cambiar una palabra** |
+| 12 | ⓘ de tamaño del VD | nada | una línea que remite al de función | ídem |
+
+⚠️ **NINGÚN CORTE, UMBRAL, CLASE, NIVEL, TABLA NI FOLIO SE MOVIÓ.** Lo único que cambia es **en
+qué superficie se publica**. El 20 mmHg del Doppler, el 20 del pico-pico invasivo, el 50 % del
+estrechamiento, el 75 ms del TRIV y las cuatro clases de la coartación son los mismos.

@@ -266,3 +266,14 @@ perdió o ganó:
 - **§ 2** · en el PDF, el dibujo va **junto a la tabla** de la orejuela cuando el informe la
   incluye, y a «Imágenes del estudio» **con un resumen corto al lado** cuando no.
 
+
+---
+
+## ⟶ Por qué «a veces salía y a veces no»: ver `aj2-coartacion-diagramas.md`
+
+La **TANDA AJUSTES-2** (31/10/2026) midió una matriz de **trece combinaciones generando el PDF de
+verdad**. El PDF siempre fue determinista; lo que no lo era es lo que el médico cree: al reabrir
+un estudio el slot vuelve **sin `esqClave`** —no está en ninguna allowlist—, el botón anuncia
+«📄 Incluir» sobre un dibujo que ya está, y al tocarlo **el PDF lo imprime dos veces**.
+`esqSlotIdx` adopta el esquema huérfano cuando hay exactamente uno.
+La matriz entera y la causa raíz declarada están en `docs/mapa/aj2-coartacion-diagramas.md` § 3.

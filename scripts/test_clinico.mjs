@@ -7674,7 +7674,16 @@ caso('TC-113', 'CoAo: la indicacion sale del pico-pico invasivo, no del Doppler'
     ['y la HTA confirmada',        i.inf.inf.indexOf('Hipertensión arterial confirmada') > -1],
     ['la estenosis relativa tambien', iib.inf.inf.indexOf('Estenosis relativa al diámetro aórtico al diafragma 50 %') > -1],
     // 6 · El EN SUMA lleva la clase: una indicacion solo en el cuerpo no se ve.
-    ['el EN SUMA declara la Clase I',   i.inf.suma.indexOf('Clase I') > -1],
+    /* ADAPTADA e INVERTIDA (TANDA AJUSTES-2, commit 1, 31/10/2026): el EN SUMA ya NO declara
+       la clase ni la guia -era el pendiente AO2-b-. Lo que publica son los INSUMOS sobre los
+       que la indicacion se sostiene, que son datos que el medico cargo. Sigue pudiendo fallar:
+       exige que la clase se haya ido Y que los insumos esten. */
+    ['el EN SUMA ya NO declara la Clase I y SI publica sus insumos',
+      i.inf.suma.indexOf('Clase I') === -1 && i.inf.suma.indexOf('pico-pico invasivo') > -1,
+      /* el diagnostico recorta el EN SUMA sin partirlo por saltos de linea: una barra simple
+         dentro de este template llega como un salto LITERAL entre comillas y revienta el caso
+         entero con «Invalid or unexpected token». Es la trampa que este repo ya documenta. */
+      String(i.inf.suma).slice(0, 220)],
     ['y distingue post-stent de nativa', post.inf.suma.indexOf('post-stent') > -1]
   ] };
 `);
@@ -11647,8 +11656,26 @@ caso('TC-145', 'Soporte: cuatro mailto con la version sellada, y las invariantes
       todoDecodificado.slice(0, 80)],
 
     // 5 · INVARIANTES DEL GUARDADO DE IMAGENES — ya estaban, no tenian caso.
-    ['el toggle existe y arranca APAGADO',
-      !!document.getElementById('cfg-guardar-imagenes') && imgGuardadoActivo() === false],
+    /* ADAPTADA e INVERTIDA (TANDA AJUSTES-2, commit 2f, 31/10/2026): decision del medico, el
+       toggle viene PRENDIDO cuando nadie lo toco. Se prueba en los TRES estados y se repone la
+       clave que hubiera, porque este caso corre sobre el almacenamiento de la sesion de prueba
+       y no puede dejarlo cambiado. */
+    ['el toggle existe, arranca PRENDIDO sin la clave y RESPETA el valor ya elegido',
+      (function () {
+        const el = document.getElementById('cfg-guardar-imagenes');
+        if (!el) return false;
+        let prev = null; try { prev = localStorage.getItem('cfg-guardar-imagenes') } catch (e) { return false }
+        let sinClave, con0, con1;
+        try {
+          localStorage.removeItem('cfg-guardar-imagenes'); sinClave = imgGuardadoActivo();
+          localStorage.setItem('cfg-guardar-imagenes', '0'); con0 = imgGuardadoActivo();
+          localStorage.setItem('cfg-guardar-imagenes', '1'); con1 = imgGuardadoActivo();
+        } finally {
+          try { if (prev === null) localStorage.removeItem('cfg-guardar-imagenes');
+                else localStorage.setItem('cfg-guardar-imagenes', prev) } catch (e) {}
+        }
+        return sinClave === true && con0 === false && con1 === true;
+      })()],
     ['hay tres calidades y su rango ORDENA (la calidad solo puede bajar)',
       IMG_CAL.mini.rank < IMG_CAL.media.rank && IMG_CAL.media.rank < IMG_CAL.orig.rank,
       Object.keys(IMG_CAL).map(function(k){ return k + '=' + IMG_CAL[k].rank; }).join(' ')],
@@ -19062,15 +19089,36 @@ caso('TC-175', 'Hoja de CC en el PDF del informe: estructura, y que NO hereda de
       ['lleva el subtitulo de morfologia', tCoa.indexOf('## Morfologia / Tipo') > -1, ''],
       ['lleva mediciones o hemodinamica',
         tCoa.indexOf('## Mediciones') > -1 || tCoa.indexOf('## Hemodinamica') > -1, ''],
-      ['lleva la linea de guia como bloque de nota', tCoa.indexOf('!!Segun la guia:') > -1, ''],
+      /* ADAPTADA e INVERTIDA (TANDA AJUSTES-2, commit 1, 31/10/2026): el recuadro «Segun la
+         guia» SALIO de la hoja de la coartacion -el papel describe-. Sigue pudiendo fallar:
+         exige que el recuadro no este Y que la hoja conserve su contenido, porque una hoja
+         vacia tambien pasaria la primera mitad. */
+      ['la hoja de la coartacion ya NO lleva el recuadro «Segun la guia» y conserva su contenido',
+        tCoa.indexOf('!!Segun la guia:') === -1 && tCoa.indexOf('Coartaci') > -1, tCoa.slice(0, 80)],
       /* La conclusion es la MISMA que publica el clasificador, no una reescrita: se compara
          contra coaConclusion() en vivo. Dos textos del mismo hecho en el mismo documento es
          como el informe se contradice consigo mismo. */
-      ['la linea de guia es la del clasificador, no una copia reescrita',
+      /* ADAPTADA (TANDA AJUSTES-2, commit 1, 31/10/2026): el invariante NO cambio —la hoja
+         dice lo MISMO que el clasificador, no una copia reescrita— pero cambio CUAL de sus
+         dos textos: el de pantalla es el que conservan la capsula y la Evidencia, con la
+         cita, y el del papel es la clausula. La hoja lee el segundo. Sigue siendo la prueba
+         de que no hay dos
+         textos del mismo hecho en el mismo documento, y ademas exige que el de pantalla NO
+         este: con los dos presentes, el primer indexOf pasaria igual. */
+      /* ESTA ESCENA CAE EN UNA CLAVE DE INDICACION (pico-pico 28 con hipertension), y ahi
+         coaPapel NO publica nada a proposito: lo que decia era una recomendacion entera. Asi
+         que el invariante se mide por los dos lados: con clausula, la hoja la lleva; sin
+         clausula, no lleva ninguno de los dos textos. Lo que NUNCA puede pasar es que la hoja
+         lleve el texto de PANTALLA, que es el que conserva la clase, el nivel y el folio. */
+      ['la hoja nunca lleva el texto de pantalla, y lleva la clausula solo cuando existe',
         (function () {
           const c = (typeof coaConclusion === 'function') ? coaConclusion() : null;
-          if (!c || !c.txt) return false;
-          return tCoa.indexOf(String(c.txt).replace(/\\.$/, '')) > -1;
+          if (!c) return false;
+          const pan = String(c.txt || '').replace(/[.]$/, '');
+          if (pan && tCoa.indexOf(pan) > -1) return false;
+          let pap = c.papel ? String(c.papel).trim() : '';
+          if (pap.charAt(0) === ',' || pap.charAt(0) === '\u2014') pap = pap.slice(1).trim();
+          return pap ? (tCoa.indexOf(pap) > -1) : true;
         })(), ''],
       ['ccEnInforme la devuelve con su titulo',
         !!elCoa && elCoa.tit === 'COARTACION DE AORTA', JSON.stringify(elCoa || null)],
@@ -19082,8 +19130,12 @@ caso('TC-175', 'Hoja de CC en el PDF del informe: estructura, y que NO hereda de
       ['sale la pagina de congenitas',
         txt.indexOf('ESTUDIO AVANZADO - CARDIOPATIAS CONGENITAS') > -1, ''],
       ['con el titulo de la CoAo', txt.indexOf('COARTACION DE AORTA') > -1, ''],
-      ['y los subtitulos impresos en la hoja',
-        txt.indexOf('Morfologia / Tipo') > -1 && txt.indexOf('Segun la guia') > -1, ''],
+      /* ADAPTADA (TANDA AJUSTES-2, commit 1): «Segun la guia» ya no se imprime en la hoja de
+         la coartacion —el papel describe—, y en esta escena, que cae en una clave de
+         indicacion, la hoja no lleva ninguna conclusion. Lo que sigue teniendo que salir es el
+         subtitulo de la estructura, y lo que ya NO puede salir es el recuadro. */
+      ['y el subtitulo impreso en la hoja, sin el recuadro de la guia',
+        txt.indexOf('Morfologia / Tipo') > -1 && txt.indexOf('Segun la guia') === -1, ''],
       /* Los marcadores NO pueden salir impresos: amiloDibujarSecciones los consume. Si aparecen
          en el papel, la hoja esta mostrando la sintaxis interna al medico. */
       ['los marcadores ## y !! no se imprimen',
@@ -66311,7 +66363,12 @@ caso('TC-471', 'Valvulas D1: la insuficiencia mitral en TRES columnas de SEIS co
        senales de alarma con las dos fuentes del corte de lactato—. NINGUNA esta en Valvulas, que
        es la pestana que este caso mide: lo que cambia es el denominador del registro, no lo que
        el caso afirma. */
-    /* ADAPTADO (TANDA D2, 30/10/2026): 71 -> 72. La entrada nueva es co-monitoreo, el globo de
+    /* ADAPTADO (TANDA AJUSTES-2, 31/10/2026): 72 -> 73. La entrada nueva es inf-min, el ⓘ
+       de la fila de miniaturas de lo que va al PDF, que reemplaza al texto de ayuda que esa
+       fila llevaba en su cabecera. El ⓘ del Doppler tricuspide NO suma: reusa la clave
+       vd-triv a proposito, porque dos botones sobre el MISMO registro es literalmente «el
+       mismo texto» y evita que dos copias diverjan.
+       ADAPTADO (TANDA D2, 30/10/2026): 71 -> 72. La entrada nueva es co-monitoreo, el globo de
        la columna «Monitoreo recomendado» de Cardio-Oncologia. NO esta en Valvulas, que es la
        pestana que este caso mide: lo que cambia es el denominador del registro, no lo que el
        caso afirma.
@@ -66320,7 +66377,7 @@ caso('TC-471', 'Valvulas D1: la insuficiencia mitral en TRES columnas de SEIS co
 /* ADAPTADO (TANDA NOCTURNA B1, 30/10/2026): 68. La entrada nueva es vd-triv, el globo de
        la fila de referencia del TRIV del VD. NO esta en Valvulas, que es la pestana que este
        caso mide: lo que cambia es el denominador del registro, no lo que el caso afirma. */
-    Object.keys(VINFO).length === 72,
+    Object.keys(VINFO).length === 73,
     'registro=' + (HAY_INFO ? Object.keys(VINFO).join(',') : 'SIN REGISTRO')]);
   ex.push(['(H) y la tarjeta se coloca SIEMPRE dentro de la pantalla, sin cortarse',
     (function(){ const b = document.querySelector('[data-vinfo="avm-thp"]');
@@ -77688,7 +77745,8 @@ caso('TC-500', 'Tanda Q: las OCHO tarjetas i de las valvulas arriba de su pastil
      de la fila de referencia del TRIV del ventriculo derecho, donde viven las tres fuentes que
      la regla R2 saca de la linea visible. Lo que esta condicion afirma no cambia. */
   /* ADAPTADO (TANDA D2, 30/10/2026): 71 -> 72, por co-monitoreo. */
-  ex.push(['DENOMINADOR: el mecanismo de los globos existe y el registro tiene las 72 entradas',
+  /* ADAPTADO (TANDA AJUSTES-2, 31/10/2026): 72 -> 73, por inf-min. Ver la nota de TC-471. */
+  ex.push(['DENOMINADOR: el mecanismo de los globos existe y el registro tiene las 73 entradas',
     /* ⚠️ ADAPTADO EN LA TANDA D: 56 -> 57. La entrada nueva es co-riesgo-basal, el globo de la
        clasificacion de riesgo cardiovascular basal, donde viven las clases y los niveles que la
        regla R2 saca de la linea visible. Lo que esta condicion afirma no cambia: que el
@@ -77704,7 +77762,7 @@ caso('TC-500', 'Tanda Q: las OCHO tarjetas i de las valvulas arriba de su pastil
        los dos globos de la seccion de sobrecarga del VD. NINGUNO esta en Valvulas: lo que
        cambia es el denominador del registro, no lo que esta condicion afirma. */
     /* ADAPTADO (TANDA AORTA-2, 30/10/2026): 68 -> 71, por coa-card, ao-cay-card y ao-desc-card. */
-    FN('vInfoClic') && !!CARD() && !!REG() && Object.keys(REG() || {}).length === 72,
+    FN('vInfoClic') && !!CARD() && !!REG() && Object.keys(REG() || {}).length === 73,
     'VINFO=' + (REG() ? Object.keys(REG()).length : 'SIN REGISTRO') + ' card=' + !!CARD()]);
   ex.push(['(A1) los OCHO botones de lesion existen, son BUTTON, sin atributo title y con aria-expanded',
     CLAVES.every(function (k) { const b = BTN(k);
@@ -79009,9 +79067,12 @@ caso('TC-502', 'Tanda P: Referencias en CINCO subpestanas sin perder una entrada
      globo del monitoreo de inmunoterapia y anti-VEGF: Referencias no tiene una ficha de
      cardio-oncologia -es el mismo limite que co-riesgo-basal ya declaraba, y lo que D-i propone
      resolver-, asi que la tarjeta publica sus dos fuentes en su pie y no lleva boton. */
-  ex.push(['(C3) LIMITE DECLARADO: veinticuatro tarjetas sin boton, porque Referencias no tiene esa entrada',
+  ex.push(['(C3) LIMITE DECLARADO: veinticinco tarjetas sin boton, porque Referencias no tiene esa entrada',
+    /* ADAPTADA (TANDA AJUSTES-2, commit 4a, 31/10/2026): 24 -> 25. La entrada nueva es
+       inf-min, el ⓘ de la fila de miniaturas de lo que va al PDF; no tiene ficha en
+       Referencias porque explica la INTERFAZ y no publica contenido clinico. */
     sinBoton.join(',') === 'amilo-score,co-monitoreo,co-riesgo-basal,coa-card,cvr-coc,cvr-ecosmart,et-avt-cont,'
-      + 'hemo-forr,hemo-ic,hemo-rvs,'
+      + 'hemo-forr,hemo-ic,hemo-rvs,inf-min,'
       + 'tarj-esten-pulmonar,tarj-esten-tricuspide,tarj-insuf-pulmonar,'
       + 'tep-eco-dx,tep-mcconnell,'
       + 'vab-aorta,vab-cx,vab-friesgo,vab-func,vab-tit,vab-valv,vd-triv,vexus-lim,vm-carp',
@@ -91393,7 +91454,15 @@ caso('TC-535', 'Tanda AJ7: la linea de Fallot del EN SUMA sin la IP y el resumen
      ⚠️ Y SE CAMBIO EL METODO, no solo el numero: ver el comentario de tapK mas arriba. El de
      los territorios vive en una seccion que a 756 px queda CERRADA, y medirlo sin abrirla daba
      CERO puntos propios sobre un boton que a 1440 px da los cinco. */
-  /* ⚠️ ADAPTADO EN LA TANDA D2 (2026-10-30): CATORCE -> QUINCE. El nuevo es co-monitoreo, que
+  /* ⚠️ ADAPTADO EN LA TANDA AJUSTES-2 (2026-10-31): QUINCE -> DIECISIETE. Los dos nuevos son
+     inf-min —el ⓘ de la fila de miniaturas de lo que va al PDF— y el SEGUNDO boton de vd-triv,
+     el de la fila del Doppler tricuspide, que reusa la clave del registro a proposito. Los dos
+     nacen con la clase vinfo-btn-44 y SIN margenes negativos.
+     ⚠️ EL DE LA FILA DE MINIATURAS NECESITO UN z-index, y no es cosmetico: la ✕ de la primera
+     miniatura extiende su area tactil 22 px a la izquierda y 14 hacia ARRIBA, donde esta la
+     cabecera, asi que uno de sus cinco puntos devolvia la ✕ y tocarlo QUITABA una imagen del
+     PDF. Esta condicion es la que lo caza.
+     ⚠️ ADAPTADO EN LA TANDA D2 (2026-10-30): CATORCE -> QUINCE. El nuevo es co-monitoreo, que
      nace con la clase vinfo-btn-44 y SIN margenes negativos. Vive en la sub-pestana «Referencia
      rapida» de Cardio-Oncologia, que nace PLEGADA: hay que abrir la pestana Y el acordeon antes
      de medir, igual que los tres de la tanda anterior.
@@ -91405,12 +91474,12 @@ caso('TC-535', 'Tanda AJ7: la linea de Fallot del EN SUMA sin la IP y el resumen
      ⚠️ LOS TRES VIVEN EN SECCIONES QUE NACEN PLEGADAS —la aorta en AI/VI y la coartacion en
      C. Congenitas—, asi que hay que abrir la pestana Y el acordeon antes de medir: sin eso dan
      0x0 y cero puntos propios sobre botones que si se dibujan. */
-  ex.push(['(K0) DENOMINADOR: los QUINCE globos llevan la clase, tienen geometria y estan EN VISTA',
-    tapK.length === 15 && tapK.every((x) => x.w > 0 && x.h > 0 && x.enVista), JSON.stringify(tapK)]);
-  ex.push(['(K1) los quince miden 44x44 tambien con el mouse',
-    tapK.length === 15 && tapK.every((x) => x.w >= 44 && x.h >= 44), JSON.stringify(tapK)]);
+  ex.push(['(K0) DENOMINADOR: los DIECISIETE globos llevan la clase, tienen geometria y estan EN VISTA',
+    tapK.length === 17 && tapK.every((x) => x.w > 0 && x.h > 0 && x.enVista), JSON.stringify(tapK)]);
+  ex.push(['(K1) los diecisiete miden 44x44 tambien con el mouse',
+    tapK.length === 17 && tapK.every((x) => x.w >= 44 && x.h >= 44), JSON.stringify(tapK)]);
   ex.push(['(K2) y su caja NO tapa a ningun vecino: los cinco puntos dan el propio boton',
-    tapK.length === 15 && tapK.every((x) => x.propios === 5), JSON.stringify(tapK)]);
+    tapK.length === 17 && tapK.every((x) => x.propios === 5), JSON.stringify(tapK)]);
   ex.push(['(K3) CONTROL: los demas globos NO se tocaron y siguen con su piso solo tactil',
     document.querySelectorAll('button.vinfo-btn').length
       - document.querySelectorAll('button.vinfo-btn-44').length >= 10,
@@ -97290,10 +97359,28 @@ caso('TC-551', 'Tanda NOCTURNA A: el esquema de la orejuela al lado de los campo
     motivo.indexOf('Imágenes del estudio') > -1 &&
     motivo.indexOf('Guardar imágenes con los estudios') > -1,
     motivo]);
-  ex.push(['(F2) CONTROL: el estado por omision del guardado de imagenes sigue apagado',
-    (function(){ try { localStorage.removeItem('cfg-guardar-imagenes'); } catch (e) {}
-      return F('imgGuardadoActivo') ? imgGuardadoActivo() === false : false; })(),
-    'sin la clave en localStorage, imgGuardadoActivo da ' +
+  /* ADAPTADA e INVERTIDA (TANDA AJUSTES-2, commit 2f, 31/10/2026): DECISION DEL MEDICO, el
+     guardado de imagenes viene PRENDIDO cuando nadie toco el control. Lo que esta condicion
+     vigila NO cambia —que «Incluir en el PDF» sea independiente de Config, que es el punto del
+     COR-5— y por eso sigue midiendo las dos cosas: el valor por omision Y que el boton funcione
+     igual con Config APAGADO, que es el caso que de verdad podria romperse.
+     Se repone la clave que hubiera: este caso corre sobre el almacenamiento de la sesion de
+     prueba y no puede dejarlo cambiado. */
+  ex.push(['(F2) CONTROL: el guardado de imagenes viene PRENDIDO por omision, y el boton no depende de el',
+    (function(){
+      if (!F('imgGuardadoActivo')) return false;
+      let prev = null; try { prev = localStorage.getItem('cfg-guardar-imagenes') } catch (e) { return false }
+      let sinClave, apagado;
+      try {
+        localStorage.removeItem('cfg-guardar-imagenes'); sinClave = imgGuardadoActivo();
+        localStorage.setItem('cfg-guardar-imagenes', '0'); apagado = imgGuardadoActivo();
+      } finally {
+        try { if (prev === null) localStorage.removeItem('cfg-guardar-imagenes');
+              else localStorage.setItem('cfg-guardar-imagenes', prev) } catch (e) {}
+      }
+      return sinClave === true && apagado === false;
+    })(),
+    'sin la clave, imgGuardadoActivo da ' +
       (F('imgGuardadoActivo') ? String(imgGuardadoActivo()) : 'NO FN')]);
 
   /* -- (G) BORRAR UN ESTUDIO SE LLEVA SUS VIDEOS Y CINELOOPS ------------------------------- */
@@ -99072,6 +99159,487 @@ caso('TC-556', 'Tanda D2: la calculadora de riesgo CV no clasifica sin farmaco e
   return { extra: ex };
   })();
 `);
+
+/* -- TC-557 ---------------------------------------------------------------------------------
+   TANDA AJUSTES-2 (2026-10-31). Seis commits de codigo.
+
+   ADVERTENCIA PARA EL QUE LO MANTENGA, y cada una costo una corrida en esta tanda:
+   1. NO escribir acentos graves en los comentarios de ESTE bloque ni del cuerpo de abajo: el
+      cuerpo es un template literal y el acento grave lo cierra, con un SyntaxError que apunta
+      decenas de lineas ANTES del culpable. check_backticks.py no lo caza; node --check si.
+   2. guardarInforme tiene DOS salidas tempranas que no llaman al callback: el paciente sin
+      nombre ni documento -el campo es ci, no documento- y el gate de severidades valvulares,
+      que abre una card modal. La segunda se desactiva reemplazando
+      mostrarCardSeveridadValvular por una que llame al callback.
+   3. La geometria de un boton exige abrir su PESTANA por el boton real: con showTab la tarjeta
+      de adentro no tiene caja y todo informa 0x0.
+   4. CeiboImg.indice() devuelve UN REGISTRO POR ESTUDIO con su array slots, no un elemento por
+      imagen.
+   ------------------------------------------------------------------------------------------- */
+caso('TC-557', 'Tanda AJUSTES-2: la coartacion en el papel sin recomendaciones ni guias, con «criterios de significacion (mayor de 20 mmHg)»; todo diagrama incluido guardado con el estudio y visible en Guardados, con la ✕ que sobrevive y Config prendido por omision; la orejuela determinista en el PDF; la fila de miniaturas con su ⓘ, su arrastre y sus flechas; «Manga de viento» sin riesgo; los ⓘ del TRIV; y el barrido que saca las dos ultimas conductas del papel', `
+  return (async () => {
+  const ex = [];
+  const F = (n) => (typeof window[n] === 'function') ? window[n] : null;
+  const EL = (id) => document.getElementById(id) || null;
+  const T = (id) => { const e = EL(id); return e ? (e.textContent || '').replace(/[ \\t\\n\\r]+/g, ' ').trim() : 'NO EXISTE'; };
+  const V = (id) => { const e = EL(id); return e ? String(e.value || '') : 'NO EXISTE'; };
+  const pon = (id, v) => { const e = EL(id); if (!e) return 'NO ' + id;
+    e.value = String(v); e.dispatchEvent(new Event('input', { bubbles: true }));
+    e.dispatchEvent(new Event('change', { bubbles: true })); return e.value; };
+  const esperar = (ms) => new Promise(r => setTimeout(r, ms));
+  const limpiar = () => { try { if (F('limpiarCampos')) limpiarCampos(true) } catch (e) {} };
+  const infEn = (st) => { try { if (F('setEstiloInforme')) setEstiloInforme(st) } catch (e) {}
+    try { if (F('generarInforme')) generarInforme() } catch (e) {}
+    return V('informe_texto'); };
+  const suma = () => V('en_suma');
+  /* Las doce palabras que el papel de la coartacion NO puede llevar mas. */
+  const PROH = ['Seg\\u00fan la gu\\u00eda', 'Segun la guia', 'medir el gradiente pico-pico',
+                'medir el pico-pico', 'ESC 2024', 'ESC 2020', 'Figura 44', 'folio',
+                'Clase I', 'Clase IIa', 'Clase IIb', 'Nivel C', 'Tabla 69'];
+  const censo = (t) => PROH.filter(w => String(t).indexOf(w) > -1);
+  /* La hoja de la coartacion del PDF: es el textarea que ccHoja escribe. */
+  const hoja = () => V('cc-txt-coa');
+  const coaEscena = async (campos, sel, integrar) => {
+    limpiar(); await esperar(90);
+    pon('nombre', 'Prueba AJ2'); pon('ci', '557');
+    pon('peso', '70'); pon('talla', '170'); pon('sexo', 'M');
+    Object.keys(campos || {}).forEach(k => pon(k, campos[k]));
+    Object.keys(sel || {}).forEach(k => pon(k, sel[k]));
+    if (integrar) { const c = EL('coart_incluir_chk');
+      if (c && !c.checked) { try { if (F('eteInclToggle')) eteInclToggle('coart_incluir_chk');
+        else { c.checked = true; c.dispatchEvent(new Event('change', { bubbles: true })) } } catch (x) {} } }
+    try { Object.keys(window).forEach(k => { if (/^calc[A-Z]/.test(k) && typeof window[k] === 'function') {
+      try { window[k]() } catch (x) {} } }) } catch (x) {}
+    await esperar(320);
+  };
+
+  try {
+
+  /* ══ A — LA COARTACION EN EL PAPEL (commit 1) ═════════════════════════════════════════════ */
+  /* (A0) DENOMINADOR: la escena del medico SI llega al papel. Sin integrar la seccion, el
+     cuerpo del informe no nombra la coartacion y todo lo de abajo pasa sobre un texto vacio. */
+  await coaEscena({ coa_istmo: '8', coa_gmedio: '25' }, { coa_situacion: 'nativa' }, true);
+  const a0 = infEn('estandar');
+  ex.push(['(A0) DENOMINADOR: el informe integrado nombra la coartacion y su istmo',
+    a0.indexOf('Coartaci\\u00f3n de aorta') > -1 && a0.indexOf('istmo 8 mm') > -1,
+    (a0.match(/Coartaci[^.]*\\./) || ['sin la oracion'])[0]]);
+
+  /* (A1) LA REDACCION LITERAL QUE PIDIO EL MEDICO. */
+  ex.push(['(A1) el informe dice «Coartación de aorta nativa.» y la significacion con su umbral',
+    a0.indexOf('Coartaci\\u00f3n de aorta nativa.') > -1 &&
+    a0.indexOf('Gradiente medio 25 mmHg, con criterios de significaci\\u00f3n por Doppler (mayor de 20 mmHg).') > -1,
+    (a0.match(/Coartaci[\\s\\S]{0,190}/) || [''])[0]]);
+
+  /* (A2) NINGUNA DE LAS DOCE PALABRAS, en los TRES estilos y en el EN SUMA. */
+  const a2 = censo(infEn('estandar')).concat(censo(infEn('narrativo')), censo(infEn('conciso')), censo(suma()));
+  ex.push(['(A2) el informe en sus tres estilos y el EN SUMA, sin guia, clase, nivel, tabla ni folio',
+    a2.length === 0, a2.join(',') || 'cero']);
+
+  /* (A3) LA HOJA DEL PDF, sin el recuadro «Segun la guia». */
+  const a3 = hoja();
+  ex.push(['(A3) la hoja del PDF de la coartacion no lleva el recuadro «Segun la guia»',
+    a3.indexOf('Segun la guia') === -1 && censo(a3).length === 0 &&
+    a3.indexOf('con criterios de significaci\\u00f3n por Doppler (mayor de 20 mmHg)') > -1,
+    a3.replace(/\\n/g, ' / ').slice(0, 200)]);
+
+  /* (A4) EL EN SUMA SIN INTEGRAR lleva la clausula, que es la otra redaccion que pidio. */
+  await coaEscena({ coa_istmo: '8', coa_gmedio: '25' }, { coa_situacion: 'nativa' }, false);
+  infEn('estandar');
+  const a4 = suma();
+  ex.push(['(A4) el EN SUMA no integrado: «Coartación de aorta nativa (istmo 8 mm, gradiente medio 25 mmHg), con criterios…»',
+    a4.indexOf('Coartaci\\u00f3n de aorta nativa (istmo 8 mm, gradiente medio 25 mmHg), con criterios de significaci\\u00f3n por Doppler (mayor de 20 mmHg).') > -1,
+    (a4.match(/Coartaci[^\\n]*/) || ['sin linea'])[0]]);
+
+  /* (A5) LA RAMA DE INDICACION no publica veredicto y SI sus insumos. */
+  await coaEscena({ coa_istmo: '8', coa_gradiente_picopico: '25' },
+                  { coa_situacion: 'nativa', coa_hta: 'si' }, true);
+  const a5i = infEn('estandar'), a5s = suma();
+  ex.push(['(A5) con criterio Clase I el papel imprime los INSUMOS y ninguna clase',
+    censo(a5i).length === 0 && censo(a5s).length === 0 &&
+    a5i.indexOf('Gradiente pico-pico invasivo 25 mmHg') > -1 &&
+    a5i.indexOf('Hipertensi\\u00f3n arterial confirmada') > -1 &&
+    a5s.indexOf('pico-pico invasivo 25 mmHg') > -1,
+    (a5s.match(/Coartaci[^\\n]*/) || [''])[0]]);
+
+  /* (A6) CONTROL NEGATIVO: la cola diastolica SOLA no puede decir «mayor de 20 mmHg», porque
+     en ese paciente no hay gradiente medio medido. Es el defecto que el A/B del commit 1
+     destapo cuando el EN SUMA tenia su texto escrito a mano. */
+  await coaEscena({ coa_istmo: '9' }, { coa_situacion: 'nativa' }, true);
+  const c6 = EL('coa_diast_anterogrado');
+  if (c6) { c6.checked = true; c6.dispatchEvent(new Event('change', { bubbles: true })); }
+  try { if (F('calcCoartacion')) calcCoartacion(); if (F('coaSync')) coaSync(); } catch (x) {}
+  await esperar(260);
+  const a6i = infEn('estandar'), a6s = suma();
+  ex.push(['(A6) CONTROL NEGATIVO: con cola diastolica sola, informe y EN SUMA dicen «cola diastólica con gradiente no concluyente» y NO «mayor de 20 mmHg»',
+    a6i.indexOf('cola diast\\u00f3lica con gradiente no concluyente') > -1 &&
+    a6s.indexOf('cola diast\\u00f3lica con gradiente no concluyente') > -1 &&
+    a6i.indexOf('(mayor de 20 mmHg)') === -1 && a6s.indexOf('(mayor de 20 mmHg)') === -1,
+    (a6s.match(/Coartaci[^\\n]*/) || [''])[0]]);
+
+  /* (A7) CONTROL NEGATIVO: un estudio SIN coartacion no gana ni pierde una palabra. */
+  limpiar(); await esperar(90);
+  pon('nombre', 'Prueba AJ2'); pon('ci', '557'); pon('ddvi', '50'); pon('fevi', '60');
+  await esperar(240);
+  const a7 = infEn('estandar');
+  ex.push(['(A7) CONTROL NEGATIVO: un estudio sin coartacion no la nombra',
+    a7.indexOf('Coartaci\\u00f3n') === -1 && a7.length > 60, a7.slice(0, 110)]);
+
+  /* (A10) y (A11) · EL PPT, GENERADO DE VERDAD ═══════════════════════════════════════════
+     ESTAS DOS NACIERON DE UNA MUTACION QUE SOBREVIVIO DOS VECES. La 05 devuelve la fila
+     «Conclusión según guías» de la coartacion a leer c.txt, y las nueve condiciones anteriores
+     pasaban igual porque ninguna miraba el PPT, que la orden nombra como papel.
+     ⚠️ Y LA PRIMERA VERSION DE ESTAS DOS TAMPOCO LA MATO: reproducian la EXPRESION del emisor
+     en vez de ejecutarlo, asi que median codigo escrito aca y no el de la app — un control que
+     no podia fallar. Hoy se espia PptxGenJS y se genera el mazo.
+     ⚠️ generarPPT exige un estudio GUARDADO y contesta DOS modales: se inyecta uno sintetico
+     con los campos de la escena y se reemplazan los dos selectores. Si slides sale 0 la
+     medicion NO vale, y por eso el numero de diapositivas viaja en el diagnostico. */
+  const pptDe = async function () {
+    if (typeof window.PptxGenJS === 'undefined') return { err: 'SIN PPTXGENJS', n: 0, txt: '' };
+    const Orig = window.PptxGenJS;
+    const reg = { slides: 0, textos: [] };
+    window.PptxGenJS = function () {
+      const d = new Orig();
+      const oa = d.addSlide ? d.addSlide.bind(d) : null;
+      if (oa) d.addSlide = function () { reg.slides++; const sl = oa.apply(null, arguments);
+        const ot = sl.addText ? sl.addText.bind(sl) : null;
+        if (ot) sl.addText = function (t) { reg.textos.push(JSON.stringify(t)); return ot.apply(null, arguments) };
+        const ob = sl.addTable ? sl.addTable.bind(sl) : null;
+        if (ob) sl.addTable = function (t) { reg.textos.push(JSON.stringify(t)); return ob.apply(null, arguments) };
+        return sl; };
+      d.writeFile = function () { return Promise.resolve(true) };
+      d.write = function () { return Promise.resolve('') };
+      return d;
+    };
+    Object.keys(Orig).forEach(k => { try { window.PptxGenJS[k] = Orig[k] } catch (x) {} });
+    const campos = {};
+    document.querySelectorAll('input[id], select[id], textarea[id]').forEach(e => {
+      campos[e.id] = (e.type === 'checkbox') ? (e.checked ? '1' : '') : String(e.value || '');
+      /* una casilla se persiste como <id>__chk, no como <id>: sin esto vuelven todas apagadas */
+      if (e.type === 'checkbox') campos[e.id + '__chk'] = e.checked ? '1' : '0';
+    });
+    campos.informe_texto = V('informe_texto'); campos.en_suma = V('en_suma');
+    campos['med-nombre'] = 'Medico de prueba';
+    const ESTU = { id: '__t557__', fecha: '2026-10-31', nombre: 'TC-557', campos: campos };
+    const oGI = window.getInformes, oTe = window._pptElegirTema, oQu = window._pptElegirPresentador;
+    window.getInformes = function () { return [ESTU] };
+    window._pptElegirTema = function (cb) { return cb('dark') };
+    window._pptElegirPresentador = function (inf, cb) { return cb('Medico de prueba') };
+    let err = null;
+    try { if (F('generarPPT')) await generarPPT('__t557__') } catch (x) { err = String(x).slice(0, 90) }
+    await esperar(900);
+    window.getInformes = oGI; window._pptElegirTema = oTe; window._pptElegirPresentador = oQu;
+    window.PptxGenJS = Orig;
+    return { slides: reg.slides, n: reg.textos.length, txt: reg.textos.join(' | '), err: err };
+  };
+  await coaEscena({ coa_istmo: '8', coa_gradiente_picopico: '25' },
+                  { coa_situacion: 'nativa', coa_hta: 'si' }, true);
+  infEn('estandar');
+  const a10 = await pptDe();
+  ex.push(['(A10) el PPT de la coartacion con criterio Clase I no publica clase, nivel, tabla ni guia',
+    a10.slides > 0 && censo(a10.txt).length === 0,
+    'diapositivas=' + a10.slides + ' textos=' + a10.n + ' prohibidas=' + (censo(a10.txt).join(',') || 'cero') + (a10.err ? ' err=' + a10.err : '')]);
+  /* (A11) CONTROL NEGATIVO del mismo mazo: la diapositiva de la coartacion EXISTE, asi que el
+     cero de arriba no es «el PPT no trae la seccion». */
+  ex.push(['(A11) CONTROL NEGATIVO: el mazo SI trae la seccion de la coartacion',
+    a10.slides > 0 && a10.txt.indexOf('COARTACI') > -1,
+    'diapositivas=' + a10.slides + ' nombra la seccion=' + (a10.txt.indexOf('COARTACI') > -1)]);
+
+  /* (A8) LA EVIDENCIA CONSERVA LO QUE SALIO DEL PAPEL, con su fuente. */
+  await coaEscena({ coa_istmo: '8', coa_gmedio: '25' }, { coa_situacion: 'nativa' }, true);
+  await coaEscena({ coa_istmo: '8', coa_gmedio: '25' }, { coa_situacion: 'nativa' }, true);
+  let a8 = 'SIN TARJETA';
+  try { const fr = F('evTarjetaCoa') ? evTarjetaCoa() : null;
+    if (fr) { const d = document.createElement('div'); d.appendChild(fr);
+      a8 = (d.textContent || '').replace(/[ \\t\\n\\r]+/g, ' ').trim(); } } catch (x) { a8 = 'EXC'; }
+  ex.push(['(A8) el ⓘ de la coartacion conserva el pico-pico invasivo, sus clases y su folio',
+    a8.indexOf('pico-pico') > -1 && a8.indexOf('Clase IIa') > -1 && a8.indexOf('folio 604') > -1,
+    a8.slice(0, 150)]);
+
+  /* (A9) Y LA CAPSULA DE PANTALLA TAMBIEN: no es papel, conserva la cita. */
+  const a9 = T('coa-concl');
+  ex.push(['(A9) la capsula de pantalla sigue con la cita de la ESC 2024 y la Figura 44',
+    a9.indexOf('ESC 2024') > -1 && a9.indexOf('Figura 44') > -1, a9.slice(0, 150)]);
+
+  /* ══ B — TODO DIAGRAMA INCLUIDO SE GUARDA (commit 2) ══════════════════════════════════════ */
+  /* (B0) DENOMINADOR: el registro de diagramas existe y tiene sus seis entradas. */
+  const REG = (typeof INF_MIN_DIAG !== 'undefined') ? INF_MIN_DIAG : null;
+  ex.push(['(B0) DENOMINADOR: INF_MIN_DIAG publica los seis diagramas',
+    !!REG && REG.length === 6, REG ? REG.map(d => d.k).join(',') : 'SIN REGISTRO']);
+
+  /* (B1) CONFIG VIENE PRENDIDO SI NADIE LO TOCO. Se prueba en el entorno de prueba, nunca
+     sobre el almacenamiento real: la clave se borra y se repone al salir. */
+  const _cfgPrev = (function () { try { return localStorage.getItem('cfg-guardar-imagenes') } catch (x) { return null } })();
+  try { localStorage.removeItem('cfg-guardar-imagenes') } catch (x) {}
+  const b1 = F('imgGuardadoActivo') ? imgGuardadoActivo() : 'SIN FN';
+  ex.push(['(B1) sin la clave, «Guardar imagenes con los estudios» esta PRENDIDO', b1 === true, String(b1)]);
+
+  /* (B2) CONTROL NEGATIVO del mismo punto: el valor ya elegido se RESPETA, el 0 incluido. */
+  try { localStorage.setItem('cfg-guardar-imagenes', '0') } catch (x) {}
+  const b2a = F('imgGuardadoActivo') ? imgGuardadoActivo() : 'SIN FN';
+  try { localStorage.setItem('cfg-guardar-imagenes', '1') } catch (x) {}
+  const b2b = F('imgGuardadoActivo') ? imgGuardadoActivo() : 'SIN FN';
+  ex.push(['(B2) CONTROL NEGATIVO: con la clave en 0 queda APAGADO y con 1 prendido',
+    b2a === false && b2b === true, '0->' + b2a + ' 1->' + b2b]);
+
+  /* (B3) y (B4): el barrido guarda los incluidos y NO los otros. Se desactiva la card modal de
+     severidades, que es la salida temprana que deja la promesa dormida. */
+  try { window.mostrarCardSeveridadValvular = function (cb) { if (typeof cb === 'function') cb(); } } catch (x) {}
+  limpiar(); await esperar(90);
+  pon('nombre', 'Prueba AJ2 diagramas'); pon('ci', '5572');
+  pon('peso', '70'); pon('talla', '170'); pon('sexo', 'M');
+  pon('va_morf', 'Bic\\u00faspide'); pon('vab_fenotipo', 'rl'); pon('vab_tipo', 'fused_rl');
+  try { if (typeof contrEstado === 'object') { contrEstado['s1'] = 1; contrEstado['s2'] = 2 } } catch (x) {}
+  const _bePdf = EL('contr_be_pdf'); if (_bePdf) _bePdf.value = '1';
+  const _vabPdf = EL('vab_pdf'); if (_vabPdf) _vabPdf.value = '1';
+  try { Object.keys(window).forEach(k => { if (/^calc[A-Z]/.test(k) && typeof window[k] === 'function') {
+    try { window[k]() } catch (x) {} } }) } catch (x) {}
+  await esperar(300);
+  const _g = await new Promise((res) => { const t = setTimeout(() => res('RELOJ'), 20000);
+    try { guardarInforme(function () { clearTimeout(t); res('ok') }) } catch (x) { clearTimeout(t); res('EXC') } });
+  const _uuid = (typeof _imgUuidActual !== 'undefined') ? _imgUuidActual : null;
+  await esperar(900);
+  let _esqs = [];
+  try { if (typeof CeiboImg !== 'undefined' && CeiboImg.esquemas && _uuid) _esqs = await CeiboImg.esquemas(_uuid) } catch (x) {}
+  const _claves = _esqs.map(e => String(e.clave)).sort().join(',');
+  ex.push(['(B3) los diagramas incluidos quedan guardados con el estudio, marcados «esquema»',
+    _g === 'ok' && _esqs.length >= 2 && _claves.indexOf('contr') > -1 && _claves.indexOf('vab') > -1 &&
+    _esqs.every(e => e.esquema === true),
+    'guardado=' + _g + ' claves=' + (_claves || 'ninguna')]);
+  ex.push(['(B4) CONTROL NEGATIVO: los diagramas NO incluidos no se guardan (sgl y eteqx afuera)',
+    _claves.indexOf('sgl') === -1 && _claves.indexOf('eteqx') === -1, _claves || 'ninguna']);
+
+  /* (B5) APARECEN EN «IMAGENES GUARDADAS»: el indice los trae con su marca.
+     OJO: indice() devuelve un registro POR ESTUDIO con su array slots. */
+  let _slots = [];
+  try { const ix = (typeof CeiboImg !== 'undefined' && CeiboImg.indice) ? await CeiboImg.indice() : [];
+    const mio = (ix || []).filter(r => r.uuid === _uuid); _slots = mio.length ? (mio[0].slots || []) : []; } catch (x) {}
+  ex.push(['(B5) la pantalla «Imagenes guardadas» ve los esquemas con su marca',
+    _slots.filter(s => s.esquema).length >= 2,
+    'slots=' + _slots.length + ' con marca=' + _slots.filter(s => s.esquema).length]);
+
+  /* (B6) LA ✕ SOBREVIVE A GUARDAR Y REABRIR — cierra AJ1-g. */
+  let b6 = 'no se pudo probar';
+  try {
+    if (typeof imgSlots !== 'undefined' && _uuid) {
+      const c = document.createElement('canvas'); c.width = 8; c.height = 8;
+      const cx = c.getContext('2d'); cx.fillStyle = '#c04040'; cx.fillRect(0, 0, 8, 8);
+      imgSlots.length = 0;
+      imgSlots.push({ dataURL: c.toDataURL('image/png'), ampliada: false, calidad: 'media',
+                      origen: 'estudio', noPdf: true });
+      if (F('imgMarcarEditado')) imgMarcarEditado();
+      if (F('imgPersistir')) await imgPersistir(_uuid);
+      imgSlots.length = 0;
+      if (F('imgRestaurar')) await imgRestaurar(_uuid);
+      b6 = imgSlots.filter(Boolean).filter(x => x.noPdf).length;
+    }
+  } catch (x) { b6 = 'EXC ' + x.message.slice(0, 50) }
+  ex.push(['(B6) la ✕ (noPdf) sobrevive a guardar y reabrir el estudio', b6 === 1, String(b6)]);
+  try { if (_cfgPrev === null) localStorage.removeItem('cfg-guardar-imagenes');
+        else localStorage.setItem('cfg-guardar-imagenes', _cfgPrev) } catch (x) {}
+
+  /* ══ C — LA OREJUELA DETERMINISTA (commit 3) ══════════════════════════════════════════════ */
+  /* (C0) DENOMINADOR: con los cuatro campos cargados hay dibujo que incluir. */
+  limpiar(); await esperar(90);
+  pon('nombre', 'Prueba AJ2 orejuela'); pon('ci', '5573');
+  pon('oai_morfologia', 'veleta'); pon('oai_ostium_diam', '21');
+  pon('oai_profundidad', '26'); pon('oai_vel_vac', '48');
+  try { if (F('calcOAI')) calcOAI() } catch (x) {}
+  await esperar(300);
+  ex.push(['(C0) DENOMINADOR: la orejuela tiene datos y su dibujo se puede guardar',
+    !!(F('oaiEsqHayDatos') && oaiEsqHayDatos()), String(F('oaiEsqHayDatos') ? oaiEsqHayDatos() : 'SIN FN')]);
+
+  /* (C1) EL SLOT DE ESQUEMA QUE VUELVE SIN CLAVE SE ADOPTA: es la causa del dibujo repetido.
+     Se simula el estado que deja imgRestaurar, que no persiste esqClave. */
+  let c1 = 'no se pudo probar';
+  try {
+    if (typeof imgSlots !== 'undefined') {
+      const c = document.createElement('canvas'); c.width = 8; c.height = 8;
+      imgSlots.length = 0;
+      imgSlots.push({ dataURL: c.toDataURL('image/png'), ampliada: false, calidad: 'esquema',
+                      origen: 'app', esquema: true });
+      c1 = F('esqEstaIncluido') ? esqEstaIncluido('orejuela') : 'SIN FN';
+    }
+  } catch (x) { c1 = 'EXC' }
+  ex.push(['(C1) un esquema reabierto SIN clave se reconoce como incluido, asi que el boton no miente',
+    c1 === true, String(c1)]);
+
+  /* (C2) CONTROL NEGATIVO: con DOS huerfanos NO se adopta ninguno — adoptar el equivocado
+     seria peor que no adoptar. */
+  let c2 = 'no se pudo probar';
+  try {
+    if (typeof imgSlots !== 'undefined') {
+      const c = document.createElement('canvas'); c.width = 8; c.height = 8;
+      imgSlots.length = 0;
+      imgSlots.push({ dataURL: c.toDataURL('image/png'), calidad: 'esquema', origen: 'app', esquema: true });
+      imgSlots.push({ dataURL: c.toDataURL('image/png'), calidad: 'esquema', origen: 'app', esquema: true });
+      c2 = F('esqEstaIncluido') ? esqEstaIncluido('orejuela') : 'SIN FN';
+    }
+  } catch (x) { c2 = 'EXC' }
+  ex.push(['(C2) CONTROL NEGATIVO: con DOS esquemas huerfanos no se adopta ninguno',
+    c2 === false, String(c2)]);
+
+  /* (C3) EL BOTON DICE SU ESTADO, que es lo que la orden pide mostrar mejor. */
+  try { if (typeof imgSlots !== 'undefined') imgSlots.length = 0;
+        if (F('oaiEsqPdfBtnSync')) oaiEsqPdfBtnSync() } catch (x) {}
+  const c3off = T('oai-esq-pdf');
+  try { if (F('esqIncluirEnPDF') && F('oaiEsqSVG')) await esqIncluirEnPDF('orejuela', 'Esquema de la orejuela', oaiEsqSVG(0, 0), 100, 100);
+        if (F('oaiEsqPdfBtnSync')) oaiEsqPdfBtnSync() } catch (x) {}
+  const c3on = T('oai-esq-pdf');
+  ex.push(['(C3) el boton alterna «📄 Incluir en el PDF» y «✓ Incluido en el PDF»',
+    c3off.indexOf('Incluir en el PDF') > -1 && c3on.indexOf('Incluido en el PDF') > -1 && c3off !== c3on,
+    'off=' + c3off + ' | on=' + c3on]);
+
+  /* ══ D — LA FILA DE MINIATURAS (commit 4) ═════════════════════════════════════════════════ */
+  /* (D1) EL TEXTO DE AYUDA SALIO y en su lugar hay un ⓘ. */
+  const d1a = document.querySelectorAll('#inf-min-fila .inf-min-ayuda').length;
+  const d1b = document.querySelectorAll('#inf-min-fila [data-vinfo="inf-min"]').length;
+  ex.push(['(D1) la fila ya no lleva el texto de ayuda y si un ⓘ', d1a === 0 && d1b === 1,
+    'ayuda=' + d1a + ' globo=' + d1b]);
+
+  /* (D2) EL ⓘ DICE LAS CUATRO COSAS del texto viejo, mas el teclado. */
+  const d2 = (function () { try { const e = (typeof VINFO !== 'undefined') ? VINFO['inf-min'] : null;
+    return e ? (String(e.lee || '') + ' ' + String(e.ojo || '')) : 'SIN ENTRADA' } catch (x) { return 'EXC' } })();
+  ex.push(['(D2) el ⓘ explica la ✕, el reordenamiento, los diagramas y el teclado',
+    d2.indexOf('quita del PDF y NO borra') > -1 && d2.indexOf('arrastr') > -1 &&
+    d2.indexOf('Tab hasta') > -1 && d2.indexOf('no reordenar') > -1, d2.slice(0, 150)]);
+
+  /* (D3) LAS FLECHAS Y EL ARRASTRE siguen vivos: son el camino accesible y el del mouse.
+     Se arma la fila con tres capturas distinguibles y se mueve con la ▶. */
+  let d3 = 'no se pudo probar', d3drag = 'no se pudo probar';
+  try {
+    if (typeof imgSlots !== 'undefined') {
+      const mk = (col) => { const c = document.createElement('canvas'); c.width = 8; c.height = 8;
+        const x = c.getContext('2d'); x.fillStyle = col; x.fillRect(0, 0, 8, 8); return c.toDataURL('image/png') };
+      imgSlots.length = 0;
+      ['#e03030', '#30b030', '#3050e0'].forEach(c => imgSlots.push({ dataURL: mk(c), calidad: 'media', origen: 'estudio' }));
+      if (typeof imgSlotCount !== 'undefined') imgSlotCount = imgSlots.length;
+      if (F('imgEnsureLen')) imgEnsureLen();
+      if (F('infMinPintar')) infMinPintar();
+      await esperar(220);
+      const H = (u) => { let h = 0; const t = String(u); for (let i = 0; i < t.length; i++) h = (h * 31 + t.charCodeAt(i)) | 0;
+        return (h >>> 0).toString(16) };
+      const antes = imgSlots.filter(Boolean).map(s => H(s.dataURL)).join(' ');
+      const fl = document.querySelectorAll('#inf-min-lista .inf-min-ord button');
+      if (fl.length > 1) { fl[1].click(); await esperar(220) }
+      const tras = imgSlots.filter(Boolean).map(s => H(s.dataURL)).join(' ');
+      d3 = (antes !== tras) ? 'mueve' : 'NO mueve (' + antes + ')';
+      const tj = document.querySelectorAll('#inf-min-lista .inf-min[data-min-tipo=captura]');
+      d3drag = [].slice.call(tj).filter(t => t.getAttribute('draggable') === 'true').length;
+    }
+  } catch (x) { d3 = 'EXC ' + x.message.slice(0, 50) }
+  ex.push(['(D3) la flecha ▶ reordena las capturas y las tarjetas siguen siendo arrastrables',
+    d3 === 'mueve' && d3drag === 3, 'flecha=' + d3 + ' arrastrables=' + d3drag]);
+
+  /* (D4) EL ⓘ DE LA FILA NO LO TAPA LA ✕ de la primera miniatura: los CINCO puntos tienen que
+     dar el propio boton. Es el solape que el commit 4 cerro, y no era cosmetico: tocar esa
+     esquina QUITABA una imagen del PDF. Se abre la pestana por su BOTON REAL, porque sin eso
+     la fila no tiene caja y todo da 0x0. */
+  let d4 = 'no se pudo probar';
+  try {
+    const bt = EL('floatBtnInforme'); if (bt) bt.click(); else if (F('showTab')) showTab('informe');
+    await esperar(360);
+    const g = document.querySelector('#inf-min-fila [data-vinfo="inf-min"]');
+    if (g) { g.scrollIntoView({ block: 'center' }); await esperar(150);
+      const r = g.getBoundingClientRect();
+      if (r.width < 1) d4 = 'SIN CAJA';
+      else { const pts = [[r.left + 2, r.top + 2], [r.right - 2, r.top + 2], [r.left + 2, r.bottom - 2],
+                          [r.right - 2, r.bottom - 2], [r.left + r.width / 2, r.top + r.height / 2]];
+        d4 = pts.map(p => { const el = document.elementFromPoint(p[0], p[1]);
+          return (el === g || g.contains(el)) ? '1' : '0' }).join('') + ' ' + Math.round(r.width) + 'x' + Math.round(r.height); }
+    } else d4 = 'NO EXISTE';
+  } catch (x) { d4 = 'EXC ' + x.message.slice(0, 50) }
+  ex.push(['(D4) el ⓘ de la fila mide 44x44 y sus CINCO puntos dan el propio boton',
+    d4.indexOf('11111 44x44') === 0, String(d4)]);
+
+  /* ══ E — «MANGA DE VIENTO» SIN RIESGO (commit 4c) ═════════════════════════════════════════ */
+  const _opts = [].slice.call(document.querySelectorAll('#oai_morfologia option'));
+  const _mv = _opts.filter(o => o.value === 'veleta')[0];
+  ex.push(['(E1) «Manga de viento» ya no afirma un riesgo y su value no cambia',
+    !!_mv && _mv.textContent.trim() === 'Manga de viento' && _mv.value === 'veleta',
+    _mv ? (_mv.value + ' = «' + _mv.textContent.trim() + '»') : 'NO EXISTE']);
+  /* (E2) CONTROL NEGATIVO: las otras tres opciones conservan lo suyo. */
+  const _ala = _opts.filter(o => o.value === 'ala')[0], _col = _opts.filter(o => o.value === 'coliflor')[0];
+  ex.push(['(E2) CONTROL NEGATIVO: ala de pollo y coliflor conservan su riesgo en el rotulo',
+    !!_ala && !!_col && /riesgo/i.test(_ala.textContent) && /riesgo/i.test(_col.textContent),
+    (_ala ? _ala.textContent.trim() : '?') + ' | ' + (_col ? _col.textContent.trim() : '?')]);
+
+  /* ══ F — LOS ⓘ DEL TRIV (commit 5) ════════════════════════════════════════════════════════ */
+  const _frases = ['anillo tricusp', 'dato de apoyo', 'frecuencia card', 'No suma a la probabilidad',
+                   'Howard', 'Cabrita', 'Br\\u00e9chot'];
+  const _tarj = (fn) => { try { const fr = F(fn) ? window[fn]() : null; if (!fr) return 'SIN FN';
+    const d = document.createElement('div'); d.appendChild(fr);
+    return (d.textContent || '').replace(/[ \\t\\n\\r]+/g, ' ').trim() } catch (x) { return 'EXC' } };
+  const _fun = _tarj('evTarjetaVDFun'), _tam = _tarj('evTarjetaVDTam');
+  ex.push(['(F1) el ⓘ de FUNCION del VD dice que es el TRIV y sus tres fuentes',
+    _frases.every(f => _fun.indexOf(f) > -1), _frases.filter(f => _fun.indexOf(f) === -1).join(',') || 'las siete']);
+  ex.push(['(F2) el ⓘ de TAMANO solo REMITE y no repite el texto',
+    _tam.indexOf('est\\u00e1n en el') > -1 && _frases.filter(f => _tam.indexOf(f) > -1).length === 0,
+    _tam.slice(-120)]);
+  ex.push(['(F3) la fila del Doppler tricuspide tiene su ⓘ, con la MISMA clave del registro',
+    document.querySelectorAll('[data-vinfo="vd-triv"]').length === 2,
+    String(document.querySelectorAll('[data-vinfo="vd-triv"]').length)]);
+  /* (F4) UN SOLO DUENO: el globo y la tarjeta dicen literalmente lo mismo. */
+  const _glo = (function () { try { const e = (typeof VINFO !== 'undefined') ? VINFO['vd-triv'] : null;
+    return e ? String(e.lee || '') : '' } catch (x) { return '' } })();
+  ex.push(['(F4) el texto del globo y el de la tarjeta salen del mismo dueno',
+    typeof TRIV_DTI_LEE === 'string' && _glo.indexOf(TRIV_DTI_LEE) === 0 && _fun.indexOf('Es un dato de apoyo') > -1,
+    (typeof TRIV_DTI_LEE === 'string') ? TRIV_DTI_LEE.slice(0, 60) : 'SIN CONSTANTE']);
+
+  /* ══ G — EL BARRIDO DEL PAPEL (commit 6) ══════════════════════════════════════════════════ */
+  /* (G0) DENOMINADOR: la escena de VExUS con score >= 1 publica su salvedad en el informe. */
+  limpiar(); await esperar(90);
+  pon('nombre', 'Prueba AJ2 vexus'); pon('ci', '5574');
+  pon('vci_diam', '24'); pon('vexus_sh', '2'); pon('vexus_pv', '1'); pon('vexus_ir', '2');
+  try { if (F('calcVEXUS')) calcVEXUS() } catch (x) {}
+  await esperar(300);
+  const g0 = infEn('estandar');
+  ex.push(['(G0) DENOMINADOR: el informe publica la salvedad de VExUS',
+    g0.indexOf('Los patrones venosos') > -1, g0.indexOf('Los patrones venosos') > -1 ? 'si' : 'NO LA PUBLICA']);
+  ex.push(['(G1) «El grado VEXUS debe integrarse con la clinica» salio del papel',
+    g0.indexOf('debe integrarse con la cl\\u00ednica') === -1, g0.indexOf('debe integrarse') > -1 ? 'SIGUE' : 'cero']);
+  ex.push(['(G2) CONTROL NEGATIVO: la salvedad descriptiva y su cita SE QUEDAN',
+    g0.indexOf('fibrilaci\\u00f3n auricular y en ventilaci\\u00f3n mec\\u00e1nica') > -1 &&
+    g0.indexOf('Beaubien-Souligny') > -1, 'patrones+cita presentes']);
+  /* (G3) LA OTRA CONDUCTA: la insuficiencia mitral severa en estilo extenso. */
+  limpiar(); await esperar(90);
+  pon('nombre', 'Prueba AJ2 im'); pon('ci', '5575'); pon('im_vc', '8');
+  try { Object.keys(window).forEach(k => { if (/^calc[A-Z]/.test(k) && typeof window[k] === 'function') {
+    try { window[k]() } catch (x) {} } }) } catch (x) {}
+  await esperar(320);
+  const g3 = infEn('narrativo');
+  ex.push(['(G3) la mitral severa ya no recomienda seguimiento ni evaluar una intervencion',
+    g3.indexOf('requiere seguimiento ecocardiogr\\u00e1fico') === -1 &&
+    g3.indexOf('indicaci\\u00f3n de intervenci\\u00f3n seg\\u00fan evoluci\\u00f3n') === -1,
+    (g3.match(/v[aá]lvula mitral[^.]{0,130}/i) || ['sin la oracion'])[0]]);
+  ex.push(['(G4) CONTROL NEGATIVO: «hallazgo de relevancia clinica» SE QUEDA, porque describe',
+    g3.indexOf('hallazgo de relevancia cl\\u00ednica') > -1,
+    g3.indexOf('hallazgo de relevancia cl\\u00ednica') > -1 ? 'presente' : 'SE PERDIO']);
+
+  /* ══ H — LOS ESTUDIOS NO LISTADOS NO SE MUEVEN ════════════════════════════════════════════ */
+  limpiar(); await esperar(90);
+  pon('nombre', 'Prueba AJ2 ajeno'); pon('ci', '5576');
+  pon('ddvi', '52'); pon('fevi', '55'); pon('ai_vol', '40'); pon('peso', '80'); pon('talla', '180');
+  try { Object.keys(window).forEach(k => { if (/^calc[A-Z]/.test(k) && typeof window[k] === 'function') {
+    try { window[k]() } catch (x) {} } }) } catch (x) {}
+  await esperar(320);
+  const h1 = infEn('estandar');
+  ex.push(['(H1) CONTROL NEGATIVO: un estudio ajeno no nombra coartacion, VExUS ni orejuela',
+    h1.indexOf('Coartaci\\u00f3n') === -1 && h1.indexOf('VEXUS') === -1 &&
+    h1.indexOf('Orejuela') === -1 && h1.length > 80, h1.length + ' caracteres']);
+  /* (H2) El censo de campos no se movio: esta tanda no agrega ninguno. */
+  let h2 = -1;
+  try { const c = {}; document.querySelectorAll('input[id], select[id], textarea[id]').forEach(e => {
+    if (F('_noEsDelEstudio') && _noEsDelEstudio(e.id)) return;
+    c[e.id] = (e.type === 'checkbox') ? (e.checked ? '1' : '') : String(e.value || ''); });
+    h2 = Object.keys(c).length } catch (x) {}
+  ex.push(['(H2) el censo de campos del estudio sigue por encima de 900 y no se vacio', h2 > 900, String(h2)]);
+
+  } catch (e) { ex.push(['EXCEPCION', false, String(e && e.message)]); }
+  return { extra: ex };
+  })();
+`);
+
 
 
 let servidor, chrome;

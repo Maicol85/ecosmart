@@ -328,3 +328,16 @@ perdió o ganó:
 - ningún campo guardado nuevo: el orden de los **diagramas** no se toca, y esa parte se paró
   (`AJ1-d`).
 
+
+---
+
+## ⟶ Los diagramas de toggle también se guardan: ver `aj2-coartacion-diagramas.md`
+
+La **TANDA AJUSTES-2** (31/10/2026) agregó `diagGuardarIncluidos()`, que al guardar el estudio
+escribe en la lista `esqs` **todo diagrama de `INF_MIN_DIAG` que esté incluido en el PDF**, con
+Config prendido. Van a `esqs` y **no** a `imgSlots`, porque cada uno ya tiene su propia sección en
+el PDF y meterlos entre los slots los imprimiría dos veces.
+También: `esqGuardarDataURL` (el núcleo que `esqGuardarComoImagen` comparte),
+`CeiboImg.borrarEsquema`, **`noPdf` en las dos allowlists** (cierra `AJ1-g`) y
+**`imgGuardadoActivo()` prendido por omisión** cuando nadie tocó el control.
+Todo en `docs/mapa/aj2-coartacion-diagramas.md` § 2.

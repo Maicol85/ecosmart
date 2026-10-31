@@ -524,3 +524,21 @@ está en 34,2 KB). Cae contra HEAD por **26 condiciones y ninguna por excepción
 - Las sondas: `_probe_d2.mjs` —con `--nuevos`, porque las dos opciones nuevas del selector **no
   existen en HEAD** y ponerle a un `<select>` un valor que no tiene lo deja en vacío—,
   `_mut_d2.py` y `_probe_d2wk.mjs`.
+
+
+---
+
+## ⟶ TC-557 y las 18 mutaciones de AJUSTES-2
+
+`docs/mapa/aj2-coartacion-diagramas.md` tiene el caso y el barrido. Lo que conviene saber antes
+de tocarlo:
+- **`guardarInforme` tiene una salida temprana más** que las que el D-11 documenta: el **gate de
+  severidades valvulares** abre una card modal y el callback no llega nunca. Se desactiva
+  reemplazando `mostrarCardSeveridadValvular`. Y el campo del documento es **`ci`**.
+- **La secuencia de cierre de comentario dentro de un literal de expresión regular** cierra el
+  bloque `/* */` antes de tiempo, con un error que apunta a la palabra siguiente.
+- **`CeiboImg.indice()` devuelve un registro POR ESTUDIO** con su array `slots`.
+- **Tres PNG escritos a mano se parecen tanto** que cualquier rebanada fija los hace
+  indistinguibles: la firma va por hash del dataURL entero.
+- La mutación **05 sobrevivió dos veces**: la primera porque ninguna condición miraba el PPT, y la
+  segunda porque el arreglo **reproducía la expresión** del emisor en vez de ejecutarlo.

@@ -417,3 +417,14 @@ Vive en **`docs/mapa/cor-correcciones.md`**, en archivo propio. Lo que esta zona
   interruptor. El inventario 5a está medido generando el PDF de verdad.
 - **§ 6** · el dibujo de la orejuela **portado de la demo**: aurícula izquierda, VPSI, sin el
   triángulo del VI, trombo adentro, dos capas de silueta y «Manga de viento».
+
+
+---
+
+## ⟶ El TRIV, ahora en tres ⓘ con un solo texto: ver `aj2-coartacion-diagramas.md`
+
+La **TANDA AJUSTES-2** (31/10/2026) sacó las seis líneas del TRIV y sus tres fuentes a dos dueños
+únicos de módulo, `TRIV_DTI_LEE` y `TRIV_DTI_FUENTE`, que leen el globo `vd-triv`, la tarjeta de
+**función** del VD (por `_evBloqueTriv`) y la fila del **Doppler tricúspide** —que gana su ⓘ
+reusando la misma clave—. El ⓘ de **tamaño** lleva sólo una línea que remite.
+Inventario y mediciones en `docs/mapa/aj2-coartacion-diagramas.md` § 5.

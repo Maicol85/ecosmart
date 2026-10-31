@@ -318,3 +318,19 @@ columna de la tabla—, que es la lección del D-11: con una sola rota, la otra 
 8. **`/OREJUELA IZQUIERDA/i` engancha la oración del cuerpo del informe** —«Orejuela izquierda:
    ostium 26 mm…»—, que cae en otra página: la sonda informaba que la tabla estaba en la página 0
    cuando la hoja del ETE es otra. La comparación va exacta y sensible a mayúsculas.
+
+
+---
+
+## ⟶ La fila de miniaturas y la orejuela, después: ver `aj2-coartacion-diagramas.md`
+
+La **TANDA AJUSTES-2** (31/10/2026):
+- el **texto de ayuda** de la cabecera salió y su contenido vive en `VINFO['inf-min']`, con dos
+  líneas más (el teclado, y que la exclusión sobrevive a reabrir);
+- **el arrastre ya existía** y funciona —la premisa de esa orden era falsa—, medido con gestos
+  reales contra el orden que el PDF imprime;
+- ⚠️ **un solape táctil real**: la ✕ de la primera miniatura extendía su área sobre el ⓘ de la
+  cabecera, así que tocar esa esquina **quitaba una imagen del PDF**;
+- **`noPdf` ya sobrevive** a guardar y reabrir: cierra `AJ1-g`;
+- **«Manga de viento»** pierde su «riesgo intermedio»: cierra `AJ1-a`.
+Todo en `docs/mapa/aj2-coartacion-diagramas.md` §§ 2 y 4.
