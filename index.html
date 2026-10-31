@@ -87320,11 +87320,85 @@ function _indCIV(){
     _indFila('PAS pulmonar estimada por la CIV', _indNum(_indN('ete_civ_pas'), 0, 'mmHg'),
       _indN('ete_civ_pas') != null ? 'none' : 'ask', '')
   ];
+  /* ══ LAS RECOMENDACIONES Y LAS PREGUNTAS (TGA-2, commit 4) ════════════════════════════════
+     Mismo molde que `_indVAB`, `_indTGA` y `_indCIA`. Las TRES filas de sólo lectura que había
+     acá —endocarditis previa, prolapso de una valva aórtica y resistencias pulmonares— pasan a
+     ser preguntas de tres estados, y se agregan las que la tabla nombra y faltaban.
+
+     LA FUENTE, LEIDA EN IMAGEN a 220 ppp sobre la edición INGLESA de la ESC 2020 de cardiopatías
+     congénitas del adulto (folio = hoja + 562, comprobado en el pie impreso): la tabla
+     «Recommendations for intervention in ventricular septal defect (native and residual)»,
+     hoja 33, folio 595, con sus SEIS filas y sus dos notas al pie; y el apartado 4.2.5 de
+     seguimiento, misma hoja y mismo folio.
+
+     ⚠️ EL BLOQUE PUBLICA LA TABLA Y NO EL CRITERIO DE LA APP, Y LOS DOS NO DICEN LO MISMO. La
+     divergencia está declarada desde antes de esta tanda en la entrada `escGuchCiv` del registro
+     de citas —la guía indica el cierre por sobrecarga de volumen del ventrículo izquierdo y sin
+     hipertensión pulmonar, con independencia de los síntomas; su Qp/Qs es «> 1,5» y sólo dentro
+     de los escenarios con hipertensión pulmonar establecida; y el corte de DDVI indexado de
+     32 mm/m² no figura en el documento—. Esta tanda NO la resuelve: corregir el criterio es
+     contenido clínico y es decisión del médico. Lo que cambia es que ahora la tabla de verdad se
+     puede leer al lado, con su clase y su nivel, en vez de estar sólo descrita en la cita.
+     Por eso el bloque cita `esc2020guch` —la guía, que es de donde salen estas líneas— y la
+     línea de `guia` de la sección sigue citando `escGuchCiv`, que es la que lleva la advertencia.
+
+     ⚠️ NADA DE ESTE BLOQUE LLEGA AL PAPEL. */
+  const CIV_OPS = [{ v:'si', t:'Sí' }, { v:'no', t:'No' }];
+  const CIV_PREG = [
+    { clave:'civ.ev.vsaumentado', lbl:'Volumen latido del ventrículo izquierdo aumentado',
+      nota:'es la nota al pie c de la tabla: la sobrecarga de volumen del ventrículo izquierdo que la Clase I · Nivel C exige se define como agrandamiento del ventrículo izquierdo CON volumen latido aumentado, y el segundo término la aplicación no lo tiene' },
+    { clave:'civ.ev.rvp3', lbl:'Resistencia vascular pulmonar por debajo de 3 UW, medida por cateterismo',
+      nota:'cuando hay signos no invasivos de presión pulmonar elevada, es la condición que deja en pie la Clase I · Nivel C' },
+    { clave:'civ.ev.rvp35', lbl:'Resistencia vascular pulmonar entre 3 y 5 UW',
+      nota:'con cortocircuito izquierda-derecha significativo (Qp/Qs mayor que 1,5), el cierre pasa a Clase IIa · Nivel C' },
+    { clave:'civ.ev.rvp5', lbl:'Resistencia vascular pulmonar de 5 UW o más',
+      nota:'con cortocircuito izquierda-derecha significativo el cierre es Clase IIb · Nivel C y exige una decisión individual en un centro experto; con desaturación en el ejercicio es la contraindicación, Clase III · Nivel C' },
+    { clave:'civ.ev.ie', lbl:'Episodios repetidos de endocarditis infecciosa sobre el defecto',
+      nota:'sin cortocircuito significativo, es por sí solo la Clase IIa · Nivel C del cierre' },
+    { clave:'civ.ev.prolapso', lbl:'Prolapso de una valva aórtica asociado al defecto, con insuficiencia aórtica progresiva',
+      nota:'es la Clase IIa · Nivel C de la cirugía, aunque el cortocircuito sea pequeño' },
+    { clave:'civ.ev.eisen', lbl:'Fisiología de Eisenmenger, o desaturación con el ejercicio',
+      nota:'es la contraindicación, Clase III · Nivel C. La nota al pie d de la tabla dice que no hay datos para un corte preciso y que, por experiencia clínica, sería una caída de la saturación arterial por debajo del 90 %' }
+  ];
+  const _civClin = [], _cSi = [], _cNo = [], _cSd = [];
+  CIV_PREG.forEach(function (p) {
+    const o = _indOrigen(null, p.clave);
+    if (o.val === 'si') _cSi.push(p.lbl); else if (o.val === 'no') _cNo.push(p.lbl); else _cSd.push(p.lbl);
+    _civClin.push(_indFilaOrigen(p.lbl, o, CIV_OPS, function (val) {
+      return { txt: val === 'si' ? 'Sí' : (val === 'no' ? 'No' : 'Sin dato'),
+               marca: val === 'si' ? 'warn' : (val === 'no' ? 'none' : 'ask'),
+               nota: p.nota + (val == null ? '. Sin dato no cuenta como «no»: mientras no se conteste, esta condición no sostiene ninguna recomendación' : '') };
+    }));
+  });
+  const _balCIV = _cSi.length
+    ? { txt:'Condiciones presentes en este paciente: ' + _cSi.length + ' de ' + CIV_PREG.length + ' (' + _cSi.join('; ') + ').'
+        + (_cSd.length ? ' Sin contestar: ' + _cSd.join('; ') + '.' : ' Las otras ' + _cNo.length + ' están contestadas que no.'), refs:null }
+    : (_cSd.length
+      ? { txt:'Ninguna condición consta como presente, y quedan ' + _cSd.length + ' sin contestar: ' + _cSd.join('; ')
+          + '. Mientras no se contesten, ninguna de las recomendaciones de arriba se sostiene en este paciente — «sin dato» no cuenta como «no».', refs:null }
+      : { txt:'Las ' + CIV_PREG.length + ' condiciones están contestadas y ninguna está presente.', refs:null });
+
   return { filas: filas,
-    clinica: [
-      _indFila('Endocarditis previa sobre el defecto', '—', 'ask', 'es indicación de cierre por sí sola'),
-      _indFila('Insuficiencia aórtica progresiva por prolapso de una valva', '—', 'ask', 'es indicación de cierre aunque el shunt sea pequeño'),
-      _indFila('Resistencias pulmonares', '—', 'ask', 'deciden la operabilidad cuando hay hipertensión pulmonar, y no las da el ecocardiograma')
+    clinica: _civClin,
+    bloques: [
+      { tit:'Indicación de cierre — ESC 2020, tabla de recomendaciones de intervención en la comunicación interventricular, hoja 33, folio 595', lineas:[
+        { txt:'Clase I · Nivel C — Con sobrecarga de volumen del ventrículo izquierdo y sin hipertensión arterial pulmonar (sin signos no invasivos de presión pulmonar elevada, o con resistencia vascular pulmonar por debajo de 3 UW confirmada por cateterismo si los hay), se recomienda el cierre independientemente de los síntomas.', refs:null },
+        { txt:'Clase IIa · Nivel C — Sin cortocircuito izquierda-derecha significativo, pero con antecedente de episodios repetidos de endocarditis infecciosa, debe considerarse el cierre.', refs:null },
+        { txt:'Clase IIa · Nivel C — Con prolapso de una valva aórtica asociado al defecto que causa insuficiencia aórtica progresiva, debe considerarse la cirugía.', refs:null }
+      ]},
+      { tit:'Cuando la presión pulmonar está elevada — misma tabla, hoja 33, folio 595', lineas:[
+        { txt:'Clase IIa · Nivel C — Con hipertensión arterial pulmonar y resistencia vascular pulmonar entre 3 y 5 UW, debe considerarse el cierre cuando persiste un cortocircuito izquierda-derecha significativo (Qp/Qs mayor que 1,5).', refs:null },
+        { txt:'Clase IIb · Nivel C — Con hipertensión arterial pulmonar y resistencia vascular pulmonar de 5 UW o más, puede considerarse el cierre cuando persiste un cortocircuito izquierda-derecha significativo (Qp/Qs mayor que 1,5), pero exige una decisión individual cuidadosa en un centro experto.', refs:null },
+        { txt:'Clase III · Nivel C — El cierre no se recomienda en la fisiología de Eisenmenger ni con hipertensión arterial pulmonar severa (resistencia de 5 UW o más) que se presenta con desaturación en el ejercicio. La nota al pie d de la tabla aclara que no hay datos para un corte preciso y que, por experiencia clínica, correspondería a una caída de la saturación arterial por debajo del 90 %.', refs:null },
+        _balCIV
+      ]},
+      { tit:'Seguimiento — ESC 2020, apartado 4.2.5, hoja 33, folio 595', lineas:[
+        { txt:'El control debe excluir o valorar por ecocardiografía la aparición de insuficiencia aórtica o tricuspídea, el grado del cortocircuito residual, la disfunción del ventrículo izquierdo, la elevación de la presión pulmonar y la aparición de un ventrículo derecho de doble cámara.', refs:null },
+        { txt:'La posible aparición de un bloqueo auriculoventricular completo exige atención: el paciente que desarrolla un bloqueo bifascicular, o un bloqueo trifascicular transitorio, después del cierre queda en riesgo de bloqueo completo en años posteriores.', refs:null },
+        { txt:'El paciente con un defecto residual más que pequeño, con lesiones valvulares o con repercusión hemodinámica —disfunción del ventrículo izquierdo o hipertensión arterial pulmonar— debe verse todos los años, con evaluación en centros especializados.', refs:null },
+        { txt:'Con un defecto pequeño —nativo o residual, con ventrículo izquierdo y presión pulmonar normales y sin síntomas— y sin otra lesión, intervalos de 3 a 5 años pueden ser razonables. Tras el cierre con dispositivo, control regular los dos primeros años y después, según los resultados, cada 2 a 5 años. Tras el cierre quirúrgico sin anomalía residual, intervalos de 5 años pueden ser razonables.', refs:null },
+        { txt:'Fuente: ESC 2020 de cardiopatías congénitas del adulto, hoja 33, folio 595.', refs:['esc2020guch'] }
+      ]}
     ],
     guia: { ref:'escGuchCiv',
       txt:'El cierre de la comunicación interventricular es Clase I en el paciente con sobrecarga de volumen del ventrículo izquierdo o síntomas atribuibles al shunt, siempre que no haya enfermedad vascular pulmonar avanzada.',
@@ -87333,7 +87407,9 @@ function _indCIV(){
       'Con shunt neto invertido —Qp/Qs menor que 1— el cierre está contraindicado: primero hay que establecer la operabilidad.',
       'Esta app no registra la dirección del shunt de la CIV, así que la contraindicación se apoya sólo en el Qp/Qs.',
       '«Sobrecarga de volumen sin otra causa» es parte del criterio de la guía, y un ecocardiograma no excluye las otras causas de ventrículo izquierdo dilatado.',
-      'El Qp/Qs es el del shunt del estudio: cuando hay más de un defecto con datos la app no se lo atribuye a ninguno, y la fila lo dice.'
+      'El Qp/Qs es el del shunt del estudio: cuando hay más de un defecto con datos la app no se lo atribuye a ninguno, y la fila lo dice.',
+      'Lo que se contesta en esta sección no se guarda con el estudio: vive mientras el panel esté abierto y se pierde al cerrarlo o al empezar un estudio nuevo.',
+      'Las recomendaciones de esta sección no entran al informe, al EN SUMA, al PDF ni al PPT: el papel describe lo que se midió y las indicaciones se leen acá.'
     ] };
 }
 
