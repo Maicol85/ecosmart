@@ -100329,10 +100329,10 @@ function igImgPptPedir() {
       (sinTapa ? ('Quedan ' + sinTapa + ' de ' + _igImgSel.length +
                   ' imagen(es) sin tapar: revisalas antes de exportar.')
                : 'Las ' + _igImgSel.length + ' imágenes elegidas tienen su tapa puesta.') +
-      (nVid ? ' Hay ' + nVid + ' video(s) entre lo elegido: de un video va sólo su primer cuadro, ' +
-              'y «Tapar datos» tapa ese cuadro y nada más. Un video puede traer el nombre del ' +
-              'paciente en pantalla durante todo el clip, y en el PPT del estudio —que sí ' +
-              'incrusta el clip completo— no hay tapa que lo cubra.' : '');
+      (nVid ? ' Hay ' + nVid + ' video(s) entre lo elegido: el clip entra COMPLETO, y «Tapar ' +
+              'datos» sólo tapa su primer cuadro —el que se ve antes de reproducir—. Un video ' +
+              'puede traer el nombre del paciente en pantalla durante todo el clip, y ahí no hay ' +
+              'tapa que lo cubra: revisá el video entero antes de exportar.' : '');
   }
   igImgPptAviso(true);
 }
@@ -100361,18 +100361,53 @@ function igImgPptExportar() {
   }
   _igImgExportando = true;
   igImgRes('Armando el PPT…');
-  /* ⚠️ ESTE MAZO LLEVA EL PRIMER CUADRO DE UN VIDEO, Y NO EL VIDEO. Es el «deja el cuadro fijo»
-     del pedido del 30/10/2026: el bucle NO se puede marcar en un .pptx con la librería que la
-     app tiene —PptxGenJS 3.12.0 no escribe `p:timing` ni `repeatCount`, verificado leyendo sus
-     477 KB y leyendo el XML de un paquete generado de verdad—, así que este camino se queda con
-     el cuadro. Hasta hoy dejaba la miniatura AFUERA con el mensaje «no se pudieron preparar»,
-     que sobre una imagen que el médico eligió a mano se lee como una falla del archivo y no
-     como una decisión de la app.
+  /* ⚠️ ESTE MAZO LLEVA EL VIDEO COMPLETO desde la tanda AJUSTES-3 (decisión del médico,
+     31/10/2026), y su comentario decía lo contrario hasta hoy. El 30/10 llevaba sólo el primer
+     cuadro porque el bucle no se podía marcar con PptxGenJS 3.12.0; la tanda TGA generó fuera
+     del producto un .pptx con el `p:timing` escrito a mano, el médico lo abrió en PowerPoint y
+     funciona, así que el ajuste entró a la app en `_pptxBucleVideos` —ver su comentario— y este
+     camino pasó a incrustar el clip. El primer cuadro queda como CAÍDA: si el video no se puede
+     leer o preparar, la diapositiva lleva el cuadro y la línea de resultado dice por qué.
      Se usa un predicado PROPIO y no `_pptEsImagen`: ése excluye el póster de un video a
      propósito y lo leen el PPT del estudio —donde el video tiene su diapositiva— y su selector.
      Cambiarlo allá metería el póster DOS veces en el mazo del estudio. */
   const elegidas = _igImgSel.slice();
   const por = (IG_IMG_PPT_POR.indexOf(_igImgPor) >= 0) ? _igImgPor : 1;
+  /* ── Los BYTES de un video, que no estan en `CeiboImg` ──────────────────────────────────────
+     El slot solo lleva su `videoId`; los bytes viven en `ceibomed_video`, que es otra base (ver
+     el comentario de `CeiboVideo`). La lectura se cachea POR ESTUDIO porque varios videos
+     elegidos pueden venir del mismo, y una lectura por slot abriria la misma base N veces: es la
+     misma razon por la que `igImgBlobs` cachea. No sirve `_videoBlobs`, que es la memoria del
+     FORMULARIO, y aca el estudio no esta abierto. */
+  const _vidCache = new Map();
+  const vidsDe = (uuid) => {
+    if (_vidCache.has(uuid)) return Promise.resolve(_vidCache.get(uuid));
+    if (typeof CeiboVideo === 'undefined') { _vidCache.set(uuid, []); return Promise.resolve([]); }
+    return CeiboVideo.leer(uuid)
+      .then(rs => { const r = rs || []; _vidCache.set(uuid, r); return r; })
+      .catch(() => { _vidCache.set(uuid, []); return []; });
+  };
+  /* Preparar el video para `addMedia`. La rotacion y la salvedad del `.mov` las resuelve
+     `_pptVideoMp4Preparar`, que es el dueno unico compartido con el PPT del estudio: aca NO hay
+     una segunda copia de esas dos reglas. Si algo no se puede, devuelve `dataURL` en null con su
+     motivo y el llamador cae al cuadro fijo. */
+  const prepararVid = (uuid, sl, nom) => vidsDe(uuid).then(async rs => {
+    const rec = rs.filter(r => r && r.id === sl.videoId && r.blob)[0];
+    if (!rec) return { dataURL: null, motivo: 'sus bytes ya no están guardados' };
+    let pos = null;
+    try { pos = await _videoPoster(rec.blob); } catch (e) { pos = null; }
+    /* `w`/`h` salen del elemento `<video>` y vienen YA ROTADOS, que es lo unico que da la
+       relacion de aspecto del marco. Leer el encabezado daria la relacion INVERTIDA en un clip
+       vertical — es la trampa que el PPT del estudio ya documenta. */
+    const v = { nombre: nom, tipo: String(rec.tipo || 'video/mp4'), blob: rec.blob,
+                dur: (pos && pos.dur) || 0, w: (pos && pos.w) || 0, h: (pos && pos.h) || 0 };
+    const prep = await _pptVideoMp4Preparar(v, (m) => { if (typeof toast === 'function') toast(m); });
+    if (!prep.dataURL) {
+      return { dataURL: null, motivo: 'no se pudo preparar para el PPT', avisos: prep.avisos };
+    }
+    return { dataURL: prep.dataURL, extn: prep.extn, avisos: prep.avisos,
+             bytes: rec.bytes || (rec.blob && rec.blob.size) || 0, w: v.w, h: v.h };
+  }).catch(() => ({ dataURL: null, motivo: 'no se pudo leer' }));
   /* Las imágenes se leen por estudio y EN SERIE: 24 lecturas en paralelo sobre IndexedDB con
      dataURL de 65 KB cada una es un pico de memoria sin ninguna ganancia de tiempo. */
   const leer = (i, acc) => {
@@ -100382,9 +100417,23 @@ function igImgPptExportar() {
       const sl = (imgs && imgs[it.idx]) ? imgs[it.idx] : null;
       if (!sl || !_igPptUsable(sl)) { acc.push({ it, dataURL: null }); return acc; }
       const esVid = !!(sl && sl.videoId);
-      return igImgQuemarTapa(sl.dataURL, _igImgTapas.get(_igClave(it.uuid, it.idx)) || null)
-        .then(d => { acc.push({ it, dataURL: d, video: esVid,
-                                tapada: _igImgTapas.has(_igClave(it.uuid, it.idx)) }); return acc; });
+      const tapa = _igImgTapas.get(_igClave(it.uuid, it.idx)) || null;
+      return igImgQuemarTapa(sl.dataURL, tapa).then(d => {
+        const base = { it, dataURL: d, video: esVid,
+                       tapada: _igImgTapas.has(_igClave(it.uuid, it.idx)) };
+        if (!esVid) { acc.push(base); return acc; }
+        /* EL CUADRO TAPADO ES EL POSTER DEL VIDEO, y el clip NO esta tapado: es exactamente lo
+           que el aviso previo dice. El cuadro queda ademas como caida si el video no se puede
+           preparar — una diapositiva con el primer cuadro es mejor que ninguna. */
+        return prepararVid(it.uuid, sl, 'Video ' + it.n).then(pv => {
+          base.vid = pv && pv.dataURL ? pv : null;
+          base.vidMotivo = (pv && !pv.dataURL) ? pv.motivo : '';
+          if (pv && pv.avisos) base.vidAvisos = pv.avisos;
+          if (!base.vid) { acc.push(base); return acc; }
+          return _pptPosterPng(d).then(png => { base.posterPng = png || ''; acc.push(base); return acc; })
+            .catch(() => { base.posterPng = ''; acc.push(base); return acc; });
+        });
+      });
     }).then(a => leer(i + 1, a));
   };
   leer(0, []).then(lista => {
@@ -100394,6 +100443,32 @@ function igImgPptExportar() {
       igImgRes('Ninguna de las imágenes elegidas se pudo preparar. No se generó el PPT.');
       _igImgExportando = false;
       return;
+    }
+    /* ── AVISO DE TAMANO ───────────────────────────────────────────────────────────────────────
+       Mismos dos umbrales y misma estimacion que el PPT del estudio, por sus propias constantes:
+       `PPT_PPTX_AVISO_MB` manda sobre `PPT_VIDEO_AVISO_MB` porque dice lo mismo y ademas lo que
+       pasa a ese tamano. Va DESPUES de leer y no en el aviso previo porque los bytes del video no
+       estan en el indice de la pantalla: viven en `ceibomed_video` y hay que ir a buscarlos. */
+    const bytesVid = buenas.reduce((a, x) => a + ((x.vid && x.vid.bytes) || 0), 0);
+    if (bytesVid) {
+      const estArch = bytesVid + PPT_PPTX_PISO_BYTES;
+      if (estArch > PPT_PPTX_AVISO_MB * 1048576) {
+        if (!confirm('El PPT va a pesar alrededor de ' + _cineMB(estArch) + '. ¿Querés continuar?\n\n' +
+                     'Por encima de ' + PPT_PPTX_AVISO_MB + ' MB el archivo no entra en un correo, ' +
+                     'PowerPoint tarda en abrirlo y algunos servidores lo rechazan.\n\n' +
+                     'Podés volver y elegir menos videos.')) {
+          igImgRes('No se generó el PPT.');
+          _igImgExportando = false;
+          return;
+        }
+      } else if (bytesVid > PPT_VIDEO_AVISO_MB * 1048576) {
+        if (!confirm('El PPT con videos puede ser grande. ¿Querés continuar?\n\n' +
+                     'Los videos elegidos ocupan alrededor de ' + _cineMB(bytesVid) + '.')) {
+          igImgRes('No se generó el PPT.');
+          _igImgExportando = false;
+          return;
+        }
+      }
     }
     let tema = 'dark';
     try { const t = localStorage.getItem(PPT_TEMA_KEY);
@@ -100413,8 +100488,28 @@ function igImgPptExportar() {
       bloque.forEach((x, k) => {
         const cx = k % cols, cy = Math.floor(k / cols);
         try {
-          s.addImage({ data: x.dataURL, x: cx * cw, y: cy * ch, w: cw, h: ch,
-                       sizing: { type: 'contain', w: cw, h: ch } });
+          if (x.vid) {
+            /* EL VIDEO REAL, en la celda que le toca de la grilla (decision del medico,
+               31/10/2026). Va en la grilla y no en una hoja propia: el reparto de 1, 2 o 4 por
+               diapositiva es el que el medico eligio en la pantalla, y el numero de arriba sigue
+               llevando de la diapositiva a la imagen. El marco conserva la relacion de aspecto
+               del clip dentro de su celda —estirarlo deformaria una imagen con mediciones— y el
+               `cover` es el cuadro YA TAPADO. El bucle NO se marca aca: lo pone
+               `_pptxDescargarSaneado` sobre el paquete armado, para los dos caminos de PPT. */
+            const ar = (x.vid.w > 0 && x.vid.h > 0) ? (x.vid.w / x.vid.h) : (4 / 3);
+            let vw = cw, vh = cw / ar;
+            if (vh > ch) { vh = ch; vw = ch * ar; }
+            const op = { type: 'video', data: x.vid.dataURL, extn: x.vid.extn,
+                         x: cx * cw + (cw - vw) / 2, y: cy * ch + (ch - vh) / 2, w: vw, h: vh };
+            /* Sin `cover` la libreria pone su boton de play gris de 55 KB, que sobre un eco no
+               dice nada. El poster va en PNG porque la libreria lo escribe SIEMPRE como
+               `preencoded.png`: un JPEG con ese nombre queda a merced del sniffeo. */
+            if (x.posterPng) op.cover = x.posterPng;
+            s.addMedia(op);
+          } else {
+            s.addImage({ data: x.dataURL, x: cx * cw, y: cy * ch, w: cw, h: ch,
+                         sizing: { type: 'contain', w: cw, h: ch } });
+          }
         } catch (e) { console.warn('[PPT imágenes] omitida', e); }
         /* EL NÚMERO, Y NADA MÁS. Es el único texto que identifica la imagen. */
         s.addText(_pptTxt(String(x.it.n)),
@@ -100430,19 +100525,30 @@ function igImgPptExportar() {
     /* El nombre del archivo no nombra a nadie: se descarga a la carpeta de descargas, donde
        queda a la vista de cualquiera que use la máquina. */
     const nombre = 'EcoSmart_Imagenes_' + fecha + '.pptx';
-    return _pptxDescargarSaneado(P, nombre).then(() => {
+    return _pptxDescargarSaneado(P, nombre).then(res => {
       const tapadas = buenas.filter(x => x.tapada).length;
       const vids = buenas.filter(x => x.video).length;
+      const vidOK = buenas.filter(x => x.vid).length;
+      const vidCuadro = buenas.filter(x => x.video && !x.vid);
       igImgRes('PPT generado: ' + hojas + ' diapositiva' + (hojas === 1 ? '' : 's') + ' (' + por +
                ' por diapositiva), ' + buenas.length + ' ' +
                (buenas.length === 1 ? 'imagen numerada' : 'imágenes numeradas') + ', ' +
                tapadas + ' con datos tapados y sin el nombre de ningún paciente.' +
-               /* Se DICE que de un video va el cuadro: una diapositiva con el primer cuadro de
-                  un clip es indistinguible de una captura, y el médico que lo eligió espera
-                  poder reproducirlo. */
-               (vids ? ' ' + vids + (vids === 1 ? ' es el primer cuadro de un video'
-                                                : ' son el primer cuadro de un video') +
-                       ' — este mazo no reproduce video; el video se incluye desde el PPT del estudio.' : '') +
+               /* QUE SE DIGA QUE EL VIDEO ENTRA, Y SI SE REPITE. Una diapositiva con el primer
+                  cuadro de un clip es indistinguible de una captura, así que el médico que
+                  eligió un video tiene que saber cuál de las dos cosas le quedó. */
+               (vidOK ? ' ' + vidOK + (vidOK === 1 ? ' video entra' : ' videos entran') +
+                        ' completo' + (vidOK === 1 ? '' : 's') +
+                        ((res && res.bucle && res.bucle.videos)
+                          ? ', con la marca de «repetir hasta detener»'
+                          : ', pero SIN la marca de «repetir hasta detener»: en PowerPoint se ' +
+                            (vidOK === 1 ? 'reproduce' : 'reproducen') + ' una vez y ' +
+                            (vidOK === 1 ? 'para' : 'paran')) + '.' : '') +
+               /* La CAIDA al cuadro fijo se dice con su motivo: «no se pudo preparar» sobre algo
+                  que el médico eligió a mano se lee como una falla del archivo si no se explica. */
+               (vidCuadro.length ? ' ' + vidCuadro.length + ' video(s) quedaron en su primer ' +
+                       'cuadro (' + vidCuadro.map(x => x.vidMotivo || 'no se pudo preparar')
+                                              .filter((m, i, a2) => a2.indexOf(m) === i).join('; ') + ').' : '') +
                (perdidas ? ' ' + perdidas + ' no se pudieron preparar y quedaron afuera.' : ''));
       if (typeof toast === 'function') toast('✅ PPT de imágenes generado');
     });
@@ -106740,6 +106846,59 @@ function _pptImgsDeEstudio(inf) {
    (`imgPersistir` corta antes de `videoPersistir`, y `_cinePuedeGuardar` lo exige). Con el toggle
    apagado —que es el estado de fábrica— esta sección sale vacía y el panel lo dice, en vez de
    dejar un título sin nada debajo que se lee como que la lectura falló. */
+/* ══ PREPARAR UN MP4 PARA EL .PPTX ═══════════════════════════════════════════════════════════
+   DUENO UNICO de «blob de video → lo que `addMedia` necesita», compartido por los DOS caminos de
+   PPT que incrustan video: el del estudio y el de «Imagenes guardadas». Se extrajo al abrir el
+   segundo (tanda AJUSTES-3): la correccion de rotacion y la salvedad del `.mov` son dos reglas
+   delicadas, y con una copia en cada camino el dia que una cambie el otro camino queda atras —es
+   exactamente el modo de falla que `_pptxDescargarSaneado` documenta para la poda de partes.
+   NO cubre los cineloops: esos hay que CODIFICARLOS antes y eso es propio del PPT del estudio,
+   el unico camino que los ofrece.
+   Los avisos se DEVUELVEN en vez de empujarse: cada camino los reporta por su propia via —el del
+   estudio por `_pptAvisos` y sus toasts, el de imagenes por su linea de resultado—. */
+async function _pptVideoMp4Preparar(v, avisar) {
+  const avisos = [];
+  const nom = String((v && v.nombre) || 'video');
+  if (!v || !v.blob) return { dataURL: null, extn: 'mp4', avisos: avisos };
+  /* ¿EL ARCHIVO DECLARA ROTACION? Si el `tkhd` trae las dimensiones intercambiadas respecto de
+     las que entrega el elemento `<video>`, hay una rotacion de 90° que PowerPoint NO aplica —y el
+     video sale acostado contra un borde con el resto del marco en negro—. Se re-codifica con los
+     cuadros ya derechos. Si no se puede, se embebe el original y se DICE: un video torcido es
+     mejor que ningun video, pero callarlo no. */
+  let fuente = v.blob, extn = 'mp4';
+  let tk = null;
+  try { tk = await _videoTkhdWH(v.blob); } catch (e) { tk = null; }
+  const rotado = !!(tk && v.w > 0 && v.h > 0 && (tk.w > tk.h) !== (v.w > v.h));
+  if (rotado) {
+    if (typeof avisar === 'function') {
+      avisar('🎬 «' + nom + '» está grabado en vertical: se está corrigiendo la rotación (' +
+             Math.round(v.dur || 0) + ' s)…');
+    }
+    let norm = null;
+    try { norm = await _videoNormalizarMp4(v.blob, v.w, v.h); } catch (e) { norm = null; }
+    if (norm) fuente = norm;
+    else {
+      avisos.push('⚠️ «' + nom + '» está grabado en vertical y no se pudo corregir la rotación ' +
+                  'en este navegador: PowerPoint lo va a mostrar acostado.');
+    }
+  }
+  let dataURL = null;
+  try { dataURL = await _blobADataURL(fuente); } catch (e) { dataURL = null; }
+  /* Un .mov es ISO-BMFF igual que un .mp4, pero PowerPoint decide por la EXTENSION de la parte
+     embebida: escribirlo como `.mp4` seria mentirle sobre el contenedor. Va con su extension y
+     con la salvedad, que es lo verificable. Si se re-codifico, lo que se embebe YA es un MP4 y la
+     salvedad no corresponde. */
+  if (fuente === v.blob && String((v && v.tipo) || '').toLowerCase() === 'video/quicktime') {
+    extn = 'mov';
+    avisos.push('ℹ️ «' + nom + '» es un .mov: se incrusta igual, pero PowerPoint en Windows ' +
+                'puede no reproducirlo. Convertirlo a MP4 es lo más seguro.');
+  }
+  if (!dataURL || dataURL.toLowerCase().indexOf('base64,') < 0) {
+    return { dataURL: null, extn: extn, avisos: avisos };
+  }
+  return { dataURL: dataURL, extn: extn, avisos: avisos };
+}
+
 function _pptVideosDeEstudio(inf) {
   if (!inf || typeof _uuidValido !== 'function' || !_uuidValido(inf.uuid)) return Promise.resolve([]);
   const uuid = inf.uuid;
@@ -108489,36 +108648,12 @@ function _pptDesdeFormulario(inf, tema, presentador){
         }
         dataURL = await _blobADataURL(blob);
       } else {
-        /* ¿EL ARCHIVO DECLARA ROTACIÓN? Si el `tkhd` trae las dimensiones intercambiadas respecto
-           de las que entrega el elemento `<video>`, hay una rotación de 90° que PowerPoint NO
-           aplica — y el video sale acostado contra un borde con el resto del marco en negro.
-           Se re-codifica con los cuadros ya derechos. Si no se puede, se embebe el original y se
-           DICE: un video torcido es mejor que ningún video, pero callarlo no. */
-        let fuente = v.blob;
-        const tk = await _videoTkhdWH(v.blob);
-        const rotado = !!(tk && v.w > 0 && v.h > 0 && (tk.w > tk.h) !== (v.w > v.h));
-        if (rotado) {
-          if (typeof toast === 'function') {
-            toast('🎬 «' + v.nombre + '» está grabado en vertical: se está corrigiendo la ' +
-                  'rotación (' + Math.round(v.dur || 0) + ' s)…');
-          }
-          const norm = await _videoNormalizarMp4(v.blob, v.w, v.h);
-          if (norm) { fuente = norm; }
-          else {
-            _pptAvisos.push('⚠️ «' + v.nombre + '» está grabado en vertical y no se pudo corregir ' +
-                            'la rotación en este navegador: PowerPoint lo va a mostrar acostado.');
-          }
-        }
-        dataURL = await _blobADataURL(fuente);
-        /* Un .mov es ISO-BMFF igual que un .mp4, pero PowerPoint decide por la EXTENSIÓN de la
-           parte embebida: escribirlo como `.mp4` sería mentirle sobre el contenedor. Va con su
-           extensión y con la salvedad, que es lo verificable. Si se re-codificó, lo que se
-           embebe YA es un MP4 y la salvedad no corresponde. */
-        if (fuente === v.blob && String(v.tipo || '').toLowerCase() === 'video/quicktime') {
-          extn = 'mov';
-          _pptAvisos.push('ℹ️ «' + v.nombre + '» es un .mov: se incrusta igual, pero PowerPoint ' +
-                          'en Windows puede no reproducirlo. Convertirlo a MP4 es lo más seguro.');
-        }
+        /* La rotación y la salvedad del `.mov` las resuelve `_pptVideoMp4Preparar`, que es el
+           dueño único compartido con el PPT de «Imágenes guardadas»: ver su comentario. Los
+           avisos vuelven en una lista y se publican por la vía de este camino. */
+        const prep = await _pptVideoMp4Preparar(v, (m) => { if (typeof toast === 'function') toast(m); });
+        dataURL = prep.dataURL; extn = prep.extn;
+        prep.avisos.forEach(m => _pptAvisos.push(m));
       }
       if (!dataURL || dataURL.toLowerCase().indexOf('base64,') < 0) {
         _pptAvisos.push('⚠️ «' + v.nombre + '» no se pudo leer para incluirlo en el PPT');
@@ -108636,12 +108771,23 @@ function _pptDesdeFormulario(inf, tema, presentador){
        `_pptImgSel` se limpia en el `finally` y SÓLO ahí: si sobreviviera, el PPT siguiente
        saldría con la selección —y con los videos— del anterior. */
     .then(async imgs => {
+      let nVid = 0;
       try {
         _pptAgregarImagenes(imgs);
-        await _pptAgregarVideos(_pptImgSel && _pptImgSel.vids);
+        nVid = (await _pptAgregarVideos(_pptImgSel && _pptImgSel.vids)) || 0;
       } finally { _pptImgSel = null; }
       _pptEnSuma(); _pptCierre();
-      return _pptxDescargarSaneado(P, nombreArch);
+      const res = await _pptxDescargarSaneado(P, nombreArch);
+      /* EL BUCLE SE DECLARA, Y SOLO SI HABIA VIDEOS. Un mazo sin video no tiene nada que repetir,
+         y un aviso sobre algo que el medico no incluyo se lee como una falla. Que NO se marco es
+         lo que hay que decir: el video entra igual y se reproduce, pero no vuelve a empezar. */
+      if (nVid && (!res || !res.bucle || !res.bucle.videos)) {
+        _pptAvisos.push('⚠️ ' + (nVid === 1 ? 'El video quedó incrustado' : 'Los ' + nVid + ' videos quedaron incrustados') +
+                        ' pero SIN la marca de «repetir hasta detener»: en PowerPoint se ' +
+                        (nVid === 1 ? 'reproduce' : 'reproducen') + ' una vez y ' +
+                        (nVid === 1 ? 'para' : 'paran') + '. El archivo está sano.');
+      }
+      return res;
     })
     .then(() => {
       if (typeof toast !== 'function') return;
@@ -137715,6 +137861,146 @@ function _labPPTModal(infs) {
   setTimeout(() => { try { inPres.focus(); inPres.select(); } catch (e) {} }, 30);
 }
 
+/* ══ EL BUCLE DE LOS VIDEOS DEL .PPTX ════════════════════════════════════════════════════════
+   QUE UN VIDEO SE REPITA HASTA QUE EL MEDICO LO DETENGA. PptxGenJS 3.12.0 no lo marca: no
+   escribe `p:timing`, ni `repeatCount`, ni `cMediaNode`, verificado leyendo los 477 KB de su
+   bundle y leyendo el XML de un paquete generado de verdad. La tanda IMAGENES-3 lo dejo
+   declarado en IMG3-a con el XML que haria falta; la tanda TGA genero, FUERA del producto, un
+   .pptx con ese XML escrito a mano, y el medico lo abrio en PowerPoint el 31/10/2026: NO pidio
+   reparar y el video se repite sin parar. Esta funcion porta ESE ajuste, pieza por pieza.
+
+   EL ARBOL DE TIEMPO, y de donde sale cada pieza (Microsoft Learn, paginas de TimeNodeList,
+   Video y CommonTimeNode; la transcripcion completa esta en `docs/fuentes/FUENTES.md`):
+     <p:timing><p:tnLst><p:par><p:cTn nodeType="tmRoot"><p:childTnLst>
+       <p:video><p:cMediaNode><p:cTn repeatCount="indefinite">…</p:cTn>
+         <p:tgtEl><p:spTgt spid="N"/></p:tgtEl>
+       </p:cMediaNode></p:video>   ← UNO POR VIDEO de la diapositiva
+     </p:childTnLst></p:cTn></p:par></p:tnLst></p:timing>
+   Va DESPUES de `</p:clrMapOvr>`, que es el orden que CT_Slide declara: cSld, clrMapOvr,
+   transition, timing. Ponerlo antes invalida la parte entera.
+
+   ⚠️ UN `spid` DUPLICADO NO SE PUEDE USAR, Y LA LIBRERIA LOS EMITE. PptxGenJS 3.12.0 da el
+   mismo `id` a dos shapes de la misma diapositiva —medido: el segundo cuadro de texto y el
+   video salen los dos con `id="3"`—. Un `spTgt` ambiguo podria por si solo hacer que PowerPoint
+   se queje, asi que al video se le asigna un id LIBRE de esa diapositiva. Es seguro: el `id` de
+   `p:cNvPr` es local a su diapositiva y lo referencian solo el arbol de tiempo y las
+   animaciones, y esta libreria no escribe ninguna.
+
+   ⚠️ FALLA CERRADA, AL CONTRARIO QUE LA PODA DE ARRIBA. Una parte OOXML mal formada no abre con
+   una advertencia: PowerPoint pide reparar y al reparar BORRA LA DIAPOSITIVA COMPLETA —es el
+   defecto que `_pptHex` documenta, con dos hojas en blanco reportadas el 2026-09-16—. Asi que
+   las diapositivas se arman en memoria, se validan TODAS, y recien entonces se escriben: si una
+   sola no valida, NINGUNA se escribe y el mazo sale sin bucle, como hasta hoy, y se avisa. Un
+   video que no se repite es una molestia; una diapositiva que PowerPoint borra es una perdida. */
+const _PPTX_BUCLE_SIN_DOM = 'sin-domparser';
+function _pptxXmlValido(xml) {
+  if (typeof DOMParser === 'undefined') return false;
+  let d = null;
+  try { d = new DOMParser().parseFromString(xml, 'application/xml'); } catch (e) { return false; }
+  if (!d || !d.documentElement) return false;
+  /* `parsererror` es como los navegadores reportan un XML mal formado: no lanzan. Se busca en
+     TODO el arbol y no solo en la raiz —Chrome lo pone como raiz, WebKit lo inserta adentro—. */
+  if (d.getElementsByTagName('parsererror').length) return false;
+  return d.documentElement.nodeName === 'p:sld';
+}
+
+/* Los `<p:pic>` de la diapositiva que son un VIDEO. El marcador es `<a:videoFile`, que es lo que
+   `addMedia` escribe para un medio con pista de video; una imagen fija nunca lo lleva. */
+function _pptxPicsDeVideo(xml) {
+  const out = [];
+  const re = /<p:pic\b[\s\S]*?<\/p:pic>/g;
+  let m;
+  while ((m = re.exec(xml)) !== null) {
+    if (m[0].indexOf('<a:videoFile') < 0) continue;
+    const idm = /<p:cNvPr\s+id="(\d+)"/.exec(m[0]);
+    if (!idm) continue;
+    out.push({ bloque: m[0], id: idm[1], idAttr: idm[0] });
+  }
+  return out;
+}
+
+/* Marca el bucle en UNA diapositiva. Devuelve el XML nuevo y los spid usados, o null si esta
+   diapositiva no tiene video o si algo de su forma no es lo que este ajuste espera. */
+function _pptxBucleEnDiapo(xml) {
+  const pics = _pptxPicsDeVideo(xml);
+  if (!pics.length) return null;
+  /* Ya trae arbol de tiempo: no se toca. Dos `p:timing` en una diapositiva es XML invalido, y
+     pisar el que haya seria pisar una animacion que alguien puso a proposito. */
+  if (xml.indexOf('<p:timing') >= 0) return null;
+  if ((xml.match(/<\/p:clrMapOvr>/g) || []).length !== 1) return null;
+  const todos = (xml.match(/<p:cNvPr\s+id="(\d+)"/g) || [])
+    .map(s => parseInt(/id="(\d+)"/.exec(s)[1], 10));
+  let libre = Math.max.apply(null, todos.concat([1])) + 1;
+  let out = xml;
+  const spids = [];
+  for (let i = 0; i < pics.length; i++) {
+    const p = pics[i];
+    const nveces = todos.filter(x => x === parseInt(p.id, 10)).length;
+    let spid = p.id;
+    if (nveces !== 1) {
+      /* Duplicado: gana un id libre. Se reemplaza DENTRO de su propio bloque `<p:pic>` y se
+         confirma que el bloque aparecia una sola vez en la diapositiva — dos bloques identicos
+         harian que el `replace` tocara el equivocado. */
+      if (out.split(p.bloque).length - 1 !== 1) return null;
+      spid = String(libre++);
+      const nuevo = p.bloque.replace(p.idAttr, '<p:cNvPr id="' + spid + '"');
+      if (nuevo === p.bloque) return null;
+      out = out.replace(p.bloque, nuevo);
+      todos.push(parseInt(spid, 10));
+    }
+    spids.push(spid);
+  }
+  /* El id de cada `p:cTn` es unico DENTRO del arbol de tiempo: el 1 es la raiz y los videos
+     arrancan en 2. No tiene nada que ver con los id de shape. */
+  let cuerpo = '';
+  for (let i = 0; i < spids.length; i++) {
+    cuerpo += '<p:video><p:cMediaNode vol="80000" showWhenStopped="1">' +
+              '<p:cTn id="' + (i + 2) + '" fill="hold" display="0" repeatCount="indefinite">' +
+              '<p:stCondLst><p:cond delay="indefinite"/></p:stCondLst>' +
+              '</p:cTn>' +
+              '<p:tgtEl><p:spTgt spid="' + spids[i] + '"/></p:tgtEl>' +
+              '</p:cMediaNode></p:video>';
+  }
+  const timing = '<p:timing><p:tnLst><p:par>' +
+                 '<p:cTn id="1" dur="indefinite" restart="never" nodeType="tmRoot"><p:childTnLst>' +
+                 cuerpo +
+                 '</p:childTnLst></p:cTn></p:par></p:tnLst></p:timing>';
+  out = out.replace('</p:clrMapOvr>', '</p:clrMapOvr>' + timing);
+  /* NINGUNA REFERENCIA COLGADA: cada `spid` del arbol tiene que apuntar a un shape que existe
+     en ESTA diapositiva, y a uno solo. */
+  for (let i = 0; i < spids.length; i++) {
+    const re = new RegExp('<p:cNvPr\\s+id="' + spids[i] + '"', 'g');
+    if ((out.match(re) || []).length !== 1) return null;
+  }
+  if (!_pptxXmlValido(out)) return null;
+  return { xml: out, spids: spids };
+}
+
+/* El post-proceso sobre el paquete ya armado. Trabaja sobre el zip que `_pptxDescargarSaneado`
+   ya tiene abierto —no abre ni agrega ninguna libreria— y es TODO O NADA. */
+async function _pptxBucleVideos(zip) {
+  const r = { diapos: 0, videos: 0, falla: '' };
+  if (typeof DOMParser === 'undefined') { r.falla = _PPTX_BUCLE_SIN_DOM; return r; }
+  const rutas = Object.keys(zip.files)
+    .filter(n => /^ppt\/slides\/slide\d+\.xml$/.test(n)).sort();
+  const pend = [];
+  for (let i = 0; i < rutas.length; i++) {
+    let xml = '';
+    try { xml = await zip.file(rutas[i]).async('string'); } catch (e) { r.falla = 'lectura'; return r; }
+    const pics = _pptxPicsDeVideo(xml);
+    if (!pics.length) continue;
+    const res = _pptxBucleEnDiapo(xml);
+    if (!res) { r.falla = rutas[i]; return r; }     // una sola falla deja el mazo sin bucle
+    pend.push({ ruta: rutas[i], xml: res.xml, n: res.spids.length });
+  }
+  /* Recien aca se escribe. Todas las diapositivas con video validaron. */
+  for (let i = 0; i < pend.length; i++) {
+    zip.file(pend[i].ruta, pend[i].xml);
+    r.diapos++; r.videos += pend[i].n;
+  }
+  return r;
+}
+
 /* ══ DESCARGA SANEADA DEL .PPTX ══════════════════════════════════════════════════════════════
    BUG DE LA LIBRERIA, NO DE LA APP. PptxGenJS 3.12.0 escribe en `[Content_Types].xml` un
    `<Override>` de slideMaster POR DIAPOSITIVA y embarca UN solo master: PowerPoint busca las
@@ -137731,13 +138017,13 @@ function _labPPTModal(infs) {
 async function _pptxDescargarSaneado(P, nombre) {
   if (typeof JSZip === 'undefined' || typeof P.write !== 'function') {
     await P.writeFile({ fileName: nombre });
-    return { saneado: false, quitadas: 0 };
+    return { saneado: false, quitadas: 0, bucle: { diapos: 0, videos: 0, falla: 'sin-jszip' } };
   }
   const buf = await P.write({ outputType: 'arraybuffer' });
   const zip = await JSZip.loadAsync(buf);
   const CT = '[Content_Types].xml';
   const f = zip.file(CT);
-  if (!f) { await P.writeFile({ fileName: nombre }); return { saneado: false, quitadas: 0 }; }
+  if (!f) { await P.writeFile({ fileName: nombre }); return { saneado: false, quitadas: 0, bucle: { diapos: 0, videos: 0, falla: 'sin-content-types' } }; }
   let ct = await f.async('string'), quitadas = 0;
   ct = ct.replace(/<Override\s+PartName="\/([^"]+)"[^>]*\/>/g, (m, parte) => {
     if (zip.file(parte)) return m;
@@ -137745,6 +138031,12 @@ async function _pptxDescargarSaneado(P, nombre) {
     return '';
   });
   zip.file(CT, ct);
+  /* EL BUCLE DE LOS VIDEOS. Va DESPUES de la poda y ANTES de generar el blob: trabaja sobre el
+     mismo zip ya abierto. Es todo o nada y falla cerrada —ver su propio comentario—, asi que un
+     tropiezo deja el mazo exactamente como salia hasta hoy. */
+  let bucle = { diapos: 0, videos: 0, falla: '' };
+  try { bucle = await _pptxBucleVideos(zip); }
+  catch (e) { console.warn('[PPTX] bucle no aplicado', e); bucle = { diapos: 0, videos: 0, falla: 'excepcion' }; }
   const blob = await zip.generateAsync({ type: 'blob',
     mimeType: 'application/vnd.openxmlformats-officedocument.presentationml.presentation' });
   /* Descarga por ancla + objectURL, que es lo que hace la librería por dentro. El `revoke` va
@@ -137754,7 +138046,7 @@ async function _pptxDescargarSaneado(P, nombre) {
   a.href = url; a.download = nombre;
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => { try { URL.revokeObjectURL(url); } catch (e) {} }, 4000);
-  return { saneado: true, quitadas: quitadas };
+  return { saneado: true, quitadas: quitadas, bucle: bucle };
 }
 
 /* ══ COLOR HACIA POWERPOINT ═══════════════════════════════════════════════════════════════════
@@ -145119,8 +145411,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261031-1138';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793457510663;                 /* eco-build-ms */
+const ECO_BUILD    = '20261031-2004';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793487888112;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -145206,7 +145498,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261031-1138</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261031-2004</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
