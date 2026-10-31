@@ -99640,6 +99640,261 @@ caso('TC-557', 'Tanda AJUSTES-2: la coartacion en el papel sin recomendaciones n
   })();
 `);
 
+/* -- TC-558 ---------------------------------------------------------------------------------
+   TANDA IMAGENES-3, PARTE A (2026-10-31). El visor de «Imagenes guardadas» y el PPT con video.
+
+   ADVERTENCIA PARA EL QUE LO MANTENGA: no escribir acentos graves en ESTE comentario ni en el
+   cuerpo de abajo. El cuerpo es un template literal y el acento grave lo cierra, con un
+   SyntaxError que apunta decenas de lineas ANTES del culpable. check_backticks.py NO lo caza;
+   node --check si.
+
+   DENOMINADORES declarados: (A0) el visor existe en el documento; (B0) el registro de imagenes
+   esta disponible. Sin ellos las condiciones de abajo dan cero y se leen como «todo bien».
+   CONTROLES NEGATIVOS: (A6) y (A7) exigen que sobre una IMAGEN el reproductor siga oculto y
+   «Medir» siga visible; (C4) que el aviso de 100 MB NO salte por debajo del umbral.
+   -------------------------------------------------------------------------------------- */
+caso('TC-558', 'Tanda IMAGENES-3 parte A: el visor de Imagenes guardadas reproduce video en bucle, con sus controles y su boton de agrandar, sin Medir sobre un video y con Medir sobre una imagen; y el PPT con el cuadro fijo, el aviso de 100 MB y el de privacidad que nombra los videos', `
+  return (async () => {
+  /* El arnes espera [descripcion, BOOLEANO, diagnostico]. Estos dos casos se escriben como
+     [descripcion, loQueDio, loQueSeEsperaba], que es lo que se quiere leer cuando uno falla, y
+     este adaptador hace la comparacion y arma el diagnostico. Un solo lugar. */
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]),
+                 'dio «' + t[1] + '» · esperado «' + t[2] + '»']) };
+  const F = (n) => (typeof window[n] === 'function') ? window[n] : null;
+  const EL = (id) => document.getElementById(id) || null;
+  const esperar = (ms) => new Promise(r => setTimeout(r, ms));
+  const vis = (id) => { const e = EL(id); if (!e) return 'NO EXISTE';
+    return getComputedStyle(e).display === 'none' ? 'oculto' : 'visible'; };
+
+  /* ── (A0) DENOMINADOR: el visor y sus piezas existen ── */
+  const piezas = ['ig-imgv-ov','ig-imgv-img','ig-imgv-vid','ig-imgv-vctl','ig-imgv-grande',
+                  'ig-imgv-play','ig-imgv-prev','ig-imgv-next','ig-imgv-vel','ig-imgv-medir'];
+  const faltan = piezas.filter(id => !EL(id));
+  ex.push(['(A0) denominador: las diez piezas del visor existen', faltan.join(',') || 'todas', 'todas']);
+
+  const vd = EL('ig-imgv-vid');
+  ex.push(['(A1) el video repite sin parar con un solo play (loop)',
+           vd ? String(vd.hasAttribute('loop')) : 'NO', 'true']);
+  ex.push(['(A2) sin sonido (muted)', vd ? String(vd.hasAttribute('muted')) : 'NO', 'true']);
+  /* prefers-reduced-motion queda satisfecho por construccion: no hay autoplay. */
+  ex.push(['(A3) NO arranca solo (sin autoplay)',
+           vd ? String(vd.hasAttribute('autoplay')) : 'NO', 'false']);
+  ex.push(['(A4) el paso de cuadro es 1/30 s',
+           (typeof IG_VID_PASO === 'number') ? IG_VID_PASO.toFixed(4) : 'SIN VAR', (1/30).toFixed(4)]);
+
+  /* ── (A5) el boton de agrandar alterna, cambia de rotulo y vuelve ── */
+  let r5 = 'SIN FN';
+  if (F('igImgVisorGrande')) {
+    const md = EL('ig-imgv-ov').querySelector('.ig-img-md');
+    igImgVisorGrande(false);
+    const a0 = md.classList.contains('grande') + '/' + EL('ig-imgv-grande').textContent;
+    igImgVisorGrande();
+    const a1 = md.classList.contains('grande') + '/' + EL('ig-imgv-grande').textContent;
+    igImgVisorGrande();
+    const a2 = md.classList.contains('grande') + '/' + EL('ig-imgv-grande').textContent;
+    r5 = a0 + ' | ' + a1 + ' | ' + a2;
+  }
+  ex.push(['(A5) agrandar alterna y el rotulo lo dice',
+           r5, 'false/Agrandar | true/Tamaño normal | false/Agrandar']);
+
+  /* ── CONTROL NEGATIVO: con una IMAGEN abierta el reproductor NO aparece y Medir SI ── */
+  /* Se abre por el emisor REAL, con un slot que no es video. */
+  let r67 = 'NO SE PUDO ABRIR';
+  if (F('igImgVisorAbrir') && F('igImgVisorExtender')) {
+    /* se fuerza el estado del visor sin store: lo que se mide es el reparto de controles */
+    window._igVisor = { uuid: 'x', idx: 0, n: 1, id: null, tapa: false };
+    igImgVisorExtender('x', 0, { video: false, star: false, nota: '' });
+    const vdn = EL('ig-imgv-vid'); const ctl = EL('ig-imgv-vctl');
+    if (vdn) vdn.style.display = 'none';
+    if (ctl) ctl.style.display = 'none';
+    r67 = vis('ig-imgv-medir') + '/' + vis('ig-imgv-vid') + '/' + vis('ig-imgv-vctl');
+  }
+  ex.push(['(A6) CONTROL NEGATIVO: sobre una imagen, Medir visible y el video oculto',
+           r67, 'visible/oculto/oculto']);
+  let r7 = 'NO SE PUDO';
+  if (F('igImgVisorExtender')) {
+    igImgVisorExtender('x', 0, { video: true, star: false, nota: '' });
+    r7 = vis('ig-imgv-medir');
+  }
+  ex.push(['(A7) sobre un VIDEO, Medir no aparece', r7, 'oculto']);
+  try { window._igVisor = null; } catch (e) {}
+
+  /* ── (B0) DENOMINADOR + el cuadro fijo del PPT de imagenes ── */
+  ex.push(['(B0) denominador: el predicado del mazo de imagenes existe',
+           (typeof _igPptUsable === 'function') ? 'si' : 'no', 'si']);
+  let b1 = 'SIN FN';
+  if (typeof _igPptUsable === 'function') {
+    const img = { dataURL: 'data:image/png;base64,iVBORw0KGgo=' };
+    const vidSlot = { dataURL: 'data:image/png;base64,iVBORw0KGgo=', videoId: 'v1' };
+    b1 = String(_igPptUsable(img)) + '/' + String(_igPptUsable(vidSlot)) + '/' + String(_igPptUsable(null));
+  }
+  ex.push(['(B1) el PPT de imagenes acepta el PRIMER CUADRO de un video y rechaza lo vacio',
+           b1, 'true/true/false']);
+  /* CONTROL: el filtro del PPT del ESTUDIO sigue rechazando el poster, que alla tiene su
+     propia diapositiva de video. Sin esto, el poster entraria DOS veces en ese mazo. */
+  let b2 = 'SIN FN';
+  if (typeof _pptEsImagen === 'function') {
+    b2 = String(_pptEsImagen({ dataURL: 'data:image/png;base64,iVBORw0KGgo=', videoId: 'v1' }));
+  }
+  ex.push(['(B2) CONTROL NEGATIVO: el PPT del ESTUDIO sigue sin tomar el poster de un video',
+           b2, 'false']);
+
+  /* ── (C) los dos umbrales de tamanio ── */
+  ex.push(['(C1) el umbral del archivo es 100 MB',
+           (typeof PPT_PPTX_AVISO_MB !== 'undefined') ? String(PPT_PPTX_AVISO_MB) : 'SIN VAR', '100']);
+  ex.push(['(C2) el umbral de los videos sigue en 50 MB',
+           (typeof PPT_VIDEO_AVISO_MB !== 'undefined') ? String(PPT_VIDEO_AVISO_MB) : 'SIN VAR', '50']);
+  ex.push(['(C3) el piso del mazo esta declarado',
+           (typeof PPT_PPTX_PISO_BYTES !== 'undefined') ? String(PPT_PPTX_PISO_BYTES > 0) : 'SIN VAR', 'true']);
+  /* CONTROL NEGATIVO: 10 MB de video no llegan a 100 MB de archivo ni con el piso. */
+  let c4 = 'SIN VAR';
+  if (typeof PPT_PPTX_AVISO_MB !== 'undefined' && typeof PPT_PPTX_PISO_BYTES !== 'undefined') {
+    const chico = 10 * 1048576 + PPT_PPTX_PISO_BYTES;
+    const grande = 150 * 1048576 + PPT_PPTX_PISO_BYTES;
+    c4 = String(chico > PPT_PPTX_AVISO_MB * 1048576) + '/' + String(grande > PPT_PPTX_AVISO_MB * 1048576);
+  }
+  ex.push(['(C4) CONTROL NEGATIVO: 10 MB no dispara el aviso y 150 MB si', c4, 'false/true']);
+
+  /* ── (D) el aviso de privacidad nombra los videos ── */
+  let d1 = 'NO SE PUDO';
+  if (F('igImgPptPedir') && typeof _igImgSel !== 'undefined' && F('igImgMeta')) {
+    const viejoSel = _igImgSel.slice();
+    const viejoMeta = window.igImgMeta;
+    window.igImgMeta = function () { return { video: true, star: false, nota: '' } };
+    _igImgSel.length = 0;
+    _igImgSel.push({ uuid: 'u1', idx: 0, n: 1 });
+    try { igImgPptPedir(); } catch (e) {}
+    await esperar(80);
+    const t = (EL('ig-ppt-aviso-txt') || {}).textContent || '';
+    d1 = (t.indexOf('video') > -1 && t.indexOf('Tapar datos') > -1 && t.indexOf('primer cuadro') > -1)
+         ? 'nombra los videos' : 'NO los nombra: ' + t.slice(0, 90);
+    try { if (F('igImgPptAviso')) igImgPptAviso(false); } catch (e) {}
+    window.igImgMeta = viejoMeta;
+    _igImgSel.length = 0; viejoSel.forEach(x => _igImgSel.push(x));
+  }
+  ex.push(['(D1) el aviso de privacidad nombra el video, su primer cuadro y «Tapar datos»',
+           d1, 'nombra los videos']);
+
+  return { extra: EXP };
+  })();
+`);
+
+/* -- TC-559 ---------------------------------------------------------------------------------
+   TANDA IMAGENES-3, PARTE B (2026-10-31). El motor de tercios de las hojas de diagramas.
+
+   Se mide el EMPAQUETADOR, que es PURO: no necesita jsPDF ni generar un PDF, asi que el caso
+   fija el acomodo sin depender de que la libreria cargue del CDN —que es el rojo intermitente
+   que este repositorio ya documenta—. La comparacion contra la demo aprobada la hace
+   scripts/_probe_img3demo.mjs, que corre las dos logicas lado a lado.
+
+   ADVERTENCIA: sin acentos graves en este comentario ni en el cuerpo.
+
+   DENOMINADOR (E0): el registro y el empaquetador existen y el registro tiene sus siete filas.
+   CONTROLES NEGATIVOS: (E4) una pareja NO excluida si va junta; (E8) sin nada que acomodar no
+   hay ninguna hoja; (E9) el orejuela y la CIA no estan en el mismo grupo que las valvulares.
+   -------------------------------------------------------------------------------------- */
+caso('TC-559', 'Tanda IMAGENES-3 parte B: el motor de tercios arma las hojas de diagramas del PDF segun las seis reglas aprobadas — Contractilidad y SGL primero y a todo el ancho, los demas de a dos por franja en el orden del registro, la pareja jet post-TAVI y bicuspide en franjas distintas, las capturas despues de todos los diagramas y continuando en la ultima hoja, y una ampliada ocupando la franja entera', `
+  return (async () => {
+  /* El arnes espera [descripcion, BOOLEANO, diagnostico]. Estos dos casos se escriben como
+     [descripcion, loQueDio, loQueSeEsperaba], que es lo que se quiere leer cuando uno falla, y
+     este adaptador hace la comparacion y arma el diagnostico. Un solo lugar. */
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]),
+                 'dio «' + t[1] + '» · esperado «' + t[2] + '»']) };
+  const hay = (typeof pdfDiagPack === 'function') && (typeof PDF_DIAG_REG !== 'undefined');
+
+  /* ── (E0) DENOMINADOR ── */
+  ex.push(['(E0) denominador: el registro y el empaquetador existen',
+           hay ? 'si (' + PDF_DIAG_REG.length + ' filas)' : 'NO', 'si (7 filas)']);
+  if (!hay) return { extra: EXP };
+
+  const forma = (r) => r.hojas.map(h => h.map(it =>
+      it.t + ':' + (it.full ? 'full' : 'media') + ':' +
+        it.ids.map(x => it.t === 'cap' ? 'cap' : x).join('+')
+    ).join(' | ')).join('  ||  ');
+
+  /* ── (E1) el ORDEN y los TAMANIOS son los del registro, y hay un solo dueno ── */
+  ex.push(['(E1) el orden y el tamanio de cada diagrama',
+           PDF_DIAG_REG.map(d => d.k + '/' + d.w + '/' + d.fam).join(' '),
+           'contr/2/vi lv3d/1/vi eteqx/1/ete tavi/1/ete vab/1/ete oai/1/ete cia/1/cc']);
+
+  /* ── (E2) R-2: Contractilidad y SGL PRIMERO, juntos, a todo el ancho ── */
+  ex.push(['(E2) R-2: contr va primero y a franja completa',
+           forma(pdfDiagPack(['oai','contr','eteqx'], [])),
+           'diag:full:contr | diag:media:eteqx+oai']);
+
+  /* ── (E3) R-3: los demas DE A DOS y en el orden del registro ── */
+  ex.push(['(E3) R-3: cinco medias se acomodan de a dos en el orden del registro',
+           forma(pdfDiagPack(['oai','vab','tavi','eteqx','lv3d'], [])),
+           'diag:media:lv3d+eteqx | diag:media:tavi+oai | diag:media:vab']);
+
+  /* ── (E4) la pareja EXCLUIDA, por los dos lados, y un CONTROL NEGATIVO ── */
+  ex.push(['(E4) jet post-TAVI y bicuspide estan excluidos en los dos sentidos',
+           String(pdfDiagExcluidos('tavi','vab')) + '/' + String(pdfDiagExcluidos('vab','tavi')),
+           'true/true']);
+  ex.push(['(E4b) CONTROL NEGATIVO: tavi con orejuela NO esta excluido',
+           String(pdfDiagExcluidos('tavi','oai')), 'false']);
+  const pExc = pdfDiagPack(['tavi','vab'], []);
+  ex.push(['(E5) la pareja excluida queda en franjas DISTINTAS, con su nota',
+           forma(pExc) + ' notas=' + pExc.notas.length,
+           'diag:media:tavi | diag:media:vab notas=1']);
+
+  /* ── (E6) R-5: las capturas van DESPUES de todos los diagramas y CONTINUAN en la hoja ── */
+  const caps4 = [0,1,2,3].map(i => ({ i: i, ampliada: false }));
+  ex.push(['(E6) R-5: cuatro capturas continuan en la hoja del diagrama, sin abrir otra',
+           forma(pdfDiagPack(['contr'], caps4)),
+           'diag:full:contr | cap:media:cap+cap | cap:media:cap+cap']);
+
+  /* ── (E7) R-6 / R-1: lo que no entra abre hoja, con tres franjas por hoja ── */
+  const caps8 = [0,1,2,3,4,5,6,7].map(i => ({ i: i, ampliada: false }));
+  const p8 = pdfDiagPack(['contr','lv3d','eteqx','tavi','vab','oai'], caps8);
+  ex.push(['(E7) R-1 y R-6: ocho franjas entran en tres hojas, de a tres',
+           p8.hojas.length + ' hojas de ' + p8.hojas.map(h => h.length).join(','),
+           '3 hojas de 3,3,2']);
+
+  /* ── (E8) CONTROL NEGATIVO: sin nada que acomodar no hay ninguna hoja ── */
+  ex.push(['(E8) CONTROL NEGATIVO: sin diagramas ni capturas no hay hojas',
+           String(pdfDiagPack([], []).hojas.length), '0']);
+
+  /* ── (E9) una captura AMPLIADA ocupa la franja entera ── */
+  ex.push(['(E9) una ampliada ocupa la franja entera y la siguiente par comparte',
+           forma(pdfDiagPack([], [{ i:0, ampliada:true }, { i:1, ampliada:false }, { i:2, ampliada:false }])),
+           'cap:full:cap | cap:media:cap+cap']);
+
+  /* ── (E10) la linea de la vista quirurgica mitral ── */
+  const pon = (id, v) => { const e = document.getElementById(id); if (!e) return 'NO ' + id;
+    e.value = String(v); e.dispatchEvent(new Event('input', { bubbles: true }));
+    e.dispatchEvent(new Event('change', { bubbles: true })); return e.value; };
+  let e10 = 'SIN FN', e11 = 'SIN FN';
+  if (typeof pdfMitralLinea === 'function') {
+    try { if (typeof limpiarCampos === 'function') limpiarCampos(true) } catch (e) {}
+    await new Promise(r => setTimeout(r, 120));
+    /* CONTROL NEGATIVO: sin un solo dato, NO hay linea. */
+    e11 = pdfMitralLinea() === '' ? 'sin linea' : ('LINEA: ' + pdfMitralLinea());
+    /* im_grado es NUMERICO: 4 = severa. Ponerle el texto llena el campo con algo que la app
+       nunca escribe, y el caso probaria un camino que no existe. */
+    pon('im_grado', '4'); pon('vm_tipo_im', 'primaria');
+    pon('ete_seg_A2', '2'); pon('ete_seg_P2', '1');
+    e10 = pdfMitralLinea();
+  }
+  ex.push(['(E11) CONTROL NEGATIVO: sin datos la mitral no lleva linea', e11, 'sin linea']);
+  ex.push(['(E10) la linea de la mitral con tipo, grado y segmentos por lesion',
+           e10, 'Insuficiencia mitral primaria · severa  ·  Flail: A2  ·  Prolapso: P2']);
+  /* ⚠️ ete_seg_* guarda un ENTERO y el 0 es Normal: con los seis en su valor de fabrica la
+     linea NO puede nombrar ningun segmento. Es el defecto que la sonda cazo sobre el commit. */
+  let e12 = 'SIN FN';
+  if (typeof pdfMitralLinea === 'function') {
+    ['A1','A2','A3','P1','P2','P3'].forEach(sg => pon('ete_seg_' + sg, '0'));
+    e12 = pdfMitralLinea();
+  }
+  ex.push(['(E12) con los seis segmentos en 0 la linea no nombra ninguno',
+           e12, 'Insuficiencia mitral primaria · severa']);
+
+  return { extra: EXP };
+  })();
+`);
+
 
 
 let servidor, chrome;

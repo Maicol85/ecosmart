@@ -80,7 +80,7 @@ const MONTAR = `(async (E) => {
   /* ── mitral vista quirurgica ── */
   /* La vista quirurgica mitral: el grado, el TIPO de IM y los segmentos marcados, que es de
      donde sale su linea de texto. Los seis campos son ete_seg_A1 a ete_seg_P3. */
-  if (E.eteqx) { S('im_grado','Severa'); S('vm_tipo_im','primaria');
+  if (E.eteqx) { S('im_grado','4'); S('vm_tipo_im','primaria');
                  /* el valor es el INDICE en ETE_ESTADOS: 2=Flail, 1=Prolapso */
                  S('ete_seg_A2','2'); S('ete_seg_P2','1');
                  try{ if(typeof eteSegSync==='function') eteSegSync() }catch(e){}

@@ -109635,7 +109635,15 @@ const PDF_MITRAL_SEGS = Object.freeze(['A1', 'A2', 'A3', 'P1', 'P2', 'P3']);
 function pdfMitralLinea() {
   const _sv = (id) => { const e = document.getElementById(id); return e ? String(e.value || '').trim() : '' };
   const p = [];
-  const tipo = _sv('vm_tipo_im'), grado = _sv('im_grado');
+  /* ⚠️ `im_grado` ES UN CAMPO NUMERICO CON '0' DE FABRICA, no un texto. Leerlo crudo publicaba
+     «Insuficiencia mitral · 0» en el papel de todo estudio con la vista quirurgica incluida y
+     sin insuficiencia graduada — lo cazo el CONTROL NEGATIVO de TC-559 sobre este mismo commit.
+     El grado sale de `_oaiImGrado()` y su rotulo de `_CC_GRADO`, que son los MISMOS dueños que
+     usa el resumen de la orejuela: con una segunda lectura, las dos lineas del mismo PDF
+     podrian decir grados distintos del mismo chorro. */
+  const tipo = _sv('vm_tipo_im');
+  const _ng = (typeof _oaiImGrado === 'function') ? _oaiImGrado() : 0;
+  const grado = _ng ? ((typeof _CC_GRADO === 'object' && _CC_GRADO[String(_ng)]) || String(_ng)) : '';
   if (tipo || grado) {
     p.push('Insuficiencia mitral' + (tipo ? ' ' + tipo.toLowerCase() : '') +
                                     (grado ? ' · ' + grado.toLowerCase() : ''));
@@ -143233,8 +143241,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261031-0340';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793428858764;                 /* eco-build-ms */
+const ECO_BUILD    = '20261031-0352';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793429563469;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -143320,7 +143328,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261031-0340</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261031-0352</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
