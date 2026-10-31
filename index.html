@@ -78533,7 +78533,10 @@ function ccSumaLinea(sec){
     const gsub = B(_ccNum('tga_grad_subaortico'), 0, 250, 'gradiente subaórtico');
     const civG = B(_ccNum('tga_civ_grad'), 0, 200, 'gradiente de la CIV residual');
     const TT = { dtga:'completa (d-TGA)', cctga:'congénitamente corregida', mustard:'post-Mustard', senning:'post-Senning' };
-    const cab = 'TGA' + (L(TT, tipo) ? ' ' + L(TT, tipo) : '');
+    /* La MISMA frase que el cuerpo, del mismo dueño: dos redacciones de la cirugía en el mismo
+       informe se desincronizan en cuanto una se ajuste. */
+    const _cirS = (typeof tgaCirFrase === 'function') ? tgaCirFrase() : '';
+    const cab = 'TGA' + (L(TT, tipo) ? ' ' + L(TT, tipo) : '') + (_cirS ? ' ' + _cirS : '');
     const fz = cierraFuera(cab); if (fz) return fz;
     if (!tipo && !fvd && !it) return null;
     let l = cab;
@@ -90767,7 +90770,26 @@ function tgaEjes(src) {
   /* `dtga`: la cirugía es la del campo propio, y '' queda '' — «sin dato» no es «sin cirugía». */
   return { tipo:tipo, anat:'dtga', cir:cir, cirDeTipo:false, cirIgnorada:false };
 }
-window.tgaEjes = tgaEjes; window.TGA_CIR_LBL = TGA_CIR_LBL;
+/* ══ LA FRASE DE LA CIRUGIA EN EL PAPEL — DUENO UNICO (TGA-3) ════════════════════════════════
+   La leen el CUERPO del informe (`tgaConclusion().txt`), el EN SUMA (`.resumen` y la línea de
+   `ccSumaLinea`) y la hoja del PDF. Es descriptiva: dice qué cirugía se cargó y nada más, sin
+   conducta, sin clase y sin nivel.
+
+   ⚠️ SE DICE UNA SOLA VEZ, Y ESO ES POR CONSTRUCCION Y NO POR CUIDADO. Devuelve cadena vacía
+   para `mustard` y `senning`, que YA dicen la cirugía en su propio rótulo —«post-Mustard»—, así
+   que no hay escenario en el que el papel la nombre dos veces. Es el defecto que la tanda E
+   pagó con el Carpentier, que se decía hasta TRES veces en el mismo informe firmado.
+
+   ⚠️ SIN DATO NO DICE NADA. La orden lo pide expreso: «sin dato» no es «sin cirugía», y un
+   informe que afirme que el paciente no se operó porque nadie contestó la pregunta es una
+   afirmación inventada. */
+function tgaCirFrase(src) {
+  const ej = tgaEjes(src);
+  if (ej.tipo !== 'dtga' || !ej.cir) return '';
+  if (ej.cir === 'auricular') return 'operada, con switch auricular (Mustard o Senning)';
+  return 'no operada';
+}
+window.tgaEjes = tgaEjes; window.TGA_CIR_LBL = TGA_CIR_LBL; window.tgaCirFrase = tgaCirFrase;
 function tgaConclusion(src){
   const _tgaSv = id => _ccSv(id, src), _tgaNv = id => _ccNv(id, src);
   /* El diámetro sale de `vd_bas` («VD basal»), que la app ya mide: un segundo campo para la
@@ -90786,8 +90808,13 @@ function tgaConclusion(src){
      texto: sin su rótulo, `TIPO[tipo] || tipo` publicaba el token crudo «dtga» en el informe
      FIRMADO. El rótulo «completa» es el de la orden del médico. */
   const TIPO = { dtga:'completa (d-TGA)', cctga:'congénitamente corregida (ccTGA)', mustard:'post-Mustard', senning:'post-Senning' };
-  const partes = ['Transposición de grandes arterias ' + (tipo ? (TIPO[tipo] || tipo) : 'corregida') +
-                  ': el ventrículo derecho es el ventrículo sistémico'];
+  /* La cirugía se aposiciona al tipo, con la redacción que la sección ya usaba para él: es lo
+     que la orden pide —«reutilizando la redacción existente para ese tipo»— en vez de abrir un
+     párrafo nuevo. Sale de `tgaCirFrase`, que es su dueño único. */
+  const _cirF = (typeof tgaCirFrase === 'function') ? tgaCirFrase(src) : '';
+  const _cab = 'Transposición de grandes arterias ' + (tipo ? (TIPO[tipo] || tipo) : 'corregida') +
+               (_cirF ? ' ' + _cirF : '');
+  const partes = [_cab + ': el ventrículo derecho es el ventrículo sistémico'];
   const FUNC = { normal:'normal', leve:'con disfunción leve', moderada:'con disfunción moderada', severa:'con disfunción severa' };
   if (func) partes.push('Función del ventrículo derecho sistémico ' + (FUNC[func] || func));
   if (dil != null) partes.push('Diámetro basal del ventrículo sistémico ' + dil + ' mm');
@@ -90837,8 +90864,7 @@ function tgaConclusion(src){
   }
   partes.push(conducta);
   return { clave: clave, txt: partes.join('. '),
-    resumen: 'Transposición de grandes arterias ' + (tipo ? (TIPO[tipo] || tipo) : 'corregida') +
-             (itTxt ? ', insuficiencia de la AV sistémica ' + itTxt : '') + '. ' + conducta };
+    resumen: _cab + (itTxt ? ', insuficiencia de la AV sistémica ' + itTxt : '') + '. ' + conducta };
 }
 function tgaSync(){
   const txt = (id,s) => { const e=document.getElementById(id); if(e) e.textContent = s; };
@@ -144331,8 +144357,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261031-0803';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793444637774;                 /* eco-build-ms */
+const ECO_BUILD    = '20261031-0805';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793444717487;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -144418,7 +144444,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261031-0803</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261031-0805</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
