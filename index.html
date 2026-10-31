@@ -18029,13 +18029,24 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
 <div class="card sacc" id="sacc-cc-tga">
     <button type="button" class="sacc-hdr" onclick="secToggle('cc-tga');tgaSync();" aria-expanded="false">
       <span class="sacc-arrow">▶</span>
-      <span style="flex:1;">TGA — Transposición de grandes arterias corregida</span>
+      <span style="flex:1;">TGA — Transposición de grandes arterias</span>
       <span id="tga_badge" class="incl-badge" hidden>📎 en el informe</span>
     </button>
     <div class="card-body sacc-body">
+      <!-- ⚠️ EL PARRAFO ES NEUTRO A PROPOSITO, Y ESO ES UNA DECISION DEL MEDICO (TGA-2).
+           Hasta la TGA-1 afirmaba «el ventriculo derecho es el ventriculo sistemico» y que la
+           tricuspide es la auriculoventricular sistemica. Es cierto en la ccTGA y en el switch
+           auricular, y FALSO en el switch arterial (Jatene) y en el Rastelli, donde el ventriculo
+           sistemico es el IZQUIERDO: con los dos valores nuevos del selector de cirugia, un
+           parrafo fijo que lo afirme contradice al dibujo y al informe del mismo paciente.
+           Queda estructural: dice que cubre la seccion y nada clinico. El contenido que sale de
+           aca NO se pierde de la aplicacion -lo dicen `TGA3D_INFO.ltga` y `TGA3D_INFO.mus` por
+           escenario, y `tgaConclusion` en el informe de esas anatomias-, salvo la clausula «su
+           insuficiencia pesa como pesaria una mitral», que es la unica prosa que deja de estar
+           en algun lado; declarado en docs/PENDIENTES.md → TGA2-b. -->
       <p style="font-size:11px;color:var(--text2);margin:0 0 12px;line-height:1.5;">
-        El <b>ventrículo derecho es el ventrículo sistémico</b>, y su deterioro progresivo es inevitable y es la principal causa de muerte.
-        La válvula tricúspide de estos pacientes es la auriculoventricular <b>sistémica</b>: su insuficiencia pesa como pesaría una mitral.
+        Esta sección cubre las cuatro anatomías del selector: la transposición completa (d-TGA), la congénitamente corregida (ccTGA) y las dos operadas con switch auricular.
+        El dibujo, la conclusión de abajo y el informe describen lo que se cargue en el tipo y en la cirugía; con la d-TGA aparece además el campo de cirugía realizada.
       </p>
       <div class="grid-3">
         <div class="fg"><label>Tipo</label>
@@ -18054,7 +18065,11 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
             <option value="senning">Post-Senning</option>
           </select>
         </div>
-        <div class="fg"><label>Función del VD sistémico</label>
+        <!-- ⚠️ ESTE GRUPO SE OCULTA CON JATENE Y CON RASTELLI, y el `id` existe para eso.
+             En esas dos cirugias el ventriculo sistemico es el izquierdo, asi que el rotulo
+             «Funcion del VD sistemico» pregunta por algo que no es. Se ESCONDE y nunca se borra:
+             nada automatico escribe en el estudio. Lo hace `tgaSync`, que es el dueno. -->
+        <div class="fg" id="tga-funcvd-fg"><label>Función del VD sistémico</label>
           <select id="tga_func_vd" onchange="tgaSync()">
             <option value="">—</option>
             <option value="normal">Normal</option>
@@ -18071,18 +18086,21 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
            `mustard` o `senning` la cirugía YA la dice el propio tipo: ofrecerla ahí dejaría
            armar «Post-Mustard + Jatene», que es una contradicción que ningún lector podría
            resolver. `tgaEjes()` es el dueño único de esa derivación.
-           ⚠️ SOLO DOS DE LOS CUATRO VALORES AUTORIZADOS, Y ESTA PARADO EL RESTO. La orden
-           autoriza además «switch arterial (Jatene)» y «Rastelli». En los dos, el ventrículo
-           sistémico es el IZQUIERDO, y `tgaConclusion` abre el informe FIRMADO con «el
-           ventrículo derecho es el ventrículo sistémico» y sigue con tres oraciones más que
-           dependen de eso. Publicarlos exigía reescribir frases del informe, que es decisión del
-           médico. Declarado en docs/PENDIENTES.md → TGA-a. -->
+           ⚠️ LOS CUATRO VALORES AUTORIZADOS ESTAN PUBLICADOS (TGA-2). La TGA-1 había parado
+           «switch arterial (Jatene)» y «Rastelli» porque en los dos el ventrículo sistémico es
+           el IZQUIERDO y `tgaConclusion` abría el informe FIRMADO afirmando lo contrario. La
+           decisión del médico del 31/10/2026 resuelve eso por el lado del texto y no del campo:
+           con esas dos cirugías el papel DESCRIBE —tipo, cirugía y datos cargados— y no
+           interpreta, así que ninguna de las oraciones del ventrículo derecho sistémico se
+           emite. Cierra docs/PENDIENTES.md → TGA-a. -->
       <div class="grid-3" id="tga-cirugia-row" style="margin-top:10px;display:none;">
         <div class="fg"><label>Cirugía realizada</label>
           <select id="tga_cirugia" onchange="tgaSync()">
             <option value="">—</option>
             <option value="ninguna">Sin cirugía</option>
             <option value="auricular">Switch auricular (Mustard o Senning)</option>
+            <option value="jatene">Switch arterial (Jatene)</option>
+            <option value="rastelli">Rastelli</option>
           </select>
         </div>
       </div>
@@ -78559,6 +78577,20 @@ function ccSumaLinea(sec){
     const _cirS = (typeof tgaCirFrase === 'function') ? tgaCirFrase() : '';
     const cab = 'TGA' + (L(TT, tipo) ? ' ' + L(TT, tipo) : '') + (_cirS ? ' ' + _cirS : '');
     const fz = cierraFuera(cab); if (fz) return fz;
+    /* ⚠️ CON JATENE Y CON RASTELLI LA LINEA DESCRIBE Y NO INTERPRETA, igual que el cuerpo: ver
+       la nota larga de `tgaConclusion`. Se van las dos partes que afirman cuál es el ventrículo
+       sistémico -«VD sistémico con …» / «función del VD sistémico no consignada» y el grado de
+       IT- y queda el encabezado con los hallazgos neutros. Sin el `return`, el EN SUMA de una
+       d-TGA operada con switch arterial publicaba «función del VD sistémico no consignada» justo
+       cuando el campo ni se muestra. */
+    const _ejS = (typeof tgaEjes === 'function') ? tgaEjes() : null;
+    if (_ejS && (_ejS.cir === 'jatene' || _ejS.cir === 'rastelli')) {
+      let ls = cab;
+      if (obstr === 'si') ls += ' — obstrucción subaórtica' + (gsub != null ? ' (gradiente ' + _cc1(gsub) + ' mmHg)' : '');
+      if (civ === 'si') ls += ' — CIV residual' + (civG != null ? ' (gradiente ' + _cc1(civG) + ' mmHg)' : '');
+      if (bav === 'si') ls += ' — bloqueo auriculoventricular completo';
+      return ls;
+    }
     if (!tipo && !fvd && !it) return null;
     let l = cab;
     /* «Función del VD SISTÉMICO» y no «función del VD»: en esta cardiopatía el ventrículo derecho
@@ -90770,15 +90802,26 @@ function _ccContr(src) {
    `var o=(a==='dtga')?op:'none'`, o sea que con `ltga` no dibuja ninguna cirugía. La orden pide
    «conservá los valores que la demo permita y reportá lo que no»: el valor guardado NO se borra
    —nada automático escribe en el estudio— y acá se informa como `cirIgnorada`.
-   ⚠️ `jatene` y `rastelli` NO ESTAN en el vocabulario, y no es un olvido: ver la nota del
-   marcado de `tga-cirugia-row` y docs/PENDIENTES.md → TGA-a. */
-const TGA_CIR_VAL = Object.freeze(['ninguna', 'auricular']);
-const TGA_CIR_LBL = Object.freeze({ ninguna:'sin cirugía', auricular:'switch auricular (Mustard o Senning)' });
+   ⚠️ `jatene` y `rastelli` YA ESTAN en el vocabulario (TGA-2): son los dos valores que la
+   TGA-1 había parado. Entran al eje de cirugía como cualquier otro, y lo que cambia por ellos es
+   el TEXTO del papel —ver `tgaConclusion`—, no la forma de este dueño. */
+const TGA_CIR_VAL = Object.freeze(['ninguna', 'auricular', 'jatene', 'rastelli']);
+const TGA_CIR_LBL = Object.freeze({ ninguna:'sin cirugía', auricular:'switch auricular (Mustard o Senning)',
+  jatene:'switch arterial (Jatene)', rastelli:'Rastelli' });
+/* ⚠️ EL MAPA AL VOCABULARIO DE LA DEMO, Y ES EL DUENO UNICO DE ESA TRADUCCION. La demo aprobada
+   nombra las cirugías `mus`, `jat` y `ras`, y su `scenario()` decide con ESAS claves; la app las
+   guarda con el nombre largo. Hasta la TGA-1 la traducción estaba escrita dos veces —una en
+   `_tga3dClave` y otra como la condición `o !== 'auricular'` de `tga3dEscena`—, lo que alcanzaba
+   con dos valores y deja de alcanzar con cuatro: una rama que se olvide de `rastelli` lo dibuja
+   como una d-TGA sin operar, con la aorta del color equivocado. Una clave que NO esté acá es
+   «ninguna cirugía que la demo dibuje», que es lo correcto para `ninguna` y para «sin dato». */
+const TGA_CIR_OP = Object.freeze({ auricular:'mus', jatene:'jat', rastelli:'ras' });
 /* La etiqueta que viaja al Excel. Va con mayúscula inicial porque es una CELDA y no parte de una
    oración, igual que las demás categóricas de la planilla; `TGA_CIR_LBL` es la del texto. Dos
    rótulos del mismo valor son dos usos distintos, no una duplicación: el importador acepta las
    dos escrituras. */
-const TGA_CIR_XLS = Object.freeze({ ninguna:'Sin cirugía', auricular:'Switch auricular (Mustard o Senning)' });
+const TGA_CIR_XLS = Object.freeze({ ninguna:'Sin cirugía', auricular:'Switch auricular (Mustard o Senning)',
+  jatene:'Switch arterial (Jatene)', rastelli:'Rastelli' });
 function tgaEjes(src) {
   const _sv = id => _ccSv(id, src);
   const tipo = _sv('tga_tipo'), cru = _sv('tga_cirugia');
@@ -90808,6 +90851,8 @@ function tgaCirFrase(src) {
   const ej = tgaEjes(src);
   if (ej.tipo !== 'dtga' || !ej.cir) return '';
   if (ej.cir === 'auricular') return 'operada, con switch auricular (Mustard o Senning)';
+  if (ej.cir === 'jatene') return 'operada, con switch arterial (Jatene)';
+  if (ej.cir === 'rastelli') return 'operada, con Rastelli';
   return 'no operada';
 }
 window.tgaEjes = tgaEjes; window.TGA_CIR_LBL = TGA_CIR_LBL; window.tgaCirFrase = tgaCirFrase;
@@ -90835,6 +90880,42 @@ function tgaConclusion(src){
   const _cirF = (typeof tgaCirFrase === 'function') ? tgaCirFrase(src) : '';
   const _cab = 'Transposición de grandes arterias ' + (tipo ? (TIPO[tipo] || tipo) : 'corregida') +
                (_cirF ? ' ' + _cirF : '');
+  /* ══ JATENE Y RASTELLI: EL PAPEL DESCRIBE Y NO INTERPRETA (TGA-2) ═══════════════════════════
+     Decisión del médico del 31/10/2026. En estas dos cirugías el ventrículo sistémico es el
+     IZQUIERDO, así que las CUATRO oraciones que esta función arma para las otras anatomías
+     —el «: el ventrículo derecho es el ventrículo sistémico» del encabezado, la función del VD
+     sistémico, el diámetro basal del ventrículo sistémico y la insuficiencia de la válvula
+     auriculoventricular sistémica— afirmarían lo contrario de lo que le pasa al paciente. Y toda
+     la cascada de conducta de más abajo razona sobre el ventrículo sistémico y cita la ESC 2020,
+     que además es lo que el principio del médico saca del papel.
+
+     ⚠️ TRES CAMPOS QUEDAN PARADOS Y SE REPORTAN, que es lo que la orden pide textualmente («si
+     algún campo cargado no tiene redacción neutra, PARÁ ese campo y reportalo»): `tga_func_vd`
+     —cuya fila además se esconde en pantalla—, `vd_bas` e `it_grado`. La redacción que esta
+     sección tiene para los tres nombra el ventrículo o la válvula SISTEMICO, y escribirles otra
+     es contenido clínico nuevo. El valor NO se borra —nada automático escribe en el estudio— y
+     el grado de insuficiencia tricuspídea sigue saliendo por Válvulas, que es su dueño, así que
+     del informe no desaparece. Declarado en docs/PENDIENTES.md → TGA2-a.
+
+     ⚠️ DEL BLOQUEO AV SE PUBLICA EL HALLAZGO Y NO SU EXPLICACION. La cláusula «complicación
+     esperable en la ccTGA por la disposición del sistema de conducción» es una interpretación y
+     encima nombra OTRA anatomía: en una d-TGA operada con Jatene sería falsa dos veces. Lo que
+     queda —«Bloqueo auriculoventricular completo»— es el dato tal como se cargó.
+
+     `txt` y `resumen` son la MISMA cadena a propósito: el cuerpo del informe describe y la hoja
+     del PDF resume lo mismo, y con dos cadenas distintas una de las dos se queda sin el próximo
+     ajuste. La diferencia con las otras anatomías es que ahí el resumen recorta el cuerpo porque
+     el cuerpo trae además la conducta, y acá no hay conducta que recortar. */
+  const _ejC = tgaEjes(src);
+  if (_ejC.cir === 'jatene' || _ejC.cir === 'rastelli') {
+    const pd = [_cab];
+    if (obstr === 'si') pd.push('Obstrucción subaórtica' + (gradS != null ? ' con gradiente de ' + gradS + ' mmHg' : ''));
+    else if (obstr === 'no') pd.push('Sin obstrucción subaórtica');
+    if (civ === 'si') pd.push('Comunicación interventricular residual' + (civG != null ? ' con gradiente de ' + civG + ' mmHg' : ''));
+    if (bav === 'si') pd.push('Bloqueo auriculoventricular completo');
+    const _d = pd.join('. ');
+    return { clave:'descriptivo', txt:_d, resumen:_d };
+  }
   const partes = [_cab + ': el ventrículo derecho es el ventrículo sistémico'];
   const FUNC = { normal:'normal', leve:'con disfunción leve', moderada:'con disfunción moderada', severa:'con disfunción severa' };
   if (func) partes.push('Función del ventrículo derecho sistémico ' + (FUNC[func] || func));
@@ -90902,6 +90983,13 @@ function tgaSync(){
   const _ej = tgaEjes();
   const _fila = document.getElementById('tga-cirugia-row');
   if (_fila) _fila.style.display = (_ej.tipo === 'dtga') ? '' : 'none';
+  /* ⚠️ MISMA REGLA QUE LA FILA DE CIRUGIA: se esconde, nunca se borra. Con Jatene y con Rastelli
+     el ventrículo sistémico es el izquierdo, así que el campo pregunta por algo que no existe en
+     ese paciente; el valor que hubiera quedado de un tipo anterior sigue en el estudio y en el
+     Excel, y vuelve a verse si el médico cambia la cirugía. Lo que el informe hace con él está
+     en `tgaConclusion`: no lo publica, y está declarado. */
+  const _fvd = document.getElementById('tga-funcvd-fg');
+  if (_fvd) _fvd.style.display = (_ej.cir === 'jatene' || _ej.cir === 'rastelli') ? 'none' : '';
   const c = tgaConclusion();
   txt('tga-concl', c ? c.txt : '—');
   if (typeof tga3dSync === 'function') { try { tga3dSync(); } catch (e) {} }
@@ -90938,17 +91026,25 @@ const TGA3D_INFO = Object.freeze({
   norm: 'Corazon normal. Concordancia auriculoventricular y ventriculoarterial: la aorta nace del ventriculo izquierdo y la arteria pulmonar, del derecho. Los grandes vasos se cruzan.',
   dtga: 'TGA completa (d-TGA). Concordancia auriculoventricular y discordancia ventriculoarterial: la aorta nace del ventriculo derecho y la pulmonar del izquierdo. Salen en paralelo, con la aorta por delante y a la derecha.',
   ltga: 'TGA corregida (L-TGA). Doble discordancia: la sangre sigue el circuito normal, pero pasa por el ventriculo equivocado en cada lado. El ventriculo sistemico es el derecho morfologico, que queda a la izquierda del paciente.',
-  mus:  'Switch auricular (Mustard o Senning). Un tunel dentro de las auriculas cruza las dos corrientes. El ventriculo derecho queda como sistemico.'
+  mus:  'Switch auricular (Mustard o Senning). Un tunel dentro de las auriculas cruza las dos corrientes. El ventriculo derecho queda como sistemico.',
+  /* Los dos de la TGA-2, de la misma demo y con la MISMA poda declarada: las oraciones «Que
+     mirar: …» no se implementan (docs/PENDIENTES.md → TGA-b). */
+  jat:  'Switch arterial (Jatene). Se cortan y se intercambian la aorta y la arteria pulmonar, y se pasan las coronarias a la neoaorta. Con la maniobra de Lecompte la pulmonar queda por delante de la aorta.',
+  ras:  'Rastelli (TGA con CIV y estenosis pulmonar). Un tunel lleva la sangre del ventriculo izquierdo a la aorta a traves de la CIV, y un conducto lleva la del derecho a la arteria pulmonar, que se liga en su origen.'
 });
 const TGA3D_CIRC = Object.freeze({
   norm: 'AD → VD → arteria pulmonar → pulmones → AI → VI → aorta → cuerpo',
   dtga: 'AD → VD → AORTA → cuerpo   ·   AI → VI → ARTERIA PULMONAR → pulmones → AI   (dos circuitos en paralelo)',
   ltga: 'AD → VI morfologico → arteria pulmonar → pulmones   ·   AI → VD morfologico → aorta',
-  mus:  'cavas → tunel → valvula mitral → VI → arteria pulmonar   ·   venas pulmonares → valvula tricuspide → VD → aorta'
+  mus:  'cavas → tunel → valvula mitral → VI → arteria pulmonar   ·   venas pulmonares → valvula tricuspide → VD → aorta',
+  jat:  'AD → VD → arteria pulmonar (neopulmonar)   ·   AI → VI → aorta (neoaorta)',
+  ras:  'AI → VI → tunel por la CIV → aorta   ·   AD → VD → conducto → arteria pulmonar'
 });
 const TGA3D_REF = Object.freeze({
   norm: '', dtga: '', ltga: '',
-  mus: 'Tuneles dentro de las auriculas (con «Ver por dentro»): azul, la sangre de las cavas; rojo, la de las venas pulmonares.'
+  mus: 'Tuneles dentro de las auriculas (con «Ver por dentro»): azul, la sangre de las cavas; rojo, la de las venas pulmonares.',
+  jat: 'Anillos naranjas: lineas de sutura de la neoaorta y la neopulmonar. Tubos naranjas: coronarias reimplantadas en la neoaorta.',
+  ras: 'Tunel rojo (por dentro): del VI a la aorta por la CIV. Conducto azul: del VD a la arteria pulmonar. Esfera gris: arteria pulmonar ligada en su origen.'
 });
 /* ── La geometria de la demo, verbatim ── */
 const _T3 = {
@@ -91002,9 +91098,10 @@ function tga3dComs(src) {
   return { asd: (cia || fop), vsd: civ, pda: pda };
 }
 window.tga3dComs = tga3dComs;
-/* La clave de texto del escenario: la misma regla que la demo (`anat==='dtga'&&op!=='none'`). */
+/* La clave de texto del escenario: la misma regla que la demo (`anat==='dtga'&&op!=='none'`),
+   con la traduccion de la cirugia leida de `TGA_CIR_OP`, que es su dueno unico. */
 function _tga3dClave(anat, cir) {
-  if (anat === 'dtga' && cir === 'auricular') return 'mus';
+  if (anat === 'dtga' && TGA_CIR_OP[cir]) return TGA_CIR_OP[cir];
   return anat || '';
 }
 /* ⚠️ UNA SOLA PREGUNTA PARA «SE VE». `offsetParent` es null con cualquier ancestro en
@@ -91071,7 +91168,11 @@ function tga3dEscena(anat, cir, sh) {
   const s = { ch:{ RA:C.blue, LA:C.red, RV:C.blue, LV:C.red }, ar:[], fl:[], ex:[], lb:[] };
   s.lb.push(['AD',[-1.25,1.9,0.15]], ['AI',[0.5,1.8,-0.7]]);
   s.fl.push({ p:P.PVL, c:C.red });
-  const a = anat, o = (a === 'dtga') ? (cir || 'none') : 'none';
+  /* ⚠️ `o` ESTA EN EL VOCABULARIO DE LA DEMO —`none`, `mus`, `jat`, `ras`— y la traduccion sale
+     de `TGA_CIR_OP`, no de una comparacion escrita aca. Con dos valores alcanzaba preguntar
+     `o !== 'auricular'`; con cuatro, esa forma manda `jatene` y `rastelli` a la rama de la d-TGA
+     sin operar. La regla de la demo sobre la anatomia se conserva igual: `var o=(a==='dtga')?op:'none'`. */
+  const a = anat, o = (a === 'dtga') ? (TGA_CIR_OP[cir] || 'none') : 'none';
   if (a === 'norm') {
     s.ar.push({ p:_t3cat(P.AO_N), c:C.red, r:P.AOR, br:1, from:'R' },
               { p:_t3cat(P.PAA_T, P.PAA_R.slice(1)), c:C.blue, r:P.PAR, from:'L' },
@@ -91079,30 +91180,65 @@ function tga3dEscena(anat, cir, sh) {
     s.fl.push({ p:_t3cat(P.SV, P.PAA_T, P.PAA_L), c:C.blue }, { p:_t3cat(P.PVR, P.AO_N), c:C.red });
     s.lb.push(['VD',P.LBV], ['VI',P.LBI], ['Ao',P.AO_N[2]], ['AP',P.PAA_T[1]]);
   }
-  if (a === 'dtga' && o !== 'auricular') {
-    s.ar.push({ p:_t3cat(P.AO_ANT), c:C.blue, r:P.AOR, br:1, from:'L' });
+  /* ⚠️ `none` Y `ras` COMPARTEN RAMA, Y ES LA FORMA DE LA DEMO, no una simplificacion: las dos
+     sacan la aorta del tronco anterior `AO_ANT`, y lo unico que las separa es el COLOR -azul sin
+     operar, rojo con el Rastelli, porque el tunel le lleva sangre arterial- y lo que cuelga
+     abajo. Las comunicaciones se dibujan SOLO sin cirugia, igual que en la demo, cuyo
+     `$('shrow').hidden=!(anat==='dtga'&&op==='none')` ni ofrece el control en los otros casos. */
+  if (a === 'dtga' && (o === 'none' || o === 'ras')) {
+    s.ar.push({ p:_t3cat(P.AO_ANT), c:(o === 'ras' ? C.red : C.blue), r:P.AOR, br:1, from:'L' });
     s.lb.push(['VD',P.LBV], ['VI',P.LBI], ['Ao',P.AO_ANT[2]]);
-    s.ar.push({ p:_t3cat(P.PAP_T, P.PAP_R.slice(1)), c:C.red, r:P.PAR, from:'R' },
-              { p:P.PAP_L, c:C.red, r:P.PBR });
-    s.fl.push({ p:_t3cat(P.SV, P.AO_ANT), c:C.blue }, { p:_t3cat(P.PVR, P.PAP_T, P.PAP_L), c:C.red });
-    s.lb.push(['AP',P.PAP_T[1]]);
-    if (sh.asd) {
-      s.ex.push({ t:'ring', c:[-0.45,0.95,-0.3], r:0.24, ry:true, in:true });
-      s.fl.push({ p:[[-1.2,0.9,0.1],[-0.7,0.95,-0.15],[-0.15,1.0,-0.45],[0.3,1.0,-0.65]], c:C.blue, n:6, sp:0.5 },
-                { p:[[0.3,1.05,-0.6],[-0.15,1.05,-0.4],[-0.7,1.0,-0.1],[-1.2,0.95,0.1]], c:C.red, n:6, sp:0.5 });
-    }
-    if (sh.vsd) {
-      s.ex.push({ t:'ring', c:[-0.05,-0.9,0.2], r:0.28, ry:true, in:true });
-      s.fl.push({ p:[[-0.6,-0.9,0.4],[-0.1,-0.9,0.2],[0.3,-0.9,0.0],[0.6,-0.9,-0.1]], c:C.blue, n:6, sp:0.5 },
-                { p:[[0.6,-0.85,-0.1],[0.3,-0.85,0.0],[-0.1,-0.85,0.2],[-0.6,-0.85,0.4]], c:C.red, n:6, sp:0.5 });
-    }
-    if (sh.pda) {
-      const pd = [[0.55,2.1,-0.45],[0.75,2.35,-0.4],[0.9,2.6,-0.35]];
-      s.ex.push({ t:'tube', p:pd, r:0.12, c:C.orange });
-      s.fl.push({ p:pd, c:C.red, n:4, sp:0.5 }, { p:pd.slice().reverse(), c:C.blue, n:4, sp:0.5 });
+    if (o === 'none') {
+      s.ar.push({ p:_t3cat(P.PAP_T, P.PAP_R.slice(1)), c:C.red, r:P.PAR, from:'R' },
+                { p:P.PAP_L, c:C.red, r:P.PBR });
+      s.fl.push({ p:_t3cat(P.SV, P.AO_ANT), c:C.blue }, { p:_t3cat(P.PVR, P.PAP_T, P.PAP_L), c:C.red });
+      s.lb.push(['AP',P.PAP_T[1]]);
+      if (sh.asd) {
+        s.ex.push({ t:'ring', c:[-0.45,0.95,-0.3], r:0.24, ry:true, in:true });
+        s.fl.push({ p:[[-1.2,0.9,0.1],[-0.7,0.95,-0.15],[-0.15,1.0,-0.45],[0.3,1.0,-0.65]], c:C.blue, n:6, sp:0.5 },
+                  { p:[[0.3,1.05,-0.6],[-0.15,1.05,-0.4],[-0.7,1.0,-0.1],[-1.2,0.95,0.1]], c:C.red, n:6, sp:0.5 });
+      }
+      if (sh.vsd) {
+        s.ex.push({ t:'ring', c:[-0.05,-0.9,0.2], r:0.28, ry:true, in:true });
+        s.fl.push({ p:[[-0.6,-0.9,0.4],[-0.1,-0.9,0.2],[0.3,-0.9,0.0],[0.6,-0.9,-0.1]], c:C.blue, n:6, sp:0.5 },
+                  { p:[[0.6,-0.85,-0.1],[0.3,-0.85,0.0],[-0.1,-0.85,0.2],[-0.6,-0.85,0.4]], c:C.red, n:6, sp:0.5 });
+      }
+      if (sh.pda) {
+        const pd = [[0.55,2.1,-0.45],[0.75,2.35,-0.4],[0.9,2.6,-0.35]];
+        s.ex.push({ t:'tube', p:pd, r:0.12, c:C.orange });
+        s.fl.push({ p:pd, c:C.red, n:4, sp:0.5 }, { p:pd.slice().reverse(), c:C.blue, n:4, sp:0.5 });
+      }
+    } else {
+      /* Rastelli: el tronco pulmonar ligado en su origen (el tramo gris mas la esfera), el tunel del
+         VI a la aorta por la CIV -`in:true`, porque es intracardiaco y solo se ve «por dentro»- y
+         el conducto del VD a la pulmonar, que si se ve siempre. Numero por numero de la demo. */
+      s.ar.push({ p:_t3cat(P.PAP_T.slice(0,2)), c:C.grey, r:[0.3,0.28], from:'R' });
+      s.ex.push({ t:'sph', c:[0.4,1.3,-0.3], r:0.16, col:C.grey });
+      s.ex.push({ t:'ring', c:[0.0,-0.7,0.3], r:0.28, ry:true, in:true });
+      const tun = [[0.5,-0.9,0.0],[0.0,-0.7,0.3],[-0.5,0.2,0.7],[-0.4,0.5,0.9]];
+      const con = [[-1.0,-1.6,0.9],[-1.7,-0.1,0.9],[-1.5,1.6,0.6],[-0.5,2.1,-0.3],[0.5,2.0,-0.4]];
+      s.ex.push({ t:'tube', p:tun, r:0.2, c:C.red, op:0.5, in:true },
+                { t:'tube', p:con, r:0.2, c:C.blue, op:0.65 });
+      s.ar.push({ p:P.PAP_R, c:C.blue, r:P.PBR }, { p:P.PAP_L, c:C.blue, r:P.PBR });
+      s.fl.push({ p:_t3cat(P.PVR, tun, P.AO_ANT.slice(1)), c:C.red },
+                { p:_t3cat(P.SV.slice(0,5), con, P.PAP_L.slice(1)), c:C.blue });
     }
   }
-  if (a === 'dtga' && o === 'auricular') {
+  /* Switch arterial: la anatomia vuelve a la del corazon normal -mismos trazados `AO_N` y `PAA_*`
+     que la rama `norm`- y lo que lo distingue son los cuatro elementos naranjas: los dos anillos
+     de sutura y las dos coronarias reimplantadas. */
+  if (a === 'dtga' && o === 'jat') {
+    s.ar.push({ p:_t3cat(P.AO_N), c:C.red, r:P.AOR, br:1, from:'R' },
+              { p:_t3cat(P.PAA_T, P.PAA_R.slice(1)), c:C.blue, r:P.PAR, from:'L' },
+              { p:P.PAA_L, c:C.blue, r:P.PBR });
+    s.fl.push({ p:_t3cat(P.SV, P.PAA_T, P.PAA_L), c:C.blue }, { p:_t3cat(P.PVR, P.AO_N), c:C.red });
+    s.ex.push({ t:'ring', c:[0.3,1.2,-0.15], r:0.3, col:C.orange },
+              { t:'ring', c:[-0.2,1.4,0.75], r:0.3, col:C.orange },
+              { t:'tube', p:[[0.32,0.8,-0.1],[0.05,0.75,0.3]], r:0.05, c:C.orange },
+              { t:'tube', p:[[0.4,0.8,-0.1],[0.75,0.7,-0.35]], r:0.05, c:C.orange });
+    s.lb.push(['VD',P.LBV], ['VI',P.LBI], ['Ao',P.AO_N[2]], ['AP',P.PAA_T[1]]);
+  }
+  if (a === 'dtga' && o === 'mus') {
     s.ch = { RA:C.red, LA:C.red, RV:C.red, LV:C.blue };
     const bl = [[-1.6,3.0,-0.05],[-1.4,1.7,0.0],[-1.0,1.0,0.0],[-0.2,0.8,-0.3],[0.4,0.4,-0.3],[0.55,0.0,-0.25],[0.65,-0.7,-0.15],[0.5,-0.2,-0.1]];
     const rd = [[-2.2,1.2,-1.4],[-1.4,1.2,-1.3],[-0.3,1.1,-0.9],[0.2,1.0,-0.6],[-0.4,0.9,0.0],[-0.9,0.4,0.2],[-0.95,0.0,0.3],[-0.85,-0.6,0.4],[-0.7,-0.2,0.55],[-0.55,0.3,0.75]];
@@ -128272,11 +128408,15 @@ LAB_XLS_VOCAB.tga_tipo = { cctga:'cctga', 'congenitamente corregida':'cctga',
   'transposicion completa':'dtga', completa:'dtga',
   mustard:'mustard', 'post-mustard':'mustard', 'post mustard':'mustard',
   senning:'senning', 'post-senning':'senning', 'post senning':'senning' };
-/* TGA-1 — la cirugía realizada. Dos valores y no cuatro: ver docs/PENDIENTES.md → TGA-a. */
+/* TGA-1 — la cirugía realizada. TGA-2 completa los CUATRO valores autorizados: sin esta entrada
+   el round-trip se rompe en silencio, porque la columna exporta «Switch arterial (Jatene)» y el
+   importador la leería como vacía. */
 LAB_XLS_VOCAB.tga_cirugia = { ninguna:'ninguna', 'sin cirugia':'ninguna', 'no operada':'ninguna',
   auricular:'auricular', 'switch auricular':'auricular',
   'switch auricular (mustard o senning)':'auricular',
-  mustard:'auricular', senning:'auricular' };
+  mustard:'auricular', senning:'auricular',
+  jatene:'jatene', 'switch arterial':'jatene', 'switch arterial (jatene)':'jatene',
+  rastelli:'rastelli' };
 LAB_XLS_VOCAB.fop_burbujas = { pocas:'pocas', leve:'pocas', '<5':'pocas', 'menos de 5':'pocas',
                                moderado:'moderado', moderada:'moderado', '5-20':'moderado',
                                abundante:'abundante', severo:'abundante', severa:'abundante', '>20':'abundante' };
@@ -128459,7 +128599,7 @@ const LAB_XLS_OPCIONES = {
   tdf_func_vd:'Normal · Disfunción leve · Disfunción moderada · Disfunción severa',
   tga_func_vd:'Normal · Disfunción leve · Disfunción moderada · Disfunción severa',
   tga_tipo:'TGA completa (d-TGA) · ccTGA · Post-Mustard · Post-Senning',
-  tga_cirugia:'Sin cirugía · Switch auricular (Mustard o Senning)',
+  tga_cirugia:'Sin cirugía · Switch auricular (Mustard o Senning) · Switch arterial (Jatene) · Rastelli',
   ebs_tsv:'Sí · No · No consta', ebs_vias:'Sí · No · No consta',
   ebs_sintomas:'Sí · No · No consta', ebs_ejercicio:'Sí · No · No consta',
   ebs_progresion:'Sí · No · No consta',
