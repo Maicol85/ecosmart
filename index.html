@@ -336,8 +336,16 @@
      arrastre lo toma el scroll de la página y la tarjeta no se mueve. */
   #inf-min-fila{display:none;margin:0 0 10px;padding:8px 10px;background:var(--bg3);border:1px solid var(--border);border-radius:8px}
   #inf-min-fila .inf-min-cab{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px}
+  /* ⚠️ EL ⓘ GANA SOBRE EL AREA TACTIL DE LA ✕ (AJUSTES-2, commit 4a). Lo destapo la sonda:
+     de los cinco puntos del globo, la esquina INFERIOR IZQUIERDA devolvia `button.inf-min-x`
+     —la ✕ de la primera miniatura—, porque su `::after` se extiende 22 px a la izquierda y 14
+     hacia ARRIBA a proposito, para no pisar la tarjeta vecina, y ahi arriba esta la cabecera.
+     El efecto no es cosmetico: tocar esa esquina QUITABA una imagen del PDF cuando el medico
+     queria abrir la ayuda. La cabecera viene ANTES en el orden del documento, asi que sin esto
+     la miniatura pinta encima. El z-index es 1 y vive en un contenedor sin apilado propio, asi
+     que no alcanza a ninguna otra capa. Medido despues: los CINCO puntos dan el propio boton. */
+  #inf-min-fila .inf-min-cab .vinfo-btn{position:relative;z-index:1}
   #inf-min-cont{font-size:.78rem;font-weight:700;color:var(--text)}
-  #inf-min-fila .inf-min-ayuda{font-size:10px;color:var(--text2);flex:1 1 180px;min-width:0}
   #inf-min-lista{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-start}
   .inf-min{position:relative;width:56px;flex:0 0 56px}
   .inf-min img{width:56px;height:56px;object-fit:cover;border-radius:5px;border:1px solid var(--border);display:block;background:var(--bg2)}
@@ -15235,7 +15243,8 @@ z
                  o sea SIN riesgo para las dos ultimas. Este `<option>` era la unica que lo
                  afirmaba. El ala de pollo y la coliflor NO se tocan: su riesgo si esta en la
                  fuente. EL `value` NO SE TOCA: es un campo guardado.
-                 ⚠️ «Manga de viento — riesgo intermedio» SIGUE DICIENDOLO y NO se tocó: la
+                 ⚠️ [CERRADO en AJUSTES-2 commit 4c] «Manga de viento» tambien perdio su
+                 «riesgo intermedio». Lo que decia esta nota cuando se escribio: la
                  orden nombra sólo el cactus, y cambiar un rótulo clínico que no nombra es
                  decisión de Maicol -> `docs/PENDIENTES.md` AJ1-a. -->
             <option value="cactus">Cactus</option>
@@ -15244,7 +15253,16 @@ z
                  de la clasificación descriptiva de la guía de ETE; «veleta» es otra cosa.
                  EL `value` NO SE TOCA: es un campo guardado, viaja al Excel y vive en los
                  estudios ya guardados. Cambiarlo sería migrar estudios guardados. -->
-            <option value="veleta">Manga de viento — riesgo intermedio</option>
+            <!-- ⚠️ SIN «riesgo intermedio» (AJUSTES-2, commit 4c, 2026-10-31). Cierra AJ1-a.
+                 DECISION DEL MEDICO: ninguna fuente de la biblioteca le asigna un riesgo a esta
+                 forma. Es el mismo retiro que el COR-6a le hizo al cactus, y la razon es la
+                 misma: era la UNICA superficie que lo afirmaba — la ficha `ref-oai` de
+                 Referencias y la entrada «Morfologia» de `OAI_GLOBO` dicen «ala de pollo (menor
+                 riesgo) · coliflor (mayor riesgo) · cactus · manga de viento», sin riesgo para
+                 esta ni para el cactus.
+                 ⚠️ EL `value` NO SE TOCA: es campo guardado, viaja al Excel y vive en los
+                 estudios ya guardados. Lo que cambia es el rotulo. -->
+            <option value="veleta">Manga de viento</option>
           </select>
         </div>
         <div class="fg"><label>Número de lóbulos</label>
@@ -21164,12 +21182,17 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
            la fila de botones: el `display` de fabrica es `none` y lo gobierna `infMinPintar()`.
            El `margin-top:10px` de la fila de botones no se toca. -->
       <div id="inf-min-fila" role="group" aria-label="Imágenes incluidas en el PDF">
+        <!-- ⚠️ EL TEXTO DE AYUDA SALIO Y SU CONTENIDO ESTA EN EL ⓘ (AJUSTES-2, commit 4a,
+             2026-10-31). DECISION DEL MEDICO: «la fila es intuitiva». No se pierde un dato: las
+             cuatro cosas que decia —la ✕, el reordenamiento, el orden de impresion y los
+             diagramas que no se reordenan— estan en `VINFO['inf-min']`, con dos mas que el
+             texto no decia (el teclado y que la exclusion sobrevive a reabrir el estudio). -->
         <div class="inf-min-cab">
           <span id="inf-min-cont">🖼️ En el PDF: 0</span>
-          <span class="inf-min-ayuda">La ✕ quita la imagen del PDF; no la borra del estudio —queda
-            en «🖼️ Imágenes del estudio» y se puede volver a incluir—. Las capturas se reordenan
-            arrastrando o con ◀ ▶, y ese es el orden en que se imprimen; los diagramas van en su
-            propia sección del PDF y no se reordenan.</span>
+          <button type="button" class="vinfo-btn vinfo-btn-44" data-vinfo="inf-min"
+                  aria-expanded="false"
+                  aria-label="Que hace esta fila: la cruz, el orden de impresion y los diagramas"
+                  onclick="vInfoClic(this)">&#9432;</button>
         </div>
         <div id="inf-min-lista"></div>
       </div>
@@ -44388,6 +44411,26 @@ window._imPeorIntegrado = _imPeorIntegrado;
    una palabra. Se reescriben en D2, y mientras tanto el medico ve en el dedo lo que antes solo
    veia con el mouse. Son `legado: true`. */
 const VINFO = Object.freeze({
+  /* ══ LA FILA DE MINIATURAS DE LO QUE VA AL PDF (AJUSTES-2, commit 4a, 2026-10-31) ══════════
+     Reemplaza al texto de ayuda que vivia en la cabecera de la fila. Es una explicacion de la
+     INTERFAZ: no lleva fuente, no afirma nada clinico y no va al papel.
+     ⚠️ LAS DOS LINEAS QUE EL TEXTO VIEJO NO DECIA son la del TECLADO —el arrastre no es el
+     unico camino, y decirlo es parte de que la fila sea usable sin mouse— y la de que la
+     exclusion SOBREVIVE a guardar y reabrir, que es verdad desde el commit 2 de esta tanda y
+     antes no lo era. */
+  'inf-min': {
+    tit: 'Las im\u00e1genes que van al PDF',
+    lee: 'La fila muestra, en orden, todo lo que se va a imprimir.\n'
+       + 'La ✕ quita del PDF y NO borra: la imagen sigue en «🖼️ Im\u00e1genes del estudio», con '
+       + 'un bot\u00f3n para volver a incluirla, y esa decisi\u00f3n se guarda con el estudio.\n'
+       + 'Las CAPTURAS se reordenan arrastr\u00e1ndolas o con ◀ ▶, y ese es el orden en que se '
+       + 'imprimen.\n'
+       + 'Con el teclado: Tab hasta ◀ o ▶ y Enter. Hacen lo mismo que el arrastre.\n'
+       + 'Los DIAGRAMAS —bull\u2019s eye, bic\u00faspide, vista quir\u00fargica, orejuela— van cada uno en '
+       + 'su propia secci\u00f3n del PDF: se pueden quitar, pero no reordenar.',
+    ojo: 'Quitar un diagrama apaga su propia puerta al PDF; no hay ninguna imagen suya en el '
+       + 'estudio que se pueda borrar. Quitar una captura s\u00ed deja la imagen guardada.'
+  },
   /* ══ LOS CUATRO TIPOS DE CARPENTIER (AJ5-1, 2026-10-24) ═══════════════════════
      ⚠️ EL TEXTO DE LA ORDEN SALIÓ DE MEMORIA Y SE VERIFICÓ EN TEXTO COMPLETO ANTES DE
      PUBLICARLO, así que NO lleva el marcador `ecosmart` de «Criterio EcoSmart» — lo llevaría si
