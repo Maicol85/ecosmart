@@ -79215,6 +79215,22 @@ const IND_REFS = Object.freeze([
      ⚠️ ES LA TRADUCCIÓN DE LA SEC. Las dos recomendaciones citadas se COTEJARON contra el
      original inglés (Eur Heart J 2023, `ehad194.pdf`, hoja 26) y coinciden palabra por palabra
      en su sentido, con la misma clase y el mismo nivel. */
+  /* ⚠️ ENTRADA PROPIA PARA LA EDICION INGLESA, Y NO SE FUSIONA CON LA DE ABAJO (TGA-2,
+     31/10/2026). El motivo es la NUMERACION: la entrada `esc2023mioc` es la traducción al
+     español de la SEC, cuyo folio sale de «hoja del PDF − 1»; la sección de prevención de muerte
+     súbita se leyó EN IMAGEN sobre la edición inglesa (`ehad194.pdf`, 124 hojas), donde el folio
+     es «hoja + 3502», comprobado en el pie impreso de las hojas 10, 50 y 80. Citar los folios
+     3561 y 3562 bajo una entrada que describe la traducción mandaría al lector a otras páginas.
+     Es el mismo criterio con el que este registro ya tiene dos entradas de la ESC 2020 de
+     congénitas (`esc2020guch` y `escGuchCiv`), y la misma razón por la que este repositorio cita
+     siempre de la edición inglesa. */
+  { k:'esc2023miocEn',
+    full:'Arbelo E, Protonotarios A, Gimeno JR, et al. 2023 ESC Guidelines for the management ' +
+         'of cardiomyopathies. Eur Heart J 2023;44(37):3503-3626. Edición INGLESA. ' +
+         'Regla de folio: folio = hoja del PDF + 3502, comprobada en el pie impreso de las hojas ' +
+         '10, 50 y 80. Tabla de recomendaciones 23 («Additional recommendations for prevention ' +
+         'of sudden cardiac death in patients with hypertrophic cardiomyopathy»), hojas 59 y 60, ' +
+         'folios 3561 y 3562, leída en imagen a 220 ppp; y la Figura 16 de la hoja 59, folio 3561.' },
   { k:'esc2023mioc',
     full:'Arbelo E, Protonotarios A, Gimeno JR, et al. Guía ESC 2023 sobre el manejo de las ' +
          'miocardiopatías. Traducción al español de la Sociedad Española de Cardiología de la ' +
@@ -85567,6 +85583,137 @@ function _indMCH(){
     ] };
 }
 
+/* ══ MCH — PREVENCION DE MUERTE SUBITA: LA TABLA 23 DE LA ESC 2023 (TGA-2, commit 5) ══════════
+   LO QUE VINO A CERRAR: la conclusión de la miocardiopatía hipertrófica pega una recomendación
+   —la del desfibrilador— a un recuento, y en la TGA-1 se midió que ese contenido NO estaba en la
+   Evidencia, ni en los ⓘ, ni en Referencias: cero, cero y cero, con el papel diciéndolo dos
+   veces. La orden exige agregarlo ANTES de tocar el papel, y eso es lo que hace esta sección.
+
+   ⚠️ EL PAPEL NO SE TOCO, Y EL MOTIVO ES UNA FUENTE QUE NO ESTA. La línea del PPT cita DOS
+   guías: la ESC y la «AHA/ACC 2020». La ESC está —ESC 2023 de miocardiopatías, `ehad194.pdf`,
+   124 hojas, folio = hoja + 3502, comprobado en el pie impreso de las hojas 10, 50 y 80— y es
+   la que esta sección transcribe. La AHA/ACC **2020** NO está en la biblioteca: lo que hay en
+   `11_Miocardiopatias` es la guía de **2024** (Ommen y cols., Circulation 2024;149:e1239-e1311)
+   y su resumen. La regla de la orden es «si no se lee con certeza o la hoja no coincide: PARÁ y
+   reportá sin cambiar el papel», y la línea del PPT es UNA sola cadena con las dos mitades:
+   retirar la de la ESC y dejar la de la AHA publicaría media recomendación. Queda declarado en
+   docs/PENDIENTES.md → TGA2-c, y `IMG3-g` sigue abierto.
+
+   LA FUENTE, LEIDA EN IMAGEN a 220 ppp: «Recommendation Table 23 — Additional recommendations
+   for prevention of sudden cardiac death in patients with hypertrophic cardiomyopathy», hojas 59
+   y 60, folios 3561 y 3562, con sus nueve filas; y la Figura 16 de la hoja 59, folio 3561.
+
+   ⚠️ SECCION APARTE DE `_indMCH`, Y NO UN BLOQUE DENTRO. Aquélla se abre con un gradiente del
+   tracto de salida de 30 mmHg o más —es la de la terapia de reducción septal— y el riesgo de
+   muerte súbita se evalúa en TODA miocardiopatía hipertrófica, obstructiva o no. Metido ahí, el
+   paciente sin obstrucción no lo vería. Y el título no es prefijo de «Miocardiopatía
+   hipertrófica obstructiva» ni ése lo es de éste: divergen en «—» contra « obstructiva».
+
+   ⚠️ NO CALCULA NADA NUEVO. El porcentaje, la banda y los dos hallazgos de la banda baja salen
+   de `mchScoreESC`, `mchFevi` y los campos del módulo, que son los MISMOS dueños que publican el
+   informe: un segundo cálculo del mismo hecho es cómo dos superficies terminan discrepando. */
+const MCH_SCD_OPS = Object.freeze([{ v:'si', t:'Sí' }, { v:'no', t:'No' }]);
+const MCH_SCD_PREG = Object.freeze([
+  { clave:'mch.scd.compromiso', lbl:'La taquicardia ventricular sostenida cursó con compromiso hemodinámico',
+    nota:'la recomendación de prevención secundaria exige el compromiso hemodinámico o la parada cardíaca, y la aplicación registra la taquicardia sostenida pero no ese calificativo' },
+  { clave:'mch.scd.vida1a', lbl:'Expectativa de vida de un año o más',
+    nota:'es la condición que la Figura 16 pone junto a la de prevención secundaria' },
+  { clave:'mch.scd.evaldet', lbl:'Se hizo la evaluación clínica detallada que la recomendación exige',
+    nota:'las dos filas de desfibrilador por riesgo estimado la exigen: el riesgo de complicaciones de por vida, el riesgo de mortalidad competitiva por la enfermedad y las comorbilidades, Y el impacto del desfibrilador en el estilo de vida, la situación socioeconómica y la salud psicológica' }
+]);
+function _indMCHSCD(){
+  const concl = _indFn('mchConclusion');
+  const C = concl ? concl() : null;
+  if (!C) return null;
+  const escF = _indFn('mchScoreESC'), feviF = _indFn('mchFevi'), tvF = _indFn('tvEstado');
+  const E = escF ? escF() : null;
+  const fevi = feviF ? feviF() : null;
+  const lge = _indS('mch_fibrosis_rmn'), aneur = _indS('mch_aneurisma_apical');
+  const parada = _indS('mch_ex_parada');
+  const tvSost = !!(tvF && tvF().sostenida);
+  const pct = (E && !E.fuera && !E.faltan && typeof E.pct === 'number') ? E.pct : null;
+
+  const filas = [
+    _indFila('Riesgo de muerte súbita a 5 años (HCM Risk-SCD)',
+      pct != null ? _indNum(pct, 2, '%') : '—',
+      pct == null ? 'ask' : (pct >= 6 ? 'alarm' : (pct >= 4 ? 'warn' : 'none')),
+      pct == null
+        ? (E && E.fuera && E.fuera.length ? 'no se calcula: ' + E.fuera.join(' y ') + ' fuera de rango'
+          : (E && E.faltan && E.faltan.length ? 'no se calcula: faltan ' + E.faltan.length + ' datos' : 'no se calcula'))
+        : (pct >= 6 ? 'alcanza el 6 %, que es el umbral de la recomendación Clase IIa · Nivel B'
+          : (pct >= 4 ? 'está entre el 4 y el 6 %, que es la banda de la Clase IIb · Nivel B'
+            : 'por debajo del 4 %: en esa banda la guía sólo contempla los dos hallazgos de abajo, los dos Clase IIb · Nivel B'))),
+    _indFila('Parada cardíaca por taquicardia o fibrilación ventricular',
+      parada === 'si' ? 'Sí' : (parada === 'no' ? 'No' : 'No consta'),
+      parada === 'si' ? 'alarm' : (parada === 'no' ? 'none' : 'ask'),
+      parada === 'si' ? 'es la recomendación de prevención secundaria, Clase I · Nivel B, con independencia del score' : ''),
+    _indFila('Taquicardia ventricular sostenida documentada', tvSost ? 'Sí' : 'No consignada',
+      tvSost ? 'alarm' : 'ask',
+      tvSost ? 'con compromiso hemodinámico es la prevención secundaria, Clase I · Nivel B' : 'se registra en el bloque de arritmia ventricular'),
+    _indFila('Realce tardío extenso en la resonancia',
+      lge === 'si' ? 'Sí' : (lge === 'no' ? 'No' : 'No consta'),
+      lge === 'si' ? 'warn' : (lge === 'no' ? 'none' : 'ask'),
+      'dentro de la banda de bajo riesgo es uno de los dos hallazgos Clase IIb · Nivel B'),
+    _indFila('Fracción de eyección del ventrículo izquierdo',
+      (fevi && fevi.valor != null) ? _indNum(fevi.valor, 0, '%') : '—',
+      (fevi && fevi.valor != null) ? (fevi.valor < 50 ? 'warn' : 'none') : 'ask',
+      (fevi && fevi.valor != null && fevi.valor < 50)
+        ? 'por debajo del 50 %: dentro de la banda de bajo riesgo es el otro hallazgo Clase IIb · Nivel B' : ''),
+    _indFila('Aneurisma apical del ventrículo izquierdo',
+      aneur === 'si' ? 'Sí' : (aneur === 'no' ? 'No' : 'No consta'),
+      aneur === 'si' ? 'warn' : (aneur === 'no' ? 'none' : 'ask'),
+      aneur === 'si' ? 'la guía pide decidir con el score y no sólo por el aneurisma, Clase IIa · Nivel B' : '')
+  ];
+
+  const clinica = [], _si = [], _no = [], _sd = [];
+  MCH_SCD_PREG.forEach(function (p) {
+    const o = _indOrigen(null, p.clave);
+    if (o.val === 'si') _si.push(p.lbl); else if (o.val === 'no') _no.push(p.lbl); else _sd.push(p.lbl);
+    clinica.push(_indFilaOrigen(p.lbl, o, MCH_SCD_OPS, function (val) {
+      return { txt: val === 'si' ? 'Sí' : (val === 'no' ? 'No' : 'Sin dato'),
+               marca: val === 'si' ? 'warn' : (val === 'no' ? 'none' : 'ask'),
+               nota: p.nota + (val == null ? '. Sin dato no cuenta como «no»: mientras no se conteste, esta condición no sostiene ninguna recomendación' : '') };
+    }));
+  });
+  const _bal = _si.length
+    ? { txt:'Condiciones presentes en este paciente: ' + _si.length + ' de ' + MCH_SCD_PREG.length + ' (' + _si.join('; ') + ').'
+        + (_sd.length ? ' Sin contestar: ' + _sd.join('; ') + '.' : ' Las otras ' + _no.length + ' están contestadas que no.'), refs:null }
+    : (_sd.length
+      ? { txt:'Ninguna condición consta como presente, y quedan ' + _sd.length + ' sin contestar: ' + _sd.join('; ')
+          + '. Mientras no se contesten, ninguna de las recomendaciones de arriba se sostiene en este paciente — «sin dato» no cuenta como «no».', refs:null }
+      : { txt:'Las ' + MCH_SCD_PREG.length + ' condiciones están contestadas y ninguna está presente.', refs:null });
+
+  return { filas: filas,
+    clinica: clinica,
+    bloques: [
+      { tit:'Prevención secundaria — ESC 2023 de miocardiopatías, Tabla de recomendaciones 23, hoja 59, folio 3561', lineas:[
+        { txt:'Clase I · Nivel B — Se recomienda implantar un desfibrilador en el paciente que sobrevivió a una parada cardíaca por taquicardia o fibrilación ventricular, o que tuvo una taquicardia ventricular sostenida espontánea con compromiso hemodinámico.', refs:null },
+        { txt:'La Figura 16 de la misma hoja agrega a ese cuadro la condición de una expectativa de vida de un año o más.', refs:null }
+      ]},
+      { tit:'Prevención primaria: cómo se estima el riesgo — misma tabla, hojas 59 y 60, folios 3561 y 3562', lineas:[
+        { txt:'Clase I · Nivel B — La calculadora HCM Risk-SCD se recomienda como método para estimar el riesgo de muerte súbita a 5 años en el paciente de 16 años o más, en prevención primaria.', refs:null },
+        { txt:'Clase I · Nivel B — En el menor de 16 años se recomiendan los modelos pediátricos validados, por ejemplo el HCM Risk-Kids.', refs:null },
+        { txt:'Clase I · Nivel B — Se recomienda estimar el riesgo a 5 años en la primera evaluación y reevaluarlo cada 1 o 2 años, o cuando cambie la situación clínica.', refs:null }
+      ]},
+      { tit:'Prevención primaria: cuándo el desfibrilador — misma tabla, hoja 60, folio 3562', lineas:[
+        { txt:'Clase IIa · Nivel B — Debe considerarse implantar un desfibrilador con un riesgo estimado a 5 años del 6 % o más, después de una evaluación clínica detallada que tenga en cuenta el riesgo de complicaciones de por vida, el riesgo de mortalidad competitiva por la enfermedad y las comorbilidades, Y el impacto del desfibrilador en el estilo de vida, la situación socioeconómica y la salud psicológica.', refs:null },
+        { txt:'Clase IIa · Nivel B — Con aneurisma apical del ventrículo izquierdo, debe considerarse decidir el desfibrilador de prevención primaria a partir del riesgo estimado con el HCM Risk-SCD o un modelo pediátrico validado, y no sólo por la presencia del aneurisma.', refs:null },
+        { txt:'Clase IIb · Nivel B — Puede considerarse el desfibrilador en pacientes concretos con un riesgo estimado a 5 años entre el 4 % y el 6 %, tras la misma evaluación clínica detallada.', refs:null },
+        { txt:'Clase IIb · Nivel B — En la banda de bajo riesgo (por debajo del 4 %), la presencia de realce tardío extenso —del 15 % o más— en la resonancia puede considerarse en una decisión compartida con el paciente sobre el implante profiláctico, reconociendo que no hay datos sólidos sobre el efecto de cuantificar la cicatriz en la estimación personalizada del riesgo.', refs:null },
+        { txt:'Clase IIb · Nivel B — En la banda de bajo riesgo, la presencia de una fracción de eyección por debajo del 50 % puede considerarse en una decisión compartida, con la misma salvedad sobre la falta de datos sólidos.', refs:null },
+        _bal,
+        { txt:'Fuente: ESC 2023 de miocardiopatías, edición inglesa, Tabla de recomendaciones 23, hojas 59 y 60, folios 3561 y 3562.', refs:['esc2023miocEn'] }
+      ]}
+    ],
+    guia: { ref:'esc2023miocEn',
+      txt:'Las recomendaciones de esta sección salen de la tabla de recomendaciones 23 de la ESC 2023 de miocardiopatías, edición inglesa, que es la de prevención de la muerte súbita en la miocardiopatía hipertrófica (hojas 59 y 60, folios 3561 y 3562).' },
+    notas: [
+      'El umbral del realce tardío extenso se escribe distinto en dos lugares del mismo documento: la tabla dice «15 % o más» y la nota a de la Figura 16 dice «más del 15 %». Acá se usa el de la tabla, que es la recomendación.',
+      'Lo que se contesta en esta sección no se guarda con el estudio: vive mientras el panel esté abierto y se pierde al cerrarlo o al empezar un estudio nuevo.',
+      'Las recomendaciones de esta sección no entran al informe, al EN SUMA, al PDF ni al PPT.'
+    ] };
+}
+
 /* ══ AORTA TORÁCICA — EL UMBRAL QUE ACTIVA LAS DOS SECCIONES DE AORTA ════════════════════════
    ⚠️ `AO_DIL_MM`, `aoDilCorte` Y `AO_IDA_MAX` YA NO SE DECLARAN ACÁ (AJ4-1, 23/10/2026). Se
    mudaron ARRIBA, junto a `AO_REF` y `AO_SEGS`, porque desde esta tanda el corte de dilatación
@@ -89898,6 +90045,12 @@ const IND_SECS = [
   { tit:'Coartación de aorta',                   fn:_indCoAo },
   { tit:'Foramen oval permeable',                fn:_indFOP },
   { tit:'Miocardiopatía hipertrófica obstructiva', fn:_indMCH },
+  /* ⚠️ LA DE LA TANDA TGA-2 (31/10/2026). Va PEGADA a la de arriba porque es la misma
+     cardiopatía con otra pregunta, y no dentro de ella porque aquélla se abre con un gradiente
+     del tracto de salida de 30 mmHg o más y el riesgo de muerte súbita se evalúa en TODA
+     miocardiopatía hipertrófica, obstructiva o no. Los dos títulos no se contienen: divergen en
+     «— prevención» contra « obstructiva», y ninguno es prefijo de otro de los treinta y dos. */
+  { tit:'Miocardiopatía hipertrófica — prevención de muerte súbita', fn:_indMCHSCD },
   /* ⚠️ EL TITULO LLEVA «— conclusión» Y NO ES COSMETICO: `IND_SECS` se recorre buscando la
      seccion por el PREFIJO de su titulo, asi que «Válvula aórtica bicúspide» a secas seria
      prefijo de la de abajo y las dos matchearian la misma clave — la primera se llevaria las dos
