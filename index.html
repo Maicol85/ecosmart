@@ -30157,7 +30157,18 @@ window.vexusCobertura = vexusCobertura;
    llegado al otro, y la divergencia sólo se vería en un informe ya firmado.
    Va sólo con score >= 1: los confusores producen falsos POSITIVOS, así que sobre un VEXUS 0
    no aportan nada. */
-const VEXUS_SALVEDAD = 'El grado VEXUS debe integrarse con la clínica. Los patrones venosos '
+/* ══ SALE «El grado VEXUS debe integrarse con la clínica» (AJUSTES-2, commit 6b) ═════════════
+   DECISION DEL MEDICO: el papel describe, no instruye. La frase la encontro el barrido 6a —era
+   una de las DOS unicas conductas dirigidas al medico que quedaban en todo el papel, sobre 148
+   escenas y 3.072.850 caracteres— y estaba declarada en `COR-a` desde el 30/10.
+   ⚠️ SU CONTENIDO YA ESTABA EN LA EVIDENCIA, verificado antes de retirarlo: la nota de la
+   seccion de VExUS dice «…asi que el grado se integra con la clinica», y la pantalla del modulo
+   lo repite en su aviso. No hubo que escribir nada nuevo.
+   ⚠️ LAS OTRAS DOS ORACIONES SE QUEDAN, y es lo que la orden manda: la de los confusores es una
+   SALVEDAD descriptiva —dice cuando el patron enganya—, no una conducta; y la cita de
+   Beaubien-Souligny es una cita descriptiva, que el punto 6b deja para que la decida el medico.
+   Las dos quedan listadas en el reporte y en `docs/PENDIENTES.md` → AJ2-c. */
+const VEXUS_SALVEDAD = 'Los patrones venosos '
   + 'también se alteran, sin que haya congestión, en fibrilación auricular y en ventilación '
   + 'mecánica. Graduación de Beaubien-Souligny et al., Ultrasound J 2020;12(1):16.';
 window.VEXUS_SALVEDAD = VEXUS_SALVEDAD;
@@ -56737,7 +56748,16 @@ function generarInforme(opts) {
       vmSent = estiloPick(
         `VM ${cC}.`,
         `Válvula mitral ${_vmDe}, ${cE}.`,
-        `La válvula mitral, ${_vmDe}, ${cE}; hallazgo de relevancia clínica que requiere seguimiento ecocardiográfico periódico y evaluación de indicación de intervención según evolución clínica.`);
+        /* ⚠️ SIN «requiere seguimiento ecocardiográfico periódico y evaluación de indicación de
+           intervención según evolución clínica» (AJUSTES-2, commit 6b). Es la OTRA de las dos
+           conductas que el barrido 6a encontro en todo el papel. «Hallazgo de relevancia
+           clínica» SE QUEDA: eso describe el hallazgo, no le dice al medico que hacer.
+           ⚠️ SU CONTENIDO YA ESTABA EN LA EVIDENCIA, verificado antes de retirarlo: la seccion
+           de insuficiencia mitral del panel publica la indicacion con su clase y su nivel, la
+           modalidad por Heart Team y la rama «Sin criterio de intervención por ahora», que es
+           justo la vigilancia. No hubo que escribir nada nuevo.
+           ⚠️ SOLO EL ESTILO EXTENSO LA TENIA: los otros dos ya decian la oracion corta. */
+        `La válvula mitral, ${_vmDe}, ${cE}; hallazgo de relevancia clínica.`);
     }
     // Detalle de prolapso / Barlow — integrado en la MISMA oración de la mitral
     if (vmMorf === 'Prolapso / EVMS' || vmMorf === 'Mixomatosa / Barlow') {
