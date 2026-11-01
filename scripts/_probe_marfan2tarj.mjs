@@ -55,7 +55,10 @@ const MEDIR = `(async () => {
     if (b) { b.scrollIntoView({ block: 'center' }); await new Promise(r => setTimeout(r, 120));
       b.click(); await new Promise(r => setTimeout(r, 260));
       const c = EL('vinfo-card');
-      R.secTarjeta = { visible: c && c.offsetParent !== null ? 'si' : 'NO', txt: T(c), caja: caja(c) };
+      /* ATENCION: la tarjeta es position fixed, asi que su offsetParent es null AUNQUE este
+         dibujada -la trampa que la tanda D2 documenta-. Lo que dice si se ve es su caja. */
+      const rc = c ? c.getBoundingClientRect() : null;
+      R.secTarjeta = { visible: (rc && rc.width > 0 && rc.height > 0) ? 'si' : 'NO', txt: T(c), caja: caja(c) };
       b.click(); await new Promise(r => setTimeout(r, 150)); } }
 
   /* ── LA TARJETA ───────────────────────────────────────────────────────────── */

@@ -76925,7 +76925,12 @@ function marfanEstado(src) {
   const itaTxt = ita != null ? (Math.round(ita * 10) / 10).toFixed(1).replace('.', ',') : null;
   const hayDatos = !!(sind || seno != null || asc != null || ita != null);
   if (!hayDatos) return { hayDatos:false };
-  const base = { hayDatos:true, sind, seno, asc, ita, itaTxt, itaOrigen, fr,
+  /* ⚠️ `maxAo` ENTRA EN EL OBJETO («MARFAN-2», 3a), y es ADITIVO: la conclusion publica el
+     umbral del sindrome COMPARADO con el diametro cargado, asi que necesita el numero que la
+     cascada ya calcula. Recalcularlo en `marfanSync` habria sido la segunda copia de «el
+     diametro que decide es el MAYOR de seno y ascendente». Se asigna mas abajo, donde la
+     cascada lo calcula, porque las dos primeras ramas salen antes de tenerlo. */
+  const base = { hayDatos:true, sind, seno, asc, ita, itaTxt, itaOrigen, fr, maxAo: null,
                  sindTxt: _tieneClave(MARFAN_SIND_TXT, sind) ? MARFAN_SIND_TXT[sind] : 'Aortopatía' };
   /* Sin síndrome no se concluye. No es un dato que falte para completar la ficha: es el que
      ELIGE el umbral. Con 47 mm, un Loeys-Dietz tiene indicación Clase I y una EHAT no tiene
@@ -76941,6 +76946,7 @@ function marfanEstado(src) {
   /* El diámetro que decide es el MAYOR de seno y ascendente. Mirar sólo el seno dejaba fuera al
      paciente con la dilatación en la ascendente, que es el fenotipo tubular. */
   const maxAo = (seno != null && asc != null) ? Math.max(seno, asc) : (seno != null ? seno : asc);
+  base.maxAo = maxAo;
   const conFR = fr === 'si';
   /* ⚠️ `fteS` Y `pre` VAN ARRIBA DE TODAS LAS RAMAS, Y NO ES ORDEN: son `const`, así que
      nombrarlos desde una rama que corre antes de su declaración es un ReferenceError por zona
@@ -77136,55 +77142,119 @@ function marfanSync() {
      aplicar porque el globo se construye de cero en cada apertura, leyendo `marfanEstado()`.
      `MARFAN_FR_TXT` y `MARFAN_FR_SIN` siguen siendo el dueno unico de la lista: su unico
      lector es ahora `_mfConductaInfo`. */
+  /* ══ LA CONCLUSION EN CUATRO FILAS ORDENADAS — «MARFAN-2», 3a (2026-11-02) ════════════════
+     Decision del medico. El orden es: (1) los CRITERIOS de Ghent, (2) los OTROS DATOS
+     cargados, (3) el UMBRAL del sindrome comparado con el diametro, y (4) UNA frase sobre la
+     eventual conducta SIN decirla.
+
+     ⚠️ AMPLIACION DE LA REGLA FIJA, DECISION DEL MEDICO DEL 02/11/2026: LA PANTALLA TAMPOCO DA
+     INDICACIONES. Ni «indicada», ni «se recomienda», ni «considerar», ni «seguimiento por
+     imagen». Lo que la pantalla dice es si el paciente CUMPLE o NO CUMPLE los criterios; la
+     recomendacion vive en la Evidencia, y la guia, la tabla, el folio y la clase en el globo.
+
+     ⚠️ LAS DOS PRIMERAS FILAS VAN ANTES DE LA SALIDA TEMPRANA DE `!r.hayDatos`, Y ESO ESTA
+     MEDIDO. `hayDatos` es «sindrome o diametro o indice»: un paciente con nueve rasgos
+     tildados y sin diametro salia por ese `return` y la conclusion no decia una palabra de lo
+     que el medico habia marcado. Es exactamente el motivo por el que el bloque del PAPEL tiene
+     su propia compuerta desde MARFAN-1. Y extender `hayDatos` NO es la salida: lo lee el
+     LABORATORIO para contar un estudio como «Marfan/EHAT».
+     ⚠️ NINGUN CORTE, UMBRAL NI CONTENIDO CLINICO SE MOVIO: `marfanEstado` y `mfsReglas` siguen
+     siendo los duenos unicos y devuelven lo mismo. Lo que cambia es el verbo y lo que se omite. */
+  { const g = _mfGhentFrase();
+    if (g) fila('Criterios de Ghent', val(g)); }
+  { const o = _mfOtrosDatos();
+    if (o) fila('Otros datos cargados', val(o)); }
   if (!r.hayDatos) { fila('Aortopatía hereditaria', pill('gray', 'Ingresar síndrome y diámetros')); return; }
   const CLS = { cx_i:'red', cx_iia:'orange', cx_iib:'yellow', umbral_iia_sin_fr:'yellow',
                 sin_indicacion:'green', sin_sindrome:'gray', falta_ita:'gray', falta_diametro:'gray',
                 sin_umbral:'gray' };
-  /* ⚠️ LA CLASE SALIO DE LA ETIQUETA Y VIVE EN EL GLOBO («MARFAN-1», 4b). Decision del medico.
-     El VEREDICTO no cambia —«Cirugía indicada» sigue siendo «Cirugía indicada»— y lo que se
-     mueve es la ATRIBUCION: el nombre de la guia, la tabla, el folio y la clase. Las claves
-     `cx_i`, `cx_iia` y `cx_iib` NO se tocan: las lee el Laboratorio para su distribucion. */
-  const ETQ = { cx_i:'Cirugía indicada', cx_iia:'Considerar cirugía',
-                cx_iib:'Puede considerarse', umbral_iia_sin_fr:'En zona de vigilancia',
-                sin_indicacion:'Sin criterios quirúrgicos', sin_sindrome:'Falta el síndrome',
-                falta_ita:'Falta el índice indexado', falta_diametro:'Falta el diámetro',
-                /* GRIS y no verde: «sin umbral publicado» NO es «sin criterios». */
-                sin_umbral:'Sin umbral de diámetro en la guía' };
-  { /* La fila lleva su globo: el rotulo es un nodo propio para poder colgarle el boton sin
-       tocar `fila()`, que lo usan todas las demas. */
-    const row = document.createElement('div'); row.className = 'calc-row';
+  /* ⚠️ LA PASTILLA DICE SI SE CUMPLEN LOS CRITERIOS, NO QUE HACER («MARFAN-2», 3a punto 4).
+     Las once claves de `marfanEstado` NO se tocan -las lee el Laboratorio para su
+     distribucion- y los colores tampoco: el color sigue graduando I, IIa y IIb, asi que la
+     informacion no se pierde, se deja de AFIRMAR una conducta.
+     ⚠️ `sin_umbral` ES EL UNICO ESTADO QUE LAS TRES FRASES DE LA ORDEN NO CUBREN. El
+     Ehlers-Danlos vascular no es «sin datos suficientes» -los datos estan- ni «no cumple
+     criterios» -no hay criterio de diametro que cumplir-. Lo que se le quito es la mencion de
+     la guia, que es lo que 3a prohibe; el resto queda y se declara en PENDIENTES.md. */
+  const ETQ = { cx_i:'Cumple criterios para cirugía', cx_iia:'Cumple criterios para cirugía',
+                cx_iib:'Cumple criterios para cirugía',
+                umbral_iia_sin_fr:'No cumple criterios para cirugía',
+                sin_indicacion:'No cumple criterios para cirugía',
+                sin_sindrome:'Sin datos suficientes', falta_ita:'Sin datos suficientes',
+                falta_diametro:'Sin datos suficientes',
+                sin_umbral:'Sin umbral de diámetro publicado' };
+  /* (3) EL UMBRAL DEL SINDROME, COMPARADO CON EL DIAMETRO CARGADO.
+     ⚠️ CADA CADENA NOMBRA SU PROPIO UMBRAL y los milimetros se quedan: son el contenido
+     clinico que le dice al medico a que distancia esta este paciente de la cirugia, que es la
+     informacion con que fija el intervalo del proximo control. La clase y el nivel viven en el
+     globo. El Ehlers-Danlos vascular NO entra en este mapa: la guia no le publica umbral. */
+  const U = { marfan:'50 mm · 45 mm con factores de riesgo',
+              lds:'por encima de 45 mm · desde 40 mm con características de riesgo alto, umbral adaptado al gen',
+              turner:'índice >23 mm/m² con factores · >25 sin ellos',
+              ehat:'55 mm · 50 mm con factores de riesgo',
+              otro:'55 mm · 50 mm con factores de riesgo' };
+  if (r.sind && U[r.sind]) {
+    /* El diametro medido NO desaparece: es un numero medido y se publica al lado del umbral. */
+    let _u = U[r.sind];
+    if (r.sind === 'turner') { if (r.itaTxt) _u += ' — índice de este paciente: ' + r.itaTxt; }
+    else if (r.maxAo != null) _u += ' — diámetro máximo cargado: ' + r.maxAo + ' mm';
+    fila('Umbral de este síndrome', val(_u));
+  }
+  /* (4) LA FRASE SOBRE LA EVENTUAL CONDUCTA, SIN DECIRLA. Lleva el globo, que es donde viven
+     la guia, la tabla, el folio y la clase. */
+  { const row = document.createElement('div'); row.className = 'calc-row';
     const l = document.createElement('span'); l.className = 'calc-lbl';
     l.appendChild(document.createTextNode('Conducta aórtica '));
     const b = document.createElement('button');
     b.type = 'button'; b.className = 'vinfo-btn vinfo-btn-44';
     b.setAttribute('data-vinfo', 'mf-conducta'); b.setAttribute('aria-expanded', 'false');
     b.setAttribute('aria-label', 'Guía, tabla, folio y clase del umbral quirúrgico de este síndrome');
-    b.textContent = '\u24D8';
+    b.textContent = 'ⓘ';
     b.addEventListener('click', function () { if (typeof vInfoClic === 'function') vInfoClic(b); });
     l.appendChild(b); row.appendChild(l);
     row.appendChild(pill(CLS[r.clave] || 'gray', ETQ[r.clave] || '—'));
     el.appendChild(row); }
-  fila('Fundamento', val(r.txt));
-  /* El umbral del síndrome se PUBLICA aunque no haya indicación: es lo que le dice al médico a
-     qué distancia está este paciente de la cirugía, que es la información que usa para fijar el
-     intervalo del próximo control. */
-  /* ⚠️ CADA CADENA NOMBRA SU TABLA, que es la corrección del trabajo «H»: hasta entonces la
-     pantalla publicaba cinco umbrales de CUATRO tablas distintas sin decir de cuál era cada uno,
-     y el comentario del bloque se los atribuía todos a la Tabla 62. */
-  /* ⚠️ LOS MILIMETROS SE QUEDAN Y LAS CLASES SE FUERON AL GLOBO («MARFAN-1», 4b). El umbral
-     en milimetros es el contenido clinico que le dice al medico a que distancia esta este
-     paciente de la cirugia —la informacion con que fija el intervalo del proximo control— y
-     por eso no se mueve. La clase y el nivel son la atribucion, y viven en el globo con su
-     tabla y su folio. `MARFAN_FTE` sigue siendo el dueno unico de la cita.
-     El Ehlers-Danlos vascular NO entra en este mapa: publicar «sin umbral» en esta fila seria
-     una fila que no informa nada; lo dice el Fundamento. */
-  const U = { marfan:'50 mm · 45 mm con factores de riesgo',
-              lds:'por encima de 45 mm · desde 40 mm con características de riesgo alto, umbral adaptado al gen',
-              turner:'índice >23 mm/m² con factores · >25 sin ellos',
-              ehat:'55 mm · 50 mm con factores de riesgo',
-              otro:'55 mm · 50 mm con factores de riesgo' };
-  if (r.sind && U[r.sind]) fila('Umbral de este síndrome', val(U[r.sind]));
 }
+
+/* ══ LAS DOS FILAS QUE NO DEPENDEN DEL DIAMETRO — «MARFAN-2», 3a (1) y (2) ════════════════════
+   Duenos unicos de su frase, para que la conclusion no reimplemente nada: el estado de las
+   reglas sale de `mfsReglas` y los criterios aparte de `mfsAparte`, que son los mismos que
+   lee la tarjeta. Devuelven cadena vacia cuando no hay nada que decir, y entonces la fila no
+   se dibuja: una fila en blanco no informa. */
+function _mfGhentFrase() {
+  if (typeof mfsReglas !== 'function') return '';
+  let R; try { R = mfsReglas(); } catch (e) { return ''; }
+  /* ¿hay algo cargado? Sin un solo rasgo tildado y sin un solo criterio aparte contestado, la
+     fila no sale: «sin datos suficientes» sobre un formulario vacio es ruido. */
+  const algoAparte = (typeof MFS_APARTE !== 'undefined') && MFS_APARTE.some(function (a) {
+    return mfsAparte(null, a.c) !== null; });
+  if (!R.score.tildados.length && !algoAparte) return '';
+  const cum = R.reglas.filter(function (x) { return x.estado === 'cumple'; });
+  if (cum.length) return 'Con lo tildado, cumple criterios de Ghent revisados (regla ' + cum[0].n + ')';
+  const sd = R.reglas.filter(function (x) { return x.estado === 'sin_dato'; });
+  if (!sd.length) return 'No cumple criterios de Ghent revisados con lo tildado';
+  return 'Sin datos suficientes';
+}
+function _mfOtrosDatos() {
+  const p = [];
+  if (typeof mfsAparte === 'function') {
+    [['mfs_historia_familiar', 'historia familiar'],
+     ['mfs_fbn1_causal', 'variante de FBN1 causal'],
+     ['mfs_fbn1_ao', 'variante de FBN1 asociada a la aorta'],
+     ['mfs_ectopia_lentis', 'ectopia lentis']].forEach(function (x) {
+      const v = mfsAparte(null, x[0]);
+      if (v === 'si') p.push(x[1] + ' presente');
+      else if (v === 'no') p.push(x[1] + ' ausente');
+    });
+  }
+  const fr = (document.getElementById('marfan_factores_riesgo') || {}).value || '';
+  if (fr === 'si') p.push('con factores de riesgo');
+  else if (fr === 'no') p.push('sin factores de riesgo');
+  if (!p.length) return '';
+  return p.join(', ').replace(/^./, function (c) { return c.toUpperCase(); }) + '.';
+}
+window._mfGhentFrase = _mfGhentFrase; window._mfOtrosDatos = _mfOtrosDatos;
+
 /* El contenido del globo de «Conducta aórtica»: la guia, la tabla, el folio y la clase de ESTE
    paciente. Es `dyn` porque depende del sindrome y de la rama en que cayo, y sale de las mismas
    piezas que la capsula -`r.cita` y `MARFAN_FTE`-, asi que los dos no pueden discrepar. */
@@ -77200,8 +77270,15 @@ function _mfConductaInfo(){
     if (fuerte) { var b = document.createElement('b'); b.textContent = fuerte; e.appendChild(b);
       e.appendChild(document.createTextNode(' ' + txt)); } else { e.textContent = txt; }
     return e; };
-  f.appendChild(P('El veredicto de la izquierda sale de los umbrales de diámetro de la guía europea ' +
-    'de enfermedades aórticas y vasculares periféricas de 2024, que son distintos para cada síndrome.'));
+  /* ⚠️ DESCRIPTIVO Y MENOS TAJANTE («MARFAN-2», 3c). Decia «El veredicto de la izquierda
+     sale de...», que habla de un veredicto; hoy dice lo que la guia FIJA y lo que la
+     aplicacion HACE con eso. Sin imperativos y sin «se debe». La fuente, la tabla, el folio y
+     la clase NO se tocan: siguen saliendo de `MARFAN_FTE` y de `r.cita`, que son sus duenos
+     unicos, y ningun corte se movio. */
+  f.appendChild(P('La guía europea de enfermedades aórticas y vasculares periféricas de 2024 fija un ' +
+    'umbral de diámetro para cada síndrome, y uno más bajo cuando hay factores de riesgo. La ' +
+    'aplicación compara el diámetro cargado con el umbral del síndrome elegido y dice si lo alcanza; ' +
+    'la conducta no se decide por ese número solo.'));
   var r = (typeof marfanEstado === 'function') ? marfanEstado() : null;
   if (!r || !r.hayDatos) {
     f.appendChild(P('Sin síndrome ni diámetros cargados no se puede nombrar la tabla que aplica.'));

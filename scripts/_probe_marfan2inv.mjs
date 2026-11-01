@@ -95,7 +95,8 @@ const MEDIR = `(async () => {
                  ['marfan','47','44','si'], ['marfan','47','44','no'], ['marfan','42','40',''],
                  ['lds','46','42','si'], ['lds','41','40','si'], ['turner','40','38','si'],
                  ['turner','','38',''], ['ehat','56','50','si'], ['ehat','51','48','si'],
-                 ['eds','60','55','si'], ['otro','56','50','no']];
+                 ['eds','60','55','si'], ['otro','56','50','no'],
+                 ['', '52', '44', ''], ['marfan', '', '', 'si'], ['turner', '', '', 'si']];
     for (const e of esc) {
       S('marfan_sindrome', e[0]); S('marfan_ao_seno', e[1]);
       S('marfan_ao_ascendente', e[2]); S('marfan_factores_riesgo', e[3]);
