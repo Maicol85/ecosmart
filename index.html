@@ -91986,21 +91986,6 @@ function tga3dEscena(anat, cir, sh) {
                 { p:P.PAP_L, c:C.red, r:P.PBR });
       s.fl.push({ p:_t3cat(P.SV, P.AO_ANT), c:C.blue }, { p:_t3cat(P.PVR, P.PAP_T, P.PAP_L), c:C.red });
       s.lb.push(['AP',P.PAP_T[1]]);
-      if (sh.asd) {
-        s.ex.push({ t:'ring', c:[-0.45,0.95,-0.3], r:0.24, ry:true, in:true });
-        s.fl.push({ p:[[-1.2,0.9,0.1],[-0.7,0.95,-0.15],[-0.15,1.0,-0.45],[0.3,1.0,-0.65]], c:C.blue, n:6, sp:0.5 },
-                  { p:[[0.3,1.05,-0.6],[-0.15,1.05,-0.4],[-0.7,1.0,-0.1],[-1.2,0.95,0.1]], c:C.red, n:6, sp:0.5 });
-      }
-      if (sh.vsd) {
-        s.ex.push({ t:'ring', c:[-0.05,-0.9,0.2], r:0.28, ry:true, in:true });
-        s.fl.push({ p:[[-0.6,-0.9,0.4],[-0.1,-0.9,0.2],[0.3,-0.9,0.0],[0.6,-0.9,-0.1]], c:C.blue, n:6, sp:0.5 },
-                  { p:[[0.6,-0.85,-0.1],[0.3,-0.85,0.0],[-0.1,-0.85,0.2],[-0.6,-0.85,0.4]], c:C.red, n:6, sp:0.5 });
-      }
-      if (sh.pda) {
-        const pd = [[0.55,2.1,-0.45],[0.75,2.35,-0.4],[0.9,2.6,-0.35]];
-        s.ex.push({ t:'tube', p:pd, r:0.12, c:C.orange });
-        s.fl.push({ p:pd, c:C.red, n:4, sp:0.5 }, { p:pd.slice().reverse(), c:C.blue, n:4, sp:0.5 });
-      }
     } else {
       /* Rastelli: el tronco pulmonar ligado en su origen (el tramo gris mas la esfera), el tunel del
          VI a la aorta por la CIV -`in:true`, porque es intracardiaco y solo se ve «por dentro»- y
@@ -92049,6 +92034,57 @@ function tga3dEscena(anat, cir, sh) {
               { p:P.PA_LT_L, c:C.blue, r:P.PBR });
     s.fl.push({ p:_t3cat(P.SV_LT, P.PA_LT, P.PA_LT_L), c:C.blue }, { p:_t3cat(P.PV_LT, P.AO_LT), c:C.red });
     s.lb.push(['VI morf.',P.LBV], ['VD morf.',P.LBI], ['Ao',P.AO_LT[2]], ['AP',P.PA_LT[1]]);
+  }
+  /* ══ LAS COMUNICACIONES, EN TODAS LAS ANATOMIAS — «CONG-2A», commit 3d (31/10/2026) ════════
+     DECISION DEL MEDICO: la CIA cargada en la pestania «CIA / CIV» y la CIV cargada en esa misma
+     pestania O en «CIV residual» de la TGA se ven con «Ver por dentro», en el dibujo que haya,
+     incluido el corazon normal que la seccion muestra sin tipo.
+
+     ⚠️ ESTABAN DENTRO DE LA RAMA `a === 'dtga' && o === 'none'`, que es la forma de la demo:
+     su `$('shrow').hidden = !(anat==='dtga' && op==='none')` ni ofrece el control en los otros
+     casos. Salen a este bloque comun, con la MISMA geometria —el anillo, su radio, su centro y
+     los dos chorros, numero por numero—, porque son coordenadas fijas sobre los tabiques y no
+     dependen de como salgan los grandes vasos. No se reinterpreto ni se invento una geometria
+     nueva, que es lo que la orden prohibe.
+     ⚠️ EL DUCTUS NO SE MOVIO, y es deliberado: la orden pide la CIA y la CIV, su tubo va ENTRE
+     los dos grandes vasos y en cada anatomia esos vasos son otros, asi que llevarlo a las demas
+     seria decidir a que vasos conecta. Sigue solo donde la demo lo dibuja. Declarado.
+
+     ⚠️ DOS ANATOMIAS SE EXCLUYEN, CADA UNA DE UNA SOLA COMUNICACION, Y NO ES MAQUETA:
+       · CON EL SWITCH AURICULAR NO SE DIBUJA LA CIA. En Mustard y en Senning el tabique
+         auricular se resecó y la sangre va por dos tuneles —los que esa rama dibuja en
+         `bl` y `rd`—: un anillo interauricular encima de un tabique que ya no esta ahi afirma
+         una anatomia que nadie midio.
+       · CON EL RASTELLI NO SE DIBUJA LA CIV. Esa rama YA pone un anillo en el tabique
+         interventricular, en `[0.0,-0.7,0.3]`, que es el tunel del VI a la aorta: un segundo
+         anillo a 0,2 de distancia no se puede leer como otra cosa, y decidir que una «CIV
+         residual» es distinta del tunel es reinterpretar. Las dos se declaran en PENDIENTES.
+     ⚠️ Y LA VISTA DE REFERENCIA SIGUE SIN COMUNICACIONES. `tga3dSync` le pasa `sh` en falso
+     cuando el boton «Corazon normal (referencia)» esta prendido, porque ese boton dice que lo
+     que se ve NO es un dato de este paciente. El corazon normal que se dibuja SIN TIPO si las
+     lleva: ahi no hay ninguna afirmacion de que el paciente no tenga nada. */
+  /* ⚠️ EL DUCTUS TAMBIEN BAJA A ESTE BLOQUE, Y CON SU CONDICION DE SIEMPRE: asi las tres quedan
+     en el orden `asd`, `vsd`, `pda`, que es el de la demo, y en la d-TGA sin cirugia los arrays
+     `ex` y `fl` salen IDENTICOS elemento por elemento. Con el ductus arriba y las otras dos
+     abajo, ese escenario —el unico en que la demo dibuja comunicaciones— habria quedado con los
+     elementos en otro orden, y la comparacion obligatoria con la demo lo habria marcado. */
+  const _comAsd = sh.asd && !(a === 'dtga' && o === 'mus');
+  const _comVsd = sh.vsd && !(a === 'dtga' && o === 'ras');
+  const _comPda = sh.pda && (a === 'dtga' && o === 'none');
+  if (_comAsd) {
+    s.ex.push({ t:'ring', c:[-0.45,0.95,-0.3], r:0.24, ry:true, in:true });
+    s.fl.push({ p:[[-1.2,0.9,0.1],[-0.7,0.95,-0.15],[-0.15,1.0,-0.45],[0.3,1.0,-0.65]], c:C.blue, n:6, sp:0.5 },
+              { p:[[0.3,1.05,-0.6],[-0.15,1.05,-0.4],[-0.7,1.0,-0.1],[-1.2,0.95,0.1]], c:C.red, n:6, sp:0.5 });
+  }
+  if (_comVsd) {
+    s.ex.push({ t:'ring', c:[-0.05,-0.9,0.2], r:0.28, ry:true, in:true });
+    s.fl.push({ p:[[-0.6,-0.9,0.4],[-0.1,-0.9,0.2],[0.3,-0.9,0.0],[0.6,-0.9,-0.1]], c:C.blue, n:6, sp:0.5 },
+              { p:[[0.6,-0.85,-0.1],[0.3,-0.85,0.0],[-0.1,-0.85,0.2],[-0.6,-0.85,0.4]], c:C.red, n:6, sp:0.5 });
+  }
+  if (_comPda) {
+    const pd = [[0.55,2.1,-0.45],[0.75,2.35,-0.4],[0.9,2.6,-0.35]];
+    s.ex.push({ t:'tube', p:pd, r:0.12, c:C.orange });
+    s.fl.push({ p:pd, c:C.red, n:4, sp:0.5 }, { p:pd.slice().reverse(), c:C.blue, n:4, sp:0.5 });
   }
   return s;
 }
@@ -92327,32 +92363,47 @@ function tga3dSync() {
   const cvh = document.getElementById('tga-3d-cv');
   const txt = (id, s) => { const e = document.getElementById(id); if (e) e.textContent = s };
   const ej = tgaEjes();
-  /* La vista de referencia manda sobre el dato, y es lo unico que puede dibujar sin dato. */
-  const anat = _tga3d.ref ? 'norm' : ej.anat;
-  /* ⚠️ SIN TIPO DE TRANSPOSICION CARGADO NO SE DIBUJA, que es lo que la orden pide. Y tampoco se
-     carga la libreria: un acordeon abierto por curiosidad no tiene que bajar 600 KB. */
-  if (!anat) {
-    if (ctrl) ctrl.style.display = 'none';
-    if (leg) leg.style.display = 'none';
-    if (cvh) cvh.style.height = '0px';
-    ['tga-3d-circ', 'tga-3d-txt', 'tga-3d-ref', 'tga-3d-estado'].forEach(i => txt(i, ''));
-    if (av) av.textContent = 'Elegí el tipo de transposición para ver el diagrama, '
-      + 'o tocá «Corazón normal (referencia)» para ver el corazón normal.';
-    tga3dNormBtnSync();
-    return;
-  }
+  /* ══ SIN TIPO CARGADO SE DIBUJA EL CORAZON NORMAL — «CONG-2A», commit 3c (31/10/2026) ═══════
+     DECISION DEL MEDICO: el 3D es SIEMPRE el de un corazon normal y se adapta a lo que se marque
+     en el tipo. Hasta hoy, sin tipo, la caja no dibujaba nada y pedia elegir uno.
+     ⚠️ ES EL MISMO DIBUJO QUE DA EL BOTON «Corazon normal (referencia)», no uno nuevo: la misma
+     anatomia `norm` por el mismo `build`. Lo que los separa es si es un DATO.
+     ⚠️ Y POR ESO SE DISTINGUEN TRES ESTADOS Y NO DOS. `_tga3d.ref` es el boton: una vista que
+     declara no ser de este paciente, y que por eso va SIN sus comunicaciones y SIN «Incluir en el
+     PDF». `_sinTipo` es el corazon normal por omision: tampoco es un dato —nadie dijo que este
+     paciente tenga el corazon normal—, asi que «Incluir en el PDF» tampoco aplica, pero SI lleva
+     las comunicaciones cargadas, porque ahi no se esta afirmando que no haya ninguna. Y con el
+     tipo cargado el dibujo es el dato. Los tres los decide esta funcion y nadie mas.
+     ⚠️ LA LIBRERIA AHORA SE BAJA AL ABRIR LA SECCION, aunque no haya tipo. Era inevitable: sin
+     ella no hay corazon normal que mostrar. La decision del medico de la TGA-1 —«solo al abrir la
+     seccion de la TGA»— se cumple igual: sigue colgada de `_tga3dVisible()`, que pregunta por la
+     clase `open` del acordeon, asi que la pestania abierta sin la seccion no baja nada. */
+  const _sinTipo = !_tga3d.ref && !ej.anat;
+  const anat = (_tga3d.ref || _sinTipo) ? 'norm' : ej.anat;
   if (!_tga3d.listo) {
     if (!_tga3dVisible()) return;          /* la seccion esta plegada: no se carga nada */
-    if (_tga3d.fallo) return;              /* ya aviso; no se reintenta en cada tecla */
+    /* ⚠️ MIENTRAS NO HAY DIBUJO, EL LIENZO SE ESCONDE — commit 3b. Antes esta rama le ponia
+       `height:0px`, y el lienzo lleva `min-height:40px` en linea, que GANA: el host informaba
+       40 px de alto con un canvas de 420 adentro y sin `overflow`, asi que el canvas quedaba
+       SUELTO. Medido en los cuatro anchos: desbordaba su tarjeta por 363 px y pisaba la fila
+       «Conclusion» por 340. Es el defecto que el medico vio. Con `display:none` el canvas no
+       tiene caja, y el `overflow:hidden` del lienzo es la segunda red. */
+    if (ctrl) ctrl.style.display = 'none';
+    if (leg) leg.style.display = 'none';
+    if (cvh) cvh.style.display = 'none';
+    ['tga-3d-circ', 'tga-3d-txt', 'tga-3d-ref', 'tga-3d-estado'].forEach(i => txt(i, ''));
+    if (_tga3d.fallo) { tga3dNormBtnSync(); return }   /* ya aviso; no se reintenta en cada tecla */
     tga3dBoot();
+    tga3dNormBtnSync();
     return;
   }
   if (av) av.textContent = '';
   if (ctrl) ctrl.style.display = 'flex';
   if (leg) leg.style.display = 'flex';
-  if (cvh) cvh.style.height = '';
+  if (cvh) { cvh.style.display = ''; cvh.style.height = ''; }
   const sh = _tga3d.ref ? { asd:false, vsd:false, pda:false } : tga3dComs();
-  const cir = _tga3d.ref ? '' : ej.cir;
+  /* Sin tipo la cirugia no se dibuja: no hay anatomia de transposicion sobre la que aplicarla. */
+  const cir = (_tga3d.ref || _sinTipo) ? '' : ej.cir;
   if (_tga3d.api) { try { _tga3d.api.resize(); _tga3d.api.build(anat, cir, sh) }
                     catch (e) { console.error('[TGA 3D] build:', e) } }
   const k = _tga3dClave(anat, cir);
@@ -92365,6 +92416,15 @@ function tga3dSync() {
      mismo que afirmar que el paciente no se operó. */
   const est = [];
   if (_tga3d.ref) est.push('Vista de referencia: corazón normal. No es un dato de este paciente.');
+  /* ⚠️ EL TEXTO LO DICE, que es lo que la orden pide: sin el, un corazon normal dibujado se leeria
+     como el hallazgo de este estudio. Y nombra el campo que lo cambia. */
+  else if (_sinTipo) {
+    est.push('Corazón normal: no hay un tipo de transposición cargado, así que el dibujo todavía '
+           + 'no describe a este paciente. Elegí el tipo para que se adapte.');
+    const c0 = [];
+    if (sh.asd) c0.push('CIA o FOP'); if (sh.vsd) c0.push('CIV'); if (sh.pda) c0.push('DAP');
+    if (c0.length) est.push('Comunicaciones cargadas: ' + c0.join(', ') + '.');
+  }
   else {
     if (ej.cirDeTipo) est.push('Cirugía: switch auricular, por el tipo cargado.');
     else if (ej.cir) est.push('Cirugía: ' + (TGA_CIR_LBL[ej.cir] || ej.cir) + '.');
@@ -92442,6 +92502,17 @@ window.tga3dNormToggle = tga3dNormToggle;
    `esqClave`.
    ⚠️ LA VISTA DE REFERENCIA NO SE PUEDE INCLUIR. Un corazon normal dentro del informe FIRMADO de
    un paciente con transposicion se lee como el hallazgo del estudio. */
+/* ⚠️ Y TAMPOCO EL CORAZON NORMAL POR OMISION — «CONG-2A», commit 3c (31/10/2026). El commit 3c
+   dibuja el corazon normal cuando no hay tipo cargado, y ese dibujo tampoco es un dato: nadie
+   dijo que este paciente tenga el corazon normal. `_tga3dEsDato()` es el dueno UNICO de la
+   pregunta y lo consultan los DOS gates —el `disabled` del boton y el cuerpo de
+   `tga3dIncluirPDF`—, porque romper uno solo lo tapa el otro. Preguntar `_tga3d.ref` en cada
+   lugar, como hasta hoy, dejaba entrar el corazon normal sin tipo al PDF FIRMADO. */
+function _tga3dEsDato() {
+  if (_tga3d.ref) return false;
+  try { return !!tgaEjes().anat } catch (e) { return false }
+}
+window._tga3dEsDato = _tga3dEsDato;
 const TGA3D_PDF_TXT = Object.freeze({ on:'✓ Incluido en el PDF', off:'📄 Incluir en el PDF' });
 function tga3dPdfBtnSync() {
   const b = document.getElementById('tga-3d-pdf');
@@ -92451,16 +92522,20 @@ function tga3dPdfBtnSync() {
   b.classList.toggle('btn-primary', !!on);
   b.classList.toggle('btn-ghost', !on);
   b.setAttribute('aria-pressed', on ? 'true' : 'false');
-  b.disabled = !!_tga3d.ref;
-  b.title = _tga3d.ref ? 'La vista de referencia no se incluye en el informe'
-                       : (on ? 'Quitar el dibujo del PDF' : 'Incluir el dibujo en el PDF');
+  const _dato = _tga3dEsDato();
+  b.disabled = !_dato;
+  b.title = !_dato ? (_tga3d.ref ? 'La vista de referencia no se incluye en el informe'
+                                 : 'El corazón normal no se incluye en el informe: elegí el tipo de transposición')
+                   : (on ? 'Quitar el dibujo del PDF' : 'Incluir el dibujo en el PDF');
 }
 window.tga3dPdfBtnSync = tga3dPdfBtnSync;
 function tga3dIncluirPDF() {
   const est = document.getElementById('tga-3d-estado');
-  if (_tga3d.ref) {
-    if (est) est.textContent = ' La vista de referencia no se incluye en el informe: es un corazón normal, no este paciente.';
-    return Promise.resolve({ ok:false, motivo:'vista de referencia' });
+  if (!_tga3dEsDato()) {
+    if (est) est.textContent = _tga3d.ref
+      ? ' La vista de referencia no se incluye en el informe: es un corazón normal, no este paciente.'
+      : ' El corazón normal no se incluye en el informe: elegí el tipo de transposición de este paciente.';
+    return Promise.resolve({ ok:false, motivo: _tga3d.ref ? 'vista de referencia' : 'sin tipo cargado' });
   }
   if (typeof esqEstaIncluido === 'function' && esqEstaIncluido('tga3d')) {
     esqQuitarDelPDF('tga3d');
