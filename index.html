@@ -62522,6 +62522,16 @@ window.popConclSync = popConclSync;
 /* Duración de un latido del dibujo, en milisegundos. NO es la frecuencia cardíaca del paciente
    —esa no entra en este trabajo— : es la velocidad a la que el esquema se ve bien. */
 const POP_ESQ_PER_MS = 1700;
+/* Las dos siluetas del pulmon, en un solo lugar: las dibuja `popEsqMontar` y las recorta el
+   `clipPath` del nivel de liquido pleural (POP-B-5c). */
+const POP_ESQ_LUNG_D = 'M90 84 C68 76 36 98 28 138 C20 180 26 226 46 254 C60 270 82 264 90 248 C95 206 95 130 90 84 Z';
+const POP_ESQ_LUNG_I = 'M100 84 C122 76 154 98 162 138 C170 180 164 226 144 254 C130 270 108 264 100 248 C95 206 95 130 100 84 Z';
+/* La base del liquido y su altura por grado, en unidades del `viewBox`. El pulmon va de y 76 a
+   y 270, asi que un derrame severo ocupa poco mas de un tercio de su alto. «ausente» y el campo
+   vacio no dibujan nada: no es lo mismo «no hay derrame» que «no se evaluo», y en el dibujo las
+   dos se ven igual porque no hay nada que dibujar. El TEXTO si las distingue. */
+const POP_ESQ_PLEURA_BASE = 268;
+const POP_ESQ_PLEURA_H = Object.freeze({ leve: 22, moderado: 44, severo: 72 });
 function popEsquema() {
   const r = popPatron();
   const sv2 = id => { const e = document.getElementById(id); return e ? e.value : ''; };
@@ -62694,8 +62704,17 @@ function popEsqMontar() {
   if (!svg || _popEsq.montado) return !!svg;
   const n = {};
   /* ── PULMONES, TRÁQUEA Y BRONQUIOS ── Dibujo clásico, el de la demo aprobada. */
-  n.lungR = _popEsqNodo('path', { d:'M90 84 C68 76 36 98 28 138 C20 180 26 226 46 254 C60 270 82 264 90 248 C95 206 95 130 90 84 Z', 'stroke-width':1.5 }, svg);
-  n.lungL = _popEsqNodo('path', { d:'M100 84 C122 76 154 98 162 138 C170 180 164 226 144 254 C130 270 108 264 100 248 C95 206 95 130 100 84 Z', 'stroke-width':1.5 }, svg);
+  n.lungR = _popEsqNodo('path', { d: POP_ESQ_LUNG_D, 'stroke-width':1.5 }, svg);
+  n.lungL = _popEsqNodo('path', { d: POP_ESQ_LUNG_I, 'stroke-width':1.5 }, svg);
+  /* ⚠️ EL NIVEL DE LIQUIDO SE RECORTA CON LA MISMA RUTA QUE DIBUJA EL PULMON (POP-B-5c), no con
+     una copia: un rectangulo dentro de un `clipPath` con la silueta del pulmon se ve solo donde
+     hay pulmon, asi que el liquido queda con la forma de la base y no como un bloque. Con dos
+     rutas escritas aparte, el dia que el dibujo del pulmon se retoque el liquido se sale. */
+  const _defs = _popEsqNodo('defs', {}, svg);
+  [['pop-esq-clipD', POP_ESQ_LUNG_D], ['pop-esq-clipI', POP_ESQ_LUNG_I]].forEach(function (c) {
+    const cp = _popEsqNodo('clipPath', { id: c[0] }, _defs);
+    _popEsqNodo('path', { d: c[1] }, cp);
+  });
   ['M30 146 Q62 150 92 160','M36 192 Q64 196 92 226','M160 150 Q130 170 100 214'].forEach(function (d) {
     _popEsqNodo('path', { d:d, fill:'none', stroke:'var(--border)', 'stroke-width':1 }, svg); });
   const traquea = _popEsqVaso(svg, 'M95 14 L95 66'); traquea.set(9);
@@ -62711,19 +62730,31 @@ function popEsqMontar() {
   /* Las marcas `data-pop-esq` las agrega el POP-V2-4 para que una sonda pueda preguntar por un
      nodo del dibujo por su NOMBRE y no por su posicion en el SVG: con 68 hijos, contar indices
      es una medicion que se rompe al agregar cualquier cosa. */
-  n.plR = _popEsqNodo('ellipse', { 'data-pop-esq':'pleuraD', cx:58, cy:252, rx:22, ry:11, fill:'var(--accent2)',
-    'fill-opacity':0.22, stroke:'var(--accent2)', 'stroke-width':1.5, display:'none' }, svg);
-  n.plL = _popEsqNodo('ellipse', { 'data-pop-esq':'pleuraI', cx:132, cy:252, rx:22, ry:11, fill:'var(--accent2)',
-    'fill-opacity':0.22, stroke:'var(--accent2)', 'stroke-width':1.5, display:'none' }, svg);
+  /* ══ EL DERRAME PLEURAL ES UN NIVEL DE LIQUIDO (POP-B-5c, 01/11/2026) ══════════════════
+     Era una elipse de 44 x 22 px, LA MISMA para leve, moderado y severo -medido-, con el grado
+     escrito al lado en un rotulo que se montaba encima de «AP 100/50». Hoy es un nivel que sube
+     con el grado y NO lleva texto encima: el grado se lee en «Caracteristicas del esquema»,
+     que ya trae la fila «Pulmones y pleura» con los dos lados y su grado.
+     ⚠️ CONSERVAN SU MARCA `pleuraD` / `pleuraI`, y no es un detalle: dos casos de la suite
+     preguntan por el `display` de esos nodos para saber si el derrame se dibuja, y la pregunta
+     sigue siendo la misma aunque la forma cambie.
+     El color es el de «liquido» que esta app ya usa en este dibujo -`--accent2`, el del balon,
+     el del ECMO y el de las lineas B-, con mas opacidad que la elipse porque un nivel grande con
+     0,22 se confundia con el tinte del propio pulmon. */
+  n.plR = _popEsqNodo('rect', { 'data-pop-esq':'pleuraD', x:20, width:80, fill:'var(--accent2)',
+    'fill-opacity':0.34, 'clip-path':'url(#pop-esq-clipD)', display:'none' }, svg);
+  n.plL = _popEsqNodo('rect', { 'data-pop-esq':'pleuraI', x:90, width:80, fill:'var(--accent2)',
+    'fill-opacity':0.34, 'clip-path':'url(#pop-esq-clipI)', display:'none' }, svg);
   n.bl = [];
   for (let i = 0; i < 4; i++) {
     n.bl.push([_popEsqNodo('line', { 'data-pop-esq':'lineaB', x1:38+i*8, y1:196, x2:38+i*8, y2:232, stroke:'var(--accent2)', 'stroke-width':2, display:'none' }, svg),
                _popEsqNodo('line', { 'data-pop-esq':'lineaB', x1:126+i*8, y1:196, x2:126+i*8, y2:232, stroke:'var(--accent2)', 'stroke-width':2, display:'none' }, svg)]);
   }
-  /* ⚠️ UNA SOLA LÍNEA PARA LOS DOS LADOS. Con un rótulo centrado debajo de cada pulmón, el del
-     lado derecho —que empieza en x 58— se salía del `viewBox` por la izquierda y se veía
-     cortado: «rrame D moderado». Visto en la captura. */
-  n.plT = _popEsqTexto(svg, 12, 282, '', 13, 500, 'start', 'var(--text2)');
+  /* ⚠️ ACA VIVIA EL ROTULO DEL DERRAME PLEURAL, Y SALE (POP-B-5b). Medido en el arbol de POP-A:
+     «derrame pleural D moderado · I severo» mide 237 px desde x 12 y se montaba 61 x 12 px
+     encima de «AP 100/50», que es el rotulo de la arteria pulmonar. El dato no se pierde: el
+     grado por lado esta en la fila «Pulmones y pleura» de «Caracteristicas del esquema», y
+     ahora el dibujo lo dice con la ALTURA del nivel de liquido. */
   /* ── LOS CAÑOS ── */
   n.pa = _popEsqVaso(svg, 'M340 257 L146 257');
   n.pv = _popEsqVaso(svg, 'M166 160 L238 160 L238 118 L408 118 L408 172'); n.pv.set(7);
@@ -62739,49 +62770,49 @@ function popEsqMontar() {
   n.ecmoVV = _popEsqNodo('path', { 'data-pop-esq':'ecmovv', d:'M284 340 L262 340 L262 200 L300 200',
     fill:'none', stroke:'var(--accent2)', 'stroke-width':3, 'stroke-dasharray':'8 6',
     display:'none' }, svg);
-  _popEsqTexto(svg, 530, 48, 'Aorta', 16, 500);
-  _popEsqTexto(svg, 292, 348, 'Vena cava', 15, 500, 'start', 'var(--text2)');
+  _popEsqTexto(svg, 530, 48, 'Aorta', 14, 500);
+  _popEsqTexto(svg, 292, 348, 'Vena cava', 12, 500, 'start', 'var(--text2)');
   /* ⚠️ DOS LINEAS CORTAS Y NO UNA LARGA. Entre el borde del pulmon y el ventriculo derecho hay
      unas ochenta unidades de ancho: «arteria pulmonar · PAP 52/26 · media 35» en una sola linea
      se metia debajo del VD por un lado y encima del pulmon por el otro. El texto completo vive
      en el cuadro pulmonar y en el equivalente en texto. */
-  n.paT = _popEsqTexto(svg, 220, 278, '', 13, 500, 'middle', 'var(--text2)');
-  n.pcpT = _popEsqTexto(svg, 323, 106, '', 15, 500, 'middle', 'var(--text2)');
-  n.ecmoT = _popEsqTexto(svg, 430, 382, 'ECMO VA', 15, 500, 'middle', 'var(--accent2)');
+  n.paT = _popEsqTexto(svg, 220, 278, '', 12, 500, 'middle', 'var(--text2)');
+  n.pcpT = _popEsqTexto(svg, 323, 106, '', 12, 500, 'middle', 'var(--text2)');
+  n.ecmoT = _popEsqTexto(svg, 430, 382, 'ECMO VA', 12, 500, 'middle', 'var(--accent2)');
   n.ecmoT.setAttribute('display', 'none');
-  n.ecmoVVT = _popEsqTexto(svg, 256, 196, 'ECMO VV', 15, 500, 'end', 'var(--accent2)');
+  n.ecmoVVT = _popEsqTexto(svg, 256, 196, 'ECMO VV', 12, 500, 'end', 'var(--accent2)');
   n.ecmoVVT.setAttribute('display', 'none');
-  n.drogT = _popEsqTexto(svg, 330, 408, '', 15, 400, 'middle', 'var(--text2)');
-  n.vcT = _popEsqTexto(svg, 292, 366, '', 14, 400, 'start', 'var(--text2)');
+  n.drogT = _popEsqTexto(svg, 330, 408, '', 12, 400, 'middle', 'var(--text2)');
+  n.vcT = _popEsqTexto(svg, 292, 366, '', 12, 400, 'start', 'var(--text2)');
   /* ── CUADRO PULMONAR ── Gradiente transpulmonar y resistencia vascular pulmonar. */
   n.pbox = _popEsqNodo('rect', { x:10, y:292, width:178, height:80, rx:8, 'stroke-width':1.5 }, svg);
-  n.pb1 = _popEsqTexto(svg, 18, 312, '', 15, 500, 'start');
-  n.pb2 = _popEsqTexto(svg, 18, 330, '', 13, 400, 'start', 'var(--text2)');
+  n.pb1 = _popEsqTexto(svg, 18, 312, '', 13, 500, 'start');
+  n.pb2 = _popEsqTexto(svg, 18, 330, '', 12, 400, 'start', 'var(--text2)');
   n.pb3 = _popEsqTexto(svg, 18, 347, '', 12, 400, 'start', 'var(--text2)');
-  n.pb4 = _popEsqTexto(svg, 18, 364, '', 13, 500, 'start', 'var(--text2)');
+  n.pb4 = _popEsqTexto(svg, 18, 364, '', 12, 500, 'start', 'var(--text2)');
   /* El rótulo de los pulmones va ARRIBA Y A LA IZQUIERDA: debajo quedaba pegado al cuadro
      pulmonar y se leía como su cuarta línea. */
-  _popEsqTexto(svg, 95, 390, 'Pulmones', 16, 500);
+  _popEsqTexto(svg, 95, 390, 'Pulmones', 14, 500);
   /* ── PERICARDIO ── El anillo exterior es el derrame; el punteado es el saco. */
   n.effo = _popEsqNodo('rect', { x:248, y:92, width:248, height:244, rx:34, fill:'none',
     stroke:'var(--red)', opacity:0.6, 'stroke-width':0 }, svg);
   _popEsqNodo('rect', { x:256, y:100, width:232, height:228, rx:30, fill:'none',
     stroke:'var(--border)', 'stroke-width':1, 'stroke-dasharray':'6 4' }, svg);
-  n.effT = _popEsqTexto(svg, 372, 84, '', 14, 500, 'middle', 'var(--red)');
+  n.effT = _popEsqTexto(svg, 372, 84, '', 12, 500, 'middle', 'var(--red)');
   /* ── LAS CUATRO CAVIDADES ── Cuadradas y pegadas, como la demo aprobada. */
   n.rAD = _popEsqNodo('rect', { rx:10, 'stroke-width':1.5 }, svg);
   n.rAI = _popEsqNodo('rect', { rx:10, 'stroke-width':1.5 }, svg);
   n.rVD = _popEsqNodo('rect', { rx:10, 'stroke-width':1.5 }, svg);
   n.rVI = _popEsqNodo('rect', { rx:10, 'stroke-width':1.5 }, svg);
   n.sep = _popEsqNodo('path', { fill:'none', stroke:'var(--text2)', 'stroke-width':2.5 }, svg);
-  n.tAD = _popEsqTexto(svg, 0, 0, 'AD', 17, 500);
-  n.tAI = _popEsqTexto(svg, 0, 0, 'AI', 17, 500);
-  n.tVD = _popEsqTexto(svg, 0, 0, 'VD', 17, 500);
-  n.tVI = _popEsqTexto(svg, 0, 0, 'VI', 17, 500);
+  n.tAD = _popEsqTexto(svg, 0, 0, 'AD', 14, 500);
+  n.tAI = _popEsqTexto(svg, 0, 0, 'AI', 14, 500);
+  n.tVD = _popEsqTexto(svg, 0, 0, 'VD', 14, 500);
+  n.tVI = _popEsqTexto(svg, 0, 0, 'VI', 14, 500);
   /* ── BALÓN DE CONTRAPULSACIÓN ── */
   n.balon = _popEsqNodo('ellipse', { 'data-pop-esq':'balon', cx:570, cy:215, rx:3, ry:34, fill:'var(--accent2)',
     'fill-opacity':0.22, stroke:'var(--accent2)', 'stroke-width':1.5, display:'none' }, svg);
-  n.balonT = _popEsqTexto(svg, 570, 262, 'Balón', 15, 500, 'middle', 'var(--accent2)');
+  n.balonT = _popEsqTexto(svg, 570, 262, 'Balón', 12, 500, 'middle', 'var(--accent2)');
   n.balonT.setAttribute('display', 'none');
   /* ══ EL IMPELLA, CON UNA HELICE QUE GIRA ══ Cruza la valvula aortica desde el ventriculo
      izquierdo hacia la aorta: por eso su cuerpo se dibuja ENCIMA del VI y su salida apunta a la
@@ -62798,20 +62829,26 @@ function popEsqMontar() {
     'stroke-width':2.5, 'stroke-linecap':'round' }, n.prop);
   _popEsqNodo('line', { x1:461, y1:251, x2:461, y2:263, stroke:'var(--accent2)',
     'stroke-width':2.5, 'stroke-linecap':'round' }, n.prop);
-  n.impT = _popEsqTexto(svg, 434, 282, 'Impella', 15, 500, 'middle', 'var(--accent2)');
+  n.impT = _popEsqTexto(svg, 434, 282, 'Impella', 12, 500, 'middle', 'var(--accent2)');
   n.impT.setAttribute('display', 'none');
   /* ── CURVA DE PRESIÓN ARTERIAL ── */
+  /* ⚠️ LOS TRES ROTULOS DE ESTA FILA SE MONTABAN UNO SOBRE OTRO (POP-B-5b), medido en el arbol
+     de POP-A: «Presión arterial» x «aumento diastólico (timing verificado)» 35 x 17 px, y ese
+     ultimo x «PAM 78 mmHg · medida (Swan-Ganz)» 25 x 17 px. Tres etiquetas de 14 px en una fila
+     de 560 unidades no entran. Hoy van a 12 px, el timing se corre al centro del recuadro
+     -x 300 en vez de 218- y la PAM publica SOLO su valor: su FUENTE esta en la fila «Presión
+     arterial» de «Caracteristicas del esquema», que la dice entera. */
   _popEsqNodo('rect', { x:20, y:414, width:560, height:72, rx:8, fill:'var(--bg2)',
     stroke:'var(--border)', 'stroke-width':1 }, svg);
-  _popEsqTexto(svg, 28, 434, 'Presión arterial', 14, 400, 'start', 'var(--text2)');
+  _popEsqTexto(svg, 28, 434, 'Presión arterial', 12, 400, 'start', 'var(--text2)');
   n.wave = _popEsqNodo('path', { fill:'none', stroke:'var(--text)', 'stroke-width':1.8,
     'stroke-linejoin':'round' }, svg);
   n.cur = _popEsqNodo('line', { x1:140, y1:420, x2:140, y2:482, stroke:'var(--accent2)',
     'stroke-width':1.5 }, svg);
-  n.augT = _popEsqTexto(svg, 218, 434, 'aumento diastólico', 14, 500, 'middle', 'var(--accent2)');
+  n.augT = _popEsqTexto(svg, 300, 434, 'aumento diastólico', 12, 500, 'middle', 'var(--accent2)');
   n.augT.setAttribute('data-pop-esq', 'timing');
   n.augT.setAttribute('display', 'none');
-  n.pamT = _popEsqTexto(svg, 572, 434, '', 14, 500, 'end', 'var(--text2)');
+  n.pamT = _popEsqTexto(svg, 572, 434, '', 12, 500, 'end', 'var(--text2)');
 
   _popEsq.n = n;
   _popEsq.montado = true;
@@ -62849,6 +62886,11 @@ function _popEsqGeo(d) {
   o.aoW = d.rvs === null ? 13 : _popEsqLerp(20, 7, _popEsqClamp((d.rvs - 500) / 1100));
   o.paW = d.papm === null ? 9 : _popEsqLerp(7, 15, _popEsqClamp((d.papm - 12) / 30));
   o.nb = d.lineasB === 'difusas' ? 4 : d.lineasB === 'focales' ? 2 : 0;
+  /* La altura del nivel de liquido por grado. Es GEOMETRIA ILUSTRATIVA, igual que el tamano de
+     las cavidades: no hay fuente que convierta «moderado» en milimetros de pulmon. Lo unico que
+     afirma es el ORDEN -leve < moderado < severo-, que es el dato que el medico cargo. */
+  o.plD = POP_ESQ_PLEURA_H[d.pleD] || 0;
+  o.plI = POP_ESQ_PLEURA_H[d.pleI] || 0;
   return o;
 }
 /* Coloca una cavidad: `f` es su tamaño y `kw`/`kh` el factor del latido. */
@@ -62882,7 +62924,7 @@ function _popEsqOnda(d) {
     return;
   }
   n.wave.setAttribute('stroke-dasharray', '');
-  n.pamT.textContent = 'PAM ' + d.pam.toFixed(0) + ' mmHg' + (d.pamFuente ? ' · ' + d.pamFuente : '');
+  n.pamT.textContent = 'PAM ' + d.pam.toFixed(0) + ' mmHg';
   const ic = d.ic === null ? 2.5 : d.ic;
   const PP = _popEsqClamp(20 + 14 * (ic - 2), 14, 60);
   const D = d.pam - PP / 3, S = D + PP, N = D + 0.62 * PP;
@@ -62930,12 +62972,14 @@ function _popEsqEstatico(d, g) {
     const on = i < g.nb ? 'inline' : 'none';
     n.bl[i][0].setAttribute('display', on); n.bl[i][1].setAttribute('display', on);
   }
-  const LBL = { leve:'leve', moderado:'moderado', severo:'severo', ausente:'' };
-  n.plR.setAttribute('display', (d.pleD && d.pleD !== 'ausente') ? 'inline' : 'none');
-  n.plL.setAttribute('display', (d.pleI && d.pleI !== 'ausente') ? 'inline' : 'none');
-  const _ple = [(d.pleD && LBL[d.pleD]) ? 'D ' + LBL[d.pleD] : '',
-                (d.pleI && LBL[d.pleI]) ? 'I ' + LBL[d.pleI] : ''].filter(Boolean).join(' · ');
-  n.plT.textContent = _ple ? 'derrame pleural ' + _ple : '';
+  /* El nivel de liquido: se dibuja desde la base del pulmon hacia arriba, con la altura que le
+     da su grado (POP-B-5c). Sin grado, o con «ausente», no se dibuja nada. */
+  [[n.plR, g.plD], [n.plL, g.plI]].forEach(function (r2) {
+    if (!r2[1]) { r2[0].setAttribute('display', 'none'); return; }
+    r2[0].setAttribute('display', 'inline');
+    r2[0].setAttribute('y', (POP_ESQ_PLEURA_BASE - r2[1]).toFixed(1));
+    r2[0].setAttribute('height', r2[1].toFixed(1));
+  });
   n.balon.setAttribute('display', d.bcia ? 'inline' : 'none');
   n.balonT.setAttribute('display', d.bcia ? 'inline' : 'none');
   n.augT.setAttribute('display', d.bcia ? 'inline' : 'none');
@@ -62956,7 +63000,15 @@ function _popEsqEstatico(d, g) {
   n.ecmoVVT.setAttribute('display', d.ecmoVV ? 'inline' : 'none');
   n.impG.setAttribute('display', d.impella ? 'inline' : 'none');
   n.impT.setAttribute('display', d.impella ? 'inline' : 'none');
-  n.drogT.textContent = d.drogas.length ? 'Vasoactivos: ' + d.drogas.join(', ') : 'Sin vasoactivos marcados';
+  /* ⚠️ CON MUCHOS FARMACOS LA FRANJA SE SALIA DEL `viewBox` (POP-B-5b). Esta centrada en x 330 y
+     el dibujo mide 600: «Vasoactivos: » mas diez nombres pasa de 900 unidades, o sea que los dos
+     extremos quedaban cortados. Por encima de 92 caracteres se publica el CONTEO y el detalle se
+     lee en la fila «Soporte y vasoactivos» de «Caracteristicas del esquema», que los nombra
+     todos. El limite es de maqueta -92 caracteres a 12 px entran en 560 unidades- y por eso vive
+     acá y no entre las constantes clinicas. */
+  const _dg = d.drogas.length ? 'Vasoactivos: ' + d.drogas.join(', ') : 'Sin vasoactivos marcados';
+  n.drogT.textContent = _dg.length <= 92 ? _dg
+    : 'Vasoactivos: ' + d.drogas.length + ' en curso';
   n.paT.textContent = (d.paps !== null && d.papd !== null)
     ? 'AP ' + d.paps + '/' + d.papd
     : (d.paps !== null ? 'AP sist. ' + d.paps : 'AP —');
@@ -146589,8 +146641,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261101-0625';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793525119648;                 /* eco-build-ms */
+const ECO_BUILD    = '20261101-0633';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793525627062;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -146676,7 +146728,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261101-0625</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261101-0633</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
