@@ -195,10 +195,13 @@ Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la v
 ## Qué es EcoSmart y cómo se trabaja
 
 - App clínica de ecocardiografía en **un solo `index.html`**: HTML + CSS + JS inline, sin build,
-  sin frameworks. Hoy **10,75 MB / 150.960 líneas**, medido con `wc -c` y `wc -l` el 2026-11-01 al
-  cierre de la tanda **MARFAN-1**, sobre el árbol ya sellado (`v20261101-1111`, md5 `05086dab`).
-  El commit de documentación **no vuelve a sellar**, porque no toca `index.html`: el árbol que la
-  suite midió es el mismo que queda commiteado.
+  sin frameworks. Hoy **10,84 MB / 152.233 líneas**, medido con `wc -c` y `wc -l` el 2026-11-02 al
+  cierre de la tanda **POP-C**, sobre el árbol ya sellado (`v20261101-2008`, md5 `747b6597`).
+  ⚠️ **ESE ES EL ÁRBOL QUE LA SUITE MIDIÓ Y EL QUE QUEDÓ COMMITEADO, y por una vez sin asterisco:**
+  la suite corrió DESPUÉS del commit de documentación, con su guarda de md5 confirmando que no
+  cambió durante la corrida. No hay líneas de diferencia que declarar.
+  (Antes: 10,78 MB / 151.374 al cierre de MARFAN-2, sello `v20261101-1540`, md5 `30f48f68`.)
+  (Antes: 10,75 MB / 150.960 al cierre de MARFAN-1, sello `v20261101-1111`, md5 `05086dab`.)
   ⚠️ **Y EL RENGLÓN QUE ESTA TANDA ENCONTRÓ ESTABA DOS CIERRES ATRÁS:** decía «10,67 MB / 149.816
   líneas … `v20261101-0747`, md5 `feddd652`», y el árbol que se abrió traía **`v20261101-0834`**
   con md5 **`b6e61443`**, 10,67 MB y **149.822** líneas. **Medir con `wc -c`, `wc -l` y `md5`
@@ -4916,4 +4919,117 @@ línea: el archivo creció y un informe de auditoría viejo apunta a otro archiv
   transcriptos, la regla de folio comprobada en cuatro hojas y la tabla «Cambios de evidencia»
   de trece filas, `docs/REGISTRO_TANDAS.md` → el bloque de esta tanda, y `docs/PENDIENTES.md` →
   **OCHO** cosas declaradas (**MF1-a** a **MF1-h**).
+  ⚠️ **`congenitas-otros.md` (34.540 B) NO se tocó**, que es lo que la orden pide.
+
+### El posoperatorio terminado, Marfan y el dibujo al PDF — «POP-C» (2026-11-02)
+
+- **ONCE commits, y los DIEZ de código se hicieron enteros.** `4593686` (1) · `afdd4da` (2) ·
+  `7356d94` (3) · `20b164a` (4) · `e14e17a` (5) · `e2a794b` (6) · `3093691` (7) · `8f50dc6` (8)
+  · `4fe6947` (9) · `1e3514e` (10) · `ca97fe2` el de cobertura y documentación. Sello
+  **`v20261101-2008`**, md5 de `index.html` **`747b6597`**. Al empezar, `origin/main` = `HEAD` =
+  **`559ad60`**, el cierre de MARFAN-2, ya publicado, con el pendrive `DISK_IMG` montado.
+  **El push lo corre Maicol: esta tanda tenía orden expresa de NO pushear.**
+  Cierra **POPB-a**, **POPB-d**, **POPB-e**, **POPB-h** y **MF2-a**.
+
+- **EL DEFECTO MÁS GRANDE QUE CERRÓ, EN UNA LÍNEA: el selector del tipo de válvula operada no
+  seguía a Válvulas en NINGUNA de las cuatro** — ni al poner la prótesis, ni al cambiarla, ni al
+  sacarla. El médico lo reportó con una sola; medido con gestos reales, eran las cuatro y en todo
+  gesto. `popCxVSync` tenía **un solo llamador**, `popSync`, y el barrido de espejos lo excluye a
+  propósito porque escribe campos del estudio. **El papel ya leía el dueño**, verificado.
+
+- **LAS DOS FUENTES SE LEYERON EN IMAGEN, Y UNA DIO VUELTA UN PENDIENTE.**
+  **Devereux 2012** (*Am J Cardiol* 2012;110:1189-94) **SÍ está desde el 2026-11-01**: MARFAN-2
+  lo había censado por contenido sobre los 245 PDF y no estaba, y por eso paró el cálculo. Hoy el
+  Z de la raíz se calcula con su Tabla 1.
+  ⚠️ **SU FOLIO DE REVISTA NO ES DERIVABLE Y SE DECLARA:** el PDF es el **manuscrito de autor de
+  NIH-PA**, de catorce hojas, cuyo pie dice «Page N» del manuscrito mientras la revista son seis
+  páginas. Se cita **por hoja con su pie impreso**.
+  **Consenso de Shock Cardiogénico de la SAC 2024**, sección 6.14, hojas 91 a 93 = folios 83 a 85,
+  **folio = hoja − 8** comprobado en tres encabezados. Sus cinco criterios coinciden uno por uno
+  con lo que la orden anticipaba, y el índice cardíaco es **estricto**: «IC < 2,2».
+
+- ⚠️ **EL CORTE DE 21 mm DEL PERICARDIO NO EXISTE: PARADO Y REPORTADO.** La orden pide alinearlo a
+  20 «sólo si el 21 es el corte de gravedad del derrame». Censado: `DPT_VCI_PLETORA_MM` **ya vale
+  20** (Tabla 17, ESC 2025) y `DPT_TAM` también. Los **únicos** 21 mm son la categoría C de la
+  probabilidad de HTP (ESC/ERS 2022), que es **otra guía y otro módulo**, y el código ya declara
+  esa divergencia. No había nada que alinear.
+
+- ⚠️ **EL CORTE DE BAJO GASTO DIVERGE DE HEMODINÁMICA A PROPÓSITO.** `_popIcBanda` usa `< 2,2` y
+  `_icBanda` sigue en `<= 2,2` por la decisión del médico del **21/10/2026**. Esta orden cambia el
+  corte **sólo** en el posoperatorio, así que la divergencia **se declara** — el mismo patrón con
+  que `DPT_VCI_PLETORA_MM` convive con el `vciD > 21` del HTP. **Sólo es observable con el PiCCO**,
+  que el médico tipea: las otras tres fuentes dividen un gasto por la superficie corporal.
+
+- **LA COMPARACIÓN OBLIGATORIA CON LA DEMO v9: 180 de 180 escenarios IDÉNTICOS.** No se comparan
+  píxeles: se **extraen** `valveGeo`, `openFrac` y `plume` del archivo por marcas literales —cada
+  una exigida UNA sola vez, así que si la demo cambia la extracción falla ruidosamente—, se
+  evalúan en una página **en blanco** y se comparan los **números**.
+  ⚠️ **LA TOLERANCIA DE LA PLUMA ES 0,005 INCLUSIVE Y NO ES ARBITRARIA:** la app redondea la ruta
+  a dos decimales y la demo deja el crudo, así que la diferencia máxima **posible** es medio ulp.
+  Seis escenarios caen justo ahí y el `>` estricto los contaba como distintos.
+
+- ⚠️ **LOS TRES AVISOS DE POPB-h, MEDIDOS: `color` NO «cae en negro».** Se **hereda**, así que caía
+  en el texto del tema. Lo que de verdad desaparecía es el fondo pastel, el borde y **el anillo del
+  botón, que no se dibujaba en absoluto** (`box-shadow: none`). El aspecto **no cambia donde ya
+  funcionaba**: `--orange` es lo que `.amilo-root` le asigna a `--amber`.
+
+- **DOS DEFECTOS PROPIOS QUE LA SUITE COMPLETA DESTAPÓ, los dos del commit 9:** las letras E y A
+  del trazado **se superponían y se salían del lienzo**. Nacían sin `display:none` **propio** —un
+  `display:none` en el padre no se hereda al computado del hijo, y `getBBox` sigue devolviendo
+  caja—, así que sin posicionar quedaban las dos en el origen. Lo cazó **TC-585**.
+
+- ⚠️ **DOS HALLAZGOS PREEXISTENTES, DECLARADOS Y NO TOCADOS.** `popEsqArrancar` **no vuelve a
+  arrancar** el bucle del dibujo al reaparecer, porque `popEsqFrame` deja de re-agendarse sin
+  limpiar `_popEsq.rafId` — verificado **idéntico en HEAD byte por byte** (→ POPC-k). Y el botón
+  «Usar este valor» mide **95×30**, heredando el piso táctil que MF2-f ya declara (→ POPC-l).
+  ⚠️ **Y EL DENOMINADOR DEL LATIDO ES `visible`, NO `rafId`:** el id viejo da un **falso «sí»**
+  mientras `popEsqFrame(0)` deja todo en la fase cero. Costó una corrida.
+
+- **Línea base al cierre: suite 610/615**, en doce lotes **cubriendo los 615 casos distintos**
+  —contados nombre por nombre, con una guarda que compara el total con los distintos—, en UNA sola
+  pasada sobre el árbol sellado **y commiteado**, con el pendrive `DISK_IMG` **verificado al abrir,
+  en los DOCE lotes y al cerrar**, **615 de 615 ejecutados** y el md5 de `index.html` **idéntico**
+  antes y después (`747b6597`). Los rojos son **TC-223, TC-376, TC-390 y TC-406**, los cuatro de
+  siempre, más **TC-557**, el intermitente que `TGA-h` declara: **corrido aislado pasa a la
+  segunda**, verificado. **Ningún rojo nuevo.**
+  ⚠️ **Y LA PRIMERA CORRIDA COMPLETA DIO OCHO ROJOS MÁS, LOS OCHO MÍOS** —TC-253, TC-534, TC-535,
+  TC-548, TC-559, TC-562, TC-585 y TC-588—, y por eso esa cifra no es la línea base. Los ocho son
+  casos viejos que afirmaban el comportamiento anterior, cinco de ellos **el día que ellos mismos
+  anunciaban**; están adaptados, invertidos donde correspondía.
+  ⚠️ **Y EL ARNÉS DE LOTES CONTABA UNO DE MENOS:** `wc -l` sobre un volcado que no termina en
+  salto. Los 615 **sí** corrían —`sed` toma hasta el final— pero el contador decía 614. Corregido
+  con `grep -c .` y una guarda que compara el total con los distintos.
+
+- **31/31 MUTACIONES DIRIGIDAS MUERTAS**, en worktree y nunca sobre el vivo, con guarda de md5
+  antes y después. **Siete de las treinta y una no revierten nada: la aplican de más.**
+  ⚠️ **Dos sobrevivieron al primer barrido y las dos eran cobertura que faltaba**, una de ellas en
+  dos pasos: los chorros son **pulsátiles** y una foto cae en un instante al azar del ciclo.
+
+- **Semgrep 124 WARNING / 0 ERROR**, la línea base. **Excel 441** columnas con las mismas claves en
+  las 136 escenas. **Campos guardados: +1**, `pop_esq_pdf`, el único autorizado. **Sin huérfanos
+  nuevos.** 17 de 19 bloques de JS inline parsean, idéntico a HEAD.
+- **CELULAR: 59 hallazgos a 360 px y 68 a 390, con 17 ALTA en cada ancho** — medido contra HEAD
+  **uno por uno**: idéntico. **No empeoró.**
+- **CHROME Y WEBKIT COINCIDEN EN LOS DIECISÉIS CRUCES** (dos motores × 1440, 1000, 768 y 390 px ×
+  dos temas), **sin una sola diferencia entre motores**: el selector siguiendo al dueño, los dos
+  rótulos de la conclusión, el botón habilitado, los tres avisos resolviendo su color, las
+  válvulas, los catéteres, los trazados y los chorros, el Z en +1.72 con su nota; **cero** errores
+  de consola y de página, **cero** desplazamiento horizontal, **cero** textos recortados y **cero**
+  superposiciones de texto del SVG.
+  ⚠️ **WebKit de Playwright no es Safari, y se declara.** Chrome va por el del sistema.
+- **EL DIBUJO, EN 32 ESCENAS:** cero superposiciones de texto y cero elementos fuera del lienzo.
+- **A/B contra HEAD: 136 escenas, 153.120 claves y 59.976 celdas de Excel. OCHO escenas con
+  diferencia de papel, y las ocho son las autorizadas:** tres de la línea de Marfan, una del corte
+  del índice en el 2,20 exacto y cuatro de «integrar con cualquier dato». Las otras **128 dan
+  cero**, `vacio` y `ajeno` incluidas. El campo nuevo está **vacío en las 136**.
+- **`index.html` pasó de 10,78 MB / 151.374 líneas a 10,84 MB / 152.233** — medido con `wc -c` y
+  `wc -l` DESPUÉS de sellar. (MB de 10⁶.)
+
+- **Dónde está todo:** `docs/mapa/popc-posoperatorio-marfan.md` (**mapa NUEVO**, 19,0 KB), las
+  fichas de los seis casos en `docs/mapa/tests-fichas-595.md` (**archivo propio**), **cuatro mapas
+  con un puntero cada uno** —medidos ANTES de escribir, todos por debajo de 27 KB—,
+  `docs/fuentes/FUENTES.md` → «La tanda POP-C» con las dos fuentes transcritas en imagen, el censo
+  del corte de 21 mm y la tabla «Cambios de evidencia» de ocho filas, `docs/REGISTRO_TANDAS.md` →
+  el bloque de esta tanda, y `docs/PENDIENTES.md` → **DOCE** cosas declaradas (**POPC-a** a
+  **POPC-l**).
   ⚠️ **`congenitas-otros.md` (34.540 B) NO se tocó**, que es lo que la orden pide.
