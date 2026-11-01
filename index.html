@@ -45512,6 +45512,7 @@ const VINFO = Object.freeze({
     intro:
       'Estos criterios NO suman al puntaje sistémico: entran por su cuenta en las siete reglas del Box 1.\n'
     + 'El Z de la raíz es el diámetro en los senos de Valsalva corregido por edad y tamaño corporal. El artículo pide tomar el mayor correctamente medido de al menos tres imágenes transtorácicas, medirlo paralelo al plano de la válvula aórtica y perpendicular al eje del flujo, y usar el método con el que se generaron los datos normativos de ese Z: si no coinciden, el Z no vale (folio 479).\n'
+    + 'El Z se carga a mano y se guarda con el estudio. Z calculado: no disponible (falta la fuente del método). El artículo remite, para el diámetro medido de borde de ataque a borde de ataque en diástole, a las ecuaciones de su referencia 13, que no está en la biblioteca de esta aplicación: sin leerla no se calcula ningún Z.\n'
     + 'Box 1, folio 477; la medición de la raíz, folio 479.\n'
     + 'Loeys BL y cols. The revised Ghent nosology for the Marfan syndrome. J Med Genet 2010;47:476-85.' },
   /* ══ EL GLOBO DE LAS REGLAS («MARFAN-2», 2c y 2d) ═════════════════════════════════════════
@@ -81074,6 +81075,26 @@ function mfsCamposInit() {
   var bs = $('div'); bs.id = 'mfs-bloque-score';
   MFS_SCORE.forEach(function (r) { bs.appendChild(r.t === 'sel' ? filaSel(r) : filaChk(r)); });
   var ba = $('div'); ba.id = 'mfs-bloque-aparte';
+  /* ══ EL Z DE LA RAIZ, CAMPO GUARDADO — «MARFAN-2», 4a (2026-11-02) ════════════════════════
+     Pedido del medico. Hasta MARFAN-1 el Z vivia en la TARJETA, sin `id`, asi que no viajaba
+     con el estudio: sobre un estudio archivado las cuatro reglas que dependen de el quedaban
+     en «sin dato» salvo que hubiera diseccion consignada. Hoy es un campo del estudio, igual
+     que los otros diecinueve: viaja en guardar, reabrir, exportar e importar.
+     ⚠️ VA EN LA GUARDERIA Y NO EN LA TARJETA, por lo mismo que los otros diecinueve:
+     `critAbrir` hace `innerHTML = render()` y un campo que viviera adentro se destruiria al
+     reabrirla -perdiendo lo cargado- y al abrir OTRO panel de criterios.
+     ⚠️ GUION BAJO, QUE ES LO QUE LO HACE GUARDARSE: `_noEsDelEstudio` va por PREFIJO y excluye
+     `mfs-fig-` con guion MEDIO. Verificado contra las listas paralelas.
+     ⚠️ SIN COLUMNA DE EXCEL: `LAB_XLS_MAP` no tiene una sola entrada `mfs_`, igual que los
+     trece rasgos y los seis criterios aparte, asi que las 441 columnas no se mueven. */
+  { var lz = $('label', 'mfs-fila mfs-fila-ancha');
+    lz.appendChild($('span', 'mfs-rot', 'Z de la raíz aórtica'));
+    var iz = document.createElement('input');
+    iz.type = 'number'; iz.id = 'mfs_z_raiz'; iz.step = '0.1';
+    iz.className = 'mfs-sel'; iz.placeholder = 'Z';
+    iz.addEventListener('input', function () { mfsCalc(); });
+    lz.appendChild(iz);
+    ba.appendChild(lz); }
   MFS_APARTE.forEach(function (r) { ba.appendChild(filaApt(r)); });
   /* ⚠️ NO SE VACIA LA GUARDERIA: desde el commit 6 contiene tambien `#mfs-bloque-figura`, que
      es MARCADO ESTATICO con el SVG del maniqui. Un `removeChild` en bucle se lo llevaria y la
@@ -81146,11 +81167,15 @@ window._mfsPrestar = _mfsPrestar; window._mfsDevolver = _mfsDevolver;
    verdadera la condicion sin mirar el Z, y en la regla 7 tampoco mira la edad: una diseccion
    no tiene umbral por el que pasar.
 
-   ⚠️ EL Z NO ES UN CAMPO GUARDADO DE ESTA APLICACION, y esto hay que saberlo antes de leer un
-   estado. El unico Z que la app recoge vive en la tarjeta de criterios y no viaja con el
-   estudio -censado el documento entero-, asi que sobre un estudio ARCHIVADO las reglas que
-   dependen de el quedan en «sin dato (falta el valor del Z)» salvo que haya diseccion
-   consignada. No se calcula ninguno con una formula que la app no tenga (regla R6).
+   ⚠️ EL Z SI ES UN CAMPO GUARDADO DESDE «MARFAN-2» (4a, 2026-11-02), Y ESTO REVIERTE LO QUE
+   ESTE BLOQUE DECIA. Es `mfs_z_raiz`, vive en la guarderia con los otros diecinueve y viaja
+   con el estudio, asi que sobre un estudio ARCHIVADO las reglas 1, 2, 3 y 7 ya concluyen.
+   ⚠️ LO QUE SIGUE SIN EXISTIR ES EL Z CALCULADO. La orden de MARFAN-2 condiciona el calculo
+   automatico a que el articulo de Devereux 2012 este en la biblioteca, y NO ESTA: censados por
+   CONTENIDO los 245 PDF de las 28 carpetas, con control positivo. Y lo que el Loeys cita para
+   el Z leido de borde de ataque a borde de ataque en diastole es su referencia 13 -Roman MJ,
+   Devereux RB, Kramer-Fox R, O'Loughlin J, Am J Cardiol 1989;64:507-12-, que tampoco esta.
+   No se calcula ninguno con una formula que no se haya leido en la hoja (regla R6).
    Queda declarado en `docs/PENDIENTES.md`.
 
    TRES ESTADOS POR CONDICION Y LA REGLA ES EL «Y» DE LAS SUYAS: cualquiera falsa -> no cumple;
@@ -81163,11 +81188,17 @@ window._mfsPrestar = _mfsPrestar; window._mfsDevolver = _mfsDevolver;
 /* El Z de la raiz, leido de la tarjeta; `null` cuando no hay. Con `src` -un estudio
    archivado- NO se consulta la tarjeta: ese Z es del paciente que esta en pantalla y leerlo
    sobre un registro mezclaria dos pacientes. Es la misma regla que `vabFactores` ya aplica. */
+/* ⚠️ EL Z SALE DEL CAMPO GUARDADO DESDE «MARFAN-2» (4a y 4d). Hasta MARFAN-1 se leia de la
+   TARJETA -`#crit-cuerpo [data-mf-z]`, sin id- y con `src` devolvia `null` a proposito, porque
+   ese Z era del paciente en pantalla y leerlo sobre un registro archivado mezclaba dos
+   pacientes. Hoy es un campo del estudio, asi que con `src` se lee del registro, que es lo que
+   hace que las reglas 1, 2, 3 y 7 concluyan sobre un estudio reabierto.
+   ⚠️ NO HAY Z CALCULADO. La orden condiciona el calculo automatico a que el articulo de
+   Devereux 2012 este en la biblioteca, y NO ESTA: censados por CONTENIDO los 245 PDF, con
+   control positivo. El Z efectivo es, por ahora, el manual o nada. Queda en PENDIENTES.md. */
 function mfsZ(src) {
-  if (src) return null;
-  var e = document.querySelector('#crit-cuerpo [data-mf-z]');
-  if (!e) return null;
-  var v = String(e.value || '').trim().replace(',', '.');
+  var raw = src ? src['mfs_z_raiz'] : (document.getElementById('mfs_z_raiz') || {}).value;
+  var v = String(raw === undefined || raw === null ? '' : raw).trim().replace(',', '.');
   if (v === '') return null;
   var n = parseFloat(v);
   return isFinite(n) ? n : null;
@@ -81578,8 +81609,9 @@ function critMarfan(){
     '<div class="mfs-banda-tit"><span>Criterios aparte</span>' +
       '<span class="mfs-sub">(no suman al puntaje)</span>' +
       _g('mfs-aparte', 'Definición de los criterios aparte y del Z de la raíz aórtica') + '</div>' +
-    '<label class="mfs-fila"><span class="mfs-rot">Z de la raíz aórtica</span>' +
-    '<input type="number" data-mf-z step="0.1" class="mfs-sel" placeholder="Z" oninput="mfsCalc()"></label>' +
+    /* ⚠️ EL Z YA NO SE ESCRIBE ACA («MARFAN-2», 4a): es un campo del estudio y vive en la
+       guarderia, como primera fila de los criterios aparte. Un segundo control para el mismo
+       dato seria la segunda puerta que este archivo paga cada vez que la abre. */
     '<div id="mfs-slot-aparte"></div></div>';
   var b3 = '<div class="mfs-banda"><div id="mfs-reglas" class="mfs-reglas"></div></div>';
   /* ⚠️ LA CITA SALIO DEL PIE Y VIVE EN LOS GLOBOS (2d): «la guia, la tabla y el folio viven
@@ -148387,8 +148419,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261101-1111';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793542284113;                 /* eco-build-ms */
+const ECO_BUILD    = '20261101-1426';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793553984024;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -148474,7 +148506,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261101-1111</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261101-1426</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
