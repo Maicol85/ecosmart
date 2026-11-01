@@ -2796,35 +2796,88 @@ html.light-mode #tab-valvulas .sev-lvl3{color:#7f1d1d;}
    oscuro sin una segunda paleta escrita a mano.
    ⚠️ EL PISO TACTIL DE 44 px VA EN LA FILA ENTERA Y NO EN EL CONTROL: la fila es el `<label>`,
    asi que tocar el rotulo tambien marca. Un `min-height` en la casilla sola la agranda y deja
-   el rotulo fuera del area, que es lo que la tanda AJUSTES-3 midio en el panel de Evidencia. */
-.mfs-fila { display:flex; align-items:center; gap:9px; min-height:44px; padding:3px 6px;
-  border-radius:6px; cursor:pointer; font-size:11px; line-height:1.4; }
+   el rotulo fuera del area, que es lo que la tanda AJUSTES-3 midio en el panel de Evidencia.
+
+   ══ LA TARJETA EN UNA SOLA PANTALLA («MARFAN-2», commit 2, 2026-11-02) ══════════════════════
+   Pedido del medico tras probar MARFAN-1: a 1440x900 la tarjeta tiene que entrar SIN scroll
+   interno. Medido en HEAD: el cuerpo medía 1307 px dentro de un `#crit-card` cuyo tope es
+   `calc(100vh - 48px)`, o sea 852 px con el encabezado adentro. Sobraban mas de 450 px.
+
+   ⚠️ EL PISO TACTIL DE 44 px SE CONSERVA DONDE IMPORTA, Y SE ACOTA A `pointer: coarse`. Con el
+   dedo la fila sigue midiendo 44; con el mouse baja a 30, que es lo que deja entrar las
+   veintiuna filas. Es el MISMO recurso y el mismo precedente que `.vinfo-btn` de este archivo
+   -y no el de AJUSTES-3, que quito su media query porque alli habia SOLAPE entre controles
+   vecinos; aca no hay ninguno, el problema es de densidad-. Es `pointer` y NO `any-pointer`:
+   con `any-pointer` una tablet con un mouse conectado perderia el piso para el dedo.
+   PRECIO DECLARADO: en una pantalla tactil de 1440x900 la tarjeta scrollea. La orden pide que
+   entre a 1440x900, que es un escenario de mouse, y admite scroll por debajo de eso. */
+.mfs-fila { display:flex; align-items:center; gap:8px; min-height:30px; padding:2px 6px;
+  border-radius:6px; cursor:pointer; font-size:11px; line-height:1.35; }
+@media (pointer: coarse) { .mfs-fila { min-height:44px; } }
 .mfs-fila:hover { background:var(--bg3); }
 .mfs-rot { flex:1; min-width:0; }
 .mfs-pts { flex:0 0 auto; color:var(--accent2); font-size:11px; }
-.mfs-sel { flex:0 0 auto; max-width:46%; font-size:11px; padding:4px 6px; }
+.mfs-sel { flex:0 0 auto; max-width:60%; font-size:11px; padding:2px 6px; }
+/* ⚠️ EL SELECTOR DE UN CRITERIO APARTE SOLO TIENE «Si», «No» y el guion: ancho fijo y chico,
+   para que el rotulo -que es largo, «Variante de FBN1 con asociacion conocida a dilatacion o
+   diseccion aortica»- se lleve el resto de la celda y no envuelva en cinco renglones. */
+#mfs-bloque-aparte .mfs-sel { flex:0 0 74px; max-width:74px; }
 .mfs-fila-chk input[type=checkbox] { width:18px; height:18px; flex:0 0 auto; }
-.mfs-badge { display:inline-block; font-size:12px; font-weight:700; padding:3px 11px;
-  border-radius:999px; margin-bottom:4px; background:var(--bg3); border-left:3px solid var(--border); }
+.mfs-badge { display:inline-block; font-size:11.5px; font-weight:700; padding:2px 10px;
+  border-radius:999px; background:var(--bg3); border-left:3px solid var(--border); }
 .mfs-badge-on { background:rgba(59,130,246,.12); border-left:3px solid #3B82F6; }
-.mfs-corte { font-size:10.5px; color:var(--text2); margin-bottom:8px; }
-.mfs-msg { margin-top:9px; font-size:11px; font-weight:700; padding:7px 9px; border-radius:7px;
-  line-height:1.5; background:var(--bg3); border-left:3px solid var(--border); }
-.mfs-msg-on { background:rgba(59,130,246,.12); border-left:3px solid #3B82F6; }
+.mfs-msg { font-size:10.5px; font-weight:700; color:var(--text2); }
+.mfs-msg-on { color:var(--accent2); }
 .mfs-aparte-tit { font-size:11.5px; font-weight:700; margin-bottom:6px; }
 .mfs-aparte-tit span { font-weight:400; color:var(--text2); }
-.mfs-nota { margin-top:9px; font-size:10.5px; color:var(--text2); line-height:1.5; }
-.mfs-reglas { margin-top:12px; padding-top:9px; border-top:1px solid var(--border); }
-.mfs-reg { display:flex; flex-wrap:wrap; align-items:baseline; gap:6px; padding:5px 7px;
-  border-radius:6px; margin-bottom:4px; font-size:10.5px; line-height:1.45;
+.mfs-nota { margin-top:4px; font-size:10.5px; color:var(--text2); line-height:1.35; }
+.mfs-reglas { margin-top:0; }
+.mfs-reg { display:flex; align-items:baseline; gap:6px; padding:2px 7px;
+  border-radius:6px; margin-bottom:1px; font-size:10.5px; line-height:1.25;
   background:var(--bg3); border-left:3px solid var(--border); }
 .mfs-reg-cumple { background:rgba(59,130,246,.12); border-left-color:#3B82F6; }
 .mfs-reg-no { opacity:.72; }
-.mfs-reg-est { flex:0 0 auto; font-size:10px; }
-.mfs-reg-txt { flex:1 1 150px; min-width:0; }
-.mfs-reg-por { flex:1 1 100%; color:var(--text2); font-size:10px; }
-.mfs-reg-grupo { font-size:10.5px; font-weight:700; color:var(--accent2); margin:8px 0 4px; }
+.mfs-reg-est { flex:0 0 auto; font-size:10px; font-weight:700; }
+/* ⚠️ UNA REGLA, UNA LINEA (2c). `white-space: nowrap` NO: con el texto de la regla 7 a 390 px
+   el rotulo se saldria de su caja; lo que se pide es que no haya una SEGUNDA fila de motivo
+   debajo de cada regla, y eso lo da el retiro de `.mfs-reg-por`, no un nowrap. */
+.mfs-reg-txt { flex:1 1 auto; min-width:0; }
+.mfs-reg-grupo { font-size:10px; font-weight:700; color:var(--accent2); margin:5px 0 2px; }
 .mfs-nota-fija { font-style:italic; }
+/* La linea UNICA de lo que falta, debajo de las siete reglas. */
+.mfs-falta { margin-top:4px; font-size:10px; color:var(--text2); line-height:1.35; }
+
+/* ══ LAS TRES BANDAS Y LA FIGURA A LA DERECHA («MARFAN-2», commit 2) ════════════════════════
+   La figura se queda donde estaba, a la derecha, y no se le toca una linea de codigo. A la
+   izquierda, las tres bandas apiladas: score arriba, criterios aparte en el medio y reglas
+   abajo. Dentro de cada banda, los rasgos van en DOS columnas.
+   ⚠️ LOS TRES SELECTORES OCUPAN LAS DOS COLUMNAS, Y ES UNA MEDICION, NO ESTILO. Su texto mas
+   largo -«Pectus excavatum o asimetria del torax (1)»- necesita unos 230 px y una celda de dos
+   columnas mide unos 285: con el rotulo al lado, el `<select>` quedaba cortado. Abreviar la
+   opcion NO era la salida: su texto es el que el PAPEL publica cuando la opcion no declara un
+   texto propio, asi que acortarlo habria movido el informe. */
+.mfs-tarj { display:flex; flex-wrap:wrap; gap:12px; align-items:flex-start; }
+.mfs-tarj-izq { flex:1 1 420px; min-width:0; display:flex; flex-direction:column; gap:6px; }
+.mfs-tarj-der { flex:0 0 282px; min-width:0; }
+.mfs-banda { border:1px solid var(--border); border-radius:8px; padding:5px 9px; }
+.mfs-banda-tit { display:flex; flex-wrap:wrap; align-items:center; gap:8px;
+  font-size:11.5px; font-weight:700; color:var(--accent2); margin-bottom:3px; }
+.mfs-banda-tit .mfs-sub { font-weight:400; color:var(--text2); font-size:10.5px; }
+#mfs-bloque-score, #mfs-bloque-aparte {
+  display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:1px 10px; align-items:start; }
+.mfs-fila-ancha { grid-column:1 / -1; }
+/* La fila de un selector no necesita relleno propio ni el piso de 30: su alto lo fija el
+   control, que con el dedo sigue llegando a 44 por la media query de `.mfs-fila`. */
+.mfs-fila-ancha { padding-top:0; padding-bottom:0; min-height:26px; }
+@media (pointer: coarse) { .mfs-fila-ancha { min-height:44px; } }
+.mfs-fila-chk { min-height:24px; }
+@media (pointer: coarse) { .mfs-fila-chk { min-height:44px; } }
+.mfs-reg-cols { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:0 10px;
+  align-items:start; }
+@media (max-width: 760px) {
+  #mfs-bloque-score, #mfs-bloque-aparte, .mfs-reg-cols { grid-template-columns:minmax(0, 1fr); }
+  .mfs-tarj-der { flex:1 1 100%; }
+}
 
 /* ══ LA FIGURA DE MARFAN («MARFAN-1», commit 6) ═══════════════════════════════════════════
    Los colores del maniqui salen de variables propias, declaradas para los DOS temas: los de
@@ -45435,12 +45488,40 @@ const VINFO = Object.freeze({
     + 'Esta aplicación recoge la PRIMERA mitad de esa condición; el estudio genético no se consigna acá.\n'
     + 'Folio 477.' },
   /* ── EL PUNTAJE Y LAS REGLAS ───────────────────────────────────────────────────────────── */
-  'mfs-puntaje': { tit: 'El puntaje sistémico', ancho: 400, lee:
+  /* ══ EL GLOBO DEL SCORE, AGRUPADO POR ZONA DEL CUERPO («MARFAN-2», 2d) ════════════════════
+     Pasa de `lee` a `dyn`: su cuerpo lo arma `_mfsScoreInfo`, que publica este `intro` y
+     DESPUES las trece definiciones leidas de sus propias entradas `mfs-*`, agrupadas en las
+     diez zonas que la orden pide. `intro` y no `lee` a proposito: con `lee` puesto, una clave
+     con `dyn` lo ignora -`_vInfoColocar` toma una rama o la otra- y el texto quedaria escrito
+     sin que nadie lo muestre, que es peor que no tenerlo.
+     Lleva la cita del articulo, que desde esta tanda vive SOLO en los globos y salio del pie
+     de la tarjeta. */
+  'mfs-puntaje': { tit: 'El puntaje sistémico', ancho: 460,
+    dyn: function () { return (typeof _mfsScoreInfo === 'function') ? _mfsScoreInfo() : document.createTextNode(''); },
+    intro:
       'El Box 2 declara un máximo de 20 puntos y lee un puntaje de 7 o más como compromiso sistémico.\n'
     + 'Los trece rasgos y su puntaje salen de ese Box; los tres que tienen alternativa suman una u otra, nunca las dos.\n'
     + 'Tres criterios del Ghent original salieron de esta versión por falta de especificidad: la hipermovilidad articular, el paladar ojival y las hernias recurrentes o incisionales.\n'
-    + 'Box 2, folio 478; los criterios retirados, folio 480.' },
-  'mfs-reglas': { tit: 'Las siete reglas', ancho: 440, lee:
+    + 'Box 2, folio 478; los criterios retirados, folio 480.\n'
+    + 'Loeys BL y cols. The revised Ghent nosology for the Marfan syndrome. J Med Genet 2010;47:476-85.' },
+  /* ══ EL GLOBO DE LOS CRITERIOS APARTE («MARFAN-2», 2d) ═════════════════════════════════════
+     Las seis definiciones salen de sus propias entradas `mfs-*`; lo que este `intro` agrega es
+     el Z: de donde sale y con que metodo. */
+  'mfs-aparte': { tit: 'Los criterios aparte y el Z de la raíz', ancho: 460,
+    dyn: function () { return (typeof _mfsAparteInfo === 'function') ? _mfsAparteInfo() : document.createTextNode(''); },
+    intro:
+      'Estos criterios NO suman al puntaje sistémico: entran por su cuenta en las siete reglas del Box 1.\n'
+    + 'El Z de la raíz es el diámetro en los senos de Valsalva corregido por edad y tamaño corporal. El artículo pide tomar el mayor correctamente medido de al menos tres imágenes transtorácicas, medirlo paralelo al plano de la válvula aórtica y perpendicular al eje del flujo, y usar el método con el que se generaron los datos normativos de ese Z: si no coinciden, el Z no vale (folio 479).\n'
+    + 'Box 1, folio 477; la medición de la raíz, folio 479.\n'
+    + 'Loeys BL y cols. The revised Ghent nosology for the Marfan syndrome. J Med Genet 2010;47:476-85.' },
+  /* ══ EL GLOBO DE LAS REGLAS («MARFAN-2», 2c y 2d) ═════════════════════════════════════════
+     La tarjeta publica el texto BREVE de cada regla; el enunciado completo de las siete vive
+     aca, y sale de `mfsReglas()`, que es su dueno unico: no hay una segunda redaccion que
+     pueda separarse de la primera. `intro` y no `lee`, por lo mismo que el globo del score:
+     una clave con `dyn` ignora `lee`. */
+  'mfs-reglas': { tit: 'Las siete reglas', ancho: 460,
+    dyn: function () { return (typeof _mfsReglasInfo === 'function') ? _mfsReglasInfo() : document.createTextNode(''); },
+    intro:
       'El asterisco de las reglas 1, 3, 6 y 7 pide que no haya rasgos que discriminen un Shprintzen-Goldberg, un Loeys-Dietz ni un Ehlers-Danlos vascular, y que se haya hecho el estudio de TGFBR1/2, la bioquímica del colágeno y COL3A1 cuando esté indicado.\n'
     + 'Para los menores de 20 años SIN historia familiar el artículo agrega una nota: en casos esporádicos estos chicos pueden no encajar en ninguno de los cuatro escenarios. Con rasgos sistémicos insuficientes —menos de 7— o con medidas de la raíz limítrofes —Z menor de 3— y sin mutación de FBN1, propone usar el término «trastorno no específico del tejido conectivo» hasta que el seguimiento ecocardiográfico muestre dilatación de la raíz con Z de 3 o más. Si hay mutación de FBN1 y la raíz sigue por debajo de Z 3, propone «Marfan potencial» hasta que la aorta llegue al umbral.\n'
     + 'Esta aplicación NO publica ninguna de esas dos categorías, y esta nota es informativa: no cambia ningún estado de las reglas.\n'
@@ -77078,7 +77159,7 @@ function marfanSync() {
     b.type = 'button'; b.className = 'vinfo-btn vinfo-btn-44';
     b.setAttribute('data-vinfo', 'mf-conducta'); b.setAttribute('aria-expanded', 'false');
     b.setAttribute('aria-label', 'Guía, tabla, folio y clase del umbral quirúrgico de este síndrome');
-    b.textContent = '\u2139';
+    b.textContent = '\u24D8';
     b.addEventListener('click', function () { if (typeof vInfoClic === 'function') vInfoClic(b); });
     l.appendChild(b); row.appendChild(l);
     row.appendChild(pill(CLS[r.clave] || 'gray', ETQ[r.clave] || '—'));
@@ -80719,6 +80800,133 @@ function mfsAparte(src, clave) {
 }
 window.mfsAparte = mfsAparte;
 
+/* ══ LOS CUATRO GLOBOS DE LA TARJETA — «MARFAN-2», commit 2d (2026-11-02) ════════════════════
+   Eran VEINTIUNO -uno por rasgo, mas el del puntaje y el de las reglas- y pasan a CUATRO: el
+   del score, el de los criterios aparte, el de las reglas y el de la seccion. Decision del
+   medico tras probar MARFAN-1.
+
+   ⚠️ NINGUNA DE LAS DIECINUEVE DEFINICIONES SE PIERDE NI SE REESCRIBE, Y ESO ES POR
+   CONSTRUCCION Y NO POR CUIDADO: siguen siendo las entradas `mfs-*` de `VINFO` -su dueno
+   unico, con su folio-, y estos dos globos las LEEN de ahi. Copiarlas adentro habria sido la
+   segunda version de cada una, que es el defecto que este archivo paga cada vez que lo hace.
+   Por eso tambien «lo que el articulo no define» sigue dicho y sin completar: es el texto
+   original, no una parafrasis de una parafrasis.
+
+   ⚠️ SON DIECINUEVE Y NO DIECIOCHO, que es lo que la orden anticipa: trece rasgos del Box 2
+   mas seis criterios aparte. Contado sobre `MFS_SCORE` y `MFS_APARTE`, que son los duenos.
+
+   LOS DIEZ GRUPOS son los que la orden pide, por zona del cuerpo. */
+var MFS_DEF_GRUPOS = [
+  ['Mano', ['mfs-muneca']],
+  ['Tórax', ['mfs-pectus']],
+  ['Pie', ['mfs-pie']],
+  ['Pulmón, columna y cadera', ['mfs-neumotorax', 'mfs-ectasia', 'mfs-protrusion']],
+  ['Proporciones y columna', ['mfs-proporciones', 'mfs-escoliosis']],
+  ['Codo', ['mfs-codo']],
+  ['Cara', ['mfs-facies']],
+  ['Piel', ['mfs-estrias']],
+  ['Ojo', ['mfs-miopia']],
+  ['Corazón', ['mfs-prolapso']]
+];
+var MFS_DEF_APARTE = [
+  ['Ectopia lentis', ['mfs-ectopia']],
+  ['Historia familiar', ['mfs-historia']],
+  ['Variantes de FBN1', ['mfs-fbn1c', 'mfs-fbn1ao']],
+  ['Raíz aórtica, disección y el Z', ['mfs-diseccion']],
+  ['Otros síndromes', ['mfs-sinotros']]
+];
+
+/* Un parrafo con saltos de linea, por NODOS: el texto trae `\n` y la tarjeta los muestra como
+   renglones, igual que `_vInfoHTML` hace con su `<br>`. Sin `innerHTML`, que es la regla del
+   ruleset local. */
+function _mfsLineas(dest, txt) {
+  String(txt == null ? '' : txt).split('\n').forEach(function (l, i) {
+    if (i) dest.appendChild(document.createElement('br'));
+    dest.appendChild(document.createTextNode(l));
+  });
+}
+/* El cuerpo de un globo agrupado. `titulo` va en el `<h4 id="vinfo-tit">` que la tarjeta
+   espera; `intro` es el texto propio del globo, y los grupos salen de `VINFO`.
+   ⚠️ DEVUELVE UN NODO Y NO UNA CADENA: `_vInfoColocar` hace `appendChild(dyn())`, asi que un
+   `dyn` que devuelva HTML revienta en su `try` y la tarjeta publica «No se pudo construir la
+   tarjeta.». Es la trampa que MARFAN-1 ya pago con el globo de la conducta aortica. */
+function _mfsDefCard(titulo, intro, grupos) {
+  var f = document.createDocumentFragment();
+  var h = document.createElement('h4'); h.id = 'vinfo-tit'; h.textContent = titulo;
+  f.appendChild(h);
+  if (intro) {
+    var d0 = document.createElement('div'); d0.setAttribute('data-vinfo-b', 'lee');
+    var b0 = document.createElement('b'); b0.textContent = 'Cómo se lee';
+    d0.appendChild(b0); _mfsLineas(d0, intro); f.appendChild(d0);
+  }
+  grupos.forEach(function (g) {
+    var d = document.createElement('div'); d.setAttribute('data-vinfo-b', 'grupo');
+    d.style.marginTop = '8px';
+    var b = document.createElement('b'); b.textContent = g[0];
+    d.appendChild(b);
+    g[1].forEach(function (k) {
+      var e = (typeof VINFO !== 'undefined') ? VINFO[k] : null;
+      if (!e) return;
+      var p = document.createElement('div');
+      p.setAttribute('data-mfs-def', k);
+      p.style.margin = '4px 0 0';
+      var r = document.createElement('i'); r.textContent = e.tit + ' · ';
+      p.appendChild(r);
+      _mfsLineas(p, e.lee);
+      d.appendChild(p);
+    });
+    f.appendChild(d);
+  });
+  return f;
+}
+/* El globo de las REGLAS: las siete completas, leidas de `mfsReglas()`, mas el texto propio
+   -el asterisco y la nota de los menores de 20 anios-. */
+function _mfsReglasInfo() {
+  var f = document.createDocumentFragment();
+  var h = document.createElement('h4'); h.id = 'vinfo-tit'; h.textContent = 'Las siete reglas';
+  f.appendChild(h);
+  var d = document.createElement('div'); d.setAttribute('data-vinfo-b', 'reglas');
+  var b = document.createElement('b'); b.textContent = 'Enunciado completo'; d.appendChild(b);
+  var AST = [1, 3, 6, 7];
+  try {
+    var rr = mfsReglas().reglas;
+    var fam = null;
+    rr.forEach(function (g) {
+      if (g.fam !== fam) {
+        fam = g.fam;
+        var t = document.createElement('div'); t.style.margin = '6px 0 2px';
+        var i = document.createElement('i');
+        i.textContent = fam === 'sin' ? 'Sin historia familiar' : 'Con historia familiar';
+        t.appendChild(i); d.appendChild(t);
+      }
+      var p = document.createElement('div'); p.setAttribute('data-mfs-regla', String(g.n));
+      p.style.margin = '2px 0 0';
+      p.textContent = '(' + g.n + ') ' + g.txt + (AST.indexOf(g.n) >= 0 ? ' *' : '');
+      d.appendChild(p);
+    });
+  } catch (e) {}
+  f.appendChild(d);
+  var pro = (typeof VINFO !== 'undefined' && VINFO['mfs-reglas']) ? VINFO['mfs-reglas'].intro : '';
+  if (pro) { var d2 = document.createElement('div'); d2.setAttribute('data-vinfo-b', 'lee');
+    d2.style.marginTop = '8px';
+    var b2 = document.createElement('b'); b2.textContent = 'El asterisco y los menores de 20 años';
+    d2.appendChild(b2); _mfsLineas(d2, pro); f.appendChild(d2); }
+  return f;
+}
+window._mfsReglasInfo = _mfsReglasInfo;
+
+/* El globo del SCORE: la introduccion propia mas los trece rasgos por zona del cuerpo. */
+function _mfsScoreInfo() {
+  var pro = (typeof VINFO !== 'undefined' && VINFO['mfs-puntaje']) ? VINFO['mfs-puntaje'].intro : '';
+  return _mfsDefCard('El puntaje sistémico, rasgo por rasgo', pro, MFS_DEF_GRUPOS);
+}
+/* El globo de los CRITERIOS APARTE, con el Z y su metodo. */
+function _mfsAparteInfo() {
+  var pro = (typeof VINFO !== 'undefined' && VINFO['mfs-aparte']) ? VINFO['mfs-aparte'].intro : '';
+  return _mfsDefCard('Los criterios aparte y el Z de la raíz', pro, MFS_DEF_APARTE);
+}
+window._mfsScoreInfo = _mfsScoreInfo; window._mfsAparteInfo = _mfsAparteInfo;
+
 /* ══ LA GUARDERIA: los campos existen desde el arranque y la tarjeta los toma PRESTADOS ═══════
    `critAbrir` hace `innerHTML = render()`, asi que un campo que viviera dentro de la tarjeta se
    destruiria al reabrirla -perdiendo lo cargado- y al abrir otro panel de criterios. Mover el
@@ -80735,24 +80943,13 @@ function mfsCamposInit() {
      dos tablas de la Tabla 4. */
   var $ = function (tag, cls, txt) { var e = document.createElement(tag);
     if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; };
-  /* El globo de un rasgo. Va DENTRO del `<span>` del rotulo y no suelto en la fila: la fila es
-     un `<label>`, asi que un boton hermano del rotulo queda igual dentro del area que marca la
-     casilla y clickear la ayuda tildaria el rasgo. Por eso ademas lleva `stopPropagation`: es
-     el mismo motivo por el que el boton «Calcular» del score de amiloidosis lo lleva, y lo que
-     evita que abrir la ayuda sume puntos. */
-  var globo = function (clave, rot) {
-    if (!clave) return null;
-    var b = document.createElement('button');
-    b.type = 'button'; b.className = 'vinfo-btn vinfo-btn-44';
-    b.setAttribute('data-vinfo', clave); b.setAttribute('aria-expanded', 'false');
-    b.setAttribute('aria-label', rot + ' — definición del artículo');
-    b.textContent = '\u2139';
-    b.addEventListener('click', function (ev) {
-      ev.preventDefault(); ev.stopPropagation();
-      if (typeof vInfoClic === 'function') vInfoClic(b);
-    });
-    return b;
-  };
+  /* ⚠️ YA NO HAY UN GLOBO POR RASGO («MARFAN-2», 2d). Decision del medico: eran veintiuno y
+     pasan a CUATRO. Las diecinueve definiciones NO se pierden ni se reescriben: siguen siendo
+     las entradas `mfs-*` de `VINFO` -su dueno unico- y el globo del score y el de los
+     criterios aparte las LEEN de ahi, agrupadas por zona del cuerpo. Copiarlas dentro del
+     globo habria sido la segunda version de cada definicion.
+     Con los botones fuera de la fila desaparece ademas el motivo del `stopPropagation`: la
+     fila es un `<label>` y ya no tiene un boton adentro que al clickearse tildara el rasgo. */
   var opt = function (val, txt) { var o = document.createElement('option');
     o.value = val; o.textContent = txt; return o; };
   var selDe = function (id, ops, conPts) {
@@ -80763,12 +80960,23 @@ function mfsCamposInit() {
     return sel;
   };
   var filaSel = function (r) {
-    var l = $('label', 'mfs-fila');
-    var sp = $('span', 'mfs-rot', r.rot + ' ');
-    var g = globo(r.i, r.rot); if (g) sp.appendChild(g);
-    l.appendChild(sp);
+    /* ⚠️ LOS TRES SELECTORES OCUPAN LAS DOS COLUMNAS («MARFAN-2», 2b). Su texto mas largo
+       necesita unos 230 px y una celda de la grilla mide unos 285: con el rotulo al lado el
+       control quedaba cortado -medido en HEAD: «Los dos signos (3», «Pie plano simple (»-.
+       Abreviar la opcion NO era la salida, porque su texto es el que el PAPEL publica cuando
+       la opcion no declara un texto propio. */
+    var l = $('label', 'mfs-fila mfs-fila-ancha');
+    l.appendChild($('span', 'mfs-rot', r.rot));
     l.appendChild(selDe(r.c, r.ops, true));
-    l.appendChild($('b', 'mfs-pts', String(r.max)));
+    /* ⚠️ EL PUNTAJE MOSTRADO ES EL DE LA OPCION ELEGIDA, NO EL MAXIMO («MARFAN-2», 2b).
+       Medido en HEAD: con «Pie plano simple» elegido la fila anunciaba 2 y la opcion vale 1
+       -el total si usaba el 1, asi que la pantalla contradecia a su propio badge-. Sin nada
+       elegido se muestra el MAXIMO, que es lo que el rasgo PUEDE aportar: es el mismo
+       significado que el numero fijo de una casilla sin marcar. Lo repinta `mfsCalc`, y el
+       atributo dice de que campo es para que ese repintado no tenga que adivinarlo. */
+    var p = $('b', 'mfs-pts', String(r.max));
+    p.setAttribute('data-mf-pts', r.c);
+    l.appendChild(p);
     return l;
   };
   var filaChk = function (r) {
@@ -80776,17 +80984,13 @@ function mfsCamposInit() {
     var i = document.createElement('input'); i.type = 'checkbox'; i.id = r.c;
     i.addEventListener('change', function () { mfsCalc(); });
     l.appendChild(i);
-    var sp = $('span', 'mfs-rot', r.rot + ' ');
-    var g = globo(r.i, r.rot); if (g) sp.appendChild(g);
-    l.appendChild(sp);
+    l.appendChild($('span', 'mfs-rot', r.rot));
     l.appendChild($('b', 'mfs-pts', String(r.p)));
     return l;
   };
   var filaApt = function (r) {
     var l = $('label', 'mfs-fila');
-    var sp = $('span', 'mfs-rot', r.rot + ' ');
-    var g = globo(r.i, r.rot); if (g) sp.appendChild(g);
-    l.appendChild(sp);
+    l.appendChild($('span', 'mfs-rot', r.rot));
     l.appendChild(selDe(r.c, r.ops || [['si', 'S\u00ed'], ['no', 'No']], false));
     return l;
   };
@@ -80913,13 +81117,20 @@ function _mfsAo(src, zMin) {
   return dis === 'no' ? false : null;
 }
 
-/* El «Y» de una lista de condiciones de tres estados, con el motivo de lo que falta o falla. */
+/* El «Y» de una lista de condiciones de tres estados, con el motivo de lo que falta o falla.
+   ⚠️ DEVUELVE ADEMAS `faltan`, LA LISTA CRUDA («MARFAN-2», 2c), y `por` NO cambia: la tarjeta
+   pasó a decir lo que falta UNA sola vez debajo de las siete reglas, y para unir los motivos
+   sin repetirlos hace falta la lista y no la cadena ya armada. `por` lo siguen leyendo los
+   casos de prueba y queda palabra por palabra como estaba. Con la regla cumplida o no cumplida
+   la lista va vacía: ahí no falta nada. */
 function _mfsY(cond) {
   var falla = cond.filter(function (c) { return c.v === false; });
-  if (falla.length) return { estado: 'no', por: falla.map(function (c) { return c.no; }).join('; ') };
+  if (falla.length) return { estado: 'no', faltan: [],
+    por: falla.map(function (c) { return c.no; }).join('; ') };
   var falta = cond.filter(function (c) { return c.v === null; });
-  if (falta.length) return { estado: 'sin_dato', por: 'falta ' + falta.map(function (c) { return c.falta; }).join('; falta ') };
-  return { estado: 'cumple', por: cond.map(function (c) { return c.si; }).join(' + ') };
+  if (falta.length) return { estado: 'sin_dato', faltan: falta.map(function (c) { return c.falta; }),
+    por: 'falta ' + falta.map(function (c) { return c.falta; }).join('; falta ') };
+  return { estado: 'cumple', faltan: [], por: cond.map(function (c) { return c.si; }).join(' + ') };
 }
 
 function mfsReglas(src) {
@@ -80965,23 +81176,30 @@ function mfsReglas(src) {
 
   var R = [
     { n: 1, fam: 'sin', txt: 'Raíz aórtica (Z ≥ 2 o disección) y ectopia lentis',
+      corto: 'Raíz + ectopia lentis',
       cond: [cAo(2), tri(el, 'ectopia lentis', 'no hay ectopia lentis', 'la ectopia lentis'), cAst] },
     { n: 2, fam: 'sin', txt: 'Raíz aórtica (Z ≥ 2 o disección) y variante de FBN1 causal',
+      corto: 'Raíz + FBN1 causal',
       cond: [cAo(2), tri(fb, 'variante de FBN1 causal', 'no hay variante de FBN1 causal', 'la variante de FBN1 causal')] },
     { n: 3, fam: 'sin', txt: 'Raíz aórtica (Z ≥ 2 o disección) y puntaje sistémico ≥ ' + MFS_SCORE_CORTE,
+      corto: 'Raíz + puntaje ≥ ' + MFS_SCORE_CORTE,
       cond: [cAo(2), cSyst, cAst] },
     { n: 4, fam: 'sin', txt: 'Ectopia lentis y variante de FBN1 con asociación conocida a la aorta',
+      corto: 'Ectopia lentis + FBN1 de la aorta',
       cond: [tri(el, 'ectopia lentis', 'no hay ectopia lentis', 'la ectopia lentis'),
              tri(fbAo, 'variante de FBN1 asociada a la aorta', 'la variante de FBN1 no está asociada a la aorta', 'la variante de FBN1 asociada a la aorta')] },
     { n: 5, fam: 'con', txt: 'Ectopia lentis e historia familiar',
+      corto: 'Ectopia lentis + historia familiar',
       cond: [tri(el, 'ectopia lentis', 'no hay ectopia lentis', 'la ectopia lentis'),
              tri(fh, 'historia familiar', 'no hay historia familiar', 'la historia familiar')] },
     { n: 6, fam: 'con', txt: 'Puntaje sistémico ≥ ' + MFS_SCORE_CORTE + ' e historia familiar',
+      corto: 'Puntaje ≥ ' + MFS_SCORE_CORTE + ' + historia familiar',
       cond: [cSyst, tri(fh, 'historia familiar', 'no hay historia familiar', 'la historia familiar'), cAst] },
     { n: 7, fam: 'con', txt: 'Raíz aórtica (Z ≥ 2 desde los 20 años, Z ≥ 3 por debajo) e historia familiar',
+      corto: 'Raíz (Z por edad) + historia familiar',
       cond: [c7, tri(fh, 'historia familiar', 'no hay historia familiar', 'la historia familiar'), cAst] }
   ];
-  R.forEach(function (r) { var y = _mfsY(r.cond); r.estado = y.estado; r.por = y.por; });
+  R.forEach(function (r) { var y = _mfsY(r.cond); r.estado = y.estado; r.por = y.por; r.faltan = y.faltan; });
   return { reglas: R, score: sc, edad: edad, z: z,
            algunaCumple: R.some(function (r) { return r.estado === 'cumple'; }) };
 }
@@ -81258,33 +81476,44 @@ document.addEventListener('focusout', function () {
   if (_mfsFigHov !== null) { _mfsFigHov = null; mfsFigMarcas(); }
 });
 
+/* ══ LA TARJETA EN UNA SOLA PANTALLA — «MARFAN-2», commit 2 (2026-11-02) ══════════════════════
+   Pedido del medico tras probar MARFAN-1. La FIGURA se queda a la derecha y no se le toca una
+   linea; a la izquierda, tres bandas compactas: el score arriba, los criterios aparte en el
+   medio y las reglas abajo.
+   ⚠️ EL GLIFO ES EL ESTANDAR DE LA APP Y ESO ES EL ARREGLO DE 2d. MARFAN-1 escribio sus globos
+   con `&#8505;` / `ℹ` -INFORMATION SOURCE, una «i» suelta- y los otros 74 botones del
+   documento usan `&#9432;` / `ⓘ` -CIRCLED LATIN SMALL LETTER I, la «i» dentro de un
+   circulo-. Censado: 74 contra 20. Es el mismo componente `.vinfo-btn` y la misma clase; lo
+   que cambiaba era el caracter, y por eso pasaba desapercibido. */
 function critMarfan(){
   var sc = mfsScore();
   var _g = function (clave, etq) {
     return ' <button type="button" class="vinfo-btn vinfo-btn-44" data-vinfo="' + clave +
-      '" aria-expanded="false" aria-label="' + etq + '" onclick="vInfoClic(this)">&#8505;</button>';
+      '" aria-expanded="false" aria-label="' + etq + '" onclick="vInfoClic(this)">&#9432;</button>';
   };
-  var c1 = '<div data-mf-badge class="mfs-badge">' + sc.pts + ' de ' + MFS_SCORE_MAX + '</div>' +
-    '<div class="mfs-corte">El puntaje se lee a partir de ' + MFS_SCORE_CORTE + '.' +
-    _g('mfs-puntaje', 'Cómo lee el artículo el puntaje sistémico') + '</div>' +
-    '<div id="mfs-slot-score"></div>' +
-    '<div data-mf-msg class="mfs-msg">&nbsp;</div>';
-  var c2 = '<div class="mfs-aparte-tit">Criterios aparte <span>(no suman al puntaje)</span></div>' +
-    '<div class="mfs-fila"><span class="mfs-rot">Z de la raíz aórtica</span>' +
-    '<input type="number" data-mf-z step="0.1" class="mfs-sel" placeholder="Z" oninput="mfsCalc()"></div>' +
-    '<div id="mfs-slot-aparte"></div>' +
-    '<div class="mfs-nota">La raíz aórtica es el diámetro en los senos de Valsalva por encima del Z indicado, ' +
-    'o la disección de la raíz. <b>El Z no se guarda con el estudio</b>: la aplicación no tiene ese campo, ' +
-    'así que se escribe acá para consultar y se pierde al cerrar.</div>' +
-    '<div id="mfs-reglas" class="mfs-reglas"></div>' +
-    '<div class="mfs-nota mfs-nota-fija">Orientación en pantalla con lo cargado; no es un diagnóstico.</div>';
-  var c3 = '<div id="mfs-slot-figura"></div>';
-  var h = _critCols([['Score sistémico', c1], ['Criterios aparte y reglas', c2], ['Figura', c3]]) +
-    _critPie('<b>Loeys BL et al. &mdash; The revised Ghent nosology for the Marfan syndrome. J Med Genet 2010;47:476-85.</b> ' +
-      'Score sistémico: Box 2, folio 478 &middot; reglas diagnósticas: Box 1, folio 477.<br>' +
-      'Lo que se marque acá <b>viaja con el estudio</b>. Contesta <b>«¿este paciente tiene rasgos de Marfan?»</b>; ' +
-      'la sección contesta otra pregunta &mdash; <b>«¿esta aorta se opera?»</b> &mdash;, así que un puntaje de ' +
-      MFS_SCORE_CORTE + ' no es una indicación de cirugía.');
+  var b1 = '<div class="mfs-banda">' +
+    '<div class="mfs-banda-tit"><span>Score sistémico</span>' +
+      _g('mfs-puntaje', 'Definición de cada rasgo del puntaje, agrupada por zona del cuerpo') +
+      '<span data-mf-badge class="mfs-badge">' + sc.pts + ' de ' + MFS_SCORE_MAX + '</span>' +
+      '<span data-mf-msg class="mfs-msg"></span></div>' +
+    '<div id="mfs-slot-score"></div></div>';
+  var b2 = '<div class="mfs-banda">' +
+    '<div class="mfs-banda-tit"><span>Criterios aparte</span>' +
+      '<span class="mfs-sub">(no suman al puntaje)</span>' +
+      _g('mfs-aparte', 'Definición de los criterios aparte y del Z de la raíz aórtica') + '</div>' +
+    '<label class="mfs-fila"><span class="mfs-rot">Z de la raíz aórtica</span>' +
+    '<input type="number" data-mf-z step="0.1" class="mfs-sel" placeholder="Z" oninput="mfsCalc()"></label>' +
+    '<div id="mfs-slot-aparte"></div></div>';
+  var b3 = '<div class="mfs-banda"><div id="mfs-reglas" class="mfs-reglas"></div></div>';
+  /* ⚠️ LA CITA SALIO DEL PIE Y VIVE EN LOS GLOBOS (2d): «la guia, la tabla y el folio viven
+     SOLO dentro de los globos». El pie conserva lo que NO es una cita -que lo marcado viaja
+     con el estudio, y que esta tarjeta y la seccion contestan preguntas distintas-. */
+  var h = '<div class="mfs-tarj"><div class="mfs-tarj-izq">' + b1 + b2 + b3 + '</div>' +
+    '<div class="mfs-tarj-der"><div id="mfs-slot-figura"></div></div></div>' +
+    _critPie('Lo que se marque acá <b>viaja con el estudio</b>. Contesta ' +
+      '<b>«¿este paciente tiene rasgos de Marfan?»</b>; la sección contesta otra pregunta &mdash; ' +
+      '<b>«¿esta aorta se opera?»</b> &mdash;, así que un puntaje de ' + MFS_SCORE_CORTE +
+      ' no es una indicación de cirugía.');
   return h;
 }
 /* Despues de que `critAbrir` escribe el innerHTML, los dos bloques de la guarderia se colocan en
@@ -81318,16 +81547,33 @@ function mfsCalc(){
     b.className = 'mfs-badge' + (sc.sistemico ? ' mfs-badge-on' : ''); }
   var m = raiz.querySelector('[data-mf-msg]');
   if (m) {
+    /* ⚠️ EL MENSAJE SE ACORTO Y SE MUDO AL ENCABEZADO DE LA BANDA («MARFAN-2», 2a). Decia
+       «Puntaje de N con lo tildado» al lado de un badge que ya dice «N de 20»: era la misma
+       cifra escrita dos veces en la misma banda, que es la informacion repetida que el medico
+       reporto. Lo que queda es lo que el badge NO dice: si el puntaje alcanza el corte. El
+       aviso de un valor sin equivalente se conserva entero, porque pide una accion. */
     var t = sc.sistemico
-      ? 'Puntaje de ' + sc.pts + ' con lo tildado: alcanza el valor que el artículo lee como compromiso sistémico.'
-      : 'Puntaje de ' + sc.pts + ' con lo tildado.';
+      ? 'alcanza el corte de ' + MFS_SCORE_CORTE
+      : 'por debajo de ' + MFS_SCORE_CORTE;
     if (sc.sinEquivalente.length) {
-      t += ' ' + sc.sinEquivalente.map(function (x) {
+      t += ' — ' + sc.sinEquivalente.map(function (x) {
         return x.rot + ': dato anterior sin equivalente («' + x.val + '»), elegir de nuevo.'; }).join(' ');
     }
     m.textContent = t;
     m.className = 'mfs-msg' + (sc.sistemico ? ' mfs-msg-on' : '');
   }
+  /* ⚠️ EL PUNTAJE DE CADA SELECTOR SIGUE A LA OPCION ELEGIDA (2b). `MFS_SCORE` sigue siendo su
+     dueno unico: el numero sale de la misma tabla que lo suma, asi que la fila y el badge no
+     pueden discrepar. Sin opcion elegida se muestra el maximo del rasgo. */
+  Array.prototype.forEach.call(raiz.querySelectorAll('[data-mf-pts]'), function (b) {
+    var cid = b.getAttribute('data-mf-pts');
+    var def = MFS_SCORE.filter(function (x) { return x.c === cid })[0];
+    if (!def || def.t !== 'sel') return;
+    var e = document.getElementById(cid);
+    var v = e ? String(e.value || '').trim() : '';
+    var op = v ? def.ops.filter(function (o) { return o[0] === v })[0] : null;
+    b.textContent = String(op ? op[2] : def.max);
+  });
   mfsReglasPintar();
   if (typeof mfsFigPintar === 'function') mfsFigPintar();
 }
@@ -81341,34 +81587,72 @@ function mfsReglasPintar(){
   while (cont.firstChild) cont.removeChild(cont.firstChild);
   var r = mfsReglas();
   var tit = document.createElement('div');
-  tit.className = 'mfs-aparte-tit'; tit.textContent = 'Reglas';
-  var sp = document.createElement('span'); sp.textContent = ' (Box 1) ';
-  tit.appendChild(sp);
+  tit.className = 'mfs-banda-tit';
+  { var t1 = document.createElement('span'); t1.textContent = 'Reglas'; tit.appendChild(t1); }
+  /* ⚠️ «(Box 1)» SALIO DEL CUERPO DE LA TARJETA (2d): nombrar el Box es nombrar una tabla del
+     articulo, y la guia, la tabla y el folio viven SOLO dentro de los globos. El globo de al
+     lado lo dice entero, con su folio. */
+  { var sp = document.createElement('span'); sp.className = 'mfs-sub';
+    sp.textContent = 'del diagnóstico'; tit.appendChild(sp); }
   { var gb = document.createElement('button');
     gb.type = 'button'; gb.className = 'vinfo-btn vinfo-btn-44';
     gb.setAttribute('data-vinfo', 'mfs-reglas'); gb.setAttribute('aria-expanded', 'false');
     gb.setAttribute('aria-label', 'El asterisco y la nota de los menores de 20 años');
-    gb.textContent = '\u2139';
+    gb.textContent = '\u24D8';
     gb.addEventListener('click', function () { if (typeof vInfoClic === 'function') vInfoClic(gb); });
     tit.appendChild(gb); }
   cont.appendChild(tit);
-  var grupo = null;
+  /* ══ UNA REGLA, UNA LINEA («MARFAN-2», 2c) ════════════════════════════════════════════════
+     Cada regla publica «(N) texto breve — estado» y NADA MAS. El motivo -`g.por`- salia debajo
+     de cada una en su propia linea, y las siete repetian lo mismo: medido en HEAD, «falta el
+     valor del Z de la raiz (o la diseccion)» aparecia en CUATRO de las siete y «falta
+     contestar si hay rasgos de otros sindromes» en otras cuatro. Eso baja a UNA sola linea
+     debajo del grupo, con lo que falta dicho una vez.
+     ⚠️ LA LOGICA NO CAMBIA: `mfsReglas` sigue siendo el dueno unico, con los mismos tres
+     estados y los mismos motivos. Lo que cambia es COMO se muestran. */
+  /* ⚠️ LOS DOS GRUPOS VAN LADO A LADO, Y ESO ES LO QUE HACE ENTRAR LA TARJETA. Apilados, las
+     siete reglas con sus dos rotulos ocupaban una columna entera; en dos columnas el alto es
+     el del grupo mas largo -cuatro reglas- y no el de los dos. Los grupos siguen siendo un
+     ROTULO CHICO y no un bloque largo, que es lo que la orden pide. Por debajo de 760 px
+     vuelven a apilarse. */
+  var cols = document.createElement('div'); cols.className = 'mfs-reg-cols';
+  var col = {};
+  ['sin', 'con'].forEach(function (fam) {
+    var c = document.createElement('div');
+    var h = document.createElement('div'); h.className = 'mfs-reg-grupo';
+    h.textContent = fam === 'sin' ? 'Sin historia familiar' : 'Con historia familiar';
+    c.appendChild(h); cols.appendChild(c); col[fam] = c;
+  });
   r.reglas.forEach(function (g) {
-    if (g.fam !== grupo) {
-      grupo = g.fam;
-      var h = document.createElement('div'); h.className = 'mfs-reg-grupo';
-      h.textContent = grupo === 'sin' ? 'Sin historia familiar' : 'Con historia familiar';
-      cont.appendChild(h);
-    }
     var d = document.createElement('div'); d.className = 'mfs-reg mfs-reg-' + g.estado;
+    var t = document.createElement('span'); t.className = 'mfs-reg-txt';
+    /* ⚠️ EL BREVE, NO EL COMPLETO (2c): «(N) texto breve de la regla — estado». El enunciado
+       entero de las siete vive en el globo, armado del MISMO `mfsReglas()`, asi que no hay una
+       segunda redaccion. `txt` no se toco: lo siguen leyendo los casos de prueba. */
+    t.textContent = '(' + g.n + ') ' + (g.corto || g.txt);
     var b = document.createElement('b'); b.className = 'mfs-reg-est';
     b.textContent = MFS_EST_TXT[g.estado] || g.estado;
-    var t = document.createElement('span'); t.className = 'mfs-reg-txt';
-    t.textContent = '(' + g.n + ') ' + g.txt;
-    var p = document.createElement('span'); p.className = 'mfs-reg-por'; p.textContent = g.por;
-    d.appendChild(b); d.appendChild(t); d.appendChild(p);
-    cont.appendChild(d);
+    d.appendChild(t); d.appendChild(b);
+    (col[g.fam] || cols).appendChild(d);
   });
+  cont.appendChild(cols);
+  /* La UNICA linea de lo que falta: la union de los motivos de las reglas en «sin dato», sin
+     repetir ninguno y en el orden en que aparecen. Sale de `mfsReglas`, no de una segunda
+     lectura de los campos. */
+  var faltan = [];
+  r.reglas.forEach(function (g) {
+    if (g.estado !== 'sin_dato' || !g.faltan) return;
+    g.faltan.forEach(function (x) { if (faltan.indexOf(x) < 0) faltan.push(x) });
+  });
+  if (faltan.length) {
+    var fl = document.createElement('div'); fl.className = 'mfs-falta';
+    fl.textContent = 'Falta: ' + faltan.join('; ') + '.';
+    cont.appendChild(fl);
+  }
+  /* Y la advertencia, UNA sola vez en toda la tarjeta. */
+  var nf = document.createElement('div'); nf.className = 'mfs-nota mfs-nota-fija';
+  nf.textContent = 'Orientación en pantalla con lo cargado; no es un diagnóstico.';
+  cont.appendChild(nf);
 }
 window.mfsReglasPintar = mfsReglasPintar;
 /* `critMarfanCalc` sigue existiendo porque el resto del archivo lo nombra. */

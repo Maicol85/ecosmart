@@ -145,12 +145,21 @@ const MEDIR = `(async () => {
     try { critAbrir('marfan') } catch (e) { R.errs.push('critAbrir: ' + e.message) }
     await new Promise(r => setTimeout(r, 600));
     const cuerpo = EL('crit-cuerpo');
-    const modal = cuerpo ? (cuerpo.closest('.crit-modal') || cuerpo.parentElement) : null;
+    /* ATENCION: el que scrollea es crit-card, NO crit-cuerpo. La tarjeta lleva su max-height
+       y su overflow auto en la CAJA, asi que el cuerpo informa su alto COMPLETO -scrollHeight
+       igual a clientHeight- aunque no entre, y medirlo a el da «scroll interno 0» sobre una
+       tarjeta que se corta. Y el alto del modal tampoco sirve de presupuesto: en cuanto el
+       contenido entra, la caja se ENCOGE a su contenido. */
+    const modal = EL('crit-card');
     R.tarjeta = {
       cuerpo: caja(cuerpo), modal: caja(modal),
       scrollH: cuerpo ? cuerpo.scrollHeight : 0,
       clientH: cuerpo ? cuerpo.clientHeight : 0,
       scrollInterno: cuerpo ? Math.max(0, cuerpo.scrollHeight - cuerpo.clientHeight) : 0,
+      cardScroll: modal ? Math.max(0, modal.scrollHeight - modal.clientHeight) : -1,
+      cardScrollH: modal ? modal.scrollHeight : -1,
+      cardClientH: modal ? modal.clientHeight : -1,
+      cardTope: modal ? window.getComputedStyle(modal).maxHeight : '-',
       ventana: { w: window.innerWidth, h: window.innerHeight },
       globos: document.querySelectorAll('#crit-cuerpo .vinfo-btn').length,
       filas: document.querySelectorAll('#crit-cuerpo .mfs-fila').length,
