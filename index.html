@@ -57,6 +57,7 @@
     --bg: #0f1117;
     --bg2: #181c27;
     --bg3: #1e2333;
+    --mfs-fig-bg: #141926;
     --border: #2a3050;
     --accent: #4f8ef7;
     --accent2: #7ec8e3;
@@ -107,6 +108,7 @@
     --bg: #f4f6f9;
     --bg2: #ffffff;
     --bg3: #eef1f6;
+    --mfs-fig-bg: #f7f9fc;
     --border: #d6dce6;
     --accent: #2f6fe0;
     --accent2: #1f5fb8;
@@ -2823,6 +2825,24 @@ html.light-mode #tab-valvulas .sev-lvl3{color:#7f1d1d;}
 .mfs-reg-por { flex:1 1 100%; color:var(--text2); font-size:10px; }
 .mfs-reg-grupo { font-size:10.5px; font-weight:700; color:var(--accent2); margin:8px 0 4px; }
 .mfs-nota-fija { font-style:italic; }
+
+/* ══ LA FIGURA DE MARFAN («MARFAN-1», commit 6) ═══════════════════════════════════════════
+   Los colores del maniqui salen de variables propias, declaradas para los DOS temas: los de
+   la demo estan pensados para fondo claro y el gris azulado del cuerpo desaparece sobre el
+   fondo oscuro de la aplicacion. Las marcas -verde del puntaje y ambar de los criterios
+   aparte- conservan su significado en los dos. */
+.mfs-fig-caja { background: var(--mfs-fig-bg); border: 1px solid var(--border);
+  border-radius: 8px; padding: 6px; }
+.mfs-fig-caja svg { width: 100%; height: auto; max-height: 460px; display: block; }
+.mfs-fig-alt { font-size: 10.5px; color: var(--text2); line-height: 1.5; margin: 8px 0 0; }
+.mfs-fig-ref-lbl { min-height: 44px; }
+/* El parpadeo del rasgo enfocado. Con `prefers-reduced-motion` NO parpadea: el cambio es
+   instantaneo, que es lo que la regla de pantalla de este archivo pide. */
+@keyframes mfsFigPulso { 0%,100% { opacity: 1 } 50% { opacity: .45 } }
+.mfs-fig-pulso { animation: mfsFigPulso 1.1s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .mfs-fig-pulso { animation: none; }
+}
 
 /* ══ LA PANTALLA DE MARFAN: campos a la izquierda, conclusion a la derecha («MARFAN-1», 4a) ══
    El corte va SOBRE LA VENTANA, que es la regla fija de este archivo: con `flex-wrap` el punto
@@ -16791,7 +16811,108 @@ z
                ⚠️ NACEN VACIOS -select en `selectedIndex` 0 y casillas sin marcar-, asi que NO
                disparan `secAutoOpen`: la seccion no se abre sola en un paciente que no los tiene.
                Verificado contra su predicado, que cuenta `selectedIndex > 0` y `checked`. -->
-          <div id="mfs-campos" hidden></div>
+          <div id="mfs-campos" hidden>
+          <!-- ══ LA FIGURA QUE SE TRANSFORMA («MARFAN-1», commit 6, 2026-11-01) ══════════════
+               PORTADA DE `docs/3d/demo_marfan_figura_v1_concepto.html`, que es un dibujo PROPIO
+               del medico: la geometria del maniqui, las marcas, los cambios de forma y la
+               logica de los rasgos se copian tal cual. Lo unico adaptado son los colores -que
+               pasan a variables de tema, para que se lea en claro y en oscuro-, la tipografia y
+               la conexion con los datos.
+               NO SE COPIAN, por orden expresa: el boton «Cargar un ejemplo» -escribiria datos
+               falsos en el estudio-, el selector del lado del neumotorax -el dibujo muestra
+               siempre el pulmon derecho colapsado- ni los textos de aviso de la demo.
+               ⚠️ LA FIGURA NO GUARDA NADA PROPIO: lee los mismos diecinueve campos que la
+               lista de rasgos, que estan a un `appendChild` de distancia dentro de esta misma
+               guarderia. Un rasgo es UN dato.
+               ⚠️ VIVE SOLO EN PANTALLA: no entra al PDF ni a ninguna otra superficie firmada.
+               ⚠️ LOS IDS Y LAS CLASES DE LA DEMO PASAN AL ESPACIO `mfs-fig-` / `mfsf-`: los
+               suyos -`svg`, `fig`, `mk`, `arm`, `leg`- son nombres genericos que en un archivo
+               de 150.000 lineas chocan con otra cosa. -->
+          <div id="mfs-bloque-figura">
+            <div class="mfs-fig-caja">
+            <svg id="mfs-fig-svg" viewBox="0 0 300 710" aria-hidden="true" focusable="false">
+
+            <defs>
+            <linearGradient id="mfs-fig-grad" x1="0" x2="1" y1="0" y2="0"><stop offset="0" stop-color="#b3c1d5"/><stop offset=".42" stop-color="#e9eef5"/><stop offset="1" stop-color="#aebdd2"/></linearGradient>
+            </defs>
+            <g id="mfs-fig-cuerpo">
+            <path d="M138 98 C138 114 137 124 131 133 L169 133 C163 124 162 114 162 98 Z" fill="url(#mfs-fig-grad)" stroke="#8da0b8" stroke-width="1"/>
+            <path id="mfs-fig-tfill" d="M141 124 C130 129 110 133 96 140 C88 144 84 152 85 162 C88 178 92 190 93 202 C95 228 100 252 101 272 C99 294 90 314 88 334 C92 348 120 354 150 354 C180 354 208 348 212 334 C210 314 201 294 199 272 C200 252 205 228 207 202 C208 190 212 178 215 162 C216 152 212 144 204 140 C190 133 170 129 159 124 Z" fill="url(#mfs-fig-grad)" stroke="none"/>
+            <path id="mfs-fig-tl" d="M141 124 C130 129 110 133 96 140 C88 144 84 152 85 162 C88 178 92 190 93 202 C95 228 100 252 101 272 C99 294 90 314 88 334" fill="none" stroke="#8da0b8" stroke-width="1"/>
+            <path id="mfs-fig-tr" d="M159 124 C170 129 190 133 204 140 C212 144 216 152 215 162 C212 178 208 190 207 202 C205 228 200 252 199 272 C201 294 210 314 212 334" fill="none" stroke="#8da0b8" stroke-width="1"/>
+            <g class="mfsf-legL">
+            <g class="mfsf-leg">
+            <path d="M96 336 C91 380 94 430 103 468 C108 488 110 500 108 512 C105 532 102 552 105 574 C108 596 112 616 112 636 L127 636 C127 612 128 586 130 560 C132 536 134 515 138 498 C142 470 146 420 152 358 L152 346 C130 346 108 344 96 336 Z" fill="url(#mfs-fig-grad)" stroke="none"/>
+            <path d="M96 338 C91 380 94 430 103 468 C108 488 110 500 108 512 C105 532 102 552 105 574 C108 596 112 616 112 636" fill="none" stroke="#8da0b8" stroke-width="1"/>
+            <path d="M152 358 C146 420 142 470 138 498 C134 515 132 536 130 560 C128 586 127 612 127 636" fill="none" stroke="#8da0b8" stroke-width="1"/>
+            <g class="mfsf-foot"><path class="mfsf-footp" d="M110 634 C104 646 92 652 90 662 C89 668 96 672 108 672 C120 672 128 670 129 662 C130 652 128 644 127 634 Z" fill="url(#mfs-fig-grad)" stroke="#8da0b8" stroke-width="1"/></g>
+            <path d="M110 500 C116 508 130 508 137 500" fill="none" stroke="#9db0c8" stroke-width="1" opacity=".7"/>
+            </g></g>
+            <g transform="translate(300 0) scale(-1 1)" class="mfsf-legR">
+            <g class="mfsf-leg">
+            <path d="M96 336 C91 380 94 430 103 468 C108 488 110 500 108 512 C105 532 102 552 105 574 C108 596 112 616 112 636 L127 636 C127 612 128 586 130 560 C132 536 134 515 138 498 C142 470 146 420 152 358 L152 346 C130 346 108 344 96 336 Z" fill="url(#mfs-fig-grad)" stroke="none"/>
+            <path d="M96 338 C91 380 94 430 103 468 C108 488 110 500 108 512 C105 532 102 552 105 574 C108 596 112 616 112 636" fill="none" stroke="#8da0b8" stroke-width="1"/>
+            <path d="M152 358 C146 420 142 470 138 498 C134 515 132 536 130 560 C128 586 127 612 127 636" fill="none" stroke="#8da0b8" stroke-width="1"/>
+            <g class="mfsf-foot"><path class="mfsf-footp" d="M110 634 C104 646 92 652 90 662 C89 668 96 672 108 672 C120 672 128 670 129 662 C130 652 128 644 127 634 Z" fill="url(#mfs-fig-grad)" stroke="#8da0b8" stroke-width="1"/></g>
+            <path d="M110 500 C116 508 130 508 137 500" fill="none" stroke="#9db0c8" stroke-width="1" opacity=".7"/>
+            </g></g>
+            <path d="M141 130 C128 134 113 140 100 147" fill="none" stroke="#9db0c8" stroke-width="1" opacity=".8"/>
+            <path d="M159 130 C172 134 187 140 200 147" fill="none" stroke="#9db0c8" stroke-width="1" opacity=".8"/>
+            <path d="M150 134 L150 232" fill="none" stroke="#9db0c8" stroke-width="1" opacity=".5"/>
+            <path d="M110 190 C124 204 142 206 150 200 C158 206 176 204 190 190" fill="none" stroke="#9db0c8" stroke-width="1" opacity=".55"/>
+            <circle cx="150" cy="282" r="1.8" fill="#9db0c8"/>
+            <g class="mfsf-armL">
+            <g class="mfsf-arm">
+            <path d="M100 142 C86 140 70 148 68 166 C64 190 61 230 62 258 C62 268 66 273 75 273 C84 273 89 268 89 258 C89 230 94 196 99 176 Z" fill="url(#mfs-fig-grad)" stroke="#8da0b8" stroke-width="1"/>
+            <g class="mfsf-fore">
+            <path d="M62 260 C60 292 58 326 60 352 C62 359 75 359 77 352 C80 326 89 292 89 260 C89 251 62 251 62 260 Z" fill="url(#mfs-fig-grad)" stroke="#8da0b8" stroke-width="1"/>
+            <g class="mfsf-hand">
+            <path d="M59 352 C55 362 54 374 56 386 L80 386 C82 374 80 362 77 352 Z" fill="url(#mfs-fig-grad)" stroke="#8da0b8" stroke-width="1"/>
+            <g class="mfsf-fing">
+            <rect x="57" y="383" width="6" height="40" rx="3" fill="url(#mfs-fig-grad)" stroke="#8da0b8" stroke-width=".9"/>
+            <rect x="64" y="383" width="6" height="45" rx="3" fill="url(#mfs-fig-grad)" stroke="#8da0b8" stroke-width=".9"/>
+            <rect x="71" y="383" width="6" height="41" rx="3" fill="url(#mfs-fig-grad)" stroke="#8da0b8" stroke-width=".9"/>
+            <rect x="77.5" y="383" width="5.5" height="32" rx="2.8" fill="url(#mfs-fig-grad)" stroke="#8da0b8" stroke-width=".9"/>
+            </g>
+            <g class="mfsf-thumb"><path d="M57 366 C51 376 46 388 45 398 C45 404 52 405 53 399 C55 390 58 382 62 374 Z" fill="url(#mfs-fig-grad)" stroke="#8da0b8" stroke-width=".9"/></g>
+            </g>
+            </g>
+            </g></g>
+            <g transform="translate(300 0) scale(-1 1)" class="mfsf-armR">
+            <g class="mfsf-arm">
+            <path d="M100 142 C86 140 70 148 68 166 C64 190 61 230 62 258 C62 268 66 273 75 273 C84 273 89 268 89 258 C89 230 94 196 99 176 Z" fill="url(#mfs-fig-grad)" stroke="#8da0b8" stroke-width="1"/>
+            <g class="mfsf-fore">
+            <path d="M62 260 C60 292 58 326 60 352 C62 359 75 359 77 352 C80 326 89 292 89 260 C89 251 62 251 62 260 Z" fill="url(#mfs-fig-grad)" stroke="#8da0b8" stroke-width="1"/>
+            <g class="mfsf-hand">
+            <path d="M59 352 C55 362 54 374 56 386 L80 386 C82 374 80 362 77 352 Z" fill="url(#mfs-fig-grad)" stroke="#8da0b8" stroke-width="1"/>
+            <g class="mfsf-fing">
+            <rect x="57" y="383" width="6" height="40" rx="3" fill="url(#mfs-fig-grad)" stroke="#8da0b8" stroke-width=".9"/>
+            <rect x="64" y="383" width="6" height="45" rx="3" fill="url(#mfs-fig-grad)" stroke="#8da0b8" stroke-width=".9"/>
+            <rect x="71" y="383" width="6" height="41" rx="3" fill="url(#mfs-fig-grad)" stroke="#8da0b8" stroke-width=".9"/>
+            <rect x="77.5" y="383" width="5.5" height="32" rx="2.8" fill="url(#mfs-fig-grad)" stroke="#8da0b8" stroke-width=".9"/>
+            </g>
+            <g class="mfsf-thumb"><path d="M57 366 C51 376 46 388 45 398 C45 404 52 405 53 399 C55 390 58 382 62 374 Z" fill="url(#mfs-fig-grad)" stroke="#8da0b8" stroke-width=".9"/></g>
+            </g>
+            </g>
+            </g></g>
+            <ellipse cx="119" cy="80" rx="5" ry="10" fill="url(#mfs-fig-grad)" stroke="#8da0b8" stroke-width="1"/>
+            <ellipse cx="181" cy="80" rx="5" ry="10" fill="url(#mfs-fig-grad)" stroke="#8da0b8" stroke-width="1"/>
+            <path d="M150 31 C177 31 185 56 183 78 C181 101 169 115 150 115 C131 115 119 101 117 78 C115 56 123 31 150 31 Z" fill="url(#mfs-fig-grad)" stroke="#8da0b8" stroke-width="1"/>
+            </g>
+            <g id="mfs-fig-marcas"></g>
+            </svg>
+            </div>
+            <!-- Preferencia de PANTALLA y no un campo del estudio: guion MEDIO y `data-ui`, que
+                 es lo que la deja fuera del recolector y fuera de `secAutoOpen`. -->
+            <label class="mfs-fila mfs-fig-ref-lbl">
+              <input type="checkbox" id="mfs-fig-ref" data-ui onchange="mfsFigRefSync()">
+              <span class="mfs-rot">Superponer la figura de referencia</span>
+            </label>
+            <!-- Alternativa de texto accesible: la lista de lo que esta marcado. La figura es
+                 `aria-hidden`, asi que esto es lo que lee un lector de pantalla. -->
+            <p id="mfs-fig-alt" class="mfs-fig-alt" role="status"></p>
+          </div>
+          </div>
           <div id="marfan-resultado" class="calc-box"></div>
           <input type="checkbox" id="marfan_incluir_chk" style="display:none;" tabindex="-1" aria-hidden="true">
           <div style="display:flex;justify-content:center;margin-top:10px;">
@@ -61537,7 +61658,17 @@ function _noEsDelEstudio(id) {
      desde hoy, cuando esta tanda autoriza UN campo nuevo y es `tga_cirugia`. Es lo mismo que
      destapo el A/B con `vab-anim-scrub`. Guion MEDIO, asi que este prefijo no alcanza a
      `tga_tipo`, `tga_cirugia` ni a ningun otro `tga_*`, que van con guion BAJO. */
-  return /^(login-|ig-|lab-|cfg-|exp-|filtro-|adv-|asoc-|pdf-|lgal-|fcg-|hfpep-|vauto-|vabchk-|vab-anim-|otr-asia-|pop-bcia-|pop-esp-|tga-3d-|vd-triv|ref-|(?:b-)?cine-)/.test(id);
+  /* `mfs-fig-` es la casilla «Superponer la figura de referencia» de la tarjeta de Marfan
+     («MARFAN-1», commit 6, 2026-11-01). NO es del estudio: es una preferencia de PANTALLA que
+     decide si se dibuja el contorno punteado, no una medicion del paciente, y persistirla
+     seria una clave nueva en TODO estudio que se guarde desde hoy.
+     ⚠️ LO CAZO UNA MEDICION Y NO LA LECTURA: el guion medio NO alcanza por si solo —este
+     barrido va por PREFIJO y no por el separador—, asi que la casilla estaba entrando en
+     `campos` y el censo subia a 985 en vez de 984. Es la trampa de las listas paralelas que
+     este archivo documenta: al agregar una clave de pantalla hay que mirar TODAS.
+     Guion MEDIO, asi que este prefijo no alcanza a los diecinueve `mfs_...` de guion BAJO,
+     que SI son campos del estudio y SI viajan. */
+  return /^(login-|ig-|lab-|cfg-|exp-|filtro-|adv-|asoc-|pdf-|lgal-|fcg-|hfpep-|vauto-|vabchk-|vab-anim-|otr-asia-|pop-bcia-|pop-esp-|tga-3d-|mfs-fig-|vd-triv|ref-|(?:b-)?cine-)/.test(id);
 }
 
 /* ══ Repintado de módulos al cargar un estudio ═══════════════════════════════════════════
@@ -80646,8 +80777,13 @@ function mfsCamposInit() {
   MFS_SCORE.forEach(function (r) { bs.appendChild(r.t === 'sel' ? filaSel(r) : filaChk(r)); });
   var ba = $('div'); ba.id = 'mfs-bloque-aparte';
   MFS_APARTE.forEach(function (r) { ba.appendChild(filaApt(r)); });
-  while (g.firstChild) g.removeChild(g.firstChild);
-  g.appendChild(bs); g.appendChild(ba);
+  /* ⚠️ NO SE VACIA LA GUARDERIA: desde el commit 6 contiene tambien `#mfs-bloque-figura`, que
+     es MARCADO ESTATICO con el SVG del maniqui. Un `removeChild` en bucle se lo llevaria y la
+     figura no volveria a existir -no hay quien la regenere-. Los dos bloques se insertan
+     DELANTE de la figura, que es el orden en que la tarjeta los reparte. */
+  var fig = document.getElementById('mfs-bloque-figura');
+  if (fig) { g.insertBefore(bs, fig); g.insertBefore(ba, fig); }
+  else { g.appendChild(bs); g.appendChild(ba); }
   g.setAttribute('data-mfs-listo', '1');
 }
 /* ⚠️ CORRE AL PARSEAR Y NO EN UN `DOMContentLoaded`, y eso es deliberado: este `<script>` va
@@ -80672,7 +80808,7 @@ function _mfsDevolver() {
      devolvia VACIA: los diecinueve campos se quedaban en el cuerpo de la tarjeta y el
      innerHTML siguiente los destruia con lo que el medico habia cargado. Medido: tras cerrar
      y reabrir, el score volvia a 0 y `#mfs_muneca_pulgar` no existia en el documento. */
-  ['mfs-bloque-score', 'mfs-bloque-aparte'].forEach(function (k) {
+  ['mfs-bloque-score', 'mfs-bloque-aparte', 'mfs-bloque-figura'].forEach(function (k) {
     var b = document.getElementById(k);
     if (b && b.parentElement !== g) g.appendChild(b);
   });
@@ -80834,6 +80970,277 @@ function mfsReglas(src) {
 }
 window.mfsReglas = mfsReglas;
 
+/* ══ LA FIGURA QUE SE TRANSFORMA — «MARFAN-1», commit 6 (2026-11-01) ══════════════════════════
+   Portada de `docs/3d/demo_marfan_figura_v1_concepto.html`, dibujo propio del medico. La
+   geometria, las marcas, los cambios de forma y la logica de los rasgos se copian tal cual; lo
+   adaptado son los colores -a variables de tema- y la conexion con los datos.
+
+   ⚠️ LA FIGURA NO TIENE ESTADO PROPIO. La demo guarda sus rasgos en un objeto `S`; aca se leen
+   de los MISMOS campos que la lista, en cada repintado. Un objeto paralelo seria la segunda
+   copia del dato que este archivo paga cada vez que la escribe.
+
+   ⚠️ SOLO PINTA. Ninguna funcion de este bloque escribe en un campo del estudio, y por eso
+   puede colgarse del `onchange` de los rasgos sin repetir el defecto del D-9. */
+var MFS_FIG_T = '#0f6e56', MFS_FIG_TF = '#1d9e75', MFS_FIG_A = '#c98a0a', MFS_FIG_AF = '#e0a21b';
+
+/* El estado que la figura LEE, derivado de los campos. Las claves son las de la demo, para que
+   la comparacion escena por escena con ella sea directa. */
+function mfsFigEstado(){
+  var v = function (id) { var e = document.getElementById(id); return e ? String(e.value || '') : ''; };
+  var c = function (id) { var e = document.getElementById(id); return !!(e && e.checked); };
+  var mun = v('mfs_muneca_pulgar'), pec = v('mfs_pectus'), pie = v('mfs_pie');
+  return {
+    mun:   mun === 'ambos' ? 3 : (mun === 'uno' ? 1 : 0),
+    pecho: pec === 'carinatum' ? 'car' : (pec === 'excavatum' ? 'exc' : 0),
+    pie:   pie === 'retropie' ? 'ret' : (pie === 'plano' ? 'pla' : 0),
+    neumo: c('mfs_neumotorax') ? 1 : 0, dural: c('mfs_ectasia') ? 1 : 0,
+    protr: c('mfs_protrusion') ? 1 : 0, prop: c('mfs_proporciones') ? 1 : 0,
+    escol: c('mfs_escoliosis') ? 1 : 0, codo: c('mfs_codo') ? 1 : 0,
+    cara:  c('mfs_facies') ? 1 : 0, estr: c('mfs_estrias') ? 1 : 0,
+    miop:  c('mfs_miopia') ? 1 : 0, mvp: c('mfs_prolapso') ? 1 : 0,
+    ect:   v('mfs_ectopia_lentis') === 'si' ? 1 : 0,
+    /* La demo marca «dilatacion O diseccion de la raiz». La diseccion tiene campo propio; la
+       dilatacion la decide el Z que el medico escribio en la tarjeta, que es el unico Z que
+       esta aplicacion recoge. Sin ninguno de los dos, la marca no se dibuja: no se infiere de
+       un diametro en milimetros, porque el criterio del articulo es el Z. */
+    raiz:  (v('mfs_diseccion_raiz') === 'si' ||
+            (typeof mfsZ === 'function' && mfsZ(null) != null && mfsZ(null) >= 2)) ? 1 : 0
+  };
+}
+window.mfsFigEstado = mfsFigEstado;
+
+var _mfsFigHov = null, _mfsFigFO = 1;
+function _mfsSh(tag, a, solid, amber){
+  var st = amber ? MFS_FIG_A : MFS_FIG_T, fl = amber ? MFS_FIG_AF : MFS_FIG_TF;
+  return '<' + tag + ' ' + a + ' fill="' + fl + '" fill-opacity="' + ((solid ? 0.38 : 0.22) * _mfsFigFO).toFixed(2) +
+    '" stroke="' + st + '" stroke-width="2"' + (solid ? '' : ' stroke-dasharray="4 3"') + '/>';
+}
+function _mfsLn(d, amber){
+  return '<path d="' + d + '" fill="none" stroke="' + (amber ? MFS_FIG_A : MFS_FIG_T) +
+    '" stroke-width="2.4" stroke-linecap="round"/>';
+}
+var MFS_FIG_LUNG = 'M144 156 C136 146 120 150 112 170 C104 192 102 226 112 242 C122 252 144 250 146 236 C147 216 146 180 144 156 Z';
+
+/* Las marcas, una por zona. `S` es el estado derivado. Mismos numeros que la demo. */
+var MFS_FIG_REG = {
+ mun: function(){ return _mfsSh('ellipse','cx="62" cy="402" rx="26" ry="58"',1) + _mfsSh('ellipse','cx="238" cy="402" rx="26" ry="58"',1); },
+ pecho: function(S){
+   var C = '#2f7fb8', F = '#5aaee6', f = (0.30 * _mfsFigFO).toFixed(2);
+   var base = '<path d="M92 150 L208 150 L178 264 L122 264 Z" fill="' + F + '" fill-opacity="' + f +
+     '" stroke="' + C + '" stroke-width="2.2" stroke-linejoin="round"/>';
+   if (S.pecho === 'car') return base + '<path d="M150 164 L150 250" stroke="#fff" stroke-opacity=".85" stroke-width="3.5" stroke-linecap="round"/>';
+   return base + '<path d="M134 196 L166 196 L150 238 Z" fill="#1f5f8f" fill-opacity="' + (0.4 * _mfsFigFO).toFixed(2) + '"/>';
+ },
+ pie: function(){ return _mfsSh('ellipse','cx="110" cy="660" rx="24" ry="18"',1) + _mfsSh('ellipse','cx="190" cy="660" rx="24" ry="18"',1); },
+ /* ⚠️ SIEMPRE EL PULMON DERECHO. La demo trae un selector de lado; la orden lo deja afuera y
+    declara el selector como pendiente. Sin selector, el lado es fijo. */
+ neumo: function(){
+   return '<g><path d="' + MFS_FIG_LUNG + '" fill="' + MFS_FIG_TF + '" fill-opacity="' + (0.42 * _mfsFigFO).toFixed(2) +
+     '" stroke="' + MFS_FIG_T + '" stroke-width="2" transform="translate(147 205) scale(.62) translate(-147 -205)"/></g>';
+ },
+ dural: function(){ return _mfsSh('rect','x="142" y="288" width="16" height="58" rx="8"',0); },
+ protr: function(){ return _mfsSh('circle','cx="112" cy="342" r="17"',0) + _mfsSh('circle','cx="188" cy="342" r="17"',0); },
+ prop: function(){
+   return _mfsLn('M288 34 L288 680') + _mfsLn('M283 42 L288 32 L293 42') + _mfsLn('M283 672 L288 682 L293 672') +
+     _mfsLn('M36 478 L264 478') + _mfsLn('M46 473 L36 478 L46 483') + _mfsLn('M254 473 L264 478 L254 483') +
+     '<text x="284" y="360" font-size="10" fill="' + MFS_FIG_T + '" transform="rotate(-90 284 360)" text-anchor="middle">talla</text>' +
+     '<text x="150" y="494" font-size="10" fill="' + MFS_FIG_T + '" text-anchor="middle">envergadura</text>';
+ },
+ escol: function(){ return '<path d="M150 138 C136 170 164 200 150 232 C138 262 162 296 150 336" fill="none" stroke="' +
+   MFS_FIG_T + '" stroke-width="2.6" stroke-dasharray="6 4" stroke-linecap="round"/>'; },
+ codo: function(){ return _mfsSh('circle','cx="75" cy="262" r="15"',1) + _mfsSh('circle','cx="225" cy="262" r="15"',1); },
+ cara: function(){ return _mfsSh('ellipse','cx="150" cy="76" rx="30" ry="38"',0); },
+ estr: function(){ return _mfsLn('M104 296 C108 302 108 312 106 322') + _mfsLn('M112 294 C116 300 116 310 114 320') +
+   _mfsLn('M196 296 C192 302 192 312 194 322') + _mfsLn('M188 294 C184 300 184 310 186 320'); },
+ miop: function(){
+   var c = '#2d3a4f';
+   return '<circle cx="137" cy="72" r="10.5" fill="#fff" fill-opacity=".3" stroke="' + c + '" stroke-width="1.7"/>' +
+     '<circle cx="163" cy="72" r="10.5" fill="#fff" fill-opacity=".3" stroke="' + c + '" stroke-width="1.7"/>' +
+     '<path d="M147.5 70 C149 68.5 151 68.5 152.5 70" fill="none" stroke="' + c + '" stroke-width="1.6"/>' +
+     '<path d="M126.5 70 L119 72 M173.5 70 L181 72" stroke="' + c + '" stroke-width="1.6" stroke-linecap="round"/>';
+ },
+ mvp: function(){
+   return '<path transform="rotate(-28 160 214) translate(146 214) scale(.62) translate(-146 -214)" d="M142 180 C138 192 134 208 138 222 C140 234 146 244 158 248 C172 250 188 248 196 240 C199 230 196 216 192 208 C190 202 192 196 188 191 C185 186 187 181 181 177 C175 172 166 170 158 172 C151 173 146 176 142 180 Z" fill="#f1a1b6" fill-opacity="' + (0.6 * _mfsFigFO).toFixed(2) + '" stroke="#c24d6e" stroke-width="3" stroke-dasharray="6 5"/>' +
+     '<circle cx="162" cy="214" r="6" fill="#fff" fill-opacity=".5" stroke="' + MFS_FIG_T + '" stroke-width="1.8"/>' +
+     '<path d="M158 216 C159.8 210.5 164.2 210.5 166 216" fill="none" stroke="' + MFS_FIG_T + '" stroke-width="1.4" stroke-linecap="round"/>';
+ },
+ /* Los dos de AMBAR son los criterios aparte: la ectopia lentis y la raiz. */
+ ect: function(){ return _mfsSh('circle','cx="138" cy="70" r="12"',0,1) + _mfsSh('circle','cx="162" cy="70" r="12"',0,1); },
+ raiz: function(){
+   var p = 'M152 190 L152 164 C152 147 178 147 178 166 L178 190';
+   return '<path d="' + p + '" fill="none" stroke="' + MFS_FIG_AF + '" stroke-opacity="' + (0.5 * _mfsFigFO).toFixed(2) +
+     '" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>' +
+     '<path d="' + p + '" fill="none" stroke="' + MFS_FIG_A + '" stroke-width="1.5" stroke-dasharray="4 3" stroke-linecap="round"/>' +
+     '<ellipse cx="152" cy="194" rx="12" ry="10" fill="' + MFS_FIG_AF + '" fill-opacity="' + (0.5 * _mfsFigFO).toFixed(2) +
+     '" stroke="' + MFS_FIG_A + '" stroke-width="1.8" stroke-dasharray="4 3"/>';
+ }
+};
+
+/* Con muchas marcas a la vez los colores se suavizan, que es lo que la demo hace con `FO`. */
+function mfsFigMarcas(){
+  var mk = document.getElementById('mfs-fig-marcas'); if (!mk) return;
+  var S = mfsFigEstado();
+  var keys = Object.keys(MFS_FIG_REG), n = 0, segs = [], top = '';
+  keys.forEach(function (k) { if (S[k] || _mfsFigHov === k) n++; });
+  _mfsFigFO = n > 6 ? 0.5 : (n > 3 ? 0.72 : 1);
+  keys.forEach(function (k) {
+    var on = !!S[k], hv = (_mfsFigHov === k);
+    if (!on && !hv) return;
+    var dim = (_mfsFigHov !== null && !hv && n > 1) ? ' opacity=".3"' : (hv && !on ? ' opacity=".6"' : '');
+    var g = '<g data-m="' + k + '"' + dim + (hv ? ' class="mfs-fig-pulso"' : '') + '>' + MFS_FIG_REG[k](S) + '</g>';
+    if (hv) top = g; else segs.push(g);
+  });
+  /* ⚠️ SE ADOPTA EL SVG PARSEADO Y NO SE ASIGNA `innerHTML`, y eso no es estilo: el ruleset
+     local tiene `ceibo-xss-innerhtml-concat` y la primera version de este repintado subio la
+     linea base de 124 a 125 WARNING. Un aviso mas es un aviso que el proximo lector tiene que
+     volver a descartar a mano, y acá ademas no hace falta: lo que se arma son constantes del
+     dibujo, sin un solo dato del paciente.
+     Se parsea en el espacio de nombres de SVG a proposito: `innerHTML` sobre un nodo SVG no se
+     lo da, y los elementos saldrian sin dibujarse. */
+  var _frag = segs.join('') + top;
+  while (mk.firstChild) mk.removeChild(mk.firstChild);
+  if (_frag) {
+    var _doc = new DOMParser().parseFromString(
+      '<svg xmlns="http://www.w3.org/2000/svg">' + _frag + '</svg>', 'image/svg+xml');
+    var _hijos = Array.prototype.slice.call(_doc.documentElement.childNodes);
+    for (var _i = 0; _i < _hijos.length; _i++) mk.appendChild(document.importNode(_hijos[_i], true));
+  }
+}
+
+/* ── LOS CAMBIOS DE FORMA ────────────────────────────────────────────────────────────────── */
+var _mfsFigCur = { arm:1, leg:1, fing:1, thumb:1, elb:0, foot:0, chest:0, flat:0 };
+function _mfsFigTarget(){
+  var S = mfsFigEstado();
+  return { arm: S.prop ? 1.08 : 1, leg: S.prop ? 1.06 : 1,
+    fing: S.mun === 3 ? 1.24 : (S.mun === 1 ? 1.12 : 1),
+    thumb: S.mun === 3 ? 1.45 : (S.mun === 1 ? 1.25 : 1),
+    elb: S.codo ? 6 : 0, foot: S.pie === 'ret' ? 7 : 0,
+    chest: S.pecho === 'exc' ? 1 : 0, flat: S.pie === 'pla' ? 1 : (S.pie === 'ret' ? 0.7 : 0) };
+}
+var MFS_TF0 = 'M141 124 C130 129 110 133 96 140 C88 144 84 152 85 162 C88 178 92 190 93 202 C95 228 100 252 101 272 C99 294 90 314 88 334 C92 348 120 354 150 354 C180 354 208 348 212 334 C210 314 201 294 199 272 C200 252 205 228 207 202 C208 190 212 178 215 162 C216 152 212 144 204 140 C190 133 170 129 159 124 Z';
+var MFS_TF1 = 'M141 124 C130 129 108 133 92 140 C84 144 79 152 79 162 C82 178 86 190 86 202 C89 228 98 252 101 272 C99 294 90 314 88 334 C92 348 120 354 150 354 C180 354 208 348 212 334 C210 314 201 294 199 272 C202 252 211 228 214 202 C214 190 218 178 221 162 C221 152 216 144 208 140 C192 133 170 129 159 124 Z';
+var MFS_TL0 = 'M141 124 C130 129 110 133 96 140 C88 144 84 152 85 162 C88 178 92 190 93 202 C95 228 100 252 101 272 C99 294 90 314 88 334';
+var MFS_TL1 = 'M141 124 C130 129 108 133 92 140 C84 144 79 152 79 162 C82 178 86 190 86 202 C89 228 98 252 101 272 C99 294 90 314 88 334';
+var MFS_TR0 = 'M159 124 C170 129 190 133 204 140 C212 144 216 152 215 162 C212 178 208 190 207 202 C205 228 200 252 199 272 C201 294 210 314 212 334';
+var MFS_TR1 = 'M159 124 C170 129 192 133 208 140 C216 144 221 152 221 162 C218 178 214 190 214 202 C211 228 202 252 199 272 C201 294 210 314 212 334';
+var MFS_FT0 = 'M110 634 C104 646 92 652 90 662 C89 668 96 672 108 672 C120 672 128 670 129 662 C130 652 128 644 127 634 Z';
+var MFS_FT1 = 'M110 634 C104 646 92 652 90 662 C89 668 96 672 108 672 C121 672 131 671 135 665 C139 655 133 644 127 634 Z';
+/* Interpolacion de dos rutas con los MISMOS comandos: se parten en letras y numeros y se
+   interpolan solo los numeros. Es lo que hace la demo. */
+function _mfsLerpPath(a, b, t){
+  var A1 = a.match(/[A-Za-z]|-?\d*\.?\d+/g), B1 = b.match(/[A-Za-z]|-?\d*\.?\d+/g), o = [];
+  for (var i = 0; i < A1.length; i++) {
+    if (/[A-Za-z]/.test(A1[i])) o.push(A1[i]);
+    else o.push((parseFloat(A1[i]) + (parseFloat(B1[i]) - parseFloat(A1[i])) * t).toFixed(2));
+  }
+  return o.join(' ');
+}
+function mfsFigFormas(){
+  var svg = document.getElementById('mfs-fig-svg'); if (!svg) return;
+  var c = _mfsFigCur;
+  var q = function (sel, fn) { Array.prototype.forEach.call(svg.querySelectorAll(sel), fn); };
+  var dx = (-c.chest * 5).toFixed(2);
+  q('.mfsf-arm', function (e) { e.setAttribute('transform', 'translate(' + dx + ' 148) scale(1 ' + c.arm.toFixed(4) + ') translate(0 -148)'); });
+  q('.mfsf-fore', function (e) { e.setAttribute('transform', 'rotate(' + (-c.elb).toFixed(2) + ' 75 262)'); });
+  q('.mfsf-fing', function (e) { e.setAttribute('transform', 'translate(0 383) scale(1 ' + c.fing.toFixed(4) + ') translate(0 -383)'); });
+  q('.mfsf-thumb', function (e) { e.setAttribute('transform', 'translate(0 366) scale(1 ' + c.thumb.toFixed(4) + ') translate(0 -366)'); });
+  q('.mfsf-leg', function (e) { e.setAttribute('transform', 'translate(0 338) scale(1 ' + c.leg.toFixed(4) + ') translate(0 -338)'); });
+  q('.mfsf-foot', function (e) { e.setAttribute('transform', 'rotate(' + c.foot.toFixed(2) + ' 118 636)'); });
+  q('.mfsf-footp', function (e) { e.setAttribute('d', _mfsLerpPath(MFS_FT0, MFS_FT1, c.flat)); });
+  var g = function (id) { return document.getElementById(id); };
+  if (g('mfs-fig-tfill')) g('mfs-fig-tfill').setAttribute('d', _mfsLerpPath(MFS_TF0, MFS_TF1, c.chest));
+  if (g('mfs-fig-tl')) g('mfs-fig-tl').setAttribute('d', _mfsLerpPath(MFS_TL0, MFS_TL1, c.chest));
+  if (g('mfs-fig-tr')) g('mfs-fig-tr').setAttribute('d', _mfsLerpPath(MFS_TR0, MFS_TR1, c.chest));
+}
+/* ⚠️ CON `prefers-reduced-motion` EL CAMBIO ES INSTANTANEO, no mas lento: el factor pasa a 1 y
+   la forma llega a destino en el primer cuadro. Es lo que la regla de pantalla de este archivo
+   pide, y lo que la demo ya hacia. */
+var _mfsFigRaf = null;
+function _mfsFigReduce(){
+  return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+}
+function _mfsFigTween(){
+  var t = _mfsFigTarget(), mov = false, red = _mfsFigReduce();
+  Object.keys(t).forEach(function (k) {
+    var d = t[k] - _mfsFigCur[k];
+    if (Math.abs(d) < 0.0008) _mfsFigCur[k] = t[k];
+    else { _mfsFigCur[k] += d * (red ? 1 : 0.18); mov = true; }
+  });
+  mfsFigFormas();
+  _mfsFigRaf = mov ? window.requestAnimationFrame(_mfsFigTween) : null;
+}
+function _mfsFigKick(){ if (_mfsFigRaf === null) _mfsFigRaf = window.requestAnimationFrame(_mfsFigTween); }
+
+/* La figura de referencia: el mismo cuerpo, sin rasgos, en trazo punteado. Se clona UNA vez. */
+function mfsFigRefSync(){
+  var svg = document.getElementById('mfs-fig-svg'), cue = document.getElementById('mfs-fig-cuerpo');
+  var chk = document.getElementById('mfs-fig-ref');
+  if (!svg || !cue) return;
+  var g = document.getElementById('mfs-fig-ghost');
+  if (!g) {
+    g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    g.setAttribute('id', 'mfs-fig-ghost'); g.setAttribute('pointer-events', 'none');
+    var c = cue.cloneNode(true);
+    Array.prototype.slice.call(c.querySelectorAll('*')).forEach(function (e) {
+      if (e.getAttribute('stroke') === 'none') { e.parentNode.removeChild(e); return; }
+      e.removeAttribute('id'); e.removeAttribute('class');
+      if (/^(path|ellipse|rect|circle)$/.test(e.tagName)) {
+        e.setAttribute('fill', 'none'); e.setAttribute('stroke', '#7a869a');
+        e.setAttribute('stroke-width', '1'); e.setAttribute('stroke-dasharray', '3 3');
+      }
+    });
+    c.removeAttribute('id'); g.appendChild(c);
+    var mk = document.getElementById('mfs-fig-marcas');
+    if (mk) svg.insertBefore(g, mk); else svg.appendChild(g);
+  }
+  g.style.display = (chk && chk.checked) ? '' : 'none';
+}
+window.mfsFigRefSync = mfsFigRefSync;
+
+/* La alternativa de texto: la lista de lo que esta marcado. */
+function mfsFigAlt(){
+  var p = document.getElementById('mfs-fig-alt'); if (!p) return;
+  var sc = mfsScore();
+  var ap = [];
+  MFS_APARTE.forEach(function (r) { if (mfsAparte(null, r.c) === 'si') ap.push(r.rot.toLowerCase()); });
+  var l = sc.tildados.map(function (x) { return (x.papel || x.txt).toLowerCase(); }).concat(ap);
+  p.textContent = l.length ? 'Marcado en la figura: ' + l.join(', ') + '.' : 'La figura no tiene ningún rasgo marcado.';
+}
+
+function mfsFigPintar(){
+  if (!document.getElementById('mfs-fig-svg')) return;
+  mfsFigMarcas(); mfsFigAlt(); mfsFigRefSync(); _mfsFigKick();
+}
+window.mfsFigPintar = mfsFigPintar;
+
+/* Al pasar el mouse o enfocar un rasgo, su marca parpadea y se dibuja arriba; las demas se
+   atenuan. Se engancha por DELEGACION en el documento y no fila por fila, asi que no hay que
+   recordar agregarlo a cada rasgo nuevo. */
+function _mfsFigHoverDe(e){
+  var t = e.target;
+  var fila = t && t.closest ? t.closest('.mfs-fila') : null;
+  var ctl = fila ? fila.querySelector('input[id], select[id]') : null;
+  var k = null;
+  if (ctl) {
+    var mapa = { mfs_muneca_pulgar:'mun', mfs_pectus:'pecho', mfs_pie:'pie', mfs_neumotorax:'neumo',
+      mfs_ectasia:'dural', mfs_protrusion:'protr', mfs_proporciones:'prop', mfs_escoliosis:'escol',
+      mfs_codo:'codo', mfs_facies:'cara', mfs_estrias:'estr', mfs_miopia:'miop',
+      mfs_prolapso:'mvp', mfs_ectopia_lentis:'ect', mfs_diseccion_raiz:'raiz' };
+    k = mapa[ctl.id] || null;
+  }
+  if (k !== _mfsFigHov) { _mfsFigHov = k; mfsFigMarcas(); }
+}
+document.addEventListener('mouseover', _mfsFigHoverDe);
+document.addEventListener('focusin', _mfsFigHoverDe);
+document.addEventListener('mouseout', function (e) {
+  if (!e.relatedTarget || !e.relatedTarget.closest || !e.relatedTarget.closest('.mfs-fila')) {
+    if (_mfsFigHov !== null) { _mfsFigHov = null; mfsFigMarcas(); }
+  }
+});
+document.addEventListener('focusout', function () {
+  if (_mfsFigHov !== null) { _mfsFigHov = null; mfsFigMarcas(); }
+});
+
 function critMarfan(){
   var sc = mfsScore();
   var _g = function (clave, etq) {
@@ -80854,7 +81261,8 @@ function critMarfan(){
     'así que se escribe acá para consultar y se pierde al cerrar.</div>' +
     '<div id="mfs-reglas" class="mfs-reglas"></div>' +
     '<div class="mfs-nota mfs-nota-fija">Orientación en pantalla con lo cargado; no es un diagnóstico.</div>';
-  var h = _critCols([['Score sistémico', c1], ['Criterios aparte y reglas', c2]]) +
+  var c3 = '<div id="mfs-slot-figura"></div>';
+  var h = _critCols([['Score sistémico', c1], ['Criterios aparte y reglas', c2], ['Figura', c3]]) +
     _critPie('<b>Loeys BL et al. &mdash; The revised Ghent nosology for the Marfan syndrome. J Med Genet 2010;47:476-85.</b> ' +
       'Score sistémico: Box 2, folio 478 &middot; reglas diagnósticas: Box 1, folio 477.<br>' +
       'Lo que se marque acá <b>viaja con el estudio</b>. Contesta <b>«¿este paciente tiene rasgos de Marfan?»</b>; ' +
@@ -80869,10 +81277,13 @@ function critMarfanColocar(){
   mfsCamposInit();
   var g = document.getElementById('mfs-campos');
   var bs = document.getElementById('mfs-bloque-score'), ba = document.getElementById('mfs-bloque-aparte');
+  var bf = document.getElementById('mfs-bloque-figura');
   var hs = document.getElementById('mfs-slot-score'), ha = document.getElementById('mfs-slot-aparte');
+  var hf = document.getElementById('mfs-slot-figura');
   if (!g || !bs || !ba || !hs || !ha) return;
   g.removeAttribute('hidden');
   hs.appendChild(bs); ha.appendChild(ba);
+  if (bf && hf) hf.appendChild(bf);
   /* La guarderia queda vacia y oculta dentro de la tarjeta mientras dura el prestamo; es
      `_mfsDevolver` quien RECOGE los dos bloques dentro de ella antes de llevarsela. */
   hs.parentElement.appendChild(g); g.setAttribute('hidden', '');
@@ -80901,6 +81312,7 @@ function mfsCalc(){
     m.className = 'mfs-msg' + (sc.sistemico ? ' mfs-msg-on' : '');
   }
   mfsReglasPintar();
+  if (typeof mfsFigPintar === 'function') mfsFigPintar();
 }
 window.mfsCalc = mfsCalc;
 

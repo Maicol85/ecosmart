@@ -102,6 +102,43 @@ const MEDIR = `(async () => {
     gb.click(); await new Promise(r => setTimeout(r, 140));
   }
 
+  /* ── LA FIGURA (commit 6): se abre la tarjeta y se mide ──────────────────────── */
+  R.figura = { existeEnSeccion: !!EL('mfs-fig-svg') };
+  try { critAbrir('marfan') } catch (e) { R.errs.push('critAbrir: ' + e.message) }
+  await new Promise(r => setTimeout(r, 320));
+  {
+    const sv = EL('mfs-fig-svg'), cj = document.querySelector('#crit-cuerpo .mfs-fig-caja');
+    R.figura.svg = caja(sv); R.figura.caja = caja(cj);
+    R.figura.enTarjeta = !!document.querySelector('#crit-cuerpo #mfs-fig-svg');
+    R.figura.columnas = document.querySelectorAll('#crit-cuerpo > div > div').length;
+    /* un rasgo: la marca tiene que aparecer */
+    const mp = EL('mfs_muneca_pulgar');
+    if (mp) { mp.value = 'ambos'; mp.dispatchEvent(new Event('change', { bubbles: true })) }
+    await new Promise(r => setTimeout(r, 420));
+    const mk = EL('mfs-fig-marcas');
+    R.figura.marcasConRasgo = mk ? mk.children.length : -1;
+    R.figura.alt = T(EL('mfs-fig-alt'));
+    /* la casilla de referencia: es preferencia de pantalla y NO campo guardado */
+    const rf = EL('mfs-fig-ref');
+    R.figura.refEsCampo = (rf && typeof _noEsDelEstudio === 'function') ? (_noEsDelEstudio('mfs-fig-ref') ? 'NO' : 'SI ES CAMPO') : '?';
+    if (rf) { rf.checked = true; rf.dispatchEvent(new Event('change', { bubbles: true }));
+      await new Promise(r => setTimeout(r, 200));
+      const gh = EL('mfs-fig-ghost');
+      R.figura.ghost = gh ? (gh.style.display === 'none' ? 'oculto' : 'visible') : 'NO EXISTE';
+      rf.checked = false; rf.dispatchEvent(new Event('change', { bubbles: true }));
+      await new Promise(r => setTimeout(r, 160));
+      const gh2 = EL('mfs-fig-ghost');
+      R.figura.ghostApagado = gh2 ? (gh2.style.display === 'none' ? 'oculto' : 'VISIBLE') : 'NO'; }
+    /* la tarjeta no puede desbordar la ventana ni scrollear en horizontal */
+    const card = EL('crit-card');
+    R.figura.cardCaja = caja(card);
+    R.figura.cardScrollX = card ? card.scrollWidth - card.clientWidth : -1;
+    if (mp) { mp.value = ''; mp.dispatchEvent(new Event('change', { bubbles: true })) }
+  }
+  R.scrollHConTarjeta = document.documentElement.scrollWidth - document.documentElement.clientWidth;
+  try { critCerrar() } catch (e) {}
+  await new Promise(r => setTimeout(r, 160));
+
   /* ── SCROLL HORIZONTAL Y TEXTO RECORTADO ────────────────────────────────────── */
   R.scrollH = document.documentElement.scrollWidth - document.documentElement.clientWidth;
   R.recortados = [];
