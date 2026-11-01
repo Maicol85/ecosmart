@@ -1764,6 +1764,22 @@
      sólo desde 1100 px, y el `.grid-3` de adentro pasa a `auto-fit` con un piso de 170 px, que
      es lo que garantiza el ancho útil aunque la tarjeta se angoste por otra causa. */
   .pop-pocus-grid { display:grid; grid-template-columns: minmax(0,1fr); gap:10px; }
+  /* ══ PLEURA Y PULMON (POP-B-4) ══════════════════════════════════════
+     Dos columnas chicas desde 900 px y apiladas por debajo, que es la regla fija de CLAUDE.md.
+     El corte va sobre la VENTANA y no sobre el contenedor: con `flex-wrap` el punto de quiebre
+     depende del ancho que le quede a la tarjeta y «a partir de unos 900 px» deja de ser medible.
+     ⚠️ Y LA SUBGRILLA DE ADENTRO NO SE PARTE: los tres campos de cada mitad van en un
+     `.grid-2`, y su propia regla de 768 px ya los acomoda. */
+  .pop-pleupul-grid { display:grid; grid-template-columns: minmax(0,1fr); gap:10px 18px; }
+  /* La ecocardiografia y el ventriculo derecho, al lado (POP-B-4). Mismo corte de 900 px sobre
+     la ventana que el resto de la pantalla. */
+  .pop-eco-par { display:grid; grid-template-columns: minmax(0,1fr); gap:10px 18px; }
+  @media (min-width: 900px) {
+    .pop-eco-par { grid-template-columns: repeat(2, minmax(0,1fr)); }
+  }
+  @media (min-width: 900px) {
+    .pop-pleupul-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
+  }
   /* ══ ACA VIVIA LA REGLA QUE PARTIA ESTA SUBGRILLA EN DOS DESDE 1100 px (POP-V2) ══════════
      Tenia sentido con la tarjeta a ANCHO COMPLETO: 1232 px daban dos columnas de ~600. Con las
      tres columnas del POP-A la tarjeta mide ~404 px, y medido a 1440 px esa regla la partia en
@@ -11173,27 +11189,39 @@ window.cerrarSesionReal = cerrarSesionReal;
     <section class="pop-card" data-pop="pop-pocus">
       <div class="pop-card-tit">🔎 Eco y POCUS</div>
       <div class="pop-pocus-grid">
-        <div style="font-size:11px;font-weight:700;color:var(--accent2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.4px;">Ecocardiografía</div>
-        <div class="calc-box">
-          <div class="calc-row"><span class="calc-lbl">TSVI · VTI · FC (de Hemodinámica)</span><span id="pop-eco-src">—</span></div>
-          <div class="calc-row"><span class="calc-lbl">GC estimado</span><span id="pop-eco-gc">—</span></div>
-          <div class="calc-row"><span class="calc-lbl">IC estimado</span><span id="pop-eco-ic">—</span></div>
-          <div style="font-size:10px;color:var(--text2);margin-top:6px;line-height:1.5;">Estimación ecocardiográfica — sale de los MISMOS campos y la misma fórmula que la cápsula «Perfil hemodinámico» de esta pestaña. Si falta alguno, el valor no se inventa.</div>
+        <!-- ══ LA ECOCARDIOGRAFIA Y EL VENTRICULO DERECHO, UNO AL LADO DEL OTRO (POP-B-4) ══
+             Propuesta del medico del 01/11/2026. Los dos son capsulas de SOLO LECTURA -ninguno
+             de sus valores se carga aca- y los dos son cortos, asi que apilados desperdiciaban
+             media tarjeta de alto en la columna que ya era la mas alta de las tres.
+             Desde 900 px van en dos columnas; por debajo, apilados, en el orden de siempre: la
+             ecocardiografia primero y el ventriculo derecho despues. El pericardio queda DEBAJO
+             y a ancho completo, porque tiene un campo que se edita y su propia nota. -->
+        <div class="pop-eco-par">
+          <div>
+          <div style="font-size:11px;font-weight:700;color:var(--accent2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.4px;">Ecocardiografía</div>
+          <div class="calc-box">
+            <div class="calc-row"><span class="calc-lbl">TSVI · VTI · FC (de Hemodinámica)</span><span id="pop-eco-src">—</span></div>
+            <div class="calc-row"><span class="calc-lbl">GC estimado</span><span id="pop-eco-gc">—</span></div>
+            <div class="calc-row"><span class="calc-lbl">IC estimado</span><span id="pop-eco-ic">—</span></div>
+            <div style="font-size:10px;color:var(--text2);margin-top:6px;line-height:1.5;">Estimación ecocardiográfica — sale de los MISMOS campos y la misma fórmula que la cápsula «Perfil hemodinámico» de esta pestaña. Si falta alguno, el valor no se inventa.</div>
+          </div>
+          </div>
+          <div>
+          <!-- ══ EL VENTRICULO DERECHO VA PRIMERO (POP-V2-1) ═══════════════════════════════
+               Es lo que el medico mira primero en un posoperatorio y lo unico de este bloque que
+               ya viene sincronizado: ninguno de sus cuatro valores se carga aca. Detras van
+               pericardio, pleura y pulmon, que son los que si se consignan.
+               ⚠️ LA RELACION VD/VI ES DE SOLO LECTURA Y VIENE DE LA PESTANA VD/AD: no hay, ni
+               hubo nunca, un campo de VD/VI en este modulo. Lo publica `popPocusSync` leyendo
+               `vdViEstado`, el lector unico (C1-3b). -->
+          <div style="font-size:11px;font-weight:700;color:var(--accent2);margin-bottom:6px;text-transform:uppercase;letter-spacing:.4px;">Ventrículo derecho</div>
+          <div class="calc-box"><div id="pop-pocus-vd">—</div></div>
+
+          <!-- PERICARDIO · PLEURA · PULMON · VD. Los dos extremos se SINCRONIZAN con lo que la
+               app ya calcula (dptEstado y los campos de VD/Doppler) y los dos del medio son campos
+               nuevos. Ninguna subseccion define un criterio propio. -->
+          </div>
         </div>
-
-        <!-- ══ EL VENTRICULO DERECHO VA PRIMERO (POP-V2-1) ═══════════════════════════════
-             Es lo que el medico mira primero en un posoperatorio y lo unico de este bloque que
-             ya viene sincronizado: ninguno de sus cuatro valores se carga aca. Detras van
-             pericardio, pleura y pulmon, que son los que si se consignan.
-             ⚠️ LA RELACION VD/VI ES DE SOLO LECTURA Y VIENE DE LA PESTANA VD/AD: no hay, ni
-             hubo nunca, un campo de VD/VI en este modulo. Lo publica `popPocusSync` leyendo
-             `vdViEstado`, el lector unico (C1-3b). -->
-        <div style="font-size:11px;font-weight:700;color:var(--accent2);margin-bottom:6px;text-transform:uppercase;letter-spacing:.4px;">Ventrículo derecho</div>
-        <div class="calc-box"><div id="pop-pocus-vd">—</div></div>
-
-        <!-- PERICARDIO · PLEURA · PULMON · VD. Los dos extremos se SINCRONIZAN con lo que la
-             app ya calcula (dptEstado y los campos de VD/Doppler) y los dos del medio son campos
-             nuevos. Ninguna subseccion define un criterio propio. -->
         <div style="font-size:11px;font-weight:700;color:var(--accent2);margin-bottom:6px;text-transform:uppercase;letter-spacing:.4px;">Pericardio</div>
         <!-- ══ UN CAMPO SIMPLE DE DERRAME PERICARDICO, SEGUNDA PUERTA AL DUENO (POP-A-5) ═══
              El derrame pericardico tiene UN dueno en toda la app: el campo «Pericardio» de la
@@ -11213,29 +11241,47 @@ window.cerrarSesionReal = cerrarSesionReal;
         <div style="font-size:10px;color:var(--text2);margin:2px 0 6px;line-height:1.5;">Mismo dato que el campo «Pericardio» de la pestaña Pericardio y masas: gana la última edición.</div>
         <div class="calc-box" style="margin-bottom:14px;"><div id="pop-pocus-peri">—</div></div>
 
-        <!-- ⚠️ EL GLOBO ⓘ ES EL MISMO `pul-balik` DEL MÓDULO DE ECOGRAFÍA PULMONAR, no una copia:
-             publica la fórmula del volumen (Volpicelli 2026, enunciado D6_11, hoja 19) y sus
-             límites de validez —pacientes críticos en ventilación invasiva—. Una segunda ficha
-             con el mismo contenido se desincroniza el día que una de las dos se corrija. -->
-        <div style="font-size:11px;font-weight:700;color:var(--accent2);margin-bottom:6px;text-transform:uppercase;letter-spacing:.4px;">Pleura <button type="button" class="vinfo-btn vinfo-btn-44" data-vinfo="pul-balik" aria-expanded="false" aria-label="Informaci&oacute;n sobre la estimaci&oacute;n del volumen del derrame pleural" onclick="vInfoClic(this)">&#9432;</button></div>
-        <div class="grid-2">
-          <div class="fg"><label for="pop_pleura_der">Derrame derecho</label><select id="pop_pleura_der" onchange="popPocusSync()"><option value="" selected>— no evaluado —</option><option value="leve">Leve (&lt;1 cm)</option><option value="moderado">Moderado (1-3 cm)</option><option value="severo">Severo (&gt;3 cm)</option><option value="ausente">Ausente</option></select></div>
-          <div class="fg"><label for="pop_pleura_izq">Derrame izquierdo</label><select id="pop_pleura_izq" onchange="popPocusSync()"><option value="" selected>— no evaluado —</option><option value="leve">Leve (&lt;1 cm)</option><option value="moderado">Moderado (1-3 cm)</option><option value="severo">Severo (&gt;3 cm)</option><option value="ausente">Ausente</option></select></div>
-          <div class="fg"><label for="pop_pleura_caract">Características</label><select id="pop_pleura_caract" onchange="popPocusSync()"><option value="" selected>— no evaluado —</option><option value="libre">Libre</option><option value="loculado">Loculado</option><option value="hemotorax">Hemotórax</option></select></div>
-        </div>
-        <div class="calc-box" style="margin:8px 0 14px;"><div id="pop-pocus-pleura">—</div></div>
-
-        <div style="font-size:11px;font-weight:700;color:var(--accent2);margin-bottom:6px;text-transform:uppercase;letter-spacing:.4px;">Pulmón</div>
-        <div class="grid-2">
-          <div class="fg"><label for="pop_pulmon_lineasb">Líneas B</label><select id="pop_pulmon_lineasb" onchange="popPocusSync()"><option value="" selected>— no evaluado —</option><option value="ausentes">Ausentes</option><option value="focales">Focales</option><option value="difusas">Difusas bilaterales</option></select></div>
-          <div class="fg"><label for="pop_pulmon_consol">Consolidación</label><select id="pop_pulmon_consol" onchange="popPocusSync()"><option value="" selected>— no evaluado —</option><option value="ausente">Ausente</option><option value="der">Derecha</option><option value="izq">Izquierda</option><option value="bilateral">Bilateral</option></select></div>
-          <div class="fg"><label for="pop_pulmon_neumo">Neumotórax</label><select id="pop_pulmon_neumo" onchange="popPocusSync()"><option value="" selected>— no evaluado —</option><option value="ausente">Ausente</option><option value="sospecha">Sospecha</option><option value="presente">Presente</option></select></div>
-        </div>
-        <div class="calc-box" style="margin:8px 0 14px;"><div id="pop-pocus-pulmon">—</div></div>
       </div><!-- /.pop-pocus-grid -->
     </section>
     </div><!-- /.pop-col 3 · asistencia, eco y POCUS -->
     </div><!-- /.pop-cols -->
+    <!-- ══ PLEURA Y PULMON, A ANCHO COMPLETO DEBAJO DE LAS TRES COLUMNAS (POP-B-4) ═════
+         Es la propuesta del medico del 01/11/2026, y lo que la motiva esta medido: la tarjeta
+         «Eco y POCUS» media 1115 px de los 1228 de la columna 3 -a 1440 px, con cinco farmacos-,
+         asi que la columna 1 quedaba con 540 px de hueco debajo de «Monitoreo» y la 2 con 121.
+         Pleura y pulmon son los dos bloques mas altos de esa tarjeta y son los unicos que no
+         dependen del eco: salen aca, a ancho completo, en dos columnas chicas.
+         ⚠️ NINGUN id CAMBIA. Los seis selectores y las dos capsulas -`pop-pocus-pleura` y
+         `pop-pocus-pulmon`- son los MISMOS nodos, movidos de contenedor: `popPocusSync` los
+         sigue escribiendo sin tocar una linea, y los seis campos siguen viajando en el estudio
+         con su clave de siempre. El vocabulario de las seis no se toca -> PA-e sigue abierto. -->
+    <section class="pop-card pop-card-wide" data-pop="pop-pleupul">
+      <div class="pop-card-tit">🫁 Pleura y pulmón</div>
+      <div class="pop-pleupul-grid">
+        <div>
+        <!-- ⚠️ EL GLOBO ⓘ ES EL MISMO `pul-balik` DEL MÓDULO DE ECOGRAFÍA PULMONAR, no una copia:
+           publica la fórmula del volumen (Volpicelli 2026, enunciado D6_11, hoja 19) y sus
+           límites de validez —pacientes críticos en ventilación invasiva—. Una segunda ficha
+           con el mismo contenido se desincroniza el día que una de las dos se corrija. -->
+        <div style="font-size:11px;font-weight:700;color:var(--accent2);margin-bottom:6px;text-transform:uppercase;letter-spacing:.4px;">Pleura <button type="button" class="vinfo-btn vinfo-btn-44" data-vinfo="pul-balik" aria-expanded="false" aria-label="Informaci&oacute;n sobre la estimaci&oacute;n del volumen del derrame pleural" onclick="vInfoClic(this)">&#9432;</button></div>
+        <div class="grid-2">
+        <div class="fg"><label for="pop_pleura_der">Derrame derecho</label><select id="pop_pleura_der" onchange="popPocusSync()"><option value="" selected>— no evaluado —</option><option value="leve">Leve (&lt;1 cm)</option><option value="moderado">Moderado (1-3 cm)</option><option value="severo">Severo (&gt;3 cm)</option><option value="ausente">Ausente</option></select></div>
+        <div class="fg"><label for="pop_pleura_izq">Derrame izquierdo</label><select id="pop_pleura_izq" onchange="popPocusSync()"><option value="" selected>— no evaluado —</option><option value="leve">Leve (&lt;1 cm)</option><option value="moderado">Moderado (1-3 cm)</option><option value="severo">Severo (&gt;3 cm)</option><option value="ausente">Ausente</option></select></div>
+        <div class="fg"><label for="pop_pleura_caract">Características</label><select id="pop_pleura_caract" onchange="popPocusSync()"><option value="" selected>— no evaluado —</option><option value="libre">Libre</option><option value="loculado">Loculado</option><option value="hemotorax">Hemotórax</option></select></div>
+        </div>
+        <div class="calc-box" style="margin:8px 0 14px;"><div id="pop-pocus-pleura">—</div></div>
+        </div>
+        <div>
+        <div style="font-size:11px;font-weight:700;color:var(--accent2);margin-bottom:6px;text-transform:uppercase;letter-spacing:.4px;">Pulmón</div>
+        <div class="grid-2">
+        <div class="fg"><label for="pop_pulmon_lineasb">Líneas B</label><select id="pop_pulmon_lineasb" onchange="popPocusSync()"><option value="" selected>— no evaluado —</option><option value="ausentes">Ausentes</option><option value="focales">Focales</option><option value="difusas">Difusas bilaterales</option></select></div>
+        <div class="fg"><label for="pop_pulmon_consol">Consolidación</label><select id="pop_pulmon_consol" onchange="popPocusSync()"><option value="" selected>— no evaluado —</option><option value="ausente">Ausente</option><option value="der">Derecha</option><option value="izq">Izquierda</option><option value="bilateral">Bilateral</option></select></div>
+        <div class="fg"><label for="pop_pulmon_neumo">Neumotórax</label><select id="pop_pulmon_neumo" onchange="popPocusSync()"><option value="" selected>— no evaluado —</option><option value="ausente">Ausente</option><option value="sospecha">Sospecha</option><option value="presente">Presente</option></select></div>
+        </div>
+        <div class="calc-box" style="margin:8px 0 14px;"><div id="pop-pocus-pulmon">—</div></div>
+        </div>
+      </div><!-- /.pop-pleupul-grid -->
+    </section>
     <!-- ══ LA DISPOSICION DE ABAJO (POP-A-6, 01/11/2026) ═════════════════════════
          El dibujo a la IZQUIERDA, en media pantalla, y a la derecha las «Caracteristicas del
          esquema» -que es el equivalente en TEXTO del dibujo, `#pop-esq-txt`, el mismo nodo de
@@ -146543,8 +146589,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261101-0614';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793524444665;                 /* eco-build-ms */
+const ECO_BUILD    = '20261101-0625';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793525119648;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -146630,7 +146676,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261101-0614</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261101-0625</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
