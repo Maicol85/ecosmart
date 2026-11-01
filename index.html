@@ -1710,11 +1710,20 @@
      dibujo queda en 400 px de ancho y los rotulos de dentro se enciman. En UNA columna, a
      1100 px de ventana la tarjeta mide ~1030 px, asi que el dibujo se lleva ~620 — mas que los
      458 que tenia en el reparto de tres columnas, medido. */
-  @media (min-width: 1100px) {
-    .pop-esq-par { display:grid; grid-template-columns: minmax(0,1.35fr) minmax(0,1fr);
-                   gap:14px; align-items:start; }
-    .pop-esq-par > .pop-esq-txt { margin-top:0; }
+  /* ══ ACA VIVIA `.pop-esq-par` (POP-V2-1), Y SE RETIRA CON EL POP-A-6 ════════════════
+     Ponia el dibujo y su texto lado a lado DENTRO de la tarjeta del esquema, desde 1100 px.
+     Hoy el texto es una tarjeta propia de la columna de la derecha, asi que el reparto lo hace
+     `.pop-abajo` y el corte baja a 900 px, que es la regla fija de la casa.
+     ══ LA FILA DE ABAJO: EL DIBUJO Y LA COLUMNA DE LA DERECHA ═══════════════════════
+     Dos pistas iguales: el dibujo se lleva media pantalla, que es lo que pidio el medico, y la
+     otra mitad la comparten las caracteristicas y la conclusion, una debajo de la otra.
+     `align-items:start` para que la tarjeta del dibujo no se estire al alto de la columna. */
+  .pop-abajo { display:grid; grid-template-columns: minmax(0,1fr); gap:10px;
+               align-items:start; }
+  @media (min-width: 900px) {
+    .pop-abajo { grid-template-columns: minmax(0,1fr) minmax(0,1fr); }
   }
+  .pop-esq-txt:first-child { margin-top:0; }
   /* El dibujo escala con su caja y no al revés: `width:100%` y `height:auto` sobre un `viewBox`.
      `--bg3` y `--border` ya se usan en esta misma zona; no entra un color nuevo. */
   .pop-esq-wrap { background:var(--bg3); border:1px solid var(--border); border-radius:10px;
@@ -11210,7 +11219,16 @@ window.cerrarSesionReal = cerrarSesionReal;
     </section>
     </div><!-- /.pop-col 3 · asistencia, eco y POCUS -->
     </div><!-- /.pop-cols -->
-    <div class="pop-grid">
+    <!-- ══ LA DISPOSICION DE ABAJO (POP-A-6, 01/11/2026) ═════════════════════════
+         El dibujo a la IZQUIERDA, en media pantalla, y a la derecha las «Caracteristicas del
+         esquema» -que es el equivalente en TEXTO del dibujo, `#pop-esq-txt`, el mismo nodo de
+         siempre- con la «Conclusion hemodinamica» DEBAJO, aprovechando el hueco. Desde 900 px,
+         que es la regla fija de CLAUDE.md; por debajo, apilado.
+         ⚠️ EL DIBUJO NO SE TOCA: su `viewBox`, su `aria-label` y `popEsqPintar()` quedan
+         exactamente como estaban. Lo unico que cambia es el ANCHO de su contenedor, y el SVG ya
+         escalaba con su caja (`width:100%` + `height:auto` sobre un `viewBox`), asi que las
+         coordenadas de adentro son las mismas. Verificado contra HEAD nodo por nodo. -->
+    <div class="pop-abajo">
     <!-- ══ EL ESQUEMA DEL POSOPERATORIO (G2, 24/10/2026) ══════════════════════════════
          La ESCENA SALE SOLO DE LOS DATOS CARGADOS: no hay un selector de patrón, ni un botón de
          ejemplo, ni un valor por omisión. Sin datos el dibujo se ve en gris y lo dice.
@@ -11221,17 +11239,20 @@ window.cerrarSesionReal = cerrarSesionReal;
          arma concatenando texto en `innerHTML`. -->
     <section class="pop-card" data-pop="pop-esq">
       <div class="pop-card-tit">🫀 Esquema del posoperatorio</div>
-      <!-- ══ EL DIBUJO A LA IZQUIERDA Y SU TEXTO A LA DERECHA (POP-V2-1) ══════════════════
-           Lado a lado desde 1100 px y apilados por debajo, que es la maqueta aprobada. El texto
-           NO es una leyenda: dice lo MISMO que el dibujo, fila por fila. -->
-      <div class="pop-esq-par">
+      <!-- ⚠️ ACA EL TEXTO IBA AL LADO DEL DIBUJO, DENTRO DE ESTA TARJETA (POP-V2-1). Con la
+           disposicion del POP-A-6 el texto es una tarjeta propia -«Caracteristicas del
+           esquema»- en la columna de la derecha, con la conclusion debajo. El nodo es el MISMO
+           `#pop-esq-txt` y lo escribe el mismo dueno, `popEsqTexto`. -->
       <div class="pop-esq-wrap">
         <svg id="pop-esq-svg" class="pop-esq-svg" viewBox="0 0 600 496" role="img"
              aria-label="Esquema del posoperatorio: las cuatro cavidades, los grandes vasos, los pulmones y el soporte, dibujados con los datos cargados."></svg>
       </div>
-      <div id="pop-esq-txt" class="pop-esq-txt" aria-live="polite"></div>
-      </div><!-- /.pop-esq-par -->
       <div style="font-size:10px;color:var(--text2);margin-top:8px;line-height:1.5;">Esquema ilustrativo: el tamaño de las cavidades y el grosor de los vasos acompañan a los valores cargados, no son una medición del paciente. Los colores y los números salen de los mismos dueños que gradua el resto de la app.</div>
+    </section>
+    <div class="pop-col">
+    <section class="pop-card" data-pop="pop-carac">
+      <div class="pop-card-tit">📋 Características del esquema</div>
+      <div id="pop-esq-txt" class="pop-esq-txt" aria-live="polite"></div>
     </section>
     <section class="pop-card pop-card-wide" data-pop="pop-concl">
       <div class="pop-card-tit">🧠 Conclusión hemodinámica</div>
@@ -11284,7 +11305,8 @@ window.cerrarSesionReal = cerrarSesionReal;
              el placeholder es lo primero que hay que borrar. -->
     </section>
 
-    </div><!-- /.pop-grid -->
+    </div><!-- /.pop-col · caracteristicas y conclusion -->
+    </div><!-- /.pop-abajo -->
 
     <!-- El botón va FUERA de las cards y a ancho completo, con el disclaimer debajo. Se habilita
          solo cuando hay índice cardíaco calculable: lo gobierna `popConclSync`. -->
@@ -146445,8 +146467,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261101-0409';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793516973383;                 /* eco-build-ms */
+const ECO_BUILD    = '20261101-0416';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793517379741;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -146532,7 +146554,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261101-0409</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261101-0416</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
