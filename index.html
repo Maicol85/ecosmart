@@ -1709,6 +1709,37 @@
     #oai-fila > .grid-3 { flex:1 1 auto; min-width:0; }
     #oai-fila > #oai-esq-caja { flex:0 0 360px; margin-top:0; }
   }
+  /* ══ LA PANTALLA DE LA TGA: CAMPOS A LA IZQUIERDA, DIBUJO A LA DERECHA — «CONG-2A» ═══════
+     Pedido del medico (31/10/2026). Hasta hoy eran tres columnas anchas de campos y debajo una
+     tarjeta de ancho COMPLETO con el dibujo chico: medido a 1440 px, la tarjeta ocupaba 1194 px
+     para un lienzo de 560, o sea 634 px vacios a la derecha.
+     ⚠️ EL CORTE ES EL MISMO QUE EL DE LA OREJUELA —900 px sobre la VENTANA, no sobre el
+     contenedor—, y por el mismo motivo: con `flex-wrap` el punto de quiebre depende del ancho
+     que le quede a la tarjeta, que cambia con la pestana y con el plan, y entonces «a partir de
+     unos 900 px» deja de ser una afirmacion medible. 899 apila y 900 no.
+     ⚠️ LOS CAMPOS SON UNA SOLA GRILLA DE DOS COLUMNAS, Y NO SEIS FILAS SUELTAS. Es lo que hace
+     que «cuando la cirugia no aparece, los campos corren y no queda un espacio vacio»: con una
+     fila por tema, esconder el grupo de la cirugia deja un hueco en su celda. Con una grilla
+     unica y el orden del marcado, los once campos caen exactamente en las seis filas que el
+     medico pidio cuando la cirugia esta, y corren solos cuando no esta.
+     ⚠️ Y EL ANCHO COMPLETO DE «Sintomas» ES CONDICIONAL, por la misma cuenta. Con la cirugia
+     visible hay diez campos antes, o sea cinco filas llenas, y «Sintomas» a ancho completo cierra
+     la sexta sin hueco. Sin la cirugia hay nueve, asi que «Sintomas» cae en la columna 2 de la
+     quinta fila: forzarle el ancho completo la empujaria a una fila propia y CREARIA el hueco que
+     este bloque viene a sacar. La clase la pone `tgaSync`, que es el dueno de la fila de cirugia.
+     ⚠️ LOS CAMPOS SE LLEVAN EL 46 % Y EL DIBUJO EL RESTO, no la mitad cada uno: dos selectores
+     entran de sobra en esa franja y el dibujo es lo que el medico quiere ver mas grande. Medido a
+     1440 px: el lienzo pasa de 560 a 605 px de ancho. Por debajo de 1000 px el lado a lado deja
+     el dibujo mas chico que la version apilada de antes, y es el precio del corte en 900 px. */
+  #tga-campos { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px;
+                align-items:start; }
+  #tga-campos.tga-sint-ancho > #tga-sintomas-fg { grid-column:1 / -1; }
+  #tga-fila > #tga-3d-box { margin-top:12px; }
+  @media (min-width: 900px) {
+    #tga-fila { display:flex; gap:14px; align-items:flex-start; }
+    #tga-fila > #tga-campos { flex:0 0 46%; min-width:0; }
+    #tga-fila > #tga-3d-box { flex:1 1 auto; min-width:0; margin-top:0; }
+  }
   /* ══ EL DESPLEGABLE DE FARMACOS ══ Cerrado por omision; el contador lo escribe `popSync`. */
   .pop-farm > summary { cursor:pointer; list-style:none; display:flex; align-items:center;
                         gap:8px; min-height:32px; margin-bottom:0; }
@@ -18063,11 +18094,20 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
            tanda AJUSTES-3 la movio, con sus palabras intactas, al ⓘ de esta seccion -el globo
            `tga-3d`-, rotulada «Criterio de EcoSmart» porque la analogia no esta en ninguna hoja
            leida. TGA2-b queda CERRADO. -->
+      <!-- ⚠️ EL PARRAFO LARGO SE MUDO AL ⓘ DE LA SECCION — «CONG-2A», commit 2 (31/10/2026).
+           Pedido del medico. Decia las cuatro anatomias del selector y como el tipo y la cirugia
+           gobiernan el dibujo, la conclusion y el informe; son 327 caracteres de prosa encima de
+           los campos. Sus palabras NO se tocaron: estan en el globo `tga-3d`, en su bloque «lee»,
+           que es el unico ⓘ de esta seccion y el que ya explicaba el dibujo. Aca queda una linea. -->
       <p style="font-size:11px;color:var(--text2);margin:0 0 12px;line-height:1.5;">
-        Esta sección cubre las cuatro anatomías del selector: la transposición completa (d-TGA), la congénitamente corregida (ccTGA) y las dos operadas con switch auricular.
-        El dibujo, la conclusión de abajo y el informe describen lo que se cargue en el tipo y en la cirugía; con la d-TGA aparece además el campo de cirugía realizada.
+        Transposición de grandes arterias: el tipo y la cirugía describen el dibujo, la conclusión y el informe.
       </p>
-      <div class="grid-3">
+      <!-- ⚠️ `#tga-fila` ES LA MAQUETA LADO A LADO y `#tga-campos` la grilla unica de dos
+           columnas; el porque de las dos cosas esta en la hoja de estilos, junto al selector.
+           Ningun `id` de campo cambio y el orden del marcado ES el orden visual, asi que la
+           tabulacion lo sigue sin un solo `tabindex`. -->
+      <div id="tga-fila">
+      <div id="tga-campos">
         <div class="fg"><label>Tipo</label>
           <select id="tga_tipo" onchange="tgaSync()">
             <option value="">—</option>
@@ -18082,6 +18122,19 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
             <option value="cctga">ccTGA — congénitamente corregida</option>
             <option value="mustard">Post-Mustard</option>
             <option value="senning">Post-Senning</option>
+          </select>
+        </div>
+        <!-- ⚠️ `tga-cirugia-row` CONSERVA SU `id` AUNQUE YA NO ES UNA FILA: lo busca `tgaSync`
+             para mostrarlo y esconderlo, y renombrarlo era cambiar dos cosas en vez de una.
+             Hoy es un grupo de campo dentro de la grilla unica, asi que al esconderlo los
+             campos de abajo CORREN y no queda la celda vacia que la maqueta vieja dejaba. -->
+        <div class="fg" id="tga-cirugia-row" style="display:none;"><label>Cirugía realizada</label>
+          <select id="tga_cirugia" onchange="tgaSync()">
+            <option value="">—</option>
+            <option value="ninguna">Sin cirugía</option>
+            <option value="auricular">Switch auricular (Mustard o Senning)</option>
+            <option value="jatene">Switch arterial (Jatene)</option>
+            <option value="rastelli">Rastelli</option>
           </select>
         </div>
         <!-- ⚠️ ESTE GRUPO SE OCULTA CON JATENE Y CON RASTELLI, y el `id` existe para eso.
@@ -18099,7 +18152,6 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
         </div>
         <div class="fg"><label>Diámetro del VD sistémico (de VD / AD)</label>
           <input type="text" id="tga_dilatacion_ro" readonly tabindex="-1" placeholder="—" style="opacity:.7;"></div>
-      </div>
       <!-- ⚠️ LA CIRUGIA SE MUESTRA SOLO CON `tga_tipo = dtga`, y el motivo no es maqueta.
            Con `cctga` la demo aprobada IGNORA la cirugía (`var o=(a==='dtga')?op:'none'`), y con
            `mustard` o `senning` la cirugía YA la dice el propio tipo: ofrecerla ahí dejaría
@@ -18112,47 +18164,31 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
            con esas dos cirugías el papel DESCRIBE —tipo, cirugía y datos cargados— y no
            interpreta, así que ninguna de las oraciones del ventrículo derecho sistémico se
            emite. Cierra docs/PENDIENTES.md → TGA-a. -->
-      <div class="grid-3" id="tga-cirugia-row" style="margin-top:10px;display:none;">
-        <div class="fg"><label>Cirugía realizada</label>
-          <select id="tga_cirugia" onchange="tgaSync()">
-            <option value="">—</option>
-            <option value="ninguna">Sin cirugía</option>
-            <option value="auricular">Switch auricular (Mustard o Senning)</option>
-            <option value="jatene">Switch arterial (Jatene)</option>
-            <option value="rastelli">Rastelli</option>
-          </select>
-        </div>
-      </div>
-      <div class="grid-3" style="margin-top:10px;">
         <div class="fg"><label>IT sistémica — grado (de Válvulas)</label>
           <input type="text" id="tga_it_ro" readonly tabindex="-1" placeholder="—" style="opacity:.7;"></div>
+        <div class="fg"><label>Bloqueo AV completo</label>
+          <select id="tga_bav" onchange="tgaSync()">
+            <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
+          </select>
+        </div>
         <div class="fg"><label>Obstrucción subaórtica</label>
           <select id="tga_obstr_subaortica" onchange="tgaSync()">
             <option value="">—</option><option value="no_eval">No evaluada</option><option value="no">No</option><option value="si">Sí</option>
           </select>
         </div>
         <div class="fg"><label>Gradiente subaórtico (mmHg)</label><input type="number" id="tga_grad_subaortico" step="1" placeholder="mmHg" oninput="tgaSync()"></div>
-      </div>
-      <div class="grid-3" style="margin-top:10px;">
-        <div class="fg"><label>Bloqueo AV completo</label>
-          <select id="tga_bav" onchange="tgaSync()">
-            <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
-          </select>
-        </div>
         <div class="fg"><label>CIV residual</label>
           <select id="tga_civ_residual" onchange="tgaSync()">
             <option value="">—</option><option value="no_eval">No evaluada</option><option value="no">No</option><option value="si">Sí</option>
           </select>
         </div>
         <div class="fg"><label>Gradiente CIV residual (mmHg)</label><input type="number" id="tga_civ_grad" step="1" placeholder="mmHg" oninput="tgaSync()"></div>
-      </div>
-      <div class="grid-2" style="margin-top:10px;">
-        <div class="fg"><label>Síntomas</label>
+        <div class="fg" id="tga-sintomas-fg"><label>Síntomas</label>
           <select id="tga_sintomas" onchange="tgaSync()">
             <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
           </select>
         </div>
-      </div>
+      </div><!-- /#tga-campos -->
       <!-- ══ EL DIAGRAMA 3D DE LA TRANSPOSICION (TGA-2) ══════════════════════════════════════
            Portado de `docs/3d/demo_tga_3d_esquema_aprobado.html` SIN reinterpretar su geometria:
            los arrays de puntos, `scenario()`, el armado y la animacion son los de la demo, y la
@@ -18216,7 +18252,7 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
         </div>
         <div id="tga-3d-cv" role="img" tabindex="0"
              aria-label="Modelo 3D esquemático del corazón y los grandes vasos en la transposición; se rota arrastrando"
-             style="width:100%;max-width:560px;min-height:40px;position:relative;cursor:grab;touch-action:none;"></div>
+             style="width:100%;max-width:640px;min-height:40px;overflow:hidden;position:relative;cursor:grab;touch-action:none;"></div>
         <div id="tga-3d-leg" style="display:none;gap:14px;flex-wrap:wrap;font-size:10.5px;color:var(--text2);margin-top:6px;">
           <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#2f6fd0;"></span> sangre poco oxigenada</span>
           <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#d8433b;"></span> sangre oxigenada</span>
@@ -18226,7 +18262,10 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
         <p id="tga-3d-txt" style="font-size:11px;color:var(--text);margin:6px 0 0;line-height:1.5;"></p>
         <p id="tga-3d-ref" style="font-size:10.5px;color:var(--text2);margin:6px 0 0;line-height:1.5;"></p>
         <p id="tga-3d-estado" style="font-size:10.5px;color:var(--text2);margin:6px 0 0;line-height:1.5;"></p>
-      </div>
+      </div><!-- /#tga-3d-box -->
+      </div><!-- /#tga-fila -->
+      <!-- «Conclusion» e «Integrar al informe» van DEBAJO DE TODO y a ancho completo, fuera de
+           `#tga-fila`: son el veredicto de la seccion entera, no de una de las dos columnas. -->
       <div class="calc-box" style="margin-top:12px;">
         <div class="calc-row"><span class="calc-lbl">Conclusión</span><span id="tga-concl" class="calc-val">—</span></div>
       </div>
@@ -45459,7 +45498,14 @@ const VINFO = Object.freeze({
   'tga-3d': {
     ancho: 380,
     tit: 'El diagrama 3D de la transposición',
-    lee: 'Es un esquema, no una imagen del estudio y no está a escala. Dibuja dos cosas que '
+    /* ⚠️ LAS DOS PRIMERAS ORACIONES VIENEN DEL PARRAFO DE PANTALLA, Y SUS PALABRAS NO SE
+       TOCARON — «CONG-2A», commit 2 (31/10/2026). Pedido del medico: eran 327 caracteres de
+       prosa encima de los campos de la seccion. En pantalla queda una linea corta. */
+    lee: 'Esta sección cubre las cuatro anatomías del selector: la transposición completa '
+       + '(d-TGA), la congénitamente corregida (ccTGA) y las dos operadas con switch auricular. '
+       + 'El dibujo, la conclusión de abajo y el informe describen lo que se cargue en el tipo y '
+       + 'en la cirugía; con la d-TGA aparece además el campo de cirugía realizada.\n'
+       + 'Es un esquema, no una imagen del estudio y no está a escala. Dibuja dos cosas que '
        + 'salen de lo que se cargó en esta sección: la ANATOMIA, que sale del campo «Tipo» '
        + '—«TGA completa» es la discordancia ventriculoarterial y «ccTGA» la doble '
        + 'discordancia—, y la CIRUGIA, que sale de «Cirugía realizada» cuando el tipo es «TGA '
@@ -91720,7 +91766,16 @@ function tgaSync(){
      desaparece del estudio ni del Excel. */
   const _ej = tgaEjes();
   const _fila = document.getElementById('tga-cirugia-row');
-  if (_fila) _fila.style.display = (_ej.tipo === 'dtga') ? '' : 'none';
+  const _cirVisible = (_ej.tipo === 'dtga');
+  if (_fila) _fila.style.display = _cirVisible ? '' : 'none';
+  /* ⚠️ «Sintomas» OCUPA LAS DOS COLUMNAS SOLO CON LA CIRUGIA VISIBLE, y el motivo es una cuenta,
+     no una preferencia: con la cirugia hay diez campos antes, o sea cinco filas llenas, y el
+     ancho completo cierra la sexta sin hueco; sin la cirugia hay nueve, asi que «Sintomas» cae en
+     la columna 2 de la quinta fila y forzarle el ancho la empujaria a una fila propia, CREANDO el
+     hueco que la maqueta nueva viene a sacar. El dueno de las dos cosas es el mismo —esta
+     funcion—, asi que no pueden discrepar. */
+  const _camp = document.getElementById('tga-campos');
+  if (_camp) _camp.classList.toggle('tga-sint-ancho', _cirVisible);
   /* ⚠️ MISMA REGLA QUE LA FILA DE CIRUGIA: se esconde, nunca se borra. Con Jatene y con Rastelli
      el ventrículo sistémico es el izquierdo, así que el campo pregunta por algo que no existe en
      ese paciente; el valor que hubiera quedado de un tipo anterior sigue en el estudio y en el
