@@ -63268,6 +63268,57 @@ function _popValvApertura(k, ph) {
   return (ph > 0.4 && ph < 0.95) ? Math.sin(Math.PI * (ph - 0.4) / 0.55) : 0;
 }
 window._popValvVelos = _popValvVelos; window._popValvApertura = _popValvApertura;
+
+/* ══ LOS CHORROS DE INSUFICIENCIA — «POP-C», commit 6 (2026-11-02) ══════════════════════════
+   Portados de `plume` y de `JG` de la demo v9, con sus numeros sin reescalar. La forma es
+   organica, como la del esquema 2D de Valvulas, y el tamano sigue al GRADO.
+   ⚠️ EL DUENO DEL GRADO ES VALVULAS Y ESTO SOLO LEE: `im_grado`, `it_grado`, `ia_grado` e
+   `ip_grado`, con el vocabulario de `_CC_GRADO` —1 leve, 2 moderada, 3 moderada-severa, 4
+   severa—. Sin grado cargado no se dibuja ningun chorro.
+   ⚠️ EL GRADO 3 NO EXISTE EN LA DEMO, que solo trae leve, moderada y severa. Se le da el punto
+   MEDIO entre moderada y severa en vez de empujarlo a uno de los dos: la app lo llama
+   «moderada-severa» y dibujarlo igual que una severa afirmaria mas de lo que el dato dice.
+   ⚠️ SE DIBUJA AUNQUE LA VALVULA NO ESTE MARCADA COMO OPERADA: la insuficiencia es un dato de
+   Valvulas y existe con o sin cirugia sobre esa valvula. */
+const POP_ESQ_JET = Object.freeze({ 1:[14,4], 2:[24,7], 3:[29,9], 4:[34,11] });
+/* Donde nace cada chorro y hacia donde apunta. `plume` dibuja hacia -y, asi que la rotacion es
+   la que lleva esa punta a la cavidad que recibe el flujo: las dos auriculoventriculares van
+   hacia ARRIBA -a su auricula, sin rotar- y las dos de salida, hacia su ventriculo: el VI esta
+   a la IZQUIERDA de la aortica y el VD a la DERECHA de la pulmonar. */
+const POP_ESQ_JETPOS = Object.freeze([
+  Object.freeze({ k:'im', campo:'im_grado', x:408, y:211, rot:0,   sistole:true,  lbl:'mitral' }),
+  Object.freeze({ k:'it', campo:'it_grado', x:335, y:211, rot:0,   sistole:true,  lbl:'tricúspide' }),
+  Object.freeze({ k:'ia', campo:'ia_grado', x:462, y:257, rot:-90, sistole:false, lbl:'aórtica' }),
+  Object.freeze({ k:'ip', campo:'ip_grado', x:276, y:257, rot:90,  sistole:false, lbl:'pulmonar' })
+]);
+/* La pluma de la demo, con lo mismo adentro. `o` es el bamboleo lateral. */
+function _popEsqPluma(L, w, o) {
+  const f = n => (Math.round(n * 100) / 100);
+  return 'M-1.5 0C-2.5 ' + f(-L * 0.25) + ' ' + f(-w * 0.8 + o) + ' ' + f(-L * 0.45) + ' '
+    + f(-w + o) + ' ' + f(-L * 0.7) + 'C' + f(-w * 1.05 + o) + ' ' + f(-L * 0.92) + ' '
+    + f(-w * 0.45 + o) + ' ' + f(-L) + ' ' + f(o) + ' ' + f(-L) + 'C' + f(w * 0.45 + o) + ' '
+    + f(-L) + ' ' + f(w * 1.05 + o) + ' ' + f(-L * 0.92) + ' ' + f(w + o) + ' ' + f(-L * 0.7)
+    + 'C' + f(w * 0.8 + o) + ' ' + f(-L * 0.45) + ' 2.5 ' + f(-L * 0.25) + ' 1.5 0Z';
+}
+window._popEsqPluma = _popEsqPluma;
+/* El grado de cada insuficiencia, leido de Valvulas. Devuelve 0 cuando no hay.
+   ⚠️ LA PULMONAR HABLA OTRO IDIOMA, Y LO DESTAPO LA MEDICION. `im_grado`, `it_grado` e
+   `ia_grado` guardan el NUMERO -1, 2, 3 o 4, el vocabulario de `_CC_GRADO`- y `ip_grado`
+   guarda la PALABRA: «Sin insuficiencia», «Leve», «Moderada», «Severa». Sin esta rama el
+   chorro pulmonar no se dibujaba nunca, y el texto del esquema tampoco lo nombraba: la sonda
+   leia «Sin insuficiencia» donde esperaba un numero.
+   Las palabras NO se inventan: son las que ese `<select>` ya publica, y se traducen al mismo
+   numero que `_CC_GRADO` usa. La pulmonar no tiene «moderada-severa». */
+const _POP_JET_PAL = Object.freeze({ 'leve':1, 'moderada':2, 'moderada-severa':3, 'severa':4 });
+function _popEsqJetGrado(campo) {
+  const e = document.getElementById(campo);
+  const v = String((e && e.value) || '').trim();
+  if (v === '') return 0;
+  const n = parseInt(v, 10);
+  if (isFinite(n) && String(n) === v) return (n >= 1 && n <= 4) ? n : 0;
+  return _POP_JET_PAL[v.toLowerCase()] || 0;
+}
+window._popEsqJetGrado = _popEsqJetGrado;
 function popEsquema() {
   const r = popPatron();
   const sv2 = id => { const e = document.getElementById(id); return e ? e.value : ''; };
@@ -63645,6 +63696,19 @@ function popEsqMontar() {
       return _popEsqNodo('circle', { cx:x, cy:0, r:2.2, display:'none' }, G);
     });
     n.valv[vv.k] = o;
+  });
+  /* ══ LOS CHORROS DE INSUFICIENCIA (POP-C-6) ════════════════════════════════════════════
+     Un grupo por valvula, con DOS rutas: el relleno translucido y el contorno, que es como la
+     demo los dibuja. Se montan una vez y el bucle les cambia la `d` y la opacidad. */
+  n.jet = {};
+  POP_ESQ_JETPOS.forEach(function (jp) {
+    const G = _popEsqNodo('g', { 'data-pop-esq':'jet-' + jp.k, display:'none',
+      transform:'translate(' + jp.x + ' ' + jp.y + ') rotate(' + jp.rot + ')' }, svg);
+    const o = { g: G };
+    o.fill = _popEsqNodo('path', { fill:'var(--accent2)', 'fill-opacity':0.3, stroke:'none' }, G);
+    o.line = _popEsqNodo('path', { fill:'none', stroke:'var(--accent2)', 'stroke-width':1.1,
+      'stroke-linejoin':'round' }, G);
+    n.jet[jp.k] = o;
   });
   /* ══ EL PUENTE AORTOCORONARIO (POP-B-6a) ══════════════════════════════════════════════
      Un tubo curvo que sale de la aorta PROXIMAL -el tramo ascendente, en x 490-, atraviesa el
@@ -64035,6 +64099,22 @@ function popEsqTexto(d) {
       }).join(', '));
     if (q.length) fila('Cirugía y drenajes', q.join('; ') + '.');
   })();
+  /* ══ LOS CHORROS, NOMBRADOS CON SU GRADO (POP-C-6) ═════════════════════════════════════
+     El dibujo los pinta y este es su equivalente en TEXTO, que es la regla de este esquema
+     desde la G2: lo que se dibuja se puede leer. El grado sale de `_popEsqJetGrado` y su
+     palabra de `_CC_GRADO`, los MISMOS dueños que el informe usa, asi que el dibujo y el
+     papel no pueden decir grados distintos de la misma valvula. */
+  (function () {
+    if (typeof POP_ESQ_JETPOS === 'undefined') return;
+    const j = POP_ESQ_JETPOS.map(function (jp) {
+      const gr = (typeof _popEsqJetGrado === 'function') ? _popEsqJetGrado(jp.campo) : 0;
+      if (!gr) return '';
+      const w = (typeof _CC_GRADO !== 'undefined' && _CC_GRADO[String(gr)]) || String(gr);
+      return jp.lbl + ' ' + w;
+    }).filter(Boolean);
+    if (j.length) fila('Insuficiencias valvulares',
+      'dibujadas como chorros hacia la cavidad que las recibe: ' + j.join(', ') + '.');
+  })();
   fila('Soporte y vasoactivos',
     (sop.length ? sop.join('; ') : 'sin asistencia circulatoria consignada') + '. ' +
     (d.drogas.length ? 'Vasoactivos: ' + d.drogas.join(', ') + '.' : 'Sin vasoactivos marcados.'));
@@ -64130,6 +64210,27 @@ function popEsqFrame(ahora) {
     const p = _popValvVelos(a, st.tipo === 'bio');
     o.vA.setAttribute('d', p[0]);
     o.vB.setAttribute('d', p[1]);
+  });
+  /* ══ LOS CHORROS, SINCRONIZADOS CON EL LATIDO DE SU VALVULA (POP-C-6) ══════════════════
+     La insuficiencia de una valvula ocurre cuando esa valvula esta CERRADA: la mitral y la
+     tricuspide regurgitan en SISTOLE y la aortica y la pulmonar en DIASTOLE. Por eso cada
+     chorro usa la fase CONTRARIA a la apertura de su propia valvula, y se reusa
+     `_popValvApertura` con la clave de la otra familia en vez de escribir una segunda curva.
+     Sin frecuencia cargada el chorro queda quieto en su tamano de reposo, como las valvulas. */
+  POP_ESQ_JETPOS.forEach(function (jp) {
+    const o = n.jet[jp.k]; if (!o) return;
+    const gr = _popEsqJetGrado(jp.campo);
+    const m = POP_ESQ_JET[gr];
+    if (!m) { o.g.setAttribute('display', 'none'); return; }
+    const a = _fv === null ? 0.5
+      : Math.max(0, Math.min(1, _popValvApertura(jp.sistole ? 'ao' : 'mi', _fv)));
+    if (a < 0.03) { o.g.setAttribute('display', 'none'); return; }
+    const L = m[0] * (0.35 + 0.65 * a), w = m[1] * (0.55 + 0.45 * a);
+    const osc = _popEsq.reduce ? 0 : Math.sin(ahora / 260 + L) * 0.8;
+    const dd = _popEsqPluma(L, w, osc);
+    o.fill.setAttribute('d', dd); o.line.setAttribute('d', dd);
+    o.g.setAttribute('opacity', (0.95 * Math.pow(a, 0.8)).toFixed(2));
+    o.g.setAttribute('display', 'inline');
   });
   /* La helice del Impella gira CONTINUO y no con el latido: una bomba axial no pulsa. */
   if (d.impella) n.prop.setAttribute('transform', 'rotate(' + ((ahora / 3) % 360).toFixed(0) + ' 461 257)');
@@ -148855,8 +148956,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261101-1758';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793566727891;                 /* eco-build-ms */
+const ECO_BUILD    = '20261101-1808';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793567305407;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -148942,7 +149043,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261101-1758</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261101-1808</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

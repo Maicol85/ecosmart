@@ -38,6 +38,7 @@ function saca(nombre) {
 }
 const DEMO_VALVEGEO = saca('valveGeo');
 const DEMO_OPENFRAC = saca('openFrac');
+const DEMO_PLUME    = saca('plume');
 
 /* ── Las escenas: los tres tipos x once fases del ciclo x las cuatro valvulas ── */
 const TIPOS = [['', 'sin tipo'], ['mec', 'mecanica'], ['bio', 'biologica']];
@@ -50,7 +51,7 @@ const VALV = [['ao', 'Ao'], ['pu', 'Pu'], ['mi', 'Mi'], ['tr', 'Tr']];
   /* 1 · la demo, evaluada en una pagina EN BLANCO */
   const pd = await b.newPage();
   await pd.goto('about:blank');
-  await pd.addScriptTag({ content: DEMO_VALVEGEO + '\n' + DEMO_OPENFRAC + '\nwindow.__vg=valveGeo;window.__of=openFrac;' });
+  await pd.addScriptTag({ content: DEMO_VALVEGEO + '\n' + DEMO_OPENFRAC + '\n' + DEMO_PLUME + '\nwindow.__vg=valveGeo;window.__of=openFrac;window.__pl=plume;' });
   const demo = await pd.evaluate(({ TIPOS, FASES, VALV }) => {
     const out = {};
     /* la demo necesita que existan las variables CSS; no importa, solo se leen las rutas */
@@ -58,6 +59,16 @@ const VALV = [['ao', 'Ao'], ['pu', 'Pu'], ['mi', 'Mi'], ['tr', 'Tr']];
       const a = window.__of(dk, ph);
       out[t + '|' + dk + '|' + ph] = { a: a, html: window.__vg(t, a) };
     }
+    /* plume: los mismos L, w y o que la app usa para los cuatro grados y varias fases */
+    out.__plume = {};
+    [[14,4],[24,7],[29,9],[34,11]].forEach(m => {
+      [0.1,0.4,0.7,1].forEach(a => {
+        const L = m[0]*(0.35+0.65*a), w = m[1]*(0.55+0.45*a);
+        [0, 0.8, -0.8].forEach(o => {
+          out.__plume[m[0]+'|'+a+'|'+o] = window.__pl(L, w, o);
+        });
+      });
+    });
     return out;
   }, { TIPOS, FASES, VALV });
   await pd.close();
@@ -75,6 +86,17 @@ const VALV = [['ao', 'Ao'], ['pu', 'Pu'], ['mi', 'Mi'], ['tr', 'Tr']];
     for (const [t] of TIPOS) for (const [ak, dk] of VALV) for (const ph of FASES) {
       const a = _popValvApertura(ak, ph);
       out[t + '|' + dk + '|' + ph] = { a: a, velos: t ? _popValvVelos(a, t === 'bio') : null };
+    }
+    out.__plume = {};
+    if (typeof _popEsqPluma === 'function') {
+      [[14,4],[24,7],[29,9],[34,11]].forEach(m => {
+        [0.1,0.4,0.7,1].forEach(a => {
+          const L = m[0]*(0.35+0.65*a), w = m[1]*(0.55+0.45*a);
+          [0, 0.8, -0.8].forEach(o => {
+            out.__plume[m[0]+'|'+a+'|'+o] = _popEsqPluma(L, w, o);
+          });
+        });
+      });
     }
     out.r = (typeof POP_ESQ_VALV_L !== 'undefined') ? POP_ESQ_VALV_L : null;
     out.ang = (typeof POP_ESQ_VALV_ANG !== 'undefined') ? POP_ESQ_VALV_ANG : null;
@@ -126,7 +148,26 @@ const VALV = [['ao', 'Ao'], ['pu', 'Pu'], ['mi', 'Mi'], ['tr', 'Tr']];
     if (peor > TOL) { mal++; detalle.push(esc + ' difieren, peor=' + peor + '\n      demo=' + m[1] + '\n      app =' + A.velos[0] + A.velos[1]) }
     else ok++;
   }
-  console.log('ESCENARIOS: ' + (ok + mal) + '   IGUALES: ' + ok + '   DISTINTOS: ' + mal);
+  /* 4 · LA PLUMA de los chorros (commit 6), numero por numero. */
+  let pok = 0, pmal = 0;
+  const kp = Object.keys(demo.__plume || {});
+  for (const k of kp) {
+    const nd = nums(demo.__plume[k]), na = nums((app.__plume || {})[k] || '');
+    if (nd.length !== na.length) { pmal++; detalle.push('PLUMA ' + k + ' distinta cantidad de numeros'); continue }
+    let peor = 0;
+    for (let i = 0; i < nd.length; i++) peor = Math.max(peor, Math.abs(nd[i] - na[i]));
+    /* ⚠️ LA TOLERANCIA ES 0,005 INCLUSIVE, Y ESE NUMERO NO ES ARBITRARIO: la app REDONDEA la
+       ruta a dos decimales -para no escribir cuarenta digitos por cuadro, que es lo que la demo
+       hace- y la demo deja el valor crudo, asi que la diferencia maxima POSIBLE es medio ulp,
+       o sea exactamente 0,005. Seis escenarios caen justo ahi y el `>` estricto los contaba
+       como distintos por el epsilon de la representacion en punto flotante. */
+    if (peor > 0.005 + 1e-9) { pmal++; detalle.push('PLUMA ' + k + ' peor=' + peor + '\n      demo=' + demo.__plume[k] + '\n      app =' + (app.__plume||{})[k]) }
+    else pok++;
+  }
+  console.log('ESCENARIOS de VALVULA: ' + (ok + mal) + '   IGUALES: ' + ok + '   DISTINTOS: ' + mal);
+  console.log('ESCENARIOS de PLUMA  : ' + kp.length + '   IGUALES: ' + pok + '   DISTINTOS: ' + pmal
+    + '   (tolerancia 0,005 INCLUSIVE = medio ulp del redondeo a dos decimales de la app)');
+  ok += pok; mal += pmal;
   if (detalle.length) { console.log('\n--- los que difieren ---'); detalle.slice(0, 20).forEach(d => console.log('  ' + d)) }
   console.log('\nerrores de pagina: ' + errs.length + (errs.length ? ' -> ' + errs.slice(0, 3).join(' ; ') : ''));
   console.log('\nRESULTADO ' + ok + '/' + (ok + mal) + (mal ? '  ** HAY DIFERENCIAS **' : '  todos iguales'));

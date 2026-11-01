@@ -606,6 +606,15 @@ const ESCENAS = {
               sel: { pop_monitor:'swan', pop_cx_tipo:'cabg',
                      pericardio:'Derrame severo (>20mm)', dpt_col_vd:'si', vci_col:'<50' },
               integrar: ['pop'] },
+  /* COMMIT 6: los chorros. El grado es de Valvulas, asi que la escena los carga ahi. */
+  pcJet4:   { campos: { peso:'70', talla:'170', hemo_fc:'80', pop_sw_gc:'4', pop_sw_pam:'78',
+                        pop_sw_pad:'10', pop_cx_horas:'6' },
+              sel: { pop_monitor:'swan', im_grado:'4', it_grado:'2', ia_grado:'1',
+                     ip_grado:'Moderada' } },
+  pcJet4Int:{ campos: { peso:'70', talla:'170', hemo_fc:'80', pop_sw_gc:'4', pop_sw_pam:'78',
+                        pop_sw_pad:'10', pop_cx_horas:'6' },
+              sel: { pop_monitor:'swan', pop_cx_tipo:'cabg', im_grado:'4', it_grado:'2',
+                     ia_grado:'1', ip_grado:'Moderada' }, integrar: ['pop'] },
   ajeno:   { campos: { im_vc: '8', ea_dtsvi: '20', itv_tsvi: '20', itv_ao: '100', vmax_ao: '4.5',
                        onda_e: '110', e_sep: '5', e_lat: '6', ai_vol: '70', peso: '80', talla: '180' } }
 };
