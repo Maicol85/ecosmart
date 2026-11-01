@@ -63324,22 +63324,28 @@ function popSync() {
   });
   /* ══ EL CONTADOR DEL DESPLEGABLE DE FARMACOS (POP-V2-1) ════════════════════════════════
      `<details>` no cuenta nada: el numero de marcados lo escribe esta funcion, que es la que ya
-     corre con cada casilla de droga (`onchange="popSync()"`) y con el tipo de asistencia. Se
-     cuentan las DIEZ drogas mas la asistencia circulatoria consignada que NO sea «ninguna»:
-     «ninguna» es una respuesta, no un soporte en curso, y contarla diria «1 marcado» sobre un
-     paciente sin asistencia.
-     Va en un `<span>` propio y con `textContent`: el rotulo fijo del `<summary>` no se reescribe
-     en cada tecla, y nada interpolado entra al marcado. */
+     corre con cada casilla de droga (`onchange="popSync()"`).
+     ⚠️ ACA DECIA «las DIEZ drogas mas la asistencia circulatoria»: ver el comentario del bloque,
+     que explica por que dejo de ser cierto y que se cuenta hoy. */
+  /* ⚠️ SE CUENTAN LAS FILAS, Y NO LAS CASILLAS MAS LA ASISTENCIA (POP-B-3, 01/11/2026).
+     Decia «las DIEZ drogas mas la asistencia circulatoria consignada», y con la asistencia en
+     su propia tarjeta desde POP-A-1 eso dejo de coincidir con nada que se vea: el rotulo dice
+     «Farmacos vasoactivos · N marcados» y la asistencia circulatoria no es un farmaco ni tiene
+     fila en este panel. Medido con noradrenalina, dopamina y el balon 1:2 —el estudio del
+     pedido—: el contador decia «3 marcados» con DOS filas, y lo decia IGUAL en 47ff639, o sea
+     que es preexistente de POP-V2-1 y no una regresion de POP-A.
+     Hoy se cuentan las filas VISIBLES, que es la pregunta del rotulo, y se cuentan donde
+     estan: `#pop_farm_rows .pop-droga.pop-droga-on`. No es una segunda regla que pueda
+     desincronizarse —`.pop-droga-on` la pone el bucle de arriba, en esta misma pasada, y es la
+     clase que el CSS usa para mostrar la fila—, asi que el conteo no puede diferir de lo que
+     se ve. El azul de metileno entra como los otros diez: su casilla prende su fila, con dosis
+     o sin ella.
+     Va en un `<span>` propio y con `textContent`: el rotulo fijo del `<summary>` no se
+     reescribe en cada tecla, y nada interpolado entra al marcado. */
   try {
     var _cnt = document.getElementById('pop_farmacos_cnt');
     if (_cnt) {
-      var _n = 0;
-      POP_DROGAS.forEach(function (k) {
-        var c = document.getElementById('pop_' + k + '_activa');
-        if (c && c.checked) _n++;
-      });
-      var _as = (document.getElementById('pop_asist_tipo') || {}).value || '';
-      if (_as && _as !== 'ninguna') _n++;
+      var _n = document.querySelectorAll('#pop_farm_rows .pop-droga.pop-droga-on').length;
       _cnt.textContent = _n ? (' · ' + _n + ' marcado' + (_n > 1 ? 's' : ''))
                             : ' · ninguno marcado';
     }
@@ -146537,8 +146543,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261101-0611';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793524279185;                 /* eco-build-ms */
+const ECO_BUILD    = '20261101-0614';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793524444665;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -146624,7 +146630,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261101-0611</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261101-0614</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
