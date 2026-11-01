@@ -22,7 +22,8 @@ const _pw = (await import(process.env.HOME + '/.pwtmp/node_modules/playwright/in
 const arg = n => { const i = process.argv.indexOf(n); return i > 0 ? process.argv[i + 1] : null };
 const FILE = arg('--file') || '/Users/maicoldossantos/Desktop/APLICACIONES/ecosmart/index.html';
 const MOTOR = arg('--motor') || 'chrome';
-const ANCHOS = [1440, 1000, 768, 390];
+/* 756 es el ancho REAL con que corre la suite: Chrome headless sin --window-size. */
+const ANCHOS = [1440, 1000, 768, 756, 390];
 
 const MEDIR = `(async () => {
   const R = { errs: [], ancho: window.innerWidth };
@@ -142,7 +143,7 @@ const MEDIR = `(async () => {
     return fg ? T(fg.querySelector('label')) : 'SIN .fg'; })();
 
   /* ── (v) LA TARJETA DE CRITERIOS ─────────────────────────────────────────────── */
-  if (window.innerWidth === 1440) {
+  if (true) {
     try { critAbrir('marfan') } catch (e) { R.errs.push('critAbrir: ' + e.message) }
     await new Promise(r => setTimeout(r, 600));
     const cuerpo = EL('crit-cuerpo');

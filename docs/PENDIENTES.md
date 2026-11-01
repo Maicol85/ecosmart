@@ -11651,3 +11651,91 @@ tanda salió a `tests-fichas-586.md`.
 El asterisco pide, además de la ausencia de rasgos de otros síndromes, **el estudio de TGFBR1/2,
 la bioquímica del colágeno y COL3A1 cuando esté indicado**. La lista autorizada cubre sólo la
 primera mitad, así que la segunda se **dice** en el globo de las reglas y no entra en la lógica.
+
+---
+
+## Tanda MARFAN-2 (2026-11-02) — la pantalla, la tarjeta, la conclusión y el Z
+
+### MF2-a · El Z CALCULADO no se hizo: el artículo de Devereux 2012 no está
+La orden condiciona el cálculo automático a que **Devereux RB y cols., «Normal limits in relation
+to age, body size and gender of two-dimensional echocardiographic aortic root dimensions in
+persons ≥15 years of age», Am J Cardiol 2012;110:1189-94** esté en `06_Aorta`. **No está**, y no
+está en ninguna otra carpeta: censados **por contenido** —no por nombre de archivo— los **245
+PDF** de las 28 carpetas de la biblioteca, extrayendo el texto de cada página, con **control
+positivo** (la misma búsqueda encuentra «revised Ghent nosology» en seis archivos). Lo único que
+aparece son **dos guías que lo citan** en su bibliografía: `08_Cardiopatias_congenitas/ESC
+congenitos en ingles 2020.pdf` y `21_Otros_hallazgos/ezab038.pdf`. Los **68** PDF de catorce hojas
+o menos —los candidatos a artículo de revista— se listaron uno por uno y ninguno es él.
+⚠️ **Y hay algo más, leído en imagen: la referencia del Z en el Loeys NO es Devereux 2012.** El
+folio 479 dice que para las medidas de **borde de ataque a borde de ataque en diástole**, en todos
+los grupos de edad, las ecuaciones están en su referencia **13** — **Roman MJ, Devereux RB,
+Kramer-Fox R, O'Loughlin J. Two-dimensional echocardiographic aortic root dimensions in normal
+children and adults. Am J Cardiol 1989;64:507-12** —, que tampoco está en la biblioteca. La
+referencia **14** —Lin FY y cols., *J Cardiovasc Comput Tomogr* 2008;2:298-308— la cita para la
+tomografía y la resonancia con imágenes de doble oblicuidad, no para el eco.
+**Qué queda hecho:** el campo manual (`mfs_z_raiz`), que viaja con el estudio, y las cuatro reglas
+leyéndolo también sobre un estudio archivado. El globo dice «Z calculado: no disponible (falta la
+fuente del método)».
+**Lo que falta decidir:** conseguir Roman 1989 o Devereux 2012 y leer su ecuación **en imagen**.
+Sin eso no se calcula ningún Z (regla R6).
+
+### MF2-b · El Z automático por debajo de los 15 años
+El artículo que la orden nombra declara su población en **personas de 15 años o más**. Como el
+cálculo quedó parado por completo (MF2-a), el límite de edad no se implementó: no hay cálculo del
+que excluir a nadie. El día que entre, los menores de 15 van sin cálculo y con el aviso «el Z
+automático es sólo desde los 15 años; cargalo a mano».
+
+### MF2-c · «Sin umbral de diámetro publicado» es un cuarto texto de la pastilla
+La orden da **tres** frases para la fila de conducta: «Cumple criterios para cirugía», «No cumple
+criterios para cirugía» y «Sin datos suficientes». El estado `sin_umbral` —el **Ehlers-Danlos
+vascular**— no entra en ninguna: los datos **están**, así que no es «sin datos suficientes», y no
+hay criterio de diámetro que cumplir, así que «no cumple criterios» se leería como «no operar»,
+que es justo lo contrario de lo que la guía dice (decisiones caso a caso, folio 112). Se le quitó
+**sólo** la mención de la guía —«Sin umbral de diámetro **en la guía**» → «…**publicado**»—, que es
+lo que 3a prohíbe.
+**Lo que falta decidir:** si ese estado lleva una cuarta frase propia o si se funde con una de las
+tres. Es contenido de pantalla sobre una enfermedad sin umbral: lo decide Maicol.
+
+### MF2-d · La premisa del título de la conclusión no se verificó
+La orden dice que «el título "Aortopatía hereditaria" de la conclusión pasa al MISMO tamaño y peso
+que los demás títulos de las conclusiones de la app (hoy es más grande)». **Medido en Chrome, no
+lo es.** Los dos únicos elementos de la sección que llevan esa palabra son:
+- el **encabezado del acordeón** — `11px / 700`, **idéntico** a los otros once acordeones de
+  C. Congénitas (CIA/CIV, DAP, VAP, DSAV, CVPA, TGA, Ebstein, Eisenmenger, Fontan…);
+- el **`calc-lbl` de la fila sin datos** — `12px / 500`, **idéntico** a las otras **270**
+  `.calc-lbl` del documento, y al de la conclusión del FOP y de la TGA.
+No hay nada más grande que achicar, y achicar uno de los dos lo **sacaría** de la convención de la
+app, que es lo contrario de lo que se pide. No se tocó ningún tamaño. **TC-591 (D1), (D2) y (D3)**
+fijan los tres valores para que un cambio futuro se ponga rojo.
+**Lo que falta decidir:** si el médico ve otra cosa como «el título», nombrar el elemento.
+
+### MF2-e · La nota del Laboratorio sobre Marfan quedó vencida, y está fuera del alcance
+`lab-cc-marfan-nota` afirma dos cosas que ya no son ciertas:
+1. «el panel de criterios de Ghent 2010 **no persiste ninguna respuesta** a propósito —sus
+   controles no llevan `id` para no contaminar los campos del estudio—, así que el diagnóstico no
+   es computable desde esta base» → **falso desde MARFAN-1**: los diecinueve rasgos son campos
+   guardados y `mfsReglas(src)` concluye sobre un registro.
+2. «**Tampoco hay Z-score**: la app no recoge ese campo» → **falso desde esta tanda**.
+El **Laboratorio está fuera del alcance** de esta orden y no se tocó.
+**Lo que falta decidir:** reescribir esa nota, y —si se quiere— que el panel cuente los estudios
+que cumplen criterios de Ghent, que hoy sí es computable.
+
+### MF2-f · El piso táctil de la tarjeta baja a 26-30 px con el mouse
+Para que la tarjeta entre en 1440×900 sin scroll interno, `.mfs-fila` pasa de `min-height: 44px`
+fijo a **30 px con puntero fino y 44 con puntero grueso** (`@media (pointer: coarse)`), y las
+filas de casilla a 24/44. Es el recurso y el precedente de `.vinfo-btn` de este archivo — y **no**
+el de AJUSTES-3, que quitó su media query porque allí había **solape** entre controles vecinos;
+acá no hay ninguno y el problema es de densidad.
+**Precio declarado:** en una pantalla **táctil** de 1440×900 la tarjeta scrollea. La orden pide que
+entre a 1440×900, que es un escenario de mouse, y admite scroll por debajo de eso.
+
+### MF2-g · El texto breve de cada regla es nuevo; el enunciado completo vive en el globo
+2c pide «(N) **texto breve** de la regla — estado». Cada regla gana un campo `corto` y `txt` **no
+se tocó** —lo siguen leyendo los casos de prueba y el globo—. El enunciado completo de las siete se
+publica en el globo `mfs-reglas`, armado del **mismo** `mfsReglas()`, así que no hay una segunda
+redacción que pueda separarse de la primera.
+
+### MF2-h · Los mapas al techo
+`docs/mapa/congenitas-otros.md` sigue en **34.540 B** y **no se tocó**, que es lo que la orden
+pide. `docs/mapa/tests-fichas.md` está en **34.237 B**, así que las fichas de esta tanda salieron a
+`docs/mapa/tests-fichas-591.md`. El mapa nuevo es `docs/mapa/marfan2-pantalla-z.md`.

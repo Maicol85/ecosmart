@@ -343,3 +343,36 @@ mapas al techo y la segunda mitad del caveat.
 
 **Dónde está todo:** `docs/mapa/marfan1-ghent.md` (mapa nuevo, 11,1 KB) y
 `docs/mapa/tests-fichas-586.md` (fichas, archivo propio).
+
+---
+
+## MARFAN-2 — la pantalla de Marfan, su tarjeta y el Z de la raíz (2026-11-02)
+
+**Cinco commits.** `23212e2` (1, la sección en columnas) · `b626253` (2, la tarjeta en una sola
+pantalla) · `92b1cda` (3, la conclusión sin indicaciones) · `0d2217d` (4, el Z) · el de cobertura
+y documentación. Al empezar, `origin/main` = `HEAD` = **`40fb624`**, el cierre de MARFAN-1, ya
+publicado, con md5 de `index.html` **`05086dab`** y el pendrive `DISK_IMG` montado.
+**El push lo corre Maicol: esta tanda tenía orden expresa de NO pushear.**
+
+**Qué hizo:**
+1. La sección en dos columnas —síndrome y factores a la izquierda, los dos diámetros a la
+   derecha— y el texto largo de la guía al globo de la sección.
+2. La tarjeta de criterios **de 1307 px con 538 de scroll interno a 826 sin ninguno**, en tres
+   bandas con la figura a la derecha; los globos **de veintiuno a cuatro**, con el glifo estándar
+   de la app, sin perder una sola de las diecinueve definiciones; los selectores sin texto
+   cortado y el puntaje de la **opción elegida**; las reglas en una línea.
+3. La conclusión en **cuatro filas ordenadas** y la pastilla diciendo si **cumple** o **no cumple**
+   los criterios en vez de indicar una cirugía — ampliación de la regla fija: la pantalla tampoco
+   da indicaciones.
+4. El **Z de la raíz** como campo guardado que viaja con el estudio, con las reglas 1, 2, 3 y 7
+   leyéndolo también sobre un estudio archivado.
+
+**Qué PARÓ y por qué:** el **Z calculado**, porque el artículo de Devereux 2012 **no está en la
+biblioteca** —censado por contenido sobre los 245 PDF, con control positivo—, y porque lo que el
+Loeys cita para ese método es su referencia 13 (Roman 1989), que tampoco está. Y la **nota del
+Laboratorio**, que quedó vencida pero está fuera del alcance de la orden.
+
+**Qué dejó pendiente:** `MF2-a` a `MF2-h` en `docs/PENDIENTES.md`.
+
+**Dónde está todo:** `docs/mapa/marfan2-pantalla-z.md` (mapa nuevo, 12,4 KB) y
+`docs/mapa/tests-fichas-591.md` (fichas, archivo propio).

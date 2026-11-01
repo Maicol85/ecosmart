@@ -379,3 +379,32 @@ globo—: **TC-116** y **TC-512** (leen la cita junto al texto, y TC-512 además
 globo— y **TC-125**, que probaba la tarjeta vieja entera y cuyo invariante «ningún control del
 panel lleva id» se **invirtió a propósito** para Marfan: sus diecinueve rasgos son campos del
 estudio.
+
+## Tanda MARFAN-2 (2026-11-02) — TC-591 a TC-594
+
+`TC-591` la sección en dos columnas y el globo descriptivo · `TC-592` la tarjeta en tres bandas,
+los cuatro globos estándar y las reglas en una línea · `TC-593` la conclusión en cuatro filas y
+la pastilla sin indicaciones · `TC-594` el Z de la raíz.
+Fichas: `docs/mapa/tests-fichas-591.md`. Mutaciones: `scripts/_mut_marfan2.py` (dieciocho).
+
+**Nueve casos viejos adaptados**, con el motivo escrito en cada uno:
+- **TC-116** — la lista de factores salió de debajo del campo y vive en el globo; el caso la lee
+  del globo y conserva lo que afirmaba (que la lista **sigue** al síndrome), más una condición
+  nueva de que el span ya no existe. ⚠️ Hay que leer **sólo su párrafo**: el resto del globo trae
+  «45 mm», que haría pasar por «5 mm» un texto que no es el que el caso mide.
+- **TC-471 (H)**, **TC-500** y **TC-502 (C3)** — el registro de globos pasa de **96 a 97**
+  entradas (`mfs-aparte`), y la lista de tarjetas sin botón de **45 a 26**, que es el
+  denominador de **antes** de MARFAN-1: los diecinueve botones por rasgo se retiraron, pero sus
+  **definiciones** siguen en `VINFO`.
+- **TC-535 (K0)(K1)(K2)** — los globos de 44×44 del barrido pasan de **37 a 18**, también el
+  denominador de antes de MARFAN-1. Los tres de la tarjeta no entran ahí porque viven dentro del
+  modal de criterios, que ese barrido no abre; los mide TC-592.
+- **TC-587** y **TC-588** — el Z es un **campo guardado**, así que el caso ya no abre la tarjeta
+  para cargarlo. Dos condiciones de TC-587 (I2 e I3) **sí** la abren, porque miran la tarjeta:
+  medirlas cerradas daba cero reglas sobre un contenedor que no existe.
+- **TC-589** — la pastilla ya no dice «Cirugía indicada» (C0, con una condición **nueva** de que
+  no lo diga como indicación), y los globos de la tarjeta pasan de **21 a 3**, con dos
+  condiciones **nuevas** —(D3b) y (D3c)— que exigen que las **diecinueve** definiciones sigan
+  publicadas con su folio dentro de su globo de grupo.
+- **TC-590 (A2)** — la tarjeta pasa de tres columnas a la izquierda con sus tres bandas y la
+  figura a la derecha, con dos condiciones **nuevas** (A2b y A2c).

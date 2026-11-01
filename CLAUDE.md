@@ -45,7 +45,8 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Tocar el CRITERIO DE DILATACIÓN DE LA RAÍZ AÓRTICA** —el corte por sexo, el índice de dimensión aórtica, el dueño `aoSegRef`/`aoSegIda`/`aoSegDil`, el globo ⓘ, el cruce entre las pantallas de BICÚSPIDE y de COARTACIÓN, o lo que la tanda AJ4 tocó de la Evidencia de la VAB | `docs/mapa/aj4-raiz-aortica.md` |
 | **Tocar la SINCRONIZACIÓN de los dos campos de la raíz aórtica, el grado «sin sexo cargado», el voto del índice en el papel, las dos líneas nuevas del ⓘ de la raíz, los tres arreglos de pantalla de la tanda G o su sonda sistemática** | `docs/mapa/g-raiz-aortica.md` |
 | **Tocar una AORTOPATÍA —Marfan, Loeys-Dietz, Turner, ACTA2, Ehlers-Danlos vascular—, la COARTACIÓN, el texto de la VAB o el MOTOR DE EVIDENCIA DE AORTA**: la tabla y el folio de cada síndrome, el corte de dilatación con su dueño, el cuestionario o las recomendaciones por debajo de 45 mm | `docs/mapa/aorta-aortopatias-evidencia.md` |
-| **Tocar la TARJETA de criterios de MARFAN**: el score sistémico del Box 2 con sus trece rasgos, las siete reglas del Box 1 con su asterisco, los diecinueve campos guardados y su guardería, los veintiún globos, el cuadro «Conducta aórtica» con su globo, o la FIGURA que se transforma | `docs/mapa/marfan1-ghent.md` |
+| **Tocar la TARJETA de criterios de MARFAN**: el score sistémico del Box 2 con sus trece rasgos, las siete reglas del Box 1 con su asterisco, los diecinueve campos guardados y su guardería, el cuadro «Conducta aórtica» con su globo, o la FIGURA que se transforma | `docs/mapa/marfan1-ghent.md` |
+| **Tocar la PANTALLA de Marfan o su tarjeta**: las dos columnas de campos, las tres bandas de la tarjeta, los CUATRO globos con el glifo estándar y las diecinueve definiciones agrupadas por zona, el puntaje de la opción elegida, las reglas en una línea, la conclusión en cuatro filas con la pastilla sin indicaciones, o el **Z de la raíz aórtica** y por qué el calculado no existe | `docs/mapa/marfan2-pantalla-z.md` |
 | **Tocar un CORTE o un OPERADOR del VD, de la AD, de la VCI o de la RAÍZ AÓRTICA**: la Tabla 1 de la ASE 2025, su evaluador, los cuatro grados de cada parámetro o el «40 mm o más» del seno | `docs/mapa/corazon-derecho-ase2025.md` |
 | **Tocar algo que la TANDA AJUSTES-1 movió** (30/10): el rótulo del cactus, la nota de complejidad retirada del papel, la pastilla de la orejuela sin veredicto, el recuadro del Doppler que no se dibuja sin velocidad; el dibujo de la orejuela JUNTO a su tabla en el PDF o con su resumen al lado; la VAB con su resumen al costado; el EN SUMA nombrando la bicúspide; la cita de la ASE 2025 de la frase del gradiente; o la FILA DE MINIATURAS de lo que va al PDF | `docs/mapa/aj1-orejuela-pdf-ensuma.md` |
 | **Tocar algo de la tanda AJ1**: los cortes del VD de la versión de MAYO, el strain de pared libre sin sexo, la coartación reparada, el índice de dimensión aórtica, el Ehlers-Danlos del EN SUMA, el corte alternativo de la IM secundaria o el flujo reverso de la aorta descendente | `docs/mapa/aj1-ajustes.md` |
@@ -265,6 +266,15 @@ Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la v
 **EL PAPEL —informe en los tres estilos, EN SUMA, PDF y PPT— DESCRIBE.** No nombra guías ni
 sociedades, no publica clases ni niveles, no cita tablas, figuras ni folios y no recomienda
 conducta. Todo eso vive **solo** en la pestaña Evidencia, en Referencias o en el globo ⓘ.
+
+⚠️ **AMPLIACIÓN — REGLA FIJA DE MAICOL (2026-11-02): LA PANTALLA TAMPOCO DA INDICACIONES.** En una
+sección y en su tarjeta de criterios no se escribe «indicada», «se recomienda», «seguimiento por
+imagen», «considerar» ni ninguna otra conducta: se dice **«cumple criterios para cirugía»**, **«no
+cumple criterios para cirugía»** o **«sin datos suficientes»**. Las recomendaciones viven **solo**
+en la Evidencia; la guía, la tabla, el folio y la clase, en el globo ⓘ.
+Aplicado por primera vez en la tanda **MARFAN-2** sobre los once estados de la pastilla de
+«Conducta aórtica» (`docs/mapa/marfan2-pantalla-z.md` § 3). **Ningún corte, umbral ni color se
+movió**: lo que cambia es el verbo y lo que se omite, y el color sigue graduando I, IIa y IIb.
 
 - El papel afirma lo que se midió y lo nombra por lo que es: «riesgo de muerte súbita a 5 años
   6,12 %», no «HCM Risk-SCD (ESC) 6,12 % — desfibrilador a considerar (Clase IIa)». El nombre de
@@ -4664,6 +4674,141 @@ línea: el archivo creció y un informe de auditoría viejo apunta a otro archiv
   propósito** y los cuatro censos con su control positivo, `docs/REGISTRO_TANDAS.md` → el bloque de
   esta tanda, y `docs/PENDIENTES.md` → **OCHO** cosas declaradas (**POPB-a** a **POPB-h**).
   ⚠️ **`congenitas-otros.md` (34,5 KB) no se tocó**, y `valvulas.md` (33,9) tampoco.
+
+### La pantalla de Marfan, su tarjeta y el Z de la raíz — «MARFAN-2» (2026-11-02)
+
+- **CINCO commits, y los CUATRO de código se hicieron enteros.** `23212e2` (1) · `b626253` (2) ·
+  `92b1cda` (3) · `0d2217d` (4) · el de cobertura y documentación. Al empezar, `origin/main` =
+  `HEAD` = **`40fb624`**, el cierre de MARFAN-1, ya publicado, con md5 **`05086dab`** y el
+  pendrive `DISK_IMG` montado.
+  **El push lo corre Maicol: esta tanda tenía orden expresa de NO pushear.**
+
+- **EL DEFECTO MÁS GRANDE QUE CERRÓ, EN UNA LÍNEA: la tarjeta de criterios tenía 538 px de
+  scroll interno a 1440×900.** Hoy **cero**, con 26 px de margen, idéntico en Chrome y WebKit.
+  ⚠️ **EL QUE SCROLLEA ES `#crit-card`, NO `#crit-cuerpo`**: la tarjeta lleva su `max-height` y
+  su `overflow:auto` en la CAJA, así que el cuerpo informa su alto COMPLETO aunque no entre, y
+  medirlo a él da «scroll interno 0» sobre una tarjeta que se corta. Y el alto del modal tampoco
+  sirve de presupuesto: en cuanto el contenido entra, la caja **se encoge** a su contenido.
+  HEAD: 1388 de alto en 850 de caja. Hoy: 826 de 826.
+
+- **EL GLOBO QUE «PASABA DESAPERCIBIDO» NO ERA OTRO COMPONENTE: ERA OTRO CARÁCTER.** Censado en
+  HEAD: **74** botones usan `&#9432;` / `U+24D8` —la «i» dentro de un círculo, ⓘ— y **20** usaban
+  `&#8505;` / `U+2139` —INFORMATION SOURCE, una «i» suelta, ℹ—, que son los cuatro de MARFAN-1
+  más los diecinueve por rasgo. Misma clase `.vinfo-btn vinfo-btn-44`, mismo tamaño, mismo color.
+  De **veintiuno a cuatro**, los cuatro con el glifo estándar y 44×44.
+
+- ⚠️ **LAS DIECINUEVE DEFINICIONES NO SE PIERDEN, Y ES POR CONSTRUCCIÓN.** Siguen siendo las
+  entradas `mfs-*` de `VINFO` —su dueño único— y los dos globos de grupo las **leen** de ahí,
+  agrupadas en las diez zonas del cuerpo. Medido: **19 de 19 publicadas y 19 de 19 con su
+  folio**, en los dos motores, con una condición que **siembra un centinela** en una entrada de
+  `VINFO` para probar que no hay una segunda copia.
+  ⚠️ **Son DIECINUEVE y no dieciocho**, que es lo que la orden anticipa: trece rasgos del Box 2
+  más seis criterios aparte, contados sobre `MFS_SCORE` y `MFS_APARTE`.
+
+- ⚠️ **AMPLIACIÓN DE LA REGLA FIJA, DECISIÓN DEL MÉDICO: LA PANTALLA TAMPOCO DA INDICACIONES.**
+  Los once estados de la pastilla pasan a decir si el paciente **cumple** o **no cumple** los
+  criterios. **Las once claves de `marfanEstado` NO se tocan** —las lee el Laboratorio— y **los
+  colores tampoco**: el color sigue graduando I, IIa y IIb, así que la información no se pierde.
+  `ETQ` es local de `marfanSync` y, censado, **ningún otro módulo lo lee**.
+
+- ⚠️ **DOS PREMISAS DE LA ORDEN ERAN FALSAS, Y ESTÁN MEDIDAS.**
+  1. **El título «Aortopatía hereditaria» NO es más grande.** Los dos únicos elementos de la
+     sección que llevan esa palabra son el encabezado del acordeón —**11px/700**, idéntico a los
+     otros once de C. Congénitas— y el `calc-lbl` de la fila sin datos —**12px/500**, idéntico a
+     las otras **270** del documento—. No se tocó ningún tamaño: achicar uno lo sacaría de la
+     convención. → **MF2-d**.
+  2. **El selector de un criterio aparte NO contesta sólo «Sí» y «No».** El de los otros
+     síndromes contesta «Sí, sin rasgos», que con el ancho que le puse primero salía **cortado en
+     los dieciséis cruces** — y la escena del caso no lo veía porque medía los seis en su opción
+     vacía. Lo cazó la sonda de dos motores, no la lectura.
+
+- **EL Z CALCULADO SE PARÓ, Y LA CONDICIÓN ES LA QUE LA ORDEN PONE.** **Devereux 2012 NO está en
+  la biblioteca**: censados **por contenido** —no por nombre de archivo— los **245 PDF** de las
+  28 carpetas, con **control positivo** (la misma búsqueda encuentra «revised Ghent nosology» en
+  seis archivos). Los **68** PDF de catorce hojas o menos se listaron y ninguno es él.
+  ⚠️ **Y LA REFERENCIA DEL Z EN EL LOEYS NO ES DEVEREUX 2012**, leído en imagen: el folio 479
+  remite, para el diámetro de borde de ataque a borde de ataque en diástole, a su referencia
+  **13** —**Roman MJ, Devereux RB, Kramer-Fox R, O'Loughlin J, Am J Cardiol 1989;64:507-12**—,
+  que tampoco está. La **14** —Lin FY y cols., *J Cardiovasc Comput Tomogr* 2008;2:298-308— la
+  cita para la tomografía y la resonancia. → **MF2-a**.
+  **Lo que sí se hizo: el campo manual.** `mfs_z_raiz`, campo guardado, **sin columna de Excel**,
+  con round-trip comprobado por las funciones reales, y las reglas 1, 2, 3 y 7 leyéndolo también
+  **sobre un estudio archivado** — lo que MARFAN-1 no podía.
+
+- **18/18 MUTACIONES DIRIGIDAS MUERTAS** sobre el árbol sellado, en worktree y nunca sobre el
+  vivo, con guarda de md5. **Cuatro de las dieciocho no revierten nada: la aplican de más**,
+  porque las condiciones que las matan son **controles negativos**.
+  ⚠️ **La 01 sobrevivió al primer barrido y estaba MAL ESCRITA**: agregaba un atributo al
+  contenedor y no movía ningún campo, o sea que no inyectaba el defecto.
+
+- **EL PAPEL NO SE MOVIÓ, con el PDF y el PPT generados de verdad:** A/B contra HEAD con 19
+  escenas, 323 claves, **8379** celdas de Excel, **11.700** textos de PDF en SEIS plantillas y
+  **475** del PPT. **CERO diferencias** en informe (tres estilos), EN SUMA, las **441** columnas,
+  el PDF y el PPT. Las 34 de pantalla son las autorizadas: 17 en la cápsula y 17 en `maxAo`.
+
+- **ONCE CASOS VIEJOS ADAPTADOS, cada uno con el motivo escrito**: **TC-116** y **TC-512** (la
+  lista de factores se lee del globo; ⚠️ hay que tomar **sólo su párrafo**, porque el resto trae
+  «45 mm» y haría pasar por «5 mm» un texto que no es el que el caso mide), **TC-125** (19 → 20
+  campos del estudio en el panel), **TC-471**, **TC-500** y **TC-502** (el registro 96 → 97 y las
+  tarjetas sin botón 45 → 26), **TC-535** (los globos de 44×44, 37 → 18), **TC-587** y **TC-588**
+  (el Z ya no obliga a abrir la tarjeta), **TC-589** (la pastilla y los globos, con dos
+  condiciones **nuevas** que exigen las diecinueve definiciones con su folio) y **TC-590** (la
+  tarjeta pasa de tres columnas a bandas más figura).
+  ⚠️ **TC-125 y TC-512 los destapó la CORRIDA COMPLETA y no el censo**, que es el modo de falla
+  que este archivo ya documenta nueve veces.
+
+- ⚠️ **EL ACENTO GRAVE DENTRO DE MIS PROPIOS COMENTARIOS COSTÓ CINCO CORRIDAS, Y ES LA
+  DECIMOTERCERA TANDA SEGUIDA QUE LO PAGA.** Siempre igual: un identificador entre acentos graves
+  dentro del comentario de un caso o de una sonda, y los dos cuerpos son template literals.
+  `check_backticks.py` **no cazó ninguna**; **`node --check` las cazó todas**. Lo que acabó
+  funcionando fue un control automático que recorre los bloques nuevos y aborta si encuentra uno.
+  ⚠️ **Y una barra invertida simple, otra vez**: `/^\([1-7]\) /` escrito con una barra llega al
+  navegador como `/^([1-7]) /` —un grupo de captura— y deja de pedir el paréntesis. Se cerró **no
+  usando ninguna expresión regular**.
+
+- ⚠️ **Y UNA TRAMPA DEL ARNÉS QUE COSTÓ DOS CORRIDAS: el cuerpo de un caso tiene que DEVOLVER su
+  IIFE.** `ev` lo envuelve en una función **no async** (`(function(){ ... })()`), así que
+  `(async () => {...})();` sin `return` evalúa la promesa y devuelve `undefined`: el runner dice
+  «el caso no declara NINGUNA condición» y no hay forma de ver el error adentro. Y la comparación
+  va por `String(t[1]) === String(t[2])`, no por `===` estricto.
+
+- **Línea base al cierre: suite 604/609**, en doce lotes **cubriendo los 609 casos distintos**
+  —contados nombre por nombre, no por la suma de los lotes—, en UNA sola pasada sobre el árbol
+  sellado, con el pendrive `DISK_IMG` **verificado al abrir, ENTRE LOS DOCE LOTES y al cerrar** y
+  el md5 de `index.html` **idéntico** antes y después (`30f48f68`). Los rojos son **TC-223,
+  TC-376, TC-390 y TC-406**, los cuatro de siempre, más **TC-182**, el intermitente que
+  IMÁGENES-3 y TGA-2 ya declaran: **corrido aislado sale VERDE**, verificado. **Ningún rojo
+  nuevo.**
+  ⚠️ **Y LA PRIMERA CORRIDA COMPLETA DIO 603/609 CON DOS ROJOS MÁS, LOS DOS MÍOS** —TC-125 y
+  TC-512—, y por eso esa cifra no es la línea base. Los dos están adaptados y la de arriba sale
+  de la corrida limpia, de una sola pasada sobre el árbol sellado y con el archivo de tests final.
+- **Semgrep 124 WARNING / 0 ERROR**, la línea base. **Excel 441** columnas con las mismas claves.
+  **Censo de campos guardados 984 → 985**: el nuevo es `mfs_z_raiz`, el autorizado, y no se perdió
+  ninguno. **Sin huérfanos nuevos.** 17 bloques de JS inline parsean. El diff de `index.html` son
+  **574 líneas agregadas y 163 quitadas**, con **cero** `innerHTML`, `eval` o `new Function`
+  nuevos —los dos que el diff muestra son comentarios— y cero claves ni contraseñas.
+- **CELULAR: 59 hallazgos a 360 px y 68 a 390, con 17 ALTA en cada ancho** — la línea base
+  exacta. **No empeoró.**
+- **CHROME Y WEBKIT COINCIDEN EN LOS DIECISÉIS CRUCES** (dos motores × 1440, 1000, 768 y 390 px ×
+  dos temas), **sin una sola diferencia** en las once claves comparadas: lado a lado desde 900 px
+  y apilado por debajo, la tarjeta con **cero scroll interno a 1440 y 1000**, las tres bandas con
+  la figura a la derecha, los tres globos en 44×44 con el glifo estándar, las **19** definiciones,
+  **cero** cita en el cuerpo de la tarjeta, la conclusión en sus cuatro filas, el papel sin la
+  conclusión y sin el Z, **cero** desplazamiento horizontal, **cero** textos recortados y **CERO
+  errores de consola y de página en los dos motores**.
+  ⚠️ **WebKit de Playwright no es Safari, y se declara.** Chrome va por el del sistema con
+  `channel: 'chrome'`.
+- **`index.html` pasó de 10,75 MB / 150.960 líneas a 10,78 MB / 151.374** — medido con `wc -c` y
+  `wc -l` DESPUÉS de sellar. (MB de 10⁶.) Sello **`v20261101-1540`**, md5 **`30f48f68`**.
+
+- **Dónde está todo:** `docs/mapa/marfan2-pantalla-z.md` (**mapa NUEVO**, 12,4 KB), las fichas de
+  los cuatro casos en `docs/mapa/tests-fichas-591.md` (**archivo propio**, porque
+  `tests-fichas.md` está en 34,2 KB), el puntero en `docs/mapa/marfan1-ghent.md` § 6-bis y en
+  `docs/mapa/tests-punteros-tandas.md`, `docs/fuentes/FUENTES.md` → «La tanda MARFAN-2» con las
+  referencias 13 y 14 transcriptas en imagen, el censo del Devereux con su control positivo y la
+  tabla «Cambios de evidencia» de ocho filas, `docs/REGISTRO_TANDAS.md` → el bloque de esta
+  tanda, y `docs/PENDIENTES.md` → **OCHO** cosas declaradas (**MF2-a** a **MF2-h**).
+  ⚠️ **`congenitas-otros.md` (34.540 B) NO se tocó**, que es lo que la orden pide.
 
 ### La tarjeta de criterios de Marfan con el artículo original — «MARFAN-1» (2026-11-01)
 

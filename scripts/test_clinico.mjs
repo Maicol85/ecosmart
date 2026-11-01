@@ -7961,18 +7961,32 @@ caso('TC-116', 'Marfan/EHAT: el umbral quirurgico sale del sindrome, no solo del
        crecimiento ademas es «≥ 3 mm al año». Hoy el hint publica la lista de LA tabla del
        sindrome elegido —son cuatro listas distintas y el campo es uno— y lo escribe marfanSync
        en el span marfan-fr-hint. Lo que el caso afirma ahora es que la lista SIGUE al sindrome. */
-    ['el hint de factores publica la lista de LA tabla del sindrome elegido',
-      (function(){ const h = document.getElementById('marfan-fr-hint'); if (!h) return false;
-        __t.limpiar(); __t.set('marfan_sindrome','marfan');
-        const a = (h.textContent || '');
+    /* ADAPTADO (MARFAN-2, 1b, 2026-11-02): LA LISTA SALIO DE DEBAJO DEL CAMPO Y VIVE EN EL
+       GLOBO DE LA SECCION. Decision del medico: lleva el nombre de la guia, su tabla y su
+       folio, y eso vive solo en el globo, en la Evidencia o en Referencias. El nodo
+       span marfan-fr-hint ya no existe. MARFAN_FR_TXT sigue siendo el dueno unico y lo que el
+       caso afirma es lo MISMO que antes —que la lista SIGUE al sindrome—, leido del globo.
+       Se conserva ademas que debajo del campo no queda texto, para que pueda volver a fallar
+       si alguien repone el span. */
+    ['el nodo de debajo del campo ya NO existe: la lista vive en el globo',
+      document.getElementById('marfan-fr-hint') === null],
+    ['la lista de factores del globo publica la de LA tabla del sindrome elegido',
+      (function(){
+        const leer = () => { try { const f = _mfConductaInfo();
+          const d = document.createElement('div'); d.appendChild(f);
+          const p = Array.prototype.filter.call(d.querySelectorAll('p'),
+            x => String(x.textContent).indexOf('factor de riesgo') > -1)[0];
+          return p ? String(p.textContent || '') : 'SIN PARRAFO'; } catch (e) { return 'EXC'; } };
+        __t.limpiar(); __t.set('marfan_sindrome','marfan'); __t.set('marfan_ao_seno','48');
+        const a = leer();
         __t.set('marfan_sindrome','turner');
-        const b = (h.textContent || '');
+        const b = leer();
         return a !== b && a.indexOf('Tabla 62') > -1 && b.indexOf('Tabla 58') > -1 &&
                a.indexOf('3 mm') > -1 && a.indexOf('5 mm') === -1; })()],
     ['y sin sindrome elegido NO afirma ninguna lista',
-      (function(){ const h = document.getElementById('marfan-fr-hint'); if (!h) return false;
-        __t.limpiar();
-        return (h.textContent || '').indexOf('depende del s') > -1; })()],
+      (function(){ try { __t.limpiar(); __t.set('marfan_ao_seno','48');
+        const f = _mfConductaInfo(); const d = document.createElement('div'); d.appendChild(f);
+        return String(d.textContent || '').indexOf('depende del s') > -1; } catch (e) { return false; } })()],
     /* ADAPTADO (TANDA NOCTURNA B3, 30/10/2026): EL EN SUMA YA NO LLEVA LA CLASE. Decision del
        medico: el papel dice el sindrome, el diametro y «dilatada»; la clase y su nivel son una
        recomendacion y viven en la Evidencia. La condicion se INVIERTE y ademas exige lo que SI
@@ -8609,9 +8623,12 @@ caso('TC-125', 'Paneles de criterios: abren, cierran y —salvo el de Marfan, qu
       conId.length === 0, conId.join(' | ')],
     /* ⚠️ SON VEINTE Y NO DIECINUEVE, y lo cazo esta misma condicion al escribirla: el vigesimo
        es la casilla «Superponer la figura de referencia», que vive en el panel y NO es un campo
-       del estudio. Separarlos la hace MAS fuerte: vigila los dos lados a la vez. */
+       del estudio. Separarlos la hace MAS fuerte: vigila los dos lados a la vez.
+       ADAPTADA 2026-11-02 (MARFAN-2, 4a): 19 -> 20 campos del estudio. El nuevo es mfs_z_raiz,
+       el Z de la raiz aortica, que desde esta tanda viaja con el estudio. Lo que la condicion
+       afirma no cambia; cambia su denominador. */
     ['INVERTIDA (MARFAN-1): los rasgos del panel de Marfan SI llevan id, porque son del estudio',
-      conIdMarfan.filter(function(x) { return !_noEsDelEstudio(x); }).length === 19,
+      conIdMarfan.filter(function(x) { return !_noEsDelEstudio(x); }).length === 20,
       'del estudio: ' + conIdMarfan.filter(function(x) { return !_noEsDelEstudio(x); }).length],
     ['y el unico control del panel que NO es del estudio es la casilla de la figura',
       conIdMarfan.filter(function(x) { return _noEsDelEstudio(x); }).join(',') === 'mfs-fig-ref',
@@ -66408,7 +66425,12 @@ caso('TC-471', 'Valvulas D1: la insuficiencia mitral en TRES columnas de SEIS co
        del score, seis criterios aparte, el puntaje y las siete reglas—. NINGUNA esta en
        Valvulas, que es la pestana que este caso mide: lo que cambia es el denominador del
        registro, no lo que esta condicion afirma sobre el marcado de esa pestana. */
-    Object.keys(VINFO).length === 96,
+    /* ⚠️ ADAPTADO EN LA MARFAN-2 (2026-11-02, 2d): 96 -> 97. La entrada nueva es mfs-aparte,
+       el globo de los criterios aparte de la tarjeta de Marfan. NO esta en Valvulas, que es la
+       pestana que este caso mide: lo que cambia es el denominador del registro. Las diecinueve
+       de los rasgos SIGUEN en el registro -son el dueno unico de cada definicion- y lo que se
+       retiro son sus BOTONES. */
+    Object.keys(VINFO).length === 97,
     'registro=' + (HAY_INFO ? Object.keys(VINFO).join(',') : 'SIN REGISTRO')]);
   ex.push(['(H) y la tarjeta se coloca SIEMPRE dentro de la pantalla, sin cortarse',
     (function(){ const b = document.querySelector('[data-vinfo="avm-thp"]');
@@ -77790,7 +77812,12 @@ caso('TC-500', 'Tanda Q: las OCHO tarjetas i de las valvulas arriba de su pastil
        del umbral de «Conducta aortica» y los veintiuno de la tarjeta de criterios: trece rasgos
        del score, seis criterios aparte, el puntaje y las siete reglas—. Lo que la condicion
        afirma NO cambia; lo que cambia es el denominador. */
-  ex.push(['DENOMINADOR: el mecanismo de los globos existe y el registro tiene las 96 entradas',
+  /* ⚠️ ADAPTADO 2026-11-02 (MARFAN-2, 2d): 96 -> 97. La entrada nueva es mfs-aparte, el globo
+     de los criterios aparte de la tarjeta de Marfan, que LEE las seis definiciones de sus
+     propias entradas en vez de copiarlas. Las diecinueve de los rasgos NO se retiraron del
+     registro: siguen siendo el dueno unico de cada definicion y las leen los dos globos de
+     grupo; lo que se retiraron son sus BOTONES. Lo que la condicion afirma no cambia. */
+  ex.push(['DENOMINADOR: el mecanismo de los globos existe y el registro tiene las 97 entradas',
     /* ⚠️ ADAPTADO EN LA TANDA D: 56 -> 57. La entrada nueva es co-riesgo-basal, el globo de la
        clasificacion de riesgo cardiovascular basal, donde viven las clases y los niveles que la
        regla R2 saca de la linea visible. Lo que esta condicion afirma no cambia: que el
@@ -77809,7 +77836,7 @@ caso('TC-500', 'Tanda Q: las OCHO tarjetas i de las valvulas arriba de su pastil
     /* ADAPTADO (TANDA TGA, 31/10/2026): 73 -> 74. La entrada nueva es tga-3d, el globo del
        diagrama de la transposicion. NO esta en Valvulas: lo que cambia es el denominador del
        registro, no lo que esta condicion afirma. */
-    FN('vInfoClic') && !!CARD() && !!REG() && Object.keys(REG() || {}).length === 96,
+    FN('vInfoClic') && !!CARD() && !!REG() && Object.keys(REG() || {}).length === 97,
     'VINFO=' + (REG() ? Object.keys(REG()).length : 'SIN REGISTRO') + ' card=' + !!CARD()]);
   ex.push(['(A1) los OCHO botones de lesion existen, son BUTTON, sin atributo title y con aria-expanded',
     CLAVES.every(function (k) { const b = BTN(k);
@@ -79122,14 +79149,20 @@ caso('TC-502', 'Tanda P: Referencias en CINCO subpestanas sin perder una entrada
   /* ADAPTADO 2026-11-01 (MARFAN-1): 26 -> 45. Las DIECINUEVE nuevas son los globos de los
      rasgos del score y de los criterios aparte de la tarjeta de Marfan: explican la DEFINICION
      del articulo original, no publican una ficha de Referencias, y por eso no tienen boton.
+     El limite que esta condicion declara no cambia; cambia su denominador.
+     ⚠️ ADAPTADO 2026-11-02 (MARFAN-2, 2d): 45 -> 26, que es el denominador que habia ANTES de
+     MARFAN-1. La lista se arma recorriendo el DOM, y los DIECINUEVE globos por rasgo se
+     retiraron: la tarjeta pasa de veintiun botones a tres. Las diecinueve DEFINICIONES no se
+     perdieron -siguen en VINFO y las leen los dos globos de grupo-, y los tres de la tarjeta
+     no entran aca porque viven dentro del modal de criterios, que este barrido no abre.
      El limite que esta condicion declara no cambia; cambia su denominador. */
-  ex.push(['(C3) LIMITE DECLARADO: cuarenta y cinco tarjetas sin boton, porque Referencias no tiene esa entrada',
+  ex.push(['(C3) LIMITE DECLARADO: veintiseis tarjetas sin boton, porque Referencias no tiene esa entrada',
     /* ADAPTADA (TANDA AJUSTES-2, commit 4a, 31/10/2026): 24 -> 25. La entrada nueva es
        inf-min, el ⓘ de la fila de miniaturas de lo que va al PDF; no tiene ficha en
        Referencias porque explica la INTERFAZ y no publica contenido clinico. */
     sinBoton.join(',') === 'amilo-score,co-monitoreo,co-riesgo-basal,coa-card,cvr-coc,cvr-ecosmart,et-avt-cont,'
       + 'hemo-forr,hemo-ic,hemo-rvs,inf-min,'
-      + 'mfs-codo,mfs-diseccion,mfs-ectasia,mfs-ectopia,mfs-escoliosis,mfs-estrias,mfs-facies,mfs-fbn1ao,mfs-fbn1c,mfs-historia,mfs-miopia,mfs-muneca,mfs-neumotorax,mfs-pectus,mfs-pie,mfs-prolapso,mfs-proporciones,mfs-protrusion,mfs-sinotros,'
+
       + 'tarj-esten-pulmonar,tarj-esten-tricuspide,tarj-insuf-pulmonar,'
       + 'tep-eco-dx,tep-mcconnell,tga-3d,'
       + 'vab-aorta,vab-cx,vab-friesgo,vab-func,vab-tit,vab-valv,vd-triv,vexus-lim,vm-carp',
@@ -83847,7 +83880,17 @@ caso('TC-512', 'Trabajo H: las citas de aorta por sindrome —Tabla 62 solo Marf
       ? String(_mfConductaInfo().textContent || '') : '';
     return { c: r.clave, t: r.txt + ' ' + (r.cita || ''),
              box: L('marfan-resultado') + ' | GLOBO: ' + _glo,
-             hint: L('marfan-fr-hint'), inf: __t.informe() };
+             /* ADAPTADO 2026-11-02 (MARFAN-2, 1b): LA LISTA DE FACTORES SALIO DE DEBAJO DEL
+                CAMPO Y VIVE EN EL GLOBO. El nodo marfan-fr-hint ya no existe. Lo que este caso
+                afirma no cambia -cada sindrome publica la lista de SU tabla- y lo que cambia es
+                de donde se lee. Se toma SOLO su parrafo: el resto del globo trae la clase, que
+                dice «45 mm» y haria pasar por «5 mm» un texto que no es el que el caso mide. */
+             hint: (function(){ try { const f = _mfConductaInfo();
+               const d = document.createElement('div'); d.appendChild(f);
+               const p = Array.prototype.filter.call(d.querySelectorAll('p'),
+                 x => String(x.textContent).indexOf('factor de riesgo') > -1)[0];
+               return p ? String(p.textContent || '') : 'SIN PARRAFO'; } catch (e) { return 'EXC'; } })(),
+             inf: __t.informe() };
   }
   const mar50  = m({ marfan_sindrome:'marfan', marfan_ao_seno:'50' });
   const mar45f = m({ marfan_sindrome:'marfan', marfan_ao_seno:'45', marfan_factores_riesgo:'si' });
@@ -83894,10 +83937,15 @@ caso('TC-512', 'Trabajo H: las citas de aorta por sindrome —Tabla 62 solo Marf
     eh50f.c === 'cx_iib' && eh50f.t.indexOf('Clase IIb · Nivel B') > -1]);
   /* ADAPTADA (MARFAN-1, 4b): el badge dice el VEREDICTO y la clase vive en el globo. Se exigen
      las dos cosas sobre la pantalla completa -capsula mas globo-, asi que el invariante «el
-     badge no puede contradecir al Fundamento» sigue vigilado por los dos lados. */
-  ex.push(['y el badge de la pantalla dice lo MISMO que el Fundamento, con la clase en el globo',
-    eh50f.box.indexOf('Puede considerarse') > -1 && eh50f.box.indexOf('Clase IIb') > -1 &&
+     badge no puede contradecir al Fundamento» sigue vigilado por los dos lados.
+     ADAPTADA OTRA VEZ 2026-11-02 (MARFAN-2, 3a): el badge ya NO dice «Puede considerarse» -la
+     pantalla tampoco da indicaciones- sino si el paciente CUMPLE los criterios. La clase sigue
+     en el globo y el invariante es el mismo: el badge no puede contradecir a la clase. */
+  ex.push(['y el badge de la pantalla no contradice la clase del globo, que sigue siendo IIb',
+    eh50f.box.indexOf('Cumple criterios para cirugía') > -1 && eh50f.box.indexOf('Clase IIb') > -1 &&
     eh50f.box.indexOf('Clase IIa') === -1]);
+  ex.push(['y la pantalla NO publica la conducta en ninguna de sus dos piezas',
+    !/indicada|se recomienda|Considerar cirug|seguimiento por imagen/.test(eh50f.box)]);
   ex.push(['CONTROL: el Marfan con factores sigue siendo IIa · C y no se movio',
     mar45f.c === 'cx_iia' && mar45f.t.indexOf('Clase IIa · Nivel C') > -1]);
   ex.push(['CONTROL: los dos cortes de Turner y sus dos clases no se movieron',
@@ -83932,7 +83980,9 @@ caso('TC-512', 'Trabajo H: las citas de aorta por sindrome —Tabla 62 solo Marf
     mar50.hint.indexOf('Tabla 62') > -1 && mar50.hint.indexOf('3 mm') > -1 && mar50.hint.indexOf('5 mm') === -1]);
   ex.push(['con Turner nombra la Tabla 58 y cambia de lista', tur24f.hint.indexOf('Tabla 58') > -1 && tur24f.hint !== mar50.hint]);
   ex.push(['y sin sindrome no afirma ninguna lista',
-    (function(){ __t.limpiar(); return L('marfan-fr-hint').indexOf('depende del s') > -1; })()]);
+    (function(){ __t.limpiar(); __t.set('marfan_ao_seno','48');
+      try { const f = _mfConductaInfo(); const d = document.createElement('div'); d.appendChild(f);
+        return String(d.textContent || '').indexOf('depende del s') > -1; } catch (e) { return false; } })()]);
 
   /* ── B · LA COARTACION: el criterio de sospecha es el gradiente MEDIO (Figura 44) ───────── */
   function coa(o) { __t.limpiar();
@@ -84099,9 +84149,12 @@ caso('TC-512', 'Trabajo H: las citas de aorta por sindrome —Tabla 62 solo Marf
     const g = await __t.guardar();
     ex.push(['DENOMINADOR: el estudio se guardo', g.ok === true && !!g.estudioId]);
     __t.limpiar();
-    ex.push(['«Nuevo estudio» vacia el sindrome y apaga el hint',
+    ex.push(['«Nuevo estudio» vacia el sindrome y la lista del globo vuelve a su texto sin sindrome',
       (document.getElementById('marfan_sindrome') || {}).value === '' &&
-      L('marfan-fr-hint').indexOf('depende del s') > -1]);
+      (function(){ try { __t.set('marfan_ao_seno','48');
+        const f = _mfConductaInfo(); const d2 = document.createElement('div'); d2.appendChild(f);
+        const r2 = String(d2.textContent || '').indexOf('depende del s') > -1;
+        __t.set('marfan_ao_seno',''); return r2; } catch (e) { return false; } })()]);
     if (g.estudioId) {
       __t.reabrir(g.estudioId);
       ex.push(['y al reabrirlo el Ehlers-Danlos vascular vuelve con su opcion',
@@ -91594,13 +91647,18 @@ caso('TC-535', 'Tanda AJ7: la linea de Fallot del EN SUMA sin la IP y el resumen
   /* ADAPTADO 2026-11-01 (MARFAN-1): 18 -> 37. Los DIECINUEVE nuevos son los globos de los
      rasgos del score y de los criterios aparte de la tarjeta de Marfan, que nacen con la
      clase vinfo-btn-44. Lo que estas tres condiciones exigen no cambia; cambia cuantos globos
-     tienen que cumplirlo, y el conteo ES el denominador. */
-  ex.push(['(K0) DENOMINADOR: los TREINTA Y SIETE globos llevan la clase, tienen geometria y estan EN VISTA',
-    tapK.length === 37 && tapK.every((x) => x.w > 0 && x.h > 0 && x.enVista), JSON.stringify(tapK)]);
-  ex.push(['(K1) los treinta y siete miden 44x44 tambien con el mouse',
-    tapK.length === 37 && tapK.every((x) => x.w >= 44 && x.h >= 44), JSON.stringify(tapK)]);
+     tienen que cumplirlo, y el conteo ES el denominador.
+     ⚠️ ADAPTADO 2026-11-02 (MARFAN-2, 2d): 37 -> 18, que es el denominador que habia ANTES de
+     MARFAN-1. Los diecinueve globos por rasgo se retiraron: eran veintiuno en la tarjeta y
+     hoy son tres, mas el de la seccion. Los tres de la tarjeta NO entran en este conteo
+     porque viven dentro del modal de criterios, que este barrido no abre; los mide TC-592.
+     Las diecinueve definiciones siguen publicadas, leidas de VINFO por los globos de grupo. */
+  ex.push(['(K0) DENOMINADOR: los DIECIOCHO globos llevan la clase, tienen geometria y estan EN VISTA',
+    tapK.length === 18 && tapK.every((x) => x.w > 0 && x.h > 0 && x.enVista), JSON.stringify(tapK)]);
+  ex.push(['(K1) los dieciocho miden 44x44 tambien con el mouse',
+    tapK.length === 18 && tapK.every((x) => x.w >= 44 && x.h >= 44), JSON.stringify(tapK)]);
   ex.push(['(K2) y su caja NO tapa a ningun vecino: los cinco puntos dan el propio boton',
-    tapK.length === 37 && tapK.every((x) => x.propios === 5), JSON.stringify(tapK)]);
+    tapK.length === 18 && tapK.every((x) => x.propios === 5), JSON.stringify(tapK)]);
   ex.push(['(K3) CONTROL: los demas globos NO se tocaron y siguen con su piso solo tactil',
     document.querySelectorAll('button.vinfo-btn').length
       - document.querySelectorAll('button.vinfo-btn-44').length >= 10,
@@ -104337,11 +104395,15 @@ caso('TC-587', 'Tanda MARFAN-1: las siete reglas del Box 1 con tres estados por 
     : { reglas: [], algunaCumple: 'NO EXISTE' };
   const FE = () => (typeof mfsFigEstado === 'function') ? mfsFigEstado() : {};
 
-  /* ⚠️ EL Z VIVE EN LA TARJETA Y NO ES UN CAMPO GUARDADO: sin abrirla, TODAS las reglas que
-     dependen de el quedan en «sin dato» y el caso mediria un denominador vacio. */
-  FN('critAbrir') && critAbrir('marfan'); await esperar(300);
-  const Z = () => document.querySelector('#crit-cuerpo [data-mf-z]');
-  ex.push(['(A0) el denominador: el campo del Z existe en la tarjeta', Z() ? 'si' : 'NO', 'si']);
+  /* ADAPTADO 2026-11-02 (MARFAN-2, 4a): EL Z YA ES UN CAMPO GUARDADO. Vivia en la tarjeta,
+     sin id, y habia que ABRIRLA o todas las reglas que dependen de el quedaban en «sin dato»
+     y el caso mediria un denominador vacio. Hoy es mfs_z_raiz, vive en la guarderia con los
+     otros diecinueve y existe desde el arranque, asi que el caso ya NO abre la tarjeta.
+     Lo que el caso afirma de las siete reglas no cambia. */
+  const Z = () => document.getElementById('mfs_z_raiz');
+  ex.push(['(A0) el denominador: el campo del Z existe SIN abrir la tarjeta', Z() ? 'si' : 'NO', 'si']);
+  ex.push(['(A0b) y es un campo del estudio, no un control de pantalla',
+           (typeof _noEsDelEstudio === 'function' && !_noEsDelEstudio('mfs_z_raiz')) ? 'si' : 'NO', 'si']);
   const setZ = (v) => { const e = Z(); if (!e) return; e.value = String(v);
     e.dispatchEvent(new Event('input', { bubbles: true })); };
   const esc = (o) => {
@@ -104440,8 +104502,13 @@ caso('TC-587', 'Tanda MARFAN-1: las siete reglas del Box 1 con tres estados por 
   esc({}); await esperar(150);
   ex.push(['(I1) con el formulario vacio ninguna regla cumple',
            RG().algunaCumple ? 'alguna' : 'ninguna', 'ninguna']);
-  ex.push(['(I2) y el texto fijo esta en la tarjeta',
-           String((EL('crit-cuerpo') || {}).textContent || '').indexOf('no es un diagn') > -1 ? 'si' : 'NO', 'si']);
+  /* ADAPTADO 2026-11-02 (MARFAN-2, 4a): estas DOS condiciones miran la TARJETA, asi que la
+     abren ellas. El resto del caso ya no la necesita -el Z es un campo guardado-, y medirlas
+     con la tarjeta cerrada daba cero reglas sobre un contenedor que no existe: un denominador
+     vacio se lee igual que «el pintor no pinta». */
+  FN('critAbrir') && critAbrir('marfan'); await esperar(320);
+  ex.push(['(I2) y el texto fijo esta en la tarjeta, UNA sola vez',
+           (String((EL('crit-cuerpo') || {}).textContent || '').match(/no es un diagn/g) || []).length, 1]);
   ex.push(['(I3) la tarjeta pinta las SIETE reglas',
            document.querySelectorAll('#mfs-reglas .mfs-reg').length, 7]);
   FN('critCerrar') && critCerrar();
@@ -104491,9 +104558,11 @@ caso('TC-588', 'Tanda MARFAN-1: el papel describe el puntaje y los rasgos tildad
   ex.push(['(A0) el denominador: el puntaje de la escena es 9', SC().pts, 9]);
   /* EL ESCENARIO PELIGROSO: con la tarjeta cargada, varias reglas CUMPLEN. Si una regla pudiera
      filtrarse al papel, es aca donde pasaria. */
-  FN('critAbrir') && critAbrir('marfan'); await esperar(260);
-  const z = document.querySelector('#crit-cuerpo [data-mf-z]');
-  if (z) { z.value = '2.6'; z.dispatchEvent(new Event('input', { bubbles: true })); }
+  /* ADAPTADO 2026-11-02 (MARFAN-2, 4a): el Z es un campo guardado y ya no hace falta abrir la
+     tarjeta para cargarlo. El escenario peligroso no cambia: con varias reglas CUMPLIENDO es
+     donde una regla podria filtrarse al papel. */
+  { const z = document.getElementById('mfs_z_raiz');
+    if (z) { z.value = '2.6'; z.dispatchEvent(new Event('input', { bubbles: true })); } }
   await esperar(200);
   ex.push(['(A1) el denominador del escenario peligroso: al menos una regla CUMPLE',
            RG().algunaCumple ? 'si' : 'NO', 'si']);
@@ -104669,7 +104738,15 @@ caso('TC-589', 'Tanda MARFAN-1: la pantalla con dos columnas de campos y la aort
   try { FN('marfanSync') && FN('marfanSync')(); } catch (e) {}
   await esperar(330);
   const cap = T('marfan-resultado');
-  ex.push(['(C0) denominador: el cuadro tiene su veredicto', cap.indexOf('Cirug') > -1 ? 'si' : 'NO', 'si']);
+  /* ADAPTADO 2026-11-02 (MARFAN-2, 3a): LA PASTILLA YA NO DICE «Cirugia indicada». Decision
+     del medico: la pantalla tampoco da indicaciones, y lo que publica es si el paciente CUMPLE
+     o NO CUMPLE los criterios. El denominador sigue siendo el mismo -que el cuadro tenga su
+     veredicto-, leido por la frase nueva. Lo que las cuatro condiciones de abajo afirman -que
+     el cuadro no nombre la guia, la tabla, el folio ni la clase- no cambia. */
+  ex.push(['(C0) denominador: el cuadro tiene su veredicto',
+           /Cumple criterios para cirug|No cumple criterios para cirug|Sin datos suficientes|Sin umbral de di/.test(cap) ? 'si' : 'NO', 'si']);
+  ex.push(['(C0b) y NO lo dice como una indicacion',
+           /indicada|se recomienda|Considerar cirug|seguimiento por imagen/.test(cap) ? 'DA INDICACION' : 'no', 'no']);
   ex.push(['(C1) el cuadro NO nombra la guia', cap.indexOf('ESC 2024'), -1]);
   ex.push(['(C2) ni la tabla', cap.indexOf('Tabla'), -1]);
   ex.push(['(C3) ni el folio', cap.indexOf('folio'), -1]);
@@ -104690,7 +104767,13 @@ caso('TC-589', 'Tanda MARFAN-1: la pantalla con dos columnas de campos y la aort
   /* ── (D) UN GLOBO POR RASGO, CON SU FOLIO ── */
   FN('critAbrir') && critAbrir('marfan'); await esperar(300);
   const btns = Array.prototype.slice.call(document.querySelectorAll('#crit-cuerpo [data-vinfo]'));
-  ex.push(['(D0) denominador: la tarjeta tiene 21 globos', btns.length, 21]);
+  /* ADAPTADO 2026-11-02 (MARFAN-2, 2d): DE VEINTIUNO A TRES. Decision del medico: un globo
+     por rasgo pasaba desapercibido y repetia el mecanismo veintiuna veces. Las diecinueve
+     definiciones NO se perdieron -siguen siendo las entradas mfs-* de VINFO, su dueno unico- y
+     los globos del score y de los criterios aparte las LEEN de ahi, agrupadas por zona del
+     cuerpo. El cuarto es el de la seccion, que vive fuera de la tarjeta.
+     (D1) no cambia: los diecinueve rasgos siguen declarando su clave. */
+  ex.push(['(D0) denominador: la tarjeta tiene 3 globos', btns.length, 3]);
   ex.push(['(D1) los diecinueve rasgos declaran su globo',
            TAB().filter(r => r.i).length + APT().filter(r => r.i).length, 19]);
   const antes = SC().pts;
@@ -104703,17 +104786,49 @@ caso('TC-589', 'Tanda MARFAN-1: la pantalla con dos columnas de campos y la aort
     if (/[Ff]olios? [0-9]+/.test(t)) conFolio++;
     b.click(); await esperar(110);
   }
-  ex.push(['(D2) los 21 abren', abren, 21]);
-  ex.push(['(D3) y los 21 traen su folio', conFolio, 21]);
+  ex.push(['(D2) los 3 abren', abren, 3]);
+  ex.push(['(D3) y los 3 traen su folio', conFolio, 3]);
+  /* Y LA CONDICION QUE ESTA ADAPTACION AGREGA, porque sin ella el caso dejaria de vigilar lo
+     que vigilaba: las DIECINUEVE definiciones siguen publicadas, cada una dentro de su globo
+     de grupo y con su folio. Si alguna se cae del agrupamiento, esto se pone rojo. */
+  { const CLV = TAB().filter(r => r.i).map(r => r.i).concat(APT().filter(r => r.i).map(r => r.i));
+    let pub = 0, conF = 0;
+    for (const g of ['mfs-puntaje', 'mfs-aparte']) {
+      const b2 = btns.filter(x => x.getAttribute('data-vinfo') === g)[0];
+      if (!b2) continue;
+      b2.click(); await esperar(200);
+      const c2 = EL('vinfo-card');
+      /* El folio se busca en el BLOQUE del rasgo y no en la tarjeta entera: varias
+         definiciones comparten el folio 480, asi que contar sobre el texto completo cuenta
+         de mas y el denominador deja de distinguir. */
+      Array.prototype.forEach.call(c2 ? c2.querySelectorAll('[data-mfs-def]') : [], d => {
+        const k = d.getAttribute('data-mfs-def');
+        if (CLV.indexOf(k) < 0) return;
+        pub++;
+        const e = VINFO[k]; if (!e) return;
+        const m = String(e.lee || '').match(/[Ff]olios? [0-9, y]+\./);
+        if (m && String(d.textContent || '').indexOf(m[0]) > -1) conF++; });
+      b2.click(); await esperar(120);
+    }
+    ex.push(['(D3b) las DIECINUEVE definiciones siguen publicadas en su globo de grupo', pub, 19]);
+    ex.push(['(D3c) y las diecinueve con su folio', conF, 19]); }
   /* EL CONTROL QUE IMPORTA: abrir un globo no puede tildar su rasgo */
-  ex.push(['(D4) abrir los 21 globos NO movio el puntaje', SC().pts, antes]);
+  ex.push(['(D4) abrir los globos NO movio el puntaje', SC().pts, antes]);
   ex.push(['(D5) ni tildo ningun rasgo', SC().tildados.length, 0]);
   ex.push(['(D6) ni contesto ningun criterio aparte',
            APT().map(r => AP(null, r.c)).filter(Boolean).length, 0]);
   /* lo que el articulo NO define, dicho */
-  const leerGlobo = async (clave) => { const b = btns.filter(x => x.getAttribute('data-vinfo') === clave)[0];
-    if (!b) return 'NO'; b.click(); await esperar(180);
-    const t = String((EL('vinfo-card') || {}).textContent || ''); b.click(); await esperar(110); return t; };
+  /* ADAPTADO 2026-11-02 (MARFAN-2, 2d): la definicion de un rasgo ya no tiene globo propio;
+     vive dentro del globo de SU GRUPO. Se lee el bloque del rasgo, no la tarjeta entera, para
+     que la condicion siga distinguiendo de cual definicion habla. */
+  const GRUPO = { 'mfs-ectasia': 'mfs-puntaje', 'mfs-codo': 'mfs-puntaje', 'mfs-miopia': 'mfs-puntaje',
+                  'mfs-ectopia': 'mfs-aparte', 'mfs-diseccion': 'mfs-aparte' };
+  const leerGlobo = async (clave) => {
+    const b = btns.filter(x => x.getAttribute('data-vinfo') === (GRUPO[clave] || clave))[0];
+    if (!b) return 'NO'; b.click(); await esperar(200);
+    const c2 = EL('vinfo-card');
+    const d2 = c2 ? c2.querySelector('[data-mfs-def="' + clave + '"]') : null;
+    const t = String((d2 || c2 || {}).textContent || ''); b.click(); await esperar(120); return t; };
   ex.push(['(D7) el globo de la ectasia dural dice que no hay metodo ni corte',
            /NO fija un m/.test(await leerGlobo('mfs-ectasia')) ? 'si' : 'NO', 'si']);
   ex.push(['(D8) el del codo dice que el articulo no dice con que se mide',
@@ -104761,8 +104876,26 @@ caso('TC-590', 'Tanda MARFAN-1: la figura lee los MISMOS campos que la lista -no
   const marca = (k) => MK() ? !!MK().querySelector('[data-m="' + k + '"]') : false;
   ex.push(['(A1) la figura esta dentro de la tarjeta',
            document.querySelector('#crit-cuerpo #mfs-fig-svg') ? 'si' : 'NO', 'si']);
-  ex.push(['(A2) la tarjeta tiene TRES columnas',
-           document.querySelectorAll('#crit-cuerpo > div > div').length, 3]);
+  /* ADAPTADO 2026-11-02 (MARFAN-2, 2a): la tarjeta pasa de TRES columnas a la izquierda con
+     sus tres bandas y la FIGURA a la derecha. Lo que este caso mide de la figura no cambia;
+     lo que cambia es donde vive. Se exige ademas que la figura quede a la DERECHA, que es lo
+     que la orden pide y antes no estaba medido aca. */
+  ex.push(['(A2) la tarjeta tiene la columna de bandas y la de la figura',
+           document.querySelectorAll('#crit-cuerpo .mfs-tarj > div').length, 2]);
+  ex.push(['(A2b) con las TRES bandas a la izquierda',
+           document.querySelectorAll('#crit-cuerpo .mfs-tarj-izq .mfs-banda').length, 3]);
+  /* ⚠️ LA POSICION SE MIDE POR LA REGLA Y POR EL ORDEN DEL DOM, NO POR GEOMETRIA: la suite
+     corre Chrome sin --window-size, o sea por debajo de los 760 px en que la figura se apila,
+     y un rect leido ahi diria «NO» sobre una maqueta correcta. La geometria lado a lado en
+     los cuatro anchos la miden las sondas de dos motores. */
+  ex.push(['(A2c) la fila es flex y la figura va DESPUES de las bandas en el DOM',
+           (function(){ const f = document.querySelector('#crit-cuerpo .mfs-tarj');
+             const i = document.querySelector('#crit-cuerpo .mfs-tarj-izq');
+             const d = document.querySelector('#crit-cuerpo .mfs-tarj-der');
+             if (!f || !i || !d) return 'NO EXISTE';
+             const flex = getComputedStyle(f).display === 'flex';
+             const orden = (i.compareDocumentPosition(d) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0;
+             return (flex && orden) ? 'si' : ('flex=' + flex + ' orden=' + orden); })(), 'si']);
   ex.push(['(A3) sin ningun rasgo la figura no tiene marcas', n(), 0]);
 
   /* ── (B) CADA RASGO PONE SU MARCA Y LA SACA ── */
@@ -104844,6 +104977,693 @@ caso('TC-590', 'Tanda MARFAN-1: la figura lee los MISMOS campos que la lista -no
   return { extra: EXP };
   })();
 `);
+
+/* ══════════════════════════════════════════════════════════════════════════════════════════
+   TANDA MARFAN-2 (2026-11-02) — TC-591 a TC-594
+   Los cuatro llevan HELPERS TOLERANTES AL ARBOL VIEJO: contra HEAD varias de estas cosas no
+   existen, y la primera linea que las nombrara mataria el caso con un TypeError sin decir QUE
+   invariante se rompio. «Caer por excepcion no es caer» — la leccion de TC-546.
+   ══════════════════════════════════════════════════════════════════════════════════════════ */
+
+caso('TC-591', 'Tanda MARFAN-2: la seccion en dos columnas -sindrome y factores a la izquierda, los dos diametros a la derecha-, sin texto bajo «Factores de riesgo», el titulo de la conclusion del mismo tamano que los demas, y el globo de la seccion descriptivo con la lista de factores adentro', `
+  return (async () => {
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]),
+                 'dio «' + t[1] + '» · esperado «' + t[2] + '»']) };
+  const esperar = (ms) => new Promise(r => setTimeout(r, ms));
+  const EL = (id) => document.getElementById(id);
+  const FN = (n) => (typeof window[n] === 'function') ? window[n] : null;
+  const pon = (id, v) => { const e = EL(id); if (!e) return 'NO ' + id;
+    e.value = String(v); e.dispatchEvent(new Event('input', { bubbles: true }));
+    e.dispatchEvent(new Event('change', { bubbles: true })); return e.value; };
+  const T = (id) => { const e = EL(id); return e ? String(e.textContent || '') : ''; };
+  const bq = (t) => Array.prototype.filter.call(document.querySelectorAll('[onclick]'),
+    b => String(b.getAttribute('onclick')).indexOf(t) >= 0)[0];
+  const Q = String.fromCharCode(39);
+  try { FN('limpiarCampos') && FN('limpiarCampos')(true); } catch (e) {}
+  await esperar(160);
+  try { const b = bq('showTab(' + Q + 'congenitas' + Q); if (b) b.click(); } catch (e) {}
+  await esperar(300);
+  const acc = EL('sacc-cc-marfan');
+  if (acc && !acc.classList.contains('open')) { const h = document.querySelector('#sacc-cc-marfan .sacc-hdr'); if (h) h.click(); }
+  await esperar(420);
+  try { document.querySelectorAll('.sacc-body').forEach(b => { b.style.transition = 'none'; }); } catch (e) {}
+  await esperar(140);
+  ex.push(['(A0) DENOMINADOR: el acordeon de Marfan esta abierto',
+           acc && acc.classList.contains('open') ? 'si' : 'NO', 'si']);
+
+  /* ── (B) EL ORDEN DE LAS DOS COLUMNAS (1b) ──────────────────────────────────────────────
+     El suite corre Chrome a 756 px, o sea por DEBAJO del corte de 900: lo lado-a-lado se mide
+     por la ESTRUCTURA y por la REGLA de la hoja de estilos, no por geometria. Lo que el
+     commit 1 cambia es QUE campo va en QUE subcolumna, y eso SI es medible a cualquier ancho. */
+  const subcolDe = (id) => { const e = EL(id); if (!e || !e.closest) return null;
+    const c = e.closest('.mfs-subcol'); if (!c) return null;
+    const todas = Array.prototype.slice.call(document.querySelectorAll('#mfs-campos-col > .mfs-subcol'));
+    return todas.indexOf(c); };
+  ex.push(['(B0) DENOMINADOR: hay DOS subcolumnas de campos',
+           document.querySelectorAll('#mfs-campos-col > .mfs-subcol').length, 2]);
+  ex.push(['(B1) el sindrome va en la PRIMERA columna', subcolDe('marfan_sindrome'), 0]);
+  ex.push(['(B2) los factores de riesgo tambien, DEBAJO del sindrome',
+           subcolDe('marfan_factores_riesgo'), 0]);
+  ex.push(['(B3) la aorta sinusal va en la SEGUNDA', subcolDe('marfan_ao_seno'), 1]);
+  ex.push(['(B4) y la ascendente tambien, DEBAJO de la sinusal',
+           subcolDe('marfan_ao_ascendente'), 1]);
+  ex.push(['(B5) el indice de tamano aortico acompana a los diametros',
+           (function(){ const w = EL('marfan-ita-wrap'); if (!w || !w.closest) return 'NO EXISTE';
+             const c = w.closest('.mfs-subcol');
+             const todas = Array.prototype.slice.call(document.querySelectorAll('#mfs-campos-col > .mfs-subcol'));
+             return todas.indexOf(c); })(), 1]);
+  ex.push(['(B6) el orden dentro de la primera: sindrome ANTES que factores',
+           (function(){ const a = EL('marfan_sindrome'), b = EL('marfan_factores_riesgo');
+             if (!a || !b) return 'NO EXISTE';
+             return (a.compareDocumentPosition(b) & 4) ? 'si' : 'NO'; })(), 'si']);
+  ex.push(['(B7) y en la segunda: sinusal ANTES que ascendente',
+           (function(){ const a = EL('marfan_ao_seno'), b = EL('marfan_ao_ascendente');
+             if (!a || !b) return 'NO EXISTE';
+             return (a.compareDocumentPosition(b) & 4) ? 'si' : 'NO'; })(), 'si']);
+
+  /* ── (C) DEBAJO DEL CAMPO NO QUEDA TEXTO (1b) ───────────────────────────────────────── */
+  pon('marfan_sindrome', 'marfan'); pon('marfan_ao_seno', '52');
+  try { FN('marfanSync') && FN('marfanSync')(); } catch (e) {}
+  await esperar(320);
+  ex.push(['(C1) el span de debajo de «Factores de riesgo» ya NO existe',
+           EL('marfan-fr-hint') ? 'EXISTE' : 'no', 'no']);
+  ex.push(['(C2) y la columna de campos NO publica la guia, la tabla ni el folio',
+           (function(){ const t = T('mfs-campos-col');
+             return (t.indexOf('ESC 2024') > -1 ? 'guia ' : '') + (t.indexOf('Tabla') > -1 ? 'tabla ' : '') +
+                    (t.indexOf('folio') > -1 ? 'folio' : '') || 'nada'; })(), 'nada']);
+  /* CONTROL NEGATIVO: la LECTURA de la raiz cargada en AI/VI, que es un dato y no una cita,
+     sigue publicandose debajo del campo. Sin esto, vaciar el bloque entero pasaria igual. */
+  /* ⚠️ EL MODULO TIENE QUE ESTAR SIN USAR, y esto salio de una medicion: con el sindrome
+     cargado el espejo CONDICIONAL del G-4 copia ao_sin a marfan_ao_seno, el campo propio
+     deja de estar vacio y la lectura no sale -por diseno: repetir el numero al lado del campo
+     que lo contiene no dice nada-. */
+  try { FN('limpiarCampos') && FN('limpiarCampos')(true); } catch (e) {}
+  await esperar(220);
+  pon('ao_sin', '41');
+  try { FN('marfanSync') && FN('marfanSync')(); } catch (e) {}
+  await esperar(320);
+  ex.push(['(C3) CONTROL: la lectura de la raiz de AI/VI SIGUE debajo del campo',
+           T('marfan-ao-lectura').indexOf('41') > -1 ? 'si' : 'NO', 'si']);
+  pon('ao_sin', ''); pon('marfan_sindrome', 'marfan'); pon('marfan_ao_seno', '52');
+  try { FN('marfanSync') && FN('marfanSync')(); } catch (e) {}
+  await esperar(300);
+
+  /* ── (D) EL TITULO DE LA CONCLUSION, DEL MISMO TAMANO QUE LOS DEMAS ─────────────────────
+     MEDIDO Y NO SUPUESTO: la orden anticipa que es mas grande, y no lo es. Lo que esta
+     condicion fija es que SIGA siendo igual que los demas rotulos de conclusion de la app,
+     para que un cambio futuro se ponga rojo. */
+  const estilo = (el) => { if (!el) return 'NO'; const c = getComputedStyle(el);
+    return c.fontSize + '/' + c.fontWeight; };
+  const lblMarfan = document.querySelector('#marfan-resultado .calc-lbl');
+  ex.push(['(D0) DENOMINADOR: la conclusion tiene su primer rotulo',
+           lblMarfan ? 'si' : 'NO', 'si']);
+  ex.push(['(D1) el rotulo de la conclusion mide 12px/500, como las demas',
+           estilo(lblMarfan), '12px/500']);
+  ex.push(['(D2) y es el MISMO que el de otra conclusion de la app',
+           (function(){ const o = EL('fop-concl');
+             const r = o && o.closest ? o.closest('.calc-row') : null;
+             const l = r ? r.querySelector('.calc-lbl') : null;
+             return estilo(l) === estilo(lblMarfan) ? 'igual' : (estilo(l) + ' vs ' + estilo(lblMarfan)); })(), 'igual']);
+  ex.push(['(D3) el encabezado del acordeon mide 11px/700, como los otros de C. Congenitas',
+           (function(){ const a = document.querySelector('#sacc-cc-marfan .sacc-hdr span[style*="flex"]');
+             const b = document.querySelector('#sacc-cc-coartacion .sacc-hdr span[style*="flex"]')
+                    || document.querySelector('#sacc-cc-dap .sacc-hdr span[style*="flex"]');
+             if (!a) return 'NO EXISTE';
+             return b ? (estilo(a) === estilo(b) ? 'igual' : estilo(a) + ' vs ' + estilo(b)) : estilo(a); })(), 'igual']);
+
+  /* ── (E) EL GLOBO DE LA SECCION: descriptivo y con la lista de factores (1b y 3c) ─────── */
+  const leerGlobo = () => { try { const f = FN('_mfConductaInfo') && FN('_mfConductaInfo')();
+    if (!f) return 'NO EXISTE'; const d = document.createElement('div'); d.appendChild(f);
+    return String(d.textContent || ''); } catch (e) { return 'EXC'; } };
+  const g1 = leerGlobo();
+  ex.push(['(E0) DENOMINADOR: el globo se construye y tiene contenido',
+           g1.length > 200 ? 'si' : ('NO: ' + g1.slice(0, 60)), 'si']);
+  ex.push(['(E1) la lista de factores vive AHORA en el globo',
+           g1.indexOf('Historia familiar de disecci') > -1 ? 'si' : 'NO', 'si']);
+  ex.push(['(E2) con su guia, su tabla y su folio',
+           (g1.indexOf('ESC 2024') > -1 ? 1 : 0) + (g1.indexOf('Tabla 62') > -1 ? 1 : 0) +
+           (g1.indexOf('folio 114') > -1 ? 1 : 0), 3]);
+  ex.push(['(E3) el globo abre DESCRIBIENDO lo que la guia fija, no un veredicto',
+           g1.indexOf('fija un umbral de di') > -1 ? 'si' : 'NO', 'si']);
+  ex.push(['(E4) y dice que la conducta no se decide por ese numero solo',
+           g1.indexOf('no se decide por ese n') > -1 ? 'si' : 'NO', 'si']);
+  ex.push(['(E5) SIN imperativos: ni «se debe», ni «se recomienda», ni «seguimiento»',
+           (g1.match(/se debe|se recomienda|seguimiento/gi) || []).length, 0]);
+  ex.push(['(E6) y SIN la palabra «indicada»', (g1.match(/indicada/gi) || []).length, 0]);
+  ex.push(['(E7) pero SI conserva la clase y el nivel, que es la atribucion',
+           g1.indexOf('Clase I') > -1 ? 'si' : 'NO', 'si']);
+  /* CONTROL NEGATIVO: con OTRO sindrome la lista CAMBIA. Un texto fijo pasaria igual. */
+  pon('marfan_sindrome', 'turner'); pon('marfan_ao_ascendente', '42');
+  try { FN('marfanSync') && FN('marfanSync')(); } catch (e) {}
+  await esperar(300);
+  const g2 = leerGlobo();
+  ex.push(['(E8) CONTROL: con Turner la lista del globo CAMBIA y nombra su propia tabla',
+           (g2 !== g1 && g2.indexOf('Tabla 58') > -1 && g2.indexOf('Tabla 62') === -1) ? 'si' : 'NO', 'si']);
+  return { extra: EXP };
+  })();
+`);
+
+caso('TC-592', 'Tanda MARFAN-2: la tarjeta de criterios en TRES bandas con la figura a la derecha, los CUATRO globos con el glifo estandar de la app y las diecinueve definiciones leidas de VINFO con su folio, los selectores sin texto cortado, el puntaje de la OPCION ELEGIDA -pie plano simple vale 1- y las reglas en una linea con lo que falta dicho una sola vez', `
+  return (async () => {
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]),
+                 'dio «' + t[1] + '» · esperado «' + t[2] + '»']) };
+  const esperar = (ms) => new Promise(r => setTimeout(r, ms));
+  const EL = (id) => document.getElementById(id);
+  const FN = (n) => (typeof window[n] === 'function') ? window[n] : null;
+  const pon = (id, v) => { const e = EL(id); if (!e) return 'NO ' + id;
+    e.value = String(v); e.dispatchEvent(new Event('input', { bubbles: true }));
+    e.dispatchEvent(new Event('change', { bubbles: true })); return e.value; };
+  const T = (id) => { const e = EL(id); return e ? String(e.textContent || '') : ''; };
+  const TAB = () => (typeof MFS_SCORE === 'undefined') ? [] : MFS_SCORE;
+  const APT = () => (typeof MFS_APARTE === 'undefined') ? [] : MFS_APARTE;
+  const SC = () => (typeof mfsScore === 'function') ? mfsScore() : { pts: 'NO EXISTE' };
+  const bq = (t) => Array.prototype.filter.call(document.querySelectorAll('[onclick]'),
+    b => String(b.getAttribute('onclick')).indexOf(t) >= 0)[0];
+  const Q = String.fromCharCode(39);
+  try { FN('limpiarCampos') && FN('limpiarCampos')(true); } catch (e) {}
+  await esperar(180);
+  /* ⚠️ LA SECCION SE ABRE ANTES, Y NO ES DECORADO: el globo de la seccion lo pinta
+     marfanSync dentro de la conclusion, y sin sindrome ni diametro esa fila no existe.
+     Medirlo sin esto da «NO EXISTE» sobre un boton que si se dibuja. */
+  try { const b = bq('showTab(' + Q + 'congenitas' + Q); if (b) b.click(); } catch (e) {}
+  await esperar(280);
+  { const acc = EL('sacc-cc-marfan');
+    if (acc && !acc.classList.contains('open')) {
+      const h = document.querySelector('#sacc-cc-marfan .sacc-hdr'); if (h) h.click(); } }
+  await esperar(400);
+  pon('marfan_sindrome', 'marfan'); pon('marfan_ao_seno', '52');
+  try { FN('marfanSync') && FN('marfanSync')(); } catch (e) {}
+  await esperar(300);
+  FN('critAbrir') && critAbrir('marfan');
+  await esperar(520);
+  const cuerpo = EL('crit-cuerpo'), card = EL('crit-card');
+  ex.push(['(A0) DENOMINADOR: la tarjeta abrio y tiene cuerpo',
+           cuerpo && cuerpo.getBoundingClientRect().height > 100 ? 'si' : 'NO', 'si']);
+
+  /* ── (B) LAS TRES BANDAS Y LA FIGURA (2a) ──────────────────────────────────────────── */
+  ex.push(['(B1) la izquierda tiene TRES bandas',
+           document.querySelectorAll('#crit-cuerpo .mfs-tarj-izq .mfs-banda').length, 3]);
+  ex.push(['(B2) en el orden score, criterios aparte y reglas',
+           Array.prototype.map.call(document.querySelectorAll('#crit-cuerpo .mfs-tarj-izq .mfs-banda'),
+             b => { const t = b.querySelector('.mfs-banda-tit span'); return t ? String(t.textContent).trim() : '?'; }).join('|'),
+           'Score sistémico|Criterios aparte|Reglas']);
+  ex.push(['(B3) la figura vive en la columna de la DERECHA y sigue entera',
+           (document.querySelector('#crit-cuerpo .mfs-tarj-der #mfs-fig-svg') ? 'si' : 'NO'), 'si']);
+  /* ⚠️ LAS DOS COLUMNAS SE MIDEN POR LA REGLA Y NO POR LA GEOMETRIA: el suite corre Chrome a
+     756 px, o sea POR DEBAJO de los 760 en que la grilla se apila a proposito, y un
+     getComputedStyle ahi devuelve UNA columna sobre una maqueta correcta. La geometria en los
+     cuatro anchos la miden las sondas de dos motores. Lo que SI es medible a cualquier ancho
+     es que los dos bloques sean grillas y que la regla pida dos columnas. */
+  const reglaDe = (sel) => { let r = 'NO HAY';
+    try { Array.prototype.forEach.call(document.styleSheets, (ss) => {
+      let rr; try { rr = ss.cssRules; } catch (e) { return; }
+      Array.prototype.forEach.call(rr || [], (x) => {
+        if (x.media) return;
+        if (String(x.selectorText || '').indexOf(sel) > -1 &&
+            String(x.style && x.style.gridTemplateColumns || '')) r = String(x.style.gridTemplateColumns); }); });
+    } catch (e) {} return r; };
+  ex.push(['(B4) los rasgos del score son una grilla',
+           (function(){ const b = EL('mfs-bloque-score'); if (!b) return 'NO EXISTE';
+             return getComputedStyle(b).display; })(), 'grid']);
+  ex.push(['(B4b) y su regla pide DOS columnas',
+           reglaDe('#mfs-bloque-score').replace(/[()]/g, '').replace(/0px/g, '0'), 'repeat2, minmax0, 1fr']);
+  ex.push(['(B5) los criterios aparte tambien son una grilla',
+           (function(){ const b = EL('mfs-bloque-aparte'); if (!b) return 'NO EXISTE';
+             return getComputedStyle(b).display; })(), 'grid']);
+  ex.push(['(B5b) y a 760 px o menos se apilan a proposito',
+           (function(){ let r = 'NO HAY';
+             try { Array.prototype.forEach.call(document.styleSheets, (ss) => {
+               let rr; try { rr = ss.cssRules; } catch (e) { return; }
+               Array.prototype.forEach.call(rr || [], (x) => {
+                 if (!x.media || String(x.media.mediaText).indexOf('760px') < 0) return;
+                 Array.prototype.forEach.call(x.cssRules || [], (y) => {
+                   if (String(y.selectorText || '').indexOf('mfs-bloque-score') > -1) r = String(x.media.mediaText); }); }); });
+             } catch (e) {} return r.replace(/[()]/g, '').trim(); })(), 'max-width: 760px']);
+  ex.push(['(B6) los TRES selectores del score ocupan las dos columnas',
+           document.querySelectorAll('#mfs-bloque-score > .mfs-fila-ancha').length, 3]);
+  /* EL ALTO. El suite corre a 756 px, o sea en la maqueta apilada: el «entra en 1440x900 sin
+     scroll interno» lo miden las sondas _probe_marfan2inv y _probe_marfan2tarj en los dos
+     motores. Lo que esta condicion fija es el techo medido a ESTE ancho, donde HEAD daba 1850. */
+  ex.push(['(B7) a este ancho el cuerpo de la tarjeta baja de 1700 px (HEAD daba 1850)',
+           cuerpo && cuerpo.getBoundingClientRect().height < 1700 ? 'si' :
+             ('NO: ' + Math.round(cuerpo ? cuerpo.getBoundingClientRect().height : -1)), 'si']);
+
+  /* ── (C) LOS CUATRO GLOBOS CON EL GLIFO ESTANDAR (2d) ──────────────────────────────── */
+  const btns = Array.prototype.slice.call(document.querySelectorAll('#crit-cuerpo .vinfo-btn'));
+  const glifo = (b) => { const t = String(b.textContent || '').trim();
+    return t.length ? ('U+' + t.codePointAt(0).toString(16).toUpperCase()) : 'VACIO'; };
+  ex.push(['(C1) la tarjeta tiene TRES globos, no veintiuno', btns.length, 3]);
+  ex.push(['(C2) los tres llevan el glifo ESTANDAR de la app, el circulado U+24D8',
+           btns.map(glifo).join(',') || 'NINGUNO', 'U+24D8,U+24D8,U+24D8']);
+  ex.push(['(C3) y ninguno lleva el de MARFAN-1, la «i» suelta U+2139',
+           btns.filter(b => glifo(b) === 'U+2139').length, 0]);
+  ex.push(['(C4) sus claves son las tres que la orden pide',
+           btns.map(b => b.getAttribute('data-vinfo')).sort().join(','),
+           'mfs-aparte,mfs-puntaje,mfs-reglas']);
+  ex.push(['(C5) y el CUARTO es el de la seccion, fuera de la tarjeta',
+           (function(){ const b = document.querySelector('#marfan-resultado [data-vinfo="mf-conducta"]');
+             return b ? glifo(b) : 'NO EXISTE'; })(), 'U+24D8']);
+  /* el glifo estandar NO es una invencion de esta tanda: es el que usa el resto del documento */
+  ex.push(['(C6) DENOMINADOR: el resto del documento usa ese mismo glifo en mas de cincuenta botones',
+           (function(){ let n = 0;
+             document.querySelectorAll('.vinfo-btn').forEach(b => { if (glifo(b) === 'U+24D8') n++; });
+             return n > 50 ? 'si' : ('solo ' + n); })(), 'si']);
+  ex.push(['(C7) y NINGUN boton del documento quedo con la «i» suelta',
+           (function(){ let n = 0;
+             document.querySelectorAll('.vinfo-btn').forEach(b => { if (glifo(b) === 'U+2139') n++; });
+             return n; })(), 0]);
+
+  /* ── (D) LAS DIECINUEVE DEFINICIONES, LEIDAS DE VINFO Y CON SU FOLIO (2d) ──────────── */
+  const CLV = TAB().filter(r => r.i).map(r => r.i).concat(APT().filter(r => r.i).map(r => r.i));
+  ex.push(['(D0) DENOMINADOR: los rasgos declaran DIECINUEVE claves de definicion', CLV.length, 19]);
+  let pub = 0, conFolio = 0;
+  for (const g of ['mfs-puntaje', 'mfs-aparte']) {
+    const b = btns.filter(x => x.getAttribute('data-vinfo') === g)[0];
+    if (!b) continue;
+    b.click(); await esperar(240);
+    const c = EL('vinfo-card');
+    Array.prototype.forEach.call(c ? c.querySelectorAll('[data-mfs-def]') : [], d => {
+      const k = d.getAttribute('data-mfs-def');
+      if (CLV.indexOf(k) < 0) return;
+      pub++;
+      const e = (typeof VINFO !== 'undefined') ? VINFO[k] : null; if (!e) return;
+      const m = String(e.lee || '').match(/[Ff]olios? [0-9, y]+\./);
+      if (m && String(d.textContent || '').indexOf(m[0]) > -1) conFolio++; });
+    b.click(); await esperar(140);
+  }
+  ex.push(['(D1) las DIECINUEVE se publican dentro de su globo de grupo', pub, 19]);
+  ex.push(['(D2) y las diecinueve con su folio', conFolio, 19]);
+  ex.push(['(D3) el globo del score las agrupa en las DIEZ zonas del cuerpo',
+           (typeof MFS_DEF_GRUPOS === 'undefined') ? 'NO EXISTE' : MFS_DEF_GRUPOS.length, 10]);
+  /* LO QUE SE LEE ES VINFO Y NO UNA COPIA: mutando la entrada, el globo cambia. */
+  ex.push(['(D4) la definicion sale de VINFO y no de una segunda copia',
+           (function(){ try {
+             const guardo = VINFO['mfs-codo'].lee;
+             VINFO['mfs-codo'].lee = 'CENTINELA DE LA SONDA';
+             const f = FN('_mfsScoreInfo') && FN('_mfsScoreInfo')();
+             const d = document.createElement('div'); if (f) d.appendChild(f);
+             VINFO['mfs-codo'].lee = guardo;
+             return String(d.textContent || '').indexOf('CENTINELA DE LA SONDA') > -1 ? 'si' : 'NO';
+           } catch (e) { return 'EXC'; } })(), 'si']);
+  /* LA GUIA, LA TABLA Y EL FOLIO VIVEN SOLO EN LOS GLOBOS (2d) */
+  const tc = String((cuerpo || {}).textContent || '');
+  ex.push(['(D5) el cuerpo de la tarjeta NO dice «folio»', (tc.match(/folio/gi) || []).length, 0]);
+  ex.push(['(D6) ni nombra un Box del articulo', (tc.match(/Box [0-9]/g) || []).length, 0]);
+  ex.push(['(D7) ni la revista', tc.indexOf('J Med Genet') > -1 ? 'SI' : 'no', 'no']);
+
+  /* ── (E) LOS SELECTORES Y EL PUNTAJE DE LA OPCION ELEGIDA (2b) ─────────────────────── */
+  pon('mfs_pie', 'plano'); try { FN('mfsCalc') && FN('mfsCalc')(); } catch (e) {}
+  await esperar(120);
+  const pts = (c) => { const b = document.querySelector('#crit-cuerpo [data-mf-pts="' + c + '"]');
+    return b ? String(b.textContent).trim() : 'NO EXISTE'; };
+  ex.push(['(E0) DENOMINADOR: las tres filas con alternativa publican su puntaje',
+           ['mfs_muneca_pulgar','mfs_pectus','mfs_pie'].filter(c => pts(c) !== 'NO EXISTE').length, 3]);
+  ex.push(['(E1) «Pie plano simple» muestra 1, que es lo que vale', pts('mfs_pie'), '1']);
+  ex.push(['(E2) y el total lo cuenta igual', SC().pts, 1]);
+  pon('mfs_pie', 'retropie'); try { FN('mfsCalc') && FN('mfsCalc')(); } catch (e) {}
+  await esperar(110);
+  ex.push(['(E3) el retropie muestra 2', pts('mfs_pie'), '2']);
+  pon('mfs_pie', ''); try { FN('mfsCalc') && FN('mfsCalc')(); } catch (e) {}
+  await esperar(110);
+  ex.push(['(E4) sin elegir muestra el MAXIMO del rasgo, que es lo que puede aportar', pts('mfs_pie'), '2']);
+  pon('mfs_pectus', 'excavatum'); pon('mfs_muneca_pulgar', 'uno');
+  try { FN('mfsCalc') && FN('mfsCalc')(); } catch (e) {}
+  await esperar(110);
+  ex.push(['(E5) el pectus excavatum muestra 1', pts('mfs_pectus'), '1']);
+  ex.push(['(E6) y un solo signo de muneca o pulgar, 1', pts('mfs_muneca_pulgar'), '1']);
+  pon('mfs_pectus', 'carinatum'); pon('mfs_muneca_pulgar', 'ambos');
+  try { FN('mfsCalc') && FN('mfsCalc')(); } catch (e) {}
+  await esperar(110);
+  ex.push(['(E7) el carinatum muestra 2 y los dos signos 3',
+           pts('mfs_pectus') + '/' + pts('mfs_muneca_pulgar'), '2/3']);
+  /* CONTROL NEGATIVO: una CASILLA no tiene opcion elegida y sigue publicando su valor fijo. */
+  ex.push(['(E8) CONTROL: una casilla sigue publicando su puntaje fijo',
+           (function(){ const l = document.getElementById('mfs_neumotorax');
+             const f = l && l.closest ? l.closest('.mfs-fila') : null;
+             const b = f ? f.querySelector('.mfs-pts') : null;
+             return b ? String(b.textContent).trim() : 'NO EXISTE'; })(), '2']);
+  /* el texto de cada selector ENTRA en su caja */
+  ['mfs_ectopia_lentis','mfs_historia_familiar','mfs_fbn1_causal','mfs_fbn1_ao',
+   'mfs_diseccion_raiz'].forEach(k => pon(k, 'si'));
+  pon('mfs_sin_otros', 'si');
+  try { FN('mfsCalc') && FN('mfsCalc')(); } catch (e) {}
+  await esperar(140);
+  ex.push(['(E9) ningun selector corta su texto, CON su opcion contestada',
+           (function(){ let mal = [];
+             document.querySelectorAll('#crit-cuerpo select.mfs-sel').forEach(s => {
+               const op = s.options[s.selectedIndex] || s.options[0];
+               const m = document.createElement('span');
+               m.style.cssText = 'position:absolute;visibility:hidden;white-space:nowrap';
+               m.style.font = getComputedStyle(s).font; m.textContent = op ? op.textContent : '';
+               document.body.appendChild(m);
+               const need = m.getBoundingClientRect().width; m.remove();
+               const cs = getComputedStyle(s);
+               const util = s.getBoundingClientRect().width - parseFloat(cs.paddingLeft) -
+                            parseFloat(cs.paddingRight) - 18;
+               if (need > util + 1) mal.push(s.id); });
+             return mal.join(',') || 'ninguno'; })(), 'ninguno']);
+
+  /* ── (F) LAS REGLAS EN UNA LINEA, CON LO QUE FALTA DICHO UNA VEZ (2c) ──────────────── */
+  try { FN('limpiarCampos') && FN('limpiarCampos')(true); } catch (e) {}
+  await esperar(200);
+  FN('critAbrir') && critAbrir('marfan'); await esperar(430);
+  const regs = Array.prototype.slice.call(document.querySelectorAll('#mfs-reglas .mfs-reg'));
+  ex.push(['(F0) DENOMINADOR: la tarjeta pinta las SIETE reglas', regs.length, 7]);
+  ex.push(['(F1) ninguna lleva su motivo debajo, en una segunda fila',
+           document.querySelectorAll('#mfs-reglas .mfs-reg-por').length, 0]);
+  ex.push(['(F2) y cada una entra en UNA linea',
+           regs.filter(d => d.getBoundingClientRect().height > 26).length, 0]);
+  /* ⚠️ SIN EXPRESION REGULAR: el cuerpo de un caso es un template literal y una barra
+     invertida simple no sobrevive -el patron llega sin ella y deja de pedir el parentesis-.
+     Es la trampa que este archivo ya documenta. */
+  ex.push(['(F3) cada una dice su numero y su estado',
+           regs.filter(d => { const t = String((d.querySelector('.mfs-reg-txt') || {}).textContent || '').trim();
+             const e = String((d.querySelector('.mfs-reg-est') || {}).textContent || '').trim();
+             return t.charAt(0) === '(' && t.charAt(2) === ')' && '1234567'.indexOf(t.charAt(1)) > -1 &&
+                    ['Cumple', 'No cumple', 'Sin dato'].indexOf(e) > -1; }).length, 7]);
+  ex.push(['(F4) lo que falta se dice UNA sola vez, debajo de las siete',
+           document.querySelectorAll('#mfs-reglas .mfs-falta').length, 1]);
+  ex.push(['(F5) y el aviso de que no es un diagnostico, UNA sola vez en toda la tarjeta',
+           (String((EL('crit-cuerpo') || {}).textContent || '').match(/no es un diagn/g) || []).length, 1]);
+  ex.push(['(F6) los dos grupos quedan como rotulo chico',
+           Array.prototype.map.call(document.querySelectorAll('#mfs-reglas .mfs-reg-grupo'),
+             e => String(e.textContent).trim()).join('|'),
+           'Sin historia familiar|Con historia familiar']);
+  /* EL DEFECTO QUE 2c CIERRA: el motivo repetido en cuatro de las siete */
+  const tr = String((EL('mfs-reglas') || {}).textContent || '');
+  ex.push(['(F7) «el valor del Z de la raiz» aparece UNA vez y no cuatro',
+           (tr.match(/el valor del Z de la ra/g) || []).length, 1]);
+  ex.push(['(F8) y «rasgos de otros sindromes» tambien UNA vez',
+           (tr.match(/rasgos de otros s/g) || []).length, 1]);
+  /* CONTROL NEGATIVO: con todo contestado NO hay linea de «falta» */
+  ['mfs_ectopia_lentis','mfs_historia_familiar','mfs_fbn1_causal','mfs_fbn1_ao',
+   'mfs_sin_otros','mfs_diseccion_raiz'].forEach(k => pon(k, 'no'));
+  pon('mfs_z_raiz', '1.2'); pon('edad', '34');
+  try { FN('mfsCalc') && FN('mfsCalc')(); } catch (e) {}
+  await esperar(180);
+  ex.push(['(F9) CONTROL: con todo contestado NO sale la linea de lo que falta',
+           document.querySelectorAll('#mfs-reglas .mfs-falta').length, 0]);
+  ex.push(['(F10) y las siete quedan en «No cumple»',
+           Array.prototype.map.call(document.querySelectorAll('#mfs-reglas .mfs-reg-est'),
+             e => String(e.textContent).trim()).join(',').replace(/No cumple,?/g, '').length, 0]);
+  /* la LOGICA no cambio: el dueno sigue dando los mismos tres estados y su motivo */
+  ex.push(['(F11) la logica sigue en su dueno: cada regla conserva su texto completo y su motivo',
+           (function(){ try { const r = mfsReglas().reglas;
+             return r.length === 7 && r.every(x => x.txt && x.txt.length > 20 && typeof x.por === 'string')
+               ? 'si' : 'NO'; } catch (e) { return 'EXC'; } })(), 'si']);
+  ex.push(['(F12) y el globo de las reglas publica las SIETE completas',
+           (function(){ const b = document.querySelector('#crit-cuerpo [data-vinfo="mfs-reglas"]');
+             if (!b) return 'NO EXISTE'; b.click(); return 'pendiente'; })(), 'pendiente']);
+  await esperar(260);
+  ex.push(['(F13) las siete, con su enunciado entero',
+           document.querySelectorAll('#vinfo-card [data-mfs-regla]').length, 7]);
+  { const b = document.querySelector('#crit-cuerpo [data-vinfo="mfs-reglas"]'); if (b) b.click(); }
+  await esperar(140);
+  FN('critCerrar') && critCerrar();
+  return { extra: EXP };
+  })();
+`);
+
+caso('TC-593', 'Tanda MARFAN-2: la conclusion de la seccion en CUATRO filas ordenadas -criterios de Ghent, otros datos, el umbral con el diametro y la conducta-, la pastilla diciendo si CUMPLE o NO los criterios en vez de indicar una cirugia, y ninguna superficie de la seccion con «indicada», «se recomienda» ni «seguimiento»', `
+  return (async () => {
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]),
+                 'dio «' + t[1] + '» · esperado «' + t[2] + '»']) };
+  const esperar = (ms) => new Promise(r => setTimeout(r, ms));
+  const EL = (id) => document.getElementById(id);
+  const FN = (n) => (typeof window[n] === 'function') ? window[n] : null;
+  const pon = (id, v) => { const e = EL(id); if (!e) return 'NO ' + id;
+    e.value = String(v); e.dispatchEvent(new Event('input', { bubbles: true }));
+    e.dispatchEvent(new Event('change', { bubbles: true })); return e.value; };
+  const T = (id) => { const e = EL(id); return e ? String(e.textContent || '') : ''; };
+  const bq = (t) => Array.prototype.filter.call(document.querySelectorAll('[onclick]'),
+    b => String(b.getAttribute('onclick')).indexOf(t) >= 0)[0];
+  const Q = String.fromCharCode(39);
+  try { FN('limpiarCampos') && FN('limpiarCampos')(true); } catch (e) {}
+  await esperar(170);
+  try { const b = bq('showTab(' + Q + 'congenitas' + Q); if (b) b.click(); } catch (e) {}
+  await esperar(290);
+  { const acc = EL('sacc-cc-marfan');
+    if (acc && !acc.classList.contains('open')) {
+      const h = document.querySelector('#sacc-cc-marfan .sacc-hdr'); if (h) h.click(); } }
+  await esperar(420);
+  const filas = () => Array.prototype.map.call(document.querySelectorAll('#marfan-resultado .calc-row'),
+    f => String((f.querySelector('.calc-lbl') || {}).textContent || '').replace(/[^A-Za-zÁÉÍÓÚáéíóúÑñ ]/g, '').trim());
+  const valDe = (lbl) => { let r = 'NO HAY';
+    Array.prototype.forEach.call(document.querySelectorAll('#marfan-resultado .calc-row'), f => {
+      const l = String((f.querySelector('.calc-lbl') || {}).textContent || '');
+      if (l.indexOf(lbl) === 0) r = String((f.querySelector('.calc-val') || f.querySelector('.badge') || {}).textContent || ''); });
+    return r; };
+  const past = () => { const p = document.querySelector('#marfan-resultado .badge');
+    return p ? String(p.textContent).trim() : 'NO HAY'; };
+
+  /* ── (A) EL ORDEN DE LAS CUATRO FILAS (3a) ──────────────────────────────────────────── */
+  pon('marfan_sindrome', 'marfan'); pon('marfan_ao_seno', '52');
+  pon('marfan_factores_riesgo', 'si');
+  pon('mfs_ectopia_lentis', 'si'); pon('mfs_historia_familiar', 'si');
+  pon('mfs_fbn1_causal', 'no'); pon('mfs_sin_otros', 'si');
+  try { FN('marfanSync') && FN('marfanSync')(); } catch (e) {}
+  await esperar(330);
+  ex.push(['(A0) DENOMINADOR: la conclusion tiene sus CUATRO filas', filas().length, 4]);
+  ex.push(['(A1) y en el orden que la orden pide',
+           filas().join('|'), 'Criterios de Ghent|Otros datos cargados|Umbral de este síndrome|Conducta aórtica']);
+  ex.push(['(A2) la fila de criterios nombra la regla que cumple',
+           /cumple criterios de Ghent revisados \\(regla [1-7]\\)/.test(valDe('Criterios de Ghent')) ? 'si'
+             : valDe('Criterios de Ghent'), 'si']);
+  ex.push(['(A3) la de otros datos publica lo cargado y su estado',
+           (function(){ const v = valDe('Otros datos').toLowerCase();
+             return (v.indexOf('historia familiar presente') > -1 &&
+                     v.indexOf('variante de fbn1 causal ausente') > -1 &&
+                     v.indexOf('ectopia lentis presente') > -1 &&
+                     v.indexOf('con factores de riesgo') > -1) ? 'si' : v; })(), 'si']);
+  ex.push(['(A4) la del umbral lleva el umbral Y el diametro medido',
+           (function(){ const v = valDe('Umbral de este');
+             return (v.indexOf('50 mm') > -1 && v.indexOf('52 mm') > -1) ? 'si' : v; })(), 'si']);
+  ex.push(['(A5) y la cuarta es la conducta, con su globo',
+           document.querySelector('#marfan-resultado [data-vinfo="mf-conducta"]') ? 'si' : 'NO', 'si']);
+
+  /* ── (B) LA PASTILLA: tres frases y ninguna indicacion (3a punto 4, 3b) ─────────────── */
+  const esc = async (s2, seno, asc, fr) => {
+    pon('marfan_sindrome', s2); pon('marfan_ao_seno', seno);
+    pon('marfan_ao_ascendente', asc); pon('marfan_factores_riesgo', fr);
+    try { FN('marfanSync') && FN('marfanSync')(); } catch (e) {}
+    await esperar(130); return past(); };
+  ex.push(['(B1) Marfan 52 mm: cumple criterios', await esc('marfan','52','44','si'),
+           'Cumple criterios para cirugía']);
+  ex.push(['(B2) Marfan 47 mm con factores: cumple', await esc('marfan','47','','si'),
+           'Cumple criterios para cirugía']);
+  ex.push(['(B3) Loeys-Dietz 41 mm con factores: cumple', await esc('lds','41','40','si'),
+           'Cumple criterios para cirugía']);
+  ex.push(['(B4) Marfan 47 mm SIN factores: NO cumple', await esc('marfan','47','','no'),
+           'No cumple criterios para cirugía']);
+  ex.push(['(B5) Marfan 42 mm: NO cumple', await esc('marfan','42','40',''),
+           'No cumple criterios para cirugía']);
+  ex.push(['(B6) sin sindrome: sin datos suficientes', await esc('','52','44',''),
+           'Sin datos suficientes']);
+  ex.push(['(B7) con sindrome y sin diametro: sin datos suficientes', await esc('marfan','','','si'),
+           'Sin datos suficientes']);
+  ex.push(['(B8) Turner sin indice: sin datos suficientes', await esc('turner','','','si'),
+           'Sin datos suficientes']);
+  /* EL UNICO ESTADO QUE LAS TRES FRASES NO CUBREN, y por eso se declara: el Ehlers-Danlos
+     vascular no es «sin datos» ni «no cumple», porque la guia no le publica umbral. Lo que se
+     le quito es la mencion de la guia. */
+  ex.push(['(B9) Ehlers-Danlos vascular: sin umbral publicado, y SIN nombrar la guia',
+           await esc('eds','60','55','si'), 'Sin umbral de diámetro publicado']);
+  /* CONTROL NEGATIVO: el COLOR sigue graduando, asi que la informacion de I, IIa y IIb no se
+     perdio. Sin esto, aplanar las tres a un mismo gris pasaria igual. */
+  await esc('marfan','52','44','si');
+  const cI = (document.querySelector('#marfan-resultado .badge') || {}).className || '';
+  await esc('lds','41','40','si');
+  const cIIb = (document.querySelector('#marfan-resultado .badge') || {}).className || '';
+  ex.push(['(B10) CONTROL: el color sigue separando la Clase I de la IIb',
+           (cI !== cIIb && cI.indexOf('red') > -1 && cIIb.indexOf('yellow') > -1) ? 'si' : (cI + ' vs ' + cIIb), 'si']);
+  /* y las CLAVES de marfanEstado no se tocaron: las lee el Laboratorio */
+  ex.push(['(B11) CONTROL: las claves de marfanEstado siguen siendo las mismas',
+           (function(){ try {
+             return [['marfan','52','','si','cx_i'], ['marfan','47','','si','cx_iia'],
+                     ['lds','41','','si','cx_iib'], ['marfan','47','','no','umbral_iia_sin_fr'],
+                     ['marfan','42','','','sin_indicacion'], ['eds','60','','','sin_umbral']]
+               .filter(x => marfanEstado({ marfan_sindrome: x[0], marfan_ao_seno: x[1],
+                 marfan_ao_ascendente: x[2], marfan_factores_riesgo: x[3] }).clave === x[4]).length;
+           } catch (e) { return 'EXC'; } })(), 6]);
+
+  /* ── (C) NINGUNA SUPERFICIE DE LA SECCION DA UNA INDICACION (3a) ────────────────────── */
+  await esc('marfan','52','44','si');
+  const zonaTxt = T('marfan-resultado') + ' ' + T('mfs-campos-col');
+  ex.push(['(C1) la conclusion no dice «indicada»', (zonaTxt.match(/indicada/gi) || []).length, 0]);
+  ex.push(['(C2) ni «se recomienda»', (zonaTxt.match(/se recomienda/gi) || []).length, 0]);
+  ex.push(['(C3) ni «seguimiento»', (zonaTxt.match(/seguimiento/gi) || []).length, 0]);
+  ex.push(['(C4) ni «considerar»', (zonaTxt.match(/considerar/gi) || []).length, 0]);
+  ex.push(['(C5) ni nombra la guia, la tabla o el folio',
+           (zonaTxt.match(/ESC 2024|Tabla [0-9]|folio/gi) || []).length, 0]);
+  ex.push(['(C6) pero SI conserva el umbral en milimetros', zonaTxt.indexOf('50 mm') > -1 ? 'si' : 'NO', 'si']);
+
+  /* ── (D) EL PAPEL NO CAMBIA (3d) ────────────────────────────────────────────────────── */
+  pon('nombre', 'Prueba TC593'); pon('ci', '593');
+  { const c = EL('marfan_incluir_chk');
+    if (c && !c.checked) { c.checked = true; c.dispatchEvent(new Event('change', { bubbles: true })); } }
+  try { FN('generarInforme') && FN('generarInforme')(); } catch (e) {}
+  await esperar(360);
+  const inf = String((EL('informe_texto') || {}).value || '');
+  const sum = String((EL('en_suma') || {}).value || '');
+  ex.push(['(D0) DENOMINADOR: el informe trae la linea de Marfan',
+           inf.indexOf('Marfan') > -1 ? 'si' : 'NO', 'si']);
+  ex.push(['(D1) el papel NO lleva la conclusion de pantalla',
+           (inf + sum).indexOf('Cumple criterios para cirug'), -1]);
+  ex.push(['(D2) ni la fila de criterios de Ghent',
+           (inf + sum).indexOf('criterios de Ghent revisados'), -1]);
+  ex.push(['(D3) ni el umbral de este sindrome',
+           (inf + sum).indexOf('Umbral de este s'), -1]);
+  return { extra: EXP };
+  })();
+`);
+
+caso('TC-594', 'Tanda MARFAN-2: el Z de la raiz es un CAMPO GUARDADO que viaja con el estudio y no tiene columna de Excel, las reglas 1, 2, 3 y 7 lo leen tambien sobre un estudio archivado con los dos cortes de edad intactos, y el Z CALCULADO no existe -no hay fuente del metodo-, no se guarda y no llega al papel', `
+  return (async () => {
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]),
+                 'dio «' + t[1] + '» · esperado «' + t[2] + '»']) };
+  const esperar = (ms) => new Promise(r => setTimeout(r, ms));
+  const EL = (id) => document.getElementById(id);
+  const FN = (n) => (typeof window[n] === 'function') ? window[n] : null;
+  const pon = (id, v) => { const e = EL(id); if (!e) return 'NO ' + id;
+    e.value = String(v); e.dispatchEvent(new Event('input', { bubbles: true }));
+    e.dispatchEvent(new Event('change', { bubbles: true })); return e.value; };
+  const RG = (src) => (typeof mfsReglas === 'function') ? mfsReglas(src) : { reglas: [] };
+  const est = (src) => RG(src).reglas.map(x => x.n + ':' + x.estado).join(' ');
+  try { FN('limpiarCampos') && FN('limpiarCampos')(true); } catch (e) {}
+  await esperar(180);
+
+  /* ── (A) EL CAMPO (4a) ──────────────────────────────────────────────────────────────── */
+  const z = EL('mfs_z_raiz');
+  ex.push(['(A0) DENOMINADOR: el campo existe SIN abrir la tarjeta', z ? 'si' : 'NO', 'si']);
+  ex.push(['(A1) vive en la guarderia, con los otros diecinueve',
+           (z && z.closest && z.closest('#mfs-campos')) ? 'si' : 'NO', 'si']);
+  ex.push(['(A2) y es un campo del ESTUDIO, no un control de pantalla',
+           (typeof _noEsDelEstudio === 'function' && !_noEsDelEstudio('mfs_z_raiz')) ? 'si' : 'NO', 'si']);
+  ex.push(['(A3) acepta decimales', (pon('mfs_z_raiz', '2.4'), z ? String(z.value) : 'NO'), '2.4']);
+  ex.push(['(A4) el recolector del estudio lo toma',
+           (function(){ const b = {};
+             document.querySelectorAll('input[id], select[id], textarea[id]').forEach(e => {
+               if (typeof _noEsDelEstudio === 'function' && _noEsDelEstudio(e.id)) return;
+               if (e.type === 'checkbox') b[e.id + '__chk'] = e.checked ? '1' : '0'; else b[e.id] = e.value; });
+             return b.mfs_z_raiz === undefined ? 'AUSENTE' : b.mfs_z_raiz; })(), '2.4']);
+  ex.push(['(A5) y NO tiene columna de Excel',
+           (function(){ try { const b = {};
+             document.querySelectorAll('input[id], select[id], textarea[id]').forEach(e => {
+               if (typeof _noEsDelEstudio === 'function' && _noEsDelEstudio(e.id)) return;
+               if (e.type === 'checkbox') b[e.id + '__chk'] = e.checked ? '1' : '0'; else b[e.id] = e.value; });
+             const f = _labExcelRow({ campos: b });
+             const ks = Object.keys(f);
+             return ks.length + '/' + ks.filter(k => /mfs|Z de la ra/i.test(k)).length;
+           } catch (e) { return 'EXC'; } })(), '441/0']);
+  /* la tarjeta ya NO tiene su propio control del Z: un dato, una puerta */
+  FN('critAbrir') && critAbrir('marfan'); await esperar(460);
+  ex.push(['(A6) la tarjeta NO tiene un segundo control del Z',
+           document.querySelectorAll('#crit-cuerpo [data-mf-z]').length, 0]);
+  ex.push(['(A7) y el campo guardado queda DENTRO de la tarjeta mientras dura el prestamo',
+           (function(){ const e = EL('mfs_z_raiz');
+             return (e && e.closest && e.closest('#crit-cuerpo')) ? 'si' : 'NO'; })(), 'si']);
+  FN('critCerrar') && critCerrar(); await esperar(260);
+  ex.push(['(A8) y vuelve a la seccion al cerrarla, con su valor',
+           (function(){ const e = EL('mfs_z_raiz');
+             return e ? (String(e.value) + '/' + ((e.closest && e.closest('#crit-cuerpo')) ? 'ADENTRO' : 'devuelto')) : 'NO'; })(),
+           '2.4/devuelto']);
+
+  /* ── (B) ROUND-TRIP, por las funciones REALES (4a) ──────────────────────────────────── */
+  pon('nombre', 'Prueba TC594'); pon('ci', '594');
+  pon('mfs_z_raiz', '2.4'); pon('mfs_ectopia_lentis', 'si'); pon('mfs_sin_otros', 'si');
+  await esperar(160);
+  const g = await __t.guardar();
+  ex.push(['(B0) DENOMINADOR: el estudio se guardo', g.ok ? 'si' : ('NO ' + JSON.stringify(g)), 'si']);
+  const reg = (typeof getInformes === 'function')
+    ? getInformes().filter(i => i.estudioId === g.estudioId)[0] : null;
+  ex.push(['(B1) el Z viaja en el registro', reg && reg.campos ? String(reg.campos.mfs_z_raiz) : 'NO', '2.4']);
+  ex.push(['(B2) y las reglas CONCLUYEN sobre el estudio archivado',
+           reg ? est(reg.campos) : 'NO',
+           '1:cumple 2:sin_dato 3:no 4:sin_dato 5:sin_dato 6:no 7:sin_dato']);
+  ex.push(['(B3) el Z leido del registro es el guardado',
+           reg && typeof mfsZ === 'function' ? String(mfsZ(reg.campos)) : 'NO', '2.4']);
+  __t.nuevoEstudio(); await esperar(320);
+  ex.push(['(B4) «Nuevo estudio» lo deja vacio', String((EL('mfs_z_raiz') || {}).value), '']);
+  __t.reabrir(g.estudioId); await esperar(900);
+  ex.push(['(B5) y reabrir el estudio lo devuelve', String((EL('mfs_z_raiz') || {}).value), '2.4']);
+  await __t.borrar(g.estudioId);
+
+  /* ── (C) LAS REGLAS LEEN EL Z, CON LOS DOS CORTES DE EDAD INTACTOS (4d) ─────────────── */
+  const escena = async (o) => { try { FN('limpiarCampos') && FN('limpiarCampos')(true); } catch (e) {}
+    await esperar(130);
+    Object.keys(o).forEach(k => pon(k, o[k]));
+    await esperar(110); return est(); };
+  ex.push(['(C0) DENOMINADOR: sin Z las cuatro reglas que lo piden quedan sin dato',
+           await escena({ mfs_ectopia_lentis: 'si', mfs_sin_otros: 'si', mfs_historia_familiar: 'si', edad: '34' }),
+           '1:sin_dato 2:sin_dato 3:no 4:sin_dato 5:cumple 6:no 7:sin_dato']);
+  ex.push(['(C1) con Z 2,4 la regla 1 cumple',
+           await escena({ mfs_z_raiz: '2.4', mfs_ectopia_lentis: 'si', mfs_sin_otros: 'si' }),
+           '1:cumple 2:sin_dato 3:no 4:sin_dato 5:sin_dato 6:no 7:sin_dato']);
+  ex.push(['(C2) con Z 2,4 y FBN1 causal, la 2',
+           await escena({ mfs_z_raiz: '2.4', mfs_fbn1_causal: 'si' }),
+           '1:sin_dato 2:cumple 3:no 4:sin_dato 5:sin_dato 6:no 7:sin_dato']);
+  ex.push(['(C3) con Z 2,4 y puntaje 7, la 3',
+           await escena({ mfs_z_raiz: '2.4', mfs_sin_otros: 'si', mfs_muneca_pulgar: 'ambos',
+                          mfs_pectus: 'carinatum', mfs_pie: 'retropie' }),
+           '1:sin_dato 2:sin_dato 3:cumple 4:sin_dato 5:sin_dato 6:sin_dato 7:sin_dato']);
+  /* LOS DOS CORTES DE EDAD DE LA REGLA 7, que MARFAN-1 fijo y esta tanda no mueve */
+  const r7 = async (o) => { const e = await escena(o);
+    return (RG().reglas.filter(x => x.n === 7)[0] || {}).estado; };
+  ex.push(['(C4) a los 20 anios exactos alcanza Z 2,0',
+           await r7({ mfs_z_raiz: '2.0', mfs_historia_familiar: 'si', mfs_sin_otros: 'si', edad: '20' }), 'cumple']);
+  ex.push(['(C5) a los 19 el umbral sube a 3 y Z 2,0 NO alcanza',
+           await r7({ mfs_z_raiz: '2.0', mfs_historia_familiar: 'si', mfs_sin_otros: 'si', edad: '19' }), 'sin_dato']);
+  ex.push(['(C6) a los 19 con Z 3,0 si alcanza',
+           await r7({ mfs_z_raiz: '3.0', mfs_historia_familiar: 'si', mfs_sin_otros: 'si', edad: '19' }), 'cumple']);
+  ex.push(['(C7) y la diseccion cumple sin Z y sin edad',
+           await r7({ mfs_diseccion_raiz: 'si', mfs_historia_familiar: 'si', mfs_sin_otros: 'si' }), 'cumple']);
+  /* CONTROL NEGATIVO: un Z por debajo del corte, con la diseccion descartada, hace FALLAR */
+  ex.push(['(C8) CONTROL: Z 1,5 con la diseccion en «no» pone la regla 1 en NO CUMPLE',
+           await escena({ mfs_z_raiz: '1.5', mfs_ectopia_lentis: 'si', mfs_sin_otros: 'si',
+                          mfs_diseccion_raiz: 'no' }),
+           '1:no 2:no 3:no 4:sin_dato 5:sin_dato 6:no 7:sin_dato']);
+
+  /* ── (D) EL Z CALCULADO NO EXISTE, Y SE DICE (4b) ───────────────────────────────────── */
+  ex.push(['(D1) ninguna funcion calcula un Z de la raiz',
+           Object.keys(window).filter(k => /mfsZCalc|zRaizCalc|calcularZ/i.test(k)).length, 0]);
+  ex.push(['(D2) el globo de los criterios aparte lo declara',
+           (function(){ try { return String(VINFO['mfs-aparte'].intro || '')
+             .indexOf('Z calculado: no disponible') > -1 ? 'si' : 'NO'; } catch (e) { return 'EXC'; } })(), 'si']);
+  ex.push(['(D3) y dice que la fuente del metodo no esta',
+           (function(){ try { return String(VINFO['mfs-aparte'].intro || '')
+             .indexOf('no está en la biblioteca') > -1 ? 'si' : 'NO'; } catch (e) { return 'EXC'; } })(), 'si']);
+  ex.push(['(D4) el globo explica ademas de donde sale el Z y con que metodo',
+           (function(){ try { const t = String(VINFO['mfs-aparte'].intro || '');
+             return (t.indexOf('senos de Valsalva') > -1 && t.indexOf('folio 479') > -1) ? 'si' : 'NO';
+           } catch (e) { return 'EXC'; } })(), 'si']);
+
+  /* ── (E) EL Z NO LLEGA AL PAPEL (4a y 4e) ───────────────────────────────────────────── */
+  try { FN('limpiarCampos') && FN('limpiarCampos')(true); } catch (e) {}
+  await esperar(200);
+  pon('nombre', 'Prueba TC594b'); pon('ci', '5941');
+  pon('marfan_sindrome', 'marfan'); pon('marfan_ao_seno', '52');
+  pon('mfs_z_raiz', '3.7'); pon('mfs_ectopia_lentis', 'si'); pon('mfs_sin_otros', 'si');
+  pon('mfs_muneca_pulgar', 'ambos');
+  { const c = EL('marfan_incluir_chk');
+    if (c && !c.checked) { c.checked = true; c.dispatchEvent(new Event('change', { bubbles: true })); } }
+  try { FN('marfanSync') && FN('marfanSync')(); } catch (e) {}
+  try { FN('generarInforme') && FN('generarInforme')(); } catch (e) {}
+  await esperar(380);
+  const inf = String((EL('informe_texto') || {}).value || '');
+  const sum = String((EL('en_suma') || {}).value || '');
+  ex.push(['(E0) DENOMINADOR: el informe trae la linea del score', inf.indexOf('Score sist') > -1 ? 'si' : 'NO', 'si']);
+  ex.push(['(E1) el papel NO publica el Z', (inf + sum).indexOf('3.7') + (inf + sum).indexOf('3,7'), -2]);
+  ex.push(['(E2) ni la palabra Z-score', (inf + sum).indexOf('Z-score'), -1]);
+  ex.push(['(E3) ni la regla que cumple', (inf + sum).indexOf('regla '), -1]);
+  return { extra: EXP };
+  })();
+`);
+
+
 
 let servidor, chrome;
 try {

@@ -174,6 +174,21 @@ estados que llevaba una guía al papel. Retirado; su contenido queda en la cáps
 
 ---
 
+## 6-bis · Lo que la tanda MARFAN-2 cambió de este mapa (2026-11-02)
+
+Tres párrafos de abajo **dejaron de ser ciertos** y el mapa de esa tanda es
+`docs/mapa/marfan2-pantalla-z.md`:
+
+- **Los veintiún globos son CUATRO.** Las diecinueve definiciones no se perdieron: siguen siendo
+  las entradas `mfs-*` de `VINFO` y las leen los globos del score y de los criterios aparte,
+  agrupadas por zona del cuerpo. El glifo pasó de `\u2139` (ℹ) al estándar `&#9432;` (ⓘ).
+- **El Z SÍ es un campo guardado**: `mfs_z_raiz`, en la guardería, y `mfsZ(src)` lo lee del
+  registro, así que sobre un estudio archivado las reglas 1, 2, 3 y 7 ya concluyen.
+- **La pastilla ya no dice «Cirugía indicada»**: la pantalla tampoco da indicaciones.
+  `marfanEstado` gana además `maxAo`, aditivo.
+
+El score, las siete reglas, la guardería y la figura **no se movieron**.
+
 ## 7 · Los veintiún globos
 
 Cada rasgo declara su clave en `i:`; las entradas están en `VINFO` con prefijo `mfs-`. Dos más de

@@ -8983,3 +8983,80 @@ acetabular (folio 480), y por eso ése sí se usa.
 Nada: las catorce definiciones, los dos Box, el Box 3 y las dos notas se leyeron en imagen sobre
 la hoja. **Ninguna frase del artículo se copia**: todo el texto de pantalla está parafraseado en
 español, que es la regla de la orden.
+
+---
+
+# La tanda MARFAN-2 (2026-11-02)
+
+**Esta tanda NO agregó una sola cita a la pantalla, y no movió un corte, un umbral ni una frase
+clínica.** Lo que hizo con las citas es **moverlas de lugar**: la lista de factores de riesgo
+pasó de debajo del campo al globo de la sección, y la cita del artículo pasó del pie de la
+tarjeta a los globos. El texto es el mismo, palabra por palabra.
+
+## Lo que se leyó en imagen
+
+**Loeys BL, Dietz HC, Braverman AC y cols., «The revised Ghent nosology for the Marfan
+syndrome», J Med Genet 2010;47:476-485**, en `~/Desktop/EcoSmart_Biblioteca_Fuentes/06_Aorta/`.
+**FOLIO = HOJA + 474**, comprobado otra vez en el pie impreso de la **hoja 9** («J Med Genet
+2010;47:476−485 … 483»).
+
+### La bibliografía — hojas 9 y 10, folios 483 y 484 (punto 4e)
+
+Leídas en imagen a 200 ppp, con recorte de la columna izquierda de la hoja 10.
+
+> **13.** Roman MJ, Devereux RB, Kramer-Fox R, O'Loughlin J. Two-dimensional echocardiographic
+> aortic root dimensions in normal children and adults. *Am J Cardiol* 1989;**64**:507−12.
+
+> **14.** Lin FY, Devereux RB, Roman MJ, Meng J, Jow VM, Jacobs A, Weinsaft JW, Shaw LJ, Berman
+> DS, Gilmore A, Callister TQ, Min JK. Assessment of the thoracic aorta by multidetector computed
+> tomography: age- and sex-specific reference values in adults without evident cardiovascular
+> disease. *J Cardiovasc Comput Tomogr* 2008;**2**:298−308.
+
+**Dónde las cita el artículo** (hoja 5, folio 479, apartado «Cardiovascular criteria»):
+
+- la **13**, para las ecuaciones del Z con el diámetro medido de **borde de ataque a borde de
+  ataque en diástole**, en **todos** los grupos de edad;
+- la **14**, para la **tomografía y la resonancia** con imágenes de doble oblicuidad y el uso de
+  los mismos nomogramas.
+
+El mismo folio aclara que para las medidas de **pared interna a pared interna en sístole** en
+personas de **25 años o menos** remite a una calculadora en línea de marfan.org, y que **el método
+empleado tiene que coincidir con el de los datos normativos o el Z no vale**.
+
+## El censo del artículo de Devereux 2012 — NO ESTÁ
+
+La orden condiciona el cálculo automático del Z a que **Devereux RB y cols., Am J Cardiol
+2012;110:1189-94** esté en `06_Aorta`. Censado **por contenido**, no por nombre de archivo:
+
+| qué se buscó | en cuántos de los 245 PDF |
+|---|---|
+| «Normal limits in relation to age» (título del artículo) | 5, **las cinco son guías** de 29 a 199 hojas |
+| «am j cardiol 2012;110:1189» | 2, y las dos lo **citan** en su bibliografía |
+| **control positivo** — «revised Ghent nosology» | **6**, el artículo entre ellos |
+
+`06_Aorta` tiene **cuatro** PDF: ESC 2024 aorta (163 hojas), Isselbacher 2022 ACC-AHA (149),
+Mazzolai 2024 (199) y el Ghent nosology (11). Los **68** PDF de catorce hojas o menos de toda la
+biblioteca —los candidatos a artículo de revista— se listaron uno por uno y ninguno es él.
+**Roman 1989 tampoco está.**
+
+**Consecuencia:** el cálculo automático se **paró** (regla R6: no se escribe una ecuación que no
+se haya leído en la hoja). Queda el campo manual. → `docs/PENDIENTES.md` **MF2-a**.
+
+## Cambios de evidencia
+
+| qué | antes | después | dónde vive ahora |
+|---|---|---|---|
+| lista de factores de riesgo, con su guía, tabla y folio | debajo del campo «Factores de riesgo» | **igual, palabra por palabra** | globo `mf-conducta` |
+| cita del artículo (Box 2 folio 478, Box 1 folio 477) | pie de la tarjeta | **igual** | globos `mfs-puntaje` y `mfs-reglas` |
+| «(Box 1)» como rótulo de la banda de reglas | en el cuerpo de la tarjeta | **retirado del cuerpo** | globo `mfs-reglas` |
+| las diecinueve definiciones de los rasgos, con su folio | un globo por rasgo | **igual, leídas de `VINFO`** | globos `mfs-puntaje` y `mfs-aparte`, por zona |
+| apertura del globo de la sección | «El veredicto de la izquierda sale de…» | **descriptiva**: lo que la guía fija y lo que la app hace | globo `mf-conducta` |
+| el método de medición del Z (folio 479) | no estaba | **nuevo texto parafraseado** | globo `mfs-aparte` |
+| «Z calculado: no disponible (falta la fuente del método)» | no existía | **declarado** | globo `mfs-aparte` |
+| enunciado completo de las siete reglas | en la tarjeta | la tarjeta da el **breve**; el completo | globo `mfs-reglas` |
+
+## Lo que NO se citó porque no se pudo verificar
+
+La **ecuación del Z**. No hay ninguna en la aplicación y no se escribió ninguna: el artículo que
+la orden nombra no está en la biblioteca, y el que el Loeys cita para el método que la orden
+espera —su referencia 13, Roman 1989— tampoco.
