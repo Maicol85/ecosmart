@@ -63319,6 +63319,37 @@ function _popEsqJetGrado(campo) {
   return _POP_JET_PAL[v.toLowerCase()] || 0;
 }
 window._popEsqJetGrado = _popEsqJetGrado;
+
+/* ══ LOS TRAZADOS FINOS — «POP-C», commit 9 (2026-11-02) ════════════════════════════════════
+   `tapPath`, `eaPath` y `bump` de la demo v9, con lo mismo adentro y sin el HTML. */
+function _popTrzBump(p, c, w) { const d = (p - c) / w; return Math.exp(-d * d); }
+function _popTrzTap(w, h, p0, amp) {
+  let d = ''; const N = 26;
+  for (let i = 0; i <= N; i++) {
+    const p = (i / N * 1.6 + p0) % 1, wv = (1 - Math.cos(2 * Math.PI * p)) / 2;
+    d += (i ? 'L' : 'M') + (i / N * w).toFixed(1) + ' ' + (h * 0.92 - amp * wv).toFixed(1);
+  }
+  return d;
+}
+function _popTrzEA(w, h, p0, e, a) {
+  let d = ''; const N = 40;
+  for (let i = 0; i <= N; i++) {
+    const p = (i / N * 1.6 + p0) % 1;
+    const v = e * _popTrzBump(p, 0.2, 0.08) + a * _popTrzBump(p, 0.68, 0.06);
+    d += (i ? 'L' : 'M') + (i / N * w).toFixed(1) + ' ' + ((h - 1) - v * (h - 3)).toFixed(1);
+  }
+  return d;
+}
+/* Donde cae la letra de cada onda, con el mismo calculo de `placeEA`: la primera aparicion
+   visible del pico dentro del ancho del trazado. Devuelve `null` cuando no entra. */
+function _popTrzLetra(p0, aw, ah, c, v) {
+  for (let k = -1; k <= 2; k++) {
+    const x = (c - p0 + k) / 1.6 * aw;
+    if (x >= 3 && x <= aw - 3) return { x: x, y: (ah - 1) - v * (ah - 3) - 1.8 };
+  }
+  return null;
+}
+window._popTrzTap = _popTrzTap; window._popTrzEA = _popTrzEA; window._popTrzBump = _popTrzBump;
 function popEsquema() {
   const r = popPatron();
   const sv2 = id => { const e = document.getElementById(id); return e ? e.value : ''; };
@@ -63734,6 +63765,22 @@ function popEsqMontar() {
     _popEsqNodo('circle', { cx:570, cy:322, r:3, fill:'#7f77dd' }, n.catPicco);
     _popEsqNodo('circle', { cx:284, cy:372, r:3, fill:'#7f77dd' }, n.catPicco);
     _popEsqTexto(n.catPicco, 430, 411, 'PiCCO', 10, 500, 'middle', '#7f77dd'); }
+  /* ══ LOS TRAZADOS FINOS DENTRO DE LAS CAVIDADES (POP-C-9) ══════════════════════════════
+     Portados de `tapPath`, `eaPath`, `bump` y `placeEA` de la demo v9: el movimiento del
+     anillo tricuspideo dentro del VD y las ondas E y A del flujo mitral dentro de la AI, con
+     una E y una A sutiles y SIN recuadro externo, que es lo que la orden pide.
+     SOLO LECTURA: el TAPSE y las dos ondas salen de los campos que la app ya tiene. Sin dato
+     no se dibuja nada — ni una linea plana, que afirmaria una excursion nula. */
+  n.trz = {};
+  { const _tz = { fill:'none', 'stroke-width':1.2, 'stroke-linejoin':'round',
+                  'stroke-linecap':'round', opacity:0.85 };
+    n.trz.gTap = _popEsqNodo('g', { 'data-pop-esq':'trz-tapse', display:'none' }, svg);
+    n.trz.pTap = _popEsqNodo('path', Object.assign({ stroke:'var(--text2)' }, _tz), n.trz.gTap);
+    n.trz.gEA = _popEsqNodo('g', { 'data-pop-esq':'trz-ea', display:'none' }, svg);
+    n.trz.pEA = _popEsqNodo('path', Object.assign({ stroke:'var(--text2)' }, _tz), n.trz.gEA);
+    n.trz.lE = _popEsqTexto(n.trz.gEA, 0, 0, 'E', 9, 600, 'middle', 'var(--text2)');
+    n.trz.lA = _popEsqTexto(n.trz.gEA, 0, 0, 'A', 9, 600, 'middle', 'var(--text2)');
+    [n.trz.lE, n.trz.lA].forEach(function (t) { t.setAttribute('opacity', 0.75) }); }
   n.jet = {};
   POP_ESQ_JETPOS.forEach(function (jp) {
     const G = _popEsqNodo('g', { 'data-pop-esq':'jet-' + jp.k, display:'none',
@@ -64351,6 +64398,48 @@ function popEsqFrame(ahora) {
     o.g.setAttribute('opacity', (0.95 * Math.pow(a, 0.8)).toFixed(2));
     o.g.setAttribute('display', 'inline');
   });
+  /* ══ LOS TRAZADOS, DENTRO DE SU CAVIDAD (POP-C-9) ══════════════════════════════════════
+     Se colocan en CADA cuadro y no una vez al montar: las cajas de las cavidades laten y
+     cambian de tamano con el dato, asi que un trazado colocado una sola vez se sale de su
+     cavidad en cuanto la caja se mueve. Los margenes -4 de lado y 19 arriba- son los de la
+     demo, que deja sitio para el rotulo de la cavidad.
+     La fase corre con la FRECUENCIA CARGADA, la misma que mueve las valvulas; sin
+     frecuencia, el trazado queda quieto en su fase de reposo. */
+  { const _p0 = _fv === null ? 0 : _fv;
+    const _nv2 = id => { const e = document.getElementById(id);
+      const x = e ? parseFloat(String(e.value || '').replace(',', '.')) : NaN;
+      return isFinite(x) ? x : null; };
+    const tp = d.tapse;
+    const gVD = _popEsqCaja('VD', g.sVD, 1 - 0.5 * g.ampVD * s, 1 - g.ampVD * s);
+    if (tp !== null && gVD.w > 20 && gVD.h > 30) {
+      const tw = gVD.w - 8, th = gVD.h - 24;
+      n.trz.gTap.setAttribute('transform', 'translate(' + (gVD.x + 4).toFixed(1) + ' ' + (gVD.y + 19).toFixed(1) + ')');
+      n.trz.pTap.setAttribute('d', _popTrzTap(tw, th, _p0, Math.min(tp, 30) / 30 * th * 0.85));
+      n.trz.gTap.setAttribute('display', 'inline');
+    } else n.trz.gTap.setAttribute('display', 'none');
+    const E = _nv2('onda_e'), A = _nv2('onda_a');
+    const gAI = _popEsqCaja('AI', g.sAI, 1, 1);
+    if (E !== null && A !== null && gAI.w > 20 && gAI.h > 30) {
+      /* ⚠️ EL TRAZADO VA EN LA MITAD INFERIOR DE LA AURICULA, Y NO ARRIBA COMO EN LA DEMO.
+         Alla el rotulo de la cavidad vive en el TECHO de la caja y los 19 px de margen le
+         dejan sitio; aca `_popEsqPonerCaja` lo pone en el CENTRO, asi que el pico de la onda
+         E subia hasta el y la letra «E» se montaba sobre el rotulo «AI» — medido, 4x10 px de
+         solape. Se baja el origen por debajo del rotulo y se acorta el alto a la mitad: la
+         forma de la onda y el calculo son los de la demo, lo que cambia es donde entra. */
+      const aw = gAI.w - 8, ah = Math.max(18, gAI.h / 2 - 12);
+      const ve = Math.min(E, 150) / 150, va = Math.min(A, 150) / 150;
+      n.trz.gEA.setAttribute('transform', 'translate(' + (gAI.x + 4).toFixed(1) + ' '
+        + (gAI.y + gAI.h / 2 + 10).toFixed(1) + ')');
+      n.trz.pEA.setAttribute('d', _popTrzEA(aw, ah, _p0, ve, va));
+      [['lE', 0.2, ve], ['lA', 0.68, va]].forEach(function (x) {
+        const pos = _popTrzLetra(_p0, aw, ah, x[1], x[2]);
+        if (pos) { n.trz[x[0]].setAttribute('x', pos.x.toFixed(1));
+                   n.trz[x[0]].setAttribute('y', pos.y.toFixed(1));
+                   n.trz[x[0]].setAttribute('display', 'inline'); }
+        else n.trz[x[0]].setAttribute('display', 'none');
+      });
+      n.trz.gEA.setAttribute('display', 'inline');
+    } else n.trz.gEA.setAttribute('display', 'none'); }
   /* La helice del Impella gira CONTINUO y no con el latido: una bomba axial no pulsa. */
   if (d.impella) n.prop.setAttribute('transform', 'rotate(' + ((ahora / 3) % 360).toFixed(0) + ' 461 257)');
   if (!_popEsq.reduce && _popEsq.visible) _popEsq.rafId = requestAnimationFrame(popEsqFrame);
@@ -149075,8 +149164,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261101-1820';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793568050706;                 /* eco-build-ms */
+const ECO_BUILD    = '20261101-1828';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793568492229;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -149162,7 +149251,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261101-1820</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261101-1828</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
