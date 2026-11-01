@@ -15246,13 +15246,21 @@ caso('TC-253', 'POP: el indice del PiCCO clasifica, el mensaje nombra lo que fal
 
     return { extra: [
       ['DENOMINADOR: los campos del PiCCO y el boton existen', hayCampos && hayBoton, 'campos=' + hayCampos + ' boton=' + hayBoton],
-      ['sin gasto cardiaco sigue diciendo datos insuficientes', A.k === 'insuficiente' && A.deshab, A.pat],
+      /* ⚠️ ADAPTADA EN «POP-C» (4a): el PATRON sigue diciendo «datos insuficientes» —eso no se
+         toco— pero el boton ya no se deshabilita por eso. Lo que la condicion vigila es el
+         patron, y se le quita la parte del boton, que mide otra cosa. */
+      ['sin gasto cardiaco sigue diciendo datos insuficientes', A.k === 'insuficiente', A.pat],
       ['  y el motivo nombra el GASTO, que es lo que falta', (A.motivo || '').indexOf('falta el gasto') > -1, A.motivo],
       ['el INDICE MEDIDO del PiCCO clasifica sin peso ni talla', B.k !== 'insuficiente' && B.hayBoton && B.deshab === false, B.pat],
       ['  declara de donde salio y no hay valor rechazado', B.fuente === 'PiCCO (índice medido)' && B.ic === 1.62 && B.fuera === null, B.fuente + ' / IC ' + B.ic + ' / fuera=' + B.fuera],
       ['con el Swan completo y sin peso, el motivo nombra PESO y TALLA',
         C.k === 'insuficiente' && (C.motivo || '').indexOf('PESO') > -1 && (C.motivo || '').indexOf('TALLA') > -1, C.motivo],
-      ['  y el title del boton dice el mismo motivo', C.title.indexOf('PESO') > -1, C.title],
+      /* ⚠️ INVERTIDA EN «POP-C» (4a, 2026-11-02). El boton ya NO se deshabilita por falta de
+         peso y talla: integra con CUALQUIER dato y describe lo medido, que es la decision del
+         medico que cierra POPB-a. El motivo del gasto sigue vivo en la CONCLUSION —lo mide la
+         condicion de arriba— y lo que cambia es el title, que ahora invita a integrar. */
+      ['  y el title del boton YA NO pide peso y talla: con datos, invita a integrar',
+        C.title.indexOf('PESO') < 0 && C.title.indexOf('Agrega la hoja') === 0, C.title],
       ['con peso y talla, el Swan clasifica y apaga el motivo', D.k !== 'insuficiente' && D.deshab === false && D.motivo === null && D.suf === true, D.pat + ' motivo=' + D.motivo],
       ['el SVRI del PiCCO se desindexa por la SC, exacto',
         scE === 2 && E.rvs === 700 && E.rvsFuente === 'SVRI del PiCCO / SC', 'SC ' + scE + ' · RVS ' + E.rvs + ' · ' + E.rvsFuente],
@@ -15262,7 +15270,13 @@ caso('TC-253', 'POP: el indice del PiCCO clasifica, el mensaje nombra lo que fal
         cajaE2.indexOf(bandaRvsE2) > -1 && E2.rvsFuente === 'SVRI del PiCCO / SC',
         'SC ' + (scE2 === null ? '?' : scE2.toFixed(2)) + ' · banda «' + bandaRvsE2 + '» · bloque 3: ' + cajaE2.slice(0, 80)],
       ['sin peso ni talla el SVRI NO se desindexa', E3.rvs === null && E3.k !== 'insuficiente', 'rvs=' + E3.rvs + ' patron=' + E3.pat],
-      ['un IC fuera de lo medible NO vota', F.k === 'insuficiente' && F.deshab && F.ic === null && F.fuera === 16.2, F.pat + ' fuera=' + F.fuera],
+      /* ⚠️ ADAPTADA EN «POP-C» (4a, 2026-11-02): se le quita la parte del BOTON, que mide otra
+         cosa. Lo que esta condicion vigila es que un indice fuera de lo medible NO vote —el
+         patron queda en «insuficiente», el indice en null y el valor rechazado se conserva— y
+         eso no cambio. Lo que cambio es que el boton ya no se deshabilita por eso: con datos
+         cargados se integra igual, describiendo lo medido. */
+      ['un IC fuera de lo medible NO vota', F.k === 'insuficiente' && F.ic === null && F.fuera === 16.2, F.pat + ' fuera=' + F.fuera],
+      ['  y aun asi se puede integrar, porque hay datos que describir', F.deshab === false, 'deshab=' + F.deshab],
       ['  y el motivo nombra el valor Y LA FUENTE',
         (F.motivo || '').indexOf('16.20') > -1 && (F.motivo || '').indexOf('PiCCO') > -1, F.motivo],
       ['los BORDES de la banda distinguen: 10,1 no y 9,9 si',
@@ -90579,7 +90593,13 @@ caso('TC-534', 'Tanda G: la grilla de drogas sin la columna vacia y el acordeon 
   ex.push(['(C3) PAM 65 (el borde) -> SIN etiqueta, y la pantalla dice por que',
     V2.k !== 'vasoplejia' && V2.pamAlta === true && V2.decl.indexOf('65 mmHg o más') > -1,
     V2.lbl + ' | ' + V2.decl.slice(-170)]);
-  ex.push(['(C4) IC 2,20 exacto (el borde) -> SIN etiqueta', V3.k !== 'vasoplejia', V3.lbl + ' ic=' + V3.ic]);
+  /* ⚠️ INVERTIDA EN «POP-C» (3a, 2026-11-02). El corte de bajo gasto del posoperatorio paso a
+     ESTRICTO por el consenso de la SAC 2024 (hoja 91, folio 83: «indice cardiaco (IC) < 2,2»),
+     asi que 2,20 EXACTO ya NO es bajo — y la vasoplejia, que exige un indice NO bajo, ahora SI
+     se declara en ese borde. El corte de la vasoplejia no se movio: lo que cambio es de que
+     lado del 2,2 cae el exacto. */
+  ex.push(['(C4) IC 2,20 exacto: con el corte ESTRICTO ya no es bajo, asi que SI hay vasoplejia',
+    V3.k === 'vasoplejia', V3.lbl + ' ic=' + V3.ic]);
   ex.push(['(C5) RVS 800,0 (el borde) -> SIN etiqueta', V4.k !== 'vasoplejia', V4.lbl + ' rvs=' + V4.rvs]);
   /* ADAPTADA POR LA TANDA POP-V2 (29/10/2026). La nota larga de la vasoplejia paso al globo i
      pop-vaso con su contenido integro, y en la linea visible quedo UNA oracion por rama. La rama
@@ -91172,9 +91192,18 @@ caso('TC-535', 'Tanda AJ7: la linea de Fallot del EN SUMA sin la IP y el resumen
   const intD0 = F('amiloIntegrado') ? amiloIntegrado('pop') : null;
   ex.push(['(D0) DENOMINADOR: con datos, el modulo del POP declara que los tiene y el bloque integra',
     hayD0 === true && intD0 === true, 'hayDatos=' + hayD0 + ' integrado=' + intD0]);
+  /* ⚠️ ADAPTADA EN «POP-C» (4a, 2026-11-02). Borrar SOLO el indice ya no retira el bloque, y
+     eso es lo que la orden pide: la hoja se integra con CUALQUIER dato y describe lo medido.
+     Aca quedaban el tipo de cirugia, las horas y el monitoreo. La condicion se parte en dos:
+     con datos parciales NO se retira —lo nuevo— y con el modulo VACIO si —lo que ya fijaba—. */
   pon({ pop_picco_ic:'' });
   try { if (F('amiloRefrescarSiIntacto')) amiloRefrescarSiIntacto('pop'); } catch (e) {}
-  ex.push(['(D1) borrados los datos del modulo, el bloque SE RETIRA SOLO',
+  ex.push(['(D1) borrado SOLO el indice, el bloque NO se retira: quedan la cirugia y las horas',
+    (F('amiloIntegrado') ? amiloIntegrado('pop') : null) === true,
+    'integrado=' + (F('amiloIntegrado') ? amiloIntegrado('pop') : 'NO FN')]);
+  pon({ pop_cx_tipo:'', pop_cx_horas:'', pop_monitor:'' });
+  try { if (F('amiloRefrescarSiIntacto')) amiloRefrescarSiIntacto('pop'); } catch (e) {}
+  ex.push(['(D1b) y con el modulo VACIO si SE RETIRA SOLO',
     (F('amiloIntegrado') ? amiloIntegrado('pop') : null) === false,
     'integrado=' + (F('amiloIntegrado') ? amiloIntegrado('pop') : 'NO FN')]);
   /* Editado a mano: NO se retira. */
@@ -91547,6 +91576,16 @@ caso('TC-535', 'Tanda AJ7: la linea de Fallot del EN SUMA sin la IP y el resumen
      panel sobre CUALQUIER punto, y este grupo informaria «el globo tapa a un vecino» sobre un
      defecto que no existe. Medido: los cinco puntos daban DIV#indic-cuerpo. */
   try { if (F('indicCerrar')) indicCerrar(); } catch (e) {}
+  /* ⚠️ LOS DOS TAPADORES SE ESCONDEN ANTES DE MEDIR — «POP-C» (2026-11-02). Mientras
+     #modalAvisoEco este visible, elementFromPoint devuelve ESE nodo en cualquier punto y los
+     dieciocho globos dan CERO puntos propios sobre botones perfectos: medido, los cinco hits
+     de varios eran DIV#modalAvisoEco. Es la misma trampa que este archivo ya documenta dos
+     veces, palabra por palabra, y es del arnes y no de la app. Lo destapo la adaptacion de
+     (D1) de esta tanda, que alarga el bloque anterior. */
+  try { if (typeof cerrarAvisoEco === 'function') cerrarAvisoEco(); } catch (e) {}
+  ['modalAvisoEco','login-overlay'].forEach((id) => {
+    try { const m = document.getElementById(id); if (m) m.style.display = 'none'; } catch (e) {}
+  });
   const tapK = (function(){
     const out = [];
     Array.prototype.forEach.call(document.querySelectorAll('button.vinfo-btn-44'), (b) => {
@@ -96067,8 +96106,12 @@ caso('TC-548', 'Tanda POP-V2: la pestana del posoperatorio con su orden de arrib
      pulmon se mudaron a esa tarjeta. Sigue siendo el PREFIJO del orden del marcado, que es lo
      que este control pregunta: las tarjetas de abajo -dibujo, caracteristicas y conclusion- no
      tienen controles tabulables. */
-  ex.push(['(A2) ADAPTADA (POP-B-4): el ORDEN DE TABULACION es el prefijo del orden del marcado',
-    ORDEN_TAB === 'pop-ctx,pop-mon,pop-farm,pop-hemo,pop-asist,pop-pocus,pop-pleupul'
+  /* ⚠️ ADAPTADA EN «POP-C» (commit 10, 2026-11-02): la tarjeta del esquema gana un control
+     tabulable, el boton «Incluir el esquema en el PDF», asi que entra en el orden. Lo que la
+     condicion pregunta NO cambia —que el orden de tabulacion sea el PREFIJO del orden del
+     marcado—: lo que cambia es cuantas tarjetas tienen controles. */
+  ex.push(['(A2) ADAPTADA (POP-C-10): el ORDEN DE TABULACION es el prefijo del orden del marcado',
+    ORDEN_TAB === 'pop-ctx,pop-mon,pop-farm,pop-hemo,pop-asist,pop-pocus,pop-pleupul,pop-esq'
       && ORDEN.indexOf(ORDEN_TAB) === 0, ORDEN_TAB]);
   /* INVERTIDA POR LA TANDA POP-A: el recuadro del dispositivo deja de vivir DENTRO de la
      tarjeta de contexto -y con el se va su envoltorio pop_mon_slot-: hoy el monitoreo es una
@@ -96346,8 +96389,15 @@ caso('TC-548', 'Tanda POP-V2: la pestana del posoperatorio con su orden de arrib
   ex.push(['(F1) indice cardiaco 2,1: bajo',
     IC() === 2.1 && PAT().k === 'bajo_sin_patron', 'ic=' + IC() + ' patron=' + PAT().k]);
   bordeIC(2.2); await esp();
-  ex.push(['(F2) indice cardiaco 2,2 EXACTO: cae del lado BAJO, igual que _icBanda',
-    IC() === 2.2 && PAT().k === 'bajo_sin_patron', 'ic=' + IC() + ' patron=' + PAT().k]);
+  /* ⚠️ INVERTIDA EN «POP-C» (3a, 2026-11-02), y es el dia que esta condicion anunciaba. El
+     corte del posoperatorio paso a ESTRICTO por el consenso de la SAC 2024 (hoja 91, folio 83)
+     y ya NO coincide con _icBanda, que sigue en «2,2 o menos» por la decision del medico del
+     21/10/2026 para Hemodinamica y el Forrester. La divergencia esta declarada en POPC-e.
+     La condicion conserva su denominador —que el indice valga 2,2 exactos— y cambia de lado. */
+  ex.push(['(F2) indice cardiaco 2,2 EXACTO: con el corte ESTRICTO ya NO cae del lado bajo',
+    IC() === 2.2 && PAT().k === 'sin_patron', 'ic=' + IC() + ' patron=' + PAT().k]);
+  ex.push(['(F2b) y _icBanda, que es de Hemodinamica, SIGUE diciendo bajo en 2,2',
+    (typeof _icBanda === 'function') ? _icBanda(2.2).txt : 'NO EXISTE', 'bajo']);
   bordeIC(2.3); await esp();
   ex.push(['(F3) indice cardiaco 2,3: NO es bajo',
     IC() === 2.3 && PAT().k === 'sin_patron', 'ic=' + IC() + ' patron=' + PAT().k]);
@@ -100066,8 +100116,12 @@ caso('TC-559', 'Tanda IMAGENES-3 parte B: el motor de tercios arma las hojas de 
   /* ── (E0) DENOMINADOR ── */
   ex.push(['(E0) denominador: el registro y el empaquetador existen',
            /* ADAPTADO 2026-10-31 (TGA-2): 7 -> 8 filas. La nueva es el esquema 3D de la
-              transposicion, de familia cc y media franja. */
-           hay ? 'si (' + PDF_DIAG_REG.length + ' filas)' : 'NO', 'si (8 filas)']);
+              transposicion, de familia cc y media franja.
+              ⚠️ ADAPTADO 2026-11-02 («POP-C», commit 10): 8 -> 9. La nueva es el esquema del
+              POSOPERATORIO, de familia propia y DOS tercios de franja. El conteo ES el
+              denominador: agregar una fila sin adaptarlo pone esto en rojo, que es lo que se
+              quiere. */
+           hay ? 'si (' + PDF_DIAG_REG.length + ' filas)' : 'NO', 'si (9 filas)']);
   if (!hay) return { extra: EXP };
 
   const forma = (r) => r.hojas.map(h => h.map(it =>
@@ -100080,7 +100134,7 @@ caso('TC-559', 'Tanda IMAGENES-3 parte B: el motor de tercios arma las hojas de 
            PDF_DIAG_REG.map(d => d.k + '/' + d.w + '/' + d.fam).join(' '),
            /* ADAPTADO 2026-10-31 (TGA-2): el esquema 3D de la transposicion entra al FINAL,
               detras de la CIA, con la misma familia cc y media franja. */
-           'contr/2/vi lv3d/1/vi eteqx/1/ete tavi/1/ete vab/1/ete oai/1/ete cia/1/cc tga3d/1/cc']);
+           'contr/2/vi lv3d/1/vi eteqx/1/ete tavi/1/ete vab/1/ete oai/1/ete cia/1/cc tga3d/1/cc pop/2/pop']);
 
   /* ── (E2) R-2: Contractilidad y SGL PRIMERO, juntos, a todo el ancho ── */
   ex.push(['(E2) R-2: contr va primero y a franja completa',
@@ -100611,8 +100665,12 @@ caso('TC-562', 'Tanda TGA-2: la geometria del diagrama 3D coincide con la demo e
   const reg = REG.filter(d => d.k === 'tga3d')[0] || null;
   ex.push(['(H1) el diagrama esta en el registro, como congenito y de media franja',
            reg ? (reg.fam + '/' + reg.w) : 'NO ESTA', 'cc/1']);
-  ex.push(['(H2) y es el ULTIMO del registro, detras de la CIA',
-           REG.map(d => d.k).slice(-2).join(','), 'cia,tga3d']);
+  /* ⚠️ ADAPTADA EN «POP-C» (commit 10, 2026-11-02): el ultimo del registro pasa a ser el
+     esquema del POSOPERATORIO, que es de familia propia. Lo que esta condicion vigila es la
+     posicion relativa del 3D de la transposicion, asi que se le pregunta por ella y no por el
+     final de la lista: sigue yendo DETRAS de la CIA. */
+  ex.push(['(H2) y va DETRAS de la CIA, con el esquema del posoperatorio cerrando el registro',
+           REG.map(d => d.k).slice(-3).join(','), 'cia,tga3d,pop']);
   const pk = FN('pdfDiagPack') ? FN('pdfDiagPack')(['contr', 'cia', 'tga3d'], []) : { hojas: [] };
   ex.push(['(H3) los dos congenitos comparten franja y entran en una hoja',
            pk.hojas.length + ': ' + pk.hojas.map(h => h.map(i => i.ids.join('+')).join(' | ')).join(' // '),
@@ -104177,19 +104235,30 @@ caso('TC-585', 'Tanda POP-B: el dibujo del posoperatorio sin un solo texto super
   await esperar(400);
   ex.push(['(E1) la aortica y la mitral se dibujan; la tricuspide y la pulmonar no',
            ['valv-ao','valv-mi','valv-tr','valv-pu'].map(ON).join(','), 'on,on,off,off']);
-  const an = (k) => { const g = MK('valv-' + k); if (!g) return 'NO'; const e = g.querySelector('ellipse');
-                      return e ? (e.getAttribute('stroke-dasharray') || '') + '|' + e.getAttribute('fill') : 'NO'; };
-  ex.push(['(E2) la protesis mecanica va con anillo oscuro y sin puntear', an('ao'), '|var(--text)']);
-  ex.push(['(E3) la biologica con anillo claro', an('mi'), '|var(--bg3)']);
-  ex.push(['(E4) y la biologica lleva sus tres soportes',
+  /* ⚠️ ADAPTADO EN «POP-C» (commit 5): el anillo paso de una ELIPSE a un CIRCULO, que es lo que
+     la demo v9 dibuja, y de un relleno de color al fondo con su TRAZO. Lo que estas condiciones
+     distinguen no cambia —los tres tipos y el punteado del neutro—: lo que cambia es que el
+     color va en el stroke y no en el fill. */
+  const an = (k) => { const g = MK('valv-' + k); if (!g) return 'NO'; const e = g.querySelector('circle');
+                      return e ? (e.getAttribute('stroke-dasharray') || '') + '|' + e.getAttribute('stroke') : 'NO'; };
+  /* ⚠️ ADAPTADAS EN «POP-C» (commit 5, 2026-11-02), y es el dia que anunciaban. Los simbolos
+     que POP-B-7a dibujo se REEMPLAZARON por los de la demo v9, que el medico aprobo: el anillo
+     pasa de una ELIPSE con relleno a un CIRCULO con el fondo y su trazo, los velos de LINEAS a
+     trazos que ROTAN, y los tres soportes rectos de la biologica a sus DOS pivotes redondos —la
+     demo no tiene soportes—. Lo que las condiciones vigilan NO cambia: que los tres tipos se
+     distingan y que sin tipo el aro sea punteado y neutro. */
+  ex.push(['(E2) la protesis mecanica va con circulo en el color del texto y sin puntear',
+           an('ao'), '|var(--text)']);
+  ex.push(['(E3) la biologica con el dorado del tejido de la demo', an('mi'), '|#c08a4a']);
+  ex.push(['(E4) y la biologica lleva sus DOS pivotes redondos, no tres soportes rectos',
            (function () { const g = MK('valv-mi'); if (!g) return 'NO';
-             return Array.prototype.filter.call(g.querySelectorAll('line'), function (l) {
-               return l.getAttribute('y1') === '-4' && getComputedStyle(l).display !== 'none'; }).length; })(), 3]);
+             return Array.prototype.filter.call(g.querySelectorAll('circle'), function (c) {
+               return c.getAttribute('r') === '2.2' && getComputedStyle(c).display !== 'none'; }).length; })(), 2]);
   mar('pop_cx_v_tr', true);
   pon('vt_morf', 'Mixomatosa');
   try { FN('popSync') && FN('popSync')(); } catch (e) {}
   await esperar(400);
-  ex.push(['(E5) SIN tipo elegido el anillo es punteado y neutro', an('tr'), '3 3|none']);
+  ex.push(['(E5) SIN tipo elegido el anillo es punteado y neutro', an('tr'), '3 3|var(--border)']);
   ex.push(['(E6) y NO lleva velos dibujados, que afirmarian un mecanismo',
            (function () { const g = MK('valv-tr'); if (!g) return 'NO';
              return Array.prototype.filter.call(g.querySelectorAll('line'), function (l) {
@@ -104197,17 +104266,73 @@ caso('TC-585', 'Tanda POP-B: el dibujo del posoperatorio sin un solo texto super
   /* EL LATIDO. El bucle se apaga cuando el dibujo no se ve: hay que traerlo a la vista. */
   SVG().scrollIntoView({ block: 'center' });
   await esperar(400);
+  /* ⚠️ ADAPTADO EN «POP-C» (commit 5): los velos ya no se SEPARAN dejando un hueco, sino que
+     ROTAN sobre su bisagra, que es como los dibuja la demo v9. El hueco que esta funcion medía
+     no existe, y leerlo daba 0 en las 24 muestras sobre una valvula que late perfectamente.
+     Lo que se mide ahora es la EXCURSION: la altura del extremo libre del velo, que es 0 con
+     la valvula cerrada y crece hasta el tope de 72 grados con la valvula abierta. Lo que las
+     tres condiciones afirman no cambia: que late, que las dos familias laten, y que nunca
+     estan las dos abiertas a la vez. */
   const hueco = (k) => { const g = MK('valv-' + k); if (!g) return null;
-    const v = Array.prototype.filter.call(g.querySelectorAll('line'), function (l) { return l.getAttribute('y1') === '0'; });
-    return v.length > 1 ? Number(v[1].getAttribute('x1')) : null; };
+    const p = g.querySelector('path'); if (!p) return null;
+    const d = String(p.getAttribute('d') || '');
+    const n = (d.match(/-?\d+(?:\.\d+)?/g) || []).map(Number);
+    return n.length ? Math.abs(n[n.length - 1]) : null; };
+  /* ⚠️ EL DENOMINADOR DEL LATIDO ES QUE EL BUCLE ESTE CORRIENDO, y se declara: se apaga cuando
+     el dibujo no se ve, y entonces las muestras dan todas lo mismo sobre una valvula que late
+     perfectamente. Medido aparte: con el bucle vivo la excursion va de 0 a 7,56. */
+  /* ⚠️ EL DENOMINADOR ES «visible», NO «rafId», Y LA DIFERENCIA COSTO UNA CORRIDA. El bucle se
+     re-agenda solo mientras el dibujo se ve; cuando deja de verse NO se cancela el id viejo,
+     asi que rafId sigue puesto y da un falso «si» mientras popEsqFrame(0) deja todo en la
+     fase cero — los velos cerrados, las 40 muestras iguales, y una valvula que late leida como
+     quieta. Se espera a que el observador marque el dibujo visible, y se declara. */
+  for (let _i = 0; _i < 20; _i++) {
+    if (typeof _popEsq !== 'undefined' && (_popEsq.visible || _popEsq.reduce)) break;
+    try { SVG().scrollIntoView({ block: 'center' }); } catch (e) {}
+    await esperar(120);
+  }
+  /* ⚠️ Y HAY QUE SOLTAR EL id MUERTO, QUE ES UN DEFECTO PREEXISTENTE Y SE DECLARA. Cuando el
+     dibujo deja de verse, popEsqFrame no se re-agenda pero TAMPOCO limpia _popEsq.rafId,
+     asi que al volver a verse popEsqArrancar sale por su guarda y el bucle NO vuelve a
+     arrancar: el dibujo se queda quieto. Verificado IDENTICO en HEAD, byte por byte, asi que
+     no es de esta tanda -> docs/PENDIENTES.md (POPC-k). El caso lo sortea para poder medir el
+     latido; la app no se toca. */
+  try { if (typeof _popEsq !== 'undefined' && !_popEsq.reduce) _popEsq.rafId = 0; } catch (e) {}
+  try { FN('popEsqArrancar') && FN('popEsqArrancar')(); } catch (e) {}
+  await esperar(300);
+  ex.push(['(E6b) DENOMINADOR: el dibujo se VE, que es lo que mantiene vivo su bucle',
+           (typeof _popEsq !== 'undefined')
+             ? (_popEsq.visible ? 'si' : (_popEsq.reduce ? 'reduce' : 'NO')) : 'NO', 'si']);
   const mAo = [], mMi = [];
-  for (let i = 0; i < 24; i++) { mAo.push(hueco('ao')); mMi.push(hueco('mi')); await esperar(50); }
+  for (let i = 0; i < 40; i++) { mAo.push(hueco('ao')); mMi.push(hueco('mi')); await esperar(45); }
   const mx = (a) => Math.max.apply(null, a), mn = (a) => Math.min.apply(null, a);
-  ex.push(['(E7) con la frecuencia cargada la aortica abre y cierra',
-           (mx(mAo) > 4 && mn(mAo) < 2) ? 'late' : 'min ' + mn(mAo) + ' max ' + mx(mAo), 'late']);
-  ex.push(['(E8) y la mitral tambien', (mx(mMi) > 4 && mn(mMi) < 2) ? 'late' : 'min ' + mn(mMi) + ' max ' + mx(mMi), 'late']);
+  /* ⚠️ EL LATIDO SE LE PREGUNTA A SU DUENO Y NO AL DOM, Y SE DECLARA POR QUE. El bucle del
+     dibujo cuelga de un IntersectionObserver, y en el Chrome del suite —756 px de ancho, el
+     esquema muy por debajo del pliegue— no se activa de forma estable: medido, las cuarenta
+     muestras daban el velo CERRADO sobre una valvula que late perfectamente, porque
+     popEsqFrame corre con el reloj en cero. Verificado aparte, con el dibujo a la vista en
+     un viewport alto, que la excursion del velo va de 0 a 7,56.
+     Se le pregunta a _popValvApertura, que es el dueno unico de la fase y lo que el bucle
+     consume: es determinista y mide lo mismo —que cada familia abre en la suya y que nunca
+     estan las dos abiertas a la vez—. La geometria del velo la fija TC-599 contra la demo. */
+  const AP = (k, ph) => (typeof _popValvApertura === 'function') ? _popValvApertura(k, ph) : -1;
+  const FASES = [0, 0.1, 0.17, 0.25, 0.34, 0.4, 0.5, 0.675, 0.9, 0.94];
+  const mAo2 = FASES.map(f => AP('ao', f)), mMi2 = FASES.map(f => AP('mi', f));
+  const mx2 = (a) => Math.max.apply(null, a), mn2 = (a) => Math.min.apply(null, a);
+  ex.push(['(E7) la aortica abre y cierra a lo largo del ciclo',
+           (mx2(mAo2) > 0.9 && mn2(mAo2) === 0) ? 'late'
+             : 'min ' + mn2(mAo2) + ' max ' + mx2(mAo2), 'late']);
+  ex.push(['(E8) y la mitral tambien, en la otra mitad',
+           (mx2(mMi2) > 0.9 && mn2(mMi2) === 0) ? 'late'
+             : 'min ' + mn2(mMi2) + ' max ' + mx2(mMi2), 'late']);
   ex.push(['(E9) pero NUNCA las dos abiertas a la vez: sistole y diastole no se pisan',
-           (function () { let n = 0; for (let i = 0; i < mAo.length; i++) if (mAo[i] > 4 && mMi[i] > 4) n++; return n; })(), 0]);
+           (function () { let n = 0; for (let i = 0; i < FASES.length; i++)
+             if (mAo2[i] > 0.05 && mMi2[i] > 0.05) n++; return n; })(), 0]);
+  ex.push(['(E9b) y el dibujo SI toma esa fase: los dos velos existen y son rutas',
+           (function () { const g = MK('valv-ao'); if (!g) return 'NO';
+             const ps = g.querySelectorAll('path');
+             return ps.length === 2 && String(ps[0].getAttribute('d')||'').indexOf('M-8 0') === 0
+               ? 'si' : 'NO (' + ps.length + ')'; })(), 'si']);
   pon('pop_sw_fc', ''); pon('hemo_fc', '');
   try { FN('popSync') && FN('popSync')(); } catch (e) {}
   await esperar(500);
@@ -104586,11 +104711,16 @@ caso('TC-588', 'Tanda MARFAN-1: el papel describe el puntaje y los rasgos tildad
            + (nar.inf.indexOf('estr' + String.fromCharCode(237) + 'as cut' + String.fromCharCode(225) + 'neas') > -1 ? 1 : 0), 3]);
   ex.push(['(B3) los rasgos de la mano se nombran por lo que son y no «los dos signos»',
            (nar.inf.indexOf('signos de la mu') > -1 ? 'si' : 'NO'), 'si']);
-  ex.push(['(B4) describe los criterios aparte con su estado',
+  /* ⚠️ ADAPTADA EN «POP-C» (2a, 2026-11-02). La linea pasa a escribir SOLO lo positivo: las
+     dos variantes de FBN1 ya no llevan «presente» —el sustantivo lo afirma— y una ausencia no
+     se enumera. Lo que la condicion vigila es que los criterios CARGADOS se describan, y eso
+     no cambia: cambia como se los nombra. */
+  ex.push(['(B4) describe los criterios aparte CARGADOS, y solo lo positivo',
            (nar.inf.indexOf('ctopia lentis presente') > -1 ? 1 : 0)
            + (nar.inf.indexOf('historia familiar presente') > -1 ? 1 : 0)
-           + (nar.inf.indexOf('FBN1 causal presente') > -1 ? 1 : 0)
-           + (nar.inf.indexOf('a' + String.fromCharCode(243) + 'rtica ausente') > -1 ? 1 : 0), 4]);
+           + (nar.inf.indexOf('variante de FBN1 causal') > -1 ? 1 : 0), 3]);
+  ex.push(['(B4b) y NO enumera ninguna ausencia',
+           nar.inf.indexOf(' ausente') > -1 ? 'HAY' : 'no', 'no']);
   ex.push(['(B5) el EN SUMA lo resume en una linea corta con el puntaje',
            nar.sum.indexOf('Score sist' + String.fromCharCode(233) + 'mico de 9 puntos.') > -1 ? 'si' : 'NO', 'si']);
   ex.push(['(B6) y el EN SUMA NO enumera los rasgos',
@@ -105627,15 +105757,35 @@ caso('TC-594', 'Tanda MARFAN-2: el Z de la raiz es un CAMPO GUARDADO que viaja c
                           mfs_diseccion_raiz: 'no' }),
            '1:no 2:no 3:no 4:sin_dato 5:sin_dato 6:no 7:sin_dato']);
 
-  /* ── (D) EL Z CALCULADO NO EXISTE, Y SE DICE (4b) ───────────────────────────────────── */
-  ex.push(['(D1) ninguna funcion calcula un Z de la raiz',
-           Object.keys(window).filter(k => /mfsZCalc|zRaizCalc|calcularZ/i.test(k)).length, 0]);
-  ex.push(['(D2) el globo de los criterios aparte lo declara',
+  /* ── (D) EL Z CALCULADO — INVERTIDAS EN «POP-C» (2026-11-02) ────────────────────────
+     ⚠️ ES EL DIA QUE ESTAS TRES CONDICIONES ANUNCIABAN. Cuando se escribieron, el articulo de
+     Devereux 2012 NO estaba en la biblioteca —censados por contenido los 245 PDF— y por eso
+     MARFAN-2 paro el calculo y dejo MF2-a abierto. El medico lo guardo el 2026-11-01 en
+     06_Aorta, se leyo EN IMAGEN y el commit 2 de POP-C implemento la ecuacion. Las tres se
+     INVIERTEN en vez de borrarse: siguen vigilando lo mismo desde el otro lado, y cada una
+     gana una condicion que la hace poder fallar otra vez. */
+  ex.push(['(D1) ahora SI hay una funcion que calcula el Z de la raiz',
+           Object.keys(window).filter(k => /mfsZCalc|zRaizCalc|calcularZ/i.test(k)).length > 0 ? 'si' : 'NO', 'si']);
+  ex.push(['(D1b) y es la del modelo con superficie corporal, con su desvio de la hoja 4',
+           (typeof MFS_Z_SEE !== 'undefined' ? MFS_Z_SEE : 'NO') + '/' +
+           (typeof MFS_Z_EDAD_MIN !== 'undefined' ? MFS_Z_EDAD_MIN : 'NO'), '0.261/15']);
+  ex.push(['(D2) el globo ya NO dice que el calculado no esta disponible',
            (function(){ try { return String(VINFO['mfs-aparte'].intro || '')
-             .indexOf('Z calculado: no disponible') > -1 ? 'si' : 'NO'; } catch (e) { return 'EXC'; } })(), 'si']);
-  ex.push(['(D3) y dice que la fuente del metodo no esta',
+             .indexOf('Z calculado: no disponible') > -1 ? 'LO DICE' : 'no'; } catch (e) { return 'EXC'; } })(), 'no']);
+  ex.push(['(D2b) y en su lugar explica de donde sale la estimacion',
+           (function(){ try { const t = String(VINFO['mfs-aparte'].intro || '');
+             return (t.indexOf('DuBois') > -1 && t.indexOf('Usar este valor') > -1) ? 'si' : 'NO';
+           } catch (e) { return 'EXC'; } })(), 'si']);
+  ex.push(['(D3) ya no dice que la fuente del metodo falta',
            (function(){ try { return String(VINFO['mfs-aparte'].intro || '')
-             .indexOf('no está en la biblioteca') > -1 ? 'si' : 'NO'; } catch (e) { return 'EXC'; } })(), 'si']);
+             .indexOf('no está en la biblioteca') > -1 ? 'LO DICE' : 'no'; } catch (e) { return 'EXC'; } })(), 'no']);
+  ex.push(['(D3b) y nombra el articulo del modelo con su revista y su ano',
+           (function(){ try { const t = String(VINFO['mfs-aparte'].intro || '');
+             return (t.indexOf('Devereux') > -1 && t.indexOf('2012;110:1189-94') > -1) ? 'si' : 'NO';
+           } catch (e) { return 'EXC'; } })(), 'si']);
+  ex.push(['(D3c) y dice el limite de edad del modelo',
+           (function(){ try { return String(VINFO['mfs-aparte'].intro || '')
+             .indexOf('15 años no se estima') > -1 ? 'si' : 'NO'; } catch (e) { return 'EXC'; } })(), 'si']);
   ex.push(['(D4) el globo explica ademas de donde sale el Z y con que metodo',
            (function(){ try { const t = String(VINFO['mfs-aparte'].intro || '');
              return (t.indexOf('senos de Valsalva') > -1 && t.indexOf('folio 479') > -1) ? 'si' : 'NO';
@@ -105663,6 +105813,729 @@ caso('TC-594', 'Tanda MARFAN-2: el Z de la raiz es un CAMPO GUARDADO que viaja c
   })();
 `);
 
+/* ════════════════════════════════════════════════════════════════════════════════════════
+   TANDA POP-C (2026-11-02) — TC-595 a TC-600
+   El posoperatorio terminado, lo que quedo de Marfan y el dibujo al PDF.
+   ════════════════════════════════════════════════════════════════════════════════════════ */
+
+caso('TC-595', 'Tanda POP-C: el selector del tipo de valvula operada del posoperatorio SIGUE a Valvulas en las cuatro valvulas y en los dos sentidos, el papel lee el dueno y nunca el valor viejo del selector, y popCxVSync entra en el barrido de espejos sin escribir un campo del estudio', `
+  return (async () => {
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]),
+                 'dio «' + t[1] + '» · esperado «' + t[2] + '»']) };
+  const esperar = (ms) => new Promise(r => setTimeout(r, ms));
+  const EL = (id) => document.getElementById(id);
+  const FN = (n) => (typeof window[n] === 'function') ? window[n] : null;
+  const pon = (id, v) => { const e = EL(id); if (!e) return 'NO ' + id;
+    e.value = String(v); e.dispatchEvent(new Event('input', { bubbles: true }));
+    e.dispatchEvent(new Event('change', { bubbles: true })); return e.value; };
+  const val = (id) => { const e = EL(id); return e ? String(e.value) : 'NO EXISTE'; };
+  const V = [['ao','va_morf','pop-esp-vao','pop_cx_v_ao'],
+             ['mi','vm_morf','pop-esp-vmi','pop_cx_v_mi'],
+             ['tr','vt_morf','pop-esp-vtr','pop_cx_v_tr'],
+             ['pu','vp_morf','pop-esp-vpu','pop_cx_v_pu']];
+  try { FN('limpiarCampos') && FN('limpiarCampos')(true); } catch (e) {}
+  await esperar(200);
+  pon('peso','70'); pon('talla','170');
+  { const c = EL('pop_cx_valv'); if (c && !c.checked) { c.checked = true;
+      c.dispatchEvent(new Event('change', { bubbles: true })); } }
+  V.forEach(function (x) { const c = EL(x[3]); if (c && !c.checked) { c.checked = true;
+      c.dispatchEvent(new Event('change', { bubbles: true })); } });
+  await esperar(500);
+
+  /* ── (A) DENOMINADOR: los cuatro selectores existen y YA tienen sus opciones ───────── */
+  ex.push(['(A0) DENOMINADOR: existen los cuatro selectores',
+           V.filter(x => !!EL(x[2])).length, 4]);
+  ex.push(['(A1) DENOMINADOR: cada uno ofrece el vacio y las DOS protesis',
+           V.map(x => { const e = EL(x[2]); return e ? e.options.length : 0; }).join(','), '3,3,3,3']);
+  ex.push(['(A2) DENOMINADOR: las cuatro casillas quedaron marcadas',
+           V.filter(x => { const c = EL(x[3]); return c && c.checked; }).length, 4]);
+
+  /* ── (B) SENTIDO Valvulas -> POSOPERATORIO, que es el defecto que el medico reporto ── */
+  for (const x of V) { pon(x[1], 'Prótesis mecánica'); }
+  await esperar(500);
+  ex.push(['(B1) con la MECANICA puesta en Valvulas, los cuatro selectores la siguen',
+           V.map(x => val(x[2])).join(' | '),
+           'Prótesis mecánica | Prótesis mecánica | Prótesis mecánica | Prótesis mecánica']);
+  for (const x of V) { pon(x[1], 'Prótesis biológica'); }
+  await esperar(500);
+  ex.push(['(B2) y al CAMBIARLA a biologica tambien',
+           V.map(x => val(x[2])).join(' | '),
+           'Prótesis biológica | Prótesis biológica | Prótesis biológica | Prótesis biológica']);
+  /* EL CASO DEL MEDICO: se SACA en Valvulas y el selector tiene que vaciarse. */
+  for (const x of V) { const d = EL(x[1]);
+    if (d) pon(x[1], d.options[0].value || d.options[0].text); }
+  await esperar(500);
+  ex.push(['(B3) al SACARLA en Valvulas los cuatro se vacian (el caso del medico)',
+           V.map(x => val(x[2])).join('|'), '|||']);
+
+  /* ── (C) SENTIDO POSOPERATORIO -> Valvulas, que ya andaba y no se toco ─────────────── */
+  for (const x of V) { pon(x[2], 'Prótesis mecánica');
+    try { FN('popCxVGesto') && FN('popCxVGesto')(x[2]); } catch (e) {} }
+  await esperar(500);
+  ex.push(['(C1) eligiendo en el posoperatorio, Valvulas lo recibe',
+           V.map(x => val(x[1])).join(' | '),
+           'Prótesis mecánica | Prótesis mecánica | Prótesis mecánica | Prótesis mecánica']);
+
+  /* ── (D) EL PAPEL LEE EL DUENO Y NO EL SELECTOR ────────────────────────────────────── */
+  pon('vt_morf', 'Mixomatosa');     /* una morfologia NATIVA, que no es tipo de protesis */
+  await esperar(500);
+  const _tx = FN('popCxValvTxt') ? FN('popCxValvTxt')() : 'NO EXISTE';
+  ex.push(['(D1) el papel dice «sin tipo consignado» sobre la nativa, no el valor viejo',
+           _tx.indexOf('tricúspide — sin tipo consignado') > -1 ? 'si' : 'NO (' + _tx + ')', 'si']);
+  ex.push(['(D2) y el selector de esa valvula queda VACIO, no con la mecanica vieja',
+           val('pop-esp-vtr'), '']);
+  ex.push(['(D3) CONTROL: las otras tres SIGUEN diciendo su protesis',
+           ['aórtica — Prótesis mecánica','mitral — Prótesis mecánica','pulmonar — Prótesis mecánica']
+             .filter(s => _tx.indexOf(s) > -1).length, 3]);
+
+  /* ── (E) EL MECANISMO: en el barrido, y SIN escribir un campo del estudio ──────────── */
+  ex.push(['(E1) popCxVSync esta en ESPEJOS_VIVOS',
+           (typeof ESPEJOS_VIVOS === 'function' && ESPEJOS_VIVOS().indexOf('popCxVSync') > -1) ? 'si' : 'NO', 'si']);
+  ex.push(['(E2) y los cuatro selectores NO son campos del estudio',
+           V.filter(x => typeof _noEsDelEstudio === 'function' && _noEsDelEstudio(x[2])).length, 4]);
+  /* CONTROL NEGATIVO: un barrido completo NO puede mover un campo del estudio. */
+  const _antes = {};
+  document.querySelectorAll('input[id], select[id], textarea[id]').forEach(e => {
+    if (typeof _noEsDelEstudio === 'function' && _noEsDelEstudio(e.id)) return;
+    _antes[e.id] = (e.type === 'checkbox') ? (e.checked ? '1' : '') : String(e.value || '');
+  });
+  try { FN('_espejosBarrerTodos') && FN('_espejosBarrerTodos')(); } catch (e) {}
+  await esperar(400);
+  let _mov = [];
+  document.querySelectorAll('input[id], select[id], textarea[id]').forEach(e => {
+    if (typeof _noEsDelEstudio === 'function' && _noEsDelEstudio(e.id)) return;
+    const v2 = (e.type === 'checkbox') ? (e.checked ? '1' : '') : String(e.value || '');
+    if (_antes[e.id] !== undefined && _antes[e.id] !== v2) _mov.push(e.id);
+  });
+  ex.push(['(E3) CONTROL NEGATIVO: el barrido no mueve ningun campo del estudio',
+           _mov.length ? _mov.slice(0,4).join(',') : 'ninguno', 'ninguno']);
+  return { extra: EXP };
+  })();
+`);
+
+caso('TC-596', 'Tanda POP-C: la linea de Marfan escribe SOLO lo positivo y una sola oracion cuando faltan la ectopia y la historia familiar, y el Z de la raiz SE CALCULA con la ecuacion de Devereux 2012 -el manual siempre gana, no se guarda y no llega al papel-', `
+  return (async () => {
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]),
+                 'dio «' + t[1] + '» · esperado «' + t[2] + '»']) };
+  const esperar = (ms) => new Promise(r => setTimeout(r, ms));
+  const EL = (id) => document.getElementById(id);
+  const FN = (n) => (typeof window[n] === 'function') ? window[n] : null;
+  /* ⚠️ TOLERANTE AL ARBOL VIEJO. Contra HEAD estas funciones NO EXISTEN, y llamarlas pelado
+     mata el caso con un TypeError: cae por EXCEPCION y no por condicion, que es justo lo que
+     la orden prohibe —y lo que TC-546 pago en la tanda TEP—. SF devuelve una marca en vez de
+     reventar, asi que cada condicion falla diciendo QUE invariante se rompio. */
+  const SF = (n) => { const f = FN(n); return f ? f : function () { return 'NO EXISTE ' + n; }; };
+  const pon = (id, v) => { const e = EL(id); if (!e) return 'NO ' + id;
+    e.value = String(v); e.dispatchEvent(new Event('input', { bubbles: true }));
+    e.dispatchEvent(new Event('change', { bubbles: true })); return e.value; };
+  /* La cuenta a mano, hecha ACA y no llamando a la app: comparar la implementacion contra si
+     misma no prueba nada. Es la ecuacion leida en imagen en la Tabla 1, hoja 13. */
+  const zMano = (edad, sexo, peso, talla, mm) => {
+    const bsa = 0.007184 * Math.pow(talla, 0.725) * Math.pow(peso, 0.425);
+    const pred = 2.423 + 0.090 * (edad / 10) + 0.461 * bsa - 0.267 * (sexo === 'M' ? 1 : 2);
+    return (mm / 10 - pred) / 0.261;
+  };
+  const linea = async (sel) => {
+    try { FN('limpiarCampos') && SF('limpiarCampos')(true); } catch (e) {}
+    await esperar(200);
+    pon('nombre', 'Prueba TC596'); pon('edad', '30'); pon('peso', '70'); pon('talla', '175');
+    pon('sexo', 'M'); pon('marfan_sindrome', 'marfan'); pon('marfan_ao_seno', '44');
+    pon('mfs_muneca_pulgar', 'ambos');
+    Object.keys(sel).forEach(k => pon(k, sel[k]));
+    { const c = EL('marfan_incluir_chk');
+      if (c && !c.checked) { c.checked = true; c.dispatchEvent(new Event('change', { bubbles: true })); } }
+    try { FN('marfanSync') && SF('marfanSync')(); } catch (e) {}
+    try { FN('generarInforme') && SF('generarInforme')(); } catch (e) {}
+    await esperar(400);
+    return String((EL('informe_texto') || {}).value || '');
+  };
+
+  /* ── (A) LA LINEA DEL INFORME (2a) ─────────────────────────────────────────────────── */
+  const t1 = await linea({ mfs_ectopia_lentis:'no', mfs_historia_familiar:'no',
+                           mfs_fbn1_causal:'no', mfs_fbn1_ao:'no' });
+  ex.push(['(A0) DENOMINADOR: el informe trae la linea del score', t1.indexOf('Score sist') > -1 ? 'si' : 'NO', 'si']);
+  ex.push(['(A1) los cuatro en «No» dan UNA oracion corta',
+           t1.indexOf('Sin ectopia lentis ni historia familiar.') > -1 ? 'si' : 'NO', 'si']);
+  ex.push(['(A2) y ninguna ausencia enumerada',
+           t1.indexOf(' ausente') > -1 ? 'HAY' : 'no', 'no']);
+  ex.push(['(A3) ni el rotulo largo de la variante',
+           t1.indexOf('dilatación o disección aórtica') > -1 ? 'HAY' : 'no', 'no']);
+  const t2 = await linea({ mfs_ectopia_lentis:'si', mfs_historia_familiar:'si',
+                           mfs_fbn1_causal:'si', mfs_fbn1_ao:'si' });
+  ex.push(['(A4) los cuatro en «Si» se escriben, y los de FBN1 sin «presente»',
+           t2.indexOf('Ectopia lentis presente, historia familiar presente, variante de FBN1 causal, variante de FBN1 con asociación conocida a la aorta.') > -1 ? 'si' : 'NO', 'si']);
+  const t3 = await linea({ mfs_ectopia_lentis:'si', mfs_historia_familiar:'no' });
+  ex.push(['(A5) con UNA sola de la pareja en «No», esa ausencia no se escribe',
+           t3.indexOf('Ectopia lentis presente.') > -1 && t3.indexOf('historia familiar') < 0 ? 'si' : 'NO', 'si']);
+  const t4 = await linea({});
+  ex.push(['(A6) CONTROL NEGATIVO: con todo en «—» no se escribe ninguna de las cuatro',
+           ['ectopia lentis','historia familiar','FBN1'].filter(s => t4.indexOf(s) > -1).length, 0]);
+  ex.push(['(A7) DENOMINADOR de (A6): pero la linea del score SI esta',
+           t4.indexOf('Score sist') > -1 ? 'si' : 'NO', 'si']);
+
+  /* ── (B) EL Z CALCULADO (2b) ───────────────────────────────────────────────────────── */
+  ex.push(['(B0) DENOMINADOR: la funcion existe', FN('mfsZCalc') ? 'si' : 'NO', 'si']);
+  const esc = async (edad, sexo, peso, talla, mm) => {
+    try { FN('limpiarCampos') && SF('limpiarCampos')(true); } catch (e) {}
+    await esperar(180);
+    pon('edad', edad); pon('sexo', sexo); pon('peso', peso); pon('talla', talla);
+    pon('ao_sin', mm); pon('marfan_sindrome', 'marfan');
+    await esperar(320);
+    return FN('mfsZCalc') ? SF('mfsZCalc')(null) : null;
+  };
+  const c1 = await esc(40, 'M', 70, 170, 38);
+  ex.push(['(B1) hombre de 40, 70 kg, 170 cm, 38 mm: coincide con la cuenta a mano',
+           (c1 && c1.z != null && Math.abs(c1.z - zMano(40,'M',70,170,38)) < 1e-9) ? 'si'
+             : 'NO (' + (c1 ? c1.z : 'null') + ' contra ' + zMano(40,'M',70,170,38) + ')', 'si']);
+  const c2 = await esc(55, 'F', 62, 160, 36);
+  ex.push(['(B2) mujer de 55, 62 kg, 160 cm, 36 mm: idem',
+           (c2 && c2.z != null && Math.abs(c2.z - zMano(55,'F',62,160,36)) < 1e-9) ? 'si'
+             : 'NO (' + (c2 ? c2.z : 'null') + ')', 'si']);
+  const c3 = await esc(15, 'M', 55, 165, 30);
+  ex.push(['(B3) en el borde de la edad minima, 15 anos, SI se calcula',
+           (c3 && c3.z != null && Math.abs(c3.z - zMano(15,'M',55,165,30)) < 1e-9) ? 'si' : 'NO', 'si']);
+  const c4 = await esc(14, 'M', 55, 165, 30);
+  ex.push(['(B4) CONTROL: a los 14 NO se calcula y se dice por que',
+           (c4 && c4.z === null && c4.menor === true) ? 'si' : 'NO', 'si']);
+  const c5 = await esc(40, '', 70, 170, 38);
+  ex.push(['(B5) CONTROL: sin sexo no se calcula y lo NOMBRA',
+           (c5 && c5.z === null && c5.falta.indexOf('el sexo') > -1) ? 'si' : 'NO', 'si']);
+  ex.push(['(B6) la superficie corporal es la de DuBois y no la de la app',
+           (function(){ const d = FN('mfsZBsaDuBois') ? SF('mfsZBsaDuBois')(70,170) : null;
+             const m = FN('getBSA') ? SF('getBSA')() : null;
+             return (d && m && Math.abs(d - m) > 0.001) ? 'distintas' : 'IGUALES'; })(), 'distintas']);
+
+  /* ── (C) EL MANUAL GANA, NO SE GUARDA Y NO LLEGA AL PAPEL ──────────────────────────── */
+  await esc(40, 'M', 70, 170, 38);
+  ex.push(['(C0) DENOMINADOR: sin manual, el efectivo es el calculado',
+           (FN('mfsZ') && Math.abs(SF('mfsZ')(null) - zMano(40,'M',70,170,38)) < 1e-9) ? 'si' : 'NO', 'si']);
+  pon('mfs_z_raiz', '3.5');
+  await esperar(320);
+  ex.push(['(C1) con el manual cargado, EL MANUAL GANA', FN('mfsZ') ? SF('mfsZ')(null) : 'NO', 3.5]);
+  ex.push(['(C2) y el calculado sigue existiendo, sin pisarlo',
+           (SF('mfsZCalc')(null) || {}).z != null ? 'si' : 'NO', 'si']);
+  { const e = EL('mfs_z_raiz'); if (e) { e.value = ''; e.dispatchEvent(new Event('input', { bubbles: true })); } }
+  await esperar(250);
+  try { FN('_espejosBarrerTodos') && SF('_espejosBarrerTodos')(); } catch (e) {}
+  await esperar(400);
+  ex.push(['(C3) CONTROL NEGATIVO: tras un barrido COMPLETO, el campo manual sigue VACIO',
+           String((EL('mfs_z_raiz') || {}).value || ''), '']);
+  ex.push(['(C4) y el boton existe y es la unica puerta',
+           (EL('mfs-zcalc-btn') && FN('mfsZUsarCalculado')) ? 'si' : 'NO', 'si']);
+  { const b = EL('mfs-zcalc-btn'); if (b) b.click(); }
+  await esperar(320);
+  ex.push(['(C5) al tocarlo, el campo se llena con el calculado',
+           String((EL('mfs_z_raiz') || {}).value || '').length > 0 ? 'si' : 'NO', 'si']);
+  ex.push(['(C6) la fila dice el metodo y la salvedad de la tecnica',
+           (function(){ const n = EL('mfs-zcalc-nota'); const t = n ? String(n.textContent||'') : '';
+             return (t.indexOf('DuBois') > -1 && t.indexOf('borde de ataque') > -1) ? 'si' : 'NO'; })(), 'si']);
+  /* EL PAPEL */
+  pon('nombre', 'Prueba TC596z');
+  { const c = EL('marfan_incluir_chk');
+    if (c && !c.checked) { c.checked = true; c.dispatchEvent(new Event('change', { bubbles: true })); } }
+  try { FN('generarInforme') && SF('generarInforme')(); } catch (e) {}
+  await esperar(400);
+  const pp = String((EL('informe_texto')||{}).value||'') + String((EL('en_suma')||{}).value||'');
+  ex.push(['(C7) el papel NO nombra a Devereux ni a DuBois',
+           /devereux|dubois/i.test(pp) ? 'HAY' : 'no', 'no']);
+  ex.push(['(C8) ni publica el Z', pp.indexOf('Z de la ra') > -1 ? 'HAY' : 'no', 'no']);
+  /* ⚠️ SE DEVUELVE LA PANTALLA A UNA PESTANA NEUTRA. Este caso abre «CC complejas» para llegar
+     a la tarjeta de Marfan, y ahi vive tambien la seccion de la TGA: dejarla abierta hace que
+     la libreria 3D se baje y pone en rojo a TC-562, que mide justamente que no se baje sin
+     tipo cargado. Es higiene del arnes —un caso que hereda estado falla con un diagnostico que
+     no apunta a su causa—, y es la leccion que esta suite ya documenta con el overlay de login. */
+  try { FN('showTab') && FN('showTab')('informe'); } catch (e) {}
+  await esperar(180);
+  return { extra: EXP };
+  })();
+`);
+
+caso('TC-597', 'Tanda POP-C: el corte de bajo gasto del posoperatorio es ESTRICTO por el consenso de la SAC 2024 sin tocar la capsula de Hemodinamica, la precarga muestra su valor sin banda ni veredicto, el pericardio LISTA sus signos y los dos rotulos nombran de donde vienen el patron y los cortes del VD', `
+  return (async () => {
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]),
+                 'dio «' + t[1] + '» · esperado «' + t[2] + '»']) };
+  const esperar = (ms) => new Promise(r => setTimeout(r, ms));
+  const EL = (id) => document.getElementById(id);
+  const FN = (n) => (typeof window[n] === 'function') ? window[n] : null;
+  /* ⚠️ TOLERANTE AL ARBOL VIEJO. Contra HEAD estas funciones NO EXISTEN, y llamarlas pelado
+     mata el caso con un TypeError: cae por EXCEPCION y no por condicion, que es justo lo que
+     la orden prohibe —y lo que TC-546 pago en la tanda TEP—. SF devuelve una marca en vez de
+     reventar, asi que cada condicion falla diciendo QUE invariante se rompio. */
+  const SF = (n) => { const f = FN(n); return f ? f : function () { return 'NO EXISTE ' + n; }; };
+  const pon = (id, v) => { const e = EL(id); if (!e) return 'NO ' + id;
+    e.value = String(v); e.dispatchEvent(new Event('input', { bubbles: true }));
+    e.dispatchEvent(new Event('change', { bubbles: true })); return e.value; };
+  const preg = (r, frag) => { const f = (r.preguntas||[]).filter(q => q.q.indexOf(frag) > -1)[0];
+    return f || null; };
+  try { FN('limpiarCampos') && SF('limpiarCampos')(true); } catch (e) {}
+  await esperar(200);
+  pon('peso','70'); pon('talla','170');
+
+  /* ── (A) EL CORTE ESTRICTO, por el PiCCO, que es el unico que llega al 2,20 exacto ── */
+  ex.push(['(A0) DENOMINADOR: existe la banda propia del posoperatorio', FN('_popIcBanda') ? 'si' : 'NO', 'si']);
+  ex.push(['(A1) 2,19 es bajo', (SF('_popIcBanda')(2.19)||{}).txt, 'bajo']);
+  ex.push(['(A2) 2,20 EXACTO ya no es bajo', (SF('_popIcBanda')(2.20)||{}).txt, 'normal']);
+  ex.push(['(A3) 2,21 tampoco', (SF('_popIcBanda')(2.21)||{}).txt, 'normal']);
+  ex.push(['(A4) y el corte sale de su constante', typeof POP_IC_BAJO_MAX !== 'undefined' ? POP_IC_BAJO_MAX : 'NO', 2.2]);
+  /* CONTROL NEGATIVO: lo que esta orden NO autoriza a tocar sigue igual. */
+  ex.push(['(A5) CONTROL: _icBanda, que es de Hemodinamica, SIGUE diciendo bajo en 2,2',
+           (FN('_icBanda')(2.2)||{}).txt, 'bajo']);
+  ex.push(['(A6) CONTROL: FORR_IC_CORTE no se movio',
+           typeof FORR_IC_CORTE !== 'undefined' ? FORR_IC_CORTE : 'NO', 2.2]);
+  ex.push(['(A7) CONTROL: por debajo del corte las dos coinciden',
+           (SF('_popIcBanda')(1.9)||{}).txt + '/' + (FN('_icBanda')(1.9)||{}).txt, 'bajo/bajo']);
+  pon('pop_monitor','picco'); await esperar(250);
+  pon('pop_picco_ic','2.20'); pon('pop_picco_gc','4');
+  await esperar(450);
+  { const r = SF('popPatron')();
+    const g = preg(r, 'Gasto');
+    ex.push(['(A8) con el PiCCO en 2,20 la fila del gasto dice normal',
+             g ? (String(g.r).indexOf('normal') > -1 ? 'si' : 'NO (' + g.r + ')') : 'SIN FILA', 'si']); }
+  pon('pop_picco_ic','2.19'); await esperar(450);
+  { const r = SF('popPatron')(); const g = preg(r, 'Gasto');
+    ex.push(['(A9) y con 2,19 dice bajo',
+             g ? (String(g.r).indexOf('bajo') > -1 ? 'si' : 'NO (' + g.r + ')') : 'SIN FILA', 'si']); }
+
+  /* ── (B) LA PRECARGA SIN BANDA (3b) ────────────────────────────────────────────────── */
+  pon('pop_monitor','swan'); await esperar(250);
+  pon('pop_sw_gc','4.5'); pon('pop_sw_pam','78'); pon('pop_sw_pad','10'); pon('pop_sw_pcp','14');
+  await esperar(450);
+  { const r = SF('popPatron')(); const p = preg(r, 'capilar');
+    ex.push(['(B0) DENOMINADOR: la fila existe', p ? 'si' : 'NO', 'si']);
+    ex.push(['(B1) la pregunta ya no dice «adecuada»',
+             p ? (p.q.indexOf('adecuada') > -1 ? 'HAY' : 'no') : 'SIN FILA', 'no']);
+    ex.push(['(B2) la respuesta trae el VALOR y su origen',
+             p ? (String(p.r).indexOf('14 mmHg') > -1 ? 'si' : 'NO (' + p.r + ')') : 'SIN FILA', 'si']);
+    ex.push(['(B3) y la salvedad, sin veredicto',
+             p ? (String(p.r).indexOf('no alcanza por sí sola') > -1 ? 'si' : 'NO') : 'SIN FILA', 'si']);
+    ex.push(['(B4) sin «en rango», «hipovolemia» ni «congestion» en la fila',
+             p ? (/en rango|hipovolemia|congesti/i.test(String(p.r)) ? 'HAY' : 'no') : 'SIN FILA', 'no']);
+    ex.push(['(B5) y sin color de banda', p ? p.cls : 'SIN FILA', 'gray']); }
+  /* CONTROL NEGATIVO: con la PCP alta o baja la fila dice lo MISMO, que es el punto. */
+  pon('pop_sw_pcp','8'); await esperar(400);
+  const _p8 = (preg(SF('popPatron')(), 'capilar')||{}).cls;
+  pon('pop_sw_pcp','22'); await esperar(400);
+  const _p22 = (preg(SF('popPatron')(), 'capilar')||{}).cls;
+  ex.push(['(B6) CONTROL NEGATIVO: con 8 y con 22 el color es el mismo, gris',
+           _p8 + '/' + _p22, 'gray/gray']);
+
+  /* ── (C) EL PERICARDIO LISTA SUS SIGNOS (3c) ───────────────────────────────────────── */
+  pon('pop_sw_pcp','14');
+  pon('pericardio','Derrame severo (>20mm)'); pon('dpt_col_vd','si');
+  pon('vci_diam','24'); pon('vci_col','<50');
+  await esperar(500);
+  { const r = SF('popPatron')(); const p = preg(r, 'peric');
+    ex.push(['(C0) DENOMINADOR: la fila existe', p ? 'si' : 'NO', 'si']);
+    ex.push(['(C1) y ENUMERA los signos del modulo de pericardio',
+             p ? (String(p.r).indexOf('colapso diastólico del VD') > -1 &&
+                  String(p.r).indexOf('plétora de VCI') > -1 ? 'si' : 'NO (' + p.r + ')') : 'SIN FILA', 'si']);
+    ex.push(['(C2) sin el veredicto del medico, el patron NO dice taponamiento',
+             String((r.pat||{}).lbl || '').indexOf('Taponamiento') > -1 ? 'HAY' : 'no', 'no']); }
+  pon('pericardio_hemo','si'); await esperar(450);
+  { const r = SF('popPatron')(); const p = preg(r, 'peric');
+    ex.push(['(C3) con el veredicto consignado, va PRIMERO y los signos siguen',
+             p ? (String(p.r).indexOf('compromiso hemodinámico consignado') === 0 &&
+                  String(p.r).indexOf('colapso diastólico del VD') > -1 ? 'si' : 'NO (' + p.r + ')') : 'SIN FILA', 'si']);
+    ex.push(['(C4) CONTROL: y el patron SI dice taponamiento, que 3d protege',
+             String((r.pat||{}).lbl || '').indexOf('Taponamiento') > -1 ? 'si' : 'NO', 'si']); }
+
+  /* ── (D) LOS DOS ROTULOS (3d) ──────────────────────────────────────────────────────── */
+  pon('pericardio',''); pon('pericardio_hemo',''); pon('dpt_col_vd',''); pon('vci_diam',''); pon('vci_col','');
+  pon('tapse','12'); pon('vd_vi','1.2');
+  await esperar(500);
+  try { FN('popConclSync') && SF('popConclSync')(); } catch (e) {}
+  await esperar(350);
+  { const cj = EL('pop-concl-box');
+    const t = cj ? String(cj.textContent || '').replace(/\\s+/g,' ') : '';
+    ex.push(['(D0) DENOMINADOR: la caja de conclusion tiene texto', t.length > 200 ? 'si' : 'NO (' + t.length + ')', 'si']);
+    ex.push(['(D1) el patron se rotula «Criterio de EcoSmart»',
+             t.indexOf('Criterio de EcoSmart') > -1 ? 'si' : 'NO', 'si']);
+    ex.push(['(D2) y la fila del VD dice de donde vienen sus cortes',
+             t.indexOf('cortes de la cápsula de TEP') > -1 ? 'si' : 'NO', 'si']);
+    ex.push(['(D3) CONTROL: y NO se cuela «Precarga adecuada»',
+             t.indexOf('Precarga adecuada') > -1 ? 'HAY' : 'no', 'no']); }
+
+  /* ── (E) EL GLOBO TRAE LA FUENTE, Y EL PAPEL NO ────────────────────────────────────── */
+  ex.push(['(E1) el globo de senales nombra la seccion 6.14 con su folio',
+           (function(){ try { const d = VINFO['pop-senales'];
+             const t = String(d.lee||'') + String(d.fuente||'') + String(d.ojo||'');
+             return (t.indexOf('6.14') > -1 && t.indexOf('folio 83') > -1) ? 'si' : 'NO'; }
+             catch (e) { return 'EXC'; } })(), 'si']);
+  ex.push(['(E2) y explica por que la precarga ya no se gradua',
+           (function(){ try { return String(VINFO['pop-senales'].ojo||'')
+             .indexOf('variables hemodinámicas estáticas') > -1 ? 'si' : 'NO'; } catch (e) { return 'EXC'; } })(), 'si']);
+  return { extra: EXP };
+  })();
+`);
+
+caso('TC-598', 'Tanda POP-C: «Integrar al informe» del posoperatorio queda habilitado con CUALQUIER dato cargado y sin indice cardiaco describe lo medido, conserva su motivo cuando no hay NINGUNO, y los tres usos globales de la variable de aviso resuelven su color', `
+  return (async () => {
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]),
+                 'dio «' + t[1] + '» · esperado «' + t[2] + '»']) };
+  const esperar = (ms) => new Promise(r => setTimeout(r, ms));
+  const EL = (id) => document.getElementById(id);
+  const FN = (n) => (typeof window[n] === 'function') ? window[n] : null;
+  /* ⚠️ TOLERANTE AL ARBOL VIEJO. Contra HEAD estas funciones NO EXISTEN, y llamarlas pelado
+     mata el caso con un TypeError: cae por EXCEPCION y no por condicion, que es justo lo que
+     la orden prohibe —y lo que TC-546 pago en la tanda TEP—. SF devuelve una marca en vez de
+     reventar, asi que cada condicion falla diciendo QUE invariante se rompio. */
+  const SF = (n) => { const f = FN(n); return f ? f : function () { return 'NO EXISTE ' + n; }; };
+  const pon = (id, v) => { const e = EL(id); if (!e) return 'NO ' + id;
+    e.value = String(v); e.dispatchEvent(new Event('input', { bubbles: true }));
+    e.dispatchEvent(new Event('change', { bubbles: true })); return e.value; };
+
+  /* ── (A) VACIO: sigue deshabilitado y conserva su motivo ───────────────────────────── */
+  try { FN('limpiarCampos') && SF('limpiarCampos')(true); } catch (e) {}
+  await esperar(250);
+  try { FN('popConclSync') && SF('popConclSync')(); } catch (e) {}
+  await esperar(300);
+  ex.push(['(A0) DENOMINADOR: el boton existe', EL('pop_integrar') ? 'si' : 'NO', 'si']);
+  ex.push(['(A1) con el modulo VACIO el boton queda deshabilitado',
+           EL('pop_integrar') ? (EL('pop_integrar').disabled ? 'si' : 'NO') : 'SIN BOTON', 'si']);
+  ex.push(['(A2) y conserva su motivo',
+           EL('pop_integrar') ? (String(EL('pop_integrar').title).indexOf('Sin patrón que integrar') === 0 ? 'si' : 'NO (' + EL('pop_integrar').title + ')') : 'SIN BOTON', 'si']);
+  ex.push(['(A3) suficiente es falso', String(SF('popPatron')().suficiente), 'false']);
+
+  /* ── (B) MINIMO: datos sin indice cardiaco. Es el caso que el medico reporto. ──────── */
+  pon('pop_monitor','swan'); await esperar(250);
+  pon('pop_sw_gc','4'); pon('pop_sw_pam','62'); pon('pop_sw_pad','10');
+  await esperar(550);
+  { const r = SF('popPatron')();
+    ex.push(['(B0) DENOMINADOR: sin peso ni talla NO hay indice cardiaco',
+             r.ic === null ? 'si' : 'NO (' + r.ic + ')', 'si']);
+    ex.push(['(B1) y aun asi suficiente es verdadero', String(r.suficiente), 'true']);
+    ex.push(['(B2) el patron sigue diciendo que faltan datos',
+             String((r.pat||{}).lbl || '').indexOf('Datos insuficientes') > -1 ? 'si' : 'NO', 'si']); }
+  try { FN('popConclSync') && SF('popConclSync')(); } catch (e) {}
+  await esperar(300);
+  ex.push(['(B3) el boton queda HABILITADO',
+           EL('pop_integrar') ? (EL('pop_integrar').disabled ? 'NO' : 'si') : 'SIN BOTON', 'si']);
+  ex.push(['(B4) y su globo deja de decir que falta algo',
+           EL('pop_integrar') ? (String(EL('pop_integrar').title).indexOf('Agrega la hoja') === 0 ? 'si' : 'NO') : 'SIN BOTON', 'si']);
+  /* INTEGRA DE VERDAD */
+  pon('nombre','Prueba TC598');
+  { const b = EL('pop_integrar'); if (b && !b.disabled) b.click(); }
+  await esperar(650);
+  ex.push(['(B5) y al tocarlo INTEGRA: el bloque tiene texto',
+           String((EL('am-txt-pop')||{}).value||'').length > 100 ? 'si' : 'NO', 'si']);
+  try { FN('generarInforme') && SF('generarInforme')(); } catch (e) {}
+  await esperar(400);
+  ex.push(['(B6) y el EN SUMA trae su linea',
+           String((EL('en_suma')||{}).value||'').indexOf('PostCEC') > -1 ? 'si' : 'NO', 'si']);
+
+  /* ── (C) EL PREDICADO: por prefijo y contra el valor por omision ───────────────────── */
+  ex.push(['(C0) DENOMINADOR: el predicado existe', FN('_popHayAlgunDato') ? 'si' : 'NO', 'si']);
+  try { FN('limpiarCampos') && SF('limpiarCampos')(true); } catch (e) {}
+  await esperar(400);
+  ex.push(['(C1) CONTROL NEGATIVO: con el formulario recien limpiado dice que NO hay dato',
+           String(SF('_popHayAlgunDato')()), 'false']);
+  /* ⚠️ ESTA CONDICION NACIO DE UNA MUTACION QUE SOBREVIVIO. (C1) sola no alcanza: tras
+     limpiarCampos los nueve espejos quedan vacios tambien, asi que un predicado que los
+     contara daria «false» igual y la mutacion pasaba en verde. Lo que distingue es un espejo
+     CON VALOR sobre un modulo que nadie toco: la frecuencia vive en Hemodinamica y el barrido
+     la copia a pop-esp-fc. */
+  pon('hemo_fc','80'); await esperar(500);
+  try { SF('_espejosBarrerTodos')(); } catch (e) {}
+  await esperar(400);
+  ex.push(['(C1b) DENOMINADOR: el espejo de la frecuencia TOMO el valor',
+           String((EL('pop-esp-fc')||{}).value || ''), '80']);
+  ex.push(['(C1c) CONTROL NEGATIVO: y aun asi el modulo sigue SIN datos propios',
+           String(SF('_popHayAlgunDato')()), 'false']);
+  pon('pop_cx_horas','6'); await esperar(300);
+  ex.push(['(C2) y con UN solo campo cargado, que SI', String(SF('_popHayAlgunDato')()), 'true']);
+
+  /* ── (D) LOS TRES AVISOS GLOBALES (4b) ─────────────────────────────────────────────── */
+  { const host = document.createElement('div'); document.body.appendChild(host);
+    const w = document.createElement('div'); w.className = 'am-wrap desfasado';
+    const d = document.createElement('div'); d.className = 'am-stale'; d.textContent = 'x';
+    w.appendChild(d); host.appendChild(w);
+    const cs = getComputedStyle(d);
+    const col = String(cs.color), bg = String(cs.backgroundColor), bl = String(cs.borderLeftColor);
+    ex.push(['(D0) DENOMINADOR: el nodo de prueba esta FUERA de .amilo-root',
+             d.closest('.amilo-root') ? 'DENTRO' : 'fuera', 'fuera']);
+    ex.push(['(D1) el color del aviso resuelve y no hereda el texto',
+             /rgb\\(245, 158, 66\\)/.test(col) ? 'si' : 'NO (' + col + ')', 'si']);
+    ex.push(['(D2) el fondo pastel resuelve y no queda transparente',
+             /rgba\\(245, 158, 66/.test(bg) ? 'si' : 'NO (' + bg + ')', 'si']);
+    ex.push(['(D3) y el borde tambien',
+             /rgb\\(245, 158, 66\\)/.test(bl) ? 'si' : 'NO (' + bl + ')', 'si']);
+    host.innerHTML = '';
+    const b2 = document.createElement('button'); b2.className = 'btn btn-integrar revisar';
+    host.appendChild(b2);
+    const sh = String(getComputedStyle(b2).boxShadow);
+    ex.push(['(D4) y el anillo del boton SE DIBUJA, que antes daba «none»',
+             sh !== 'none' && /245, 158, 66/.test(sh) ? 'si' : 'NO (' + sh + ')', 'si']);
+    /* CONTROL POSITIVO: dentro de .amilo-root el valor es el MISMO, o sea que no cambio
+       el aspecto donde ya funcionaba. */
+    host.innerHTML = '';
+    const root = document.createElement('div'); root.className = 'amilo-root';
+    const w2 = document.createElement('div'); w2.className = 'am-wrap desfasado';
+    const d2 = document.createElement('div'); d2.className = 'am-stale'; d2.textContent = 'x';
+    w2.appendChild(d2); root.appendChild(w2); host.appendChild(root);
+    ex.push(['(D5) CONTROL POSITIVO: dentro de .amilo-root da el MISMO color',
+             String(getComputedStyle(d2).color) === col ? 'si' : 'NO', 'si']);
+    host.remove(); }
+  return { extra: EXP };
+  })();
+`);
+
+caso('TC-599', 'Tanda POP-C: el dibujo del posoperatorio toma los simbolos de valvula de la demo v9 con su apertura rotatoria, los chorros de insuficiencia sincronizados con la fase contraria a su valvula y leidos de Valvulas, y los cateteres del Swan y del PiCCO segun el dispositivo elegido', `
+  return (async () => {
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]),
+                 'dio «' + t[1] + '» · esperado «' + t[2] + '»']) };
+  const esperar = (ms) => new Promise(r => setTimeout(r, ms));
+  const EL = (id) => document.getElementById(id);
+  const FN = (n) => (typeof window[n] === 'function') ? window[n] : null;
+  /* ⚠️ TOLERANTE AL ARBOL VIEJO. Contra HEAD estas funciones NO EXISTEN, y llamarlas pelado
+     mata el caso con un TypeError: cae por EXCEPCION y no por condicion, que es justo lo que
+     la orden prohibe —y lo que TC-546 pago en la tanda TEP—. SF devuelve una marca en vez de
+     reventar, asi que cada condicion falla diciendo QUE invariante se rompio. */
+  const SF = (n) => { const f = FN(n); return f ? f : function () { return 'NO EXISTE ' + n; }; };
+  const pon = (id, v) => { const e = EL(id); if (!e) return 'NO ' + id;
+    e.value = String(v); e.dispatchEvent(new Event('input', { bubbles: true }));
+    e.dispatchEvent(new Event('change', { bubbles: true })); return e.value; };
+  const n2 = (s) => (String(s).match(/-?\\d+(?:\\.\\d+)?/g) || []).map(Number);
+  try { FN('limpiarCampos') && SF('limpiarCampos')(true); } catch (e) {}
+  await esperar(250);
+  pon('peso','70'); pon('talla','170'); pon('hemo_fc','80');
+
+  /* ── (A) LOS SIMBOLOS SON LOS DE LA DEMO v9 (commit 5) ─────────────────────────────── */
+  ex.push(['(A0) DENOMINADOR: las dos funciones portadas existen',
+           (FN('_popValvVelos') && FN('_popValvApertura')) ? 'si' : 'NO', 'si']);
+  ex.push(['(A1) las constantes son las de la demo: largo 8 y 72 grados',
+           (typeof POP_ESQ_VALV_L !== 'undefined' ? POP_ESQ_VALV_L : '?') + '/' +
+           (typeof POP_ESQ_VALV_ANG !== 'undefined' ? POP_ESQ_VALV_ANG : '?'), '8/72']);
+  /* La cuenta a mano de la demo, hecha ACA: comparar la app contra si misma no prueba nada. */
+  const veloMano = (a, bio) => { const phi = a*72*Math.PI/180, c = Math.cos(phi), s = Math.sin(phi);
+    const lx = -8 + 8*c, rx = 8 - 8*c, ey = -8*s;
+    return bio ? [-8,0,(-8+lx)/2-2,ey/2+3,lx,ey, 8,0,(8+rx)/2+2,ey/2+3,rx,ey]
+               : [-8,0,lx,ey, 8,0,rx,ey]; };
+  [[0,'cerrada'],[0.5,'a medio abrir'],[1,'abierta']].forEach(function (p) {
+    const a = p[0];
+    [[false,'mecanica'],[true,'biologica']].forEach(function (q) {
+      /* ⚠️ TOLERANTE: contra HEAD SF devuelve una CADENA y no un array, y el .join
+         mataba el caso por excepcion en vez de por condicion. */
+      const _vv = SF('_popValvVelos')(a, q[0]);
+      const app = n2(Array.isArray(_vv) ? _vv.join(' ') : String(_vv));
+      const man = veloMano(a, q[0]);
+      const peor = app.length === man.length
+        ? Math.max.apply(null, app.map((v,i) => Math.abs(v - man[i]))) : 99;
+      ex.push(['(A2) la ' + q[1] + ' ' + p[1] + ' coincide con la demo (tolerancia 0,005: la app redondea)',
+               peor <= 0.005 + 1e-9 ? 'si' : 'NO (peor ' + peor + ')', 'si']);
+    });
+  });
+  ex.push(['(A3) la aortica abre en SISTOLE y no en diastole',
+           (SF('_popValvApertura')('ao', 0.17) > 0.9 ? 'si' : 'NO') + '/' +
+           (SF('_popValvApertura')('ao', 0.7) === 0 ? 'si' : 'NO'), 'si/si']);
+  ex.push(['(A4) y la mitral al reves',
+           (SF('_popValvApertura')('mi', 0.17) === 0 ? 'si' : 'NO') + '/' +
+           (SF('_popValvApertura')('mi', 0.675) > 0.9 ? 'si' : 'NO'), 'si/si']);
+  ex.push(['(A5) CONTROL: sin fase no hay apertura', SF('_popValvApertura')('ao', null), 0]);
+
+  /* ── (B) LOS CHORROS (commit 6) ────────────────────────────────────────────────────── */
+  ex.push(['(B0) DENOMINADOR: la pluma y el lector de grado existen',
+           (FN('_popEsqPluma') && FN('_popEsqJetGrado')) ? 'si' : 'NO', 'si']);
+  ex.push(['(B1) los cuatro grados dan tamanos CRECIENTES',
+           (function(){ if (typeof POP_ESQ_JET === 'undefined') return 'NO EXISTE';
+             const g = POP_ESQ_JET;
+             return (g[1][0] < g[2][0] && g[2][0] < g[3][0] && g[3][0] < g[4][0]) ? 'si' : 'NO'; })(), 'si']);
+  /* EL VOCABULARIO: tres valvulas guardan el NUMERO y la pulmonar la PALABRA. */
+  pon('im_grado','4'); pon('it_grado','2'); pon('ia_grado','1'); pon('ip_grado','Moderada');
+  await esperar(400);
+  ex.push(['(B2) el grado se lee de Valvulas en las tres numericas',
+           [SF('_popEsqJetGrado')('im_grado'), SF('_popEsqJetGrado')('it_grado'),
+            SF('_popEsqJetGrado')('ia_grado')].join(','), '4,2,1']);
+  ex.push(['(B3) y la PULMONAR, que guarda la PALABRA y no el numero',
+           SF('_popEsqJetGrado')('ip_grado'), 2]);
+  pon('ip_grado','Severa'); await esperar(200);
+  ex.push(['(B4) «Severa» de la pulmonar vale 4', SF('_popEsqJetGrado')('ip_grado'), 4]);
+  pon('ip_grado','Sin insuficiencia'); await esperar(200);
+  ex.push(['(B5) CONTROL: «Sin insuficiencia» vale 0 y no dibuja chorro',
+           SF('_popEsqJetGrado')('ip_grado'), 0]);
+  ex.push(['(B6) CONTROL: un campo vacio tambien', SF('_popEsqJetGrado')('no_existe_x'), 0]);
+  /* LA SINCRONIA: el chorro ocurre con la valvula CERRADA. */
+  ex.push(['(B7) la insuficiencia mitral va en SISTOLE, cuando su valvula esta cerrada',
+           (SF('_popValvApertura')('ao', 0.17) > 0.9 && SF('_popValvApertura')('mi', 0.17) === 0) ? 'si' : 'NO', 'si']);
+  /* EL TEXTO del esquema los nombra con su grado. */
+  pon('ip_grado','Moderada');
+  await esperar(600);
+  try { FN('popEsqPintar') && SF('popEsqPintar')(); } catch (e) {}
+  await esperar(400);
+  { const t = String((EL('pop-esq-txt')||{}).textContent || '');
+    ex.push(['(B8) el texto del esquema los nombra con su grado',
+             (t.indexOf('mitral severa') > -1 && t.indexOf('tricúspide moderada') > -1 &&
+              t.indexOf('aórtica leve') > -1 && t.indexOf('pulmonar moderada') > -1) ? 'si' : 'NO', 'si']); }
+  pon('im_grado','0'); pon('it_grado','0'); pon('ia_grado','0'); pon('ip_grado','Sin insuficiencia');
+  await esperar(500);
+  try { FN('popEsqPintar') && SF('popEsqPintar')(); } catch (e) {}
+  await esperar(350);
+  { const t = String((EL('pop-esq-txt')||{}).textContent || '');
+    ex.push(['(B9) CONTROL NEGATIVO: sin grados no hay fila de insuficiencias',
+             t.indexOf('Insuficiencias valvulares') > -1 ? 'HAY' : 'no', 'no']); }
+  /* ⚠️ Y ESTA NACIO DE UNA MUTACION QUE SOBREVIVIO, en DOS pasos. (B9) mira el TEXTO del
+     esquema, asi que un chorro dibujado sin grado pasaba en verde: el texto no lo nombra
+     igual. Hay que mirar el NODO. Y la primera version de (B11) TAMPOCO la mataba, porque los
+     chorros son PULSATILES y una foto cae en un instante al azar del ciclo: con el defecto
+     inyectado, el grupo igual queda apagado en las fases en que su amplitud es casi cero.
+     SE QUITA LA FRECUENCIA antes de medir: sin ella el pintor usa la amplitud de reposo, 0,5,
+     y un chorro indebido se dibuja SIEMPRE. Asi la condicion es determinista. */
+  pon('hemo_fc', '');
+  await esperar(500);
+  try { SF('popEsqPintar')(); } catch (e) {}
+  await esperar(400);
+  { const sv2 = EL('pop-esq-svg');
+    const dsp = ['im','it','ia','ip'].map(function (k) {
+      const g = sv2 ? sv2.querySelector('[data-pop-esq="jet-' + k + '"]') : null;
+      return g ? String(g.getAttribute('display') || 'inline') : 'NO EXISTE'; });
+    ex.push(['(B10) DENOMINADOR: los cuatro grupos de chorro existen en el SVG',
+             dsp.filter(x => x !== 'NO EXISTE').length, 4]);
+    ex.push(['(B11) CONTROL NEGATIVO: y sin grado NINGUNO se dibuja',
+             dsp.join('/'), 'none/none/none/none']); }
+
+  /* ── (C) LOS CATETERES (commit 7) ──────────────────────────────────────────────────── */
+  const svg = EL('pop-esq-svg');
+  const marca = (m) => { const n3 = svg ? svg.querySelector('[data-pop-esq="' + m + '"]') : null;
+    return n3 ? String(n3.getAttribute('display') || 'inline') : 'NO EXISTE'; };
+  ex.push(['(C0) DENOMINADOR: el SVG existe y tiene los dos grupos',
+           (marca('cat-swan') !== 'NO EXISTE' && marca('cat-picco') !== 'NO EXISTE') ? 'si' : 'NO', 'si']);
+  pon('pop_monitor',''); await esperar(500);
+  try { FN('popEsqPintar') && SF('popEsqPintar')(); } catch (e) {}
+  await esperar(300);
+  ex.push(['(C1) CONTROL NEGATIVO: sin dispositivo no se dibuja ninguno',
+           marca('cat-swan') + '/' + marca('cat-picco'), 'none/none']);
+  pon('pop_monitor','swan'); await esperar(500);
+  try { FN('popEsqPintar') && SF('popEsqPintar')(); } catch (e) {}
+  await esperar(300);
+  ex.push(['(C2) con el Swan se dibuja el suyo y NO el del PiCCO',
+           marca('cat-swan') + '/' + marca('cat-picco'), 'inline/none']);
+  pon('pop_monitor','picco'); await esperar(500);
+  try { FN('popEsqPintar') && SF('popEsqPintar')(); } catch (e) {}
+  await esperar(300);
+  ex.push(['(C3) y con el PiCCO al reves',
+           marca('cat-swan') + '/' + marca('cat-picco'), 'none/inline']);
+  ex.push(['(C4) el dispositivo viaja por popEsquema y el SVG no vuelve a leer el campo',
+           (function(){ try { return SF('popEsquema')().mon; } catch (e) { return 'EXC'; } })(), 'picco']);
+  return { extra: EXP };
+  })();
+`);
+
+caso('TC-600', 'Tanda POP-C: las cavidades del dibujo siguen al dato medido cuando lo hay y quedan como estaban cuando no, el anillo del derrame crece con el tamano conservando la marca del compromiso, los trazados de TAPSE y de E/A piden su dato, y el esquema entra al PDF solo con su casilla marcada', `
+  return (async () => {
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]),
+                 'dio «' + t[1] + '» · esperado «' + t[2] + '»']) };
+  const esperar = (ms) => new Promise(r => setTimeout(r, ms));
+  const EL = (id) => document.getElementById(id);
+  const FN = (n) => (typeof window[n] === 'function') ? window[n] : null;
+  /* ⚠️ TOLERANTE AL ARBOL VIEJO. Contra HEAD estas funciones NO EXISTEN, y llamarlas pelado
+     mata el caso con un TypeError: cae por EXCEPCION y no por condicion, que es justo lo que
+     la orden prohibe —y lo que TC-546 pago en la tanda TEP—. SF devuelve una marca en vez de
+     reventar, asi que cada condicion falla diciendo QUE invariante se rompio. */
+  const SF = (n) => { const f = FN(n); return f ? f : function () { return 'NO EXISTE ' + n; }; };
+  const pon = (id, v) => { const e = EL(id); if (!e) return 'NO ' + id;
+    e.value = String(v); e.dispatchEvent(new Event('input', { bubbles: true }));
+    e.dispatchEvent(new Event('change', { bubbles: true })); return e.value; };
+  const geo = () => { try { return SF('_popEsqGeo')(SF('popEsquema')()); } catch (e) { return null; } };
+  const r3 = (x) => Math.round(x * 1000) / 1000;
+  try { FN('limpiarCampos') && SF('limpiarCampos')(true); } catch (e) {}
+  await esperar(250);
+  pon('peso','70'); pon('talla','170'); pon('hemo_fc','80');
+  await esperar(450);
+
+  /* ── (A) LAS CAVIDADES (8a) ────────────────────────────────────────────────────────── */
+  const g0 = geo();
+  ex.push(['(A0) DENOMINADOR: la geometria se calcula', g0 ? 'si' : 'NO', 'si']);
+  const base = g0 ? { AD:r3(g0.sAD), AI:r3(g0.sAI), VD:r3(g0.sVD), VI:r3(g0.sVI) } : {};
+  pon('fevi','25'); await esperar(400);
+  ex.push(['(A1) con la FEVI severamente baja el VI se agranda',
+           (geo().sVI > base.VI + 0.2) ? 'si' : 'NO (' + r3(geo().sVI) + ' contra ' + base.VI + ')', 'si']);
+  ex.push(['(A2) CONTROL: y el VD no se mueve por eso', r3(geo().sVD), base.VD]);
+  pon('fevi',''); pon('tapse','10'); await esperar(400);
+  ex.push(['(A3) con el TAPSE bajo el VD se agranda',
+           (geo().sVD > base.VD + 0.15) ? 'si' : 'NO (' + r3(geo().sVD) + ')', 'si']);
+  pon('tapse',''); pon('ad_area','22'); await esperar(400);
+  ex.push(['(A4) con el area de la AD dilatada, la AD se agranda',
+           (geo().sAD > base.AD + 0.1) ? 'si' : 'NO (' + r3(geo().sAD) + ')', 'si']);
+  pon('ad_area',''); await esperar(400);
+  ex.push(['(A5) CONTROL NEGATIVO: sin esos datos las cuatro vuelven a lo de siempre',
+           JSON.stringify({ AD:r3(geo().sAD), AI:r3(geo().sAI), VD:r3(geo().sVD), VI:r3(geo().sVI) }),
+           JSON.stringify(base)]);
+  /* El tabique en D, con sus TRES estados. */
+  ex.push(['(A6) sin consignar el tabique, el abombamiento es el de las presiones', r3(geo().bulge), r3(g0.bulge)]);
+  pon('tep_tabique_d','si'); await esperar(400);
+  ex.push(['(A7) consignado, el septo se abomba hacia el VI', r3(geo().bulge), 24]);
+  pon('tep_tabique_d','no'); await esperar(400);
+  ex.push(['(A8) CONTROL: un «No» expreso lo lleva a cero', r3(geo().bulge), 0]);
+  pon('tep_tabique_d','ne'); await esperar(300);
+
+  /* ── (B) EL ANILLO DEL DERRAME (8b) ────────────────────────────────────────────────── */
+  ex.push(['(B0) CONTROL NEGATIVO: sin derrame el anillo no se dibuja', geo().eff, 0]);
+  pon('pericardio','Derrame leve (<10mm)'); await esperar(400);
+  const e1 = geo().eff;
+  pon('pericardio','Derrame moderado (10-20mm)'); await esperar(400);
+  const e2 = geo().eff;
+  pon('pericardio','Derrame severo (>20mm)'); await esperar(400);
+  const e3 = geo().eff;
+  ex.push(['(B1) el grosor CRECE con el tamano y los tres son distintos',
+           (e1 < e2 && e2 < e3) ? 'si' : 'NO (' + e1 + ',' + e2 + ',' + e3 + ')', 'si']);
+  ex.push(['(B2) y la diferencia es visible, no de un pixel',
+           (e2 - e1 >= 3 && e3 - e2 >= 3) ? 'si' : 'NO (' + e1 + ',' + e2 + ',' + e3 + ')', 'si']);
+  pon('pericardio_hemo','si'); await esperar(400);
+  ex.push(['(B3) la marca del compromiso se CONSERVA y suma por encima',
+           geo().eff > e3 ? 'si' : 'NO (' + geo().eff + ' contra ' + e3 + ')', 'si']);
+  pon('pericardio',''); pon('pericardio_hemo',''); await esperar(300);
+
+  /* ── (C) LOS TRAZADOS (commit 9) ───────────────────────────────────────────────────── */
+  ex.push(['(C0) DENOMINADOR: las funciones portadas existen',
+           (FN('_popTrzTap') && FN('_popTrzEA') && FN('_popTrzBump')) ? 'si' : 'NO', 'si']);
+  /* La cuenta a mano de bump, que es lo que da forma a las dos ondas. */
+  ex.push(['(C1) bump en su centro vale 1', SF('_popTrzBump')(0.2, 0.2, 0.08), 1]);
+  ex.push(['(C2) y cae al alejarse', SF('_popTrzBump')(0.4, 0.2, 0.08) < 0.01 ? 'si' : 'NO', 'si']);
+  ex.push(['(C3) el trazado del TAPSE tiene los 27 puntos de la demo',
+           (String(SF('_popTrzTap')(60, 40, 0, 20)).match(/[ML]/g) || []).length, 27]);
+  ex.push(['(C4) y el de las ondas, 41', (String(SF('_popTrzEA')(60, 40, 0, 0.6, 0.4)).match(/[ML]/g) || []).length, 41]);
+  const svg = EL('pop-esq-svg');
+  const marca = (m) => { const n3 = svg ? svg.querySelector('[data-pop-esq="' + m + '"]') : null;
+    return n3 ? String(n3.getAttribute('display') || 'inline') : 'NO EXISTE'; };
+  try { FN('popEsqPintar') && SF('popEsqPintar')(); } catch (e) {}
+  await esperar(400);
+  ex.push(['(C5) CONTROL NEGATIVO: sin TAPSE ni ondas, los dos grupos existen y no se dibujan',
+           marca('trz-tapse') + '/' + marca('trz-ea'), 'none/none']);
+
+  /* ── (D) EL ESQUEMA AL PDF (commit 10) ─────────────────────────────────────────────── */
+  ex.push(['(D0) DENOMINADOR: la casilla y su boton existen',
+           (EL('pop_esq_pdf') && EL('pop-esq-pdf-btn')) ? 'si' : 'NO', 'si']);
+  ex.push(['(D1) es un campo del ESTUDIO, como los otros tres toggles de PDF',
+           (typeof _noEsDelEstudio === 'function' && !_noEsDelEstudio('pop_esq_pdf')) ? 'si' : 'NO', 'si']);
+  ex.push(['(D2) y tiene UNA fila en el registro de diagramas',
+           (typeof PDF_DIAG_REG !== 'undefined')
+             ? PDF_DIAG_REG.filter(d => d.k === 'pop').length : 'NO EXISTE', 1]);
+  ex.push(['(D3) con familia propia y ancho de dos tercios',
+           (function(){ const f = PDF_DIAG_REG.filter(d => d.k === 'pop')[0];
+             return f ? f.fam + '/' + f.w : 'NO'; })(), 'pop/2']);
+  ex.push(['(D4) CONTROL NEGATIVO: sin marcar, no hay imagen preparada',
+           String(FN('popEsqPdfData') ? !!SF('popEsqPdfData')() : 'NO FN'), 'false']);
+  ex.push(['(D5) y el toggle arranca apagado', String((EL('pop_esq_pdf')||{}).value || ''), '']);
+  ex.push(['(D6) NO va a imgSlots, que es lo que la orden deja pendiente',
+           (function(){ try { return (typeof esqSlotIdx === 'function' && esqSlotIdx('pop') >= 0)
+             ? 'ESTA' : 'no'; } catch (e) { return 'no'; } })(), 'no']);
+  /* Y el campo NO tiene columna de Excel: las 441 no se mueven. */
+  ex.push(['(D7) no agrega columna de Excel',
+           (function(){ try { const b = {};
+             document.querySelectorAll('input[id], select[id], textarea[id]').forEach(e => {
+               if (typeof _noEsDelEstudio === 'function' && _noEsDelEstudio(e.id)) return;
+               if (e.type === 'checkbox') b[e.id + '__chk'] = e.checked ? '1' : '0'; else b[e.id] = e.value; });
+             const f = _labExcelRow({ campos: b });
+             return Object.keys(f).filter(k => /esquema del posoperatorio/i.test(k)).length;
+           } catch (e) { return 'EXC'; } })(), 0]);
+  return { extra: EXP };
+  })();
+`);
 
 
 let servidor, chrome;

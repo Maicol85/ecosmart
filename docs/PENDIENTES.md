@@ -11739,3 +11739,124 @@ redacción que pueda separarse de la primera.
 `docs/mapa/congenitas-otros.md` sigue en **34.540 B** y **no se tocó**, que es lo que la orden
 pide. `docs/mapa/tests-fichas.md` está en **34.237 B**, así que las fichas de esta tanda salieron a
 `docs/mapa/tests-fichas-591.md`. El mapa nuevo es `docs/mapa/marfan2-pantalla-z.md`.
+
+---
+
+## Tanda POP-C (2026-11-02) — DECLARADO y NO arreglado
+
+## POPC-a · El corte de 21 mm del pericardio no existe: no había nada que alinear
+
+La orden pide inventariarlo y alinearlo a 20 mm **sólo si el 21 es el corte de gravedad del
+derrame**; si es otra cosa, parar. **Es otra cosa, y además ya está todo en 20:**
+
+| dónde | valor | fuente |
+|---|---|---|
+| `DPT_VCI_PLETORA_MM` | **20** | ESC 2025 de pericarditis, Tabla 17, folio 62 |
+| `DPT_TAM` | severo **>20**, moderado 10-20, leve <10 | ya alineado |
+| `_htp2022Core`, categoría C | **21** | ESC/ERS 2022, Tabla 10, folio 28 |
+
+El único 21 mm de la aplicación es el de la **probabilidad de HTP**, que es otra guía y otro
+módulo, y el código ya declara esa divergencia como deliberada.
+**Lo que falta decidir:** nada, salvo que el médico quiera unificar las dos guías en un número.
+
+## POPC-b · El Z calculado usa el modelo con BSA y no el de altura
+
+El artículo publica **dos** modelos equivalentes (R = 0,674 los dos): uno con superficie corporal
+y otro con altura. Se implementó el primero, porque es el que la app puede alimentar entero y es
+el que el artículo nombra primero. **El de altura queda sin implementar**: dos Z del mismo
+paciente en la misma pantalla se leen como un error.
+**Lo que falta decidir:** si el médico quiere poder elegir el modelo, o ver los dos.
+
+## POPC-c · La app no registra con qué técnica se midió «Aorta sinusal»
+
+El modelo normativo mide **de borde de ataque a borde de ataque, en diástole** (hoja 3). La app
+tiene un solo campo de diámetro y no declara la convención, así que **la correspondencia la
+decide quien mide**. La salvedad está a la vista, en la fila del Z y en el globo, y no escondida.
+**Lo que falta decidir:** si «Aorta sinusal» gana un selector de técnica. Sería un campo guardado
+nuevo y un cambio en todas las superficies que lo publican.
+
+## POPC-d · El Z calculado no se guarda, y eso tiene un precio
+
+Vive en la pantalla y muere con ella. Sobre un **estudio archivado** las reglas 1, 2, 3 y 7
+vuelven a usar el calculado sólo si los cinco insumos están en el registro —y lo están, porque
+la edad, el sexo, el peso, la talla y el diámetro son campos del estudio—, así que en la práctica
+se recalcula igual. Lo que no sobrevive es el valor exacto si el médico cambia un insumo después.
+**Lo que falta decidir:** nada mientras el manual sea la única puerta al campo guardado.
+
+## POPC-e · La divergencia del corte de bajo gasto entre el posoperatorio y Hemodinámica
+
+`_popIcBanda` usa `< 2,2` (consenso SAC 2024, hoja 91) y `_icBanda` usa `<= 2,2` (decisión del
+médico del 21/10/2026, que el C1 aplicó a la cápsula «Perfil hemodinámico» y al Forrester). Esta
+orden cambia el corte **sólo en el posoperatorio** y prohíbe tocar otras secciones, así que la
+divergencia **se declara** en vez de propagarse — el mismo patrón que `DPT_VCI_PLETORA_MM` con el
+HTP. El globo `pop-senales` lo dice en pantalla.
+**Lo que falta decidir:** si Hemodinámica y el Forrester pasan también al estricto. Es un cambio
+clínico sobre dos superficies que el médico ya decidió una vez al revés.
+
+## POPC-f · El patrón de hipovolemia sigue leyendo el piso de precarga que la fila retiró
+
+La fila de la precarga dejó de graduar (3b), pero `POP_PCP_PRECARGA_MIN` = 12 sigue vivo con **un
+solo consumidor**: el patrón de hipovolemia, que el punto 3d de la orden protege expresamente.
+O sea que el 12 ya no se publica en ninguna parte pero sigue decidiendo un patrón.
+**Lo que falta decidir:** si ese patrón pasa a pedir una variable dinámica, que es lo que el
+consenso prefiere, o si el 12 se declara como criterio propio en el globo.
+
+## POPC-g · El esquema del posoperatorio no se guarda en «Imágenes»
+
+El dataURL del esquema vive en una variable de módulo y muere con la página: **no** se guarda con
+el estudio, **no** aparece en «Imágenes guardadas» y **no** entra al backup. La orden lo excluye
+expresamente («es una función común, pendiente»). El otro camino del registro —`oai`, `cia`,
+`tga3d`— sí lo hace, con `esqIncluirEnPDF` y `esqSlotIdx`.
+**Lo que falta decidir:** si el esquema pasa a ese camino. Sería una propiedad más en las dos
+allowlists de IndexedDB y una clave `esqClave` nueva.
+
+## POPC-h · La rasterización es diferida porque el generador del PDF no es asíncrono
+
+Ni `generarPDFReal` ni `_pdfAjustarA4` son `async`, y `esqRasterizar` devuelve una promesa
+—cargar un SVG en un `Image` no se puede hacer de forma síncrona—. Por eso el esquema se
+rasteriza **cuando se repinta y la casilla está marcada**, con su diferido de 700 ms, y no al
+generar. El precio: entre el último repintado y el PDF hay una ventana de 700 ms en la que la
+imagen podría ser la del estado anterior.
+**Lo que falta decidir:** si el generador del PDF pasa a ser asíncrono. Lo llaman el botón, la
+reimpresión de un guardado y la pasada de medición de `_pdfAjustarA4`, así que es un cambio de
+tres sitios de llamada y de su manejo de errores.
+
+## POPC-i · Plastia, TEER y TAVI siguen fuera del tipo de una válvula operada
+
+Sin cambios respecto de **POPB-c**: la orden de esta tanda vuelve a excluirlos («NO toques TEER,
+plastia ni TAVI: es otra tanda»). El filtro `_popVEsProt` sigue preguntando si el valor del
+`<option>` empieza con «Prótesis».
+
+## POPC-j · Los huecos entre columnas del posoperatorio quedan como están
+
+**POPB-b** los midió —hasta 460 px con cinco fármacos— y esta orden los acepta expresamente
+(«NO toques … los huecos entre columnas del posoperatorio»). Lo que desequilibra es el alto
+variable del panel de fármacos.
+
+## POPC-k · El bucle del dibujo del posoperatorio no vuelve a arrancar al reaparecer
+
+**Preexistente, verificado IDÉNTICO en HEAD byte por byte.** `popEsqFrame` deja de re-agendarse
+cuando el dibujo sale de la vista —lo decide su `IntersectionObserver`— pero **no limpia**
+`_popEsq.rafId`. Al volver a verse, `popEsqArrancar` sale por su guarda `if (_popEsq.rafId ...)
+return` y **el bucle no vuelve a arrancar**: el dibujo se queda quieto, con los velos cerrados y
+los chorros apagados, hasta que algo más lo reinicie.
+
+Lo destapó TC-585 al medir el latido: las cuarenta muestras daban el velo cerrado sobre una
+válvula que late perfectamente, y el denominador por `rafId` daba un **falso «sí»** —el id viejo
+sigue puesto—. El denominador correcto es `_popEsq.visible`.
+
+**Lo que falta decidir:** si `popEsqFrame` pone `_popEsq.rafId = 0` cuando deja de re-agendarse.
+Es una línea, pero toca el bucle del dibujo, que esta orden sólo autoriza a ampliar.
+**Mientras tanto:** TC-585 lo sortea soltando el id antes de medir, y mide el latido por su
+dueño `_popValvApertura`, que es determinista. La app no se tocó.
+
+## POPC-l · El botón «Usar este valor» del Z mide 95×30 y no 44 px
+
+Vive en la **guardería** (`#mfs-campos`), igual que el campo manual `mfs_z_raiz` que MARFAN-2
+puso ahí, así que sólo tiene caja cuando la tarjeta de criterios está abierta: con la tarjeta
+cerrada da 0×0 y con ella abierta, **556×66** la fila, **233×16** el valor y **95×30** el botón.
+
+Los 30 px de alto son los de la tarjeta, no un descuido: **MF2-f** ya declara que «el piso táctil
+de la tarjeta baja a 26-30 px con el mouse» por una media query deliberada de esa pantalla. El
+botón nuevo es consistente con los veinticuatro que ya había.
+**Lo que falta decidir:** si esa media query se revisa. Es la pantalla entera, no este botón.

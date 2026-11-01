@@ -63351,11 +63351,16 @@ function _popTrzEA(w, h, p0, e, a) {
   return d;
 }
 /* Donde cae la letra de cada onda, con el mismo calculo de `placeEA`: la primera aparicion
-   visible del pico dentro del ancho del trazado. Devuelve `null` cuando no entra. */
+   visible del pico dentro del ancho del trazado. Devuelve `null` cuando no entra.
+   ⚠️ LA ALTURA SE ACOTA, Y NO ES UN ADORNO. Sin el tope, con una onda alta y una caja baja la
+   letra queda con `y` NEGATIVA —por encima del grupo— y se sale del lienzo: medido, TC-585 la
+   cazo con «E ; A» fuera del viewBox. El piso de 8 la deja dentro de su trazado y el techo,
+   dentro de la caja. */
 function _popTrzLetra(p0, aw, ah, c, v) {
   for (let k = -1; k <= 2; k++) {
     const x = (c - p0 + k) / 1.6 * aw;
-    if (x >= 3 && x <= aw - 3) return { x: x, y: (ah - 1) - v * (ah - 3) - 1.8 };
+    if (x >= 3 && x <= aw - 3)
+      return { x: x, y: Math.max(8, Math.min(ah - 2, (ah - 1) - v * (ah - 3) - 1.8)) };
   }
   return null;
 }
@@ -63790,7 +63795,12 @@ function popEsqMontar() {
     n.trz.pEA = _popEsqNodo('path', Object.assign({ stroke:'var(--text2)' }, _tz), n.trz.gEA);
     n.trz.lE = _popEsqTexto(n.trz.gEA, 0, 0, 'E', 9, 600, 'middle', 'var(--text2)');
     n.trz.lA = _popEsqTexto(n.trz.gEA, 0, 0, 'A', 9, 600, 'middle', 'var(--text2)');
-    [n.trz.lE, n.trz.lA].forEach(function (t) { t.setAttribute('opacity', 0.75) }); }
+    /* ⚠️ NACEN CON SU PROPIO `display:none`, Y NO ALCANZA CON APAGAR EL GRUPO. Un `display:none`
+       en el padre NO se hereda al valor computado del hijo, y `getBBox` sigue devolviendo caja:
+       asi, sin posicionar, las dos letras quedaban en el origen del grupo, superpuestas entre
+       si y fuera del lienzo. Lo cazo TC-585, que mide el computado de cada `<text>`. */
+    [n.trz.lE, n.trz.lA].forEach(function (t) { t.setAttribute('opacity', 0.75);
+      t.setAttribute('display', 'none'); }); }
   n.jet = {};
   POP_ESQ_JETPOS.forEach(function (jp) {
     const G = _popEsqNodo('g', { 'data-pop-esq':'jet-' + jp.k, display:'none',
@@ -64441,15 +64451,24 @@ function popEsqFrame(ahora) {
       n.trz.gEA.setAttribute('transform', 'translate(' + (gAI.x + 4).toFixed(1) + ' '
         + (gAI.y + gAI.h / 2 + 10).toFixed(1) + ')');
       n.trz.pEA.setAttribute('d', _popTrzEA(aw, ah, _p0, ve, va));
+      /* ⚠️ LA SEGUNDA LETRA SE ESCONDE SI CAE SOBRE LA PRIMERA, Y LO CAZO TC-585 CON «E x A».
+         Los dos picos estan separados en el ciclo —0,2 y 0,68— pero el trazado recorre 1,6
+         ciclos y se envuelve, asi que en algunas fases las dos apariciones visibles caen
+         juntas. Dos letras encimadas no dicen cual es cual: se publica la que entra. */
+      let _px = null;
       [['lE', 0.2, ve], ['lA', 0.68, va]].forEach(function (x) {
         const pos = _popTrzLetra(_p0, aw, ah, x[1], x[2]);
-        if (pos) { n.trz[x[0]].setAttribute('x', pos.x.toFixed(1));
+        const choca = pos && _px !== null && Math.abs(pos.x - _px) < 11;
+        if (pos && !choca) { n.trz[x[0]].setAttribute('x', pos.x.toFixed(1));
                    n.trz[x[0]].setAttribute('y', pos.y.toFixed(1));
-                   n.trz[x[0]].setAttribute('display', 'inline'); }
+                   n.trz[x[0]].setAttribute('display', 'inline');
+                   _px = pos.x; }
         else n.trz[x[0]].setAttribute('display', 'none');
       });
       n.trz.gEA.setAttribute('display', 'inline');
-    } else n.trz.gEA.setAttribute('display', 'none'); }
+    } else { n.trz.gEA.setAttribute('display', 'none');
+      /* y las dos letras con el, por lo mismo: el grupo oculto no las apaga. */
+      n.trz.lE.setAttribute('display', 'none'); n.trz.lA.setAttribute('display', 'none'); } }
   /* La helice del Impella gira CONTINUO y no con el latido: una bomba axial no pulsa. */
   if (d.impella) n.prop.setAttribute('transform', 'rotate(' + ((ahora / 3) % 360).toFixed(0) + ' 461 257)');
   if (!_popEsq.reduce && _popEsq.visible) _popEsq.rafId = requestAnimationFrame(popEsqFrame);
@@ -149263,8 +149282,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261101-1834';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793568865556;                 /* eco-build-ms */
+const ECO_BUILD    = '20261101-2008';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793574521952;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -149350,7 +149369,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261101-1834</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261101-2008</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

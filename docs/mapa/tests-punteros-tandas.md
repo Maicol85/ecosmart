@@ -408,3 +408,23 @@ Fichas: `docs/mapa/tests-fichas-591.md`. Mutaciones: `scripts/_mut_marfan2.py` (
   publicadas con su folio dentro de su globo de grupo.
 - **TC-590 (A2)** — la tarjeta pasa de tres columnas a la izquierda con sus tres bandas y la
   figura a la derecha, con dos condiciones **nuevas** (A2b y A2c).
+
+## Tanda POP-C (2026-11-02) — TC-595 a TC-600
+
+Seis casos, uno por zona, con sus denominadores y sus controles negativos. Los seis **caen
+contra HEAD por condiciones y ninguno por excepción** (95 condiciones en rojo) y sobreviven a
+**31 mutaciones dirigidas, 31 muertas**.
+
+| caso | qué fija |
+|---|---|
+| **TC-595** | el selector del tipo de válvula operada, en las cuatro válvulas y los dos sentidos |
+| **TC-596** | la línea de Marfan sólo con lo positivo, y el Z de la raíz calculado |
+| **TC-597** | el corte de bajo gasto estricto, la precarga sin banda, el pericardio por signos y los dos rótulos |
+| **TC-598** | «Integrar» con cualquier dato, y los tres avisos que salían sin color |
+| **TC-599** | las válvulas de la demo, los chorros y los catéteres |
+| **TC-600** | las cavidades, el anillo del derrame, los trazados y el esquema en el PDF |
+
+Las fichas, en **`docs/mapa/tests-fichas-595.md`** (archivo propio).
+**Adaptado:** `TC-594`, cuyas condiciones (D1), (D2) y (D3) afirmaban que el Z calculado **no
+existe** — es el día que ellas mismas anunciaban. Las tres quedan **invertidas**, no borradas, y
+cada una gana una condición que la hace poder fallar otra vez.

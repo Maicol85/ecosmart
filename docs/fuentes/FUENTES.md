@@ -9060,3 +9060,118 @@ se haya leído en la hoja). Queda el campo manual. → `docs/PENDIENTES.md` **MF
 La **ecuación del Z**. No hay ninguna en la aplicación y no se escribió ninguna: el artículo que
 la orden nombra no está en la biblioteca, y el que el Loeys cita para el método que la orden
 espera —su referencia 13, Roman 1989— tampoco.
+
+---
+
+## La tanda POP-C (2026-11-02)
+
+Dos fuentes nuevas, las dos **leídas en imagen**, y un censo que dio vuelta una premisa.
+
+### 1 · Devereux 2012 — el modelo del Z de la raíz aórtica
+
+**Devereux RB, de Simone G, Arnett DK, Best LG, Boerwinkle E, Howard BV, Kitzman D, Lee ET,
+Mosley TH Jr, Weder A, Roman MJ. «Normal Limits in Relation to Age, Body Size and Gender of
+Two-Dimensional Echocardiographic Aortic Root Dimensions in Persons ≥15 Years of Age».
+Am J Cardiol 2012;110(8):1189-94.**
+
+Archivo: `06_Aorta/ Devereux RB, de Simone G, … 110(8)-1189-94..pdf` — **el nombre empieza con un
+espacio**. Lo guardó el médico el **2026-11-01**; MARFAN-2 lo había censado por contenido sobre
+los 245 PDF de las 28 carpetas y **no estaba**, y por eso aquella tanda paró el cálculo (MF2-a).
+
+⚠️ **EL FOLIO DE REVISTA NO ES DERIVABLE Y SE DECLARA.** El PDF es el **manuscrito de autor de
+NIH-PA**, de **catorce hojas**, cuyo pie impreso dice «Devereux et al. Page N» — la numeración
+del manuscrito, no la de la revista, que son seis páginas (1189-94). No hay regla de offset que
+comprobar, así que se cita **por hoja con su pie impreso**.
+
+| qué | hoja | transcripto en imagen, glifo por glifo |
+|---|---|---|
+| población | 1 | «Among 1,207 apparently normal individuals ≥15 years old (54% female)» |
+| técnica | 3 | «Aortic root diameter was measured … at **end-diastole by the leading-edge convention** in the parasternal or occasionally apical long-axis view that showed the maximum diameter parallel to the aortic annular plane» |
+| superficie corporal | 2 | «body surface area (BSA) was calculated by the **Dubois and Dubois** method: BSA (m²) = 0.007184 × H^0.725 × W^0.425 with H height in cm, W weight in kg» |
+| ecuación (abstract) | 1 | «for BSA: 2.423+(age [yrs]*0.009) + (bsa [m²]*0.461) -(sex [1=M, 2=F]*.267) SEE = 0.261 cm» |
+| ecuación (abstract, altura) | 2 | «for height: 1.519+(age [yrs]*0.010) + (ht [cm]*.010)-(sex [1=M, 2=F]*.247) SEE = 0.215 cm» |
+| desvío | 4 | «The standard errors of the estimate, **upon which calculation of z-scores is based**, were 0.261 and 0.215 cm» |
+| bandas | 4 | «mild, moderate and severe aortic dilatation can be recognized by positive z-score values from these models of **1.97–3.0, 3.01–4.0 and >4.0**» |
+
+**Tabla 1, hoja 13** («Page 13»), leída en imagen rotada:
+
+| Modelo con superficie corporal | B | SE | β | T | p |
+|---|---|---|---|---|---|
+| Intercept | 2.423 | 0.261 | | | |
+| Age (decade) | 0.090 | 0.0044 | 0.387 | 20.3 | <0.0001 |
+| Body Surface Area (m²) | 0.461 | 0.036 | 0.467 | 21.7 | <0.0001 |
+| Gender: Male | −0.267 | 0.025 | −0.219 | −10.4 | <0.0001 |
+| Gender: Female | −0.534 | | | | |
+
+| Modelo con altura | B | SE |
+|---|---|---|
+| Intercept | 1.519 | 0.215 |
+| Age (decade) | 0.10 | 0.004 |
+| Height (cm) | 0.010 | 0.001 |
+| Gender: Male | −0.247 | 0.017 |
+| Gender: Female | −0.494 | |
+
+**Nota:** 0.090 por **década** = 0.0090 por año, idéntico al 0.009 del abstract. Las dos formas
+coinciden. **Se implementa el modelo con superficie corporal** y no el de altura: dos Z del mismo
+paciente en la misma pantalla se leen como un error.
+
+**Las tres cuentas a mano, hechas fuera de la página y verificadas contra la app con diferencia
+menor que 1e-9:**
+
+| caso | BSA DuBois | predicho (cm) | Z |
+|---|---|---|---|
+| hombre 40 años, 70 kg, 170 cm, 38 mm | 1.8097 | 3.3503 | **+1.7231** |
+| mujer 55 años, 62 kg, 160 cm, 36 mm | 1.6448 | 3.1423 | **+1.7538** |
+| borde, 15 años, 55 kg, 165 cm, 30 mm | 1.5984 | 3.0279 | **−0.1068** |
+| 14 años | — | — | **no se calcula** |
+
+### 2 · Consenso de Shock Cardiogénico, SAC 2024 — la hemodinámica del posoperatorio
+
+**Rev Argent Cardiol 2024;92 Supl. 3**, sección **6.14 «Síndrome de bajo gasto posoperatorio»**.
+
+⚠️ **ARCHIVADO EN LA CARPETA EQUIVOCADA:** `19_Pulmon_POCUS/COMPLETO-B-52.pdf`. **No se movió ni
+se renombró**, que es lo que la orden pide. POP-V2 ya lo había documentado.
+**Regla de folio: folio = hoja − 8**, comprobada en el encabezado impreso de las hojas 91, 92 y 93.
+
+| qué | hoja / folio | transcripto en imagen |
+|---|---|---|
+| los cinco criterios | 91 / 83 | «hipotensión arterial (PAS < 90 mm Hg) … oligoanuria (diuresis < de 0,5 mL/kg/hora) … ácido láctico elevado (> de2 mm/L), SvO₂ (saturación venosa mixta) < 65% …» |
+| el índice cardíaco | 91 / 83 | «El patrón hemodinámico clásico del SBVM de origen cardíaco se objetiva por un **índice cardíaco (IC) < 2,2 L/min/m²** acompañado de presiones de fin diástole elevadas» |
+| las presiones de llenado | 92 / 84 | «La utilización de las variables hemodinámicas **estáticas** (PVC, W) como únicos elementos para predecir el grado óptimo de precarga es **poco útil**; se prefieren las variables **dinámicas** (VPP, VVS)» |
+| el ETE | 93 / 85 | «Se recomienda la utilización del ETE en todo paciente con sospecha de taponamiento cardíaco posoperatorio» — **Clase I · Nivel B** |
+
+**El «de2» sin espacio es del original**, verificado en imagen. **El operador del índice cardíaco
+es ESTRICTO.** Los cinco criterios coinciden uno por uno con lo que la orden anticipaba: **no hubo
+que parar ningún ítem**.
+
+### 3 · El censo que dio vuelta una premisa: el corte de 21 mm del pericardio
+
+La orden pide alinear a 20 mm «sólo si el 21 es el corte de gravedad del derrame». **No lo es, y
+no hay nada que alinear:**
+
+| dónde | valor hoy | fuente |
+|---|---|---|
+| `DPT_VCI_PLETORA_MM` (plétora de la cava) | **20** | ESC 2025 de pericarditis, Tabla 17, folio 62 |
+| `DPT_TAM` (tamaño del derrame) | severo **>20**, moderado 10-20, leve <10 | ya alineado |
+| el `vciD > 21` de la probabilidad de HTP | 21 | **ESC/ERS 2022**, Tabla 10, folio 28 — otra guía, otro módulo |
+
+El único 21 mm de la aplicación es el de la categoría C del HTP, y el código **ya declara** esa
+divergencia como deliberada. **Parado y reportado.**
+
+### Cambios de evidencia
+
+| qué | antes | ahora | fuente |
+|---|---|---|---|
+| el Z de la raíz | sólo manual | manual **o** estimado, con el manual mandando | Devereux 2012, Tabla 1, hoja 13 |
+| el globo de los criterios aparte | «Z calculado: no disponible (falta la fuente del método)» | explica el método, su límite de edad y su salvedad de técnica | ídem |
+| el corte de bajo gasto del posoperatorio | «2,2 o menos» | **«por debajo de 2,2»** | SAC 2024, hoja 91, folio 83 |
+| la precarga | banda de 12 a 18, con veredicto | el valor con su salvedad, sin graduar | SAC 2024, hoja 92, folio 84 |
+| el globo de señales | sin el consenso | nombra la sección 6.14 con sus folios | ídem |
+| el ETE ante sospecha de taponamiento | no se decía | en el globo, parafraseado y sin imperativos | SAC 2024, hoja 93, folio 85 |
+| la línea de Marfan | enumeraba las ausencias | sólo lo positivo | decisión del médico, sin fuente nueva |
+| los cortes del VD del posoperatorio | sin rótulo | «cortes de la cápsula de TEP» | ya eran de la AHA/ACC 2026 |
+
+⚠️ **NINGÚN CORTE CLÍNICO SE INVENTÓ.** Los tamaños del dibujo —las cavidades, el anillo del
+derrame, el tamaño de los chorros— son **geometría ilustrativa** y lo único que afirman es el
+**orden**: no hay fuente que convierta «dilatación moderada» en un factor de escala. Van sin cita,
+igual que el nivel de líquido pleural desde POP-B.

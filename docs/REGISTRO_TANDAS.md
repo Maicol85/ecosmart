@@ -376,3 +376,52 @@ Laboratorio**, que quedó vencida pero está fuera del alcance de la orden.
 
 **Dónde está todo:** `docs/mapa/marfan2-pantalla-z.md` (mapa nuevo, 12,4 KB) y
 `docs/mapa/tests-fichas-591.md` (fichas, archivo propio).
+
+---
+
+## POP-C — el posoperatorio terminado, Marfan y el dibujo al PDF · 2026-11-02
+
+**Commits** (`git log --format="%h|%ad|%s" --date=short --reverse`):
+
+```
+4593686|2026-11-01|POP-C-1: el selector del tipo de valvula operada sigue a Valvulas
+afdd4da|2026-11-01|POP-C-2: la linea de Marfan dice solo lo positivo, y el Z de la raiz se calcula
+7356d94|2026-11-01|POP-C-3: la hemodinamica del posoperatorio con el consenso de shock
+20b164a|2026-11-01|POP-C-4: integrar con cualquier dato, y los tres avisos que salian sin color
+e14e17a|2026-11-01|POP-C-5: las valvulas del dibujo son las de la demo v9, con su latido
+e2a794b|2026-11-01|POP-C-6: los chorros de insuficiencia, sincronizados con su valvula
+3093691|2026-11-01|POP-C-7: los cateteres del Swan y del PiCCO en el dibujo
+8f50dc6|2026-11-01|POP-C-8: las cavidades siguen al dato medido, y el anillo del derrame al tamano
+4fe6947|2026-11-01|POP-C-9: los trazados de TAPSE y de E/A dentro de las cavidades
+1e3514e|2026-11-01|POP-C-10: el esquema del posoperatorio entra al PDF
+```
+(más el commit 11, de cobertura y documentación.)
+
+**Qué hizo:**
+1. **El selector del tipo de válvula operada** sigue a Válvulas: el sentido Válvulas →
+   posoperatorio **no funcionaba en ninguna de las cuatro** —ni al poner la prótesis, ni al
+   cambiarla, ni al sacarla— porque `popCxVSync` tenía un solo llamador, `popSync`, que el
+   barrido de espejos excluye a propósito.
+2. **La línea de Marfan** escribe sólo lo positivo, y **el Z de la raíz se calcula** con la
+   ecuación de Devereux 2012, leída en imagen: cierra **MF2-a**. El manual siempre gana, el
+   calculado no se guarda y no llega al papel.
+3. **La hemodinámica del posoperatorio** con el consenso de la SAC 2024: el corte de bajo gasto
+   pasa a estricto —sólo en el posoperatorio, declarando la divergencia con Hemodinámica—, la
+   precarga muestra su valor sin banda ni veredicto, el pericardio lista sus signos y los dos
+   rótulos nombran de dónde vienen el patrón y los cortes del VD.
+4. **«Integrar al informe» con cualquier dato** (cierra **POPB-a**) y los **tres avisos globales**
+   que salían sin color (cierra **POPB-h**): el anillo del botón **no se dibujaba en absoluto**.
+5. **El dibujo**: las válvulas de la demo v9 con su apertura rotatoria, los chorros de
+   insuficiencia sincronizados con la fase contraria a su válvula, los catéteres del Swan y del
+   PiCCO, las cavidades siguiendo al dato medido, el anillo del derrame creciendo con el tamaño
+   (cierra **POPB-d**) y los trazados de TAPSE y de E/A.
+6. **El esquema entra al PDF** con su casilla, su epígrafe fijo y su fila en el registro de
+   diagramas (cierra **POPB-e**).
+
+**Qué PARÓ y por qué:** el **corte de 21 mm del pericardio**, porque no existe —`DPT_VCI_PLETORA_MM`
+ya vale 20 y los únicos 21 mm son de la probabilidad de HTP, que es otra guía y otro módulo—.
+
+**Qué dejó pendiente:** `POPC-a` a `POPC-j` en `docs/PENDIENTES.md`.
+
+**Dónde está todo:** `docs/mapa/popc-posoperatorio-marfan.md` (mapa nuevo, 17,2 KB) y
+`docs/mapa/tests-fichas-595.md` (fichas, archivo propio).

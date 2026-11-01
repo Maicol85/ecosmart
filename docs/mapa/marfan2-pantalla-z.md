@@ -220,3 +220,23 @@ Sondas: `_probe_marfan2inv` (inventario y la tarjeta en cinco anchos) · `_probe
 ⚠️ **El suite corre Chrome a 756 px**, o sea en la maquetación de celular: lo lado a lado y el
 «entra en 1440×900» los miden las **sondas**, y los casos miden la **regla** de la hoja de estilos
 y la **estructura**. TC-592 (B7) fija además el techo a ese ancho: HEAD daba 1850 px.
+
+---
+
+## La tanda POP-C (2026-11-02) — el Z calculado, y la línea del informe
+
+**Cierra `MF2-a`.** El artículo de Devereux 2012 **está en la biblioteca desde el 2026-11-01** —
+MARFAN-2 lo había censado por contenido y no estaba — y el cálculo se implementó. El mapa entero
+está en **`docs/mapa/popc-posoperatorio-marfan.md` § 2**:
+
+- `mfsZCalc` calcula con el modelo de **superficie corporal** de la Tabla 1, con DuBois **dentro
+  de la función** —la de la app es Mosteller y no se toca—;
+- `mfsZ` pasa a devolver el **Z efectivo**: el manual siempre gana, si no el calculado, si no
+  «sin dato». Las reglas 1, 2, 3 y 7 lo leen por ahí;
+- **nada se escribe solo**: la fila muestra el valor, el método y un botón, que es la única
+  puerta al campo guardado `mfs_z_raiz`;
+- por debajo de **15 años** no se estima, y si falta un insumo se lo **nombra**;
+- del globo `mfs-aparte` salió «Z calculado: no disponible (falta la fuente del método)».
+
+Y **la línea del informe** de los criterios aparte pasa a escribir **sólo lo positivo**, con una
+sola oración corta cuando la ectopia y la historia familiar están **las dos** en «No».

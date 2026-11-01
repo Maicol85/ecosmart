@@ -270,3 +270,26 @@ contracción por TAPSE y FEVI, el septum en D, los chorros de insuficiencia y lo
 | `scripts/_probe_popb_esq.mjs` | el dibujo: censo, superposiciones, firma, capas, válvulas y latido |
 | `scripts/_probe_popbab.mjs` + `scripts/_ab_popbdiff.mjs` | el A/B de superficies, con las escenas nuevas de POP-B |
 | `scripts/_mut_popb.py` | el barrido de mutaciones dirigidas |
+
+---
+
+## La tanda POP-C (2026-11-02) — lo que agregó al dibujo
+
+Cinco capas nuevas y dos cosas que esta tanda había dejado declaradas. El mapa entero está en
+**`docs/mapa/popc-posoperatorio-marfan.md` § 5**:
+
+- **los símbolos de válvula se reemplazaron** por los de la demo v9: círculo r=10, velos que
+  **rotan** sobre su bisagra con la excursión de 72 grados, y la biológica con sus dos curvas y
+  sus dos pivotes. Los tres soportes rectos de POP-B-7a se retiraron: la demo no los tiene;
+- **los chorros de insuficiencia**, con `plume` de la demo, sincronizados con la fase **contraria**
+  a la apertura de su propia válvula;
+- **los catéteres del Swan y del PiCCO**, con el globo que se infla;
+- **las cavidades siguen al dato medido** cuando lo hay —la clasificación de las aurículas, la
+  FEVI, el TAPSE y el tabique en D— y quedan como estaban cuando no;
+- **los trazados de TAPSE y de E/A** dentro de sus cavidades.
+
+**Cierra POPB-d:** el anillo del derrame ahora **sí** sigue al tamaño (6, 11 y 17 px), con la
+marca del compromiso sumando por encima.
+**Cierra POPB-e:** el esquema entra al PDF, con su casilla y su epígrafe fijo.
+**POPB-f sigue abierto:** las válvulas laten con la frecuencia cargada y las cavidades con su
+período propio, que es lo que esta orden vuelve a pedir expresamente.

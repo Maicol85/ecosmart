@@ -431,3 +431,22 @@ dejó de ser cierto:
 - **El esquema ganó cuatro capas** —el nivel de líquido pleural, el puente, la malla y los tres
   drenajes— y **las cuatro válvulas operadas**, y sus rótulos bajaron de tamaño: ver el mapa de
   POP-B § 5.
+
+---
+
+## La tanda POP-C (2026-11-02) — lo que movió de esta pantalla
+
+Cuatro cosas de esta pantalla cambiaron, y el mapa entero está en
+**`docs/mapa/popc-posoperatorio-marfan.md`**:
+
+- **el selector del tipo de válvula operada** ahora sigue a Válvulas en los dos sentidos:
+  `popCxVSync` entró en `ESPEJOS_VIVOS`, que era su único llamador faltante (§ 1);
+- **el corte de bajo gasto** es estricto y tiene dueño propio, `_popIcBanda`, declarando la
+  divergencia con `_icBanda`, que es de Hemodinámica y no se tocó (§ 3a);
+- **la precarga** dejó de graduarse: muestra el valor, su origen y una salvedad, y la pregunta
+  pasa a «¿Presión capilar pulmonar?» (§ 3b);
+- **«Integrar al informe»** queda habilitado con **cualquier** dato cargado, con
+  `_popHayAlgunDato` como dueño del predicado (§ 4a). Cierra **POPB-a**.
+
+Y la tarjeta del esquema gana la casilla **«Incluir el esquema en el PDF»** (`pop_esq_pdf`), que
+es el único campo guardado que esa tanda crea (§ 6).
