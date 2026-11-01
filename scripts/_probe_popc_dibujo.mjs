@@ -119,7 +119,8 @@ const CUERPO = `(async (e) => {
   [['im','im_grado'],['it','it_grado'],['ia','ia_grado'],['ip','ip_grado']].forEach(x => {
     const el = EL(x[1]); R.gradoLeido[x[1]] = el ? String(el.value) : 'NO EXISTE';
   });
-  for (let s2 = 0; s2 < 40; s2++) {
+  R.globoRx = { min: 99, max: 0 };
+  for (let s2 = 0; s2 < 110; s2++) {
     ['im','it','ia','ip'].forEach(k => {
       const g = svg.querySelector('[data-pop-esq="jet-' + k + '"]');
       if (!g) return;
@@ -131,11 +132,49 @@ const CUERPO = `(async (e) => {
       if (bb) R.jets[k].areaMax = Math.max(R.jets[k].areaMax, Math.round(bb.width * bb.height));
       R.jets[k].opMax = Math.max(R.jets[k].opMax, parseFloat(g.getAttribute('opacity') || '0'));
     });
+    { const sg2 = svg.querySelector('[data-pop-esq="cat-swan"] ellipse');
+      if (sg2 && sg2.getClientRects().length) {
+        const rx = parseFloat(sg2.getAttribute('rx') || '0');
+        R.globoRx.min = Math.min(R.globoRx.min, rx); R.globoRx.max = Math.max(R.globoRx.max, rx);
+      } }
     await W(40);
   }
 
-  /* 7 · LOS CATETERES */
-  R.cat = { swan: on('cat-swan'), picco: on('cat-picco') };
+  /* 7 · LOS CATETERES, y su CRUCE con lo que no deben pisar. La orden pide que no se
+     superpongan con la aorta, el balon ni la asistencia (ECMO, Impella). Se cruzan las cajas
+     YA transformadas -getBoundingClientRect, no getBBox: sobre un <g> ese devuelve
+     coordenadas LOCALES y reporta solapes que no existen, que es lo que POP-B pago-. */
+  R.cat = { swan: on('cat-swan'), picco: on('cat-picco'), cruces: [], globo: null };
+  { const bal = svg.querySelector('[data-pop-esq="balon"]');
+    if (bal) R.cat.balonRx = bal.getAttribute('rx');
+    const sg = svg.querySelector('[data-pop-esq="cat-swan"] ellipse');
+    if (sg && sg.getClientRects().length) R.cat.globo = [sg.getAttribute('rx'), sg.getAttribute('ry')];
+    const caja = el => { if (!el || !el.getClientRects().length) return null;
+      const b = el.getBoundingClientRect(); return { x:b.x, y:b.y, w:b.width, h:b.height } };
+    const cruza = (a, b2) => { if (!a || !b2) return 0;
+      const ix = Math.max(0, Math.min(a.x+a.w, b2.x+b2.w) - Math.max(a.x, b2.x));
+      const iy = Math.max(0, Math.min(a.y+a.h, b2.y+b2.h) - Math.max(a.y, b2.y));
+      return Math.round(ix * iy) };
+    /* se comparan los TRAZOS del cateter uno por uno, no el grupo entero: el grupo abarca una
+       caja enorme que toca todo y no diria nada */
+    const trazos = [];
+    ['cat-swan','cat-picco'].forEach(k => {
+      const g = svg.querySelector('[data-pop-esq="' + k + '"]');
+      if (!g || !g.getClientRects().length) return;
+      Array.prototype.forEach.call(g.querySelectorAll('path,ellipse'), (el, i) => {
+        trazos.push([k + '#' + i, caja(el)]);
+      });
+    });
+    [['aorta', svg.querySelector('[data-pop-esq="ao"]')],
+     ['balon', bal],
+     ['ecmova', svg.querySelector('[data-pop-esq="ecmova"]')],
+     ['ecmovv', svg.querySelector('[data-pop-esq="ecmovv"]')],
+     ['impella', svg.querySelector('[data-pop-esq="impella"]')]].forEach(o => {
+      const cb = caja(o[1]); if (!cb) return;
+      trazos.forEach(t => { const a2 = cruza(t[1], cb);
+        if (a2 > 0) R.cat.cruces.push(t[0] + ' x ' + o[0] + ' = ' + a2) });
+    });
+  }
 
   /* 8 · LAS CAVIDADES, por su caja; y el anillo del derrame, por su grosor. */
   R.cav = {};
@@ -213,12 +252,15 @@ const CUERPO = `(async (e) => {
     totSup += (R.sup || []).length; totFuera += (R.fuera || []).length;
     console.log('\n== ' + k + ' ==  (seccion abierta: ' + R.denomAbierta + ', ' + R.nTextos + ' textos)');
     if (R.sinSvg) { console.log('   SIN SVG'); continue }
-    console.log('   chorros (40 muestras del ciclo): ' + ['im','it','ia','ip'].map(x => {
+    console.log('   chorros (110 muestras (4,4 s: cubre el ciclo de 4 s del globo)): ' + ['im','it','ia','ip'].map(x => {
       const j = R.jets[x];
-      return x + '=' + j.n + '/40' + (j.n ? ' area' + j.areaMax + ' op' + j.opMax.toFixed(2) : '');
+      return x + '=' + j.n + '/110' + (j.n ? ' area' + j.areaMax + ' op' + j.opMax.toFixed(2) : '');
     }).join('  '));
     console.log('   grados leidos: ' + JSON.stringify(R.gradoLeido));
-    console.log('   cateter : swan=' + R.cat.swan + ' picco=' + R.cat.picco);
+    console.log('   cateter : swan=' + R.cat.swan + ' picco=' + R.cat.picco
+      + '  globo rx ' + (R.globoRx.max ? R.globoRx.min.toFixed(2) + ' a ' + R.globoRx.max.toFixed(2) : 'sin globo')
+      + '  CRUCES=' + R.cat.cruces.length
+      + (R.cat.cruces.length ? ' -> ' + R.cat.cruces.slice(0,4).join(' | ') : ''));
     console.log('   cavidad : ' + Object.keys(R.cav).map(x => x + '=' + (R.cav[x] ? R.cav[x].join('x') : '-')).join(' '));
     console.log('   anillo  : ' + JSON.stringify(R.anillo));
     console.log('   trazados: tapse=' + R.trz.tapse + ' ea=' + R.trz.ea);

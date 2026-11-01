@@ -63463,6 +63463,9 @@ function popEsquema() {
     bciaTiming: bciaTiming, drogas: drogas,
     cabg: cabg, aortaInj: aortaInj, drenD: drenD, drenI: drenI, drenM: drenM,
     fc: fc, vop: _vop,
+    /* POP-C-7: el dispositivo de monitoreo, para los dos cateteres. Sale de aca y no se
+       vuelve a leer en el pintor: `popEsquema` devuelve DATOS y el SVG no decide nada. */
+    mon: mon,
     /* Los CUATRO colores del dibujo, resueltos acá para que el SVG no decida nada. */
     cVI: icB ? (icB.cls === 'green' ? 'ok' : icB.cls === 'yellow' ? 'warn' : 'bad') : 'none',
     cVD: !hayVD ? 'none' : (tapseBaja && vdDil) ? 'bad' : (tapseBaja || vdDil) ? 'warn' : 'ok',
@@ -63700,6 +63703,37 @@ function popEsqMontar() {
   /* ══ LOS CHORROS DE INSUFICIENCIA (POP-C-6) ════════════════════════════════════════════
      Un grupo por valvula, con DOS rutas: el relleno translucido y el contorno, que es como la
      demo los dibuja. Se montan una vez y el bucle les cambia la `d` y la opacidad. */
+  /* ══ LOS CATETERES DE MONITOREO (POP-C-7) ══════════════════════════════════════════════
+     Portados de `cSwan` y `cPicco` de la demo v9: linea ENTRECORTADA violeta, un punto en la
+     entrada, un globo oval que se infla en el Swan y un rotulo chico. Las COORDENADAS son las
+     del dibujo de esta app y no las de la demo —su lienzo es otro—, pero el trazo, el patron
+     de guiones, el color y el rotulo son los suyos.
+     ⚠️ EL VIOLETA `#7f77dd` ES EL DE LA DEMO Y NO UNA VARIABLE DEL TEMA: la orden autoriza a
+     copiar su forma, y ese color es parte de la forma. Ademas lo distingue de `--accent2`,
+     que en este dibujo es el color de los cuatro dispositivos de asistencia: un cateter de
+     monitoreo del mismo color que un ECMO se leeria como un dispositivo mas.
+     ⚠️ SOLO LECTURA: lo decide `pop_monitor`, y sin dispositivo elegido no se dibuja nada.
+     EL RECORRIDO DEL SWAN sigue el del cateter real sobre ESTE dibujo: entra por la vena cava
+     en x 284, sube hasta el plano de la cava (y 178), cruza la auricula derecha, baja al
+     ventriculo derecho por el plano tricuspideo (x 336) y sale por la arteria pulmonar hacia
+     la izquierda, donde esta el globo.
+     EL PiCCO son DOS lineas que se UNEN: la arterial baja por la aorta descendente (x 570) y
+     la venosa por la cava (x 284), y se encuentran en y 402 — la franja libre entre el ECMO
+     venoarterial (y 388) y la caja de la curva de presion (y 414). */
+  { const _cat = { fill:'none', stroke:'#7f77dd', 'stroke-width':2, 'stroke-linecap':'round',
+                   'stroke-linejoin':'round', 'stroke-dasharray':'5 4' };
+    n.catSwan = _popEsqNodo('g', { 'data-pop-esq':'cat-swan', display:'none' }, svg);
+    _popEsqNodo('path', Object.assign({ d:'M284 372 L284 178 L332 178 L336 212 L336 252 L312 257 L190 257' }, _cat), n.catSwan);
+    _popEsqNodo('circle', { cx:284, cy:340, r:3, fill:'#7f77dd' }, n.catSwan);
+    n.sgBal = _popEsqNodo('ellipse', { cx:190, cy:257, rx:5, ry:3.5, fill:'#7f77dd',
+      'fill-opacity':0.1, stroke:'#7f77dd', 'stroke-width':1.3 }, n.catSwan);
+    _popEsqTexto(n.catSwan, 190, 240, 'Swan-Ganz', 10, 500, 'middle', '#7f77dd');
+    n.catPicco = _popEsqNodo('g', { 'data-pop-esq':'cat-picco', display:'none' }, svg);
+    _popEsqNodo('path', Object.assign({ d:'M570 322 L570 402 L430 402' }, _cat), n.catPicco);
+    _popEsqNodo('path', Object.assign({ d:'M284 372 L284 402 L430 402' }, _cat), n.catPicco);
+    _popEsqNodo('circle', { cx:570, cy:322, r:3, fill:'#7f77dd' }, n.catPicco);
+    _popEsqNodo('circle', { cx:284, cy:372, r:3, fill:'#7f77dd' }, n.catPicco);
+    _popEsqTexto(n.catPicco, 430, 411, 'PiCCO', 10, 500, 'middle', '#7f77dd'); }
   n.jet = {};
   POP_ESQ_JETPOS.forEach(function (jp) {
     const G = _popEsqNodo('g', { 'data-pop-esq':'jet-' + jp.k, display:'none',
@@ -63958,6 +63992,9 @@ function _popEsqEstatico(d, g) {
     { const p0 = _popValvVelos(0, bio);
       o.vA.setAttribute('d', p0[0]); o.vB.setAttribute('d', p0[1]); }
   });
+  /* Los dos cateteres, decididos por el dispositivo elegido y por nada mas (POP-C-7). */
+  n.catSwan.setAttribute('display', d.mon === 'swan' ? 'inline' : 'none');
+  n.catPicco.setAttribute('display', d.mon === 'picco' ? 'inline' : 'none');
   n.puente.setAttribute('display', d.cabg ? 'inline' : 'none');
   n.malla.setAttribute('display', d.aortaInj ? 'inline' : 'none');
   n.malla.setAttribute('stroke-width', (g.aoW + 3).toFixed(1));
@@ -64184,6 +64221,17 @@ function popEsqFrame(ahora) {
   const cx = (140 + fase * 420).toFixed(1);
   n.cur.setAttribute('x1', cx); n.cur.setAttribute('x2', cx);
   if (d.bcia) n.balon.setAttribute('rx', popEsqBalonRx(fase).toFixed(1));
+  /* ══ EL GLOBO DEL SWAN SE INFLA DE A RATOS (POP-C-7) ═══════════════════════════════════
+     Como en la demo v9: un ciclo propio de 4 segundos, independiente de la frecuencia
+     cardiaca, porque inflar el globo es una maniobra del operador y no un latido. Con
+     «reducir movimiento» queda a medio inflar y quieto. */
+  if (d.mon === 'swan' && n.sgBal) {
+    const _c4 = _popEsq.reduce ? 0.5 : ((ahora / 1000) % 4) / 4;
+    const inf = _popEsq.reduce ? 0.5
+      : (_c4 < 0.2 ? _c4 / 0.2 : (_c4 < 0.35 ? 1 : (_c4 < 0.55 ? 1 - (_c4 - 0.35) / 0.2 : 0)));
+    n.sgBal.setAttribute('rx', (3 + 6 * inf).toFixed(2));
+    n.sgBal.setAttribute('ry', (2 + 3 * inf).toFixed(2));
+  }
   if (d.ecmoVA) n.ecmo.setAttribute('stroke-dashoffset', (-(ahora / 40) % 14).toFixed(1));
   if (d.ecmoVV) n.ecmoVV.setAttribute('stroke-dashoffset', (-(ahora / 40) % 14).toFixed(1));
   /* ══ EL LATIDO DE LAS VALVULAS OPERADAS (POP-B-7b) ═════════════════════════════════════
@@ -148956,8 +149004,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261101-1808';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793567305407;                 /* eco-build-ms */
+const ECO_BUILD    = '20261101-1813';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793567618209;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -149043,7 +149091,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261101-1808</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261101-1813</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
