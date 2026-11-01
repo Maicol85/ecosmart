@@ -342,6 +342,25 @@ const ESCENAS = {
   azulSolo: { campos: { peso: '70', talla: '170', pop_cx_horas: '6', pop_sw_gc: '3.2',
                         pop_sw_pam: '70', pop_azul_dosis: '2' },
               chk: ['pop_azul_activa'], sel: { pop_monitor: 'swan' }, integrar: ['pop'] },
+  /* ── LOS DATOS HEMODINAMICOS DEL COMMIT 3 ────────────────────────────────────────────────
+     dhInt   -> relleno capilar y diuresis cargados e integrados: es la unica forma de que sus
+                dos lineas lleguen al informe y a la hoja del PDF.
+     dhEsp   -> los CUATRO espejos tipeados DESDE el posoperatorio. Lo que tiene que cambiar es
+                el campo del DUENO (`hemo_fc`, `ao_pas`, `hemo_pam`, `ao_pad`) y lo que ese dato
+                ya movia; los espejos no se guardan y el A/B lo comprueba porque no aparecen en
+                la foto de `campos`.
+     dhSwan  -> control de la compuerta: con Swan-Ganz las dos puertas de FC y PAM se esconden,
+                y el papel no puede cambiar por eso. */
+  dhInt:  { campos: { peso: '70', talla: '170', pop_cx_horas: '6', pop_sw_gc: '3.2',
+                      pop_sw_pam: '70', pop_lactato: '3', pop_relleno_cap: '4',
+                      pop_diuresis: '20' },
+            sel: { pop_monitor: 'swan' }, integrar: ['pop'] },
+  dhEsp:  { campos: { peso: '70', talla: '170', pop_cx_horas: '6',
+                      'pop-esp-fc': '82', 'pop-esp-pas': '110', 'pop-esp-pad': '60' },
+            sel: { pop_monitor: '' }, integrar: ['pop'] },
+  dhSwan: { campos: { peso: '70', talla: '170', pop_cx_horas: '6', pop_sw_gc: '3.2',
+                      pop_sw_pam: '70', pop_sw_fc: '90' },
+            sel: { pop_monitor: 'swan' }, integrar: ['pop'] },
   /* ── LA PAM Y SUS CUATRO FUENTES, CON LA LINEA ARTERIAL ───────────────────────────────────
      `pamArt` elige «Presion arterial invasiva solamente», que es la opcion que hasta esta tanda
      no abria ningun campo. `pamArtSwan` tiene las DOS: el Swan gana, por precedencia.

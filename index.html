@@ -1594,6 +1594,21 @@
   #pop_farm_rows .pop-droga-dosis { width:100%; }
   .pop-droga-hd { display:flex; align-items:center; gap:8px; font-size:13px;
                   font-weight:600; color:var(--text); }
+  /* ══ POP · LAS TRES COLUMNAS DEL SWAN Y EL VALOR DERIVADO (POP-A-3) ════════════════
+     Tres columnas explicitas y no un `.grid-3` de flujo por filas: con el flujo, el reparto
+     que salia era «GC+PAD+PSAP | FC+PDAP | PAM+PCP» -medido-, o sea tres columnas que no
+     agrupan nada. Por debajo de 768 px se apilan, como el resto del modulo.
+     `.pop-ro` es el valor DERIVADO: se ve como un campo pero no lo es. Mismo alto que un
+     `input` de la casa para que las tres columnas queden alineadas. */
+  .pop-mon-3 { display:grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap:0 10px;
+               align-items:start; }
+  .pop-mon-c { min-width:0; }
+  .pop-ro { border:1px solid var(--border); border-radius:8px; background:var(--bg3);
+            color:var(--text2); padding:6px 8px; font-size:12px; min-height:19px;
+            box-sizing:border-box; }
+  @media (max-width: 768px) {
+    .pop-mon-3 { grid-template-columns: minmax(0,1fr); }
+  }
   .pop-droga-x { margin-left:auto; background:none; border:0; padding:0; cursor:pointer;
                  color:var(--text2); font-size:13px; line-height:1;
                  min-width:44px; min-height:44px; }
@@ -10611,19 +10626,40 @@ window.cerrarSesionReal = cerrarSesionReal;
     <section class="pop-card" data-pop="pop-mon">
       <div class="pop-card-tit">📡 Monitoreo</div>
         <div id="pop_mon_vacio" style="font-size:11px;color:var(--text2);line-height:1.5;">Sin dispositivo de monitoreo consignado: los valores van en «Datos hemodinámicos».</div>
+        <!-- ══ EL SWAN EN TRES COLUMNAS CON LOGICA (POP-A-3) ═══════════════════════
+             Hasta esta tanda los siete campos iban en un `.grid-3` de flujo por FILAS, asi que
+             el reparto que salia era «gc+pad+paps | fc+papd | pam+pcp» -medido-: tres columnas
+             que no agrupan nada. Hoy son TRES columnas explicitas, cada una un grupo:
+               1 · gasto y frecuencia   FC, GC
+               2 · presiones sistemicas  PAM, PAD (PVC), PCP
+               3 · presiones pulmonares  PSAP, PmAP, PDAP
+             ⚠️ LA PmAP NO ES UN CAMPO: es `(PSAP + 2 × PDAP) / 3`, la misma cuenta que ya hacia
+             `popHemoSync` para la resistencia pulmonar, y esta tanda autoriza UNA lista cerrada
+             de campos nuevos en la que no entra. Va como `<div id="pop-sw-papm">`: no es
+             `input`, `select` ni `textarea`, asi que ningun recolector la toma y no hace falta
+             tocar ninguna de las listas paralelas. El valor lo escribe su dueno unico, que
+             sigue siendo `popHemoSync`. -->
         <div id="pop_sw_wrap" style="display:none;margin-bottom:14px;">
-          <div class="grid-3">
-            <div class="fg"><label for="pop_sw_gc">GC termodilución (L/min)</label><input type="number" id="pop_sw_gc" step="0.1" min="0" inputmode="decimal" oninput="popHemoSync()"></div>
+          <div class="pop-mon-3">
+            <div class="pop-mon-c">
             <div class="fg"><label for="pop_sw_fc">FC (lpm)</label><input type="number" id="pop_sw_fc" step="1" min="0" inputmode="decimal" oninput="popHemoSync()"></div>
+            <div class="fg"><label for="pop_sw_gc">GC (L/min)</label><input type="number" id="pop_sw_gc" step="0.1" min="0" inputmode="decimal" oninput="popHemoSync()"></div>
+            </div>
+            <div class="pop-mon-c">
             <div class="fg"><label for="pop_sw_pam">PAM (mmHg)</label><input type="number" id="pop_sw_pam" step="1" min="0" inputmode="decimal" oninput="popHemoSync();pamAvisoSync()">
               <!-- Una linea, sin color de alarma: dice cual de las tres PAM manda y cual difiere.
                    NO entra al informe, al EN SUMA, al PDF ni al PPT. Ver `pamAvisoSync`. -->
               <div id="pop-pam-aviso" style="font-size:10px;color:var(--text2);margin-top:3px;min-height:0;"></div></div>
-            <div class="fg"><label for="pop_sw_paps">PSAP (mmHg)</label><input type="number" id="pop_sw_paps" step="1" min="0" inputmode="decimal" oninput="popHemoSync()"></div>
-            <div class="fg"><label for="pop_sw_papd">PDAP (mmHg)</label><input type="number" id="pop_sw_papd" step="1" min="0" inputmode="decimal" oninput="popHemoSync()"></div>
-            <div class="fg"><label for="pop_sw_pcp">PCP (mmHg)</label><input type="number" id="pop_sw_pcp" step="1" min="0" inputmode="decimal" oninput="popHemoSync()"></div>
             <div class="fg"><label for="pop_sw_pad">PAD <small style="font-size:10px;">(PVC)</small> (mmHg)</label><input type="number" id="pop_sw_pad" step="1" min="0" inputmode="decimal" oninput="popHemoSync()"></div>
+            <div class="fg"><label for="pop_sw_pcp">PCP (mmHg)</label><input type="number" id="pop_sw_pcp" step="1" min="0" inputmode="decimal" oninput="popHemoSync()"></div>
+            </div>
+            <div class="pop-mon-c">
+            <div class="fg"><label for="pop_sw_paps">PSAP (mmHg)</label><input type="number" id="pop_sw_paps" step="1" min="0" inputmode="decimal" oninput="popHemoSync()"></div>
+            <div class="fg"><label>PmAP (mmHg)</label><div class="pop-ro" id="pop-sw-papm">—</div></div>
+            <div class="fg"><label for="pop_sw_papd">PDAP (mmHg)</label><input type="number" id="pop_sw_papd" step="1" min="0" inputmode="decimal" oninput="popHemoSync()"></div>
+            </div>
           </div>
+          <div style="font-size:10px;color:var(--text2);margin:2px 0 0;line-height:1.5;">GC por termodilución · PAD es la presión de la aurícula derecha, que el catéter mide como presión venosa central · PmAP se calcula de PSAP y PDAP.</div>
           <!-- Peso y talla NO se vuelven a pedir: se leen de los campos del estudio. Dos campos
                para la misma medida es el patron del espesor parietal, que este archivo ya pago
                tres veces. La SC sale de getBSA(), la misma que usa toda la app. -->
@@ -10636,8 +10672,10 @@ window.cerrarSesionReal = cerrarSesionReal;
           </div>
         </div>
 
+        <!-- El PiCCO en DOS columnas, que es lo que pidio el medico: cinco campos en un
+             `.grid-3` dejaban la tercera celda de la ultima fila vacia. -->
         <div id="pop_picco_wrap" style="display:none;margin-bottom:14px;">
-          <div class="grid-3">
+          <div class="grid-2">
             <div class="fg"><label for="pop_picco_gc">GC (L/min)</label><input type="number" id="pop_picco_gc" step="0.1" min="0" inputmode="decimal" oninput="popHemoSync()"></div>
             <div class="fg"><label for="pop_picco_ic">IC (L/min/m²)</label><input type="number" id="pop_picco_ic" step="0.1" min="0" inputmode="decimal" oninput="popHemoSync()"></div>
             <div class="fg"><label for="pop_picco_itbvi">ITBVI (ml/m²)</label><input type="number" id="pop_picco_itbvi" step="1" min="0" inputmode="decimal" oninput="popHemoSync()"></div>
@@ -10875,9 +10913,45 @@ window.cerrarSesionReal = cerrarSesionReal;
              nombra como «pista diagnóstica» sin cifra—, y escribir uno sería inventarlo.
              NO agrega columna al Excel: `LAB_XLS_MAP` es una lista EXPLÍCITA y no tiene un solo
              `pop_`. Verificado antes de escribirlo. -->
-        <div class="grid-3" style="margin-bottom:12px;">
+        <!-- ══ DATOS HEMODINAMICOS: UN DATO, DOS PUERTAS (POP-A-3, 01/11/2026) ════════════
+             FC, PAS, PAM y PA diastolica NO son campos nuevos: son el MISMO dato que ya vive en
+             Hemodinamica y en el Doppler aortico, y aca se editan por una SEGUNDA PUERTA. Los
+             cuatro espejos van con guion MEDIO y prefijo `pop-esp-`, que entra en las DOS listas
+             paralelas -`_noEsDelEstudio` y `_CAMPOS_FUERA_DEL_ESTUDIO`-, asi que no se guardan:
+             persistirlos dejaria una SEGUNDA COPIA del numero que al reabrir puede contradecir
+             al dueno, que es el motivo escrito de `hfpep-`, `vauto-` y `otr-asia-`.
+             Llevan `data-espejo` SIN VALOR: es la declaracion estatica -«esto es un espejo»-
+             que `cardAutoOpen` y `secAutoOpen` miran, y NO la marca de runtime `data-espejo="1"`
+             que `limpiarCampos` borra. Es la leccion del D-11, que costo TC-514 en rojo.
+             ⚠️ LO AUTOMATICO NO ESCRIBE NADA EN EL ESTUDIO. `popDatoGesto` corre desde el
+             `oninput` del espejo -o sea un gesto humano- y escribe el campo del dueno, el vacio
+             incluido: gana la ultima edicion. `popDatosSync` solo LEE al dueno y lo copia al
+             espejo. Es el modelo del D-11, y es lo que hace que borrar borre.
+             ⚠️ LO QUE EL MONITOREO YA PIDE NO SE PIDE DOS VECES: con Swan-Ganz desaparecen FC y
+             PAM -el cateter tiene sus propios `pop_sw_fc` y `pop_sw_pam`- y con la linea
+             arterial desaparece la PAM. El dato no se borra: se deja de ofrecer esa puerta.
+             ⚠️ LACTATO, RELLENO CAPILAR Y DIURESIS NO ENTRAN A NINGUN ALGORITMO. El lactato ya
+             tenia su corte desde la POP-V2; los otros dos se DESCRIBEN en el informe y en la
+             hoja del PDF como un dato mas, sin banda, sin «prolongado» y sin corte: ninguna
+             fuente de este modulo publica uno aplicable, y escribirlo seria inventarlo.
+             Ver `docs/PENDIENTES.md` → PA-c.
+             NO agregan columna al Excel: `LAB_XLS_MAP` es una lista EXPLICITA y no tiene un solo
+             `pop_`. Verificado antes de escribirlos, igual que con el lactato. -->
+        <div class="grid-2" style="margin-bottom:12px;">
+          <div class="fg" id="pop_dh_fc_wrap"><label for="pop-esp-fc">FC (lpm)</label>
+            <input type="number" id="pop-esp-fc" data-espejo step="1" min="0" inputmode="decimal" placeholder="lpm" oninput="popDatoGesto('pop-esp-fc')"></div>
+          <div class="fg"><label for="pop-esp-pas">PAS (mmHg)</label>
+            <input type="number" id="pop-esp-pas" data-espejo step="1" min="0" inputmode="decimal" placeholder="mmHg" oninput="popDatoGesto('pop-esp-pas')"></div>
+          <div class="fg" id="pop_dh_pam_wrap"><label for="pop-esp-pam">PAM (mmHg)</label>
+            <input type="number" id="pop-esp-pam" data-espejo step="1" min="0" inputmode="decimal" placeholder="mmHg" oninput="popDatoGesto('pop-esp-pam')"></div>
+          <div class="fg"><label for="pop-esp-pad">PA diastólica (mmHg)</label>
+            <input type="number" id="pop-esp-pad" data-espejo step="1" min="0" inputmode="decimal" placeholder="mmHg" oninput="popDatoGesto('pop-esp-pad')"></div>
+          <div class="fg"><label for="pop_relleno_cap">Relleno capilar (s)</label>
+            <input type="number" id="pop_relleno_cap" step="0.5" min="0" inputmode="decimal" placeholder="s"></div>
           <div class="fg"><label for="pop_lactato">Lactato (mmol/L)</label>
             <input type="number" id="pop_lactato" step="0.1" min="0" inputmode="decimal" placeholder="mmol/L"></div>
+          <div class="fg"><label for="pop_diuresis">Diuresis (ml/h)</label>
+            <input type="number" id="pop_diuresis" step="1" min="0" inputmode="decimal" placeholder="ml/h"></div>
         </div>
 
         <!-- Las tres subsecciones se muestran segun pop_monitor. La de ECO va SIEMPRE: es la
@@ -60986,7 +61060,7 @@ function _noEsDelEstudio(id) {
      desde hoy, cuando esta tanda autoriza UN campo nuevo y es `tga_cirugia`. Es lo mismo que
      destapo el A/B con `vab-anim-scrub`. Guion MEDIO, asi que este prefijo no alcanza a
      `tga_tipo`, `tga_cirugia` ni a ningun otro `tga_*`, que van con guion BAJO. */
-  return /^(login-|ig-|lab-|cfg-|exp-|filtro-|adv-|asoc-|pdf-|lgal-|fcg-|hfpep-|vauto-|vabchk-|vab-anim-|otr-asia-|pop-bcia-|tga-3d-|vd-triv|ref-|(?:b-)?cine-)/.test(id);
+  return /^(login-|ig-|lab-|cfg-|exp-|filtro-|adv-|asoc-|pdf-|lgal-|fcg-|hfpep-|vauto-|vabchk-|vab-anim-|otr-asia-|pop-bcia-|pop-esp-|tga-3d-|vd-triv|ref-|(?:b-)?cine-)/.test(id);
 }
 
 /* ══ Repintado de módulos al cargar un estudio ═══════════════════════════════════════════
@@ -61107,6 +61181,59 @@ function popMonSync() {
   if (vac) vac.style.display = (mon === 'swan' || mon === 'picco' || mon === 'pai') ? 'none' : 'block';
 }
 window.popMonSync = popMonSync;
+/* ══ POP · LOS CUATRO ESPEJOS DE «Datos hemodinamicos» (POP-A-3, 01/11/2026) ══════════════════
+   UN DATO, DOS PUERTAS, GANA LA ULTIMA EDICION. FC, PAS, PAM y PA diastolica tienen UN dueno
+   cada uno, y los cuatro viven en otra pestaña: `hemo_fc` y `hemo_pam` en Hemodinamica, `ao_pas`
+   y `ao_pad` en el Doppler aortico. Lo que esta tarjeta agrega es una segunda puerta para
+   editarlos desde el posoperatorio, que es donde el medico esta mirando.
+
+   DOS FUNCIONES Y NO UNA, y es toda la decision de diseño:
+     · `popDatoGesto` corre desde el `oninput` del espejo -o sea un GESTO HUMANO- y escribe el
+       campo del dueño, el vacio incluido. Despacha `input` y `change` en el dueño para que su
+       propia cadena corra igual que si el medico hubiera tipeado alla.
+     · `popDatosSync` solo LEE al dueño y lo copia al espejo. Nunca escribe el estudio.
+   Con una sola funcion que hiciera las dos cosas, el barrido de espejos de 220 ms repoblaria el
+   espejo con el valor viejo y borrar no se podria: es el defecto que el D-9, el D-10 y el D-11
+   pagaron tres veces, y la leccion que quedo es «el campo del estudio es el dueño».
+
+   ⚠️ NO HACE FALTA UNA ENTRADA NUEVA EN `ESPEJOS_VIVOS` NI EN `RECALC_MODULOS`: la llama
+   `popHemoSync`, que YA esta en las dos -y en el final de `limpiarCampos`, por `popSync`-. Dos
+   entradas para el mismo trabajo es lo que hace que una mutacion sobreviva.
+
+   ⚠️ LA COMPUERTA POR DISPOSITIVO NO BORRA NADA. Con Swan-Ganz el cateter ya pide FC y PAM
+   -`pop_sw_fc` y `pop_sw_pam`, que son OTRO dato y pueden diferir, como su propio comentario
+   declara-, y con la linea arterial ya pide la PAM. Lo que se esconde es la PUERTA, no el valor:
+   el dueño sigue donde estaba y se sigue editando desde su pestaña. */
+const POP_ESPEJOS = Object.freeze({
+  'pop-esp-fc':  'hemo_fc',
+  'pop-esp-pas': 'ao_pas',
+  'pop-esp-pam': 'hemo_pam',
+  'pop-esp-pad': 'ao_pad'
+});
+function popDatoGesto(id) {
+  const due = POP_ESPEJOS[id];
+  if (!due) return;
+  const src = document.getElementById(id), dst = document.getElementById(due);
+  if (!src || !dst) return;
+  if (dst.value === src.value) return;
+  dst.value = src.value;
+  dst.dispatchEvent(new Event('input', { bubbles: true }));
+  dst.dispatchEvent(new Event('change', { bubbles: true }));
+}
+window.popDatoGesto = popDatoGesto;
+function popDatosSync() {
+  Object.keys(POP_ESPEJOS).forEach(function (id) {
+    const esp = document.getElementById(id), due = document.getElementById(POP_ESPEJOS[id]);
+    if (!esp || !due) return;
+    if (esp.value !== due.value) esp.value = due.value;
+  });
+  const mon = (document.getElementById('pop_monitor') || {}).value || '';
+  const g = function (wid, on) { const e = document.getElementById(wid);
+    if (e) e.style.display = on ? '' : 'none'; };
+  g('pop_dh_fc_wrap', mon !== 'swan');
+  g('pop_dh_pam_wrap', mon !== 'swan' && mon !== 'pai');
+}
+window.popDatosSync = popDatosSync;
 function popHemoSync() {
   const set = (id, txt) => { const e = document.getElementById(id); if (e) e.textContent = txt; };
   const setH = (id, h) => { const e = document.getElementById(id); if (e) e.innerHTML = h; };
@@ -61115,6 +61242,7 @@ function popHemoSync() {
   vis('pop_sw_wrap', mon === 'swan');
   vis('pop_picco_wrap', mon === 'picco');
   popMonSync();
+  try { popDatosSync(); } catch (e) { console.error('[popHemoSync] popDatosSync:', e); }
 
   const asc = (typeof getBSA === 'function') ? getBSA() : null;
   /* ── ECO ── Los tres campos son los del estudio; no se duplican acá. */
@@ -61146,6 +61274,12 @@ function popHemoSync() {
     setH('pop-sw-rvp', r.uw.toFixed(1) + ' UW (' + r.dyn.toFixed(0) + ' dinas·s·cm⁻⁵) ' + badge(r.cls, r.txt)
          + ' <span style="color:var(--text2);font-size:10px;">PmAP ' + papm.toFixed(0) + '</span>');
   } else setH('pop-sw-rvp', '—');
+  /* ⚠️ LA CELDA «PmAP» DE LA TERCERA COLUMNA SALE DE LA MISMA CUENTA, NO DE UNA SEGUNDA (POP-A-3).
+     Se calcula acá y no en la rama de arriba porque esa rama exige además la PCP y el gasto —son
+     los insumos de la resistencia—, y la presión media pulmonar se puede decir con PSAP y PDAP
+     solas. Dos cuentas del mismo número en la misma tarjeta es lo que este módulo prohíbe. */
+  if (paps !== null && papd !== null) set('pop-sw-papm', ((paps + 2 * papd) / 3).toFixed(0));
+  else set('pop-sw-papm', '—');
   /* `pop_sw_fc` existia en el marcado y NO lo leia nadie: el medico lo cargaba y desaparecia.
      Lo cazo `detectar_huerfanos`, que es para lo que esta. Se usa para dos cosas: mostrar el
      volumen sistolico por termodilucion (GC/FC), que es lo que el Swan aporta y el eco estima, y
@@ -67255,7 +67389,7 @@ function _autoSaveDebounced(){ clearTimeout(_autosaveTimer); _autosaveTimer = se
    —peor— `_autosaveRestore` creía que el formulario ya estaba empezado y **NO restauraba el
    borrador**. Es la lección del D-11 con `data-espejo`: el selector y el cuerpo son dos
    listas, y acá son dos regex. */
-var _CAMPOS_FUERA_DEL_ESTUDIO = /^(cfg-|firma-|lab-|ig-|med-|logo|lgal-|tema|pdf-|filtro-|adv-|asoc-|exp-|alg-|ett-|rwt-|ee-|ap-|rev-|login-|fcg-|pop-bcia-|tga-3d-|centro_tipo$|ecoAdvSelect$)/;
+var _CAMPOS_FUERA_DEL_ESTUDIO = /^(cfg-|firma-|lab-|ig-|med-|logo|lgal-|tema|pdf-|filtro-|adv-|asoc-|exp-|alg-|ett-|rwt-|ee-|ap-|rev-|login-|fcg-|pop-bcia-|pop-esp-|tga-3d-|centro_tipo$|ecoAdvSelect$)/;
 
 /* ¿El formulario tiene algo del ESTUDIO cargado? Una sola definición para las DOS preguntas que
    la necesitan, que son la misma vista desde los dos lados:
@@ -102740,6 +102874,14 @@ function amiloTextoPOP() {
      renglón no aparece: un «Lactato | no consignado» en el papel firmado afirma que se buscó. */
   const _lac = v('pop_lactato');
   if (_lac !== null) L.push('Lactato | ' + _lac + ' mmol/L');
+  /* ⚠️ RELLENO CAPILAR Y DIURESIS SE DESCRIBEN Y NADA MAS (POP-A-3). Sin banda, sin
+     «prolongado», sin «oligúrico» y sin corte: ninguna de las fuentes de este módulo publica
+     uno aplicable y escribirlo sería inventarlo. No entran al patrón ni a ninguna cápsula.
+     Ver `docs/PENDIENTES.md` → PA-c. */
+  const _rel = v('pop_relleno_cap');
+  if (_rel !== null) L.push('Relleno capilar | ' + _rel + ' s');
+  const _diu = v('pop_diuresis');
+  if (_diu !== null) L.push('Diuresis | ' + _diu + ' ml/h');
   /* LOS CUATRO NÚMEROS QUE EL DIBUJO PUBLICA Y LA HOJA NO TENÍA. Son datos MEDIDOS o derivados
      de medidos, sin una sola banda: «toda la información del esquema existe también como
      texto» vale para el papel igual que para el lector de pantalla. */
@@ -145911,8 +146053,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261101-0315';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793513750037;                 /* eco-build-ms */
+const ECO_BUILD    = '20261101-0330';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793514648807;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -145998,7 +146140,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261101-0315</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261101-0330</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
