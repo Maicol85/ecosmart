@@ -63831,6 +63831,51 @@ function _popEsqGeo(d) {
   o.sAI = _popEsqLerp(0.8, 1.22, _popEsqClamp(pcp / 30));
   o.sVD = _popEsqLerp(0.82, 1.32, _popEsqClamp((pvc - 3) / 18));
   o.sVI = _popEsqLerp(0.74, 1.25, _popEsqClamp(pcp / 28));
+  /* ══ EL TAMANO SIGUE AL DATO MEDIDO CUANDO LO HAY — «POP-C», 8a (2026-11-02) ════════════
+     Hasta hoy las cuatro cavidades se dimensionaban SOLO por presiones -la venosa central y
+     la capilar-, que es lo unico que el posoperatorio mide. Pero la app YA TIENE el tamano
+     de las auriculas y la funcion de los dos ventriculos, medidos en otras pestanas, y el
+     dibujo los ignoraba: una auricula izquierda severamente dilatada se veia igual que una
+     normal si la presion capilar era la misma.
+     SE LEEN LOS DUENOS QUE YA EXISTEN y no se escribe ningun corte nuevo:
+       · AI -> `aiVolClasificar` sobre el volumen indexado, las bandas de la ASE;
+       · AD -> `adAreaCat` sobre el area, el grado de la ASE 2025;
+       · VI -> `feviClasificar`, las categorias de FEVI de la app;
+       · VD -> el TAPSE, con el mismo `UMBRAL_TAPSE_NORMAL` que la conclusion aplica.
+     ⚠️ SIN DATO CARGADO LA CAVIDAD QUEDA COMO HOY, que es lo que la orden pide: el factor por
+     presion sigue siendo el de partida y esto solo lo PISA cuando hay una medicion. Asi un
+     estudio sin esos datos dibuja exactamente lo que dibujaba antes.
+     ⚠️ ES GEOMETRIA ILUSTRATIVA, no milimetros: lo unico que afirma es el ORDEN. No hay
+     fuente que convierta «dilatacion moderada» en un factor de escala, igual que con el nivel
+     de liquido pleural, y por eso los numeros viven aca y no entre las constantes clinicas.
+     ⚠️ «AD MAYOR QUE AI SI ESTA DILATADA» sale solo de la tabla: con la misma banda, el factor
+     de la AD es el mismo que el de la AI, asi que la AD solo se ve mayor cuando su grado es
+     mayor — que es lo que el dato dice. */
+  { const F = { normal:0.92, leve:1.06, moderada:1.18, severa:1.30 };
+    const _nv = id => { const e = document.getElementById(id);
+      const n = e ? parseFloat(String(e.value || '').replace(',', '.')) : NaN;
+      return isFinite(n) ? n : null; };
+    /* AI: su clasificacion es por volumen INDEXADO, asi que hace falta la superficie. */
+    const _aiVol = _nv('ai_vol'), _bsa = (typeof getBSA === 'function') ? getBSA() : null;
+    if (_aiVol !== null && _bsa) {
+      const b = (typeof aiVolClasificar === 'function') ? aiVolClasificar(_aiVol / _bsa) : null;
+      if (b && F[b.clave]) o.sAI = F[b.clave];
+    }
+    const _ad = (typeof adAreaCat === 'function') ? adAreaCat(_nv('ad_area')) : null;
+    if (_ad && F[_ad]) o.sAD = F[_ad];
+    /* VI: la FEVI baja agranda el ventriculo. La categoria es la de la app. */
+    const _fe = (typeof feviClasificar === 'function') ? feviClasificar(_nv('fevi')) : null;
+    if (_fe) {
+      const FV = { normal:0.92, leve:1.05, moderada:1.16, severa:1.28 };
+      const k = String(_fe.clave || _fe.k || '').toLowerCase();
+      if (FV[k]) o.sVI = FV[k];
+    }
+    /* VD: el TAPSE bajo lo dilata, con el MISMO umbral que la conclusion usa. */
+    if (d.tapse !== null) {
+      const uT2 = (typeof UMBRAL_TAPSE_NORMAL !== 'undefined') ? UMBRAL_TAPSE_NORMAL : 17;
+      o.sVD = d.tapse >= uT2 ? 0.92 : _popEsqLerp(1.30, 1.00, _popEsqClamp(d.tapse / uT2));
+    }
+  }
   if (d.compresion) { o.sAD *= 0.88; o.sVD *= 0.88; o.sVI *= 0.9; }
   /* La EXCURSIÓN del VI acompaña al índice cardíaco y la del VD al TAPSE. Sin el dato, un latido
      intermedio: una cavidad quieta diría «no se contrae» sobre un paciente sin medir. */
@@ -63838,7 +63883,33 @@ function _popEsqGeo(d) {
   o.ampVD = d.tapse === null ? 0.14 : _popEsqLerp(0.03, 0.26, _popEsqClamp((d.tapse - 8) / 16));
   /* El septo se abomba hacia el lado de MENOR presión. */
   o.bulge = (d.pvc === null || d.pcp === null) ? 0 : _popEsqClamp((d.pvc - d.pcp) / 14) * 24;
-  o.eff = d.hayDerrame ? (d.compresion ? 14 : 8) : 0;
+  /* ══ EL TABIQUE EN D, SI EL MEDICO LO CONSIGNO — «POP-C», 8a (2026-11-02) ══════════════
+     La orden pide leerlo de «Sobrecarga del VD» SI EXISTE, y existe: `tep_tabique_d`, el
+     selector del bloque de evaluacion de sobrecarga del ventriculo derecho. Sus tres estados
+     son «No evaluado», «No» y «Si».
+     Con el tabique en D consignado el septo se abomba hacia el VI con una excursion FIJA —24,
+     el tope de la escala por presiones—, porque es un hallazgo binario y no una magnitud.
+     ⚠️ SOLO PISA CUANDO ESTA CONSIGNADO: «No evaluado» deja el abombamiento por presiones,
+     que es lo que el dibujo ya hacia, y un «No» expreso lo lleva a cero — que es lo que ese
+     «No» afirma. Sin el campo cargado, el dibujo queda como hoy. */
+  { const td = document.getElementById('tep_tabique_d');
+    const tv = td ? String(td.value || '') : '';
+    if (tv === 'si') o.bulge = 24;
+    else if (tv === 'no') o.bulge = 0; }
+  /* ══ EL ANILLO DEL DERRAME CRECE CON EL TAMANO — «POP-C», 8b (2026-11-02) ══════════════
+     Cierra POPB-d. Valia `d.compresion ? 14 : 8`, asi que el grosor era 8 px con derrame
+     LEVE, MODERADO y SEVERO —las tres medidas— y 14 solo con compromiso hemodinamico: lo que
+     el anillo distinguia era el COMPROMISO y no el tamano, contra lo que el pedido de POP-B
+     suponia. Hoy sigue a `dptTamano().clave`, que es el dueno unico del tamano del derrame.
+     LA MARCA DEL COMPROMISO SE CONSERVA y es lo que la orden pide: suma por encima del
+     grosor que al tamano le toca, asi que un derrame severo CON compromiso se sigue viendo
+     distinto de uno severo sin el. El texto del derrame sigue en «Caracteristicas del
+     esquema», sin rotulo encima del dibujo.
+     Los tres pasos son visiblemente distintos: 6, 11 y 17 px de trazo. */
+  { const TAM = { leve:6, moderado:11, severo:17 };
+    const t = (typeof dptTamano === 'function') ? (dptTamano() || {}).clave : null;
+    const base = (t && TAM[t]) ? TAM[t] : (d.hayDerrame ? 8 : 0);
+    o.eff = d.hayDerrame ? (base + (d.compresion ? 6 : 0)) : 0; }
   o.vc = _popEsqLerp(4, 18, _popEsqClamp(pvc / 22));
   /* La aorta se ve ANCHA con resistencia baja y angosta con resistencia alta. */
   o.aoW = d.rvs === null ? 13 : _popEsqLerp(20, 7, _popEsqClamp((d.rvs - 500) / 1100));
@@ -149004,8 +149075,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261101-1813';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793567618209;                 /* eco-build-ms */
+const ECO_BUILD    = '20261101-1820';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793568050706;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -149091,7 +149162,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261101-1813</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261101-1820</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

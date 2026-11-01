@@ -44,6 +44,8 @@ const ESC = {
   cavTapse: { fc:'80', c:{ tapse:'10' } },
   cavAI:    { fc:'80', c:{ ai_vol:'55' } },
   cavAD:    { fc:'80', c:{ ad_area:'22' } },
+  cavSepNo: { fc:'80', s:{ tep_tabique_d:'no' } },
+  cavSepSi: { fc:'80', s:{ tep_tabique_d:'si' } },
   periLev:  { fc:'80', s:{ pericardio:'Derrame leve (<10mm)' } },
   periMod:  { fc:'80', s:{ pericardio:'Derrame moderado (10-20mm)' } },
   periSev:  { fc:'80', s:{ pericardio:'Derrame severo (>20mm)' } },
@@ -176,15 +178,26 @@ const CUERPO = `(async (e) => {
     });
   }
 
-  /* 8 · LAS CAVIDADES, por su caja; y el anillo del derrame, por su grosor. */
+  /* 8 · LAS CAVIDADES. ⚠️ SUS RECTS NO LLEVAN data-pop-esq, asi que buscarlos por marca
+     daba null en TODAS las escenas —un denominador vacio que se lee como «no cambia»—. Se
+     le pregunta al DUENO, _popEsqGeo, que es quien decide el factor de cada una, y ademas
+     se leen los cuatro rects renderizados: son los unicos con rx=10, en orden AD, AI, VD, VI. */
   R.cav = {};
-  ['AD','AI','VD','VI'].forEach(k => {
-    const r = svg.querySelector('[data-pop-esq="caja-' + k + '"]') ||
-              svg.querySelector('[data-pop-esq="r' + k + '"]');
-    R.cav[k] = r ? [Math.round(+r.getAttribute('width')), Math.round(+r.getAttribute('height'))] : null;
-  });
-  { const pr = svg.querySelector('[data-pop-esq="peri"]') || svg.querySelector('[data-pop-esq="peri-r"]');
-    R.anillo = pr ? { w: pr.getAttribute('stroke-width'), vis: !!pr.getClientRects().length } : null; }
+  try {
+    const dd = popEsquema(), gg = _popEsqGeo(dd);
+    R.cav.factores = { AD:+gg.sAD.toFixed(3), AI:+gg.sAI.toFixed(3),
+                       VD:+gg.sVD.toFixed(3), VI:+gg.sVI.toFixed(3) };
+    R.cav.amp = { VI:+gg.ampVI.toFixed(3), VD:+gg.ampVD.toFixed(3) };
+    R.cav.bulge = +gg.bulge.toFixed(2);
+    R.anillo = { w: gg.eff, hayDerrame: dd.hayDerrame, compresion: dd.compresion };
+  } catch (x) { R.cav.err = String(x).slice(0,90); R.anillo = null }
+  { const rs = Array.prototype.filter.call(svg.querySelectorAll('rect'),
+      r2 => r2.getAttribute('rx') === '10');
+    R.cav.rects = rs.slice(0,4).map(r2 =>
+      Math.round(+r2.getAttribute('width')) + 'x' + Math.round(+r2.getAttribute('height')));
+    const eo = Array.prototype.filter.call(svg.querySelectorAll('rect'),
+      r2 => r2.getAttribute('x') === '248' && r2.getAttribute('y') === '92')[0];
+    if (eo && R.anillo) R.anillo.trazoReal = eo.getAttribute('stroke-width'); }
 
   /* 9 · LOS TRAZADOS */
   R.trz = { tapse: on('trz-tapse'), ea: on('trz-ea') };
@@ -261,7 +274,8 @@ const CUERPO = `(async (e) => {
       + '  globo rx ' + (R.globoRx.max ? R.globoRx.min.toFixed(2) + ' a ' + R.globoRx.max.toFixed(2) : 'sin globo')
       + '  CRUCES=' + R.cat.cruces.length
       + (R.cat.cruces.length ? ' -> ' + R.cat.cruces.slice(0,4).join(' | ') : ''));
-    console.log('   cavidad : ' + Object.keys(R.cav).map(x => x + '=' + (R.cav[x] ? R.cav[x].join('x') : '-')).join(' '));
+    console.log('   cavidad : factores ' + JSON.stringify(R.cav.factores)
+      + '  bulge=' + R.cav.bulge + '  rects ' + JSON.stringify(R.cav.rects) + (R.cav.err ? '  ERR ' + R.cav.err : ''));
     console.log('   anillo  : ' + JSON.stringify(R.anillo));
     console.log('   trazados: tapse=' + R.trz.tapse + ' ea=' + R.trz.ea);
     console.log('   SUPERPUESTOS: ' + R.sup.length + '   FUERA DEL viewBox: ' + R.fuera.length);
