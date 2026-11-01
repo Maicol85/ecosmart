@@ -77427,51 +77427,71 @@ function mchConclusion(src){
   if (_feviB.valor != null && _feviB.valor < 50) _mod.push('FEVI ' + _feviB.valor + ' %');
   if (_lgeB !== 'si' && _lgeB !== 'no') _modPend.push('realce tardío por resonancia');
   if (_feviB.valor == null) _modPend.push('FEVI');
+  /* ══ EL CUERPO DEL INFORME DESCRIBE — «CONG-2A», commit 5a (31/10/2026) ═════════════════════
+     PRINCIPIO DEL MEDICO, regla fija desde el 31/10/2026: el papel —informe en los tres estilos,
+     EN SUMA, PDF y PPT— describe y NUNCA nombra guias ni sociedades, ni clases, niveles, tablas,
+     figuras o folios, ni recomienda conducta. Eso vive en la Evidencia, en Referencias o en el ⓘ.
+     Cierra docs/PENDIENTES.md → AJ3-a y AJ3-b.
+     MEDIDO en Chrome antes de escribir una linea, con el modulo INTEGRADO y la escena de riesgo
+     alto: el informe estandar traia «AHA/ACC 2020» 1, «AHA» 3, «ESC» 1, «HCM Risk-SCD» 1,
+     «Clase IIa» 1, «desfibrilador» 1 y «razonable» 1; el EN SUMA «AHA/ACC» 1 y «HCM Risk-SCD» 1;
+     y la hoja del PDF «AHA/ACC 2020» 3, «AHA» 9, «ESC» 3, «HCM Risk-SCD» 4, «Clase IIa» 3,
+     «desfibrilador» 3 y «razonable» 3.
+     ⚠️ EL CONTENIDO ESTA EN LA EVIDENCIA Y SE VERIFICO ANTES DE RETIRARLO, que es la condicion
+     que la orden pone: la seccion «Miocardiopatia hipertrofica — prevencion de muerte subita»
+     publica 18 lineas con 9 menciones de desfibrilador, 13 clases, el folio e1267 de la AHA/ACC
+     2024 y los folios 3561-3562 de la ESC 2023. No se agrego ninguna cita: ya estaban cargadas
+     por la tanda AJUSTES-3.
+     ⚠️ NINGUN NUMERO DESAPARECE, y es lo que separa esto de reescribir el texto: el porcentaje a
+     5 años, el recuento de factores, los «sin evaluar», el espesor, el gradiente y la edad del
+     familiar siguen todos. Lo unico que sale son los nombres propios y la conducta.
+     ⚠️ Y EL MODELO SE NOMBRA POR LO QUE ES —el riesgo a 5 años— Y NO POR SU SIGLA, que es la
+     decision que la tanda AJUSTES-3 ya tomo para la linea del PPT: «HCM Risk-SCD» y «ESC» son el
+     nombre de un modelo y de una sociedad. */
   let txtESC;
-  if (ex.activas.length) txtESC = 'El score HCM Risk-SCD de la ESC no es aplicable en este paciente (' + ex.activas.join('; ') + ')' +
-    (_mchSv('mch_ex_parada') === 'si' ? '; en ese escenario el desfibrilador está indicado en prevención secundaria, con independencia del score' : '');
-  else if (esc.fuera)  txtESC = 'Score HCM Risk-SCD no calculado: ' + esc.fuera.join(' y ') + ' fuera de rango — revisar unidades';
-  else if (esc.faltan) txtESC = 'Score HCM Risk-SCD no calculado, faltan datos: ' + esc.faltan.join('; ');
+  if (ex.activas.length) txtESC = 'El score de riesgo de muerte súbita a 5 años no es aplicable en este paciente (' + ex.activas.join('; ') + ')';
+  else if (esc.fuera)  txtESC = 'Score de riesgo de muerte súbita no calculado: ' + esc.fuera.join(' y ') + ' fuera de rango — revisar unidades';
+  else if (esc.faltan) txtESC = 'Score de riesgo de muerte súbita no calculado, faltan datos: ' + esc.faltan.join('; ');
   else {
     /* La banda baja NO es incondicional. La ESC 2023 da Clase IIb dentro de <4 % si hay realce
        tardío extenso o FEVI <50 %, y el informe decía «desfibrilador no indicado de rutina» a
        secas mientras el panel de criterios, al lado, mostraba ese IIb. La app tiene los dos datos
        y la rama benigna no los miraba: una negación necesita que se haya medido algo. */
-    const cl = esc.banda === 'alto' ? ' — desfibrilador a considerar (Clase IIa, ESC)'
-             : (esc.banda === 'intermedio' ? ' — desfibrilador puede considerarse (Clase IIb, ESC)'
-                : (_mod.length ? ' — el score por sí solo no indica desfibrilador, pero la ESC 2023 lo sitúa en Clase IIb dentro de esta banda cuando hay ' + _mod.join(' o ') + ', para una decisión compartida'
-                               : ' — desfibrilador no indicado de rutina'));
-    txtESC = 'Riesgo de muerte súbita a 5 años (HCM Risk-SCD, ESC) ' + esc.pct.toFixed(2) + ' %: riesgo ' + esc.banda + cl +
+    /* ⚠️ LA CONDUCTA SALE DEL PAPEL Y LOS HALLAZGOS SE QUEDAN. La rama de la banda baja con
+       modificadores publicaba una clase; lo que se conserva es QUE estan presentes, que es el
+       hallazgo medido, sin decir que hacer con el. */
+    const cl = (_mod.length && esc.banda === 'bajo') ? ' — con ' + _mod.join(' y ') : '';
+    txtESC = 'Riesgo de muerte súbita a 5 años ' + esc.pct.toFixed(2) + ' %: riesgo ' + esc.banda + cl +
       (esc.banda === 'bajo' && !_mod.length && _modPend.length
-        ? '. Los dos hallazgos que la ESC 2023 valora dentro de esta banda no constan: ' + _modPend.join(' y ')
+        ? '. Dos hallazgos que modifican la valoración dentro de esta banda no constan: ' + _modPend.join(' y ')
         : '') +
       (ex.pendientes.length ? '. El modelo no está validado en algunas poblaciones y no consta si este paciente pertenece a ellas: ' + ex.pendientes.join('; ') : '');
   }
   /* La clase sale de `aha.clase` y no se re-deriva acá: eran tres superficies decidiéndola por
      su cuenta con literales, y ya habían dejado de coincidir entre sí. */
+  /* El rotulo nombra el CONCEPTO —«factores mayores de riesgo de muerte subita»— y no la guia,
+     que es el mismo criterio con que la tanda AJUSTES-3 escribio la linea del PPT: un recuento
+     suelto («2 de 5») no dice de que, y el nombre de la lista no es una recomendacion. */
   let txtAHA = aha.n
-    ? 'Factores mayores de la AHA/ACC 2020: ' + aha.n + ' de ' + MCH_AHA_N_MAYORES + ' (' + aha.presentes.join('; ') + ') — desfibrilador razonable (Clase IIa, AHA)' +
+    ? 'Factores mayores de riesgo de muerte súbita: ' + aha.n + ' de ' + MCH_AHA_N_MAYORES + ' (' + aha.presentes.join('; ') + ')' +
       (aha.pendientes.length ? '. Sin evaluar: ' + aha.pendientes.join('; ') : '')
     : (aha.pendientes.length === MCH_AHA_N_MAYORES
-        ? 'Factores mayores de la AHA/ACC 2020: ninguno evaluado'
-        : 'Factores mayores de la AHA/ACC 2020: ninguno de los evaluados está presente' +
+        ? 'Factores mayores de riesgo de muerte súbita: ninguno evaluado'
+        : 'Factores mayores de riesgo de muerte súbita: ninguno de los evaluados está presente' +
           (aha.pendientes.length ? '. Sin evaluar: ' + aha.pendientes.join('; ') : ''));
   if (aha.arbitros.length) {
     if (aha.n) txtAHA += '. Además: ' + aha.arbitros.join(' y ');
-    else if (aha.clase === 'iib') txtAHA += '. Sin factores mayores, pero con ' + aha.arbitros.join(' y ') +
-      ': la AHA/ACC 2020 sitúa el desfibrilador en Clase IIb en ese escenario — puede considerarse, no es una indicación establecida';
+    else if (aha.clase === 'iib') txtAHA += '. Sin factores mayores, pero con ' + aha.arbitros.join(' y ');
     /* Con factores mayores SIN EVALUAR la clase no se fija. «Sin factores mayores» sobre cinco
        preguntas en blanco es una negación que nadie contestó, y la recomendación 6 de la AHA es
        expresamente para pacientes sin factores mayores: si el que falta estuviera presente sería
        IIa, así que afirmar IIb ahí es BAJAR una clase sobre datos ausentes. */
-    else txtAHA += '. Consta ' + aha.arbitros.join(' y ') + ', que la AHA/ACC valora cuando no hay factores mayores; con ' +
+    else txtAHA += '. Consta ' + aha.arbitros.join(' y ') + ', que se valora cuando no hay factores mayores; con ' +
       aha.pendientes.length + (aha.pendientes.length === 1 ? ' factor mayor sin evaluar' : ' factores mayores sin evaluar') +
       ' no puede establecerse si el paciente está en ese escenario';
   }
-  else if (!aha.n && !aha.pendientes.length && !aha.arbitrosPend.length)
-    txtAHA += ' — desfibrilador no indicado por este criterio';
   if (aha.arbitrosPend.length) txtAHA += '. Tampoco consta: ' + aha.arbitrosPend.join('; ') +
-    (aha.n ? '' : ', que la AHA valora cuando no hay factores mayores');
+    (aha.n ? '' : ', que se valora cuando no hay factores mayores');
   /* La historia familiar se explica con UNA ORACIÓN POR ALGORITMO. Antes era una sola que hablaba
      de los dos y ramificaba sólo por el motivo de la AHA: con «el familiar tenía MCH establecida»
      el score de la ESC SÍ sumaba el término 0,4583 y el texto decía que no lo había hecho, en las
@@ -77483,12 +77503,14 @@ function mchConclusion(src){
     const F = aha.fam;
     if (F.motivo === 'edad_fuera') txtAHA += '. La edad del familiar al fallecer está fuera de rango — revisar antes de aplicar el criterio en cualquiera de los dos algoritmos';
     else {
-      if (F.aha.motivo === 'sin_edad')        txtAHA += '. Para la AHA/ACC no consta la edad del familiar, y su criterio exige ≤50 años';
-      else if (F.aha.motivo === 'edad_mayor') txtAHA += '. La muerte súbita familiar ocurrió a los ' + F.edad + ' años, por encima del corte de 50 de la AHA/ACC';
-      if (F.esc.motivo === 'familiar_con_mch') txtAHA += '. Para el score de la ESC el criterio SÍ se cumple: el familiar tenía miocardiopatía hipertrófica establecida, y en ese caso cuenta con independencia de la edad';
-      else if (F.esc.motivo === 'edad_mayor')  txtAHA += '. Para el score de la ESC no se cumple: su corte es 40 años';
-      else if (F.esc.motivo === 'sin_mch')     txtAHA += '. Para el score de la ESC falta contestar si el familiar tenía MCH establecida: con ' + F.edad + ' años el criterio sólo puede cumplirse por esa vía';
-      else if (F.esc.motivo === 'sin_edad')    txtAHA += '. Para el score de la ESC no consta la edad del familiar, y su criterio exige <40 años';
+      /* Las dos listas se siguen distinguiendo —los cortes son 50 y 40 años— y se nombran por lo
+         que son: el recuento de factores mayores y el score a 5 años. Los numeros no se mueven. */
+      if (F.aha.motivo === 'sin_edad')        txtAHA += '. Para el recuento de factores mayores no consta la edad del familiar, y su criterio exige ≤50 años';
+      else if (F.aha.motivo === 'edad_mayor') txtAHA += '. La muerte súbita familiar ocurrió a los ' + F.edad + ' años, por encima del corte de 50 de ese recuento';
+      if (F.esc.motivo === 'familiar_con_mch') txtAHA += '. Para el score a 5 años el criterio SÍ se cumple: el familiar tenía miocardiopatía hipertrófica establecida, y en ese caso cuenta con independencia de la edad';
+      else if (F.esc.motivo === 'edad_mayor')  txtAHA += '. Para el score a 5 años no se cumple: su corte es 40 años';
+      else if (F.esc.motivo === 'sin_mch')     txtAHA += '. Para el score a 5 años falta contestar si el familiar tenía MCH establecida: con ' + F.edad + ' años el criterio sólo puede cumplirse por esa vía';
+      else if (F.esc.motivo === 'sin_edad')    txtAHA += '. Para el score a 5 años no consta la edad del familiar, y su criterio exige <40 años';
     }
   }
   /* ── Corte de párrafos ──────────────────────────────────────────────────────────────────
@@ -77505,11 +77527,11 @@ function mchConclusion(src){
   /* La AHA cuenta un factor que el ecocardiograma no puede ver. Decirlo evita que un conteo de
      cero se lea como «sin factores» cuando lo que falta es una resonancia. */
   if (_mchSv('mch_fibrosis_rmn') !== 'si' && _mchSv('mch_fibrosis_rmn') !== 'no')
-    partes.push('La lista de la AHA incluye el realce tardío extenso por resonancia, que la ecocardiografía no evalúa');
+    partes.push('La lista de factores mayores incluye el realce tardío extenso por resonancia, que la ecocardiografía no evalúa');
   _cortes.push(partes.length);              // fin del párrafo 3 (AHA/ACC + la nota de la RMN)
   /* Contexto que no vota en ningún score, por decisión registrada. */
   const ctx = [];
-  if (_mchSv('mch_tension_ejercicio') === 'si') ctx.push('respuesta tensional anormal al ejercicio (factor reconocido en guías previas, no incluido en el conteo AHA/ACC 2020)');
+  if (_mchSv('mch_tension_ejercicio') === 'si') ctx.push('respuesta tensional anormal al ejercicio (factor reconocido en versiones anteriores del recuento, no incluido en la vigente)');
   /* «Factor modificador AHA Clase IIa» era lo pedido, y NINGUNA de las dos guías lo sostiene en
      adultos: la AHA/ACC no incluye las variantes sarcoméricas en su esquema de decisión —en la
      actualización 2024 el genotipo entra a la tabla, pero como factor PEDIÁTRICO— y la ESC 2023
@@ -77518,7 +77540,7 @@ function mchConclusion(src){
      realce tardío, aneurisma apical y mutaciones es de la guía ACCF/AHA de 2011: la palabra
      «modifier» no aparece ni una vez en la de 2020. Imprimir «Clase IIa» al lado de este hallazgo
      habría puesto en un informe firmado una clase de recomendación que no existe. */
-  if (_mchSv('mch_mult_mut') === 'si') ctx.push('dos o más variantes patogénicas sarcoméricas — hallazgo relevante para el tamizaje familiar; no es factor de decisión de desfibrilador en adultos en la AHA/ACC 2020 ni en la ESC 2023');
+  if (_mchSv('mch_mult_mut') === 'si') ctx.push('dos o más variantes patogénicas sarcoméricas — hallazgo relevante para el tamizaje familiar; no es factor de decisión en adultos');
   if (_mchSv('mch_ctx_hta') === 'si') ctx.push('hipertensión arterial resistente');
   if (_mchNv('mch_ctx_crecimiento') != null) ctx.push('crecimiento del espesor de ' + _mchNv('mch_ctx_crecimiento') + ' mm/año');
   if (_mchSv('mch_ctx_embarazo') === 'si') ctx.push('deseo de embarazo');
@@ -77550,7 +77572,7 @@ function mchConclusion(src){
   /* Y el aviso de aplicabilidad va con INDEPENDENCIA de cómo se haya contestado la exclusión:
      lo que decide si el porcentaje corresponde es que haya una TV sostenida, no la respuesta. */
   { const _tv = tvEstado(src);
-    if (_tv.sostenida && !ex.activas.length) partes.push('Se registró taquicardia ventricular sostenida en este estudio. El HCM Risk-SCD se desarrolló en prevención primaria y no está validado en pacientes con arritmia ventricular sostenida documentada: revisar si corresponde publicar el porcentaje y si el desfibrilador está indicado en prevención secundaria'); }
+    if (_tv.sostenida && !ex.activas.length) partes.push('Se registró taquicardia ventricular sostenida en este estudio. El score a 5 años se desarrolló en prevención primaria y no está validado en pacientes con arritmia ventricular sostenida documentada: revisar si corresponde publicar el porcentaje'); }
 
   /* ══ `resumen` Y `papel` SALEN DE LAS MISMAS PIEZAS (AJUSTES-3, 31/10/2026) ═════════════════
      `resumen` tiene DOS consumidores y los dos son papel firmado: la hoja del PDF
@@ -77567,24 +77589,38 @@ function mchConclusion(src){
      con una sola construcción no pueden. Es el mismo patrón que `coaPapel`. */
   let _escDesc, _escCond = '';
   if (ex.activas.length) {
-    _escDesc = 'Miocardiopatía hipertrófica: el score HCM Risk-SCD no es aplicable (' + ex.activas.join('; ') + ')';
+    _escDesc = 'Miocardiopatía hipertrófica: el score de riesgo de muerte súbita a 5 años no es aplicable (' + ex.activas.join('; ') + ')';
     if (_mchSv('mch_ex_parada') === 'si') _escCond = '; desfibrilador indicado en prevención secundaria';
   }
   else if (esc.fuera)  _escDesc = 'Miocardiopatía hipertrófica: score de muerte súbita no calculado — ' + esc.fuera.join(' y ') + ' fuera de rango';
   else if (esc.faltan) _escDesc = 'Miocardiopatía hipertrófica: score de muerte súbita no calculado, faltan ' + esc.faltan.length +
     (esc.faltan.length === 1 ? ' dato' : ' datos') + ' (detalle en el cuerpo del informe)';
   else {
-    _escDesc = 'Miocardiopatía hipertrófica: riesgo de muerte súbita a 5 años ' + esc.pct.toFixed(2) + ' % (HCM Risk-SCD, ESC), riesgo ' + esc.banda;
+    _escDesc = 'Miocardiopatía hipertrófica: riesgo de muerte súbita a 5 años ' + esc.pct.toFixed(2) + ' %, riesgo ' + esc.banda;
     _escCond = (esc.banda === 'alto' ? ' — desfibrilador a considerar (Clase IIa)'
      : esc.banda === 'intermedio' ? ' — desfibrilador puede considerarse (Clase IIb)'
      : _mod.length ? ' — con ' + _mod.join(' y ') + ', la ESC 2023 sitúa el desfibrilador en Clase IIb dentro de esta banda'
      : ' — desfibrilador no indicado de rutina');
   }
-  let resumen = _escDesc + _escCond;
+  /* ⚠️ `resumen` DEJA DE LLEVAR LA CONDUCTA — «CONG-2A», commit 5a (31/10/2026). Lo lee la hoja
+     del PDF (`ccHoja('mch', p, c.resumen || c.txt, null)`), que es papel firmado, y el principio
+     del medico dice que el papel describe. La tanda AJUSTES-3 ya habia separado las dos piezas
+     para que el PPT pudiera describir sin reescribir nada: `_escDesc` es la descripcion y
+     `_escCond` la conducta. Lo unico que cambia hoy es que `resumen` se arma SIN `_escCond`.
+     ⚠️ LAS DOS SALIDAS SIGUEN SALIENDO DE LAS MISMAS PIEZAS y por eso no pueden divergir: hoy
+     `resumen` y `papel` coinciden, y los dos nombres se conservan porque los consumidores son
+     distintos —la hoja del PDF y la diapositiva— y el dia que uno de los dos tenga que decir algo
+     que el otro no, la separacion ya esta hecha.
+     ⚠️ `_escCond` NO SE BORRA, y es deliberado: es el texto que la Evidencia publica con su clase
+     y su folio, y dejarlo armado documenta QUE se retiro del papel. Lo consume la mutacion 13 de
+     esta tanda, que lo vuelve a pegar y tiene que poner el caso en rojo. */
+  let resumen = _escDesc;
   /* La descripción del PAPEL. El nombre de la guía sale del prefijo y el score se nombra por lo
      que es —el porcentaje a 5 años—, no por su sigla: «HCM Risk-SCD» y «ESC» son el nombre del
      modelo y de la sociedad. El NÚMERO no se toca. */
-  let papel = _escDesc.replace(' (HCM Risk-SCD, ESC)', '');
+  /* `_escDesc` ya no trae la sigla desde el commit 5a, asi que el recorte dejo de hacer falta;
+     se conserva la linea para que `papel` siga siendo una salida propia y no un alias. */
+  let papel = _escDesc;
   /* El resumen arrastra los factores SIN EVALUAR. Sin eso, un paciente sin resonancia salía con
      «AHA/ACC 2020: ninguno de los factores evaluados» en el EN SUMA —que es donde el conteo se
      lee— mientras el cuerpo aclaraba que faltaba justo el estudio que cambia la conducta. El
@@ -77611,7 +77647,9 @@ function mchConclusion(src){
   const _ahaPend = (aha.pendientes.length && aha.pendientes.length < MCH_AHA_N_MAYORES
         ? ' (' + aha.pendientes.length + (aha.pendientes.length === 1 ? ' sin evaluar' : ' sin evaluar') + ')'
         : '');
-  resumen += '. AHA/ACC 2020: ' + _ahaCuenta + _ahaCond + _ahaPend;
+  /* El recuento con el rotulo del concepto y SIN la conducta, igual que el papel. `_ahaCond`
+     queda armado por el mismo motivo que `_escCond`. */
+  resumen += '. Factores mayores de riesgo de muerte súbita: ' + _ahaCuenta + _ahaPend;
   /* ⚠️ EN EL PAPEL «(N sin evaluar)» VA PEGADO AL RECUENTO, que es a lo que califica. En el
      `resumen` queda DESPUÉS de la conducta, como estaba: ese orden lo lee la hoja del PDF y esta
      tanda lo deja idéntico. */
@@ -77619,7 +77657,7 @@ function mchConclusion(src){
   /* La resonancia se nombra en el resumen, no sólo en el cuerpo: es el único factor de la lista
      que el ecocardiograma no puede ver, y un conteo bajo sin ella no significa lo mismo. */
   if (_mchSv('mch_fibrosis_rmn') !== 'si' && _mchSv('mch_fibrosis_rmn') !== 'no') {
-    resumen += '. No consta resonancia, que es uno de los factores mayores de la AHA y el eco no evalúa';
+    resumen += '. No consta resonancia, que es uno de los factores mayores y el eco no evalúa';
     /* En el papel, sin la sigla: lo que importa es que falta el estudio que el eco no puede
        hacer, y que es uno de los factores mayores. */
     papel += '. No consta resonancia, que es uno de los factores mayores y el eco no evalúa';
@@ -77628,14 +77666,14 @@ function mchConclusion(src){
      de arriba corresponde, y el EN SUMA es donde se lee la conducta. */
   { const _tv = tvEstado(src);
     if (_tv.sostenida && !ex.activas.length) {
-      resumen += '. Taquicardia ventricular sostenida documentada: el score de la ESC no está validado en ese escenario';
+      resumen += '. Taquicardia ventricular sostenida documentada: el score no está validado en ese escenario';
       papel += '. Taquicardia ventricular sostenida documentada: el score no está validado en ese escenario';
     } }
   /* Y la aplicabilidad no verificada del modelo europeo. */
   if (!ex.activas.length && ex.pendientes.length) {
     const _aplic = ': ' + ex.pendientes.length +
                (ex.pendientes.length === 1 ? ' exclusión sin contestar' : ' exclusiones sin contestar');
-    resumen += '. Aplicabilidad del score de la ESC no verificada' + _aplic;
+    resumen += '. Aplicabilidad del score no verificada' + _aplic;
     papel += '. Aplicabilidad del score no verificada' + _aplic;
   }
   /* La obstrucción severa sube también: cambia una conducta distinta de la del desfibrilador. */
@@ -78619,11 +78657,14 @@ function ccSumaLinea(sec){
     if (grad != null) l1 += ' — gradiente TSVI ' + _cc1(grad) + ' mmHg';
     /* El score con su BANDA, sin la clase de recomendación del desfibrilador. */
     let l2;
-    if (ex.activas.length) l2 = 'HCM Risk-SCD no aplicable (' + ex.activas.join('; ') + ')';
-    else if (esc.fuera)  l2 = 'HCM Risk-SCD no calculado: ' + esc.fuera.join(' y ') + ' fuera de rango';
-    else if (esc.faltan) l2 = 'HCM Risk-SCD no calculado, faltan ' + esc.faltan.length + (esc.faltan.length === 1 ? ' dato' : ' datos');
-    else l2 = 'HCM Risk-SCD ' + esc.pct.toFixed(2) + ' % a 5 años (riesgo ' + esc.banda + ')';
-    const l3 = 'AHA/ACC ' + aha.n + '/' + MCH_AHA_N_MAYORES + ' factores mayores' +
+    /* ⚠️ LAS DOS SIGLAS SALEN DEL EN SUMA — «CONG-2A», commit 5a. Esta linea ya era descriptiva
+       —no traia conducta ni clase, y su propio comentario lo dice—, pero nombraba el modelo y la
+       sociedad. Se nombran por lo que son; los numeros no se mueven. */
+    if (ex.activas.length) l2 = 'Score de riesgo de muerte súbita no aplicable (' + ex.activas.join('; ') + ')';
+    else if (esc.fuera)  l2 = 'Score de riesgo de muerte súbita no calculado: ' + esc.fuera.join(' y ') + ' fuera de rango';
+    else if (esc.faltan) l2 = 'Score de riesgo de muerte súbita no calculado, faltan ' + esc.faltan.length + (esc.faltan.length === 1 ? ' dato' : ' datos');
+    else l2 = 'Riesgo de muerte súbita ' + esc.pct.toFixed(2) + ' % a 5 años (riesgo ' + esc.banda + ')';
+    const l3 = 'Factores mayores ' + aha.n + '/' + MCH_AHA_N_MAYORES +
          (aha.pendientes.length ? ' (' + aha.pendientes.length + ' sin evaluar)' : '');
     /* Las tres salvedades que el resumen anterior colgaba a propósito del EN SUMA y no del
        párrafo. Ninguna es una conducta: las tres dicen si el número de arriba corresponde.
@@ -78636,7 +78677,7 @@ function ccSumaLinea(sec){
     if (_ccS('mch_fibrosis_rmn') !== 'si' && _ccS('mch_fibrosis_rmn') !== 'no')
       sal.push('no consta resonancia, que el ecocardiograma no evalúa');
     if (typeof tvEstado === 'function' && tvEstado().sostenida && !ex.activas.length)
-      sal.push('taquicardia ventricular sostenida documentada, escenario en que el score de la ESC no está validado');
+      sal.push('taquicardia ventricular sostenida documentada, escenario en que el score no está validado');
     /* Capitalizada: los tres literales se escribieron para ir tras un ` — ` a mitad de frase, y
        como línea propia arrancaban en minúscula en un informe firmado. */
     const salTxt = sal.join(' — ');
