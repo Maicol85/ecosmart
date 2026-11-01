@@ -76238,14 +76238,12 @@ function vabTipoCambio() {
   try { vabMorfSeguir(); } catch (e) {}
   if (typeof vabSync === 'function') vabSync();
 }
-/* ⚠️ EL AVISO NECESITA UN OYENTE DE DOCUMENTO: su otro insumo es `va_morf`, que vive en
-   VALVULAS y cuyo `onchange` va a `valvProtSync` —no pasa por `vabSync`—. Sin esto, volver la
-   morfologia a «Trivalva normal» dejaba la seccion sin decir nada hasta el gesto siguiente.
-   Es el patron de `emContFaAvisoSync` y de `vdTeiAvisoSync`. */
-document.addEventListener('change', function (ev) {
-  const t = ev && ev.target;
-  if (t && t.id === 'va_morf') { try { vabMorfAviso(); } catch (e) {} }
-}, false);
+/* ⚠️ EL OYENTE PROPIO DE `va_morf` SE RETIRO — «CONG-2A», commit 1 (2026-10-31). Llamaba SOLO
+   a `vabMorfAviso()`, y desde este commit `va_morf` esta en `_VAB_ORIGENES`, cuyo oyente llama a
+   `vabSync()`, que repinta el aviso en su primera linea junto con el resumen, el dibujo, el
+   espejo `vab_morf_ro` y el boton del PDF. Dejar los dos era el segundo mecanismo para el mismo
+   trabajo: la mutacion que rompe uno sobrevive porque el otro lo tapa. La mutacion 02 de esta
+   tanda es exactamente eso. */
 window.vabTipoCambio = vabTipoCambio;
 window.vabMorfSeguir = vabMorfSeguir; window.vabMorfAviso = vabMorfAviso;
 window.VAB_MORF_BIC = VAB_MORF_BIC; window.VAB_MORF_DEF = VAB_MORF_DEF;
@@ -76790,10 +76788,30 @@ window.vabFuncionDerivada = vabFuncionDerivada;
    Va como oyente de documento y no como una llamada mas en cada `oninput` por un motivo medido:
    `ea_grado` e `ia_grado` se escriben tambien POR CALCULO —`valvSev.aplicar` les asigna el valor
    y despacha su `change`—, y un `onchange` del marcado no ve esa escritura mientras que el
-   oyente en burbuja si. Es el patron de `emContFaAvisoSync` y el mismo que esta zona ya usa para
-   `va_morf`.
-   No hay bucle: `vabSync` no escribe ninguno de los cuatro origenes (censado). */
-const _VAB_ORIGENES = ['ao_sin', 'ao_tub', 'ea_grado', 'ia_grado'];
+   oyente en burbuja si. Es el patron de `emContFaAvisoSync`.
+   No hay bucle: `vabSync` no escribe ninguno de los cinco origenes (censado: el UNICO escritor
+   de `va_morf` en todo el archivo es `vabMorfSeguir`, y cuelga del cambio de TIPO).
+
+   ⚠️ `va_morf` ES EL QUINTO ORIGEN, Y FALTABA — «CONG-2A», commit 1 (2026-10-31). El comentario
+   de arriba decia «el mismo que esta zona ya usa para `va_morf`» y era FALSO por un renglon: lo
+   que esta zona usaba para esa morfologia era un oyente propio que llamaba SOLO a
+   `vabMorfAviso()`, no a `vabSync`. Y `va_morf` no es un origen cualquiera: es el que decide si
+   la valvula es bicuspide -lo leen `_indVABEsBicuspide`, `vabSumaFrase`, `vabConclusion` y la
+   linea 1 de `vabResumenPintar`-.
+   MEDIDO contra el arbol de entrada, con el gesto real: con un tipo de fusion cargado y la
+   morfologia devuelta a mano a «Trivalva normal», el informe, el EN SUMA y `vabConclusion()`
+   dejaban de nombrar la bicuspide -correcto- y el RESUMEN de la seccion seguia diciendo «VAB»,
+   junto con el espejo `vab_morf_ro`, el dibujo y el boton del PDF, que `vabSync` es el unico que
+   escribe. O sea: la pantalla desde la que se decide afirmaba una bicuspide que el papel ya no
+   publicaba. Lo unico que lo repintaba era el gesto SIGUIENTE, porque `vabSync` esta en
+   `RECALC_MODULOS`.
+   ⚠️ Y EL OYENTE PROPIO DE `va_morf` SE RETIRA EN EL MISMO COMMIT. `vabSync` llama a
+   `vabMorfAviso()` en su primera linea, asi que dejarlo seria el segundo mecanismo para el mismo
+   trabajo: es lo que hace que una mutacion sobreviva, y este archivo ya lo documenta cinco veces.
+   ⚠️ NO CAMBIA NINGUNA SUPERFICIE FIRMADA, y esta medido: lo unico que `vabSync` escribe que no
+   es pantalla es el oculto `vab_funcion`, y ese valor YA quedaba bien en el gesto siguiente por
+   `RECALC_MODULOS`. Lo que cambia es CUANDO, no QUE. */
+const _VAB_ORIGENES = ['ao_sin', 'ao_tub', 'ea_grado', 'ia_grado', 'va_morf'];
 function _vabOrigenCambio(ev) {
   const t = ev && ev.target;
   if (!t || _VAB_ORIGENES.indexOf(t.id) < 0) return;
