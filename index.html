@@ -2823,6 +2823,22 @@ html.light-mode #tab-valvulas .sev-lvl3{color:#7f1d1d;}
 .mfs-reg-por { flex:1 1 100%; color:var(--text2); font-size:10px; }
 .mfs-reg-grupo { font-size:10.5px; font-weight:700; color:var(--accent2); margin:8px 0 4px; }
 .mfs-nota-fija { font-style:italic; }
+
+/* ══ LA PANTALLA DE MARFAN: campos a la izquierda, conclusion a la derecha («MARFAN-1», 4a) ══
+   El corte va SOBRE LA VENTANA, que es la regla fija de este archivo: con `flex-wrap` el punto
+   de quiebre dependeria del ancho que le quede a la tarjeta y «a partir de unos 900 px»
+   dejaria de ser medible. Por debajo de 900 px la conclusion se apila debajo de los campos. */
+#mfs-fila > #mfs-campos-col { min-width: 0; }
+#mfs-fila > #mfs-concl-col { min-width: 0; }
+.mfs-subcol { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+@media (min-width: 900px) {
+  #mfs-fila { display: flex; gap: 14px; align-items: flex-start; }
+  #mfs-fila > #mfs-campos-col { flex: 1 1 0; }
+  #mfs-fila > #mfs-concl-col { flex: 0 0 44%; }
+}
+@media (max-width: 899px) {
+  #mfs-concl-col { margin-top: 12px; }
+}
 </style>
 <!-- El worker de pdf.js se carga por workerSrc, no por <script>, así que no admite
      el atributo integrity. Su hash sha512 verificado contra cdnjs es:
@@ -16683,89 +16699,106 @@ z
         45&nbsp;mm donde el Marfan espera a 50 y la EHAT no sindromica a 55. Declarar el sindrome
         es parte de la medicion.
       </p>
-      <div class="grid-3">
-        <div class="fg"><label>Sindrome</label>
-          <select id="marfan_sindrome" onchange="marfanSync()">
-            <option value="">&mdash;</option>
-            <option value="marfan">Sindrome de Marfan</option>
-            <option value="lds">Loeys-Dietz (TGFBR1/2)</option>
-            <option value="turner">Sindrome de Turner</option>
-            <option value="ehat">EHAT no sindromica</option>
-            <!-- Ehlers-Danlos VASCULAR (COL3A1). Va aparte y NO cae en «Otro» porque su tabla
-                 59 (folio 112) no da umbral de diametro: el folio 112 dice literal que «no se
-                 ha establecido recomendaciones claras con respecto a diametros aorticos... las
-                 decisiones deben tomarse caso a caso». Con «Otro» heredaba 55/50, que es el
-                 umbral de otra enfermedad. -->
-            <option value="eds">Ehlers-Danlos vascular</option>
-            <option value="otro">Otro</option>
-          </select>
+      <!-- ══ LA PANTALLA: CAMPOS A LA IZQUIERDA, CONCLUSION A LA DERECHA («MARFAN-1», 4a) ═══
+           Pedido del medico del 31/10 y regla fija de este archivo: desde 900 px los campos van
+           a la izquierda y la conclusion a la derecha; por debajo, apilado. El corte va SOBRE
+           LA VENTANA y no sobre el contenedor, que es lo que lo hace medible: con `flex-wrap`
+           el punto de quiebre depende del ancho que le quede a la tarjeta.
+           El patron de referencia es el de la orejuela (`#oai-fila`) y el de la TGA
+           (`#tga-fila`): contenedor flex, columna de campos con `min-width:0`.
+           ⚠️ LAS DOS SUBCOLUMNAS SON EXPLICITAS Y NO UN `grid-2` DE FLUJO POR FILAS, y eso es
+           lo unico que garantiza que la ASCENDENTE quede DEBAJO de la SINUSAL: el indice de
+           tamano aortico solo se muestra en Turner, asi que con flujo por filas la ascendente
+           sube a la celda que el indice deja libre y las dos quedan lado a lado. -->
+      <div id="mfs-fila">
+        <div id="mfs-campos-col" class="grid-2">
+          <div class="mfs-subcol">
+            <div class="fg"><label>Sindrome</label>
+              <select id="marfan_sindrome" onchange="marfanSync()">
+                <option value="">&mdash;</option>
+                <option value="marfan">Sindrome de Marfan</option>
+                <option value="lds">Loeys-Dietz (TGFBR1/2)</option>
+                <option value="turner">Sindrome de Turner</option>
+                <option value="ehat">EHAT no sindromica</option>
+                <!-- Ehlers-Danlos VASCULAR (COL3A1). Va aparte y NO cae en «Otro» porque su tabla
+                     59 (folio 112) no da umbral de diametro: el folio 112 dice literal que «no se
+                     ha establecido recomendaciones claras con respecto a diametros aorticos... las
+                     decisiones deben tomarse caso a caso». Con «Otro» heredaba 55/50, que es el
+                     umbral de otra enfermedad. -->
+                <option value="eds">Ehlers-Danlos vascular</option>
+                <option value="otro">Otro</option>
+              </select>
+            </div>
+            <div class="fg"><label>Aorta sinusal (mm)</label>
+              <input type="number" id="marfan_ao_seno" placeholder="mm" oninput="aoRaizSync('marfan');marfanSync()">
+              <!-- ⚠️ LA LECTURA DE LA RAÍZ CARGADA EN AI/VI (COR-4a, 2026-10-30) ══════════════════
+                   Observado por el médico: con la aorta sinusal cargada en AI/VI, esta pantalla no
+                   la mostraba hasta que se escribía algo acá. La causa es el espejo CONDICIONAL del
+                   G-4: el sentido estudio → módulo sólo corre con el módulo YA EN USO, y lo hace por
+                   una razón medida que no cambió —poblar `marfan_ao_seno` en todo estudio con aorta
+                   encendería la tarjeta de aortopatía, metería esos estudios en el panel
+                   «Marfan/EHAT» del Laboratorio y le pondría valor a una columna de Excel—.
+                   Lo que cambia es que ahora SE MUESTRA sin escribirse: este `<span>` es de SOLO
+                   LECTURA. Su `id` va con guión MEDIO, así que `_noEsDelEstudio` lo deja fuera del
+                   recolector y no es un campo guardado. En cuanto el médico teclea acá, su dato
+                   gana y el espejo del G-4 lo lleva a AI/VI como ya hacía — un dato, dos puertas,
+                   gana la última edición. -->
+              <span id="marfan-ao-lectura" style="font-size:10px;color:var(--text2);"></span>
+            </div>
+            <div class="fg"><label>Aorta ascendente (mm)</label>
+              <input type="number" id="marfan_ao_ascendente" placeholder="mm" oninput="marfanSync()">
+            </div>
+          </div>
+          <div class="mfs-subcol">
+            <div class="fg"><label>Factores de riesgo</label>
+              <select id="marfan_factores_riesgo" onchange="marfanSync()">
+                <option value="">&mdash;</option>
+                <option value="no">No</option>
+                <option value="si">Si</option>
+              </select>
+              <span id="marfan-fr-hint" style="font-size:10px;color:var(--text2);">La lista de factores que bajan el umbral depende del sindrome: se publica al elegirlo.</span>
+            </div>
+            <!-- ⚠️ EL ÍNDICE YA NO SE TIPEA (B2, 30/10/2026). Decisión del médico: es una medida
+                 DERIVADA y se calcula sola, con la aorta ascendente y la superficie corporal, que es
+                 lo que la Tabla 58 de la ESC 2024 indexa.
+                 ⚠️ EL `<input>` SE QUEDA, ESCONDIDO Y SIN `oninput`, Y NO ES UN RESTO: es un campo
+                 GUARDADO con su columna en el Excel, y sacarlo del documento cambiaría el juego de
+                 campos de todo estudio que se guarde desde hoy y borraría la columna. Lo que cambia
+                 es que ya nadie lo escribe —ni el médico ni ningún automatismo— y que quien manda es
+                 `marfanItaEfectivo`. Un estudio viejo con el índice tipeado lo conserva y lo usa
+                 como respaldo cuando el cálculo no se puede hacer.
+                 El valor va en un `<span>` de guión MEDIO, que el recolector del estudio no toma. -->
+            <div class="fg" id="marfan-ita-wrap" style="display:none;"><label>Índice de tamaño aórtico (mm/m&sup2;)</label>
+              <input type="number" id="marfan_ita" step="0.1" style="display:none;" tabindex="-1" aria-hidden="true">
+              <div style="font-size:13px;font-weight:600;padding:6px 0;"><span id="marfan-ita-val">&mdash;</span></div>
+              <span id="marfan-ita-origen" style="font-size:10px;color:var(--text2);">Solo para Turner: se calcula con la aorta ascendente y la superficie corporal, porque la talla baja hace que un diametro absoluto normal sea patologico.</span>
+            </div>
+          </div>
         </div>
-        <div class="fg"><label>Aorta sinusal (mm)</label>
-          <input type="number" id="marfan_ao_seno" placeholder="mm" oninput="aoRaizSync('marfan');marfanSync()">
-          <!-- ⚠️ LA LECTURA DE LA RAÍZ CARGADA EN AI/VI (COR-4a, 2026-10-30) ══════════════════
-               Observado por el médico: con la aorta sinusal cargada en AI/VI, esta pantalla no
-               la mostraba hasta que se escribía algo acá. La causa es el espejo CONDICIONAL del
-               G-4: el sentido estudio → módulo sólo corre con el módulo YA EN USO, y lo hace por
-               una razón medida que no cambió —poblar `marfan_ao_seno` en todo estudio con aorta
-               encendería la tarjeta de aortopatía, metería esos estudios en el panel
-               «Marfan/EHAT» del Laboratorio y le pondría valor a una columna de Excel—.
-               Lo que cambia es que ahora SE MUESTRA sin escribirse: este `<span>` es de SOLO
-               LECTURA. Su `id` va con guión MEDIO, así que `_noEsDelEstudio` lo deja fuera del
-               recolector y no es un campo guardado. En cuanto el médico teclea acá, su dato
-               gana y el espejo del G-4 lo lleva a AI/VI como ya hacía — un dato, dos puertas,
-               gana la última edición. -->
-          <span id="marfan-ao-lectura" style="font-size:10px;color:var(--text2);"></span>
+        <div id="mfs-concl-col">
+          <!-- ══ LOS RASGOS DEL SCORE SISTEMICO Y LOS CRITERIOS APARTE (MARFAN-1, 2026-11-01) ═══
+               ESTE CONTENEDOR ES LA GUARDERIA Y NO UN RESTO. Los diecinueve campos son del
+               ESTUDIO -viajan en guardar, reabrir, exportar e importar- y por eso tienen que
+               existir en el DOM SIEMPRE, aunque la tarjeta de criterios no se haya abierto nunca:
+               `guardarInforme` barre `input[id]` del documento y la restauracion busca cada id.
+               La tarjeta los toma PRESTADOS con `_mfsPrestar` y los devuelve con `_mfsDevolver`,
+               porque `critAbrir` hace `innerHTML = render()` y eso DESTRUIRIA los nodos si vivieran
+               adentro: al abrirla dos veces se perderia lo cargado, y al abrir OTRO panel de
+               criterios se irian con el innerHTML. Mover el nodo -no clonarlo- es lo que garantiza
+               que la tarjeta y la figura lean UN SOLO dato.
+               ⚠️ LO PUEBLA `mfsCamposInit` DESDE `MFS_SCORE`, que es el dueno unico de la lista con
+               su puntaje: escribir trece filas a mano aca seria la segunda copia del Box 2.
+               ⚠️ NACEN VACIOS -select en `selectedIndex` 0 y casillas sin marcar-, asi que NO
+               disparan `secAutoOpen`: la seccion no se abre sola en un paciente que no los tiene.
+               Verificado contra su predicado, que cuenta `selectedIndex > 0` y `checked`. -->
+          <div id="mfs-campos" hidden></div>
+          <div id="marfan-resultado" class="calc-box"></div>
+          <input type="checkbox" id="marfan_incluir_chk" style="display:none;" tabindex="-1" aria-hidden="true">
+          <div style="display:flex;justify-content:center;margin-top:10px;">
+            <button type="button" class="btn btn-integrar" data-ete-chk="marfan_incluir_chk" aria-pressed="false"
+                    onclick="eteInclToggle('marfan_incluir_chk')">&#128206; Integrar al informe</button>
+          </div>
         </div>
-        <div class="fg"><label>Aorta ascendente (mm)</label>
-          <input type="number" id="marfan_ao_ascendente" placeholder="mm" oninput="marfanSync()">
-        </div>
-      </div>
-      <div class="grid-3" style="margin-top:10px;">
-        <!-- ⚠️ EL ÍNDICE YA NO SE TIPEA (B2, 30/10/2026). Decisión del médico: es una medida
-             DERIVADA y se calcula sola, con la aorta ascendente y la superficie corporal, que es
-             lo que la Tabla 58 de la ESC 2024 indexa.
-             ⚠️ EL `<input>` SE QUEDA, ESCONDIDO Y SIN `oninput`, Y NO ES UN RESTO: es un campo
-             GUARDADO con su columna en el Excel, y sacarlo del documento cambiaría el juego de
-             campos de todo estudio que se guarde desde hoy y borraría la columna. Lo que cambia
-             es que ya nadie lo escribe —ni el médico ni ningún automatismo— y que quien manda es
-             `marfanItaEfectivo`. Un estudio viejo con el índice tipeado lo conserva y lo usa
-             como respaldo cuando el cálculo no se puede hacer.
-             El valor va en un `<span>` de guión MEDIO, que el recolector del estudio no toma. -->
-        <div class="fg" id="marfan-ita-wrap" style="display:none;"><label>Índice de tamaño aórtico (mm/m&sup2;)</label>
-          <input type="number" id="marfan_ita" step="0.1" style="display:none;" tabindex="-1" aria-hidden="true">
-          <div style="font-size:13px;font-weight:600;padding:6px 0;"><span id="marfan-ita-val">&mdash;</span></div>
-          <span id="marfan-ita-origen" style="font-size:10px;color:var(--text2);">Solo para Turner: se calcula con la aorta ascendente y la superficie corporal, porque la talla baja hace que un diametro absoluto normal sea patologico.</span>
-        </div>
-        <div class="fg"><label>Factores de riesgo</label>
-          <select id="marfan_factores_riesgo" onchange="marfanSync()">
-            <option value="">&mdash;</option>
-            <option value="no">No</option>
-            <option value="si">Si</option>
-          </select>
-          <span id="marfan-fr-hint" style="font-size:10px;color:var(--text2);">La lista de factores que bajan el umbral depende del sindrome: se publica al elegirlo.</span>
-        </div>
-      </div>
-      <!-- ══ LOS RASGOS DEL SCORE SISTEMICO Y LOS CRITERIOS APARTE (MARFAN-1, 2026-11-01) ═══
-           ESTE CONTENEDOR ES LA GUARDERIA Y NO UN RESTO. Los diecinueve campos son del
-           ESTUDIO -viajan en guardar, reabrir, exportar e importar- y por eso tienen que
-           existir en el DOM SIEMPRE, aunque la tarjeta de criterios no se haya abierto nunca:
-           `guardarInforme` barre `input[id]` del documento y la restauracion busca cada id.
-           La tarjeta los toma PRESTADOS con `_mfsPrestar` y los devuelve con `_mfsDevolver`,
-           porque `critAbrir` hace `innerHTML = render()` y eso DESTRUIRIA los nodos si vivieran
-           adentro: al abrirla dos veces se perderia lo cargado, y al abrir OTRO panel de
-           criterios se irian con el innerHTML. Mover el nodo -no clonarlo- es lo que garantiza
-           que la tarjeta y la figura lean UN SOLO dato.
-           ⚠️ LO PUEBLA `mfsCamposInit` DESDE `MFS_SCORE`, que es el dueno unico de la lista con
-           su puntaje: escribir trece filas a mano aca seria la segunda copia del Box 2.
-           ⚠️ NACEN VACIOS -select en `selectedIndex` 0 y casillas sin marcar-, asi que NO
-           disparan `secAutoOpen`: la seccion no se abre sola en un paciente que no los tiene.
-           Verificado contra su predicado, que cuenta `selectedIndex > 0` y `checked`. -->
-      <div id="mfs-campos" hidden></div>
-      <div id="marfan-resultado" class="calc-box" style="margin-top:12px;"></div>
-      <input type="checkbox" id="marfan_incluir_chk" style="display:none;" tabindex="-1" aria-hidden="true">
-      <div style="display:flex;justify-content:center;margin-top:10px;">
-        <button type="button" class="btn btn-integrar" data-ete-chk="marfan_incluir_chk" aria-pressed="false"
-                onclick="eteInclToggle('marfan_incluir_chk')">&#128206; Integrar al informe</button>
       </div>
     </div>
   </div>
@@ -45162,6 +45195,12 @@ const TRIV_DTI_FUENTE =
   + 'pequeño con cateterismo: Bréchot N y cols., Eur J Echocardiogr 2008;9:547-554.';
 
 const VINFO = Object.freeze({
+  /* ══ EL UMBRAL QUIRURGICO DE ESTE SINDROME («MARFAN-1», 4b, 2026-11-01) ══════════════════
+     Decision del medico: el nombre de la guia, la tabla, el folio y la clase salen del cuadro
+     «Conducta aortica» y viven aca. Lo que el cuadro DICE y su contenido clinico no cambian:
+     el veredicto y los umbrales en milimetros se quedan donde estaban. */
+  'mf-conducta': { tit: 'El umbral de este síndrome', ancho: 420, dyn: function () {
+    return (typeof _mfConductaInfo === 'function') ? _mfConductaInfo() : ''; } },
   /* ══ LA FILA DE MINIATURAS DE LO QUE VA AL PDF (AJUSTES-2, commit 4a, 2026-10-31) ══════════
      Reemplaza al texto de ayuda que vivia en la cabecera de la fila. Es una explicacion de la
      INTERFAZ: no lleva fuente, no afirma nada clinico y no va al papel.
@@ -76556,8 +76595,14 @@ function marfanEstado(src) {
   /* Sin síndrome no se concluye. No es un dato que falte para completar la ficha: es el que
      ELIGE el umbral. Con 47 mm, un Loeys-Dietz tiene indicación Clase I y una EHAT no tiene
      ninguna — suponer el del medio sería inventar la conducta. */
+  /* ⚠️ LA COLETILLA DE LA TABLA SALIO DEL TEXTO Y PASO A `cita` («MARFAN-1», 3b/4b). Medido
+     sobre HEAD: este era el UNICO de los once estados que llevaba el nombre de una guia al
+     PAPEL —el EN SUMA publicaba «y cada uno sale de una tabla distinta de la ESC 2024»—,
+     porque es uno de los dos estados que suben `r.txt` tal cual. Los umbrales en milimetros
+     se QUEDAN: son el contenido clinico que explica por que falta el sindrome. */
   if (!sind) return Object.assign(base, { clave:'sin_sindrome',
-    txt:'Aortopatía hereditaria — falta declarar el síndrome: el umbral quirúrgico depende de él (Loeys-Dietz por encima de 45 mm, Marfan desde 50, no sindrómica desde 55, y el Ehlers-Danlos vascular sin umbral de diámetro), y cada uno sale de una tabla distinta de la ESC 2024' });
+    txt:'Aortopatía hereditaria — falta declarar el síndrome: el umbral quirúrgico depende de él (Loeys-Dietz por encima de 45 mm, Marfan desde 50, no sindrómica desde 55, y el Ehlers-Danlos vascular sin umbral de diámetro)',
+    cita:'Cada síndrome sale de una tabla distinta de la ESC 2024.' });
   /* El diámetro que decide es el MAYOR de seno y ascendente. Mirar sólo el seno dejaba fuera al
      paciente con la dilatación en la ascendente, que es el fenotipo tubular. */
   const maxAo = (seno != null && asc != null) ? Math.max(seno, asc) : (seno != null ? seno : asc);
@@ -76576,14 +76621,17 @@ function marfanEstado(src) {
        ramas, así que una Turner con ASI 24 y antecedente familiar de disección salía «sin
        criterios» — el escenario exacto en que el umbral bajo existe. */
     if (ita > 23 && conFR) return Object.assign(base, { clave:'cx_iia',
-      txt:'Síndrome de Turner con índice de tamaño aórtico ' + itaTxt + ' mm/m² (>23) y factores de riesgo — considerar cirugía de la aorta (' + MARFAN_FTE.turner + ', Clase IIa · Nivel C)' });
+      txt:'Síndrome de Turner con índice de tamaño aórtico ' + itaTxt + ' mm/m² (>23) y factores de riesgo — considerar cirugía de la aorta',
+      cita: MARFAN_FTE.turner + ', Clase IIa · Nivel C.' });
     if (ita > 25) return Object.assign(base, { clave:'cx_iib',
-      txt:'Síndrome de Turner con índice de tamaño aórtico ' + itaTxt + ' mm/m² (>25) sin factores de riesgo — puede considerarse cirugía de la aorta (' + MARFAN_FTE.turner + ', Clase IIb · Nivel C)' });
+      txt:'Síndrome de Turner con índice de tamaño aórtico ' + itaTxt + ' mm/m² (>25) sin factores de riesgo — puede considerarse cirugía de la aorta',
+      cita: MARFAN_FTE.turner + ', Clase IIb · Nivel C.' });
     /* Entre 23 y 25 SIN factores no hay indicación, pero el texto nombra el umbral que se cruza
        con ellos: es la información que decide el intervalo del próximo control. */
     return Object.assign(base, { clave:'sin_indicacion',
-      txt:'Síndrome de Turner con índice de tamaño aórtico ' + itaTxt + ' mm/m² — sin criterios quirúrgicos aórticos actuales (' + MARFAN_FTE.turner + ')' +
-          (ita > 23 ? '; con factores de riesgo este índice ya sería Clase IIa' : '') + '. Seguimiento' });
+      txt:'Síndrome de Turner con índice de tamaño aórtico ' + itaTxt + ' mm/m² — sin criterios quirúrgicos aórticos actuales' +
+          (ita > 23 ? '; con factores de riesgo este índice ya cruzaría el umbral' : '') + '. Seguimiento',
+      cita: MARFAN_FTE.turner + (ita > 23 ? '. Con factores de riesgo, Clase IIa · Nivel C.' : '.') });
   }
   /* ══ EHLERS-DANLOS VASCULAR — SIN UMBRAL DE DIÁMETRO, Y VA ANTES DE EXIGIRLO ═══════════════
      Verificado en el original, folio 112 (hoja 113), apartado 10.1.2.4: «No se ha establecido
@@ -76598,7 +76646,8 @@ function marfanEstado(src) {
   if (sind === 'eds') return Object.assign(base, { clave:'sin_umbral',
     txt: base.sindTxt.charAt(0).toUpperCase() + base.sindTxt.slice(1) +
          (maxAo != null ? ' con diámetro aórtico máximo ' + maxAo + ' mm' : '') +
-         ' — la ESC 2024 no publica un umbral de diámetro para esta enfermedad (' + MARFAN_FTE.eds + ')' });
+         ' — no hay un umbral de diámetro publicado para esta enfermedad',
+    cita: MARFAN_FTE.eds + '.' });
   if (maxAo == null) return Object.assign(base, { clave:'falta_diametro',
     txt: base.sindTxt.charAt(0).toUpperCase() + base.sindTxt.slice(1) + ' — sin diámetro aórtico registrado; completar seno y ascendente' });
   const pre = base.sindTxt.charAt(0).toUpperCase() + base.sindTxt.slice(1) + ' con diámetro aórtico máximo ' + maxAo + ' mm';
@@ -76615,15 +76664,18 @@ function marfanEstado(src) {
      La banda de 40 exige las características de riesgo alto, que es lo que lee `conFR`. */
   if (sind === 'lds') {
     if (maxAo > 45) return Object.assign(base, { clave:'cx_iia',
-      txt: pre + ' — considerar el reemplazo de la raíz aórtica (' + fteS + ', Clase IIa · Nivel C con diámetro superior a 45 mm)' });
+      txt: pre + ' — considerar el reemplazo de la raíz aórtica, por encima de los 45 mm',
+      cita: fteS + ', Clase IIa · Nivel C con diámetro superior a 45 mm.' });
     if (maxAo >= 40 && conFR) return Object.assign(base, { clave:'cx_iib',
-      txt: pre + ' con características de riesgo alto — el umbral de cirugía puede adaptarse al gen subyacente (' + fteS +
-           ', Clase IIb · Nivel C; el apartado 10.1.4.1.1 del folio 116 baja el umbral a 40 mm o más con esas características)' });
+      txt: pre + ' con características de riesgo alto — el umbral de cirugía puede adaptarse al gen subyacente, desde 40 mm o más con esas características',
+      cita: fteS + ', Clase IIb · Nivel C; el apartado 10.1.4.1.1 del folio 116 baja el umbral a 40 mm o más con esas características.' });
     if (maxAo >= 40) return Object.assign(base, { clave:'umbral_iia_sin_fr',
-      txt: pre + ' — por encima de los 40 mm desde los que el umbral puede adaptarse al gen con características de riesgo alto (' +
-           fteS + ', Clase IIb · Nivel C)' + (fr === 'no' ? ', hoy sin características consignadas' : '; falta consignar si las hay') });
+      txt: pre + ' — por encima de los 40 mm desde los que el umbral puede adaptarse al gen con características de riesgo alto' +
+           (fr === 'no' ? ', hoy sin características consignadas' : '; falta consignar si las hay'),
+      cita: fteS + ', Clase IIb · Nivel C.' });
     return Object.assign(base, { clave:'sin_indicacion',
-      txt: pre + ' — sin criterios quirúrgicos aórticos actuales (' + fteS + '). Seguimiento por imagen' });
+      txt: pre + ' — sin criterios quirúrgicos aórticos actuales. Seguimiento por imagen',
+      cita: fteS + '.' });
   }
   /* ⚠️ LA CLASE Y EL NIVEL VAN AL LADO DE CADA CORTE, Y NO SON LOS MISMOS EN LAS CUATRO TABLAS
      (trabajo «H», 2026-10-21). El `iia:50` del tramo con factores de la aortopatía NO sindrómica
@@ -76651,7 +76703,8 @@ function marfanEstado(src) {
         'así que no se puede elegir el umbral quirúrgico. Volver a consignarlo' });
   const u = UMBRAL[sind];
   if (maxAo >= u.i) return Object.assign(base, { clave:'cx_i',
-    txt: pre + ' — cirugía de la aorta indicada (' + fteS + ', Clase I · Nivel ' + u.nI + ' desde ' + u.i + ' mm para ' + base.sindTxt + ')' });
+    txt: pre + ' — cirugía de la aorta indicada, desde ' + u.i + ' mm para ' + base.sindTxt,
+    cita: fteS + ', Clase I · Nivel ' + u.nI + ' desde ' + u.i + ' mm para ' + base.sindTxt + '.' });
   /* ⚠️ LA CLAVE LA ELIGE LA CLASE Y NO LA RAMA, y esto lo cazó la sonda: con la clave fija en
      `cx_iia`, la aortopatía NO sindrómica salía con el badge «Considerar cirugía — Clase IIa» y
      el Fundamento diciendo «Clase IIb · Nivel B» dos renglones más abajo, sobre el mismo
@@ -76659,12 +76712,15 @@ function marfanEstado(src) {
      las TRES superficies que lo leen: el badge, el EN SUMA y la distribución del Laboratorio.
      Ninguna clave nueva, así que `_labDistribDe` no pierde ningún estudio en silencio. */
   if (u.iia != null && maxAo >= u.iia && conFR) return Object.assign(base, { clave: u.cFr === 'IIb' ? 'cx_iib' : 'cx_iia',
-    txt: pre + ' con factores de riesgo — ' + (u.cFr === 'IIb' ? 'puede considerarse' : 'considerar') + ' cirugía de la aorta (' + fteS + ', Clase ' + u.cFr + ' · Nivel ' + u.nFr + ' desde ' + u.iia + ' mm con factores)' });
+    txt: pre + ' con factores de riesgo — ' + (u.cFr === 'IIb' ? 'puede considerarse' : 'considerar') + ' cirugía de la aorta, desde ' + u.iia + ' mm con factores',
+    cita: fteS + ', Clase ' + u.cFr + ' · Nivel ' + u.nFr + ' desde ' + u.iia + ' mm con factores.' });
   if (u.iia != null && maxAo >= u.iia && !conFR) return Object.assign(base, { clave:'umbral_iia_sin_fr',
-    txt: pre + ' — por encima del umbral de ' + u.iia + ' mm en que los factores de riesgo pasan a indicar cirugía (' + fteS + ', Clase ' + u.cFr + ' · Nivel ' + u.nFr + ')' +
-         (fr === 'no' ? ', hoy sin factores consignados' : '; falta consignar si los hay') });
+    txt: pre + ' — por encima del umbral de ' + u.iia + ' mm en que los factores de riesgo pasan a indicar cirugía' +
+         (fr === 'no' ? ', hoy sin factores consignados' : '; falta consignar si los hay'),
+    cita: fteS + ', Clase ' + u.cFr + ' · Nivel ' + u.nFr + '.' });
   return Object.assign(base, { clave:'sin_indicacion',
-    txt: pre + ' — sin criterios quirúrgicos aórticos actuales (' + fteS + '). Seguimiento por imagen' });
+    txt: pre + ' — sin criterios quirúrgicos aórticos actuales. Seguimiento por imagen',
+    cita: fteS + '.' });
 }
 window.marfanEstado = marfanEstado;
 
@@ -76747,13 +76803,30 @@ function marfanSync() {
   const CLS = { cx_i:'red', cx_iia:'orange', cx_iib:'yellow', umbral_iia_sin_fr:'yellow',
                 sin_indicacion:'green', sin_sindrome:'gray', falta_ita:'gray', falta_diametro:'gray',
                 sin_umbral:'gray' };
-  const ETQ = { cx_i:'Cirugía indicada — Clase I', cx_iia:'Considerar cirugía — Clase IIa',
-                cx_iib:'Puede considerarse — Clase IIb', umbral_iia_sin_fr:'En zona de vigilancia',
+  /* ⚠️ LA CLASE SALIO DE LA ETIQUETA Y VIVE EN EL GLOBO («MARFAN-1», 4b). Decision del medico.
+     El VEREDICTO no cambia —«Cirugía indicada» sigue siendo «Cirugía indicada»— y lo que se
+     mueve es la ATRIBUCION: el nombre de la guia, la tabla, el folio y la clase. Las claves
+     `cx_i`, `cx_iia` y `cx_iib` NO se tocan: las lee el Laboratorio para su distribucion. */
+  const ETQ = { cx_i:'Cirugía indicada', cx_iia:'Considerar cirugía',
+                cx_iib:'Puede considerarse', umbral_iia_sin_fr:'En zona de vigilancia',
                 sin_indicacion:'Sin criterios quirúrgicos', sin_sindrome:'Falta el síndrome',
                 falta_ita:'Falta el índice indexado', falta_diametro:'Falta el diámetro',
                 /* GRIS y no verde: «sin umbral publicado» NO es «sin criterios». */
                 sin_umbral:'Sin umbral de diámetro en la guía' };
-  fila('Conducta aórtica', pill(CLS[r.clave] || 'gray', ETQ[r.clave] || '—'));
+  { /* La fila lleva su globo: el rotulo es un nodo propio para poder colgarle el boton sin
+       tocar `fila()`, que lo usan todas las demas. */
+    const row = document.createElement('div'); row.className = 'calc-row';
+    const l = document.createElement('span'); l.className = 'calc-lbl';
+    l.appendChild(document.createTextNode('Conducta aórtica '));
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'vinfo-btn vinfo-btn-44';
+    b.setAttribute('data-vinfo', 'mf-conducta'); b.setAttribute('aria-expanded', 'false');
+    b.setAttribute('aria-label', 'Guía, tabla, folio y clase del umbral quirúrgico de este síndrome');
+    b.textContent = '\u2139';
+    b.addEventListener('click', function () { if (typeof vInfoClic === 'function') vInfoClic(b); });
+    l.appendChild(b); row.appendChild(l);
+    row.appendChild(pill(CLS[r.clave] || 'gray', ETQ[r.clave] || '—'));
+    el.appendChild(row); }
   fila('Fundamento', val(r.txt));
   /* El umbral del síndrome se PUBLICA aunque no haya indicación: es lo que le dice al médico a
      qué distancia está este paciente de la cirugía, que es la información que usa para fijar el
@@ -76761,17 +76834,54 @@ function marfanSync() {
   /* ⚠️ CADA CADENA NOMBRA SU TABLA, que es la corrección del trabajo «H»: hasta entonces la
      pantalla publicaba cinco umbrales de CUATRO tablas distintas sin decir de cuál era cada uno,
      y el comentario del bloque se los atribuía todos a la Tabla 62. */
-  const U = { marfan:'50 mm (Clase I · B) · 45 mm con factores (IIa · C)',
-              lds:'por encima de 45 mm (IIa · C) · desde 40 mm con características de riesgo alto, umbral adaptado al gen (IIb · C)',
-              /* El Ehlers-Danlos vascular NO entra en este mapa: publicar «sin umbral» en la
-                 fila «Umbral de este síndrome» sería una fila que no informa nada; lo dice el
-                 Fundamento, y la fuente sale igual por la fila de abajo. */
-              turner:'índice >23 mm/m² con factores (IIa · C) · >25 sin ellos (IIb · C)',
-              ehat:'55 mm (Clase I · B) · 50 mm con factores (IIb · B)',
-              otro:'55 mm (Clase I · B) · 50 mm con factores (IIb · B)' };
+  /* ⚠️ LOS MILIMETROS SE QUEDAN Y LAS CLASES SE FUERON AL GLOBO («MARFAN-1», 4b). El umbral
+     en milimetros es el contenido clinico que le dice al medico a que distancia esta este
+     paciente de la cirugia —la informacion con que fija el intervalo del proximo control— y
+     por eso no se mueve. La clase y el nivel son la atribucion, y viven en el globo con su
+     tabla y su folio. `MARFAN_FTE` sigue siendo el dueno unico de la cita.
+     El Ehlers-Danlos vascular NO entra en este mapa: publicar «sin umbral» en esta fila seria
+     una fila que no informa nada; lo dice el Fundamento. */
+  const U = { marfan:'50 mm · 45 mm con factores de riesgo',
+              lds:'por encima de 45 mm · desde 40 mm con características de riesgo alto, umbral adaptado al gen',
+              turner:'índice >23 mm/m² con factores · >25 sin ellos',
+              ehat:'55 mm · 50 mm con factores de riesgo',
+              otro:'55 mm · 50 mm con factores de riesgo' };
   if (r.sind && U[r.sind]) fila('Umbral de este síndrome', val(U[r.sind]));
-  if (r.sind && _tieneClave(MARFAN_FTE, r.sind)) fila('Fuente del umbral', val(MARFAN_FTE[r.sind]));
 }
+/* El contenido del globo de «Conducta aórtica»: la guia, la tabla, el folio y la clase de ESTE
+   paciente. Es `dyn` porque depende del sindrome y de la rama en que cayo, y sale de las mismas
+   piezas que la capsula -`r.cita` y `MARFAN_FTE`-, asi que los dos no pueden discrepar. */
+function _mfConductaInfo(){
+  /* ⚠️ DEVUELVE UN NODO Y NO UNA CADENA, y esto lo cazo la sonda de pantalla: `_vInfoColocar`
+     hace `appendChild(VINFO[clave].dyn())`, asi que un `dyn` que devuelva HTML revienta en su
+     try y la tarjeta publica «No se pudo construir la tarjeta.» en los ocho cruces. Es ademas
+     la regla que el comentario de ese bloque ya declara, y la que evita el aviso de Semgrep
+     sobre `innerHTML` concatenado. */
+  var f = document.createDocumentFragment();
+  var P = function (txt, fuerte) { var e = document.createElement('p');
+    e.style.margin = '0 0 7px';
+    if (fuerte) { var b = document.createElement('b'); b.textContent = fuerte; e.appendChild(b);
+      e.appendChild(document.createTextNode(' ' + txt)); } else { e.textContent = txt; }
+    return e; };
+  f.appendChild(P('El veredicto de la izquierda sale de los umbrales de diámetro de la guía europea ' +
+    'de enfermedades aórticas y vasculares periféricas de 2024, que son distintos para cada síndrome.'));
+  var r = (typeof marfanEstado === 'function') ? marfanEstado() : null;
+  if (!r || !r.hayDatos) {
+    f.appendChild(P('Sin síndrome ni diámetros cargados no se puede nombrar la tabla que aplica.'));
+    return f;
+  }
+  if (r.cita) f.appendChild(P(r.cita, 'En este paciente:'));
+  if (r.sind && _tieneClave(MARFAN_FTE, r.sind)) f.appendChild(P(MARFAN_FTE[r.sind], 'Fuente del umbral:'));
+  var CL = { marfan:'Clase I · Nivel B desde 50 mm; Clase IIa · Nivel C desde 45 mm con factores de riesgo.',
+             lds:'Clase IIa · Nivel C con diámetro superior a 45 mm; Clase IIb · Nivel C para adaptar el umbral al gen desde 40 mm con características de riesgo alto.',
+             turner:'Clase IIa · Nivel C con índice mayor de 23 mm/m² y factores de riesgo; Clase IIb · Nivel C con índice mayor de 25 sin ellos.',
+             ehat:'Clase I · Nivel B desde 55 mm; Clase IIb · Nivel B desde 50 mm con factores de riesgo.',
+             otro:'Clase I · Nivel B desde 55 mm; Clase IIb · Nivel B desde 50 mm con factores de riesgo.',
+             eds:'La guía no publica un umbral de diámetro para esta enfermedad: las decisiones se toman caso a caso.' };
+  if (r.sind && CL[r.sind]) f.appendChild(P(CL[r.sind], 'Clase y nivel de este síndrome:'));
+  return f;
+}
+window._mfConductaInfo = _mfConductaInfo;
 window.marfanSync = marfanSync;
 
 /* ══ SÍNDROME DE EISENMENGER (ESC 2020) ══════════════════════════════════════════════════════

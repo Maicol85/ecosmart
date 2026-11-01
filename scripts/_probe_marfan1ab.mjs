@@ -231,7 +231,7 @@ const correr = async (br, file) => {
   /* los campos guardados: diferencia de ids, una sola vez */
   const ca = (A.vacio.campos || '').split(','), cb = (B.vacio.campos || '').split(',');
   const nuevos = cb.filter(x => ca.indexOf(x) < 0), perdidos = ca.filter(x => cb.indexOf(x) < 0);
-  console.log(JSON.stringify({ denom, nDifs: difs.length, difs: difs.slice(0, 40),
+  console.log(JSON.stringify({ denom, nDifs: difs.length, difs: difs.slice(0, 300),
     camposHEAD: ca.length, camposNUEVO: cb.length, camposNuevos: nuevos, camposPerdidos: perdidos,
     errsHEAD: A.__errs.slice(0, 3), errsNUEVO: B.__errs.slice(0, 3) }, null, 1));
   process.exit(0);
