@@ -2788,6 +2788,30 @@ html.light-mode #tab-valvulas .sev-lvl3{color:#7f1d1d;}
 #tab-sgl .card-head{color:var(--text)!important;}
 #tab-sgl details summary{color:var(--text)!important;}
 
+
+/* ══ LA TARJETA DE CRITERIOS DE MARFAN — «MARFAN-1» (2026-11-01) ═══════════════════════════
+   Los colores salen de las variables de tema, asi que la tarjeta se lee igual en claro y en
+   oscuro sin una segunda paleta escrita a mano.
+   ⚠️ EL PISO TACTIL DE 44 px VA EN LA FILA ENTERA Y NO EN EL CONTROL: la fila es el `<label>`,
+   asi que tocar el rotulo tambien marca. Un `min-height` en la casilla sola la agranda y deja
+   el rotulo fuera del area, que es lo que la tanda AJUSTES-3 midio en el panel de Evidencia. */
+.mfs-fila { display:flex; align-items:center; gap:9px; min-height:44px; padding:3px 6px;
+  border-radius:6px; cursor:pointer; font-size:11px; line-height:1.4; }
+.mfs-fila:hover { background:var(--bg3); }
+.mfs-rot { flex:1; min-width:0; }
+.mfs-pts { flex:0 0 auto; color:var(--accent2); font-size:11px; }
+.mfs-sel { flex:0 0 auto; max-width:46%; font-size:11px; padding:4px 6px; }
+.mfs-fila-chk input[type=checkbox] { width:18px; height:18px; flex:0 0 auto; }
+.mfs-badge { display:inline-block; font-size:12px; font-weight:700; padding:3px 11px;
+  border-radius:999px; margin-bottom:4px; background:var(--bg3); border-left:3px solid var(--border); }
+.mfs-badge-on { background:rgba(59,130,246,.12); border-left:3px solid #3B82F6; }
+.mfs-corte { font-size:10.5px; color:var(--text2); margin-bottom:8px; }
+.mfs-msg { margin-top:9px; font-size:11px; font-weight:700; padding:7px 9px; border-radius:7px;
+  line-height:1.5; background:var(--bg3); border-left:3px solid var(--border); }
+.mfs-msg-on { background:rgba(59,130,246,.12); border-left:3px solid #3B82F6; }
+.mfs-aparte-tit { font-size:11.5px; font-weight:700; margin-bottom:6px; }
+.mfs-aparte-tit span { font-weight:400; color:var(--text2); }
+.mfs-nota { margin-top:9px; font-size:10.5px; color:var(--text2); line-height:1.5; }
 </style>
 <!-- El worker de pdf.js se carga por workerSrc, no por <script>, así que no admite
      el atributo integrity. Su hash sha512 verificado contra cdnjs es:
@@ -16710,6 +16734,22 @@ z
           <span id="marfan-fr-hint" style="font-size:10px;color:var(--text2);">La lista de factores que bajan el umbral depende del sindrome: se publica al elegirlo.</span>
         </div>
       </div>
+      <!-- ══ LOS RASGOS DEL SCORE SISTEMICO Y LOS CRITERIOS APARTE (MARFAN-1, 2026-11-01) ═══
+           ESTE CONTENEDOR ES LA GUARDERIA Y NO UN RESTO. Los diecinueve campos son del
+           ESTUDIO -viajan en guardar, reabrir, exportar e importar- y por eso tienen que
+           existir en el DOM SIEMPRE, aunque la tarjeta de criterios no se haya abierto nunca:
+           `guardarInforme` barre `input[id]` del documento y la restauracion busca cada id.
+           La tarjeta los toma PRESTADOS con `_mfsPrestar` y los devuelve con `_mfsDevolver`,
+           porque `critAbrir` hace `innerHTML = render()` y eso DESTRUIRIA los nodos si vivieran
+           adentro: al abrirla dos veces se perderia lo cargado, y al abrir OTRO panel de
+           criterios se irian con el innerHTML. Mover el nodo -no clonarlo- es lo que garantiza
+           que la tarjeta y la figura lean UN SOLO dato.
+           ⚠️ LO PUEBLA `mfsCamposInit` DESDE `MFS_SCORE`, que es el dueno unico de la lista con
+           su puntaje: escribir trece filas a mano aca seria la segunda copia del Box 2.
+           ⚠️ NACEN VACIOS -select en `selectedIndex` 0 y casillas sin marcar-, asi que NO
+           disparan `secAutoOpen`: la seccion no se abre sola en un paciente que no los tiene.
+           Verificado contra su predicado, que cuenta `selectedIndex > 0` y `checked`. -->
+      <div id="mfs-campos" hidden></div>
       <div id="marfan-resultado" class="calc-box" style="margin-top:12px;"></div>
       <input type="checkbox" id="marfan_incluir_chk" style="display:none;" tabindex="-1" aria-hidden="true">
       <div style="display:flex;justify-content:center;margin-top:10px;">
@@ -80137,96 +80177,263 @@ function _critCols(cols){
 function _critPie(txt){
   return '<div style="margin-top:12px;padding-top:9px;border-top:1px solid var(--border);font-size:10.5px;color:var(--text2);line-height:1.5;">' + txt + '</div>';
 }
-/* Los once rasgos del score sistémico de Ghent 2010 con su puntaje. Fuente única del panel: el
-   total, el mensaje del pie y el criterio de «compromiso sistémico» salen de acá. */
-var MARFAN_GHENT = [
-  ['Muñeca Y pulgar (Walker-Murdoch + Steinberg)', 3],
-  ['Luxación del cristalino (ectopia lentis)', 3],
-  ['Neumotórax espontáneo', 2],
-  ['Ectasia dural', 2],
-  ['Protrusión acetabular', 2],
-  ['Pectus carinatum o excavatum que requiere cirugía', 2],
-  ['Muñeca O pulgar (sólo uno de los dos)', 1],
-  ['Pectus excavatum moderado o asimetría torácica', 1],
-  ['Pie plano', 1],
-  ['Estrías cutáneas', 1],
-  ['Miopía mayor de 3 dioptrías', 1]
+/* ══ EL SCORE SISTEMICO DEL BOX 2, LEIDO EN IMAGEN — «MARFAN-1» (2026-11-01) ══════════════════
+   Fuente: Loeys BL, Dietz HC, Braverman AC et al. «The revised Ghent nosology for the Marfan
+   syndrome». J Med Genet 2010;47:476-485. Box 2, HOJA 4 = FOLIO 478, verificado en imagen con
+   el folio impreso en el pie. La regla de folio -FOLIO = HOJA + 474- se comprobo en el pie de
+   las hojas 3, 4, 5 y 6.
+
+   ⚠️ LO QUE ESTA TABLA CORRIGE, Y LOS CINCO DEFECTOS ESTABAN MEDIDOS CONTRA EL ORIGINAL:
+     1. La ECTOPIA LENTIS SUMABA 3 PUNTOS Y NO ESTA EN EL BOX 2. Es un criterio diagnostico
+        aparte -entra en las reglas 1, 4 y 5 del Box 1-, no un rasgo del puntaje. Con ella
+        adentro, un paciente con luxacion del cristalino y dos rasgos menores llegaba a 5 sobre
+        un score que la fuente calcula sin ella.
+     2. EL MAXIMO DECLARADO ERA 20 Y LOS ONCE RASGOS SUMABAN 19. Los trece del Box 2 suman 20
+        exacto, que es lo que el propio Box declara.
+     3. FALTABAN CINCO RASGOS: proporciones del cuerpo, escoliosis o cifosis toracolumbar,
+        extension reducida del codo, rasgos faciales y prolapso mitral. Y la deformidad del
+        RETROPIE -2 puntos- estaba ausente: solo existia «pie plano», que vale 1.
+     4. «QUE REQUIERE CIRUGIA» y «MODERADO» son calificadores del Ghent ORIGINAL que esta
+        revision ELIMINO expresamente (folio 480: «Subjective qualifiers in the original Ghent
+        criteria such as "requiring surgery" have been eliminated»).
+     5. LOS EPONIMOS NO ESTAN EN EL ARTICULO. Decia «Walker-Murdoch + Steinberg» y el Box 2 y el
+        folio 480 describen los dos signos sin nombrarlos. El unico epónimo que la fuente SI
+        trae es la linea de Kohler, en la protrusion acetabular, y por eso ese si se conserva.
+
+   LOS TRES GRUPOS CON ALTERNATIVA SON EXCLUYENTES -se suma una u otra, nunca las dos-, que es
+   lo que el Box 2 escribe con el parentesis: «Wrist AND thumb sign - 3 (wrist OR thumb sign -
+   1)». Por eso son UN campo de tres estados y no dos casillas: con dos casillas, marcar las dos
+   sumaba 4 donde la fuente da 3.
+
+   CADA RASGO DECLARA SU CAMPO GUARDADO. Son campos del ESTUDIO: viajan en guardar, reabrir,
+   exportar e importar, y NO tienen columna de Excel -igual que los seis `vab_fr_*`-, que es lo
+   que deja las 441 columnas intactas. */
+var MFS_SCORE = [
+  { c:'mfs_muneca_pulgar', t:'sel', max:3, rot:'Signo de la muñeca y del pulgar',
+    ops:[['ambos','Los dos signos', 3], ['uno','Uno solo de los dos', 1]] },
+  { c:'mfs_pectus', t:'sel', max:2, rot:'Pectus',
+    ops:[['carinatum','Pectus carinatum', 2], ['excavatum','Pectus excavatum o asimetría del tórax', 1]] },
+  { c:'mfs_pie', t:'sel', max:2, rot:'Pie',
+    ops:[['retropie','Deformidad del retropié', 2], ['plano','Pie plano simple', 1]] },
+  { c:'mfs_neumotorax',   t:'chk', p:2, rot:'Neumotórax espontáneo' },
+  { c:'mfs_ectasia',      t:'chk', p:2, rot:'Ectasia dural' },
+  { c:'mfs_protrusion',   t:'chk', p:2, rot:'Protrusión acetabular' },
+  { c:'mfs_proporciones', t:'chk', p:1, rot:'Proporciones del cuerpo' },
+  { c:'mfs_escoliosis',   t:'chk', p:1, rot:'Escoliosis o cifosis toracolumbar' },
+  { c:'mfs_codo',         t:'chk', p:1, rot:'Extensión reducida del codo' },
+  { c:'mfs_facies',       t:'chk', p:1, rot:'Rasgos faciales (3 de 5)' },
+  { c:'mfs_estrias',      t:'chk', p:1, rot:'Estrías cutáneas' },
+  { c:'mfs_miopia',       t:'chk', p:1, rot:'Miopía de más de 3 dioptrías' },
+  { c:'mfs_prolapso',     t:'chk', p:1, rot:'Prolapso mitral (todos los tipos)' }
 ];
-var MARFAN_GHENT_MAX = 20, MARFAN_GHENT_SIST = 7;
+/* El maximo NO se escribe a mano: se suma de la tabla, asi que no puede quedar desfasado del
+   contenido -que es el defecto 2 de arriba-. El Box 2 declara 20 y la suma da 20; si algun dia
+   los dos numeros dejaran de coincidir, el que manda es la tabla, que es la que se lee. */
+var MFS_SCORE_MAX = MFS_SCORE.reduce(function(a, r){ return a + (r.t === 'sel' ? r.max : r.p); }, 0);
+var MFS_SCORE_CORTE = 7;
+
+/* Los CUATRO criterios aparte: no suman al puntaje y entran en las reglas del Box 1. Tres
+   estados -'' sin dato, 'si', 'no'-, con el patron de los seis `vab_fr_*`: el tercer estado es
+   el valor vacio, que es lo que el campo vale de fabrica.
+   ⚠️ LAS DOS VARIANTES DE FBN1 SON INDEPENDIENTES Y NO SE INFIERE UNA DE LA OTRA. El Box 1 las
+   define por separado: «FBN1 with known Ao» es una mutacion identificada en un individuo con
+   aneurisma aortico y «FBN1» a secas es la variante causal del Box 3. La regla 2 pide la causal
+   y la regla 4 pide la asociada a la aorta. */
+var MFS_APARTE = [
+  { c:'mfs_ectopia_lentis', rot:'Ectopia lentis' },
+  { c:'mfs_historia_familiar', rot:'Historia familiar' },
+  { c:'mfs_fbn1_causal', rot:'Variante de FBN1 causal' },
+  { c:'mfs_fbn1_ao', rot:'Variante de FBN1 con asociación conocida a dilatación o disección aórtica' },
+  { c:'mfs_diseccion_raiz', rot:'Disección de la raíz aórtica' },
+  { c:'mfs_sin_otros', rot:'Sin rasgos de otros síndromes', ops:[['si','Sí, sin rasgos'], ['no','No, hay rasgos']] }
+];
+
+/* ══ EL DUEÑO UNICO DEL PUNTAJE ═══════════════════════════════════════════════════════════════
+   Lo leen la tarjeta, la figura, las reglas y el informe. Escribir la suma en cada uno seria la
+   copia del Box 2 que este archivo ya pago varias veces.
+   Devuelve ademas los rasgos TILDADOS con su texto, que es lo que el papel describe, y los
+   valores SIN EQUIVALENTE: un estudio viejo o un Excel pueden traer un token que este
+   vocabulario no tiene -por ejemplo un pectus «que requiere cirugia» de la version anterior-, y
+   eso NO se cuenta ni se convierte solo. Se muestra y se pide elegir de nuevo. */
+function mfsScore(src) {
+  var raw = function (id) { return src ? src[id] : (document.getElementById(id) || {}).value; };
+  var chk = function (id) {
+    if (src) { var v = src[id + '__chk']; if (v === undefined) v = src[id]; return v === '1' || v === 1 || v === true || v === 'si'; }
+    var e = document.getElementById(id); return !!(e && e.checked);
+  };
+  var pts = 0, tildados = [], sinEq = [];
+  MFS_SCORE.forEach(function (r) {
+    if (r.t === 'chk') { if (chk(r.c)) { pts += r.p; tildados.push({ c:r.c, txt:r.rot, p:r.p }); } return; }
+    var v = String(raw(r.c) === undefined || raw(r.c) === null ? '' : raw(r.c)).trim();
+    if (v === '') return;
+    var op = r.ops.filter(function (o) { return o[0] === v; })[0];
+    if (!op) { sinEq.push({ c:r.c, rot:r.rot, val:v }); return; }
+    pts += op[2]; tildados.push({ c:r.c, txt:op[1], p:op[2] });
+  });
+  return { pts: pts, max: MFS_SCORE_MAX, corte: MFS_SCORE_CORTE,
+           sistemico: pts >= MFS_SCORE_CORTE, tildados: tildados, sinEquivalente: sinEq };
+}
+window.mfsScore = mfsScore;
+
+/* Los cuatro criterios aparte, leidos igual que los `vab_fr_*`: 'si', 'no' o null. */
+function mfsAparte(src, clave) {
+  var raw = src ? src[clave] : (document.getElementById(clave) || {}).value;
+  var v = String(raw === undefined || raw === null ? '' : raw).trim();
+  return (v === 'si' || v === 'no') ? v : null;
+}
+window.mfsAparte = mfsAparte;
+
+/* ══ LA GUARDERIA: los campos existen desde el arranque y la tarjeta los toma PRESTADOS ═══════
+   `critAbrir` hace `innerHTML = render()`, asi que un campo que viviera dentro de la tarjeta se
+   destruiria al reabrirla -perdiendo lo cargado- y al abrir otro panel de criterios. Mover el
+   nodo con `appendChild` no lo clona: hay UNA sola instancia de cada id en todo el documento, y
+   por eso la tarjeta y la figura no pueden mostrar datos distintos.
+   Se puebla UNA vez, al cargar, antes de cualquier restauracion. */
+function mfsCamposInit() {
+  var g = document.getElementById('mfs-campos');
+  if (!g || g.getAttribute('data-mfs-listo') === '1') return;
+  /* ⚠️ SE ARMA CON NODOS Y NO CONCATENANDO `innerHTML`, y eso no es estilo: el ruleset local
+     tiene `ceibo-xss-innerhtml-concat` y la primera version de este bloque subio la linea base
+     de 124 a 125 WARNING. Un aviso mas en la linea base es un aviso que el proximo lector
+     tiene que volver a descartar a mano. Es la misma correccion que la tanda D2 aplico a las
+     dos tablas de la Tabla 4. */
+  var $ = function (tag, cls, txt) { var e = document.createElement(tag);
+    if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; };
+  var opt = function (val, txt) { var o = document.createElement('option');
+    o.value = val; o.textContent = txt; return o; };
+  var selDe = function (id, ops, conPts) {
+    var sel = document.createElement('select'); sel.id = id; sel.className = 'mfs-sel';
+    sel.appendChild(opt('', '\u2014'));
+    ops.forEach(function (o) { sel.appendChild(opt(o[0], conPts ? o[1] + ' (' + o[2] + ')' : o[1])); });
+    sel.addEventListener('change', function () { mfsCalc(); });
+    return sel;
+  };
+  var filaSel = function (r) {
+    var l = $('label', 'mfs-fila');
+    l.appendChild($('span', 'mfs-rot', r.rot));
+    l.appendChild(selDe(r.c, r.ops, true));
+    l.appendChild($('b', 'mfs-pts', String(r.max)));
+    return l;
+  };
+  var filaChk = function (r) {
+    var l = $('label', 'mfs-fila mfs-fila-chk');
+    var i = document.createElement('input'); i.type = 'checkbox'; i.id = r.c;
+    i.addEventListener('change', function () { mfsCalc(); });
+    l.appendChild(i);
+    l.appendChild($('span', 'mfs-rot', r.rot));
+    l.appendChild($('b', 'mfs-pts', String(r.p)));
+    return l;
+  };
+  var filaApt = function (r) {
+    var l = $('label', 'mfs-fila');
+    l.appendChild($('span', 'mfs-rot', r.rot));
+    l.appendChild(selDe(r.c, r.ops || [['si', 'S\u00ed'], ['no', 'No']], false));
+    return l;
+  };
+  var bs = $('div'); bs.id = 'mfs-bloque-score';
+  MFS_SCORE.forEach(function (r) { bs.appendChild(r.t === 'sel' ? filaSel(r) : filaChk(r)); });
+  var ba = $('div'); ba.id = 'mfs-bloque-aparte';
+  MFS_APARTE.forEach(function (r) { ba.appendChild(filaApt(r)); });
+  while (g.firstChild) g.removeChild(g.firstChild);
+  g.appendChild(bs); g.appendChild(ba);
+  g.setAttribute('data-mfs-listo', '1');
+}
+/* ⚠️ CORRE AL PARSEAR Y NO EN UN `DOMContentLoaded`, y eso es deliberado: este `<script>` va
+   despues del marcado, asi que `#mfs-campos` ya existe, y la restauracion de un borrador
+   -que corre mas tarde- necesita encontrar los campos ya creados. */
+try { mfsCamposInit(); } catch (e) {}
+window.mfsCamposInit = mfsCamposInit;
+
+/* El prestamo y su devolucion. UN solo lugar que mueve el nodo. */
+function _mfsPrestar(destinoId) {
+  mfsCamposInit();
+  var g = document.getElementById('mfs-campos'), d = document.getElementById(destinoId);
+  if (!g || !d) return;
+  g.removeAttribute('hidden'); d.appendChild(g);
+}
+function _mfsDevolver() {
+  var g = document.getElementById('mfs-campos'), s = document.getElementById('sacc-cc-marfan');
+  if (!g) return;
+  /* ⚠️ PRIMERO SE RECOGEN LOS DOS BLOQUES Y DESPUES SE MUEVE LA GUARDERIA, Y ESTE ORDEN LO
+     ENCONTRO UNA MEDICION, NO LA LECTURA. `critMarfanColocar` deja cada bloque dentro de SU
+     hueco de la tarjeta -no dentro de la guarderia-, asi que devolver la guarderia sola la
+     devolvia VACIA: los diecinueve campos se quedaban en el cuerpo de la tarjeta y el
+     innerHTML siguiente los destruia con lo que el medico habia cargado. Medido: tras cerrar
+     y reabrir, el score volvia a 0 y `#mfs_muneca_pulgar` no existia en el documento. */
+  ['mfs-bloque-score', 'mfs-bloque-aparte'].forEach(function (k) {
+    var b = document.getElementById(k);
+    if (b && b.parentElement !== g) g.appendChild(b);
+  });
+  g.setAttribute('hidden', '');
+  /* Vuelve al cuerpo de la seccion, que es su casa: ahi lo encuentran `guardarInforme`, la
+     restauracion y `limpiarCampos` exactamente igual que antes de abrirse la tarjeta. */
+  var casa = s ? s.querySelector('.sacc-body') : null;
+  if (casa && g.parentElement !== casa) {
+    var ref = document.getElementById('marfan-resultado');
+    if (ref && ref.parentElement === casa) casa.insertBefore(g, ref); else casa.appendChild(g);
+  }
+}
+window._mfsPrestar = _mfsPrestar; window._mfsDevolver = _mfsDevolver;
 
 function critMarfan(){
-  var filas = MARFAN_GHENT.map(function(r, i){
-    return '<label style="display:flex;align-items:flex-start;gap:8px;padding:5px 6px;border-radius:6px;cursor:pointer;font-size:11px;line-height:1.45;">' +
-      '<input type="checkbox" data-mf-p="' + r[1] + '" oninput="critMarfanCalc()" onchange="critMarfanCalc()" style="width:15px;height:15px;flex:0 0 auto;margin-top:1px;">' +
-      '<span style="flex:1;">' + _critEsc(r[0]) + '</span>' +
-      '<b style="flex:0 0 auto;color:var(--accent2);">' + r[1] + '</b></label>';
-  }).join('');
-  var c1 = '<div data-mf-badge style="display:inline-block;font-size:12px;font-weight:700;padding:3px 11px;border-radius:999px;margin-bottom:8px;' + _CRIT_GRIS + '">0 / ' + MARFAN_GHENT_MAX + '</div>' +
-    _critCard(_CRIT_AZUL, 'Criterio mayor: raíz aórtica',
-      'Z &ge; 2 en adultos &middot; Z &ge; 3 sin historia familiar &middot; disección de la raíz aórtica.') +
-    '<div style="display:flex;flex-direction:column;gap:1px;">' + filas + '</div>' +
-    '<div data-mf-msg style="margin-top:9px;font-size:11px;font-weight:700;padding:7px 9px;border-radius:7px;' + _CRIT_GRIS + '">Score &lt; 7 &mdash; sin compromiso sistémico significativo</div>';
-  var c2 = '<div style="font-size:11px;color:var(--text2);margin-bottom:7px;line-height:1.5;">Z-score de la raíz aórtica</div>' +
-    '<input type="number" data-mf-z step="0.1" placeholder="Z" oninput="critMarfanCalc()" style="width:100%;box-sizing:border-box;margin-bottom:9px;">' +
-    '<label style="display:flex;align-items:center;gap:8px;font-size:11px;cursor:pointer;padding:4px 0;"><input type="checkbox" data-mf-lentis onchange="critMarfanCalc()" style="width:15px;height:15px;">Ectopia lentis</label>' +
-    '<label style="display:flex;align-items:center;gap:8px;font-size:11px;cursor:pointer;padding:4px 0;"><input type="checkbox" data-mf-fbn1 onchange="critMarfanCalc()" style="width:15px;height:15px;">Mutación FBN1 confirmada</label>' +
-    '<div data-mf-res-sf style="margin-top:10px;font-size:11px;font-weight:700;padding:8px 10px;border-radius:7px;line-height:1.5;' + _CRIT_GRIS + '">Completá los datos</div>';
-  var c3 = '<label style="display:flex;align-items:flex-start;gap:8px;font-size:11px;cursor:pointer;padding:4px 0;line-height:1.45;"><input type="checkbox" data-mf-hf onchange="critMarfanCalc()" style="width:15px;height:15px;margin-top:1px;"><span>Familiar de primer grado con síndrome de Marfan confirmado</span></label>' +
-    '<div data-mf-res-cf style="margin-top:10px;font-size:11px;font-weight:700;padding:8px 10px;border-radius:7px;line-height:1.5;' + _CRIT_GRIS + '">Marcá la historia familiar</div>' +
-    _critCard(_CRIT_GRIS, 'Con historia familiar', 'Basta <b>un</b> criterio mayor para el diagnóstico: raíz aórtica dilatada, ectopia lentis, score sistémico &ge; 7 o mutación FBN1.');
-  return _critCols([['Score sistémico', c1], ['Sin historia familiar', c2], ['Con historia familiar', c3]]) +
-    _critPie('<b>Loeys BL et al. &mdash; The revised Ghent nosology for the Marfan syndrome. J Med Genet 2010;47:476-85.</b><br>' +
-      'Panel de <b>referencia</b>: no lee ni escribe ningún campo de la sección y nada de lo que se marque acá viaja con el estudio. ' +
-      'Contesta <b>«¿este paciente tiene Marfan?»</b>. La sección contesta otra pregunta &mdash; <b>«¿esta aorta se opera?»</b>, por los umbrales quirúrgicos de la ESC 2024 &mdash;, así que un score de 7 no es una indicación de cirugía.');
+  var sc = mfsScore();
+  var c1 = '<div data-mf-badge class="mfs-badge">' + sc.pts + ' de ' + MFS_SCORE_MAX + '</div>' +
+    '<div class="mfs-corte">El puntaje se lee a partir de ' + MFS_SCORE_CORTE + '.</div>' +
+    '<div id="mfs-slot-score"></div>' +
+    '<div data-mf-msg class="mfs-msg">&nbsp;</div>';
+  var c2 = '<div class="mfs-aparte-tit">Criterios aparte <span>(no suman al puntaje)</span></div>' +
+    '<div id="mfs-slot-aparte"></div>' +
+    '<div class="mfs-nota">La raíz aórtica se toma de los diámetros de esta sección y de la disección consignada acá.</div>';
+  var h = _critCols([['Score sistémico', c1], ['Criterios aparte', c2]]) +
+    _critPie('<b>Loeys BL et al. &mdash; The revised Ghent nosology for the Marfan syndrome. J Med Genet 2010;47:476-85.</b> ' +
+      'Score sistémico: Box 2, folio 478.<br>' +
+      'Lo que se marque acá <b>viaja con el estudio</b>. Contesta <b>«¿este paciente tiene rasgos de Marfan?»</b>; ' +
+      'la sección contesta otra pregunta &mdash; <b>«¿esta aorta se opera?»</b> &mdash;, así que un puntaje de ' +
+      MFS_SCORE_CORTE + ' no es una indicación de cirugía.');
+  return h;
 }
-/* Un solo recalculador para las tres columnas: el score alimenta a las dos reglas diagnósticas,
-   y tenerlo por separado sería la fórmula duplicada de siempre. */
-function critMarfanCalc(){
+/* Despues de que `critAbrir` escribe el innerHTML, los dos bloques de la guarderia se colocan en
+   sus huecos. Se hace en DOS pasos -render y colocacion- porque el innerHTML destruye lo que
+   hubiera adentro: colocar antes seria perderlos. */
+function critMarfanColocar(){
+  mfsCamposInit();
+  var g = document.getElementById('mfs-campos');
+  var bs = document.getElementById('mfs-bloque-score'), ba = document.getElementById('mfs-bloque-aparte');
+  var hs = document.getElementById('mfs-slot-score'), ha = document.getElementById('mfs-slot-aparte');
+  if (!g || !bs || !ba || !hs || !ha) return;
+  g.removeAttribute('hidden');
+  hs.appendChild(bs); ha.appendChild(ba);
+  /* La guarderia queda vacia y oculta dentro de la tarjeta mientras dura el prestamo; es
+     `_mfsDevolver` quien RECOGE los dos bloques dentro de ella antes de llevarsela. */
+  hs.parentElement.appendChild(g); g.setAttribute('hidden', '');
+  mfsCalc();
+}
+window.critMarfanColocar = critMarfanColocar;
+
+/* Un solo recalculador. Pinta el badge y el mensaje del puntaje; las reglas las pinta el
+   commit 2 desde su propio dueno. */
+function mfsCalc(){
   var raiz = document.getElementById('crit-cuerpo'); if (!raiz) return;
-  var q = sel => raiz.querySelector(sel), qa = sel => [].slice.call(raiz.querySelectorAll(sel));
-  var score = qa('[data-mf-p]').reduce(function(a, e){ return a + (e.checked ? (parseFloat(e.getAttribute('data-mf-p')) || 0) : 0); }, 0);
-  var sist = score >= MARFAN_GHENT_SIST;
-  var badge = q('[data-mf-badge]');
-  if (badge) { badge.textContent = score + ' / ' + MARFAN_GHENT_MAX;
-    badge.setAttribute('style', 'display:inline-block;font-size:12px;font-weight:700;padding:3px 11px;border-radius:999px;margin-bottom:8px;' + (sist ? _CRIT_AZUL : _CRIT_GRIS)); }
-  var msg = q('[data-mf-msg]');
-  if (msg) { msg.textContent = sist ? 'Score ≥ 7 — compromiso sistémico significativo' : 'Score < 7 — sin compromiso sistémico significativo';
-    msg.setAttribute('style', 'margin-top:9px;font-size:11px;font-weight:700;padding:7px 9px;border-radius:7px;' + (sist ? _CRIT_AZUL : _CRIT_GRIS)); }
-  var zEl = q('[data-mf-z]');
-  var zRaw = zEl ? String(zEl.value).trim().replace(',', '.') : '';
-  var z = zRaw === '' ? null : parseFloat(zRaw);
-  if (z != null && !isFinite(z)) z = null;
-  var aorta = z != null && z >= 2;
-  var lentis = !!(q('[data-mf-lentis]') && q('[data-mf-lentis]').checked);
-  var fbn1   = !!(q('[data-mf-fbn1]')   && q('[data-mf-fbn1]').checked);
-  var hf     = !!(q('[data-mf-hf]')     && q('[data-mf-hf]').checked);
-  /* Las cinco combinaciones de Ghent 2010 SIN historia familiar. */
-  var vias = [];
-  if (aorta && lentis) vias.push('raíz aórtica Z ≥ 2 + ectopia lentis');
-  if (aorta && sist)   vias.push('raíz aórtica Z ≥ 2 + score sistémico ≥ 7');
-  if (aorta && fbn1)   vias.push('raíz aórtica Z ≥ 2 + mutación FBN1');
-  if (lentis && fbn1)  vias.push('ectopia lentis + mutación FBN1');
-  if (sist && fbn1)    vias.push('score sistémico ≥ 7 + mutación FBN1');
-  var sf = q('[data-mf-res-sf]');
-  if (sf) {
-    var vacio = (z == null && !lentis && !fbn1 && score === 0);
-    var txtSf = vacio ? 'Completá los datos' : (vias.length ? 'Cumple criterios de Marfan — ' + vias[0] : 'No cumple criterios');
-    sf.textContent = txtSf;
-    sf.setAttribute('style', 'margin-top:10px;font-size:11px;font-weight:700;padding:8px 10px;border-radius:7px;line-height:1.5;' + (vias.length ? _CRIT_AZUL : _CRIT_GRIS));
-  }
-  var cf = q('[data-mf-res-cf]');
-  if (cf) {
-    var mayores = [];
-    if (aorta)  mayores.push('raíz aórtica Z ≥ 2');
-    if (lentis) mayores.push('ectopia lentis');
-    if (sist)   mayores.push('score sistémico ≥ 7');
-    if (fbn1)   mayores.push('mutación FBN1');
-    var ok = hf && mayores.length > 0;
-    cf.textContent = !hf ? 'Marcá la historia familiar'
-      : (ok ? 'Cumple criterios de Marfan — historia familiar + ' + mayores[0] : 'Falta al menos un criterio mayor');
-    cf.setAttribute('style', 'margin-top:10px;font-size:11px;font-weight:700;padding:8px 10px;border-radius:7px;line-height:1.5;' + (ok ? _CRIT_VERDE : _CRIT_GRIS));
+  var sc = mfsScore();
+  var b = raiz.querySelector('[data-mf-badge]');
+  if (b) { b.textContent = sc.pts + ' de ' + MFS_SCORE_MAX;
+    b.className = 'mfs-badge' + (sc.sistemico ? ' mfs-badge-on' : ''); }
+  var m = raiz.querySelector('[data-mf-msg]');
+  if (m) {
+    var t = sc.sistemico
+      ? 'Puntaje de ' + sc.pts + ' con lo tildado: alcanza el valor que el artículo lee como compromiso sistémico.'
+      : 'Puntaje de ' + sc.pts + ' con lo tildado.';
+    if (sc.sinEquivalente.length) {
+      t += ' ' + sc.sinEquivalente.map(function (x) {
+        return x.rot + ': dato anterior sin equivalente («' + x.val + '»), elegir de nuevo.'; }).join(' ');
+    }
+    m.textContent = t;
+    m.className = 'mfs-msg' + (sc.sistemico ? ' mfs-msg-on' : '');
   }
 }
+window.mfsCalc = mfsCalc;
+/* `critMarfanCalc` sigue existiendo porque el resto del archivo lo nombra. */
+function critMarfanCalc(){ mfsCalc(); }
 window.critMarfanCalc = critMarfanCalc;
 
 function critEisen(){
@@ -80275,11 +80482,20 @@ const CRIT_PANELES = {
 };
 function critAbrir(cual){
   const def = CRIT_PANELES[cual]; if (!def) return;
+  /* ⚠️ LA DEVOLUCION VA ANTES DEL innerHTML, Y NO ES ORDEN DE ESTILO. Los campos de Marfan son
+     del ESTUDIO y viven prestados dentro de la tarjeta: con el innerHTML primero, abrir
+     CUALQUIER panel de criterios -el de la MCH, el de Eisenmenger- destruiria esos diecinueve
+     campos con lo que el medico cargo, y el estudio se guardaria sin ellos. */
+  try { if (typeof _mfsDevolver === 'function') _mfsDevolver(); } catch (e) {}
   const t = document.getElementById('crit-titulo'); if (t) t.textContent = def.titulo;
   const c = document.getElementById('crit-cuerpo'); if (c) c.innerHTML = def.render();
+  if (cual === 'marfan') { try { critMarfanColocar(); } catch (e) {} }
   const ov = document.getElementById('crit-overlay'); if (ov) ov.style.display = 'block';
 }
-function critCerrar(){ const ov = document.getElementById('crit-overlay'); if (ov) ov.style.display = 'none'; }
+function critCerrar(){
+  try { if (typeof _mfsDevolver === 'function') _mfsDevolver(); } catch (e) {}
+  const ov = document.getElementById('crit-overlay'); if (ov) ov.style.display = 'none';
+}
 window.critAbrir = critAbrir; window.critCerrar = critCerrar;
 document.addEventListener('keydown', function(e){
   if (e.key !== 'Escape') return;
