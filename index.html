@@ -16732,6 +16732,16 @@ z
            sube a la celda que el indice deja libre y las dos quedan lado a lado. -->
       <div id="mfs-fila">
         <div id="mfs-campos-col" class="grid-2">
+          <!-- ══ LAS DOS COLUMNAS, REORDENADAS («MARFAN-2», 1b) ═══════════════════════════
+               Pedido del medico del 02/11: columna 1 el SINDROME y sus FACTORES DE RIESGO
+               -que es lo que elige el umbral-, columna 2 los DOS DIAMETROS -que es lo que
+               se compara contra el-. Antes el sindrome compartia columna con los diametros
+               y los factores quedaban solos en la otra.
+               ⚠️ LAS DOS SUBCOLUMNAS SIGUEN SIENDO EXPLICITAS Y NO UN `grid-2` DE FLUJO POR
+               FILAS, por la misma razon medida de MARFAN-1: el indice de tamano aortico solo
+               se muestra en Turner, asi que con flujo por filas la ascendente subiria a la
+               celda que el indice deja libre. El indice va en la columna de los diametros
+               porque se DERIVA de la aorta ascendente que tiene encima. -->
           <div class="mfs-subcol">
             <div class="fg"><label>Sindrome</label>
               <select id="marfan_sindrome" onchange="marfanSync()">
@@ -16749,6 +16759,15 @@ z
                 <option value="otro">Otro</option>
               </select>
             </div>
+            <div class="fg"><label>Factores de riesgo</label>
+              <select id="marfan_factores_riesgo" onchange="marfanSync()">
+                <option value="">&mdash;</option>
+                <option value="no">No</option>
+                <option value="si">Si</option>
+              </select>
+            </div>
+          </div>
+          <div class="mfs-subcol">
             <div class="fg"><label>Aorta sinusal (mm)</label>
               <input type="number" id="marfan_ao_seno" placeholder="mm" oninput="aoRaizSync('marfan');marfanSync()">
               <!-- ⚠️ LA LECTURA DE LA RAÍZ CARGADA EN AI/VI (COR-4a, 2026-10-30) ══════════════════
@@ -16767,16 +16786,6 @@ z
             </div>
             <div class="fg"><label>Aorta ascendente (mm)</label>
               <input type="number" id="marfan_ao_ascendente" placeholder="mm" oninput="marfanSync()">
-            </div>
-          </div>
-          <div class="mfs-subcol">
-            <div class="fg"><label>Factores de riesgo</label>
-              <select id="marfan_factores_riesgo" onchange="marfanSync()">
-                <option value="">&mdash;</option>
-                <option value="no">No</option>
-                <option value="si">Si</option>
-              </select>
-              <span id="marfan-fr-hint" style="font-size:10px;color:var(--text2);">La lista de factores que bajan el umbral depende del sindrome: se publica al elegirlo.</span>
             </div>
             <!-- ⚠️ EL ÍNDICE YA NO SE TIPEA (B2, 30/10/2026). Decisión del médico: es una medida
                  DERIVADA y se calcula sola, con la aorta ascendente y la superficie corporal, que es
@@ -77036,14 +77045,16 @@ function marfanSync() {
     sp.style.fontWeight = '400'; sp.textContent = t; return sp; };
   const pill = (cls, t) => { const sp = document.createElement('span');
     sp.className = 'badge badge-' + (BADGE_CLS_OK.indexOf(cls) >= 0 ? cls : 'gray'); sp.textContent = t; return sp; };
-  /* ⚠️ EL HINT VA ANTES DE LA SALIDA TEMPRANA, Y LO CAZÓ TC-116 Y NO LA LECTURA. `marfanSync`
-     devuelve en cuanto `!r.hayDatos`, así que con el bloque al final el hint del paciente
-     ANTERIOR sobrevivía a «Nuevo estudio» —`limpiarCampos` llama a esta función y se iba por ese
-     `return`—. Es la trampa de `vab-coa-aviso`: un nodo que ningún barrido genérico alcanza se
-     limpia donde el flujo pasa SIEMPRE, no donde queda cómodo.
-     Vive fuera del `calc-box`, así que se escribe por `textContent` y no por `fila()`. */
-  { const h = document.getElementById('marfan-fr-hint');
-    if (h) h.textContent = (r.sind && _tieneClave(MARFAN_FR_TXT, r.sind)) ? MARFAN_FR_TXT[r.sind] : MARFAN_FR_SIN; }
+  /* ⚠️ EL HINT DE LOS FACTORES DE RIESGO SE FUE AL GLOBO DE LA SECCION («MARFAN-2», 1b).
+     Decision del medico del 02/11. La lista de `MARFAN_FR_TXT` lleva el nombre de la guia, la
+     tabla y el folio, y eso vive SOLO en el globo, en la Evidencia o en Referencias. Con el
+     texto debajo del campo, la pantalla publicaba la atribucion al lado del dato.
+     ⚠️ NO QUEDA NADA QUE LIMPIAR ACA, y por eso el bloque desaparece entero en vez de quedar
+     escribiendo la cadena vacia: el nodo `marfan-fr-hint` ya no existe. El reparo que TC-116
+     cazo -un nodo que ningun barrido generico alcanza sobrevive a «Nuevo estudio»- deja de
+     aplicar porque el globo se construye de cero en cada apertura, leyendo `marfanEstado()`.
+     `MARFAN_FR_TXT` y `MARFAN_FR_SIN` siguen siendo el dueno unico de la lista: su unico
+     lector es ahora `_mfConductaInfo`. */
   if (!r.hayDatos) { fila('Aortopatía hereditaria', pill('gray', 'Ingresar síndrome y diámetros')); return; }
   const CLS = { cx_i:'red', cx_iia:'orange', cx_iib:'yellow', umbral_iia_sin_fr:'yellow',
                 sin_indicacion:'green', sin_sindrome:'gray', falta_ita:'gray', falta_diametro:'gray',
@@ -77116,6 +77127,12 @@ function _mfConductaInfo(){
     return f;
   }
   if (r.cita) f.appendChild(P(r.cita, 'En este paciente:'));
+  /* ⚠️ LA LISTA DE FACTORES DE RIESGO VIVE ACA DESDE «MARFAN-2» (1b). Estaba debajo del campo
+     «Factores de riesgo» de la pantalla, con el nombre de la guia, su tabla y su folio al lado
+     del dato. `MARFAN_FR_TXT` sigue siendo su dueno unico -no se copio una segunda lista- y el
+     texto se publica sin tocar una palabra. */
+  f.appendChild(P((r.sind && _tieneClave(MARFAN_FR_TXT, r.sind)) ? MARFAN_FR_TXT[r.sind] : MARFAN_FR_SIN,
+                  'Qué cuenta como factor de riesgo:'));
   if (r.sind && _tieneClave(MARFAN_FTE, r.sind)) f.appendChild(P(MARFAN_FTE[r.sind], 'Fuente del umbral:'));
   var CL = { marfan:'Clase I · Nivel B desde 50 mm; Clase IIa · Nivel C desde 45 mm con factores de riesgo.',
              lds:'Clase IIa · Nivel C con diámetro superior a 45 mm; Clase IIb · Nivel C para adaptar el umbral al gen desde 40 mm con características de riesgo alto.',
