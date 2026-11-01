@@ -11477,6 +11477,16 @@ window.cerrarSesionReal = cerrarSesionReal;
              aria-label="Esquema del posoperatorio: las cuatro cavidades, los grandes vasos, los pulmones y el soporte, dibujados con los datos cargados."></svg>
       </div>
       <div style="font-size:10px;color:var(--text2);margin-top:8px;line-height:1.5;">Esquema ilustrativo: el tamaño de las cavidades y el grosor de los vasos acompañan a los valores cargados, no son una medición del paciente. Los colores y los números salen de los mismos dueños que gradua el resto de la app.</div>
+      <!-- ══ «INCLUIR EL ESQUEMA EN EL PDF» — «POP-C», commit 10 (2026-11-02) ═══════════════
+           El UNICO campo guardado nuevo que esta tanda autoriza, y entra porque el patron de
+           `PDF_DIAG_REG` SI guarda una casilla: `contr_be_pdf`, `ete_qx_pdf` y `vab_pdf` son
+           los tres `<input type="hidden">` con id, o sea campos del estudio. Su nombre sigue
+           esa convencion: `pop_esq_pdf`. Mismo molde que `toggleContrPDF`. -->
+      <input type="hidden" id="pop_esq_pdf" value="">
+      <div style="text-align:center;margin-top:6px;">
+        <button type="button" class="btn btn-ghost" id="pop-esq-pdf-btn"
+                onclick="togglePopEsqPDF()">📄 Incluir el esquema en el PDF</button>
+      </div>
     </section>
     <div class="pop-col">
     <section class="pop-card" data-pop="pop-carac">
@@ -64456,6 +64466,71 @@ function popEsqParar() {
 window.popEsqArrancar = popEsqArrancar;
 window.popEsqParar = popEsqParar;
 
+/* ══ EL ESQUEMA AL PDF — «POP-C», commit 10 (2026-11-02) ════════════════════════════════════
+   INVENTARIO, que es lo que la orden pide primero. `PDF_DIAG_REG` tenia OCHO entradas —contr,
+   lv3d, eteqx, tavi, vab, oai, cia, tga3d— y ninguna del posoperatorio (POPB-e). Y los
+   diagramas entran al PDF por DOS caminos distintos:
+     · POR CASILLA GUARDADA: `contr_be_pdf`, `ete_qx_pdf` y `vab_pdf`, tres `<input
+       type="hidden">` con id, o sea CAMPOS DEL ESTUDIO. El recolector rasteriza al generar.
+     · POR SLOT EN «Imagenes»: `oai`, `cia` y `tga3d`, que viven en `imgSlots` con su
+       `esqClave` y se guardan con el estudio.
+   LA ORDEN PROHIBE EXPRESAMENTE el segundo («NO implementes el guardado del esquema en
+   Imagenes: es una funcion comun, pendiente»), asi que se usa el PRIMERO, que ademas es el que
+   «guarda una casilla propia» — la condicion con que la orden autoriza el campo nuevo. Su
+   nombre exacto, siguiendo la convencion de los otros tres: **`pop_esq_pdf`**.
+
+   ⚠️ LA RASTERIZACION ES DIFERIDA Y NO SE HACE AL GENERAR, y es una restriccion medida: ni
+   `generarPDFReal` ni `_pdfAjustarA4` son `async`, y `esqRasterizar` devuelve una PROMESA
+   —cargar un SVG en un `Image` no se puede hacer de forma sincrona—. Convertir el generador
+   entero en asincrono es un cambio que esta orden no autoriza. Asi que el dibujo se rasteriza
+   cuando el esquema se repinta y la casilla esta marcada, con su propio diferido de 700 ms,
+   que es exactamente lo que el esquema de la OREJUELA ya hace desde la NOC-A.
+   ⚠️ NO VA A `imgSlots` NI A NINGUN CAMPO: el dataURL vive en una variable de modulo y muere
+   con la pagina. No se guarda con el estudio, no aparece en «Imagenes guardadas» y no entra al
+   backup — que es justo lo que la orden deja pendiente.
+   ⚠️ SE RASTERIZA CON EL DIBUJO COMO ESTA EN PANTALLA. El bucle se pausa antes de serializar y
+   se reanuda despues, asi que el cuadro que va al papel es uno quieto y no uno a medio latido. */
+var _popEsqPdfData = null;
+var _popEsqPdfTo = 0;
+function popEsqPdfOn() { const e = document.getElementById('pop_esq_pdf'); return !!e && e.value === '1'; }
+function popEsqPdfSync() { if (typeof _pdfToggleBtnState === 'function') _pdfToggleBtnState('pop-esq-pdf-btn', popEsqPdfOn()); }
+function togglePopEsqPDF() {
+  const e = document.getElementById('pop_esq_pdf');
+  if (!e) return;
+  const on = e.value !== '1';
+  e.value = on ? '1' : '';
+  if (!on) _popEsqPdfData = null;
+  popEsqPdfSync();
+  if (on) popEsqPdfRaster();
+  if (typeof toast === 'function')
+    toast(on ? '📄 El esquema del posoperatorio se incluirá en el PDF'
+             : 'Esquema del posoperatorio excluido del PDF');
+}
+window.popEsqPdfOn = popEsqPdfOn; window.popEsqPdfSync = popEsqPdfSync;
+window.togglePopEsqPDF = togglePopEsqPDF;
+/* Rasteriza el SVG tal como esta, con el bucle en pausa. Diferido para no hacerlo por tecla. */
+function popEsqPdfRaster() {
+  if (!popEsqPdfOn()) { _popEsqPdfData = null; return; }
+  if (_popEsqPdfTo) clearTimeout(_popEsqPdfTo);
+  _popEsqPdfTo = setTimeout(function () {
+    _popEsqPdfTo = 0;
+    const svg = document.getElementById('pop-esq-svg');
+    if (!svg || typeof esqRasterizar !== 'function') return;
+    const corria = !!_popEsq.rafId;
+    try { if (corria) popEsqParar(); } catch (e) {}
+    let txt = '';
+    try { txt = new XMLSerializer().serializeToString(svg); } catch (e) { txt = ''; }
+    try { if (corria) popEsqArrancar(); } catch (e) {}
+    if (!txt) return;
+    esqRasterizar(txt, 600, 496)
+      .then(function (d) { if (d && popEsqPdfOn()) _popEsqPdfData = d; })
+      .catch(function () {});
+  }, 700);
+}
+window.popEsqPdfRaster = popEsqPdfRaster;
+function popEsqPdfData() { return popEsqPdfOn() ? _popEsqPdfData : null; }
+window.popEsqPdfData = popEsqPdfData;
+
 /* Punto de entrada único: lo llama `popSync`. Monta una vez, recalcula los datos, repinta lo
    estático y el texto, y deja el bucle corriendo sólo si el dibujo se ve. */
 function popEsqPintar() {
@@ -64466,6 +64541,13 @@ function popEsqPintar() {
   _popEsqEstatico(d, _popEsq.g);
   popEsqTexto(d);
   if (_popEsq.visible || _popEsq.reduce) popEsqArrancar(); else popEsqFrame(0);
+  /* POP-C-10: el boton refleja el estado guardado —un estudio reabierto con la casilla marcada
+     tiene que mostrarla marcada— y, si lo esta, el dibujo se vuelve a rasterizar para que lo
+     que entre al PDF sea el esquema de ESTOS datos y no el del repintado anterior. Las dos
+     llamadas son baratas: la primera cambia una clase y la segunda tiene su propio diferido
+     de 700 ms, asi que no corre una vez por tecla. */
+  if (typeof popEsqPdfSync === 'function') { try { popEsqPdfSync() } catch (e) {} }
+  if (typeof popEsqPdfRaster === 'function') { try { popEsqPdfRaster() } catch (e) {} }
 }
 window.popEsqPintar = popEsqPintar;
 /* ══ POP · CALCULADOR DE DOSIS POR DILUCIÓN (2026-09-18) ══
@@ -72510,6 +72592,17 @@ function generarPDFReal(_aj) {
       _cp.push('Qp/Qs ' + (Math.round(_cq * 100) / 100).toFixed(2) + (_cqTxt ? ' (' + _cqTxt + ')' : ''));
     _dg.cia = { partes: [{ data: _ciaImg }], linea: _cp.join('  ·  ') };
   }
+
+  /* ── EL ESQUEMA DEL POSOPERATORIO (POP-C-10) ──
+     La imagen es la que `popEsqPdfRaster` dejo preparada cuando el medico marco la casilla, y
+     nada mas: si no la marco, no hay diagrama. Aca NO se rasteriza —el generador no es
+     asincrono y `esqRasterizar` devuelve una promesa—, asi que lo unico que se hace es
+     recoger. El EPIGRAFE es FIJO y es el que la orden dicta. */
+  try {
+    const _pData = (typeof popEsqPdfData === 'function') ? popEsqPdfData() : null;
+    if (_pData) _dg.pop = { partes: [{ data: _pData }],
+      linea: 'Esquema ilustrativo: no es una imagen del estudio ni está a escala.' };
+  } catch (e) { console.error('[PDF] esquema del posoperatorio:', e); delete _dg.pop; }
 
   /* ── EL ESQUEMA 3D DE LA TRANSPOSICION (TGA-2) ──
      ⚠️ SE RECOGE ACA Y NO JUNTO AL DE LA OREJUELA, y el motivo es el ORDEN DE EJECUCION: la
@@ -115353,10 +115446,16 @@ const PDF_DIAG_REG = Object.freeze([
   /* TGA-2: el esquema 3D de la transposición. Familia `cc` por el mismo motivo que la CIA: su
      lugar natural es DEBAJO del texto de congénitas (R-4), y sólo llega al motor cuando ese
      módulo no dejó texto. Agregarlo fue una fila acá y su recolector; el motor no se tocó. */
-  { k:'tga3d', w:1, fam:'cc',  lbl:'Transposición de grandes arterias — esquema 3D' }
+  { k:'tga3d', w:1, fam:'cc',  lbl:'Transposición de grandes arterias — esquema 3D' },
+  /* POP-C-10: el esquema del posoperatorio. Cierra POPB-e. Familia PROPIA y no `cc`: su lugar
+     no es la hoja de congenitas, y `ete` son las valvulares. Va con `w:2` como la
+     contractilidad porque su lienzo es ancho —600 x 496— y a un tercio de franja el texto de
+     las cavidades no se leeria. El motor no se toca: esto es una fila y su recolector. */
+  { k:'pop',   w:2, fam:'pop', lbl:'Esquema del posoperatorio' }
 ]);
 window.PDF_DIAG_REG = PDF_DIAG_REG;
-const PDF_DIAG_FAM = Object.freeze({ vi:'Función del VI', ete:'ETE y valvulares', cc:'Congénitas' });
+const PDF_DIAG_FAM = Object.freeze({ vi:'Función del VI', ete:'ETE y valvulares', cc:'Congénitas',
+  pop:'Posoperatorio de cirugía cardíaca' });
 /* ══ LA LINEA DE TEXTO DE LA VISTA QUIRURGICA MITRAL (IMG3-4, punto 4a) ═════════════════════
    Sale SOLO de datos ya cargados: el tipo y el grado de la insuficiencia mitral, y los
    segmentos que el médico marcó en el dibujo con su lesión. Sin ninguno de los tres NO HAY
@@ -149164,8 +149263,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261101-1828';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793568492229;                 /* eco-build-ms */
+const ECO_BUILD    = '20261101-1834';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793568865556;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -149251,7 +149350,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261101-1828</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261101-1834</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
