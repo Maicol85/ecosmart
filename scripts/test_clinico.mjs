@@ -90426,9 +90426,22 @@ caso('TC-534', 'Tanda G: la grilla de drogas sin la columna vacia y el acordeon 
       && vBcia.txt.indexOf('ECMO VA') === -1
       && vEcmo.txt.indexOf('ECMO VA') > -1 && vEcmo.txt.indexOf('Balón') === -1,
     'bcia=' + vBcia.txt.join('|').slice(0, 120) + ' // ecmo=' + vEcmo.txt.join('|').slice(0, 90)]);
-  ex.push(['(B11) el derrame pleural derecho se dibuja y se rotula, y las lineas B difusas prenden cuatro',
-    vEcmo.txt.some(t => t.indexOf('derrame pleural D moderado') > -1) && vEcmo.lineas >= 8,
-    'elipses=' + vEcmo.elipses + ' lineas=' + vEcmo.lineas + ' | ' + vEcmo.txt.join('|').slice(0, 120)]);
+  /* ⚠️ ADAPTADA EN POP-B-5b: el ROTULO del derrame pleural salio del dibujo -se montaba 61 x 12 px
+     encima de «AP 100/50», medido- y el grado lo dice ahora la ALTURA del nivel de liquido. El
+     invariante se conserva por los dos lados: el derrame se SIGUE dibujando -su nodo pleuraD
+     esta visible-, las lineas B difusas siguen prendiendo cuatro pares, y el grado sigue
+     publicandose, pero en «Caracteristicas del esquema» y no encima del dibujo. */
+  ex.push(['(B11) el derrame pleural derecho se dibuja SIN rotulo encima, su grado va al texto, y las lineas B difusas prenden cuatro',
+    (function () {
+      const sv = document.getElementById('pop-esq-svg');
+      const n = sv ? sv.querySelector('[data-pop-esq="pleuraD"]') : null;
+      const dibuja = !!n && getComputedStyle(n).display !== 'none';
+      const sinRotulo = !vEcmo.txt.some(t => t.indexOf('derrame pleural') > -1);
+      const enTexto = String((document.getElementById('pop-esq-txt') || {}).textContent || '')
+                        .indexOf('derecho moderado') > -1;
+      return dibuja && sinRotulo && enTexto && vEcmo.lineas >= 8;
+    })(),
+    'lineas=' + vEcmo.lineas + ' | ' + vEcmo.txt.join('|').slice(0, 120)]);
   ex.push(['(B12) el cuadro pulmonar publica el gradiente transpulmonar y la RVP con su corte',
     vEcmo.txt.some(t => t.indexOf('Gradiente transpulm.') > -1)
       && vEcmo.txt.some(t => t.indexOf('RVP') > -1 && t.indexOf('UW') > -1),
@@ -95941,9 +95954,10 @@ caso('TC-548', 'Tanda POP-V2: la pestana del posoperatorio con su orden de arrib
   /* ADAPTADA POR LA TANDA POP-A (01/11/2026): las seis tarjetas pasaron a NUEVE. El monitoreo,
      los farmacos y la asistencia se partieron en tarjetas propias, y el texto del dibujo salio a
      la suya -«Caracteristicas del esquema»-. */
-  ex.push(['(D1) DENOMINADOR: la seccion del posoperatorio y sus NUEVE tarjetas existen',
+  /* POP-B-4: son DIEZ, por la tarjeta «Pleura y pulmon» que salio de Eco y POCUS. */
+  ex.push(['(D1) DENOMINADOR: la seccion del posoperatorio y sus DIEZ tarjetas existen',
     (function () { const s = EL('pop-seccion');
-      return !!s && s.querySelectorAll('[data-pop]').length === 9; })() === true,
+      return !!s && s.querySelectorAll('[data-pop]').length === 10; })() === true,
     'tarjetas=' + (EL('pop-seccion') ? EL('pop-seccion').querySelectorAll('[data-pop]').length : 'SIN SECCION')]);
   ex.push(['(D2) DENOMINADOR: las cinco funciones duenas del modulo existen',
     FN('popPatron') && FN('popEsquema') && FN('popEsqPintar') && FN('popSync') && FN('pamEfectiva'),
@@ -95979,7 +95993,9 @@ caso('TC-548', 'Tanda POP-V2: la pestana del posoperatorio con su orden de arrib
   /* ══ (A) EL ORDEN DE LOS BLOQUES Y EL DESPLEGABLE CON SU CONTADOR ════════════════════════ */
   /* ADAPTADA POR LA TANDA POP-A: el orden del marcado es el de las NUEVE tarjetas, y sigue
      siendo el orden en que el medico carga -y el orden apilado por debajo de 900 px-. */
-  const ORDEN = 'pop-ctx,pop-mon,pop-farm,pop-hemo,pop-asist,pop-pocus,pop-esq,pop-carac,pop-concl';
+  /* POP-B-4: el orden gana pop-pleupul entre el POCUS y el dibujo. Es la tarjeta «Pleura y
+     pulmon», que salio de Eco y POCUS a ancho completo debajo de las tres columnas. */
+  const ORDEN = 'pop-ctx,pop-mon,pop-farm,pop-hemo,pop-asist,pop-pocus,pop-pleupul,pop-esq,pop-carac,pop-concl';
   const ORDEN_HOY = (function () { const s = EL('pop-seccion'); if (!s) return 'SIN SECCION';
     return Array.prototype.slice.call(s.querySelectorAll('[data-pop]'))
       .map(function (c) { return c.getAttribute('data-pop'); }).join(','); })();
@@ -95993,8 +96009,13 @@ caso('TC-548', 'Tanda POP-V2: la pestana del posoperatorio con su orden de arrib
       if (!vistas.length || vistas[vistas.length - 1] !== k) vistas.push(k);
     });
     return vistas.filter(function (k) { return k !== '(fuera)'; }).join(','); })();
-  ex.push(['(A2) ADAPTADA (POP-A): el ORDEN DE TABULACION coincide con el del marcado',
-    ORDEN_TAB === 'pop-ctx,pop-mon,pop-farm,pop-hemo,pop-asist,pop-pocus', ORDEN_TAB]);
+  /* POP-B-4: la tabulacion gana pop-pleupul al final, porque los seis selectores de pleura y
+     pulmon se mudaron a esa tarjeta. Sigue siendo el PREFIJO del orden del marcado, que es lo
+     que este control pregunta: las tarjetas de abajo -dibujo, caracteristicas y conclusion- no
+     tienen controles tabulables. */
+  ex.push(['(A2) ADAPTADA (POP-B-4): el ORDEN DE TABULACION es el prefijo del orden del marcado',
+    ORDEN_TAB === 'pop-ctx,pop-mon,pop-farm,pop-hemo,pop-asist,pop-pocus,pop-pleupul'
+      && ORDEN.indexOf(ORDEN_TAB) === 0, ORDEN_TAB]);
   /* INVERTIDA POR LA TANDA POP-A: el recuadro del dispositivo deja de vivir DENTRO de la
      tarjeta de contexto -y con el se va su envoltorio pop_mon_slot-: hoy el monitoreo es una
      tarjeta propia, DEBAJO del selector que lo abre, que es lo que pidio el medico. Lo que se
@@ -96050,8 +96071,15 @@ caso('TC-548', 'Tanda POP-V2: la pestana del posoperatorio con su orden de arrib
   CHK('pop_nor_activa', true);
   CHK('pop_dob_activa', true);
   await esp();
-  ex.push(['(A6) el contador suma las drogas MAS la asistencia consignada: dos drogas y un balon dan tres',
-    T('pop_farmacos_cnt').indexOf('3 marcados') > -1, T('pop_farmacos_cnt')]);
+  /* ⚠️ INVERTIDA EN POP-B-3, y es el dia que este control anunciaba: el contador cuenta las FILAS
+     visibles del panel y la asistencia circulatoria YA NO suma. Con la asistencia en su propia
+     tarjeta desde POP-A-1, sumarla decia «3 marcados» sobre dos filas. Lo que se conserva es la
+     pregunta -«¿el numero coincide con lo que se ve?»- y por eso se exige DOS, y ademas que la
+     asistencia siga consignada, que es el control negativo del cambio. */
+  ex.push(['(A6) ADAPTADA (POP-B-3): el contador cuenta las FILAS, asi que dos drogas y un balon dan DOS',
+    T('pop_farmacos_cnt').indexOf('2 marcados') > -1
+      && String((EL('pop_asist_tipo') || {}).value || '') === 'bcia',
+    T('pop_farmacos_cnt') + ' / asist=' + String((EL('pop_asist_tipo') || {}).value || '')]);
   pop({ pop_asist_tipo: 'ninguna' });
   CHK('pop_nor_activa', true);
   await esp();
@@ -102656,12 +102684,15 @@ caso('TC-577', 'Tanda POP-A: las tres columnas independientes del posoperatorio,
   ex.push(['(A1) DENOMINADOR: la seccion del posoperatorio esta abierta', disp, 'block']);
   const ORD = Array.prototype.map.call(document.querySelectorAll('#pop-seccion [data-pop]'),
     e => e.getAttribute('data-pop')).join(',');
-  ex.push(['(A2) DENOMINADOR: las nueve tarjetas estan en el documento',
-           document.querySelectorAll('#pop-seccion [data-pop]').length, 9]);
+  /* POP-B-4: son DIEZ. «Pleura y pulmon» salio de la tarjeta de Eco y POCUS a una tarjeta propia
+     de ancho completo debajo de las tres columnas. El invariante no se movio -este denominador
+     cuenta cuantas tarjetas hay antes de medir el reparto-, lo que cambio es el numero. */
+  ex.push(['(A2) DENOMINADOR: las diez tarjetas estan en el documento',
+           document.querySelectorAll('#pop-seccion [data-pop]').length, 10]);
 
   /* ── (B) EL ORDEN DEL MARCADO es el orden apilado que pidio el medico ── */
   ex.push(['(B1) el orden es contexto, monitoreo, farmacos, hemodinamicos, asistencia, POCUS, dibujo, caracteristicas, conclusion',
-           ORD, 'pop-ctx,pop-mon,pop-farm,pop-hemo,pop-asist,pop-pocus,pop-esq,pop-carac,pop-concl']);
+           ORD, 'pop-ctx,pop-mon,pop-farm,pop-hemo,pop-asist,pop-pocus,pop-pleupul,pop-esq,pop-carac,pop-concl']);
   /* ── (C) EL REPARTO EN TRES COLUMNAS, leido de la hoja de estilos ──
      El suite corre a 756 px, por debajo del corte: la geometria no sirve y la REGLA si. */
   ex.push(['(C1) .pop-cols reparte en TRES columnas desde 900 px',
@@ -103319,8 +103350,24 @@ caso('TC-580', 'Tanda POP-A: las cuatro casillas de cirugia combinables con el e
 
   /* ── (D) LAS VALVULAS Y SU TIPO ── */
   mar('pop_cx_valv', true); await esperar(160);
-  ex.push(['(D1) los cuatro selectores de tipo tienen las opciones de su dueno mas la de elegir',
-           EK.map((k, i) => (nOpts(k) > 0 && nOpts(k) === nOpts(DUE[i]) + 1) ? 1 : 0).join(''), '1111']);
+  /* ⚠️ INVERTIDA EN POP-B-2, y es el dia que este control anunciaba: el selector ya NO clona la
+     lista entera del dueno. Ofrece la opcion de elegir mas SOLO las protesis, que hoy son dos en
+     las cuatro valvulas -TAVI y las nativas quedan afuera-. Lo que se conserva es la pregunta
+     «¿las opciones salen del dueno y no de una lista transcripta?», y para eso se exige que
+     TODAS las que no sean la primera esten tambien en el dueno. */
+  ex.push(['(D1) los cuatro selectores ofrecen elegir mas SOLO las protesis de su dueno, no su lista entera',
+           EK.map((k, i) => {
+             const e = EL(k), d = EL(DUE[i]);
+             if (!e || !d || e.options.length < 2) return 0;
+             if (e.options.length === nOpts(DUE[i]) + 1) return 0;   /* seria la lista entera */
+             const txD = Array.prototype.map.call(d.options, o => o.text);
+             for (let j = 1; j < e.options.length; j++) {
+               const t = e.options[j].text;
+               if (t.indexOf('Pr') !== 0) return 0;                  /* no es una protesis */
+               if (txD.indexOf(t) < 0) return 0;                     /* no sale del dueno */
+             }
+             return 1;
+           }).join(''), '1111']);
   ex.push(['(D2) y la primera es la de elegir, vacia',
            EK.map(k => (EL(k) && EL(k).options.length && EL(k).options[0].value === '') ? 1 : 0).join(''), '1111']);
   ex.push(['(D3) DENOMINADOR: los cuatro duenos estan en su valor por omision',
@@ -103575,6 +103622,543 @@ caso('TC-581', 'Tanda POP-A: la tarjeta de Eco y POCUS con el recuadro del eco a
   })();
 `);
 
+
+/* ══ TANDA POP-B · TC-582 a TC-585 (2026-11-01) ═══════════════════════════════════════════════
+   Cuatro casos, uno por bloque de la tanda:
+     TC-582  el boton «Integrar al informe» dice por que no puede, y el conteo de farmacos
+             coincide con las filas (commits 1 y 3).
+     TC-583  el tipo de una valvula operada son SOLO las protesis, y el papel no dice una
+             morfologia nativa (commit 2).
+     TC-584  Pleura y pulmon a ancho completo y el eco con el VD al lado (commit 4).
+     TC-585  el dibujo: textos sin superponerse, el derrame pleural como nivel, el puente, la
+             malla, los drenajes y las cuatro valvulas con su tipo y su latido (commits 5 a 7).
+   ⚠️ EL SUITE CORRE CHROME SIN `--window-size`, o sea a 756 px de ancho: lo que esta por encima
+   del corte de 900 px NO se puede medir por geometria aca. Esos contratos se fijan por la REGLA
+   de la hoja de estilos y por la ESTRUCTURA, igual que TC-577 y TC-581. */
+caso('TC-582', 'Tanda POP-B: el boton «Integrar al informe» del posoperatorio conserva el title que dice POR QUE no puede integrar -el barrido de bloques ya no se lo borra-, integra con el estudio completo y con el minimo, y el contador de farmacos coincide SIEMPRE con las filas visibles', `
+  return (async () => {
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]),
+                 'dio «' + t[1] + '» · esperado «' + t[2] + '»']) };
+  const esperar = (ms) => new Promise(r => setTimeout(r, ms));
+  const EL = (id) => document.getElementById(id);
+  const FN = (n) => (typeof window[n] === 'function') ? window[n] : null;
+  const pon = (id, v) => { const e = EL(id); if (!e) return 'NO ' + id;
+    e.value = String(v); e.dispatchEvent(new Event('input', { bubbles: true }));
+    e.dispatchEvent(new Event('change', { bubbles: true })); return e.value; };
+  const mar = (id, on) => { const c = EL(id); if (!c) return 'NO ' + id; c.checked = !!on;
+    c.dispatchEvent(new Event('change', { bubbles: true })); return !!c.checked; };
+  const T = (id) => { const e = EL(id); return e ? String(e.textContent || '') : ''; };
+  const bq = (t) => Array.prototype.filter.call(document.querySelectorAll('[onclick]'),
+    b => String(b.getAttribute('onclick')).indexOf(t) >= 0)[0];
+  const Q = String.fromCharCode(39);
+  const abrirPOP = async () => {
+    try { const b = bq('showTab(' + Q + 'hemodinamica'); if (b) b.click(); } catch (e) {}
+    await esperar(240);
+    const s = EL('pop-seccion');
+    if (s && getComputedStyle(s).display === 'none') {
+      const c = bq('toggleCard(' + Q + 'pop-seccion'); if (c) c.click();
+    }
+    await esperar(260);
+    return s ? getComputedStyle(s).display : 'NO SEC';
+  };
+  /* Las filas VISIBLES del panel, medidas por el display computado y NO por la clase que el
+     contador usa: sin eso, el control compara el conteo contra si mismo. */
+  const filasVis = () => {
+    let n = 0;
+    Array.prototype.forEach.call(document.querySelectorAll('#pop_farm_rows .pop-droga'),
+      function (d) { if (getComputedStyle(d).display !== 'none') n++; });
+    return n;
+  };
+  const cnt = () => { const m = /([0-9]+) marcado/.exec(T('pop_farmacos_cnt'));
+                      return m ? Number(m[1]) : 0; };
+  try { if (typeof limpiarCampos === 'function') limpiarCampos(true); } catch (e) {}
+  await esperar(200);
+  ex.push(['(A0) DENOMINADOR: la seccion del posoperatorio abre', await abrirPOP(), 'block']);
+  ex.push(['(A1) DENOMINADOR: el boton existe', EL('pop_integrar') ? 'existe' : 'NO', 'existe']);
+
+  /* ── (B) SIN DATOS: el boton no puede, Y LO DICE ── */
+  try { FN('popSync') && FN('popSync')(); } catch (e) {}
+  await esperar(900);   /* mas que el debounce de 220 ms: es el barrido el que borraba el title */
+  ex.push(['(B1) sin datos el boton esta deshabilitado', EL('pop_integrar').disabled ? 'si' : 'NO', 'si']);
+  const t0 = String(EL('pop_integrar').getAttribute('title') || '');
+  ex.push(['(B2) y su title DICE por que, tras el barrido',
+           t0.indexOf('Sin patron que integrar') === 0 || t0.indexOf('Sin patrón que integrar') === 0 ? 'lo dice' : 'VACIO «' + t0 + '»',
+           'lo dice']);
+  ex.push(['(B3) el motivo nombra lo que falta', t0.indexOf('gasto') > -1 || t0.indexOf('PESO') > -1 ? 'lo nombra' : 'NO: ' + t0, 'lo nombra']);
+
+  /* ── (C) CON EL ESTUDIO COMPLETO: integra ── */
+  pon('peso', '70'); pon('talla', '170');
+  mar('pop_cx_cabg', true); mar('pop_cx_valv', true); mar('pop_cx_aorta', true);
+  await esperar(200);
+  mar('pop_cx_v_ao', true); mar('pop_cx_v_mi', true); mar('pop_cx_v_tr', true);
+  pon('pop_monitor', 'swan');
+  await esperar(200);
+  pon('pop_sw_fc', '80'); pon('pop_sw_gc', '4'); pon('pop_sw_pam', '78'); pon('pop_sw_pad', '50');
+  pon('pop_sw_pcp', '16'); pon('pop_sw_paps', '100'); pon('pop_sw_papd', '50');
+  mar('pop_nor_activa', true); mar('pop_dop_activa', true);
+  pon('pop_asist_tipo', 'bcia');
+  await esperar(200);
+  pon('pop_bcia_ratio', '1:2');
+  mar('pop_dren_pi', true); mar('pop_dren_med', true);
+  pon('pericardio', 'Derrame leve (<10mm)');
+  pon('pop_pleura_der', 'moderado'); pon('pop_pleura_izq', 'severo');
+  pon('pop_pulmon_lineasb', 'difusas');
+  try { FN('popSync') && FN('popSync')(); } catch (e) {}
+  await esperar(900);
+  ex.push(['(C1) DENOMINADOR: con el estudio completo hay patron que integrar',
+           FN('popPatron') ? (FN('popPatron')().suficiente ? 'si' : 'NO') : 'NO FN', 'si']);
+  ex.push(['(C2) el boton se habilita', EL('pop_integrar').disabled ? 'NO' : 'habilitado', 'habilitado']);
+  const t1 = String(EL('pop_integrar').getAttribute('title') || '');
+  ex.push(['(C3) y su title pasa a decir lo que hace, tras el barrido',
+           t1.indexOf('Agrega la hoja PostCEC') === 0 ? 'lo dice' : 'VACIO «' + t1 + '»', 'lo dice']);
+  try { EL('pop_integrar').click(); } catch (e) {}
+  await esperar(500);
+  ex.push(['(C4) el clic REAL integra el modulo',
+           FN('amiloIntegrado') ? (FN('amiloIntegrado')('pop') ? 'integrado' : 'NO') : 'NO FN', 'integrado']);
+  ex.push(['(C5) y su texto llega al bloque',
+           EL('am-txt-pop') && String(EL('am-txt-pop').value || '').length > 300 ? 'llega' : 'NO', 'llega']);
+
+  /* ── (D) EL CONTADOR DE FARMACOS CONTRA LAS FILAS ── */
+  ex.push(['(D1) DENOMINADOR: hay dos filas de farmaco visibles', filasVis(), 2]);
+  ex.push(['(D2) con dos drogas y el balon marcado el contador dice DOS, no tres', cnt(), 2]);
+  mar('pop_azul_activa', true);
+  try { FN('popSync') && FN('popSync')(); } catch (e) {}
+  await esperar(320);
+  ex.push(['(D3) el azul de metileno sin dosis tiene su fila', filasVis(), 3]);
+  ex.push(['(D4) y el contador la cuenta', cnt(), 3]);
+  mar('pop_nor_activa', false); mar('pop_dop_activa', false); mar('pop_azul_activa', false);
+  try { FN('popSync') && FN('popSync')(); } catch (e) {}
+  await esperar(320);
+  ex.push(['(D5) sin ninguna droga y CON el balon, ninguna fila', filasVis(), 0]);
+  ex.push(['(D6) y el contador dice «ninguno marcado»',
+           T('pop_farmacos_cnt').indexOf('ninguno') > -1 ? 'ninguno' : T('pop_farmacos_cnt'), 'ninguno']);
+  ex.push(['(D7) CONTROL NEGATIVO: la asistencia sigue consignada y no se perdio',
+           String((EL('pop_asist_tipo') || {}).value || ''), 'bcia']);
+  try { if (typeof limpiarCampos === 'function') limpiarCampos(true); } catch (e) {}
+  return { extra: EXP };
+  })();
+`);
+caso('TC-583', 'Tanda POP-B: el tipo de una valvula operada ofrece SOLO las protesis que su dueno tiene -sin TAVI, sin nativas-, con una morfologia nativa queda en «elegir tipo» y lo AVISA sin tocar Valvulas, al elegir una protesis la escribe, y el papel nunca describe la cirugia con una morfologia nativa', `
+  return (async () => {
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]),
+                 'dio «' + t[1] + '» · esperado «' + t[2] + '»']) };
+  const esperar = (ms) => new Promise(r => setTimeout(r, ms));
+  const EL = (id) => document.getElementById(id);
+  const FN = (n) => (typeof window[n] === 'function') ? window[n] : null;
+  const pon = (id, v) => { const e = EL(id); if (!e) return 'NO ' + id;
+    e.value = String(v); e.dispatchEvent(new Event('input', { bubbles: true }));
+    e.dispatchEvent(new Event('change', { bubbles: true })); return e.value; };
+  const mar = (id, on) => { const c = EL(id); if (!c) return 'NO ' + id; c.checked = !!on;
+    c.dispatchEvent(new Event('change', { bubbles: true })); return !!c.checked; };
+  const T = (id) => { const e = EL(id); return e ? String(e.textContent || '') : ''; };
+  const V = (id) => { const e = EL(id); return e ? String(e.value || '') : 'NO ' + id; };
+  const opts = (id) => { const e = EL(id); return e ? Array.prototype.map.call(e.options,
+    function (o) { return o.text; }).join(' | ') : 'NO ' + id; };
+  const bq = (t) => Array.prototype.filter.call(document.querySelectorAll('[onclick]'),
+    b => String(b.getAttribute('onclick')).indexOf(t) >= 0)[0];
+  const Q = String.fromCharCode(39);
+  const abrirPOP = async () => {
+    try { const b = bq('showTab(' + Q + 'hemodinamica'); if (b) b.click(); } catch (e) {}
+    await esperar(240);
+    const s = EL('pop-seccion');
+    if (s && getComputedStyle(s).display === 'none') {
+      const c = bq('toggleCard(' + Q + 'pop-seccion'); if (c) c.click();
+    }
+    await esperar(260);
+    return s ? getComputedStyle(s).display : 'NO SEC';
+  };
+  try { if (typeof limpiarCampos === 'function') limpiarCampos(true); } catch (e) {}
+  await esperar(200);
+  ex.push(['(A0) DENOMINADOR: la seccion abre', await abrirPOP(), 'block']);
+  mar('pop_cx_valv', true);
+  await esperar(300);
+  ex.push(['(A1) DENOMINADOR: la fila de valvulas operadas se ve con «Valvular» marcada',
+           EL('pop_cx_valv_wrap') && getComputedStyle(EL('pop_cx_valv_wrap')).display !== 'none' ? 'se ve' : 'NO', 'se ve']);
+
+  /* ── (B) LAS OPCIONES: solo protesis ── */
+  const PROT = 'Pr' + String.fromCharCode(243) + 'tesis';
+  /* El contrato no es una lista transcripta: TODA opcion que no sea la primera tiene que ser una
+     protesis. Asi el caso sigue valiendo el dia que Valvulas agregue otra. */
+  const noProt = (id) => {
+    const e = EL(id); if (!e) return 'NO ' + id;
+    const malas = [];
+    for (let i = 1; i < e.options.length; i++)
+      if (String(e.options[i].text).indexOf(PROT) !== 0) malas.push(e.options[i].text);
+    return malas.join(',') || 'todas protesis';
+  };
+  ex.push(['(B1) la primera opcion de las cuatro es «elegir tipo»',
+           ['pop-esp-vao','pop-esp-vmi','pop-esp-vtr','pop-esp-vpu']
+             .map(function (id) { return (EL(id) && EL(id).options.length) ? ((EL(id).options[0].value === '') ? 'ok' : 'NO') : 'NO'; }).join(','),
+           'ok,ok,ok,ok']);
+  ex.push(['(B2) y todas las demas son protesis, en las cuatro',
+           ['pop-esp-vao','pop-esp-vmi','pop-esp-vtr','pop-esp-vpu'].map(noProt).join(' / '),
+           'todas protesis / todas protesis / todas protesis / todas protesis']);
+  ex.push(['(B3) la aortica NO ofrece TAVI', opts('pop-esp-vao').indexOf('TAVI') > -1 ? 'LA OFRECE' : 'no', 'no']);
+  ex.push(['(B4) DENOMINADOR: el dueno SI tiene nativas, asi que el filtro hizo algo',
+           opts('va_morf').indexOf('Calcificada') > -1 ? 'las tiene' : 'NO', 'las tiene']);
+  ex.push(['(B5) las cuatro ofrecen tres opciones',
+           ['pop-esp-vao','pop-esp-vmi','pop-esp-vtr','pop-esp-vpu']
+             .map(function (id) { return (EL(id) || { options: [] }).options.length; }).join(','), '3,3,3,3']);
+
+  /* ── (C) UNA MORFOLOGIA NATIVA EN VALVULAS ── */
+  mar('pop_cx_v_tr', true);
+  pon('vt_morf', 'Mixomatosa');
+  try { FN('popCxVSync') && FN('popCxVSync')(); } catch (e) {}
+  await esperar(320);
+  ex.push(['(C1) el selector del tipo queda en «elegir tipo»', V('pop-esp-vtr'), '']);
+  ex.push(['(C2) y NO dice «de Valvulas»', T('pop-esp-vtr-tag') || '(vacio)', '(vacio)']);
+  ex.push(['(C3) una linea AVISA nombrando la morfologia que hay',
+           T('pop-esp-vtr-nota').indexOf('Mixomatosa') > -1 ? 'avisa' : 'NO: ' + T('pop-esp-vtr-nota'), 'avisa']);
+  ex.push(['(C4) y dice que elegir un tipo la reemplaza',
+           T('pop-esp-vtr-nota').indexOf('reemplaza') > -1 ? 'lo dice' : 'NO', 'lo dice']);
+  ex.push(['(C5) el dueno NO se toca', V('vt_morf'), 'Mixomatosa']);
+  ex.push(['(C6) EL PAPEL no describe la cirugia con la morfologia nativa',
+           FN('popCxValvTxt') ? (FN('popCxValvTxt')().indexOf('Mixomatosa') > -1 ? 'LA DICE' : 'no la dice') : 'NO FN',
+           'no la dice']);
+  ex.push(['(C7) y dice que no hay tipo consignado',
+           FN('popCxValvTxt')().indexOf('sin tipo consignado') > -1 ? 'lo dice' : FN('popCxValvTxt')(), 'lo dice']);
+
+  /* ── (D) AL ELEGIR UNA PROTESIS ── */
+  pon('pop-esp-vtr', 'Pr' + String.fromCharCode(243) + 'tesis mec' + String.fromCharCode(225) + 'nica');
+  await esperar(320);
+  ex.push(['(D1) se escribe en la morfologia de esa valvula',
+           V('vt_morf'), 'Pr' + String.fromCharCode(243) + 'tesis mec' + String.fromCharCode(225) + 'nica']);
+  ex.push(['(D2) la etiqueta pasa a «de Valvulas»', T('pop-esp-vtr-tag'), 'de V' + String.fromCharCode(225) + 'lvulas']);
+  ex.push(['(D3) el aviso de reemplazo se va', T('pop-esp-vtr-nota') || '(vacio)', '(vacio)']);
+  ex.push(['(D4) y el papel SI dice la protesis',
+           FN('popCxValvTxt')().indexOf('mec') > -1 ? 'la dice' : FN('popCxValvTxt')(), 'la dice']);
+  /* El barrido de 220 ms no puede repoblar ni borrar lo elegido. */
+  try { FN('popSync') && FN('popSync')(); } catch (e) {}
+  await esperar(700);
+  ex.push(['(D5) tras el barrido la protesis sigue',
+           V('vt_morf'), 'Pr' + String.fromCharCode(243) + 'tesis mec' + String.fromCharCode(225) + 'nica']);
+
+  /* ── (E) CONTROL NEGATIVO: marcar una valvula no escribe NINGUN tipo ── */
+  /* Se marcan LAS DOS que no se tocaron: con una sola, el conteo de (E3) daba 1 y no distinguia
+     «no escribe tipo» de «hay una valvula menos marcada». */
+  mar('pop_cx_v_pu', true); mar('pop_cx_v_ao', true);
+  try { FN('popSync') && FN('popSync')(); } catch (e) {}
+  await esperar(400);
+  ex.push(['(E1) marcar la pulmonar no escribe su morfologia', V('vp_morf'), 'Normal']);
+  ex.push(['(E2) ni la aortica, que quedo marcada sin tocar su selector', V('va_morf'), 'Trivalva normal']);
+  ex.push(['(E3) y el papel lo dice de las dos',
+           (FN('popCxValvTxt')().match(/sin tipo consignado/g) || []).length, 2]);
+  try { if (typeof limpiarCampos === 'function') limpiarCampos(true); } catch (e) {}
+  return { extra: EXP };
+  })();
+`);
+caso('TC-584', 'Tanda POP-B: «Pleura y pulmon» sale de la tarjeta de Eco y POCUS a una tarjeta de ancho completo debajo de las tres columnas, en dos columnas desde 900 px, la ecocardiografia y el VD quedan uno al lado del otro, y ningun id ni ninguna columna del Excel se mueve', `
+  return (async () => {
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]),
+                 'dio «' + t[1] + '» · esperado «' + t[2] + '»']) };
+  const esperar = (ms) => new Promise(r => setTimeout(r, ms));
+  const EL = (id) => document.getElementById(id);
+  const FN = (n) => (typeof window[n] === 'function') ? window[n] : null;
+  const pon = (id, v) => { const e = EL(id); if (!e) return 'NO ' + id;
+    e.value = String(v); e.dispatchEvent(new Event('input', { bubbles: true }));
+    e.dispatchEvent(new Event('change', { bubbles: true })); return e.value; };
+  const T = (id) => { const e = EL(id); return e ? String(e.textContent || '') : ''; };
+  const cerca = (id, sel) => { const e = EL(id); return (e && e.closest) ? e.closest(sel) : null; };
+  const bq = (t) => Array.prototype.filter.call(document.querySelectorAll('[onclick]'),
+    b => String(b.getAttribute('onclick')).indexOf(t) >= 0)[0];
+  const Q = String.fromCharCode(39);
+  /* La regla de una consulta de medios, leida de la hoja de estilos: el suite corre a 756 px y
+     lo que vive por encima de 900 no se puede medir por geometria aca. Mismo helper que TC-577. */
+  const reglaMedia = (min, sel, prop) => {
+    let out = 'NO';
+    try {
+      const hojas = Array.prototype.slice.call(document.styleSheets);
+      for (let i = 0; i < hojas.length; i++) {
+        let rs = null; try { rs = hojas[i].cssRules; } catch (e) { continue; }
+        const lista = Array.prototype.slice.call(rs || []);
+        for (let j = 0; j < lista.length; j++) {
+          const r = lista[j];
+          if (!r || !r.media || String(r.media.mediaText).indexOf('min-width: ' + min) < 0) continue;
+          const sub = Array.prototype.slice.call(r.cssRules || []);
+          for (let k = 0; k < sub.length; k++)
+            if (sub[k].selectorText === sel && sub[k].style && sub[k].style[prop])
+              out = sub[k].style[prop];
+        }
+      }
+    } catch (e) { out = 'ERR'; }
+    return out;
+  };
+  const abrirPOP = async () => {
+    try { const b = bq('showTab(' + Q + 'hemodinamica'); if (b) b.click(); } catch (e) {}
+    await esperar(240);
+    const s = EL('pop-seccion');
+    if (s && getComputedStyle(s).display === 'none') {
+      const c = bq('toggleCard(' + Q + 'pop-seccion'); if (c) c.click();
+    }
+    await esperar(260);
+    return s ? getComputedStyle(s).display : 'NO SEC';
+  };
+  try { if (typeof limpiarCampos === 'function') limpiarCampos(true); } catch (e) {}
+  await esperar(200);
+  ex.push(['(A0) DENOMINADOR: la seccion abre', await abrirPOP(), 'block']);
+
+  /* ── (B) LA TARJETA NUEVA, A ANCHO COMPLETO Y FUERA DE LAS TRES COLUMNAS ── */
+  const tj = document.querySelector('#pop-seccion .pop-card[data-pop="pop-pleupul"]');
+  ex.push(['(B1) existe la tarjeta «Pleura y pulmon»', tj ? 'existe' : 'NO', 'existe']);
+  ex.push(['(B2) lleva ancho completo', tj && tj.classList.contains('pop-card-wide') ? 'wide' : 'NO', 'wide']);
+  ex.push(['(B3) y NO vive dentro de ninguna de las tres columnas',
+           tj && tj.closest('.pop-cols') ? 'DENTRO' : 'afuera', 'afuera']);
+  ex.push(['(B4) va DESPUES de la fila de tres columnas',
+           (function () { const c = document.querySelector('#pop-seccion .pop-cols');
+             if (!c || !tj) return 'NO'; return (c.compareDocumentPosition(tj) & 4) ? 'despues' : 'ANTES'; })(),
+           'despues']);
+  ex.push(['(B5) sus dos mitades van en dos columnas desde 900 px',
+           reglaMedia('900px', '.pop-pleupul-grid', 'gridTemplateColumns'), 'repeat(2, minmax(0px, 1fr))']);
+  ex.push(['(B6) y apiladas por debajo', getComputedStyle(document.querySelector('.pop-pleupul-grid')).gridTemplateColumns.indexOf(' ') > -1 ? 'DOS' : 'una', 'una']);
+
+  /* ── (C) LOS SEIS CAMPOS SE MUDARON SIN CAMBIAR DE id ── */
+  ['pop_pleura_der','pop_pleura_izq','pop_pleura_caract','pop_pulmon_lineasb','pop_pulmon_consol','pop_pulmon_neumo']
+    .forEach(function (id, i) {
+      ex.push(['(C' + (i + 1) + ') ' + id + ' vive en la tarjeta nueva',
+               cerca(id, '.pop-card[data-pop="pop-pleupul"]') ? 'si' : 'NO', 'si']);
+    });
+  ex.push(['(C7) y las dos capsulas tambien',
+           (cerca('pop-pocus-pleura', '.pop-card[data-pop="pop-pleupul"]') ? 1 : 0)
+           + (cerca('pop-pocus-pulmon', '.pop-card[data-pop="pop-pleupul"]') ? 1 : 0), 2]);
+  ex.push(['(C8) el pericardio se QUEDA en Eco y POCUS',
+           cerca('pop-esp-peri', '.pop-card[data-pop="pop-pocus"]') ? 'se queda' : 'SE FUE', 'se queda']);
+  ex.push(['(C9) y el ventriculo derecho tambien',
+           cerca('pop-pocus-vd', '.pop-card[data-pop="pop-pocus"]') ? 'se queda' : 'SE FUE', 'se queda']);
+
+  /* ── (D) LA ECOCARDIOGRAFIA Y EL VD, UNO AL LADO DEL OTRO ── */
+  ex.push(['(D1) los dos cuelgan del MISMO contenedor de dos columnas',
+           (function () { const a = cerca('pop-eco-ic', '.pop-eco-par'), b = cerca('pop-pocus-vd', '.pop-eco-par');
+             return (a && b && a === b) ? 'el mismo' : 'NO'; })(), 'el mismo']);
+  ex.push(['(D2) que son dos columnas desde 900 px',
+           reglaMedia('900px', '.pop-eco-par', 'gridTemplateColumns'), 'repeat(2, minmax(0px, 1fr))']);
+  ex.push(['(D3) y el pericardio NO esta en ese contenedor, queda debajo',
+           cerca('pop-esp-peri', '.pop-eco-par') ? 'ADENTRO' : 'debajo', 'debajo']);
+
+  /* ── (E) LOS SEIS CAMPOS SIGUEN SIENDO LOS MISMOS DATOS ── */
+  pon('pop_pleura_der', 'moderado'); pon('pop_pleura_izq', 'severo');
+  pon('pop_pulmon_lineasb', 'difusas'); pon('pop_pulmon_consol', 'der');
+  pon('pop_monitor', 'swan');
+  await esperar(200);
+  pon('peso', '70'); pon('talla', '170'); pon('pop_sw_gc', '4');
+  try { FN('popSync') && FN('popSync')(); } catch (e) {}
+  await esperar(500);
+  ex.push(['(E1) la capsula de la pleura sigue publicando su texto',
+           T('pop-pocus-pleura').length > 10 ? 'publica' : 'NO: «' + T('pop-pocus-pleura') + '»', 'publica']);
+  ex.push(['(E2) y la del pulmon tambien',
+           T('pop-pocus-pulmon').length > 10 ? 'publica' : 'NO', 'publica']);
+  /* El vocabulario de los seis NO se unifico con el modulo «Pericardio y pulmon»: son dos
+     dueños con seis contradicciones medidas, declaradas en PENDIENTES -> PA-e. Mudar la tarjeta
+     no las toca, y este control lo fija para que la proxima tanda se encuentre la medicion. */
+  ex.push(['(E3) la pleura sigue graduando POR LADO, con sus cuatro opciones mas la vacia',
+           (EL('pop_pleura_der') || { options: [] }).options.length, 5]);
+  ex.push(['(E4) y las lineas B siguen siendo tres opciones mas la vacia, no seis casillas',
+           (EL('pop_pulmon_lineasb') || { options: [] }).options.length, 4]);
+  try { if (typeof limpiarCampos === 'function') limpiarCampos(true); } catch (e) {}
+  return { extra: EXP };
+  })();
+`);
+caso('TC-585', 'Tanda POP-B: el dibujo del posoperatorio sin un solo texto superpuesto ni fuera del lienzo, el derrame pleural como un nivel de liquido que sube con el grado, el puente, la malla y los tres drenajes solo con su dato, y las cuatro valvulas operadas con su tipo y su latido en la fase que les toca', `
+  return (async () => {
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]),
+                 'dio «' + t[1] + '» · esperado «' + t[2] + '»']) };
+  const esperar = (ms) => new Promise(r => setTimeout(r, ms));
+  const EL = (id) => document.getElementById(id);
+  const FN = (n) => (typeof window[n] === 'function') ? window[n] : null;
+  const pon = (id, v) => { const e = EL(id); if (!e) return 'NO ' + id;
+    e.value = String(v); e.dispatchEvent(new Event('input', { bubbles: true }));
+    e.dispatchEvent(new Event('change', { bubbles: true })); return e.value; };
+  const mar = (id, on) => { const c = EL(id); if (!c) return 'NO ' + id; c.checked = !!on;
+    c.dispatchEvent(new Event('change', { bubbles: true })); return !!c.checked; };
+  const T = (id) => { const e = EL(id); return e ? String(e.textContent || '') : ''; };
+  const bq = (t) => Array.prototype.filter.call(document.querySelectorAll('[onclick]'),
+    b => String(b.getAttribute('onclick')).indexOf(t) >= 0)[0];
+  const Q = String.fromCharCode(39);
+  const SVG = () => EL('pop-esq-svg');
+  const MK = (k) => SVG() ? SVG().querySelector('[data-pop-esq="' + k + '"]') : null;
+  const ON = (k) => { const n = MK(k); return !n ? 'NO EXISTE' : (getComputedStyle(n).display === 'none' ? 'off' : 'on'); };
+  /* Las cajas de los textos del dibujo, cruzadas entre si. Una superposicion es un par con area
+     de interseccion mayor que cero. */
+  const txtCajas = () => {
+    const out = [];
+    if (!SVG()) return out;
+    Array.prototype.forEach.call(SVG().querySelectorAll('text'), function (t) {
+      if (getComputedStyle(t).display === 'none') return;
+      const s = String(t.textContent || '').trim();
+      if (!s) return;
+      let b = null; try { b = t.getBBox(); } catch (e) { return; }
+      if (!b || b.width <= 0) return;
+      out.push({ t: s, x: b.x, y: b.y, w: b.width, h: b.height });
+    });
+    return out;
+  };
+  const superpuestos = () => {
+    const c = txtCajas(), s = [];
+    for (let i = 0; i < c.length; i++) for (let j = i + 1; j < c.length; j++) {
+      const a = c[i], b = c[j];
+      const ox = Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x);
+      const oy = Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y);
+      if (ox > 0 && oy > 0) s.push(a.t + ' x ' + b.t);
+    }
+    return s;
+  };
+  const fuera = () => txtCajas().filter(function (t) {
+    return t.x < 0 || (t.x + t.w) > 600 || t.y < 0 || (t.y + t.h) > 496;
+  }).map(function (t) { return t.t; });
+  const abrirPOP = async () => {
+    try { const b = bq('showTab(' + Q + 'hemodinamica'); if (b) b.click(); } catch (e) {}
+    await esperar(240);
+    const s = EL('pop-seccion');
+    if (s && getComputedStyle(s).display === 'none') {
+      const c = bq('toggleCard(' + Q + 'pop-seccion'); if (c) c.click();
+    }
+    await esperar(260);
+    return s ? getComputedStyle(s).display : 'NO SEC';
+  };
+  try { if (typeof limpiarCampos === 'function') limpiarCampos(true); } catch (e) {}
+  await esperar(200);
+  ex.push(['(A0) DENOMINADOR: la seccion abre', await abrirPOP(), 'block']);
+
+  /* ── (B) LA ESCENA MAS CARGADA: ni un texto encima de otro ── */
+  pon('peso', '70'); pon('talla', '170');
+  pon('pop_monitor', 'swan');
+  await esperar(200);
+  pon('pop_sw_fc', '80'); pon('pop_sw_gc', '4'); pon('pop_sw_pam', '78'); pon('pop_sw_pad', '50');
+  pon('pop_sw_pcp', '16'); pon('pop_sw_paps', '100'); pon('pop_sw_papd', '50');
+  pon('pericardio', 'Derrame severo (>20mm)');
+  pon('pop_pleura_der', 'moderado'); pon('pop_pleura_izq', 'severo');
+  pon('pop_pulmon_lineasb', 'difusas');
+  pon('pop_asist_tipo', 'bcia');
+  await esperar(200);
+  pon('pop-bcia-timing', 'verificado');
+  ['nor','adr','dob','mil','vaso','levo','dop','ter','ntg','ntp','azul'].forEach(function (k) { mar('pop_' + k + '_activa', true); });
+  try { FN('popSync') && FN('popSync')(); } catch (e) {}
+  await esperar(600);
+  ex.push(['(B1) DENOMINADOR: el dibujo tiene textos que contar', txtCajas().length > 12 ? 'los tiene' : 'solo ' + txtCajas().length, 'los tiene']);
+  ex.push(['(B2) ningun texto se superpone con otro', superpuestos().join(' ; ') || 'ninguno', 'ninguno']);
+  ex.push(['(B3) ningun texto se sale del lienzo', fuera().join(' ; ') || 'ninguno', 'ninguno']);
+  ex.push(['(B4) el rotulo del derrame pleural NO esta en el dibujo',
+           txtCajas().filter(function (t) { return t.t.indexOf('derrame pleural') > -1; }).length, 0]);
+  ex.push(['(B5) pero su grado SI esta en las caracteristicas del esquema',
+           T('pop-esq-txt').indexOf('derecho moderado') > -1 && T('pop-esq-txt').indexOf('izquierdo severo') > -1 ? 'esta' : 'NO', 'esta']);
+  ex.push(['(B6) con once farmacos la franja publica el conteo y no se corta',
+           txtCajas().filter(function (t) { return t.t.indexOf('Vasoactivos') === 0; })
+             .map(function (t) { return t.t; }).join(''), 'Vasoactivos: 10 en curso']);
+  ex.push(['(B7) y los nombres siguen en las caracteristicas',
+           T('pop-esq-txt').indexOf('Noradrenalina') > -1 ? 'siguen' : 'NO', 'siguen']);
+
+  /* ── (C) EL DERRAME PLEURAL ES UN NIVEL QUE SUBE CON EL GRADO ── */
+  const altoPl = (k) => { const n = MK(k); if (!n) return 'NO'; return Number(n.getAttribute('height') || 0); };
+  pon('pop_pleura_der', 'leve'); pon('pop_pleura_izq', '');
+  try { FN('popEsqPintar') && FN('popEsqPintar')(); } catch (e) {}
+  await esperar(240);
+  const hLeve = altoPl('pleuraD');
+  ex.push(['(C1) el derecho se dibuja con el derrame leve', ON('pleuraD'), 'on']);
+  ex.push(['(C2) y el izquierdo NO, porque no se evaluo', ON('pleuraI'), 'off']);
+  pon('pop_pleura_der', 'moderado');
+  try { FN('popEsqPintar') && FN('popEsqPintar')(); } catch (e) {}
+  await esperar(240);
+  const hMod = altoPl('pleuraD');
+  pon('pop_pleura_der', 'severo');
+  try { FN('popEsqPintar') && FN('popEsqPintar')(); } catch (e) {}
+  await esperar(240);
+  const hSev = altoPl('pleuraD');
+  ex.push(['(C3) el nivel sube de leve a moderado', hMod > hLeve ? 'sube' : hLeve + ' -> ' + hMod, 'sube']);
+  ex.push(['(C4) y de moderado a severo', hSev > hMod ? 'sube' : hMod + ' -> ' + hSev, 'sube']);
+  ex.push(['(C5) el borde de abajo no se mueve: es un nivel, no una burbuja',
+           (Number(MK('pleuraD').getAttribute('y')) + hSev).toFixed(0), '268']);
+  pon('pop_pleura_der', 'ausente');
+  try { FN('popEsqPintar') && FN('popEsqPintar')(); } catch (e) {}
+  await esperar(240);
+  ex.push(['(C6) CONTROL NEGATIVO: con «ausente» no se dibuja nada', ON('pleuraD'), 'off']);
+
+  /* ── (D) PUENTE, MALLA Y DRENAJES: cada uno con SU dato ── */
+  ex.push(['(D1) DENOMINADOR: sin cirugia declarada las cinco capas estan apagadas',
+           ['puente','malla','drenD','drenI','drenM'].map(ON).join(','), 'off,off,off,off,off']);
+  mar('pop_cx_cabg', true);
+  try { FN('popSync') && FN('popSync')(); } catch (e) {}
+  await esperar(320);
+  ex.push(['(D2) con «Revascularizacion» se dibuja el puente y SOLO el puente',
+           ['puente','malla','drenD','drenI','drenM'].map(ON).join(','), 'on,off,off,off,off']);
+  mar('pop_cx_cabg', false); mar('pop_cx_aorta', true);
+  try { FN('popSync') && FN('popSync')(); } catch (e) {}
+  await esperar(320);
+  ex.push(['(D3) con «Aorta con injerto» se dibuja la malla y solo la malla',
+           ['puente','malla','drenD','drenI','drenM'].map(ON).join(','), 'off,on,off,off,off']);
+  mar('pop_cx_aorta', false); mar('pop_dren_pi', true);
+  try { FN('popSync') && FN('popSync')(); } catch (e) {}
+  await esperar(320);
+  ex.push(['(D4) el drenaje pleural izquierdo, solo el izquierdo',
+           ['puente','malla','drenD','drenI','drenM'].map(ON).join(','), 'off,off,off,on,off']);
+  mar('pop_cx_cabg', true); mar('pop_cx_aorta', true);
+  mar('pop_dren_pd', true); mar('pop_dren_med', true);
+  try { FN('popSync') && FN('popSync')(); } catch (e) {}
+  await esperar(400);
+  ex.push(['(D5) las cinco juntas', ['puente','malla','drenD','drenI','drenM'].map(ON).join(','), 'on,on,on,on,on']);
+  ex.push(['(D6) y con las cinco puestas sigue sin haber un texto superpuesto',
+           superpuestos().join(' ; ') || 'ninguno', 'ninguno']);
+  ex.push(['(D7) las tres se nombran en las caracteristicas del esquema',
+           (T('pop-esq-txt').indexOf('puente aortocoronario') > -1 ? 1 : 0)
+           + (T('pop-esq-txt').indexOf('injerto de aorta') > -1 ? 1 : 0)
+           + (T('pop-esq-txt').indexOf('drenaje') > -1 ? 1 : 0), 3]);
+
+  /* ── (E) LAS CUATRO VALVULAS: tipo y latido ── */
+  mar('pop_cx_valv', true);
+  await esperar(250);
+  mar('pop_cx_v_ao', true); mar('pop_cx_v_mi', true);
+  pon('va_morf', 'Pr' + String.fromCharCode(243) + 'tesis mec' + String.fromCharCode(225) + 'nica');
+  pon('vm_morf', 'Pr' + String.fromCharCode(243) + 'tesis biol' + String.fromCharCode(243) + 'gica');
+  try { FN('popSync') && FN('popSync')(); } catch (e) {}
+  await esperar(400);
+  ex.push(['(E1) la aortica y la mitral se dibujan; la tricuspide y la pulmonar no',
+           ['valv-ao','valv-mi','valv-tr','valv-pu'].map(ON).join(','), 'on,on,off,off']);
+  const an = (k) => { const g = MK('valv-' + k); if (!g) return 'NO'; const e = g.querySelector('ellipse');
+                      return e ? (e.getAttribute('stroke-dasharray') || '') + '|' + e.getAttribute('fill') : 'NO'; };
+  ex.push(['(E2) la protesis mecanica va con anillo oscuro y sin puntear', an('ao'), '|var(--text)']);
+  ex.push(['(E3) la biologica con anillo claro', an('mi'), '|var(--bg3)']);
+  ex.push(['(E4) y la biologica lleva sus tres soportes',
+           (function () { const g = MK('valv-mi'); if (!g) return 'NO';
+             return Array.prototype.filter.call(g.querySelectorAll('line'), function (l) {
+               return l.getAttribute('y1') === '-4' && getComputedStyle(l).display !== 'none'; }).length; })(), 3]);
+  mar('pop_cx_v_tr', true);
+  pon('vt_morf', 'Mixomatosa');
+  try { FN('popSync') && FN('popSync')(); } catch (e) {}
+  await esperar(400);
+  ex.push(['(E5) SIN tipo elegido el anillo es punteado y neutro', an('tr'), '3 3|none']);
+  ex.push(['(E6) y NO lleva velos dibujados, que afirmarian un mecanismo',
+           (function () { const g = MK('valv-tr'); if (!g) return 'NO';
+             return Array.prototype.filter.call(g.querySelectorAll('line'), function (l) {
+               return l.getAttribute('y1') === '0' && getComputedStyle(l).display !== 'none'; }).length; })(), 0]);
+  /* EL LATIDO. El bucle se apaga cuando el dibujo no se ve: hay que traerlo a la vista. */
+  SVG().scrollIntoView({ block: 'center' });
+  await esperar(400);
+  const hueco = (k) => { const g = MK('valv-' + k); if (!g) return null;
+    const v = Array.prototype.filter.call(g.querySelectorAll('line'), function (l) { return l.getAttribute('y1') === '0'; });
+    return v.length > 1 ? Number(v[1].getAttribute('x1')) : null; };
+  const mAo = [], mMi = [];
+  for (let i = 0; i < 24; i++) { mAo.push(hueco('ao')); mMi.push(hueco('mi')); await esperar(50); }
+  const mx = (a) => Math.max.apply(null, a), mn = (a) => Math.min.apply(null, a);
+  ex.push(['(E7) con la frecuencia cargada la aortica abre y cierra',
+           (mx(mAo) > 4 && mn(mAo) < 2) ? 'late' : 'min ' + mn(mAo) + ' max ' + mx(mAo), 'late']);
+  ex.push(['(E8) y la mitral tambien', (mx(mMi) > 4 && mn(mMi) < 2) ? 'late' : 'min ' + mn(mMi) + ' max ' + mx(mMi), 'late']);
+  ex.push(['(E9) pero NUNCA las dos abiertas a la vez: sistole y diastole no se pisan',
+           (function () { let n = 0; for (let i = 0; i < mAo.length; i++) if (mAo[i] > 4 && mMi[i] > 4) n++; return n; })(), 0]);
+  pon('pop_sw_fc', ''); pon('hemo_fc', '');
+  try { FN('popSync') && FN('popSync')(); } catch (e) {}
+  await esperar(500);
+  const sAo = [];
+  for (let i = 0; i < 16; i++) { sAo.push(hueco('ao')); await esperar(50); }
+  ex.push(['(E10) SIN frecuencia cargada el simbolo queda quieto y cerrado',
+           mx(sAo).toFixed(1) + '/' + mn(sAo).toFixed(1), '0.0/0.0']);
+  ex.push(['(E11) y las valvulas operadas se nombran con su tipo en las caracteristicas',
+           T('pop-esq-txt').indexOf('v' + String.fromCharCode(225) + 'lvulas operadas') > -1 ? 'se nombran' : 'NO', 'se nombran']);
+  try { if (typeof limpiarCampos === 'function') limpiarCampos(true); } catch (e) {}
+  return { extra: EXP };
+  })();
+`);
 
 let servidor, chrome;
 try {

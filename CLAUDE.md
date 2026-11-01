@@ -85,6 +85,7 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Tocar el POSOPERATORIO de cirugía cardíaca**: la grilla de drogas, el acordeón de monitoreo, el lactato, el esquema animado con sus cavidades y sus caños, la vasoplejia con la PAM, los grados del derrame pleural, lo que sale al informe y lo que se queda en la pantalla, su ficha de Referencias o su Evidencia | `docs/mapa/g-posoperatorio.md` |
 | **Tocar algo que la tanda POP-V2 movió del POSOPERATORIO** (29/10): el orden de la pestaña y el desplegable de fármacos, la dosis que se calcula sola con sus dos marcas, la PAM por línea arterial, el Impella, el ECMO venovenoso o el timing del balón, las cuatro señales sueltas de la conclusión, o el patrón fuera del PPT | `docs/mapa/pop-v2-posoperatorio.md` |
 | **Tocar la PANTALLA del POSOPERATORIO** (tanda POP-A, 01/11): las tres columnas independientes con su corte en 900 px, el monitoreo como tarjeta fija con el Swan en tres columnas y la PmAP derivada, el selector único de fármacos con el azul de metileno, las cuatro casillas de cirugía combinables con la marca heredada de un estudio viejo, las válvulas operadas con su tipo tomado de Válvulas, los drenajes, los nueve espejos `pop-esp-`, la tarjeta «Eco y POCUS» o la disposición de abajo | `docs/mapa/pa-pantalla-posoperatorio.md` |
+| **Tocar el DIBUJO del POSOPERATORIO** (tanda POP-B, 01/11): el nivel de líquido del derrame pleural, el puente aortocoronario, la malla del injerto de aorta, los tres drenajes, las cuatro válvulas operadas con su tipo y su latido, los rótulos que se superponían, el botón «Integrar al informe» que dice por qué no puede, el tipo de válvula que ofrece sólo prótesis, el conteo de fármacos o la tarjeta «Pleura y pulmón» | `docs/mapa/popb-dibujo-posoperatorio.md` |
 | **Tocar algo que la tanda AJ6 movió** (24/10): el cuerpo del informe de la Fallot reparada —el esquema, la fila vacía y la conducta retirada—, su Evidencia compacta con la prosa en el ⓘ, la ecografía pulmonar en cuatro columnas, o Referencias y Calculadoras dejando de ser módulos opcionales con el buscador que tapa las fichas | `docs/mapa/aj6-fallot-pulmon-refs.md` |
 | **Tocar algo que la tanda AJ7 movió** (24/10): la línea de Fallot del EN SUMA y su `resumen`, la línea de presión de llenado del HF-PEFF, la fila «Descripción» del ateroma, el retiro automático del bloque integrado y el aviso al exportar, el VOTO del strain del VD y su banda en Referencias, el bloqueo del Tipo de IM y el Carpentier con prótesis, el rótulo que se achica, las dos conductas de constricción, la compuerta de su Evidencia, el aviso de VExUS armado con `join`, o el dueño único del corte de HTP | `docs/mapa/aj7-correcciones.md` |
 | **Tocar el CARPENTIER de la mitral —quién es su dueño y dónde se dice—, el AVISO de la Evidencia de la TRICÚSPIDE, el strain del VD por debajo de 15 %, o las dos TABLAS de la OREJUELA** | `docs/mapa/e-carpentier-tricuspide-orejuela.md` |
@@ -191,8 +192,13 @@ Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la v
 ## Qué es EcoSmart y cómo se trabaja
 
 - App clínica de ecocardiografía en **un solo `index.html`**: HTML + CSS + JS inline, sin build,
-  sin frameworks. Hoy **10,64 MB / 149.427 líneas**, medido con `wc -c` y `wc -l` el 2026-11-01 al
-  cierre de la tanda **POP-A**, sobre el árbol ya sellado (`v20261101-0512`, md5 `01677156`).
+  sin frameworks. Hoy **10,67 MB / 149.816 líneas**, medido con `wc -c` y `wc -l` el 2026-11-01 al
+  cierre de la tanda **POP-B**, sobre el árbol ya sellado (`v20261101-0747`, md5 `feddd652`).
+  ⚠️ **ESTA VEZ EL SELLO NO SE QUEDÓ ATRÁS, y es por una decisión:** `index.html` se selló ANTES
+  de la suite completa y el commit de documentación **no lo volvió a sellar**, porque no lo
+  toca. Así el árbol que la suite midió es el mismo que quedó commiteado: no hay tres líneas de
+  diferencia que declarar, como pasó en POP-A.
+  (Antes: 10,64 MB / 149.427 al cierre de POP-A, sello `v20261101-0512`, md5 `01677156`.)
   (Antes: 10,59 MB / 148.710 al cierre de CONG-2A, sello `v20261101-0152`, md5 `9e5415c1`.)
   ⚠️ **Y EL SELLO DE ESE RENGLÓN ESTABA UNA RESELLADA ATRÁS:** decía `v20261101-0041` con md5
   `0f6254dc`, y el árbol que esta tanda abrió traía **`v20261101-0152`** con md5 **`9e5415c1`**
@@ -4456,3 +4462,197 @@ línea: el archivo creció y un informe de auditoría viejo apunta a otro archiv
   su tabla «Cambios de evidencia» **vacía a propósito** y el censo de las opciones de cada válvula,
   `docs/REGISTRO_TANDAS.md` → el bloque de esta tanda, y `docs/PENDIENTES.md` → **NUEVE** cosas
   declaradas (**PA-a** a **PA-i**).
+
+### Los arreglos de POP-A y el dibujo del posoperatorio — «POP-B» (2026-11-01)
+
+- **OCHO commits, y los SIETE de código se hicieron enteros.** `dbdc5bf` (1) · `a7662ba` (2) ·
+  `423eb8a` (3) · `1469c7b` (4) · `7bd3e14` (5) · `5b43c4a` (6) · `a0850ca` (7) · el de cobertura
+  y documentación. Al empezar, `origin/main` = `HEAD` = **`f8ea371`**, el cierre de POP-A, ya
+  publicado, con md5 de `index.html` **`01677156`**.
+  **El push lo corre Maicol: esta tanda tenía orden expresa de NO pushear.**
+
+- **LA PREMISA DEL COMMIT 1 ERA FALSA, Y EL BISECT LO PRUEBA.** El médico reportó que «Integrar al
+  informe» del posoperatorio no integra y que con el mismo estudio en `47ff639` sí. Medido en los
+  **OCHO** árboles —`47ff639` y los siete commits de POP-A—, con el estudio del pedido y con el
+  **click real** de Playwright: los ocho se comportan **idéntico**. Con peso y talla,
+  `suficiente=true`, botón habilitado, integra en los ocho; sin peso ni talla, `false`,
+  deshabilitado, no integra en los ocho. **No hay ninguna regresión de POP-A.**
+  Antes del bisect: **diez variantes** del estudio —el azul con y sin dosis, sólo «Otra», las
+  cuatro válvulas, PiCCO, ECMO venovenoso, la tricúspide con una morfología nativa, los tres
+  drenajes y el round-trip completo de guardar y reabrir por `editarInforme`— integran **todas**;
+  y el botón acepta el click real en 1440, 1000, 768 y 390 px, con el panel de fármacos cerrado y
+  abierto. La única condición que lo bloquea es `popPatron().suficiente`, y con los datos del
+  pedido el motivo es la **superficie corporal**: tres de las cuatro fuentes de índice dividen por
+  `getBSA()`. Esa compuerta existe desde antes de POP-A → **POPB-a**.
+
+- **LO QUE SÍ ERA UN DEFECTO, y es lo que el commit 1 cierra: el botón quedaba MUDO.**
+  `popConclSync` le escribe un `title` con el motivo y `_amiloAvisoPintar(k, false)` hacía
+  `removeAttribute('title')` **a secas** 220 ms después, en el barrido de bloques integrados.
+  Medido: `title` vacío en los ocho árboles. El médico se quedaba con un botón en gris, con el
+  cursor de prohibido y **sin una palabra de por qué**. Hoy el barrido sólo borra el title que él
+  mismo escribió, comparándolo contra `_AM_AVISO_TXT` — sin marca de runtime nueva, así que no hay
+  lista paralela que tocar.
+
+- ⚠️ **EL CONTEO DE FÁRMACOS TAMBIÉN ERA PREEXISTENTE.** Sumaba las once casillas MÁS la
+  asistencia circulatoria, y con la asistencia en su propia tarjeta desde POP-A-1 eso dejó de
+  coincidir con nada que se vea: con noradrenalina, dopamina y balón decía «3 marcados» con dos
+  filas, **y lo decía igual en `47ff639`**. Hoy cuenta
+  `#pop_farm_rows .pop-droga.pop-droga-on`, o sea las filas visibles, que no es una segunda regla:
+  esa clase la pone el bucle de drogas de la misma pasada. Medido en nueve escenas: HEAD falla 5,
+  el árbol nuevo 0.
+
+- **EL PAPEL DESCRIBÍA LA CIRUGÍA CON UNA MORFOLOGÍA NATIVA.** `popCxValvTxt` publicaba `d.value` a
+  secas, así que una tricúspide marcada con «Mixomatosa» en Válvulas salía al informe, al EN SUMA y
+  a la hoja del PDF como «tricúspide — Mixomatosa». Hoy el tipo sale **sólo** si es una prótesis, y
+  si no, «sin tipo consignado». Las opciones del selector se filtran con `_popVEsProt`, que
+  pregunta al `<option>` del dueño si su valor empieza con «Prótesis»: **dos por válvula**, las
+  mismas cuatro veces. TAVI queda afuera por orden expresa y plastia y TEER no existen en ningún
+  dueño → **POPB-c**.
+
+- **LA DISPOSICIÓN: la columna 3 bajó de 1228 a 647 px.** «Pleura y pulmón» salió a una tarjeta de
+  ancho completo debajo de las tres columnas, en dos columnas desde 900 px, y dentro de «Eco y
+  POCUS» la ecocardiografía quedó al lado del ventrículo derecho. La tarjeta pasó de **1115 a
+  534 px**. ⚠️ **Quedan huecos de más de 120 px en algunos casos y NO se inventó otra
+  disposición**, que es lo que la orden manda: con cinco fármacos la columna 2 mide 1107 px —866
+  de ellos la tarjeta de fármacos, cuyas filas crecen una por droga— → **POPB-b**.
+
+- **LOS TRES TEXTOS DEL DIBUJO QUE SE SUPERPONÍAN, MEDIDOS CON `getBBox` CRUZANDO TODOS LOS
+  PARES**: «derrame pleural D moderado · I severo» × «AP 100/50» (61 × 12 px), «Presión arterial»
+  × «aumento diastólico (timing verificado)» (35 × 17) y ése × «PAM 78 mmHg · medida (Swan-Ganz)»
+  (25 × 17). Los dos primeros los había visto el médico; **el tercero no estaba reportado**.
+  Después: **cero superposiciones y cero textos fuera del lienzo en las treinta escenas del
+  arnés**, a 1440 y 1000 px.
+  ⚠️ **Y un desborde que nadie había visto:** la franja de vasoactivos está centrada en x 330 y con
+  los diez fármacos del patrón pasaba de 900 unidades en un dibujo de 600.
+
+- **EL DERRAME PLEURAL SE DIBUJA.** Era una elipse de 44 × 22 px, **la misma** para los tres
+  grados. Hoy es un nivel de líquido recortado con la MISMA ruta que dibuja el pulmón, con el color
+  de líquido del dibujo y sin texto encima: **22 / 44 / 72** unidades de alto para leve, moderado y
+  severo, con la base fija en y 268. «Ausente» y sin cargar no dibujan nada.
+  ⚠️ **EL ANILLO DEL DERRAME PERICÁRDICO NO SIGUE AL TAMAÑO, contra lo que el pedido supone:** su
+  grosor es **8 px con leve, moderado Y severo** y 14 sólo con compromiso hemodinámico. Lo que
+  distingue es el COMPROMISO. Reportado y no tocado → **POPB-d**.
+
+- **CUATRO CAPAS NUEVAS Y LAS CUATRO VÁLVULAS.** El puente aortocoronario, la malla del injerto de
+  aorta y los tres drenajes, cada uno con su dato y sin un solo rótulo en el dibujo —los tres se
+  nombran en «Características del esquema»—. Las dos cirugías se leen de `popCxEstado()`, el dueño
+  único que también publica el papel, **y eso incluye al estudio viejo**: con `pop_cx_tipo` en
+  `cabg` el puente se dibuja, con la misma firma que con la casilla. Con `combinada` no se dibuja
+  ninguna. Y cuatro válvulas operadas con su tipo —mecánica oscura con dos velos, biológica clara
+  con tres soportes, **sin tipo un anillo punteado y sin velos**— latiendo con la **frecuencia
+  cargada**: la aórtica y la pulmonar en sístole y la mitral y la tricúspide en diástole.
+  **Medido muestreando 32 veces en 1,6 s: el hueco va de 0 a 9; sin frecuencia se queda en 0 en
+  las 32; y en 32 muestras pareadas las dos abiertas a la vez son CERO.**
+  ⚠️ **Eso las desacompasa de las cavidades, que respiran con `POP_ESQ_PER_MS`** → **POPB-f**.
+
+- **EL RESTO DEL DIBUJO ES IDÉNTICO, escena por escena:** la firma de los nodos que no son las
+  capas nuevas da el MISMO hash en las 21 escenas del arnés, en el árbol del commit 5 y en el del
+  commit 6. Y sin cirugía declarada, con «valvular» sola y con «combinada», las cinco capas están
+  apagadas y la firma es idéntica a la de un formulario vacío.
+
+- ⚠️ **UN DEFECTO QUE ENCONTRÓ LA RELECTURA DEL PROPIO DIFF, Y ES LA TRAMPA QUE ESTE ARCHIVO
+  DOCUMENTA CUATRO VECES.** La nota ámbar que esta tanda estrena salía con `color: var(--amber)`, y
+  **`--amber` no está en el `:root` de ningún tema**: vive dentro de `.amilo-root` —donde vale
+  `var(--orange)`— y de `#sp-root`. Fuera de esos dos el `var()` no resuelve y `color` cae en su
+  valor **inicial**, que es negro: la nota quedaba invisible en el tema oscuro. Corregido a
+  `var(--orange)`. Censando el archivo quedan **tres** usos globales preexistentes → **POPB-h**.
+
+- **18/18 MUTACIONES DIRIGIDAS MUERTAS**, en worktree y nunca sobre el vivo, con guarda de md5
+  antes y después. **Cuatro de las dieciocho no revierten nada: la aplican de más** —el papel
+  describiendo con una nativa, el derrame dibujado con «ausente», el puente sin cirugía y las
+  válvulas latiendo sin frecuencia—, porque las condiciones que las matan son **controles
+  negativos**. Son más de las catorce que la orden sugiere: cada una mata una condición que ninguna
+  otra mata, y el barrido entró en el tope de tiempo.
+  ⚠️ **UNA SOBREVIVIÓ AL PRIMER BARRIDO Y EL MOTIVO ES UN FRENO QUE TAPA AL QUE SE MUTA.** La 06
+  mutaba sólo el `val` de `popVEstado`, y su único consumidor es el valor del selector, que con la
+  lista **ya filtrada** no puede tomar una morfología nativa: poner un valor que no es ninguna de
+  sus opciones deja el `<select>` en cadena vacía. O sea que el filtro de opciones la protege por
+  el otro lado. Reescrita para mutar el **predicado**, que es la mitad que la etiqueta «de
+  Válvulas» y el papel leen: **5 condiciones en rojo**.
+
+- ⚠️ **DOS TRAMPAS DE INSTRUMENTACIÓN NUEVAS, Y LAS DOS COSTARON UNA MEDICIÓN.**
+  (1) **`getBBox()` sobre un `<g>` devuelve coordenadas LOCALES**, o sea antes de su `transform`:
+  las cuatro válvulas daban la MISMA caja `[-11,-5,22,10]` y el cruce entre ellas reportaba **seis
+  superposiciones que no existen**. La caja que sirve es `getBoundingClientRect()`.
+  (2) **El bucle del dibujo se apaga cuando el dibujo no se ve** —lo apaga su
+  `IntersectionObserver`— y en una ventana de 1000 px de alto el esquema cae en y 2000: sin
+  `scrollIntoView` el hueco de los velos se lee **siempre en 0**, que es el cuadro único de la fase
+  0 y se parece a «no late».
+  Y una tercera, de método: **`--solo` toma una lista separada por COMAS, no repetida.** Con
+  `--solo A --solo B` corre **sólo el último**, y el arnés de lotes imprimió «1/1 ✓ sin
+  regresiones» cuatro veces sobre lotes de 55 casos.
+
+- ⚠️ **EL ACENTO GRAVE DENTRO DE MIS PROPIOS COMENTARIOS COSTÓ TRES CORRIDAS, Y ES LA UNDÉCIMA
+  TANDA SEGUIDA QUE LO PAGA.** Siempre igual: un identificador entre acentos graves dentro del
+  comentario de un caso o de una sonda, y los dos cuerpos son template literals. **`node --check`
+  las cazó todas**; `check_backticks.py` ninguna. Y una barra simple en un literal de expresión
+  regular dentro de un template, que se cerró **no usando ninguna expresión regular**.
+
+- **SEIS CASOS VIEJOS ADAPTADOS, cada uno con el motivo escrito**: **TC-534 (B11)** —el rótulo del
+  derrame pleural salió del dibujo, y la condición se reescribió para exigir que el derrame se
+  siga dibujando, que no haya rótulo encima y que el grado esté en el texto—, **TC-548 (A1)(A2)**
+  y **(A6)** —ésta **invertida**: el contador cuenta las filas y la asistencia ya no suma—,
+  **TC-577 (A2)(B1)** —nueve tarjetas → diez— y **TC-580 (D1)**, **invertida**, porque el selector
+  ya no clona la lista entera del dueño; lo que conserva es la pregunta «¿las opciones salen del
+  dueño?».
+  ⚠️ **LOS SEIS LOS DESTAPÓ LA CORRIDA COMPLETA, NO EL CENSO**, y es el modo de falla que este
+  archivo ya documenta nueve veces.
+
+- **A/B contra HEAD, 115 escenas, 127.059 claves y 50.715 celdas de Excel: DOS diferencias de
+  superficie firmada, las dos en `pbVNativa`** —la única escena con una morfología nativa sobre una
+  válvula marcada—, y las dos son el mismo hecho: «tricúspide **- Mixomatosa**» → «tricúspide
+  **- sin tipo consignado**», en el bloque integrado y en las **seis** plantillas del PDF. Las
+  otras **114 escenas dan cero**, `vacio` y `ajeno` incluidas. **Excel 441 → 441** con las mismas
+  claves y **campos guardados 965 → 965**, sin una sola escena que difiera. Las 145 de pantalla son
+  el control positivo: el orden de las tarjetas (115), la fila «Cirugía y drenajes» (20) y el
+  contador de fármacos (9).
+  ⚠️ **El cero de los commits 5, 6 y 7 en ese arnés es un CONTROL NEGATIVO y se declara:** no mide
+  la geometría del SVG. Lo que prueba es que el papel y el Excel no se movieron. La medición del
+  dibujo es `scripts/_probe_popb_esq.mjs`, con sus treinta escenas y sus cajas.
+
+- **CHROME Y WEBKIT COINCIDEN EN LOS DIECISÉIS CRUCES** (dos motores × 1440, 1000, 768 y 390 px ×
+  dos temas), **valor por valor en las 37 claves**: cero desplazamiento horizontal del cuerpo, cero
+  textos recortados, **cero errores de consola y de página en los dos motores**, la tarjeta de
+  pleura y pulmón a ancho completo en los dieciséis, el par eco/VD en dos columnas a 1440 y 1000 y
+  en una a 768 y 390, las cinco capas encendidas, las tres válvulas con su tipo, el nivel pleural en
+  44 y 72, **cero superposiciones de texto del SVG y cero textos fuera del lienzo**.
+  ⚠️ **WebKit de Playwright no es Safari, y se declara.** Chrome va por el del sistema con
+  `channel: 'chrome'`. El único error de consola del árbol de HEAD es del arnés —se carga desde una
+  copia en el temporal y ahí un recurso relativo no resuelve—, que es lo que la tanda D2 ya
+  documenta.
+
+- **Semgrep 124 WARNING / 0 ERROR**, la línea base, sin un aviso nuevo. El diff de `index.html` son
+  **493 líneas agregadas y 104 quitadas**, con **cero** `innerHTML`, `eval` o `new Function` nuevos
+  y cero claves ni contraseñas. **Sin huérfanos nuevos.** 17 bloques de JS inline parsean.
+  **Celular: 59 hallazgos a 360 px y 68 a 390, con 17 ALTA en cada ancho** — idénticos a HEAD,
+  medidos en un worktree con el mismo script. **No empeoró.**
+
+- ⚠️ **EL PENDRIVE `DISK_IMG` SE DESMONTÓ A MITAD DE LA TANDA Y VOLVIÓ.** Estaba montado al abrir y
+  al sellar; se desmontó —`diskutil list external` no devolvía nada, o sea el disco desconectado— y
+  para la corrida final estaba de vuelta, verificado al abrir, **entre los once lotes** y al
+  cerrar. La corrida que vale es la última.
+
+- **Línea base al cierre: suite 595/600**, en once lotes **cubriendo los 600 casos distintos**
+  —contados nombre por nombre, no por la suma de los lotes—, en UNA sola pasada sobre el árbol
+  sellado, con el pendrive `DISK_IMG` **verificado al abrir, ENTRE LOS ONCE LOTES y al cerrar** y
+  el md5 de `index.html` **idéntico** antes y después (`b6e61443`). Los rojos son **TC-223,
+  TC-376, TC-390 y TC-406**, los cuatro de siempre, más **TC-557**, el intermitente que la orden
+  anticipa: **corrido aislado sale VERDE**, verificado, con la firma `00000 44x44` de
+  `elementFromPoint` fuera del viewport que `TGA-h` ya declara. **Ningún rojo nuevo.**
+  **TC-358, TC-182 y TC-551 salieron VERDES.**
+  ⚠️ **Y LA PRIMERA CORRIDA COMPLETA DIO 591/600 CON CUATRO ROJOS MÁS, LOS CUATRO MÍOS** —TC-534,
+  TC-548, TC-577 y TC-580—, y por eso esa cifra no es la línea base. Los cuatro están adaptados y
+  la de arriba sale de la corrida **limpia**, de una sola pasada sobre el árbol sellado y con el
+  archivo de tests final.
+
+- **`index.html` pasó de 10,64 MB / 149.427 líneas a 10,67 MB / 149.822** — medido con `wc -c` y
+  `wc -l` DESPUÉS de sellar. (MB de 10⁶.) Sello **`v20261101-0834`**, md5 **`b6e61443`**.
+
+- **Dónde está todo:** `docs/mapa/popb-dibujo-posoperatorio.md` (**mapa NUEVO**, 15,1 KB), las
+  fichas de los cuatro casos en `docs/mapa/tests-fichas-582.md` (**archivo propio**, porque
+  `tests-fichas.md` está en 34,2 KB), **dos mapas con un puntero cada uno** —medidos ANTES de
+  escribir: `pa-pantalla-posoperatorio.md` 24,0 → 25,5 KB y `tests-punteros-tandas.md` 18,9 →
+  20,2—, `docs/fuentes/FUENTES.md` → «La tanda POP-B» con su tabla «Cambios de evidencia» **vacía a
+  propósito** y los cuatro censos con su control positivo, `docs/REGISTRO_TANDAS.md` → el bloque de
+  esta tanda, y `docs/PENDIENTES.md` → **OCHO** cosas declaradas (**POPB-a** a **POPB-h**).
+  ⚠️ **`congenitas-otros.md` (34,5 KB) no se tocó**, y `valvulas.md` (33,9) tampoco.

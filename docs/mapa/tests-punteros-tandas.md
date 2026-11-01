@@ -347,3 +347,20 @@ del PPT con su Evidencia.
 Las fichas, los nueve bloques adaptados de TC-558, TC-563 y TC-567, y las **dieciocho** mutaciones
 —con las cuatro que sobrevivieron al primer barrido y por qué— están en
 **`docs/mapa/tests-fichas-568.md`**.
+
+## Tanda POP-B (2026-11-01) — TC-582 a TC-585
+
+Las fichas están en **`docs/mapa/tests-fichas-582.md`** (archivo propio: `tests-fichas.md` está en
+34,2 KB).
+
+| caso | qué fija |
+|---|---|
+| **TC-582** | el botón «Integrar al informe» conserva el `title` que dice por qué no puede —después del barrido de 220 ms—, integra con el estudio completo, y el contador de fármacos coincide con las filas visibles |
+| **TC-583** | el tipo de una válvula operada son sólo prótesis; con una nativa queda en «elegir tipo», la avisa y no toca Válvulas; el papel no describe la cirugía con una morfología nativa |
+| **TC-584** | «Pleura y pulmón» a ancho completo fuera de las tres columnas y en dos columnas desde 900 px; el eco y el VD al lado; ningún id movido |
+| **TC-585** | el dibujo: cero superposiciones y cero textos fuera del lienzo, el derrame pleural como nivel que sube con el grado, el puente, la malla, los drenajes y las cuatro válvulas con su tipo y su latido |
+
+⚠️ **Los cuatro corren a 756 px**, que es el ancho del suite: lo que vive por encima de 900 px se
+fija por la **regla** de la hoja de estilos y por la **estructura**, no por geometría.
+⚠️ **TC-585 trae el dibujo a la vista antes de muestrear el latido**: el bucle se apaga cuando el
+dibujo no se ve, y sin eso el hueco de los velos se lee siempre en 0.

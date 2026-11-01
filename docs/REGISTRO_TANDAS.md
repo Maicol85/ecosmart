@@ -281,3 +281,39 @@ firma del SVG idéntica, `viewBox` idéntico. Eso es la tanda POP-B.
 **Dieciocho campos guardados nuevos**, todos de la lista autorizada, y **Excel 441 → 441**.
 
 **Pendiente.** Ver el bloque de esta tanda en `docs/PENDIENTES.md` → **PA-a** a **PA-i**.
+
+---
+
+## POP-B — arreglos de POP-A y la primera mitad del dibujo del posoperatorio (2026-11-01)
+
+- `dbdc5bf` POP-B-1: el boton «Integrar al informe» del posoperatorio ya dice por que no puede
+- `a7662ba` POP-B-2: el tipo de una valvula operada son SOLO las protesis, y el papel no dice una nativa
+- `423eb8a` POP-B-3: el conteo de farmacos cuenta las filas, no las casillas mas la asistencia
+- `1469c7b` POP-B-4: Pleura y pulmon a ancho completo, y el eco con el VD al lado
+- `7bd3e14` POP-B-5: el inventario del dibujo, los textos sin superponerse y el derrame pleural dibujado
+- `5b43c4a` POP-B-6: el puente, la malla de la aorta y los tres drenajes
+- `a0850ca` POP-B-7: las cuatro valvulas operadas con su tipo y su latido
+- POP-B-8: cobertura, documentacion, el sello y lo que quedo PARADO
+
+**Qué cambió.** El botón «Integrar al informe» del posoperatorio **conserva el `title` que dice
+por qué no puede integrar** —`_amiloAvisoPintar` se lo borraba 220 ms después, en los ocho árboles
+medidos—. El tipo de una válvula operada ofrece **sólo las prótesis** que su dueño tiene, con una
+morfología nativa queda en «elegir tipo» y lo **avisa** nombrándola, y el **papel ya no describe
+la cirugía con una morfología nativa**. El contador de fármacos cuenta **las filas** y no las
+casillas más la asistencia. «Pleura y pulmón» salió a una tarjeta de **ancho completo** debajo de
+las tres columnas y la ecocardiografía quedó al lado del ventrículo derecho: la columna más alta
+bajó de **1228 a 647 px**.
+
+**Y el dibujo ganó cuatro capas.** El derrame pleural pasó de una elipse igual para los tres
+grados a un **nivel de líquido** que sube con el grado, recortado con la misma ruta que dibuja el
+pulmón. Entraron el **puente aortocoronario**, la **malla del injerto de aorta**, los **tres
+drenajes** y las **cuatro válvulas operadas** con su tipo —mecánica, biológica o anillo punteado
+sin tipo— latiendo con la **frecuencia cargada**, la aórtica y la pulmonar en sístole y la mitral
+y la tricúspide en diástole. Y los **tres textos que se superponían** dejaron de hacerlo: cero
+superposiciones y cero textos fuera del lienzo en treinta escenas.
+
+**Ningún campo guardado nuevo, ningún id cambiado y Excel en 441 columnas.** El papel sólo se
+mueve donde la orden lo autoriza: una válvula operada con morfología nativa pasa de
+«tricúspide — Mixomatosa» a «tricúspide — sin tipo consignado».
+
+**Pendiente.** Ver el bloque de esta tanda en `docs/PENDIENTES.md` → **POPB-a** a **POPB-g**.

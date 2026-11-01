@@ -8803,3 +8803,68 @@ que Válvulas agregue una etiología.
 
 **Los dos dueños de pleura y pulmón, censados opción por opción**, están en `PENDIENTES.md`
 **PA-e** y en `docs/mapa/pa-pantalla-posoperatorio.md` § 6.
+
+---
+
+## La tanda POP-B — el dibujo del posoperatorio y los arreglos de POP-A (2026-11-01)
+
+### Tabla «Cambios de evidencia» — VACÍA A PROPÓSITO
+
+**Esta tanda no agregó, retiró ni movió una sola cita, un solo corte clínico, un solo umbral ni un
+solo rótulo de grado.** Lo que hizo es pantalla y dibujo, más dos arreglos de texto que no afirman
+nada clínico. Se declara para que la próxima tanda no busque un cambio que no existe.
+
+Lo único que podría leerse como un corte es `POP_ESQ_FC_MIN` / `POP_ESQ_FC_MAX` (20 a 240 por
+minuto), y **no lo es**: es una **banda de plausibilidad** —rechaza lo que no puede ser una
+medición, igual que `POP_IC_PLAUSIBLE_MIN`— y no gradúa nada. Va **sin cita**, que es la regla de
+la casa para una banda de lo medible. Su único efecto es que el símbolo de una válvula no lata a
+siete minutos por ciclo ni a sesenta milisegundos.
+
+Lo mismo vale para `POP_ESQ_PLEURA_H` (22 / 44 / 72 unidades del `viewBox`) y para
+`POP_ESQ_PLEURA_BASE` (268): son **geometría ilustrativa**, como el tamaño de las cavidades. No
+hay ninguna fuente que convierta «moderado» en milímetros de pulmón, y lo único que esos números
+afirman es el **orden** —leve < moderado < severo—, que es el dato que el médico cargó. El rótulo
+de abajo del dibujo ya lo dice con todas las letras desde la G2.
+
+### Notas de trabajo — los censos de esta tanda, con su control positivo
+
+**1 · Las opciones de prótesis de cada válvula**, leídas del `<select>` dueño en el navegador y no
+de memoria:
+
+| dueño | prótesis | control positivo: nativas que el filtro deja afuera |
+|---|---|---|
+| `va_morf` | Prótesis biológica (SAVR) · Prótesis mecánica (SAVR) | Trivalva normal, Bicúspide, Calcificada, Reumática, **TAVI**, Endocarditis, Carcinoide |
+| `vm_morf` | Prótesis biológica · Prótesis mecánica | Normal, Mixomatosa / Barlow, Calcificada, Reumática, Prolapso / EVMS, Endocarditis, Isquémica |
+| `vt_morf` | Prótesis biológica · Prótesis mecánica | Normal, Mixomatosa, Reumática, Carcinoide, Endocarditis, Funcional / dilatación VD |
+| `vp_morf` | Prótesis biológica · Prótesis mecánica | Normal, Displásica (congénita), Reumática, Carcinoide, No especificada |
+
+El control positivo importa: sin él, «el selector no ofrece nativas» pasaría también si el dueño
+no tuviera ninguna. Está fijado como condición **(B4)** de TC-583.
+
+**2 · El dibujo del posoperatorio NO entra al PDF.** Censado `PDF_DIAG_REG`: siete entradas
+—`contr`, `lv3d`, `eteqx`, `tavi`, `vab`, `oai`, `cia`, `tga3d`— y ninguna es `pop`. → **POPB-e**.
+
+**3 · El grosor del anillo del derrame pericárdico, medido grado por grado** con
+`dptTamano().clave` confirmando cada escena: **8 px** con leve, **8** con moderado y **8** con
+severo; **14** sólo con compromiso hemodinámico. La premisa del pedido —«su grosor ya sigue el
+tamaño»— es **falsa**, reportada y no tocada → **POPB-d**.
+
+**4 · Las tres superposiciones de texto del dibujo**, medidas con `getBBox` cruzando todos los
+pares en la escena completa a 1440 px, en el árbol de POP-A:
+
+| uno | otro | solape |
+|---|---|---|
+| «derrame pleural D moderado · I severo» | «AP 100/50» | 61 × 12 px |
+| «Presión arterial» | «aumento diastólico (timing verificado)» | 35 × 17 px |
+| «aumento diastólico (timing verificado)» | «PAM 78 mmHg · medida (Swan-Ganz)» | 25 × 17 px |
+
+Las dos primeras las había visto el médico; la tercera no estaba reportada. Después de la tanda:
+**cero** superposiciones y **cero** textos fuera del lienzo en las treinta escenas del arnés.
+
+**5 · El bisect de «Integrar al informe»** —los ocho árboles, las dos escenas, con click real— está
+en `PENDIENTES.md` → **POPB-a** y en el mensaje del commit `POP-B-1`.
+
+**Lo que NO se escribió en pantalla**: ninguna frase clínica nueva. Los textos que esta tanda
+agrega son tres —el aviso de reemplazo de morfología, la fila «Cirugía y drenajes» de las
+características del esquema y el `title` del botón— y los tres describen lo que el médico cargó o
+lo que la app va a hacer, sin nombrar una guía, una clase ni un folio.

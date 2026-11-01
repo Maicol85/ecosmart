@@ -11455,3 +11455,147 @@ documenta una y otra vez.
 las tres copias consulten, con las once entradas. Es el mismo arreglo que **PA-g** pide para la
 diapositiva del PPT del paciente, y conviene hacerlos juntos: los dos publican una clave donde
 debería ir un nombre, y los dos son papel.
+
+---
+
+## Tanda POP-B · el dibujo del posoperatorio y los arreglos de POP-A (2026-11-01) — DECLARADO y NO arreglado
+
+## POPB-a · «Integrar al informe» necesita la superficie corporal, y eso NO es una regresión
+
+El médico reportó que el botón no integra y que con el mismo estudio en `47ff639` sí. **Medido en
+los OCHO árboles** —`47ff639` y los siete commits de POP-A—, con el estudio del pedido y con click
+real de Playwright: los ocho se comportan **idéntico**.
+
+| | con peso y talla | sin peso ni talla |
+|---|---|---|
+| `popPatron().suficiente` | `true` en los ocho | `false` en los ocho |
+| `#pop_integrar` | habilitado en los ocho | deshabilitado en los ocho |
+| integra al clickear | sí en los ocho | no en los ocho |
+
+Y antes del bisect: **diez variantes** del estudio (el azul con y sin dosis, sólo «Otra», las
+cuatro válvulas, PiCCO, ECMO venovenoso, la tricúspide con una morfología nativa, los tres
+drenajes y el round-trip completo de guardar y reabrir por `editarInforme`) integran **todas** en
+el árbol de POP-A; y el botón acepta el click real en 1440, 1000, 768 y 390 px, con el panel de
+fármacos cerrado y abierto.
+
+**La única condición que lo bloquea** es `popPatron().suficiente`, o sea `!!icB || tapo`. Con los
+datos que el pedido lista —Swan con GC 4 y sin peso ni talla— el motivo es la **superficie
+corporal**: tres de las cuatro fuentes de índice dividen por `getBSA()` y sólo el índice directo
+del PiCCO no la necesita. Esa compuerta y el atributo `disabled` del botón **existen desde antes
+de POP-A**, verificado en `47ff639` línea por línea.
+
+**Lo que falta decidir, y es clínico:** si una hoja «PostCEC» puede integrarse **sin índice
+cardíaco**, describiendo lo medido sin clasificar. Hoy no puede, y el motivo del bloqueo está
+escrito en la conclusión («Falta: falta el PESO y la TALLA…») y, desde POP-B-1, también en el
+`title` del botón.
+
+## POPB-b · La disposición deja huecos de más de 120 px, y por eso NO se inventó otra
+
+La propuesta del médico se aplicó y bajó la columna más alta de **1228 a 647 px** a 1440 px. Pero
+el pedido pone una condición: «si alguna columna queda con más de 120 px de hueco en algún caso,
+PARÁ, reportá la tabla y NO inventes otra disposición». Quedan:
+
+| caso | hueco 1 | hueco 2 | hueco 3 |
+|---|---|---|---|
+| sin monitoreo, 1440 px | **291** | **148** | 0 |
+| con Swan, 1440 px | 0 | **248** | 41 |
+| con PiCCO, 1440 px | 77 | **148** | 0 |
+| 2 fármacos, 1440 px | 14 | 0 | 55 |
+| 5 fármacos, 1440 px | **419** | 0 | **460** |
+| 5 fármacos, 1000 px | **419** | 0 | **501** |
+
+**Lo que desequilibra es el alto VARIABLE del panel de fármacos**: sus filas crecen una por droga
+y con cinco mide 866 px de los 1107 de su columna. Ninguna reubicación de tarjetas lo cierra.
+
+**Lo que haría falta**, y es decisión de maqueta: o las filas de fármacos pasan a dos columnas
+dentro de su tarjeta, o la tarjeta gana scroll propio con un alto máximo, o las tres columnas
+dejan de ser independientes y se reparten las tarjetas por alto. Las tres cambian la pantalla que
+POP-A acaba de aprobar.
+
+## POPB-c · Plastia, TEER y TAVI no entran en el tipo de una válvula operada
+
+Censado dueño por dueño: **no hay plastia ni TEER en ninguno de los cuatro**, y **TAVI sólo en la
+aórtica**, donde ya existía antes de esta tanda. El pedido lo dice con todas las letras: «NO
+agregues plastia, TEER ni TAVI: es otra tanda».
+
+El filtro `_popVEsProt` pregunta si el valor del `<option>` empieza con «Prótesis», así que TAVI
+queda afuera sin nombrarla. **Lo que falta** es la tanda de Válvulas que decida si una válvula
+operada puede ser una plastia o un TEER, y con qué vocabulario.
+
+⚠️ **Y el precio del filtro, declarado:** si alguna vez Válvulas agrega una prótesis cuyo rótulo
+**no** empiece con esa palabra, el selector del posoperatorio la deja afuera sin avisar. Es el
+precio de no mantener dos listas; la alternativa —transcribirlas— es la que se desincroniza.
+
+## POPB-d · El anillo del derrame pericárdico NO sigue al tamaño, contra lo que el pedido supone
+
+El pedido dice «El derrame pericárdico conserva su anillo actual (su grosor ya sigue el tamaño:
+verificalo)». **Verificado, y no lo sigue:** `_popEsqGeo` escribe
+`o.eff = d.hayDerrame ? (d.compresion ? 14 : 8) : 0`, así que el grosor es **8 px con derrame
+leve, moderado Y severo** —las tres medidas, con `dptTamano().clave` confirmando cada una— y
+**14 px** sólo cuando hay compromiso hemodinámico. Lo que el anillo distingue es el **compromiso**,
+no el tamaño.
+
+No se tocó, porque el pedido dice «conserva su anillo actual». **Lo que falta decidir:** si el
+grosor debe seguir a `dptTamano().clave` —y entonces qué hace con el compromiso, que hoy es lo que
+lo engrosa— o si el tamaño debe leerse de otra forma en el dibujo.
+
+## POPB-e · El dibujo del posoperatorio sigue sin entrar al PDF
+
+`PDF_DIAG_REG` tiene siete entradas —`contr`, `lv3d`, `eteqx`, `tavi`, `vab`, `oai`, `cia`,
+`tga3d`— y **ninguna es `pop`**. El esquema del posoperatorio no llega a ninguna hoja del PDF.
+
+El pedido lo pone en la lista de POP-C («paso del dibujo al PDF») y por eso esta tanda sólo lo
+**reporta**. Lo que haría falta es una fila en ese registro y su recolector, como hizo TGA-2 con
+el esquema 3D de la transposición; el motor de tercios no se toca.
+
+## POPB-f · Las válvulas laten con la frecuencia del paciente y las cavidades no
+
+`popEsqFrame` mueve las cuatro cavidades con `POP_ESQ_PER_MS`, que son 1700 ms —unos 35 por
+minuto— y cuyo propio comentario declara que **no** es la frecuencia cardíaca del paciente: es «la
+velocidad a la que el esquema se ve bien». El pedido de POP-B-7b dice que el símbolo de una
+válvula operada se abre y se cierra «con la FRECUENCIA CARDÍACA CARGADA», y así quedó: un ciclo
+por `60000 / fc` ms.
+
+**Resultado: con una frecuencia de 80 por minuto las válvulas laten a 750 ms y las cavidades a
+1700**, o sea que una válvula abre dos veces por cada contracción dibujada. Medido.
+
+Igualarlas es cambiar el latido de las cavidades, que esta orden no autoriza. **Lo que falta
+decidir:** o las cavidades pasan a la frecuencia cargada —y entonces el dibujo late a 140 por
+minuto cuando el paciente está a 140, que es lo que el comentario de la G2 evitó a propósito—, o
+las válvulas vuelven al período del dibujo y dejan de decir la frecuencia.
+
+## POPB-g · El conteo de fármacos no nombra la asistencia en ninguna parte del panel
+
+El contador pasó a contar **las filas**, así que la asistencia circulatoria ya no suma. Eso es lo
+que el pedido pide y lo que el rótulo dice, pero deja un hueco chico: el médico que cierra el
+panel de fármacos no tiene en esa línea ninguna señal de que hay un balón o un ECMO en curso. La
+asistencia **sí** se ve en su propia tarjeta, en la columna 3, con su selector y su detalle.
+
+**Lo que falta decidir:** si la tarjeta «Asistencia circulatoria» merece su propio contador en el
+encabezado, con su propio rótulo. Agregarlo al de fármacos es lo que esta tanda vino a sacar.
+
+## POPB-h · Tres usos GLOBALES de `var(--amber)` que no resuelven, encontrados en passing
+
+Esta tanda estrenó una nota ámbar (`.pop-vnota`) con `color: var(--amber)` y el defecto se cazó
+releyendo el propio diff: **`--amber` está definida dentro de `.amilo-root` —donde vale
+`var(--orange)`— y de `#sp-root`, pero NO en el `:root` de ningún tema.** Fuera de esos dos
+contenedores el `var()` no resuelve y `color` cae en su valor **inicial**, que es negro: la nota
+quedaba invisible en el tema oscuro. Corregido a `var(--orange)` antes de cerrar.
+
+**Censando el archivo quedan TRES usos fuera de esos dos contenedores, y son preexistentes:**
+
+| línea del CSS global | regla | qué publica |
+|---|---|---|
+| `.am-stale` (dos líneas) | `background:var(--amber-pale); color:var(--amber); border-left:3px solid var(--amber)` | el aviso «los datos cambiaron desde la edición» de un bloque integrado |
+| `.btn-integrar.revisar` | `box-shadow:0 0 0 2px var(--amber)` | el anillo ámbar del botón de ese mismo aviso |
+
+El `#am-stale-<k>` vive dentro de `#am-wrap-<k>`, que **sí** está dentro de `.amilo-root`, así que
+ése probablemente resuelve; **el `box-shadow` del botón no**, porque el botón vive en la pestaña
+del módulo y no en la tarjeta. No se midió, y no se tocó: arreglarlo cambia el aspecto de un aviso
+que el médico ya conoce.
+
+**Lo que falta**, y es una decisión de una línea: o `--amber` se declara en el `:root` de los dos
+temas como alias de `--orange` —que es lo que `.amilo-root` ya hace—, o los tres usos globales
+pasan a `var(--orange)`. La primera cierra la clase entera de defecto; la segunda no vuelve a
+abrirla el día que alguien escriba un cuarto uso. Este archivo ya documenta la misma trampa
+**cuatro veces** con `--red-pale` y compañía.

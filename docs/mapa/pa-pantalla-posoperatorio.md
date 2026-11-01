@@ -408,3 +408,26 @@ TC-577.
 - `document.body.innerText` **no ve** el texto de un nodo oculto, así que el control negativo de
   un rótulo de otra pestaña daba «SE FUE» sobre un rótulo que sigue ahí. Hay que preguntar por
   `textContent`.
+
+---
+
+## Lo que la tanda POP-B movió de esta pantalla (2026-11-01)
+
+**Puntero.** El mapa de POP-B es `docs/mapa/popb-dibujo-posoperatorio.md`. Lo que de esta pantalla
+dejó de ser cierto:
+
+- **La tarjeta «Eco y POCUS» ya no lleva pleura ni pulmón.** Los seis selectores y sus dos cápsulas
+  se mudaron a **`pop-pleupul`**, una tarjeta de ancho completo debajo de las tres columnas, en dos
+  columnas desde 900 px. Ningún id cambió. La tarjeta pasó de **1115 a 534 px** y la columna 3 de
+  **1228 a 647**.
+- **Dentro de «Eco y POCUS», la ecocardiografía y el ventrículo derecho van uno al lado del otro**
+  (`.pop-eco-par`, dos columnas desde 900 px), con el pericardio debajo a ancho de tarjeta.
+- **El contador del desplegable de fármacos ya no suma la asistencia circulatoria**: cuenta
+  `#pop_farm_rows .pop-droga.pop-droga-on`, o sea las filas visibles. Con noradrenalina, dopamina y
+  balón decía «3 marcados» con dos filas, y lo decía igual en `47ff639`.
+- **Los cuatro selectores de tipo de válvula operada ofrecen sólo las prótesis de su dueño**, no su
+  lista entera: con una morfología nativa quedan en «— elegir tipo —» y una línea ámbar la nombra.
+  Y **`popCxValvTxt` ya no publica una morfología nativa en el papel**.
+- **El esquema ganó cuatro capas** —el nivel de líquido pleural, el puente, la malla y los tres
+  drenajes— y **las cuatro válvulas operadas**, y sus rótulos bajaron de tamaño: ver el mapa de
+  POP-B § 5.
