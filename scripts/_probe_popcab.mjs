@@ -592,6 +592,20 @@ const ESCENAS = {
   pcSinIcInt:{ campos: { pop_sw_gc:'4', pop_sw_pam:'62', pop_sw_pad:'10', pop_cx_horas:'6' },
               sel: { pop_monitor:'swan', pop_cx_tipo:'cabg' }, integrar: ['pop'] },
   pcNada:   { campos: {}, sel: { pop_monitor:'swan' } },
+  /* ⚠️ EL BORDE DE 2,2 EXACTO SOLO LO ALCANZA EL PiCCO, y sin esta escena el cero del A/B del
+     commit 3 en superficie firmada seria un control negativo: las otras dividen un gasto por la
+     superficie corporal y nunca caen justo. Integradas, para que el papel exista. */
+  pcPic220I:{ campos: { peso:'70', talla:'170', pop_picco_ic:'2.20', pop_picco_gc:'4',
+                        pop_cx_horas:'6' },
+              sel: { pop_monitor:'picco', pop_cx_tipo:'cabg' }, integrar: ['pop'] },
+  pcPic219I:{ campos: { peso:'70', talla:'170', pop_picco_ic:'2.19', pop_picco_gc:'4',
+                        pop_cx_horas:'6' },
+              sel: { pop_monitor:'picco', pop_cx_tipo:'cabg' }, integrar: ['pop'] },
+  pcPeriInt:{ campos: { pop_cx_horas:'6', vci_diam:'24', peso:'70', talla:'170',
+                        pop_sw_gc:'4.5', pop_sw_pam:'78', pop_sw_pad:'10', pop_sw_pcp:'14' },
+              sel: { pop_monitor:'swan', pop_cx_tipo:'cabg',
+                     pericardio:'Derrame severo (>20mm)', dpt_col_vd:'si', vci_col:'<50' },
+              integrar: ['pop'] },
   ajeno:   { campos: { im_vc: '8', ea_dtsvi: '20', itv_tsvi: '20', itv_ao: '100', vmax_ao: '4.5',
                        onda_e: '110', e_sep: '5', e_lat: '6', ai_vol: '70', peso: '80', talla: '180' } }
 };

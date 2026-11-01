@@ -46143,13 +46143,30 @@ const VINFO = Object.freeze({
           + 'arterial lactate (>2 mmol/L)». · Consenso de Shock Cardiogénico, Sociedad Argentina '
           + 'de Cardiología. Rev Argent Cardiol 2024;92 Supl. 3, hoja 15, folio 7: «Valores de AL '
           + '> 2 mEq/L son indicadores de hipoxia celular». El corte de congestión y los del '
-          + 'ventrículo derecho son los que esta app ya aplica en esta misma pestaña.',
+          + 'ventrículo derecho son los que esta app ya aplica en esta misma pestaña. · El corte '
+          + 'de bajo gasto, la salvedad de las presiones de llenado y el papel del '
+          + 'ecocardiograma transesofágico ante sospecha de taponamiento — el mismo Consenso de '
+          + 'Shock Cardiogénico de la Sociedad Argentina de Cardiología, sección 6.14 «Síndrome '
+          + 'de bajo gasto posoperatorio», hojas 91 a 93, folios 83 a 85.',
     ojo: 'Esta aplicación NO asigna etapas SCAI del shock ni emite la etiqueta «shock '
        + 'cardiogénico» como una conclusión calculada: muestra señales sueltas con su valor y la '
        + 'decisión es del médico. El segundo documento usa ese mismo corte de lactato para '
-       + 'definir el estadio C de esa clasificación, que es justo lo que acá no se publica. El '
-       + 'piso de la banda de precarga, 12 mmHg, es criterio de esta aplicación y no sale de '
-       + 'ninguna de las dos fuentes.'
+       + 'definir el estadio C de esa clasificación, que es justo lo que acá no se publica.\n'
+       + 'La presión capilar se muestra con su valor y sin una banda que la declare adecuada: '
+       + 'el consenso argentino señala que las variables hemodinámicas estáticas, como la '
+       + 'presión venosa central y la de enclavamiento, son de poca utilidad como único '
+       + 'elemento para estimar la precarga óptima, y que se prefieren las dinámicas, como la '
+       + 'variación de la presión de pulso y la del volumen sistólico; el nivel óptimo varía de '
+       + 'un paciente a otro (hoja 92, folio 84). La banda de 12 a 18 mmHg que esta pantalla '
+       + 'publicaba era criterio propio y ninguna de las fuentes de este módulo la respalda: '
+       + 'por eso se retiró.\n'
+       + 'El corte de bajo gasto de esta pestaña es estricto —por debajo de 2,2 L/min/m²—, que '
+       + 'es como lo escribe el consenso argentino en su sección de bajo gasto posoperatorio '
+       + '(hoja 91, folio 83). La cápsula «Perfil hemodinámico» y el diagrama de Forrester, que '
+       + 'son de otra pestaña, cuentan el 2,2 exacto como bajo.\n'
+       + 'Ante la sospecha de taponamiento posoperatorio, ese consenso ubica al ecocardiograma '
+       + 'transesofágico como el estudio de elección, con su recomendación de clase I y nivel '
+       + 'de evidencia B (hoja 93, folio 85).',
   },
   'pop-vaso': {
     tit: 'Vasoplejia tras circulación extracorpórea — definición propuesta',
@@ -62256,7 +62273,7 @@ function popHemoSync() {
   const gcEco = _hemoGCEco(d, it, fce);
   set('pop-eco-gc', gcEco !== null ? gcEco.toFixed(2) + ' L/min' : '—');
   const icEco = (gcEco !== null && asc) ? gcEco / asc : null;
-  const bE = _icBanda(icEco);
+  const bE = _popIcBanda(icEco);          /* POP-C-3a: corte estricto del posoperatorio */
   setH('pop-eco-ic', bE ? icEco.toFixed(2) + ' L/min/m² ' + badge(bE.cls, bE.txt)
        : (gcEco !== null ? '— (requiere peso y talla)' : '—'));
 
@@ -62265,7 +62282,7 @@ function popHemoSync() {
   const paps = v('pop_sw_paps'), papd = v('pop_sw_papd'), pcp = v('pop_sw_pcp');
   let icS = null;
   if (gcS !== null && gcS > 0 && asc) { icS = gcS / asc;
-    const b = _icBanda(icS); setH('pop-sw-ic', icS.toFixed(2) + ' L/min/m² ' + badge(b.cls, b.txt)); }
+    const b = _popIcBanda(icS); setH('pop-sw-ic', icS.toFixed(2) + ' L/min/m² ' + badge(b.cls, b.txt)); }
   else setH('pop-sw-ic', gcS !== null ? '— (requiere peso y talla)' : '—');
   if (gcS !== null && gcS > 0 && pam !== null && pad !== null) {
     const rvs = (pam - pad) / gcS * 80; const b = _rvsBanda(rvs);
@@ -62304,7 +62321,7 @@ function popHemoSync() {
      Estaba en el marcado y no lo leia nadie — otro huerfano que cazo el detector. */
   const pb = [
     ['GC', v('pop_picco_gc'), 'L/min', () => null],
-    ['IC', v('pop_picco_ic'), 'L/min/m²', x => _icBanda(x)],
+    ['IC', v('pop_picco_ic'), 'L/min/m²', x => _popIcBanda(x)],
     ['ITBVI', v('pop_picco_itbvi'), 'ml/m²', x => x < 850 ? {cls:'orange',txt:'bajo'} : x <= 1000 ? {cls:'green',txt:'normal'} : {cls:'yellow',txt:'elevado'}],
     ['EVLWI', v('pop_picco_evlwi'), 'ml/kg', x => x < 10 ? {cls:'green',txt:'normal'} : {cls:'red',txt:'agua extravascular elevada'}],
     /* ⚠️ EL SVRI PIDE LA BANDA, NO LA ESCRIBE — y acá había una segunda copia del corte de RVS,
@@ -62557,6 +62574,40 @@ window.POP_LACTATO_ALTO = POP_LACTATO_ALTO;
    El techo NO es propio: es `UMBRAL_PCP_HUMEDO`. */
 const POP_PCP_PRECARGA_MIN = 12;
 window.POP_PCP_PRECARGA_MIN = POP_PCP_PRECARGA_MIN;
+/* ══ EL CORTE DE BAJO GASTO DEL POSOPERATORIO ES ESTRICTO — «POP-C», 3a (2026-11-02) ═════════
+   DECISION DEL MEDICO, y la fuente la respalda. Consenso de Shock Cardiogenico de la Sociedad
+   Argentina de Cardiologia 2024 (Rev Argent Cardiol 2024;92 Supl. 3), seccion 6.14 «Sindrome de
+   bajo gasto posoperatorio», HOJA 91 = FOLIO 83 — regla de folio = hoja menos 8, comprobada en
+   el encabezado impreso—. Leido EN IMAGEN, glifo por glifo:
+     «El patron hemodinamico clasico del SBVM de origen cardiaco se objetiva por un indice
+      cardiaco (IC) < 2,2 L/min/m2 acompanado de presiones de fin diastole elevadas.»
+   El operador de la fuente es ESTRICTO: 2,2 exactos NO es bajo gasto.
+
+   ⚠️ ESTO DIVERGE DE `_icBanda` A PROPOSITO, Y NO SE TOCA LA COMPARTIDA. `_icBanda` usa
+   `ic <= 2.2` por la decision del medico del 21/10/2026 —«2,2 o menos es bajo»— que el C1
+   aplico a la capsula «Perfil hemodinamico» y al Forrester para que las tres superficies de
+   HEMODINAMICA no discreparan entre si. Esta orden cambia el corte SOLO en el posoperatorio y
+   prohibe expresamente tocar otras secciones, asi que la divergencia se DECLARA en vez de
+   propagarse — igual que `DPT_VCI_PLETORA_MM` (20, ESC 2025) convive con el `vciD > 21` de la
+   categoria C del HTP (ESC/ERS 2022): dos guias, dos numeros, cada uno en su modulo.
+   ⚠️ Y SOLO ES OBSERVABLE CON EL PiCCO. Las otras tres fuentes de indice del posoperatorio
+   dividen un gasto por la superficie corporal, asi que el 2,2 EXACTO es practicamente
+   inalcanzable; el PiCCO lo trae tipeado por el medico y ahi si cae justo. Medido.
+   ⚠️ EL PATRON Y LOS CORTES DEL VD NO SE MUEVEN (3d): lo unico que cambia es donde parte la
+   banda, y `icBajo` la lee de aca, asi que el patron sigue la misma regla sin una segunda copia. */
+const POP_IC_BAJO_MAX = 2.2;
+window.POP_IC_BAJO_MAX = POP_IC_BAJO_MAX;
+/* El DUENO UNICO de la banda del indice cardiaco EN EL POSOPERATORIO. Los otros dos tramos los
+   delega en `_icBanda`, para no escribir una segunda copia del 4,0. */
+function _popIcBanda(ic) {
+  if (ic === null || ic === undefined || !isFinite(ic)) return null;
+  if (ic < POP_IC_BAJO_MAX) return { cls:'red', txt:'bajo' };
+  const b = (typeof _icBanda === 'function') ? _icBanda(ic) : null;
+  /* El 2,2 exacto cae en «bajo» para `_icBanda` y NO para esta: se corrige a «normal», que es
+     el tramo que le toca por la fuente de este modulo. */
+  return (b && b.txt === 'bajo') ? { cls:'green', txt:'normal' } : b;
+}
+window._popIcBanda = _popIcBanda;
 function popPatron() {
   const asc = (typeof getBSA === 'function') ? getBSA() : null;
 
@@ -62610,7 +62661,7 @@ function popPatron() {
        cerrar, en su versión «no nombra ninguna». */
     icFuera = ic; icFueraFuente = icFuente; ic = null; icFuente = null;
   }
-  const icB = _icBanda(ic);
+  const icB = _popIcBanda(ic);            /* POP-C-3a: corte estricto del posoperatorio */
 
   let pcp = null, pcpFuente = null;
   if (swPcp !== null) { pcp = swPcp; pcpFuente = 'medida (Swan-Ganz)'; }
@@ -62721,16 +62772,54 @@ function popPatron() {
      propio de este módulo y no tiene otro dueño. Hoy los dos salen de una constante, así que el
      día que uno se mueva no queda una copia clasificando distinto el mismo paciente en la misma
      pantalla. **Ningún número cambió**: los dos valen lo mismo que antes. */
-  preg.push({ q:'¿Precarga adecuada?',
-              hallazgo: pcp === null ? '' : (pcp < POP_PCP_PRECARGA_MIN ? 'precarga baja' : pcp > UMBRAL_PCP_HUMEDO ? 'congestión' : ''),
-              cls: pcp === null ? 'yellow' : (pcp >= POP_PCP_PRECARGA_MIN && pcp <= UMBRAL_PCP_HUMEDO) ? 'green' : 'yellow',
-              r: pcp === null ? 'sin PCP' : (pcp.toFixed(0) + ' mmHg — ' +
-                 (pcp < POP_PCP_PRECARGA_MIN ? 'sugiere hipovolemia' : pcp > UMBRAL_PCP_HUMEDO ? 'sugiere congestión' : 'en rango') +
-                 ' (' + pcpFuente + ')') });
-  preg.push({ q:'¿Compromiso hemodinámico pericárdico?', cls: tapo ? 'red' : 'green',
-              hallazgo:'compromiso hemodinámico pericárdico',
-              r: tapo ? 'sí — consignado por el médico en el módulo de pericardio'
-                      : 'no consignado en el módulo de pericardio' });
+  /* ══ LA PRECARGA MUESTRA EL VALOR Y NO LO JUZGA — «POP-C», 3b (2026-11-02) ═════════════════
+     DECISION DEL MEDICO, y la respalda la fuente de este modulo. Consenso de Shock
+     Cardiogenico de la SAC 2024, HOJA 92 = FOLIO 84, leido EN IMAGEN:
+       «El nivel "optimo" de precarga es variable para cada paciente. La utilizacion de las
+        variables hemodinamicas estaticas (PVC, W) como unicos elementos para predecir el grado
+        optimo de precarga es poco util; se prefieren las variables dinamicas (VPP, VVS).»
+     La presion capilar es una variable ESTATICA. Una banda que la declare «adecuada» afirma
+     justo lo que la fuente dice que no se puede afirmar con ella sola.
+
+     QUE SALIO: la banda de 12 a 18 —el verde, el amarillo, «en rango», «sugiere hipovolemia»
+     y «sugiere congestion»— y la palabra «adecuada» de la pregunta. Lo que queda es el VALOR,
+     su origen y la salvedad. La pregunta pasa a nombrar el dato, no a pedir un veredicto.
+     ⚠️ LA BANDA NO TENIA FUENTE Y LA APP YA LO DECLARABA: su fila de Referencias dice
+     «CRITERIO DE ECOSMART ... Sin fuente. Censada la biblioteca: ninguna de las fuentes de
+     este modulo publica esa banda.» Esta tanda la retira en vez de seguir publicandola.
+     ⚠️ `POP_PCP_PRECARGA_MIN` NO SE BORRA: lo sigue leyendo el patron de HIPOVOLEMIA, y el
+     punto 3d de esta misma orden dice que el patron NO se toca. Queda con un solo consumidor.
+     ⚠️ LA SALVEDAD COMPLETA, con su folio, vive en el globo `pop-senales`; aca va la version
+     corta, porque es la linea que el medico lee al lado del numero. */
+  preg.push({ q:'¿Presión capilar pulmonar?',
+              hallazgo: '',
+              cls: 'gray',
+              r: pcp === null ? 'sin PCP' : (pcp.toFixed(0) + ' mmHg (' + pcpFuente + ')'
+                 + ' — una presión de llenado estática no alcanza por sí sola para juzgar la precarga') });
+  /* ══ EL PERICARDIO LISTA SUS SIGNOS Y NO CONCLUYE — «POP-C», 3c (2026-11-02) ════════════════
+     DECISION DEL MEDICO. La fila decia «si — consignado por el medico» y nada mas, asi que un
+     estudio con el colapso del ventriculo derecho y la pletora de la cava cargados pero sin el
+     compromiso consignado salia «no consignado» a secas: los signos que el medico habia medido
+     en el modulo de pericardio no aparecian en ninguna parte de esta conclusion.
+     Hoy la fila ENUMERA los signos presentes, que es lo que el modulo de pericardio ya hace
+     desde la tanda J —su propio comentario dice «El modulo pasa a LISTAR los signos presentes
+     y nada mas. Quien decide es el medico»—, y los lee de `dptEstado().signos`, que es su
+     dueno unico: no hay una segunda lista que pueda separarse de la primera.
+     ⚠️ EL VEREDICTO DEL MEDICO SE CONSERVA Y VA PRIMERO cuando existe: `pericardio_hemo` es el
+     campo con que el lo consigna, y esconderlo seria perder un dato que el cargo.
+     ⚠️ EL PATRON «Taponamiento» NO SE TOCA: el punto 3d de esta misma orden dice que el patron
+     se queda como esta y que lo unico que cambia es su rotulo.
+     ⚠️ LO QUE EL CONSENSO RECOMIENDA ANTE SOSPECHA VA EN EL GLOBO `pop-senales`, parafraseado
+     y sin imperativos, con su folio. La pantalla no da indicaciones. */
+  { const _pst = (typeof dptEstado === 'function') ? dptEstado() : null;
+    const _sg = (_pst && _pst.signos) ? _pst.signos : [];
+    const _part = [];
+    if (tapo) _part.push('compromiso hemodinámico consignado por el médico');
+    if (_sg.length) _part.push(_sg.join(', '));
+    preg.push({ q:'¿Signos pericárdicos?', cls: tapo ? 'red' : (_sg.length ? 'yellow' : 'green'),
+                hallazgo: tapo ? 'compromiso hemodinámico pericárdico' : '',
+                r: _part.length ? _part.join(' · ')
+                                : 'sin signos pericárdicos cargados en el módulo de pericardio' }); }
   preg.push({ q:'¿Falla del VD?', cls: (tapseBaja && vdDil) ? 'red' : (tapseBaja || vdDil) ? 'orange' : 'green',
               hallazgo:'falla del ventrículo derecho',
               r: (tapse === null && vdvi === null) ? 'sin TAPSE ni VD/VI'
@@ -62917,8 +63006,16 @@ function popConclSync() {
          badge(r.pat.cls, r.pat.lbl) + ' ' + badge('gray', 'Criterio de EcoSmart')) +
     /* El aviso de la pregunta del gasto va al lado de su respuesta y SOLO en pantalla: `q.r`,
        que es lo que el PPT imprime, no se toca. */
+    /* ⚠️ LOS CORTES DEL VD SE ROTULAN POR DONDE VIENEN — «POP-C», 3d (2026-11-02). El TAPSE de
+       17 mm y el VD/VI de 0,9 que esta fila aplica NO son cortes del posoperatorio: son
+       `UMBRAL_TAPSE_NORMAL` y `tepVdViDilatado`, los MISMOS que la cápsula de tromboembolia de
+       pulmón usa, y vienen de la AHA/ACC 2026 por la tanda TEP. Sin decirlo, la fila se lee
+       como si el posoperatorio tuviera cortes propios del ventrículo derecho, y no los tiene.
+       NINGUN CORTE SE MUEVE: lo único que cambia es el rótulo, que es lo que la orden pide. */
     r.preguntas.map(function (q) {
-      return fila(q.q, badge(q.cls, q.r) + (q.aviso ? ' <span style="font-size:10px;color:var(--text2);">— ' + escHtml(q.aviso) + '</span>' : ''));
+      const _rot = (q.q.indexOf('Falla del VD') >= 0)
+        ? ' ' + badge('gray', 'cortes de la cápsula de TEP') : '';
+      return fila(q.q, badge(q.cls, q.r) + _rot + (q.aviso ? ' <span style="font-size:10px;color:var(--text2);">— ' + escHtml(q.aviso) + '</span>' : ''));
     }).join('') +
     /* ⚠️ LA CONCLUSIÓN NOMBRA EL DERRAME PLEURAL Y LAS LÍNEAS B CUANDO ESTÁN CARGADOS (5c). Con
        el vocabulario que esta app ya usa: su propio bloque de POCUS llama «síndrome
@@ -148639,8 +148736,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261101-1712';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793563926933;                 /* eco-build-ms */
+const ECO_BUILD    = '20261101-1725';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793564712222;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -148726,7 +148823,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261101-1712</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261101-1725</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
