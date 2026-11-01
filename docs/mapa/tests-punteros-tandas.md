@@ -335,3 +335,15 @@ declara **su** caso; correr los tres por cada mutación habría tapado un repart
 **TC-564 a TC-567** (TGA-2, 31/10/2026): Jatene y Rastelli en el papel y en el dibujo, y los cuatro
 paneles de Evidencia con sus preguntas. Mutaciones: `scripts/_mut_t2.py`.
 → fichas en **`docs/mapa/tests-fichas-564.md`**.
+
+## ⟶ TC-568 a TC-571 — la tanda AJUSTES-3 (2026-10-31)
+
+Cuatro casos: **TC-568** el bucle del video en los dos PPT (el árbol contra el del experimento,
+varios videos por diapositiva, la caída y el todo-o-nada), **TC-569** los botones de respuesta del
+panel de Evidencia a 44 px con los dos punteros, **TC-570** la cláusula de la insuficiencia
+tricuspídea sistémica en el ⓘ de la TGA, y **TC-571** la línea de la miocardiopatía hipertrófica
+del PPT con su Evidencia.
+
+Las fichas, los nueve bloques adaptados de TC-558, TC-563 y TC-567, y las **dieciocho** mutaciones
+—con las cuatro que sobrevivieron al primer barrido y por qué— están en
+**`docs/mapa/tests-fichas-568.md`**.

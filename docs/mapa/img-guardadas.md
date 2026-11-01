@@ -377,3 +377,18 @@ invalidación del índice llegaría a una de las dos y no a la otra.
 ⚠️ **`preserveDrawingBuffer: true` hace falta en el renderer de WebGL.** Sin él, `toDataURL` sobre
 el lienzo devuelve un PNG **en blanco** en cuanto el navegador ya limpió el buffer, y «Incluir en el
 PDF» habría guardado una imagen vacía **sin un solo error de consola**.
+
+## ⟶ La tanda AJUSTES-3 (2026-10-31) — el PPT de aquí incrusta el VIDEO
+
+«Armar PPT» dejó de llevar el **primer cuadro** de un video y pasa a incrustar el **clip
+completo**, en la celda que le toca de la grilla de 1, 2 o 4 por diapositiva, con el cuadro ya
+tapado de póster y con **la marca de «repetir hasta detener»** que el post-proceso
+`_pptxBucleVideos` escribe sobre el paquete armado. El primer cuadro queda como **caída**, con su
+motivo en la línea de resultado.
+
+Con eso cambiaron también **el aviso de privacidad** —decía que de un video iba sólo su primer
+cuadro, y dejó de ser cierto— y **los dos umbrales de tamaño**, que entran por las mismas
+constantes que el PPT del estudio. El dueño único que prepara un mp4 (rotación y salvedad del
+`.mov`) es `_pptVideoMp4Preparar`, compartido por los dos caminos.
+
+Todo en **`docs/mapa/aj3-bucle-botones.md` § 1**.

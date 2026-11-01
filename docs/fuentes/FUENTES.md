@@ -8493,3 +8493,140 @@ y cols., *Circulation* 2024;149:e1239-e1311). Por eso la poda del PPT de la Part
 `Estudio/Tratamiento_08_Cardiopatias_congenitas_del_adulto.docx` no se cita en ninguna parte, que
 es lo que la orden manda. De hecho esta tanda ni lo abrió: las hojas se ubicaron buscando los
 títulos de las tablas en el texto del propio PDF y después se leyeron **en imagen**.
+
+---
+
+# La tanda AJUSTES-3 (2026-10-31)
+
+Cinco commits de código y documentación sobre el cierre de TGA-2 (`8d37a65`). Cierra **IMG3-a**,
+**TGA2-b** y, en parte, **IMG3-g**.
+
+## La fuente nueva: AHA/ACC 2024 de miocardiopatía hipertrófica
+
+**Ommen SR, Ho CY, Asif IM, y cols.** *2024 AHA/ACC/AMSSM/HRS/PACES/SCMR Guideline for the
+Management of Hypertrophic Cardiomyopathy.* **Circulation 2024;149(23):e1239-e1311.**
+DOI: 10.1161/CIR.0000000000001250.
+Archivo: `11_Miocardiopatias/ommen-et-al-2024-…-hypertrophic-cardiomyopathy-a-report.pdf`,
+73 hojas. Leída **EN IMAGEN a 200 ppp**.
+
+### La regla de folio, comprobada en el pie impreso
+
+**folio = hoja del PDF + 1238.** Verificada en dos hojas por su pie impreso:
+
+| hoja del PDF | pie impreso | folio |
+|---|---|---|
+| 26 | «Circulation. 2024;149:e1239–e1311 … June 4, 2024  **e1264**» | e1264 |
+| 29 | «Circulation. 2024;149:e1239–e1311 … June 4, 2024  **e1267**» | e1267 |
+
+Y comprobada además contra los folios que cada página imprime en su encabezado de rango, en las
+hojas 1, 5, 21, 31 y 41 (e1243, e1259, e1269, e1279).
+
+### Apartado 7.2 «Patient Selection for ICD Placement» — hoja 29, folio e1267
+
+Tabla **«Recommendations for ICD Placement in High-Risk Patients With HCM»**, transcripta fila por
+fila de la imagen:
+
+| # | COR | LOE | Recomendación (literal, traducida) |
+|---|---|---|---|
+| 1 | 1 | C-EO | Se recomienda aplicar el juicio clínico individual al valorar el peso pronóstico de los marcadores de riesgo convencionales dentro del perfil clínico del paciente, junto con una discusión completa y equilibrada de la evidencia, los beneficios y los riesgos estimados, para que el paciente, plenamente informado, participe activamente en la decisión sobre el desfibrilador |
+| 2 | 1 | B-NR | Con parada cardíaca previa documentada o taquicardia ventricular sostenida, se recomienda implantar un desfibrilador |
+| 3 | **2a** | **B-NR** | **En el paciente ADULTO con uno o más factores mayores de riesgo de muerte súbita, es razonable ofrecer un desfibrilador.** Esos factores mayores incluyen (Figura 3, Tabla 8): **a.** muerte súbita atribuida de forma definitiva o probable a la miocardiopatía hipertrófica en uno o más familiares de primer grado o cercanos de **50 años o menos**; **b.** hipertrofia masiva **≥30 mm** en cualquier segmento del ventrículo izquierdo; **c.** uno o más episodios recientes de síncope que la historia clínica haga sospechar **arrítmico** (es decir, improbablemente neurocardiogénico [vasovagal] o ligado a la obstrucción del tracto de salida); **d.** aneurisma apical del ventrículo izquierdo con cicatriz transmural o realce tardío; **e.** disfunción sistólica del ventrículo izquierdo (**FE <50 %**) |
+| 4 | 2a | B-NR | En el NIÑO con uno o más factores de riesgo convencionales —síncope inexplicado, hipertrofia masiva, taquicardia ventricular no sostenida o antecedente familiar de muerte súbita precoz por la enfermedad—, el desfibrilador es razonable después de considerar las tasas relativamente altas de complicación del implante a largo plazo en pacientes jóvenes |
+| 5 | 2a | B-NR | Con uno o más factores mayores, discutir el riesgo estimado de muerte súbita a 5 años y las tasas de mortalidad puede ser útil durante la decisión compartida sobre el desfibrilador |
+| 6 | **2b** | **B-NR** | **En adultos seleccionados SIN factores mayores de riesgo tras la evaluación clínica, o en quienes la decisión de implantar siga siendo incierta, puede considerarse el desfibrilador si hay realce tardío extenso por resonancia con contraste o taquicardia ventricular no sostenida en el monitoreo ambulatorio** |
+| 7 | 2b | B-NR | En pediatría puede ser útil considerar factores adicionales, como el realce tardío extenso y la disfunción sistólica, en la estratificación del riesgo para la decisión compartida |
+| 8 | **3: Daño** | B-NR | En el paciente **sin factores de riesgo**, no debe implantarse un desfibrilador |
+| 9 | **3: Daño** | B-NR | No debe implantarse un desfibrilador con el **solo propósito** de permitir la participación en deportes de competición |
+
+### Lo que se coteja contra la app, y coincide
+
+La app publica «AHA/ACC 2020: N factores mayores de 5 — desfibrilador razonable (Clase IIa)» y su
+árbitro Clase IIb. Cotejado contra la recomendación 3 y la 6:
+
+| la guía (folio e1267) | `mchAHA` | |
+|---|---|---|
+| a. muerte súbita en familiar de primer grado o cercano ≤50 años | `fam.aha.cumple` → «historia familiar de muerte súbita por MCH en familiar de primer grado o cercano ≤50 años» | ✓ |
+| b. hipertrofia masiva ≥30 mm en cualquier segmento | `espH.valor >= 30` → «espesor máximo ≥30 mm» | ✓ |
+| c. ≥1 síncope reciente sospechado arrítmico | `mch_sincope` → «síncope inexplicado reciente» | ✓ |
+| d. aneurisma apical con cicatriz transmural o realce tardío | `mch_aneurisma_apical` → «aneurisma apical del ventrículo izquierdo» | ✓ |
+| e. disfunción sistólica (FE <50 %) | `feviH.valor < 50` → «disfunción sistólica del VI (FEVI <50 %)» | ✓ |
+| **cinco** factores | `MCH_AHA_N_MAYORES = 5` | ✓ |
+| COR **2a**, «it is reasonable to offer an ICD» | «desfibrilador razonable (**Clase IIa**)» | ✓ |
+| rec. 6, COR **2b**: realce tardío extenso **o** TVNS, sin factores mayores | los dos árbitros, clase `iib` | ✓ |
+
+**La única discrepancia es el año de la etiqueta**: la app rotula «AHA/ACC 2020» y la edición
+leída es la de **2024**. La de 2020 **no está en la biblioteca**, censada. **Reportado y sin
+tocar** → `docs/PENDIENTES.md` → **AJ3-a**.
+
+## La procedencia del árbol de tiempo del bucle
+
+No es una fuente clínica y no se leyó de nuevo en esta tanda: la transcribió la tanda TGA desde
+Microsoft Learn, y vive en `scripts/_exp_pptbucle.py`. Se repite acá porque es lo que el código
+de `_pptxBucleVideos` implementa:
+
+| etiqueta | de dónde sale |
+|---|---|
+| `p:timing` → `p:tnLst` | página de *TimeNodeList*: «Parent Elements: timing (19.3.1.48); tmpl (19.5.84)» |
+| `p:par` | hijo declarado de `p:tnLst` en esa misma página |
+| `p:video` | hijo de `childTnLst` / `subTnLst` / `tnLst`, según la página de *Video* |
+| `p:cMediaNode` | único hijo declarado de `p:video` en esa página (19.5.29) |
+| `p:cTn` con `repeatCount` | `p:cMediaNode` figura entre los padres de `p:cTn`; `repeatCount` es atributo suyo: «the number of times the element should repeat … defined by the ST_TLTime simple type (19.7.38)» |
+| `p:tgtEl` → `p:spTgt spid` | del EJEMPLO de la página de *Video*: «its child spTgt element specifies that the shape which contains the video to be played has a shape ID of 4» |
+
+⚠️ **LO QUE SIGUE SIN ESTAR VERIFICADO EN LA NORMA, Y SE REPITE ACÁ: el VALOR `indefinite`.** Las
+páginas de Microsoft Learn no contienen esa palabra y remiten a `ST_TLTime` (19.7.38), que no se
+pudo leer en el texto de ISO/IEC 29500-1. La única fuente leída que admite el literal es la
+reproducción del esquema de **datypic**, que es un tercero.
+
+**Lo que lo sostiene no es la norma: es la prueba.** La tanda TGA generó un `.pptx` con ese XML
+fuera del producto y **el médico lo abrió en PowerPoint el 31/10/2026: no pidió reparar y el video
+se repite sin parar.** Ese archivo —`~/Desktop/ceibo-experimento-ppt-bucle/experimento_bucle_video.pptx`,
+fuera del repositorio— se leyó **sin modificarlo** y el `p:timing` que la app escribe es idéntico
+al suyo carácter por carácter, salvo el valor del `spid`.
+
+## La ESC 2020 que respalda el CONCEPTO de la cláusula de la IT sistémica
+
+Ya transcripta en este registro: **ESC 2020 de congénitas del adulto, hoja 57, folio 619**, tabla
+de intervención tras switch auricular, **recomendación 4, IIa · C** — «Con insuficiencia severa de
+la válvula auriculoventricular sistémica (tricúspide) y sin disfunción sistólica ventricular
+significativa (FE > 40 %), debe considerarse la reparación o el reemplazo valvular,
+**independientemente de los síntomas**».
+
+Ese «independientemente de los síntomas» es el criterio de una **mitral** y no el de una
+tricúspide nativa, así que respalda el **concepto**. **No escribe la analogía**, y por eso la
+cláusula va al ⓘ rotulada **«Criterio de EcoSmart»**, sin folio ni clase.
+
+## Cambios de evidencia
+
+| # | Qué cambió | Dónde | Fuente |
+|---|---|---|---|
+| 1 | El video de los **dos** PPT se marca para repetirse hasta detener | `_pptxBucleVideos` | el experimento verificado en PowerPoint; la procedencia del árbol, arriba |
+| 2 | «Imágenes guardadas» incrusta el **clip completo** y no su primer cuadro | `igImgPptExportar` | decisión del médico, 31/10/2026 |
+| 3 | El aviso de privacidad dice que el clip entra completo y que la tapa sólo cubre el primer cuadro | `igImgPptPedir` | lo anterior |
+| 4 | Los botones de respuesta del panel llegan a 44 px también con mouse | media query `pointer:fine` | medición de `_probe_aj3btn.mjs` |
+| 5 | El estado del botón deja de depender sólo del color (marca ✓) | `_indCtrlHTML` | — |
+| 6 | **Vuelve** la cláusula de la IT sistémica, al ⓘ de la TGA, rotulada «Criterio de EcoSmart» | `VINFO['tga-3d'].ojo` | ESC 2020, folio 619, IIa · C (el concepto) |
+| 7 | La línea de la MCH del **PPT** deja de recomendar, de nombrar guías y de publicar clase | `mchConclusion().papel` + `CC_PPT` | principio del médico: el papel describe |
+| 8 | **Bloque nuevo** en la Evidencia de muerte súbita de la MCH: las cuatro recomendaciones de la AHA/ACC 2024 con su clase, su nivel y su folio | `_indMCHSCD` | AHA/ACC 2024, hoja 29, folio e1267 |
+| 9 | Los cinco factores mayores, enumerados en la Evidencia | `_indMCHSCD` | la misma |
+| 10 | **Entrada nueva del registro de citas**: `ahaMch2024`, con su regla de folio | `IND_REFS` | — |
+| 11 | El panel declara que la app rotula «2020» y la edición leída es la de 2024 | `_indMCHSCD`, notas | — |
+
+**Lo que NO cambió**: ni un corte, ni un umbral, ni un rótulo de grado, ni una frase del informe,
+del EN SUMA o del PDF. El `resumen` de `mchConclusion` —que es lo que lee la hoja del PDF— quedó
+**idéntico a HEAD en seis escenarios**, medido.
+
+## Notas de trabajo
+
+### El archivo de referencia no se tocó
+`~/Desktop/ceibo-experimento-ppt-bucle/experimento_bucle_video.pptx` se leyó descomprimiendo una
+**copia** en un temporal. No se modificó, ni se movió, ni se borró; verificado por su tamaño
+(65.683 bytes) y su fecha.
+
+### La AHA/ACC 2020 sigue sin estar, y por eso se leyó la 2024
+Censada la carpeta `11_Miocardiopatias`: no hay ninguna edición de 2020 de esa guía. La decisión
+del médico del 31/10/2026 fue verificar contra la **2024**, que sí está, y es lo que se hizo.
+
+### Lo que la app aplica y la guía NO publica
+Nada: las cinco filas, la clase, el nivel y el criterio coinciden. La única diferencia es el año
+de la etiqueta, que se reporta sin tocar.

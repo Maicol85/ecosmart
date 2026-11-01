@@ -205,3 +205,19 @@ esta tanda llevan el prefijo `t2`. Es la lección que la tanda AJUSTES-1 pagó s
 llamaba a `generarPDF` y a `generarPPT` directamente y devolvía **cero textos sin error**, que es
 indistinguible de «el papel no lleva la frase». El PDF va por `_pdfAjustarA4` y el PPT exige un
 estudio guardado sintético con las casillas persistidas como `<id>__chk`.
+
+## ⟶ La tanda AJUSTES-3 (2026-10-31) — la AHA/ACC 2024 entra en la Evidencia de la MCH
+
+La sección de prevención de muerte súbita de la miocardiopatía hipertrófica (`_indMCHSCD`) pasó de
+**tres bloques a cuatro**: los tres de la ESC 2023 que cargó esta tanda, más uno nuevo con las
+cuatro recomendaciones de la **AHA/ACC 2024** —hoja 29, folio e1267, leída en imagen— y sus cinco
+factores mayores enumerados. Entrada nueva en el registro de citas: `ahaMch2024`.
+
+Hizo falta **antes** de poder retirar la recomendación del PPT de congénitas: sin eso se habría
+perdido de la aplicación, que es por lo que TGA-2 dejó esa poda parada.
+
+⚠️ **La app rotula «AHA/ACC 2020» en el informe, el EN SUMA y el PDF**, y la edición leída es la
+de 2024. Coinciden en clase, criterio y los cinco factores; **sólo el año está viejo** y no se
+tocó → `AJ3-a`.
+
+Todo en **`docs/mapa/aj3-bucle-botones.md` § 4**.

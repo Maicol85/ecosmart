@@ -262,3 +262,16 @@ tres estados. Dónde se persisten las respuestas, cómo se agrupan las recomenda
 qué la de la MCH es sección aparte:
 
 → **`docs/mapa/t2-evidencia-congenitas.md`** § 2
+
+## ⟶ La tanda AJUSTES-3 (2026-10-31) — los botones de respuesta, a 44 px también con mouse
+
+La botonera salió de la media query `@media (pointer:fine){ … min-height:0 }`; el ⓘ de un término
+(`data-ind-term`) se quedó, y ahora es el único. Con eso los botones Sí / No / Sin dato pasan de
+**22 a 44 px** con mouse —con el dedo ya estaban en 44— y el solape con el control vecino pasa de
+**cinco botones a cero**. **El panel mide exactamente lo mismo.**
+
+Y el estado dejó de depender sólo del color: el botón marcado lleva **`✓ ` delante del rótulo**,
+además del `aria-pressed` que ya tenía.
+
+Todo en **`docs/mapa/aj3-bucle-botones.md` § 2**, con la tabla de los dieciséis cruces y las dos
+mediciones que decidieron el mecanismo.

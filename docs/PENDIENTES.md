@@ -10647,6 +10647,15 @@ que decidir qué hacer con la preferencia, no sólo con el valor.
 
 ## Tanda IMÁGENES-3 (2026-10-31)
 
+### ✅ [CERRADO 2026-10-31, tanda AJUSTES-3] IMG3-a · El bucle del video en el PPT
+
+> **CERRADO.** `_pptxBucleVideos` porta el árbol de tiempo del experimento que el médico abrió
+> en PowerPoint, en los DOS caminos de PPT, con validación estricta y falla cerrada. El
+> `p:timing` que la app escribe es idéntico carácter por carácter al del experimento, salvo el
+> valor del `spid`. Lo que sigue sin poder verificarse desde acá es que PowerPoint lo
+> reproduzca: eso es **AJ3-g**, con los dos PPT generados listos para abrir.
+
+*La entrada original, abajo, se conserva entera:*
 ### IMG3-a · El bucle del video en el PPT no se puede marcar con la librería que la app tiene
 Verificado por dos caminos: el XML de un paquete generado de verdad **no tiene** `<p:timing>`,
 ni `repeatCount`, ni `cMediaNode`, ni `<p:video>`; y los **477.529 bytes** del bundle de
@@ -10695,6 +10704,19 @@ impreso es el **3649**. El ⓘ de la coartación cita **los dos con su edición*
 se movió, porque cambiarlo toca la numeración del panel. **Salida**: decidir cuál edición es la
 de referencia del registro.
 
+### ✅ [CERRADO 2026-10-31, tanda AJUSTES-3] IMG3-g · La miocardiopatía hipertrófica del PPT
+
+> **CERRADO para la diapositiva de congénitas**, que es lo que esta entrada pedía. La línea
+> pasó a salir de `mchConclusion().papel` —`CC_PPT` le puso `papel:true`, como a la
+> coartación— y ya no dice la recomendación, ni la guía, ni la clase, ni el nivel, sin perder
+> un solo número medido. Antes se cargó en la Evidencia la AHA/ACC **2024**, leída en imagen
+> (hoja 29, folio e1267), que es la edición que sí está en la biblioteca y que coincide con lo
+> que la app aplica.
+> **Lo que queda abierto es otra cosa**: el cuerpo del informe que el PPT proyecta en sus
+> primeras diapositivas sigue nombrando la guía → **AJ3-b**. Y la etiqueta «2020» del papel
+> firmado → **AJ3-a**.
+
+*La entrada original, abajo, se conserva entera:*
 ### IMG3-g · El PPT de congénitas deja la miocardiopatía hipertrófica sin podar
 Su conclusión entrelaza la recomendación con el recuento —«AHA/ACC 2020: 2 factores mayores de
 5 — desfibrilador razonable (3 sin evaluar)»— y podarla perdía el 3, así que la guarda de
@@ -10945,6 +10967,15 @@ derecho», «Diámetro basal del ventrículo derecho» e «Insuficiencia tricusp
 descripciones y no afirmaciones sobre cuál ventrículo sostiene la circulación — pero eso es
 contenido clínico y es decisión del médico.
 
+### ✅ [CERRADO 2026-10-31, tanda AJUSTES-3] TGA2-b · La cláusula de la IT sistémica
+
+> **CERRADO.** La oración volvió, con sus palabras intactas, al ⓘ de la sección de la TGA (el
+> globo `tga-3d`), rotulada «Criterio de EcoSmart» porque la analogía no está en ninguna hoja
+> leída, y con el antecedente explicitado afuera de la cláusula. Verificado en el navegador a
+> 1440 y a 390 px: aparece LITERAL, carácter por carácter, una sola vez, sin folio, sin clase
+> y sin nombrar la guía. **TC-570** lo fija.
+
+*La entrada original, abajo, se conserva entera:*
 ### TGA2-b · Una frase del párrafo de la sección de la TGA deja de estar en la aplicación
 El párrafo de encabezado pasó a ser neutro, y de sus dos oraciones:
 
@@ -11064,3 +11095,103 @@ por uno.
 **Salida**: encontrar qué regla pisa el `min-height` global y decidir si estos botones suben a 44
 px —lo que ensancha cada fila del panel— o si se les extiende el área táctil con un `::after`
 absoluto, que es el patrón que `.pac-id-mk` y los globos `vinfo-btn-44` ya usan en este archivo.
+
+---
+
+# TANDA AJUSTES-3 (2026-10-31) — lo que se declara
+
+## AJ3-a · La etiqueta «AHA/ACC 2020» en el informe, el EN SUMA y el PDF
+
+**Qué se encontró.** La app rotula la lista de factores mayores de muerte súbita como «AHA/ACC
+2020» en el cuerpo del informe, en el EN SUMA y en la hoja del PDF. Esa edición **no está en la
+biblioteca** —censada la carpeta `11_Miocardiopatias`—. La que sí está, y se leyó **en imagen**
+en esta tanda, es la **AHA/ACC 2024** (Ommen y cols., *Circulation* 2024;149:e1239-e1311, hoja
+29, folio e1267).
+
+**Y coinciden en todo lo que importa**: la clase (COR 2a = IIa, «it is reasonable to offer an
+ICD»), el criterio (≥1 factor mayor), los **cinco** factores uno por uno, y el árbitro Clase IIb
+de la recomendación 6. **Lo único viejo es el año.**
+
+**Por qué no se corrigió.** Cambiar el año en el informe, el EN SUMA y el PDF es tocar texto de
+papel firmado fuera de lo que la orden de esta tanda autoriza. Son cuatro apariciones de
+«AHA/ACC 2020» en `mchConclusion` (el cuerpo, el resumen y las dos ramas sin factores).
+
+**Qué haría falta.** Una orden que autorice el cambio de etiqueta en esas tres superficies. Es
+sólo el año: ni el corte, ni la clase, ni el criterio se mueven.
+
+## AJ3-b · El cuerpo del informe que el PPT proyecta sigue nombrando guías
+
+**Qué se encontró.** El commit 4 retiró la recomendación, la guía y la clase de la **conclusión**
+de la diapositiva de congénitas. Pero las **primeras diapositivas del PPT llevan
+`informe_texto` entero**, y ése sigue diciendo «AHA/ACC 2020», «desfibrilador razonable» y
+«Clase IIa».
+
+**Medido** sobre el PPT generado de verdad, con la MCH cargada: «desfibrilador» 2 → **1**,
+«Clase IIa» 2 → **1**, «AHA/ACC» 4 → **3**. Lo que baja es la conclusión; lo que queda es el
+cuerpo.
+
+**Por qué no se tocó.** Podar `informe_texto` afecta a las **doce** secciones de `CC_PPT` y a
+todo el resto del informe, no sólo a la miocardiopatía. Es una decisión de alcance distinto.
+
+## AJ3-c · El texto «el video no arranca solo» del PPT no se tocó, y es deliberado
+
+La diapositiva de un video dice «▶ Clic sobre la imagen para reproducir · el video no arranca
+solo». **Sigue siendo cierto**: el bucle arranca al clic (`delay="indefinite"`), no es autoplay.
+
+No se le agregó «y se repite» por una razón medible: **el bucle puede caer**. Si la validación
+estricta falla, el mazo sale sin `p:timing` —a propósito, para no entregar un archivo que
+PowerPoint repare borrando la diapositiva—, y entonces esa frase estaría mintiendo sobre el
+documento que el médico tiene en la mano. El aviso de que el bucle no se marcó va por el toast y
+por la línea de resultado, que sí saben si se marcó.
+
+**Qué haría falta.** Si se quisiera decirlo en la diapositiva, el texto tendría que escribirse
+**después** del post-proceso, o sea que `_pptxBucleVideos` tendría que poder reescribir el cuadro
+de texto de cada hoja. Es posible y no es gratis.
+
+## AJ3-d · `congenitas-otros.md` sigue al techo, y dónde conviene partirlo
+
+**Medido**: **34.540 bytes**, a unos 500 del techo de ~35 KB. Esta tanda tenía orden expresa de no
+tocarlo, y no lo tocó.
+
+**Dónde conviene partirlo**, medido sección por sección: la **cola de punteros por tanda** —desde
+«## CONTRACTILIDAD y el 3D del VENTRÍCULO → tienen mapa propio» hasta el final, catorce bloques—
+suma unos **12,2 KB**. Es la parte que **crece con cada tanda**, igual que la cola que esta tanda
+sacó de `tests.md`, así que es la que obliga a volver a partir. Sacarla a
+`docs/mapa/congenitas-punteros-tandas.md` dejaría el mapa en unos **22,5 KB** con su puntero, y el
+índice por módulo —que es lo que se lee para orientarse— quedaría entero.
+
+La alternativa sería sacar el **índice por módulo** (Laboratorio, PPT, Cardio-Onco, Pericardio,
+Hemodinámica, Eco Pulmonar, ETE, Amiloidosis, Contractilidad, SGL, Fonocardiograma, Calculadoras,
+Referencias), que suma unos 13 KB; se descarta porque es la parte estable y la que da el nombre al
+archivo.
+
+## AJ3-e · El orden de los videos dentro de la grilla de «Imágenes guardadas»
+
+El clip entra en la celda que le toca del reparto de 1, 2 o 4 por diapositiva, que es el que el
+médico eligió en la pantalla, y el número de arriba sigue llevando de la diapositiva a la imagen.
+**No se evaluó** si conviene que un video pida hoja propia cuando el reparto es de 4: en una celda
+de un cuarto de hoja el marco queda chico. La orden no lo pide y no se decidió acá.
+
+## AJ3-f · El `spid` es `max + 1` y el experimento cableaba 10
+
+El experimento que el médico verificó usó `spid="10"`, un id libre elegido a mano. La app usa
+**`max + 1`** de los `id` de esa diapositiva, porque un 10 cableado falla en una diapositiva con
+diez shapes. **El árbol de tiempo es idéntico carácter por carácter salvo ese valor**, medido en
+los dos caminos.
+
+Lo que no se puede verificar sin PowerPoint: que un `spid` distinto de 10 funcione igual. Es la
+misma etiqueta y el mismo mecanismo —`spTgt` apunta al shape por su id— y la validación comprueba
+que el id exista una sola vez, pero **la prueba en PowerPoint se hizo con el 10**. Los dos PPT
+que esta tanda genera están guardados para que el médico los abra: el del estudio salió con
+`spid="10"` y el de imágenes con `spid="6"`.
+
+## AJ3-g · El bucle no se puede verificar sin abrir PowerPoint
+
+Todo lo que esta tanda mide es que el paquete es un ZIP coherente, que cada parte XML parsea en
+modo estricto, que ninguna referencia queda colgada y que el árbol es el del experimento. **Que
+PowerPoint lo reproduzca en bucle sólo lo puede decir PowerPoint**, y por eso los dos PPT
+generados se dejan en un directorio con su ruta nombrada.
+
+Si al abrirlos PowerPoint pidiera reparar, la vuelta atrás es de una línea: `_pptxBucleVideos`
+falla cerrada, así que basta con que devuelva `{diapos:0, videos:0, falla:'…'}` de entrada para
+que el mazo vuelva a salir exactamente como salía antes de esta tanda.

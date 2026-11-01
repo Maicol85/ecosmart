@@ -48085,14 +48085,24 @@ caso('TC-322', 'Evidencia: citas numeradas POR SECCION, con un solo dueno de la 
          prevencion de muerte subita, que cita la edicion inglesa- en vez de una. El invariante
          no cambia y se vuelve MAS fuerte: tres secciones de tres documentos distintos dan tres
          bibliografias, cada una hija de su seccion y cada una arrancando en [1]. */
+      /* ADAPTADO el 2026-10-31 (tanda AJUSTES-3, commit 4): las bibliografias siguen siendo
+         TRES -una por seccion- y lo que pasa de 3 a 4 son las ENTRADAS, porque la seccion de
+         prevencion de muerte subita de la miocardiopatia cita desde este commit DOS documentos:
+         la edicion inglesa de la ESC 2023 que cargo la TGA-2 y la AHA/ACC 2024 que se leyo en
+         imagen para poder retirar la recomendacion del PPT. El invariante no cambia: tres
+         secciones, tres bibliografias, cada una hija de la suya y cada una arrancando en [1]. */
       ['TRES secciones de guias distintas dan TRES bibliografias, una por seccion',
-        R.B_biblios === 3 && R.B_secs === 3 && R.B_items === 3 &&
+        R.B_biblios === 3 && R.B_secs === 3 && R.B_items === 4 &&
         R.B_tiene25 === true && R.B_tieneMioc === true,
         'biblios=' + R.B_biblios + ' secs=' + R.B_secs + ' items=' + R.B_items],
+      /* Y la de muerte subita es la UNICA con dos entradas: las otras dos siguen con una. Se
+         exige asi y no con un total, para que agregarle una cita a otra seccion ponga el caso
+         en rojo en vez de compensarse con esta. */
       ['cada una es HIJA de su seccion, nace CERRADA y su primera entrada es [1]',
         R.B_cadaUna.length === 3 && R.B_cadaUna.every(function(x){
           return x.propias === 1 && x.hija === true && x.cerrada === true &&
-                 x.items === 1 && x.primer === '[1]'; }),
+                 (x.items === 1 || x.items === 2) && x.primer === '[1]'; }) &&
+        R.B_cadaUna.filter(function(x){ return x.items === 2 }).length === 1,
         JSON.stringify(R.B_cadaUna)],
       ['EL NUMERO NO CAMBIA al cambiar qué secciones se muestran',
         R.estable === true, 'A=' + R.A_num + ' B=' + R.B_num],
@@ -48114,9 +48124,12 @@ caso('TC-322', 'Evidencia: citas numeradas POR SECCION, con un solo dueno de la 
         'marcadas=' + R.marcadas + ' marcada=' + R.marcada + ' clave=' + clave],
       /* ADAPTADO el 2026-10-31 (tanda TGA-2, commit 5): el conteo pasa de DOS a TRES por la
          misma razon que la condicion de arriba. Lo que vigila -que el repintado no cierre la
-         bibliografia ni le pierda entradas- no cambia. */
+         bibliografia ni le pierda entradas- no cambia.
+         ADAPTADO OTRA VEZ el 2026-10-31 (tanda AJUSTES-3, commit 4): de TRES a CUATRO, por la
+         entrada de la AHA/ACC 2024 en la seccion de prevencion de muerte subita. Lo que vigila
+         sigue sin cambiar. */
       ['un repintado del panel CONSERVA la bibliografia abierta y sus entradas',
-        R.detTrasRepintado === true && R.biblioTrasRepintado === 3,
+        R.detTrasRepintado === true && R.biblioTrasRepintado === 4,
         'open=' + R.detTrasRepintado + ' items=' + R.biblioTrasRepintado],
       ['la marca del corchete SOBREVIVE al repintado, UNA sola y en SU seccion',
         R.marcadasTrasRepintado === 1 && R.marcaTrasRepintado === clave &&
@@ -99864,13 +99877,20 @@ caso('TC-558', 'Tanda IMAGENES-3 parte A: el visor de Imagenes guardadas reprodu
     try { igImgPptPedir(); } catch (e) {}
     await esperar(80);
     const t = (EL('ig-ppt-aviso-txt') || {}).textContent || '';
-    d1 = (t.indexOf('video') > -1 && t.indexOf('Tapar datos') > -1 && t.indexOf('primer cuadro') > -1)
+    /* ADAPTADA (TANDA AJUSTES-3, 31/10/2026). Hasta hoy el aviso decia que «de un video va solo
+       su primer cuadro»; el commit 1 de esta tanda hizo que el mazo incrustara el CLIP COMPLETO,
+       asi que esa frase dejo de ser cierta y la condicion la daba por buena. Ahora exige que el
+       aviso diga que el clip entra COMPLETO -que es lo que cambia el riesgo de privacidad- y
+       sigue exigiendo que nombre el video, «Tapar datos» y el primer cuadro, que es lo unico que
+       la tapa cubre. */
+    d1 = (t.indexOf('video') > -1 && t.indexOf('Tapar datos') > -1 &&
+          t.indexOf('primer cuadro') > -1 && t.indexOf('COMPLETO') > -1)
          ? 'nombra los videos' : 'NO los nombra: ' + t.slice(0, 90);
     try { if (F('igImgPptAviso')) igImgPptAviso(false); } catch (e) {}
     window.igImgMeta = viejoMeta;
     _igImgSel.length = 0; viejoSel.forEach(x => _igImgSel.push(x));
   }
-  ex.push(['(D1) el aviso de privacidad nombra el video, su primer cuadro y «Tapar datos»',
+  ex.push(['(D1) el aviso dice que el clip entra COMPLETO, y nombra el primer cuadro y «Tapar datos»',
            d1, 'nombra los videos']);
 
   return { extra: EXP };
@@ -100519,7 +100539,11 @@ caso('TC-563', 'Tanda TGA-3: la cirugia realizada se dice UNA sola vez en el cue
   const papel = cm ? (cm.txt + ' ' + cm.resumen) : '';
   ex.push(['(C3) CONTROL NEGATIVO del censo: el papel SI dice la recomendacion',
            veces('desfibrilador', papel) > 0 ? 'la dice' : 'NO LA DICE', 'la dice']);
-  const secMch = FN('_indMCH') ? JSON.stringify(FN('_indMCH')() || {}) : '';
+  /* ⚠️ ADAPTADO (TANDA AJUSTES-3): este censo miraba SOLO _indMCH -la seccion de la hipertrofia
+     y la obstruccion- y la recomendacion de desfibrilador vive en _indMCHSCD, la de prevencion
+     de muerte subita. Con una sola seccion el censo daba cero sin que eso probara nada. */
+  const secMch = (FN('_indMCH') ? JSON.stringify(FN('_indMCH')() || {}) : '') + ' ' +
+                 (FN('_indMCHSCD') ? JSON.stringify(FN('_indMCHSCD')() || {}) : '');
   /* OJO: VINFO es una constante de nivel de script y NO esta en window —window.VINFO da
      undefined y Object.keys revienta—. En el ambito de la pagina se lo nombra pelado. Costo una
      corrida. Y ojo tambien con los acentos graves: este comentario vive en un template. */
@@ -100532,15 +100556,35 @@ caso('TC-563', 'Tanda TGA-3: la cirugia realizada se dice UNA sola vez en el cue
   ex.push(['(C1) DENOMINADOR: la Evidencia de la MCH y el registro de globos no estan vacios',
            (secMch.length > 200 ? 'seccion' : 'SECCION VACIA') + '/' +
            (Object.keys(_VI).length > 60 ? 'globos' : 'POCOS GLOBOS'), 'seccion/globos']);
-  ex.push(['(C2) la recomendacion de desfibrilador NO vive en la Evidencia de la MCH',
-           veces('desfibrilador', secMch), 0]);
+  /* ADAPTADA (TANDA AJUSTES-3, 31/10/2026): INVERTIDA, y es el dia que este caso esperaba.
+     Decia que la recomendacion NO vive en la Evidencia -esa era la MEDICION que dejaba la poda
+     parada, y su propio comentario dice «si alguna vez la recomendacion entra en la Evidencia o
+     en un ⓘ con su fuente, (C2) se pone rojo y recien entonces se puede podar»-. El commit 4 de
+     esta tanda la cargo, de la AHA/ACC 2024 leida en imagen, con su clase, su nivel y su folio.
+     Ahora exige lo contrario, Y ADEMAS que la fuente este: una recomendacion sin fuente en la
+     Evidencia seria peor que no tenerla. */
+  ex.push(['(C2) la recomendacion de desfibrilador SI vive YA en la Evidencia de la MCH',
+           veces('desfibrilador', secMch) > 0 ? 'vive' : 'NO VIVE', 'vive']);
+  ex.push(['(C2b) y con su fuente: la AHA/ACC 2024 y su folio',
+           (secMch.indexOf('AHA/ACC 2024') > -1 ? 'guia' : 'SIN GUIA') + '/' +
+           (secMch.indexOf('e1267') > -1 ? 'folio' : 'SIN FOLIO'), 'guia/folio']);
   ex.push(['(C4) ni en ninguno de los globos ⓘ', vinfo.join(',') || 'ninguno', 'ninguno']);
   ex.push(['(C5) ni en ninguna ficha de Referencias', refs.join(',') || 'ninguna', 'ninguna']);
-  /* y por eso el podador la DEJA ENTERA: es lo que IMG3-g declaro y esta tanda confirma. */
+  /* ADAPTADA (TANDA AJUSTES-3, 31/10/2026). El podador SIGUE dejandola parada -eso no cambio y
+     se mide igual, porque es el motivo por el que hizo falta otra via-, pero la MCH ya NO pasa
+     por el: CC_PPT le puso papel:true y la diapositiva lee mchConclusion().papel, como la
+     coartacion. Las dos cosas se miden: que el podador generico sigue sin poder, y que la via
+     nueva SI publica la descripcion sin la recomendacion. */
   const p = FN('_ccPptPodar') ? FN('_ccPptPodar')(cm ? (cm.resumen || cm.txt) : '') : { parado: 'SIN FN', t: '' };
-  ex.push(['(C6) el podador del PPT la deja PARADA, sin perder el recuento',
+  ex.push(['(C6) el podador generico la SIGUE dejando parada, sin perder el recuento',
            p.parado + '/' + (p.t === (cm.resumen || cm.txt) ? 'entera' : 'RECORTADA'),
            'true/entera']);
+  ex.push(['(C7) pero la MCH ya no pasa por el: tiene su propia salida de papel',
+           cm && typeof cm.papel === 'string' && cm.papel.length > 20 ? 'si' : 'NO', 'si']);
+  ex.push(['(C8) y esa salida NO dice la recomendacion, ni la guia, ni la clase',
+           veces('desfibrilador', cm ? cm.papel : '') + '/' +
+           veces('AHA/ACC', cm ? cm.papel : '') + '/' + veces('Clase', cm ? cm.papel : ''),
+           '0/0/0']);
 
   return { extra: EXP };
   })();
@@ -101001,7 +101045,12 @@ caso('TC-566', 'Tanda TGA-2: los paneles de Evidencia de la comunicacion interau
    (A8) con el gradiente por debajo de 30 mmHg esta seccion SI aplica aunque la de reduccion
    septal no -son dos preguntas distintas-; (B3) una respuesta en «no» no cuenta como presente.
    -------------------------------------------------------------------------------------- */
-caso('TC-567', 'Tanda TGA-2: la tabla de recomendaciones 23 de la ESC 2023 -prevencion de muerte subita en la miocardiopatia hipertrofica- entra en el panel de Evidencia como seccion propia, con sus nueve filas, su clase y su nivel y tres preguntas de tres estados; lee el score y los dos hallazgos de la banda baja de sus duenos sin recalcular nada; y la poda de esa recomendacion en el PPT sigue PARADA porque la guia AHA/ACC 2020 que el mismo texto cita no esta en la biblioteca', `
+/* ADAPTADO (TANDA AJUSTES-3, 31/10/2026): el titulo afirmaba que la poda del PPT «sigue PARADA
+   porque la guia AHA/ACC 2020 no esta en la biblioteca». El commit 4 de esta tanda leyo la
+   AHA/ACC 2024 EN IMAGEN -que si esta-, la cargo en la Evidencia y recien entonces saco la
+   recomendacion de la diapositiva. Lo que NO cambio es el informe ni el PDF, y eso es lo que
+   (C1) y (C2) siguen midiendo. */
+caso('TC-567', 'Tanda TGA-2 + AJUSTES-3: la tabla de recomendaciones 23 de la ESC 2023 -prevencion de muerte subita en la miocardiopatia hipertrofica- entra en el panel de Evidencia como seccion propia, con sus nueve filas, su clase y su nivel y tres preguntas de tres estados; lee el score y los dos hallazgos de la banda baja de sus duenos sin recalcular nada; y el informe y el PDF SIGUEN diciendo la recomendacion de desfibrilador con su guia, que es lo que el PPT dejo de decir', `
   return (async () => {
   const EXP = [];
   const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]),
@@ -101040,10 +101089,29 @@ caso('TC-567', 'Tanda TGA-2: la tabla de recomendaciones 23 de la ESC 2023 -prev
   pon('mch_fibrosis_rmn', 'si'); pon('mch_aneurisma_apical', 'si');
   const A = leer();
   ex.push(['(A1) DENOMINADOR: la escena despierta la seccion', A.aplica ? 'si' : 'NO', 'si']);
-  ex.push(['(A2) las nueve filas de la Tabla 23, por clase',
-           A.cl.I + '/' + A.cl.IIa + '/' + A.cl.IIb, '4/2/3']);
+  /* ADAPTADA (TANDA AJUSTES-3, 31/10/2026): 4/2/3 -> 5/3/4. Este contador recorre TODOS los
+     bloques de la seccion, y el commit 4 agrego el de la AHA/ACC 2024, que suma una Clase I
+     (C-EO), una IIa y una IIb -su Clase III no entra, porque el contador pide «Clase I · » y
+     «Clase III (Danio)» no empieza asi-. El invariante de la Tabla 23 NO se perdio: se mide
+     aparte en (A2b), sobre los TRES bloques de la ESC, para que siga pudiendo fallar solo. */
+  ex.push(['(A2) las filas con clase de los CUATRO bloques',
+           A.cl.I + '/' + A.cl.IIa + '/' + A.cl.IIb, '5/3/4']);
+  ex.push(['(A2b) y las nueve filas de la Tabla 23, contadas sobre los tres bloques de la ESC',
+           (function () { const c = { I:0, IIa:0, IIb:0 };
+             (A.lin || []).forEach(function (t) {
+               /* El discriminante es el NIVEL y no la sigla: las lineas de la AHA no dicen «AHA»
+                  en su texto, solo su titulo y su fuente. La ESC usa «Nivel B» a secas; la AHA,
+                  «B-NR» y «C-EO», que es la nomenclatura de su propio sistema. */
+               if (String(t).indexOf('B-NR') > -1 || String(t).indexOf('C-EO') > -1) return;
+               if (t.indexOf('Clase I \u00b7 ') === 0) c.I++;
+               if (t.indexOf('Clase IIa') === 0) c.IIa++;
+               if (t.indexOf('Clase IIb') === 0) c.IIb++; });
+             return c.I + '/' + c.IIa + '/' + c.IIb; })(), '4/2/3']);
   ex.push(['(A3) tres preguntas, todas con botonera', A.preg + '/' + A.conCtrl, '3/3']);
-  ex.push(['(A4) tres bloques: secundaria, como se estima y cuando el desfibrilador', A.bloques, 3]);
+  /* ADAPTADA (TANDA AJUSTES-3, 31/10/2026): TRES -> CUATRO. El commit 4 agrego el bloque de la
+     AHA/ACC 2024, leida en imagen, para que la recomendacion siguiera viviendo en algun lado
+     antes de retirarla del PPT. Los tres de la ESC 2023 no se tocaron. */
+  ex.push(['(A4) cuatro bloques: secundaria, como se estima, cuando el desfibrilador y la AHA', A.bloques, 4]);
   ex.push(['(A5) cita la Tabla 23 con su hoja y su folio',
            tiene(A.lin.join(' '), 'Tabla de recomendaciones 23, hoja 59, folio 3561') +
            tiene(A.lin.join(' '), 'hoja 60, folio 3562'), 'sisi']);
@@ -101080,10 +101148,18 @@ caso('TC-567', 'Tanda TGA-2: la tabla de recomendaciones 23 de la ESC 2023 -prev
   const cm = FN('mchConclusion') ? FN('mchConclusion')() : null;
   ex.push(['(C0) DENOMINADOR: la conclusion de la MCH se emite de verdad', cm ? 'si' : 'NO', 'si']);
   const papel = cm ? (cm.txt + ' ' + cm.resumen) : '';
-  ex.push(['(C1) el papel SIGUE diciendo la recomendacion de desfibrilador: la poda esta PARADA',
+  /* ADAPTADAS (TANDA AJUSTES-3): el sentido de las dos no cambia -el informe y el PDF siguen
+     diciendolo, y esta tanda los deja identicos a proposito- pero su NOMBRE afirmaba que eso era
+     «la poda PARADA», y ya no lo es: el PPT dejo de decirlo por otra via. */
+  ex.push(['(C1) el informe y el PDF SIGUEN diciendo la recomendacion de desfibrilador',
            veces('desfibrilador', papel) > 0 ? 'la dice' : 'NO LA DICE', 'la dice']);
-  ex.push(['(C2) y sigue citando la AHA/ACC 2020, que es la fuente que NO esta en la biblioteca',
+  ex.push(['(C2) y siguen rotulandola AHA/ACC 2020, que es la etiqueta que esta tanda NO toco',
            tiene(papel, 'AHA/ACC 2020'), 'si']);
+  /* Y LO QUE SI CAMBIO: la diapositiva. Se le pregunta al dueno del papel del PPT, no al
+     resumen, porque son dos salidas distintas desde el commit 4. */
+  ex.push(['(C2b) pero la salida del PPT ya no la dice, ni nombra guia',
+           veces('desfibrilador', cm ? (cm.papel || '') : '') + '/' +
+           veces('AHA/ACC', cm ? (cm.papel || '') : ''), '0/0']);
   const p = FN('_ccPptPodar') ? FN('_ccPptPodar')(cm ? (cm.resumen || cm.txt) : '') : { parado:'SIN FN', t:'' };
   ex.push(['(C3) el podador la deja ENTERA, sin perder el recuento',
            p.parado + '/' + (p.t === (cm.resumen || cm.txt) ? 'entera' : 'RECORTADA'), 'true/entera']);
@@ -101108,6 +101184,543 @@ caso('TC-567', 'Tanda TGA-2: la tabla de recomendaciones 23 de la ESC 2023 -prev
   limpiar();
   ex.push(['(E1) CONTROL NEGATIVO: sin miocardiopatia cargada la seccion no aplica',
            leer().aplica ? 'APLICA' : 'no', 'no']);
+
+  return { extra: EXP };
+  })();
+`);
+
+
+/* -- TC-568 ---------------------------------------------------------------------------------
+   TANDA AJUSTES-3, COMMIT 1 (2026-10-31). El bucle del video en los DOS caminos de PPT.
+
+   POR QUE SE MIDEN LAS PIEZAS Y NO UN .pptx GENERADO: el post-proceso es PURO -recibe un zip y
+   devuelve el mismo zip con el arbol de tiempo escrito-, asi que el acomodo se puede fijar sin
+   bajar PptxGenJS del CDN. Ese es el rojo intermitente que este repositorio ya documenta en E-h.
+   El PPT generado de verdad, en los dos caminos, lo mide scripts/_probe_aj3bucle.mjs.
+
+   EL ARBOL QUE SE ESPERA es el del experimento que el medico ABRIO EN POWERPOINT el 31/10/2026
+   -no pidio reparar y el video se repite-. Esta transcrito aca con el spid normalizado: el valor
+   del id es libre y lo elige la funcion (max+1), lo demas es identico caracter por caracter.
+
+   ADVERTENCIA: sin acentos graves en este bloque ni en su cuerpo -es un template literal-, y sin
+   barras invertidas simples, que no sobreviven al template.
+*/
+caso('TC-568', 'Tanda AJUSTES-3: el bucle del video entra en el paquete con el MISMO arbol de tiempo del experimento verificado en PowerPoint, con un spid unico por video y sin referencias colgadas; soporta varios videos en una diapositiva; y si la validacion estricta falla NO escribe nada -el mazo sale sin bucle y sano-, con su aviso', `
+  return (async () => {
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]),
+                 'dio «' + t[1] + '» · esperado «' + t[2] + '»']) };
+  const FN = (n) => (typeof window[n] === 'function') ? window[n] : null;
+  const veces = (t, h) => String(h || '').split(t).length - 1;
+
+  /* ── (A) DENOMINADORES ─────────────────────────────────────────────────────────────────── */
+  ex.push(['(A0) DENOMINADOR: las tres piezas del bucle existen',
+           (FN('_pptxBucleVideos') ? 'v' : '-') + (FN('_pptxBucleEnDiapo') ? 'd' : '-') +
+           (FN('_pptxPicsDeVideo') ? 'p' : '-'), 'vdp']);
+  /* ⚠️ EL POST-PROCESO SE PRUEBA CON UN ZIP DE JUGUETE, NO CON JSZip. La libreria llega por el
+     CDN junto con PptxGenJS, y ese es el rojo intermitente que E-h documenta: un caso que
+     dependa de ella falla por la conexion y no por un invariante. _pptxBucleVideos solo usa
+     tres cosas del zip -la lista de partes, leer una parte como cadena y escribirla-, asi que un
+     objeto con esa interfaz lo ejercita entero. Se declara que es un doble. */
+  const zipDeJuguete = (partes) => { const m = Object.assign({}, partes);
+    const o = { files: {}, file: function (n, c) {
+      if (arguments.length > 1) { m[n] = c; o.files[n] = { dir: false }; return o; }
+      return (n in m) ? { async: function () { return Promise.resolve(m[n]); } } : null; },
+      leer: function (n) { return m[n]; } };
+    Object.keys(m).forEach(function (k) { o.files[k] = { dir: false }; });
+    return o; };
+  ex.push(['(A1) DENOMINADOR: el zip de juguete expone lo que el post-proceso usa',
+           (function () { const z = zipDeJuguete({ 'a.xml': 'x' });
+             return (Object.keys(z.files).length === 1 ? 'files' : '-') +
+                    (z.file('a.xml') ? '/leer' : '/-'); })(), 'files/leer']);
+
+  /* Una diapositiva como las que escribe PptxGenJS: dos cuadros de texto y un video, CON EL
+     MISMO id en el segundo texto y en el video, que es el defecto de la libreria que la tanda
+     TGA midio. El marcador del video es a:videoFile. */
+  /* ⚠️ LOS MARCADORES VAN ENTRE GUIONES BAJOS Y LA PRIMERA VERSION NO: eran 'ID' y 'N', y
+     String.replace con una cadena reemplaza la PRIMERA aparicion — la N de <p:cNvPr>, que queda
+     <p:c0vPr> y deja de ser un shape. El efecto era que _pptxPicsDeVideo contaba CERO videos
+     sobre una diapositiva que si los tiene, o sea un denominador vacio que se lee como que la
+     funcion no encuentra nada. Costo una corrida. */
+  const PIC = '<p:pic><p:nvPicPr><p:cNvPr id="__ID__" name="Media __N__">' +
+    '<a:hlinkClick r:id="" action="ppaction://media"/></p:cNvPr><p:cNvPicPr/>' +
+    '<p:nvPr><a:videoFile r:link="rId1"/></p:nvPr></p:nvPicPr>' +
+    '<p:blipFill><a:blip r:embed="rId3"/></p:blipFill><p:spPr/></p:pic>';
+  const diapo = (pics) => '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<p:sld xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"' +
+    ' xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"' +
+    ' xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main">' +
+    '<p:cSld><p:spTree>' +
+    '<p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr>' +
+    '<p:sp><p:nvSpPr><p:cNvPr id="2" name="Text 0"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr></p:sp>' +
+    '<p:sp><p:nvSpPr><p:cNvPr id="3" name="Text 1"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr></p:sp>' +
+    pics + '</p:spTree></p:cSld><p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr></p:sld>';
+  const unVideo = diapo(PIC.replace('__ID__', '3').replace('__N__', '0'));
+
+  /* ── (B) EL ARBOL DE TIEMPO, contra el del experimento ─────────────────────────────────── */
+  const r1 = FN('_pptxBucleEnDiapo') ? FN('_pptxBucleEnDiapo')(unVideo) : null;
+  ex.push(['(B0) DENOMINADOR: la diapositiva de prueba tiene UN video y el id DUPLICADO',
+           (FN('_pptxPicsDeVideo') ? FN('_pptxPicsDeVideo')(unVideo).length : -1) + '/' +
+           veces('id="3"', unVideo), '1/2']);
+  ex.push(['(B1) la marca', r1 ? 'marcada' : 'NO MARCADA', 'marcada']);
+  const ESPERADO = '<p:timing><p:tnLst><p:par>' +
+    '<p:cTn id="1" dur="indefinite" restart="never" nodeType="tmRoot"><p:childTnLst>' +
+    '<p:video><p:cMediaNode vol="80000" showWhenStopped="1">' +
+    '<p:cTn id="2" fill="hold" display="0" repeatCount="indefinite">' +
+    '<p:stCondLst><p:cond delay="indefinite"/></p:stCondLst>' +
+    '</p:cTn>' +
+    '<p:tgtEl><p:spTgt spid="X"/></p:tgtEl>' +
+    '</p:cMediaNode></p:video>' +
+    '</p:childTnLst></p:cTn></p:par></p:tnLst></p:timing>';
+  const soloTiming = (x) => { const m = String(x || '').match(/<p:timing>[^]*<\\/p:timing>/); return m ? m[0] : ''; };
+  const normSpid = (x) => String(x || '').replace(/spid="[0-9]+"/g, 'spid="X"');
+  ex.push(['(B2) el arbol es el del experimento, salvo el VALOR del spid',
+           r1 ? (normSpid(soloTiming(r1.xml)) === ESPERADO ? 'identico' : 'DISTINTO: ' +
+                 normSpid(soloTiming(r1.xml)).slice(0, 140)) : 'SIN MARCA', 'identico']);
+  ex.push(['(B3) el video gana un id LIBRE y ninguno queda duplicado',
+           r1 ? (function () { const ids = (r1.xml.match(/<p:cNvPr id="[0-9]+"/g) || []);
+             return ids.length + '/' + (new Set(ids)).size; })() : 'SIN MARCA', '4/4']);
+  ex.push(['(B4) va DESPUES de p:clrMapOvr, que es el orden que CT_Slide declara',
+           r1 ? (r1.xml.indexOf('<p:timing>') > r1.xml.indexOf('</p:clrMapOvr>') ? 'despues' : 'ANTES')
+              : 'SIN MARCA', 'despues']);
+  ex.push(['(B5) NINGUNA REFERENCIA COLGADA: el spid apunta a un shape que existe, una sola vez',
+           r1 ? (function () { const sp = /<p:spTgt spid="([0-9]+)"/.exec(r1.xml);
+             if (!sp) return 'SIN spTgt';
+             return veces('<p:cNvPr id="' + sp[1] + '"', r1.xml); })() : 'SIN MARCA', 1]);
+  ex.push(['(B6) y el XML resultante parsea en modo estricto',
+           r1 ? (function () { const d = new DOMParser().parseFromString(r1.xml, 'application/xml');
+             return d.getElementsByTagName('parsererror').length === 0 &&
+                    d.documentElement.nodeName === 'p:sld' ? 'parsea' : 'NO PARSEA'; })()
+              : 'SIN MARCA', 'parsea']);
+
+  /* ── (C) VARIOS VIDEOS EN UNA DIAPOSITIVA, que es lo que la grilla de «Imagenes guardadas»
+         necesita: ahi pueden ir 1, 2 o 4 por hoja. ───────────────────────────────────────── */
+  const dosVideos = diapo(PIC.replace('__ID__', '3').replace('__N__', '0') +
+                          PIC.replace('__ID__', '7').replace('__N__', '1'));
+  const r2 = FN('_pptxBucleEnDiapo') ? FN('_pptxBucleEnDiapo')(dosVideos) : null;
+  ex.push(['(C0) DENOMINADOR: la diapositiva de prueba tiene DOS videos',
+           FN('_pptxPicsDeVideo') ? FN('_pptxPicsDeVideo')(dosVideos).length : -1, 2]);
+  ex.push(['(C1) sale UN p:video por video', r2 ? veces('<p:video>', r2.xml) : 'SIN MARCA', 2]);
+  ex.push(['(C2) con un spid distinto cada uno',
+           r2 ? (function () { const sp = (r2.xml.match(/spid="([0-9]+)"/g) || []);
+             return sp.length + '/' + (new Set(sp)).size; })() : 'SIN MARCA', '2/2']);
+  ex.push(['(C3) y los id de cTn del arbol son UNICOS',
+           r2 ? (function () { const c = (r2.xml.match(/<p:cTn id="([0-9]+)"/g) || []);
+             return c.length + '/' + (new Set(c)).size; })() : 'SIN MARCA', '3/3']);
+
+  /* ── (D) CONTROLES NEGATIVOS: tres diapositivas que NO se tocan ─────────────────────────── */
+  const sinVideo = diapo('');
+  ex.push(['(D1) CONTROL NEGATIVO: una diapositiva SIN video no se toca',
+           FN('_pptxBucleEnDiapo') ? String(FN('_pptxBucleEnDiapo')(sinVideo)) : 'SIN FN', 'null']);
+  ex.push(['(D2) CONTROL NEGATIVO: una que YA trae p:timing no se toca',
+           r1 && FN('_pptxBucleEnDiapo') ? String(FN('_pptxBucleEnDiapo')(r1.xml)) : 'SIN FN', 'null']);
+  ex.push(['(D3) CONTROL NEGATIVO: una sin el cierre de p:clrMapOvr no se toca',
+           FN('_pptxBucleEnDiapo')
+             ? String(FN('_pptxBucleEnDiapo')(unVideo.replace('</p:clrMapOvr>', ''))) : 'SIN FN', 'null']);
+
+  /* ── (E) EL POST-PROCESO SOBRE UN ZIP, y la CAIDA ───────────────────────────────────────── */
+  let e1 = 'NO SE PUDO', e2 = 'NO SE PUDO', e3 = 'NO SE PUDO', e4 = 'NO SE PUDO';
+  if (FN('_pptxBucleVideos')) {
+    const armar = () => zipDeJuguete({ 'ppt/slides/slide1.xml': unVideo,
+                                       'ppt/slides/slide2.xml': sinVideo });
+    const z1 = armar();
+    const res = await FN('_pptxBucleVideos')(z1);
+    e1 = res.diapos + '/' + res.videos + '/' + (res.falla || 'sin-falla');
+    const s1 = z1.leer('ppt/slides/slide1.xml');
+    const s2 = z1.leer('ppt/slides/slide2.xml');
+    e2 = (s1.indexOf('repeatCount="indefinite"') > -1 ? 'con' : 'SIN') + '/' +
+         (s2.indexOf('p:timing') > -1 ? 'TOCADA' : 'intacta');
+    /* LA CAIDA. Se rompe DOMParser para que toda validacion estricta falle, que es el escenario
+       que la orden pide medir: el mazo tiene que salir SIN bucle y el paquete sano. */
+    const oDP = window.DOMParser;
+    window.DOMParser = function () { return { parseFromString: function () {
+      return { documentElement: { nodeName: 'parsererror' },
+               getElementsByTagName: function (t) { return t === 'parsererror' ? [{}] : [] } } } } };
+    const z2 = armar();
+    let res2 = null;
+    try { res2 = await FN('_pptxBucleVideos')(z2); } catch (e) { res2 = { err: String(e).slice(0, 60) }; }
+    window.DOMParser = oDP;
+    e3 = res2 ? (res2.diapos + '/' + res2.videos + '/' + (res2.falla ? 'con-falla' : 'sin-falla')) : 'SIN RES';
+    const c1 = z2.leer('ppt/slides/slide1.xml');
+    /* El paquete queda SANO: la diapositiva es byte por byte la que entro. */
+    e4 = (c1 === unVideo ? 'intacta' : 'TOCADA') + '/' +
+         (new DOMParser().parseFromString(c1, 'application/xml')
+            .getElementsByTagName('parsererror').length === 0 ? 'parsea' : 'NO PARSEA');
+  }
+  ex.push(['(E1) el post-proceso marca UNA diapositiva y UN video, sin falla', e1, '1/1/sin-falla']);
+  ex.push(['(E2) la del video queda con repeatCount y la que no tiene video, INTACTA', e2, 'con/intacta']);
+  ex.push(['(E3) CAIDA: con la validacion rota no marca NADA y lo declara', e3, '0/0/con-falla']);
+  ex.push(['(E4) y el paquete sigue sano: la diapositiva es la que entro, y parsea', e4, 'intacta/parsea']);
+
+  /* ── (G) TODO O NADA, con el escenario que lo distingue ─────────────────────────────────
+     ⚠️ ESTA CONDICION NACIO DE UNA MUTACION QUE SOBREVIVIO. El bloque (E) tiene UNA sola
+     diapositiva con video, asi que cambiar el «si una falla, ninguna se escribe» por un «salteo
+     esa y sigo» daba exactamente el mismo resultado: no habia una segunda diapositiva que
+     escribir. Hace falta una que VALIDE y otra que NO, en el mismo paquete. La segunda se rompe
+     quitandole el cierre de p:clrMapOvr, que es un fallo de FORMA y no de validacion: asi se
+     ejercita la puerta de salida sin depender de DOMParser. */
+  let g1 = 'NO SE PUDO', g2 = 'NO SE PUDO';
+  if (FN('_pptxBucleVideos')) {
+    const zg = zipDeJuguete({ 'ppt/slides/slide1.xml': unVideo,
+                              'ppt/slides/slide2.xml': unVideo.replace('</p:clrMapOvr>', '') });
+    const rg = await FN('_pptxBucleVideos')(zg);
+    g1 = rg.diapos + '/' + rg.videos + '/' + (rg.falla ? 'con-falla' : 'sin-falla');
+    g2 = zg.leer('ppt/slides/slide1.xml').indexOf('p:timing') > -1 ? 'LA ESCRIBIO' : 'intacta';
+  }
+  ex.push(['(G1) con DOS videos y UNO que no valida, no se marca ninguno', g1, '0/0/con-falla']);
+  ex.push(['(G2) y la que SI validaba queda intacta: es todo o nada', g2, 'intacta']);
+
+  /* ── (F) EL CAMINO DE «IMAGENES GUARDADAS» incrusta el video ───────────────────────────── */
+  ex.push(['(F0) DENOMINADOR: el dueno unico de preparar un mp4 existe, compartido por los dos caminos',
+           FN('_pptVideoMp4Preparar') ? 'si' : 'NO', 'si']);
+  const src = String(FN('igImgPptExportar') || '');
+  ex.push(['(F1) el exportador de imagenes llama a addMedia, no solo a addImage',
+           (src.indexOf('addMedia') > -1 ? 'media' : 'SIN MEDIA') + '/' +
+           (src.indexOf('addImage') > -1 ? 'imagen' : 'SIN IMAGEN'), 'media/imagen']);
+  ex.push(['(F2) y cae al cuadro fijo cuando el video no se puede preparar',
+           src.indexOf('vidMotivo') > -1 ? 'cae' : 'NO CAE', 'cae']);
+  ex.push(['(F3) los dos umbrales de tamanio salen de las MISMAS constantes que el otro camino',
+           (src.indexOf('PPT_PPTX_AVISO_MB') > -1 ? 'archivo' : 'SIN ARCHIVO') + '/' +
+           (src.indexOf('PPT_VIDEO_AVISO_MB') > -1 ? 'video' : 'SIN VIDEO'), 'archivo/video']);
+
+  return { extra: EXP };
+  })();
+`);
+
+
+/* -- TC-569 ---------------------------------------------------------------------------------
+   TANDA AJUSTES-3, COMMIT 2 (2026-10-31). Los botones de respuesta del panel de Evidencia.
+
+   LA PREMISA DE LA ORDEN ERA PARCIALMENTE FALSA, y el caso fija lo que se midio: con puntero
+   GRUESO los 39 botones YA median 44x44; con MOUSE median 22 por una media query deliberada
+   -no por un bug-, y CINCO de ellos tenian parte de su cuadrado tactil encima de OTRO boton.
+   La botonera salio de esa media query; el ⓘ de un termino se quedo, y ahora es el unico.
+
+   ⚠️ LOS NODOS DEL PANEL SE DESPRENDEN EN CADA REPINTADO -contestar una pregunta lo repinta-,
+   asi que la lista se vuelve a consultar despues de cada gesto. Es la trampa que TC-550 documenta.
+   ⚠️ Y el panel es un MODAL position:fixed: offsetParent da null aunque este abierto.
+
+   ADVERTENCIA: sin acentos graves en este bloque ni en su cuerpo -es un template literal-.
+*/
+caso('TC-569', 'Tanda AJUSTES-3: los botones Si / No / Sin dato de TODAS las preguntas del panel de Evidencia miden 44 px tambien con mouse, ninguno cae encima de otro control, el panel no crece, y el estado deja de depender solo del color', `
+  return (async () => {
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]),
+                 'dio «' + t[1] + '» · esperado «' + t[2] + '»']) };
+  const esperar = (ms) => new Promise(r => setTimeout(r, ms));
+  const pon = (id, v) => { const e = document.getElementById(id); if (!e) return 'NO ' + id;
+    e.value = String(v); e.dispatchEvent(new Event('input', { bubbles: true }));
+    e.dispatchEvent(new Event('change', { bubbles: true })); return e.value; };
+
+  /* La escena despierta VARIAS secciones con preguntas: la bicuspide, la transposicion, la CIA,
+     la CIV y la muerte subita de la miocardiopatia hipertrofica. Son las cinco que la orden
+     nombra, y hacen falta las cinco: con una sola, «todos los paneles» no se puede afirmar. */
+  try { if (typeof limpiarCampos === 'function') limpiarCampos(true); } catch (e) {}
+  pon('nombre', 'Prueba Botones'); pon('ci', '77777777'); pon('fecha_estudio', '2026-10-31');
+  pon('peso', '70'); pon('talla', '170'); pon('sexo', 'M'); pon('edad', '50');
+  pon('vab_presente', 'si'); pon('vab_tipo', 'rl'); pon('ao_asc', '52'); pon('ao_sin', '47');
+  pon('tga_tipo', 'dtga'); pon('tga_cirugia', 'jatene');
+  pon('cia_presente', 'si'); pon('civ_presente', 'si');
+  pon('mch_presente', 'si'); pon('siv', '18'); pon('mch_grad_reposo', '40');
+  try { if (typeof _recalcModulos === 'function') _recalcModulos(); } catch (e) {}
+  await esperar(500);
+
+  /* POR SU BOTON REAL, no llamando a la funcion: es el gesto del medico. */
+  const bt = document.querySelector('[onclick*="indicAbrir"]');
+  if (bt) { try { bt.click(); } catch (e) {} }
+  else if (typeof indicAbrir === 'function') { try { indicAbrir(); } catch (e) {} }
+  await esperar(900);
+  document.querySelectorAll('#indic-cuerpo details:not([open])').forEach(d => { try { d.open = true; } catch (e) {} });
+  await esperar(400);
+
+  const cu = document.getElementById('indic-cuerpo');
+  const bs = () => cu ? [].slice.call(cu.querySelectorAll('[data-ind-clin]')) : [];
+  ex.push(['(A0) DENOMINADOR: el panel abrio', cu ? 'abrio' : 'NO ABRIO', 'abrio']);
+  ex.push(['(A1) DENOMINADOR: la escena despierta preguntas de VARIAS secciones',
+           (function () { const k = bs().map(b => String(b.getAttribute('data-ind-clin')).split('.')[0]);
+             return (new Set(k)).size >= 3 ? 'varias' : 'SOLO ' + (new Set(k)).size; })(), 'varias']);
+  ex.push(['(A2) DENOMINADOR: hay botones que contar', bs().length > 10 ? 'hay' : 'POCOS: ' + bs().length, 'hay']);
+
+  /* ── (B) LOS 44 px ─────────────────────────────────────────────────────────────────────── */
+  const caja = () => bs().map(b => { const r = b.getBoundingClientRect(); return { w: r.width, h: r.height }; });
+  ex.push(['(B1) TODOS miden 44 px de alto',
+           (function () { const c = caja(); return c.filter(x => x.h >= 44).length + '/' + c.length; })(),
+           (function () { const n = bs().length; return n + '/' + n; })()]);
+  ex.push(['(B2) y TODOS llegan a 44 px de ancho',
+           (function () { const c = caja(); return c.filter(x => x.w >= 44).length + '/' + c.length; })(),
+           (function () { const n = bs().length; return n + '/' + n; })()]);
+
+  /* ── (C) NINGUNO CAE EN OTRO CONTROL. Es lo que la orden prohibe, y lo que tenia el defecto:
+         con el boton en 22 px, CINCO tenian parte de su 44x44 encima de un vecino. Se miden
+         nueve puntos de un cuadrado de 44 centrado en el boton; los que caen fuera de la ventana
+         no cuentan -elementFromPoint devuelve null ahi, que no es «tapado»-. ─────────────── */
+  const enOtro = (b) => { const r = b.getBoundingClientRect();
+    const cx = r.left + r.width / 2, cy = r.top + r.height / 2, d = 21;
+    const pts = [[cx - d, cy - d], [cx + d, cy - d], [cx - d, cy + d], [cx + d, cy + d],
+                 [cx, cy - d], [cx, cy + d], [cx - d, cy], [cx + d, cy], [cx, cy]];
+    let n = 0;
+    pts.forEach(function (p) {
+      if (p[0] < 0 || p[1] < 0 || p[0] > innerWidth || p[1] > innerHeight) return;
+      const el = document.elementFromPoint(p[0], p[1]);
+      if (!el || el === b || b.contains(el)) return;
+      const otro = el.closest ? el.closest('[data-ind-clin],[data-ind-term],button,select,input,textarea,a') : null;
+      if (otro && otro !== b) n++;
+    });
+    return n; };
+  ex.push(['(C1) ningun boton tiene parte de su area tactil encima de OTRO control',
+           bs().filter(b => enOtro(b) > 0).length, 0]);
+
+  /* ── (D) LA MEDIA QUERY: la botonera salio, el ⓘ de un termino se quedo ────────────────── */
+  const hoja = (function () { let t = '';
+    for (let i = 0; i < document.styleSheets.length; i++) {
+      try { const rs = document.styleSheets[i].cssRules;
+        for (let j = 0; j < rs.length; j++) t += rs[j].cssText; } catch (e) {} }
+    return t; })();
+  ex.push(['(D1) la regla de puntero fino YA NO nombra la botonera',
+           hoja.indexOf('data-ind-clin') > -1 && /pointer: *fine[^}]*data-ind-clin/.test(hoja)
+             ? 'LA NOMBRA' : 'no la nombra', 'no la nombra']);
+  ex.push(['(D2) CONTROL NEGATIVO: y SI sigue nombrando el ⓘ de un termino',
+           hoja.indexOf('data-ind-term') > -1 ? 'lo nombra' : 'NO LO NOMBRA', 'lo nombra']);
+
+  /* ── (E) EL ESTADO NO DEPENDE SOLO DEL COLOR ───────────────────────────────────────────── */
+  ex.push(['(E0) DENOMINADOR: ninguno esta marcado al abrir',
+           bs().filter(b => b.getAttribute('aria-pressed') === 'true').length, 0]);
+  ex.push(['(E1) CONTROL NEGATIVO: sin marcar, ninguno lleva la marca de forma',
+           bs().filter(b => /^\\u2713/.test(String(b.textContent || '').trim())).length, 0]);
+  const primera = bs()[0];
+  const clave0 = primera ? primera.getAttribute('data-ind-clin') : '';
+  const val0 = primera ? primera.getAttribute('data-ind-val') : '';
+  if (primera) { try { primera.click(); } catch (e) {} }
+  await esperar(600);
+  /* ⚠️ SE VUELVE A CONSULTAR EL DOM: el clic repinta el panel y el nodo anterior queda
+     desprendido -informa 0x0 y textContent del arbol viejo-. */
+  const marcado = bs().filter(b => b.getAttribute('aria-pressed') === 'true');
+  ex.push(['(E2) el gesto marca UNO solo', marcado.length, 1]);
+  ex.push(['(E3) el marcado lleva ademas de color una marca de FORMA',
+           marcado.length ? (/^\\u2713/.test(String(marcado[0].textContent || '').trim()) ? 'con marca' : 'SIN MARCA')
+                          : 'NO SE MARCO', 'con marca']);
+  ex.push(['(E4) y es el que se clickeo', marcado.length
+             ? (marcado[0].getAttribute('data-ind-clin') + '=' + marcado[0].getAttribute('data-ind-val'))
+             : 'NINGUNO', clave0 + '=' + val0]);
+  ex.push(['(E5) CONTROL NEGATIVO: los demas siguen sin la marca',
+           bs().filter(b => /^\\u2713/.test(String(b.textContent || '').trim())).length, 1]);
+  ex.push(['(E6) y el aria-pressed sigue estando en TODOS',
+           bs().filter(b => b.hasAttribute('aria-pressed')).length + '/' + bs().length,
+           bs().length + '/' + bs().length]);
+  ex.push(['(E7) los que crecieron siguen en 44 px despues del repintado',
+           caja().filter(x => x.h >= 44).length + '/' + bs().length,
+           bs().length + '/' + bs().length]);
+
+  /* ── (F) EL PANEL NO CRECE NI DESBORDA ─────────────────────────────────────────────────── */
+  ex.push(['(F1) cero barra horizontal del cuerpo',
+           Math.max(0, document.documentElement.scrollWidth - innerWidth), 0]);
+  ex.push(['(F2) cero textos recortados dentro del panel',
+           cu ? [].slice.call(cu.querySelectorAll('*')).filter(function (e) {
+             if (e.children.length) return false;
+             const t = String(e.textContent || '').trim(); if (!t) return false;
+             return e.scrollWidth > e.clientWidth + 2; }).length : 'SIN PANEL', 0]);
+
+  try { const ov = document.getElementById('indic-overlay'); if (ov) ov.classList.remove('open'); } catch (e) {}
+  return { extra: EXP };
+  })();
+`);
+
+
+/* -- TC-570 ---------------------------------------------------------------------------------
+   TANDA AJUSTES-3, COMMIT 3 (2026-10-31). La clausula de la insuficiencia tricuspidea sistemica.
+
+   La TGA-2 retiro el parrafo de pantalla que afirmaba que el ventriculo derecho es el sistemico
+   -falso con Jatene y con Rastelli- y de todo lo que salio, una sola oracion no quedo en ningun
+   lado. TGA2-b la declaro perdida. Vuelve al ⓘ de la seccion, con SUS PALABRAS INTACTAS.
+
+   ADVERTENCIA: sin acentos graves en este bloque ni en su cuerpo -es un template literal-.
+*/
+caso('TC-570', 'Tanda AJUSTES-3: la clausula de la insuficiencia tricuspidea sistemica vuelve LITERAL al ⓘ de la seccion de la transposicion, rotulada «Criterio de EcoSmart» y sin folio ni clase; el parrafo de pantalla sigue neutro y el papel no la dice', `
+  return (async () => {
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]),
+                 'dio «' + t[1] + '» · esperado «' + t[2] + '»']) };
+  const esperar = (ms) => new Promise(r => setTimeout(r, ms));
+  const pon = (id, v) => { const e = document.getElementById(id); if (!e) return 'NO ' + id;
+    e.value = String(v); e.dispatchEvent(new Event('input', { bubbles: true }));
+    e.dispatchEvent(new Event('change', { bubbles: true })); return e.value; };
+  const veces = (t, h) => String(h || '').split(t).length - 1;
+
+  /* LA CLAUSULA, caracter por caracter como estaba en el parrafo de 61f6968 (linea 18038). Si
+     alguien le cambia una palabra, este caso se pone rojo: eso es lo que «sin cambiar sus
+     palabras» quiere decir. */
+  const CLAUSULA = 'La valvula tricuspide de estos pacientes es la auriculoventricular sistemica: su insuficiencia pesa como pesaria una mitral.'
+    .replace('valvula', 'v\\u00e1lvula').replace('tricuspide', 'tric\\u00faspide')
+    .replace('sistemica', 'sist\\u00e9mica').replace('pesaria', 'pesar\\u00eda');
+
+  /* ── (A) EL REGISTRO DE GLOBOS ─────────────────────────────────────────────────────────── */
+  const _VI = (typeof VINFO !== 'undefined') ? VINFO : {};
+  ex.push(['(A0) DENOMINADOR: el registro de globos no esta vacio',
+           Object.keys(_VI).length > 60 ? 'lleno' : 'VACIO: ' + Object.keys(_VI).length, 'lleno']);
+  const g = _VI['tga-3d'] || null;
+  ex.push(['(A1) DENOMINADOR: el ⓘ de la seccion de la transposicion existe', g ? 'si' : 'NO', 'si']);
+  const texto = g ? String((g.lee || '') + ' ' + (g.ojo || '')) : '';
+  ex.push(['(A2) la clausula esta LITERAL en ese ⓘ, una sola vez', veces(CLAUSULA, texto), 1]);
+  ex.push(['(A3) rotulada «Criterio de EcoSmart», porque la analogia no esta en ninguna hoja leida',
+           texto.indexOf('Criterio de EcoSmart') > -1 ? 'rotulada' : 'SIN ROTULO', 'rotulada']);
+  ex.push(['(A4) y el rotulo va ANTES de la clausula, no suelto',
+           texto.indexOf('Criterio de EcoSmart') > -1 && texto.indexOf(CLAUSULA) > texto.indexOf('Criterio de EcoSmart')
+             ? 'antes' : 'NO ANTES', 'antes']);
+  ex.push(['(A5) el antecedente se explicita AFUERA de la clausula, que queda intacta',
+           texto.indexOf('congenitamente corregida'.replace('congenitamente', 'cong\\u00e9nitamente')) > -1
+             ? 'con antecedente' : 'SIN ANTECEDENTE', 'con antecedente']);
+  ex.push(['(A6) esta linea NO es una recomendacion: sin folio, sin clase y sin nombrar la guia',
+           veces('folio', texto) + '/' + veces('Clase', texto) + '/' + veces('ESC 2020', texto), '0/0/0']);
+
+  /* ── (B) CONTROL NEGATIVO: el parrafo de pantalla sigue NEUTRO ─────────────────────────── */
+  const sec = document.getElementById('sacc-cc-tga');
+  const p0 = sec ? sec.querySelector('.card-body p') : null;
+  ex.push(['(B0) DENOMINADOR: el parrafo de la seccion existe', p0 ? 'si' : 'NO', 'si']);
+  const tp = p0 ? String(p0.textContent || '') : '';
+  ex.push(['(B1) CONTROL NEGATIVO: el parrafo NO recupero la clausula', veces(CLAUSULA, tp), 0]);
+  ex.push(['(B2) y sigue sin afirmar cual es el ventriculo sistemico',
+           /el ventr.culo derecho es el ventr.culo sist.mico/i.test(tp) ? 'LO AFIRMA' : 'neutro', 'neutro']);
+
+  /* ── (C) CONTROL NEGATIVO: el PAPEL no la dice, en ninguna de sus superficies ──────────── */
+  try { if (typeof limpiarCampos === 'function') limpiarCampos(true); } catch (e) {}
+  pon('nombre', 'Prueba IT sistemica'); pon('ci', '12121212'); pon('fecha_estudio', '2026-10-31');
+  pon('sexo', 'M'); pon('edad', '40'); pon('tga_tipo', 'cctga'); pon('vd_bas', '45');
+  const ck = document.getElementById('tga_incluir_chk');
+  if (ck) { ck.checked = true; ck.dispatchEvent(new Event('change', { bubbles: true })); }
+  try { if (typeof _recalcModulos === 'function') _recalcModulos(); } catch (e) {}
+  await esperar(400);
+  try { if (typeof generarInforme === 'function') generarInforme(); } catch (e) {}
+  await esperar(600);
+  const inf = String((document.getElementById('informe_texto') || {}).value || '');
+  const suma = String((document.getElementById('en_suma') || {}).value || '');
+  ex.push(['(C0) DENOMINADOR: el informe se emitio y nombra la transposicion',
+           inf.length > 200 && /transposici/i.test(inf) ? 'si' : 'NO (' + inf.length + ')', 'si']);
+  ex.push(['(C1) CONTROL NEGATIVO: el informe no lleva la clausula', veces(CLAUSULA, inf), 0]);
+  ex.push(['(C2) CONTROL NEGATIVO: el EN SUMA tampoco', veces(CLAUSULA, suma), 0]);
+  ex.push(['(C3) y la frase suelta «pesa como pesaria» tampoco esta en el papel',
+           veces('pesa como pesar', inf + ' ' + suma), 0]);
+
+  return { extra: EXP };
+  })();
+`);
+
+
+/* -- TC-571 ---------------------------------------------------------------------------------
+   TANDA AJUSTES-3, COMMIT 4 (2026-10-31). La miocardiopatia hipertrofica del PPT de congenitas.
+
+   IMG3-g quedo abierto porque la linea pega la recomendacion del desfibrilador a un recuento y
+   _ccPptPodar no podia podarla sin llevarse un numero -medido: parado: true-. La salida NO fue
+   reescribir el texto ni reordenarlo: resumen lo leen DOS papeles -la hoja del PDF y la
+   diapositiva-, asi que reordenar movia el PDF. Se separaron la DESCRIPCION de la CONDUCTA y se
+   arman las dos salidas con las mismas piezas, y CC_PPT le puso papel:true como a la coartacion.
+
+   LA GUIA: AHA/ACC 2024 de miocardiopatia hipertrofica, hoja 29, folio e1267, leida en imagen.
+   Coincide con lo que la app aplica en clase, criterio y los cinco factores.
+
+   ADVERTENCIA: sin acentos graves en el cuerpo -es un template literal-.
+*/
+caso('TC-571', 'Tanda AJUSTES-3: la linea de la miocardiopatia hipertrofica del PPT describe y no recomienda -sin guia, sin clase y sin perder un solo numero-, mientras el informe y el PDF quedan IDENTICOS; y la recomendacion vive en la Evidencia con la AHA/ACC 2024 y su folio', `
+  return (async () => {
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]),
+                 'dio «' + t[1] + '» · esperado «' + t[2] + '»']) };
+  const esperar = (ms) => new Promise(r => setTimeout(r, ms));
+  const FN = (n) => (typeof window[n] === 'function') ? window[n] : null;
+  const pon = (id, v) => { const e = document.getElementById(id); if (!e) return 'NO ' + id;
+    e.value = String(v); e.dispatchEvent(new Event('input', { bubbles: true }));
+    e.dispatchEvent(new Event('change', { bubbles: true })); return e.value; };
+  const veces = (t, h) => String(h || '').split(t).length - 1;
+  const NUMS = (x) => (String(x).match(/[0-9]+(?:[.,][0-9]+)?/g) || [])
+                        .filter(n => !/^(?:19|20)[0-9][0-9]$/.test(n));
+
+  /* La escena: septo grueso, sincope, gradiente severo. Enciende un factor mayor de la AHA,
+     deja otros sin evaluar -que es lo que produce el «(N sin evaluar)» pegado- y publica la
+     obstruccion, que es un numero medido que NO puede desaparecer. */
+  try { if (typeof limpiarCampos === 'function') limpiarCampos(true); } catch (e) {}
+  pon('nombre', 'Prueba MCH papel'); pon('ci', '13131313'); pon('fecha_estudio', '2026-10-31');
+  pon('peso', '70'); pon('talla', '170'); pon('sexo', 'M'); pon('edad', '45');
+  /* ⚠️ LOS CAMPOS SON LOS DEL MODULO, y la primera version uso los del formulario general -siv,
+     fevi, mch_grad_reposo-. Con esos, mchConclusion si emite, pero la seccion de Evidencia de la
+     MCH no se despierta y el informe no publica el bloque: el caso media sobre dos denominadores
+     vacios. Son los mismos que usan TC-563 y TC-567. */
+  pon('mch_presente', 'si'); pon('mch_espesor', '32'); pon('mch_grad_valsalva', '60');
+  pon('mch_grad_reposo', '60'); pon('mch_cf', 'iii_iv'); pon('mch_sam', 'si');
+  pon('mch_sincope', 'si'); pon('mch_aneurisma_apical', 'no'); pon('mch_fibrosis_rmn', 'no');
+  pon('siv', '32'); pon('ppvi', '12'); pon('ai_diam', '45'); pon('fevi', '60');
+  const ckm = document.getElementById('mch_incluir_chk');
+  if (ckm) { ckm.checked = true; ckm.dispatchEvent(new Event('change', { bubbles: true })); }
+  try { if (typeof _recalcModulos === 'function') _recalcModulos(); } catch (e) {}
+  await esperar(500);
+
+  const cm = FN('mchConclusion') ? FN('mchConclusion')() : null;
+  ex.push(['(A0) DENOMINADOR: la conclusion de la MCH se emite', cm ? 'si' : 'NO', 'si']);
+  const resumen = cm ? String(cm.resumen || '') : '';
+  const papel = cm ? String(cm.papel || '') : '';
+  ex.push(['(A1) DENOMINADOR: el resumen SI trae la recomendacion y su guia, que es lo que hay que separar',
+           (veces('desfibrilador', resumen) > 0 ? 'rec' : 'SIN REC') + '/' +
+           (veces('AHA/ACC 2020', resumen) > 0 ? 'guia' : 'SIN GUIA'), 'rec/guia']);
+  ex.push(['(A2) DENOMINADOR: y trae el «(N sin evaluar)» pegado a la recomendacion, que es el defecto',
+           /desfibrilador razonable \\(Clase IIa\\) \\([0-9]+ sin evaluar\\)/.test(resumen) ? 'pegado' : 'NO PEGADO',
+           'pegado']);
+
+  /* ── (B) LA SALIDA DEL PAPEL ───────────────────────────────────────────────────────────── */
+  ex.push(['(B0) DENOMINADOR: existe una salida de papel propia', papel.length > 40 ? 'si' : 'NO: ' + papel.length, 'si']);
+  ex.push(['(B1) no dice la recomendacion', veces('desfibrilador', papel), 0]);
+  ex.push(['(B2) no nombra ninguna guia',
+           veces('AHA/ACC', papel) + '/' + veces('ESC', papel) + '/' + veces('HCM Risk-SCD', papel), '0/0/0']);
+  ex.push(['(B3) no publica clase ni nivel', veces('Clase', papel) + '/' + veces('Nivel', papel), '0/0']);
+  ex.push(['(B4) pero SI deja el recuento, con su rotulo',
+           papel.indexOf('Factores mayores de riesgo de muerte s') > -1 ? 'con rotulo' : 'SIN ROTULO', 'con rotulo']);
+  ex.push(['(B5) NINGUN NUMERO MEDIDO DESAPARECE',
+           (function () { const q = NUMS(papel).slice();
+             return NUMS(resumen).filter(function (n) { const i = q.indexOf(n);
+               if (i < 0) return true; q.splice(i, 1); return false; }).join(',') || 'ninguno'; })(),
+           'ninguno']);
+  ex.push(['(B6) y la obstruccion severa, que es una medida y no una conducta, sigue en el papel',
+           papel.indexOf('60 mmHg') > -1 ? 'sigue' : 'SE PERDIO', 'sigue']);
+
+  /* ── (C) EL PPT LA USA, Y EL PODADOR GENERICO SIGUE SIN PODER ──────────────────────────── */
+  const p = FN('_ccPptPodar') ? FN('_ccPptPodar')(resumen) : null;
+  ex.push(['(C1) CONTROL NEGATIVO: el podador generico la sigue dejando PARADA',
+           p ? String(p.parado) : 'SIN FN', 'true']);
+  ex.push(['(C2) por eso la via es la salida de papel, y no el podador',
+           papel !== resumen ? 'otra via' : 'LA MISMA', 'otra via']);
+
+  /* ── (D) EL INFORME Y EL PDF NO SE MUEVEN ──────────────────────────────────────────────── */
+  try { if (typeof generarInforme === 'function') generarInforme(); } catch (e) {}
+  await esperar(600);
+  const inf = String((document.getElementById('informe_texto') || {}).value || '');
+  ex.push(['(D0) DENOMINADOR: el informe se emitio y nombra la miocardiopatia',
+           inf.length > 200 && /hipertr.fica/i.test(inf) ? 'si' : 'NO (' + inf.length + ')', 'si']);
+  ex.push(['(D1) CONTROL NEGATIVO: el informe SIGUE diciendo la recomendacion -esta tanda no lo toca-',
+           veces('desfibrilador', inf) > 0 ? 'la dice' : 'NO LA DICE', 'la dice']);
+  ex.push(['(D2) y el resumen, que es lo que lee la hoja del PDF, tambien',
+           veces('desfibrilador', resumen) > 0 ? 'la dice' : 'NO LA DICE', 'la dice']);
+
+  /* ── (E) LA EVIDENCIA, con su fuente, que es la condicion para haber retirado nada ─────── */
+  /* ⚠️ SON DOS SECCIONES Y NO UNA: _indMCH es la de la hipertrofia y la obstruccion, y
+     _indMCHSCD la de prevencion de muerte subita, que es donde vive esto. Preguntarle solo a la
+     primera da CERO sobre una Evidencia que si la tiene — costo una corrida. */
+  const secMch = (FN('_indMCH') ? JSON.stringify(FN('_indMCH')() || {}) : '') + ' ' +
+                 (FN('_indMCHSCD') ? JSON.stringify(FN('_indMCHSCD')() || {}) : '');
+  ex.push(['(E0) DENOMINADOR: las DOS secciones de la MCH del panel estan pobladas',
+           (FN('_indMCH') && JSON.stringify(FN('_indMCH')() || {}).length > 200 ? 'a' : '-') +
+           (FN('_indMCHSCD') && JSON.stringify(FN('_indMCHSCD')() || {}).length > 200 ? 'b' : '-'),
+           'ab']);
+  ex.push(['(E1) la recomendacion vive en la Evidencia', veces('desfibrilador', secMch) > 0 ? 'vive' : 'NO VIVE', 'vive']);
+  ex.push(['(E2) con la AHA/ACC 2024, que es la edicion que esta en la biblioteca',
+           secMch.indexOf('AHA/ACC 2024') > -1 ? 'si' : 'NO', 'si']);
+  ex.push(['(E3) su folio y su hoja', (secMch.indexOf('e1267') > -1 ? 'folio' : 'SIN FOLIO') + '/' +
+           (secMch.indexOf('hoja 29') > -1 ? 'hoja' : 'SIN HOJA'), 'folio/hoja']);
+  ex.push(['(E4) su clase y su nivel, tal como los dice la hoja',
+           secMch.indexOf('Clase IIa \\u00b7 Nivel B-NR') > -1 ? 'si' : 'NO', 'si']);
+  ex.push(['(E5) y los CINCO factores mayores enumerados',
+           secMch.indexOf('Los cinco factores mayores') > -1 ? 'si' : 'NO', 'si']);
+  ex.push(['(E6) CONTROL NEGATIVO: lo que cargo la TGA-2 de la ESC 2023 sigue entero',
+           (secMch.indexOf('3561') > -1 ? 'f1' : '-') + (secMch.indexOf('3562') > -1 ? 'f2' : '-') +
+           (secMch.indexOf('Tabla de recomendaciones 23') > -1 ? 'T' : '-'), 'f1f2T']);
+  ex.push(['(E7) y la cita de la AHA esta registrada, no suelta',
+           FN('_indRefDoc') && FN('_indRefDoc')('ahaMch2024') ? 'registrada' : 'SUELTA', 'registrada']);
 
   return { extra: EXP };
   })();

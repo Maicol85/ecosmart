@@ -236,3 +236,16 @@ Lo que cambia de este mapa:
   sistémico se esconde con esas dos cirugías.
 
 → **`docs/mapa/t2-evidencia-congenitas.md`** § 1
+
+## ⟶ La tanda AJUSTES-3 (2026-10-31) — la cláusula de la IT sistémica vuelve, al ⓘ
+
+La oración que TGA-2 retiró del párrafo de pantalla y que `TGA2-b` declaró perdida —«La válvula
+tricúspide de estos pacientes es la auriculoventricular sistémica: su insuficiencia pesa como
+pesaría una mitral.»— volvió **con sus palabras intactas** al `ojo` del globo `tga-3d`, que es el
+**único ⓘ de `#sacc-cc-tga`**.
+
+Va rotulada **«Criterio de EcoSmart»**, porque la analogía no está en ninguna hoja leída, y con el
+antecedente explicitado **afuera** de la cláusula. Sin folio, sin clase y sin nombrar la guía:
+esta línea no es una recomendación. **TGA2-b queda cerrado.**
+
+Todo en **`docs/mapa/aj3-bucle-botones.md` § 3**.

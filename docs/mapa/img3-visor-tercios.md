@@ -249,3 +249,15 @@ ahora sí agregar un congénito es una fila del registro y su recolector.
 ⚠️ **El recolector del esquema 3D va ANTES de la hoja de congénitas, y es por el orden de
 ejecución** — no junto al de la orejuela, que va después. Esa hoja lee `_dg` unas cuatrocientas
 líneas más abajo pero **antes** del bloque de la orejuela.
+
+## ⟶ La tanda AJUSTES-3 (2026-10-31) — IMG3-a cerrado, IMG3-g en parte
+
+**IMG3-a** («el bucle del video no se puede marcar con la librería que la app tiene») quedó
+**cerrado**: `_pptxBucleVideos` porta el árbol de tiempo del experimento que el médico abrió en
+PowerPoint, en los dos caminos de PPT, con validación estricta y **falla cerrada**.
+
+**IMG3-g** (la miocardiopatía hipertrófica del PPT de congénitas) quedó cerrado **para la
+diapositiva**: la línea sale ahora de `mchConclusion().papel`. Lo que sigue abierto es el cuerpo
+del informe que el PPT proyecta → `AJ3-b`.
+
+Todo en **`docs/mapa/aj3-bucle-botones.md`** § 1 y § 4.

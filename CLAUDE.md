@@ -56,7 +56,7 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Tocar el cociente TAPSE/PSAP o el color del aviso del Tei** (el DIÁMETRO DE LA ARTERIA PULMONAR se mudó al VD en el G3) | `docs/mapa/tapse-psap-ap.md` |
 | **Tocar la RELACIÓN VD/VI**: el campo numérico, el selector de tramo, las cuatro reglas que los sincronizan, la función dueña o cualquiera de sus CUATRO lectores | `docs/mapa/vd-vi-selector.md` |
 | **Tocar la pestaña REFERENCIAS**: las cinco subpestañas y su reparto, el buscador, el botón «Ver referencia» de las tarjetas ⓘ o la TABLA DE CIRUGÍA AÓRTICA | `docs/mapa/referencias-subpestanas.md` |
-| **Tocar el panel de Evidencia: agregar una cita, una sección o un sub-bloque** | `docs/mapa/panel-evidencia.md` |
+| **Tocar el panel de Evidencia: agregar una cita, una sección o un sub-bloque** | `docs/mapa/panel-evidencia.md` · la anatomía de una sección, su catálogo y los dos procedimientos en `docs/mapa/panel-evidencia-secciones.md` |
 | **Tocar un TEXTO de la pantalla de Evidencia o de una ficha de Referencias**: las OCHO secciones compactas y su orden, qué nota va al ⓘ y qué va a `FUENTES.md`, la cita única al final del bloque, `_popNotas`, el mensaje del Forrester y su frontera con el informe, o las tres fichas tocadas | `docs/mapa/a-evidencia-textos.md` |
 | **Tocar el REGISTRO DE CITAS del panel**: `IND_REFS`, el marcador `ecosmart`, el allowlist `IND_REF_IDX` o la numeración por sección | `docs/mapa/panel-evidencia-citas.md` |
 | **Agregar un TÉRMINO al glosario del panel (el ⓘ con tarjeta)** | `docs/mapa/panel-evidencia-terminos.md` |
@@ -89,7 +89,8 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Tocar el CARPENTIER de la mitral —quién es su dueño y dónde se dice—, el AVISO de la Evidencia de la TRICÚSPIDE, el strain del VD por debajo de 15 %, o las dos TABLAS de la OREJUELA** | `docs/mapa/e-carpentier-tricuspide-orejuela.md` |
 | **Tocar algo de ECO ESTRÉS, o entender por qué su código sigue en el archivo sin interfaz**: las cinco piezas (A), las compartidas (B), las que tocan algo guardado (C), las TRES compuertas, las CUATRO familias «ee» —tres vivas— o la calculadora de probabilidad pre-test de la ESC 2019 que vive adentro | `docs/mapa/eco-estres-inventario.md` |
 | **Montar un A/B o un barrido de MUTACIÓN, o leer una trampa de instrumentación** | `docs/mapa/arneses-ab-mutacion.md` |
-| **Agregar o correr un caso de prueba** | `docs/mapa/tests.md` · fichas en `docs/mapa/tests-fichas-550.md` (TC-550), `docs/mapa/tests-fichas-538.md` (TC-538), `docs/mapa/tests-fichas-537.md` (TC-537), `docs/mapa/tests-fichas-536.md` (TC-536), `docs/mapa/tests-fichas-535.md` (TC-535), `docs/mapa/tests-fichas-532.md` (TC-532), `docs/mapa/tests-fichas.md` (TC-499 en adelante), `docs/mapa/tests-fichas-496-498.md`, `docs/mapa/tests-fichas-491-495.md` y `docs/mapa/tests-fichas-481-490.md` |
+| **Tocar el BUCLE DEL VIDEO de los dos PPT, los BOTONES de respuesta del panel de Evidencia, la cláusula de la IT sistémica de la TGA o la línea de la MIOCARDIOPATÍA HIPERTRÓFICA del PPT de congénitas**: el árbol de tiempo y su falla cerrada, el dueño único que prepara un mp4, la media query del piso táctil, o `mchConclusion().papel` | `docs/mapa/aj3-bucle-botones.md` |
+| **Agregar o correr un caso de prueba** | `docs/mapa/tests.md` · los casos tanda por tanda en `docs/mapa/tests-punteros-tandas.md` · fichas en `docs/mapa/tests-fichas-550.md` (TC-550), `docs/mapa/tests-fichas-538.md` (TC-538), `docs/mapa/tests-fichas-537.md` (TC-537), `docs/mapa/tests-fichas-536.md` (TC-536), `docs/mapa/tests-fichas-535.md` (TC-535), `docs/mapa/tests-fichas-532.md` (TC-532), `docs/mapa/tests-fichas.md` (TC-499 en adelante), `docs/mapa/tests-fichas-496-498.md`, `docs/mapa/tests-fichas-491-495.md` y `docs/mapa/tests-fichas-481-490.md` |
 | **Tocar el DIBUJO ESTÁTICO de la mitral en ETE**: la tabla única de festones por ángulo, la geometría, la línea del plano, el giro, las tres vistas con sus LETRAS DE FESTÓN, **la ORIENTACIÓN de la TRANSGÁSTRICA**, el PDF, los CUATRO DIBUJOS DE MEDIDAS TEER, **los CRITERIOS TEER y sus cortes** o **el ESPEJO de la FEVI y el DSFVI del TEER** | `docs/mapa/mitral-dibujo-estatico.md` |
 | **Tocar algo que la tanda R2 corrigió** (21/10): las cinco opciones del derrame y la traducción del token viejo, el repintado de la VAB con el gesto de la pastilla, los seis puntos de la probabilidad de HTP, el e′ medial en tres tramos, el espesor relativo y el criterio por eco de la amiloidosis, el SGL y la calculadora de cardio-oncología, el síndrome intersticial difuso por zonas, el índice cardiaco y la RVS, o la orejuela | `docs/mapa/tanda-r2-correcciones.md` |
 | **Tocar algo que la tanda R movió**: la lesión presente sin grado de la VAB, los cortes del TEER, la severidad de la disfunción del VD, el área de la AI, los grados del derrame, el taponamiento que ya no concluye, el VD/VI del TEP o los criterios declarados de Referencias | `docs/mapa/tanda-r-referencias.md` |
@@ -187,8 +188,9 @@ Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la v
 ## Qué es EcoSmart y cómo se trabaja
 
 - App clínica de ecocardiografía en **un solo `index.html`**: HTML + CSS + JS inline, sin build,
-  sin frameworks. Hoy **10,54 MB / 148.070 líneas**, medido con `wc -c` y `wc -l` el 2026-10-31 al
-  cierre de la tanda **TGA-2**, sobre el árbol ya sellado (`v20261031-1138`, md5 `4379ca6b`).
+  sin frameworks. Hoy **10,57 MB / 148.497 líneas**, medido con `wc -c` y `wc -l` el 2026-10-31 al
+  cierre de la tanda **AJUSTES-3**, sobre el árbol ya sellado (`v20261031-2125`, md5 `d5c32e0a`).
+  (Antes: 10,54 MB / 148.070 al cierre de TGA-2, sello `v20261031-1138`, md5 `4379ca6b`.)
   (Antes: 10,47 MB / 147.337 al cierre de TGA, sello `v20261031-0847`, md5 `bb9739ab`.)
   (Antes: 10,40 MB / 146.362 al cierre de IMÁGENES-3, sello `v20261031-0432`, md5 `899080d4`.)
   (Antes: 10,37 MB / 145.915 al cierre de AJUSTES-2, sello `v20261031-0106`, md5 `5d3a6fe2`.)
@@ -3712,3 +3714,257 @@ línea: el archivo creció y un informe de auditoría viejo apunta a otro archiv
   ⚠️ **`congenitas-otros.md` (34,5 KB) NO se tocó**, que es lo que la orden pide. `panel-evidencia.md`
   y `tests.md` quedan los dos a menos de 500 bytes del techo: **la próxima tanda que necesite
   escribirles tiene que partirlos** → **TGA2-g**.
+
+### El bucle del video, los botones de la Evidencia y la miocardiopatía del PPT — «AJUSTES-3» (2026-10-31)
+
+- **SEIS commits, y los CINCO de código y documentación se hicieron enteros.** `bcc333b` (AJ3-1) ·
+  `37fe3ab` (AJ3-2) · `d851260` (AJ3-3) · `eaea958` (AJ3-4) · `ddb3fa5` (AJ3-5) · el de cobertura y
+  documentación. Al empezar, `origin/main` = `HEAD` = **`8d37a65`**, el cierre de TGA-2, ya
+  publicado, con md5 de `index.html` **`4379ca6b`** y el pendrive `DISK_IMG` montado.
+  **El push lo corre Maicol: esta tanda tenía orden expresa de NO pushear.**
+  Cierra **IMG3-a**, **TGA2-b** y, en parte, **IMG3-g**.
+
+- **EL BUCLE DEL VIDEO ENTRA EN LOS DOS CAMINOS DE PPT, Y LO QUE LO SOSTIENE NO ES LA NORMA: ES LA
+  PRUEBA.** La tanda TGA generó fuera del producto un `.pptx` con el árbol de tiempo escrito a
+  mano y **el médico lo abrió en PowerPoint el 31/10/2026: no pidió reparar y el video se repite
+  sin parar.** `_pptxBucleVideos` porta ese ajuste pieza por pieza, como post-proceso dentro de
+  `_pptxDescargarSaneado`, que es el **único punto de descarga** de los tres exportadores.
+  **El `p:timing` que la app escribe es IDÉNTICO CARÁCTER POR CARÁCTER al del experimento, salvo
+  el VALOR del `spid`**, medido en los dos caminos contra el archivo de referencia leído sin
+  modificarlo. La diferencia es deliberada: el experimento cableaba `10` y la app usa `max + 1`,
+  porque un 10 cableado falla en una diapositiva con diez shapes. → **AJ3-f**.
+
+- ⚠️ **FALLA CERRADA, AL CONTRARIO QUE LA PODA DE PARTES DE LA MISMA FUNCIÓN.** Una parte OOXML mal
+  formada no abre con una advertencia: PowerPoint pide reparar y **al reparar borra la diapositiva
+  completa** —el defecto que `_pptHex` documenta, con dos hojas en blanco reportadas el
+  2026-09-16—. Las diapositivas se arman en memoria, se validan **todas** con parseo estricto, y
+  recién entonces se escriben: si una no valida, **ninguna** se escribe, el mazo sale sin bucle
+  como hasta hoy y se avisa. Medido con `DOMParser` roto: 0 diapositivas con `p:timing`, el video
+  incrustado igual, 0 XML rotos y el aviso dicho.
+
+- ⚠️ **UN `spid` DUPLICADO NO SE PUEDE USAR, Y LA LIBRERÍA LOS EMITE.** PptxGenJS 3.12.0 da el mismo
+  `id` a dos shapes de la misma diapositiva —el segundo cuadro de texto y el video salen los dos
+  con `id="3"`—. Al video se le asigna un id libre de su diapositiva; es seguro, porque ese `id`
+  es local y lo referencian sólo el árbol de tiempo y las animaciones, y esta librería no escribe
+  ninguna.
+
+- **«IMÁGENES GUARDADAS» PASA A INCRUSTAR EL CLIP COMPLETO**, en la celda que le toca de la grilla
+  de 1, 2 o 4 por diapositiva, con el cuadro ya tapado de póster. El primer cuadro queda como
+  **caída**, con su motivo en la línea de resultado. Con eso cambiaron el **aviso de privacidad**
+  —decía que de un video iba sólo su primer cuadro, y dejó de ser cierto— y entraron los **dos
+  umbrales de tamaño**, por las MISMAS constantes que el otro camino.
+  `_pptVideoMp4Preparar` es el **dueño único** de «blob → lo que `addMedia` necesita»: se extrajo
+  al abrir el segundo camino, porque la corrección de rotación y la salvedad del `.mov` con una
+  copia en cada lado quedan atrás en cuanto una cambie.
+
+- ⚠️ **EL TEXTO «el video no arranca solo» DEL PPT NO SE TOCÓ, Y ES DELIBERADO.** Sigue siendo
+  cierto —el bucle arranca al clic— y decir «se repite» mentiría el día que el bucle caiga.
+  → **AJ3-c**.
+
+- ⚠️ **LA PREMISA DEL COMMIT 2 ERA PARCIALMENTE FALSA, Y ESTÁ MEDIDA EN DIECISÉIS CRUCES.** La orden
+  dice que los botones de respuesta del panel «miden 22 px aunque el código afirma 44», como si la
+  regla táctil no ganara. Medido con los DOS punteros × 1440/1000/768/390 px × dos temas:
+
+  | | alto | con 44×44 | encima de otro control |
+  |---|---|---|---|
+  | puntero **grueso** (dedo, tablet) — HEAD | 44 | 39/39 | **0** |
+  | puntero **fino** (mouse) — HEAD | **22** | 0/39 | **5** |
+  | los dos, después | **44** | **39/39** | **0** |
+
+  O sea que **en el dispositivo que importa ya estaban bien**: los 22 px con mouse los ponía una
+  media query deliberada, con su decisión escrita. Lo que SÍ era un defecto son esos **cinco**
+  botones con parte de su cuadrado táctil encima de un vecino —las dos preguntas del HFA-PEFF—,
+  que es justo lo que la orden prohíbe.
+
+- **DOS MEDICIONES DECIDIERON EL MECANISMO, Y DESCARTARON EL `::after`.** (1) **El panel no crece**:
+  con el botón en 22 y en 44 mide LO MISMO —818×745 a 1440 px y 364×729 a 390—, porque las filas
+  de la tabla ya tenían ese alto. (2) **Con 22 px hay solape y con 44 no**: agrandar el área con
+  un `::after` —el patrón de `.pac-id-mk`— habría **tapado** el control vecino. No revierte la
+  decisión del 2026-09-25 («se conserva el piso y lo que baja es el PESO VISUAL»): la cumple.
+  El ⓘ de un término se queda en la media query, y ahora es el único.
+
+- **EL ESTADO DEJÓ DE DEPENDER SÓLO DEL COLOR.** `aria-pressed` cubría al lector de pantalla; el
+  botón marcado lleva además **`✓ ` delante del rótulo**, que es una diferencia de FORMA.
+
+- **LA CLÁUSULA DE LA IT SISTÉMICA VUELVE, LITERAL.** «La válvula tricúspide de estos pacientes es
+  la auriculoventricular sistémica: su insuficiencia pesa como pesaría una mitral.», ubicada en
+  `61f6968` línea 18038, al `ojo` del globo `tga-3d`, que es el **único ⓘ de `#sacc-cc-tga`**.
+  Verificado que aparece **carácter por carácter**, una sola vez, a 1440 y a 390 px. Va rotulada
+  **«Criterio de EcoSmart»** porque la analogía no está en ninguna hoja leída —lo que el registro
+  sí tiene es la recomendación 4 de la ESC 2020, folio 619, IIa · C, que respalda el CONCEPTO— y
+  con el antecedente explicitado AFUERA. **Sin folio, sin clase y sin nombrar la guía.**
+  Y se verificó que el resto del párrafo retirado **no se había perdido**: lo dicen
+  `TGA3D_INFO.ltga` y `.mus`. **TGA2-b cerrado.**
+
+- **LA AHA/ACC 2024 SE LEYÓ EN IMAGEN, Y COINCIDE CON LO QUE LA APP APLICA.** Ommen y cols.,
+  *Circulation* 2024;149:e1239-e1311, **hoja 29, folio e1267**, apartado 7.2. **Regla de folio:
+  folio = hoja + 1238, comprobada en el PIE IMPRESO de las hojas 26 y 29** («June 4, 2024  e1264»
+  y «June 4, 2024  e1267»). Recomendación 3, **COR 2a · B-NR**, «it is reasonable to offer an ICD»
+  con **≥1 factor mayor**, y los **cinco** factores cotejados uno por uno contra los cinco de
+  `mchAHA`. La recomendación 6, COR 2b, es el árbitro Clase IIb que la app ya publicaba.
+  **La única discrepancia es el AÑO de la etiqueta**: la app rotula «AHA/ACC 2020», que no está en
+  la biblioteca. **Reportado y sin tocar** → **AJ3-a**.
+
+- **EL DEFECTO QUE CERRÓ IMG3-g, EN UNA LÍNEA: `_ccPptPodar` devolvía `parado: true`**, porque
+  «desfibrilador razonable (Clase IIa)» está PEGADO a «(1 sin evaluar)» y llevarse la recomendación
+  se lleva el 1 — la guarda 3 del podador lo detecta y devuelve el original.
+
+- ⚠️ **NO SE REORDENÓ EL `resumen`, QUE HABRÍA SIDO MÁS SIMPLE, Y SE MIDIÓ POR QUÉ.** Lo leen DOS
+  consumidores y los dos son papel firmado: la hoja del PDF (`ccHoja('mch', …)`) y la diapositiva.
+  Es el defecto que la tanda AJ7 pagó con la Fallot. `mchConclusion` gana una salida `papel` y
+  `CC_PPT` le pone `papel:true`, como a la coartación; **las dos salidas se arman de las MISMAS
+  piezas** —`resumen = desc + conducta`, `papel = desc`—, así que dos textos paralelos no pueden
+  divergir. **Medido: `resumen` IDÉNTICO a HEAD en seis escenarios.**
+  Ejemplo: «AHA/ACC 2020: 1 factor mayor de 5 — desfibrilador razonable (Clase IIa) (1 sin
+  evaluar)» → «**Factores mayores de riesgo de muerte súbita: 1 factor mayor de 5 (1 sin
+  evaluar)**», con los seis números del original intactos.
+
+- **LOS DOS MAPAS AL TECHO SE PARTIERON POR TEMA, Y CERO LÍNEAS PERDIDAS.** `panel-evidencia.md`
+  34.522 → **17.456 B**, con la anatomía de una sección a `panel-evidencia-secciones.md`
+  (18.833 B); `tests.md` 34.636 → **17.919 B**, con la cola de punteros por tanda a
+  `tests-punteros-tandas.md` (18.168 B) —que es la parte que crece con cada tanda—. Comprobado por
+  diferencia: de las líneas no vacías del original, **cero** no aparecen en alguno de los dos
+  resultantes. `congenitas-otros.md` sigue en **34.540 B** y no se tocó, que es lo que la orden
+  pide; dónde conviene partirlo está medido en **AJ3-d**.
+
+- **18/18 MUTACIONES DIRIGIDAS MUERTAS**, en worktree y nunca sobre el vivo, con guarda de md5
+  antes y después. **Cuatro no revierten nada: la aplican de más**, porque las condiciones que las
+  matan son controles negativos.
+  ⚠️ **CUATRO SOBREVIVIERON AL PRIMER BARRIDO Y SÓLO UNA ERA COBERTURA QUE FALTABA.** La **05** sí:
+  el escenario tenía UNA sola diapositiva con video, así que «todo o nada» y «salteo la que falla»
+  daban el mismo resultado → nacieron **(G1)** y **(G2)**, con dos diapositivas. La **14** estaba
+  **mal dirigida** —mutaba el papel de la miocardiopatía y TC-570 mira el de la transposición—, la
+  **15** era un **freno que tapa al que se muta** —revertía la rama de la ESC, que en esa escena no
+  aporta conducta— y la **17** estaba **mal escrita**: cambiaba sólo el TÍTULO del bloque y las
+  líneas seguían ahí.
+
+- ⚠️ **DOS BUGS PROPIOS EN LOS CASOS, Y CADA UNO COSTÓ UNA CORRIDA.** (1) Los marcadores de la
+  plantilla de TC-568 eran `'ID'` y `'N'`, y `String.replace` con una cadena reemplaza la PRIMERA
+  aparición: la **N de `<p:cNvPr>`** quedaba `<p:c0vPr>` y dejaba de ser un shape, así que el censo
+  contaba CERO videos sobre una diapositiva que sí los tiene. (2) TC-571 usaba los campos del
+  formulario general y no los del MÓDULO, así que medía sobre dos denominadores vacíos.
+
+- ⚠️ **SON DOS SECCIONES DEL PANEL Y NO UNA, Y TC-563 CENSABA IGUAL DE MAL.** `_indMCH` es la de la
+  hipertrofia y la obstrucción; `_indMCHSCD` la de prevención de muerte súbita, que es donde vive
+  la recomendación. Preguntarle sólo a la primera daba **cero** sobre una Evidencia que sí la
+  tiene — o sea que la condición que dejaba la poda parada medía sobre el lugar equivocado.
+
+- ⚠️ **EL ACENTO GRAVE DENTRO DE MIS PROPIOS COMENTARIOS COSTÓ TRES CORRIDAS, Y ES LA NOVENA TANDA
+  SEGUIDA QUE LO PAGA.** Siempre igual: un identificador entre acentos graves dentro del comentario
+  de un caso, y el cuerpo de un caso es un template literal. **`node --check` las cazó todas.**
+
+- **NUEVE BLOQUES DE CASOS VIEJOS ADAPTADOS, cada uno con el motivo escrito**: **TC-558 (D1)** (el
+  aviso dice que el clip entra COMPLETO), **TC-563 (C2)** —**invertida**, y es el día que ese caso
+  anunciaba— más **(C2b)**, **(C6)**, **(C7)** y **(C8)**, y **TC-567** (el título, **(A2)** 4/2/3
+  → 5/3/4, **(A2b)** nueva sobre los tres bloques de la ESC, **(A4)** tres → cuatro bloques, y
+  **(C1)(C2)** con su nombre corregido más **(C2b)**).
+  ⚠️ **(A2b) DISCRIMINA POR EL NIVEL Y NO POR LA SIGLA**: las líneas del bloque de la AHA no dicen
+  «AHA» en su texto. La ESC usa «Nivel B» a secas; la AHA, «B-NR» y «C-EO».
+
+- **A/B contra HEAD con `_probe_aj3ab.mjs`: 148 escenas, 23.828 claves y CERO diferencias de
+  superficie firmada** —informe en tres estilos, EN SUMA, las **441** columnas de Excel clave por
+  clave, los campos, el Laboratorio por sus ocho funciones dueñas, el PDF generado de verdad en
+  sus seis plantillas y el PPT—. Excel **441 / 441** y campos **947 / 947**.
+  ⚠️ **ESE CERO ES UN CONTROL NEGATIVO PARA LOS COMMITS 1 Y 4, Y SE DECLARA.** Ninguna de esas 148
+  escenas carga un **video** ni una **miocardiopatía hipertrófica integrada**, así que sobre el
+  bucle y sobre la línea del PPT de la MCH no prueba nada. Las mediciones que valen son
+  `scripts/_probe_aj3bucle.mjs` —los dos PPT generados de verdad— y la comparación directa de
+  `mchConclusion()` en seis escenarios, donde el `resumen` sale **idéntico** y el `papel` cambia.
+
+- **Los DOS PPT generados de verdad, validados parte por parte**: el del estudio, 130.224 bytes,
+  ZIP coherente, **44 de 44** XML bien formados, el video en `ppt/media/media-5-1.mp4` y
+  `repeatCount="indefinite"` con `spid="10"`; el de «Imágenes guardadas», 68.676 bytes, ZIP
+  coherente, **24 de 24** XML bien formados, el video en `ppt/media/media-2-1.mp4` y
+  `repeatCount="indefinite"` con `spid="6"`. **Cero referencias colgadas** en los dos.
+  Quedan en **`~/Desktop/ceibo-ppt-bucle-aj3/`** para que Maicol los abra en PowerPoint → **AJ3-g**.
+
+- **Semgrep 124 WARNING / 0 ERROR**, la línea base, sin un aviso nuevo. **Sin huérfanos nuevos.**
+  17 bloques de JS inline parsean. `check_backticks.py` da sus cuatro hallazgos de siempre, los
+  preexistentes y falsos de `_probe_aj2.mjs`.
+
+- **El archivo de referencia del experimento NO se tocó**: 65.683 bytes y su fecha original,
+  verificado al cerrar. Se leyó descomprimiendo una **copia** en un temporal.
+
+- ⚠️ **Y EL MISMO RESBALÓN QUE LA TANDA AJUSTES-1, CORREGIDO: `scripts/_probe_aj3wk.mjs` YA
+  EXISTÍA.** Es la sonda de dos motores de la tanda **AJ3 del 23/10/2026** —otra tanda con la
+  misma sigla, igual que pasó con AJ1—, y escribir la de esta tanda con ese nombre la
+  **sobrescribió**. Se restauró desde `8d37a65` **byte por byte** —16.615 bytes, `git diff`
+  vacío— y la de esta tanda se llama **`_probe_ajustes3wk.mjs`**. Los otros cinco nombres se
+  censaron contra `8d37a65` uno por uno y **ninguno existía**: `_probe_aj3bucle.mjs`,
+  `_probe_aj3btn.mjs`, `_probe_aj3ab.mjs`, `_probe_ajustes3wk.mjs` y `_mut_aj3.py`.
+  **Dos tandas con la misma sigla**: el mapa de aquélla es `docs/mapa/aj3-ett-avanzado.md` y el
+  de ésta es `docs/mapa/aj3-bucle-botones.md`.
+
+- ⚠️ **LA PRIMERA CORRIDA COMPLETA DESTAPÓ UNA REGRESIÓN MÍA, Y POR ESO ESA CIFRA NO ES LA LÍNEA
+  BASE: TC-322.** Verificado en un worktree con los mismos scripts, alternando sólo
+  `index.html`: **verde en `8d37a65` y rojo en mi árbol**. Su escena B siembra `vmax_ao` y
+  `mch_grad_reposo`, y desde el commit 4 la sección de prevención de muerte súbita cita **dos**
+  documentos —la ESC 2023 que cargó TGA-2 y la AHA/ACC 2024 de esta tanda—, así que las
+  **entradas** pasan de 3 a 4. Las **bibliografías** siguen siendo tres, una por sección.
+  **La adaptación refuerza el invariante en vez de sólo mover el número**: además de 4 entradas,
+  exige que la de muerte súbita sea **la única** con dos, para que agregarle una cita a otra
+  sección ponga el caso en rojo en vez de compensarse con ésta.
+  ⚠️ **Y el censo no lo encontró**: grepeé la suite por «AHA», por «ahaMch2024» y por el nombre
+  de la sección, y TC-322 no nombra ninguno de los tres — cuenta `<li>` de un `<details>`. Es el
+  modo de falla que este archivo ya documenta siete veces.
+
+- **LOS TRES INTERMITENTES, CARACTERIZADOS COMO MANDA ESTE ARCHIVO** —mismo directorio, mismos
+  scripts, alternando sólo `index.html`—:
+  **TC-551** sale **VERDE** corrido aislado, que es lo que `COR-f` declara.
+  **TC-557** cae **IGUAL contra HEAD**, así que no es de esta tanda: es `TGA-h`.
+  **TC-358** es el de `E-h`, la carrera de `pdfTxt` que lee `window.jspdf` sin esperarlo:
+  **2 rojos de 11 corridas** en el árbol nuevo y 0 de 5 en HEAD, con seis verdes seguidos al
+  final. La muestra de HEAD es chica y no distingue; el diagnóstico del caso es el de siempre y
+  esta tanda no toca jsPDF.
+
+- **Línea base al cierre: suite 579/586**, en once lotes **cubriendo los 586 casos distintos**
+  —contados nombre por nombre, no por la suma de los lotes—, en UNA sola pasada sobre el árbol
+  sellado, con el pendrive `DISK_IMG` **verificado al abrir, ENTRE LOS ONCE LOTES y al cerrar** y
+  el md5 de `index.html` **idéntico** antes y después (`d5c32e0a`). Los rojos son **TC-223,
+  TC-376, TC-390 y TC-406**, los cuatro de siempre, más **TC-358, TC-551 y TC-557**, los tres
+  intermitentes que la orden anticipa. **Ningún rojo nuevo.**
+  ⚠️ **LA PRIMERA CORRIDA COMPLETA DIO 578/586 CON UN ROJO MÁS, QUE ERA MÍO** —TC-322—, y por eso
+  esa cifra no es la línea base. Está adaptado y la de arriba sale de la corrida **limpia**, de
+  una sola pasada sobre el árbol sellado y con el archivo de tests final.
+
+- **18/18 mutaciones dirigidas muertas.** **Semgrep 124 WARNING / 0 ERROR**, la línea base.
+  **Excel 441** columnas con las mismas claves. **Campos guardados 947, el mismo juego exacto que
+  HEAD**: cero nuevos y cero perdidos, medido por diferencia en el A/B. **Sin huérfanos nuevos.**
+  17 bloques de JS inline parsean.
+
+- **CELULAR: 59 hallazgos a 360 px y 68 a 390, con 17 ALTA en cada ancho** — la línea base
+  exacta que la orden declara. **No empeoró.**
+
+- **CHROME Y WEBKIT COINCIDEN EN LOS DIECISÉIS CRUCES** (dos motores × 1440, 1000, 768 y 390 px ×
+  dos temas), **valor por valor**: **37 de 37** botones a 44×44 y **cero** encima de otro
+  control; la marca ✓ presente y **una sola**; el globo en 380×414 —374 a 390 px— **dentro de la
+  pantalla**, con la cláusula **una vez**, su rótulo, y **cero** folio, clase o nombre de guía;
+  el papel de la miocardiopatía con **cero** recomendación y **cero** guía pero con su rótulo;
+  el `resumen` **todavía** con la recomendación; el informe **sin** la cláusula; **cero**
+  desplazamiento horizontal; y **CERO errores de consola y de página en los dos motores**.
+  **El mismo cruce contra HEAD da 0 de 37 a 44 px y CINCO solapes**, que es exactamente lo que
+  esta tanda cierra.
+  Los **cinco textos recortados** que Chrome reporta son **idénticos en HEAD** —preexistentes, y
+  WebKit no los ve: es métrica de fuente—. La única diferencia entre motores es ésa.
+  ⚠️ **WEBKIT DE PLAYWRIGHT NO ES SAFARI, y se declara.** Chrome va por el del sistema con
+  `channel: 'chrome'`.
+  ⚠️ **Y LOS DIECISÉIS ERRORES DE CONSOLA DEL ÁRBOL DE HEAD SON DEL ARNÉS, no de la app**:
+  `ERR_FILE_NOT_FOUND`, porque ese árbol se carga desde una copia en el temporal y ahí un recurso
+  relativo no resuelve. Es lo que la tanda D2 ya documenta. El árbol vivo da **cero**.
+
+- **`index.html` pasó de 10,54 MB / 148.070 líneas a 10,57 MB / 148.497** — medido con `wc -c` y
+  `wc -l` DESPUÉS de sellar. (MB de 10⁶.) El diff son **527 líneas agregadas y 95 quitadas**.
+  Sello **`v20261031-2125`**, md5 **`d5c32e0a`**.
+
+- **Dónde está todo:** `docs/mapa/aj3-bucle-botones.md` (**mapa NUEVO**, 14,0 KB), las fichas de
+  los cuatro casos en `docs/mapa/tests-fichas-568.md` (**archivo propio**), **cinco mapas con un
+  puntero cada uno** —medidos ANTES de escribir, todos por debajo de 24 KB—,
+  `docs/fuentes/FUENTES.md` → «La tanda AJUSTES-3» con la tabla del folio e1267 transcripta fila
+  por fila, la regla de folio comprobada en el pie impreso de dos hojas, el cotejo de los cinco
+  factores y la tabla «Cambios de evidencia» de once filas, y `docs/PENDIENTES.md` → **SIETE**
+  cosas declaradas (**AJ3-a** a **AJ3-g**) más el cierre de **IMG3-a**, de **TGA2-b** y, en
+  parte, de **IMG3-g**.
+  **Los dos PPT de prueba quedan en `~/Desktop/ceibo-ppt-bucle-aj3/`** para que Maicol los abra
+  en PowerPoint: ésa es la verificación que no se puede hacer desde acá (**AJ3-g**).
+  ⚠️ **`congenitas-otros.md` (34.540 B) NO se tocó**, que es lo que la orden pide; dónde conviene
+  partirlo está medido en **AJ3-d**.
