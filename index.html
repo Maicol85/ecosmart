@@ -2835,6 +2835,17 @@ html.light-mode #tab-valvulas .sev-lvl3{color:#7f1d1d;}
 .mfs-aparte-tit { font-size:11.5px; font-weight:700; margin-bottom:6px; }
 .mfs-aparte-tit span { font-weight:400; color:var(--text2); }
 .mfs-nota { margin-top:4px; font-size:10.5px; color:var(--text2); line-height:1.35; }
+/* POP-C-2b · la fila del Z calculado. Es de SOLO LECTURA: su unico control es el boton que
+   copia el valor al campo manual. `flex-wrap` porque la nota del metodo va debajo y a 390 px
+   el valor y el boton ya ocupan la fila entera. */
+.mfs-zcalc { flex-wrap:wrap; }
+.mfs-zcalc-val { font-size:11.5px; color:var(--text2); flex:1 1 auto; min-width:0; }
+.mfs-zcalc-val-on { font-weight:700; color:var(--text); font-variant-numeric:tabular-nums; }
+.mfs-zcalc-btn { flex:0 0 auto; font-size:10.5px; padding:4px 10px; min-height:30px; }
+/* La nota ocupa toda la fila siguiente: es el metodo y la salvedad de la tecnica, que no
+   entran al lado del numero sin recortarse. */
+.mfs-zcalc-nota { flex:1 0 100%; font-size:10px; color:var(--text2); line-height:1.3;
+  margin-top:2px; }
 .mfs-reglas { margin-top:0; }
 .mfs-reg { display:flex; align-items:baseline; gap:6px; padding:2px 7px;
   border-radius:6px; margin-bottom:1px; font-size:10.5px; line-height:1.25;
@@ -45516,9 +45527,11 @@ const VINFO = Object.freeze({
     intro:
       'Estos criterios NO suman al puntaje sistémico: entran por su cuenta en las siete reglas del Box 1.\n'
     + 'El Z de la raíz es el diámetro en los senos de Valsalva corregido por edad y tamaño corporal. El artículo pide tomar el mayor correctamente medido de al menos tres imágenes transtorácicas, medirlo paralelo al plano de la válvula aórtica y perpendicular al eje del flujo, y usar el método con el que se generaron los datos normativos de ese Z: si no coinciden, el Z no vale (folio 479).\n'
-    + 'El Z se carga a mano y se guarda con el estudio. Z calculado: no disponible (falta la fuente del método). El artículo remite, para el diámetro medido de borde de ataque a borde de ataque en diástole, a las ecuaciones de su referencia 13, que no está en la biblioteca de esta aplicación: sin leerla no se calcula ningún Z.\n'
+    + 'El Z se carga a mano y se guarda con el estudio. La aplicación también lo estima a partir de la edad, el sexo y la superficie corporal por DuBois, y lo muestra al lado con su método: ese valor no se guarda y sólo pasa al campo si se toca «Usar este valor». El cargado a mano siempre manda.\n'
+    + 'La estimación vale sólo si el diámetro se midió como el modelo lo midió: de borde de ataque a borde de ataque, en diástole, en el máximo diámetro paralelo al plano del anillo. La aplicación no registra con qué convención se midió «Aorta sinusal», así que esa correspondencia la decide quien mide. Por debajo de los 15 años no se estima: la población del modelo arranca ahí.\n'
     + 'Box 1, folio 477; la medición de la raíz, folio 479.\n'
-    + 'Loeys BL y cols. The revised Ghent nosology for the Marfan syndrome. J Med Genet 2010;47:476-85.' },
+    + 'Loeys BL y cols. The revised Ghent nosology for the Marfan syndrome. J Med Genet 2010;47:476-85.\n'
+    + 'El modelo del Z: Devereux RB y cols. Normal limits in relation to age, body size and gender of two-dimensional echocardiographic aortic root dimensions in persons ≥15 years of age. Am J Cardiol 2012;110:1189-94 (ecuación y desvío en su Tabla 1, hoja 13 del manuscrito; técnica, hoja 3; superficie corporal por DuBois, hoja 2).' },
   /* ══ EL GLOBO DE LAS REGLAS («MARFAN-2», 2c y 2d) ═════════════════════════════════════════
      La tarjeta publica el texto BREVE de cada regla; el enunciado completo de las siete vive
      aca, y sale de `mfsReglas()`, que es su dueno unico: no hay una segunda redaccion que
@@ -60822,17 +60835,38 @@ function generarInforme(opts) {
            un hallazgo y no se escribe. La diseccion y el campo de otros sindromes NO van al
            papel -la primera ya se describe donde corresponda y el segundo es un requisito de
            las reglas, que no salen-. */
+        /* ══ SOLO LO POSITIVO, Y LAS DOS AUSENCIAS QUE IMPORTAN EN UNA FRASE («POP-C», 2a) ══
+           DECISION DEL MEDICO (02/11/2026). Hasta hoy los cuatro criterios se publicaban con
+           su estado, asi que un paciente con los cuatro en «No» llenaba el informe con
+           «Ectopia lentis ausente, historia familiar ausente, variante de FBN1 con asociacion
+           conocida a dilatacion o diseccion aortica ausente» — tres ausencias enumeradas, una
+           de ellas de catorce palabras, que es ruido y no un hallazgo.
+           LA REGLA, en una linea: se escribe lo que ESTA; de lo que no esta, solo la pareja
+           ectopia + historia familiar, y solo cuando las DOS son «No».
+           ⚠️ LAS DOS VARIANTES DE FBN1 EN «No» NO SE ESCRIBEN NUNCA: una variante ausente no
+           es un hallazgo, y su rotulo largo era justamente el que inflaba la frase.
+           ⚠️ UNA SOLA DE LA PAREJA EN «No» TAMPOCO SE ESCRIBE. «Sin ectopia lentis» sola se
+           leeria como que la historia familiar se evaluo, y puede estar sin contestar.
+           ⚠️ EL GUION NO SE ESCRIBE, que es lo que ya hacia: «no contestado» no es un hallazgo.
+           Los rotulos POSITIVOS son los que dio el medico, y los dos de FBN1 no llevan
+           «presente» -el sustantivo ya lo afirma- ni el nombre largo. */
         const _apt = [];
-        [['mfs_ectopia_lentis', 'ectopia lentis'],
-         ['mfs_historia_familiar', 'historia familiar'],
+        [['mfs_ectopia_lentis', 'ectopia lentis presente'],
+         ['mfs_historia_familiar', 'historia familiar presente'],
          ['mfs_fbn1_causal', 'variante de FBN1 causal'],
-         ['mfs_fbn1_ao', 'variante de FBN1 con asociación conocida a dilatación o disección aórtica']
+         ['mfs_fbn1_ao', 'variante de FBN1 con asociación conocida a la aorta']
         ].forEach(x => {
           const v = (typeof mfsAparte === 'function') ? mfsAparte(null, x[0]) : null;
-          if (v === 'si') _apt.push(x[1] + ' presente');
-          else if (v === 'no') _apt.push(x[1] + ' ausente');
+          if (v === 'si') _apt.push(x[1]);
         });
         if (_apt.length) frases.push(_apt.join(', ').replace(/^./, c => c.toUpperCase()) + '.');
+        /* La unica ausencia que se publica, y solo con las dos en «No». Va DESPUES de lo
+           positivo: primero lo que el paciente tiene. */
+        {
+          const _el = (typeof mfsAparte === 'function') ? mfsAparte(null, 'mfs_ectopia_lentis') : null;
+          const _hf = (typeof mfsAparte === 'function') ? mfsAparte(null, 'mfs_historia_familiar') : null;
+          if (_el === 'no' && _hf === 'no') frases.push('Sin ectopia lentis ni historia familiar.');
+        }
         if (frases.length) { etePars.push(frases.join(' ')); ccMarcarParrafo(); }
         /* El EN SUMA resume en UNA linea corta, y solo cuando hay rasgos tildados: los
            criterios aparte solos no son un resumen de hallazgos. */
@@ -77233,6 +77267,12 @@ function marfanSync() {
     l.appendChild(b); row.appendChild(l);
     row.appendChild(pill(CLS[r.clave] || 'gray', ETQ[r.clave] || '—'));
     el.appendChild(row); }
+  /* POP-C-2b: la fila del Z calculado sigue a la edad, el sexo, el peso, la talla y el
+     diámetro, que viven en OTRAS pestañas. Va acá y no en una entrada nueva de
+     `ESPEJOS_VIVOS` porque `marfanSync` ya está en esa lista desde el COR-4a, y agregar un
+     segundo barrido para el mismo trabajo es lo que hace que una mutación sobreviva.
+     SÓLO PINTA: `mfsZCalcPintar` no escribe un solo campo del estudio. */
+  if (typeof mfsZCalcPintar === 'function') { try { mfsZCalcPintar() } catch (e) {} }
 }
 
 /* ══ LAS DOS FILAS QUE NO DEPENDEN DEL DIAMETRO — «MARFAN-2», 3a (1) y (2) ════════════════════
@@ -81112,7 +81152,28 @@ function mfsCamposInit() {
     iz.className = 'mfs-sel'; iz.placeholder = 'Z';
     iz.addEventListener('input', function () { mfsCalc(); });
     lz.appendChild(iz);
-    ba.appendChild(lz); }
+    ba.appendChild(lz);
+    /* ══ EL Z CALCULADO, AL LADO DEL MANUAL — «POP-C», 2b ══════════════════════════════════
+       NO es un campo: es una fila de SOLO LECTURA con el valor, el metodo y un boton. Nada se
+       escribe solo; el boton es la unica puerta, y es una accion del medico.
+       ⚠️ VA EN LA GUARDERIA, igual que el campo manual y por el mismo motivo: `critAbrir` hace
+       `innerHTML = render()` y lo que viviera dentro de la tarjeta se destruiria al reabrirla.
+       ⚠️ EL AVISO DE LA TECNICA ES PARTE DE LA FILA Y NO DEL GLOBO. La app define «Aorta
+       sinusal» SIN declarar con que convencion se midio, y el modelo normativo es de borde de
+       ataque en diastole: un Z calculado sobre otra tecnica no es comparable con el articulo.
+       Esconderlo en el globo lo dejaria fuera de la vista de quien mira el numero. */
+    var lc = $('div', 'mfs-fila mfs-fila-ancha mfs-zcalc');
+    lc.id = 'mfs-zcalc-fila';
+    { var r1 = $('span', 'mfs-rot', 'Z calculado');
+      lc.appendChild(r1);
+      var vz = $('span', 'mfs-zcalc-val'); vz.id = 'mfs-zcalc-val'; lc.appendChild(vz);
+      var bz = document.createElement('button');
+      bz.type = 'button'; bz.className = 'btn btn-sm mfs-zcalc-btn'; bz.id = 'mfs-zcalc-btn';
+      bz.textContent = 'Usar este valor';
+      bz.addEventListener('click', function () { mfsZUsarCalculado(); });
+      lc.appendChild(bz);
+      var nz = $('div', 'mfs-zcalc-nota'); nz.id = 'mfs-zcalc-nota'; lc.appendChild(nz); }
+    ba.appendChild(lc); }
   MFS_APARTE.forEach(function (r) { ba.appendChild(filaApt(r)); });
   /* ⚠️ NO SE VACIA LA GUARDERIA: desde el commit 6 contiene tambien `#mfs-bloque-figura`, que
      es MARCADO ESTATICO con el SVG del maniqui. Un `removeChild` en bucle se lo llevaria y la
@@ -81214,12 +81275,94 @@ window._mfsPrestar = _mfsPrestar; window._mfsDevolver = _mfsDevolver;
    ⚠️ NO HAY Z CALCULADO. La orden condiciona el calculo automatico a que el articulo de
    Devereux 2012 este en la biblioteca, y NO ESTA: censados por CONTENIDO los 245 PDF, con
    control positivo. El Z efectivo es, por ahora, el manual o nada. Queda en PENDIENTES.md. */
-function mfsZ(src) {
+function mfsZManual(src) {
   var raw = src ? src['mfs_z_raiz'] : (document.getElementById('mfs_z_raiz') || {}).value;
   var v = String(raw === undefined || raw === null ? '' : raw).trim().replace(',', '.');
   if (v === '') return null;
   var n = parseFloat(v);
   return isFinite(n) ? n : null;
+}
+window.mfsZManual = mfsZManual;
+
+/* ══ EL Z CALCULADO — «POP-C», 2b (2026-11-02) ════════════════════════════════════════════
+   LA FUENTE, LEIDA EN IMAGEN HOJA POR HOJA, esta en
+   `~/Desktop/EcoSmart_Biblioteca_Fuentes/06_Aorta/` y es el MANUSCRITO DE AUTOR de NIH-PA de
+   Devereux RB y cols., «Normal Limits in Relation to Age, Body Size and Gender of
+   Two-Dimensional Echocardiographic Aortic Root Dimensions in Persons >=15 Years of Age»,
+   Am J Cardiol 2012;110(8):1189-94. Lo guardo el medico el 2026-11-01; MARFAN-2 lo habia
+   censado por contenido y NO estaba, por eso aquella tanda paro el calculo (MF2-a).
+   ⚠️ EL FOLIO DE REVISTA NO ES DERIVABLE Y SE DECLARA: el PDF es el manuscrito, de CATORCE
+   hojas, y su pie impreso dice «Devereux et al. Page N» — la numeracion del manuscrito, no la
+   de la revista, que son seis paginas (1189-94). Se cita por HOJA con su pie impreso.
+
+   LO VERIFICADO (todo en imagen, los signos menos y los exponentes mirados glifo por glifo):
+   · POBLACION — titulo y abstract: 1.207 individuos aparentemente normales de 15 anos o mas.
+   · TECNICA — hoja 3 («Page 3»): diametro medido EN DIASTOLE por la convencion de BORDE DE
+     ATAQUE, en paraesternal eje largo, al maximo diametro paralelo al plano del anillo.
+   · SUPERFICIE CORPORAL — hoja 2 («Page 2»), DuBois y DuBois:
+         BSA (m2) = 0.007184 x H^0.725 x W^0.425,  H en cm y W en kg.
+   · ECUACION — hoja 1 (abstract) y hoja 13 («Page 13», Tabla 1), que COINCIDEN:
+         raiz (cm) = 2.423 + 0.090 x (edad/10) + 0.461 x BSA - 0.267 x sexo   [1=M, 2=F]
+     El abstract la escribe por ANO (0.009) y la Tabla 1 por DECADA (0.090): es el mismo
+     numero, 0.090/10 = 0.0090.
+   · DESVIO — hoja 4 («Page 4»): «The standard errors of the estimate, upon which calculation
+     of z-scores is based, were 0.261 and 0.215 cm» — 0.261 para el modelo con BSA.
+         Z = (observado - predicho) / 0.261
+
+   SE USA EL MODELO CON BSA y no el de altura porque es el que la app puede alimentar entero
+   con lo que ya tiene, y porque su desvio es el que el articulo nombra primero. El de altura
+   queda sin implementar: dos Z del mismo paciente en la misma pantalla se leen como un error.
+
+   ⚠️ LA SUPERFICIE CORPORAL SE CALCULA ACA DENTRO Y NO CON `getBSA`. La de la app es
+   MOSTELLER —`sqrt(peso*talla/3600)`— y el articulo normativo es DuBois: usar la de la app
+   daria un Z que no es el del metodo. Con 70 kg y 170 cm, Mosteller da 1.8181 y DuBois
+   1.8117, o sea 0.0064 m2 de diferencia, que son 0.003 mm de diametro predicho: poco, pero no
+   es el numero del articulo. NO se toca la de la app: la usan el indice cardiaco, la masa y
+   diez calculos mas.
+   ⚠️ NO ESCRIBE NADA. Devuelve un objeto y ya: el campo manual solo lo llena el medico con el
+   boton. Es la regla que el D-9, el D-10 y el D-11 pagaron tres veces. */
+var MFS_Z_EDAD_MIN = 15;              /* el articulo declara su poblacion en 15 anos o mas */
+var MFS_Z_SEE      = 0.261;           /* hoja 4: el desvio del modelo con BSA */
+function mfsZBsaDuBois(peso, talla) {
+  if (!(peso > 0) || !(talla > 0)) return null;
+  return 0.007184 * Math.pow(talla, 0.725) * Math.pow(peso, 0.425);
+}
+function mfsZCalc(src) {
+  var nv = function (id) {
+    var r = src ? src[id] : (document.getElementById(id) || {}).value;
+    if (r === undefined || r === null || String(r).trim() === '') return null;
+    var n = parseFloat(String(r).replace(',', '.'));
+    return isFinite(n) ? n : null;
+  };
+  var sx = src ? src.sexo : (document.getElementById('sexo') || {}).value;
+  sx = String(sx === undefined || sx === null ? '' : sx).trim();
+  var edad = nv('edad'), peso = nv('peso'), talla = nv('talla'), mm = nv('ao_sin');
+  /* Lo que falta se NOMBRA: un «no se puede calcular» sin decir que falta obliga a adivinar. */
+  var falta = [];
+  if (edad == null) falta.push('la edad');
+  if (sx !== 'M' && sx !== 'F') falta.push('el sexo');
+  if (peso == null) falta.push('el peso');
+  if (talla == null) falta.push('la talla');
+  if (mm == null) falta.push('el diámetro de la aorta sinusal');
+  if (falta.length) return { z: null, falta: falta, menor: false };
+  /* Por debajo de la edad de la poblacion NO se calcula: extrapolar fuera del rango de un
+     modelo normativo es inventar un valor. Los nomogramas pediatricos son otra fuente. */
+  if (edad < MFS_Z_EDAD_MIN) return { z: null, falta: [], menor: true };
+  var bsa = mfsZBsaDuBois(peso, talla);
+  if (bsa == null) return { z: null, falta: ['el peso y la talla'], menor: false };
+  var pred = 2.423 + 0.090 * (edad / 10) + 0.461 * bsa - 0.267 * (sx === 'M' ? 1 : 2);
+  var z = (mm / 10 - pred) / MFS_Z_SEE;
+  return { z: z, falta: [], menor: false, bsa: bsa, pred: pred };
+}
+window.mfsZCalc = mfsZCalc; window.mfsZBsaDuBois = mfsZBsaDuBois;
+
+/* EL Z EFECTIVO: el manual SIEMPRE gana; si no hay, el calculado; si no, «sin dato».
+   Es lo que leen las reglas 1, 2, 3 y 7 — y nada mas, porque este valor NO llega al papel. */
+function mfsZ(src) {
+  var m = mfsZManual(src);
+  if (m != null) return m;
+  var c = mfsZCalc(src);
+  return (c && c.z != null) ? c.z : null;
 }
 window.mfsZ = mfsZ;
 
@@ -81702,9 +81845,68 @@ function mfsCalc(){
     b.textContent = String(op ? op[2] : def.max);
   });
   mfsReglasPintar();
+  if (typeof mfsZCalcPintar === 'function') mfsZCalcPintar();
   if (typeof mfsFigPintar === 'function') mfsFigPintar();
 }
 window.mfsCalc = mfsCalc;
+
+/* ══ LA FILA DEL Z CALCULADO: PINTA Y NADA MAS — «POP-C», 2b ══════════════════════════════
+   ⚠️ NO ESCRIBE EL CAMPO MANUAL NI NINGUN OTRO. Lo unico que lo llena es `mfsZUsarCalculado`,
+   colgada del boton, que es un gesto del medico. Es la regla que el D-9, el D-10 y el D-11
+   pagaron tres veces: un pintor que escribe un campo del estudio lo repuebla 220 ms despues
+   de que el medico lo borra.
+   ⚠️ LO LLAMAN `mfsCalc` Y `marfanSync`, y `marfanSync` YA ESTA en `ESPEJOS_VIVOS` desde el
+   COR-4a. Sin eso, el Z calculado se quedaria viejo al cargar la edad, el sexo, el peso, la
+   talla o el diametro — que viven en OTRAS pestanas—, que es exactamente el defecto que el
+   commit 1 de esta misma tanda vino a cerrar en los selectores de valvula. */
+function mfsZCalcPintar() {
+  var v = document.getElementById('mfs-zcalc-val');
+  var b = document.getElementById('mfs-zcalc-btn');
+  var n = document.getElementById('mfs-zcalc-nota');
+  if (!v || !b || !n) return;
+  var man = mfsZManual(null);
+  var c = mfsZCalc(null);
+  var hay = !!(c && c.z != null);
+  if (hay) {
+    v.textContent = (c.z >= 0 ? '+' : '') + c.z.toFixed(2);
+    v.className = 'mfs-zcalc-val mfs-zcalc-val-on';
+  } else if (c && c.menor) {
+    v.textContent = 'no se calcula por debajo de ' + MFS_Z_EDAD_MIN + ' años';
+    v.className = 'mfs-zcalc-val';
+  } else if (c && c.falta.length) {
+    v.textContent = 'falta ' + (c.falta.length === 1 ? c.falta[0]
+      : c.falta.slice(0, -1).join(', ') + ' y ' + c.falta[c.falta.length - 1]);
+    v.className = 'mfs-zcalc-val';
+  } else { v.textContent = '—'; v.className = 'mfs-zcalc-val'; }
+  b.disabled = !hay;
+  b.style.display = hay ? '' : 'none';
+  /* El metodo, SIEMPRE visible junto al numero, y la salvedad de la tecnica. Sin guia, sin
+     tabla, sin folio y sin clase: eso vive en el globo de los criterios aparte. */
+  var partes = [];
+  if (hay) {
+    partes.push('edad, sexo y superficie corporal (DuBois); el valor cargado a mano, si lo hay, '
+      + 'es el que mandan las reglas');
+    partes.push('sólo vale si se midió con la técnica del método: borde de ataque a borde de '
+      + 'ataque, en diástole');
+    if (man != null) partes.push('hoy manda el valor cargado a mano (' +
+      (man >= 0 ? '+' : '') + man.toFixed(2) + ')');
+  }
+  n.textContent = partes.join(' · ');
+  n.style.display = partes.length ? '' : 'none';
+}
+window.mfsZCalcPintar = mfsZCalcPintar;
+
+/* La UNICA puerta por la que el calculado llega al campo guardado: el boton. */
+function mfsZUsarCalculado() {
+  var c = mfsZCalc(null);
+  if (!c || c.z == null) return;
+  var e = document.getElementById('mfs_z_raiz');
+  if (!e) return;
+  e.value = (Math.round(c.z * 100) / 100).toFixed(2);
+  e.dispatchEvent(new Event('input', { bubbles: true }));
+  if (typeof toast === 'function') toast('Z de la raíz cargado: ' + e.value);
+}
+window.mfsZUsarCalculado = mfsZUsarCalculado;
 
 /* Las siete reglas con su estado y su porque. Se arma con NODOS, por el mismo motivo que la
    guarderia: el ruleset local avisa sobre `innerHTML` concatenado. */
@@ -148437,8 +148639,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261101-1704';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793563469482;                 /* eco-build-ms */
+const ECO_BUILD    = '20261101-1712';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793563926933;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -148524,7 +148726,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261101-1704</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261101-1712</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

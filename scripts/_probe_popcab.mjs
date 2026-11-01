@@ -546,21 +546,21 @@ const ESCENAS = {
               chk: ['pop_cx_valv','pop_cx_v_ao'], integrar: ['pop'] },
   /* COMMIT 2a: la linea de Marfan. Los tres selectores en No, en Si y en el guion. */
   pcMfNo:   { campos: { edad:'30', peso:'70', talla:'175', ao_sin:'44' },
-              sel: { sexo:'masculino', mfs_sind:'marfan', mfs_ectopia:'no', mfs_hf:'no',
+              sel: { sexo:'M', marfan_sindrome:'marfan', mfs_ectopia_lentis:'no', mfs_historia_familiar:'no',
                      mfs_fbn1_causal:'no', mfs_fbn1_ao:'no' }, chk: ['marfan_incluir_chk'] },
   pcMfSi:   { campos: { edad:'30', peso:'70', talla:'175', ao_sin:'44' },
-              sel: { sexo:'masculino', mfs_sind:'marfan', mfs_ectopia:'si', mfs_hf:'si',
+              sel: { sexo:'M', marfan_sindrome:'marfan', mfs_ectopia_lentis:'si', mfs_historia_familiar:'si',
                      mfs_fbn1_causal:'si', mfs_fbn1_ao:'si' }, chk: ['marfan_incluir_chk'] },
   pcMfGuion:{ campos: { edad:'30', peso:'70', talla:'175', ao_sin:'44' },
-              sel: { sexo:'masculino', mfs_sind:'marfan' }, chk: ['marfan_incluir_chk'] },
+              sel: { sexo:'M', marfan_sindrome:'marfan' }, chk: ['marfan_incluir_chk'] },
   pcMfMix:  { campos: { edad:'30', peso:'70', talla:'175', ao_sin:'44' },
-              sel: { sexo:'masculino', mfs_sind:'marfan', mfs_ectopia:'si', mfs_hf:'no' },
+              sel: { sexo:'M', marfan_sindrome:'marfan', mfs_ectopia_lentis:'si', mfs_historia_familiar:'no' },
               chk: ['marfan_incluir_chk'] },
   /* COMMIT 2b: el Z de la raiz con TODO cargado, y un menor de 15. */
   pcZok:    { campos: { edad:'40', peso:'70', talla:'170', ao_sin:'38' },
-              sel: { sexo:'masculino', mfs_sind:'marfan' }, chk: ['marfan_incluir_chk'] },
+              sel: { sexo:'M', marfan_sindrome:'marfan' }, chk: ['marfan_incluir_chk'] },
   pcZmenor: { campos: { edad:'12', peso:'40', talla:'150', ao_sin:'28' },
-              sel: { sexo:'femenino', mfs_sind:'marfan' }, chk: ['marfan_incluir_chk'] },
+              sel: { sexo:'F', marfan_sindrome:'marfan' }, chk: ['marfan_incluir_chk'] },
   /* COMMIT 3a: los bordes del indice cardiaco. Con peso 70 y talla 170 la BSA de la app es
      1.818118685772619, asi que el gasto que da IC exacto es IC * BSA. */
   pcIc219:  { campos: { peso:'70', talla:'170', pop_sw_gc:'3.9818', pop_sw_pam:'78',
