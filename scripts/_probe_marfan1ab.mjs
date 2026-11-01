@@ -17,6 +17,7 @@ const _pw = (await import(process.env.HOME + '/.pwtmp/node_modules/playwright/in
 const arg = n => { const i = process.argv.indexOf(n); return i > 0 ? process.argv[i + 1] : null };
 const HEAD = arg('--head');
 const NUEVO = arg('--nuevo') || '/Users/maicoldossantos/Desktop/APLICACIONES/ecosmart/index.html';
+const PESADO = process.argv.indexOf('--pdf') > 0;  /* PDF y PPT: solo cuando se piden */
 
 /* Las escenas. Cada una es un juego de campos; las claves que el arbol viejo no tiene se
    ignoran solas -asignar a un id inexistente no hace nada-, que es lo que permite comparar. */
@@ -34,7 +35,7 @@ const ESCENAS = {
      escena mide que cargarlos no mueve el papel del commit 1 */
   mfScore9:{ marfan_sindrome: 'marfan', marfan_ao_seno: '48', _integrar: 1,
              mfs_muneca_pulgar: 'ambos', mfs_pectus: 'carinatum', mfs_neumotorax: 1,
-             mfs_estrias: 1, mfs_miopia: 1, mfs_prolapso: 1 },
+             mfs_estrias: 1, mfs_miopia: 1 },
   mfApart: { marfan_sindrome: 'marfan', marfan_ao_seno: '48', _integrar: 1,
              mfs_ectopia_lentis: 'si', mfs_historia_familiar: 'si', mfs_fbn1_causal: 'si',
              mfs_fbn1_ao: 'no', mfs_sin_otros: 'si', mfs_diseccion_raiz: 'no' }
@@ -84,10 +85,89 @@ const MEDIR = `(async (ESC) => {
       if (typeof _noEsDelEstudio === 'function' && _noEsDelEstudio(e.id)) return; ids.push(e.id) });
     return ids.sort().join(',') })();
   R.estado = (typeof marfanEstado === 'function') ? JSON.stringify(marfanEstado()) : 'NO';
+  /* la linea de Marfan aislada, para leerla sin el resto del informe */
+  R.mfLinea = String(R.estilos.narrativo.inf).split(String.fromCharCode(10))
+    .filter(l => /Score sistémico|[Aa]ortopat|ectopia lentis|FBN1|historia familiar/i.test(l)).join(' // ');
+  R.mfSuma = String(R.estilos.narrativo.sum).split(String.fromCharCode(10))
+    .filter(l => /Score sistémico|[Aa]ortopat/i.test(l)).join(' // ');
+  R.estado = (typeof marfanEstado === 'function') ? JSON.stringify(marfanEstado()) : 'NO';
   R.capsula = (function(){ const e = EL('marfan-resultado');
     return e ? String(e.textContent || '').split(' ').filter(Boolean).join(' ') : 'NO' })();
   return R;
 })`;
+
+/* ══ EL PPT, espiando a PptxGenJS. VA ANTES DEL PDF: generar el PDF deja las casillas del
+   formulario en otro estado y el PPT saldria medido sobre un denominador envenenado -la
+   trampa que la tanda AJUSTES-3 documenta-.
+   El espia mira addText Y addTable: las filas de tabla no pasan por addText, y una sonda que
+   solo mire la primera da cero sobre ellas sin que eso pruebe nada. */
+const PPT = `(async () => {
+  if (typeof window.PptxGenJS === 'undefined') return { err: 'SIN PPTXGENJS' };
+  const Orig = window.PptxGenJS;
+  const reg = { textos: [], slides: 0, tablas: 0 };
+  window.PptxGenJS = function (...a) {
+    const p = new Orig(...a);
+    const oa = p.addSlide.bind(p);
+    p.addSlide = function (...z) { reg.slides++; const s = oa(...z);
+      const ot = s.addText.bind(s);
+      s.addText = function (t, ...r) { reg.textos.push(JSON.stringify(t).slice(0, 400)); return ot(t, ...r) };
+      if (typeof s.addTable === 'function') { const oTb = s.addTable.bind(s);
+        s.addTable = function (f, ...r) { reg.tablas++;
+          reg.textos.push('[TABLA] ' + JSON.stringify(f).slice(0, 6000)); return oTb(f, ...r) } }
+      return s };
+    p.writeFile = function () { return Promise.resolve(true) };
+    p.write = function () { return Promise.resolve('') };
+    return p };
+  Object.keys(Orig).forEach(k => { try { window.PptxGenJS[k] = Orig[k] } catch (e) {} });
+  /* ⚠️ UNA CASILLA SE PERSISTE COMO <id>__chk Y NO COMO <id>: sin esa clave, generarPPT carga
+     el estudio y repone TODAS las casillas apagadas, asi que el PPT se mediria con el modulo
+     sin integrar en los dos arboles. */
+  const campos = {};
+  document.querySelectorAll('input[id], select[id], textarea[id]').forEach(e => {
+    campos[e.id] = (e.type === 'checkbox') ? (e.checked ? '1' : '') : String(e.value || '');
+    if (e.type === 'checkbox') campos[e.id + '__chk'] = e.checked ? '1' : '0' });
+  campos.informe_texto = String((document.getElementById('informe_texto') || {}).value || '');
+  campos.en_suma = String((document.getElementById('en_suma') || {}).value || '');
+  campos['med-nombre'] = 'Medico de prueba';
+  const ESTU = { id: '__mf1__', fecha: '2026-11-01', nombre: 'AB MARFAN1', campos: campos };
+  const oGI = window.getInformes, oT = window._pptElegirTema, oQ = window._pptElegirPresentador;
+  window.getInformes = function () { return [ESTU] };
+  window._pptElegirTema = function (cb) { return cb('dark') };
+  window._pptElegirPresentador = function (i, cb) { return cb('Medico de prueba') };
+  let err = null;
+  try { if (typeof generarPPT === 'function') await generarPPT('__mf1__') } catch (e) { err = String(e).slice(0, 140) }
+  await new Promise(r => setTimeout(r, 900));
+  window.getInformes = oGI; window._pptElegirTema = oT; window._pptElegirPresentador = oQ;
+  window.PptxGenJS = Orig;
+  return { slides: reg.slides, tablas: reg.tablas, n: reg.textos.length, txt: reg.textos.join(' | '), err: err };
+})()`;
+
+/* ══ EL PDF generado de verdad, en sus SEIS plantillas, espiando el constructor de jsPDF. */
+const PDF = `(async () => {
+  const PL = ['clasico', 'moderno', 'minimalista', 'academico', 'compacto', 'elegante'];
+  const r = {};
+  if (typeof window.jspdf === 'undefined' || !window.jspdf.jsPDF) return { err: 'SIN JSPDF' };
+  const Orig = window.jspdf.jsPDF;
+  for (const p of PL) {
+    const reg = { textos: [], nFigs: 0 };
+    window.jspdf.jsPDF = function (...a) {
+      const d = new Orig(...a);
+      const ot = d.text.bind(d);
+      d.text = function (t, x, y, ...rest) { reg.textos.push(String(t)); return ot(t, x, y, ...rest) };
+      ['circle', 'line', 'rect', 'addImage', 'triangle'].forEach(m => {
+        if (typeof d[m] === 'function') { const o = d[m].bind(d); d[m] = function (...z) { reg.nFigs++; return o(...z) } } });
+      d.save = function () { return true }; d.output = function () { return '' };
+      return d };
+    Object.keys(Orig).forEach(k => { try { window.jspdf.jsPDF[k] = Orig[k] } catch (e) {} });
+    try { const pl = document.getElementById('pdf_plantilla'); if (pl) { pl.value = p;
+            pl.dispatchEvent(new Event('change', { bubbles: true })) } } catch (e) {}
+    try { if (typeof _pdfAjustarA4 === 'function') await _pdfAjustarA4();
+          else if (typeof generarPDF === 'function') await generarPDF() } catch (e) { reg.err = String(e).slice(0, 110) }
+    r[p] = { n: reg.textos.length, figs: reg.nFigs, txt: reg.textos.join(' | ') };
+  }
+  window.jspdf.jsPDF = Orig;
+  return r;
+})()`;
 
 const correr = async (br, file) => {
   const ctx = await br.newContext({ viewport: { width: 1440, height: 900 }, colorScheme: 'dark' });
@@ -100,7 +180,11 @@ const correr = async (br, file) => {
   const out = {};
   for (const [nom, esc] of Object.entries(ESCENAS)) {
     try { out[nom] = await pg.evaluate(MEDIR + '(' + JSON.stringify(esc) + ')') }
-    catch (e) { out[nom] = { fatal: e.message } }
+    catch (e) { out[nom] = { fatal: e.message }; continue }
+    if (PESADO) {
+      try { out[nom]._ppt = await pg.evaluate(PPT) } catch (e) { out[nom]._ppt = { err: e.message } }
+      try { out[nom]._pdf = await pg.evaluate(PDF) } catch (e) { out[nom]._pdf = { err: e.message } }
+    }
   }
   out.__errs = errs;
   await ctx.close();
@@ -111,7 +195,7 @@ const correr = async (br, file) => {
   const br = await _pw.chromium.launch({ channel: 'chrome' });
   const A = await correr(br, HEAD), B = await correr(br, NUEVO);
   await br.close();
-  const difs = [], denom = { escenas: 0, claves: 0, xls: 0 };
+  const difs = [], denom = { escenas: 0, claves: 0, xls: 0, pptTextos: 0, pdfTextos: 0 };
   for (const nom of Object.keys(ESCENAS)) {
     const a = A[nom], b = B[nom];
     denom.escenas++;
@@ -131,6 +215,18 @@ const correr = async (br, file) => {
     }
     denom.claves++; if (a.capsula !== b.capsula) difs.push([nom, 'capsula', a.capsula, b.capsula]);
     denom.claves++; if (a.estado !== b.estado) difs.push([nom, 'estado', a.estado, b.estado]);
+    if (a._ppt && b._ppt) {
+      denom.claves++; denom.pptTextos += (a._ppt.n || 0);
+      if (a._ppt.txt !== b._ppt.txt) difs.push([nom, 'ppt', String(a._ppt.txt).slice(0, 200), String(b._ppt.txt).slice(0, 200)]);
+      if ((a._ppt.slides || 0) === 0) difs.push([nom, 'ppt.DENOM', 'CERO diapositivas: la medicion NO vale', a._ppt.err]);
+    }
+    if (a._pdf && b._pdf) {
+      for (const pl of Object.keys(a._pdf)) {
+        denom.claves++; denom.pdfTextos += ((a._pdf[pl] || {}).n || 0);
+        if (JSON.stringify(a._pdf[pl]) !== JSON.stringify(b._pdf[pl]))
+          difs.push([nom, 'pdf.' + pl, String((a._pdf[pl] || {}).txt).slice(0, 200), String((b._pdf[pl] || {}).txt).slice(0, 200)]);
+      }
+    }
   }
   /* los campos guardados: diferencia de ids, una sola vez */
   const ca = (A.vacio.campos || '').split(','), cb = (B.vacio.campos || '').split(',');

@@ -60424,8 +60424,54 @@ function generarInforme(opts) {
       if (!chk || !chk.checked) return;
       if (typeof marfanEstado !== 'function') return;
       const r = marfanEstado();
-      if (!r.hayDatos) return;
       const f1 = n => (n == null || !isFinite(n)) ? null : String(Math.round(n * 10) / 10);
+
+      /* ══ LOS RASGOS SE DESCRIBEN; LA REGLA, EL DIAGNOSTICO Y EL UMBRAL NO («MARFAN-1», 3a) ══
+         DECISION DEL MEDICO, y es la regla fija de este archivo: el papel describe. Sale el
+         puntaje con los rasgos tildados y el estado de los criterios aparte; NO sale la regla
+         que cumple, ni la palabra diagnostico, ni el umbral de 7, ni ninguna categoria, guia,
+         tabla, clase o folio, ni conducta. Todo eso vive en la tarjeta, el globo y Referencias.
+
+         ⚠️ TIENE SU PROPIA COMPUERTA Y NO CUELGA DE `r.hayDatos`, y eso esta medido. `hayDatos`
+         es `sindrome || seno || ascendente || indice`: un paciente con nueve rasgos tildados y
+         sin diametro cargado salia del bloque por ese `return` y el papel no decia una palabra
+         de lo que el medico habia marcado. Y extender `hayDatos` NO es la salida: lo lee el
+         LABORATORIO para contar un estudio como «Marfan/EHAT» y lo lee la capsula, asi que
+         sumarle los rasgos meteria en ese panel a todo estudio con una estria consignada. Es
+         el mismo motivo por el que el G-4 dejo el espejo de la raiz CONDICIONAL. */
+      const _mfsP = (typeof mfsScore === 'function') ? mfsScore() : null;
+      if (_mfsP) {
+        const frases = [];
+        if (_mfsP.tildados.length) {
+          /* ⚠️ EN MINUSCULA DENTRO DEL PARENTESIS, que es la regla R3: van en medio de la
+             frase. El rotulo de cada rasgo sale de `MFS_SCORE` -su dueno unico-, asi que
+             agregar un rasgo no obliga a escribirlo una segunda vez aca. */
+          frases.push('Score sistémico de ' + _mfsP.pts + ' punto' + (_mfsP.pts === 1 ? '' : 's') +
+            ' (' + _mfsP.tildados.map(x => (x.papel || x.txt).charAt(0).toLowerCase() + (x.papel || x.txt).slice(1)).join(', ') + ').');
+        }
+        /* Los criterios aparte, con SU estado y solo si estan cargados: «no contestado» no es
+           un hallazgo y no se escribe. La diseccion y el campo de otros sindromes NO van al
+           papel -la primera ya se describe donde corresponda y el segundo es un requisito de
+           las reglas, que no salen-. */
+        const _apt = [];
+        [['mfs_ectopia_lentis', 'ectopia lentis'],
+         ['mfs_historia_familiar', 'historia familiar'],
+         ['mfs_fbn1_causal', 'variante de FBN1 causal'],
+         ['mfs_fbn1_ao', 'variante de FBN1 con asociación conocida a dilatación o disección aórtica']
+        ].forEach(x => {
+          const v = (typeof mfsAparte === 'function') ? mfsAparte(null, x[0]) : null;
+          if (v === 'si') _apt.push(x[1] + ' presente');
+          else if (v === 'no') _apt.push(x[1] + ' ausente');
+        });
+        if (_apt.length) frases.push(_apt.join(', ').replace(/^./, c => c.toUpperCase()) + '.');
+        if (frases.length) { etePars.push(frases.join(' ')); ccMarcarParrafo(); }
+        /* El EN SUMA resume en UNA linea corta, y solo cuando hay rasgos tildados: los
+           criterios aparte solos no son un resumen de hallazgos. */
+        if (_mfsP.tildados.length) {
+          sumaCC('Score sistémico de ' + _mfsP.pts + ' punto' + (_mfsP.pts === 1 ? '' : 's') + '.');
+        }
+      }
+      if (!r.hayDatos) return;
       /* ══ EL PAPEL DICE EL SÍNDROME, EL DIÁMETRO Y SI ESTÁ DILATADA. NADA MÁS (B3, 30/10/2026).
          Decisión del médico. Hasta hoy el cuerpo publicaba `r.txt`, que arrastra el UMBRAL, la
          CLASE, el NIVEL y la TABLA con su folio —«Clase I · Nivel B desde 50 mm para síndrome de
@@ -80220,8 +80266,15 @@ function _critPie(txt){
    exportar e importar, y NO tienen columna de Excel -igual que los seis `vab_fr_*`-, que es lo
    que deja las 441 columnas intactas. */
 var MFS_SCORE = [
+  /* ⚠️ LA CUARTA ENTRADA DE UNA OPCION ES SU TEXTO PARA EL PAPEL, y existe porque el rotulo
+     del selector se lee DENTRO de su fila y el papel no tiene esa fila al lado. «Los dos
+     signos» es claro bajo el rotulo «Signo de la muñeca y del pulgar» y no dice nada dentro de
+     una oracion del informe: lo midio el A/B del commit 3, que publicaba «Score sistémico de 9
+     puntos (los dos signos, pectus carinatum, ...)». Las opciones que se explican solas no la
+     llevan, y entonces el papel usa su rotulo. */
   { c:'mfs_muneca_pulgar', t:'sel', max:3, rot:'Signo de la muñeca y del pulgar',
-    ops:[['ambos','Los dos signos', 3], ['uno','Uno solo de los dos', 1]] },
+    ops:[['ambos','Los dos signos', 3, 'signos de la muñeca y del pulgar'],
+         ['uno','Uno solo de los dos', 1, 'signo de la muñeca o del pulgar']] },
   { c:'mfs_pectus', t:'sel', max:2, rot:'Pectus',
     ops:[['carinatum','Pectus carinatum', 2], ['excavatum','Pectus excavatum o asimetría del tórax', 1]] },
   { c:'mfs_pie', t:'sel', max:2, rot:'Pie',
@@ -80274,12 +80327,12 @@ function mfsScore(src) {
   };
   var pts = 0, tildados = [], sinEq = [];
   MFS_SCORE.forEach(function (r) {
-    if (r.t === 'chk') { if (chk(r.c)) { pts += r.p; tildados.push({ c:r.c, txt:r.rot, p:r.p }); } return; }
+    if (r.t === 'chk') { if (chk(r.c)) { pts += r.p; tildados.push({ c:r.c, txt:r.rot, papel:r.rot, p:r.p }); } return; }
     var v = String(raw(r.c) === undefined || raw(r.c) === null ? '' : raw(r.c)).trim();
     if (v === '') return;
     var op = r.ops.filter(function (o) { return o[0] === v; })[0];
     if (!op) { sinEq.push({ c:r.c, rot:r.rot, val:v }); return; }
-    pts += op[2]; tildados.push({ c:r.c, txt:op[1], p:op[2] });
+    pts += op[2]; tildados.push({ c:r.c, txt:op[1], papel: op[3] || op[1], p:op[2] });
   });
   return { pts: pts, max: MFS_SCORE_MAX, corte: MFS_SCORE_CORTE,
            sistemico: pts >= MFS_SCORE_CORTE, tildados: tildados, sinEquivalente: sinEq };
