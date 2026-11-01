@@ -63237,6 +63237,37 @@ const POP_ESQ_VALV = Object.freeze([
   Object.freeze({ k:'tr', x:335, y:217, rot:0,  lbl:'tricúspide' })
 ]);
 const POP_ESQ_PLEURA_H = Object.freeze({ leve: 22, moderado: 44, severo: 72 });
+/* ══ LOS SIMBOLOS DE VALVULA, PORTADOS DE LA DEMO v9 — «POP-C», commit 5 ═════════════════════
+   De `valveGeo` de `docs/3d/demo_posoperatorio_v9_concepto.html`, que es un dibujo del medico y
+   la orden autoriza a copiar. Los numeros son los de la demo, sin reescalar: radio 10, bisagras
+   en +-8, largo de velo 8 y una excursion de 72 grados a plena apertura.
+   El dorado del tejido es un literal de la demo y no una variable del tema: la demo lo escribe
+   asi y copiarla es lo que la orden pide. No colisiona con los colores de senal de la app. */
+const POP_ESQ_VALV_BIO = '#c08a4a';
+const POP_ESQ_VALV_L   = 8;      /* largo del velo */
+const POP_ESQ_VALV_ANG = 72;     /* grados de excursion a plena apertura */
+/* La geometria de los dos velos para una apertura `a` entre 0 y 1. Devuelve las rutas de los
+   dos trazos: rectas para la mecanica, curvas cuadraticas para la biologica. Es `valveGeo` de
+   la demo, con lo mismo adentro y sin el HTML. */
+function _popValvVelos(a, bio) {
+  const phi = a * POP_ESQ_VALV_ANG * Math.PI / 180;
+  const L = POP_ESQ_VALV_L, c = Math.cos(phi), s = Math.sin(phi);
+  const lx = -8 + L * c, rx = 8 - L * c, ey = -L * s;
+  const f = n => (Math.round(n * 100) / 100).toFixed(2);
+  if (bio) {
+    return [ 'M-8 0Q' + f((-8 + lx) / 2 - 2) + ' ' + f(ey / 2 + 3) + ' ' + f(lx) + ' ' + f(ey),
+             'M8 0Q'  + f((8 + rx) / 2 + 2)  + ' ' + f(ey / 2 + 3) + ' ' + f(rx) + ' ' + f(ey) ];
+  }
+  return [ 'M-8 0L' + f(lx) + ' ' + f(ey), 'M8 0L' + f(rx) + ' ' + f(ey) ];
+}
+/* La fraccion de apertura dentro del ciclo, tambien de la demo (`openFrac`): la aortica y la
+   pulmonar abren en SISTOLE y la mitral y la tricuspide en DIASTOLE. */
+function _popValvApertura(k, ph) {
+  if (ph === null) return 0;
+  if (k === 'ao' || k === 'pu') return ph < 0.35 ? Math.sin(Math.PI * ph / 0.35) : 0;
+  return (ph > 0.4 && ph < 0.95) ? Math.sin(Math.PI * (ph - 0.4) / 0.55) : 0;
+}
+window._popValvVelos = _popValvVelos; window._popValvApertura = _popValvApertura;
 function popEsquema() {
   const r = popPatron();
   const sv2 = id => { const e = document.getElementById(id); return e ? e.value : ''; };
@@ -63596,12 +63627,22 @@ function popEsqMontar() {
       transform:'translate(' + vv.x + ' ' + vv.y + ') rotate(' + vv.rot + ')' }, svg);
     const o = {};
     o.g = G;
-    o.anillo = _popEsqNodo('ellipse', { cx:0, cy:0, rx:11, ry:5, 'stroke-width':1.5 }, G);
-    o.vA = _popEsqNodo('line', { y1:0, y2:0, 'stroke-linecap':'round' }, G);
-    o.vB = _popEsqNodo('line', { y1:0, y2:0, 'stroke-linecap':'round' }, G);
-    o.sop = [-7, 0, 7].map(function (x) {
-      return _popEsqNodo('line', { x1:x, y1:-4, x2:x, y2:(x === 0 ? -11 : -9),
-        'stroke-width':1.4, 'stroke-linecap':'round', display:'none' }, G);
+    /* ══ LOS SIMBOLOS SON LOS DE LA DEMO v9 — «POP-C», commit 5 (2026-11-02) ═══════════════
+       Portados de `valveGeo` de `docs/3d/demo_posoperatorio_v9_concepto.html`, que es un
+       dibujo del medico y la orden autoriza expresamente a copiar. Lo que cambia respecto de
+       POP-B-7a: el anillo pasa de una ELIPSE 11x5 a un CIRCULO r=10, los velos de dos LINEAS
+       que se separan a dos trazos que ROTAN sobre su bisagra, la biologica gana sus dos
+       curvas y sus dos pivotes, y los tres soportes rectos se retiran -la demo no los tiene-.
+       LO QUE NO CAMBIA es la logica de POP-B: el tipo sale del dueno en Valvulas, solo se
+       ofrecen protesis, sin tipo se dibuja el aro punteado NEUTRO y nunca se asume un tipo. */
+    o.anillo = _popEsqNodo('circle', { cx:0, cy:0, r:10, 'stroke-width':1.5 }, G);
+    /* `path` y no `line`: la biologica de la demo son dos curvas cuadraticas, y un nodo que
+       cambia de tipo entre repintados rompe la regla de montar una sola vez. */
+    o.vA = _popEsqNodo('path', { fill:'none', 'stroke-linecap':'round' }, G);
+    o.vB = _popEsqNodo('path', { fill:'none', 'stroke-linecap':'round' }, G);
+    /* Los dos pivotes de la biologica, que en la demo son circulos de radio 2,2. */
+    o.sop = [-8, 8].map(function (x) {
+      return _popEsqNodo('circle', { cx:x, cy:0, r:2.2, display:'none' }, G);
     });
     n.valv[vv.k] = o;
   });
@@ -63830,20 +63871,28 @@ function _popEsqEstatico(d, g) {
     if (!o) return;
     o.g.setAttribute('display', st && st.on ? 'inline' : 'none');
     if (!st || !st.on) return;
+    /* EL ASPECTO ES EL DE LA DEMO v9. El anillo va SIN relleno de color -fill del fondo, como
+       la demo- y lo que distingue a los tres es el trazo: mecanica en el color de texto,
+       biologica en el dorado del tejido, y sin tipo el aro punteado neutro. */
     const mec = st.tipo === 'mec', bio = st.tipo === 'bio';
-    o.anillo.setAttribute('fill', mec ? 'var(--text)' : bio ? 'var(--bg3)' : 'none');
-    o.anillo.setAttribute('fill-opacity', mec ? 0.38 : 1);
-    o.anillo.setAttribute('stroke', mec ? 'var(--text)' : bio ? 'var(--text2)' : 'var(--border)');
+    const col = mec ? 'var(--text)' : bio ? POP_ESQ_VALV_BIO : 'var(--border)';
+    o.anillo.setAttribute('fill', 'var(--bg)');
+    o.anillo.setAttribute('stroke', col);
     o.anillo.setAttribute('stroke-dasharray', st.tipo ? '' : '3 3');
     [o.vA, o.vB].forEach(function (l) {
       l.setAttribute('display', st.tipo ? 'inline' : 'none');
-      l.setAttribute('stroke', mec ? 'var(--text)' : 'var(--text2)');
-      l.setAttribute('stroke-width', mec ? 2.6 : 1.8);
+      l.setAttribute('stroke', col);
+      l.setAttribute('stroke-width', mec ? 3 : 2.2);
     });
-    o.sop.forEach(function (l) {
-      l.setAttribute('display', bio ? 'inline' : 'none');
-      l.setAttribute('stroke', 'var(--text2)');
+    o.sop.forEach(function (c) {
+      c.setAttribute('display', bio ? 'inline' : 'none');
+      c.setAttribute('fill', POP_ESQ_VALV_BIO);
     });
+    /* Los velos quedan CERRADOS desde el pintor estatico: el bucle los mueve, pero si nunca
+       llega a correr -o si corre despues- un `path` sin `d` no dibuja nada y el simbolo
+       aparece sin velos, que es justo lo que significa «sin tipo». Es idempotente. */
+    { const p0 = _popValvVelos(0, bio);
+      o.vA.setAttribute('d', p0[0]); o.vB.setAttribute('d', p0[1]); }
   });
   n.puente.setAttribute('display', d.cabg ? 'inline' : 'none');
   n.malla.setAttribute('display', d.aortaInj ? 'inline' : 'none');
@@ -64069,20 +64118,18 @@ function popEsqFrame(ahora) {
      mismo corte de 0,35 que parte el ciclo en el resto del dibujo. */
   const _fv = d.fc === null ? null
     : (_popEsq.reduce ? 0.2 : ((ahora - _popEsq.t0) % (60000 / d.fc)) / (60000 / d.fc));
+  /* ⚠️ LA APERTURA ES LA DE LA DEMO v9 DESDE «POP-C», commit 5: los velos ROTAN sobre su
+     bisagra en vez de separarse, con `_popValvApertura` -que es `openFrac` de la demo- y
+     `_popValvVelos` -que es `valveGeo`-. Sin frecuencia cargada el simbolo queda CERRADO y
+     quieto, que es lo que POP-B-7b ya decidia: una valvula abierta y quieta se leeria como una
+     insuficiencia permanente. */
   POP_ESQ_VALV.forEach(function (vv) {
     const o = n.valv[vv.k], st = d.vop[vv.k];
     if (!o || !st || !st.on) return;
-    const sist = _fv !== null && _fv < 0.35;
-    const abre = (vv.k === 'ao' || vv.k === 'pu') ? sist : (_fv !== null && !sist);
-    /* El hueco crece y decrece dentro de su mitad del ciclo: 0 cerrada, 9 del todo abierta. */
-    let u = 0;
-    if (abre) {
-      const f0 = sist ? 0 : 0.35, f1 = sist ? 0.35 : 1;
-      u = Math.sin(Math.PI * (_fv - f0) / (f1 - f0));
-    }
-    const hu = (9 * Math.max(0, Math.min(1, u))).toFixed(1);
-    o.vA.setAttribute('x1', -11); o.vA.setAttribute('x2', -hu);
-    o.vB.setAttribute('x1', hu); o.vB.setAttribute('x2', 11);
+    const a = Math.max(0, Math.min(1, _popValvApertura(vv.k, _fv)));
+    const p = _popValvVelos(a, st.tipo === 'bio');
+    o.vA.setAttribute('d', p[0]);
+    o.vB.setAttribute('d', p[1]);
   });
   /* La helice del Impella gira CONTINUO y no con el latido: una bomba axial no pulsa. */
   if (d.impella) n.prop.setAttribute('transform', 'rotate(' + ((ahora / 3) % 360).toFixed(0) + ' 461 257)');
@@ -148808,8 +148855,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261101-1737';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793565432650;                 /* eco-build-ms */
+const ECO_BUILD    = '20261101-1758';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793566727891;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -148895,7 +148942,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261101-1737</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261101-1758</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
