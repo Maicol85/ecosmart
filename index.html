@@ -64409,6 +64409,20 @@ function ESPEJOS_VIVOS() {
              esto, cargar la aorta en AI/VI no se vería en la pantalla de aortopatía hasta el
              próximo gesto dentro de ese módulo, que es justo lo que el médico reportó. */
           'marfanSync',
+          /* POP-C-1: los CUATRO selectores del tipo de válvula operada del posoperatorio.
+             ⚠️ SU ÚNICO LLAMADOR ERA `popSync`, QUE ESTE REGISTRO EXCLUYE A PROPÓSITO porque
+             escribe campos del estudio. Resultado medido en los dos sentidos y en las cuatro
+             válvulas: cambiar la morfología en Válvulas NO movía el selector —ni al ponerla, ni
+             al cambiarla, ni al sacarla—, así que el médico que marcaba «Tricúspide · Prótesis
+             mecánica» y después la retiraba en Válvulas seguía viendo «Prótesis mecánica» acá.
+             El sentido inverso sí andaba: lo cierra `popCxVGesto`, colgado del `onchange`.
+             CUMPLE LA REGLA DE ESTA LISTA: `popCxVSync` SÓLO PINTA. Escribe el `value` de los
+             cuatro `pop-esp-v*` —prefijo `pop-esp-`, que `_CAMPOS_FUERA_DEL_ESTUDIO` y
+             `_noEsDelEstudio` excluyen, así que no son campos del estudio— y el `textContent`
+             de sus ocho `<span>` sin id de campo. Es el mismo caso que `marfanSync` (COR-4a) y
+             que el espejo del pericardio, cuyo pintor `popPocusSync` ya estaba en la lista.
+             Es idempotente —compara antes de asignar—, así que no pelea con `popCxVGesto`. */
+          'popCxVSync',
           /* AJ1-5: la fila de miniaturas de lo que va al PDF. Entra acá por DOS disparadores que
              sus otros tres enganches no ven: la casilla del jet post-TAVI y la captura del 3D del
              ventrículo izquierdo, que no pasan ni por `_pdfToggleBtnState` ni por `imgRender`.
@@ -148423,8 +148437,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261101-1540';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793558425445;                 /* eco-build-ms */
+const ECO_BUILD    = '20261101-1704';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793563469482;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -148510,7 +148524,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261101-1540</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261101-1704</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
