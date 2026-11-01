@@ -1600,6 +1600,33 @@
      agrupan nada. Por debajo de 768 px se apilan, como el resto del modulo.
      `.pop-ro` es el valor DERIVADO: se ve como un campo pero no lo es. Mismo alto que un
      `input` de la casa para que las tres columnas queden alineadas. */
+  /* ══ POP · CONTEXTO QUIRURGICO: CASILLAS, VALVULAS Y DRENAJES (POP-A-4) ══════════════
+     `.pop-cx-her` es la MARCA HEREDADA: la casilla de un estudio viejo se VE marcada sin que
+     su `checked` se toque. El tilde lo dibuja un `::before` encima de la caja, en color tenue,
+     y la caja baja de opacidad: asi se distingue de una casilla que el medico marco. Sin esto
+     habria que poner `checked`, y eso agregaria una clave al estudio en cuanto se guarde -o
+     sea reescribir un estudio viejo, que esta tanda prohibe-. */
+  .pop-cx-grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(146px,1fr));
+                 gap:0 10px; }
+  .pop-cx-chk { position:relative; display:flex; align-items:center; gap:8px; cursor:pointer;
+                font-size:12.5px; color:var(--text); min-height:32px; }
+  .pop-cx-chk input { width:16px; height:16px; cursor:pointer; flex:0 0 auto; }
+  .pop-cx-chk.pop-cx-her { color:var(--text2); }
+  .pop-cx-chk.pop-cx-her input { opacity:.4; }
+  .pop-cx-chk.pop-cx-her::before { content:'\2713'; position:absolute; left:2px; top:50%;
+                 transform:translateY(-50%); font-size:12px; line-height:1;
+                 color:var(--text2); pointer-events:none; }
+  .pop-cx-leg { font-size:10px; color:var(--text2); line-height:1.5; }
+  .pop-vrow { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin:1px 0; }
+  .pop-vrow > .pop-cx-chk { flex:0 0 112px; }
+  .pop-vrow > select { flex:1 1 148px; min-width:0; }
+  .pop-vtag { font-size:10px; color:var(--text2); flex:0 0 auto; }
+  /* ══ LOS TRES DRENAJES EN UNA FILA, SIEMPRE (POP-A-4) ═════════════════════════
+     Con `display:flex` y `flex-wrap`, a 1000 px «Mediastino» bajaba de renglon -medido: las
+     tres `y` daban 1194, 1194 y 1242-, y el pedido dice UNA fila. Con tres pistas de
+     `minmax(0,1fr)` la fila es una sola en los cuatro anchos y lo que cede es el ROTULO, que
+     se parte en dos lineas dentro de su celda: partirse no es recortarse. */
+  .pop-dren-fila { display:grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap:0 8px; }
   .pop-mon-3 { display:grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap:0 10px;
                align-items:start; }
   .pop-mon-c { min-width:0; }
@@ -10587,8 +10614,36 @@ window.cerrarSesionReal = cerrarSesionReal;
     <div class="pop-col">
     <section class="pop-card" data-pop="pop-ctx">
       <div class="pop-card-tit">🩺 Contexto quirúrgico</div>
-        <div class="grid-3">
-          <div class="fg"><label for="pop_cx_tipo">Tipo de cirugía</label>
+        <!-- ══ TIPO DE CIRUGIA: CASILLAS COMBINABLES (POP-A-4, 01/11/2026) ═══════════════
+             Una cirugia cardiaca combina procedimientos y el selector de una sola opcion no lo
+             podia decir: su respuesta era «Combinada», que no dice cuales. Hoy son cuatro
+             casillas y su dueno unico es `popCxEstado()`.
+             ⚠️ EL SELECTOR VIEJO SIGUE EN EL MARCADO, OCULTO, Y NO ES DEUDA: `pop_cx_tipo` es el
+             campo que viaja en el estudio desde que el modulo existe, y lo leen CUATRO
+             consumidores -el panel de Evidencia por `_indS`, la diapositiva del PPT por
+             `_pptSpan`, el Laboratorio por `_labCampoRaw` y el round-trip del propio estudio-.
+             Retirarlo habria cambiado el juego de campos guardados de todo estudio y dejado a
+             esos cuatro sin dato. Lo escribe SOLO el gesto de una casilla (`popCxGesto`), que es
+             el modelo «un dato, dos puertas, gana la ultima edicion» del D-11: nada automatico
+             lo toca.
+             ⚠️ UN ESTUDIO VIEJO SE LEE Y NO SE REESCRIBE. Si no hay ninguna casilla marcada y
+             `pop_cx_tipo` trae valor, la casilla que le corresponde se muestra MARCADA con una
+             marca heredada -una clase CSS- y al lado se dice «de un estudio anterior»; su
+             propiedad `checked` NO se toca, asi que no aparece una clave nueva en el estudio ni
+             hay nada que el barrido pueda pelearle al medico. En cuanto el medico toca una
+             casilla, el gesto reescribe `pop_cx_tipo` y la marca heredada desaparece.
+             «Combinada» no se puede descomponer en cuales eran, asi que no marca ninguna y la
+             etiqueta lo dice. -->
+        <div style="font-size:11px;font-weight:700;color:var(--accent2);margin:0 0 6px;text-transform:uppercase;letter-spacing:.4px;">Tipo de cirugía <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--text2);">(se pueden combinar)</span></div>
+        <div class="pop-cx-grid">
+          <label class="pop-cx-chk" id="pop_cx_cabg_lbl"><input type="checkbox" id="pop_cx_cabg" onchange="popCxGesto()"><span>Revascularización</span></label>
+          <label class="pop-cx-chk" id="pop_cx_valv_lbl"><input type="checkbox" id="pop_cx_valv" onchange="popCxGesto()"><span>Valvular</span></label>
+          <label class="pop-cx-chk" id="pop_cx_aorta_lbl"><input type="checkbox" id="pop_cx_aorta" onchange="popCxGesto()"><span>Aorta con injerto</span></label>
+          <label class="pop-cx-chk" id="pop_cx_otra_lbl"><input type="checkbox" id="pop_cx_otra" onchange="popCxGesto()"><span>Otra</span></label>
+        </div>
+        <div class="pop-cx-leg" id="pop_cx_legado"></div>
+        <div style="display:none;" id="pop_cx_tipo_wrap">
+          <label for="pop_cx_tipo">Tipo de cirugía (campo del estudio)</label>
             <select id="pop_cx_tipo">
               <option value="" selected>— no consignada —</option>
               <option value="ninguna">Ninguna</option>
@@ -10598,7 +10653,53 @@ window.cerrarSesionReal = cerrarSesionReal;
               <option value="trasplante">Trasplante</option>
               <option value="congenita">Congénita</option>
               <option value="combinada">Combinada</option>
+              <!-- ⚠️ ACA IBA UNA OPCION «Otra», Y SE RETIRA PORQUE MUEVE EL PAPEL. `_pptSpan`
+                   lee `e.textContent` de este nodo, y en un `<select>` eso es la LISTA ENTERA de
+                   opciones: la celda «Tipo de cirugia» de la diapositiva publica hoy las ocho,
+                   sea cual sea el valor -defecto preexistente, medido en HEAD-. Agregar una
+                   novena cambiaba esa celda en TODA escena integrada, o sea el papel firmado de
+                   cualquier estudio, y esta tanda no lo autoriza; arreglar `_pptSpan` lo
+                   cambiaria igual. Asi que la casilla «Otra» NO tiene token: lo que publica el
+                   informe, el EN SUMA y la hoja del PDF sale de `popCxEstado()`, que no depende
+                   de este campo. Ver `docs/PENDIENTES.md` → PA-d. -->
             </select></div>
+        <!-- ══ LAS VALVULAS OPERADAS Y SU TIPO (POP-A-4) ═══════════════════════════
+             El TIPO de cada valvula NO es un campo nuevo: es la MORFOLOGIA de esa valvula en la
+             pestana Valvulas -`va_morf`, `vm_morf`, `vt_morf`, `vp_morf`-, editada por una
+             segunda puerta. Los cuatro selectores van con prefijo `pop-esp-`, que ya esta en
+             las dos listas paralelas, asi que no se guardan.
+             ⚠️ SUS OPCIONES SE CLONAN DEL SELECTOR DUENO EN TIEMPO DE CARGA, no se transcriben:
+             una lista copiada a mano se desincroniza el dia que Valvulas agregue una etiologia,
+             y el pedido dice «SOLO las opciones que hoy existen en Valvulas para esa valvula».
+             Por eso no hay plastia, ni TEER, ni TAVI mas alla de lo que el dueno ya ofrece.
+             ⚠️ MARCAR UNA VALVULA NO ESCRIBE NINGUN TIPO. El selector queda en «elegir tipo» y
+             el dueno no se toca: una protesis mecanica por omision seria una afirmacion
+             clinica inventada. -->
+        <div id="pop_cx_valv_wrap" style="display:none;">
+          <div style="font-size:11px;font-weight:700;color:var(--accent2);margin:10px 0 6px;text-transform:uppercase;letter-spacing:.4px;">Válvulas operadas</div>
+          <div class="pop-vrow">
+            <label class="pop-cx-chk"><input type="checkbox" id="pop_cx_v_ao" onchange="popSync()"><span>Aórtica</span></label>
+            <select id="pop-esp-vao" data-espejo onchange="popCxVGesto('pop-esp-vao')"></select>
+            <span class="pop-vtag" id="pop-esp-vao-tag"></span>
+          </div>
+          <div class="pop-vrow">
+            <label class="pop-cx-chk"><input type="checkbox" id="pop_cx_v_mi" onchange="popSync()"><span>Mitral</span></label>
+            <select id="pop-esp-vmi" data-espejo onchange="popCxVGesto('pop-esp-vmi')"></select>
+            <span class="pop-vtag" id="pop-esp-vmi-tag"></span>
+          </div>
+          <div class="pop-vrow">
+            <label class="pop-cx-chk"><input type="checkbox" id="pop_cx_v_tr" onchange="popSync()"><span>Tricúspide</span></label>
+            <select id="pop-esp-vtr" data-espejo onchange="popCxVGesto('pop-esp-vtr')"></select>
+            <span class="pop-vtag" id="pop-esp-vtr-tag"></span>
+          </div>
+          <div class="pop-vrow">
+            <label class="pop-cx-chk"><input type="checkbox" id="pop_cx_v_pu" onchange="popSync()"><span>Pulmonar</span></label>
+            <select id="pop-esp-vpu" data-espejo onchange="popCxVGesto('pop-esp-vpu')"></select>
+            <span class="pop-vtag" id="pop-esp-vpu-tag"></span>
+          </div>
+          <div style="font-size:10px;color:var(--text2);margin:4px 0 0;line-height:1.5;">El tipo es el mismo dato que la morfología de esa válvula en la pestaña Válvulas: gana la última edición.</div>
+        </div>
+        <div class="grid-2" style="margin-top:10px;">
           <div class="fg"><label for="pop_cx_horas">Horas post-CEC</label>
             <input type="number" id="pop_cx_horas" step="1" min="0" inputmode="decimal" placeholder="h"></div>
           <div class="fg"><label for="pop_monitor">Dispositivo de monitoreo</label>
@@ -10610,6 +10711,13 @@ window.cerrarSesionReal = cerrarSesionReal;
               <option value="vigileo">Vigileo</option>
               <option value="pai">Presión arterial invasiva solamente</option>
             </select></div>
+        </div>
+        <!-- Los tres drenajes en UNA fila, que es lo que pidio el medico. -->
+        <div style="font-size:11px;font-weight:700;color:var(--accent2);margin:10px 0 6px;text-transform:uppercase;letter-spacing:.4px;">Drenajes</div>
+        <div class="pop-dren-fila">
+          <label class="pop-cx-chk" id="pop_dren_pd_lbl"><input type="checkbox" id="pop_dren_pd" onchange="popSync()"><span>Pleural D</span></label>
+          <label class="pop-cx-chk" id="pop_dren_pi_lbl"><input type="checkbox" id="pop_dren_pi" onchange="popSync()"><span>Pleural I</span></label>
+          <label class="pop-cx-chk" id="pop_dren_med_lbl"><input type="checkbox" id="pop_dren_med" onchange="popSync()"><span>Mediastino</span></label>
         </div>
         <!-- La opción 0 es VACÍA y no «Ninguna»: un default que afirma es lo que este archivo
              documenta tres veces (los selects del TEER, las etiologías de la válvula pulmonar).
@@ -61181,6 +61289,192 @@ function popMonSync() {
   if (vac) vac.style.display = (mon === 'swan' || mon === 'picco' || mon === 'pai') ? 'none' : 'block';
 }
 window.popMonSync = popMonSync;
+/* ══ POP · CONTEXTO QUIRURGICO: EL DUEÑO UNICO DE QUE CIRUGIAS HAY (POP-A-4, 01/11/2026) ═════
+   Una cirugia cardiaca combina procedimientos, y el selector de una sola opcion no lo podia
+   decir: su respuesta era «Combinada». Hoy el dueño es `popCxEstado()`, y lo consultan TODOS los
+   que publican la cirugia -el informe, el EN SUMA y la hoja del PDF-. Con dos lecturas
+   distintas, el cuerpo y el resumen del mismo paciente podrian decir cirugias distintas.
+
+   TRES FUNCIONES Y CADA UNA HACE UNA COSA:
+     · `popCxEstado()` LEE: devuelve los tokens, el texto para el papel en sus dos formas
+       -capitalizada para una linea que empieza, en minuscula para el medio de una frase- y el
+       rotulo heredado si lo hay. No escribe nada.
+     · `popCxGesto()` corre desde el `onchange` de una casilla -o sea un GESTO HUMANO- y escribe
+       `pop_cx_tipo`, que es el campo que viaja. Es el modelo del D-11.
+     · `popCxSync()` pinta: la marca heredada, su etiqueta y la fila de valvulas. No escribe un
+       campo del estudio, y por eso puede colgar del barrido sin pelearle nada al medico.
+
+   ⚠️ UN ESTUDIO VIEJO SE LEE Y NO SE REESCRIBE. Sin ninguna casilla marcada y con `pop_cx_tipo`
+   cargado, la casilla que le corresponde se muestra con la MARCA HEREDADA -una clase CSS- y al
+   lado se dice de donde sale. Su `checked` no se toca: si se tocara, guardar el estudio le
+   agregaria una clave `__chk` que antes no tenia. «Combinada» no se puede descomponer, asi que
+   no marca ninguna y la etiqueta lo dice con todas las letras. */
+const POP_CX_CHK = Object.freeze([
+  Object.freeze(['pop_cx_cabg',  'cabg',     'revascularización']),
+  Object.freeze(['pop_cx_valv',  'valvular', 'valvular']),
+  Object.freeze(['pop_cx_aorta', 'aorta',    'aorta con injerto']),
+  Object.freeze(['pop_cx_otra',  'otra',     'otra'])
+]);
+/* El token viejo y la casilla que le corresponde. `trasplante` y `congenita` caen en «Otra»:
+   son cirugias que las cuatro casillas no nombran, y marcar «Otra» es lo unico cierto que se
+   puede decir de ellas sin inventar una categoria. `combinada` y `ninguna` no tienen casilla a
+   proposito -no se puede saber cuales eran, y «ninguna» no es una cirugia-. */
+const POP_CX_LEGADO = Object.freeze({ cabg: 'pop_cx_cabg', valvular: 'pop_cx_valv',
+  aorta: 'pop_cx_aorta', otra: 'pop_cx_otra', trasplante: 'pop_cx_otra',
+  congenita: 'pop_cx_otra' });
+function _popCxMarcadas() {
+  return POP_CX_CHK.filter(function (r) {
+    const c = document.getElementById(r[0]); return !!(c && c.checked);
+  });
+}
+function popCxEstado() {
+  const on = _popCxMarcadas();
+  const e = document.getElementById('pop_cx_tipo');
+  if (on.length) {
+    const d = on.map(function (r) { return r[2] });
+    const bajo = d.length === 1 ? d[0] : d.slice(0, -1).join(', ') + ' y ' + d[d.length - 1];
+    return { tokens: on.map(function (r) { return r[1] }),
+             txt: bajo.charAt(0).toUpperCase() + bajo.slice(1), txtBajo: bajo, legado: '' };
+  }
+  const leg = e ? (e.value || '') : '';
+  if (!leg) return { tokens: [], txt: '', txtBajo: '', legado: '' };
+  /* El rotulo del `<option>`, que es lo que este modulo publica desde que existe. */
+  const lbl = (e.selectedIndex >= 0) ? e.options[e.selectedIndex].text : leg;
+  return { tokens: [leg], txt: lbl, txtBajo: lbl, legado: lbl };
+}
+window.popCxEstado = popCxEstado;
+function popCxGesto() {
+  const on = _popCxMarcadas();
+  const e = document.getElementById('pop_cx_tipo');
+  if (e) {
+    /* UNA marcada escribe su token; DOS o mas escriben «combinada», que es el unico valor del
+       vocabulario viejo que dice «mas de una». Ninguna lo vacia: borrar borra.
+       ⚠️ «Otra» SOLA NO TIENE TOKEN y deja el campo vacio: el vocabulario de `pop_cx_tipo` no
+       tiene «otra» y agregarle la opcion mueve el papel del PPT en toda escena integrada -ver el
+       comentario del selector-. El informe, el EN SUMA y la hoja del PDF igual la publican,
+       porque leen `popCxEstado()` y no este campo. Lo que pierde es el histograma del
+       Laboratorio y el bloque «Segun la cirugia, tambien mirar...» del panel, que no tiene nada
+       publicado para una cirugia sin especificar. Declarado en PENDIENTES → PA-d. */
+    const _tok = on.length === 1 ? on[0][1] : 'combinada';
+    const nv = on.length === 0 ? '' : (_tok === 'otra' ? '' : _tok);
+    if (e.value !== nv) { e.value = nv; e.dispatchEvent(new Event('change', { bubbles: true })); }
+  }
+  try { popSync(); } catch (err) { console.error('[popCxGesto]', err); }
+}
+window.popCxGesto = popCxGesto;
+function popCxSync() {
+  const st = popCxEstado();
+  const leg = (document.getElementById('pop_cx_tipo') || {}).value || '';
+  const her = st.legado ? (POP_CX_LEGADO[leg] || '') : '';
+  POP_CX_CHK.forEach(function (r) {
+    const l = document.getElementById(r[0] + '_lbl');
+    if (l) l.classList.toggle('pop-cx-her', r[0] === her && her !== '');
+  });
+  const n = document.getElementById('pop_cx_legado');
+  if (n) n.textContent = st.legado
+    ? (her ? 'De un estudio anterior: ' + st.legado + '. Marcá las casillas para precisarlo.'
+           : 'De un estudio anterior: ' + st.legado + '. No dice cuáles fueron: marcá las que correspondan.')
+    : '';
+  const w = document.getElementById('pop_cx_valv_wrap');
+  if (w) w.style.display = (st.tokens.indexOf('valvular') >= 0) ? 'block' : 'none';
+}
+window.popCxSync = popCxSync;
+/* ══ POP · LAS CUATRO VALVULAS OPERADAS Y SU TIPO (POP-A-4) ═══════════════════════════════════
+   El TIPO es la MORFOLOGIA de esa valvula en la pestaña Valvulas, editada por una segunda
+   puerta. Las opciones se CLONAN del selector dueño una sola vez: transcribirlas a mano deja dos
+   listas que se desincronizan el dia que Valvulas agregue una etiologia, y el pedido dice «SOLO
+   las opciones que hoy existen en Valvulas para esa valvula».
+   ⚠️ MARCAR UNA VALVULA NO ESCRIBE NINGUN TIPO: `popCxVGesto` sale temprano con el selector en
+   «elegir tipo». Una protesis mecanica por omision seria una afirmacion clinica inventada.
+   ⚠️ «de Valvulas» aparece cuando el dueño vale algo DISTINTO de su primera opcion. Esas listas
+   no tienen opcion vacia -su default es «Normal» o «Trivalva normal»-, y «normal» no es un tipo
+   de valvula operada. */
+const POP_CX_V = Object.freeze({
+  'pop-esp-vao': Object.freeze({ due: 'va_morf', chk: 'pop_cx_v_ao' }),
+  'pop-esp-vmi': Object.freeze({ due: 'vm_morf', chk: 'pop_cx_v_mi' }),
+  'pop-esp-vtr': Object.freeze({ due: 'vt_morf', chk: 'pop_cx_v_tr' }),
+  'pop-esp-vpu': Object.freeze({ due: 'vp_morf', chk: 'pop_cx_v_pu' })
+});
+var _popCxVOpt = false;
+function popCxVOpciones() {
+  if (_popCxVOpt) return;
+  var listo = true;
+  Object.keys(POP_CX_V).forEach(function (id) {
+    const e = document.getElementById(id), d = document.getElementById(POP_CX_V[id].due);
+    if (!e || !d || !d.options.length) { listo = false; return; }
+    if (e.options.length) return;
+    const o0 = document.createElement('option');
+    o0.value = ''; o0.textContent = '— elegir tipo —';
+    e.appendChild(o0);
+    Array.prototype.forEach.call(d.options, function (o) {
+      const n = document.createElement('option');
+      n.value = o.value || o.text; n.textContent = o.text;
+      e.appendChild(n);
+    });
+  });
+  if (listo) _popCxVOpt = true;
+}
+function popCxVGesto(id) {
+  const m = POP_CX_V[id]; if (!m) return;
+  const src = document.getElementById(id), dst = document.getElementById(m.due);
+  if (!src || !dst) return;
+  if (src.value === '') return;
+  if (dst.value === src.value) return;
+  dst.value = src.value;
+  dst.dispatchEvent(new Event('change', { bubbles: true }));
+  /* La etiqueta «de Valvulas» se repinta EN EL GESTO y no se espera al barrido de 220 ms: el
+     tipo ya esta en Valvulas en el instante en que el medico lo elige, y dejar la etiqueta para
+     la pasada siguiente deja la pantalla diciendo otra cosa durante un quinto de segundo.
+     Es idempotente -`popCxVSync` solo compara y asigna-, asi que no hay bucle con el `change`
+     que se acaba de despachar. */
+  try { popCxVSync(); } catch (e) { console.error('[popCxVGesto]', e); }
+}
+window.popCxVGesto = popCxVGesto;
+function popCxVSync() {
+  popCxVOpciones();
+  Object.keys(POP_CX_V).forEach(function (id) {
+    const m = POP_CX_V[id];
+    const e = document.getElementById(id), d = document.getElementById(m.due);
+    const tag = document.getElementById(id + '-tag');
+    if (!e || !d || !d.options.length) return;
+    const def = d.options[0].value || d.options[0].text;
+    const hay = d.value !== '' && d.value !== def;
+    const val = hay ? d.value : '';
+    if (e.value !== val) e.value = val;
+    if (tag) tag.textContent = hay ? 'de Válvulas' : '';
+  });
+}
+window.popCxVSync = popCxVSync;
+/* Los tres drenajes, en un dueño unico porque los publican el informe, el EN SUMA y el PDF. */
+const POP_DRENAJES = Object.freeze([
+  Object.freeze(['pop_dren_pd',  'pleural derecho']),
+  Object.freeze(['pop_dren_pi',  'pleural izquierdo']),
+  Object.freeze(['pop_dren_med', 'mediastino'])
+]);
+function popDrenajesTxt() {
+  const on = POP_DRENAJES.filter(function (r) {
+    const c = document.getElementById(r[0]); return !!(c && c.checked);
+  }).map(function (r) { return r[1] });
+  if (!on.length) return '';
+  return on.length === 1 ? on[0] : on.slice(0, -1).join(', ') + ' y ' + on[on.length - 1];
+}
+window.popDrenajesTxt = popDrenajesTxt;
+/* Las cuatro valvulas operadas, como las dice el papel: la valvula y su tipo si lo hay. */
+function popCxValvTxt() {
+  const NOM = { 'pop_cx_v_ao': 'aórtica', 'pop_cx_v_mi': 'mitral',
+                'pop_cx_v_tr': 'tricúspide', 'pop_cx_v_pu': 'pulmonar' };
+  const out = [];
+  Object.keys(POP_CX_V).forEach(function (id) {
+    const m = POP_CX_V[id];
+    const c = document.getElementById(m.chk); if (!c || !c.checked) return;
+    const d = document.getElementById(m.due);
+    const def = (d && d.options.length) ? (d.options[0].value || d.options[0].text) : '';
+    const hay = !!(d && d.value !== '' && d.value !== def);
+    out.push(NOM[m.chk] + (hay ? ' — ' + d.value : ' — sin tipo consignado'));
+  });
+  return out.join(' · ');
+}
+window.popCxValvTxt = popCxValvTxt;
 /* ══ POP · LOS CUATRO ESPEJOS DE «Datos hemodinamicos» (POP-A-3, 01/11/2026) ══════════════════
    UN DATO, DOS PUERTAS, GANA LA ULTIMA EDICION. FC, PAS, PAM y PA diastolica tienen UN dueno
    cada uno, y los cuatro viven en otra pestaña: `hemo_fc` y `hemo_pam` en Hemodinamica, `ao_pas`
@@ -62901,6 +63195,10 @@ function popSync() {
                             : ' · ninguno marcado';
     }
   } catch (e) { console.error('[popSync] contador:', e); }
+  /* Los dos pintores del contexto quirurgico (POP-A-4). Ninguno escribe un campo del estudio:
+     `popCxSync` pone clases y texto, `popCxVSync` solo los cuatro espejos de morfologia. */
+  try { popCxSync(); } catch (e) { console.error('[popSync] popCxSync:', e); }
+  try { popCxVSync(); } catch (e) { console.error('[popSync] popCxVSync:', e); }
   /* El bloque 3 depende de `pop_monitor`, que vive en el bloque 1: un solo punto de entrada. */
   try { popHemoSync(); } catch (e) { console.error('[popSync] popHemoSync:', e); }
   try { popPocusSync(); } catch (e) { console.error('[popSync] popPocusSync:', e); }
@@ -90449,9 +90747,16 @@ function _indPOP(){
   const sinEval = crit.filter(function(c){ return !c.eval }).length;
   const pcis = pos >= 2;
 
+  const _cxEst = (typeof popCxEstado === 'function') ? popCxEstado() : { txt: '' };
   const SIN = [{v:'si',t:'Sí'},{v:'no',t:'No'}];
   const filas = [
-    _indFila('Tipo de cirugía', cx === '' ? '—' : (_indSelTxt('pop_cx_tipo') || cx), cx === '' ? 'ask' : 'none',
+    /* ⚠️ LA FILA LEE AL DUEÑO UNICO (POP-A-4). Con las casillas combinables, `pop_cx_tipo` dice
+       «combinada» y no cuáles, y con «Otra» sola queda vacío a propósito —no tiene token—: esta
+       fila diría «falta consignar» sobre una cirugía que el médico acaba de marcar. El bloque de
+       «Según la cirugía, también mirar…» de más abajo SIGUE leyendo `cx`, que es la clave de
+       `POP_CX_MIRAR`: lo que esa tabla publica está indexado por token, no por descripción. */
+    _indFila('Tipo de cirugía', (_cxEst.txt || (cx === '' ? '—' : (_indSelTxt('pop_cx_tipo') || cx))),
+      (_cxEst.txt || cx !== '') ? 'none' : 'ask',
       'decide qué publica el bloque de «Según la cirugía, también mirar…»'),
     _indFila('Horas desde la circulación extracorpórea', horas != null ? horas + ' h' : '—',
       horas != null ? 'none' : 'ask',
@@ -102831,7 +103136,17 @@ function amiloTextoPOP() {
   const r = popEsquema();
 
   L.push('## Contexto quirúrgico');
-  L.push('Tipo de cirugía | ' + (sv2('pop_cx_tipo') || 'no consignado'));
+  /* ⚠️ LA CIRUGIA SALE DEL DUEÑO UNICO Y NO DE `pop_cx_tipo` A SECAS (POP-A-4): el campo viejo
+     dice «Combinada» y no cuales, y `popCxEstado()` dice cuales. Con una sola cirugia marcada el
+     texto es el descriptor de su casilla, y sin ninguna cae al rotulo del `<option>`, que es lo
+     que esta linea decia -asi que un estudio viejo publica exactamente lo mismo que antes-. */
+  const _cxE = (typeof popCxEstado === 'function') ? popCxEstado() : { txt: sv2('pop_cx_tipo') };
+  L.push('Tipo de cirugía | ' + (_cxE.txt || 'no consignado'));
+  /* Las valvulas operadas y los drenajes DESCRIBEN y nada mas: ni conducta, ni guia, ni clase. */
+  const _cxV = (typeof popCxValvTxt === 'function') ? popCxValvTxt() : '';
+  if (_cxV) L.push('Válvulas operadas | ' + _cxV);
+  const _cxD = (typeof popDrenajesTxt === 'function') ? popDrenajesTxt() : '';
+  if (_cxD) L.push('Drenajes | ' + _cxD);
   const h = v('pop_cx_horas');
   L.push('Horas post-CEC | ' + (h !== null ? h + ' h' : 'no consignadas'));
   L.push('Monitoreo | ' + (sv2('pop_monitor') || 'no consignado'));
@@ -102944,7 +103259,14 @@ function popSumaLinea() {
      cargados — IC 2.18 L/min/m² — bajo gasto.», o sea negaba el bajo gasto y lo afirmaba en la
      misma oración. Hoy dice el tipo de cirugía, la hora, el índice cardíaco y el hallazgo
      principal, que es describir. El patrón vive sólo en la pantalla. */
-  return 'PostCEC' + (sv2('pop_cx_tipo') ? ' ' + sv2('pop_cx_tipo') : '') +
+  /* ⚠️ LA CIRUGIA Y LOS DRENAJES SALEN DE SUS DUEÑOS UNICOS (POP-A-4). `txtBajo` es la forma
+     para el medio de una frase: con las casillas da «revascularización y valvular» en
+     minuscula, y sin ninguna marcada cae al rotulo del `<option>` -«CABG», «Valvular»-, que es
+     exactamente lo que esta linea publicaba. */
+  const _sE = (typeof popCxEstado === 'function') ? popCxEstado() : { txtBajo: sv2('pop_cx_tipo') };
+  const _sD = (typeof popDrenajesTxt === 'function') ? popDrenajesTxt() : '';
+  return 'PostCEC' + (_sE.txtBajo ? ' ' + _sE.txtBajo : '') +
+         (_sD ? ' — drenaje ' + _sD : '') +
          (h !== null ? ' — hora ' + h + ' h' : '') +
          (r.ic !== null ? ' — IC ' + r.ic.toFixed(2) + ' L/min/m²' : '') +
          (princ ? ' — ' + princ : '') + '.';
@@ -146053,8 +146375,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261101-0330';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793514648807;                 /* eco-build-ms */
+const ECO_BUILD    = '20261101-0353';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793516013845;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -146140,7 +146462,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261101-0330</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261101-0353</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

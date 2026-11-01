@@ -361,6 +361,34 @@ const ESCENAS = {
   dhSwan: { campos: { peso: '70', talla: '170', pop_cx_horas: '6', pop_sw_gc: '3.2',
                       pop_sw_pam: '70', pop_sw_fc: '90' },
             sel: { pop_monitor: 'swan' }, integrar: ['pop'] },
+  /* ── EL CONTEXTO QUIRURGICO DEL COMMIT 4 ─────────────────────────────────────────────────
+     cxLegado -> ES EL CONTROL NEGATIVO DE LA TANDA: un estudio viejo con UNA cirugia en el
+                 selector y NINGUNA casilla marcada. Su papel tiene que salir IDENTICO a HEAD,
+                 porque es lo que un estudio ya guardado trae.
+     cxComb   -> dos casillas marcadas: el informe y el EN SUMA dicen CUALES, no «Combinada».
+     cxValv   -> valvular con la aortica operada y su tipo tomado de Valvulas.
+     cxValvSin-> valvular con la mitral marcada y SIN tipo: el papel lo dice y el dueno de la
+                 morfologia no se toca.
+     cxDren   -> los tres drenajes. */
+  cxLegado:  { campos: { peso: '70', talla: '170', pop_cx_horas: '6', pop_sw_gc: '3.2',
+                         pop_sw_pam: '70' },
+               sel: { pop_monitor: 'swan', pop_cx_tipo: 'valvular' }, integrar: ['pop'] },
+  cxComb:    { campos: { peso: '70', talla: '170', pop_cx_horas: '6', pop_sw_gc: '3.2',
+                         pop_sw_pam: '70' },
+               chk: ['pop_cx_cabg', 'pop_cx_valv'], sel: { pop_monitor: 'swan' },
+               integrar: ['pop'] },
+  cxValv:    { campos: { peso: '70', talla: '170', pop_cx_horas: '6', pop_sw_gc: '3.2',
+                         pop_sw_pam: '70' },
+               chk: ['pop_cx_valv', 'pop_cx_v_ao'],
+               sel: { pop_monitor: 'swan', va_morf: 'Prótesis mecánica' }, integrar: ['pop'] },
+  cxValvSin: { campos: { peso: '70', talla: '170', pop_cx_horas: '6', pop_sw_gc: '3.2',
+                         pop_sw_pam: '70' },
+               chk: ['pop_cx_valv', 'pop_cx_v_mi'], sel: { pop_monitor: 'swan' },
+               integrar: ['pop'] },
+  cxDren:    { campos: { peso: '70', talla: '170', pop_cx_horas: '6', pop_sw_gc: '3.2',
+                         pop_sw_pam: '70' },
+               chk: ['pop_cx_cabg', 'pop_dren_pd', 'pop_dren_pi', 'pop_dren_med'],
+               sel: { pop_monitor: 'swan' }, integrar: ['pop'] },
   /* ── LA PAM Y SUS CUATRO FUENTES, CON LA LINEA ARTERIAL ───────────────────────────────────
      `pamArt` elige «Presion arterial invasiva solamente», que es la opcion que hasta esta tanda
      no abria ningun campo. `pamArtSwan` tiene las DOS: el Swan gana, por precedencia.
