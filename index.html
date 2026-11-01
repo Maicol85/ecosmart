@@ -2812,6 +2812,17 @@ html.light-mode #tab-valvulas .sev-lvl3{color:#7f1d1d;}
 .mfs-aparte-tit { font-size:11.5px; font-weight:700; margin-bottom:6px; }
 .mfs-aparte-tit span { font-weight:400; color:var(--text2); }
 .mfs-nota { margin-top:9px; font-size:10.5px; color:var(--text2); line-height:1.5; }
+.mfs-reglas { margin-top:12px; padding-top:9px; border-top:1px solid var(--border); }
+.mfs-reg { display:flex; flex-wrap:wrap; align-items:baseline; gap:6px; padding:5px 7px;
+  border-radius:6px; margin-bottom:4px; font-size:10.5px; line-height:1.45;
+  background:var(--bg3); border-left:3px solid var(--border); }
+.mfs-reg-cumple { background:rgba(59,130,246,.12); border-left-color:#3B82F6; }
+.mfs-reg-no { opacity:.72; }
+.mfs-reg-est { flex:0 0 auto; font-size:10px; }
+.mfs-reg-txt { flex:1 1 150px; min-width:0; }
+.mfs-reg-por { flex:1 1 100%; color:var(--text2); font-size:10px; }
+.mfs-reg-grupo { font-size:10.5px; font-weight:700; color:var(--accent2); margin:8px 0 4px; }
+.mfs-nota-fija { font-style:italic; }
 </style>
 <!-- El worker de pdf.js se carga por workerSrc, no por <script>, así que no admite
      el atributo integrity. Su hash sha512 verificado contra cdnjs es:
@@ -80375,6 +80386,153 @@ function _mfsDevolver() {
 }
 window._mfsPrestar = _mfsPrestar; window._mfsDevolver = _mfsDevolver;
 
+/* ══ LAS SIETE REGLAS DEL BOX 1 — «MARFAN-1», commit 2 (2026-11-01) ═══════════════════════════
+   Fuente: Box 1 del articulo original, HOJA 3 = FOLIO 477, leido en imagen. Las siete, textuales
+   en su forma abreviada y con SUS asteriscos, que se verificaron uno por uno sobre la hoja:
+
+     Sin historia familiar:
+       (1) Ao (Z >=2) AND EL                        = MFS *
+       (2) Ao (Z >=2) AND FBN1                      = MFS
+       (3) Ao (Z >=2) AND Syst (>=7pts)             = MFS *
+       (4) EL AND FBN1 with known Ao                = MFS
+     Con historia familiar:
+       (5) EL AND FH                                = MFS
+       (6) Syst (>=7 pts) AND FH                    = MFS *
+       (7) Ao (Z>=2 desde 20 anios, >=3 por debajo) AND FH = MFS *
+
+   ⚠️ EL ASTERISCO ESTA EN 1, 3, 6 Y 7 — NO en 2, 4 ni 5. Verificado glifo por glifo sobre la
+   hoja 3. Su texto completo: «sin rasgos discriminantes de SGS, LDS o vEDS (como se definen en
+   la tabla 1) Y despues del estudio de TGFBR1/2, bioquimica del colageno y COL3A1 si esta
+   indicado». La app tiene campo para la PRIMERA mitad -el (f) de la lista autorizada-; la
+   segunda es un estudio genetico que no se consigna acá y se dice en el globo, sin logica.
+
+   ⚠️ «Ao» NO ES SOLO EL Z. El Box 1 lo define: «diametro aortico en los senos de Valsalva por
+   encima del Z-score indicado O DISECCION DE LA RAIZ AORTICA». Por eso la diseccion hace
+   verdadera la condicion sin mirar el Z, y en la regla 7 tampoco mira la edad: una diseccion
+   no tiene umbral por el que pasar.
+
+   ⚠️ EL Z NO ES UN CAMPO GUARDADO DE ESTA APLICACION, y esto hay que saberlo antes de leer un
+   estado. El unico Z que la app recoge vive en la tarjeta de criterios y no viaja con el
+   estudio -censado el documento entero-, asi que sobre un estudio ARCHIVADO las reglas que
+   dependen de el quedan en «sin dato (falta el valor del Z)» salvo que haya diseccion
+   consignada. No se calcula ninguno con una formula que la app no tenga (regla R6).
+   Queda declarado en `docs/PENDIENTES.md`.
+
+   TRES ESTADOS POR CONDICION Y LA REGLA ES EL «Y» DE LAS SUYAS: cualquiera falsa -> no cumple;
+   todas verdaderas -> cumple; si no -> sin dato. Una condicion desconocida NO es una condicion
+   falsa: «nadie lo pregunto» y «no lo tiene» son cosas distintas, y mezclarlas publicaria «no
+   cumple» sobre un paciente al que solo le falta un dato.
+
+   ESTO NO LLEGA AL PAPEL POR NINGUN CAMINO. Lo leen la tarjeta y la figura. */
+
+/* El Z de la raiz, leido de la tarjeta; `null` cuando no hay. Con `src` -un estudio
+   archivado- NO se consulta la tarjeta: ese Z es del paciente que esta en pantalla y leerlo
+   sobre un registro mezclaria dos pacientes. Es la misma regla que `vabFactores` ya aplica. */
+function mfsZ(src) {
+  if (src) return null;
+  var e = document.querySelector('#crit-cuerpo [data-mf-z]');
+  if (!e) return null;
+  var v = String(e.value || '').trim().replace(',', '.');
+  if (v === '') return null;
+  var n = parseFloat(v);
+  return isFinite(n) ? n : null;
+}
+window.mfsZ = mfsZ;
+
+/* La edad del paciente. SOLO LECTURA: no escribe nada en ningun lado. */
+function mfsEdad(src) {
+  var r = src ? src.edad : (document.getElementById('edad') || {}).value;
+  if (r === undefined || r === null || String(r).trim() === '') return null;
+  var n = parseFloat(String(r).replace(',', '.'));
+  return (isFinite(n) && n >= 0) ? n : null;
+}
+
+/* La condicion «Ao»: true, false o null. `zMin` es el umbral que pide la regla. */
+function _mfsAo(src, zMin) {
+  var dis = mfsAparte(src, 'mfs_diseccion_raiz');
+  if (dis === 'si') return true;
+  var z = mfsZ(src);
+  if (z == null) return null;
+  if (z >= zMin) return true;
+  /* El Z no alcanza. Solo es FALSA si ademas sabemos que no hay diseccion: con la diseccion
+     sin contestar, la condicion sigue pudiendo volverse verdadera. */
+  return dis === 'no' ? false : null;
+}
+
+/* El «Y» de una lista de condiciones de tres estados, con el motivo de lo que falta o falla. */
+function _mfsY(cond) {
+  var falla = cond.filter(function (c) { return c.v === false; });
+  if (falla.length) return { estado: 'no', por: falla.map(function (c) { return c.no; }).join('; ') };
+  var falta = cond.filter(function (c) { return c.v === null; });
+  if (falta.length) return { estado: 'sin_dato', por: 'falta ' + falta.map(function (c) { return c.falta; }).join('; falta ') };
+  return { estado: 'cumple', por: cond.map(function (c) { return c.si; }).join(' + ') };
+}
+
+function mfsReglas(src) {
+  var sc = mfsScore(src);
+  var el   = mfsAparte(src, 'mfs_ectopia_lentis');
+  var fh   = mfsAparte(src, 'mfs_historia_familiar');
+  var fb   = mfsAparte(src, 'mfs_fbn1_causal');
+  var fbAo = mfsAparte(src, 'mfs_fbn1_ao');
+  var sin  = mfsAparte(src, 'mfs_sin_otros');
+  var edad = mfsEdad(src);
+  var z    = mfsZ(src);
+  var dis  = mfsAparte(src, 'mfs_diseccion_raiz');
+
+  var tri = function (v, si, no, falta) {
+    return { v: (v === 'si' ? true : (v === 'no' ? false : null)), si: si, no: no, falta: falta };
+  };
+  var cAo = function (zMin) {
+    var v = _mfsAo(src, zMin);
+    return { v: v, si: 'raíz aórtica con Z ≥ ' + zMin + (dis === 'si' ? ' o disección' : ''),
+      no: 'la raíz aórtica no llega a Z ≥ ' + zMin + ' y no hay disección',
+      falta: (z == null && dis !== 'si') ? 'el valor del Z de la raíz (o la disección)' : 'la disección de la raíz' };
+  };
+  var cSyst = { v: sc.sistemico, si: 'puntaje sistémico de ' + sc.pts,
+    no: 'el puntaje sistémico es ' + sc.pts + ' con lo tildado, por debajo de ' + MFS_SCORE_CORTE,
+    falta: 'el puntaje sistémico' };
+  /* El asterisco. Su ausencia NO hace fallar la regla: la deja sin dato, porque «nadie contestó
+     si hay rasgos de otro síndrome» no es «no los tiene». */
+  var cAst = tri(sin, 'sin rasgos de otros síndromes',
+    'hay rasgos de Shprintzen-Goldberg, Loeys-Dietz o Ehlers-Danlos vascular',
+    'contestar si hay rasgos de otros síndromes');
+
+  /* La regla 7 cambia el umbral del Z con la edad. Con disección no mira ni el Z ni la edad. */
+  var c7 = (function () {
+    if (dis === 'si') return { v: true, si: 'disección de la raíz aórtica', no: '', falta: '' };
+    if (edad == null) return { v: null, si: '', no: '',
+      falta: 'la edad del paciente, que elige el umbral del Z (2 desde los 20 años, 3 por debajo)' };
+    var zMin = edad >= 20 ? 2 : 3;
+    var c = cAo(zMin);
+    c.si = 'raíz aórtica con Z ≥ ' + zMin + ' a los ' + edad + ' años';
+    c.no = 'la raíz aórtica no llega a Z ≥ ' + zMin + ' a los ' + edad + ' años y no hay disección';
+    return c;
+  })();
+
+  var R = [
+    { n: 1, fam: 'sin', txt: 'Raíz aórtica (Z ≥ 2 o disección) y ectopia lentis',
+      cond: [cAo(2), tri(el, 'ectopia lentis', 'no hay ectopia lentis', 'la ectopia lentis'), cAst] },
+    { n: 2, fam: 'sin', txt: 'Raíz aórtica (Z ≥ 2 o disección) y variante de FBN1 causal',
+      cond: [cAo(2), tri(fb, 'variante de FBN1 causal', 'no hay variante de FBN1 causal', 'la variante de FBN1 causal')] },
+    { n: 3, fam: 'sin', txt: 'Raíz aórtica (Z ≥ 2 o disección) y puntaje sistémico ≥ ' + MFS_SCORE_CORTE,
+      cond: [cAo(2), cSyst, cAst] },
+    { n: 4, fam: 'sin', txt: 'Ectopia lentis y variante de FBN1 con asociación conocida a la aorta',
+      cond: [tri(el, 'ectopia lentis', 'no hay ectopia lentis', 'la ectopia lentis'),
+             tri(fbAo, 'variante de FBN1 asociada a la aorta', 'la variante de FBN1 no está asociada a la aorta', 'la variante de FBN1 asociada a la aorta')] },
+    { n: 5, fam: 'con', txt: 'Ectopia lentis e historia familiar',
+      cond: [tri(el, 'ectopia lentis', 'no hay ectopia lentis', 'la ectopia lentis'),
+             tri(fh, 'historia familiar', 'no hay historia familiar', 'la historia familiar')] },
+    { n: 6, fam: 'con', txt: 'Puntaje sistémico ≥ ' + MFS_SCORE_CORTE + ' e historia familiar',
+      cond: [cSyst, tri(fh, 'historia familiar', 'no hay historia familiar', 'la historia familiar'), cAst] },
+    { n: 7, fam: 'con', txt: 'Raíz aórtica (Z ≥ 2 desde los 20 años, Z ≥ 3 por debajo) e historia familiar',
+      cond: [c7, tri(fh, 'historia familiar', 'no hay historia familiar', 'la historia familiar'), cAst] }
+  ];
+  R.forEach(function (r) { var y = _mfsY(r.cond); r.estado = y.estado; r.por = y.por; });
+  return { reglas: R, score: sc, edad: edad, z: z,
+           algunaCumple: R.some(function (r) { return r.estado === 'cumple'; }) };
+}
+window.mfsReglas = mfsReglas;
+
 function critMarfan(){
   var sc = mfsScore();
   var c1 = '<div data-mf-badge class="mfs-badge">' + sc.pts + ' de ' + MFS_SCORE_MAX + '</div>' +
@@ -80382,11 +80540,17 @@ function critMarfan(){
     '<div id="mfs-slot-score"></div>' +
     '<div data-mf-msg class="mfs-msg">&nbsp;</div>';
   var c2 = '<div class="mfs-aparte-tit">Criterios aparte <span>(no suman al puntaje)</span></div>' +
+    '<div class="mfs-fila"><span class="mfs-rot">Z de la raíz aórtica</span>' +
+    '<input type="number" data-mf-z step="0.1" class="mfs-sel" placeholder="Z" oninput="mfsCalc()"></div>' +
     '<div id="mfs-slot-aparte"></div>' +
-    '<div class="mfs-nota">La raíz aórtica se toma de los diámetros de esta sección y de la disección consignada acá.</div>';
-  var h = _critCols([['Score sistémico', c1], ['Criterios aparte', c2]]) +
+    '<div class="mfs-nota">La raíz aórtica es el diámetro en los senos de Valsalva por encima del Z indicado, ' +
+    'o la disección de la raíz. <b>El Z no se guarda con el estudio</b>: la aplicación no tiene ese campo, ' +
+    'así que se escribe acá para consultar y se pierde al cerrar.</div>' +
+    '<div id="mfs-reglas" class="mfs-reglas"></div>' +
+    '<div class="mfs-nota mfs-nota-fija">Orientación en pantalla con lo cargado; no es un diagnóstico.</div>';
+  var h = _critCols([['Score sistémico', c1], ['Criterios aparte y reglas', c2]]) +
     _critPie('<b>Loeys BL et al. &mdash; The revised Ghent nosology for the Marfan syndrome. J Med Genet 2010;47:476-85.</b> ' +
-      'Score sistémico: Box 2, folio 478.<br>' +
+      'Score sistémico: Box 2, folio 478 &middot; reglas diagnósticas: Box 1, folio 477.<br>' +
       'Lo que se marque acá <b>viaja con el estudio</b>. Contesta <b>«¿este paciente tiene rasgos de Marfan?»</b>; ' +
       'la sección contesta otra pregunta &mdash; <b>«¿esta aorta se opera?»</b> &mdash;, así que un puntaje de ' +
       MFS_SCORE_CORTE + ' no es una indicación de cirugía.');
@@ -80430,8 +80594,40 @@ function mfsCalc(){
     m.textContent = t;
     m.className = 'mfs-msg' + (sc.sistemico ? ' mfs-msg-on' : '');
   }
+  mfsReglasPintar();
 }
 window.mfsCalc = mfsCalc;
+
+/* Las siete reglas con su estado y su porque. Se arma con NODOS, por el mismo motivo que la
+   guarderia: el ruleset local avisa sobre `innerHTML` concatenado. */
+var MFS_EST_TXT = { cumple: 'Cumple', no: 'No cumple', sin_dato: 'Sin dato' };
+function mfsReglasPintar(){
+  var cont = document.getElementById('mfs-reglas'); if (!cont) return;
+  while (cont.firstChild) cont.removeChild(cont.firstChild);
+  var r = mfsReglas();
+  var tit = document.createElement('div');
+  tit.className = 'mfs-aparte-tit'; tit.textContent = 'Reglas';
+  var sp = document.createElement('span'); sp.textContent = ' (Box 1)';
+  tit.appendChild(sp); cont.appendChild(tit);
+  var grupo = null;
+  r.reglas.forEach(function (g) {
+    if (g.fam !== grupo) {
+      grupo = g.fam;
+      var h = document.createElement('div'); h.className = 'mfs-reg-grupo';
+      h.textContent = grupo === 'sin' ? 'Sin historia familiar' : 'Con historia familiar';
+      cont.appendChild(h);
+    }
+    var d = document.createElement('div'); d.className = 'mfs-reg mfs-reg-' + g.estado;
+    var b = document.createElement('b'); b.className = 'mfs-reg-est';
+    b.textContent = MFS_EST_TXT[g.estado] || g.estado;
+    var t = document.createElement('span'); t.className = 'mfs-reg-txt';
+    t.textContent = '(' + g.n + ') ' + g.txt;
+    var p = document.createElement('span'); p.className = 'mfs-reg-por'; p.textContent = g.por;
+    d.appendChild(b); d.appendChild(t); d.appendChild(p);
+    cont.appendChild(d);
+  });
+}
+window.mfsReglasPintar = mfsReglasPintar;
 /* `critMarfanCalc` sigue existiendo porque el resto del archivo lo nombra. */
 function critMarfanCalc(){ mfsCalc(); }
 window.critMarfanCalc = critMarfanCalc;
