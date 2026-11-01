@@ -62608,6 +62608,23 @@ function popEsquema() {
      marcado y `_noEsDelEstudio`. */
   const impella = asist === 'impella';
   const ecmoVV = asist === 'ecmo_vv';
+  /* ══ EL PUENTE, LA MALLA Y LOS DRENAJES (POP-B-6, 01/11/2026) ════════════════════════════
+     Las dos cirugias las lee `popCxEstado()`, que es el DUEÑO UNICO de «que cirugias hay» desde
+     POP-A-4 y es el mismo que consultan el informe, el EN SUMA y la hoja del PDF. Preguntar por
+     la casilla aca seria una segunda lectura: el dibujo y el papel podrian decir cirugias
+     distintas del mismo paciente, que es el defecto que este archivo persigue.
+     ⚠️ ESO INCLUYE AL ESTUDIO VIEJO: con `pop_cx_tipo` en «cabg» y ninguna casilla marcada, el
+     token es `cabg` y el puente SE DIBUJA, porque ese estudio SI declara una revascularizacion
+     -es lo mismo que publica su papel-. Con «combinada» no se dibuja ninguno de los dos: ese
+     valor no dice cuales fueron, y el dibujo no lo adivina.
+     Los drenajes salen de `popDrenajesTxt`, el otro dueño unico: aca se preguntan las tres
+     casillas por separado porque el dibujo necesita saber CUAL, no la frase. */
+  const _cxTok = (typeof popCxEstado === 'function') ? (popCxEstado().tokens || []) : [];
+  const cabg = _cxTok.indexOf('cabg') >= 0;
+  const aortaInj = _cxTok.indexOf('aorta') >= 0;
+  const drenD = !!(document.getElementById('pop_dren_pd') || {}).checked;
+  const drenI = !!(document.getElementById('pop_dren_pi') || {}).checked;
+  const drenM = !!(document.getElementById('pop_dren_med') || {}).checked;
   const bciaTiming = bcia ? (sv2('pop-bcia-timing') || '') : '';
   /* ⚠️ TAMBIEN `POP_DROGAS_PATRON` (POP-A-2): esta lista la consume el DIBUJO del esquema, y el
      dibujo es la tanda POP-B. El informe y la hoja del PDF arman la suya aparte, en
@@ -62634,6 +62651,7 @@ function popEsquema() {
     pleD: pleD, pleI: pleI, lineasB: lineasB,
     asist: asist, bcia: bcia, ecmoVA: ecmoVA, impella: impella, ecmoVV: ecmoVV,
     bciaTiming: bciaTiming, drogas: drogas,
+    cabg: cabg, aortaInj: aortaInj, drenD: drenD, drenI: drenI, drenM: drenM,
     /* Los CUATRO colores del dibujo, resueltos acá para que el SVG no decida nada. */
     cVI: icB ? (icB.cls === 'green' ? 'ok' : icB.cls === 'yellow' ? 'warn' : 'bad') : 'none',
     cVD: !hayVD ? 'none' : (tapseBaja && vdDil) ? 'bad' : (tapseBaja || vdDil) ? 'warn' : 'ok',
@@ -62831,6 +62849,51 @@ function popEsqMontar() {
     'stroke-width':2.5, 'stroke-linecap':'round' }, n.prop);
   n.impT = _popEsqTexto(svg, 434, 282, 'Impella', 12, 500, 'middle', 'var(--accent2)');
   n.impT.setAttribute('display', 'none');
+  /* ══ EL PUENTE AORTOCORONARIO (POP-B-6a) ══════════════════════════════════════════════
+     Un tubo curvo que sale de la aorta PROXIMAL -el tramo ascendente, en x 490-, atraviesa el
+     recuadro del ventriculo izquierdo y termina en su esquina superior izquierda, que es la
+     punta del VI en este dibujo. Es ese destino y nada mas: no hay selector de vaso, porque la
+     app no tiene el dato de que arteria se puenteo.
+     ⚠️ VA CON `var(--accent)` Y NO CON `--accent2`: `--accent2` es el color de los cuatro
+     dispositivos de asistencia -balon, los dos ECMO y el Impella- y un puente del mismo color
+     se leeria como un cateter mas. Las dos variables estan en el `:root` de los dos temas,
+     verificado: la nota de `_popEsqC` explica por que eso importa.
+     La punta se dibuja hasta x 375 y no 373 para que el trazo no se monte sobre la linea del
+     septo, que vive en x 371,5. */
+  n.puente = _popEsqNodo('path', { 'data-pop-esq':'puente',
+    d:'M490 238 C470 300 410 300 375 221', fill:'none', stroke:'var(--accent)',
+    'stroke-width':4, 'stroke-linecap':'round', display:'none' }, svg);
+  /* ══ LA MALLA DEL INJERTO DE AORTA (POP-B-6b) ══════════════════════════════════════════
+     Un patron de malla FINO sobre el tramo ascendente y el arco, con el estilo del tubo
+     aortico: la misma ruta que `n.ao` recorre en esos dos tramos, trazada encima. El patron son
+     dos lineas cruzadas en una celda de 6 x 6 unidades, aplicadas como `stroke`.
+     ⚠️ EL `patternUnits` ES `userSpaceOnUse`: con el valor por omision -`objectBoundingBox`- la
+     celda se escala con la caja del trazo y la malla queda mas gruesa en el arco que en el
+     tramo recto, o sea dos densidades para el mismo injerto. */
+  const _mp = _popEsqNodo('pattern', { id:'pop-esq-malla', patternUnits:'userSpaceOnUse',
+    width:6, height:6 }, _defs);
+  _popEsqNodo('path', { d:'M0 0 L6 6 M6 0 L0 6', fill:'none', stroke:'var(--text2)',
+    'stroke-width':1, opacity:0.85 }, _mp);
+  n.malla = _popEsqNodo('path', { 'data-pop-esq':'malla',
+    d:'M490 257 L490 110 Q490 62 530 62 Q570 62 570 110', fill:'none',
+    stroke:'url(#pop-esq-malla)', 'stroke-linejoin':'round', display:'none' }, svg);
+  /* ══ LOS TRES DRENAJES (POP-B-6c) ══════════════════════════════════════════════════════
+     Tubos finos grises: desde el costado EXTERNO de cada pulmon -x 32 el derecho, x 158 el
+     izquierdo- y desde el centro, por DEBAJO del corazon, el mediastinico. Solo los marcados.
+     ⚠️ NINGUNO LLEVA ROTULO EN EL DIBUJO, y es a proposito: tres etiquetas mas en un dibujo
+     donde acaban de medirse tres superposiciones es volver a abrirlas. Los tres se nombran en
+     «Caracteristicas del esquema», que es donde el pedido los pide.
+     El mediastinico arranca en y 338, por DEBAJO del anillo del derrame pericardico -que llega
+     a y 336-, y en x 372: «Vena cava» termina en x 366 y la franja del ECMO VA corre en y 388,
+     asi que no toca ninguno de los dos. Medido. */
+  const _drn = { fill:'none', stroke:'var(--text2)', 'stroke-width':2.5,
+                 'stroke-linecap':'round', opacity:0.8, display:'none' };
+  n.drenD = _popEsqNodo('path', Object.assign({ 'data-pop-esq':'drenD',
+    d:'M32 236 Q14 246 14 280' }, _drn), svg);
+  n.drenI = _popEsqNodo('path', Object.assign({ 'data-pop-esq':'drenI',
+    d:'M158 236 Q176 246 176 280' }, _drn), svg);
+  n.drenM = _popEsqNodo('path', Object.assign({ 'data-pop-esq':'drenM',
+    d:'M372 338 L372 372' }, _drn), svg);
   /* ── CURVA DE PRESIÓN ARTERIAL ── */
   /* ⚠️ LOS TRES ROTULOS DE ESTA FILA SE MONTABAN UNO SOBRE OTRO (POP-B-5b), medido en el arbol
      de POP-A: «Presión arterial» x «aumento diastólico (timing verificado)» 35 x 17 px, y ese
@@ -63000,6 +63063,16 @@ function _popEsqEstatico(d, g) {
   n.ecmoVVT.setAttribute('display', d.ecmoVV ? 'inline' : 'none');
   n.impG.setAttribute('display', d.impella ? 'inline' : 'none');
   n.impT.setAttribute('display', d.impella ? 'inline' : 'none');
+  /* Las tres capas de POP-B-6. Cada una pregunta por SU dato y por nada mas: sin la cirugia o
+     sin la casilla, no se dibuja nada. La malla toma el calibre del tubo aortico, que ya sale
+     de la resistencia vascular: con un ancho propio se veria mas gruesa o mas fina que la aorta
+     sobre la que va. */
+  n.puente.setAttribute('display', d.cabg ? 'inline' : 'none');
+  n.malla.setAttribute('display', d.aortaInj ? 'inline' : 'none');
+  n.malla.setAttribute('stroke-width', (g.aoW + 3).toFixed(1));
+  n.drenD.setAttribute('display', d.drenD ? 'inline' : 'none');
+  n.drenI.setAttribute('display', d.drenI ? 'inline' : 'none');
+  n.drenM.setAttribute('display', d.drenM ? 'inline' : 'none');
   /* ⚠️ CON MUCHOS FARMACOS LA FRANJA SE SALIA DEL `viewBox` (POP-B-5b). Esta centrada en x 330 y
      el dibujo mide 600: «Vasoactivos: » mas diez nombres pasa de 900 unidades, o sea que los dos
      extremos quedaban cortados. Por encima de 92 caracteres se publica el CONTEO y el detalle se
@@ -63104,6 +63177,22 @@ function popEsqTexto(d) {
   if (d.ecmoVV) sop.push('ECMO venovenoso, que drena la vena cava y devuelve a la aurícula '
     + 'derecha: oxigena, no sostiene la circulación');
   if (d.asist === 'otro') sop.push('asistencia circulatoria consignada como «otro»');
+  /* Las tres capas que POP-B-6 agrega al dibujo. Van en su propia fila porque son CIRUGIA y
+     drenajes, no soporte en curso: mezclarlas con el balon y el ECMO diria que son lo mismo.
+     Sin ninguna de las tres la fila no se escribe: una fila que diga «sin puente, sin malla y
+     sin drenajes» sobre un estudio donde nadie consigno la cirugia afirma lo que no se sabe. */
+  (function () {
+    const q = [];
+    if (d.cabg) q.push('puente aortocoronario, que sale de la aorta ascendente y llega a la '
+      + 'punta del ventrículo izquierdo');
+    if (d.aortaInj) q.push('injerto de aorta, dibujado como una malla sobre el tramo ascendente '
+      + 'y el arco');
+    const dr = [d.drenD ? 'pleural derecho' : '', d.drenI ? 'pleural izquierdo' : '',
+                d.drenM ? 'mediastínico' : ''].filter(Boolean);
+    if (dr.length) q.push('drenaje' + (dr.length > 1 ? 's' : '') + ' ' +
+      (dr.length === 1 ? dr[0] : dr.slice(0, -1).join(', ') + ' y ' + dr[dr.length - 1]));
+    if (q.length) fila('Cirugía y drenajes', q.join('; ') + '.');
+  })();
   fila('Soporte y vasoactivos',
     (sop.length ? sop.join('; ') : 'sin asistencia circulatoria consignada') + '. ' +
     (d.drogas.length ? 'Vasoactivos: ' + d.drogas.join(', ') + '.' : 'Sin vasoactivos marcados.'));
@@ -146641,8 +146730,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261101-0633';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793525627062;                 /* eco-build-ms */
+const ECO_BUILD    = '20261101-0642';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793526162784;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -146728,7 +146817,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261101-0633</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261101-0642</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

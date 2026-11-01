@@ -24,7 +24,19 @@ const ESC = {
   pleNada:  { sw: true },
   pleAus:   { pleD: 'ausente', pleI: 'ausente', sw: true },
   onceDrog: { pleD: 'severo', pleI: 'severo', lb: 'difusas', asist: 'ecmo_va', sw: true,
-              drogas: ['nor','adr','dob','mil','vaso','levo','dop','ter','ntg','ntp','azul'] }
+              drogas: ['nor','adr','dob','mil','vaso','levo','dop','ter','ntg','ntp','azul'] },
+  cxNada:   { sw: true },
+  cxPuente: { sw: true, chk: ['pop_cx_cabg'] },
+  cxMalla:  { sw: true, chk: ['pop_cx_aorta'] },
+  cxDrenD:  { sw: true, chk: ['pop_dren_pd'] },
+  cxDrenI:  { sw: true, chk: ['pop_dren_pi'] },
+  cxDrenM:  { sw: true, chk: ['pop_dren_med'] },
+  cxTodo:   { sw: true, chk: ['pop_cx_cabg','pop_cx_aorta','pop_dren_pd','pop_dren_pi','pop_dren_med'],
+              pleD: 'severo', pleI: 'moderado', lb: 'difusas', asist: 'bcia', timing: 'verificado',
+              peri: 'Derrame severo (>20mm)', drogas: ['nor','dop'] },
+  cxLegCabg:{ sw: true, cxTipo: 'cabg' },
+  cxLegComb:{ sw: true, cxTipo: 'combinada' },
+  cxValvSola:{ sw: true, chk: ['pop_cx_valv'] }
 };
 
 const CUERPO = `(async (e) => {
@@ -44,6 +56,8 @@ const CUERPO = `(async (e) => {
   if (e.sw) { S('pop_monitor','swan'); await W(200);
     S('pop_sw_fc','80'); S('pop_sw_gc','4'); S('pop_sw_pam','78'); S('pop_sw_pad','50');
     S('pop_sw_pcp','16'); S('pop_sw_paps','100'); S('pop_sw_papd','50') }
+  (e.chk || []).forEach(function (k) { C(k, true) });
+  if (e.cxTipo) S('pop_cx_tipo', e.cxTipo);
   if (e.peri) S('pericardio', e.peri);
   if (e.pleD) S('pop_pleura_der', e.pleD);
   if (e.pleI) S('pop_pleura_izq', e.pleI);
@@ -109,6 +123,34 @@ const CUERPO = `(async (e) => {
   });
   R.pleura = niv;
   R.caracTxt = (EL('pop-esq-txt') || {}).innerText || '';
+  // LA FIRMA DEL DIBUJO: cada descendiente con su etiqueta y sus atributos ordenados. Es lo que
+  // permite afirmar «identico a HEAD» sin mirar pixeles.
+  const fir = [], firB = [];
+  const NUEVOS = ['puente','malla','drenD','drenI','drenM'];
+  Array.prototype.forEach.call(svg.querySelectorAll('*'), function (n) {
+    const at = Array.prototype.map.call(n.attributes, function (a) { return a.name + '=' + a.value })
+                .sort().join(' ');
+    const linea = n.tagName + '{' + at + '}';
+    fir.push(linea);
+    // La firma BASE excluye las capas que POP-B-6 agrega y el patron de la malla: es lo que
+    // permite afirmar «el resto del dibujo es identico» contra el arbol anterior.
+    const mk = n.getAttribute && n.getAttribute('data-pop-esq');
+    if (NUEVOS.indexOf(mk) >= 0) return;
+    if (n.tagName === 'pattern' || (n.parentNode && n.parentNode.tagName === 'pattern')) return;
+    firB.push(linea);
+  });
+  R.firma = fir.join(String.fromCharCode(10));
+  R.firmaN = fir.length;
+  let h = 0; for (let i = 0; i < R.firma.length; i++) { h = (h * 31 + R.firma.charCodeAt(i)) | 0 }
+  R.firmaHash = h;
+  const fb = firB.join(String.fromCharCode(10));
+  let h2 = 0; for (let i = 0; i < fb.length; i++) { h2 = (h2 * 31 + fb.charCodeAt(i)) | 0 }
+  R.firmaBaseHash = h2; R.firmaBaseN = firB.length;
+  R.capas = {};
+  ['puente','malla','drenD','drenI','drenM'].forEach(function (k) {
+    const n = svg.querySelector('[data-pop-esq="' + k + '"]');
+    R.capas[k] = !n ? 'NO EXISTE' : (getComputedStyle(n).display === 'none' ? 'off' : 'on');
+  });
   return R;
 })`;
 
@@ -125,6 +167,9 @@ const run = async () => {
       console.log('hijos=' + r.nHijos + ' viewBox=' + r.viewBox + ' anilloGrosor=' + r.anilloGrosor
         + ' dptTamano=' + r.dptClave);
       console.log('pleura: ' + JSON.stringify(r.pleura));
+      console.log('capas:  ' + JSON.stringify(r.capas) + ' | firma ' + r.firmaN + ' nodos, hash ' + r.firmaHash
+        + ' | base ' + r.firmaBaseN + ' nodos, hash ' + r.firmaBaseHash);
+      if (process.env.POPB_CARAC === '1') console.log('--- caracteristicas ---\n' + r.caracTxt);
       console.log('SUPERPUESTOS: ' + (r.superpuestos || []).length
         + ' | FUERA DEL viewBox: ' + ((r.fuera || []).length ? JSON.stringify(r.fuera) : '0'));
       (r.superpuestos || []).forEach(s => console.log('   «' + s.a + '» x «' + s.b + '» -> ' + s.ox + ' x ' + s.oy + ' px'));
