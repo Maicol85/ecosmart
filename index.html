@@ -1621,6 +1621,10 @@
   .pop-vrow > .pop-cx-chk { flex:0 0 112px; }
   .pop-vrow > select { flex:1 1 148px; min-width:0; }
   .pop-vtag { font-size:10px; color:var(--text2); flex:0 0 auto; }
+  /* La nota de reemplazo (POP-B-2) ocupa la fila entera: nombra la morfologia nativa que
+     hay en Valvulas, y con `flex-basis:100%` cae debajo del selector en vez de apretarlo. */
+  .pop-vnota { font-size:10px; color:var(--amber); flex:1 1 100%; line-height:1.4; }
+  .pop-vnota:empty { display:none; }
   /* ══ LOS TRES DRENAJES EN UNA FILA, SIEMPRE (POP-A-4) ═════════════════════════
      Con `display:flex` y `flex-wrap`, a 1000 px «Mediastino» bajaba de renglon -medido: las
      tres `y` daban 1194, 1194 y 1242-, y el pedido dice UNA fila. Con tres pistas de
@@ -10699,21 +10703,25 @@ window.cerrarSesionReal = cerrarSesionReal;
             <label class="pop-cx-chk"><input type="checkbox" id="pop_cx_v_ao" onchange="popSync()"><span>Aórtica</span></label>
             <select id="pop-esp-vao" data-espejo onchange="popCxVGesto('pop-esp-vao')"></select>
             <span class="pop-vtag" id="pop-esp-vao-tag"></span>
+            <span class="pop-vnota" id="pop-esp-vao-nota"></span>
           </div>
           <div class="pop-vrow">
             <label class="pop-cx-chk"><input type="checkbox" id="pop_cx_v_mi" onchange="popSync()"><span>Mitral</span></label>
             <select id="pop-esp-vmi" data-espejo onchange="popCxVGesto('pop-esp-vmi')"></select>
             <span class="pop-vtag" id="pop-esp-vmi-tag"></span>
+            <span class="pop-vnota" id="pop-esp-vmi-nota"></span>
           </div>
           <div class="pop-vrow">
             <label class="pop-cx-chk"><input type="checkbox" id="pop_cx_v_tr" onchange="popSync()"><span>Tricúspide</span></label>
             <select id="pop-esp-vtr" data-espejo onchange="popCxVGesto('pop-esp-vtr')"></select>
             <span class="pop-vtag" id="pop-esp-vtr-tag"></span>
+            <span class="pop-vnota" id="pop-esp-vtr-nota"></span>
           </div>
           <div class="pop-vrow">
             <label class="pop-cx-chk"><input type="checkbox" id="pop_cx_v_pu" onchange="popSync()"><span>Pulmonar</span></label>
             <select id="pop-esp-vpu" data-espejo onchange="popCxVGesto('pop-esp-vpu')"></select>
             <span class="pop-vtag" id="pop-esp-vpu-tag"></span>
+            <span class="pop-vnota" id="pop-esp-vpu-nota"></span>
           </div>
           <div style="font-size:10px;color:var(--text2);margin:4px 0 0;line-height:1.5;">El tipo es el mismo dato que la morfología de esa válvula en la pestaña Válvulas: gana la última edición.</div>
         </div>
@@ -61495,6 +61503,22 @@ const POP_CX_V = Object.freeze({
   'pop-esp-vtr': Object.freeze({ due: 'vt_morf', chk: 'pop_cx_v_tr' }),
   'pop-esp-vpu': Object.freeze({ due: 'vp_morf', chk: 'pop_cx_v_pu' })
 });
+/* ⚠️ SOLO LAS PROTESIS, Y EL PREDICADO ES UNO (POP-B-2, 01/11/2026).
+   El clonado traia la lista ENTERA del dueño, o sea las etiologias NATIVAS tambien: el selector
+   del tipo de una valvula OPERADA ofrecia «Mixomatosa», «Reumatica» o «Trivalva normal», y
+   `popCxValvTxt` las publicaba en el PAPEL -«tricuspide — Mixomatosa»-, que es describir una
+   cirugia con una morfologia nativa. Medido en el arbol de POP-A antes de tocar nada.
+   El filtro NO es una lista transcripta: se le pregunta al `<option>` del dueño si su valor
+   empieza con «Protesis», que es como Valvulas nombra a las suyas -y las cuatro llevan
+   `value="Protesis biologica"` / `value="Protesis mecanica"` explicito-. Asi, el dia que
+   Valvulas agregue otra protesis aparece sola, que es el motivo por el que el clonado existe.
+   ⚠️ TAVI QUEDA AFUERA POR ORDEN EXPRESA, no por el predicado: su `<option>` no lleva `value`,
+   asi que su valor es «TAVI» y no empieza con «Protesis». Plastia y TEER no existen hoy en
+   ningun dueño. Las tres son otra tanda -> docs/PENDIENTES.md (POPB-c). */
+function _popVEsProt(o) {
+  const t = String((o && (o.value || o.text)) || '');
+  return t.indexOf('Prótesis') === 0;
+}
 var _popCxVOpt = false;
 function popCxVOpciones() {
   if (_popCxVOpt) return;
@@ -61507,6 +61531,7 @@ function popCxVOpciones() {
     o0.value = ''; o0.textContent = '— elegir tipo —';
     e.appendChild(o0);
     Array.prototype.forEach.call(d.options, function (o) {
+      if (!_popVEsProt(o)) return;
       const n = document.createElement('option');
       n.value = o.value || o.text; n.textContent = o.text;
       e.appendChild(n);
@@ -61530,18 +61555,38 @@ function popCxVGesto(id) {
   try { popCxVSync(); } catch (e) { console.error('[popCxVGesto]', e); }
 }
 window.popCxVGesto = popCxVGesto;
+/* El estado de una valvula operada, leido del dueño. UNA funcion, porque lo consultan el
+   pintor de la pantalla y `popCxValvTxt`, que es papel: con dos lecturas, la pantalla podria
+   decir «sin tipo consignado» y el informe «Mixomatosa» sobre la misma valvula. */
+function popVEstado(id) {
+  const m = POP_CX_V[id]; if (!m) return null;
+  const d = document.getElementById(m.due);
+  if (!d || !d.options.length) return null;
+  const def = d.options[0].value || d.options[0].text;
+  const sel = (d.selectedIndex >= 0) ? d.options[d.selectedIndex] : null;
+  const prot = !!(sel && _popVEsProt(sel));
+  /* NATIVA = cargada y distinta de la primera opcion, pero no una protesis. La primera opcion
+     es «Normal» o «Trivalva normal», que no es un tipo de valvula operada. */
+  return { prot: prot, val: prot ? d.value : '',
+           nativa: (!prot && d.value !== '' && d.value !== def) ? (sel ? sel.text : d.value) : '' };
+}
+window.popVEstado = popVEstado;
 function popCxVSync() {
   popCxVOpciones();
   Object.keys(POP_CX_V).forEach(function (id) {
-    const m = POP_CX_V[id];
-    const e = document.getElementById(id), d = document.getElementById(m.due);
+    const e = document.getElementById(id);
     const tag = document.getElementById(id + '-tag');
-    if (!e || !d || !d.options.length) return;
-    const def = d.options[0].value || d.options[0].text;
-    const hay = d.value !== '' && d.value !== def;
-    const val = hay ? d.value : '';
-    if (e.value !== val) e.value = val;
-    if (tag) tag.textContent = hay ? 'de Válvulas' : '';
+    const nota = document.getElementById(id + '-nota');
+    const st = popVEstado(id);
+    if (!e || !st) return;
+    /* Con una morfologia NATIVA en Valvulas el selector queda en «— elegir tipo —» y NO se
+       toca el dueño: espejarla aca la ofrecia como si fuera el tipo de la protesis. */
+    if (e.value !== st.val) e.value = st.val;
+    if (tag) tag.textContent = st.prot ? 'de Válvulas' : '';
+    /* Y se AVISA, nombrandola: el selector ya no la muestra, asi que sin esta linea el medico
+       elegiria una protesis sin saber que reemplaza algo. */
+    if (nota) nota.textContent = st.nativa
+      ? 'En Válvulas: «' + st.nativa + '». Elegir un tipo acá la reemplaza.' : '';
   });
 }
 window.popCxVSync = popCxVSync;
@@ -61567,10 +61612,13 @@ function popCxValvTxt() {
   Object.keys(POP_CX_V).forEach(function (id) {
     const m = POP_CX_V[id];
     const c = document.getElementById(m.chk); if (!c || !c.checked) return;
-    const d = document.getElementById(m.due);
-    const def = (d && d.options.length) ? (d.options[0].value || d.options[0].text) : '';
-    const hay = !!(d && d.value !== '' && d.value !== def);
-    out.push(NOM[m.chk] + (hay ? ' — ' + d.value : ' — sin tipo consignado'));
+    /* ⚠️ EL PAPEL NO DESCRIBE UNA CIRUGIA CON UNA MORFOLOGIA NATIVA (POP-B-2). Decia
+       `d.value` a secas, asi que una tricuspide marcada con «Mixomatosa» en Valvulas salia al
+       informe, al EN SUMA y a la hoja del PDF como «tricuspide — Mixomatosa». Hoy el tipo sale
+       SOLO si es una protesis, y si no, «sin tipo consignado», que es lo unico cierto que se
+       puede decir. Lee `popVEstado`, el mismo dueño que pinta la pantalla. */
+    const st = popVEstado(id);
+    out.push(NOM[m.chk] + (st && st.prot ? ' — ' + st.val : ' — sin tipo consignado'));
   });
   return out.join(' · ');
 }
@@ -146489,8 +146537,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261101-0608';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793524081084;                 /* eco-build-ms */
+const ECO_BUILD    = '20261101-0611';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793524279185;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -146576,7 +146624,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261101-0608</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261101-0611</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
