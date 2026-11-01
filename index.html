@@ -11071,14 +11071,13 @@ window.cerrarSesionReal = cerrarSesionReal;
              acordeón (`pop_mon_lbl`), y dejarlos daba el MISMO rótulo dos veces seguidas, uno
              debajo del otro. Visto en la captura, no deducido. -->
 
-        <div style="font-size:11px;font-weight:700;color:var(--accent2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.4px;">Ecocardiografía</div>
-        <div class="calc-box">
-          <div class="calc-row"><span class="calc-lbl">TSVI · VTI · FC (de Hemodinámica)</span><span id="pop-eco-src">—</span></div>
-          <div class="calc-row"><span class="calc-lbl">GC estimado</span><span id="pop-eco-gc">—</span></div>
-          <div class="calc-row"><span class="calc-lbl">IC estimado</span><span id="pop-eco-ic">—</span></div>
-          <div style="font-size:10px;color:var(--text2);margin-top:6px;line-height:1.5;">Estimación ecocardiográfica — sale de los MISMOS campos y la misma fórmula que la cápsula «Perfil hemodinámico» de esta pestaña. Si falta alguno, el valor no se inventa.</div>
-        </div>
-
+        <!-- ⚠️ EL RECUADRO GRIS DEL ECO SE MUDO A LA TARJETA «Eco y POCUS» (POP-A-5), que es
+             donde el medico lo pidio: el gasto estimado por ecocardiografia es una medicion de
+             esta app y va con el resto de lo que esta app mide, no con los datos de la cama.
+             Sus tres nodos -`pop-eco-src`, `pop-eco-gc` y `pop-eco-ic`- no cambian de id ni de
+             dueno: los sigue escribiendo `popHemoSync`.
+             La CONCORDANCIA Swan contra eco se queda aca: compara el gasto del cateter con el
+             del eco, y el cateter es un dato de esta tarjeta. -->
         <div id="pop-comp-wrap" style="display:none;margin-top:12px;">
           <div class="calc-box">
             <div style="font-size:11px;font-weight:700;color:var(--accent2);margin-bottom:6px;">Concordancia Swan vs Eco</div>
@@ -11140,9 +11139,22 @@ window.cerrarSesionReal = cerrarSesionReal;
             </select></div>
         </div>
     </section>
+    <!-- ══ UNA SOLA TARJETA «ECO Y POCUS» (POP-A-5, 01/11/2026) ═════════════════════
+         Lo que esta app MIDE, junto: el recuadro gris del eco -que se muda de «Datos
+         hemodinamicos»-, el ventriculo derecho con su conclusion, y pericardio, pleura y
+         pulmon en una grilla compacta de DOS columnas (era de tres: en una columna de 404 px
+         eso daba pistas de 128 px). -->
     <section class="pop-card" data-pop="pop-pocus">
-      <div class="pop-card-tit">🔎 Evaluación POCUS</div>
+      <div class="pop-card-tit">🔎 Eco y POCUS</div>
       <div class="pop-pocus-grid">
+        <div style="font-size:11px;font-weight:700;color:var(--accent2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.4px;">Ecocardiografía</div>
+        <div class="calc-box">
+          <div class="calc-row"><span class="calc-lbl">TSVI · VTI · FC (de Hemodinámica)</span><span id="pop-eco-src">—</span></div>
+          <div class="calc-row"><span class="calc-lbl">GC estimado</span><span id="pop-eco-gc">—</span></div>
+          <div class="calc-row"><span class="calc-lbl">IC estimado</span><span id="pop-eco-ic">—</span></div>
+          <div style="font-size:10px;color:var(--text2);margin-top:6px;line-height:1.5;">Estimación ecocardiográfica — sale de los MISMOS campos y la misma fórmula que la cápsula «Perfil hemodinámico» de esta pestaña. Si falta alguno, el valor no se inventa.</div>
+        </div>
+
         <!-- ══ EL VENTRICULO DERECHO VA PRIMERO (POP-V2-1) ═══════════════════════════════
              Es lo que el medico mira primero en un posoperatorio y lo unico de este bloque que
              ya viene sincronizado: ninguno de sus cuatro valores se carga aca. Detras van
@@ -11157,6 +11169,22 @@ window.cerrarSesionReal = cerrarSesionReal;
              app ya calcula (dptEstado y los campos de VD/Doppler) y los dos del medio son campos
              nuevos. Ninguna subseccion define un criterio propio. -->
         <div style="font-size:11px;font-weight:700;color:var(--accent2);margin-bottom:6px;text-transform:uppercase;letter-spacing:.4px;">Pericardio</div>
+        <!-- ══ UN CAMPO SIMPLE DE DERRAME PERICARDICO, SEGUNDA PUERTA AL DUENO (POP-A-5) ═══
+             El derrame pericardico tiene UN dueno en toda la app: el campo «Pericardio» de la
+             pestana Pericardio y masas (`#pericardio`, cinco opciones). Hasta hoy el
+             posoperatorio NO tenia campo: leia `dptEstado()` y no se podia cargar desde aca.
+             Este selector es una SEGUNDA PUERTA al mismo dato: sus opciones se clonan del dueno
+             y el gesto lo escribe. Va con prefijo `pop-esp-`, que ya esta en las dos listas
+             paralelas, asi que no se guarda -una segunda copia del mismo hecho es lo que este
+             archivo persigue-.
+             ⚠️ ESTE SELECTOR NO TIENE OPCION VACIA, y es porque el dueno no la tiene: su primera
+             opcion es «Normal, sin derrame», que es una respuesta. Agregarle una vacia dejaria
+             un estado que el dueno no puede representar. -->
+        <div class="grid-2">
+          <div class="fg"><label for="pop-esp-peri">Derrame pericárdico</label>
+            <select id="pop-esp-peri" data-espejo onchange="popPeriGesto()"></select></div>
+        </div>
+        <div style="font-size:10px;color:var(--text2);margin:2px 0 6px;line-height:1.5;">Mismo dato que el campo «Pericardio» de la pestaña Pericardio y masas: gana la última edición.</div>
         <div class="calc-box" style="margin-bottom:14px;"><div id="pop-pocus-peri">—</div></div>
 
         <!-- ⚠️ EL GLOBO ⓘ ES EL MISMO `pul-balik` DEL MÓDULO DE ECOGRAFÍA PULMONAR, no una copia:
@@ -11164,7 +11192,7 @@ window.cerrarSesionReal = cerrarSesionReal;
              límites de validez —pacientes críticos en ventilación invasiva—. Una segunda ficha
              con el mismo contenido se desincroniza el día que una de las dos se corrija. -->
         <div style="font-size:11px;font-weight:700;color:var(--accent2);margin-bottom:6px;text-transform:uppercase;letter-spacing:.4px;">Pleura <button type="button" class="vinfo-btn vinfo-btn-44" data-vinfo="pul-balik" aria-expanded="false" aria-label="Informaci&oacute;n sobre la estimaci&oacute;n del volumen del derrame pleural" onclick="vInfoClic(this)">&#9432;</button></div>
-        <div class="grid-3">
+        <div class="grid-2">
           <div class="fg"><label for="pop_pleura_der">Derrame derecho</label><select id="pop_pleura_der" onchange="popPocusSync()"><option value="" selected>— no evaluado —</option><option value="leve">Leve (&lt;1 cm)</option><option value="moderado">Moderado (1-3 cm)</option><option value="severo">Severo (&gt;3 cm)</option><option value="ausente">Ausente</option></select></div>
           <div class="fg"><label for="pop_pleura_izq">Derrame izquierdo</label><select id="pop_pleura_izq" onchange="popPocusSync()"><option value="" selected>— no evaluado —</option><option value="leve">Leve (&lt;1 cm)</option><option value="moderado">Moderado (1-3 cm)</option><option value="severo">Severo (&gt;3 cm)</option><option value="ausente">Ausente</option></select></div>
           <div class="fg"><label for="pop_pleura_caract">Características</label><select id="pop_pleura_caract" onchange="popPocusSync()"><option value="" selected>— no evaluado —</option><option value="libre">Libre</option><option value="loculado">Loculado</option><option value="hemotorax">Hemotórax</option></select></div>
@@ -11172,7 +11200,7 @@ window.cerrarSesionReal = cerrarSesionReal;
         <div class="calc-box" style="margin:8px 0 14px;"><div id="pop-pocus-pleura">—</div></div>
 
         <div style="font-size:11px;font-weight:700;color:var(--accent2);margin-bottom:6px;text-transform:uppercase;letter-spacing:.4px;">Pulmón</div>
-        <div class="grid-3">
+        <div class="grid-2">
           <div class="fg"><label for="pop_pulmon_lineasb">Líneas B</label><select id="pop_pulmon_lineasb" onchange="popPocusSync()"><option value="" selected>— no evaluado —</option><option value="ausentes">Ausentes</option><option value="focales">Focales</option><option value="difusas">Difusas bilaterales</option></select></div>
           <div class="fg"><label for="pop_pulmon_consol">Consolidación</label><select id="pop_pulmon_consol" onchange="popPocusSync()"><option value="" selected>— no evaluado —</option><option value="ausente">Ausente</option><option value="der">Derecha</option><option value="izq">Izquierda</option><option value="bilateral">Bilateral</option></select></div>
           <div class="fg"><label for="pop_pulmon_neumo">Neumotórax</label><select id="pop_pulmon_neumo" onchange="popPocusSync()"><option value="" selected>— no evaluado —</option><option value="ausente">Ausente</option><option value="sospecha">Sospecha</option><option value="presente">Presente</option></select></div>
@@ -61289,6 +61317,47 @@ function popMonSync() {
   if (vac) vac.style.display = (mon === 'swan' || mon === 'picco' || mon === 'pai') ? 'none' : 'block';
 }
 window.popMonSync = popMonSync;
+/* ══ POP · EL DERRAME PERICARDICO, SEGUNDA PUERTA AL DUEÑO (POP-A-5, 01/11/2026) ═════════════
+   El dueño del derrame pericardico es `#pericardio`, el campo de la pestaña Pericardio y masas.
+   Este modulo no tenia campo propio -leia `dptEstado()`- y por eso no se podia cargar desde el
+   posoperatorio, que es donde el medico esta mirando.
+   Las opciones se CLONAN del dueño una sola vez, igual que las de las valvulas: una lista
+   transcripta a mano se desincroniza el dia que esa pestaña agregue un grado.
+   ⚠️ EL GESTO ESCRIBE Y EL BARRIDO SOLO LEE, que es el modelo del D-11. Y no hace falta entrada
+   nueva en `ESPEJOS_VIVOS`: lo llama `popPocusSync`, que ya esta en la lista. */
+var _popPeriOpt = false;
+function popPeriOpciones() {
+  if (_popPeriOpt) return;
+  const e = document.getElementById('pop-esp-peri'), d = document.getElementById('pericardio');
+  if (!e || !d || !d.options.length) return;
+  if (!e.options.length) {
+    Array.prototype.forEach.call(d.options, function (o) {
+      const n = document.createElement('option');
+      n.value = o.value || o.text; n.textContent = o.text;
+      e.appendChild(n);
+    });
+  }
+  _popPeriOpt = true;
+}
+function popPeriGesto() {
+  const src = document.getElementById('pop-esp-peri'), dst = document.getElementById('pericardio');
+  if (!src || !dst) return;
+  if (src.value === '' || dst.value === src.value) return;
+  dst.value = src.value;
+  dst.dispatchEvent(new Event('change', { bubbles: true }));
+  /* La caja de resultado se repinta EN EL GESTO y no se espera al barrido de 220 ms: el dato ya
+     esta en su dueno. `popPocusSync` llama a `popPeriSync`, que solo compara y asigna, asi que
+     no hay bucle con el `change` que se acaba de despachar. */
+  try { popPocusSync(); } catch (e) { console.error('[popPeriGesto]', e); }
+}
+window.popPeriGesto = popPeriGesto;
+function popPeriSync() {
+  popPeriOpciones();
+  const e = document.getElementById('pop-esp-peri'), d = document.getElementById('pericardio');
+  if (!e || !d) return;
+  if (e.value !== d.value) e.value = d.value;
+}
+window.popPeriSync = popPeriSync;
 /* ══ POP · CONTEXTO QUIRURGICO: EL DUEÑO UNICO DE QUE CIRUGIAS HAY (POP-A-4, 01/11/2026) ═════
    Una cirugia cardiaca combina procedimientos, y el selector de una sola opcion no lo podia
    decir: su respuesta era «Combinada». Hoy el dueño es `popCxEstado()`, y lo consultan TODOS los
@@ -61645,6 +61714,7 @@ window.popHemoSync = popHemoSync;
    Se conserva el corte de la app y se declara en pantalla. Si mañana se decide graduar el TAPSE
    en tres bandas, hay que moverlo en `UMBRAL_TAPSE_NORMAL` y en la cápsula de TEP, no acá. */
 function popPocusSync() {
+  try { popPeriSync(); } catch (e) { console.error('[popPocusSync] popPeriSync:', e); }
   const setH = (id, h) => { const e = document.getElementById(id); if (e) e.innerHTML = h; };
   const fila = (lbl, val) => '<div class="calc-row"><span class="calc-lbl">' + lbl + '</span><span>' + val + '</span></div>';
   const falta = t => '<div style="font-size:11px;color:var(--text2);line-height:1.5;">' + t + '</div>';
@@ -146375,8 +146445,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261101-0353';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793516013845;                 /* eco-build-ms */
+const ECO_BUILD    = '20261101-0409';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793516973383;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -146462,7 +146532,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261101-0353</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261101-0409</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

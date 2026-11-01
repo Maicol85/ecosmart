@@ -389,6 +389,24 @@ const ESCENAS = {
                          pop_sw_pam: '70' },
                chk: ['pop_cx_cabg', 'pop_dren_pd', 'pop_dren_pi', 'pop_dren_med'],
                sel: { pop_monitor: 'swan' }, integrar: ['pop'] },
+  /* ── LA TARJETA «Eco y POCUS» DEL COMMIT 5 ───────────────────────────────────────────────
+     periEsp -> el derrame pericardico cargado por la PUERTA NUEVA del posoperatorio. Lo que
+                cambia es el campo del DUENO (`pericardio`) y lo que ese dato ya movia: es el
+                mismo cambio que produciria cargarlo en su pestana.
+     ecoPocus-> la tarjeta con el eco, el VD y pleura/pulmon cargados pero SIN pericardio: el
+                control de que mudar el recuadro gris y pasar las grillas a dos columnas no
+                mueve una letra del papel. */
+  periEsp:  { campos: { peso: '70', talla: '170', pop_cx_horas: '6', pop_sw_gc: '3.2',
+                        pop_sw_pam: '70' },
+              sel: { pop_monitor: 'swan', 'pop-esp-peri': 'Derrame moderado (10-20mm)' },
+              integrar: ['pop'] },
+  ecoPocus: { campos: { peso: '70', talla: '170', pop_cx_horas: '6', pop_sw_gc: '3.2',
+                        pop_sw_pam: '70', diam_tsvi: '21', itv_tsvi: '18', hemo_fc: '75',
+                        tapse: '14', vd_vi: '1.1' },
+              sel: { pop_monitor: 'swan', pop_pleura_der: 'moderado', pop_pleura_izq: 'leve',
+                     pop_pleura_caract: 'libre', pop_pulmon_lineasb: 'difusas',
+                     pop_pulmon_consol: 'ausente', pop_pulmon_neumo: 'ausente' },
+              integrar: ['pop'] },
   /* ── LA PAM Y SUS CUATRO FUENTES, CON LA LINEA ARTERIAL ───────────────────────────────────
      `pamArt` elige «Presion arterial invasiva solamente», que es la opcion que hasta esta tanda
      no abria ningun campo. `pamArtSwan` tiene las DOS: el Swan gana, por precedencia.
