@@ -36,7 +36,20 @@ const ESC = {
               peri: 'Derrame severo (>20mm)', drogas: ['nor','dop'] },
   cxLegCabg:{ sw: true, cxTipo: 'cabg' },
   cxLegComb:{ sw: true, cxTipo: 'combinada' },
-  cxValvSola:{ sw: true, chk: ['pop_cx_valv'] }
+  cxValvSola:{ sw: true, chk: ['pop_cx_valv'] },
+  vAoMec:   { sw: true, chk: ['pop_cx_valv','pop_cx_v_ao'], morf: { va_morf: 'Prótesis mecánica' } },
+  vAoBio:   { sw: true, chk: ['pop_cx_valv','pop_cx_v_ao'], morf: { va_morf: 'Prótesis biológica' } },
+  vAoSinT:  { sw: true, chk: ['pop_cx_valv','pop_cx_v_ao'] },
+  vAoNativa:{ sw: true, chk: ['pop_cx_valv','pop_cx_v_ao'], morf: { va_morf: 'Calcificada' } },
+  vCuatro:  { sw: true, chk: ['pop_cx_valv','pop_cx_v_ao','pop_cx_v_mi','pop_cx_v_tr','pop_cx_v_pu'],
+              morf: { va_morf: 'Prótesis mecánica', vm_morf: 'Prótesis biológica',
+                      vt_morf: 'Prótesis mecánica' } },
+  vSinFc:   { chk: ['pop_cx_valv','pop_cx_v_ao','pop_cx_v_mi'],
+              morf: { va_morf: 'Prótesis mecánica', vm_morf: 'Prótesis biológica' } },
+  vFcHemo:  { chk: ['pop_cx_valv','pop_cx_v_ao'], morf: { va_morf: 'Prótesis mecánica' },
+              hemoFc: '90' },
+  vFcAbsurda:{ chk: ['pop_cx_valv','pop_cx_v_ao'], morf: { va_morf: 'Prótesis mecánica' },
+               hemoFc: '900' }
 };
 
 const CUERPO = `(async (e) => {
@@ -58,6 +71,8 @@ const CUERPO = `(async (e) => {
     S('pop_sw_pcp','16'); S('pop_sw_paps','100'); S('pop_sw_papd','50') }
   (e.chk || []).forEach(function (k) { C(k, true) });
   if (e.cxTipo) S('pop_cx_tipo', e.cxTipo);
+  Object.keys(e.morf || {}).forEach(function (k) { S(k, e.morf[k]) });
+  if (e.hemoFc) S('hemo_fc', e.hemoFc);
   if (e.peri) S('pericardio', e.peri);
   if (e.pleD) S('pop_pleura_der', e.pleD);
   if (e.pleI) S('pop_pleura_izq', e.pleI);
@@ -146,6 +161,71 @@ const CUERPO = `(async (e) => {
   const fb = firB.join(String.fromCharCode(10));
   let h2 = 0; for (let i = 0; i < fb.length; i++) { h2 = (h2 * 31 + fb.charCodeAt(i)) | 0 }
   R.firmaBaseHash = h2; R.firmaBaseN = firB.length;
+  R.valv = {};
+  ['ao','pu','mi','tr'].forEach(function (k) {
+    const G = svg.querySelector('[data-pop-esq="valv-' + k + '"]');
+    if (!G) { R.valv[k] = 'NO EXISTE'; return }
+    const off = getComputedStyle(G).display === 'none';
+    const an = G.querySelector('ellipse'), ls = G.querySelectorAll('line');
+    const sop = Array.prototype.filter.call(ls, function (l) { return l.getAttribute('y1') === '-4' });
+    const vel = Array.prototype.filter.call(ls, function (l) { return l.getAttribute('y1') === '0' });
+    /* OJO: getBBox() sobre un grupo devuelve coordenadas LOCALES, o sea ANTES de su transform:
+       las cuatro valvulas daban la MISMA caja [-11,-5,22,10] y el cruce entre ellas reportaba
+       seis superposiciones que no existen. La caja que sirve es la de pantalla. */
+    const b = off ? null : G.getBoundingClientRect();
+    R.valv[k] = { on: !off, dash: an ? (an.getAttribute('stroke-dasharray') || '') : '-',
+      fillOp: an ? an.getAttribute('fill-opacity') : '-', stroke: an ? an.getAttribute('fill') : '-',
+      velos: vel.length ? getComputedStyle(vel[0]).display : '-',
+      sop: sop.length ? getComputedStyle(sop[0]).display : '-',
+      caja: b ? [Math.round(b.x), Math.round(b.y), Math.round(b.width), Math.round(b.height)] : null };
+  });
+  try { R.fc = popEsquema().fc } catch (x) { R.fc = 'ERR' }
+  /* OJO: EL BUCLE SE APAGA CUANDO EL DIBUJO NO SE VE -lo apaga su IntersectionObserver-, y en
+     una ventana de 1000 px de alto el esquema cae en y 2000. Sin traerlo a la vista el hueco se
+     lee SIEMPRE en 0, que es el cuadro unico de la fase 0, y se parece a -no late-. */
+  svg.scrollIntoView({ block: 'center' });
+  await W(500);
+  /* EL LATIDO: se muestrea el hueco entre los dos velos a lo largo de 1,6 s. Una sola lectura no
+     distingue -no late- de -la lei con la valvula cerrada-. */
+  const mues = {};
+  ['ao','pu','mi','tr'].forEach(function (k) { mues[k] = [] });
+  for (let t = 0; t < 32; t++) {
+    ['ao','pu','mi','tr'].forEach(function (k) {
+      const G = svg.querySelector('[data-pop-esq="valv-' + k + '"]');
+      if (!G || getComputedStyle(G).display === 'none') return;
+      const vel = Array.prototype.filter.call(G.querySelectorAll('line'), function (l) { return l.getAttribute('y1') === '0' });
+      if (vel.length > 1) mues[k].push(Number(vel[1].getAttribute('x1')));
+    });
+    await new Promise(function (r) { setTimeout(r, 50) });
+  }
+  /* LA FASE: la aortica y la pulmonar abren en SISTOLE y la mitral y la tricuspide en DIASTOLE,
+     asi que NUNCA pueden estar las dos abiertas en el mismo instante. Se cuenta sobre las
+     muestras pareadas: si alguna vez coinciden, el reparto de fase esta mal. */
+  if (mues.ao.length && mues.mi.length) {
+    let juntas = 0, aoAb = 0, miAb = 0;
+    for (let i = 0; i < Math.min(mues.ao.length, mues.mi.length); i++) {
+      if (mues.ao[i] > 4) aoAb++;
+      if (mues.mi[i] > 4) miAb++;
+      if (mues.ao[i] > 4 && mues.mi[i] > 4) juntas++;
+    }
+    R.fase = { aoAbierta: aoAb, miAbierta: miAb, lasDosALaVez: juntas, n: mues.ao.length };
+  }
+  R.hueco = {};
+  Object.keys(mues).forEach(function (k) {
+    if (!mues[k].length) return;
+    R.hueco[k] = { min: Math.min.apply(null, mues[k]).toFixed(1),
+                   max: Math.max.apply(null, mues[k]).toFixed(1), n: mues[k].length };
+  });
+  // las cajas de las cuatro valvulas, cruzadas entre si
+  const cjs = Object.keys(R.valv).filter(function (k) { return R.valv[k].on && R.valv[k].caja })
+    .map(function (k) { return { k: k, c: R.valv[k].caja } });
+  R.valvSup = [];
+  for (let i = 0; i < cjs.length; i++) for (let j = i + 1; j < cjs.length; j++) {
+    const a = cjs[i].c, b2 = cjs[j].c;
+    const ox = Math.min(a[0]+a[2], b2[0]+b2[2]) - Math.max(a[0], b2[0]);
+    const oy = Math.min(a[1]+a[3], b2[1]+b2[3]) - Math.max(a[1], b2[1]);
+    if (ox > 0 && oy > 0) R.valvSup.push(cjs[i].k + ' x ' + cjs[j].k + ' ' + ox + 'x' + oy);
+  }
   R.capas = {};
   ['puente','malla','drenD','drenI','drenM'].forEach(function (k) {
     const n = svg.querySelector('[data-pop-esq="' + k + '"]');
@@ -169,6 +249,13 @@ const run = async () => {
       console.log('pleura: ' + JSON.stringify(r.pleura));
       console.log('capas:  ' + JSON.stringify(r.capas) + ' | firma ' + r.firmaN + ' nodos, hash ' + r.firmaHash
         + ' | base ' + r.firmaBaseN + ' nodos, hash ' + r.firmaBaseHash);
+      console.log('fc=' + r.fc + ' valvSup=' + JSON.stringify(r.valvSup)
+        + ' hueco=' + JSON.stringify(r.hueco)
+        + (r.fase ? ' fase=' + JSON.stringify(r.fase) : ''));
+      ['ao','pu','mi','tr'].forEach(function (k) { const x = (r.valv || {})[k];
+        if (x && x.on) console.log('  valv ' + k + ': dash="' + x.dash + '" fill=' + x.stroke
+          + ' op=' + x.fillOp + ' velos=' + x.velos + ' sop=' + x.sop
+          + ' caja=' + JSON.stringify(x.caja)) });
       if (process.env.POPB_CARAC === '1') console.log('--- caracteristicas ---\n' + r.caracTxt);
       console.log('SUPERPUESTOS: ' + (r.superpuestos || []).length
         + ' | FUERA DEL viewBox: ' + ((r.fuera || []).length ? JSON.stringify(r.fuera) : '0'));

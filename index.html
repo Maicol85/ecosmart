@@ -62531,6 +62531,26 @@ const POP_ESQ_LUNG_I = 'M100 84 C122 76 154 98 162 138 C170 180 164 226 144 254 
    vacio no dibujan nada: no es lo mismo «no hay derrame» que «no se evaluo», y en el dibujo las
    dos se ven igual porque no hay nada que dibujar. El TEXTO si las distingue. */
 const POP_ESQ_PLEURA_BASE = 268;
+/* La banda de lo MEDIBLE para la frecuencia cardiaca que mueve el simbolo de una valvula
+   operada (POP-B-7b). No gradua nada: solo rechaza lo que no puede ser una medicion. */
+const POP_ESQ_FC_MIN = 20, POP_ESQ_FC_MAX = 240;
+/* Donde va el simbolo de cada valvula operada, y como esta orientado (POP-B-7a).
+   · la aortica a la SALIDA del VI -sobre el tubo aortico, en x 470: el borde derecho del
+     recuadro del VI llega como maximo a x 460, asi que el simbolo nunca se monta sobre el
+     rotulo «VI», que vive en su centro-;
+   · la pulmonar a la SALIDA del VD -sobre la arteria pulmonar, en x 268, por la misma razon y
+     sin tocar el rotulo «AP 100/50», que termina en x 252-;
+   · la mitral entre VI y AI y la tricuspide entre VD y AD, las dos en el PLANO
+     auriculoventricular -y 217, entre el piso de la auricula (216) y el techo del ventriculo
+     (219)-, a la altura del centro de su auricula.
+   `rot` es 90 para las dos de salida, porque ahi el flujo es horizontal y el plano de la valvula
+   queda vertical. Medido: las cuatro cajas no se tocan entre si ni tocan un rotulo. */
+const POP_ESQ_VALV = Object.freeze([
+  Object.freeze({ k:'ao', x:470, y:257, rot:90, lbl:'aórtica' }),
+  Object.freeze({ k:'pu', x:268, y:257, rot:90, lbl:'pulmonar' }),
+  Object.freeze({ k:'mi', x:408, y:217, rot:0,  lbl:'mitral' }),
+  Object.freeze({ k:'tr', x:335, y:217, rot:0,  lbl:'tricúspide' })
+]);
 const POP_ESQ_PLEURA_H = Object.freeze({ leve: 22, moderado: 44, severo: 72 });
 function popEsquema() {
   const r = popPatron();
@@ -62619,6 +62639,29 @@ function popEsquema() {
      valor no dice cuales fueron, y el dibujo no lo adivina.
      Los drenajes salen de `popDrenajesTxt`, el otro dueño unico: aca se preguntan las tres
      casillas por separado porque el dibujo necesita saber CUAL, no la frase. */
+  /* ══ LA FRECUENCIA CARDIACA DEL LATIDO DE LAS VALVULAS (POP-B-7b) ═══════════════════════
+     La CARGADA y ninguna otra: la del cateter si el monitoreo es Swan-Ganz, y si no la de
+     «Datos hemodinamicos» -que es `hemo_fc`, el dueño unico que ese espejo edita-. Sin ninguna
+     de las dos, `null`, y el simbolo queda quieto: inventarle una frecuencia seria dibujar un
+     latido que este paciente no tiene.
+     La banda de plausibilidad es de lo MEDIBLE y no de severidad -el mismo argumento que la del
+     indice cardiaco-: una frecuencia de 4 o de 900 no es una medicion, y el periodo que saldria
+     de ella seria de siete minutos o de sesenta milisegundos. */
+  const _fcSw = esSw ? v('pop_sw_fc') : null;
+  const _fcH = v('hemo_fc');
+  let fc = (_fcSw !== null && _fcSw > 0) ? _fcSw : ((_fcH !== null && _fcH > 0) ? _fcH : null);
+  if (fc !== null && (fc < POP_ESQ_FC_MIN || fc > POP_ESQ_FC_MAX)) fc = null;
+  /* Las cuatro valvulas operadas y su tipo, leidos del MISMO dueño que la pantalla y el papel:
+     la casilla dice si se opero y `popVEstado` dice si hay una protesis. Sin protesis elegida el
+     dibujo pone un anillo punteado neutro: nunca se asume un tipo. */
+  const _vop = {};
+  [['ao','pop_cx_v_ao','pop-esp-vao'], ['mi','pop_cx_v_mi','pop-esp-vmi'],
+   ['tr','pop_cx_v_tr','pop-esp-vtr'], ['pu','pop_cx_v_pu','pop-esp-vpu']].forEach(function (r) {
+    const c = document.getElementById(r[1]);
+    const st = (typeof popVEstado === 'function') ? popVEstado(r[2]) : null;
+    const tipo = (st && st.prot) ? (String(st.val).indexOf('mec') > 0 ? 'mec' : 'bio') : '';
+    _vop[r[0]] = { on: !!(c && c.checked), tipo: tipo };
+  });
   const _cxTok = (typeof popCxEstado === 'function') ? (popCxEstado().tokens || []) : [];
   const cabg = _cxTok.indexOf('cabg') >= 0;
   const aortaInj = _cxTok.indexOf('aorta') >= 0;
@@ -62652,6 +62695,7 @@ function popEsquema() {
     asist: asist, bcia: bcia, ecmoVA: ecmoVA, impella: impella, ecmoVV: ecmoVV,
     bciaTiming: bciaTiming, drogas: drogas,
     cabg: cabg, aortaInj: aortaInj, drenD: drenD, drenI: drenI, drenM: drenM,
+    fc: fc, vop: _vop,
     /* Los CUATRO colores del dibujo, resueltos acá para que el SVG no decida nada. */
     cVI: icB ? (icB.cls === 'green' ? 'ok' : icB.cls === 'yellow' ? 'warn' : 'bad') : 'none',
     cVD: !hayVD ? 'none' : (tapseBaja && vdDil) ? 'bad' : (tapseBaja || vdDil) ? 'warn' : 'ok',
@@ -62849,6 +62893,33 @@ function popEsqMontar() {
     'stroke-width':2.5, 'stroke-linecap':'round' }, n.prop);
   n.impT = _popEsqTexto(svg, 434, 282, 'Impella', 12, 500, 'middle', 'var(--accent2)');
   n.impT.setAttribute('display', 'none');
+  /* ══ LAS CUATRO VALVULAS OPERADAS (POP-B-7a) ═══════════════════════════════════════════
+     Un grupo por valvula, montado UNA vez con todas sus piezas: el anillo, los dos velos y los
+     tres soportes. El pintor prende y apaga piezas y les cambia el color; no crea ni destruye
+     nodos en cada repintado, que es la regla de este dibujo desde la G2.
+     TRES ASPECTOS, y el tipo sale del dato y nunca de una omision:
+       · protesis MECANICA  -> anillo oscuro y dos velos gruesos;
+       · protesis BIOLOGICA -> anillo claro con tres soportes;
+       · SIN tipo elegido   -> anillo punteado neutro y SIN velos, porque un velo dibujado
+                               afirmaria una mecanica o una biologica.
+     Los velos abren y cierran separandose: cerrado es una linea continua de borde a borde y
+     abierto son dos muñones contra el anillo. Lo que se mueve es el HUECO del medio, que es
+     legible a 22 px de ancho — una rotacion de velos a esta escala es un pixel. */
+  n.valv = {};
+  POP_ESQ_VALV.forEach(function (vv) {
+    const G = _popEsqNodo('g', { 'data-pop-esq':'valv-' + vv.k, display:'none',
+      transform:'translate(' + vv.x + ' ' + vv.y + ') rotate(' + vv.rot + ')' }, svg);
+    const o = {};
+    o.g = G;
+    o.anillo = _popEsqNodo('ellipse', { cx:0, cy:0, rx:11, ry:5, 'stroke-width':1.5 }, G);
+    o.vA = _popEsqNodo('line', { y1:0, y2:0, 'stroke-linecap':'round' }, G);
+    o.vB = _popEsqNodo('line', { y1:0, y2:0, 'stroke-linecap':'round' }, G);
+    o.sop = [-7, 0, 7].map(function (x) {
+      return _popEsqNodo('line', { x1:x, y1:-4, x2:x, y2:(x === 0 ? -11 : -9),
+        'stroke-width':1.4, 'stroke-linecap':'round', display:'none' }, G);
+    });
+    n.valv[vv.k] = o;
+  });
   /* ══ EL PUENTE AORTOCORONARIO (POP-B-6a) ══════════════════════════════════════════════
      Un tubo curvo que sale de la aorta PROXIMAL -el tramo ascendente, en x 490-, atraviesa el
      recuadro del ventriculo izquierdo y termina en su esquina superior izquierda, que es la
@@ -63067,6 +63138,28 @@ function _popEsqEstatico(d, g) {
      sin la casilla, no se dibuja nada. La malla toma el calibre del tubo aortico, que ya sale
      de la resistencia vascular: con un ancho propio se veria mas gruesa o mas fina que la aorta
      sobre la que va. */
+  /* El ASPECTO de cada valvula operada (POP-B-7a). La APERTURA no se toca aca: la mueve el
+     bucle, porque depende de la fase. */
+  POP_ESQ_VALV.forEach(function (vv) {
+    const o = n.valv[vv.k], st = d.vop[vv.k];
+    if (!o) return;
+    o.g.setAttribute('display', st && st.on ? 'inline' : 'none');
+    if (!st || !st.on) return;
+    const mec = st.tipo === 'mec', bio = st.tipo === 'bio';
+    o.anillo.setAttribute('fill', mec ? 'var(--text)' : bio ? 'var(--bg3)' : 'none');
+    o.anillo.setAttribute('fill-opacity', mec ? 0.38 : 1);
+    o.anillo.setAttribute('stroke', mec ? 'var(--text)' : bio ? 'var(--text2)' : 'var(--border)');
+    o.anillo.setAttribute('stroke-dasharray', st.tipo ? '' : '3 3');
+    [o.vA, o.vB].forEach(function (l) {
+      l.setAttribute('display', st.tipo ? 'inline' : 'none');
+      l.setAttribute('stroke', mec ? 'var(--text)' : 'var(--text2)');
+      l.setAttribute('stroke-width', mec ? 2.6 : 1.8);
+    });
+    o.sop.forEach(function (l) {
+      l.setAttribute('display', bio ? 'inline' : 'none');
+      l.setAttribute('stroke', 'var(--text2)');
+    });
+  });
   n.puente.setAttribute('display', d.cabg ? 'inline' : 'none');
   n.malla.setAttribute('display', d.aortaInj ? 'inline' : 'none');
   n.malla.setAttribute('stroke-width', (g.aoW + 3).toFixed(1));
@@ -63191,6 +63284,21 @@ function popEsqTexto(d) {
                 d.drenM ? 'mediastínico' : ''].filter(Boolean);
     if (dr.length) q.push('drenaje' + (dr.length > 1 ? 's' : '') + ' ' +
       (dr.length === 1 ? dr[0] : dr.slice(0, -1).join(', ') + ' y ' + dr[dr.length - 1]));
+    /* Las valvulas operadas se nombran con su tipo, leidas de `popCxValvTxt`, que es el dueño
+       unico que tambien publica el papel: con dos lecturas, la lista del dibujo y el informe
+       podrian decir tipos distintos de la misma valvula. */
+    const vt = (typeof popCxValvTxt === 'function') ? popCxValvTxt() : '';
+    if (vt) q.push('válvulas operadas: ' +
+      vt.split(' · ').map(function (t) {
+        /* «aortica — Protesis mecanica» -> «aortica con protesis mecanica», y
+           «mitral — sin tipo consignado» -> «mitral sin tipo consignado»: con un «con» delante
+           la frase quedaba «mitral con sin tipo consignado». */
+        const i = t.indexOf(' — ');
+        if (i < 0) return t;
+        const v2 = t.slice(0, i), tp = t.slice(i + 3);
+        return tp.indexOf('sin ') === 0 ? v2 + ' ' + tp
+             : v2 + ' con ' + tp.charAt(0).toLowerCase() + tp.slice(1);
+      }).join(', '));
     if (q.length) fila('Cirugía y drenajes', q.join('; ') + '.');
   })();
   fila('Soporte y vasoactivos',
@@ -63264,6 +63372,33 @@ function popEsqFrame(ahora) {
   if (d.bcia) n.balon.setAttribute('rx', popEsqBalonRx(fase).toFixed(1));
   if (d.ecmoVA) n.ecmo.setAttribute('stroke-dashoffset', (-(ahora / 40) % 14).toFixed(1));
   if (d.ecmoVV) n.ecmoVV.setAttribute('stroke-dashoffset', (-(ahora / 40) % 14).toFixed(1));
+  /* ══ EL LATIDO DE LAS VALVULAS OPERADAS (POP-B-7b) ═════════════════════════════════════
+     Con la FRECUENCIA CARGADA y no con el periodo del dibujo: un latido por `60000 / fc` ms.
+     ⚠️ ESO LAS DESACOMPASA DE LAS CAVIDADES, Y SE DECLARA: las cuatro cajas respiran con
+     `POP_ESQ_PER_MS`, que es «la velocidad a la que el esquema se ve bien» y que su propio
+     comentario dice que NO es la frecuencia del paciente. Igualarlas seria cambiar el latido de
+     las cavidades, que esta orden no autoriza -> docs/PENDIENTES.md (POPB-f).
+     Sin frecuencia cargada el simbolo queda CERRADO y quieto: una valvula abierta y quieta se
+     leeria como una insuficiencia permanente, que es una afirmacion clinica.
+     La aortica y la pulmonar abren en SISTOLE y la mitral y la tricuspide en DIASTOLE, con el
+     mismo corte de 0,35 que parte el ciclo en el resto del dibujo. */
+  const _fv = d.fc === null ? null
+    : (_popEsq.reduce ? 0.2 : ((ahora - _popEsq.t0) % (60000 / d.fc)) / (60000 / d.fc));
+  POP_ESQ_VALV.forEach(function (vv) {
+    const o = n.valv[vv.k], st = d.vop[vv.k];
+    if (!o || !st || !st.on) return;
+    const sist = _fv !== null && _fv < 0.35;
+    const abre = (vv.k === 'ao' || vv.k === 'pu') ? sist : (_fv !== null && !sist);
+    /* El hueco crece y decrece dentro de su mitad del ciclo: 0 cerrada, 9 del todo abierta. */
+    let u = 0;
+    if (abre) {
+      const f0 = sist ? 0 : 0.35, f1 = sist ? 0.35 : 1;
+      u = Math.sin(Math.PI * (_fv - f0) / (f1 - f0));
+    }
+    const hu = (9 * Math.max(0, Math.min(1, u))).toFixed(1);
+    o.vA.setAttribute('x1', -11); o.vA.setAttribute('x2', -hu);
+    o.vB.setAttribute('x1', hu); o.vB.setAttribute('x2', 11);
+  });
   /* La helice del Impella gira CONTINUO y no con el latido: una bomba axial no pulsa. */
   if (d.impella) n.prop.setAttribute('transform', 'rotate(' + ((ahora / 3) % 360).toFixed(0) + ' 461 257)');
   if (!_popEsq.reduce && _popEsq.visible) _popEsq.rafId = requestAnimationFrame(popEsqFrame);
@@ -146730,8 +146865,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261101-0642';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793526162784;                 /* eco-build-ms */
+const ECO_BUILD    = '20261101-0659';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793527152633;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -146817,7 +146952,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261101-0642</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261101-0659</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
