@@ -276,3 +276,33 @@ Lo que esa tanda movió de esta zona está en **`docs/mapa/cong2a-desmarcar-tga-
 - ⚠️ **`_probe_t2a_demo.mjs` y `_probe_tga2demo.mjs` NO aceptan `--file`** y cargan siempre el
   `index.html` vivo: correrlos «contra HEAD» mide el árbol de trabajo las dos veces y devuelve el
   mismo número. `_probe_cong2a_demo.mjs` acepta `--file`.
+
+---
+
+## ⚠️ El suite corre a 756 px, y eso decide cómo se mide una maqueta
+
+`test_clinico.mjs` lanza Chrome **sin `--window-size`**: la ventana mide **756 px**, por debajo
+del corte de 768 y del de 900. Un caso que mida un reparto en columnas por **geometría** ahí está
+midiendo la versión apilada, que es otra cosa.
+
+Lo que sí es observable a cualquier ancho:
+
+- la **REGLA** de la hoja de estilos. El prelude de TC-577 a TC-581 trae
+  `reglaMedia(min, selector, propiedad)`, que recorre `document.styleSheets`, busca la
+  `CSSMediaRule` con ese `min-width` y lee la declaración. ⚠️ Chrome normaliza `minmax(0, 1fr)` a
+  **`minmax(0px, 1fr)`**: el valor esperado va con el `px`.
+- la **ESTRUCTURA**: qué nodo es hijo de cuál, cuántas columnas explícitas tiene un bloque, si
+  dos campos son hermanos de la misma grilla.
+- el **comportamiento**, que no depende del ancho.
+
+La geometría lado a lado la miden las sondas de dos motores y las dedicadas de cada tanda.
+
+## Punteros de la tanda POP-A (2026-11-01)
+
+**TC-577 a TC-581** cubren la pantalla del posoperatorio: las tres columnas y los rótulos, el
+selector de fármacos con el azul de metileno, la asistencia con el monitoreo y los datos
+hemodinámicos, el contexto quirúrgico con sus cirugías combinables, y la tarjeta de Eco y POCUS
+con la disposición de abajo.
+
+Fichas en **`tests-fichas-577.md`**. Mapa en **`pa-pantalla-posoperatorio.md`**.
+Mutaciones en `scripts/_mut_pa.py` (catorce, cada una con su caso).

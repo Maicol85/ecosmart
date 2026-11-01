@@ -1,0 +1,1 @@
+            <label class="pop-droga-chk" for="pop_azul_activa"><input type="checkbox" id="pop_azul_activa" onchange="popSync()"><span class="pop-droga-dot"></span><span>Azul de metileno</span></label>

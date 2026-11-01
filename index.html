@@ -1760,8 +1760,17 @@
      sólo desde 1100 px, y el `.grid-3` de adentro pasa a `auto-fit` con un piso de 170 px, que
      es lo que garantiza el ancho útil aunque la tarjeta se angoste por otra causa. */
   .pop-pocus-grid { display:grid; grid-template-columns: minmax(0,1fr); gap:10px; }
-  @media (min-width: 1100px) { .pop-pocus-grid { grid-template-columns: repeat(2, minmax(0,1fr)); } }
-  .pop-pocus-grid .grid-3 { grid-template-columns: repeat(auto-fit, minmax(170px,1fr)); }
+  /* ══ ACA VIVIA LA REGLA QUE PARTIA ESTA SUBGRILLA EN DOS DESDE 1100 px (POP-V2) ══════════
+     Tenia sentido con la tarjeta a ANCHO COMPLETO: 1232 px daban dos columnas de ~600. Con las
+     tres columnas del POP-A la tarjeta mide ~404 px, y medido a 1440 px esa regla la partia en
+     dos columnas de **182 px** -y en **128** a 1100-, o sea las filas del recuadro del eco y de
+     la conclusion del VD dentro de 182 px. El pedido del medico dice «el recuadro gris del eco,
+     el ventriculo derecho con su conclusion, y DEBAJO pericardio, pleura y pulmon en una grilla
+     compacta de dos columnas»: las dos columnas son las de los SELECTORES, y la tarjeta se lee
+     de arriba hacia abajo. Asi que la subgrilla queda en UNA columna a cualquier ancho.
+     ⚠️ El `.grid-3` de adentro con piso de 170 px tambien se retira: esta tanda paso sus dos
+     grillas a `.grid-2`, que ya tiene su propio reparto, y la regla quedaba sin un solo nodo
+     que la usara -verificado por grep del marcado-. */
   /* ══ LA FILA DE LA OREJUELA: CAMPOS A LA IZQUIERDA, DIBUJO A LA DERECHA (A1, 30/10/2026) ══
      Medido en HEAD: el dibujo quedaba APILADO debajo de los campos en los cuatro anchos
      —1440, 1000, 768 y 390—, con los tres rect con caja, asi que no era un cero de medicion.
@@ -146467,8 +146476,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261101-0416';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793517379741;                 /* eco-build-ms */
+const ECO_BUILD    = '20261101-0512';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793520762073;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -146554,7 +146563,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261101-0416</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261101-0512</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

@@ -250,3 +250,34 @@ de la miocardiopatía hipertrófica dejó de nombrar guías, clases y la recomen
 desfibrilador.
 
 **Pendiente.** Ver el bloque de esta tanda en `docs/PENDIENTES.md`.
+
+---
+
+## TANDA POP-A — «POP-A» · 2026-11-01
+
+- `162aa9d` POP-A-1: las tres columnas independientes del posoperatorio y sus rotulos
+- `49864a0` POP-A-2: un solo campo «Elegir farmaco» y el azul de metileno
+- `3561bf9` POP-A-3: asistencia, monitoreo en columnas y los datos hemodinamicos
+- `67038f5` POP-A-4: cirugias combinables, valvulas operadas y drenajes
+- `d1bd8ad` POP-A-5: una sola tarjeta «Eco y POCUS», con el derrame pericardico por su dueno
+- `bc1ad49` POP-A-6: la disposicion de abajo, con el dibujo identico a HEAD
+- POP-A-7: cobertura, documentacion, el sello y lo que quedo PARADO
+
+**Qué cambió.** La pestaña de posoperatorio pasó de una pila de seis tarjetas —2096 px a 1440 px
+y 2857 a 1000, medido— a **tres columnas independientes**, cada una su propio contenedor flex, con
+el corte sobre la ventana en 900 px. El monitoreo dejó de ser un acordeón y es una tarjeta fija
+con el Swan en tres columnas agrupadas y el PiCCO en dos. Las once casillas de fármacos pasaron a
+**un panel absoluto** que se abre desde un botón único y no empuja nada, con el **azul de
+metileno** como fármaco nuevo: sin unidad, sin fórmula por peso, fuera del patrón y fuera del
+dibujo. «Tipo de cirugía» pasó a **cuatro casillas combinables** con el estudio viejo que se lee y
+no se reescribe, más las cuatro válvulas operadas con su tipo tomado de Válvulas y los tres
+drenajes. El eco y el POCUS quedaron en una sola tarjeta, el derrame pericárdico ganó una segunda
+puerta a su dueño, y abajo el dibujo quedó a media pantalla con las características y la
+conclusión a su derecha.
+
+**El dibujo del esquema no se tocó**, y está verificado nodo por nodo contra `47ff639`: 77 nodos,
+firma del SVG idéntica, `viewBox` idéntico. Eso es la tanda POP-B.
+
+**Dieciocho campos guardados nuevos**, todos de la lista autorizada, y **Excel 441 → 441**.
+
+**Pendiente.** Ver el bloque de esta tanda en `docs/PENDIENTES.md` → **PA-a** a **PA-i**.

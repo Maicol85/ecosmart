@@ -277,3 +277,27 @@ del PPT**.
 
 **Todo en `docs/mapa/pop-v2-posoperatorio.md`**, con la tabla de lo que los mapas anteriores decían
 y dejó de ser cierto. El caso que lo fija es **TC-548**; los pendientes, **POP-a** a **POP-h**.
+
+---
+
+## ⚠️ PUNTERO — la tanda POP-A (2026-11-01) agregó NUEVE espejos, y ninguno en este registro
+
+Los nueve viven en el posoperatorio, llevan prefijo **`pop-esp-`** (guión MEDIO, en las dos
+listas paralelas) y `data-espejo` **sin valor**, y **no** entran en `ESPEJOS_VIVOS`: los llaman
+`popHemoSync` y `popPocusSync`, que **ya** están en esa lista y en `RECALC_MODULOS`. Dos entradas
+para el mismo trabajo es lo que hace que una mutación sobreviva.
+
+| espejo | dueño | lo llama |
+|---|---|---|
+| `pop-esp-fc` | `hemo_fc` | `popDatosSync` ← `popHemoSync` |
+| `pop-esp-pas` | `ao_pas` | ídem |
+| `pop-esp-pam` | `hemo_pam` | ídem |
+| `pop-esp-pad` | `ao_pad` | ídem |
+| `pop-esp-vao` · `vmi` · `vtr` · `vpu` | `va_morf` · `vm_morf` · `vt_morf` · `vp_morf` | `popCxVSync` ← `popSync` |
+| `pop-esp-peri` | `pericardio` | `popPeriSync` ← `popPocusSync` |
+
+Los nueve son **editables**, que es la diferencia con los 28 `*_ro` de este mapa: el `oninput` o
+el `onchange` del espejo escribe el campo del dueño —**el vacío incluido**— y el barrido sólo
+LEE. Es el modelo del D-11, y es lo que hace que borrar borre.
+
+Está en `pa-pantalla-posoperatorio.md` § 4, § 5 y § 6.

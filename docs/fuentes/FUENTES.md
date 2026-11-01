@@ -8740,3 +8740,66 @@ izquierda** —«El grado de dilatación auricular no se informa: la guía lo gr
 indexado, que requiere el volumen de AI y la superficie corporal»— y las dispara el diámetro
 anteroposterior de la escena, no la miocardiopatía: verificado que no están en `txt`, ni en
 `resumen`, ni en `papel` de `mchConclusion`. Declarada en `docs/PENDIENTES.md`.
+
+---
+
+## La tanda POP-A — la pantalla del posoperatorio (2026-11-01)
+
+### Tabla «Cambios de evidencia» — VACÍA A PROPÓSITO
+
+**Esta tanda no agregó, movió ni retiró una sola cita, un solo corte, un solo umbral, una sola
+clase ni un solo folio.** Es una tanda de **pantalla y de datos**: reparto en columnas, un
+selector, rótulos de esta pestaña, campos nuevos sin interpretación y dos espejos a dueños que ya
+existían. El único contenido clínico que se tocó son dos **rótulos** de la misma pestaña —`PAPs` a
+`PSAP`, `PAPd` a `PDAP`, `PAPm` a `PmAP` y el `(PVC)` al lado de `PAD`—, que son nombres de la
+misma magnitud y no un criterio.
+
+Verificado por A/B contra `47ff639`, en **109 escenas, 120.429 claves y 48.069 celdas de Excel**:
+las únicas diferencias de papel están en **ocho** escenas, las ocho con datos nuevos, y las líneas
+que ganan o cambian son descripciones —«Tipo de cirugía | Revascularización y valvular»,
+«Válvulas operadas | aórtica — Prótesis mecánica», «Drenajes | pleural derecho y mediastino»,
+«Relleno capilar | 4 s», «Diuresis | 20 ml/h», «Azul de metileno 1.5» y la línea del derrame
+pericárdico—. **Ninguna nombra una clase, un nivel, un folio, una tabla ni una sociedad.**
+
+### Lo que NO se escribió, y por qué
+
+| qué | por qué no |
+|---|---|
+| la unidad del **azul de metileno** | el pedido lo prohíbe expresamente: «no inventes ninguna: la unidad se define cuando se lea la guía». El campo va sin unidad, la línea de la dilución lo dice, y el papel publica el número solo → **PA-a** |
+| su **fórmula por peso** | ídem. `POP_DROGAS_PESO` lo excluye, así que no escribe su dosis sola |
+| su **uso hemodinámico** | espera la guía **EACTS 2024**, que el médico guardó en la carpeta de Hemodinámica y que esta tanda no abrió → **PA-b** |
+| un **corte de relleno capilar** | ninguna de las fuentes de este módulo publica uno aplicable al posoperatorio de cirugía cardíaca. Se describe el valor y nada más → **PA-c** |
+| un **corte de diuresis** | ídem |
+| un **vocabulario único de pleura y pulmón** | los dos dueños se contradicen en seis puntos, medidos opción por opción. Traducir uno al otro inventa un dato o lo pierde → **PA-e** |
+
+### Notas de trabajo (regla R1)
+
+**El selector viejo de tipo de cirugía no se pudo ampliar, y la medición es la que lo decide.**
+`_pptSpan` lee `e.textContent`, y en un `<select>` eso es la lista entera de opciones: la celda
+«Tipo de cirugía» de la diapositiva publica hoy las **ocho**, sea cual sea el valor del campo.
+Medido en HEAD. Agregarle una novena opción cambiaba esa celda en **toda** escena integrada, o
+sea el papel firmado de cualquier estudio. Está en **PA-d**.
+
+**El dibujo del esquema se verificó nodo por nodo, no por píxeles.** Con la misma escena cargada
+y la animación **parada** antes de fotografiar, en los cuatro anchos: 77 nodos antes y después, la
+firma del SVG —cada nodo con su etiqueta y sus atributos ordenados— idéntica, `viewBox` idéntico,
+`aria-label` idéntico, texto y conclusión idénticos. Las coordenadas son del espacio del
+`viewBox`, así que no dependen del ancho del contenedor.
+
+**Lo que las opciones de cada válvula ofrecen hoy en la pestaña Válvulas**, censado antes de
+clonarlas (el pedido pide «SOLO las opciones que hoy existen en Válvulas para esa válvula»):
+
+| válvula | campo dueño | opciones |
+|---|---|---|
+| aórtica | `va_morf` | Trivalva normal · Bicúspide · Calcificada · Reumática · Prótesis biológica (SAVR) · Prótesis mecánica (SAVR) · TAVI · Endocarditis · Carcinoide |
+| mitral | `vm_morf` | Normal · Mixomatosa / Barlow · Calcificada · Reumática · Prolapso / EVMS · Prótesis biológica · Prótesis mecánica · Endocarditis · Isquémica (disfunción/rotura músculo papilar) |
+| tricúspide | `vt_morf` | Normal · Mixomatosa · Reumática · Prótesis biológica · Prótesis mecánica · Carcinoide · Endocarditis · Funcional / dilatación VD |
+| pulmonar | `vp_morf` | Normal · Displásica (congénita) · Reumática · Carcinoide · Prótesis biológica · Prótesis mecánica · No especificada |
+
+No hay **plastia** ni **TEER** en ninguna de las cuatro, y **TAVI** sólo en la aórtica, donde ya
+existía. El pedido dice «no agregues plastia, TEER ni TAVI: es otra tanda», y por eso las
+opciones se **clonan** en vez de transcribirse: una lista copiada a mano se desincroniza el día
+que Válvulas agregue una etiología.
+
+**Los dos dueños de pleura y pulmón, censados opción por opción**, están en `PENDIENTES.md`
+**PA-e** y en `docs/mapa/pa-pantalla-posoperatorio.md` § 6.

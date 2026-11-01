@@ -355,3 +355,16 @@ del PPT**.
 
 **Todo en `docs/mapa/pop-v2-posoperatorio.md`**, con la tabla de lo que los mapas anteriores decían
 y dejó de ser cierto. El caso que lo fija es **TC-548**; los pendientes, **POP-a** a **POP-h**.
+
+---
+
+## ⚠️ PUNTERO — la tanda POP-A reescribió la PANTALLA de este módulo (2026-11-01)
+
+Lo que este mapa describe de la **maqueta** y del **acordeón del monitoreo** dejó de ser cierto.
+Hoy la pestaña va en **tres columnas independientes** con el corte en 900 px, el monitoreo es una
+**tarjeta fija** —sin `pop_mon_acc`, sin `popMonToggle` y sin reserva de hueco—, los fármacos se
+eligen desde **un panel absoluto**, «Tipo de cirugía» son **cuatro casillas combinables**, y
+abajo el dibujo va a media pantalla con las características y la conclusión a su derecha.
+
+**Está todo en `pa-pantalla-posoperatorio.md`.** El DIBUJO del esquema **no** se tocó (eso es la
+tanda POP-B), y está verificado nodo por nodo.

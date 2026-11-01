@@ -361,3 +361,19 @@ D-11 dejó escrita. El arnés acepta una **lista de pares** por entrada para eso
 - Las fuentes del corte de lactato, transcritas: `docs/fuentes/FUENTES.md` → «La tanda POP-V2»
 - La ficha del caso: este mismo archivo, § 7
 - Lo que quedó sin hacer: `docs/PENDIENTES.md` → **POP-a** a **POP-h**
+
+---
+
+## ⚠️ PUNTERO — la tanda POP-A (2026-11-01) deshizo el orden de UNA columna
+
+Este mapa describe el reparto en **una** columna de arriba hacia abajo, y la reserva de hueco del
+acordeón del monitoreo. Las dos cosas se retiraron: hoy son **tres columnas independientes** desde
+900 px, y el monitoreo es una tarjeta fija. El `<details>` cerrado de los fármacos también se
+fue: existía porque once filas ocupaban media pantalla en una columna, y con tres eso deja de
+pasar.
+
+Lo que **sí** sigue vigente de acá: el cálculo de la dosis por dilución con sus dos marcas de
+runtime, la PAM por línea arterial, el timing del balón con su guión medio, y las cuatro señales
+sueltas de la conclusión.
+
+**La pantalla de hoy está en `pa-pantalla-posoperatorio.md`.**

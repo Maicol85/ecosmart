@@ -11315,3 +11315,143 @@ fila es que dos campos compartan su `y`, y eso vale con cualquier desplazamiento
 salió de hacer que la condición **imprima** el display de la pestaña, del acordeón y de la zona
 junto con el conteo: tres hipótesis anteriores —el acordeón cerrado, la pestaña cambiada, la
 librería a medio cargar— fueron descartadas por esa línea y no por leer el código.
+
+---
+
+## Tanda POP-A · la pantalla del posoperatorio (2026-11-01) — DECLARADO y NO arreglado
+
+## PA-a · El azul de metileno no tiene unidad ni fórmula por peso declaradas
+
+La orden lo dice con todas las letras: «SIN unidad ni fórmula por peso predefinidas (**no
+inventes ninguna**: la unidad se define cuando se lea la guía; PARÁ esa parte)». Así quedó:
+
+- su campo de dosis lleva `placeholder="dosis"` y `aria-label="Dosis de Azul de metileno"`, sin
+  una unidad;
+- `POP_DROGAS_SIN_UNIDAD = ['azul']` lo saca de `POP_DROGAS_PESO`, así que **no escribe su dosis
+  sola**, y hace que la línea de la dilución diga «esta aplicación todavía no declara la unidad
+  ni la fórmula por peso de este fármaco» en vez de publicar un «≈ N mcg/kg/min» que sería
+  inventado;
+- `POP_DOSIS_UNID = { azul: '' }` hace que el papel publique «Azul de metileno 1.5», sin unidad.
+
+**Lo que falta:** leer la guía y declararle su unidad. Los tres puntos de arriba son los únicos
+lugares donde hay que escribirla, porque la unidad tiene un dueño único (`popDosisUnid`).
+
+## PA-b · El azul de metileno no entra a ningún algoritmo, y la guía está guardada
+
+La orden: «NO entra a ningún algoritmo ni patrón hemodinámico en esta tanda … el uso hemodinámico
+espera la guía **EACTS 2024** que el médico ya guardó en la carpeta de Hemodinámica».
+
+`POP_DROGAS_PATRON` lo excluye, así que no mueve `haySoporte` de `popPatron` —que es la pregunta
+«Gasto adecuado CON soporte en curso»— ni la franja de drogas del dibujo. **Medido:** con sólo el
+azul marcado, `popEsquema().drogas` sale vacío y el patrón no cambia.
+
+⚠️ **El dibujo quedó afuera por una segunda razón: es la tanda POP-B.** El día que el azul vote,
+hay que decidir aparte si entra a la franja del dibujo.
+
+## PA-c · El relleno capilar y la diuresis se describen y no votan
+
+Los dos campos nuevos (`pop_relleno_cap`, `pop_diuresis`) salen al informe y a la hoja del PDF
+como un dato más —«Relleno capilar | 4 s», «Diuresis | 20 ml/h»— **sin banda, sin «prolongado»,
+sin «oligúrico» y sin corte**: ninguna de las fuentes de este módulo publica uno aplicable, y
+escribirlo sería inventarlo. Es exactamente lo que la G1 hizo con el lactato.
+
+**Medido:** con el relleno en 4 s y la diuresis en 20 ml/h, y después con 9 s y 2 ml/h, el patrón
+y sus cinco preguntas salen **idénticos** (TC-579 F3 y F4).
+
+**Lo que falta:** una fuente con un corte aplicable al posoperatorio de cirugía cardíaca. El
+pedido lo pone como condición: «requiere fuente».
+
+## PA-d · La casilla «Otra» no tiene token en `pop_cx_tipo`, y por qué
+
+El vocabulario de `pop_cx_tipo` no tiene «otra», y agregarle la opción **mueve el papel firmado
+de cualquier estudio**: `_pptSpan` lee `e.textContent`, y en un `<select>` eso es la **lista
+entera** de opciones. Medido en HEAD: la celda «Tipo de cirugía» de la diapositiva publica hoy
+las ocho opciones, sea cual sea el valor del campo — defecto **preexistente**. Agregar una novena
+cambiaba esa celda en **toda** escena integrada, y arreglar `_pptSpan` la cambiaría igual.
+
+Así que marcar sólo «Otra» deja `pop_cx_tipo` vacío. **Lo que NO se pierde:** el informe, el EN
+SUMA y la hoja del PDF igual publican «Otra», porque leen `popCxEstado()`. **Lo que sí:**
+
+- el histograma `cx` del Laboratorio no cuenta ese estudio;
+- el bloque «Según la cirugía, también mirar…» del panel no publica nada — que es correcto: no
+  hay nada publicado para una cirugía sin especificar.
+
+La fila «Tipo de cirugía» del panel **sí** se arregló para que no diga «falta consignar» sobre una
+cirugía que el médico acaba de marcar: lee `popCxEstado().txt`.
+
+**Lo que falta:** decidir si `_pptSpan` debe leer la opción seleccionada —que es un arreglo de
+papel y una decisión de Maicol— y, con eso hecho, darle su token a «Otra».
+
+## PA-e · Pleura y pulmón NO se unificaron: SEIS contradicciones entre dos dueños
+
+La orden manda parar si hay contradicción entre dos dueños. Hay seis, medidas opción por opción:
+
+| | el posoperatorio | el módulo «Pericardio y pulmón» |
+|---|---|---|
+| grado del derrame pleural | **por lado** (`pop_pleura_der`, `pop_pleura_izq`): Leve <1 cm / Moderado 1-3 / Severo >3 / Ausente | **uno solo** (`pul_derrame_tam`): Mínimo / Moderado / Severo, **sin cifra** |
+| lado | implícito en los dos campos | `pua_derrame_lado`: Unilateral derecho / izquierdo / Bilateral |
+| característica | `pop_pleura_caract`: Libre / Loculado / **Hemotórax** | `pua_derrame_tipo`: Libre / **Tabicado** |
+| líneas B | `pop_pulmon_lineasb`: Ausentes / Focales / Difusas bilaterales | **seis casillas por zona**: `pua_z_ant_d` … `pua_z_bas_i` |
+| consolidación | `pop_pulmon_consol`: Ausente / Derecha / Izquierda / Bilateral | `pua_consol`: No / Sí, más broncograma y una nota |
+| neumotórax | `pop_pulmon_neumo`: Ausente / Sospecha / Presente | **criterio de dos signos**: `pua_desliz` (Presente/Reducido/Abolido) + `pua_punto` (Presente/Ausente) |
+
+«Derecho severo + izquierdo leve» no se puede decir allá, y «bilateral moderado» no dice qué lado
+acá. **Traducir cualquiera de las seis en una dirección inventa un dato o lo pierde**, y eso es
+contenido clínico que decide Maicol.
+
+**El pericardio sí se unificó**, porque ahí hay un solo dueño (`#pericardio`, cinco opciones) y
+el posoperatorio no tenía campo propio: leía `dptEstado()`.
+
+**Lo que falta:** decidir el vocabulario único de pleura y pulmón. Mientras no se decida, los
+seis selectores del posoperatorio conservan sus ids y sus opciones, y TC-581 (D) lo fija para que
+la próxima tanda se encuentre con la medición y no con una suposición.
+
+## PA-f · Los rótulos PSAP, PmAP y PDAP sólo se unificaron en ESTA pestaña
+
+La orden lo acota: «NO cambies rótulos de otras pestañas (eso es una tanda aparte)». Así que
+`PAPs`, `PAPd` y `PAPm` siguen en el resto de la app, y TC-577 (G1) y (G2) lo **fijan** como
+control negativo: la «PAP media estimada» de VD/AD y el cociente «TAPSE/PAPs» de la tabla de
+signos de HTP siguen con su nombre.
+
+Censados los lugares que los usan fuera del posoperatorio: el campo «PAP media estimada (mmHg)»
+de VD/AD, la fórmula de la insuficiencia pulmonar (`PAPm = 4 × Vmax-IP² + PmAD`), la fila
+«PAP media (IP proto-diast.)», la nota de los insumos de la cápsula de Hemodinámica, la fila del
+gradiente transpulmonar, el cociente TAPSE/PAPs de la tabla de HTP, las tres filas «PAPs por IT»
+y «PAPs estimada por CIV» de la ETE, y el campo `dap_paps` del ductus. **Y la columna
+«PAP media (mmHg)» del Excel**, que es la que convierte esto en una tanda aparte: tocarla rompe
+el round-trip.
+
+## PA-g · El PPT publica la clave de la droga, no su nombre (POP-h, sigue abierto)
+
+Preexistente y ya declarado como **POP-h**: la diapositiva busca
+`label[for="pop_<k>_activa"]` y los diez fármacos de siempre no tienen `for`, así que imprime
+`nor 0.25` en vez de `Noradrenalina 0.25`. Agregárselo a los diez cambiaría el papel firmado de
+diez fármacos, que esta tanda no autoriza.
+
+**El azul de metileno sí lo lleva**, porque es nuevo y no hay papel viejo que mover: su
+diapositiva dice «Azul de metileno 1.5» y no el token «azul». Es una inconsistencia **declarada**
+y es el lado seguro: la alternativa era publicar un token en el papel firmado, que es lo que la
+tanda TGA pagó con «dtga».
+
+## PA-h · El timing del balón sigue sin sobrevivir al guardado (POP-d, sigue abierto)
+
+`pop-bcia-timing` va con guión medio y está en las dos listas paralelas, así que no se persiste.
+Esta tanda no lo movió: su lista autorizada de campos nuevos no lo incluye. Sigue en **POP-d**.
+
+## PA-i · El Laboratorio publica la CLAVE de cinco de los once fármacos, y el azul es el quinto
+
+Censado: el mapa de etiquetas `DRG` del Laboratorio existe **TRES veces** —en la pantalla de la
+sub-pestaña avanzada, en el PDF de auditoría y en el PPT del Laboratorio— y las tres copias traen
+**seis** de los once fármacos: `nor`, `adr`, `dob`, `mil`, `vaso` y `levo`. Los otros cuatro
+—`dop`, `ter`, `ntg` y `ntp`— ya caen al `|| k` y se publican como **clave cruda**, desde antes de
+esta tanda. El azul de metileno es el **quinto**: su histograma dice «azul».
+
+**No se tocó, y es por la regla de la orden:** «Si un cambio exige modificar … el Laboratorio:
+PARÁ esa parte y reportala». Y hay un segundo motivo: son **tres listas paralelas** y arreglar una
+sola deja las otras dos diciendo lo de antes, que es el modo de falla que este repositorio
+documenta una y otra vez.
+
+**Lo que falta:** un dueño único de la etiqueta de cada fármaco —`POP_DROGA_LBL`, por ejemplo— que
+las tres copias consulten, con las once entradas. Es el mismo arreglo que **PA-g** pide para la
+diapositiva del PPT del paciente, y conviene hacerlos juntos: los dos publican una clave donde
+debería ir un nombre, y los dos son papel.

@@ -495,3 +495,30 @@ Puntero. El detalle está en **`docs/mapa/tga-diagrama-3d.md`**.
   (`_ccEnSuHoja`): estaba escrita `k === 'cia' && _ciaEnSuHoja`, así que un segundo congénito se
   estampaba debajo del texto **y** volvía a entrar al motor — el mismo dibujo **dos veces** en el
   informe firmado.
+
+---
+
+## ⚠️ PUNTERO — lo que la tanda POP-A agregó al papel del posoperatorio (2026-11-01)
+
+`amiloTextoPOP()` —el informe y la hoja del PDF— gana cuatro líneas y cambia una:
+
+- «Tipo de cirugía» sale de **`popCxEstado().txt`** y no de `sv2('pop_cx_tipo')`: con las casillas
+  combinables dice **cuáles** fueron, y sin ninguna marcada cae al rótulo del `<option>`, que es
+  exactamente lo que decía antes;
+- «Válvulas operadas | aórtica — Prótesis mecánica · mitral — sin tipo consignado»;
+- «Drenajes | pleural derecho y mediastino»;
+- «Relleno capilar | 4 s» y «Diuresis | 20 ml/h», las dos **sin banda y sin corte**;
+- la dosis de un fármaco lleva la unidad de **`popDosisUnid(k)`** y no un literal: `mcg/kg/min`
+  para los diez de siempre y **vacía** para el azul de metileno.
+
+`popSumaLinea()` —el EN SUMA— usa **`popCxEstado().txtBajo`** y agrega el fragmento
+«— drenaje …».
+
+**El Excel no se movió: 441 columnas con las mismas claves.** `LAB_XLS_MAP` es una lista explícita
+y no tiene un solo `pop_`.
+
+**La diapositiva del PPT no cambió** por esta tanda: su celda «Tipo de cirugía» es `_pptSpan`, que
+publica la lista entera de opciones del `<select>` —defecto preexistente POP-h, y el motivo por el
+que la casilla «Otra» quedó sin token—.
+
+Está todo en `pa-pantalla-posoperatorio.md` § 8.
