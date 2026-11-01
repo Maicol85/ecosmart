@@ -123,6 +123,7 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Citar un dato de PRÓTESIS valvular** | `docs/fuentes/FUENTES-protesis.md` |
 | **Empezar una válvula nueva**: qué fuentes faltan y cómo se agrega una | `docs/fuentes/PENDIENTES_FUENTES.md` |
 | Por qué algo está así, historia de una decisión | `grep` en `docs/historial/CLAUDE_historial_2026-10-01.md` |
+| **Qué hizo cada tanda, con sus commits y lo que dejó pendiente** | `docs/REGISTRO_TANDAS.md` |
 | Estado de la última sesión (todas las apps) | `grep` en `~/Desktop/APLICACIONES/CEIBO_SESSION.md` |
 | Seguridad de la suite (XSS, Semgrep, claves) | `~/Desktop/APLICACIONES/CLAUDE.md` |
 | Reglas de trabajo de EcoSmart | este archivo |
@@ -235,6 +236,40 @@ Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la v
   ubicar un hallazgo hay que buscar el fragmento, no sumarle un offset.
 
 ---
+
+## El papel describe — REGLA FIJA DE MAICOL (2026-10-31)
+
+**EL PAPEL —informe en los tres estilos, EN SUMA, PDF y PPT— DESCRIBE.** No nombra guías ni
+sociedades, no publica clases ni niveles, no cita tablas, figuras ni folios y no recomienda
+conducta. Todo eso vive **solo** en la pestaña Evidencia, en Referencias o en el globo ⓘ.
+
+- El papel afirma lo que se midió y lo nombra por lo que es: «riesgo de muerte súbita a 5 años
+  6,12 %», no «HCM Risk-SCD (ESC) 6,12 % — desfibrilador a considerar (Clase IIa)». El nombre de
+  un modelo y el de una sociedad son nombres propios, y salen.
+- **Ningún número medido puede desaparecer** al retirar una mención. El año de una guía sí: es
+  parte de su nombre.
+- **Antes de retirar algo del papel, verificar que su contenido esté en la Evidencia con su
+  fuente.** Si no está, PARAR y reportarlo: escribirlo en la Evidencia es contenido clínico nuevo
+  y lo decide Maicol.
+- La forma de hacerlo **no es reescribir ni reordenar el texto**: se separan **descripción** y
+  **conducta** y las dos salidas se arman con las mismas piezas (`coaPapel`, `mchConclusion().papel`
+  y su `resumen`). Dos textos paralelos escritos a mano divergen; con una sola construcción no
+  pueden.
+- **EXCEPCIÓN EXPRESA DE MAICOL:** las etiquetas de la **pantalla** de criterios TEER —«NO apto»,
+  «Heart Team», «anatomía compleja»— **no se tocan**. Llegan a la hoja del PDF cuando el médico
+  integra el módulo, está medido, y se quedan.
+
+## La pantalla: campos a la izquierda, diagrama a la derecha — REGLA FIJA DE MAICOL (2026-10-31)
+
+En pantallas de **900 px o más**, los campos van a la izquierda y el diagrama a la derecha; por
+debajo de 900 px el diagrama se apila debajo de los campos. El corte va **sobre la ventana** y no
+sobre el contenedor: con `flex-wrap` el punto de quiebre depende del ancho que le quede a la
+tarjeta, y entonces «a partir de unos 900 px» deja de ser medible.
+
+Vale para los diagramas nuevos y para los que se toquen; **lo que ya quedó a la izquierda no se
+mueve.** El patrón de referencia es el de la orejuela (`#oai-fila`) y el de la TGA
+(`#tga-fila`): un contenedor flex, la columna de campos con `min-width:0` y la tarjeta del dibujo
+con su ancho, todo dentro de una `@media (min-width: 900px)`.
 
 ## Panel de Evidencia — reglas de citación
 
