@@ -249,3 +249,21 @@ antecedente explicitado **afuera** de la cláusula. Sin folio, sin clase y sin n
 esta línea no es una recomendación. **TGA2-b queda cerrado.**
 
 Todo en **`docs/mapa/aj3-bucle-botones.md` § 3**.
+
+---
+
+## Puntero — la tanda CONG-2A (2026-10-31 y 2026-11-01)
+
+Lo que esa tanda movió de esta zona está en **`docs/mapa/cong2a-desmarcar-tga-teer.md`**:
+
+- La **pantalla** de la sección pasó a dos columnas de campos a la izquierda y la tarjeta del
+  diagrama a la derecha desde 900 px (`#tga-fila`, `#tga-campos`), con las seis filas que el médico
+  pidió y sin huecos cuando la cirugía se esconde. El lienzo pasa de 560 a **605 px** de ancho.
+- El párrafo largo de encabezado se mudó **textual** al bloque `lee` del globo `VINFO['tga-3d']`.
+- **Sin tipo cargado se dibuja el corazón normal**, y son TRES estados y no dos: la vista de
+  referencia, el corazón normal por omisión y el dibujo del paciente. `_tga3dEsDato()` es el dueño
+  único y lo consultan **los dos** gates del PDF.
+- El lienzo **se esconde** mientras no hay dibujo, en vez de quedar con alto 0 y el canvas suelto:
+  era el defecto que desbordaba la tarjeta por 363 px **al vaciar el tipo**.
+- La **CIA** y la **CIV** salieron a un bloque común y se dibujan en todas las anatomías, con dos
+  exclusiones medidas: no la CIA con el switch auricular y no la CIV con el Rastelli.

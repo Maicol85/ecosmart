@@ -8630,3 +8630,113 @@ del médico del 31/10/2026 fue verificar contra la **2024**, que sí está, y es
 ### Lo que la app aplica y la guía NO publica
 Nada: las cinco filas, la clase, el nivel y el criterio coinciden. La única diferencia es el año
 de la etiqueta, que se reporta sin tocar.
+
+---
+
+# La tanda CONG-2A (2026-10-31 y 2026-11-01)
+
+**ESTA TANDA NO ABRIÓ UN SOLO PDF, Y SE DECLARA.** No agregó ninguna cita, ningún folio, ninguna
+tabla y ninguna clase: todo lo que necesitaba verificar ya estaba cargado por las tandas
+AJUSTES-3 y TGA-2. Lo único que hizo con la evidencia fue **retirarla del papel** después de
+comprobar, en Chrome y con denominador, que su contenido está en la pestaña Evidencia.
+
+## La verificación que habilitó el commit 5a
+
+El principio del médico exige que, antes de retirar algo del papel, su contenido esté en la
+Evidencia con su fuente. Medido sobre la sección **«Miocardiopatía hipertrófica — prevención de
+muerte súbita»** del panel, con la cardiopatía cargada:
+
+| Qué se verificó | Medido |
+|---|---|
+| Líneas que publica la sección | **18** |
+| Menciones de desfibrilador o ICD | **9** |
+| Clases de recomendación | **13** |
+| Folio **e1267** de la AHA/ACC 2024 (Ommen y cols., *Circulation* 2024;149:e1239-e1311, hoja 29) | **presente** |
+| Folios **3561** y **3562** de la ESC 2023 (Tabla de recomendaciones 23) | **los dos presentes** |
+| La etiqueta «AHA/ACC 2024» | **presente** |
+
+Las dos fuentes las cargaron **AJUSTES-3** (la AHA/ACC 2024, leída en imagen, con su regla de
+folio comprobada en el pie impreso de dos hojas) y **TGA-2** (la ESC 2023). Esta tanda las leyó
+del panel, no del PDF, y lo declara.
+
+## Cambios de evidencia
+
+Esta tabla lista lo que **salió del papel**. Ninguna fila agrega, mueve o reinterpreta una fuente.
+
+| # | Qué salió | De dónde | Dónde sigue estando |
+|---|---|---|---|
+| 1 | «AHA/ACC 2020» | informe (3 estilos), EN SUMA (3), hoja del PDF | Evidencia, con la edición **2024** y su folio |
+| 2 | «HCM Risk-SCD» y «ESC» | las mismas siete superficies | Evidencia |
+| 3 | «desfibrilador razonable (Clase IIa, AHA)» | cuerpo del informe y `resumen` | Evidencia, Clase IIa · Nivel B-NR |
+| 4 | «desfibrilador a considerar (Clase IIa, ESC)» | cuerpo del informe y `resumen` | Evidencia |
+| 5 | «desfibrilador puede considerarse (Clase IIb, ESC)» | cuerpo del informe y `resumen` | Evidencia |
+| 6 | «la ESC 2023 lo sitúa en Clase IIb dentro de esta banda» | cuerpo del informe | Evidencia |
+| 7 | «la AHA/ACC 2020 sitúa el desfibrilador en Clase IIb en ese escenario» | cuerpo del informe | Evidencia |
+| 8 | «desfibrilador no indicado de rutina» y «no indicado por este criterio» | cuerpo del informe | Evidencia |
+| 9 | «en ese escenario el desfibrilador está indicado en prevención secundaria» | cuerpo del informe | Evidencia |
+| 10 | «no es factor de decisión de desfibrilador en adultos en la AHA/ACC 2020 ni en la ESC 2023» | cuerpo del informe | el globo ⓘ del campo, que lo conserva entero |
+| 11 | «no incluido en el conteo AHA/ACC 2020» | cuerpo del informe | ídem |
+
+**Lo que NO cambió**: ni un corte, ni un umbral, ni una clase, ni un nivel, ni un folio, ni una
+tabla de la Evidencia, ni el porcentaje del score, ni el recuento de factores, ni los cinco
+factores mayores, ni el umbral de 15 mm, ni los 30 mmHg de obstrucción.
+
+**Y ningún número medido desapareció**, verificado número por número en cuatro escenas y tres
+superficies: el único que sale es **«2020»**, que es el año de la guía. Los dos que entran son
+dos **«5»**, del «riesgo a 5 años» con que se nombra el score.
+
+## Notas de trabajo
+
+### La matriz de «desmarcar»: el denominador es la mitad del hallazgo
+La primera versión barrió los 105 selectores con opción vacía de las diecinueve secciones de
+congénitas sobre un formulario **vacío**, y 88 de los 105 no movieron ninguna superficie al
+ponerse. Un campo que no mueve nada al ponerse **no puede probar nada al vaciarse**. Con cada
+sección **sembrada** —todos sus demás controles cargados— los que mueven pasan de 17 a **45**, y
+de ésos **44 quedan limpios** y **uno** sobrevive.
+
+### Por qué la morfología aórtica no se tocó, con el control negativo
+El estado posterior a desmarcar el tipo de fusión es **indistinguible** del de un médico que
+eligió «Bicúspide» en Válvulas: las dos escenas publican «Válvula aórtica bicúspide, sin
+estenosis ni insuficiencia.» en el informe y «Válvula aórtica bicúspide.» en el EN SUMA, carácter
+por carácter. Retirarla sería escribir automáticamente en un campo del estudio, que es lo que la
+regla «un dato, dos puertas» prohíbe.
+
+### Las dos anatomías que no dibujan una comunicación, y por qué no es maqueta
+- **Switch auricular y la CIA**: en Mustard y en Senning el tabique auricular se resecó y la
+  sangre va por los dos túneles que esa rama dibuja. Un anillo interauricular encima de un
+  tabique que ya no está afirma una anatomía que nadie midió.
+- **Rastelli y la CIV**: esa rama ya pone un anillo en el tabique interventricular, en
+  `[0.0,-0.7,0.3]`, que es el túnel del ventrículo izquierdo a la aorta. Un segundo anillo a 0,2
+  de distancia no se puede leer como otra cosa, y decidir que una «CIV residual» es distinta del
+  túnel es reinterpretar.
+
+### La comparación con la demo aprobada
+Los **cinco** escenarios en que la demo dibuja comunicaciones —`dtga/none/sh0` a `sh4`— siguen
+**idénticos elemento por elemento**, y para que lo fueran el ductus bajó al bloque común con su
+condición de siempre: así las tres quedan en el orden `asd`, `vsd`, `pda`, que es el de la demo.
+De los 30 escenarios, **17 iguales y 13 distintos**, y los 13 son exactamente los que esta tanda
+autoriza. El control contra HEAD da **30 de 30**, que es lo que la TGA-2 declara.
+
+⚠️ **Y ese control costó una corrida.** `_probe_t2a_demo.mjs` y `_probe_tga2demo.mjs` **no
+aceptan `--file`** y cargan siempre el `index.html` vivo, así que correrlos «contra HEAD» mide el
+árbol de trabajo las dos veces y devuelve el **mismo número** —17 y 13 en los dos—, que en un
+volcado se lee como «el commit no cambió nada». `_probe_cong2a_demo.mjs` acepta `--file`.
+
+### Los 150 px de los dibujos TEER son una medición, no una preferencia
+El valor va dentro del SVG con `font-size="26"` sobre un `viewBox` de 320, así que se ve a
+26 × ancho / 320: a 110 px quedaría en **8,9 px** y a 150 px en **12,2**. El tope de 12 px es el
+que el barrido de celular de este repositorio usa para «texto chico». Medido sobre la caja real
+del texto: **41×15 px** a 1440 y 60×21 a 390, contra 79×29 y 89×32 antes.
+
+### Las tres etiquetas de los criterios TEER sí llegan al papel
+Decisión expresa del médico: no se tocan. Medido con su denominador —el módulo integrado,
+`amiloEnInforme()` devolviendo `teer` y `am-txt-teer` con 665 caracteres—: la **hoja del PDF**
+trae «NO apto» dos veces, «Heart Team» una y «anatomía compleja» una, sobre 3.274 caracteres. El
+informe en los tres estilos y el EN SUMA en los tres dan **cero**.
+
+### La mención de «guía» que queda en el papel y no es de la miocardiopatía
+Una en el informe y dos en el PDF, **idénticas antes y después**. Salen de la **aurícula
+izquierda** —«El grado de dilatación auricular no se informa: la guía lo gradúa sólo por volumen
+indexado, que requiere el volumen de AI y la superficie corporal»— y las dispara el diámetro
+anteroposterior de la escena, no la miocardiopatía: verificado que no están en `txt`, ni en
+`resumen`, ni en `papel` de `mchConclusion`. Declarada en `docs/PENDIENTES.md`.

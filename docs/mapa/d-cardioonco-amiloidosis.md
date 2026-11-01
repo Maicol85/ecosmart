@@ -510,3 +510,16 @@ se declara no vinculante. Cierra **D-c**.
 en el globo `co-monitoreo`. Cierra **D-g**.
 
 → **`docs/mapa/d2-cardioonco-tabla4.md`**
+
+---
+
+## Puntero — la tanda CONG-2A (2026-10-31 y 2026-11-01)
+
+Lo que esa tanda movió de esta zona está en **`docs/mapa/cong2a-desmarcar-tga-teer.md`**:
+
+- El **papel de la miocardiopatía hipertrófica** dejó de nombrar guías, sociedades, clases y la
+  recomendación del desfibrilador: el informe en los tres estilos, el EN SUMA en los tres y la hoja
+  del PDF pasan de nueve menciones a **cero**, sin perder un solo número medido. El único que sale
+  es «2020», el año de la guía. Cierra `AJ3-a` y `AJ3-b`.
+- El mecanismo es el de AJUSTES-3: separar **descripción** de **conducta** y armar las salidas con
+  las mismas piezas. `_escCond` y `_ahaCond` quedan armados a propósito.

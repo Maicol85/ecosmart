@@ -238,6 +238,8 @@ el PDF, y el cuerpo que el PPT proyecta seguía nombrando guías.
 - `30714c9` CONG-2A-3: el 3D dentro de su recuadro, corazon normal por defecto y las comunicaciones de sus pestanas
 - `ce1a6a6` CONG-2A-4: los cuatro dibujos de los criterios TEER, a la derecha de su campo
 - `4894cee` CONG-2A-5a: el papel de la miocardiopatia hipertrofica describe, sin guias ni conducta
+- `07b695c` CONG-2A-5b: las dos reglas fijas en CLAUDE.md y el registro de tandas
+- CONG-2A-6: cobertura, documentacion, el sello y lo que quedo PARADO
 
 **Qué cambió.** La matriz de «desmarcar» barrió los 105 selectores con opción vacía de las
 diecinueve secciones de congénitas y encontró uno solo que sobrevive, en la válvula bicúspide, con

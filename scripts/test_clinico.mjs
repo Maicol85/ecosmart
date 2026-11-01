@@ -5744,9 +5744,12 @@ caso('TC-64', 'MCH: el score HCM Risk-SCD no se publica incompleto, y dice que f
   __t.chk('mch_incluir_chk', true);
   const r = __t.informe();
   return { inf: r.inf, suma: r.suma,
-    debe: ['Score HCM Risk-SCD no calculado, faltan datos:', 'síncope inexplicado'],
+    /* ADAPTADO por la tanda CONG-2A, commit 5a (31/10/2026): el papel nombra el score por lo
+       que es y no por su sigla. El invariante no se movio -el score no se publica incompleto y
+       dice que falta-, y el caso sigue exigiendo el faltante por su nombre. */
+    debe: ['Score de riesgo de muerte súbita no calculado, faltan datos:', 'síncope inexplicado'],
     noDebe: ['riesgo de muerte súbita a 5 años'],
-    debeSuma: ['HCM Risk-SCD no calculado, faltan 5 datos.'] };
+    debeSuma: ['Score de riesgo de muerte súbita no calculado, faltan 5 datos.'] };
 `);
 
 caso('TC-65', 'MCA: el puntaje Task Force declara el reparto por categoria', `
@@ -100194,7 +100197,13 @@ caso('TC-561', 'Tanda TGA-1: la cirugia realizada es UN campo guardado nuevo y d
 
   /* ── (B) LA FILA SE MUESTRA SOLO CON d-TGA ── */
   pon('tga_tipo', ''); ex.push(['(B1) sin tipo, la fila escondida', disp('tga-cirugia-row'), 'none']);
-  pon('tga_tipo', 'dtga'); ex.push(['(B2) con d-TGA, la fila visible', disp('tga-cirugia-row'), 'grid']);
+  /* ADAPTADO por la tanda CONG-2A, commit 2 (31/10/2026): la fila dejo de ser un grid-3
+     contenedor y es un grupo de campo dentro de la grilla unica de dos columnas, asi que su
+     display computado es «flex» y no «grid». El id no cambio -lo busca tgaSync- y el INVARIANTE
+     tampoco: lo que importa es que se VEA con d-TGA y se esconda con todo lo demas, que es lo que
+     (B1), (B3) y (B4) siguen midiendo. */
+  pon('tga_tipo', 'dtga'); ex.push(['(B2) con d-TGA, la fila visible',
+    disp('tga-cirugia-row') !== 'none' ? 'visible' : 'ESCONDIDA', 'visible']);
   pon('tga_tipo', 'cctga'); ex.push(['(B3) con ccTGA, escondida', disp('tga-cirugia-row'), 'none']);
   pon('tga_tipo', 'mustard');
   ex.push(['(B4) CONTROL NEGATIVO: con Post-Mustard escondida, porque el tipo ya dice la cirugia',
@@ -100385,10 +100394,18 @@ caso('TC-562', 'Tanda TGA-2: la geometria del diagrama 3D coincide con la demo e
            firma('dtga', '', { asd: false, vsd: false, pda: true }), 'ar3 fl5 ex1 AD/AI/VD/VI/Ao/AP']);
   ex.push(['(C9) las tres juntas',
            firma('dtga', '', { asd: true, vsd: true, pda: true }), 'ar3 fl9 ex3 AD/AI/VD/VI/Ao/AP']);
-  /* CONTROL NEGATIVO: con el switch auricular la demo NO dibuja comunicaciones */
-  ex.push(['(C10) CONTROL NEGATIVO: con switch auricular las comunicaciones no se dibujan',
+  /* ⚠️ INVERTIDA por la tanda CONG-2A, commit 3d (31/10/2026). Era un control negativo sobre la
+     forma de la DEMO, que no dibuja comunicaciones fuera de la d-TGA sin cirugia. Decision del
+     medico: la CIA y la CIV se ven en el dibujo que haya. Con el switch auricular se dibuja la CIV
+     y NO la CIA -el tabique auricular esta resecado y la sangre va por los dos tuneles que esa
+     rama dibuja-, asi que la escena ya NO es identica a la de sin comunicaciones, y lo que se
+     exige es exactamente esa asimetria. La exclusion de la CIA la fija TC-574 (E3). */
+  ex.push(['(C10) con switch auricular la escena CAMBIA, porque la CIV se dibuja y la CIA no',
            firma('dtga', 'auricular', { asd: true, vsd: true, pda: true }) === firma('dtga', 'auricular')
-             ? 'identica' : 'DIFIERE', 'identica']);
+             ? 'IDENTICA' : 'cambia', 'cambia']);
+  ex.push(['(C10b) y la que cambia es la CIV: con SOLO la CIA la escena queda igual que sin ninguna',
+           firma('dtga', 'auricular', { asd: true, vsd: false, pda: false }) === firma('dtga', 'auricular')
+             ? 'igual' : 'CAMBIA', 'igual']);
 
   /* ── (D) LAS COMUNICACIONES SE LEEN DE SUS PESTANAS ── */
   try { if (typeof limpiarCampos === 'function') limpiarCampos(true); } catch (e) {}
@@ -100440,8 +100457,13 @@ caso('TC-562', 'Tanda TGA-2: la geometria del diagrama 3D coincide con la demo e
   /* ── (G) LA CARGA DIFERIDA ── */
   ex.push(['(G1) sin tipo cargado la libreria 3D no se baja',
            (typeof window.THREE === 'undefined') ? 'no bajo' : 'BAJO DE MAS', 'no bajo']);
-  ex.push(['(G2) y el aviso dice que hace falta elegir el tipo',
-           T('tga-3d-aviso').indexOf('Eleg') === 0 ? 'avisa' : T('tga-3d-aviso'), 'avisa']);
+  /* ⚠️ INVERTIDA por la tanda CONG-2A, commit 3c (31/10/2026). El aviso pedia elegir el tipo
+     porque sin el no se dibujaba nada. Decision del medico: sin tipo se dibuja el CORAZON NORMAL,
+     asi que ya no hay nada que pedir. Lo que se exige es que NO pida elegir el tipo; que el dibujo
+     salga y que su linea de estado diga que todavia no describe a este paciente lo fijan
+     TC-574 (B2) y (B7). */
+  ex.push(['(G2) el aviso YA NO pide elegir el tipo: sin tipo se dibuja el corazon normal',
+           T('tga-3d-aviso').indexOf('Eleg') === 0 ? 'LO PIDE' : 'no lo pide', 'no lo pide']);
   ex.push(['(G3) los controles del dibujo estan escondidos sin dibujo',
            DISP('tga-3d-ctrl'), 'none']);
 
@@ -100537,8 +100559,14 @@ caso('TC-563', 'Tanda TGA-3: la cirugia realizada se dice UNA sola vez en el cue
   ex.push(['(C0) DENOMINADOR: la conclusion de la MCH se emite de verdad',
            cm ? 'si' : 'NO', 'si']);
   const papel = cm ? (cm.txt + ' ' + cm.resumen) : '';
-  ex.push(['(C3) CONTROL NEGATIVO del censo: el papel SI dice la recomendacion',
-           veces('desfibrilador', papel) > 0 ? 'la dice' : 'NO LA DICE', 'la dice']);
+  /* ⚠️ INVERTIDA por la tanda CONG-2A, commit 5a (31/10/2026), y es el dia que este caso
+     anunciaba. Era el control negativo del censo: el papel SI decia la recomendacion, y por eso el
+     cero de la Evidencia no era un cero de la sonda. Hoy el papel NO la dice —ni el informe, ni el
+     EN SUMA, ni la hoja del PDF—, y el denominador del censo lo dan (C0) y el largo del texto. */
+  ex.push(['(C3) el papel YA NO dice la recomendacion de desfibrilador',
+           veces('desfibrilador', papel) > 0 ? 'LA DICE' : 'no la dice', 'no la dice']);
+  ex.push(['(C3b) DENOMINADOR del censo: y sigue habiendo papel que censar',
+           papel.length > 300 ? 'si' : 'NO:' + papel.length, 'si']);
   /* ⚠️ ADAPTADO (TANDA AJUSTES-3): este censo miraba SOLO _indMCH -la seccion de la hipertrofia
      y la obstruccion- y la recomendacion de desfibrilador vive en _indMCHSCD, la de prevencion
      de muerte subita. Con una sola seccion el censo daba cero sin que eso probara nada. */
@@ -100576,9 +100604,12 @@ caso('TC-563', 'Tanda TGA-3: la cirugia realizada se dice UNA sola vez en el cue
      coartacion. Las dos cosas se miden: que el podador generico sigue sin poder, y que la via
      nueva SI publica la descripcion sin la recomendacion. */
   const p = FN('_ccPptPodar') ? FN('_ccPptPodar')(cm ? (cm.resumen || cm.txt) : '') : { parado: 'SIN FN', t: '' };
-  ex.push(['(C6) el podador generico la SIGUE dejando parada, sin perder el recuento',
-           p.parado + '/' + (p.t === (cm.resumen || cm.txt) ? 'entera' : 'RECORTADA'),
-           'true/entera']);
+  /* ⚠️ ADAPTADA por la tanda CONG-2A, commit 5a: el podador ya no tiene nada que podar porque el
+     resumen dejo de llevar la recomendacion, asi que devuelve parado false y el texto entero. Lo
+     que el caso sigue exigiendo es que NO RECORTE nada, que es el invariante que importa: ningun
+     numero medido se pierde por su camino. */
+  ex.push(['(C6) el podador no recorta nada, porque el resumen ya no lleva la recomendacion',
+           (p.t === (cm.resumen || cm.txt) ? 'entera' : 'RECORTADA'), 'entera']);
   ex.push(['(C7) pero la MCH ya no pasa por el: tiene su propia salida de papel',
            cm && typeof cm.papel === 'string' && cm.papel.length > 20 ? 'si' : 'NO', 'si']);
   ex.push(['(C8) y esa salida NO dice la recomendacion, ni la guia, ni la clase',
@@ -101151,18 +101182,27 @@ caso('TC-567', 'Tanda TGA-2 + AJUSTES-3: la tabla de recomendaciones 23 de la ES
   /* ADAPTADAS (TANDA AJUSTES-3): el sentido de las dos no cambia -el informe y el PDF siguen
      diciendolo, y esta tanda los deja identicos a proposito- pero su NOMBRE afirmaba que eso era
      «la poda PARADA», y ya no lo es: el PPT dejo de decirlo por otra via. */
-  ex.push(['(C1) el informe y el PDF SIGUEN diciendo la recomendacion de desfibrilador',
-           veces('desfibrilador', papel) > 0 ? 'la dice' : 'NO LA DICE', 'la dice']);
-  ex.push(['(C2) y siguen rotulandola AHA/ACC 2020, que es la etiqueta que esta tanda NO toco',
-           tiene(papel, 'AHA/ACC 2020'), 'si']);
+  /* ⚠️ LAS DOS INVERTIDAS por la tanda CONG-2A, commit 5a (31/10/2026). Afirmaban que el informe
+     y el PDF SEGUIAN diciendo la recomendacion con su etiqueta «AHA/ACC 2020», que es lo que la
+     tanda AJUSTES-3 dejo a proposito y declaro en AJ3-a y AJ3-b. El principio del medico cierra
+     esos dos pendientes: el papel describe. Lo que el caso sigue exigiendo es lo de abajo —que la
+     Evidencia SI la publique con su clase, su nivel y su folio—, y lo nuevo es que el papel ya no.
+     El denominador no se movio: (C0) sigue midiendo que la conclusion se emite. */
+  ex.push(['(C1) el informe y el PDF YA NO dicen la recomendacion de desfibrilador',
+           veces('desfibrilador', papel) > 0 ? 'LA DICE' : 'no la dice', 'no la dice']);
+  ex.push(['(C2) ni la rotulan AHA/ACC 2020', tiene(papel, 'AHA/ACC 2020'), 'no']);
+  ex.push(['(C2c) DENOMINADOR: y el papel sigue trayendo el recuento, con su numero',
+           papel.indexOf('Factores mayores de riesgo de muerte súbita') > -1 ? 'si' : 'NO', 'si']);
   /* Y LO QUE SI CAMBIO: la diapositiva. Se le pregunta al dueno del papel del PPT, no al
      resumen, porque son dos salidas distintas desde el commit 4. */
   ex.push(['(C2b) pero la salida del PPT ya no la dice, ni nombra guia',
            veces('desfibrilador', cm ? (cm.papel || '') : '') + '/' +
            veces('AHA/ACC', cm ? (cm.papel || '') : ''), '0/0']);
   const p = FN('_ccPptPodar') ? FN('_ccPptPodar')(cm ? (cm.resumen || cm.txt) : '') : { parado:'SIN FN', t:'' };
-  ex.push(['(C3) el podador la deja ENTERA, sin perder el recuento',
-           p.parado + '/' + (p.t === (cm.resumen || cm.txt) ? 'entera' : 'RECORTADA'), 'true/entera']);
+  /* ⚠️ ADAPTADA por el commit 5a: el podador ya no tiene nada que podar y devuelve parado false.
+     El invariante que importa es que NO RECORTE nada. */
+  ex.push(['(C3) el podador no recorta nada, porque el resumen ya no lleva la recomendacion',
+           (p.t === (cm.resumen || cm.txt) ? 'entera' : 'RECORTADA'), 'entera']);
 
   /* ── (D) LO QUE SI CAMBIO: la mitad de la ESC ya vive en la Evidencia ── */
   limpiar();
@@ -101656,12 +101696,21 @@ caso('TC-571', 'Tanda AJUSTES-3: la linea de la miocardiopatia hipertrofica del 
   ex.push(['(A0) DENOMINADOR: la conclusion de la MCH se emite', cm ? 'si' : 'NO', 'si']);
   const resumen = cm ? String(cm.resumen || '') : '';
   const papel = cm ? String(cm.papel || '') : '';
-  ex.push(['(A1) DENOMINADOR: el resumen SI trae la recomendacion y su guia, que es lo que hay que separar',
-           (veces('desfibrilador', resumen) > 0 ? 'rec' : 'SIN REC') + '/' +
-           (veces('AHA/ACC 2020', resumen) > 0 ? 'guia' : 'SIN GUIA'), 'rec/guia']);
-  ex.push(['(A2) DENOMINADOR: y trae el «(N sin evaluar)» pegado a la recomendacion, que es el defecto',
-           /desfibrilador razonable \\(Clase IIa\\) \\([0-9]+ sin evaluar\\)/.test(resumen) ? 'pegado' : 'NO PEGADO',
-           'pegado']);
+  /* ⚠️ (A1) y (A2) INVERTIDAS por la tanda CONG-2A, commit 5a (31/10/2026). Eran el DENOMINADOR de
+     este caso: el resumen —que lee la hoja del PDF— SI traia la recomendacion y su guia, y el
+     «(N sin evaluar)» pegado era justamente el defecto que impedia podarlo. Hoy el papel describe
+     y resumen sale sin conducta, asi que lo que estas dos condiciones fijan es lo contrario, y
+     el denominador del caso lo da (A0) mas el largo del texto. Las piezas que se separaron siguen
+     existiendo: _escCond y _ahaCond quedan armados, y la mutacion 15 de la CONG-2A los vuelve
+     a pegar para que esto pueda fallar. */
+  ex.push(['(A1) el resumen YA NO trae la recomendacion ni su guia',
+           (veces('desfibrilador', resumen) > 0 ? 'REC' : 'sin rec') + '/' +
+           (veces('AHA/ACC 2020', resumen) > 0 ? 'GUIA' : 'sin guia'), 'sin rec/sin guia']);
+  ex.push(['(A1b) DENOMINADOR: y sigue trayendo el recuento con su numero',
+           resumen.indexOf('Factores mayores de riesgo de muerte súbita') > -1 ? 'si' : 'NO', 'si']);
+  ex.push(['(A2) y el «(N sin evaluar)» ya no cuelga de una recomendacion, sino del recuento',
+           /Factores mayores de riesgo de muerte súbita: [^.]*\\([0-9]+ sin evaluar\\)/.test(resumen)
+             ? 'del recuento' : 'NO', 'del recuento']);
 
   /* ── (B) LA SALIDA DEL PAPEL ───────────────────────────────────────────────────────────── */
   ex.push(['(B0) DENOMINADOR: existe una salida de papel propia', papel.length > 40 ? 'si' : 'NO: ' + papel.length, 'si']);
@@ -101681,10 +101730,17 @@ caso('TC-571', 'Tanda AJUSTES-3: la linea de la miocardiopatia hipertrofica del 
 
   /* ── (C) EL PPT LA USA, Y EL PODADOR GENERICO SIGUE SIN PODER ──────────────────────────── */
   const p = FN('_ccPptPodar') ? FN('_ccPptPodar')(resumen) : null;
-  ex.push(['(C1) CONTROL NEGATIVO: el podador generico la sigue dejando PARADA',
-           p ? String(p.parado) : 'SIN FN', 'true']);
-  ex.push(['(C2) por eso la via es la salida de papel, y no el podador',
-           papel !== resumen ? 'otra via' : 'LA MISMA', 'otra via']);
+  /* ⚠️ ADAPTADA por el commit 5a: el podador ya no tiene nada que podar, asi que no se para.
+     Lo que importa es que no RECORTE, y eso lo mide la condicion de abajo. */
+  ex.push(['(C1) el podador ya no se para, porque el resumen no lleva recomendacion que podar',
+           p ? String(p.parado) : 'SIN FN', 'false']);
+  /* ⚠️ ADAPTADA por el commit 5a: las dos salidas se arman de las MISMAS piezas y, retirada la
+     conducta del resumen, hoy COINCIDEN. Los dos nombres se conservan porque sus consumidores
+     son distintos —la hoja del PDF y la diapositiva—, y la separacion ya esta hecha para el dia
+     que uno tenga que decir algo que el otro no. Lo que se exige es que las dos esten sin
+     conducta, no que difieran. */
+  ex.push(['(C2) las dos salidas de papel quedan sin conducta',
+           (veces('desfibrilador', papel) + veces('desfibrilador', resumen)), 0]);
 
   /* ── (D) EL INFORME Y EL PDF NO SE MUEVEN ──────────────────────────────────────────────── */
   try { if (typeof generarInforme === 'function') generarInforme(); } catch (e) {}
@@ -101692,10 +101748,15 @@ caso('TC-571', 'Tanda AJUSTES-3: la linea de la miocardiopatia hipertrofica del 
   const inf = String((document.getElementById('informe_texto') || {}).value || '');
   ex.push(['(D0) DENOMINADOR: el informe se emitio y nombra la miocardiopatia',
            inf.length > 200 && /hipertr.fica/i.test(inf) ? 'si' : 'NO (' + inf.length + ')', 'si']);
-  ex.push(['(D1) CONTROL NEGATIVO: el informe SIGUE diciendo la recomendacion -esta tanda no lo toca-',
-           veces('desfibrilador', inf) > 0 ? 'la dice' : 'NO LA DICE', 'la dice']);
-  ex.push(['(D2) y el resumen, que es lo que lee la hoja del PDF, tambien',
-           veces('desfibrilador', resumen) > 0 ? 'la dice' : 'NO LA DICE', 'la dice']);
+  /* ⚠️ (D1) y (D2) INVERTIDAS por el commit 5a de la CONG-2A: eran los controles negativos de que
+     la tanda AJUSTES-3 tocaba SOLO el PPT, y dejaban declarado en AJ3-a y AJ3-b que el informe y
+     el PDF seguian nombrando la guia. Esos dos pendientes quedan cerrados. */
+  ex.push(['(D1) el informe YA NO dice la recomendacion de desfibrilador',
+           veces('desfibrilador', inf) > 0 ? 'LA DICE' : 'no la dice', 'no la dice']);
+  ex.push(['(D2) ni el resumen, que es lo que lee la hoja del PDF',
+           veces('desfibrilador', resumen) > 0 ? 'LA DICE' : 'no la dice', 'no la dice']);
+  ex.push(['(D2b) DENOMINADOR: y el informe sigue publicando el bloque de la miocardiopatia',
+           inf.indexOf('Factores mayores de riesgo de muerte súbita') > -1 ? 'si' : 'NO', 'si']);
 
   /* ── (E) LA EVIDENCIA, con su fuente, que es la condicion para haber retirado nada ─────── */
   /* ⚠️ SON DOS SECCIONES Y NO UNA: _indMCH es la de la hipertrofia y la obstruccion, y
@@ -101722,6 +101783,725 @@ caso('TC-571', 'Tanda AJUSTES-3: la linea de la miocardiopatia hipertrofica del 
   ex.push(['(E7) y la cita de la AHA esta registrada, no suelta',
            FN('_indRefDoc') && FN('_indRefDoc')('ahaMch2024') ? 'registrada' : 'SUELTA', 'registrada']);
 
+  return { extra: EXP };
+  })();
+`);
+
+/* -- TC-572 ---------------------------------------------------------------------------------
+   TANDA CONG-2A, COMMIT 1 (2026-10-31). Lo que se desmarca desaparece.
+
+   El medico eligio una fusion en la VAB, volvio a dejar «—» y la conclusion de la seccion y el
+   informe seguian diciendo VAB. LA MATRIZ de las diecinueve secciones de congenitas, medida en
+   Chrome con gestos reales: 105 selectores con opcion vacia, 45 mueven alguna superficie con su
+   seccion DESPIERTA, 44 quedan identicos al basal al vaciarse y UNO sobrevive, vab_tipo.
+
+   LO QUE LO MANTIENE ES va_morf, Y NO SE TOCA: es la decision del Y3d7 -vabMorfSeguir pone la
+   morfologia aortica en «Bicuspide» al elegir el tipo-, y el control negativo muestra por que el
+   comportamiento es correcto: con «Bicuspide» puesta A MANO y el tipo nunca tocado, el informe
+   dice exactamente lo mismo. Retirarla seria escribir automaticamente en un campo del estudio.
+
+   LO QUE SI ERA UN DEFECTO: _VAB_ORIGENES tenia cuatro entradas y le faltaba va_morf, el quinto
+   y el que decide si la valvula es bicuspide. Con el tipo cargado y la morfologia devuelta A
+   MANO a «Trivalva normal», el informe y vabConclusion dejaban de nombrar la bicuspide y el
+   RESUMEN de la seccion seguia diciendo «VAB».
+
+   ADVERTENCIA: sin acentos graves en el cuerpo -es un template literal-.
+*/
+caso('TC-572', 'Tanda CONG-2A: desmarcar el tipo de fusion de la VAB deja el resumen de la seccion siguiendo a la morfologia de Valvulas, y las otras secciones de congenitas no retienen nada al vaciar un campo', `
+  return (async () => {
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]),
+                 'dio «' + t[1] + '» · esperado «' + t[2] + '»']) };
+  const esperar = (ms) => new Promise(r => setTimeout(r, ms));
+  const FN = (n) => (typeof window[n] === 'function') ? window[n] : null;
+  const pon = (id, v) => { const e = document.getElementById(id); if (!e) return 'NO ' + id;
+    e.value = String(v); e.dispatchEvent(new Event('input', { bubbles: true }));
+    e.dispatchEvent(new Event('change', { bubbles: true })); return e.value; };
+  const T = (id) => { const e = document.getElementById(id);
+    return e ? String(e.value || e.textContent || '') : 'NO ' + id; };
+  const lim = () => { try { if (typeof limpiarCampos === 'function') limpiarCampos(true); } catch (e) {} };
+
+  /* (A) DENOMINADOR: va_morf y vab_tipo existen, y el formulario arranca limpio. */
+  lim(); await esperar(350);
+  ex.push(['(A0) DENOMINADOR: existen los dos campos del cruce',
+           (document.getElementById('va_morf') ? 'm' : '-') +
+           (document.getElementById('vab_tipo') ? 't' : '-'), 'mt']);
+  ex.push(['(A1) DENOMINADOR: limpio, la morfologia esta en su valor de fabrica', T('va_morf'), 'Trivalva normal']);
+  ex.push(['(A2) DENOMINADOR: limpio, el resumen de la seccion NO nombra la VAB',
+           T('vab-concl').indexOf('VAB') > -1 ? 'LA NOMBRA' : 'no', 'no']);
+
+  /* (B) El gesto del medico: elegir una fusion. La morfologia la sigue sola -Y3d7-. */
+  pon('vab_tipo', 'fused_rl'); await esperar(500);
+  ex.push(['(B1) DENOMINADOR: al elegir el tipo, la morfologia aortica pasa a Bicuspide', T('va_morf'), 'Bicúspide']);
+  ex.push(['(B2) DENOMINADOR: y el resumen nombra la VAB con su fenotipo',
+           T('vab-concl').indexOf('VAB, fenotipo R-L') > -1 ? 'si' : 'NO', 'si']);
+
+  /* (C) Desmarcar el tipo. LA MORFOLOGIA SE CONSERVA, y es la decision que NO se toca. */
+  pon('vab_tipo', ''); await esperar(500);
+  ex.push(['(C1) desmarcado el tipo, la morfologia aortica se CONSERVA -decision del Y3d7, no se toca-',
+           T('va_morf'), 'Bicúspide']);
+  const concC = FN('vabConclusion') ? FN('vabConclusion')() : null;
+  ex.push(['(C2) y la seccion sigue concluyendo, porque la morfologia lo sostiene',
+           concC ? 'concluye' : 'NO', 'concluye']);
+  ex.push(['(C3) el resumen ya no dice el fenotipo pero si la VAB',
+           (T('vab-concl').indexOf('fenotipo') > -1 ? 'FENO' : '-') +
+           (T('vab-concl').indexOf('VAB') > -1 ? 'vab' : '-'), '-vab']);
+
+  /* (D) EL ARREGLO: devolver la morfologia a mano apaga la seccion EN EL ACTO. */
+  pon('va_morf', 'Trivalva normal'); await esperar(500);
+  ex.push(['(D1) con la morfologia de vuelta en trivalva, el resumen de la seccion NO dice VAB',
+           T('vab-concl').indexOf('VAB') > -1 ? 'LA SIGUE DICIENDO' : 'no', 'no']);
+  const concD = FN('vabConclusion') ? FN('vabConclusion')() : null;
+  ex.push(['(D2) y vabConclusion deja de concluir, o sea pantalla y papel coinciden',
+           concD ? 'SIGUE' : 'no concluye', 'no concluye']);
+  ex.push(['(D3) el espejo vab_morf_ro sigue a la morfologia en el mismo gesto', T('vab_morf_ro'), 'Trivalva normal']);
+  ex.push(['(D4) y _indVABEsBicuspide dice que no',
+           FN('_indVABEsBicuspide') && FN('_indVABEsBicuspide')() ? 'SI' : 'no', 'no']);
+
+  /* (E) va_morf esta en la lista de origenes, que es el mecanismo y no un parche. */
+  ex.push(['(E1) va_morf es el quinto origen de la seccion',
+           (typeof _VAB_ORIGENES !== 'undefined' && _VAB_ORIGENES.indexOf('va_morf') > -1) ? 'si' : 'NO', 'si']);
+  ex.push(['(E2) y los cuatro anteriores siguen',
+           (typeof _VAB_ORIGENES !== 'undefined')
+             ? ['ao_sin','ao_tub','ea_grado','ia_grado'].filter(x => _VAB_ORIGENES.indexOf(x) > -1).length : -1, 4]);
+
+  /* (F) CONTROL NEGATIVO: la morfologia puesta A MANO, sin tocar nunca el tipo, publica LO MISMO
+     que el estado posterior al desmarcado. Es lo que prueba que (C) no es un residuo del tipo. */
+  lim(); await esperar(350);
+  pon('va_morf', 'Bicúspide'); await esperar(500);
+  const sfF = FN('vabSumaFrase') ? FN('vabSumaFrase')() : null;
+  ex.push(['(F1) CONTROL NEGATIVO: la morfologia a mano publica la bicuspide sin tipo cargado',
+           sfF ? 'publica' : 'NO', 'publica']);
+  ex.push(['(F2) y su resumen dice VAB sin fenotipo, igual que tras desmarcar',
+           (T('vab-concl').indexOf('VAB') > -1 ? 'vab' : '-') +
+           (T('vab-concl').indexOf('fenotipo') > -1 ? 'FENO' : '-'), 'vab-']);
+
+  /* (G) CONTROL NEGATIVO: una morfologia que el medico SI eligio no se pisa. */
+  lim(); await esperar(300);
+  pon('va_morf', 'TAVI'); await esperar(250); pon('vab_tipo', 'fused_rl'); await esperar(500);
+  ex.push(['(G1) CONTROL NEGATIVO: con TAVI elegida, el tipo no pisa la morfologia', T('va_morf'), 'TAVI']);
+  ex.push(['(G2) y el aviso de la seccion lo dice',
+           T('vab-morf-aviso').indexOf('TAVI') > -1 ? 'avisa' : 'NO', 'avisa']);
+
+  /* (H) LA MATRIZ, reducida a cuatro secciones ajenas de congenitas: poner y vaciar un campo con
+     opcion vacia deja el informe IDENTICO al basal.
+     ⚠️ EL BASAL DE CADA CAMPO ES SU SECCION SEMBRADA SIN ESE CAMPO, y no el formulario vacio: la
+     primera version de este bloque media sobre un formulario en blanco y los tres campos salian
+     MUDOS -sus secciones tienen compuertas-, o sea que no podian probar nada al vaciarse. Es el
+     denominador de cero que CLAUDE.md documenta, y la matriz completa de la tanda lo midio:
+     de los 105 selectores con opcion vacia, 88 son mudos sin su seccion despierta. */
+  const semilla = (e) => { if (e.tagName === 'SELECT') {
+      const o = Array.prototype.filter.call(e.options, x => String(x.value) !== '');
+      return o.length ? o[0].value : null; }
+    if (e.type === 'number') { const mn = parseFloat(e.min), mx = parseFloat(e.max);
+      return (isFinite(mn) && isFinite(mx)) ? String(Math.round((mn + mx) / 2)) : '10'; }
+    return null; };
+  const sembrar = (sec, salvo) => {
+    Array.prototype.forEach.call(sec.querySelectorAll('select[id], input[id]'), (e) => {
+      if (e.id === salvo) return;
+      if (e.type === 'checkbox') { if (!e.checked) { e.checked = true;
+        e.dispatchEvent(new Event('change', { bubbles: true })); } return; }
+      const v = semilla(e); if (v !== null) pon(e.id, v); }); };
+  const papel = () => { try { if (typeof generarInforme === 'function') generarInforme(); } catch (q) {}
+    return T('informe_texto') + '||' + T('en_suma'); };
+  const matriz = [];
+  const SECS = ['sacc-cc-dap', 'sacc-cc-dsav', 'sacc-cc-cvpa', 'sacc-cc-ebs'];
+  for (let i = 0; i < SECS.length; i++) {
+    const sec = document.getElementById(SECS[i]);
+    if (!sec) { matriz.push(SECS[i] + ':NO EXISTE'); continue; }
+    const cand = Array.prototype.filter.call(sec.querySelectorAll('select[id]'), (x) => {
+      const o = Array.prototype.slice.call(x.options);
+      return o.some(z => String(z.value) === '') && o.some(z => String(z.value) !== ''); })[0];
+    if (!cand) { matriz.push(SECS[i] + ':SIN CANDIDATO'); continue; }
+    const id = cand.id;
+    const val = Array.prototype.filter.call(cand.options, x => String(x.value) !== '')[0].value;
+    lim(); await esperar(300); sembrar(sec, id); await esperar(500);
+    const basal = papel();
+    pon(id, val); await esperar(500);
+    const puesto = papel();
+    pon(id, ''); await esperar(500);
+    const vacio = papel();
+    matriz.push(id + ':' + (puesto !== basal ? 'movio' : 'MUDO') + '/' + (vacio === basal ? 'limpio' : 'RETIENE'));
+  }
+  ex.push(['(H0) DENOMINADOR: los cuatro campos ajenos MUEVEN alguna superficie al ponerse',
+           matriz.filter(x => x.indexOf('movio') > -1).length, 4]);
+  ex.push(['(H1) y NINGUNO retiene nada al vaciarse',
+           matriz.filter(x => x.indexOf('RETIENE') > -1).join(' ') || 'ninguno', 'ninguno']);
+
+  lim(); await esperar(300);
+  return { extra: EXP };
+  })();
+`);
+
+/* -- TC-573 ---------------------------------------------------------------------------------
+   TANDA CONG-2A, COMMIT 2 (2026-10-31). La pantalla de la TGA.
+
+   Antes: cinco filas de grid-3 con la cirugia sola -dos huecos- y Sintomas sola -dos huecos-, y
+   la tarjeta del dibujo a ancho COMPLETO: 1194 px para un lienzo de 560x420 a 1440 px, o sea 634
+   vacios. La seccion medía 1144 px de alto. Hoy: lado a lado desde 900 px, lienzo de 605 px y
+   913 px de alto, con las seis filas que el medico pidio.
+
+   ATENCION, DENOMINADORES: la seccion vive en la sub-pestania «CC complejas» -tab-congenitas2-,
+   hay que abrir las DOS pestanias por su boton real o todo da 0x0, y el acordeon se abre y se
+   registra DESPUES. Las transiciones de .sacc-body dan un rect de mitad de la animacion.
+
+   ADVERTENCIA: sin acentos graves en el cuerpo -es un template literal-.
+*/
+caso('TC-573', 'Tanda CONG-2A: la pantalla de la TGA pone los campos a la izquierda en dos columnas y el dibujo a la derecha desde 900 px, con las seis filas pedidas, sin huecos al esconderse la cirugia y con el parrafo largo en el ⓘ', `
+  return (async () => {
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]),
+                 'dio «' + t[1] + '» · esperado «' + t[2] + '»']) };
+  const esperar = (ms) => new Promise(r => setTimeout(r, ms));
+  const FN = (n) => (typeof window[n] === 'function') ? window[n] : null;
+  const pon = (id, v) => { const e = document.getElementById(id); if (!e) return 'NO ' + id;
+    e.value = String(v); e.dispatchEvent(new Event('input', { bubbles: true }));
+    e.dispatchEvent(new Event('change', { bubbles: true })); return e.value; };
+  const caja = (el) => { if (!el) return null; const r = el.getBoundingClientRect();
+    return { w: Math.round(r.width), h: Math.round(r.height), x: Math.round(r.left), y: Math.round(r.top) }; };
+
+  try { if (typeof limpiarCampos === 'function') limpiarCampos(true); } catch (e) {}
+  pon('nombre', 'Prueba TGA pantalla'); pon('ci', '573');
+  /* las DOS pestanias, por sus botones reales */
+  const bq = (t) => Array.prototype.filter.call(document.querySelectorAll('button[onclick]'),
+    b => String(b.getAttribute('onclick')).indexOf(t) >= 0)[0];
+  const Q = String.fromCharCode(39);
+  try { const b1 = bq('showTab(' + Q + 'congenitas' + Q); if (b1) b1.click();
+        const b2 = bq('ccSubTab(' + Q + 'congenitas2'); if (b2) b2.click(); } catch (e) {}
+  await esperar(400);
+  const acc = document.getElementById('sacc-cc-tga');
+  if (acc && !acc.classList.contains('open')) {
+    const h = document.querySelector('#sacc-cc-tga .sacc-hdr'); if (h) h.click(); }
+  await esperar(500);
+  try { document.querySelectorAll('.sacc-body').forEach(b => { b.style.transition = 'none'; }); } catch (e) {}
+  await esperar(150);
+  /* ATENCION, HERENCIA DE ESTADO: este caso daba 0 filas dentro de su lote y 6 aislado. La causa
+     es que poner el tipo dispara la carga de la libreria 3D y el repintado de la seccion, y en una
+     corrida cargada el acordeon puede quedar cerrado para cuando se mide: entonces TODOS los
+     grupos de campo informan offsetParent null y el conteo da cero, que se lee como «la maqueta no
+     existe». Se reasegura la apertura y se le saca la animacion ANTES de cada medicion. */
+  const asegurar = async () => {
+    /* LAS DOS PESTANIAS TAMBIEN: un caso anterior del lote puede dejar agendado un
+       generarInforme(), que CAMBIA DE PESTANIA -trampa que la tanda TEP documenta-, y entonces
+       todo el arbol de la seccion queda bajo un display none y los grupos de campo informan
+       offsetParent null. Reabrir solo el acordeon no alcanzaba. */
+    try { const c1 = bq('showTab(' + Q + 'congenitas' + Q); if (c1) c1.click();
+          const c2 = bq('ccSubTab(' + Q + 'congenitas2'); if (c2) c2.click(); } catch (q) {}
+    await esperar(320);
+    const a2 = document.getElementById('sacc-cc-tga');
+    if (a2 && !a2.classList.contains('open')) {
+      const h3 = document.querySelector('#sacc-cc-tga .sacc-hdr'); if (h3) h3.click();
+      await esperar(400);
+    }
+    try { document.querySelectorAll('.sacc-body').forEach(b => { b.style.transition = 'none'; }); } catch (q) {}
+    await esperar(150);
+  };
+  ex.push(['(A0) DENOMINADOR: el acordeon de la TGA esta abierto',
+           acc && acc.classList.contains('open') ? 'si' : 'NO', 'si']);
+  const zona = document.getElementById('tga-campos');
+  const fila = document.getElementById('tga-fila');
+  ex.push(['(A1) DENOMINADOR: existen la fila y la grilla de campos',
+           (fila ? 'f' : '-') + (zona ? 'z' : '-'), 'fz']);
+  ex.push(['(A2) DENOMINADOR: la grilla tiene caja', (caja(zona) || {}).w > 0 ? 'si' : 'NO', 'si']);
+
+  /* (B) EL ORDEN DEL MARCADO ES EL ORDEN VISUAL, asi que la tabulacion lo sigue sin tabindex. */
+  const ids = zona ? Array.prototype.map.call(zona.querySelectorAll('select[id], input[id]'), e => e.id) : [];
+  ex.push(['(B1) los once campos, en el orden que el medico pidio', ids.join(','),
+           'tga_tipo,tga_cirugia,tga_func_vd,tga_dilatacion_ro,tga_it_ro,tga_bav,tga_obstr_subaortica,tga_grad_subaortico,tga_civ_residual,tga_civ_grad,tga_sintomas']);
+  ex.push(['(B2) y NINGUN campo lleva tabindex para forzar el orden',
+           zona ? zona.querySelectorAll('select[tabindex], input[type=number][tabindex]').length : -1, 0]);
+
+  /* (C) CON d-TGA: la cirugia aparece, Sintomas ocupa las dos columnas y salen SEIS filas. */
+  pon('tga_tipo', 'dtga'); await esperar(600); await asegurar();
+  const filasDe = () => { const v = Array.prototype.map.call(zona.querySelectorAll('select[id], input[id]'), e => {
+      const fg = e.closest('.fg') || e; const c = caja(fg);
+      return { id: e.id, vis: fg.offsetParent !== null, y: c ? c.y : -1, x: c ? c.x : -1 }; })
+      /* ATENCION: NO se filtra por y >= 0. getBoundingClientRect().top es relativo al VIEWPORT,
+         asi que con la pagina scrolleada —que es como queda dentro de un lote— los campos de
+         arriba dan y NEGATIVO y el filtro los descartaba TODOS: el conteo daba 0 y se leia como
+         «la maqueta no existe», con la zona midiendo 694 px de ancho. Lo que define una fila es
+         que dos campos compartan su y, y eso vale con cualquier desplazamiento. */
+      .filter(q => q.vis).sort((a, b) => a.y - b.y || a.x - b.x);
+    const F = []; v.forEach(q => { const f = F.find(z => Math.abs(z.y - q.y) < 14);
+      if (f) f.ids.push(q.id); else F.push({ y: q.y, ids: [q.id] }); });
+    return F.map(f => f.ids.join('|')); };
+  const fD = filasDe();
+  /* El diagnostico va DENTRO de la condicion: un cero sin el no dice por que no hay caja. */
+  const diag = () => { const t1 = document.getElementById('tab-congenitas'),
+      t2 = document.getElementById('tab-congenitas2'), a3 = document.getElementById('sacc-cc-tga'),
+      z = document.getElementById('tga-campos'), ov = document.getElementById('login-overlay');
+    const d = e => e ? getComputedStyle(e).display : 'NO';
+    return 't1=' + d(t1) + ' t2=' + d(t2) + ' acc=' + (a3 ? (a3.classList.contains('open') ? 'open' : 'CERRADO') : 'NO')
+      + ' zona=' + d(z) + ' zonaW=' + (z ? Math.round(z.getBoundingClientRect().width) : -1)
+      + ' ov=' + (ov ? d(ov) : 'NO') + ' op=' + (z ? (z.offsetParent ? 'si' : 'NULL') : 'NO'); };
+  ex.push(['(C1) con d-TGA salen SEIS filas', fD.length === 6 ? 6 : (fD.length + ' [' + diag() + ']'), 6]);
+  ex.push(['(C2) y son exactamente las pedidas', fD.join(' / '),
+           'tga_tipo|tga_cirugia / tga_func_vd|tga_dilatacion_ro / tga_it_ro|tga_bav / tga_obstr_subaortica|tga_grad_subaortico / tga_civ_residual|tga_civ_grad / tga_sintomas']);
+  ex.push(['(C3) la clase que da el ancho completo a Sintomas esta puesta',
+           zona.classList.contains('tga-sint-ancho') ? 'si' : 'NO', 'si']);
+
+  /* (D) SIN la cirugia: los campos CORREN y no queda una celda vacia. Son CINCO filas LLENAS. */
+  pon('tga_tipo', 'cctga'); await esperar(600); await asegurar();
+  const fC = filasDe();
+  ex.push(['(D1) sin la cirugia, la fila de la cirugia esta escondida',
+           document.getElementById('tga-cirugia-row').offsetParent === null ? 'oculta' : 'VISIBLE', 'oculta']);
+  ex.push(['(D2) salen CINCO filas, no seis', fC.length, 5]);
+  ex.push(['(D3) y las cinco estan LLENAS: los campos corrieron, sin hueco',
+           fC.filter(f => f.indexOf('|') > -1).length, 5]);
+  ex.push(['(D4) la clase del ancho completo se retira, que es lo que evita el hueco',
+           zona.classList.contains('tga-sint-ancho') ? 'SIGUE' : 'no', 'no']);
+  ex.push(['(D5) y el valor de la cirugia NO se borro al esconderse -nada automatico escribe-',
+           pon('tga_cirugia', 'jatene') === 'jatene' ? 'conserva' : 'NO', 'conserva']);
+
+  /* (E) El parrafo de encabezado es corto y sus palabras estan en el ⓘ. */
+  const p = acc ? acc.querySelector('p') : null;
+  const ptxt = p ? String(p.textContent || '').split(' ').filter(Boolean).join(' ').trim() : '';
+  ex.push(['(E1) el parrafo de pantalla baja de 150 caracteres', ptxt.length < 150 ? 'corto' : 'LARGO:' + ptxt.length, 'corto']);
+  ex.push(['(E2) y ya no enumera las cuatro anatomias',
+           ptxt.indexOf('cuatro anatomías') > -1 ? 'LAS ENUMERA' : 'no', 'no']);
+  const g = (typeof VINFO !== 'undefined' && VINFO['tga-3d']) ? VINFO['tga-3d'] : null;
+  const glee = g ? String(g.lee || '') : '';
+  ex.push(['(E3) DENOMINADOR: el globo de la seccion existe y tiene texto', glee.length > 400 ? 'si' : 'NO:' + glee.length, 'si']);
+  ex.push(['(E4) y el parrafo retirado esta TEXTUAL en el globo',
+           glee.indexOf('Esta sección cubre las cuatro anatomías del selector') > -1 ? 'si' : 'NO', 'si']);
+  ex.push(['(E5) con su segunda oracion tambien',
+           glee.indexOf('con la d-TGA aparece además el campo de cirugía realizada') > -1 ? 'si' : 'NO', 'si']);
+
+  /* (F) «Conclusion» e «Integrar al informe» quedan FUERA de la fila, debajo de todo. */
+  const cl = document.getElementById('tga-concl');
+  ex.push(['(F1) la fila de Conclusion no esta dentro de la fila de dos columnas',
+           (cl && fila && fila.contains(cl)) ? 'DENTRO' : 'fuera', 'fuera']);
+
+  try { if (typeof limpiarCampos === 'function') limpiarCampos(true); } catch (e) {}
+  return { extra: EXP };
+  })();
+`);
+
+/* -- TC-574 ---------------------------------------------------------------------------------
+   TANDA CONG-2A, COMMIT 3 (2026-10-31). El 3D de la TGA.
+
+   (i) EL DEFECTO NO ES «CON EL TIPO VACIO»: ES «AL VACIAR EL TIPO». Con el tipo vacio de entrada
+   la libreria no se bajaba y no habia dibujo. Cargando un tipo y volviendolo a «—», el canvas de
+   420 px se quedaba mientras tga3dSync le ponia al lienzo height 0px -que el min-height de 40 px
+   en linea GANA-, y sin overflow el canvas quedaba suelto: desbordaba su tarjeta por 363 px y
+   pisaba la fila «Conclusion» por 340, en los cuatro anchos.
+
+   (ii) Sin tipo se dibuja el corazon normal, y son TRES estados y no dos: la vista de referencia
+   -sin comunicaciones y sin PDF-, el corazon normal por omision -sin PDF pero CON las
+   comunicaciones cargadas- y el dibujo con tipo, que es el dato. _tga3dEsDato es el dueno unico.
+
+   (iii) Las comunicaciones salen a un bloque comun con la MISMA geometria. Dos exclusiones: con
+   el switch auricular no se dibuja la CIA -el tabique auricular se reseco- y con el Rastelli no
+   se dibuja la CIV -ya hay un anillo en ese tabique, el tunel del VI a la aorta-.
+
+   ADVERTENCIA: sin acentos graves en el cuerpo -es un template literal-.
+*/
+caso('TC-574', 'Tanda CONG-2A: el 3D de la TGA queda dentro de su tarjeta tambien al vaciar el tipo, dibuja el corazon normal por omision sin dejar incluirlo en el PDF, y lee la CIA de su pestania y la CIV de cualquiera de las dos', `
+  return (async () => {
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]),
+                 'dio «' + t[1] + '» · esperado «' + t[2] + '»']) };
+  const esperar = (ms) => new Promise(r => setTimeout(r, ms));
+  const FN = (n) => (typeof window[n] === 'function') ? window[n] : null;
+  const pon = (id, v) => { const e = document.getElementById(id); if (!e) return 'NO ' + id;
+    e.value = String(v); e.dispatchEvent(new Event('input', { bubbles: true }));
+    e.dispatchEvent(new Event('change', { bubbles: true })); return e.value; };
+  const caja = (el) => { if (!el) return null; const r = el.getBoundingClientRect();
+    return { w: Math.round(r.width), h: Math.round(r.height), x: Math.round(r.left), y: Math.round(r.top) }; };
+
+  try { if (typeof limpiarCampos === 'function') limpiarCampos(true); } catch (e) {}
+  pon('nombre', 'Prueba TGA 3D'); pon('ci', '574');
+  const bq = (t) => Array.prototype.filter.call(document.querySelectorAll('button[onclick]'),
+    b => String(b.getAttribute('onclick')).indexOf(t) >= 0)[0];
+  const Q = String.fromCharCode(39);
+  try { const b1 = bq('showTab(' + Q + 'congenitas' + Q); if (b1) b1.click();
+        const b2 = bq('ccSubTab(' + Q + 'congenitas2'); if (b2) b2.click(); } catch (e) {}
+  await esperar(400);
+  const acc = document.getElementById('sacc-cc-tga');
+  if (acc && !acc.classList.contains('open')) {
+    const h = document.querySelector('#sacc-cc-tga .sacc-hdr'); if (h) h.click(); }
+  await esperar(2400);
+  try { document.querySelectorAll('.sacc-body').forEach(b => { b.style.transition = 'none'; }); } catch (e) {}
+  ex.push(['(A0) DENOMINADOR: el acordeon esta abierto',
+           acc && acc.classList.contains('open') ? 'si' : 'NO', 'si']);
+  ex.push(['(A1) DENOMINADOR: la libreria 3D entro al abrir la seccion',
+           (typeof window.THREE !== 'undefined') ? 'si' : 'NO', 'si']);
+
+  /* (B) EL CORAZON NORMAL POR OMISION. Sin tipo, se dibuja y el texto lo dice. */
+  const foto = () => { const box = caja(document.getElementById('tga-3d-box')),
+      host = caja(document.getElementById('tga-3d-cv')),
+      cv = caja(document.querySelector('#tga-3d-cv canvas')),
+      cl = caja(document.getElementById('tga-concl'));
+    const pb = document.getElementById('tga-3d-pdf');
+    return { desbCv: (box && cv) ? Math.max(0, (cv.y + cv.h) - (box.y + box.h)) : 'sin canvas',
+             pisaCv: (cv && cl) ? Math.max(0, (cv.y + cv.h) - cl.y) : 'sin canvas',
+             pdfOff: pb ? !!pb.disabled : 'NO',
+             estado: String((document.getElementById('tga-3d-estado') || {}).textContent || '') }; };
+  const f1 = foto();
+  ex.push(['(B1) DENOMINADOR: sin tipo YA hay un canvas dibujado', f1.desbCv === 'sin canvas' ? 'NO HAY' : 'hay', 'hay']);
+  ex.push(['(B2) sin tipo, el estado dice que es el corazon normal y que todavia no describe al paciente',
+           f1.estado.indexOf('Corazón normal') > -1 && f1.estado.indexOf('no describe a este paciente') > -1 ? 'si' : 'NO', 'si']);
+  ex.push(['(B3) y nombra el campo que lo cambia', f1.estado.indexOf('Elegí el tipo') > -1 ? 'si' : 'NO', 'si']);
+  ex.push(['(B4) «Incluir en el PDF» NO aplica al corazon normal por omision', f1.pdfOff, 'true']);
+  ex.push(['(B5) el dueno unico dice que no es un dato', FN('_tga3dEsDato') && FN('_tga3dEsDato')() ? 'SI' : 'no', 'no']);
+  ex.push(['(B6) y el dibujo esta dentro de su tarjeta', String(f1.desbCv) + '/' + String(f1.pisaCv), '0/0']);
+  /* ATENCION: ESTA CONDICION NACIO DE UNA MUTACION QUE SOBREVIVIO. La 10 revierte el corazon
+     normal por omision y las condiciones de arriba seguian pasando: (B1) ve el canvas -que existe
+     porque lo crea tga3dInit, dibuje o no- y (B2) lee el TEXTO, que sale de la bandera y no de la
+     anatomia. Lo que discrimina es el CONTENIDO del dibujo: la escena del corazon normal rotula
+     VD, VI, Ao y AP, y una escena sin anatomia se queda con los dos rotulos auriculares que se
+     empujan antes de las ramas. */
+  const rotulos = () => Array.prototype.map.call(
+    document.querySelectorAll('#tga-3d-cv .tga3d-lbl'), e => String(e.textContent || '').trim()).sort();
+  const r1 = rotulos();
+  ex.push(['(B7) sin tipo, el dibujo es el del corazon normal: rotula los cuatro ventriculos y vasos',
+           ['VD', 'VI', 'Ao', 'AP'].filter(x => r1.indexOf(x) > -1).length, 4]);
+  ex.push(['(B8) y no se queda con los dos rotulos de una escena sin anatomia', r1.length >= 6 ? 'si' : 'NO:' + r1.length, 'si']);
+
+  /* (C) CON TIPO: el dibujo es el dato y el PDF aplica. */
+  pon('tga_tipo', 'dtga'); await esperar(900);
+  const f2 = foto();
+  ex.push(['(C1) con tipo cargado, el dibujo es un dato', FN('_tga3dEsDato') && FN('_tga3dEsDato')() ? 'si' : 'NO', 'si']);
+  ex.push(['(C2) y «Incluir en el PDF» se habilita', f2.pdfOff, 'false']);
+  ex.push(['(C3) dentro de su tarjeta', String(f2.desbCv) + '/' + String(f2.pisaCv), '0/0']);
+
+  /* (D) EL DEFECTO DEL MEDICO: VACIAR el tipo. Es el estado que desbordaba 363 px. */
+  pon('tga_tipo', ''); await esperar(900);
+  const f3 = foto();
+  ex.push(['(D1) AL VACIAR el tipo, el canvas NO desborda su tarjeta', String(f3.desbCv), '0']);
+  ex.push(['(D2) y NO pisa la fila Conclusion', String(f3.pisaCv), '0']);
+  ex.push(['(D3) vuelve al corazon normal, que lo dice', f3.estado.indexOf('Corazón normal') > -1 ? 'si' : 'NO', 'si']);
+  ex.push(['(D4) y el PDF deja de aplicar', f3.pdfOff, 'true']);
+
+  /* (E) LAS COMUNICACIONES: un solo dueno, y se leen de sus pestanias. */
+  const ani = (a, c) => { try { const e = FN('tga3dEscena')(a, c, FN('tga3dComs')());
+      return (e.ex || []).filter(x => x.t === 'ring').map(x => x.c.join(',')); }
+    catch (q) { return ['EXC']; } };
+  const CIA = '-0.45,0.95,-0.3', CIV = '-0.05,-0.9,0.2';
+  try { if (typeof limpiarCampos === 'function') limpiarCampos(true); } catch (e) {}
+  await esperar(350);
+  ex.push(['(E0) DENOMINADOR: con el formulario vacio no hay ninguna comunicacion',
+           ani('norm', '').length + '/' + ani('dtga', '').length + '/' + ani('ltga', '').length, '0/0/0']);
+  pon('ete_cia_tipo', 'secundum'); await esperar(450);
+  const d1 = FN('tga3dComs') ? FN('tga3dComs')() : {};
+  ex.push(['(E1) el dueno unico ve la CIA de su pestania', d1.asd ? 'si' : 'NO', 'si']);
+  ex.push(['(E2) y se dibuja en el corazon normal, en la d-TGA y en la L-TGA',
+           (ani('norm', '').indexOf(CIA) > -1 ? 'n' : '-') + (ani('dtga', '').indexOf(CIA) > -1 ? 'd' : '-') +
+           (ani('ltga', '').indexOf(CIA) > -1 ? 'l' : '-'), 'ndl']);
+  ex.push(['(E3) CONTROL NEGATIVO: con el switch auricular la CIA NO se dibuja',
+           ani('dtga', 'auricular').indexOf(CIA) > -1 ? 'LA DIBUJA' : 'no', 'no']);
+  pon('ete_cia_tipo', ''); pon('ete_civ_tipo', 'perimembranosa'); await esperar(450);
+  const d2 = FN('tga3dComs') ? FN('tga3dComs')() : {};
+  ex.push(['(E4) el dueno ve la CIV de la pestania de la CIV', (d2.vsd && !d2.asd) ? 'si' : 'NO', 'si']);
+  ex.push(['(E5) y se dibuja en las tres anatomias y en el switch auricular',
+           (ani('norm', '').indexOf(CIV) > -1 ? 'n' : '-') + (ani('dtga', '').indexOf(CIV) > -1 ? 'd' : '-') +
+           (ani('ltga', '').indexOf(CIV) > -1 ? 'l' : '-') +
+           (ani('dtga', 'auricular').indexOf(CIV) > -1 ? 'm' : '-'), 'ndlm']);
+  ex.push(['(E6) CONTROL NEGATIVO: con el Rastelli la CIV NO se dibuja',
+           ani('dtga', 'rastelli').indexOf(CIV) > -1 ? 'LA DIBUJA' : 'no', 'no']);
+  ex.push(['(E7) y el Rastelli conserva su propio tunel sobre el tabique',
+           ani('dtga', 'rastelli').indexOf('0,-0.7,0.3') > -1 ? 'si' : 'NO', 'si']);
+  /* La CIV por la OTRA puerta: «CIV residual» de la propia TGA. */
+  pon('ete_civ_tipo', ''); pon('tga_civ_residual', 'si'); await esperar(450);
+  ex.push(['(E8) la CIV tambien entra por «CIV residual» de la TGA',
+           ani('norm', '').indexOf(CIV) > -1 ? 'si' : 'NO', 'si']);
+  pon('tga_civ_residual', 'no'); await esperar(450);
+  ex.push(['(E9) CONTROL NEGATIVO: «CIV residual» en No no dibuja nada', ani('norm', '').length, 0]);
+  /* Se ACTUALIZA al cambiar el dato en otra pestania. */
+  pon('ete_cia_tipo', 'secundum'); await esperar(450);
+  const v1 = ani('norm', '').length;
+  pon('ete_civ_tipo', 'perimembranosa'); await esperar(450);
+  const v2 = ani('norm', '').length;
+  pon('ete_cia_tipo', ''); pon('ete_civ_tipo', ''); await esperar(450);
+  const v3 = ani('norm', '').length;
+  ex.push(['(E10) el dibujo sigue al dato al cambiarlo en otra pestania', v1 + '/' + v2 + '/' + v3, '1/2/0']);
+
+  /* (F) La vista de REFERENCIA sigue sin comunicaciones y sin PDF. */
+  pon('ete_cia_tipo', 'secundum'); pon('tga_tipo', 'dtga'); await esperar(800);
+  try { FN('tga3dNormToggle') && FN('tga3dNormToggle')(); } catch (e) {}
+  await esperar(700);
+  const est = String((document.getElementById('tga-3d-estado') || {}).textContent || '');
+  ex.push(['(F1) la vista de referencia lo declara',
+           est.indexOf('No es un dato de este paciente') > -1 ? 'si' : 'NO', 'si']);
+  ex.push(['(F2) y no se puede incluir en el PDF',
+           document.getElementById('tga-3d-pdf') ? String(!!document.getElementById('tga-3d-pdf').disabled) : 'NO', 'true']);
+  try { FN('tga3dNormToggle') && FN('tga3dNormToggle')(); } catch (e) {}
+  try { if (typeof limpiarCampos === 'function') limpiarCampos(true); } catch (e) {}
+  return { extra: EXP };
+  })();
+`);
+
+/* -- TC-575 ---------------------------------------------------------------------------------
+   TANDA CONG-2A, COMMIT 4 (2026-10-31). Los cuatro dibujos de los criterios TEER.
+
+   La causa era de una linea: .teer-figrow, .teer-figcol y .teer-fig estaban en el marcado desde
+   que la seccion existe y NO TENIAN UNA SOLA REGLA, asi que el SVG se dibujaba a ancho completo
+   debajo del campo. Antes: 290x226 cada uno y 937 px de alto de los catorce campos a 1440 px;
+   a 768, donde la grilla de cuatro colapsa a una columna, 706x552 y 3204 px. Hoy: 150x117 y
+   619 px, o sea todos los campos en una pantalla de 900.
+
+   Los 150 px son una medicion: el valor va dentro del SVG con font-size 26 sobre un viewBox de
+   320, asi que se ve a 26 x ancho / 320. A 110 px quedaria en 8,9 px.
+
+   ATENCION, DENOMINADOR: la seccion es el div ete-seccion-teer, que nace en display none y lo
+   abre toggleEteSeccion desde el h2 de su tarjeta.
+
+   ADVERTENCIA: sin acentos graves en el cuerpo -es un template literal-.
+*/
+caso('TC-575', 'Tanda CONG-2A: los cuatro dibujos de los criterios TEER van a la derecha de su campo, dejan los catorce campos en una pantalla de 1440, mantienen sus numeros legibles y no mueven una sola etiqueta ni un veredicto', `
+  return (async () => {
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]),
+                 'dio «' + t[1] + '» · esperado «' + t[2] + '»']) };
+  const esperar = (ms) => new Promise(r => setTimeout(r, ms));
+  const pon = (id, v) => { const e = document.getElementById(id); if (!e) return 'NO ' + id;
+    e.value = String(v); e.dispatchEvent(new Event('input', { bubbles: true }));
+    e.dispatchEvent(new Event('change', { bubbles: true })); return e.value; };
+  const caja = (el) => { if (!el) return null; const r = el.getBoundingClientRect();
+    return { w: Math.round(r.width), h: Math.round(r.height), x: Math.round(r.left), y: Math.round(r.top) }; };
+
+  try { if (typeof limpiarCampos === 'function') limpiarCampos(true); } catch (e) {}
+  pon('nombre', 'Prueba TEER'); pon('ci', '575');
+  const bq = (t) => Array.prototype.filter.call(document.querySelectorAll('button[onclick]'),
+    b => String(b.getAttribute('onclick')).indexOf(t) >= 0)[0];
+  const Q = String.fromCharCode(39);
+  try { const b = bq('showTab(' + Q + 'ete' + Q); if (b) b.click(); } catch (e) {}
+  await esperar(400);
+  const sec = document.getElementById('ete-seccion-teer');
+  const h2 = Array.prototype.filter.call(document.querySelectorAll('h2[onclick]'),
+    e => String(e.getAttribute('onclick')).indexOf('toggleEteSeccion') >= 0
+      && String(e.textContent || '').indexOf('Criterios TEER') >= 0)[0];
+  if (h2 && sec && getComputedStyle(sec).display === 'none') h2.click();
+  await esperar(550);
+  ex.push(['(A0) DENOMINADOR: la seccion de criterios TEER esta abierta',
+           sec ? (getComputedStyle(sec).display !== 'none' ? 'si' : 'NO') : 'NO EXISTE', 'si']);
+
+  /* (B) Los cuatro dibujos, a la derecha de su campo y CHICOS. */
+  const FIG = ['teer-fig-gap', 'teer-fig-anch', 'teer-fig-prof', 'teer-fig-len'];
+  const cjs = FIG.map(id => caja(document.getElementById(id)));
+  ex.push(['(B0) DENOMINADOR: los cuatro dibujos existen y tienen caja',
+           cjs.filter(c => c && c.w > 0).length, 4]);
+  /* ⚠️ SE MIDE LA REGLA Y NO UN NUMERO FIJO: el ancho de la ventana del suite no se controla desde
+     acá, y la maqueta depende de el -lado a lado desde 900 px, apilado por debajo-. La primera
+     version exigia 150 px y el suite corre por debajo de 900, asi que daba 220, que es el tope del
+     apilado. Lo que se exige es que el dibujo este ACOTADO en los dos lados del corte: sin regla,
+     a 768 px se estiraba a 706 px de ancho y 552 de alto. */
+  const lado = !!(window.matchMedia && window.matchMedia('(min-width: 900px)').matches);
+  ex.push(['(B1) los cuatro dibujos estan acotados: 150 px lado a lado, 220 como tope apilado',
+           cjs.map(c => c ? c.w : -1).join('/'), lado ? '150/150/150/150' : '220/220/220/220']);
+  ex.push(['(B2) y NINGUNO se estira a ancho completo, que es el defecto que la tanda cierra',
+           cjs.filter(c => c && c.w > 260).length, 0]);
+  /* ATENCION: ESTA CONDICION NACIO DE UNA MUTACION QUE SOBREVIVIO. La 13 devuelve la fila a
+     display block y las condiciones de arriba seguian pasando, porque el suite corre por debajo
+     de 900 px y ahi lo que acota el dibujo es el max-width del apilado, no la maqueta. Lo que es
+     observable en CUALQUIER ancho es el display computado de la fila: la regla base es la que
+     pone el lado a lado y la consulta de medios solo la relaja con flex-wrap. */
+  const fr = document.querySelector('.teer-figrow');
+  ex.push(['(B2b) la fila del dibujo es una caja flexible, que es lo que lo pone al lado del campo',
+           fr ? getComputedStyle(fr).display : 'NO EXISTE', 'flex']);
+  ex.push(['(B3) lado a lado, cada dibujo esta A LA DERECHA del campo que ilustra',
+           lado ? FIG.filter((id, i) => { const f = document.getElementById(id);
+             const col = f && f.parentElement ? f.parentElement.querySelector('.teer-figcol') : null;
+             const cc = caja(col); return cc && cjs[i] && cjs[i].x >= cc.x + cc.w - 4; }).length : 4, 4]);
+
+  /* (C) TODOS los campos de los criterios entran en una pantalla de 900 px de alto. */
+  const campos = sec ? Array.prototype.map.call(sec.querySelectorAll('input[id^="teer_"], select[id^="teer_"]'),
+    e => caja(e.closest('.fg') || e)).filter(c => c && c.h > 0) : [];
+  ex.push(['(C0) DENOMINADOR: la seccion tiene los catorce campos con caja', campos.length, 14]);
+  const y0 = Math.min.apply(null, campos.map(c => c.y));
+  const y1 = Math.max.apply(null, campos.map(c => c.y + c.h));
+  /* Lado a lado el alto tiene que bajar de 900 px -antes eran 937-; apilado, el tope medido es
+     1706 px, contra 3204 antes de la regla. */
+  ex.push(['(C1) el alto que ocupan los catorce campos baja del tope de su maqueta',
+           (y1 - y0) <= (lado ? 900 : 1800) ? 'entra' : 'NO:' + (y1 - y0), 'entra']);
+  ex.push(['(C2) y la seccion no tiene scroll interno',
+           sec ? Math.max(0, sec.scrollHeight - sec.clientHeight) : -1, 0]);
+
+  /* (D) Los numeros siguen a los campos y quedan legibles. */
+  pon('teer_tipo_im', 'primaria');
+  pon('teer_flail_gap', '34'); pon('teer_ancho_flail', '23');
+  pon('teer_prof_flail', '35'); pon('teer_gap', '34');
+  try { if (typeof calcTEER === 'function') calcTEER(); } catch (e) {}
+  await esperar(450);
+  const VAL = ['teer-fig-gap-val', 'teer-fig-anch-val', 'teer-fig-prof-val', 'teer-fig-len-val'];
+  ex.push(['(D1) los cuatro numeros siguen a sus campos',
+           VAL.map(id => String((document.getElementById(id) || {}).textContent || '').trim()).join('/'),
+           '34 mm/23 mm/35 mm/34 mm']);
+  /* ⚠️ LA CAJA DE UN <text> DE SVG SE MIDE CON getBBox Y NO CON getBoundingClientRect cuando el
+     texto esta fuera de la pantalla: el rect de pantalla de un nodo no desplazado da 0. La
+     primera version daba 2 de 4 por eso. Se usa el alto del glifo escalado, que es lo que decide
+     la legibilidad: font-size del SVG por el ancho renderizado sobre el ancho del viewBox. */
+  const legible = VAL.map((id, i) => { const e = document.getElementById(id);
+    if (!e) return -1;
+    let fs = 0; try { fs = parseFloat(e.getAttribute('font-size')) || 0; } catch (q) {}
+    const c = cjs[i];
+    return (fs && c && c.w) ? Math.round(fs * c.w / 320 * 10) / 10 : -1; });
+  ex.push(['(D2) y quedan legibles: el glifo escalado de cada numero pasa de 12 px',
+           legible.filter(h => h >= 12).length + '/' + legible.length, '4/4']);
+
+  /* (E) CONTROL NEGATIVO: ni una etiqueta, ni un corte, ni un veredicto se movio. */
+  const txt = sec ? String(sec.textContent || '') : '';
+  const veces = (t) => txt.split(t).length - 1;
+  /* ⚠️ EL CONTEO EXACTO DEPENDE DEL ESCENARIO —con el tipo de IM cargado la seccion muestra otras
+     filas—, asi que lo que se exige es que las TRES sigan PRESENTES, que es la decision expresa
+     del medico. La primera version fijaba 1/3/2, que es el conteo con la seccion VACIA. */
+  ex.push(['(E1) CONTROL NEGATIVO: las tres etiquetas que el medico conserva siguen presentes',
+           (veces('NO apto') > 0 ? 'a' : '-') + (veces('Heart Team') > 0 ? 'h' : '-') +
+           (veces('anatomía compleja') > 0 ? 'c' : '-'), 'ahc']);
+  ex.push(['(E2) CONTROL NEGATIVO: los cuatro cortes de exclusion de los dibujos siguen',
+           (veces('Excl: ≥10mm') > 0 ? 'a' : '-') + (veces('Excl: ≥15mm') > 0 ? 'b' : '-'), 'ab']);
+  ex.push(['(E3) y los rotulos de los cuatro campos ilustrados no cambiaron',
+           (veces('Flail gap (mm)') > 0 ? 'g' : '-') + (veces('Ancho flail (mm)') > 0 ? 'a' : '-') +
+           (veces('Profundidad coaptación (mm)') > 0 ? 'p' : '-') +
+           (veces('Longitud coaptación (mm)') > 0 ? 'l' : '-'), 'gapl']);
+
+  try { if (typeof limpiarCampos === 'function') limpiarCampos(true); } catch (e) {}
+  return { extra: EXP };
+  })();
+`);
+
+/* -- TC-576 ---------------------------------------------------------------------------------
+   TANDA CONG-2A, COMMIT 5a (2026-10-31). El papel de la miocardiopatia hipertrofica.
+
+   Cierra AJ3-a y AJ3-b. PRINCIPIO DEL MEDICO, regla fija: el papel describe y no nombra guias ni
+   sociedades, ni clases, niveles, tablas, figuras o folios, ni recomienda conducta.
+
+   ANTES, medido con el modulo integrado y la escena de riesgo alto: el informe traia AHA/ACC
+   2020 una vez, AHA tres, ESC una, HCM Risk-SCD una, Clase IIa una, desfibrilador una y
+   razonable una; el EN SUMA AHA/ACC y HCM Risk-SCD; y la hoja del PDF AHA/ACC 2020 tres veces,
+   AHA nueve, Clase IIa tres y desfibrilador tres.
+
+   NINGUN NUMERO MEDIDO DESAPARECE: el unico que sale es «2020», que es el año de la guia.
+
+   ATENCION, DOS DENOMINADORES: amiloIntegrar es un TOGGLE y sobre un modulo ya integrado RETIRA,
+   asi que se usa la casilla mch_incluir_chk; y el score pide edad y ai_diam, no mch_edad ni
+   mch_ai, que no existen.
+
+   ADVERTENCIA: sin acentos graves en el cuerpo -es un template literal-.
+*/
+caso('TC-576', 'Tanda CONG-2A: el informe, el EN SUMA y la hoja del PDF de la miocardiopatia hipertrofica describen y no nombran guia, sociedad, clase ni desfibrilador, sin perder un solo numero medido, y la recomendacion sigue en la Evidencia con sus folios', `
+  return (async () => {
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]),
+                 'dio «' + t[1] + '» · esperado «' + t[2] + '»']) };
+  const esperar = (ms) => new Promise(r => setTimeout(r, ms));
+  const FN = (n) => (typeof window[n] === 'function') ? window[n] : null;
+  const pon = (id, v) => { const e = document.getElementById(id); if (!e) return 'NO ' + id;
+    e.value = String(v); e.dispatchEvent(new Event('input', { bubbles: true }));
+    e.dispatchEvent(new Event('change', { bubbles: true })); return e.value; };
+  const veces = (t, h) => String(h || '').split(t).length - 1;
+  const T = (id) => { const e = document.getElementById(id);
+    return e ? String(e.value || e.textContent || '') : ''; };
+  const NUMS = (x) => (String(x).match(/[0-9]+(?:[.,][0-9]+)?/g) || []).sort();
+
+  /* La escena de RIESGO ALTO: dos factores mayores y el score en banda alta. Los campos son los
+     del MODULO mas la edad y el diametro de AI, que son los que el score pide. */
+  try { if (typeof limpiarCampos === 'function') limpiarCampos(true); } catch (e) {}
+  pon('nombre', 'Prueba MCH papel 2'); pon('ci', '576'); pon('fecha_estudio', '2026-10-31');
+  pon('peso', '70'); pon('talla', '170'); pon('sexo', 'M'); pon('edad', '28');
+  pon('mch_presente', 'si'); pon('mch_espesor', '32'); pon('mch_grad_reposo', '20');
+  pon('mch_grad_valsalva', '70'); pon('mch_fam_ms', 'si'); pon('mch_fam_ms_edad', '35');
+  pon('mch_fam_ms_mch', 'si'); pon('mch_sincope', 'si'); pon('mch_tvns', 'si');
+  pon('mch_aneurisma_apical', 'si'); pon('mch_fibrosis_rmn', 'si');
+  pon('siv', '32'); pon('ppvi', '12'); pon('ai_diam', '52'); pon('fevi', '60');
+  /* ATENCION: LA TVNS DEL SCORE NO SALE DE mch_tvns, que es un espejo, sino del BLOQUE COMPARTIDO
+     de arritmia ventricular -tvEstado lee tv_documentada, tv_tipo y tv_morfologia-. La primera
+     version del caso ponia solo mch_tvns y el score salia «incompleto» con un unico faltante:
+     «taquicardia ventricular no sostenida en Holter». Lo dice el propio comentario de
+     mchScoreESC. */
+  pon('tv_documentada', 'si'); pon('tv_tipo', 'no_sostenida');
+  const ck = document.getElementById('mch_incluir_chk');
+  if (ck && !ck.checked) { ck.checked = true; ck.dispatchEvent(new Event('change', { bubbles: true })); }
+  /* ⚠️ EL BARRIDO DE LOS calc* HACE FALTA, y es lo que la primera version no corria: sin el,
+     el score sale «incompleto» -faltan los derivados del espesor y del gradiente- y las
+     condiciones del porcentaje miden sobre un denominador vacio. */
+  Object.keys(window).forEach(x => { if (/^calc[A-Z]/.test(x) && typeof window[x] === 'function') {
+    try { window[x](); } catch (q) {} } });
+  try { if (typeof _recalcModulos === 'function') _recalcModulos(); } catch (e) {}
+  await esperar(650);
+
+  const cm = FN('mchConclusion') ? FN('mchConclusion')() : null;
+  ex.push(['(A0) DENOMINADOR: la conclusion de la MCH se emite', cm ? 'si' : 'NO', 'si']);
+  const _sc = FN('mchScoreESC') ? FN('mchScoreESC')() : null;
+  ex.push(['(A1) DENOMINADOR: el score esta CALCULADO, no incompleto',
+           cm ? String(cm.clave) : 'NO', 'alto' +
+           (_sc && _sc.faltan ? ' [faltan: ' + _sc.faltan.join(' ; ') + ']' : '')]);
+  /* ⚠️ LA MIOCARDIOPATIA LLEGA AL PAPEL POR SU CASILLA mch_incluir_chk —el mecanismo de las
+     secciones de congenitas—, NO por el registro amiloSecs: preguntarle a amiloEnInforme daba
+     «NO» sobre un informe que si publicaba el bloque. Lo que se mide es el papel. */
+  ex.push(['(A2) DENOMINADOR: la casilla de integrar esta marcada',
+           (document.getElementById('mch_incluir_chk') || {}).checked ? 'si' : 'NO', 'si']);
+
+  try { if (typeof generarInforme === 'function') generarInforme(); } catch (e) {}
+  await esperar(250);
+  const inf = T('informe_texto'), suma = T('en_suma');
+  ex.push(['(A3) DENOMINADOR: el informe publica el bloque de la miocardiopatia',
+           inf.indexOf('Factores mayores') > -1 ? 'si' : 'NO', 'si']);
+
+  /* (B) EL CUERPO DEL INFORME: ninguna guia, ninguna sociedad, ninguna clase, ninguna conducta. */
+  const PAL = ['AHA/ACC', 'AHA', 'ESC', 'HCM Risk-SCD', 'Clase I', 'Clase IIa', 'Clase IIb',
+               'desfibrilador', 'razonable'];
+  ex.push(['(B1) el informe no nombra ninguna de las nueve', PAL.map(w => veces(w, inf)).join(''), '000000000']);
+  ex.push(['(B2) el EN SUMA tampoco', PAL.map(w => veces(w, suma)).join(''), '000000000']);
+  ex.push(['(B3) y las dos salidas de la conclusion tampoco',
+           PAL.map(w => veces(w, String(cm.resumen || '')) + veces(w, String(cm.papel || ''))).join(''), '000000000']);
+  ex.push(['(B4) el cuerpo tampoco nombra el año de la guia', veces('2020', inf), 0]);
+
+  /* (C) LOS NUMEROS MEDIDOS SIGUEN. Es lo que separa esto de reescribir el texto. */
+  ex.push(['(C1) el porcentaje del score sigue en el informe',
+           /riesgo de muerte súbita a 5 años [0-9]+[.,][0-9]+ %/i.test(inf) ? 'si' : 'NO', 'si']);
+  ex.push(['(C2) el recuento de factores sigue, con su denominador',
+           /Factores mayores de riesgo de muerte súbita: [0-9]+ de 5/.test(inf) ? 'si' : 'NO', 'si']);
+  ex.push(['(C3) el espesor medido sigue', inf.indexOf('32 mm') > -1 ? 'si' : 'NO', 'si']);
+  ex.push(['(C4) el gradiente medido sigue', inf.indexOf('70 mmHg') > -1 ? 'si' : 'NO', 'si']);
+  /* ATENCION: con mch_fam_ms_mch en «si» esta rama NO publica la edad -dice que el criterio se
+     cumple con independencia de ella-, asi que exigir «35 años» era pedirle al escenario algo que
+     no dice. Lo que se mide es que la oracion del familiar siga entera y que nombre el score por
+     lo que es y no por su sigla, que es lo que esta tanda cambio ahi. */
+  ex.push(['(C5) la oracion del familiar sigue y nombra el score por lo que es',
+           (inf.indexOf('Para el score a 5 años el criterio SÍ se cumple') > -1 ? 'a' : '-') +
+           (inf.indexOf('miocardiopatía hipertrófica establecida') > -1 ? 'b' : '-'), 'ab']);
+  ex.push(['(C5b) y el diametro de la auricula medido sigue', inf.indexOf('52 mm') > -1 ? 'si' : 'NO', 'si']);
+  ex.push(['(C6) y el EN SUMA conserva el recuento con su denominador',
+           /Factores mayores [0-9]+\\/5/.test(suma) ? 'si' : 'NO', 'si']);
+
+  /* (D) LA HOJA DEL PDF lee el resumen, que es el que dejo de llevar la conducta. */
+  ex.push(['(D1) el resumen no trae la conducta ni la clase',
+           veces('desfibrilador', String(cm.resumen || '')) + veces('Clase', String(cm.resumen || '')), 0]);
+  ex.push(['(D2) y conserva el porcentaje y el recuento',
+           (/[0-9]+[.,][0-9]+ %/.test(String(cm.resumen || '')) ? 'p' : '-') +
+           (String(cm.resumen || '').indexOf('Factores mayores de riesgo de muerte súbita') > -1 ? 'r' : '-'), 'pr']);
+
+  /* (E) LA EVIDENCIA conserva la recomendacion con su fuente. Es la condicion para retirarla. */
+  try { if (typeof indicRender === 'function') indicRender(); } catch (e) {}
+  await esperar(300);
+  const secScd = (typeof IND_SECS !== 'undefined')
+    ? IND_SECS.filter(x => x.tit.indexOf('Miocardiopatía hipertrófica — prevención') === 0)[0] : null;
+  let evTxt = '';
+  if (secScd) { try { const R = secScd.fn();
+    if (R) { (R.bloques || []).forEach(b => b.lineas.forEach(l => { evTxt += ' ' + l.txt; }));
+             evTxt += ' ' + ((R.guia && R.guia.txt) || ''); } } catch (e) { evTxt = 'EXC'; } }
+  ex.push(['(E0) DENOMINADOR: la seccion de muerte subita del panel publica lineas',
+           evTxt.length > 500 ? 'si' : 'NO:' + evTxt.length, 'si']);
+  ex.push(['(E1) la Evidencia SI recomienda el desfibrilador', veces('desfibrilador', evTxt) > 0 ? 'si' : 'NO', 'si']);
+  ex.push(['(E2) con su clase', veces('Clase', evTxt) > 0 ? 'si' : 'NO', 'si']);
+  ex.push(['(E3) el folio de la AHA/ACC 2024', evTxt.indexOf('e1267') > -1 ? 'si' : 'NO', 'si']);
+  ex.push(['(E4) y los dos folios de la ESC 2023',
+           (evTxt.indexOf('3561') > -1 ? 'a' : '-') + (evTxt.indexOf('3562') > -1 ? 'b' : '-'), 'ab']);
+
+  /* (F) CONTROL NEGATIVO: un estudio SIN miocardiopatia no publica nada de esto. */
+  try { if (typeof limpiarCampos === 'function') limpiarCampos(true); } catch (e) {}
+  pon('nombre', 'Control ajeno'); pon('ci', '576b'); pon('ddfvi', '52'); pon('fevi', '58');
+  try { if (typeof _recalcModulos === 'function') _recalcModulos(); } catch (e) {}
+  await esperar(500);
+  try { if (typeof generarInforme === 'function') generarInforme(); } catch (e) {}
+  const infA = T('informe_texto');
+  ex.push(['(F1) CONTROL NEGATIVO: sin miocardiopatia el informe no nombra factores mayores',
+           infA.indexOf('Factores mayores') > -1 ? 'LOS NOMBRA' : 'no', 'no']);
+  ex.push(['(F2) y la conclusion de la MCH no se emite',
+           FN('mchConclusion') && FN('mchConclusion')() ? 'SE EMITE' : 'no', 'no']);
+
+  try { if (typeof limpiarCampos === 'function') limpiarCampos(true); } catch (e) {}
   return { extra: EXP };
   })();
 `);

@@ -11195,3 +11195,123 @@ generados se dejan en un directorio con su ruta nombrada.
 Si al abrirlos PowerPoint pidiera reparar, la vuelta atrás es de una línea: `_pptxBucleVideos`
 falla cerrada, así que basta con que devuelva `{diapos:0, videos:0, falla:'…'}` de entrada para
 que el mazo vuelva a salir exactamente como salía antes de esta tanda.
+
+---
+
+# TANDA CONG-2A (2026-10-31 y 2026-11-01)
+
+## C2A-a · La morfología aórtica sobrevive al desmarcado del tipo de fusión, y NO se tocó
+
+**Qué se encontró.** Es el caso que el médico reportó, y la causa está aislada: `vabMorfSeguir`
+pone `va_morf = 'Bicúspide'` al elegir un tipo de fusión —decisión del Y3d7, 19/10/2026— y al
+volver el tipo a «—» esa morfología **se conserva**. Desde ahí, `_indVABEsBicuspide`,
+`vabSumaFrase` y `vabConclusion` siguen publicando la válvula bicúspide, en el informe (tres
+estilos), el EN SUMA y la hoja del PDF.
+
+**Por qué no se corrigió.** La orden lo anticipa: «si lo que la mantiene es la morfología aórtica
+de Válvulas, es posible que el comportamiento sea CORRECTO». Está medido que lo es. **Control
+negativo:** con «Bicúspide» puesta **a mano** y el tipo nunca tocado, el informe dice exactamente
+lo mismo —«Válvula aórtica bicúspide, sin estenosis ni insuficiencia.»— y el EN SUMA también. O
+sea que el estado posterior al desmarcado es **indistinguible de una afirmación del médico**, y
+retirar la morfología sería **escribir automáticamente en un campo del estudio**, que es lo que la
+regla «un dato, dos puertas» prohíbe desde el D-11.
+
+**Qué haría falta.** Distinguir «lo escribió la app» de «lo escribió el médico», que es el patrón
+`data-pop-auto` / `data-pop-mano` de POP-V2: `vabMorfSeguir` dejaría una marca de runtime y el
+desmarcado del tipo retiraría la morfología **sólo** si la marca está. Es un mecanismo nuevo y una
+decisión de Maicol. Con el commit 1 puesto, mientras tanto, devolver la morfología a «Trivalva
+normal» a mano apaga la sección **en el acto**, en todas sus superficies.
+
+## C2A-b · El blindaje del recuadro del 3D no tiene cobertura propia
+
+**Qué se encontró.** El commit 3b esconde el lienzo mientras no hay dibujo, en vez de dejarlo con
+alto 0 y el canvas suelto. Pero el commit 3c —el corazón normal por omisión— **lo tapa**: con la
+librería cargada, la rama «todavía no hay dibujo» no se ejecuta nunca, porque siempre hay una
+anatomía que dibujar.
+
+**Medido:** la mutación 07, rompiendo **sólo** el 3b, **sobrevivió** al primer barrido. Rompiendo
+las dos mitades a la vez el caso se pone rojo, y así quedó.
+
+**Qué queda.** El 3b es la **segunda red**, para el caso en que la librería no cargue —sin
+internet o con el hash SRI que no coincide—, y ese escenario no tiene cobertura automática porque
+exige simular una librería que no carga. Es la misma clase de hueco que el archivo documenta para
+los frenos que tapan al que se muta.
+
+## C2A-c · Las tres etiquetas de los criterios TEER llegan a la hoja del PDF
+
+**Qué se encontró.** Decisión expresa del médico: «NO apto», «Heart Team» y «anatomía compleja»
+**no se tocan**; la orden pide verificar si llegan al papel y reportarlo sin cambiarlo. **Sí
+llegan.** Medido con su denominador —el módulo integrado, `amiloEnInforme()` devolviendo `teer` y
+`am-txt-teer` con 665 caracteres—: la hoja del PDF trae «NO apto» **dos veces**, «Heart Team»
+**una** y «anatomía compleja» **una**, sobre 3.274 caracteres. El informe en los tres estilos y el
+EN SUMA en los tres dan **cero**.
+
+**Qué queda.** Nada que hacer: están por decisión. Queda anotado porque el principio del médico
+—el papel describe— tiene acá su excepción expresa, y la próxima lectura del barrido del papel las
+va a encontrar.
+
+**Del PPT no se afirma nada.** El espía de PptxGenJS de la sonda de esta tanda devolvió cero
+caracteres, o sea denominador vacío. El A/B general, cuyo espía sí funciona, no tiene una escena
+con el módulo TEER integrado.
+
+## C2A-d · El ductus no se extendió a las otras anatomías del 3D
+
+**Qué se encontró.** El commit 3d llevó la CIA y la CIV a todas las anatomías, con la misma
+geometría. El **ductus** se quedó donde la demo lo dibuja —la d-TGA sin cirugía—.
+
+**Por qué.** La orden pide la CIA y la CIV. El tubo del ductus va **entre los dos grandes vasos**,
+y en cada anatomía esos vasos son otros: llevarlo a las demás sería decidir a qué vasos conecta,
+que es reinterpretar la geometría de la demo.
+
+**Qué haría falta.** Una orden que diga, por anatomía, de qué vaso a qué vaso va el ductus.
+
+## C2A-e · La mención de «guía» que queda en el informe y en el PDF, y no es de la miocardiopatía
+
+**Qué se encontró.** Tras el commit 5a queda **una** mención de «guía» en el informe y **dos** en
+la hoja del PDF, **idénticas antes y después**. Salen de la **aurícula izquierda**: «El grado de
+dilatación auricular no se informa: la guía lo gradúa sólo por volumen indexado, que requiere el
+volumen de AI y la superficie corporal». Verificado que no están en `txt`, ni en `resumen`, ni en
+`papel` de `mchConclusion`.
+
+**Por qué no se tocó.** Es otra sección y otro texto clínico, fuera del alcance de esta tanda.
+
+**Qué haría falta.** Una orden para la aurícula izquierda. La frase es descriptiva —dice por qué
+no se informa un grado—, así que alcanza con nombrar el criterio sin la palabra «guía».
+
+## C2A-f · Las dos anatomías que no dibujan una comunicación
+
+Declaradas con su motivo medido en `docs/fuentes/FUENTES.md` → «La tanda CONG-2A»: con el **switch
+auricular** no se dibuja la CIA y con el **Rastelli** no se dibuja la CIV. Las dos exclusiones
+están fijadas por TC-574 (E3) y (E6), y las mutaciones 08 y 09 las aplican de más para que esos
+dos controles negativos puedan fallar.
+
+**Qué haría falta** para levantarlas: una decisión clínica sobre qué significa una comunicación
+interauricular sobre un tabique reconstruido y una «CIV residual» distinta del túnel del Rastelli.
+
+## C2A-g · Por debajo de 1000 px el dibujo de la TGA es más chico que antes
+
+**Qué se encontró.** La maqueta lado a lado le da al dibujo el 54 % del ancho útil. A 1440 px el
+lienzo pasa de 560 a **605 px**, que es lo que el médico pidió; a 1000 px queda en **380**, más
+chico que los 560 de la versión apilada.
+
+**Por qué.** Es el precio del corte en 900 px que la regla fija establece. Por debajo de 900 el
+dibujo vuelve a apilarse y recupera el ancho.
+
+**Qué haría falta.** Subir el corte de esta sección a 1200 px, o darle al dibujo un ancho mínimo
+que fuerce el apilado antes. Las dos son decisiones de maqueta.
+
+## C2A-h · Dos trampas de método que esta tanda pagó, para la próxima
+
+**1 · Un `nohup … &` lanzado desde la herramienta de shell no sobrevive al proceso padre.** La
+suite completa se cortó en el lote 3 con el log en una sola línea, y el barrido de mutaciones y el
+A/B se relanzaron por lo mismo. Lo que funciona es lanzar el script **directo** en segundo plano,
+sin `&`.
+
+**2 · `getBoundingClientRect().top` es relativo al VIEWPORT, no al documento.** TC-573 daba
+**cero filas** dentro de su lote y seis aislado, con la grilla midiendo 694 px de ancho y su
+`offsetParent` no nulo: el filtro `y >= 0` descartaba **todos** los campos porque la página quedaba
+scrolleada por un caso anterior, y el cero se leía como «la maqueta no existe». Lo que define una
+fila es que dos campos compartan su `y`, y eso vale con cualquier desplazamiento. El diagnóstico
+salió de hacer que la condición **imprima** el display de la pestaña, del acordeón y de la zona
+junto con el conteo: tres hipótesis anteriores —el acordeón cerrado, la pestaña cambiada, la
+librería a medio cargar— fueron descartadas por esa línea y no por leer el código.

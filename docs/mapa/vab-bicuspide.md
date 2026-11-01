@@ -336,3 +336,17 @@ La sección 3 de este mapa —«de selector de tres opciones a CASILLA»— desc
 anterior y **se conserva como historia**: lo que hoy está vigente es el de la tanda AORTA-2.
 
 → **`docs/mapa/ao2-segmentos-bicuspide.md`** § 4
+
+---
+
+## Puntero — la tanda CONG-2A (2026-10-31 y 2026-11-01)
+
+Lo que esa tanda movió de esta zona está en **`docs/mapa/cong2a-desmarcar-tga-teer.md`**:
+
+- **`va_morf` es el QUINTO origen de la sección** (`_VAB_ORIGENES`), y faltaba: con el tipo cargado
+  y la morfología devuelta a mano a «Trivalva normal», el resumen de la sección seguía diciendo
+  «VAB» mientras el informe y `vabConclusion` ya no la nombraban. El oyente propio de `va_morf`,
+  que llamaba sólo a `vabMorfAviso()`, se retiró.
+- **Lo que mantiene viva la válvula al desmarcar el tipo es la morfología, y NO se tocó**: el
+  control negativo muestra que el estado resultante es indistinguible de una afirmación del médico.
+  Ver `docs/PENDIENTES.md` → `C2A-a`.

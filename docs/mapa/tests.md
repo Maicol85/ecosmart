@@ -262,3 +262,17 @@ número, qué fija y en qué ficha vive su detalle— vive en
 Se partió porque este mapa estaba en **34,6 KB**, a menos de 500 bytes del techo, y `TGA2-g` lo
 declaraba. Esa cola crece con cada tanda, que es exactamente por lo que tenía que salir a un
 archivo propio. Cero líneas perdidas: el bloque se movió entero.
+
+---
+
+## Puntero — la tanda CONG-2A (2026-10-31 y 2026-11-01)
+
+Lo que esa tanda movió de esta zona está en **`docs/mapa/cong2a-desmarcar-tga-teer.md`**:
+
+- Cinco casos nuevos, **TC-572 a TC-576**, con sus fichas en `docs/mapa/tests-fichas-572.md`
+  (archivo propio: `tests-fichas.md` está a 800 bytes del techo).
+- Dieciocho mutaciones dirigidas en `scripts/_mut_cong2a.py`, **18/18 muertas**. Tres sobrevivieron
+  al primer barrido y las tres eran cobertura que faltaba o un freno que tapa al que se muta.
+- ⚠️ **`_probe_t2a_demo.mjs` y `_probe_tga2demo.mjs` NO aceptan `--file`** y cargan siempre el
+  `index.html` vivo: correrlos «contra HEAD» mide el árbol de trabajo las dos veces y devuelve el
+  mismo número. `_probe_cong2a_demo.mjs` acepta `--file`.

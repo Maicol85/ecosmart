@@ -547,3 +547,17 @@ ESTÁTICO con las tres fuentes y el chip «CRITERIO DE ECOSMART» para el 20-50 
 de COAPT.
 
 → `docs/mapa/tanda-r-referencias.md` § 2.
+
+---
+
+## Puntero — la tanda CONG-2A (2026-10-31 y 2026-11-01)
+
+Lo que esa tanda movió de esta zona está en **`docs/mapa/cong2a-desmarcar-tga-teer.md`**:
+
+- Los **cuatro dibujos de los criterios TEER** pasaron a la derecha de su campo: `.teer-figrow`,
+  `.teer-figcol` y `.teer-fig` estaban en el marcado desde que la sección existe y **no tenían una
+  sola regla** en la hoja de estilos. Cada dibujo pasa de 290×226 a **150×117** a 1440 px y el alto
+  de los catorce campos de 937 a **619 px**; a 768 px, de 706×552 y 3.204 px a 220×172 y 1.706.
+- **Ni una etiqueta, ni un corte, ni un veredicto se movió**: es CSS, tres reglas y una consulta de
+  medios. Las tres etiquetas que el médico conserva —«NO apto», «Heart Team», «anatomía
+  compleja»— llegan a la hoja del PDF, medido con denominador: `C2A-c`.

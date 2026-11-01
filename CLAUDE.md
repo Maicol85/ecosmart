@@ -123,6 +123,7 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Citar un dato de PRÓTESIS valvular** | `docs/fuentes/FUENTES-protesis.md` |
 | **Empezar una válvula nueva**: qué fuentes faltan y cómo se agrega una | `docs/fuentes/PENDIENTES_FUENTES.md` |
 | Por qué algo está así, historia de una decisión | `grep` en `docs/historial/CLAUDE_historial_2026-10-01.md` |
+| **Tocar lo que se DESMARCA en congénitas, la PANTALLA o el 3D de la TGA, los DIBUJOS de los criterios TEER o el PAPEL de la miocardiopatía hipertrófica**: la matriz de los 105 selectores, el quinto origen de la VAB, los tres estados del 3D con sus dos exclusiones de comunicación, o las cuatro salidas de `mchConclusion` | `docs/mapa/cong2a-desmarcar-tga-teer.md` |
 | **Qué hizo cada tanda, con sus commits y lo que dejó pendiente** | `docs/REGISTRO_TANDAS.md` |
 | Estado de la última sesión (todas las apps) | `grep` en `~/Desktop/APLICACIONES/CEIBO_SESSION.md` |
 | Seguridad de la suite (XSS, Semgrep, claves) | `~/Desktop/APLICACIONES/CLAUDE.md` |
@@ -189,8 +190,9 @@ Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la v
 ## Qué es EcoSmart y cómo se trabaja
 
 - App clínica de ecocardiografía en **un solo `index.html`**: HTML + CSS + JS inline, sin build,
-  sin frameworks. Hoy **10,57 MB / 148.497 líneas**, medido con `wc -c` y `wc -l` el 2026-10-31 al
-  cierre de la tanda **AJUSTES-3**, sobre el árbol ya sellado (`v20261031-2125`, md5 `d5c32e0a`).
+  sin frameworks. Hoy **10,59 MB / 148.710 líneas**, medido con `wc -c` y `wc -l` el 2026-11-01 al
+  cierre de la tanda **CONG-2A**, sobre el árbol ya sellado (`v20261101-0041`, md5 `0f6254dc`).
+  (Antes: 10,57 MB / 148.497 al cierre de AJUSTES-3, sello `v20261031-2125`, md5 `d5c32e0a`.)
   (Antes: 10,54 MB / 148.070 al cierre de TGA-2, sello `v20261031-1138`, md5 `4379ca6b`.)
   (Antes: 10,47 MB / 147.337 al cierre de TGA, sello `v20261031-0847`, md5 `bb9739ab`.)
   (Antes: 10,40 MB / 146.362 al cierre de IMÁGENES-3, sello `v20261031-0432`, md5 `899080d4`.)
@@ -4003,3 +4005,284 @@ línea: el archivo creció y un informe de auditoría viejo apunta a otro archiv
   en PowerPoint: ésa es la verificación que no se puede hacer desde acá (**AJ3-g**).
   ⚠️ **`congenitas-otros.md` (34.540 B) NO se tocó**, que es lo que la orden pide; dónde conviene
   partirlo está medido en **AJ3-d**.
+### Lo que se desmarca, la pantalla y el 3D de la TGA, los dibujos TEER y el papel de la MCH — «CONG-2A» (2026-10-31 y 2026-11-01)
+
+- **SIETE commits, y los seis de código y documentación se hicieron enteros.** `655ffc2` (1) ·
+  `1f8d30b` (2) · `30714c9` (3) · `ce1a6a6` (4) · `4894cee` (5a) · `07b695c` (5b) · el de
+  cobertura y documentación. Al empezar, `origin/main` = `HEAD` = **`bae00b8`**, el cierre de
+  AJUSTES-3, ya publicado, con md5 de `index.html` **`d5c32e0a`** y el pendrive `DISK_IMG`
+  montado. **El push lo corre Maicol: esta tanda tenía orden expresa de NO pushear.**
+  Cierra `AJ3-a` y `AJ3-b`.
+
+- **LA MATRIZ DE «DESMARCAR» ES EL HALLAZGO, Y SU DENOMINADOR LA MITAD DEL HALLAZGO.** Los
+  **105** selectores con opción vacía de las diecinueve secciones de congénitas, barridos en
+  Chrome con gestos reales: con cada sección **sembrada**, **45 mueven** alguna superficie al
+  ponerse, **44 quedan idénticos al basal** al vaciarse y **UNO sobrevive**, `vab_tipo`. El
+  médico tenía razón: en las otras congénitas no pasa.
+  ⚠️ **La primera versión barrió sobre un formulario VACÍO y 88 de los 105 salieron MUDOS** —sus
+  secciones tienen compuertas—, y un campo que no mueve nada al ponerse **no puede probar nada al
+  vaciarse**. Es el denominador de cero que este archivo documenta.
+
+- ⚠️ **LO QUE MANTIENE VIVA LA VÁLVULA BICÚSPIDE ES LA MORFOLOGÍA DE VÁLVULAS, Y NO SE TOCÓ.** Es
+  la decisión del Y3d7: `vabMorfSeguir` pone `va_morf` en «Bicúspide» al elegir un tipo de fusión,
+  y al volver el tipo a «—» esa morfología se conserva. **El control negativo es lo que decide:**
+  con «Bicúspide» puesta **a mano** y el tipo nunca tocado, el informe dice exactamente lo mismo
+  —«Válvula aórtica bicúspide, sin estenosis ni insuficiencia.»— y el EN SUMA también. El estado
+  posterior al desmarcado es **indistinguible de una afirmación del médico**, y retirarla sería
+  escribir automáticamente en un campo del estudio. → **C2A-a**.
+
+- **LO QUE SÍ ERA UN DEFECTO: `_VAB_ORIGENES` tenía cuatro entradas y le faltaba `va_morf`**, que
+  es el quinto y el que decide si la válvula es bicúspide. Medido con el gesto real: con el tipo
+  cargado y la morfología devuelta a mano a «Trivalva normal», el informe, el EN SUMA y
+  `vabConclusion()` dejaban de nombrar la bicúspide y el **RESUMEN de la sección seguía diciendo
+  «VAB»**, junto con el espejo `vab_morf_ro`, el dibujo y el botón del PDF. El comentario de la
+  zona afirmaba que `va_morf` ya estaba cubierto, y era **falso por un renglón**: lo que había era
+  un oyente propio que llamaba sólo a `vabMorfAviso()`. Ese oyente se retiró.
+
+- **LA PANTALLA DE LA TGA, ANTES Y DESPUÉS, EN LOS CUATRO ANCHOS Y LOS DOS TEMAS.** Antes: cinco
+  filas de `grid-3` con la cirugía sola —dos huecos— y «Síntomas» sola —dos huecos—, y la tarjeta
+  del dibujo a ancho **completo**: 1194 px para un lienzo de 560×420 a 1440 px, o sea **634 px
+  vacíos**; la sección medía **1144 px** de alto. Después: lado a lado a 1440 y 1000 px y apilado
+  a 768 y 390, el lienzo en **605 px** y la sección en **913**.
+  Con d-TGA salen **las seis filas que el médico pidió**; sin la cirugía los campos **corren** y
+  quedan **cinco filas llenas sin un solo hueco**, medido con ccTGA y con Post-Mustard.
+
+- ⚠️ **LOS CAMPOS SON UNA SOLA GRILLA DE DOS COLUMNAS, Y EL ANCHO COMPLETO DE «SÍNTOMAS» ES
+  CONDICIONAL POR UNA CUENTA.** Con una fila por tema, esconder el grupo de la cirugía deja su
+  celda vacía. Y con la cirugía visible hay diez campos antes —cinco filas llenas— y el ancho
+  cierra la sexta sin hueco; sin ella hay nueve, así que forzarlo empujaría «Síntomas» a una fila
+  propia y **crearía** el hueco que esto viene a sacar. La clase la pone `tgaSync`, el mismo dueño
+  que muestra y esconde la cirugía, así que no pueden discrepar.
+
+- ⚠️ **EL DEFECTO DEL 3D NO ES «CON EL TIPO VACÍO»: ES «AL VACIAR EL TIPO», Y ASÍ SE REPRODUCE.**
+  Con el tipo vacío de entrada la librería no se baja y no hay dibujo —medido, cero desborde en
+  los cuatro anchos—. Cargando un tipo y volviéndolo a «—», el canvas de 420 px **se queda**
+  mientras `tga3dSync` le pone al lienzo `height:0px`: ese lienzo lleva `min-height:40px` en
+  línea, **que gana**, así que el host informaba 40 px de alto con un canvas de 420 adentro y sin
+  `overflow`. **Desbordaba su tarjeta por 363 px y pisaba la fila «Conclusión» por 340**, en los
+  cuatro anchos. Hoy los seis estados dan **0 y 0**, con el acordeón abierto y cerrado.
+
+- **SIN TIPO SE DIBUJA EL CORAZÓN NORMAL, Y SON TRES ESTADOS Y NO DOS.** La vista de referencia
+  —declara no ser de este paciente, va **sin** comunicaciones y **sin** PDF—, el corazón normal
+  por omisión —tampoco es un dato, así que tampoco va al PDF, pero **sí** lleva las comunicaciones
+  cargadas— y el dibujo con tipo, que es el dato. `_tga3dEsDato()` es el dueño único y lo
+  consultan **LOS DOS** gates del PDF, porque romper uno solo lo tapa el otro: preguntar
+  `_tga3d.ref` en cada lugar dejaba entrar el corazón normal sin tipo al **PDF firmado**.
+
+- ⚠️ **LAS COMUNICACIONES YA SE LEÍAN DE SUS PESTAÑAS, Y LA PREMISA DE LA ORDEN ES PARCIALMENTE
+  FALSA.** `tga3dComs()` es el dueño único desde la TGA-1 y ya toma la CIA de «CIA / CIV», el
+  foramen de «FOP», la CIV de «CIA / CIV» **o** de «CIV residual» de la TGA, y el ductus de «DAP».
+  Lo que faltaba era **dibujarlas**: vivían dentro de la rama de la d-TGA sin cirugía, que es la
+  forma de la demo. Salieron a un bloque común con la **misma geometría**, número por número.
+  **El ductus baja al mismo bloque con su condición de siempre**, y es lo que deja los tres en el
+  orden `asd`, `vsd`, `pda` para que la d-TGA sin cirugía salga idéntica elemento por elemento.
+
+- ⚠️ **DOS ANATOMÍAS SE EXCLUYEN, CADA UNA DE UNA SOLA COMUNICACIÓN, Y NO ES MAQUETA.** Con el
+  **switch auricular** no se dibuja la CIA —el tabique auricular se resecó y la sangre va por los
+  dos túneles que esa rama dibuja— y con el **Rastelli** no se dibuja la CIV —esa rama ya pone un
+  anillo en el tabique interventricular, a 0,2 de distancia, que es el túnel del ventrículo
+  izquierdo a la aorta—. → **C2A-f**.
+  Medido: la CIA pone su anillo en `[-0.45,0.95,-0.3]` en el corazón normal, la d-TGA, la L-TGA,
+  Jatene y Rastelli y **no** en el switch auricular; la CIV el suyo en `[-0.05,-0.9,0.2]` en el
+  corazón normal, la d-TGA, la L-TGA y el switch auricular y **no** en el Rastelli; «CIV residual»
+  en «No» da cero anillos y el formulario vacío también; y el dibujo sigue al dato al cambiarlo en
+  otra pestaña, **0 → 1 → 2 → 0**.
+
+- **LA COMPARACIÓN CON LA DEMO: los CINCO escenarios en que la demo dibuja comunicaciones
+  —`dtga/none/sh0` a `sh4`— siguen IGUALES.** De los 30, **17 iguales y 13 distintos**, y los 13
+  son exactamente los que esta tanda autoriza.
+  ⚠️ **Y EL CONTROL COSTÓ UNA CORRIDA: `_probe_t2a_demo.mjs` y `_probe_tga2demo.mjs` NO aceptan
+  `--file`** y cargan siempre el `index.html` vivo, así que correrlos «contra HEAD» mide el árbol
+  de trabajo **las dos veces** y devuelve el **mismo número** —17 y 13 en los dos—, que en un
+  volcado se lee como «el commit no cambió nada». Con `_probe_cong2a_demo.mjs`, que acepta
+  `--file`, el control da **30 de 30** contra HEAD, que es lo que la TGA-2 declara.
+
+- **LA CAUSA DE LOS DIBUJOS TEER ERA DE UNA LÍNEA: `.teer-figrow`, `.teer-figcol` y `.teer-fig`
+  estaban en el marcado desde que la sección existe y NO TENÍAN UNA SOLA REGLA.** Los dos `div`
+  eran bloques normales y el SVG se dibujaba a ancho completo debajo del campo.
+
+  | ancho | cada dibujo, antes | después | alto de los catorce campos, antes | después |
+  |---|---|---|---|---|
+  | 1440 | 290×226 | **150×117** | **937 px** | **619 px** |
+  | 1000 | 186×145 | 150×117 | 767 px | 619 px |
+  | 768 | **706×552** | 220×172 | **3.204 px** | 1.706 px |
+  | 390 | 328×256 | 220×172 | 2.023 px | 1.706 px |
+
+- **LOS 150 px SON UNA MEDICIÓN, NO UNA PREFERENCIA.** El valor va dentro del SVG con
+  `font-size="26"` sobre un `viewBox` de 320, así que se ve a 26 × ancho / 320: a 110 px quedaría
+  en **8,9 px** y a 150 px en **12,2**, y el tope de 12 px es el que el barrido de celular de este
+  repositorio usa para «texto chico». Medido sobre la caja real del texto: **41×15 px** a 1440 y
+  60×21 a 390, contra 79×29 y 89×32. **Y el apilado lleva tope de 220 px**: sin él, a 768 px el
+  SVG vuelve a estirarse a 706×552.
+
+- **LAS TRES ETIQUETAS DE LOS CRITERIOS TEER SÍ LLEGAN AL PAPEL, Y SE REPORTA SIN CAMBIARLO**, que
+  es lo que la orden pide. Medido **con su denominador** —el módulo integrado, `amiloEnInforme()`
+  devolviendo `teer` y `am-txt-teer` con 665 caracteres—: la **hoja del PDF** trae «NO apto» dos
+  veces, «Heart Team» una y «anatomía compleja» una, sobre 3.274 caracteres. El informe en los
+  tres estilos y el EN SUMA en los tres dan **cero**. → **C2A-c**.
+  Del PPT no se afirma nada: el espía de esa sonda devolvió cero caracteres, o sea denominador
+  vacío.
+
+- **EL PAPEL DE LA MIOCARDIOPATÍA HIPERTRÓFICA, ANTES Y DESPUÉS, EN CUATRO ESCENAS.** Antes, con
+  el módulo integrado y la escena de riesgo alto: el informe en los tres estilos traía «AHA/ACC
+  2020» 1, «AHA» 3, «ESC» 1, «HCM Risk-SCD» 1, «Clase IIa» 1, «desfibrilador» 1 y «razonable» 1;
+  el EN SUMA en los tres, «AHA/ACC» 1 y «HCM Risk-SCD» 1; y la hoja del PDF, «AHA/ACC 2020» 3,
+  «AHA» 9, «ESC» 3, «HCM Risk-SCD» 4, «Clase IIa» 3, «desfibrilador» 3 y «razonable» 3.
+  **Después: CERO en las siete superficies y en las cuatro escenas.**
+  Ejemplo del EN SUMA: «HCM Risk-SCD 31.57 % a 5 años (riesgo alto). AHA/ACC 3/5 factores mayores
+  (1 sin evaluar)» → «**Riesgo de muerte súbita 31.57 % a 5 años (riesgo alto). Factores mayores
+  3/5 (1 sin evaluar)**».
+
+- **NINGÚN NÚMERO MEDIDO DESAPARECE, Y ESTÁ VERIFICADO NÚMERO POR NÚMERO** en las cuatro escenas y
+  las tres superficies: el **único** que sale es **«2020»**, que es el año de la guía. Los dos que
+  entran son dos **«5»**, del «riesgo a 5 años» con que se nombra el score.
+
+- **EL CONTENIDO ESTÁ EN LA EVIDENCIA Y SE VERIFICÓ ANTES DE RETIRARLO**, que es la condición que
+  la orden pone: la sección «Miocardiopatía hipertrófica — prevención de muerte súbita» publica
+  **18 líneas** con **9** menciones de desfibrilador, **13** clases, el **folio e1267** de la
+  AHA/ACC 2024 y los **folios 3561-3562** de la ESC 2023. **No se agregó ninguna cita**: las
+  cargaron AJUSTES-3 y TGA-2.
+  **No se reescribió ni se reordenó ningún texto**: se separan DESCRIPCIÓN y CONDUCTA y las
+  salidas se arman con las mismas piezas, que es el patrón que AJUSTES-3 dejó hecho. `_escCond` y
+  `_ahaCond` quedan **armados a propósito** —son el texto que la Evidencia publica con su clase y
+  su folio— y la mutación 15 los vuelve a pegar.
+
+- ⚠️ **LO QUE QUEDA EN EL PAPEL Y NO ES DE LA MIOCARDIOPATÍA, DECLARADO:** una mención de «guía»
+  en el informe y dos en el PDF, **idénticas antes y después**. Salen de la **aurícula izquierda**
+  —«El grado de dilatación auricular no se informa: la guía lo gradúa sólo por volumen indexado»—
+  y las dispara el diámetro anteroposterior de la escena, no la miocardiopatía: verificado que no
+  están en `txt`, ni en `resumen`, ni en `papel` de `mchConclusion`. → **C2A-e**.
+
+- **DOS REGLAS FIJAS NUEVAS EN ESTE ARCHIVO**, las dos de Maicol y del 31/10/2026: «El papel
+  describe», con sus cuatro corolarios medidos y la **excepción expresa** de las tres etiquetas de
+  los criterios TEER; y «La pantalla: campos a la izquierda, diagrama a la derecha» desde 900 px,
+  con el corte sobre la **ventana**. Y **`docs/REGISTRO_TANDAS.md`**, un solo archivo con un
+  bloque por tanda, cargado con las **doce** tandas del 30 y 31 de octubre y sus 76 commits, todo
+  salido de `git log` y de este archivo.
+
+- **18/18 MUTACIONES DIRIGIDAS MUERTAS**, en worktree y nunca sobre el vivo, con guarda de md5
+  antes y después. **Cuatro de las dieciocho no revierten nada: la aplican de más** —el ancho
+  completo de «Síntomas» sin la cirugía, o sea CREAR el hueco; la CIA con el switch auricular; la
+  CIV con el Rastelli; y la conducta de vuelta en el `resumen`—, porque las condiciones que las
+  matan son **controles negativos**. La **02** rompe las dos mitades a la vez, que es la lección
+  del D-11.
+  ⚠️ **TRES SOBREVIVIERON AL PRIMER BARRIDO Y ME DIJERON TRES COSAS DISTINTAS.** La **07** porque
+  **el commit 3c tapa al 3b**: con el corazón normal por omisión, la rama «todavía no hay dibujo»
+  no se ejecuta nunca mientras la librería esté cargada, así que el blindaje del recuadro es la
+  **segunda red** y hubo que romper las dos puertas (→ **C2A-b**). La **10** era un **hueco real**:
+  mis condiciones veían el canvas —que existe porque lo crea `tga3dInit`, dibuje o no— y leían el
+  **texto**, que sale de la bandera y no de la anatomía; nacieron **(B7)** y **(B8)**, que miran el
+  **contenido** del dibujo. Y la **13** porque el suite corre por debajo de 900 px, donde lo que
+  acota el dibujo es el `max-width` del apilado y no la maqueta: nació **(B2b)**, que mira el
+  `display` computado, observable en cualquier ancho.
+
+- **A/B contra HEAD: 163 escenas, 183.033 claves y 71.883 celdas de Excel. Las 52 diferencias de
+  superficie firmada están TODAS en las cuatro escenas de miocardiopatía hipertrófica.** Las otras
+  **159 dan cero**, `vacio` y `ajeno` incluidas, y también las tres de la válvula bicúspide, las
+  siete de la TGA y la de los criterios TEER. **Excel 441 columnas con las mismas 441 claves
+  exactas**, y **963 ids de campos idénticos**: cero nuevos y cero perdidos.
+  ⚠️ **ESE CERO ES UN CONTROL NEGATIVO PARA LOS COMMITS 1 A 4, Y SE DECLARA.** El arnés monta un
+  estado y corre el embudo completo, así que un commit que cambia **cuándo** se repinta —y no
+  **qué**— no puede mostrar diferencia ahí. Las mediciones que valen son las sondas dedicadas:
+  `_probe_cong2a_vab.mjs` con gestos reales, `_probe_cong2a_pant.mjs`, `_probe_cong2a_3d.mjs`,
+  `_probe_cong2a_demo.mjs` y `_probe_cong2a_teer.mjs`, todas antes y después.
+  ⚠️ **Y EL PRIMER A/B DIO CERO EN LAS CUATRO ESCENAS DE MIOCARDIOPATÍA, QUE ERA MI PROPIO
+  DENOMINADOR VACÍO:** no marcaban `mch_incluir_chk`, así que el papel no traía una palabra de la
+  miocardiopatía en ninguno de los dos lados.
+
+- **CHROME Y WEBKIT COINCIDEN EN LOS DIECISÉIS CRUCES, EN LAS DOS ZONAS** (dos motores × 1440,
+  1000, 768 y 390 px × dos temas). La TGA: lado a lado a 1440 y 1000 y apilado a 768 y 390, **cero
+  desborde del dibujo**, **cero** desplazamiento horizontal del cuerpo, **cero** textos recortados,
+  **9 de 9** controles a 44 px de alto y **cero errores de consola y de página en los dos
+  motores**. Los criterios TEER: 150×117 lado a lado y 220×172 apilado, las tres etiquetas con el
+  mismo conteo —1, 3 y 2—, cero scroll, cero recortes y cero errores. La única diferencia entre
+  motores es el alto de los catorce campos: **619 px en Chrome contra 584-590 en WebKit**, que es
+  métrica de fuente.
+  ⚠️ **WebKit de Playwright no es Safari, y se declara.** Chrome va por el del sistema con
+  `channel: 'chrome'`.
+  ⚠️ **Y EL ÚNICO ERROR DE CONSOLA DEL ÁRBOL DE HEAD ES DEL ARNÉS**, no de la app: se carga desde
+  una copia en el temporal y ahí un recurso relativo no resuelve. Es lo que la tanda D2 ya
+  documenta. El árbol vivo da **cero**.
+
+- **ESCRIBIR NO SE VOLVIÓ MÁS LENTO**, medido alternando los dos árboles en **tres rondas** de doce
+  teclas reales sobre el gradiente subaórtico —que es el único camino por tecla que esta tanda
+  toca, porque su `oninput` va a `tgaSync`—: HEAD media **13,04 a 15,31 ms** contra **11,36 a
+  15,47** en el árbol nuevo, y el barrido 11,9-15,4 contra 12,3-15,3. Las bandas se superponen.
+
+- ⚠️ **EL ACENTO GRAVE DENTRO DE MIS PROPIOS COMENTARIOS COSTÓ TRES CORRIDAS, Y ES LA DÉCIMA TANDA
+  SEGUIDA QUE LO PAGA.** Siempre igual: un identificador entre acentos graves dentro del comentario
+  de un caso o de una sonda, y los dos cuerpos son template literals. Lo que acabó funcionando fue
+  **contar los acentos graves del bloque y exigir el número exacto** —dos por caso— y
+  **`node --check`** después de cada edición. En TC-576 hubo que quitar los **ocho** de su cuerpo
+  de una pasada.
+
+- ⚠️ **Y UNA TRAMPA DEL ARNÉS DE FONDO, QUE COSTÓ DOS RELANZAMIENTOS:** un `nohup … &` lanzado
+  desde la herramienta de shell **no sobrevive** al proceso padre, así que la suite se cortó en el
+  lote 3 con el log en una sola línea. Lo que funciona es lanzar el script **directo** en segundo
+  plano, sin `&`.
+
+- ⚠️ **Y LA QUE MÁS COSTÓ: `getBoundingClientRect().top` ES RELATIVO AL VIEWPORT, NO AL
+  DOCUMENTO.** TC-573 daba **cero filas** dentro de su lote y seis aislado, con la grilla midiendo
+  694 px de ancho y su `offsetParent` no nulo: el filtro `y >= 0` descartaba **todos** los campos
+  porque la página quedaba scrolleada por un caso anterior, y el cero se leía como «la maqueta no
+  existe». Lo que define una fila es que dos campos compartan su `y`, y eso vale con cualquier
+  desplazamiento. **Tres hipótesis anteriores —el acordeón cerrado, la pestaña cambiada, la
+  librería a medio cargar— las descartó una línea de diagnóstico dentro de la propia condición**,
+  que imprime el display de la pestaña, del acordeón y de la zona junto con el conteo. Leer el
+  código no lo habría encontrado.
+
+- **Línea base al cierre: suite 585/591**, en once lotes **cubriendo los 591 casos distintos**
+  —contados nombre por nombre, no por la suma de los lotes—, en UNA sola pasada sobre el árbol
+  sellado, con el pendrive `DISK_IMG` **verificado al abrir, ENTRE LOS ONCE LOTES y al cerrar**,
+  **591 de 591 ejecutados** y el md5 de `index.html` **idéntico** antes y después (`9e5415c1`).
+  Los rojos son **TC-223, TC-376, TC-390 y TC-406**, los cuatro de siempre, más **TC-182 y
+  TC-551**, los dos intermitentes que la orden anticipa: **repetidos aislados, los dos salen
+  VERDE**. **Ningún rojo nuevo.** **TC-358, TC-262, TC-419, TC-507 y TC-557 salieron VERDES.**
+  ⚠️ **Y LA PRIMERA CORRIDA COMPLETA DIO SIETE ROJOS MÁS**, y por eso esa cifra no es la línea
+  base: cinco eran casos viejos que afirmaban el comportamiento anterior —TC-561, TC-562, TC-563,
+  TC-567 y TC-571—, uno era el intermitente TC-551, y el séptimo era **mi propio TC-573**, que
+  daba **cero filas** dentro de su lote y seis aislado. Los seis primeros están adaptados y el
+  séptimo corregido; la cifra de arriba sale de la corrida **limpia**, de una sola pasada sobre el
+  árbol resellado y con el archivo de tests final.
+
+- **Semgrep 124 WARNING / 0 ERROR**, la línea base, sin un aviso nuevo. El diff de `index.html`
+  son **336 líneas agregadas y 123 quitadas**, de las que **293** no son comentario, con **cero**
+  `innerHTML`, `eval` o `new Function` nuevos. **Excel 441** columnas con las mismas claves.
+  **Censo sin huérfanos nuevos** y **sin campos guardados nuevos**: ningún id cambió. 17 de 19
+  bloques de JS inline parsean, idéntico a HEAD —los dos «rotos» son artefactos del regex del
+  extractor, preexistentes—.
+- **CELULAR: 59 hallazgos a 360 px y 68 a 390, con 17 ALTA en cada ancho** — la línea base exacta.
+  **No empeoró.**
+
+- **CINCO CASOS NUEVOS Y SEIS ADAPTADOS.** Nuevos: **TC-572** a **TC-576**, los cinco con sus
+  denominadores y sus controles negativos, y los cinco **caen contra HEAD** sin caer por excepción.
+  Adaptados, cada uno con el motivo escrito: **TC-64** (el score se nombra por lo que es, y el
+  invariante —que no se publica incompleto— no se movió); **TC-561 (B2)** (la fila de la cirugía
+  dejó de ser un `grid-3` y su display computado es «flex»; lo que importa es que se **vea** con
+  d-TGA); **TC-562 (C10)** y **(G2)**, las dos **invertidas** (con el switch auricular la escena
+  ahora **cambia**, porque la CIV se dibuja y la CIA no; y el aviso ya no pide elegir el tipo);
+  **TC-563 (C3)** y **(C6)**; **TC-567 (C1)**, **(C2)** y **(C3)**; y **TC-571 (A1)**, **(A2)**,
+  **(C1)**, **(C2)**, **(D1)** y **(D2)**.
+  ⚠️ **LOS TRES ÚLTIMOS SON EL DÍA QUE ELLOS MISMOS ANUNCIABAN.** TC-563 (C3) era el control
+  negativo del censo —«el papel SÍ dice la recomendación»—, TC-567 (C1) y (C2) afirmaban que el
+  informe y el PDF **seguían** diciéndola con «AHA/ACC 2020», y TC-571 (A1) y (A2) eran el
+  denominador de su propio caso: el `resumen` traía la conducta con el «(N sin evaluar)» pegado,
+  que es lo que impedía podarla. Las once condiciones están **invertidas**, no borradas, y cada una
+  ganó una condición de denominador para que siga pudiendo fallar.
+  ⚠️ **Y LOS CINCO LOS DESTAPÓ LA CORRIDA COMPLETA, NO EL CENSO.** Grepeé la suite por «AHA/ACC
+  2020», «HCM Risk-SCD», «desfibrilador» y «Clase IIa» y encontré **TC-64**; los otros cinco lo
+  dicen con otras palabras o lo miden por otro camino —el display de una fila, la firma de una
+  escena, el `parado` de un podador—. Es el modo de falla que este archivo ya documenta ocho veces.
+
+- **`index.html` pasó de 10,57 MB / 148.497 líneas a 10,59 MB / 148.710** — medido con `wc -c` y
+  `wc -l` DESPUÉS de sellar. (MB de 10⁶.) Sello **`v20261101-0152`**, md5 **`9e5415c1`**.
+
+- **Dónde está todo:** `docs/mapa/cong2a-desmarcar-tga-teer.md` (**mapa NUEVO**, 10,0 KB), las
+  fichas de los cinco casos en `docs/mapa/tests-fichas-572.md` (**archivo propio**, porque
+  `tests-fichas.md` está a 800 bytes del techo), **cinco mapas con un puntero cada uno** —medidos
+  ANTES de escribir, todos por debajo de 34 KB—, `docs/fuentes/FUENTES.md` → «La tanda CONG-2A»
+  con la verificación de la Evidencia y la tabla de las once cosas que salieron del papel,
+  `docs/REGISTRO_TANDAS.md` → el bloque de esta tanda, y `docs/PENDIENTES.md` → **OCHO** cosas
+  declaradas (**C2A-a** a **C2A-h**) más el cierre de **AJ3-a** y **AJ3-b**.
+  ⚠️ **`congenitas-otros.md` (34.540 B) NO se tocó**, que es lo que la orden pide.
+
