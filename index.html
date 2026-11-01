@@ -841,14 +841,35 @@
      cuerpo colapsable a propósito: `.am-wrap.cerrado .am-cuerpo{display:none}` lo escondería
      justo cuando el médico tiene el acordeón cerrado, que es como se mira un bloque ya
      revisado. Dentro del cuerpo el aviso sólo se vería al desplegar — o sea, nunca. */
+  /* ⚠️ `var(--orange)` Y NO `var(--amber)` — «POP-C», 4b (2026-11-02). `--amber` y
+     `--amber-pale` están definidas DENTRO de `.amilo-root` —donde `--amber` vale
+     `var(--orange)` y `--amber-pale`, `rgba(245,158,66,.15)`— y dentro de `#sp-root`, pero NO
+     en el `:root` de ningún tema. Esta regla es GLOBAL, así que fuera de esos dos contenedores
+     el `var()` no resuelve y la propiedad cae en su valor no declarado. MEDIDO en los dos
+     temas, renderizando el nodo fuera de `.amilo-root`:
+         color           -> rgb(232,236,244), o sea el texto HEREDADO, no el ámbar
+         background      -> rgba(0,0,0,0), o sea SIN el fondo pastel
+         border-left     -> rgb(232,236,244), el borde de aviso sale color texto
+     con el CONTROL POSITIVO de que dentro de `.amilo-root` los tres dan naranja.
+     ⚠️ POPB-h decía que `color` «cae en negro». No: `color` se HEREDA, así que cae en el texto
+     del tema. Lo que de verdad desaparecía es el fondo y el borde.
+     ⚠️ EL ASPECTO NO CAMBIA DONDE YA FUNCIONABA, y es a propósito: `--orange` es exactamente lo
+     que `.amilo-root` le asigna a `--amber`, y el literal del fondo es el mismo valor que esa
+     misma regla define para `--amber-pale`. Dentro de `.amilo-root` el computado queda
+     IDÉNTICO; fuera pasa de roto a correcto. `#sp-root` no contiene ninguna de las dos clases,
+     censado. */
   .am-stale { display:none; margin:6px 0 0; padding:5px 9px; border-radius:6px; font-size:11px;
-              line-height:1.45; background:var(--amber-pale); color:var(--amber);
-              border-left:3px solid var(--amber); }
+              line-height:1.45; background:rgba(245,158,66,.15); color:var(--orange);
+              border-left:3px solid var(--orange); }
   .am-wrap.desfasado .am-stale { display:block; }
   /* El MISMO hecho en el botón del módulo, que vive en otra pestaña: sin texto nuevo ni cambio
      de alto —el rótulo lo escribe `amiloSyncBotones` y hay casos que lo miden—, sólo el anillo
      ámbar y el `title`. Es el lugar menos invasivo que pedía el ítem. */
-  .btn-integrar.revisar { box-shadow:0 0 0 2px var(--amber); }
+  /* ⚠️ EL ANILLO NO SE DIBUJABA EN ABSOLUTO — «POP-C», 4b. Medido: con `var(--amber)` el
+     `box-shadow` computado da `none`, porque este botón vive en la pestaña del módulo y NO
+     dentro de `.amilo-root`. Un `var()` sin resolver invalida la declaración entera, así que
+     el aviso visual del botón no existía: era la mitad del mecanismo del AJ3-2b. */
+  .btn-integrar.revisar { box-shadow:0 0 0 2px var(--orange); }
   /* Campo opcional de "Institución y firma": checkbox de inclusión + input, igual que el panel de Firma del centro */
   .cfg-opt-row { display:flex; align-items:center; gap:8px; }
   .cfg-opt-row input[type=checkbox] { width:16px;height:16px;flex:none;cursor:pointer;margin:0; }
@@ -62966,9 +62987,60 @@ function popPatron() {
            vasoSinPam: !!(icB && !icBajo && rvsBaja && pam === null),
            vasoPamAlta: !!(icB && !icBajo && rvsBaja && pam !== null && !pamBaja),
            tapse: tapse, vdvi: vdvi, taponamiento: tapo,
-           suficiente: !!icB || tapo };
+           /* ══ «SUFICIENTE» ES AHORA «HAY ALGUN DATO» — «POP-C», 4a (2026-11-02) ═════════════
+              DECISION DEL MEDICO. Hasta hoy valia `!!icB || tapo`, o sea que sin indice
+              cardiaco calculable el boton «Integrar al informe» quedaba DESHABILITADO: un
+              paciente con el Swan puesto, gasto 4, PAM 62 y PAD 10 pero SIN peso ni talla no
+              podia integrar nada, porque tres de las cuatro fuentes de indice dividen por la
+              superficie corporal. Eso es POPB-a, que esta tanda cierra.
+              Hoy la hoja se integra con CUALQUIER dato del modulo y describe lo medido; sin
+              indice el patron sigue diciendo «Datos insuficientes para clasificar», que es
+              exactamente lo que la orden pide. El patron NO se toco.
+              ⚠️ EL PREDICADO NO ES UNA LISTA DE CAMPOS, y eso es deliberado: una lista se
+              desincroniza el dia que el modulo gane uno. Pregunta por los controles con
+              prefijo `pop_`/`pop-` comparando contra su valor POR OMISION, que es lo que
+              distingue «el medico lo cargo» de «nacio asi» —la casilla «Nombres» y la
+              frecuencia de la TGA ya ensenaron, en TC-514, que mirar el valor a secas marca
+              como cargado un formulario vacio—.
+              ⚠️ `icB` Y `tapo` SIGUEN CONTANDO aunque no vengan de un campo `pop_`: el indice
+              puede salir del eco -`diam_tsvi`, `itv_tsvi`, `hemo_fc`, que viven en
+              Hemodinamica- y el compromiso pericardico, de `pericardio_hemo`.
+              ⚠️ LO LEEN DOS COSAS Y ESO ES LO QUE SE QUIERE: el boton, y el `hayDatos` de la
+              entrada `pop` de `amiloSecs`, que es la compuerta de la hoja del PDF. */
+           suficiente: !!icB || tapo || _popHayAlgunDato() };
 }
 window.popPatron = popPatron;
+/* El dueno unico de «el medico cargo algo en el posoperatorio». Solo LEE. */
+function _popHayAlgunDato() {
+  try {
+    const n = document.querySelectorAll('#pop-seccion input[id], #pop-seccion select[id], #pop-seccion textarea[id]');
+    for (let i = 0; i < n.length; i++) {
+      const e = n[i];
+      if (!/^pop[_-]/.test(e.id)) continue;
+      if (typeof _noEsDelEstudio === 'function' && _noEsDelEstudio(e.id)) {
+        /* Los nueve espejos `pop-esp-` NO cuentan: su valor lo escribe el barrido desde otra
+           pestana, asi que contarlos haria «suficiente» a un modulo que nadie toco. */
+        continue;
+      }
+      if (e.type === 'checkbox' || e.type === 'radio') { if (e.checked !== e.defaultChecked) return true; }
+      else if (e.tagName === 'SELECT') {
+        /* ⚠️ UN `<select>` NO TIENE `defaultValue`: su valor por omision es la opcion con
+           `defaultSelected`, y si ninguna la lleva, la PRIMERA. Comparar contra `defaultValue`
+           daba `undefined` y marcaba como cargado todo selector con cualquier valor. */
+        let def = '';
+        for (let j = 0; j < e.options.length; j++) {
+          if (e.options[j].defaultSelected) { def = e.options[j].value; break; }
+          if (j === 0) def = e.options[j].value;
+        }
+        if (String(e.value || '') !== String(def) && String(e.value || '') !== '') return true;
+      }
+      else if (String(e.value || '') !== String(e.defaultValue === undefined ? '' : e.defaultValue)
+               && String(e.value || '') !== '') return true;
+    }
+  } catch (e) { return false; }
+  return false;
+}
+window._popHayAlgunDato = _popHayAlgunDato;
 const POP_DISCLAIMER = 'Orientación clínica — no reemplaza el juicio médico ni las guías vigentes.';
 window.POP_DISCLAIMER = POP_DISCLAIMER;
 
@@ -148736,8 +148808,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261101-1725';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793564712222;                 /* eco-build-ms */
+const ECO_BUILD    = '20261101-1737';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793565432650;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -148823,7 +148895,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261101-1725</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261101-1737</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
