@@ -1731,6 +1731,30 @@
      entran de sobra en esa franja y el dibujo es lo que el medico quiere ver mas grande. Medido a
      1440 px: el lienzo pasa de 560 a 605 px de ancho. Por debajo de 1000 px el lado a lado deja
      el dibujo mas chico que la version apilada de antes, y es el precio del corte en 900 px. */
+  /* ══ LOS CUATRO DIBUJOS DE LOS CRITERIOS TEER, A LA DERECHA DE SU CAMPO — «CONG-2A» ══════
+     Observado por el medico: los cuatro esquemas eran tan grandes que empujaban los demas campos
+     fuera de la pantalla. La causa: `.teer-figrow`, `.teer-figcol` y `.teer-fig` estaban en el
+     marcado desde que la seccion existe y NO TENIAN UNA SOLA REGLA, asi que los dos div eran
+     bloques normales y el SVG se dibujaba a ancho completo debajo del campo.
+     MEDIDO en Chrome antes de escribir esto: cada dibujo 290x226 a 1440 px y el alto de los
+     catorce campos de los criterios 937 px -no entra en una pantalla de 900-; a 768 px, donde la
+     grilla de cuatro colapsa a una columna, cada dibujo 706x552 y el alto total 3204 px.
+     ⚠️ 150 px DE ANCHO, Y EL NUMERO ES UNA MEDICION. El valor va dentro del SVG con
+     `font-size="26"` sobre un `viewBox` de 320, asi que se ve a 26 x ancho / 320: a 110 px
+     quedaria en 8,9 px y a 150 px en 12,2. El tope de 12 px es el que este repositorio usa para
+     «texto chico» en el barrido de celular, asi que 150 es el minimo que deja el numero legible
+     sin tocar el SVG -que lleva los cortes y las etiquetas que la orden prohibe mover-.
+     ⚠️ Y EL APILADO LLEVA TOPE. Por debajo de 900 px el dibujo va debajo del campo, como hasta
+     hoy, pero con `max-width`: sin el, a 768 px la grilla de cuatro colapsa a una columna y el
+     SVG se estira a 706 px de ancho y 552 de alto, que es justo lo que rompia la seccion. */
+  .teer-figrow { display:flex; gap:8px; align-items:flex-start; }
+  .teer-figrow > .teer-figcol { flex:1 1 auto; min-width:0; }
+  .teer-figrow > .teer-fig { flex:0 0 150px; width:150px; height:auto; }
+  @media (max-width: 899px) {
+    .teer-figrow { flex-wrap:wrap; }
+    .teer-figrow > .teer-figcol { flex:1 1 100%; }
+    .teer-figrow > .teer-fig { flex:0 0 auto; width:100%; max-width:220px; }
+  }
   #tga-campos { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px;
                 align-items:start; }
   #tga-campos.tga-sint-ancho > #tga-sintomas-fg { grid-column:1 / -1; }
