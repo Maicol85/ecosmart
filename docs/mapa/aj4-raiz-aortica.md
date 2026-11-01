@@ -314,3 +314,19 @@ El cayado y la aorta torácica descendente conservan su corte propio, lo **decla
 «Criterio de EcoSmart» y ganaron un globo ⓘ con los ocho tramos de la figura por sexo.
 
 → **`docs/mapa/ao2-segmentos-bicuspide.md`**
+
+
+---
+
+## La tanda MARFAN-1 (2026-11-01)
+
+El criterio de dilatación de la raíz **por sexo** de este mapa **no se tocó**: es el de la
+pestaña de la aorta y sigue siendo el dueño de la palabra «dilatada».
+
+Lo que la MARFAN-1 agregó es otra lectura de la raíz, y **no comparte dueño con ésta**: el
+**Z-score** del artículo de Ghent 2010, que la aplicación **no recoge como campo guardado** —el
+único Z vive en la tarjeta de criterios y no viaja con el estudio— más la **disección**, que es
+un campo nuevo (`mfs_diseccion_raiz`). Las dos cosas alimentan sólo las siete reglas de la
+tarjeta, y ninguna llega al papel.
+
+→ `docs/mapa/marfan1-ghent.md` §3 · `docs/PENDIENTES.md` → **MF1-a**.

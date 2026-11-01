@@ -45,6 +45,7 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Tocar el CRITERIO DE DILATACIÓN DE LA RAÍZ AÓRTICA** —el corte por sexo, el índice de dimensión aórtica, el dueño `aoSegRef`/`aoSegIda`/`aoSegDil`, el globo ⓘ, el cruce entre las pantallas de BICÚSPIDE y de COARTACIÓN, o lo que la tanda AJ4 tocó de la Evidencia de la VAB | `docs/mapa/aj4-raiz-aortica.md` |
 | **Tocar la SINCRONIZACIÓN de los dos campos de la raíz aórtica, el grado «sin sexo cargado», el voto del índice en el papel, las dos líneas nuevas del ⓘ de la raíz, los tres arreglos de pantalla de la tanda G o su sonda sistemática** | `docs/mapa/g-raiz-aortica.md` |
 | **Tocar una AORTOPATÍA —Marfan, Loeys-Dietz, Turner, ACTA2, Ehlers-Danlos vascular—, la COARTACIÓN, el texto de la VAB o el MOTOR DE EVIDENCIA DE AORTA**: la tabla y el folio de cada síndrome, el corte de dilatación con su dueño, el cuestionario o las recomendaciones por debajo de 45 mm | `docs/mapa/aorta-aortopatias-evidencia.md` |
+| **Tocar la TARJETA de criterios de MARFAN**: el score sistémico del Box 2 con sus trece rasgos, las siete reglas del Box 1 con su asterisco, los diecinueve campos guardados y su guardería, los veintiún globos, el cuadro «Conducta aórtica» con su globo, o la FIGURA que se transforma | `docs/mapa/marfan1-ghent.md` |
 | **Tocar un CORTE o un OPERADOR del VD, de la AD, de la VCI o de la RAÍZ AÓRTICA**: la Tabla 1 de la ASE 2025, su evaluador, los cuatro grados de cada parámetro o el «40 mm o más» del seno | `docs/mapa/corazon-derecho-ase2025.md` |
 | **Tocar algo que la TANDA AJUSTES-1 movió** (30/10): el rótulo del cactus, la nota de complejidad retirada del papel, la pastilla de la orejuela sin veredicto, el recuadro del Doppler que no se dibuja sin velocidad; el dibujo de la orejuela JUNTO a su tabla en el PDF o con su resumen al lado; la VAB con su resumen al costado; el EN SUMA nombrando la bicúspide; la cita de la ASE 2025 de la frase del gradiente; o la FILA DE MINIATURAS de lo que va al PDF | `docs/mapa/aj1-orejuela-pdf-ensuma.md` |
 | **Tocar algo de la tanda AJ1**: los cortes del VD de la versión de MAYO, el strain de pared libre sin sexo, la coartación reparada, el índice de dimensión aórtica, el Ehlers-Danlos del EN SUMA, el corte alternativo de la IM secundaria o el flujo reverso de la aorta descendente | `docs/mapa/aj1-ajustes.md` |
@@ -192,8 +193,15 @@ Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la v
 ## Qué es EcoSmart y cómo se trabaja
 
 - App clínica de ecocardiografía en **un solo `index.html`**: HTML + CSS + JS inline, sin build,
-  sin frameworks. Hoy **10,67 MB / 149.816 líneas**, medido con `wc -c` y `wc -l` el 2026-11-01 al
-  cierre de la tanda **POP-B**, sobre el árbol ya sellado (`v20261101-0747`, md5 `feddd652`).
+  sin frameworks. Hoy **10,75 MB / 150.960 líneas**, medido con `wc -c` y `wc -l` el 2026-11-01 al
+  cierre de la tanda **MARFAN-1**, sobre el árbol ya sellado (`v20261101-1111`, md5 `05086dab`).
+  El commit de documentación **no vuelve a sellar**, porque no toca `index.html`: el árbol que la
+  suite midió es el mismo que queda commiteado.
+  ⚠️ **Y EL RENGLÓN QUE ESTA TANDA ENCONTRÓ ESTABA DOS CIERRES ATRÁS:** decía «10,67 MB / 149.816
+  líneas … `v20261101-0747`, md5 `feddd652`», y el árbol que se abrió traía **`v20261101-0834`**
+  con md5 **`b6e61443`**, 10,67 MB y **149.822** líneas. **Medir con `wc -c`, `wc -l` y `md5`
+  antes de presupuestar contexto**, no leer esto.
+  (Antes: 10,67 MB / 149.822 al cierre de POP-B, sello `v20261101-0834`, md5 `b6e61443`.)
   ⚠️ **ESTA VEZ EL SELLO NO SE QUEDÓ ATRÁS, y es por una decisión:** `index.html` se selló ANTES
   de la suite completa y el commit de documentación **no lo volvió a sellar**, porque no lo
   toca. Así el árbol que la suite midió es el mismo que quedó commiteado: no hay tres líneas de
@@ -4656,3 +4664,110 @@ línea: el archivo creció y un informe de auditoría viejo apunta a otro archiv
   propósito** y los cuatro censos con su control positivo, `docs/REGISTRO_TANDAS.md` → el bloque de
   esta tanda, y `docs/PENDIENTES.md` → **OCHO** cosas declaradas (**POPB-a** a **POPB-h**).
   ⚠️ **`congenitas-otros.md` (34,5 KB) no se tocó**, y `valvulas.md` (33,9) tampoco.
+
+### La tarjeta de criterios de Marfan con el artículo original — «MARFAN-1» (2026-11-01)
+
+- **SIETE commits, y los SEIS de código se hicieron enteros.** `8d95df3` (1) · `31ee701` (2) ·
+  `b032969` (3) · `7d39fb9` (4) · `b98ae7a` (5) · `aeeae9e` (6) · el de cobertura y
+  documentación. Al empezar, `origin/main` = `HEAD` = **`27a917d`**, el cierre de POP-B, ya
+  publicado, con md5 **`b6e61443`** y el pendrive `DISK_IMG` montado.
+  **El push lo corre Maicol: esta tanda tenía orden expresa de NO pushear.**
+
+- **LA FUENTE SE LEYÓ EN IMAGEN Y LA REGLA DE FOLIO SE COMPROBÓ EN EL PIE IMPRESO DE CUATRO
+  HOJAS.** Loeys 2010, *J Med Genet* 47:476-485; **FOLIO = HOJA + 474**, verificado en las hojas
+  3 (477), 4 (478), 5 (479) y 6 (480). **Todo lo que la orden anticipaba se confirmó**, incluido
+  que los asteriscos del Box 1 están en **1, 3, 6 y 7 y no en 2, 4 ni 5**, verificado glifo por
+  glifo.
+
+- **UNA PREMISA DE LA ORDEN ERA FALSA, Y ESTÁ MEDIDA: el último caso de la suite no es TC-580,
+  es TC-585.** 585 numéricos sin huecos más quince TC-GR = **600** casos distintos. Los cinco
+  nuevos van de TC-586 a TC-590.
+
+- **EL DEFECTO MÁS GRANDE QUE CERRÓ, EN UNA LÍNEA: la tarjeta sumaba la ectopia lentis al
+  puntaje y el Box 2 no la incluye.** Son cinco defectos medidos contra el original: la ectopia
+  dentro del score con 3 puntos; el máximo declarado 20 con once rasgos que sumaban **19**;
+  cinco rasgos faltantes más la deformidad del retropié; los calificadores «que requiere cirugía»
+  y «moderado», que esta revisión **eliminó** expresamente (folio 480); y los epónimos
+  «Walker-Murdoch» y «Steinberg», que el artículo **no trae**. El único epónimo que la fuente sí
+  trae es la **línea de Köhler**, y ése se conserva.
+
+- **DIECINUEVE CAMPOS GUARDADOS NUEVOS, todos de la lista autorizada, y CERO columnas de Excel.**
+  Censo **965 → 984**, cero perdidos. El Excel sigue en **441** columnas con las mismas claves.
+
+- ⚠️ **LA GUARDERÍA NO ES UN RESTO, Y EL PRÉSTAMO TUVO UN DEFECTO QUE CAZÓ UNA MEDICIÓN.**
+  `critAbrir` hace `innerHTML = render()`, así que un campo que viviera dentro de la tarjeta se
+  destruiría al reabrirla y al abrir **otro** panel de criterios. La primera versión de
+  `_mfsDevolver` devolvía la guardería **vacía** —los bloques quedaban en los huecos de la
+  tarjeta— y tras cerrar y reabrir el score volvía a 0. Hoy los recoge **antes** de moverla.
+
+- ⚠️ **EL Z DE LA RAÍZ NO ES UN CAMPO GUARDADO DE ESTA APLICACIÓN**, censado el documento
+  entero. Vive en la tarjeta y no viaja con el estudio, así que sobre un estudio **archivado**
+  las reglas que dependen de él quedan en «sin dato (falta el valor del Z)» salvo que haya
+  disección. **Ningún Z se calcula** con una fórmula que la app no tenga. → **MF1-a**.
+
+- **LAS SIETE REGLAS, CON TRES ESTADOS POR CONDICIÓN.** Cualquiera falsa → no cumple; todas
+  verdaderas → cumple; si no → sin dato. **Una condición desconocida no es una condición falsa.**
+  «Ao» es el Z **o la disección**, que es la definición literal del Box 1: por eso la disección
+  cumple sin mirar el Z y, en la regla 7, sin mirar la edad.
+  ⚠️ **Con el formulario vacío las reglas 3 y 6 dicen «No cumple» y no «Sin dato»**, porque el
+  puntaje siempre es calculable; el porqué lo aclara con «con lo tildado». → **MF1-b**.
+
+- ⚠️ **EL 3b NO TENÍA NADA QUE RETIRAR AL PRINCIPIO, Y SÍ AL MEDIRLO POR ESTADO.** El papel ya
+  estaba limpio —lo dejó así la B3 del 30/10—, pero censando los **once** estados de la cascada,
+  **uno** llevaba «ESC 2024» al **EN SUMA**: el de síndrome sin declarar, que es uno de los dos
+  que suben `r.txt` tal cual. Retirado; su contenido queda en la cápsula y en el globo nuevo.
+
+- **EL CUADRO «CONDUCTA AÓRTICA» CONSERVA SU VEREDICTO Y SUS MILÍMETROS**, y la guía, la tabla,
+  el folio y la clase pasaron a un globo. `marfanEstado` separa `txt` de `cita` y las dos salidas
+  se arman de las mismas piezas. Las claves `cx_i`, `cx_iia` y `cx_iib` **no se tocan**: las lee
+  el Laboratorio.
+  ⚠️ **Un `dyn` de VINFO devuelve un NODO y no una cadena**: con HTML, la tarjeta publicaba «No
+  se pudo construir la tarjeta.» en los ocho cruces. Lo cazó la sonda, no la lectura.
+
+- **VEINTIÚN GLOBOS, y donde el artículo no define algo lo dicen y no lo completan.** La
+  discrepancia de la miopía está **confirmada y escrita**: el Box 2 publica «más de 3» y el folio
+  480 la escribe **de las dos formas**.
+  ⚠️ **El globo lleva `stopPropagation` y va DENTRO del rótulo**: la fila es un `<label>`, así
+  que sin eso **abrir la ayuda tildaría el rasgo**.
+
+- **LA FIGURA: 20 DE 20 ESCENAS IDÉNTICAS A LA DEMO**, renderizando las dos con los mismos datos
+  en la misma corrida y comparando el SVG de marcas textual, los ocho factores de forma con
+  tolerancia 1e-6 y las cuatro rutas interpoladas. **No se comparan píxeles**: dos motores dan
+  píxeles distintos con el mismo SVG. `prefers-reduced-motion` verificado **con su control**.
+  ⚠️ **La casilla «Superponer la figura de referencia» se estaba guardando**: el guión medio
+  **no alcanza por sí solo**, porque `_noEsDelEstudio` va por PREFIJO. Lo cazó una medición y el
+  censo había subido a 985.
+
+- **18/18 MUTACIONES DIRIGIDAS MUERTAS EN EL PRIMER BARRIDO**, en worktree y nunca sobre el vivo,
+  con guarda de md5 antes y después, y **cada una mató exactamente su caso**. **Cuatro de las
+  dieciocho no revierten nada: la aplican de más**, porque las condiciones que las matan son
+  controles negativos.
+
+- ⚠️ **EL ACENTO GRAVE DENTRO DE MIS PROPIOS COMENTARIOS COSTÓ TRES CORRIDAS, Y ES LA DUODÉCIMA
+  TANDA SEGUIDA QUE LO PAGA.** Lo que acabó funcionando fue **contar los acentos graves de cada
+  caso después de cada edición y exigir el número exacto** —dos por caso— más `node --check`.
+  ⚠️ **Y dos trampas del arnés:** un caso devuelve `{ extra: [...] }` y no el array pelado —con
+  el array el runner avisa «no declara NINGUNA condición», que es justo para lo que ese guardián
+  está—; y **caer contra HEAD por excepción no es caer**, así que los cinco llevan helpers
+  tolerantes al árbol viejo. Es la lección de TC-546.
+
+- **CUATRO CASOS VIEJOS ADAPTADOS, cada uno con el motivo escrito**, y los cuatro por lo mismo:
+  afirmaban que la cápsula publica la clase y la tabla. **TC-116** y **TC-512** leen ahora la
+  cita junto al texto —y TC-512 además el globo—, **TC-552 (E9)** quedó **invertida** y
+  **TC-125** se reescribió: probaba la tarjeta vieja entera y su invariante «ningún control del
+  panel lleva id» se **invirtió a propósito** para Marfan.
+  ⚠️ **Y esa condición invertida cazó un matiz al escribirla:** son **veinte** controles con id,
+  no diecinueve — el vigésimo es la casilla de la figura, que no es del estudio. Separarlos la
+  dejó más fuerte.
+
+- **`index.html` pasó de 10,67 MB / 149.822 líneas a 10,75 MB / 150.960** — medido con `wc -c` y
+  `wc -l` DESPUÉS de sellar. (MB de 10⁶.) Sello **`v20261101-1111`**, md5 **`05086dab`**.
+
+- **Dónde está todo:** `docs/mapa/marfan1-ghent.md` (**mapa NUEVO**, 11,1 KB), las fichas de los
+  cinco casos en `docs/mapa/tests-fichas-586.md` (**archivo propio**, porque `tests-fichas.md`
+  está en 34,2 KB), **cuatro mapas con un puntero cada uno** —medidos ANTES de escribir, todos
+  por debajo de 29 KB—, `docs/fuentes/FUENTES.md` → «La tanda MARFAN-1» con el Box 1 y el Box 2
+  transcriptos, la regla de folio comprobada en cuatro hojas y la tabla «Cambios de evidencia»
+  de trece filas, `docs/REGISTRO_TANDAS.md` → el bloque de esta tanda, y `docs/PENDIENTES.md` →
+  **OCHO** cosas declaradas (**MF1-a** a **MF1-h**).
+  ⚠️ **`congenitas-otros.md` (34.540 B) NO se tocó**, que es lo que la orden pide.

@@ -306,3 +306,18 @@ con la disposición de abajo.
 
 Fichas en **`tests-fichas-577.md`**. Mapa en **`pa-pantalla-posoperatorio.md`**.
 Mutaciones en `scripts/_mut_pa.py` (catorce, cada una con su caso).
+
+
+### Tanda MARFAN-1 (2026-11-01)
+
+TC-586 a TC-590. Punteros en `docs/mapa/tests-punteros-tandas.md`, fichas en
+`docs/mapa/tests-fichas-586.md`.
+
+⚠️ **Dos trampas que esta tanda pagó y que valen para cualquier caso nuevo:**
+1. **Un caso devuelve `{ extra: [...] }`, no el array pelado.** Con el array, el runner avisa
+   «el caso no declara NINGUNA condición» y lo da por rojo — que es exactamente para lo que ese
+   guardián está, porque un verde vacío es peor que un rojo.
+2. **Caer contra HEAD por excepción no es caer.** Los cinco casos llevan helpers tolerantes al
+   árbol viejo (`TAB`, `APT`, `SC`, `AP`, `RG`, `FE`): sin ellos, la primera línea que nombrara
+   `MFS_SCORE` los mataba con un `TypeError` sin decir qué invariante se rompió. Es la lección de
+   TC-546.

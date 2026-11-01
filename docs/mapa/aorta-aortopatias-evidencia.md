@@ -411,3 +411,26 @@ deliberado: aquél indexa el **mayor** de los cuatro campos porque decide si la 
 Detalle, mediciones y las cinco trampas en **`docs/mapa/aj4-raiz-aortica.md`**; las fuentes con sus
 folios —incluida la **Figura 5**, que da otro número para la mujer— en `docs/fuentes/FUENTES.md` →
 «La tanda AJ4».
+
+
+---
+
+## La tanda MARFAN-1 (2026-11-01) — la TARJETA de criterios, que es otra cosa
+
+⚠️ **Este mapa es el de la SECCIÓN —«¿esta aorta se opera?», por los umbrales de la ESC 2024—.
+La TARJETA de criterios contesta otra pregunta: «¿este paciente tiene rasgos de Marfan?», por el
+artículo original de Ghent 2010.** Las dos viven en la misma sección y no comparten un solo
+corte.
+
+Lo que la MARFAN-1 cambió de **esta** pantalla:
+
+- **El cuadro «Conducta aórtica» ya no nombra la guía, la tabla, el folio ni la clase**: todo eso
+  pasó al globo `mf-conducta`. El veredicto y los umbrales en milímetros **se quedan**.
+  `marfanEstado` separa `txt` —contenido clínico— de `cita` —atribución—.
+- **El EN SUMA del estado «síndrome sin declarar» publicaba «ESC 2024»**, y era el único de los
+  once estados de la cascada que llevaba una guía al papel. Retirado.
+- La pantalla pasó a **dos columnas de campos a la izquierda y la conclusión a la derecha** desde
+  900 px, con la aorta ascendente **debajo** de la sinusal.
+
+Todo lo de la tarjeta —el score, las siete reglas, los globos y la figura— está en
+**`docs/mapa/marfan1-ghent.md`**.

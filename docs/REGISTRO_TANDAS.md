@@ -317,3 +317,29 @@ mueve donde la orden lo autoriza: una válvula operada con morfología nativa pa
 «tricúspide — Mixomatosa» a «tricúspide — sin tipo consignado».
 
 **Pendiente.** Ver el bloque de esta tanda en `docs/PENDIENTES.md` → **POPB-a** a **POPB-g**.
+
+---
+
+## MARFAN-1 — la tarjeta de criterios con el artículo original (2026-11-01)
+
+**Siete commits.** `8d95df3` (1, el score del Box 2 y los diecinueve campos) · `31ee701` (2, las
+siete reglas del Box 1) · `b032969` (3, el papel describe los rasgos) · `7d39fb9` (4, la pantalla
+y el globo de «Conducta aórtica») · `b98ae7a` (5, un globo por rasgo) · `aeeae9e` (6, la figura
+que se transforma) · el de cobertura y documentación.
+
+Al empezar, `origin/main` = `HEAD` = **`27a917d`**, el cierre de POP-B, ya publicado, con sello
+`v20261101-0834` y md5 `b6e61443`. **El push lo corre Maicol.**
+
+**Qué hizo:** corrigió la tarjeta de criterios de Marfan con el artículo original (Loeys 2010),
+leído en imagen; convirtió sus rasgos en diecinueve campos del estudio; implementó las siete
+reglas del Box 1 sólo en pantalla; hizo que el papel describa los rasgos sin la regla; reordenó
+la pantalla; agregó veintiún globos con la definición del artículo; y portó la figura que se
+transforma desde la demo del médico.
+
+**Qué dejó pendiente:** `MF1-a` a `MF1-h` en `docs/PENDIENTES.md` — el Z que no es campo
+guardado, las reglas 3 y 6 con el formulario vacío, las otras cinco categorías del artículo, el
+lado del neumotórax, lo que la figura todavía no tiene, la Evidencia de aortopatías, los dos
+mapas al techo y la segunda mitad del caveat.
+
+**Dónde está todo:** `docs/mapa/marfan1-ghent.md` (mapa nuevo, 11,1 KB) y
+`docs/mapa/tests-fichas-586.md` (fichas, archivo propio).

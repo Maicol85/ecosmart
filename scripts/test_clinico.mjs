@@ -7836,7 +7836,12 @@ caso('TC-116', 'Marfan/EHAT: el umbral quirurgico sale del sindrome, no solo del
     if (o.fr  != null) __t.set('marfan_factores_riesgo', o.fr);
     __t.chk('marfan_incluir_chk', true);
     const r = marfanEstado();
-    return { c: r.clave, t: r.txt, inf: __t.informe() };
+    /* ADAPTADO 2026-11-01 (MARFAN-1, 4b): la ATRIBUCION -el nombre de la guia, la tabla, el
+       folio y la clase- salio del texto del Fundamento y vive en la salida «cita», que es lo que el globo
+       de «Conducta aortica» publica. El invariante de este caso no cambia -cada sindrome cita
+       SU tabla con su clase y su nivel- y lo que cambia es DONDE se lo busca: leyendo las dos
+       piezas juntas, este caso sigue cazando que una cita se pierda o se cambie. */
+    return { c: r.clave, t: r.txt + ' ' + (r.cita || ''), inf: __t.informe() };
   }
   const lds45 = m({ s:'lds', seno:45 }),      lds44 = m({ s:'lds', seno:44 });
   const lds46 = m({ s:'lds', seno:46 }),      lds39 = m({ s:'lds', seno:39 });
@@ -7900,8 +7905,12 @@ caso('TC-116', 'Marfan/EHAT: el umbral quirurgico sale del sindrome, no solo del
     ['Turner con indice 24 Y factores -> IIa (el umbral baja a 23)', tu24fr.c === 'cx_iia'],
     ['23 exactos con factores no pasa (es >23)',  tu23fr.c === 'sin_indicacion'],
     ['el mismo 24 SIN factores no indica',        tu24no.c === 'sin_indicacion'],
-    ['pero el texto avisa que con factores seria IIa',
-      tu24no.t.indexOf('con factores de riesgo este índice ya sería Clase IIa') > -1],
+    /* ADAPTADA (MARFAN-1, 4b): el texto del Fundamento avisa que el indice ya cruzaria el
+       umbral, y la CLASE de ese aviso paso a la cita del globo. Se exigen las DOS mitades, asi
+       que el caso sigue cazando que cualquiera de las dos se pierda. */
+    ['pero el texto avisa que con factores cruzaria el umbral, y la clase esta en la cita',
+      tu24no.t.indexOf('con factores de riesgo este índice ya cruzaría el umbral') > -1 &&
+      tu24no.t.indexOf('Clase IIa · Nivel C') > -1],
     ['sin factores el umbral es 25: 25.1 -> IIb', tu26no.c === 'cx_iib'],
     ['25 exactos no pasa',                        tu25no.c === 'sin_indicacion'],
     /* ADAPTADO (TANDA NOCTURNA B2, 30/10/2026): el indice de tamanio aortico de Turner dejo de
@@ -7922,7 +7931,7 @@ caso('TC-116', 'Marfan/EHAT: el umbral quirurgico sale del sindrome, no solo del
     /* Ehlers-Danlos vascular: la guia NO publica umbral, asi que la app no concluye por el
        diametro, lo DICE, y no hereda el 55/50 de «Otro» -que es el umbral de otra enfermedad-. */
     ['Ehlers-Danlos vascular: sin umbral de diametro en la guia',
-      eds46.c === 'sin_umbral' && eds46.t.indexOf('no publica un umbral de diámetro') > -1 &&
+      eds46.c === 'sin_umbral' && eds46.t.indexOf('no hay un umbral de diámetro publicado') > -1 &&
       eds46.t.indexOf('folio 112') > -1],
     ['y NO cae en ninguna clase quirurgica',
       ['cx_i','cx_iia','cx_iib','umbral_iia_sin_fr'].indexOf(eds46.c) === -1],
@@ -8557,11 +8566,10 @@ caso('TC-124', 'Ebstein: cianosis y los cuatro grados de Celermajer', `
        Excel y lo contaria detectar_huerfanos. Es la condicion que separa «panel de referencia» de
        «campos clinicos disfrazados»;
    (c) la calculadora de Ghent calcule, por los dos lados del corte de 7. */
-caso('TC-125', 'Paneles de criterios: abren, cierran y no ensucian el estudio', `
+caso('TC-125', 'Paneles de criterios: abren, cierran y —salvo el de Marfan, que desde la tanda MARFAN-1 SI guarda sus rasgos con el estudio— no ensucian el estudio', `
   const ov = document.getElementById('crit-overlay');
   const cuerpo = document.getElementById('crit-cuerpo');
-  const titulo = document.getElementById('crit-titulo');
-  const abiertos = [], sinBoton = [], conId = [];
+  const abiertos = [], sinBoton = [], conId = [], conIdMarfan = [];
   ['marfan','eisen','fontan'].forEach(function(k) {
     /* El boton tiene que EXISTIR en su seccion, no en cualquier lado. */
     const sec = document.getElementById('sacc-cc-' + k);
@@ -8572,98 +8580,54 @@ caso('TC-125', 'Paneles de criterios: abren, cierran y no ensucian el estudio', 
     const vis = ov && ov.style.display === 'block';
     const tieneTexto = (cuerpo.textContent || '').trim().length > 200;
     if (vis && tieneTexto) abiertos.push(k);
-    /* NINGUN control del panel puede llevar id. */
+    /* ADAPTADO 2026-11-01 (MARFAN-1): la regla «ningun control del panel lleva id» sigue
+       valiendo para Eisenmenger y Fontan, que son paneles de REFERENCIA, y DEJO de valer para
+       el de Marfan: sus diecinueve rasgos son campos del ESTUDIO desde esta tanda y por eso
+       llevan id y se persisten. La condicion se INVIERTE para ese panel en vez de borrarse,
+       asi que sigue pudiendo fallar: si manana los de Eisenmenger ganaran un id, o si los de
+       Marfan lo perdieran, el caso se pone rojo. */
     [...cuerpo.querySelectorAll('input,select,textarea')].forEach(function(e) {
-      if (e.id) conId.push(k + ': ' + e.id); });
+      if (!e.id) return;
+      if (k === 'marfan') conIdMarfan.push(e.id); else conId.push(k + ': ' + e.id); });
     critCerrar();
   });
   const cerroBien = ov && ov.style.display === 'none';
-  /* La calculadora de Ghent, por los dos lados del corte. */
+  /* La calculadora de Ghent se reescribio entera en la tanda MARFAN-1 —el score sale del Box 2
+     del articulo original y las siete reglas del Box 1—, y su cobertura vive en TC-586 y
+     TC-587, que la miden rasgo por rasgo y regla por regla. Aca queda lo que es de ESTE caso:
+     que el panel abre, que trae su titulo y que los otros dos siguen sin tocar el estudio. */
   critAbrir('marfan');
-  const chks = [...cuerpo.querySelectorAll('[data-mf-p]')];
-  const marcar = n => { chks.forEach(function(c) { c.checked = false; });
-    let acum = 0;
-    chks.forEach(function(c) { const pt = parseFloat(c.getAttribute('data-mf-p'));
-      if (acum + pt <= n) { c.checked = true; acum += pt; } });
-    critMarfanCalc(); return acum; };
-  const seis = marcar(6), msg6 = (cuerpo.querySelector('[data-mf-msg]').textContent || '');
-  const siete = marcar(7), msg7 = (cuerpo.querySelector('[data-mf-msg]').textContent || '');
-  const badge = (cuerpo.querySelector('[data-mf-badge]').textContent || '').trim();
-  /* Aorta Z >= 2 + score >= 7 es una de las cinco vias de Ghent sin historia familiar. */
-  const z = cuerpo.querySelector('[data-mf-z]');
-  z.value = '2.1'; critMarfanCalc();
-  const sf = (cuerpo.querySelector('[data-mf-res-sf]').textContent || '');
-  z.value = '1.5'; critMarfanCalc();
-  const sfNo = (cuerpo.querySelector('[data-mf-res-sf]').textContent || '');
-  /* EL LADO NEGATIVO DE LAS CINCO VIAS. Ghent 2010 exige DOS criterios sin historia familiar:
-     ninguno alcanza solo. Sin estos casos, agregar una via de mas —ectopia lentis sola, que es
-     el error clasico porque la luxacion del cristalino tambien es aislada o de otra entidad—
-     pasaba desapercibido: lo dejo vivo una mutacion. */
-  marcar(0); z.value = ''; cuerpo.querySelector('[data-mf-lentis]').checked = true; critMarfanCalc();
-  const soloLentis = (cuerpo.querySelector('[data-mf-res-sf]').textContent || '');
-  cuerpo.querySelector('[data-mf-lentis]').checked = false; marcar(7); critMarfanCalc();
-  const soloScore = (cuerpo.querySelector('[data-mf-res-sf]').textContent || '');
-  marcar(0); cuerpo.querySelector('[data-mf-fbn1]').checked = true; critMarfanCalc();
-  const soloFbn1 = (cuerpo.querySelector('[data-mf-res-fbn1]') ? '' : (cuerpo.querySelector('[data-mf-res-sf]').textContent || ''));
-  cuerpo.querySelector('[data-mf-fbn1]').checked = false;
-  /* Y se repone el escenario que usan las condiciones de abajo. */
-  marcar(7); z.value = '2.1'; critMarfanCalc();
-  /* Con historia familiar alcanza UN criterio mayor. */
-  cuerpo.querySelector('[data-mf-hf]').checked = true; critMarfanCalc();
-  const cf = (cuerpo.querySelector('[data-mf-res-cf]').textContent || '');
-  /* Con EXACTAMENTE UNO. El escenario de arriba trae dos criterios mayores (aorta y score), asi
-     que exigir dos seguia pasando: lo dejo vivo una mutacion. «Basta UN criterio mayor» solo se
-     prueba con uno solo. */
-  marcar(0); z.value = ''; cuerpo.querySelector('[data-mf-fbn1]').checked = true; critMarfanCalc();
-  const cfUno = (cuerpo.querySelector('[data-mf-res-cf]').textContent || '');
-  cuerpo.querySelector('[data-mf-fbn1]').checked = false; critMarfanCalc();
-  const cfCero = (cuerpo.querySelector('[data-mf-res-cf]').textContent || '');
-  /* Y el lado que faltaba: criterio mayor presente pero SIN historia familiar. Esta columna
-     existe justamente porque la historia familiar cambia la regla; si deja de exigirla,
-     diagnostica Marfan con un solo criterio en un paciente sin familiar afectado. Los dos casos
-     de arriba tenian la historia familiar marcada, asi que sacarla del predicado sobrevivia. */
-  cuerpo.querySelector('[data-mf-hf]').checked = false;
-  cuerpo.querySelector('[data-mf-fbn1]').checked = true; critMarfanCalc();
-  const cfSinHF = (cuerpo.querySelector('[data-mf-res-cf]').textContent || '');
-  cuerpo.querySelector('[data-mf-fbn1]').checked = false;
+  const hayScore = !!document.getElementById('mfs-bloque-score');
+  const hayReglas = document.querySelectorAll('#mfs-reglas .mfs-reg').length;
+  const pie = (cuerpo.textContent || '');
   critCerrar();
   return { extra: [
     ['los tres botones existen en su seccion', sinBoton.length === 0, 'faltan: ' + sinBoton.join(', ')],
     ['los tres paneles abren con contenido', abiertos.length === 3, 'abrieron: ' + abiertos.join(', ')],
     ['y el overlay cierra', cerroBien],
-    ['ningun control del panel lleva id: no se persiste en el estudio',
+    ['ningun control de los paneles de REFERENCIA lleva id: no se persisten en el estudio',
       conId.length === 0, conId.join(' | ')],
+    /* ⚠️ SON VEINTE Y NO DIECINUEVE, y lo cazo esta misma condicion al escribirla: el vigesimo
+       es la casilla «Superponer la figura de referencia», que vive en el panel y NO es un campo
+       del estudio. Separarlos la hace MAS fuerte: vigila los dos lados a la vez. */
+    ['INVERTIDA (MARFAN-1): los rasgos del panel de Marfan SI llevan id, porque son del estudio',
+      conIdMarfan.filter(function(x) { return !_noEsDelEstudio(x); }).length === 19,
+      'del estudio: ' + conIdMarfan.filter(function(x) { return !_noEsDelEstudio(x); }).length],
+    ['y el unico control del panel que NO es del estudio es la casilla de la figura',
+      conIdMarfan.filter(function(x) { return _noEsDelEstudio(x); }).join(',') === 'mfs-fig-ref',
+      'fuera del estudio: ' + conIdMarfan.filter(function(x) { return _noEsDelEstudio(x); }).join(',')],
     ['el registro tiene los tres, con titulo',
       !!CRIT_PANELES.marfan && !!CRIT_PANELES.eisen && !!CRIT_PANELES.fontan &&
       CRIT_PANELES.marfan.titulo.indexOf('Ghent 2010') > -1],
-    ['score 6 no alcanza el compromiso sistemico', seis === 6 && msg6.indexOf('< 7') > -1],
-    ['score 7 exacto si', siete === 7 && msg7.indexOf('≥ 7') > -1],
-    ['el badge publica el score sobre 20', badge === '7 / 20'],
-    ['Z 2.1 + score 7 cumple criterios de Marfan', sf.indexOf('Cumple criterios') > -1],
-    ['Z 1.5 con el mismo score no', sfNo.indexOf('No cumple criterios') > -1],
-    ['con historia familiar alcanza un criterio mayor', cf.indexOf('Cumple criterios') > -1],
-    ['y con UNO SOLO tambien: eso es lo que dice la regla', cfUno.indexOf('Cumple criterios') > -1],
-    ['sin ningun criterio mayor, la historia familiar sola no alcanza',
-      cfCero.indexOf('Falta al menos un criterio mayor') > -1],
-    ['y sin historia familiar la columna no diagnostica, aunque haya criterio mayor',
-      cfSinHF.indexOf('Marcá la historia familiar') > -1 && cfSinHF.indexOf('Cumple') === -1],
-    /* El TINTE tiene que acompañar al texto. El verde lo decide ok y el texto lo decide otro
-       predicado: sacarle la historia familiar a ok no cambiaba una palabra —el !hf corta
-       antes— y dejaba el recuadro en VERDE diciendo «Marcá la historia familiar». Un invariante
-       que vive en dos expresiones se desincroniza sin que se vea. */
-    ['y el recuadro no queda en verde mientras pide el dato', (function(){
-      const el = cuerpo.querySelector('[data-mf-res-cf]');
-      return (el.getAttribute('style') || '').indexOf('16,185,129') === -1;
-    })()],
-    ['ectopia lentis SOLA no diagnostica: Ghent exige dos criterios',
-      soloLentis.indexOf('No cumple criterios') > -1],
-    ['score sistemico >= 7 solo tampoco', soloScore.indexOf('No cumple criterios') > -1],
-    ['mutacion FBN1 sola tampoco', soloFbn1.indexOf('No cumple criterios') > -1],
+    ['el panel de Marfan trae su bloque de rasgos y sus siete reglas', hayScore && hayReglas === 7,
+      'score: ' + hayScore + ' reglas: ' + hayReglas],
+    ['y declara que lo marcado viaja con el estudio',
+      pie.indexOf('viaja con el estudio') > -1],
     /* El panel de Fontan NO puede publicar un corte que la seccion no aplica. */
     ['el panel de Fontan declara que la seccion clasifica por complicaciones',
       critFontan().indexOf('la sección clasifica por las complicaciones consignadas') > -1],
-    ['y los tres declaran que no leen ni escriben la seccion',
-      [critMarfan(), critEisen(), critFontan()].every(function(h) {
+    ['ADAPTADA (MARFAN-1): los DOS de referencia siguen declarando que no leen ni escriben la seccion',
+      [critEisen(), critFontan()].every(function(h) {
         return h.indexOf('no lee ni escribe ningún campo de la sección') > -1; })]
   ] };
 `);
@@ -66439,7 +66403,12 @@ caso('TC-471', 'Valvulas D1: la insuficiencia mitral en TRES columnas de SEIS co
        caso mide: lo que cambia es el denominador del registro, no lo que el caso afirma. */
     /* ADAPTADO 2026-10-31 (TGA-2): 73 -> 74. El globo nuevo es el del diagrama 3D de la
        transposicion. */
-    Object.keys(VINFO).length === 74,
+    /* ADAPTADO 2026-11-01 (MARFAN-1): 74 -> 96. Las VEINTIDOS nuevas son el globo del umbral
+       de «Conducta aortica» y los veintiuno de la tarjeta de criterios de Marfan —trece rasgos
+       del score, seis criterios aparte, el puntaje y las siete reglas—. NINGUNA esta en
+       Valvulas, que es la pestana que este caso mide: lo que cambia es el denominador del
+       registro, no lo que esta condicion afirma sobre el marcado de esa pestana. */
+    Object.keys(VINFO).length === 96,
     'registro=' + (HAY_INFO ? Object.keys(VINFO).join(',') : 'SIN REGISTRO')]);
   ex.push(['(H) y la tarjeta se coloca SIEMPRE dentro de la pantalla, sin cortarse',
     (function(){ const b = document.querySelector('[data-vinfo="avm-thp"]');
@@ -77817,7 +77786,11 @@ caso('TC-500', 'Tanda Q: las OCHO tarjetas i de las valvulas arriba de su pastil
      la regla R2 saca de la linea visible. Lo que esta condicion afirma no cambia. */
   /* ADAPTADO (TANDA D2, 30/10/2026): 71 -> 72, por co-monitoreo. */
   /* ADAPTADO (TANDA AJUSTES-2, 31/10/2026): 72 -> 73, por inf-min. Ver la nota de TC-471. */
-  ex.push(['DENOMINADOR: el mecanismo de los globos existe y el registro tiene las 74 entradas',
+    /* ADAPTADO 2026-11-01 (MARFAN-1): la tanda agrego VEINTIDOS entradas al registro —el globo
+       del umbral de «Conducta aortica» y los veintiuno de la tarjeta de criterios: trece rasgos
+       del score, seis criterios aparte, el puntaje y las siete reglas—. Lo que la condicion
+       afirma NO cambia; lo que cambia es el denominador. */
+  ex.push(['DENOMINADOR: el mecanismo de los globos existe y el registro tiene las 96 entradas',
     /* ⚠️ ADAPTADO EN LA TANDA D: 56 -> 57. La entrada nueva es co-riesgo-basal, el globo de la
        clasificacion de riesgo cardiovascular basal, donde viven las clases y los niveles que la
        regla R2 saca de la linea visible. Lo que esta condicion afirma no cambia: que el
@@ -77836,7 +77809,7 @@ caso('TC-500', 'Tanda Q: las OCHO tarjetas i de las valvulas arriba de su pastil
     /* ADAPTADO (TANDA TGA, 31/10/2026): 73 -> 74. La entrada nueva es tga-3d, el globo del
        diagrama de la transposicion. NO esta en Valvulas: lo que cambia es el denominador del
        registro, no lo que esta condicion afirma. */
-    FN('vInfoClic') && !!CARD() && !!REG() && Object.keys(REG() || {}).length === 74,
+    FN('vInfoClic') && !!CARD() && !!REG() && Object.keys(REG() || {}).length === 96,
     'VINFO=' + (REG() ? Object.keys(REG()).length : 'SIN REGISTRO') + ' card=' + !!CARD()]);
   ex.push(['(A1) los OCHO botones de lesion existen, son BUTTON, sin atributo title y con aria-expanded',
     CLAVES.every(function (k) { const b = BTN(k);
@@ -79146,12 +79119,17 @@ caso('TC-502', 'Tanda P: Referencias en CINCO subpestanas sin perder una entrada
      publica contenido clinico y NO LLEVA UNA SOLA CITA —la demo de la que sale el dibujo es
      material de referencia del medico y no una guia leida en texto completo—, asi que no tiene
      ficha en Referencias ni boton. Es el mismo limite declarado que inf-min. */
-  ex.push(['(C3) LIMITE DECLARADO: veintiseis tarjetas sin boton, porque Referencias no tiene esa entrada',
+  /* ADAPTADO 2026-11-01 (MARFAN-1): 26 -> 45. Las DIECINUEVE nuevas son los globos de los
+     rasgos del score y de los criterios aparte de la tarjeta de Marfan: explican la DEFINICION
+     del articulo original, no publican una ficha de Referencias, y por eso no tienen boton.
+     El limite que esta condicion declara no cambia; cambia su denominador. */
+  ex.push(['(C3) LIMITE DECLARADO: cuarenta y cinco tarjetas sin boton, porque Referencias no tiene esa entrada',
     /* ADAPTADA (TANDA AJUSTES-2, commit 4a, 31/10/2026): 24 -> 25. La entrada nueva es
        inf-min, el ⓘ de la fila de miniaturas de lo que va al PDF; no tiene ficha en
        Referencias porque explica la INTERFAZ y no publica contenido clinico. */
     sinBoton.join(',') === 'amilo-score,co-monitoreo,co-riesgo-basal,coa-card,cvr-coc,cvr-ecosmart,et-avt-cont,'
       + 'hemo-forr,hemo-ic,hemo-rvs,inf-min,'
+      + 'mfs-codo,mfs-diseccion,mfs-ectasia,mfs-ectopia,mfs-escoliosis,mfs-estrias,mfs-facies,mfs-fbn1ao,mfs-fbn1c,mfs-historia,mfs-miopia,mfs-muneca,mfs-neumotorax,mfs-pectus,mfs-pie,mfs-prolapso,mfs-proporciones,mfs-protrusion,mfs-sinotros,'
       + 'tarj-esten-pulmonar,tarj-esten-tricuspide,tarj-insuf-pulmonar,'
       + 'tep-eco-dx,tep-mcconnell,tga-3d,'
       + 'vab-aorta,vab-cx,vab-friesgo,vab-func,vab-tit,vab-valv,vd-triv,vexus-lim,vm-carp',
@@ -83859,7 +83837,17 @@ caso('TC-512', 'Trabajo H: las citas de aorta por sindrome —Tabla 62 solo Marf
     Object.keys(o).forEach(function(k){ __t.set(k, String(o[k])); });
     __t.chk('marfan_incluir_chk', true);
     const r = marfanEstado();
-    return { c: r.clave, t: r.txt, box: L('marfan-resultado'), hint: L('marfan-fr-hint'), inf: __t.informe() };
+    /* ADAPTADO 2026-11-01 (MARFAN-1, 4b): la ATRIBUCION -el nombre de la guia, la tabla, el
+       folio y la clase- salio del texto del Fundamento y vive en la salida «cita», que es lo que el globo
+       de «Conducta aortica» publica. El invariante de este caso no cambia -cada sindrome cita
+       SU tabla con su clase y su nivel- y lo que cambia es DONDE se lo busca: leyendo las dos
+       piezas juntas, este caso sigue cazando que una cita se pierda o se cambie. */
+    /* Y la PANTALLA se lee como la ve el medico: la capsula MAS lo que su globo publica. */
+    const _glo = (typeof _mfConductaInfo === 'function')
+      ? String(_mfConductaInfo().textContent || '') : '';
+    return { c: r.clave, t: r.txt + ' ' + (r.cita || ''),
+             box: L('marfan-resultado') + ' | GLOBO: ' + _glo,
+             hint: L('marfan-fr-hint'), inf: __t.informe() };
   }
   const mar50  = m({ marfan_sindrome:'marfan', marfan_ao_seno:'50' });
   const mar45f = m({ marfan_sindrome:'marfan', marfan_ao_seno:'45', marfan_factores_riesgo:'si' });
@@ -83904,8 +83892,12 @@ caso('TC-512', 'Trabajo H: las citas de aorta por sindrome —Tabla 62 solo Marf
   ex.push(['55 mm sigue siendo Clase I y ahora dice su nivel B', eh55.c === 'cx_i' && eh55.t.indexOf('Clase I · Nivel B') > -1]);
   ex.push(['50 mm con factores pasa de IIa a Clase IIb · Nivel B',
     eh50f.c === 'cx_iib' && eh50f.t.indexOf('Clase IIb · Nivel B') > -1]);
-  ex.push(['y el badge de la pantalla dice lo MISMO que el Fundamento',
-    eh50f.box.indexOf('Puede considerarse — Clase IIb') > -1 && eh50f.box.indexOf('Clase IIa') === -1]);
+  /* ADAPTADA (MARFAN-1, 4b): el badge dice el VEREDICTO y la clase vive en el globo. Se exigen
+     las dos cosas sobre la pantalla completa -capsula mas globo-, asi que el invariante «el
+     badge no puede contradecir al Fundamento» sigue vigilado por los dos lados. */
+  ex.push(['y el badge de la pantalla dice lo MISMO que el Fundamento, con la clase en el globo',
+    eh50f.box.indexOf('Puede considerarse') > -1 && eh50f.box.indexOf('Clase IIb') > -1 &&
+    eh50f.box.indexOf('Clase IIa') === -1]);
   ex.push(['CONTROL: el Marfan con factores sigue siendo IIa · C y no se movio',
     mar45f.c === 'cx_iia' && mar45f.t.indexOf('Clase IIa · Nivel C') > -1]);
   ex.push(['CONTROL: los dos cortes de Turner y sus dos clases no se movieron',
@@ -83927,7 +83919,7 @@ caso('TC-512', 'Trabajo H: las citas de aorta por sindrome —Tabla 62 solo Marf
     (function(){ const s = document.getElementById('marfan_sindrome');
       return !!s && Array.prototype.some.call(s.options, function(o){ return o.value === 'eds' }); })()]);
   ex.push(['con 46 mm declara que la guia NO publica umbral, con su folio',
-    eds46.c === 'sin_umbral' && eds46.t.indexOf('no publica un umbral de diámetro') > -1 &&
+    eds46.c === 'sin_umbral' && eds46.t.indexOf('no hay un umbral de diámetro publicado') > -1 &&
     eds46.t.indexOf('folio 112') > -1]);
   ex.push(['y NO cae en ninguna clase quirurgica',
     ['cx_i','cx_iia','cx_iib','umbral_iia_sin_fr'].indexOf(eds46.c) === -1]);
@@ -91599,12 +91591,16 @@ caso('TC-535', 'Tanda AJ7: la linea de Fallot del EN SUMA sin la IP y el resumen
      DOS antes de medir, y su acordeon YA VIENE ABIERTO —cerrarlo por error deja el globo sin
      caja—. Lo que estas tres condiciones exigen no cambia; lo que cambia es cuantos globos
      tienen que cumplirlo, y el conteo ES el denominador. */
-  ex.push(['(K0) DENOMINADOR: los DIECIOCHO globos llevan la clase, tienen geometria y estan EN VISTA',
-    tapK.length === 18 && tapK.every((x) => x.w > 0 && x.h > 0 && x.enVista), JSON.stringify(tapK)]);
-  ex.push(['(K1) los dieciocho miden 44x44 tambien con el mouse',
-    tapK.length === 18 && tapK.every((x) => x.w >= 44 && x.h >= 44), JSON.stringify(tapK)]);
+  /* ADAPTADO 2026-11-01 (MARFAN-1): 18 -> 37. Los DIECINUEVE nuevos son los globos de los
+     rasgos del score y de los criterios aparte de la tarjeta de Marfan, que nacen con la
+     clase vinfo-btn-44. Lo que estas tres condiciones exigen no cambia; cambia cuantos globos
+     tienen que cumplirlo, y el conteo ES el denominador. */
+  ex.push(['(K0) DENOMINADOR: los TREINTA Y SIETE globos llevan la clase, tienen geometria y estan EN VISTA',
+    tapK.length === 37 && tapK.every((x) => x.w > 0 && x.h > 0 && x.enVista), JSON.stringify(tapK)]);
+  ex.push(['(K1) los treinta y siete miden 44x44 tambien con el mouse',
+    tapK.length === 37 && tapK.every((x) => x.w >= 44 && x.h >= 44), JSON.stringify(tapK)]);
   ex.push(['(K2) y su caja NO tapa a ningun vecino: los cinco puntos dan el propio boton',
-    tapK.length === 18 && tapK.every((x) => x.propios === 5), JSON.stringify(tapK)]);
+    tapK.length === 37 && tapK.every((x) => x.propios === 5), JSON.stringify(tapK)]);
   ex.push(['(K3) CONTROL: los demas globos NO se tocaron y siguen con su piso solo tactil',
     document.querySelectorAll('button.vinfo-btn').length
       - document.querySelectorAll('button.vinfo-btn-44').length >= 10,
@@ -97919,10 +97915,18 @@ caso('TC-552', 'Tanda NOCTURNA B: el TRIV del VD en sus DOS referencias con los 
      diametros» y la condicion caia sobre un denominador vacio. */
   esc(mk({ marfan_sindrome: 'marfan', marfan_ao_seno: '52' }));
   await esperar(200);
-  ex.push(['(E9) CONTROL: la CAPSULA de pantalla sigue publicando el umbral, la clase y la tabla',
+  /* INVERTIDA 2026-11-01 (MARFAN-1, 4b): la capsula conserva el UMBRAL en milimetros -que es
+     el contenido clinico- y la clase y la tabla pasaron al globo de «Conducta aortica». El
+     invariante que este control vigila -que lo retirado del papel NO se perdio de la pantalla-
+     sigue en pie: se exige que la capsula traiga el umbral y que el globo traiga la clase y la
+     tabla. Si cualquiera de las dos se perdiera, el caso se pone rojo. */
+  ex.push(['(E9) CONTROL INVERTIDO: el umbral queda en la capsula y la clase y la tabla en el globo',
     (function () { const t = T('marfan-resultado');
-      return /Clase\\s+I\\b/.test(t) && /Tabla\\s+62/.test(t); })(),
-    T('marfan-resultado').slice(0, 150)]);
+      const g = (typeof _mfConductaInfo === 'function') ? String(_mfConductaInfo().textContent || '') : '';
+      const capsulaSinClase = t.indexOf('Clase ') === -1 && t.indexOf('Tabla') === -1;
+      return t.indexOf('50 mm') > -1 && capsulaSinClase
+             && /Clase\\s+I\\b/.test(g) && /Tabla\\s+62/.test(g); })(),
+    T('marfan-resultado').slice(0, 120)]);
 
   } finally {
     try { if (F('limpiarCampos')) limpiarCampos(); } catch (e) {}
@@ -104156,6 +104160,687 @@ caso('TC-585', 'Tanda POP-B: el dibujo del posoperatorio sin un solo texto super
   ex.push(['(E11) y las valvulas operadas se nombran con su tipo en las caracteristicas',
            T('pop-esq-txt').indexOf('v' + String.fromCharCode(225) + 'lvulas operadas') > -1 ? 'se nombran' : 'NO', 'se nombran']);
   try { if (typeof limpiarCampos === 'function') limpiarCampos(true); } catch (e) {}
+  return { extra: EXP };
+  })();
+`);
+
+/* ══ TANDA MARFAN-1 · TC-586 a TC-590 (2026-11-01) ═══════════════════════════════════════════
+     TC-586  el score sistemico del Box 2: cada item, las tres alternativas excluyentes, el
+             maximo de 20, la ectopia lentis FUERA del puntaje, un valor sin equivalente y un
+             estudio viejo que se lee sin reescribirse.
+     TC-587  las siete reglas del Box 1: cumple, no cumple y sin dato; el asterisco en 1, 3, 6
+             y 7 y NO en 2, 4 ni 5; la edad en la regla 7 con sus dos cortes y sus dos motivos
+             de «sin dato»; y las dos variantes de FBN1 como independientes.
+     TC-588  el papel: los rasgos se describen y la regla no; ningun campo nuevo llega al Excel
+             y los diecinueve viajan en guardar, reabrir, exportar e importar.
+     TC-589  la pantalla y los globos: dos columnas con la ascendente debajo de la sinusal, la
+             conclusion al costado, «Conducta aortica» sin guia ni clase y con su globo, y un
+             globo por rasgo con su folio.
+     TC-590  la figura: el mismo dato que la tarjeta, cada marca, los cambios de forma, que no
+             guarda nada propio y que no llega al papel.
+   ══════════════════════════════════════════════════════════════════════════════════════════ */
+caso('TC-586', 'Tanda MARFAN-1: el score sistemico corregido con el Box 2 del articulo original -trece rasgos que suman 20 exactos, las tres alternativas excluyentes y la ectopia lentis fuera del puntaje-, con los diecinueve campos del estudio existiendo sin abrir la tarjeta y un valor sin equivalente que no se cuenta', `
+  return (async () => {
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]),
+                 'dio «' + t[1] + '» · esperado «' + t[2] + '»']) };
+  const esperar = (ms) => new Promise(r => setTimeout(r, ms));
+  const EL = (id) => document.getElementById(id);
+  const FN = (n) => (typeof window[n] === 'function') ? window[n] : null;
+  const pon = (id, v) => { const e = EL(id); if (!e) return 'NO ' + id;
+    e.value = String(v); e.dispatchEvent(new Event('input', { bubbles: true }));
+    e.dispatchEvent(new Event('change', { bubbles: true })); return e.value; };
+  const mar = (id, on) => { const c = EL(id); if (!c) return 'NO ' + id; c.checked = !!on;
+    c.dispatchEvent(new Event('change', { bubbles: true })); return !!c.checked; };
+  try { FN('limpiarCampos') && FN('limpiarCampos')(true); } catch (e) {}
+  await esperar(160);
+  /* ⚠️ HELPERS TOLERANTES AL ARBOL VIEJO, Y NO SON UN ADORNO. Contra HEAD nada de esto existe
+     y la primera linea que lo nombrara mataria el caso con un TypeError, sin decir QUE
+     invariante se rompio: «caer por excepcion no es caer». Es la leccion que TC-546 dejo
+     escrita en este archivo. Con estas guardas el caso cae por SUS CONDICIONES. */
+  const TAB = () => (typeof MFS_SCORE === 'undefined') ? [] : MFS_SCORE;
+  const APT = () => (typeof MFS_APARTE === 'undefined') ? [] : MFS_APARTE;
+  const SC = (src) => (typeof mfsScore === 'function') ? mfsScore(src)
+    : { pts: 'NO EXISTE', tildados: [], sinEquivalente: [], max: 'NO EXISTE' };
+  const AP = (src, k) => (typeof mfsAparte === 'function') ? mfsAparte(src, k) : 'NO EXISTE';
+  const RG = () => (typeof mfsReglas === 'function') ? mfsReglas()
+    : { reglas: [], algunaCumple: 'NO EXISTE' };
+  const FE = () => (typeof mfsFigEstado === 'function') ? mfsFigEstado() : {};
+
+
+  /* ── (A) DENOMINADOR: la tabla y los campos EXISTEN, y existen SIN abrir la tarjeta ── */
+  ex.push(['(A0) el denominador: MFS_SCORE existe y es la tabla del Box 2',
+           (typeof MFS_SCORE === 'undefined') ? 'NO EXISTE' : TAB().length, 13]);
+  const IDS = (typeof MFS_SCORE === 'undefined' ? [] : TAB().map(r => r.c))
+    .concat(typeof MFS_APARTE === 'undefined' ? [] : APT().map(r => r.c));
+  ex.push(['(A1) los diecinueve campos existen en el documento SIN abrir la tarjeta',
+           IDS.filter(i => !EL(i)).join(',') || 'todos', 'todos']);
+  ex.push(['(A2) los diecinueve son campos DEL ESTUDIO',
+           IDS.filter(i => FN('_noEsDelEstudio') && _noEsDelEstudio(i)).join(',') || 'ninguno fuera', 'ninguno fuera']);
+  ex.push(['(A3) la casilla de la figura de referencia NO es un campo del estudio',
+           (FN('_noEsDelEstudio') && _noEsDelEstudio('mfs-fig-ref')) ? 'fuera' : 'ES CAMPO', 'fuera']);
+
+  /* ── (B) EL MAXIMO ES 20 Y LA SUMA SALE DE LA TABLA ── */
+  ex.push(['(B1) el maximo declarado es 20', (typeof MFS_SCORE_MAX === 'undefined') ? 'NO' : MFS_SCORE_MAX, 20]);
+  ex.push(['(B2) el corte es 7', (typeof MFS_SCORE_CORTE === 'undefined') ? 'NO' : MFS_SCORE_CORTE, 7]);
+  TAB().forEach(r => { if (r.t === 'sel') pon(r.c, r.ops[0][0]); else mar(r.c, true); });
+  await esperar(180);
+  ex.push(['(B3) con TODO en su alternativa mayor el puntaje es 20 exactos', SC().pts, 20]);
+  ex.push(['(B4) y son trece rasgos tildados', SC().tildados.length, 13]);
+  TAB().forEach(r => { if (r.t === 'sel') pon(r.c, r.ops[1][0]); });
+  await esperar(140);
+  ex.push(['(B5) con las tres alternativas MENORES el puntaje baja a 16', SC().pts, 16]);
+
+  /* ── (C) LOS TRES GRUPOS SON EXCLUYENTES ── */
+  try { FN('limpiarCampos') && FN('limpiarCampos')(true); } catch (e) {}
+  await esperar(140);
+  pon('mfs_muneca_pulgar', 'ambos'); await esperar(90);
+  ex.push(['(C1) los dos signos de la mano valen 3', SC().pts, 3]);
+  pon('mfs_muneca_pulgar', 'uno'); await esperar(90);
+  ex.push(['(C2) uno solo vale 1, y NO se suman los dos', SC().pts, 1]);
+  pon('mfs_pectus', 'carinatum'); await esperar(90);
+  ex.push(['(C3) el carinatum vale 2', SC().pts, 3]);
+  pon('mfs_pectus', 'excavatum'); await esperar(90);
+  ex.push(['(C4) el excavatum vale 1 y reemplaza al carinatum', SC().pts, 2]);
+  pon('mfs_pie', 'retropie'); await esperar(90);
+  ex.push(['(C5) la deformidad del retropie vale 2', SC().pts, 4]);
+  pon('mfs_pie', 'plano'); await esperar(90);
+  ex.push(['(C6) el pie plano simple vale 1 y reemplaza al retropie', SC().pts, 3]);
+
+  /* ── (D) LA ECTOPIA LENTIS NO SUMA: el defecto que esta tanda cierra ── */
+  try { FN('limpiarCampos') && FN('limpiarCampos')(true); } catch (e) {}
+  await esperar(140);
+  pon('mfs_ectopia_lentis', 'si'); await esperar(120);
+  ex.push(['(D1) la ectopia lentis NO suma al puntaje', SC().pts, 0]);
+  ex.push(['(D2) y NO esta entre los rasgos de la tabla del Box 2',
+           TAB().filter(r => /lentis|cristalino/i.test(r.rot)).length, 0]);
+  ex.push(['(D3) pero SI se lee como criterio aparte', AP(null, 'mfs_ectopia_lentis'), 'si']);
+  /* CONTROL NEGATIVO: un rasgo que SI suma, en el mismo escenario */
+  mar('mfs_neumotorax', true); await esperar(120);
+  ex.push(['(D4) control: el neumotorax en el mismo escenario SI suma 2', SC().pts, 2]);
+
+  /* ── (E) UN VALOR SIN EQUIVALENTE NO SE CUENTA Y SE AVISA ── */
+  try { FN('limpiarCampos') && FN('limpiarCampos')(true); } catch (e) {}
+  await esperar(140);
+  const ep = EL('mfs_pectus');
+  if (ep) { const o = document.createElement('option'); o.value = 'requiere_cirugia';
+    o.textContent = 'viejo'; ep.appendChild(o); pon('mfs_pectus', 'requiere_cirugia'); }
+  await esperar(140);
+  ex.push(['(E1) un pectus «que requiere cirugia» de la version anterior NO se cuenta', SC().pts, 0]);
+  ex.push(['(E2) y se declara como dato anterior sin equivalente',
+           SC().sinEquivalente.map(x => x.c).join(','), 'mfs_pectus']);
+  if (ep && ep.lastElementChild && ep.lastElementChild.value === 'requiere_cirugia') ep.removeChild(ep.lastElementChild);
+  pon('mfs_pectus', '');
+
+  /* ── (F) EL PRESTAMO: la tarjeta no puede perder lo cargado ── */
+  pon('mfs_muneca_pulgar', 'ambos'); mar('mfs_neumotorax', true); pon('mfs_ectopia_lentis', 'si');
+  await esperar(160);
+  const antes = SC().pts;
+  FN('critAbrir') && critAbrir('marfan'); await esperar(260);
+  ex.push(['(F1) con la tarjeta abierta los campos estan ADENTRO',
+           document.querySelector('#crit-cuerpo #mfs_muneca_pulgar') ? 'si' : 'NO', 'si']);
+  ex.push(['(F2) y hay UNA sola instancia de cada id en el documento',
+           document.querySelectorAll('#mfs_muneca_pulgar').length, 1]);
+  FN('critCerrar') && critCerrar(); await esperar(200);
+  ex.push(['(F3) al cerrarla los campos vuelven a la seccion',
+           document.querySelector('#sacc-cc-marfan #mfs_muneca_pulgar') ? 'si' : 'NO', 'si']);
+  FN('critAbrir') && critAbrir('marfan'); await esperar(260);
+  ex.push(['(F4) al reabrirla el puntaje sigue siendo el mismo', SC().pts, antes]);
+  /* el caso que de verdad rompia: abrir OTRO panel de criterios */
+  FN('critAbrir') && critAbrir('eisen'); await esperar(260);
+  ex.push(['(F5) y abrir OTRO panel de criterios no se lleva los campos', SC().pts, antes]);
+  ex.push(['(F6) con su valor intacto', (EL('mfs_muneca_pulgar') || {}).value, 'ambos']);
+  FN('critCerrar') && critCerrar(); await esperar(180);
+
+  /* ── (G) UN ESTUDIO VIEJO SE LEE SIN REESCRIBIRSE ── */
+  try { FN('limpiarCampos') && FN('limpiarCampos')(true); } catch (e) {}
+  await esperar(140);
+  const viejo = { marfan_sindrome: 'marfan', marfan_ao_seno: '48' };
+  ex.push(['(G1) un estudio SIN ningun campo nuevo da puntaje 0 y no tira', SC(viejo).pts, 0]);
+  ex.push(['(G2) y sus criterios aparte se leen como «sin dato»',
+           String(AP(viejo, 'mfs_ectopia_lentis')), 'null']);
+  ex.push(['(G3) leerlo NO le escribe ningun campo nuevo',
+           Object.keys(viejo).filter(k => k.indexOf('mfs_') === 0).length, 0]);
+  /* CONTROL NEGATIVO: el formulario vivo tampoco quedo escrito */
+  ex.push(['(G4) control: el formulario sigue vacio',
+           IDS.map(i => { const e = EL(i); return e ? (e.type === 'checkbox' ? (e.checked ? '1' : '') : e.value) : ''; })
+             .filter(Boolean).join(',') || 'vacio', 'vacio']);
+  return { extra: EXP };
+  })();
+`);
+
+caso('TC-587', 'Tanda MARFAN-1: las siete reglas del Box 1 con tres estados por condicion -el asterisco exigido en 1, 3, 6 y 7 y NO en 2, 4 ni 5-, la regla 7 cambiando el umbral del Z con la edad y diciendo cual de los dos datos le falta, la diseccion cumpliendo sin Z ni edad, y las dos variantes de FBN1 independientes', `
+  return (async () => {
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]),
+                 'dio «' + t[1] + '» · esperado «' + t[2] + '»']) };
+  const esperar = (ms) => new Promise(r => setTimeout(r, ms));
+  const EL = (id) => document.getElementById(id);
+  const FN = (n) => (typeof window[n] === 'function') ? window[n] : null;
+  const pon = (id, v) => { const e = EL(id); if (!e) return 'NO ' + id;
+    e.value = String(v); e.dispatchEvent(new Event('input', { bubbles: true }));
+    e.dispatchEvent(new Event('change', { bubbles: true })); return e.value; };
+  const mar = (id, on) => { const c = EL(id); if (!c) return 'NO ' + id; c.checked = !!on;
+    c.dispatchEvent(new Event('change', { bubbles: true })); return !!c.checked; };
+  try { FN('limpiarCampos') && FN('limpiarCampos')(true); } catch (e) {}
+  await esperar(160);
+  /* ⚠️ HELPERS TOLERANTES AL ARBOL VIEJO, Y NO SON UN ADORNO. Contra HEAD nada de esto existe
+     y la primera linea que lo nombrara mataria el caso con un TypeError, sin decir QUE
+     invariante se rompio: «caer por excepcion no es caer». Es la leccion que TC-546 dejo
+     escrita en este archivo. Con estas guardas el caso cae por SUS CONDICIONES. */
+  const TAB = () => (typeof MFS_SCORE === 'undefined') ? [] : MFS_SCORE;
+  const APT = () => (typeof MFS_APARTE === 'undefined') ? [] : MFS_APARTE;
+  const SC = (src) => (typeof mfsScore === 'function') ? mfsScore(src)
+    : { pts: 'NO EXISTE', tildados: [], sinEquivalente: [], max: 'NO EXISTE' };
+  const AP = (src, k) => (typeof mfsAparte === 'function') ? mfsAparte(src, k) : 'NO EXISTE';
+  const RG = () => (typeof mfsReglas === 'function') ? mfsReglas()
+    : { reglas: [], algunaCumple: 'NO EXISTE' };
+  const FE = () => (typeof mfsFigEstado === 'function') ? mfsFigEstado() : {};
+
+  /* ⚠️ EL Z VIVE EN LA TARJETA Y NO ES UN CAMPO GUARDADO: sin abrirla, TODAS las reglas que
+     dependen de el quedan en «sin dato» y el caso mediria un denominador vacio. */
+  FN('critAbrir') && critAbrir('marfan'); await esperar(300);
+  const Z = () => document.querySelector('#crit-cuerpo [data-mf-z]');
+  ex.push(['(A0) el denominador: el campo del Z existe en la tarjeta', Z() ? 'si' : 'NO', 'si']);
+  const setZ = (v) => { const e = Z(); if (!e) return; e.value = String(v);
+    e.dispatchEvent(new Event('input', { bubbles: true })); };
+  const esc = (o) => {
+    ['mfs_ectopia_lentis','mfs_historia_familiar','mfs_fbn1_causal','mfs_fbn1_ao',
+     'mfs_sin_otros','mfs_diseccion_raiz'].forEach(k => pon(k, ''));
+    TAB().forEach(r => { if (r.t === 'sel') pon(r.c, ''); else mar(r.c, false); });
+    pon('edad', ''); setZ('');
+    Object.keys(o || {}).forEach(k => { if (k === '_z') setZ(o[k]);
+      else if (o[k] === 1) mar(k, true); else pon(k, o[k]); });
+  };
+  const R = (n) => RG().reglas.filter(x => x.n === n)[0] || { estado: 'NO EXISTE', por: '' };
+  /* nueve puntos: 3 + 2 + 2 + 1 + 1 */
+  const S9 = { mfs_muneca_pulgar: 'ambos', mfs_pectus: 'carinatum', mfs_neumotorax: 1,
+               mfs_estrias: 1, mfs_miopia: 1 };
+
+  /* ── (B) LAS SIETE: cumple ── */
+  esc({ _z: '2.4', mfs_ectopia_lentis: 'si', mfs_sin_otros: 'si' }); await esperar(130);
+  ex.push(['(B1) regla 1 cumple con raiz y ectopia lentis', R(1).estado, 'cumple']);
+  esc({ _z: '2.4', mfs_fbn1_causal: 'si' }); await esperar(130);
+  ex.push(['(B2) regla 2 cumple con raiz y FBN1 causal', R(2).estado, 'cumple']);
+  esc(Object.assign({ _z: '2.4', mfs_sin_otros: 'si' }, S9)); await esperar(130);
+  ex.push(['(B3) regla 3 cumple con raiz y puntaje 9', R(3).estado, 'cumple']);
+  ex.push(['(B3b) y el puntaje de esa escena es 9', SC().pts, 9]);
+  esc({ mfs_ectopia_lentis: 'si', mfs_fbn1_ao: 'si' }); await esperar(130);
+  ex.push(['(B4) regla 4 cumple con ectopia y FBN1 asociada a la aorta', R(4).estado, 'cumple']);
+  esc({ mfs_ectopia_lentis: 'si', mfs_historia_familiar: 'si' }); await esperar(130);
+  ex.push(['(B5) regla 5 cumple con ectopia e historia familiar', R(5).estado, 'cumple']);
+  esc(Object.assign({ mfs_historia_familiar: 'si', mfs_sin_otros: 'si' }, S9)); await esperar(130);
+  ex.push(['(B6) regla 6 cumple con puntaje 9 e historia familiar', R(6).estado, 'cumple']);
+  esc({ _z: '2.0', edad: '34', mfs_historia_familiar: 'si', mfs_sin_otros: 'si' }); await esperar(130);
+  ex.push(['(B7) regla 7 cumple con Z 2,0 a los 34 anios e historia familiar', R(7).estado, 'cumple']);
+
+  /* ── (C) NO CUMPLE: una condicion FALSA ── */
+  esc({ _z: '2.4', mfs_ectopia_lentis: 'no', mfs_sin_otros: 'si' }); await esperar(130);
+  ex.push(['(C1) regla 1 NO cumple sin ectopia lentis', R(1).estado, 'no']);
+  esc({ _z: '2.4', mfs_ectopia_lentis: 'si', mfs_sin_otros: 'no' }); await esperar(130);
+  ex.push(['(C2) regla 1 NO cumple con rasgos de otro sindrome', R(1).estado, 'no']);
+  esc({ _z: '2.4', mfs_sin_otros: 'si', mfs_muneca_pulgar: 'ambos', mfs_neumotorax: 1 }); await esperar(130);
+  ex.push(['(C3) regla 3 NO cumple con el puntaje por debajo de 7', R(3).estado, 'no']);
+  ex.push(['(C3b) y lo dice «con lo tildado»', /con lo tildado/.test(R(3).por) ? 'si' : 'NO', 'si']);
+
+  /* ── (D) SIN DATO: una condicion DESCONOCIDA no es una condicion falsa ── */
+  esc({ _z: '2.4', mfs_sin_otros: 'si' }); await esperar(130);
+  ex.push(['(D1) regla 1 queda SIN DATO si falta la ectopia lentis', R(1).estado, 'sin_dato']);
+  esc({ _z: '2.4', mfs_ectopia_lentis: 'si' }); await esperar(130);
+  ex.push(['(D2) regla 1 queda SIN DATO si falta el asterisco', R(1).estado, 'sin_dato']);
+  esc({ mfs_fbn1_causal: 'si' }); await esperar(130);
+  ex.push(['(D3) regla 2 queda SIN DATO sin el valor del Z', R(2).estado, 'sin_dato']);
+  ex.push(['(D3b) y dice que falta el Z', /valor del Z/.test(R(2).por) ? 'si' : 'NO', 'si']);
+
+  /* ── (E) EL ASTERISCO: en 1, 3, 6 y 7; NO en 2, 4 ni 5 ── */
+  esc({ _z: '2.4', mfs_fbn1_causal: 'si' }); await esperar(130);
+  ex.push(['(E1) la regla 2 CUMPLE sin contestar el asterisco', R(2).estado, 'cumple']);
+  esc({ mfs_ectopia_lentis: 'si', mfs_fbn1_ao: 'si' }); await esperar(130);
+  ex.push(['(E2) la regla 4 CUMPLE sin contestar el asterisco', R(4).estado, 'cumple']);
+  esc({ mfs_ectopia_lentis: 'si', mfs_historia_familiar: 'si' }); await esperar(130);
+  ex.push(['(E3) la regla 5 CUMPLE sin contestar el asterisco', R(5).estado, 'cumple']);
+  /* y el control por el otro lado: con rasgos de otro sindrome, las CUATRO con asterisco caen */
+  esc(Object.assign({ _z: '2.4', edad: '34', mfs_ectopia_lentis: 'si', mfs_historia_familiar: 'si',
+                      mfs_fbn1_causal: 'si', mfs_fbn1_ao: 'si', mfs_sin_otros: 'no' }, S9));
+  await esperar(150);
+  ex.push(['(E4) con rasgos de otro sindrome caen 1, 3, 6 y 7 y siguen cumpliendo 2, 4 y 5',
+           RG().reglas.map(x => x.n + ':' + x.estado).join(' '),
+           '1:no 2:cumple 3:no 4:cumple 5:cumple 6:no 7:no']);
+
+  /* ── (F) LA REGLA 7: los dos cortes por edad, con sus bordes ── */
+  esc({ _z: '2.0', edad: '20', mfs_historia_familiar: 'si', mfs_sin_otros: 'si' }); await esperar(130);
+  ex.push(['(F1) a los 20 anios exactos alcanza Z 2,0', R(7).estado, 'cumple']);
+  esc({ _z: '2.0', edad: '19', mfs_historia_familiar: 'si', mfs_sin_otros: 'si', mfs_diseccion_raiz: 'no' });
+  await esperar(130);
+  ex.push(['(F2) a los 19 el umbral sube a 3 y Z 2,0 NO alcanza', R(7).estado, 'no']);
+  esc({ _z: '3.0', edad: '19', mfs_historia_familiar: 'si', mfs_sin_otros: 'si' }); await esperar(130);
+  ex.push(['(F3) a los 19 con Z 3,0 si alcanza', R(7).estado, 'cumple']);
+  esc({ _z: '2.4', mfs_historia_familiar: 'si', mfs_sin_otros: 'si' }); await esperar(130);
+  ex.push(['(F4) sin edad queda SIN DATO', R(7).estado, 'sin_dato']);
+  ex.push(['(F4b) y dice que falta la edad', /la edad del paciente/.test(R(7).por) ? 'si' : 'NO', 'si']);
+  esc({ edad: '34', mfs_historia_familiar: 'si', mfs_sin_otros: 'si' }); await esperar(130);
+  ex.push(['(F5) sin Z queda SIN DATO', R(7).estado, 'sin_dato']);
+  ex.push(['(F5b) y dice que falta el valor del Z', /valor del Z/.test(R(7).por) ? 'si' : 'NO', 'si']);
+
+  /* ── (G) LA DISECCION HACE «Ao» SIN MIRAR EL Z NI LA EDAD ── */
+  esc({ mfs_diseccion_raiz: 'si', mfs_historia_familiar: 'si', mfs_sin_otros: 'si' }); await esperar(130);
+  ex.push(['(G1) la regla 7 cumple por DISECCION, sin Z y sin edad', R(7).estado, 'cumple']);
+  esc({ mfs_diseccion_raiz: 'si', mfs_ectopia_lentis: 'si', mfs_sin_otros: 'si' }); await esperar(130);
+  ex.push(['(G2) y la regla 1 tambien', R(1).estado, 'cumple']);
+
+  /* ── (H) LAS DOS FBN1 SON INDEPENDIENTES ── */
+  esc({ _z: '2.4', mfs_fbn1_causal: 'si', mfs_ectopia_lentis: 'si' }); await esperar(130);
+  ex.push(['(H1) solo la causal hace cumplir la 2 y deja la 4 sin dato',
+           R(2).estado + '/' + R(4).estado, 'cumple/sin_dato']);
+  esc({ _z: '2.4', mfs_fbn1_ao: 'si', mfs_ectopia_lentis: 'si' }); await esperar(130);
+  ex.push(['(H2) solo la asociada a la aorta hace cumplir la 4 y deja la 2 sin dato',
+           R(4).estado + '/' + R(2).estado, 'cumple/sin_dato']);
+
+  /* ── (I) CONTROL NEGATIVO: con todo vacio NINGUNA cumple ── */
+  esc({}); await esperar(150);
+  ex.push(['(I1) con el formulario vacio ninguna regla cumple',
+           RG().algunaCumple ? 'alguna' : 'ninguna', 'ninguna']);
+  ex.push(['(I2) y el texto fijo esta en la tarjeta',
+           String((EL('crit-cuerpo') || {}).textContent || '').indexOf('no es un diagn') > -1 ? 'si' : 'NO', 'si']);
+  ex.push(['(I3) la tarjeta pinta las SIETE reglas',
+           document.querySelectorAll('#mfs-reglas .mfs-reg').length, 7]);
+  FN('critCerrar') && critCerrar();
+  return { extra: EXP };
+  })();
+`);
+
+caso('TC-588', 'Tanda MARFAN-1: el papel describe el puntaje y los rasgos tildados con el estado de los criterios aparte, y NO lleva la regla cumplida, la palabra diagnostico, el umbral de 7, ninguna guia, tabla, clase ni folio; los diecinueve campos nuevos viajan con el estudio y ninguno llega al Excel', `
+  return (async () => {
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]),
+                 'dio «' + t[1] + '» · esperado «' + t[2] + '»']) };
+  const esperar = (ms) => new Promise(r => setTimeout(r, ms));
+  const EL = (id) => document.getElementById(id);
+  const FN = (n) => (typeof window[n] === 'function') ? window[n] : null;
+  const pon = (id, v) => { const e = EL(id); if (!e) return 'NO ' + id;
+    e.value = String(v); e.dispatchEvent(new Event('input', { bubbles: true }));
+    e.dispatchEvent(new Event('change', { bubbles: true })); return e.value; };
+  const mar = (id, on) => { const c = EL(id); if (!c) return 'NO ' + id; c.checked = !!on;
+    c.dispatchEvent(new Event('change', { bubbles: true })); return !!c.checked; };
+  try { FN('limpiarCampos') && FN('limpiarCampos')(true); } catch (e) {}
+  await esperar(160);
+  /* ⚠️ HELPERS TOLERANTES AL ARBOL VIEJO, Y NO SON UN ADORNO. Contra HEAD nada de esto existe
+     y la primera linea que lo nombrara mataria el caso con un TypeError, sin decir QUE
+     invariante se rompio: «caer por excepcion no es caer». Es la leccion que TC-546 dejo
+     escrita en este archivo. Con estas guardas el caso cae por SUS CONDICIONES. */
+  const TAB = () => (typeof MFS_SCORE === 'undefined') ? [] : MFS_SCORE;
+  const APT = () => (typeof MFS_APARTE === 'undefined') ? [] : MFS_APARTE;
+  const SC = (src) => (typeof mfsScore === 'function') ? mfsScore(src)
+    : { pts: 'NO EXISTE', tildados: [], sinEquivalente: [], max: 'NO EXISTE' };
+  const AP = (src, k) => (typeof mfsAparte === 'function') ? mfsAparte(src, k) : 'NO EXISTE';
+  const RG = () => (typeof mfsReglas === 'function') ? mfsReglas()
+    : { reglas: [], algunaCumple: 'NO EXISTE' };
+  const FE = () => (typeof mfsFigEstado === 'function') ? mfsFigEstado() : {};
+
+  pon('nombre', 'Prueba 588'); pon('ci', '588'); pon('peso', '70'); pon('talla', '170');
+  pon('sexo', 'M'); pon('edad', '34');
+  pon('marfan_sindrome', 'marfan'); pon('marfan_ao_seno', '48');
+  /* nueve puntos */
+  pon('mfs_muneca_pulgar', 'ambos'); pon('mfs_pectus', 'carinatum'); mar('mfs_neumotorax', true);
+  mar('mfs_estrias', true); mar('mfs_miopia', true);
+  pon('mfs_ectopia_lentis', 'si'); pon('mfs_historia_familiar', 'si');
+  pon('mfs_fbn1_causal', 'si'); pon('mfs_fbn1_ao', 'no'); pon('mfs_sin_otros', 'si');
+  mar('marfan_incluir_chk', true);
+  try { FN('marfanSync') && FN('marfanSync')(); } catch (e) {}
+  await esperar(380);
+  ex.push(['(A0) el denominador: el puntaje de la escena es 9', SC().pts, 9]);
+  /* EL ESCENARIO PELIGROSO: con la tarjeta cargada, varias reglas CUMPLEN. Si una regla pudiera
+     filtrarse al papel, es aca donde pasaria. */
+  FN('critAbrir') && critAbrir('marfan'); await esperar(260);
+  const z = document.querySelector('#crit-cuerpo [data-mf-z]');
+  if (z) { z.value = '2.6'; z.dispatchEvent(new Event('input', { bubbles: true })); }
+  await esperar(200);
+  ex.push(['(A1) el denominador del escenario peligroso: al menos una regla CUMPLE',
+           RG().algunaCumple ? 'si' : 'NO', 'si']);
+  FN('critCerrar') && critCerrar(); await esperar(180);
+
+  const LEER = async (est) => { pon('estilo_informe', est);
+    try { FN('generarInforme') && FN('generarInforme')(); } catch (e) {}
+    await esperar(300);
+    return { inf: String((EL('informe_texto') || {}).value || ''),
+             sum: String((EL('en_suma') || {}).value || '') }; };
+  const nar = await LEER('narrativo'), esq = await LEER('esquematico'), tel = await LEER('telegrafico');
+  const TODO = nar.inf + ' ' + nar.sum + ' ' + esq.inf + ' ' + esq.sum + ' ' + tel.inf + ' ' + tel.sum;
+  ex.push(['(B0) denominador: el papel NO esta vacio', TODO.length > 600 ? 'con texto' : 'VACIO', 'con texto']);
+
+  /* ── (B) LO QUE EL PAPEL SI DICE ── */
+  ex.push(['(B1) el informe describe el puntaje con sus nueve puntos',
+           nar.inf.indexOf('Score sist' + String.fromCharCode(233) + 'mico de 9 puntos') > -1 ? 'si' : 'NO', 'si']);
+  ex.push(['(B2) y nombra los rasgos tildados',
+           (nar.inf.indexOf('pectus carinatum') > -1 ? 1 : 0)
+           + (nar.inf.indexOf('neumot' + String.fromCharCode(243) + 'rax espont' + String.fromCharCode(225) + 'neo') > -1 ? 1 : 0)
+           + (nar.inf.indexOf('estr' + String.fromCharCode(237) + 'as cut' + String.fromCharCode(225) + 'neas') > -1 ? 1 : 0), 3]);
+  ex.push(['(B3) los rasgos de la mano se nombran por lo que son y no «los dos signos»',
+           (nar.inf.indexOf('signos de la mu') > -1 ? 'si' : 'NO'), 'si']);
+  ex.push(['(B4) describe los criterios aparte con su estado',
+           (nar.inf.indexOf('ctopia lentis presente') > -1 ? 1 : 0)
+           + (nar.inf.indexOf('historia familiar presente') > -1 ? 1 : 0)
+           + (nar.inf.indexOf('FBN1 causal presente') > -1 ? 1 : 0)
+           + (nar.inf.indexOf('a' + String.fromCharCode(243) + 'rtica ausente') > -1 ? 1 : 0), 4]);
+  ex.push(['(B5) el EN SUMA lo resume en una linea corta con el puntaje',
+           nar.sum.indexOf('Score sist' + String.fromCharCode(233) + 'mico de 9 puntos.') > -1 ? 'si' : 'NO', 'si']);
+  ex.push(['(B6) y el EN SUMA NO enumera los rasgos',
+           nar.sum.indexOf('pectus carinatum') > -1 ? 'LOS ENUMERA' : 'no', 'no']);
+  ex.push(['(B7) los tres estilos traen la linea del puntaje',
+           [nar.inf, esq.inf, tel.inf].filter(t => t.indexOf('Score sist') > -1).length, 3]);
+
+  /* ── (C) LO QUE EL PAPEL NO PUEDE DECIR ── */
+  const cuenta = (m) => TODO.split(m).length - 1;
+  ex.push(['(C1) ninguna guia en el papel', cuenta('Ghent') + cuenta('Loeys') + cuenta('ESC 2024'), 0]);
+  ex.push(['(C2) ningun folio ni Box', cuenta('folio') + cuenta('Box 1') + cuenta('Box 2'), 0]);
+  ex.push(['(C3) ninguna clase ni nivel', cuenta('Clase I') + cuenta('Clase II') + cuenta('Nivel B') + cuenta('Nivel C'), 0]);
+  ex.push(['(C4) ninguna regla cumplida', cuenta('cumple') + cuenta('Cumple') + cuenta('regla'), 0]);
+  ex.push(['(C5) la palabra diagnostico no sale del modulo',
+           cuenta('diagn' + String.fromCharCode(243) + 'stico de Marfan'), 0]);
+  ex.push(['(C6) el umbral de 7 no sale', cuenta('de 7') + cuenta('7 puntos o m') + cuenta('compromiso sist'), 0]);
+  ex.push(['(C7) ni el maximo de 20', cuenta('de 20') + cuenta('sobre 20'), 0]);
+
+  /* ── (D) EL EXCEL NO GANA NI UNA COLUMNA ── */
+  const blob = {};
+  document.querySelectorAll('input[id], select[id], textarea[id]').forEach(e => {
+    if (FN('_noEsDelEstudio') && _noEsDelEstudio(e.id)) return;
+    if (e.type === 'checkbox') blob[e.id + '__chk'] = e.checked ? '1' : '0'; else blob[e.id] = e.value; });
+  const fila = FN('_labExcelRow') ? _labExcelRow({ campos: blob }) : null;
+  ex.push(['(D1) el Excel sigue en 441 columnas', fila ? Object.keys(fila).length : 'NO', 441]);
+  ex.push(['(D2) y ninguna columna se llama como un campo nuevo',
+           fila ? Object.keys(fila).filter(k => /mfs_|mfs-/.test(k)).length : 'NO', 0]);
+  ex.push(['(D3) ni ningun VALOR del Excel trae el puntaje',
+           fila ? Object.keys(fila).filter(k => String(fila[k]).indexOf('Score sist') > -1 && k.indexOf('texto completo') < 0).length : 'NO', 0]);
+
+  /* ── (E) ROUND-TRIP: los diecinueve viajan ── */
+  const IDS = TAB().map(r => r.c).concat(APT().map(r => r.c));
+  ex.push(['(E1) los diecinueve estan en el blob que se guarda',
+           IDS.filter(i => (i in blob) || ((i + '__chk') in blob)).length, 19]);
+  ex.push(['(E2) el puntaje leido DESDE el blob es el mismo que el vivo',
+           SC(blob).pts, SC().pts]);
+  ex.push(['(E3) y los criterios aparte tambien', AP(blob, 'mfs_fbn1_ao'), 'no']);
+  /* la vuelta: se vacia el formulario y se repone desde el blob */
+  try { FN('limpiarCampos') && FN('limpiarCampos')(true); } catch (e) {}
+  await esperar(200);
+  ex.push(['(E4) tras «Nuevo estudio» el puntaje vuelve a 0', SC().pts, 0]);
+  Object.keys(blob).forEach(k => { const id = k.replace(/__chk$/, ''); const e = EL(id); if (!e) return;
+    if (e.type === 'checkbox') e.checked = (blob[k] === '1'); else e.value = blob[k]; });
+  try { FN('mfsCalc') && FN('mfsCalc')(); } catch (e) {}
+  await esperar(200);
+  ex.push(['(E5) y al reponer desde el blob vuelve a 9', SC().pts, 9]);
+  ex.push(['(E6) con sus criterios aparte', AP(null, 'mfs_ectopia_lentis'), 'si']);
+
+  /* ── (F) CONTROL NEGATIVO: un estudio SIN rasgos no dice una palabra del puntaje ── */
+  try { FN('limpiarCampos') && FN('limpiarCampos')(true); } catch (e) {}
+  await esperar(180);
+  pon('nombre', 'Control 588'); pon('ci', '5881');
+  pon('marfan_sindrome', 'marfan'); pon('marfan_ao_seno', '48');
+  mar('marfan_incluir_chk', true);
+  try { FN('marfanSync') && FN('marfanSync')(); } catch (e) {}
+  await esperar(300);
+  const ctl = await LEER('narrativo');
+  ex.push(['(F1) control: sin rasgos el papel NO nombra el puntaje',
+           ctl.inf.indexOf('Score sist') > -1 ? 'LO NOMBRA' : 'no', 'no']);
+  ex.push(['(F2) control: y la aortopatia SI se sigue describiendo',
+           ctl.inf.indexOf('aorta sinusal 48 mm') > -1 ? 'si' : 'NO', 'si']);
+  return { extra: EXP };
+  })();
+`);
+
+caso('TC-589', 'Tanda MARFAN-1: la pantalla con dos columnas de campos y la aorta ascendente DEBAJO de la sinusal, la conclusion al costado desde 900 px, el cuadro «Conducta aortica» sin guia, tabla, folio ni clase y con su globo, y un globo por rasgo con su folio que al abrirse no tilda nada', `
+  return (async () => {
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]),
+                 'dio «' + t[1] + '» · esperado «' + t[2] + '»']) };
+  const esperar = (ms) => new Promise(r => setTimeout(r, ms));
+  const EL = (id) => document.getElementById(id);
+  const FN = (n) => (typeof window[n] === 'function') ? window[n] : null;
+  const pon = (id, v) => { const e = EL(id); if (!e) return 'NO ' + id;
+    e.value = String(v); e.dispatchEvent(new Event('input', { bubbles: true }));
+    e.dispatchEvent(new Event('change', { bubbles: true })); return e.value; };
+  const T = (id) => { const e = EL(id); return e ? String(e.textContent || '') : ''; };
+  const bq = (t) => Array.prototype.filter.call(document.querySelectorAll('[onclick]'),
+    b => String(b.getAttribute('onclick')).indexOf(t) >= 0)[0];
+  const Q = String.fromCharCode(39);
+  try { FN('limpiarCampos') && FN('limpiarCampos')(true); } catch (e) {}
+  await esperar(160);
+  /* ⚠️ HELPERS TOLERANTES AL ARBOL VIEJO, Y NO SON UN ADORNO. Contra HEAD nada de esto existe
+     y la primera linea que lo nombrara mataria el caso con un TypeError, sin decir QUE
+     invariante se rompio: «caer por excepcion no es caer». Es la leccion que TC-546 dejo
+     escrita en este archivo. Con estas guardas el caso cae por SUS CONDICIONES. */
+  const TAB = () => (typeof MFS_SCORE === 'undefined') ? [] : MFS_SCORE;
+  const APT = () => (typeof MFS_APARTE === 'undefined') ? [] : MFS_APARTE;
+  const SC = (src) => (typeof mfsScore === 'function') ? mfsScore(src)
+    : { pts: 'NO EXISTE', tildados: [], sinEquivalente: [], max: 'NO EXISTE' };
+  const AP = (src, k) => (typeof mfsAparte === 'function') ? mfsAparte(src, k) : 'NO EXISTE';
+  const RG = () => (typeof mfsReglas === 'function') ? mfsReglas()
+    : { reglas: [], algunaCumple: 'NO EXISTE' };
+  const FE = () => (typeof mfsFigEstado === 'function') ? mfsFigEstado() : {};
+
+  try { const b = bq('showTab(' + Q + 'congenitas' + Q); if (b) b.click(); } catch (e) {}
+  await esperar(300);
+  const acc = EL('sacc-cc-marfan');
+  if (acc && !acc.classList.contains('open')) { const h = document.querySelector('#sacc-cc-marfan .sacc-hdr'); if (h) h.click(); }
+  await esperar(420);
+  try { document.querySelectorAll('.sacc-body').forEach(b => { b.style.transition = 'none'; }); } catch (e) {}
+  await esperar(140);
+  ex.push(['(A0) el denominador: el acordeon de Marfan esta abierto',
+           acc && acc.classList.contains('open') ? 'si' : 'NO', 'si']);
+
+  /* ── (B) LA MAQUETA. El suite corre Chrome por DEBAJO de 900 px, asi que lo lado-a-lado se
+     mide por la REGLA de la hoja de estilos y por la ESTRUCTURA, no por geometria. ── */
+  ex.push(['(B1) existe la fila con sus dos columnas',
+           (EL('mfs-fila') ? 1 : 0) + (EL('mfs-campos-col') ? 1 : 0) + (EL('mfs-concl-col') ? 1 : 0), 3]);
+  ex.push(['(B2) los campos van en dos subcolumnas',
+           document.querySelectorAll('#mfs-campos-col > .mfs-subcol').length, 2]);
+  ex.push(['(B3) la aorta ascendente esta en la MISMA subcolumna que la sinusal',
+           (function () { const a = EL('marfan_ao_seno'), b = EL('marfan_ao_ascendente');
+             if (!a || !b) return 'NO EXISTE';
+             const ca = a.closest('.mfs-subcol'), cb = b.closest('.mfs-subcol');
+             return (ca && cb && ca === cb) ? 'si' : 'NO'; })(), 'si']);
+  /* ⚠️ compareDocumentPosition EXIGE UN NODO, y contra el arbol viejo uno de los dos puede
+     no existir: sin esta guarda el caso moria por TypeError en vez de caer por su condicion. */
+  const antesQue = (a, b) => { const x = EL(a), y = EL(b);
+    if (!x || !y) return 'NO EXISTE'; return (x.compareDocumentPosition(y) & 4) ? 'si' : 'NO'; };
+  ex.push(['(B4) y DEBAJO: la sinusal va antes en el orden del documento',
+           antesQue('marfan_ao_seno', 'marfan_ao_ascendente'), 'si']);
+  ex.push(['(B5) la conclusion vive en la columna de la derecha',
+           EL('marfan-resultado') && EL('marfan-resultado').closest('#mfs-concl-col') ? 'si' : 'NO', 'si']);
+  ex.push(['(B6) y «Integrar al informe» va debajo de ella',
+           (function () { const a = EL('marfan-resultado'), b = document.querySelector('#mfs-concl-col .btn-integrar');
+             if (!a || !b) return 'NO EXISTE'; return (a.compareDocumentPosition(b) & 4) ? 'si' : 'NO'; })(), 'si']);
+  /* la regla del corte, leida de la hoja de estilos: 900 px sobre la VENTANA */
+  const regla = (function () { let r = null;
+    try { Array.prototype.forEach.call(document.styleSheets, (ss) => {
+      let rr; try { rr = ss.cssRules; } catch (e) { return; }
+      Array.prototype.forEach.call(rr || [], (x) => {
+        if (x.media && String(x.media.mediaText).indexOf('900px') > -1) {
+          Array.prototype.forEach.call(x.cssRules || [], (y) => {
+            if (String(y.selectorText || '').indexOf('mfs-fila') > -1) r = String(x.media.mediaText); }); } }); });
+    } catch (e) {} return r; })();
+  /* ⚠️ Chrome NORMALIZA el texto de la media query y le agrega parentesis: «min-width: 900px»
+     sale «(min-width: 900px)». Es la misma trampa que la tanda POP-A midio con
+     minmax(0, 1fr) -> minmax(0px, 1fr). Se compara sin ellos. */
+  ex.push(['(B7) el corte de la maqueta es una media query de 900 px sobre la ventana',
+           String(regla || 'NO HAY').replace(/[()]/g, '').trim(), 'min-width: 900px']);
+
+  /* ── (C) EL CUADRO: sin guia, tabla, folio ni clase ── */
+  pon('marfan_sindrome', 'marfan'); pon('marfan_ao_seno', '52');
+  try { FN('marfanSync') && FN('marfanSync')(); } catch (e) {}
+  await esperar(330);
+  const cap = T('marfan-resultado');
+  ex.push(['(C0) denominador: el cuadro tiene su veredicto', cap.indexOf('Cirug') > -1 ? 'si' : 'NO', 'si']);
+  ex.push(['(C1) el cuadro NO nombra la guia', cap.indexOf('ESC 2024'), -1]);
+  ex.push(['(C2) ni la tabla', cap.indexOf('Tabla'), -1]);
+  ex.push(['(C3) ni el folio', cap.indexOf('folio'), -1]);
+  ex.push(['(C4) ni la clase', (cap.split('Clase ').length - 1), 0]);
+  ex.push(['(C5) pero SI conserva el umbral en milimetros',
+           cap.indexOf('50 mm') > -1 ? 'si' : 'NO', 'si']);
+  ex.push(['(C6) y la fila lleva su globo',
+           document.querySelector('#marfan-resultado [data-vinfo="mf-conducta"]') ? 'si' : 'NO', 'si']);
+  /* el contenido no se perdio: esta en el globo */
+  const gb = document.querySelector('#marfan-resultado [data-vinfo="mf-conducta"]');
+  if (gb) { gb.click(); await esperar(300); }
+  const tg = T('vinfo-card');
+  ex.push(['(C7) el globo trae la guia, la tabla, el folio y la clase',
+           (tg.indexOf('ESC 2024') > -1 ? 1 : 0) + (tg.indexOf('Tabla') > -1 ? 1 : 0)
+           + (tg.indexOf('folio') > -1 ? 1 : 0) + (tg.indexOf('Clase I') > -1 ? 1 : 0), 4]);
+  if (gb) { gb.click(); await esperar(180); }
+
+  /* ── (D) UN GLOBO POR RASGO, CON SU FOLIO ── */
+  FN('critAbrir') && critAbrir('marfan'); await esperar(300);
+  const btns = Array.prototype.slice.call(document.querySelectorAll('#crit-cuerpo [data-vinfo]'));
+  ex.push(['(D0) denominador: la tarjeta tiene 21 globos', btns.length, 21]);
+  ex.push(['(D1) los diecinueve rasgos declaran su globo',
+           TAB().filter(r => r.i).length + APT().filter(r => r.i).length, 19]);
+  const antes = SC().pts;
+  let conFolio = 0, abren = 0;
+  for (const b of btns) {
+    b.click(); await esperar(170);
+    const c = EL('vinfo-card');
+    const t = c ? String(c.textContent || '') : '';
+    if (c && c.getBoundingClientRect().width > 0) abren++;
+    if (/[Ff]olios? [0-9]+/.test(t)) conFolio++;
+    b.click(); await esperar(110);
+  }
+  ex.push(['(D2) los 21 abren', abren, 21]);
+  ex.push(['(D3) y los 21 traen su folio', conFolio, 21]);
+  /* EL CONTROL QUE IMPORTA: abrir un globo no puede tildar su rasgo */
+  ex.push(['(D4) abrir los 21 globos NO movio el puntaje', SC().pts, antes]);
+  ex.push(['(D5) ni tildo ningun rasgo', SC().tildados.length, 0]);
+  ex.push(['(D6) ni contesto ningun criterio aparte',
+           APT().map(r => AP(null, r.c)).filter(Boolean).length, 0]);
+  /* lo que el articulo NO define, dicho */
+  const leerGlobo = async (clave) => { const b = btns.filter(x => x.getAttribute('data-vinfo') === clave)[0];
+    if (!b) return 'NO'; b.click(); await esperar(180);
+    const t = String((EL('vinfo-card') || {}).textContent || ''); b.click(); await esperar(110); return t; };
+  ex.push(['(D7) el globo de la ectasia dural dice que no hay metodo ni corte',
+           /NO fija un m/.test(await leerGlobo('mfs-ectasia')) ? 'si' : 'NO', 'si']);
+  ex.push(['(D8) el del codo dice que el articulo no dice con que se mide',
+           /NO dice con qu/.test(await leerGlobo('mfs-codo')) ? 'si' : 'NO', 'si']);
+  ex.push(['(D9) el de la miopia declara la contradiccion del articulo',
+           /se contradice/.test(await leerGlobo('mfs-miopia')) ? 'si' : 'NO', 'si']);
+  FN('critCerrar') && critCerrar();
+  return { extra: EXP };
+  })();
+`);
+
+caso('TC-590', 'Tanda MARFAN-1: la figura lee los MISMOS campos que la lista -no guarda nada propio-, cada rasgo pone su marca y la saca, los cambios de forma siguen al dato, la casilla de referencia es preferencia de pantalla y la figura no llega a ninguna superficie firmada', `
+  return (async () => {
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]),
+                 'dio «' + t[1] + '» · esperado «' + t[2] + '»']) };
+  const esperar = (ms) => new Promise(r => setTimeout(r, ms));
+  const EL = (id) => document.getElementById(id);
+  const FN = (n) => (typeof window[n] === 'function') ? window[n] : null;
+  const pon = (id, v) => { const e = EL(id); if (!e) return 'NO ' + id;
+    e.value = String(v); e.dispatchEvent(new Event('input', { bubbles: true }));
+    e.dispatchEvent(new Event('change', { bubbles: true })); return e.value; };
+  const mar = (id, on) => { const c = EL(id); if (!c) return 'NO ' + id; c.checked = !!on;
+    c.dispatchEvent(new Event('change', { bubbles: true })); return !!c.checked; };
+  try { FN('limpiarCampos') && FN('limpiarCampos')(true); } catch (e) {}
+  await esperar(160);
+  /* ⚠️ HELPERS TOLERANTES AL ARBOL VIEJO, Y NO SON UN ADORNO. Contra HEAD nada de esto existe
+     y la primera linea que lo nombrara mataria el caso con un TypeError, sin decir QUE
+     invariante se rompio: «caer por excepcion no es caer». Es la leccion que TC-546 dejo
+     escrita en este archivo. Con estas guardas el caso cae por SUS CONDICIONES. */
+  const TAB = () => (typeof MFS_SCORE === 'undefined') ? [] : MFS_SCORE;
+  const APT = () => (typeof MFS_APARTE === 'undefined') ? [] : MFS_APARTE;
+  const SC = (src) => (typeof mfsScore === 'function') ? mfsScore(src)
+    : { pts: 'NO EXISTE', tildados: [], sinEquivalente: [], max: 'NO EXISTE' };
+  const AP = (src, k) => (typeof mfsAparte === 'function') ? mfsAparte(src, k) : 'NO EXISTE';
+  const RG = () => (typeof mfsReglas === 'function') ? mfsReglas()
+    : { reglas: [], algunaCumple: 'NO EXISTE' };
+  const FE = () => (typeof mfsFigEstado === 'function') ? mfsFigEstado() : {};
+
+  ex.push(['(A0) denominador: la figura existe SIN abrir la tarjeta',
+           EL('mfs-fig-svg') ? 'si' : 'NO', 'si']);
+  FN('critAbrir') && critAbrir('marfan'); await esperar(320);
+  const MK = () => EL('mfs-fig-marcas');
+  const n = () => MK() ? MK().children.length : -1;
+  const marca = (k) => MK() ? !!MK().querySelector('[data-m="' + k + '"]') : false;
+  ex.push(['(A1) la figura esta dentro de la tarjeta',
+           document.querySelector('#crit-cuerpo #mfs-fig-svg') ? 'si' : 'NO', 'si']);
+  ex.push(['(A2) la tarjeta tiene TRES columnas',
+           document.querySelectorAll('#crit-cuerpo > div > div').length, 3]);
+  ex.push(['(A3) sin ningun rasgo la figura no tiene marcas', n(), 0]);
+
+  /* ── (B) CADA RASGO PONE SU MARCA Y LA SACA ── */
+  const PARES = [['mfs_muneca_pulgar', 'ambos', 'mun'], ['mfs_pectus', 'carinatum', 'pecho'],
+    ['mfs_pie', 'retropie', 'pie'], ['mfs_neumotorax', 1, 'neumo'], ['mfs_ectasia', 1, 'dural'],
+    ['mfs_protrusion', 1, 'protr'], ['mfs_proporciones', 1, 'prop'], ['mfs_escoliosis', 1, 'escol'],
+    ['mfs_codo', 1, 'codo'], ['mfs_facies', 1, 'cara'], ['mfs_estrias', 1, 'estr'],
+    ['mfs_miopia', 1, 'miop'], ['mfs_prolapso', 1, 'mvp'], ['mfs_ectopia_lentis', 'si', 'ect'],
+    ['mfs_diseccion_raiz', 'si', 'raiz']];
+  let puestas = 0, sacadas = 0;
+  for (const [campo, val, zona] of PARES) {
+    if (val === 1) mar(campo, true); else pon(campo, val);
+    await esperar(130);
+    if (marca(zona) && n() === 1) puestas++;
+    if (val === 1) mar(campo, false); else pon(campo, '');
+    await esperar(130);
+    if (!marca(zona) && n() === 0) sacadas++;
+  }
+  ex.push(['(B1) los quince rasgos ponen SU marca, y solo la suya', puestas, 15]);
+  ex.push(['(B2) y al quitarlos la marca se va', sacadas, 15]);
+
+  /* ── (C) LA FIGURA LEE EL MISMO DATO QUE LA LISTA ── */
+  pon('mfs_muneca_pulgar', 'ambos'); await esperar(200);
+  ex.push(['(C1) la figura deriva su estado del campo, no de un objeto propio',
+           FE().mun, 3]);
+  pon('mfs_muneca_pulgar', 'uno'); await esperar(200);
+  ex.push(['(C2) y lo sigue al cambiarlo', FE().mun, 1]);
+  ex.push(['(C3) con el puntaje de la lista coincidiendo', SC().pts, 1]);
+  /* y no hay un segundo lugar donde el dato pueda vivir */
+  ex.push(['(C4) la figura no expone ningun estado propio que se pueda escribir',
+           (typeof window.mfsFigS === 'undefined' && typeof window._mfsFigS === 'undefined') ? 'no hay' : 'HAY', 'no hay']);
+
+  /* ── (D) LOS CAMBIOS DE FORMA SIGUEN AL DATO ── */
+  const pulgar = () => { const e = document.querySelector('#mfs-fig-svg .mfsf-thumb');
+    const t = e ? String(e.getAttribute('transform') || '') : ''; const m = t.match(/scale\\(1 ([0-9.]+)\\)/);
+    return m ? parseFloat(m[1]) : -1; };
+  pon('mfs_muneca_pulgar', ''); await esperar(500);
+  const p0 = pulgar();
+  pon('mfs_muneca_pulgar', 'ambos'); await esperar(900);
+  const p1 = pulgar();
+  ex.push(['(D1) el pulgar se alarga con los dos signos', p1 > p0 + 0.2 ? 'si' : 'NO (' + p0 + ' -> ' + p1 + ')', 'si']);
+  pon('mfs_muneca_pulgar', ''); await esperar(900);
+  ex.push(['(D2) y vuelve al soltar el rasgo', Math.abs(pulgar() - p0) < 0.02 ? 'si' : 'NO', 'si']);
+
+  /* ── (E) LA CASILLA DE REFERENCIA ES PANTALLA, NO UN CAMPO ── */
+  ex.push(['(E1) la casilla no es un campo del estudio',
+           (FN('_noEsDelEstudio') && _noEsDelEstudio('mfs-fig-ref')) ? 'fuera' : 'ES CAMPO', 'fuera']);
+  const rf = EL('mfs-fig-ref');
+  if (rf) { rf.checked = true; rf.dispatchEvent(new Event('change', { bubbles: true })); }
+  await esperar(240);
+  ex.push(['(E2) marcada, el contorno de referencia se dibuja',
+           EL('mfs-fig-ghost') && EL('mfs-fig-ghost').style.display !== 'none' ? 'si' : 'NO', 'si']);
+  if (rf) { rf.checked = false; rf.dispatchEvent(new Event('change', { bubbles: true })); }
+  await esperar(240);
+  ex.push(['(E3) y al destildarla se va',
+           EL('mfs-fig-ghost') && EL('mfs-fig-ghost').style.display === 'none' ? 'si' : 'NO', 'si']);
+  ex.push(['(E4) la alternativa de texto existe y dice lo que hay marcado',
+           String((EL('mfs-fig-alt') || {}).textContent || '').length > 10 ? 'si' : 'NO', 'si']);
+
+  /* ── (F) LA FIGURA NO LLEGA A NINGUNA SUPERFICIE FIRMADA ── */
+  FN('critCerrar') && critCerrar(); await esperar(200);
+  pon('nombre', 'Prueba 590'); pon('ci', '590');
+  pon('marfan_sindrome', 'marfan'); pon('marfan_ao_seno', '48');
+  pon('mfs_muneca_pulgar', 'ambos'); mar('mfs_neumotorax', true);
+  mar('marfan_incluir_chk', true);
+  try { FN('marfanSync') && FN('marfanSync')(); } catch (e) {}
+  await esperar(300);
+  pon('estilo_informe', 'narrativo');
+  try { FN('generarInforme') && FN('generarInforme')(); } catch (e) {}
+  await esperar(320);
+  const inf = String((EL('informe_texto') || {}).value || '') + ' ' + String((EL('en_suma') || {}).value || '');
+  ex.push(['(F0) denominador: el papel SI trae el puntaje', inf.indexOf('Score sist') > -1 ? 'si' : 'NO', 'si']);
+  ex.push(['(F1) pero no una figura, un svg ni un contorno', 
+           (inf.indexOf('svg') > -1 ? 1 : 0) + (inf.indexOf('figura') > -1 ? 1 : 0)
+           + (inf.indexOf('Marcado en la figura') > -1 ? 1 : 0), 0]);
+  ex.push(['(F2) la figura no esta en el registro de diagramas del PDF',
+           (typeof PDF_DIAG_REG === 'undefined') ? 'NO HAY REG'
+             : PDF_DIAG_REG.filter(d => /mfs|marfan/i.test(String(d.k))).length, 0]);
   return { extra: EXP };
   })();
 `);

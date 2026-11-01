@@ -11599,3 +11599,55 @@ temas como alias de `--orange` —que es lo que `.amilo-root` ya hace—, o los 
 pasan a `var(--orange)`. La primera cierra la clase entera de defecto; la segunda no vuelve a
 abrirla el día que alguien escriba un cuarto uso. Este archivo ya documenta la misma trampa
 **cuatro veces** con `--red-pale` y compañía.
+
+---
+
+## Tanda MARFAN-1 (2026-11-01) — lo declarado
+
+### MF1-a · El Z de la raíz aórtica no es un campo guardado de esta aplicación
+Censado el documento entero: el único Z que la app recoge vive en la tarjeta de criterios
+(`data-mf-z`, sin `id`) y **no viaja con el estudio**. La lista autorizada de esta tanda no lo
+incluye, así que no se creó.
+**El precio, medido:** sobre un estudio **archivado** las reglas 1, 2, 3 y 7 quedan en «sin dato
+(falta el valor del Z)» salvo que haya disección consignada, y el Z escrito en la tarjeta se
+pierde al cerrarla. En pantalla, con el médico escribiéndolo, las siete se evalúan.
+**Lo que falta decidir:** si el Z pasa a ser un campo guardado —con su columna de Excel o sin
+ella— o si se calcula con un nomograma. Lo segundo es contenido clínico nuevo: el artículo exige
+que el método coincida con el de los datos normativos (folio 479), y la app no tiene ninguno.
+
+### MF1-b · Con el formulario vacío las reglas 3 y 6 dicen «No cumple», no «Sin dato»
+Porque el puntaje **siempre es calculable**: con nada tildado vale 0, y 0 < 7 es una condición
+**falsa**, no desconocida. El porqué lo aclara con «con lo tildado», que es lo que la orden pide.
+Es consecuencia directa de que los diez rasgos de un punto sean **casillas** —dos estados— y no
+selectores de tres, que es lo que la lista autorizada define.
+**Lo que falta decidir:** si los diez rasgos pasan a tres estados, para distinguir «no lo tiene»
+de «nadie lo evaluó». Serían diez campos con otro vocabulario y no se puede hacer sin orden.
+
+### MF1-c · Las otras cinco categorías del artículo no entran
+MASS, síndrome de prolapso mitral, trastorno no específico del tejido conectivo, Marfan potencial
+y síndrome de ectopia lentis. El Box 1 las define en el mismo lugar que las siete reglas (folio
+477) y la app no publica ninguna. La nota de los menores de 20 años sin historia familiar (folio
+479) **sí** está, en el globo de las reglas, como texto informativo y sin lógica.
+
+### MF1-d · El selector del lado del neumotórax de la demo
+La demo lo trae; la orden lo deja afuera y el dibujo muestra **siempre el pulmón derecho
+colapsado**. Agregarlo sería un campo guardado nuevo —el lado— fuera de la lista autorizada.
+
+### MF1-e · Lo que la figura todavía no tiene
+De la demo y del pedido: la vista de perfil y de espalda, el zoom de la mano, la cara con los
+cinco rasgos dibujados, hacer clic en la figura para marcar un rasgo, y el recuadro aparte para
+lo interno —ectasia dural, protrusión, prolapso, raíz—. Ninguna está empezada.
+
+### MF1-f · La Evidencia de aortopatías no se tocó
+Queda para su propia tanda, que es lo que la orden dice. Hoy el panel de Evidencia de la
+aortopatía sigue publicando lo de siempre; nada de esta tanda lo mueve.
+
+### MF1-g · `docs/mapa/congenitas-otros.md` sigue en 34.540 B
+Al techo, y **no se tocó**, que es lo que la orden pide. La próxima tanda que necesite escribirle
+tiene que partirlo. `tests-fichas.md` está en 34.237 B por el mismo motivo: la ficha de esta
+tanda salió a `tests-fichas-586.md`.
+
+### MF1-h · La segunda mitad del caveat del Box 1 no tiene campo
+El asterisco pide, además de la ausencia de rasgos de otros síndromes, **el estudio de TGFBR1/2,
+la bioquímica del colágeno y COL3A1 cuando esté indicado**. La lista autorizada cubre sólo la
+primera mitad, así que la segunda se **dice** en el globo de las reglas y no entra en la lógica.

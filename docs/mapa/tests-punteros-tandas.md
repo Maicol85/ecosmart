@@ -364,3 +364,18 @@ Las fichas están en **`docs/mapa/tests-fichas-582.md`** (archivo propio: `tests
 fija por la **regla** de la hoja de estilos y por la **estructura**, no por geometría.
 ⚠️ **TC-585 trae el dibujo a la vista antes de muestrear el latido**: el bucle se apaga cuando el
 dibujo no se ve, y sin eso el hueco de los velos se lee siempre en 0.
+
+
+## Tanda MARFAN-1 (2026-11-01) — TC-586 a TC-590
+
+`TC-586` el score del Box 2 · `TC-587` las siete reglas del Box 1 · `TC-588` el papel y el
+round-trip · `TC-589` la pantalla y los globos · `TC-590` la figura.
+Fichas: `docs/mapa/tests-fichas-586.md`. Mutaciones: `scripts/_mut_marfan1.py` (dieciocho).
+
+**Cuatro casos viejos adaptados**, y los cuatro por lo mismo —afirmaban que la cápsula de
+«Conducta aórtica» publica la clase, la tabla y el folio, que es lo que el commit 4b mudó al
+globo—: **TC-116** y **TC-512** (leen la cita junto al texto, y TC-512 además lee el globo),
+**TC-552 (E9)** —**invertida**: el umbral queda en la cápsula y la clase y la tabla en el
+globo— y **TC-125**, que probaba la tarjeta vieja entera y cuyo invariante «ningún control del
+panel lleva id» se **invirtió a propósito** para Marfan: sus diecinueve rasgos son campos del
+estudio.

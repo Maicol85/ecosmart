@@ -8868,3 +8868,118 @@ en `PENDIENTES.md` → **POPB-a** y en el mensaje del commit `POP-B-1`.
 agrega son tres —el aviso de reemplazo de morfología, la fila «Cirugía y drenajes» de las
 características del esquema y el `title` del botón— y los tres describen lo que el médico cargó o
 lo que la app va a hacer, sin nombrar una guía, una clase ni un folio.
+
+---
+
+## La tanda MARFAN-1 (2026-11-01)
+
+**Fuente única de lo clínico, y la ÚNICA que esta tanda abrió:**
+Loeys BL, Dietz HC, Braverman AC, Callewaert BL y cols. **«The revised Ghent nosology for the
+Marfan syndrome»**. *J Med Genet* 2010;47:476-485. doi:10.1136/jmg.2009.072785.
+Archivo: `~/Desktop/EcoSmart_Biblioteca_Fuentes/06_Aorta/The Revised Ghent nosology for the
+Marfan syndrome.pdf`, 11 hojas.
+
+**REGLA DE FOLIO: FOLIO = HOJA + 474**, comprobada **en el pie impreso** de cuatro hojas —la 3
+publica «477» abajo a la derecha, la 4 «478» abajo a la izquierda, la 5 «479» y la 6 «480»—.
+Leídas **en imagen a 200 ppp**: hojas 3, 4, 5, 6, 7 y 8.
+
+### Box 1 — criterios revisados de Ghent (hoja 3, folio 477), transcripto
+
+```
+In the absence of family history:
+(1) Ao (Z >=2) AND EL = MFS*
+(2) Ao (Z >=2) AND FBN1 = MFS
+(3) Ao (Z >=2) AND Syst (>=7pts) = MFS*
+(4) EL AND FBN1 with known Ao = MFS
+
+In the presence of family history:
+(5) EL AND FH of MFS (as defined above) = MFS
+(6) Syst (>=7 pts) AND FH of MFS (as defined above) = MFS*
+(7) Ao (Z>=2 above 20 years old, >=3 below 20 years) + FH of MFS (as defined above) = MFS*
+
+* Caveat: without discriminating features of SGS, LDS or vEDS (as defined in table 1) AND after
+TGFBR1/2, collagen biochemistry, COL3A1 testing if indicated.
+```
+
+⚠️ **EL ASTERISCO ESTÁ EN 1, 3, 6 Y 7 — NO en 2, 4 ni 5**, verificado glifo por glifo.
+
+Definiciones del mismo Box: **Ao** = diámetro aórtico en los senos de Valsalva por encima del
+Z-score indicado **o disección de la raíz aórtica**; **FBN1 with known Ao** = mutación de FBN1
+identificada en un individuo con aneurisma aórtico; **FBN1 not known with Ao** = la que no se
+asoció previamente a aneurisma o disección de la raíz.
+
+### Box 2 — puntaje de los rasgos sistémicos (hoja 4, folio 478), transcripto
+
+```
+Wrist AND thumb sign - 3 (wrist OR thumb sign - 1)
+Pectus carinatum deformity - 2 (pectus excavatum or chest asymmetry - 1)
+Hindfoot deformity - 2 (plain pes planus - 1)
+Pneumothorax - 2
+Dural ectasia - 2
+Protrusio acetabuli - 2
+Reduced US/LS AND increased arm/height AND no severe scoliosis - 1
+Scoliosis or thoracolumbar kyphosis - 1
+Reduced elbow extension - 1
+Facial features (3/5) - 1 (dolichocephaly, enophthalmos, downslanting palpebral fissures,
+                           malar hypoplasia, retrognathia)
+Skin striae - 1
+Myopia > 3 diopters - 1
+Mitral valve prolapse (all types) - 1
+Maximum total: 20 points; score >=7 indicates systemic involvement
+```
+
+**La suma de los trece da 20 exactos.** **La ectopia lentis NO está en este Box.**
+
+### Lo que se confirmó y lo que NO coincidió con la orden
+
+| lo que la orden decía | lo que la hoja dice | veredicto |
+|---|---|---|
+| Box 2, máximo 20, corte 7 | idéntico | **confirmado** |
+| la ectopia lentis sale del score | no está en el Box 2 | **confirmado** |
+| «que requiere cirugía» y «moderado» eliminados | folio 480 lo dice expresamente | **confirmado** |
+| asteriscos en 1, 3, 6 y 7 | idéntico | **confirmado** |
+| miopía: el Box 2 dice >3 y el folio 480 una vez ≥3 | **el folio 480 lo dice de las DOS formas** | **confirmado y ampliado** |
+| neumotórax espontáneo | el Box 2 no lo califica; el folio 480 sí | **confirmado** |
+| historia familiar = familiar diagnosticado por separado | folio 479, idéntico | **confirmado** |
+| las catorce definiciones del punto 5a | idénticas, una por una | **confirmado** |
+| «el artículo empieza en la hoja 2 = folio 476» | correcto, y la regla folio = hoja + 474 también | **confirmado** |
+| el último caso de la suite es TC-580 | **es TC-585**; 585 numéricos + 15 TC-GR = 600 | **FALSO, medido** |
+
+### Los epónimos
+
+El artículo **describe los dos signos de la mano sin nombrarlos**: no dice Walker-Murdoch ni
+Steinberg. El **único** epónimo que la fuente trae es la **línea de Köhler**, en la protrusión
+acetabular (folio 480), y por eso ése sí se usa.
+
+### Frases que el artículo publica y que esta tanda NO escribió en pantalla
+
+- Las categorías **MASS**, **síndrome de prolapso mitral**, **trastorno no específico del tejido
+  conectivo**, **Marfan potencial** y **síndrome de ectopia lentis**: fuera del alcance por orden
+  expresa. La nota de los menores de 20 años sin historia familiar (folio 479) entra en el globo
+  de las reglas **sólo como texto informativo, sin lógica**, que es lo que la orden pide.
+- La segunda mitad del caveat —el estudio de TGFBR1/2, la bioquímica del colágeno y COL3A1— se
+  **dice en el globo** y no tiene campo: la lista autorizada cubre sólo la primera mitad.
+
+### Cambios de evidencia
+
+| qué | antes | ahora | folio |
+|---|---|---|---|
+| ectopia lentis en el puntaje | 3 puntos | fuera del puntaje, criterio aparte | 478 |
+| máximo del puntaje | 20 declarado, 19 real | 20 declarado y 20 real | 478 |
+| rasgos del puntaje | once | **trece** | 478 |
+| deformidad del retropié | no existía | 2 puntos, distinta del pie plano simple | 478 y 480 |
+| pectus | «que requiere cirugía» / «moderado» | carinatum 2 · excavatum o asimetría 1 | 478 y 480 |
+| signos de la mano | con epónimos | descritos, sin epónimos | 478 y 480 |
+| reglas diagnósticas | cinco vías inventadas | **las siete del Box 1** | 477 |
+| asterisco de exclusión | no existía | en 1, 3, 6 y 7 | 477 |
+| regla con historia familiar | «basta un criterio mayor», con FBN1 | las tres del Box 1, sin FBN1 | 477 |
+| umbral del Z por edad | «Z≥3 sin historia familiar» | Z≥2 desde los 20, Z≥3 por debajo, **con** historia familiar | 477 y 479 |
+| las dos variantes de FBN1 | una sola casilla | dos campos independientes | 477 y 479 |
+| «Ao» | sólo el Z | el Z **o la disección** | 477 |
+| veintiún globos con la definición del rasgo | no existían | con su folio y diciendo lo no definido | 478, 479 y 480 |
+
+### Lo que NO se citó porque no se pudo verificar
+
+Nada: las catorce definiciones, los dos Box, el Box 3 y las dos notas se leyeron en imagen sobre
+la hoja. **Ninguna frase del artículo se copia**: todo el texto de pantalla está parafraseado en
+español, que es la regla de la orden.
