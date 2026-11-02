@@ -89531,24 +89531,37 @@ function _indCIA(){
      hoja 31, folio 593.
 
      ⚠️ NADA DE ESTE BLOQUE LLEGA AL PAPEL. Lo lee `indicRender` y nadie más. */
-  const CIA_OPS = [{ v:'si', t:'Sí' }, { v:'no', t:'No' }];
+  /* Tres estados: «Sí», «No» y «?» -sin dato-, con el centinela `IND_OPS_SD` (TGA-4, commit 5).
+     Ver su nota: pone `null` y no una cadena vacia, y enciende el piso de ancho que deja los
+     tres botones en UNA linea. */
+  const CIA_OPS = [{ v:'si', t:'Sí' }, { v:'no', t:'No' }, IND_OPS_SD];
   /* ⚠️ CADA PREGUNTA NOMBRA SU GUIA Y SU RECOMENDACION (CORR-EVID-6/7, 2026-11-02). `guia` es
      la regla E-1 —una pregunta, una guía—; `ref` es la línea de referencia de la OTRA (E-2); y
      `tramo` DICE que los tramos no coinciden en vez de inventar uno intermedio. Todas leídas en
      imagen: ACC/AHA 2025 hojas 35, 39 y 40 (folios e149, e153 y e154) y ESC 2020 hojas 30 y 33
      (folios 592 y 595). */
-  const clinica = [], _si = [], _no = [], _sd = [];
+  const clinica = [], _si = [], _no = [], _sd = [], _siDet = [];
+  /* ⚠️ SIN GRUPOS, Y ES LO QUE LA ORDEN DICE: el agrupamiento se pone «SOLO donde sea evidente»
+     y acá no lo es —las catorce preguntas son condiciones de la misma tabla de intervención—.
+     Inventar un agrupamiento clínico es contenido nuevo. */
   CIA_PREG.forEach(function (p) {
     const o = _indOrigen(null, p.clave);
-    if (o.val === 'si') _si.push(p.lbl); else if (o.val === 'no') _no.push(p.lbl); else _sd.push(p.lbl);
-    clinica.push(_indFilaOrigen(p.lbl, o, CIA_OPS, function (val) {
+    if (o.val === 'si') { _si.push(p.lbl); _siDet.push(p); }
+    else if (o.val === 'no') _no.push(p.lbl); else _sd.push(p.lbl);
+    /* `sinAviso` en true: esta sección dice la frase UNA sola vez, en sus `notas`. */
+    const _f = _indFilaOrigen(p.lbl, o, CIA_OPS, function (val) {
       /* La nota la arma `_indPregNota` (CORR-EVID-4): rótulo de la guía que rige, lo que esa
          guía manda, la línea de referencia de la OTRA y la nota de tramo. */
       return { txt: val === 'si' ? 'Sí' : (val === 'no' ? 'No' : 'Sin dato'),
                marca: val === 'si' ? 'warn' : (val === 'no' ? 'none' : 'ask'),
                nota: _indPregNota(p, val == null) };
-    }));
+    }, true);
+    const _b = _indPregBadge(p); if (_b) _f.badge = _b;
+    clinica.push(_f);
   });
+  if (CIA_PREG.length) clinica.unshift(_indFila('Respuestas',
+    _si.length + ' en Sí · ' + _no.length + ' en No · ' + _sd.length + ' sin dato', 'none',
+    '«Sin dato» no cuenta como «no»: mientras una condición no se conteste, no sostiene ninguna recomendación.'));
   const _balCIA = _si.length
     ? { txt:'Condiciones presentes en este paciente: ' + _si.length + ' de ' + CIA_PREG.length + ' (' + _si.join('; ') + ').'
         + (_sd.length ? ' Sin contestar: ' + _sd.join('; ') + '.' : ' Las otras ' + _no.length + ' están contestadas que no.'), refs:null }
@@ -89603,7 +89616,16 @@ function _indCIA(){
         { txt:'Tras el cierre con dispositivo, el seguimiento es regular durante los dos primeros años y después, según los resultados, cada 3 a 5 años.', refs:null },
         { txt:'Fuente: ESC 2020 de cardiopatías congénitas del adulto, hojas 30 y 31, folios 592 y 593.', refs:['esc2020guch'] }
       ]}
-    ],
+    ].concat(_siDet.length ? [{ tit:'Recomendaciones que aplican con lo contestado (' + _siDet.length + ')',
+      lineas: _siDet.map(function (p) {
+        const b = _indPregBadge(p);
+        const et = b ? (b.g === 'ACC' ? 'ACC/AHA 2025' : 'ESC 2020') + (b.cn ? ' · ' + b.cn : '') : '';
+        return { txt: p.lbl + (et ? ' — ' + et : '') + '.', refs:null };
+      }) }] : []),
+    /* ⚠️ MODO COMPACTO (TGA-4, commit 5): el MISMO molde de la transposición. El contenido no
+       cambia —lo mide el conteo de citas antes y después—; cambia dónde se muestra. */
+    compacta: true,
+    preguntas: true,
     guia: { ref:'acc2025achd',
       txt:'Las indicaciones de esta sección salen de DOS guías: la ACC/AHA 2025 de cardiopatías congénitas del adulto (apartado 4.1.1, hoja 35, folio e149), que es la que rige cuando las dos tratan el mismo tema con cortes distintos, y la ESC 2020 de cardiopatías congénitas del adulto (hoja 30, folio 592), que queda como referencia. Cada pregunta usa los cortes de UNA sola de ellas, con su nombre y año a la vista: ninguna los combina.' },
     notas: [
@@ -91920,22 +91942,32 @@ function _indCIV(){
      línea de `guia` de la sección sigue citando `escGuchCiv`, que es la que lleva la advertencia.
 
      ⚠️ NADA DE ESTE BLOQUE LLEGA AL PAPEL. */
-  const CIV_OPS = [{ v:'si', t:'Sí' }, { v:'no', t:'No' }];
+  /* Tres estados, con el centinela `IND_OPS_SD` (TGA-4, commit 5). Ver su nota. */
+  const CIV_OPS = [{ v:'si', t:'Sí' }, { v:'no', t:'No' }, IND_OPS_SD];
   /* ⚠️ CADA PREGUNTA NOMBRA SU GUIA Y SU RECOMENDACION (CORR-EVID-6/7, 2026-11-02). `guia` es
      la regla E-1 —una pregunta, una guía—; `ref` es la línea de referencia de la OTRA (E-2); y
      `tramo` DICE que los tramos no coinciden en vez de inventar uno intermedio. Todas leídas en
      imagen: ACC/AHA 2025 hojas 35, 39 y 40 (folios e149, e153 y e154) y ESC 2020 hojas 30 y 33
      (folios 592 y 595). */
-  const _civClin = [], _cSi = [], _cNo = [], _cSd = [];
+  const _civClin = [], _cSi = [], _cNo = [], _cSd = [], _cSiDet = [];
+  /* ⚠️ SIN GRUPOS, igual que la CIA y por el mismo motivo: las catorce preguntas son
+     condiciones de la misma tabla y el agrupamiento no es evidente. La orden lo dice. */
   CIV_PREG.forEach(function (p) {
     const o = _indOrigen(null, p.clave);
-    if (o.val === 'si') _cSi.push(p.lbl); else if (o.val === 'no') _cNo.push(p.lbl); else _cSd.push(p.lbl);
-    _civClin.push(_indFilaOrigen(p.lbl, o, CIV_OPS, function (val) {
+    if (o.val === 'si') { _cSi.push(p.lbl); _cSiDet.push(p); }
+    else if (o.val === 'no') _cNo.push(p.lbl); else _cSd.push(p.lbl);
+    /* `sinAviso` en true: esta sección dice la frase UNA sola vez, en sus `notas`. */
+    const _f = _indFilaOrigen(p.lbl, o, CIV_OPS, function (val) {
       return { txt: val === 'si' ? 'Sí' : (val === 'no' ? 'No' : 'Sin dato'),
                marca: val === 'si' ? 'warn' : (val === 'no' ? 'none' : 'ask'),
                nota: p.nota + (val == null ? '. Sin dato no cuenta como «no»: mientras no se conteste, esta condición no sostiene ninguna recomendación' : '') };
-    }));
+    }, true);
+    const _b = _indPregBadge(p); if (_b) _f.badge = _b;
+    _civClin.push(_f);
   });
+  if (CIV_PREG.length) _civClin.unshift(_indFila('Respuestas',
+    _cSi.length + ' en Sí · ' + _cNo.length + ' en No · ' + _cSd.length + ' sin dato', 'none',
+    '«Sin dato» no cuenta como «no»: mientras una condición no se conteste, no sostiene ninguna recomendación.'));
   const _balCIV = _cSi.length
     ? { txt:'Condiciones presentes en este paciente: ' + _cSi.length + ' de ' + CIV_PREG.length + ' (' + _cSi.join('; ') + ').'
         + (_cSd.length ? ' Sin contestar: ' + _cSd.join('; ') + '.' : ' Las otras ' + _cNo.length + ' están contestadas que no.'), refs:null }
@@ -91979,7 +92011,15 @@ function _indCIV(){
         { txt:'Con un defecto pequeño —nativo o residual, con ventrículo izquierdo y presión pulmonar normales y sin síntomas— y sin otra lesión, intervalos de 3 a 5 años pueden ser razonables. Tras el cierre con dispositivo, control regular los dos primeros años y después, según los resultados, cada 2 a 5 años. Tras el cierre quirúrgico sin anomalía residual, intervalos de 5 años pueden ser razonables.', refs:null },
         { txt:'Fuente: ESC 2020 de cardiopatías congénitas del adulto, hoja 33, folio 595.', refs:['esc2020guch'] }
       ]}
-    ],
+    ].concat(_cSiDet.length ? [{ tit:'Recomendaciones que aplican con lo contestado (' + _cSiDet.length + ')',
+      lineas: _cSiDet.map(function (p) {
+        const b = _indPregBadge(p);
+        const et = b ? (b.g === 'ACC' ? 'ACC/AHA 2025' : 'ESC 2020') + (b.cn ? ' · ' + b.cn : '') : '';
+        return { txt: p.lbl + (et ? ' — ' + et : '') + '.', refs:null };
+      }) }] : []),
+    /* ⚠️ MODO COMPACTO (TGA-4, commit 5): el MISMO molde de la transposición y de la CIA. */
+    compacta: true,
+    preguntas: true,
     /* ⚠️ LA LINEA DE GUIA NO SE MUEVE A LA ACC/AHA 2025, Y ES DELIBERADO. Esta línea publica el
        CRITERIO QUE LA APLICACION APLICA, no la lista de recomendaciones, y ese criterio diverge
        de la tabla de la ESC 2020 —tres divergencias verificadas, que la entrada `escGuchCiv` del
@@ -150891,8 +150931,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261102-1600';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793646004523;                 /* eco-build-ms */
+const ECO_BUILD    = '20261102-1604';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793646287225;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -150978,7 +151018,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261102-1600</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261102-1604</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
