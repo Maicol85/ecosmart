@@ -12198,3 +12198,97 @@ más tarde** y la corrida final de la suite se hizo con él montado, verificado 
 doce lotes y al cerrar.
 
 Se declara porque la orden pide verificarlo **al abrir**, y al abrir no estaba.
+
+# TANDA TGA-4 (2026-11-02) — lo declarado
+
+## T4-a · La aplicación tiene DOS cortes para la obstrucción subaórtica: 40 en su sección y 50 en la TGA
+
+**Qué se encontró.** `ESUB_MEDIO_SEVERO = 40` gobierna la sección de **Estenosis subaórtica**, con
+el rótulo «obstrucción severa del tracto de salida izquierdo por el criterio de la ESC 2020 (medio
+≥40 mmHg a flujo normal)». La cascada de la **transposición** elige su rama con `gradS > 50`.
+Son la misma lesión con dos números distintos en la misma aplicación.
+
+**Qué dice la fuente** (leída en imagen, ver `docs/fuentes/FUENTES.md` → «La tanda TGA-4»): la
+**ESC 2020 bajó expresamente el umbral de 50 a 40 mmHg** (hoja 10, folio 572) y sus
+recomendaciones de intervención en estenosis subaórtica usan **medio ≥40 mmHg** (hoja 41, folio
+603, Clase I·C). El **50 mmHg existe en la ACC/AHA**, pero es un **gradiente PICO**, para la
+**estenosis subaórtica** y el **defecto septal auriculoventricular**, y es **texto de apoyo sin
+clase** (hoja 43, folio e157; hoja 53, folio e167). **En el capítulo de la transposición no hay
+ningún número**, en ninguna de las dos guías.
+
+**Qué NO se hizo y por qué.** No se tocó el corte de la cascada: cambiar un umbral es contenido
+clínico y lo decide el médico. Lo que sí se hizo es que la pantalla **deje de publicarlo** con el
+resto de la conducta (commit 4b), así que hoy el 50 no se afirma en ninguna superficie — sólo
+elige la rama que el Laboratorio clasifica.
+
+**Qué haría falta decidir.** Si la transposición pasa a usar el 40 de la ESC —que es el que la
+propia aplicación ya aplica a la misma lesión—, si pasa a usar el pico de 50 de la ACC con su
+rótulo de condición, o si la rama deja de depender de un número y pasa a «severa» + síntomas, que
+es como la única recomendación de la transposición (ACC 2b·B-NR, recomendación 8 de la ccTGA,
+hoja 84, folio e198) la escribe.
+
+## T4-b · Lo que se perdió de la pantalla de la TGA con la conclusión descriptiva
+
+Siete frases. La Evidencia de la sección respalda **cuatro**:
+
+| frase | respaldo |
+|---|---|
+| cirugía sobre la válvula auriculoventricular sistémica | **sí** — Clase I·C y IIa·C |
+| seguimiento estrecho de la insuficiencia tricuspídea severa | **sí** — Clase IIa·C |
+| optimización del tratamiento médico de insuficiencia cardíaca | **sí** — ACC 2b·B-R (h77 e191) y 2b·B-NR (h84 e198) |
+| seguimiento anual | **sí, pero SIN CLASE** — ESC apartado 4.12.5 (h58 f620); la ACC da intervalos por estadio |
+| **evaluación de resincronización POR DISFUNCIÓN** | **NO** — las dos guías la condicionan a bloqueo auriculoventricular o a estimulación crónica, no a disfunción |
+| **el corte de 50 mmHg** de la obstrucción subaórtica | **NO** para la transposición — ver **T4-a** |
+| «No consta la situación clínica» y «No consta la función del ventrículo sistémico — completar la evaluación» | no son recomendaciones sino avisos de dato faltante |
+
+**Las dos últimas filas son las que el médico tiene que decidir.** La resincronización por
+disfunción sale de la aplicación entera: su texto queda vivo en `resumen` y en `TGA_CONDUCTAS`,
+pero ninguna superficie lo muestra. Y los dos avisos de dato faltante salieron con la conducta
+porque viajan en la misma cadena: separarlos es una decisión que esta orden no toma.
+
+## T4-c · La cláusula del bloqueo auriculoventricular se perdió también de la pantalla
+
+«complicación esperable en la ccTGA por la disposición del sistema de conducción» tenía **una sola
+aparición en todo el documento** y vivía dentro de la misma cadena que alimenta la cápsula y el
+papel. Al retirarla del papel —que es lo que la orden pide— se fue también de la pantalla. **No
+estaba en ningún ⓘ ni en Referencias**, censado. Escribirla en la Evidencia es contenido clínico
+nuevo. Si el médico la quiere de vuelta en la pantalla, el lugar es el ⓘ de la sección y
+condicionada al tipo `cctga`, que es donde no sería falsa.
+
+## T4-d · El lienzo del 3D se estampa CUADRADO en el PDF, y es preexistente
+
+`_pdfTile` usa `p.ar || 1` y el recolector del diagrama 3D nunca pasó `ar`, así que un lienzo de
+**560 × 420** —4:3— se dibuja en un cuadrado y sale estirado a lo alto. Viene de la tanda TGA-2.
+La parte NUEVA que esta tanda agrega —el esquema de circulación— sí lleva su proporción
+(`TGA_ESQ_PDF_AR`, 290/300), que es lo correcto para un dibujo que nace hoy. Corregir el del 3D
+cambia un dibujo que esta orden no manda tocar. `captura()` ya devuelve `ancho` y `alto`: lo que
+falta es que el slot los guarde.
+
+## T4-e · El esquema del PDF no se guarda con el estudio ni en «Imágenes»
+
+El dataURL del esquema vive en una variable de módulo y muere con la página, que es lo que la
+orden deja pendiente expresamente. El slot del 3D sí viaja a IndexedDB. Reabriendo un estudio
+guardado, `tgaEsqSync` corre en la restauración y el esquema **se vuelve a rasterizar solo**, así
+que en la práctica el PDF lo trae igual; lo que no hay es una copia guardada. Cierra la mitad de
+PDF de **T3-c**; la otra mitad —«Imágenes»— sigue abierta.
+
+## T4-f · Los símbolos de las válvulas del posoperatorio se QUEDAN como están
+
+Decisión del médico, anotada por pedido expreso de la orden: los cuatro símbolos de válvula
+operada del dibujo del posoperatorio **sólo se dibujan con la casilla de la válvula marcada**, y
+así se quedan. Confirma **CE-b** y no se tocó nada.
+
+## T4-g · El ⓘ de una nota plegada no es un botón de 44 px
+
+El ⓘ que abre la prosa de una fila del panel es el `<summary>` de un `<details>` y mide **11 × 13
+px**, no 44. Es el mecanismo que las ocho secciones compactas ya usaban desde la tanda A y que
+esta tanda extiende a la transposición: cambiarlo alcanza a las ocho. Se suma a **TGA2-h**, que
+declara los 22 px de los botones de respuesta con puntero fino. Los botones de respuesta de las
+secciones que esta tanda toca **sí** miden 44 × 44, medido.
+
+## T4-h · A 390 px el panel compacto de la TGA es más alto que antes
+
+5937 → 6161 px en el switch auricular. A ese ancho el panel mide 366 px, la botonera cae en su
+propia línea por la maqueta móvil que ya existía, y las piezas que la orden pide agregar —cuatro
+rótulos de grupo, el contador y el botón de columnas— no se compensan con el ahorro de la fila.
+El arreglo es de escritorio: a 1440 px baja de 3947 a 3234, y maximizado de 3107 a 2384.

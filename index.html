@@ -96228,7 +96228,52 @@ function tgaConclusion(src){
      docs/PENDIENTES.md. QUIEN VUELVA A CABLEAR ESTA SECCION AL PAPEL TIENE QUE USAR `papel`. */
   const _papelDesc = partes.join('. ');
   partes.push(conducta);
-  return { clave: clave, txt: partes.join('. '), papel: _papelDesc,
+  /* ══ LA CONCLUSION DE PANTALLA, DESCRIPTIVA (TGA-4, commit 4b) ═══════════════════════════════
+     DECISION DEL MEDICO: la capsula de esta seccion describe lo cargado y NO recomienda; las
+     recomendaciones viven en la Evidencia. Es la ampliacion de la regla fija del 2026-11-02 que
+     `CLAUDE.md` ya trae —«LA PANTALLA TAMPOCO DA INDICACIONES»— aplicada aca, que es lo que
+     T3-e, T3-f, VP-a y CE-d venian declarando como pendiente.
+
+     `txt` pasa a ser la MISMA cadena que `papel`, y eso es deliberado: las dos salidas se arman
+     con las mismas piezas, asi que no pueden divergir. Es el patron de la coartacion y de la
+     miocardiopatia hipertrofica. La rama `descriptivo` de arriba ya lo hacia.
+
+     ⚠️ NINGUN NUMERO MEDIDO DESAPARECE. La obstruccion subaortica sigue publicandose como DATO
+     —«Obstrucción subaórtica con gradiente de 60 mmHg»— porque esa frase vive en `partes`, no
+     en la conducta. Lo que sale es el veredicto y el «por encima de 50 mmHg».
+
+     ⚠️ `conducta` SE SIGUE CONSTRUYENDO Y NO SE BORRA DEL CODIGO. Alimenta `resumen`, que es
+     donde esas siete cadenas quedan vivas, y `clave` no se mueve: el Laboratorio clasifica por
+     la rama y su tabla `TGA_CONDUCTAS` documenta el criterio de cada una, asi que ni el
+     Laboratorio ni el Excel ven ningun cambio. La regla de la orden es «los textos de
+     recomendacion no se borran sin dejar su lugar», y este es su lugar.
+
+     ⚠️ LO QUE SE PIERDE DE LA PANTALLA, PARA QUE EL MEDICO DECIDA. Siete frases, y la Evidencia
+     de la seccion respalda SOLO cuatro —medido por CORR-EVID y VAL-PPT, no estimado—:
+       · cirugia de la valvula AV sistemica (`cirugia_it`) — SI, Clase I·C y IIa·C.
+       · seguimiento estrecho de la IT severa (`it_severa`) — SI, Clase IIa·C.
+       · tratamiento medico de la insuficiencia cardiaca (`disfuncion`) — SI, ACC 2b·B-R
+         (recomendacion 15 del switch auricular, h77 e191) y 2b·B-NR (recomendacion 7 de la
+         ccTGA, h84 e198).
+       · seguimiento anual (`seguimiento`) — SI pero SIN CLASE: la ESC lo escribe como «al menos
+         una vez al año» (apartado 4.12.5, h58 f620) y la ACC da intervalos por estadio.
+       · resincronizacion POR DISFUNCION (`disfuncion`) — NO. La ACC la condiciona a QRS por
+         encima de 150 ms por estimulacion cronica o a bloqueo auriculoventricular; la ESC, a
+         bloqueo completo o estimulacion por encima del 40 %. NO hay respaldo por disfuncion.
+       · obstruccion subaortica «con gradiente por encima de 50 mmHg — intervencion a
+         considerar» (`obstr_subaortica`) — PARCIAL: la intervencion si (ACC 2b·B-NR,
+         recomendacion 8 de la ccTGA, h84 e198, con SINTOMAS y estenosis SEVERA), pero el CORTE
+         de 50 mmHg NO esta en el capitulo de la transposicion de ninguna de las dos guias. Ver
+         el commit 4a en docs/FUENTES.md: existe para la ESTENOSIS SUBAORTICA en la ACC/AHA
+         (pico ≥50 mmHg, h43 e157, texto de apoyo sin clase) y la ESC 2020 lo BAJO expresamente
+         a media ≥40 mmHg (h10 f572). La propia aplicacion ya aplica 40 en su seccion de
+         estenosis subaortica. NO se aplica a la transposicion y NO se agrega ninguna pregunta:
+         la hoja no lo respalda para ese contexto. Declarado en docs/PENDIENTES.md.
+       · «No consta la situacion clinica» y «No consta la funcion del ventriculo sistemico —
+         completar la evaluacion» (`sin_contexto` y `sin_funcion`) — no son recomendaciones
+         clinicas sino avisos de dato faltante, pero salen con la conducta porque son parte de
+         la misma cadena y separarlas es una decision que esta orden no toma. Declarado. */
+  return { clave: clave, txt: _papelDesc, papel: _papelDesc,
     resumen: _cab + (itTxt ? ', insuficiencia de la AV sistémica ' + itTxt : '') + '. ' + conducta };
 }
 function tgaSync(){
@@ -150846,8 +150891,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261102-1556';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793645769722;                 /* eco-build-ms */
+const ECO_BUILD    = '20261102-1600';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793646004523;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -150933,7 +150978,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261102-1556</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261102-1600</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

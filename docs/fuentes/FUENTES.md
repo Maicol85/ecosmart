@@ -9480,3 +9480,100 @@ Todo lo demás que el índice afirma —clase, nivel, hoja y folio de cada pregu
 
 **Ningún corte, umbral, clase ni nivel de los que la aplicación ya aplicaba se movió.** Lo que se
 agrega son recomendaciones y preguntas de una guía que antes no estaba.
+
+---
+
+## La tanda TGA-4 (2026-11-02)
+
+### El corte de 50 mmHg de la obstrucción subaórtica — LEÍDO EN IMAGEN, y la respuesta es que SÍ existe, pero NO para la transposición
+
+El médico sostiene que el corte existe y no quiere que se pierda. Se buscó en las **dos guías
+completas** de cardiopatías congénitas del adulto de `08_Cardiopatias_congenitas`, no sólo en las
+hojas de la transposición: el capítulo de estenosis subaórtica, los apartados de obstrucción del
+tracto de salida del ventrículo izquierdo y los capítulos de la transposición enteros.
+
+**Las tres hojas se leyeron EN IMAGEN a 190 ppp y el folio se comprobó en el pie impreso de cada
+una.** La regla de folio de la ACC/AHA es **folio = hoja + 114**, verificada en las dos hojas que
+se leyeron (hoja 43 → e157, hoja 53 → e167); la de la ESC 2020 es **folio = hoja + 562**,
+verificada en la hoja 41 → 603.
+
+#### ACC/AHA 2025 — Gurvitz y cols., *Circulation* 2026;153:e115-e251
+
+**Hoja 43, folio e157** — capítulo del **defecto septal auriculoventricular**, en
+«Recommendation-Specific Supportive Text», punto 3. Parafraseado: la reparación quirúrgica se
+recomienda cuando el paciente tiene síntomas o cae la función del ventrículo izquierdo; el
+ecocardiograma puede subestimar el gradiente real y a veces hace falta cateterismo. Y entonces,
+textual (14 palabras):
+
+> «gradients of peak ≥50 mm Hg (subaortic stenosis) ... suggested as cutoffs for severe LVOT obstruction»
+
+O sea: **gradiente PICO de 50 mmHg o más, para la ESTENOSIS SUBAÓRTICA, como corte de GRAVEDAD de
+la obstrucción del tracto de salida.** Es **texto de apoyo** y **no tiene clase ni nivel propios**.
+La recomendación con clase de esa misma página —la 7, COR 2b · Nivel C-LD— es para el defecto
+septal auriculoventricular asintomático con insuficiencia aórtica progresiva, y **no publica el
+número**.
+
+**Hoja 53, folio e167** — capítulo de la **estenosis subaórtica**, también texto de apoyo. Ahí el
+50 mmHg es **pronóstico y no una indicación**: con un gradiente del tracto de salida de 50 mmHg o
+más la supervivencia libre de intervención es menor, y en el adulto un gradiente pico de 50 mmHg o
+más se asocia a mayor probabilidad de insuficiencia aórtica. **La misma hoja dice expresamente que
+no hay dato que identifique un umbral de gradiente** a partir del cual el paciente desarrolla
+síntomas ni uno en el que la resección los alivie.
+
+#### ESC 2020 — Baumgartner y cols., edición inglesa
+
+**Hoja 41, folio 603** — «Recommendations for intervention in subaortic stenosis», leída tabla por
+tabla en imagen:
+
+| recomendación | clase | nivel |
+|---|---|---|
+| Sintomático (espontáneo o en ejercicio) con gradiente Doppler **medio ≥40 mmHg** o insuficiencia aórtica severa: cirugía recomendada | **I** | C |
+| Asintomático con: medio <40 mmHg y fracción de eyección <50 %; o insuficiencia aórtica severa con diámetro telesistólico >50 mm (o 25 mm/m²) y/o fracción <50 %; o medio ≥40 mmHg con hipertrofia marcada; o medio ≥40 mmHg con caída de la presión arterial en el ejercicio | **IIa** | C |
+| Asintomático con medio ≥40 mmHg, ventrículo normal, ergometría normal y riesgo quirúrgico bajo; o progresión documentada de la insuficiencia aórtica a más que leve | **IIb** | C |
+
+Nota ^c de esa tabla: los gradientes por Doppler pueden **sobrestimar** la obstrucción y pueden
+necesitar confirmación por cateterismo.
+
+**Hoja 10, folio 572** — entre los cambios de la edición 2020, la guía dice que **baja el umbral de
+gradiente Doppler medio para la intervención del tracto de salida de 50 a 40 mmHg**. O sea que la
+ESC 2020 **retiró** el 50 mmHg a propósito.
+
+#### En el capítulo de la TRANSPOSICIÓN: ninguna de las dos publica un corte de gradiente
+
+Censadas las hojas 54 a 60 de la ESC (folios 616 a 622) y las hojas 73 a 86 de la ACC (folios e187
+a e200). La obstrucción del tracto de salida se nombra como complicación del Rastelli y de la
+transposición congénitamente corregida, y «aliviarla» es la segunda causa de reoperación, pero
+**no hay ningún número**. La única recomendación es la **8 de la ccTGA de la ACC/AHA, hoja 84,
+folio e198, COR 2b · Nivel B-NR**, cuyo criterio es **sintomático + estenosis SEVERA del tracto de
+salida**, sin gradiente.
+
+#### Qué se hizo, y qué NO
+
+- **NO se aplica el 50 mmHg a la transposición** y **no se agregó ninguna pregunta nueva a la
+  Evidencia**: la hoja no lo respalda para ese contexto, que es la condición que la orden pone.
+  La recomendación 8 de la ccTGA **ya está** en la Evidencia desde CORR-EVID, así que no falta
+  nada que agregar; lo que falta es el número, y el número no existe para esta cardiopatía.
+- **El corte de la cascada NO se tocó.** `gradS > 50` sigue eligiendo la rama `obstr_subaortica`,
+  que es lo que el Laboratorio clasifica. Cambiar un corte es contenido clínico y se reporta.
+- Lo que sí sale es la **frase de conducta** de la pantalla, con el resto (commit 4b).
+- ⚠️ **La propia aplicación ya aplica el 40 de la ESC en su sección de Estenosis subaórtica**:
+  `ESUB_MEDIO_SEVERO = 40`, con el rótulo «obstrucción severa del tracto de salida izquierdo por
+  el criterio de la ESC 2020 (medio ≥40 mmHg a flujo normal)». O sea que la aplicación tiene hoy
+  **dos cortes distintos para la misma lesión**: 40 en su sección propia y 50 en la transposición.
+  Declarado en `docs/PENDIENTES.md` → **T4-a**.
+- ⚠️ **El año del rótulo.** El PDF de la ACC/AHA lleva el encabezado «2026 ACHD Guideline» y se
+  publica en *Circulation* 2026, mientras el título del documento y el registro de la aplicación
+  dicen «2025». No se cambió nada: el rótulo `acc2025achd` lo fijaron TGA-2 y CORR-EVID.
+
+### Tabla «Cambios de evidencia»
+
+| qué | antes | hoy | por qué |
+|---|---|---|---|
+| Recuadro de la hoja de congénitas del PDF | «Segun la guia: <conclusión>» | «<conclusión>» | el papel no nombra guías; sale de las nueve secciones que lo emitían |
+| Bloqueo auriculoventricular en la TGA | «… completo, complicación esperable en la ccTGA por la disposición del sistema de conducción» | «… completo» | la cláusula nombraba otra anatomía en dos de los tres tipos de esa rama |
+| Caja «Tricúspide / PSAP» del PDF | un solo título | «Tricúspide / PSAP / Válv. pulmonar» cuando hay datos de válvula pulmonar | las cuatro filas `VP` son la válvula pulmonar y el encabezado no la nombraba |
+| Conclusión de pantalla de la TGA | descripción + conducta | sólo descripción | la pantalla tampoco da indicaciones (regla fija del 2026-11-02) |
+| Corte de 50 mmHg de la obstrucción subaórtica | publicado en la conducta de la TGA | **no se publica**; no se aplica a la TGA y no entra a la Evidencia | no está en el capítulo de la transposición de ninguna de las dos guías |
+
+**Ninguna cita nueva se agregó a la pantalla.** Las dos recomendaciones que respaldan lo que se
+retiró ya estaban en la Evidencia desde CORR-EVID y VAL-PPT.
