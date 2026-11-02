@@ -12079,3 +12079,122 @@ retoques y el PPT—.
 **Qué queda hecho:** TC-470 **(S1)** documenta el comportamiento actual con las once opciones,
 así que el día que cambie se nota.
 **Qué falta decidir:** si «Plastia mitral» y «TEER mitral» entran a esa lista.
+
+## Tanda CORR-EVID (2026-11-02) — DECLARADO y NO arreglado
+
+## CE-a · La estenosis NO se fusiona en la línea de la válvula reparada
+
+El pedido dice que **la insuficiencia** no se repita aparte y que para la estenosis se use «el
+mismo texto que la app ya usa hoy». Se aplicó literal: con una plastia o un TEER y estenosis, el
+EN SUMA publica **dos** líneas —«VM con TEER.» y «EM significativa.»—, mientras la insuficiencia
+sí viaja dentro de la primera.
+
+Eso difiere de `sumaProtLinea`, el emisor hermano de las prótesis, que fusiona **las dos**
+lesiones en su única línea («VT protésica biológica con insuficiencia leve y estenosis severa.»).
+
+**Qué falta decidir:** si la válvula reparada también fusiona la estenosis, y entonces las dos
+familias quedan con la misma forma. Es contenido de papel firmado, así que lo decide Maicol.
+
+## CE-b · El símbolo del dibujo sólo aparece con la válvula operada MARCADA
+
+**La premisa del médico no se reproduce**, y está medido con click real en las cuatro válvulas y
+en los dos sentidos:
+
+| condición | lo que llega al dibujo | grupo | símbolo |
+|---|---|---|---|
+| tipo en Válvulas **+ válvula marcada** | `{on:true, tipo:'teer'/'plastia'/'tavi'/'mec'}` | visible | el suyo, **distinto** en los cuatro |
+| tipo elegido en el **selector del posoperatorio** | idéntico | visible | idéntico |
+| tipo en Válvulas, **SIN marcar** | `{on:FALSE, tipo:'teer'}` | `display:none` | **no se dibuja nada** |
+| control negativo: morfología **nativa** | `{on:true, tipo:''}` | visible | aro **punteado**, sin velos |
+
+Las cuatro firmas del SVG son distintas, y el SVG que renderiza la app coincide **número a
+número** con la demo v9 en las ocho combinaciones medidas (tolerancia 0,005).
+
+**O sea que no hay nada que corregir en el cableado.** Lo que falta es la casilla «válvula
+operada» del posoperatorio, y **cuándo se dibuja es una decisión de diseño**: la orden de esta
+tanda manda PARAR y no cambiarla.
+
+**Qué falta decidir:** si el símbolo tiene que aparecer con sólo elegir el tipo en Válvulas, o si
+la casilla del posoperatorio sigue siendo la condición. Hoy el dibujo es del **posoperatorio** y
+sólo dibuja lo que se operó en esta cirugía, que es coherente con su pestaña.
+
+## CE-c · El rótulo de la miocardiopatía hipertrófica, y qué es lo que el médico ve
+
+**La fila del conteo YA decía «AHA/ACC 2024 · factores mayores»**, medida en Chrome real con la
+pestaña y el acordeón abiertos por su botón real: 199 × 15 px, visible. VAL-PPT-6 sí la cambió.
+
+En la zona de la sección (`#sacc-cc-mch`, 1232 × 1299 px) hay **DOS** textos visibles con
+«AHA/ACC» y año, y **los dos dicen 2024**. **Cero «AHA/ACC 2020»** en la pantalla de la sección.
+
+**Lo que el médico ve es la TARJETA DE CRITERIOS** (`critMCH`), que es otra superficie y se abre
+aparte: **dos** apariciones de «AHA/ACC 2020» —el título de su columna izquierda, con la cita
+«Ommen SR et al. *Circulation* 2020;142:e558 — Sección 7.2», y el encabezado de la tabla «Dónde no
+coinciden»— contra **una** de 2024.
+
+**Verificado en imagen** (hoja 29, folio e1267, apartado 7.2): la Recomendación 3 es **COR 2a ·
+B-NR** y sus **cinco** factores mayores coinciden uno por uno con los que la app aplica.
+
+**El texto «salió de la lista en esa edición» se PARÓ y no se tocó.** La hoja 29 no menciona la
+respuesta tensional en ninguna de sus nueve recomendaciones, así que «no suma al conteo» es
+correcto; pero «salió de la lista **en esa edición**» es una afirmación **histórica** que exige la
+edición 2020, y **la AHA/ACC 2020 no está en la biblioteca** (lo documenta AJUSTES-3).
+
+⚠️ **Y los dos textos de la app se contradicen sobre cuándo salió**: el párrafo de la tarjeta dice
+«La AHA/ACC la retiró explícitamente de la evaluación de rutina **en 2020**» y el globo dice «salió
+de la lista en esa edición» con el año en **2024**.
+
+**Para el rediseño de MCH (otra tanda), los textos de guías y de historia que hay en su pantalla:**
+
+| Dónde | Texto |
+|---|---|
+| globo del factor | «no suma al conteo de la AHA/ACC 2024: salió de la lista en esa edición» |
+| globo del genotipo | «no figura en el esquema de la AHA/ACC 2020/2024 (donde el genotipo es un factor PEDIÁTRICO)» |
+| tarjeta `critMCH`, columna | «AHA/ACC 2020 — Ommen SR et al. *Circulation* 2020;142:e558 — Sección 7.2» |
+| tarjeta `critMCH`, tabla | encabezado «AHA/ACC 2020» |
+| tarjeta `critMCH`, párrafo | «La actualización AHA/ACC 2024 endureció un criterio… **Los diagramas siguen la versión 2020, que es la que cita el informe**» ⚠️ esa última cláusula **ya no es cierta**: desde CONG-2A el informe no cita ninguna guía |
+| tarjeta `critMCH`, párrafo | «La AHA/ACC la retiró explícitamente de la evaluación de rutina en 2020» |
+| nota del Laboratorio | «Los factores mayores de la AHA/ACC 2020 son cinco…» (es **VP-d**, sigue abierto) |
+
+## CE-d · La conclusión de pantalla de la TGA: el commit 8 se PARÓ, y cuánto falta
+
+La orden lo condiciona a que **las cuatro** conductas queden respaldadas. Medido contra lo que
+esta tanda escribió en la Evidencia:
+
+| conducta de la pantalla | respaldo tras esta tanda |
+|---|---|
+| tratamiento médico de la insuficiencia cardíaca | **SÍ** — ACC/AHA 2025, recomendación 15 del switch auricular (Clase 2b · B-R, h77 e191) y recomendación 7 de la ccTGA (Clase 2b · B-NR, h84 e198) |
+| obstrucción subaórtica | **PARCIAL** — la intervención sí (ACC Clase 2b · B-NR, recomendación 8 de la ccTGA, h84 e198, **con síntomas**); el corte de **50 mmHg** que la pantalla publica **no está en ninguna de las dos guías** |
+| seguimiento anual | **SÍ, pero SIN CLASE** — ESC apartado 4.12.5 «al menos una vez al año» (h58 f620) y 4.13.6; ACC Tablas 37, 38 y 39, que dan intervalos **por estadio fisiológico** y no un número único |
+| resincronización **por disfunción** | **NO** — la ACC la condiciona a **QRS por encima de 150 ms por estimulación ventricular crónica** (recomendación 14) o a **bloqueo auriculoventricular** (recomendación 6 de la ccTGA); la ESC, a bloqueo completo o estimulación por encima del 40 % |
+
+**Por eso se paró entero y no a medias**, que es el mismo argumento de **VP-a**: aplicarlo sólo a
+las ramas con respaldo deja una pantalla mitad descriptiva y mitad no.
+
+**Qué falta decidir:** si la resincronización por disfunción sola sale de la pantalla, si el corte
+de 50 mmHg se retira o se respalda, y si «seguimiento anual» puede quedar con un respaldo sin
+clase. Confirma y amplía **VP-a**, **T3-e** y **T3-f**.
+
+## CE-e · La línea de guía de la CIV sigue en `escGuchCiv`, y es deliberado
+
+Esa línea publica el **criterio que la aplicación aplica**, no la lista de recomendaciones, y ese
+criterio **diverge** de la tabla de la ESC 2020 en tres puntos que la entrada `escGuchCiv` del
+registro declara desde antes. Apuntarla a la guía nueva escondería la advertencia justo donde hace
+falta, y cambiar el criterio es contenido clínico.
+
+Las recomendaciones de las **dos** guías se publican completas en los dos bloques del panel.
+
+## CE-f · Las preguntas que la orden dejó fuera, a la espera de un especialista
+
+La orden las excluye expresamente y no se implementaron: las cifras de Fallot aplicadas al
+Rastelli (**C13 a C18**), los criterios de desfibrilador de la transposición congénitamente
+corregida (**D8 a D11**), el score de arritmia del switch auricular (**A13**), y **A8, A12, A18,
+B3, B7, B9, C19 a C23, F13, F14, F17, G14 y G16**.
+
+## CE-g · El pendrive `DISK_IMG` no estaba montado al abrir la sesión
+
+Verificado por tres caminos al empezar: `/Volumes/` sólo tenía `Macintosh HD`, `diskutil list
+external` no devolvía nada y la tabla de `mount` tenía diez entradas, todas internas. **Apareció
+más tarde** y la corrida final de la suite se hizo con él montado, verificado al abrir, entre los
+doce lotes y al cerrar.
+
+Se declara porque la orden pide verificarlo **al abrir**, y al abrir no estaba.

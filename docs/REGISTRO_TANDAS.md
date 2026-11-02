@@ -531,3 +531,30 @@ columnas. Cero campos guardados nuevos. Celular 59 / 68 con 17 ALTA. `index.html
 
 **Dónde está todo.** `docs/mapa/valppt-opciones-ppt.md` · `docs/mapa/tests-fichas-605.md` ·
 `docs/fuentes/FUENTES.md` → «La tanda VAL-PPT» · `docs/GUIA_PRUEBA_VALPPT.md`.
+
+---
+
+## CORR-EVID — las correcciones de VAL-PPT y la ACC/AHA 2025 en la Evidencia (2026-11-02)
+
+**Commits:** `b49ea1e` (1) · `696fa5f` (2) · `b617556` (4 y 5) · `c1c3f7b` (6 y 7) · el de
+cobertura y documentación. Al empezar, `origin/main` = `HEAD` = **`91dd547`**, el cierre de
+VAL-PPT, ya publicado, con md5 de `index.html` **`738944d2`** y sello `v20261102-0107`.
+**El push lo corre Maicol: esta tanda tenía orden expresa de NO pushear.**
+
+**Lo que hizo.**
+- **Commit 1** — el EN SUMA nombra siempre la válvula reparada, con su insuficiencia en la misma
+  línea y sin repetirla aparte. Dueño único `valvRepSuma`; la pasada de VAL-PPT-3 se retira.
+- **Commit 2** — PARADO tras medirlo: el dato SÍ llega al dibujo y los cuatro símbolos son
+  distintos. La comparación sobre el **SVG que renderiza la app** contra la demo v9 da **8 de 8
+  iguales**. Lo que falta es la casilla de válvula operada, que es una decisión de diseño.
+- **Commit 3** — PARADO tras medirlo: la fila del conteo **ya decía 2024**. Lo que el médico ve es
+  la tarjeta de criterios, que es otra superficie.
+- **Commits 4 y 5** — el molde de «una pregunta, una guía» (`IND_GUIA_LBL`, `_indPregNota`,
+  `acc2025achd`) y la Evidencia de la transposición con las **dos** guías: 18 + 12 + 12 + 8
+  preguntas.
+- **Commits 6 y 7** — la Evidencia de la comunicación interauricular y de la interventricular, 14
+  preguntas cada una, con tres notas de tramo y dos diferencias de clase declaradas.
+- **Commit 8** — PARADO: de las cuatro conductas de la pantalla de la TGA, dos quedan respaldadas,
+  una parcialmente y una no.
+
+**Lo que dejó declarado:** `CE-a` a `CE-g` en `docs/PENDIENTES.md`.

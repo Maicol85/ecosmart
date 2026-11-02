@@ -274,3 +274,18 @@ control que busque la raya en la hoja no encuentra nada.
 **TC-585 pasa contra `5ae3959` y eso es correcto.** Es un caso de POP-B, no de esta tanda: lo que
 se arregló fue su fragilidad, no un cambio de comportamiento. Los otros siete del 9d **caen**
 ahí por catorce condiciones y ninguna por excepción.
+
+---
+
+## ⟶ La tanda CORR-EVID (2026-11-02) — lo que corrigió y lo que midió de esta tanda
+
+- **El EN SUMA de la válvula reparada se reescribió.** La pasada de la sección 3 —el IIFE que
+  reusaba la línea del cuerpo— **se retiró**: su `yaEnSuma` era la causa de que la reparación
+  desapareciera del resumen en cuanto la válvula tenía una lesión graduada. Hoy lo emite
+  `valvRepSuma`, en estilo corto y con la insuficiencia adentro.
+- **Los tres símbolos de la sección 4 se midieron sobre el SVG que renderiza la app**, no sólo
+  sobre las funciones: **8 de 8 escenas iguales** a la demo v9, número a número, tolerancia
+  0,005. El dato llega bien y los cuatro símbolos son distintos; lo que falta es la casilla de
+  válvula operada, que es una decisión de diseño.
+
+→ `docs/mapa/correvid-evidencia-congenitas.md`

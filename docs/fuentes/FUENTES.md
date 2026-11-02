@@ -9360,3 +9360,123 @@ aparecen en **dos** archivos, que son el mismo documento de Nicoara 2020 duplica
 | hoja del PDF del TEER | «18mm <20mm — NO apto», «NO apto para TEER», «Evaluar cirugía o Heart Team» | «18mm <20mm», «5 criterio(s) no cumplido(s).», «Faltan 2 criterio(s) por ingresar: …» |
 
 **Ninguna cita nueva entra al papel.** Las tres nuevas viven en los globos.
+
+---
+
+## La tanda CORR-EVID (2026-11-02) — la ACC/AHA 2025 de congénitas entra en la Evidencia
+
+**Es la primera vez que esta guía se lee y se cita en la aplicación.**
+
+### El documento, y cuál de las dos copias se usó
+
+**2025 ACC/AHA/HRS/ISACHD/SCAI Guideline for the Management of Adults With Congenital Heart
+Disease: A Report of the American College of Cardiology/American Heart Association Joint Committee
+on Clinical Practice Guidelines.** Gurvitz M (Chair), Krieger EV, Fuller S y cols.
+*Circulation* 2026;153:e115–e251. DOI: 10.1161/CIR.0000000000001402. 137 hojas.
+
+⚠️ **Hay DOS copias de contenido idéntico en `08_Cardiopatias_congenitas` y se usó la primera**,
+`gurvitz-et-al-2025-…-congenital-heart-disease-a.pdf` (8.088.723 bytes, 17 de octubre). La otra,
+`…-a-2.pdf` (8.088.531 bytes, 24 de octubre), sólo difiere en el sello de descarga.
+
+⚠️ **El año del título es 2025 y el de la revista 2026.** La guía se llama «2025 … Guideline» y se
+publicó en *Circulation* en 2026; su cabecera corriente dice «2026 ACHD Guideline». Se cita por el
+nombre de la guía, que es como se la busca, y se rotula **«ACC/AHA 2025»**.
+
+### La regla de folio, comprobada en el pie impreso de DIEZ hojas
+
+**folio = e(hoja + 114).**
+
+| hoja | 1 | 34 | 39 | 68 | 74 | 77 | 81 | 84 | 120 | 137 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| folio | e115 | e148 | e153 | e182 | e188 | e191 | e195 | e198 | e234 | e251 |
+
+### La regla de folio de la ESC 2020, comprobada en NUEVE cabeceras
+
+**folio = hoja + 562.** ⚠️ En la ESC el folio va en la **cabecera**, no en el pie.
+
+| hoja | 20 | 30 | 33 | 54 | 57 | 58 | 59 | 60 | 61 |
+|---|---|---|---|---|---|---|---|---|---|
+| folio | 582 | 592 | 595 | 616 | 619 | 620 | 621 | 622 | 623 |
+
+### Las hojas leídas EN IMAGEN, y qué publica cada una
+
+| Guía | Hoja | Folio | Contenido |
+|---|---|---|---|
+| ACC/AHA 2025 | 35 | e149 | apartado 4.1.1, comunicación interauricular — **13** recomendaciones |
+| ACC/AHA 2025 | 39 | e153 | apartado 4.1.2, comunicación interventricular — recomendaciones 1 a 7 |
+| ACC/AHA 2025 | 40 | e154 | comunicación interventricular — recomendaciones 8 a 10 |
+| ACC/AHA 2025 | 75 | e189 | apartado 4.3.7, conducto ventrículo derecho-arteria pulmonar — recomendaciones 5 a 8 |
+| ACC/AHA 2025 | 77 | e191 | apartado 4.4.1.1, switch auricular — **15** recomendaciones |
+| ACC/AHA 2025 | 81 | e195 | apartado 4.4.1.2, switch arterial — **7** recomendaciones, y la Tabla 37 |
+| ACC/AHA 2025 | 82 | e196 | el texto de apoyo de la recomendación 7 |
+| ACC/AHA 2025 | 83 | e197 | apartado 4.4.1.3, Rastelli — **UNA sola** recomendación, y la Tabla 38 |
+| ACC/AHA 2025 | 84 | e198 | apartado 4.4.2, transposición congénitamente corregida — **8** recomendaciones, y la Tabla 39 |
+| ESC 2020 | 30 | 592 | tabla de intervención en la comunicación interauricular — **9** recomendaciones |
+| ESC 2020 | 33 | 595 | tabla de intervención en la comunicación interventricular — **6** recomendaciones |
+| ESC 2020 | 56 | 618 | apartado 4.12.2.3, tratamiento médico — texto **sin clase** |
+| ESC 2020 | 57 | 619 | intervención tras el switch auricular |
+| ESC 2020 | 58 | 620 | intervención tras el switch arterial; apartado 4.12.4.3; apartado 4.12.5 |
+| ESC 2020 | 59 | 621 | intervención en la ccTGA; apartado 4.13.4 |
+| ESC 2020 | 60 | 622 | intervención en el conducto ventrículo derecho-arteria pulmonar; apartado 4.13.6 |
+| AHA/ACC 2024 (MCH) | 29 | e1267 | apartado 7.2, selección para desfibrilador — Recomendación 3, **COR 2a · B-NR**, **cinco** factores mayores |
+
+### Frases verificadas que sostienen una decisión de esta tanda
+
+> **ACC/AHA 2025, recomendación 4 de la comunicación interventricular (hoja 39, folio e153):** la
+> condición se escribe «in the absence of PAH (PVR **≤2** Wood units)».
+> **Su propio texto de apoyo 4 (hoja 40, folio e154)** la escribe «In the absence of PAH (PVR
+> **<2** Wood units)».
+> **La guía no coincide consigo misma**, y por eso la pregunta de la aplicación va **sin cifra**.
+
+> **ACC/AHA 2025, texto de apoyo 7 del switch arterial (hoja 82, folio e196):** «rapid aortic
+> dilatation (>3 mm/year)». Es **texto de apoyo**, no lleva clase, y por eso acá no se convierte
+> en corte.
+
+> **ESC 2020, apartado 4.12.5 (hoja 58, folio 620):** todos los pacientes con transposición,
+> cualquiera sea el tipo de operación, deben verse **al menos una vez al año** en un centro
+> especializado. Es texto del cuerpo y **no lleva clase**.
+
+> **ESC 2020, apartado 4.12.2.3 (hoja 56, folio 618):** no hay datos que sostengan que los
+> inhibidores de la enzima convertidora, los antagonistas del receptor, los betabloqueantes o los
+> antialdosterónicos mejoren el pronóstico, y **no puede hacerse una recomendación sólida**.
+> También **sin clase**.
+
+> **ESC 2020, apartado 4.13.4 (hoja 59, folio 621):** la prescripción de rutina de esos fármacos
+> para prevenir la insuficiencia cardíaca **no se recomienda** en la transposición congénitamente
+> corregida. ⚠️ Es lo **contrario** de la recomendación 7 de la ACC/AHA 2025 (Clase 2b · B-NR), y
+> por eso esa pregunta lleva su línea de referencia.
+
+> **ACC/AHA 2025, nota al pie de la tabla de la comunicación interauricular (hoja 35, folio
+> e149):** «Significant LV disease: any condition resulting in chronically elevated left atrial
+> pressure ≥15 mm Hg».
+
+> **ESC 2020, nota al pie d de las dos tablas (hojas 30 y 33):** hay datos limitados para un corte
+> preciso de la desaturación con el ejercicio, pero por experiencia clínica correspondería a una
+> caída de la saturación arterial de oxígeno **por debajo del 90 %**.
+
+### Dónde el ÍNDICE no coincidió con las hojas
+
+| El índice decía | La hoja dice |
+|---|---|
+| C3 «¿Síntomas?» — «el índice no la trae: verificala; si no está, PARÁ» | **SÍ está**: recomendaciones 6 y 7 del apartado 4.3.7 (hoja 75, folio e189) |
+| D2 «¿Síntomas?» — ídem | **SÍ está**: recomendaciones 4, 6 y 8 del apartado 4.4.2 (hoja 84, folio e198) |
+| G2 «rec 9: con menos de 1,5 y sin otra indicación; **rec 3**: sin beneficio» | la de «3: Sin beneficio · B-NR» es la **recomendación 9**; la 3 es la del seguimiento por especialistas (Clase 1 · C-LD) |
+
+Todo lo demás que el índice afirma —clase, nivel, hoja y folio de cada pregunta— **coincidió**.
+
+### Cambios de evidencia
+
+| Qué | Antes | Ahora | Fuente |
+|---|---|---|---|
+| La Evidencia de la transposición | sólo ESC 2020 | **ACC/AHA 2025 + ESC 2020**, en dos bloques | h75, h77, h81, h83, h84 |
+| Preguntas del switch auricular | 7 | **18** | h77 e191 y h57 f619 |
+| Preguntas del switch arterial | 4 | **12** | h81 e195 y h58 f620 |
+| Preguntas del Rastelli y el conducto | 6 | **12** | h75 e189, h83 e197 y h60 f622 |
+| Preguntas de la ccTGA | 3 | **8** | h84 e198 y h59 f621 |
+| Preguntas de la comunicación interauricular | 9 | **14** | h35 e149 y h30 f592 |
+| Preguntas de la comunicación interventricular | 7 | **14** | h39 e153, h40 e154 y h33 f595 |
+| El seguimiento de la transposición | sólo el «al menos anual» de la ESC | **más** los intervalos por estadio de las Tablas 37, 38 y 39 | h81, h83, h84 |
+| `acc2025achd` | no existía | entrada propia en el registro de citas | — |
+
+**Ningún corte, umbral, clase ni nivel de los que la aplicación ya aplicaba se movió.** Lo que se
+agrega son recomendaciones y preguntas de una guía que antes no estaba.

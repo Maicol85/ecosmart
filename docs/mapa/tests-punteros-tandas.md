@@ -449,3 +449,14 @@ registro de globos, 97 → 98), **TC-502** (las tarjetas sin botón, 26 → 27),
 de 44×44, 18 → 19, en sus **tres** condiciones: (K0), (K1) y (K2) — la última se me quedó en
 dieciocho y la destapó la corrida completa), **TC-573** (**invertida**: la conclusión ahora **sí** está dentro de la fila,
 más dos condiciones nuevas) y **TC-574** (la métrica de solape pasa a medir los **dos** ejes).
+
+## Tanda CORR-EVID (2026-11-02) — TC-609 a TC-612
+
+| Caso | Qué fija |
+|---|---|
+| **TC-609** | el EN SUMA de la válvula reparada: estilo corto, la insuficiencia en la misma línea, sin repetirla, y la estenosis en la suya |
+| **TC-610** | la regla «una pregunta, una guía» sobre las **tres** tablas, y el molde `_indPregNota` |
+| **TC-611** | nada de la Evidencia de congénitas llega al informe, al EN SUMA ni a la cápsula — **con su control positivo** |
+| **TC-612** | los cuatro símbolos del dibujo son distintos entre sí, y el rótulo de la miocardiopatía dice 2024 (**guardián**: pasa también contra HEAD) |
+
+Fichas en `docs/mapa/tests-fichas-609.md`.

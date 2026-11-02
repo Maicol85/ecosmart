@@ -221,3 +221,20 @@ de 2024. Coinciden en clase, criterio y los cinco factores; **sólo el año est�
 tocó → `AJ3-a`.
 
 Todo en **`docs/mapa/aj3-bucle-botones.md` § 4**.
+
+## ⟶ La tanda CORR-EVID (2026-11-02) — la ACC/AHA 2025 entra, y el molde gana tres piezas
+
+El molde de esta tanda sigue siendo el de los paneles con preguntas, y **no se reescribió**. Lo
+que le entra son tres piezas y una regla:
+
+- **`IND_GUIA_LBL`** y **`_indPregNota(p, sinDato)`**, que arman la nota de cada pregunta con el
+  rótulo de la guía que rige, lo que esa guía manda, la **línea de referencia de la otra** y la
+  **nota de tramo** cuando los tramos no coinciden.
+- **`acc2025achd`** en el registro de citas, con entrada propia.
+- Las tres tablas de preguntas —`TGA_IND_PREG`, `CIA_PREG` y `CIV_PREG`— pasan a **nivel de
+  script** y se exponen: la regla «una pregunta, una guía» es un invariante de **datos**.
+
+Los conteos de esta tabla cambiaron: la transposición pasa de 7/4/6/3 a **18/12/12/8** preguntas,
+la comunicación interauricular de 9 a **14** y la interventricular de 7 a **14**.
+
+→ `docs/mapa/correvid-evidencia-congenitas.md`

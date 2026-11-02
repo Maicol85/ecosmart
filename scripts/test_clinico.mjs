@@ -47657,7 +47657,12 @@ caso('TC-322', 'Evidencia: citas numeradas POR SECCION, con un solo dueno de la 
          es «algun dominio con datos y la FEVI no reducida», asi que el escenario necesita la
          FEVI -premisa del algoritmo- y un parametro del dominio funcional. */
       ['Insuficiencia cardiaca',               { fevi:'60', e_sep:'6', e_lat:'8', onda_e:'90' },     'hfaPeff2019'],
-      ['Comunicacion interauricular',         { ete_cia_tipo:'secundum', ete_cia_tam_max:'18' },    'esc2020guch'],
+      /* ADAPTADO el 2026-11-02 (tanda CORR-EVID, commits 4 y 6): la seccion pasa a citar
+         acc2025achd en su linea «Segun la guia». Desde esta tanda la Evidencia de congenitas
+         publica las DOS guias y, por la regla E-2 que el medico fijo, la que RIGE -y por lo
+         tanto la que la seccion cita- es la mas nueva. La ESC 2020 sigue citada, con su propio
+         corchete, al pie de su bloque de recomendaciones. */
+      ['Comunicacion interauricular',         { ete_cia_tipo:'secundum', ete_cia_tam_max:'18' },    'acc2025achd'],
       ['Comunicacion interventricular',       { ete_civ_tipo:'perimembranosa' },                     'escGuchCiv'],
       ['Ductus arterioso permeable',          { dap_tipo:'no_restrictivo', dap_diam:'4' },           'esc2020guch'],
       ['Coartacion de aorta',                 { coa_vmax:'3.2' },                                   'esc2020guch'],
@@ -47750,7 +47755,10 @@ caso('TC-322', 'Evidencia: citas numeradas POR SECCION, con un solo dueno de la 
          aneurisma apical sola ya la satisface: es la rama del aneurisma de su hayDato.
          ATENCION: LA CLAVE DE LA MCH LLEVA EL GUION LARGO. «Miocardiopatia hipertrofica» a secas
          seria prefijo de la obstructiva y de esta, y el primer match se quedaria con la primera. */
-      ['Transposicion de grandes arterias',  { tga_tipo:'mustard' },                         'esc2020guch'],
+      /* ADAPTADO el 2026-11-02 (tanda CORR-EVID, commits 4 y 5): mismo motivo que la
+         comunicacion interauricular — la seccion cita la guia que RIGE, que pasa a ser la
+         ACC/AHA 2025. */
+      ['Transposicion de grandes arterias',  { tga_tipo:'mustard' },                         'acc2025achd'],
       ['Miocardiopatia hipertrofica \u2014 prevencion', { mch_aneurisma_apical:'si' },      'esc2023miocEn']
     ];
 
@@ -101135,22 +101143,22 @@ caso('TC-565', 'Tanda TGA-2: el panel de Evidencia de la transposicion publica l
   const A = leer();
   ex.push(['(A1) switch auricular: once recomendaciones de la tabla, por clase',
            A.cl ? (A.cl.I + '/' + A.cl.IIa + '/' + A.cl.IIb + '/' + A.cl.III) : 'NULL', '6/3/1/1']);
-  ex.push(['(A2) con siete preguntas, todas con botonera', A.preg + '/' + A.conCtrl, '7/7']);
-  ex.push(['(A3) y dos bloques: el de la situacion y el general', A.bloques, 2]);
+  ex.push(['(A2) con DIECIOCHO preguntas, todas con botonera', A.preg + '/' + A.conCtrl, '18/18']);
+  ex.push(['(A3) y TRES bloques: el de la guia que rige, el de la anterior y el general', A.bloques, 3]);
 
   montar('dtga', 'jatene');
   const J = leer();
-  ex.push(['(A4) switch arterial: tres recomendaciones y cuatro preguntas',
-           (J.cl.I + '/' + J.cl.IIa + '/' + J.cl.IIb + '/' + J.cl.III) + ' · ' + J.preg, '1/2/0/0 · 4']);
+  ex.push(['(A4) switch arterial: tres recomendaciones de la ESC y DOCE preguntas',
+           (J.cl.I + '/' + J.cl.IIa + '/' + J.cl.IIb + '/' + J.cl.III) + ' · ' + J.preg, '1/2/0/0 · 12']);
   montar('dtga', 'rastelli');
   const R = leer();
-  ex.push(['(A5) Rastelli: dos Clase I y una IIa, y seis preguntas',
-           (R.cl.I + '/' + R.cl.IIa) + ' · ' + R.preg, '2/1 · 6']);
+  ex.push(['(A5) Rastelli: dos Clase I y una IIa de la ESC, y DOCE preguntas',
+           (R.cl.I + '/' + R.cl.IIa) + ' · ' + R.preg, '2/1 · 12']);
   montar('cctga', '');
   const C = leer();
-  ex.push(['(A6) ccTGA: cuatro recomendaciones y tres preguntas',
-           (C.cl.I + '/' + C.cl.IIa + '/' + C.cl.IIb) + ' · ' + C.preg, '1/2/1 · 3']);
-  ex.push(['(A7) y gana un bloque de seguimiento propio', C.bloques, 2]);
+  ex.push(['(A6) ccTGA: cuatro recomendaciones de la ESC y OCHO preguntas',
+           (C.cl.I + '/' + C.cl.IIa + '/' + C.cl.IIb) + ' · ' + C.preg, '1/2/1 · 8']);
+  ex.push(['(A7) y gana un bloque de seguimiento propio', C.bloques, 3]);
   ex.push(['(A8) la ccTGA publica su seguimiento anual por los trastornos de conduccion',
            tiene(C.lin.join(' '), 'apartado 4.13.6, hoja 60, folio 622'), 'si']);
 
@@ -101163,16 +101171,16 @@ caso('TC-565', 'Tanda TGA-2: el panel de Evidencia de la transposicion publica l
   /* ── (B) y (C): los TRES estados, y que «sin dato» no es «no» ── */
   montar('dtga', 'auricular');
   const B0 = leer();
-  ex.push(['(B1) sin contestar nada, las siete marcas son «falta el dato»',
-           B0.marcas, 'ask,ask,ask,ask,ask,ask,ask']);
+  ex.push(['(B1) sin contestar nada, las DIECIOCHO marcas son «falta el dato»',
+           B0.marcas, 'ask,ask,ask,ask,ask,ask,ask,ask,ask,ask,ask,ask,ask,ask,ask,ask,ask,ask']);
   ex.push(['(B2) y el balance dice cuantas faltan',
-           tiene(B0.bal, 'quedan 7 sin contestar'), 'si']);
+           tiene(B0.bal, 'quedan 18 sin contestar'), 'si']);
   try { _indClin['tga.ev.baffuga'] = 'si'; _indClin['tga.ev.cianosis'] = 'no'; } catch (e) {}
   const B1 = leer();
   ex.push(['(B3) contestada «si» la marca es de aviso y contestada «no» es de medido',
-           B1.marcas, 'ask,ask,warn,none,ask,ask,ask']);
+           B1.marcas, 'ask,ask,ask,ask,ask,ask,warn,none,ask,ask,ask,ask,ask,ask,ask,ask,ask,ask']);
   ex.push(['(C1) el balance cuenta la presente y NOMBRA las que faltan',
-           tiene(B1.bal, 'Condiciones presentes en este paciente: 1 de 7') + tiene(B1.bal, 'Sin contestar'), 'sisi']);
+           tiene(B1.bal, 'Condiciones presentes en este paciente: 1 de 18') + tiene(B1.bal, 'Sin contestar'), 'sisi']);
   /* El tercer estado se distingue de los otros DOS: la contestada «no» no entra en las
      presentes y tampoco en la lista de lo que falta contestar. Esa doble ausencia es lo que
      prueba que «no» y «sin dato» no son lo mismo. */
@@ -101292,8 +101300,8 @@ caso('TC-566', 'Tanda TGA-2: los paneles de Evidencia de la comunicacion interau
   ex.push(['(A1) DENOMINADOR: la escena despierta la seccion', A.aplica ? 'si' : 'NO', 'si']);
   ex.push(['(A2) las nueve filas de la tabla, por clase',
            A.cl.I + '/' + A.cl.IIa + '/' + A.cl.IIb + '/' + A.cl.III, '5/2/1/1']);
-  ex.push(['(A3) nueve preguntas, todas con botonera', A.preg + '/' + A.conCtrl, '9/9']);
-  ex.push(['(A4) cuatro bloques: cierre, presion pulmonar, VI y embolia, y seguimiento', A.bloques, 4]);
+  ex.push(['(A3) CATORCE preguntas, todas con botonera', A.preg + '/' + A.conCtrl, '14/14']);
+  ex.push(['(A4) CINCO bloques: el de la guia que rige y los cuatro de la anterior', A.bloques, 5]);
   ex.push(['(A5) el tipo y el tamano se LEEN, no se preguntan',
            (function () { const f = A.filas.filter(function (x) { return x.lbl.indexOf('Tipo de comunicación') === 0 })[0];
              const t = A.filas.filter(function (x) { return x.lbl.indexOf('Tamaño') === 0 })[0];
@@ -101304,12 +101312,12 @@ caso('TC-566', 'Tanda TGA-2: los paneles de Evidencia de la comunicacion interau
            tiene(A.lin.join(' '), 'por debajo de 3 UW confirmada por cateterismo') +
            tiene(A.lin.join(' '), 'entre 3 y 5 UW') + tiene(A.lin.join(' '), 'de 5 UW o más'), 'sisisi']);
   ex.push(['(A8) y el seguimiento cita su apartado', tiene(A.lin.join(' '), 'apartado 4.1.6, hoja 31, folio 593'), 'si']);
-  ex.push(['(A9) sin contestar nada, las nueve marcas son «falta el dato»',
-           A.marcas, 'ask,ask,ask,ask,ask,ask,ask,ask,ask']);
-  try { _indClin['cia.ev.rvp35'] = 'si'; _indClin['cia.ev.vi'] = 'no'; } catch (e) {}
+  ex.push(['(A9) sin contestar nada, las CATORCE marcas son «falta el dato»',
+           A.marcas, 'ask,ask,ask,ask,ask,ask,ask,ask,ask,ask,ask,ask,ask,ask']);
+  try { _indClin['cia.ev.rvp25'] = 'si'; _indClin['cia.ev.vi'] = 'no'; } catch (e) {}
   const A2 = leer(sCIA);
-  ex.push(['(A10) los TRES estados se distinguen', A2.marcas, 'ask,ask,warn,ask,ask,none,ask,ask,ask']);
-  ex.push(['(A11) y el balance cuenta la presente', tiene(A2.bal, 'Condiciones presentes en este paciente: 1 de 9'), 'si']);
+  ex.push(['(A10) los TRES estados se distinguen', A2.marcas, 'ask,ask,ask,warn,ask,ask,ask,none,ask,ask,ask,ask,ask,ask']);
+  ex.push(['(A11) y el balance cuenta la presente', tiene(A2.bal, 'Condiciones presentes en este paciente: 1 de 14'), 'si']);
   ex.push(['(C3) CONTROL NEGATIVO: la contestada «no» sigue fuera de las presentes y no vacia lo que falta',
            tiene(A2.bal, 'Sin contestar') + tiene(A2.bal, 'Enfermedad del ventrículo izquierdo'), 'sino']);
 
@@ -101320,8 +101328,8 @@ caso('TC-566', 'Tanda TGA-2: los paneles de Evidencia de la comunicacion interau
   ex.push(['(B1) DENOMINADOR: la escena despierta la seccion', B.aplica ? 'si' : 'NO', 'si']);
   ex.push(['(B2) las seis filas de la tabla, por clase',
            B.cl.I + '/' + B.cl.IIa + '/' + B.cl.IIb + '/' + B.cl.III, '1/3/1/1']);
-  ex.push(['(B3) siete preguntas, todas con botonera', B.preg + '/' + B.conCtrl, '7/7']);
-  ex.push(['(B4) tres bloques: cierre, presion pulmonar y seguimiento', B.bloques, 3]);
+  ex.push(['(B3) CATORCE preguntas, todas con botonera', B.preg + '/' + B.conCtrl, '14/14']);
+  ex.push(['(B4) CUATRO bloques: el de la guia que rige y los tres de la anterior', B.bloques, 4]);
   ex.push(['(B5) las tres filas de solo lectura viejas ahora se contestan, y ninguna quedo como texto muerto',
            (function () { const R = sCIV.fn(); const lbls = (R.clinica || []).map(function (x) { return x.lbl });
              const hay = function (p) { return lbls.some(function (l) { return l.indexOf(p) >= 0 }) ? 'si' : 'no' };
@@ -101330,13 +101338,13 @@ caso('TC-566', 'Tanda TGA-2: los paneles de Evidencia de la comunicacion interau
   ex.push(['(B6) y la cita de la seccion sigue siendo la que lleva la advertencia de divergencia',
            B.guia, 'escGuchCiv']);
   ex.push(['(B7) el seguimiento cita su apartado', tiene(B.lin.join(' '), 'apartado 4.2.5, hoja 33, folio 595'), 'si']);
-  ex.push(['(B8) sin contestar nada, las siete marcas son «falta el dato»',
-           B.marcas, 'ask,ask,ask,ask,ask,ask,ask']);
-  try { _indClin['civ.ev.ie'] = 'si'; } catch (e) {}
+  ex.push(['(B8) sin contestar nada, las CATORCE marcas son «falta el dato»',
+           B.marcas, 'ask,ask,ask,ask,ask,ask,ask,ask,ask,ask,ask,ask,ask,ask']);
+  try { _indClin['civ.ev.endocarditis'] = 'si'; } catch (e) {}
   const B2 = leer(sCIV);
   ex.push(['(B9) contestada una, su marca cambia y el balance la cuenta',
-           B2.marcas + ' · ' + (tiene(B2.bal, 'Condiciones presentes en este paciente: 1 de 7')),
-           'ask,ask,ask,ask,warn,ask,ask · si']);
+           B2.marcas + ' · ' + (tiene(B2.bal, 'Condiciones presentes en este paciente: 1 de 14')),
+           'ask,ask,ask,ask,ask,ask,ask,ask,ask,warn,ask,ask,ask,ask · si']);
 
   /* ══ (E) EL PAPEL ══ */
   limpiar();
@@ -107267,7 +107275,12 @@ caso('TC-606', 'Tanda VAL-PPT: el papel describe la plastia y el TEER con sus pa
      significativas» sobre un cuerpo que describia la plastia. */
   ex.push(['(A3) el EN SUMA NO niega la plastia',
     /sin alteraciones estructurales/i.test(r.suma), false]);
-  ex.push(['(A4) el EN SUMA nombra la plastia', /plastia mitral/i.test(r.suma), true]);
+  /* ADAPTADO el 2026-11-02 (tanda CORR-EVID, commit 1): el EN SUMA pasa al ESTILO CORTO que
+     esa superficie ya usaba para la morfologia -«VM con plastia»-, en vez de reusar la oracion
+     larga del cuerpo. El invariante que este caso vigila -que el resumen NOMBRE la valvula
+     intervenida- no se movio: lo que cambia es con que palabras. */
+  ex.push(['(A4) el EN SUMA nombra la plastia mitral, en estilo corto',
+    /VM con plastia/.test(r.suma), true]);
 
   /* ── B · EL TEER, con su acronimo entero ─────────────────────────────────────────────────── */
   try { if (typeof limpiarCampos === 'function') limpiarCampos(true); } catch (e) {}
@@ -107285,7 +107298,8 @@ caso('TC-606', 'Tanda VAL-PPT: el papel describe la plastia y el TEER con sus pa
   pon('vt_morf', 'Plastia tricusp\u00eddea'); await esperar(380);
   r = await papel();
   ex.push(['(C1) el cuerpo dice «con plastia tricuspidea»', /con plastia tricusp\u00eddea/.test(r.inf), true]);
-  ex.push(['(C2) el EN SUMA la nombra', /plastia tricusp\u00eddea/i.test(r.suma), true]);
+  /* ADAPTADO el 2026-11-02 (tanda CORR-EVID, commit 1): mismo motivo que (A4). */
+  ex.push(['(C2) el EN SUMA la nombra, en estilo corto', /VT con plastia/.test(r.suma), true]);
 
   /* ── D · CONTROLES NEGATIVOS: lo viejo no se movio ───────────────────────────────────────── */
   try { if (typeof limpiarCampos === 'function') limpiarCampos(true); } catch (e) {}
@@ -107509,6 +107523,232 @@ caso('TC-608', 'Tanda VAL-PPT: la regla de disposicion del PPT elige la de mayor
 
 
 
+
+/* ══ TANDA CORR-EVID (2026-11-02) — TC-609 a TC-612 ══════════════════════════════════════════ */
+
+caso('TC-609', 'Tanda CORR-EVID: el EN SUMA nombra siempre la valvula reparada y lleva su insuficiencia en la MISMA linea, sin repetirla aparte', `
+  return (async () => {
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]),
+                 'dio «' + t[1] + '» · esperado «' + t[2] + '»']) };
+  const EL = (id) => document.getElementById(id);
+  const W = (ms) => new Promise(r => setTimeout(r, ms));
+  const S = (id, v) => __t.set(id, v);
+  const suma = async (campos, grados) => {
+    __t.limpiar();
+    try { if (window.esqSevManual) Object.keys(window.esqSevManual).forEach(k => { delete window.esqSevManual[k] }) } catch (e) {}
+    await W(150);
+    S('peso','70'); S('talla','170'); S('sexo','M'); S('edad','60');
+    Object.keys(campos).forEach(k => S(k, campos[k]));
+    await W(420);
+    /* Los grados DESPUES del debounce: calcETE deja agendado un repintado que pisa im_grado,
+       y fijarlos antes los pierde. Lo documenta la tanda E. */
+    Object.keys(grados || {}).forEach(k => S(k, grados[k]));
+    await W(520);
+    try { if (typeof generarInforme === 'function') generarInforme() } catch (e) {}
+    await W(120);
+    return String((EL('en_suma') || {}).value || '');
+  };
+  const lineas = (t) => String(t).split(String.fromCharCode(10)).map(x => x.trim()).filter(Boolean);
+
+  /* (A) DENOMINADOR: el dueño existe y reconoce los cuatro tipos. Sin esto, un «no aparece»
+     no distingue «el EN SUMA no la nombra» de «la opcion no existe». */
+  ex.push(['(A0) DENOM: valvRepSuma esta expuesta', typeof window.valvRepSuma === 'function', true]);
+  ex.push(['(A1) DENOM: la tabla reparte las DOS valvulas',
+    !!(window.VALV_REP_SUMA && window.VALV_REP_SUMA.vm_morf && window.VALV_REP_SUMA.vt_morf), true]);
+  ex.push(['(A2) la mitral con TEER da el rotulo corto',
+    (window.valvRepSuma || function(){return ''})('vm_morf','TEER mitral',[]), 'VM con TEER.']);
+  ex.push(['(A3) la tricuspide con T-TEER da el suyo, que NO es el de la mitral',
+    (window.valvRepSuma || function(){return ''})('vt_morf','TEER tricuspídeo (T-TEER)',[]), 'VT con T-TEER.']);
+  ex.push(['(A4) CONTROL NEGATIVO: una morfologia NATIVA devuelve cadena vacia',
+    (window.valvRepSuma || function(){return ''})('vm_morf','Mixomatosa / Barlow',[]), '']);
+  ex.push(['(A5) CONTROL NEGATIVO: una PROTESIS tampoco entra por aca',
+    (window.valvRepSuma || function(){return ''})('vm_morf','Prótesis mecánica',[]), '']);
+
+  /* (B) La mitral: unico hallazgo, y con insuficiencia. */
+  const b1 = await suma({ vm_morf:'TEER mitral' }, null);
+  ex.push(['(B0) DENOM: el EN SUMA no esta vacio con la mitral reparada', b1.length > 0, true]);
+  ex.push(['(B1) con el TEER mitral como unico hallazgo, el resumen lo nombra en estilo corto',
+    lineas(b1).indexOf('VM con TEER.') >= 0, true]);
+  ex.push(['(B2) y NO cae en la negacion global',
+    b1.indexOf('sin alteraciones estructurales') >= 0, false]);
+  const b2 = await suma({ vm_morf:'TEER mitral' }, { im_grado:'2' });
+  ex.push(['(B3) DENOM: el grado quedo puesto', String((EL('im_grado')||{}).value||''), '2']);
+  ex.push(['(B4) con insuficiencia moderada, va en la MISMA linea',
+    lineas(b2).indexOf('VM con TEER, con insuficiencia moderada.') >= 0, true]);
+  ex.push(['(B5) y la linea suelta de la insuficiencia NO se repite',
+    lineas(b2).indexOf('IM moderada.') >= 0, false]);
+
+  /* (C) La tricuspide: su rama de morfologia ya subia, pero publicaba DOS renglones. */
+  const c1 = await suma({ vt_morf:'Plastia tricuspídea' }, { it_grado:'2' });
+  ex.push(['(C0) DENOM: el EN SUMA no esta vacio', c1.length > 0, true]);
+  ex.push(['(C1) la plastia tricuspidea va en estilo corto y con su insuficiencia',
+    lineas(c1).indexOf('VT con plastia, con insuficiencia moderada.') >= 0, true]);
+  ex.push(['(C2) y la linea suelta de la IT NO se repite', lineas(c1).indexOf('IT moderada.') >= 0, false]);
+  ex.push(['(C3) ni queda el rotulo largo de la morfologia',
+    lineas(c1).indexOf('VT con plastia tricuspídea.') >= 0, false]);
+
+  /* (D) La estenosis NO se fusiona: queda en su linea, con el texto de hoy. */
+  const d1 = await suma({ vm_morf:'TEER mitral', em_gmedio:'7', avm_plan:'1.5' }, null);
+  ex.push(['(D0) DENOM: el EN SUMA no esta vacio', d1.length > 0, true]);
+  ex.push(['(D1) la valvula se nombra', lineas(d1).indexOf('VM con TEER.') >= 0, true]);
+  ex.push(['(D2) y la estenosis conserva SU linea con el texto de siempre',
+    lineas(d1).indexOf('EM significativa.') >= 0, true]);
+
+  /* (E) CONTROL NEGATIVO: una morfologia nativa con insuficiencia sale como SIEMPRE. */
+  const e1 = await suma({ vm_morf:'Mixomatosa / Barlow' }, { im_grado:'2' });
+  ex.push(['(E0) DENOM: el EN SUMA no esta vacio', e1.length > 0, true]);
+  ex.push(['(E1) CONTROL: con morfologia nativa, la linea suelta de la IM SIGUE saliendo',
+    lineas(e1).indexOf('IM moderada.') >= 0, true]);
+  ex.push(['(E2) CONTROL: y no aparece ninguna linea de valvula reparada',
+    e1.indexOf('VM con ') >= 0, false]);
+  return { extra: EXP };
+  })();
+`);
+
+caso('TC-610', 'Tanda CORR-EVID: una pregunta, una guia — las tres tablas de congenitas rotulan su guia y ninguna mezcla cortes de las dos', `
+  return (async () => {
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]),
+                 'dio «' + t[1] + '» · esperado «' + t[2] + '»']) };
+  const ACC = 'ACC' + String.fromCharCode(47) + 'AHA 2025';
+  /* ⚠️ LAS TABLAS SE LEEN DE window Y SE EXIGE QUE ESTEN. Sin esta guarda, el filtro corre
+     sobre un array VACIO y devuelve CERO mezclas: un denominador de cero que se lee igual que
+     «no hay mezclas». Es el defecto que la sonda de esta tanda tuvo y que costo una medicion. */
+  const T = window.TGA_IND_PREG, C = window.CIA_PREG, V = window.CIV_PREG;
+  ex.push(['(A0) DENOM: la tabla de la transposicion esta expuesta', !!T, true]);
+  ex.push(['(A1) DENOM: la de la comunicacion interauricular', Array.isArray(C) && C.length > 0, true]);
+  ex.push(['(A2) DENOM: la de la comunicacion interventricular', Array.isArray(V) && V.length > 0, true]);
+  const todas = [];
+  if (T) ['aur','jat','ras','cc'].forEach(g => { (T[g] || []).forEach(q => todas.push(q)) });
+  (C || []).forEach(q => todas.push(q));
+  (V || []).forEach(q => todas.push(q));
+  ex.push(['(A3) DENOM: hay preguntas que medir', todas.length > 40, true]);
+
+  /* (B) E-1: UNA guia por pregunta, y su corte no puede nombrar la otra. */
+  ex.push(['(B1) toda pregunta declara su guia, y es acc o esc',
+    todas.filter(q => q.guia !== 'acc' && q.guia !== 'esc').length, 0]);
+  ex.push(['(B2) toda pregunta declara QUE manda esa guia',
+    todas.filter(q => !q.rec || !String(q.rec).trim()).length, 0]);
+  ex.push(['(B3) E-1: ningun corte nombra la OTRA guia',
+    todas.filter(q => String(q.rec || '').indexOf(q.guia === 'acc' ? 'ESC 2020' : ACC) >= 0).length, 0]);
+  /* (C) E-2: la linea de referencia es SIEMPRE de la otra guia, o sea de la ESC. */
+  ex.push(['(C1) E-2: toda linea de referencia cuelga de una pregunta regida por la mas nueva',
+    todas.filter(q => q.ref && q.guia !== 'acc').length, 0]);
+  ex.push(['(C2) DENOM: hay lineas de referencia que medir', todas.filter(q => q.ref).length > 5, true]);
+  /* (D) Las notas de tramo existen y dicen que NO coinciden, sin inventar un tramo. */
+  const tramos = todas.filter(q => q.tramo);
+  ex.push(['(D1) DENOM: hay notas de tramo', tramos.length > 0, true]);
+  ex.push(['(D2) toda nota de tramo dice que las guias no coinciden',
+    tramos.filter(q => String(q.tramo).indexOf('no coinciden') < 0 && String(q.tramo).indexOf('no gradua') < 0
+                    && String(q.tramo).indexOf('no gradúa') < 0 && String(q.tramo).indexOf('no dicen lo mismo') < 0).length, 0]);
+  /* (E) El molde arma la nota con la guia VISIBLE y la referencia rotulada. */
+  const n1 = (typeof _indPregNota === 'function')
+    ? _indPregNota({ guia:'acc', rec:'Clase 1 · Nivel B-NR, recomendacion 5', ref:'Clase I · Nivel B' }, false) : '';
+  ex.push(['(E1) la nota empieza por el nombre y el año de la guia que rige', n1.indexOf(ACC) === 0, true]);
+  ex.push(['(E2) y la de la otra va rotulada como anterior', n1.indexOf('ESC 2020 (anterior):') > 0, true]);
+  const n2 = (typeof _indPregNota === 'function')
+    ? _indPregNota({ guia:'esc', rec:'Clase IIa · Nivel C' }, true) : '';
+  ex.push(['(E3) E-4: sin contestar, la nota dice que «sin dato» no cuenta como «no»',
+    n2.indexOf('no cuenta como') > 0, true]);
+  ex.push(['(E4) CONTROL NEGATIVO: contestada, esa frase NO aparece',
+    ((typeof _indPregNota === 'function') ? _indPregNota({ guia:'esc', rec:'x' }, false) : '').indexOf('no cuenta como') > 0, false]);
+  ex.push(['(E5) CONTROL NEGATIVO: sin guia declarada, el molde no inventa un rotulo',
+    ((typeof _indPregNota === 'function') ? _indPregNota({ rec:'x' }, false) : 'X').indexOf(ACC) >= 0, false]);
+  /* (F) Las dos guias estan registradas: sin eso el panel publica «referencia no registrada». */
+  ex.push(['(F1) la guia nueva esta en el registro de citas',
+    (typeof _indRefValida === 'function') ? _indRefValida('acc2025achd') : 'sin fn', true]);
+  ex.push(['(F2) y la anterior sigue estando',
+    (typeof _indRefValida === 'function') ? _indRefValida('esc2020guch') : 'sin fn', true]);
+  return { extra: EXP };
+  })();
+`);
+
+caso('TC-611', 'Tanda CORR-EVID: nada de la Evidencia de congenitas llega al informe, al EN SUMA ni a la capsula de pantalla', `
+  return (async () => {
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]),
+                 'dio «' + t[1] + '» · esperado «' + t[2] + '»']) };
+  const EL = (id) => document.getElementById(id);
+  const W = (ms) => new Promise(r => setTimeout(r, ms));
+  const S = (id, v) => __t.set(id, v);
+  __t.limpiar(); await W(150);
+  S('peso','70'); S('talla','170'); S('sexo','M'); S('edad','40');
+  S('tga_tipo','mustard'); S('tga_sintomas','si'); S('tga_func_vd','moderada');
+  await W(550);
+  /* DENOMINADOR: el panel TIENE que estar armado y con preguntas. Un «cero marcadores» sobre
+     un panel que no existe no prueba nada. */
+  let P = null; try { P = (typeof _indTGA === 'function') ? _indTGA() : null } catch (e) {}
+  ex.push(['(A0) DENOM: el panel de la transposicion se arma', !!P, true]);
+  ex.push(['(A1) DENOM: con sus preguntas', !!(P && P.clinica && P.clinica.length > 10), true]);
+  ex.push(['(A2) DENOM: y con sus bloques de recomendaciones', !!(P && P.bloques && P.bloques.length >= 2), true]);
+  /* CONTROL POSITIVO: el panel SI dice clase, nivel y folio. Sin esto, el cero de abajo no
+     distingue «el papel esta limpio» de «no hay nada escrito en ninguna parte». */
+  const txtPanel = JSON.stringify(P || {});
+  ex.push(['(A3) CONTROL POSITIVO: el panel publica la clase', txtPanel.indexOf('Clase 1 ') > 0, true]);
+  ex.push(['(A4) CONTROL POSITIVO: y el folio', txtPanel.indexOf('folio e191') > 0, true]);
+  try { if (typeof generarInforme === 'function') generarInforme() } catch (e) {}
+  await W(150);
+  const inf = String((EL('informe_texto')||{}).value || '');
+  const sum = String((EL('en_suma')||{}).value || '');
+  const cap = String((EL('tga-concl')||{}).textContent || '');
+  ex.push(['(B0) DENOM: el informe no esta vacio', inf.length > 100, true]);
+  const MARC = ['Clase 1 ', 'Clase 2a', 'Clase 2b', 'Clase I ', 'Clase IIa', 'Clase IIb',
+                'B-NR', 'C-LD', 'C-EO', 'B-R', 'folio e1', 'recomendación 1'];
+  const cuenta = (t) => MARC.reduce((a, m) => a + (String(t).split(m).length - 1), 0);
+  ex.push(['(B1) el informe no lleva clase, nivel ni folio de la Evidencia', cuenta(inf), 0]);
+  ex.push(['(B2) el EN SUMA tampoco', cuenta(sum), 0]);
+  ex.push(['(B3) y la capsula de pantalla tampoco', cuenta(cap), 0]);
+  ex.push(['(B4) el informe no nombra a la guia nueva',
+    inf.indexOf('ACC' + String.fromCharCode(47) + 'AHA') >= 0, false]);
+  return { extra: EXP };
+  })();
+`);
+
+caso('TC-612', 'Tanda CORR-EVID: los cuatro simbolos del dibujo del posoperatorio son DISTINTOS entre si, y el rotulo de la miocardiopatia hipertrofica dice 2024', `
+  return (async () => {
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]),
+                 'dio «' + t[1] + '» · esperado «' + t[2] + '»']) };
+  const EL = (id) => document.getElementById(id);
+  /* (A) El dueño unico del tipo corto: cada opcion da SU clave, y lo que no tiene simbolo
+     devuelve cadena vacia -la direccion segura-. */
+  const tc = (v) => (typeof popVTipoCorto === 'function') ? popVTipoCorto(v) : 'sin fn';
+  ex.push(['(A0) DENOM: popVTipoCorto esta expuesta', typeof window.popVTipoCorto === 'function', true]);
+  ex.push(['(A1) TEER mitral', tc('TEER mitral'), 'teer']);
+  ex.push(['(A2) TEER tricuspideo', tc('TEER tricuspídeo (T-TEER)'), 'teer']);
+  ex.push(['(A3) plastia', tc('Plastia mitral'), 'plastia']);
+  ex.push(['(A4) TAVI', tc('TAVI'), 'tavi']);
+  ex.push(['(A5) mecanica', tc('Prótesis mecánica'), 'mec']);
+  ex.push(['(A6) CONTROL NEGATIVO: una morfologia nativa no tiene simbolo', tc('Mixomatosa / Barlow'), '']);
+  /* (B) Las piezas que cada tipo dibuja, por sus dos dueños portados de la demo: los velos y
+     los orificios. Lo que importa es que NO sean iguales entre tipos. */
+  const V = (a, t) => (typeof _popValvVelos === 'function') ? _popValvVelos(a, t).join('|') : 'sin fn';
+  ex.push(['(B0) DENOM: _popValvVelos esta expuesta', typeof window._popValvVelos === 'function', true]);
+  const vTeer = V(0.5, 'teer'), vTavi = V(0.5, 'tavi'), vBio = V(0.5, true), vMec = V(0.5, false);
+  ex.push(['(B1) el TEER no dibuja los velos de la biologica', vTeer === vBio, false]);
+  ex.push(['(B2) la TAVI tampoco', vTavi === vBio, false]);
+  ex.push(['(B3) ni los de la mecanica', vTavi === vMec, false]);
+  ex.push(['(B4) y el TEER no dibuja los de la TAVI', vTeer === vTavi, false]);
+  ex.push(['(B5) los dos orificios del TEER se abren con la apertura',
+    (typeof _popValvOrificios === 'function')
+      ? (_popValvOrificios(0).ry !== _popValvOrificios(0.9).ry) : 'sin fn', true]);
+  ex.push(['(B6) CONTROL: con la valvula cerrada, los velos de la mecanica no dependen del tipo',
+    V(0, false) === V(0, false), true]);
+  /* (C) El rotulo de la fila del conteo de factores mayores de la miocardiopatia hipertrofica.
+     Se mide sobre el DOM, que es lo que el medico ve, y no sobre una constante. */
+  const fila = EL('mch-aha');
+  ex.push(['(C0) DENOM: la fila del conteo existe', !!fila, true]);
+  const row = fila ? fila.closest('.calc-row') : null;
+  const lbl = row ? row.querySelector('.calc-lbl') : null;
+  ex.push(['(C1) DENOM: la fila tiene su rotulo', !!lbl, true]);
+  ex.push(['(C2) el rotulo nombra la edicion 2024',
+    lbl ? (String(lbl.textContent).indexOf('2024') >= 0) : 'sin rotulo', true]);
+  ex.push(['(C3) y ya no la de 2020',
+    lbl ? (String(lbl.textContent).indexOf('2020') >= 0) : 'sin rotulo', false]);
+  return { extra: EXP };
+  })();
+`);
 
 let servidor, chrome;
 try {
