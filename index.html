@@ -1898,6 +1898,31 @@
      grilla; el que traia en linea la separaria el doble. */
   #tga-campos > #tga-concl-box { grid-column:1 / -1; margin-top:2px; }
   #tga-fila > #tga-3d-box { margin-top:12px; }
+  /* ══ EL ESQUEMA DE CIRCULACION, DENTRO DEL RECUADRO DEL 3D (TGA-3) ═════════════════════════
+     Los tres colores NO son nuevos: son exactamente los que la leyenda de este mismo recuadro
+     ya publica y los que la geometria del 3D usa, asi que los dos dibujos de la caja no pueden
+     discrepar. Nacen como variables propias —el patron de `--esq-superficie`— porque la app no
+     tiene ninguna equivalente: `--accent` es azul de interfaz, no de sangre venosa. Mismo valor
+     en los dos temas, a proposito: lo que cambia por tema son las SUPERFICIES y el TEXTO, que
+     salen de `--bg`, `--bg3`, `--border`, `--text` y `--text2`. */
+  :root { --tga-esq-azul:#2f6fd0; --tga-esq-rojo:#d8433b; --tga-esq-naranja:#e08a1e; }
+  #tga-esq-fila { display:flex; flex-direction:column; gap:10px; align-items:flex-start; }
+  #tga-esq-fila > #tga-3d-cv { width:100%; }
+  /* Apilado: el esquema se topa en 340 px. Sin el tope, en el recuadro de 706 px de los 768
+     la tipografia del SVG se va a 28 px, porque escala con el ancho. */
+  #tga-esq-box { width:100%; max-width:340px; }
+  #tga-esq-box > svg { width:100%; height:auto; display:block; }
+  /* ⚠️ AL LADO DEL 3D DESDE 1200 px Y NO DESDE 900, Y ES UNA MEDICION, NO UNA PREFERENCIA.
+     La orden pide el esquema al lado del 3D y apilado por debajo de 900 px. Medido: el recuadro
+     mide 631 px a 1440 y 406 a 1000, asi que al lado el 3D quedaria en 327 px a 1440 —que sirve—
+     y en 126 px a 1000 —que no sirve para nada—. El 3a dice que el 3D «no se achica mas de lo
+     necesario», asi que entre 900 y 1200 el esquema se apila DEBAJO del 3D, dentro del recuadro,
+     y por debajo de 900 se apila igual junto con toda la caja. Declarado en docs/PENDIENTES.md. */
+  @media (min-width: 1200px) {
+    #tga-esq-fila { flex-direction:row; }
+    #tga-esq-fila > #tga-3d-cv { flex:1 1 auto; min-width:0; }
+    #tga-esq-fila > #tga-esq-box { flex:0 0 268px; max-width:268px; }
+  }
   @media (min-width: 900px) {
     #tga-fila { display:flex; gap:14px; align-items:flex-start; }
     #tga-fila > #tga-campos { flex:0 0 46%; min-width:0; }
@@ -19006,9 +19031,27 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
           <button type="button" class="btn btn-ghost" id="tga-3d-pdf" style="min-height:44px;"
                   onclick="tga3dIncluirPDF()">📄 Incluir en el PDF</button>
         </div>
+        <!-- ⚠️ EL LIENZO DEL 3D Y EL ESQUEMA COMPARTEN FILA (TGA-3). El `max-width:640px` del
+             lienzo se fue de la linea al CSS de la fila: con el esquema al lado, un tope en linea
+             le ganaba al `flex` y dejaba el hueco en blanco. -->
+        <div id="tga-esq-fila">
         <div id="tga-3d-cv" role="img" tabindex="0"
              aria-label="Modelo 3D esquemático del corazón y los grandes vasos en la transposición; se rota arrastrando"
-             style="width:100%;max-width:640px;min-height:40px;overflow:hidden;position:relative;cursor:grab;touch-action:none;"></div>
+             style="min-height:40px;overflow:hidden;position:relative;cursor:grab;touch-action:none;"></div>
+        <!-- ⚠️ EL ESQUEMA ES SOLO LECTURA Y NO TIENE UN SOLO CONTROL. No hay selector de
+             escenario: el escenario sale de los MISMOS campos que lee el 3D, por `tgaEjes()` y
+             `tga3dComs()`, que son sus duenos unicos. No escribe nada en el estudio, no agrega
+             ningun campo guardado y no entra al PDF en esta tanda. -->
+        <div id="tga-esq-box">
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
+            <span style="font-size:10.5px;font-weight:700;color:var(--text2);">Esquema ilustrativo</span>
+            <button type="button" class="vinfo-btn vinfo-btn-44" data-vinfo="tga-esq"
+                    aria-label="Qué muestra el esquema de circulación" onclick="vInfoClic(this,event)">ⓘ</button>
+          </div>
+          <div id="tga-esq-svg"></div>
+          <p id="tga-esq-txt" style="font-size:10.5px;color:var(--text2);margin:6px 0 0;line-height:1.5;"></p>
+        </div>
+        </div><!-- /#tga-esq-fila -->
         <div id="tga-3d-leg" style="display:none;gap:14px;flex-wrap:wrap;font-size:10.5px;color:var(--text2);margin-top:6px;">
           <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#2f6fd0;"></span> sangre poco oxigenada</span>
           <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#d8433b;"></span> sangre oxigenada</span>
@@ -95428,6 +95471,243 @@ const TGA3D_REF = Object.freeze({
   jat: 'Anillos naranjas: lineas de sutura de la neoaorta y la neopulmonar. Tubos naranjas: coronarias reimplantadas en la neoaorta.',
   ras: 'Tunel rojo (por dentro): del VI a la aorta por la CIV. Conducto azul: del VD a la arteria pulmonar. Esfera gris: arteria pulmonar ligada en su origen.'
 });
+/* ══════════════ EL ESQUEMA DE CIRCULACION DE LA SANGRE (TGA-3, 2026-11-01) ══════════════════
+   Portado de `docs/3d/demo_tga_esquema_circulacion_v1_concepto.html`, que es una demo de
+   CONCEPTO. De ella se toma SOLO lo que la orden autoriza: la DISPOSICION (dos pulmones arriba,
+   el cuerpo abajo, las cuatro cavidades en el medio), los RECORRIDOS de cada escenario, la
+   ubicacion de las valvulas, como se dibujan las comunicaciones y los tres colores. NO se copia
+   ni un texto, ni un selector, ni una conclusion de la demo.
+
+   ⚠️ EL ESCENARIO NO TIENE SELECTOR, Y ESO ES LA DECISION DE DISENO. Sale de `tgaEjes()` y de
+   `tga3dComs()`, que son los duenos unicos que ya lee el 3D: con un selector propio, el esquema
+   y el 3D de la misma caja podrian mostrar dos anatomias distintas del mismo paciente.
+
+   ⚠️ SOLO LECTURA. No escribe un solo campo del estudio, no agrega ninguna clave guardada y no
+   llega a ninguna superficie de papel. Es la leccion que el D-9, el D-10 y el D-11 pagaron tres
+   veces: una funcion que dibuja no escribe.
+
+   ⚠️ EL RECORRIDO DE CADA ESCENARIO TIENE RESPALDO EN LA APP, Y NO EN LA PROSA DE LA DEMO.
+   `TGA3D_CIRC` ya publica, para los seis escenarios, por donde va la sangre; el dibujo sigue esa
+   misma secuencia y el caso de prueba la compara nodo por nodo contra esa constante. Las frases
+   del recorrido que la demo trae las redacto quien armo la demo y NO estaban en la app, asi que
+   no se usan: el texto de abajo se arma con las palabras que la app ya tiene. */
+const TGA_ESQ_VB = '0 0 300 290';
+/* Las cuatro cavidades, con el tamano y la posicion de la demo. */
+const TGA_ESQ_BX = Object.freeze({ TL:[40,78], TR:[180,78], BL:[40,158], BR:[180,158] });
+const TGA_ESQ_W = 80, TGA_ESQ_H = 44;
+/* ⚠️ LAS TIPOGRAFIAS SON MAS GRANDES QUE LAS DE LA DEMO, Y ES UNA MEDICION. El SVG escala con su
+   ancho: con los 9 px de la demo en un `viewBox` de 300, a los 268 px que el esquema ocupa al
+   lado del 3D el rotulo saldria en 8,0 px. Con 12 sale en 10,7 px, que es la tipografia que este
+   mismo recuadro ya usa en sus dos parrafos (10,5 y 11 px). */
+const TGA_ESQ_FS = Object.freeze({ cav:15, sub:11, org:15, val:11, com:12, rot:11 });
+/* ── Los recorridos, uno por escenario, con las claves de `_tga3dClave` ─────────────────────
+   `box`: [rotulo, sub-rotulo, color, 'o' si es un tunel]. `fl`: [trazado, color, puerta].
+   `v`: [x, y, letra de la valvula]. `ao` y `ap`: donde nacen los dos grandes vasos, que es de
+   donde sale y a donde llega el ductus. */
+const TGA_ESQ_DEF = Object.freeze({
+  norm: Object.freeze({
+    box:{ TL:['VD','','b'], TR:['AI','','r'], BL:['AD','','b'], BR:['VI','','r'] },
+    fl:[['M80 250V206','b'],['M80 156V124','b'],['M80 78V40','b'],['M220 38V76','r'],
+        ['M220 122V156','r'],['M220 204V248','r']],
+    v:[[80,140,'T'],[220,139,'M']], ao:[220,226], ap:[80,59] }),
+  dtga: Object.freeze({
+    box:{ TL:['VD','sistémico','b'], TR:['AI','','r'], BL:['AD','','b'], BR:['VI','','r'] },
+    fl:[['M80 250V206','b'],['M80 156V124','b'],['M40 100H18V265H58','b'],['M220 38V76','r'],
+        ['M220 122V156','r'],['M260 180H282V23H242','r']],
+    v:[[80,140,'T'],[220,139,'M']], ao:[18,191], ap:[282,92] })
+});
+/* La letra de cada marcador de punta de flecha, por color. */
+const TGA_ESQ_MK = Object.freeze({ b:'tga-esq-mb', r:'tga-esq-mr' });
+/* ⚠️ EL ESCAPE VA POR `escHtml`, QUE ES EL DUENO DE LA APP, Y NO POR `_esc`: ese es un `const`
+   LOCAL de otra funcion, no un global, asi que usarlo aca tiraba un ReferenceError. Todo lo que
+   entra al SVG es texto propio de estas constantes —no hay dato del paciente—, pero se escapa
+   igual: el dia que un rotulo salga de un campo, la ruta ya esta cerrada. */
+function _tgaEsqTxt(s) {
+  return (typeof escHtml === 'function') ? escHtml(String(s == null ? '' : s)) : String(s == null ? '' : s);
+}
+function _tgaEsqCol(c) {
+  return c === 'b' ? 'var(--tga-esq-azul)' : (c === 'r' ? 'var(--tga-esq-rojo)' : 'var(--tga-esq-naranja)');
+}
+function _tgaEsqCav(k, d) {
+  const p = TGA_ESQ_BX[k], x = p[0], y = p[1], w = TGA_ESQ_W, h = TGA_ESQ_H;
+  const c = _tgaEsqCol(d[2]), tunel = (d[3] === 'o');
+  const brd = tunel ? 'var(--tga-esq-naranja)' : c;
+  let s = '<rect x="' + x + '" y="' + y + '" width="' + w + '" height="' + h + '" rx="8" ' +
+          'fill="var(--bg)" stroke="' + brd + '" stroke-width="' + (tunel ? 2 : 1.5) + '"' +
+          (tunel ? ' stroke-dasharray="4 3"' : '') + '/>';
+  if (d[1]) {
+    s += '<text x="' + (x + w / 2) + '" y="' + (y + 19) + '" text-anchor="middle" font-size="' +
+         TGA_ESQ_FS.cav + '" font-weight="600" fill="var(--text)">' + _tgaEsqTxt(d[0]) + '</text>';
+    s += '<text x="' + (x + w / 2) + '" y="' + (y + 34) + '" text-anchor="middle" font-size="' +
+         TGA_ESQ_FS.sub + '" fill="var(--text2)">' + _tgaEsqTxt(d[1]) + '</text>';
+  } else {
+    s += '<text x="' + (x + w / 2) + '" y="' + (y + h / 2 + 5) + '" text-anchor="middle" font-size="' +
+         TGA_ESQ_FS.cav + '" font-weight="600" fill="var(--text)">' + _tgaEsqTxt(d[0]) + '</text>';
+  }
+  return s;
+}
+/* ⚠️ LAS COMUNICACIONES SE DIBUJAN CON SU DIRECCION DE FLUJO SOLO DONDE LA APP LA TIENE, y eso
+   esta censado, no supuesto: `ete_cia_dir` y `dap_dir` existen; para la CIV NO HAY ningun campo
+   de direccion en toda la aplicacion. Asi que la CIA y el ductus llevan punta de flecha y la CIV
+   no, que es exactamente lo que la orden pide —«con su direccion de flujo si la app la tiene; si
+   no, solo la comunicacion, sin flecha»—. */
+function _tgaEsqDirCom(id) {
+  const v = (typeof _ccSv === 'function') ? _ccSv(id) : '';
+  return (v === 'id' || v === 'di' || v === 'bi') ? v : '';
+}
+function tgaEsqSVG(k, sh) {
+  const D = TGA_ESQ_DEF[k];
+  if (!D) return '';
+  let s = '<svg viewBox="' + TGA_ESQ_VB + '" role="img" aria-labelledby="tga-esq-alt">';
+  s += '<defs>';
+  ['b', 'r'].forEach(function (c) {
+    s += '<marker id="' + TGA_ESQ_MK[c] + '" viewBox="0 0 10 10" refX="8" refY="5" ' +
+         'markerWidth="5" markerHeight="5" orient="auto"><path d="M1 1L9 5L1 9Z" fill="' +
+         _tgaEsqCol(c) + '"/></marker>';
+  });
+  s += '</defs>';
+  /* Los dos organos: los pulmones arriba y el cuerpo abajo. */
+  s += '<rect x="60" y="8" width="180" height="30" rx="8" fill="var(--bg3)" stroke="var(--border)"/>' +
+       '<text x="150" y="28" text-anchor="middle" font-size="' + TGA_ESQ_FS.org +
+       '" fill="var(--text)">Pulmones</text>';
+  s += '<rect x="60" y="250" width="180" height="30" rx="8" fill="var(--bg3)" stroke="var(--border)"/>' +
+       '<text x="150" y="270" text-anchor="middle" font-size="' + TGA_ESQ_FS.org +
+       '" fill="var(--text)">Cuerpo</text>';
+  /* Las comunicaciones, cada una SOLO si esta cargada. Van antes de las cavidades para que el
+     borde de la cavidad quede por encima del trazo. */
+  const NAR = 'var(--tga-esq-naranja)';
+  if (sh.asd) {
+    const d = _tgaEsqDirCom('ete_cia_dir');
+    s += '<path d="M120 164L180 116" stroke="' + NAR + '" stroke-width="3" stroke-dasharray="5 3" ' +
+         'fill="none"' + (d ? ' marker-end="url(#' + TGA_ESQ_MK.r + ')"' : '') + '/>' +
+         '<text x="134" y="150" font-size="' + TGA_ESQ_FS.com + '" fill="' + NAR + '">CIA</text>';
+  }
+  if (sh.vsd) {
+    s += '<path d="M120 116L180 164" stroke="' + NAR + '" stroke-width="3" stroke-dasharray="5 3" ' +
+         'fill="none"/>' +
+         '<text x="134" y="132" font-size="' + TGA_ESQ_FS.com + '" fill="' + NAR + '">CIV</text>';
+  }
+  if (sh.pda) {
+    const d = _tgaEsqDirCom('dap_dir');
+    s += '<path d="M' + D.ap[0] + ' ' + D.ap[1] + 'L' + D.ao[0] + ' ' + D.ao[1] + '" stroke="' + NAR +
+         '" stroke-width="3" stroke-dasharray="5 3" fill="none"' +
+         (d ? ' marker-end="url(#' + TGA_ESQ_MK.r + ')"' : '') + '/>' +
+         '<text x="' + ((D.ap[0] + D.ao[0]) / 2 + 4) + '" y="' + ((D.ap[1] + D.ao[1]) / 2 - 4) +
+         '" font-size="' + TGA_ESQ_FS.com + '" fill="' + NAR + '">DAP</text>';
+  }
+  ['TL', 'TR', 'BL', 'BR'].forEach(function (c) { s += _tgaEsqCav(c, D.box[c]) });
+  if (D.ex) s += D.ex.join('');
+  /* Las flechas del flujo. La clase es la que anima el bucle. */
+  D.fl.forEach(function (f) {
+    s += '<path class="tga-esq-fl" d="' + f[0] + '" fill="none" stroke="' + _tgaEsqCol(f[1]) +
+         '" stroke-width="3" stroke-dasharray="6 4" stroke-linecap="round" marker-end="url(#' +
+         TGA_ESQ_MK[f[1]] + ')"/>';
+  });
+  /* Las dos valvulas, con su letra. */
+  D.v.forEach(function (v) {
+    s += '<circle cx="' + v[0] + '" cy="' + v[1] + '" r="8" fill="var(--bg)" stroke="var(--text)" ' +
+         'stroke-width="1.2"/><text x="' + v[0] + '" y="' + (v[1] + 4) + '" text-anchor="middle" ' +
+         'font-size="' + TGA_ESQ_FS.val + '" fill="var(--text)">' + v[2] + '</text>';
+  });
+  /* Los rotulos de las cuatro entradas y salidas. */
+  [['cavas', 86, 234], ['venas pulm.', 222, 60],
+   ['AP', D.ap[0] > 150 ? 258 : 90, D.ap[0] > 150 ? 102 : 62],
+   ['Ao', D.ao[0] < 100 ? 22 : 226, D.ao[0] < 100 ? 182 : 242]].forEach(function (l) {
+    s += '<text x="' + l[1] + '" y="' + l[2] + '" font-size="' + TGA_ESQ_FS.rot +
+         '" fill="var(--text2)">' + _tgaEsqTxt(l[0]) + '</text>';
+  });
+  s += '</svg>';
+  return s;
+}
+/* ⚠️ LA LINEA DE TEXTO SE ARMA CON LAS PALABRAS QUE LA APP YA USA, y ninguna sale de la demo.
+   El nombre del escenario sale de `TGA_ESQ_NOM`, que repite los rotulos del selector de tipo y
+   de `TGA_CIR_LBL`; «Comunicaciones cargadas:» y los tres nombres son los de la linea de estado
+   del 3D, textuales. */
+const TGA_ESQ_NOM = Object.freeze({
+  norm:'corazón normal', dtga:'TGA completa (d-TGA), sin cirugía dibujada',
+  mus:'TGA completa (d-TGA) con switch auricular (Mustard o Senning)',
+  jat:'TGA completa (d-TGA) con switch arterial (Jatene)',
+  ras:'TGA completa (d-TGA) con Rastelli',
+  ltga:'TGA congénitamente corregida (ccTGA)'
+});
+/* ⚠️ MIENTRAS UN ESCENARIO NO ESTE DIBUJADO, SE MUESTRA EL BASE Y SE DICE. La orden lo pide
+   expresamente para el escenario que quede PARADO por el control clinico del 4b: «se muestra el
+   esquema base (A o B) con una nota chica». El base es el de la anatomia: `norm` sin tipo y
+   `dtga` con transposicion completa. */
+function _tgaEsqBase(k) {
+  if (TGA_ESQ_DEF[k]) return { k:k, pend:false };
+  return { k:(k === 'ltga' || k === 'norm') ? 'norm' : 'dtga', pend:true };
+}
+function tgaEsqSync(anat, cir) {
+  const cont = document.getElementById('tga-esq-svg');
+  if (!cont) return;
+  const kRaw = (typeof _tga3dClave === 'function') ? _tga3dClave(anat, cir) : (anat || '');
+  const base = _tgaEsqBase(kRaw);
+  /* La MISMA regla de las tres vistas que el 3D: la vista de referencia va SIN comunicaciones,
+     porque declara no ser de este paciente. El dueno es `_tga3d.ref`, no una copia. */
+  const sh = (_tga3d && _tga3d.ref) ? { asd:false, vsd:false, pda:false }
+           : ((typeof tga3dComs === 'function') ? tga3dComs() : { asd:false, vsd:false, pda:false });
+  cont.innerHTML = tgaEsqSVG(base.k, sh);
+  /* El texto: el escenario y las comunicaciones cargadas, con las palabras de la app. */
+  const nom = (_tga3d && _tga3d.ref) ? 'corazón normal, como vista de referencia'
+            : (TGA_ESQ_NOM[kRaw] || TGA_ESQ_NOM[base.k] || '');
+  const com = [];
+  if (sh.asd) com.push('CIA o FOP');
+  if (sh.vsd) com.push('CIV');
+  if (sh.pda) com.push('DAP');
+  const partes = [];
+  if (nom) partes.push('Circulación esquemática: ' + nom + '.');
+  if (com.length) partes.push('Comunicaciones cargadas: ' + com.join(', ') + '.');
+  if (base.pend) partes.push('Esquema pendiente de revisión para esta cirugía: se muestra el de la anatomía.');
+  const tx = document.getElementById('tga-esq-txt');
+  if (tx) tx.textContent = partes.join(' ');
+  /* ⚠️ LA ALTERNATIVA DE TEXTO ES EL RECORRIDO QUE LA APP YA PUBLICA. `TGA3D_CIRC` es su dueno
+     y lo imprime el parrafo de al lado, asi que el lector de pantalla y el lector que ve el
+     dibujo reciben la MISMA secuencia: no hay una segunda redaccion que pueda divergir. */
+  let alt = document.getElementById('tga-esq-alt');
+  if (!alt) {
+    alt = document.createElement('span');
+    alt.id = 'tga-esq-alt';
+    alt.style.cssText = 'position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;';
+    cont.parentNode.insertBefore(alt, cont);
+  }
+  alt.textContent = 'Esquema de la circulación de la sangre: ' + (nom || 'sin escenario') +
+    '. Recorrido: ' + ((typeof TGA3D_CIRC !== 'undefined' && TGA3D_CIRC[base.k]) || 'no disponible') +
+    '.' + (com.length ? ' Comunicaciones cargadas: ' + com.join(', ') + '.' : '');
+  _tgaEsqArrancar();
+}
+/* ══ LA ANIMACION DEL FLUJO ══════════════════════════════════════════════════════════════════
+   ⚠️ SE CUELGA DE LOS DOS DUENOS QUE EL 3D YA TIENE: `_tga3d.pausado` y `_tga3d.fc`. Con un
+   estado propio, el boton «Pausar» del recuadro dejaria el 3D quieto y el esquema moviendose, y
+   los dos dibujos de la misma caja latirian a ritmos distintos. `prefers-reduced-motion` queda
+   satisfecho por ahi mismo: `tga3dBoot` pone `pausado` en true al arrancar.
+   ⚠️ SIN FRECUENCIA, RITMO FIJO: `fc` en 0 deja el trazo quieto en su offset, igual que el 3D.
+   ⚠️ Y EL BUCLE SE APAGA SOLO CUANDO EL DIBUJO NO SE VE, con el mismo predicado del 3D: un rAF
+   corriendo detras de una pestania cerrada es trabajo por nada, y es la leccion del POP-B. */
+const _tgaEsq = { raf:0, t:0, ult:0 };
+function _tgaEsqCuadro(ts) {
+  _tgaEsq.raf = 0;
+  const cont = document.getElementById('tga-esq-svg');
+  if (!cont || !cont.firstChild) return;
+  if (typeof _tga3dVisible === 'function' && !_tga3dVisible()) return;
+  /* ⚠️ `Math.max(0, …)` SOBRE EL DELTA: el reloj que `requestAnimationFrame` pasa es el del
+     COMIENZO del cuadro y puede ser anterior al `ult` que se tomo al arrancar, asi que el primer
+     delta sale NEGATIVO. Es el mismo defecto latente de la demo que el 3D ya documenta. */
+  const dt = Math.max(0, (ts - (_tgaEsq.ult || ts)) / 1000);
+  _tgaEsq.ult = ts;
+  const fc = (_tga3d && typeof _tga3d.fc === 'number') ? _tga3d.fc : 70;
+  if (!(_tga3d && _tga3d.pausado) && fc > 0) _tgaEsq.t += dt * fc / 70;
+  const off = -(((_tgaEsq.t * 22) % 10));
+  const fl = cont.querySelectorAll('.tga-esq-fl');
+  for (let i = 0; i < fl.length; i++) fl[i].setAttribute('stroke-dashoffset', off.toFixed(1));
+  _tgaEsq.raf = window.requestAnimationFrame(_tgaEsqCuadro);
+}
+function _tgaEsqArrancar() {
+  if (_tgaEsq.raf) return;
+  _tgaEsq.ult = 0;
+  _tgaEsq.raf = window.requestAnimationFrame(_tgaEsqCuadro);
+}
+window.tgaEsqSVG = tgaEsqSVG; window.tgaEsqSync = tgaEsqSync;
 /* ── La geometria de la demo, verbatim ── */
 const _T3 = {
 SV:[[-1.6,3.0,-0.05],[-1.45,1.7,0.0],[-1.25,0.9,0.1],[-1.0,0.2,0.25],[-0.85,-0.6,0.4],[-0.7,-0.2,0.55],[-0.55,0.3,0.75]],
@@ -95969,6 +96249,16 @@ function tga3dSync() {
      clase `open` del acordeon, asi que la pestania abierta sin la seccion no baja nada. */
   const _sinTipo = !_tga3d.ref && !ej.anat;
   const anat = (_tga3d.ref || _sinTipo) ? 'norm' : ej.anat;
+  /* ⚠️ EL ESQUEMA SE PINTA ACA Y EN UN SOLO LUGAR, Y VA ANTES DE TODA SALIDA TEMPRANA. Esta
+     funcion es el embudo de los tres caminos que cambian el dibujo —`tgaSync` por los campos,
+     el boton del corazon normal y los controles de la caja—, asi que pintar aca cubre los tres
+     sin un segundo mecanismo. Y va ANTES del `return` de la seccion plegada y del de la libreria
+     porque el esquema NO depende de three.js: si el CDN falla, el 3D avisa y el esquema sigue.
+     La cirugia que se le pasa es la del eje, con la MISMA regla que el dibujo: sin tipo y en la
+     vista de referencia no se aplica ninguna. */
+  if (typeof tgaEsqSync === 'function') {
+    try { tgaEsqSync(anat, (_tga3d.ref || _sinTipo) ? '' : ej.cir) } catch (e) {}
+  }
   if (!_tga3d.listo) {
     if (!_tga3dVisible()) return;          /* la seccion esta plegada: no se carga nada */
     /* ⚠️ MIENTRAS NO HAY DIBUJO, EL LIENZO SE ESCONDE — commit 3b. Antes esta rama le ponia
@@ -149334,8 +149624,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261101-2137';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793579839562;                 /* eco-build-ms */
+const ECO_BUILD    = '20261101-2209';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793581790180;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -149421,7 +149711,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261101-2137</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261101-2209</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
