@@ -46463,6 +46463,43 @@ const VINFO = Object.freeze({
      cita. Lo que el globo explica es QUE MUESTRA el dibujo y de dónde saca cada cosa, que es
      verificable en el código. Las oraciones «Qué mirar en la ecografía» de la demo tampoco
      están: es la decisión (b) del médico y queda en docs/PENDIENTES.md → TGA-b. */
+  /* ══ EL GLOBO DEL ESQUEMA DE CIRCULACION (TGA-3, commit 5b) ════════════════════════════════
+     Es el ⓘ ESTANDAR de la casa: el mismo glifo U+24D8 en un boton de 44 px con `vinfo-btn-44`,
+     el mismo mecanismo `data-vinfo` y la misma tarjeta. Dice lo que el esquema representa y, con
+     la misma claridad, lo que NO: no es una imagen del estudio, no esta a escala y los recorridos
+     de las cirugias estan pendientes de que los revise un cardiologo de congenitas.
+     ⚠️ PARAFRASEADO Y SIN UNA SOLA CITA, que es lo que la orden pide: ni guia, ni sociedad, ni
+     clase, ni tabla, ni folio. Este globo no respalda una recomendacion: explica un dibujo. */
+  'tga-esq': {
+    ancho: 380,
+    tit: 'El esquema de circulación de la sangre',
+    lee: 'Es una guía visual de POR DONDE CIRCULA LA SANGRE según lo que se cargó en esta '
+       + 'sección. Las cuatro cavidades van en el medio, los pulmones arriba y el cuerpo abajo; '
+       + 'las letras T y M son la válvula tricúspide y la mitral.\n'
+       + 'El color dice de qué está llena cada cavidad y cada vaso, con la misma convención que '
+       + 'el diagrama 3D de al lado: azul, sangre poco oxigenada; rojo, oxigenada; naranja, las '
+       + 'suturas, los túneles y las comunicaciones.\n'
+       + 'El escenario NO se elige acá: sale de los mismos campos que el diagrama 3D —el tipo y '
+       + 'la cirugía realizada— y las comunicaciones se leen de sus propias pestañas, así que el '
+       + 'esquema y el dibujo de al lado nunca pueden mostrar dos anatomías distintas. Cada '
+       + 'comunicación se dibuja sólo si está cargada, y lleva punta de flecha únicamente donde '
+       + 'la aplicación guarda la dirección del shunt: la interauricular y el ductus la tienen, '
+       + 'la interventricular no.\n'
+       + 'Con el switch auricular no se dibuja la comunicación interauricular, porque el tabique '
+       + 'se reconstruyó y la sangre va por los dos túneles que ese escenario muestra; con el '
+       + 'Rastelli no se dibuja la interventricular, porque ahí la comunicación ES el túnel. En '
+       + 'los dos casos el texto de abajo lo dice.',
+    ojo: 'ES UN ESQUEMA ILUSTRATIVO: no es una imagen de este estudio, no está a escala y no '
+       + 'mide nada. Las cavidades, los vasos y las distancias son siempre los mismos; lo único '
+       + 'que cambia con el paciente es el recorrido que se dibuja y qué comunicaciones '
+       + 'aparecen.\n'
+       + 'LOS RECORRIDOS DE LAS CIRUGIAS ESTAN PENDIENTES DE REVISION por un cardiólogo de '
+       + 'cardiopatías congénitas. Cada uno se dibujó siguiendo el recorrido que esta misma '
+       + 'aplicación ya describe en el párrafo de la circulación, y la correspondencia está '
+       + 'verificada, pero esa revisión no se hizo todavía.\n'
+       + 'No se guarda con el estudio, no escribe ningún dato y no entra al informe ni al PDF: '
+       + 'vive sólo en esta pantalla.'
+  },
   'tga-3d': {
     ancho: 380,
     tit: 'El diagrama 3D de la transposición',
@@ -95305,7 +95342,12 @@ function tgaConclusion(src){
     if (civ === 'si') pd.push('Comunicación interventricular residual' + (civG != null ? ' con gradiente de ' + civG + ' mmHg' : ''));
     if (bav === 'si') pd.push('Bloqueo auriculoventricular completo');
     const _d = pd.join('. ');
-    return { clave:'descriptivo', txt:_d, resumen:_d };
+    /* ⚠️ `papel` TAMBIEN SALE DE ESTA RAMA, Y CON EL MISMO VALOR (TGA-3). Acá ya no hay conducta
+       que recortar —es el sentido de esta rama—, asi que las tres salidas son la misma cadena. Va
+       igual para que el CONTRATO sea uniforme: todo consumidor de papel puede leer `papel` sin
+       preguntar en que rama cayo la cascada. Lo destapo el caso de prueba, que pedia las tres y
+       se encontro con que esta rama devolvia dos. */
+    return { clave:'descriptivo', txt:_d, resumen:_d, papel:_d };
   }
   const partes = [_cab + ': el ventrículo derecho es el ventrículo sistémico'];
   const FUNC = { normal:'normal', leve:'con disfunción leve', moderada:'con disfunción moderada', severa:'con disfunción severa' };
@@ -95497,9 +95539,11 @@ const TGA_ESQ_BX = Object.freeze({ TL:[40,78], TR:[180,78], BL:[40,158], BR:[180
 const TGA_ESQ_W = 80, TGA_ESQ_H = 44;
 /* ⚠️ LAS TIPOGRAFIAS SON MAS GRANDES QUE LAS DE LA DEMO, Y ES UNA MEDICION. El SVG escala con su
    ancho: con los 9 px de la demo en un `viewBox` de 300, a los 268 px que el esquema ocupa al
-   lado del 3D el rotulo saldria en 8,0 px. Con 12 sale en 10,7 px, que es la tipografia que este
-   mismo recuadro ya usa en sus dos parrafos (10,5 y 11 px). */
-const TGA_ESQ_FS = Object.freeze({ cav:15, sub:11, org:15, val:11, com:12, rot:11 });
+   lado del 3D el rotulo saldria en 8,0 px. El MINIMO es 12, que a ese ancho sale en 10,7 px: la
+   misma tipografia que este recuadro ya usa en sus dos parrafos (10,5 y 11 px). Medido: con 11
+   el minimo caia en 9,8 px, por debajo de los dos. Apilado el SVG se topa en 340 px, asi que ahi
+   el minimo sube a 13,6 y el maximo a 17. */
+const TGA_ESQ_FS = Object.freeze({ cav:15, sub:12, org:15, val:12, com:12, rot:12 });
 /* ── Los recorridos, uno por escenario, con las claves de `_tga3dClave` ─────────────────────
    `box`: [rotulo, sub-rotulo, color, 'o' si es un tunel]. `fl`: [trazado, color, puerta].
    `v`: [x, y, letra de la valvula]. `ao` y `ap`: donde nacen los dos grandes vasos, que es de
@@ -95562,7 +95606,28 @@ const TGA_ESQ_DEF = Object.freeze({
         ['M220 122V156','r'],['M180 182H150V108H18V265H58','r']],
     v:[[80,140,'T'],[220,139,'M']], ao:[18,191], ap:[80,59],
     ex:['<path d="M80 78V40" stroke="var(--tga-esq-naranja)" stroke-width="8" opacity=".35" fill="none"/>',
-        '<path d="M150 108H40" stroke="var(--tga-esq-naranja)" stroke-width="9" opacity=".35" fill="none"/>'] })
+        '<path d="M150 108H40" stroke="var(--tga-esq-naranja)" stroke-width="9" opacity=".35" fill="none"/>'] }),
+  /* ══ LA TGA CORREGIDA (TGA-3, commit 5) ════════════════════════════════════════════════════
+     ⚠️ EL 3D SI LA DISTINGUE, y por eso este escenario NO queda parado: `tgaEjes()` devuelve
+     `anat:'ltga'` con el tipo `cctga`, y `_tga3dClave` la pasa tal cual porque la cirugia no se
+     aplica en esta anatomia.
+
+     ⚠️ CONTROL CLINICO, con el mismo respaldo de la app que las tres cirugias:
+       ltga — dibujo: cavas → AD → valvula M → VI  ·  venas pulm. → AI → valvula T → VD → Ao
+              app:    «AD → VI morfologico → arteria pulmonar → pulmones · AI → VD morfologico
+                       → aorta»                                              COINCIDE
+
+     ⚠️ LAS DOS VALVULAS CAMBIAN DE LADO, Y ES TODO EL SENTIDO DE LA DOBLE DISCORDANCIA: la
+     auricula derecha desemboca por la MITRAL en el ventriculo izquierdo morfologico y la
+     izquierda por la TRICUSPIDE en el derecho morfologico, que queda como sistemico. Es lo que
+     `TGA3D_INFO.ltga` ya dice con otras palabras: «pasa por el ventriculo equivocado en cada
+     lado». Los trazados del flujo son los del corazon normal, porque la sangre SIGUE el circuito
+     normal: lo que cambia es por que ventriculo pasa. */
+  ltga: Object.freeze({
+    box:{ TL:['VI','','b'], TR:['AI','','r'], BL:['AD','','b'], BR:['VD','sistémico','r'] },
+    fl:[['M80 250V206','b'],['M80 156V124','b'],['M80 78V40','b'],['M220 38V76','r'],
+        ['M220 122V156','r'],['M220 204V248','r']],
+    v:[[80,140,'M'],[220,139,'T']], ao:[220,226], ap:[80,59] })
 });
 /* La letra de cada marcador de punta de flecha, por color. */
 const TGA_ESQ_MK = Object.freeze({ b:'tga-esq-mb', r:'tga-esq-mr' });
@@ -149683,8 +149748,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261101-2209';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793581790417;                 /* eco-build-ms */
+const ECO_BUILD    = '20261101-2214';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793582047365;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -149770,7 +149835,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261101-2209</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261101-2214</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
