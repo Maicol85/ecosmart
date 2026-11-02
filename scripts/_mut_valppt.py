@@ -107,6 +107,14 @@ MUT = [
  ('22', 'TC-605', 'la tricuspide pierde sus dos opciones nuevas',
   "<option>Plastia tricusp\u00eddea</option><option>TEER tricusp\u00eddeo (T-TEER)</option>",
   "<!-- MUT22 -->"),
+ # ── commit 4 · la fuga de una pieza nueva sobre una valvula que no la lleva ────────────────
+ # Nace del barrido: la condicion (E9c) de TC-585 es NUEVA -la escribio esta tanda al adaptar
+ # el conteo de rutas de ese caso- y sin una mutacion propia no estaria probando nada. El
+ # escenario de TC-585 carga una protesis MECANICA en la aortica, asi que la malla del stent
+ # encendida ahi es una afirmacion inventada sobre el implante.
+ ('23', 'TC-585', 'la malla de la TAVI se prende SIEMPRE: una mecanica saldria con el marco del stent',
+  "    o.malla.setAttribute('display', tavi ? 'inline' : 'none');",
+  "    o.malla.setAttribute('display', 'inline');"),
 ]
 
 def corre(ids):

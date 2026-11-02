@@ -300,8 +300,14 @@ movió**: lo que cambia es el verbo y lo que se omite, y el color sigue graduand
   y su `resumen`). Dos textos paralelos escritos a mano divergen; con una sola construcción no
   pueden.
 - **EXCEPCIÓN EXPRESA DE MAICOL:** las etiquetas de la **pantalla** de criterios TEER —«NO apto»,
-  «Heart Team», «anatomía compleja»— **no se tocan**. Llegan a la hoja del PDF cuando el médico
-  integra el módulo, está medido, y se quedan.
+  «Heart Team», «anatomía compleja»— **no se tocan**: siguen en la pantalla, palabra por palabra.
+  ⚠️ **PERO YA NO LLEGAN AL PAPEL, y este renglón decía lo contrario.** Decía que llegan a la hoja
+  del PDF cuando el médico integra el módulo «y se quedan», y la tanda **VAL-PPT** (commit 5a,
+  2026-11-02), **por orden expresa de Maicol**, las sacó de las catorce superficies de papel: la
+  hoja publica la **medición** entera de cada criterio y el **conteo** de los no cumplidos, y el
+  veredicto se queda en la pantalla. `teerEstado().papel` se arma con las mismas piezas que
+  `titulo` y `nota`, así que los dos textos no pueden divergir. Medido antes y después con el
+  módulo **integrado**, que es el único denominador que prueba algo.
 
 ## La pantalla: campos a la izquierda, diagrama a la derecha — REGLA FIJA DE MAICOL (2026-10-31)
 

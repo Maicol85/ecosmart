@@ -6064,8 +6064,20 @@ caso('TC-74', 'TEER: un criterio no cumplido es borderline; dos son NO apto', `
     ['completo y correcto -> apto', ok.clave === 'apto' && ok.fallos === 0],
     ['un fallo -> borderline',      uno.clave === 'borderline' && uno.fallos === 1],
     ['dos fallos -> no apto',       dos.clave === 'no_apto' && dos.fallos === 2],
-    ['y la hoja lo dice sin emoji',
-      amiloTextoTEER().indexOf('NO apto para TEER según criterios actuales') > -1]
+    /* ADAPTADA el 2026-11-02 (tanda VAL-PPT, commit 5a). DECISION DE MAICOL: «NO apto para
+       TEER» es un VEREDICTO, y el papel de esta app DESCRIBE. Las tres etiquetas salieron de la
+       hoja del PDF y se quedan en la PANTALLA. Este caso la EXIGIA en el papel; hoy afirma LO
+       CONTRARIO.
+       NO PIERDE PODER, y gana: los tres veredictos de teerEstado se siguen exigiendo arriba, y
+       aca se agrega lo que antes no se medía —que el papel publique el CONTEO de criterios no
+       cumplidos, que es el dato, que la etiqueta no este en ninguna de sus lineas, y que la
+       pantalla SI la conserve—. Puede volver a fallar por los tres lados. */
+    ['la hoja publica el conteo de criterios no cumplidos',
+      amiloTextoTEER().indexOf('2 criterio(s) no cumplido(s).') > -1],
+    ['y NO el veredicto, que es de la pantalla',
+      amiloTextoTEER().indexOf('NO apto') === -1],
+    ['mientras la PANTALLA lo conserva',
+      dos.titulo.indexOf('NO apto para TEER según criterios actuales') > -1]
   ] };
 `);
 
@@ -6403,10 +6415,18 @@ caso('TC-86', 'TEER: el velo posterior <7 mm advierte y NO cambia el veredicto',
     // Con tilde: _teerAsciiPDF borra lo que cae fuera de \\x20-\\xFF, y la «í» esta DENTRO.
     // Lo que si convierte es la raya larga en guion. (Sin acentos graves en este comentario:
     // el cuerpo del caso es un template literal y un backtick lo cierra en la mitad.)
-    ['la hoja del PDF imprime la advertencia',
-      hoja.indexOf('4mm <7mm - Advertencia: agarre difícil') > -1],
-    ['y la conclusion de la hoja sigue siendo APTO',
-      hoja.indexOf('APTO para TEER - criterios cumplidos') > -1]
+    /* ADAPTADAS el 2026-11-02 (tanda VAL-PPT, commit 5a): las tres etiquetas de veredicto
+       salieron del papel y se quedan en la pantalla, asi que la hoja ya no lleva ni el juicio
+       del criterio -lo que va despues de la raya larga- ni «APTO» en su conclusion.
+       NO PIERDE PODER: la advertencia se sigue exigiendo ENTERA, en la pantalla, dos
+       condiciones mas arriba. Lo que estas dos miden ahora es que la MEDICION llegue al papel
+       sin recortarse y que el juicio no se cuele —las dos mitades del cambio—. */
+    ['la hoja del PDF imprime la medicion entera',
+      hoja.indexOf('Velo posterior >=7 mm | 4mm <7mm') > -1],
+    ['y NO el juicio, que es de la pantalla', hoja.indexOf('Advertencia') === -1],
+    ['la conclusion de la hoja describe',
+      hoja.indexOf('Todos los criterios evaluados se cumplen.') > -1],
+    ['y no publica el veredicto', hoja.indexOf('APTO') === -1]
   ] };
 `);
 
@@ -6846,7 +6866,13 @@ caso('TC-92', 'Reimprimir conserva la hoja TEER firmada; abrir para editar la re
     ['reimprimir conserva el texto firmado, palabra por palabra', reimpreso === FIRMADO],
     ['y no cuela el veredicto de hoy',      reimpreso.indexOf('NO apto') === -1],
     ['abrir para editar SI regenera',       reabierto !== FIRMADO],
-    ['y ahi aparece el criterio que fallaba', reabierto.indexOf('>70mm - NO apto') > -1],
+    /* ADAPTADA el 2026-11-02 (tanda VAL-PPT, commit 5a): la hoja ya no lleva el juicio «NO
+       apto» del criterio, asi que lo que la distingue de la firmada es la MEDICION del criterio
+       que falla —«78mm >70mm», que el texto congelado no tiene— y el conteo. Sigue separando
+       exactamente las dos direcciones que este caso existe para separar. */
+    ['y ahi aparece la medicion del criterio que fallaba',
+      reabierto.indexOf('78mm >70mm') > -1],
+    ['con su conteo', reabierto.indexOf('1 criterio(s) no cumplido(s).') > -1],
     ['una hoja guardada VACIA no se rellena al reimprimir', vacio === '']
   ] };
 `);
@@ -13102,8 +13128,12 @@ caso('TC-GR-07', 'TEER integrado: la hoja viaja con el estudio y vuelve igual', 
     const capsula = (__t.txt('teer-resultado') || '').trim();
     await __t.borrar(g.estudioId);
     return { extra: [
-      ['la hoja se genero con la conclusion',
-        original.indexOf('APTO para TEER - criterios cumplidos') > -1],
+      /* ADAPTADA el 2026-11-02 (tanda VAL-PPT, commit 5a): la conclusion de la HOJA describe
+         y ya no publica el veredicto, que se queda en la pantalla —y eso lo mide la ultima
+         condicion de este mismo caso, sobre la capsula—. */
+      ['la hoja se genero con su conclusion descriptiva',
+        original.indexOf('Todos los criterios evaluados se cumplen.') > -1],
+      ['y sin el veredicto', original.indexOf('APTO') === -1],
       ['vuelve IDENTICA al reabrir', vuelto === original],
       ['el modulo sigue integrado',  amiloIntegrado('teer') === true],
       ['y los campos del TEER se restauraron, no solo el texto',
@@ -103573,12 +103603,16 @@ caso('TC-580', 'Tanda POP-A: las cuatro casillas de cirugia combinables con el e
 
   /* ── (D) LAS VALVULAS Y SU TIPO ── */
   mar('pop_cx_valv', true); await esperar(160);
-  /* ⚠️ INVERTIDA EN POP-B-2, y es el dia que este control anunciaba: el selector ya NO clona la
-     lista entera del dueno. Ofrece la opcion de elegir mas SOLO las protesis, que hoy son dos en
-     las cuatro valvulas -TAVI y las nativas quedan afuera-. Lo que se conserva es la pregunta
-     «¿las opciones salen del dueno y no de una lista transcripta?», y para eso se exige que
-     TODAS las que no sean la primera esten tambien en el dueno. */
-  ex.push(['(D1) los cuatro selectores ofrecen elegir mas SOLO las protesis de su dueno, no su lista entera',
+  /* ⚠️ INVERTIDA EN POP-B-2 y ADAPTADA el 2026-11-02 (tanda VAL-PPT, commits 1 y 4). El
+     selector sigue sin clonar la lista entera del dueno, y lo que cambio es QUE cuenta como
+     tipo operado: ya no son solo las dos protesis -la orden agrega TAVI, plastia y TEER,
+     porque el dibujo del posoperatorio pasa a tener un simbolo para cada uno-.
+     EL FILTRO SE LE PREGUNTA A popVTipoCorto, que es el dueno unico de esos simbolos, y no
+     a una lista de prefijos transcripta aca: asi la condicion exige lo que de verdad importa
+     —que no se pueda elegir un tipo que el dibujo no sabe dibujar, y que una morfologia nativa
+     devuelva cadena vacia y quede afuera—. Es mas fuerte que el «empieza con Pr» anterior y
+     no hay que mantenerla al dia. */
+  ex.push(['(D1) los cuatro selectores ofrecen elegir mas SOLO los tipos OPERADOS de su dueno, no su lista entera',
            EK.map((k, i) => {
              const e = EL(k), d = EL(DUE[i]);
              if (!e || !d || e.options.length < 2) return 0;
@@ -103586,7 +103620,8 @@ caso('TC-580', 'Tanda POP-A: las cuatro casillas de cirugia combinables con el e
              const txD = Array.prototype.map.call(d.options, o => o.text);
              for (let j = 1; j < e.options.length; j++) {
                const t = e.options[j].text;
-               if (t.indexOf('Pr') !== 0) return 0;                  /* no es una protesis */
+               if (typeof popVTipoCorto !== 'function') return 0;     /* sin el dueno no se mide */
+               if (popVTipoCorto(t) === '') return 0;                 /* el dibujo no lo dibuja */
                if (txD.indexOf(t) < 0) return 0;                     /* no sale del dueno */
              }
              return 1;
@@ -103962,7 +103997,7 @@ caso('TC-582', 'Tanda POP-B: el boton «Integrar al informe» del posoperatorio 
   return { extra: EXP };
   })();
 `);
-caso('TC-583', 'Tanda POP-B: el tipo de una valvula operada ofrece SOLO las protesis que su dueno tiene -sin TAVI, sin nativas-, con una morfologia nativa queda en «elegir tipo» y lo AVISA sin tocar Valvulas, al elegir una protesis la escribe, y el papel nunca describe la cirugia con una morfologia nativa', `
+caso('TC-583', 'Tanda POP-B: el tipo de una valvula operada ofrece SOLO los tipos OPERADOS que su dueno tiene -la TAVI solo en la aortica, la plastia y el TEER solo en mitral y tricuspide, sin nativas-, con una morfologia nativa queda en «elegir tipo» y lo AVISA sin tocar Valvulas, al elegir una protesis la escribe, y el papel nunca describe la cirugia con una morfologia nativa', `
   return (async () => {
   const EXP = [];
   const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]),
@@ -104004,26 +104039,48 @@ caso('TC-583', 'Tanda POP-B: el tipo de una valvula operada ofrece SOLO las prot
   const PROT = 'Pr' + String.fromCharCode(243) + 'tesis';
   /* El contrato no es una lista transcripta: TODA opcion que no sea la primera tiene que ser una
      protesis. Asi el caso sigue valiendo el dia que Valvulas agregue otra. */
-  const noProt = (id) => {
+  /* ADAPTADO el 2026-11-02 (tanda VAL-PPT, commits 1 y 4): lo que el selector ofrece ya no son
+     solo las protesis, son los tipos OPERADOS —protesis, TAVI, plastia y TEER—, porque el
+     dibujo del posoperatorio gano un simbolo para cada uno. Se le pregunta a popVTipoCorto,
+     el dueno unico de esos simbolos: una morfologia nativa le devuelve cadena vacia. */
+  const noOp = (id) => {
     const e = EL(id); if (!e) return 'NO ' + id;
+    if (typeof popVTipoCorto !== 'function') return 'SIN popVTipoCorto';
     const malas = [];
     for (let i = 1; i < e.options.length; i++)
-      if (String(e.options[i].text).indexOf(PROT) !== 0) malas.push(e.options[i].text);
-    return malas.join(',') || 'todas protesis';
+      if (popVTipoCorto(String(e.options[i].text)) === '') malas.push(e.options[i].text);
+    return malas.join(',') || 'todas operadas';
   };
   ex.push(['(B1) la primera opcion de las cuatro es «elegir tipo»',
            ['pop-esp-vao','pop-esp-vmi','pop-esp-vtr','pop-esp-vpu']
              .map(function (id) { return (EL(id) && EL(id).options.length) ? ((EL(id).options[0].value === '') ? 'ok' : 'NO') : 'NO'; }).join(','),
            'ok,ok,ok,ok']);
-  ex.push(['(B2) y todas las demas son protesis, en las cuatro',
-           ['pop-esp-vao','pop-esp-vmi','pop-esp-vtr','pop-esp-vpu'].map(noProt).join(' / '),
-           'todas protesis / todas protesis / todas protesis / todas protesis']);
-  ex.push(['(B3) la aortica NO ofrece TAVI', opts('pop-esp-vao').indexOf('TAVI') > -1 ? 'LA OFRECE' : 'no', 'no']);
+  ex.push(['(B2) y todas las demas son tipos OPERADOS que el dibujo sabe dibujar, en las cuatro',
+           ['pop-esp-vao','pop-esp-vmi','pop-esp-vtr','pop-esp-vpu'].map(noOp).join(' / '),
+           'todas operadas / todas operadas / todas operadas / todas operadas']);
+  /* ⚠️ (B3) INVERTIDA el 2026-11-02 (tanda VAL-PPT, commit 1), y es el dia que el titulo de
+     este caso anunciaba: la TAVI pasa a ser elegible, porque el commit 4 le da su simbolo en el
+     dibujo. GANA PODER en vez de perderlo: antes afirmaba que no estaba en ninguna parte; hoy
+     exige que este en la AORTICA y en NINGUNA de las otras tres, que es una discriminacion que
+     el control anterior no hacia —una TAVI mitral no existe—. */
+  ex.push(['(B3) la TAVI se ofrece SOLO en la aortica',
+           ['pop-esp-vao','pop-esp-vmi','pop-esp-vtr','pop-esp-vpu']
+             .map(function (id) { return opts(id).indexOf('TAVI') > -1 ? 'si' : 'no' }).join(','),
+           'si,no,no,no']);
+  /* Y las dos reparaciones, SOLO donde su dueno las tiene: mitral y tricuspide. */
+  ex.push(['(B3b) la plastia y el TEER, solo en mitral y tricuspide',
+           ['pop-esp-vao','pop-esp-vmi','pop-esp-vtr','pop-esp-vpu']
+             .map(function (id) { const o = opts(id);
+               return (o.indexOf('Plastia') > -1 ? 'P' : '-') + (o.indexOf('TEER') > -1 ? 'T' : '-') })
+             .join(','), '--,PT,PT,--']);
   ex.push(['(B4) DENOMINADOR: el dueno SI tiene nativas, asi que el filtro hizo algo',
            opts('va_morf').indexOf('Calcificada') > -1 ? 'las tiene' : 'NO', 'las tiene']);
-  ex.push(['(B5) las cuatro ofrecen tres opciones',
+  /* ADAPTADA el 2026-11-02 (tanda VAL-PPT, commit 1): el vacio mas lo que su dueno ofrece como
+     operado. Aortica 2 protesis + TAVI, mitral y tricuspide 2 protesis + plastia + TEER,
+     pulmonar 2 protesis. */
+  ex.push(['(B5) cada una ofrece el vacio y sus tipos operados',
            ['pop-esp-vao','pop-esp-vmi','pop-esp-vtr','pop-esp-vpu']
-             .map(function (id) { return (EL(id) || { options: [] }).options.length; }).join(','), '3,3,3,3']);
+             .map(function (id) { return (EL(id) || { options: [] }).options.length; }).join(','), '4,5,5,3']);
 
   /* ── (C) UNA MORFOLOGIA NATIVA EN VALVULAS ── */
   mar('pop_cx_v_tr', true);
@@ -104431,11 +104488,34 @@ caso('TC-585', 'Tanda POP-B: el dibujo del posoperatorio sin un solo texto super
   ex.push(['(E9) pero NUNCA las dos abiertas a la vez: sistole y diastole no se pisan',
            (function () { let n = 0; for (let i = 0; i < FASES.length; i++)
              if (mAo2[i] > 0.05 && mMi2[i] > 0.05) n++; return n; })(), 0]);
+  /* ⚠️ ADAPTADA el 2026-11-02 (tanda VAL-PPT, commit 4). El grupo de la valvula ya no tiene
+     DOS rutas: tiene CUATRO, porque el commit 4 monto ahi el semicirculo de la plastia y la
+     malla de la TAVI —y este dibujo monta cada pieza UNA vez y el pintor la prende y la apaga,
+     que es su patron—. Contar rutas media el montaje y no el latido.
+     NO PIERDE PODER, Y GANA: se siguen exigiendo los dos velos como rutas con la geometria de
+     la demo, por POSICION -son los dos primeros hijos path del grupo, antes de las piezas
+     nuevas-, y ADEMAS que en una protesis MECANICA las dos piezas nuevas esten APAGADAS. Sin
+     eso, un anillo de plastia o una malla de TAVI encendidos sobre una mecanica pasarian en
+     verde: es justo el tipo de fuga que el commit 4 pudo haber introducido. */
   ex.push(['(E9b) y el dibujo SI toma esa fase: los dos velos existen y son rutas',
            (function () { const g = MK('valv-ao'); if (!g) return 'NO';
              const ps = g.querySelectorAll('path');
-             return ps.length === 2 && String(ps[0].getAttribute('d')||'').indexOf('M-8 0') === 0
-               ? 'si' : 'NO (' + ps.length + ')'; })(), 'si']);
+             if (ps.length < 2) return 'NO (' + ps.length + ')';
+             const a = String(ps[0].getAttribute('d') || ''), b = String(ps[1].getAttribute('d') || '');
+             return (a.indexOf('M-8 0') === 0 && b.indexOf('M8 0') === 0) ? 'si'
+               : 'NO (' + a.slice(0, 7) + ' / ' + b.slice(0, 7) + ')'; })(), 'si']);
+  ex.push(['(E9c) y sobre una MECANICA las piezas de plastia y de TAVI estan apagadas',
+           (function () { const g = MK('valv-ao'); if (!g) return 'NO';
+             const vis = [];
+             Array.prototype.forEach.call(g.querySelectorAll('path,rect,ellipse'), function (e) {
+               if (e.getAttribute('display') === 'none') return;
+               const d = String(e.getAttribute('d') || '');
+               if (d.indexOf('M-10 0A10') === 0) vis.push('aro-plastia');
+               if (d.indexOf('M-9 -11L9 11') === 0) vis.push('malla-tavi');
+               if (e.tagName.toLowerCase() === 'rect') vis.push('rect-' + e.getAttribute('width'));
+               if (e.tagName.toLowerCase() === 'ellipse') vis.push('orificio-teer');
+             });
+             return vis.join(',') || 'ninguna'; })(), 'ninguna']);
   pon('pop_sw_fc', ''); pon('hemo_fc', '');
   try { FN('popSync') && FN('popSync')(); } catch (e) {}
   await esperar(500);
@@ -105949,8 +106029,12 @@ caso('TC-595', 'Tanda POP-C: el selector del tipo de valvula operada del posoper
   /* ── (A) DENOMINADOR: los cuatro selectores existen y YA tienen sus opciones ───────── */
   ex.push(['(A0) DENOMINADOR: existen los cuatro selectores',
            V.filter(x => !!EL(x[2])).length, 4]);
-  ex.push(['(A1) DENOMINADOR: cada uno ofrece el vacio y las DOS protesis',
-           V.map(x => { const e = EL(x[2]); return e ? e.options.length : 0; }).join(','), '3,3,3,3']);
+  /* ADAPTADA el 2026-11-02 (tanda VAL-PPT, commit 1): el denominador pasa de «el vacio y las
+     dos protesis» a «el vacio y los tipos OPERADOS de su dueno», que son cuatro en la aortica
+     -con la TAVI-, cinco en la mitral y la tricuspide -con plastia y TEER- y tres en la
+     pulmonar. El reparto por valvula lo fija TC-583 (B3) y (B3b). */
+  ex.push(['(A1) DENOMINADOR: cada uno ofrece el vacio y los tipos operados de su dueno',
+           V.map(x => { const e = EL(x[2]); return e ? e.options.length : 0; }).join(','), '4,5,5,3']);
   ex.push(['(A2) DENOMINADOR: las cuatro casillas quedaron marcadas',
            V.filter(x => { const c = EL(x[3]); return c && c.checked; }).length, 4]);
 
