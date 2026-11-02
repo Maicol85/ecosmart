@@ -3215,12 +3215,43 @@ html.light-mode .amilo-root{
    query: la decide `_indColsSync` midiendo la caja y escribiendo `data-ind-cols`. Las ocho
    secciones compactas de antes NO llevan `data-ind-preg` y siguen con su media query de 1200 px,
    intacta. El boton de alternar escribe el mismo atributo, asi que hay UN solo dueno. */
-#indic-card [data-ind-grid][data-ind-preg="1"][data-ind-cols="2"]{
+/* ══ LA SECCION DE PREGUNTAS: DATOS ARRIBA, PREGUNTAS DEBAJO (PANT-2, correccion C2) ═════════
+   REGLA DEL MEDICO (2026-11-02): toda Evidencia con MAS DE 6 PREGUNTAS ordena las preguntas en
+   DOS columnas, y en UNA en anchos menores, y tiene que FUNCIONAR igual.
+   El contenedor es SIEMPRE un bloque: lo que se parte en dos columnas son los DATOS y las
+   PREGUNTAS por separado, cada uno a todo el ancho del panel. Hasta hoy la grilla ponia los
+   datos a la izquierda y las preguntas a la derecha, o sea las preguntas en media pantalla.
+   El corte sigue siendo el ancho del PANEL -900 px- y lo escribe `_indColsSync` midiendo la
+   caja, por el mismo motivo de antes: el panel sin maximizar mide 820 px a 1440 y a 1000, asi
+   que una media query sobre la ventana daria dos columnas de 410 en los dos casos. */
+#indic-card [data-ind-grid][data-ind-preg="1"]{display:block}
+#indic-card [data-ind-grid][data-ind-preg="1"][data-ind-cols="2"] > [data-ind-col="eco"],
+#indic-card [data-ind-grid][data-ind-preg="1"][data-ind-cols="2"] [data-ind-pregcols="1"]{
   display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);
   column-gap:18px;align-items:start;
 }
-#indic-card [data-ind-grid][data-ind-preg="1"][data-ind-cols="2"] [data-ind-col="clin"] > div:first-child{margin-top:0}
-#indic-card [data-ind-grid][data-ind-preg="1"][data-ind-cols="1"]{display:block}
+#indic-card [data-ind-grid][data-ind-preg="1"][data-ind-cols="1"] > [data-ind-col="eco"],
+#indic-card [data-ind-grid][data-ind-preg="1"][data-ind-cols="1"] [data-ind-pregcols="1"]{display:block}
+#indic-card [data-ind-grid][data-ind-preg="1"] [data-ind-col="clin"] > div:first-child{margin-top:6px}
+/* ══ LA BOTONERA DE RESPUESTA: 32 px VISIBLES, 44 px DE AREA TACTIL (PANT-2, C2) ═════════════
+   El piso global de `button` es 44 px y era lo que mandaba el alto de la fila. La regla del
+   medico pide una pregunta de una o dos lineas en 56 px o menos, asi que el alto VISIBLE baja a
+   32 y el area se extiende con un `::after` ABSOLUTO, que no ocupa espacio: con `margin`
+   negativo taparia el control de la fila de abajo, que es el defecto que AJ1 pago en la fila de
+   miniaturas del PDF. `min-width:0` hace falta porque el piso global tambien pone un ancho
+   minimo de 44, y una pastilla de dos caracteres no tiene por que medir 44 de ancho.
+   ⚠️ VA SOLO DENTRO DE `[data-ind-preg="1"]`, Y ES UNA CORRECCION MEDIDA. `_indCtrlHTML` es el
+   molde de TODAS las botoneras del panel: sin acotarla, las secciones de SEIS O MENOS preguntas
+   -que la orden manda NO mover- bajaban su fila mas alta de 55 a 45 y de 104 a 82.
+   ⚠️ Y EL MARGEN DE 1 px ABRE EL HUECO QUE EL AREA NECESITA. Medido: con los botones en 32 y el
+   area en 44, el hueco entre los botones de dos filas consecutivas era de ONCE pixeles y las dos
+   areas -6 px arriba y 6 abajo cada una- se solapaban, asi que tocar debajo de un boton activaba
+   el de la fila siguiente. Con el margen el hueco pasa a 13, mas que los 12 que dos medias areas
+   piden, y la fila sigue muy por debajo de los 56 px de la meta. */
+#indic-card [data-ind-preg="1"] .ind-ctrl-fila{margin:1px 0}
+#indic-card [data-ind-preg="1"] .ind-ctrl-btn{min-height:32px;min-width:0;position:relative}
+#indic-card [data-ind-preg="1"] .ind-ctrl-btn::after{content:'';position:absolute;left:0;right:0;
+  top:50%;transform:translateY(-50%);height:44px}
 /* ══ EL ⓘ DE UNA PREGUNTA SE ABRE DEBAJO DE SU FILA, NO DENTRO DE SU CELDA ═══════════════════
    (TGA-4, commit 3b-2). En modo compacto el rotulo es la celda golosa y la del ⓘ queda en
    TREINTA pixeles: abriendo el detalle ahi, la nota se dibujaba en una tira de 103 px de ancho
@@ -3246,7 +3277,13 @@ html.light-mode .amilo-root{
   #indic-card [data-ind-grid][data-ind-dos="1"][data-ind-compacta="1"]:not([data-ind-preg="1"]) [data-ind-col="clin"] > div:first-child{margin-top:0}
 }
 @media (min-width:1000px){
-  #indic-card[data-ind-max="1"] [data-ind-grid][data-ind-dos="1"]{
+  /* ⚠️ `:not([data-ind-preg="1"])` NO ES DECORACION, Y LO DESTAPO UNA MEDICION (PANT-2, C2). Esta
+     regla es MAS ESPECIFICA que la de las secciones de preguntas -tres atributos contra dos-, asi
+     que con el panel maximizado seguia poniendo los DATOS a la izquierda y las PREGUNTAS a la
+     derecha, justo lo que la correccion C viene a deshacer: las sub-tablas de preguntas quedaban
+     en 328 px -rotulo 128, control 170, ⓘ 30- y la fila mas alta saltaba de 55 a 157 px. La
+     regla de 1200 px de las ocho compactas ya llevaba esta exclusion; a esta le faltaba. */
+  #indic-card[data-ind-max="1"] [data-ind-grid][data-ind-dos="1"]:not([data-ind-preg="1"]){
     display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);
     column-gap:18px;align-items:start;
   }
@@ -3254,7 +3291,7 @@ html.light-mode .amilo-root{
      tabla del eco cuando iban uno debajo del otro; en dos columnas lo dejaría 12 px más abajo que
      la primera fila del eco, o sea las dos columnas desalineadas. No se toca el `style` en línea
      del rótulo: el ajuste vale sólo dentro de la grilla. */
-  #indic-card[data-ind-max="1"] [data-ind-grid][data-ind-dos="1"] [data-ind-col="clin"] > div:first-child{margin-top:0}
+  #indic-card[data-ind-max="1"] [data-ind-grid][data-ind-dos="1"]:not([data-ind-preg="1"]) [data-ind-col="clin"] > div:first-child{margin-top:0}
 }
 /* El botón de maximizar NO SE MUESTRA EN EL CELULAR, y la decisión es medida: a 390 px el panel ya
    ocupa 366 de 390 px, así que maximizar gana CERO px de ancho y 24 px de alto. Un control que no
@@ -84821,7 +84858,13 @@ function _indLeer(id, k){
 }
 function _indCtrlHTML(ctrl){
   const val = _indClinGet(ctrl.clave);
-  return '<div style="display:flex;flex-wrap:wrap;gap:5px;">' + ctrl.ops.map(function(o){
+  /* ⚠️ EL MARGEN VERTICAL Y EL ALTO DE 32 px VIVEN EN LA HOJA DE ESTILOS Y NO ACA, y es una
+     correccion medida. `_indCtrlHTML` es el molde de TODAS las botoneras del panel, no solo de
+     las secciones de preguntas: con el estilo en linea, los botones bajaban a 32 px en las
+     TRECE secciones y las de SEIS O MENOS preguntas se movian -su fila mas alta pasaba de 55 a
+     45 y de 104 a 82-, que es justo lo que la orden prohibe. La clase es un MARCADOR y la regla
+     la acota a `[data-ind-preg="1"]`. */
+  return '<div class="ind-ctrl-fila" style="display:flex;flex-wrap:wrap;gap:5px;">' + ctrl.ops.map(function(o){
     /* El centinela se ve marcado cuando NO hay respuesta, que es lo que representa. */
     const on = (o.v === IND_SD_VAL) ? (val == null) : (val === o.v);
     /* El alto lo fija la regla táctil global de `button` (44 px), AHORA TAMBIÉN CON MOUSE: la
@@ -84833,7 +84876,14 @@ function _indCtrlHTML(ctrl){
        diferencian por el relleno. La marca ✓ es una diferencia de FORMA, legible sin color. El
        ancho del botón cambia al marcarlo y eso está bien: el botón ya cambia de color en el
        mismo gesto, así que el reflejo del gesto no es una sorpresa. */
-    return '<button type="button" data-ind-clin="' + _critEsc(ctrl.clave) + '"' +
+    /* ⚠️ `ind-ctrl-btn` BAJA EL ALTO VISIBLE A 32 px Y DEJA EL AREA TACTIL EN 44 (PANT-2,
+       correccion C2). El piso de 44 px de la regla global de `button` hacia que la celda de la
+       botonera mandara el alto de la fila; la regla del medico pide una pregunta de una o dos
+       lineas en 56 px o menos. El area no se pierde: la extiende un `::after` ABSOLUTO, que es
+       el patron de `.pac-id-mk` y el unico que no ocupa espacio —con `margin` negativo taparia
+       el control de la fila de abajo, que es el defecto que AJ1 pago en la fila de miniaturas—.
+       Ver su regla en la hoja de estilos. */
+    return '<button type="button" class="ind-ctrl-btn" data-ind-clin="' + _critEsc(ctrl.clave) + '"' +
       ' data-ind-val="' + _critEsc(o.v) + '" aria-pressed="' + (on ? 'true' : 'false') + '"' +
       /* ⚠️ EL REDONDEO Y EL RELLENO VIVEN **ACÁ**, que es su único dueño: una regla de hoja de
          estilos pierde contra este `style` en línea sin un `!important`, y la primera versión del
@@ -85318,6 +85368,44 @@ function _indColsToggle(btn){
   btn.setAttribute('aria-pressed', dos ? 'true' : 'false');
 }
 window._indColsToggle = _indColsToggle;
+/* ══ EL REPARTO DE UNA LISTA DE FILAS EN COLUMNAS (PANT-2, corrección C2) ════════════════════
+   REGLA DEL MÉDICO (2026-11-02): toda Evidencia con MÁS DE 6 PREGUNTAS ordena las preguntas en
+   DOS columnas, y en UNA en anchos menores, y tiene que FUNCIONAR igual.
+
+   POR QUÉ DOS TABLAS Y NO `column-count`. Las filas viven en un `<table>`: las columnas de CSS
+   parten las filas por la mitad y `break-inside:avoid` sobre un `<tr>` no se respeta de forma
+   fiable. Con dos tablas en una grilla de dos columnas el reparto es determinista y se puede
+   medir, y en una columna las dos tablas quedan UNA DEBAJO DE OTRA, que es exactamente el orden
+   de lectura pedido —la primera mitad arriba, leyendo hacia abajo—. El DOM conserva ese orden,
+   así que el de TABULACIÓN tampoco cambia: no hace falta ni un `tabindex` ni un `order` de CSS,
+   que es el defecto clásico de una grilla.
+
+   ⚠️ UNA FILA DE GRUPO NO SE QUEDA HUÉRFANA AL PIE DE UNA COLUMNA. Si el corte cae justo en un
+   rótulo de grupo, el rótulo pasa a la columna siguiente: un encabezado solo al final de una
+   columna anuncia un bloque que está en la otra.
+   ⚠️ Y EL REPARTO ES POR MITADES EN ORDEN, no alternado. Alternar pone la pregunta 2 arriba a la
+   derecha, y entonces el orden visual deja de coincidir con el de lectura. */
+function _indReparto(filas, n){
+  const L = (filas || []).filter(Boolean);
+  if (n <= 1 || L.length < 2) return [L];
+  const corte0 = Math.ceil(L.length / n);
+  let corte = corte0;
+  /* El rótulo de grupo del límite viaja con su bloque. */
+  if (L[corte - 1] && L[corte - 1].grupoHdr) corte--;
+  if (corte < 1) corte = corte0;
+  return [L.slice(0, corte), L.slice(corte)];
+}
+/* El HTML de las columnas de una lista de filas. `cols` es el número de columnas lógicas; la
+   hoja de estilos decide si de verdad se ven en una o en dos según el ancho del panel. */
+function _indColsHTML(filas, cols, compacta){
+  const partes = _indReparto(filas, cols);
+  return partes.map(function (g) {
+    if (!g.length) return '';
+    return '<div data-ind-sub="1"><table style="width:100%;border-collapse:collapse;">' +
+      g.map(function (f) { return _indFilaHTML(f, compacta) }).join('') + '</table></div>';
+  }).join('');
+}
+
 function _indFilaHTML(f, compacta){
   /* ⚠️ UNA FILA DE GRUPO NO ES UNA FILA DE DATO (TGA-4, commit 3b-7). Es un rotulo chico que
      parte la lista de preguntas en bloques; no tiene valor, ni marca, ni nota, ni ⓘ. Va primero
@@ -85946,6 +86034,31 @@ function _indSecHTMLCuerpo(tit, r){
     'aria-label="Alternar entre una y dos columnas">⇔ columnas</button></div>';
   h += '<div data-ind-grid="1"' + (hayClin ? ' data-ind-dos="1"' : '') +
        (compacta ? ' data-ind-compacta="1"' : '') + (esPreg ? ' data-ind-preg="1"' : '') + '>';
+  /* ══ LA SECCIÓN DE PREGUNTAS: LOS DATOS ARRIBA Y LAS PREGUNTAS DEBAJO (PANT-2, C2) ══════════
+     Hasta hoy la grilla ponía la tabla de DATOS DEL ESTUDIO en la columna izquierda y las
+     PREGUNTAS en la derecha, así que las preguntas se leían en media pantalla mientras la mitad
+     izquierda quedaba con una tabla de seis filas. Medido en la transposición, con el panel
+     maximizado: el bloque medía 1409 px y la columna de datos usaba seis de sus filas.
+     Hoy los datos van ARRIBA a todo el ancho en dos columnas, y las preguntas DEBAJO en dos
+     columnas, que es lo que la regla del médico pide y lo que deja la pregunta más larga en una
+     o dos líneas en vez de cuatro.
+     ⚠️ LAS FILAS INFORMATIVAS DE `clinica` VAN A TODO EL ANCHO Y NO SE REPARTEN. El contador
+     —«Falta contestar: …»— es una fila de `clinica` SIN control: metido en una columna quedaría
+     a media pantalla anunciando lo que falta de las dos. Se separan por NO TENER `ctrl` y no por
+     su posición: una fila informativa nueva queda cubierta sin que nadie se acuerde. */
+  if (esPreg) {
+    h += '<div data-ind-col="eco">' + _indColsHTML(r.filas, 2, compacta) + '</div>';
+    if (hayClin) {
+      const _info = r.clinica.filter(function (f) { return f && !f.ctrl && !f.grupoHdr });
+      const _preg = r.clinica.filter(function (f) { return f && (f.ctrl || f.grupoHdr) });
+      h += '<div data-ind-col="clin">';
+      h += '<div style="font-size:11px;font-weight:700;color:var(--text2);margin:12px 0 2px;">Requiere datos clínicos — no evaluable por ecocardiograma</div>';
+      if (_info.length) h += '<div data-ind-infofilas="1"><table style="width:100%;border-collapse:collapse;">' +
+        _info.map(function (f) { return _indFilaHTML(f, compacta) }).join('') + '</table></div>';
+      if (_preg.length) h += '<div data-ind-pregcols="1">' + _indColsHTML(_preg, 2, compacta) + '</div>';
+      h += '</div>';
+    }
+  } else {
   h += '<div data-ind-col="eco"><table style="width:100%;border-collapse:collapse;">' +
        r.filas.map(function(f){ return _indFilaHTML(f, compacta) }).join('') + '</table></div>';
   if (hayClin) {
@@ -85954,6 +86067,7 @@ function _indSecHTMLCuerpo(tit, r){
     h += '<table style="width:100%;border-collapse:collapse;">' +
          r.clinica.map(function(f){ return _indFilaHTML(f, compacta) }).join('') + '</table>';
     h += '</div>';
+  }
   }
   h += '</div>';
   /* La recomendación va DEBAJO de los datos que la sostienen y no arriba: es la conclusión de
@@ -151149,8 +151263,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261102-2000';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793660419114;                 /* eco-build-ms */
+const ECO_BUILD    = '20261102-2012';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793661120611;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -151236,7 +151350,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261102-2000</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261102-2012</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
