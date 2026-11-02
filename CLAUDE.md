@@ -645,6 +645,45 @@ impecable.
   del tipo. (2) **El slot del dibujo no lo borra `limpiarCampos`** y se filtraba de una escena a
   la otra, dejando los controles encendidos en los dos árboles.
 
+- **Línea base al cierre: suite 627/633**, en **doce lotes** cubriendo los **633 casos
+  distintos** —contados nombre por nombre, con una guarda que compara lo listado con lo
+  repartido y otra que cuenta los ejecutados: **633 de 633**—, en UNA sola pasada sobre el árbol
+  sellado **y commiteado**, con el pendrive `DISK_IMG` **verificado al abrir, en los DOCE lotes y
+  al cerrar** (catorce verificaciones, listando nombres reales) y el md5 de `index.html`
+  **idéntico** antes y después (`c96543c6`). Los rojos son **TC-223, TC-376, TC-390 y TC-406**,
+  los cuatro de siempre, más **TC-182 y TC-551**, los dos intermitentes que la orden anticipa:
+  **corridos aislados, los dos salen VERDE**, verificado. **Ningún rojo nuevo.**
+  ⚠️ **Y LA PRIMERA CORRIDA COMPLETA DIO 623/633 CON CUATRO ROJOS MÁS, LOS CUATRO MÍOS**, y por
+  eso esa cifra no es la línea base: **TC-565** caía por **excepción** —mi fila de grupo no traía
+  `lbl` y mataba al filtro que lo lee—, **TC-566** y el propio TC-565 contaban el largo de la
+  lista de filas clínicas, que ya no es sólo preguntas, **TC-569** daba por sentado que al abrir
+  no hay ningún botón marcado —y el «?» lo está— y **TC-602** afirmaba que la conducta se queda
+  en la pantalla, que es justo lo que el commit 4 cambia. Los cuatro están adaptados, el primero
+  corrigiendo la APP, y la cifra de arriba sale de la corrida **limpia**, de una sola pasada
+  sobre el árbol resellado.
+- **Semgrep 124 WARNING / 0 ERROR**, la línea base, sin un aviso nuevo. **Excel 441** columnas con
+  las mismas claves. **Campos guardados 1002, el mismo juego exacto**: cero nuevos y cero
+  perdidos. **Sin huérfanos nuevos.** 17 de 19 bloques de JS inline parsean, idéntico a HEAD.
+- **CELULAR: 59 hallazgos a 360 px y 68 a 390, con 17 ALTA en cada ancho** — la línea base
+  exacta. **No empeoró.**
+- **CHROME Y WEBKIT COINCIDEN EN LOS DIECISÉIS CRUCES** (dos motores × 1440, 1000, 768 y 390 px ×
+  dos temas), **sin una sola diferencia entre motores**: el panel compacto con sus 18 preguntas
+  de 55 px —125 a 390—, **54 de 54 botones de respuesta a 44×44**, 18 etiquetas de guía, cuatro
+  grupos, la frase del pie una vez, el contador presente, **139 citas**, la cápsula **sin una
+  sola palabra de conducta** y **sin** la cláusula de la ccTGA, **cero** desplazamiento
+  horizontal del cuerpo y **cero errores de página**.
+  **El mismo cruce contra HEAD da: compacta=no, filas de 104 px, 36 botones, 0 etiquetas, 0
+  grupos, la frase 19 veces, «seguimiento anual» en la cápsula y la cláusula presente — y las
+  MISMAS 139 citas.**
+  El único error de consola y el único texto recortado son **idénticos en HEAD**: el error es el
+  `ERR_FILE_NOT_FOUND` del arnés, que carga de una copia en el temporal, y es lo que la tanda D2
+  ya documenta.
+  ⚠️ **WebKit de Playwright no es Safari, y se declara.** Chrome va por el del sistema con
+  `channel: 'chrome'`.
+- **`index.html` pasó de 10,96 MB / 153.410 líneas a 11,00 MB / 153.899** — medido con `wc -c` y
+  `wc -l` DESPUÉS de sellar. (MB de 10⁶.) El diff son **551 líneas agregadas y 62 quitadas**, con
+  **cero** `innerHTML`, `eval` o `new Function` nuevos y cero claves ni contraseñas.
+
 - **Dónde está todo:** `docs/mapa/tga4-pdf-panel-compacto.md` (**mapa NUEVO**, 9,5 KB), las fichas
   de los seis casos en el propio archivo de tests, `docs/fuentes/FUENTES.md` → «La tanda TGA-4»
   con las tres hojas transcritas, las dos reglas de folio comprobadas en el pie impreso y la tabla
