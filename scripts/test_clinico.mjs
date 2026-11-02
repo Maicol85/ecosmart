@@ -101133,31 +101133,43 @@ caso('TC-565', 'Tanda TGA-2: el panel de Evidencia de la transposicion publica l
       if (t.indexOf('Clase IIa') === 0) cl.IIa++;
       if (t.indexOf('Clase IIb') === 0) cl.IIb++;
       if (t.indexOf('Clase III') === 0) cl.III++; });
+    /* ⚠️ ADAPTADO POR LA TANDA TGA-4: la lista de filas clinicas ya no es SOLO preguntas. Lleva ademas los
+       rotulos de grupo del switch auricular y la fila del contador, asi que contar su largo
+       dejo de medir «cuantas preguntas hay». En vez de mover el numero, la condicion declara
+       la COMPOSICION: cuantas con botonera, cuantos rotulos de grupo y cuantas otras. Asi una
+       fila de mas que no sea ninguna de las tres cosas pone el caso en rojo, que es mas de lo
+       que el conteo viejo distinguia. */
+    const _hdrs = (R.clinica || []).filter(function (f) { return !!f.grupoHdr }).length;
+    const _ctrl = (R.clinica || []).filter(function (f) { return !!f.ctrl }).length;
     return { aplica: true, filas: (R.filas || []).length, preg: (R.clinica || []).length,
-             conCtrl: (R.clinica || []).filter(function (f) { return !!f.ctrl }).length,
+             conCtrl: _ctrl, hdrs: _hdrs,
+             otras: (R.clinica || []).length - _ctrl - _hdrs,
              bloques: (R.bloques || []).length, cl: cl, lin: lin,
-             marcas: (R.clinica || []).map(function (f) { return f.marca }).join(','),
+             /* Las marcas, SOLO de las preguntas: el contador y los rotulos no son respuestas. */
+             marcas: (R.clinica || []).filter(function (f) { return !!f.ctrl })
+                       .map(function (f) { return f.marca }).join(','),
              bal: lin.filter(function (t) { return t.indexOf('sin contestar') >= 0 || t.indexOf('Condiciones presentes') >= 0 || t.indexOf('contestadas y ninguna') >= 0; })[0] || 'SIN BALANCE' }; };
 
   montar('dtga', 'auricular');
   const A = leer();
   ex.push(['(A1) switch auricular: once recomendaciones de la tabla, por clase',
            A.cl ? (A.cl.I + '/' + A.cl.IIa + '/' + A.cl.IIb + '/' + A.cl.III) : 'NULL', '6/3/1/1']);
-  ex.push(['(A2) con DIECIOCHO preguntas, todas con botonera', A.preg + '/' + A.conCtrl, '18/18']);
+  ex.push(['(A2) DIECIOCHO preguntas con botonera, CUATRO rotulos de grupo y UNA fila de contador',
+    A.conCtrl + '/' + A.hdrs + '/' + A.otras, '18/4/1']);
   ex.push(['(A3) y TRES bloques: el de la guia que rige, el de la anterior y el general', A.bloques, 3]);
 
   montar('dtga', 'jatene');
   const J = leer();
   ex.push(['(A4) switch arterial: tres recomendaciones de la ESC y DOCE preguntas',
-           (J.cl.I + '/' + J.cl.IIa + '/' + J.cl.IIb + '/' + J.cl.III) + ' · ' + J.preg, '1/2/0/0 · 12']);
+           (J.cl.I + '/' + J.cl.IIa + '/' + J.cl.IIb + '/' + J.cl.III) + ' · ' + J.conCtrl, '1/2/0/0 · 12']);
   montar('dtga', 'rastelli');
   const R = leer();
   ex.push(['(A5) Rastelli: dos Clase I y una IIa de la ESC, y DOCE preguntas',
-           (R.cl.I + '/' + R.cl.IIa) + ' · ' + R.preg, '2/1 · 12']);
+           (R.cl.I + '/' + R.cl.IIa) + ' · ' + R.conCtrl, '2/1 · 12']);
   montar('cctga', '');
   const C = leer();
   ex.push(['(A6) ccTGA: cuatro recomendaciones de la ESC y OCHO preguntas',
-           (C.cl.I + '/' + C.cl.IIa + '/' + C.cl.IIb) + ' · ' + C.preg, '1/2/1 · 8']);
+           (C.cl.I + '/' + C.cl.IIa + '/' + C.cl.IIb) + ' · ' + C.conCtrl, '1/2/1 · 8']);
   ex.push(['(A7) y gana un bloque de seguimiento propio', C.bloques, 3]);
   ex.push(['(A8) la ccTGA publica su seguimiento anual por los trastornos de conduccion',
            tiene(C.lin.join(' '), 'apartado 4.13.6, hoja 60, folio 622'), 'si']);
@@ -101286,11 +101298,18 @@ caso('TC-566', 'Tanda TGA-2: los paneles de Evidencia de la comunicacion interau
       if (t.indexOf('Clase IIa') === 0) cl.IIa++;
       if (t.indexOf('Clase IIb') === 0) cl.IIb++;
       if (t.indexOf('Clase III') === 0) cl.III++; });
-    return { aplica: true, filas: R.filas || [], preg: (R.clinica || []).length,
-             conCtrl: (R.clinica || []).filter(function (f) { return !!f.ctrl }).length,
+    /* ⚠️ ADAPTADO POR LA TANDA TGA-4: la lista de filas clinicas ya no es SOLO preguntas —lleva
+       ademas la fila del contador—, asi que el largo dejo de medir «cuantas preguntas hay» y las
+       marcas traian una de mas. Se cuentan las que tienen BOTONERA, que es lo que el rotulo de
+       cada condicion dice, y se declara aparte cuantas filas sin botonera hay: asi una fila de
+       mas que no sea el contador pone el caso en rojo. */
+    const _ctrl2 = (R.clinica || []).filter(function (f) { return !!f.ctrl });
+    return { aplica: true, filas: R.filas || [], preg: _ctrl2.length,
+             conCtrl: _ctrl2.length,
+             otras: (R.clinica || []).length - _ctrl2.length,
              bloques: (R.bloques || []).length, cl: cl, lin: lin, guia: R.guia ? R.guia.ref : 'SIN GUIA',
              notas: (R.notas || []).filter(Boolean),
-             marcas: (R.clinica || []).map(function (f) { return f.marca }).join(','),
+             marcas: _ctrl2.map(function (f) { return f.marca }).join(','),
              bal: lin.filter(function (t) { return t.indexOf('sin contestar') >= 0 || t.indexOf('Condiciones presentes') >= 0 || t.indexOf('contestadas y ninguna') >= 0; })[0] || 'SIN BALANCE' }; };
 
   /* ══ (A) LA COMUNICACION INTERAURICULAR ══ */
@@ -101300,7 +101319,7 @@ caso('TC-566', 'Tanda TGA-2: los paneles de Evidencia de la comunicacion interau
   ex.push(['(A1) DENOMINADOR: la escena despierta la seccion', A.aplica ? 'si' : 'NO', 'si']);
   ex.push(['(A2) las nueve filas de la tabla, por clase',
            A.cl.I + '/' + A.cl.IIa + '/' + A.cl.IIb + '/' + A.cl.III, '5/2/1/1']);
-  ex.push(['(A3) CATORCE preguntas, todas con botonera', A.preg + '/' + A.conCtrl, '14/14']);
+  ex.push(['(A3) CATORCE preguntas con botonera y UNA fila de contador', A.conCtrl + '/' + A.otras, '14/1']);
   ex.push(['(A4) CINCO bloques: el de la guia que rige y los cuatro de la anterior', A.bloques, 5]);
   ex.push(['(A5) el tipo y el tamano se LEEN, no se preguntan',
            (function () { const f = A.filas.filter(function (x) { return x.lbl.indexOf('Tipo de comunicación') === 0 })[0];
@@ -101328,7 +101347,7 @@ caso('TC-566', 'Tanda TGA-2: los paneles de Evidencia de la comunicacion interau
   ex.push(['(B1) DENOMINADOR: la escena despierta la seccion', B.aplica ? 'si' : 'NO', 'si']);
   ex.push(['(B2) las seis filas de la tabla, por clase',
            B.cl.I + '/' + B.cl.IIa + '/' + B.cl.IIb + '/' + B.cl.III, '1/3/1/1']);
-  ex.push(['(B3) CATORCE preguntas, todas con botonera', B.preg + '/' + B.conCtrl, '14/14']);
+  ex.push(['(B3) CATORCE preguntas con botonera y UNA fila de contador', B.conCtrl + '/' + B.otras, '14/1']);
   ex.push(['(B4) CUATRO bloques: el de la guia que rige y los tres de la anterior', B.bloques, 4]);
   ex.push(['(B5) las tres filas de solo lectura viejas ahora se contestan, y ninguna quedo como texto muerto',
            (function () { const R = sCIV.fn(); const lbls = (R.clinica || []).map(function (x) { return x.lbl });
@@ -101836,10 +101855,25 @@ caso('TC-569', 'Tanda AJUSTES-3: los botones Si / No / Sin dato de TODAS las pre
            hoja.indexOf('data-ind-term') > -1 ? 'lo nombra' : 'NO LO NOMBRA', 'lo nombra']);
 
   /* ── (E) EL ESTADO NO DEPENDE SOLO DEL COLOR ───────────────────────────────────────────── */
-  ex.push(['(E0) DENOMINADOR: ninguno esta marcado al abrir',
-           bs().filter(b => b.getAttribute('aria-pressed') === 'true').length, 0]);
-  ex.push(['(E1) CONTROL NEGATIVO: sin marcar, ninguno lleva la marca de forma',
-           bs().filter(b => /^\\u2713/.test(String(b.textContent || '').trim())).length, 0]);
+  /* ⚠️ ADAPTADO POR LA TANDA TGA-4: las secciones de preguntas de la transposicion, la CIA y
+     la CIV ofrecen ahora un TERCER estado explicito, «?», y ese boton SE VE MARCADO cuando no
+     hay respuesta -es lo que representa-. Asi que «ninguno marcado al abrir» dejo de ser
+     cierto. Lo que este caso vigila sigue intacto y se dice mejor: de cada pregunta hay UNO y
+     SOLO UNO marcado, y al abrir el marcado es el del tercer estado. Un segundo boton marcado
+     en la misma pregunta, que es el defecto que esto cuida, pone el caso en rojo igual. */
+  const _porClave = () => { const m = {}; bs().forEach(b => {
+    const k = b.getAttribute('data-ind-clin');
+    if (b.getAttribute('aria-pressed') === 'true') m[k] = (m[k] || 0) + 1; }); return m; };
+  const _m0 = _porClave();
+  const _cl0 = Object.keys(_m0);
+  ex.push(['(E0) DENOMINADOR: al abrir hay UN solo boton marcado por pregunta',
+           _cl0.filter(k => _m0[k] !== 1).length + '/' + (_cl0.length > 0), '0/true']);
+  ex.push(['(E0b) y el marcado es el del tercer estado, «sin dato»',
+           bs().filter(b => b.getAttribute('aria-pressed') === 'true')
+               .filter(b => b.getAttribute('data-ind-val') !== '__sd').length, 0]);
+  ex.push(['(E1) CONTROL NEGATIVO: sin contestar, ninguna respuesta lleva la marca de forma',
+           bs().filter(b => b.getAttribute('data-ind-val') !== '__sd')
+               .filter(b => /^\\u2713/.test(String(b.textContent || '').trim())).length, 0]);
   const primera = bs()[0];
   const clave0 = primera ? primera.getAttribute('data-ind-clin') : '';
   const val0 = primera ? primera.getAttribute('data-ind-val') : '';
@@ -101847,16 +101881,25 @@ caso('TC-569', 'Tanda AJUSTES-3: los botones Si / No / Sin dato de TODAS las pre
   await esperar(600);
   /* ⚠️ SE VUELVE A CONSULTAR EL DOM: el clic repinta el panel y el nodo anterior queda
      desprendido -informa 0x0 y textContent del arbol viejo-. */
-  const marcado = bs().filter(b => b.getAttribute('aria-pressed') === 'true');
-  ex.push(['(E2) el gesto marca UNO solo', marcado.length, 1]);
+  /* El clic deja marcada la respuesta y DESMARCA el «?» de esa misma pregunta: sigue habiendo
+     uno y solo uno por pregunta. Se mide asi y no por el total, que ahora incluye los «?». */
+  const marcado = bs().filter(b => b.getAttribute('aria-pressed') === 'true')
+                      .filter(b => b.getAttribute('data-ind-val') !== '__sd');
+  const _m1 = _porClave();
+  ex.push(['(E2) el gesto deja UNA sola respuesta marcada, y un marcado por pregunta',
+           marcado.length + '/' + Object.keys(_m1).filter(k => _m1[k] !== 1).length, '1/0']);
   ex.push(['(E3) el marcado lleva ademas de color una marca de FORMA',
            marcado.length ? (/^\\u2713/.test(String(marcado[0].textContent || '').trim()) ? 'con marca' : 'SIN MARCA')
                           : 'NO SE MARCO', 'con marca']);
   ex.push(['(E4) y es el que se clickeo', marcado.length
              ? (marcado[0].getAttribute('data-ind-clin') + '=' + marcado[0].getAttribute('data-ind-val'))
              : 'NINGUNO', clave0 + '=' + val0]);
-  ex.push(['(E5) CONTROL NEGATIVO: los demas siguen sin la marca',
-           bs().filter(b => /^\\u2713/.test(String(b.textContent || '').trim())).length, 1]);
+  /* La marca de FORMA la llevan la respuesta clickeada y los «?» de las demas preguntas,
+     que tambien estan marcados: lo que este control cuida es que NINGUNA OTRA RESPUESTA la
+     lleve, y eso se mide excluyendo el tercer estado. */
+  ex.push(['(E5) CONTROL NEGATIVO: ninguna otra respuesta lleva la marca de forma',
+           bs().filter(b => b.getAttribute('data-ind-val') !== '__sd')
+               .filter(b => /^\\u2713/.test(String(b.textContent || '').trim())).length, 1]);
   ex.push(['(E6) y el aria-pressed sigue estando en TODOS',
            bs().filter(b => b.hasAttribute('aria-pressed')).length + '/' + bs().length,
            bs().length + '/' + bs().length]);
@@ -106889,12 +106932,20 @@ caso('TC-602', 'Tanda TGA-3: la conducta de la TGA no llega a ninguna superficie
      por escena a 0. El precio: una mutacion que le devuelva el resumen a la diapositiva
      sobrevive a la suite. Declarado en docs/PENDIENTES.md. */
 
-  /* ── 4 · CONTROL POSITIVO: la PANTALLA la conserva. Es la condicion de la orden ──────────── */
-  ex.push(['(F1) la pantalla SI dice seguimiento anual', cuenta('seguimiento anual', pant), 1]);
-  ex.push(['(F2) la pantalla publica el txt entero, con la conducta',
+  /* ── 4 · ⚠️ INVERTIDO POR LA TANDA TGA-4, Y ES EL DIA QUE ESTE CASO ANUNCIABA ─────────────
+     Hasta hoy (F1) y (F3) eran el CONTROL POSITIVO de la TGA-3: la conducta salia del papel y
+     se quedaba en la PANTALLA, y el propio pendiente T3-e decia que aplicar la ampliacion de
+     la regla fija -«la pantalla tampoco da indicaciones»- exigia otra orden. Esa orden llego:
+     el commit 4 de la TGA-4 pasa la capsula a descriptiva. Las tres condiciones no se borran,
+     se dan vuelta, y (F2) se CONSERVA tal cual porque sigue siendo cierta y es la que ata la
+     capsula a su dueno: lo que cambio es que ahora el dueno tampoco recomienda.
+     El denominador de que la escena llega a la rama del seguimiento lo dan (A) y (B). */
+  ex.push(['(F1) la pantalla YA NO dice seguimiento anual', cuenta('seguimiento anual', pant), 0]);
+  ex.push(['(F1b) DENOM: pero la capsula si publica lo medido', cuenta('45 mm', pant) > 0, true]);
+  ex.push(['(F2) la pantalla publica el txt entero del dueno',
            c ? (pant.trim() === String(c.txt || '').trim()) : 'NO HAY', true]);
-  ex.push(['(F3) el txt del dueno es MAS largo que su papel',
-           c && typeof c.papel === 'string' ? (String(c.txt).length > c.papel.length) : 'NO HAY', true]);
+  ex.push(['(F3) y el txt es la MISMA cadena que el papel: las dos salidas no pueden divergir',
+           c && typeof c.papel === 'string' ? (String(c.txt) === String(c.papel)) : 'NO HAY', true]);
 
   /* ── 5 · CONTROL NEGATIVO: la rama de Jatene ya era descriptiva y no se movio ────────────── */
   pon('tga_cirugia', 'jatene'); await esperar(420);
@@ -107705,6 +107756,374 @@ caso('TC-611', 'Tanda CORR-EVID: nada de la Evidencia de congenitas llega al inf
   })();
 `);
 
+caso('TC-615', 'Tanda TGA-4: el esquema de circulacion entra al PDF con el MISMO boton que el 3D, y con el boton apagado no entra ninguno de los dos', `
+  return (async () => {
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]),
+                 'dio «' + t[1] + '» · esperado «' + t[2] + '»']) };
+  const S = (id, v) => { const e = document.getElementById(id); if (!e) return 'NO EXISTE ' + id;
+    e.value = v; e.dispatchEvent(new Event('input', { bubbles: true }));
+    e.dispatchEvent(new Event('change', { bubbles: true })); return e.value };
+  const esperar = (ms) => new Promise((r) => setTimeout(r, ms));
+  /* ⚠️ EL ESQUEMA NO DEPENDE DE LA LIBRERIA 3D, y por eso este caso puede correr sin red: lo
+     dibuja tgaEsqSVG, que es una funcion pura, y lo midio la tanda TGA-3 con el CDN
+     bloqueado. El SLOT del 3D se pone a mano con una imagen minima, que es lo que el boton
+     haria si la libreria estuviera: asi se prueba la COMPUERTA y el recolector sin depender
+     de que three.js baje, que es como TC-358 se volvio intermitente. */
+  if (typeof limpiarCampos === 'function') { try { limpiarCampos(true) } catch (e) {} }
+  try { if (typeof esqQuitarDelPDF === 'function') esqQuitarDelPDF('tga3d') } catch (e) {}
+  S('nombre', 'Prueba TGA4'); S('ci', '615'); S('vd_bas', '45');
+  S('tga_tipo', 'dtga'); S('tga_cirugia', 'auricular');
+  /* ⚠️ SE LLAMA AL DUENO -tgaSync- Y NO AL PINTOR DEL ESQUEMA A PELO: el pintor del
+     esquema recibe la anatomia y la cirugia por parametro, y sin ellos cae al escenario por
+     omision -la linea sale sin la cirugia y la condicion (C4) falla sobre un dibujo que en la
+     app si la nombra-. Medido. */
+  try { if (typeof tgaSync === 'function') tgaSync() } catch (e) {}
+  await esperar(150);
+
+  /* ⚠️ AYUDANTES TOLERANTES AL ARBOL VIEJO. Contra HEAD estas tres funciones no existen, y
+     llamarlas a pelo mata el caso con un ReferenceError: caer por EXCEPCION no es caer, porque
+     no dice que invariante se rompio. Es la leccion de TC-546. */
+  const ON  = () => (typeof window.tgaEsqPdfOn === 'function') ? window.tgaEsqPdfOn() : 'NO EXISTE';
+  const DAT = () => { try { return (typeof window.tgaEsqPdfData === 'function') ? window.tgaEsqPdfData() : {} }
+                      catch (e) { return {} } };
+  const RAS = async (i) => { try { if (typeof window.tgaEsqPdfRaster === 'function') await window.tgaEsqPdfRaster(i) } catch (e) {} };
+  ex.push(['(A0) DENOM: las tres piezas estan expuestas',
+    (typeof window.tgaEsqPdfOn === 'function') && (typeof window.tgaEsqPdfRaster === 'function')
+    && (typeof window.tgaEsqPdfData === 'function'), true]);
+  ex.push(['(A1) DENOM: el esquema se dibujo sin la libreria 3D',
+    !!(document.getElementById('tga-esq-svg') || {}).firstChild, true]);
+  ex.push(['(A2) DENOM: el tipo cargado es un dato de este paciente',
+    (typeof _tga3dEsDato === 'function') ? _tga3dEsDato() : 'sin fn', true]);
+  /* (B) CON EL BOTON APAGADO: la compuerta cerrada y nada que publicar. */
+  ex.push(['(B1) CONTROL NEGATIVO: sin el slot del 3D la compuerta esta cerrada', ON(), false]);
+  ex.push(['(B2) y no hay dato que publicar', !!DAT().data, false]);
+  /* (C) CON EL SLOT PUESTO: la compuerta abre y la rasterizacion deja imagen y linea. */
+  const PX = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+  let puesto = 'no';
+  try { const r = await esqIncluirEnPDFImg('tga3d', 'Esquema 3D de la transposición', PX);
+        puesto = r && r.ok ? 'si' : ('no: ' + (r || {}).motivo) } catch (e) { puesto = 'ERR' }
+  ex.push(['(C0) DENOM: el slot del 3D quedo puesto', puesto, 'si']);
+  ex.push(['(C1) la compuerta abre con el MISMO slot del 3D', ON(), true]);
+  await RAS(true);
+  await esperar(400);
+  const d = DAT();
+  ex.push(['(C2) la rasterizacion dejo una imagen', !!(d && d.data && d.data.length > 500), true]);
+  ex.push(['(C3) y su linea nombra el escenario', String((d || {}).linea || '').indexOf('Circulación esquemática') >= 0, true]);
+  ex.push(['(C4) la linea nombra la cirugia cargada', String((d || {}).linea || '').indexOf('switch auricular') >= 0, true]);
+  ex.push(['(C5) y NO trae el recorrido de la sangre', String((d || {}).linea || '').indexOf('Recorrido') >= 0, false]);
+  /* (D) LA PROPORCION del esquema, que es lo que lo deja sin estirar. */
+  ex.push(['(D1) la proporcion sale del viewBox y no de un numero suelto',
+    (typeof TGA_ESQ_PDF_AR !== 'undefined') ? Math.round(TGA_ESQ_PDF_AR * 1000) : 'sin const', Math.round(290 / 300 * 1000)]);
+  /* (E) LA VISTA DE REFERENCIA NO ENTRA, aunque el slot este puesto: es el control que
+     destapo la sonda del A/B. El corazon normal declara no ser de este paciente. */
+  let refOk = 'sin fn';
+  try { if (typeof tga3dNormToggle === 'function') { tga3dNormToggle(); refOk = String(ON()) } } catch (e) { refOk = 'ERR' }
+  ex.push(['(E1) con la vista de referencia la compuerta se cierra', refOk, 'false']);
+  try { if (typeof tga3dNormToggle === 'function') tga3dNormToggle() } catch (e) {}
+  /* (G) ⚠️ LA COMPUERTA SE CIERRA UN INSTANTE Y LO RASTERIZADO SOBREVIVE. Es el defecto que
+     la sonda del A/B destapo: generarPPT carga el estudio en el formulario y el tipo queda
+     vacio una pasada, asi que la compuerta se cierra y se vuelve a abrir. Si el raster BORRARA
+     ahi, el dataURL se perderia y solo volveria 700 ms despues: generando el PPT y enseguida
+     el PDF, la hoja sale con el 3D y sin el esquema. Se simula vaciando y reponiendo el tipo.
+     Sin esta condicion la mutacion que repone el borrado SOBREVIVE -medido-. */
+  S('tga_tipo', '');
+  try { if (typeof tgaSync === 'function') tgaSync() } catch (e) {}
+  await esperar(60);
+  ex.push(['(G0) DENOM: con el tipo vacio la compuerta se cierra', ON(), false]);
+  S('tga_tipo', 'dtga'); S('tga_cirugia', 'auricular');
+  try { if (typeof tgaSync === 'function') tgaSync() } catch (e) {}
+  await esperar(60);
+  ex.push(['(G1) DENOM: y vuelve a abrirse al reponer el tipo', ON(), true]);
+  ex.push(['(G2) lo rasterizado SOBREVIVE al cierre transitorio de la compuerta',
+    !!(DAT() && DAT().data && DAT().data.length > 500), true]);
+  /* (F) QUITAR EL DIBUJO SE LLEVA LOS DOS: un solo boton para los dos dibujos. */
+  try { if (typeof esqQuitarDelPDF === 'function') esqQuitarDelPDF('tga3d') } catch (e) {}
+  ex.push(['(F1) al quitar el 3D la compuerta del esquema se cierra', ON(), false]);
+  ex.push(['(F2) y no queda dato publicable', !!DAT().data, false]);
+  return { extra: EXP };
+  })();
+`);
+
+caso('TC-616', 'Tanda TGA-4: el panel de Evidencia de la transposicion es compacto, con tres estados, etiqueta de guia, grupos, contador y la frase del pie una sola vez', `
+  return (async () => {
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]),
+                 'dio «' + t[1] + '» · esperado «' + t[2] + '»']) };
+  const S = (id, v) => { const e = document.getElementById(id); if (!e) return 'NO EXISTE ' + id;
+    e.value = v; e.dispatchEvent(new Event('input', { bubbles: true }));
+    e.dispatchEvent(new Event('change', { bubbles: true })); return e.value };
+  const esperar = (ms) => new Promise((r) => setTimeout(r, ms));
+  const abrir = async () => { try { if (typeof indicAbrir === 'function') indicAbrir() } catch (e) {}
+    await esperar(150) };
+  /* La seccion: el nodo del cuerpo del panel cuyo texto empieza con el titulo de IND_SECS. */
+  const sec = () => {
+    const c = document.getElementById('indic-cuerpo'); if (!c) return null;
+    const todos = Array.prototype.slice.call(c.querySelectorAll('details, div'));
+    for (const n of todos) { const t = String(n.textContent || '').trim();
+      if (t.indexOf('Transposición de grandes arterias') === 0 && n.querySelector('[data-ind-grid]')) return n; }
+    return null;
+  };
+  if (typeof limpiarCampos === 'function') { try { limpiarCampos(true) } catch (e) {} }
+  S('nombre', 'Prueba TGA4'); S('ci', '616'); S('vd_bas', '45');
+  S('tga_tipo', 'dtga'); S('tga_cirugia', 'auricular');
+  await abrir();
+  let n = sec();
+  ex.push(['(A0) DENOM: la seccion de la transposicion esta en el panel', !!n, true]);
+  if (!n) return { extra: EXP };
+  const grid = n.querySelector('[data-ind-grid]');
+  ex.push(['(A1) la seccion esta en modo compacto', grid ? grid.getAttribute('data-ind-compacta') : 'sin grid', '1']);
+  ex.push(['(A2) y marcada como seccion de preguntas', grid ? grid.getAttribute('data-ind-preg') : 'sin grid', '1']);
+  const filas = Array.prototype.slice.call(n.querySelectorAll('tr'));
+  const preg = filas.filter((f) => f.querySelector('.ind-ctrl'));
+  ex.push(['(A3) DENOM: el switch auricular tiene dieciocho preguntas', preg.length, 18]);
+  /* (B) UNA LINEA POR PREGUNTA: los TRES botones de 44 px entran al lado del rotulo. */
+  const altos = preg.map((f) => Math.round(f.getBoundingClientRect().height));
+  const maxAlto = altos.length ? Math.max.apply(null, altos) : 0;
+  const bot = preg[0] ? Array.prototype.slice.call(preg[0].querySelectorAll('button[data-ind-clin]')) : [];
+  ex.push(['(B1) cada pregunta ofrece TRES estados', bot.length, 3]);
+  ex.push(['(B2) sus botones miden 44 px de alto',
+    bot.length ? bot.every((x) => Math.round(x.getBoundingClientRect().height) === 44) : false, true]);
+  ex.push(['(B3) y caen en la MISMA linea: la fila no pasa de 70 px', maxAlto > 0 && maxAlto <= 70, true]);
+  /* (C) LA ETIQUETA DE GUIA, una por pregunta, y la de la ESC distinta de la de la ACC. */
+  const badges = Array.prototype.slice.call(n.querySelectorAll('[data-ind-gbadge]'));
+  ex.push(['(C1) cada pregunta lleva su etiqueta de guia', badges.length, 18]);
+  ex.push(['(C2) hay etiquetas de las DOS guias',
+    badges.some((x) => x.getAttribute('data-ind-gbadge') === 'acc')
+    && badges.some((x) => x.getAttribute('data-ind-gbadge') === 'esc'), true]);
+  ex.push(['(C3) la etiqueta trae la clase y el nivel cuando la recomendacion los dice',
+    badges.some((x) => String(x.textContent || '').indexOf('B-NR') >= 0), true]);
+  /* (D) LOS CUATRO GRUPOS, solo en el switch auricular. */
+  ex.push(['(D1) el switch auricular tiene los cuatro grupos', n.querySelectorAll('[data-ind-grupo]').length, 4]);
+  /* (E) LA FRASE DEL PIE, UNA sola vez en toda la seccion. */
+  const txt = String(n.textContent || '');
+  const cuenta = (t) => { let c = 0, i = 0; while ((i = txt.indexOf(t, i)) >= 0) { c++; i++ } return c };
+  ex.push(['(E1) la frase de que no se guarda se dice UNA vez', cuenta('no se guarda con el estudio'), 1]);
+  /* (F) EL CONTADOR y los TRES ESTADOS, con su control negativo. */
+  ex.push(['(F1) el contador arranca en cero y cero', txt.indexOf('0 en Sí · 0 en No · 18 sin dato') >= 0, true]);
+  const tocar = async (clave, val) => {
+    const b = document.querySelector('[data-ind-clin="' + clave + '"][data-ind-val="' + val + '"]');
+    if (b) b.click(); await esperar(120); return !!b;
+  };
+  ex.push(['(F2) DENOM: se pudo contestar la primera pregunta', await tocar('tga.ev.icprog', 'si'), true]);
+  n = sec(); let t2 = n ? String(n.textContent || '') : '';
+  ex.push(['(F3) el contador lo registra', t2.indexOf('1 en Sí · 0 en No · 17 sin dato') >= 0, true]);
+  ex.push(['(F4) y la lista de recomendaciones que aplican sale con su numero',
+    t2.indexOf('Recomendaciones que aplican con lo contestado (1)') >= 0, true]);
+  /* ⚠️ EL CONTROL NEGATIVO DE LA ORDEN: «sin dato» NO cuenta como «no». Si contara, el
+     contador diria «0 en Sí · 1 en No · 17 sin dato». */
+  ex.push(['(F5) DENOM: se pudo tocar el tercer estado', await tocar('tga.ev.icprog', '__sd'), true]);
+  n = sec(); t2 = n ? String(n.textContent || '') : '';
+  ex.push(['(F6) CONTROL NEGATIVO: «sin dato» vuelve a sin dato y NO cuenta como «no»',
+    t2.indexOf('0 en Sí · 0 en No · 18 sin dato') >= 0, true]);
+  ex.push(['(F7) y la lista de recomendaciones desaparece',
+    t2.indexOf('Recomendaciones que aplican con lo contestado') >= 0, false]);
+  /* (H) ⚠️ EL ⓘ SE ABRE DEBAJO DE LA FILA Y LA FILA NO CRECE. En modo compacto el rotulo es la
+     celda golosa y la del ⓘ queda en treinta pixeles: sin la regla que lo saca de la celda, la
+     nota se dibuja en una tira de 103 px de ancho por 590 de alto y la fila pasa de 55 a 637
+     -medido-. Ilegible, y encima empuja todo lo de abajo, que es justo «perder el lugar». */
+  n = sec();
+  const filaI = n ? Array.prototype.slice.call(n.querySelectorAll('tr')).filter((f) => f.querySelector('.ind-ctrl'))[0] : null;
+  const det = filaI ? filaI.querySelector('[data-ind-info]') : null;
+  ex.push(['(H0) DENOM: la primera pregunta tiene su globo plegado', !!det, true]);
+  if (det) {
+    const altoCerrada = Math.round(filaI.getBoundingClientRect().height);
+    det.open = true;
+    await esperar(60);
+    const caja = det.querySelector('div');
+    const r2 = caja ? caja.getBoundingClientRect() : null;
+    ex.push(['(H1) la nota se lee a ancho util y no en la columna del icono',
+      r2 ? (Math.round(r2.width) >= 300) : false, true]);
+    ex.push(['(H2) y la fila NO crece: la lista no salta',
+      Math.round(filaI.getBoundingClientRect().height), altoCerrada]);
+    ex.push(['(H3) DENOM: la nota trae la guia, la clase y el folio',
+      caja ? (String(caja.textContent || '').indexOf('folio') >= 0) : false, true]);
+    det.open = false;
+  }
+  /* (G) EL BOTON DE COLUMNAS y el corte por ancho de PANEL. */
+  ex.push(['(G1) la seccion trae su boton de columnas', n.querySelectorAll('[data-ind-colbtn]').length, 1]);
+  const card = document.getElementById('indic-card');
+  const w = card ? Math.round(card.getBoundingClientRect().width) : 0;
+  const g2 = n.querySelector('[data-ind-grid]');
+  /* ⚠️ EL CORTE SE AFIRMA POR SU VALOR Y NO SE DERIVA DE LA CONSTANTE, y se midio por que:
+     comparando contra el mismo IND_COLS_CORTE los dos lados se mueven juntos y mover
+     la constante pasa EN VERDE. La suite corre a ~756 px, asi que el panel nunca llega a 900 y
+     el atributo no distingue por si solo: hay que preguntarle a la constante. */
+  ex.push(['(G2) el corte de las dos columnas es el ancho de PANEL que la orden fija',
+    (typeof IND_COLS_CORTE !== 'undefined') ? IND_COLS_CORTE : 'sin const', 900]);
+  ex.push(['(G3) y el atributo sigue ese corte',
+    g2 ? g2.getAttribute('data-ind-cols') : 'sin grid', (w >= 900 ? '2' : '1')]);
+  try { if (typeof indicCerrar === 'function') indicCerrar() } catch (e) {}
+  return { extra: EXP };
+  })();
+`);
+
+caso('TC-617', 'Tanda TGA-4: la conclusion de pantalla de la transposicion describe y no recomienda, y el papel y la clave no se mueven', `
+  return (async () => {
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]),
+                 'dio «' + t[1] + '» · esperado «' + t[2] + '»']) };
+  const S = (id, v) => { const e = document.getElementById(id); if (!e) return 'NO EXISTE ' + id;
+    e.value = v; e.dispatchEvent(new Event('input', { bubbles: true }));
+    e.dispatchEvent(new Event('change', { bubbles: true })); return e.value };
+  const montar = (sel) => {
+    if (typeof limpiarCampos === 'function') { try { limpiarCampos(true) } catch (e) {} }
+    S('nombre', 'Prueba TGA4'); S('ci', '617'); S('vd_bas', '45');
+    Object.keys(sel).forEach((k) => S(k, sel[k]));
+    try { if (typeof tgaSync === 'function') tgaSync() } catch (e) {}
+    const c = (typeof tgaConclusion === 'function') ? tgaConclusion() : null;
+    const cap = document.getElementById('tga-concl');
+    return { c: c, cap: cap ? String(cap.textContent || '') : 'NO EXISTE' };
+  };
+  /* Las palabras de conducta que la capsula NO puede decir mas. Son las de las siete ramas. */
+  const CONDUCTA = ['a considerar', 'seguimiento anual', 'seguimiento estrecho', 'resincronización',
+    'optimización del tratamiento', 'completar la evaluación', 'por encima de 50 mmHg',
+    'intervención a considerar', 'ESC 2020'];
+  const limpia = (t) => CONDUCTA.filter((w) => String(t).indexOf(w) >= 0);
+
+  /* (A) LA RAMA QUE EL MEDICO NOMBRA: funcion conservada. */
+  let r = montar({ tga_tipo:'dtga', tga_func_vd:'normal', tga_sintomas:'no' });
+  ex.push(['(A0) DENOM: la rama es la del seguimiento', r.c ? r.c.clave : 'NULL', 'seguimiento']);
+  ex.push(['(A1) DENOM: la capsula es lo que devuelve el constructor', r.cap === String(r.c.txt), true]);
+  ex.push(['(A2) la capsula no dice ninguna conducta', limpia(r.c.txt).join(','), '']);
+  ex.push(['(A3) DENOM: y si publica el dato medido', String(r.c.txt).indexOf('45 mm') >= 0, true]);
+  ex.push(['(A4) la capsula y el papel son la MISMA cadena', r.c.txt === r.c.papel, true]);
+  /* (A5) El resumen CONSERVA la conducta: las cadenas no se borran del codigo. */
+  ex.push(['(A5) el resumen conserva la conducta, que es donde queda viva',
+    String(r.c.resumen).indexOf('seguimiento anual') >= 0, true]);
+
+  /* (B) LA OBSTRUCCION SUBAORTICA: se publica como DATO, sin el corte ni el veredicto. */
+  r = montar({ tga_tipo:'dtga', tga_func_vd:'normal', tga_obstr_subaortica:'si',
+               tga_sintomas:'no', tga_grad_subaortico:'60' });
+  ex.push(['(B0) DENOM: la rama es la de la obstruccion', r.c ? r.c.clave : 'NULL', 'obstr_subaortica']);
+  ex.push(['(B1) el gradiente se publica como dato', String(r.c.txt).indexOf('gradiente de 60 mmHg') >= 0, true]);
+  ex.push(['(B2) y no se dice el corte ni la conducta', limpia(r.c.txt).join(','), '']);
+  /* (B3) El corte de 50 SIGUE eligiendo la rama: no se toco. Con 40 cae en otra. */
+  r = montar({ tga_tipo:'dtga', tga_func_vd:'normal', tga_obstr_subaortica:'si',
+               tga_sintomas:'no', tga_grad_subaortico:'40' });
+  ex.push(['(B3) el corte de la cascada NO se toco: con 40 la rama es otra', r.c ? r.c.clave : 'NULL', 'seguimiento']);
+
+  /* (C) LAS OTRAS CINCO RAMAS: ninguna dice conducta. */
+  const RAMAS = [
+    ['cirugia_it',  { tga_tipo:'dtga', tga_sintomas:'si', it_grado:'4' }],
+    ['disfuncion',  { tga_tipo:'dtga', tga_func_vd:'moderada', tga_sintomas:'no' }],
+    ['it_severa',   { tga_tipo:'dtga', tga_sintomas:'no', it_grado:'4' }],
+    ['sin_contexto',{ tga_tipo:'dtga', tga_sintomas:'no_eval' }],
+    ['sin_funcion', { tga_tipo:'dtga', tga_func_vd:'leve', tga_sintomas:'no' }]
+  ];
+  let sucias = 0, ramasOk = 0;
+  RAMAS.forEach((rr) => { const q = montar(rr[1]);
+    if (q.c && q.c.clave === rr[0]) ramasOk++;
+    if (q.c && limpia(q.c.txt).length) sucias++; });
+  ex.push(['(C0) DENOM: las cinco escenas caen en SU rama', ramasOk, 5]);
+  ex.push(['(C1) ninguna de las cinco dice conducta', sucias, 0]);
+
+  /* (D) CONTROL NEGATIVO: las DOS ramas que YA eran descriptivas no se mueven. */
+  const jat = montar({ tga_tipo:'dtga', tga_cirugia:'jatene', tga_sintomas:'no' });
+  ex.push(['(D0) DENOM: Jatene cae en la rama descriptiva', jat.c ? jat.c.clave : 'NULL', 'descriptivo']);
+  ex.push(['(D1) CONTROL NEGATIVO: sus tres salidas siguen siendo la misma cadena',
+    jat.c.txt === jat.c.papel && jat.c.txt === jat.c.resumen, true]);
+  ex.push(['(D2) y nombra la cirugia', String(jat.c.txt).indexOf('Jatene') >= 0, true]);
+  return { extra: EXP };
+  })();
+`);
+
+caso('TC-618', 'Tanda TGA-4: la CIA y la CIV usan el panel compacto con el mismo molde, y la bicuspide -que comparte el molde- no se mueve', `
+  return (async () => {
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]),
+                 'dio «' + t[1] + '» · esperado «' + t[2] + '»']) };
+  const S = (id, v) => { const e = document.getElementById(id); if (!e) return 'NO EXISTE ' + id;
+    e.value = v; e.dispatchEvent(new Event('input', { bubbles: true }));
+    e.dispatchEvent(new Event('change', { bubbles: true })); return e.value };
+  const esperar = (ms) => new Promise((r) => setTimeout(r, ms));
+  const sec = (tit) => {
+    const c = document.getElementById('indic-cuerpo'); if (!c) return null;
+    const todos = Array.prototype.slice.call(c.querySelectorAll('details, div'));
+    for (const n of todos) { const t = String(n.textContent || '').trim();
+      if (t.indexOf(tit) === 0 && n.querySelector('[data-ind-grid]')) return n; }
+    return null;
+  };
+  const cuenta = (txt, t) => { let c = 0, i = 0; while ((i = txt.indexOf(t, i)) >= 0) { c++; i++ } return c };
+  const mirar = (tit, nPreg) => {
+    const n = sec(tit); if (!n) return { hay:false };
+    const g = n.querySelector('[data-ind-grid]');
+    const filas = Array.prototype.slice.call(n.querySelectorAll('tr')).filter((f) => f.querySelector('.ind-ctrl'));
+    const altos = filas.map((f) => Math.round(f.getBoundingClientRect().height));
+    const txt = String(n.textContent || '');
+    /* getAttribute devuelve null cuando el atributo no esta, no la cadena «no». */
+    return { hay:true, compacta: (g && g.getAttribute('data-ind-compacta')) || 'no',
+             preg: (g && g.getAttribute('data-ind-preg')) || 'no',
+             n: filas.length, maxAlto: altos.length ? Math.max.apply(null, altos) : 0,
+             badges: n.querySelectorAll('[data-ind-gbadge]').length,
+             grupos: n.querySelectorAll('[data-ind-grupo]').length,
+             frase: cuenta(txt, 'no se guarda con el estudio'),
+             clase: cuenta(txt, 'Clase '), folio: cuenta(txt, 'folio '),
+             contador: txt.indexOf(' en Sí · ') >= 0 ? 'si' : 'no',
+             bot: filas[0] ? filas[0].querySelectorAll('button[data-ind-clin]').length : 0 };
+  };
+  /* ── LA CIA ── */
+  if (typeof limpiarCampos === 'function') { try { limpiarCampos(true) } catch (e) {} }
+  S('nombre', 'Prueba TGA4'); S('ci', '618');
+  S('ete_cia_tipo', 'secundum'); S('ete_cia_tam_max', '12');
+  Object.keys(window).forEach((k) => { if (/^calc[A-Z]/.test(k) && typeof window[k] === 'function') {
+    try { window[k]() } catch (e) {} } });
+  try { if (typeof indicAbrir === 'function') indicAbrir() } catch (e) {}
+  await esperar(180);
+  const A = mirar('Comunicación interauricular', 14);
+  ex.push(['(A0) DENOM: la seccion de la CIA esta en el panel', A.hay, true]);
+  ex.push(['(A1) esta en modo compacto', A.compacta, '1']);
+  ex.push(['(A2) y marcada como seccion de preguntas', A.preg, '1']);
+  ex.push(['(A3) DENOM: tiene sus catorce preguntas', A.n, 14]);
+  ex.push(['(A4) con TRES estados cada una', A.bot, 3]);
+  ex.push(['(A5) cada pregunta entra en una linea', A.maxAlto > 0 && A.maxAlto <= 70, true]);
+  ex.push(['(A6) cada una lleva su etiqueta de guia', A.badges, 14]);
+  ex.push(['(A7) SIN grupos: el agrupamiento no es evidente y no se inventa', A.grupos, 0]);
+  ex.push(['(A8) la frase del pie se dice UNA vez', A.frase, 1]);
+  ex.push(['(A9) y el contador esta', A.contador, 'si']);
+  /* ⚠️ EL CONTEO DE CITAS ES EL INVARIANTE: el commit cambia donde se muestra, no que se dice.
+     Los numeros son los medidos ANTES de la tanda, con la seccion desplegada. */
+  ex.push(['(A10) el conteo de «Clase» de la CIA no cambio', A.clase, 52]);
+  ex.push(['(A11) y el de «folio» tampoco', A.folio, 35]);
+  /* ── LA CIV ── */
+  if (typeof limpiarCampos === 'function') { try { limpiarCampos(true) } catch (e) {} }
+  S('nombre', 'Prueba TGA4'); S('ci', '618');
+  S('ete_civ_tipo', 'perimembranosa'); S('ete_civ_tam', '6');
+  Object.keys(window).forEach((k) => { if (/^calc[A-Z]/.test(k) && typeof window[k] === 'function') {
+    try { window[k]() } catch (e) {} } });
+  try { if (typeof indicAbrir === 'function') indicAbrir() } catch (e) {}
+  await esperar(180);
+  const B = mirar('Comunicación interventricular', 14);
+  ex.push(['(B0) DENOM: la seccion de la CIV esta en el panel', B.hay, true]);
+  ex.push(['(B1) esta en modo compacto', B.compacta, '1']);
+  ex.push(['(B2) DENOM: tiene sus catorce preguntas', B.n, 14]);
+  ex.push(['(B3) con TRES estados cada una', B.bot, 3]);
+  ex.push(['(B4) cada pregunta entra en una linea', B.maxAlto > 0 && B.maxAlto <= 70, true]);
+  ex.push(['(B5) cada una lleva su etiqueta de guia', B.badges, 14]);
+  ex.push(['(B6) SIN grupos', B.grupos, 0]);
+  ex.push(['(B7) la frase del pie se dice UNA vez', B.frase, 1]);
+  ex.push(['(B8) el conteo de «Clase» de la CIV no cambio', B.clase, 19]);
+  ex.push(['(B9) y el de «folio» tampoco', B.folio, 10]);
+  /* ── EL CONTROL: LA BICUSPIDE comparte el molde y NO se toca ── */
+  if (typeof limpiarCampos === 'function') { try { limpiarCampos(true) } catch (e) {} }
+  S('nombre', 'Prueba TGA4'); S('ci', '618'); S('sexo', 'M');
+  S('peso', '80'); S('talla', '180'); S('ao_tub', '45'); S('vab_tipo', 'fused_rl');
+  Object.keys(window).forEach((k) => { if (/^calc[A-Z]/.test(k) && typeof window[k] === 'function') {
+    try { window[k]() } catch (e) {} } });
+  try { if (typeof indicAbrir === 'function') indicAbrir() } catch (e) {}
+  await esperar(180);
+  const C = mirar('Válvula aórtica bicúspide — aorta ascendente', 6);
+  ex.push(['(C0) DENOM: la seccion de la bicuspide esta en el panel', C.hay, true]);
+  ex.push(['(C1) CONTROL: NO esta en modo compacto', C.compacta, 'no']);
+  ex.push(['(C2) CONTROL: no es seccion de preguntas', C.preg, 'no']);
+  ex.push(['(C3) CONTROL: sus preguntas siguen con DOS estados', C.bot, 2]);
+  ex.push(['(C4) CONTROL: sin etiquetas de guia', C.badges, 0]);
+  ex.push(['(C5) CONTROL: conserva el aviso por pregunta, porque no lo dice en su pie', C.frase, 6]);
+  try { if (typeof indicCerrar === 'function') indicCerrar() } catch (e) {}
+  return { extra: EXP };
+  })();
+`);
+
 caso('TC-612', 'Tanda CORR-EVID: los cuatro simbolos del dibujo del posoperatorio son DISTINTOS entre si, y el rotulo de la miocardiopatia hipertrofica dice 2024', `
   return (async () => {
   const EXP = [];
@@ -107749,6 +108168,114 @@ caso('TC-612', 'Tanda CORR-EVID: los cuatro simbolos del dibujo del posoperatori
   return { extra: EXP };
   })();
 `);
+
+/* ══ TANDA TGA-4 (2026-11-02) — TC-613 a TC-618 ═════════════════════════════════════════════ */
+
+caso('TC-613', 'Tanda TGA-4: el recuadro de la hoja de congenitas no dice «Segun la guia» y el bloqueo auriculoventricular sale sin la clausula de la ccTGA', `
+  return (async () => {
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]),
+                 'dio «' + t[1] + '» · esperado «' + t[2] + '»']) };
+  const S = (id, v) => { const e = document.getElementById(id); if (!e) return 'NO EXISTE ' + id;
+    e.value = v; e.dispatchEvent(new Event('input', { bubbles: true }));
+    e.dispatchEvent(new Event('change', { bubbles: true })); return e.value };
+  const hoja = (k) => { const e = document.getElementById('cc-txt-' + k);
+    return e ? String(e.value || '') : 'NO EXISTE' };
+
+  /* (A) LA PLANTILLA COMPARTIDA. Se le pide a ccHoja que escriba una conclusion conocida en
+     CADA una de sus catorce claves: es el emisor REAL del recuadro, asi que esto mide la
+     plantilla y no una copia. El marcador de bloque de nota -dos signos de admiracion- SE
+     QUEDA; lo que sale es el prefijo. */
+  const CLAVES = ['cia','civ','dap','vap','coa','fop','vab','ebs','tdf','tga','mch','mca','eisen','fontan'];
+  ex.push(['(A0) DENOM: ccHoja esta expuesta', typeof window.ccHoja === 'function', true]);
+  let conPrefijo = 0, conMarca = 0, conTexto = 0;
+  CLAVES.forEach(function (k) {
+    try { window.ccHoja(k, ['Morfologia de prueba'], 'Conclusion de prueba', null) } catch (e) {}
+    const t = hoja(k);
+    if (t.indexOf('Segun la guia') >= 0) conPrefijo++;
+    if (t.indexOf(String.fromCharCode(33, 33) + 'Conclusion de prueba.') >= 0) conMarca++;
+    if (t.indexOf('Conclusion de prueba') >= 0) conTexto++;
+  });
+  ex.push(['(A1) DENOM: las catorce hojas recibieron la conclusion', conTexto, 14]);
+  ex.push(['(A2) ninguna dice «Segun la guia»', conPrefijo, 0]);
+  ex.push(['(A3) las catorce conservan el marcador de bloque de nota', conMarca, 14]);
+
+  /* (B) EL BLOQUEO AURICULOVENTRICULAR, por las TRES anatomias de la rama no descriptiva. */
+  const bav = (tipo, cir) => {
+    if (typeof limpiarCampos === 'function') { try { limpiarCampos(true) } catch (e) {} }
+    S('tga_tipo', tipo); if (cir) S('tga_cirugia', cir);
+    S('tga_sintomas', 'no'); S('tga_bav', 'si'); S('vd_bas', '45');
+    const c = (typeof tgaConclusion === 'function') ? tgaConclusion() : null;
+    return c ? String(c.papel || '') : 'NULL';
+  };
+  const CLAU = 'complicaci' + String.fromCharCode(243) + 'n esperable en la ccTGA';
+  const aur = bav('dtga', 'auricular'), mus = bav('mustard', ''), cc = bav('cctga', '');
+  ex.push(['(B0) DENOM: el switch auricular publica el bloqueo', aur.indexOf('Bloqueo auriculoventricular completo') >= 0, true]);
+  ex.push(['(B1) el switch auricular no nombra la ccTGA', aur.indexOf(CLAU) >= 0, false]);
+  ex.push(['(B2) DENOM: el post-Mustard publica el bloqueo', mus.indexOf('Bloqueo auriculoventricular completo') >= 0, true]);
+  ex.push(['(B3) el post-Mustard tampoco', mus.indexOf(CLAU) >= 0, false]);
+  ex.push(['(B4) DENOM: la ccTGA publica el bloqueo', cc.indexOf('Bloqueo auriculoventricular completo') >= 0, true]);
+  ex.push(['(B5) la ccTGA tampoco: el papel dice solo el hallazgo para TODOS los tipos', cc.indexOf(CLAU) >= 0, false]);
+  /* (B6) CONTROL NEGATIVO: sin bloqueo cargado no se publica ninguna de las dos formas. */
+  if (typeof limpiarCampos === 'function') { try { limpiarCampos(true) } catch (e) {} }
+  S('tga_tipo', 'dtga'); S('tga_cirugia', 'auricular'); S('tga_sintomas', 'no'); S('vd_bas', '45');
+  const sinBav = (typeof tgaConclusion === 'function') ? String((tgaConclusion() || {}).papel || '') : 'NULL';
+  ex.push(['(B6) CONTROL NEGATIVO: sin el bloqueo cargado, el papel no lo nombra',
+    sinBav.indexOf('Bloqueo auriculoventricular') >= 0, false]);
+  ex.push(['(B7) DENOM: esa escena si publica el diametro', sinBav.indexOf('45 mm') >= 0, true]);
+  /* (B8) Y la clausula no sale por NINGUNA de las tres salidas de la conclusion.
+     ⚠️ NO se mide sobre el HTML del documento: ahi esta el CODIGO de los script inline, y el
+     comentario que explica por que la clausula se retiro la contiene. El arnes se mediria a si
+     mismo -es la trampa que la tanda C2 documenta-. Se le pregunta al emisor. */
+  S('tga_bav', 'si');
+  const c3 = (typeof tgaConclusion === 'function') ? tgaConclusion() : null;
+  const tres = c3 ? (String(c3.txt || '') + ' ' + String(c3.papel || '') + ' ' + String(c3.resumen || '')) : 'NULL';
+  ex.push(['(B8a) DENOM: la escena con bloqueo devuelve conclusion', c3 ? 'si' : 'no', 'si']);
+  ex.push(['(B8b) ninguna de las tres salidas nombra la ccTGA', tres.indexOf(CLAU) >= 0, false]);
+  return { extra: EXP };
+  })();
+`);
+
+caso('TC-614', 'Tanda TGA-4: la caja «Tricuspide / PSAP» del PDF nombra la valvula pulmonar cuando hay datos, y no cuando no los hay', `
+  return (async () => {
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]),
+                 'dio «' + t[1] + '» · esperado «' + t[2] + '»']) };
+  const S = (id, v) => { const e = document.getElementById(id); if (!e) return 'NO EXISTE ' + id;
+    e.value = v; e.dispatchEvent(new Event('input', { bubbles: true }));
+    e.dispatchEvent(new Event('change', { bubbles: true })); return e.value };
+  /* El PDF se genera DE VERDAD y se espia el constructor: medir el rotulo en una copia del
+     literal seria medir codigo escrito en el caso. */
+  const pdfTit = async () => {
+    if (typeof window.jspdf === 'undefined' || !window.jspdf.jsPDF) return 'NO HAY jsPDF';
+    const Orig = window.jspdf.jsPDF; const reg = [];
+    window.jspdf.jsPDF = function (...a) { const d = new Orig(...a);
+      const ot = d.text.bind(d);
+      d.text = function (t, x, y, ...z) { reg.push(String(t)); return ot(t, x, y, ...z) };
+      d.save = function () { return true }; d.output = function () { return '' }; return d; };
+    Object.keys(Orig).forEach(function (k) { try { window.jspdf.jsPDF[k] = Orig[k] } catch (e) {} });
+    try { if (typeof _pdfAjustarA4 === 'function') await _pdfAjustarA4();
+          else if (typeof generarPDF === 'function') await generarPDF(); } catch (e) {}
+    window.jspdf.jsPDF = Orig;
+    return reg.join(' | ');
+  };
+  if (typeof limpiarCampos === 'function') { try { limpiarCampos(true) } catch (e) {} }
+  S('nombre', 'Prueba TGA4'); S('ci', '614'); S('vmax_it', '2.6');
+  const sinVP = await pdfTit();
+  ex.push(['(A0) DENOM: el PDF se genero y trae la caja', sinVP.indexOf('TRICÚSPIDE / PSAP') >= 0 || sinVP.indexOf('Tricúspide / PSAP') >= 0, true]);
+  ex.push(['(A1) CONTROL NEGATIVO: sin datos de valvula pulmonar el titulo no la nombra',
+    sinVP.indexOf('Válv. pulmonar') >= 0, false]);
+  S('vp_morf', 'Prótesis biológica'); S('vp_vmax', '2.5'); S('vp_gmax', '25');
+  const conVP = await pdfTit();
+  ex.push(['(A2) DENOM: la fila de la morfologia esta en el PDF', conVP.indexOf('Morf. VP') >= 0, true]);
+  ex.push(['(A3) con la protesis cargada el titulo nombra la valvula pulmonar',
+    conVP.indexOf('Válv. pulmonar') >= 0 || conVP.indexOf('VÁLV. PULMONAR') >= 0, true]);
+  /* (A4) Y la agrupacion no se movio: la insuficiencia tricuspidea sigue en la misma caja. */
+  ex.push(['(A4) la agrupacion no cambia: la IT sigue en la caja', conVP.indexOf('V. máx IT') >= 0, true]);
+  return { extra: EXP };
+  })();
+`);
+
 
 let servidor, chrome;
 try {

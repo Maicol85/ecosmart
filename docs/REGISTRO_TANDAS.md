@@ -558,3 +558,39 @@ VAL-PPT, ya publicado, con md5 de `index.html` **`738944d2`** y sello `v20261102
   una parcialmente y una no.
 
 **Lo que dejó declarado:** `CE-a` a `CE-g` en `docs/PENDIENTES.md`.
+
+---
+
+## TGA-4 — el PDF de la transposición, el panel compacto y la conclusión descriptiva (2026-11-02)
+
+**Commits:** `8294072` (1) · `ca110fa` (2) · `4873668` (3) · `30adbbe` (4) · `38df3b4` (5) · el de
+cobertura y documentación. Al empezar, `origin/main` = `HEAD` = **`7f7d5ec`**, el cierre de
+CORR-EVID, ya publicado, con md5 de `index.html` **`16cf562a`** y sello `v20261102-1206`.
+**El push lo corre Maicol: esta tanda tenía orden expresa de NO pushear.**
+
+**Lo que hizo.**
+- **Commit 1** — tres retoques del papel firmado: el prefijo «Segun la guia: » sale del recuadro
+  de las **nueve** hojas de congénitas que lo emitían (la plantilla es compartida); la cláusula
+  «complicación esperable en la ccTGA» sale del bloqueo auriculoventricular, porque esa rama la
+  recorren tres anatomías y en dos nombraba otra; y la caja «Tricúspide / PSAP» del PDF nombra la
+  **válvula** pulmonar cuando hay datos, con el mismo arreglo que el bloque ya le había hecho a
+  la **vena** pulmonar.
+- **Commit 2** — el esquema de circulación entra al PDF **al lado del 3D y con el mismo botón**.
+  Pre-rasterización con el patrón del posoperatorio; el motor de tercios no se toca. Cierra la
+  mitad de PDF de **T3-c**. Dos defectos los encontró la propia medición: el esquema de la vista
+  de **referencia** se rasterizaba, y generar el PPT y enseguida el PDF **perdía** el esquema.
+- **Commit 3** — el panel de Evidencia de la transposición, compacto: una línea por pregunta con
+  tres estados «Sí | No | ?», etiqueta corta de guía, el detalle en el ⓘ debajo de la fila,
+  contador, lista de lo contestado que sí, la frase del pie **una** vez, dos columnas por ancho de
+  **panel** con su botón, y cuatro grupos sólo en el switch auricular. La causa de los 104 px por
+  pregunta no era la prosa —ya estaba plegada— sino que los dos botones se apilaban en 60 px.
+- **Commit 4** — la conclusión de **pantalla** de la transposición pasa a descriptiva; cierra
+  **T3-e**, **T3-f**, **VP-a** y **CE-d**. Y el corte de **50 mmHg** se buscó en las dos guías
+  completas y se **PARÓ**: existe para la estenosis subaórtica en la ACC/AHA (pico ≥50, texto de
+  apoyo sin clase) y la ESC 2020 lo **bajó** a media ≥40; en el capítulo de la transposición no
+  hay ningún número.
+- **Commit 5** — la CIA y la CIV con el mismo molde compacto. La bicúspide, que comparte el molde,
+  **no se movió**: medido.
+
+**Lo que dejó declarado:** `T4-a` a `T4-h` en `docs/PENDIENTES.md`, incluida la decisión del
+médico sobre los símbolos de las válvulas del posoperatorio, que se quedan como están.

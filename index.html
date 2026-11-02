@@ -92383,7 +92383,12 @@ function _indTGA(){
     return out;
   })();
   _pregOrden.forEach(function (e) {
-    if (e.hdr) { clinica.push({ grupoHdr: e.hdr }); return; }
+    /* ⚠️ LA FILA DE GRUPO LLEVA `lbl` VACIO, Y NO ES DECORATIVO. Las filas de `clinica` las
+       recorren otros lectores —TC-565 filtra por `x.lbl.indexOf(...)`— y una fila sin `lbl`
+       los mata con un TypeError. La forma del objeto se mantiene uniforme: quien no sepa de
+       grupos la ve como una fila sin rotulo y la saltea, en vez de reventar. Lo destapo la
+       suite completa, no el censo. */
+    if (e.hdr) { clinica.push({ grupoHdr: e.hdr, lbl: '', val: '', marca: 'none', nota: '' }); return; }
     const p = e.p;
     /* No hay campo guardado para ninguna de estas preguntas —esta tanda no puede agregarlos—,
        así que el origen es siempre el panel. Se pasa por `_indOrigen` igual, con el valor de
@@ -150948,8 +150953,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261102-1624';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793647462047;                 /* eco-build-ms */
+const ECO_BUILD    = '20261102-1645';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793648702773;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -151035,7 +151040,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261102-1624</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261102-1645</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

@@ -111,6 +111,7 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Tocar la ESTENOSIS MITRAL en el LABORATORIO**: las seis categorías, las dos casillas del filtro, el gráfico de distribución, el PDF de auditoría o el PPT | `docs/mapa/laboratorio-estenosis-mitral.md` |
 | **Tocar la VISTA 2D de las válvulas**: el lector único del estado, las tarjetas, la tabla de cavidades, el dibujo, los chorros o el «por qué» | `docs/mapa/vista-2d-valvulas.md` |
 | **Tocar el PANEL EN LÍNEA de la vista 2D**: el botón que prende y apaga, el apagado automático, la sincronía en vivo, el alto del dibujo o la línea de fase | `docs/mapa/vista-2d-en-linea.md` |
+| **Tocar el RECUADRO de la hoja de congénitas del PDF, el rótulo de la caja «Tricúspide / PSAP», el ESQUEMA DE CIRCULACIÓN EN EL PDF con su botón único, el PANEL DE EVIDENCIA COMPACTO** —una línea por pregunta, los tres estados «Sí | No | ?», la etiqueta de guía, los grupos, el contador o las dos columnas por ancho de panel—, **o la CONCLUSIÓN DE PANTALLA de la TGA** | `docs/mapa/tga4-pdf-panel-compacto.md` |
 | **Tocar el DIAGRAMA 3D DE LA TRANSPOSICIÓN**: los dos ejes y su dueño único, el valor `dtga`, el campo de cirugía, las comunicaciones leídas de sus pestañas, la carga diferida con SRI, «Incluir en el PDF» o la cirugía en el papel | `docs/mapa/tga-diagrama-3d.md` |
 | **Tocar el ESQUEMA DE CIRCULACIÓN de la sangre de la TGA** —sus seis escenarios, las dos exclusiones de comunicación, la punta de flecha que depende de la dirección que la app guarda, la animación colgada del 3D, el corte de 1200 px o su ⓘ—, **la CONCLUSIÓN de la TGA en la columna izquierda**, o **la salida `papel` que saca la conducta del informe, del PDF y del PPT** | `docs/mapa/tga3-esquema-circulacion.md` |
 | **Tocar la EVIDENCIA DE CONGENITAS con sus DOS guias** —la ACC/AHA 2025 y la ESC 2020—, una pregunta de la transposicion, de la CIA o de la CIV, la regla «una pregunta, una guia», la linea de referencia de la otra guia, la nota de tramos que no coinciden, **o el EN SUMA de una valvula con PLASTIA o con TEER** | `docs/mapa/correvid-evidencia-congenitas.md` |
@@ -198,8 +199,11 @@ Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la v
 ## Qué es EcoSmart y cómo se trabaja
 
 - App clínica de ecocardiografía en **un solo `index.html`**: HTML + CSS + JS inline, sin build,
-  sin frameworks. Hoy **10,96 MB / 153.410 líneas**, medido con `wc -c` y `wc -l` el 2026-11-02 al
-  cierre de la tanda **CORR-EVID**, sobre el árbol ya sellado (`v20261102-1206`, md5 `16cf562a`).
+  sin frameworks. Hoy **11,00 MB / 153.899 líneas**, medido con `wc -c` y `wc -l` el 2026-11-02 al
+  cierre de la tanda **TGA-4**, sobre el árbol ya sellado (`v20261102-1624`, md5 `17acf57a`).
+  El diff de la tanda son **551 líneas agregadas y 62 quitadas**, medido con `git diff` contra
+  `7f7d5ec`. **Cero** `innerHTML`, `eval` o `new Function` nuevos, y cero claves.
+  (Antes: 10,96 MB / 153.410 al cierre de CORR-EVID, sello `v20261102-1206`, md5 `16cf562a`.)
   ⚠️ **ESE ES EL ÁRBOL QUE LA SUITE MIDIÓ Y EL QUE QUEDÓ COMMITEADO.** `index.html` se selló ANTES
   de la suite completa y el commit de cobertura y documentación **no lo volvió a sellar**, porque
   no lo toca: su md5 es idéntico al del sello, verificado al cerrar. No hay líneas de diferencia
@@ -477,6 +481,179 @@ impecable.
 > secciones de REGLAS (la regla de oro con su tabla de mapas, «Qué es EcoSmart», el panel de
 > Evidencia, el protocolo de verificación, las trampas conocidas, el flujo de trabajo,
 > SEGURIDAD y la tabla de Procedencia) siguen enteras y en su lugar, verificado byte por byte.
+### El PDF de la transposición, el panel compacto y la conclusión descriptiva — «TGA-4» (2026-11-02)
+
+- **SIETE commits, y los SEIS de código se hicieron enteros.** `8294072` (1) · `ca110fa` (2) ·
+  `4873668` (3) · `aca41e2` (3b) · `30adbbe` (4) · `38df3b4` (5) · el de cobertura y
+  documentación. Sello **`v20261102-1624`**, md5 de `index.html` **`17acf57a`**. Al empezar,
+  `origin/main` = `HEAD` = **`7f7d5ec`**, el cierre de CORR-EVID, ya publicado, con md5
+  **`16cf562a`**, sello `v20261102-1206` y el pendrive `DISK_IMG` montado.
+  **El push lo corre Maicol: esta tanda tenía orden expresa de NO pushear.**
+  Cierra la mitad de PDF de **T3-c**, y **T3-e**, **T3-f**, **VP-a** y **CE-d**.
+
+- **EL DEFECTO MÁS GRANDE QUE CERRÓ, EN UNA LÍNEA: el recuadro de la hoja de congénitas del PDF
+  arrancaba con «Segun la guia:», y eso sale de la PLANTILLA COMPARTIDA de las catorce hojas.**
+  Censado: lo emitían las **nueve** secciones que publican conclusión —`dap`, `vap`, `eisen`,
+  `fontan`, `mch`, `ebs`, `tdf`, `tga` y `mca`—; `cia`, `civ` y `coa` pasan `null` y nunca lo
+  emitieron. El `!!` se queda, porque es el marcador de bloque de nota y no texto. Medido de
+  punta a punta en dos secciones **ajenas** a la transposición, con el PDF generado de verdad.
+
+- ⚠️ **LA CLÁUSULA DEL BLOQUEO AURICULOVENTRICULAR NOMBRABA OTRA ANATOMÍA EN DOS DE LOS TRES
+  TIPOS DE SU RAMA.** «complicación esperable en la ccTGA por la disposición del sistema de
+  conducción» la recorren el switch auricular, la ccTGA y la d-TGA sin operar, y el médico la
+  encontró en el PDF de un **switch auricular**. La rama `descriptivo` —Jatene y Rastelli— ya
+  decía sólo el hallazgo desde TGA-3; ahora las dos dicen lo mismo para todos los tipos.
+  ⚠️ **Tenía UNA sola aparición en todo el documento** y no vivía en ningún ⓘ ni en Referencias,
+  así que se fue también de la pantalla → **T4-c**.
+
+- **EL ROTULO (iv) ERA UN DEFECTO DE ROTULO, Y EL PRECEDENTE ESTABA EN EL MISMO BLOQUE.** El
+  médico leyó «Morf. VP: Prótesis biológica» bajo un encabezado que dice «Tricúspide / PSAP» y lo
+  entendió de la tricúspide. Las cuatro filas `VP` son la **válvula** pulmonar. Seis líneas más
+  arriba, la sub-columna de la **vena** pulmonar ya había ganado un título condicional **con el
+  mismo argumento, textual**: «un documento firmado que circula sin la app al lado no tiene dónde
+  desambiguar». Las filas **no se movieron** —la agrupación del corazón derecho se conserva—; lo
+  único que cambia es el título, y sigue siendo condicional. Dice «Válv. pulmonar» y no «V.
+  pulmonar» porque la caja vecina dice «Vena pulmonar». Las cuatro filas salieron a un **dueño
+  único** para que el título y las filas no puedan discrepar.
+
+- **EL ESQUEMA ENTRA AL PDF CON EL MISMO BOTÓN, Y EL MOTOR NO SE TOCA.** `_pdfTile` ya dibujaba
+  varias partes lado a lado: esto es una fila más en `partes`. La compuerta es `esqEstaIncluido`
+  sobre la clave del 3D, o sea el MISMO estado —dos interruptores para una decisión es como se
+  llega a que el médico apague uno y el papel siga trayendo el otro—.
+  **71 → 72 figuras en las SEIS plantillas** con el botón encendido; 70 → 70 con él apagado y
+  58 → 58 en la vista de referencia.
+
+- ⚠️ **DOS DEFECTOS DEL COMMIT 2 LOS ENCONTRÓ SU PROPIA MEDICIÓN.** (1) **El esquema de la VISTA
+  DE REFERENCIA se rasterizaba y habría entrado al informe firmado**: con el slot ya incluido y
+  el médico tocando «Corazón normal», `tgaEsqSync` repinta el corazón normal y la rasterización
+  se lo llevaba. La compuerta pasó a preguntar también por `_tga3dEsDato`. (2) **Generar el PPT y
+  enseguida el PDF PERDÍA el esquema**: `generarPPT` carga el estudio en el formulario y el tipo
+  queda vacío un instante, la compuerta se cerraba y el raster tiraba el dataURL. Medido:
+  «compuerta abierta / dato NO». Con la compuerta cerrada ya **no se borra** lo rasterizado.
+
+- **LA GEOMETRÍA DEL PDF, 108 CRUCES Y 108 OK EN LAS CINCO COMPROBACIONES** (9 escenarios × 2
+  temas × 6 plantillas): las dos imágenes con el botón y cero sin él, cero superposición entre
+  los dibujos, nada fuera de la hoja A4 con 5 mm de margen, la línea y el epígrafe presentes y
+  sin pisar, y la proporción del esquema respetada.
+  ⚠️ **El lienzo del 3D se estampa CUADRADO** —`_pdfTile` usa `p.ar || 1` y su parte nunca pasó
+  `ar`—, o sea que un 4:3 sale estirado. Es preexistente de TGA-2 → **T4-d**.
+
+- ⚠️ **LA CAUSA DE LOS 104 px POR PREGUNTA NO ERA LA PROSA, Y ESO CAMBIÓ EL ARREGLO ENTERO.** Las
+  notas **ya estaban plegadas** en el ⓘ antes de esta tanda: `plegar` es verdadero para toda fila
+  con botonera. Medida la fila: el rótulo ocupaba **674 px** y la celda de los botones **SESENTA**,
+  así que los dos botones de 44×44 se **apilaban**. Con el tercer estado explícito la botonera
+  pasa a tres opciones y se enciende el piso de 170 px que `_indFilaHTML` ya tenía: la fila baja
+  a **55 px**. **Pasar a compacto sin eso SUBÍA el alto** —medido: 3947 → 4149—.
+
+- ⚠️ **EL TERCER ESTADO PONE `null` Y NO LA CADENA VACÍA.** Medio panel pregunta `val == null`
+  para decir «sin dato no cuenta como no»: con una cadena vacía la advertencia se habría callado
+  justo en el estado que viene a hacer explícito. La traducción vive en **un solo lugar**, el
+  manejador de clic, que es el único que escribe la respuesta.
+
+- ⚠️ **LA FRASE DEL PIE NO SE RETIRÓ DEL MOLDE COMPARTIDO, Y ESE CENSO ES LA RAZÓN.** De las DIEZ
+  secciones que usan `_indFilaOrigen`, **CINCO no dicen la frase en sus `notas`** —`_indEM`,
+  `_indFOP`, `_indAo`, `_indVAB` y `_indEP`—, así que quitarla del molde a secas las dejaba sin
+  **un solo** aviso de que lo contestado no viaja con el estudio. La quita quien ya la dice, por
+  un parámetro. Medido: **19 → 1**.
+
+- ⚠️ **EL ⓘ ABIERTO SE MEDÍA POR PRIMERA VEZ, Y ESTABA ROTO.** La celda del ⓘ queda en treinta
+  píxeles en modo compacto: la nota se dibujaba en una tira de **103 × 590 px** y la fila pasaba
+  de 55 a **637**. Cinco líneas de hoja de estilos y la nota cuelga en posición absoluta: **600 px
+  de ancho y la fila no crece**. Es el commit 3b, y lo pidió una medición.
+
+- **EL CORTE DE 50 mmHg: EXISTE, PERO NO PARA LA TRANSPOSICIÓN.** Leído en imagen a 190 ppp, con
+  el folio comprobado en el pie impreso. **ACC/AHA 2025** (Gurvitz, *Circulation* 2026;153:e115-
+  e251), **hoja 43, folio e157**, capítulo del defecto septal auriculoventricular, texto de apoyo:
+  gradiente **PICO ≥50 mmHg** para la **estenosis subaórtica**, como corte de **gravedad**, **sin
+  clase ni nivel propios**. **Hoja 53, folio e167**, capítulo de la estenosis subaórtica: el 50 es
+  **pronóstico**, y la misma hoja dice que **no hay dato que identifique un umbral de gradiente**.
+  **ESC 2020, hoja 10, folio 572: la guía lo BAJÓ expresamente de 50 a 40 mmHg**, y sus
+  recomendaciones (hoja 41, folio 603) usan **media ≥40**, Clase I·C.
+  **En el capítulo de la transposición ninguna de las dos publica un número**: censadas las hojas
+  54 a 60 de la ESC y 73 a 86 de la ACC. La única recomendación es la 8 de la ccTGA (COR 2b·B-NR,
+  hoja 84, folio e198), **sintomático + estenosis severa, sin gradiente**, y ya está en la
+  Evidencia desde CORR-EVID. Se **PARÓ**: no se aplica, no se agrega pregunta y no se toca el
+  corte de la cascada.
+  ⚠️ **Y DESTAPÓ QUE LA APP TIENE DOS CORTES PARA LA MISMA LESIÓN**: `ESUB_MEDIO_SEVERO = 40` en
+  su sección de estenosis subaórtica —rotulado «criterio de la ESC 2020»— y 50 en la
+  transposición → **T4-a**.
+
+- **LA CONCLUSIÓN DE PANTALLA, DESCRIPTIVA: 11 de 13 escenas cambian y DOS no.** Las dos de la
+  rama `descriptivo` —Jatene y Rastelli— salen **idénticas**: son el control negativo. `papel`,
+  `resumen` y `clave` **idénticos en las trece**, así que el papel no se mueve y el Laboratorio
+  clasifica por la misma rama. **Ningún número medido desaparece**: la obstrucción subaórtica se
+  sigue publicando como dato con su gradiente. Lo que se pierde de la pantalla está en **T4-b**,
+  con qué respalda la Evidencia y qué no.
+
+- **LOS ALTOS, ANTES → DESPUÉS, a 1440 px:** switch auricular **3947 → 3234** (maximizado, con
+  las dos columnas, **3107 → 2384**); Jatene 1949 → 2074; Rastelli 2728 → 2238; ccTGA 2042 →
+  2105; **CIA 3419 → 2834**; **CIV 3210 → 2625**. La fila más alta, **104 → 55** en los cinco.
+  **El conteo de citas es IDÉNTICO en todos**: 172, 102, 130, 98, 12, 168 y 54, clase por clase y
+  folio por folio. **La bicúspide, que comparte el molde, no se movió**: 1536 px, 22 citas, seis
+  avisos por pregunta y `compacta=no`.
+  ⚠️ **A 390 px el alto SUBE** —el switch auricular 5937 → 6161, la CIA 5303 → 5418 y la CIV
+  4935 → 5063—: ahí el panel mide 366 px, la botonera cae en su propia línea por la maqueta móvil
+  que ya existía, y los cuatro rótulos de grupo, el contador y el botón no se compensan. El
+  arreglo es de escritorio → **T4-h**.
+
+- **A/B contra HEAD, UNO POR COMMIT, con el PDF y el PPT generados de verdad: 29 escenas, Excel
+  441 columnas clave por clave y 1002 campos.** Commit 1: **62** diferencias de superficie
+  firmada, todas en las 24 escenas que toca. Commit 2: **UNA**, el `_pdf` de la única escena que
+  toca el botón. Commits 3, 3b, 4 y 5: **CERO**, con su control positivo de pantalla al lado.
+  `vacio`, `cSegNoInt`, `vpNo`, `esqPdfRef` y `ajeno` dan **cero** en todos.
+
+- **28/28 MUTACIONES DIRIGIDAS MUERTAS**, en worktree y nunca sobre el vivo, con guarda de md5
+  **idéntico** antes y después. **Seis de las veintiocho no revierten nada: aplican el defecto de
+  más**, porque las condiciones que las matan son controles negativos.
+  ⚠️ **TRES SOBREVIVIERON AL PRIMER BARRIDO Y ME DIJERON TRES COSAS DISTINTAS.** **M07** era un
+  **hueco real**: TC-615 no cerraba la compuerta un instante, así que el defecto del PPT antes
+  del PDF no tenía cobertura —de ahí nació el bloque (G)—. **M19** era un **control que no podía
+  fallar**: comparaba el atributo contra la misma constante, así que mover la constante movía los
+  dos lados; hoy el corte **se afirma por su valor**. Y **M24** tenía el **ancla mal escrita**.
+
+- **SEIS CASOS NUEVOS, TC-613 a TC-618**, con sus denominadores y sus controles negativos, y los
+  seis **caen contra HEAD por 48 condiciones y NINGUNA por excepción**, verificado en un worktree.
+  ⚠️ **TC-615 caía por EXCEPCIÓN la primera vez**: contra HEAD las tres funciones del esquema no
+  existen y llamarlas a pelo mata el caso con un `ReferenceError`, que no dice qué invariante se
+  rompió. Es la lección de TC-546.
+
+- ⚠️ **DOS TRAMPAS DE MÉTODO MÍAS, Y LAS DOS COSTARON UNA CORRIDA.** (1) **TC-613 contaba la
+  cláusula sobre el HTML del documento**, donde está el **código** de los script inline — y mi
+  propio comentario, el que explica por qué se retiró, la contiene: **el arnés se medía a sí
+  mismo**. Es la trampa que la tanda C2 documenta. Hoy se le pregunta al emisor. (2) **Edité
+  `index.html` con la suite completa corriendo**: esa corrida quedó envenenada, se cortó por PID
+  exacto y se rehizo entera sobre el árbol resellado.
+
+- ⚠️ **EL ACENTO GRAVE DENTRO DE MIS PROPIOS COMENTARIOS COSTÓ SEIS CORRIDAS, Y ES LA
+  DECIMOQUINTA TANDA SEGUIDA QUE LO PAGA.** Siempre igual: un identificador entre acentos graves
+  dentro del comentario de un caso o de una sonda, y los dos cuerpos son template literals.
+  **`node --check` las cazó todas.** Lo que acabó funcionando fue **contar los acentos graves de
+  cada caso después de cada edición y exigir el número exacto** —dos por caso—.
+  ⚠️ **Y LA BARRA INVERTIDA SIMPLE, otra vez**: `(\\d+) en Sí` dentro del template de una sonda
+  llega como `(d+)` y el contador salía «no» sobre un panel que lo tiene. Se cerró **no usando
+  ninguna expresión regular**.
+  ⚠️ **Y UNA TERCERA, NUEVA EN ESTA TANDA: la palabra que el runner usa como MARCADOR no puede
+  aparecer en un comentario dentro del template.** `String.replace` con una cadena cambia la
+  PRIMERA aparición, así que el JSON de la escena se inyectó en mi comentario y el montaje tiró
+  «no está definida». Es la hermana de la trampa que AJUSTES-3 pagó con `'ID'` y `'N'`.
+
+- ⚠️ **Y DOS DENOMINADORES DE CERO QUE SE LEÍAN COMO «EL COMMIT NO FUNCIONA».** (1) La sonda
+  esperaba `window._tga3d`, que **no está en `window`** —es un `const` de módulo—, así que el
+  reloj se consumía entero y el clic llegaba antes de tiempo: las tres escenas del botón medían
+  **apagadas en los dos árboles**. La señal buena es `#tga-3d-cv canvas`. Y con la sección **ya
+  abierta** nada vuelve a disparar el arranque de la librería: hay que re-despachar el `change`
+  del tipo. (2) **El slot del dibujo no lo borra `limpiarCampos`** y se filtraba de una escena a
+  la otra, dejando los controles encendidos en los dos árboles.
+
+- **Dónde está todo:** `docs/mapa/tga4-pdf-panel-compacto.md` (**mapa NUEVO**, 9,5 KB), las fichas
+  de los seis casos en el propio archivo de tests, `docs/fuentes/FUENTES.md` → «La tanda TGA-4»
+  con las tres hojas transcritas, las dos reglas de folio comprobadas en el pie impreso y la tabla
+  «Cambios de evidencia» de cinco filas, `docs/REGISTRO_TANDAS.md` → el bloque de esta tanda,
+  `docs/GUIA_PRUEBA_TGA4.md` → la guía de prueba manual en catorce pasos, y
+  `docs/PENDIENTES.md` → **OCHO** cosas declaradas (**T4-a** a **T4-h**), incluida la decisión del
+  médico sobre los símbolos de las válvulas del posoperatorio, que se quedan como están.
+  ⚠️ **`congenitas-otros.md` (34,5 KB) NO se tocó**, que es lo que la orden pide.
+
 ### La conclusión a la izquierda, el papel sin conductas y el esquema de circulación — «TGA-3» (2026-11-01)
 
 - **SEIS commits, y los CINCO de código se hicieron enteros.** `d2261f4` (1) · `d2cb912` (2) ·
