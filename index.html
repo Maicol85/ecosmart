@@ -3221,6 +3221,23 @@ html.light-mode .amilo-root{
 }
 #indic-card [data-ind-grid][data-ind-preg="1"][data-ind-cols="2"] [data-ind-col="clin"] > div:first-child{margin-top:0}
 #indic-card [data-ind-grid][data-ind-preg="1"][data-ind-cols="1"]{display:block}
+/* ══ EL ⓘ DE UNA PREGUNTA SE ABRE DEBAJO DE SU FILA, NO DENTRO DE SU CELDA ═══════════════════
+   (TGA-4, commit 3b-2). En modo compacto el rotulo es la celda golosa y la del ⓘ queda en
+   TREINTA pixeles: abriendo el detalle ahi, la nota se dibujaba en una tira de 103 px de ancho
+   por 590 de alto y la fila crecia de 55 a 637 px -medido-. Ilegible, y encima empuja todo lo
+   de abajo, que es justo «perder el lugar».
+   Con la nota en posicion absoluta cuelga del ⓘ, se lee a ancho util y LA FILA NO CRECE: la
+   lista no salta y el medico sigue viendo donde estaba. La celda es el bloque de contencion.
+   Va SOLO en las secciones de preguntas: las ocho compactas anteriores no llevan el marcador y
+   su ⓘ sigue exactamente como estaba. */
+#indic-card [data-ind-grid][data-ind-preg="1"] td:nth-child(3){position:relative}
+#indic-card [data-ind-grid][data-ind-preg="1"] [data-ind-info][open] > div{
+  position:absolute;right:0;top:100%;z-index:3;
+  width:600px;max-width:76vw;margin-top:2px;
+  background:var(--bg2);border:1px solid var(--border);border-radius:8px;
+  padding:8px 10px;box-shadow:0 6px 20px rgba(0,0,0,.20);
+  font-size:11px;line-height:1.5;text-align:left;white-space:normal;
+}
 @media (min-width:1200px){
   #indic-card [data-ind-grid][data-ind-dos="1"][data-ind-compacta="1"]:not([data-ind-preg="1"]){
     display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);
@@ -150931,8 +150948,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261102-1604';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793646287225;                 /* eco-build-ms */
+const ECO_BUILD    = '20261102-1624';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793647462047;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -151018,7 +151035,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261102-1604</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261102-1624</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
