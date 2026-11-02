@@ -105093,13 +105093,56 @@ function igImgPptExportar() {
         }
       }
     }
+    /* ⚠️ EL TEMA SE ELIGE, COMO EN EL PPT DEL INFORME (VAL-PPT-8c). Hasta hoy este camino
+       LEIA el tema guardado y no lo ofrecia: el medico que queria el claro para proyectar tenia
+       que generar antes un PPT de informe para cambiarlo. `_pptElegirTema` es el MISMO modal de
+       alla -no una segunda copia- y guarda en la MISMA clave, asi que los dos caminos no pueden
+       quedar con temas distintos. */
+    _pptElegirTema(function (temaElegido) {
     let tema = 'dark';
-    try { const t = localStorage.getItem(PPT_TEMA_KEY);
+    try { const t = temaElegido || localStorage.getItem(PPT_TEMA_KEY);
           if (t && Object.prototype.hasOwnProperty.call(PPT_TEMAS, t)) tema = t; } catch (e) {}
     const C = PPT_TEMAS[tema];
     const P = new PptxGenJS();
     P.layout = 'LAYOUT_16x9';
     const W = 10, H = 5.63, HB = H - 0.62;
+    /* ══ EL PIE, LA INICIAL Y LA FINAL — VAL-PPT-8 (2026-11-02) ═════════════════════
+       El centro y el medico salen de los MISMOS campos que el PPT del informe -`centro_nombre`
+       o `med-lugar`, y `med-nombre`-, que son datos de Config y no del paciente: en este camino
+       el estudio ni siquiera esta abierto. El logo, de `_pptLogoDato`, el mismo resolutor.
+       ⚠️ NINGUN NOMBRE DE PACIENTE, que es la regla de este mazo: lo unico que identifica una
+       imagen es su numero, y la inicial y la final no nombran a nadie. */
+    const _sv = id => { const e = document.getElementById(id); return e ? String(e.value || '').trim() : '' };
+    const _centro = _pptTxt(_sv('centro_nombre') || _sv('med-lugar'));
+    const _medico = _pptTxt(_sv('med-nombre'));
+    const _pie = [_centro, _medico, '© 2026 CeiboMed'].filter(Boolean).join(' · ');
+    const _logo = (typeof _pptLogoDato === 'function') ? _pptLogoDato() : null;
+    const _ponerLogo = (sl, yy) => { if (!_logo) return;
+      try { sl.addImage({ data:_logo, x: W - 1.65, y: yy, w: 1.25, h: 0.55,
+                          sizing:{ type:'contain', w:1.25, h:0.55 } }) }
+      catch (e) { console.warn('[PPT imagenes] logo', e) } };
+    const _conPie = (sl) => {
+      sl.addShape(P.ShapeType.line, { x:0.4, y:H-0.62, w:W-0.8, h:0, line:{ color:C.teal, width:1 } });
+      if (_pie) sl.addText(_pptTxt(_pie), { x:0.4, y:H-0.56, w:W-0.8, h:0.22, fontSize:11,
+                                            color:C.txt2, fontFace:PPT_FONT });
+      sl.addText(DISC_PPT, { x:0.4, y:H-0.34, w:W-0.8, h:0.2, fontSize:7, color:C.txt2, fontFace:PPT_FONT });
+    };
+    /* LA INICIAL. El titulo es el que la orden fija, y la fecha es la de hoy. */
+    {
+      const s0 = P.addSlide();
+      s0.background = { color: C.bg };
+      s0.addText(_pptTxt('Selección de imágenes — CeiboMed'),
+        { x:0.6, y:1.75, w:W-1.2, h:0.8, fontSize:30, bold:true, color:C.txt, fontFace:PPT_FONT });
+      const hoy = new Date();
+      const dd = String(hoy.getDate()).padStart(2, '0');
+      const mm = String(hoy.getMonth() + 1).padStart(2, '0');
+      s0.addText(_pptTxt(dd + '/' + mm + '/' + hoy.getFullYear()),
+        { x:0.6, y:2.6, w:W-1.2, h:0.35, fontSize:14, color:C.teal, fontFace:PPT_FONT });
+      if (_centro || _medico) s0.addText(_pptTxt([_centro, _medico].filter(Boolean).join(' · ')),
+        { x:0.6, y:3.0, w:W-1.2, h:0.35, fontSize:13, color:C.txt2, fontFace:PPT_FONT });
+      _ponerLogo(s0, H - 1.28);
+      _conPie(s0);
+    }
     /* ⚠️ LA GRILLA YA NO ES FIJA (VAL-PPT-7b): se elige POR BLOQUE con `igPptDisposicion`,
        que maximiza el area ocupada sin deformar nada. Dos clips verticales van APILADOS y dos
        capturas apaisadas, lado a lado; antes las dos parejas iban lado a lado. */
@@ -105147,10 +105190,20 @@ function igImgPptExportar() {
           { x: cx * cw + 0.08, y: cy * ch + 0.08, w: 0.6, h: 0.26, fontSize: 12,
             color: C.txt, fill: { color: C.bg }, fontFace: PPT_FONT, align: 'left' });
       });
-      s.addShape(P.ShapeType.line,
-        { x: 0.4, y: H - 0.62, w: W - 0.8, h: 0, line: { color: C.teal, width: 1 } });
-      s.addText(DISC_PPT, { x: 0.4, y: H - 0.5, w: W - 0.8, h: 0.3, fontSize: 7,
-                            color: C.txt2, fontFace: PPT_FONT });
+      _conPie(s);
+    }
+    /* LA FINAL. «Gracias» va en un CUADRO DE TEXTO REAL y no en una imagen, que es lo que la
+       orden pide: `addText` de PptxGenJS escribe un `p:sp` con su `p:txBody`, asi que en
+       PowerPoint se hace clic encima y se edita. Por eso tampoco lleva el texto quemado en el
+       fondo. */
+    {
+      const sF = P.addSlide();
+      sF.background = { color: C.bg };
+      sF.addText(_pptTxt('Gracias'),
+        { x:0.6, y:2.1, w:W-1.2, h:1.0, fontSize:40, bold:true, color:C.txt,
+          fontFace:PPT_FONT, align:'center' });
+      _ponerLogo(sF, H - 1.28);
+      _conPie(sF);
     }
     const fecha = new Date().toISOString().split('T')[0];
     /* El nombre del archivo no nombra a nadie: se descarga a la carpeta de descargas, donde
@@ -105184,6 +105237,9 @@ function igImgPptExportar() {
                                               .filter((m, i, a2) => a2.indexOf(m) === i).join('; ') + ').' : '') +
                (perdidas ? ' ' + perdidas + ' no se pudieron preparar y quedaron afuera.' : ''));
       if (typeof toast === 'function') toast('✅ PPT de imágenes generado');
+    });
+    /* Cierra el callback de `_pptElegirTema` (VAL-PPT-8c). La cadena de promesas de abajo
+       sigue siendo la del `leer(...)`, que es quien la abrio. */
     });
   }).catch(e => {
     console.error('[igImgPptExportar]', e);
@@ -150128,8 +150184,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261102-0038';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793590700131;                 /* eco-build-ms */
+const ECO_BUILD    = '20261102-0041';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793590896326;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -150215,7 +150271,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261102-0038</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261102-0041</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
