@@ -17453,7 +17453,7 @@ z
         <div class="fg"><label>FEVI (de AI · VI)</label>
           <input type="text" id="mch_fevi_ro" readonly tabindex="-1" placeholder="—" style="opacity:.7;"></div>
       </div>
-      <p style="font-size:10px;color:var(--text2);margin:6px 0 0;">La <b>respuesta tensional anormal</b> se registra y el informe la menciona, pero <b>no suma</b> al conteo de la AHA/ACC 2020: salió de la lista en esa edición. El <b>realce tardío</b> sí cuenta para la AHA y no para la ESC — el eco no lo evalúa.</p>
+      <p style="font-size:10px;color:var(--text2);margin:6px 0 0;">La <b>respuesta tensional anormal</b> se registra y el informe la menciona, pero <b>no suma</b> al conteo de la AHA/ACC 2024: salió de la lista en esa edición. El <b>realce tardío</b> sí cuenta para la AHA y no para la ESC — el eco no lo evalúa.</p>
 
       <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:16px 0 8px;">Exclusiones del modelo de la ESC</div>
       <p style="font-size:10px;color:var(--text2);margin:0 0 8px;">El HCM Risk-SCD no está validado en estos grupos. Si alguno está <b>marcado</b>, no se publica el porcentaje y se dice cuál lo impide. Si quedan <b>sin contestar</b>, el número se publica pero el informe avisa que la aplicabilidad no se verificó. Los menores de 16 años se detectan solos.</p>
@@ -17510,7 +17510,7 @@ z
 
       <div class="calc-box" style="margin-top:14px;">
         <div class="calc-row"><span class="calc-lbl">ESC 2022 · HCM Risk-SCD</span><span id="mch-esc" class="calc-val">—</span></div>
-        <div class="calc-row"><span class="calc-lbl">AHA/ACC 2020 · factores mayores</span><span id="mch-aha" class="calc-val">—</span></div>
+        <div class="calc-row"><span class="calc-lbl">AHA/ACC 2024 · factores mayores</span><span id="mch-aha" class="calc-val">—</span></div>
         <div class="calc-row"><span class="calc-lbl">Conclusión</span><span id="mch-concl" class="calc-val">—</span></div>
       </div>
       <div class="mBoxLike" style="border-left:3px solid var(--accent2);background:rgba(13,148,136,.08);padding:8px 12px;border-radius:6px;font-size:10px;line-height:1.5;margin-top:10px;color:var(--text2);">
@@ -79976,14 +79976,23 @@ function mchScoreESC(src){
   const banda = pct < 4 ? 'bajo' : (pct < 6 ? 'intermedio' : 'alto');
   return { pct: pct, banda: banda };
 }
-/* Los SIETE factores mayores de la AHA/ACC 2020. La respuesta tensional anormal al ejercicio NO
+/* Los SIETE factores mayores de la AHA/ACC 2024 (Ommen y cols., Circulation 2024;149:e1239-
+   e1311). ⚠️ EL ROTULO DECIA 2020 Y LA GUIA DE LA BIBLIOTECA ES LA DE 2024 (VAL-PPT-6b).
+   Verificado EN IMAGEN en la hoja 29 = folio e1267 -regla folio = hoja + 1238, comprobada en
+   el pie impreso-: la Recomendacion 3, COR 2a · B-NR, lista los CINCO factores mayores y
+   coinciden uno por uno con los de esta funcion -muerte subita en familiar de primer grado o
+   cercano de 50 anos o menos, hipertrofia de 30 mm o mas en cualquier segmento, sincope
+   arritmico reciente, aneurisma apical con cicatriz transmural o realce tardio, y disfuncion
+   sistolica con fraccion de eyeccion por debajo del 50 %-. Y la Recomendacion 6, COR 2b,
+   publica los DOS arbitros que la funcion ya tenia: realce tardio extenso y taquicardia
+   ventricular no sostenida. SOLO CAMBIA EL ANO DEL ROTULO: el score no se movio. La respuesta tensional anormal al ejercicio NO
    entra en el conteo —salió de la lista en 2020— pero se registra y el informe la menciona con
    esa aclaración. La FEVI se deriva del campo que ya existe. */
 /* ══ HISTORIA FAMILIAR DE MUERTE SÚBITA — TRES CRITERIOS, UN SOLO CAMPO ══
    El hecho es uno y los umbrales de edad son TRES, incompatibles entre sí:
      · Task Force 2010 (MCA)  → familiar de primer grado, muerte  <35 años
      · HCM Risk-SCD (ESC)     → primer grado <40 años, O cualquier edad si tenía MCH establecida
-     · AHA/ACC 2020           → primer grado o pariente cercano,  ≤50 años
+     · AHA/ACC 2024           → primer grado o pariente cercano,  ≤50 años
    Hasta el 2026-09-10 el score de la ESC y el conteo de la AHA leían el binario CRUDO, sin mirar
    la edad: una muerte súbita de un familiar a los 60 años entraba como «Sí» en los dos. En el
    índice de la ESC eso son 0,4583 puntos que el paciente no tiene, y en la AHA es un factor mayor
@@ -80026,7 +80035,7 @@ function mchFamMS(src){
   return { hay:true, edad:ed, conMCH:conMCH, esc:esc, aha:aha };
 }
 
-/* ══ AHA/ACC 2020 — CINCO factores mayores, no siete ══
+/* ══ AHA/ACC 2024 — CINCO factores mayores, no siete ══
    Verificado contra la Sección 7.2 de la guía (Ommen et al., Circulation 2020;142:e558).
    La recomendación 3 (COR 2a) enumera CINCO: historia familiar de muerte súbita, HVI masiva,
    síncope inexplicado reciente, aneurisma apical y FEVI <50 %.
@@ -83011,7 +83020,7 @@ function critFontan(){
 
 const CRIT_PANELES = {
   mca: { titulo:'Criterios Task Force 2010 — Miocardiopatía arritmogénica', render: critMCA },
-  mch: { titulo:'Algoritmos de desfibrilador en MCH — AHA/ACC 2020 y ESC 2023', render: critMCH },
+  mch: { titulo:'Algoritmos de desfibrilador en MCH — AHA/ACC 2024 y ESC 2023', render: critMCH },
   marfan: { titulo:'Criterios diagnósticos — Marfan / EHAT (Ghent 2010)', render: critMarfan },
   eisen:  { titulo:'Síndrome de Eisenmenger — ESC 2020', render: critEisen },
   fontan: { titulo:'Circulación de Fontan — ESC 2020', render: critFontan }
@@ -89644,7 +89653,9 @@ function _indMCH(){
    veces. La orden exige agregarlo ANTES de tocar el papel, y eso es lo que hace esta sección.
 
    ⚠️ EL PAPEL NO SE TOCO, Y EL MOTIVO ES UNA FUENTE QUE NO ESTA. La línea del PPT cita DOS
-   guías: la ESC y la «AHA/ACC 2020». La ESC está —ESC 2023 de miocardiopatías, `ehad194.pdf`,
+   guías: la ESC y la americana. ⚠️ VAL-PPT-6b: el rótulo decía «AHA/ACC 2020» y la que ESTÁ en
+   la biblioteca es la de 2024 (Ommen, Circulation 2024;149:e1239-e1311), leída en imagen en la
+   hoja 29 = folio e1267; hoy el rótulo dice 2024. La ESC está —ESC 2023 de miocardiopatías, `ehad194.pdf`,
    124 hojas, folio = hoja + 3502, comprobado en el pie impreso de las hojas 10, 50 y 80— y es
    la que esta sección transcribe. La AHA/ACC **2020** NO está en la biblioteca: lo que hay en
    `11_Miocardiopatias` es la guía de **2024** (Ommen y cols., Circulation 2024;149:e1239-e1311)
@@ -150016,8 +150027,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261102-0026';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793589980710;                 /* eco-build-ms */
+const ECO_BUILD    = '20261102-0032';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793590357742;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -150103,7 +150114,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261102-0026</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261102-0032</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
@@ -152199,7 +152210,7 @@ const ECO_AYUDA = [
 <div class="mSub">Advertencias que cambian la conducta</div>
 <div class="mBox mAviso"><b>Marfan — el umbral quirúrgico lo elige el SÍNDROME, no el diámetro.</b> Loeys-Dietz opera desde 45 mm, Marfan desde 50 y la aortopatía no sindrómica desde 55; Turner va indexada por superficie corporal. <b>Sin síndrome declarado la app no concluye</b> — con 47 mm un Loeys-Dietz tiene indicación Clase I y una no sindrómica no tiene ninguna. El diámetro que decide es el mayor entre seno y ascendente.</div>
 <div class="mBox mAviso"><b>Aorta bicúspide — lo que decide es la aorta, no la válvula</b>, y la guía que aplica la app es la ESC 2024 de aorta. Los <b>45 mm no son un umbral quirúrgico por sí solos</b>: son el umbral para reemplazar la aorta cuando el paciente ya va a quirófano por la válvula.</div>
-<div class="mBox mAviso"><b>MCH — dos scores lado a lado, y no se promedian.</b> El europeo (HCM Risk-SCD) es una ecuación continua que devuelve un porcentaje a 5 años; el americano (AHA/ACC 2020) cuenta factores mayores. <b>Dan indicaciones opuestas</b> en el mismo paciente y la app imprime las dos con su guía.</div>
+<div class="mBox mAviso"><b>MCH — dos scores lado a lado, y no se promedian.</b> El europeo (HCM Risk-SCD) es una ecuación continua que devuelve un porcentaje a 5 años; el americano (AHA/ACC 2024) cuenta factores mayores. <b>Dan indicaciones opuestas</b> en el mismo paciente y la app imprime las dos con su guía.</div>
 <div class="mBox mAviso"><b>MCH — si falta una de las siete variables, no se publica el número.</b> Y las <b>exclusiones son compuertas, no advertencias</b>: el score no está validado en menores de 16 años, atletas de competición, fenocopias (Fabry, amiloidosis), post-miectomía o post-alcoholización, ni en prevención secundaria. Sin contestarlas, la app declara que la aplicabilidad no está verificada.</div>
 <div class="mBox mAviso"><b>MCA — la anomalía regional de la motilidad es obligatoria, no una alternativa.</b> El Task Force exige aquinesia, disquinesia o aneurisma regional <b>Y</b> uno de los criterios dimensionales. Y cada categoría aporta <b>un solo criterio</b>, el de mayor jerarquía: marcá todas las celdas que cumpla el paciente, que el puntaje no las suma dos veces.</div>
 <div class="mBox mAviso"><b>Fallot — los volúmenes del VD se TRANSCRIBEN, y el método importa.</b> Los umbrales (VTDVD indexado ≥ 160 ml/m² o VTSVD indexado ≥ 80 ml/m²) están validados sobre <b>resonancia</b>, y el eco 3D subestima. Con método no consignado, eco 3D o tomografía, el valor se describe y <b>no vota</b>.</div>
@@ -152342,7 +152353,7 @@ const ECO_AYUDA = [
 <div class="mSub">Miocardiopatías</div>
 <table class="mTbl"><tr><th>Score</th><th>Bandas</th><th>Guía</th></tr>
 <tr><td>HCM Risk-SCD (riesgo a 5 años)</td><td>&lt; 4 % bajo · 4–6 % intermedio (IIb) · &gt; 6 % alto (IIa)</td><td>ESC 2023</td></tr>
-<tr><td>MCH — factores mayores</td><td>cinco: muerte súbita familiar, espesor ≥ 30 mm, síncope reciente, aneurisma apical, FEVI &lt; 50 %</td><td>AHA/ACC 2020</td></tr>
+<tr><td>MCH — factores mayores</td><td>cinco: muerte súbita familiar, espesor ≥ 30 mm, síncope reciente, aneurisma apical, FEVI &lt; 50 %</td><td>AHA/ACC 2024</td></tr>
 <tr><td>MCH — reducción septal</td><td>gradiente ≥ 50 mmHg en reposo o provocado, con clase funcional III–IV (Clase I)</td><td>ESC 2023</td></tr>
 <tr><td>Miocardiopatía arritmogénica</td><td>Task Force: ≥ 4 puntos definitivo · 3 limítrofe · 2 posible</td><td>Task Force 2010</td></tr></table>
 
