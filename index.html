@@ -6548,7 +6548,7 @@ window.cerrarSesionReal = cerrarSesionReal;
                Con una vena contracta cargada funciona —el voto leve pisa al severo del jet—; con
                el jet como único parámetro, el grado nativo sobrevive. Ver la nota de
                `params.length === 0` en `calcIM_ESC` y la entrada de CLAUDE.md. -->
-          <select id="vm_morf" onchange="showProlapsoPanel();valvProtSync();imOndaESiExiste();eteVmPropagar('vm');calcIM_ESC();calcEM();m3dBotonSync();vmProtBloqSync();vmMorfFitSync()"><option>Normal</option><option>Mixomatosa / Barlow</option><option>Calcificada</option><option>Reumática</option><option>Prolapso / EVMS</option><option value="Prótesis biológica">Prótesis biológica</option><option value="Prótesis mecánica">Prótesis mecánica</option><option>Endocarditis</option><option>Isquémica (disfunción/rotura músculo papilar)</option></select>
+          <select id="vm_morf" onchange="showProlapsoPanel();valvProtSync();imOndaESiExiste();eteVmPropagar('vm');calcIM_ESC();calcEM();m3dBotonSync();vmProtBloqSync();vmMorfFitSync()"><option>Normal</option><option>Mixomatosa / Barlow</option><option>Calcificada</option><option>Reumática</option><option>Prolapso / EVMS</option><option value="Prótesis biológica">Prótesis biológica</option><option value="Prótesis mecánica">Prótesis mecánica</option><option>Plastia mitral</option><option>TEER mitral</option><option>Endocarditis</option><option>Isquémica (disfunción/rotura músculo papilar)</option></select>
           <div id="vm-ete-aviso" style="display:none;font-size:11px;color:var(--red);margin-top:3px;"></div>
         </div>
         <!-- ══ TIPO DE IM Y CARPENTIER — AJ5-1 (2026-10-24, decisión de Maicol) ═══════════
@@ -8235,7 +8235,7 @@ window.cerrarSesionReal = cerrarSesionReal;
            morfología → Insuficiencia → Estenosis, que es el orden en que se carga el caso. -->
       <div class="valv-morf-row">
         <div class="fg"><label>Morfología VT</label>
-          <select id="vt_morf" onchange="valvProtSync()"><option>Normal</option><option>Mixomatosa</option><option>Reumática</option><option value="Prótesis biológica">Prótesis biológica</option><option value="Prótesis mecánica">Prótesis mecánica</option><option>Carcinoide</option><option>Endocarditis</option><option>Funcional / dilatación VD</option></select>
+          <select id="vt_morf" onchange="valvProtSync()"><option>Normal</option><option>Mixomatosa</option><option>Reumática</option><option value="Prótesis biológica">Prótesis biológica</option><option value="Prótesis mecánica">Prótesis mecánica</option><option>Plastia tricuspídea</option><option>TEER tricuspídeo (T-TEER)</option><option>Carcinoide</option><option>Endocarditis</option><option>Funcional / dilatación VD</option></select>
           <!-- ⚠️ ACÁ VIVÍA UNA NOTA DIDÁCTICA Y SE BORRÓ (2026-10-07, orden de Maicol): «Funcional
                / dilatación VD es la causa más frecuente de insuficiencia tricuspídea.» Era un
                `<span>` sin `id` y sin un solo lector —censo del archivo, de los tests y de las
@@ -51067,7 +51067,29 @@ const VALV_MORF_FRASE = Object.freeze({
   'Prótesis mecánica':  { de:'con prótesis mecánica',  presenta:'una prótesis mecánica',
     adj:'con prótesis mecánica',  es:'presenta una prótesis mecánica' },
   'TAVI':               { de:'con prótesis transcatéter tipo TAVI', presenta:'una prótesis transcatéter tipo TAVI',
-    adj:'con prótesis transcatéter tipo TAVI', es:'presenta una prótesis transcatéter tipo TAVI' }
+    adj:'con prótesis transcatéter tipo TAVI', es:'presenta una prótesis transcatéter tipo TAVI' },
+  /* ⚠️ LAS CUATRO DE LA TANDA VAL-PPT (2026-11-01) ENTRAN ACÁ Y NO EN `VALV_MORF_ETIOL`, y la
+     diferencia no es cosmética: pertenecer a `ETIOL` dispara además `ccMarcarParrafo()`, que es
+     conducta del EN SUMA. Una plastia y un TEER son, como una prótesis, el DESCRIPTOR de una
+     válvula intervenida —no una etiología— así que su lugar es el de las prótesis de arriba.
+     ⚠️ Y SIN ESTA ENTRADA EL FALLBACK DE `_valvMorfF` DESTRUYE EL ACRÓNIMO: medido en el árbol de
+     HEAD inyectando la opción, el informe FIRMADO publicaba «Válvula tricúspide de morfología
+     **teer tricuspídeo (t-teer)**» y el EN SUMA «VT teer tricuspídeo (t-teer).». Es EXACTAMENTE el
+     defecto que la nota de arriba documenta para TAVI, entrando por la otra puerta.
+     El TEER se nombra por lo que es —reparación transcatéter borde a borde— con su sigla al lado,
+     por simetría con TAVI, que ya expande «prótesis transcatéter». Describe; no juzga ni recomienda. */
+  'Plastia mitral':     { de:'con plastia mitral', presenta:'una plastia mitral',
+    adj:'con plastia mitral', es:'presenta una plastia mitral' },
+  'TEER mitral':        { de:'con reparación transcatéter borde a borde (TEER)',
+    presenta:'una reparación transcatéter borde a borde (TEER)',
+    adj:'con reparación transcatéter borde a borde (TEER)',
+    es:'presenta una reparación transcatéter borde a borde (TEER)' },
+  'Plastia tricuspídea': { de:'con plastia tricuspídea', presenta:'una plastia tricuspídea',
+    adj:'con plastia tricuspídea', es:'presenta una plastia tricuspídea' },
+  'TEER tricuspídeo (T-TEER)': { de:'con reparación transcatéter borde a borde (T-TEER)',
+    presenta:'una reparación transcatéter borde a borde (T-TEER)',
+    adj:'con reparación transcatéter borde a borde (T-TEER)',
+    es:'presenta una reparación transcatéter borde a borde (T-TEER)' }
 });
 /* ⚠️ DECISIÓN PARCIALMENTE TOMADA — ver abajo. El texto original decía: «hoy una prótesis NO llama
    a `ccMarcarParrafo()`, así que un estudio cuyo único hallazgo es una prótesis mecánica sale con
@@ -62217,22 +62239,45 @@ const POP_CX_V = Object.freeze({
   'pop-esp-vtr': Object.freeze({ due: 'vt_morf', chk: 'pop_cx_v_tr' }),
   'pop-esp-vpu': Object.freeze({ due: 'vp_morf', chk: 'pop_cx_v_pu' })
 });
-/* ⚠️ SOLO LAS PROTESIS, Y EL PREDICADO ES UNO (POP-B-2, 01/11/2026).
-   El clonado traia la lista ENTERA del dueño, o sea las etiologias NATIVAS tambien: el selector
-   del tipo de una valvula OPERADA ofrecia «Mixomatosa», «Reumatica» o «Trivalva normal», y
-   `popCxValvTxt` las publicaba en el PAPEL -«tricuspide — Mixomatosa»-, que es describir una
-   cirugia con una morfologia nativa. Medido en el arbol de POP-A antes de tocar nada.
-   El filtro NO es una lista transcripta: se le pregunta al `<option>` del dueño si su valor
-   empieza con «Protesis», que es como Valvulas nombra a las suyas -y las cuatro llevan
-   `value="Protesis biologica"` / `value="Protesis mecanica"` explicito-. Asi, el dia que
-   Valvulas agregue otra protesis aparece sola, que es el motivo por el que el clonado existe.
-   ⚠️ TAVI QUEDA AFUERA POR ORDEN EXPRESA, no por el predicado: su `<option>` no lleva `value`,
-   asi que su valor es «TAVI» y no empieza con «Protesis». Plastia y TEER no existen hoy en
-   ningun dueño. Las tres son otra tanda -> docs/PENDIENTES.md (POPB-c). */
-function _popVEsProt(o) {
-  const t = String((o && (o.value || o.text)) || '');
-  return t.indexOf('Prótesis') === 0;
+/* ⚠️ LOS TIPOS DE UNA VALVULA OPERADA, Y EL PREDICADO SIGUE SIENDO UNO (VAL-PPT-1, 01/11/2026).
+   Hasta hoy el filtro preguntaba si el valor del `<option>` del dueño empezaba con «Protesis», y
+   eso dejaba afuera a TAVI -su `<option>` no lleva `value`, asi que vale «TAVI»- por orden
+   expresa de POP-B. La tanda VAL-PPT la revierte y agrega la plastia y el TEER.
+
+   ⚠️ EL REPARTO POR VALVULA QUE EL PEDIDO DESCRIBE -aortica: las dos protesis y TAVI; mitral y
+   tricuspide: las dos protesis, plastia y TEER; pulmonar: solo las dos protesis- NO SE
+   TRANSCRIBE EN NINGUNA LISTA: sale POR CONSTRUCCION de las opciones del propio dueño, porque la
+   aortica no tiene plastia ni TEER entre las suyas y la pulmonar no tiene ninguno de los tres.
+   Una segunda lista por valvula nace desincronizada el dia que Valvulas agregue una opcion, que
+   es el motivo por el que el clonado existe desde POP-A.
+
+   LO QUE SE AMPLIA ES EL PREDICADO, no el numero de listas: cuatro prefijos en un solo lugar.
+   «Protesis» cubre las dos de cada valvula; «TAVI», «Plastia» y «TEER» son los tres valores que
+   la tanda VAL-PPT hace elegibles. Un valor NATIVO -«Mixomatosa», «Reumatica», «Trivalva
+   normal»- sigue quedando afuera, que es lo que POP-B-2 vino a cerrar: el papel no describe una
+   cirugia con una morfologia nativa. */
+const POP_TIPO_OP_PREFIJOS = Object.freeze(['Prótesis', 'TAVI', 'Plastia', 'TEER']);
+function _popVEsTipoOp(o) {
+  const t = String((o && (o.value || o.text)) || '').trim();
+  return POP_TIPO_OP_PREFIJOS.some(function (p) { return t.indexOf(p) === 0 });
 }
+/* El tipo CORTO que consume el dibujo del esquema. Vive aca y no en el dibujo porque es la misma
+   pregunta que el selector y el papel ya contestan, y con dos derivaciones el dibujo podria
+   mostrar una protesis biologica sobre una plastia.
+   ⚠️ LO QUE NO TIENE SIMBOLO DEVUELVE CADENA VACIA, y el dibujo pone su aro punteado neutro: es
+   la direccion segura. Antes de esta tanda el dibujo hacia `indexOf('mec') > 0 ? 'mec' : 'bio'`,
+   asi que CUALQUIER tipo que no dijera «mecanica» se dibujaba como BIOLOGICA -una afirmacion
+   inventada en cuanto plastia, TEER o TAVI pasaron a ser elegibles-. */
+function popVTipoCorto(val) {
+  const t = String(val == null ? '' : val).trim();
+  if (/mecánica/i.test(t)) return 'mec';
+  if (/biológica/i.test(t)) return 'bio';
+  if (t.indexOf('TAVI') === 0) return 'tavi';
+  if (t.indexOf('Plastia') === 0) return 'plastia';
+  if (t.indexOf('TEER') === 0) return 'teer';
+  return '';
+}
+window.popVTipoCorto = popVTipoCorto;
 var _popCxVOpt = false;
 function popCxVOpciones() {
   if (_popCxVOpt) return;
@@ -62245,7 +62290,7 @@ function popCxVOpciones() {
     o0.value = ''; o0.textContent = '— elegir tipo —';
     e.appendChild(o0);
     Array.prototype.forEach.call(d.options, function (o) {
-      if (!_popVEsProt(o)) return;
+      if (!_popVEsTipoOp(o)) return;
       const n = document.createElement('option');
       n.value = o.value || o.text; n.textContent = o.text;
       e.appendChild(n);
@@ -62278,9 +62323,12 @@ function popVEstado(id) {
   if (!d || !d.options.length) return null;
   const def = d.options[0].value || d.options[0].text;
   const sel = (d.selectedIndex >= 0) ? d.options[d.selectedIndex] : null;
-  const prot = !!(sel && _popVEsProt(sel));
-  /* NATIVA = cargada y distinta de la primera opcion, pero no una protesis. La primera opcion
-     es «Normal» o «Trivalva normal», que no es un tipo de valvula operada. */
+  const prot = !!(sel && _popVEsTipoOp(sel));
+  /* NATIVA = cargada y distinta de la primera opcion, pero no un tipo de valvula operada. La
+     primera opcion es «Normal» o «Trivalva normal», que tampoco es un tipo de valvula operada.
+     ⚠️ LA CLAVE SE SIGUE LLAMANDO `prot` y hoy significa «hay un tipo consignado»: renombrarla
+     toca sus TRES lectores -el pintor, `popCxValvTxt` y el dibujo- y los tres ya leen este mismo
+     dueño, asi que el nombre es lo unico que quedo corto. Declarado en docs/PENDIENTES.md. */
   return { prot: prot, val: prot ? d.value : '',
            nativa: (!prot && d.value !== '' && d.value !== def) ? (sel ? sel.text : d.value) : '' };
 }
@@ -62329,8 +62377,9 @@ function popCxValvTxt() {
     /* ⚠️ EL PAPEL NO DESCRIBE UNA CIRUGIA CON UNA MORFOLOGIA NATIVA (POP-B-2). Decia
        `d.value` a secas, asi que una tricuspide marcada con «Mixomatosa» en Valvulas salia al
        informe, al EN SUMA y a la hoja del PDF como «tricuspide — Mixomatosa». Hoy el tipo sale
-       SOLO si es una protesis, y si no, «sin tipo consignado», que es lo unico cierto que se
-       puede decir. Lee `popVEstado`, el mismo dueño que pinta la pantalla. */
+       SOLO si es un TIPO DE VALVULA OPERADA -las dos protesis, y desde VAL-PPT-1 tambien TAVI,
+       la plastia y el TEER-, y si no, «sin tipo consignado», que es lo unico cierto que se puede
+       decir. Lee `popVEstado`, el mismo dueño que pinta la pantalla. */
     const st = popVEstado(id);
     out.push(NOM[m.chk] + (st && st.prot ? ' — ' + st.val : ' — sin tipo consignado'));
   });
@@ -63569,14 +63618,22 @@ function popEsquema() {
   let fc = (_fcSw !== null && _fcSw > 0) ? _fcSw : ((_fcH !== null && _fcH > 0) ? _fcH : null);
   if (fc !== null && (fc < POP_ESQ_FC_MIN || fc > POP_ESQ_FC_MAX)) fc = null;
   /* Las cuatro valvulas operadas y su tipo, leidos del MISMO dueño que la pantalla y el papel:
-     la casilla dice si se opero y `popVEstado` dice si hay una protesis. Sin protesis elegida el
-     dibujo pone un anillo punteado neutro: nunca se asume un tipo. */
+     la casilla dice si se opero y `popVEstado` dice si hay un TIPO consignado -desde VAL-PPT-1
+     eso incluye TAVI, la plastia y el TEER-. Sin tipo elegido el dibujo pone un anillo punteado
+     neutro: nunca se asume un tipo. */
   const _vop = {};
   [['ao','pop_cx_v_ao','pop-esp-vao'], ['mi','pop_cx_v_mi','pop-esp-vmi'],
    ['tr','pop_cx_v_tr','pop-esp-vtr'], ['pu','pop_cx_v_pu','pop-esp-vpu']].forEach(function (r) {
     const c = document.getElementById(r[1]);
     const st = (typeof popVEstado === 'function') ? popVEstado(r[2]) : null;
-    const tipo = (st && st.prot) ? (String(st.val).indexOf('mec') > 0 ? 'mec' : 'bio') : '';
+    /* ⚠️ EL TIPO SALE DE `popVTipoCorto`, EL DUEÑO UNICO (VAL-PPT-1). Esta linea hacia
+       `indexOf('mec') > 0 ? 'mec' : 'bio'`, o sea que TODO lo que no dijera «mecanica» se
+       dibujaba como protesis BIOLOGICA: correcto mientras los dos unicos tipos elegibles fueran
+       esos, y una afirmacion inventada desde que plastia, TEER y TAVI lo son.
+       ⚠️ Y EN ESTE COMMIT los tres nuevos caen al ARO PUNTEADO NEUTRO a proposito: su simbolo es
+       la tanda VAL-PPT-4. Dibujar un simbolo que no existe es peor que no dibujar ninguno. */
+    const _tc = (typeof popVTipoCorto === 'function') ? popVTipoCorto(st && st.prot ? st.val : '') : '';
+    const tipo = (_tc === 'mec' || _tc === 'bio') ? _tc : '';
     _vop[r[0]] = { on: !!(c && c.checked), tipo: tipo };
   });
   const _cxTok = (typeof popCxEstado === 'function') ? (popCxEstado().tokens || []) : [];
@@ -133766,9 +133823,12 @@ const LAB_XLS_LISTAS = {
   /* Las tres opciones de prótesis reemplazaron a «Prótesis» el 2026-09-27. Estas listas tienen que
      seguir al select o el importador descarta la FILA ENTERA —no la celda—, como dice el comentario
      de abajo. `_labXlsAssertListas()` compara las dos al arrancar. */
-  vm_morf: ['Normal','Mixomatosa / Barlow','Calcificada','Reumática','Prolapso / EVMS','Prótesis biológica','Prótesis mecánica','Endocarditis','Isquémica (disfunción/rotura músculo papilar)'],
+  /* Los cuatro valores de la tanda VAL-PPT van en estas DOS listas y en el orden del select:
+     medido en HEAD inyectando la opción, `_labXlsLista` devolvía `null` para los cuatro y una
+     planilla con una plastia mitral perdía el PACIENTE COMPLETO al reimportarse. */
+  vm_morf: ['Normal','Mixomatosa / Barlow','Calcificada','Reumática','Prolapso / EVMS','Prótesis biológica','Prótesis mecánica','Plastia mitral','TEER mitral','Endocarditis','Isquémica (disfunción/rotura músculo papilar)'],
   va_morf: ['Trivalva normal','Bicúspide','Calcificada','Reumática','Prótesis biológica','Prótesis mecánica','TAVI','Endocarditis','Carcinoide'],
-  vt_morf: ['Normal','Mixomatosa','Reumática','Prótesis biológica','Prótesis mecánica','Carcinoide','Endocarditis','Funcional / dilatación VD'],
+  vt_morf: ['Normal','Mixomatosa','Reumática','Prótesis biológica','Prótesis mecánica','Plastia tricuspídea','TEER tricuspídeo (T-TEER)','Carcinoide','Endocarditis','Funcional / dilatación VD'],
   /* ⚠️ `et_grado` PASO A SER BINARIO (2026-10-05) y su opcion 0 ya NO vale su etiqueta: vale
      `sin`, como `ea_grado`/`em_grado`/`ep_grado`. Las otras dos si valen su texto. Sin esta lista
      al dia `_labXlsLista` devuelve null y el importador descarta la FILA ENTERA, no la celda —
@@ -149748,8 +149808,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261101-2214';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793582047365;                 /* eco-build-ms */
+const ECO_BUILD    = '20261101-2327';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793586472460;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -149835,7 +149895,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261101-2214</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261101-2327</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
