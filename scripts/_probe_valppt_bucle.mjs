@@ -51,11 +51,15 @@ const CUERPO = `(async (cfg) => {
       { id: v1, blob: blob, tipo: 'video/mp4', bytes: blob.size },
       { id: v2, blob: blob, tipo: 'video/mp4', bytes: blob.size }
     ]);
-    await CeiboImg.guardar(uuid, [
-      { dataURL: png(640, 360, '#223344'), videoId: v1 },
-      { dataURL: png(640, 360, '#443322'), videoId: v2 }
-    ]);
-    R.denom.videosSembrados = 2;
+    /* --mezcla siembra UNA imagen y UN video, que es la tercera combinacion del commit 10
+       -solo imagenes, solo videos y mezcla-. Sin ella el mazo mixto no esta probado. */
+    await CeiboImg.guardar(uuid, cfg.mezcla
+      ? [ { dataURL: png(640, 360, '#223344') },
+          { dataURL: png(640, 360, '#443322'), videoId: v2 } ]
+      : [ { dataURL: png(640, 360, '#223344'), videoId: v1 },
+          { dataURL: png(640, 360, '#443322'), videoId: v2 } ]);
+    R.denom.videosSembrados = cfg.mezcla ? 1 : 2;
+    R.denom.imagenesSembradas = cfg.mezcla ? 1 : 0;
   } catch (e) { R.errs.push('sembrar: ' + String(e).slice(0, 120)); return R }
   try {
     const K = 'ecosmart_informes';
@@ -124,7 +128,7 @@ const CUERPO = `(async (cfg) => {
   await pg.goto('file://' + FILE);
   await pg.waitForTimeout(2500);
   const CAIDA = process.argv.indexOf('--caida') > 0;
-  const R = await pg.evaluate(new Function('return ' + CUERPO)(), { mp4: mp4b64, caida: CAIDA });
+  const R = await pg.evaluate(new Function('return ' + CUERPO)(), { mp4: mp4b64, caida: CAIDA, mezcla: process.argv.indexOf('--mezcla') > 0 });
   await pg.waitForTimeout(2500);
   console.log('===== EL BUCLE CON VARIOS VIDEOS (VAL-PPT-9) =====');
   console.log('archivo de la app:', FILE);

@@ -485,7 +485,7 @@ caso('TC-12', 'El VD del paciente A no viaja al informe del B', `
 /* La hoja del TEER del PDF sale de \`amiloTextoTEER()\`: es literalmente el texto que se dibuja.
    El bug era que \`_teerAsciiPDF\` mapeaba la cruz a «NO» y «CONTRAINDICADO» salia impreso como
    «NO CONTRAINDICADO» — la negacion de una contraindicacion absoluta. */
-caso('TC-13', 'TEER con trombo en AI: CONTRAINDICADO, no NO CONTRAINDICADO', `
+caso('TC-13', 'TEER con trombo en AI: el PAPEL describe el hallazgo y la PANTALLA conserva el veredicto de contraindicacion', `
   __t.limpiar();
   __t.set('teer_tipo_im','secundaria');
   __t.set('teer_lva','24'); __t.set('teer_lvp','9'); __t.set('teer_gap','6');
@@ -494,9 +494,20 @@ caso('TC-13', 'TEER con trombo en AI: CONTRAINDICADO, no NO CONTRAINDICADO', `
   __t.set('teer_calcificacion','no'); __t.set('teer_clefts','no');
   __t.set('teer_trombo','si');
   const hoja = amiloTextoTEER();
+  /* ⚠️ INVERTIDO EN LA TANDA VAL-PPT (2026-11-02), y es el dia que la decision del medico
+     anunciaba. El caso exigia que el PAPEL dijera «CONTRAINDICADO»; desde VAL-PPT-5a el
+     veredicto de aptitud SALE del papel y se queda en la PANTALLA. Lo que el papel describe es
+     el HALLAZGO —que el trombo esta consignado—, que es lo medido.
+     El invariante no se afloja: se invierte y gana dos condiciones, para que pueda volver a
+     fallar si el juicio vuelve al papel o si la pantalla deja de darlo. */
+  const pant = String(__t.txt('teer-resultado') || '') + ' ' +
+               String((typeof teerEstado === 'function') ? teerEstado().titulo : '');
   return { inf: hoja,
-    debe: ['CONTRAINDICADO'], noDebe: ['NO CONTRAINDICADO', 'APTO para TEER'],
-    extra: [['la pantalla dice lo mismo', /CONTRAINDICADO/.test(__t.txt('teer-resultado'))]] };
+    debe: ['Trombo en aur\u00edcula izquierda consignado'],
+    noDebe: ['CONTRAINDICADO', 'APTO para TEER', 'NO apto'],
+    extra: [['la PANTALLA conserva el veredicto de contraindicacion',
+             /CONTRAINDICADO/.test(pant)],
+            ['y el papel NO lo lleva', !/CONTRAINDICADO/.test(hoja)]] };
 `);
 
 // ═══ GRUPO 7 — Aorta ════════════════════════════════════════════════════════════════════════
@@ -40463,8 +40474,16 @@ caso('TC-289', 'Cierre de la Fase 1: el area mitral se clasifica como se imprime
          «VALV_MORF_FRASE»— y una opcion nueva olvidada ahi hacia que el bloque saliera EN SILENCIO:
          la protesis existia y el resumen no la nombraba. */
       ex.push(['la etiqueta de la protesis en el EN SUMA se deriva de VALV_MORF_FRASE, asi que no hay una tercera lista paralela que se pueda desincronizar',
+        /* ⚠️ ADAPTADO EN LA TANDA VAL-PPT (2026-11-02). Esto media que los DOS registros
+           tuvieran el MISMO numero de claves, y dejo de valer cuando VALV_MORF_FRASE sumo
+           las cuatro opciones de plastia y TEER —que no son protesis y no estan en
+           VALV_PROT_OPCIONES—. El invariante que el caso vigila NO es que los numeros
+           coincidan: es que TODA protesis tenga su frase, para que ninguna salga en silencio.
+           Asi escrito es ademas mas fuerte, porque una protesis nueva sin frase lo pone rojo
+           aunque los totales cuadren por casualidad. */
         typeof VALV_MORF_FRASE === 'object' &&
-        Object.keys(VALV_MORF_FRASE).length === VALV_PROT_OPCIONES.length &&
+        VALV_PROT_OPCIONES.every(function (o) {
+          return Object.prototype.hasOwnProperty.call(VALV_MORF_FRASE, o) }) &&
         VALV_PROT_OPCIONES.every(function(o){ return !!VALV_MORF_FRASE[o]; }),
         'opciones=' + VALV_PROT_OPCIONES.length + ' frases=' + Object.keys(VALV_MORF_FRASE).length]);
 
@@ -65717,15 +65736,25 @@ caso('TC-470', 'Aviso de exclusiones mitrales en las TRES guias y los DOS ritmos
   const OPCS = morfEl ? Array.from(morfEl.options).map(o => o.value) : [];
   /* DENOMINADOR: las NUEVE opciones de la morfologia. Si maniana hay una decima y nadie la
      clasifica, esta condicion lo dice en vez de dejarla pasar en silencio. */
-  ex.push(['(S0) DENOMINADOR: «Morfologia VM» tiene NUEVE opciones y son las conocidas',
-    OPCS.length === 9 && OPCS[0] === 'Normal' && OPCS.indexOf('Calcificada') > -1 &&
+  /* ADAPTADO en la tanda VAL-PPT (2026-11-02): 9 -> 11, por «Plastia mitral» y «TEER mitral».
+     Lo que el denominador vigila es que las opciones conocidas SIGAN estando, y eso no cambia. */
+  ex.push(['(S0) DENOMINADOR: «Morfologia VM» tiene ONCE opciones y las conocidas siguen estando',
+    OPCS.length === 11 && OPCS[0] === 'Normal' && OPCS.indexOf('Calcificada') > -1 &&
     OPCS.indexOf('Reumática') > -1 && OPCS.indexOf('Prótesis biológica') > -1 &&
     OPCS.indexOf('Prótesis mecánica') > -1 && OPCS.indexOf('Endocarditis') > -1,
     'n=' + OPCS.length + ' [' + OPCS.join(' | ') + ']']);
   /* Y NO hay opcion de plastia ni de anuloplastia: las tres guias las excluyen y la app no tiene
      con que detectarlas. Queda afirmado para que el dia que exista se note. */
-  ex.push(['(S0) NO hay opcion de plastia ni anuloplastia mitral — las guias la excluyen y la app no la puede detectar',
-    OPCS.filter(o => /plasti|anuloplasti|reparaci/i.test(o)).length === 0, OPCS.join(' | ')]);
+  /* ⚠️ INVERTIDA en la tanda VAL-PPT (2026-11-02), y es el dia que este caso anunciaba:
+     «Queda afirmado para que el dia que exista se note». La plastia mitral existe desde
+     VAL-PPT-1 y el TEER tambien. Lo que el caso sigue vigilando es que la app NO los gradue con
+     cortes propios —caen al ramal nativo—, que es lo que la decision del medico fija. */
+  ex.push(['(S0) INVERTIDA: la plastia y el TEER mitral YA son opciones, y ninguna agrega un corte',
+    OPCS.indexOf('Plastia mitral') > -1 && OPCS.indexOf('TEER mitral') > -1 &&
+    (typeof valvEsProtesis !== 'function' ||
+     (!valvEsProtesis('Plastia mitral') && !valvEsProtesis('TEER mitral'))),
+    'plastia=' + (OPCS.indexOf('Plastia mitral') > -1) + ' teer=' + (OPCS.indexOf('TEER mitral') > -1)]);
+
 
   const avisoTxt = () => { const e = document.getElementById('diast-excl-aviso');
     if (!e) return 'NO EXISTE';
@@ -65741,11 +65770,18 @@ caso('TC-470', 'Aviso de exclusiones mitrales en las TRES guias y los DOS ritmos
     return avisoTxt();
   };
 
-  /* ── (S1) LAS NUEVE OPCIONES, UNA POR UNA, contra «avisa si / no» ── */
+  /* ── (S1) LAS ONCE OPCIONES, UNA POR UNA, contra «avisa si / no» ──
+     ADAPTADO en la tanda VAL-PPT (2026-11-02): entraron «Plastia mitral» y «TEER mitral».
+     ⚠️ LAS DOS SE DECLARAN EN false PORQUE ES LO QUE LA APP HACE HOY, NO PORQUE ESTE
+     DECIDIDO. Una anuloplastia reduce el area mitral y un TEER crea un doble orificio, asi que
+     clinicamente podrian invalidar los criterios de llenado igual que una protesis —que si
+     avisa—. Decidir eso es contenido clinico y lo decide Maicol: esta fila documenta el
+     comportamiento actual para que el dia que cambie se note. ver docs/PENDIENTES.md VP-j. */
   const ESPERA_MORF = {
     'Normal': false, 'Mixomatosa / Barlow': false, 'Calcificada': true,
     'Reumática': false, 'Prolapso / EVMS': false,
     'Prótesis biológica': true, 'Prótesis mecánica': true,
+    'Plastia mitral': false, 'TEER mitral': false,
     'Endocarditis': false, 'Isquémica (disfunción/rotura músculo papilar)': false
   };
   OPCS.forEach(op => {
@@ -66276,8 +66312,11 @@ caso('TC-471', 'Valvulas D1: la insuficiencia mitral en TRES columnas de SEIS co
     /* ADAPTADO el 2026-10-24 (AJ5-1): 31 -> 32. El globo nuevo es el del Carpentier de la mitral
        (clave vm-carp), que nace con su pie de fuente. Lo que este caso vigila no es el numero
        sino que ninguno sea de legado y que todos sean <button> sin title, y eso se conserva. */
-    '(H) DENOMINADOR: la pestana tiene los TREINTA Y DOS globos y la tarjeta esta en el marcado',
-    globos.length === 32 && !!G('vinfo-card'),
+    /* ADAPTADO en la tanda VAL-PPT (2026-11-02): 32 -> 35, por los TRES globos de los tipos de
+     valvula intervenida -vm-morf-tipos, vt-morf-tipos y va-morf-tipos-. Lo que el caso vigila
+     -que sean botones, sin title y sin legado- no cambia. */
+    '(H) DENOMINADOR: la pestana tiene los TREINTA Y CINCO globos y la tarjeta esta en el marcado',
+    globos.length === 35 && !!G('vinfo-card'),
     'globos=' + globos.length + ' tarjeta=' + !!G('vinfo-card')]);
   ex.push(['(H) los veintidos son BOTONES, o sea enfocables y activables con teclado',
     globos.every(function(b){ return b.tagName.toLowerCase() === 'button'; }),
@@ -66448,7 +66487,12 @@ caso('TC-471', 'Valvulas D1: la insuficiencia mitral en TRES columnas de SEIS co
        globo del esquema de circulacion de la transposicion. NO esta en Valvulas, que es la
        pestana que este caso mide: lo que cambia es el denominador del registro, no lo que esta
        condicion afirma sobre el marcado de esa pestana. */
-    Object.keys(VINFO).length === 98,
+    /* ⚠️ ADAPTADO EN LA TANDA VAL-PPT (2026-11-02): 98 -> 101. Las TRES nuevas son
+       vm-morf-tipos, vt-morf-tipos y va-morf-tipos, los globos de los tipos de valvula
+       intervenida. Estas TRES SI viven en Valvulas, asi que suman tambien a los globos de la
+       pestana (32 -> 35). Lo que esta condicion exige no cambia: toda clave del marcado tiene
+       entrada -que es lo que impide una tarjeta VACIA- y ninguna es de legado. */
+    Object.keys(VINFO).length === 101,
     'registro=' + (HAY_INFO ? Object.keys(VINFO).join(',') : 'SIN REGISTRO')]);
   ex.push(['(H) y la tarjeta se coloca SIEMPRE dentro de la pantalla, sin cortarse',
     (function(){ const b = document.querySelector('[data-vinfo="avm-thp"]');
@@ -66687,8 +66731,11 @@ caso('TC-472', 'Valvulas D2: la insuficiencia aortica en TRES columnas de CUATRO
        lleve al manual, y eso se conserva entero: medido, 44 globos en la app, 44 entradas de
        registro, CERO sin entrada, CERO con atributo title y CERO que no sean <button>. */
     /* ADAPTADO el 2026-10-24 (AJ5-1): 31 -> 32, por el globo del Carpentier de la mitral. */
-    '(E) DENOMINADOR: la pestana tiene TREINTA Y DOS globos y la tarjeta esta en el marcado',
-    globos.length === 32 && !!G('vinfo-card'),
+    /* ADAPTADO en la tanda VAL-PPT (2026-11-02): 32 -> 35, por los TRES globos de los tipos de
+     valvula intervenida -vm-morf-tipos, vt-morf-tipos y va-morf-tipos-. Lo que el caso vigila
+     -que sean botones, sin title y sin legado- no cambia. */
+    '(E) DENOMINADOR: la pestana tiene TREINTA Y CINCO globos y la tarjeta esta en el marcado',
+    globos.length === 35 && !!G('vinfo-card'),
     'globos=' + globos.length + ' tarjeta=' + !!G('vinfo-card')]);
   ex.push(['(E) las CUATRO nuevas y las SIETE reescritas estan en el registro',
     HAY_INFO && NUEVAS.concat(REESCRITAS).every(function(k){ return !!VINFO[k]; }),
@@ -67655,7 +67702,10 @@ caso('TC-474', 'W2-B: los criterios PROPIOS de la protesis mitral y aortica —T
     // ADAPTADO el 2026-10-17 (tanda Q): 22 -> 31, por los ocho globos de las tarjetas de lesion
     // y el de la fuga paravalvular aortica. Lo que este caso vigila sigue intacto.
     // ADAPTADO el 2026-10-24 (AJ5-1): 31 -> 32, por el globo del Carpentier de la mitral.
-    globos.length === 32 &&
+     // ADAPTADO en la tanda VAL-PPT (2026-11-02): 32 -> 35, por los TRES globos de los tipos
+     // de valvula intervenida. Lo que esta condicion vigila -botones, sin title, sin llevar
+     // al manual y con entrada en el registro- no cambia.
+     globos.length === 35 &&
     globos.every(function(b){ return b.tagName.toLowerCase() === 'button'; }) &&
     globos.every(function(b){ return !b.getAttribute('title'); }) &&
     globos.every(function(b){ return (b.getAttribute('onclick') || '').indexOf('abrirAyudaEco') === -1; }) &&
@@ -77856,7 +77906,10 @@ caso('TC-500', 'Tanda Q: las OCHO tarjetas i de las valvulas arriba de su pastil
        registro, no lo que esta condicion afirma. */
     /* ADAPTADO (TANDA TGA-3, 01/11/2026): 97 -> 98. La entrada nueva es tga-esq, el globo del
        esquema de circulacion. NO esta en Valvulas: lo que cambia es el denominador. */
-    FN('vInfoClic') && !!CARD() && !!REG() && Object.keys(REG() || {}).length === 98,
+    /* ⚠️ ADAPTADO EN LA TANDA VAL-PPT (2026-11-02). Los TRES globos nuevos son
+       vm-morf-tipos, vt-morf-tipos y va-morf-tipos: dicen lo que la fuente define de la
+       plastia, el TEER y la TAVI, y lo que NO define. Lo que la condicion afirma no cambia. */
+    FN('vInfoClic') && !!CARD() && !!REG() && Object.keys(REG() || {}).length === 101,
     'VINFO=' + (REG() ? Object.keys(REG()).length : 'SIN REGISTRO') + ' card=' + !!CARD()]);
   ex.push(['(A1) los OCHO botones de lesion existen, son BUTTON, sin atributo title y con aria-expanded',
     CLAVES.every(function (k) { const b = BTN(k);
@@ -79176,7 +79229,11 @@ caso('TC-502', 'Tanda P: Referencias en CINCO subpestanas sin perder una entrada
      perdieron -siguen en VINFO y las leen los dos globos de grupo-, y los tres de la tarjeta
      no entran aca porque viven dentro del modal de criterios, que este barrido no abre.
      El limite que esta condicion declara no cambia; cambia su denominador. */
-  ex.push(['(C3) LIMITE DECLARADO: veintisiete tarjetas sin boton, porque Referencias no tiene esa entrada',
+  /* ADAPTADA (TANDA VAL-PPT, 02/11/2026): 27 -> 30. Las tres nuevas son vm-morf-tipos,
+       vt-morf-tipos y va-morf-tipos; no tienen ficha en Referencias por la MISMA razon que
+       inf-min y tga-esq: dicen que define y que NO define la fuente de un tipo de valvula
+       intervenida, y su contenido ya vive en los folios que el globo cita. */
+  ex.push(['(C3) LIMITE DECLARADO: treinta tarjetas sin boton, porque Referencias no tiene esa entrada',
     /* ADAPTADA (TANDA AJUSTES-2, commit 4a, 31/10/2026): 24 -> 25. La entrada nueva es
        inf-min, el ⓘ de la fila de miniaturas de lo que va al PDF; no tiene ficha en
        Referencias porque explica la INTERFAZ y no publica contenido clinico. */
@@ -79189,8 +79246,9 @@ caso('TC-502', 'Tanda P: Referencias en CINCO subpestanas sin perder una entrada
       + 'hemo-forr,hemo-ic,hemo-rvs,inf-min,'
 
       + 'tarj-esten-pulmonar,tarj-esten-tricuspide,tarj-insuf-pulmonar,'
-      + 'tep-eco-dx,tep-mcconnell,tga-3d,tga-esq,'
-      + 'vab-aorta,vab-cx,vab-friesgo,vab-func,vab-tit,vab-valv,vd-triv,vexus-lim,vm-carp',
+      + 'tep-eco-dx,tep-mcconnell,tga-3d,tga-esq,va-morf-tipos,'
+      + 'vab-aorta,vab-cx,vab-friesgo,vab-func,vab-tit,vab-valv,vd-triv,vexus-lim,vm-carp,'
+      + 'vm-morf-tipos,vt-morf-tipos',
     sinBoton.join(',')]);
   /* Cuatro tarjetas, una de cada familia. La de la aorta y la del VI viven en AI/VI, la de la
      valvula en Valvulas y la del test de burbuja detras de su propia seccion. */
@@ -91708,12 +91766,16 @@ caso('TC-535', 'Tanda AJ7: la linea de Fallot del EN SUMA sin la IP y el resumen
      todos los de esta lista. Lo que estas tres condiciones afirman no cambia —que cada globo
      mida 44x44 con el mouse y que su area no tape a un vecino—: cambia el denominador. Medido en
      los dos motores y en los cuatro anchos: 44x44 con los CINCO puntos dando el propio boton. */
-  ex.push(['(K0) DENOMINADOR: los DIECINUEVE globos llevan la clase, tienen geometria y estan EN VISTA',
-    tapK.length === 19 && tapK.every((x) => x.w > 0 && x.h > 0 && x.enVista), JSON.stringify(tapK)]);
-  ex.push(['(K1) los diecinueve miden 44x44 tambien con el mouse',
-    tapK.length === 19 && tapK.every((x) => x.w >= 44 && x.h >= 44), JSON.stringify(tapK)]);
+  /* ⚠️ ADAPTADO EN LA VAL-PPT (2026-11-02): DIECINUEVE -> VEINTIDOS, por los TRES globos de
+     los tipos de valvula intervenida, que nacen con la clase vinfo-btn-44. Lo que estas tres
+     condiciones afirman no cambia: cambia el denominador. Medido en los dos motores y en los
+     cuatro anchos: 44x44 con los CINCO puntos dando el propio boton. */
+  ex.push(['(K0) DENOMINADOR: los VEINTIDOS globos llevan la clase, tienen geometria y estan EN VISTA',
+    tapK.length === 22 && tapK.every((x) => x.w > 0 && x.h > 0 && x.enVista), JSON.stringify(tapK)]);
+  ex.push(['(K1) los veintidos miden 44x44 tambien con el mouse',
+    tapK.length === 22 && tapK.every((x) => x.w >= 44 && x.h >= 44), JSON.stringify(tapK)]);
   ex.push(['(K2) y su caja NO tapa a ningun vecino: los cinco puntos dan el propio boton',
-    tapK.length === 19 && tapK.every((x) => x.propios === 5), JSON.stringify(tapK)]);
+    tapK.length === 22 && tapK.every((x) => x.propios === 5), JSON.stringify(tapK)]);
   ex.push(['(K3) CONTROL: los demas globos NO se tocaron y siguen con su piso solo tactil',
     document.querySelectorAll('button.vinfo-btn').length
       - document.querySelectorAll('button.vinfo-btn-44').length >= 10,

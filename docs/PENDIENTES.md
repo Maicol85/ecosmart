@@ -12064,3 +12064,18 @@ anotá la decisión de ocultarlos». Medido: **cero** campos de graduación se m
 morfología nativa y un TEER. La fuente dice que PISA **no se recomienda** para cuantificar tras
 un borde a borde (folios 450, 451 y 458) y el globo lo publica, pero los campos se quedan.
 **Qué falta decidir:** si se esconden, si se marcan, o si alcanza con el globo.
+
+## VP-j · El aviso de exclusiones mitrales de la diastólica no se dispara con una plastia ni con un TEER
+
+Medido: el aviso lo disparan «Calcificada», «Prótesis biológica» y «Prótesis mecánica». Las dos
+opciones nuevas **no** lo disparan, porque nadie las agregó a esa lista.
+
+**Por qué no se tocó.** Una anuloplastia reduce el área mitral y un TEER crea un doble orificio,
+así que **clínicamente podrían invalidar los criterios de llenado** igual que una prótesis. Pero
+decidirlo es contenido clínico: cambia lo que la app afirma sobre la función diastólica de esos
+pacientes, y esta orden no lo autoriza —su alcance es Válvulas, el posoperatorio, los dos
+retoques y el PPT—.
+
+**Qué queda hecho:** TC-470 **(S1)** documenta el comportamiento actual con las once opciones,
+así que el día que cambie se nota.
+**Qué falta decidir:** si «Plastia mitral» y «TEER mitral» entran a esa lista.

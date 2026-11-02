@@ -23,7 +23,12 @@ Dieciséis pasos, un dato por línea. El ancho de ventana va indicado donde impo
 
 ## Los dos archivos de prueba del bucle
 
-Quedan generados y validados en el directorio que el reporte nombra. **Esta parte no se puede
+Quedan generados y validados en **~/Desktop/ceibo-ppt-valppt/**:
+
+- **valppt_dos_videos.pptx** (95.656 B) — dos videos en la MISMA diapositiva, los dos con bucle
+- **valppt_mezcla.pptx** (86.115 B) — una imagen y un video en la misma diapositiva
+- **valppt_sin_bucle.pptx** (95.009 B) — la CAIDA: los dos videos incrustados y SIN arbol de tiempo
+ **Esta parte no se puede
 automatizar**: hay que abrirlos.
 
 - En **PowerPoint**: abrir el `.pptx`, ir a la diapositiva que tiene los **dos** videos, hacer
