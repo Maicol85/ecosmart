@@ -673,6 +673,24 @@ const ESCENAS_NUEVAS = {
   vNuevaVmTeer: _vEsc({ sexo: 'M', vm_morf: 'TEER mitral' }),
   vNuevaVtPlas: _vEsc({ sexo: 'M', vt_morf: 'Plastia tricuspídea' }),
   vNuevaVtTeer: _vEsc({ sexo: 'M', vt_morf: 'TEER tricuspídeo (T-TEER)' }),
+  /* ⚠️ EL VALOR NUEVO COMO UNICO HALLAZGO, que es la escena que decide si el EN SUMA niega
+     lo que el cuerpo describe. Es el defecto que la tanda AJ1 cerro para la bicuspide: con una
+     valvula intervenida y nada mas, el resumen decia «Estudio sin alteraciones estructurales ni
+     funcionales significativas». SIN pastillas y SIN lesiones. */
+  vSoloVmPlas:  { campos: { pac_nombre: 'Prueba ValPPT', pac_ci: '7654321', peso: '75', talla: '172', edad: '70' },
+                  sel: { sexo: 'M', vm_morf: 'Plastia mitral' } },
+  vSoloVmTeer:  { campos: { pac_nombre: 'Prueba ValPPT', pac_ci: '7654321', peso: '75', talla: '172', edad: '70' },
+                  sel: { sexo: 'M', vm_morf: 'TEER mitral' } },
+  vSoloVtPlas:  { campos: { pac_nombre: 'Prueba ValPPT', pac_ci: '7654321', peso: '75', talla: '172', edad: '70' },
+                  sel: { sexo: 'M', vt_morf: 'Plastia tricuspídea' } },
+  vSoloVaTavi:  { campos: { pac_nombre: 'Prueba ValPPT', pac_ci: '7654321', peso: '75', talla: '172', edad: '70' },
+                  sel: { sexo: 'M', va_morf: 'TAVI' } },
+  /* El CONTROL NEGATIVO del anterior: el mismo estudio con la morfologia de fabrica. */
+  vSoloNada:    { campos: { pac_nombre: 'Prueba ValPPT', pac_ci: '7654321', peso: '75', talla: '172', edad: '70' },
+                  sel: { sexo: 'M' } },
+  /* Y el control de un valor VIEJO que tampoco sube hoy: la protesis mecanica mitral. */
+  vSoloVmMec:   { campos: { pac_nombre: 'Prueba ValPPT', pac_ci: '7654321', peso: '75', talla: '172', edad: '70' },
+                  sel: { sexo: 'M', vm_morf: 'Prótesis mecánica' } },
   /* Las combinaciones que el commit 3 pide verificar. */
   vNuevaCombo:  _vEsc({ sexo: 'M', vm_morf: 'Plastia mitral',
                         vt_morf: 'TEER tricuspídeo (T-TEER)', va_morf: 'TAVI' }),

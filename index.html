@@ -61844,6 +61844,43 @@ function generarInforme(opts) {
       if (d) { suma.push(base + ' con ' + d + '.'); return; }
       suma.push(base + ' normofuncionante.');
     });
+    /* ══ LA MITRAL INTERVENIDA QUE NO ES UNA PRÓTESIS — VAL-PPT-3 (2026-11-01) ══════════════
+       MEDIDO EN EL ÁRBOL DEL COMMIT 2, con la plastia o el TEER como ÚNICO hallazgo: el cuerpo
+       decía «Válvula mitral con plastia mitral, sin estenosis ni insuficiencia.» y el EN SUMA
+       —la superficie que se lee y se copia al resumen de alta— «Estudio sin alteraciones
+       estructurales ni funcionales significativas». El resumen negaba lo que el cuerpo describía.
+       Es la misma familia que la prótesis mitral de arriba, que la bicúspide de AJ1 y que el
+       pulmón de C2.
+
+       ⚠️ SÓLO LA MITRAL, Y ESTÁ MEDIDO POR QUÉ. Con el tipo nuevo como único hallazgo:
+         · mitral     → «Estudio sin alteraciones…»                     ← el defecto, se cierra acá
+         · tricúspide → «VT con plastia tricuspídea.»                     (su rama de morfología ya sube)
+         · aórtica    → «Sin OTRAS alteraciones… ver el cuerpo»          (TAVI es prótesis: la toma el bucle)
+         · pulmonar   → sin opciones nuevas
+       Un empujón incondicional le cambiaría el EN SUMA a las otras tres, que es justo lo que la
+       tabla de `reusaSinEvidencia` de arriba explica que no se hace.
+
+       ⚠️ NO SE AGREGA UNA PALABRA: `reusar` empuja LA LÍNEA QUE EL CUERPO YA IMPRIMIÓ, con las
+       MISMAS funciones del bloque de arriba —`lineaCuerpo`, `suma`, `yaDicho`— y no con una
+       segunda copia. Por construcción no puede contradecir al cuerpo.
+       ⚠️ Y NO SE AFIRMA NADA DE SU FUNCIÓN: a diferencia de la rama protésica, acá no hay
+       «normofuncionante» ni frase de respaldo. La app no tiene cortes para una válvula reparada
+       —la lectura del commit 2 lo deja escrito— así que si el cuerpo no tuviera línea que reusar,
+       no se inventa ninguna. */
+    (function(){
+      const V = VALVS[0];                       // la mitral, la única con `reusaSinEvidencia`
+      const morf = g(V.morf);
+      if (typeof valvEsProtesis === 'function' && valvEsProtesis(morf)) return;  // ya la tomó el bucle
+      if (typeof popVTipoCorto !== 'function') return;
+      const tc = popVTipoCorto(morf);
+      if (tc !== 'plastia' && tc !== 'teer') return;
+      const yaEnSuma = suma.some(function(l){
+        const t = String(l || '');
+        return V.yaDicho.some(function(k){ return t.indexOf(k) > -1; });
+      });
+      if (yaEnSuma) return;                     // el resumen ya habla de esta válvula
+      reusar(V);
+    })();
   })();
 
   // Escribir En Suma
@@ -149840,8 +149877,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261101-2346';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793587561676;                 /* eco-build-ms */
+const ECO_BUILD    = '20261101-2351';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793587892577;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -149927,7 +149964,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261101-2346</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261101-2351</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
