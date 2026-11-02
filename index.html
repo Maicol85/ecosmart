@@ -3210,12 +3210,23 @@ html.light-mode .amilo-root{
    por debajo de eso las dos columnas quedarían en 370, que es el ancho de un celular.
    En el celular esto no se aplica y los tres `div` vuelven a ser `display:block`, o sea apilados,
    que es lo que la orden pide. */
+/* ══ LAS DOS COLUMNAS DE LAS SECCIONES DE PREGUNTAS (TGA-4, commit 3b-6) ══════════════════════
+   El corte es el ancho del PANEL -900 px- y no el de la ventana, asi que no puede ser una media
+   query: la decide `_indColsSync` midiendo la caja y escribiendo `data-ind-cols`. Las ocho
+   secciones compactas de antes NO llevan `data-ind-preg` y siguen con su media query de 1200 px,
+   intacta. El boton de alternar escribe el mismo atributo, asi que hay UN solo dueno. */
+#indic-card [data-ind-grid][data-ind-preg="1"][data-ind-cols="2"]{
+  display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+  column-gap:18px;align-items:start;
+}
+#indic-card [data-ind-grid][data-ind-preg="1"][data-ind-cols="2"] [data-ind-col="clin"] > div:first-child{margin-top:0}
+#indic-card [data-ind-grid][data-ind-preg="1"][data-ind-cols="1"]{display:block}
 @media (min-width:1200px){
-  #indic-card [data-ind-grid][data-ind-dos="1"][data-ind-compacta="1"]{
+  #indic-card [data-ind-grid][data-ind-dos="1"][data-ind-compacta="1"]:not([data-ind-preg="1"]){
     display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);
     column-gap:18px;align-items:start;
   }
-  #indic-card [data-ind-grid][data-ind-dos="1"][data-ind-compacta="1"] [data-ind-col="clin"] > div:first-child{margin-top:0}
+  #indic-card [data-ind-grid][data-ind-dos="1"][data-ind-compacta="1"]:not([data-ind-preg="1"]) [data-ind-col="clin"] > div:first-child{margin-top:0}
 }
 @media (min-width:1000px){
   #indic-card[data-ind-max="1"] [data-ind-grid][data-ind-dos="1"]{
@@ -84385,6 +84396,24 @@ function _indSinUmbral(lbl){ return _indFila(lbl, '—', 'ask', 'umbral no dispo
    la casa es que un mapa consultado con `hasOwnProperty` no arrastre el prototipo. */
 var _indClin = Object.create(null);
 function _indClinGet(k){ return Object.prototype.hasOwnProperty.call(_indClin, k) ? _indClin[k] : null; }
+/* ══ EL TERCER ESTADO, EXPLICITO (TGA-4, commit 3b-1) ═════════════════════════════════════════
+   El pedido del medico: «un control en linea de tres estados Si | No | ?, el ? es sin dato y NO
+   cuenta como No». La LOGICA de los tres estados no cambia —ya existia: `_indClin[k]` vale 'si',
+   'no' o null, y un segundo toque sobre la opcion activa la desmarcaba—. Lo que faltaba era el
+   BOTON: volver a «sin dato» exigia adivinar que hay que tocar dos veces, y eso no se anuncia.
+
+   ⚠️ EL CENTINELA PONE `null` Y NO LA CADENA VACIA, y la diferencia importa: medio panel
+   pregunta `val == null` para decidir si una condicion esta sin contestar —`_indPregNota` lo
+   usa para decir «sin dato no cuenta como no»— y una cadena vacia NO es null, asi que la
+   advertencia se habria callado justo en el estado que viene a hacer explicito.
+   ⚠️ SE RESUELVE EN EL MANEJADOR, que es el UNICO lugar que escribe la respuesta: con la
+   traduccion repartida entre el pintor y el manejador, uno de los dos se queda sin el proximo
+   ajuste. Las secciones que no lo ofrecen no lo tienen y su control no cambia ni un pixel.
+   ⚠️ Y CON TRES OPCIONES SE ENCIENDE EL PISO DE ANCHO QUE `_indFilaHTML` YA TENIA para las
+   botoneras de mas de dos: con dos, la celda quedaba en 60 px y los dos botones de 44x44 se
+   APILABAN, que es por que cada pregunta medía 104 px —medido—. */
+const IND_SD_VAL = '__sd';
+const IND_OPS_SD = Object.freeze({ v: IND_SD_VAL, t: '?' });
 function _indClinLimpiar(){ _indClin = Object.create(null); }
 
 /* Los botones se arman con `data-*` y un ÚNICO oyente delegado, nunca con `onclick` inline.
@@ -84421,7 +84450,8 @@ function _indClinCablear(){
     /* Un segundo toque sobre la opción activa la DESMARCA. El dato es opcional: sin esto,
        marcar por error deja una respuesta pegada al panel sin forma de volver a «no consta»
        salvo cerrarlo. Mismo criterio que el selector de origen del SGL. */
-    _indClin[k] = (_indClinGet(k) === v) ? null : v;
+    /* El centinela del tercer estado SIEMPRE deja «sin dato»: no alterna. Ver su nota. */
+    _indClin[k] = (v === IND_SD_VAL) ? null : ((_indClinGet(k) === v) ? null : v);
     _indRepintarConservando(k, v);
     /* ⚠️ EL AVISO DEL CALC-BOX VIVE FUERA DEL PANEL, así que el repintado del panel no lo alcanza.
        Sin esta línea, contestar «Secundaria» acá escondía la tarjeta primaria —el panel se repinta—
@@ -84618,6 +84648,28 @@ function _indFilaCtrl(lbl, clave, ops, marca, nota, refs){
    que no coinciden y no se inventa un tramo intermedio ni una pregunta que no esté en ninguna
    de las dos hojas. Es la regla R6 aplicada a un hueco entre dos documentos. */
 const IND_GUIA_LBL = Object.freeze({ acc:'ACC/AHA 2025', esc:'ESC 2020' });
+/* ══ LA ETIQUETA CORTA DE LA GUIA, EN LA FILA (TGA-4, commit 3b) ═══════════════════════════════
+   El pedido: «una etiqueta corta de la guia ("ACC 1·B-NR"), y las preguntas rotuladas ESC 2020
+   con su etiqueta en otro color». Con el detalle plegado en el ⓘ, la fila tiene que seguir
+   diciendo DE QUE GUIA sale su corte sin que haya que abrir nada: esa es la regla E-1, «con su
+   nombre y año visibles», y plegarla entera la rompia.
+
+   ⚠️ LA CLASE Y EL NIVEL SE LEEN DEL TEXTO QUE LA TABLA DE PREGUNTAS YA ESCRIBIO, Y FALLA
+   CERRADO. No hay un campo con la clase: vive dentro de `rec`, redactada. Una expresion regular
+   sobre una cadena de pantalla se rompe en silencio el dia que alguien le cambie un guion —es la
+   trampa que este archivo documenta—, asi que cuando NO encuentra el patron la etiqueta publica
+   SOLO la guia y nunca una clase inventada. Lo que no se puede leer no se afirma.
+   ⚠️ Y NO SE DUPLICA EL DATO: el ⓘ de la fila sigue trayendo `rec` entero, con su clase, su
+   nivel, su recomendacion, su hoja y su folio. La etiqueta es un resumen de lo que ya esta. */
+const IND_GUIA_CORTA = Object.freeze({ acc:'ACC', esc:'ESC' });
+function _indPregBadge(p){
+  if (!p || !p.guia || !Object.prototype.hasOwnProperty.call(IND_GUIA_CORTA, p.guia)) return null;
+  const r = String(p.rec == null ? '' : p.rec);
+  const mc = r.match(/Clase\s+(III|II[ab]?|IV|I|[0-9][ab]?)\b/);
+  const mn = r.match(/Nivel\s+([A-C](?:-[A-Z]{2})?)\b/);
+  const cn = mc ? (mc[1] + (mn ? '\u00b7' + mn[1] : '')) : '';
+  return { g: IND_GUIA_CORTA[p.guia], cn: cn, guia: p.guia };
+}
 /* La nota completa de una pregunta: el rótulo de su guía, lo que esa guía manda, la línea de
    referencia de la OTRA y la nota de tramo. Las cuatro piezas llegan YA redactadas por la
    tabla de preguntas —que es la única que leyó la hoja— y esta función sólo las ordena: con la
@@ -84674,7 +84726,16 @@ window.imEsSecundariaIM = imEsSecundariaIM;
    que dicen DÓNDE se carga el campo —«se puntúa en ETE», «la indicación exige haber descartado
    trombo auricular»— no se mostraban nunca. Se muestran, y recién después el aviso de que lo que
    se contesta acá no viaja con el estudio. */
-function _indFilaOrigen(lbl, o, ops, pinta){
+/* ⚠️ `sinAviso` LO PASAN SOLO LAS SECCIONES QUE YA DICEN LA FRASE EN SU PIE (TGA-4, commit 3).
+   El pedido del medico es que «contestado en este panel: no se guarda con el estudio» salga de
+   CADA pregunta y se diga UNA sola vez abajo. Pero este molde lo comparten DIEZ secciones y el
+   censo dice que CINCO no tienen la frase en sus `notas` —`_indEM`, `_indFOP`, `_indAo`,
+   `_indVAB` y `_indEP`—: retirarla aca a secas las dejaba sin UN SOLO aviso de que lo contestado
+   no viaja con el estudio, que es peor que repetirla. Asi que la quita quien ya la dice.
+   ⚠️ LA PISTA «Si ya está cargado en su pestaña, aparece acá solo» NO SE VA: no es el aviso de
+   persistencia, es la explicacion de por que la fila pregunta en vez de leer, y sin ella una
+   pregunta sin contestar no dice donde se carga el dato. */
+function _indFilaOrigen(lbl, o, ops, pinta, sinAviso){
   let p = null;
   try { p = pinta(o.val); } catch (e) { p = null; }
   const ok = p && typeof p === 'object';
@@ -84686,10 +84747,12 @@ function _indFilaOrigen(lbl, o, ops, pinta){
      dónde esté cargado el dato — que es la clase de intermitencia que este panel ya pagó cara. */
   const refs  = ok && p.refs ? p.refs : null;
   if (o.deEstudio) return _indFila(lbl, txt, marca, nota, refs);
+  const _pista = (o.val == null) ? 'Si ya está cargado en su pestaña, aparece acá solo.' : '';
+  const _cola = sinAviso
+    ? (_pista ? '— ' + _pista : '')
+    : ('— contestado en este panel: no se guarda con el estudio' + (_pista ? '. ' + _pista : '.'));
   return _indFilaCtrl(lbl, o.clave, ops, o.val == null ? 'ask' : marca,
-    (nota ? nota + ' ' : '') +
-    '— contestado en este panel: no se guarda con el estudio' +
-    (o.val == null ? '. Si ya está cargado en su pestaña, aparece acá solo.' : '.'), refs);
+    (nota ? nota + (_cola ? ' ' : '') : '') + _cola, refs);
 }
 
 /* ══ PLAUSIBILIDAD: UN VALOR ILEGIBLE NO SOSTIENE NI NIEGA UN CRITERIO ════════════════════════
@@ -84738,7 +84801,8 @@ function _indLeer(id, k){
 function _indCtrlHTML(ctrl){
   const val = _indClinGet(ctrl.clave);
   return '<div style="display:flex;flex-wrap:wrap;gap:5px;">' + ctrl.ops.map(function(o){
-    const on = val === o.v;
+    /* El centinela se ve marcado cuando NO hay respuesta, que es lo que representa. */
+    const on = (o.v === IND_SD_VAL) ? (val == null) : (val === o.v);
     /* El alto lo fija la regla táctil global de `button` (44 px), AHORA TAMBIÉN CON MOUSE: la
        media query que se lo bajaba dejó de alcanzar a la botonera el 31/10/2026, y el motivo
        está medido en su propio comentario. Esto se toca con el dedo en una tablet al lado del
@@ -85106,7 +85170,55 @@ function _indInfoHTML(lbl, htmlInterno){
    sin un error y sin que nada lo delate. Ese día es hoy, así que se cambian los tres.
    `compacta` lo trae la SECCIÓN (ver `_indSecHTMLCuerpo`), y desde la tanda A lo piden OCHO.
    Para las otras siete esta rama no existe. */
+/* ══ UNA O DOS COLUMNAS, POR EL ANCHO DEL PANEL (TGA-4, commit 3b-6) ══════════════════════════
+   DOS columnas cuando el panel mide 900 px o mas, UNA cuando mide menos. Se mide la CAJA y no
+   la ventana porque es lo que la orden dice y porque es lo unico correcto: el panel sin
+   maximizar mide 820 px tanto a 1440 como a 1000 px de ventana, asi que una media query sobre
+   la ventana le daria dos columnas de 410 en los dos casos.
+
+   ⚠️ NO SE GUARDA LA PREFERENCIA. El atributo vive en el nodo y el nodo se rehace en cada
+   pintada, asi que al cerrar el panel se pierde — que es lo que la orden pide. Lo que el boton
+   pone, `_indColsSync` NO lo pisa: se respeta mientras el panel siga abierto.
+   ⚠️ FALLA ABIERTO: sin poder medir, una columna. Es la disposicion que entra en cualquier
+   ancho; dos columnas en un panel angosto es texto partido en cuatro renglones. */
+const IND_COLS_CORTE = 900;
+function _indColsSync(){
+  const card = document.getElementById('indic-card');
+  if (!card) return;
+  let w = 0;
+  try { w = Math.round(card.getBoundingClientRect().width) } catch (e) { w = 0 }
+  const dos = w >= IND_COLS_CORTE;
+  Array.prototype.forEach.call(card.querySelectorAll('[data-ind-grid][data-ind-preg="1"]'), function (g) {
+    if (g.getAttribute('data-ind-manual') === '1') return;
+    g.setAttribute('data-ind-cols', dos ? '2' : '1');
+  });
+  Array.prototype.forEach.call(card.querySelectorAll('[data-ind-colbtn]'), function (b) {
+    b.setAttribute('aria-pressed', dos ? 'true' : 'false');
+  });
+}
+window._indColsSync = _indColsSync;
+function _indColsToggle(btn){
+  if (!btn) return;
+  /* El boton gobierna LA SECCION en la que esta y no el panel entero: el medico puede querer
+     la tabla larga en dos y la corta en una. Se busca la grilla hermana hacia abajo. */
+  let n = btn.parentNode, g = null;
+  while (n && !g) { g = n.querySelector ? n.querySelector('[data-ind-grid][data-ind-preg="1"]') : null;
+    if (!g) n = n.nextElementSibling || n.parentNode; if (n === document.body) break; }
+  if (!g) return;
+  const dos = g.getAttribute('data-ind-cols') !== '2';
+  g.setAttribute('data-ind-cols', dos ? '2' : '1');
+  g.setAttribute('data-ind-manual', '1');
+  btn.setAttribute('aria-pressed', dos ? 'true' : 'false');
+}
+window._indColsToggle = _indColsToggle;
 function _indFilaHTML(f, compacta){
+  /* ⚠️ UNA FILA DE GRUPO NO ES UNA FILA DE DATO (TGA-4, commit 3b-7). Es un rotulo chico que
+     parte la lista de preguntas en bloques; no tiene valor, ni marca, ni nota, ni ⓘ. Va primero
+     porque todo lo de abajo supone una fila con sus tres celdas. */
+  if (f && f.grupoHdr) return '<tr data-ind-grupo="1"><td colspan="3" ' +
+    'style="padding:9px 8px 2px;font-size:10px;font-weight:700;letter-spacing:.04em;' +
+    'text-transform:uppercase;color:var(--text2);border-top:1px solid var(--border);">' +
+    _critEsc(f.grupoHdr) + '</td></tr>';
   const M = IND_MARCA[f.marca] || IND_MARCA.none;
   /* ══ QUÉ NOTA SE PLIEGA, Y LA COMPUERTA ES LA MARCA ════════════════════════════════════════
      Se pliega la nota de una PREGUNTA —una fila con botonera— y nada más. Decisión de Maicol
@@ -85157,9 +85269,23 @@ function _indFilaHTML(f, compacta){
        Y el `nowrap` del valor es lo que desbordaba la tabla a 390 px —«telesistólico 24 ml/m² ·
        telediastólico 70 ml/m²» mide 362 px en un panel de 310—, un desborde que viene de antes
        de esta tanda y que acá se cierra para esta sección. */
+    /* ⚠️ LA ETIQUETA DE GUIA VA DESPUES DEL ROTULO ESCAPADO Y NO DENTRO DE EL, igual que el ⓘ
+       del termino y por el mismo motivo: un marcado embebido en el string saldria LITERAL por
+       el escape, y la unica alternativa seria no escapar. Las ~200 filas que no la traen se
+       pintan exactamente igual.
+       El COLOR distingue la guia que rige de la anterior, que es lo que el pedido pide: la
+       ACC/AHA 2025 en el acento del panel y la ESC 2020 en el color secundario. */
     '<td style="padding:5px 8px;font-size:11.5px;vertical-align:top;' +
       (compacta ? 'width:100%;' : '') + '">' + _critEsc(f.lbl) +
-      (f.term ? _indTermBtnHTML(f.term) : '') + '</td>' +
+      (f.term ? _indTermBtnHTML(f.term) : '') +
+      (f.badge ? ' <span data-ind-gbadge="' + _critEsc(f.badge.guia) + '" style="display:inline-block;'
+        + 'font-size:9.5px;font-weight:700;line-height:1.5;padding:0 5px;border-radius:7px;'
+        + 'white-space:nowrap;vertical-align:1px;'
+        + (f.badge.guia === 'acc'
+            ? 'color:var(--accent2);border:1px solid var(--accent2);'
+            : 'color:var(--text2);border:1px solid var(--border);background:var(--bg3);')
+        + '">' + _critEsc(f.badge.g + (f.badge.cn ? ' ' + f.badge.cn : '')) + '</span>' : '')
+      + '</td>' +
     /* ⚠️ Y UN PISO DE ANCHO PARA LAS BOTONERAS DE MAS DE DOS OPCIONES. Con el rótulo golosa, la
        celda de los botones se queda con ~92 px: las dos de Sí/No entran igual, pero la de cuatro
        opciones —la fracción regurgitante— apilaba sus cuatro botones uno por línea y la fila
@@ -85693,12 +85819,26 @@ function _indSecHTMLCuerpo(tit, r){
         evitaba llamando a cada una en su lugar; con una sola, el corchete sigue el orden de
         lectura por construcción y no por revisión. */
   const compacta = !!r.compacta;
+  /* ⚠️ `preguntas` ES UN MARCADOR NUEVO Y NO TOCA LAS OCHO COMPACTAS DE ANTES (TGA-4, commit 3b-6).
+     Las dos columnas de las secciones de PREGUNTAS se deciden por el ancho del PANEL -900 px,
+     que es lo que la orden pide- y no por el de la VENTANA, que es lo que mide la media query
+     de las otras ocho: el panel sin maximizar mide 820 px a 1440 y a 1000, asi que una regla
+     sobre la ventana le daria dos columnas de 410 justo donde no entran. Lo resuelve
+     `_indColsSync`, que mide la caja y escribe `data-ind-cols`. */
+  const esPreg = !!r.preguntas;
   const _bloRec = function(){
     return ((r.bloques && r.bloques.length) ? r.bloques.map(_indBloqueHTML).join('') : '')
          + (r.recom ? _indRecomHTML(r.recom) : ''); };
   const hayClin = !!(r.clinica && r.clinica.length);
+  /* El boton chico de alternar una/dos columnas. NO guarda la preferencia -vive mientras el
+     panel este abierto-, que es lo que la orden pide. Va solo en las secciones de preguntas. */
+  if (esPreg && hayClin) h += '<div style="text-align:right;margin:2px 0 -4px;">' +
+    '<button type="button" data-ind-colbtn="1" onclick="_indColsToggle(this)" ' +
+    'style="font-size:10px;line-height:1.6;padding:1px 8px;min-height:22px;border-radius:7px;' +
+    'border:1px solid var(--border);background:var(--bg3);color:var(--text2);cursor:pointer;" ' +
+    'aria-label="Alternar entre una y dos columnas">⇔ columnas</button></div>';
   h += '<div data-ind-grid="1"' + (hayClin ? ' data-ind-dos="1"' : '') +
-       (compacta ? ' data-ind-compacta="1"' : '') + '>';
+       (compacta ? ' data-ind-compacta="1"' : '') + (esPreg ? ' data-ind-preg="1"' : '') + '>';
   h += '<div data-ind-col="eco"><table style="width:100%;border-collapse:collapse;">' +
        r.filas.map(function(f){ return _indFilaHTML(f, compacta) }).join('') + '</table></div>';
   if (hayClin) {
@@ -91916,7 +92056,9 @@ function _indCIV(){
    ⚠️ NADA DE ESTA SECCION LLEGA AL PAPEL. El informe, el EN SUMA, el PDF, el PPT y la cápsula
    `tga-concl` de la pantalla no leen una sola línea de acá: esta función no la llama ningún
    emisor, sólo `IND_SECS`. Es la condición (7) del pedido y la fija el caso de prueba. */
-const TGA_IND_OPS = Object.freeze([{ v:'si', t:'Sí' }, { v:'no', t:'No' }]);
+/* Tres estados: «Sí», «No» y «?» -sin dato-. El tercero es el centinela `IND_OPS_SD`; ver su
+   nota, que explica por que pone `null` y no una cadena vacia. */
+const TGA_IND_OPS = Object.freeze([{ v:'si', t:'Sí' }, { v:'no', t:'No' }, IND_OPS_SD]);
 /* ⚠️ CADA PREGUNTA NOMBRA LA RECOMENDACION QUE LA ORIGINA, y no hay ninguna que no salga de una
    condición escrita en la hoja: es la condición (2) del pedido. `clave` es la de `_indClin`.
    `grupo` las reparte: el panel muestra SOLO las del escenario cargado, porque preguntar por una
@@ -91929,26 +92071,40 @@ const TGA_IND_OPS = Object.freeze([{ v:'si', t:'Sí' }, { v:'no', t:'No' }]);
    preguntar por una fuga del túnel auricular a un paciente operado con Jatene es ruido.
    ⚠️ NINGUNA PREGUNTA MEZCLA CORTES DE LAS DOS GUIAS, y el caso de prueba lo vigila: la que
    rige es la de `guia` y la otra aparece SOLO como línea de referencia, sin condicionar nada. */
+/* ══ LOS CUATRO GRUPOS DEL SWITCH AURICULAR (TGA-4, commit 3b-7) ══════════════════════════════
+   Los nombres son los que el medico escribio en la orden. Van SOLO en el switch auricular, que
+   es donde el agrupamiento es evidente —dieciocho preguntas sobre cuatro cosas distintas—: en
+   los otros cuatro paneles de la transposicion no se inventa ninguno, que es lo que la orden
+   dice textualmente. Una pregunta sin `gr` se pinta en la lista corrida de siempre.
+   ⚠️ AGRUPAR REORDENA. Las preguntas salen en el orden de los grupos y no en el de la tabla; el
+   CONTENIDO de cada una —su texto, su guia, su clase, su nivel, su hoja y su folio— no cambia
+   ni un caracter, y el conteo de citas de la seccion es el mismo. */
+const TGA_IND_GRUPOS = Object.freeze([
+  { k:'sint',  lbl:'Síntomas y función' },
+  { k:'tunel', lbl:'Túnel y vías venosas' },
+  { k:'vsist', lbl:'Ventrículo sistémico y hemodinamia' },
+  { k:'ritmo', lbl:'Ritmo y dispositivos' }
+]);
 const TGA_IND_PREG = Object.freeze({
   aur: Object.freeze([
-    { clave:'tga.ev.icprog', lbl:'Insuficiencia cardíaca o intolerancia al ejercicio, nuevas o progresivas', guia:'acc', rec:'Clase 1 · Nivel B-NR, recomendaciones 1 a 3 —ecocardiograma y resonancia, prueba de ejercicio cardiopulmonar y evaluación hemodinámica invasiva— y Clase 2a · Nivel B-NR, recomendación 6 —electrocardiograma y monitoreo ambulatorio del ritmo—, hoja 77, folio e191', nota:'una sola pregunta para las cuatro recomendaciones, porque la condición que todas escriben es la misma (regla E-5)' },
-    { clave:'tga.ev.refract', lbl:'Intolerancia al ejercicio, insuficiencia cardíaca o arritmia que empeoran pese al tratamiento', guia:'acc', rec:'Clase 1 · Nivel C-LD, recomendación 11 — derivación a un programa de insuficiencia cardíaca para evaluar soporte mecánico y trasplante, hoja 77, folio e191', nota:'queda SEPARADA de la anterior por la regla E-5: la recomendación 11 agrega «arritmia refractaria al tratamiento», que «insuficiencia cardíaca o intolerancia al ejercicio» no cubre' },
-    { clave:'tga.ev.sintfugaobstr', lbl:'Síntomas atribuibles a la fuga del túnel o a la obstrucción', guia:'acc', rec:'Clase 1 · Nivel C-LD, recomendaciones 9 y 10 — cierre de la fuga e intervención para aliviar la estenosis, hoja 77, folio e191', ref:'con síntomas, la reparación quirúrgica y el stent del túnel son Clase I · Nivel C (hoja 57, folio 619)' },
-    { clave:'tga.ev.pvobstr', lbl:'Estenosis de la vía venosa pulmonar', guia:'acc', rec:'Clase 1 · Nivel C-LD, recomendación 10 — intervención para aliviar la estenosis, hoja 77, folio e191', ref:'la obstrucción sintomática de la aurícula venosa pulmonar lleva reparación quirúrgica, Clase I · Nivel C (hoja 57, folio 619)' },
-    { clave:'tga.ev.bafesten', lbl:'Estenosis de la vía venosa sistémica (túnel)', guia:'acc', rec:'Clase 1 · Nivel C-LD, recomendación 10, hoja 77, folio e191', ref:'con síntomas, Clase I · Nivel C; en el asintomático, el stent cuando es técnicamente factible es Clase IIb · Nivel C (hoja 57, folio 619)' },
-    { clave:'tga.ev.hepcong', lbl:'Congestión hepática', guia:'acc', rec:'Clase 1 · Nivel C-LD, recomendación 10, hoja 77, folio e191', nota:'la ESC 2020 no la nombra entre las condiciones de intervención de esta tabla' },
-    { clave:'tga.ev.baffuga', lbl:'Fuga del túnel auricular (baffle leak)', guia:'acc', rec:'Clase 1 · Nivel C-LD, recomendación 9 — cierre de la fuga para mejorar los síntomas y la calidad de vida, hoja 77, folio e191', ref:'la fuga sintomática no abordable por catéter lleva reparación quirúrgica, Clase I · Nivel C (hoja 57, folio 619)' },
-    { clave:'tga.ev.cianosis', lbl:'Cianosis en reposo o con el ejercicio, o sospecha firme de embolia paradójica', guia:'esc', rec:'Clase I · Nivel C — con fuga del túnel, stent cubierto o cierre con dispositivo cuando es técnicamente factible, hoja 57, folio 619', nota:'la ACC/AHA 2025 no publica una recomendación con esta condición' },
-    { clave:'tga.ev.sobrecarga', lbl:'Sobrecarga de volumen ventricular sustancial por el cortocircuito izquierda-derecha de la fuga, en el paciente asintomático', guia:'esc', rec:'Clase IIa · Nivel C — stent cubierto o cierre con dispositivo cuando es técnicamente factible, hoja 57, folio 619' },
-    { clave:'tga.ev.pmicd', lbl:'Requiere marcapasos o desfibrilador transvenoso', guia:'acc', rec:'Clase 2a · Nivel C-EO, recomendación 13 — intervención por catéter sobre las fugas residuales o la obstrucción ANTES de colocar el electrodo; y Clase 1 · Nivel C-LD, recomendación 4 — imagen preprocedimiento además de la venografía con contraste, hoja 77, folio e191', ref:'cerrar la fuga del túnel con un stent cubierto antes de los electrodos transvenosos es Clase IIa · Nivel C (hoja 57, folio 619)' },
-    { clave:'tga.ev.itsistsev', lbl:'Insuficiencia severa de la válvula auriculoventricular sistémica (tricúspide)', guia:'esc', rec:'Clase IIa · Nivel C — reparación o reemplazo valvular, independientemente de los síntomas, con fracción de eyección por encima del 40 %, hoja 57, folio 619', nota:'la ACC/AHA 2025 la nombra sólo en su texto de apoyo, sin clase, así que acá rige la ESC (regla E-3)' },
-    { clave:'tga.ev.fe40', lbl:'Fracción de eyección del ventrículo sistémico por encima del 40 %', guia:'esc', rec:'Clase IIa · Nivel C — es lo que la guía escribe como «sin disfunción sistólica ventricular significativa», hoja 57, folio 619', nota:'la aplicación guarda la graduación cualitativa de la función, no el número' },
-    { clave:'tga.ev.htp', lbl:'Hipertensión pulmonar', guia:'acc', rec:'Clase 1 · Nivel B-NR, recomendación 3 — evaluación hemodinámica invasiva para identificar blancos de intervención médica, percutánea o quirúrgica, hoja 77, folio e191' },
-    { clave:'tga.ev.taqui', lbl:'Empeoramiento de una taquiarritmia auricular o ventricular', guia:'acc', rec:'Clase 1 · Nivel B-NR, recomendación 3, hoja 77, folio e191' },
-    { clave:'tga.ev.arrauric', lbl:'Arritmia auricular', guia:'acc', rec:'Clase 1 · Nivel B-NR, recomendación 8 — las estrategias de control del ritmo son preferibles a las de control de la frecuencia, hoja 77, folio e191' },
-    { clave:'tga.ev.reentr', lbl:'Reentrada intraauricular sostenida o fibrilación auricular', guia:'acc', rec:'Clase 2a · Nivel C-LD, recomendación 12 — la anticoagulación oral puede ser útil para prevenir eventos embólicos, hoja 77, folio e191', nota:'queda SEPARADA de «arritmia auricular» por la regla E-5: esta recomendación exige que sea sostenida o fibrilación auricular' },
-    { clave:'tga.ev.qrs150', lbl:'Ventrículo derecho sistémico en falla con QRS por encima de 150 ms por estimulación ventricular crónica, en el paciente sintomático', guia:'acc', rec:'Clase 2b · Nivel B-NR, recomendación 14 — puede considerarse la terapia de resincronización para mejorar los síntomas, hoja 77, folio e191' },
-    { clave:'tga.ev.icfevdred', lbl:'Insuficiencia cardíaca con función reducida del ventrículo derecho sistémico', guia:'acc', rec:'Clase 2b · Nivel B-R, recomendación 15 — puede ser razonable el tratamiento médico dirigido por guías de la insuficiencia cardíaca con fracción de eyección reducida, hoja 77, folio e191', ref:'el apartado 4.12.2.3 dice que no hay datos que sostengan que los inhibidores de la enzima convertidora, los antagonistas del receptor, los betabloqueantes o los antialdosterónicos mejoren el pronóstico, y que no puede hacerse una recomendación sólida; es texto sin clase (hoja 56, folio 618)' }
+    { clave:'tga.ev.icprog', gr:'sint', lbl:'Insuficiencia cardíaca o intolerancia al ejercicio, nuevas o progresivas', guia:'acc', rec:'Clase 1 · Nivel B-NR, recomendaciones 1 a 3 —ecocardiograma y resonancia, prueba de ejercicio cardiopulmonar y evaluación hemodinámica invasiva— y Clase 2a · Nivel B-NR, recomendación 6 —electrocardiograma y monitoreo ambulatorio del ritmo—, hoja 77, folio e191', nota:'una sola pregunta para las cuatro recomendaciones, porque la condición que todas escriben es la misma (regla E-5)' },
+    { clave:'tga.ev.refract', gr:'sint', lbl:'Intolerancia al ejercicio, insuficiencia cardíaca o arritmia que empeoran pese al tratamiento', guia:'acc', rec:'Clase 1 · Nivel C-LD, recomendación 11 — derivación a un programa de insuficiencia cardíaca para evaluar soporte mecánico y trasplante, hoja 77, folio e191', nota:'queda SEPARADA de la anterior por la regla E-5: la recomendación 11 agrega «arritmia refractaria al tratamiento», que «insuficiencia cardíaca o intolerancia al ejercicio» no cubre' },
+    { clave:'tga.ev.sintfugaobstr', gr:'sint', lbl:'Síntomas atribuibles a la fuga del túnel o a la obstrucción', guia:'acc', rec:'Clase 1 · Nivel C-LD, recomendaciones 9 y 10 — cierre de la fuga e intervención para aliviar la estenosis, hoja 77, folio e191', ref:'con síntomas, la reparación quirúrgica y el stent del túnel son Clase I · Nivel C (hoja 57, folio 619)' },
+    { clave:'tga.ev.pvobstr', gr:'tunel', lbl:'Estenosis de la vía venosa pulmonar', guia:'acc', rec:'Clase 1 · Nivel C-LD, recomendación 10 — intervención para aliviar la estenosis, hoja 77, folio e191', ref:'la obstrucción sintomática de la aurícula venosa pulmonar lleva reparación quirúrgica, Clase I · Nivel C (hoja 57, folio 619)' },
+    { clave:'tga.ev.bafesten', gr:'tunel', lbl:'Estenosis de la vía venosa sistémica (túnel)', guia:'acc', rec:'Clase 1 · Nivel C-LD, recomendación 10, hoja 77, folio e191', ref:'con síntomas, Clase I · Nivel C; en el asintomático, el stent cuando es técnicamente factible es Clase IIb · Nivel C (hoja 57, folio 619)' },
+    { clave:'tga.ev.hepcong', gr:'tunel', lbl:'Congestión hepática', guia:'acc', rec:'Clase 1 · Nivel C-LD, recomendación 10, hoja 77, folio e191', nota:'la ESC 2020 no la nombra entre las condiciones de intervención de esta tabla' },
+    { clave:'tga.ev.baffuga', gr:'tunel', lbl:'Fuga del túnel auricular (baffle leak)', guia:'acc', rec:'Clase 1 · Nivel C-LD, recomendación 9 — cierre de la fuga para mejorar los síntomas y la calidad de vida, hoja 77, folio e191', ref:'la fuga sintomática no abordable por catéter lleva reparación quirúrgica, Clase I · Nivel C (hoja 57, folio 619)' },
+    { clave:'tga.ev.cianosis', gr:'tunel', lbl:'Cianosis en reposo o con el ejercicio, o sospecha firme de embolia paradójica', guia:'esc', rec:'Clase I · Nivel C — con fuga del túnel, stent cubierto o cierre con dispositivo cuando es técnicamente factible, hoja 57, folio 619', nota:'la ACC/AHA 2025 no publica una recomendación con esta condición' },
+    { clave:'tga.ev.sobrecarga', gr:'tunel', lbl:'Sobrecarga de volumen ventricular sustancial por el cortocircuito izquierda-derecha de la fuga, en el paciente asintomático', guia:'esc', rec:'Clase IIa · Nivel C — stent cubierto o cierre con dispositivo cuando es técnicamente factible, hoja 57, folio 619' },
+    { clave:'tga.ev.pmicd', gr:'ritmo', lbl:'Requiere marcapasos o desfibrilador transvenoso', guia:'acc', rec:'Clase 2a · Nivel C-EO, recomendación 13 — intervención por catéter sobre las fugas residuales o la obstrucción ANTES de colocar el electrodo; y Clase 1 · Nivel C-LD, recomendación 4 — imagen preprocedimiento además de la venografía con contraste, hoja 77, folio e191', ref:'cerrar la fuga del túnel con un stent cubierto antes de los electrodos transvenosos es Clase IIa · Nivel C (hoja 57, folio 619)' },
+    { clave:'tga.ev.itsistsev', gr:'vsist', lbl:'Insuficiencia severa de la válvula auriculoventricular sistémica (tricúspide)', guia:'esc', rec:'Clase IIa · Nivel C — reparación o reemplazo valvular, independientemente de los síntomas, con fracción de eyección por encima del 40 %, hoja 57, folio 619', nota:'la ACC/AHA 2025 la nombra sólo en su texto de apoyo, sin clase, así que acá rige la ESC (regla E-3)' },
+    { clave:'tga.ev.fe40', gr:'vsist', lbl:'Fracción de eyección del ventrículo sistémico por encima del 40 %', guia:'esc', rec:'Clase IIa · Nivel C — es lo que la guía escribe como «sin disfunción sistólica ventricular significativa», hoja 57, folio 619', nota:'la aplicación guarda la graduación cualitativa de la función, no el número' },
+    { clave:'tga.ev.htp', gr:'vsist', lbl:'Hipertensión pulmonar', guia:'acc', rec:'Clase 1 · Nivel B-NR, recomendación 3 — evaluación hemodinámica invasiva para identificar blancos de intervención médica, percutánea o quirúrgica, hoja 77, folio e191' },
+    { clave:'tga.ev.taqui', gr:'ritmo', lbl:'Empeoramiento de una taquiarritmia auricular o ventricular', guia:'acc', rec:'Clase 1 · Nivel B-NR, recomendación 3, hoja 77, folio e191' },
+    { clave:'tga.ev.arrauric', gr:'ritmo', lbl:'Arritmia auricular', guia:'acc', rec:'Clase 1 · Nivel B-NR, recomendación 8 — las estrategias de control del ritmo son preferibles a las de control de la frecuencia, hoja 77, folio e191' },
+    { clave:'tga.ev.reentr', gr:'ritmo', lbl:'Reentrada intraauricular sostenida o fibrilación auricular', guia:'acc', rec:'Clase 2a · Nivel C-LD, recomendación 12 — la anticoagulación oral puede ser útil para prevenir eventos embólicos, hoja 77, folio e191', nota:'queda SEPARADA de «arritmia auricular» por la regla E-5: esta recomendación exige que sea sostenida o fibrilación auricular' },
+    { clave:'tga.ev.qrs150', gr:'ritmo', lbl:'Ventrículo derecho sistémico en falla con QRS por encima de 150 ms por estimulación ventricular crónica, en el paciente sintomático', guia:'acc', rec:'Clase 2b · Nivel B-NR, recomendación 14 — puede considerarse la terapia de resincronización para mejorar los síntomas, hoja 77, folio e191' },
+    { clave:'tga.ev.icfevdred', gr:'vsist', lbl:'Insuficiencia cardíaca con función reducida del ventrículo derecho sistémico', guia:'acc', rec:'Clase 2b · Nivel B-R, recomendación 15 — puede ser razonable el tratamiento médico dirigido por guías de la insuficiencia cardíaca con fracción de eyección reducida, hoja 77, folio e191', ref:'el apartado 4.12.2.3 dice que no hay datos que sostengan que los inhibidores de la enzima convertidora, los antagonistas del receptor, los betabloqueantes o los antialdosterónicos mejoren el pronóstico, y que no puede hacerse una recomendación sólida; es texto sin clase (hoja 56, folio 618)' }
   ]),
   jat: Object.freeze([
     { clave:'tga.ev.coroisq', lbl:'Evidencia de isquemia miocárdica', guia:'acc', rec:'Clase 1 · Nivel C-EO, recomendación 4 — revascularización coronaria para reducir los síntomas y mejorar los resultados, hoja 81, folio e195', ref:'el stent o la cirugía, según el sustrato, para la estenosis coronaria que causa isquemia es Clase I · Nivel C (hoja 58, folio 620)' },
@@ -92152,23 +92308,55 @@ function _indTGA(){
 
   /* ── Las preguntas, con TRES estados. «Sin dato» no cuenta como «no». ── */
   const pregs = (grupo && TGA_IND_PREG[grupo]) ? TGA_IND_PREG[grupo] : [];
-  const clinica = [], si = [], no = [], sd = [];
-  pregs.forEach(function (p) {
+  const clinica = [], si = [], no = [], sd = [], siDet = [];
+  /* ⚠️ EL ORDEN LO DECIDE `TGA_IND_GRUPOS` CUANDO LAS PREGUNTAS LO TRAEN, y la lista corrida de
+     siempre cuando no (TGA-4, commit 3b-7). `_pregOrden` no filtra: devuelve TODAS, agrupadas o
+     no, asi que no hay forma de que una pregunta se pierda al agrupar — lo que sobra despues de
+     los cuatro grupos se agrega al final. Lo fija el caso de prueba contando las filas. */
+  const _pregOrden = (function () {
+    if (!pregs.some(function (x) { return !!x.gr })) return pregs.map(function (x) { return { p:x } });
+    const out = [], vistas = {};
+    TGA_IND_GRUPOS.forEach(function (g) {
+      const dentro = pregs.filter(function (x) { return x.gr === g.k });
+      if (!dentro.length) return;
+      out.push({ hdr: g.lbl });
+      dentro.forEach(function (x) { vistas[x.clave] = 1; out.push({ p:x }) });
+    });
+    pregs.forEach(function (x) { if (!vistas[x.clave]) out.push({ p:x }) });
+    return out;
+  })();
+  _pregOrden.forEach(function (e) {
+    if (e.hdr) { clinica.push({ grupoHdr: e.hdr }); return; }
+    const p = e.p;
     /* No hay campo guardado para ninguna de estas preguntas —esta tanda no puede agregarlos—,
        así que el origen es siempre el panel. Se pasa por `_indOrigen` igual, con el valor de
        origen nulo, para que el día que alguna tenga campo propio no haya que reescribir la fila:
        es el mismo camino que la bicúspide usa para sus seis. */
     const o = _indOrigen(null, p.clave);
-    if (o.val === 'si') si.push(p.lbl); else if (o.val === 'no') no.push(p.lbl); else sd.push(p.lbl);
-    clinica.push(_indFilaOrigen(p.lbl, o, TGA_IND_OPS, function (val) {
+    if (o.val === 'si') { si.push(p.lbl); siDet.push(p); }
+    else if (o.val === 'no') no.push(p.lbl); else sd.push(p.lbl);
+    /* ⚠️ `sinAviso` EN TRUE: esta sección dice la frase UNA sola vez, en sus `notas`. Ver la
+       nota de `_indFilaOrigen`, donde está el censo de las cinco secciones que NO la dicen y
+       que por eso conservan el aviso por pregunta. */
+    const fila = _indFilaOrigen(p.lbl, o, TGA_IND_OPS, function (val) {
       /* La nota la arma `_indPregNota`, que es el molde de CORR-EVID-4: el rótulo de la guía
          que rige, lo que esa guía manda, la línea de referencia de la OTRA y la nota de tramo.
          Con la redacción acá adentro, cada sección necesitaría su propia copia. */
       return { txt: val === 'si' ? 'Sí' : (val === 'no' ? 'No' : 'Sin dato'),
                marca: val === 'si' ? 'warn' : (val === 'no' ? 'none' : 'ask'),
                nota: _indPregNota(p, val == null) };
-    }));
+    }, true);
+    /* La etiqueta corta de la guía, al lado del rótulo: con el detalle plegado en el ⓘ, la fila
+       tiene que seguir diciendo de qué guía sale su corte (regla E-1). */
+    const bg = _indPregBadge(p); if (bg) fila.badge = bg;
+    clinica.push(fila);
   });
+  /* ══ EL CONTADOR, PRIMERO (TGA-4, commit 3b-4) ══════════════════════════════════════════════
+     Lo pide el médico para no tener que recorrer dieciocho filas y contarlas. Sale de los MISMOS
+     tres arreglos que alimentan el balance de abajo, así que no puede decir otra cosa. */
+  if (pregs.length) clinica.unshift(_indFila('Respuestas',
+    si.length + ' en Sí · ' + no.length + ' en No · ' + sd.length + ' sin dato', 'none',
+    '«Sin dato» no cuenta como «no»: mientras una condición no se conteste, no sostiene ninguna recomendación.'));
 
   /* ── El balance, que es la condición (5): si ninguna está en «sí», qué falta preguntar ── */
   const bloques = [];
@@ -92223,10 +92411,32 @@ function _indTGA(){
   gen.push({ txt:'La ACC/AHA 2025 no publica un intervalo único: sus Tablas 37 (switch arterial, hoja 81, folio e195), 38 (Rastelli, hoja 83, folio e197) y 39 (transposición congénitamente corregida, hoja 84, folio e198) dan el intervalo de la consulta con el cardiólogo de congénitas del adulto, del electrocardiograma y del ecocardiograma transtorácico por estadio fisiológico, y van de 12 a 24 meses en el estadio A hasta 3 a 6 meses en el estadio D.', refs:['acc2025achd'] });
   gen.push({ txt:'Fuente: ESC 2020 de cardiopatías congénitas del adulto, apartados 4.12.5, 4.12.6 y 4.13.6; ACC/AHA 2025 de cardiopatías congénitas del adulto, Tablas 37, 38 y 39.', refs:['esc2020guch','acc2025achd'] });
   bloques.push({ tit:'Seguimiento y consideraciones generales', lineas:gen });
+  /* ══ LO CONTESTADO QUE SI, JUNTO Y AL FINAL (TGA-4, commit 3b-3) ════════════════════════════
+     Una linea por pregunta con su guia, su clase y su nivel. Sale de `siDet`, que son los MISMOS
+     objetos de pregunta que pintaron las filas, y la etiqueta la arma el MISMO `_indPregBadge`
+     que la fila: dos redacciones del mismo resumen se desincronizan en cuanto una se ajuste.
+     ⚠️ SOLO SI HAY ALGUNA EN «SI». Un bloque titulado «Recomendaciones que aplican (0)» sobre un
+     panel sin contestar se lee como que no aplica ninguna, y lo que pasa es que no se pregunto:
+     eso ya lo dice el balance de arriba, con sus palabras. */
+  if (siDet.length) {
+    const _ls = siDet.map(function (p) {
+      const b = _indPregBadge(p);
+      const et = b ? (b.g === 'ACC' ? 'ACC/AHA 2025' : 'ESC 2020') + (b.cn ? ' · ' + b.cn : '') : '';
+      return { txt: p.lbl + (et ? ' — ' + et : '') + '.', refs:null };
+    });
+    bloques.push({ tit:'Recomendaciones que aplican con lo contestado (' + siDet.length + ')', lineas:_ls });
+  }
 
   return { filas: filas,
     clinica: clinica.length ? clinica : null,
     bloques: bloques,
+    /* ⚠️ MODO COMPACTO (TGA-4, commit 3b): UNA LINEA POR PREGUNTA, con la prosa —la guia, la
+       clase, el nivel, la recomendacion, la hoja, el folio y la linea de referencia de la otra
+       guia— plegada en el ⓘ de la fila, que se abre DEBAJO de ella sin perder el lugar. El
+       CONTENIDO no cambia: lo mide el caso de prueba contando las citas antes y despues.
+       `preguntas: true` enciende ademas las dos columnas por ancho de PANEL y su boton. */
+    compacta: true,
+    preguntas: true,
     /* ⚠️ UNA SOLA CLAVE Y NO UN ARRAY: `_indGuiaHTML` pasa `g.ref` a `_indRefMarca`, que espera
        UNA clave —con un array publica «[referencia no registrada]» en rojo justo donde va la
        cita—. Va la que RIGE (regla E-2); la ESC 2020 se nombra en el texto y lleva su propio
@@ -94576,6 +94786,10 @@ function indicRender(){
     fallos + (fallos === 1 ? ' sección no se pudo evaluar' : ' secciones no se pudieron evaluar') +
     ' — el resto del panel es válido, pero falta información. Revisar la consola.</div>';
   const c = document.getElementById('indic-cuerpo'); if (c) c.innerHTML = h;
+  /* ⚠️ DESPUES DE ESCRIBIR EL HTML, porque mide la caja (TGA-4, commit 3b-6). Va en el UNICO
+     punto donde el cuerpo del panel se pinta, asi que no hay forma de que una seccion de
+     preguntas quede sin su atributo de columnas. */
+  try { if (typeof _indColsSync === 'function') _indColsSync() } catch (e) {}
 }
 
 /* ══ MAXIMIZAR EL PANEL ══════════════════════════════════════════════════════════════════════
@@ -94608,6 +94822,8 @@ function indicMaxPoner(on){
      ⚠️ Es la ÚNICA letra del panel que esta tanda agrega o cambia, y está en el ENCABEZADO: el
      `textContent` de cada sección queda idéntico. */
   b.textContent = on ? '⤡' : '⤢';
+  /* Maximizar CAMBIA el ancho del panel, que es justo lo que decide una o dos columnas. */
+  try { if (typeof _indColsSync === 'function') _indColsSync() } catch (e) {}
 }
 function indicMaxTog(){
   const on = !indicMaxEstado();
@@ -150630,8 +150846,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261102-1538';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793644699997;                 /* eco-build-ms */
+const ECO_BUILD    = '20261102-1556';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793645769722;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -150717,7 +150933,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261102-1538</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261102-1556</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
