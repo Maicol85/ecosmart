@@ -232,4 +232,45 @@ exportadores, porque el post-proceso vive en `_pptxDescargarSaneado`, su único 
 | el bucle con varios videos | `scripts/_probe_valppt_bucle.mjs` |
 | la validación del `.pptx` | `scripts/_val_pptx.py` |
 | el A/B de superficies | `scripts/_probe_valpptab.mjs` + `scripts/_ab_popcdiff.mjs` |
-| las 23 mutaciones dirigidas | `scripts/_mut_valppt.py` |
+| las 24 mutaciones dirigidas | `scripts/_mut_valppt.py` |
+
+---
+
+## 8 · Lo que la corrida completa obligó a cambiar en los casos viejos
+
+**Diecisiete casos viejos afirmaban el comportamiento anterior**, y a los diecisiete los destapó
+la corrida completa, no el censo. Lo que sigue es lo que la próxima tanda necesita saber para no
+volver a escribir un control frágil.
+
+**El filtro del selector del posoperatorio se le pregunta a `popVTipoCorto`.** Tres casos
+—TC-580 (D1), TC-583 (B2)(B5) y TC-595 (A1)— contaban «sólo prótesis» y «tres opciones». El
+invariante real no es el conteo: es que **no se pueda elegir un tipo que el dibujo no sabe
+dibujar**. `popVTipoCorto` es el dueño único de los símbolos y devuelve **cadena vacía** para
+una morfología nativa, así que preguntarle a él hace la condición más fuerte y la deja sin
+mantenimiento. El conteo por válvula, medido: **aórtica 4** (vacío + dos prótesis + TAVI),
+**mitral 5** y **tricúspide 5** (vacío + dos prótesis + plastia + TEER), **pulmonar 3**.
+El reparto por válvula lo fijan TC-583 **(B3)** —la TAVI **sólo** en la aórtica— y **(B3b)** —la
+plastia y el TEER **sólo** en mitral y tricúspide—.
+
+**⚠️ Contar las rutas del grupo de una válvula mide el montaje, no el latido.** TC-585 (E9b)
+exigía **DOS** `path` en `valv-ao`, y hoy hay **cuatro**: los dos velos más el semicírculo de la
+plastia y la malla de la TAVI. Este dibujo **monta cada pieza una vez y el pintor la prende y la
+apaga**, así que el conteo sube cada vez que una tanda agrega un símbolo. Lo que se mide ahora
+son los dos velos **por posición** —son los dos primeros `path`, con `M-8 0` y `M8 0`— y, en
+**(E9c)**, que sobre una prótesis **mecánica** no haya **ninguna** pieza de plastia, de TAVI ni
+de TEER encendida. La mata la **mutación 23**.
+
+**Las cuatro etiquetas del TEER en los casos viejos.** TC-74, TC-86, TC-92 y TC-GR-07 exigían el
+veredicto en la hoja del PDF. Hoy la hoja publica la **medición entera** de cada criterio y el
+**conteo** de los no cumplidos, y el veredicto se le pregunta a la **pantalla**. Las cadenas que
+la pantalla sigue dando, medidas: `❌ NO apto para TEER según criterios actuales`,
+`✅ APTO para TEER — criterios cumplidos` y
+`4mm <7mm — Advertencia: agarre difícil, evaluar con el operador. No modifica el veredicto.`
+Las que el papel da hoy: `Velo posterior >=7 mm | 4mm <7mm`,
+`Todos los criterios evaluados se cumplen.` y `2 criterio(s) no cumplido(s).`
+⚠️ En el papel la raya larga sale como **guión** —lo convierte `_teerAsciiPDF`—, así que un
+control que busque la raya en la hoja no encuentra nada.
+
+**TC-585 pasa contra `5ae3959` y eso es correcto.** Es un caso de POP-B, no de esta tanda: lo que
+se arregló fue su fragilidad, no un cambio de comportamiento. Los otros siete del 9d **caen**
+ahí por catorce condiciones y ninguna por excepción.

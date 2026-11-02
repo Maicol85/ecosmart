@@ -197,12 +197,14 @@ Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la v
 ## Qué es EcoSmart y cómo se trabaja
 
 - App clínica de ecocardiografía en **un solo `index.html`**: HTML + CSS + JS inline, sin build,
-  sin frameworks. Hoy **10,87 MB / 152.699 líneas**, medido con `wc -c` y `wc -l` el 2026-11-01 al
-  cierre de la tanda **TGA-3**, sobre el árbol ya sellado (`v20261101-2214`, md5 `7ff2a3f2`).
+  sin frameworks. Hoy **10,91 MB / 153.139 líneas**, medido con `wc -c` y `wc -l` el 2026-11-02 al
+  cierre de la tanda **VAL-PPT**, sobre el árbol ya sellado (`v20261102-0107`, md5 `738944d2`).
   ⚠️ **ESE ES EL ÁRBOL QUE LA SUITE MIDIÓ Y EL QUE QUEDÓ COMMITEADO.** `index.html` se selló
-  ANTES de la suite completa y el commit de documentación **no lo volvió a sellar**, porque no lo
-  toca: no hay líneas de diferencia que declarar. El diff de la tanda son **480 líneas agregadas y
-  14 quitadas**.
+  ANTES de la suite completa y los **cuatro** commits de cobertura y documentación **no lo
+  volvieron a sellar**, porque no lo tocan: su md5 es idéntico al del sello, verificado al
+  cerrar. No hay líneas de diferencia que declarar. El diff de la tanda son **506 líneas
+  agregadas y 66 quitadas**.
+  (Antes: 10,87 MB / 152.699 al cierre de TGA-3, sello `v20261101-2214`, md5 `7ff2a3f2`.)
   (Antes: 10,84 MB / 152.233 al cierre de POP-C, sello `v20261101-2008`, md5 `747b6597`.)
   ⚠️ **ESE ES EL ÁRBOL QUE LA SUITE MIDIÓ Y EL QUE QUEDÓ COMMITEADO, y por una vez sin asterisco:**
   la suite corrió DESPUÉS del commit de documentación, con su guarda de md5 confirmando que no
@@ -5267,11 +5269,18 @@ línea: el archivo creció y un informe de auditoría viejo apunta a otro archiv
 
 ### Las opciones de plastia, TEER y TAVI, los retoques y el PPT — «VAL-PPT» (2026-11-02)
 
-- **NUEVE commits, y los OCHO de código se hicieron.** `9da2a0e` (1) · `7f25750` (2) ·
+- **DOCE commits, y los OCHO de código se hicieron.** `9da2a0e` (1) · `7f25750` (2) ·
   `76a458a` (3) · `84e5196` (4) · `71d76a6` (5a) · `1aa31be` (6) · `84f1941` (7) · `a0e8dd6` (8)
-  · el de cobertura y documentación. Al empezar, `origin/main` = `HEAD` = **`5ae3959`**, el
-  cierre de TGA-3, ya publicado, con md5 **`7ff2a3f2`** y el pendrive `DISK_IMG` montado.
+  · `2073e3e`, `aa43ecc`, `67a71b9` y `7bd0b6a`, los cuatro de cobertura y documentación. Sello
+  **`v20261102-0107`**, md5 de `index.html` **`738944d2`**. Al empezar, `origin/main` = `HEAD` =
+  **`5ae3959`**, el cierre de TGA-3, ya publicado, con md5 **`7ff2a3f2`** y el pendrive
+  `DISK_IMG` montado.
   **El push lo corre Maicol: esta tanda tenía orden expresa de NO pushear.**
+  ⚠️ **LOS COMMITS 5b, 6a Y EL LABORATORIO SE PARARON Y SE REPORTARON**, cada uno con su
+  medición: el 5b porque cuatro de las ocho ramas de conducta de `tgaConclusion` **no tienen
+  respaldo** en las 26 recomendaciones de `TGA_IND_RECS`; el 6a porque su premisa **no se
+  reproduce** —el resumen de la VAB SÍ dice «VAB» en seis escenarios, medido—; y el Laboratorio
+  porque la orden lo pone fuera de alcance.
 
 - **EL INVENTARIO SE MIDIÓ EN CHROME, NO SE LEYÓ, Y DIO TRES DEFECTOS.** No se puede medir un
   valor desconocido asignándolo —un `value` que no es ninguna `<option>` deja el select en
@@ -5362,11 +5371,14 @@ línea: el archivo creció y un informe de auditoría viejo apunta a otro archiv
   sólo el filtro de tipo es una mutación **equivalente** —medido, el EN SUMA sale idéntico en
   los tres escenarios—.
 
-- **23/23 MUTACIONES DIRIGIDAS MUERTAS**, en worktree y nunca sobre el vivo, con guarda de md5
+- **24/24 MUTACIONES DIRIGIDAS MUERTAS**, en worktree y nunca sobre el vivo, con guarda de md5
   **idéntico** antes y después. **Tres condiciones nacieron del barrido**: `(B5b)` —la plastia
   tiene que APAGAR el círculo, no sólo prender su aro—, `(E1)` —medía «≤ 1» y no podía fallar—
   y el bloque `(F)` entero, con una prótesis **y una lesión**, que es la única escena donde el
   duplicado es posible.
+  **Y la 23 nació al cerrar la tanda**, por la condición `(E9c)`: la malla de la TAVI encendida
+  **siempre**, o sea una mecánica con el marco del stent. Una condición nueva sin mutación
+  propia no está probando nada, y ésta muere en 11 s.
 
 - **CUATRO CASOS NUEVOS, TC-605 a TC-608**, que caen contra HEAD por **46 condiciones y NINGUNA
   por excepción**, verificado en un worktree.
@@ -5375,10 +5387,72 @@ línea: el archivo creció y un informe de auditoría viejo apunta a otro archiv
   `/AHA/ACC 2024/` y los flags son inválidos, cerrado **no usando ninguna expresión regular**—;
   y el **acento grave dentro de mis propios comentarios**, que `node --check` cazó.
 
-- **Semgrep 124 WARNING / 0 ERROR.** **Excel 441** columnas. **Campos guardados: NINGUNO nuevo.**
-  **Sin huérfanos nuevos.**
+- **DIECISIETE CASOS VIEJOS ADAPTADOS, cada uno con el motivo escrito, y los DIECISIETE los
+  destapó la CORRIDA COMPLETA y no el censo** —es el modo de falla que este archivo ya documenta
+  diez veces: grepear por el nombre de lo que tocás no encuentra una afirmación escrita con
+  otras palabras—. **Nueve** en el 9b: **TC-13** (**invertida**), **TC-289** (el conteo
+  reescrito como invariante, y queda **más fuerte**), **TC-470** (**S0 invertida**, más la
+  morfología mitral de nueve a once), **TC-471**, **TC-472**, **TC-474**, **TC-500**, **TC-502**
+  y **TC-535** (los conteos de inventario). **Ocho** en el 9d: los cuatro del TEER —**TC-74**,
+  **TC-86**, **TC-92** y **TC-GR-07**, que exigían el veredicto en la hoja del PDF— y los cuatro
+  del posoperatorio —**TC-580 (D1)**, **TC-583 (B2)(B3)(B5)** con su **título** corregido,
+  **TC-595 (A1)** y **TC-585 (E9b)**—.
+  ⚠️ **LOS OCHO DEL 9d FALLABAN TAMBIÉN AISLADOS —0 de 8—, así que no eran dependencia de
+  orden.** Verificado en un worktree sobre `5ae3959` con los mismos scripts, alternando sólo
+  `index.html`: **SIETE caen ahí por catorce condiciones y ninguna por excepción**, o sea que
+  las adaptaciones siguen discriminando. **TC-585 pasa, y eso es lo correcto**: es un caso de
+  POP-B y no de esta tanda, y lo que se arregló fue su fragilidad.
 
-- **Dónde está todo:** `docs/mapa/valppt-opciones-ppt.md` (**mapa NUEVO**, 13,9 KB), las fichas
+- ⚠️ **EL CONTEO DE RUTAS DE TC-585 MEDÍA EL MONTAJE Y NO EL LATIDO, y de ahí nació una
+  condición.** Exigía **DOS** rutas en el grupo de la válvula y el commit 4 montó ahí el
+  semicírculo de la plastia y la malla de la TAVI —este dibujo monta cada pieza **una** vez y el
+  pintor la prende y la apaga—. Hoy exige los dos velos por **posición**, con la geometría de la
+  demo en los dos, y nace **(E9c)**: sobre una prótesis **mecánica**, ninguna pieza de plastia,
+  de TAVI ni de TEER puede estar encendida. Sin ella, una fuga de pieza —justo lo que el
+  commit 4 pudo introducir— pasaba en verde.
+
+- **EL FILTRO DEL SELECTOR SE LE PREGUNTA AL DUEÑO DE LOS SÍMBOLOS, Y NO A UN PREFIJO
+  TRANSCRIPTO.** Las tres condiciones del posoperatorio contaban «sólo prótesis»; hoy preguntan
+  a `popVTipoCorto`, que es el dueño único de los símbolos del dibujo y devuelve **cadena
+  vacía** para una morfología nativa. Así exigen lo que importa —que no se pueda elegir un tipo
+  que el dibujo no sabe dibujar— y no hay que mantenerlas al día. El conteo pasa a **4, 5, 5 y
+  3**, medido. Y **(B3) quedó invertida**: antes afirmaba que la TAVI no estaba en ninguna parte
+  y hoy exige que esté en la **aórtica** y en **ninguna** de las otras tres, que es una
+  discriminación que el control anterior no hacía.
+
+- **Línea base al cierre: suite 617/623**, en **doce lotes** cubriendo los **623 casos
+  distintos** —contados nombre por nombre, con una guarda que compara el total con los distintos
+  y otra que compara los ejecutados: **623 de 623**—, en UNA sola pasada sobre el árbol sellado,
+  con el pendrive `DISK_IMG` **verificado al abrir, en los DOCE lotes y al cerrar** (catorce
+  verificaciones, listando nombres reales) y el md5 de `index.html` **idéntico** antes y después
+  (`738944d2`). Los rojos son **TC-223, TC-376, TC-390 y TC-406**, los cuatro de siempre, más
+  **TC-182 y TC-551**, los dos intermitentes que las tandas anteriores ya declaran: **corridos
+  aislados, los dos salen VERDE**, verificado. **Ningún rojo nuevo.** **TC-358, TC-557, TC-262,
+  TC-419 y TC-507 salieron VERDES.**
+  ⚠️ **Y LA PRIMERA CORRIDA COMPLETA DIO 610/623 CON OCHO ROJOS MÁS, LOS OCHO MÍOS**, y por eso
+  esa cifra no es la línea base: los cuatro del TEER y los cuatro del posoperatorio de arriba.
+  **Los ocho fallaban también aislados —0 de 8—**, así que no eran dependencia de orden: eran
+  casos viejos que afirman el comportamiento que esta tanda cambió por orden expresa. Están
+  adaptados y la cifra de arriba sale de la corrida **limpia**, de una sola pasada sobre el mismo
+  árbol sellado y con el archivo de tests final.
+  ⚠️ **Y EL CONTADOR DEL ARNÉS DE LOTES SUMABA DE MÁS: decía «636 de 623».** Contaba con
+  `grep -cE "^  TC-"`, que atrapa también las líneas de **diagnóstico** que el runner imprime por
+  cada caso rojo —trece rojos, trece líneas de más—. Corregido anclando el conteo al ✓ o ✗ del
+  final de línea. Es el hermano del `wc -l` que POP-C pagó en el otro sentido.
+
+- **Semgrep 124 WARNING / 0 ERROR.** **Excel 441** columnas. **Campos guardados: NINGUNO nuevo.**
+  **Sin huérfanos nuevos.** 17 de 19 bloques de JS inline parsean, idéntico a HEAD. **Celular 59
+  hallazgos a 360 px y 68 a 390, con 17 ALTA en cada ancho** — la línea base exacta. **No
+  empeoró.**
+
+- **`index.html` pasó de 10,87 MB / 152.699 líneas a 10,91 MB / 153.139** — medido con `wc -c` y
+  `wc -l` DESPUÉS de sellar. (MB de 10⁶.) El diff son **506 líneas agregadas y 66 quitadas**, con
+  **cero** `innerHTML`, `eval` o `new Function` nuevos.
+  ⚠️ **Los cuatro commits de cobertura y documentación NO volvieron a sellar `index.html`**,
+  porque no lo tocan: su md5 al cerrar es **`738944d2`**, el mismo del sello, verificado. Así el
+  árbol que la suite midió es el que quedó commiteado.
+
+- **Dónde está todo:** `docs/mapa/valppt-opciones-ppt.md` (**mapa NUEVO**, 16,7 KB), las fichas
   de los cuatro casos en `docs/mapa/tests-fichas-605.md` (**archivo propio**),
   `docs/fuentes/FUENTES.md` → «La tanda VAL-PPT» con las cinco fuentes transcritas y su tabla de
   cambios de evidencia, `docs/REGISTRO_TANDAS.md` → el bloque de esta tanda,

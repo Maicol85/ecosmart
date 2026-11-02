@@ -477,8 +477,10 @@ conductas que la Evidencia no respalda.
 
 ## VAL-PPT (2026-11-02) — las opciones de plastia, TEER y TAVI, los retoques y el PPT
 
-**Commits.** `9da2a0e` (1) · `7f25750` (2) · `76a458a` (3) · `84e5196` (4) · `71d76a6` (5a) ·
-`1aa31be` (6) · `84f1941` (7) · `a0e8dd6` (8) · el de cobertura y documentación.
+**Commits.** DOCE. `9da2a0e` (1) · `7f25750` (2) · `76a458a` (3) · `84e5196` (4) · `71d76a6`
+(5a) · `1aa31be` (6) · `84f1941` (7) · `a0e8dd6` (8) · `2073e3e`, `aa43ecc`, `67a71b9` y
+`7bd0b6a`, los cuatro de cobertura y documentación.
+Sello **`v20261102-0107`**, md5 de `index.html` **`738944d2`**.
 Al empezar, `origin/main` = `HEAD` = **`5ae3959`**, el cierre de TGA-3, ya publicado, con md5
 **`7ff2a3f2`** y el pendrive `DISK_IMG` montado. **El push lo corre Maicol.**
 
@@ -498,6 +500,30 @@ Al empezar, `origin/main` = `HEAD` = **`5ae3959`**, el cierre de TGA-3, ya publi
 
 **Qué se paró y se reportó.** El commit 5b entero (cuatro conductas de la TGA sin respaldo en la
 Evidencia), el 6a (su premisa no se reproduce), el Laboratorio y «TAVI de cambio».
+
+**Cobertura.** Cuatro casos nuevos, TC-605 a TC-608, que caen contra HEAD por **46 condiciones y
+ninguna por excepción**. **24/24 mutaciones dirigidas muertas.** **Diecisiete casos viejos
+adaptados**, los diecisiete destapados por la corrida completa: nueve en el 9b (TC-13, TC-289,
+TC-470, TC-471, TC-472, TC-474, TC-500, TC-502, TC-535) y ocho en el 9d —los cuatro del TEER
+(TC-74, TC-86, TC-92, TC-GR-07), que exigían el veredicto en la hoja del PDF, y los cuatro del
+posoperatorio (TC-580, TC-583, TC-585, TC-595)—. De ahí nacieron la condición **(E9c)** —ninguna
+pieza de plastia, TAVI ni TEER encendida sobre una prótesis mecánica— y la **mutación 23** que
+la mata.
+
+**La excepción de `CLAUDE.md` que dejó de ser cierta.** Decía que las tres etiquetas del TEER
+«llegan a la hoja del PDF … y se quedan». El commit 5a las sacó del papel por orden expresa de
+Maicol; la primera mitad de la regla —no se tocan, siguen en la pantalla— se conserva, y la
+segunda se corrigió con la medición al lado.
+
+**Línea base al cierre.** Suite **617/623** en doce lotes, 623 de 623 ejecutados, md5 de
+`index.html` idéntico antes y después (`738944d2`), pendrive verificado en las catorce
+oportunidades. Rojos: TC-223, TC-376, TC-390 y TC-406 (los cuatro de siempre) más TC-182 y
+TC-551 (intermitentes declarados, verdes aislados). Semgrep 124 WARNING / 0 ERROR. Excel 441
+columnas. Cero campos guardados nuevos. Celular 59 / 68 con 17 ALTA. `index.html` 10,91 MB /
+153.139 líneas, sello `v20261102-0107`.
+
+**Lo que queda para el médico.** Abrir en PowerPoint los tres `.pptx` de
+`~/Desktop/ceibo-ppt-valppt/` (**VP-f**) y correr el `git push`, que esta tanda tenía prohibido.
 → `docs/PENDIENTES.md` **VP-a** a **VP-j**.
 
 **Cobertura.** TC-605 a TC-608, que caen contra HEAD por **46 condiciones y ninguna excepción**;
