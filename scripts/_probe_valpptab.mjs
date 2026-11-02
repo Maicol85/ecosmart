@@ -691,6 +691,22 @@ const ESCENAS_NUEVAS = {
   /* Y el control de un valor VIEJO que tampoco sube hoy: la protesis mecanica mitral. */
   vSoloVmMec:   { campos: { pac_nombre: 'Prueba ValPPT', pac_ci: '7654321', peso: '75', talla: '172', edad: '70' },
                   sel: { sexo: 'M', vm_morf: 'Prótesis mecánica' } },
+  /* ⚠️ EL MODULO TEER INTEGRADO, que es el denominador del commit 5a: su bloque llega al papel
+     SOLO si el medico lo integra, y este arnes es el unico que sabe generar el PPT de verdad
+     -`generarPPT(id)` exige un estudio GUARDADO con informe-. Los valores hacen FALLAR cinco
+     criterios: con todos cumplidos el modulo dice «APTO» y no ejercita «NO apto» ni «Heart
+     Team», o sea que el censo daria cero sin probar nada. */
+  vTeerInt: { campos: { pac_nombre: 'Prueba TEER', pac_ci: '5551234', peso: '78', talla: '174',
+                        edad: '76', teer_lva: '18', teer_lvp: '6', teer_area_mitral: '3.5',
+                        teer_pasp: '78', teer_dtsvi: '72', teer_ancho_flail: '16',
+                        teer_prof_flail: '12', teer_flail_gap: '11', teer_gap: '1',
+                        teer_fevi: '45' },
+              sel: { sexo: 'M', teer_tipo_im: 'primaria', teer_trombo: 'no' },
+              integrar: ['teer'] },
+  /* El control: el mismo estudio SIN integrar, donde el papel no debe traer una palabra. */
+  vTeerNoInt: { campos: { pac_nombre: 'Prueba TEER', pac_ci: '5551234', peso: '78', talla: '174',
+                          edad: '76', teer_lva: '18', teer_area_mitral: '3.5', teer_pasp: '78' },
+                sel: { sexo: 'M', teer_tipo_im: 'primaria', teer_trombo: 'no' } },
   /* Las combinaciones que el commit 3 pide verificar. */
   vNuevaCombo:  _vEsc({ sexo: 'M', vm_morf: 'Plastia mitral',
                         vt_morf: 'TEER tricuspídeo (T-TEER)', va_morf: 'TAVI' }),

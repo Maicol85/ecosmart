@@ -74194,8 +74194,33 @@ function teerEstado() {
   const vetoIds = new Set(veto.map(c => c.id));
   /* c11 va PEGADO a c5: son las dos medidas del MISMO hallazgo -la anchura y la separacion
      del flail- y el cuadro las publica juntas. */
+  /* ══ LA SALIDA `papel` — VAL-PPT-5a (2026-11-02) ═════════════════════════════
+     Decision del medico: las etiquetas «NO apto», «Heart Team» y «anatomia compleja» SALEN del
+     papel y se quedan en la pantalla. Medido antes de tocar nada, con el modulo integrado: la
+     hoja del PDF las traia en sus SEIS plantillas —«NO apto» x5, «Heart Team» x2 y «anatomia
+     compleja» x1 sobre 3.562 caracteres— mientras el informe y el EN SUMA daban cero.
+
+     ⚠️ NO SE REESCRIBE NINGUN TEXTO NI SE REORDENA NADA: `titulo` y `nota` quedan EXACTAMENTE
+     como estan —los lee la pantalla, que es donde la decision los deja— y esta salida se arma
+     con las MISMAS piezas con las que ellos se arman: `fallos`, `noIngresados`, `faltantes` y
+     `trombo`. Dos textos paralelos escritos a mano divergen; con las mismas piezas no pueden.
+     Es el patron de `mchConclusion().papel` y de `coaPapel`.
+
+     ⚠️ NINGUN NUMERO MEDIDO DESAPARECE: los conteos se conservan y lo que sale es el VEREDICTO
+     de aptitud y la conducta. Lo que no se dice es si el paciente es apto y a quien derivarlo. */
+  const _papel = [];
+  if (trombo === 'si') _papel.push('Trombo en aurícula izquierda consignado.');
+  else if (trombo === '') _papel.push('Trombo en aurícula izquierda no consignado.');
+  if (tipeados.length === 0) _papel.push('Sin datos cargados para evaluar los criterios.');
+  else {
+    if (fallos.length) _papel.push(fallos.length + ' criterio(s) no cumplido(s).');
+    if (noIngresados) _papel.push('Faltan ' + noIngresados + ' criterio(s) por ingresar: '
+      + faltantes.map(c => c.lbl).join(', ') + '.');
+    if (!fallos.length && !noIngresados) _papel.push('Todos los criterios evaluados se cumplen.');
+  }
   return { cs, vetoIds, orden:[cs.c1, cs.c1b, cs.c2, cs.c3, cs.c4, cs.c5, cs.c11, cs.c6, cs.c7, cs.c8, cs.c9, cs.c10],
            tipoIM, esPrim, esSec, trombo, clave, badgeCls, titulo, nota, fallos: fallos.length, noIngresados,
+           papel: _papel,
            hayDatos: tipeados.length > 0 || trombo === 'si' || cs.c1b.ok !== null };
 }
 window.teerEstado = teerEstado;
@@ -106985,6 +107010,22 @@ function _teerAsciiPDFml(s) {
   return String(s == null ? '' : s).split('\n').map(_teerAsciiPDF).filter(Boolean).join('\n');
 }
 
+/* ══ EL TEXTO DE UN CRITERIO, SIN SU JUICIO — VAL-PPT-5a ════════════════════════
+   Los textos de fallo de `teerEstado` tienen SIEMPRE la forma «medicion — juicio»:
+     «18mm <20mm — NO apto»
+     «1mm <2mm — agarre insuficiente, NO apto»
+     «12mm ≥11mm — anatomía compleja, Heart Team»
+   y los de éxito no llevan raya: «18mm ≥20mm», «No ingresado». Asi que cortar en la PRIMERA
+   raya larga deja la medicion entera y se lleva el juicio completo, sin una lista de frases
+   que haya que mantener al dia.
+   ⚠️ ES SOLO PARA EL PAPEL: la pantalla sigue leyendo `c.txt` entero, que es donde la decision
+   del medico deja las tres etiquetas. */
+function _teerTxtSinJuicio(t) {
+  const s2 = String(t == null ? '' : t);
+  const i = s2.indexOf(' — ');
+  return (i < 0 ? s2 : s2.slice(0, i)).trim();
+}
+
 function amiloTextoTEER() {
   if (typeof teerEstado !== 'function') return '';
   const r = teerEstado();
@@ -107016,12 +107057,18 @@ function amiloTextoTEER() {
                        'teer-c7':!r.esSec, 'teer-c8':!r.esSec };
   r.orden.forEach(c => {
     if (_NO_APLICA[c.id]) return;
-    L.push(_teerAsciiPDF(c.lbl) + ' | ' + _teerAsciiPDF(c.txt));
+    /* El papel publica la MEDICION y no el juicio que la acompaña en pantalla (VAL-PPT-5a). */
+    L.push(_teerAsciiPDF(c.lbl) + ' | ' + _teerAsciiPDF(_teerTxtSinJuicio(c.txt)));
   });
 
-  L.push('## Conclusión');
-  L.push(_teerAsciiPDF(r.titulo));
-  if (r.nota) L.push(_teerAsciiPDF(r.nota));
+  /* ⚠️ LA CONCLUSION DEL PAPEL ES `r.papel`, NO `r.titulo` NI `r.nota` (VAL-PPT-5a). Esos dos
+     llevan el veredicto de aptitud y la derivacion, que es lo que la decision del medico saca
+     del papel; los dos siguen intactos y los sigue leyendo la PANTALLA. `r.papel` se arma con
+     las mismas piezas, asi que los conteos no pueden divergir. */
+  if (r.papel && r.papel.length) {
+    L.push('## Conclusión');
+    r.papel.forEach(t => L.push(_teerAsciiPDF(t)));
+  }
   const notas = (document.getElementById('ete_notas') || {}).value || '';
   if (String(notas).trim()) { L.push('## Notas ETE / Heart Team'); L.push(_teerAsciiPDFml(notas)); }
   return L.join('\n');
@@ -149969,8 +150016,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261102-0017';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793589447842;                 /* eco-build-ms */
+const ECO_BUILD    = '20261102-0026';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793589980710;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -150056,7 +150103,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261102-0017</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261102-0026</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
