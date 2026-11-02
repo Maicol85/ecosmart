@@ -51196,6 +51196,40 @@ function sumaProtLinea(morfId, val, lesiones) {
 }
 window.SUMA_PROT_SIGLA = SUMA_PROT_SIGLA; window.sumaProtLinea = sumaProtLinea;
 
+/* ══ LA VALVULA REPARADA EN EL EN SUMA — CORR-EVID-1 (2026-11-02) ═══════════════════════════
+   Las DOS valvulas que se pueden reparar y su rotulo CORTO para el resumen. El rotulo vive aca
+   y NO se deriva de `VALV_MORF_FRASE`, que es la forma LARGA que el cuerpo necesita
+   -«reparacion transcateter borde a borde (T-TEER)»-: el EN SUMA es la superficie que se lee y
+   se copia al resumen de alta, y el medico pidio el estilo corto que esa superficie ya usa para
+   la morfologia. El reparto por valvula sale de la tabla y no de un `if` suelto, que es el
+   idioma de `SUMA_PROT_SIGLA` y de `reusaSinEvidencia`.
+   ⚠️ EL TIPO LO DECIDE `popVTipoCorto`, EL DUEÑO UNICO (VAL-PPT-1), y no un `indexOf` propio:
+   con dos derivaciones el resumen podria nombrar una plastia sobre un TEER. Y por eso la tabla
+   se indexa con lo que ESA funcion devuelve -'plastia' y 'teer'-, no con el texto de la opcion. */
+const VALV_REP_SUMA = Object.freeze({
+  vm_morf: Object.freeze({ sigla: 'VM', plastia: 'plastia', teer: 'TEER' }),
+  vt_morf: Object.freeze({ sigla: 'VT', plastia: 'plastia', teer: 'T-TEER' })
+});
+/* `lesiones` llega YA redactada por el emisor de cada valvula, igual que en `sumaProtLinea` y
+   por el mismo motivo: ese emisor es el unico que sabe que señales tiene esa valvula y con que
+   palabras las nombra. Devuelve '' cuando la valvula NO esta reparada -o cuando el tipo no
+   tiene rotulo-, y entonces el llamador cae al camino de siempre: fail-closed, sin inventar
+   una etiqueta.
+   ⚠️ SIN CORTE, SIN GUIA Y SIN CONDUCTA: esta linea DESCRIBE lo cargado. Es la regla fija del
+   papel, y vale para el EN SUMA igual que para el informe. */
+function valvRepSuma(morfId, val, lesiones) {
+  const m = Object.prototype.hasOwnProperty.call(VALV_REP_SUMA, String(morfId))
+    ? VALV_REP_SUMA[morfId] : null;
+  if (!m) return '';
+  const tc = (typeof popVTipoCorto === 'function') ? popVTipoCorto(val) : '';
+  if (tc !== 'plastia' && tc !== 'teer') return '';
+  const rot = Object.prototype.hasOwnProperty.call(m, tc) ? m[tc] : '';
+  if (!rot) return '';
+  const l = (lesiones || []).filter(Boolean);
+  return m.sigla + ' con ' + rot + (l.length ? ', con ' + l.join(' y ') : '') + '.';
+}
+window.VALV_REP_SUMA = VALV_REP_SUMA; window.valvRepSuma = valvRepSuma;
+
 /* Estenosis pulmonar por gradiente pico (ESC/ASE): leve <36 mmHg · moderada 36-64 · severa
    >64. Los cortes por velocidad que suelen citarse —3 y 4 m/s— son EXACTAMENTE éstos vistos
    por el otro lado (4·3² = 36, 4·4² = 64), así que se clasifica siempre por gradiente y hay
@@ -57943,10 +57977,35 @@ function generarInforme(opts) {
     const _emSinVeredicto = !estEGrado && !_emCatAct &&
                             (emCat.fuentes.length || emCat.gm != null ||
                              (emCat.noIncl && emCat.noIncl.length));
+    /* ══ LA MITRAL REPARADA — CORR-EVID-1 (2026-11-02) ════════════════════════════════════════
+       MEDIDO EN HEAD, con la plastia o el TEER mitral Y una insuficiencia cargada: el cuerpo
+       decia «Valvula mitral con reparacion transcateter borde a borde (TEER), sin estenosis, con
+       insuficiencia moderada.» y el EN SUMA —la superficie que se lee y se copia al resumen de
+       alta— decia «IM moderada.» y NADA MAS: la reparacion desaparecia del resumen.
+       ⚠️ Y LA PREMISA DEL PEDIDO TIENE UN MATIZ MEDIDO: no es «salvo cuando es el unico
+       hallazgo». Con un hallazgo AJENO -una AI dilatada- el resumen SI nombraba la plastia, por
+       la pasada de VAL-PPT-3. Lo que la ocultaba es una lesion de ESTA valvula, porque el
+       `yaEnSuma` de esa pasada reconoce «IM » como «el resumen ya habla de esta valvula» y se
+       callaba. Esa pasada se retiro: su trabajo lo hace esta linea, que se emite SIEMPRE.
+       La linea va ANTES de la estenosis, que es el orden que la tricuspide ya usa -morfologia
+       primero, lesiones despues- y el que A5 pide.
+       ⚠️ LA ESTENOSIS NO SE FUSIONA, y es una lectura literal del pedido: dice que la
+       INSUFICIENCIA no se repita aparte y que para la estenosis se use «el mismo texto que la
+       app ya usa hoy». Queda en su linea propia. Declarado en docs/PENDIENTES.md. */
+    const _vmRepSuma = (typeof valvRepSuma === 'function')
+      ? valvRepSuma('vm_morf', vmMorf,
+          [(imG > 0 || insE) ? 'insuficiencia' + (imG > 0 ? ' ' + imTxt[imG] : '') : ''])
+      : '';
+    if (_vmRepSuma) suma.push(_vmRepSuma);
     if (emDesc) suma.push(`EM ${emDesc}.`);
     else if (_emCatAct) suma.push(EM_CAT_SUMA[emCat.clave]());
     else if (estE && !_vmProt && !_emSinVeredicto) suma.push('EM presente.');  // v2: regla 6 (EM_CAT_SUMA calculada NO se toca)
-    if (imG > 0) suma.push(`IM ${imTxt[imG]}.`); else if (insE) suma.push('IM presente.');  // v2: regla 6
+    /* ⚠️ Y NO SE REPITE APARTE: con la valvula reparada la insuficiencia ya viaja DENTRO de la
+       linea de arriba. Sin esta guarda el resumen salia con los dos renglones —«VM con TEER, con
+       insuficiencia moderada.» y «IM moderada.»—, que es justo lo que el pedido prohibe. */
+    if (!_vmRepSuma) {
+      if (imG > 0) suma.push(`IM ${imTxt[imG]}.`); else if (insE) suma.push('IM presente.');  // v2: regla 6
+    }
     const cE = fraseEI(estE, insE), cC = fraseEI(estC, insC);
     /* ══ PRÓTESIS: LA FRASE SE ARMA CON LO QUE LA APP PUEDE SOSTENER, Y NADA MÁS ════════════════
        ⚠️ EL PROBLEMA NO ES SÓLO «sin insuficiencia»: es que `fraseEI` NIEGA LAS DOS MITADES. Con
@@ -59119,15 +59178,27 @@ function generarInforme(opts) {
     if (_vtProtLinea) {
       suma.push(_vtProtLinea);
     } else {
-      if (vtMorf && vtMorf !== 'Normal') {
+      /* ══ LA TRICUSPIDE REPARADA — CORR-EVID-1 (2026-11-02) ════════════════════════════════
+         MEDIDO EN HEAD: esta valvula SI se nombraba —su rama de morfologia ya subia «VT con
+         plastia tricuspidea.»— pero publicaba DOS renglones cuando habia insuficiencia, «VT con
+         plastia tricuspidea.» y «IT moderada.». El pedido los une y acorta el rotulo. Es el
+         MISMO dueño que la mitral, con la misma redaccion de la lesion que `_vtProtLinea` ya
+         usaba dos ramas mas arriba: no hay una segunda copia del vocabulario. */
+      const _vtRepSuma = (typeof valvRepSuma === 'function')
+        ? valvRepSuma('vt_morf', vtMorf,
+            [hayIT ? 'insuficiencia' + (itG > 0 ? ' ' + imTxt[itG] : '') : ''])
+        : '';
+      if (_vtRepSuma) suma.push(_vtRepSuma);
+      else if (vtMorf && vtMorf !== 'Normal') {
         suma.push(vtMorf === 'Funcional / dilatación VD'
           ? 'VT funcional.' : `VT ${valvMorfAdj(vtMorf)}.`);
       }
       /* Las dos lesiones, DESPUÉS de la morfología, que es el orden que A5 pide. */
       if (etDesc) suma.push(`ET ${etDesc}.`);
       else if (etPill) suma.push('ET presente.');
-      /* El EN SUMA de la IT no cambia. */
-      if (hayIT) suma.push(itG > 0 ? `IT ${imTxt[itG]}.` : 'IT presente.');
+      /* El EN SUMA de la IT no cambia —salvo con la valvula reparada, donde la insuficiencia ya
+         viaja DENTRO de la linea de arriba y repetirla es lo que el pedido prohibe—. */
+      if (!_vtRepSuma && hayIT) suma.push(itG > 0 ? `IT ${imTxt[itG]}.` : 'IT presente.');
     }
     let tricLine;
     if (_vtProt || vtFuncSinIT) {
@@ -61844,47 +61915,16 @@ function generarInforme(opts) {
       if (d) { suma.push(base + ' con ' + d + '.'); return; }
       suma.push(base + ' normofuncionante.');
     });
-    /* ══ LA MITRAL INTERVENIDA QUE NO ES UNA PRÓTESIS — VAL-PPT-3 (2026-11-01) ══════════════
-       MEDIDO EN EL ÁRBOL DEL COMMIT 2, con la plastia o el TEER como ÚNICO hallazgo: el cuerpo
-       decía «Válvula mitral con plastia mitral, sin estenosis ni insuficiencia.» y el EN SUMA
-       —la superficie que se lee y se copia al resumen de alta— «Estudio sin alteraciones
-       estructurales ni funcionales significativas». El resumen negaba lo que el cuerpo describía.
-       Es la misma familia que la prótesis mitral de arriba, que la bicúspide de AJ1 y que el
-       pulmón de C2.
-
-       ⚠️ SÓLO LA MITRAL, Y ESTÁ MEDIDO POR QUÉ. Con el tipo nuevo como único hallazgo:
-         · mitral     → «Estudio sin alteraciones…»                     ← el defecto, se cierra acá
-         · tricúspide → «VT con plastia tricuspídea.»                     (su rama de morfología ya sube)
-         · aórtica    → «Sin OTRAS alteraciones… ver el cuerpo»          (TAVI es prótesis: la toma el bucle)
-         · pulmonar   → sin opciones nuevas
-       Un empujón incondicional le cambiaría el EN SUMA a las otras tres, que es justo lo que la
-       tabla de `reusaSinEvidencia` de arriba explica que no se hace.
-
-       ⚠️ NO SE AGREGA UNA PALABRA: `reusar` empuja LA LÍNEA QUE EL CUERPO YA IMPRIMIÓ, con las
-       MISMAS funciones del bloque de arriba —`lineaCuerpo`, `suma`, `yaDicho`— y no con una
-       segunda copia. Por construcción no puede contradecir al cuerpo.
-       ⚠️ Y NO SE AFIRMA NADA DE SU FUNCIÓN: a diferencia de la rama protésica, acá no hay
-       «normofuncionante» ni frase de respaldo. La app no tiene cortes para una válvula reparada
-       —la lectura del commit 2 lo deja escrito— así que si el cuerpo no tuviera línea que reusar,
-       no se inventa ninguna. */
-    (function(){
-      const V = VALVS[0];                       // la mitral, la única con `reusaSinEvidencia`
-      const morf = g(V.morf);
-      if (typeof popVTipoCorto !== 'function') return;
-      /* ⚠️ UNA SOLA GUARDA, Y LA REDUNDANTE SE RETIRO PORQUE UNA MUTACION SOBREVIVIO. Acá había
-         además un `if (valvEsProtesis(morf)) return` —«ya la tomó el bucle»— y no hacía nada:
-         `popVTipoCorto` devuelve 'mec', 'bio' o 'tavi' para las tres prótesis, y ninguno pasa
-         este filtro. Dos mecanismos para el mismo trabajo son lo que hace que una mutación
-         sobreviva, que es la lección que el D-10 pagó cinco veces. */
-      const tc = popVTipoCorto(morf);
-      if (tc !== 'plastia' && tc !== 'teer') return;
-      const yaEnSuma = suma.some(function(l){
-        const t = String(l || '');
-        return V.yaDicho.some(function(k){ return t.indexOf(k) > -1; });
-      });
-      if (yaEnSuma) return;                     // el resumen ya habla de esta válvula
-      reusar(V);
-    })();
+    /* ══ LA PASADA DE VAL-PPT-3 SE RETIRÓ — CORR-EVID-1 (2026-11-02) ══════════════════
+       Acá vivía un IIFE que, con la plastia o el TEER MITRAL, reusaba la línea del CUERPO para
+       que el resumen no cayera en «Estudio sin alteraciones estructurales ni funcionales
+       significativas». Su trabajo lo hace ahora `valvRepSuma` en el bloque de la mitral, que
+       emite su línea SIEMPRE y además con el grado de la insuficiencia adentro.
+       ⚠️ SE RETIRA Y NO SE DEJA DE RESERVA, y es la lección que el D-10 pagó cinco veces: dos
+       mecanismos para el mismo trabajo son lo que hace que una mutación sobreviva. Y la que
+       tenía —el `yaEnSuma` que reconoce «IM » como «el resumen ya habla de esta válvula»— era
+       justamente la causa del defecto que esta tanda cierra: callaba la reparación en cuanto la
+       válvula tenía una lesión graduada. */
   })();
 
   // Escribir En Suma
@@ -150188,8 +150228,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261102-0107';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793592473116;                 /* eco-build-ms */
+const ECO_BUILD    = '20261102-1133';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793629992481;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -150275,7 +150315,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261102-0107</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261102-1133</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
