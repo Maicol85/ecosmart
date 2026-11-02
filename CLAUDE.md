@@ -5377,5 +5377,5 @@ línea: el archivo creció y un informe de auditoría viejo apunta a otro archiv
   `docs/fuentes/FUENTES.md` → «La tanda VAL-PPT» con las cinco fuentes transcritas y su tabla de
   cambios de evidencia, `docs/REGISTRO_TANDAS.md` → el bloque de esta tanda,
   `docs/GUIA_PRUEBA_VALPPT.md` → la guía de prueba en dieciséis pasos, y `docs/PENDIENTES.md`
-  → **NUEVE** cosas declaradas (**VP-a** a **VP-i**).
+  → **DIEZ** cosas declaradas (**VP-a** a **VP-j**).
   ⚠️ **`congenitas-otros.md` (34.540 B) NO se tocó**, ni `valvulas.md` (33,9 KB).

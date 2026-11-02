@@ -498,7 +498,7 @@ Al empezar, `origin/main` = `HEAD` = **`5ae3959`**, el cierre de TGA-3, ya publi
 
 **Qué se paró y se reportó.** El commit 5b entero (cuatro conductas de la TGA sin respaldo en la
 Evidencia), el 6a (su premisa no se reproduce), el Laboratorio y «TAVI de cambio».
-→ `docs/PENDIENTES.md` **VP-a** a **VP-i**.
+→ `docs/PENDIENTES.md` **VP-a** a **VP-j**.
 
 **Cobertura.** TC-605 a TC-608, que caen contra HEAD por **46 condiciones y ninguna excepción**;
 **23/23 mutaciones dirigidas muertas**; tres condiciones nacidas del barrido.
