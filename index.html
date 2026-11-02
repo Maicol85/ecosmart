@@ -73069,13 +73069,17 @@ function generarPDFReal(_aj) {
            ⚠️ EL EPIGRAFE ES FIJO Y SE AGREGA ACA, no en el texto de pantalla: es una advertencia
            del papel —el mismo que lleva el esquema del posoperatorio, palabra por palabra— y en
            la app esa aclaracion la da el ⓘ de la caja. */
-        const _te = (typeof tgaEsqPdfData === 'function') ? tgaEsqPdfData() : { data:null, linea:'' };
+        const _te = (typeof tgaEsqPdfData === 'function') ? tgaEsqPdfData() : { data:null };
         const _tp = [{ data: imgSlots[_ti].dataURL }];
         const _tlin = [];
         if (_tl) _tlin.push(_tl);
         if (_te && _te.data) {
           _tp.push({ data: _te.data, ar: TGA_ESQ_PDF_AR });
-          if (_te.linea) _tlin.push(_te.linea);
+          /* ⚠️ EL ESCENARIO SE DICE UNA SOLA VEZ, Y LO DICE `tga3dLineaPDF` (PANT-2, A4). Hasta
+             hoy acá se pegaba además la línea de pantalla del esquema, que lo repetía entero y
+             le sumaba la explicación de lo que el dibujo no dibuja. Lo único propio del esquema
+             es la advertencia del papel, y es fija: la misma del esquema del posoperatorio,
+             palabra por palabra. */
           _tlin.push('Esquema ilustrativo: no es una imagen del estudio ni está a escala.');
         }
         _dg.tga3d = { partes: _tp, linea: _tlin.join('  ·  ') };
@@ -96776,7 +96780,7 @@ function _tgaEsqArrancar() {
    y de las comunicaciones, con las palabras que la app ya usa—, y se guarda al lado del
    dataURL. Leerlo al armar el PDF dejaria una ventana de 700 ms en la que la linea describe un
    escenario y el dibujo muestra el anterior. */
-var _tgaEsqPdf = { data:null, linea:'' };
+var _tgaEsqPdf = { data:null };
 var _tgaEsqPdfTo = 0;
 function tgaEsqPdfOn() {
   try {
@@ -96824,10 +96828,22 @@ function tgaEsqPdfRaster(inmediato) {
     try { txt = new XMLSerializer().serializeToString(svg); } catch (e) { txt = ''; }
     try { if (corria) _tgaEsqArrancar(); } catch (e) {}
     if (!txt) return null;
-    const _tx = document.getElementById('tga-esq-txt');
-    const _ln = _tx ? String(_tx.textContent || '').trim() : '';
+    /* ⚠️ EL ESQUEMA NO LLEVA LINEA PROPIA AL PAPEL (PANT-2, correccion A4). Hasta hoy guardaba
+       el textContent de `#tga-esq-txt` —la linea de PANTALLA— y el recuadro del PDF la pegaba
+       detras de la de `tga3dLineaPDF`, que ya dice el escenario y las comunicaciones cargadas.
+       Medido sobre el PDF generado de verdad: el recuadro publicaba «TGA completa (d-TGA) ·
+       switch auricular (Mustard o Senning) · Circulacion esquematica: TGA completa (d-TGA) con
+       switch auricular (Mustard o Senning). · Esquema ilustrativo: …», o sea el escenario DOS
+       VECES, mas la explicacion de lo que el dibujo no dibuja y el recorrido de la sangre.
+       La duplicacion se corta en la RAIZ y no reescribiendo dos textos paralelos: la linea del
+       recuadro tiene un DUENO UNICO, `tga3dLineaPDF`, asi que el escenario no puede volver a
+       decirse dos veces. La frase ilustrativa la pone el recolector, fija, como en el esquema
+       del posoperatorio.
+       El escenario NO se puede perder por esto: `tga3dLineaPDF` devuelve vacio solo sin anatomia
+       cargada, y sin anatomia `_tga3dEsDato` es falso, la compuerta esta cerrada y no hay
+       esquema que rotular. */
     return esqRasterizar(txt, TGA_ESQ_PDF_W, TGA_ESQ_PDF_H)
-      .then(function (d) { if (d && tgaEsqPdfOn()) _tgaEsqPdf = { data:d, linea:_ln }; return d; })
+      .then(function (d) { if (d && tgaEsqPdfOn()) _tgaEsqPdf = { data:d }; return d; })
       .catch(function () { return null; });
   };
   if (inmediato) return _cuerpo() || Promise.resolve(null);
@@ -96835,7 +96851,7 @@ function tgaEsqPdfRaster(inmediato) {
   return Promise.resolve(null);
 }
 window.tgaEsqPdfRaster = tgaEsqPdfRaster;
-function tgaEsqPdfData() { return tgaEsqPdfOn() ? _tgaEsqPdf : { data:null, linea:'' }; }
+function tgaEsqPdfData() { return tgaEsqPdfOn() ? _tgaEsqPdf : { data:null }; }
 window.tgaEsqPdfData = tgaEsqPdfData;
 window.tgaEsqSVG = tgaEsqSVG; window.tgaEsqSync = tgaEsqSync;
 /* ── La geometria de la demo, verbatim ── */
@@ -100232,6 +100248,91 @@ function esqColor(nombre, porOmision) {
   } catch (e) { return porOmision; }
 }
 
+/* ══ EL SVG QUE SE VA A RASTERIZAR, CON SUS ESTILOS RESUELTOS (PANT-2, corrección A) ════════
+   EL DEFECTO QUE CIERRA, MEDIDO. El médico vio el esquema de circulación de la transposición
+   salir en el PDF con las cuatro cavidades y los dos órganos rellenos de NEGRO y los rótulos en
+   una tipografía con serif. Medido sobre el PDF generado de verdad, en los dos temas: el
+   interior de las seis cajas daba `negroFrac` 1,000 con moda RGB(4,4,4) —negro puro—, el marcado
+   serializado llevaba 39 `var(--…)` sin resolver y no declaraba `font-family`.
+
+   POR QUÉ PASA. `esqRasterizar` serializa el SVG a un `data:` URL y lo decodifica en un `<img>`:
+   ahí el dibujo vive FUERA del documento, donde no existen ni las variables de CSS de `:root` ni
+   la hoja de estilos de la página. Un `fill="var(--bg)"` que no resuelve cae en el valor INICIAL
+   de `fill`, que es negro; y un `<svg>` sin `font-family` cae en la tipografía por omisión del
+   renderizador, que es serif.
+
+   POR QUÉ ACÁ Y NO EN EL EMISOR. Es el dueño único de «SVG → imagen», así que arregla de una vez
+   a los TRES que pasan por él. Con un parche por emisor, el próximo dibujo que nazca vuelve a
+   salir negro. El comentario de arriba ya decía que los colores tienen que ir literales; esta
+   función hace que esa condición deje de depender de que cada emisor se acuerde.
+
+   ES IDEMPOTENTE: un marcado que ya trae literales —el esquema de la orejuela los resuelve con
+   `esqColor` al emitir— no tiene ningún `var(` que sustituir y sale exactamente igual. Verificado
+   con su control.
+
+   LO QUE NO RESUELVE, declarado: una regla de la hoja de estilos que pinte por CLASE o por
+   selector, y un `var()` ANIDADO dentro del valor de otra variable más allá de tres pasadas. Lo
+   primero no afecta a los tres emisores de hoy —todos pintan por atributo de presentación—; lo
+   segundo se itera y se declara. La animación del flujo mueve `stroke-dashoffset`, que no es
+   color y que además se congela antes de serializar. */
+/* ⚠️ NO HAY LISTA DE VARIABLES, Y ES UNA CORRECCION MEDIDA. La primera version llevaba el juego
+   escrito a mano y el censo de A3 destapo que el esquema del POSOPERATORIO nombra `--accent2`,
+   que no estaba: una lista cerrada deja al proximo dibujo saliendo negro y nadie se entera hasta
+   que el medico abre el PDF. Se leen las que el MARCADO nombra, asi que no se queda vieja. */
+function _esqVarsResueltas(txt) {
+  const m = {};
+  try {
+    const cs = getComputedStyle(document.documentElement);
+    const vistos = {};
+    const re = /var\(\s*(--[A-Za-z0-9_-]+)/g;
+    let g;
+    while ((g = re.exec(String(txt == null ? '' : txt))) !== null) vistos[g[1]] = 1;
+    Object.keys(vistos).forEach(function (n) {
+      try { const v = String(cs.getPropertyValue(n) || '').trim(); if (v) m[n] = v } catch (e) {}
+    });
+  } catch (e) {}
+  return m;
+}
+/* Sustituye `var(--x)` y `var(--x, respaldo)` por su valor del tema vivo. Si la variable no
+   existe usa el respaldo escrito en el propio `var()`, y si tampoco hay respaldo deja un color
+   NEUTRO y no negro: el negro es justamente el defecto que esto viene a cerrar. */
+function _esqSustVars(txt) {
+  let t = String(txt == null ? '' : txt);
+  for (let i = 0; i < 3; i++) {
+    if (t.indexOf('var(--') < 0) break;
+    /* Se releen en cada pasada porque el valor de una variable puede nombrar otra. */
+    const m = _esqVarsResueltas(t);
+    t = t.replace(/var\(\s*(--[A-Za-z0-9_-]+)\s*(?:,\s*([^()]*?)\s*)?\)/g,
+      function (todo, nombre, respaldo) {
+        if (m[nombre]) return m[nombre];
+        if (respaldo) return respaldo;
+        return 'currentColor';
+      });
+  }
+  return t;
+}
+/* La tipografía del documento, para que el texto del dibujo no caiga en serif. */
+function _esqFontFamily() {
+  try {
+    const f = String(getComputedStyle(document.body).fontFamily || '').trim();
+    if (f) return f;
+  } catch (e) {}
+  return 'system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
+}
+/* El marcado listo para rasterizar: variables resueltas y tipografía declarada en la raíz.
+   ⚠️ LA TIPOGRAFÍA VA EN UN `style` DE LA RAÍZ Y NO EN UN ATRIBUTO: un `font-family` de atributo
+   lo pisa cualquier `font-family` de atributo de un hijo, y además así no se duplica si el
+   marcado ya lo trae. Se agrega sólo si no está, que es la condición que lo hace idempotente. */
+function esqSvgParaRaster(svgTxt) {
+  let t = _esqSustVars(svgTxt);
+  if (t.indexOf('font-family') < 0) {
+    const ff = _esqFontFamily().replace(/"/g, "'");
+    t = t.replace(/<svg\b/i, '<svg style="font-family:' + ff + '"');
+  }
+  return t;
+}
+window.esqSvgParaRaster = esqSvgParaRaster;
+
 /* Rasteriza una cadena de marcado SVG a un JPEG. `ancho` es el ancho de salida en píxeles: se
    dibuja al doble del tamaño de pantalla para que el texto no quede blando al verlo en grande. */
 function esqRasterizar(svgTxt, ancho, alto) {
@@ -100242,7 +100343,10 @@ function esqRasterizar(svgTxt, ancho, alto) {
        barrido que la llamó se cuelga sin decir nada. Es la trampa que la tanda B pagó. */
     setTimeout(() => fin(null), 8000);
     try {
-      const url = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgTxt);
+      /* ⚠️ EL MARCADO PASA POR `esqSvgParaRaster` ANTES DE SERIALIZARSE (PANT-2, corrección A):
+         fuera del documento no existen las variables de CSS y un `fill="var(--bg)"` cae en negro.
+         Ver el docstring de esa función para la medición que lo encontró. */
+      const url = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(esqSvgParaRaster(svgTxt));
       const im = new Image();
       im.onload = () => {
         try {
@@ -150953,8 +151057,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261102-1645';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793648702773;                 /* eco-build-ms */
+const ECO_BUILD    = '20261102-1944';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793659445962;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -151040,7 +151144,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261102-1645</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261102-1944</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
