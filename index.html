@@ -63476,6 +63476,12 @@ const POP_ESQ_PLEURA_H = Object.freeze({ leve: 22, moderado: 44, severo: 72 });
    El dorado del tejido es un literal de la demo y no una variable del tema: la demo lo escribe
    asi y copiarla es lo que la orden pide. No colisiona con los colores de senal de la app. */
 const POP_ESQ_VALV_BIO = '#c08a4a';
+/* ══ LOS TRES SIMBOLOS DE VAL-PPT-4 (2026-11-01), TAMBIEN DE LA DEMO v9 ═════════════════
+   Mismos literales que `valveGeo`, sin reescalar: el verde de la reparacion y el gris del
+   stent de la TAVI. Su leyenda los llama «plastia o TEER (doble orificio)» y «drenajes y stent
+   de TAVI», que son los dos colores que la demo ya reparte. */
+const POP_ESQ_VALV_REP  = '#1d9e75';   /* plastia y TEER */
+const POP_ESQ_VALV_STENT = '#6b6b66';  /* el marco del stent de la TAVI */
 const POP_ESQ_VALV_L   = 8;      /* largo del velo */
 const POP_ESQ_VALV_ANG = 72;     /* grados de excursion a plena apertura */
 /* La geometria de los dos velos para una apertura `a` entre 0 y 1. Devuelve las rutas de los
@@ -63486,6 +63492,22 @@ function _popValvVelos(a, bio) {
   const L = POP_ESQ_VALV_L, c = Math.cos(phi), s = Math.sin(phi);
   const lx = -8 + L * c, rx = 8 - L * c, ey = -L * s;
   const f = n => (Math.round(n * 100) / 100).toFixed(2);
+  /* ⚠️ LA TAVI TAMBIEN TIENE LOS SUYOS, Y LO ENCONTRO LA COMPARACION CON LA DEMO.
+     La primera version de VAL-PPT-4 le daba los velos de la BIOLOGICA -bisagras en +-8 y largo
+     8-, y la demo los dibuja en +-7 con largo 6: el stent ocupa el borde, asi que el velo nace
+     mas adentro y es mas corto. Las 44 escenas de TAVI salieron distintas de la demo y por eso
+     esta rama existe. Sus numeros son los de la demo, sin reescalar. */
+  if (bio === 'tavi') {
+    const L2 = 6, lx2 = -7 + L2 * c, rx2 = 7 - L2 * c, ey2 = -L2 * s;
+    return [ 'M-7 0L' + f(lx2) + ' ' + f(ey2), 'M7 0L' + f(rx2) + ' ' + f(ey2) ];
+  }
+  /* ⚠️ EL TEER TIENE SUS PROPIOS VELOS, Y NO SON LOS DE LA BIOLOGICA. En la demo los dos velos
+     del clip son curvas CORTAS que van de la bisagra al centro -no al borde libre-, porque el
+     clip los sujeta por el medio: `M-8 0Q-5 (-7a) -1.5 0`. Reusar la curva de la biologica
+     dibujaria una valvula que se abre entera, que es lo contrario de lo que un clip hace. */
+  if (bio === 'teer') {
+    return [ 'M-8 0Q-5 ' + f(-7 * a) + ' -1.5 0', 'M8 0Q5 ' + f(-7 * a) + ' 1.5 0' ];
+  }
   if (bio) {
     return [ 'M-8 0Q' + f((-8 + lx) / 2 - 2) + ' ' + f(ey / 2 + 3) + ' ' + f(lx) + ' ' + f(ey),
              'M8 0Q'  + f((8 + rx) / 2 + 2)  + ' ' + f(ey / 2 + 3) + ' ' + f(rx) + ' ' + f(ey) ];
@@ -63499,7 +63521,18 @@ function _popValvApertura(k, ph) {
   if (k === 'ao' || k === 'pu') return ph < 0.35 ? Math.sin(Math.PI * ph / 0.35) : 0;
   return (ph > 0.4 && ph < 0.95) ? Math.sin(Math.PI * (ph - 0.4) / 0.55) : 0;
 }
+/* Los dos orificios del TEER para una apertura `a`: los tres numeros son los de la demo v9
+   -`cy = -2.2a`, `ry = 0.3 + 2.2a` y `fill-opacity = 0.25 + 0.6a`-.
+   ⚠️ VIVE ACA Y NO INLINE EN EL BUCLE por el mismo motivo que `_popValvVelos`: es la parte
+   portada de la demo, y con la formula escrita dentro del bucle la comparacion obligatoria
+   contra la demo no la puede alcanzar sin reescribirla, o sea sin comparar la sonda consigo
+   misma. */
+function _popValvOrificios(a) {
+  const f = n => (Math.round(n * 100) / 100).toFixed(2);
+  return { cy: f(-2.2 * a), ry: f(0.3 + 2.2 * a), op: f(0.25 + 0.6 * a) };
+}
 window._popValvVelos = _popValvVelos; window._popValvApertura = _popValvApertura;
+window._popValvOrificios = _popValvOrificios;
 
 /* ══ LOS CHORROS DE INSUFICIENCIA — «POP-C», commit 6 (2026-11-02) ══════════════════════════
    Portados de `plume` y de `JG` de la demo v9, con sus numeros sin reescalar. La forma es
@@ -63699,10 +63732,11 @@ function popEsquema() {
        `indexOf('mec') > 0 ? 'mec' : 'bio'`, o sea que TODO lo que no dijera «mecanica» se
        dibujaba como protesis BIOLOGICA: correcto mientras los dos unicos tipos elegibles fueran
        esos, y una afirmacion inventada desde que plastia, TEER y TAVI lo son.
-       ⚠️ Y EN ESTE COMMIT los tres nuevos caen al ARO PUNTEADO NEUTRO a proposito: su simbolo es
-       la tanda VAL-PPT-4. Dibujar un simbolo que no existe es peor que no dibujar ninguno. */
-    const _tc = (typeof popVTipoCorto === 'function') ? popVTipoCorto(st && st.prot ? st.val : '') : '';
-    const tipo = (_tc === 'mec' || _tc === 'bio') ? _tc : '';
+       ⚠️ EL COMMIT 1 LOS DEJABA CAER AL ARO PUNTEADO NEUTRO a proposito, porque su simbolo no
+       existia todavia. VAL-PPT-4 los dibuja, asi que el tipo pasa entero. Lo que NO cambia es
+       la direccion segura: un valor sin simbolo sigue devolviendo cadena vacia y el dibujo pone
+       su aro neutro. */
+    const tipo = (typeof popVTipoCorto === 'function') ? popVTipoCorto(st && st.prot ? st.val : '') : '';
     _vop[r[0]] = { on: !!(c && c.checked), tipo: tipo };
   });
   const _cxTok = (typeof popCxEstado === 'function') ? (popCxEstado().tokens || []) : [];
@@ -63974,6 +64008,30 @@ function popEsqMontar() {
     o.sop = [-8, 8].map(function (x) {
       return _popEsqNodo('circle', { cx:x, cy:0, r:2.2, display:'none' }, G);
     });
+    /* ══ LAS PIEZAS DE LOS TRES SIMBOLOS NUEVOS — VAL-PPT-4 (2026-11-01) ════════════════
+       Portadas de `valveGeo` de la demo v9, con sus numeros sin reescalar, y montadas UNA vez
+       como todo lo demas de este dibujo: el pintor las prende y las apaga, no las crea.
+       · PLASTIA: el anillo de anuloplastia es un SEMICIRCULO abierto abajo -un anillo entero se
+         leeria como una protesis- con los velos nativos.
+       · TEER: el circulo verde con DOS ORIFICIOS que se encienden con la apertura y el clip en
+         el medio. Los orificios son el doble orificio de un borde a borde, que es lo que el
+         pedido nombra, y su opacidad y su alto siguen la fase.
+       · TAVI: el marco rectangular del stent con su malla en cruz y rombo, y los velos del
+         tejido en el dorado de la biologica —porque una TAVI es una bioprotesis—.
+       El ORDEN de insercion es el orden de pintado del SVG: el clip va DESPUES de los orificios
+       y de los velos para que quede encima, como en la demo. */
+    o.aro = _popEsqNodo('path', { d:'M-10 0A10 10 0 1 1 10 0', fill:'var(--bg)',
+      stroke:POP_ESQ_VALV_REP, 'stroke-width':2.5, display:'none' }, G);
+    o.stent = _popEsqNodo('rect', { x:-9, y:-11, width:18, height:22, rx:3, fill:'var(--bg)',
+      stroke:POP_ESQ_VALV_STENT, 'stroke-width':1.5, display:'none' }, G);
+    o.malla = _popEsqNodo('path', { d:'M-9 -11L9 11M9 -11L-9 11M-9 0L0 -11L9 0L0 11Z',
+      stroke:POP_ESQ_VALV_STENT, 'stroke-width':1, fill:'none', display:'none' }, G);
+    o.ori = [-4.7, 4.7].map(function (x) {
+      return _popEsqNodo('ellipse', { cx:x, cy:0, rx:2.8, ry:0.3, fill:POP_ESQ_VALV_REP,
+        'fill-opacity':0.25, display:'none' }, G);
+    });
+    o.clip = _popEsqNodo('rect', { x:-1.6, y:-5, width:3.2, height:10, rx:1.2,
+      fill:'var(--text)', display:'none' }, G);
     n.valv[vv.k] = o;
   });
   /* ══ LOS CHORROS DE INSUFICIENCIA (POP-C-6) ════════════════════════════════════════════
@@ -64341,14 +64399,30 @@ function _popEsqEstatico(d, g) {
        la demo- y lo que distingue a los tres es el trazo: mecanica en el color de texto,
        biologica en el dorado del tejido, y sin tipo el aro punteado neutro. */
     const mec = st.tipo === 'mec', bio = st.tipo === 'bio';
-    const col = mec ? 'var(--text)' : bio ? POP_ESQ_VALV_BIO : 'var(--border)';
+    /* ══ SEIS ESTADOS DESDE VAL-PPT-4, Y EL TIPO SALE DEL DATO ════════════════════════
+       mecanica · biologica · plastia · TEER · TAVI · sin tipo. El aro punteado neutro sigue
+       siendo lo que se dibuja cuando NO hay tipo elegido, igual que desde POP-B-7a. */
+    const pla = st.tipo === 'plastia', teer = st.tipo === 'teer', tavi = st.tipo === 'tavi';
+    const col = mec ? 'var(--text)' : bio ? POP_ESQ_VALV_BIO
+              : (pla || teer) ? POP_ESQ_VALV_REP : tavi ? POP_ESQ_VALV_BIO : 'var(--border)';
+    /* El CIRCULO es el anillo de la mecanica, de la biologica, del TEER y del aro neutro. La
+       plastia usa su semicirculo y la TAVI su marco rectangular, asi que ahi se apaga. */
+    const conCirculo = !(pla || tavi);
+    o.anillo.setAttribute('display', conCirculo ? 'inline' : 'none');
     o.anillo.setAttribute('fill', 'var(--bg)');
-    o.anillo.setAttribute('stroke', col);
+    o.anillo.setAttribute('stroke', teer ? POP_ESQ_VALV_REP : col);
     o.anillo.setAttribute('stroke-dasharray', st.tipo ? '' : '3 3');
+    o.aro.setAttribute('display', pla ? 'inline' : 'none');
+    o.stent.setAttribute('display', tavi ? 'inline' : 'none');
+    o.malla.setAttribute('display', tavi ? 'inline' : 'none');
+    o.clip.setAttribute('display', teer ? 'inline' : 'none');
+    o.ori.forEach(function (e) { e.setAttribute('display', teer ? 'inline' : 'none') });
     [o.vA, o.vB].forEach(function (l) {
       l.setAttribute('display', st.tipo ? 'inline' : 'none');
-      l.setAttribute('stroke', col);
-      l.setAttribute('stroke-width', mec ? 3 : 2.2);
+      /* La plastia y el TEER llevan velos NATIVOS, en el color del texto: lo verde es el
+         anillo o el clip, que es lo que se implanto, y no el velo del paciente. */
+      l.setAttribute('stroke', (pla || teer) ? 'var(--text)' : col);
+      l.setAttribute('stroke-width', mec ? 3 : (pla || teer) ? 1.6 : tavi ? 2.4 : 2.2);
     });
     o.sop.forEach(function (c) {
       c.setAttribute('display', bio ? 'inline' : 'none');
@@ -64357,7 +64431,7 @@ function _popEsqEstatico(d, g) {
     /* Los velos quedan CERRADOS desde el pintor estatico: el bucle los mueve, pero si nunca
        llega a correr -o si corre despues- un `path` sin `d` no dibuja nada y el simbolo
        aparece sin velos, que es justo lo que significa «sin tipo». Es idempotente. */
-    { const p0 = _popValvVelos(0, bio);
+    { const p0 = _popValvVelos(0, teer ? 'teer' : tavi ? 'tavi' : bio);
       o.vA.setAttribute('d', p0[0]); o.vB.setAttribute('d', p0[1]); }
   });
   /* Los dos cateteres, decididos por el dispositivo elegido y por nada mas (POP-C-7). */
@@ -64499,8 +64573,16 @@ function popEsqTexto(d) {
         const i = t.indexOf(' — ');
         if (i < 0) return t;
         const v2 = t.slice(0, i), tp = t.slice(i + 3);
+        /* ⚠️ LA MINUSCULA NO SE LE APLICA A UN ACRONIMO, Y ES LA TERCERA PUERTA DEL MISMO
+           DEFECTO. `charAt(0).toLowerCase()` daba «mitral con tEER mitral» y «aortica con
+           tAVI» desde que VAL-PPT-1 los hizo elegibles: exactamente lo que la nota de
+           `VALV_MORF_FRASE` documenta para TAVI en el informe y lo que el fallback de
+           `_valvMorfF` hacia por la otra. Se baja la inicial SOLO si la palabra no es un
+           acronimo, o sea si no tiene otra mayuscula adentro. */
+        const w0 = tp.split(' ')[0];
+        const acr = /[A-ZÁÉÍÓÚ]/.test(w0.slice(1));
         return tp.indexOf('sin ') === 0 ? v2 + ' ' + tp
-             : v2 + ' con ' + tp.charAt(0).toLowerCase() + tp.slice(1);
+             : v2 + ' con ' + (acr ? tp : tp.charAt(0).toLowerCase() + tp.slice(1));
       }).join(', '));
     if (q.length) fila('Cirugía y drenajes', q.join('; ') + '.');
   })();
@@ -64623,9 +64705,19 @@ function popEsqFrame(ahora) {
     const o = n.valv[vv.k], st = d.vop[vv.k];
     if (!o || !st || !st.on) return;
     const a = Math.max(0, Math.min(1, _popValvApertura(vv.k, _fv)));
-    const p = _popValvVelos(a, st.tipo === 'bio');
+    const p = _popValvVelos(a, st.tipo === 'teer' ? 'teer' : st.tipo === 'tavi' ? 'tavi' : st.tipo === 'bio');
     o.vA.setAttribute('d', p[0]);
     o.vB.setAttribute('d', p[1]);
+    /* ⚠️ LOS DOS ORIFICIOS DEL TEER SE ENCIENDEN CON LA APERTURA, que es lo que el pedido
+       nombra: «el doble orificio con dos orificios que se encienden». Los tres numeros son los
+       de la demo -cy -2,2a, ry 0,3 + 2,2a y opacidad 0,25 + 0,6a-, asi que en diastole se
+       abren dos ovalos verdes a los lados del clip y en sistole quedan dos rayas tenues. */
+    if (st.tipo === 'teer') {
+      const q = _popValvOrificios(a);
+      o.ori.forEach(function (e) {
+        e.setAttribute('cy', q.cy); e.setAttribute('ry', q.ry); e.setAttribute('fill-opacity', q.op);
+      });
+    }
   });
   /* ══ LOS CHORROS, SINCRONIZADOS CON EL LATIDO DE SU VALVULA (POP-C-6) ══════════════════
      La insuficiencia de una valvula ocurre cuando esa valvula esta CERRADA: la mitral y la
@@ -149877,8 +149969,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261101-2351';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793587892577;                 /* eco-build-ms */
+const ECO_BUILD    = '20261102-0017';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793589447842;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -149964,7 +150056,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261101-2351</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261102-0017</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
