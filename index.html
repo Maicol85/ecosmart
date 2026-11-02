@@ -81714,7 +81714,13 @@ function ccSumaLinea(sec){
     /* «Función del VD SISTÉMICO» y no «función del VD»: en esta cardiopatía el ventrículo derecho
        sostiene la circulación sistémica, y ése es todo el sentido de la sección. El campo es
        cualitativo — no hay porcentaje que publicar. */
-    l += fvd ? ' — VD sistémico con ' + fvd : ' — función del VD sistémico no consignada';
+    /* ⚠️ SIN DATO NO SE DICE NADA (PANT-2, corrección D2). Esta línea publicaba «— función del
+       VD sistémico no consignada» en el EN SUMA de todo estudio con el tipo cargado y la función
+       vacía: una negación sobre algo que nadie midió, en un resumen de HALLAZGOS. El pedido del
+       médico es que el texto nombre SOLO lo cargado. La línea no se queda vacía por esto: el
+       encabezado con el tipo y la cirugía va siempre, y la compuerta de más arriba ya devuelve
+       null cuando no hay ni tipo ni función ni grado de insuficiencia. */
+    if (fvd) l += ' — VD sistémico con ' + fvd;
     if (it) l += ' — IT ' + it;
     /* El gradiente subaórtico sólo con la obstrucción AFIRMADA. Con «Obstrucción subaórtica: No»
        y un número tipeado, la línea publicaba el gradiente al lado de un cuerpo que decía «sin
@@ -96415,8 +96421,20 @@ function tgaConclusion(src){
     return { clave:'descriptivo', txt:_d, resumen:_d, papel:_d };
   }
   const partes = [_cab + ': el ventrículo derecho es el ventrículo sistémico'];
-  const FUNC = { normal:'normal', leve:'con disfunción leve', moderada:'con disfunción moderada', severa:'con disfunción severa' };
-  if (func) partes.push('Función del ventrículo derecho sistémico ' + (FUNC[func] || func));
+  /* ══ EL HALLAZGO SE NOMBRA DIRECTO Y UNA SOLA VEZ (PANT-2, corrección D1) ══════════════════
+     PEDIDO DEL MÉDICO: el texto se ADAPTA a lo cargado y escribe MENOS. La frase decía «Función
+     del ventrículo derecho sistémico con disfunción moderada», o sea «función» y «disfunción» en
+     la misma oración para decir una sola cosa. Con disfunción cargada la oración la nombra
+     directo; con la función normal, lo que hay es una función y se dice así.
+     LAS PALABRAS SON LAS DE LAS OPCIONES DE LA APP —«Normal», «Disfunción leve», «Disfunción
+     moderada», «Disfunción severa»—, así que el informe no inventa un vocabulario propio.
+     ⚠️ EL RESPALDO PUBLICA EL VALOR TAL CUAL y no se calla: un estudio guardado con un
+     vocabulario viejo tiene que seguir diciendo lo que tiene cargado. Nada se migra. */
+  const FUNC_TXT = { normal:'Función del ventrículo derecho sistémico normal',
+                     leve:'Disfunción del ventrículo derecho sistémico leve',
+                     moderada:'Disfunción del ventrículo derecho sistémico moderada',
+                     severa:'Disfunción del ventrículo derecho sistémico severa' };
+  if (func) partes.push(FUNC_TXT[func] || ('Función del ventrículo derecho sistémico ' + func));
   if (dil != null) partes.push('Diámetro basal del ventrículo sistémico ' + dil + ' mm');
   const ITT = { '1':'leve', '2':'moderada', '3':'moderada-severa', '4':'severa' };
   const itTxt = _ccLbl(ITT, it);
@@ -151263,8 +151281,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261102-2012';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793661120611;                 /* eco-build-ms */
+const ECO_BUILD    = '20261102-2018';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793661538988;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -151350,7 +151368,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261102-2012</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261102-2018</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
