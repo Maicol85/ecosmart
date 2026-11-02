@@ -85178,12 +85178,98 @@ function _indTermTablaHTML(tb, ancho){
 
 function _indInfoHTML(lbl, htmlInterno){
   if (!htmlInterno) return '';
+  /* ⚠️ `aria-expanded` LO DECLARA EL MARCADO Y LO MANTIENE `_indInfoSync` (PANT-2, corrección B).
+     Un `<details>` nativo anuncia su estado por el atributo `open`, que el lector de pantalla lee
+     del `<details>` y no del `<summary>`; con el ⓘ gobernado desde fuera —una sola nota abierta,
+     cierre al tocar fuera y con Escape— el estado tiene que estar en el control que se enfoca. */
   return ' <details data-ind-info="1" style="display:inline-block;vertical-align:top;">' +
-    '<summary aria-label="Ver la explicación de: ' + _critEsc(lbl) + '" ' +
+    '<summary aria-label="Ver la explicación de: ' + _critEsc(lbl) + '" aria-expanded="false" ' +
     'style="cursor:pointer;list-style:none;display:inline;font-weight:700;color:var(--accent2);">' +
     '&#9432;</summary>' +
     '<div style="margin-top:4px;">' + htmlInterno + '</div></details>';
 }
+
+/* ══ EL ⓘ DE UNA PREGUNTA SE CIERRA AL TOCAR FUERA (PANT-2, corrección B) ═════════════════════
+   EL DEFECTO QUE CIERRA. El médico reportó que la nota de una pregunta no se cierra hasta tocar
+   el MISMO ⓘ otra vez, que se pueden abrir varias a la vez y que tapan las preguntas de abajo.
+   Un `<details>` nativo es exactamente eso: no sabe nada de sus hermanos ni del resto de la
+   página. Desde que TGA-4 le dio posición absoluta —para que la fila no crezca— además FLOTA,
+   así que dos notas abiertas se superponen entre sí.
+
+   LAS CUATRO PUERTAS DE CIERRE, y por qué cada una:
+   · tocar FUERA — es lo que el médico espera de algo que flota;
+   · Escape — la misma tecla con que cierra cualquier capa de la app;
+   · abrir OTRA — una sola abierta por vez, que es lo que evita que se tapen entre ellas;
+   · repintar o cerrar el panel — contestar una pregunta llama a `_indRepintarConservando`, que
+     reescribe el `innerHTML` y destruye los `<details>`, así que esa puerta ya estaba; el cierre
+     del panel la hace explícita.
+
+   TOCAR DENTRO DE LA NOTA NO CIERRA NADA, y es una condición del pedido: el médico tiene que
+   poder leer la nota y seleccionar su texto. El manejador distingue el `<summary>` del cuerpo.
+
+   ⚠️ VA EN EL DOCUMENTO Y EN FASE DE CAPTURA, y las dos cosas son necesarias. En el DOCUMENTO
+   porque «fuera» incluye el resto de la página, no sólo el panel. En CAPTURA porque el toggle
+   nativo del `<details>` es la acción por omisión del clic, o sea que ocurre DESPUÉS de las dos
+   fases: cerrando «las demás» acá, el nativo abre la que se tocó y queda exactamente una.
+   El `aria-expanded` se sincroniza en un `setTimeout` de cero por el mismo motivo: leído en
+   captura, `open` todavía tiene el valor anterior.
+
+   ⚠️ SE CABLEA UNA SOLA VEZ, como `_indClinCablear` y por el mismo motivo: `indicRender`
+   reescribe el `innerHTML` entero en cada repintado, así que enganchar por nodo acumularía un
+   oyente por pintada. */
+function _indInfoTodas(){
+  try { return Array.prototype.slice.call(document.querySelectorAll('details[data-ind-info]')) }
+  catch (e) { return [] }
+}
+/* `aria-expanded` del `<summary>` sigue al `open` de su `<details>`. Un solo dueño. */
+function _indInfoSync(){
+  _indInfoTodas().forEach(function (d) {
+    try {
+      const s = d.querySelector('summary');
+      if (s) s.setAttribute('aria-expanded', d.open ? 'true' : 'false');
+    } catch (e) {}
+  });
+}
+window._indInfoSync = _indInfoSync;
+/* Cierra todas menos `excepto`. Con `null` cierra todas. */
+function _indInfoCerrar(excepto){
+  _indInfoTodas().forEach(function (d) {
+    if (d === excepto) return;
+    try { if (d.open) d.open = false } catch (e) {}
+    try { const s = d.querySelector('summary'); if (s) s.setAttribute('aria-expanded', 'false') } catch (e) {}
+  });
+}
+window._indInfoCerrar = _indInfoCerrar;
+var _indInfoCableado = false;
+function _indInfoCablear(){
+  if (_indInfoCableado) return;
+  _indInfoCableado = true;
+  document.addEventListener('click', function (ev) {
+    try {
+      const t = ev.target;
+      const d = (t && t.closest) ? t.closest('details[data-ind-info]') : null;
+      if (!d) { _indInfoCerrar(null); return; }
+      const sm = (t.closest) ? t.closest('summary') : null;
+      /* Dentro de la NOTA: no se cierra nada. */
+      if (!sm || sm.parentNode !== d) return;
+      _indInfoCerrar(d);
+      setTimeout(_indInfoSync, 0);
+    } catch (e) {}
+  }, true);
+  document.addEventListener('keydown', function (ev) {
+    try {
+      if (ev.key !== 'Escape') return;
+      const hay = _indInfoTodas().some(function (d) { return !!d.open });
+      if (!hay) return;
+      _indInfoCerrar(null);
+      /* ⚠️ SE DETIENE LA PROPAGACIÓN SÓLO SI HABÍA UNA NOTA ABIERTA. Así Escape cierra la nota y
+         deja el panel abierto —que es lo que el médico espera de una capa sobre otra—, y con
+         todas cerradas sigue cerrando el panel como siempre. */
+      ev.stopPropagation();
+    } catch (e) {}
+  }, true);
+}
+window._indInfoCablear = _indInfoCablear;
 
 /* ⚠️ EL SEGUNDO PARAMETRO ES EXPLICITO Y LOS TRES LLAMADORES PASAN POR UNA LAMBDA. Hasta hoy
    los tres eran `lista.map(_indFilaHTML)`, que le pasa (fila, INDICE, array): el día que esta
@@ -94914,6 +95000,9 @@ function indicAbrir(){
   if (typeof indicTermCerrar === 'function') indicTermCerrar(true);
   indicRender();
   _indClinCablear();
+  /* El ⓘ de una pregunta se gobierna desde fuera: una sola abierta, cierre al tocar fuera y con
+     Escape. Ver el docstring de `_indInfoCablear` (PANT-2, corrección B). */
+  if (typeof _indInfoCablear === 'function') _indInfoCablear();
   const ov = document.getElementById('indic-overlay'); if (ov) ov.style.display = 'block';
   /* ⚠️ EL FOCO ENTRA AL PANEL, Y HASTA ESTA TANDA NO ENTRABA. Medido en HEAD: al abrir el foco
      quedaba en `body` y el primer Tab se iba a `#hdr-med-btn` —un botón de la página, DETRÁS del
@@ -94934,6 +95023,9 @@ function indicCerrar(){
   _indClinLimpiar();
   indicMaxPoner(false);
   if (typeof indicTermCerrar === 'function') indicTermCerrar(true);
+  /* Cerrar el panel cierra sus notas. El repintado las destruye igual, pero el panel se cierra
+     SIN repintar: sin esta línea, volver a abrirlo mostraba la nota de la sesión anterior. */
+  if (typeof _indInfoCerrar === 'function') _indInfoCerrar(null);
   const ov = document.getElementById('indic-overlay'); if (ov) ov.style.display = 'none';
 }
 
@@ -151057,8 +151149,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261102-1944';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793659445962;                 /* eco-build-ms */
+const ECO_BUILD    = '20261102-2000';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793660419114;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -151144,7 +151236,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261102-1944</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261102-2000</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
