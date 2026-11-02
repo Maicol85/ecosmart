@@ -95514,7 +95514,55 @@ const TGA_ESQ_DEF = Object.freeze({
     box:{ TL:['VD','sistémico','b'], TR:['AI','','r'], BL:['AD','','b'], BR:['VI','','r'] },
     fl:[['M80 250V206','b'],['M80 156V124','b'],['M40 100H18V265H58','b'],['M220 38V76','r'],
         ['M220 122V156','r'],['M260 180H282V23H242','r']],
-    v:[[80,140,'T'],[220,139,'M']], ao:[18,191], ap:[282,92] })
+    v:[[80,140,'T'],[220,139,'M']], ao:[18,191], ap:[282,92] }),
+  /* ══ LAS TRES CIRUGIAS (TGA-3, commit 4) ═══════════════════════════════════════════════════
+     ⚠️ CONTROL CLINICO HECHO ANTES DE DIBUJAR, Y ES LA CONDICION DE LA ORDEN. Los recorridos de
+     Jatene, Rastelli y la TGA corregida que la demo trae en prosa los redacto quien armo la demo
+     y NO estaban en la app, asi que no se usan como respaldo. El respaldo es `TGA3D_CIRC`, que
+     es de la app y que las tandas TGA y TGA-2 ya verificaron. Comparados uno por uno:
+
+       mus — dibujo: cavas → Tunel → valvula M → VI → AP  ·  venas pulm. → valvula T → VD → Ao
+             app:    «cavas → tunel → valvula mitral → VI → arteria pulmonar · venas pulmonares
+                      → valvula tricuspide → VD → aorta»                        COINCIDE
+       jat — dibujo: cavas → AD → VD → AP  ·  venas pulm. → AI → VI → Ao  (en serie)
+             app:    «AD → VD → arteria pulmonar (neopulmonar) · AI → VI → aorta (neoaorta)»
+                                                                             COINCIDE
+       ras — dibujo: cavas → AD → VD → conducto → AP  ·  AI → VI → tunel por la CIV → Ao
+             app:    «AI → VI → tunel por la CIV → aorta · AD → VD → conducto → arteria
+                      pulmonar»                                              COINCIDE
+
+     Los tres coinciden, asi que los tres se dibujan. Si alguno no hubiera coincidido, ese
+     escenario quedaba PARADO con la nota de `_tgaEsqBase` y la diferencia escrita en
+     `docs/PENDIENTES.md`, que es lo que la orden manda. El caso de prueba compara la secuencia
+     del dibujo contra esa constante, asi que la coincidencia no es una lectura: se mide. */
+  mus: Object.freeze({
+    box:{ TL:['VD','sistémico','r'], TR:['Aurícula','(venas pulm.)','r'],
+          BL:['Túnel','(cavas)','b','o'], BR:['VI','','b'] },
+    fl:[['M80 250V206','b'],['M120 180H178','b'],['M260 180H282V23H242','b'],['M220 38V76','r'],
+        ['M180 100H122','r'],['M40 100H18V265H58','r']],
+    v:[[150,180,'M'],[151,100,'T']], ao:[18,191], ap:[282,92] }),
+  /* ⚠️ EL JATENE USA LOS TRAZADOS DEL CORAZON NORMAL, y eso es lo correcto y no un atajo: el
+     switch arterial reconecta los grandes vasos, asi que la circulacion vuelve a ir en serie.
+     Lo que lo distingue son las tres marcas naranjas de `ex`: las dos lineas de sutura de la
+     neoaorta y la neopulmonar y la coronaria reimplantada. */
+  jat: Object.freeze({
+    box:{ TL:['VD','','b'], TR:['AI','','r'], BL:['AD','','b'], BR:['VI','','r'] },
+    fl:[['M80 250V206','b'],['M80 156V124','b'],['M80 78V40','b'],['M220 38V76','r'],
+        ['M220 122V156','r'],['M220 204V248','r']],
+    v:[[80,140,'T'],[220,139,'M']], ao:[220,226], ap:[80,59],
+    ex:['<path d="M70 66H90" stroke="var(--tga-esq-naranja)" stroke-width="3"/>',
+        '<path d="M210 214H230" stroke="var(--tga-esq-naranja)" stroke-width="3"/>',
+        '<circle cx="236" cy="222" r="3" fill="var(--tga-esq-naranja)"/>'] }),
+  /* ⚠️ EN EL RASTELLI LA SALIDA DEL VI VA POR LA CIV, y por eso su ultima flecha no es la del
+     corazon normal: sale del VI, cruza al tabique y baja a la aorta. Las dos franjas naranjas de
+     `ex` son el conducto del VD a la pulmonar y el tunel por la CIV. */
+  ras: Object.freeze({
+    box:{ TL:['VD','','b'], TR:['AI','','r'], BL:['AD','','b'], BR:['VI','','r'] },
+    fl:[['M80 250V206','b'],['M80 156V124','b'],['M80 78V40','b'],['M220 38V76','r'],
+        ['M220 122V156','r'],['M180 182H150V108H18V265H58','r']],
+    v:[[80,140,'T'],[220,139,'M']], ao:[18,191], ap:[80,59],
+    ex:['<path d="M80 78V40" stroke="var(--tga-esq-naranja)" stroke-width="8" opacity=".35" fill="none"/>',
+        '<path d="M150 108H40" stroke="var(--tga-esq-naranja)" stroke-width="9" opacity=".35" fill="none"/>'] })
 });
 /* La letra de cada marcador de punta de flecha, por color. */
 const TGA_ESQ_MK = Object.freeze({ b:'tga-esq-mb', r:'tga-esq-mr' });
@@ -95576,13 +95624,20 @@ function tgaEsqSVG(k, sh) {
   /* Las comunicaciones, cada una SOLO si esta cargada. Van antes de las cavidades para que el
      borde de la cavidad quede por encima del trazo. */
   const NAR = 'var(--tga-esq-naranja)';
-  if (sh.asd) {
+  /* ⚠️ LAS DOS EXCLUSIONES SON LAS DEL 3D, NO UNAS NUEVAS, y la razon es clinica y esta medida
+     en `docs/PENDIENTES.md` → C2A-f: con el switch auricular NO se dibuja la CIA —el tabique
+     auricular se reseco y la sangre va por los dos tuneles que esa rama dibuja— y con el
+     Rastelli NO se dibuja la CIV —esa rama ya pone el tunel por la comunicacion—. La regla la
+     declara la demo y el 3D ya la aplica; dibujarlas aca y no alla dejaria los dos dibujos de la
+     misma caja contradiciendose sobre el mismo paciente. */
+  const _ocultaCIA = (k === 'mus'), _ocultaCIV = (k === 'ras');
+  if (sh.asd && !_ocultaCIA) {
     const d = _tgaEsqDirCom('ete_cia_dir');
     s += '<path d="M120 164L180 116" stroke="' + NAR + '" stroke-width="3" stroke-dasharray="5 3" ' +
          'fill="none"' + (d ? ' marker-end="url(#' + TGA_ESQ_MK.r + ')"' : '') + '/>' +
          '<text x="134" y="150" font-size="' + TGA_ESQ_FS.com + '" fill="' + NAR + '">CIA</text>';
   }
-  if (sh.vsd) {
+  if (sh.vsd && !_ocultaCIV) {
     s += '<path d="M120 116L180 164" stroke="' + NAR + '" stroke-width="3" stroke-dasharray="5 3" ' +
          'fill="none"/>' +
          '<text x="134" y="132" font-size="' + TGA_ESQ_FS.com + '" fill="' + NAR + '">CIV</text>';
@@ -95658,6 +95713,10 @@ function tgaEsqSync(anat, cir) {
   const partes = [];
   if (nom) partes.push('Circulación esquemática: ' + nom + '.');
   if (com.length) partes.push('Comunicaciones cargadas: ' + com.join(', ') + '.');
+  /* ⚠️ LA COMUNICACION OMITIDA SE DICE, y no se calla: un dibujo que no muestra una CIA cargada
+     sin explicar por que se lee como que la app perdio el dato. Las palabras son las del 3D. */
+  if (sh.asd && base.k === 'mus') partes.push('La CIA no se dibuja con el switch auricular.');
+  if (sh.vsd && base.k === 'ras') partes.push('La CIV no se dibuja con el Rastelli: es el túnel.');
   if (base.pend) partes.push('Esquema pendiente de revisión para esta cirugía: se muestra el de la anatomía.');
   const tx = document.getElementById('tga-esq-txt');
   if (tx) tx.textContent = partes.join(' ');
@@ -149625,7 +149684,7 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
 const ECO_BUILD    = '20261101-2209';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793581790180;                 /* eco-build-ms */
+const ECO_BUILD_MS = 1793581790417;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
