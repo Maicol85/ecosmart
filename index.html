@@ -72024,6 +72024,20 @@ function generarPDFReal(_aj) {
   // ════════════════════════════════════════════════════════════
   // BLOQUE 3 (3 col): Flujo Transmitral | DTI Mitral | Tricúspide / PSAP
   // ════════════════════════════════════════════════════════════
+  /* ══ LAS CUATRO FILAS DE LA VALVULA PULMONAR, CON UN DUENO UNICO (TGA-4, 2026-11-02) ════════
+     Salen del literal de la seccion para que el TITULO y las FILAS se decidan con la MISMA
+     lista: un predicado aparte que repitiera las condiciones de cada fila es una segunda copia,
+     y el dia que una cambie el encabezado nombraria la valvula pulmonar sin ninguna fila debajo
+     —o al reves—. El orden dentro de la seccion no se mueve: van donde estaban, entre «PAP
+     media» y «PAPm (IP)». */
+  const _vpFil = [
+    {lbl:'V. máx VP',  ref:'', val:vPdf('vp_vmax',' m/s')},
+    {lbl:'G. máx VP',  ref:'', val:vPdf('vp_gmax',' mmHg')},
+    {lbl:'Morf. VP',   ref:'', val:(sv('vp_morf')&&sv('vp_morf')!=='Normal')?sv('vp_morf'):null},
+    // DVI de prótesis, sin escala al lado: ver la nota de la fila DVI de la mitral.
+    {lbl:'DVI VP',     ref:'', val:_protPdf('vp_morf','vp_dvi','',2)},
+  ];
+  const _vpHayFil = _vpFil.some(f => f.val != null && String(f.val).trim() !== '');
   drawTablaCompacta([
     /* ⚠️ EL TÍTULO NOMBRA LA VENA PULMONAR CUANDO LA HAY, Y SE CONSERVA AUNQUE LA PANTALLA YA NO
        TENGA PANEL (decisión de esta segunda pasada, que el pedido dejó a criterio).
@@ -72096,7 +72110,23 @@ function generarPDFReal(_aj) {
          en el documento firmado. Es el borde que el pintado nuevo destapó. Lo cazó `/sharp-edges`. */
       {lbl:"E/e'",       ref:'<=' + UMBRAL_EE_ELEVADA,      val:ee},
     ]},
-    {titulo:'Tricúspide / PSAP', items:[
+    /* ⚠️ EL TITULO NOMBRA LA VALVULA PULMONAR CUANDO LA HAY (TGA-4, 2026-11-02), Y ES EL MISMO
+       ARREGLO QUE ESTE BLOQUE YA LE HIZO A LA VENA PULMONAR. El medico leyo en la primera hoja
+       «Morf. VP: Prótesis biológica» bajo un encabezado que dice «Tricúspide / PSAP» y lo
+       entendio de la TRICUSPIDE. Las cuatro filas `VP` son la VALVULA pulmonar —otra estructura—
+       y el encabezado no la nombraba ni una vez: en un documento firmado que circula sin la app
+       al lado no hay donde desambiguar, que es palabra por palabra el argumento con que la
+       sub-columna de la vena pulmonar gano su titulo condicional seis lineas mas arriba.
+       ⚠️ LA AGRUPACION NO SE TOCA: las filas se quedan donde estan. El corazon derecho entero
+       —insuficiencia tricuspidea, presion pulmonar y valvula pulmonar— sigue en una sola caja de
+       la tabla de tres columnas; lo unico que cambia es el ROTULO, que es lo que la orden pide.
+       ⚠️ «Válv. pulmonar» Y NO «V. pulmonar»: la caja vecina dice «Vena pulmonar», asi que una
+       «V.» abreviada se leeria como la vena. El titulo se achica solo hasta entrar (ver el bucle
+       de `_sz` en `drawTablaCompacta`), igual que el de la vena pulmonar, que es mas largo que
+       el original por el mismo motivo.
+       Sigue siendo CONDICIONAL: sin datos de valvula pulmonar el titulo es el de siempre y el
+       PDF sale identico. */
+    {titulo:'Tricúspide / PSAP' + (_vpHayFil ? ' / Válv. pulmonar' : ''), items:[
       {lbl:'V. máx IT',  ref:'',                    val:vPdf('vmax_it',' m/s')},
       {lbl:'Grad. IT',   ref:'',                    val:gradIT},
       /* La columna `ref` de esta tabla es la de UMBRALES DE SEVERIDAD, y cuatro bandas al lado
@@ -72107,11 +72137,7 @@ function generarPDFReal(_aj) {
          Queda el corte de normalidad, que sí es un valor de referencia. */
       {lbl:'PSAP',       ref:'<=' + UMBRAL_PSAP_ELEVADA + ' mmHg',   val:vPdf('psap_calc',' mmHg')},
       {lbl:'PAP media',  ref:'',                    val:sv('pap_med')||null},
-      {lbl:'V. máx VP',  ref:'', val:vPdf('vp_vmax',' m/s')},
-      {lbl:'G. máx VP',  ref:'', val:vPdf('vp_gmax',' mmHg')},
-      {lbl:'Morf. VP',   ref:'', val:(sv('vp_morf')&&sv('vp_morf')!=='Normal')?sv('vp_morf'):null},
-      // DVI de prótesis, sin escala al lado: ver la nota de la fila DVI de la mitral.
-      {lbl:'DVI VP',     ref:'', val:_protPdf('vp_morf','vp_dvi','',2)},
+      ..._vpFil,
       /* Sin PmAD NO se publica la fila. El `(pm||0)` de antes imprimía `4·V²` —el gradiente
          entre arteria pulmonar y ventrículo derecho— bajo el rótulo «PAPm», subestimando la
          presión pulmonar en el valor entero de la PmAD (5-15 mmHg) sin ninguna marca. Y desde
@@ -95888,7 +95914,19 @@ function tgaConclusion(src){
   if (obstr === 'si') partes.push('Obstrucción subaórtica' + (gradS != null ? ' con gradiente de ' + gradS + ' mmHg' : ''));
   else if (obstr === 'no') partes.push('Sin obstrucción subaórtica');
   if (civ === 'si') partes.push('Comunicación interventricular residual' + (civG != null ? ' con gradiente de ' + civG + ' mmHg' : ''));
-  if (bav === 'si') partes.push('Bloqueo auriculoventricular completo, complicación esperable en la ccTGA por la disposición del sistema de conducción');
+  /* ⚠️ SOLO EL HALLAZGO, SIN LA EXPLICACION (TGA-4, 2026-11-02). Esta linea decia «Bloqueo
+     auriculoventricular completo, complicación esperable en la ccTGA por la disposición del
+     sistema de conducción», y el medico la encontro en el PDF de una d-TGA operada con SWITCH
+     AURICULAR — un paciente que NO tiene ccTGA—. Esta rama la recorren el switch auricular, la
+     ccTGA y la d-TGA sin operar, asi que la clausula nombraba otra anatomia en dos de los tres
+     casos. La rama `descriptivo` de arriba —Jatene y Rastelli— ya publicaba solo el hallazgo
+     desde la TGA-3, y su comentario ya declaraba por que: «es una interpretacion y encima nombra
+     OTRA anatomia». Ahora las dos ramas dicen lo mismo para todos los tipos.
+     ⚠️ LA EXPLICACION NO VIVIA EN OTRO LADO, Y SE DECLARA. Censado el documento entero: una sola
+     aparicion, esta. No esta en la pantalla por separado —`partes` alimenta `txt`, que es lo que
+     la capsula imprime— ni en ningun ⓘ ni en Referencias, asi que se va tambien de la pantalla.
+     Escribirla en la Evidencia es contenido clinico nuevo. Declarado en docs/PENDIENTES.md. */
+  if (bav === 'si') partes.push('Bloqueo auriculoventricular completo');
 
   const itSevera = it === '4';   // el 3 es moderada-severa; ver la nota en ebsConclusion
   let clave, conducta;
@@ -108417,8 +108455,19 @@ function ccHoja(k, oraciones, conclusion, seguimiento) {
   const cc = String(conclusion == null ? '' : conclusion).trim().replace(/\.$/, '');
   /* `!!` = bloque de nota: italica, ancho completo y filete de color. Es el marcador que ya usan
      las salvedades de las otras hojas, y la conclusion es justo lo que no puede quedar exprimido
-     en la columna de un valor. */
-  if (cc) L.push('!!Segun la guia: ' + cc + '.');
+     en la columna de un valor.
+
+     ⚠️ SIN EL PREFIJO «Segun la guia: » (TGA-4, 2026-11-02). Lo pidio el medico sobre el PDF de
+     una d-TGA operada con switch auricular, donde el recuadro de la hoja ARRANCABA con esa
+     frase. Nombra una guia sin decir cual, en una superficie firmada, y el principio del medico
+     es tajante: el papel describe y no nombra guias, sociedades, clases, niveles, tablas ni
+     folios. El `!!` SE QUEDA —es el marcador de bloque de nota, no texto—, asi que el recuadro
+     se sigue dibujando igual y lo unico que cambia es que empieza por la conclusion.
+     ⚠️ ES LA PLANTILLA COMPARTIDA DE LAS CATORCE HOJAS, asi que el prefijo sale de TODAS las
+     secciones de congenitas que publican conclusion, no solo de la transposicion. Censado: lo
+     emitian `dap`, `vap`, `eisen`, `fontan`, `mch` y las cuatro del bucle de la tabla —`ebs`,
+     `tdf`, `tga` y `mca`—; `cia`, `civ` y `coa` pasan `null` y nunca lo emitieron. */
+  if (cc) L.push('!!' + cc + '.');
   const sg = String(seguimiento == null ? '' : seguimiento).trim().replace(/\.$/, '');
   if (sg) { L.push('## Seguimiento'); L.push(sg + '.'); }
   ta.value = L.join('\n');
@@ -150459,8 +150508,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261102-1206';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793631992135;                 /* eco-build-ms */
+const ECO_BUILD    = '20261102-1537';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793644646859;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -150546,7 +150595,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261102-1206</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261102-1537</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
