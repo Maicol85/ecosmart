@@ -9175,3 +9175,76 @@ divergencia como deliberada. **Parado y reportado.**
 derrame, el tamaño de los chorros— son **geometría ilustrativa** y lo único que afirman es el
 **orden**: no hay fuente que convierta «dilatación moderada» en un factor de escala. Van sin cita,
 igual que el nivel de líquido pleural desde POP-B.
+
+## La tanda TGA-3 (2026-11-01)
+
+**Esta tanda NO abrió un solo PDF de guía, y se declara.** No hacía falta: su contenido clínico
+—el recorrido de la sangre en cada escenario— ya está en la aplicación, verificado por las tandas
+TGA y TGA-2, y lo que esta tanda hace es **retirar** citas del papel, no agregarlas.
+
+### La tabla «Cambios de evidencia» — vacía a propósito
+
+**Ni un corte, ni un umbral, ni una clase, ni un nivel, ni una tabla, ni un folio se movió.**
+No se agregó ninguna cita a ninguna superficie. Lo único que cambia de lugar es **lo que el papel
+dice**, y siempre en la dirección de decir menos.
+
+### El respaldo de los seis recorridos del esquema: `TGA3D_CIRC`, de la app
+
+La demo de concepto trae, en prosa, el recorrido de cada escenario. **Esas frases las redactó
+quien armó la demo y NO estaban en la aplicación**, así que la orden prohíbe usarlas como
+respaldo. El respaldo es **`TGA3D_CIRC`**, la constante que la propia app ya publica en el párrafo
+de la circulación del diagrama 3D. Transcrita textual, tal como está en el código:
+
+| clave | `TGA3D_CIRC` |
+|---|---|
+| `norm` | «AD → VD → arteria pulmonar → pulmones → AI → VI → aorta → cuerpo» |
+| `dtga` | «AD → VD → AORTA → cuerpo · AI → VI → ARTERIA PULMONAR → pulmones → AI (dos circuitos en paralelo)» |
+| `ltga` | «AD → VI morfologico → arteria pulmonar → pulmones · AI → VD morfologico → aorta» |
+| `mus` | «cavas → tunel → valvula mitral → VI → arteria pulmonar · venas pulmonares → valvula tricuspide → VD → aorta» |
+| `jat` | «AD → VD → arteria pulmonar (neopulmonar) · AI → VI → aorta (neoaorta)» |
+| `ras` | «AI → VI → tunel por la CIV → aorta · AD → VD → conducto → arteria pulmonar» |
+
+**Los seis recorridos dibujados coinciden con esa tabla**, comparados uno por uno; la comparación
+está en `docs/mapa/tga3-esquema-circulacion.md` § 3 y la mide `scripts/_probe_tga3circ.mjs`, que
+lee la secuencia **del dibujo** y no de una constante escrita a mano. Por eso ningún escenario
+quedó parado. El mecanismo de parada (`_tgaEsqBase` más la nota «Esquema pendiente de revisión
+para esta cirugía») **existe y tiene cobertura** —la mutación M13 lo ejercita—, así que está listo
+para el día que haga falta.
+
+### Lo que salió del papel, y dónde sigue estando
+
+Censo de once marcadores por las once superficies de papel de cada escena: **381 apariciones
+antes, 0 después.**
+
+| lo que salió | de dónde | dónde sigue estando |
+|---|---|---|
+| «seguimiento anual» | informe (3 estilos), PDF (6 plantillas), PPT | la **pantalla**, y `TGA_CONDUCTAS` en el Laboratorio |
+| «cirugía sobre la válvula a considerar (ESC 2020)» | ídem | la **pantalla**, y la **Evidencia**: tablas `aur` (IIa · C) y `cc` (I, IIa y IIb · C) de `TGA_IND_RECS`, con hoja y folio |
+| «optimización del tratamiento médico de IC y evaluación de resincronización» | ídem | la **pantalla**. ⚠️ **La Evidencia NO la respalda por disfunción**: su tabla `cc` publica la estimulación biventricular por **bloqueo** o por requerimiento de estimulación. → `T3-f` |
+| «intervención a considerar» por gradiente subaórtico > 50 mmHg | ídem | la **pantalla**. ⚠️ **Sin equivalente en la Evidencia.** → `T3-f` |
+| «seguimiento estrecho» | ídem | la **pantalla** |
+| «completar la evaluación» · «vigilancia de la progresión» | ídem | la **pantalla** |
+| «No consta la situación clínica, de la que dependen las indicaciones» | ídem | la **pantalla**, y la fila «Síntomas» de la Evidencia lo dice con sus palabras |
+
+⚠️ **LA CONDICIÓN DE LA ORDEN SE CUMPLE POR LA PANTALLA, Y ESO ES DELIBERADO.** El commit 1b pide
+que el contenido de la conclusión **no cambie** y el commit 2 acepta que el contenido retirado viva
+«en la pantalla, el ⓘ, Referencias o la Evidencia». Verificado en Chrome: la cápsula publica la
+conclusión entera —261 caracteres, con «seguimiento anual»— mientras el papel publica 214 sin ella.
+
+### Los tres colores del esquema no son nuevos
+
+`#2f6fd0` (sangre poco oxigenada), `#d8433b` (oxigenada) y `#e08a1e` (suturas y comunicaciones)
+son **exactamente** los que la leyenda del recuadro del 3D ya publica y los que la geometría del
+3D usa. Nacen como variables propias —`--tga-esq-azul`, `--tga-esq-rojo`, `--tga-esq-naranja`—
+porque la app no tiene ninguna equivalente, con el mismo valor en los dos temas; lo que cambia por
+tema son las superficies y el texto, que salen de `--bg`, `--bg3`, `--border`, `--text` y
+`--text2`.
+
+### El censo de la dirección del shunt
+
+Censado el documento entero: la aplicación guarda la dirección de la **comunicación
+interauricular** (`ete_cia_dir`: izquierda→derecha, derecha→izquierda, bidireccional) y del
+**ductus** (`dap_dir`, los mismos tres valores). **Para la comunicación interventricular no existe
+ningún campo de dirección.** Por eso la CIA y el ductus llevan punta de flecha y la CIV no, que es
+exactamente lo que la orden pide. Medido: 6 puntas sin dirección, 7 con la de la CIA, 8 con la del
+ductus; y el control negativo `!!document.getElementById('ete_civ_dir') === false`.

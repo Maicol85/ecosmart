@@ -111,6 +111,7 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Tocar la VISTA 2D de las válvulas**: el lector único del estado, las tarjetas, la tabla de cavidades, el dibujo, los chorros o el «por qué» | `docs/mapa/vista-2d-valvulas.md` |
 | **Tocar el PANEL EN LÍNEA de la vista 2D**: el botón que prende y apaga, el apagado automático, la sincronía en vivo, el alto del dibujo o la línea de fase | `docs/mapa/vista-2d-en-linea.md` |
 | **Tocar el DIAGRAMA 3D DE LA TRANSPOSICIÓN**: los dos ejes y su dueño único, el valor `dtga`, el campo de cirugía, las comunicaciones leídas de sus pestañas, la carga diferida con SRI, «Incluir en el PDF» o la cirugía en el papel | `docs/mapa/tga-diagrama-3d.md` |
+| **Tocar el ESQUEMA DE CIRCULACIÓN de la sangre de la TGA** —sus seis escenarios, las dos exclusiones de comunicación, la punta de flecha que depende de la dirección que la app guarda, la animación colgada del 3D, el corte de 1200 px o su ⓘ—, **la CONCLUSIÓN de la TGA en la columna izquierda**, o **la salida `papel` que saca la conducta del informe, del PDF y del PPT** | `docs/mapa/tga3-esquema-circulacion.md` |
 | **Tocar el PAPEL de la TGA operada con JATENE o con RASTELLI**, el dueño `TGA_CIR_OP`, o **agregar una sección al panel de Evidencia con PREGUNTAS de tres estados** —la de la transposición, la CIA, la CIV o la prevención de muerte súbita de la MCH—: dónde se persisten las respuestas, cómo se agrupan las recomendaciones por situación y qué quedó parado | `docs/mapa/t2-evidencia-congenitas.md` |
 | **Orientarse en otro módulo** (Congénitas, Laboratorio, PPT, Cardio-Onco, Pericardio) | `docs/mapa/congenitas-otros.md` |
 | **Tocar algo que la tanda C1 movió** (28/10): los cuatro rótulos de VExUS contra la Figura 7 de Rola 2021 y su Evidencia sin conducta por grado, la casilla de HTP que dice «sin evaluar», los tres mensajes del Forrester con su dueño único, la RVS leyendo `pamEfectiva` con el origen de sus insumos, el POCUS del posoperatorio viendo el `vd_vi` de VD/AD, o el DIAGRAMA DE FORRESTER de la pestaña de Hemodinámica con sus dos cortes | `docs/mapa/c1-hemodinamica.md` |
@@ -195,8 +196,13 @@ Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la v
 ## Qué es EcoSmart y cómo se trabaja
 
 - App clínica de ecocardiografía en **un solo `index.html`**: HTML + CSS + JS inline, sin build,
-  sin frameworks. Hoy **10,84 MB / 152.233 líneas**, medido con `wc -c` y `wc -l` el 2026-11-02 al
-  cierre de la tanda **POP-C**, sobre el árbol ya sellado (`v20261101-2008`, md5 `747b6597`).
+  sin frameworks. Hoy **10,87 MB / 152.699 líneas**, medido con `wc -c` y `wc -l` el 2026-11-01 al
+  cierre de la tanda **TGA-3**, sobre el árbol ya sellado (`v20261101-2214`, md5 `7ff2a3f2`).
+  ⚠️ **ESE ES EL ÁRBOL QUE LA SUITE MIDIÓ Y EL QUE QUEDÓ COMMITEADO.** `index.html` se selló
+  ANTES de la suite completa y el commit de documentación **no lo volvió a sellar**, porque no lo
+  toca: no hay líneas de diferencia que declarar. El diff de la tanda son **480 líneas agregadas y
+  14 quitadas**.
+  (Antes: 10,84 MB / 152.233 al cierre de POP-C, sello `v20261101-2008`, md5 `747b6597`.)
   ⚠️ **ESE ES EL ÁRBOL QUE LA SUITE MIDIÓ Y EL QUE QUEDÓ COMMITEADO, y por una vez sin asterisco:**
   la suite corrió DESPUÉS del commit de documentación, con su guarda de md5 confirmando que no
   cambió durante la corrida. No hay líneas de diferencia que declarar.
@@ -456,6 +462,224 @@ impecable.
 > secciones de REGLAS (la regla de oro con su tabla de mapas, «Qué es EcoSmart», el panel de
 > Evidencia, el protocolo de verificación, las trampas conocidas, el flujo de trabajo,
 > SEGURIDAD y la tabla de Procedencia) siguen enteras y en su lugar, verificado byte por byte.
+### La conclusión a la izquierda, el papel sin conductas y el esquema de circulación — «TGA-3» (2026-11-01)
+
+- **SEIS commits, y los CINCO de código se hicieron enteros.** `d2261f4` (1) · `d2cb912` (2) ·
+  `91ae620` (3) · `1c9eb6d` (4) · `60aebc3` (5) · el de cobertura y documentación. Sello
+  **`v20261101-2214`**, md5 de `index.html` **`7ff2a3f2`**. Al empezar, `origin/main` = `HEAD` =
+  **`96b7ff0`**, el cierre de POP-C, ya publicado, con md5 **`747b6597`** y el pendrive `DISK_IMG`
+  montado. **El push lo corre Maicol: esta tanda tenía orden expresa de NO pushear.**
+
+- **EL DEFECTO MÁS GRANDE QUE CERRÓ, EN UNA LÍNEA: el informe FIRMADO de una transposición
+  recomendaba conducta y nombraba la guía.** Medido en HEAD con la sección integrada y con su
+  control positivo: «seguimiento anual» salía **una** vez en el informe en cada uno de los **tres**
+  estilos, **tres** veces en cada una de las **seis** plantillas del PDF y **una** en el PPT; y la
+  rama de la insuficiencia tricuspídea severa y sintomática llevaba **«(ESC 2020)»** al papel.
+  **El EN SUMA no la llevaba**: `ccSumaLinea` arma su propia línea y nunca leyó la conducta.
+  Censo de once marcadores por las once superficies de papel de cada escena: **381 → 0**.
+
+- **NO SE REESCRIBIÓ NINGÚN TEXTO.** `papel` es la **misma lista de partes** congelada ANTES de que
+  entre la conducta, así que las dos salidas se arman con las mismas piezas y no pueden divergir.
+  Es el patrón de la coartación y de la miocardiopatía hipertrófica, y lo que la AJ7 pagó con la
+  Fallot por no tenerlo. **Ejemplo:** «… Diámetro basal del ventrículo sistémico 45 mm. Función del
+  ventrículo sistémico conservada — seguimiento anual.» → «… Diámetro basal del ventrículo
+  sistémico 45 mm.» **Ningún número medido desaparece.**
+
+- ⚠️ **ESTO TERMINA LO QUE TGA-2 EMPEZÓ.** Su rama `descriptivo` —Jatene y Rastelli— ya salía sin
+  conducta, y su propio comentario decía que la cascada «cita la ESC 2020, que es lo que el
+  principio del médico saca del papel».
+
+- ⚠️ **UNA REGRESIÓN DEL COMMIT 2 QUE EL COMMIT 5 CIERRA, Y LA ENCONTRÓ UN CASO DE PRUEBA.** El
+  commit 2 le puso `papel:true` al registro del PPT mientras la rama `descriptivo` devolvía sólo
+  `txt` y `resumen`, así que para Jatene y Rastelli `cc.papel` quedaba `undefined` y **la
+  diapositiva se quedaba sin su fila de conclusión**. El commit 5 la devuelve haciendo que esa
+  rama también publique `papel`. Medido con el comparador oficial: el A/B del commit 2 muestra UNA
+  diferencia de PPT en `cJat` y otra en `cRas`, y la línea de fondo HEAD → cierre las netea.
+  ⚠️ **Y MI PRIMER ANÁLISIS DIJO «CERO» SOBRE ESAS DOS ESCENAS**: era un script improvisado que
+  extraía el PPT con una clave que no existe, así que comparaba **dos cadenas vacías**. El
+  comparador oficial de la tanda sí lo vio. **Un denominador envenenado, no una diferencia.**
+
+- **LA CONCLUSIÓN PASA A LA COLUMNA IZQUIERDA**, al hueco que CONG-2A dejaba vacío bajo los campos:
+  medido antes de tocar nada, **368 px de alto × 549 de ancho a 1440 px** y **475 × 358 a 1000**.
+  La caja pasa de **1168×34 al pie** a **549×67 en (211, 913)**, justo bajo el último campo, que
+  termina en y=901; el alto de la sección baja de **927 a 864 px** a 1440 y de **1056 a 977** a
+  1000. **El contenido no cambia: 214 caracteres en los dos árboles.** Y `#tga-fila` sigue con
+  **dos** hijos, que es lo que deja la maqueta de 900 px intacta.
+
+- ⚠️ **DOS ARNESES MEDÍAN EL SOLAPE EN UN SOLO EJE, Y LOS DOS INFORMABAN UNO QUE NO EXISTE.**
+  `pisaConcl` de `_probe_cong2a_pant.mjs` y `pisaCv` de **TC-574** restan el fondo del lienzo menos
+  el tope de la conclusión: correcto mientras la conclusión estuviera **debajo**, y falso desde que
+  vive **al lado**, porque dos cajas lado a lado comparten rango vertical por diseño. Informaban
+  de 232 a 640 px. **La intersección en los DOS ejes es cero** en los ocho cruces y en los dos
+  árboles. TC-574 se adaptó a medir los dos ejes; la sonda ajena **no se tocó** → **T3-g**.
+
+- **EL ESQUEMA DE CIRCULACIÓN, Y SU DECISIÓN DE DISEÑO: no tiene selector.** El escenario sale de
+  `tgaEjes()` y de `tga3dComs()`, los dueños únicos que ya lee el 3D: con un selector propio, el
+  esquema y el 3D de la misma caja podrían mostrar **dos anatomías distintas del mismo paciente**.
+  Medido: con `tga_tipo = mustard` el dibujo es **idéntico** al de `dtga` + `auricular`.
+
+- **EL CONTROL CLÍNICO DE LOS RECORRIDOS, QUE ES LA CONDICIÓN DE LA ORDEN, Y SU RESPALDO NO ES LA
+  DEMO.** Las frases del recorrido de la demo las redactó quien la armó y **no estaban en la app**.
+  El respaldo es **`TGA3D_CIRC`**, que es de la app y que las tandas TGA y TGA-2 verificaron.
+  **Los seis recorridos coinciden**, comparados uno por uno, así que **ninguno quedó parado**. El
+  mecanismo de parada existe y **tiene cobertura** —la mutación M13 lo ejercita—, listo para el día
+  que haga falta.
+
+- ⚠️ **EN LA ccTGA LAS DOS VÁLVULAS CAMBIAN DE LADO, y es todo el sentido de la doble
+  discordancia**: la aurícula derecha desemboca por la **mitral** en el ventrículo izquierdo
+  morfológico y la izquierda por la **tricúspide** en el derecho morfológico. Medido: `M@80 T@220`
+  contra `T@80 M@220` del resto. La mutación **M12** las descruza y mata el caso.
+
+- **LAS DOS EXCLUSIONES SON LAS DEL 3D, NO UNAS NUEVAS**: no la CIA con el switch auricular, no la
+  CIV con el Rastelli, por el motivo clínico que **C2A-f** ya declara. Dibujarlas acá y no allá
+  dejaría los dos dibujos de la misma caja contradiciéndose sobre el mismo paciente. **Y la
+  comunicación omitida se dice**: un dibujo que no muestra una CIA cargada sin explicar por qué se
+  lee como que la app perdió el dato. Medido: `CIA=NO` **sólo** con `mus` (en sus dos formas) y
+  `CIV=NO` **sólo** con `ras`.
+
+- **LA PUNTA DE FLECHA VA SOLO DONDE LA APP GUARDA LA DIRECCIÓN, y está censado, no supuesto:**
+  existen `ete_cia_dir` y `dap_dir`, y para la CIV **no hay ningún campo de dirección en toda la
+  aplicación**. Medido: **6** puntas sin dirección —una por flecha de flujo—, **7** con la de la
+  CIA y **8** con la del ductus.
+
+- **SOLO LECTURA, Y ESTÁ MEDIDO:** recorrer los siete escenarios no mueve **ninguno** de los 986
+  campos del estudio, y **ninguna** clave del esquema es campo del estudio. **Cero campos guardados
+  nuevos y cero columnas de Excel**, verificado escena por escena: **19 de 19 con censo y Excel
+  idénticos**, 441 → 441 y 1002 → 1002.
+
+- ⚠️ **EL ESQUEMA SOBREVIVE A QUE EL CDN FALLE, Y SE MIDIÓ EN VEZ DE AFIRMARLO.** Con three.js
+  bloqueado: `window.THREE` **no carga**, el 3D publica su aviso y el esquema **sigue dibujando**
+  —3.559 caracteres de SVG, sus seis flechas y su línea de texto—, con **cero errores de página**.
+  Es lo que valida pintar el esquema **antes** de las salidas tempranas de `tga3dSync`.
+
+- ⚠️ **AL LADO DEL 3D DESDE 1200 px Y NO DESDE 900, Y ES UNA MEDICIÓN, NO UNA PREFERENCIA.** El
+  recuadro mide **631 px a 1440** y **406 a 1000**, así que al lado el 3D quedaría en **327 px a
+  1440** —que sirve— y en **126 px a 1000** —que no sirve para nada—. El punto 3a dice que el 3D
+  «no se achica más de lo necesario», así que entre 900 y 1200 el esquema se apila **debajo del 3D
+  dentro del recuadro**, y por debajo de 900 se apila junto con toda la caja, que es lo que la
+  orden pide. **Las dos condiciones del 3a entran en conflicto a 1000 px** y se resolvió por la que
+  la orden pone primero → **T3-a**.
+
+- ⚠️ **LA TIPOGRAFÍA DEL SVG ES MÁS GRANDE QUE LA DE LA DEMO, Y ES UNA MEDICIÓN.** El SVG escala
+  con su ancho: con los 9 px de la demo en un `viewBox` de 300, a los 268 px que el esquema ocupa
+  al lado del 3D el rótulo saldría en **8,0 px**. El mínimo es **12**, que ahí sale en **10,7 px**:
+  la misma tipografía que este recuadro ya usa en sus dos párrafos (10,5 y 11 px). Con 11 el mínimo
+  caía en **9,8**. Y apilado el SVG **se topa en 340 px**: sin ese tope, en el recuadro de 706 px de
+  los 768 la tipografía se iba a **28 px**.
+
+- **LA ANIMACIÓN SE CUELGA DE LOS DOS DUEÑOS QUE EL 3D YA TIENE**, `_tga3d.pausado` y `_tga3d.fc`:
+  con un estado propio, el botón «Pausar» dejaría el 3D quieto y el esquema moviéndose.
+  `prefers-reduced-motion` queda satisfecho por ahí mismo. **Sin frecuencia, ritmo fijo**, y el
+  bucle **se apaga solo** cuando el dibujo no se ve, con el mismo predicado del 3D.
+
+- **LA ALTERNATIVA ACCESIBLE ES EL RECORRIDO QUE LA APP YA PUBLICA.** Sale de `TGA3D_CIRC`, el mismo
+  que imprime el párrafo de al lado, así que el lector de pantalla y el que ve el dibujo reciben la
+  **misma** secuencia. ⚠️ Ese nodo es **visually-hidden a propósito**, así que es un **falso
+  positivo** de los barridos de «texto recortado»; las sondas de esta tanda lo descartan por `id`.
+
+- **EL ⓘ ES EL ESTÁNDAR DE LA CASA** —glifo **U+24D8** en un botón de 44 px con `vinfo-btn-44`— y
+  dice lo que el esquema **no** es: no es una imagen del estudio, no está a escala y **los
+  recorridos de las cirugías esperan la revisión de un cardiólogo de congénitas**. **Sin una sola
+  cita.** El registro pasa de **97 a 98** entradas.
+
+- **17/17 MUTACIONES DIRIGIDAS MUERTAS**, en worktree y nunca sobre el vivo, con guarda de md5
+  **idéntico** antes y después, en 1,9 min. **Cinco de las diecisiete no revierten nada: aplican el
+  defecto de más**, porque las condiciones que las matan son **controles negativos**.
+  ⚠️ **TRES SOBREVIVIERON AL PRIMER BARRIDO Y ME DIJERON TRES COSAS DISTINTAS: dos estaban MAL
+  ESCRITAS** —una sólo agregaba un atributo, la otra cambiaba una frase que el caso no mide— **y
+  M14 era un HUECO REAL**: la condición del censo excluía justo los dos campos que el caso mueve a
+  propósito, así que una escritura automática **sobre ellos** pasaba en verde. De ahí nacieron
+  **(M1b)**, **(M1c)** y **(M1d)**, que le preguntan al campo **directo**.
+
+- **CUATRO CASOS NUEVOS, TC-601 a TC-604**, con sus denominadores y sus controles negativos, y los
+  cuatro **caen contra HEAD por 50 condiciones y NINGUNA por excepción**, verificado en un worktree.
+  ⚠️ **LA SUITE CORRE CHROME SIN `--window-size`, O SEA A ~756 px**, por debajo del corte de la
+  maqueta, así que la disposición se mide por la **regla de la hoja de estilos** y por la
+  **estructura**: la geometría la miden las sondas en los cuatro anchos y los dos motores.
+  ⚠️ **`VINFO` NO ESTÁ EN `window`** —lo dice el mapa de la TGA—: la primera versión de TC-604
+  preguntaba por `window.VINFO` y sus ocho condiciones de contenido fallaban sobre un registro que
+  sí existe.
+
+- **SEIS CASOS VIEJOS ADAPTADOS, cada uno con el motivo escrito**: **TC-471** y **TC-500** (el
+  registro de globos, 97 → **98**), **TC-502** (las tarjetas sin botón, 26 → **27**), **TC-535**
+  (los globos de 44×44, 18 → **19**, en sus **tres** condiciones), **TC-573** (**INVERTIDA**, y es el día que ese caso anunciaba:
+  afirmaba que la conclusión queda «FUERA de la fila, debajo de todo», que es justo lo que se
+  cambió; gana dos condiciones nuevas para que pueda volver a fallar) y **TC-574** (la métrica de
+  solape pasa a los **dos** ejes).
+
+- ⚠️ **EL ACENTO GRAVE DENTRO DE MIS PROPIOS COMENTARIOS COSTÓ CUATRO CORRIDAS, Y ES LA
+  DECIMOCUARTA TANDA SEGUIDA QUE LO PAGA.** Siempre igual: un identificador entre acentos graves
+  dentro del comentario de un caso o de una sonda, y los dos cuerpos son template literals.
+  **`node --check` las cazó todas.** Lo que acabó funcionando fue **contar los acentos graves de
+  cada caso después de cada edición y exigir el número exacto** —dos por caso—.
+  ⚠️ **Y EL `\n` DENTRO DE UN HEREDOC DE PYTHON, QUE ES LA HERMANA DE ESA TRAMPA:** en una cadena
+  de Python que no es cruda, `\n` es un salto **real**, así que los cinco del texto del ⓘ partieron
+  sus literales de JavaScript y el bloque dejó de parsear.
+
+- ⚠️ **Y UNA TRAMPA DE MÉTODO MÍA QUE COSTÓ UNA MEDICIÓN: el A/B leía `index.html` VIVO y yo lo
+  edité a mitad de corrida.** Esa medición quedó envenenada y hubo que cortarla por PID exacto y
+  rehacerla. De ahí en más, **cada A/B corre sobre una copia sellada** y no sobre el árbol de
+  trabajo. Y el `nohup … &` lanzado desde la herramienta de shell **no sobrevive al envoltorio**,
+  que es lo que CONG-2A ya documenta en **C2A-h**.
+
+- ⚠️ **`scripts/_probe_tga3.mjs` YA EXISTÍA**: es la sonda del papel de la tanda **TGA** del 31/10,
+  y esta tanda se llama TGA-3. Es la colisión que AJUSTES-1 y AJUSTES-3 pagaron **sobrescribiendo
+  una sonda ajena**. Se verificó con `ls` **antes** de crear cada nombre: los seis nuevos estaban
+  libres, y el `git diff` de las ocho sondas de las tandas TGA, TGA-2 y CONG-2A está **vacío**.
+
+- **A/B contra HEAD, con el PDF y el PPT generados de verdad: 19 escenas, 21.378 claves y 8.379
+  celdas de Excel. 112 diferencias de superficie firmada, TODAS en las catorce escenas con
+  conducta** (8 cada una). `vacio`, `ajeno`, `cSegNoInt` —la misma escena **sin integrar**—, `cJat`
+  y `cRas` dan **CERO**. Por commit: el 1 **cero**, el 2 las 112 más las dos del PPT, el 3 **cero**,
+  el 4 **cero**, el 5 las dos del PPT devueltas.
+  ⚠️ **EL «pantalla=0» DE ESE ARNÉS ES UN CONTROL NEGATIVO EN LOS COMMITS 1, 3 y 4, y se declara:**
+  no mide geometría ni mira los nodos del esquema. Eso lo miden `_probe_tga3concl.mjs`,
+  `_probe_tga3circ.mjs` y `_probe_tga3wk.mjs`.
+
+- **CHROME Y WEBKIT COINCIDEN EN LOS OCHO CRUCES, SIN UNA SOLA DIFERENCIA ENTRE MOTORES** (dos
+  motores × 1440, 1000, 768 y 390 px × dos temas): el esquema al lado del 3D a 1440 y apilado por
+  debajo de 1200, el SVG en **268×259 / 340×329 / 302×292**, la tipografía en **10,7-13,4 /
+  13,6-17 / 12,1-15,1**, el globo en **44×44 con los CINCO puntos dando el propio botón**, la
+  leyenda visible, la intersección **real** con el 3D y con la conclusión en **cero**, **cero**
+  desplazamiento horizontal, **cero** texto recortado y **CERO errores de consola y de página**.
+  ⚠️ **WebKit de Playwright no es Safari, y se declara.** Chrome va por el del sistema con
+  `channel: 'chrome'`.
+  ⚠️ **El único error de consola del árbol de HEAD es del arnés** —`ERR_FILE_NOT_FOUND`, porque se
+  carga de una copia en el temporal—, que es lo que la tanda D2 ya documenta. El árbol vivo da cero.
+
+- **Línea base al cierre: suite 613/619**, en **doce lotes** cubriendo los **619 casos
+  distintos** —contados nombre por nombre, con una guarda que compara el total con los distintos y
+  otra que compara los ejecutados: **619 de 619**—, en UNA sola pasada sobre el árbol sellado, con
+  el pendrive `DISK_IMG` **verificado al abrir, en los DOCE lotes y al cerrar** (catorce
+  verificaciones, listando nombres reales) y el md5 de `index.html` **idéntico** antes y después
+  (`7ff2a3f2`). Los rojos son **TC-223, TC-376, TC-390 y TC-406**, los cuatro de siempre, más
+  **TC-182 y TC-551**, los dos intermitentes que la orden anticipa: **corridos aislados, los dos
+  salen VERDE**, verificado. **Ningún rojo nuevo.** **TC-358 y TC-557 salieron VERDES.**
+  ⚠️ **Y LA PRIMERA CORRIDA COMPLETA DIO 612/619 CON UN ROJO MÁS, QUE ERA MÍO**, y por eso esa
+  cifra no es la línea base: **TC-535**, porque de sus **tres** condiciones que cuentan los globos
+  de 44×44 adapté (K0) y (K1) a diecinueve y **(K2) se quedó en dieciocho**. Los datos estaban bien
+  —diecinueve globos, todos con 5/5 puntos propios—; lo que fallaba era el conteo. Está adaptada y
+  la cifra de arriba sale de la corrida **limpia**, de una sola pasada con el archivo de tests
+  final y sobre el mismo árbol sellado.
+- **Semgrep 124 WARNING / 0 ERROR**, la línea base, sin un aviso nuevo. **Excel 441** columnas con
+  las mismas claves. **Censo de campos idéntico y sin huérfanos nuevos.** 17 de 19 bloques de JS
+  inline parsean, idéntico a HEAD —los dos «rotos» son los artefactos preexistentes del extractor—.
+- **CELULAR: 59 hallazgos a 360 px y 68 a 390, con 17 ALTA en cada ancho** — la línea base exacta.
+  **No empeoró.**
+- **`index.html` pasó de 10,84 MB / 152.233 líneas a 10,87 MB / 152.699** — medido con `wc -c` y
+  `wc -l` DESPUÉS de sellar. (MB de 10⁶.) El diff son **480 líneas agregadas y 14 quitadas**.
+
+- **Dónde está todo:** `docs/mapa/tga3-esquema-circulacion.md` (**mapa NUEVO**, 16,7 KB), las fichas
+  de los cuatro casos en `docs/mapa/tests-fichas-601.md` (**archivo propio**, porque
+  `tests-fichas.md` está en 34,2 KB), **dos mapas con un puntero cada uno** —medidos ANTES de
+  escribir: `tga-diagrama-3d.md` 16,8 → 18,4 KB y `tests-punteros-tandas.md` 24,5 → 25,8—,
+  `docs/fuentes/FUENTES.md` → «La tanda TGA-3» con `TGA3D_CIRC` transcrita, la tabla de lo que salió
+  del papel y dónde sigue estando, y su tabla «Cambios de evidencia» **vacía a propósito**,
+  `docs/REGISTRO_TANDAS.md` → el bloque de esta tanda, `docs/GUIA_PRUEBA_TGA3.md` → la guía de
+  prueba manual en doce pasos, y `docs/PENDIENTES.md` → **SIETE** cosas declaradas (**T3-a** a
+  **T3-g**).
+  ⚠️ **`congenitas-otros.md` (34.540 B) NO se tocó**, que es lo que la orden pide.
+
 ### Los pendientes de AJ3, AJ5, AJ6, J y J2, y el G-a — «AJ7» (2026-10-25)
 
 - **Son NUEVE commits** —los siete de la orden más el **commit 8** del agregado y el de

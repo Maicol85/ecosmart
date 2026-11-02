@@ -66444,7 +66444,11 @@ caso('TC-471', 'Valvulas D1: la insuficiencia mitral en TRES columnas de SEIS co
        pestana que este caso mide: lo que cambia es el denominador del registro. Las diecinueve
        de los rasgos SIGUEN en el registro -son el dueno unico de cada definicion- y lo que se
        retiro son sus BOTONES. */
-    Object.keys(VINFO).length === 97,
+    /* ⚠️ ADAPTADO EN LA TGA-3 (2026-11-01, commit 5b): 97 -> 98. La entrada nueva es tga-esq, el
+       globo del esquema de circulacion de la transposicion. NO esta en Valvulas, que es la
+       pestana que este caso mide: lo que cambia es el denominador del registro, no lo que esta
+       condicion afirma sobre el marcado de esa pestana. */
+    Object.keys(VINFO).length === 98,
     'registro=' + (HAY_INFO ? Object.keys(VINFO).join(',') : 'SIN REGISTRO')]);
   ex.push(['(H) y la tarjeta se coloca SIEMPRE dentro de la pantalla, sin cortarse',
     (function(){ const b = document.querySelector('[data-vinfo="avm-thp"]');
@@ -77850,7 +77854,9 @@ caso('TC-500', 'Tanda Q: las OCHO tarjetas i de las valvulas arriba de su pastil
     /* ADAPTADO (TANDA TGA, 31/10/2026): 73 -> 74. La entrada nueva es tga-3d, el globo del
        diagrama de la transposicion. NO esta en Valvulas: lo que cambia es el denominador del
        registro, no lo que esta condicion afirma. */
-    FN('vInfoClic') && !!CARD() && !!REG() && Object.keys(REG() || {}).length === 97,
+    /* ADAPTADO (TANDA TGA-3, 01/11/2026): 97 -> 98. La entrada nueva es tga-esq, el globo del
+       esquema de circulacion. NO esta en Valvulas: lo que cambia es el denominador. */
+    FN('vInfoClic') && !!CARD() && !!REG() && Object.keys(REG() || {}).length === 98,
     'VINFO=' + (REG() ? Object.keys(REG()).length : 'SIN REGISTRO') + ' card=' + !!CARD()]);
   ex.push(['(A1) los OCHO botones de lesion existen, son BUTTON, sin atributo title y con aria-expanded',
     CLAVES.every(function (k) { const b = BTN(k);
@@ -79170,15 +79176,20 @@ caso('TC-502', 'Tanda P: Referencias en CINCO subpestanas sin perder una entrada
      perdieron -siguen en VINFO y las leen los dos globos de grupo-, y los tres de la tarjeta
      no entran aca porque viven dentro del modal de criterios, que este barrido no abre.
      El limite que esta condicion declara no cambia; cambia su denominador. */
-  ex.push(['(C3) LIMITE DECLARADO: veintiseis tarjetas sin boton, porque Referencias no tiene esa entrada',
+  ex.push(['(C3) LIMITE DECLARADO: veintisiete tarjetas sin boton, porque Referencias no tiene esa entrada',
     /* ADAPTADA (TANDA AJUSTES-2, commit 4a, 31/10/2026): 24 -> 25. La entrada nueva es
        inf-min, el ⓘ de la fila de miniaturas de lo que va al PDF; no tiene ficha en
        Referencias porque explica la INTERFAZ y no publica contenido clinico. */
+    /* ADAPTADA (TANDA TGA-3, commit 5b, 01/11/2026): 26 -> 27. La entrada nueva es tga-esq, el
+       ⓘ del esquema de circulacion; no tiene ficha en Referencias por la MISMA razon que
+       inf-min y que tga-3d: explica un DIBUJO de la interfaz y no publica contenido clinico, asi
+       que una ficha suya seria una entrada sin criterio detras. El limite que esta condicion
+       declara no cambia; cambia su denominador. */
     sinBoton.join(',') === 'amilo-score,co-monitoreo,co-riesgo-basal,coa-card,cvr-coc,cvr-ecosmart,et-avt-cont,'
       + 'hemo-forr,hemo-ic,hemo-rvs,inf-min,'
 
       + 'tarj-esten-pulmonar,tarj-esten-tricuspide,tarj-insuf-pulmonar,'
-      + 'tep-eco-dx,tep-mcconnell,tga-3d,'
+      + 'tep-eco-dx,tep-mcconnell,tga-3d,tga-esq,'
       + 'vab-aorta,vab-cx,vab-friesgo,vab-func,vab-tit,vab-valv,vd-triv,vexus-lim,vm-carp',
     sinBoton.join(',')]);
   /* Cuatro tarjetas, una de cada familia. La de la aorta y la del VI viven en AI/VI, la de la
@@ -91692,12 +91703,17 @@ caso('TC-535', 'Tanda AJ7: la linea de Fallot del EN SUMA sin la IP y el resumen
      hoy son tres, mas el de la seccion. Los tres de la tarjeta NO entran en este conteo
      porque viven dentro del modal de criterios, que este barrido no abre; los mide TC-592.
      Las diecinueve definiciones siguen publicadas, leidas de VINFO por los globos de grupo. */
-  ex.push(['(K0) DENOMINADOR: los DIECIOCHO globos llevan la clase, tienen geometria y estan EN VISTA',
-    tapK.length === 18 && tapK.every((x) => x.w > 0 && x.h > 0 && x.enVista), JSON.stringify(tapK)]);
-  ex.push(['(K1) los dieciocho miden 44x44 tambien con el mouse',
-    tapK.length === 18 && tapK.every((x) => x.w >= 44 && x.h >= 44), JSON.stringify(tapK)]);
+  /* ⚠️ ADAPTADO EN LA TGA-3 (01/11/2026, commit 5b): DIECIOCHO -> DIECINUEVE. El globo nuevo es
+     tga-esq, el del esquema de circulacion de la transposicion, que nace con la clase vinfo-btn-44 como
+     todos los de esta lista. Lo que estas tres condiciones afirman no cambia —que cada globo
+     mida 44x44 con el mouse y que su area no tape a un vecino—: cambia el denominador. Medido en
+     los dos motores y en los cuatro anchos: 44x44 con los CINCO puntos dando el propio boton. */
+  ex.push(['(K0) DENOMINADOR: los DIECINUEVE globos llevan la clase, tienen geometria y estan EN VISTA',
+    tapK.length === 19 && tapK.every((x) => x.w > 0 && x.h > 0 && x.enVista), JSON.stringify(tapK)]);
+  ex.push(['(K1) los diecinueve miden 44x44 tambien con el mouse',
+    tapK.length === 19 && tapK.every((x) => x.w >= 44 && x.h >= 44), JSON.stringify(tapK)]);
   ex.push(['(K2) y su caja NO tapa a ningun vecino: los cinco puntos dan el propio boton',
-    tapK.length === 18 && tapK.every((x) => x.propios === 5), JSON.stringify(tapK)]);
+    tapK.length === 19 && tapK.every((x) => x.propios === 5), JSON.stringify(tapK)]);
   ex.push(['(K3) CONTROL: los demas globos NO se tocaron y siguen con su piso solo tactil',
     document.querySelectorAll('button.vinfo-btn').length
       - document.querySelectorAll('button.vinfo-btn-44').length >= 10,
@@ -102264,10 +102280,25 @@ caso('TC-573', 'Tanda CONG-2A: la pantalla de la TGA pone los campos a la izquie
   ex.push(['(E5) con su segunda oracion tambien',
            glee.indexOf('con la d-TGA aparece además el campo de cirugía realizada') > -1 ? 'si' : 'NO', 'si']);
 
-  /* (F) «Conclusion» e «Integrar al informe» quedan FUERA de la fila, debajo de todo. */
+  /* ══ (F) INVERTIDA EN LA TGA-3 (01/11/2026, commit 1b), CON EL MOTIVO ESCRITO ═══════════════
+     PEDIDO DEL MEDICO: la conclusion pasa a la COLUMNA IZQUIERDA, en el hueco bajo los campos,
+     que la maqueta de esta tanda dejaba vacio —medido, 368 px de alto por 549 de ancho a 1440 px
+     y 475 x 358 a 1000—. O sea que lo que esta condicion afirmaba —«queda FUERA de la fila,
+     debajo de todo»— es exactamente lo que se cambio. No se borra: se INVIERTE, y se le agregan
+     las dos condiciones que hacen que pueda volver a fallar —que este dentro de la COLUMNA DE
+     CAMPOS y no suelta en la fila, y que «Integrar al informe» SI se haya quedado afuera—.
+     La geometria la miden las sondas _probe_tga3concl y _probe_tga3wk; aca se mide la
+     ESTRUCTURA, porque la suite corre Chrome a ~756 px y a ese ancho la maqueta esta apilada. */
   const cl = document.getElementById('tga-concl');
-  ex.push(['(F1) la fila de Conclusion no esta dentro de la fila de dos columnas',
-           (cl && fila && fila.contains(cl)) ? 'DENTRO' : 'fuera', 'fuera']);
+  const zc = document.getElementById('tga-campos');
+  ex.push(['(F1) la fila de Conclusion ahora SI esta dentro de la fila de dos columnas',
+           (cl && fila && fila.contains(cl)) ? 'DENTRO' : 'fuera', 'DENTRO']);
+  ex.push(['(F1b) y concretamente dentro de la COLUMNA DE CAMPOS, no suelta en la fila',
+           (cl && zc && zc.contains(cl)) ? 'si' : 'NO', 'si']);
+  ex.push(['(F1c) CONTROL: «Integrar al informe» SIGUE fuera de la columna de campos',
+           (function () { const b = document.querySelector('[data-ete-chk="tga_incluir_chk"]');
+             if (!b) return 'NO HAY';
+             return (zc && zc.contains(b)) ? 'DENTRO' : 'fuera'; })(), 'fuera']);
 
   try { if (typeof limpiarCampos === 'function') limpiarCampos(true); } catch (e) {}
   return { extra: EXP };
@@ -102330,8 +102361,18 @@ caso('TC-574', 'Tanda CONG-2A: el 3D de la TGA queda dentro de su tarjeta tambie
       cv = caja(document.querySelector('#tga-3d-cv canvas')),
       cl = caja(document.getElementById('tga-concl'));
     const pb = document.getElementById('tga-3d-pdf');
+    /* ⚠️ ADAPTADO EN LA TGA-3 (01/11/2026, commit 1b), CON EL MOTIVO ESCRITO. La clave pisaCv comparaba
+       SOLO el eje vertical -el fondo del lienzo menos el tope de la conclusion-, y eso era
+       correcto mientras la conclusion estuviera DEBAJO del lienzo. Desde que vive en la columna izquierda, al LADO del 3D, las
+       dos cajas comparten rango vertical POR DISENO y esa resta informaba 625 px de solape que
+       no existen. Ahora se mide la interseccion en los DOS ejes, que es mas fuerte y no mas
+       debil: si el lienzo volviera a pisar la conclusion de verdad, esto lo dice. */
+    const _int = (a, b2) => { if (!a || !b2) return 'sin canvas';
+      const w = Math.min(a.x + a.w, b2.x + b2.w) - Math.max(a.x, b2.x);
+      const h = Math.min(a.y + a.h, b2.y + b2.h) - Math.max(a.y, b2.y);
+      return (w > 1 && h > 1) ? Math.round(w * h) : 0; };
     return { desbCv: (box && cv) ? Math.max(0, (cv.y + cv.h) - (box.y + box.h)) : 'sin canvas',
-             pisaCv: (cv && cl) ? Math.max(0, (cv.y + cv.h) - cl.y) : 'sin canvas',
+             pisaCv: _int(cv, cl),
              pdfOff: pb ? !!pb.disabled : 'NO',
              estado: String((document.getElementById('tga-3d-estado') || {}).textContent || '') }; };
   const f1 = foto();
@@ -106536,6 +106577,408 @@ caso('TC-600', 'Tanda POP-C: las cavidades del dibujo siguen al dato medido cuan
   return { extra: EXP };
   })();
 `);
+
+/* ══════════════════════════════════════════════════════════════════════════════════════════════
+   TANDA TGA-3 (2026-11-01) — TC-601 a TC-604
+
+   Cuatro casos: la conclusion en la columna izquierda (commit 1), el papel sin conductas
+   (commit 2), el esquema de circulacion con sus seis escenarios (commits 3 a 5) y su globo.
+
+   ⚠️ LA SUITE CORRE CHROME SIN `--window-size`, O SEA A ~756 px, por debajo del corte de la
+   maqueta. Asi que la disposicion se mide por la REGLA de la hoja de estilos y por la
+   ESTRUCTURA del arbol, no por geometria: la geometria la miden `_probe_tga3concl.mjs` y
+   `_probe_tga3wk.mjs` en los cuatro anchos y los dos motores. Un caso que midiera cajas aca
+   estaria midiendo el ancho del arnes.
+   ⚠️ TOLERANTES AL ARBOL VIEJO: contra HEAD varias de estas funciones y nodos NO EXISTEN, y
+   llamarlas pelado mata el caso con un TypeError —cae por EXCEPCION y no por condicion, que es
+   lo que la orden prohibe y lo que TC-546 pago en la tanda TEP—.
+   ══════════════════════════════════════════════════════════════════════════════════════════ */
+caso('TC-601', 'Tanda TGA-3: la conclusion de la TGA vive en la columna izquierda, como ultimo hijo de la grilla de campos y a ancho completo, sin salir de #tga-fila y sin cambiar su contenido', `
+  return (async () => {
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]),
+                 'dio «' + t[1] + '» · esperado «' + t[2] + '»']) };
+  const esperar = (ms) => new Promise(r => setTimeout(r, ms));
+  const EL = (id) => document.getElementById(id);
+  const pon = (id, v) => { const e = EL(id); if (!e) return 'NO ' + id;
+    e.value = v; e.dispatchEvent(new Event('input', { bubbles: true }));
+    e.dispatchEvent(new Event('change', { bubbles: true })); return e.value; };
+  try { if (typeof limpiarCampos === 'function') limpiarCampos(true); } catch (e) {}
+  pon('nombre', 'TC601'); pon('ci', '601');
+  pon('tga_tipo', 'dtga'); pon('tga_func_vd', 'normal'); pon('tga_sintomas', 'no');
+  await esperar(420);
+
+  /* ── DENOMINADOR ─────────────────────────────────────────────────────────────────────────── */
+  ex.push(['(A0) denominador: existe la fila de la seccion', !!EL('tga-fila'), true]);
+  ex.push(['(A1) denominador: existe la grilla de campos', !!EL('tga-campos'), true]);
+  ex.push(['(A2) denominador: la conclusion tiene texto cargado',
+           String((EL('tga-concl') || {}).textContent || '').length > 40, true]);
+
+  /* ── 1 · ESTA DENTRO DE LA COLUMNA DE CAMPOS, Y NO SUELTA EN LA SECCION ───────────────────
+     Es la condicion que cae contra HEAD: ahi la caja de la conclusion es hermana de
+     la fila, no hija de la grilla de campos. */
+  const caja = EL('tga-concl-box');
+  ex.push(['(B1) la caja de la conclusion existe con su id propio', !!caja, true]);
+  ex.push(['(B2) es hija directa de la grilla de campos',
+           caja ? (caja.parentElement && caja.parentElement.id) : 'NO HAY', 'tga-campos']);
+  ex.push(['(B3) el nodo de la conclusion sigue adentro de esa caja',
+           (EL('tga-concl') && caja) ? caja.contains(EL('tga-concl')) : 'NO HAY', true]);
+  /* ── 2 · ES EL ULTIMO HIJO: el orden del marcado es el orden visual y el de tabulacion ──── */
+  const g = EL('tga-campos');
+  ex.push(['(B4) es el ULTIMO hijo de la grilla',
+           g ? (g.children[g.children.length - 1] === caja) : 'NO HAY', true]);
+  /* ── 3 · #tga-fila SIGUE CON DOS HIJOS: lo que deja la maqueta de 900 px intacta ────────── */
+  ex.push(['(B5) la fila tiene exactamente DOS hijos',
+           EL('tga-fila') ? EL('tga-fila').children.length : 'NO HAY', 2]);
+  ex.push(['(B6) los dos hijos son la grilla y el recuadro del 3D',
+           EL('tga-fila') ? Array.prototype.map.call(EL('tga-fila').children, function (c) { return c.id; }).join(',') : 'NO HAY',
+           'tga-campos,tga-3d-box']);
+  /* ── 4 · LA REGLA DE ANCHO COMPLETO EXISTE EN LA HOJA DE ESTILOS ──────────────────────────
+     La geometria no se puede medir a 756 px, pero la REGLA si: si alguien la saca, la
+     conclusion cae en una de las dos columnas de la grilla y parte los campos. */
+  ex.push(['(B7) la hoja de estilos le da las dos columnas a la conclusion',
+           (function () { try { let n = 0;
+             for (const h of document.styleSheets) { let rr = null;
+               try { rr = h.cssRules; } catch (e) { continue; }
+               if (!rr) continue;
+               for (const r of rr) { const s = String(r.selectorText || '');
+                 if (s.indexOf('#tga-concl-box') >= 0 &&
+                     String(r.style && r.style.gridColumn || '').indexOf('1') >= 0) n++; } }
+             return n; } catch (e) { return 'EXC'; } })(), 1]);
+  /* ── 5 · EL CONTENIDO NO CAMBIA: el mismo texto que publica el dueno ─────────────────────── */
+  const c = (typeof tgaConclusion === 'function') ? tgaConclusion() : null;
+  ex.push(['(B8) la pantalla publica el txt del dueno, entero',
+           (c && EL('tga-concl')) ? (String(EL('tga-concl').textContent || '').trim() === String(c.txt || '').trim()) : 'NO HAY', true]);
+  /* ── 6 · CONTROL NEGATIVO: no hay un SEGUNDO nodo de conclusion ───────────────────────────
+     Si alguien repone la caja vieja de abajo sin sacar la nueva, el informe sale bien y la
+     pantalla muestra la conclusion DOS veces. */
+  ex.push(['(C1) hay un solo nodo tga-concl en el documento',
+           document.querySelectorAll('#tga-concl').length, 1]);
+  ex.push(['(C2) hay una sola caja tga-concl-box',
+           document.querySelectorAll('#tga-concl-box').length, 1]);
+  /* ── 7 · CONTROL NEGATIVO: el boton de integrar NO se mudo ───────────────────────────────── */
+  ex.push(['(C3) el boton de integrar sigue FUERA de la grilla de campos',
+           (function () { const b = document.querySelector('[data-ete-chk="tga_incluir_chk"]');
+             if (!b) return 'NO HAY';
+             return !!(EL('tga-campos') && EL('tga-campos').contains(b)); })(), false]);
+  return { extra: EXP };
+  })();
+`);
+
+caso('TC-602', 'Tanda TGA-3: la conducta de la TGA no llega a ninguna superficie de papel -ni el seguimiento anual, ni la intervencion a considerar, ni el nombre de la guia- y la pantalla la conserva entera', `
+  return (async () => {
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]),
+                 'dio «' + t[1] + '» · esperado «' + t[2] + '»']) };
+  const esperar = (ms) => new Promise(r => setTimeout(r, ms));
+  const EL = (id) => document.getElementById(id);
+  const pon = (id, v) => { const e = EL(id); if (!e) return 'NO ' + id;
+    e.value = v; e.dispatchEvent(new Event('input', { bubbles: true }));
+    e.dispatchEvent(new Event('change', { bubbles: true })); return e.value; };
+  const cuenta = (t, h) => String(h || '').split(t).length - 1;
+  /* La escena: la rama de seguimiento, que es la que el medico nombro, con el bloque
+     INTEGRADO, que es la unica forma de que el cuerpo del informe la publique. */
+  try { if (typeof limpiarCampos === 'function') limpiarCampos(true); } catch (e) {}
+  pon('nombre', 'TC602'); pon('ci', '602'); pon('vd_bas', '45');
+  pon('tga_tipo', 'dtga'); pon('tga_func_vd', 'normal'); pon('tga_sintomas', 'no');
+  const chk = EL('tga_incluir_chk');
+  if (chk && !chk.checked) { try { if (typeof eteInclToggle === 'function') eteInclToggle('tga_incluir_chk'); } catch (e) {} }
+  if (chk && !chk.checked) { chk.checked = true; chk.dispatchEvent(new Event('change', { bubbles: true })); }
+  await esperar(500);
+  try { if (typeof generarInforme === 'function') generarInforme(); } catch (e) {}
+  await esperar(320);
+  const inf = String((EL('informe_texto') || {}).value || '');
+  const suma = String((EL('en_suma') || {}).value || '');
+  const pant = String((EL('tga-concl') || {}).textContent || '');
+  const c = (typeof tgaConclusion === 'function') ? tgaConclusion() : null;
+
+  /* ── DENOMINADOR: la escena LLEGA a la zona ───────────────────────────────────────────────
+     Sin esto, un cero de conducta no se distingue de «el bloque no se integro». */
+  ex.push(['(D0) el bloque esta integrado', chk ? chk.checked : 'NO HAY', true]);
+  ex.push(['(D1) el informe nombra la transposicion',
+           inf.indexOf('Transposición de grandes arterias') >= 0, true]);
+  ex.push(['(D2) el informe trae el diametro cargado', inf.indexOf('45 mm') >= 0, true]);
+  ex.push(['(D3) la cascada cayo en la rama de seguimiento', c ? c.clave : 'NO HAY', 'seguimiento']);
+
+  /* ── 1 · EL PAPEL NO RECOMIENDA. Cae contra HEAD por cada una de estas. ──────────────────── */
+  ex.push(['(E1) el informe no dice seguimiento anual', cuenta('seguimiento anual', inf), 0]);
+  ex.push(['(E2) el informe no dice a considerar', cuenta('a considerar', inf), 0]);
+  ex.push(['(E3) el informe no nombra la ESC', cuenta('ESC 20', inf), 0]);
+  ex.push(['(E4) el informe no dice completar la evaluacion', cuenta('completar la evaluación', inf), 0]);
+  ex.push(['(E5) el informe no dice resincronizacion', cuenta('resincronización', inf), 0]);
+  ex.push(['(E6) el EN SUMA no dice seguimiento anual', cuenta('seguimiento anual', suma), 0]);
+  /* ── 2 · EL DUENO PUBLICA LAS DOS SALIDAS, y la de papel no lleva conducta ──────────────── */
+  ex.push(['(E7) el dueno devuelve una salida de papel', c ? (typeof c.papel === 'string') : 'NO HAY', true]);
+  ex.push(['(E8) la salida de papel no lleva conducta',
+           c && typeof c.papel === 'string' ? cuenta('seguimiento anual', c.papel) : 'NO HAY', 0]);
+  ex.push(['(E9) la salida de papel conserva el diametro medido',
+           c && typeof c.papel === 'string' ? (c.papel.indexOf('45 mm') >= 0) : 'NO HAY', true]);
+  /* ── 3 · Y EL CUERPO DEL INFORME PUBLICA ESA SALIDA, no una redaccion propia ─────────────── */
+  ex.push(['(E10) el informe contiene la salida de papel, textual',
+           c && typeof c.papel === 'string' ? (inf.indexOf(c.papel) >= 0) : 'NO HAY', true]);
+
+  /* ── 3-bis · LAS OTRAS DOS SUPERFICIES DE PAPEL QUE ESTA SECCION ALIMENTA ────────────────
+     La clave cc-txt-tga es el texto del bloque integrado, que es lo que la hoja del PDF
+     publica; y el registro del PPT tiene que marcar esta seccion como «papel», que es lo que
+     hace que la diapositiva tome el texto descriptivo en vez de podar el resumen. Sin estas dos, una
+     mutacion que devuelva el resumen a la hoja del PDF o a la diapositiva sobrevive: el informe
+     y el EN SUMA la tapan. */
+  ex.push(['(E11) el texto del bloque integrado no lleva la conducta',
+           cuenta('seguimiento anual', String((EL('cc-txt-tga') || {}).value || '')), 0]);
+  ex.push(['(E12) y SI lleva la descripcion, que es el denominador',
+           String((EL('cc-txt-tga') || {}).value || '').indexOf('45 mm') >= 0, true]);
+  /* ⚠️ LA DIAPOSITIVA DEL PPT NO TIENE CONDICION EN ESTE CASO, Y SE DECLARA. El registro que la
+     gobierna es un const DENTRO del emisor -no es alcanzable desde aca- y extraer el texto del
+     mazo generado de verdad costaba mas de lo que esta tanda puede pagar: el denominador no
+     llegaba a nombrar la transposicion. Lo que SI esta medido es el PPT REAL, en el A/B de la
+     tanda (_probe_tga3ab.mjs), donde las apariciones de conducta en la diapositiva pasan de 21
+     por escena a 0. El precio: una mutacion que le devuelva el resumen a la diapositiva
+     sobrevive a la suite. Declarado en docs/PENDIENTES.md. */
+
+  /* ── 4 · CONTROL POSITIVO: la PANTALLA la conserva. Es la condicion de la orden ──────────── */
+  ex.push(['(F1) la pantalla SI dice seguimiento anual', cuenta('seguimiento anual', pant), 1]);
+  ex.push(['(F2) la pantalla publica el txt entero, con la conducta',
+           c ? (pant.trim() === String(c.txt || '').trim()) : 'NO HAY', true]);
+  ex.push(['(F3) el txt del dueno es MAS largo que su papel',
+           c && typeof c.papel === 'string' ? (String(c.txt).length > c.papel.length) : 'NO HAY', true]);
+
+  /* ── 5 · CONTROL NEGATIVO: la rama de Jatene ya era descriptiva y no se movio ────────────── */
+  pon('tga_cirugia', 'jatene'); await esperar(420);
+  const cj = (typeof tgaConclusion === 'function') ? tgaConclusion() : null;
+  ex.push(['(G1) con Jatene la clave sigue siendo descriptivo', cj ? cj.clave : 'NO HAY', 'descriptivo']);
+  ex.push(['(G2) con Jatene el txt y el papel son la misma cadena',
+           cj && typeof cj.papel === 'string' ? (String(cj.txt) === String(cj.papel)) : 'NO HAY', true]);
+  /* ── 6 · CONTROL NEGATIVO: SIN integrar, el papel no nombra la transposicion ─────────────── */
+  pon('tga_cirugia', '');
+  if (chk && chk.checked) { try { if (typeof eteInclToggle === 'function') eteInclToggle('tga_incluir_chk'); } catch (e) {} }
+  if (chk && chk.checked) { chk.checked = false; chk.dispatchEvent(new Event('change', { bubbles: true })); }
+  await esperar(420);
+  try { if (typeof generarInforme === 'function') generarInforme(); } catch (e) {}
+  await esperar(300);
+  const inf2 = String((EL('informe_texto') || {}).value || '');
+  ex.push(['(G3) sin integrar el informe no trae el parrafo de la TGA',
+           cuenta('el ventrículo derecho es el ventrículo sistémico', inf2), 0]);
+  ex.push(['(G4) y tampoco la conducta', cuenta('seguimiento anual', inf2), 0]);
+  return { extra: EXP };
+  })();
+`);
+
+caso('TC-603', 'Tanda TGA-3: el esquema de circulacion dibuja el escenario que los campos piden en sus seis claves, con el recorrido que TGA3D_CIRC respalda, omite la CIA con el switch auricular y la CIV con el Rastelli, pone punta de flecha solo donde la app guarda la direccion, y no escribe un solo campo del estudio', `
+  return (async () => {
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]),
+                 'dio «' + t[1] + '» · esperado «' + t[2] + '»']) };
+  const esperar = (ms) => new Promise(r => setTimeout(r, ms));
+  const EL = (id) => document.getElementById(id);
+  const pon = (id, v) => { const e = EL(id); if (!e) return 'NO ' + id;
+    e.value = v; e.dispatchEvent(new Event('input', { bubbles: true }));
+    e.dispatchEvent(new Event('change', { bubbles: true })); return e.value; };
+  try { if (typeof limpiarCampos === 'function') limpiarCampos(true); } catch (e) {}
+  pon('nombre', 'TC603'); pon('ci', '603');
+  await esperar(360);
+  const cont = () => EL('tga-esq-svg');
+  const html = () => cont() ? String(cont().innerHTML || '') : '';
+  const nFl = () => document.querySelectorAll('#tga-esq-svg .tga-esq-fl').length;
+  const puntas = () => (html().split('marker-end').length - 1);
+  const txt = () => String((EL('tga-esq-txt') || {}).textContent || '');
+  /* Los rotulos de las cuatro cavidades, leidos del dibujo: identifican el escenario sin
+     preguntarle a ninguna constante de la app. */
+  const cav = () => { const sv = cont() ? cont().querySelector('svg') : null;
+    if (!sv) return 'NO HAY SVG';
+    const out = [];
+    Array.prototype.forEach.call(sv.querySelectorAll('rect'), function (r) {
+      if (Number(r.getAttribute('width')) !== 80) return;
+      const x = Number(r.getAttribute('x')), y = Number(r.getAttribute('y'));
+      let nom = '';
+      Array.prototype.forEach.call(sv.querySelectorAll('text'), function (tx) {
+        const tc = Number(tx.getAttribute('x')), ty = Number(tx.getAttribute('y'));
+        if (!nom && tc > x && tc < x + 80 && ty > y && ty < y + 46) nom = String(tx.textContent || '').trim();
+      });
+      out.push(nom); });
+    return out.join(','); };
+  /* Las letras de las dos valvulas con su posicion: es lo que distingue la doble discordancia. */
+  const val = () => { const sv = cont() ? cont().querySelector('svg') : null;
+    if (!sv) return 'NO HAY SVG';
+    const out = [];
+    Array.prototype.forEach.call(sv.querySelectorAll('circle'), function (ci) {
+      const cx = Number(ci.getAttribute('cx')), cy = Number(ci.getAttribute('cy'));
+      Array.prototype.forEach.call(sv.querySelectorAll('text'), function (tx) {
+        const s = String(tx.textContent || '').trim();
+        if ((s === 'T' || s === 'M') && Math.abs(Number(tx.getAttribute('x')) - cx) < 2 &&
+            Math.abs(Number(tx.getAttribute('y')) - cy) < 9) out.push(s + '@' + cx); }); });
+    return out.join(' '); };
+
+  /* ── DENOMINADOR ─────────────────────────────────────────────────────────────────────────── */
+  ex.push(['(H0) existe el contenedor del esquema', !!cont(), true]);
+  pon('tga_tipo', ''); await esperar(420);
+  ex.push(['(H1) denominador: sin tipo ya dibuja algo', html().length > 500, true]);
+  ex.push(['(H2) y dibuja sus SEIS flechas de flujo', nFl(), 6]);
+
+  /* ── 1 · LOS SEIS ESCENARIOS ─────────────────────────────────────────────────────────────── */
+  ex.push(['(I1) sin tipo: el corazon normal', cav(), 'VD,AI,AD,VI']);
+  ex.push(['(I2) sin tipo: las valvulas en su lado', val(), 'T@80 M@220']);
+  pon('tga_tipo', 'dtga'); await esperar(420);
+  ex.push(['(I3) d-TGA: el ventriculo derecho queda rotulado sistemico',
+           html().indexOf('sistémico') >= 0, true]);
+  pon('tga_cirugia', 'auricular'); await esperar(420);
+  ex.push(['(I4) switch auricular: aparecen el tunel y la auricula', cav(), 'VD,Aurícula,Túnel,VI']);
+  ex.push(['(I5) switch auricular: las valvulas se mudan al tunel', val(), 'M@150 T@151']);
+  pon('tga_tipo', 'mustard'); pon('tga_cirugia', ''); await esperar(420);
+  ex.push(['(I6) post-Mustard dibuja el MISMO escenario que d-TGA mas switch auricular',
+           cav(), 'VD,Aurícula,Túnel,VI']);
+  pon('tga_tipo', 'dtga'); pon('tga_cirugia', 'jatene'); await esperar(420);
+  ex.push(['(I7) Jatene: vuelve al circuito en serie', cav(), 'VD,AI,AD,VI']);
+  ex.push(['(I8) Jatene: dibuja las marcas naranjas de las suturas',
+           html().indexOf('naranja') >= 0, true]);
+  pon('tga_cirugia', 'rastelli'); await esperar(420);
+  ex.push(['(I9) Rastelli: las cavidades del corazon normal', cav(), 'VD,AI,AD,VI']);
+  pon('tga_tipo', 'cctga'); pon('tga_cirugia', ''); await esperar(420);
+  ex.push(['(I10) ccTGA: el ventriculo izquierdo pasa arriba', cav(), 'VI,AI,AD,VD']);
+  ex.push(['(I11) ccTGA: las DOS valvulas cambian de lado, que es la doble discordancia',
+           val(), 'M@80 T@220']);
+  ex.push(['(I12) ccTGA: ya NO dice que el esquema esta pendiente',
+           txt().indexOf('pendiente de revisión') >= 0, false]);
+
+  /* ── 2 · EL RECORRIDO TIENE RESPALDO EN LA APP, no en la prosa de la demo ─────────────────
+     La alternativa accesible publica el recorrido de TGA3D_CIRC, que es el dueno de la app, y
+     tiene que ser el de la clave que se esta dibujando. */
+  const alt = () => String((EL('tga-esq-alt') || {}).textContent || '');
+  pon('tga_tipo', 'dtga'); pon('tga_cirugia', 'rastelli'); await esperar(420);
+  ex.push(['(J1) la alternativa accesible trae el recorrido de la app para el Rastelli',
+           alt().indexOf('tunel por la CIV') >= 0, true]);
+  pon('tga_cirugia', 'auricular'); await esperar(420);
+  ex.push(['(J2) y el del switch auricular cuando cambia el campo',
+           alt().indexOf('valvula mitral') >= 0, true]);
+
+  /* ── 3 · LAS COMUNICACIONES Y SUS DOS EXCLUSIONES ────────────────────────────────────────── */
+  pon('ete_cia_tam_max', '12'); pon('ete_civ_tam', '6'); pon('dap_diam', '3');
+  pon('tga_tipo', 'dtga'); pon('tga_cirugia', 'ninguna'); await esperar(500);
+  ex.push(['(K0) denominador: las tres cargadas se dibujan',
+           (html().indexOf('>CIA<') >= 0) + '/' + (html().indexOf('>CIV<') >= 0) + '/' + (html().indexOf('>DAP<') >= 0),
+           'true/true/true']);
+  pon('tga_cirugia', 'auricular'); await esperar(450);
+  ex.push(['(K1) con switch auricular la CIA no se dibuja', html().indexOf('>CIA<') >= 0, false]);
+  ex.push(['(K2) pero la CIV y el DAP si',
+           (html().indexOf('>CIV<') >= 0) + '/' + (html().indexOf('>DAP<') >= 0), 'true/true']);
+  ex.push(['(K3) y el texto lo dice', txt().indexOf('La CIA no se dibuja') >= 0, true]);
+  pon('tga_cirugia', 'rastelli'); await esperar(450);
+  ex.push(['(K4) con Rastelli la CIV no se dibuja', html().indexOf('>CIV<') >= 0, false]);
+  ex.push(['(K5) pero la CIA y el DAP si',
+           (html().indexOf('>CIA<') >= 0) + '/' + (html().indexOf('>DAP<') >= 0), 'true/true']);
+  ex.push(['(K6) y el texto lo dice', txt().indexOf('La CIV no se dibuja') >= 0, true]);
+  /* CONTROL NEGATIVO: una comunicacion que NO esta cargada no se dibuja. */
+  pon('tga_cirugia', 'ninguna'); pon('dap_diam', ''); pon('dap_tipo', ''); await esperar(450);
+  ex.push(['(K7) el DAP vaciado deja de dibujarse', html().indexOf('>DAP<') >= 0, false]);
+  ex.push(['(K8) y el texto ya no lo nombra', txt().indexOf('DAP') >= 0, false]);
+
+  /* ── 4 · LA PUNTA DE FLECHA, SOLO DONDE LA APP GUARDA LA DIRECCION ──────────────────────── */
+  pon('ete_cia_dir', ''); await esperar(420);
+  const p0 = puntas();
+  ex.push(['(L0) denominador: sin direccion hay seis puntas, una por flecha de flujo', p0, 6]);
+  pon('ete_cia_dir', 'id'); await esperar(420);
+  ex.push(['(L1) la CIA con direccion gana su punta', puntas(), p0 + 1]);
+  pon('dap_diam', '3'); pon('dap_dir', 'id'); await esperar(450);
+  ex.push(['(L2) y el ductus con direccion, la suya', puntas(), p0 + 2]);
+  /* CONTROL NEGATIVO: la CIV no tiene campo de direccion en toda la app, asi que no puede
+     ganar punta. Si alguien le inventa uno, esta condicion lo dice. */
+  ex.push(['(L3) la CIV no tiene campo de direccion en la app', !!EL('ete_civ_dir'), false]);
+
+  /* ── 5 · NO ESCRIBE UN SOLO CAMPO DEL ESTUDIO ───────────────────────────────────────────── */
+  const foto = () => { const o = {};
+    document.querySelectorAll('input[id], select[id], textarea[id]').forEach(function (e) {
+      if (typeof _noEsDelEstudio === 'function' && _noEsDelEstudio(e.id)) return;
+      o[e.id] = (e.type === 'checkbox') ? (e.checked ? '1' : '') : String(e.value || ''); });
+    return o; };
+  const antes = foto();
+  const VUELTA = [['', ''], ['dtga', ''], ['dtga', 'auricular'], ['dtga', 'jatene'],
+                  ['dtga', 'rastelli'], ['cctga', ''], ['mustard', '']];
+  for (const v of VUELTA) { pon('tga_tipo', v[0]); pon('tga_cirugia', v[1]); await esperar(240); }
+  pon('tga_tipo', 'dtga'); pon('tga_cirugia', 'ninguna'); await esperar(600);
+  const desp = foto();
+  const movidos = Object.keys(antes).filter(function (k) { return String(antes[k]) !== String(desp[k]); });
+  ex.push(['(M0) denominador: hay campos del estudio que mirar', Object.keys(antes).length > 400, true]);
+  ex.push(['(M1) recorrer los siete escenarios no movio ningun campo ajeno',
+           movidos.filter(function (k) { return k !== 'tga_tipo' && k !== 'tga_cirugia'; }).length, 0]);
+  /* ⚠️ ESTA CONDICION NACIO DE UNA MUTACION QUE SOBREVIVIO (M14). La de arriba EXCLUYE los dos
+     campos que el caso mueve a proposito, asi que una escritura automatica sobre ELLOS pasaba
+     en verde: el esquema podia rellenar el tipo por su cuenta y nadie lo veia. Aca se le
+     pregunta al campo DIRECTO -se vacia, se deja repintar y se mira si sigue vacio-, que es el
+     unico camino que no tiene esa exclusion. Es la regla del D-9, el D-10 y el D-11: una
+     funcion que dibuja no escribe. */
+  pon('tga_tipo', ''); pon('tga_cirugia', ''); await esperar(700);
+  ex.push(['(M1b) el esquema no se rellena el tipo solo: vaciado, sigue vacio',
+           String((EL('tga_tipo') || {}).value || ''), '']);
+  ex.push(['(M1c) ni la cirugia', String((EL('tga_cirugia') || {}).value || ''), '']);
+  ex.push(['(M1d) DENOMINADOR: y aun asi dibuja, o sea que repinto de verdad',
+           document.querySelectorAll('#tga-esq-svg .tga-esq-fl').length, 6]);
+  ex.push(['(M2) y ninguna clave del esquema es campo del estudio',
+           Object.keys(foto()).filter(function (k) { return k.indexOf('tga-esq') === 0 || k.indexOf('tga_esq') === 0; }).length, 0]);
+  /* ── 6 · NO LLEGA AL PAPEL ───────────────────────────────────────────────────────────────── */
+  try { if (typeof generarInforme === 'function') generarInforme(); } catch (e) {}
+  await esperar(320);
+  const inf = String((EL('informe_texto') || {}).value || '');
+  ex.push(['(N1) el informe no trae la leyenda del esquema', inf.indexOf('Esquema ilustrativo') >= 0, false]);
+  ex.push(['(N2) ni la linea de la circulacion esquematica', inf.indexOf('Circulación esquemática') >= 0, false]);
+  return { extra: EXP };
+  })();
+`);
+
+caso('TC-604', 'Tanda TGA-3: el esquema lleva su leyenda visible, su globo estandar de 44 px con el glifo de la casa, y un globo que dice lo que el esquema NO es, sin una sola cita', `
+  return (async () => {
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]),
+                 'dio «' + t[1] + '» · esperado «' + t[2] + '»']) };
+  const esperar = (ms) => new Promise(r => setTimeout(r, ms));
+  const EL = (id) => document.getElementById(id);
+  const pon = (id, v) => { const e = EL(id); if (!e) return 'NO ' + id;
+    e.value = v; e.dispatchEvent(new Event('input', { bubbles: true }));
+    e.dispatchEvent(new Event('change', { bubbles: true })); return e.value; };
+  try { if (typeof limpiarCampos === 'function') limpiarCampos(true); } catch (e) {}
+  pon('nombre', 'TC604'); pon('ci', '604'); pon('tga_tipo', 'dtga');
+  await esperar(500);
+  const b = document.querySelector('[data-vinfo="tga-esq"]');
+  /* ── DENOMINADOR ─────────────────────────────────────────────────────────────────────────── */
+  ex.push(['(P0) existe el boton del globo del esquema', !!b, true]);
+  ex.push(['(P1) la leyenda visible esta en la caja del esquema',
+           EL('tga-esq-box') ? (String(EL('tga-esq-box').textContent || '').indexOf('Esquema ilustrativo') >= 0) : 'NO HAY', true]);
+  /* ── 1 · ES EL GLOBO ESTANDAR DE LA CASA ─────────────────────────────────────────────────── */
+  ex.push(['(P2) usa el glifo estandar U+24D8 y no otra i',
+           b ? (String(b.textContent || '').trim().charCodeAt(0)) : 'NO HAY', 9432]);
+  ex.push(['(P3) lleva la clase del area tactil de 44 px',
+           b ? b.classList.contains('vinfo-btn-44') : 'NO HAY', true]);
+  ex.push(['(P4) y la clase de globo de la casa',
+           b ? b.classList.contains('vinfo-btn') : 'NO HAY', true]);
+  /* ── 2 · EL CONTENIDO: dice lo que es y lo que NO ES ─────────────────────────────────────── */
+  /* ADVERTENCIA: VINFO es una constante de nivel de script y NO esta en window -lo dice el mapa
+     de la TGA-, asi que se lee por el nombre pelado, igual que los casos de la casa. */
+  const V = (typeof VINFO === 'object' && VINFO) ? VINFO['tga-esq'] : null;
+  const todo = V ? String((V.tit || '') + ' ' + (V.lee || '') + ' ' + (V.ojo || '')) : '';
+  ex.push(['(P5) el registro tiene la entrada del esquema', !!V, true]);
+  ex.push(['(P6) dice que es un esquema ilustrativo',
+           todo.indexOf('ESQUEMA ILUSTRATIVO') >= 0, true]);
+  ex.push(['(P7) dice que no es una imagen del estudio',
+           todo.indexOf('no es una imagen de este estudio') >= 0, true]);
+  ex.push(['(P8) dice que no esta a escala', todo.indexOf('no está a escala') >= 0, true]);
+  ex.push(['(P9) declara que los recorridos esperan la revision de un cardiologo de congenitas',
+           todo.indexOf('cardiólogo de cardiopatías congénitas') >= 0, true]);
+  ex.push(['(Q1) dice que no entra al informe ni al PDF',
+           todo.indexOf('no entra al informe ni al PDF') >= 0, true]);
+  /* ── 3 · SIN UNA SOLA CITA: ni guia, ni clase, ni tabla, ni folio ────────────────────────── */
+  ex.push(['(Q2) no nombra ninguna sociedad', (todo.indexOf('ESC') >= 0) || (todo.indexOf('AHA') >= 0), false]);
+  ex.push(['(Q3) no publica clase', todo.indexOf('Clase') >= 0, false]);
+  ex.push(['(Q4) no cita folio', todo.indexOf('folio') >= 0, false]);
+  ex.push(['(Q5) no cita tabla', todo.indexOf('Tabla') >= 0, false]);
+  /* ── 4 · CONTROL NEGATIVO: el globo del 3D sigue siendo OTRO y no se toco ────────────────── */
+  const V3 = (typeof VINFO === 'object' && VINFO) ? VINFO['tga-3d'] : null;
+  ex.push(['(R1) el globo del 3D sigue existiendo aparte', !!V3, true]);
+  ex.push(['(R2) y es un texto distinto del del esquema',
+           (V && V3) ? (String(V.lee) !== String(V3.lee)) : 'NO HAY', true]);
+  ex.push(['(R3) la seccion tiene ahora DOS globos: el del 3D y el del esquema',
+           document.querySelectorAll('#sacc-cc-tga [data-vinfo]').length, 2]);
+  return { extra: EXP };
+  })();
+`);
+
 
 
 let servidor, chrome;

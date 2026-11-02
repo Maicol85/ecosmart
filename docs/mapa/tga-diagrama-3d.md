@@ -267,3 +267,28 @@ Lo que esa tanda movió de esta zona está en **`docs/mapa/cong2a-desmarcar-tga-
   era el defecto que desbordaba la tarjeta por 363 px **al vaciar el tipo**.
 - La **CIA** y la **CIV** salieron a un bloque común y se dibujan en todas las anatomías, con dos
   exclusiones medidas: no la CIA con el switch auricular y no la CIV con el Rastelli.
+
+
+---
+
+## Puntero — la tanda TGA-3 (2026-11-01)
+
+Lo que esa tanda movió de esta zona está en **`docs/mapa/tga3-esquema-circulacion.md`**:
+
+- La **conclusión** pasó a la columna izquierda, como último hijo de `#tga-campos` con
+  `grid-column:1 / -1`. `#tga-fila` sigue con **dos** hijos, así que la maqueta de 900 px no se
+  movió. El contenido **no cambió**: 214 caracteres en los dos árboles.
+- **La conducta de `tgaConclusion` salió del papel.** La función gana la salida **`papel`** —la
+  misma lista de partes congelada **antes** de que entre la conducta— y la leen el cuerpo del
+  informe, la hoja del PDF y la diapositiva (`papel:true` en el registro del PPT). `txt` sigue
+  entero y es lo que la **pantalla** publica. Censo: **381 → 0** apariciones de conducta en las
+  once superficies de papel. La rama `descriptivo` **también** devuelve `papel`, con el mismo
+  valor que `txt`, para que el contrato sea uniforme.
+  ⚠️ **`resumen` no lo lee hoy ninguna superficie de papel** → `T3-b`.
+- Dentro del recuadro del 3D vive ahora el **esquema de circulación de la sangre**, con sus seis
+  escenarios, sus dos exclusiones de comunicación y su ⓘ propio (`tga-esq`, el registro pasa de
+  97 a 98 entradas). **No tiene selector**: lee `tgaEjes()` y `tga3dComs()`, los mismos dueños que
+  el dibujo. **Es solo lectura** y no llega a ninguna superficie de papel.
+- `tgaEsqSync` se llama desde **`tga3dSync`, antes de toda salida temprana**, que es el único
+  punto que cubre los tres caminos y que además deja el esquema vivo cuando three.js no carga.
+- La animación se cuelga de **`_tga3d.pausado`** y **`_tga3d.fc`**, los dueños del 3D.

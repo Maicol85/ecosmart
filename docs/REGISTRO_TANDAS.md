@@ -425,3 +425,50 @@ ya vale 20 y los únicos 21 mm son de la probabilidad de HTP, que es otra guía 
 
 **Dónde está todo:** `docs/mapa/popc-posoperatorio-marfan.md` (mapa nuevo, 17,2 KB) y
 `docs/mapa/tests-fichas-595.md` (fichas, archivo propio).
+
+---
+
+## TANDA TGA-3 (2026-11-01) — la conclusión a la izquierda, el papel sin conductas y el esquema de circulación
+
+**Commits:** `d2261f4` (1) · `d2cb912` (2) · `91ae620` (3) · `1c9eb6d` (4) · `60aebc3` (5) · el de
+cobertura y documentación. Al empezar, `origin/main` = `HEAD` = **`96b7ff0`**, el cierre de POP-C,
+ya publicado, con md5 de `index.html` **`747b6597`** y sello `v20261101-2008`. **El push lo corre
+el médico: esta tanda tenía orden expresa de NO pushear.**
+
+**Qué hizo:**
+
+1. **La conclusión de la TGA pasa a la columna izquierda** (pedido del médico), al hueco que la
+   maqueta de CONG-2A dejaba vacío bajo los campos: medido, **368 px de alto por 549 de ancho a
+   1440 px** y 475 × 358 a 1000. Su contenido **no cambia** —214 caracteres en los dos árboles— y
+   `#tga-fila` sigue con **dos** hijos, así que la maqueta de 900 px no se mueve.
+2. **La conducta de la TGA sale del papel.** Medido en HEAD con la sección integrada:
+   «seguimiento anual» salía **una** vez en el informe en cada uno de los **tres** estilos, **tres**
+   veces en cada una de las **seis** plantillas del PDF y **una** en el PPT; y la rama de la
+   insuficiencia tricuspídea llevaba **«(ESC 2020)»** al informe firmado. Censo de once marcadores
+   por las once superficies: **381 → 0**. `tgaConclusion` gana la salida `papel`, derivada de la
+   **misma** lista de partes, así que las dos salidas no pueden divergir.
+3. **El esquema de circulación de la sangre**, dentro del recuadro del 3D y al lado del 3D: cuatro
+   cavidades, pulmones arriba, cuerpo abajo, las dos válvulas y las comunicaciones en naranja,
+   **sin selector** —lee los mismos dueños que el 3D— y **solo lectura**.
+4. **Las tres cirugías** (switch auricular, Jatene, Rastelli) con su **control clínico hecho antes
+   de dibujar** contra `TGA3D_CIRC`, que es de la app y no la prosa de la demo. Los seis
+   recorridos **coinciden**, así que ninguno quedó parado.
+5. **La TGA corregida**, el **ⓘ** del esquema y dos detalles que pidió la verificación: la rama
+   `descriptivo` también devuelve `papel` —y eso **cierra una regresión del commit 2**, que había
+   dejado la diapositiva de Jatene y Rastelli sin su fila de conclusión— y la tipografía mínima
+   del SVG sube de 11 a 12 en el `viewBox`.
+
+**Qué NO se movió:** ni un corte, ni un umbral, ni una clase, ni un folio. **Cero campos guardados
+nuevos**, Excel en **441** columnas con las mismas claves, censo de campos idéntico, Semgrep **124
+WARNING / 0 ERROR** y celular **59 / 68 con 17 ALTA**, la línea base exacta.
+
+**Qué se declaró con su medición en vez de decidirlo:** el corte de la maqueta en **1200 px** y no
+en 900 —al lado, a 1000 px el 3D quedaría en **126 px**, inservible—; el `resumen` que ya no lee
+ninguna superficie; el esquema fuera del PDF; la diapositiva del PPT sin condición en la suite; la
+conducta que sigue en la **pantalla** porque la orden lo pide por los dos lados; y las dos
+conductas que la Evidencia no respalda.
+
+**Qué dejó pendiente:** `T3-a` a `T3-g` en `docs/PENDIENTES.md`.
+
+**Dónde está todo:** `docs/mapa/tga3-esquema-circulacion.md` (mapa nuevo, 16,7 KB) y
+`docs/mapa/tests-fichas-601.md` (fichas, archivo propio).

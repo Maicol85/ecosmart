@@ -11860,3 +11860,112 @@ Los 30 px de alto son los de la tarjeta, no un descuido: **MF2-f** ya declara qu
 de la tarjeta baja a 26-30 px con el mouse» por una media query deliberada de esa pantalla. El
 botón nuevo es consistente con los veinticuatro que ya había.
 **Lo que falta decidir:** si esa media query se revisa. Es la pantalla entera, no este botón.
+
+# TANDA TGA-3 (2026-11-01) — lo declarado
+
+## T3-a · El esquema va al lado del 3D desde 1200 px y no desde 900, y es una medición
+
+**Qué pide la orden.** «Dentro del cuadro gris del 3D, AL LADO del 3D (el 3D no se toca ni se
+achica más de lo necesario)» y «Debajo de 900 px, el esquema se apila bajo el 3D».
+
+**Qué se midió.** El recuadro `#tga-3d-box` mide **631 px a 1440** y **406 px a 1000**. Con el
+esquema al lado —268 px más 12 de hueco— al 3D le quedan **327 px a 1440**, que sirve, y **126 px
+a 1000**, que no sirve para nada.
+
+**Qué se hizo.** Al lado desde **1200 px**; entre 900 y 1200 el esquema se apila **debajo del 3D
+dentro del recuadro**; por debajo de 900 se apila junto con toda la caja, que es lo que la orden
+pide. Las dos condiciones de 3a entran en conflicto a 1000 px y se resolvió por la que la propia
+orden pone primero: que el 3D no se achique más de lo necesario.
+
+**Qué haría falta.** Una decisión de maqueta: o el esquema al lado también a 1000 px con el 3D en
+126 px, o el 3D con un ancho mínimo que fuerce el apilado antes, o bajar el esquema a ~200 px, que
+dejaría su tipografía mínima en 8,6 px.
+
+## T3-b · El `resumen` de `tgaConclusion` conserva la conducta y hoy no lo lee ninguna superficie
+
+**Qué se encontró.** Sus dos consumidores de papel eran la hoja del PDF (`ccHoja`) y la
+diapositiva del PPT, y los dos pasan a `papel`. Hoy `resumen` **no lo lee ninguna superficie de
+papel**.
+
+**Por qué no se tocó.** Cambiar esa cadena mueve un valor que otro lector podría tomar mañana, y
+la orden acota las diferencias de papel al commit 2. Queda con un aviso en el código:
+**quien vuelva a cablear esta sección al papel tiene que usar `papel`**.
+
+**Qué haría falta.** Una orden para derivar `resumen` de `papel`, o para retirarlo.
+
+## T3-c · El esquema no entra al PDF ni se guarda en «Imágenes»
+
+**Qué se encontró.** La orden lo acota expresamente: «El esquema vive SOLO en pantalla: NO entra
+al PDF ni a ningún papel en esta tanda». Medido: ni la leyenda «Esquema ilustrativo» ni la línea
+«Circulación esquemática» aparecen en el informe, y el censo de las once superficies de papel da
+cero.
+
+**Qué haría falta.** Las dos piezas ya existen y son las que el 3D usa: `esqIncluirEnPDF` para un
+`<svg>` —que es justo lo que el esquema es, así que no haría falta la variante del `dataURL`— y
+una fila en `PDF_DIAG_REG`. El guardado en «Imágenes» usa la misma función común. Es una orden de
+una sola pieza, no un trabajo nuevo.
+
+## T3-d · La diapositiva del PPT no tiene condición en la suite
+
+**Qué se encontró.** El registro que decide si la diapositiva publica el texto descriptivo
+(`papel:true`) es un `const` **dentro** del emisor, no es alcanzable desde un caso, y extraer el
+texto del mazo generado de verdad costaba más de lo que esta tanda podía pagar: el denominador no
+llegaba a nombrar la transposición.
+
+**Qué sí está medido.** El PPT **real**, en el A/B de la tanda: las apariciones de conducta en la
+diapositiva pasan de **21 por escena a 0**, y la fila de conclusión de Jatene y Rastelli se
+verificó por el mismo camino.
+
+**El precio.** Una mutación que le devuelva el `resumen` a la diapositiva **sobrevive a la suite**.
+
+**Qué haría falta.** Un ayudante del preludio que genere el mazo del paciente y devuelva sus
+textos, como el que los casos del PPT del Laboratorio ya tienen para `_labPPTGenerar`.
+
+## T3-e · La conducta sigue en la PANTALLA, y la ampliación de la regla fija no se aplicó acá
+
+**Qué se encontró.** `CLAUDE.md` trae, del 2026-11-02, la ampliación «LA PANTALLA TAMPOCO DA
+INDICACIONES». La cápsula de conclusión de la TGA sigue publicando «seguimiento anual», «cirugía
+sobre la válvula a considerar (ESC 2020)», «intervención a considerar» y las demás.
+
+**Por qué no se tocó.** La orden de esta tanda lo pide **expresamente** por los dos lados: el
+commit 1b dice «El contenido de la conclusión NO cambia» y el commit 2 dice que el contenido
+retirado del papel debe vivir «en la pantalla, el ⓘ, Referencias o la Evidencia». Aplicar la
+ampliación habría contradicho las dos.
+
+**Qué haría falta.** Una orden que decida si la cápsula de la TGA pasa a «cumple criterios para
+cirugía» / «no cumple» / «sin datos suficientes», como la MARFAN-2 hizo con su pastilla. Son once
+ramas de cascada y es contenido clínico.
+
+## T3-f · Lo que la Evidencia NO cubre de las conductas retiradas
+
+**Qué se encontró.** De las siete conductas que salieron del papel, la Evidencia de la sección
+respalda con su clase y su folio las de la **válvula auriculoventricular sistémica** (tablas `aur`
+y `cc` de `TGA_IND_RECS`) y la **estimulación biventricular por bloqueo**. **No** tienen
+equivalente en la Evidencia: «optimización del tratamiento médico de insuficiencia cardíaca y
+evaluación de resincronización» **por disfunción** —la tabla `cc` sólo la publica por bloqueo
+auriculoventricular o requerimiento de estimulación— ni «obstrucción subaórtica con gradiente por
+encima de 50 mmHg — intervención a considerar».
+
+**Por qué no se agregó nada.** Escribir una recomendación en la Evidencia es contenido clínico
+nuevo y lo decide el médico. La condición de la orden —«verificá que su contenido vive en la
+pantalla, el ⓘ, Referencias o la Evidencia»— **se cumple por la pantalla**, que conserva la
+conclusión entera, y por `TGA_CONDUCTAS`, la tabla del Laboratorio que documenta el criterio de
+cada rama.
+
+**Qué haría falta.** Leer la fuente de esas dos conductas y decidir si entran a la Evidencia con
+su clase y su folio, o si la app deja de emitirlas.
+
+## T3-g · El `pisaConcl` de dos arneses medía un solo eje
+
+**Qué se encontró.** `_probe_cong2a_pant.mjs` calcula `pisaConcl` como `(host.y + host.h) -
+concl.y`, y **TC-574** calculaba `pisaCv` igual. Las dos fórmulas eran correctas mientras la
+conclusión estuviera **debajo** del lienzo; desde que vive al lado, dos cajas lado a lado
+comparten rango vertical **por diseño** y las dos informaban un solape de 232 a 640 px que no
+existe.
+
+**Qué se hizo.** **TC-574 se adaptó** a medir la intersección en los dos ejes, que es más fuerte y
+no más débil. **`_probe_cong2a_pant.mjs` NO se tocó**: es la sonda de otra tanda y la orden prohíbe
+sobrescribirlas.
+
+**Qué haría falta.** Corregir esa sonda la próxima vez que se use, o leer su `pisaConcl` sabiendo
+que mide un eje. La medición en dos ejes vive en `_probe_tga3concl.mjs` y `_probe_tga3wk.mjs`.

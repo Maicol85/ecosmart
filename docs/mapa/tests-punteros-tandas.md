@@ -428,3 +428,24 @@ Las fichas, en **`docs/mapa/tests-fichas-595.md`** (archivo propio).
 **Adaptado:** `TC-594`, cuyas condiciones (D1), (D2) y (D3) afirmaban que el Z calculado **no
 existe** — es el día que ellas mismas anunciaban. Las tres quedan **invertidas**, no borradas, y
 cada una gana una condición que la hace poder fallar otra vez.
+
+
+## La tanda TGA-3 (2026-11-01) — TC-601 a TC-604
+
+Las fichas de los cuatro casos están en **`docs/mapa/tests-fichas-601.md`** (archivo propio,
+porque `tests-fichas.md` está en 34,2 KB).
+
+- **TC-601** · la conclusión en la columna izquierda: hija de `#tga-campos`, último hijo, la regla
+  de `grid-column` en la hoja de estilos, y `#tga-fila` con dos hijos.
+- **TC-602** · la conducta fuera del papel, con la **pantalla** como control positivo y Jatene,
+  Rastelli y la escena sin integrar como controles negativos.
+- **TC-603** · el esquema: los seis escenarios por los rótulos del dibujo, las dos exclusiones, la
+  punta de flecha sólo donde la app guarda la dirección, el cambio en vivo y **que no escribe**.
+- **TC-604** · la leyenda, el glifo estándar U+24D8, lo que el esquema **no** es, y **sin una sola
+  cita**.
+
+**Seis casos viejos adaptados**, cada uno con el motivo escrito: **TC-471** y **TC-500** (el
+registro de globos, 97 → 98), **TC-502** (las tarjetas sin botón, 26 → 27), **TC-535** (los globos
+de 44×44, 18 → 19, en sus **tres** condiciones: (K0), (K1) y (K2) — la última se me quedó en
+dieciocho y la destapó la corrida completa), **TC-573** (**invertida**: la conclusión ahora **sí** está dentro de la fila,
+más dos condiciones nuevas) y **TC-574** (la métrica de solape pasa a medir los **dos** ejes).
