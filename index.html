@@ -73028,7 +73028,29 @@ function generarPDFReal(_aj) {
       const _ti = esqSlotIdx('tga3d');
       if (_ti >= 0 && imgSlots[_ti] && imgSlots[_ti].dataURL && !imgSlots[_ti].noPdf) {
         const _tl = (typeof tga3dLineaPDF === 'function') ? (tga3dLineaPDF() || '') : '';
-        _dg.tga3d = { partes: [{ data: imgSlots[_ti].dataURL }], linea: _tl };
+        /* ══ EL ESQUEMA DE CIRCULACION, AL LADO DEL 3D (TGA-4) ══════════════════════════════
+           El motor de tercios ya dibuja VARIAS partes lado a lado y las escala para que entren
+           —ver `_pdfTile`—, asi que esto es una parte mas y el motor no se toca. Con el boton
+           apagado `tgaEsqPdfData` devuelve `data: null`, la parte no se agrega y la hoja queda
+           como estaba: un solo dibujo a todo el ancho de su franja.
+           ⚠️ `ar` SOLO EN LA PARTE NUEVA, y el 3D se queda como esta. `_pdfTile` usa `p.ar || 1`,
+           o sea que hoy el lienzo del 3D —560 x 420, o sea 4:3— se estampa CUADRADO y sale
+           estirado a lo alto. Es preexistente y corregirlo cambia un dibujo que esta orden no
+           manda tocar: medido y declarado en docs/PENDIENTES.md. La parte nueva si lleva su
+           proporcion, que es lo correcto para un dibujo que nace hoy.
+           ⚠️ EL EPIGRAFE ES FIJO Y SE AGREGA ACA, no en el texto de pantalla: es una advertencia
+           del papel —el mismo que lleva el esquema del posoperatorio, palabra por palabra— y en
+           la app esa aclaracion la da el ⓘ de la caja. */
+        const _te = (typeof tgaEsqPdfData === 'function') ? tgaEsqPdfData() : { data:null, linea:'' };
+        const _tp = [{ data: imgSlots[_ti].dataURL }];
+        const _tlin = [];
+        if (_tl) _tlin.push(_tl);
+        if (_te && _te.data) {
+          _tp.push({ data: _te.data, ar: TGA_ESQ_PDF_AR });
+          if (_te.linea) _tlin.push(_te.linea);
+          _tlin.push('Esquema ilustrativo: no es una imagen del estudio ni está a escala.');
+        }
+        _dg.tga3d = { partes: _tp, linea: _tlin.join('  ·  ') };
         _tga3dEsqIdx = _ti;
       }
     }
@@ -96101,6 +96123,10 @@ const TGA3D_REF = Object.freeze({
    del recorrido que la demo trae las redacto quien armo la demo y NO estaban en la app, asi que
    no se usan: el texto de abajo se arma con las palabras que la app ya tiene. */
 const TGA_ESQ_VB = '0 0 300 290';
+/* El lienzo de rasterizacion para el PDF. Guarda la PROPORCION del viewBox —300 x 290— para que
+   el dibujo no salga estirado, y va al doble de escala porque el PDF lo imprime a ~85 mm. */
+const TGA_ESQ_PDF_W = 600, TGA_ESQ_PDF_H = 580;
+const TGA_ESQ_PDF_AR = 290 / 300;
 /* Las cuatro cavidades, con el tamano y la posicion de la demo. */
 const TGA_ESQ_BX = Object.freeze({ TL:[40,78], TR:[180,78], BL:[40,158], BR:[180,158] });
 const TGA_ESQ_W = 80, TGA_ESQ_H = 44;
@@ -96366,6 +96392,9 @@ function tgaEsqSync(anat, cir) {
     '. Recorrido: ' + ((typeof TGA3D_CIRC !== 'undefined' && TGA3D_CIRC[base.k]) || 'no disponible') +
     '.' + (com.length ? ' Comunicaciones cargadas: ' + com.join(', ') + '.' : '');
   _tgaEsqArrancar();
+  /* ⚠️ VA DESPUES DE PINTAR, y la compuerta la decide `tgaEsqPdfOn`: con el boton del PDF
+     apagado esta llamada es un no-op y no cuesta nada. Es el enganche de `popEsqPintar`. */
+  if (typeof tgaEsqPdfRaster === 'function') { try { tgaEsqPdfRaster() } catch (e) {} }
 }
 /* ══ LA ANIMACION DEL FLUJO ══════════════════════════════════════════════════════════════════
    ⚠️ SE CUELGA DE LOS DOS DUENOS QUE EL 3D YA TIENE: `_tga3d.pausado` y `_tga3d.fc`. Con un
@@ -96398,6 +96427,93 @@ function _tgaEsqArrancar() {
   _tgaEsq.ult = 0;
   _tgaEsq.raf = window.requestAnimationFrame(_tgaEsqCuadro);
 }
+/* ══ EL ESQUEMA EN EL PDF, CON EL MISMO BOTON QUE EL 3D (TGA-4, 2026-11-02) ═══════════════════
+   Decision del medico: UN SOLO boton —el «Incluir en el PDF» que ya existe— lleva los DOS
+   dibujos, lado a lado en la misma hoja, como se ven en la app. Con el boton apagado no entra
+   ninguno de los dos y el PDF queda identico. Cierra la mitad de PDF del pendiente T3-c.
+
+   ⚠️ NO HAY UN SEGUNDO BOTON NI UN CAMPO GUARDADO NUEVO. La compuerta es `esqEstaIncluido`
+   sobre la clave del 3D, o sea el MISMO estado: dos interruptores para una decision es como se
+   llega a que el medico apague uno y el papel siga trayendo el otro.
+
+   ⚠️ SE PRE-RASTERIZA, COMO EL ESQUEMA DEL POSOPERATORIO Y EL DE LA OREJUELA. `generarPDFReal`
+   NO es asincrono y `esqRasterizar` devuelve una promesa, asi que no se puede rasterizar al
+   armar el PDF: el dibujo se convierte cuando el esquema se repinta y la compuerta esta
+   abierta, con su diferido de 700 ms para no hacerlo por tecla. Es el patron de
+   `popEsqPdfRaster`, palabra por palabra.
+
+   ⚠️ NO VA A `imgSlots` NI A NINGUN CAMPO: el dataURL vive en una variable de modulo y muere con
+   la pagina. No se guarda con el estudio, no aparece en «Imagenes guardadas» y no entra al
+   backup — que es justo lo que la orden deja pendiente. Reabriendo un estudio guardado el slot
+   del 3D vuelve de IndexedDB y `tgaEsqSync` corre en la restauracion, asi que el esquema se
+   vuelve a rasterizar solo; lo que no sobrevive es la pagina cerrada sin abrir la seccion.
+
+   ⚠️ LA IMAGEN Y SU LINEA SE TOMAN JUNTAS, EN EL MISMO INSTANTE. El texto que va al papel es el
+   que `tgaEsqSync` acaba de escribir en `#tga-esq-txt` —el dueno unico del nombre del escenario
+   y de las comunicaciones, con las palabras que la app ya usa—, y se guarda al lado del
+   dataURL. Leerlo al armar el PDF dejaria una ventana de 700 ms en la que la linea describe un
+   escenario y el dibujo muestra el anterior. */
+var _tgaEsqPdf = { data:null, linea:'' };
+var _tgaEsqPdfTo = 0;
+function tgaEsqPdfOn() {
+  try {
+    if (typeof esqEstaIncluido !== 'function' || !esqEstaIncluido('tga3d')) return false;
+    /* ⚠️ Y EL DIBUJO TIENE QUE SER UN DATO DE ESTE PACIENTE. Lo destapo la sonda del A/B: con el
+       slot ya incluido y el medico tocando «Corazon normal (referencia)», `tgaEsqSync` repinta
+       el esquema del corazon NORMAL y la rasterizacion se lo llevaba al papel — un dibujo que
+       declara no ser de este paciente dentro de un informe FIRMADO. `_tga3dEsDato` es el dueno
+       unico de esa pregunta y es el mismo que gatea los dos caminos del 3D; preguntarlo aca deja
+       la compuerta del esquema atada a la del 3D, que es lo que el boton unico promete. */
+    return (typeof _tga3dEsDato !== 'function') || !!_tga3dEsDato();
+  } catch (e) { return false; }
+}
+window.tgaEsqPdfOn = tgaEsqPdfOn;
+/* Rasteriza el SVG tal como esta, con el bucle en pausa. Diferido para no hacerlo por tecla. */
+function tgaEsqPdfRaster(inmediato) {
+  /* ⚠️ CON LA COMPUERTA CERRADA NO SE RASTERIZA, PERO TAMPOCO SE BORRA LO YA RASTERIZADO, y es
+     un defecto medido de la primera version de esta tanda. `generarPPT` CARGA EL ESTUDIO EN EL
+     FORMULARIO, y en esa pasada el tipo de transposicion queda vacio un instante: la compuerta
+     se cerraba, esta funcion tiraba el dataURL, y cuando el formulario volvia a su sitio el
+     repintado solo agendaba la rasterizacion para 700 ms despues. Generando el PPT y enseguida
+     el PDF —que es lo que hace el arnes de A/B y lo que hace el medico al exportar los dos— la
+     hoja salia con el 3D y SIN el esquema. Medido: «compuerta abierta / dato NO».
+     Borrar aca no aportaba nada, porque quien PUBLICA es `tgaEsqPdfData` y esa si pregunta por
+     la compuerta en cada lectura. El unico borrado explicito es el del boton, que es donde el
+     medico decide que el dibujo no va. */
+  if (!tgaEsqPdfOn()) return;
+  if (_tgaEsqPdfTo) clearTimeout(_tgaEsqPdfTo);
+  /* ⚠️ `inmediato` LO USA EL BOTON, Y SIN ESO HAY UNA CARRERA REAL: el medico toca «Incluir en
+     el PDF» y genera el informe en el mismo segundo, y con el diferido de 700 ms la hoja sale
+     con el 3D y sin el esquema. El diferido existe para no rasterizar por tecla —eso es el
+     repintado—, no para el gesto explicito. Devuelve la promesa para que se pueda esperar. */
+  const _cuerpo = function () {
+    _tgaEsqPdfTo = 0;
+    const cont = document.getElementById('tga-esq-svg');
+    const svg = cont && cont.firstChild;
+    if (!svg || typeof esqRasterizar !== 'function') return null;
+    /* El cuadro que va al papel es uno QUIETO y no uno a medio latido: se para el bucle antes de
+       serializar y se reanuda despues, igual que el posoperatorio. Se cancela en linea porque
+       este modulo no tiene una funcion de parada —solo `_tgaEsqArrancar` y el cuadro, que se
+       re-agenda solo—, y agregarla seria un segundo dueno del mismo `raf`. */
+    const corria = !!_tgaEsq.raf;
+    try { if (corria) { window.cancelAnimationFrame(_tgaEsq.raf); _tgaEsq.raf = 0; } } catch (e) {}
+    let txt = '';
+    try { txt = new XMLSerializer().serializeToString(svg); } catch (e) { txt = ''; }
+    try { if (corria) _tgaEsqArrancar(); } catch (e) {}
+    if (!txt) return null;
+    const _tx = document.getElementById('tga-esq-txt');
+    const _ln = _tx ? String(_tx.textContent || '').trim() : '';
+    return esqRasterizar(txt, TGA_ESQ_PDF_W, TGA_ESQ_PDF_H)
+      .then(function (d) { if (d && tgaEsqPdfOn()) _tgaEsqPdf = { data:d, linea:_ln }; return d; })
+      .catch(function () { return null; });
+  };
+  if (inmediato) return _cuerpo() || Promise.resolve(null);
+  _tgaEsqPdfTo = setTimeout(_cuerpo, 700);
+  return Promise.resolve(null);
+}
+window.tgaEsqPdfRaster = tgaEsqPdfRaster;
+function tgaEsqPdfData() { return tgaEsqPdfOn() ? _tgaEsqPdf : { data:null, linea:'' }; }
+window.tgaEsqPdfData = tgaEsqPdfData;
 window.tgaEsqSVG = tgaEsqSVG; window.tgaEsqSync = tgaEsqSync;
 /* ── La geometria de la demo, verbatim ── */
 const _T3 = {
@@ -97109,8 +97225,10 @@ function tga3dIncluirPDF() {
   }
   if (typeof esqEstaIncluido === 'function' && esqEstaIncluido('tga3d')) {
     esqQuitarDelPDF('tga3d');
+    /* El esquema se va con el 3D: es un solo boton para los dos dibujos (TGA-4). */
+    _tgaEsqPdf = { data:null, linea:'' };
     tga3dPdfBtnSync();
-    if (est) est.textContent = ' El dibujo ya no se incluye en el PDF.';
+    if (est) est.textContent = ' Los dibujos ya no se incluyen en el PDF.';
     return Promise.resolve({ ok:true, quitado:true });
   }
   if (!_tga3d.api) {
@@ -97120,6 +97238,10 @@ function tga3dIncluirPDF() {
   const cap = _tga3d.api.captura();
   return esqIncluirEnPDFImg('tga3d', 'Esquema 3D de la transposición', cap.url).then(r => {
     tga3dPdfBtnSync();
+    /* ⚠️ INMEDIATO Y DESPUES DE `tga3dPdfBtnSync`: la compuerta de `tgaEsqPdfOn` es
+       `esqEstaIncluido('tga3d')`, que recien es verdadera cuando el slot ya entro. Llamarlo
+       antes lo dejaba limpiando la variable en vez de llenarla. */
+    if (r && r.ok && typeof tgaEsqPdfRaster === 'function') { try { tgaEsqPdfRaster(true) } catch (e) {} }
     if (est) est.textContent = r.ok
       ? ((typeof imgGuardadoActivo === 'function' && imgGuardadoActivo())
           ? ' Este cuadro se incluye en el PDF y se guardará con el estudio.'
@@ -150508,8 +150630,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261102-1537';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793644646859;                 /* eco-build-ms */
+const ECO_BUILD    = '20261102-1538';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793644699997;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -150595,7 +150717,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261102-1537</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261102-1538</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
