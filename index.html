@@ -6527,7 +6527,7 @@ window.cerrarSesionReal = cerrarSesionReal;
            orden de tabulación —no hay un `tabindex` en todo el bloque—, así que ahora se tabula
            morfología → Insuficiencia → Estenosis, que es el orden en que se carga el caso. -->
       <div class="valv-morf-row valv-morf-row--tres">
-        <div class="fg"><label>Morfología VM</label>
+        <div class="fg"><label>Morfología VM <button type="button" class="vinfo-btn vinfo-btn-44" data-vinfo="vm-morf-tipos" aria-expanded="false" aria-label="Qué dice la fuente de la plastia y del TEER mitral, y qué no define" onclick="vInfoClic(this)">&#9432;</button></label>
           <!-- Las dos últimas son ETIOLOGÍAS, no morfologías, y por eso el narrativo NO las mete
                en «de morfología …»: ver `VALV_MORF_ETIOL`. Van al final para no mover el orden
                de las que ya estaban — el valor persistido es el texto de la opción, SALVO las dos
@@ -7698,7 +7698,7 @@ window.cerrarSesionReal = cerrarSesionReal;
            orden de tabulación —no hay un `tabindex` en todo el bloque—, así que ahora se tabula
            morfología → Insuficiencia → Estenosis, que es el orden en que se carga el caso. -->
       <div class="valv-morf-row">
-        <div class="fg"><label>Morfología VA</label>
+        <div class="fg"><label>Morfología VA <button type="button" class="vinfo-btn vinfo-btn-44" data-vinfo="va-morf-tipos" aria-expanded="false" aria-label="Qué dice la fuente de la prótesis transcatéter aórtica, y qué no define" onclick="vInfoClic(this)">&#9432;</button></label>
           <!-- ⚠️ ACÁ Y SÓLO ACÁ la etiqueta lleva «(SAVR)», y es la ÚNICA excepción del archivo a la
                convención que declara el comentario de `vt_morf`: una nota didáctica no va dentro de
                la etiqueta de una opción. Se justifica porque TAVI existe SÓLO en este select, y el
@@ -8234,7 +8234,7 @@ window.cerrarSesionReal = cerrarSesionReal;
            orden de tabulación —no hay un `tabindex` en todo el bloque—, así que ahora se tabula
            morfología → Insuficiencia → Estenosis, que es el orden en que se carga el caso. -->
       <div class="valv-morf-row">
-        <div class="fg"><label>Morfología VT</label>
+        <div class="fg"><label>Morfología VT <button type="button" class="vinfo-btn vinfo-btn-44" data-vinfo="vt-morf-tipos" aria-expanded="false" aria-label="Qué dice la fuente de la plastia y del TEER tricuspídeo, y qué no define" onclick="vInfoClic(this)">&#9432;</button></label>
           <select id="vt_morf" onchange="valvProtSync()"><option>Normal</option><option>Mixomatosa</option><option>Reumática</option><option value="Prótesis biológica">Prótesis biológica</option><option value="Prótesis mecánica">Prótesis mecánica</option><option>Plastia tricuspídea</option><option>TEER tricuspídeo (T-TEER)</option><option>Carcinoide</option><option>Endocarditis</option><option>Funcional / dilatación VD</option></select>
           <!-- ⚠️ ACÁ VIVÍA UNA NOTA DIDÁCTICA Y SE BORRÓ (2026-10-07, orden de Maicol): «Funcional
                / dilatación VD es la causa más frecuente de insuficiencia tricuspídea.» Era un
@@ -45485,6 +45485,38 @@ const TRIV_DTI_FUENTE =
   + 'pequeño con cateterismo: Bréchot N y cols., Eur J Echocardiogr 2008;9:547-554.';
 
 const VINFO = Object.freeze({
+  /* ══ LOS TIPOS DE VALVULA INTERVENIDA — tanda VAL-PPT, commit 2 (2026-11-01) ═══════════
+     Todo PARAFRASEADO en español; ninguna frase se copia del original. Cada afirmación lleva su
+     folio, leído en imagen. Tres reglas de folio, comprobadas en el pie impreso de cada hoja:
+       · ASE 2019 de intervenciones percutáneas (Zoghbi, JASE 2019;32:431-75) — folio = hoja + 430
+       · ASE 2024 de prótesis (Zoghbi, JASE 2024;37:2-63)                    — folio = hoja + 1
+       · ETE para decisiones quirúrgicas (Nicoara, JASE 2020;33:692-734)       — folio = hoja + 691
+       · ESC/EACTS 2025 de valvulopatías (ehaf194)                            — folio = hoja + 4634
+     ⚠️ ESTOS GLOBOS NO AGREGAN NINGUN CORTE A LA APLICACION. Son la parte «y qué NO define» de
+     la lectura: la app gradúa una plastia y un TEER con los criterios de la válvula NATIVA, que
+     es lo que la decisión del médico pide, y lo que estos textos hacen es decir con qué se
+     gradúa y cuáles son los límites que la fuente declara. Sin conducta y sin clase. */
+  'vm-morf-tipos': { tit: 'La plastia y el TEER mitral', ancho: 460, lee:
+      'PLASTIA MITRAL. La insuficiencia residual se evalúa con los mismos principios que una válvula nativa, y una plastia lograda no deja más que una insuficiencia leve.\n'
+    + 'Para la estenosis mitral iatrogénica, el documento de ecocardiografía transesofágica para decisiones quirúrgicas da un gradiente medio por encima de 6 mmHg junto con un área menor de 1,8 cm², y advierte que la fibrilación auricular, la taquicardia y el gasto cardíaco alto o bajo mueven el gradiente.\n'
+    + 'Esta aplicación NO aplica esos dos cortes: son de la evaluación en el quirófano, al salir de circulación extracorpórea, y acá la válvula se gradúa con los criterios de la nativa.\n'
+    + 'La misma fuente declara que hay controversia sobre si el tiempo de hemipresión sirve para calcular el área de una válvula reparada, y que en una sutura borde a borde el gradiente puede medirse por cualquiera de los dos orificios.\n'
+    + 'Folio 702.\n'
+    + '\nTEER MITRAL. La insuficiencia residual se describe en tres grados —leve, moderada y severa— porque tras una intervención la cuantificación arrastra más error.\n'
+    + 'El área del orificio regurgitante por PISA queda descartada como método de cuantificación después de una reparación borde a borde: el dispositivo rompe el supuesto de convergencia hemisférica, suele haber dos o más chorros y haría falta corregir el ángulo.\n'
+    + 'Un gradiente medio de 5 mmHg o más después del procedimiento predice un gradiente elevado al alta; por debajo de 5 mmHg con frecuencia cardíaca normal se considera aceptable. NO es un corte de estenosis, y la fuente no publica ninguno.\n'
+    + 'Folios 450, 451, 452, 458, 459 y 460.' },
+  'vt-morf-tipos': { tit: 'La plastia y el TEER tricuspídeo', ancho: 460, lee:
+      'PLASTIA TRICUSPÍDEA. Se evalúa con los criterios de la válvula nativa. Las fuentes leídas no publican cortes propios para una tricuspidea reparada.\n'
+    + '\nTEER TRICUSPÍDEO (T-TEER). La guía europea de 2025 incluye el tratamiento transcatéter de la válvula tricuspide entre sus recomendaciones, con su clase y su nivel.\n'
+    + 'Esa recomendación NO trae cortes de graduación: no define umbrales de insuficiencia residual ni de estenosis para la válvula tratada, así que la aplicación la describe con los criterios de la nativa.\n'
+    + 'Folio 4687.' },
+  'va-morf-tipos': { tit: 'La prótesis transcatéter aórtica', ancho: 460, lee:
+      'TAVI. Los criterios de deterioro de una prótesis aórtica no son valores absolutos: se definen como el CAMBIO respecto de un estudio de base hecho entre uno y tres meses después del procedimiento —un aumento del gradiente medio con descenso del área efectiva o del índice de velocidad—.\n'
+    + 'Esta aplicación no guarda ese estudio de base, así que publica el valor medido y no el cambio.\n'
+    + 'Folio 20 de la guía de prótesis de 2024.\n'
+    + '\nLa fuga alrededor de la prótesis tiene su propia tabla de graduación, distinta de la de la válvula nativa, en el documento de intervenciones percutáneas.\n'
+    + 'Folio 440.' },
   /* ══ EL UMBRAL QUIRURGICO DE ESTE SINDROME («MARFAN-1», 4b, 2026-11-01) ══════════════════
      Decision del medico: el nombre de la guia, la tabla, el folio y la clase salen del cuadro
      «Conducta aortica» y viven aca. Lo que el cuadro DICE y su contenido clinico no cambian:
@@ -149808,8 +149840,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261101-2327';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793586472460;                 /* eco-build-ms */
+const ECO_BUILD    = '20261101-2346';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793587561676;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -149895,7 +149927,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261101-2327</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261101-2346</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
