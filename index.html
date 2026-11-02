@@ -103810,6 +103810,57 @@ let _igImgGen = 0;                        /* invalida un pintado tardío */
    original, así que un rectángulo en píxeles del visor taparía otra cosa en el archivo. */
 const IG_IMG_PPT_MAX = 24;
 const IG_IMG_PPT_POR = [1, 2, 4];
+/* ══ LA DISPOSICION DE CADA DIAPOSITIVA — VAL-PPT-7b (2026-11-02) ══════════════════
+   Hasta hoy la grilla era FIJA: dos elementos siempre lado a lado y cuatro siempre en 2x2.
+   Con un clip vertical o una captura apaisada eso desperdicia la mitad de la hoja, porque cada
+   elemento conserva su relacion de aspecto dentro de su celda y lo que sobra queda en blanco.
+
+   LA REGLA: entre las disposiciones candidatas se elige la que maximiza el AREA TOTAL OCUPADA
+   por los elementos, sin deformar ninguno. Para una grilla de `cols` x `rows` la celda mide
+   `W/cols` por `HB/rows`, y un elemento de relacion `ar` ocupa dentro de ella el rectangulo mas
+   grande que entra con esa relacion: `min(cw, ch*ar)` por `min(ch, cw/ar)`. Se suman las areas
+   de los elementos del bloque y gana la suma mayor.
+
+   CANDIDATAS: para 2, lado a lado (2x1) o apilado (1x2); para 4, la grilla (2x2), la fila (4x1)
+   o la columna (1x4). Para 1 no hay nada que elegir.
+
+   ⚠️ TOLERANCIA DECLARADA: 1 % del area de la hoja. Dos disposiciones que difieren menos que
+   eso son indistinguibles a ojo, y ante un empate gana la PRIMERA de la lista —la que la app ya
+   usaba—, para no cambiar la salida de los casos que hoy quedan bien. Sin tolerancia, un
+   redondeo de un pixel en la relacion de aspecto daria vuelta la eleccion.
+
+   ⚠️ ES UNA FUNCION PURA: recibe las relaciones de aspecto y devuelve la grilla. Asi la
+   eleccion se puede medir sin generar un PPT, que es lo que permite probarla con casos. */
+const IG_PPT_DISPOS = Object.freeze({
+  1: Object.freeze([Object.freeze([1, 1])]),
+  2: Object.freeze([Object.freeze([2, 1]), Object.freeze([1, 2])]),
+  4: Object.freeze([Object.freeze([2, 2]), Object.freeze([4, 1]), Object.freeze([1, 4])])
+});
+const IG_PPT_DISPOS_TOL = 0.01;   /* 1 % del area de la hoja */
+function igPptDisposicion(ars, W, HB) {
+  const n = (ars || []).length;
+  const cands = IG_PPT_DISPOS[n] || IG_PPT_DISPOS[1];
+  if (!cands || cands.length < 2) return cands ? cands[0] : [1, 1];
+  const area = (cols, rows) => {
+    const cw = W / cols, ch = HB / rows;
+    return ars.reduce(function (acc, ar0) {
+      const ar = (typeof ar0 === 'number' && isFinite(ar0) && ar0 > 0) ? ar0 : (4 / 3);
+      const w = Math.min(cw, ch * ar), h = Math.min(ch, cw / ar);
+      return acc + w * h;
+    }, 0);
+  };
+  const tol = IG_PPT_DISPOS_TOL * W * HB;
+  let mejor = cands[0], mejorA = area(cands[0][0], cands[0][1]);
+  for (let i = 1; i < cands.length; i++) {
+    const a2 = area(cands[i][0], cands[i][1]);
+    if (a2 > mejorA + tol) { mejor = cands[i]; mejorA = a2; }
+  }
+  return mejor;
+}
+window.igPptDisposicion = igPptDisposicion;
+/* La casilla del numero en la esquina. Arranca ENCENDIDA, que es lo que la app ya hacia: el
+   numero es lo unico que lleva de la diapositiva a la imagen del banco. */
+let _igImgNum = true;
 let _igImgPpt = false;                    /* la casilla «Armar PPT» */
 let _igImgPor = 1;                        /* imágenes por diapositiva */
 let _igImgSel = [];                       /* [{uuid, idx, n}] en el ORDEN de elección */
@@ -104206,6 +104257,21 @@ function igImgSidePintar(mostradas, total) {
     fila.appendChild(b);
   });
   cont.appendChild(fila);
+  /* La casilla del NUMERO en la esquina (VAL-PPT-7b). Va junto al reparto porque las dos cosas
+     deciden como se ve la diapositiva, y arranca ENCENDIDA: el numero es lo unico que lleva de
+     la diapositiva a la imagen del banco, asi que apagarlo es una eleccion, no el estado por
+     omision. Por DOM y con addEventListener, que es la regla de esta columna. */
+  const labN = document.createElement('label');
+  labN.style.cssText = 'display:flex;gap:6px;align-items:center;min-height:30px;font-size:11px;';
+  const chkN = document.createElement('input');
+  chkN.type = 'checkbox';
+  chkN.id = 'ig-ppt-num';
+  chkN.checked = _igImgNum;
+  chkN.style.cssText = 'width:auto;margin:0;';
+  chkN.addEventListener('change', () => { _igImgNum = chkN.checked });
+  labN.appendChild(chkN);
+  labN.appendChild(document.createTextNode(' Numerar cada elemento'));
+  cont.appendChild(labN);
   const lst = document.createElement('div');
   cont.appendChild(lst);
   if (!_igImgSel.length) {
@@ -104884,6 +104950,15 @@ function _igPptUsable(sl) {
   return !!(sl && sl.dataURL && (typeof _imgSrcOK !== 'function' || _imgSrcOK(sl.dataURL)));
 }
 
+/* Resume las disposiciones que salieron, para que la linea de resultado lo diga: «2x1» o
+   «2x1 y 1x2». Sin esto el medico no sabe por que una diapositiva quedo apilada. */
+function _igDisposTxt(ds) {
+  const u = [];
+  (ds || []).forEach(d => { if (u.indexOf(d) < 0) u.push(d) });
+  if (!u.length) return '';
+  return u.length === 1 ? 'en ' + u[0]
+       : 'en ' + u.slice(0, -1).join(', ') + ' y ' + u[u.length - 1];
+}
 function igImgPptExportar() {
   if (_igImgExportando) return;
   if (!_igImgSel.length) { igImgRes('Elegí al menos una imagen.'); return; }
@@ -104968,7 +105043,23 @@ function igImgPptExportar() {
       });
     }).then(a => leer(i + 1, a));
   };
-  leer(0, []).then(lista => {
+  /* La RELACION DE ASPECTO de cada elemento, que `igPptDisposicion` necesita (VAL-PPT-7b).
+     El video ya la trae en `w`/`h`, YA ROTADOS; la imagen se mide decodificando su dataURL, que
+     es la unica forma de saber si es apaisada o vertical. Si no se puede medir, queda `null` y
+     la regla cae a 4/3, que es el valor por omision que ya usaba el marco del video. */
+  const aspectoDe = (x) => new Promise(res => {
+    if (x.vid && x.vid.w > 0 && x.vid.h > 0) { res(x.vid.w / x.vid.h); return }
+    if (!x.dataURL) { res(null); return }
+    try {
+      const im = new Image();
+      im.onload = () => res((im.naturalWidth > 0 && im.naturalHeight > 0)
+        ? im.naturalWidth / im.naturalHeight : null);
+      im.onerror = () => res(null);
+      im.src = x.dataURL;
+    } catch (e) { res(null) }
+  });
+  leer(0, []).then(lista => Promise.all(lista.map(x => aspectoDe(x).then(a2 => { x.ar = a2; return x })))
+      .then(l2 => l2)).then(lista => {
     const buenas = lista.filter(x => x.dataURL);
     const perdidas = lista.length - buenas.length;
     if (!buenas.length) {
@@ -105009,11 +105100,15 @@ function igImgPptExportar() {
     const P = new PptxGenJS();
     P.layout = 'LAYOUT_16x9';
     const W = 10, H = 5.63, HB = H - 0.62;
-    const grilla = n => n <= 1 ? [1, 1] : n === 2 ? [2, 1] : [2, 2];
+    /* ⚠️ LA GRILLA YA NO ES FIJA (VAL-PPT-7b): se elige POR BLOQUE con `igPptDisposicion`,
+       que maximiza el area ocupada sin deformar nada. Dos clips verticales van APILADOS y dos
+       capturas apaisadas, lado a lado; antes las dos parejas iban lado a lado. */
     const hojas = Math.ceil(buenas.length / por);
+    const dispos = [];
     for (let i = 0; i < buenas.length; i += por) {
       const bloque = buenas.slice(i, i + por);
-      const [cols, rows] = grilla(por);
+      const [cols, rows] = igPptDisposicion(bloque.map(x => x.ar), W, HB);
+      dispos.push(cols + 'x' + rows);
       const cw = W / cols, ch = HB / rows;
       const s = P.addSlide();
       s.background = { color: C.bg };
@@ -105043,7 +105138,11 @@ function igImgPptExportar() {
                          sizing: { type: 'contain', w: cw, h: ch } });
           }
         } catch (e) { console.warn('[PPT imágenes] omitida', e); }
-        /* EL NÚMERO, Y NADA MÁS. Es el único texto que identifica la imagen. */
+        /* EL NÚMERO, Y NADA MÁS. Es el único texto que identifica la imagen.
+           ⚠️ OPCIONAL DESDE VAL-PPT-7b, con su casilla: arranca ENCENDIDA, que es lo que la app
+           ya hacia. Apagandolo la diapositiva queda sin una sola palabra, que es lo que pide
+           quien la proyecta en un ateneo. */
+        if (!_igImgNum) return;
         s.addText(_pptTxt(String(x.it.n)),
           { x: cx * cw + 0.08, y: cy * ch + 0.08, w: 0.6, h: 0.26, fontSize: 12,
             color: C.txt, fill: { color: C.bg }, fontFace: PPT_FONT, align: 'left' });
@@ -105063,8 +105162,10 @@ function igImgPptExportar() {
       const vidOK = buenas.filter(x => x.vid).length;
       const vidCuadro = buenas.filter(x => x.video && !x.vid);
       igImgRes('PPT generado: ' + hojas + ' diapositiva' + (hojas === 1 ? '' : 's') + ' (' + por +
-               ' por diapositiva), ' + buenas.length + ' ' +
-               (buenas.length === 1 ? 'imagen numerada' : 'imágenes numeradas') + ', ' +
+               ' por diapositiva' + (por > 1 ? ', ' + _igDisposTxt(dispos) : '') + '), '
+               + buenas.length + ' ' +
+               (buenas.length === 1 ? (_igImgNum ? 'imagen numerada' : 'imagen')
+                                    : (_igImgNum ? 'imágenes numeradas' : 'imágenes')) + ', ' +
                tapadas + ' con datos tapados y sin el nombre de ningún paciente.' +
                /* QUE SE DIGA QUE EL VIDEO ENTRA, Y SI SE REPITE. Una diapositiva con el primer
                   cuadro de un clip es indistinguible de una captura, así que el médico que
@@ -150027,8 +150128,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261102-0032';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793590357742;                 /* eco-build-ms */
+const ECO_BUILD    = '20261102-0038';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793590700131;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -150114,7 +150215,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261102-0032</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261102-0038</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
