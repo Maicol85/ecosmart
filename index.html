@@ -1888,6 +1888,7 @@
   #tga-campos { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px;
                 align-items:start; }
   #tga-campos.tga-sint-ancho > #tga-sintomas-fg { grid-column:1 / -1; }
+  #tga-campos > #tga-concl-box { grid-column:1 / -1; margin-top:2px; }
   #tga-fila > #tga-3d-box { margin-top:12px; }
   @media (min-width: 900px) {
     #tga-fila { display:flex; gap:14px; align-items:flex-start; }
@@ -18927,6 +18928,9 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
             <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
           </select>
         </div>
+        <div class="calc-box" id="tga-concl-box">
+          <div class="calc-row"><span class="calc-lbl">Conclusión</span><span id="tga-concl" class="calc-val">—</span></div>
+        </div>
       </div><!-- /#tga-campos -->
       <!-- ══ EL DIAGRAMA 3D DE LA TRANSPOSICION (TGA-2) ══════════════════════════════════════
            Portado de `docs/3d/demo_tga_3d_esquema_aprobado.html` SIN reinterpretar su geometria:
@@ -19005,9 +19009,6 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
       </div><!-- /#tga-fila -->
       <!-- «Conclusion» e «Integrar al informe» van DEBAJO DE TODO y a ancho completo, fuera de
            `#tga-fila`: son el veredicto de la seccion entera, no de una de las dos columnas. -->
-      <div class="calc-box" style="margin-top:12px;">
-        <div class="calc-row"><span class="calc-lbl">Conclusión</span><span id="tga-concl" class="calc-val">—</span></div>
-      </div>
       <div style="text-align:center;margin-top:10px;">
         <input type="checkbox" id="tga_incluir_chk" style="display:none;" tabindex="-1" aria-hidden="true">
         <button type="button" class="btn btn-integrar" data-ete-chk="tga_incluir_chk" aria-pressed="false"
@@ -149282,8 +149283,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261101-2008';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793574521952;                 /* eco-build-ms */
+const ECO_BUILD    = '20261101-2137';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793579839192;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -149369,7 +149370,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261101-2008</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261101-2137</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
