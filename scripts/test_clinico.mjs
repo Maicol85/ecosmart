@@ -106979,6 +106979,389 @@ caso('TC-604', 'Tanda TGA-3: el esquema lleva su leyenda visible, su globo estan
   })();
 `);
 
+/* ══════════════════════════════════════════════════════════════════════════════════════════════
+   TANDA VAL-PPT (2026-11-02) — TC-605 a TC-608
+
+   Cuatro casos: las opciones nuevas y sus tres listas paralelas (commits 1 y 2), el papel que
+   las describe y el EN SUMA que deja de negarlas (commit 3), los simbolos del dibujo y las
+   etiquetas del TEER fuera del papel (commits 4 y 5a), y el PPT con su regla de disposicion
+   mas el rotulo de MCH (commits 6b y 7).
+
+   ⚠️ TOLERANTES AL ARBOL VIEJO: contra HEAD varias de estas funciones y options NO EXISTEN, y
+   llamarlas pelado mata el caso con un TypeError —cae por EXCEPCION y no por condicion, que es
+   lo que la orden prohibe y lo que TC-546 pago en la tanda TEP—.
+   ⚠️ LA SUITE CORRE CHROME SIN --window-size, o sea a ~756 px: la geometria la miden las sondas
+   dedicadas en los cuatro anchos y los dos motores, no estos casos.
+   ══════════════════════════════════════════════════════════════════════════════════════════ */
+caso('TC-605', 'Tanda VAL-PPT: las cuatro opciones nuevas existen en sus dos selects, entran en las TRES listas paralelas, caen al ramal NATIVO de graduacion y el selector del posoperatorio las ofrece por valvula sin tocar a la pulmonar', `
+  return (async () => {
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]),
+                 'dio «' + t[1] + '» · esperado «' + t[2] + '»']) };
+  const esperar = (ms) => new Promise(r => setTimeout(r, ms));
+  const EL = (id) => document.getElementById(id);
+  const pon = (id, v) => { const e = EL(id); if (!e) return 'NO ' + id;
+    e.value = v; e.dispatchEvent(new Event('input', { bubbles: true }));
+    e.dispatchEvent(new Event('change', { bubbles: true })); return e.value; };
+  const ops = (id) => { const e = EL(id); return e ? Array.prototype.map.call(e.options,
+    function (o) { return o.value || o.text }) : [] };
+  try { if (typeof limpiarCampos === 'function') limpiarCampos(true); } catch (e) {}
+
+  /* ── DENOMINADOR ─────────────────────────────────────────────────────────────────────────── */
+  ex.push(['(A0) denominador: existen los cuatro selects de morfologia',
+    ['va_morf','vm_morf','vt_morf','vp_morf'].filter(function (i) { return !!EL(i) }).length, 4]);
+
+  /* ── A · LAS OPTIONS NUEVAS, Y NINGUNA DE MAS ────────────────────────────────────────────── */
+  const oM = ops('vm_morf'), oT = ops('vt_morf'), oA = ops('va_morf'), oP = ops('vp_morf');
+  ex.push(['(A1) la mitral ofrece «Plastia mitral»', oM.indexOf('Plastia mitral') >= 0, true]);
+  ex.push(['(A2) la mitral ofrece «TEER mitral»', oM.indexOf('TEER mitral') >= 0, true]);
+  ex.push(['(A3) la tricuspide ofrece «Plastia tricuspidea»',
+    oT.indexOf('Plastia tricusp\u00eddea') >= 0, true]);
+  ex.push(['(A4) la tricuspide ofrece «TEER tricuspideo (T-TEER)»',
+    oT.indexOf('TEER tricusp\u00eddeo (T-TEER)') >= 0, true]);
+  /* CONTROL NEGATIVO: la aortica NO lleva plastia -decision del medico- y la pulmonar no cambia. */
+  ex.push(['(A5) CONTROL: la aortica NO ofrece plastia',
+    oA.filter(function (x) { return /^Plastia/.test(x) }).length, 0]);
+  ex.push(['(A6) CONTROL: la pulmonar sigue con sus siete opciones', oP.length, 7]);
+  ex.push(['(A7) CONTROL: la aortica conserva TAVI', oA.indexOf('TAVI') >= 0, true]);
+
+  /* ── B · LAS TRES LISTAS PARALELAS ───────────────────────────────────────────────────────── */
+  /* 1. la del IMPORTADOR: un valor que no este deja que la reimportacion descarte la FILA
+     ENTERA del paciente, no la celda. */
+  const lst = (typeof LAB_XLS_LISTAS === 'object' && LAB_XLS_LISTAS) ? LAB_XLS_LISTAS : null;
+  ex.push(['(B0) denominador: LAB_XLS_LISTAS es visible', !!lst, true]);
+  ex.push(['(B1) el importador acepta «Plastia mitral»',
+    !!(lst && lst.vm_morf && lst.vm_morf.indexOf('Plastia mitral') >= 0), true]);
+  ex.push(['(B2) el importador acepta «TEER mitral»',
+    !!(lst && lst.vm_morf && lst.vm_morf.indexOf('TEER mitral') >= 0), true]);
+  ex.push(['(B3) el importador acepta la plastia tricuspidea',
+    !!(lst && lst.vt_morf && lst.vt_morf.indexOf('Plastia tricusp\u00eddea') >= 0), true]);
+  ex.push(['(B4) el importador acepta el T-TEER',
+    !!(lst && lst.vt_morf && lst.vt_morf.indexOf('TEER tricusp\u00eddeo (T-TEER)') >= 0), true]);
+  /* 2. la de REDACCION: sin entrada, el fallback pasa la opcion a MINUSCULAS y destruye el
+     acronimo —«de morfologia teer tricuspideo (t-teer)» en el informe FIRMADO—. */
+  const fr = (typeof VALV_MORF_FRASE === 'object' && VALV_MORF_FRASE) ? VALV_MORF_FRASE : null;
+  ex.push(['(B5) la redaccion tiene las cuatro claves nuevas',
+    !!(fr && fr['Plastia mitral'] && fr['TEER mitral'] && fr['Plastia tricusp\u00eddea']
+       && fr['TEER tricusp\u00eddeo (T-TEER)']), true]);
+  ex.push(['(B6) el acronimo NO se destruye en el TEER mitral',
+    (typeof valvMorfDe === 'function') ? /TEER/.test(valvMorfDe('TEER mitral')) : 'sin fn', true]);
+  ex.push(['(B7) el acronimo NO se destruye en el T-TEER',
+    (typeof valvMorfDe === 'function') ? /T-TEER/.test(valvMorfDe('TEER tricusp\u00eddeo (T-TEER)')) : 'sin fn', true]);
+
+  /* ── C · EL RAMAL DE GRADUACION: los nuevos son NATIVOS ──────────────────────────────────── */
+  ex.push(['(C1) la plastia NO es protesis',
+    (typeof valvEsProtesis === 'function') ? valvEsProtesis('Plastia mitral') : 'sin fn', false]);
+  ex.push(['(C2) el TEER NO es protesis',
+    (typeof valvEsProtesis === 'function') ? valvEsProtesis('TEER mitral') : 'sin fn', false]);
+  /* CONTROL NEGATIVO: una protesis SI lo es, o el predicado estaria diciendo que no a todo. */
+  ex.push(['(C3) CONTROL: la protesis mecanica SI es protesis',
+    (typeof valvEsProtesis === 'function') ? valvEsProtesis('Pr\u00f3tesis mec\u00e1nica') : 'sin fn', true]);
+  pon('em_gmedio', '7'); pon('avm_plan', '1.5');
+  const pill = EL('pill-esten-mitral'); if (pill && !pill.classList.contains('btn-primary')) pill.click();
+  pon('vm_morf', 'Mixomatosa / Barlow'); await esperar(300);
+  const capNat = String((EL('em-sev-integrada') || {}).textContent || '');
+  pon('vm_morf', 'TEER mitral'); await esperar(300);
+  const capTeer = String((EL('em-sev-integrada') || {}).textContent || '');
+  pon('vm_morf', 'Pr\u00f3tesis mec\u00e1nica'); await esperar(300);
+  const capProt = String((EL('em-sev-integrada') || {}).textContent || '');
+  ex.push(['(C4) denominador: la capsula de EM dice algo con morfologia nativa',
+    capNat.length > 10, true]);
+  ex.push(['(C5) el TEER gradua IGUAL que la nativa', capTeer, capNat]);
+  ex.push(['(C6) CONTROL: la protesis NO gradua con cortes nativos',
+    capProt !== capNat && /No graduada/i.test(capProt), true]);
+
+  /* ── D · EL SELECTOR DEL POSOPERATORIO, por construccion y no por una lista ──────────────── */
+  try { if (typeof popCxVSync === 'function') popCxVSync(); } catch (e) {}
+  const sAo = ops('pop-esp-vao'), sMi = ops('pop-esp-vmi'),
+        sTr = ops('pop-esp-vtr'), sPu = ops('pop-esp-vpu');
+  ex.push(['(D0) denominador: existen los cuatro selectores del posoperatorio',
+    [sAo, sMi, sTr, sPu].filter(function (x) { return x.length > 0 }).length, 4]);
+  ex.push(['(D1) la aortica del posoperatorio ofrece TAVI', sAo.indexOf('TAVI') >= 0, true]);
+  ex.push(['(D2) la mitral ofrece plastia y TEER',
+    sMi.indexOf('Plastia mitral') >= 0 && sMi.indexOf('TEER mitral') >= 0, true]);
+  ex.push(['(D3) la tricuspide ofrece plastia y T-TEER',
+    sTr.indexOf('Plastia tricusp\u00eddea') >= 0 && sTr.indexOf('TEER tricusp\u00eddeo (T-TEER)') >= 0, true]);
+  /* CONTROL NEGATIVO: la pulmonar sigue con «elegir tipo» y sus dos protesis, y NINGUNA de las
+     cuatro ofrece una morfologia NATIVA, que es lo que POP-B-2 vino a cerrar. */
+  ex.push(['(D4) CONTROL: la pulmonar ofrece solo el vacio y las dos protesis', sPu.length, 3]);
+  const nativas = sAo.concat(sMi, sTr, sPu).filter(function (x) {
+    return /Mixomatosa|Reum\u00e1tica|Trivalva|Calcificada|Normal|Prolapso|Endocarditis/.test(x) });
+  ex.push(['(D5) CONTROL: ningun selector ofrece una morfologia nativa', nativas.length, 0]);
+  return { extra: EXP };
+  })();
+`);
+
+caso('TC-606', 'Tanda VAL-PPT: el papel describe la plastia y el TEER con sus palabras, el EN SUMA deja de negar una mitral intervenida que es el unico hallazgo, y ningun valor viejo cambia', `
+  return (async () => {
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]),
+                 'dio «' + t[1] + '» · esperado «' + t[2] + '»']) };
+  const esperar = (ms) => new Promise(r => setTimeout(r, ms));
+  const EL = (id) => document.getElementById(id);
+  const pon = (id, v) => { const e = EL(id); if (!e) return 'NO ' + id;
+    e.value = v; e.dispatchEvent(new Event('input', { bubbles: true }));
+    e.dispatchEvent(new Event('change', { bubbles: true })); return e.value; };
+  const papel = async () => { try { if (typeof setEstiloInforme === 'function') setEstiloInforme('estandar') } catch (e) {}
+    try { if (typeof generarInforme === 'function') generarInforme() } catch (e) {}
+    await esperar(150);
+    return { inf: String((EL('informe_texto') || {}).value || ''),
+             suma: String((EL('en_suma') || {}).value || '') } };
+
+  /* ── A · EL CUERPO describe el tipo ──────────────────────────────────────────────────────── */
+  try { if (typeof limpiarCampos === 'function') limpiarCampos(true); } catch (e) {}
+  pon('nombre', 'TC606'); pon('ci', '606');
+  pon('vm_morf', 'Plastia mitral'); await esperar(380);
+  let r = await papel();
+  ex.push(['(A0) denominador: el informe se emitio', r.inf.length > 100, true]);
+  ex.push(['(A1) el cuerpo dice «con plastia mitral»', /con plastia mitral/.test(r.inf), true]);
+  ex.push(['(A2) el cuerpo NO la llama protesis',
+    /plastia mitral/.test(r.inf) && /pr\u00f3tesis[^.]{0,40}plastia|plastia[^.]{0,40}pr\u00f3tesis/i.test(r.inf), false]);
+  /* El EN SUMA deja de negar: era «Estudio sin alteraciones estructurales ni funcionales
+     significativas» sobre un cuerpo que describia la plastia. */
+  ex.push(['(A3) el EN SUMA NO niega la plastia',
+    /sin alteraciones estructurales/i.test(r.suma), false]);
+  ex.push(['(A4) el EN SUMA nombra la plastia', /plastia mitral/i.test(r.suma), true]);
+
+  /* ── B · EL TEER, con su acronimo entero ─────────────────────────────────────────────────── */
+  try { if (typeof limpiarCampos === 'function') limpiarCampos(true); } catch (e) {}
+  pon('nombre', 'TC606'); pon('ci', '606');
+  pon('vm_morf', 'TEER mitral'); await esperar(380);
+  r = await papel();
+  ex.push(['(B1) el cuerpo expande el TEER y conserva su sigla',
+    r.inf.indexOf('borde a borde (TEER)') >= 0, true]);
+  ex.push(['(B2) el acronimo NO sale en minusculas', /teer mitral/.test(r.inf), false]);
+  ex.push(['(B3) el EN SUMA NO niega el TEER', /sin alteraciones estructurales/i.test(r.suma), false]);
+
+  /* ── C · LA TRICUSPIDE, que ya subia por su propia rama ──────────────────────────────────── */
+  try { if (typeof limpiarCampos === 'function') limpiarCampos(true); } catch (e) {}
+  pon('nombre', 'TC606'); pon('ci', '606');
+  pon('vt_morf', 'Plastia tricusp\u00eddea'); await esperar(380);
+  r = await papel();
+  ex.push(['(C1) el cuerpo dice «con plastia tricuspidea»', /con plastia tricusp\u00eddea/.test(r.inf), true]);
+  ex.push(['(C2) el EN SUMA la nombra', /plastia tricusp\u00eddea/i.test(r.suma), true]);
+
+  /* ── D · CONTROLES NEGATIVOS: lo viejo no se movio ───────────────────────────────────────── */
+  try { if (typeof limpiarCampos === 'function') limpiarCampos(true); } catch (e) {}
+  pon('nombre', 'TC606'); pon('ci', '606'); await esperar(380);
+  r = await papel();
+  ex.push(['(D1) CONTROL: el estudio vacio sigue diciendo «sin alteraciones»',
+    /sin alteraciones estructurales/i.test(r.suma), true]);
+  try { if (typeof limpiarCampos === 'function') limpiarCampos(true); } catch (e) {}
+  pon('nombre', 'TC606'); pon('ci', '606');
+  pon('vm_morf', 'Pr\u00f3tesis mec\u00e1nica'); await esperar(380);
+  r = await papel();
+  ex.push(['(D2) CONTROL: la protesis mecanica sigue subiendo con SU redaccion',
+    /pr\u00f3tesis mec\u00e1nica/i.test(r.suma), true]);
+  ex.push(['(D3) CONTROL: la protesis NO dice plastia ni TEER',
+    /plastia|borde a borde/i.test(r.suma), false]);
+  /* (D4) NACIO DE LA MUTACION 08, que sobrevivio: la guarda que saca a las protesis de la
+     pasada nueva es redundante con reusar, que no empuja una linea que ya esta. Lo que hay
+     que medir es el EFECTO: con una protesis, su linea sale UNA sola vez. */
+  const vecesProt = r.suma.split('pr\u00f3tesis mec\u00e1nica').length - 1;
+  ex.push(['(D4) CONTROL: la linea de la protesis sale UNA sola vez', vecesProt, 1]);
+
+  /* ── E · LA PLASTIA CON UNA LESION YA RESUMIDA ───────────────────────────────────────────
+     NACIO DE LA MUTACION 09, que sobrevivio: la escena de arriba no tiene lesiones, asi que
+     reusar no podia duplicar nada -la linea del cuerpo no estaba en el resumen-. Con una
+     estenosis cargada el resumen YA dice «EM significativa» y la linea del cuerpo es OTRA, asi
+     que sin la guarda de yaEnSuma el resumen saldria con dos renglones de la misma valvula. */
+  try { if (typeof limpiarCampos === 'function') limpiarCampos(true); } catch (e) {}
+  pon('nombre', 'TC606'); pon('ci', '606');
+  pon('em_gmedio', '7'); pon('avm_plan', '1.5');
+  const pillE = EL('pill-esten-mitral');
+  if (pillE && !pillE.classList.contains('btn-primary')) pillE.click();
+  pon('vm_morf', 'Plastia mitral'); await esperar(420);
+  r = await papel();
+  ex.push(['(E0) denominador: el resumen ya habla de la mitral por su estenosis',
+    /EM |Estenosis mitral/i.test(r.suma), true]);
+  const vecesVM = r.suma.split('V\u00e1lvula mitral').length - 1;
+  /* ⚠️ «<= 1» NO PODIA FALLAR, y lo destapo la mutacion 09: sin la guarda el resumen gana la
+     linea LARGA del cuerpo -«Valvula mitral con plastia mitral, con estenosis...»- ADEMAS de
+     la sigla «EM significativa» que ya tenia, o sea UNA aparicion contra CERO. Con «<= 1» las
+     dos pasaban. Lo que la guarda garantiza es que el resumen NO repita la valvula: cero. */
+  ex.push(['(E1) la mitral NO suma la linea larga del cuerpo al resumen', vecesVM, 0]);
+  ex.push(['(E2) el cuerpo sigue describiendo la plastia', /con plastia mitral/.test(r.inf), true]);
+
+  /* ── F · LA PROTESIS CON UNA LESION, QUE ES DONDE LA PASADA NUEVA PODRIA DUPLICAR ────────
+     NACIO DE LA MUTACION 08, que sobrevivio DOS veces. La primera version la mataba con una
+     protesis SIN lesiones, y ahi no hay duplicado posible: el bucle de arriba ya empujo la
+     linea del cuerpo y reusar no vuelve a empujar una linea que ya esta.
+     Con una INSUFICIENCIA cargada el resumen dice «IM leve» -una sigla, no la linea larga-,
+     asi que si la pasada nueva dejara de filtrar por tipo, reusar SI empujaria ademas la
+     oracion entera del cuerpo y la mitral saldria con dos renglones. */
+  try { if (typeof limpiarCampos === 'function') limpiarCampos(true); } catch (e) {}
+  pon('nombre', 'TC606'); pon('ci', '606');
+  pon('im_vc', '0.6');
+  const pillI = EL('pill-insuf-mitral');
+  if (pillI && !pillI.classList.contains('btn-primary')) pillI.click();
+  pon('vm_morf', 'Pr\u00f3tesis mec\u00e1nica'); await esperar(420);
+  r = await papel();
+  ex.push(['(F0) denominador: el resumen ya habla de la mitral por su insuficiencia',
+    /IM |Insuficiencia mitral/i.test(r.suma), true]);
+  ex.push(['(F1) CONTROL: con protesis y lesion, el resumen NO suma la linea larga del cuerpo',
+    r.suma.split('V\u00e1lvula mitral').length - 1, 0]);
+  return { extra: EXP };
+  })();
+`);
+
+caso('TC-607', 'Tanda VAL-PPT: el dibujo del posoperatorio prende las piezas de cada tipo nuevo y apaga las de los demas, y las tres etiquetas del TEER salen del papel sin salir de la pantalla', `
+  return (async () => {
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]),
+                 'dio «' + t[1] + '» · esperado «' + t[2] + '»']) };
+  const esperar = (ms) => new Promise(r => setTimeout(r, ms));
+  const EL = (id) => document.getElementById(id);
+  const pon = (id, v) => { const e = EL(id); if (!e) return 'NO ' + id;
+    e.value = v; e.dispatchEvent(new Event('input', { bubbles: true }));
+    e.dispatchEvent(new Event('change', { bubbles: true })); return e.value; };
+  const mar = (id) => { const c = EL(id); if (!c) return 'NO ' + id;
+    c.checked = true; c.dispatchEvent(new Event('change', { bubbles: true })); return true };
+  try { if (typeof limpiarCampos === 'function') limpiarCampos(true); } catch (e) {}
+
+  /* ── A · EL TIPO CORTO, que es el dueño unico del simbolo ────────────────────────────────── */
+  const tc = (v) => (typeof popVTipoCorto === 'function') ? popVTipoCorto(v) : 'sin fn';
+  ex.push(['(A1) la plastia mitral da el tipo plastia', tc('Plastia mitral'), 'plastia']);
+  ex.push(['(A2) el TEER da el tipo teer', tc('TEER mitral'), 'teer']);
+  ex.push(['(A3) el T-TEER tambien', tc('TEER tricusp\u00eddeo (T-TEER)'), 'teer']);
+  ex.push(['(A4) TAVI da el tipo tavi', tc('TAVI'), 'tavi']);
+  ex.push(['(A5) CONTROL: la mecanica sigue dando mec', tc('Pr\u00f3tesis mec\u00e1nica'), 'mec']);
+  ex.push(['(A6) CONTROL: la biologica sigue dando bio', tc('Pr\u00f3tesis biol\u00f3gica'), 'bio']);
+  /* CONTROL NEGATIVO: una morfologia NATIVA no tiene simbolo, y el dibujo pone su aro neutro.
+     Sin esto, un predicado que devolviera siempre algo pasaria igual. */
+  ex.push(['(A7) CONTROL: una nativa NO tiene tipo corto', tc('Mixomatosa / Barlow'), '']);
+  ex.push(['(A8) CONTROL: el vacio tampoco', tc(''), '']);
+
+  /* ── B · LAS PIEZAS DEL DIBUJO, leidas del DOM real ──────────────────────────────────────── */
+  pon('nombre', 'TC607'); pon('ci', '607'); pon('peso', '70'); pon('talla', '170');
+  pon('hemo_fc', '80');
+  mar('pop_cx_valv'); mar('pop_cx_v_mi');
+  pon('vm_morf', 'TEER mitral'); await esperar(500);
+  const G = document.querySelector('[data-pop-esq="valv-mi"]');
+  ex.push(['(B0) denominador: existe el grupo de la valvula mitral del dibujo', !!G, true]);
+  const vis = (n) => !!(n && n.getAttribute('display') !== 'none');
+  const pieza = (sel, re) => { if (!G) return null;
+    const ns = Array.prototype.filter.call(G.querySelectorAll(sel),
+      function (x) { return !re || re.test(x.getAttribute('d') || '') });
+    return ns.length ? ns[0] : null };
+  ex.push(['(B1) el TEER prende su clip', vis(G && G.querySelector('rect[width="3.2"]')), true]);
+  ex.push(['(B2) el TEER prende DOS orificios',
+    G ? Array.prototype.filter.call(G.querySelectorAll('ellipse'), vis).length : 0, 2]);
+  ex.push(['(B3) el TEER NO prende el stent de la TAVI',
+    vis(G && G.querySelector('rect[width="18"]')), false]);
+  ex.push(['(B4) el TEER NO prende el aro de la plastia',
+    vis(pieza('path', /^M-10 0A10/)), false]);
+  pon('vm_morf', 'Plastia mitral'); await esperar(400);
+  ex.push(['(B5) la plastia prende su semicirculo', vis(pieza('path', /^M-10 0A10/)), true]);
+  /* (B5b) NACIO DE LA MUTACION 12, que sobrevivio: (B5) mira que el ARO este prendido, y
+     dibujar ADEMAS el circulo entero lo deja prendido igual. Lo que distingue una plastia de
+     una protesis es que el circulo este APAGADO. */
+  ex.push(['(B5b) la plastia APAGA el circulo entero',
+    vis(G && G.querySelector('circle[r="10"]')), false]);
+  ex.push(['(B6) la plastia NO prende clip ni orificios',
+    vis(G && G.querySelector('rect[width="3.2"]')) ||
+    (G ? Array.prototype.filter.call(G.querySelectorAll('ellipse'), vis).length : 0) > 0, false]);
+  /* CONTROL NEGATIVO: sin tipo, el aro punteado neutro y SIN velos. */
+  pon('vm_morf', 'Normal'); await esperar(400);
+  const cir = G && G.querySelector('circle[r="10"]');
+  ex.push(['(B7) CONTROL: sin tipo el circulo queda punteado',
+    cir ? (cir.getAttribute('stroke-dasharray') || '') : 'NO', '3 3']);
+  ex.push(['(B8) CONTROL: sin tipo no se prende el aro de la plastia',
+    vis(pieza('path', /^M-10 0A10/)), false]);
+
+  /* ── C · LAS TRES ETIQUETAS DEL TEER, fuera del papel y dentro de la pantalla ────────────── */
+  try { if (typeof limpiarCampos === 'function') limpiarCampos(true); } catch (e) {}
+  pon('nombre', 'TC607'); pon('ci', '607'); pon('peso', '78'); pon('talla', '174');
+  pon('teer_lva', '18'); pon('teer_area_mitral', '3.5'); pon('teer_pasp', '78');
+  pon('teer_ancho_flail', '16'); pon('teer_prof_flail', '12'); pon('teer_flail_gap', '11');
+  pon('teer_tipo_im', 'primaria'); pon('teer_trombo', 'no');
+  try { if (typeof calcTEER === 'function') calcTEER(); } catch (e) {}
+  await esperar(400);
+  const MARC = ['NO apto', 'Heart Team', 'anatom\u00eda compleja'];
+  const cnt = (t) => MARC.reduce(function (a, m) { return a + (String(t).split(m).length - 1) }, 0);
+  /* DENOMINADOR: la PANTALLA tiene que traerlas, o el cero del papel no prueba nada. */
+  const pant = ['teer-c1','teer-c3','teer-c5','teer-c6','teer-c11']
+    .map(function (i) { return String((EL(i) || {}).textContent || '') }).join(' | ');
+  ex.push(['(C0) denominador: la PANTALLA trae las etiquetas', cnt(pant) >= 3, true]);
+  /* Y el texto que viaja al papel NO. */
+  const txt = (typeof amiloTextoTEER === 'function') ? amiloTextoTEER() : '';
+  ex.push(['(C1) denominador: el bloque del papel tiene texto', txt.length > 200, true]);
+  ex.push(['(C2) el papel NO trae ninguna de las tres etiquetas', cnt(txt), 0]);
+  /* Y la MEDICION se conserva: ningun numero desaparece. */
+  ex.push(['(C3) el papel conserva la medicion del velo', /18mm <20mm/.test(txt), true]);
+  ex.push(['(C4) el papel conserva la del area', /3.5cm2 <4cm2/.test(txt), true]);
+  ex.push(['(C5) el papel conserva el conteo de criterios',
+    txt.indexOf('criterio(s) no cumplido(s)') >= 0, true]);
+  /* CONTROL NEGATIVO: el titulo y la nota de la PANTALLA siguen enteros. */
+  const st = (typeof teerEstado === 'function') ? teerEstado() : null;
+  ex.push(['(C6) CONTROL: la pantalla conserva su titulo de aptitud',
+    !!(st && /apto/i.test(String(st.titulo))), true]);
+  return { extra: EXP };
+  })();
+`);
+
+caso('TC-608', 'Tanda VAL-PPT: la regla de disposicion del PPT elige la de mayor area sin deformar, el numero es opcional y el rotulo de la miocardiopatia hipertrofica dice 2024', `
+  return (async () => {
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]),
+                 'dio «' + t[1] + '» · esperado «' + t[2] + '»']) };
+  const EL = (id) => document.getElementById(id);
+  const W = 10, HB = 5.63 - 0.62;
+  const D = (ars) => (typeof igPptDisposicion === 'function')
+    ? igPptDisposicion(ars, W, HB).join('x') : 'sin fn';
+  const AP = 16/9, VE = 9/16, EC = 4/3;
+
+  /* ── A · LA REGLA ────────────────────────────────────────────────────────────────────────── */
+  ex.push(['(A0) denominador: la funcion existe', typeof igPptDisposicion, 'function']);
+  ex.push(['(A1) CONTROL: dos apaisadas siguen lado a lado', D([AP, AP]), '2x1']);
+  ex.push(['(A2) CONTROL: cuatro de eco 4:3 siguen en grilla', D([EC, EC, EC, EC]), '2x2']);
+  /* LA DIFERENCIA: cuatro verticales pasan de 2x2 a 4x1 —de 14,1 a 44,4 pulgadas cuadradas—. */
+  ex.push(['(A3) cuatro verticales van en UNA FILA', D([VE, VE, VE, VE]), '4x1']);
+  ex.push(['(A4) uno solo no tiene nada que elegir', D([AP]), '1x1']);
+  ex.push(['(A5) sin relacion de aspecto cae a 4:3 y no revienta', D([null, null]), '2x1']);
+  /* CONTROL DE QUE DISTINGUE: en una hoja VERTICAL la misma funcion tiene que elegir apilado.
+     Sin esto, «2x1 siempre» no distingue una regla que funciona de una que devuelve lo mismo. */
+  const DV = (ars) => (typeof igPptDisposicion === 'function')
+    ? igPptDisposicion(ars, HB, W).join('x') : 'sin fn';
+  ex.push(['(A6) CONTROL: en hoja vertical elige apilado', DV([AP, AP]), '1x2']);
+  /* La tolerancia esta declarada y es la que decide los empates. */
+  ex.push(['(A7) la tolerancia esta expuesta',
+    (typeof IG_PPT_DISPOS_TOL !== 'undefined') ? IG_PPT_DISPOS_TOL : 'no', 0.01]);
+
+  /* ── B · LA CASILLA DEL NUMERO ───────────────────────────────────────────────────────────── */
+  /* La columna sale temprano con «Armar PPT» apagado: hay que encenderla primero, y el pintor
+     es quien crea las dos casillas. */
+  try { if (typeof igImgSidePintar === 'function') igImgSidePintar(0, 0); } catch (e) {}
+  const c0 = EL('ig-ppt-on');
+  ex.push(['(B0) denominador: existe la casilla «Armar PPT»', !!c0, true]);
+  if (c0 && !c0.checked) { c0.checked = true; c0.dispatchEvent(new Event('change', { bubbles: true })) }
+  try { if (typeof igImgSidePintar === 'function') igImgSidePintar(0, 0); } catch (e) {}
+  const cN = EL('ig-ppt-num');
+  ex.push(['(B1) existe la casilla del numero', !!cN, true]);
+  ex.push(['(B2) nace ENCENDIDA, que es lo que la app ya hacia', !!(cN && cN.checked), true]);
+  ex.push(['(B3) NO es campo del estudio',
+    (typeof _noEsDelEstudio === 'function') ? _noEsDelEstudio('ig-ppt-num') : 'sin fn', true]);
+
+  /* ── C · EL ROTULO DE LA MIOCARDIOPATIA HIPERTROFICA ─────────────────────────────────────── */
+  const n = EL('mch-aha');
+  ex.push(['(C0) denominador: existe la fila del conteo', !!n, true]);
+  const lbl = (n && n.parentNode) ? String(n.parentNode.textContent || '') : '';
+  ex.push(['(C1) el rotulo dice 2024', lbl.indexOf('AHA/ACC 2024') >= 0, true]);
+  ex.push(['(C2) el rotulo ya NO dice 2020', lbl.indexOf('AHA/ACC 2020') >= 0, false]);
+  /* CONTROL NEGATIVO: el SCORE no se movio. Los cinco factores mayores siguen siendo cinco. */
+  const aha = (typeof mchAHA === 'function') ? mchAHA() : null;
+  /* Las claves son las REALES de mchAHA, censadas en el archivo: la primera version pidio
+     pres y pend, que son sus variables internas, y el control fallaba sobre un score que
+     esta intacto. */
+  ex.push(['(C3) CONTROL: el score sigue publicando sus cinco factores y sus arbitros',
+    !!(aha && aha.presentes && aha.pendientes && aha.arbitros &&
+       (aha.presentes.length + aha.pendientes.length) === 5), true]);
+  return { extra: EXP };
+  })();
+`);
+
+
+
 
 
 let servidor, chrome;

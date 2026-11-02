@@ -37,6 +37,7 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Tocar un criterio de PRÓTESIS mitral o aórtica**: la Tabla 11, el AEO en tres tramos, el THP directo, el PPM de la Tabla 7, el badge del AVA aórtico, las tarjetas nativa-prótesis o el rótulo AEO | `docs/mapa/protesis-valvular.md` |
 | **Tocar el PPM aórtico del informe, el voto de los cuatro criterios de obstrucción de la prótesis mitral o los dos retiros del gradiente medio** (tandas Z, Z5 y Z6) | `docs/mapa/protesis-z-z5-z6.md` |
 | **Tocar la FUGA PARAVALVULAR de una prótesis QUIRÚRGICA**, aórtica o mitral: el motor único, los tres campos nuevos, la marca de origen o por qué la mitral no ofrece extensión circunferencial | `docs/mapa/protesis-fuga-pvl.md` |
+| **Tocar la PLASTIA, el TEER o la TAVI de una válvula** —sus opciones, su graduación, los tres globos de Válvulas, su línea en el papel, sus símbolos en el dibujo del posoperatorio—, **las etiquetas del TEER fuera del papel**, o **el PPT del banco de imágenes**: la regla de disposición por área, el número opcional, la inicial, la final o el bucle con varios videos | `docs/mapa/valppt-opciones-ppt.md` |
 | **Buscar un CORTE o una BANDA de plausibilidad** de cualquier válvula, con su fuente | `docs/mapa/valvulas-constantes.md` |
 | **Tocar la MARCA DE MANUAL de una pastilla, el selector binario de la estenosis mitral, el VIOLETA de «Significativa», el VTI de entrada tricuspídeo, la CASILLA DE PISA de «Incluir en el informe» o lo que «Nuevo estudio» deja vivo** | `docs/mapa/valvulas-manual-binario.md` |
 | **Tocar la COARTACIÓN en el papel** —el dueño único `coaPapel`, la aposición de la situación, el recuadro «Según la guía» del PDF o la fila del PPT—, **el guardado de los DIAGRAMAS con el estudio**, el valor por omisión de «Guardar imágenes con los estudios», **la ✕ que sobrevive (`noPdf`)**, **la orejuela que «a veces salía y a veces no»**, el ⓘ de la fila de miniaturas, **los tres ⓘ del TRIV** o el BARRIDO del papel | `docs/mapa/aj2-coartacion-diagramas.md` |
@@ -5257,3 +5258,124 @@ línea: el archivo creció y un informe de auditoría viejo apunta a otro archiv
   el bloque de esta tanda, y `docs/PENDIENTES.md` → **DOCE** cosas declaradas (**POPC-a** a
   **POPC-l**).
   ⚠️ **`congenitas-otros.md` (34.540 B) NO se tocó**, que es lo que la orden pide.
+
+### Las opciones de plastia, TEER y TAVI, los retoques y el PPT — «VAL-PPT» (2026-11-02)
+
+- **NUEVE commits, y los OCHO de código se hicieron.** `9da2a0e` (1) · `7f25750` (2) ·
+  `76a458a` (3) · `84e5196` (4) · `71d76a6` (5a) · `1aa31be` (6) · `84f1941` (7) · `a0e8dd6` (8)
+  · el de cobertura y documentación. Al empezar, `origin/main` = `HEAD` = **`5ae3959`**, el
+  cierre de TGA-3, ya publicado, con md5 **`7ff2a3f2`** y el pendrive `DISK_IMG` montado.
+  **El push lo corre Maicol: esta tanda tenía orden expresa de NO pushear.**
+
+- **EL INVENTARIO SE MIDIÓ EN CHROME, NO SE LEYÓ, Y DIO TRES DEFECTOS.** No se puede medir un
+  valor desconocido asignándolo —un `value` que no es ninguna `<option>` deja el select en
+  cadena vacía—, así que la sonda **inyecta la option al vuelo**. Con eso:
+  1. **El importador descartaba la FILA ENTERA del paciente.** `_labXlsLista` devolvía `null`
+     para los cuatro valores nuevos, y un null pierde el nombre, la cédula, la FEVI y el
+     informe —no la celda—.
+  2. **El fallback destruía el acrónimo.** El informe FIRMADO publicaba «Válvula tricúspide de
+     morfología **teer tricuspídeo (t-teer)**». Es el mismo defecto que la nota de
+     `VALV_MORF_FRASE` documenta para TAVI, por la otra puerta —y apareció una **tercera** vez
+     en el texto del esquema del posoperatorio: «mitral con **tEER** mitral»—.
+  3. **El dibujo pintaba todo lo que no dijera «mecánica» como protesis BIOLÓGICA.**
+
+- **EL REPARTO POR VÁLVULA NO SE TRANSCRIBE EN NINGUNA LISTA**: sale por construcción de las
+  `<option>` del propio dueño. Medido: aórtica con TAVI, mitral y tricúspide con plastia y TEER,
+  **pulmonar sin ninguno de los tres**. Y la sincronía da **13/13 en los dos sentidos**, con
+  gestos reales y la pestaña y el acordeón abiertos por su botón real.
+
+- **NINGÚN CORTE NUEVO, Y LO QUE LO SOSTIENE SON CUATRO FUENTES LEÍDAS EN IMAGEN** con su regla
+  de folio comprobada en el pie impreso: los **tres grados** de la IM residual (ASE 2019, folio
+  460), el **PISA descartado** tras el borde a borde por TRES caminos independientes (450, 451 y
+  458), el gradiente de 5 mmHg como **predictor y no corte** (452 y 459), los cortes de **6 mmHg
+  y 1,8 cm²** de la estenosis mitral **iatrogénica** (Nicoara 2020, folio 702, que **no se
+  aplican**: son del quirófano), el **T-TEER** en la Recommendation Table 9 (ESC/EACTS 2025,
+  hoja 53 = folio **4687**, sin cortes propios) y el **estudio de base de 1 a 3 meses** de la
+  TAVI (ASE 2024, folio 20).
+  ⚠️ **DOS PREMISAS DE LA ORDEN NO SE CONFIRMARON**: el «baseline 1-3 meses» está en la **Table
+  6**, no en la 5; y el **seguimiento anual del TEER NO está** en el documento —su único
+  «annually» es de la válvula pulmonar transcatéter—, así que se paró y no se escribió.
+
+- **EL DEFECTO MÁS GRANDE QUE CERRÓ EL PAPEL, EN UNA LÍNEA: con una plastia o un TEER mitral
+  como ÚNICO hallazgo, el cuerpo la describía y el EN SUMA decía «Estudio sin alteraciones
+  estructurales ni funcionales significativas».** Sólo la mitral, y está medido por qué: la
+  tricúspide ya subía por su rama de morfología y la aórtica con TAVI la toma el bucle de
+  prótesis. No se agrega una palabra: `reusar` empuja la línea que el cuerpo ya imprimió.
+
+- ⚠️ **LA COMPARACIÓN CON LA DEMO ENCONTRÓ UN DEFECTO REAL, Y ES SU VALOR.** La primera versión
+  le dio a la TAVI los velos de la **biológica** —bisagras en ±8 y largo 8— y la demo los dibuja
+  en **±7 con largo 6**: las 44 escenas de TAVI salieron distintas. Tras cerrarlo: **139 iguales
+  y CERO distintos**, siete piezas estáticas y 132 cruces de tipo × válvula × fase, con
+  tolerancia 0,005 declarada.
+
+- **LAS TRES ETIQUETAS DEL TEER SALEN DEL PAPEL: de 18 superficies a CERO.** Medido **con el
+  módulo integrado** —sin eso un cero no prueba nada—: la hoja del PDF las traía en sus SEIS
+  plantillas, «NO apto» ×5, «Heart Team» ×2 y «anatomía compleja» ×1 sobre 3.562 caracteres.
+  El CONTROL POSITIVO —la pantalla— **las conserva intactas**, y **ningún número medido
+  desaparece**, verificado número por número.
+
+- ⚠️ **EL COMMIT 5b SE PARÓ ENTERO, Y LA VERIFICACIÓN ES LO QUE LO PARA.** La orden lo
+  condiciona a que «las recomendaciones ya viven en la Evidencia». Verificado sobre las **26
+  recomendaciones** de `TGA_IND_RECS`: **cuatro** de las ocho ramas de conducta de la TGA no
+  tienen respaldo —el seguimiento anual, el tratamiento médico de insuficiencia cardíaca, la
+  resincronización **por disfunción** (la Evidencia sólo la publica por bloqueo
+  auriculoventricular) y la obstrucción subaórtica—. Aplicarlo entero las perdería de la
+  aplicación; a medias deja una pantalla incoherente. → **VP-a**.
+
+- ⚠️ **Y EL 6a NO SE REPRODUCE.** El resumen de la VAB **sí** dice «VAB» con la morfología de
+  Válvulas, medido en **seis** escenarios con su control negativo y con el acordeón abierto por
+  su botón real (ancho > 0). No se cambió nada. → **VP-b**.
+
+- **EL RÓTULO DE LA MIOCARDIOPATÍA PASA A 2024, Y SÓLO EL AÑO.** Verificado en imagen: la
+  AHA/ACC 2024 (Ommen, *Circulation* 2024;149:e1239-e1311) **está** en la biblioteca, hoja 29 =
+  folio **e1267**, y su Recomendación 3 (COR 2a · B-NR) lista los **cinco factores mayores**, que
+  coinciden **uno por uno** con los de `mchAHA`; la Recomendación 6 publica los dos árbitros.
+  El score no se movió.
+
+- **EL PPT: la disposición ya no es fija.** `igPptDisposicion` es una función **pura** que elige
+  la de mayor área sin deformar, con **tolerancia declarada del 1 %** y empate a favor de la que
+  la app ya usaba. La diferencia observable: **cuatro verticales pasan de 2×2 a 4×1**, de 14,1 a
+  **44,4** pulgadas cuadradas.
+  ⚠️ **EN UNA HOJA 16:9 EL APILADO NO GANA NUNCA**, así que «2x1 siempre» no distinguiría una
+  regla que funciona de una que devuelve lo mismo: el control es la **hoja vertical**, donde la
+  misma función elige 1×2.
+
+- **EL BUCLE CON VARIOS VIDEOS YA FUNCIONABA, Y SE VERIFICÓ CON UN MP4 REAL** (H.264, `moov`
+  antes de `mdat`): sobre el `.pptx` generado de verdad, **28 de 28 XML bien formados**, **dos
+  videos en la MISMA diapositiva** con `repeatCount="indefinite"` y spids **distintos**, y
+  **cero referencias colgadas**.
+  ⚠️ **CADA VIDEO ARRANCA CON SU PROPIO CLIC** —el XML pone `delay="indefinite"` en cada uno— y
+  no se inventó un truco para iniciarlos juntos → **VP-e**.
+  **Y LA CAÍDA ESTÁ PROBADA DE VERDAD**: con `DOMParser` roto el archivo sale **igual y sano**
+  —95.009 bytes, los dos videos incrustados, **0 árboles de tiempo**, 0 referencias colgadas,
+  validación OK— y la línea de resultado lo dice. Vale para los **dos** exportadores.
+
+- ⚠️ **UNA GUARDA REDUNDANTE SE RETIRÓ PORQUE UNA MUTACIÓN SOBREVIVIÓ**, y es la lección que el
+  D-10 pagó cinco veces: el `valvEsProtesis` de la pasada nueva no hacía nada que
+  `popVTipoCorto` no hiciera. Y la mutación que vale rompe **las dos mitades a la vez**: aflojar
+  sólo el filtro de tipo es una mutación **equivalente** —medido, el EN SUMA sale idéntico en
+  los tres escenarios—.
+
+- **23/23 MUTACIONES DIRIGIDAS MUERTAS**, en worktree y nunca sobre el vivo, con guarda de md5
+  **idéntico** antes y después. **Tres condiciones nacieron del barrido**: `(B5b)` —la plastia
+  tiene que APAGAR el círculo, no sólo prender su aro—, `(E1)` —medía «≤ 1» y no podía fallar—
+  y el bloque `(F)` entero, con una prótesis **y una lesión**, que es la única escena donde el
+  duplicado es posible.
+
+- **CUATRO CASOS NUEVOS, TC-605 a TC-608**, que caen contra HEAD por **46 condiciones y NINGUNA
+  por excepción**, verificado en un worktree.
+  ⚠️ **Y PAGARON TRES TRAMPAS**: el cuerpo de un caso devuelve `{ extra: [...] }` y no el array
+  pelado; la **barra escapada no sobrevive al template literal** —`/AHA\/ACC 2024/` llega como
+  `/AHA/ACC 2024/` y los flags son inválidos, cerrado **no usando ninguna expresión regular**—;
+  y el **acento grave dentro de mis propios comentarios**, que `node --check` cazó.
+
+- **Semgrep 124 WARNING / 0 ERROR.** **Excel 441** columnas. **Campos guardados: NINGUNO nuevo.**
+  **Sin huérfanos nuevos.**
+
+- **Dónde está todo:** `docs/mapa/valppt-opciones-ppt.md` (**mapa NUEVO**, 13,9 KB), las fichas
+  de los cuatro casos en `docs/mapa/tests-fichas-605.md` (**archivo propio**),
+  `docs/fuentes/FUENTES.md` → «La tanda VAL-PPT» con las cinco fuentes transcritas y su tabla de
+  cambios de evidencia, `docs/REGISTRO_TANDAS.md` → el bloque de esta tanda,
+  `docs/GUIA_PRUEBA_VALPPT.md` → la guía de prueba en dieciséis pasos, y `docs/PENDIENTES.md`
+  → **NUEVE** cosas declaradas (**VP-a** a **VP-i**).
+  ⚠️ **`congenitas-otros.md` (34.540 B) NO se tocó**, ni `valvulas.md` (33,9 KB).

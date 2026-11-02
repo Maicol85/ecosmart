@@ -9248,3 +9248,115 @@ interauricular** (`ete_cia_dir`: izquierda→derecha, derecha→izquierda, bidir
 ningún campo de dirección.** Por eso la CIA y el ductus llevan punta de flecha y la CIV no, que es
 exactamente lo que la orden pide. Medido: 6 puntas sin dirección, 7 con la de la CIA, 8 con la del
 ductus; y el control negativo `!!document.getElementById('ete_civ_dir') === false`.
+
+---
+
+# La tanda VAL-PPT (2026-11-02) — las opciones de plastia, TEER y TAVI, y el PPT
+
+## Las cuatro fuentes, leídas EN IMAGEN, con su regla de folio comprobada en el pie impreso
+
+| documento | regla de folio | comprobada en |
+|---|---|---|
+| ASE 2019 de intervenciones percutáneas — Zoghbi WA y cols., *J Am Soc Echocardiogr* 2019;32:431-75 | folio = hoja + 430 | pies «Zoghbi et al 449» (h19), «451» (h21), «458» (h28), «460» (h30) |
+| ETE para decisiones quirúrgicas — Nicoara A y cols., *J Am Soc Echocardiogr* 2020;33:692-734 | folio = hoja + 691 | pie «702 Nicoara et al» (h11) |
+| ASE 2024 de prótesis — Zoghbi WA y cols., *J Am Soc Echocardiogr* 2024;37:2-63 | folio = hoja + 1 | pie «20 Zoghbi et al» (h19) |
+| ESC/EACTS 2025 de valvulopatías — `ehaf194` | folio = hoja + 4634 | la regla que CLAUDE.md ya trae; hoja 53 → folio 4687 |
+| AHA/ACC 2024 de miocardiopatía hipertrófica — Ommen SR y cols., *Circulation* 2024;149:e1239-e1311 | folio = hoja + 1238 | pie «June 4, 2024 e1267» (h29) |
+
+## Lo transcrito
+
+### Nicoara 2020, hoja 11 = folio 702 — la estenosis mitral iatrogénica
+> «Evaluation for iatrogenic MS after MV repair should include measurement of pressure gradients
+> and direct measurement or calculation of the MV area. The criteria for MS include a mean
+> gradient more than 6 mm Hg and a MV area less than 1.8 cm².»
+
+La misma hoja agrega tres salvedades que el globo recoge: que la fibrilación auricular, la
+taquicardia y el gasto cardíaco alto o bajo mueven el gradiente; que **hay controversia** sobre
+si el tiempo de hemipresión sirve para calcular el área de una válvula reparada; y que en una
+sutura borde a borde (Alfieri) el gradiente puede medirse por cualquiera de los dos orificios.
+
+⚠️ **Esos dos cortes NO se aplican en la app**: son de la evaluación **en el quirófano**, al
+salir de circulación extracorpórea. La orden lo pide y el contexto lo justifica.
+
+### ASE 2019, hoja 30 = folio 460 — los tres grados
+> «For these reasons and because of the errors involved in quantitation, a three-grade system is
+> proposed (mild, moderate, and severe).»
+
+### ASE 2019, Table 5, hoja 20 = folio 450 — el PISA tras el borde a borde
+Fila «EROA by PISA»:
+> «Not recommended after edge-to-edge repair because assumption of hemispheric proximal flow
+> convergence is violated by the device.»
+> «PISA often underestimates MR severity in the presence of multiple jets or markedly eccentric
+> jets.»
+
+Confirmado además por otros dos caminos independientes: hoja 21 = folio 451 («the requirement
+for angle correction and the frequent presence of 2 or more jets makes PISA less reliable and
+therefore, it is not recommended for flow quantitation») y hoja 28 = folio 458 («PISA is
+unsuitable for MR quantification…»).
+
+### ASE 2019, hojas 22 y 29 = folios 452 y 459 — el gradiente de 5 mmHg
+> «a post-procedure mean gradient of ≥5 mm Hg is predictive of elevated mean gradient at
+> discharge.»
+> «After edge-to-edge repair, a mean mitral valve gradient of <5 mm Hg at a normal heart rate is
+> considered acceptable.»
+
+**Es un predictor, no un corte de estenosis**, y la fuente no publica ninguno.
+
+### ESC/EACTS 2025, hoja 53 = folio 4687 — el T-TEER
+**Recommendation Table 9**, última fila:
+> «Transcatheter TV treatment should be considered to improve quality of life and RV remodelling
+> in high-risk patients with symptomatic severe TR despite optimal medical therapy in the absence
+> of severe RV dysfunction or pre-capillary PH.» — **Clase IIa · Nivel A**
+
+**No publica cortes de graduación propios.** La clase y el nivel **no** van al globo: el globo
+dice qué define y qué no, sin conducta (regla fija del médico).
+
+### ASE 2024, Table 6, hoja 19 = folio 20 — el estudio de base de la TAVI
+> «Increase in mean transvalvular gradient ≥10 mm Hg resulting in a mean gradient ≥20 mm Hg with
+> concomitant decrease in EOA ≥0.3 cm² or ≥25% and/or decrease in DVI ≥0.1 or ≥20% compared with
+> the baseline (1-3 months) postprocedural assessment»
+
+### ASE 2019, Table 4, folio 440 — la fuga paraprotésica
+«Evaluation of severity of prosthetic aortic regurgitation after TAVR», tabla propia.
+
+### AHA/ACC 2024, hoja 29 = folio e1267 — los cinco factores mayores
+**Recomendación 3, COR 2a · LOE B-NR**: «For adult patients with HCM with ≥1 major risk factors
+for SCD, it is reasonable to offer an ICD. These major risk factors include:»
+a) muerte súbita atribuible a la MCH en uno o más familiares de primer grado o cercanos de 50
+años o menos; b) hipertrofia masiva de 30 mm o más en cualquier segmento del VI; c) uno o más
+episodios recientes de síncope de sospecha arrítmica; d) aneurisma apical del VI con cicatriz
+transmural o realce tardío; e) disfunción sistólica del VI con fracción de eyección por debajo
+del 50 %.
+**Recomendación 6, COR 2b · B-NR**: realce tardío extenso por resonancia **o** taquicardia
+ventricular no sostenida.
+
+**Los cinco coinciden uno por uno con `mchAHA`**, y los dos árbitros también. Por eso el rótulo
+pasó de 2020 a 2024; el score no se movió.
+
+## Premisas de la orden que NO se confirmaron
+
+| lo que la orden anticipaba | lo que se leyó |
+|---|---|
+| «TAVI: … esperado ASE 2024, **tabla 5**» | el «baseline (1-3 months)» está en la **Table 6** (folio 20). La Table 5 es «Doppler parameters of prosthetic valves in the aortic valve position» |
+| «TEER mitral: … el seguimiento es anual (esto va a la Evidencia)» | **NO ENCONTRADO**. El único «annually» del documento está en la hoja 36 (folio 466) y es de la **válvula pulmonar transcatéter**. Parado y no escrito en ninguna parte |
+| «el Resumen de la VAB no muestra VAB cuando la morfología viene de Válvulas» | **no se reproduce**: sí lo muestra, en seis escenarios con su control negativo → VP-b |
+
+## Censo por contenido de la biblioteca
+
+246 PDF censados, con **control positivo** (la misma búsqueda encuentra «three-grade system» en
+dos hojas y «Not recommended after edge-to-edge» en una). Los cortes de 6 mmHg y 1,8 cm²
+aparecen en **dos** archivos, que son el mismo documento de Nicoara 2020 duplicado.
+
+## Cambios de evidencia
+
+| dónde | antes | ahora |
+|---|---|---|
+| globo `vm-morf-tipos` | no existía | la plastia y el TEER mitral, con sus folios 702 y 450-460 |
+| globo `vt-morf-tipos` | no existía | la plastia y el T-TEER, con el folio 4687 |
+| globo `va-morf-tipos` | no existía | la TAVI, con los folios 20 y 440 |
+| rótulo de MCH | «AHA/ACC 2020 · factores mayores» | «AHA/ACC 2024 · factores mayores» |
+| título de la tarjeta de criterios de MCH | «… AHA/ACC 2020 y ESC 2023» | «… AHA/ACC 2024 y ESC 2023» |
+| Referencias, la fila del esquema americano | «AHA/ACC 2020» | «AHA/ACC 2024» |
+| hoja del PDF del TEER | «18mm <20mm — NO apto», «NO apto para TEER», «Evaluar cirugía o Heart Team» | «18mm <20mm», «5 criterio(s) no cumplido(s).», «Faltan 2 criterio(s) por ingresar: …» |
+
+**Ninguna cita nueva entra al papel.** Las tres nuevas viven en los globos.

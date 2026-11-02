@@ -472,3 +472,36 @@ conductas que la Evidencia no respalda.
 
 **Dónde está todo:** `docs/mapa/tga3-esquema-circulacion.md` (mapa nuevo, 16,7 KB) y
 `docs/mapa/tests-fichas-601.md` (fichas, archivo propio).
+
+---
+
+## VAL-PPT (2026-11-02) — las opciones de plastia, TEER y TAVI, los retoques y el PPT
+
+**Commits.** `9da2a0e` (1) · `7f25750` (2) · `76a458a` (3) · `84e5196` (4) · `71d76a6` (5a) ·
+`1aa31be` (6) · `84f1941` (7) · `a0e8dd6` (8) · el de cobertura y documentación.
+Al empezar, `origin/main` = `HEAD` = **`5ae3959`**, el cierre de TGA-3, ya publicado, con md5
+**`7ff2a3f2`** y el pendrive `DISK_IMG` montado. **El push lo corre Maicol.**
+
+**Qué hizo.**
+1. Cuatro opciones nuevas —plastia y TEER en la mitral y en la tricúspide— como **valores** de
+   los campos de morfología que ya existían, en sus **tres listas paralelas**, y el selector del
+   posoperatorio ampliado a TAVI, plastia y TEER por construcción.
+2. Los tres globos de Válvulas con lo que la fuente dice de cada tipo **y lo que no define**.
+   Ningún corte nuevo.
+3. El papel describe los tipos nuevos, y el EN SUMA deja de negar una mitral intervenida que es
+   el único hallazgo.
+4. Los tres símbolos del dibujo del posoperatorio, portados de la demo v9.
+5. Las tres etiquetas del TEER salen del papel y se quedan en la pantalla.
+6. El rótulo de la miocardiopatía hipertrófica pasa a 2024, verificado en imagen.
+7. La disposición del PPT elige la de mayor área sin deformar, y el número pasa a ser opcional.
+8. La diapositiva inicial, la final y el diseño de fondo elegible.
+
+**Qué se paró y se reportó.** El commit 5b entero (cuatro conductas de la TGA sin respaldo en la
+Evidencia), el 6a (su premisa no se reproduce), el Laboratorio y «TAVI de cambio».
+→ `docs/PENDIENTES.md` **VP-a** a **VP-i**.
+
+**Cobertura.** TC-605 a TC-608, que caen contra HEAD por **46 condiciones y ninguna excepción**;
+**23/23 mutaciones dirigidas muertas**; tres condiciones nacidas del barrido.
+
+**Dónde está todo.** `docs/mapa/valppt-opciones-ppt.md` · `docs/mapa/tests-fichas-605.md` ·
+`docs/fuentes/FUENTES.md` → «La tanda VAL-PPT» · `docs/GUIA_PRUEBA_VALPPT.md`.

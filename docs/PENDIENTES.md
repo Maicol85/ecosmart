@@ -11969,3 +11969,98 @@ sobrescribirlas.
 
 **Qué haría falta.** Corregir esa sonda la próxima vez que se use, o leer su `pisaConcl` sabiendo
 que mide un eje. La medición en dos ejes vive en `_probe_tga3concl.mjs` y `_probe_tga3wk.mjs`.
+
+# TANDA VAL-PPT (2026-11-02) — lo declarado
+
+## VP-a · El commit 5b se PARÓ: cuatro conductas de la TGA no están en la Evidencia
+
+**Qué pide la orden.** «La conclusión de pantalla de la sección TGA todavía dice la conducta.
+Pasala a descriptiva: describe lo cargado y NO recomienda; las recomendaciones ya viven en la
+Evidencia (**verificalo**, como hizo TGA-3 para el papel).»
+
+**Qué se verificó.** Las **26 recomendaciones** de `TGA_IND_RECS`, una por una, contra las OCHO
+ramas de conducta de `tgaConclusion`. **Cuatro no tienen respaldo**:
+
+| rama | conducta que publica | en la Evidencia |
+|---|---|---|
+| `cirugia_it` | cirugía sobre la válvula a considerar | **sí** (Clase I · C y Clase IIa · C) |
+| `it_severa` | seguimiento estrecho, la reparación da mejores resultados antes | **sí** (Clase IIa · C) |
+| `disfuncion` | optimización del tratamiento médico de IC **y resincronización** | **NO** — la Evidencia publica la estimulación biventricular sólo por **bloqueo auriculoventricular** o requerimiento de estimulación por encima del 40 %, no por disfunción; y el tratamiento médico no está |
+| `obstr_subaortica` | intervención a considerar con gradiente por encima de 50 mmHg | **NO** — ninguna recomendación cubre la obstrucción subaórtica |
+| `seguimiento` | seguimiento anual | **NO** |
+| `sin_funcion` (leve) | seguimiento anual y vigilancia de la progresión | **NO** |
+
+**Por qué se paró entero y no a medias.** Aplicarlo sólo a las ramas con respaldo deja una
+pantalla **incoherente** —mitad descriptiva y mitad no—; aplicarlo entero **pierde cuatro
+contenidos clínicos de la aplicación**, porque la conclusión de pantalla es hoy su único lugar.
+Y escribirlos en la Evidencia es contenido clínico nuevo, que decide Maicol. La regla del
+archivo es tajante: «antes de retirar algo, verificar que su contenido esté en la Evidencia con
+su fuente; si no está, PARAR y reportarlo».
+
+**Qué haría falta.** Leer la fuente de esas cuatro conductas y decidir si entran a la Evidencia
+con su clase y su folio, o si la app deja de emitirlas. Confirma y amplía **T3-e** y **T3-f**.
+
+## VP-b · El 6a no se reproduce: el resumen de la VAB SÍ dice «VAB»
+
+Medido en **seis** escenarios con su control negativo, con la pestaña Congénitas y el acordeón
+abiertos por su botón real: morfología puesta sólo desde Válvulas → «VAB»; tras `vabSync` →
+«VAB»; con el tipo de fusión → «VAB, fenotipo R-L»; con la sección abierta de verdad → «VAB»
+y **visible** (ancho > 0); tras el embudo → «VAB, fenotipo R-N»; con «Calcificada» → **sin**
+«VAB». `vabResumenPintar` ya lee `va_morf` en su rama `else if`. **No se cambió nada.**
+
+⚠️ La primera medición usó «rl» como tipo de fusión y los valores reales son «fused_rl»: con un
+valor que no es ninguna `<option>` el select queda en vacío. El defecto era de la sonda.
+
+## VP-c · El Laboratorio no recibe los valores nuevos, por orden expresa
+
+`VALV` del Laboratorio es una **allowlist escrita a mano** (`_labDistrib` sólo cuenta lo que
+esté ahí). Los cuatro valores nuevos **no están**, así que un estudio con una plastia mitral
+**no se cuenta en ninguna barra** de la distribución de morfología mitral: desaparece del
+denominador en silencio. Ningún valor viejo cambia.
+La orden excluye el Laboratorio expresamente («Si un cambio exige … el Laboratorio: PARÁ esa
+parte y reportala»), así que no se tocó.
+**Qué falta decidir:** si los cuatro entran a esa allowlist.
+
+## VP-d · Dos menciones de «AHA/ACC 2020» del Laboratorio quedan sin actualizar
+
+Un comentario y el texto de la nota `lab-cc-mch-nota` siguen diciendo 2020. Es el mismo caso que
+VP-c: el Laboratorio está fuera del alcance. Las otras menciones de MCH sí pasaron a 2024.
+⚠️ **No se tocaron tampoco** las dos de CONG-2A que cuentan lo que el papel traía **antes**: son
+afirmaciones históricas de su propia tanda, como «TC-477 · el Excel pasa a 440 columnas».
+
+## VP-e · Los videos de una diapositiva no arrancan con un solo clic
+
+El XML escribe `<p:cond delay="indefinite"/>` en cada `<p:video>`, así que **cada video arranca
+con su propio clic** y después se repite. Hacer que un clic los inicie juntos exigiría un
+`<p:seq>` con disparador de diapositiva, y eso no se puede verificar sin PowerPoint: la orden
+pide expresamente no inventar un truco frágil. Verificado que el bucle **sí** funciona con
+varios por diapositiva: dos `<p:video>` con `repeatCount="indefinite"` y spids distintos.
+
+## VP-f · La reproducción real no se puede automatizar
+
+Lo que las sondas prueban es que el XML queda **escrito y bien formado** (28/28 partes, 0
+referencias colgadas). Que el video **se vea y se repita** se prueba abriendo el archivo en
+PowerPoint y en Keynote. Los dos `.pptx` de prueba quedan en el directorio que el reporte
+nombra, y la guía manual trae los pasos.
+
+## VP-g · La clave `prot` de `popVEstado` se quedó con el nombre corto
+
+Hoy significa «hay un tipo consignado» —que desde VAL-PPT-1 incluye TAVI, la plastia y el TEER—
+y se sigue llamando `prot`. Renombrarla toca sus **tres** lectores (el pintor de la pantalla,
+`popCxValvTxt` y el dibujo), que ya leen este mismo dueño: lo único que quedó corto es el
+nombre.
+
+## VP-h · «TAVI de cambio»: la app no guarda un eco de base
+
+Los criterios de deterioro de una prótesis aórtica se definen como el **cambio** respecto de un
+estudio de base de 1 a 3 meses (ASE 2024, Table 6, folio 20). La app no guarda ese estudio de
+base, así que publica el valor medido y no el cambio. El globo `va-morf-tipos` lo dice.
+**Qué haría falta:** decidir dónde vive ese eco de base y cómo se compara. Es una tanda propia.
+
+## VP-i · PISA y EROA siguen visibles con un TEER
+
+La orden del commit 2 lo deja declarado: «si PISA o EROA siguen visibles, quedan visibles;
+anotá la decisión de ocultarlos». Medido: **cero** campos de graduación se mueven entre una
+morfología nativa y un TEER. La fuente dice que PISA **no se recomienda** para cuantificar tras
+un borde a borde (folios 450, 451 y 458) y el globo lo publica, pero los campos se quedan.
+**Qué falta decidir:** si se esconden, si se marcan, o si alcanza con el globo.

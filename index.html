@@ -61870,8 +61870,12 @@ function generarInforme(opts) {
     (function(){
       const V = VALVS[0];                       // la mitral, la única con `reusaSinEvidencia`
       const morf = g(V.morf);
-      if (typeof valvEsProtesis === 'function' && valvEsProtesis(morf)) return;  // ya la tomó el bucle
       if (typeof popVTipoCorto !== 'function') return;
+      /* ⚠️ UNA SOLA GUARDA, Y LA REDUNDANTE SE RETIRO PORQUE UNA MUTACION SOBREVIVIO. Acá había
+         además un `if (valvEsProtesis(morf)) return` —«ya la tomó el bucle»— y no hacía nada:
+         `popVTipoCorto` devuelve 'mec', 'bio' o 'tavi' para las tres prótesis, y ninguno pasa
+         este filtro. Dos mecanismos para el mismo trabajo son lo que hace que una mutación
+         sobreviva, que es la lección que el D-10 pagó cinco veces. */
       const tc = popVTipoCorto(morf);
       if (tc !== 'plastia' && tc !== 'teer') return;
       const yaEnSuma = suma.some(function(l){
@@ -150184,8 +150188,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261102-0041';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793590896326;                 /* eco-build-ms */
+const ECO_BUILD    = '20261102-0107';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793592473116;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -150271,7 +150275,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261102-0041</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261102-0107</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
