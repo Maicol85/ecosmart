@@ -50,12 +50,21 @@ const CUERPO = `(async (e) => {
      un hibrido se veria. La NOTA, en cambio, muchas veces dice que la OTRA guia NO trata el
      tema, que es justo lo que E-3 pide decir: contarla como mezcla es contar la declaracion de
      que no hay mezcla. Se mira el dato de la tabla, no el texto armado. */
-  const TAB = (window.TGA_IND_PREG && e.sec === 'TGA') ? window.TGA_IND_PREG : null;
+  /* Las tablas de la CIA y de la CIV son LOCALES de su funcion, asi que no se pueden leer por
+     window: para esas dos el invariante se mide sobre la NOTA ya armada, descontando la linea
+     de referencia -que empieza con un prefijo fijo- y las frases que declaran que la otra guia
+     NO trata el tema. Para la TGA se lee la tabla, que es mas fuerte. */
+  /* ⚠️ LA TABLA SE LEE DE window Y SE EXIGE QUE ESTE: sin ella, filasTab queda VACIO y el
+     filtro devuelve CERO mezclas sobre un denominador de cero -que se lee igual que «no hay
+     mezclas»-. La primera version de esta sonda tenia ese defecto. */
+  const TABS = { TGA: window.TGA_IND_PREG, CIA: window.CIA_PREG, CIV: window.CIV_PREG };
+  const TAB = TABS[e.sec] || null;
+  R.hayTabla = !!TAB;
   const gr = R.grupoDet = (function(){
     try { const j = window.tgaEjes ? tgaEjes() : null; if (!j) return null;
       return (j.anat === 'ltga') ? 'cc' : (j.cir === 'auricular') ? 'aur'
            : (j.cir === 'jatene') ? 'jat' : (j.cir === 'rastelli') ? 'ras' : null } catch (x) { return null } })();
-  const filasTab = (TAB && gr && TAB[gr]) ? TAB[gr] : [];
+  const filasTab = !TAB ? [] : (e.sec === 'TGA' ? ((gr && TAB[gr]) ? TAB[gr] : []) : TAB);
   R.nTabla = filasTab.length;
   R.mezclan = filasTab.filter(q => {
     const rec = String(q.rec || '');
@@ -84,6 +93,11 @@ const CUERPO = `(async (e) => {
 })`;
 
 const ESC = {
+  cia:     { sec:'CIA', s:{ ete_cia_tipo:'secundum', ete_cia_tam_max:'22' } },
+  ciaSV:   { sec:'CIA', s:{ ete_cia_tipo:'sv_vcs', ete_cia_tam_max:'18' } },
+  ciaVac:  { sec:'CIA', s:{} },
+  civ:     { sec:'CIV', s:{ ete_civ_tipo:'perimembranosa', ddfvi:'62' } },
+  civVac:  { sec:'CIV', s:{} },
   tgaAur:  { sec:'TGA', s:{ tga_tipo:'mustard' } },
   tgaJat:  { sec:'TGA', s:{ tga_tipo:'dtga', tga_cirugia:'jatene' } },
   tgaRas:  { sec:'TGA', s:{ tga_tipo:'dtga', tga_cirugia:'rastelli' } },
@@ -108,7 +122,8 @@ const ESC = {
     if (!R.hayPanel) { if (R.errs.length) console.log('  errs: ' + R.errs.join(' ; ')); continue }
     console.log('  filas de solo lectura: ' + R.nFilas + '   PREGUNTAS: ' + R.nPreg);
     console.log('  con linea de referencia de la otra guia: ' + R.conRef + '   con nota de tramo: ' + R.conTramo);
-    console.log('  grupo detectado: ' + R.grupoDet + '   preguntas en la tabla: ' + R.nTabla);
+    console.log('  tabla expuesta: ' + R.hayTabla + '   grupo detectado: ' + R.grupoDet
+      + '   preguntas en la tabla: ' + R.nTabla + (R.nTabla === 0 ? '  <-- DENOMINADOR VACIO' : ''));
     console.log('  preguntas cuyo CORTE mezcla las dos guias (debe ser 0): ' + R.mezclan.length
       + (R.mezclan.length ? ' -> ' + R.mezclan.join(' | ') : ''));
     console.log('  preguntas sin guia en la TABLA (debe ser 0): ' + R.sinGuiaTab.length

@@ -89239,6 +89239,31 @@ function _indIA(){
    ecocardiograma no la mide, así que va como fila ❓ y no se deduce de la PAPs: publicar una
    probabilidad de HTP donde la guía pide unidades Wood haría pasar por contestada una pregunta
    que este estudio no contesta. */
+/* ⚠️ LA TABLA VIVE A NIVEL DE SCRIPT Y SE EXPONE, Y NO ES UN CAPRICHO DE LA SONDA
+   (CORR-EVID-6/7). La regla E-1 —cada pregunta usa los cortes de UNA sola guía— es un
+   invariante de DATOS, y medirlo sobre el texto ya armado obliga a descontar a mano las frases
+   que declaran que la OTRA guía no trata el tema, que es justo lo que E-3 pide decir. Con la
+   tabla a la vista, el caso de prueba le pregunta al dato: `guia` es una sola clave y `rec` no
+   puede nombrar la otra guía. Dentro de la función no había forma de preguntárselo, y la
+   primera versión de la sonda devolvía CERO sobre un array VACIO —un denominador de cero que
+   se lee igual que «no hay mezclas»—. */
+const CIA_PREG = Object.freeze([
+  { clave:'cia.ev.vddil', lbl:'Dilatación del ventrículo derecho', guia:'acc', rec:'Clase 1 · Nivel B-R, recomendación 5 —con cortocircuito significativo y sin hipertensión arterial pulmonar ni enfermedad significativa del ventrículo izquierdo, el cierre está recomendado—, y Clase 2a, recomendaciones 8 y 9, hoja 35, folio e149', ref:'la sobrecarga de volumen del ventrículo derecho —su nota al pie c la define como agrandamiento CON volumen latido aumentado— es la condición de la Clase I · Nivel B (hoja 30, folio 592)' },
+  { clave:'cia.ev.qpqs15', lbl:'Qp:Qs de 1,5 o más', guia:'acc', rec:'Clase 1 · Nivel B-R, recomendación 5; Clase 2a, recomendaciones 8 y 9; Clase 2b, recomendación 12, hoja 35, folio e149', ref:'un cortocircuito izquierda-derecha significativo es un Qp:Qs MAYOR que 1,5 (hoja 30, folio 592)', tramo:'con un Qp:Qs de 1,5 exacto las dos guías no coinciden: la ACC/AHA 2025 escribe «≥1,5» y la ESC 2020 «>1,5»' },
+  { clave:'cia.ev.rvp2', lbl:'Resistencia vascular pulmonar de 2 unidades Wood o menos, sin hipertensión arterial pulmonar', guia:'acc', rec:'Clase 1 · Nivel B-R, recomendación 5 — es lo que la guía escribe como «en ausencia de hipertensión arterial pulmonar (resistencia vascular pulmonar ≤2 unidades Wood)», hoja 35, folio e149', ref:'la condición es una resistencia vascular pulmonar por debajo de 3 unidades Wood, Clase I · Nivel B (hoja 30, folio 592)', tramo:'entre 2 y 3 unidades Wood las dos guías no coinciden en el tramo' },
+  { clave:'cia.ev.rvp25', lbl:'Resistencia vascular pulmonar mayor de 2 y menor de 5 unidades Wood', guia:'acc', rec:'Clase 2a · Nivel B-R, recomendación 8 — con Qp:Qs de 1,5 o más, dilatación del ventrículo derecho y sin enfermedad significativa del ventrículo izquierdo, el cierre es razonable, hoja 35, folio e149', ref:'el tramo de la guía anterior es de 3 a 5 unidades Wood con Qp:Qs mayor de 1,5, Clase IIa · Nivel C (hoja 30, folio 592)', tramo:'entre 2 y 3 unidades Wood las dos guías no coinciden en el tramo' },
+  { clave:'cia.ev.rvp58', lbl:'Resistencia vascular pulmonar de 5 a 8 unidades Wood', guia:'acc', rec:'Clase 2a · Nivel B-NR, recomendación 9, y Clase 2b · Nivel B-NR, recomendación 12, hoja 35, folio e149', ref:'con 5 unidades Wood o más, el cierre fenestrado puede considerarse cuando la resistencia baja por debajo de 5 tras el tratamiento dirigido, Clase IIb · Nivel C (hoja 30, folio 592)', tramo:'por encima de 8 unidades Wood la ACC/AHA 2025 no gradúa nada en las hojas leídas' },
+  { clave:'cia.ev.rvpbaja5', lbl:'La resistencia vascular pulmonar baja por debajo de 5 unidades Wood con el tratamiento dirigido', guia:'acc', rec:'Clase 2a · Nivel B-NR, recomendación 9 — el cierre puede ser beneficioso para mejorar el estado funcional a mediano plazo, hoja 35, folio e149', ref:'habilita el cierre FENESTRADO, Clase IIb · Nivel C (hoja 30, folio 592)' },
+  { clave:'cia.ev.rvp58trat', lbl:'Recibe tratamiento dirigido de la hipertensión arterial pulmonar y la resistencia sigue entre 5 y 8 unidades Wood', guia:'acc', rec:'Clase 2b · Nivel B-NR, recomendación 12 — la utilidad del cierre fenestrado es INCIERTA, hoja 35, folio e149', ref:'con 5 unidades Wood o más pese al tratamiento dirigido, el cierre NO se recomienda, Clase III · Nivel C (hoja 30, folio 592)', tramo:'las dos guías no dicen lo mismo: la ACC/AHA 2025 declara la utilidad incierta y la ESC 2020 lo desaconseja' },
+  { clave:'cia.ev.vi', lbl:'Enfermedad significativa del ventrículo izquierdo', guia:'acc', rec:'Clase 1 · Nivel B-R, recomendación 5, y Clase 2a, recomendaciones 8 y 9, la EXCLUYEN; y Clase 2b · Nivel C-LD, recomendación 4 — el test de oclusión con balón antes del cierre puede ser razonable para evaluar los cambios hemodinámicos, hoja 35, folio e149', nota:'la nota al pie de esa tabla define «enfermedad significativa del ventrículo izquierdo» como cualquier condición que eleve de forma crónica la presión auricular izquierda a 15 mmHg o más', ref:'el test con balón y sopesar el beneficio contra el aumento de la presión de llenado es Clase I · Nivel C (hoja 30, folio 592); cambia también la clase' },
+  { clave:'cia.ev.eisen', lbl:'Fisiología de Eisenmenger', guia:'acc', rec:'Clase 3: Daño · Nivel C-LD, recomendación 13 — el cierre NO debe realizarse, para no aumentar la morbilidad y la mortalidad, hoja 35, folio e149', ref:'el cierre no se recomienda, Clase III · Nivel C (hoja 30, folio 592)' },
+  { clave:'cia.ev.desat', lbl:'Desaturación con el ejercicio (saturación arterial por debajo del 90 %)', guia:'esc', rec:'Clase III · Nivel C — el cierre no se recomienda, hoja 30, folio 592', nota:'su nota al pie d aclara que no hay datos para un corte preciso y que, por experiencia clínica, correspondería a una caída de la saturación arterial de oxígeno por debajo del 90 %. La ACC/AHA 2025 no publica una recomendación con esta condición' },
+  { clave:'cia.ev.embparad', lbl:'Evidencia o sospecha firme de embolia paradójica', guia:'acc', rec:'Clase 1 · Nivel C-EO, recomendación 7 — el cierre está recomendado para prevenir la recurrencia, hoja 35, folio e149', ref:'el cierre debe considerarse, independientemente del tamaño, siempre que no haya hipertensión arterial pulmonar ni enfermedad del ventrículo izquierdo: Clase IIa · Nivel C (hoja 30, folio 592); cambia la clase' },
+  { clave:'cia.ev.anciano', lbl:'Paciente de edad avanzada no apto para el cierre con dispositivo', guia:'esc', rec:'Clase I · Nivel C — se recomienda sopesar con cuidado el riesgo quirúrgico contra el beneficio potencial del cierre, hoja 30, folio 592', nota:'la ACC/AHA 2025 no publica una recomendación con esta condición' },
+  { clave:'cia.ev.secundum', lbl:'Comunicación interauricular tipo ostium secundum aislada', guia:'acc', rec:'Clase 1 · Nivel B-NR, recomendación 6 — el cierre percutáneo suele preferirse a la reparación quirúrgica, para acortar la internación y la recuperación, hoja 35, folio e149', ref:'el cierre con dispositivo es el método de elección cuando es técnicamente adecuado, Clase I · Nivel C (hoja 30, folio 592)' },
+  { clave:'cia.ev.senovenoso', lbl:'Comunicación interauricular de seno venoso superior', guia:'acc', rec:'Clase 2b · Nivel B-NR, recomendación 11 — el cierre transcatéter, cuando es técnicamente factible, puede ser una alternativa razonable a la cirugía para reducir la morbilidad operatoria, hoja 35, folio e149', nota:'la ESC 2020 no publica una recomendación propia para este subtipo' }
+]);
+window.CIA_PREG = CIA_PREG;
 function _indCIA(){
   const tipo = _indS('ete_cia_tipo');
   const qpqs = _indFn('eteQpQs'), motivo = _indFn('eteQpQsMotivo');
@@ -89319,34 +89344,21 @@ function _indCIA(){
 
      ⚠️ NADA DE ESTE BLOQUE LLEGA AL PAPEL. Lo lee `indicRender` y nadie más. */
   const CIA_OPS = [{ v:'si', t:'Sí' }, { v:'no', t:'No' }];
-  const CIA_PREG = [
-    { clave:'cia.ev.vsaumentado', lbl:'Volumen latido del ventrículo derecho aumentado',
-      nota:'es la nota al pie c de la tabla: la sobrecarga de volumen del ventrículo derecho que la Clase I · Nivel B exige se define como agrandamiento del ventrículo derecho CON volumen latido aumentado, y el segundo término la aplicación no lo tiene' },
-    { clave:'cia.ev.rvp3', lbl:'Resistencia vascular pulmonar por debajo de 3 UW, medida por cateterismo',
-      nota:'cuando hay signos no invasivos de presión pulmonar elevada, es la condición que deja en pie la Clase I · Nivel B' },
-    { clave:'cia.ev.rvp35', lbl:'Resistencia vascular pulmonar entre 3 y 5 UW',
-      nota:'con cortocircuito izquierda-derecha significativo (Qp/Qs mayor que 1,5), el cierre pasa a Clase IIa · Nivel C' },
-    { clave:'cia.ev.rvp5', lbl:'Resistencia vascular pulmonar de 5 UW o más',
-      nota:'es la condición del cierre fenestrado (Clase IIb · Nivel C) y, si persiste pese al tratamiento dirigido, de la contraindicación (Clase III · Nivel C)' },
-    { clave:'cia.ev.rvpbaja5', lbl:'La resistencia bajó por debajo de 5 UW tras el tratamiento dirigido de la hipertensión arterial pulmonar',
-      nota:'es lo que habilita el cierre fenestrado Clase IIb · Nivel C' },
-    { clave:'cia.ev.vi', lbl:'Enfermedad del ventrículo izquierdo',
-      nota:'excluye la Clase I · Nivel B y obliga al test con balón, que es Clase I · Nivel C' },
-    { clave:'cia.ev.embparad', lbl:'Sospecha de embolia paradójica, con las otras causas excluidas',
-      nota:'con ausencia de hipertensión arterial pulmonar y de enfermedad del ventrículo izquierdo, el cierre es Clase IIa · Nivel C, independientemente del tamaño' },
-    { clave:'cia.ev.anciano', lbl:'Paciente de edad avanzada no apto para el cierre con dispositivo',
-      nota:'es la condición de la Clase I · Nivel C que manda sopesar el riesgo quirúrgico contra el beneficio' },
-    { clave:'cia.ev.eisen', lbl:'Fisiología de Eisenmenger, o desaturación con el ejercicio',
-      nota:'es la contraindicación, Clase III · Nivel C. La nota al pie d de la tabla dice que no hay datos para un corte preciso y que, por experiencia clínica, sería una caída de la saturación arterial por debajo del 90 %' }
-  ];
+  /* ⚠️ CADA PREGUNTA NOMBRA SU GUIA Y SU RECOMENDACION (CORR-EVID-6/7, 2026-11-02). `guia` es
+     la regla E-1 —una pregunta, una guía—; `ref` es la línea de referencia de la OTRA (E-2); y
+     `tramo` DICE que los tramos no coinciden en vez de inventar uno intermedio. Todas leídas en
+     imagen: ACC/AHA 2025 hojas 35, 39 y 40 (folios e149, e153 y e154) y ESC 2020 hojas 30 y 33
+     (folios 592 y 595). */
   const clinica = [], _si = [], _no = [], _sd = [];
   CIA_PREG.forEach(function (p) {
     const o = _indOrigen(null, p.clave);
     if (o.val === 'si') _si.push(p.lbl); else if (o.val === 'no') _no.push(p.lbl); else _sd.push(p.lbl);
     clinica.push(_indFilaOrigen(p.lbl, o, CIA_OPS, function (val) {
+      /* La nota la arma `_indPregNota` (CORR-EVID-4): rótulo de la guía que rige, lo que esa
+         guía manda, la línea de referencia de la OTRA y la nota de tramo. */
       return { txt: val === 'si' ? 'Sí' : (val === 'no' ? 'No' : 'Sin dato'),
                marca: val === 'si' ? 'warn' : (val === 'no' ? 'none' : 'ask'),
-               nota: p.nota + (val == null ? '. Sin dato no cuenta como «no»: mientras no se conteste, esta condición no sostiene ninguna recomendación' : '') };
+               nota: _indPregNota(p, val == null) };
     }));
   });
   const _balCIA = _si.length
@@ -89360,7 +89372,27 @@ function _indCIA(){
   return { filas: filas,
     clinica: clinica,
     bloques: [
-      { tit:'Indicación de cierre y método — ESC 2020, tabla de recomendaciones de intervención en la comunicación interauricular, hoja 30, folio 592', lineas:[
+      /* ⚠️ EL BLOQUE DE LA ACC/AHA 2025 VA PRIMERO (regla E-2): rige la más nueva y la anterior
+         queda de referencia, rotulada. Dos bloques y no uno mezclado, que es la regla E-1
+         llevada al dibujo: una lista con las de las dos pegadas sería el híbrido que la regla
+         prohíbe, y el lector no podría saber qué sociedad dice qué. */
+      { tit:'Indicación de cierre — ACC/AHA 2025, apartado 4.1.1, hoja 35, folio e149', lineas:[
+        { txt:'Clase 1 · Nivel B-R — Con un cortocircuito izquierda-derecha significativo (Qp:Qs de 1,5 o más) y dilatación del ventrículo derecho, en ausencia de hipertensión arterial pulmonar (resistencia vascular pulmonar de 2 unidades Wood o menos) o de enfermedad significativa del ventrículo izquierdo, se recomienda el cierre para mejorar la clase funcional y los resultados clínicos (recomendación 5).', refs:null },
+        { txt:'Clase 1 · Nivel B-NR — Con una comunicación interauricular tipo ostium secundum aislada, el cierre transcatéter suele preferirse a la reparación quirúrgica, para acortar la internación y el tiempo de recuperación (recomendación 6).', refs:null },
+        { txt:'Clase 1 · Nivel C-EO — Con evidencia o sospecha firme de embolia paradójica, se recomienda el cierre para prevenir la recurrencia (recomendación 7).', refs:null },
+        { txt:'Clase 2a · Nivel B-R — Con Qp:Qs de 1,5 o más y dilatación del ventrículo derecho, con una resistencia vascular pulmonar mayor de 2 y menor de 5 unidades Wood, y sin enfermedad significativa del ventrículo izquierdo, el cierre es razonable para mejorar el estado funcional (recomendación 8).', refs:null },
+        { txt:'Clase 2a · Nivel B-NR — Con Qp:Qs de 1,5 o más, dilatación del ventrículo derecho, hipertensión arterial pulmonar con resistencia de 5 a 8 unidades Wood y sin enfermedad significativa del ventrículo izquierdo, el cierre puede ser beneficioso si la resistencia puede bajar por debajo de 5 unidades Wood con tratamiento dirigido (recomendación 9).', refs:null },
+        { txt:'Clase 2b · Nivel B-NR — Con hipertensión arterial pulmonar y el cierre indicado, puede considerarse la reparación fenestrada para mejorar la clase funcional y los resultados clínicos (recomendación 10).', refs:null },
+        { txt:'Clase 2b · Nivel B-NR — Con una comunicación de seno venoso superior no reparada, el cierre transcatéter —cuando es técnicamente factible— puede ser una alternativa razonable a la cirugía, para reducir la morbilidad operatoria (recomendación 11).', refs:null },
+        { txt:'Clase 2b · Nivel B-NR — Con Qp:Qs de 1,5 o más e hipertensión arterial pulmonar con resistencia de 5 a 8 unidades Wood mientras recibe tratamiento dirigido, la utilidad del cierre fenestrado es INCIERTA (recomendación 12).', refs:null },
+        { txt:'Clase 3: Daño · Nivel C-LD — Con fisiología de Eisenmenger, el cierre NO debe realizarse, para no aumentar la morbilidad y la mortalidad (recomendación 13).', refs:null },
+        { txt:'Clase 1 · Nivel B-NR — Está recomendada la resonancia, el ecocardiograma transesofágico o la tomografía para definir el tamaño del defecto, su morfología, la anatomía de los bordes y las conexiones venosas pulmonares (recomendación 1).', refs:null },
+        { txt:'Clase 1 · Nivel C-EO — Debe evaluarse la presencia de hipertensión arterial pulmonar para guiar el tratamiento médico y determinar la aptitud para la reparación (recomendación 3).', refs:null },
+        { txt:'Clase 2b · Nivel C-LD — El test de oclusión con balón antes del cierre puede ser razonable para evaluar los cambios hemodinámicos (recomendación 4).', refs:null },
+        { txt:'La nota al pie de esa tabla define «enfermedad significativa del ventrículo izquierdo» como cualquier condición que eleve de forma crónica la presión auricular izquierda a 15 mmHg o más.', refs:null },
+        { txt:'Fuente: ACC/AHA 2025 de cardiopatías congénitas del adulto, apartado 4.1.1, «Atrial Septal Defect», hoja 35, folio e149.', refs:['acc2025achd'] }
+      ]},
+      { tit:'Indicación de cierre y método — ESC 2020 (guía anterior), tabla de recomendaciones de intervención en la comunicación interauricular, hoja 30, folio 592', lineas:[
         { txt:'Clase I · Nivel B — Con sobrecarga de volumen del ventrículo derecho y sin hipertensión arterial pulmonar (sin signos no invasivos de presión pulmonar elevada, o con resistencia vascular pulmonar por debajo de 3 UW confirmada por cateterismo si los hay) ni enfermedad del ventrículo izquierdo, se recomienda el cierre independientemente de los síntomas.', refs:null },
         { txt:'Clase I · Nivel C — El cierre con dispositivo se recomienda como método de elección para la comunicación interauricular tipo ostium secundum cuando es técnicamente adecuado.', refs:null },
         { txt:'Clase I · Nivel C — En el paciente de edad avanzada no apto para el cierre con dispositivo, se recomienda sopesar con cuidado el riesgo quirúrgico contra el beneficio potencial del cierre.', refs:null }
@@ -89384,8 +89416,8 @@ function _indCIA(){
         { txt:'Fuente: ESC 2020 de cardiopatías congénitas del adulto, hojas 30 y 31, folios 592 y 593.', refs:['esc2020guch'] }
       ]}
     ],
-    guia: { ref:'esc2020guch',
-      txt:'Las indicaciones de esta sección salen de la tabla de recomendaciones de intervención en la comunicación interauricular de la ESC 2020 de cardiopatías congénitas del adulto (hoja 30, folio 592).' },
+    guia: { ref:'acc2025achd',
+      txt:'Las indicaciones de esta sección salen de DOS guías: la ACC/AHA 2025 de cardiopatías congénitas del adulto (apartado 4.1.1, hoja 35, folio e149), que es la que rige cuando las dos tratan el mismo tema con cortes distintos, y la ESC 2020 de cardiopatías congénitas del adulto (hoja 30, folio 592), que queda como referencia. Cada pregunta usa los cortes de UNA sola de ellas, con su nombre y año a la vista: ninguna los combina.' },
     notas: [
       /* ⚠️ LA ESCALERA DE RESISTENCIAS SE RETIRA DE ACA (TGA-2, commit 3): la publica el bloque
          visible de arriba, fila por fila y con su clase y su nivel. Mantenerla sería la misma
@@ -89836,9 +89868,11 @@ function _indMCHSCD(){
     const o = _indOrigen(null, p.clave);
     if (o.val === 'si') _si.push(p.lbl); else if (o.val === 'no') _no.push(p.lbl); else _sd.push(p.lbl);
     clinica.push(_indFilaOrigen(p.lbl, o, MCH_SCD_OPS, function (val) {
+      /* La nota la arma `_indPregNota` (CORR-EVID-4): rótulo de la guía que rige, lo que esa
+         guía manda, la línea de referencia de la OTRA y la nota de tramo. */
       return { txt: val === 'si' ? 'Sí' : (val === 'no' ? 'No' : 'Sin dato'),
                marca: val === 'si' ? 'warn' : (val === 'no' ? 'none' : 'ask'),
-               nota: p.nota + (val == null ? '. Sin dato no cuenta como «no»: mientras no se conteste, esta condición no sostiene ninguna recomendación' : '') };
+               nota: _indPregNota(p, val == null) };
     }));
   });
   const _bal = _si.length
@@ -91587,6 +91621,31 @@ document.addEventListener('DOMContentLoaded', function(){ try { _vtAssertUmbrale
 
    El DDVI indexado se calcula con `getBSA()`, igual que la mitral y la aórtica indexan sus
    diámetros. Es la única cuenta del panel, y queda dicha. */
+/* ⚠️ LA TABLA VIVE A NIVEL DE SCRIPT Y SE EXPONE, Y NO ES UN CAPRICHO DE LA SONDA
+   (CORR-EVID-6/7). La regla E-1 —cada pregunta usa los cortes de UNA sola guía— es un
+   invariante de DATOS, y medirlo sobre el texto ya armado obliga a descontar a mano las frases
+   que declaran que la OTRA guía no trata el tema, que es justo lo que E-3 pide decir. Con la
+   tabla a la vista, el caso de prueba le pregunta al dato: `guia` es una sola clave y `rec` no
+   puede nombrar la otra guía. Dentro de la función no había forma de preguntárselo, y la
+   primera versión de la sonda devolvía CERO sobre un array VACIO —un denominador de cero que
+   se lee igual que «no hay mezclas»—. */
+const CIV_PREG = Object.freeze([
+  { clave:'civ.ev.vidil', lbl:'Dilatación significativa o progresiva del ventrículo izquierdo', guia:'acc', rec:'Clase 1 · Nivel B-NR, apartado 4.1.2, recomendación 4 — con cortocircuito significativo y sin evidencia de hipertensión arterial pulmonar, el cierre está recomendado para eliminar el cortocircuito y preservar la función ventricular, hoja 39, folio e153', ref:'la sobrecarga de volumen del ventrículo izquierdo —su nota al pie c la define como agrandamiento CON volumen latido aumentado— es la condición de la Clase I · Nivel C, independientemente de los síntomas (hoja 33, folio 595)' },
+  { clave:'civ.ev.qpqs15', lbl:'Qp:Qs de 1,5 o más', guia:'acc', rec:'Clase 1 · Nivel B-NR, recomendación 4, y Clase 2a · Nivel C-LD, recomendación 5; con un Qp:Qs POR DEBAJO de 1,5 y sin otra indicación, la recomendación 9 es Clase 3: Sin beneficio · Nivel B-NR, hoja 39, folio e153 y hoja 40, folio e154', ref:'un cortocircuito izquierda-derecha significativo es un Qp:Qs MAYOR que 1,5 (hoja 33, folio 595)', tramo:'con un Qp:Qs de 1,5 exacto las dos guías no coinciden: la ACC/AHA 2025 escribe «≥1,5» y la ESC 2020 «>1,5»' },
+  { clave:'civ.ev.sinhap', lbl:'Sin evidencia de hipertensión arterial pulmonar', guia:'acc', rec:'Clase 1 · Nivel B-NR, recomendación 4, hoja 39, folio e153', nota:'la pregunta va SIN cifra a propósito: la recomendación 4 escribe «resistencia vascular pulmonar ≤2 unidades Wood» y su texto de apoyo escribe «<2» (hoja 40, folio e154). La guía no coincide consigo misma, así que acá no se fija ningún corte', ref:'la condición es una resistencia vascular pulmonar por debajo de 3 unidades Wood, Clase I · Nivel C (hoja 33, folio 595)' },
+  { clave:'civ.ev.rvp25', lbl:'Resistencia vascular pulmonar mayor de 2 y menor de 5 unidades Wood', guia:'acc', rec:'Clase 2a · Nivel C-LD, recomendación 5 — con sobrecarga de volumen del ventrículo izquierdo y Qp:Qs de 1,5 o más, el cierre es razonable para abolir el cortocircuito y reducir el riesgo de progresión, hoja 39, folio e153', ref:'el tramo de la guía anterior es de 3 a 5 unidades Wood con Qp:Qs mayor de 1,5, Clase IIa · Nivel C (hoja 33, folio 595)', tramo:'entre 2 y 3 unidades Wood las dos guías no coinciden en el tramo' },
+  { clave:'civ.ev.rvp58', lbl:'Resistencia vascular pulmonar de 5 a 8 unidades Wood', guia:'acc', rec:'Clase 2b · Nivel C-LD, recomendación 8 — con Qp:Qs de 1,5 o más y sin hipoxemia, hoja 40, folio e154', ref:'con 5 unidades Wood o más y cortocircuito significativo persistente, el cierre puede considerarse, pero se requiere una decisión individual cuidadosa en centros expertos: Clase IIb · Nivel C (hoja 33, folio 595)', tramo:'por encima de 8 unidades Wood la ACC/AHA 2025 no gradúa nada en las hojas leídas' },
+  { clave:'civ.ev.rvpbaja5', lbl:'La resistencia vascular pulmonar baja por debajo de 5 unidades Wood con el tratamiento', guia:'acc', rec:'Clase 2b · Nivel C-LD, recomendación 8 — con esa caída, la utilidad del cierre es INCIERTA, hoja 40, folio e154' },
+  { clave:'civ.ev.hipoxemia', lbl:'Hipoxemia', guia:'acc', rec:'Clase 2b · Nivel C-LD, recomendación 8, hoja 40, folio e154', nota:'la guía la redacta en negativo —«sin hipoxemia»—, así que contestar que SÍ la hay deja esa recomendación FUERA' },
+  { clave:'civ.ev.eisen', lbl:'Fisiología de Eisenmenger', guia:'acc', rec:'Clase 3: Daño · Nivel B-NR, recomendación 10 — el cierre NO debe realizarse, para no agravar la morbilidad y la mortalidad, hoja 40, folio e154', ref:'el cierre no se recomienda, Clase III · Nivel C (hoja 33, folio 595)' },
+  { clave:'civ.ev.desat', lbl:'Desaturación con el ejercicio, con resistencia vascular pulmonar de 5 unidades Wood o más', guia:'esc', rec:'Clase III · Nivel C — el cierre no se recomienda, hoja 33, folio 595', nota:'su nota al pie d aclara que no hay datos para un corte preciso y que, por experiencia clínica, correspondería a una caída de la saturación arterial de oxígeno por debajo del 90 %' },
+  { clave:'civ.ev.endocarditis', lbl:'Antecedente reciente de endocarditis infecciosa que involucra la comunicación interventricular', guia:'acc', rec:'Clase 2b · Nivel C-LD, recomendación 7 — el cierre puede ser razonable para reducir el riesgo de recurrencia, hoja 39, folio e153', ref:'con episodios REPETIDOS y sin cortocircuito significativo, el cierre debe considerarse: Clase IIa · Nivel C (hoja 33, folio 595); cambia la clase' },
+  { clave:'civ.ev.iaprog', lbl:'Insuficiencia aórtica progresiva moderada o mayor', guia:'acc', rec:'Clase 2a · Nivel C-LD, recomendación 6 — con una comunicación de salida o perimembranosa que la causa, el cierre es razonable para preservar la función valvular aórtica, hoja 39, folio e153', ref:'con prolapso de una valva aórtica asociado a la comunicación que causa insuficiencia aórtica progresiva, la cirugía debe considerarse: Clase IIa · Nivel C (hoja 33, folio 595)' },
+  { clave:'civ.ev.salidaperi', lbl:'Comunicación interventricular de salida o perimembranosa', guia:'acc', rec:'Clase 2a · Nivel C-LD, recomendación 6, y Clase 1 · Nivel B-NR, recomendación 2 —la evaluación para excluir obstrucción del tracto de salida del ventrículo derecho o ventrículo derecho de doble cámara—, hoja 39, folio e153' },
+  { clave:'civ.ev.prolapsoao', lbl:'Prolapso de una valva aórtica asociado a la comunicación', guia:'esc', rec:'Clase IIa · Nivel C — la cirugía debe considerarse cuando causa insuficiencia aórtica progresiva, hoja 33, folio 595', nota:'la ACC/AHA 2025 lo nombra en su texto de apoyo, sin una recomendación propia con esa condición' },
+  { clave:'civ.ev.dcrv', lbl:'Obstrucción del tracto de salida del ventrículo derecho o ventrículo derecho de doble cámara, en una comunicación perimembranosa candidata a reparación', guia:'acc', rec:'Clase 1 · Nivel B-NR, recomendación 2 — la evaluación para excluirlos está recomendada para mejorar la planificación del tratamiento, hoja 39, folio e153' }
+]);
+window.CIV_PREG = CIV_PREG;
 function _indCIV(){
   const qF = _indFn('ccQpQsDe'), bsaF = _indFn('getBSA');
   const UQ = _indUmb('CIV_QPQS_CIERRE'), UD = _indUmb('CIV_DDVI_IDX_CIERRE');
@@ -91674,22 +91733,11 @@ function _indCIV(){
 
      ⚠️ NADA DE ESTE BLOQUE LLEGA AL PAPEL. */
   const CIV_OPS = [{ v:'si', t:'Sí' }, { v:'no', t:'No' }];
-  const CIV_PREG = [
-    { clave:'civ.ev.vsaumentado', lbl:'Volumen latido del ventrículo izquierdo aumentado',
-      nota:'es la nota al pie c de la tabla: la sobrecarga de volumen del ventrículo izquierdo que la Clase I · Nivel C exige se define como agrandamiento del ventrículo izquierdo CON volumen latido aumentado, y el segundo término la aplicación no lo tiene' },
-    { clave:'civ.ev.rvp3', lbl:'Resistencia vascular pulmonar por debajo de 3 UW, medida por cateterismo',
-      nota:'cuando hay signos no invasivos de presión pulmonar elevada, es la condición que deja en pie la Clase I · Nivel C' },
-    { clave:'civ.ev.rvp35', lbl:'Resistencia vascular pulmonar entre 3 y 5 UW',
-      nota:'con cortocircuito izquierda-derecha significativo (Qp/Qs mayor que 1,5), el cierre pasa a Clase IIa · Nivel C' },
-    { clave:'civ.ev.rvp5', lbl:'Resistencia vascular pulmonar de 5 UW o más',
-      nota:'con cortocircuito izquierda-derecha significativo el cierre es Clase IIb · Nivel C y exige una decisión individual en un centro experto; con desaturación en el ejercicio es la contraindicación, Clase III · Nivel C' },
-    { clave:'civ.ev.ie', lbl:'Episodios repetidos de endocarditis infecciosa sobre el defecto',
-      nota:'sin cortocircuito significativo, es por sí solo la Clase IIa · Nivel C del cierre' },
-    { clave:'civ.ev.prolapso', lbl:'Prolapso de una valva aórtica asociado al defecto, con insuficiencia aórtica progresiva',
-      nota:'es la Clase IIa · Nivel C de la cirugía, aunque el cortocircuito sea pequeño' },
-    { clave:'civ.ev.eisen', lbl:'Fisiología de Eisenmenger, o desaturación con el ejercicio',
-      nota:'es la contraindicación, Clase III · Nivel C. La nota al pie d de la tabla dice que no hay datos para un corte preciso y que, por experiencia clínica, sería una caída de la saturación arterial por debajo del 90 %' }
-  ];
+  /* ⚠️ CADA PREGUNTA NOMBRA SU GUIA Y SU RECOMENDACION (CORR-EVID-6/7, 2026-11-02). `guia` es
+     la regla E-1 —una pregunta, una guía—; `ref` es la línea de referencia de la OTRA (E-2); y
+     `tramo` DICE que los tramos no coinciden en vez de inventar uno intermedio. Todas leídas en
+     imagen: ACC/AHA 2025 hojas 35, 39 y 40 (folios e149, e153 y e154) y ESC 2020 hojas 30 y 33
+     (folios 592 y 595). */
   const _civClin = [], _cSi = [], _cNo = [], _cSd = [];
   CIV_PREG.forEach(function (p) {
     const o = _indOrigen(null, p.clave);
@@ -91711,7 +91759,21 @@ function _indCIV(){
   return { filas: filas,
     clinica: _civClin,
     bloques: [
-      { tit:'Indicación de cierre — ESC 2020, tabla de recomendaciones de intervención en la comunicación interventricular, hoja 33, folio 595', lineas:[
+      /* ⚠️ EL BLOQUE DE LA ACC/AHA 2025 VA PRIMERO (regla E-2), y los dos van SEPARADOS (E-1). */
+      { tit:'Indicación de cierre — ACC/AHA 2025, apartado 4.1.2, hojas 39 y 40, folios e153 y e154', lineas:[
+        { txt:'Clase 1 · Nivel B-NR — Con un cortocircuito izquierda-derecha significativo (Qp:Qs de 1,5 o más) y una dilatación significativa o progresiva del ventrículo izquierdo, sin evidencia de hipertensión arterial pulmonar (resistencia vascular pulmonar de 2 unidades Wood o menos), se recomienda el cierre del defecto para eliminar el cortocircuito y preservar la función ventricular (recomendación 4).', refs:null },
+        { txt:'Clase 2a · Nivel C-LD — Con sobrecarga de volumen del ventrículo izquierdo, Qp:Qs de 1,5 o más e hipertensión arterial pulmonar leve (resistencia mayor de 2 pero menor de 5 unidades Wood), el cierre es razonable para abolir el cortocircuito, reducir el riesgo de progresión de la hipertensión pulmonar y la carga de sobrecarga crónica de volumen sobre el ventrículo izquierdo (recomendación 5).', refs:null },
+        { txt:'Clase 2a · Nivel C-LD — Con una comunicación de salida o perimembranosa que causa una insuficiencia aórtica progresiva moderada o mayor, el cierre es razonable para preservar la función de la válvula aórtica (recomendación 6).', refs:null },
+        { txt:'Clase 2b · Nivel C-LD — Con antecedente reciente de endocarditis infecciosa que involucra la comunicación, el cierre puede ser razonable para reducir el riesgo de recurrencia (recomendación 7).', refs:null },
+        { txt:'Clase 2b · Nivel C-LD — Con Qp:Qs de 1,5 o más e hipertensión arterial pulmonar (resistencia de 5 a 8 unidades Wood) SIN hipoxemia, si la resistencia baja por debajo de 5 unidades Wood con el tratamiento dirigido, la utilidad del cierre es INCIERTA (recomendación 8, hoja 40, folio e154).', refs:null },
+        { txt:'Clase 3: Sin beneficio · Nivel B-NR — Con un Qp:Qs por debajo de 1,5 y sin otras indicaciones, el cierre no debe realizarse, para evitar riesgos perioperatorios innecesarios (recomendación 9, hoja 40, folio e154).', refs:null },
+        { txt:'Clase 3: Daño · Nivel B-NR — Con fisiología de Eisenmenger, el cierre no debe realizarse, para no agravar la morbilidad y la mortalidad (recomendación 10, hoja 40, folio e154).', refs:null },
+        { txt:'Clase 1 · Nivel B-NR — Debe evaluarse la presencia de hipertensión arterial pulmonar para guiar las decisiones sobre tratamiento médico y reparación (recomendación 1).', refs:null },
+        { txt:'Clase 1 · Nivel B-NR — Ante una comunicación perimembranosa considerada para reparación, está recomendada la evaluación para excluir una obstrucción del tracto de salida del ventrículo derecho o un ventrículo derecho de doble cámara, para mejorar la planificación del tratamiento (recomendación 2).', refs:null },
+        { txt:'Clase 1 · Nivel C-LD — Con comunicación interventricular —reparada o no— e hipertensión arterial pulmonar, el seguimiento debe estar a cargo de especialistas en cardiopatías congénitas del adulto y en hipertensión pulmonar, para reducir la morbilidad y la mortalidad (recomendación 3).', refs:null },
+        { txt:'Fuente: ACC/AHA 2025 de cardiopatías congénitas del adulto, apartado 4.1.2, «Ventricular Septal Defect», hojas 39 y 40, folios e153 y e154.', refs:['acc2025achd'] }
+      ]},
+      { tit:'Indicación de cierre — ESC 2020 (guía anterior), tabla de recomendaciones de intervención en la comunicación interventricular, hoja 33, folio 595', lineas:[
         { txt:'Clase I · Nivel C — Con sobrecarga de volumen del ventrículo izquierdo y sin hipertensión arterial pulmonar (sin signos no invasivos de presión pulmonar elevada, o con resistencia vascular pulmonar por debajo de 3 UW confirmada por cateterismo si los hay), se recomienda el cierre independientemente de los síntomas.', refs:null },
         { txt:'Clase IIa · Nivel C — Sin cortocircuito izquierda-derecha significativo, pero con antecedente de episodios repetidos de endocarditis infecciosa, debe considerarse el cierre.', refs:null },
         { txt:'Clase IIa · Nivel C — Con prolapso de una valva aórtica asociado al defecto que causa insuficiencia aórtica progresiva, debe considerarse la cirugía.', refs:null }
@@ -91730,9 +91792,16 @@ function _indCIV(){
         { txt:'Fuente: ESC 2020 de cardiopatías congénitas del adulto, hoja 33, folio 595.', refs:['esc2020guch'] }
       ]}
     ],
+    /* ⚠️ LA LINEA DE GUIA NO SE MUEVE A LA ACC/AHA 2025, Y ES DELIBERADO. Esta línea publica el
+       CRITERIO QUE LA APLICACION APLICA, no la lista de recomendaciones, y ese criterio diverge
+       de la tabla de la ESC 2020 —tres divergencias verificadas, que la entrada `escGuchCiv` del
+       registro de citas declara desde antes—. Apuntarla a la guía nueva haría que la advertencia
+       dejara de verse justo donde hace falta, y cambiar el criterio es contenido clínico, que
+       decide Maicol. Las recomendaciones de las DOS guías se publican en los bloques de arriba,
+       cada una con su clase, su nivel y su folio. Declarado en docs/PENDIENTES.md. */
     guia: { ref:'escGuchCiv',
       txt:'El cierre de la comunicación interventricular es Clase I en el paciente con sobrecarga de volumen del ventrículo izquierdo o síntomas atribuibles al shunt, siempre que no haya enfermedad vascular pulmonar avanzada.',
-      nota:'El nivel de evidencia no se publica acá y la redacción de este criterio diverge de la tabla de la guía: ver la referencia.' },
+      nota:'El nivel de evidencia no se publica acá y la redacción de este criterio diverge de la tabla de la guía: ver la referencia. Las recomendaciones de la ACC/AHA 2025 y de la ESC 2020 se publican completas en los dos bloques de arriba.' },
     notas: [
       'Con shunt neto invertido —Qp/Qs menor que 1— el cierre está contraindicado: primero hay que establecer la operabilidad.',
       'Esta app no registra la dirección del shunt de la CIV, así que la contraindicación se apoya sólo en el Qp/Qs.',
@@ -91874,6 +91943,7 @@ const TGA_IND_PREG = Object.freeze({
 });
 /* Las recomendaciones, COPIADAS DE LA HOJA. Una cita al final del bloque (regla R2 / R4): el
    folio de cada tabla va en el encabezado del bloque, que es donde se lee una vez. */
+window.TGA_IND_PREG = TGA_IND_PREG;
 const TGA_IND_RECS = Object.freeze({
   aur: Object.freeze({ tit:'Indicaciones tras el switch auricular (Mustard o Senning) — ESC 2020, tabla de recomendaciones de intervención tras el switch auricular, hoja 57, folio 619', folios:'tabla de recomendaciones de intervención tras el switch auricular, hoja 57, folio 619', lineas:Object.freeze([
     'Clase I · Nivel C — En el paciente sintomático con obstrucción de la aurícula venosa pulmonar, se recomienda la reparación quirúrgica (la intervención por catéter rara vez es posible).',
@@ -150389,8 +150459,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261102-1147';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793630829826;                 /* eco-build-ms */
+const ECO_BUILD    = '20261102-1155';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793631352290;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -150476,7 +150546,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261102-1147</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261102-1155</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
