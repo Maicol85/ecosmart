@@ -1888,6 +1888,14 @@
   #tga-campos { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px;
                 align-items:start; }
   #tga-campos.tga-sint-ancho > #tga-sintomas-fg { grid-column:1 / -1; }
+  /* ⚠️ LA CONCLUSION VIVE DENTRO DE `#tga-campos`, Y ES PEDIDO DEL MEDICO (TGA-3, 2026-11-01).
+     Antes colgaba de la seccion a ancho completo, DEBAJO de las dos columnas, y eso dejaba un
+     hueco vacio bajo los campos: medido, 368 px de alto por 549 de ancho a 1440 px y 475 x 358
+     a 1000. Ponerla como hijo de la grilla con `grid-column:1 / -1` la mete en ese hueco sin
+     tocar la maqueta de dos columnas: `#tga-fila` sigue teniendo EXACTAMENTE DOS hijos, asi que
+     el flex de 900 px no cambia, y por debajo de 900 px queda apilada DESPUES de los campos y
+     ANTES del diagrama, que es el orden que la orden pide. Su `margin-top` sale del `gap` de la
+     grilla; el que traia en linea la separaria el doble. */
   #tga-campos > #tga-concl-box { grid-column:1 / -1; margin-top:2px; }
   #tga-fila > #tga-3d-box { margin-top:12px; }
   @media (min-width: 900px) {
@@ -18928,6 +18936,11 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
             <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
           </select>
         </div>
+        <!-- ⚠️ LA CONCLUSION VA ACA, EN LA COLUMNA IZQUIERDA Y BAJO LOS CAMPOS, por pedido del
+             medico (TGA-3). Es el ULTIMO hijo de `#tga-campos` a proposito: el orden del marcado
+             ES el orden visual y el de tabulacion, asi que la conclusion queda despues del
+             ultimo campo sin un solo `tabindex`. Su `id` NO cambio -lo escribe `tgaSync`- y su
+             CONTENIDO tampoco: esta tanda la mueve, no la reescribe. -->
         <div class="calc-box" id="tga-concl-box">
           <div class="calc-row"><span class="calc-lbl">Conclusión</span><span id="tga-concl" class="calc-val">—</span></div>
         </div>
@@ -19007,8 +19020,12 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
         <p id="tga-3d-estado" style="font-size:10.5px;color:var(--text2);margin:6px 0 0;line-height:1.5;"></p>
       </div><!-- /#tga-3d-box -->
       </div><!-- /#tga-fila -->
-      <!-- «Conclusion» e «Integrar al informe» van DEBAJO DE TODO y a ancho completo, fuera de
-           `#tga-fila`: son el veredicto de la seccion entera, no de una de las dos columnas. -->
+      <!-- ⚠️ LA CONCLUSION SE MUDO ARRIBA, dentro de `#tga-campos` (TGA-3): el medico la pidio
+           en el hueco bajo los campos. El renglon que decia que iba «DEBAJO DE TODO y a ancho
+           completo … el veredicto de la seccion entera, no de una de las dos columnas» describia
+           la maqueta anterior y dejo de ser cierto.
+           «Integrar al informe» SI se queda aca, a ancho completo: es la accion de la seccion y
+           la orden no la mueve. -->
       <div style="text-align:center;margin-top:10px;">
         <input type="checkbox" id="tga_incluir_chk" style="display:none;" tabindex="-1" aria-hidden="true">
         <button type="button" class="btn btn-integrar" data-ete-chk="tga_incluir_chk" aria-pressed="false"
@@ -61342,8 +61359,14 @@ function generarInforme(opts) {
          del PDF de esta cardiopatía publica su conclusión y nada más, y hacerle llegar las
          líneas nuevas le agregaría tres subtítulos («Morfologia / Tipo», «Mediciones»,
          «Hemodinamica») que esta orden no pide. Declarado en el reporte. */
-      (c.lineasInf || c.parrafos || [c.txt + '.']).forEach(function(pp){ etePars.push(pp); }); ccMarcarParrafo();
-      ccHoja(sec[3], c.parrafos || [], c.resumen || null, null);
+      /* ⚠️ `c.papel` PRIMERO, Y ES LA EXTENSION DE LA TANDA TGA-3. La trae SOLO la transposicion:
+         es su texto DESCRIPTIVO, sin la conducta ni el nombre de la guia que la cascada de
+         `tgaConclusion` agregaba. Para Ebstein, la Fallot reparada y la miocardiopatia
+         arritmogenica esta linea es un NO-OP, verificado: ninguno de los tres constructores
+         devuelve `papel`. El mismo valor va a la hoja del PDF, que es la otra superficie firmada
+         que esta tabla alimenta. */
+      (c.lineasInf || c.parrafos || [(c.papel || c.txt) + '.']).forEach(function(pp){ etePars.push(pp); }); ccMarcarParrafo();
+      ccHoja(sec[3], c.parrafos || [], c.papel || c.resumen || null, null);
       /* `clave !== 'no_interpretable'` YA NO gatea. Ese filtro borraba del EN SUMA afirmaciones
          que el cuerpo sí publicaba: con `mca_tsvd_plax` cargado en cm en vez de mm, el cuerpo
          imprimía «Task Force 2010: 4 puntos — diagnóstico DEFINITIVO» y el EN SUMA quedaba mudo.
@@ -95289,8 +95312,33 @@ function tgaConclusion(src){
       ? 'Disfunción leve del ventrículo sistémico — seguimiento anual y vigilancia de la progresión'
       : 'No consta la función del ventrículo sistémico, que es lo que gobierna el pronóstico en esta cardiopatía — completar la evaluación');
   }
+  /* ══ EL PAPEL DESCRIBE Y NO RECOMIENDA — REGLA FIJA DEL MEDICO (TGA-3, 2026-11-01) ══════════
+     `papel` es la MISMA lista de partes descriptivas, congelada ANTES de que entre la conducta.
+     Es lo que leen el CUERPO del informe, la hoja del PDF y la diapositiva del PPT; `txt` sigue
+     entero y es lo que la PANTALLA publica en `tga-concl`, porque la orden pide expresamente que
+     el contenido de la conclusion de pantalla NO cambie.
+
+     ⚠️ MEDIDO EN HEAD ANTES DE TOCAR NADA, con la seccion integrada: la rama `seguimiento`
+     publicaba «seguimiento anual» UNA vez en el informe en cada uno de los tres estilos, TRES
+     veces en cada una de las SEIS plantillas del PDF y UNA en el PPT. El EN SUMA no la llevaba:
+     `ccSumaLinea` arma su propia linea y nunca leyo la conducta. Y la rama `cirugia_it` llevaba
+     «(ESC 2020)» al informe FIRMADO, o sea el nombre de una sociedad y el ano de una guia.
+
+     ⚠️ SE DERIVA DE LA MISMA LISTA Y NO SE REESCRIBE, que es lo que la regla fija pide: las dos
+     salidas se arman con las mismas piezas, asi que no pueden divergir. Reescribir un segundo
+     texto descriptivo a mano es lo que la tanda AJ7 pago con la Fallot.
+
+     ⚠️ ESTO NO ES UNA RAMA NUEVA. La rama `descriptivo` de arriba —Jatene y Rastelli, TGA-2— ya
+     salia sin conducta, y su comentario ya decia que la cascada «cita la ESC 2020, que es lo que
+     el principio del medico saca del papel». Esta salida termina eso para las otras anatomias.
+
+     ⚠️ `resumen` QUEDA COMO ESTABA Y HOY NO LO LEE NINGUNA SUPERFICIE DE PAPEL. Sus dos
+     consumidores eran la hoja del PDF y la diapositiva, y los dos pasan a `papel`. No se toca
+     porque cambiarlo es mover una cadena que otro lector podria tomar manana; queda declarado en
+     docs/PENDIENTES.md. QUIEN VUELVA A CABLEAR ESTA SECCION AL PAPEL TIENE QUE USAR `papel`. */
+  const _papelDesc = partes.join('. ');
   partes.push(conducta);
-  return { clave: clave, txt: partes.join('. '),
+  return { clave: clave, txt: partes.join('. '), papel: _papelDesc,
     resumen: _cab + (itTxt ? ', insuficiencia de la AV sistémica ' + itTxt : '') + '. ' + conducta };
 }
 function tgaSync(){
@@ -111852,7 +111900,10 @@ function _pptDesdeFormulario(inf, tema, presentador){
       { chk:'mch_incluir_chk',       sec:'mch', nom:'MCH — miocardiopatía hipertrófica',    fn:'mchConclusion', papel:true },
       { chk:'ebs_incluir_chk',       sec:'ebs', nom:'Anomalía de Ebstein',                  fn:'ebsConclusion' },
       { chk:'tdf_incluir_chk',       sec:'tdf', nom:'Tetralogía de Fallot reparada',        fn:'tdfConclusion' },
-      { chk:'tga_incluir_chk',       sec:'tga', nom:'TGA — transposición de grandes arterias', fn:'tgaConclusion' },
+      /* `papel:true` — la transposicion publica su texto DESCRIPTIVO y no `resumen`, por la misma
+         razon que la coartacion y la miocardiopatia hipertrofica: su `resumen` llevaba la
+         conducta y el nombre de la guia. Ver `tgaConclusion` (TGA-3). */
+      { chk:'tga_incluir_chk',       sec:'tga', nom:'TGA — transposición de grandes arterias', fn:'tgaConclusion', papel:true },
       { chk:'mca_incluir_chk',       sec:'mca', nom:'MCA — miocardiopatía arritmogénica',   fn:'mcaConclusion' }
     ];
     const secs = [];
@@ -149284,7 +149335,7 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
 const ECO_BUILD    = '20261101-2137';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793579839192;                 /* eco-build-ms */
+const ECO_BUILD_MS = 1793579839562;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
