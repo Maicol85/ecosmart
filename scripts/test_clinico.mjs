@@ -110758,7 +110758,7 @@ caso('TC-643', 'Tanda PANT-5: los estadios de la AHA/ACC 2020 de la estenosis mi
   P('it_grado', '0'); r = V('_indEstIT');
   ex.push(['(E7) CONTROL: sin grado no hay estadio', r.txt, 'Sin dato']);
   /* (F) LAS DOS LESIONES SIN ESTADIO LO DICEN. */
-  const nh = _indEstNoHay('la v\\u00e1lvula pulmonar');
+  const nh = V('_indEstNoHay', 'la v\\u00e1lvula pulmonar');
   ex.push(['(F1) el aviso existe y lo dice', String(nh.txt).indexOf('no publica estadios') > -1, true]);
   ex.push(['(F2) y su nota nombra la lesion', String(nh.nota).indexOf('v\\u00e1lvula pulmonar') > -1, true]);
   /* (G) NADA DE ESTO LLEGA AL PAPEL. */
