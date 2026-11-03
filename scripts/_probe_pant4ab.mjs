@@ -126,6 +126,26 @@ const ESCENAS = {
   sv:    { campos: S({ esub_gradiente_medio:'45', easv_gradiente_medio:'45' }),
            sel:{ esub_tipo:'membrana', esub_ia_asociada:'moderada', easv_tipo:'reloj', easv_coronarias:'comprometidos' },
            chk:['esub_incluir_chk','easv_incluir_chk'] },
+  /* -- LAS ESCENAS DE MCA (commit 2) --
+     Una por cada rama que escribe una nota con el nombre del criterio, mas el control de la
+     compuerta -los MISMOS datos sin integrar- y el ajeno. Van en el A/B y no solo en el censo
+     porque el censo midio el PDF sobre un denominador VACIO: su espia de jsPDF devolvio cero
+     caracteres, asi que el PDF y el PPT los tiene que medir este arnes, que los genera de verdad. */
+  mcaEstr: { campos:{ peso:'70', talla:'170', mca_tsvd_plax:'34', mca_tsvd_psax:'38' },
+             sel:{ mca_fenotipo:'derecho', mca_mov_regional:'normal' }, chk:['mca_incluir_chk'] },
+  mcaAne:  { campos:{ peso:'70', talla:'170', mca_tsvd_plax:'34', mca_tsvd_psax:'38' },
+             sel:{ mca_fenotipo:'derecho', mca_mov_regional:'aneurisma' }, chk:['mca_incluir_chk'] },
+  mcaTvDrc:{ campos:{ peso:'70', talla:'170' },
+             sel:{ mca_fenotipo:'derecho', tv_documentada:'si', tv_morfologia:'bcrd', tv_tipo:'sostenida' },
+             chk:['mca_incluir_chk'] },
+  mcaTvSin:{ campos:{ peso:'70', talla:'170' },
+             sel:{ mca_fenotipo:'derecho', tv_documentada:'si', tv_morfologia:'bcri_inf' },
+             chk:['mca_incluir_chk'] },
+  mcaVI:   { campos:{ peso:'70', talla:'170' },
+             sel:{ mca_fenotipo:'biventricular', mca_vi_aneurisma:'si' }, chk:['mca_incluir_chk'] },
+  /* El control de la compuerta: los mismos datos SIN integrar. */
+  mcaApa:  { campos:{ peso:'70', talla:'170', mca_tsvd_plax:'34', mca_tsvd_psax:'38' },
+             sel:{ mca_fenotipo:'derecho', mca_mov_regional:'aneurisma' } },
   p4ajeno: { campos: { im_vc:'8', ea_dtsvi:'20', itv_tsvi:'20', itv_ao:'100', vmax_ao:'4.5',
                        onda_e:'110', e_sep:'5', e_lat:'6', ai_vol:'70', peso:'80', talla:'180' } }
 };

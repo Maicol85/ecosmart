@@ -81407,10 +81407,10 @@ function tvEstado(src){
   const menorEV     = !!(evOk && ev > 500);
 
   const notas = [];
-  if (hay && !paradaRec && morf === 'bcri_inf') notas.push('Morfología compatible con origen en el tracto de salida del ventrículo derecho (bloqueo de rama izquierda con eje inferior); los criterios Task Force la puntúan como criterio menor');
-  if (hay && !paradaRec && morf === 'bcri_desc') notas.push('Morfología de bloqueo de rama izquierda con eje no determinado; los criterios Task Force la puntúan como criterio menor');
-  if (hay && !paradaRec && morf === 'bcrd') notas.push('Morfología de bloqueo de rama derecha, sugestiva de origen en el ventrículo izquierdo: los criterios Task Force 2010 no la contemplan y no aporta puntos. Es un hallazgo del fenotipo con compromiso izquierdo, que puntúan los criterios de Padua 2020');
-  if (hay && !paradaRec && (!morf || morf === 'no_esp')) notas.push('No consta la morfología de la taquicardia ventricular: sin ella no puede aplicarse el criterio de arritmias del Task Force, que distingue el eje superior del inferior');
+  if (hay && !paradaRec && morf === 'bcri_inf') notas.push('Morfología compatible con origen en el tracto de salida del ventrículo derecho (bloqueo de rama izquierda con eje inferior), que puntúa como criterio menor');
+  if (hay && !paradaRec && morf === 'bcri_desc') notas.push('Morfología de bloqueo de rama izquierda con eje no determinado, que puntúa como criterio menor');
+  if (hay && !paradaRec && morf === 'bcrd') notas.push('Morfología de bloqueo de rama derecha, sugestiva de origen en el ventrículo izquierdo, que no está contemplada y no aporta puntos. Es un hallazgo del fenotipo con compromiso izquierdo');
+  if (hay && !paradaRec && (!morf || morf === 'no_esp')) notas.push('No consta la morfología de la taquicardia ventricular: sin ella no puede aplicarse el criterio de arritmias, que distingue el eje superior del inferior');
   /* La falta del tipo NO afecta a MCA —el Task Force no lo mira— pero sí a las otras dos: el
      score de la ESC necesita saber si fue no sostenida, y el criterio de reintervención de la
      ESC 2020 en Fallot pide la sostenida. La nota lo dice sin mencionar el puntaje de MCA, que
@@ -81423,7 +81423,7 @@ function tvEstado(src){
      ⚠️ Y LAS OTRAS NOTAS DE ESTE BLOQUE SI NOMBRAN «Task Force 2010» EN EL PAPEL. Es
      PREEXISTENTE y queda declarado en docs/PENDIENTES.md: tocarlo es cambiar el papel firmado
      mas alla de lo que esta orden lista. */
-  if (faltaTipo) notas.push('No consta si la taquicardia ventricular fue sostenida o no sostenida. Los criterios Task Force 2010 no lo requieren —cuentan las dos por igual— pero sin ese dato no puede completarse el score de la ESC en miocardiopatía hipertrófica ni aplicarse el criterio de reintervención de la ESC 2020 en tetralogía de Fallot');
+  if (faltaTipo) notas.push('No consta si la taquicardia ventricular fue sostenida o no sostenida. Para la miocardiopatía arritmogénica no hace falta —las dos cuentan por igual— pero sin ese dato no puede completarse el puntaje de riesgo de muerte súbita de la miocardiopatía hipertrófica ni aplicarse el criterio de reintervención de la tetralogía de Fallot');
   if (evFuera) notas.push('El recuento de extrasístoles ventriculares en 24 h está fuera de rango — revisar antes de aplicar el criterio de >500');
   if (evDecimal) notas.push('El recuento de extrasístoles ventriculares se cargó con decimales (' + evCrudo + ') y se truncó a ' + ev + ' para aplicar el criterio — verificar el número');
   /* Estudio anterior al bloque compartido que traía marcado el criterio de >500 EV sin el número:
@@ -81795,15 +81795,15 @@ function mcaConclusion(src){
       ', que no constituye criterio Task Force: la tabla exige aquinesia, discinesia o aneurisma');
     else if (mov === 'aneurisma') partes.push('Aneurisma localizado del ventrículo derecho' + (loc ? ' (' + loc + ')' : ''));
     else if (mov === 'normal') partes.push('Motilidad regional del ventrículo derecho conservada');
-    if (sc.catI.sinMotilidad) partes.push('Las medidas del tracto de salida alcanzan rango de criterio, pero los criterios Task Force exigen ADEMÁS aquinesia, discinesia o aneurisma regional, que no está presente: la categoría estructural no aporta puntos');
-    if (sc.catI.faltaMotilidad) partes.push('Las medidas del tracto de salida alcanzan rango de criterio, pero no consta la evaluación de la motilidad regional del ventrículo derecho, que los criterios Task Force exigen además del umbral: la categoría estructural queda sin puntuar');
-    if (sc.catI.aneurismaSinUmbral) partes.push('Hay aneurisma regional pero las medidas no alcanzan el umbral de criterio mayor; la tabla del Task Force no contempla el aneurisma en la fila de criterio menor, de modo que la categoría queda sin puntuar');
-    if (sc.catI.aneurismaSinMedidas) partes.push('Hay aneurisma regional del ventrículo derecho pero no consta ninguna medición del tracto de salida ni la fracción de acortamiento, que los criterios Task Force exigen además: completar las medidas para poder puntuar la categoría estructural');
+    if (sc.catI.sinMotilidad) partes.push('Las medidas del tracto de salida alcanzan rango de criterio, pero no hay aquinesia, discinesia ni aneurisma regional, que se exigen además: la categoría estructural no aporta puntos');
+    if (sc.catI.faltaMotilidad) partes.push('Las medidas del tracto de salida alcanzan rango de criterio, pero no consta la evaluación de la motilidad regional del ventrículo derecho, que se exige además del umbral: la categoría estructural queda sin puntuar');
+    if (sc.catI.aneurismaSinUmbral) partes.push('Hay aneurisma regional pero las medidas no alcanzan el umbral de criterio mayor; el aneurisma no está contemplado en la fila de criterio menor, de modo que la categoría queda sin puntuar');
+    if (sc.catI.aneurismaSinMedidas) partes.push('Hay aneurisma regional del ventrículo derecho pero no consta ninguna medición del tracto de salida ni la fracción de acortamiento, que se exigen además: completar las medidas para poder puntuar la categoría estructural');
   }
   /* Compromiso izquierdo, declarado como lo que es. */
   const _cortesM = [partes.length];         // fin del párrafo 1 (diagnóstico y criterio estructural)
   if (vi.hay) partes.push('Compromiso del ventrículo izquierdo: ' + vi.hallazgos.join('; ') +
-    '. Los criterios Task Force 2010 no puntúan el ventrículo izquierdo — los que sí lo hacen son los criterios de Padua 2020 y el consenso europeo de 2023, todavía no validados');
+    '. El ventrículo izquierdo no se puntúa en estos criterios');
   /* Las categorías que aportaron. */
   const aportan = sc.cats.filter(function(c){ return c.pts > 0; });
   if (aportan.length) partes.push('Criterios cumplidos: ' + aportan.map(function(c){
@@ -81821,9 +81821,9 @@ function mcaConclusion(src){
   /* La base de la derivación se imprime: quien lea el informe tiene que poder juzgar si esa
      muerte súbita se atribuye a MCA, que es la parte del criterio que la app no puede decidir. */
   { const fam = mcaFamMuerteSubita(src);
-    if (fam.motivo === 'cumple') partes.push('El criterio familiar se sostiene en la muerte súbita de un familiar de primer grado a los ' + fam.edad + ' años; los criterios Task Force piden además que se atribuya a sospecha de miocardiopatía arritmogénica, que es una valoración clínica');
-    else if (fam.motivo === 'sin_edad') partes.push('Consta historia familiar de muerte súbita pero no la edad del familiar: el criterio Task Force exige que haya sido antes de los 35 años, así que la categoría familiar no puede puntuarse por esa vía');
-    else if (fam.motivo === 'edad_mayor') partes.push('La muerte súbita familiar ocurrió a los ' + fam.edad + ' años, por encima del corte de 35 del criterio Task Force');
+    if (fam.motivo === 'cumple') partes.push('El criterio familiar se sostiene en la muerte súbita de un familiar de primer grado a los ' + fam.edad + ' años; se pide además que se atribuya a sospecha de miocardiopatía arritmogénica, que es una valoración clínica');
+    else if (fam.motivo === 'sin_edad') partes.push('Consta historia familiar de muerte súbita pero no la edad del familiar: el criterio exige que haya sido antes de los 35 años, así que la categoría familiar no puede puntuarse por esa vía');
+    else if (fam.motivo === 'edad_mayor') partes.push('La muerte súbita familiar ocurrió a los ' + fam.edad + ' años, por encima del corte de 35 años del criterio');
     else if (fam.motivo === 'edad_fuera') partes.push('La edad del familiar al fallecer está fuera de rango — revisar'); }
   _cortesM.push(partes.length);            // fin del párrafo 3 (arritmia e historia familiar)
   const dobles = sc.cats.filter(function(c){ return c.marcados > 1; });
@@ -81835,7 +81835,7 @@ function mcaConclusion(src){
     posible:'Diagnóstico POSIBLE de miocardiopatía arritmogénica',
     sin_criterios:'No se cumplen criterios diagnósticos de miocardiopatía arritmogénica'
   };
-  partes.push('Puntaje Task Force 2010: ' + sc.total + (sc.total === 1 ? ' punto' : ' puntos') +
+  partes.push('Puntaje de criterios diagnósticos: ' + sc.total + (sc.total === 1 ? ' punto' : ' puntos') +
     ' (ecocardiografía ' + sc.eco + ', resto ' + sc.noEco + ') — ' + BANDA[sc.banda]);
   _cortesM.push(partes.length);            // fin del párrafo 4 (regla de conteo y puntaje)
   partes.push('El diagnóstico definitivo requiere integrar criterios de varias categorías: un puntaje ecocardiográfico aislado no confirma ni descarta la enfermedad, y la resonancia cardíaca con gadolinio es el estándar de referencia para la caracterización tisular del miocardio');
@@ -81844,13 +81844,17 @@ function mcaConclusion(src){
      `suma.push(c.resumen || c.txt)`: con el resumen vacío caía el CUERPO ENTERO —siete oraciones—
      dentro del EN SUMA, encabezado por «Miocardiopatía arritmogénica». Las otras nueve secciones
      devuelven siempre una cadena; ésta era la única que podía no hacerlo. */
+  /* PANT-4, commit 2: el `resumen` lo lee la HOJA del PDF y la diapositiva del PPT, no solo el
+     EN SUMA, asi que el nombre del criterio tenia que salir tambien de aca -lo encontro el A/B,
+     que genera el PDF de verdad, sobre un censo que ya daba cero en el informe y en el EN SUMA-.
+     El PUNTAJE no se mueve: lo que cambia es como se nombra. */
   const resumen = sc.banda === 'definitivo'
-      ? 'Miocardiopatía arritmogénica — diagnóstico definitivo (Task Force 2010: ' + sc.total + ' puntos)'
+      ? 'Miocardiopatía arritmogénica — diagnóstico definitivo (' + sc.total + ' puntos)'
     : sc.banda === 'limitrofe'
-      ? 'Miocardiopatía arritmogénica limítrofe (Task Force 2010: 3 puntos) — completar criterios diagnósticos'
+      ? 'Miocardiopatía arritmogénica limítrofe (3 puntos) — completar criterios diagnósticos'
     : sc.banda === 'posible'
-      ? 'Criterios posibles de miocardiopatía arritmogénica (Task Force 2010: 2 puntos) — evaluación multimodal indicada'
-      : 'Miocardiopatía arritmogénica: no se cumplen criterios diagnósticos (Task Force 2010: ' + sc.total +
+      ? 'Criterios posibles de miocardiopatía arritmogénica (2 puntos) — evaluación multimodal indicada'
+      : 'Miocardiopatía arritmogénica: no se cumplen criterios diagnósticos (' + sc.total +
         (sc.total === 1 ? ' punto' : ' puntos') + ')';
   /* Las salvedades de la categoría de arritmias viajan en el EN SUMA, no sólo en el cuerpo. El
      resumen lleva el rótulo «Task Force 2010» al lado del puntaje, y los dos textarea del informe
@@ -81863,7 +81867,7 @@ function mcaConclusion(src){
        divergencia con la guía —sin morfología el Task Force tampoco puntúa— pero el EN SUMA
        lleva el rótulo y el puntaje, y los dos textarea se editan por separado. */
     if (_tv.faltaMorf) resumenF += ' — categoría de arritmias sin puntuar: no consta la morfología de la taquicardia ventricular';
-    else if (_tv.hay && _tv.morf === 'bcrd') resumenF += ' — la taquicardia ventricular es de bloqueo de rama derecha, que los criterios Task Force 2010 no contemplan'; }
+    else if (_tv.hay && _tv.morf === 'bcrd') resumenF += ' — la taquicardia ventricular es de bloqueo de rama derecha, que estos criterios no contemplan'; }
   /* Un valor ilegible corta la banda, como en ductus y coartación: sin esto el informe decía a la
      vez «criterio estructural no evaluable, fuera de rango» y «no se cumplen criterios
      diagnósticos», que es una negación apoyada en un número que no se pudo leer. */
@@ -82362,14 +82366,14 @@ function ccSumaLinea(sec){
     const fz = L(MCA_FENO_TXT, feno);
     let l = 'MCA' + (fz ? ' fenotipo ' + fz : '');
     if (sc.catI.fuera) return l + ' — ' + sc.catI.fuera.join(' y ') + ' fuera de rango: revisar unidades antes de puntuar';
-    l += ' — Task Force 2010 ' + sc.total + (sc.total === 1 ? ' punto' : ' puntos') +
+    l += ' — criterios diagnósticos ' + sc.total + (sc.total === 1 ? ' punto' : ' puntos') +
          ' (eco ' + sc.eco + ', resto ' + sc.noEco + ') — ' + (L(BANDA, sc.banda) || sc.banda);
     /* Las salvedades de la categoría de arritmias viajaban en el resumen y no en el párrafo, a
        propósito: el EN SUMA lleva el rótulo «Task Force 2010» al lado del puntaje. */
     if (typeof tvEstado === 'function') {
       const t = tvEstado();
       if (t.faltaMorf) l += ' — categoría de arritmias sin puntuar: no consta la morfología de la taquicardia';
-      else if (t.hay && t.morf === 'bcrd') l += ' — taquicardia de bloqueo de rama derecha, no contemplada por el Task Force 2010';
+      else if (t.hay && t.morf === 'bcrd') l += ' — taquicardia de bloqueo de rama derecha, no contemplada por estos criterios';
     }
     return l;
   }
@@ -152641,8 +152645,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261103-1104';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793714653786;                 /* eco-build-ms */
+const ECO_BUILD    = '20261103-1112';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793715164187;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -152728,7 +152732,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261103-1104</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261103-1112</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
