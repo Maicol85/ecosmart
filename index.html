@@ -46612,9 +46612,13 @@ const VINFO = Object.freeze({
      están: es la decisión (b) del médico y queda en docs/PENDIENTES.md → TGA-b. */
   /* ══ EL GLOBO DEL ESQUEMA DE CIRCULACION (TGA-3, commit 5b) ════════════════════════════════
      Es el ⓘ ESTANDAR de la casa: el mismo glifo U+24D8 en un boton de 44 px con `vinfo-btn-44`,
-     el mismo mecanismo `data-vinfo` y la misma tarjeta. Dice lo que el esquema representa y, con
-     la misma claridad, lo que NO: no es una imagen del estudio, no esta a escala y los recorridos
-     de las cirugias estan pendientes de que los revise un cardiologo de congenitas.
+     el mismo mecanismo `data-vinfo` y la misma tarjeta. Dice lo que el esquema representa: por
+     donde circula la sangre, los colores, de donde sale el escenario y que se dibuja con cada
+     comunicacion y con cada cirugia.
+     ⚠️ ESTE COMENTARIO DECIA ADEMAS que el globo declara que los recorridos de las cirugias
+     estan pendientes de que los revise un cardiologo de congenitas, y DEJO DE SER CIERTO en
+     PANT-3: ese bloque se retiro entero. Un comentario que describe lo que ya no esta es la
+     documentacion vencida que este proyecto paga una y otra vez.
      ⚠️ PARAFRASEADO Y SIN UNA SOLA CITA, que es lo que la orden pide: ni guia, ni sociedad, ni
      clase, ni tabla, ni folio. Este globo no respalda una recomendacion: explica un dibujo. */
   'tga-esq': {
@@ -97115,7 +97119,16 @@ function tgaEsqSync(anat, cir) {
      sin explicar por que se lee como que la app perdio el dato. Las palabras son las del 3D. */
   if (sh.asd && base.k === 'mus') partes.push('La CIA no se dibuja con el switch auricular.');
   if (sh.vsd && base.k === 'ras') partes.push('La CIV no se dibuja con el Rastelli: es el túnel.');
-  if (base.pend) partes.push('Esquema pendiente de revisión para esta cirugía: se muestra el de la anatomía.');
+  /* ⚠️ LA FRASE DIJO «pendiente de revisión» HASTA PANT-3, Y SE REESCRIBIO EN VEZ DE RETIRARSE.
+     La regla nueva del medico prohibe que una pantalla diga que algo esta pendiente de revision,
+     pero la MITAD INFORMATIVA de esta frase es un aviso que evita un error: sin ella el medico ve
+     el dibujo de la anatomia creyendo que es el de la cirugia que cargo. Lo que sale es la
+     afirmacion de que falta una revision; lo que queda es QUE dibujo se esta mostrando.
+     ⚠️ Y HOY NO ES ALCANZABLE, medido: `_tgaEsqBase` solo marca `pend` cuando el escenario no
+     tiene recorrido definido, y los seis que `_tga3dClave` puede producir lo tienen. Censados los
+     ocho estados del selector de tipo y cirugia: cero apariciones en los dos arboles. Se reescribe
+     igual, para el dia que entre una cirugia sin recorrido. */
+  if (base.pend) partes.push('Para esta cirugía se muestra el esquema de la anatomía.');
   const tx = document.getElementById('tga-esq-txt');
   if (tx) tx.textContent = partes.join(' ');
   /* ⚠️ LA ALTERNATIVA DE TEXTO ES EL RECORRIDO QUE LA APP YA PUBLICA. `TGA3D_CIRC` es su dueno
@@ -151493,8 +151506,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261102-2353';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793674431201;                 /* eco-build-ms */
+const ECO_BUILD    = '20261103-0003';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793675026002;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -151580,7 +151593,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261102-2353</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261103-0003</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
