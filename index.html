@@ -1434,6 +1434,22 @@
      entran las cinco y en angosta bajan solas en vez de desbordar — los textos de criterio son
      largos y una grilla rígida saca scroll horizontal. */
   .mca-cat-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(215px,1fr)); gap:10px; margin-top:8px; }
+  /* PANT-3, commit 6. La disposicion que decidio el medico: los criterios ecocardiograficos en
+     DOS columnas, los NO ecocardiograficos en TRES -sus cinco categorias caen tres arriba y dos
+     abajo- y la conclusion a la derecha desde 900 px, que es la regla fija de la casa.
+     ⚠️ POR QUE `repeat(3,...)` Y NO `auto-fit` ARRIBA DE 900: el commit 5 lo pago en la MCH. Con
+     auto-fit el numero de columnas lo decide el ancho disponible, asi que a 900 px exactos
+     aparecia una barra de desplazamiento horizontal; y con la columna de conclusion al lado el
+     hueco da para CUATRO de 215 px, que no es lo que la orden decidio. Por debajo de 900 se
+     conserva el auto-fit de siempre: ahi nada cambia. */
+  #mca-fila { display:grid; grid-template-columns:minmax(0,1fr); gap:14px; align-items:start; }
+  #mca-campos { min-width:0; }
+  #mca-eco-cols { display:grid; grid-template-columns:repeat(auto-fit,minmax(175px,1fr)); gap:10px; }
+  @media (min-width: 900px) {
+    #mca-fila { grid-template-columns:minmax(0,1fr) 320px; }
+    #mca-eco-cols { grid-template-columns:repeat(2, minmax(0,1fr)); }
+    .mca-cat-grid { grid-template-columns:repeat(3, minmax(0,1fr)); }
+  }
   .mca-cat-col { border:1px solid var(--border); border-radius:8px; padding:6px 8px; background:var(--bg2); min-width:0; }
   .mca-cat-tit { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:var(--accent2); margin-bottom:2px; }
   .mca-tabla-col { margin-top:0; font-size:10.5px; }
@@ -17693,15 +17709,16 @@ z
       <span id="mca_badge" class="incl-badge" hidden>📎 en el informe</span>
     </button>
     <div class="card-body sacc-body">
-      <p style="font-size:10px;color:var(--text2);margin:0 0 12px;line-height:1.55;">
-        La MCA (antes denominada MAVD/ARVC) es una miocardiopatía genética por mutaciones en proteínas desmosómicas, con sustitución fibro-adiposa del miocardio.
-        Prevalencia 1/2000-1/5000. Tres fenotipos reconocidos: dominante derecho (clásico), biventricular y dominante izquierdo.
-        Principal causa de muerte súbita en jóvenes y atletas junto con la miocardiopatía hipertrófica.
-        El diagnóstico es multicriterio (Criterios Task Force 2010 revisados) — el eco aporta sólo los criterios estructurales.
-        La resonancia cardíaca con gadolinio es el estándar de referencia para la caracterización tisular del miocardio.
-      </p>
-      <button type="button" class="btn btn-ghost" style="font-size:11px;padding:4px 12px;margin:0 0 12px;" onclick="critAbrir('mca')">📋 Ver criterios</button>
-
+      <!-- ⚠️ LA PROSA DE ESTA PANTALLA PASO AL ⓘ DE SU GRUPO (PANT-3, commit 6), igual que en la
+           MCH: lo que explica los criterios esta en el globo con su hoja y su pie impreso leidos
+           en imagen, y lo que la app afirma por su cuenta esta en el globo SIN cita. Ningun campo
+           cambio de id ni de grupo, ningun corte se movio y el papel no se toca. -->
+      <div style="display:flex;align-items:center;gap:8px;margin:0 0 12px;">
+        <button type="button" class="btn btn-ghost" style="font-size:11px;padding:4px 12px;margin:0;" onclick="critAbrir('mca')">📋 Ver criterios</button>
+        <button type="button" class="vinfo-btn vinfo-btn-44" data-vinfo="mca-sec" aria-label="Que es la miocardiopatia arritmogenica y como se diagnostica" onclick="vInfoClic(this,event)">&#9432;</button>
+      </div>
+      <div id="mca-fila">
+      <div id="mca-campos">
       <div class="grid-2">
         <div class="fg"><label>Fenotipo predominante</label>
           <select id="mca_fenotipo" onchange="mcaSync()">
@@ -17714,12 +17731,14 @@ z
         </div>
       </div>
 
-      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:16px 0 8px;">Criterios estructurales ecocardiográficos (Task Force 2010)</div>
-      <div class="mBoxLike" style="border-left:3px solid var(--accent2);background:rgba(13,148,136,.08);padding:8px 12px;border-radius:6px;font-size:10px;line-height:1.5;margin-bottom:10px;color:var(--text2);">
-        <b>La anomalía regional de la motilidad es obligatoria.</b> El Task Force exige «aquinesia, disquinesia o aneurisma regional <b>Y</b> uno de los umbrales»:
-        un tracto de salida dilatado con motilidad normal <b>no es criterio de nada</b>.
+      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:16px 0 8px;display:flex;align-items:center;gap:6px;">
+        <span>Criterios estructurales ecocardiográficos (Task Force 2010)</span>
+        <button type="button" class="vinfo-btn vinfo-btn-44" data-vinfo="mca-eco" aria-label="La anomalia regional obligatoria, los umbrales y el diametro de referencia" onclick="vInfoClic(this,event)">&#9432;</button>
       </div>
-      <div class="grid-3">
+      <div class="mBoxLike" style="border-left:3px solid var(--accent2);background:rgba(13,148,136,.08);padding:8px 12px;border-radius:6px;font-size:10px;line-height:1.5;margin-bottom:10px;color:var(--text2);">
+        <b>La anomalía regional de la motilidad es obligatoria:</b> un tracto de salida dilatado con motilidad normal <b>no es criterio de nada</b>.
+      </div>
+      <div id="mca-eco-cols">
         <div class="fg"><label>Motilidad regional del VD</label>
           <select id="mca_mov_regional" onchange="mcaSync()">
             <option value="">—</option>
@@ -17732,7 +17751,6 @@ z
         <div class="fg"><label>Localización de la anomalía</label><input type="text" id="mca_localizacion" placeholder="p. ej. pared libre basal" oninput="mcaSync()"></div>
         <div class="fg"><label>TSVD paraesternal eje largo (mm)</label><input type="number" id="mca_tsvd_plax" step="0.1" placeholder="mm" oninput="mcaSync()"></div>
       </div>
-      <div class="grid-3" style="margin-top:10px;">
         <div class="fg"><label>TSVD paraesternal eje corto (mm)</label><input type="number" id="mca_tsvd_psax" step="0.1" placeholder="mm" oninput="mcaSync()"></div>
         <div class="fg"><label>Fracción de acortamiento de área del VD (%)</label><input type="number" id="mca_fac" step="0.1" placeholder="%" oninput="mcaSync()"></div>
         <div class="fg"><label>TSVD del Qp/Qs (de VD / AD) — referencia</label>
@@ -17744,11 +17762,14 @@ z
             <span id="mca-eco-aporte" class="calc-val">—</span></div></div>
         </div>
       </div>
-      <p style="font-size:10px;color:var(--text2);margin:6px 0 0;">El diámetro de eje largo es un <b>campo propio</b>: el TSVD de VD / AD se mide en el anillo pulmonar para el Qp/Qs, que no es el nivel del criterio. Se muestra al lado como referencia y la app avisa si difieren en 3 mm o más. Umbrales — mayor: eje largo ≥32 · eje corto ≥36 · fracción ≤33 %. Menor: 29 a &lt;32 · 32 a &lt;36 · &gt;33 a ≤40 %.
-      Umbrales: mayor ≥32 mm en eje largo, ≥36 mm en eje corto, o fracción de acortamiento ≤33 %. Menor: 29 a &lt;32 · 32 a &lt;36 · &gt;33 a ≤40 %.</p>
+      <!-- ⚠️ ACA HABIA UN PARRAFO QUE DECIA LOS UMBRALES DOS VECES, uno detras del otro y con
+           distinta redaccion -«Umbrales — mayor: ...» y «Umbrales: mayor ...»-. Paso entero al ⓘ
+           `mca-eco`, una sola vez, con su hoja y su pie impreso. -->
 
-      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:16px 0 8px;">Compromiso del ventrículo izquierdo</div>
-      <p style="font-size:10px;color:var(--text2);margin:0 0 8px;">Relevante en los fenotipos biventricular e izquierdo. Se deriva de la <b>FEVI</b> y del módulo de <b>Contractilidad</b>, que ya registra la motilidad segmentaria. <b>No puntúa</b> en Task Force 2010, que es ciego al ventrículo izquierdo.</p>
+      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:16px 0 8px;display:flex;align-items:center;gap:6px;">
+        <span>Compromiso del ventrículo izquierdo</span>
+        <button type="button" class="vinfo-btn vinfo-btn-44" data-vinfo="mca-vi" aria-label="De donde sale el compromiso del ventriculo izquierdo y por que no puntua" onclick="vInfoClic(this,event)">&#9432;</button>
+      </div>
       <div class="grid-2">
         <div class="fg"><label>Aneurisma del VI (si no está en Contractilidad)</label>
           <select id="mca_vi_aneurisma" onchange="mcaSync()">
@@ -17761,6 +17782,35 @@ z
         </div>
       </div>
 
+      </div><!-- /#mca-campos -->
+
+      <div id="mca-concl-col">
+      <div class="calc-box" style="margin-top:0;">
+        <div class="calc-row"><span class="calc-lbl">Puntaje acumulado</span><span id="mca-score" class="calc-val">—</span></div>
+        <div class="calc-row"><span class="calc-lbl">Interpretación Task Force 2010</span><span id="mca-interp" class="calc-val">—</span></div>
+        <div class="calc-row"><span class="calc-lbl">Conclusión</span><span id="mca-concl" class="calc-val">—</span><button type="button" class="vinfo-btn vinfo-btn-44" data-vinfo="mca-score" aria-label="Que dice y que no dice el puntaje" onclick="vInfoClic(this,event)">&#9432;</button></div>
+      </div>
+      <p style="font-size:10px;color:var(--text2);margin:8px 0 0;line-height:1.5;">
+        Bandas: <b>≥4</b> definitivo · <b>3</b> limítrofe · <b>2</b> posible · <b>1 o 0</b> sin criterios diagnósticos.
+        Un score ecocardiográfico aislado no confirma ni descarta el diagnóstico.
+      </p>
+      <div style="text-align:center;margin-top:10px;">
+        <input type="checkbox" id="mca_incluir_chk" style="display:none;" tabindex="-1" aria-hidden="true">
+        <button type="button" class="btn btn-integrar" data-ete-chk="mca_incluir_chk" aria-pressed="false"
+                onclick="eteInclToggle('mca_incluir_chk')">📎 Integrar al informe</button>
+      </div>
+      </div><!-- /#mca-concl-col -->
+      </div><!-- /#mca-fila -->
+
+      <!-- ⚠️ LOS CRITERIOS NO ECOCARDIOGRAFICOS QUEDAN A TODO EL ANCHO, FUERA DE LA FILA,
+           y es una MEDICION y no una preferencia: metidos en la columna de campos -con la
+           conclusion al lado comiendo 320 px- sus cinco tablas de criterios largos se
+           estiraban a lo alto y la seccion pasaba de 1254 a 1821 px a 1440 px, o sea que la
+           disposicion nueva era PEOR que la vieja. A todo el ancho, las tres columnas miden
+           mas que las cinco de antes. La orden decide tres cosas -eco en DOS columnas, no eco
+           en TRES con tres arriba y dos abajo, conclusion a la derecha desde 900 px- y no dice
+           como se anidan: se eligio el anidamiento que mide mejor y se declara. -->
+      <div id="mca-nocols">
       <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:16px 0 8px;">Criterios no ecocardiográficos</div>
       <p style="font-size:10px;color:var(--text2);margin:0 0 4px;">Tocá la celda para marcar. <b>Cada categoría aporta un solo criterio</b>, el de mayor jerarquía: si marcás dos de la misma categoría, el que no cuenta queda atenuado.</p>
       <!-- Cinco columnas, una por categoría del Task Force. Cada columna conserva su <table> con
@@ -17849,22 +17899,7 @@ z
       <input type="text" id="mca_vi_may3" value="" style="display:none;" tabindex="-1" aria-hidden="true">
       <input type="text" id="mca_vi_men1" value="" style="display:none;" tabindex="-1" aria-hidden="true">
       <input type="text" id="mca_vi_men3" value="" style="display:none;" tabindex="-1" aria-hidden="true">
-
-      <div class="calc-box" style="margin-top:12px;">
-        <div class="calc-row"><span class="calc-lbl">Puntaje acumulado</span><span id="mca-score" class="calc-val">—</span></div>
-        <div class="calc-row"><span class="calc-lbl">Interpretación Task Force 2010</span><span id="mca-interp" class="calc-val">—</span></div>
-        <div class="calc-row"><span class="calc-lbl">Conclusión</span><span id="mca-concl" class="calc-val">—</span></div>
-      </div>
-      <p style="font-size:10px;color:var(--text2);margin:8px 0 0;line-height:1.5;">
-        El diagnóstico definitivo de MCA requiere integración de criterios de múltiples categorías. Un score ecocardiográfico aislado no confirma ni descarta el diagnóstico.
-        La resonancia cardíaca con gadolinio es el estándar de referencia para la caracterización tisular.
-        Bandas: <b>≥4</b> definitivo · <b>3</b> limítrofe · <b>2</b> posible · <b>1 o 0</b> sin criterios diagnósticos.
-      </p>
-      <div style="text-align:center;margin-top:10px;">
-        <input type="checkbox" id="mca_incluir_chk" style="display:none;" tabindex="-1" aria-hidden="true">
-        <button type="button" class="btn btn-integrar" data-ete-chk="mca_incluir_chk" aria-pressed="false"
-                onclick="eteInclToggle('mca_incluir_chk')">📎 Integrar al informe</button>
-      </div>
+      </div><!-- /#mca-nocols -->
     </div>
   </div>
 <div class="card sacc" id="sacc-cc-tdf">
@@ -46789,6 +46824,64 @@ const VINFO = Object.freeze({
          impreso «4062») y hoja 67, folio 4063. Regla de folio: folio = hoja + 3996, comprobada
          en las hojas 10, 66, 67 y 100.
      Las frases que contaban la historia de una edicion de una guia NO pasaron al ⓘ: salieron. */
+  /* ── MCA (PANT-3, commit 6) ────────────────────────────────────────────────────────────
+     La fuente de los criterios se leyo EN IMAGEN a 230 ppp: te Riele y cols., «Arrhythmogenic
+     right ventricular cardiomyopathy (ARVC): cardiovascular magnetic resonance update»,
+     J Cardiovasc Magn Reson 2014;16:50, Tabla 1, HOJA 3 de 15. ⚠️ Ese articulo se pagina por
+     NUMERO DE ARTICULO y no por folio de revista -su pie impreso dice «Page 3 of 15»-, asi que
+     se cita por hoja con su pie, como la tanda POP-C hizo con el manuscrito de Devereux. Es una
+     revision que REPRODUCE la tabla revisada de 2010: se cita el documento que se leyo.
+     ⚠️ El original de 2010 NO esta en la biblioteca, censado por CONTENIDO sobre los 246 PDF con
+     control positivo. */
+  'mca-sec': {
+    ancho: 380,
+    tit: 'La miocardiopatía arritmogénica en esta pestaña',
+    lee: 'Antes denominada MAVD o ARVC. Es una miocardiopatía genética por mutaciones en '
+       + 'proteínas desmosómicas, con sustitución fibro-adiposa del miocardio. Prevalencia de 1 '
+       + 'cada 2.000 a 1 cada 5.000. Tres fenotipos reconocidos: dominante derecho (clásico), '
+       + 'biventricular y dominante izquierdo. Junto con la miocardiopatía hipertrófica es la '
+       + 'principal causa de muerte súbita en jóvenes y atletas.\n'
+       + 'El diagnóstico es multicriterio: el eco aporta sólo los criterios estructurales.'
+  },
+  'mca-eco': {
+    ancho: 420,
+    tit: 'Los criterios estructurales del eco',
+    lee: 'El diámetro de eje largo es un CAMPO PROPIO y no se deduce del otro: el TSVD de VD / AD '
+       + 'se mide en el anillo pulmonar para el Qp/Qs, que no es el nivel del criterio. Se '
+       + 'muestra al lado como referencia y la app avisa si difieren en 3 mm o más.',
+    fuente: 'te Riele y cols., J Cardiovasc Magn Reson 2014;16:50 — Tabla 1, hoja 3 de 15.',
+    ojo: 'La tabla exige «aquinesia, disquinesia o aneurisma regional del ventrículo derecho Y '
+       + 'uno de los siguientes, medidos al final de la diástole». Criterio MAYOR: tracto de '
+       + 'salida en eje largo 32 mm o más, en eje corto 36 mm o más, o fracción de acortamiento '
+       + 'de área del 33 % o menos. Criterio MENOR: eje largo de 29 a menos de 32, eje corto de '
+       + '32 a menos de 36, o fracción de acortamiento mayor de 33 % y hasta 40 %.\n'
+       + 'La misma tabla publica además esos cortes INDEXADOS por superficie corporal —19 y 21 '
+       + 'mm/m² para el mayor, 16 a menos de 19 y 18 a menos de 21 para el menor—, que esta '
+       + 'aplicación no aplica.'
+  },
+  'mca-vi': {
+    ancho: 380,
+    tit: 'El ventrículo izquierdo en esta sección',
+    lee: 'Relevante en los fenotipos biventricular e izquierdo. Se deriva de la FEVI y del módulo '
+       + 'de Contractilidad, que ya registra la motilidad segmentaria.',
+    fuente: 'te Riele y cols., J Cardiovasc Magn Reson 2014;16:50 — Tabla 1, hoja 3 de 15.',
+    ojo: 'No puntúa: las seis categorías de la tabla son del ventrículo derecho, de la pared, del '
+       + 'electrocardiograma, de las arritmias y de la historia familiar, y ninguna mide el '
+       + 'ventrículo izquierdo.'
+  },
+  'mca-score': {
+    ancho: 380,
+    tit: 'Qué dice y qué no dice el puntaje',
+    lee: 'El diagnóstico definitivo requiere integración de criterios de varias categorías.\n'
+       + 'La resonancia cardíaca con gadolinio es el estándar de referencia para la '
+       + 'caracterización tisular del miocardio.'
+    /* ⚠️ ESTA SEGUNDA FRASE VA SIN CITA, Y ES DELIBERADO. Es texto que la app ya decia y que
+       esta tanda solo MUDO de la pantalla al globo. El unico documento de la biblioteca que
+       trata el tema dice lo contrario en el cuerpo de la misma hoja 3 que se leyo: que la
+       evaluacion «no deberia basarse en una sola prueba, en particular la resonancia», y que su
+       sensibilidad es baja. La regla de la casa es reportar y esperar, no corregir: queda en
+       docs/PENDIENTES.md y la frase se queda sin fuente. */
+  },
   'mch-sec': {
     ancho: 380,
     tit: 'La miocardiopatía hipertrófica en esta pestaña',
