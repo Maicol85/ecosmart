@@ -6508,7 +6508,7 @@ window.cerrarSesionReal = cerrarSesionReal;
           <input type="number" id="dt_tap" step="1" placeholder="ms" oninput="dtTapSync('dt_tap');calcVD();papmEstSync()">
         </div>
         <div class="fg">
-          <label>PAP media estimada (mmHg)</label>
+          <label>PmAP estimada (mmHg)</label>
           <!-- ⚠️ DOS NODOS PARA UN SOLO CAMPO VISIBLE, Y LA SEPARACIÓN ES EL PUNTO (2026-10-07).
                `papm_est` es lo que el médico VE y puede mostrar las dos fórmulas; `pap_med` es
                el dato que VIAJA y sigue llevando SÓLO el valor por PSAP.
@@ -6653,13 +6653,13 @@ window.cerrarSesionReal = cerrarSesionReal;
           <input type="number" id="ip_vtd" placeholder="m/s" step="0.1" oninput="calcIP();calcDiastol()">
         </div>
         <div class="fg">
-          <label>PAP diastólica — auto (mmHg)</label>
+          <label>PDAP — auto (mmHg)</label>
           <input type="text" id="ip_papd" readonly style="font-weight:700;">
         </div>
       </div>
       <div class="calc-box" style="margin-top:8px;">
-        <div class="calc-row"><span class="calc-lbl">PAP media (IP proto-diast.)</span><span class="calc-val" id="ip-papm-row">—</span></div>
-        <div class="calc-row"><span class="calc-lbl">PAP diastólica (IP tele-diast.)</span><span class="calc-val" id="ip-papd-row">—</span></div>
+        <div class="calc-row"><span class="calc-lbl">PmAP (IP proto-diast.)</span><span class="calc-val" id="ip-papm-row">—</span></div>
+        <div class="calc-row"><span class="calc-lbl">PDAP (IP tele-diast.)</span><span class="calc-val" id="ip-papd-row">—</span></div>
       </div>
     </div>
   </div>
@@ -10248,7 +10248,7 @@ window.cerrarSesionReal = cerrarSesionReal;
           <span class="calc-val" id="hemo-pcp">—</span>
         </div>
         <div class="calc-row">
-          <span class="calc-lbl">Gradiente transpulmonar (GTP) <span style="color:var(--text2);font-size:10px;">= PAPm − PCP</span></span>
+          <span class="calc-lbl">Gradiente transpulmonar (GTP) <span style="color:var(--text2);font-size:10px;">= PmAP − PCP</span></span>
           <span class="calc-val" id="hemo-gtp">—</span>
         </div>
         <div class="calc-row">
@@ -10518,7 +10518,7 @@ window.cerrarSesionReal = cerrarSesionReal;
         <div style="font-size:11px;font-weight:700;color:var(--accent2);margin-bottom:8px;">CRITERIOS DE SOBRECARGA DEL VD</div>
         <div class="calc-row"><span class="calc-lbl">Dilataci&oacute;n del VD</span><span id="tep-vdvi-interp">&mdash;</span></div>
         <div class="calc-row"><span class="calc-lbl">Funci&oacute;n sist&oacute;lica del VD</span><span id="tep-tapse-interp">&mdash;</span></div>
-        <div class="calc-row"><span class="calc-lbl">Presi&oacute;n sist&oacute;lica pulmonar</span><span id="tep-psap-interp">&mdash;</span></div>
+        <div class="calc-row"><span class="calc-lbl">PSAP</span><span id="tep-psap-interp">&mdash;</span></div>
         <div class="calc-row"><span class="calc-lbl">Signo de McConnell</span><span id="tep-mcconnell-interp">&mdash;</span></div>
         <div class="calc-row"><span class="calc-lbl">Signo 60/60</span><span id="tep-6060-interp">&mdash;</span></div>
         <div class="calc-row"><span class="calc-lbl">Tabique en D</span><span id="tep-tabiqued-interp">&mdash;</span></div>
@@ -15765,7 +15765,7 @@ z
         <div class="fg"><label>Área mitral planimetría (cm²) <span style="font-weight:400;color:var(--text2);font-size:10px;">auto ← Válvula Mitral</span></label>
           <input type="number" id="teer_area_mitral" placeholder="cm²" oninput="calcTEER()">
         </div>
-        <div class="fg"><label>PASP (mmHg) <span style="font-weight:400;color:var(--text2);font-size:10px;">auto ← Tricúspide / PSAP</span></label>
+        <div class="fg"><label>PSAP (mmHg) <span style="font-weight:400;color:var(--text2);font-size:10px;">auto ← Tricúspide / PSAP</span></label>
           <input type="number" id="teer_pasp" placeholder="mmHg" oninput="calcTEER()">
         </div>
       </div>
@@ -15953,7 +15953,7 @@ z
              cumplidos». Medido contra el inicio de la tanda en 9,9 / 10 / 10,1 / 12 mm: los
              cuatro daban APTO. -->
         <div class="calc-row"><span class="calc-lbl">Flail gap &lt;10mm</span><span id="teer-c11">—</span></div>
-        <div class="calc-row"><span class="calc-lbl">PASP ≤70mmHg</span><span id="teer-c6">—</span></div>
+        <div class="calc-row"><span class="calc-lbl">PSAP ≤70mmHg</span><span id="teer-c6">—</span></div>
         <!-- Se oculta junto con sus dos filas: es un elemento suelto, no una `.calc-row`, así
              que el barrido de `calcTEER` no lo alcanzaba y quedaba flotando ENCIMA de «Sin
              calcificación densa» y «Sin clefts», que son criterios COMUNES, rotulándolos como
@@ -15984,7 +15984,7 @@ z
             Tabla 1, folio 1386, que EXCLUYE &ge;11 mm, &ge;10 mm y &ge;15 mm respectivamente.
             Los tres coinciden con la columna &laquo;no complejo — ideal para TEER mitral&raquo;
             de la Tabla S2 del material suplementario de la ESC/EACTS 2025 (hoja 5), que
-            agrega la altura de tenting &lt;10 mm. PASP &le;70 mmHg, di&aacute;metro
+            agrega la altura de tenting &lt;10 mm. PSAP &le;70 mmHg, di&aacute;metro
             telesist&oacute;lico del VI &le;70 mm y FEVI del 20 al 50 %: ESC/EACTS 2025 de
             valvulopat&iacute;as, Tabla 7 (folio 4678).</div>
           <div style="margin-top:4px;">
@@ -18769,7 +18769,7 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
            da números sin sentido (PAS 120 con V 1,2 → «PAPs 114»). La PAPs de la CIA se
            informa por IT, que ya viene calculada más abajo. -->
       <div class="calc-box" style="margin-top:8px;">
-        <div class="calc-row"><span class="calc-lbl">PAPs por IT (del estudio)</span><span id="ete-cia-paps-it" class="calc-val">—</span></div>
+        <div class="calc-row"><span class="calc-lbl">PSAP por IT (del estudio)</span><span id="ete-cia-paps-it" class="calc-val">—</span></div>
       </div>
 
       <!-- Donut a la izquierda, detalle del borde tocado a la derecha. La columna «Ventana ETE»
@@ -18828,8 +18828,8 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
         <div class="fg"><label>PA sistémica (mmHg)</label><input type="number" id="ete_civ_pas" step="1" placeholder="mmHg" oninput="eteShuntSync()"></div>
       </div>
       <div class="calc-box" style="margin-top:8px;">
-        <div class="calc-row"><span class="calc-lbl">PAPs estimada por CIV (PAS − 4V²)</span><span id="ete-civ-paps" class="calc-val">—</span></div>
-        <div class="calc-row"><span class="calc-lbl">PAPs por IT (del estudio)</span><span id="ete-civ-paps-it" class="calc-val">—</span></div>
+        <div class="calc-row"><span class="calc-lbl">PSAP estimada por CIV (PAS − 4V²)</span><span id="ete-civ-paps" class="calc-val">—</span></div>
+        <div class="calc-row"><span class="calc-lbl">PSAP por IT (del estudio)</span><span id="ete-civ-paps-it" class="calc-val">—</span></div>
       </div>
     </div>
 
@@ -18916,7 +18916,7 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
           <span id="dap-gmax" class="calc-val">—</span></div></div>
         <div style="font-size:10px;color:var(--text2);margin-top:3px;">4 × Vmax²</div>
       </div>
-      <div class="fg"><label>PAPs estimada (mmHg)</label><input type="number" id="dap_paps" step="1" placeholder="mmHg" oninput="dapSync()"></div>
+      <div class="fg"><label>PSAP estimada (mmHg)</label><input type="number" id="dap_paps" step="1" placeholder="mmHg" oninput="dapSync()"></div>
     </div>
     <div class="calc-box" style="margin-top:12px;">
       <div class="calc-row"><span class="calc-lbl">Qp/Qs</span><span id="dap-qpqs" class="calc-val">—</span></div>
@@ -18970,7 +18970,7 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
             <option value="si">Sí</option>
           </select>
         </div>
-        <div class="fg"><label>PAPs estimada — del estudio</label>
+        <div class="fg"><label>PSAP estimada — del estudio</label>
           <input type="text" id="vap_paps_ro" readonly tabindex="-1" placeholder="—" style="opacity:.7;"></div>
         <div class="fg"><label>Qp/Qs</label>
           <div class="calc-box" style="margin:0;padding:6px 10px;"><div class="calc-row" style="border:none;padding:0;">
@@ -19899,11 +19899,11 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
       <div class="fg"><label>Ø TSVI (mm) <span style="font-weight:400;color:var(--text2);font-size:10px;">auto</span></label><input type="number" id="cx_gtp_dtsvi" placeholder="auto" oninput="cxGTP()"></div>
     </div>
     <div class="calc-box" style="margin-top:8px;">
-      <div class="calc-row"><span class="calc-lbl">PAPm <span style="color:var(--text2);font-size:10px;">= 0.61×PSAP+2 (Chemla)</span></span><span class="calc-val" id="cx-gtp-papm">—</span></div>
+      <div class="calc-row"><span class="calc-lbl">PmAP <span style="color:var(--text2);font-size:10px;">= 0.61×PSAP+2 (Chemla)</span></span><span class="calc-val" id="cx-gtp-papm">—</span></div>
       <div class="calc-row"><span class="calc-lbl">PCP <span style="color:var(--text2);font-size:10px;">= 1.24 × (E/e') + 1.9 (Nagueh)</span></span><span class="calc-val" id="cx-gtp-pcp">—</span></div>
       <div class="calc-row"><span class="calc-lbl">VS <span style="color:var(--text2);font-size:10px;">= 0.785×(Ø/10)²×VTI</span></span><span class="calc-val" id="cx-gtp-vs">—</span></div>
       <div class="calc-row"><span class="calc-lbl">GC <span style="color:var(--text2);font-size:10px;">= VS×FC/1000</span></span><span class="calc-val" id="cx-gtp-gc">—</span></div>
-      <div class="calc-row"><span class="calc-lbl">GTP <span style="color:var(--text2);font-size:10px;">= PAPm−PCP</span></span><span id="cx-gtp-gtp">—</span></div>
+      <div class="calc-row"><span class="calc-lbl">GTP <span style="color:var(--text2);font-size:10px;">= PmAP−PCP</span></span><span id="cx-gtp-gtp">—</span></div>
       <div class="calc-row"><span class="calc-lbl">RVP <span style="color:var(--text2);font-size:10px;">= GTP/GC (Wood)</span></span><span id="cx-gtp-rvp">—</span></div>
       <div style="font-size:10px;color:var(--text2);background:var(--bg3);border:1px solid var(--border);border-left:3px solid var(--orange);border-radius:6px;padding:7px 9px;margin-top:8px;line-height:1.5;">⚠️ <b>PCP estimada — valor orientativo, no reemplaza medición invasiva.</b> Derivada de E/e&#39; por la fórmula de Nagueh (1.24 × (E/e&#39;) + 1.9). El GTP y la RVP se calculan a partir de ella, así que arrastran la misma limitación.</div>
     </div>
@@ -20717,7 +20717,7 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
     </h2>
     <div id="ref-htp" style="display:none;" class="card-body">
       <table style="width:100%;border-collapse:collapse;font-size:12px;">
-        <tr style="background:var(--section-head);"><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Definición hemodinámica (ESC/ERS 2022)</th><th style="padding:6px 8px;text-align:center;color:var(--accent2);">PAP media</th><th style="padding:6px 8px;text-align:center;color:var(--accent2);">RVP</th></tr>
+        <tr style="background:var(--section-head);"><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Definición hemodinámica (ESC/ERS 2022)</th><th style="padding:6px 8px;text-align:center;color:var(--accent2);">PmAP</th><th style="padding:6px 8px;text-align:center;color:var(--accent2);">RVP</th></tr>
         <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;">Sin hipertensión pulmonar</td><td style="padding:5px 8px;text-align:center;">≤20 mmHg</td><td style="padding:5px 8px;text-align:center;">—</td></tr>
         <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;">Hipertensión pulmonar</td><td style="padding:5px 8px;text-align:center;">&gt;20 mmHg</td><td style="padding:5px 8px;text-align:center;">—</td></tr>
         <tr><td style="padding:5px 8px;">HP precapilar</td><td style="padding:5px 8px;text-align:center;">&gt;20 mmHg</td><td style="padding:5px 8px;text-align:center;">&gt;2 UW (con PCP ≤15)</td></tr>
@@ -20769,7 +20769,7 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
       </div>
 
       <div style="margin-top:10px;font-size:12px;color:var(--text);line-height:1.8;">
-        <b style="color:var(--accent2);">Definición ESC 2022:</b> PAP media &gt;20mmHg + RVP &gt;2 WU<br>
+        <b style="color:var(--accent2);">Definición ESC 2022:</b> PmAP &gt;20mmHg + RVP &gt;2 WU<br>
         • Grupo 1: HAP idiopática/hereditaria · Grupo 2: Cardiopatía izquierda (más frecuente)<br>
         • Grupo 3: Enfermedad pulmonar · Grupo 4: HTECP · Grupo 5: Mixto
       </div>
@@ -21288,8 +21288,8 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
         <tr style="border-bottom:1px solid var(--border)"><td style="padding:5px 8px;"><span style="display:inline-block;border:1px solid var(--border);border-radius:4px;color:var(--text2);padding:1px 5px;margin-right:4px;font-size:9px;letter-spacing:.3px;">CRITERIO DE ECOSMART</span>&iquest;Precarga suficiente?</td><td style="padding:5px 8px;text-align:center;">PCP de 12 a 18 mmHg</td><td style="padding:5px 8px;"><b>Sin fuente.</b> <details style="display:inline-block;vertical-align:top;margin-left:3px;"><summary style="cursor:pointer;list-style:none;display:inline;font-weight:700;color:var(--accent2);" aria-label="Ver el detalle de la fuente: precarga suficiente">&#9432;</summary><div style="margin-top:4px;font-weight:400;color:var(--text2);">Censada la biblioteca: ninguna de las fuentes de este m&oacute;dulo publica esa banda. El consenso de la SAC 2024 publica &laquo;PEP &gt;15&raquo; dentro de una definici&oacute;n de shock, que no es lo mismo que un rango de precarga adecuada.</div></details></td></tr>
         <tr style="border-bottom:1px solid var(--border);background:var(--bg3)"><td style="padding:5px 8px;">&iquest;Compromiso hemodin&aacute;mico peric&aacute;rdico?</td><td style="padding:5px 8px;text-align:center;">lo consigna el m&eacute;dico</td><td style="padding:5px 8px;">Se lee del m&oacute;dulo de <b>Derrame peric&aacute;rdico / Taponamiento</b> de esta misma pesta&ntilde;a <details style="display:inline-block;vertical-align:top;margin-left:3px;"><summary style="cursor:pointer;list-style:none;display:inline;font-weight:700;color:var(--accent2);" aria-label="Ver el detalle de la fuente: compromiso hemodin&aacute;mico peric&aacute;rdico">&#9432;</summary><div style="margin-top:4px;font-weight:400;color:var(--text2);">Es donde la aplicaci&oacute;n lo pregunta. Este m&oacute;dulo no define un segundo criterio de taponamiento.</div></details></td></tr>
         <tr style="border-bottom:1px solid var(--border)"><td style="padding:5px 8px;">&iquest;Falla del ventr&iacute;culo derecho?</td><td style="padding:5px 8px;text-align:center;">TAPSE &lt;17 mm &middot; VD/VI &gt;0,9</td><td style="padding:5px 8px;"><b>AHA/ACC 2026</b> de embolia pulmonar <details style="display:inline-block;vertical-align:top;margin-left:3px;"><summary style="cursor:pointer;list-style:none;display:inline;font-weight:700;color:var(--accent2);" aria-label="Ver el detalle de la fuente: falla del ventr&iacute;culo derecho">&#9432;</summary><div style="margin-top:4px;font-weight:400;color:var(--text2);"><b>Tabla 4, folio e989</b>. Son los mismos dos cortes que aplica la c&aacute;psula de sobrecarga del ventr&iacute;culo derecho &mdash; TAPSE por debajo de 17 mm y VD/VI por encima de 0,9 &mdash;: no se grad&uacute;an de otra forma ac&aacute;.</div></details></td></tr>
-        <tr style="border-bottom:1px solid var(--border);background:var(--bg3)"><td style="padding:5px 8px;"><span style="display:inline-block;border:1px solid var(--border);border-radius:4px;color:var(--text2);padding:1px 5px;margin-right:4px;font-size:9px;letter-spacing:.3px;">CRITERIO DE ECOSMART</span>Falla del VD <b>por poscarga</b> o <b>por contractilidad</b></td><td style="padding:5px 8px;text-align:center;">PAP media &gt;20 mmHg</td><td style="padding:5px 8px;"><b>La partici&oacute;n no tiene fuente</b>; el n&uacute;mero s&iacute;: <b>ESC/ERS 2022</b> de hipertensi&oacute;n pulmonar <details style="display:inline-block;vertical-align:top;margin-left:3px;"><summary style="cursor:pointer;list-style:none;display:inline;font-weight:700;color:var(--accent2);" aria-label="Ver el detalle de la fuente: falla del VD por poscarga o por contractilidad">&#9432;</summary><div style="margin-top:4px;font-weight:400;color:var(--text2);">Ninguna de las fuentes de este m&oacute;dulo cuelga &laquo;poscarga&raquo; o &laquo;contractilidad&raquo; de ese umbral. El n&uacute;mero es la definici&oacute;n de hipertensi&oacute;n pulmonar de la ESC/ERS 2022. Sin PAP media no se parte, y se dice.</div></details></td></tr>
-        <tr style="border-bottom:1px solid var(--border)"><td style="padding:5px 8px;">Hipertensi&oacute;n pulmonar &mdash; definici&oacute;n</td><td style="padding:5px 8px;text-align:center;">PAP media &gt;20 mmHg &middot; poscapilar con PCP &gt;15 &middot; RVP &gt;2 UW</td><td style="padding:5px 8px;"><b>ESC/ERS 2022</b> de hipertensi&oacute;n pulmonar <details style="display:inline-block;vertical-align:top;margin-left:3px;"><summary style="cursor:pointer;list-style:none;display:inline;font-weight:700;color:var(--accent2);" aria-label="Ver el detalle de la fuente: definici&oacute;n de hipertensi&oacute;n pulmonar">&#9432;</summary><div style="margin-top:4px;font-weight:400;color:var(--text2);">El corte de la resistencia vascular pulmonar &mdash; 2 UW &mdash; es la &uacute;nica unidad de corte que la aplicaci&oacute;n usa para esa resistencia.</div></details></td></tr>
+        <tr style="border-bottom:1px solid var(--border);background:var(--bg3)"><td style="padding:5px 8px;"><span style="display:inline-block;border:1px solid var(--border);border-radius:4px;color:var(--text2);padding:1px 5px;margin-right:4px;font-size:9px;letter-spacing:.3px;">CRITERIO DE ECOSMART</span>Falla del VD <b>por poscarga</b> o <b>por contractilidad</b></td><td style="padding:5px 8px;text-align:center;">PmAP &gt;20 mmHg</td><td style="padding:5px 8px;"><b>La partici&oacute;n no tiene fuente</b>; el n&uacute;mero s&iacute;: <b>ESC/ERS 2022</b> de hipertensi&oacute;n pulmonar <details style="display:inline-block;vertical-align:top;margin-left:3px;"><summary style="cursor:pointer;list-style:none;display:inline;font-weight:700;color:var(--accent2);" aria-label="Ver el detalle de la fuente: falla del VD por poscarga o por contractilidad">&#9432;</summary><div style="margin-top:4px;font-weight:400;color:var(--text2);">Ninguna de las fuentes de este m&oacute;dulo cuelga &laquo;poscarga&raquo; o &laquo;contractilidad&raquo; de ese umbral. El n&uacute;mero es la definici&oacute;n de hipertensi&oacute;n pulmonar de la ESC/ERS 2022. Sin PAP media no se parte, y se dice.</div></details></td></tr>
+        <tr style="border-bottom:1px solid var(--border)"><td style="padding:5px 8px;">Hipertensi&oacute;n pulmonar &mdash; definici&oacute;n</td><td style="padding:5px 8px;text-align:center;">PmAP &gt;20 mmHg &middot; poscapilar con PCP &gt;15 &middot; RVP &gt;2 UW</td><td style="padding:5px 8px;"><b>ESC/ERS 2022</b> de hipertensi&oacute;n pulmonar <details style="display:inline-block;vertical-align:top;margin-left:3px;"><summary style="cursor:pointer;list-style:none;display:inline;font-weight:700;color:var(--accent2);" aria-label="Ver el detalle de la fuente: definici&oacute;n de hipertensi&oacute;n pulmonar">&#9432;</summary><div style="margin-top:4px;font-weight:400;color:var(--text2);">El corte de la resistencia vascular pulmonar &mdash; 2 UW &mdash; es la &uacute;nica unidad de corte que la aplicaci&oacute;n usa para esa resistencia.</div></details></td></tr>
         <tr style="border-bottom:1px solid var(--border);background:var(--bg3)"><td style="padding:5px 8px;">Volumen aproximado del derrame pleural</td><td style="padding:5px 8px;text-align:center;">V (ml) = D (mm) &times; 20</td><td style="padding:5px 8px;"><b>Volpicelli G</b> y col., <i>Intensive Care Med</i>, 2026 <details style="display:inline-block;vertical-align:top;margin-left:3px;"><summary style="cursor:pointer;list-style:none;display:inline;font-weight:700;color:var(--accent2);" aria-label="Ver el detalle de la fuente: volumen del derrame pleural">&#9432;</summary><div style="margin-top:4px;font-weight:400;color:var(--text2);">Enunciado <b>D6_11, hoja 19</b>. Sus l&iacute;mites est&aacute;n en el globo &#9432; del bloque de pleura: dec&uacute;bito supino, corte transversal lateral sobre el &aacute;ngulo costofr&eacute;nico, y validada en pacientes cr&iacute;ticos bajo ventilaci&oacute;n invasiva.</div></details></td></tr>
         <tr style="border-bottom:1px solid var(--border)"><td style="padding:5px 8px;"><span style="display:inline-block;border:1px solid var(--border);border-radius:4px;color:var(--text2);padding:1px 5px;margin-right:4px;font-size:9px;letter-spacing:.3px;">CRITERIO DE ECOSMART</span>Grados del derrame pleural</td><td style="padding:5px 8px;text-align:center;">leve &lt;1 cm &middot; moderado 1&ndash;3 cm &middot; severo &gt;3 cm</td><td style="padding:5px 8px;"><b>Sin fuente.</b> <details style="display:inline-block;vertical-align:top;margin-left:3px;"><summary style="cursor:pointer;list-style:none;display:inline;font-weight:700;color:var(--accent2);" aria-label="Ver el detalle de la fuente: grados del derrame pleural">&#9432;</summary><div style="margin-top:4px;font-weight:400;color:var(--text2);">Ninguna de las fuentes de este m&oacute;dulo grad&uacute;a el derrame pleural por tama&ntilde;o. <b>No se retiran</b>: describen el tama&ntilde;o, no dictan una conducta.</div></details></td></tr>
         <tr style="border-bottom:1px solid var(--border);background:var(--bg3)"><td style="padding:5px 8px;">Evaluaci&oacute;n ecocardiogr&aacute;fica <b>tras cirug&iacute;a mitral</b></td><td style="padding:5px 8px;text-align:center;">insuficiencia residual o nueva, motilidad de los velos, estenosis iatrog&eacute;nica y movimiento anterior sist&oacute;lico</td><td style="padding:5px 8px;"><b>Nicoara A</b> y col. (ASE / SCA / STS), <i>J Am Soc Echocardiogr</i>, 2020 <details style="display:inline-block;vertical-align:top;margin-left:3px;"><summary style="cursor:pointer;list-style:none;display:inline;font-weight:700;color:var(--accent2);" aria-label="Ver el detalle de la fuente: evaluaci&oacute;n tras cirug&iacute;a mitral">&#9432;</summary><div style="margin-top:4px;font-weight:400;color:var(--text2);">33:692&ndash;734 &middot; <b>&sect;3.1.5 y Tabla 3, folio 701</b>.</div></details></td></tr>
@@ -21695,7 +21695,7 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
         <tr style="background:var(--section-head);"><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Nombre</th><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Fórmula</th><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Normal</th></tr>
         <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;font-weight:700;">Bernoulli simplificada</td><td style="padding:5px 8px;font-family:monospace;">ΔP = 4 × Vmax²</td><td style="padding:5px 8px;">—</td></tr>
         <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;font-weight:700;">PSAP</td><td style="padding:5px 8px;font-family:monospace;">4 × V_IT² + PmAD</td><td style="padding:5px 8px;">≤40 mmHg</td></tr>
-        <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;font-weight:700;">PAP diastólica (PADP)</td><td style="padding:5px 8px;font-family:monospace;">4 × V_IP² + PmAD</td><td style="padding:5px 8px;">≤15 mmHg</td></tr>
+        <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;font-weight:700;">PDAP</td><td style="padding:5px 8px;font-family:monospace;">4 × V_IP² + PmAD</td><td style="padding:5px 8px;">≤15 mmHg</td></tr>
         <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;font-weight:700;">PAPm — por Mahan (TAP)</td><td style="padding:5px 8px;font-family:monospace;">79 − 0.45 × TAP (ms)</td><td style="padding:5px 8px;">&lt;20 mmHg</td></tr>
         <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;font-weight:700;">PAPm — estimada</td><td style="padding:5px 8px;font-family:monospace;">(PSAP + 2×PADP) / 3</td><td style="padding:5px 8px;">&lt;20 mmHg</td></tr>
         <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;font-weight:700;">E/A</td><td style="padding:5px 8px;font-family:monospace;">Onda E / Onda A</td><td style="padding:5px 8px;">0.8–2.0</td></tr>
@@ -30962,7 +30962,7 @@ const HTP_SIGNOS = Object.freeze([
   { k:'a2', cat:'A', chk:'htp2022_a3',
     lbl:'Aplanamiento del septo interventricular',          crit:'IEVI > 1,1 en sístole y/o diástole' },
   { k:'a3', cat:'A', chk:null,
-    lbl:'Cociente TAPSE/PAPs',                              crit:'< 0,55 mm/mmHg' },
+    lbl:'Cociente TAPSE/PSAP',                              crit:'< 0,55 mm/mmHg' },
   { k:'b1', cat:'B', chk:null,
     lbl:'Tiempo de aceleración del TSVD',                   crit:'< 105 ms' },
   { k:'b2', cat:'B', chk:'htp2022_b1muesca',
