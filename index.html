@@ -1535,6 +1535,42 @@
   #cc3d-panel { display:none; margin-top:10px; }
   #cc3d-panel.cc3d-ab { display:block; }
   #cc3d-host:empty::after { content:'El diagrama no esta disponible.'; font-size:11px; color:var(--text2); }
+  /* ══ LA PANTALLA DE MCH EN TRES COLUMNAS (PANT-3, commit 5b) ═══════════════════════════════
+     Tres columnas tematicas con los grupos que la seccion YA tenia -hipertrofia, obstruccion y
+     factores de riesgo de muerte subita- y, debajo, los dos cuadros lado a lado. El corte va
+     sobre la VENTANA y en 900 px, que es la regla fija de la casa; por debajo, todo apilado.
+     ⚠️ DENTRO de cada columna los campos van en UNA sola columna: las grillas de tres que la
+     seccion usa a ancho completo dejarian tres campos de unos 90 px cada uno. Las reglas estan
+     ACOTADAS a `#mch-cols` y a `#mch-cajas`, asi que no tocan ninguna otra pantalla, que es lo
+     que la orden pide verificar de un componente compartido. */
+  .mch-top { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin:0 0 12px; }
+  .mch-h { display:flex; align-items:center; gap:6px; flex-wrap:wrap;
+           font-size:12px; font-weight:700; color:var(--accent2); margin:0 0 8px; }
+  #mch-cols, #mch-cajas { display:grid; grid-template-columns:minmax(0,1fr); gap:14px; }
+  /* ⚠️ DOS CAMPOS POR FILA DENTRO DE LA COLUMNA, NO UNO, Y ES UNA MEDICION. Con un solo campo
+     por fila la columna mas alta -la de factores de riesgo, con diez campos- se iba a diez
+     filas y el alto de la pantalla a 1440 px no bajaba NADA: 1.241 px antes y 1.242 despues. El
+     piso de 175 px es el que deja DOS campos en una columna de 389 px y UNO cuando la columna se
+     angosta, asi que por debajo de 900 px, con las tres columnas apiladas, sigue habiendo dos
+     por fila en el ancho completo y uno en el telefono. */
+  #mch-cols .mch-col > .grid-2, #mch-cols .mch-col > .grid-3, #mch-cols .mch-col > .grid-4,
+  #mch-cajas .mch-caja > .grid-2, #mch-cajas .mch-caja > .grid-3 {
+    grid-template-columns:repeat(auto-fit, minmax(175px, 1fr));
+  }
+  /* El segundo grupo de campos de una columna ya no necesita el margen de arriba que lo separaba
+     de un grupo vecino: dentro de la columna van uno debajo del otro. */
+  #mch-cols .mch-col > .grid-2[style], #mch-cols .mch-col > .grid-3[style] { margin-top:10px; }
+  #mch-cajas .mch-caja { border:1px solid var(--border); border-radius:8px; padding:10px 12px; }
+  /* ⚠️ TRES COLUMNAS FIJAS, Y NO `auto-fit`, Y ES UNA MEDICION QUE DIO VUELTA LA PRIMERA
+     VERSION. Con `repeat(auto-fit, minmax(300px, 1fr))` la pantalla usaba dos columnas donde no
+     entraban tres, que parecia mejor, y a 900 px aparecia BARRA HORIZONTAL -medido: scrollX=1-,
+     que la regla de la casa prohibe. Con tres fijas no hay barra en ninguno de los seis anchos
+     medidos. El precio esta declarado: a 1000 px cada columna queda en 255 px y adentro entra un
+     solo campo por fila, asi que ahi la pantalla baja poco. */
+  @media (min-width: 900px) {
+    #mch-cols  { grid-template-columns:repeat(3, minmax(0,1fr)); }
+    #mch-cajas { grid-template-columns:repeat(2, minmax(0,1fr)); }
+  }
   /* Fila inferior de herramientas SIEMPRE visible (CAMBIO 3) */
   .subtabs-wrap .tabs-tools { display:flex !important; }
   /* Tabs avanzadas como dropdown en móvil */
@@ -17435,14 +17471,22 @@ z
       <span id="mch_badge" class="incl-badge" hidden>📎 en el informe</span>
     </button>
     <div class="card-body sacc-body">
-      <p style="font-size:11px;color:var(--text2);margin:0 0 12px;line-height:1.5;">
-        Hipertrofia del ventrículo izquierdo sin causa que la explique. Genética y heterogénea, <b>1 de cada 500</b>.
-        Junto con la MCA (miocardiopatía arritmogénica) es la principal causa de muerte súbita en jóvenes y atletas.
-        <b style="color:var(--accent2);">No es una cardiopatía congénita</b> — está en esta pestaña por el modo de trabajo, y por eso la pestaña se llama «congénitas y miocardiopatías genéticas».
-      </p>
-      <button type="button" class="btn btn-ghost" style="font-size:11px;padding:4px 12px;margin:0 0 12px;" onclick="critAbrir('mch')">📋 Ver criterios</button>
+      <!-- ⚠️ LOS CUATRO PARRAFOS DE PROSA DE ESTA PANTALLA PASARON AL ⓘ DE SU GRUPO (PANT-3,
+           commit 5c). Eran 1.253 px de alto a 1440 px, con el cuadro de resultado por debajo del
+           pliegue. Lo que explicaba una guia esta ahora en el globo de su grupo, parafraseado y
+           con su hoja y su folio leidos en imagen; lo que contaba la historia de una edicion de
+           una guia salio y no volvio -queda en FUENTES.md si vale-. Ningun campo cambio de grupo
+           ni de id. -->
+      <div class="mch-top">
+        <button type="button" class="btn btn-ghost" style="font-size:11px;padding:4px 12px;" onclick="critAbrir('mch')">📋 Ver criterios</button>
+        <button type="button" class="vinfo-btn vinfo-btn-44" data-vinfo="mch-sec" aria-label="Que es la miocardiopatia hipertrofica y por que esta en esta pestania" onclick="vInfoClic(this,event)">&#9432;</button>
+      </div>
 
-      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:4px 0 8px;">Hipertrofia</div>
+      <!-- TRES COLUMNAS TEMATICAS con los grupos que la seccion ya tenia: hipertrofia,
+           obstruccion y factores de riesgo de muerte subita. Ninguno cambia de contenido. -->
+      <div id="mch-cols">
+      <div class="mch-col">
+      <div class="mch-h">Hipertrofia <button type="button" class="vinfo-btn vinfo-btn-44" data-vinfo="mch-hvi" aria-label="El espesor de pared y su umbral diagnostico" onclick="vInfoClic(this,event)">&#9432;</button></div>
       <div class="grid-3">
         <div class="fg"><label>Espesor máximo de pared (mm)</label><input type="number" id="mch_espesor" step="0.1" placeholder="mm" oninput="mchSync()"></div>
         <div class="fg"><label>SIV / PP (de AI · VI)</label>
@@ -17459,7 +17503,6 @@ z
           </select>
         </div>
       </div>
-      <p style="font-size:10px;color:var(--text2);margin:6px 0 0;">El <b>espesor máximo</b> es un campo propio y no se deduce del SIV: en la MCH el punto de mayor espesor no siempre es septal. El SIV y la PP se muestran al lado como referencia. Umbral diagnóstico ≥15 mm, o ≥13 mm con historia familiar.</p>
       <div class="grid-2" style="margin-top:10px;">
         <div class="fg"><label>Patrón morfológico</label>
           <select id="mch_patron" onchange="mchSync()">
@@ -17477,7 +17520,9 @@ z
         </div>
       </div>
 
-      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:16px 0 8px;">Obstrucción</div>
+      </div><!-- /col hipertrofia -->
+      <div class="mch-col">
+      <div class="mch-h">Obstrucción</div>
       <div class="grid-3">
         <div class="fg"><label>Gradiente TSVI en reposo (mmHg)</label><input type="number" id="mch_grad_reposo" step="1" placeholder="mmHg" oninput="mchSync()"></div>
         <div class="fg"><label>Gradiente TSVI con Valsalva (mmHg)</label><input type="number" id="mch_grad_valsalva" step="1" placeholder="mmHg" oninput="mchSync()"></div>
@@ -17504,7 +17549,9 @@ z
         </div>
       </div>
 
-      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:16px 0 8px;">Factores de riesgo de muerte súbita</div>
+      </div><!-- /col obstruccion -->
+      <div class="mch-col">
+      <div class="mch-h">Factores de riesgo de muerte súbita <button type="button" class="vinfo-btn vinfo-btn-44" data-vinfo="mch-msub" aria-label="Que cuenta y que no entre los factores de riesgo" onclick="vInfoClic(this,event)">&#9432;</button></div>
       <div class="grid-3">
         <!-- Campo COMPARTIDO con la sección de miocardiopatía arritmogénica. Vive acá porque acá
              nació, pero el hecho —hubo una muerte súbita en un familiar de primer grado— es uno
@@ -17559,10 +17606,13 @@ z
         <div class="fg"><label>FEVI (de AI · VI)</label>
           <input type="text" id="mch_fevi_ro" readonly tabindex="-1" placeholder="—" style="opacity:.7;"></div>
       </div>
-      <p style="font-size:10px;color:var(--text2);margin:6px 0 0;">La <b>respuesta tensional anormal</b> se registra y el informe la menciona, pero <b>no suma</b> al conteo de la AHA/ACC 2024: salió de la lista en esa edición. El <b>realce tardío</b> sí cuenta para la AHA y no para la ESC — el eco no lo evalúa.</p>
+      </div><!-- /col factores de riesgo -->
+      </div><!-- /mch-cols -->
 
-      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:16px 0 8px;">Exclusiones del modelo de la ESC</div>
-      <p style="font-size:10px;color:var(--text2);margin:0 0 8px;">El HCM Risk-SCD no está validado en estos grupos. Si alguno está <b>marcado</b>, no se publica el porcentaje y se dice cuál lo impide. Si quedan <b>sin contestar</b>, el número se publica pero el informe avisa que la aplicabilidad no se verificó. Los menores de 16 años se detectan solos.</p>
+      <!-- LOS DOS CUADROS, LADO A LADO desde 900 px y apilados por debajo. -->
+      <div id="mch-cajas">
+      <div class="mch-caja">
+      <div class="mch-h">Exclusiones del modelo de la ESC <button type="button" class="vinfo-btn vinfo-btn-44" data-vinfo="mch-ex" aria-label="Las exclusiones del modelo europeo" onclick="vInfoClic(this,event)">&#9432;</button></div>
       <div class="grid-3">
         <div class="fg"><label>Atleta de competición</label>
           <select id="mch_ex_atleta" onchange="mchSync()">
@@ -17593,8 +17643,9 @@ z
         </div>
       </div>
 
-      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:16px 0 8px;">Factores adicionales considerados</div>
-      <p style="font-size:10px;color:var(--text2);margin:0 0 8px;">No entran en el score de la ESC ni en el conteo de la AHA/ACC. El informe los menciona como contexto clínico.</p>
+      </div><!-- /caja exclusiones -->
+      <div class="mch-caja">
+      <div class="mch-h">Factores adicionales considerados <button type="button" class="vinfo-btn vinfo-btn-44" data-vinfo="mch-adic" aria-label="Los factores adicionales" onclick="vInfoClic(this,event)">&#9432;</button></div>
       <div class="grid-3">
         <div class="fg"><label>Múltiples mutaciones patogénicas</label>
           <select id="mch_mult_mut" onchange="mchSync()" title="Dos o más variantes patogénicas sarcoméricas en el mismo paciente. NO es factor de decisión de desfibrilador en adultos: no figura en el esquema de la AHA/ACC 2020/2024 (donde el genotipo es un factor PEDIÁTRICO) y la ESC 2023 desaconseja usar las variantes sarcoméricas para guiar el implante en prevención primaria de riesgo bajo o intermedio. Se registra por su valor en el tamizaje familiar.">
@@ -17614,15 +17665,19 @@ z
         </div>
       </div>
 
+      </div><!-- /caja factores adicionales -->
+      </div><!-- /mch-cajas -->
+
+      <!-- ⚠️ EL CUADRO DE RESULTADO VA DEBAJO DE LOS CAMPOS Y NO A LA DERECHA, Y ES UNA MEDICION.
+           La orden lo pone a la derecha desde 900 px SOLO si las tres columnas no bajan de 200 px
+           cada una. Medido: a 900 px el ancho util de la tarjeta son ~780 px; con el cuadro de
+           resultado a la derecha quedan ~155 px por columna, por debajo del minimo. Se aplica la
+           alternativa que la propia orden da. Desde ~1200 px si entraria: queda declarado en
+           `docs/PENDIENTES.md` para que lo decida el medico. -->
       <div class="calc-box" style="margin-top:14px;">
         <div class="calc-row"><span class="calc-lbl">ESC 2022 · HCM Risk-SCD</span><span id="mch-esc" class="calc-val">—</span></div>
         <div class="calc-row"><span class="calc-lbl">AHA/ACC 2024 · factores mayores</span><span id="mch-aha" class="calc-val">—</span></div>
-        <div class="calc-row"><span class="calc-lbl">Conclusión</span><span id="mch-concl" class="calc-val">—</span></div>
-      </div>
-      <div class="mBoxLike" style="border-left:3px solid var(--accent2);background:rgba(13,148,136,.08);padding:8px 12px;border-radius:6px;font-size:10px;line-height:1.5;margin-top:10px;color:var(--text2);">
-        <b>Los dos scores se muestran juntos y no se promedian.</b> El europeo es una ecuación continua (HCM Risk-SCD, O'Mahony 2014) y el americano un conteo de factores mayores: discrepan de verdad, y elegir uno sería decidir por vos.
-        Bandas de la ESC: <b>&lt;4 %</b> bajo · <b>4 a 6 %</b> intermedio (IIb) · <b>≥6 %</b> alto (IIa).
-        Si falta cualquiera de las siete variables, <b>no se publica el número</b>: se listan cuáles faltan.
+        <div class="calc-row"><span class="calc-lbl">Conclusión</span><span id="mch-concl" class="calc-val">—</span><button type="button" class="vinfo-btn vinfo-btn-44" data-vinfo="mch-score" aria-label="Los dos modelos de riesgo de muerte subita" onclick="vInfoClic(this,event)">&#9432;</button></div>
       </div>
       <div style="text-align:center;margin-top:10px;">
         <input type="checkbox" id="mch_incluir_chk" style="display:none;" tabindex="-1" aria-hidden="true">
@@ -46724,6 +46779,86 @@ const VINFO = Object.freeze({
      globo no respalda una recomendacion, explica un dibujo.
      Y SIN NINGUNA FRASE DE «REVISION PENDIENTE», que es la regla nueva del medico: lo que falta
      por revisar vive en `docs/PENDIENTES.md` y no en la pantalla. */
+  /* ══ LOS SEIS GLOBOS DE LA PANTALLA DE MCH (PANT-3, commit 5c) ═══════════════════════════
+     Cada texto que explicaba una guia en la pantalla pasa al ⓘ de SU grupo, parafraseado y con
+     la guia, la hoja y el folio LEIDOS EN IMAGEN en esta tanda:
+       · AHA/ACC 2024 — Ommen, Circulation 2024;149:e1239-e1311. Hoja 9, folio e1247 (pie impreso
+         «June 4, 2024  e1247») y hoja 29, folio e1267 (pie impreso «June 4, 2024  e1267»).
+         Regla de folio: folio = hoja + 1238, comprobada en las DOS hojas.
+       · ESC 2022 — Zeppenfeld, Eur Heart J 2022;43:3997-4126. Hoja 66, folio 4062 (encabezado
+         impreso «4062») y hoja 67, folio 4063. Regla de folio: folio = hoja + 3996, comprobada
+         en las hojas 10, 66, 67 y 100.
+     Las frases que contaban la historia de una edicion de una guia NO pasaron al ⓘ: salieron. */
+  'mch-sec': {
+    ancho: 380,
+    tit: 'La miocardiopatía hipertrófica en esta pestaña',
+    lee: 'Hipertrofia del ventrículo izquierdo sin una causa que la explique. Es genética y '
+       + 'heterogénea, y afecta a cerca de 1 de cada 500 personas. Junto con la miocardiopatía '
+       + 'arritmogénica es la principal causa de muerte súbita en jóvenes y atletas.\n'
+       + 'NO ES UNA CARDIOPATÍA CONGÉNITA. Está en esta pestaña porque se evalúa junto con ellas, '
+       + 'y por eso la pestaña se llama «congénitas y miocardiopatías genéticas».'
+  },
+  'mch-hvi': {
+    ancho: 380,
+    tit: 'El espesor de pared en la miocardiopatía hipertrófica',
+    lee: 'El ESPESOR MÁXIMO es un campo propio y no se deduce del septo: en esta enfermedad el '
+       + 'punto de mayor espesor no siempre es septal. El septo y la pared posterior se muestran '
+       + 'al lado como referencia, tomados de la pestaña AI · VI.',
+    fuente: 'AHA/ACC 2024 — hoja 9, folio e1247.',
+    ojo: 'El diagnóstico por imagen en el adulto se establece con un espesor máximo de pared al '
+       + 'final de la diástole de 15 mm o más en cualquier punto del ventrículo izquierdo, cuando '
+       + 'no hay otra causa que explique la hipertrofia. Una hipertrofia más limitada, de 13 a 14 '
+       + 'mm, también puede ser diagnóstica en familiares de un paciente con la enfermedad o '
+       + 'junto con un test genético positivo.'
+  },
+  'mch-msub': {
+    ancho: 400,
+    tit: 'Qué cuenta y qué no entre los factores de riesgo',
+    lee: 'La RESPUESTA TENSIONAL ANORMAL al ejercicio se registra y el informe la menciona, pero '
+       + 'no está entre los cinco factores mayores de la AHA/ACC: no figura en su recomendación '
+       + 'de implante por factores mayores.\n'
+       + 'El REALCE TARDÍO EXTENSO tampoco es uno de esos cinco factores mayores. Interviene como '
+       + 'criterio adicional cuando NO hay ningún factor mayor, junto con la taquicardia '
+       + 'ventricular no sostenida, y no suma al conteo de los cinco.\n'
+       + 'En el lado europeo, en cambio, el realce tardío extenso sí es uno de los hallazgos que '
+       + 'modifican la valoración dentro de la banda de riesgo bajo. El ecocardiograma no lo '
+       + 'evalúa: se mide por resonancia.',
+    fuente: 'AHA/ACC 2024 — hoja 29, folio e1267 · ESC 2022 — hoja 66, folio 4062.'
+  },
+  'mch-ex': {
+    ancho: 380,
+    tit: 'Las exclusiones del modelo europeo',
+    lee: 'El modelo de riesgo a 5 años no está pensado para atletas de competición, para personas '
+       + 'con enfermedades metabólicas o infiltrativas, ni después de una miectomía o una '
+       + 'alcoholización septal.\n'
+       + 'CÓMO LO APLICA ESTA PANTALLA: si alguno está MARCADO, no se publica el porcentaje y se '
+       + 'dice cuál lo impide. Si quedan SIN CONTESTAR, el número se publica y el informe avisa '
+       + 'que la aplicabilidad no se verificó. Los menores de 16 años se detectan solos.',
+    fuente: 'ESC 2022 — hoja 66, folio 4062.'
+  },
+  'mch-adic': {
+    ancho: 360,
+    tit: 'Los factores adicionales',
+    lee: 'No entran en el modelo de riesgo a 5 años ni en el conteo de factores mayores. El '
+       + 'informe los menciona como contexto clínico.'
+  },
+  'mch-score': {
+    ancho: 400,
+    tit: 'Los dos modelos de riesgo de muerte súbita',
+    lee: 'SE MUESTRAN JUNTOS Y NO SE PROMEDIAN. El europeo es una ecuación continua que devuelve '
+       + 'un riesgo a 5 años (O\u2019Mahony 2014) y el americano es un conteo de factores '
+       + 'mayores: discrepan de verdad, y elegir uno sería decidir por el médico.\n'
+       + 'El modelo europeo usa SIETE variables: la edad, el espesor de pared, el tamaño de la '
+       + 'aurícula izquierda, el gradiente del tracto de salida, la taquicardia ventricular no '
+       + 'sostenida, el síncope inexplicado y la historia familiar de muerte súbita. Si falta '
+       + 'cualquiera de las siete, esta pantalla NO publica el número y lista cuáles faltan.\n'
+       + 'LAS BANDAS del riesgo a 5 años son: por debajo de 4 %, bajo; de 4 a menos de 6 %, '
+       + 'intermedio; 6 % o más, alto.',
+    fuente: 'ESC 2022 — hoja 66, folio 4062 · O\u2019Mahony 2014.',
+    ojo: 'Dentro de la banda BAJA la valoración cambia si hay realce tardío extenso o una '
+       + 'fracción de eyección por debajo de 50 %: esta pantalla los nombra cuando están '
+       + 'presentes y avisa cuando no constan.'
+  },
   'cc-3d': {
     ancho: 380,
     tit: 'El corazón en 3D de las cardiopatías congénitas',
@@ -80494,7 +80629,8 @@ function mchAHA(src){
   return { presentes: pres, pendientes: pend, n: pres.length,
            arbitros: arb, arbitrosPend: arbPend, fam: fam, clase: clase };
 }
-/* Cuántos factores mayores tiene la lista de la AHA/ACC 2020. Se lee en cuatro sitios; escrito
+/* Cuántos factores mayores tiene la lista de la AHA/ACC 2024 —la edicion que esta app cuenta, y
+   el comentario decia 2020 (corregido en PANT-3)—. Se lee en cuatro sitios; escrito
    como literal en tres de ellos y como constante en uno era peor que el literal a secas. */
 const MCH_AHA_N_MAYORES = 5;
 function mchConclusion(src){
@@ -82175,7 +82311,16 @@ function critMCH(){
   h += '<table style="width:100%;border-collapse:collapse;">' +
        '<thead><tr style="background:var(--bg);">' +
        '<th style="padding:6px 8px;text-align:left;font-size:11px;width:20%;">Hallazgo</th>' +
-       '<th style="padding:6px 8px;text-align:left;font-size:11px;">AHA/ACC 2020</th>' +
+       /* ⚠️ ESTA COLUMNA PASA A 2024 Y LA DEL DIAGRAMA NO, Y LA DIFERENCIA ESTA MEDIDA (PANT-3,
+          commit 5d). Las SIETE filas de esta tabla se cotejaron una por una contra la AHA/ACC
+          2024 leida en imagen -hoja 29, folio e1267, recomendaciones 3 y 6- y dicen lo de 2024:
+          el aneurisma apical y la FEVI por debajo de 50 % como factores mayores, la taquicardia
+          ventricular no sostenida y el realce tardio como arbitros, y la muerte subita familiar
+          «≤50 anios, primer grado o pariente cercano», que es textual de la recomendacion 3a.
+          Los DIAGRAMAS de arriba, en cambio, siguen dibujando la version 2020 y por eso su
+          columna conserva su rotulo y su cita: cambiarle la etiqueta a un dibujo que no cambio
+          seria rotularlo mal. Queda declarado en `docs/PENDIENTES.md`. */
+       '<th style="padding:6px 8px;text-align:left;font-size:11px;">AHA/ACC 2024</th>' +
        '<th style="padding:6px 8px;text-align:left;font-size:11px;">ESC 2023</th></tr></thead><tbody>';
   DIF.forEach(function(d){
     h += '<tr><td style="padding:6px 8px;font-size:11px;font-weight:700;vertical-align:top;">' + _critEsc(d[0]) + '</td>' +
@@ -82189,8 +82334,12 @@ function critMCH(){
        'explícitamente de la evaluación de rutina en 2020, y el HCM Risk-SCD nunca la incluyó. La app la registra ' +
        'y la informa como factor reconocido en guías previas, fuera de los dos conteos.</p>';
   h += '<p style="font-size:10px;color:var(--text2);line-height:1.6;margin:6px 0 0;">' +
+       /* ⚠️ «que es la que cita el informe» DEJO DE SER CIERTO y se corrige (PANT-3, commit 5d):
+          el informe y el cuadro de resultado cuentan con la lista de 2024 desde la tanda PANT-2.
+          La frase se CONSERVA porque es lo unico que avisa que los dibujos van una edicion
+          atras, y sin ese aviso el lector los toma por la version vigente. */
        'La actualización AHA/ACC 2024 endureció un criterio: el aneurisma apical exige ahora escara transmural ' +
-       'o realce tardío. Los diagramas siguen la versión 2020, que es la que cita el informe.</p>';
+       'o realce tardío. Los diagramas siguen la versión 2020; el conteo de factores del informe usa la de 2024.</p>';
   h += '<p style="font-size:10px;color:var(--text2);line-height:1.6;margin:6px 0 0;">' +
        'El HCM Risk-SCD no está validado en menores de 16 años, atletas de competición, fenocopias metabólicas ' +
        'o infiltrativas, formas sindrómicas, ni tras miectomía. Tampoco usa gradientes inducidos por ejercicio, ' +
@@ -151724,8 +151873,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261103-0011';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793675503617;                 /* eco-build-ms */
+const ECO_BUILD    = '20261103-0024';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793676247240;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -151811,7 +151960,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261103-0011</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261103-0024</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
