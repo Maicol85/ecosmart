@@ -1442,11 +1442,12 @@
      aparecia una barra de desplazamiento horizontal; y con la columna de conclusion al lado el
      hueco da para CUATRO de 215 px, que no es lo que la orden decidio. Por debajo de 900 se
      conserva el auto-fit de siempre: ahi nada cambia. */
-  #mca-fila { display:grid; grid-template-columns:minmax(0,1fr); gap:14px; align-items:start; }
+  #mca-fila, #tdf-fila { display:grid; grid-template-columns:minmax(0,1fr); gap:14px; align-items:start; }
+  #tdf-campos { min-width:0; }
   #mca-campos { min-width:0; }
   #mca-eco-cols { display:grid; grid-template-columns:repeat(auto-fit,minmax(175px,1fr)); gap:10px; }
   @media (min-width: 900px) {
-    #mca-fila { grid-template-columns:minmax(0,1fr) 320px; }
+    #mca-fila, #tdf-fila { grid-template-columns:minmax(0,1fr) 320px; }
     #mca-eco-cols { grid-template-columns:repeat(2, minmax(0,1fr)); }
     .mca-cat-grid { grid-template-columns:repeat(3, minmax(0,1fr)); }
   }
@@ -17909,15 +17910,19 @@ z
       <span id="tdf_badge" class="incl-badge" hidden>📎 en el informe</span>
     </button>
     <div class="card-body sacc-body">
-      <p style="font-size:11px;color:var(--text2);margin:0 0 12px;line-height:1.5;">
-        La cardiopatía congénita compleja más frecuente en el adulto. El seguimiento gira alrededor de la <b>insuficiencia pulmonar residual</b>
-        y la dilatación del ventrículo derecho, con riesgo de taquicardia ventricular sostenida a largo plazo.
-      </p>
-      <div class="mBoxLike" style="border-left:3px solid var(--accent2);background:rgba(13,148,136,.08);padding:8px 12px;border-radius:6px;font-size:10px;line-height:1.5;margin-bottom:12px;color:var(--text2);">
-        <b>Acá no hay campos de volumen, y es a propósito.</b> Los umbrales que definen la reintervención —VDFVD indexado ≥160 ml/m², volumen sistólico final ≥80 ml/m²— son cifras de <b>resonancia</b>:
-        la ESC 2020 dice que la RMC es el método de elección para el volumen y la función del VD, y la eco 2D no los mide de forma fiable. Esta sección maneja lo que el ecocardiograma sí mide.
-        La guía además advierte que ese corte «puede no correlacionar con beneficio clínico» y pide <b>medidas seriadas</b>.
+      <!-- ⚠️ ACA HABIA UN RECUADRO QUE DECIA «Aca no hay campos de volumen, y es a proposito», y
+           VEINTE LINEAS MAS ABAJO la seccion tiene DOS campos de volumen con su grupo propio
+           -«Volumenes del ventriculo derecho - criterio volumetrico ESC 2020»-. El recuadro
+           quedo de cuando no los habia y nadie lo actualizo: la pantalla se contradecia a si
+           misma. SE RETIRA el renglon que dejo de ser cierto; lo que decia de la guia esta en el
+           globo `tdf-vol`, con su hoja y su folio leidos en imagen y comprobados contra el pie
+           impreso. Ningun corte se movio. (PANT-3, commit 7.) -->
+      <div style="display:flex;align-items:center;gap:8px;margin:0 0 12px;">
+        <span style="font-size:11px;font-weight:700;color:var(--text2);">Tetralogía de Fallot reparada</span>
+        <button type="button" class="vinfo-btn vinfo-btn-44" data-vinfo="tdf-sec" aria-label="Que sigue esta seccion en la tetralogia reparada" onclick="vInfoClic(this,event)">&#9432;</button>
       </div>
+      <div id="tdf-fila">
+      <div id="tdf-campos">
       <div class="grid-3">
         <div class="fg"><label>IP — grado (de Válvulas)</label>
           <input type="text" id="tdf_ip_ro" readonly tabindex="-1" placeholder="—" style="opacity:.7;"></div>
@@ -17937,11 +17942,13 @@ z
         <div class="fg"><label>Gradiente TSVD (mmHg) — si difiere del transvalvular</label><input type="number" id="tdf_grad_tsvd" step="1" placeholder="mmHg" oninput="tdfSync()"></div>
         <div class="fg"><label>Presión sistólica VD (de PSAP por IT)</label>
           <input type="text" id="tdf_psvd_ro" readonly tabindex="-1" placeholder="—" style="opacity:.7;"></div>
-        <div class="fg"><label>IT — grado (de Válvulas)</label>
+        <div class="fg"><label>IT — grado (de Válvulas) <button type="button" class="vinfo-btn vinfo-btn-44" data-vinfo="tdf-eco" aria-label="De donde salen estos valores y que presion estima la IT" onclick="vInfoClic(this,event)">&#9432;</button></label>
           <input type="text" id="tdf_it_ro" readonly tabindex="-1" placeholder="—" style="opacity:.7;"></div>
       </div>
-      <p style="font-size:10px;color:var(--text2);margin:6px 0 0;">Con obstrucción residual del tracto de salida, la presión que estima la IT es la del <b>ventrículo derecho</b> y no la de la arteria pulmonar: las separa el gradiente del TSVD.</p>
-      <div style="font-size:11.5px;font-weight:700;color:var(--text);margin:14px 0 4px;">Volúmenes del ventrículo derecho — criterio volumétrico ESC 2020</div>
+      <div style="font-size:11.5px;font-weight:700;color:var(--text);margin:14px 0 4px;display:flex;align-items:center;gap:6px;">
+        <span>Volúmenes del ventrículo derecho — criterio volumétrico ESC 2020</span>
+        <button type="button" class="vinfo-btn vinfo-btn-44" data-vinfo="tdf-vol" aria-label="De donde salen estos volumenes y que dice la guia del corte" onclick="vInfoClic(this,event)">&#9432;</button>
+      </div>
       <div class="grid-3">
         <div class="fg"><label>VTDVD indexado (ml/m&sup2;)</label>
           <input type="number" id="tdf_vtdvdi" step="1" placeholder="ml/m²" oninput="tdfSync()">
@@ -17957,7 +17964,6 @@ z
             <option value="tc">Tomografía</option>
           </select></div>
       </div>
-      <p style="font-size:10px;color:var(--text2);margin:6px 0 0;">Estos volúmenes <b>no los mide este estudio</b>: se transcriben de la imagen que los midió. Los umbrales de la ESC 2020 están validados sobre <b>resonancia</b>; la ecocardiografía 3D subestima los volúmenes del ventrículo derecho, así que con ese método el informe lo declara y el criterio no vota.</p>
       <div class="grid-3" style="margin-top:10px;">
         <div class="fg"><label>CIV residual</label>
           <select id="tdf_civ_residual" onchange="tdfSync()">
@@ -17988,7 +17994,9 @@ z
           </select>
         </div>
       </div>
-      <div class="calc-box" style="margin-top:12px;">
+      </div><!-- /#tdf-campos -->
+      <div id="tdf-concl-col">
+      <div class="calc-box" style="margin-top:0;">
         <div class="calc-row"><span class="calc-lbl">Conclusión</span><span id="tdf-concl" class="calc-val">—</span></div>
       </div>
       <div style="text-align:center;margin-top:10px;">
@@ -17996,6 +18004,8 @@ z
         <button type="button" class="btn btn-integrar" data-ete-chk="tdf_incluir_chk" aria-pressed="false"
                 onclick="eteInclToggle('tdf_incluir_chk')">📎 Integrar al informe</button>
       </div>
+      </div><!-- /#tdf-concl-col -->
+      </div><!-- /#tdf-fila -->
     </div>
   </div>
 <div class="card sacc" id="sacc-cc-tv">
@@ -46824,6 +46834,47 @@ const VINFO = Object.freeze({
          impreso «4062») y hoja 67, folio 4063. Regla de folio: folio = hoja + 3996, comprobada
          en las hojas 10, 66, 67 y 100.
      Las frases que contaban la historia de una edicion de una guia NO pasaron al ⓘ: salieron. */
+  /* ── TETRALOGIA DE FALLOT REPARADA (PANT-3, commit 7) ──────────────────────────────────
+     La fuente se leyo EN IMAGEN a 230 ppp: ESC 2020 de cardiopatias congenitas del adulto,
+     edicion INGLESA, HOJA 51, folio 613 -regla folio = hoja + 562, COMPROBADA en el pie impreso
+     de esa misma hoja-.
+     ⚠️ LA DISPOSICION EN TRES COLUMNAS, UNA POR TEMA, QUEDO PARADA. La orden la condiciona a que
+     los grupos esten claros, y no lo estan: de las CINCO filas de campos que la seccion tiene,
+     UNA SOLA lleva titulo -«Volumenes del ventriculo derecho»-; las otras cuatro no dicen de que
+     tema son. Agruparlas en tres seria inventarlas. La propuesta esta en el reporte y en
+     docs/PENDIENTES.md. Lo que SI se hizo es lo que no depende de eso: los textos al globo y la
+     conclusion a la derecha desde 900 px. */
+  'tdf-sec': {
+    ancho: 380,
+    tit: 'La tetralogía de Fallot reparada en esta sección',
+    lee: 'Es la cardiopatía congénita compleja más frecuente en el adulto. El seguimiento gira '
+       + 'alrededor de la insuficiencia pulmonar residual y de la dilatación del ventrículo '
+       + 'derecho, con riesgo de taquicardia ventricular sostenida a largo plazo.'
+  },
+  'tdf-eco': {
+    ancho: 400,
+    tit: 'De dónde salen estos valores',
+    lee: 'El grado de la insuficiencia pulmonar, el de la insuficiencia tricuspídea y el diámetro '
+       + 'del tracto de salida no se cargan acá: son espejos de Válvulas y de VD · AD.\n'
+       + 'CON OBSTRUCCIÓN RESIDUAL DEL TRACTO DE SALIDA, la presión que estima la insuficiencia '
+       + 'tricuspídea es la del VENTRÍCULO DERECHO y no la de la arteria pulmonar: las separa el '
+       + 'gradiente del tracto de salida.'
+  },
+  'tdf-vol': {
+    ancho: 420,
+    tit: 'Los volúmenes del ventrículo derecho',
+    lee: 'Estos volúmenes NO los mide este estudio: se transcriben de la imagen que los midió. La '
+       + 'ecocardiografía 3D subestima los volúmenes del ventrículo derecho, así que con ese '
+       + 'método el informe lo declara y el criterio no vota.',
+    fuente: 'ESC 2020 de cardiopatías congénitas del adulto — hoja 51, folio 613.',
+    ojo: 'La guía dice que la resonancia cardíaca es el método de elección para el volumen y la '
+       + 'función del ventrículo derecho, y que los datos longitudinales importan más que una '
+       + 'medición aislada para decidir el momento de la reintervención.\n'
+       + 'Sobre los dos números: la guía los publica diciendo que la normalización del tamaño del '
+       + 'ventrículo derecho después de la reintervención se vuelve improbable en cuanto el '
+       + 'volumen sistólico final indexado supera 80 ml/m² y el volumen diastólico final indexado '
+       + 'supera 160 ml/m², y agrega que ese corte «puede no correlacionar con beneficio clínico».'
+  },
   /* ── MCA (PANT-3, commit 6) ────────────────────────────────────────────────────────────
      La fuente de los criterios se leyo EN IMAGEN a 230 ppp: te Riele y cols., «Arrhythmogenic
      right ventricular cardiomyopathy (ARVC): cardiovascular magnetic resonance update»,
