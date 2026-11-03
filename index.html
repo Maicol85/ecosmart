@@ -16618,6 +16618,652 @@ z
        El HECHO es uno solo; lo que cambia es qué le pide cada criterio. Por eso hay morfología,
        eje y tipo: el Task Force distingue el eje superior —origen en pared libre del VD— del
        inferior, que es la taquicardia del tracto de salida y tiene otro pronóstico. -->
+<div class="card sacc" id="sacc-cc-tv">
+    <button type="button" class="sacc-hdr" onclick="secToggle('cc-tv');tvSync();" aria-expanded="false">
+      <span class="sacc-arrow">▶</span>
+      <span style="flex:1;">⚡ Arritmia ventricular <span style="font-weight:400;color:var(--text2);font-size:11px;">— compartido por MCH, Fallot y MCA</span></span>
+      <span id="tv_badge" class="incl-badge" hidden>● cargada</span>
+    </button>
+    <div class="card-body sacc-body">
+      <!-- PANT-3, commit 9. El modulo es la PRIMERA seccion de CC frecuentes, con su boton
+           «Limpiar» y su tarjeta de que aporta a cada una. El rotulo del primer campo y el valor
+           nuevo del tipo son decision del medico del 01/11/2026. -->
+      <div style="display:flex;align-items:center;gap:8px;margin:0 0 10px;">
+        <span style="font-size:10.5px;font-weight:700;color:var(--text2);">Se carga una sola vez y la usan las tres secciones</span>
+        <button type="button" class="vinfo-btn vinfo-btn-44" data-vinfo="tv-sec" aria-label="Que hace este modulo y que necesita cada seccion" onclick="vInfoClic(this,event)">&#9432;</button>
+        <span style="flex:1;"></span>
+        <button type="button" class="btn btn-ghost" style="font-size:11px;padding:4px 12px;margin:0;" onclick="tvLimpiar()">&#9003; Limpiar</button>
+      </div>
+      <div class="grid-3">
+        <div class="fg"><label>Parada cardíaca o TV documentada</label>
+          <select id="tv_documentada" onchange="tvSync()">
+            <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
+          </select>
+        </div>
+        <div class="fg"><label>Tipo</label>
+          <select id="tv_tipo" onchange="tvSync()">
+            <option value="">—</option>
+            <option value="no_sostenida">No sostenida</option>
+            <option value="sostenida">Sostenida</option>
+            <option value="ambas">Ambas</option>
+            <option value="parada_rec">Parada cardíaca recuperada</option>
+          </select>
+        </div>
+        <div class="fg"><label>Extrasístoles ventriculares en 24 h (Holter)</label><input type="number" id="tv_ev24h" step="1" placeholder="EV/24h" oninput="tvSync()"></div>
+      </div>
+      <div class="grid-2" style="margin-top:10px;">
+        <div class="fg"><label>Morfología y eje</label>
+          <select id="tv_morfologia" onchange="tvSync()">
+            <option value="">—</option>
+            <option value="bcri_sup">BCRI con eje superior — origen en pared libre del VD</option>
+            <option value="bcri_inf">BCRI con eje inferior — tracto de salida del VD</option>
+            <option value="bcri_desc">BCRI con eje no determinado</option>
+            <option value="bcrd">BCRD — origen en el ventrículo izquierdo</option>
+            <option value="no_esp">No especificada</option>
+          </select>
+        </div>
+        <div class="fg"><label>Qué aporta a cada sección</label>
+          <div class="calc-box" style="margin:0;padding:6px 10px;"><div class="calc-row" style="border:none;padding:0;">
+            <span id="tv-aporte" class="calc-val">—</span></div></div>
+        </div>
+      </div>
+      <!-- La tarjeta esquematica: una fila por seccion, con lo que ESTE modulo le aporta. Se
+           pinta en `tvSync` desde el MISMO estado que la linea de arriba, asi que las dos no
+           pueden discrepar. -->
+      <div id="tv-tarjeta" class="calc-box" style="margin-top:10px;">
+        <div class="calc-row"><span class="calc-lbl">MCH — miocardiopatía hipertrófica</span><span id="tv-ap-mch" class="calc-val">—</span></div>
+        <div class="calc-row"><span class="calc-lbl">MCA — miocardiopatía arritmogénica</span><span id="tv-ap-mca" class="calc-val">—</span></div>
+        <div class="calc-row"><span class="calc-lbl">TdF — tetralogía de Fallot reparada</span><span id="tv-ap-tdf" class="calc-val">—</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ CIA / CIV ═══
+       Vive acá y no en ETE porque el shunt se calcula con TSVI/TSVD. Los campos fuente
+       (diam_tsvi, itv_tsvi, tsvd_diametro, vti_tsvd) siguen en #tab-doppler y #tab-vd — esta
+       sección sólo muestra espejos de sólo lectura (ete_shunt_*_ro) que llena eteShuntSync().
+       El toggle de inclusión NO usa localStorage: se lee del propio checkbox, que
+       guardarInforme captura en `campos` y la reimpresión repone. Las secciones viejas leen
+       una clave global y por eso un estudio reimpreso podía salir sin una sección que el PDF
+       original sí tenía. -->
+  
+
+  <!-- ═══ DUCTUS ARTERIOSO PERMEABLE ═══ -->
+  
+
+  <!-- ═══ COARTACIÓN DE AORTA ═══ -->
+  
+
+  <!-- ═══ VENTANA AORTOPULMONAR ═══ -->
+  
+
+  <!-- ═══ FORAMEN OVAL PERMEABLE ═══
+       Los campos de contexto clínico son SELECTS de tres estados, no casillas: la diferencia
+       entre «no lo tiene» y «no lo pregunté» decide acá entre no hacer nada e implantar un
+       dispositivo. Ver la nota de fopConclusion(). -->
+  
+
+  <!-- ═══ VÁLVULA AÓRTICA BICÚSPIDE ═══
+       La guía que se aplica es la ESC 2024 de AORTA, no la ESC/EACTS de valvulopatías: la 2021
+       está superada por la 2025, y la 2025 borró sus propias filas de 55/50 mm y remite a la de
+       aorta. El texto que imprime la sección nombra la guía y la clase. Ver vabConclusion(). -->
+  
+
+  <!-- ═══ MIOCARDIOPATÍA HIPERTRÓFICA ═══
+       Dos scores de muerte súbita con criterios distintos, lado a lado, cada uno con su guía y
+       su clase. No se promedian ni se elige uno. Ver mchConclusion(). -->
+  
+
+  <!-- ═══ TETRALOGÍA DE FALLOT REPARADA ═══
+       Sin campos de volumen a propósito: los umbrales de 160/80 ml/m² son de RESONANCIA y la
+       eco 2D no mide volúmenes del VD de forma fiable. Ver tdfConclusion(). -->
+  
+
+  <!-- ═══ TRANSPOSICIÓN DE GRANDES ARTERIAS CORREGIDA ═══ -->
+  
+
+
+
+  <!-- ═══ MIOCARDIOPATÍA ARRITMOGÉNICA ═══
+       MCA y no MAVD/ARVC: el compromiso puede ser biventricular o predominantemente izquierdo.
+       La regla de conteo es UNO POR CATEGORÍA — ver mcaScore(). -->
+  
+
+  <!-- ═══ ANOMALÍA DE EBSTEIN ═══
+       Las cinco áreas del índice de Celermajer son campos PROPIOS y no reusan ad_area/ai_area:
+       aquéllas se miden en telesístole (aurícula máxima, criterio ASE para tamaño de cámara) y
+       ésta en telediástole. Ver ebsCelermajer(). -->
+  
+</div>
+
+<!-- ═══════════════════════ TAB: ECO ESTRÉS ═══════════════════════
+     LA INTERFAZ DE ESTE MÓDULO ESTÁ RETIRADA: no hay pestaña, no hay campos y no hay una sola
+     regla de CSS para sus clases —medido—. El JS de abajo sigue COMPLETO y corre en cada
+     carga: dos listeners globales, un setTimeout de arranque y unas sesenta funciones que
+     salen por su guarda porque el elemento que buscan no existe.
+
+     NO SE BORRA, y es decisión de Maicol del 25/10/2026: queda inerte hasta modularizar la
+     app. El motivo es que EL PREFIJO `ee` NO IDENTIFICA A ESTE MÓDULO —hay cuatro familias y
+     tres están VIVAS—; la nota del listener de `paste`, más abajo, las enumera.
+
+     LO MANTIENEN FUERA DEL PAPEL TRES COMPUERTAS:
+       1. la sección del PDF exige que EXISTA el elemento 'ee-incluir-pdf' en el DOM;
+       2. el informe narrativo sólo agrega el rótulo «Eco Estrés:» si eeInformeLineas()
+          devuelve líneas, y sale con [] porque 'ee-res-global' no existe;
+       3. eeHasData() da falso con el árbol limpio.
+     Las tres las fija TC-536, con el escenario peligroso —la bandera encendida a mitad de
+     sesión más eeHasData() en true— y con controles negativos de las tres familias vivas.
+
+     Inventario de piezas, líneas, bytes y dueños: docs/mapa/eco-estres-inventario.md
+     Qué falta medir antes de borrar:          docs/PENDIENTES.md → AJ10-C -->
+
+<script>
+(function(){
+function eeSwitchTab(id,el){
+  document.querySelectorAll('#tab-ee .ee-tab-content').forEach(t=>t.classList.remove('active'));
+  el.parentElement.querySelectorAll('.ee-tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('ee-tab-'+id).classList.add('active');
+  el.classList.add('active');
+  if(id==='bullo') eeInitAllBulls();
+}
+function eeSwitchBullTab(id,el){
+  ['basal','pico','recup'].forEach(b=>{ document.getElementById('ee-bull-'+b).style.display = b===id?'flex':'none'; });
+  el.parentElement.querySelectorAll('.ee-tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+}
+function eeToggleStep(hdr){
+  const body=hdr.nextElementSibling;
+  const isOpen=body.classList.contains('open');
+  body.classList.toggle('open');
+  hdr.querySelector('span:last-child').textContent=isOpen?'▼':'▲';
+}
+function eeSyncEdad(){
+  const age=+((document.getElementById('edad')||{}).value||0);
+  if(age>0){
+    const t=220-age;
+    const teo=document.getElementById('ee-b-fcteo'); if(teo) teo.value=t;
+    const obj=document.getElementById('ee-a-fcobj'); if(obj) obj.value=Math.round(t*0.85);
+    eeCalcFCPct();
+  }
+}
+function eeCalcFCPct(){
+  const fcteo=+((document.getElementById('ee-b-fcteo')||{}).value||0);
+  const fcmax=+((document.getElementById('ee-b-fcmax')||{}).value||0);
+  if(!fcteo||!fcmax)return;
+  const pct=Math.round(fcmax/fcteo*100);
+  const fill=document.getElementById('ee-fc-pct-fill'), val=document.getElementById('ee-fc-pct-val');
+  const col = pct>=85?'var(--green)':pct>=75?'var(--yellow)':'var(--red)';
+  if(fill){ fill.style.width=Math.min(pct,100)+'%'; fill.style.background=col; }
+  if(val){ val.textContent=pct+'% de FC máxima teórica'; val.style.color=col; }
+}
+function eeEvalCFVR(){
+  const v=+((document.getElementById('ee-f-cfvr')||{}).value||0);
+  const el=document.getElementById('ee-f-cfvr-res'); if(!el)return;
+  if(!v){el.textContent='';return;}
+  if(v>=2.5){el.style.color='var(--green)';el.textContent='✅ Normal (≥2.5)';}
+  else if(v>=2.0){el.style.color='var(--yellow)';el.textContent='⚠️ Borderline (2.0–2.5)';}
+  else{el.style.color='var(--red)';el.textContent='❌ Reducida (<2.0) — sugiere enfermedad microvascular o estenosis significativa';}
+}
+function eeEvalPSAP(){
+  const v=+((document.getElementById('ee-p-psap-pic')||{}).value||0);
+  const el=document.getElementById('ee-p-psap-res'); if(!el)return;
+  if(!v){el.textContent='';return;}
+  if(v>60){el.style.color='var(--red)';el.textContent='❌ HTP inducida por estrés (>60mmHg)';}
+  else if(v>50){el.style.color='var(--yellow)';el.textContent='⚠️ Elevación significativa (>50mmHg)';}
+  else{el.style.color='var(--green)';el.textContent='✅ Normal (<50mmHg)';}
+}
+function eeEvalEE(){
+  const v=+((document.getElementById('ee-p-ee')||{}).value||0);
+  const el=document.getElementById('ee-p-ee-res'); if(!el)return;
+  if(!v){el.textContent='';return;}
+  if(v>14){el.style.color='var(--red)';el.textContent="❌ E/e' elevado (>14) — PCP probablemente elevada";}
+  else if(v>10){el.style.color='var(--yellow)';el.textContent="⚠️ E/e' borderline (10–14)";}
+  else{el.style.color='var(--green)';el.textContent="✅ E/e' normal (<10)";}
+}
+function eeEvalGLS(){
+  const bas=+((document.getElementById('ee-gls-bas')||{}).value||0);
+  const pic=+((document.getElementById('ee-gls-pic')||{}).value||0);
+  const el=document.getElementById('ee-gls-res'); if(!el)return;
+  if(!bas){el.textContent='';return;}
+  let txt='';
+  if(bas>-16)txt='❌ GLS basal reducido (>−16%) — disfunción sistólica subclínica';
+  else if(bas>-20)txt='⚠️ GLS basal borderline (−16% a −20%)';
+  else txt='✅ GLS basal normal (≤−20%)';
+  if(pic){ const delta=Math.abs(pic)-Math.abs(bas); txt+=delta>2?' · ✅ Reserva de strain presente':' · ⚠️ Sin reserva de strain'; }
+  el.textContent=txt;
+  el.style.color=bas<=-20?'var(--green)':bas<=-16?'var(--yellow)':'var(--red)';
+}
+function eeCalcCFVR(art){
+  const bas=+((document.getElementById('ee-cfvr-'+art+'-bas')||{}).value||0);
+  const ade=+((document.getElementById('ee-cfvr-'+art+'-ade')||{}).value||0);
+  if(!bas||!ade)return;
+  const cfvr=(ade/bas).toFixed(2);
+  const valEl=document.getElementById('ee-cfvr-'+art+'-val'); if(valEl) valEl.textContent=cfvr;
+  const int=document.getElementById('ee-cfvr-'+art+'-int'); if(!int)return;
+  if(+cfvr>=2.5){int.style.color='var(--green)';int.textContent='Normal';}
+  else if(+cfvr>=2.0){int.style.color='var(--yellow)';int.textContent='Borderline';}
+  else{int.style.color='var(--red)';int.textContent='Reducida';}
+}
+function eeUpdateResult(){
+  const v=document.getElementById('ee-res-global').value;
+  const box=document.getElementById('ee-res-box');
+  const msgs={
+    neg:{cls:'ee-rb-neg',txt:'✅ Estudio negativo para isquemia inducible. Bajo riesgo de eventos cardiovasculares mayores a corto plazo.'},
+    pos:{cls:'ee-rb-pos',txt:'❌ Estudio positivo para isquemia. Se recomienda correlación con coronariografía y evaluación por cardiología intervencionista.'},
+    inc:{cls:'ee-rb-inc',txt:'⚠️ Estudio indeterminado o no concluyente. Considerar repetir con protocolo alternativo o escalar a coronariografía según clínica.'},
+    via:{cls:'ee-rb-neg',txt:'✅ Viabilidad miocárdica presente. Segmentos con mejoría con dosis bajas de dobutamina. Beneficio potencial de revascularización.'},
+    novia:{cls:'ee-rb-pos',txt:'❌ Sin evidencia de viabilidad miocárdica. Bajo beneficio esperado de revascularización en los segmentos evaluados.'}
+  };
+  if(msgs[v]){ box.className='ee-result-box show '+msgs[v].cls; box.textContent=msgs[v].txt; }
+  else { box.className='ee-result-box'; }
+}
+
+// ── BULL'S EYE ──
+const EE_SEGS=[
+  {id:1,name:'Anterior basal',ter:'LAD'},{id:2,name:'Anteroseptal basal',ter:'LAD'},
+  {id:3,name:'Inferoseptal basal',ter:'RCA'},{id:4,name:'Inferior basal',ter:'RCA'},
+  {id:5,name:'Inferolateral basal',ter:'RCA'},{id:6,name:'Anterolateral basal',ter:'LCx'},
+  {id:7,name:'Anterior medio',ter:'LAD'},{id:8,name:'Anteroseptal medio',ter:'LAD'},
+  {id:9,name:'Inferoseptal medio',ter:'RCA'},{id:10,name:'Inferior medio',ter:'RCA'},
+  {id:11,name:'Inferolateral medio',ter:'RCA'},{id:12,name:'Anterolateral medio',ter:'LCx'},
+  {id:13,name:'Anterior apical',ter:'LAD'},{id:14,name:'Septal apical',ter:'LAD'},
+  {id:15,name:'Inferior apical',ter:'RCA'},{id:16,name:'Lateral apical',ter:'LCx'},
+  {id:17,name:'Apex',ter:'LAD'}
+];
+const EE_LABELS=['Normal','Hipokinesia','Akinesia','Diskinesia','No eval.'];
+const EE_SCORES=[1,2,3,4,0];
+const EE_COLORS=['#3ecf8e','#f5c842','#f59e42','#8a5fd4','#9aa3bc'];
+const EE_TER={LAD:'#4f8ef7',RCA:'#f05454',LCx:'#3ecf8e'};
+let eeBull={basal:Array(17).fill(0),pico:Array(17).fill(0),recup:Array(17).fill(0)};
+let eeBullInited={basal:false,pico:false,recup:false};
+let eePopPhase=null, eePopIdx=-1;
+
+function eeInitAllBulls(){ ['basal','pico','recup'].forEach(p=>{ if(!eeBullInited[p]){ eeBullInited[p]=true; eeRenderBull(p); } }); }
+function eeArc(cx,cy,r1,r2,s,e){
+  const rs=s*Math.PI/180,re=e*Math.PI/180;
+  const x1=cx+r1*Math.cos(rs),y1=cy+r1*Math.sin(rs);
+  const x2=cx+r1*Math.cos(re),y2=cy+r1*Math.sin(re);
+  const x3=cx+r2*Math.cos(re),y3=cy+r2*Math.sin(re);
+  const x4=cx+r2*Math.cos(rs),y4=cy+r2*Math.sin(rs);
+  const large=Math.abs(e-s)>180?1:0, sweep=e<s?0:1;
+  return 'M'+x1+','+y1+' A'+r1+','+r1+' 0 '+large+','+sweep+' '+x2+','+y2+' L'+x3+','+y3+' A'+r2+','+r2+' 0 '+large+','+(sweep?0:1)+' '+x4+','+y4+' Z';
+}
+function eeRenderBull(phase){
+  const svg=document.getElementById('ee-eye-svg-'+phase); if(!svg)return;
+  const cx=170,cy=170,state=eeBull[phase];
+  const rings=[{r1:130,r2:92,segs:[0,1,2,3,4,5],step:60},{r1:92,r2:54,segs:[6,7,8,9,10,11],step:60},{r1:54,r2:24,segs:[12,13,14,15],step:90}];
+  let html='';
+  rings.forEach(ring=>{ ring.segs.forEach((segIdx,s)=>{
+    const seg=EE_SEGS[segIdx];
+    const startDeg=-90+30-(s*ring.step), endDeg=startDeg-ring.step, midDeg=startDeg-ring.step/2, midR=(ring.r1+ring.r2)/2;
+    const lx=cx+midR*Math.cos(midDeg*Math.PI/180), ly=cy+midR*Math.sin(midDeg*Math.PI/180);
+    html+='<path d="'+eeArc(cx,cy,ring.r1,ring.r2,startDeg,endDeg)+'" fill="'+EE_COLORS[state[segIdx]]+'" fill-opacity="0.85" stroke="#0f1117" stroke-width="2" onclick="eeCycleBull(\''+phase+'\','+segIdx+')" oncontextmenu="eeOpenBullPop(event,\''+phase+'\','+segIdx+');return false;" style="cursor:pointer"><title>Seg '+seg.id+' '+seg.name+' ('+seg.ter+') — '+EE_LABELS[state[segIdx]]+'</title></path>';
+    html+='<text x="'+lx+'" y="'+ly+'" text-anchor="middle" dominant-baseline="middle" font-size="9" fill="#fff" font-weight="700" pointer-events="none">'+seg.id+'</text>';
+  }); });
+  html+='<circle cx="'+cx+'" cy="'+cy+'" r="24" fill="'+EE_COLORS[state[16]]+'" fill-opacity="0.85" stroke="#0f1117" stroke-width="2" onclick="eeCycleBull(\''+phase+'\',16)" oncontextmenu="eeOpenBullPop(event,\''+phase+'\',16);return false;" style="cursor:pointer"><title>Apex (LAD) — '+EE_LABELS[state[16]]+'</title></circle>';
+  html+='<text x="'+cx+'" y="'+cy+'" text-anchor="middle" dominant-baseline="middle" font-size="9" fill="#fff" font-weight="700" pointer-events="none">17</text>';
+  html+='<text x="'+cx+'" y="26" text-anchor="middle" font-size="9" fill="'+EE_TER.LAD+'" font-weight="800">LAD</text>';
+  html+='<text x="315" y="'+cy+'" text-anchor="end" font-size="9" fill="'+EE_TER.LCx+'" font-weight="800">LCx</text>';
+  html+='<text x="25" y="'+cy+'" text-anchor="start" font-size="9" fill="'+EE_TER.RCA+'" font-weight="800">RCA</text>';
+  svg.innerHTML=html;
+  eeUpdateWMSI(phase);
+}
+function eeCycleBull(phase,idx){ eeBull[phase][idx]=(eeBull[phase][idx]+1)%EE_LABELS.length; eeRenderBull(phase); }
+function eeOpenBullPop(e,phase,idx){
+  e.preventDefault(); eePopPhase=phase; eePopIdx=idx;
+  const seg=EE_SEGS[idx], pop=document.getElementById('ee-eye-pop');
+  document.getElementById('ee-eye-pop-title').textContent='Seg '+seg.id+' — '+seg.name+' ('+seg.ter+')';
+  document.getElementById('ee-eye-pop-states').innerHTML=EE_LABELS.map((lbl,i)=>'<button class="ee-eye-pop-btn'+(eeBull[phase][idx]===i?' sel':'')+'" style="background:'+EE_COLORS[i]+'33;color:'+EE_COLORS[i]+';border-color:'+(eeBull[phase][idx]===i?EE_COLORS[i]:'transparent')+'" onclick="eeSetBullState(\''+phase+'\','+idx+','+i+')">'+lbl+'</button>').join('');
+  pop.style.left=Math.min(e.clientX,window.innerWidth-220)+'px';
+  pop.style.top=Math.min(e.clientY,window.innerHeight-180)+'px';
+  pop.classList.add('open');
+}
+function eeSetBullState(phase,idx,st){
+  eeBull[phase][idx]=st; eeRenderBull(phase);
+  document.querySelectorAll('.ee-eye-pop-btn').forEach((b,i)=>{ b.classList.toggle('sel',i===st); b.style.borderColor=i===st?EE_COLORS[i]:'transparent'; });
+}
+function eeCloseEyePop(){ document.getElementById('ee-eye-pop').classList.remove('open'); eePopPhase=null; eePopIdx=-1; }
+function eeUpdateWMSI(phase){
+  const state=eeBull[phase]; let sum=0,count=0;
+  state.forEach(st=>{ if(st!==4){ sum+=EE_SCORES[st]; count++; } });
+  const wmsi=count>0?(sum/count).toFixed(2):'—';
+  const valEl=document.getElementById('ee-wmsi-'+phase), catEl=document.getElementById('ee-wmsi-'+phase+'-cat');
+  if(valEl) valEl.textContent=wmsi;
+  if(!catEl)return;
+  if(wmsi==='—'){catEl.textContent='';return;}
+  const w=PF(wmsi);
+  if(w===1){catEl.textContent='Normal';catEl.style.color='var(--green)';}
+  else if(w<=1.5){catEl.textContent='Disfunción leve';catEl.style.color='var(--yellow)';}
+  else if(w<=2){catEl.textContent='Disfunción moderada';catEl.style.color='var(--orange)';}
+  else{catEl.textContent='Disfunción severa';catEl.style.color='var(--red)';}
+}
+function eeResetBull(phase){ eeBull[phase]=Array(17).fill(0); eeRenderBull(phase); }
+/* El PRIMERO de los dos listeners GLOBALES de Eco Estrés, cuya interfaz está retirada. Sale
+   solo: pregunta por `#ee-eye-pop`, que no existe, y verificado en el navegador no llega nunca
+   a cerrar nada. El criterio completo —por qué NO se desactiva con una bandera, por qué quitar
+   los exports no alcanza, y cuáles son las TRES familias `ee` que SÍ están vivas— está en la
+   nota del segundo listener, el de `paste`, más abajo en este mismo bloque.
+   Inventario: docs/mapa/eco-estres-inventario.md · lo fija TC-536. */
+document.addEventListener('click',e=>{
+  const pop=document.getElementById('ee-eye-pop');
+  if(pop&&pop.classList.contains('open')&&!pop.contains(e.target)&&!(e.target.closest&&e.target.closest('#tab-ee svg'))) eeCloseEyePop();
+});
+
+function eeGetWMSItext(phase){
+  const state=eeBull[phase], anorm=[];
+  state.forEach((st,i)=>{ if(st>0&&st!==4) anorm.push('Seg '+EE_SEGS[i].id+' '+EE_SEGS[i].name+' ('+EE_SEGS[i].ter+'): '+EE_LABELS[st]); });
+  let sum=0,count=0; state.forEach(st=>{ if(st!==4){ sum+=EE_SCORES[st]; count++; } });
+  return {anorm, wmsi: count>0?(sum/count).toFixed(2):'—'};
+}
+function eeResetAll(){
+  document.querySelectorAll('#tab-ee input, #tab-ee select, #tab-ee textarea').forEach(el=>{
+    if(el.tagName==='SELECT') el.selectedIndex=0; else el.value='';
+  });
+  ['basal','pico','recup'].forEach(p=>{ eeBull[p]=Array(17).fill(0); eeRenderBull(p); });
+  const box=document.getElementById('ee-res-box'); if(box) box.className='ee-result-box';
+  const fill=document.getElementById('ee-fc-pct-fill'); if(fill) fill.style.width='0%';
+  const val=document.getElementById('ee-fc-pct-val'); if(val) val.textContent='—';
+}
+
+// Conexión con EcoSmart: GLS del tab VI / SGL global
+function eeSyncGLS(){
+  const bas=document.getElementById('ee-gls-bas'); if(!bas)return;
+  const sglGlobal=document.getElementById('sgl_gls'), viSgl=document.getElementById('sgl');
+  let val='';
+  if(sglGlobal && sglGlobal.value!=='') val=sglGlobal.value;
+  else if(viSgl && viSgl.value!=='') val=viSgl.value;
+  if(val!=='' && bas.value===''){ bas.value=val; eeEvalGLS(); }
+}
+function eeOnShow(){ eeSyncEdad(); eeSyncGLS(); eeInitAllBulls(); if(typeof eePdfPanelRender==='function')eePdfPanelRender(); if(typeof eeProtoBuild==='function' && !document.querySelector('#ee-proto-table-wrap table'))eeProtoBuild(); }
+
+// Sección Eco Estrés para el informe narrativo
+function eeInformeLineas(){
+  const res=document.getElementById('ee-res-global');
+  if(!res || !res.value) return [];
+  const resTxt={neg:'Negativo para isquemia',pos:'Positivo para isquemia',inc:'Indeterminado / no concluyente',via:'Viabilidad presente',novia:'Sin viabilidad'}[res.value]||res.value;
+  const estres=document.getElementById('ee-p-estres');
+  const estresTxt=estres?estres.options[estres.selectedIndex].text:'';
+  const lines=['Eco estrés'+(estresTxt?' ('+estresTxt+')':'')+': '+resTxt+'.'];
+  const pic=eeGetWMSItext('pico');
+  if(pic.anorm.length) lines.push('Motilidad en el pico de estrés: '+pic.anorm.join('; ')+'. WMSI pico '+pic.wmsi+'.');
+  else if(pic.wmsi!=='—') lines.push('Sin nuevas alteraciones de la motilidad en el pico de estrés (WMSI '+pic.wmsi+').');
+  const camb=document.getElementById('ee-b-cambios');
+  if(camb && camb.value && camb.value!=='no') lines.push('ECG: '+camb.options[camb.selectedIndex].text+'.');
+  const gb=document.getElementById('ee-gls-bas'), gp=document.getElementById('ee-gls-pic');
+  if(gb && gb.value){ let g='GLS basal '+gb.value+'%'; if(gp&&gp.value) g+=', pico '+gp.value+'%'; lines.push(g+'.'); }
+  const com=document.getElementById('ee-res-comment');
+  if(com && com.value.trim()) lines.push(com.value.trim());
+  return lines;
+}
+
+// Exponer para handlers inline y para EcoSmart
+window.eeSwitchTab=eeSwitchTab; window.eeSwitchBullTab=eeSwitchBullTab; window.eeToggleStep=eeToggleStep;
+window.eeCalcFCPct=eeCalcFCPct; window.eeEvalCFVR=eeEvalCFVR; window.eeEvalPSAP=eeEvalPSAP; window.eeEvalEE=eeEvalEE;
+window.eeEvalGLS=eeEvalGLS; window.eeCalcCFVR=eeCalcCFVR; window.eeUpdateResult=eeUpdateResult;
+window.eeCycleBull=eeCycleBull; window.eeOpenBullPop=eeOpenBullPop; window.eeSetBullState=eeSetBullState;
+window.eeCloseEyePop=eeCloseEyePop; window.eeResetBull=eeResetBull; window.eeResetAll=eeResetAll;
+window.eeOnShow=eeOnShow; window.eeInformeLineas=eeInformeLineas;
+
+// ── Probabilidad pre-test de enfermedad coronaria (ESC 2019) ──
+function ptpCad(){
+  const edad=+((document.getElementById('ee-ptp-edad')||{}).value||0);
+  const sexo=(document.getElementById('ee-ptp-sexo')||{}).value||'';
+  const sint=(document.getElementById('ee-ptp-sint')||{}).value||'';
+  const res=document.getElementById('ee-ptp-res'), rec=document.getElementById('ee-ptp-rec');
+  if(!res||!rec) return;
+  if(!edad||!sexo||!sint){ res.innerHTML=''; rec.textContent=''; return; }
+  // ESC 2019 · PTP (%) por grupo etario [30-39,40-49,50-59,60-69,≥70] → [Masculino, Femenino]
+  const TBL={
+    tip:  [[3,5],[22,10],[32,13],[44,16],[52,27]],
+    atip: [[4,3],[10,6],[17,6],[26,11],[34,19]],
+    asint:[[1,1],[3,2],[11,3],[22,6],[24,10]]
+  };
+  const ai = edad<40?0 : edad<50?1 : edad<60?2 : edad<70?3 : 4;
+  const pct = (TBL[sint][ai])[sexo==='F'?1:0];
+  let cls,txt,recTxt;
+  if(pct<5){ cls='green'; txt='probabilidad muy baja'; recTxt='ESC: no requiere estudio adicional.'; }
+  else if(pct<=15){ cls='green'; txt='probabilidad baja'; recTxt='ESC: considerar TAC coronaria.'; }
+  else if(pct<=65){ cls='yellow'; txt='probabilidad intermedia'; recTxt='ESC: prueba funcional (eco estrés) o TAC coronaria.'; }
+  else { cls='red'; txt='probabilidad alta'; recTxt='ESC: considerar coronariografía.'; }
+  res.innerHTML='PTP '+pct+'% '+badge(cls,txt);
+  rec.textContent=recTxt;
+}
+window.ptpCad=ptpCad;
+
+// ── Compresión compartida (máx 800x600, JPEG 65%) ──
+function _eeCompress(file, cb){
+  const reader=new FileReader();
+  reader.onload=function(){ const im=new Image(); im.onload=function(){
+    let w=im.width,h=im.height; const r=Math.min(800/w,600/h,1); w=Math.max(1,Math.round(w*r)); h=Math.max(1,Math.round(h*r));
+    const cv=document.createElement('canvas'); cv.width=w; cv.height=h; const c=cv.getContext('2d'); c.fillStyle='#ffffff'; c.fillRect(0,0,w,h); c.drawImage(im,0,0,w,h);
+    cb(cv.toDataURL('image/jpeg',0.65));
+  }; im.src=reader.result; };
+  reader.readAsDataURL(file);
+}
+
+// ── Imágenes del estudio (Eco Estrés) — slots 2/4/6/8/10/+, grilla 2 col, drag ──
+let eeImg=[null,null], eeImgCount=2, eeImgActive=0;
+const EE_IMG_COUNTS=[2,4,6,8,10];
+function _eeImgLast(){ let l=-1; eeImg.forEach((s,i)=>{ if(s) l=i; }); return l; }
+function eeImgEnsure(){ const n=Math.max(eeImgCount,_eeImgLast()+1); while(eeImg.length<n)eeImg.push(null); if(eeImg.length>n)eeImg.length=n; }
+function eeImgSetCount(n){ eeImgCount=Math.max(n,_eeImgLast()+1); eeImgEnsure(); eeImgRender(); }
+function eeImgAdd(){ eeImgCount=eeImg.length+1; eeImgEnsure(); eeImgRender(); }
+function eeImgRender(){
+  eeImgEnsure();
+  const cb=document.getElementById('ee-img-count');
+  if(cb){ let h=EE_IMG_COUNTS.map(n=>'<button type="button" class="ee-btn ee-btn-ghost" style="padding:5px 12px;'+(eeImgCount===n?'background:var(--accent);color:#fff;':'')+'" onclick="eeImgSetCount('+n+')">'+n+'</button>').join(''); h+='<button type="button" class="ee-btn ee-btn-ghost" style="padding:5px 12px;" title="Agregar un slot" onclick="eeImgAdd()">＋</button>'; cb.innerHTML=h; }
+  const grid=document.getElementById('ee-img-grid'); if(!grid)return; grid.innerHTML='';
+  eeImg.forEach((slot,idx)=>{
+    const cell=document.createElement('div'); cell.dataset.idx=idx;
+    cell.style.cssText='position:relative;border:1.5px '+(slot?'solid':'dashed')+' var(--border);border-radius:10px;background:var(--bg3);min-height:130px;display:flex;align-items:center;justify-content:center;overflow:hidden;';
+    if(slot){ cell.setAttribute('draggable','true');
+      cell.innerHTML='<img src="'+slot+'" loading="lazy" style="max-width:100%;max-height:200px;display:block;pointer-events:none;"><button type="button" onclick="eeImgRemove(event,'+idx+')" style="position:absolute;top:6px;right:6px;width:22px;height:22px;border-radius:50%;border:none;background:var(--red);color:#fff;font-size:12px;cursor:pointer;line-height:1;">✕</button>';
+    } else { cell.innerHTML='<button type="button" onclick="eeImgPick('+idx+')" style="background:none;border:none;color:var(--text2);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;font-size:12px;"><span style="font-size:28px;line-height:1;">➕</span>Agregar</button>'; }
+    cell.addEventListener('dragstart',e=>{ if(eeImg[idx]) e.dataTransfer.setData('text/plain',String(idx)); });
+    cell.addEventListener('dragover',e=>e.preventDefault());
+    cell.addEventListener('drop',e=>{ e.preventDefault(); const f=parseInt(e.dataTransfer.getData('text/plain')); if(!isNaN(f)){ const t=eeImg[f]; eeImg[f]=eeImg[idx]; eeImg[idx]=t; eeImgRender(); } });
+    grid.appendChild(cell);
+  });
+}
+function eeImgPick(idx){ eeImgActive=idx; const inp=document.getElementById('ee-img-file'); if(inp){ inp.value=''; inp.click(); } }
+function eeImgChosen(e){ const f=e.target.files&&e.target.files[0]; if(f) _eeCompress(f,function(d){ let t=eeImgActive; if(t==null||t<0||t>=eeImg.length||eeImg[t]){ t=eeImg.findIndex(s=>!s); if(t===-1){ eeImg.push(null); t=eeImg.length-1; eeImgCount=eeImg.length; } } eeImg[t]=d; eeImgRender(); }); e.target.value=''; }
+function eeImgRemove(e,idx){ if(e) e.stopPropagation(); eeImg[idx]=null; eeImgRender(); }
+
+// ── Imágenes de ECG — slots 2/4/6/8/+, grilla 2 col, drag, tap-swap, pegar, compresión ──
+let eeEcg=[null,null], eeEcgCount=2, eeEcgActive=0, eeEcgSwap=null, _eeEcgLongT=null, _eeEcgLastTap=0;
+const EE_ECG_COUNTS=[2,4,6,8];
+function _eeEcgLast(){ let l=-1; eeEcg.forEach((s,i)=>{ if(s) l=i; }); return l; }
+function eeEcgEnsure(){ const n=Math.max(eeEcgCount,_eeEcgLast()+1); while(eeEcg.length<n)eeEcg.push(null); if(eeEcg.length>n)eeEcg.length=n; }
+function eeEcgSetCount(n){ eeEcgCount=Math.max(n,_eeEcgLast()+1); eeEcgEnsure(); eeEcgRender(); }
+function eeEcgAdd(){ eeEcgCount=eeEcg.length+1; eeEcgEnsure(); eeEcgRender(); }
+function eeEcgRender(){
+  eeEcgEnsure();
+  const cb=document.getElementById('ee-ecg-count');
+  if(cb){ let h=EE_ECG_COUNTS.map(n=>'<button type="button" class="ee-btn ee-btn-ghost" style="padding:5px 12px;'+(eeEcgCount===n?'background:var(--accent);color:#fff;':'')+'" onclick="eeEcgSetCount('+n+')">'+n+'</button>').join(''); h+='<button type="button" class="ee-btn ee-btn-ghost" style="padding:5px 12px;" title="Agregar un slot" onclick="eeEcgAdd()">＋</button>'; cb.innerHTML=h; }
+  const grid=document.getElementById('ee-ecg-img-grid'); if(!grid)return; grid.innerHTML='';
+  eeEcg.forEach((slot,idx)=>{
+    const cell=document.createElement('div'); cell.dataset.idx=idx;
+    cell.style.cssText='position:relative;border:1.5px '+(slot?'solid':'dashed')+' var(--border);border-radius:10px;background:var(--bg3);min-height:120px;display:flex;align-items:center;justify-content:center;overflow:hidden;'+(eeEcgSwap===idx?'outline:2px dashed var(--accent2);outline-offset:2px;':'');
+    if(slot){ cell.setAttribute('draggable','true');
+      cell.innerHTML='<img src="'+slot+'" loading="lazy" style="max-width:100%;max-height:190px;display:block;pointer-events:none;"><button type="button" onclick="eeEcgRemove(event,'+idx+')" style="position:absolute;top:6px;right:6px;width:22px;height:22px;border-radius:50%;border:none;background:var(--red);color:#fff;font-size:12px;cursor:pointer;line-height:1;">✕</button>';
+    } else { cell.innerHTML='<button type="button" onclick="eeEcgPick('+idx+')" style="background:none;border:none;color:var(--text2);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;font-size:12px;"><span style="font-size:28px;line-height:1;">➕</span>Agregar</button>'; }
+    cell.addEventListener('dragstart',e=>{ if(eeEcg[idx]) e.dataTransfer.setData('text/plain',String(idx)); });
+    cell.addEventListener('dragover',e=>e.preventDefault());
+    cell.addEventListener('drop',e=>{ e.preventDefault(); const f=parseInt(e.dataTransfer.getData('text/plain')); if(!isNaN(f)) eeEcgSwap2(f,idx); });
+    cell.addEventListener('click',()=>{ eeEcgActive=idx; });
+    let moved=false;
+    cell.addEventListener('touchstart',()=>{ moved=false; eeEcgActive=idx; _eeEcgLongT=setTimeout(()=>{ if(!moved&&eeEcg[idx]){ eeEcgSwap=(eeEcgSwap===idx?null:idx); eeEcgRender(); } },450); },{passive:true});
+    cell.addEventListener('touchmove',()=>{ moved=true; clearTimeout(_eeEcgLongT); },{passive:true});
+    cell.addEventListener('touchend',()=>{ clearTimeout(_eeEcgLongT); if(eeEcgSwap!==null&&eeEcgSwap!==idx){ eeEcgSwap2(eeEcgSwap,idx); eeEcgSwap=null; eeEcgRender(); } });
+    grid.appendChild(cell);
+  });
+}
+function eeEcgSwap2(a,b){ if(a===b)return; const t=eeEcg[a]; eeEcg[a]=eeEcg[b]; eeEcg[b]=t; eeEcgRender(); }
+function eeEcgPick(idx){ eeEcgActive=idx; const inp=document.getElementById('ee-ecg-img-file'); if(inp){ inp.value=''; inp.click(); } }
+function eeEcgChosen(e){ const f=e.target.files&&e.target.files[0]; if(f) _eeEcgPlace(f,eeEcgActive); e.target.value=''; }
+function _eeEcgPlace(file,idx){ _eeCompress(file,function(d){ let t=idx; if(t==null||t<0||t>=eeEcg.length||eeEcg[t]){ t=eeEcg.findIndex(s=>!s); if(t===-1){ eeEcg.push(null); t=eeEcg.length-1; eeEcgCount=eeEcg.length; } } eeEcg[t]=d; eeEcgRender(); }); }
+function eeEcgRemove(e,idx){ if(e) e.stopPropagation(); eeEcg[idx]=null; eeEcgRender(); }
+// Pegar desde portapapeles (con la sección ECG del Eco Estrés activa)
+/* Este listener y el de click de más arriba (`#ee-eye-pop`) son de Eco Estrés, cuya interfaz
+   está retirada. NO se desactivan con una bandera «que nunca sea true»: la guarda correcta ya
+   es la que tienen adentro —preguntan por su propio DOM, que no existe—, y verificado en el
+   navegador ninguno de los dos llega a `preventDefault()`. Una bandera falsa es peor: hay que
+   acordarse de invertirla el día que vuelva la UI, mientras que esto revive solo. Es el mismo
+   criterio con el que se cerró el gate del PDF (`#ee-incluir-pdf`).
+
+   Tampoco tiene sentido «desactivar los exports»: estas son declaraciones de función en el
+   nivel superior de un <script> clásico, así que ya crean la propiedad en `window` aunque se
+   borre la línea de export. Está medido y anotado en CLAUDE.md.
+
+   Lo que SÍ queda pendiente, y es la única interferencia real posible: este handler se
+   registra ANTES que `imgPasteHandler` del módulo de imágenes. Si vuelve `#tab-ee`, un pegado
+   con la pestaña de ECG activa haría `preventDefault()` acá y el módulo de imágenes no lo
+   vería. Al restaurar la UI hay que decidir el orden, no descubrirlo.
+
+   ⚠️ EL PREFIJO `ee` NO IDENTIFICA A ECO ESTRÉS. Hay CUATRO familias y TRES están VIVAS, así
+   que un borrado —o una IIFE— por prefijo apaga funciones de la app:
+     · CALCULADORA DE E/e′ — ee-e, ee-ep, ee-result, ee-val, ee-lbl y calcEE(). Alimenta la
+       función diastólica y el score de amiloidosis.
+     · MODO BÁSICO/AVANZADO DEL ETT — EE_MODULES, EE_DEF_KEY, eeGetMode, eeGetModules, eeModOn,
+       eeDefOn. Alimentan el desplegable «Sección avanzada» (#ecoAdvSelect, ecoAdvBuild).
+     · QR DEL INFORME — EE_QR_ROWS, eeStudyUrl, eeQrDataURL, eeQrEnabled.
+   Muerta de cara al usuario está SOLO la cuarta, la de Eco Estrés. Y no se borra por decisión
+   de Maicol del 25/10/2026: hasta modularizar la app, queda inerte detrás de sus compuertas.
+   Los campos cx_duke_* NO son de acá: el score de Duke sale de una ergometría en cinta.
+
+   Inventario con las piezas A/B/C: docs/mapa/eco-estres-inventario.md
+   Las compuertas y los controles:   TC-536
+   Lo que falta medir para borrar:   docs/PENDIENTES.md → AJ10-C */
+document.addEventListener('paste',function(e){
+  const ee=document.getElementById('tab-ee'), ecg=document.getElementById('ee-tab-ecg');
+  if(!ee||!ee.classList.contains('active')||!ecg||!ecg.classList.contains('active')) return;
+  const items=(e.clipboardData||window.clipboardData||{}).items||[];
+  for(let i=0;i<items.length;i++){ if(items[i].type&&items[i].type.indexOf('image')===0){ const f=items[i].getAsFile(); if(f){ e.preventDefault(); _eeEcgPlace(f,(eeEcg[eeEcgActive]?-1:eeEcgActive)); } break; } }
+});
+
+// ── Texto narrativo autogenerado ──
+function generarInformeEcoEstres(){
+  const val=id=>{ const el=document.getElementById(id); return el?(el.value||''):''; };
+  const selT=id=>{ const el=document.getElementById(id); return (el&&el.value!=='')?el.options[el.selectedIndex].text:''; };
+  const estres=selT('ee-p-estres');
+  const adec=(document.getElementById('ee-a-adec')||{}).value||'';
+  const mets=val('ee-b-mets');
+  const fcteo=+(val('ee-b-fcteo')||0), fcmax=+(val('ee-b-fcmax')||0);
+  const fcpct=(fcteo&&fcmax)?Math.round(fcmax/fcteo*100):null;
+  const resMap={neg:'negativo',pos:'positivo',inc:'indeterminado',via:'con viabilidad presente',novia:'sin viabilidad'};
+  const resTxt=resMap[(document.getElementById('ee-res-global')||{}).value]||'';
+  const pic=eeGetWMSItext('pico');
+  const parts=[];
+  parts.push('Eco estrés'+(estres?' con '+estres.toLowerCase():'')+'.');
+  const adTxt = adec==='si'?'adecuado':adec==='no'?'subóptimo':'';
+  const det=[]; if(mets) det.push('alcanzando '+mets+' METs'); if(fcpct!=null) det.push((mets?'y ':'alcanzando ')+fcpct+'% de la FC máxima teórica');
+  if(adTxt||det.length) parts.push(('Estrés '+(adTxt||'')).trim()+(det.length?', '+det.join(' '):'')+'.');
+  if(resTxt) parts.push('Estudio '+resTxt+' para isquemia.');
+  if(pic.anorm.length) parts.push(pic.anorm.join('; ')+' (WMSI pico '+pic.wmsi+').');
+  else if(pic.wmsi!=='—') parts.push('Sin nuevas alteraciones de la motilidad en el pico (WMSI '+pic.wmsi+').');
+  const camb=document.getElementById('ee-b-cambios'); if(camb&&camb.value&&camb.value!=='no') parts.push('ECG: '+camb.options[camb.selectedIndex].text+'.');
+  const gb=val('ee-gls-bas'), gp=val('ee-gls-pic'); if(gb){ let g='GLS basal '+gb+'%'; if(gp) g+=', pico '+gp+'%'; parts.push(g+'.'); }
+  const cfvrDa=val('ee-cfvr-da-val'); if(cfvrDa&&cfvrDa!=='—') parts.push('CFVR DA: '+cfvrDa+'.');
+  const com=val('ee-res-comment'); if(com&&com.trim()) parts.push(com.trim());
+  const out=document.getElementById('ee-narrativa'); if(out) out.value=parts.join(' ');
+}
+
+// ── Renderer del bull's eye ee a canvas (para el PDF) ──
+function eeBullDataURL(phase){
+  const S=340,k=2; const cv=document.createElement('canvas'); cv.width=S*k; cv.height=S*k; const c=cv.getContext('2d'); c.scale(k,k);
+  c.fillStyle='#ffffff'; c.fillRect(0,0,S,S);
+  const cx=170,cy=170,state=eeBull[phase];
+  const rings=[{r1:130,r2:92,segs:[0,1,2,3,4,5],step:60},{r1:92,r2:54,segs:[6,7,8,9,10,11],step:60},{r1:54,r2:24,segs:[12,13,14,15],step:90}];
+  c.textAlign='center'; c.textBaseline='middle'; c.font='bold 11px sans-serif';
+  rings.forEach(ring=>{ ring.segs.forEach((segIdx,s)=>{
+    const startDeg=-90+30-(s*ring.step), endDeg=startDeg-ring.step;
+    const p=new Path2D(eeArc(cx,cy,ring.r1,ring.r2,startDeg,endDeg));
+    c.fillStyle=EE_COLORS[state[segIdx]]; c.fill(p); c.lineWidth=1.5; c.strokeStyle='#ffffff'; c.stroke(p);
+    const midDeg=startDeg-ring.step/2, midR=(ring.r1+ring.r2)/2;
+    c.fillStyle='#ffffff'; c.fillText(String(EE_SEGS[segIdx].id), cx+midR*Math.cos(midDeg*Math.PI/180), cy+midR*Math.sin(midDeg*Math.PI/180));
+  }); });
+  c.beginPath(); c.arc(cx,cy,24,0,2*Math.PI); c.fillStyle=EE_COLORS[state[16]]; c.fill(); c.lineWidth=1.5; c.strokeStyle='#ffffff'; c.stroke();
+  c.fillStyle='#ffffff'; c.fillText('17',cx,cy);
+  return cv.toDataURL('image/png');
+}
+function eeHasData(){
+  const g=id=>{ const el=document.getElementById(id); return el&&el.value&&String(el.value).trim(); };
+  if(g('ee-res-global')||g('ee-b-mets')||g('ee-b-fcmax')||g('ee-gls-bas')||g('ee-narrativa')) return true;
+  if(['basal','pico','recup'].some(p=>eeBull[p].some(s=>s>0&&s!==4))) return true;
+  /* `.some(Boolean)`, NO `.length`. eeEcg arranca en [null,null] y eeEcgEnsure lo mantiene
+     en >=2, así que `eeEcg.length` era verdadero SIEMPRE y esta función devolvía true con
+     todo vacío. Medido: con la bandera ecoestres_incluir_pdf en '1' —que quedó guardada en
+     cualquier navegador que usara la build donde el módulo tenía interfaz— el PDF imprimía
+     una sección «ECO ESTRÉS» con los tres bull's eyes y los 17 segmentos en NORMAL, sobre un
+     estudio donde no se hizo ningún eco estrés. Un informe firmado afirmando motilidad
+     normal en pico de un test que no existió.
+     La interfaz de este módulo fue retirada; el JS queda inerte por si se restaura —decisión
+     de Maicol del 25/10/2026: no se borra hasta modularizar la app—. Que esta función dé
+     FALSO con el árbol limpio es la tercera de las tres compuertas, y la fija TC-536
+     (condición D). Inventario: docs/mapa/eco-estres-inventario.md · borrado: AJ10-C. */
+  if(eeImg.some(Boolean)||eeEcg.some(Boolean)) return true;
+  return false;
+}
+
+window.eeImgSetCount=eeImgSetCount; window.eeImgAdd=eeImgAdd; window.eeImgPick=eeImgPick; window.eeImgChosen=eeImgChosen; window.eeImgRemove=eeImgRemove;
+window.eeEcgSetCount=eeEcgSetCount; window.eeEcgAdd=eeEcgAdd; window.eeEcgPick=eeEcgPick; window.eeEcgChosen=eeEcgChosen; window.eeEcgRemove=eeEcgRemove;
+window.generarInformeEcoEstres=generarInformeEcoEstres;
+window.eeBullDataURL=eeBullDataURL; window.eeHasData=eeHasData;
+window.eeGetStudyImgs=function(){ return eeImg.filter(Boolean); };
+window.eeGetEcgImgs=function(){ return eeEcg.filter(Boolean); };
+
+setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); eeEcgRender(); },120);
+})();
+</script>
+
+<!-- ═══════════════════════ TAB: CALCULADORAS ═══════════════════════ -->
+
+<!-- ═══════════════════════ TAB: CONGENITAS ESTRUCTURALES ═══════════════════════
+     Segunda pestaña (2026-09-15). La division es CLINICA: de un lado lo que se sigue en el
+     adulto por su valvula, su aorta o su miocardio; del otro las cardiopatias con shunt y las
+     paliadas, que se siguen por su fisiologia.
+     NINGUNA seccion cambio de id, de funcion ni de contenido. secToggle, secAutoOpen, los
+     *Sync de RECALC_MODULOS y _CC_SEC_POR_K buscan por id en TODO el documento, asi que no
+     les importa en que pestaña esta cada una. Lo verifica TC-112.
+     COMO SE HIZO, porque importa: cada seccion se reemplazo EN SU POSICION por un marcador y
+     despues se reagruparon. Los dos intentos anteriores RECONSTRUYERON la pestaña desde las
+     secciones extraidas y se comieron DOS bloques de codigo embebido que vivian ENTRE ellas.
+     Lo delato el conteo de esos bloques, no los tests: los 126 casos pasaban igual.
+     Nunca reconstruir una pestaña desde sus partes: mover lo que se muda y dejar el resto
+     quieto. (La marca de apertura no se escribe literal en este comentario: la contarian el
+     chequeo de conteo y el extractor de sintaxis como si fuera un bloque de verdad.) -->
+<div id="tab-congenitas2" class="tab-section">
+  <!-- ══ LAS DOS PESTANAS DE CONGENITAS (B-E6, 2026-10-21) ════════════════════════════════
+       La barra va en las DOS pestanas y no una sola vez, porque son dos `.tab-section` distintas
+       y la que no esta activa no se dibuja. El estado activo se deriva de cual esta activa, asi
+       que las dos copias no pueden divergir: lo pone `ccSubSync`.
+       ⚠️ LA CLASE ES `cc-on` Y NO `active`: `showTab` barre `.active` de TODO `.tab-btn` del
+          documento, y es justamente lo que se llama al cambiar de pestana. Es el defecto que las
+          sub-pestanas de Otros ya pagaron. -->
+  <div class="subtabs-wrap cc-subbar" role="tablist" aria-label="Cardiopatias congenitas"
+       style="justify-content:flex-start;margin-bottom:12px;">
+    <div class="tabs-row">
+      <!-- ⚠️ LLEVAN `tab-special`, LA CLASE DE LOS BOTONES DE LA FILA DE ARRIBA (B2-E4,
+           2026-10-22). MEDIDO ANTES DE TOCAR NADA: los dos ya se veian IGUAL que los de arriba
+           en las siete propiedades —fondo, color, borde, ancho de borde, cuerpo, relleno y
+           radio— en reposo y en activo, en los dos temas y en los dos motores. La razon es que
+           los botones de arriba tambien viven dentro de un `.subtabs-wrap`, y
+           `.subtabs-wrap .tab-btn` (0,2,1) le gana a `.tab-special` (0,1,0): las cinco
+           declaraciones de esa clase no se aplican a ninguno de los dos.
+           La clase se agrega igual, y es ESTRUCTURAL y no cosmetica: ata los dos grupos, asi
+           que el dia que alguien toque `.tab-special` o la especificidad los de CC se mueven
+           con los de arriba en vez de quedarse atras en silencio. Medido: CERO cambio de pixel.
+           ⚠️ EL ESTADO ACTIVO SIGUE EN `cc-on` Y NO EN `.active`, que es obligatorio: `showTab`
+           barre `.active` de TODO `.tab-btn` del documento. Sus colores son los de
+           `.subtabs-wrap .tab-btn.active`, sin declarar uno nuevo. -->
+      <button type="button" class="tab-btn tab-special" id="cc-subtab-frec2" role="tab"
+              aria-selected="false" tabindex="-1"
+              onclick="ccSubTab('congenitas')">&#129516; CC frecuentes</button>
+      <button type="button" class="tab-btn tab-special cc-on" id="cc-subtab-compl2" role="tab"
+              aria-selected="true" tabindex="0"
+              onclick="ccSubTab('congenitas2')">&#129516; CC complejas</button>
+    </div>
+  </div>
 <div class="card sacc" id="sacc-cc-vab">
     <button type="button" class="sacc-hdr" onclick="secToggle('cc-vab');vabSync();" aria-expanded="false">
       <span class="sacc-arrow">▶</span>
@@ -17677,6 +18323,10 @@ z
           </select>
         </div>
       </div>
+      <div style="font-size:10px;color:var(--text2);margin:8px 0 0;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+        <span>&#9889; Arritmia ventricular: <b id="mch-tv-res">&mdash;</b></span>
+        <button type="button" class="btn btn-ghost" style="font-size:10.5px;padding:2px 10px;margin:0;" onclick="tvIrAlModulo()">Editar</button>
+      </div>
 
       </div><!-- /caja exclusiones -->
       <div class="mch-caja">
@@ -17896,6 +18546,10 @@ z
           </table>
         </div>
       </div>
+      <div style="font-size:10px;color:var(--text2);margin:8px 0 0;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+        <span>&#9889; Arritmia ventricular: <b id="mca-tv-res">&mdash;</b></span>
+        <button type="button" class="btn btn-ghost" style="font-size:10.5px;padding:2px 10px;margin:0;" onclick="tvIrAlModulo()">Editar</button>
+      </div>
       <!-- Los 17 criterios son `type="text"` ocultos por CSS y NO `type="hidden"`: el barrido de
            limpiarCampos toma `input[type=text], input[type=number]`, así que un hidden sobrevive a
            «Nuevo estudio» —es la razón por la que im_grado y sus hermanos están en la lista
@@ -18012,6 +18666,10 @@ z
           </select>
         </div>
       </div>
+      <div style="font-size:10px;color:var(--text2);margin:8px 0 0;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+        <span>&#9889; Arritmia ventricular: <b id="tdf-tv-res">&mdash;</b></span>
+        <button type="button" class="btn btn-ghost" style="font-size:10.5px;padding:2px 10px;margin:0;" onclick="tvIrAlModulo()">Editar</button>
+      </div>
       </div><!-- /#tdf-campos -->
       <div id="tdf-concl-col">
       <div class="calc-box" style="margin-top:0;">
@@ -18024,638 +18682,6 @@ z
       </div>
       </div><!-- /#tdf-concl-col -->
       </div><!-- /#tdf-fila -->
-    </div>
-  </div>
-<div class="card sacc" id="sacc-cc-tv">
-    <button type="button" class="sacc-hdr" onclick="secToggle('cc-tv');tvSync();" aria-expanded="false">
-      <span class="sacc-arrow">▶</span>
-      <span style="flex:1;">⚡ Arritmia ventricular <span style="font-weight:400;color:var(--text2);font-size:11px;">— compartido por MCH, Fallot y MCA</span></span>
-      <span id="tv_badge" class="incl-badge" hidden>● cargada</span>
-    </button>
-    <div class="card-body sacc-body">
-      <p style="font-size:10px;color:var(--text2);margin:0 0 10px;line-height:1.5;">
-        Se carga <b>una sola vez</b> y la usan las tres secciones, cada una con su propia regla.
-        La <b>morfología y el eje</b> sólo los necesita el Task Force de la miocardiopatía arritmogénica; si no evaluás esa entidad, alcanza con el hecho y el tipo.
-      </p>
-      <div class="grid-3">
-        <div class="fg"><label>Taquicardia ventricular documentada</label>
-          <select id="tv_documentada" onchange="tvSync()">
-            <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
-          </select>
-        </div>
-        <div class="fg"><label>Tipo</label>
-          <select id="tv_tipo" onchange="tvSync()">
-            <option value="">—</option>
-            <option value="no_sostenida">No sostenida</option>
-            <option value="sostenida">Sostenida</option>
-            <option value="ambas">Ambas</option>
-          </select>
-        </div>
-        <div class="fg"><label>Extrasístoles ventriculares en 24 h (Holter)</label><input type="number" id="tv_ev24h" step="1" placeholder="EV/24h" oninput="tvSync()"></div>
-      </div>
-      <div class="grid-2" style="margin-top:10px;">
-        <div class="fg"><label>Morfología y eje</label>
-          <select id="tv_morfologia" onchange="tvSync()">
-            <option value="">—</option>
-            <option value="bcri_sup">BCRI con eje superior — origen en pared libre del VD</option>
-            <option value="bcri_inf">BCRI con eje inferior — tracto de salida del VD</option>
-            <option value="bcri_desc">BCRI con eje no determinado</option>
-            <option value="bcrd">BCRD — origen en el ventrículo izquierdo</option>
-            <option value="no_esp">No especificada</option>
-          </select>
-        </div>
-        <div class="fg"><label>Qué aporta a cada sección</label>
-          <div class="calc-box" style="margin:0;padding:6px 10px;"><div class="calc-row" style="border:none;padding:0;">
-            <span id="tv-aporte" class="calc-val">—</span></div></div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- ═══ CIA / CIV ═══
-       Vive acá y no en ETE porque el shunt se calcula con TSVI/TSVD. Los campos fuente
-       (diam_tsvi, itv_tsvi, tsvd_diametro, vti_tsvd) siguen en #tab-doppler y #tab-vd — esta
-       sección sólo muestra espejos de sólo lectura (ete_shunt_*_ro) que llena eteShuntSync().
-       El toggle de inclusión NO usa localStorage: se lee del propio checkbox, que
-       guardarInforme captura en `campos` y la reimpresión repone. Las secciones viejas leen
-       una clave global y por eso un estudio reimpreso podía salir sin una sección que el PDF
-       original sí tenía. -->
-  
-
-  <!-- ═══ DUCTUS ARTERIOSO PERMEABLE ═══ -->
-  
-
-  <!-- ═══ COARTACIÓN DE AORTA ═══ -->
-  
-
-  <!-- ═══ VENTANA AORTOPULMONAR ═══ -->
-  
-
-  <!-- ═══ FORAMEN OVAL PERMEABLE ═══
-       Los campos de contexto clínico son SELECTS de tres estados, no casillas: la diferencia
-       entre «no lo tiene» y «no lo pregunté» decide acá entre no hacer nada e implantar un
-       dispositivo. Ver la nota de fopConclusion(). -->
-  
-
-  <!-- ═══ VÁLVULA AÓRTICA BICÚSPIDE ═══
-       La guía que se aplica es la ESC 2024 de AORTA, no la ESC/EACTS de valvulopatías: la 2021
-       está superada por la 2025, y la 2025 borró sus propias filas de 55/50 mm y remite a la de
-       aorta. El texto que imprime la sección nombra la guía y la clase. Ver vabConclusion(). -->
-  
-
-  <!-- ═══ MIOCARDIOPATÍA HIPERTRÓFICA ═══
-       Dos scores de muerte súbita con criterios distintos, lado a lado, cada uno con su guía y
-       su clase. No se promedian ni se elige uno. Ver mchConclusion(). -->
-  
-
-  <!-- ═══ TETRALOGÍA DE FALLOT REPARADA ═══
-       Sin campos de volumen a propósito: los umbrales de 160/80 ml/m² son de RESONANCIA y la
-       eco 2D no mide volúmenes del VD de forma fiable. Ver tdfConclusion(). -->
-  
-
-  <!-- ═══ TRANSPOSICIÓN DE GRANDES ARTERIAS CORREGIDA ═══ -->
-  
-
-
-
-  <!-- ═══ MIOCARDIOPATÍA ARRITMOGÉNICA ═══
-       MCA y no MAVD/ARVC: el compromiso puede ser biventricular o predominantemente izquierdo.
-       La regla de conteo es UNO POR CATEGORÍA — ver mcaScore(). -->
-  
-
-  <!-- ═══ ANOMALÍA DE EBSTEIN ═══
-       Las cinco áreas del índice de Celermajer son campos PROPIOS y no reusan ad_area/ai_area:
-       aquéllas se miden en telesístole (aurícula máxima, criterio ASE para tamaño de cámara) y
-       ésta en telediástole. Ver ebsCelermajer(). -->
-  
-</div>
-
-<!-- ═══════════════════════ TAB: ECO ESTRÉS ═══════════════════════
-     LA INTERFAZ DE ESTE MÓDULO ESTÁ RETIRADA: no hay pestaña, no hay campos y no hay una sola
-     regla de CSS para sus clases —medido—. El JS de abajo sigue COMPLETO y corre en cada
-     carga: dos listeners globales, un setTimeout de arranque y unas sesenta funciones que
-     salen por su guarda porque el elemento que buscan no existe.
-
-     NO SE BORRA, y es decisión de Maicol del 25/10/2026: queda inerte hasta modularizar la
-     app. El motivo es que EL PREFIJO `ee` NO IDENTIFICA A ESTE MÓDULO —hay cuatro familias y
-     tres están VIVAS—; la nota del listener de `paste`, más abajo, las enumera.
-
-     LO MANTIENEN FUERA DEL PAPEL TRES COMPUERTAS:
-       1. la sección del PDF exige que EXISTA el elemento 'ee-incluir-pdf' en el DOM;
-       2. el informe narrativo sólo agrega el rótulo «Eco Estrés:» si eeInformeLineas()
-          devuelve líneas, y sale con [] porque 'ee-res-global' no existe;
-       3. eeHasData() da falso con el árbol limpio.
-     Las tres las fija TC-536, con el escenario peligroso —la bandera encendida a mitad de
-     sesión más eeHasData() en true— y con controles negativos de las tres familias vivas.
-
-     Inventario de piezas, líneas, bytes y dueños: docs/mapa/eco-estres-inventario.md
-     Qué falta medir antes de borrar:          docs/PENDIENTES.md → AJ10-C -->
-
-<script>
-(function(){
-function eeSwitchTab(id,el){
-  document.querySelectorAll('#tab-ee .ee-tab-content').forEach(t=>t.classList.remove('active'));
-  el.parentElement.querySelectorAll('.ee-tab').forEach(t=>t.classList.remove('active'));
-  document.getElementById('ee-tab-'+id).classList.add('active');
-  el.classList.add('active');
-  if(id==='bullo') eeInitAllBulls();
-}
-function eeSwitchBullTab(id,el){
-  ['basal','pico','recup'].forEach(b=>{ document.getElementById('ee-bull-'+b).style.display = b===id?'flex':'none'; });
-  el.parentElement.querySelectorAll('.ee-tab').forEach(t=>t.classList.remove('active'));
-  el.classList.add('active');
-}
-function eeToggleStep(hdr){
-  const body=hdr.nextElementSibling;
-  const isOpen=body.classList.contains('open');
-  body.classList.toggle('open');
-  hdr.querySelector('span:last-child').textContent=isOpen?'▼':'▲';
-}
-function eeSyncEdad(){
-  const age=+((document.getElementById('edad')||{}).value||0);
-  if(age>0){
-    const t=220-age;
-    const teo=document.getElementById('ee-b-fcteo'); if(teo) teo.value=t;
-    const obj=document.getElementById('ee-a-fcobj'); if(obj) obj.value=Math.round(t*0.85);
-    eeCalcFCPct();
-  }
-}
-function eeCalcFCPct(){
-  const fcteo=+((document.getElementById('ee-b-fcteo')||{}).value||0);
-  const fcmax=+((document.getElementById('ee-b-fcmax')||{}).value||0);
-  if(!fcteo||!fcmax)return;
-  const pct=Math.round(fcmax/fcteo*100);
-  const fill=document.getElementById('ee-fc-pct-fill'), val=document.getElementById('ee-fc-pct-val');
-  const col = pct>=85?'var(--green)':pct>=75?'var(--yellow)':'var(--red)';
-  if(fill){ fill.style.width=Math.min(pct,100)+'%'; fill.style.background=col; }
-  if(val){ val.textContent=pct+'% de FC máxima teórica'; val.style.color=col; }
-}
-function eeEvalCFVR(){
-  const v=+((document.getElementById('ee-f-cfvr')||{}).value||0);
-  const el=document.getElementById('ee-f-cfvr-res'); if(!el)return;
-  if(!v){el.textContent='';return;}
-  if(v>=2.5){el.style.color='var(--green)';el.textContent='✅ Normal (≥2.5)';}
-  else if(v>=2.0){el.style.color='var(--yellow)';el.textContent='⚠️ Borderline (2.0–2.5)';}
-  else{el.style.color='var(--red)';el.textContent='❌ Reducida (<2.0) — sugiere enfermedad microvascular o estenosis significativa';}
-}
-function eeEvalPSAP(){
-  const v=+((document.getElementById('ee-p-psap-pic')||{}).value||0);
-  const el=document.getElementById('ee-p-psap-res'); if(!el)return;
-  if(!v){el.textContent='';return;}
-  if(v>60){el.style.color='var(--red)';el.textContent='❌ HTP inducida por estrés (>60mmHg)';}
-  else if(v>50){el.style.color='var(--yellow)';el.textContent='⚠️ Elevación significativa (>50mmHg)';}
-  else{el.style.color='var(--green)';el.textContent='✅ Normal (<50mmHg)';}
-}
-function eeEvalEE(){
-  const v=+((document.getElementById('ee-p-ee')||{}).value||0);
-  const el=document.getElementById('ee-p-ee-res'); if(!el)return;
-  if(!v){el.textContent='';return;}
-  if(v>14){el.style.color='var(--red)';el.textContent="❌ E/e' elevado (>14) — PCP probablemente elevada";}
-  else if(v>10){el.style.color='var(--yellow)';el.textContent="⚠️ E/e' borderline (10–14)";}
-  else{el.style.color='var(--green)';el.textContent="✅ E/e' normal (<10)";}
-}
-function eeEvalGLS(){
-  const bas=+((document.getElementById('ee-gls-bas')||{}).value||0);
-  const pic=+((document.getElementById('ee-gls-pic')||{}).value||0);
-  const el=document.getElementById('ee-gls-res'); if(!el)return;
-  if(!bas){el.textContent='';return;}
-  let txt='';
-  if(bas>-16)txt='❌ GLS basal reducido (>−16%) — disfunción sistólica subclínica';
-  else if(bas>-20)txt='⚠️ GLS basal borderline (−16% a −20%)';
-  else txt='✅ GLS basal normal (≤−20%)';
-  if(pic){ const delta=Math.abs(pic)-Math.abs(bas); txt+=delta>2?' · ✅ Reserva de strain presente':' · ⚠️ Sin reserva de strain'; }
-  el.textContent=txt;
-  el.style.color=bas<=-20?'var(--green)':bas<=-16?'var(--yellow)':'var(--red)';
-}
-function eeCalcCFVR(art){
-  const bas=+((document.getElementById('ee-cfvr-'+art+'-bas')||{}).value||0);
-  const ade=+((document.getElementById('ee-cfvr-'+art+'-ade')||{}).value||0);
-  if(!bas||!ade)return;
-  const cfvr=(ade/bas).toFixed(2);
-  const valEl=document.getElementById('ee-cfvr-'+art+'-val'); if(valEl) valEl.textContent=cfvr;
-  const int=document.getElementById('ee-cfvr-'+art+'-int'); if(!int)return;
-  if(+cfvr>=2.5){int.style.color='var(--green)';int.textContent='Normal';}
-  else if(+cfvr>=2.0){int.style.color='var(--yellow)';int.textContent='Borderline';}
-  else{int.style.color='var(--red)';int.textContent='Reducida';}
-}
-function eeUpdateResult(){
-  const v=document.getElementById('ee-res-global').value;
-  const box=document.getElementById('ee-res-box');
-  const msgs={
-    neg:{cls:'ee-rb-neg',txt:'✅ Estudio negativo para isquemia inducible. Bajo riesgo de eventos cardiovasculares mayores a corto plazo.'},
-    pos:{cls:'ee-rb-pos',txt:'❌ Estudio positivo para isquemia. Se recomienda correlación con coronariografía y evaluación por cardiología intervencionista.'},
-    inc:{cls:'ee-rb-inc',txt:'⚠️ Estudio indeterminado o no concluyente. Considerar repetir con protocolo alternativo o escalar a coronariografía según clínica.'},
-    via:{cls:'ee-rb-neg',txt:'✅ Viabilidad miocárdica presente. Segmentos con mejoría con dosis bajas de dobutamina. Beneficio potencial de revascularización.'},
-    novia:{cls:'ee-rb-pos',txt:'❌ Sin evidencia de viabilidad miocárdica. Bajo beneficio esperado de revascularización en los segmentos evaluados.'}
-  };
-  if(msgs[v]){ box.className='ee-result-box show '+msgs[v].cls; box.textContent=msgs[v].txt; }
-  else { box.className='ee-result-box'; }
-}
-
-// ── BULL'S EYE ──
-const EE_SEGS=[
-  {id:1,name:'Anterior basal',ter:'LAD'},{id:2,name:'Anteroseptal basal',ter:'LAD'},
-  {id:3,name:'Inferoseptal basal',ter:'RCA'},{id:4,name:'Inferior basal',ter:'RCA'},
-  {id:5,name:'Inferolateral basal',ter:'RCA'},{id:6,name:'Anterolateral basal',ter:'LCx'},
-  {id:7,name:'Anterior medio',ter:'LAD'},{id:8,name:'Anteroseptal medio',ter:'LAD'},
-  {id:9,name:'Inferoseptal medio',ter:'RCA'},{id:10,name:'Inferior medio',ter:'RCA'},
-  {id:11,name:'Inferolateral medio',ter:'RCA'},{id:12,name:'Anterolateral medio',ter:'LCx'},
-  {id:13,name:'Anterior apical',ter:'LAD'},{id:14,name:'Septal apical',ter:'LAD'},
-  {id:15,name:'Inferior apical',ter:'RCA'},{id:16,name:'Lateral apical',ter:'LCx'},
-  {id:17,name:'Apex',ter:'LAD'}
-];
-const EE_LABELS=['Normal','Hipokinesia','Akinesia','Diskinesia','No eval.'];
-const EE_SCORES=[1,2,3,4,0];
-const EE_COLORS=['#3ecf8e','#f5c842','#f59e42','#8a5fd4','#9aa3bc'];
-const EE_TER={LAD:'#4f8ef7',RCA:'#f05454',LCx:'#3ecf8e'};
-let eeBull={basal:Array(17).fill(0),pico:Array(17).fill(0),recup:Array(17).fill(0)};
-let eeBullInited={basal:false,pico:false,recup:false};
-let eePopPhase=null, eePopIdx=-1;
-
-function eeInitAllBulls(){ ['basal','pico','recup'].forEach(p=>{ if(!eeBullInited[p]){ eeBullInited[p]=true; eeRenderBull(p); } }); }
-function eeArc(cx,cy,r1,r2,s,e){
-  const rs=s*Math.PI/180,re=e*Math.PI/180;
-  const x1=cx+r1*Math.cos(rs),y1=cy+r1*Math.sin(rs);
-  const x2=cx+r1*Math.cos(re),y2=cy+r1*Math.sin(re);
-  const x3=cx+r2*Math.cos(re),y3=cy+r2*Math.sin(re);
-  const x4=cx+r2*Math.cos(rs),y4=cy+r2*Math.sin(rs);
-  const large=Math.abs(e-s)>180?1:0, sweep=e<s?0:1;
-  return 'M'+x1+','+y1+' A'+r1+','+r1+' 0 '+large+','+sweep+' '+x2+','+y2+' L'+x3+','+y3+' A'+r2+','+r2+' 0 '+large+','+(sweep?0:1)+' '+x4+','+y4+' Z';
-}
-function eeRenderBull(phase){
-  const svg=document.getElementById('ee-eye-svg-'+phase); if(!svg)return;
-  const cx=170,cy=170,state=eeBull[phase];
-  const rings=[{r1:130,r2:92,segs:[0,1,2,3,4,5],step:60},{r1:92,r2:54,segs:[6,7,8,9,10,11],step:60},{r1:54,r2:24,segs:[12,13,14,15],step:90}];
-  let html='';
-  rings.forEach(ring=>{ ring.segs.forEach((segIdx,s)=>{
-    const seg=EE_SEGS[segIdx];
-    const startDeg=-90+30-(s*ring.step), endDeg=startDeg-ring.step, midDeg=startDeg-ring.step/2, midR=(ring.r1+ring.r2)/2;
-    const lx=cx+midR*Math.cos(midDeg*Math.PI/180), ly=cy+midR*Math.sin(midDeg*Math.PI/180);
-    html+='<path d="'+eeArc(cx,cy,ring.r1,ring.r2,startDeg,endDeg)+'" fill="'+EE_COLORS[state[segIdx]]+'" fill-opacity="0.85" stroke="#0f1117" stroke-width="2" onclick="eeCycleBull(\''+phase+'\','+segIdx+')" oncontextmenu="eeOpenBullPop(event,\''+phase+'\','+segIdx+');return false;" style="cursor:pointer"><title>Seg '+seg.id+' '+seg.name+' ('+seg.ter+') — '+EE_LABELS[state[segIdx]]+'</title></path>';
-    html+='<text x="'+lx+'" y="'+ly+'" text-anchor="middle" dominant-baseline="middle" font-size="9" fill="#fff" font-weight="700" pointer-events="none">'+seg.id+'</text>';
-  }); });
-  html+='<circle cx="'+cx+'" cy="'+cy+'" r="24" fill="'+EE_COLORS[state[16]]+'" fill-opacity="0.85" stroke="#0f1117" stroke-width="2" onclick="eeCycleBull(\''+phase+'\',16)" oncontextmenu="eeOpenBullPop(event,\''+phase+'\',16);return false;" style="cursor:pointer"><title>Apex (LAD) — '+EE_LABELS[state[16]]+'</title></circle>';
-  html+='<text x="'+cx+'" y="'+cy+'" text-anchor="middle" dominant-baseline="middle" font-size="9" fill="#fff" font-weight="700" pointer-events="none">17</text>';
-  html+='<text x="'+cx+'" y="26" text-anchor="middle" font-size="9" fill="'+EE_TER.LAD+'" font-weight="800">LAD</text>';
-  html+='<text x="315" y="'+cy+'" text-anchor="end" font-size="9" fill="'+EE_TER.LCx+'" font-weight="800">LCx</text>';
-  html+='<text x="25" y="'+cy+'" text-anchor="start" font-size="9" fill="'+EE_TER.RCA+'" font-weight="800">RCA</text>';
-  svg.innerHTML=html;
-  eeUpdateWMSI(phase);
-}
-function eeCycleBull(phase,idx){ eeBull[phase][idx]=(eeBull[phase][idx]+1)%EE_LABELS.length; eeRenderBull(phase); }
-function eeOpenBullPop(e,phase,idx){
-  e.preventDefault(); eePopPhase=phase; eePopIdx=idx;
-  const seg=EE_SEGS[idx], pop=document.getElementById('ee-eye-pop');
-  document.getElementById('ee-eye-pop-title').textContent='Seg '+seg.id+' — '+seg.name+' ('+seg.ter+')';
-  document.getElementById('ee-eye-pop-states').innerHTML=EE_LABELS.map((lbl,i)=>'<button class="ee-eye-pop-btn'+(eeBull[phase][idx]===i?' sel':'')+'" style="background:'+EE_COLORS[i]+'33;color:'+EE_COLORS[i]+';border-color:'+(eeBull[phase][idx]===i?EE_COLORS[i]:'transparent')+'" onclick="eeSetBullState(\''+phase+'\','+idx+','+i+')">'+lbl+'</button>').join('');
-  pop.style.left=Math.min(e.clientX,window.innerWidth-220)+'px';
-  pop.style.top=Math.min(e.clientY,window.innerHeight-180)+'px';
-  pop.classList.add('open');
-}
-function eeSetBullState(phase,idx,st){
-  eeBull[phase][idx]=st; eeRenderBull(phase);
-  document.querySelectorAll('.ee-eye-pop-btn').forEach((b,i)=>{ b.classList.toggle('sel',i===st); b.style.borderColor=i===st?EE_COLORS[i]:'transparent'; });
-}
-function eeCloseEyePop(){ document.getElementById('ee-eye-pop').classList.remove('open'); eePopPhase=null; eePopIdx=-1; }
-function eeUpdateWMSI(phase){
-  const state=eeBull[phase]; let sum=0,count=0;
-  state.forEach(st=>{ if(st!==4){ sum+=EE_SCORES[st]; count++; } });
-  const wmsi=count>0?(sum/count).toFixed(2):'—';
-  const valEl=document.getElementById('ee-wmsi-'+phase), catEl=document.getElementById('ee-wmsi-'+phase+'-cat');
-  if(valEl) valEl.textContent=wmsi;
-  if(!catEl)return;
-  if(wmsi==='—'){catEl.textContent='';return;}
-  const w=PF(wmsi);
-  if(w===1){catEl.textContent='Normal';catEl.style.color='var(--green)';}
-  else if(w<=1.5){catEl.textContent='Disfunción leve';catEl.style.color='var(--yellow)';}
-  else if(w<=2){catEl.textContent='Disfunción moderada';catEl.style.color='var(--orange)';}
-  else{catEl.textContent='Disfunción severa';catEl.style.color='var(--red)';}
-}
-function eeResetBull(phase){ eeBull[phase]=Array(17).fill(0); eeRenderBull(phase); }
-/* El PRIMERO de los dos listeners GLOBALES de Eco Estrés, cuya interfaz está retirada. Sale
-   solo: pregunta por `#ee-eye-pop`, que no existe, y verificado en el navegador no llega nunca
-   a cerrar nada. El criterio completo —por qué NO se desactiva con una bandera, por qué quitar
-   los exports no alcanza, y cuáles son las TRES familias `ee` que SÍ están vivas— está en la
-   nota del segundo listener, el de `paste`, más abajo en este mismo bloque.
-   Inventario: docs/mapa/eco-estres-inventario.md · lo fija TC-536. */
-document.addEventListener('click',e=>{
-  const pop=document.getElementById('ee-eye-pop');
-  if(pop&&pop.classList.contains('open')&&!pop.contains(e.target)&&!(e.target.closest&&e.target.closest('#tab-ee svg'))) eeCloseEyePop();
-});
-
-function eeGetWMSItext(phase){
-  const state=eeBull[phase], anorm=[];
-  state.forEach((st,i)=>{ if(st>0&&st!==4) anorm.push('Seg '+EE_SEGS[i].id+' '+EE_SEGS[i].name+' ('+EE_SEGS[i].ter+'): '+EE_LABELS[st]); });
-  let sum=0,count=0; state.forEach(st=>{ if(st!==4){ sum+=EE_SCORES[st]; count++; } });
-  return {anorm, wmsi: count>0?(sum/count).toFixed(2):'—'};
-}
-function eeResetAll(){
-  document.querySelectorAll('#tab-ee input, #tab-ee select, #tab-ee textarea').forEach(el=>{
-    if(el.tagName==='SELECT') el.selectedIndex=0; else el.value='';
-  });
-  ['basal','pico','recup'].forEach(p=>{ eeBull[p]=Array(17).fill(0); eeRenderBull(p); });
-  const box=document.getElementById('ee-res-box'); if(box) box.className='ee-result-box';
-  const fill=document.getElementById('ee-fc-pct-fill'); if(fill) fill.style.width='0%';
-  const val=document.getElementById('ee-fc-pct-val'); if(val) val.textContent='—';
-}
-
-// Conexión con EcoSmart: GLS del tab VI / SGL global
-function eeSyncGLS(){
-  const bas=document.getElementById('ee-gls-bas'); if(!bas)return;
-  const sglGlobal=document.getElementById('sgl_gls'), viSgl=document.getElementById('sgl');
-  let val='';
-  if(sglGlobal && sglGlobal.value!=='') val=sglGlobal.value;
-  else if(viSgl && viSgl.value!=='') val=viSgl.value;
-  if(val!=='' && bas.value===''){ bas.value=val; eeEvalGLS(); }
-}
-function eeOnShow(){ eeSyncEdad(); eeSyncGLS(); eeInitAllBulls(); if(typeof eePdfPanelRender==='function')eePdfPanelRender(); if(typeof eeProtoBuild==='function' && !document.querySelector('#ee-proto-table-wrap table'))eeProtoBuild(); }
-
-// Sección Eco Estrés para el informe narrativo
-function eeInformeLineas(){
-  const res=document.getElementById('ee-res-global');
-  if(!res || !res.value) return [];
-  const resTxt={neg:'Negativo para isquemia',pos:'Positivo para isquemia',inc:'Indeterminado / no concluyente',via:'Viabilidad presente',novia:'Sin viabilidad'}[res.value]||res.value;
-  const estres=document.getElementById('ee-p-estres');
-  const estresTxt=estres?estres.options[estres.selectedIndex].text:'';
-  const lines=['Eco estrés'+(estresTxt?' ('+estresTxt+')':'')+': '+resTxt+'.'];
-  const pic=eeGetWMSItext('pico');
-  if(pic.anorm.length) lines.push('Motilidad en el pico de estrés: '+pic.anorm.join('; ')+'. WMSI pico '+pic.wmsi+'.');
-  else if(pic.wmsi!=='—') lines.push('Sin nuevas alteraciones de la motilidad en el pico de estrés (WMSI '+pic.wmsi+').');
-  const camb=document.getElementById('ee-b-cambios');
-  if(camb && camb.value && camb.value!=='no') lines.push('ECG: '+camb.options[camb.selectedIndex].text+'.');
-  const gb=document.getElementById('ee-gls-bas'), gp=document.getElementById('ee-gls-pic');
-  if(gb && gb.value){ let g='GLS basal '+gb.value+'%'; if(gp&&gp.value) g+=', pico '+gp.value+'%'; lines.push(g+'.'); }
-  const com=document.getElementById('ee-res-comment');
-  if(com && com.value.trim()) lines.push(com.value.trim());
-  return lines;
-}
-
-// Exponer para handlers inline y para EcoSmart
-window.eeSwitchTab=eeSwitchTab; window.eeSwitchBullTab=eeSwitchBullTab; window.eeToggleStep=eeToggleStep;
-window.eeCalcFCPct=eeCalcFCPct; window.eeEvalCFVR=eeEvalCFVR; window.eeEvalPSAP=eeEvalPSAP; window.eeEvalEE=eeEvalEE;
-window.eeEvalGLS=eeEvalGLS; window.eeCalcCFVR=eeCalcCFVR; window.eeUpdateResult=eeUpdateResult;
-window.eeCycleBull=eeCycleBull; window.eeOpenBullPop=eeOpenBullPop; window.eeSetBullState=eeSetBullState;
-window.eeCloseEyePop=eeCloseEyePop; window.eeResetBull=eeResetBull; window.eeResetAll=eeResetAll;
-window.eeOnShow=eeOnShow; window.eeInformeLineas=eeInformeLineas;
-
-// ── Probabilidad pre-test de enfermedad coronaria (ESC 2019) ──
-function ptpCad(){
-  const edad=+((document.getElementById('ee-ptp-edad')||{}).value||0);
-  const sexo=(document.getElementById('ee-ptp-sexo')||{}).value||'';
-  const sint=(document.getElementById('ee-ptp-sint')||{}).value||'';
-  const res=document.getElementById('ee-ptp-res'), rec=document.getElementById('ee-ptp-rec');
-  if(!res||!rec) return;
-  if(!edad||!sexo||!sint){ res.innerHTML=''; rec.textContent=''; return; }
-  // ESC 2019 · PTP (%) por grupo etario [30-39,40-49,50-59,60-69,≥70] → [Masculino, Femenino]
-  const TBL={
-    tip:  [[3,5],[22,10],[32,13],[44,16],[52,27]],
-    atip: [[4,3],[10,6],[17,6],[26,11],[34,19]],
-    asint:[[1,1],[3,2],[11,3],[22,6],[24,10]]
-  };
-  const ai = edad<40?0 : edad<50?1 : edad<60?2 : edad<70?3 : 4;
-  const pct = (TBL[sint][ai])[sexo==='F'?1:0];
-  let cls,txt,recTxt;
-  if(pct<5){ cls='green'; txt='probabilidad muy baja'; recTxt='ESC: no requiere estudio adicional.'; }
-  else if(pct<=15){ cls='green'; txt='probabilidad baja'; recTxt='ESC: considerar TAC coronaria.'; }
-  else if(pct<=65){ cls='yellow'; txt='probabilidad intermedia'; recTxt='ESC: prueba funcional (eco estrés) o TAC coronaria.'; }
-  else { cls='red'; txt='probabilidad alta'; recTxt='ESC: considerar coronariografía.'; }
-  res.innerHTML='PTP '+pct+'% '+badge(cls,txt);
-  rec.textContent=recTxt;
-}
-window.ptpCad=ptpCad;
-
-// ── Compresión compartida (máx 800x600, JPEG 65%) ──
-function _eeCompress(file, cb){
-  const reader=new FileReader();
-  reader.onload=function(){ const im=new Image(); im.onload=function(){
-    let w=im.width,h=im.height; const r=Math.min(800/w,600/h,1); w=Math.max(1,Math.round(w*r)); h=Math.max(1,Math.round(h*r));
-    const cv=document.createElement('canvas'); cv.width=w; cv.height=h; const c=cv.getContext('2d'); c.fillStyle='#ffffff'; c.fillRect(0,0,w,h); c.drawImage(im,0,0,w,h);
-    cb(cv.toDataURL('image/jpeg',0.65));
-  }; im.src=reader.result; };
-  reader.readAsDataURL(file);
-}
-
-// ── Imágenes del estudio (Eco Estrés) — slots 2/4/6/8/10/+, grilla 2 col, drag ──
-let eeImg=[null,null], eeImgCount=2, eeImgActive=0;
-const EE_IMG_COUNTS=[2,4,6,8,10];
-function _eeImgLast(){ let l=-1; eeImg.forEach((s,i)=>{ if(s) l=i; }); return l; }
-function eeImgEnsure(){ const n=Math.max(eeImgCount,_eeImgLast()+1); while(eeImg.length<n)eeImg.push(null); if(eeImg.length>n)eeImg.length=n; }
-function eeImgSetCount(n){ eeImgCount=Math.max(n,_eeImgLast()+1); eeImgEnsure(); eeImgRender(); }
-function eeImgAdd(){ eeImgCount=eeImg.length+1; eeImgEnsure(); eeImgRender(); }
-function eeImgRender(){
-  eeImgEnsure();
-  const cb=document.getElementById('ee-img-count');
-  if(cb){ let h=EE_IMG_COUNTS.map(n=>'<button type="button" class="ee-btn ee-btn-ghost" style="padding:5px 12px;'+(eeImgCount===n?'background:var(--accent);color:#fff;':'')+'" onclick="eeImgSetCount('+n+')">'+n+'</button>').join(''); h+='<button type="button" class="ee-btn ee-btn-ghost" style="padding:5px 12px;" title="Agregar un slot" onclick="eeImgAdd()">＋</button>'; cb.innerHTML=h; }
-  const grid=document.getElementById('ee-img-grid'); if(!grid)return; grid.innerHTML='';
-  eeImg.forEach((slot,idx)=>{
-    const cell=document.createElement('div'); cell.dataset.idx=idx;
-    cell.style.cssText='position:relative;border:1.5px '+(slot?'solid':'dashed')+' var(--border);border-radius:10px;background:var(--bg3);min-height:130px;display:flex;align-items:center;justify-content:center;overflow:hidden;';
-    if(slot){ cell.setAttribute('draggable','true');
-      cell.innerHTML='<img src="'+slot+'" loading="lazy" style="max-width:100%;max-height:200px;display:block;pointer-events:none;"><button type="button" onclick="eeImgRemove(event,'+idx+')" style="position:absolute;top:6px;right:6px;width:22px;height:22px;border-radius:50%;border:none;background:var(--red);color:#fff;font-size:12px;cursor:pointer;line-height:1;">✕</button>';
-    } else { cell.innerHTML='<button type="button" onclick="eeImgPick('+idx+')" style="background:none;border:none;color:var(--text2);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;font-size:12px;"><span style="font-size:28px;line-height:1;">➕</span>Agregar</button>'; }
-    cell.addEventListener('dragstart',e=>{ if(eeImg[idx]) e.dataTransfer.setData('text/plain',String(idx)); });
-    cell.addEventListener('dragover',e=>e.preventDefault());
-    cell.addEventListener('drop',e=>{ e.preventDefault(); const f=parseInt(e.dataTransfer.getData('text/plain')); if(!isNaN(f)){ const t=eeImg[f]; eeImg[f]=eeImg[idx]; eeImg[idx]=t; eeImgRender(); } });
-    grid.appendChild(cell);
-  });
-}
-function eeImgPick(idx){ eeImgActive=idx; const inp=document.getElementById('ee-img-file'); if(inp){ inp.value=''; inp.click(); } }
-function eeImgChosen(e){ const f=e.target.files&&e.target.files[0]; if(f) _eeCompress(f,function(d){ let t=eeImgActive; if(t==null||t<0||t>=eeImg.length||eeImg[t]){ t=eeImg.findIndex(s=>!s); if(t===-1){ eeImg.push(null); t=eeImg.length-1; eeImgCount=eeImg.length; } } eeImg[t]=d; eeImgRender(); }); e.target.value=''; }
-function eeImgRemove(e,idx){ if(e) e.stopPropagation(); eeImg[idx]=null; eeImgRender(); }
-
-// ── Imágenes de ECG — slots 2/4/6/8/+, grilla 2 col, drag, tap-swap, pegar, compresión ──
-let eeEcg=[null,null], eeEcgCount=2, eeEcgActive=0, eeEcgSwap=null, _eeEcgLongT=null, _eeEcgLastTap=0;
-const EE_ECG_COUNTS=[2,4,6,8];
-function _eeEcgLast(){ let l=-1; eeEcg.forEach((s,i)=>{ if(s) l=i; }); return l; }
-function eeEcgEnsure(){ const n=Math.max(eeEcgCount,_eeEcgLast()+1); while(eeEcg.length<n)eeEcg.push(null); if(eeEcg.length>n)eeEcg.length=n; }
-function eeEcgSetCount(n){ eeEcgCount=Math.max(n,_eeEcgLast()+1); eeEcgEnsure(); eeEcgRender(); }
-function eeEcgAdd(){ eeEcgCount=eeEcg.length+1; eeEcgEnsure(); eeEcgRender(); }
-function eeEcgRender(){
-  eeEcgEnsure();
-  const cb=document.getElementById('ee-ecg-count');
-  if(cb){ let h=EE_ECG_COUNTS.map(n=>'<button type="button" class="ee-btn ee-btn-ghost" style="padding:5px 12px;'+(eeEcgCount===n?'background:var(--accent);color:#fff;':'')+'" onclick="eeEcgSetCount('+n+')">'+n+'</button>').join(''); h+='<button type="button" class="ee-btn ee-btn-ghost" style="padding:5px 12px;" title="Agregar un slot" onclick="eeEcgAdd()">＋</button>'; cb.innerHTML=h; }
-  const grid=document.getElementById('ee-ecg-img-grid'); if(!grid)return; grid.innerHTML='';
-  eeEcg.forEach((slot,idx)=>{
-    const cell=document.createElement('div'); cell.dataset.idx=idx;
-    cell.style.cssText='position:relative;border:1.5px '+(slot?'solid':'dashed')+' var(--border);border-radius:10px;background:var(--bg3);min-height:120px;display:flex;align-items:center;justify-content:center;overflow:hidden;'+(eeEcgSwap===idx?'outline:2px dashed var(--accent2);outline-offset:2px;':'');
-    if(slot){ cell.setAttribute('draggable','true');
-      cell.innerHTML='<img src="'+slot+'" loading="lazy" style="max-width:100%;max-height:190px;display:block;pointer-events:none;"><button type="button" onclick="eeEcgRemove(event,'+idx+')" style="position:absolute;top:6px;right:6px;width:22px;height:22px;border-radius:50%;border:none;background:var(--red);color:#fff;font-size:12px;cursor:pointer;line-height:1;">✕</button>';
-    } else { cell.innerHTML='<button type="button" onclick="eeEcgPick('+idx+')" style="background:none;border:none;color:var(--text2);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;font-size:12px;"><span style="font-size:28px;line-height:1;">➕</span>Agregar</button>'; }
-    cell.addEventListener('dragstart',e=>{ if(eeEcg[idx]) e.dataTransfer.setData('text/plain',String(idx)); });
-    cell.addEventListener('dragover',e=>e.preventDefault());
-    cell.addEventListener('drop',e=>{ e.preventDefault(); const f=parseInt(e.dataTransfer.getData('text/plain')); if(!isNaN(f)) eeEcgSwap2(f,idx); });
-    cell.addEventListener('click',()=>{ eeEcgActive=idx; });
-    let moved=false;
-    cell.addEventListener('touchstart',()=>{ moved=false; eeEcgActive=idx; _eeEcgLongT=setTimeout(()=>{ if(!moved&&eeEcg[idx]){ eeEcgSwap=(eeEcgSwap===idx?null:idx); eeEcgRender(); } },450); },{passive:true});
-    cell.addEventListener('touchmove',()=>{ moved=true; clearTimeout(_eeEcgLongT); },{passive:true});
-    cell.addEventListener('touchend',()=>{ clearTimeout(_eeEcgLongT); if(eeEcgSwap!==null&&eeEcgSwap!==idx){ eeEcgSwap2(eeEcgSwap,idx); eeEcgSwap=null; eeEcgRender(); } });
-    grid.appendChild(cell);
-  });
-}
-function eeEcgSwap2(a,b){ if(a===b)return; const t=eeEcg[a]; eeEcg[a]=eeEcg[b]; eeEcg[b]=t; eeEcgRender(); }
-function eeEcgPick(idx){ eeEcgActive=idx; const inp=document.getElementById('ee-ecg-img-file'); if(inp){ inp.value=''; inp.click(); } }
-function eeEcgChosen(e){ const f=e.target.files&&e.target.files[0]; if(f) _eeEcgPlace(f,eeEcgActive); e.target.value=''; }
-function _eeEcgPlace(file,idx){ _eeCompress(file,function(d){ let t=idx; if(t==null||t<0||t>=eeEcg.length||eeEcg[t]){ t=eeEcg.findIndex(s=>!s); if(t===-1){ eeEcg.push(null); t=eeEcg.length-1; eeEcgCount=eeEcg.length; } } eeEcg[t]=d; eeEcgRender(); }); }
-function eeEcgRemove(e,idx){ if(e) e.stopPropagation(); eeEcg[idx]=null; eeEcgRender(); }
-// Pegar desde portapapeles (con la sección ECG del Eco Estrés activa)
-/* Este listener y el de click de más arriba (`#ee-eye-pop`) son de Eco Estrés, cuya interfaz
-   está retirada. NO se desactivan con una bandera «que nunca sea true»: la guarda correcta ya
-   es la que tienen adentro —preguntan por su propio DOM, que no existe—, y verificado en el
-   navegador ninguno de los dos llega a `preventDefault()`. Una bandera falsa es peor: hay que
-   acordarse de invertirla el día que vuelva la UI, mientras que esto revive solo. Es el mismo
-   criterio con el que se cerró el gate del PDF (`#ee-incluir-pdf`).
-
-   Tampoco tiene sentido «desactivar los exports»: estas son declaraciones de función en el
-   nivel superior de un <script> clásico, así que ya crean la propiedad en `window` aunque se
-   borre la línea de export. Está medido y anotado en CLAUDE.md.
-
-   Lo que SÍ queda pendiente, y es la única interferencia real posible: este handler se
-   registra ANTES que `imgPasteHandler` del módulo de imágenes. Si vuelve `#tab-ee`, un pegado
-   con la pestaña de ECG activa haría `preventDefault()` acá y el módulo de imágenes no lo
-   vería. Al restaurar la UI hay que decidir el orden, no descubrirlo.
-
-   ⚠️ EL PREFIJO `ee` NO IDENTIFICA A ECO ESTRÉS. Hay CUATRO familias y TRES están VIVAS, así
-   que un borrado —o una IIFE— por prefijo apaga funciones de la app:
-     · CALCULADORA DE E/e′ — ee-e, ee-ep, ee-result, ee-val, ee-lbl y calcEE(). Alimenta la
-       función diastólica y el score de amiloidosis.
-     · MODO BÁSICO/AVANZADO DEL ETT — EE_MODULES, EE_DEF_KEY, eeGetMode, eeGetModules, eeModOn,
-       eeDefOn. Alimentan el desplegable «Sección avanzada» (#ecoAdvSelect, ecoAdvBuild).
-     · QR DEL INFORME — EE_QR_ROWS, eeStudyUrl, eeQrDataURL, eeQrEnabled.
-   Muerta de cara al usuario está SOLO la cuarta, la de Eco Estrés. Y no se borra por decisión
-   de Maicol del 25/10/2026: hasta modularizar la app, queda inerte detrás de sus compuertas.
-   Los campos cx_duke_* NO son de acá: el score de Duke sale de una ergometría en cinta.
-
-   Inventario con las piezas A/B/C: docs/mapa/eco-estres-inventario.md
-   Las compuertas y los controles:   TC-536
-   Lo que falta medir para borrar:   docs/PENDIENTES.md → AJ10-C */
-document.addEventListener('paste',function(e){
-  const ee=document.getElementById('tab-ee'), ecg=document.getElementById('ee-tab-ecg');
-  if(!ee||!ee.classList.contains('active')||!ecg||!ecg.classList.contains('active')) return;
-  const items=(e.clipboardData||window.clipboardData||{}).items||[];
-  for(let i=0;i<items.length;i++){ if(items[i].type&&items[i].type.indexOf('image')===0){ const f=items[i].getAsFile(); if(f){ e.preventDefault(); _eeEcgPlace(f,(eeEcg[eeEcgActive]?-1:eeEcgActive)); } break; } }
-});
-
-// ── Texto narrativo autogenerado ──
-function generarInformeEcoEstres(){
-  const val=id=>{ const el=document.getElementById(id); return el?(el.value||''):''; };
-  const selT=id=>{ const el=document.getElementById(id); return (el&&el.value!=='')?el.options[el.selectedIndex].text:''; };
-  const estres=selT('ee-p-estres');
-  const adec=(document.getElementById('ee-a-adec')||{}).value||'';
-  const mets=val('ee-b-mets');
-  const fcteo=+(val('ee-b-fcteo')||0), fcmax=+(val('ee-b-fcmax')||0);
-  const fcpct=(fcteo&&fcmax)?Math.round(fcmax/fcteo*100):null;
-  const resMap={neg:'negativo',pos:'positivo',inc:'indeterminado',via:'con viabilidad presente',novia:'sin viabilidad'};
-  const resTxt=resMap[(document.getElementById('ee-res-global')||{}).value]||'';
-  const pic=eeGetWMSItext('pico');
-  const parts=[];
-  parts.push('Eco estrés'+(estres?' con '+estres.toLowerCase():'')+'.');
-  const adTxt = adec==='si'?'adecuado':adec==='no'?'subóptimo':'';
-  const det=[]; if(mets) det.push('alcanzando '+mets+' METs'); if(fcpct!=null) det.push((mets?'y ':'alcanzando ')+fcpct+'% de la FC máxima teórica');
-  if(adTxt||det.length) parts.push(('Estrés '+(adTxt||'')).trim()+(det.length?', '+det.join(' '):'')+'.');
-  if(resTxt) parts.push('Estudio '+resTxt+' para isquemia.');
-  if(pic.anorm.length) parts.push(pic.anorm.join('; ')+' (WMSI pico '+pic.wmsi+').');
-  else if(pic.wmsi!=='—') parts.push('Sin nuevas alteraciones de la motilidad en el pico (WMSI '+pic.wmsi+').');
-  const camb=document.getElementById('ee-b-cambios'); if(camb&&camb.value&&camb.value!=='no') parts.push('ECG: '+camb.options[camb.selectedIndex].text+'.');
-  const gb=val('ee-gls-bas'), gp=val('ee-gls-pic'); if(gb){ let g='GLS basal '+gb+'%'; if(gp) g+=', pico '+gp+'%'; parts.push(g+'.'); }
-  const cfvrDa=val('ee-cfvr-da-val'); if(cfvrDa&&cfvrDa!=='—') parts.push('CFVR DA: '+cfvrDa+'.');
-  const com=val('ee-res-comment'); if(com&&com.trim()) parts.push(com.trim());
-  const out=document.getElementById('ee-narrativa'); if(out) out.value=parts.join(' ');
-}
-
-// ── Renderer del bull's eye ee a canvas (para el PDF) ──
-function eeBullDataURL(phase){
-  const S=340,k=2; const cv=document.createElement('canvas'); cv.width=S*k; cv.height=S*k; const c=cv.getContext('2d'); c.scale(k,k);
-  c.fillStyle='#ffffff'; c.fillRect(0,0,S,S);
-  const cx=170,cy=170,state=eeBull[phase];
-  const rings=[{r1:130,r2:92,segs:[0,1,2,3,4,5],step:60},{r1:92,r2:54,segs:[6,7,8,9,10,11],step:60},{r1:54,r2:24,segs:[12,13,14,15],step:90}];
-  c.textAlign='center'; c.textBaseline='middle'; c.font='bold 11px sans-serif';
-  rings.forEach(ring=>{ ring.segs.forEach((segIdx,s)=>{
-    const startDeg=-90+30-(s*ring.step), endDeg=startDeg-ring.step;
-    const p=new Path2D(eeArc(cx,cy,ring.r1,ring.r2,startDeg,endDeg));
-    c.fillStyle=EE_COLORS[state[segIdx]]; c.fill(p); c.lineWidth=1.5; c.strokeStyle='#ffffff'; c.stroke(p);
-    const midDeg=startDeg-ring.step/2, midR=(ring.r1+ring.r2)/2;
-    c.fillStyle='#ffffff'; c.fillText(String(EE_SEGS[segIdx].id), cx+midR*Math.cos(midDeg*Math.PI/180), cy+midR*Math.sin(midDeg*Math.PI/180));
-  }); });
-  c.beginPath(); c.arc(cx,cy,24,0,2*Math.PI); c.fillStyle=EE_COLORS[state[16]]; c.fill(); c.lineWidth=1.5; c.strokeStyle='#ffffff'; c.stroke();
-  c.fillStyle='#ffffff'; c.fillText('17',cx,cy);
-  return cv.toDataURL('image/png');
-}
-function eeHasData(){
-  const g=id=>{ const el=document.getElementById(id); return el&&el.value&&String(el.value).trim(); };
-  if(g('ee-res-global')||g('ee-b-mets')||g('ee-b-fcmax')||g('ee-gls-bas')||g('ee-narrativa')) return true;
-  if(['basal','pico','recup'].some(p=>eeBull[p].some(s=>s>0&&s!==4))) return true;
-  /* `.some(Boolean)`, NO `.length`. eeEcg arranca en [null,null] y eeEcgEnsure lo mantiene
-     en >=2, así que `eeEcg.length` era verdadero SIEMPRE y esta función devolvía true con
-     todo vacío. Medido: con la bandera ecoestres_incluir_pdf en '1' —que quedó guardada en
-     cualquier navegador que usara la build donde el módulo tenía interfaz— el PDF imprimía
-     una sección «ECO ESTRÉS» con los tres bull's eyes y los 17 segmentos en NORMAL, sobre un
-     estudio donde no se hizo ningún eco estrés. Un informe firmado afirmando motilidad
-     normal en pico de un test que no existió.
-     La interfaz de este módulo fue retirada; el JS queda inerte por si se restaura —decisión
-     de Maicol del 25/10/2026: no se borra hasta modularizar la app—. Que esta función dé
-     FALSO con el árbol limpio es la tercera de las tres compuertas, y la fija TC-536
-     (condición D). Inventario: docs/mapa/eco-estres-inventario.md · borrado: AJ10-C. */
-  if(eeImg.some(Boolean)||eeEcg.some(Boolean)) return true;
-  return false;
-}
-
-window.eeImgSetCount=eeImgSetCount; window.eeImgAdd=eeImgAdd; window.eeImgPick=eeImgPick; window.eeImgChosen=eeImgChosen; window.eeImgRemove=eeImgRemove;
-window.eeEcgSetCount=eeEcgSetCount; window.eeEcgAdd=eeEcgAdd; window.eeEcgPick=eeEcgPick; window.eeEcgChosen=eeEcgChosen; window.eeEcgRemove=eeEcgRemove;
-window.generarInformeEcoEstres=generarInformeEcoEstres;
-window.eeBullDataURL=eeBullDataURL; window.eeHasData=eeHasData;
-window.eeGetStudyImgs=function(){ return eeImg.filter(Boolean); };
-window.eeGetEcgImgs=function(){ return eeEcg.filter(Boolean); };
-
-setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); eeEcgRender(); },120);
-})();
-</script>
-
-<!-- ═══════════════════════ TAB: CALCULADORAS ═══════════════════════ -->
-
-<!-- ═══════════════════════ TAB: CONGENITAS ESTRUCTURALES ═══════════════════════
-     Segunda pestaña (2026-09-15). La division es CLINICA: de un lado lo que se sigue en el
-     adulto por su valvula, su aorta o su miocardio; del otro las cardiopatias con shunt y las
-     paliadas, que se siguen por su fisiologia.
-     NINGUNA seccion cambio de id, de funcion ni de contenido. secToggle, secAutoOpen, los
-     *Sync de RECALC_MODULOS y _CC_SEC_POR_K buscan por id en TODO el documento, asi que no
-     les importa en que pestaña esta cada una. Lo verifica TC-112.
-     COMO SE HIZO, porque importa: cada seccion se reemplazo EN SU POSICION por un marcador y
-     despues se reagruparon. Los dos intentos anteriores RECONSTRUYERON la pestaña desde las
-     secciones extraidas y se comieron DOS bloques de codigo embebido que vivian ENTRE ellas.
-     Lo delato el conteo de esos bloques, no los tests: los 126 casos pasaban igual.
-     Nunca reconstruir una pestaña desde sus partes: mover lo que se muda y dejar el resto
-     quieto. (La marca de apertura no se escribe literal en este comentario: la contarian el
-     chequeo de conteo y el extractor de sintaxis como si fuera un bloque de verdad.) -->
-<div id="tab-congenitas2" class="tab-section">
-  <!-- ══ LAS DOS PESTANAS DE CONGENITAS (B-E6, 2026-10-21) ════════════════════════════════
-       La barra va en las DOS pestanas y no una sola vez, porque son dos `.tab-section` distintas
-       y la que no esta activa no se dibuja. El estado activo se deriva de cual esta activa, asi
-       que las dos copias no pueden divergir: lo pone `ccSubSync`.
-       ⚠️ LA CLASE ES `cc-on` Y NO `active`: `showTab` barre `.active` de TODO `.tab-btn` del
-          documento, y es justamente lo que se llama al cambiar de pestana. Es el defecto que las
-          sub-pestanas de Otros ya pagaron. -->
-  <div class="subtabs-wrap cc-subbar" role="tablist" aria-label="Cardiopatias congenitas"
-       style="justify-content:flex-start;margin-bottom:12px;">
-    <div class="tabs-row">
-      <!-- ⚠️ LLEVAN `tab-special`, LA CLASE DE LOS BOTONES DE LA FILA DE ARRIBA (B2-E4,
-           2026-10-22). MEDIDO ANTES DE TOCAR NADA: los dos ya se veian IGUAL que los de arriba
-           en las siete propiedades —fondo, color, borde, ancho de borde, cuerpo, relleno y
-           radio— en reposo y en activo, en los dos temas y en los dos motores. La razon es que
-           los botones de arriba tambien viven dentro de un `.subtabs-wrap`, y
-           `.subtabs-wrap .tab-btn` (0,2,1) le gana a `.tab-special` (0,1,0): las cinco
-           declaraciones de esa clase no se aplican a ninguno de los dos.
-           La clase se agrega igual, y es ESTRUCTURAL y no cosmetica: ata los dos grupos, asi
-           que el dia que alguien toque `.tab-special` o la especificidad los de CC se mueven
-           con los de arriba en vez de quedarse atras en silencio. Medido: CERO cambio de pixel.
-           ⚠️ EL ESTADO ACTIVO SIGUE EN `cc-on` Y NO EN `.active`, que es obligatorio: `showTab`
-           barre `.active` de TODO `.tab-btn` del documento. Sus colores son los de
-           `.subtabs-wrap .tab-btn.active`, sin declarar uno nuevo. -->
-      <button type="button" class="tab-btn tab-special" id="cc-subtab-frec2" role="tab"
-              aria-selected="false" tabindex="-1"
-              onclick="ccSubTab('congenitas')">&#129516; CC frecuentes</button>
-      <button type="button" class="tab-btn tab-special cc-on" id="cc-subtab-compl2" role="tab"
-              aria-selected="true" tabindex="0"
-              onclick="ccSubTab('congenitas2')">&#129516; CC complejas</button>
     </div>
   </div>
 <div class="card sacc" id="sacc-cc-shunt">
@@ -46852,6 +46878,25 @@ const VINFO = Object.freeze({
          impreso «4062») y hoja 67, folio 4063. Regla de folio: folio = hoja + 3996, comprobada
          en las hojas 10, 66, 67 y 100.
      Las frases que contaban la historia de una edicion de una guia NO pasaron al ⓘ: salieron. */
+  /* ── EL MODULO DE ARRITMIA VENTRICULAR (PANT-3, commit 9) ─────────────────────────────── */
+  'tv-sec': {
+    ancho: 420,
+    tit: 'El bloque compartido de arritmia ventricular',
+    lee: 'Se carga UNA SOLA VEZ y lo usan tres secciones, cada una con su propia regla. La '
+       + 'morfología y el eje sólo los necesita la miocardiopatía arritmogénica: si no evaluás '
+       + 'esa entidad, alcanza con el hecho y el tipo.\n'
+       + 'EL RECUENTO DE EXTRASÍSTOLES NO DEPENDE DE LA TAQUICARDIA: la extrasistolia frecuente '
+       + 'aislada es la presentación común, así que el campo queda editable aunque contestes que '
+       + 'no hubo taquicardia ventricular.',
+    ojo: 'QUÉ HACE Y QUÉ NO HACE «PARADA CARDÍACA RECUPERADA». En la miocardiopatía hipertrófica '
+       + 'cuenta como prevención secundaria, igual que la taquicardia sostenida: las dos excluyen '
+       + 'el modelo de riesgo, que no está validado en ese escenario.\n'
+       + 'En la miocardiopatía arritmogénica NO aporta ningún criterio: la tabla cuenta la '
+       + 'taquicardia ventricular con su morfología y su eje, y una parada recuperada no es eso. '
+       + 'Se muestra y no se cuenta.\n'
+       + 'En la tetralogía de Fallot reparada se describe, que es lo que esa sección hace con '
+       + 'este dato.'
+  },
   /* ── ESTENOSIS SUPRAVALVULAR AORTICA (PANT-3, commit 8b) ───────────────────────────────
      ⚠️ LA ESC 2020 NO PUBLICA UN RECUADRO DE RECOMENDACIONES PROPIO PARA LA ESTENOSIS
      SUPRAVALVULAR AORTICA, censado sobre las 84 hojas del documento con control positivo -el de
@@ -66256,11 +66301,16 @@ function limpiarCampos(silencioso) {
      dice «esta dosis la escribio una persona» y `data-pop-auto` «este valor lo escribio la app»:
      las dos viven en el nodo, asi que sin esta linea sobrevivirian a «Nuevo estudio» y la dosis
      del paciente A dejaria sin calcular la del paciente B, o al reves. */
-  document.querySelectorAll('[data-derivado-de],[data-sugerido],[data-espejo-de],[data-espejo-vivo],[data-espejo-inferido],[data-params-disc],[data-grado-volum],[data-fuera-banda],[data-espejo="1"],[data-pop-mano],[data-pop-auto]').forEach(el => {
+  /* ⚠️ Y LA MARCA DEL MODULO DE ARRITMIA VENTRICULAR (PANT-3, commit 9) ENTRA ACA, en el
+     SELECTOR y en el CUERPO, que son dos listas. `data-tvderiv` dice «este Si lo escribio el
+     modulo y no el medico»: vive en el nodo, asi que sin esta linea sobreviviria a «Nuevo
+     estudio» y el campo del paciente siguiente arrancaria bloqueado en «Si». */
+  document.querySelectorAll('[data-derivado-de],[data-sugerido],[data-espejo-de],[data-espejo-vivo],[data-espejo-inferido],[data-params-disc],[data-grado-volum],[data-fuera-banda],[data-espejo="1"],[data-pop-mano],[data-pop-auto],[data-tvderiv],[data-tvprev]').forEach(el => {
     delete el.dataset.derivadoDe; delete el.dataset.sugerido; delete el.dataset.espejoDe;
     delete el.dataset.espejoVivo; delete el.dataset.espejoInferido;
     delete el.dataset.paramsDisc; delete el.dataset.gradoVolum;
     delete el.dataset.popMano; delete el.dataset.popAuto;
+    delete el.dataset.tvderiv; delete el.dataset.tvprev;
     /* ⚠️ SOLO LA MARCA DE RUNTIME, Y ESTO LO ENCONTRÓ TC-514 EN ROJO (D-11). `data-espejo` se usa
        para DOS cosas en este archivo: la marca que el reflejo de amiloidosis pone en vivo —valor
        `'1'`— y una DECLARACIÓN estática en el marcado, sin valor, que dice «este campo es un
@@ -81321,6 +81371,17 @@ function tvEstado(src){
   const evFuera = (ev != null && (ev < 0 || ev > 150000));
   const evOk    = (ev != null && !evFuera);
   const hay    = doc === 'si';
+  /* PANT-3, commit 9. «Parada cardiaca recuperada» es un VALOR nuevo de `tv_tipo`, no un campo
+     nuevo ni una columna nueva. Lo que hace y lo que NO hace:
+       · MCH: cuenta como prevencion secundaria, igual que la TV sostenida -los dos EXCLUYEN el
+         HCM Risk-SCD, que no esta validado ahi-, y es lo que enciende `mch_ex_parada`.
+       · MCA: NO suma ningun criterio. La Tabla 1 del Task Force cuenta «TV sostenida o no
+         sostenida» con una morfologia y un eje; una parada recuperada no es una TV con
+         morfologia, asi que contarla seria inventar un criterio. Es lo que la orden pide:
+         se MUESTRA y NO se cuenta hasta que se lea la guia.
+       · Fallot: su conclusion solo DESCRIBE lo que el modulo dice -no vota ningun criterio con
+         este dato-, asi que no hubo nada que frenar ahi. */
+  const paradaRec = hay && tipo === 'parada_rec';
   const sost   = hay && (tipo === 'sostenida'    || tipo === 'ambas');
   const nsost  = hay && (tipo === 'no_sostenida' || tipo === 'ambas');
   const faltaTipo = hay && !tipo;
@@ -81341,19 +81402,27 @@ function tvEstado(src){
   /* El tipo NO entra: el Task Force cuenta la sostenida y la no sostenida por igual. Tampoco
      bloquea `faltaTipo` — sin el tipo el criterio de arritmias igual se resuelve, porque lo que
      lo define es la morfología y el eje. */
-  const mayor = !!(hay && morf === 'bcri_sup');
-  const menorTSVD   = !!(hay && (morf === 'bcri_inf' || morf === 'bcri_desc'));
+  const mayor = !!(hay && !paradaRec && morf === 'bcri_sup');
+  const menorTSVD   = !!(hay && !paradaRec && (morf === 'bcri_inf' || morf === 'bcri_desc'));
   const menorEV     = !!(evOk && ev > 500);
 
   const notas = [];
-  if (hay && morf === 'bcri_inf') notas.push('Morfología compatible con origen en el tracto de salida del ventrículo derecho (bloqueo de rama izquierda con eje inferior); los criterios Task Force la puntúan como criterio menor');
-  if (hay && morf === 'bcri_desc') notas.push('Morfología de bloqueo de rama izquierda con eje no determinado; los criterios Task Force la puntúan como criterio menor');
-  if (hay && morf === 'bcrd') notas.push('Morfología de bloqueo de rama derecha, sugestiva de origen en el ventrículo izquierdo: los criterios Task Force 2010 no la contemplan y no aporta puntos. Es un hallazgo del fenotipo con compromiso izquierdo, que puntúan los criterios de Padua 2020');
-  if (hay && (!morf || morf === 'no_esp')) notas.push('No consta la morfología de la taquicardia ventricular: sin ella no puede aplicarse el criterio de arritmias del Task Force, que distingue el eje superior del inferior');
+  if (hay && !paradaRec && morf === 'bcri_inf') notas.push('Morfología compatible con origen en el tracto de salida del ventrículo derecho (bloqueo de rama izquierda con eje inferior); los criterios Task Force la puntúan como criterio menor');
+  if (hay && !paradaRec && morf === 'bcri_desc') notas.push('Morfología de bloqueo de rama izquierda con eje no determinado; los criterios Task Force la puntúan como criterio menor');
+  if (hay && !paradaRec && morf === 'bcrd') notas.push('Morfología de bloqueo de rama derecha, sugestiva de origen en el ventrículo izquierdo: los criterios Task Force 2010 no la contemplan y no aporta puntos. Es un hallazgo del fenotipo con compromiso izquierdo, que puntúan los criterios de Padua 2020');
+  if (hay && !paradaRec && (!morf || morf === 'no_esp')) notas.push('No consta la morfología de la taquicardia ventricular: sin ella no puede aplicarse el criterio de arritmias del Task Force, que distingue el eje superior del inferior');
   /* La falta del tipo NO afecta a MCA —el Task Force no lo mira— pero sí a las otras dos: el
      score de la ESC necesita saber si fue no sostenida, y el criterio de reintervención de la
      ESC 2020 en Fallot pide la sostenida. La nota lo dice sin mencionar el puntaje de MCA, que
      era lo que decía antes y ahora sería falso. */
+  /* ⚠️ LA PARADA RECUPERADA NO AGREGA NINGUNA NOTA AL PAPEL, y es una correccion que pidio una
+     medicion. La primera version empujaba una nota que explicaba por que no aporta criterio, y
+     esa nota NOMBRABA LA GUIA en el informe firmado: la orden del commit 9 dice que el valor
+     nuevo se describe «con las palabras de la app y SIN guia ni conducta». La explicacion vive
+     en el globo `tv-sec` y en la tarjeta de la pantalla, que es donde corresponde.
+     ⚠️ Y LAS OTRAS NOTAS DE ESTE BLOQUE SI NOMBRAN «Task Force 2010» EN EL PAPEL. Es
+     PREEXISTENTE y queda declarado en docs/PENDIENTES.md: tocarlo es cambiar el papel firmado
+     mas alla de lo que esta orden lista. */
   if (faltaTipo) notas.push('No consta si la taquicardia ventricular fue sostenida o no sostenida. Los criterios Task Force 2010 no lo requieren —cuentan las dos por igual— pero sin ese dato no puede completarse el score de la ESC en miocardiopatía hipertrófica ni aplicarse el criterio de reintervención de la ESC 2020 en tetralogía de Fallot');
   if (evFuera) notas.push('El recuento de extrasístoles ventriculares en 24 h está fuera de rango — revisar antes de aplicar el criterio de >500');
   if (evDecimal) notas.push('El recuento de extrasístoles ventriculares se cargó con decimales (' + evCrudo + ') y se truncó a ' + ev + ' para aplicar el criterio — verificar el número');
@@ -81362,14 +81431,15 @@ function tvEstado(src){
   if (_tvSv('tv_legacy_ev') === '1' && ev == null) notas.push('Este estudio se cargó antes de que existiera el recuento de extrasístoles y traía marcado el criterio de más de 500 en 24 h; el número no quedó registrado, de modo que el criterio no puede aplicarse: completar el recuento del Holter');
 
   return { doc:doc, tipo:tipo, morf:morf, ev:ev, evFuera:evFuera,
-           hay:hay, sostenida:sost, noSostenida:nsost, faltaTipo:faltaTipo, faltaMorf:faltaMorf,
+           hay:hay, sostenida:sost, noSostenida:nsost, paradaRec:paradaRec,
+           secundaria:(sost || paradaRec), faltaTipo:faltaTipo, faltaMorf:faltaMorf,
            mchTvns:mchTvns, tdfTv: (doc || ''),
            mayor:mayor, menorTSVD:menorTSVD, menorEV:menorEV,
            notas:notas };
 }
 const TV_MORF_TXT = { bcri_sup:'bloqueo de rama izquierda con eje superior', bcri_inf:'bloqueo de rama izquierda con eje inferior',
                       bcri_desc:'bloqueo de rama izquierda con eje no determinado', bcrd:'bloqueo de rama derecha', no_esp:'morfología no especificada' };
-const TV_TIPO_TXT = { sostenida:'sostenida', no_sostenida:'no sostenida', ambas:'sostenida y no sostenida' };
+const TV_TIPO_TXT = { sostenida:'sostenida', no_sostenida:'no sostenida', ambas:'sostenida y no sostenida', parada_rec:'parada cardíaca recuperada' };
 /* Frase para el informe. Se emite desde la sección que corresponda, no por su cuenta: el bloque
    compartido no es una sección del informe. */
 function tvFrase(src){
@@ -81379,8 +81449,12 @@ function tvFrase(src){
   if (!t.hay) return t.menorEV
     ? (t.ev + ' extrasístoles ventriculares en 24 h' + (t.doc === 'no' ? ', sin taquicardia ventricular documentada' : ''))
     : null;
-  const bits = ['Taquicardia ventricular documentada'];
-  if (t.tipo) bits.push(TV_TIPO_TXT[t.tipo] || t.tipo);
+  /* ⚠️ LA PARADA ENCABEZA SU PROPIA FRASE Y NO SE CUELGA DE LA DE LA TV. Pegandola como tipo,
+     el papel decia «Taquicardia ventricular documentada, parada cardiaca recuperada», que
+     describe dos cosas distintas como si fueran una. Es la UNICA diferencia de papel del
+     commit 9, y se describe con las palabras de la app, sin guia y sin conducta. */
+  const bits = [t.paradaRec ? 'Parada cardíaca recuperada' : 'Taquicardia ventricular documentada'];
+  if (t.tipo && !t.paradaRec) bits.push(TV_TIPO_TXT[t.tipo] || t.tipo);
   if (t.morf && t.morf !== 'no_esp') bits.push('morfología de ' + (TV_MORF_TXT[t.morf] || t.morf));
   let f = bits.join(', ');
   if (!t.evFuera && t.ev != null) f += '; ' + t.ev + ' extrasístoles ventriculares en 24 h';
@@ -81425,11 +81499,80 @@ function tvSync(){
       ap.textContent = a.join(' · ');
     }
   }
+  /* ⚠️ EL ESPEJO DE MCH ES CONDICIONAL, Y ES EL CASO DE TIPO 4 DE LA AUDITORIA. La seccion
+     RESPONDE ella misma «Parada cardiaca o TV sostenida previa» y el modulo solo AVISA: cuando
+     el modulo dice sostenida o parada recuperada, el campo se muestra «Si» y se bloquea, porque
+     ese hecho ya esta contestado aguas arriba; cuando no lo dice, el campo vuelve a ser del
+     medico, que es el unico que puede contestar «No».
+     ⚠️ LA MARCA `data-tvderiv` ES LO QUE HACE QUE ESTO NO PISE AL MEDICO, y es la leccion del
+     D-9, el D-10 y el D-11: sin ella, al apagar la condicion el campo se quedaria con un «Si»
+     que el medico nunca escribio. Solo se limpia lo que esta marca dice que escribio la app.
+     Vive en el nodo, asi que entra en las DOS listas de «Nuevo estudio» -el selector y el
+     cuerpo-, que es la leccion que TC-514 cobro en rojo. */
+  { const e = document.getElementById('mch_ex_parada');
+    if (e) {
+      if (t.secundaria) {
+        /* ⚠️ SOLO SE RECLAMA LA AUTORIA DE LO QUE DE VERDAD SE ESCRIBIO, y esto lo encontro una
+           medicion sobre este mismo commit: con la marca puesta siempre, un «Si» que el medico
+           habia contestado EL quedaba marcado como escrito por la app y se borraba al apagar la
+           condicion. Y lo que el medico tuviera contestado se guarda en `data-tvprev` para
+           devolverselo: sin eso, un «No» suyo se perdia sin aviso. Es el D-9 por una puerta
+           nueva. */
+        if (e.value !== 'si') {
+          if (!e.dataset.tvderiv) e.dataset.tvprev = e.value || '';
+          e.value = 'si'; e.dataset.tvderiv = '1';
+        }
+        e.disabled = true;
+        e.title = 'Derivado del bloque «⚡ Arritmia ventricular»: el módulo dice '
+                + (t.paradaRec ? 'parada cardíaca recuperada' : 'taquicardia ventricular sostenida') + '.';
+      } else {
+        if (e.dataset.tvderiv === '1' && e.value === 'si') e.value = e.dataset.tvprev || '';
+        delete e.dataset.tvderiv; delete e.dataset.tvprev;
+        e.disabled = false; e.title = '';
+      }
+    } }
+  /* La tarjeta y las tres lineas de resumen salen del MISMO estado que la linea de arriba. */
+  { const ap = {
+      mch: !t.hay && t.ev == null ? '—'
+         : t.secundaria ? (t.paradaRec ? 'Parada cardíaca recuperada — prevención secundaria' : 'TV sostenida — prevención secundaria')
+         : t.mchTvns === 'si' ? 'TVNS presente'
+         : t.mchTvns === 'no' ? 'Sin TVNS'
+         : t.mchTvns === 'no_eval' ? 'No consta' : 'Falta el tipo',
+      mca: !t.hay && !t.menorEV ? '—'
+         : t.mayor ? 'Criterio mayor'
+         : (t.menorTSVD || t.menorEV) ? 'Criterio menor'
+         : t.paradaRec ? 'La parada no aporta criterio' : 'Sin criterio',
+      tdf: !t.hay ? (t.doc === 'no' ? 'Sin arritmia ventricular' : '—')
+         : t.paradaRec ? 'Parada cardíaca recuperada' : 'TV presente' };
+    ['mch','mca','tdf'].forEach(function (k) {
+      const n = document.getElementById('tv-ap-' + k); if (n) n.textContent = ap[k];
+      const r = document.getElementById(k + '-tv-res'); if (r) r.textContent = ap[k];
+    }); }
   ['mchSync','tdfSync','mcaSync'].forEach(function(fn){
     if (typeof window[fn] === 'function') { try { window[fn](); } catch(e){} }
   });
 }
+/* El boton «Limpiar» del modulo: vacia SUS CUATRO campos y nada mas, y despues repinta por el
+   mismo camino de siempre. No toca ningun campo de MCH, MCA ni Fallot: los espejos se recalculan
+   solos cuando `tvSync` corre con el modulo vacio. */
+function tvLimpiar(){
+  ['tv_documentada','tv_tipo','tv_morfologia','tv_ev24h'].forEach(function (id) {
+    const e = document.getElementById(id); if (e) e.value = '';
+  });
+  tvSync();
+}
+/* El enlace «Editar» de las tres secciones: abre el acordeon del modulo y lo trae a la vista. */
+function tvIrAlModulo(){
+  try { if (typeof showTab === 'function') showTab('congenitas'); } catch (e) {}
+  try { if (typeof ccSubTab === 'function') ccSubTab('congenitas'); } catch (e) {}
+  const sec = document.getElementById('sacc-cc-tv');
+  if (sec && !sec.classList.contains('open')) {
+    const h = sec.querySelector('.sacc-hdr'); if (h) h.click();
+  }
+  if (sec && sec.scrollIntoView) sec.scrollIntoView({ block:'start' });
+}
 window.tvEstado = tvEstado; window.tvSync = tvSync; window.tvFrase = tvFrase;
+window.tvLimpiar = tvLimpiar; window.tvIrAlModulo = tvIrAlModulo;
 
 function _mcaSv(id){ return (document.getElementById(id)?.value || '').trim(); }
 function _mcaNv(id){ const n = (typeof v==='function') ? v(id) : null; return (n!=null && isFinite(n)) ? n : null; }
@@ -112653,7 +112796,7 @@ const _IG_SECTIONS = [
   ]},
   { titulo:'⚡ Arritmia ventricular (compartido)', fields:[
     {id:'tv_documentada',lbl:'TV documentada',map:_IG_SN},
-    {id:'tv_tipo',lbl:'Tipo',map:{sostenida:'Sostenida',no_sostenida:'No sostenida',ambas:'Ambas'}},
+    {id:'tv_tipo',lbl:'Tipo',map:{sostenida:'Sostenida',no_sostenida:'No sostenida',ambas:'Ambas',parada_rec:'Parada cardíaca recuperada'}},
     {id:'tv_morfologia',lbl:'Morfología y eje',map:{bcri_sup:'BRI eje superior',bcri_inf:'BRI eje inferior',bcri_desc:'BRI eje no determinado',bcrd:'BRD (origen VI)',no_esp:'No especificada'}},
     {id:'tv_ev24h',lbl:'EV en 24 h'}
   ]},
@@ -133468,7 +133611,7 @@ function _labExcelRow(inf) {
     'Edad familiar muerte súbita (años)': rnd(num('fam_ms_edad'),0),
     'MCH síncope inexplicado': _cc3e(c.mch_sincope),
     'TV documentada': _cc3e(c.tv_documentada),
-    'TV tipo': _ccLbl({sostenida:'Sostenida',no_sostenida:'No sostenida',ambas:'Ambas'}, c.tv_tipo),
+    'TV tipo': _ccLbl({sostenida:'Sostenida',no_sostenida:'No sostenida',ambas:'Ambas',parada_rec:'Parada cardíaca recuperada'}, c.tv_tipo),
     'TV morfología y eje': _ccLbl({bcri_sup:'BRI eje superior',bcri_inf:'BRI eje inferior',bcri_desc:'BRI eje no determinado',bcrd:'BRD (origen VI)',no_esp:'No especificada'}, c.tv_morfologia),
     'TV extrasístoles 24h': c.tv_ev24h || '',
     'MCH TVNS en Holter': _cc3e(c.mch_tvns),
@@ -135822,7 +135965,13 @@ LAB_XLS_VOCAB.tv_documentada = Object.assign({}, LAB_XLS_VOCAB_3E);
 LAB_XLS_VOCAB.tv_tipo = { sostenida:'sostenida', 'tv sostenida':'sostenida', 'tvs':'sostenida',
   no_sostenida:'no_sostenida', 'no sostenida':'no_sostenida', 'tv no sostenida':'no_sostenida',
   tvns:'no_sostenida', 'no-sostenida':'no_sostenida',
-  ambas:'ambas', 'sostenida y no sostenida':'ambas', 'las dos':'ambas' };
+  ambas:'ambas', 'sostenida y no sostenida':'ambas', 'las dos':'ambas',
+  /* PANT-3, commit 9: el VALOR nuevo. Sin esta entrada, reimportar un Excel exportado por
+     esta misma app con una parada recuperada devolvia null y el guardian de la columna
+     descartaba la FILA ENTERA del paciente, que es lo que la tanda VAL-PPT ya pago. */
+  parada_rec:'parada_rec', 'parada cardiaca recuperada':'parada_rec',
+  'parada card\u00edaca recuperada':'parada_rec', 'parada recuperada':'parada_rec',
+  'paro cardiaco recuperado':'parada_rec', 'muerte subita recuperada':'parada_rec' };
 LAB_XLS_VOCAB.tv_morfologia = {
   bcri_sup:'bcri_sup', 'bri eje superior':'bcri_sup', 'bcri eje superior':'bcri_sup',
   'eje superior':'bcri_sup', 'bri superior':'bcri_sup', 'pared libre vd':'bcri_sup',
@@ -136024,7 +136173,7 @@ const LAB_XLS_OPCIONES = {
   mch_fam_ms:'Sí · No · No consta',
   mch_sincope:'Sí · No · No consta',
   tv_documentada:'Sí · No · No consta',
-  tv_tipo:'Sostenida · No sostenida · Ambas',
+  tv_tipo:'Sostenida · No sostenida · Ambas · Parada cardíaca recuperada',
   tv_morfologia:'BRI eje superior · BRI eje inferior · BRI eje no determinado · BRD (origen VI) · No especificada',
   mch_tvns:'Sí · No · No consta',
   mch_aneurisma_apical:'Sí · No · No evaluado',
