@@ -109707,6 +109707,496 @@ caso('TC-627', 'Tanda PANT-3: la pantalla de MCH conserva sus treinta campos, pa
   })();
 `);
 
+/* ══ TANDA PANT-4 ═══════════════════════════════════════════════════════════════════════════
+   Los casos de los seis commits. Cada uno declara su DENOMINADOR -que la zona que mide exista y
+   tenga contenido- y lleva su CONTROL NEGATIVO, que es lo que distingue «el cambio funciona» de
+   «la sonda no mira nada».
+   ⚠️ EL SUITE CORRE CHROME SIN --window-size, o sea a unos 756 px, por DEBAJO del corte de 900
+   de la maqueta: lo que depende del ancho se mide por la REGLA de la hoja de estilos y por la
+   ESTRUCTURA, no por geometria. La geometria la miden las sondas en los cuatro anchos. */
+caso('TC-633', 'Tanda PANT-4: los campos de las dos estenosis aorticas comparten ancho y linea de base, con la ayuda ocupando su propia banda', `
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]), String(t[2])]) };
+  /* (A) DENOMINADOR: las cuatro grillas existen y tienen sus tres campos. */
+  const grs = Array.prototype.slice.call(document.querySelectorAll('#esub-campos .esa-grid, #easv-campos .esa-grid'));
+  ex.push(['(A0) DENOM: hay CUATRO grillas con la clase nueva', grs.length, 4]);
+  ex.push(['(A1) DENOM: cada una tiene tres campos',
+    grs.every(function (g) { return g.querySelectorAll('.fg').length === 3 }), true]);
+  /* (A2) y las cuatro conservan tambien la clase de siempre, que es la que las colapsa a UNA
+     columna por debajo de 768 px. Sin ella el colapso se pierde y nadie lo ve en escritorio. */
+  ex.push(['(A2) y las cuatro siguen llevando la clase que las colapsa en el telefono',
+    grs.every(function (g) { return g.classList.contains('grid-3') }), true]);
+  /* (B) LA REGLA: columnas de IGUAL ancho con minmax(0,1fr) y las tres bandas cedidas a la
+     grilla de afuera con subgrid. Se lee de la hoja de estilos, que es observable a cualquier
+     ancho, y ademas se comprueba el valor COMPUTADO, que es lo que el navegador aplica. */
+  let regCols = '', regSub = '', regGap = '';
+  for (const hoja of Array.prototype.slice.call(document.styleSheets)) {
+    let rs = null; try { rs = hoja.cssRules } catch (e) { rs = null }
+    if (!rs) continue;
+    for (const r of Array.prototype.slice.call(rs)) {
+      if (!r.selectorText) continue;
+      if (r.selectorText === '.esa-grid') { regCols = r.style.gridTemplateColumns || ''; regGap = r.style.rowGap || '' }
+      if (r.selectorText === '.esa-grid > .fg') { regSub = r.style.gridTemplateRows || '' }
+    }
+  }
+  ex.push(['(B0) DENOM: la regla de la grilla existe', regCols.length > 0, true]);
+  ex.push(['(B1) las columnas son de igual ancho y no las estira el selector mas largo',
+    regCols.indexOf('minmax(0') >= 0, true]);
+  ex.push(['(B2) los campos ceden sus tres bandas a las filas de la grilla de afuera',
+    regSub.indexOf('subgrid') >= 0, true]);
+  ex.push(['(B3) y el hueco entre bandas lo pone la grilla de afuera, que es de quien el subgrid lo toma',
+    regGap, '3px']);
+  /* (C) LO COMPUTADO: los tres campos de una fila declaran el mismo ancho de pista. */
+  const g0 = grs[0];
+  const cs = g0 ? getComputedStyle(g0) : null;
+  const pistas = cs ? String(cs.gridTemplateColumns).split(' ').filter(function (x) { return x }) : [];
+  ex.push(['(C0) DENOM: la grilla computa tres pistas', pistas.length, 3]);
+  ex.push(['(C1) y las tres miden lo mismo',
+    pistas.length === 3 && pistas[0] === pistas[1] && pistas[1] === pistas[2], true]);
+  const fg0 = g0 ? g0.querySelector('.fg') : null;
+  ex.push(['(C2) cada campo ocupa las TRES bandas, que es lo que alinea rotulo, control y ayuda',
+    fg0 ? String(getComputedStyle(fg0).gridRowEnd).indexOf('span 3') >= 0 : 'NO HAY', true]);
+  /* (D) CONTROL NEGATIVO: una grilla de otra seccion NO se movio. La de la coartacion usa la
+     misma clase de siempre y tiene que seguir sin la nueva: si el cambio se escapara a todas
+     las grillas de la aplicacion, esta condicion lo caza. */
+  const ajena = document.querySelector('#sacc-cc-coa .grid-3') || document.querySelector('#sacc-cc-mch .grid-3');
+  ex.push(['(D0) DENOM: hay una grilla de otra seccion para controlar', !!ajena, true]);
+  ex.push(['(D1) CONTROL NEGATIVO: esa grilla ajena no lleva la clase nueva',
+    ajena ? ajena.classList.contains('esa-grid') : 'NO HAY', false]);
+  /* (E) Y NINGUN CAMPO CAMBIO DE ID NI DE GRUPO. */
+  const ids = Array.prototype.slice.call(document.querySelectorAll('#esub-campos [id], #easv-campos [id]'))
+    .map(function (e) { return e.id }).filter(function (x) { return x }).sort().join(',');
+  ex.push(['(E1) los seis campos de la subaortica siguen con su id',
+    ['esub_tipo','esub_gradiente_medio','esub_gradiente_mmhg','esub_ia_asociada','esub_longitud_mm','esub_valsalva']
+      .every(function (k) { return ids.indexOf(k) >= 0 }), true]);
+  ex.push(['(E2) y los seis de la supravalvular tambien',
+    ['easv_tipo','easv_gradiente_medio','easv_gradiente_mmhg','easv_williams','easv_coronarias','easv_estenosis_pulmonar']
+      .every(function (k) { return ids.indexOf(k) >= 0 }), true]);
+  return { extra: EXP };
+`);
+
+caso('TC-634', 'Tanda PANT-4: el papel de las dos estenosis aorticas describe, dice cada hallazgo UNA vez y no nombra la guia ni la conducta', `
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]), String(t[2])]) };
+  function esc(o) { __t.limpiar();
+    Object.keys(o).forEach(function (k) { __t.set(k, o[k]) });
+    __t.chk('esub_incluir_chk', true);
+    try { esubSync() } catch (e) {}
+    return __t.informe();
+  }
+  function esv(o) { __t.limpiar();
+    Object.keys(o).forEach(function (k) { __t.set(k, o[k]) });
+    __t.chk('easv_incluir_chk', true);
+    try { easvSync() } catch (e) {}
+    return __t.informe();
+  }
+  /* LA PALABRA QUE NO PUEDE ESTAR, una por una. «ESC» cubre el nombre de la guia; las otras
+     cinco son la conducta y la interpretacion que salieron. */
+  const FUERA = ['ESC 2020', 'Seguimiento ecocardiográfico', 'Derivación a cirugía',
+                 'indicación quirúrgica', 'decisión quirúrgica', 'No se gradúa la severidad'];
+  /* (A) EL CASO DEL MEDICO: membrana con insuficiencia moderada y SIN gradientes. */
+  const s1 = esc({ esub_tipo:'membrana', esub_ia_asociada:'moderada' });
+  ex.push(['(A0) DENOM: la seccion emite al informe', s1.inf.indexOf('Estenosis subaórtica') >= 0, true]);
+  FUERA.forEach(function (p, i) {
+    ex.push(['(A' + (i + 1) + ') el informe no dice ' + p, s1.inf.indexOf(p) >= 0, false]);
+  });
+  ex.push(['(A7) y el dato cargado se publica igual', s1.inf.indexOf('Insuficiencia aórtica asociada moderada') >= 0, true]);
+  /* ORACIONES SEPARADAS: el parrafo tiene al menos dos puntos y ninguna oracion larguisima. */
+  const par = (s1.inf.split(String.fromCharCode(10)).filter(function (l) { return l.indexOf('Estenosis subaórtica') >= 0 })[0] || '');
+  ex.push(['(A8) el parrafo va en oraciones separadas', par.split('. ').length >= 2, true]);
+  /* CADA HALLAZGO UNA VEZ: la insuficiencia aortica se nombra UNA sola vez en el parrafo. */
+  ex.push(['(A9) la insuficiencia aortica se nombra una sola vez en el parrafo',
+    par.split('nsuficiencia aórtica').length - 1, 1]);
+  /* EN SUMA: UNA linea con la lesion y su asociacion principal. */
+  const lin = s1.suma.split(String.fromCharCode(10)).filter(function (l) { return l.indexOf('Estenosis subaórtica') >= 0 });
+  ex.push(['(A10) el EN SUMA la nombra en UNA sola linea', lin.length, 1]);
+  ex.push(['(A11) y esa linea trae la asociacion principal',
+    (lin[0] || '').indexOf('insuficiencia aórtica moderada asociada') >= 0, true]);
+  /* (B) SEVERA con los dos gradientes: el numero y la severidad se publican. */
+  const s2 = esc({ esub_tipo:'membrana', esub_gradiente_medio:'45', esub_gradiente_mmhg:'80', esub_valsalva:'sin_cambios' });
+  ex.push(['(B1) el gradiente medio se publica', s2.inf.indexOf('Gradiente medio 45 mmHg') >= 0, true]);
+  ex.push(['(B2) el gradiente pico tambien', s2.inf.indexOf('Gradiente pico 80 mmHg') >= 0, true]);
+  ex.push(['(B3) y la severidad se dice sin nombrar la guia',
+    s2.inf.indexOf('Obstrucción severa del tracto de salida izquierdo') >= 0, true]);
+  ex.push(['(B4) el verbo de Valsalva concuerda', s2.inf.indexOf('el gradiente no se modifica') >= 0, true]);
+  ex.push(['(B5) el EN SUMA la gradua', s2.suma.indexOf('gradiente medio 45 mmHg — severa') >= 0, true]);
+  /* (C) TUNEL: la longitud se publica y NO repite el tipo. */
+  const s3 = esc({ esub_tipo:'tunel', esub_longitud_mm:'16', esub_gradiente_medio:'20' });
+  ex.push(['(C1) la longitud del tunel se publica', s3.inf.indexOf('Longitud del túnel 16 mm') >= 0, true]);
+  ex.push(['(C2) y el tipo se nombra UNA sola vez', s3.inf.split('únel subaórtico').length - 1, 1]);
+  /* CONTROL: con MEMBRANA la longitud NO se publica, que es la regla de siempre. */
+  const s4 = esc({ esub_tipo:'membrana', esub_longitud_mm:'16', esub_gradiente_medio:'20' });
+  ex.push(['(C3) CONTROL: con membrana la longitud no se publica', s4.inf.indexOf('16 mm') >= 0, false]);
+  /* (D) EL NEGATIVO EXPLICITO se dice bien. */
+  const s5 = esc({ esub_tipo:'membrana', esub_ia_asociada:'no', esub_gradiente_medio:'20' });
+  ex.push(['(D1) el negativo explicito se redacta como negativo',
+    s5.inf.indexOf('Sin insuficiencia aórtica asociada') >= 0, true]);
+  ex.push(['(D2) y no como la frase que no concordaba',
+    s5.inf.indexOf('asociada sin insuficiencia aórtica') >= 0, false]);
+  /* (E) SUPRAVALVULAR: el caso del medico. */
+  const v1 = esv({ easv_tipo:'reloj', easv_coronarias:'normales', easv_estenosis_pulmonar:'leve' });
+  ex.push(['(E0) DENOM: la seccion emite al informe', v1.inf.indexOf('Estenosis supravalvular aórtica') >= 0, true]);
+  FUERA.forEach(function (p, i) {
+    ex.push(['(E' + (i + 1) + ') el informe no dice ' + p, v1.inf.indexOf(p) >= 0, false]);
+  });
+  ex.push(['(E7) los ostios normales se publican', v1.inf.indexOf('Ostios coronarios normales') >= 0, true]);
+  ex.push(['(E8) y la frase de dato faltante de los ostios salio',
+    v1.inf.indexOf('no evaluados en este estudio') >= 0, false]);
+  /* (F) OSTIOS COMPROMETIDOS: la frase se lee bien y la interpretacion salio. */
+  const v2 = esv({ easv_tipo:'reloj', easv_gradiente_medio:'45', easv_coronarias:'comprometidos',
+                   easv_williams:'si', easv_estenosis_pulmonar:'moderada' });
+  ex.push(['(F1) el compromiso de los ostios se publica como hallazgo',
+    v2.inf.indexOf('Compromiso de los ostios coronarios') >= 0, true]);
+  ex.push(['(F2) y no con el rotulo de la pastilla pegado',
+    v2.inf.indexOf('Ostios coronarios con compromiso') >= 0, false]);
+  ex.push(['(F3) el sindrome se publica', v2.inf.indexOf('Asociada a síndrome de Williams-Beuren') >= 0, true]);
+  ex.push(['(F4) la interpretacion de isquemia salio del papel', v2.inf.indexOf('riesgo de isquemia') >= 0, false]);
+  ex.push(['(F5) y la correccion simultanea tambien', v2.inf.indexOf('corrección simultánea') >= 0, false]);
+  ex.push(['(F6) el EN SUMA es UNA linea',
+    v2.suma.split(String.fromCharCode(10)).filter(function (l) { return l.indexOf('Estenosis supravalvular') >= 0 }).length, 1]);
+  ex.push(['(F7) con la asociacion principal, que son los ostios',
+    v2.suma.indexOf('con compromiso de los ostios coronarios') >= 0, true]);
+  /* (G) CONTROL NEGATIVO DE LA COMPUERTA: los mismos datos SIN integrar no emiten nada. */
+  __t.limpiar();
+  ['esub_tipo','esub_ia_asociada'].forEach(function (k, i) { __t.set(k, i ? 'moderada' : 'membrana') });
+  try { esubSync() } catch (e) {}
+  const apa = __t.informe();
+  ex.push(['(G1) CONTROL NEGATIVO: sin integrar, la subaortica no llega al informe',
+    apa.inf.indexOf('Estenosis subaórtica') >= 0, false]);
+  ex.push(['(G2) ni al EN SUMA', apa.suma.indexOf('Estenosis subaórtica') >= 0, false]);
+  return { extra: EXP };
+`);
+
+caso('TC-635', 'Tanda PANT-4: la conclusion de pantalla de las dos estenosis no da conducta, y las dos tienen Evidencia con sus tres estados', `
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]), String(t[2])]) };
+  __t.limpiar();
+  __t.set('esub_tipo', 'membrana'); __t.set('esub_gradiente_medio', '45');
+  __t.set('esub_ia_asociada', 'moderada'); __t.set('esub_valsalva', 'aumenta');
+  try { esubSync() } catch (e) {}
+  const cs = __t.txt('esub-resultado') || '';
+  /* (A) LA CONCLUSION DE PANTALLA. */
+  ex.push(['(A0) DENOM: la conclusion tiene contenido', cs.length > 40, true]);
+  ex.push(['(A1) no hay cuadro de Seguimiento', cs.indexOf('Seguimiento') >= 0, false]);
+  ex.push(['(A2) ni derivacion a cirugia', cs.indexOf('Derivación a cirugía') >= 0, false]);
+  ex.push(['(A3) ni la frase de evaluar la indicacion quirurgica', cs.indexOf('indicación quirúrgica') >= 0, false]);
+  ex.push(['(A4) ni la interpretacion quirurgica de la insuficiencia', cs.indexOf('decisión quirúrgica') >= 0, false]);
+  /* LO QUE SE QUEDA: la explicacion de por que el gradiente medio es el que gradua, y la
+     severidad con su guia, que en PANTALLA si se puede nombrar. */
+  ex.push(['(A5) se queda la severidad con su guia', cs.indexOf('severa (ESC 2020)') >= 0, true]);
+  ex.push(['(A6) y la alerta de Valsalva, en minuscula', cs.indexOf('obstrucción dinámica') >= 0, true]);
+  __t.set('esub_gradiente_medio', ''); try { esubSync() } catch (e) {}
+  const cs2 = __t.txt('esub-resultado') || '';
+  ex.push(['(A7) sin gradiente medio se explica por que no se gradua',
+    cs2.indexOf('Sin gradiente medio no se gradúa la severidad') >= 0, true]);
+  /* (B) LA SUPRAVALVULAR, lo mismo. */
+  __t.limpiar();
+  __t.set('easv_tipo', 'reloj'); __t.set('easv_gradiente_medio', '45');
+  __t.set('easv_coronarias', 'comprometidos'); __t.set('easv_williams', 'si');
+  try { easvSync() } catch (e) {}
+  const vs = __t.txt('easv-resultado') || '';
+  ex.push(['(B0) DENOM: la conclusion tiene contenido', vs.length > 40, true]);
+  ex.push(['(B1) no hay cuadro de Seguimiento', vs.indexOf('Seguimiento') >= 0, false]);
+  ex.push(['(B2) ni evaluacion en centro especializado', vs.indexOf('centro especializado') >= 0, false]);
+  ex.push(['(B3) ni el seguimiento multidisciplinario', vs.indexOf('multidisciplinario') >= 0, false]);
+  ex.push(['(B4) se queda la pastilla de los ostios', vs.indexOf('Comprometidos') >= 0, true]);
+  /* (C) LA EVIDENCIA DE LAS DOS LESIONES. */
+  ex.push(['(C0) DENOM: las dos funciones de seccion existen',
+    typeof _indESUB === 'function' && typeof _indEASV === 'function', true]);
+  /* CONTROL NEGATIVO: sin datos las dos devuelven null, o sea la seccion ni se pinta. */
+  __t.limpiar();
+  ex.push(['(C1) CONTROL NEGATIVO: sin datos la subaortica no abre seccion', _indESUB(), null]);
+  ex.push(['(C2) CONTROL NEGATIVO: ni la supravalvular', _indEASV(), null]);
+  __t.set('esub_tipo', 'membrana'); __t.set('esub_gradiente_medio', '45');
+  __t.set('easv_tipo', 'reloj'); __t.set('easv_gradiente_medio', '45');
+  const A = _indESUB(), B = _indEASV();
+  ex.push(['(C3) con datos la subaortica abre', !!A, true]);
+  ex.push(['(C4) y la supravalvular tambien', !!B, true]);
+  /* LAS PREGUNTAS: mas de 6, con tres estados, y la fila de resumen de respuestas. */
+  const pA = (A && A.clinica ? A.clinica : []).filter(function (f) { return f && f.ctrl });
+  const pB = (B && B.clinica ? B.clinica : []).filter(function (f) { return f && f.ctrl });
+  ex.push(['(C5) la subaortica tiene SIETE preguntas, o sea mas de seis', pA.length, 7]);
+  ex.push(['(C6) la supravalvular tiene OCHO', pB.length, 8]);
+  ex.push(['(C7) y las dos declaran el modo de dos columnas',
+    !!(A && A.compacta && A.preguntas && B && B.compacta && B.preguntas), true]);
+  /* TRES ESTADOS: Si, No y el centinela de «sin dato». */
+  const ops = pA.length ? pA[0].ctrl.ops.map(function (o) { return o.t }).join('|') : '';
+  ex.push(['(C8) cada pregunta ofrece TRES estados', ops, 'Sí|No|?']);
+  ex.push(['(C9) y el tercero pone el centinela de sin dato, no una cadena vacia',
+    pA.length ? pA[0].ctrl.ops[2].v === IND_SD_VAL : 'NO HAY', true]);
+  /* «SIN DATO» NO ES «NO»: la fila de resumen lo dice. */
+  const res = (A && A.clinica ? A.clinica : []).filter(function (f) { return f && !f.ctrl })[0];
+  ex.push(['(C10) la fila de resumen dice que sin dato no cuenta como no',
+    res && String(res.nota || '').indexOf('no cuenta como «no»') >= 0, true]);
+  ex.push(['(C11) y arranca con las SIETE sin contestar',
+    res ? String(res.val).indexOf('7 sin dato') >= 0 : 'NO HAY', true]);
+  /* LAS CITAS: las dos secciones citan las DOS guias, con hoja y folio. */
+  const tA = JSON.stringify(A), tB = JSON.stringify(B);
+  [['(C12)','folio e166'],['(C13)','folio 603'],['(C14)','hoja 52'],['(C15)','hoja 41']].forEach(function (p) {
+    ex.push([p[0] + ' la subaortica cita ' + p[1], tA.indexOf(p[1]) >= 0, true]);
+  });
+  [['(C16)','folio e169'],['(C17)','folio 602'],['(C18)','hoja 55'],['(C19)','hoja 40']].forEach(function (p) {
+    ex.push([p[0] + ' la supravalvular cita ' + p[1], tB.indexOf(p[1]) >= 0, true]);
+  });
+  /* EL SEGUIMIENTO ANUAL NO SE INVENTO: ninguna de las dos lo afirma. */
+  ex.push(['(C20) ninguna seccion afirma un seguimiento ANUAL para toda la poblacion',
+    tA.indexOf('anual para toda la población') >= 0 || tB.indexOf('anual para toda la población') >= 0, false]);
+  ex.push(['(C21) y la subaortica publica el intervalo por estadio, que es lo que la hoja da',
+    tA.indexOf('estadio fisiológico') >= 0, true]);
+  /* Y NADA DE ESTO LLEGA AL PAPEL. */
+  ex.push(['(C22) las dos lo dicen en su pie', tA.indexOf('no entran al informe') >= 0 && tB.indexOf('no entran al informe') >= 0, true]);
+  return { extra: EXP };
+`);
+
+caso('TC-636', 'Tanda PANT-4: el papel de la miocardiopatia arritmogenica no nombra el criterio ni ninguna otra guia, y el puntaje sigue saliendo', `
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]), String(t[2])]) };
+  function mca(o) { __t.limpiar();
+    __t.set('peso', '70'); __t.set('talla', '170');
+    Object.keys(o).forEach(function (k) { __t.set(k, o[k]) });
+    __t.chk('mca_incluir_chk', true);
+    try { mcaSync() } catch (e) {}
+    return __t.informe();
+  }
+  const MARCAS = ['Task Force', 'Padua', 'consenso europeo de 2023', 'ESC 2020'];
+  /* (A) ESTRUCTURAL con medidas en rango y sin motilidad. */
+  const a = mca({ mca_tsvd_plax:'34', mca_tsvd_psax:'38', mca_fenotipo:'derecho', mca_mov_regional:'normal' });
+  ex.push(['(A0) DENOM: la seccion emite al informe', a.inf.indexOf('arritmogénica') >= 0 || a.inf.indexOf('Puntaje') >= 0, true]);
+  MARCAS.forEach(function (m, i) {
+    ex.push(['(A' + (i + 1) + ') el informe no dice ' + m, a.inf.indexOf(m) >= 0, false]);
+    ex.push(['(A' + (i + 1) + 'b) ni el EN SUMA', a.suma.indexOf(m) >= 0, false]);
+  });
+  ex.push(['(A9) y el puntaje se publica igual', a.inf.indexOf('Puntaje de criterios diagnósticos') >= 0, true]);
+  ex.push(['(A10) el EN SUMA tambien', a.suma.indexOf('criterios diagnósticos') >= 0, true]);
+  /* (B) ANEURISMA: la categoria puntua y el numero sigue. */
+  const b = mca({ mca_tsvd_plax:'34', mca_tsvd_psax:'38', mca_fenotipo:'derecho', mca_mov_regional:'aneurisma' });
+  MARCAS.forEach(function (m, i) {
+    ex.push(['(B' + (i + 1) + ') ' + m + ' fuera del informe', b.inf.indexOf(m) >= 0, false]);
+  });
+  ex.push(['(B5) el puntaje de 2 puntos se publica', b.inf.indexOf('2 puntos') >= 0, true]);
+  /* (C) TAQUICARDIA DE BLOQUEO DE RAMA DERECHA: la que salia hasta en el EN SUMA. */
+  const c = mca({ mca_fenotipo:'derecho', tv_documentada:'si', tv_morfologia:'bcrd', tv_tipo:'sostenida' });
+  ex.push(['(C0) DENOM: la salvedad de la morfologia sigue en el EN SUMA',
+    c.suma.indexOf('bloqueo de rama derecha') >= 0, true]);
+  MARCAS.forEach(function (m, i) {
+    ex.push(['(C' + (i + 1) + ') ' + m + ' fuera del EN SUMA', c.suma.indexOf(m) >= 0, false]);
+    ex.push(['(C' + (i + 1) + 'b) y del informe', c.inf.indexOf(m) >= 0, false]);
+  });
+  ex.push(['(C9) el hallazgo queda intacto', c.inf.indexOf('sugestiva de origen en el ventrículo izquierdo') >= 0, true]);
+  /* (D) SIN TIPO: la nota que nombraba la guia DOS veces mas. */
+  const d = mca({ mca_fenotipo:'derecho', tv_documentada:'si', tv_morfologia:'bcri_inf' });
+  ex.push(['(D0) DENOM: la nota del tipo sigue saliendo',
+    d.inf.indexOf('sostenida o no sostenida') >= 0, true]);
+  MARCAS.forEach(function (m, i) {
+    ex.push(['(D' + (i + 1) + ') ' + m + ' fuera de esa nota', d.inf.indexOf(m) >= 0, false]);
+  });
+  ex.push(['(D5) y lo que la nota sirve para avisar sigue dicho',
+    d.inf.indexOf('tetralogía de Fallot') >= 0, true]);
+  /* (E) CONTROLES NEGATIVOS. */
+  const e1 = mca({ mca_tsvd_plax:'34', mca_tsvd_psax:'38', mca_fenotipo:'derecho', mca_mov_regional:'aneurisma' });
+  __t.limpiar(); __t.set('peso', '70'); __t.set('talla', '170');
+  __t.set('mca_tsvd_plax', '34'); __t.set('mca_tsvd_psax', '38');
+  __t.set('mca_fenotipo', 'derecho'); __t.set('mca_mov_regional', 'aneurisma');
+  try { mcaSync() } catch (e) {}
+  const sinInt = __t.informe();
+  ex.push(['(E1) CONTROL NEGATIVO: sin integrar, la seccion no llega al informe',
+    sinInt.inf.indexOf('Puntaje de criterios') >= 0, false]);
+  /* EL NOMBRE SE QUEDA EN LA PANTALLA, que es la otra mitad de la decision. */
+  const pant = (document.getElementById('sacc-cc-mca') || {}).innerText || '';
+  ex.push(['(E2) DENOM: la seccion de pantalla tiene contenido', pant.length > 200, true]);
+  ex.push(['(E3) y la pantalla SIGUE nombrando el criterio', pant.indexOf('Task Force 2010') >= 0, true]);
+  /* (F) NI EL EXCEL NI EL LABORATORIO SE TOCARON: su encabezado sigue igual. */
+  const col = (function () { for (const f of LAB_XLS_MAP) { if (f && f[1] === 'mca_tf') return String(f[0]) } return 'NO ESTA' })();
+  ex.push(['(F1) el encabezado del Excel del puntaje no cambio', col, 'Puntaje Task Force de MCA']);
+  return { extra: EXP };
+`);
+
+caso('TC-637', 'Tanda PANT-4: los tres textos de pantalla dicen lo que su hoja dice — la resonancia, el realce tardio y los cuatro rotulos de la Tabla 1', `
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]), String(t[2])]) };
+  /* (A) LA RESONANCIA, en el globo. La hoja 7 de te Riele dice «morfologia y funcion del
+     ventriculo derecho», no «caracterizacion tisular». */
+  const g = (typeof VINFO !== 'undefined' && VINFO) ? VINFO['mca-score'] : null;
+  ex.push(['(A0) DENOM: el globo existe y tiene texto', !!(g && g.lee && g.lee.length > 80), true]);
+  ex.push(['(A1) la afirmacion que la fuente no sostiene salio',
+    g ? String(g.lee).indexOf('estándar de referencia para la caracterización tisular') >= 0 : 'NO HAY', false]);
+  ex.push(['(A2) y dice lo que la hoja dice',
+    g ? String(g.lee).indexOf('morfología y la función del ventrículo derecho') >= 0 : 'NO HAY', true]);
+  ex.push(['(A3) con la salvedad de que sola no alcanza',
+    g ? String(g.lee).indexOf('no es el patrón de oro') >= 0 : 'NO HAY', true]);
+  ex.push(['(A4) y que el realce tardio no esta en los criterios',
+    g ? String(g.lee).indexOf('NO está incorporado a los criterios') >= 0 : 'NO HAY', true]);
+  /* CON EL TEXTO CORREGIDO LA FRASE YA TIENE FUENTE, asi que se cita. */
+  ex.push(['(A5) y ahora la frase lleva su fuente',
+    g ? String(g.fte || '').indexOf('hoja 7 de 15') >= 0 : 'NO HAY', true]);
+  /* LA MISMA FRASE EN EL PAPEL. */
+  __t.limpiar(); __t.set('peso', '70'); __t.set('talla', '170');
+  __t.set('mca_fenotipo', 'derecho'); __t.set('mca_tsvd_plax', '34'); __t.set('mca_tsvd_psax', '38');
+  __t.set('mca_mov_regional', 'aneurisma'); __t.chk('mca_incluir_chk', true);
+  try { mcaSync() } catch (e) {}
+  const inf = __t.informe().inf;
+  ex.push(['(A6) DENOM: el parrafo de integracion sale al informe',
+    inf.indexOf('El diagnóstico definitivo requiere integrar') >= 0, true]);
+  ex.push(['(A7) el papel tampoco afirma lo que la fuente no dice',
+    inf.indexOf('caracterización tisular del miocardio') >= 0, false]);
+  ex.push(['(A8) y dice lo corregido',
+    inf.indexOf('por sí sola no establece el diagnóstico') >= 0, true]);
+  /* (B) EL REALCE TARDIO EN LA MIOCARDIOPATIA HIPERTROFICA. */
+  const h = (typeof VINFO !== 'undefined' && VINFO) ? VINFO['mch-msub'] : null;
+  ex.push(['(B0) DENOM: el globo existe', !!(h && h.lee && h.lee.length > 80), true]);
+  ex.push(['(B1) sigue diciendo que el realce extenso no es por si solo uno de los cinco',
+    h ? String(h.lee).indexOf('tampoco es uno de esos cinco factores mayores por sí solo') >= 0 : 'NO HAY', true]);
+  ex.push(['(B2) y ahora dice DONDE si aparece, que es dentro del cuarto factor',
+    h ? String(h.lee).indexOf('DENTRO del cuarto factor mayor') >= 0 : 'NO HAY', true]);
+  ex.push(['(B3) y que ninguno de esos marcadores entra en la calculadora',
+    h ? String(h.lee).indexOf('no entra en la calculadora de riesgo a 5 años') >= 0 : 'NO HAY', true]);
+  ex.push(['(B4) con su hoja y su folio', h ? String(h.fuente || '').indexOf('folio e1267') >= 0 : 'NO HAY', true]);
+  /* (C) LOS CUATRO ROTULOS DE LA TABLA 1, en las DOS listas donde viven. */
+  const T = (typeof MCA_CATS !== 'undefined' && MCA_CATS) ? MCA_CATS : null;
+  ex.push(['(C0) DENOM: la lista de categorias existe', !!(T && T.length >= 5), true]);
+  function rot(k, tipo, i) {
+    const c = T ? T.filter(function (x) { return x.k === k })[0] : null;
+    if (!c) return 'NO HAY';
+    const l = (tipo === 'mayor' ? c.mayor : c.menor)[i];
+    return l ? String(l[1]) : 'NO HAY';
+  }
+  ex.push(['(C1) el tisular mayor dice morfometria y el valor estimado',
+    rot('ii','mayor',0).indexOf('por morfometría') >= 0 && rot('ii','mayor',0).indexOf('50 %') >= 0, true]);
+  ex.push(['(C2) el tisular menor tambien',
+    rot('ii','menor',0).indexOf('por morfometría') >= 0, true]);
+  ex.push(['(C3) la repolarizacion mayor pide mas de 14 anios',
+    rot('iii','mayor',0).indexOf('mayores de 14 años') >= 0, true]);
+  ex.push(['(C4) y las dos menores tambien',
+    rot('iii','menor',0).indexOf('14 años') >= 0 && rot('iii','menor',1).indexOf('14 años') >= 0, true]);
+  ex.push(['(C5) la despolarizacion menor dice la condicion del QRS',
+    rot('iv','menor',0).indexOf('110 ms') >= 0, true]);
+  ex.push(['(C6) y la arritmia menor dice la configuracion del tracto de salida',
+    rot('v','menor',0).indexOf('configuración del tracto de salida') >= 0, true]);
+  /* LA TABLA DE LA PANTALLA dice lo mismo que la lista interna. */
+  const tab = (document.getElementById('sacc-cc-mca') || {}).innerText || '';
+  ex.push(['(C7) DENOM: la tabla de criterios de la pantalla tiene contenido', tab.length > 400, true]);
+  ex.push(['(C8) la pantalla dice morfometria', tab.indexOf('por morfometría') >= 0, true]);
+  ex.push(['(C9) la pantalla dice los 14 anios', tab.indexOf('14 años') >= 0, true]);
+  ex.push(['(C10) la pantalla dice el QRS', tab.indexOf('110 ms') >= 0, true]);
+  ex.push(['(C11) la pantalla dice el TSVD', tab.indexOf('configuración del TSVD') >= 0, true]);
+  /* (D) CONTROL NEGATIVO: los cortes indexados siguen DECLARADOS y NO aplicados. */
+  const ge = (typeof VINFO !== 'undefined' && VINFO) ? VINFO['mca-eco'] : null;
+  ex.push(['(D0) DENOM: el globo de los criterios del eco existe', !!(ge && ge.ojo), true]);
+  ex.push(['(D1) CONTROL NEGATIVO: sigue diciendo que los indexados NO se aplican',
+    ge ? String(ge.ojo).indexOf('no aplica') >= 0 : 'NO HAY', true]);
+  ex.push(['(D2) y sigue publicando sus seis numeros',
+    ge ? String(ge.ojo).indexOf('19 y 21') >= 0 : 'NO HAY', true]);
+  /* (E) CONTROL NEGATIVO: el conteo del puntaje no se movio con los rotulos nuevos. */
+  const sc = (typeof mcaScore === 'function') ? null : null;
+  ex.push(['(E1) CONTROL NEGATIVO: el puntaje del aneurisma sigue en 2 puntos',
+    inf.indexOf('2 puntos') >= 0, true]);
+  return { extra: EXP };
+`);
+
+caso('TC-638', 'Tanda PANT-4: la cita de aorta reconciliada, la insuficiencia aortica con aorta dilatada, y el estadio de la AHA/ACC 2020 en las dos valvulas aorticas', `
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]), String(t[2])]) };
+  /* (A) LAS CITAS DE AORTA: una sola paginacion, la de la edicion inglesa. */
+  const F = (typeof AO_EV_FTE !== 'undefined' && AO_EV_FTE) ? AO_EV_FTE : null;
+  ex.push(['(A0) DENOM: la tabla de fuentes existe y tiene quince entradas',
+    F ? Object.keys(F).length : -1, 15]);
+  const todas = F ? Object.keys(F).map(function (k) { return F[k] }).join(' | ') : '';
+  ex.push(['(A1) la Tabla 62 cita la hoja y el folio reales', (F || {}).t62, 'ESC 2024, Tabla 62 · hoja 105 · folio 3642']);
+  ex.push(['(A2) la paginacion vieja ya no esta en ninguna entrada',
+    /folio (80|111|112|113|114|116|119|120|121|76)\\b/.test(todas), false]);
+  ex.push(['(A3) y las quince dicen su hoja', (todas.match(/hoja \\d+/g) || []).length, 15]);
+  /* (B) LA SITUACION QUE FALTABA. Control negativo primero: sin aorta dilatada no hay seccion. */
+  __t.limpiar();
+  ex.push(['(B0) CONTROL NEGATIVO: sin datos la seccion de aorta no abre', _indAo(), null]);
+  __t.set('sexo', 'M'); __t.set('peso', '80'); __t.set('talla', '175');
+  __t.set('ao_sin', '52'); __t.set('ao_tub', '48'); __t.set('marfan_sindrome', 'marfan');
+  const sinIA = _indAo();
+  ex.push(['(B1) DENOM: con aorta dilatada la seccion abre', !!sinIA, true]);
+  const titSin = (sinIA && sinIA.bloques ? sinIA.bloques : []).map(function (b) { return b.tit }).join(' | ');
+  ex.push(['(B2) CONTROL NEGATIVO: sin insuficiencia severa no aparece su bloque',
+    titSin.indexOf('Insuficiencia aórtica severa con aorta dilatada') >= 0, false]);
+  __t.set('ia_grado', '4');
+  const conIA = _indAo();
+  const titCon = (conIA && conIA.bloques ? conIA.bloques : []).map(function (b) { return b.tit }).join(' | ');
+  ex.push(['(B3) con insuficiencia severa y aorta dilatada aparece',
+    titCon.indexOf('Insuficiencia aórtica severa con aorta dilatada') >= 0, true]);
+  const tCon = JSON.stringify(conIA);
+  ex.push(['(B4) con su guia, su hoja y su folio', tCon.indexOf('hoja 28, folio 28') >= 0, true]);
+  ex.push(['(B5) y sus dos clases', tCon.indexOf('Clase I · Nivel B') >= 0 && tCon.indexOf('Clase IIa · Nivel C') >= 0, true]);
+  ex.push(['(B6) la otra guia queda como linea de referencia, no mezclada',
+    tCon.indexOf('línea de referencia') >= 0, true]);
+  /* CONTROL NEGATIVO: insuficiencia severa SIN aorta dilatada -> la seccion ni abre. */
+  __t.set('ao_sin', '34'); __t.set('ao_tub', '32');
+  ex.push(['(B7) CONTROL NEGATIVO: con insuficiencia severa y aorta normal no hay seccion', _indAo(), null]);
+  /* NINGUNA SITUACION NUEVA: las ocho de siempre. */
+  ex.push(['(B8) la tabla de situaciones sigue teniendo OCHO',
+    (typeof AO_EV !== 'undefined' && AO_EV) ? Object.keys(AO_EV).length : -1, 8]);
+  /* (C) EL ESTADIO DE LA ESTENOSIS AORTICA. */
+  ex.push(['(C0) DENOM: las dos funciones de estadio existen',
+    typeof _indEstEA === 'function' && typeof _indEstIA === 'function', true]);
+  function estEA(o) { __t.limpiar();
+    Object.keys(o).forEach(function (k) { if (k !== 'sx' && k !== 'grado') __t.set(k, o[k]) });
+    if (o.grado) __t.set('ea_grado', o.grado);
+    try { _indClinVaciar() } catch (e) {}
+    if (o.sx) { try { _indClin['ea.sintomas'] = o.sx } catch (e) {} }
+    return _indEstEA().txt;
+  }
+  ex.push(['(C1) severa sin sintomas con fraccion conservada es C1',
+    estEA({ vmax_ao:'4.5', gmedio_ao:'45', fevi:'60', grado:'severa', sx:'no' }), 'C1']);
+  ex.push(['(C2) severa sin sintomas con fraccion baja es C2',
+    estEA({ vmax_ao:'4.5', gmedio_ao:'45', fevi:'40', grado:'severa', sx:'no' }), 'C2']);
+  ex.push(['(C3) severa sintomatica de gradiente alto es D1',
+    estEA({ vmax_ao:'4.5', gmedio_ao:'45', fevi:'60', grado:'severa', sx:'si' }), 'D1']);
+  /* ⚠️ EL GRADO VA DESPUES DEL GRADIENTE: la aplicacion reclasifica ea_grado desde la velocidad
+     maxima en cuanto esta cambia, asi que una escena de bajo gradiente montada al reves deja el
+     grado en moderada y el estadio cae a B. Lo ordena el propio helper. */
+  ex.push(['(C4) severa sintomatica de bajo gradiente con fraccion baja es D2',
+    estEA({ vmax_ao:'3', gmedio_ao:'25', fevi:'40', grado:'severa', sx:'si' }), 'D2']);
+  ex.push(['(C5) y con fraccion conservada es D3',
+    estEA({ vmax_ao:'3', gmedio_ao:'25', fevi:'60', grado:'severa', sx:'si' }), 'D3']);
+  ex.push(['(C6) moderada es B', estEA({ vmax_ao:'3.5', gmedio_ao:'30', fevi:'60', grado:'moderada' }), 'B']);
+  ex.push(['(C7) la esclerosis es A', estEA({ grado:'esclerosis' }), 'A']);
+  ex.push(['(C8) y sin grado no se inventa nada', estEA({ grado:'sin' }), 'Sin dato']);
+  /* LO QUE NO SE INFIERE: sin contestar los sintomas no elige entre C y D. */
+  ex.push(['(C9) sin contestar los sintomas dice que falta ese dato',
+    estEA({ vmax_ao:'4.5', gmedio_ao:'45', fevi:'60', grado:'severa' }), 'C o D, según síntomas']);
+  /* (D) EL ESTADIO DE LA INSUFICIENCIA AORTICA. */
+  function estIA(o) { __t.limpiar();
+    Object.keys(o).forEach(function (k) { if (k !== 'sx') __t.set(k, o[k]) });
+    try { _indClinVaciar() } catch (e) {}
+    if (o.sx) { try { _indClin['ia.sintomas'] = o.sx } catch (e) {} }
+    return _indEstIA().txt;
+  }
+  ex.push(['(D1) severa sin sintomas con ventriculo normal es C1',
+    estIA({ ia_grado:'4', fevi:'60', dsfvi:'40', sx:'no' }), 'C1']);
+  ex.push(['(D2) severa sin sintomas con el diametro grande es C2',
+    estIA({ ia_grado:'4', fevi:'60', dsfvi:'55', sx:'no' }), 'C2']);
+  ex.push(['(D3) y con la fraccion del 55 % o menos tambien',
+    estIA({ ia_grado:'4', fevi:'50', dsfvi:'40', sx:'no' }), 'C2']);
+  ex.push(['(D4) severa sintomatica es D', estIA({ ia_grado:'4', fevi:'60', dsfvi:'40', sx:'si' }), 'D']);
+  ex.push(['(D5) moderada es B', estIA({ ia_grado:'2' }), 'B']);
+  ex.push(['(D6) ausente es A', estIA({ ia_grado:'0' }), 'A']);
+  ex.push(['(D7) y el grado que la tabla no tiene se dice en vez de forzarlo',
+    estIA({ ia_grado:'3' }), 'B o C, según la severidad']);
+  ex.push(['(D8) sin contestar los sintomas no elige',
+    estIA({ ia_grado:'4', fevi:'60', dsfvi:'40' }), 'C o D, según síntomas']);
+  /* (E) EL ESTADIO VA EN LA SECCION, Y NO AL PAPEL. */
+  __t.limpiar();
+  __t.set('vmax_ao', '4.5'); __t.set('gmedio_ao', '45'); __t.set('fevi', '60'); __t.set('ea_grado', 'severa');
+  const S = _indEA();
+  const fil = (S && S.clinica ? S.clinica : []).filter(function (f) { return f && String(f.lbl).indexOf('Estadio') >= 0 });
+  ex.push(['(E0) DENOM: la seccion de estenosis aortica abre', !!S, true]);
+  ex.push(['(E1) y lleva su fila de estadio', fil.length, 1]);
+  ex.push(['(E2) rotulada con la guia que usa estadios', fil.length ? fil[0].lbl : 'NO HAY', 'Estadio (AHA/ACC 2020)']);
+  ex.push(['(E3) con su tabla, su hoja y su folio en la nota',
+    fil.length ? String(fil[0].nota).indexOf('folio e91') >= 0 : 'NO HAY', true]);
+  const papel = __t.informe();
+  ex.push(['(E4) CONTROL NEGATIVO: el estadio no llega al informe', papel.inf.indexOf('Estadio (AHA/ACC') >= 0, false]);
+  ex.push(['(E5) ni al EN SUMA', papel.suma.indexOf('Estadio (AHA/ACC') >= 0, false]);
+  return { extra: EXP };
+`);
+
+
 try {
   const s = await servir(); servidor = s.srv;
   chrome = await abrirChrome(`http://127.0.0.1:${s.port}/index.html`);
