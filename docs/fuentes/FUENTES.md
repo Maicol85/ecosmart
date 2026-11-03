@@ -10078,3 +10078,105 @@ movió**.
 | 10 | las quince citas de aorta | paginación de la edición de 199 hojas | hoja y folio de la edición inglesa | ESC 2024 inglesa |
 | 11 | Evidencia de la insuficiencia aórtica con aorta dilatada | **no existía** | bloque con sus dos clases | ESC/EACTS 2025, hoja 28 |
 | 12 | el estadio de las dos válvulas aórticas | **no existía** | fila «Estadio (AHA/ACC 2020)» en la Evidencia | AHA/ACC 2020, Tablas 13 y 15 |
+
+---
+
+# La tanda PANT-5 (2026-11-03)
+
+## La fuente de los estadios: AHA/ACC 2020 de valvulopatías
+
+**Otto CM y cols., *Circulation* 2021;143:e72-e227.** Archivo:
+`04_Valvulopatias/AHA 2020 Valvulopatias.pdf`, 156 hojas.
+
+**Regla de folio: folio = e(hoja + 71)**, y esta tanda la **comprobó en el pie impreso de las
+cuatro hojas** que leyó, no sólo en dos: la hoja 42 imprime «e113», la 50 «e121», la 57 «e128» y
+la 61 «e132». Las cuatro páginas se renderizaron a **200 ppp** y se leyeron en imagen.
+
+### Tabla 16 · «Stages of MS» — hoja 42, folio e113
+
+| estadio | definición | anatomía | hemodinámica | consecuencias | síntomas |
+|---|---|---|---|---|---|
+| A | At risk of MS | domo valvular leve en diástole | velocidad transmitral normal | ninguna | ninguno |
+| B | Progressive MS | cambios reumáticos con fusión comisural y domo diastólico; **área planimetrada >1,5 cm²** | velocidades aumentadas; **área >1,5 cm²**; **THP <150 ms** | AI de leve a moderadamente agrandada; presión pulmonar normal en reposo | ninguno |
+| C | Asymptomatic severe MS | ídem; **área ≤1,5 cm²** | **área ≤1,5 cm²**; **THP ≥150 ms** | AI severamente agrandada; **PSAP >50 mmHg** | ninguno |
+| D | Symptomatic severe MS | ídem | ídem que C | ídem que C | disminución de la tolerancia al ejercicio; disnea de esfuerzo |
+
+**Nota al pie, parafraseada:** el gradiente medio transmitral debe obtenerse para determinar el
+efecto hemodinámico y suele estar por encima de 5 y hasta 10 mmHg en la estenosis severa; **por
+su variabilidad con la frecuencia cardíaca y el flujo anterógrado NO se incluyó entre los
+criterios de severidad.**
+
+### Tabla 17 · «Stages of Chronic Primary MR» — hoja 50, folio e121
+
+| estadio | hemodinámica valvular | consecuencias |
+|---|---|---|
+| A | sin chorro o chorro central <20 % de la AI; vena contracta <0,3 cm | ninguna |
+| B | chorro central 20-40 % o excéntrico telesistólico; **vena contracta <0,7 cm**; **volumen <60 ml**; **fracción <50 %**; **ORE <0,40 cm²**; grado angiográfico 1+ a 2+ | AI levemente agrandada; VI no agrandado; presión pulmonar normal |
+| C | chorro central >40 % u holosistólico excéntrico; **vena contracta ≥0,7 cm**; **volumen ≥60 ml**; **fracción ≥50 %**; **ORE ≥0,40 cm²**; grado 3+ a 4+ | AI moderada o severamente agrandada; VI agrandado; **C1: FEVI >60 % y DSVI <40 mm** · **C2: FEVI ≤60 % y/o DSVI ≥40 mm** |
+| D | ídem que C | ídem, con hipertensión pulmonar presente; disminución de la tolerancia al ejercicio y disnea de esfuerzo |
+
+**Nota al pie:** se dan varios criterios hemodinámicos y **no todos estarán presentes en cada
+paciente**; la categorización depende de la calidad del dato y de integrarlos con el resto.
+
+### Tabla 18 · «Stages of Secondary MR» — hoja 57, folio e128
+
+| estadio | hemodinámica | síntomas |
+|---|---|---|
+| A | sin chorro o central <20 %; vena contracta <0,30 cm | atribuibles a isquemia coronaria o a insuficiencia cardíaca, **que pueden responder** a la revascularización y al tratamiento médico |
+| B | **ORE <0,40 cm²**; **volumen <60 ml**; **fracción <50 %** | ídem |
+| C | **ORE ≥0,40 cm²**; **volumen ≥60 ml**; **fracción ≥50 %** | ídem |
+| D | ídem que C | **los síntomas de insuficiencia cardíaca PERSISTEN incluso después de la revascularización y de optimizar el tratamiento médico**; disminución de la tolerancia al ejercicio; disnea de esfuerzo |
+
+**Notas al pie:** † la superficie proximal de isovelocidad por eco bidimensional **subestima** el
+orificio regurgitante efectivo verdadero en la insuficiencia secundaria, por la forma creciente
+de la convergencia proximal. ‡ el volumen regurgitante puede ser menor en los estados de bajo
+flujo.
+
+⚠️ **ES LA DIFERENCIA CLAVE CON LA PRIMARIA**: acá los síntomas **no** separan C de D.
+
+### Tabla 20 · «Stages of TR» — hoja 61, folio e132
+
+⚠️ **ESTA TABLA NO TIENE FILA A** en esta edición: arranca en B. Verificado en imagen.
+
+| estadio | hemodinámica | consecuencias | síntomas |
+|---|---|---|---|
+| B | chorro central <50 % de la AD; **vena contracta <0,7 cm**; **ORE <0,40 cm²**; **volumen <45 ml** | ninguna | ninguno |
+| C | chorro ≥50 %; **vena contracta ≥0,7 cm**; **ORE ≥0,40 cm²**; **volumen ≥45 ml**; señal de onda continua densa y de forma triangular; inversión del flujo sistólico de la vena hepática | VD y AD dilatados; AD elevada con onda «c-V» | presión venosa elevada, **sin síntomas** |
+| D | ídem que C | ídem | presión venosa elevada; disnea de esfuerzo, fatiga, ascitis, edema |
+
+## Notas de trabajo (R1)
+
+- **La demo del dibujo del VD** es `docs/3d/demo_sobrecarga_vd_v4_a4c_concepto.html`, aprobada
+  por el médico. No es una fuente clínica: es la referencia de geometría y de lógica del dibujo.
+  La comparación da **10 de 10 escenarios idénticos** (cinco escenarios × dos fases), con
+  tolerancia declarada de 0,011 —los dos lados redondean a dos decimales con la misma función—.
+- **Los cortes que el dibujo usa son los que la app ya tenía**: VD/VI mayor de 0,9
+  (`TEP_VDVI_DILAT_MIN`, AHA/ACC 2026 Tabla 4 folio e989) y TAPSE por debajo de 17 mm
+  (`TEP_TAPSE_BAJO_MAX`). El dibujo **no gradúa** ni asigna categorías de riesgo.
+- **El criterio de la estenosis subaórtica no se movió**: sigue siendo `ESUB_MEDIO_SEVERO = 40`,
+  gradiente **medio** a flujo normal, ESC 2020 hoja 41 = folio 603 (Clase I · Nivel C) y hoja 10
+  = folio 572. Lo que cambió es **dónde se dice**: salió de la conclusión de pantalla y se quedó
+  en el globo `esub-grad`, que ya lo tenía entero.
+- **La atribución a la edición AHA/ACC 2020 de miocardiopatía hipertrófica se retiró** de la
+  pantalla (cierra P4-d): esa edición **no está en la biblioteca** —lo que hay es la de 2024— así
+  que no se puede verificar ni que la retirada fuera explícita ni en qué edición ocurrió. Se
+  conserva lo verificado: que la respuesta tensional **no cuenta en ninguno de los dos conteos**
+  y que la app la registra y la informa aparte.
+- **La insuficiencia pulmonar no se gradúa por eco en esta aplicación**, y lo declara el registro
+  de autograduación de válvulas: «La estenosis tricuspídea … y la insuficiencia pulmonar (grado
+  sólo manual) NO autogradúan». No hay fuente que citar porque no hay corte que aplicar.
+
+## Cambios de evidencia
+
+| # | qué | antes | ahora | fuente |
+|---|---|---|---|---|
+| 1 | estadio de la estenosis mitral | **no existía** | fila «Estadio (AHA/ACC 2020)» en la Evidencia | AHA/ACC 2020, Tabla 16, hoja 42, folio e113 |
+| 2 | estadio de la insuficiencia mitral primaria | **no existía** | ídem, con C1 y C2 | Tabla 17, hoja 50, folio e121 |
+| 3 | estadio de la insuficiencia mitral secundaria | **no existía** | ídem, con «C o D según la respuesta al tratamiento» | Tabla 18, hoja 57, folio e128 |
+| 4 | estadio de la insuficiencia tricuspídea | **no existía** | ídem, **sin fila A** | Tabla 20, hoja 61, folio e132 |
+| 5 | la válvula pulmonar | sin fila de estadio, sin decir por qué | lo dice: la guía no publica estadios para esa lesión | las cuatro tablas de arriba |
+| 6 | la estenosis tricuspídea | ídem | lo dice en la nota del estadio de la insuficiencia | ídem |
+| 7 | conclusión de pantalla de la estenosis subaórtica | «severa (ESC 2020)» + el criterio + la interpretación | «severa» y el hallazgo asociado | el criterio queda en `esub-grad` |
+| 8 | conclusión de la supravalvular | ídem | ídem | el criterio queda en `easv-grad` |
+| 9 | la respuesta tensional en la tarjeta de MCH | «la AHA/ACC la retiró explícitamente en 2020» | «no está en ninguno de los dos» | la edición 2020 no está en la biblioteca |
+| 10 | el mensaje de lo que falta del Forrester | tres veces, una tapando los rótulos | dos; la del SVG se fue | — |

@@ -523,3 +523,16 @@ otra. La app lo gritó sola por consola y **ningún caso lo veía**.
 ⚠️ **TC-632 encontró tres rótulos que el censo de origen no había encontrado**, porque censa el
 **DOM** y no el texto del archivo: un censo sobre `index.html` no ve lo que el DOM arma a partir
 de etiquetas anidadas.
+
+## PANT-5 (2026-11-03) — TC-639 a TC-643
+
+| caso | qué fija |
+|---|---|
+| **TC-639** | el dibujo de sobrecarga del VD: mudo sin datos, solo lectura, un solo color, la raya sin número y nada en el papel |
+| **TC-640** | el Forrester con un solo mensaje —y su control negativo en el Laboratorio— y la conclusión de las dos estenosis aórticas sin guía, con el criterio en el globo |
+| **TC-641** | las tres pantallas reordenadas: el derrame en cuatro columnas, Fallot en tres (4+6+5) y constricción de a dos, con el **valor** de cada corte y no sólo su media query |
+| **TC-642** | la CIA y la CIV lado a lado con las dos marcadas, y la longitud de los velos mitrales en los dos sentidos, el vacío incluido |
+| **TC-643** | los estadios de las cuatro válvulas, con el borde C1/C2 de la insuficiencia mitral primaria y los dos avisos de las lesiones sin estadio |
+
+Los cinco caen contra HEAD por **86 condiciones y cero excepciones**, y los sostienen **30
+mutaciones dirigidas**, todas muertas. → `docs/mapa/pant5-pantallas-vd.md`.

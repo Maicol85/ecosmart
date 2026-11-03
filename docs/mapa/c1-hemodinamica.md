@@ -263,3 +263,14 @@ del PPT**.
 
 **Todo en `docs/mapa/pop-v2-posoperatorio.md`**, con la tabla de lo que los mapas anteriores decían
 y dejó de ser cierto. El caso que lo fija es **TC-548**; los pendientes, **POP-a** a **POP-h**.
+
+---
+
+## El Forrester a la derecha de los datos (PANT-5, 2026-11-03)
+
+Los valores y las fórmulas a la izquierda, el gráfico a la derecha desde **900 px** y la
+advertencia de la PCP estimada **debajo**, a ancho completo. Y el mensaje de lo que falta, que
+aparecía **tres** veces y una de ellas **tapaba los rótulos** del gráfico, baja a dos: la del
+SVG se apaga con `sinVacio`, una opción **aditiva** que el Laboratorio no pasa.
+La tercera —el span `hemo-forrester`— **está parada**: su texto llega al papel.
+→ `docs/mapa/pant5-pantallas-vd.md` § 2, y `docs/PENDIENTES.md` → **P5-b**.

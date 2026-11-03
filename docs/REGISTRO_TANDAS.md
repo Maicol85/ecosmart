@@ -751,3 +751,50 @@ condiciones y cero excepciones**; siete casos viejos adaptados.
 **Dónde está todo:** `docs/mapa/pant4-estenosis-evidencia.md` (**mapa nuevo**),
 `docs/fuentes/FUENTES.md` → «La tanda PANT-4», `docs/GUIA_PRUEBA_PANT4.md` (20 pasos) y
 `docs/PENDIENTES.md` → **P4-a** a **P4-i**.
+
+---
+
+## PANT-5 — el dibujo de sobrecarga del VD, el Forrester y cinco pantallas (2026-11-03)
+
+**Los NUEVE commits de código se hicieron enteros**, en el orden que la orden fija.
+
+| commit | qué |
+|---|---|
+| `4c2fc62` | **1** — el dibujo de sobrecarga del VD en Hemodinámica, portado de la demo aprobada |
+| `cd5a720` | **2** — el Forrester a la derecha de los datos, y el mensaje de lo que falta una vez |
+| `e60bdcc` | **3** — la conclusión de las dos estenosis aórticas, descriptiva y sin guía |
+| `6068a1c` | **4** — el derrame pericárdico y el taponamiento en cuatro columnas por tema |
+| `92a7bd7` | **5** — la CIA y la CIV lado a lado, y el diagrama de bordes más chico |
+| `c39635d` | **6** — la longitud de los velos mitrales, un dato con dos puertas |
+| `ff77df1` | **7** — la Fallot reparada en tres columnas por tema |
+| `9d65244` | **8** — constricción vs restricción, los cuatro campos de a dos |
+| `b6f3a76` | **9** — los estadios de la AHA/ACC 2020 de las cuatro válvulas que faltaban |
+| `bae95f6` … el de cierre | **10** — cobertura y documentación |
+
+**Lo que cerró:** **P4-a** (la disposición de Fallot, que estaba parada por falta de grupos: esta
+orden los trae), **P4-d** (la atribución a la edición AHA/ACC 2020, retirada de la pantalla) y
+**P4-f** (los estadios de las cuatro válvulas).
+
+**Lo que paró, con su medición:** la disposición en tres columnas de la mitral del ETE —exige
+fundir tres acordeones con sus dos casillas de inclusión (**P5-e**)—; la profundidad de
+coaptación, que es un duplicado **ambiguo** y el censo de la propia app ya lo declara (**P5-f**);
+la tercera aparición del mensaje del Forrester, cuyo texto **llega al papel** (**P5-b**); y el
+texto cortado de la tabla del dibujo, que **no se pudo reproducir** (**P5-i**).
+
+**Tres premisas no se confirmaron:** la (iii) del commit 6 es **parcialmente falsa** —la etiología
+y el Carpentier **ya sincronizan** en los dos sentidos y el mecanismo no tiene par (**P5-g**)—; la
+(iv) no se reproduce sobre una tabla poblada; y el desplazamiento horizontal de 30 px a 899 y
+900 px es **preexistente**, medido idéntico en HEAD (**P5-j**).
+
+**Las cuatro tablas de estadios se leyeron EN IMAGEN a 200 ppp**, con su folio **comprobado en el
+pie impreso de cada hoja** —regla folio = e(hoja + 71), comprobada en las cuatro y no sólo en dos
+como hasta ahora—: Tabla 16 (hoja 42, e113), 17 (50, e121), 18 (57, e128) y 20 (61, e132).
+
+**Verificación:** 30/30 mutaciones dirigidas muertas en worktree, con el md5 idéntico antes y
+después; A/B por commit con PDF y PPT generados de verdad; cinco casos nuevos (TC-639 a TC-643)
+que caen contra HEAD por **86 condiciones y cero excepciones**; la geometría del dibujo del VD
+comparada contra la demo en **10 de 10 escenarios**.
+
+**Dónde está todo:** `docs/mapa/pant5-pantallas-vd.md` (**mapa nuevo**, 14,0 KB),
+`docs/fuentes/FUENTES.md` → «La tanda PANT-5» con las cuatro tablas transcritas,
+`docs/GUIA_PRUEBA_PANT5.md` y `docs/PENDIENTES.md` → **P5-a** a **P5-j**.

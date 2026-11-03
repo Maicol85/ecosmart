@@ -230,3 +230,19 @@ pasaron a las tarjetas **`cvr-coc`** y **`cvr-ecosmart`**, con su contenido ínt
 quedó una línea corta en cada lugar.
 
 **Ningún corte, recuento, veredicto ni lectura cambió**, medido a los dos lados de 0,78.
+
+---
+
+## Las dos pantallas reordenadas (PANT-5, 2026-11-03)
+
+**Derrame pericárdico / Taponamiento** pasa a **cuatro columnas por tema** (`#dpt-cols`:
+cuantificación, colapso de cavidades, VCI con lo que viene de otras pestañas, y variación
+respiratoria), con la descripción y el aviso debajo a ancho completo. Alto: **1018 → 620 px**
+a 1440 y **1377 → 880** a 768.
+
+**Constricción vs restricción**: los cuatro campos propios van de a **dos por fila**
+(`#cvr-campos-grid`), y con eso la columna izquierda baja de **496 a 411 px** y queda a la
+altura de la tabla comparativa.
+
+Los cortes van sobre la **ventana** y salen de una medición, no de un número elegido.
+→ `docs/mapa/pant5-pantallas-vd.md` § 4.
