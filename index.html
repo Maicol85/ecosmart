@@ -1442,12 +1442,12 @@
      aparecia una barra de desplazamiento horizontal; y con la columna de conclusion al lado el
      hueco da para CUATRO de 215 px, que no es lo que la orden decidio. Por debajo de 900 se
      conserva el auto-fit de siempre: ahi nada cambia. */
-  #mca-fila, #tdf-fila { display:grid; grid-template-columns:minmax(0,1fr); gap:14px; align-items:start; }
-  #tdf-campos { min-width:0; }
+  #mca-fila, #tdf-fila, #esub-fila { display:grid; grid-template-columns:minmax(0,1fr); gap:14px; align-items:start; }
+  #tdf-campos, #esub-campos { min-width:0; }
   #mca-campos { min-width:0; }
   #mca-eco-cols { display:grid; grid-template-columns:repeat(auto-fit,minmax(175px,1fr)); gap:10px; }
   @media (min-width: 900px) {
-    #mca-fila, #tdf-fila { grid-template-columns:minmax(0,1fr) 320px; }
+    #mca-fila, #tdf-fila, #esub-fila { grid-template-columns:minmax(0,1fr) 320px; }
     #mca-eco-cols { grid-template-columns:repeat(2, minmax(0,1fr)); }
     .mca-cat-grid { grid-template-columns:repeat(3, minmax(0,1fr)); }
   }
@@ -17380,10 +17380,15 @@ z
       <span id="esub_badge" class="incl-badge" hidden>&#9679; cargada</span>
     </button>
     <div class="card-body sacc-body">
-      <p style="font-size:11px;color:var(--text2);margin:0 0 12px;line-height:1.5;">
-        Obstrucción <b>fija</b> del tracto de salida izquierdo por membrana o túnel fibromuscular. Se distingue de la
-        obstrucción <b>dinámica</b> de la miocardiopatía hipertrófica por su comportamiento con Valsalva.
-      </p>
+      <!-- PANT-3, commit 8a. Menos texto en pantalla: la prosa y las cinco notas de campo
+           pasaron a los dos globos, con la guia, la hoja, el folio y la condicion exacta de cada
+           corte leidos en imagen. Ningun corte se movio y ninguna conclusion cambio. -->
+      <div style="display:flex;align-items:center;gap:8px;margin:0 0 12px;">
+        <span style="font-size:11px;font-weight:700;color:var(--text2);">Obstrucción fija del tracto de salida izquierdo</span>
+        <button type="button" class="vinfo-btn vinfo-btn-44" data-vinfo="esub-sec" aria-label="Que es la estenosis subaortica y como se distingue de la dinamica" onclick="vInfoClic(this,event)">&#9432;</button>
+      </div>
+      <div id="esub-fila">
+      <div id="esub-campos">
       <div class="grid-3">
         <div class="fg"><label>Tipo</label>
           <select id="esub_tipo" onchange="esubSync()">
@@ -17392,9 +17397,9 @@ z
             <option value="tunel">Túnel subaórtico</option>
             <option value="noesp">No especificado</option>
           </select></div>
-        <div class="fg"><label>Gradiente medio (mmHg)</label>
+        <div class="fg"><label>Gradiente medio (mmHg) <button type="button" class="vinfo-btn vinfo-btn-44" data-vinfo="esub-grad" aria-label="Los dos gradientes y los dos cortes, con su guia y su folio" onclick="vInfoClic(this,event)">&#9432;</button></label>
           <input type="number" id="esub_gradiente_medio" step="1" placeholder="mmHg" oninput="esubSync()">
-          <span style="font-size:10px;color:var(--text2);">Es el que gradúa: la ESC 2020 define severa la obstrucción del TSVI <b>a cualquier nivel</b> con medio &ge;40&nbsp;mmHg a flujo normal.</span></div>
+          <span style="font-size:10px;color:var(--text2);">Es el que gradúa.</span></div>
         <div class="fg"><label>Gradiente pico (mmHg)</label>
           <input type="number" id="esub_gradiente_mmhg" step="1" placeholder="mmHg" oninput="esubSync()">
           <span style="font-size:10px;color:var(--text2);">Se describe; no gradúa por sí solo.</span></div>
@@ -17405,7 +17410,7 @@ z
             <option value="">&mdash;</option><option value="no">No</option>
             <option value="leve">Leve</option><option value="moderada">Moderada</option><option value="severa">Severa</option>
           </select>
-          <span style="font-size:10px;color:var(--text2);">Secundaria al chorro sobre los velos: frecuente y progresiva, marcador de severidad.</span></div>
+          </div>
         <div class="fg"><label>Longitud del túnel (mm)</label>
           <input type="number" id="esub_longitud_mm" step="1" placeholder="mm" oninput="esubSync()">
           <span style="font-size:10px;color:var(--text2);">Sólo para el túnel subaórtico.</span></div>
@@ -17415,13 +17420,17 @@ z
             <option value="sin_cambios">Sin cambios</option>
             <option value="aumenta">Aumenta</option><option value="disminuye">Disminuye</option>
           </select>
-          <span style="font-size:10px;color:var(--text2);">Un gradiente que <b>aumenta</b> con Valsalva sugiere obstrucción dinámica, no fija.</span></div>
+          </div>
       </div>
-      <div id="esub-resultado" class="calc-box" style="margin-top:12px;"></div>
+      </div><!-- /#esub-campos -->
+      <div id="esub-concl-col">
+      <div id="esub-resultado" class="calc-box" style="margin-top:0;"></div>
       <input type="checkbox" id="esub_incluir_chk" style="display:none;" tabindex="-1" aria-hidden="true">      <div style="display:flex;justify-content:center;margin-top:10px;">
         <button type="button" class="btn btn-integrar" data-ete-chk="esub_incluir_chk" aria-pressed="false"
                 onclick="eteInclToggle('esub_incluir_chk')">&#128206; Integrar al informe</button>
       </div>
+      </div><!-- /#esub-concl-col -->
+      </div><!-- /#esub-fila -->
     </div>
   </div>
   <div class="card sacc" id="sacc-cc-easv">
@@ -46834,6 +46843,57 @@ const VINFO = Object.freeze({
          impreso «4062») y hoja 67, folio 4063. Regla de folio: folio = hoja + 3996, comprobada
          en las hojas 10, 66, 67 y 100.
      Las frases que contaban la historia de una edicion de una guia NO pasaron al ⓘ: salieron. */
+  /* ── ESTENOSIS SUBAORTICA (PANT-3, commit 8a) ─────────────────────────────────────────
+     LAS CUATRO HOJAS SE VOLVIERON A LEER EN IMAGEN, que es lo que la orden pide:
+       · ESC 2020 congenitas del adulto, edicion INGLESA, hoja 41 = folio 603 -regla
+         folio = hoja + 562, comprobada en el pie impreso de la hoja 51-: el recuadro
+         «Recommendations for intervention in subaortic stenosis» publica «In symptomatic
+         patients (spontaneous or on exercise test) with a mean Doppler gradient >=40 mmHg or
+         severe AR, surgery is recommended», CLASE I, NIVEL C.
+       · ESC 2020, hoja 10 = folio 572: «Lower mean Doppler gradient threshold for LVOTO
+         intervention from 50 to 40 mmHg», en la tabla de recomendaciones revisadas.
+       · ACC/AHA 2025 (Gurvitz), hoja 43 = folio e157 -regla folio = hoja + 114, comprobada en
+         el pie impreso de las hojas 43 y 53-, en el capitulo del DEFECTO SEPTAL
+         AURICULOVENTRICULAR: «Echocardiographic gradients of peak >=50 mm Hg (subaortic
+         stenosis) or mean >=40 mm Hg (valvular aortic stenosis) have been suggested as cutoffs
+         for severe LVOT obstruction», SIN clase ni nivel propios.
+       · ACC/AHA 2025, hoja 53 = folio e167: «No data identify an echocardiographic gradient
+         threshold at which a patient develops symptoms, nor one at which symptoms would be
+         relieved by surgical resection», y en la misma hoja «in adults, a peak gradient >=50 mm
+         Hg is associated with a higher probability of aortic regurgitation».
+     Los DOS cortes se quedan, cada uno con su rotulo: 40 es MEDIO y 50 es PICO. */
+  'esub-sec': {
+    ancho: 380,
+    tit: 'La estenosis subaórtica',
+    lee: 'Obstrucción FIJA del tracto de salida izquierdo por membrana o túnel fibromuscular.\n'
+       + 'Se distingue de la obstrucción DINÁMICA de la miocardiopatía hipertrófica por su '
+       + 'comportamiento con Valsalva: un gradiente que AUMENTA con la maniobra sugiere '
+       + 'obstrucción dinámica y no fija.\n'
+       + 'La insuficiencia aórtica asociada es secundaria al chorro sobre los velos: es frecuente '
+       + 'y progresiva, y es un marcador de severidad.'
+  },
+  'esub-grad': {
+    ancho: 440,
+    tit: 'Los dos gradientes y los dos cortes',
+    lee: 'EN ESTA SECCIÓN GRADÚA EL GRADIENTE MEDIO, con 40 mmHg a flujo normal. El gradiente '
+       + 'PICO se describe y no gradúa por sí solo.\n'
+       + 'La aplicación usa además un corte de 50 mmHg de gradiente PICO, en la sección de la '
+       + 'transposición de grandes arterias. Son dos números distintos de dos guías distintas, y '
+       + 'cada uno mide una cosa distinta.',
+    fuente: 'ESC 2020 de cardiopatías congénitas del adulto — hojas 41 (folio 603) y 10 (folio '
+          + '572). ACC/AHA 2025 (Gurvitz) — hojas 43 (folio e157) y 53 (folio e167).',
+    ojo: 'EL 40 ES GRADIENTE MEDIO Y ES CRITERIO DE INTERVENCIÓN. La ESC 2020 recomienda la '
+       + 'cirugía en el paciente sintomático —espontáneamente o en la prueba de ejercicio— con '
+       + 'un gradiente medio por Doppler de 40 mmHg o más, o con insuficiencia aórtica severa: '
+       + 'Clase I, Nivel C, hoja 41, folio 603. La misma guía bajó expresamente ese umbral de 50 '
+       + 'a 40 mmHg (hoja 10, folio 572).\n'
+       + 'EL 50 ES GRADIENTE PICO Y NO TIENE CLASE NI NIVEL. La ACC/AHA 2025 lo menciona como '
+       + 'corte sugerido de obstrucción severa del tracto de salida (hoja 43, folio e157) y, en '
+       + 'el adulto, como gradiente pico asociado a mayor probabilidad de insuficiencia aórtica '
+       + '(hoja 53, folio e167). Esa misma hoja dice que NINGÚN DATO identifica un umbral de '
+       + 'gradiente al que el paciente desarrolle síntomas, ni uno al que los síntomas se '
+       + 'alivien con la resección quirúrgica.'
+  },
   /* ── TETRALOGIA DE FALLOT REPARADA (PANT-3, commit 7) ──────────────────────────────────
      La fuente se leyo EN IMAGEN a 230 ppp: ESC 2020 de cardiopatias congenitas del adulto,
      edicion INGLESA, HOJA 51, folio 613 -regla folio = hoja + 562, COMPROBADA en el pie impreso
