@@ -16677,594 +16677,7 @@ z
       </div>
     </div>
   </div>
-
-  <!-- ═══ CIA / CIV ═══
-       Vive acá y no en ETE porque el shunt se calcula con TSVI/TSVD. Los campos fuente
-       (diam_tsvi, itv_tsvi, tsvd_diametro, vti_tsvd) siguen en #tab-doppler y #tab-vd — esta
-       sección sólo muestra espejos de sólo lectura (ete_shunt_*_ro) que llena eteShuntSync().
-       El toggle de inclusión NO usa localStorage: se lee del propio checkbox, que
-       guardarInforme captura en `campos` y la reimpresión repone. Las secciones viejas leen
-       una clave global y por eso un estudio reimpreso podía salir sin una sección que el PDF
-       original sí tenía. -->
-  
-
-  <!-- ═══ DUCTUS ARTERIOSO PERMEABLE ═══ -->
-  
-
-  <!-- ═══ COARTACIÓN DE AORTA ═══ -->
-  
-
-  <!-- ═══ VENTANA AORTOPULMONAR ═══ -->
-  
-
-  <!-- ═══ FORAMEN OVAL PERMEABLE ═══
-       Los campos de contexto clínico son SELECTS de tres estados, no casillas: la diferencia
-       entre «no lo tiene» y «no lo pregunté» decide acá entre no hacer nada e implantar un
-       dispositivo. Ver la nota de fopConclusion(). -->
-  
-
-  <!-- ═══ VÁLVULA AÓRTICA BICÚSPIDE ═══
-       La guía que se aplica es la ESC 2024 de AORTA, no la ESC/EACTS de valvulopatías: la 2021
-       está superada por la 2025, y la 2025 borró sus propias filas de 55/50 mm y remite a la de
-       aorta. El texto que imprime la sección nombra la guía y la clase. Ver vabConclusion(). -->
-  
-
-  <!-- ═══ MIOCARDIOPATÍA HIPERTRÓFICA ═══
-       Dos scores de muerte súbita con criterios distintos, lado a lado, cada uno con su guía y
-       su clase. No se promedian ni se elige uno. Ver mchConclusion(). -->
-  
-
-  <!-- ═══ TETRALOGÍA DE FALLOT REPARADA ═══
-       Sin campos de volumen a propósito: los umbrales de 160/80 ml/m² son de RESONANCIA y la
-       eco 2D no mide volúmenes del VD de forma fiable. Ver tdfConclusion(). -->
-  
-
-  <!-- ═══ TRANSPOSICIÓN DE GRANDES ARTERIAS CORREGIDA ═══ -->
-  
-
-
-
-  <!-- ═══ MIOCARDIOPATÍA ARRITMOGÉNICA ═══
-       MCA y no MAVD/ARVC: el compromiso puede ser biventricular o predominantemente izquierdo.
-       La regla de conteo es UNO POR CATEGORÍA — ver mcaScore(). -->
-  
-
-  <!-- ═══ ANOMALÍA DE EBSTEIN ═══
-       Las cinco áreas del índice de Celermajer son campos PROPIOS y no reusan ad_area/ai_area:
-       aquéllas se miden en telesístole (aurícula máxima, criterio ASE para tamaño de cámara) y
-       ésta en telediástole. Ver ebsCelermajer(). -->
-  
-</div>
-
-<!-- ═══════════════════════ TAB: ECO ESTRÉS ═══════════════════════
-     LA INTERFAZ DE ESTE MÓDULO ESTÁ RETIRADA: no hay pestaña, no hay campos y no hay una sola
-     regla de CSS para sus clases —medido—. El JS de abajo sigue COMPLETO y corre en cada
-     carga: dos listeners globales, un setTimeout de arranque y unas sesenta funciones que
-     salen por su guarda porque el elemento que buscan no existe.
-
-     NO SE BORRA, y es decisión de Maicol del 25/10/2026: queda inerte hasta modularizar la
-     app. El motivo es que EL PREFIJO `ee` NO IDENTIFICA A ESTE MÓDULO —hay cuatro familias y
-     tres están VIVAS—; la nota del listener de `paste`, más abajo, las enumera.
-
-     LO MANTIENEN FUERA DEL PAPEL TRES COMPUERTAS:
-       1. la sección del PDF exige que EXISTA el elemento 'ee-incluir-pdf' en el DOM;
-       2. el informe narrativo sólo agrega el rótulo «Eco Estrés:» si eeInformeLineas()
-          devuelve líneas, y sale con [] porque 'ee-res-global' no existe;
-       3. eeHasData() da falso con el árbol limpio.
-     Las tres las fija TC-536, con el escenario peligroso —la bandera encendida a mitad de
-     sesión más eeHasData() en true— y con controles negativos de las tres familias vivas.
-
-     Inventario de piezas, líneas, bytes y dueños: docs/mapa/eco-estres-inventario.md
-     Qué falta medir antes de borrar:          docs/PENDIENTES.md → AJ10-C -->
-
-<script>
-(function(){
-function eeSwitchTab(id,el){
-  document.querySelectorAll('#tab-ee .ee-tab-content').forEach(t=>t.classList.remove('active'));
-  el.parentElement.querySelectorAll('.ee-tab').forEach(t=>t.classList.remove('active'));
-  document.getElementById('ee-tab-'+id).classList.add('active');
-  el.classList.add('active');
-  if(id==='bullo') eeInitAllBulls();
-}
-function eeSwitchBullTab(id,el){
-  ['basal','pico','recup'].forEach(b=>{ document.getElementById('ee-bull-'+b).style.display = b===id?'flex':'none'; });
-  el.parentElement.querySelectorAll('.ee-tab').forEach(t=>t.classList.remove('active'));
-  el.classList.add('active');
-}
-function eeToggleStep(hdr){
-  const body=hdr.nextElementSibling;
-  const isOpen=body.classList.contains('open');
-  body.classList.toggle('open');
-  hdr.querySelector('span:last-child').textContent=isOpen?'▼':'▲';
-}
-function eeSyncEdad(){
-  const age=+((document.getElementById('edad')||{}).value||0);
-  if(age>0){
-    const t=220-age;
-    const teo=document.getElementById('ee-b-fcteo'); if(teo) teo.value=t;
-    const obj=document.getElementById('ee-a-fcobj'); if(obj) obj.value=Math.round(t*0.85);
-    eeCalcFCPct();
-  }
-}
-function eeCalcFCPct(){
-  const fcteo=+((document.getElementById('ee-b-fcteo')||{}).value||0);
-  const fcmax=+((document.getElementById('ee-b-fcmax')||{}).value||0);
-  if(!fcteo||!fcmax)return;
-  const pct=Math.round(fcmax/fcteo*100);
-  const fill=document.getElementById('ee-fc-pct-fill'), val=document.getElementById('ee-fc-pct-val');
-  const col = pct>=85?'var(--green)':pct>=75?'var(--yellow)':'var(--red)';
-  if(fill){ fill.style.width=Math.min(pct,100)+'%'; fill.style.background=col; }
-  if(val){ val.textContent=pct+'% de FC máxima teórica'; val.style.color=col; }
-}
-function eeEvalCFVR(){
-  const v=+((document.getElementById('ee-f-cfvr')||{}).value||0);
-  const el=document.getElementById('ee-f-cfvr-res'); if(!el)return;
-  if(!v){el.textContent='';return;}
-  if(v>=2.5){el.style.color='var(--green)';el.textContent='✅ Normal (≥2.5)';}
-  else if(v>=2.0){el.style.color='var(--yellow)';el.textContent='⚠️ Borderline (2.0–2.5)';}
-  else{el.style.color='var(--red)';el.textContent='❌ Reducida (<2.0) — sugiere enfermedad microvascular o estenosis significativa';}
-}
-function eeEvalPSAP(){
-  const v=+((document.getElementById('ee-p-psap-pic')||{}).value||0);
-  const el=document.getElementById('ee-p-psap-res'); if(!el)return;
-  if(!v){el.textContent='';return;}
-  if(v>60){el.style.color='var(--red)';el.textContent='❌ HTP inducida por estrés (>60mmHg)';}
-  else if(v>50){el.style.color='var(--yellow)';el.textContent='⚠️ Elevación significativa (>50mmHg)';}
-  else{el.style.color='var(--green)';el.textContent='✅ Normal (<50mmHg)';}
-}
-function eeEvalEE(){
-  const v=+((document.getElementById('ee-p-ee')||{}).value||0);
-  const el=document.getElementById('ee-p-ee-res'); if(!el)return;
-  if(!v){el.textContent='';return;}
-  if(v>14){el.style.color='var(--red)';el.textContent="❌ E/e' elevado (>14) — PCP probablemente elevada";}
-  else if(v>10){el.style.color='var(--yellow)';el.textContent="⚠️ E/e' borderline (10–14)";}
-  else{el.style.color='var(--green)';el.textContent="✅ E/e' normal (<10)";}
-}
-function eeEvalGLS(){
-  const bas=+((document.getElementById('ee-gls-bas')||{}).value||0);
-  const pic=+((document.getElementById('ee-gls-pic')||{}).value||0);
-  const el=document.getElementById('ee-gls-res'); if(!el)return;
-  if(!bas){el.textContent='';return;}
-  let txt='';
-  if(bas>-16)txt='❌ GLS basal reducido (>−16%) — disfunción sistólica subclínica';
-  else if(bas>-20)txt='⚠️ GLS basal borderline (−16% a −20%)';
-  else txt='✅ GLS basal normal (≤−20%)';
-  if(pic){ const delta=Math.abs(pic)-Math.abs(bas); txt+=delta>2?' · ✅ Reserva de strain presente':' · ⚠️ Sin reserva de strain'; }
-  el.textContent=txt;
-  el.style.color=bas<=-20?'var(--green)':bas<=-16?'var(--yellow)':'var(--red)';
-}
-function eeCalcCFVR(art){
-  const bas=+((document.getElementById('ee-cfvr-'+art+'-bas')||{}).value||0);
-  const ade=+((document.getElementById('ee-cfvr-'+art+'-ade')||{}).value||0);
-  if(!bas||!ade)return;
-  const cfvr=(ade/bas).toFixed(2);
-  const valEl=document.getElementById('ee-cfvr-'+art+'-val'); if(valEl) valEl.textContent=cfvr;
-  const int=document.getElementById('ee-cfvr-'+art+'-int'); if(!int)return;
-  if(+cfvr>=2.5){int.style.color='var(--green)';int.textContent='Normal';}
-  else if(+cfvr>=2.0){int.style.color='var(--yellow)';int.textContent='Borderline';}
-  else{int.style.color='var(--red)';int.textContent='Reducida';}
-}
-function eeUpdateResult(){
-  const v=document.getElementById('ee-res-global').value;
-  const box=document.getElementById('ee-res-box');
-  const msgs={
-    neg:{cls:'ee-rb-neg',txt:'✅ Estudio negativo para isquemia inducible. Bajo riesgo de eventos cardiovasculares mayores a corto plazo.'},
-    pos:{cls:'ee-rb-pos',txt:'❌ Estudio positivo para isquemia. Se recomienda correlación con coronariografía y evaluación por cardiología intervencionista.'},
-    inc:{cls:'ee-rb-inc',txt:'⚠️ Estudio indeterminado o no concluyente. Considerar repetir con protocolo alternativo o escalar a coronariografía según clínica.'},
-    via:{cls:'ee-rb-neg',txt:'✅ Viabilidad miocárdica presente. Segmentos con mejoría con dosis bajas de dobutamina. Beneficio potencial de revascularización.'},
-    novia:{cls:'ee-rb-pos',txt:'❌ Sin evidencia de viabilidad miocárdica. Bajo beneficio esperado de revascularización en los segmentos evaluados.'}
-  };
-  if(msgs[v]){ box.className='ee-result-box show '+msgs[v].cls; box.textContent=msgs[v].txt; }
-  else { box.className='ee-result-box'; }
-}
-
-// ── BULL'S EYE ──
-const EE_SEGS=[
-  {id:1,name:'Anterior basal',ter:'LAD'},{id:2,name:'Anteroseptal basal',ter:'LAD'},
-  {id:3,name:'Inferoseptal basal',ter:'RCA'},{id:4,name:'Inferior basal',ter:'RCA'},
-  {id:5,name:'Inferolateral basal',ter:'RCA'},{id:6,name:'Anterolateral basal',ter:'LCx'},
-  {id:7,name:'Anterior medio',ter:'LAD'},{id:8,name:'Anteroseptal medio',ter:'LAD'},
-  {id:9,name:'Inferoseptal medio',ter:'RCA'},{id:10,name:'Inferior medio',ter:'RCA'},
-  {id:11,name:'Inferolateral medio',ter:'RCA'},{id:12,name:'Anterolateral medio',ter:'LCx'},
-  {id:13,name:'Anterior apical',ter:'LAD'},{id:14,name:'Septal apical',ter:'LAD'},
-  {id:15,name:'Inferior apical',ter:'RCA'},{id:16,name:'Lateral apical',ter:'LCx'},
-  {id:17,name:'Apex',ter:'LAD'}
-];
-const EE_LABELS=['Normal','Hipokinesia','Akinesia','Diskinesia','No eval.'];
-const EE_SCORES=[1,2,3,4,0];
-const EE_COLORS=['#3ecf8e','#f5c842','#f59e42','#8a5fd4','#9aa3bc'];
-const EE_TER={LAD:'#4f8ef7',RCA:'#f05454',LCx:'#3ecf8e'};
-let eeBull={basal:Array(17).fill(0),pico:Array(17).fill(0),recup:Array(17).fill(0)};
-let eeBullInited={basal:false,pico:false,recup:false};
-let eePopPhase=null, eePopIdx=-1;
-
-function eeInitAllBulls(){ ['basal','pico','recup'].forEach(p=>{ if(!eeBullInited[p]){ eeBullInited[p]=true; eeRenderBull(p); } }); }
-function eeArc(cx,cy,r1,r2,s,e){
-  const rs=s*Math.PI/180,re=e*Math.PI/180;
-  const x1=cx+r1*Math.cos(rs),y1=cy+r1*Math.sin(rs);
-  const x2=cx+r1*Math.cos(re),y2=cy+r1*Math.sin(re);
-  const x3=cx+r2*Math.cos(re),y3=cy+r2*Math.sin(re);
-  const x4=cx+r2*Math.cos(rs),y4=cy+r2*Math.sin(rs);
-  const large=Math.abs(e-s)>180?1:0, sweep=e<s?0:1;
-  return 'M'+x1+','+y1+' A'+r1+','+r1+' 0 '+large+','+sweep+' '+x2+','+y2+' L'+x3+','+y3+' A'+r2+','+r2+' 0 '+large+','+(sweep?0:1)+' '+x4+','+y4+' Z';
-}
-function eeRenderBull(phase){
-  const svg=document.getElementById('ee-eye-svg-'+phase); if(!svg)return;
-  const cx=170,cy=170,state=eeBull[phase];
-  const rings=[{r1:130,r2:92,segs:[0,1,2,3,4,5],step:60},{r1:92,r2:54,segs:[6,7,8,9,10,11],step:60},{r1:54,r2:24,segs:[12,13,14,15],step:90}];
-  let html='';
-  rings.forEach(ring=>{ ring.segs.forEach((segIdx,s)=>{
-    const seg=EE_SEGS[segIdx];
-    const startDeg=-90+30-(s*ring.step), endDeg=startDeg-ring.step, midDeg=startDeg-ring.step/2, midR=(ring.r1+ring.r2)/2;
-    const lx=cx+midR*Math.cos(midDeg*Math.PI/180), ly=cy+midR*Math.sin(midDeg*Math.PI/180);
-    html+='<path d="'+eeArc(cx,cy,ring.r1,ring.r2,startDeg,endDeg)+'" fill="'+EE_COLORS[state[segIdx]]+'" fill-opacity="0.85" stroke="#0f1117" stroke-width="2" onclick="eeCycleBull(\''+phase+'\','+segIdx+')" oncontextmenu="eeOpenBullPop(event,\''+phase+'\','+segIdx+');return false;" style="cursor:pointer"><title>Seg '+seg.id+' '+seg.name+' ('+seg.ter+') — '+EE_LABELS[state[segIdx]]+'</title></path>';
-    html+='<text x="'+lx+'" y="'+ly+'" text-anchor="middle" dominant-baseline="middle" font-size="9" fill="#fff" font-weight="700" pointer-events="none">'+seg.id+'</text>';
-  }); });
-  html+='<circle cx="'+cx+'" cy="'+cy+'" r="24" fill="'+EE_COLORS[state[16]]+'" fill-opacity="0.85" stroke="#0f1117" stroke-width="2" onclick="eeCycleBull(\''+phase+'\',16)" oncontextmenu="eeOpenBullPop(event,\''+phase+'\',16);return false;" style="cursor:pointer"><title>Apex (LAD) — '+EE_LABELS[state[16]]+'</title></circle>';
-  html+='<text x="'+cx+'" y="'+cy+'" text-anchor="middle" dominant-baseline="middle" font-size="9" fill="#fff" font-weight="700" pointer-events="none">17</text>';
-  html+='<text x="'+cx+'" y="26" text-anchor="middle" font-size="9" fill="'+EE_TER.LAD+'" font-weight="800">LAD</text>';
-  html+='<text x="315" y="'+cy+'" text-anchor="end" font-size="9" fill="'+EE_TER.LCx+'" font-weight="800">LCx</text>';
-  html+='<text x="25" y="'+cy+'" text-anchor="start" font-size="9" fill="'+EE_TER.RCA+'" font-weight="800">RCA</text>';
-  svg.innerHTML=html;
-  eeUpdateWMSI(phase);
-}
-function eeCycleBull(phase,idx){ eeBull[phase][idx]=(eeBull[phase][idx]+1)%EE_LABELS.length; eeRenderBull(phase); }
-function eeOpenBullPop(e,phase,idx){
-  e.preventDefault(); eePopPhase=phase; eePopIdx=idx;
-  const seg=EE_SEGS[idx], pop=document.getElementById('ee-eye-pop');
-  document.getElementById('ee-eye-pop-title').textContent='Seg '+seg.id+' — '+seg.name+' ('+seg.ter+')';
-  document.getElementById('ee-eye-pop-states').innerHTML=EE_LABELS.map((lbl,i)=>'<button class="ee-eye-pop-btn'+(eeBull[phase][idx]===i?' sel':'')+'" style="background:'+EE_COLORS[i]+'33;color:'+EE_COLORS[i]+';border-color:'+(eeBull[phase][idx]===i?EE_COLORS[i]:'transparent')+'" onclick="eeSetBullState(\''+phase+'\','+idx+','+i+')">'+lbl+'</button>').join('');
-  pop.style.left=Math.min(e.clientX,window.innerWidth-220)+'px';
-  pop.style.top=Math.min(e.clientY,window.innerHeight-180)+'px';
-  pop.classList.add('open');
-}
-function eeSetBullState(phase,idx,st){
-  eeBull[phase][idx]=st; eeRenderBull(phase);
-  document.querySelectorAll('.ee-eye-pop-btn').forEach((b,i)=>{ b.classList.toggle('sel',i===st); b.style.borderColor=i===st?EE_COLORS[i]:'transparent'; });
-}
-function eeCloseEyePop(){ document.getElementById('ee-eye-pop').classList.remove('open'); eePopPhase=null; eePopIdx=-1; }
-function eeUpdateWMSI(phase){
-  const state=eeBull[phase]; let sum=0,count=0;
-  state.forEach(st=>{ if(st!==4){ sum+=EE_SCORES[st]; count++; } });
-  const wmsi=count>0?(sum/count).toFixed(2):'—';
-  const valEl=document.getElementById('ee-wmsi-'+phase), catEl=document.getElementById('ee-wmsi-'+phase+'-cat');
-  if(valEl) valEl.textContent=wmsi;
-  if(!catEl)return;
-  if(wmsi==='—'){catEl.textContent='';return;}
-  const w=PF(wmsi);
-  if(w===1){catEl.textContent='Normal';catEl.style.color='var(--green)';}
-  else if(w<=1.5){catEl.textContent='Disfunción leve';catEl.style.color='var(--yellow)';}
-  else if(w<=2){catEl.textContent='Disfunción moderada';catEl.style.color='var(--orange)';}
-  else{catEl.textContent='Disfunción severa';catEl.style.color='var(--red)';}
-}
-function eeResetBull(phase){ eeBull[phase]=Array(17).fill(0); eeRenderBull(phase); }
-/* El PRIMERO de los dos listeners GLOBALES de Eco Estrés, cuya interfaz está retirada. Sale
-   solo: pregunta por `#ee-eye-pop`, que no existe, y verificado en el navegador no llega nunca
-   a cerrar nada. El criterio completo —por qué NO se desactiva con una bandera, por qué quitar
-   los exports no alcanza, y cuáles son las TRES familias `ee` que SÍ están vivas— está en la
-   nota del segundo listener, el de `paste`, más abajo en este mismo bloque.
-   Inventario: docs/mapa/eco-estres-inventario.md · lo fija TC-536. */
-document.addEventListener('click',e=>{
-  const pop=document.getElementById('ee-eye-pop');
-  if(pop&&pop.classList.contains('open')&&!pop.contains(e.target)&&!(e.target.closest&&e.target.closest('#tab-ee svg'))) eeCloseEyePop();
-});
-
-function eeGetWMSItext(phase){
-  const state=eeBull[phase], anorm=[];
-  state.forEach((st,i)=>{ if(st>0&&st!==4) anorm.push('Seg '+EE_SEGS[i].id+' '+EE_SEGS[i].name+' ('+EE_SEGS[i].ter+'): '+EE_LABELS[st]); });
-  let sum=0,count=0; state.forEach(st=>{ if(st!==4){ sum+=EE_SCORES[st]; count++; } });
-  return {anorm, wmsi: count>0?(sum/count).toFixed(2):'—'};
-}
-function eeResetAll(){
-  document.querySelectorAll('#tab-ee input, #tab-ee select, #tab-ee textarea').forEach(el=>{
-    if(el.tagName==='SELECT') el.selectedIndex=0; else el.value='';
-  });
-  ['basal','pico','recup'].forEach(p=>{ eeBull[p]=Array(17).fill(0); eeRenderBull(p); });
-  const box=document.getElementById('ee-res-box'); if(box) box.className='ee-result-box';
-  const fill=document.getElementById('ee-fc-pct-fill'); if(fill) fill.style.width='0%';
-  const val=document.getElementById('ee-fc-pct-val'); if(val) val.textContent='—';
-}
-
-// Conexión con EcoSmart: GLS del tab VI / SGL global
-function eeSyncGLS(){
-  const bas=document.getElementById('ee-gls-bas'); if(!bas)return;
-  const sglGlobal=document.getElementById('sgl_gls'), viSgl=document.getElementById('sgl');
-  let val='';
-  if(sglGlobal && sglGlobal.value!=='') val=sglGlobal.value;
-  else if(viSgl && viSgl.value!=='') val=viSgl.value;
-  if(val!=='' && bas.value===''){ bas.value=val; eeEvalGLS(); }
-}
-function eeOnShow(){ eeSyncEdad(); eeSyncGLS(); eeInitAllBulls(); if(typeof eePdfPanelRender==='function')eePdfPanelRender(); if(typeof eeProtoBuild==='function' && !document.querySelector('#ee-proto-table-wrap table'))eeProtoBuild(); }
-
-// Sección Eco Estrés para el informe narrativo
-function eeInformeLineas(){
-  const res=document.getElementById('ee-res-global');
-  if(!res || !res.value) return [];
-  const resTxt={neg:'Negativo para isquemia',pos:'Positivo para isquemia',inc:'Indeterminado / no concluyente',via:'Viabilidad presente',novia:'Sin viabilidad'}[res.value]||res.value;
-  const estres=document.getElementById('ee-p-estres');
-  const estresTxt=estres?estres.options[estres.selectedIndex].text:'';
-  const lines=['Eco estrés'+(estresTxt?' ('+estresTxt+')':'')+': '+resTxt+'.'];
-  const pic=eeGetWMSItext('pico');
-  if(pic.anorm.length) lines.push('Motilidad en el pico de estrés: '+pic.anorm.join('; ')+'. WMSI pico '+pic.wmsi+'.');
-  else if(pic.wmsi!=='—') lines.push('Sin nuevas alteraciones de la motilidad en el pico de estrés (WMSI '+pic.wmsi+').');
-  const camb=document.getElementById('ee-b-cambios');
-  if(camb && camb.value && camb.value!=='no') lines.push('ECG: '+camb.options[camb.selectedIndex].text+'.');
-  const gb=document.getElementById('ee-gls-bas'), gp=document.getElementById('ee-gls-pic');
-  if(gb && gb.value){ let g='GLS basal '+gb.value+'%'; if(gp&&gp.value) g+=', pico '+gp.value+'%'; lines.push(g+'.'); }
-  const com=document.getElementById('ee-res-comment');
-  if(com && com.value.trim()) lines.push(com.value.trim());
-  return lines;
-}
-
-// Exponer para handlers inline y para EcoSmart
-window.eeSwitchTab=eeSwitchTab; window.eeSwitchBullTab=eeSwitchBullTab; window.eeToggleStep=eeToggleStep;
-window.eeCalcFCPct=eeCalcFCPct; window.eeEvalCFVR=eeEvalCFVR; window.eeEvalPSAP=eeEvalPSAP; window.eeEvalEE=eeEvalEE;
-window.eeEvalGLS=eeEvalGLS; window.eeCalcCFVR=eeCalcCFVR; window.eeUpdateResult=eeUpdateResult;
-window.eeCycleBull=eeCycleBull; window.eeOpenBullPop=eeOpenBullPop; window.eeSetBullState=eeSetBullState;
-window.eeCloseEyePop=eeCloseEyePop; window.eeResetBull=eeResetBull; window.eeResetAll=eeResetAll;
-window.eeOnShow=eeOnShow; window.eeInformeLineas=eeInformeLineas;
-
-// ── Probabilidad pre-test de enfermedad coronaria (ESC 2019) ──
-function ptpCad(){
-  const edad=+((document.getElementById('ee-ptp-edad')||{}).value||0);
-  const sexo=(document.getElementById('ee-ptp-sexo')||{}).value||'';
-  const sint=(document.getElementById('ee-ptp-sint')||{}).value||'';
-  const res=document.getElementById('ee-ptp-res'), rec=document.getElementById('ee-ptp-rec');
-  if(!res||!rec) return;
-  if(!edad||!sexo||!sint){ res.innerHTML=''; rec.textContent=''; return; }
-  // ESC 2019 · PTP (%) por grupo etario [30-39,40-49,50-59,60-69,≥70] → [Masculino, Femenino]
-  const TBL={
-    tip:  [[3,5],[22,10],[32,13],[44,16],[52,27]],
-    atip: [[4,3],[10,6],[17,6],[26,11],[34,19]],
-    asint:[[1,1],[3,2],[11,3],[22,6],[24,10]]
-  };
-  const ai = edad<40?0 : edad<50?1 : edad<60?2 : edad<70?3 : 4;
-  const pct = (TBL[sint][ai])[sexo==='F'?1:0];
-  let cls,txt,recTxt;
-  if(pct<5){ cls='green'; txt='probabilidad muy baja'; recTxt='ESC: no requiere estudio adicional.'; }
-  else if(pct<=15){ cls='green'; txt='probabilidad baja'; recTxt='ESC: considerar TAC coronaria.'; }
-  else if(pct<=65){ cls='yellow'; txt='probabilidad intermedia'; recTxt='ESC: prueba funcional (eco estrés) o TAC coronaria.'; }
-  else { cls='red'; txt='probabilidad alta'; recTxt='ESC: considerar coronariografía.'; }
-  res.innerHTML='PTP '+pct+'% '+badge(cls,txt);
-  rec.textContent=recTxt;
-}
-window.ptpCad=ptpCad;
-
-// ── Compresión compartida (máx 800x600, JPEG 65%) ──
-function _eeCompress(file, cb){
-  const reader=new FileReader();
-  reader.onload=function(){ const im=new Image(); im.onload=function(){
-    let w=im.width,h=im.height; const r=Math.min(800/w,600/h,1); w=Math.max(1,Math.round(w*r)); h=Math.max(1,Math.round(h*r));
-    const cv=document.createElement('canvas'); cv.width=w; cv.height=h; const c=cv.getContext('2d'); c.fillStyle='#ffffff'; c.fillRect(0,0,w,h); c.drawImage(im,0,0,w,h);
-    cb(cv.toDataURL('image/jpeg',0.65));
-  }; im.src=reader.result; };
-  reader.readAsDataURL(file);
-}
-
-// ── Imágenes del estudio (Eco Estrés) — slots 2/4/6/8/10/+, grilla 2 col, drag ──
-let eeImg=[null,null], eeImgCount=2, eeImgActive=0;
-const EE_IMG_COUNTS=[2,4,6,8,10];
-function _eeImgLast(){ let l=-1; eeImg.forEach((s,i)=>{ if(s) l=i; }); return l; }
-function eeImgEnsure(){ const n=Math.max(eeImgCount,_eeImgLast()+1); while(eeImg.length<n)eeImg.push(null); if(eeImg.length>n)eeImg.length=n; }
-function eeImgSetCount(n){ eeImgCount=Math.max(n,_eeImgLast()+1); eeImgEnsure(); eeImgRender(); }
-function eeImgAdd(){ eeImgCount=eeImg.length+1; eeImgEnsure(); eeImgRender(); }
-function eeImgRender(){
-  eeImgEnsure();
-  const cb=document.getElementById('ee-img-count');
-  if(cb){ let h=EE_IMG_COUNTS.map(n=>'<button type="button" class="ee-btn ee-btn-ghost" style="padding:5px 12px;'+(eeImgCount===n?'background:var(--accent);color:#fff;':'')+'" onclick="eeImgSetCount('+n+')">'+n+'</button>').join(''); h+='<button type="button" class="ee-btn ee-btn-ghost" style="padding:5px 12px;" title="Agregar un slot" onclick="eeImgAdd()">＋</button>'; cb.innerHTML=h; }
-  const grid=document.getElementById('ee-img-grid'); if(!grid)return; grid.innerHTML='';
-  eeImg.forEach((slot,idx)=>{
-    const cell=document.createElement('div'); cell.dataset.idx=idx;
-    cell.style.cssText='position:relative;border:1.5px '+(slot?'solid':'dashed')+' var(--border);border-radius:10px;background:var(--bg3);min-height:130px;display:flex;align-items:center;justify-content:center;overflow:hidden;';
-    if(slot){ cell.setAttribute('draggable','true');
-      cell.innerHTML='<img src="'+slot+'" loading="lazy" style="max-width:100%;max-height:200px;display:block;pointer-events:none;"><button type="button" onclick="eeImgRemove(event,'+idx+')" style="position:absolute;top:6px;right:6px;width:22px;height:22px;border-radius:50%;border:none;background:var(--red);color:#fff;font-size:12px;cursor:pointer;line-height:1;">✕</button>';
-    } else { cell.innerHTML='<button type="button" onclick="eeImgPick('+idx+')" style="background:none;border:none;color:var(--text2);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;font-size:12px;"><span style="font-size:28px;line-height:1;">➕</span>Agregar</button>'; }
-    cell.addEventListener('dragstart',e=>{ if(eeImg[idx]) e.dataTransfer.setData('text/plain',String(idx)); });
-    cell.addEventListener('dragover',e=>e.preventDefault());
-    cell.addEventListener('drop',e=>{ e.preventDefault(); const f=parseInt(e.dataTransfer.getData('text/plain')); if(!isNaN(f)){ const t=eeImg[f]; eeImg[f]=eeImg[idx]; eeImg[idx]=t; eeImgRender(); } });
-    grid.appendChild(cell);
-  });
-}
-function eeImgPick(idx){ eeImgActive=idx; const inp=document.getElementById('ee-img-file'); if(inp){ inp.value=''; inp.click(); } }
-function eeImgChosen(e){ const f=e.target.files&&e.target.files[0]; if(f) _eeCompress(f,function(d){ let t=eeImgActive; if(t==null||t<0||t>=eeImg.length||eeImg[t]){ t=eeImg.findIndex(s=>!s); if(t===-1){ eeImg.push(null); t=eeImg.length-1; eeImgCount=eeImg.length; } } eeImg[t]=d; eeImgRender(); }); e.target.value=''; }
-function eeImgRemove(e,idx){ if(e) e.stopPropagation(); eeImg[idx]=null; eeImgRender(); }
-
-// ── Imágenes de ECG — slots 2/4/6/8/+, grilla 2 col, drag, tap-swap, pegar, compresión ──
-let eeEcg=[null,null], eeEcgCount=2, eeEcgActive=0, eeEcgSwap=null, _eeEcgLongT=null, _eeEcgLastTap=0;
-const EE_ECG_COUNTS=[2,4,6,8];
-function _eeEcgLast(){ let l=-1; eeEcg.forEach((s,i)=>{ if(s) l=i; }); return l; }
-function eeEcgEnsure(){ const n=Math.max(eeEcgCount,_eeEcgLast()+1); while(eeEcg.length<n)eeEcg.push(null); if(eeEcg.length>n)eeEcg.length=n; }
-function eeEcgSetCount(n){ eeEcgCount=Math.max(n,_eeEcgLast()+1); eeEcgEnsure(); eeEcgRender(); }
-function eeEcgAdd(){ eeEcgCount=eeEcg.length+1; eeEcgEnsure(); eeEcgRender(); }
-function eeEcgRender(){
-  eeEcgEnsure();
-  const cb=document.getElementById('ee-ecg-count');
-  if(cb){ let h=EE_ECG_COUNTS.map(n=>'<button type="button" class="ee-btn ee-btn-ghost" style="padding:5px 12px;'+(eeEcgCount===n?'background:var(--accent);color:#fff;':'')+'" onclick="eeEcgSetCount('+n+')">'+n+'</button>').join(''); h+='<button type="button" class="ee-btn ee-btn-ghost" style="padding:5px 12px;" title="Agregar un slot" onclick="eeEcgAdd()">＋</button>'; cb.innerHTML=h; }
-  const grid=document.getElementById('ee-ecg-img-grid'); if(!grid)return; grid.innerHTML='';
-  eeEcg.forEach((slot,idx)=>{
-    const cell=document.createElement('div'); cell.dataset.idx=idx;
-    cell.style.cssText='position:relative;border:1.5px '+(slot?'solid':'dashed')+' var(--border);border-radius:10px;background:var(--bg3);min-height:120px;display:flex;align-items:center;justify-content:center;overflow:hidden;'+(eeEcgSwap===idx?'outline:2px dashed var(--accent2);outline-offset:2px;':'');
-    if(slot){ cell.setAttribute('draggable','true');
-      cell.innerHTML='<img src="'+slot+'" loading="lazy" style="max-width:100%;max-height:190px;display:block;pointer-events:none;"><button type="button" onclick="eeEcgRemove(event,'+idx+')" style="position:absolute;top:6px;right:6px;width:22px;height:22px;border-radius:50%;border:none;background:var(--red);color:#fff;font-size:12px;cursor:pointer;line-height:1;">✕</button>';
-    } else { cell.innerHTML='<button type="button" onclick="eeEcgPick('+idx+')" style="background:none;border:none;color:var(--text2);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;font-size:12px;"><span style="font-size:28px;line-height:1;">➕</span>Agregar</button>'; }
-    cell.addEventListener('dragstart',e=>{ if(eeEcg[idx]) e.dataTransfer.setData('text/plain',String(idx)); });
-    cell.addEventListener('dragover',e=>e.preventDefault());
-    cell.addEventListener('drop',e=>{ e.preventDefault(); const f=parseInt(e.dataTransfer.getData('text/plain')); if(!isNaN(f)) eeEcgSwap2(f,idx); });
-    cell.addEventListener('click',()=>{ eeEcgActive=idx; });
-    let moved=false;
-    cell.addEventListener('touchstart',()=>{ moved=false; eeEcgActive=idx; _eeEcgLongT=setTimeout(()=>{ if(!moved&&eeEcg[idx]){ eeEcgSwap=(eeEcgSwap===idx?null:idx); eeEcgRender(); } },450); },{passive:true});
-    cell.addEventListener('touchmove',()=>{ moved=true; clearTimeout(_eeEcgLongT); },{passive:true});
-    cell.addEventListener('touchend',()=>{ clearTimeout(_eeEcgLongT); if(eeEcgSwap!==null&&eeEcgSwap!==idx){ eeEcgSwap2(eeEcgSwap,idx); eeEcgSwap=null; eeEcgRender(); } });
-    grid.appendChild(cell);
-  });
-}
-function eeEcgSwap2(a,b){ if(a===b)return; const t=eeEcg[a]; eeEcg[a]=eeEcg[b]; eeEcg[b]=t; eeEcgRender(); }
-function eeEcgPick(idx){ eeEcgActive=idx; const inp=document.getElementById('ee-ecg-img-file'); if(inp){ inp.value=''; inp.click(); } }
-function eeEcgChosen(e){ const f=e.target.files&&e.target.files[0]; if(f) _eeEcgPlace(f,eeEcgActive); e.target.value=''; }
-function _eeEcgPlace(file,idx){ _eeCompress(file,function(d){ let t=idx; if(t==null||t<0||t>=eeEcg.length||eeEcg[t]){ t=eeEcg.findIndex(s=>!s); if(t===-1){ eeEcg.push(null); t=eeEcg.length-1; eeEcgCount=eeEcg.length; } } eeEcg[t]=d; eeEcgRender(); }); }
-function eeEcgRemove(e,idx){ if(e) e.stopPropagation(); eeEcg[idx]=null; eeEcgRender(); }
-// Pegar desde portapapeles (con la sección ECG del Eco Estrés activa)
-/* Este listener y el de click de más arriba (`#ee-eye-pop`) son de Eco Estrés, cuya interfaz
-   está retirada. NO se desactivan con una bandera «que nunca sea true»: la guarda correcta ya
-   es la que tienen adentro —preguntan por su propio DOM, que no existe—, y verificado en el
-   navegador ninguno de los dos llega a `preventDefault()`. Una bandera falsa es peor: hay que
-   acordarse de invertirla el día que vuelva la UI, mientras que esto revive solo. Es el mismo
-   criterio con el que se cerró el gate del PDF (`#ee-incluir-pdf`).
-
-   Tampoco tiene sentido «desactivar los exports»: estas son declaraciones de función en el
-   nivel superior de un <script> clásico, así que ya crean la propiedad en `window` aunque se
-   borre la línea de export. Está medido y anotado en CLAUDE.md.
-
-   Lo que SÍ queda pendiente, y es la única interferencia real posible: este handler se
-   registra ANTES que `imgPasteHandler` del módulo de imágenes. Si vuelve `#tab-ee`, un pegado
-   con la pestaña de ECG activa haría `preventDefault()` acá y el módulo de imágenes no lo
-   vería. Al restaurar la UI hay que decidir el orden, no descubrirlo.
-
-   ⚠️ EL PREFIJO `ee` NO IDENTIFICA A ECO ESTRÉS. Hay CUATRO familias y TRES están VIVAS, así
-   que un borrado —o una IIFE— por prefijo apaga funciones de la app:
-     · CALCULADORA DE E/e′ — ee-e, ee-ep, ee-result, ee-val, ee-lbl y calcEE(). Alimenta la
-       función diastólica y el score de amiloidosis.
-     · MODO BÁSICO/AVANZADO DEL ETT — EE_MODULES, EE_DEF_KEY, eeGetMode, eeGetModules, eeModOn,
-       eeDefOn. Alimentan el desplegable «Sección avanzada» (#ecoAdvSelect, ecoAdvBuild).
-     · QR DEL INFORME — EE_QR_ROWS, eeStudyUrl, eeQrDataURL, eeQrEnabled.
-   Muerta de cara al usuario está SOLO la cuarta, la de Eco Estrés. Y no se borra por decisión
-   de Maicol del 25/10/2026: hasta modularizar la app, queda inerte detrás de sus compuertas.
-   Los campos cx_duke_* NO son de acá: el score de Duke sale de una ergometría en cinta.
-
-   Inventario con las piezas A/B/C: docs/mapa/eco-estres-inventario.md
-   Las compuertas y los controles:   TC-536
-   Lo que falta medir para borrar:   docs/PENDIENTES.md → AJ10-C */
-document.addEventListener('paste',function(e){
-  const ee=document.getElementById('tab-ee'), ecg=document.getElementById('ee-tab-ecg');
-  if(!ee||!ee.classList.contains('active')||!ecg||!ecg.classList.contains('active')) return;
-  const items=(e.clipboardData||window.clipboardData||{}).items||[];
-  for(let i=0;i<items.length;i++){ if(items[i].type&&items[i].type.indexOf('image')===0){ const f=items[i].getAsFile(); if(f){ e.preventDefault(); _eeEcgPlace(f,(eeEcg[eeEcgActive]?-1:eeEcgActive)); } break; } }
-});
-
-// ── Texto narrativo autogenerado ──
-function generarInformeEcoEstres(){
-  const val=id=>{ const el=document.getElementById(id); return el?(el.value||''):''; };
-  const selT=id=>{ const el=document.getElementById(id); return (el&&el.value!=='')?el.options[el.selectedIndex].text:''; };
-  const estres=selT('ee-p-estres');
-  const adec=(document.getElementById('ee-a-adec')||{}).value||'';
-  const mets=val('ee-b-mets');
-  const fcteo=+(val('ee-b-fcteo')||0), fcmax=+(val('ee-b-fcmax')||0);
-  const fcpct=(fcteo&&fcmax)?Math.round(fcmax/fcteo*100):null;
-  const resMap={neg:'negativo',pos:'positivo',inc:'indeterminado',via:'con viabilidad presente',novia:'sin viabilidad'};
-  const resTxt=resMap[(document.getElementById('ee-res-global')||{}).value]||'';
-  const pic=eeGetWMSItext('pico');
-  const parts=[];
-  parts.push('Eco estrés'+(estres?' con '+estres.toLowerCase():'')+'.');
-  const adTxt = adec==='si'?'adecuado':adec==='no'?'subóptimo':'';
-  const det=[]; if(mets) det.push('alcanzando '+mets+' METs'); if(fcpct!=null) det.push((mets?'y ':'alcanzando ')+fcpct+'% de la FC máxima teórica');
-  if(adTxt||det.length) parts.push(('Estrés '+(adTxt||'')).trim()+(det.length?', '+det.join(' '):'')+'.');
-  if(resTxt) parts.push('Estudio '+resTxt+' para isquemia.');
-  if(pic.anorm.length) parts.push(pic.anorm.join('; ')+' (WMSI pico '+pic.wmsi+').');
-  else if(pic.wmsi!=='—') parts.push('Sin nuevas alteraciones de la motilidad en el pico (WMSI '+pic.wmsi+').');
-  const camb=document.getElementById('ee-b-cambios'); if(camb&&camb.value&&camb.value!=='no') parts.push('ECG: '+camb.options[camb.selectedIndex].text+'.');
-  const gb=val('ee-gls-bas'), gp=val('ee-gls-pic'); if(gb){ let g='GLS basal '+gb+'%'; if(gp) g+=', pico '+gp+'%'; parts.push(g+'.'); }
-  const cfvrDa=val('ee-cfvr-da-val'); if(cfvrDa&&cfvrDa!=='—') parts.push('CFVR DA: '+cfvrDa+'.');
-  const com=val('ee-res-comment'); if(com&&com.trim()) parts.push(com.trim());
-  const out=document.getElementById('ee-narrativa'); if(out) out.value=parts.join(' ');
-}
-
-// ── Renderer del bull's eye ee a canvas (para el PDF) ──
-function eeBullDataURL(phase){
-  const S=340,k=2; const cv=document.createElement('canvas'); cv.width=S*k; cv.height=S*k; const c=cv.getContext('2d'); c.scale(k,k);
-  c.fillStyle='#ffffff'; c.fillRect(0,0,S,S);
-  const cx=170,cy=170,state=eeBull[phase];
-  const rings=[{r1:130,r2:92,segs:[0,1,2,3,4,5],step:60},{r1:92,r2:54,segs:[6,7,8,9,10,11],step:60},{r1:54,r2:24,segs:[12,13,14,15],step:90}];
-  c.textAlign='center'; c.textBaseline='middle'; c.font='bold 11px sans-serif';
-  rings.forEach(ring=>{ ring.segs.forEach((segIdx,s)=>{
-    const startDeg=-90+30-(s*ring.step), endDeg=startDeg-ring.step;
-    const p=new Path2D(eeArc(cx,cy,ring.r1,ring.r2,startDeg,endDeg));
-    c.fillStyle=EE_COLORS[state[segIdx]]; c.fill(p); c.lineWidth=1.5; c.strokeStyle='#ffffff'; c.stroke(p);
-    const midDeg=startDeg-ring.step/2, midR=(ring.r1+ring.r2)/2;
-    c.fillStyle='#ffffff'; c.fillText(String(EE_SEGS[segIdx].id), cx+midR*Math.cos(midDeg*Math.PI/180), cy+midR*Math.sin(midDeg*Math.PI/180));
-  }); });
-  c.beginPath(); c.arc(cx,cy,24,0,2*Math.PI); c.fillStyle=EE_COLORS[state[16]]; c.fill(); c.lineWidth=1.5; c.strokeStyle='#ffffff'; c.stroke();
-  c.fillStyle='#ffffff'; c.fillText('17',cx,cy);
-  return cv.toDataURL('image/png');
-}
-function eeHasData(){
-  const g=id=>{ const el=document.getElementById(id); return el&&el.value&&String(el.value).trim(); };
-  if(g('ee-res-global')||g('ee-b-mets')||g('ee-b-fcmax')||g('ee-gls-bas')||g('ee-narrativa')) return true;
-  if(['basal','pico','recup'].some(p=>eeBull[p].some(s=>s>0&&s!==4))) return true;
-  /* `.some(Boolean)`, NO `.length`. eeEcg arranca en [null,null] y eeEcgEnsure lo mantiene
-     en >=2, así que `eeEcg.length` era verdadero SIEMPRE y esta función devolvía true con
-     todo vacío. Medido: con la bandera ecoestres_incluir_pdf en '1' —que quedó guardada en
-     cualquier navegador que usara la build donde el módulo tenía interfaz— el PDF imprimía
-     una sección «ECO ESTRÉS» con los tres bull's eyes y los 17 segmentos en NORMAL, sobre un
-     estudio donde no se hizo ningún eco estrés. Un informe firmado afirmando motilidad
-     normal en pico de un test que no existió.
-     La interfaz de este módulo fue retirada; el JS queda inerte por si se restaura —decisión
-     de Maicol del 25/10/2026: no se borra hasta modularizar la app—. Que esta función dé
-     FALSO con el árbol limpio es la tercera de las tres compuertas, y la fija TC-536
-     (condición D). Inventario: docs/mapa/eco-estres-inventario.md · borrado: AJ10-C. */
-  if(eeImg.some(Boolean)||eeEcg.some(Boolean)) return true;
-  return false;
-}
-
-window.eeImgSetCount=eeImgSetCount; window.eeImgAdd=eeImgAdd; window.eeImgPick=eeImgPick; window.eeImgChosen=eeImgChosen; window.eeImgRemove=eeImgRemove;
-window.eeEcgSetCount=eeEcgSetCount; window.eeEcgAdd=eeEcgAdd; window.eeEcgPick=eeEcgPick; window.eeEcgChosen=eeEcgChosen; window.eeEcgRemove=eeEcgRemove;
-window.generarInformeEcoEstres=generarInformeEcoEstres;
-window.eeBullDataURL=eeBullDataURL; window.eeHasData=eeHasData;
-window.eeGetStudyImgs=function(){ return eeImg.filter(Boolean); };
-window.eeGetEcgImgs=function(){ return eeEcg.filter(Boolean); };
-
-setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); eeEcgRender(); },120);
-})();
-</script>
-
-<!-- ═══════════════════════ TAB: CALCULADORAS ═══════════════════════ -->
-
-<!-- ═══════════════════════ TAB: CONGENITAS ESTRUCTURALES ═══════════════════════
-     Segunda pestaña (2026-09-15). La division es CLINICA: de un lado lo que se sigue en el
-     adulto por su valvula, su aorta o su miocardio; del otro las cardiopatias con shunt y las
-     paliadas, que se siguen por su fisiologia.
-     NINGUNA seccion cambio de id, de funcion ni de contenido. secToggle, secAutoOpen, los
-     *Sync de RECALC_MODULOS y _CC_SEC_POR_K buscan por id en TODO el documento, asi que no
-     les importa en que pestaña esta cada una. Lo verifica TC-112.
-     COMO SE HIZO, porque importa: cada seccion se reemplazo EN SU POSICION por un marcador y
-     despues se reagruparon. Los dos intentos anteriores RECONSTRUYERON la pestaña desde las
-     secciones extraidas y se comieron DOS bloques de codigo embebido que vivian ENTRE ellas.
-     Lo delato el conteo de esos bloques, no los tests: los 126 casos pasaban igual.
-     Nunca reconstruir una pestaña desde sus partes: mover lo que se muda y dejar el resto
-     quieto. (La marca de apertura no se escribe literal en este comentario: la contarian el
-     chequeo de conteo y el extractor de sintaxis como si fuera un bloque de verdad.) -->
-<div id="tab-congenitas2" class="tab-section">
-  <!-- ══ LAS DOS PESTANAS DE CONGENITAS (B-E6, 2026-10-21) ════════════════════════════════
-       La barra va en las DOS pestanas y no una sola vez, porque son dos `.tab-section` distintas
-       y la que no esta activa no se dibuja. El estado activo se deriva de cual esta activa, asi
-       que las dos copias no pueden divergir: lo pone `ccSubSync`.
-       ⚠️ LA CLASE ES `cc-on` Y NO `active`: `showTab` barre `.active` de TODO `.tab-btn` del
-          documento, y es justamente lo que se llama al cambiar de pestana. Es el defecto que las
-          sub-pestanas de Otros ya pagaron. -->
-  <div class="subtabs-wrap cc-subbar" role="tablist" aria-label="Cardiopatias congenitas"
-       style="justify-content:flex-start;margin-bottom:12px;">
-    <div class="tabs-row">
-      <!-- ⚠️ LLEVAN `tab-special`, LA CLASE DE LOS BOTONES DE LA FILA DE ARRIBA (B2-E4,
-           2026-10-22). MEDIDO ANTES DE TOCAR NADA: los dos ya se veian IGUAL que los de arriba
-           en las siete propiedades —fondo, color, borde, ancho de borde, cuerpo, relleno y
-           radio— en reposo y en activo, en los dos temas y en los dos motores. La razon es que
-           los botones de arriba tambien viven dentro de un `.subtabs-wrap`, y
-           `.subtabs-wrap .tab-btn` (0,2,1) le gana a `.tab-special` (0,1,0): las cinco
-           declaraciones de esa clase no se aplican a ninguno de los dos.
-           La clase se agrega igual, y es ESTRUCTURAL y no cosmetica: ata los dos grupos, asi
-           que el dia que alguien toque `.tab-special` o la especificidad los de CC se mueven
-           con los de arriba en vez de quedarse atras en silencio. Medido: CERO cambio de pixel.
-           ⚠️ EL ESTADO ACTIVO SIGUE EN `cc-on` Y NO EN `.active`, que es obligatorio: `showTab`
-           barre `.active` de TODO `.tab-btn` del documento. Sus colores son los de
-           `.subtabs-wrap .tab-btn.active`, sin declarar uno nuevo. -->
-      <button type="button" class="tab-btn tab-special" id="cc-subtab-frec2" role="tab"
-              aria-selected="false" tabindex="-1"
-              onclick="ccSubTab('congenitas')">&#129516; CC frecuentes</button>
-      <button type="button" class="tab-btn tab-special cc-on" id="cc-subtab-compl2" role="tab"
-              aria-selected="true" tabindex="0"
-              onclick="ccSubTab('congenitas2')">&#129516; CC complejas</button>
-    </div>
-  </div>
-<div class="card sacc" id="sacc-cc-vab">
+  <div class="card sacc" id="sacc-cc-vab">
     <button type="button" class="sacc-hdr" onclick="secToggle('cc-vab');vabSync();" aria-expanded="false">
       <span class="sacc-arrow">▶</span>
       <span style="flex:1;">VAB — Válvula aórtica bicúspide</span>
@@ -18419,7 +17832,6 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
         </div>
         <div class="fg"><label>Localización de la anomalía</label><input type="text" id="mca_localizacion" placeholder="p. ej. pared libre basal" oninput="mcaSync()"></div>
         <div class="fg"><label>TSVD paraesternal eje largo (mm)</label><input type="number" id="mca_tsvd_plax" step="0.1" placeholder="mm" oninput="mcaSync()"></div>
-      </div>
         <div class="fg"><label>TSVD paraesternal eje corto (mm)</label><input type="number" id="mca_tsvd_psax" step="0.1" placeholder="mm" oninput="mcaSync()"></div>
         <div class="fg"><label>Fracción de acortamiento de área del VD (%)</label><input type="number" id="mca_fac" step="0.1" placeholder="%" oninput="mcaSync()"></div>
         <div class="fg"><label>TSVD del Qp/Qs (de VD / AD) — referencia</label>
@@ -18682,6 +18094,594 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
       </div>
       </div><!-- /#tdf-concl-col -->
       </div><!-- /#tdf-fila -->
+    </div>
+  </div>
+
+
+  <!-- ═══ CIA / CIV ═══
+       Vive acá y no en ETE porque el shunt se calcula con TSVI/TSVD. Los campos fuente
+       (diam_tsvi, itv_tsvi, tsvd_diametro, vti_tsvd) siguen en #tab-doppler y #tab-vd — esta
+       sección sólo muestra espejos de sólo lectura (ete_shunt_*_ro) que llena eteShuntSync().
+       El toggle de inclusión NO usa localStorage: se lee del propio checkbox, que
+       guardarInforme captura en `campos` y la reimpresión repone. Las secciones viejas leen
+       una clave global y por eso un estudio reimpreso podía salir sin una sección que el PDF
+       original sí tenía. -->
+  
+
+  <!-- ═══ DUCTUS ARTERIOSO PERMEABLE ═══ -->
+  
+
+  <!-- ═══ COARTACIÓN DE AORTA ═══ -->
+  
+
+  <!-- ═══ VENTANA AORTOPULMONAR ═══ -->
+  
+
+  <!-- ═══ FORAMEN OVAL PERMEABLE ═══
+       Los campos de contexto clínico son SELECTS de tres estados, no casillas: la diferencia
+       entre «no lo tiene» y «no lo pregunté» decide acá entre no hacer nada e implantar un
+       dispositivo. Ver la nota de fopConclusion(). -->
+  
+
+  <!-- ═══ VÁLVULA AÓRTICA BICÚSPIDE ═══
+       La guía que se aplica es la ESC 2024 de AORTA, no la ESC/EACTS de valvulopatías: la 2021
+       está superada por la 2025, y la 2025 borró sus propias filas de 55/50 mm y remite a la de
+       aorta. El texto que imprime la sección nombra la guía y la clase. Ver vabConclusion(). -->
+  
+
+  <!-- ═══ MIOCARDIOPATÍA HIPERTRÓFICA ═══
+       Dos scores de muerte súbita con criterios distintos, lado a lado, cada uno con su guía y
+       su clase. No se promedian ni se elige uno. Ver mchConclusion(). -->
+  
+
+  <!-- ═══ TETRALOGÍA DE FALLOT REPARADA ═══
+       Sin campos de volumen a propósito: los umbrales de 160/80 ml/m² son de RESONANCIA y la
+       eco 2D no mide volúmenes del VD de forma fiable. Ver tdfConclusion(). -->
+  
+
+  <!-- ═══ TRANSPOSICIÓN DE GRANDES ARTERIAS CORREGIDA ═══ -->
+  
+
+
+
+  <!-- ═══ MIOCARDIOPATÍA ARRITMOGÉNICA ═══
+       MCA y no MAVD/ARVC: el compromiso puede ser biventricular o predominantemente izquierdo.
+       La regla de conteo es UNO POR CATEGORÍA — ver mcaScore(). -->
+  
+
+  <!-- ═══ ANOMALÍA DE EBSTEIN ═══
+       Las cinco áreas del índice de Celermajer son campos PROPIOS y no reusan ad_area/ai_area:
+       aquéllas se miden en telesístole (aurícula máxima, criterio ASE para tamaño de cámara) y
+       ésta en telediástole. Ver ebsCelermajer(). -->
+  
+</div>
+
+<!-- ═══════════════════════ TAB: ECO ESTRÉS ═══════════════════════
+     LA INTERFAZ DE ESTE MÓDULO ESTÁ RETIRADA: no hay pestaña, no hay campos y no hay una sola
+     regla de CSS para sus clases —medido—. El JS de abajo sigue COMPLETO y corre en cada
+     carga: dos listeners globales, un setTimeout de arranque y unas sesenta funciones que
+     salen por su guarda porque el elemento que buscan no existe.
+
+     NO SE BORRA, y es decisión de Maicol del 25/10/2026: queda inerte hasta modularizar la
+     app. El motivo es que EL PREFIJO `ee` NO IDENTIFICA A ESTE MÓDULO —hay cuatro familias y
+     tres están VIVAS—; la nota del listener de `paste`, más abajo, las enumera.
+
+     LO MANTIENEN FUERA DEL PAPEL TRES COMPUERTAS:
+       1. la sección del PDF exige que EXISTA el elemento 'ee-incluir-pdf' en el DOM;
+       2. el informe narrativo sólo agrega el rótulo «Eco Estrés:» si eeInformeLineas()
+          devuelve líneas, y sale con [] porque 'ee-res-global' no existe;
+       3. eeHasData() da falso con el árbol limpio.
+     Las tres las fija TC-536, con el escenario peligroso —la bandera encendida a mitad de
+     sesión más eeHasData() en true— y con controles negativos de las tres familias vivas.
+
+     Inventario de piezas, líneas, bytes y dueños: docs/mapa/eco-estres-inventario.md
+     Qué falta medir antes de borrar:          docs/PENDIENTES.md → AJ10-C -->
+
+<script>
+(function(){
+function eeSwitchTab(id,el){
+  document.querySelectorAll('#tab-ee .ee-tab-content').forEach(t=>t.classList.remove('active'));
+  el.parentElement.querySelectorAll('.ee-tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('ee-tab-'+id).classList.add('active');
+  el.classList.add('active');
+  if(id==='bullo') eeInitAllBulls();
+}
+function eeSwitchBullTab(id,el){
+  ['basal','pico','recup'].forEach(b=>{ document.getElementById('ee-bull-'+b).style.display = b===id?'flex':'none'; });
+  el.parentElement.querySelectorAll('.ee-tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+}
+function eeToggleStep(hdr){
+  const body=hdr.nextElementSibling;
+  const isOpen=body.classList.contains('open');
+  body.classList.toggle('open');
+  hdr.querySelector('span:last-child').textContent=isOpen?'▼':'▲';
+}
+function eeSyncEdad(){
+  const age=+((document.getElementById('edad')||{}).value||0);
+  if(age>0){
+    const t=220-age;
+    const teo=document.getElementById('ee-b-fcteo'); if(teo) teo.value=t;
+    const obj=document.getElementById('ee-a-fcobj'); if(obj) obj.value=Math.round(t*0.85);
+    eeCalcFCPct();
+  }
+}
+function eeCalcFCPct(){
+  const fcteo=+((document.getElementById('ee-b-fcteo')||{}).value||0);
+  const fcmax=+((document.getElementById('ee-b-fcmax')||{}).value||0);
+  if(!fcteo||!fcmax)return;
+  const pct=Math.round(fcmax/fcteo*100);
+  const fill=document.getElementById('ee-fc-pct-fill'), val=document.getElementById('ee-fc-pct-val');
+  const col = pct>=85?'var(--green)':pct>=75?'var(--yellow)':'var(--red)';
+  if(fill){ fill.style.width=Math.min(pct,100)+'%'; fill.style.background=col; }
+  if(val){ val.textContent=pct+'% de FC máxima teórica'; val.style.color=col; }
+}
+function eeEvalCFVR(){
+  const v=+((document.getElementById('ee-f-cfvr')||{}).value||0);
+  const el=document.getElementById('ee-f-cfvr-res'); if(!el)return;
+  if(!v){el.textContent='';return;}
+  if(v>=2.5){el.style.color='var(--green)';el.textContent='✅ Normal (≥2.5)';}
+  else if(v>=2.0){el.style.color='var(--yellow)';el.textContent='⚠️ Borderline (2.0–2.5)';}
+  else{el.style.color='var(--red)';el.textContent='❌ Reducida (<2.0) — sugiere enfermedad microvascular o estenosis significativa';}
+}
+function eeEvalPSAP(){
+  const v=+((document.getElementById('ee-p-psap-pic')||{}).value||0);
+  const el=document.getElementById('ee-p-psap-res'); if(!el)return;
+  if(!v){el.textContent='';return;}
+  if(v>60){el.style.color='var(--red)';el.textContent='❌ HTP inducida por estrés (>60mmHg)';}
+  else if(v>50){el.style.color='var(--yellow)';el.textContent='⚠️ Elevación significativa (>50mmHg)';}
+  else{el.style.color='var(--green)';el.textContent='✅ Normal (<50mmHg)';}
+}
+function eeEvalEE(){
+  const v=+((document.getElementById('ee-p-ee')||{}).value||0);
+  const el=document.getElementById('ee-p-ee-res'); if(!el)return;
+  if(!v){el.textContent='';return;}
+  if(v>14){el.style.color='var(--red)';el.textContent="❌ E/e' elevado (>14) — PCP probablemente elevada";}
+  else if(v>10){el.style.color='var(--yellow)';el.textContent="⚠️ E/e' borderline (10–14)";}
+  else{el.style.color='var(--green)';el.textContent="✅ E/e' normal (<10)";}
+}
+function eeEvalGLS(){
+  const bas=+((document.getElementById('ee-gls-bas')||{}).value||0);
+  const pic=+((document.getElementById('ee-gls-pic')||{}).value||0);
+  const el=document.getElementById('ee-gls-res'); if(!el)return;
+  if(!bas){el.textContent='';return;}
+  let txt='';
+  if(bas>-16)txt='❌ GLS basal reducido (>−16%) — disfunción sistólica subclínica';
+  else if(bas>-20)txt='⚠️ GLS basal borderline (−16% a −20%)';
+  else txt='✅ GLS basal normal (≤−20%)';
+  if(pic){ const delta=Math.abs(pic)-Math.abs(bas); txt+=delta>2?' · ✅ Reserva de strain presente':' · ⚠️ Sin reserva de strain'; }
+  el.textContent=txt;
+  el.style.color=bas<=-20?'var(--green)':bas<=-16?'var(--yellow)':'var(--red)';
+}
+function eeCalcCFVR(art){
+  const bas=+((document.getElementById('ee-cfvr-'+art+'-bas')||{}).value||0);
+  const ade=+((document.getElementById('ee-cfvr-'+art+'-ade')||{}).value||0);
+  if(!bas||!ade)return;
+  const cfvr=(ade/bas).toFixed(2);
+  const valEl=document.getElementById('ee-cfvr-'+art+'-val'); if(valEl) valEl.textContent=cfvr;
+  const int=document.getElementById('ee-cfvr-'+art+'-int'); if(!int)return;
+  if(+cfvr>=2.5){int.style.color='var(--green)';int.textContent='Normal';}
+  else if(+cfvr>=2.0){int.style.color='var(--yellow)';int.textContent='Borderline';}
+  else{int.style.color='var(--red)';int.textContent='Reducida';}
+}
+function eeUpdateResult(){
+  const v=document.getElementById('ee-res-global').value;
+  const box=document.getElementById('ee-res-box');
+  const msgs={
+    neg:{cls:'ee-rb-neg',txt:'✅ Estudio negativo para isquemia inducible. Bajo riesgo de eventos cardiovasculares mayores a corto plazo.'},
+    pos:{cls:'ee-rb-pos',txt:'❌ Estudio positivo para isquemia. Se recomienda correlación con coronariografía y evaluación por cardiología intervencionista.'},
+    inc:{cls:'ee-rb-inc',txt:'⚠️ Estudio indeterminado o no concluyente. Considerar repetir con protocolo alternativo o escalar a coronariografía según clínica.'},
+    via:{cls:'ee-rb-neg',txt:'✅ Viabilidad miocárdica presente. Segmentos con mejoría con dosis bajas de dobutamina. Beneficio potencial de revascularización.'},
+    novia:{cls:'ee-rb-pos',txt:'❌ Sin evidencia de viabilidad miocárdica. Bajo beneficio esperado de revascularización en los segmentos evaluados.'}
+  };
+  if(msgs[v]){ box.className='ee-result-box show '+msgs[v].cls; box.textContent=msgs[v].txt; }
+  else { box.className='ee-result-box'; }
+}
+
+// ── BULL'S EYE ──
+const EE_SEGS=[
+  {id:1,name:'Anterior basal',ter:'LAD'},{id:2,name:'Anteroseptal basal',ter:'LAD'},
+  {id:3,name:'Inferoseptal basal',ter:'RCA'},{id:4,name:'Inferior basal',ter:'RCA'},
+  {id:5,name:'Inferolateral basal',ter:'RCA'},{id:6,name:'Anterolateral basal',ter:'LCx'},
+  {id:7,name:'Anterior medio',ter:'LAD'},{id:8,name:'Anteroseptal medio',ter:'LAD'},
+  {id:9,name:'Inferoseptal medio',ter:'RCA'},{id:10,name:'Inferior medio',ter:'RCA'},
+  {id:11,name:'Inferolateral medio',ter:'RCA'},{id:12,name:'Anterolateral medio',ter:'LCx'},
+  {id:13,name:'Anterior apical',ter:'LAD'},{id:14,name:'Septal apical',ter:'LAD'},
+  {id:15,name:'Inferior apical',ter:'RCA'},{id:16,name:'Lateral apical',ter:'LCx'},
+  {id:17,name:'Apex',ter:'LAD'}
+];
+const EE_LABELS=['Normal','Hipokinesia','Akinesia','Diskinesia','No eval.'];
+const EE_SCORES=[1,2,3,4,0];
+const EE_COLORS=['#3ecf8e','#f5c842','#f59e42','#8a5fd4','#9aa3bc'];
+const EE_TER={LAD:'#4f8ef7',RCA:'#f05454',LCx:'#3ecf8e'};
+let eeBull={basal:Array(17).fill(0),pico:Array(17).fill(0),recup:Array(17).fill(0)};
+let eeBullInited={basal:false,pico:false,recup:false};
+let eePopPhase=null, eePopIdx=-1;
+
+function eeInitAllBulls(){ ['basal','pico','recup'].forEach(p=>{ if(!eeBullInited[p]){ eeBullInited[p]=true; eeRenderBull(p); } }); }
+function eeArc(cx,cy,r1,r2,s,e){
+  const rs=s*Math.PI/180,re=e*Math.PI/180;
+  const x1=cx+r1*Math.cos(rs),y1=cy+r1*Math.sin(rs);
+  const x2=cx+r1*Math.cos(re),y2=cy+r1*Math.sin(re);
+  const x3=cx+r2*Math.cos(re),y3=cy+r2*Math.sin(re);
+  const x4=cx+r2*Math.cos(rs),y4=cy+r2*Math.sin(rs);
+  const large=Math.abs(e-s)>180?1:0, sweep=e<s?0:1;
+  return 'M'+x1+','+y1+' A'+r1+','+r1+' 0 '+large+','+sweep+' '+x2+','+y2+' L'+x3+','+y3+' A'+r2+','+r2+' 0 '+large+','+(sweep?0:1)+' '+x4+','+y4+' Z';
+}
+function eeRenderBull(phase){
+  const svg=document.getElementById('ee-eye-svg-'+phase); if(!svg)return;
+  const cx=170,cy=170,state=eeBull[phase];
+  const rings=[{r1:130,r2:92,segs:[0,1,2,3,4,5],step:60},{r1:92,r2:54,segs:[6,7,8,9,10,11],step:60},{r1:54,r2:24,segs:[12,13,14,15],step:90}];
+  let html='';
+  rings.forEach(ring=>{ ring.segs.forEach((segIdx,s)=>{
+    const seg=EE_SEGS[segIdx];
+    const startDeg=-90+30-(s*ring.step), endDeg=startDeg-ring.step, midDeg=startDeg-ring.step/2, midR=(ring.r1+ring.r2)/2;
+    const lx=cx+midR*Math.cos(midDeg*Math.PI/180), ly=cy+midR*Math.sin(midDeg*Math.PI/180);
+    html+='<path d="'+eeArc(cx,cy,ring.r1,ring.r2,startDeg,endDeg)+'" fill="'+EE_COLORS[state[segIdx]]+'" fill-opacity="0.85" stroke="#0f1117" stroke-width="2" onclick="eeCycleBull(\''+phase+'\','+segIdx+')" oncontextmenu="eeOpenBullPop(event,\''+phase+'\','+segIdx+');return false;" style="cursor:pointer"><title>Seg '+seg.id+' '+seg.name+' ('+seg.ter+') — '+EE_LABELS[state[segIdx]]+'</title></path>';
+    html+='<text x="'+lx+'" y="'+ly+'" text-anchor="middle" dominant-baseline="middle" font-size="9" fill="#fff" font-weight="700" pointer-events="none">'+seg.id+'</text>';
+  }); });
+  html+='<circle cx="'+cx+'" cy="'+cy+'" r="24" fill="'+EE_COLORS[state[16]]+'" fill-opacity="0.85" stroke="#0f1117" stroke-width="2" onclick="eeCycleBull(\''+phase+'\',16)" oncontextmenu="eeOpenBullPop(event,\''+phase+'\',16);return false;" style="cursor:pointer"><title>Apex (LAD) — '+EE_LABELS[state[16]]+'</title></circle>';
+  html+='<text x="'+cx+'" y="'+cy+'" text-anchor="middle" dominant-baseline="middle" font-size="9" fill="#fff" font-weight="700" pointer-events="none">17</text>';
+  html+='<text x="'+cx+'" y="26" text-anchor="middle" font-size="9" fill="'+EE_TER.LAD+'" font-weight="800">LAD</text>';
+  html+='<text x="315" y="'+cy+'" text-anchor="end" font-size="9" fill="'+EE_TER.LCx+'" font-weight="800">LCx</text>';
+  html+='<text x="25" y="'+cy+'" text-anchor="start" font-size="9" fill="'+EE_TER.RCA+'" font-weight="800">RCA</text>';
+  svg.innerHTML=html;
+  eeUpdateWMSI(phase);
+}
+function eeCycleBull(phase,idx){ eeBull[phase][idx]=(eeBull[phase][idx]+1)%EE_LABELS.length; eeRenderBull(phase); }
+function eeOpenBullPop(e,phase,idx){
+  e.preventDefault(); eePopPhase=phase; eePopIdx=idx;
+  const seg=EE_SEGS[idx], pop=document.getElementById('ee-eye-pop');
+  document.getElementById('ee-eye-pop-title').textContent='Seg '+seg.id+' — '+seg.name+' ('+seg.ter+')';
+  document.getElementById('ee-eye-pop-states').innerHTML=EE_LABELS.map((lbl,i)=>'<button class="ee-eye-pop-btn'+(eeBull[phase][idx]===i?' sel':'')+'" style="background:'+EE_COLORS[i]+'33;color:'+EE_COLORS[i]+';border-color:'+(eeBull[phase][idx]===i?EE_COLORS[i]:'transparent')+'" onclick="eeSetBullState(\''+phase+'\','+idx+','+i+')">'+lbl+'</button>').join('');
+  pop.style.left=Math.min(e.clientX,window.innerWidth-220)+'px';
+  pop.style.top=Math.min(e.clientY,window.innerHeight-180)+'px';
+  pop.classList.add('open');
+}
+function eeSetBullState(phase,idx,st){
+  eeBull[phase][idx]=st; eeRenderBull(phase);
+  document.querySelectorAll('.ee-eye-pop-btn').forEach((b,i)=>{ b.classList.toggle('sel',i===st); b.style.borderColor=i===st?EE_COLORS[i]:'transparent'; });
+}
+function eeCloseEyePop(){ document.getElementById('ee-eye-pop').classList.remove('open'); eePopPhase=null; eePopIdx=-1; }
+function eeUpdateWMSI(phase){
+  const state=eeBull[phase]; let sum=0,count=0;
+  state.forEach(st=>{ if(st!==4){ sum+=EE_SCORES[st]; count++; } });
+  const wmsi=count>0?(sum/count).toFixed(2):'—';
+  const valEl=document.getElementById('ee-wmsi-'+phase), catEl=document.getElementById('ee-wmsi-'+phase+'-cat');
+  if(valEl) valEl.textContent=wmsi;
+  if(!catEl)return;
+  if(wmsi==='—'){catEl.textContent='';return;}
+  const w=PF(wmsi);
+  if(w===1){catEl.textContent='Normal';catEl.style.color='var(--green)';}
+  else if(w<=1.5){catEl.textContent='Disfunción leve';catEl.style.color='var(--yellow)';}
+  else if(w<=2){catEl.textContent='Disfunción moderada';catEl.style.color='var(--orange)';}
+  else{catEl.textContent='Disfunción severa';catEl.style.color='var(--red)';}
+}
+function eeResetBull(phase){ eeBull[phase]=Array(17).fill(0); eeRenderBull(phase); }
+/* El PRIMERO de los dos listeners GLOBALES de Eco Estrés, cuya interfaz está retirada. Sale
+   solo: pregunta por `#ee-eye-pop`, que no existe, y verificado en el navegador no llega nunca
+   a cerrar nada. El criterio completo —por qué NO se desactiva con una bandera, por qué quitar
+   los exports no alcanza, y cuáles son las TRES familias `ee` que SÍ están vivas— está en la
+   nota del segundo listener, el de `paste`, más abajo en este mismo bloque.
+   Inventario: docs/mapa/eco-estres-inventario.md · lo fija TC-536. */
+document.addEventListener('click',e=>{
+  const pop=document.getElementById('ee-eye-pop');
+  if(pop&&pop.classList.contains('open')&&!pop.contains(e.target)&&!(e.target.closest&&e.target.closest('#tab-ee svg'))) eeCloseEyePop();
+});
+
+function eeGetWMSItext(phase){
+  const state=eeBull[phase], anorm=[];
+  state.forEach((st,i)=>{ if(st>0&&st!==4) anorm.push('Seg '+EE_SEGS[i].id+' '+EE_SEGS[i].name+' ('+EE_SEGS[i].ter+'): '+EE_LABELS[st]); });
+  let sum=0,count=0; state.forEach(st=>{ if(st!==4){ sum+=EE_SCORES[st]; count++; } });
+  return {anorm, wmsi: count>0?(sum/count).toFixed(2):'—'};
+}
+function eeResetAll(){
+  document.querySelectorAll('#tab-ee input, #tab-ee select, #tab-ee textarea').forEach(el=>{
+    if(el.tagName==='SELECT') el.selectedIndex=0; else el.value='';
+  });
+  ['basal','pico','recup'].forEach(p=>{ eeBull[p]=Array(17).fill(0); eeRenderBull(p); });
+  const box=document.getElementById('ee-res-box'); if(box) box.className='ee-result-box';
+  const fill=document.getElementById('ee-fc-pct-fill'); if(fill) fill.style.width='0%';
+  const val=document.getElementById('ee-fc-pct-val'); if(val) val.textContent='—';
+}
+
+// Conexión con EcoSmart: GLS del tab VI / SGL global
+function eeSyncGLS(){
+  const bas=document.getElementById('ee-gls-bas'); if(!bas)return;
+  const sglGlobal=document.getElementById('sgl_gls'), viSgl=document.getElementById('sgl');
+  let val='';
+  if(sglGlobal && sglGlobal.value!=='') val=sglGlobal.value;
+  else if(viSgl && viSgl.value!=='') val=viSgl.value;
+  if(val!=='' && bas.value===''){ bas.value=val; eeEvalGLS(); }
+}
+function eeOnShow(){ eeSyncEdad(); eeSyncGLS(); eeInitAllBulls(); if(typeof eePdfPanelRender==='function')eePdfPanelRender(); if(typeof eeProtoBuild==='function' && !document.querySelector('#ee-proto-table-wrap table'))eeProtoBuild(); }
+
+// Sección Eco Estrés para el informe narrativo
+function eeInformeLineas(){
+  const res=document.getElementById('ee-res-global');
+  if(!res || !res.value) return [];
+  const resTxt={neg:'Negativo para isquemia',pos:'Positivo para isquemia',inc:'Indeterminado / no concluyente',via:'Viabilidad presente',novia:'Sin viabilidad'}[res.value]||res.value;
+  const estres=document.getElementById('ee-p-estres');
+  const estresTxt=estres?estres.options[estres.selectedIndex].text:'';
+  const lines=['Eco estrés'+(estresTxt?' ('+estresTxt+')':'')+': '+resTxt+'.'];
+  const pic=eeGetWMSItext('pico');
+  if(pic.anorm.length) lines.push('Motilidad en el pico de estrés: '+pic.anorm.join('; ')+'. WMSI pico '+pic.wmsi+'.');
+  else if(pic.wmsi!=='—') lines.push('Sin nuevas alteraciones de la motilidad en el pico de estrés (WMSI '+pic.wmsi+').');
+  const camb=document.getElementById('ee-b-cambios');
+  if(camb && camb.value && camb.value!=='no') lines.push('ECG: '+camb.options[camb.selectedIndex].text+'.');
+  const gb=document.getElementById('ee-gls-bas'), gp=document.getElementById('ee-gls-pic');
+  if(gb && gb.value){ let g='GLS basal '+gb.value+'%'; if(gp&&gp.value) g+=', pico '+gp.value+'%'; lines.push(g+'.'); }
+  const com=document.getElementById('ee-res-comment');
+  if(com && com.value.trim()) lines.push(com.value.trim());
+  return lines;
+}
+
+// Exponer para handlers inline y para EcoSmart
+window.eeSwitchTab=eeSwitchTab; window.eeSwitchBullTab=eeSwitchBullTab; window.eeToggleStep=eeToggleStep;
+window.eeCalcFCPct=eeCalcFCPct; window.eeEvalCFVR=eeEvalCFVR; window.eeEvalPSAP=eeEvalPSAP; window.eeEvalEE=eeEvalEE;
+window.eeEvalGLS=eeEvalGLS; window.eeCalcCFVR=eeCalcCFVR; window.eeUpdateResult=eeUpdateResult;
+window.eeCycleBull=eeCycleBull; window.eeOpenBullPop=eeOpenBullPop; window.eeSetBullState=eeSetBullState;
+window.eeCloseEyePop=eeCloseEyePop; window.eeResetBull=eeResetBull; window.eeResetAll=eeResetAll;
+window.eeOnShow=eeOnShow; window.eeInformeLineas=eeInformeLineas;
+
+// ── Probabilidad pre-test de enfermedad coronaria (ESC 2019) ──
+function ptpCad(){
+  const edad=+((document.getElementById('ee-ptp-edad')||{}).value||0);
+  const sexo=(document.getElementById('ee-ptp-sexo')||{}).value||'';
+  const sint=(document.getElementById('ee-ptp-sint')||{}).value||'';
+  const res=document.getElementById('ee-ptp-res'), rec=document.getElementById('ee-ptp-rec');
+  if(!res||!rec) return;
+  if(!edad||!sexo||!sint){ res.innerHTML=''; rec.textContent=''; return; }
+  // ESC 2019 · PTP (%) por grupo etario [30-39,40-49,50-59,60-69,≥70] → [Masculino, Femenino]
+  const TBL={
+    tip:  [[3,5],[22,10],[32,13],[44,16],[52,27]],
+    atip: [[4,3],[10,6],[17,6],[26,11],[34,19]],
+    asint:[[1,1],[3,2],[11,3],[22,6],[24,10]]
+  };
+  const ai = edad<40?0 : edad<50?1 : edad<60?2 : edad<70?3 : 4;
+  const pct = (TBL[sint][ai])[sexo==='F'?1:0];
+  let cls,txt,recTxt;
+  if(pct<5){ cls='green'; txt='probabilidad muy baja'; recTxt='ESC: no requiere estudio adicional.'; }
+  else if(pct<=15){ cls='green'; txt='probabilidad baja'; recTxt='ESC: considerar TAC coronaria.'; }
+  else if(pct<=65){ cls='yellow'; txt='probabilidad intermedia'; recTxt='ESC: prueba funcional (eco estrés) o TAC coronaria.'; }
+  else { cls='red'; txt='probabilidad alta'; recTxt='ESC: considerar coronariografía.'; }
+  res.innerHTML='PTP '+pct+'% '+badge(cls,txt);
+  rec.textContent=recTxt;
+}
+window.ptpCad=ptpCad;
+
+// ── Compresión compartida (máx 800x600, JPEG 65%) ──
+function _eeCompress(file, cb){
+  const reader=new FileReader();
+  reader.onload=function(){ const im=new Image(); im.onload=function(){
+    let w=im.width,h=im.height; const r=Math.min(800/w,600/h,1); w=Math.max(1,Math.round(w*r)); h=Math.max(1,Math.round(h*r));
+    const cv=document.createElement('canvas'); cv.width=w; cv.height=h; const c=cv.getContext('2d'); c.fillStyle='#ffffff'; c.fillRect(0,0,w,h); c.drawImage(im,0,0,w,h);
+    cb(cv.toDataURL('image/jpeg',0.65));
+  }; im.src=reader.result; };
+  reader.readAsDataURL(file);
+}
+
+// ── Imágenes del estudio (Eco Estrés) — slots 2/4/6/8/10/+, grilla 2 col, drag ──
+let eeImg=[null,null], eeImgCount=2, eeImgActive=0;
+const EE_IMG_COUNTS=[2,4,6,8,10];
+function _eeImgLast(){ let l=-1; eeImg.forEach((s,i)=>{ if(s) l=i; }); return l; }
+function eeImgEnsure(){ const n=Math.max(eeImgCount,_eeImgLast()+1); while(eeImg.length<n)eeImg.push(null); if(eeImg.length>n)eeImg.length=n; }
+function eeImgSetCount(n){ eeImgCount=Math.max(n,_eeImgLast()+1); eeImgEnsure(); eeImgRender(); }
+function eeImgAdd(){ eeImgCount=eeImg.length+1; eeImgEnsure(); eeImgRender(); }
+function eeImgRender(){
+  eeImgEnsure();
+  const cb=document.getElementById('ee-img-count');
+  if(cb){ let h=EE_IMG_COUNTS.map(n=>'<button type="button" class="ee-btn ee-btn-ghost" style="padding:5px 12px;'+(eeImgCount===n?'background:var(--accent);color:#fff;':'')+'" onclick="eeImgSetCount('+n+')">'+n+'</button>').join(''); h+='<button type="button" class="ee-btn ee-btn-ghost" style="padding:5px 12px;" title="Agregar un slot" onclick="eeImgAdd()">＋</button>'; cb.innerHTML=h; }
+  const grid=document.getElementById('ee-img-grid'); if(!grid)return; grid.innerHTML='';
+  eeImg.forEach((slot,idx)=>{
+    const cell=document.createElement('div'); cell.dataset.idx=idx;
+    cell.style.cssText='position:relative;border:1.5px '+(slot?'solid':'dashed')+' var(--border);border-radius:10px;background:var(--bg3);min-height:130px;display:flex;align-items:center;justify-content:center;overflow:hidden;';
+    if(slot){ cell.setAttribute('draggable','true');
+      cell.innerHTML='<img src="'+slot+'" loading="lazy" style="max-width:100%;max-height:200px;display:block;pointer-events:none;"><button type="button" onclick="eeImgRemove(event,'+idx+')" style="position:absolute;top:6px;right:6px;width:22px;height:22px;border-radius:50%;border:none;background:var(--red);color:#fff;font-size:12px;cursor:pointer;line-height:1;">✕</button>';
+    } else { cell.innerHTML='<button type="button" onclick="eeImgPick('+idx+')" style="background:none;border:none;color:var(--text2);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;font-size:12px;"><span style="font-size:28px;line-height:1;">➕</span>Agregar</button>'; }
+    cell.addEventListener('dragstart',e=>{ if(eeImg[idx]) e.dataTransfer.setData('text/plain',String(idx)); });
+    cell.addEventListener('dragover',e=>e.preventDefault());
+    cell.addEventListener('drop',e=>{ e.preventDefault(); const f=parseInt(e.dataTransfer.getData('text/plain')); if(!isNaN(f)){ const t=eeImg[f]; eeImg[f]=eeImg[idx]; eeImg[idx]=t; eeImgRender(); } });
+    grid.appendChild(cell);
+  });
+}
+function eeImgPick(idx){ eeImgActive=idx; const inp=document.getElementById('ee-img-file'); if(inp){ inp.value=''; inp.click(); } }
+function eeImgChosen(e){ const f=e.target.files&&e.target.files[0]; if(f) _eeCompress(f,function(d){ let t=eeImgActive; if(t==null||t<0||t>=eeImg.length||eeImg[t]){ t=eeImg.findIndex(s=>!s); if(t===-1){ eeImg.push(null); t=eeImg.length-1; eeImgCount=eeImg.length; } } eeImg[t]=d; eeImgRender(); }); e.target.value=''; }
+function eeImgRemove(e,idx){ if(e) e.stopPropagation(); eeImg[idx]=null; eeImgRender(); }
+
+// ── Imágenes de ECG — slots 2/4/6/8/+, grilla 2 col, drag, tap-swap, pegar, compresión ──
+let eeEcg=[null,null], eeEcgCount=2, eeEcgActive=0, eeEcgSwap=null, _eeEcgLongT=null, _eeEcgLastTap=0;
+const EE_ECG_COUNTS=[2,4,6,8];
+function _eeEcgLast(){ let l=-1; eeEcg.forEach((s,i)=>{ if(s) l=i; }); return l; }
+function eeEcgEnsure(){ const n=Math.max(eeEcgCount,_eeEcgLast()+1); while(eeEcg.length<n)eeEcg.push(null); if(eeEcg.length>n)eeEcg.length=n; }
+function eeEcgSetCount(n){ eeEcgCount=Math.max(n,_eeEcgLast()+1); eeEcgEnsure(); eeEcgRender(); }
+function eeEcgAdd(){ eeEcgCount=eeEcg.length+1; eeEcgEnsure(); eeEcgRender(); }
+function eeEcgRender(){
+  eeEcgEnsure();
+  const cb=document.getElementById('ee-ecg-count');
+  if(cb){ let h=EE_ECG_COUNTS.map(n=>'<button type="button" class="ee-btn ee-btn-ghost" style="padding:5px 12px;'+(eeEcgCount===n?'background:var(--accent);color:#fff;':'')+'" onclick="eeEcgSetCount('+n+')">'+n+'</button>').join(''); h+='<button type="button" class="ee-btn ee-btn-ghost" style="padding:5px 12px;" title="Agregar un slot" onclick="eeEcgAdd()">＋</button>'; cb.innerHTML=h; }
+  const grid=document.getElementById('ee-ecg-img-grid'); if(!grid)return; grid.innerHTML='';
+  eeEcg.forEach((slot,idx)=>{
+    const cell=document.createElement('div'); cell.dataset.idx=idx;
+    cell.style.cssText='position:relative;border:1.5px '+(slot?'solid':'dashed')+' var(--border);border-radius:10px;background:var(--bg3);min-height:120px;display:flex;align-items:center;justify-content:center;overflow:hidden;'+(eeEcgSwap===idx?'outline:2px dashed var(--accent2);outline-offset:2px;':'');
+    if(slot){ cell.setAttribute('draggable','true');
+      cell.innerHTML='<img src="'+slot+'" loading="lazy" style="max-width:100%;max-height:190px;display:block;pointer-events:none;"><button type="button" onclick="eeEcgRemove(event,'+idx+')" style="position:absolute;top:6px;right:6px;width:22px;height:22px;border-radius:50%;border:none;background:var(--red);color:#fff;font-size:12px;cursor:pointer;line-height:1;">✕</button>';
+    } else { cell.innerHTML='<button type="button" onclick="eeEcgPick('+idx+')" style="background:none;border:none;color:var(--text2);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;font-size:12px;"><span style="font-size:28px;line-height:1;">➕</span>Agregar</button>'; }
+    cell.addEventListener('dragstart',e=>{ if(eeEcg[idx]) e.dataTransfer.setData('text/plain',String(idx)); });
+    cell.addEventListener('dragover',e=>e.preventDefault());
+    cell.addEventListener('drop',e=>{ e.preventDefault(); const f=parseInt(e.dataTransfer.getData('text/plain')); if(!isNaN(f)) eeEcgSwap2(f,idx); });
+    cell.addEventListener('click',()=>{ eeEcgActive=idx; });
+    let moved=false;
+    cell.addEventListener('touchstart',()=>{ moved=false; eeEcgActive=idx; _eeEcgLongT=setTimeout(()=>{ if(!moved&&eeEcg[idx]){ eeEcgSwap=(eeEcgSwap===idx?null:idx); eeEcgRender(); } },450); },{passive:true});
+    cell.addEventListener('touchmove',()=>{ moved=true; clearTimeout(_eeEcgLongT); },{passive:true});
+    cell.addEventListener('touchend',()=>{ clearTimeout(_eeEcgLongT); if(eeEcgSwap!==null&&eeEcgSwap!==idx){ eeEcgSwap2(eeEcgSwap,idx); eeEcgSwap=null; eeEcgRender(); } });
+    grid.appendChild(cell);
+  });
+}
+function eeEcgSwap2(a,b){ if(a===b)return; const t=eeEcg[a]; eeEcg[a]=eeEcg[b]; eeEcg[b]=t; eeEcgRender(); }
+function eeEcgPick(idx){ eeEcgActive=idx; const inp=document.getElementById('ee-ecg-img-file'); if(inp){ inp.value=''; inp.click(); } }
+function eeEcgChosen(e){ const f=e.target.files&&e.target.files[0]; if(f) _eeEcgPlace(f,eeEcgActive); e.target.value=''; }
+function _eeEcgPlace(file,idx){ _eeCompress(file,function(d){ let t=idx; if(t==null||t<0||t>=eeEcg.length||eeEcg[t]){ t=eeEcg.findIndex(s=>!s); if(t===-1){ eeEcg.push(null); t=eeEcg.length-1; eeEcgCount=eeEcg.length; } } eeEcg[t]=d; eeEcgRender(); }); }
+function eeEcgRemove(e,idx){ if(e) e.stopPropagation(); eeEcg[idx]=null; eeEcgRender(); }
+// Pegar desde portapapeles (con la sección ECG del Eco Estrés activa)
+/* Este listener y el de click de más arriba (`#ee-eye-pop`) son de Eco Estrés, cuya interfaz
+   está retirada. NO se desactivan con una bandera «que nunca sea true»: la guarda correcta ya
+   es la que tienen adentro —preguntan por su propio DOM, que no existe—, y verificado en el
+   navegador ninguno de los dos llega a `preventDefault()`. Una bandera falsa es peor: hay que
+   acordarse de invertirla el día que vuelva la UI, mientras que esto revive solo. Es el mismo
+   criterio con el que se cerró el gate del PDF (`#ee-incluir-pdf`).
+
+   Tampoco tiene sentido «desactivar los exports»: estas son declaraciones de función en el
+   nivel superior de un <script> clásico, así que ya crean la propiedad en `window` aunque se
+   borre la línea de export. Está medido y anotado en CLAUDE.md.
+
+   Lo que SÍ queda pendiente, y es la única interferencia real posible: este handler se
+   registra ANTES que `imgPasteHandler` del módulo de imágenes. Si vuelve `#tab-ee`, un pegado
+   con la pestaña de ECG activa haría `preventDefault()` acá y el módulo de imágenes no lo
+   vería. Al restaurar la UI hay que decidir el orden, no descubrirlo.
+
+   ⚠️ EL PREFIJO `ee` NO IDENTIFICA A ECO ESTRÉS. Hay CUATRO familias y TRES están VIVAS, así
+   que un borrado —o una IIFE— por prefijo apaga funciones de la app:
+     · CALCULADORA DE E/e′ — ee-e, ee-ep, ee-result, ee-val, ee-lbl y calcEE(). Alimenta la
+       función diastólica y el score de amiloidosis.
+     · MODO BÁSICO/AVANZADO DEL ETT — EE_MODULES, EE_DEF_KEY, eeGetMode, eeGetModules, eeModOn,
+       eeDefOn. Alimentan el desplegable «Sección avanzada» (#ecoAdvSelect, ecoAdvBuild).
+     · QR DEL INFORME — EE_QR_ROWS, eeStudyUrl, eeQrDataURL, eeQrEnabled.
+   Muerta de cara al usuario está SOLO la cuarta, la de Eco Estrés. Y no se borra por decisión
+   de Maicol del 25/10/2026: hasta modularizar la app, queda inerte detrás de sus compuertas.
+   Los campos cx_duke_* NO son de acá: el score de Duke sale de una ergometría en cinta.
+
+   Inventario con las piezas A/B/C: docs/mapa/eco-estres-inventario.md
+   Las compuertas y los controles:   TC-536
+   Lo que falta medir para borrar:   docs/PENDIENTES.md → AJ10-C */
+document.addEventListener('paste',function(e){
+  const ee=document.getElementById('tab-ee'), ecg=document.getElementById('ee-tab-ecg');
+  if(!ee||!ee.classList.contains('active')||!ecg||!ecg.classList.contains('active')) return;
+  const items=(e.clipboardData||window.clipboardData||{}).items||[];
+  for(let i=0;i<items.length;i++){ if(items[i].type&&items[i].type.indexOf('image')===0){ const f=items[i].getAsFile(); if(f){ e.preventDefault(); _eeEcgPlace(f,(eeEcg[eeEcgActive]?-1:eeEcgActive)); } break; } }
+});
+
+// ── Texto narrativo autogenerado ──
+function generarInformeEcoEstres(){
+  const val=id=>{ const el=document.getElementById(id); return el?(el.value||''):''; };
+  const selT=id=>{ const el=document.getElementById(id); return (el&&el.value!=='')?el.options[el.selectedIndex].text:''; };
+  const estres=selT('ee-p-estres');
+  const adec=(document.getElementById('ee-a-adec')||{}).value||'';
+  const mets=val('ee-b-mets');
+  const fcteo=+(val('ee-b-fcteo')||0), fcmax=+(val('ee-b-fcmax')||0);
+  const fcpct=(fcteo&&fcmax)?Math.round(fcmax/fcteo*100):null;
+  const resMap={neg:'negativo',pos:'positivo',inc:'indeterminado',via:'con viabilidad presente',novia:'sin viabilidad'};
+  const resTxt=resMap[(document.getElementById('ee-res-global')||{}).value]||'';
+  const pic=eeGetWMSItext('pico');
+  const parts=[];
+  parts.push('Eco estrés'+(estres?' con '+estres.toLowerCase():'')+'.');
+  const adTxt = adec==='si'?'adecuado':adec==='no'?'subóptimo':'';
+  const det=[]; if(mets) det.push('alcanzando '+mets+' METs'); if(fcpct!=null) det.push((mets?'y ':'alcanzando ')+fcpct+'% de la FC máxima teórica');
+  if(adTxt||det.length) parts.push(('Estrés '+(adTxt||'')).trim()+(det.length?', '+det.join(' '):'')+'.');
+  if(resTxt) parts.push('Estudio '+resTxt+' para isquemia.');
+  if(pic.anorm.length) parts.push(pic.anorm.join('; ')+' (WMSI pico '+pic.wmsi+').');
+  else if(pic.wmsi!=='—') parts.push('Sin nuevas alteraciones de la motilidad en el pico (WMSI '+pic.wmsi+').');
+  const camb=document.getElementById('ee-b-cambios'); if(camb&&camb.value&&camb.value!=='no') parts.push('ECG: '+camb.options[camb.selectedIndex].text+'.');
+  const gb=val('ee-gls-bas'), gp=val('ee-gls-pic'); if(gb){ let g='GLS basal '+gb+'%'; if(gp) g+=', pico '+gp+'%'; parts.push(g+'.'); }
+  const cfvrDa=val('ee-cfvr-da-val'); if(cfvrDa&&cfvrDa!=='—') parts.push('CFVR DA: '+cfvrDa+'.');
+  const com=val('ee-res-comment'); if(com&&com.trim()) parts.push(com.trim());
+  const out=document.getElementById('ee-narrativa'); if(out) out.value=parts.join(' ');
+}
+
+// ── Renderer del bull's eye ee a canvas (para el PDF) ──
+function eeBullDataURL(phase){
+  const S=340,k=2; const cv=document.createElement('canvas'); cv.width=S*k; cv.height=S*k; const c=cv.getContext('2d'); c.scale(k,k);
+  c.fillStyle='#ffffff'; c.fillRect(0,0,S,S);
+  const cx=170,cy=170,state=eeBull[phase];
+  const rings=[{r1:130,r2:92,segs:[0,1,2,3,4,5],step:60},{r1:92,r2:54,segs:[6,7,8,9,10,11],step:60},{r1:54,r2:24,segs:[12,13,14,15],step:90}];
+  c.textAlign='center'; c.textBaseline='middle'; c.font='bold 11px sans-serif';
+  rings.forEach(ring=>{ ring.segs.forEach((segIdx,s)=>{
+    const startDeg=-90+30-(s*ring.step), endDeg=startDeg-ring.step;
+    const p=new Path2D(eeArc(cx,cy,ring.r1,ring.r2,startDeg,endDeg));
+    c.fillStyle=EE_COLORS[state[segIdx]]; c.fill(p); c.lineWidth=1.5; c.strokeStyle='#ffffff'; c.stroke(p);
+    const midDeg=startDeg-ring.step/2, midR=(ring.r1+ring.r2)/2;
+    c.fillStyle='#ffffff'; c.fillText(String(EE_SEGS[segIdx].id), cx+midR*Math.cos(midDeg*Math.PI/180), cy+midR*Math.sin(midDeg*Math.PI/180));
+  }); });
+  c.beginPath(); c.arc(cx,cy,24,0,2*Math.PI); c.fillStyle=EE_COLORS[state[16]]; c.fill(); c.lineWidth=1.5; c.strokeStyle='#ffffff'; c.stroke();
+  c.fillStyle='#ffffff'; c.fillText('17',cx,cy);
+  return cv.toDataURL('image/png');
+}
+function eeHasData(){
+  const g=id=>{ const el=document.getElementById(id); return el&&el.value&&String(el.value).trim(); };
+  if(g('ee-res-global')||g('ee-b-mets')||g('ee-b-fcmax')||g('ee-gls-bas')||g('ee-narrativa')) return true;
+  if(['basal','pico','recup'].some(p=>eeBull[p].some(s=>s>0&&s!==4))) return true;
+  /* `.some(Boolean)`, NO `.length`. eeEcg arranca en [null,null] y eeEcgEnsure lo mantiene
+     en >=2, así que `eeEcg.length` era verdadero SIEMPRE y esta función devolvía true con
+     todo vacío. Medido: con la bandera ecoestres_incluir_pdf en '1' —que quedó guardada en
+     cualquier navegador que usara la build donde el módulo tenía interfaz— el PDF imprimía
+     una sección «ECO ESTRÉS» con los tres bull's eyes y los 17 segmentos en NORMAL, sobre un
+     estudio donde no se hizo ningún eco estrés. Un informe firmado afirmando motilidad
+     normal en pico de un test que no existió.
+     La interfaz de este módulo fue retirada; el JS queda inerte por si se restaura —decisión
+     de Maicol del 25/10/2026: no se borra hasta modularizar la app—. Que esta función dé
+     FALSO con el árbol limpio es la tercera de las tres compuertas, y la fija TC-536
+     (condición D). Inventario: docs/mapa/eco-estres-inventario.md · borrado: AJ10-C. */
+  if(eeImg.some(Boolean)||eeEcg.some(Boolean)) return true;
+  return false;
+}
+
+window.eeImgSetCount=eeImgSetCount; window.eeImgAdd=eeImgAdd; window.eeImgPick=eeImgPick; window.eeImgChosen=eeImgChosen; window.eeImgRemove=eeImgRemove;
+window.eeEcgSetCount=eeEcgSetCount; window.eeEcgAdd=eeEcgAdd; window.eeEcgPick=eeEcgPick; window.eeEcgChosen=eeEcgChosen; window.eeEcgRemove=eeEcgRemove;
+window.generarInformeEcoEstres=generarInformeEcoEstres;
+window.eeBullDataURL=eeBullDataURL; window.eeHasData=eeHasData;
+window.eeGetStudyImgs=function(){ return eeImg.filter(Boolean); };
+window.eeGetEcgImgs=function(){ return eeEcg.filter(Boolean); };
+
+setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); eeEcgRender(); },120);
+})();
+</script>
+
+<!-- ═══════════════════════ TAB: CALCULADORAS ═══════════════════════ -->
+
+<!-- ═══════════════════════ TAB: CONGENITAS ESTRUCTURALES ═══════════════════════
+     Segunda pestaña (2026-09-15). La division es CLINICA: de un lado lo que se sigue en el
+     adulto por su valvula, su aorta o su miocardio; del otro las cardiopatias con shunt y las
+     paliadas, que se siguen por su fisiologia.
+     NINGUNA seccion cambio de id, de funcion ni de contenido. secToggle, secAutoOpen, los
+     *Sync de RECALC_MODULOS y _CC_SEC_POR_K buscan por id en TODO el documento, asi que no
+     les importa en que pestaña esta cada una. Lo verifica TC-112.
+     COMO SE HIZO, porque importa: cada seccion se reemplazo EN SU POSICION por un marcador y
+     despues se reagruparon. Los dos intentos anteriores RECONSTRUYERON la pestaña desde las
+     secciones extraidas y se comieron DOS bloques de codigo embebido que vivian ENTRE ellas.
+     Lo delato el conteo de esos bloques, no los tests: los 126 casos pasaban igual.
+     Nunca reconstruir una pestaña desde sus partes: mover lo que se muda y dejar el resto
+     quieto. (La marca de apertura no se escribe literal en este comentario: la contarian el
+     chequeo de conteo y el extractor de sintaxis como si fuera un bloque de verdad.) -->
+<div id="tab-congenitas2" class="tab-section">
+  <!-- ══ LAS DOS PESTANAS DE CONGENITAS (B-E6, 2026-10-21) ════════════════════════════════
+       La barra va en las DOS pestanas y no una sola vez, porque son dos `.tab-section` distintas
+       y la que no esta activa no se dibuja. El estado activo se deriva de cual esta activa, asi
+       que las dos copias no pueden divergir: lo pone `ccSubSync`.
+       ⚠️ LA CLASE ES `cc-on` Y NO `active`: `showTab` barre `.active` de TODO `.tab-btn` del
+          documento, y es justamente lo que se llama al cambiar de pestana. Es el defecto que las
+          sub-pestanas de Otros ya pagaron. -->
+  <div class="subtabs-wrap cc-subbar" role="tablist" aria-label="Cardiopatias congenitas"
+       style="justify-content:flex-start;margin-bottom:12px;">
+    <div class="tabs-row">
+      <!-- ⚠️ LLEVAN `tab-special`, LA CLASE DE LOS BOTONES DE LA FILA DE ARRIBA (B2-E4,
+           2026-10-22). MEDIDO ANTES DE TOCAR NADA: los dos ya se veian IGUAL que los de arriba
+           en las siete propiedades —fondo, color, borde, ancho de borde, cuerpo, relleno y
+           radio— en reposo y en activo, en los dos temas y en los dos motores. La razon es que
+           los botones de arriba tambien viven dentro de un `.subtabs-wrap`, y
+           `.subtabs-wrap .tab-btn` (0,2,1) le gana a `.tab-special` (0,1,0): las cinco
+           declaraciones de esa clase no se aplican a ninguno de los dos.
+           La clase se agrega igual, y es ESTRUCTURAL y no cosmetica: ata los dos grupos, asi
+           que el dia que alguien toque `.tab-special` o la especificidad los de CC se mueven
+           con los de arriba en vez de quedarse atras en silencio. Medido: CERO cambio de pixel.
+           ⚠️ EL ESTADO ACTIVO SIGUE EN `cc-on` Y NO EN `.active`, que es obligatorio: `showTab`
+           barre `.active` de TODO `.tab-btn` del documento. Sus colores son los de
+           `.subtabs-wrap .tab-btn.active`, sin declarar uno nuevo. -->
+      <button type="button" class="tab-btn tab-special" id="cc-subtab-frec2" role="tab"
+              aria-selected="false" tabindex="-1"
+              onclick="ccSubTab('congenitas')">&#129516; CC frecuentes</button>
+      <button type="button" class="tab-btn tab-special cc-on" id="cc-subtab-compl2" role="tab"
+              aria-selected="true" tabindex="0"
+              onclick="ccSubTab('congenitas2')">&#129516; CC complejas</button>
     </div>
   </div>
 <div class="card sacc" id="sacc-cc-shunt">

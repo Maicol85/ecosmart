@@ -108953,6 +108953,25 @@ caso('TC-631', 'Tanda PANT-3: el modulo de arritmia ventricular es la primera se
   await esperar(400);
   ex.push(['(G1) Limpiar vacia los cuatro campos',
     [V2('tv_documentada'), V2('tv_tipo'), V2('tv_morfologia'), V2('tv_ev24h')].join('|'), '|||']);
+
+  /* (H) LA ESTRUCTURA DE LAS DOS SUB-PESTANIAS, Y NACIO DE UN DEFECTO REAL DE ESTE COMMIT.
+     Mover el modulo cortando el texto «desde su div hasta el de la seccion siguiente» se llevo
+     el CIERRE de la primera sub-pestania y la APERTURA de la segunda: las diez secciones de CC
+     frecuentes quedaron dentro de CC complejas y las nueve complejas fuera de todo panel. La
+     app lo grito sola -su diagnostico del panel de Evidencia dijo que un campo gateado vivia en
+     «ningun panel de pestania»- y ningun caso lo vio. Esta condicion lo ve. */
+  const _hijas = (id) => { const t = document.getElementById(id);
+    return t ? Array.prototype.map.call(t.querySelectorAll(':scope > [id^="sacc-cc-"]'), x => x.id).join(',') : 'NO EXISTE' };
+  ex.push(['(H1) CC frecuentes tiene sus diez secciones, con el modulo primero',
+    _hijas('tab-congenitas'),
+    'sacc-cc-tv,sacc-cc-vab,sacc-cc-coa,sacc-cc-marfan,sacc-cc-fop,sacc-cc-esub,sacc-cc-easv,sacc-cc-mch,sacc-cc-mca,sacc-cc-tdf']);
+  ex.push(['(H2) CC complejas tiene sus nueve',
+    _hijas('tab-congenitas2'),
+    'sacc-cc-shunt,sacc-cc-dap,sacc-cc-vap,sacc-cc-dsav,sacc-cc-cvpa,sacc-cc-tga,sacc-cc-ebs,sacc-cc-eisen,sacc-cc-fontan']);
+  ex.push(['(H3) y un campo de la CIA sigue viviendo dentro de su panel de pestania',
+    (function () { const e = document.getElementById('ete_cia_dir');
+      if (!e) return 'NO EXISTE';
+      const pan = e.closest('.tab-section'); return pan ? pan.id : 'NINGUNO' })(), 'tab-congenitas2']);
   return { extra: EXP };
   })();
 `);
