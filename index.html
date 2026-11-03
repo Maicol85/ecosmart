@@ -1521,6 +1521,20 @@
      `.btn-integrar.revisar`, que ya usa box-shadow para una segunda senal sobre un boton que ya
      tiene color propio. */
   .subtabs-wrap .tab-btn.cc-les-on.cc-pane-on { box-shadow:0 0 0 2px var(--teal); }
+  /* ══ EL PIE DEL BLOQUE DE CONGENITAS Y EL PANEL DEL CORAZON MAESTRO (PANT-3, commit 4) ══
+     Calcado del pie de la vista 2D de Valvulas (`.v2d-pie` + `#v2d-ov`), que es el patron que la
+     orden pide repetir: UN boton al pie, debajo de todo, que prende y apaga un panel EN LINEA.
+     ⚠️ EL ENVOLTORIO VIVE FUERA DE LAS DOS `.tab-section` DE CONGENITAS, y es la unica forma de
+     que haya UNA SOLA INSTANCIA visible en las dos sub-pestanias: son dos secciones distintas y
+     la que no esta activa no se dibuja -por eso la barra de sub-pestanias si esta DOS veces, y su
+     propio comentario lo explica-. Al estar fuera necesita su propio mostrar y esconder, que es
+     `cc3dPieSync`, colgado de `showTab`. */
+  #cc3d-wrap { display:none; }
+  #cc3d-wrap.cc3d-ver { display:block; }
+  .cc3d-pie { display:flex; justify-content:center; margin:12px 0 4px; }
+  #cc3d-panel { display:none; margin-top:10px; }
+  #cc3d-panel.cc3d-ab { display:block; }
+  #cc3d-host:empty::after { content:'El diagrama no esta disponible.'; font-size:11px; color:var(--text2); }
   /* Fila inferior de herramientas SIEMPRE visible (CAMBIO 3) */
   .subtabs-wrap .tabs-tools { display:flex !important; }
   /* Tabs avanzadas como dropdown en móvil */
@@ -19476,6 +19490,46 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
     </div>
   </div>
 </div>
+<!-- ══ EL CORAZON MAESTRO EN 3D — PIE DEL BLOQUE DE CONGENITAS (PANT-3, commit 4) ═══════════
+     DECISION DEL MEDICO: abajo de todas las congenitas, con la misma logica que el esquema
+     valvular 2D de Valvulas, UN SOLO boton que abre el diagrama que ya existe en la
+     transposicion -el 3D con el esquema de circulacion al lado- con la alteracion que
+     corresponda a lo cargado en el estudio.
+     ⚠️ VA ACA, FUERA de `#tab-congenitas` y de `#tab-congenitas2`, y es deliberado: son dos
+     `.tab-section` distintas y la que no esta activa no se dibuja, asi que un boton dentro de
+     una no se ve en la otra. Puesto como HERMANO de las dos, hay UNA instancia y se ve en las
+     dos, que es lo que la orden pide. Lo muestra y lo esconde `cc3dPieSync`.
+     ⚠️ Y EL PANEL NO DUPLICA EL DIAGRAMA: MUEVE el recuadro `#tga-3d-box` -el 3D, sus controles
+     y el esquema de circulacion- a su hueco, y al cerrar lo devuelve a donde estaba. Una segunda
+     instancia habria exigido un segundo lienzo con otro id y, con el, una segunda copia del
+     cableado del 3D y del esquema: dos dibujos del mismo paciente que pueden divergir.
+     Es SOLO LECTURA: no escribe ningun campo, no se guarda y no entra al informe, al EN SUMA,
+     al PDF ni al PPT. -->
+<div id="cc3d-wrap">
+  <div class="cc3d-pie">
+    <!-- UN SOLO BOTON QUE PRENDE Y APAGA, CON EL MISMO TEXTO SIEMPRE. Lo que cambia es el color:
+         apagado `btn-ghost`, prendido `btn-primary`, los dos de la paleta de la app, sin declarar
+         uno nuevo. `aria-pressed` y no `aria-expanded`: es un interruptor de dos estados. -->
+    <button type="button" class="btn btn-ghost" id="cc3d-abrir" onclick="cc3dTog()"
+            aria-pressed="false" aria-controls="cc3d-panel" style="min-height:44px;"
+            title="Ver el corazon en 3D con lo cargado en el estudio">&#129728; Ver en 3D</button>
+  </div>
+  <div class="card" id="cc3d-panel">
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
+      <span style="font-size:12px;font-weight:700;color:var(--accent2);flex:1;">Corazon en 3D &mdash; lo cargado en este estudio</span>
+      <span style="font-size:10.5px;font-weight:700;color:var(--text2);">Esquema ilustrativo</span>
+      <button type="button" class="vinfo-btn vinfo-btn-44" data-vinfo="cc-3d"
+              aria-label="Que muestra el corazon en 3D" onclick="vInfoClic(this,event)">&#9432;</button>
+      <button type="button" class="btn btn-ghost" id="cc3d-cerrar" style="min-height:44px;"
+              onclick="cc3dCerrar()">Cerrar</button>
+    </div>
+    <div id="cc3d-host"></div>
+    <!-- La linea de lo que esta cargado y el diagrama todavia no dibuja. La escribe
+         `cc3dNoDibujadas`, que lee el registro `_CC_SECS` del Laboratorio: es el dueno unico de
+         «esta leson esta cargada» y no una segunda lista. -->
+    <p id="cc3d-faltan" style="font-size:10.5px;color:var(--text2);margin:8px 0 0;line-height:1.5;"></p>
+  </div>
+</div>
 <div id="tab-calculadoras" class="tab-section">
   <div class="card">
     <h2 class="card-head">🧮 Calculadoras Clínicas Ecocardiográficas</h2>
@@ -25041,11 +25095,17 @@ function showTab(id) {
      asi que al volver tiene que estar como la orden pide —apagado— y no prendido sobre el
      paciente siguiente, con su latido corriendo sobre un dibujo sin geometria. */
   if (typeof v2dCerrar === 'function') v2dCerrar();
+  /* Y el panel del corazon maestro, por lo mismo y por una razon mas fuerte: tiene PRESTADO el
+     recuadro de la transposicion, asi que dejarlo abierto al cambiar de pestania dejaria esa
+     seccion sin su diagrama. Va ANTES de mover las clases -con el recuadro ya devuelto- y el
+     pie se sincroniza mas abajo, cuando la pestania nueva ya esta activa. */
+  if (typeof cc3dCerrar === 'function') { try { cc3dCerrar() } catch (e) {} }
   document.querySelectorAll('.tab-section').forEach(s => s.classList.remove('active'));
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   document.getElementById('tab-' + id).classList.add('active');
   if (typeof event !== 'undefined' && event && event.target) event.target.classList.add('active');
   // Abrir automáticamente los acordeones de sección que ya tengan datos cargados
+  if (typeof cc3dPieSync === 'function') { try { cc3dPieSync() } catch (e) {} }
   if (typeof secAutoOpen === 'function') secAutoOpen('tab-' + id);
   if (typeof cardAutoOpen === 'function') cardAutoOpen('tab-' + id);
   /* La barra de las dos pestanas de congenitas se repinta ACA y no solo desde `ccSubTab`: el
@@ -46657,6 +46717,35 @@ const VINFO = Object.freeze({
        El resto del globo -por donde circula la sangre, los colores, de donde sale el escenario y
        que se dibuja con cada comunicacion y con cada cirugia- no se toco. */
   },
+  /* ══ EL GLOBO DEL CORAZON MAESTRO (PANT-3, commit 4) ══════════════════════════════════════
+     ⓘ ESTANDAR de la casa: glifo U+24D8 en un boton de 44 px con `vinfo-btn-44`, el mismo
+     mecanismo `data-vinfo` y la misma tarjeta. Dice que muestra y, con la misma claridad, que NO.
+     PARAFRASEADO Y SIN UNA SOLA CITA: ni guia, ni sociedad, ni clase, ni tabla, ni folio. Este
+     globo no respalda una recomendacion, explica un dibujo.
+     Y SIN NINGUNA FRASE DE «REVISION PENDIENTE», que es la regla nueva del medico: lo que falta
+     por revisar vive en `docs/PENDIENTES.md` y no en la pantalla. */
+  'cc-3d': {
+    ancho: 380,
+    tit: 'El corazón en 3D de las cardiopatías congénitas',
+    lee: 'Es el MISMO diagrama de la sección de transposición de grandes arterias, abierto desde '
+       + 'acá con lo que se cargó en TODO el estudio: el dibujo en 3D y, al lado, el esquema de '
+       + 'por dónde circula la sangre. No hay un segundo dibujo ni un segundo juego de datos, así '
+       + 'que los dos nunca pueden mostrar dos anatomías distintas del mismo paciente.\n'
+       + 'QUÉ DIBUJA: el corazón con sus cuatro cavidades y, sobre él, las tres comunicaciones '
+       + 'que la aplicación guarda —la interauricular, la interventricular y el ductus—, cada una '
+       + 'sólo si está cargada. El foramen oval cuenta como comunicación interauricular. La punta '
+       + 'de flecha aparece únicamente donde la aplicación guarda la dirección del shunt: la '
+       + 'interauricular y el ductus la tienen, la interventricular no. Si hay una transposición '
+       + 'cargada, dibuja su anatomía y su cirugía con las mismas reglas de esa sección.\n'
+       + 'Sin ninguna lesión cargada muestra el corazón normal, y lo dice debajo.\n'
+       + 'QUÉ NO DIBUJA: todo lo demás. Las lesiones que están cargadas y el diagrama todavía no '
+       + 'dibuja se nombran una por una en la línea de abajo, con el nombre que la aplicación '
+       + 'usa para cada una. Lo que no está dibujado se declara; no se reemplaza por un dibujo '
+       + 'parecido.\n'
+       + 'ES ILUSTRATIVO: no es una imagen de este estudio y no está a escala. Las cavidades, los '
+       + 'vasos y las distancias son siempre los mismos. Es de sólo lectura: no escribe ningún '
+       + 'dato, no se guarda con el estudio y no entra al informe ni al PDF.'
+  },
   'tga-3d': {
     ancho: 380,
     tit: 'El diagrama 3D de la transposición',
@@ -66148,6 +66237,10 @@ function limpiarCampos(silencioso) {
      `limpiarCampos` no alcanza ni a los `<li>` que `v2dPintarTarjetas` crea ni al `<svg>`. Es la
      misma decision que el panel 3D de ETE, dos lineas arriba. */
   if (typeof v2dCerrar === 'function') v2dCerrar();
+  /* Y el panel del corazon maestro, por el MISMO motivo del parrafo de arriba: con el abierto,
+     «Nuevo estudio» dejaba el diagrama del paciente ANTERIOR sobre un formulario en blanco. Y
+     ademas devuelve el recuadro prestado a la seccion de la transposicion. */
+  if (typeof cc3dCerrar === 'function') { try { cc3dCerrar() } catch (e) {} }
   /* La tabla de Cardio-Oncología está indexada por paciente pero no se repinta sola: con
      «Nuevo Estudio» estando en esa pestaña, seguía mostrando «Seguimiento de <paciente
      anterior> — 3 controles» sobre un formulario ya vacío. */
@@ -97221,6 +97314,131 @@ function tgaEsqPdfOn() {
   } catch (e) { return false; }
 }
 window.tgaEsqPdfOn = tgaEsqPdfOn;
+
+/* ══════════════════════════════════════════════════════════════════════════════════════════
+   EL CORAZON MAESTRO EN 3D — EL PIE DEL BLOQUE DE CONGENITAS (PANT-3, commit 4)
+   ══════════════════════════════════════════════════════════════════════════════════════════
+   LO QUE ESTA TANDA AGREGA ES LA PUERTA, NO EL DIBUJO, y eso sale de medir antes de escribir:
+   el recuadro de la transposicion YA hace lo que la orden pide. Con el tipo vacio dibuja el
+   CORAZON NORMAL con las comunicaciones cargadas -los tres estados que CONG-2A documenta- y con
+   una transposicion cargada dibuja su escenario con las reglas que ya tiene, incluidas las dos
+   exclusiones clinicas: sin comunicacion interauricular con el switch auricular y sin
+   interventricular con el Rastelli. Lo que faltaba era poder abrirlo desde cualquier parte del
+   bloque de congenitas. Por eso no se crea geometria, no se inventa ningun recorrido y no se
+   duplica una linea del dibujo.
+
+   SOLO LECTURA. Ni el boton ni el panel escriben un campo del estudio; el unico estado es
+   `_cc3d`, que vive en memoria y muere con la sesion. Nada de esto llega al informe, al EN SUMA,
+   al PDF ni al PPT.
+
+   LA PAUSA, LA FRECUENCIA Y `prefers-reduced-motion` son los del recuadro, porque es EL MISMO
+   recuadro: sus controles se mueven con el. Con un juego propio, el boton «Pausar» del panel
+   dejaria el 3D de la seccion corriendo. */
+var _cc3d = { abierto:false, padre:null, antes:null };
+
+/* ¿Alguna de las dos sub-pestanias de congenitas esta delante? Dueno unico de la pregunta: lo
+   consultan el mostrar del pie y el cierre automatico. */
+function cc3dEnCongenitas() {
+  return ['tab-congenitas', 'tab-congenitas2'].some(function (id) {
+    const sc = document.getElementById(id);
+    return !!(sc && sc.classList.contains('active'));
+  });
+}
+/* El pie se ve SOLO en las dos sub-pestanias de congenitas, y al salir el panel se cierra: un
+   panel abierto que se queda con el recuadro prestado dejaria la seccion de la transposicion sin
+   su diagrama al volver. */
+function cc3dPieSync() {
+  const w = document.getElementById('cc3d-wrap');
+  if (!w) return;
+  const en = cc3dEnCongenitas();
+  w.classList.toggle('cc3d-ver', en);
+  if (!en && _cc3d.abierto) cc3dCerrar();
+}
+window.cc3dPieSync = cc3dPieSync;
+
+/* ══ LO QUE ESTA CARGADO Y EL DIAGRAMA TODAVIA NO DIBUJA ════════════════════════════════════
+   El registro es `_CC_SECS`, el del Laboratorio: es el dueno unico de «esta lesion esta
+   cargada» -su `pred` es el mismo que usa el denominador de cada bloque de la sub-pestania CC- y
+   reusarlo evita la segunda lista que este archivo paga una y otra vez.
+   `pred` espera un estudio guardado, asi que se le arma uno con el formulario de ahora.
+   LO QUE EL DIAGRAMA SI DIBUJA son las tres comunicaciones -interauricular, interventricular y
+   ductus, con el foramen oval contando como interauricular, que es lo que `tga3dComs` decide- y
+   la anatomia de la transposicion. Todo lo demas se DECLARA y no se dibuja. */
+const CC3D_DIBUJA = Object.freeze(['cia', 'civ', 'dap', 'fop', 'tga']);
+function cc3dNoDibujadas() {
+  const campos = {};
+  try {
+    document.querySelectorAll('input[id], select[id], textarea[id]').forEach(function (e) {
+      if (typeof _noEsDelEstudio === 'function' && _noEsDelEstudio(e.id)) return;
+      campos[e.id] = (e.type === 'checkbox') ? (e.checked ? '1' : '') : String(e.value || '');
+    });
+  } catch (e) { return { falta: [], dib: [], hay: false } }
+  const inf = { campos: campos };
+  const falta = [], dib = [];
+  try {
+    _CC_SECS.forEach(function (sc) {
+      let on = false;
+      try { on = !!sc.pred(inf) } catch (e) { on = false }
+      if (!on) return;
+      if (CC3D_DIBUJA.indexOf(sc.k) >= 0) dib.push(sc.lbl); else falta.push(sc.lbl);
+    });
+  } catch (e) { return { falta: [], dib: [], hay: false } }
+  return { falta: falta, dib: dib, hay: (falta.length + dib.length) > 0 };
+}
+window.cc3dNoDibujadas = cc3dNoDibujadas;
+
+function cc3dTextoSync() {
+  const pp = document.getElementById('cc3d-faltan');
+  if (!pp) return;
+  const r = cc3dNoDibujadas();
+  if (!r.hay) { pp.textContent = 'Sin lesiones cargadas que dibujar: se muestra el corazon normal.'; return }
+  pp.textContent = r.falta.length
+    ? ('Cargadas y no dibujadas todavia: ' + r.falta.join(', ') + '.')
+    : 'Todas las lesiones cargadas estan dibujadas.';
+}
+window.cc3dTextoSync = cc3dTextoSync;
+
+/* Abrir: se PRESTA el recuadro. Se recuerda de donde salio -el padre y el hermano siguiente- para
+   poder devolverlo al mismo lugar, y no al final de su contenedor. */
+function cc3dAbrir() {
+  const box = document.getElementById('tga-3d-box');
+  const host = document.getElementById('cc3d-host');
+  const pan = document.getElementById('cc3d-panel');
+  if (!box || !host || !pan) return;
+  if (!_cc3d.abierto) {
+    _cc3d.padre = box.parentNode;
+    _cc3d.antes = box.nextSibling;
+    host.appendChild(box);
+    _cc3d.abierto = true;
+  }
+  pan.classList.add('cc3d-ab');
+  const bb = document.getElementById('cc3d-abrir');
+  if (bb) { bb.classList.remove('btn-ghost'); bb.classList.add('btn-primary'); bb.setAttribute('aria-pressed', 'true'); }
+  /* El repintado lo hace el dueno del recuadro, no una copia: `tgaSync` decide el escenario desde
+     el tipo y la cirugia y arrastra al 3D y al esquema. */
+  try { if (typeof tgaSync === 'function') tgaSync() } catch (e) {}
+  cc3dTextoSync();
+}
+window.cc3dAbrir = cc3dAbrir;
+
+function cc3dCerrar() {
+  const pan = document.getElementById('cc3d-panel');
+  if (pan) pan.classList.remove('cc3d-ab');
+  const bb = document.getElementById('cc3d-abrir');
+  if (bb) { bb.classList.add('btn-ghost'); bb.classList.remove('btn-primary'); bb.setAttribute('aria-pressed', 'false'); }
+  if (_cc3d.abierto) {
+    const box = document.getElementById('tga-3d-box');
+    if (box && _cc3d.padre) {
+      try { _cc3d.padre.insertBefore(box, _cc3d.antes) } catch (e) { _cc3d.padre.appendChild(box) }
+    }
+    _cc3d.abierto = false; _cc3d.padre = null; _cc3d.antes = null;
+    try { if (typeof tgaSync === 'function') tgaSync() } catch (e) {}
+  }
+}
+window.cc3dCerrar = cc3dCerrar;
+function cc3dTog() { if (_cc3d.abierto) cc3dCerrar(); else cc3dAbrir(); }
+window.cc3dTog = cc3dTog;
+
 /* Rasteriza el SVG tal como esta, con el bucle en pausa. Diferido para no hacerlo por tecla. */
 function tgaEsqPdfRaster(inmediato) {
   /* ⚠️ CON LA COMPUERTA CERRADA NO SE RASTERIZA, PERO TAMPOCO SE BORRA LO YA RASTERIZADO, y es
@@ -151506,8 +151724,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261103-0003';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793675026002;                 /* eco-build-ms */
+const ECO_BUILD    = '20261103-0011';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793675503617;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -151593,7 +151811,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261103-0003</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261103-0011</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
