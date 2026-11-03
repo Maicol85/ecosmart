@@ -10518,7 +10518,13 @@ window.cerrarSesionReal = cerrarSesionReal;
         <div style="font-size:11px;font-weight:700;color:var(--accent2);margin-bottom:8px;">CRITERIOS DE SOBRECARGA DEL VD</div>
         <div class="calc-row"><span class="calc-lbl">Dilataci&oacute;n del VD</span><span id="tep-vdvi-interp">&mdash;</span></div>
         <div class="calc-row"><span class="calc-lbl">Funci&oacute;n sist&oacute;lica del VD</span><span id="tep-tapse-interp">&mdash;</span></div>
-        <div class="calc-row"><span class="calc-lbl">PSAP</span><span id="tep-psap-interp">&mdash;</span></div>
+        <!-- OJO: este rotulo NO dice «PSAP» a secas, y es una correccion medida del propio commit 10.
+             El span de al lado escribe la sigla CON su valor y su corte -«PSAP 45 mmHg — elevada (>=60
+             mmHg)»-, asi que con «PSAP» en la etiqueta la fila se leia «PSAP  PSAP 45 mmHg». La regla
+             del commit es que el rotulo nombre el PARAMETRO, y el parametro es la presion sistolica
+             pulmonar; las dos filas de arriba cumplen la misma regla porque su sigla (VD/VI, TAPSE) no
+             es su nombre. Lo fija TC-519 (O6), que exige que la etiqueta no contenga la sigla. -->
+        <div class="calc-row"><span class="calc-lbl">Presi&oacute;n sist&oacute;lica pulmonar</span><span id="tep-psap-interp">&mdash;</span></div>
         <div class="calc-row"><span class="calc-lbl">Signo de McConnell</span><span id="tep-mcconnell-interp">&mdash;</span></div>
         <div class="calc-row"><span class="calc-lbl">Signo 60/60</span><span id="tep-6060-interp">&mdash;</span></div>
         <div class="calc-row"><span class="calc-lbl">Tabique en D</span><span id="tep-tabiqued-interp">&mdash;</span></div>
@@ -152273,8 +152279,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261103-0204';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793682257375;                 /* eco-build-ms */
+const ECO_BUILD    = '20261103-0256';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793685363476;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -152360,7 +152366,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261103-0204</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261103-0256</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

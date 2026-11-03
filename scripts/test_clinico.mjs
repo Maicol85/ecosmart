@@ -5702,9 +5702,20 @@ caso('TC-61', 'CIA: sale al informe solo con el checkbox tildado', `
   __t.set('ete_cia_dir','id'); __t.set('ete_cia_borde_ao','3');
   const sin = __t.informe();
   __t.chk('ete_shunt_incluir_chk', true);
+  /* ADAPTADO (TANDA PANT-3, commit 1, 03/11/2026): la casilla «Integrar al informe» ya NO
+     alcanza. Desde la regla (v) del commit 1, la CIA y la CIV tienen cada una su PROPIO dato de
+     presencia -el boton de lesion, que escribe ete_cia_activa / ete_civ_activa-, y el emisor
+     exige las DOS cosas: la casilla dice «este modulo entra al informe» y el boton dice «este
+     paciente TIENE esta lesion». Lo que este caso fija -que sin la casilla no salga y con todo
+     cargado salga con su tamanio, su borde y su direccion- no cambia; lo que cambia es que ahora
+     hay que prender tambien la lesion. Gana (Ca) para que esa mitad pueda fallar sola. */
+  const conSinLesion = __t.informe();
+  if (typeof eteShuntLesionOn === 'function' && !eteShuntLesionOn('cia')) eteShuntLesionTog('cia');
   const con = __t.informe();
   return { extra: [
     ['sin tildar no sale',  sin.inf.indexOf('CIA') === -1],
+    ['(Ca) con la casilla pero SIN el boton de lesion tampoco sale',
+      conSinLesion.inf.indexOf('CIA tipo ostium secundum') === -1],
     ['tildado sale',        con.inf.indexOf('CIA tipo ostium secundum. Tamaño 18 × 14 mm.') > -1],
     ['con el borde minimo', con.inf.indexOf('Borde mínimo 3 mm (aórtico).') > -1],
     ['y la direccion',      con.inf.indexOf('Shunt de izquierda a derecha.') > -1],
@@ -5725,6 +5736,11 @@ caso('TC-62', 'CIV: gradiente pico 4·V² y PAPs estimada por diferencia', `
   __t.set('ete_civ_tipo','perimembranosa'); __t.set('ete_civ_tam','4');
   __t.set('ete_civ_vel','4.5'); __t.set('ete_civ_pas','90');
   __t.chk('ete_shunt_incluir_chk', true);
+  /* ADAPTADO (TANDA PANT-3, commit 1, 03/11/2026): mismo motivo que TC-61. La casilla es «este
+     modulo entra al informe» y el boton de lesion es «este paciente tiene una CIV»: el emisor
+     pide las dos. El gradiente de Bernoulli y la PAPs estimada, que es lo que este caso mide, no
+     se movieron. */
+  if (typeof eteShuntLesionOn === 'function' && !eteShuntLesionOn('civ')) eteShuntLesionTog('civ');
   const r = __t.informe();
   return { inf: r.inf, suma: r.suma,
     debe: ['Gradiente pico 81 mmHg (V 4.5 m/s).', 'PAPs estimada por CIV 9 mmHg.'],
@@ -66550,7 +66566,12 @@ caso('TC-471', 'Valvulas D1: la insuficiencia mitral en TRES columnas de SEIS co
        maestro al pie de congenitas, y los SEIS de la pantalla de MCH. NINGUNA esta en Valvulas,
        que es la pestania que este caso mide: lo que cambia es el denominador del registro, no lo
        que esta condicion afirma sobre el marcado de esa pestania. */
-    Object.keys(VINFO).length === 108,
+    /* ADAPTADO (TANDA PANT-3, segunda mitad, 03/11/2026): 108 -> 120. Las DOCE nuevas son
+       tv-sec, del modulo compartido de arritmia ventricular; esub-sec y esub-grad; easv-sec y
+       easv-grad; mca-sec, mca-eco, mca-vi y mca-score; y tdf-sec, tdf-eco y tdf-vol. NINGUNA
+       esta en Valvulas, que es la pestania que este caso mide: lo que cambia es el denominador
+       del registro, no lo que la condicion afirma sobre el marcado de esa pestania. */
+    Object.keys(VINFO).length === 120,
     'registro=' + (HAY_INFO ? Object.keys(VINFO).join(',') : 'SIN REGISTRO')]);
   ex.push(['(H) y la tarjeta se coloca SIEMPRE dentro de la pantalla, sin cortarse',
     (function(){ const b = document.querySelector('[data-vinfo="avm-thp"]');
@@ -77943,7 +77964,13 @@ caso('TC-500', 'Tanda Q: las OCHO tarjetas i de las valvulas arriba de su pastil
      propias entradas en vez de copiarlas. Las diecinueve de los rasgos NO se retiraron del
      registro: siguen siendo el dueno unico de cada definicion y las leen los dos globos de
      grupo; lo que se retiraron son sus BOTONES. Lo que la condicion afirma no cambia. */
-  ex.push(['DENOMINADOR: el mecanismo de los globos existe y el registro tiene las 97 entradas',
+  /* ⚠️ ADAPTADO 2026-11-03 (TANDA PANT-3, segunda mitad): 97 -> 120. Las veintitres nuevas son
+     las once de la primera mitad -cc-3d y las seis de MCH entre ellas- y las doce de la segunda:
+     tv-sec del modulo de arritmia ventricular, esub-sec, esub-grad, easv-sec, easv-grad,
+     mca-sec, mca-eco, mca-vi, mca-score, tdf-sec, tdf-eco y tdf-vol. Lo que esta condicion
+     afirma no cambia -que el mecanismo exista y que el registro este completo-: cambia el
+     denominador. */
+  ex.push(['DENOMINADOR: el mecanismo de los globos existe y el registro tiene las 120 entradas',
     /* ⚠️ ADAPTADO EN LA TANDA D: 56 -> 57. La entrada nueva es co-riesgo-basal, el globo de la
        clasificacion de riesgo cardiovascular basal, donde viven las clases y los niveles que la
        regla R2 saca de la linea visible. Lo que esta condicion afirma no cambia: que el
@@ -77967,7 +77994,15 @@ caso('TC-500', 'Tanda Q: las OCHO tarjetas i de las valvulas arriba de su pastil
     /* ⚠️ ADAPTADO EN LA TANDA VAL-PPT (2026-11-02). Los TRES globos nuevos son
        vm-morf-tipos, vt-morf-tipos y va-morf-tipos: dicen lo que la fuente define de la
        plastia, el TEER y la TAVI, y lo que NO define. Lo que la condicion afirma no cambia. */
-    FN('vInfoClic') && !!CARD() && !!REG() && Object.keys(REG() || {}).length === 101,
+    /* ⚠️ ADAPTADO (TANDA PANT-3, segunda mitad, 03/11/2026): 101 -> 120, y de paso se corrige una
+       deriva: el ROTULO de esta condicion decia «97 entradas» y el numero que de verdad se
+       comparaba era 101 -una adaptacion anterior movio uno y no el otro-, asi que el caso podia
+       pasar en verde anunciando un denominador que no era el suyo. Los dos dicen 120. Las
+       entradas nuevas de esta tanda son las once de la primera mitad -cc-3d y las seis de MCH
+       entre ellas- y las doce de la segunda: tv-sec del modulo de arritmia ventricular,
+       esub-sec, esub-grad, easv-sec, easv-grad, mca-sec, mca-eco, mca-vi, mca-score, tdf-sec,
+       tdf-eco y tdf-vol. NINGUNA esta en Valvulas, que es la pestania que este caso mide. */
+    FN('vInfoClic') && !!CARD() && !!REG() && Object.keys(REG() || {}).length === 120,
     'VINFO=' + (REG() ? Object.keys(REG()).length : 'SIN REGISTRO') + ' card=' + !!CARD()]);
   ex.push(['(A1) los OCHO botones de lesion existen, son BUTTON, sin atributo title y con aria-expanded',
     CLAVES.every(function (k) { const b = BTN(k);
@@ -79298,7 +79333,7 @@ caso('TC-502', 'Tanda P: Referencias en CINCO subpestanas sin perder una entrada
      en prosa, sin crear una ficha nueva -escribir una seria publicar el mismo contenido dos
      veces, que es la regla R4-. La lista las sigue nombrando una por una, que es lo que hace que
      el dia que una consiga ficha el caso se ponga rojo. */
-  ex.push(['(C3) LIMITE DECLARADO: treinta y siete tarjetas sin boton, porque Referencias no tiene esa entrada',
+  ex.push(['(C3) LIMITE DECLARADO: cuarenta y nueve tarjetas sin boton, porque Referencias no tiene esa entrada',
     /* ADAPTADA (TANDA AJUSTES-2, commit 4a, 31/10/2026): 24 -> 25. La entrada nueva es
        inf-min, el ⓘ de la fila de miniaturas de lo que va al PDF; no tiene ficha en
        Referencias porque explica la INTERFAZ y no publica contenido clinico. */
@@ -79307,12 +79342,23 @@ caso('TC-502', 'Tanda P: Referencias en CINCO subpestanas sin perder una entrada
        inf-min y que tga-3d: explica un DIBUJO de la interfaz y no publica contenido clinico, asi
        que una ficha suya seria una entrada sin criterio detras. El limite que esta condicion
        declara no cambia; cambia su denominador. */
-    sinBoton.join(',') === 'amilo-score,cc-3d,co-monitoreo,co-riesgo-basal,coa-card,cvr-coc,cvr-ecosmart,et-avt-cont,'
+    /* ADAPTADA (TANDA PANT-3, segunda mitad, 03/11/2026): 37 -> 49. Las DOCE nuevas son los
+       globos de las cuatro pantallas de la segunda mitad y del modulo compartido -tv-sec;
+       esub-sec y esub-grad; easv-sec y easv-grad; mca-sec, mca-eco, mca-vi y mca-score; tdf-sec,
+       tdf-eco y tdf-vol-. Ninguna tiene ficha en Referencias, y es a proposito: explican la
+       PANTALLA -que hace cada campo, de donde sale un calculo- y no publican un corte ni una
+       recomendacion, asi que una ficha suya seria una entrada sin criterio detras (regla R4).
+       El limite que esta condicion declara no cambia; cambia su denominador, y la lista las
+       sigue nombrando una por una, que es lo que hace que el dia que una consiga ficha el caso
+       se ponga rojo. */
+    sinBoton.join(',') === 'amilo-score,cc-3d,co-monitoreo,co-riesgo-basal,coa-card,cvr-coc,cvr-ecosmart,'
+      + 'easv-grad,easv-sec,esub-grad,esub-sec,et-avt-cont,'
       + 'hemo-forr,hemo-ic,hemo-rvs,inf-min,'
+      + 'mca-eco,mca-score,mca-sec,mca-vi,'
       + 'mch-adic,mch-ex,mch-hvi,mch-msub,mch-score,mch-sec,'
-
       + 'tarj-esten-pulmonar,tarj-esten-tricuspide,tarj-insuf-pulmonar,'
-      + 'tep-eco-dx,tep-mcconnell,tga-3d,tga-esq,va-morf-tipos,'
+      + 'tdf-eco,tdf-sec,tdf-vol,'
+      + 'tep-eco-dx,tep-mcconnell,tga-3d,tga-esq,tv-sec,va-morf-tipos,'
       + 'vab-aorta,vab-cx,vab-friesgo,vab-func,vab-tit,vab-valv,vd-triv,vexus-lim,vm-carp,'
       + 'vm-morf-tipos,vt-morf-tipos',
     sinBoton.join(',')]);
@@ -81356,6 +81402,11 @@ caso('TC-506', 'Tanda Y3f: la FEVI y el DSFVI como UN SOLO valor en los dos sent
   __t.limpiar(); try { showTab('ete'); } catch (e) {}
   __t.set('ete_cia_tipo', 'secundum'); __t.set('ete_cia_tam_max', '18');
   __t.chk('ete_shunt_incluir_chk', true);
+  /* ADAPTADO (TANDA PANT-3, commit 1, 03/11/2026): desde la regla (v) la CIA tiene su propio
+     dato de presencia -el boton de lesion- y la casilla sola no imprime su hoja. Este bloque es
+     un CONTROL POSITIVO: sin prender la lesion daria el mismo cero que el hallazgo del FOP que
+     esta midiendo justo arriba, y dejaria de distinguir nada. */
+  if (typeof eteShuntLesionOn === 'function' && !eteShuntLesionOn('cia')) eteShuntLesionTog('cia');
   __t.informe();
   const _hojas2 = FN('ccEnInforme') ? ccEnInforme().map(h => h.k) : 'SIN FN';
   ex.push(['(F8b) CONTROL: otra cardiopatia congenita -la CIA- SIGUE imprimiendo su hoja',
@@ -85988,7 +86039,11 @@ caso('TC-517', 'Tanda E: los once signos de HTP en una TABLA de tres columnas co
   const fHTP = ficha('htp'), fHF = ficha('hfapeff');
   ex.push(['(g1) la ficha de HTP publica los once signos con su folio',
     fHTP.indexOf('Tabla 10, folio 28') > 0 && fHTP.indexOf('Figura 5, folio 28') > 0 &&
-    fHTP.indexOf('TAPSE/PAPs') > 0 && fHTP.indexOf('al menos dos') > 0, fHTP.slice(0, 200)]);
+    /* ADAPTADO (TANDA PANT-3, commit 10, 03/11/2026): 'TAPSE/PAPs' -> 'TAPSE/PSAP'. El commit 10
+       unifico la sigla de la presion sistolica pulmonar en PSAP por orden expresa del medico, y
+       esta ficha es una de las superficies que la publica. El numero de signos, el folio y el
+       «al menos dos» no se movieron: cambia como se escribe la sigla. */
+    fHTP.indexOf('TAPSE/PSAP') > 0 && fHTP.indexOf('al menos dos') > 0, fHTP.slice(0, 200)]);
   ex.push(['(g2) la ficha NUEVA de HF-PEFF existe y publica las tres bandas y los cortes con su folio',
     fHF !== 'NO EXISTE' && fHF.indexOf('folio 3305') > 0 && fHF.indexOf('folio 3304') > 0 &&
     fHF.indexOf('folio 3303') > 0, fHF.slice(0, 200)]);
@@ -91446,8 +91501,18 @@ caso('TC-535', 'Tanda AJ7: la linea de Fallot del EN SUMA sin la IP y el resumen
   try { if (gD && gD.estudioId) await __t.borrar(gD.estudioId); } catch (e) {}
 
   /* ══ (E) EL STRAIN DEL VD VOTA ═══════════════════════════════════════════════════════════ */
+  /* ⚠️ EL ESTILO DE INFORME ES ESTADO DE SESION, Y ESO HACIA CAER AL BLOQUE (E) EN LA CORRIDA
+     COMPLETA. Medido el 03/11/2026 en la TANDA PANT-3: el caso sale VERDE aislado -1/1, y
+     tambien contra el arbol anterior en un worktree-, y se pone rojo en cuanto corre DESPUES de
+     TC-502, que llama a setEstiloInforme y no lo devuelve. Entonces (E0) daba 0/0/0/0/0/0 y (E7)
+     largo=0: el informe se emitia en otro estilo, donde la oracion del ventriculo derecho se
+     redacta distinto, asi que el filtro no encontraba ninguna linea. El dato estaba y la
+     condicion no lo veia -un denominador de cero, no un hallazgo-. Es la misma clase de
+     dependencia de orden que este repo ya documenta para TC-507, TC-537 y TC-547, y se cierra
+     igual: la escena fija su propio estilo antes de emitir. */
   const vdEsc = (c) => { __t.limpiar();
     pon(Object.assign({ nombre:'AJ7 VD', ci:'5' }, c));
+    try { if (F('setEstiloInforme')) setEstiloInforme('estandar'); } catch (e) {}
     const I = __t.informe();
     const l = String(I.inf || '').split(/\\n/).filter((x) => /ventr[ií]culo derecho/i.test(x)).join(' ');
     return l; };
@@ -91843,16 +91908,19 @@ caso('TC-535', 'Tanda AJ7: la linea de Fallot del EN SUMA sin la IP y el resumen
      los tipos de valvula intervenida, que nacen con la clase vinfo-btn-44. Lo que estas tres
      condiciones afirman no cambia: cambia el denominador. Medido en los dos motores y en los
      cuatro anchos: 44x44 con los CINCO puntos dando el propio boton. */
-  /* ADAPTADA (TANDA PANT-3, 03/11/2026): veintidos -> VEINTINUEVE. Los SIETE nuevos son cc-3d,
-     el globo del corazon maestro, y los SEIS de la pantalla de MCH, que nacen con la clase
+  /* ADAPTADA (TANDA PANT-3, 03/11/2026): veintidos -> VEINTINUEVE en la primera mitad -los SIETE
+     nuevos eran cc-3d, el globo del corazon maestro, y los SEIS de la pantalla de MCH- y
+     VEINTINUEVE -> CUARENTA Y UNO en la segunda, con los DOCE de las cuatro pantallas restantes
+     y del modulo compartido: tv-sec; esub-sec y esub-grad; easv-sec y easv-grad; mca-sec,
+     mca-eco, mca-vi y mca-score; tdf-sec, tdf-eco y tdf-vol. Todos nacen con la clase
      vinfo-btn-44 y SIN margenes negativos. Lo que estas tres condiciones exigen no cambia;
      cambia cuantos globos lo tienen que cumplir. */
-  ex.push(['(K0) DENOMINADOR: los VEINTINUEVE globos llevan la clase, tienen geometria y estan EN VISTA',
-    tapK.length === 29 && tapK.every((x) => x.w > 0 && x.h > 0 && x.enVista), JSON.stringify(tapK)]);
-  ex.push(['(K1) los veintinueve miden 44x44 tambien con el mouse',
-    tapK.length === 29 && tapK.every((x) => x.w >= 44 && x.h >= 44), JSON.stringify(tapK)]);
+  ex.push(['(K0) DENOMINADOR: los CUARENTA Y UN globos llevan la clase, tienen geometria y estan EN VISTA',
+    tapK.length === 41 && tapK.every((x) => x.w > 0 && x.h > 0 && x.enVista), JSON.stringify(tapK)]);
+  ex.push(['(K1) los cuarenta y uno miden 44x44 tambien con el mouse',
+    tapK.length === 41 && tapK.every((x) => x.w >= 44 && x.h >= 44), JSON.stringify(tapK)]);
   ex.push(['(K2) y su caja NO tapa a ningun vecino: los cinco puntos dan el propio boton',
-    tapK.length === 29 && tapK.every((x) => x.propios === 5), JSON.stringify(tapK)]);
+    tapK.length === 41 && tapK.every((x) => x.propios === 5), JSON.stringify(tapK)]);
   ex.push(['(K3) CONTROL: los demas globos NO se tocaron y siguen con su piso solo tactil',
     document.querySelectorAll('button.vinfo-btn').length
       - document.querySelectorAll('button.vinfo-btn-44').length >= 10,
@@ -103120,10 +103188,21 @@ caso('TC-577', 'Tanda POP-A: las tres columnas independientes del posoperatorio,
            (T('pop-sw-rvp').indexOf('PmAP') > -1 ? 'PmAP' : 'no') + (T('pop-sw-rvp').indexOf('PAPm') > -1 ? ' y PAPm' : ''),
            'PmAP']);
   /* ── (G) CONTROL NEGATIVO: ningun rotulo de OTRA pestana se movio ── */
-  ex.push(['(G1) CONTROL NEGATIVO: el rotulo de la PAP media estimada de VD/AD no se toco',
+  /* INVERTIDA (TANDA PANT-3, commit 10, 03/11/2026), y es el dia que esta condicion anunciaba.
+     Nacio como CONTROL NEGATIVO de la tanda POP-A, cuyo commit de rotulos tocaba SOLO el
+     posoperatorio: afirmaba que el rotulo de VD/AD seguia diciendo «PAP media estimada». El
+     commit 10 de PANT-3 unifico las tres siglas -PSAP, PmAP y PDAP- en TODA la aplicacion por
+     orden expresa del medico, asi que la premisa del control dejo de valer. No se borra: se da
+     vuelta y se parte en dos, para que siga discriminando por los DOS lados -que el rotulo viejo
+     no quedo en ninguna parte, y que el nuevo esta-. */
+  ex.push(['(G1) el rotulo viejo «PAP media estimada» ya no esta en ningun label',
            (function () { const ls = Array.prototype.filter.call(document.querySelectorAll('label'),
              l => String(l.textContent || '').indexOf('PAP media estimada') > -1);
-             return ls.length ? 'sigue' : 'SE FUE'; })(), 'sigue']);
+             return ls.length ? 'SIGUE' : 'se fue'; })(), 'se fue']);
+  ex.push(['(G1b) y el de VD/AD dice PmAP estimada',
+           (function () { const ls = Array.prototype.filter.call(document.querySelectorAll('label'),
+             l => String(l.textContent || '').indexOf('PmAP estimada') > -1);
+             return ls.length ? 'sigue' : 'NO ESTA'; })(), 'sigue']);
   ex.push(['(G2) CONTROL NEGATIVO: el cociente TAPSE/PAPs de la tabla de HTP no se toco',
            (function () { /* OJO: innerText de un nodo oculto es vacio; la tabla de HTP vive en una
                 pestana que puede no estar a la vista. Hay que preguntar por textContent. */
@@ -107223,15 +107302,34 @@ caso('TC-604', 'Tanda TGA-3: el esquema lleva su leyenda visible, su globo estan
   const V = (typeof VINFO === 'object' && VINFO) ? VINFO['tga-esq'] : null;
   const todo = V ? String((V.tit || '') + ' ' + (V.lee || '') + ' ' + (V.ojo || '')) : '';
   ex.push(['(P5) el registro tiene la entrada del esquema', !!V, true]);
-  ex.push(['(P6) dice que es un esquema ilustrativo',
-           todo.indexOf('ESQUEMA ILUSTRATIVO') >= 0, true]);
-  ex.push(['(P7) dice que no es una imagen del estudio',
-           todo.indexOf('no es una imagen de este estudio') >= 0, true]);
-  ex.push(['(P8) dice que no esta a escala', todo.indexOf('no está a escala') >= 0, true]);
-  ex.push(['(P9) declara que los recorridos esperan la revision de un cardiologo de congenitas',
-           todo.indexOf('cardiólogo de cardiopatías congénitas') >= 0, true]);
-  ex.push(['(Q1) dice que no entra al informe ni al PDF',
-           todo.indexOf('no entra al informe ni al PDF') >= 0, true]);
+  /* ADAPTADO / INVERTIDO (TANDA PANT-3, commit 2b, 03/11/2026). El bloque «A tener en cuenta»
+     de este globo SE RETIRO ENTERO, y sus tres parrafos salieron por tres motivos distintos:
+       · «los recorridos de las cirugias estan pendientes de revision por un cardiologo de
+         congenitas», por la REGLA NUEVA del 02/11/2026: ninguna pantalla, globo, Evidencia,
+         Referencias ni documento del paciente dice que algo este pendiente de revision o sin
+         validar por un especialista -eso vive solo en docs/PENDIENTES.md-;
+       · «no entra al informe ni al PDF», porque DEJO DE SER CIERTO: con el boton «Incluido en el
+         PDF» el esquema si entra al PDF desde la tanda TGA-4. Una afirmacion falsa en un globo
+         es peor que ninguna;
+       · el aviso de que es un esquema ilustrativo, porque NO SE PIERDE: lo publica la etiqueta
+         de la tarjeta y el epigrafe del PDF, y la orden pide expresamente que los avisos
+         generales se mantengan.
+     Asi que (P6) pasa a medir el aviso DONDE VIVE AHORA -la etiqueta de la tarjeta, en el DOM-,
+     y (P7), (P8), (P9) y (Q1) quedan INVERTIDAS: el globo no puede volver a repetir ninguna de
+     las dos primeras ni a decir que algo espera revision. El epigrafe del PDF lo mide
+     scripts/_probe_pant3pant.mjs --frases, que es quien genera el PDF de verdad. */
+  ex.push(['(P6) el aviso general de esquema ilustrativo sigue, en la etiqueta de la tarjeta',
+           (function () { const b = document.getElementById('tga-esq-box');
+             if (!b) return 'NO HAY TARJETA';
+             return String(b.textContent || '').indexOf('Esquema ilustrativo') >= 0
+               ? 'sigue' : 'SE FUE'; })(), 'sigue']);
+  ex.push(['(P7) INVERTIDA: el globo ya no repite que no es una imagen del estudio',
+           todo.indexOf('no es una imagen de este estudio') >= 0, false]);
+  ex.push(['(P8) INVERTIDA: ni que no esta a escala', todo.indexOf('no está a escala') >= 0, false]);
+  ex.push(['(P9) INVERTIDA: y NO dice que los recorridos esperen la revision de un especialista',
+           todo.indexOf('cardiólogo de cardiopatías congénitas') >= 0, false]);
+  ex.push(['(Q1) INVERTIDA: ni que no entra al PDF, que dejo de ser cierto',
+           todo.indexOf('no entra al informe ni al PDF') >= 0, false]);
   /* ── 3 · SIN UNA SOLA CITA: ni guia, ni clase, ni tabla, ni folio ────────────────────────── */
   ex.push(['(Q2) no nombra ninguna sociedad', (todo.indexOf('ESC') >= 0) || (todo.indexOf('AHA') >= 0), false]);
   ex.push(['(Q3) no publica clase', todo.indexOf('Clase') >= 0, false]);
