@@ -717,3 +717,37 @@ una pantalla a medias. Ver `docs/PENDIENTES.md` → **P2-a** y `docs/CONTINUACIO
 **TC-619 a TC-622**, que caen contra HEAD por **29 condiciones y ninguna por excepción**.
 **19/19 mutaciones dirigidas muertas**, en worktree y con md5 del árbol vivo idéntico.
 **Cuatro casos adaptados**: TC-293, TC-451, TC-615 y TC-616.
+
+---
+
+## PANT-4 — las dos estenosis aórticas, «Task Force» fuera del papel, los textos contra su fuente, la Evidencia de aortopatías y los estadios (2026-11-03)
+
+**Línea base al abrir:** `origin/main` = `HEAD` = **`1e4b70c`**, sello `v20261103-0256`, md5 de
+`index.html` **`0422963d`**, 11,09 MB / 155.230 líneas, pendrive `DISK_IMG` montado.
+**El push lo corre Maicol: esta tanda tenía orden expresa de NO pushear.**
+
+| commit | qué |
+|---|---|
+| `da890c6` + `ff5de8c` | **1b/1c/1d** — la alineación por `subgrid`, el papel descriptivo de las dos estenosis y la conclusión de pantalla sin conducta |
+| `f7e6cb2` | **1e** — la Evidencia de las dos lesiones, leída en imagen en cuatro hojas |
+| `2716cdd` | **2** — «Task Force 2010» fuera del papel de la miocardiopatía arritmogénica |
+| `c676ba4` | **3** — los tres textos de pantalla contra su fuente |
+| `b21ad0a` | **5** — la cita de aorta reconciliada y la insuficiencia aórtica con aorta dilatada |
+| `ff8c56d` | **6** — el estadio de la AHA/ACC 2020 en las dos válvulas aórticas |
+| `997ed1e` + el de cierre | **7** — cobertura y documentación |
+
+**El commit 4 no tocó una línea de la app, y es una medición la que lo para.** La premisa de
+**P3-j** es falsa —PANT-3 dejó MCA **más baja**, no más alta, en los cuatro anchos y en los dos
+denominadores— y la de **4b** tampoco se cumple: Fallot tiene **cinco** filas de campos y **un**
+solo título de grupo. Las dos están en `docs/PENDIENTES.md` → **P4-b** y **P4-a**.
+
+**Lo que cerró:** **P3-m** (la frase de la resonancia, con su cita) y **P3-r** (TC-502 devuelve el
+estilo de informe).
+
+**Verificación:** 27/27 mutaciones dirigidas muertas en una sola pasada; A/B por commit con PDF y
+PPT generados de verdad; seis casos nuevos (TC-633 a TC-638) que caen contra HEAD por **116
+condiciones y cero excepciones**; siete casos viejos adaptados.
+
+**Dónde está todo:** `docs/mapa/pant4-estenosis-evidencia.md` (**mapa nuevo**),
+`docs/fuentes/FUENTES.md` → «La tanda PANT-4», `docs/GUIA_PRUEBA_PANT4.md` (20 pasos) y
+`docs/PENDIENTES.md` → **P4-a** a **P4-i**.

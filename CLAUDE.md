@@ -368,6 +368,17 @@ navegador, sobre lo que el médico puede leer —el DOM sin los `<script>`, las 
 el archivo con patrones estrictos cuyos hallazgos se inspeccionan a mano. La sonda es
 `scripts/_probe_pant3rev.mjs`.
 
+## El informe va en ORACIONES SEPARADAS — REGLA FIJA DE MAICOL (2026-11-03)
+
+El texto del informe va en **oraciones separadas, una por tema**, con un orden lógico; cuando se
+pasa a un hallazgo nuevo, **punto y oración nueva**, no un texto corrido. Y **cada hallazgo se
+nombra UNA sola vez**, en el informe y en el EN SUMA.
+
+Aplicado por primera vez en la tanda **PANT-4** sobre las dos estenosis aórticas: el evaluador
+publica `papel` —la lista de oraciones— y `suma` —la única línea del EN SUMA—, las dos armadas de
+las mismas piezas que lee la pantalla, y el emisor no redacta nada. El orden es lesión y tipo →
+gradientes → repercusión → hallazgos asociados. Ver `docs/mapa/pant4-estenosis-evidencia.md` § 2.
+
 ## La pantalla: campos a la izquierda, diagrama a la derecha — REGLA FIJA DE MAICOL (2026-10-31)
 
 En pantallas de **900 px o más**, los campos van a la izquierda y el diagrama a la derecha; por

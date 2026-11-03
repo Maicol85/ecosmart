@@ -110021,6 +110021,11 @@ caso('TC-635', 'Tanda PANT-4: la conclusion de pantalla de las dos estenosis no 
                        catch (e) { return 'EXC' } };
   ex.push(['(C0) DENOM: las dos funciones de seccion existen',
     typeof _indESUB === 'function' && typeof _indEASV === 'function', true]);
+  /* NACIO DE UNA MUTACION QUE SOBREVIVIO: que la funcion exista no alcanza, porque el panel
+     pinta lo que esta en su REGISTRO. Sacar la seccion del registro dejaba el caso en verde. */
+  const tits = (typeof IND_SECS !== 'undefined' && IND_SECS) ? IND_SECS.map(function (x) { return x.tit }) : [];
+  ex.push(['(C0b) y las dos estan REGISTRADAS en el panel',
+    tits.indexOf('Estenosis subaórtica') >= 0 && tits.indexOf('Estenosis supravalvular aórtica') >= 0, true]);
   /* CONTROL NEGATIVO: sin datos las dos devuelven null, o sea la seccion ni se pinta. */
   __t.limpiar();
   ex.push(['(C1) CONTROL NEGATIVO: sin datos la subaortica no abre seccion', SEC('_indESUB'), null]);
@@ -110040,8 +110045,12 @@ caso('TC-635', 'Tanda PANT-4: la conclusion de pantalla de las dos estenosis no 
   /* TRES ESTADOS: Si, No y el centinela de «sin dato». */
   const ops = pA.length ? pA[0].ctrl.ops.map(function (o) { return o.t }).join('|') : 'NO HAY';
   ex.push(['(C8) cada pregunta ofrece TRES estados', ops, 'Sí|No|?']);
+  /* ADVERTENCIA: con DOS opciones el tercer elemento es undefined y leerle su .v mata el caso con
+     un TypeError, que no dice que invariante se rompio. Lo destapo una mutacion que perdia el
+     tercer estado: fallaba POR EXCEPCION en vez de por condicion. */
   ex.push(['(C9) y el tercero pone el centinela de sin dato, no una cadena vacia',
-    (pA.length && typeof IND_SD_VAL !== 'undefined') ? pA[0].ctrl.ops[2].v === IND_SD_VAL : 'NO HAY', true]);
+    (pA.length && pA[0].ctrl.ops.length === 3 && typeof IND_SD_VAL !== 'undefined')
+      ? pA[0].ctrl.ops[2].v === IND_SD_VAL : 'NO HAY', true]);
   /* «SIN DATO» NO ES «NO»: la fila de resumen lo dice. */
   const res = (A && A.clinica ? A.clinica : []).filter(function (f) { return f && !f.ctrl })[0];
   ex.push(['(C10) la fila de resumen dice que sin dato no cuenta como no',
@@ -110128,6 +110137,33 @@ caso('TC-636', 'Tanda PANT-4: el papel de la miocardiopatia arritmogenica no nom
   const pant = (document.getElementById('sacc-cc-mca') || {}).innerText || '';
   ex.push(['(E2) DENOM: la seccion de pantalla tiene contenido', pant.length > 200, true]);
   ex.push(['(E3) y la pantalla SIGUE nombrando el criterio', pant.indexOf('Task Force 2010') >= 0, true]);
+  /* (G) EL CAMPO «resumen» DEL EVALUADOR, QUE ES LO QUE LEEN LA HOJA DEL PDF Y LA DIAPOSITIVA.
+     NACIO DE UNA MUTACION QUE SOBREVIVIO: ninguna condicion de este caso lo miraba, porque el
+     arnes mide el informe y el EN SUMA y esas dos superficies no pasan por ahi. Las DOS ultimas
+     apariciones del nombre de la guia vivian justo en ese campo, y las encontro el A/B -que
+     genera el PDF de verdad- sobre un censo que ya daba cero en el informe. */
+  __t.limpiar(); __t.set('peso', '70'); __t.set('talla', '170');
+  __t.set('mca_tsvd_plax', '34'); __t.set('mca_tsvd_psax', '38');
+  __t.set('mca_fenotipo', 'derecho'); __t.set('mca_mov_regional', 'aneurisma');
+  try { mcaSync() } catch (e) {}
+  const R = (typeof mcaConclusion === 'function') ? mcaConclusion() : null;
+  const resu = R ? String(R.resumen || '') : 'NO HAY';
+  ex.push(['(G0) DENOM: el evaluador publica su resumen', resu.length > 20, true]);
+  ex.push(['(G1) y el resumen trae el puntaje', resu.indexOf('2 puntos') >= 0, true]);
+  MARCAS.forEach(function (m, i) {
+    ex.push(['(G' + (i + 2) + ') ' + m + ' fuera del resumen que lee el PDF y el PPT',
+      resu.indexOf(m) >= 0, false]);
+  });
+  /* Y la salvedad de la morfologia, que viaja en el MISMO campo. */
+  __t.set('mca_mov_regional', ''); __t.set('tv_documentada', 'si');
+  __t.set('tv_morfologia', 'bcrd'); __t.set('tv_tipo', 'sostenida');
+  try { mcaSync() } catch (e) {}
+  const R2 = (typeof mcaConclusion === 'function') ? mcaConclusion() : null;
+  const resu2 = R2 ? String(R2.resumen || '') : 'NO HAY';
+  ex.push(['(G6) DENOM: la salvedad de la morfologia viaja en el resumen',
+    resu2.indexOf('bloqueo de rama derecha') >= 0, true]);
+  ex.push(['(G7) y tampoco nombra el criterio', resu2.indexOf('Task Force') >= 0, false]);
+
   /* (F) NI EL EXCEL NI EL LABORATORIO SE TOCARON: su encabezado sigue igual. */
   /* ADVERTENCIA: mca_tf NO vive en LAB_XLS_MAP -que es un array de arrays- sino en el mapa de
      metricas del Laboratorio, que es un objeto. Buscarlo en el primero devuelve «NO ESTA» y se
@@ -110311,8 +110347,13 @@ caso('TC-638', 'Tanda PANT-4: la cita de aorta reconciliada, la insuficiencia ao
     estIA({ ia_grado:'4', fevi:'60', dsfvi:'40', sx:'no' }), 'C1']);
   ex.push(['(D2) severa sin sintomas con el diametro grande es C2',
     estIA({ ia_grado:'4', fevi:'60', dsfvi:'55', sx:'no' }), 'C2']);
-  ex.push(['(D3) y con la fraccion del 55 % o menos tambien',
-    estIA({ ia_grado:'4', fevi:'50', dsfvi:'40', sx:'no' }), 'C2']);
+  /* EL BORDE QUE DISCRIMINA ES EL 55, NO EL 50: con 50 el estadio sale C2 con los dos cortes
+     -el de la tabla y el de la aplicacion-, asi que una mutacion que cambiara uno por el otro
+     sobrevivia. Con 55 exactos solo el corte de la tabla da C2. Lo destapo el barrido. */
+  ex.push(['(D3) y con la fraccion del 55 % exacto tambien, que es el corte de la tabla',
+    estIA({ ia_grado:'4', fevi:'55', dsfvi:'40', sx:'no' }), 'C2']);
+  ex.push(['(D3b) CONTROL: con 56 % y el ventriculo normal vuelve a C1',
+    estIA({ ia_grado:'4', fevi:'56', dsfvi:'40', sx:'no' }), 'C1']);
   ex.push(['(D4) severa sintomatica es D', estIA({ ia_grado:'4', fevi:'60', dsfvi:'40', sx:'si' }), 'D']);
   ex.push(['(D5) moderada es B', estIA({ ia_grado:'2' }), 'B']);
   ex.push(['(D6) ausente es A', estIA({ ia_grado:'0' }), 'A']);

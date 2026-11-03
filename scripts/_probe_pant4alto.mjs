@@ -49,6 +49,18 @@ const ABRIR = `(() => {
     const b = s.querySelector('.sacc-body'); if (b) b.style.transition = 'none';
     o[id] = s.classList.contains('open');
   });
+  /* Con --datos: la seccion CARGADA, que es el otro denominador. Una pantalla vacia y una con
+     datos no miden lo mismo, y P3-j no dice con cual midio. */
+  if (${JSON.stringify(!!process.argv.includes('--datos'))}) {
+    const S = (id, v) => { const e = document.getElementById(id); if (!e) return;
+      e.value = v; e.dispatchEvent(new Event('input', { bubbles:true }));
+      e.dispatchEvent(new Event('change', { bubbles:true })) };
+    S('peso','70'); S('talla','170'); S('mca_tsvd_plax','34'); S('mca_tsvd_psax','38');
+    S('mca_fenotipo','derecho'); S('mca_mov_regional','aneurisma'); S('mca_fac','30');
+    S('tdf_sintomas','si'); S('tdf_func_vd','moderada'); S('tdf_grad_tsvd','30');
+    try { if (typeof mcaSync === 'function') mcaSync() } catch (e) {}
+    try { if (typeof tdfSync === 'function') tdfSync() } catch (e) {}
+  }
   return o;
 })()`;
 

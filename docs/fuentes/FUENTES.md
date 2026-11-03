@@ -9871,3 +9871,210 @@ número o una condición.**
 | los cinco factores mayores de la AHA/ACC | — | **verificados en imagen** contra la hoja 29, folio e1267: coinciden uno por uno |
 
 **Ninguna cita nueva se agregó a la pantalla**, y ningún corte, umbral, clase ni nivel se movió.
+
+---
+
+## La tanda PANT-4 (2026-11-03)
+
+Seis commits de código. Todo lo clínico de esta entrada se **leyó en imagen**, con la regla de
+folio **comprobada en el pie o el encabezado impreso** de cada hoja que se cita.
+
+### Las reglas de folio, comprobadas
+
+| documento | regla | comprobada en |
+|---|---|---|
+| ESC 2020 de cardiopatías congénitas del adulto, **edición inglesa** (84 hojas) | folio = hoja + 562 | hojas 39 → 601, 40 → 602 y 41 → 603 |
+| ACC/AHA 2025 de cardiopatías congénitas del adulto (137 hojas) | folio = e(hoja + 114) | hojas 52 → e166, 53 → e167, 55 → e169 y 56 → e170 |
+| AHA/ACC 2020 de valvulopatías (156 hojas) | folio = e(hoja + 71) | hojas 57 → e128 y 61 → e132 |
+| AHA/ACC 2024 de miocardiopatía hipertrófica (73 hojas) | folio = hoja + 1238 | hoja 29 → e1267 |
+| ESC 2024 de aorta, **edición inglesa** (163 hojas) | folio = hoja + 3537 | hojas 101 → 3638, 103 → 3640, 105 → 3642, 107 → 3644 y 111 → 3648 |
+| ESC/EACTS 2025 de valvulopatías (102 hojas) | el folio **coincide** con la hoja | hojas 27 y 28 |
+| te Riele y cols., *J Cardiovasc Magn Reson* 2014;16:50 (15 hojas) | el pie dice «Page N of 15» | hojas 3 y 7 |
+
+### 1 · Estenosis subaórtica — ESC 2020, hoja 41, folio 603
+
+**«Recommendations for intervention in subaortic stenosis»**, tres filas:
+
+- **Clase I · Nivel C** — paciente sintomático, espontáneamente o en la prueba de esfuerzo, con
+  gradiente medio por Doppler **≥40 mmHg**ᶜ **o** insuficiencia aórtica severa.
+- **Clase IIa · Nivel C** — asintomático, con una o más de: gradiente medio <40 mmHg pero FEVI
+  <50 %; insuficiencia aórtica severa con DSVI >50 mm (o 25 mm/m²) y/o FEVI <50 %ᵈ; gradiente
+  medio ≥40 mmHg con hipertrofia marcada; gradiente medio ≥40 mmHg con caída de la presión
+  arterial por debajo del basal en el esfuerzo.
+- **Clase IIb · Nivel C** — asintomático, con una o más de: gradiente medio ≥40 mmHg con VI
+  normal (FEVI >50 % y sin hipertrofia), prueba de esfuerzo normal y riesgo quirúrgico bajo; o
+  progresión documentada de la insuficiencia aórtica a más que leve.
+
+Nota al pie **c**: los gradientes derivados del Doppler pueden sobrestimar la obstrucción y
+pueden necesitar confirmación por cateterismo cardíaco. Nota al pie **d**: remite a la guía
+ESC 2017 de valvulopatías.
+
+**Seguimiento (apartado 4.5.3.5, hojas 40 y 41):** control regular **de por vida**, con
+ecocardiografía, en el no operado y también después de operar; incluye evaluación en centros
+especializados **y su frecuencia depende de la progresión esperada de la enfermedad**. ⚠️ **No
+publica un intervalo anual.**
+
+### 2 · Estenosis subaórtica — ACC/AHA 2025, hoja 52, folio e166
+
+**«Recommendations for Subaortic Stenosis»**, cuatro filas: **2b · C-EO** la prueba de esfuerzo
+con síntomas dudosos; **1 · C-EO** la reparación quirúrgica con síntomas atribuibles; **2b · C-LD**
+la reparación en el asintomático con disfunción o hipertrofia del VI; **2b · C-LD** la reparación
+en el asintomático con insuficiencia aórtica al menos leve.
+
+⚠️ **Esta guía no pone ningún umbral de gradiente en sus recomendaciones**, y su texto de apoyo lo
+dice: ningún dato identifica un umbral ecocardiográfico al que el paciente desarrolle síntomas ni
+uno al que se alivien con la resección. Y sus recomendaciones se aplican a la **membrana discreta
+«simple»**, no a la obstrucción tunelizada «compleja».
+
+**Tabla 21, hoja 53, folio e167 — intervalos por estadio fisiológico A/B/C/D, en meses:** consulta
+36/24/6-12/3-6; electrocardiograma 36/24/12/12; ecocardiograma transtorácico 36/24/12/12.
+En la misma hoja: un gradiente **pico ≥50 mmHg** se asoció a menor supervivencia libre de
+intervención y a mayor probabilidad de insuficiencia aórtica.
+
+### 3 · Estenosis supravalvular aórtica — ESC 2020, hoja 40, folio 602
+
+**«Recommendations for intervention in supravalvular aortic stenosis»**, tres filas:
+**I · C** síntomas + gradiente medio ≥40 mmHg; **I · C** gradiente medio <40 mmHg con una o más de
+—síntomas atribuibles a la obstrucción (disnea de esfuerzo, angina, síncope); disfunción sistólica
+del VI (FEVI <50 % sin otra explicación); cirugía necesaria por enfermedad coronaria significativa
+o valvular—; **IIb · C** gradiente medio ≥40 mmHgᶜ **sin** síntomas, **sin** disfunción sistólica,
+**sin** hipertrofia y con prueba de esfuerzo normal, cuando el riesgo quirúrgico es bajo.
+
+**Seguimiento (apartado 4.5.2.5):** control de por vida y regular, con ecocardiografía; evaluación
+en centros especializados. ⚠️ **Tampoco publica un intervalo anual.**
+
+### 4 · Estenosis supravalvular aórtica — ACC/AHA 2025, hojas 55 y 56, folios e169 y e170
+
+**«Recommendations for Supravalvar Aortic Stenosis»**, cinco filas: **1 · C-LD** imagen aórtica
+basal con sospecha o con síndrome de Williams; **1 · C-LD** imagen coronaria basal con Williams y
+estenosis supravalvular; **1 · B-NR** reparación quirúrgica con síntomas o función sistólica
+disminuida por la estenosis; **1 · C-LD** revascularización coronaria con estenosis de los ostios y
+síntomas de isquemia; **2b · C-EO** reparación en la severa asintomática con tamaño y función
+ventricular normales y prueba de esfuerzo normal.
+
+**Hoja 56, folio e170:** la estenosis ocurre distal a los orificios coronarios, en la unión
+sinotubular, y **las coronarias quedan expuestas a la presión alta** que genera la obstrucción;
+la estenosis ostial aumenta el riesgo de muerte súbita, sobre todo con la anestesia.
+⚠️ **Y gradúa distinto que la ESC:** moderada con gradiente medio **20 a 40 mmHg** y severa con
+**más de 40**, y advierte que extrapolar esos cortes de la estenosis valvular aórtica **puede ser
+inexacto** por la variabilidad anatómica. **Tabla 23, hoja 56:** consulta 24/24/6-12/3-6;
+electrocardiograma y ecocardiograma 24/24/12/12, con la salvedad de que el ecocardiograma de
+rutina puede no hacer falta si se hace resonancia.
+
+⚠️ **LA APP NO MOVIÓ NINGÚN CORTE.** Sigue graduando con el ≥40 de la ESC 2020, que es el que ya
+sostiene el informe, y la diferencia con la ACC/AHA 2025 **se muestra** en la Evidencia sin
+resolverla.
+
+### 5 · La miocardiopatía arritmogénica — te Riele 2014
+
+**Hoja 7 de 15** (pie impreso «Page 7 of 15»), apartados «Late gadolinium enhancement in ARVC
+evaluation» y «Misdiagnosis of ARVC using CMR»:
+
+- la resonancia **puede considerarse el estándar de referencia para evaluar la morfología y la
+  función del ventrículo derecho**, pero la resonancia **sola no es el patrón de oro** del
+  diagnóstico: los criterios prescriben varias pruebas, y hay que ser cauto cuando la única
+  anomalía de un paciente con sospecha aparece en la resonancia;
+- el **realce tardío NO está incorporado** a los criterios vigentes, con tres limitaciones: la
+  detección en la pared delgada del VD es difícil, distinguir grasa de fibrosis depende de la
+  experiencia del observador, y el realce del VI es inespecífico. En la práctica se considera
+  **confirmación diagnóstica, no prueba única**.
+
+⚠️ **Eso invierte lo que la app afirmaba** —«estándar de referencia para la caracterización
+tisular del miocardio»— y cierra **P3-m**: con el texto corregido la frase **ya tiene fuente**, así
+que ahora se cita.
+
+**Tabla 1, hoja 3 de 15** (pie impreso «Page 3 of 15»), leída a 300 ppp — las cuatro
+discrepancias de **P3-l**, las cuatro confirmadas:
+
+| criterio | la hoja dice | la app decía |
+|---|---|---|
+| tisular mayor | miocitos residuales **<60 % por morfometría (o <50 % si se estima)** | «<60 % en biopsia» |
+| tisular menor | **60 a 75 % por morfometría (o 50 a 65 % si se estima)** | «60-75 % en biopsia» |
+| repolarización, las TRES filas | «en individuos **>14 años**», y la mayor además «en ausencia de bloqueo completo de rama derecha con QRS ≥120 ms» | no lo decía |
+| despolarización menor | potenciales tardíos **en ausencia de un QRS ≥110 ms** en el ECG estándar | no decía la condición |
+| arritmias menor | TV de **configuración del TSVD**, morfología de BRI con eje inferior o desconocido | sin «configuración del TSVD» |
+| cortes indexados | PLAX/BSA ≥19 y PSAX/BSA ≥21 mm/m² (mayor); 16 a <19 y 18 a <21 (menor) | **no los aplica, y ya lo decía en su globo con los seis números** |
+
+### 6 · El realce tardío en la miocardiopatía hipertrófica — AHA/ACC 2024, hoja 29, folio e1267
+
+**Recomendación 3 (COR 2a · B-NR)**, los cinco factores mayores: muerte súbita atribuida de forma
+definitiva o probable en ≥1 familiar de primer grado o cercano de ≤50 años; hipertrofia masiva
+≥30 mm en cualquier segmento; ≥1 episodio reciente de síncope sospechado arrítmico; **aneurisma
+apical del VI con cicatriz transmural o realce tardío**; disfunción sistólica (FEVI <50 %).
+**Recomendación 6 (COR 2b · B-NR)**: en adultos seleccionados **sin** factores mayores, o cuando la
+decisión sigue incierta, puede considerarse el desfibrilador con **realce tardío extenso o TVNS**.
+Y su sinopsis: los marcadores más nuevos —aneurisma apical, realce tardío con cicatriz transmural y
+disfunción sistólica— **no entran en la calculadora de riesgo a 5 años**.
+
+⚠️ **La premisa de P2-f era falsa, y está medido:** el texto que esa entrada cita —«El realce
+tardío sí cuenta para la AHA» y «salió de la lista en esa edición»— **no existe** en el árbol,
+verificado con grep sobre el `index.html` de `1e4b70c`. PANT-3 ya lo había reescrito.
+
+### 7 · La insuficiencia aórtica con aorta dilatada — ESC/EACTS 2025, hoja 28, folio 28
+
+**Tabla de recomendaciones 3**, bloque «Concomitant surgery of the ascending aorta»:
+**Clase I · Nivel B** el reemplazo de la raíz con preservación valvular en el paciente joven con
+dilatación de la raíz, en centros con experiencia, cuando se esperan resultados duraderos; y
+**Clase IIa · Nivel C** el reemplazo de la raíz o de la aorta ascendente con diámetro máximo
+**≥45 mm** cuando la cirugía valvular está indicada y el riesgo es bajo, con su nota al pie **d**
+—edad, superficie corporal, etiología, válvula bicúspide y forma y espesor intraoperatorios—.
+De la misma tabla, **Clase I · Nivel C** la cirugía valvular en el que va a cirugía de la aorta
+ascendente. Y en la misma hoja: con diámetro basal **>45 mm**, repetir el ecocardiograma a los
+6 meses y después cada año; todo aumento **>3 mm** se valida con angiotomografía o resonancia.
+
+### 8 · Marfan — ESC 2024, hoja 105, folio 3642
+
+**Recommendation Table 62 «Recommendations for aortic surgery in Marfan syndrome»**, cuatro filas:
+**I · B** con diámetro máximo de los senos **≥50 mm**; **I · B** el reemplazo con preservación
+valvular cuando la anatomía lo permite y el cirujano tiene experiencia; **IIa · C** con senos
+**≥45 mm** y factores de riesgo adicionalesᶜ; **IIa · C** aneurisma de ascendente, arco,
+descendente torácica o abdominal **≥50 mm**. Su nota al pie **c**: historia familiar de disección
+con dimensiones pequeñas (<50 mm), hipertensión resistente y crecimiento ≥3 mm al año en el adulto.
+**En la misma hoja**, la Tabla 60 (imagen vascular) y la Tabla 61 (tratamiento médico).
+
+⚠️ **LA APP YA APLICABA ESOS DOS CORTES.** Lo que se reconcilió es **la cita**: los folios que la
+tabla de fuentes usaba son los de `Mazzolai_2024_Aorta.pdf` —199 hojas, otra edición—, y el resto
+del repositorio usa la **inglesa de 163 hojas**. Las quince entradas se unifican a la inglesa.
+
+### 9 · Los estadios — AHA/ACC 2020 de valvulopatías
+
+**Tabla 13 «Stages of AS», hoja 20, folio e91.** A: en riesgo —bicúspide u otra anomalía
+congénita, o esclerosis valvular; Vmax <2 m/s—. B: progresiva —leve Vmax 2,0-2,9 o gradiente medio
+<20; moderada Vmax 3,0-3,9 o gradiente medio 20-39—. C1: severa asintomática con FEVI normal.
+C2: severa asintomática con FEVI <50 %. D1: severa sintomática de gradiente alto. D2: severa
+sintomática de bajo flujo y bajo gradiente con FEVI <50 %. D3: severa sintomática de bajo
+gradiente con FEVI ≥50 % —pide además índice de volumen latido <35 ml/m², medido normotenso—.
+
+**Tabla 15 «Stages of Chronic AR», hoja 34, folio e105.** A: en riesgo —insuficiencia ausente o
+trivial—. B: progresiva —leve o moderada, con función sistólica normal—. C: severa asintomática,
+con **C1** FEVI >55 % y DSVI <50 mm y **C2** FEVI ≤55 % o DSVI >50 mm o DSVI indexado >25 mm/m².
+D: severa sintomática.
+
+⚠️ **El estadio C2 de la insuficiencia aórtica usa FEVI ≤55 % y la app usa 50 % para su
+indicación.** Son dos preguntas distintas; la tabla publica la suya y **ningún corte de la app se
+movió**.
+
+### Notas de trabajo (regla R1)
+
+- El espía de jsPDF de `_probe_pant4tf.mjs` devolvió **cero** caracteres de PDF: ese censo probó
+  el informe y el EN SUMA y **no** el PDF. Las dos últimas apariciones del nombre del criterio
+  vivían en `resumen`, que lee la hoja del PDF y la diapositiva, y **las encontró el A/B**.
+- `pdftoppm` no está instalado en esta máquina; las hojas se renderizaron con **PyMuPDF**, a
+  entre 190 y 300 ppp.
+
+### Cambios de evidencia
+
+| # | qué | antes | después | fuente |
+|---|---|---|---|---|
+| 1 | informe de la estenosis subaórtica | «… No se gradúa la severidad: el criterio de la ESC 2020 es el gradiente MEDIO y no consta. … Seguimiento ecocardiográfico anual … Derivación a cirugía cardíaca …» | «Estenosis subaórtica (membrana subaórtica). Insuficiencia aórtica asociada moderada.» | decisión del médico |
+| 2 | EN SUMA de la subaórtica | hasta DOS líneas | UNA línea con la asociación principal | ídem |
+| 3 | informe de la supravalvular | con la guía, la conducta y «Ostios coronarios no evaluados en este estudio» | sólo los hallazgos | ídem |
+| 4 | conclusión de pantalla de las dos | con cuadro «Seguimiento» y la interpretación quirúrgica | descriptiva | ídem |
+| 5 | Evidencia de las dos lesiones | **no existía** | dos secciones con 7 y 8 preguntas | ESC 2020 hojas 40-41 y ACC/AHA 2025 hojas 52-56 |
+| 6 | papel de la miocardiopatía arritmogénica | «Puntaje Task Force 2010: N puntos» y 17 frases más | «Puntaje de criterios diagnósticos: N puntos» | decisión del médico |
+| 7 | la resonancia, en el globo y en el papel | «estándar de referencia para la caracterización tisular» | «método de referencia para la morfología y la función del VD, pero por sí sola no establece el diagnóstico» | te Riele 2014, hoja 7 |
+| 8 | el realce tardío, en el globo de MCH | sin decir dónde sí aparece | dentro del cuarto factor mayor, y fuera de la calculadora | AHA/ACC 2024, folio e1267 |
+| 9 | los cuatro rótulos de la Tabla 1 | sin morfometría, sin los 14 años, sin el QRS, sin el TSVD | los cuatro con lo que la hoja dice | te Riele 2014, hoja 3 |
+| 10 | las quince citas de aorta | paginación de la edición de 199 hojas | hoja y folio de la edición inglesa | ESC 2024 inglesa |
+| 11 | Evidencia de la insuficiencia aórtica con aorta dilatada | **no existía** | bloque con sus dos clases | ESC/EACTS 2025, hoja 28 |
+| 12 | el estadio de las dos válvulas aórticas | **no existía** | fila «Estadio (AHA/ACC 2020)» en la Evidencia | AHA/ACC 2020, Tablas 13 y 15 |

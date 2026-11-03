@@ -150,7 +150,18 @@ Leídas en imagen en te Riele y cols., *J Cardiovasc Magn Reson* 2014;16:50, **T
 | despolarización menor | potenciales tardíos **en ausencia de un QRS ≥110 ms** | la app no dice la condición |
 | arritmias menor | «TV **de configuración del TSVD**, morfología de BRI con eje inferior o desconocido» | sin «configuración del TSVD» |
 
-## P3-m · La app afirma que la resonancia es el estándar de referencia y su única fuente dice lo contrario
+## P3-m · [CERRADO 2026-11-03 · PANT4-3] La app afirmaba que la resonancia es el estándar de referencia
+
+> **Cerrado.** Releída la **hoja 7 de 15** de te Riele 2014 —pie impreso «Page 7 of 15»—, la
+> fuente **sí** sostiene «estándar de referencia», pero para la **morfología y la función del
+> ventrículo derecho**, no para la caracterización tisular; y dice además que la resonancia sola
+> no es el patrón de oro del diagnóstico y que el realce tardío **no** está incorporado a los
+> criterios. El texto se corrigió en los dos lugares donde vivía —el globo `mca-score` y el
+> párrafo que llega al papel— y, **con el texto corregido, la frase ya tiene fuente**, así que
+> ahora se cita. Lo fija **TC-637 (A1) a (A8)**.
+
+### Lo que decía antes
+
 
 La frase «La resonancia cardíaca con gadolinio es el estándar de referencia para la
 caracterización tisular del miocardio» pasó de la pantalla de MCA al ⓘ `mca-score`, **y va SIN
@@ -214,7 +225,14 @@ sigla se unifica» cada vez que el valor de la fila ya la trae. Hoy sólo pasaba
 no hay nada que lo impida en otra: **conviene un barrido de `calc-row` donde el texto del `span`
 empiece con la misma palabra que su `calc-lbl`**. No se hizo acá porque la orden no lo pide.
 
-## P3-r · El estilo de informe es estado de sesión, y TC-502 no lo devuelve
+## P3-r · [CERRADO 2026-11-03 · PANT4-7b] El estilo de informe es estado de sesión, y TC-502 no lo devolvía
+
+> **Cerrado por el lado que quedaba.** TC-502 **restaura el estilo estándar al salir** y tiene
+> una condición **(I4)** que lo comprueba, para que la restauración no se pueda perder en
+> silencio. Medido: `TC-502 + TC-535 + TC-533` pasa **3/3** en el mismo lote.
+
+### Lo que decía antes
+
 
 Cerrando los rojos de la corrida completa apareció esto, **medido**: el bloque (E) de **TC-535**
 salía **verde aislado** —1/1, y también contra el árbol anterior en un worktree— y **rojo** en
@@ -12643,3 +12661,116 @@ responde `mch_ex_parada` «Parada cardíaca o TV sostenida previa» **por su cue
 puede contestar «No» en MCH con una taquicardia ventricular documentada en el módulo y **la
 aplicación no lo avisa**. Es el caso de **tipo 4** de la auditoría y lo que el commit 7 (iii) viene
 a cerrar.
+
+---
+
+## P4-a · La disposición en TRES columnas de Fallot sigue PARADA, y la condición no se cumple
+
+La orden del commit 4b la condiciona a que la sección tenga **tres grupos temáticos evidentes**:
+«si NO los tiene exactamente, PARÁ, NO inventes agrupamientos». Vuelta a medir sobre el árbol de
+esta tanda, **no los tiene**: `#tdf-campos` tiene **CINCO** filas de campos y **UN** solo título
+de grupo —«Volúmenes del ventrículo derecho — criterio volumétrico ESC 2020»—; las otras cuatro no
+dicen de qué tema son. La propuesta de los **cuatro** temas sigue siendo la de **P3-i**, y con
+tres columnas habría que fusionar dos de esos cuatro, que es una decisión clínica.
+
+**Lo que ya está hecho y no depende del agrupamiento:** la conclusión a la derecha desde 900 px,
+medido en esta tanda —`tdfLado` verdadero a 1440 y a 1000 px y falso por debajo—.
+
+## P4-b · La premisa de P3-j es FALSA, medida en los dos árboles con la misma sonda
+
+**P3-j dice que PANT-3 dejó la pantalla de MCA más alta (1254 → 1345 px a 1440).** Medido con
+`scripts/_probe_pant4alto.mjs` sobre el árbol **anterior a PANT-3** (`efce508`) y sobre el de hoy,
+en el mismo directorio y con el mismo script, la sección quedó **más baja**, en los cuatro anchos
+y en los dos denominadores:
+
+| ancho | vacía: antes de PANT-3 → hoy | con datos: antes de PANT-3 → hoy |
+|---|---|---|
+| 1440 px | 1263 → **1153** | 1308 → **1282** |
+| 1000 px | 1492 → **1359** | 1582 → **1462** |
+| 768 px | 1859 → **1602** | 1964 → **1693** |
+| 390 px | 2377 → **2150** | 2662 → **2511** |
+
+**La meta del commit 4a —«que no quede más alta que antes de PANT-3»— ya está cumplida**, así que
+**no se tocó la disposición**: cambiarla sería una decisión de maqueta que la orden sólo pide para
+corregir una altura que no se reproduce. El número literal de 1254 px tampoco se reproduce con
+ninguno de los dos denominadores.
+
+**Las dos alternativas que P3-j propone, si el médico igual quiere bajarla:** estrechar la columna
+de conclusión —hoy 320 px— o subir el corte de la fila de dos columnas por encima de 900 px. Las
+dos tocan una decisión que la orden de PANT-3 fijó.
+
+## P4-c · El «seguimiento anual» de las dos estenosis aórticas salió de la pantalla y NO entró a la Evidencia
+
+Las dos secciones decían «Seguimiento ecocardiográfico **anual**…». **Ninguna de las dos guías
+publica un intervalo anual para toda la población**, leído en imagen: la ESC 2020 escribe «control
+regular de por vida» y dice que **la frecuencia depende de la progresión esperada**; la ACC/AHA
+2025 publica el intervalo **por estadio fisiológico** —ecocardiograma cada 36, 24, 12 y 12 meses en
+la subaórtica y 24, 24, 12 y 12 en la supravalvular—, o sea que anual vale **sólo para dos de los
+cuatro estadios**.
+
+**Lo que SÍ entró** a la Evidencia es eso, con su intervalo por estadio y la advertencia explícita.
+**Lo que se perdió** es la frase «anual» como tal, que no tenía respaldo. Si el médico quiere un
+intervalo único en pantalla, es una decisión clínica suya.
+
+## P4-d · «La AHA/ACC retiró la respuesta tensional explícitamente en 2020» — PARADO
+
+La pantalla de la miocardiopatía hipertrófica dice: «La AHA/ACC la retiró **explícitamente** de la
+evaluación de rutina **en 2020**». **La edición de 2020 no está en la biblioteca** —`AJ3-a` ya lo
+declara; lo que hay es la de 2024—, así que no se puede verificar con certeza ni que la retirada
+fuera explícita ni en qué edición ocurrió. **Se paró y no se tocó**, que es lo que la orden manda
+cuando la hoja no se puede leer. Lo que sí está verificado y se conserva es que **no figura** entre
+los cinco factores mayores de la recomendación 3 de 2024.
+
+## P4-e · Los cortes indexados del tracto de salida siguen sin aplicarse, y es deliberado
+
+La Tabla 1 de te Riele publica además los cortes **indexados por superficie corporal** —19 y
+21 mm/m² para el mayor, 16 a <19 y 18 a <21 para el menor— y la app **no los aplica**. No se
+corrigió nada porque **no es una afirmación falsa**: el globo `mca-eco` ya lo dice con sus seis
+números. Aplicarlos sería **un corte nuevo que la app usaría para calcular**, que la orden
+prohíbe. Queda como decisión del médico.
+
+## P4-f · Faltan los estadios de CUATRO válvulas
+
+El commit 6 hizo las **dos primeras** del orden que la propia orden fija. Quedan, con su tabla, su
+hoja y su folio ya localizados y su regla de folio comprobada —folio = e(hoja + 71)—:
+
+| válvula | tabla | hoja | folio | pregunta de síntomas que ya existe |
+|---|---|---|---|---|
+| estenosis mitral | Tabla 16 | 42 | e113 | `em.sintomas` |
+| insuficiencia mitral primaria | Tabla 17 | 50 | e121 | `im.sintomas` |
+| insuficiencia mitral secundaria | Tabla 18 | 57 | e128 | `ims.sintomas` |
+| insuficiencia tricuspídea | Tabla 20 | 61 | e132 | `vt.sintomas` |
+
+⚠️ **La Tabla 20 no tiene fila A en esta copia**, como la propia orden anticipa. Y la **estenosis
+tricuspídea** y la **válvula pulmonar** no tienen estadios en esa guía: la pantalla lo tiene que
+decir y no mostrar estadio.
+
+Las piezas ya están: `_indEstFila`, `_indEstSint` y `IND_EST_FTE` son genéricas, y cada válvula
+sólo necesita su propia función de escalera.
+
+## P4-g · Las otras doce citas de aorta se movieron de edición junto con la de Marfan
+
+La orden pide reconciliar **la de Marfan**. Se reconciliaron **las quince** entradas de
+`AO_EV_FTE`, porque dejar una sola con la paginación de la edición inglesa y catorce con la de la
+otra deja la misma tarjeta mandando al lector a dos documentos distintos bajo el mismo rótulo
+«ESC 2024» — que es peor que el estado anterior. **Ningún corte, clase ni nivel se movió.** Si el
+médico prefiere volver a la paginación de `Mazzolai_2024_Aorta.pdf`, hay que hacerlo en las quince
+y decir de qué edición es.
+
+## P4-h · El `resumen` de la miocardiopatía arritmogénica no tenía cobertura
+
+Las dos últimas apariciones del nombre del criterio vivían en `resumen` y `resumenF`, que **leen
+la hoja del PDF y la diapositiva del PPT** y no el informe ni el EN SUMA. **Ningún caso las
+miraba**, y el censo de `_probe_pant4tf.mjs` tampoco: su espía de jsPDF devolvió **cero**
+caracteres de PDF, o sea un denominador vacío. Las encontró el **A/B**, que genera el PDF de
+verdad. **Cerrado** con el bloque (G) de TC-636, que le pregunta al evaluador directo — pero
+queda la lección: **ese arnés de censo no mide el PDF**, y conviene arreglarle el espía o
+declararlo en su cabecera cada vez que se use.
+
+## P4-i · La mutación «el estadio llega al papel» no se puede escribir, y se declara
+
+El control negativo (E4)/(E5) de TC-638 —que el estadio no llegue al informe ni al EN SUMA— **no
+tiene mutación propia**: el emisor regenera el textarea entero en cada llamada, así que escribir
+en él después de pintar la fila no es efectivo. Lo que sostiene ese control es el **A/B**, que da
+cero diferencias de superficie firmada en las 26 escenas. La mutación 27 se redirigió al otro
+invariante del commit —que la fila lleve su tabla, su hoja y su folio—.
