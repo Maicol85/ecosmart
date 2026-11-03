@@ -1442,12 +1442,12 @@
      aparecia una barra de desplazamiento horizontal; y con la columna de conclusion al lado el
      hueco da para CUATRO de 215 px, que no es lo que la orden decidio. Por debajo de 900 se
      conserva el auto-fit de siempre: ahi nada cambia. */
-  #mca-fila, #tdf-fila, #esub-fila { display:grid; grid-template-columns:minmax(0,1fr); gap:14px; align-items:start; }
-  #tdf-campos, #esub-campos { min-width:0; }
+  #mca-fila, #tdf-fila, #esub-fila, #easv-fila { display:grid; grid-template-columns:minmax(0,1fr); gap:14px; align-items:start; }
+  #tdf-campos, #esub-campos, #easv-campos { min-width:0; }
   #mca-campos { min-width:0; }
   #mca-eco-cols { display:grid; grid-template-columns:repeat(auto-fit,minmax(175px,1fr)); gap:10px; }
   @media (min-width: 900px) {
-    #mca-fila, #tdf-fila, #esub-fila { grid-template-columns:minmax(0,1fr) 320px; }
+    #mca-fila, #tdf-fila, #esub-fila, #easv-fila { grid-template-columns:minmax(0,1fr) 320px; }
     #mca-eco-cols { grid-template-columns:repeat(2, minmax(0,1fr)); }
     .mca-cat-grid { grid-template-columns:repeat(3, minmax(0,1fr)); }
   }
@@ -17440,10 +17440,15 @@ z
       <span id="easv_badge" class="incl-badge" hidden>&#9679; cargada</span>
     </button>
     <div class="card-body sacc-body">
-      <p style="font-size:11px;color:var(--text2);margin:0 0 12px;line-height:1.5;">
-        Obstrucción por encima de la unión sinotubular. Es la única de las tres formas en que los
-        <b>ostios coronarios</b> quedan proximales a la estenosis, en zona de alta presión.
-      </p>
+      <!-- PANT-3, commit 8b. Mismo metodo que la subaortica: la prosa y las notas de campo
+           pasaron a los dos globos, con la hoja y el folio leidos en imagen. Ningun corte se
+           movio y ninguna conclusion cambio. -->
+      <div style="display:flex;align-items:center;gap:8px;margin:0 0 12px;">
+        <span style="font-size:11px;font-weight:700;color:var(--text2);">Obstrucción por encima de la unión sinotubular</span>
+        <button type="button" class="vinfo-btn vinfo-btn-44" data-vinfo="easv-sec" aria-label="Que es la estenosis supravalvular aortica y por que importan los ostios" onclick="vInfoClic(this,event)">&#9432;</button>
+      </div>
+      <div id="easv-fila">
+      <div id="easv-campos">
       <div class="grid-3">
         <div class="fg"><label>Tipo</label>
           <select id="easv_tipo" onchange="easvSync()">
@@ -17453,9 +17458,9 @@ z
             <option value="membranosa">Membranosa</option>
             <option value="noesp">No especificado</option>
           </select></div>
-        <div class="fg"><label>Gradiente medio (mmHg)</label>
+        <div class="fg"><label>Gradiente medio (mmHg) <button type="button" class="vinfo-btn vinfo-btn-44" data-vinfo="easv-grad" aria-label="Que gradiente gradua y de donde sale el corte" onclick="vInfoClic(this,event)">&#9432;</button></label>
           <input type="number" id="easv_gradiente_medio" step="1" placeholder="mmHg" oninput="easvSync()">
-          <span style="font-size:10px;color:var(--text2);">Es el que gradúa: ESC 2020, medio &ge;40&nbsp;mmHg a flujo normal.</span></div>
+          <span style="font-size:10px;color:var(--text2);">Es el que gradúa.</span></div>
         <div class="fg"><label>Gradiente pico (mmHg)</label>
           <input type="number" id="easv_gradiente_mmhg" step="1" placeholder="mmHg" oninput="easvSync()">
           <span style="font-size:10px;color:var(--text2);">Se describe; no gradúa por sí solo.</span></div>
@@ -17466,7 +17471,7 @@ z
             <option value="">&mdash;</option><option value="no_eval">No evaluado</option>
             <option value="no">Sin síndrome</option><option value="si">Con síndrome</option>
           </select>
-          <span style="font-size:10px;color:var(--text2);">Asocia retraso cognitivo, hipercalcemia y estenosis pulmonar periférica.</span></div>
+          </div>
         <div class="fg"><label>Ostios coronarios</label>
           <select id="easv_coronarias" onchange="easvSync()">
             <option value="">&mdash;</option><option value="no_eval">No evaluados</option>
@@ -17474,7 +17479,7 @@ z
             <option value="comprometidos">Ostios comprometidos</option>
             <option value="dilatacion">Dilatación coronaria</option>
           </select>
-          <span style="font-size:10px;color:var(--text2);">Proximales a la estenosis: riesgo de isquemia.</span></div>
+          </div>
         <div class="fg"><label>Estenosis pulmonar asociada</label>
           <select id="easv_estenosis_pulmonar" onchange="easvSync()">
             <option value="">&mdash;</option><option value="no">No</option>
@@ -17482,12 +17487,16 @@ z
             <option value="severa">Sí &mdash; severa</option>
           </select></div>
       </div>
-      <div id="easv-resultado" class="calc-box" style="margin-top:12px;"></div>
+      </div><!-- /#easv-campos -->
+      <div id="easv-concl-col">
+      <div id="easv-resultado" class="calc-box" style="margin-top:0;"></div>
       <input type="checkbox" id="easv_incluir_chk" style="display:none;" tabindex="-1" aria-hidden="true">
       <div style="display:flex;justify-content:center;margin-top:10px;">
         <button type="button" class="btn btn-integrar" data-ete-chk="easv_incluir_chk" aria-pressed="false"
                 onclick="eteInclToggle('easv_incluir_chk')">&#128206; Integrar al informe</button>
       </div>
+      </div><!-- /#easv-concl-col -->
+      </div><!-- /#easv-fila -->
     </div>
   </div>
 <div class="card sacc" id="sacc-cc-mch">
@@ -46843,6 +46852,34 @@ const VINFO = Object.freeze({
          impreso «4062») y hoja 67, folio 4063. Regla de folio: folio = hoja + 3996, comprobada
          en las hojas 10, 66, 67 y 100.
      Las frases que contaban la historia de una edicion de una guia NO pasaron al ⓘ: salieron. */
+  /* ── ESTENOSIS SUPRAVALVULAR AORTICA (PANT-3, commit 8b) ───────────────────────────────
+     ⚠️ LA ESC 2020 NO PUBLICA UN RECUADRO DE RECOMENDACIONES PROPIO PARA LA ESTENOSIS
+     SUPRAVALVULAR AORTICA, censado sobre las 84 hojas del documento con control positivo -el de
+     la subaortica SI aparece, en la hoja 41-. Lo que esta aplicacion aplica es el umbral
+     GENERAL de obstruccion del tracto de salida izquierdo que la guia bajo de 50 a 40 mmHg de
+     gradiente MEDIO (hoja 10, folio 572). Se dice asi y no se le inventa una recomendacion
+     especifica. */
+  'easv-sec': {
+    ancho: 380,
+    tit: 'La estenosis supravalvular aórtica',
+    lee: 'Obstrucción por encima de la unión sinotubular. Es la única de las tres formas de '
+       + 'obstrucción del tracto de salida izquierdo en que los OSTIOS CORONARIOS quedan '
+       + 'proximales a la estenosis, en zona de alta presión: de ahí el riesgo de isquemia.\n'
+       + 'El síndrome de Williams-Beuren asocia retraso cognitivo, hipercalcemia y estenosis '
+       + 'pulmonar periférica.'
+  },
+  'easv-grad': {
+    ancho: 400,
+    tit: 'Qué gradiente gradúa',
+    lee: 'GRADÚA EL GRADIENTE MEDIO, con 40 mmHg a flujo normal. El gradiente PICO se describe y '
+       + 'no gradúa por sí solo.',
+    fuente: 'ESC 2020 de cardiopatías congénitas del adulto — hoja 10, folio 572.',
+    ojo: 'La guía bajó expresamente el umbral de gradiente medio por Doppler para la '
+       + 'intervención sobre la obstrucción del tracto de salida izquierdo de 50 a 40 mmHg, y lo '
+       + 'hace para la obstrucción A CUALQUIER NIVEL.\n'
+       + 'La guía no publica un recuadro de recomendaciones propio para la estenosis '
+       + 'supravalvular: lo que se aplica acá es ese umbral general.'
+  },
   /* ── ESTENOSIS SUBAORTICA (PANT-3, commit 8a) ─────────────────────────────────────────
      LAS CUATRO HOJAS SE VOLVIERON A LEER EN IMAGEN, que es lo que la orden pide:
        · ESC 2020 congenitas del adulto, edicion INGLESA, hoja 41 = folio 603 -regla
