@@ -87304,6 +87304,9 @@ function _indEA(){
      lleva «—» aunque sea condición de la Clase IIa A: no dispara nada por sí sola. */
   const _sx = _indClinGet('ea.sintomas'), _ergo = _indClinGet('ea.ergo');
   const _rq = _indClinGet('ea.riesgo'),   _vida = _indClinGet('ea.vida1a');
+  /* EL ESTADIO (PANT-4, commit 6). Va en la lista CLINICA y no en la de datos del eco, porque
+     lo que lo decide -C contra D- son los sintomas, que el ecocardiograma no evalua. */
+  const _estEA = _indEstFila(_indEstEA());
   const clinica = [
     _indFilaCtrl('Síntomas (angina, síncope, disnea)', 'ea.sintomas',
       [{v:'si',t:'Sí'},{v:'no',t:'No'}],
@@ -87339,6 +87342,7 @@ function _indEA(){
       _vida == null ? 'en la edición 2025 no es un umbral graduado: vive en el cuerpo del documento, sin clase'
       : 'sin clase asignada en 2025. Lo graduado es que la MODALIDAD se decida por Heart Team incorporando la expectativa de vida y el manejo a lo largo de la vida (Clase I · Nivel C).')
   ];
+  if (_estEA) clinica.unshift(_estEA);
 
   /* FALLA CERRADO (regla 4 de la cabecera). `_indFn` comprueba que la función EXISTA, no que no
      lance: `eaEscenario` llama a `_avaNum`, `getBSA`, `vliCalc` y al rango de FEVI, y si alguna
@@ -90412,6 +90416,10 @@ function _indIA(){
       : _cand === 'si' ? 'la vía quirúrgica incluye la REPARACIÓN, que en 2025 subió a Clase IIa · Nivel B en centros con experiencia'
       : 'decide la MODALIDAD, no la indicación: separa cirugía de TAVI')
   ];
+  /* EL ESTADIO (PANT-4, commit 6), por el mismo motivo que en la estenosis aortica: lo que
+     separa C de D son los sintomas, que el ecocardiograma no evalua. */
+  const _estIA = _indEstFila(_indEstIA());
+  if (_estIA) clinica.unshift(_estIA);
 
   /* El aviso de cabecera cubre los TRES insumos que pueden anular un criterio de Clase I, no
      sólo el diámetro: una FEVI de 0,58 en vez de 58 y un peso de 500 en vez de 50 hacen lo mismo
@@ -96041,6 +96049,118 @@ function _indEASV(){
     notas: OBS_NOTAS.slice() };
 }
 
+
+/* == EL ESTADIO DE LA AHA/ACC 2020, Y SOLO EN LA EVIDENCIA (PANT-4, commit 6) ================
+   DECISION DEL MEDICO: el estadio A, B, C o D de cada valvulopatia se muestra SOLO aca,
+   rotulado «AHA/ACC 2020» -la ESC/EACTS 2025 no usa estadios-, calculado de lo que la aplicacion
+   YA tiene. NADA de esto llega al papel: lo lee `indicRender` y nadie mas.
+
+   C Y D SE DISTINGUEN POR LOS SINTOMAS, QUE EL ECO NO TIENE. Se usa la pregunta de sintomas que
+   la Evidencia de esa valvula YA tiene -`ea.sintomas`, `ia.sintomas`...-, sin duplicar ninguna.
+   Lo que no se contesto queda en «sin dato» y NO SE INFIERE: con los sintomas sin contestar, el
+   estadio dice «C o D, segun sintomas», que es lo unico que se puede afirmar.
+
+   NINGUN CORTE DE SEVERIDAD SE REIMPLEMENTA (regla 2 del panel): la severidad sale del dueño que
+   ya gobierna el informe firmado -el grado de la valvula-, y lo que esta funcion agrega son los
+   cortes PROPIOS DEL ESTADIO que la tabla publica y que la aplicacion no tenia: la FEVI del 50 %
+   de la estenosis aortica y la del 55 % y el diametro de fin de sistole de 50 mm de la
+   insuficiencia aortica. Si el estadio contradice la severidad que la aplicacion muestra, se
+   reporta y no se corrige.
+
+   LAS DOS TABLAS, LEIDAS EN IMAGEN. Regla de folio comprobada en el pie impreso: folio =
+   e(hoja + 71), verificada en las hojas 57 -> e128 y 61 -> e132.
+   · Tabla 13 «Stages of AS», hoja 20, folio e91.
+   · Tabla 15 «Stages of Chronic AR», hoja 34, folio e105. */
+const IND_EST_FTE = 'AHA/ACC 2020 de valvulopatías (Otto y cols., Circulation 2021;143:e72-e227)';
+/* La fila, igual para todas las valvulas: el estadio, su marca y la nota que dice de donde sale. */
+function _indEstFila(e){
+  if (!e) return null;
+  return _indFila('Estadio (AHA/ACC 2020)', e.txt,
+    e.marca || (e.txt === 'Sin dato' ? 'ask' : 'none'), e.nota);
+}
+/* Lee la pregunta de sintomas que la seccion YA tiene. Devuelve 'si', 'no' o null. */
+function _indEstSint(clave){
+  const v = _indClinGet(clave);
+  return (v === 'si' || v === 'no') ? v : null;
+}
+
+/* ── Estenosis aórtica — Tabla 13, hoja 20, folio e91 ────────────────────────────────────── */
+function _indEstEA(){
+  const grado = _indS('ea_grado');
+  const fevi = _indN('fevi');
+  const sx = _indEstSint('ea.sintomas');
+  const F = ' (Tabla 13, hoja 20, folio e91)';
+  if (grado === 'severa') {
+    /* El estadio C es el severo ASINTOMATICO y el D el SINTOMATICO: es lo unico que los separa
+       en la tabla, y los sintomas no son un dato del eco. */
+    if (sx === 'no') {
+      if (fevi == null) return { txt:'C1 o C2, según la fracción de eyección', marca:'warn',
+        nota:'estenosis aórtica severa sin síntomas. La tabla separa C1 —fracción de eyección normal— de C2 —fracción por debajo del 50 %—, y la fracción no está cargada' + F };
+      return _lt(fevi, 50)
+        ? { txt:'C2', marca:'alarm', nota:'estenosis aórtica severa, sin síntomas, con fracción de eyección por debajo del 50 %' + F }
+        : { txt:'C1', marca:'warn', nota:'estenosis aórtica severa, sin síntomas, con fracción de eyección conservada. La tabla agrega que la prueba de esfuerzo es razonable para confirmar el estado sintomático' + F };
+    }
+    if (sx === 'si') {
+      const vmax = _indN('vmax_ao'), gm = _indN('gmedio_ao');
+      if (_ge(vmax, 4) || _ge(gm, 40)) return { txt:'D1', marca:'alarm',
+        nota:'estenosis aórtica severa sintomática de gradiente alto: velocidad máxima de 4 m/s o más, o gradiente medio de 40 mmHg o más' + F };
+      if (vmax == null && gm == null) return { txt:'D, subtipo según el gradiente', marca:'alarm',
+        nota:'estenosis aórtica severa sintomática. La tabla separa D1 —gradiente alto—, D2 —bajo flujo y bajo gradiente con fracción por debajo del 50 %— y D3 —bajo gradiente con fracción conservada—, y no consta el gradiente' + F };
+      if (_lt(fevi, 50)) return { txt:'D2', marca:'alarm',
+        nota:'estenosis aórtica severa sintomática de bajo flujo y bajo gradiente con fracción de eyección por debajo del 50 %. La tabla pide confirmar el área por debajo de 1,0 cm² con velocidad de 4 m/s o más en el eco de estrés con dobutamina' + F };
+      if (_ge(fevi, 50)) return { txt:'D3', marca:'alarm',
+        nota:'estenosis aórtica severa sintomática de bajo gradiente con fracción de eyección conservada. La tabla pide además un índice de volumen latido por debajo de 35 ml/m², medido con el paciente normotenso —presión sistólica por debajo de 140 mmHg—, y ese índice no lo calcula esta aplicación' + F };
+      return { txt:'D2 o D3, según la fracción de eyección', marca:'alarm',
+        nota:'estenosis aórtica severa sintomática de bajo gradiente, y la fracción de eyección no está cargada' + F };
+    }
+    return { txt:'C o D, según síntomas', marca:'ask',
+      nota:'estenosis aórtica severa. Lo que separa C de D son los síntomas, que el ecocardiograma no evalúa: contestá la pregunta de síntomas de más abajo. «Sin dato» no cuenta como «no»' + F };
+  }
+  if (grado === 'moderada' || grado === 'leve') return { txt:'B', marca:'none',
+    nota:'estenosis aórtica progresiva: leve con velocidad máxima de 2,0 a 2,9 m/s o gradiente medio por debajo de 20 mmHg, moderada con 3,0 a 3,9 m/s o gradiente medio de 20 a 39 mmHg' + F };
+  /* La esclerosis valvular es, literalmente, una de las dos anatomias del estadio A. */
+  if (grado === 'esclerosis') return { txt:'A', marca:'none',
+    nota:'en riesgo de estenosis aórtica: esclerosis valvular, con velocidad máxima por debajo de 2 m/s y apertura normal de los velos, sin consecuencias hemodinámicas ni síntomas. La válvula aórtica bicúspide es la otra anatomía de este estadio' + F };
+  return { txt:'Sin dato', marca:'ask',
+    nota:'el estadio sale del grado de la estenosis y de los síntomas, y el grado no está consignado' + F };
+}
+
+/* ── Insuficiencia aórtica — Tabla 15, hoja 34, folio e105 ───────────────────────────────── */
+function _indEstIA(){
+  const grado = _indS('ia_grado');
+  const fevi = _indN('fevi'), dsf = _indN('dsfvi');
+  const sx = _indEstSint('ia.sintomas');
+  const F = ' (Tabla 15, hoja 34, folio e105)';
+  /* El grado de la insuficiencia aortica se persiste como NUMERO: 4 es severa. */
+  if (grado === '4') {
+    if (sx === 'no') {
+      /* C1 y C2 los separa la funcion o la dilatacion del ventriculo izquierdo. El corte de la
+         fraccion de eyeccion del estadio es 55 % y NO el 50 % que la aplicacion usa para la
+         indicacion: son dos preguntas distintas y la tabla publica la suya. */
+      const c2 = _le(fevi, 55) || _gt(dsf, 50);
+      if (fevi == null && dsf == null) return { txt:'C1 o C2, según la función y el tamaño del ventrículo izquierdo', marca:'warn',
+        nota:'insuficiencia aórtica severa sin síntomas. La tabla separa C1 —fracción de eyección por encima del 55 % y diámetro de fin de sístole por debajo de 50 mm— de C2 —fracción del 55 % o menos, o diámetro mayor de 50 mm, o diámetro indexado mayor de 25 mm/m²—, y no consta ninguno de los dos' + F };
+      return c2
+        ? { txt:'C2', marca:'alarm', nota:'insuficiencia aórtica severa, sin síntomas, con función sistólica deprimida —fracción de eyección del 55 % o menos— o dilatación severa del ventrículo izquierdo —diámetro de fin de sístole mayor de 50 mm—' + F }
+        : { txt:'C1', marca:'warn', nota:'insuficiencia aórtica severa, sin síntomas, con fracción de eyección por encima del 55 % y diámetro de fin de sístole por debajo de 50 mm. La tabla agrega que la prueba de esfuerzo es razonable para confirmar el estado sintomático' + F };
+    }
+    if (sx === 'si') return { txt:'D', marca:'alarm',
+      nota:'insuficiencia aórtica severa sintomática: disnea de esfuerzo, angina o síntomas de insuficiencia cardíaca más severos. La tabla no subdivide este estadio' + F };
+    return { txt:'C o D, según síntomas', marca:'ask',
+      nota:'insuficiencia aórtica severa. Lo que separa C de D son los síntomas, que el ecocardiograma no evalúa: contestá la pregunta de síntomas de más abajo. «Sin dato» no cuenta como «no»' + F };
+  }
+  if (grado === '1' || grado === '2') return { txt:'B', marca:'none',
+    nota:'insuficiencia aórtica progresiva, leve o moderada, con función sistólica normal y volumen del ventrículo izquierdo normal o levemente dilatado' + F };
+  /* ⚠️ «Moderada-severa» ES UN GRADO DE LA APLICACION Y NO DE LA TABLA: la tabla tiene B para la
+     leve y la moderada y C o D para la severa, y no publica una fila intermedia. Se dice, en vez
+     de empujarla a una de las dos. */
+  if (grado === '3') return { txt:'B o C, según la severidad', marca:'warn',
+    nota:'el grado «moderada-severa» de esta aplicación no tiene fila propia en la tabla, que separa la leve y la moderada —estadio B— de la severa —estadio C o D—' + F };
+  if (grado === '0') return { txt:'A', marca:'none',
+    nota:'en riesgo de insuficiencia aórtica: insuficiencia ausente o trivial, sin consecuencias hemodinámicas ni síntomas' + F };
+  return { txt:'Sin dato', marca:'ask',
+    nota:'el estadio sale del grado de la insuficiencia y de los síntomas, y el grado no está consignado' + F };
+}
 
 const IND_SECS = [
   { tit:'Estenosis aórtica',                     fn:_indEA },
@@ -152709,8 +152829,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261103-1130';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793716246862;                 /* eco-build-ms */
+const ECO_BUILD    = '20261103-1136';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793716614265;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -152796,7 +152916,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261103-1130</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261103-1136</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
