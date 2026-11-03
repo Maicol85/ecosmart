@@ -82927,8 +82927,15 @@ function critMCH(){
   h += '</tbody></table>';
 
   h += '<p style="font-size:10px;color:var(--text2);line-height:1.6;margin:12px 0 0;">' +
-       '<b>La respuesta tensional anormal al ejercicio no está en ninguno de los dos.</b> La AHA/ACC la retiró ' +
-       'explícitamente de la evaluación de rutina en 2020, y el HCM Risk-SCD nunca la incluyó. La app la registra ' +
+       /* ⚠️ LA ATRIBUCION A LA EDICION 2020 SE RETIRO (PANT-5, commit 3; cierra P4-d). Decia «La
+          AHA/ACC la retiro EXPLICITAMENTE de la evaluacion de rutina EN 2020», y esa edicion NO
+          esta en la biblioteca -AJ3-a y P4-d ya lo declaran; lo que hay es la de 2024-, asi que
+          no se puede verificar ni que la retirada fuera explicita ni en que edicion ocurrio.
+          LO QUE SE CONSERVA es lo que esta verificado y lo que el medico necesita para no
+          equivocarse: que la respuesta tensional NO cuenta en ninguno de los dos conteos -no
+          figura entre los cinco factores mayores de la recomendacion 3 de 2024- y que la app la
+          registra y la informa aparte. */
+       '<b>La respuesta tensional anormal al ejercicio no está en ninguno de los dos.</b> La app la registra ' +
        'y la informa como factor reconocido en guías previas, fuera de los dos conteos.</p>';
   h += '<p style="font-size:10px;color:var(--text2);line-height:1.6;margin:6px 0 0;">' +
        /* ⚠️ «que es la que cita el informe» DEJO DE SER CIERTO y se corrige (PANT-3, commit 5d):
@@ -97000,13 +97007,23 @@ function esubEstado(){
   const severa = medioOk && medio >= ESUB_MEDIO_SEVERO;
   const gradua = medioOk;
   const alertas = [];
-  if (severa) alertas.push({
-    txt:'Gradiente medio de ' + medio + ' mmHg — obstrucción severa del tracto de salida izquierdo por el criterio de la ESC 2020 (medio ≥' + ESUB_MEDIO_SEVERO + ' mmHg a flujo normal).' });
+  /* LA ALERTA DEL GRADIENTE SE RETIRO (PANT-5, commit 3). Decia «obstruccion severa del
+     tracto de salida izquierdo POR EL CRITERIO DE LA ESC 2020 (medio >= N mmHg a flujo
+     normal)»: nombraba la guia y publicaba su criterio, que es lo que la regla fija manda
+     al globo. Lo que esa linea afirmaba -que el gradiente es severo- lo dice la pastilla de
+     arriba, en rojo y con el mismo corte, asi que NINGUN dato ni veredicto se pierde; el
+     criterio con su hoja y su folio sigue en esub-grad.
+     Y el PAPEL no se mueve: `papel` y `suma` se arman de sus propias piezas y NO leen
+     `alertas` -verificado-. */
   /* La IA secundaria es marcador de severidad y progresión: moderada o severa cambia el
      intervalo de control y pesa en la decisión quirúrgica, así que sube al EN SUMA. La leve se
      describe y no alerta — es el hallazgo habitual. */
   if (ia === 'moderada' || ia === 'severa') alertas.push({
-    txt:'Insuficiencia aórtica ' + ESUB_IA_TXT[ia] + ' asociada — marcador de severidad y de progresión de la lesión subaórtica.' });
+  /* LA INTERPRETACION SALE Y EL HALLAZGO SE QUEDA (PANT-5, commit 3): decia «asociada —
+     marcador de severidad y de progresion de la lesion subaortica», que es una lectura
+     clinica y no un hallazgo. El grado, su compuerta -moderada o severa- y su lugar en la
+     lista no se movieron. */
+    txt:'Insuficiencia aórtica ' + ESUB_IA_TXT[ia] + ' asociada.' });
   /* Un gradiente que AUMENTA con Valsalva describe una obstrucción DINÁMICA. No se resuelve
      acá —es un diagnóstico distinto— pero callarlo dejaría el informe llamando «fija» a una
      lesión que se comporta como dinámica. */
@@ -97078,7 +97095,13 @@ function esubSync(){
     sp.className = 'badge badge-' + (BADGE_CLS_OK.indexOf(cls) >= 0 ? cls : 'gray'); sp.textContent = t; return sp; };
   if (!r.hayDatos) { fila('Estenosis subaórtica', pill('gray', 'Ingresar tipo y gradiente medio')); return; }
   if (r.fuera.length) fila('Fuera de rango', pill('yellow', r.fuera.join(' y ') + ' — revisar antes de concluir'));
-  if (r.gradua) fila('Gradiente medio', pill(r.severa ? 'red' : 'green', r.medio + ' mmHg' + (r.severa ? ' — severa (ESC 2020)' : ' — no severa')));
+  /* == LA CONCLUSION DE PANTALLA QUEDA DESCRIPTIVA (PANT-5, commit 3) ========================
+     Decision del medico, sobre el caso que midio probando PANT-4. La pastilla decia
+     «45 mmHg - severa (ESC 2020)»: el nombre de la guia sale, porque la pantalla tampoco nombra
+     guias. El CORTE, su guia, su hoja y su folio siguen enteros en el globo `esub-grad` /
+     `easv-grad`, que ya los tenia -verificado antes de tocar nada-. El color y el corte no se
+     movieron: sigue graduando con el mismo `*_MEDIO_SEVERO` y sigue en rojo. */
+  if (r.gradua) fila('Gradiente medio', pill(r.severa ? 'red' : 'green', r.medio + ' mmHg' + (r.severa ? ' — severa' : ' — no severa')));
   else fila('Gradiente medio', pill('gray', 'Sin gradiente medio no se gradúa la severidad'));
   /* La fila «Seguimiento» se retiro (PANT-4, commit 1d): la pantalla no da indicaciones de
      conducta. La nota que explica por que sin el gradiente MEDIO no se gradua se queda -es una
@@ -97120,8 +97143,14 @@ function easvEstado(){
   const severa = medioOk && medio >= EASV_MEDIO_SEVERO;
   const gradua = medioOk;
   const alertas = [];
-  if (severa) alertas.push({
-    txt:'Gradiente medio de ' + medio + ' mmHg — obstrucción severa del tracto de salida izquierdo por el criterio de la ESC 2020 (medio ≥' + EASV_MEDIO_SEVERO + ' mmHg a flujo normal).' });
+  /* LA ALERTA DEL GRADIENTE SE RETIRO (PANT-5, commit 3). Decia «obstruccion severa del
+     tracto de salida izquierdo POR EL CRITERIO DE LA ESC 2020 (medio >= N mmHg a flujo
+     normal)»: nombraba la guia y publicaba su criterio, que es lo que la regla fija manda
+     al globo. Lo que esa linea afirmaba -que el gradiente es severo- lo dice la pastilla de
+     arriba, en rojo y con el mismo corte, asi que NINGUN dato ni veredicto se pierde; el
+     criterio con su hoja y su folio sigue en easv-grad.
+     Y el PAPEL no se mueve: `papel` y `suma` se arman de sus propias piezas y NO leen
+     `alertas` -verificado-. */
   /* Sólo el compromiso DOCUMENTADO alerta. «No evaluados» no es «normales»: afirmar que los
      ostios están bien sin haberlos mirado es la afirmación tranquilizadora que este archivo
      persigue, y acá lo que se negaría es un riesgo de isquemia. */
@@ -97132,7 +97161,14 @@ function easvEstado(){
   if (wil === 'si') alertas.push({
     txt:'Asociada a síndrome de Williams-Beuren, en el que la estenosis pulmonar periférica y la hipercalcemia son parte del cuadro.' });
   if (ep === 'moderada' || ep === 'severa') alertas.push({
-    txt:'Estenosis pulmonar ' + EASV_EP_TXT[ep] + ' asociada — frecuente en el síndrome de Williams-Beuren.' });
+  /* MISMA CONSTRUCCION QUE LA INSUFICIENCIA AORTICA DE LA SUBAORTICA, asi que mismo trato
+     (PANT-5, commit 3): decia «asociada — frecuente en el sindrome de Williams-Beuren», que
+     es una lectura clinica pegada a un hallazgo graduado. El grado y su compuerta quedan.
+     LAS OTRAS TRES ALERTAS DE ESTA LESION NO SE TOCAN, y se declara: las de los ostios
+     coronarios y la del Williams-Beuren son explicaciones fisiopatologicas cuyo CUERPO es
+     la explicacion, no un apendice tras un guion, asi que no son «construcciones iguales»
+     -que es la condicion que la orden pone-. Van listadas en P5-a. */
+    txt:'Estenosis pulmonar ' + EASV_EP_TXT[ep] + ' asociada.' });
   /* == EL PAPEL DESCRIBE (PANT-4, commit 1c) ================================================
      Mismo metodo que la subaortica: `papel` son las oraciones del informe, UNA POR TEMA y en
      orden logico -la lesion con su forma, los gradientes y su severidad, los ostios, y los
@@ -97192,7 +97228,13 @@ function easvSync(){
     sp.className = 'badge badge-' + (BADGE_CLS_OK.indexOf(cls) >= 0 ? cls : 'gray'); sp.textContent = t; return sp; };
   if (!r.hayDatos) { fila('Estenosis supravalvular', pill('gray', 'Ingresar tipo y gradiente medio')); return; }
   if (r.fuera.length) fila('Fuera de rango', pill('yellow', r.fuera.join(' y ') + ' — revisar antes de concluir'));
-  if (r.gradua) fila('Gradiente medio', pill(r.severa ? 'red' : 'green', r.medio + ' mmHg' + (r.severa ? ' — severa (ESC 2020)' : ' — no severa')));
+  /* == LA CONCLUSION DE PANTALLA QUEDA DESCRIPTIVA (PANT-5, commit 3) ========================
+     Decision del medico, sobre el caso que midio probando PANT-4. La pastilla decia
+     «45 mmHg - severa (ESC 2020)»: el nombre de la guia sale, porque la pantalla tampoco nombra
+     guias. El CORTE, su guia, su hoja y su folio siguen enteros en el globo `esub-grad` /
+     `easv-grad`, que ya los tenia -verificado antes de tocar nada-. El color y el corte no se
+     movieron: sigue graduando con el mismo `*_MEDIO_SEVERO` y sigue en rojo. */
+  if (r.gradua) fila('Gradiente medio', pill(r.severa ? 'red' : 'green', r.medio + ' mmHg' + (r.severa ? ' — severa' : ' — no severa')));
   else fila('Gradiente medio', pill('gray', 'Sin gradiente medio no se gradúa la severidad'));
   fila('Ostios coronarios', r.cor === 'comprometidos' ? pill('red', 'Comprometidos')
     : (r.cor === 'normales' ? pill('green', 'Normales')
