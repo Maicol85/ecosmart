@@ -1502,6 +1502,25 @@
   .subtabs-wrap .tab-btn { padding:5px 12px; font-size:11px; border:1px solid var(--border); border-radius:6px; background:transparent; color:var(--text2); }
   .subtabs-wrap .tab-btn:hover { color:var(--text); border-color:var(--text2); }
   .subtabs-wrap .tab-btn.active { color:var(--teal); border-color:var(--teal); background:transparent; }
+  /* ══ LOS DOS BOTONES DE «CIA / CIV» SON TOGGLES DE PRESENCIA, NO SOLAPAS (PANT-3) ══
+     `cc-les-on` dice «esta lesion entra al informe» y `cc-pane-on` dice «este formulario esta
+     a la vista». Son clases PROPIAS y no `.active` porque `showTab` barre `.active` de TODO
+     `.tab-btn` del documento: por eso el boton se desmarcaba al cambiar de pantalla, que es el
+     defecto que el medico reporto y que esta tanda cierra. Mismo precedente y mismo motivo que
+     `.cc-subbar .tab-btn.cc-on`.
+     Los colores son los que la app YA usa: el relleno es el de `.btn-integrar.integrado`
+     -mismo significado, «esto va al informe»- y el borde es el de la regla de arriba. Ninguno
+     se declara nuevo.
+     El relleno va DESPUES del borde porque las dos reglas tienen la MISMA especificidad (0,3,1)
+     y gana la ultima: con la lesion marcada manda el relleno, que es lo que el medico pidio
+     -«se pinta ENTERO, no solo el borde»-. */
+  .subtabs-wrap .tab-btn.cc-pane-on { color:var(--teal); border-color:var(--teal); background:transparent; }
+  .subtabs-wrap .tab-btn.cc-les-on { background:var(--green); color:#0f1117; border-color:var(--green); }
+  /* Con la lesion marcada Y su formulario a la vista hay DOS cosas que distinguir: el relleno se
+     queda -es la mas importante- y el formulario a la vista lo dice un anillo. Es el patron de
+     `.btn-integrar.revisar`, que ya usa box-shadow para una segunda senal sobre un boton que ya
+     tiene color propio. */
+  .subtabs-wrap .tab-btn.cc-les-on.cc-pane-on { box-shadow:0 0 0 2px var(--teal); }
   /* Fila inferior de herramientas SIEMPRE visible (CAMBIO 3) */
   .subtabs-wrap .tabs-tools { display:flex !important; }
   /* Tabs avanzadas como dropdown en móvil */
@@ -1534,7 +1553,15 @@
     /* ⚠️ `.otr-subbar` SALIO DE LA EXCEPCION EN EL B2-E3 junto con la barra de Otros: esa
        pestana ya no tiene sub-pestanas. La de congenitas se conserva, que es la unica que
        sigue reusando `.subtabs-wrap` sin tener el `<select>` de reemplazo. */
-    .subtabs-wrap:not(.cc-subbar) .tabs-row{ display:none !important; }
+    /* ⚠️ `cc-lesbar` SE SUMA A LA EXCLUSION EN PANT-3, Y NO ES COSMETICA. Es la barra de los dos
+       botones de «CIA / CIV», que desde esta tanda ya no son navegacion: MARCAN la lesion, y la
+       marca es un dato del estudio que decide si entra al informe. Escondida por debajo de
+       768 px —y esta barra NO tiene el `<select>` de reemplazo, que es lo que el comentario de
+       arriba ya declara como defecto para las barras agregadas— la lesion no se podia marcar en
+       un telefono, asi que la CIA de un estudio cargado desde el celular no podia llegar al
+       informe por ningun camino. Medido en HEAD: 0 x 0 y offsetParent nulo a 768 y a 390 px.
+       Mismo mecanismo y mismo motivo que `.cc-subbar`. */
+    .subtabs-wrap:not(.cc-subbar):not(.cc-lesbar) .tabs-row{ display:none !important; }
     .eco-adv-select{display:block;width:100%;box-sizing:border-box;margin:0;padding:9px 38px 9px 12px;font-size:13px;font-weight:600;color:var(--text);background-color:var(--bg2);background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="12" height="8" viewBox="0 0 12 8"><path d="M1 1l5 5 5-5" stroke="%2394A3B8" stroke-width="2" fill="none" stroke-linecap="round"/></svg>');background-repeat:no-repeat;background-position:right 13px center;border:1px solid var(--border);border-radius:8px;-webkit-appearance:none;appearance:none;cursor:pointer;outline:none}
     .eco-adv-select:focus{border-color:var(--accent2,#4f8ef7)}
   }
@@ -18507,11 +18534,34 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
     </button>
     <div class="card-body sacc-body">
 
-    <div class="subtabs-wrap" style="justify-content:flex-start;margin-bottom:12px;">
+    <!-- ══ LOS DOS BOTONES MARCAN LA LESION, Y ESO ES UN DATO DEL ESTUDIO (PANT-3) ══
+         PEDIDO DEL MEDICO: antes eran solapas -solo cambiaban que panel se veia-, el borde verde
+         no significaba nada, no llegaba al informe y `showTab` lo borraba al cambiar de pantalla.
+         Ahora un toque hace DOS cosas de una vez: marca o desmarca la lesion y trae su formulario
+         a la vista. Marcada, la lesion entra al informe y al EN SUMA por si sola, sin el boton
+         «Integrar al informe» de abajo; desmarcada, NO se emite aunque tenga datos cargados.
+         El ESTADO es el checkbox oculto, no la clase: es lo que `guardarInforme` captura por
+         `input[type=checkbox][id]` como `<id>__chk`, lo que repone `_restaurarChkInclusion` y lo
+         que viaja en guardar, reabrir, exportar e importar. Es el mismo patron que los catorce
+         botones «Integrar al informe» de la app -el checkbox es el estado, el boton es la piel-.
+         Van con guion BAJO para que `_noEsDelEstudio`, que excluye por prefijo con guion MEDIO,
+         NO los deje afuera: son dos datos del paciente y tienen que viajar.
+         SIN `data-ui`: una lesion marcada SI es un dato del estudio, asi que `secAutoOpen` tiene
+         que abrir la seccion sola al reabrir un estudio que la trae. Nacen desmarcados, asi que
+         en un formulario vacio no abren nada. -->
+    <input type="checkbox" id="ete_cia_activa" style="display:none;" tabindex="-1" aria-hidden="true">
+    <input type="checkbox" id="ete_civ_activa" style="display:none;" tabindex="-1" aria-hidden="true">
+    <div class="subtabs-wrap cc-lesbar" style="justify-content:flex-start;margin-bottom:6px;">
       <div class="tabs-row">
-        <button type="button" class="tab-btn active" id="ete-shunt-tab-cia" onclick="eteShuntTab('cia')">CIA</button>
-        <button type="button" class="tab-btn" id="ete-shunt-tab-civ" onclick="eteShuntTab('civ')">CIV</button>
+        <button type="button" class="tab-btn cc-pane-on" id="ete-shunt-tab-cia" aria-pressed="false"
+                onclick="eteShuntLesionTog('cia')">CIA</button>
+        <button type="button" class="tab-btn" id="ete-shunt-tab-civ" aria-pressed="false"
+                onclick="eteShuntLesionTog('civ')">CIV</button>
       </div>
+    </div>
+    <div style="font-size:10.5px;color:var(--text2);margin-bottom:12px;">
+      Toque <b>CIA</b> o <b>CIV</b> para marcar la lesion y abrir su formulario; vuelva a tocarlo
+      para desmarcarla. La lesion marcada queda en el informe.
     </div>
 
     <!-- ── CIA ── -->
@@ -60699,8 +60749,24 @@ function generarInforme(opts) {
        localStorage: así viaja dentro del estudio (guardarInforme lo captura en `campos`) y
        la reimpresión reproduce exactamente lo que se firmó. */
     (function(){
+      /* ══ LA COMPUERTA ES EL BOTON DE CADA LESION, NO LA CASILLA DE ABAJO (PANT-3) ══
+         DECISION DEL MEDICO. Antes la seccion entera dependia de `ete_shunt_incluir_chk`: con la
+         CIA cargada y sin tocar ese boton, el informe no la mencionaba. Ahora cada lesion tiene
+         su propio dato -`ete_cia_activa` / `ete_civ_activa`-, que es lo que decide si entra al
+         informe, al EN SUMA y al papel que copia ese texto; y la casilla de abajo SUMA ademas la
+         hoja aparte de congenitas del PDF.
+         ⚠️ CON EL BOTON APAGADO LA LESION NO SE EMITE AUNQUE TENGA DATOS CARGADOS, y no hay
+         aviso en el papel: el papel describe lo que el medico afirma, y una lesion sin marcar no
+         esta afirmada. Los campos se siguen guardando -estan en el estudio-, lo que no se emite
+         es el parrafo.
+         ⚠️ EL CASO «casilla de abajo tildada y NINGUNA lesion marcada» NO ESTA DECIDIDO por la
+         orden de esta tanda, y lo que manda es la regla de arriba: no se emite nada. Queda
+         declarado en `docs/PENDIENTES.md` con su medicion. */
       const chk=document.getElementById('ete_shunt_incluir_chk');
-      if(!chk || !chk.checked) return;
+      const aparte = !!(chk && chk.checked);
+      const onCia = (typeof eteShuntLesionOn==='function') && eteShuntLesionOn('cia');
+      const onCiv = (typeof eteShuntLesionOn==='function') && eteShuntLesionOn('civ');
+      if(!onCia && !onCiv) return;
       if(typeof eteShuntSync==='function') { try{ eteShuntSync(); }catch(e){} }
       /* Por `ccQpQsDe` y no por `eteQpQs()` crudo. Ésta es la sección que publica el Qp/Qs al
          EN SUMA, o sea la que más fuerte habla, y era la única de las tres que seguía
@@ -60726,7 +60792,7 @@ function generarInforme(opts) {
       const bm=(typeof eteCiaBordeMin==='function')?eteCiaBordeMin():null;
       const cDir=sv('ete_cia_dir'), cVel=v('ete_cia_vel');
       let emitido = false;
-      if(cTipo||cMax!=null||cMin!=null||bm||cDir){
+      if(onCia && (cTipo||cMax!=null||cMin!=null||bm||cDir)){
         const p=[];
         p.push('CIA' + (cTipo ? ' tipo '+(CIA_TIPO_TXT[cTipo]||cTipo) : ''));
         if(f1(cMax) && f1(cMin)) p.push('Tamaño '+f1(cMax)+' × '+f1(cMin)+' mm');
@@ -60739,13 +60805,16 @@ function generarInforme(opts) {
         if(f1(di)) p.push('DDVI indexado '+f1(di)+' mm/m²');
         if(f1(paps)) p.push('PAPs por IT '+f1(paps)+' mmHg');
         etePars.push(p.join('. ')+'.'); emitido = true; ccMarcarParrafo();
-        ccHoja('cia', p, null, null);   // la app no publica conducta de CIA en el informe individual
+        /* La hoja APARTE la suma la casilla de abajo, no el boton de la lesion: el cuerpo del
+           informe ya la describe, y la segunda hoja de congenitas es un extra que el medico
+           pide. La app no publica conducta de CIA en el informe individual. */
+        if(aparte) ccHoja('cia', p, null, null);
       }
 
       // ── CIV ──
       const vTipo=sv('ete_civ_tipo'), vTam=v('ete_civ_tam'), vVista=(sv('ete_civ_vista')||'').trim();
       const vVel=v('ete_civ_vel'), vPas=v('ete_civ_pas');
-      if(vTipo||vTam!=null||vVel!=null||vVista){
+      if(onCiv && (vTipo||vTam!=null||vVel!=null||vVista)){
         const p=[];
         p.push('CIV'+(vTipo ? ' '+(CIV_TIPO_TXT[vTipo]||vTipo) : '')+(f1(vTam) ? ', '+f1(vTam)+' mm' : ''));
         if(vVista) p.push('Visualizada en '+vVista);
@@ -60757,7 +60826,7 @@ function generarInforme(opts) {
         if(pc!=null && isFinite(pc) && pc>=5 && pc<=150) p.push('PAPs estimada por CIV '+f1(pc)+' mmHg');
         else if(f1(paps)) p.push('PAPs por IT '+f1(paps)+' mmHg');
         etePars.push(p.join('. ')+'.'); emitido = true; ccMarcarParrafo();
-        ccHoja('civ', p, null, null);   // idem CIA: sin linea de guia porque no hay conducta publicada
+        if(aparte) ccHoja('civ', p, null, null);   // idem CIA: sin linea de guia porque no hay conducta publicada
       }
 
       /* El EN SUMA sólo habla del shunt si el CUERPO describió alguno: con el checkbox
@@ -60766,7 +60835,13 @@ function generarInforme(opts) {
          El Qp/Qs ya NO sube como línea suelta: se absorbió dentro de la línea de CIA y la de
          CIV, que es donde el número tiene a qué defecto atribuirse. Suelto aparecía dos veces
          con distinta redacción en cuanto hubiera CIA y CIV a la vez. */
-      if (emitido) { sumaCC(ccSumaLinea('cia')); sumaCC(ccSumaLinea('civ')); }
+      /* Cada linea por SU boton y no las dos por `emitido`: con la CIA marcada y datos de CIV
+         cargados sin marcar, `ccSumaLinea('civ')` devuelve linea y el EN SUMA nombraba una
+         lesion que el cuerpo no describe. */
+      if (emitido) {
+        if (onCia) sumaCC(ccSumaLinea('cia'));
+        if (onCiv) sumaCC(ccSumaLinea('civ'));
+      }
     })();
 
     /* 6. TAVI — ídem, gateado por su propio checkbox. */
@@ -76229,17 +76304,85 @@ const CIA_DIR_TXT = { id:'izquierda a derecha', di:'derecha a izquierda', bi:'bi
 const CIV_TIPO_TXT = { perimembranosa:'perimembranosa', muscular:'muscular',
   infundibular:'infundibular', inlet:'de tracto de entrada (inlet)' };
 
+/* ══════════════════════════════════════════════════════════════════════════════════════════
+   LOS DOS BOTONES DE «CIA / CIV» — PRESENCIA DE LA LESION Y PANEL A LA VISTA (PANT-3)
+   ══════════════════════════════════════════════════════════════════════════════════════════
+   DOS estados distintos sobre los mismos dos botones, y cada uno tiene su dueno:
+     · PRESENCIA  -> el checkbox oculto `ete_cia_activa` / `ete_civ_activa`. Es un dato del
+       estudio: lo guarda `guardarInforme` como `<id>__chk`, lo repone `_restaurarChkInclusion`
+       y de el dependen las compuertas del informe, del EN SUMA y del PPT. Se pinta con
+       `cc-les-on`, relleno.
+     · PANEL A LA VISTA -> `_eteShuntPane`, que NO se persiste porque es navegacion y no un
+       hecho del paciente. Se pinta con `cc-pane-on`, borde.
+   ⚠️ NINGUNO DE LOS DOS USA `.active`, y es obligatorio: `showTab` barre `.active` de TODO
+   `.tab-btn` del documento, que es exactamente por lo que el boton se desmarcaba al cambiar de
+   pantalla. Es la misma razon por la que la barra de las dos sub-pestanas de congenitas usa
+   `cc-on`. */
+var _eteShuntPane = 'cia';
+
+/* ¿Esta marcada esta lesion? Dueno UNICO de la pregunta: lo consultan el emisor del informe, el
+   EN SUMA, la compuerta del PPT, la pastilla del encabezado y el pintor. Con la pregunta escrita
+   en cada sitio, mover el dueno del estado dejaria a alguno leyendo el viejo. */
+function eteShuntLesionOn(cual){
+  const c = document.getElementById(cual === 'civ' ? 'ete_civ_activa' : 'ete_cia_activa');
+  return !!(c && c.checked);
+}
+window.eteShuntLesionOn = eteShuntLesionOn;
+
+/* Pinta los dos botones desde el estado. Idempotente y SIN decidir nada: todo lo que muestra sale
+   de los dos checkbox y de `_eteShuntPane`. Lo llama `eteShuntSync`, que esta en
+   `RECALC_MODULOS`, asi que las cinco rutas de restauracion lo repintan sin un enganche propio
+   -las rutas pueblan asignando `.checked`, que no dispara ningun evento-. */
+function eteShuntLesionSync(){
+  [['cia','ete-shunt-tab-cia'],['civ','ete-shunt-tab-civ']].forEach(function(par){
+    const b = document.getElementById(par[1]); if(!b) return;
+    const on = eteShuntLesionOn(par[0]);
+    b.classList.toggle('cc-les-on', on);
+    b.classList.toggle('cc-pane-on', _eteShuntPane === par[0]);
+    b.setAttribute('aria-pressed', on ? 'true' : 'false');
+    /* El rotulo no cambia -son «CIA» y «CIV»-, asi que el titulo es lo que dice en palabras lo
+       que el color dice en color: sin el, el relleno verde es un codigo que hay que aprender. */
+    b.title = on ? (par[0] === 'cia' ? 'La CIA esta marcada y entra al informe. Toque para desmarcarla.'
+                                     : 'La CIV esta marcada y entra al informe. Toque para desmarcarla.')
+                 : (par[0] === 'cia' ? 'Toque para marcar la CIA y abrir su formulario.'
+                                     : 'Toque para marcar la CIV y abrir su formulario.');
+  });
+}
+window.eteShuntLesionSync = eteShuntLesionSync;
+
+/* Navegacion sola: trae un panel a la vista sin tocar la marca. La usa `eteShuntTaviReset` para
+   volver a la CIA, y es la que dejan llamada las sondas de otras tandas. */
 function eteShuntTab(cual){
   const cia = cual === 'cia';
+  _eteShuntPane = cia ? 'cia' : 'civ';
   const p1=document.getElementById('ete-shunt-pane-cia'), p2=document.getElementById('ete-shunt-pane-civ');
   if(p1) p1.style.display = cia ? '' : 'none';
   if(p2) p2.style.display = cia ? 'none' : '';
-  const b1=document.getElementById('ete-shunt-tab-cia'), b2=document.getElementById('ete-shunt-tab-civ');
-  if(b1) b1.classList.toggle('active', cia);
-  if(b2) b2.classList.toggle('active', !cia);
   eteShuntSync();
 }
 window.eteShuntTab = eteShuntTab;
+
+/* El gesto del medico: UN toque marca o desmarca la lesion Y trae su formulario a la vista.
+   Las dos cosas juntas y no dos controles, porque es lo que el medico pidio y porque asi el
+   formulario de la lesion que se acaba de marcar es el que queda delante.
+   ⚠️ DESMARCAR NO ESCONDE EL PANEL: un campo oculto se sigue guardando, asi que esconder el
+   formulario de una lesion con datos cargados los dejaria fuera de la vista y dentro del
+   estudio. El panel se queda y el medico puede corregirlo o vaciarlo.
+   El evento se despacha a mano por el mismo motivo que en `eteInclToggle`: asignar `.checked`
+   no dispara `change`. */
+function eteShuntLesionTog(cual){
+  const k = cual === 'civ' ? 'civ' : 'cia';
+  const c = document.getElementById(k === 'civ' ? 'ete_civ_activa' : 'ete_cia_activa');
+  if(!c) return;
+  c.checked = !c.checked;
+  try{ c.dispatchEvent(new Event('change', { bubbles:true })); }catch(e){}
+  eteShuntTab(k);                       // trae su panel y repinta por dentro de eteShuntSync
+  if (typeof eteInclSync === 'function') { try{ eteInclSync(); }catch(e){} }
+  const nom = k === 'civ' ? 'La CIV' : 'La CIA';
+  if (typeof toast === 'function')
+    toast(c.checked ? ('\uD83D\uDCCE ' + nom + ' queda en el informe') : (nom + ' sale del informe'));
+}
+window.eteShuntLesionTog = eteShuntLesionTog;
 
 /* Borde mínimo: el menor de los que SE INGRESARON. Devuelve también cuál es, porque el
    informe lo nombra — «borde mínimo 4 mm» sin decir cuál no orienta el cierre percutáneo. */
@@ -97841,6 +97984,11 @@ function eteDDVIi(){
   return isFinite(r) ? r : null;
 }
 function eteShuntSync(){
+  /* UN solo enganche para el pintado de los dos botones, y va primero: esta funcion esta en
+     `RECALC_MODULOS` y la llaman el encabezado del acordeon y el `oninput` de cada campo, asi
+     que las cinco rutas de restauracion y todo gesto del medico lo repintan. Con un segundo
+     enganche en `eteInclSync` habria dos escritores del mismo nodo. */
+  if (typeof eteShuntLesionSync === 'function') { try{ eteShuntLesionSync(); }catch(e){} }
   const txt = (id,val)=>{ const e=document.getElementById(id); if(e) e.textContent = val; };
   const ro  = (id,val)=>{ const e=document.getElementById(id); if(e) e.value = val; };
   const f1 = n => (n==null||!isFinite(n)) ? '—' : String(Math.round(n*10)/10);
@@ -98748,7 +98896,18 @@ function eteInclSync(){
     b.setAttribute('aria-pressed', on ? 'true' : 'false');
     b.textContent = on ? '✓ Integrado al informe' : '📎 Integrar al informe';
     const bdg = document.getElementById(b.dataset.eteChk.replace('_incluir_chk','') + '_badge');
-    if (bdg) bdg.hidden = !on;
+    /* ⚠️ «CIA / CIV» ES LA UNICA SECCION CUYA PASTILLA NO SALE DE SU CASILLA (PANT-3), y es para
+       que no se contradiga: desde esta tanda una lesion marcada entra al informe SIN la casilla
+       de abajo, asi que una pastilla colgada de la casilla decia «no esta en el informe» sobre
+       una seccion que si se imprime. Lo que la enciende es lo que de verdad llega al papel: que
+       alguna de las dos lesiones este marcada. En el caso sin decidir -casilla tildada y ninguna
+       lesion marcada- no se emite nada y la pastilla queda apagada, que es lo honesto. */
+    if (bdg) {
+      const enInforme = (b.dataset.eteChk === 'ete_shunt_incluir_chk' && typeof eteShuntLesionOn === 'function')
+        ? (eteShuntLesionOn('cia') || eteShuntLesionOn('civ'))
+        : on;
+      bdg.hidden = !enInforme;
+    }
   });
 }
 function eteInclToggle(id){
@@ -113830,8 +113989,14 @@ function _pptDesdeFormulario(inf, tema, presentador){
        CIA y CIV comparten casilla y no tienen función de conclusión: la suya es la lectura del
        Qp/Qs, que es lo que las guías miran para decidir el cierre. */
     const CC_PPT = [
-      { chk:'ete_shunt_incluir_chk', sec:'cia', nom:'CIA — comunicación interauricular' },
-      { chk:'ete_shunt_incluir_chk', sec:'civ', nom:'CIV — comunicación interventricular' },
+      /* `les` — la diapositiva PROPIA de la lesion exige, ademas de la casilla de la seccion, que
+         la lesion este MARCADA (PANT-3). Es la regla «con el boton apagado la lesion no se emite»
+         aplicada al PPT: sin esto, un estudio con la casilla tildada y la CIA sin marcar sacaba
+         una diapositiva de una lesion que el informe no describe.
+         Las primeras diapositivas del mazo, que copian `informe_texto`, no necesitan compuerta:
+         ese texto ya sale gateado por el boton. */
+      { chk:'ete_shunt_incluir_chk', les:'cia', sec:'cia', nom:'CIA — comunicación interauricular' },
+      { chk:'ete_shunt_incluir_chk', les:'civ', sec:'civ', nom:'CIV — comunicación interventricular' },
       { chk:'ductus_incluir_chk',    sec:'dap', nom:'DAP — ductus arterioso permeable',    fn:'dapConclusion' },
       /* `papel:true` — la coartacion publica su CLAUSULA descriptiva y no `txt`. Ver abajo. */
       { chk:'coart_incluir_chk',     sec:'coa', nom:'Coartación de aorta',                  fn:'coaConclusion', papel:true },
@@ -113857,6 +114022,7 @@ function _pptDesdeFormulario(inf, tema, presentador){
     CC_PPT.forEach(function(d){
       const chk = document.getElementById(d.chk);
       if (!chk || !chk.checked) return;
+      if (d.les && typeof eteShuntLesionOn === 'function' && !eteShuntLesionOn(d.les)) return;
       /* La compuerta es la MISMA que la del EN SUMA: sin línea de hallazgos no hay sección que
          mostrar. Una diapositiva con el nombre de una cardiopatía y la fila de hallazgos vacía
          afirma la enfermedad y no dice nada de ella — es peor que no estar.
@@ -151281,8 +151447,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261102-2051';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793663491385;                 /* eco-build-ms */
+const ECO_BUILD    = '20261102-2342';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793673736554;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -151368,7 +151534,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261102-2051</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261102-2342</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
