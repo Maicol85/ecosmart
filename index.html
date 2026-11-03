@@ -4070,6 +4070,21 @@ html.light-mode .amilo-root{
       adentro pasan a DOS: medido, un `.grid-3` en 560 px de ancho deja campos de 180 px con
       rotulos como «Duracion del colapso AD (fraccion del ciclo)». El `.grid-2` se queda en dos.
       La regla se acota a `#ete-shunt-fila` para no alcanzar a ninguna otra pantalla. */
+/* ============================================================================================
+   CONSTRICCION VS RESTRICCION: LOS CUATRO CAMPOS DE A DOS  -  #cvr-campos-grid  (PANT-5)
+   ============================================================================================
+   Pedido del medico del 01/11/2026. Los cuatro campos de a DOS por fila para achicar espacio, y
+   con eso la columna izquierda se acorta y queda a la altura de la tabla comparativa.
+   ⚠️ EL `margin-top` DE LOS TRES ULTIMOS SE ANULA DENTRO DEL GRID: venian apilados y cada uno
+      llevaba su propio `margin-top:8px` en linea, que dentro de una grilla deja la segunda fila
+      corrida respecto de la primera. El hueco lo pone el `gap`.
+   ⚠️ EL CORTE VA SOBRE LA VENTANA. Por debajo de 700 px la columna izquierda mide menos que dos
+      campos legibles, asi que ahi vuelven a UNA. */
+#cvr-campos-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:8px 10px;align-items:start;}
+#cvr-campos-grid > .fg{min-width:0;margin-top:0!important;}
+@media (min-width:700px){
+  #cvr-campos-grid{grid-template-columns:repeat(2,minmax(0,1fr));}
+}
 #ete-shunt-fila{display:block;}
 #ete-shunt-fila > div{min-width:0;}
 @media (min-width:900px){
@@ -11171,6 +11186,19 @@ window.cerrarSesionReal = cerrarSesionReal;
             <div class="calc-row"><span class="calc-lbl">Respirofasicidad mitral (Derrame/Taponamiento)</span><span id="cvr-respm" style="font-weight:700;">—</span></div>
             <div class="calc-row"><span class="calc-lbl">Respirofasicidad tricúspide (Derrame/Taponamiento)</span><span id="cvr-respt" style="font-weight:700;">—</span></div>
           </div>
+          <!-- == LOS CUATRO CAMPOS DE A DOS POR FILA (PANT-5, commit 8, 2026-11-03) ==========
+               Pedido del medico del 01/11/2026: rebote septal, patron venoso hepatico, cociente
+               de inversion de la hepatica y engrosamiento pericardico van de a DOS por fila para
+               achicar espacio, y con eso la columna izquierda se acorta y queda a la altura de la
+               tabla comparativa, cerrando el hueco que quedaba entre los campos y la comparacion.
+               ⚠️ NINGUN dato, corte ni conclusion cambia: cada campo se mueve ENTERO, con su
+                  rotulo, su globo, su fila de «Lectura», su nota y sus manejadores. El cociente
+                  queda en la segunda fila junto al engrosamiento porque es el mas alto -lleva su
+                  lectura y su nota-, asi que emparejarlo con el mas bajo es lo que menos altura
+                  deja sin usar.
+               ⚠️ EL CORTE VA SOBRE LA VENTANA y se topa en 700 px: por debajo la columna ya mide
+                  menos que dos campos legibles -medido-, asi que ahi vuelven a UNA. -->
+          <div id="cvr-campos-grid">
           <div class="fg"><label>Rebote septal</label>
             <select id="cvr_rebote" onchange="cvrCambio()"><option value="">— no evaluado —</option><option value="si">Presente</option><option value="no">Ausente</option></select>
           </div>
@@ -11211,6 +11239,7 @@ window.cerrarSesionReal = cerrarSesionReal;
               <option value="calcificado">Calcificado</option>
             </select>
           </div>
+          </div><!-- /cvr-campos-grid -->
         </div>
 
         <div>

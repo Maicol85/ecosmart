@@ -117,6 +117,13 @@ const ESCENAS = {
      p5tdf carga los campos EDITABLES de las tres columnas, que es el denominador: sin ellos la
      seccion no publica una linea de papel. p5tdfVacio es el control negativo. */
   p5tdfVacio: { campos: {} },
+  /* -- PANT-5, COMMIT 8: CONSTRICCION VS RESTRICCION --
+     p5cvr carga los cuatro campos que el commit mueve mas el cociente a los dos lados del corte
+     de 0,78, que es donde la fila «Lectura» tiene que seguir diciendo lo mismo. */
+  p5cvr:  { campos: { cvr_hep_coc:'0.85', resp_var_mitral:'30' },
+            sel: { cvr_rebote:'si', cvr_hepatico:'espiratoria', cvr_pericardio_tc:'si' } },
+  p5cvrB: { campos: { cvr_hep_coc:'0.70', resp_var_mitral:'30' },
+            sel: { cvr_rebote:'no', cvr_hepatico:'inspiratoria', cvr_pericardio_tc:'no' } },
   p5tdf: { campos: { tdf_grad_tsvd:'35', tdf_vtdvdi:'168', tdf_vtsvdi:'84', tdf_civ_grad:'22' },
            sel: { tdf_func_vd:'moderada', tdf_vol_fuente:'rmc', tdf_civ_residual:'si',
                   tdf_ep_stent:'nativa', tdf_sintomas:'si', tdf_ejercicio:'si' },
