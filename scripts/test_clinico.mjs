@@ -110397,11 +110397,15 @@ caso('TC-639', 'Tanda PANT-5: el dibujo de sobrecarga del VD - solo lectura, mud
   ex.push(['(A0) DENOM: el dibujo existe', !!svg, true]);
   __t.limpiar();
   try { vdscSync(); vdscFase(0.40); } catch (e) { ex.push(['(A0b) la puerta de fase no revienta', String(e), 'sin error']); }
-  const dOut = svg ? (document.getElementById('vdsc-out').getAttribute('d') || '') : '';
+  const _out = document.getElementById('vdsc-out');
+  const dOut = _out ? (_out.getAttribute('d') || '') : '';
   ex.push(['(A1) DENOM: el contorno se dibuja con el formulario vacio', dOut.length > 200, true]);
   /* (B) SIN UN SOLO DATO, EL DIBUJO ES MUDO. Es la decision del medico: un dibujo con leyendas
      sobre un paciente sin datos se lee como una afirmacion. */
-  const textosVis = () => Array.prototype.slice.call(svg.querySelectorAll('text')).filter(t => {
+  /* ⚠️ TOLERANTE AL ARBOL VIEJO: contra HEAD el dibujo NO existe, y con svg.querySelectorAll
+     a pelo el caso moria con un TypeError. Un caso que cae por EXCEPCION no dice que invariante
+     se rompio, que es la leccion de TC-546: tiene que caer por sus CONDICIONES. */
+  const textosVis = () => !svg ? [] : Array.prototype.slice.call(svg.querySelectorAll('text')).filter(t => {
     let n = t; while (n && n !== svg) { if (n.getAttribute && parseFloat(n.getAttribute('opacity') || '1') === 0) return false; n = n.parentNode }
     return (t.textContent || '').trim().length > 0 }).map(t => (t.textContent || '').trim());
   ex.push(['(B1) sin datos: CERO textos visibles', textosVis().length, 0]);
@@ -110445,13 +110449,14 @@ caso('TC-639', 'Tanda PANT-5: el dibujo de sobrecarga del VD - solo lectura, mud
   ex.push(['(F1) CERO nodos fuera de la escala de grises mas el celeste', fuera.slice(0,4).join(',') || 'ninguno', 'ninguno']);
   /* (G) EL PAPEL NO LO VE: ni el informe ni el EN SUMA nombran el dibujo. */
   const I = __t.informe();
-  ex.push(['(G0) DENOM: el informe se emitio', (I.texto || '').length > 100, true]);
+  ex.push(['(G0) DENOM: el informe se emitio', (I.inf || '').length > 100, true]);
   ex.push(['(G1) el informe no nombra McConnell por el dibujo',
-    ((I.texto || '') + ' ' + (I.suma || '')).indexOf('Septum desplazado') > -1, false]);
+    ((I.inf || '') + ' ' + (I.suma || '')).indexOf('Septum desplazado') > -1, false]);
   /* (H) EL ESQUEMA VALVULAR 2D NO SE TOCA: su SVG sigue teniendo sus valvas y su aortica. */
   ex.push(['(H1) CONTROL: el esquema valvular 2D sigue existiendo', !!document.getElementById('v2d-svg'), true]);
-  ex.push(['(H2) y el dibujo del VD tiene su propio id, distinto', svg && svg.id, 'vdsc-svg']);
-  return EXP;
+  ex.push(['(H2) y el dibujo del VD tiene su propio id, distinto', svg ? svg.id : 'NO EXISTE', 'vdsc-svg']);
+  /* El runner exige el objeto, no el array pelado: es la leccion que MARFAN-2 documenta. */
+  return { extra: EXP };
 `);
 
 caso('TC-640', 'Tanda PANT-5: el Forrester con un solo mensaje y la conclusion de las dos estenosis aorticas sin guia', `
@@ -110522,7 +110527,8 @@ caso('TC-640', 'Tanda PANT-5: el Forrester con un solo mensaje y la conclusion d
   ex.push(['(F0) DENOM: hay texto que censar', String(h).length > 500, true]);
   ex.push(['(F1) la atribucion a la edicion 2020 ya no esta',
     /retir\\u00f3 expl\\u00edcitamente de la evaluaci\\u00f3n de rutina en 2020/.test(String(h)), false]);
-  return EXP;
+  /* El runner exige el objeto, no el array pelado: es la leccion que MARFAN-2 documenta. */
+  return { extra: EXP };
 `);
 
 caso('TC-641', 'Tanda PANT-5: las tres pantallas reordenadas - derrame en cuatro columnas, Fallot en tres y constriccion de a dos', `
@@ -110596,9 +110602,10 @@ caso('TC-641', 'Tanda PANT-5: las tres pantallas reordenadas - derrame en cuatro
   __t.set('pericardio', 'Derrame moderado (10-20mm)');
   __t.set('dpt_mm_post', '18'); __t.set('dpt_col_ad', 'si');
   const I = __t.informe();
-  ex.push(['(D0) DENOM: el informe se emitio con el derrame', (I.texto || '').indexOf('Derrame peric') > -1, true]);
-  ex.push(['(D1) y lo publica con su tamanio', (I.texto || '').indexOf('moderado') > -1, true]);
-  return EXP;
+  ex.push(['(D0) DENOM: el informe se emitio con el derrame', (I.inf || '').indexOf('Derrame peric') > -1, true]);
+  ex.push(['(D1) y lo publica con su tamanio', (I.inf || '').indexOf('moderado') > -1, true]);
+  /* El runner exige el objeto, no el array pelado: es la leccion que MARFAN-2 documenta. */
+  return { extra: EXP };
 `);
 
 caso('TC-642', 'Tanda PANT-5: la CIA y la CIV lado a lado, y la longitud de los velos mitrales con dos puertas', `
@@ -110660,7 +110667,8 @@ caso('TC-642', 'Tanda PANT-5: la CIA y la CIV lado a lado, y la longitud de los 
   __t.set('teer_prof_flail', '14');
   try { etemVeloGesto('teer_prof_flail'); } catch (e) {}
   ex.push(['(D6) CONTROL: la profundidad de coaptacion NO se espeja', __t.val('ete_prof_coapt'), '']);
-  return EXP;
+  /* El runner exige el objeto, no el array pelado: es la leccion que MARFAN-2 documenta. */
+  return { extra: EXP };
 `);
 
 caso('TC-643', 'Tanda PANT-5: los estadios de la AHA/ACC 2020 de la estenosis mitral, las dos insuficiencias mitrales y la tricuspidea', `
@@ -110672,6 +110680,11 @@ caso('TC-643', 'Tanda PANT-5: los estadios de la AHA/ACC 2020 de la estenosis mi
     if (e.options && v !== '' && !Array.prototype.some.call(e.options, x => x.value === String(v))) {
       const o = document.createElement('option'); o.value = String(v); o.textContent = String(v); e.appendChild(o) }
     e.value = v };
+  /* ADVERTENCIA: contra el arbol viejo estas cuatro funciones NO existen, y llamarlas a pelo
+     mata el caso con un ReferenceError, que no dice que invariante se rompio. Es la leccion de
+     TC-546. Se llaman por este invocador, que devuelve una fila vacia cuando no estan. */
+  const V = (f, ...a) => { try { return (typeof window[f] === 'function') ? window[f](...a)
+    : { txt:'NO EXISTE ' + f, marca:'', nota:'' } } catch (e) { return { txt:'ERR ' + e, marca:'', nota:'' } } };
   /* (A) DENOMINADOR: las cuatro funciones existen y devuelven una fila. */
   ['_indEstEM','_indEstIMP','_indEstIMS','_indEstIT'].forEach(f => {
     ex.push(['(A) DENOM: ' + f + ' existe', typeof window[f], 'function']);
@@ -110679,85 +110692,86 @@ caso('TC-643', 'Tanda PANT-5: los estadios de la AHA/ACC 2020 de la estenosis mi
   /* (B) ESTENOSIS MITRAL - Tabla 16, hoja 42, folio e113. */
   __t.limpiar();
   P('em_grado', 'severa'); S('em.sintomas', 'no');
-  let r = _indEstEM();
+  let r = V('_indEstEM');
   ex.push(['(B1) severa sin sintomas es C', r.txt, 'C']);
-  ex.push(['(B2) y cita su tabla y su folio', /Tabla 16.*folio e113/.test(r.nota), true]);
-  S('em.sintomas', 'si'); r = _indEstEM();
+  ex.push(['(B2) y cita su tabla y su folio', /Tabla 16.*folio e113/.test(String(r.nota)), true]);
+  S('em.sintomas', 'si'); r = V('_indEstEM');
   ex.push(['(B3) severa con sintomas es D', r.txt, 'D']);
-  S('em.sintomas', null); r = _indEstEM();
+  S('em.sintomas', null); r = V('_indEstEM');
   ex.push(['(B4) sin contestar, no se infiere', r.txt, 'C o D, segun sintomas'.replace('segun','seg\\u00fan').replace('sintomas','s\\u00edntomas')]);
   ex.push(['(B5) y queda marcada como pregunta', r.marca, 'ask']);
-  P('em_grado', 'leve'); r = _indEstEM();
+  P('em_grado', 'leve'); r = V('_indEstEM');
   ex.push(['(B6) no significativa es B', r.txt, 'B']);
-  P('em_grado', 'sin'); r = _indEstEM();
+  P('em_grado', 'sin'); r = V('_indEstEM');
   ex.push(['(B7) CONTROL: sin grado no hay estadio', r.txt, 'Sin dato']);
   /* EL GRADIENTE MEDIO NO ENTRA, y la tabla lo dice: la nota del estadio B no lo nombra como
      criterio de severidad. */
-  P('em_grado', 'leve'); r = _indEstEM();
+  P('em_grado', 'leve'); r = V('_indEstEM');
   ex.push(['(B8) el estadio B se define por el AREA y no por el gradiente',
-    r.nota.indexOf('\\u00e1rea valvular') > -1, true]);
+    String(r.nota).indexOf('\\u00e1rea valvular') > -1, true]);
   /* (C) INSUFICIENCIA MITRAL PRIMARIA - Tabla 17, hoja 50, folio e121. C1 y C2 y su borde. */
   __t.limpiar();
   P('im_grado', '4'); S('im.sintomas', 'no');
-  P('fevi', '65'); P('dsfvi', '34'); r = _indEstIMP();
+  P('fevi', '65'); P('dsfvi', '34'); r = V('_indEstIMP');
   ex.push(['(C1) severa sin sintomas, FEVI 65 y DSVI 34 es C1', r.txt, 'C1']);
-  ex.push(['(C2) y cita su tabla y su folio', /Tabla 17.*folio e121/.test(r.nota), true]);
-  P('fevi', '60'); r = _indEstIMP();
+  ex.push(['(C2) y cita su tabla y su folio', /Tabla 17.*folio e121/.test(String(r.nota)), true]);
+  P('fevi', '60'); r = V('_indEstIMP');
   ex.push(['(C3) EL BORDE: FEVI 60 exactos es C2, porque la tabla escribe C1 como mayor que 60', r.txt, 'C2']);
-  P('fevi', '65'); P('dsfvi', '40'); r = _indEstIMP();
+  P('fevi', '65'); P('dsfvi', '40'); r = V('_indEstIMP');
   ex.push(['(C4) EL OTRO BORDE: DSVI 40 exactos es C2', r.txt, 'C2']);
-  P('dsfvi', '34'); S('im.sintomas', 'si'); r = _indEstIMP();
+  P('dsfvi', '34'); S('im.sintomas', 'si'); r = V('_indEstIMP');
   ex.push(['(C5) severa con sintomas es D', r.txt, 'D']);
-  S('im.sintomas', null); r = _indEstIMP();
+  S('im.sintomas', null); r = V('_indEstIMP');
   ex.push(['(C6) sin contestar, no se infiere', r.marca, 'ask']);
-  P('im_grado', '2'); r = _indEstIMP();
+  P('im_grado', '2'); r = V('_indEstIMP');
   ex.push(['(C7) moderada es B', r.txt, 'B']);
-  P('im_grado', '3'); r = _indEstIMP();
+  P('im_grado', '3'); r = V('_indEstIMP');
   ex.push(['(C8) moderada-severa no es una fila de la tabla', r.txt.indexOf('B o C') > -1, true]);
-  P('im_grado', '0'); r = _indEstIMP();
+  P('im_grado', '0'); r = V('_indEstIMP');
   ex.push(['(C9) CONTROL: sin grado no hay estadio', r.txt, 'Sin dato']);
   /* (D) INSUFICIENCIA MITRAL SECUNDARIA - Tabla 18, hoja 57, folio e128. ACA LOS SINTOMAS NO
      SEPARAN C DE D: lo que define el D es que PERSISTAN tras el tratamiento. */
   __t.limpiar();
-  P('im_grado', '4'); S('ims.sintomas', 'no'); r = _indEstIMS();
+  P('im_grado', '4'); S('ims.sintomas', 'no'); r = V('_indEstIMS');
   ex.push(['(D1) severa sin sintomas es C', r.txt, 'C']);
-  ex.push(['(D2) y cita su tabla y su folio', /Tabla 18.*folio e128/.test(r.nota), true]);
-  S('ims.sintomas', 'si'); r = _indEstIMS();
+  ex.push(['(D2) y cita su tabla y su folio', /Tabla 18.*folio e128/.test(String(r.nota)), true]);
+  S('ims.sintomas', 'si'); r = V('_indEstIMS');
   ex.push(['(D3) CON sintomas NO es D a secas: la tabla los admite en los cuatro estadios',
     r.txt.indexOf('respuesta al tratamiento') > -1, true]);
   ex.push(['(D4) y la nota explica que el D es por la PERSISTENCIA',
-    r.nota.indexOf('PERSISTEN') > -1, true]);
+    String(r.nota).indexOf('PERSISTEN') > -1, true]);
   ex.push(['(D5) CONTROL: la nota del C declara que el PISA subestima el orificio',
-    (() => { S('ims.sintomas','no'); return _indEstIMS().nota.indexOf('SUBESTIMA') > -1 })(), true]);
+    (() => { S('ims.sintomas','no'); return V('_indEstIMS').nota.indexOf('SUBESTIMA') > -1 })(), true]);
   /* (E) INSUFICIENCIA TRICUSPIDEA - Tabla 20, hoja 61, folio e132. SIN FILA A. */
   __t.limpiar();
-  P('it_grado', '4'); S('vt.sintomas', 'no'); r = _indEstIT();
+  P('it_grado', '4'); S('vt.sintomas', 'no'); r = V('_indEstIT');
   ex.push(['(E1) severa sin sintomas es C', r.txt, 'C']);
-  ex.push(['(E2) y cita su tabla y su folio', /Tabla 20.*folio e132/.test(r.nota), true]);
-  S('vt.sintomas', 'si'); r = _indEstIT();
+  ex.push(['(E2) y cita su tabla y su folio', /Tabla 20.*folio e132/.test(String(r.nota)), true]);
+  S('vt.sintomas', 'si'); r = V('_indEstIT');
   ex.push(['(E3) severa con sintomas es D', r.txt, 'D']);
-  P('it_grado', '2'); r = _indEstIT();
+  P('it_grado', '2'); r = V('_indEstIT');
   ex.push(['(E4) moderada es B', r.txt, 'B']);
   ex.push(['(E5) y la nota declara que esta tabla NO tiene estadio A',
-    r.nota.indexOf('NO tiene estadio A') > -1, true]);
+    String(r.nota).indexOf('NO tiene estadio A') > -1, true]);
   ex.push(['(E6) y que la estenosis tricuspidea tampoco tiene estadios',
-    r.nota.indexOf('La estenosis tricusp') > -1, true]);
-  P('it_grado', '0'); r = _indEstIT();
+    String(r.nota).indexOf('La estenosis tricusp') > -1, true]);
+  P('it_grado', '0'); r = V('_indEstIT');
   ex.push(['(E7) CONTROL: sin grado no hay estadio', r.txt, 'Sin dato']);
   /* (F) LAS DOS LESIONES SIN ESTADIO LO DICEN. */
   const nh = _indEstNoHay('la v\\u00e1lvula pulmonar');
-  ex.push(['(F1) el aviso existe y lo dice', nh.txt.indexOf('no publica estadios') > -1, true]);
-  ex.push(['(F2) y su nota nombra la lesion', nh.nota.indexOf('v\\u00e1lvula pulmonar') > -1, true]);
+  ex.push(['(F1) el aviso existe y lo dice', String(nh.txt).indexOf('no publica estadios') > -1, true]);
+  ex.push(['(F2) y su nota nombra la lesion', String(nh.nota).indexOf('v\\u00e1lvula pulmonar') > -1, true]);
   /* (G) NADA DE ESTO LLEGA AL PAPEL. */
   __t.limpiar();
   P('em_grado', 'severa'); P('im_grado', '4'); P('it_grado', '4');
   __t.set('avm_plan', '1.2');
   const I = __t.informe();
-  ex.push(['(G0) DENOM: el informe se emitio', (I.texto || '').length > 100, true]);
-  ex.push(['(G1) el informe no publica el estadio', (I.texto || '').indexOf('Estadio') > -1, false]);
-  ex.push(['(G2) ni nombra la guia por esto', (I.texto || '').indexOf('AHA/ACC 2020') > -1, false]);
+  ex.push(['(G0) DENOM: el informe se emitio', (I.inf || '').length > 100, true]);
+  ex.push(['(G1) el informe no publica el estadio', (I.inf || '').indexOf('Estadio') > -1, false]);
+  ex.push(['(G2) ni nombra la guia por esto', (I.inf || '').indexOf('AHA/ACC 2020') > -1, false]);
   ex.push(['(G3) el EN SUMA tampoco', (I.suma || '').indexOf('Estadio') > -1, false]);
-  return EXP;
+  /* El runner exige el objeto, no el array pelado: es la leccion que MARFAN-2 documenta. */
+  return { extra: EXP };
 `);
 
 
