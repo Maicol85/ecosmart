@@ -3459,6 +3459,25 @@ html.light-mode .amilo-root{
   display:grid;grid-template-columns:minmax(360px,1fr) minmax(360px,1fr);
   column-gap:18px;align-items:start;}
 #indic-card [data-ind-molde] .ind-pregcols > div{min-width:0;}
+/* ============================================================================================
+   MORFOLOGIA Y MEDICIONES DE LA MITRAL EN TRES COLUMNAS  -  #etem-cols  (PANT-6, commit 4)
+   ============================================================================================
+   PEDIDO DEL MEDICO (01/11 y 03/11/2026), con esquema aprobado: TRES columnas de igual ancho
+   desde 900 px; por debajo, apiladas; y bajan a UNA cuando quedarian por debajo de 200 px.
+   El corte de 900 px es la regla fija de la casa y va sobre la VENTANA.
+   El segundo corte sale de una cuenta: el ancho util de la seccion es la ventana menos 246 px, y
+   tres columnas con dos huecos de 12 necesitan 3 x 200 + 24 = 624 px de util, o sea una ventana
+   de 870. Por debajo de 900 ya estan apiladas, asi que el tramo de DOS columnas no existe: entre
+   900 y el infinito van tres, y por debajo de 900 van una. Se declara asi en vez de inventar un
+   tramo intermedio que la orden no pide. */
+#etem-cols{display:grid;grid-template-columns:minmax(0,1fr);gap:10px 12px;align-items:start;}
+#etem-cols > div{min-width:0;}
+@media (min-width:900px){
+  #etem-cols{grid-template-columns:repeat(3,minmax(0,1fr));}
+}
+.etem-h{font-size:12px;font-weight:700;color:var(--accent2);margin-bottom:8px;}
+.etem-g1{display:grid;grid-template-columns:minmax(0,1fr);gap:8px 10px;align-items:start;}
+.etem-g1 > .fg{min-width:0;}
 /* ══ LA BOTONERA DE RESPUESTA: 32 px VISIBLES, 44 px DE AREA TACTIL (PANT-2, C2) ═════════════
    El piso global de `button` es 44 px y era lo que mandaba el alto de la fila. La regla del
    medico pide una pregunta de una o dos lineas en 56 px o menos, asi que el alto VISIBLE baja a
@@ -12730,11 +12749,31 @@ window.cerrarSesionReal = cerrarSesionReal;
   window.eteTecnicaTexto = eteTecnicaTexto; window.eteTecnicaHuecos = eteTecnicaHuecos;
   </script>
 
-  <!-- MORFOLOGÍA Y ETIOLOGÍA — acordeón colapsado + toggle de inclusión en informe -->
+  <!-- == MORFOLOGIA Y MEDICIONES DE LA MITRAL EN UNA SOLA SECCION (PANT-6, commit 4) ==========
+       PEDIDO DEL MEDICO (01/11 y 03/11/2026), con esquema aprobado. Se unen SOLO dos secciones
+       de la pestania ETE en UNA, antes de los dibujos; el dibujo queda en su seccion propia, a
+       todo el ancho, como esta -NO se funde-. Esto cierra la mitad de P5-e que la decision nueva
+       simplifica.
+       ⚠️ EL CONTENEDOR CONSERVA EL id `ete-seccion-morfo`, y es deliberado: `eteVmAvisoSync` abre
+          esa seccion POR SU id cuando hay un aviso de protesis, y renombrarla habria dejado ese
+          aviso pintandose dentro de una seccion cerrada -el defecto que /sharp-edges ya cazo una
+          vez en este mismo lugar-.
+       ⚠️ `toggleEteSeccion('mediciones-mitral')` SIGUE FUNCIONANDO por un alias declarado en esa
+          funcion: tres casos de la suite lo llaman, y sin el alias la llamada seria un no-op
+          silencioso que dejaria la seccion cerrada y sus campos sin geometria.
+       ⚠️ NO HAY APERTURA AUTOMATICA QUE CONSERVAR, y esta MEDIDO: las dos secciones nacian en
+          `display:none` en las CUATRO escenas -sin datos, con solo morfologia, con solo
+          mediciones y con las dos-, que es lo que el comentario de `eteVmAvisoSync` ya declara:
+          no las recorre `secAutoOpen` ni `cardAutoOpen`. La unica apertura automatica es la del
+          aviso de protesis, que sigue igual porque el id no cambio.
+       ⚠️ LAS DOS CASILLAS SE CONSERVAN, cada una al pie de su zona, y siguen siendo dos datos
+          independientes: `ete_morfo_incluir_chk` con su badge derivado del id, y el boton
+          `data-am-k="etem"` con el registro de modulos integrados. No cambia como se guardan ni
+          que emiten. -->
   <div class="card" style="margin-bottom:8px;">
     <h2 class="card-head" style="cursor:pointer;user-select:none;display:flex;align-items:center;gap:8px;"
         onclick="toggleEteSeccion('morfo',this)">
-      <span style="flex:1;">🔬 ETE — Morfología y Clasificación VM</span>
+      <span style="flex:1;">🔬 ETE — Morfología y mediciones — Válvula Mitral</span>
       <span id="ete_morfo_badge" class="incl-badge" hidden>📎 en el informe</span>
       <span id="ete-morfo-arrow" style="transition:transform 0.2s;flex:0 0 auto;">▶</span>
     </h2>
@@ -12742,7 +12781,11 @@ window.cerrarSesionReal = cerrarSesionReal;
   <div id="ete-seccion-morfo" style="display:none;">
   <div class="card">
     <div class="card-body">
-      <div class="grid-3">
+      <div id="etem-cols">
+      <!-- ── columna 1: morfologia y clasificacion, con su casilla al pie ── -->
+      <div>
+      <div class="etem-h">Morfología y clasificación</div>
+      <div class="etem-g1">
         <div class="fg"><label>Etiología</label>
           <select id="ete_etiologia" onchange="calcETE();eteVmPropagar('ete');vmProtBloqSync()">
             <option value="">—</option>
@@ -12778,13 +12821,83 @@ window.cerrarSesionReal = cerrarSesionReal;
             <option value="tethering">Tethering</option>
           </select>
         </div>
-      </div>
+      </div><!-- /etem-g1 de morfologia -->
       <div style="text-align:center;margin-top:10px;">
         <!-- El checkbox sigue siendo el estado; el botón es la piel. Oculto y no la
              pantalla entera: guardarInforme lo captura por `input[type=checkbox][id]`. -->
         <input type="checkbox" id="ete_morfo_incluir_chk" onchange="localStorage.setItem('ete_morfo_incluir', this.checked ? '1' : '0')" style="display:none;" tabindex="-1" aria-hidden="true">
         <button type="button" class="btn btn-integrar" data-ete-chk="ete_morfo_incluir_chk" aria-pressed="false"
                 onclick="eteInclToggle('ete_morfo_incluir_chk')">📎 Integrar al informe</button>
+      </div>
+      </div><!-- /columna 1 -->
+
+      <!-- ── columna 2: mediciones, velos y areas ── -->
+      <div>
+      <div class="etem-h">Mediciones · velos y áreas</div>
+      <div class="etem-g1">
+        <div class="fg"><label>Longitud velo anterior (mm)</label>
+          <input type="number" id="ete_lva" placeholder="mm" oninput="calcETE();etemVeloGesto('ete_lva')">
+        </div>
+        <div class="fg"><label>Longitud velo posterior (mm)</label>
+          <input type="number" id="ete_lvp" placeholder="mm" oninput="calcETE();etemVeloGesto('ete_lvp')">
+        </div>
+        <div class="fg"><label>Área planimetría (cm²)</label>
+          <input type="number" id="ete_area_mitral" placeholder="cm²" oninput="calcETE()">
+        </div>
+        <div class="fg"><label>Área tenting (cm²)</label>
+          <input type="number" id="ete_area_tenting" placeholder="cm²" oninput="calcETE()">
+          <span style="font-size:10px; color:var(--text2);">Desfavorable (IM secundaria): &gt;2,5-3 cm² (la app aplica &gt;2,5)</span>
+        </div>
+      </div>
+      </div><!-- /columna 2 -->
+
+      <!-- ── columna 3: el resto de las mediciones, con la casilla de las mediciones al pie ── -->
+      <div>
+      <div class="etem-h">Mediciones · resto</div>
+      <div class="etem-g1">
+        <div class="fg"><label>Altura tenting (mm)</label>
+          <input type="number" id="ete_altura_tenting" placeholder="mm" oninput="calcETE()">
+          <span style="font-size:10px; color:var(--text2);">TEER no complejo: &lt;10 mm</span>
+        </div>
+        <div class="fg"><label>Ángulo velo posterior (°)</label>
+          <input type="number" id="ete_angulo_vp" placeholder="°" oninput="calcETE()">
+          <span style="font-size:10px; color:var(--text2);">Desfavorable (IM secundaria): &gt;45°</span>
+        </div>
+        <!-- ⚠️ EL ROTULO DICE «en diastole» PORQUE HAY OTRO CAMPO CON LA MISMA ETIQUETA, y son
+             dos campos distintos: ver el commit 6b. Ningun id cambia. -->
+        <div class="fg"><label>Profundidad coaptación (mm)</label>
+          <input type="number" id="ete_prof_coapt" placeholder="mm" oninput="calcETE()">
+          <span style="font-size:10px; color:var(--text2);">Desfavorable (IM secundaria): &ge;10 mm</span>
+        </div>
+        <div class="fg"><label>Diámetro anular (mm)</label>
+          <input type="number" id="ete_diam_anular" placeholder="mm" oninput="calcETE()">
+        </div>
+      </div>
+      <div style="text-align:center;margin-top:10px;">
+        <button type="button" class="btn btn-integrar" data-am-k="etem" onclick="amiloIntegrar('etem')">📎 Integrar al informe</button>
+      </div>
+      </div><!-- /columna 3 -->
+      </div><!-- /etem-cols -->
+
+      <!-- ⚠️ EL CUADRO DE CARACTERISTICAS DESFAVORABLES VA A TODO EL ANCHO, DEBAJO DE LAS TRES
+           COLUMNAS, y es la unica cosa que la orden no ubica: no es un campo, es el RESULTADO de
+           las mediciones de las columnas 2 y 3, y hoy esta justo debajo de ellas. Dejarlo a
+           ancho completo lo conserva en su lugar relativo sin inventarle una columna. Su
+           contenido, sus filas y su fuente no cambian. -->
+      <div class="calc-box" id="etem-desfav" style="margin-top:10px;">
+        <div style="font-size:11px; font-weight:700; color:var(--accent2); margin-bottom:6px;">CARACTERÍSTICAS DESFAVORABLES PARA LA REPARACIÓN (IM SECUNDARIA)</div>
+        <div class="calc-row"><span class="calc-lbl">Ángulo velo posterior</span><span id="ete-angulo-interp">—</span></div>
+        <div class="calc-row"><span class="calc-lbl">Altura tenting</span><span id="ete-tenting-interp">—</span></div>
+        <!-- ⚠️ FILA NUEVA (I-E1, 22/10/2026): el área de tenting es uno de los TRES factores de la
+             Tabla 7 y hasta hoy se mostraba en el formulario sin interpretación ninguna. -->
+        <div class="calc-row"><span class="calc-lbl">Área tenting</span><span id="ete-areatent-interp">—</span></div>
+        <div class="calc-row"><span class="calc-lbl">Profundidad coaptación</span><span id="ete-coapt-interp">—</span></div>
+        <div style="border-top:1px solid var(--border); margin:6px 0;"></div>
+        <div class="calc-row">
+          <span class="calc-lbl" style="font-weight:700;">🔪 Factores desfavorables</span>
+          <span id="ete-reparabilidad" style="font-weight:700;">—</span>
+        </div>
+        <div class="calc-row"><span id="ete-repar-fuente" style="font-size:10px;color:var(--text2);line-height:1.5;"></span></div>
       </div>
     </div>
   </div>
@@ -16144,67 +16257,12 @@ z
     </div>
   </div>
   </div>
-  <div class="card" style="margin-bottom:6px;">
-    <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleEteSeccion('mediciones-mitral',this)">
-      📏 Mediciones ETE — Válvula Mitral
-      <span id="ete-mediciones-mitral-arrow" style="float:right;transition:transform 0.2s;">▶</span>
-    </h2>
-  </div>
-  <div id="ete-seccion-mediciones-mitral" style="display:none;">
-  <div class="card">
-    <div class="card-body">
-      <div class="grid-4">
-        <div class="fg"><label>Longitud velo anterior (mm)</label>
-          <input type="number" id="ete_lva" placeholder="mm" oninput="calcETE();etemVeloGesto('ete_lva')">
-        </div>
-        <div class="fg"><label>Longitud velo posterior (mm)</label>
-          <input type="number" id="ete_lvp" placeholder="mm" oninput="calcETE();etemVeloGesto('ete_lvp')">
-        </div>
-        <div class="fg"><label>Diámetro anular (mm)</label>
-          <input type="number" id="ete_diam_anular" placeholder="mm" oninput="calcETE()">
-        </div>
-        <div class="fg"><label>Área planimetría (cm²)</label>
-          <input type="number" id="ete_area_mitral" placeholder="cm²" oninput="calcETE()">
-        </div>
-        <div class="fg"><label>Altura tenting (mm)</label>
-          <input type="number" id="ete_altura_tenting" placeholder="mm" oninput="calcETE()">
-          <span style="font-size:10px; color:var(--text2);">TEER no complejo: &lt;10 mm</span>
-        </div>
-        <div class="fg"><label>Área tenting (cm²)</label>
-          <input type="number" id="ete_area_tenting" placeholder="cm²" oninput="calcETE()">
-          <span style="font-size:10px; color:var(--text2);">Desfavorable (IM secundaria): &gt;2,5-3 cm² (la app aplica &gt;2,5)</span>
-        </div>
-        <div class="fg"><label>Ángulo velo posterior (°)</label>
-          <input type="number" id="ete_angulo_vp" placeholder="°" oninput="calcETE()">
-          <span style="font-size:10px; color:var(--text2);">Desfavorable (IM secundaria): &gt;45°</span>
-        </div>
-        <div class="fg"><label>Profundidad coaptación (mm)</label>
-          <input type="number" id="ete_prof_coapt" placeholder="mm" oninput="calcETE()">
-          <span style="font-size:10px; color:var(--text2);">Desfavorable (IM secundaria): &ge;10 mm</span>
-        </div>
-      </div>
-      <div class="calc-box" style="margin-top:10px;">
-        <div style="font-size:11px; font-weight:700; color:var(--accent2); margin-bottom:6px;">CARACTERÍSTICAS DESFAVORABLES PARA LA REPARACIÓN (IM SECUNDARIA)</div>
-        <div class="calc-row"><span class="calc-lbl">Ángulo velo posterior</span><span id="ete-angulo-interp">—</span></div>
-        <div class="calc-row"><span class="calc-lbl">Altura tenting</span><span id="ete-tenting-interp">—</span></div>
-        <!-- ⚠️ FILA NUEVA (I-E1, 22/10/2026): el área de tenting es uno de los TRES factores de la
-             Tabla 7 y hasta hoy se mostraba en el formulario sin interpretación ninguna. -->
-        <div class="calc-row"><span class="calc-lbl">Área tenting</span><span id="ete-areatent-interp">—</span></div>
-        <div class="calc-row"><span class="calc-lbl">Profundidad coaptación</span><span id="ete-coapt-interp">—</span></div>
-        <div style="border-top:1px solid var(--border); margin:6px 0;"></div>
-        <div class="calc-row">
-          <span class="calc-lbl" style="font-weight:700;">🔪 Factores desfavorables</span>
-          <span id="ete-reparabilidad" style="font-weight:700;">—</span>
-        </div>
-        <div class="calc-row"><span id="ete-repar-fuente" style="font-size:10px;color:var(--text2);line-height:1.5;"></span></div>
-      </div>
-      <div style="text-align:center;margin-top:10px;">
-        <button type="button" class="btn btn-integrar" data-am-k="etem" onclick="amiloIntegrar('etem')">📎 Integrar al informe</button>
-      </div>
-    </div>
-  </div>
-  </div>
-
+  <!-- ⚠️ LA SECCION «Mediciones ETE — Valvula Mitral» SE FUNDIO CON LA DE MORFOLOGIA
+       (PANT-6, commit 4): sus ocho campos, su cuadro de caracteristicas desfavorables y su
+       casilla de inclusion viven ahora en `#ete-seccion-morfo`, en las columnas 2 y 3. No se
+       perdio ningun campo, ningun id ni ninguna fila, verificado por censo.
+       `toggleEteSeccion('mediciones-mitral')` sigue respondiendo por un alias declarado en esa
+       funcion, porque tres casos de la suite lo llaman. -->
   <div class="card" style="margin-bottom:6px;">
     <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleEteSeccion('teer',this)">
       🎯 Criterios TEER — MitraClip / PASCAL
@@ -77378,7 +77436,14 @@ setTimeout(function(){ try { eteQxDibujar();
   if (typeof eteQxVistasBotonSync === 'function') eteQxVistasBotonSync(); } catch (e) {} }, 150);
 
 
+/* ⚠️ EL ALIAS DE `mediciones-mitral` (PANT-6, commit 4). Esa seccion se fundio con la de
+   morfologia, asi que su contenedor ya no existe: sin el alias, cada llamada seria un no-op
+   SILENCIOSO que dejaria la seccion cerrada y sus campos sin geometria. Lo llaman tres casos de
+   la suite. Es un mapa de UNA entrada y no una indireccion general: el dia que la seccion vuelva
+   a existir por su cuenta, se retira. */
+const ETE_SEC_ALIAS = { 'mediciones-mitral': 'morfo' };
 function toggleEteSeccion(id, headEl) {
+  id = ETE_SEC_ALIAS[id] || id;
   const sec = document.getElementById('ete-seccion-' + id);
   const arrow = document.getElementById('ete-' + id + '-arrow');
   if (!sec) return;
@@ -154282,8 +154347,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261103-1839';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793741969924;                 /* eco-build-ms */
+const ECO_BUILD    = '20261103-1851';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793742710590;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -154369,7 +154434,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261103-1839</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261103-1851</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
