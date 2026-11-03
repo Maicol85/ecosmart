@@ -86671,6 +86671,40 @@ const IND_TERMINOS = Object.freeze({
      LEIDO EN IMAGEN a 230 ppp el 2026-11-03, con el folio comprobado en el PIE IMPRESO de la
      hoja: AHA/ACC 2020 (Otto), Tabla 17 «Stages of Chronic Primary MR», hoja 50, folio e121,
      columna «Symptoms». Sus estadios A, B y C dicen «None» y el D nombra DOS. */
+  /* ══ QUE SINTOMAS CUENTAN EN LA INSUFICIENCIA TRICUSPIDEA (PANT-6, commit 7) ═════════════
+     LEIDO EN IMAGEN a 230 ppp el 2026-11-03, folio comprobado en el PIE IMPRESO: AHA/ACC 2020
+     (Otto), Tabla 20 «Stages of TR», hoja 61, folio e132.
+     ⚠️ ACA LA COLUMNA NO SE LLAMA «Symptoms» SINO «Clinical Symptoms and Presentation», y eso
+        cambia lo que hay que decir: mezcla un hallazgo del EXAMEN -la presion venosa elevada-
+        con los sintomas propiamente dichos. Y la tabla ARRANCA EN B: no tiene fila A, que es lo
+        que PANT-5 ya habia declarado. */
+  itsintomas: Object.freeze({
+    rotulo: 'Síntomas en la insuficiencia tricuspídea',
+    tipo: 'definicion',
+    tam: 'chica',
+    etiqueta: 'Qué síntomas cuentan en la insuficiencia tricuspídea',
+    que: 'La respuesta separa la Clase I de la Clase IIa en la insuficiencia primaria aislada, y '
+       + 'es una de las dos condiciones de la fila del tratamiento transcatéter.',
+    items: Object.freeze([
+      Object.freeze({ t:'AHA/ACC 2020 — los nombra, y son cuatro',
+        d:'En su tabla de estadios, el estadio sintomático queda definido por la disnea de '
+        + 'esfuerzo, la fatiga, la ascitis y el edema.' }),
+      Object.freeze({ t:'Y la columna no es sólo de síntomas',
+        d:'Esa tabla titula la columna «síntomas y presentación clínica», y en el estadio '
+        + 'asintomático y en el sintomático lista además la presión venosa elevada, que es un '
+        + 'hallazgo del examen y no un síntoma: lo que separa los dos estadios son los cuatro '
+        + 'de arriba.' }),
+      Object.freeze({ t:'ESC/EACTS 2025 — no los define',
+        d:'Sus filas de intervención hablan del paciente «sintomático» sin enumerar cuáles.' }),
+      Object.freeze({ t:'Qué hace esta aplicación',
+        d:'No resuelve la diferencia y no mueve ningún corte. «Sin dato» no cuenta como «No».' })
+    ]),
+    guia: 'Las dos guías usan los síntomas para el mismo corte y sólo una los enumera: la '
+        + 'diferencia se muestra y la decide quien informa.',
+    fuente: 'AHA/ACC 2020 (Otto), Tabla 20 «Stages of TR», hoja 61, folio e132, columna '
+          + '«Clinical Symptoms and Presentation». ESC/EACTS 2025, tabla de recomendaciones de '
+          + 'insuficiencia tricuspídea.'
+  }),
   impsintomas: Object.freeze({
     rotulo: 'Síntomas en la insuficiencia mitral primaria',
     tipo: 'definicion',
@@ -94226,13 +94260,14 @@ function _indVT(){
   /* EL ESTADIO (PANT-5, commit 9), por el mismo motivo que en las dos aorticas de PANT-4: va en
      la lista CLINICA y no en la de datos del eco, porque lo que lo decide es una pregunta que el
      ecocardiograma no contesta. SOLO en la Evidencia: no llega al papel. */
-  const _estIT = _indEstFila(_indEstIT());
+  const _estIT = _indEstIT();
   const clinica = [
     _indFilaCtrl('Mecanismo de la insuficiencia', 'vt.mecanismo', [{v:'prim',t:'Primaria'},{v:'sec',t:'Secundaria'}],
       D.mec ? 'none' : 'ask',
       'la primaria y la secundaria tienen filas, clases y exclusiones distintas cuando no hay cirugía izquierda programada; esta app no tiene campo de mecanismo tricuspídeo'),
-    _indFilaCtrl('Síntomas', 'vt.sintomas', [{v:'si',t:'Sí'},{v:'no',t:'No'}],
-      D.sx ? 'none' : 'ask', 'separan la Clase I de la Clase IIa en la insuficiencia primaria aislada, y son la única condición de la fila del transcatéter junto con el riesgo alto'),
+    /* El globo dice QUE sintomas cuentan (PANT-6, commit 7). */
+    Object.assign(_indFilaCtrl('Síntomas', 'vt.sintomas', [{v:'si',t:'Sí'},{v:'no',t:'No'}],
+      D.sx ? 'none' : 'ask', 'separan la Clase I de la Clase IIa en la insuficiencia primaria aislada, y son la única condición de la fila del transcatéter junto con el riesgo alto'), { term: 'itsintomas' }),
     _indFilaCtrl('Cirugía valvular izquierda programada', 'vt.cxizq', [{v:'si',t:'Sí'},{v:'no',t:'No'}],
       D.cxizq ? 'none' : 'ask', 'es la condición que lleva la cirugía tricuspídea a Clase I, sin importar el mecanismo'),
     _indFilaCtrl('Riesgo quirúrgico alto', 'vt.riesgo', [{v:'alto',t:'Alto'},{v:'no',t:'No alto'}],
@@ -94267,8 +94302,46 @@ function _indVT(){
       D.psap.crudo != null ? 'PSAP estimada ' + _indNum(D.psap.crudo, 0, 'mmHg') : 'No estimada', 'ask',
       'condición no verificable acá: las filas piden HTP severa, HTP a secas o HTP PRE-CAPILAR según cuál sea, la guía la define por cateterismo, y la PSAP de esta app no tiene banda de plausibilidad')
   ];
-  if (_estIT) clinica.unshift(_estIT);
-  return { filas: filas,
+  /* EL ESTADIO SE MUDO A LA FRANJA AMBAR DEL MOLDE (PANT-6, commit 7). */
+  /* ══ EL MOLDE (PANT-6, commit 7) ══════════════════════════════════════════════════════════
+     La premisa se reproduce y es LA MAS GRANDE de las cinco valvulas medidas: con el panel
+     maximizado, la columna del eco medi­a 213,6 px de alto contra 594,3 de la de preguntas, o sea
+     380,7 px de VACIO a 1440 px y 561 a 1000.
+     ⚠️ LAS CINCO PREGUNTAS VAN EN UNA SOLA COLUMNA: seis o menos, una columna.
+     ⚠️ LOS DOS GRUPOS NO SE INVENTAN. «Clinica» son el mecanismo -«la primaria y la secundaria
+        tienen filas, clases y exclusiones distintas», textual de su nota- y los sintomas.
+        «Cirugia — contexto y riesgo» son la cirugia izquierda programada -«la condicion que
+        lleva la cirugia tricuspidea a Clase I»-, el riesgo quirurgico alto -«abre la fila del
+        tratamiento transcateter»- y la insuficiencia persistente con tratamiento optimo -«la
+        fila del transcateter lo exige de forma explicita»-: las tres son condiciones de las
+        filas de intervencion.
+     ⚠️ LAS FILAS INFORMATIVAS DE `clinica` -el anillo, la hipertension pulmonar y la funcion del
+        ventriculo derecho- NO son preguntas y van a las TARJETAS de datos, con las del eco: se
+        separan por NO TENER `ctrl`, que es el mismo criterio que `_indSecHTMLCuerpo` ya usa para
+        las filas informativas, y no por su posicion. */
+  const _vtPreg = clinica.filter(function(f){ return f && f.ctrl; });
+  const _vtInfo = clinica.filter(function(f){ return f && !f.ctrl; });
+  const molde = {
+    cat: (function(){
+      const g = filas.filter(function(f){ return f && f.lbl === 'Insuficiencia tricuspídea'; })[0];
+      return { et:'Grado — el que publica el informe',
+               txt: itSev ? 'Insuficiencia tricuspídea severa'
+                  : (itMod ? 'Insuficiencia tricuspídea moderada' : 'Válvula tricúspide'),
+               por: g ? String(g.nota || '') : 'las filas de intervención se separan por el grado, por el mecanismo y por si hay cirugía izquierda programada',
+               refs: g ? (g.refs || null) : null };
+    })(),
+    est: _estIT ? { et:'Estadio (AHA/ACC 2020)', txt:_estIT.txt, por:_estIT.nota } : null,
+    /* La fila del GRADO sale de las tarjetas porque subio a la franja. Sus refs viajan con ella,
+       que es la leccion que TC-339 cobro en la mitral: sin eso el orden de primera aparicion se
+       mueve y los corchetes se renumeran. */
+    datos: filas.filter(function(f){ return f && f.lbl !== 'Insuficiencia tricuspídea'; })
+      .concat(_vtInfo).map(function(f){ return { lbl:f.lbl, val:f.val, refs:f.refs || null,
+        est:String(f.nota || '').split(' · ')[0] }; }),
+    cols: [ [ { tit:'Clínica', filas:_indPorClave(_vtPreg, ['vt.mecanismo','vt.sintomas']) },
+              { tit:'Cirugía — contexto y riesgo', filas:_indPorClave(_vtPreg, ['vt.cxizq','vt.riesgo','vt.tmo']) } ] ],
+    pie: null
+  };
+  return { filas: filas, molde: molde,
     aviso: (E && E.fuera && E.fuera.length)
       ? 'Fuera de rango medible: ' + E.fuera.join(' y ') + '. Un valor ilegible no sostiene ni descarta el criterio.' : '',
     clinica: clinica,
@@ -154788,8 +154861,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261103-2008';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793747338313;                 /* eco-build-ms */
+const ECO_BUILD    = '20261103-2018';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793747933552;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -154875,7 +154948,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261103-2008</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261103-2018</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

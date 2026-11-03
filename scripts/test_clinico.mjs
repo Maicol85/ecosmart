@@ -64217,8 +64217,8 @@ caso('TC-451', 'Evidencia: los dos ⓘ de termino abren su tarjeta completa y an
          de los sintomas de la insuficiencia aortica. Y ese caso HIZO SU TRABAJO: la primera
          version de los dos globos de sintomas compartia el aria-label «Que sintomas cuentan», o
          sea la clave que hace que abrir uno no abra el otro. Hoy cada uno nombra su valvula. */
-      ex.push(['el registro tiene las SIETE entradas y cada ⓘ es un <button> con aria-label PROPIO y distinto',
-        JSON.stringify(ids) === JSON.stringify(['cormier','easintomas','emsintomas','iasintomas','impsintomas','imssintomas','score_eco']) &&
+      ex.push(['el registro tiene las OCHO entradas y cada ⓘ es un <button> con aria-label PROPIO y distinto',
+        JSON.stringify(ids) === JSON.stringify(['cormier','easintomas','emsintomas','iasintomas','impsintomas','imssintomas','itsintomas','score_eco']) &&
         b0.every(b => b.tagName === 'BUTTON' && b.getAttribute('aria-haspopup') === 'dialog') &&
         etqs.length === 3 && (new Set(etqs)).size === 3 && etqs.every(e => e && e.trim()),
         'ids=' + JSON.stringify(ids) + ' etiquetas=' + JSON.stringify(etqs) +
