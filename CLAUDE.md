@@ -553,9 +553,10 @@ impecable.
 > SEGURIDAD y la tabla de Procedencia) siguen enteras y en su lugar, verificado byte por byte.
 ### Los botones CIA/CIV, el corazón maestro, cuatro pantallas y la arritmia ventricular — «PANT-3» (2026-11-02 y 03)
 
-- **VEINTE commits, y los ONCE de la orden se hicieron enteros.** Primera mitad: los botones
+- **VEINTICINCO commits —los de documentación incluidos, contados con `git log`—, y los ONCE
+  de la orden se hicieron enteros.** Primera mitad: los botones
   CIA/CIV, el esquema de la TGA, el retiro de los carteles de «revisión pendiente», el botón «3D»
-  del corazón maestro y la pantalla de MCH. Segunda mitad: `ca412db` (6 · MCA) · `eb8b794`
+  del corazón maestro y la pantalla de MCH. Segunda mitad: `ca412db` (6 · MCA) · `7db905a`
   (7 · Fallot) · `6bb3e71` (8a) · `11ccfe7` (8b) · `27aa986` (9) · `ae9d1b4` (9b) · `9691de6`
   (10) · `6dff25f` (10b) · los de cobertura. Y el cierre: `a0d6f8d` (12 · el rótulo del TEP y los
   once rojos) · `901748a` (13 · la sonda de dos motores) · `be55fa0` (14 · la condición que pedía

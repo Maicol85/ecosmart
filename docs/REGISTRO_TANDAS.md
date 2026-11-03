@@ -22,7 +22,7 @@
 | commit | qué |
 |---|---|
 | `ca412db` 6 | **MCA**: dos columnas de criterios del eco, tres de categorías, conclusión a la derecha, cuatro globos. La zona no ecocardiográfica a todo el ancho **por medición** |
-| `eb8b794` 7 | **Fallot**: tres globos y conclusión a la derecha. La disposición en tres columnas **PARADA**; el recuadro que se contradecía, retirado |
+| `7db905a` 7 | **Fallot**: tres globos y conclusión a la derecha. La disposición en tres columnas **PARADA**; el recuadro que se contradecía, retirado |
 | `6bb3e71` 8a | **Estenosis subaórtica**: los **DOS** cortes rotulados medio y pico, cada uno con guía, hoja, folio y condición |
 | `11ccfe7` 8b | **Estenosis supravalvular**: ídem, con la salvedad de que la guía no publica recuadro propio |
 | `27aa986` 9 | **Arritmia ventricular**: primera sección, «Limpiar», tarjeta, valor nuevo «Parada cardíaca recuperada», espejo condicional de MCH |
@@ -40,7 +40,8 @@ en `docs/PENDIENTES.md` → **P3-i** a **P3-p**.
 
 ## PANT-3 — los botones CIA y CIV, el esquema de la TGA, el corazón maestro, MCH, MCA, Fallot, las dos estenosis aórticas, la arritmia ventricular y los rótulos de presión (2026-11-02 y 03)
 
-**Veinte commits, y los once de la orden se hicieron enteros.** Línea base al abrir:
+**Veinticinco commits** —los once de la orden, hechos enteros, más los de cobertura, los de
+cierre y los de documentación—. Las horas de cada uno salen de `git log`, no de una estimación. Línea base al abrir:
 `origin/main` = `HEAD` = **`efce508`**, sello `v20261102-2051`, md5 `8af4c80b`, pendrive
 `DISK_IMG` montado. Al cerrar: sello **`v20261103-0256`**, md5 **`0422963d`**.
 **El push lo corre Maicol: esta tanda tenía orden expresa de NO pushear.**
@@ -53,11 +54,12 @@ en `docs/PENDIENTES.md` → **P3-i** a **P3-p**.
 | `75b555f` | **4** — el botón «3D» del corazón maestro, fase 1 | cerrado y verificado |
 | `15098a5` | **5** — la pantalla de MCH en tres columnas | cerrado y verificado |
 | `ca412db` | **6** — la pantalla de MCA | cerrado y verificado |
-| `eb8b794` | **7** — la pantalla de Fallot | cerrado; su disposición en tres columnas, PARADA → P3-i |
+| `7db905a` | **7** — la pantalla de Fallot | cerrado; su disposición en tres columnas, PARADA → P3-i |
 | `6bb3e71` · `11ccfe7` | **8a** y **8b** — estenosis subaórtica y supravalvular aórtica | cerrado y verificado |
 | `27aa986` · `ae9d1b4` | **9** y **9b** — el módulo compartido de arritmia ventricular, y el arreglo estructural | cerrado y verificado |
 | `9691de6` · `6dff25f` | **10** y **10b** — los rótulos PSAP, PmAP y PDAP | cerrado; una fila PARADA → P3-q |
-| `6bb1732` · `7fe47b5` · `ae9d1b4` · `e97cd34` | **11** — cobertura y documentación | cerrado |
+| `69bda9e` · `71a340d` · `db0564d` · `6bb1732` · `7fe47b5` · `e97cd34` | **11** — cobertura y documentación, en cinco tramos | cerrado |
+| `cfe6079` | **4b** — el pie del corazón maestro es dueño de su `display` | cerrado y verificado |
 | `a0d6f8d` | **12** — el rótulo del TEP que se decía dos veces, y los once rojos de la corrida completa | cerrado y verificado |
 | `901748a` | **13** — la sonda de dos motores medía sobre dos denominadores de cero | cerrado y verificado |
 | `be55fa0` | **14** — la condición que pedía más que la orden, y el paso 43 de la guía | cerrado y verificado |
