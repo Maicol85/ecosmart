@@ -4159,18 +4159,37 @@ html.light-mode .amilo-root{
   #hemo-forr-datos{flex:1 1 auto;min-width:0;}
   #hemo-forr-graf{flex:0 1 390px;min-width:0;margin-top:8px;}
 }
+/* ============================================================================================
+   EL DIBUJO DE SOBRECARGA DEL VD, MAS GRANDE  (PANT-6, commit 2)
+   ============================================================================================
+   Lo observo el medico probando PANT-5 y la premisa se reproduce EXACTAMENTE: el dibujo medi­a
+   110 px a 1440 y a 1000 px -la mitad del esquema valvular 2D, que es lo que PANT-5 fijo- y sus
+   rotulos sali­an en 2,6 px (8,32 a 768 y 3,87 a 390), por debajo del piso de 12 px de esta casa.
+   ⚠️ EL ANCHO MINIMO PARA 12 px ES 509 px, NO LOS ~340 QUE LA ORDEN ESTIMA, y es una cuenta
+      exacta: el rotulo mide 4,2 unidades en un viewBox de 178,09 de ancho, asi que
+      12 = 4,2 x W / 178,09 da W = 508,8. Se redondea a 510 y el tope se pone en 520.
+   ⚠️ EL DIBUJO NO SE TOCA: su geometri­a, su latido, sus reglas, sus colores y sus rotulos quedan
+      como estan, identicos a la demo. Lo unico que cambia es su TAMANIO y la disposicion de la
+      seccion: los cuatro campos pasan a dos columnas mas angostas en el 55 % izquierdo, la
+      tarjeta de criterios baja a esa misma columna -donde antes estaba a ancho completo debajo
+      del dibujo- y el 45 % derecho queda para el dibujo.
+   ⚠️ A 1000 Y A 390 px LA LETRA NO LLEGA A 12 px, Y SE DECLARA EN VEZ DE INVENTAR UNA REGLA: a
+      1000 px el 45 % de la fila da 350 px -8,3 px de letra- y a 390 px la ventana entera no da
+      para 510. La orden prohibe cambiar la tipografi­a del dibujo, que es de la demo, asi que lo
+      que falta es una decision del medico entre mover el corte del lado a lado o escalar la
+      letra con el ancho. Esta en PENDIENTES. */
 #vdsc-caja{margin:10px 0 2px;}
-#vdsc-svg{display:block;width:110px;height:auto;max-width:100%;margin:0 auto;}
+#vdsc-svg{display:block;width:100%;max-width:520px;height:auto;margin:0 auto;}
 #vdsc-pie{display:flex;align-items:center;gap:8px;justify-content:center;margin-top:4px;}
 #vdsc-fila{display:block;}
-#vdsc-campos{min-width:0;}
+#vdsc-campos,#vdsc-lista{min-width:0;}
+/* Por debajo de 900 px: apilado, campos -> dibujo centrado -> lista, que es el orden del DOM. */
 @media (min-width:900px){
-  #vdsc-fila{display:flex;gap:14px;align-items:flex-start;}
-  #vdsc-campos{flex:1 1 auto;min-width:0;}
-  #vdsc-caja{flex:0 0 auto;margin:0;}
-}
-@media (max-width:768px){
-  #vdsc-svg{width:50%;}
+  #vdsc-fila{display:grid;grid-template-columns:minmax(0,55fr) minmax(0,45fr);
+    gap:10px 14px;align-items:start;}
+  #vdsc-campos{grid-column:1;grid-row:1;}
+  #vdsc-caja{grid-column:2;grid-row:1 / span 2;margin:0;}
+  #vdsc-lista{grid-column:1;grid-row:2;}
 }
 /* El miocardio, las dos cavidades y las valvas: los mismos trazos del esquema valvular, con la
    paleta gris del dibujo. */
@@ -10831,59 +10850,71 @@ window.cerrarSesionReal = cerrarSesionReal;
                     title="Pausar o reanudar el latido del esquema">&#9208; Pausar</button>
           </div>
         </div><!-- /vdsc-caja -->
+
+      <!-- == LA TARJETA DE CRITERIOS, DEBAJO DE LOS CAMPOS Y DENTRO DE LA FILA (PANT-6, c2) ==
+           Hasta hoy vivia FUERA de la fila, a ancho completo debajo del dibujo. La orden la
+           pone en la columna IZQUIERDA, bajo los cuatro campos, para darle lugar al dibujo.
+           Su contenido, sus filas, su score y su advertencia NO cambian: lo unico que cambia es
+           donde esta.
+           ⚠️ EL ORDEN DEL DOM ES campos -> dibujo -> lista, que es lo que la orden pide por
+              debajo de 900 px, y por encima la grilla la coloca en la celda (fila 2, columna 1)
+              con el dibujo abarcando las dos filas de la columna 2. Asi una sola estructura
+              sirve a las dos maquetas y no hay dos textos paralelos. -->
+      <div id="vdsc-lista">
+        <!-- Resultados automáticos -->
+        <div class="calc-box">
+          <!-- == TRES GRUPOS EN EL ORDEN DE LA LECTURA: criterios, indices, score (AJ2-10c,
+               23/10/2026) ====================================================================
+               Hasta hoy el cuadro tenia UN titulo -«ÍNDICES Y SCORE»- con los seis criterios y el
+               indice mezclados, y el score, la interpretacion y OTRA VEZ el TAPSE/PSAP al final,
+               despues del cartel de advertencia.
+               OJO: EL TAPSE/PSAP SALIA DOS VECES CON EL MISMO TEXTO. Los spans tep-tapse-psap y
+               tep-acoplamiento recibian los dos el mismo idx + mm/mmHg de calcTEP, asi que el
+               mismo numero se publicaba en dos filas del mismo cuadro -y dos veces en la hoja del
+               PDF-. Queda tep-tapse-psap, que es la que la hoja lista en su seccion de indices.
+               OJO: LAS ETIQUETAS NO REPITEN EL DATO. Los spans de VD/VI, TAPSE y PSAP ya escriben
+               la sigla con su valor y su corte -«VD/VI 1.2 — dilatación VD (≥1.0) ✓»-, asi que el
+               rotulo nombra el PARAMETRO. Cambia la etiqueta de PANTALLA y nada mas: los rotulos
+               de la hoja del PDF viven en amiloTextoTEP y no se tocaron. -->
+          <div style="font-size:11px;font-weight:700;color:var(--accent2);margin-bottom:8px;">CRITERIOS DE SOBRECARGA DEL VD</div>
+          <div class="calc-row"><span class="calc-lbl">Dilataci&oacute;n del VD</span><span id="tep-vdvi-interp">&mdash;</span></div>
+          <div class="calc-row"><span class="calc-lbl">Funci&oacute;n sist&oacute;lica del VD</span><span id="tep-tapse-interp">&mdash;</span></div>
+          <!-- OJO: este rotulo NO dice «PSAP» a secas, y es una correccion medida del propio commit 10.
+               El span de al lado escribe la sigla CON su valor y su corte -«PSAP 45 mmHg — elevada (>=60
+               mmHg)»-, asi que con «PSAP» en la etiqueta la fila se leia «PSAP  PSAP 45 mmHg». La regla
+               del commit es que el rotulo nombre el PARAMETRO, y el parametro es la presion sistolica
+               pulmonar; las dos filas de arriba cumplen la misma regla porque su sigla (VD/VI, TAPSE) no
+               es su nombre. Lo fija TC-519 (O6), que exige que la etiqueta no contenga la sigla. -->
+          <div class="calc-row"><span class="calc-lbl">Presi&oacute;n sist&oacute;lica pulmonar</span><span id="tep-psap-interp">&mdash;</span></div>
+          <div class="calc-row"><span class="calc-lbl">Signo de McConnell</span><span id="tep-mcconnell-interp">&mdash;</span></div>
+          <div class="calc-row"><span class="calc-lbl">Signo 60/60</span><span id="tep-6060-interp">&mdash;</span></div>
+          <div class="calc-row"><span class="calc-lbl">Tabique en D</span><span id="tep-tabiqued-interp">&mdash;</span></div>
+
+          <div style="font-size:11px;font-weight:700;color:var(--accent2);margin:14px 0 8px;">&Iacute;NDICES</div>
+          <div class="calc-row"><span class="calc-lbl">Acoplamiento VD-AP (TAPSE/PSAP)</span><span id="tep-tapse-psap">&mdash;</span></div>
+
+          <div style="font-size:11px;font-weight:700;color:var(--accent2);margin:14px 0 8px;">SCORE</div>
+          <div class="calc-row">
+            <!-- OJO: SON SEIS CRITERIOS Y EL ROTULO DECIA SIETE (AJ2-16a, 2026-10-23). calcTEP
+                 cuenta exactamente seis: VD/VI, TAPSE, PSAP, McConnell, signo 60/60 y tabique en D
+                 -contados sobre los seis criterios.push de esa funcion-, y el span de al lado
+                 publica «N criterios positivos» sobre ese mismo denominador. -->
+            <span class="calc-lbl" style="font-weight:700;">Score criterios VD (+/6)</span>
+            <span id="tep-score" style="font-weight:700;font-size:14px;">&mdash;</span>
+          </div>
+          <div class="calc-row">
+            <span class="calc-lbl" style="font-weight:700;">Interpretaci&oacute;n</span>
+            <span id="tep-interpretacion" style="font-weight:700;">&mdash;</span>
+          </div>
+
+          <div style="border-top:1px solid var(--border);margin:10px 0 8px;"></div>
+          <div style="font-size:10px;color:var(--text2);background:var(--bg3);border:1px solid var(--border);border-left:3px solid var(--orange);border-radius:6px;padding:8px 10px;margin-bottom:10px;line-height:1.5;">
+            ⚠️ Esta herramienta es orientativa. La estratificación de riesgo en TEP requiere integrar estabilidad hemodinámica, troponina, PESI/sPESI y confirmación diagnóstica. No reemplaza la clasificación ESC 2019.
+          </div>
+        </div>
+      </div><!-- /vdsc-lista -->
       </div><!-- /vdsc-fila -->
 
-      <!-- Resultados automáticos -->
-      <div class="calc-box">
-        <!-- == TRES GRUPOS EN EL ORDEN DE LA LECTURA: criterios, indices, score (AJ2-10c,
-             23/10/2026) ====================================================================
-             Hasta hoy el cuadro tenia UN titulo -«ÍNDICES Y SCORE»- con los seis criterios y el
-             indice mezclados, y el score, la interpretacion y OTRA VEZ el TAPSE/PSAP al final,
-             despues del cartel de advertencia.
-             OJO: EL TAPSE/PSAP SALIA DOS VECES CON EL MISMO TEXTO. Los spans tep-tapse-psap y
-             tep-acoplamiento recibian los dos el mismo idx + mm/mmHg de calcTEP, asi que el
-             mismo numero se publicaba en dos filas del mismo cuadro -y dos veces en la hoja del
-             PDF-. Queda tep-tapse-psap, que es la que la hoja lista en su seccion de indices.
-             OJO: LAS ETIQUETAS NO REPITEN EL DATO. Los spans de VD/VI, TAPSE y PSAP ya escriben
-             la sigla con su valor y su corte -«VD/VI 1.2 — dilatación VD (≥1.0) ✓»-, asi que el
-             rotulo nombra el PARAMETRO. Cambia la etiqueta de PANTALLA y nada mas: los rotulos
-             de la hoja del PDF viven en amiloTextoTEP y no se tocaron. -->
-        <div style="font-size:11px;font-weight:700;color:var(--accent2);margin-bottom:8px;">CRITERIOS DE SOBRECARGA DEL VD</div>
-        <div class="calc-row"><span class="calc-lbl">Dilataci&oacute;n del VD</span><span id="tep-vdvi-interp">&mdash;</span></div>
-        <div class="calc-row"><span class="calc-lbl">Funci&oacute;n sist&oacute;lica del VD</span><span id="tep-tapse-interp">&mdash;</span></div>
-        <!-- OJO: este rotulo NO dice «PSAP» a secas, y es una correccion medida del propio commit 10.
-             El span de al lado escribe la sigla CON su valor y su corte -«PSAP 45 mmHg — elevada (>=60
-             mmHg)»-, asi que con «PSAP» en la etiqueta la fila se leia «PSAP  PSAP 45 mmHg». La regla
-             del commit es que el rotulo nombre el PARAMETRO, y el parametro es la presion sistolica
-             pulmonar; las dos filas de arriba cumplen la misma regla porque su sigla (VD/VI, TAPSE) no
-             es su nombre. Lo fija TC-519 (O6), que exige que la etiqueta no contenga la sigla. -->
-        <div class="calc-row"><span class="calc-lbl">Presi&oacute;n sist&oacute;lica pulmonar</span><span id="tep-psap-interp">&mdash;</span></div>
-        <div class="calc-row"><span class="calc-lbl">Signo de McConnell</span><span id="tep-mcconnell-interp">&mdash;</span></div>
-        <div class="calc-row"><span class="calc-lbl">Signo 60/60</span><span id="tep-6060-interp">&mdash;</span></div>
-        <div class="calc-row"><span class="calc-lbl">Tabique en D</span><span id="tep-tabiqued-interp">&mdash;</span></div>
-
-        <div style="font-size:11px;font-weight:700;color:var(--accent2);margin:14px 0 8px;">&Iacute;NDICES</div>
-        <div class="calc-row"><span class="calc-lbl">Acoplamiento VD-AP (TAPSE/PSAP)</span><span id="tep-tapse-psap">&mdash;</span></div>
-
-        <div style="font-size:11px;font-weight:700;color:var(--accent2);margin:14px 0 8px;">SCORE</div>
-        <div class="calc-row">
-          <!-- OJO: SON SEIS CRITERIOS Y EL ROTULO DECIA SIETE (AJ2-16a, 2026-10-23). calcTEP
-               cuenta exactamente seis: VD/VI, TAPSE, PSAP, McConnell, signo 60/60 y tabique en D
-               -contados sobre los seis criterios.push de esa funcion-, y el span de al lado
-               publica «N criterios positivos» sobre ese mismo denominador. -->
-          <span class="calc-lbl" style="font-weight:700;">Score criterios VD (+/6)</span>
-          <span id="tep-score" style="font-weight:700;font-size:14px;">&mdash;</span>
-        </div>
-        <div class="calc-row">
-          <span class="calc-lbl" style="font-weight:700;">Interpretaci&oacute;n</span>
-          <span id="tep-interpretacion" style="font-weight:700;">&mdash;</span>
-        </div>
-
-        <div style="border-top:1px solid var(--border);margin:10px 0 8px;"></div>
-        <div style="font-size:10px;color:var(--text2);background:var(--bg3);border:1px solid var(--border);border-left:3px solid var(--orange);border-radius:6px;padding:8px 10px;margin-bottom:10px;line-height:1.5;">
-          ⚠️ Esta herramienta es orientativa. La estratificación de riesgo en TEP requiere integrar estabilidad hemodinámica, troponina, PESI/sPESI y confirmación diagnóstica. No reemplaza la clasificación ESC 2019.
-        </div>
-      </div>
 
       <!-- El checkbox "Incluir probabilidad de TEP en informe" se eliminó: ahora
            la conclusión de TEP en el informe la decide este mismo botón. Va al PIE,
@@ -153913,8 +153944,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261103-1751';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793739098021;                 /* eco-build-ms */
+const ECO_BUILD    = '20261103-1807';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793740026018;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -154000,7 +154031,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261103-1751</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261103-1807</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
