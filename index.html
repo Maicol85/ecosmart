@@ -91240,22 +91240,36 @@ window.aoIdaDilatado = aoIdaDilatado;
    ⚠️ LA VÁLVULA BICÚSPIDE NO REPITE SUS DIEZ FILAS ACÁ: tiene su propia sección, dos lugares más
    abajo en el panel, y publicarlas en las dos pondría al panel a decir lo mismo con dos voces.
    Lo que esta sección hace con la bicúspide es NOMBRAR dónde están. Igual la coartación. */
+/* == LAS CITAS DE AORTA, RECONCILIADAS CON LA EDICION INGLESA (PANT-4, commit 5) ============
+   LAS DOS NUMERACIONES ERAN REALES Y ESO ERA EL PROBLEMA. Los folios que estaban aca -80, 113,
+   114, 116, 111, 112, 119, 121, 76, 120- son los de `Mazzolai_2024_Aorta.pdf`, que tiene 199
+   hojas y es OTRA edicion de la misma guia; la que este repositorio usa para su regla de folio
+   -«folio = hoja + 3537»- es la edicion INGLESA de 163 hojas, donde la misma Tabla 62 esta en la
+   hoja 105 con el folio 3642 IMPRESO en el encabezado. Las dos citas mandan al lector a paginas
+   distintas bajo el mismo rotulo «ESC 2024», y la aplicacion citaba las DOS paginaciones mezcladas:
+   el registro de citas y FUENTES.md usan la inglesa y esta tabla usaba la otra.
+   Se unifican a la INGLESA, que es la que se leyo en imagen y la unica cuya regla de folio esta
+   comprobada en el pie impreso. REGLA DE FOLIO COMPROBADA EN CINCO HOJAS de este documento:
+   101 -> 3638, 103 -> 3640, 105 -> 3642, 107 -> 3644 y 111 -> 3648.
+   NINGUN CORTE, CLASE NI NIVEL SE MUEVE: lo unico que cambia es a donde manda la cita. La Tabla
+   62 se releyo entera en imagen y sus cuatro filas coinciden con lo que la aplicacion aplica
+   -Clase I - Nivel B desde 50 mm y Clase IIa - Nivel C desde 45 mm con factores-. */
 const AO_EV_FTE = Object.freeze({
-  t38: 'ESC 2024, Tabla 38 · folio 80',
-  t60: 'ESC 2024, Tabla 60 · folio 113',
-  t62: 'ESC 2024, Tabla 62 · folio 114',
-  t63: 'ESC 2024, Tabla 63 · folio 114',
-  t65: 'ESC 2024, Tabla 65 · folio 116',
-  t66: 'ESC 2024, Tabla 66 · folio 116',
-  t67: 'ESC 2024, Tabla 67 · folio 116',
-  t57: 'ESC 2024, Tabla 57 · folio 111',
-  t58: 'ESC 2024, Tabla 58 · folio 111',
-  t59: 'ESC 2024, Tabla 59 y apartado 10.1.2.4 · folio 112',
-  t68: 'ESC 2024, Tabla 68 · folio 119',
-  t69: 'ESC 2024, Tabla 69 · folio 121',
-  f24: 'ESC 2024, Figura 24 · folio 76',
-  f40: 'ESC 2024, Figura 40 · folio 111',
-  f44: 'ESC 2024, Figura 44 · folio 120'
+  t38: 'ESC 2024, Tabla 38 · hoja 74 · folio 3611',
+  t60: 'ESC 2024, Tabla 60 · hoja 105 · folio 3642',
+  t62: 'ESC 2024, Tabla 62 · hoja 105 · folio 3642',
+  t63: 'ESC 2024, Tabla 63 · hoja 106 · folio 3643',
+  t65: 'ESC 2024, Tabla 65 · hoja 107 · folio 3644',
+  t66: 'ESC 2024, Tabla 66 · hoja 107 · folio 3644',
+  t67: 'ESC 2024, Tabla 67 · hoja 108 · folio 3645',
+  t57: 'ESC 2024, Tabla 57 · hoja 101 · folio 3638',
+  t58: 'ESC 2024, Tabla 58 · hoja 103 · folio 3640',
+  t59: 'ESC 2024, Tabla 59 y apartado 10.1.2.4 · hoja 104 · folio 3641',
+  t68: 'ESC 2024, Tabla 68 · hoja 110 · folio 3647',
+  t69: 'ESC 2024, Tabla 69 · hoja 111 · folio 3648',
+  f24: 'ESC 2024, Figura 24 · hoja 70 · folio 3607',
+  f40: 'ESC 2024, Figura 40 · hoja 103 · folio 3640',
+  f44: 'ESC 2024, Figura 44 · hoja 112 · folio 3649'
 });
 const AO_EV = Object.freeze({
   ninguna: Object.freeze([
@@ -91520,6 +91534,30 @@ function _indAo(){
   }
   const bloques = [ { tit:'Recomendaciones aplicables de la guía', lineas: lineas } ];
   if (faltan.length) bloques.push({ tit:'Lo que falta para decidir otras filas', lineas: faltan });
+  /* == LA INSUFICIENCIA AORTICA CON AORTA DILATADA (PANT-4, commit 5) ========================
+     Es la unica situacion de la regla (1) de la orden que esta seccion NO cubria: `AO_EV` tiene
+     ocho situaciones -sin aortopatia, Marfan, Loeys-Dietz, Turner, ACTA2, Ehlers-Danlos,
+     bicuspide y coartacion- y ninguna es esta. Va como BLOQUE APARTE y no como una novena
+     situacion, porque `derivada` elige UNA sola y la insuficiencia aortica no excluye a
+     ninguna: un paciente con Marfan y una insuficiencia severa tiene que ver las dos.
+     RIGE LA ESC/EACTS 2025, que es la guia de valvulopatias y la mas nueva, y por eso la
+     ESC 2024 de aorta queda como linea de referencia (regla E-2).
+     LEIDO EN IMAGEN: ESC/EACTS 2025, Tabla de recomendaciones 3 «indicaciones para la
+     intervencion en la insuficiencia aortica severa», bloque «Concomitant surgery of the
+     ascending aorta», HOJA 28, folio 28 impreso en el encabezado -en este documento el folio
+     COINCIDE con la hoja, comprobado en las hojas 27 y 28-.
+     NINGUN CORTE DE LA APP SE MUEVE: este bloque solo publica lo que la hoja dice. */
+  const _iaSev = _indS('ia_grado') === '4';
+  const _aoDil = (max != null && max >= corte) || porIda;
+  if (_iaSev && _aoDil) {
+    bloques.push({ tit:'Insuficiencia aórtica severa con aorta dilatada — ESC/EACTS 2025, tabla de recomendaciones 3, hoja 28, folio 28', lineas:[
+      { txt:'Clase I · Nivel B — En el paciente joven con dilatación de la raíz aórtica, el reemplazo de la raíz con preservación valvular está recomendado en centros con experiencia, cuando se esperan resultados duraderos.', refs:['esc2025vc'] },
+      { txt:'Clase IIa · Nivel C — Cuando la cirugía de la válvula aórtica está indicada y el riesgo quirúrgico estimado es bajo, debe considerarse el reemplazo de la raíz o de la aorta ascendente si el diámetro máximo es de 45 mm o más. Su nota al pie d pide tener en cuenta la edad, la superficie corporal, la etiología de la valvulopatía, la presencia de una válvula aórtica bicúspide y la forma y el espesor de la aorta ascendente en el quirófano.', refs:null },
+      { txt:'Clase I · Nivel C — La cirugía de la válvula aórtica está recomendada en el paciente con insuficiencia aórtica severa, sintomático o asintomático, que va a cirugía de la aorta ascendente.', refs:null },
+      { txt:'La misma hoja dice además que, con un diámetro aórtico basal mayor de 45 mm, se recomienda repetir el ecocardiograma transtorácico a los 6 meses para confirmar la estabilidad del hallazgo y después seguirlo cada año, y que todo aumento mayor de 3 mm se valide con angiotomografía o resonancia contra el estudio basal.', refs:null },
+      { txt:'ESC 2024 de aorta (línea de referencia): su Tabla 38 trata la dilatación con válvula aórtica tricúspide y pone el reemplazo concomitante en 45 mm o más cuando ya se opera la válvula, con riesgo quirúrgico bajo, en Clase IIa · Nivel B (hoja 74, folio 3611). Las dos coinciden en el número y difieren en el nivel de evidencia.', refs:['esc2024ao'] }
+    ]});
+  }
   /* ⚠️ ACA `notas` SIGUE SIENDO UNA COPIA DEL BLOQUE, Y ES LO UNICO DE LA REGLA R4 QUE LA TANDA
      A **NO** APLICO. El intento esta medido y se revirtio: vaciarlo deja a esta seccion SIN su
      «ⓘ Ver detalle», y «un control de detalle por seccion» es un invariante del panel que
@@ -91553,8 +91591,8 @@ function _indAo(){
         'la guía la define como la que persiste con tres o más antihipertensivos prescritos por un médico con experiencia; es factor de riesgo en las dos tablas de umbral')
     ],
     guia: { ref:'esc2024ao',
-      txt:'La dilatación aórtica se define como un diámetro mayor de 2 desviaciones estándar del esperado por edad, sexo y tamaño corporal (puntuación Z mayor de 2); en la práctica se sospecha dilatación de la raíz con un diámetro por encima de 40 mm en el hombre adulto y de 36 mm en la mujer, o con un índice de dimensión aórtica mayor de 22 mm/m² (apartado 9.2.1.1, folio 71).',
-      nota:'El primer escalón del algoritmo de seguimiento (Figura 24, folio 76) escribe esos mismos dos números con el valor incluido —«40-44 mm», «36-44 mm en mujeres»—, y es el operador que esta sección aplica.' },
+      txt:'La dilatación aórtica se define como un diámetro mayor de 2 desviaciones estándar del esperado por edad, sexo y tamaño corporal (puntuación Z mayor de 2); en la práctica se sospecha dilatación de la raíz con un diámetro por encima de 40 mm en el hombre adulto y de 36 mm en la mujer, o con un índice de dimensión aórtica mayor de 22 mm/m² (apartado 9.2.1.1, hoja 66, folio 3603).',
+      nota:'El primer escalón del algoritmo de seguimiento (Figura 24, hoja 70, folio 3607) escribe esos mismos dos números con el valor incluido —«40-44 mm», «36-44 mm en mujeres»—, y es el operador que esta sección aplica.' },
     notas: notas };
 }
 
@@ -152671,8 +152709,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261103-1122';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793715739463;                 /* eco-build-ms */
+const ECO_BUILD    = '20261103-1130';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793716246862;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -152758,7 +152796,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261103-1122</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261103-1130</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
