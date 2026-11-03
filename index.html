@@ -4016,6 +4016,32 @@ html.light-mode .amilo-root{
    ⚠️ EL GRAFICO LLEVA SU ANCHO EN `flex-basis` Y NO UN PORCENTAJE: su caja interna ya se topa en
       470 px, asi que con un porcentaje el hueco de la derecha quedaba mas grande que el dibujo y
       la columna de la izquierda perdia ancho por nada. */
+/* ============================================================================================
+   DERRAME PERICARDICO Y TAPONAMIENTO EN CUATRO COLUMNAS  -  #dpt-cols  (PANT-5, 2026-11-03)
+   ============================================================================================
+   Pedido del medico del 01/11/2026. Cuatro columnas POR TEMA: cuantificacion del derrame,
+   colapso de cavidades, VCI con lo que viene de otras pestanias, y variacion respiratoria. La
+   descripcion y el aviso quedan DEBAJO, a ancho completo.
+
+   ⚠️ LOS DOS CORTES VAN SOBRE LA VENTANA Y SALEN DE UNA MEDICION, no de un numero elegido. El
+      ancho util de esta seccion es la ventana menos 246 px -medido a 1440, 1000, 768 y 390 px:
+      1194, 778, 706 y 328-, asi que con cuatro columnas y 10 px de hueco cada una mide
+      (ventana - 276) / 4; para que no baje de los 200 px que la orden fija hace falta una
+      ventana de 1076 px. El corte se pone en 1100: ahi cada columna da 206 px. Entre 700 y
+      1099 px son DOS -a 768 px, 348 px cada una- y por debajo de 700, UNA.
+   ⚠️ Y SON MEDIA QUERIES EXPLICITAS Y NO `auto-fit`: con `auto-fit` el punto de quiebre depende
+      del ancho que le quede a la tarjeta, y entonces «el ancho donde las columnas bajan de
+      200 px» deja de ser medible. Es la leccion que PANT-4 pago con una barra horizontal a
+      900 px exactos. */
+#dpt-cols{display:grid;grid-template-columns:minmax(0,1fr);gap:10px;align-items:start;
+  margin-bottom:10px;}
+#dpt-cols .dpt-col{min-width:0;}
+@media (min-width:700px){
+  #dpt-cols{grid-template-columns:repeat(2,minmax(0,1fr));}
+}
+@media (min-width:1100px){
+  #dpt-cols{grid-template-columns:repeat(4,minmax(0,1fr));}
+}
 #hemo-forr-fila{display:block;}
 #hemo-forr-datos{min-width:0;}
 #hemo-forr-graf{margin-top:10px;}
@@ -10915,86 +10941,113 @@ window.cerrarSesionReal = cerrarSesionReal;
   <div class="card">
     <div class="card-body">
 
-      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:0 0 6px;">1 · Cuantificación del derrame</div>
-      <div class="calc-box" style="margin-bottom:10px;">
-        <div class="calc-row">
-          <span class="calc-lbl">Tamaño — del campo «Pericardio» (tab 🗂️ Otros)</span>
-          <span id="dpt-tam-eco" style="font-weight:700;">—</span>
+      <!-- == LOS CAMPOS EN CUATRO COLUMNAS POR TEMA (PANT-5, commit 4, 2026-11-03) ===========
+           Pedido del medico del 01/11/2026. El reparto es el que la orden fija, y los QUINCE
+           campos de la seccion entran en las cuatro columnas sin que sobre ni falte ninguno
+           -censado uno por uno antes de mover nada-:
+             (1) cuantificacion del derrame : dpt_local, dpt_mm_post, dpt_mm_lat, dpt_mm_ant,
+                                              dpt_libre, dpt_fibrina, dpt_hemo
+             (2) colapso de cavidades       : dpt_col_ad, dpt_col_ad_dur, dpt_col_vd,
+                                              dpt_col_ai, dpt_col_vi
+             (3) VCI y lo que viene de otras pestanias : dpt-tam-eco (de «Otros»), dpt-vci-eco y
+                                              dpt-vcicol-eco (de «VD / AD»)
+             (4) variacion respiratoria     : resp_var_mitral, resp_var_tric, dpt_var_ao,
+                                              dpt_var_pulm, dpt_swinging
+           ⚠️ EL TAMANIO DEL DERRAME ESTABA EN EL GRUPO 1 Y PASA AL 3, y es lo que las dos
+              definiciones de la orden piden a la vez: la columna 1 se define por sus tres
+              subgrupos EDITABLES -localizacion, medidas, caracteristicas- y la 3 por «los datos
+              que vienen de otras pestanias», que es exactamente lo que ese campo es. No se
+              movio su valor, su dueno ni su pintor.
+           ⚠️ LOS CORTES VAN SOBRE LA VENTANA Y SON DOS, NO UNO. Con `auto-fit` el punto de
+              quiebre depende del ancho que le quede a la tarjeta y entonces «por debajo del
+              ancho donde las columnas bajan de 200 px» deja de ser medible: es la leccion que
+              PANT-4 pago con una barra horizontal a 900 px exactos. Medido: el ancho util de
+              esta seccion es la ventana menos 246 px, asi que con cuatro columnas y 10 px de
+              hueco cada una mide (ventana-276)/4; para que no baje de 200 hace falta una
+              ventana de 1076 px, y el corte se pone en 1100. Entre 700 y 1099 px son DOS
+              columnas -a 768 px dan 348 px cada una- y por debajo de 700, UNA. -->
+      <div id="dpt-cols">
+        <div class="dpt-col">
+          <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:0 0 6px;">1 · Cuantificación del derrame</div>
+          <div class="fg"><label>Localización</label>
+            <select id="dpt_local" onchange="dptCambio()">
+              <option value="">— no evaluada —</option>
+              <option value="circ">Circunferencial</option>
+              <option value="post">Posterior</option>
+              <option value="ant">Anterior</option>
+              <option value="locul">Loculado</option>
+              <option value="mixto">Mixto</option>
+            </select>
+          </div>
+          <div style="font-size:11px;font-weight:700;color:var(--text);margin:8px 0 2px;">Medición en diástole (mm)</div>
+          <div class="fg"><label>Posterior</label><input type="number" id="dpt_mm_post" placeholder="mm" oninput="dptSync()" onchange="dptCambio()"></div>
+          <div class="fg"><label>Lateral</label><input type="number" id="dpt_mm_lat" placeholder="mm" oninput="dptSync()" onchange="dptCambio()"></div>
+          <div class="fg"><label>Anterior</label><input type="number" id="dpt_mm_ant" placeholder="mm" oninput="dptSync()" onchange="dptCambio()"></div>
+          <!-- «Loculado» NO se repite acá: ya es una opción de Localización, y el mismo hecho en dos
+               campos independientes deja que un estudio se conteste distinto a sí mismo. -->
+          <div style="font-size:11px;font-weight:700;color:var(--text);margin:8px 0 2px;">Características</div>
+          <label style="display:flex;align-items:center;gap:6px;font-size:12px;margin:2px 0;"><input type="checkbox" id="dpt_libre" onchange="dptCambio()"> Libre</label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:12px;margin:2px 0;"><input type="checkbox" id="dpt_fibrina" onchange="dptCambio()"> Con fibrina</label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:12px;margin:2px 0;"><input type="checkbox" id="dpt_hemo" onchange="dptCambio()"> Hemopericardio</label>
         </div>
-      </div>
-      <div class="grid-2" style="margin-bottom:10px;">
-        <div class="fg"><label>Localización</label>
-          <select id="dpt_local" onchange="dptCambio()">
-            <option value="">— no evaluada —</option>
-            <option value="circ">Circunferencial</option>
-            <option value="post">Posterior</option>
-            <option value="ant">Anterior</option>
-            <option value="locul">Loculado</option>
-            <option value="mixto">Mixto</option>
-          </select>
-        </div>
-      </div>
-      <div style="font-size:11px;font-weight:700;color:var(--text);margin:6px 0 2px;">Medición en diástole (mm)</div>
-      <div class="grid-3" style="margin-bottom:10px;">
-        <div class="fg"><label>Posterior</label><input type="number" id="dpt_mm_post" placeholder="mm" oninput="dptSync()" onchange="dptCambio()"></div>
-        <div class="fg"><label>Lateral</label><input type="number" id="dpt_mm_lat" placeholder="mm" oninput="dptSync()" onchange="dptCambio()"></div>
-        <div class="fg"><label>Anterior</label><input type="number" id="dpt_mm_ant" placeholder="mm" oninput="dptSync()" onchange="dptCambio()"></div>
-      </div>
-      <!-- «Loculado» NO se repite acá: ya es una opción de Localización, y el mismo hecho en dos
-           campos independientes deja que un estudio se conteste distinto a sí mismo. -->
-      <div style="font-size:11px;font-weight:700;color:var(--text);margin:6px 0 2px;">Características</div>
-      <label style="display:flex;align-items:center;gap:6px;font-size:12px;margin:2px 0;"><input type="checkbox" id="dpt_libre" onchange="dptCambio()"> Libre</label>
-      <label style="display:flex;align-items:center;gap:6px;font-size:12px;margin:2px 0;"><input type="checkbox" id="dpt_fibrina" onchange="dptCambio()"> Con fibrina</label>
-      <label style="display:flex;align-items:center;gap:6px;font-size:12px;margin:2px 0;"><input type="checkbox" id="dpt_hemo" onchange="dptCambio()"> Hemopericardio</label>
 
-      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:14px 0 6px;">2 · Colapso de cavidades</div>
-      <div class="grid-2" style="margin-bottom:10px;">
-        <div class="fg"><label>Colapso AD — diastólico (Tabla 17)</label>
-          <select id="dpt_col_ad" onchange="dptCambio()"><option value="">— no evaluado —</option><option value="no">Ausente</option><option value="si">Presente</option></select>
+        <div class="dpt-col">
+          <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:0 0 6px;">2 · Colapso de cavidades</div>
+          <div class="fg"><label>Colapso AD — diastólico (Tabla 17)</label>
+            <select id="dpt_col_ad" onchange="dptCambio()"><option value="">— no evaluado —</option><option value="no">Ausente</option><option value="si">Presente</option></select>
+          </div>
+          <!-- La duracion del colapso auricular derecho es la fila de MAYOR especificidad de la
+               Tabla 17 (100 %) y no tenia donde cargarse. Va como fraccion del ciclo, que es como la
+               guia la escribe -«as a ratio of the cardiac cycle length»-, no como porcentaje. -->
+          <div class="fg"><label>Duración del colapso AD (fracción del ciclo) — significativa &gt;<span id="dpt-lbl-addur">0,34</span></label>
+            <input type="number" id="dpt_col_ad_dur" step="0.01" placeholder="0–1" oninput="dptSync()" onchange="dptCambio()"></div>
+          <div class="fg"><label>Colapso VD — diastólico (más específico)</label>
+            <select id="dpt_col_vd" onchange="dptCambio()"><option value="">— no evaluado —</option><option value="no">Ausente</option><option value="si">Presente</option></select>
+          </div>
+          <div class="fg"><label>Colapso AI — alta especificidad, raro</label>
+            <select id="dpt_col_ai" onchange="dptCambio()"><option value="">— no evaluado —</option><option value="no">Ausente</option><option value="si">Presente</option></select>
+          </div>
+          <div class="fg"><label>Colapso VI — muy raro, taponamiento grave</label>
+            <select id="dpt_col_vi" onchange="dptCambio()"><option value="">— no evaluado —</option><option value="no">Ausente</option><option value="si">Presente</option></select>
+          </div>
         </div>
-        <!-- La duracion del colapso auricular derecho es la fila de MAYOR especificidad de la
-             Tabla 17 (100 %) y no tenia donde cargarse. Va como fraccion del ciclo, que es como la
-             guia la escribe -«as a ratio of the cardiac cycle length»-, no como porcentaje. -->
-        <div class="fg"><label>Duración del colapso AD (fracción del ciclo) — significativa &gt;<span id="dpt-lbl-addur">0,34</span></label>
-          <input type="number" id="dpt_col_ad_dur" step="0.01" placeholder="0–1" oninput="dptSync()" onchange="dptCambio()"></div>
-        <div class="fg"><label>Colapso VD — diastólico (más específico)</label>
-          <select id="dpt_col_vd" onchange="dptCambio()"><option value="">— no evaluado —</option><option value="no">Ausente</option><option value="si">Presente</option></select>
+
+        <div class="dpt-col">
+          <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:0 0 6px;">3 · VCI y datos de otras pestañas</div>
+          <div class="calc-box">
+            <div class="calc-row">
+              <span class="calc-lbl">Tamaño — del campo «Pericardio» (tab 🗂️ Otros)</span>
+              <span id="dpt-tam-eco" style="font-weight:700;">—</span>
+            </div>
+            <div class="calc-row"><span class="calc-lbl">VCI — diámetro (tab VD/AD)</span><span id="dpt-vci-eco" style="font-weight:700;">—</span></div>
+            <div class="calc-row"><span class="calc-lbl">Colapso inspiratorio VCI (tab VD/AD)</span><span id="dpt-vcicol-eco" style="font-weight:700;">—</span></div>
+          </div>
         </div>
-        <div class="fg"><label>Colapso AI — alta especificidad, raro</label>
-          <select id="dpt_col_ai" onchange="dptCambio()"><option value="">— no evaluado —</option><option value="no">Ausente</option><option value="si">Presente</option></select>
-        </div>
-        <div class="fg"><label>Colapso VI — muy raro, taponamiento grave</label>
-          <select id="dpt_col_vi" onchange="dptCambio()"><option value="">— no evaluado —</option><option value="no">Ausente</option><option value="si">Presente</option></select>
+
+        <div class="dpt-col">
+          <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:0 0 6px;">4 · Variación respiratoria</div>
+          <!-- Los dos primeros los COMPARTE la tab «Constricción vs Restricción», que los muestra
+               en espejo: es una sola medición, no dos. -->
+          <div class="fg"><label>Variación respiratoria E mitral (%) — significativa &gt;<span id="dpt-lbl-mitral">25</span>%</label>
+            <input type="number" id="resp_var_mitral" placeholder="%" oninput="dptSync();cvrSync();" onchange="dptCambio();cvrSync();"></div>
+          <div class="fg"><label>Variación respiratoria E tricúspide (%) — significativa &gt;<span id="dpt-lbl-tric">40</span>%</label>
+            <input type="number" id="resp_var_tric" placeholder="%" oninput="dptSync();cvrSync();" onchange="dptCambio();cvrSync();"></div>
+          <div class="fg"><label>Variación VTI aórtico (%)</label>
+            <input type="number" id="dpt_var_ao" placeholder="%" oninput="dptSync()" onchange="dptCambio()"></div>
+          <div class="fg"><label>Variación VTI pulmonar (%)</label>
+            <input type="number" id="dpt_var_pulm" placeholder="%" oninput="dptSync()" onchange="dptCambio()"></div>
+          <label style="display:flex;align-items:center;gap:6px;font-size:12px;margin:6px 0 2px;"><input type="checkbox" id="dpt_swinging" onchange="dptCambio()"> Swinging heart</label>
         </div>
       </div>
 
-      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:14px 0 6px;">3 · VCI y variación respiratoria</div>
-      <div class="calc-box" style="margin-bottom:10px;">
-        <div class="calc-row"><span class="calc-lbl">VCI — diámetro (tab VD/AD)</span><span id="dpt-vci-eco" style="font-weight:700;">—</span></div>
-        <div class="calc-row"><span class="calc-lbl">Colapso inspiratorio VCI (tab VD/AD)</span><span id="dpt-vcicol-eco" style="font-weight:700;">—</span></div>
-      </div>
-      <!-- Los dos primeros los COMPARTE la tab «Constricción vs Restricción», que los muestra
-           en espejo: es una sola medición, no dos. -->
-      <div class="grid-2" style="margin-bottom:10px;">
-        <div class="fg"><label>Variación respiratoria E mitral (%) — significativa &gt;<span id="dpt-lbl-mitral">25</span>%</label>
-          <input type="number" id="resp_var_mitral" placeholder="%" oninput="dptSync();cvrSync();" onchange="dptCambio();cvrSync();"></div>
-        <div class="fg"><label>Variación respiratoria E tricúspide (%) — significativa &gt;<span id="dpt-lbl-tric">40</span>%</label>
-          <input type="number" id="resp_var_tric" placeholder="%" oninput="dptSync();cvrSync();" onchange="dptCambio();cvrSync();"></div>
-        <div class="fg"><label>Variación VTI aórtico (%)</label>
-          <input type="number" id="dpt_var_ao" placeholder="%" oninput="dptSync()" onchange="dptCambio()"></div>
-        <div class="fg"><label>Variación VTI pulmonar (%)</label>
-          <input type="number" id="dpt_var_pulm" placeholder="%" oninput="dptSync()" onchange="dptCambio()"></div>
-      </div>
-      <label style="display:flex;align-items:center;gap:6px;font-size:12px;margin:2px 0;"><input type="checkbox" id="dpt_swinging" onchange="dptCambio()"> Swinging heart</label>
-
-      <!-- ══ EL MODULO DESCRIBE Y NO CONCLUYE (R6, 2026-10-20) ═══════════════════════════════
+<!-- ══ EL MODULO DESCRIBE Y NO CONCLUYE (R6, 2026-10-20) ═══════════════════════════════
            «4 · Conclusión» pasa a «4 · Descripción» y «Valoración hemodinámica» a «Signos
            presentes»: la regla de «tres criterios = taponamiento» se retiro -ESC 2025 de
            miocarditis y pericarditis, Tabla 17, pagina 62: el diagnostico es CLINICO con
            confirmacion por ecocardiografia, y ninguna guia fija un numero de signos de eco- y lo
            que el modulo publica es la lista de lo que esta presente. Quien decide es el medico,
            con el campo «con o sin compromiso hemodinámico» de la pestaña Otros. -->
-      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:14px 0 6px;">4 · Descripción</div>
+      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:14px 0 6px;">5 · Descripción</div>
       <div class="calc-box">
         <div class="calc-row"><span class="calc-lbl" style="font-weight:700;">Signos presentes</span><span id="dpt-concl-badge" style="font-weight:700;">—</span></div>
         <div id="dpt-concl" style="font-size:12px;line-height:1.6;color:var(--text);margin-top:6px;"></div>

@@ -105,6 +105,20 @@ const ESCENAS = {
   p5vdTodo:  { campos: { tep_vdvi:'1.30', tapse:'10', vmax_it:'4.2' },
                sel:{ it_grado:'4', tep_mcconnell:'si', tep_tabique_d:'si' } },
   p5vdAjeno: { campos: { ai_diam:'38', siv:'11' } },
+  /* -- PANT-5, COMMIT 4: DERRAME PERICARDICO Y TAPONAMIENTO --
+     p5dpt lleva los QUINCE campos de la seccion cargados, que es la unica forma de que su
+     descripcion y su linea de papel existan. p5dptVacio es el control negativo. */
+  p5dptVacio: { campos: {} },
+  p5dpt: { campos: { dpt_mm_post:'18', dpt_mm_lat:'12', dpt_mm_ant:'9', dpt_col_ad_dur:'0.45',
+                     resp_var_mitral:'30', resp_var_tric:'45', dpt_var_ao:'22', dpt_var_pulm:'18',
+                     },
+           /* ⚠️ EL TAMANIO DEL DERRAME SALE DEL SELECTOR `pericardio` DE LA PESTANIA OTROS, y su
+              valor es el TEXTO de la opcion, no una clave. La primera version de esta escena
+              ponia `peri_derrame:'moderado'` -un id que no existe- y el informe salia IDENTICO
+              al de la escena vacia: «Sin derrame pericardico ni masas intracardiacas», con el
+              badge en «SIN DERRAME». Un denominador vacio, no un cero. */
+           sel: { pericardio:'Derrame moderado (10-20mm)', dpt_local:'circ', dpt_col_ad:'si', dpt_col_vd:'si', dpt_col_ai:'no', dpt_col_vi:'no' },
+           chk: ['dpt_libre','dpt_swinging'] },
   /* -- ESTENOSIS SUBAORTICA --
      s1 es EL CASO DEL MEDICO: tipo membrana, insuficiencia aortica moderada, SIN gradientes. */
   s1:    { campos: S({}), sel:{ esub_tipo:'membrana', esub_ia_asociada:'moderada' }, chk:['esub_incluir_chk'] },
