@@ -68,14 +68,13 @@ MUT = [
   "  if (false)"),
 
  ('TC-640', '09 el grafico vuelve a quedar debajo de los datos y no al lado',
-  "#hemo-forr-fila{display:block;}\n#hemo-forr-datos{min-width:0;}",
-  "#hemo-forr-fila-x{display:block;}\n#hemo-forr-datos{min-width:0;}"),
+  "@media (min-width:900px){\n  #hemo-forr-fila{display:flex;gap:12px;align-items:flex-start;}",
+  "@media (min-width:900px){\n  #hemo-forr-fila{display:block;}"),
 
  # ── commit 3 · la conclusion de las dos estenosis ──────────────────────────────
- ('TC-640', '10 la pastilla vuelve a nombrar la guia',
-  "  if (r.gradua) fila('Gradiente medio', pill(r.severa ? 'red' : 'green', r.medio + ' mmHg' + (r.severa ? ' — severa' : ' — no severa')));\n}\nwindow.esubSync = esubSync;",
-  "  if (r.gradua) fila('Gradiente medio', pill(r.severa ? 'red' : 'green', r.medio + ' mmHg' + (r.severa ? ' — severa (ESC 2020)' : ' — no severa')));\n}\nwindow.esubSync = esubSync;"),
-
+ ('TC-640', '10 la conclusion de la subaortica vuelve a publicar el criterio de la guia',
+  "     criterio con su hoja y su folio sigue en esub-grad.",
+  "     criterio con su hoja y su folio sigue en esub-grad. */\n  if (severa) alertas.push({ txt:'Gradiente medio de ' + medio + ' mmHg \u2014 por el criterio de la ESC 2020 (medio \u2265' + ESUB_MEDIO_SEVERO + ' mmHg a flujo normal).' });\n  /* x"),
  ('TC-640', '11 la interpretacion vuelve a pegarse al hallazgo',
   "    txt:'Insuficiencia aórtica ' + ESUB_IA_TXT[ia] + ' asociada.' });",
   "    txt:'Insuficiencia aórtica ' + ESUB_IA_TXT[ia] + ' asociada — marcador de severidad.' });"),
@@ -93,10 +92,9 @@ MUT = [
   "@media (min-width:1100px){\n  #dpt-cols{grid-template-columns:repeat(4,minmax(0,1fr));}\n}",
   "@media (min-width:1100px){\n  #dpt-cols{grid-template-columns:minmax(0,1fr);}\n}"),
 
- ('TC-641', '15 el tamanio del derrame vuelve a la primera columna',
-  '              <span class="calc-lbl">Tamaño — del campo «Pericardio» (tab \U0001f5c2️ Otros)</span>',
-  '              <span class="calc-lbl">Tam — del campo (movido)</span>'),
-
+ ('TC-641', '15 el tamanio del derrame sale de la tercera columna',
+  '          <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:0 0 6px;">3 \u00b7 VCI y datos de otras pesta\u00f1as</div>\n          <div class="calc-box">\n            <div class="calc-row">\n              <span class="calc-lbl">Tama\u00f1o \u2014 del campo \u00abPericardio\u00bb (tab \U0001f5c2\ufe0f Otros)</span>\n              <span id="dpt-tam-eco" style="font-weight:700;">\u2014</span>\n            </div>',
+  '          <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:0 0 6px;">3 \u00b7 VCI y datos de otras pesta\u00f1as</div>\n          <span id="dpt-tam-eco" style="display:none;">\u2014</span>\n          <div class="calc-box">'),
  ('TC-641', '16 el corte del derrame deja de ir sobre la ventana',
   "#dpt-cols{display:grid;grid-template-columns:minmax(0,1fr);gap:10px;align-items:start;\n  margin-bottom:10px;}",
   "#dpt-cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;align-items:start;\n  margin-bottom:10px;}"),
@@ -160,9 +158,8 @@ MUT = [
   "volumen regurgitante por debajo de 45 ml, sin consecuencias hemodinámicas ni síntomas.' + F"),
 
  ('TC-643', '30 DE MAS: el estadio se cuela al informe firmado',
-  "function _indEstFila(e){\n  if (!e) return null;",
-  "function _indEstFila(e){\n  if (!e) return null;\n  try{var _i=document.getElementById('informe_texto'); if(_i) _i.value += ' Estadio ' + e.txt;}catch(x){}"),
-
+  "function _indEstFila(e){\n  if (!e) return null;\n  return _indFila('Estadio (AHA/ACC 2020)', e.txt,",
+  "function _indEstFila(e){\n  if (!e) return null;\n  try{ window.__estFuga = (window.__estFuga||'') + ' Estadio ' + e.txt;\n    const _o = window.generarInforme;\n    if (_o && !window.__estPar){ window.__estPar = 1; window.generarInforme = function(){ const r = _o.apply(this, arguments);\n      try{ const t = document.getElementById('informe_texto'); if (t) t.value += window.__estFuga; }catch(x){} return r } } }catch(x){}\n  return _indFila('Estadio (AHA/ACC 2020)', e.txt,"),
  ('TC-643', '31 la fuente pierde su folio en una de las cuatro tablas',
   "  const F = ' (Tabla 20, hoja 61, folio e132)';",
   "  const F = ' (Tabla 20, hoja 61)';"),

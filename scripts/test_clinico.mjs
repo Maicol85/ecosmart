@@ -110420,6 +110420,15 @@ caso('TC-639', 'Tanda PANT-5: el dibujo de sobrecarga del VD - solo lectura, mud
   ex.push(['(C3) el rotulo del septum esta', T.indexOf('desplazado') > -1, true]);
   ex.push(['(C4) el TAPSE escrito esta, con su unidad', T.indexOf('10 mm') > -1, true]);
   ex.push(['(C5) la velocidad maxima de la IT esta', T.indexOf('4,2 m/s') > -1, true]);
+  /* CONTROL NEGATIVO: sin insuficiencia tricuspidea cargada, la velocidad maxima NO se escribe
+     -una velocidad sin la lesion que la produce es un numero sin sujeto-. Nacio del barrido de
+     mutaciones: sin esto, aflojar la compuerta a «hay velocidad» pasaba en verde. */
+  __t.set('it_grado', '0');
+  try { vdscSync(); vdscFase(0.40); } catch (e) {}
+  ex.push(['(C6) CONTROL: sin insuficiencia tricuspidea la velocidad maxima no se escribe',
+    textosVis().join(' | ').indexOf('m/s') > -1, false]);
+  __t.set('it_grado', '4');
+  try { vdscSync(); vdscFase(0.40); } catch (e) {}
   /* (D) LA RAYA DE 17 mm VA SIN NUMERO: es decision del medico y la demo lo escribia. */
   ex.push(['(D1) la raya de referencia no lleva su numero', /(^|[^0-9,])17([^0-9,]|$)/.test(T), false]);
   /* (E) SOLO LECTURA: ni una sincronizacion ni seis fases mueven un campo del estudio. */
@@ -110534,6 +110543,22 @@ caso('TC-640', 'Tanda PANT-5: el Forrester con un solo mensaje y la conclusion d
 caso('TC-641', 'Tanda PANT-5: las tres pantallas reordenadas - derrame en cuatro columnas, Fallot en tres y constriccion de a dos', `
   const EXP = [];
   const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]), 'esperado ' + String(t[2]) + ' | hallado ' + String(t[1])]) };
+  /* ⚠️ EL VALOR DECLARADO ES repeat(N, minmax(0,1fr)), con UN SOLO «1fr»: contar los «1fr»
+     da 1 para cualquier N. El numero de columnas sale del repeat, y si no lo hay, de las
+     pistas sueltas. Costo una corrida. */
+  /* ⚠️ EL VALOR DECLARADO ES repeat(N, minmax(0,1fr)), con UN SOLO 1fr: contar los 1fr da 1
+     para cualquier N. El numero sale del repeat, y SIN NINGUNA EXPRESION REGULAR: una barra
+     invertida simple no sobrevive al template literal de un caso -medido en esta misma tanda,
+     /repeat((d+)/ llego al navegador sin su escape y murio con «Unterminated group»-. */
+  const nCols = (v) => { const t = String(v).trim(); if (!t) return -1;
+    const k = t.indexOf('repeat(');
+    if (k > -1) { let n = ''; for (let z = k + 7; z < t.length; z++) {
+      const ch = t[z]; if (ch >= '0' && ch <= '9') n += ch; else break }
+      return n ? parseInt(n, 10) : -1 }
+    let prof = 0, piezas = 1;
+    for (const ch of t) { if (ch === '(') prof++; else if (ch === ')') prof--;
+      else if (ch === ' ' && prof === 0) piezas++ }
+    return piezas };
   const regla = (sel, prop) => { let r = null;
     for (const hoja of Array.prototype.slice.call(document.styleSheets)) {
       let rs = null; try { rs = hoja.cssRules } catch (e) { continue }
@@ -110561,6 +110586,12 @@ caso('TC-641', 'Tanda PANT-5: las tres pantallas reordenadas - derrame en cuatro
   const rDpt = regla('#dpt-cols', 'grid-template-columns');
   ex.push(['(A5) el corte de las cuatro columnas va sobre la VENTANA',
     rDpt && /min-width:\\s*1100px/.test(String(rDpt.media)), true]);
+  /* Y EL VALOR, no solo la media query: sin esto, cambiar el reparto a UNA columna dentro del
+     mismo corte pasaba en verde. Nacio del barrido de mutaciones. */
+  ex.push(['(A5b) y ahi reparte CUATRO columnas',
+    rDpt ? nCols(rDpt.v) : -1, 4]);
+  ex.push(['(A5c) y no usa auto-fit, que haria el corte no medible',
+    /auto-fit|auto-fill/.test(String((rDpt || {}).v)), false]);
   ex.push(['(A6) y la descripcion queda FUERA de la grilla',
     (() => { const d = document.getElementById('dpt-concl'); return !!(d && dc && !dc.contains(d)) })(), true]);
   /* (B) FALLOT: tres columnas por tema, con los quince campos repartidos 4 / 6 / 5. */
@@ -110581,6 +110612,8 @@ caso('TC-641', 'Tanda PANT-5: las tres pantallas reordenadas - derrame en cuatro
   const rTdf = regla('#tdf-cols', 'grid-template-columns');
   ex.push(['(B5) el corte de las tres columnas va sobre la VENTANA, en 700 px',
     rTdf && /min-width:\\s*700px/.test(String(rTdf.media)), true]);
+  ex.push(['(B5b) y ahi reparte TRES columnas',
+    rTdf ? nCols(rTdf.v) : -1, 3]);
   const rFila = regla('#tdf-fila', 'grid-template-columns');
   ex.push(['(B6) y la conclusion pasa a la derecha desde 1200 px, no desde 900',
     rFila && /min-width:\\s*1200px/.test(String(rFila.media)), true]);
@@ -110597,6 +110630,8 @@ caso('TC-641', 'Tanda PANT-5: las tres pantallas reordenadas - derrame en cuatro
   const rCvr = regla('#cvr-campos-grid', 'grid-template-columns');
   ex.push(['(C5) el corte va sobre la VENTANA, en 700 px',
     rCvr && /min-width:\\s*700px/.test(String(rCvr.media)), true]);
+  ex.push(['(C5b) y ahi reparte DOS columnas',
+    rCvr ? nCols(rCvr.v) : -1, 2]);
   /* (D) EL PAPEL NO SE MUEVE POR NINGUNA DE LAS TRES: ninguna es un dato. */
   __t.limpiar();
   __t.set('pericardio', 'Derrame moderado (10-20mm)');
