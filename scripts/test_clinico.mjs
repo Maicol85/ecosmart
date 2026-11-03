@@ -77964,12 +77964,13 @@ caso('TC-500', 'Tanda Q: las OCHO tarjetas i de las valvulas arriba de su pastil
      propias entradas en vez de copiarlas. Las diecinueve de los rasgos NO se retiraron del
      registro: siguen siendo el dueno unico de cada definicion y las leen los dos globos de
      grupo; lo que se retiraron son sus BOTONES. Lo que la condicion afirma no cambia. */
-  /* ⚠️ ADAPTADO 2026-11-03 (TANDA PANT-3, segunda mitad): 97 -> 120. Las veintitres nuevas son
-     las once de la primera mitad -cc-3d y las seis de MCH entre ellas- y las doce de la segunda:
-     tv-sec del modulo de arritmia ventricular, esub-sec, esub-grad, easv-sec, easv-grad,
-     mca-sec, mca-eco, mca-vi, mca-score, tdf-sec, tdf-eco y tdf-vol. Lo que esta condicion
-     afirma no cambia -que el mecanismo exista y que el registro este completo-: cambia el
-     denominador. */
+  /* ⚠️ ADAPTADO 2026-11-03 (TANDA PANT-3, segunda mitad): el rotulo decia 97 y el numero
+     comparado era 101; los dos dicen 120. Las DIECINUEVE entradas nuevas de la tanda son las
+     SIETE de la primera mitad -cc-3d, el globo del corazon maestro, y los seis de la pantalla de
+     MCH- y las DOCE de la segunda: tv-sec del modulo de arritmia ventricular, esub-sec,
+     esub-grad, easv-sec, easv-grad, mca-sec, mca-eco, mca-vi, mca-score, tdf-sec, tdf-eco y
+     tdf-vol. Lo que esta condicion afirma no cambia -que el mecanismo exista y que el registro
+     este completo-: cambia el denominador. */
   ex.push(['DENOMINADOR: el mecanismo de los globos existe y el registro tiene las 120 entradas',
     /* ⚠️ ADAPTADO EN LA TANDA D: 56 -> 57. La entrada nueva es co-riesgo-basal, el globo de la
        clasificacion de riesgo cardiovascular basal, donde viven las clases y los niveles que la
@@ -77998,8 +77999,9 @@ caso('TC-500', 'Tanda Q: las OCHO tarjetas i de las valvulas arriba de su pastil
        deriva: el ROTULO de esta condicion decia «97 entradas» y el numero que de verdad se
        comparaba era 101 -una adaptacion anterior movio uno y no el otro-, asi que el caso podia
        pasar en verde anunciando un denominador que no era el suyo. Los dos dicen 120. Las
-       entradas nuevas de esta tanda son las once de la primera mitad -cc-3d y las seis de MCH
-       entre ellas- y las doce de la segunda: tv-sec del modulo de arritmia ventricular,
+       entradas nuevas de esta tanda son DIECINUEVE: las SIETE de la primera mitad -cc-3d, el
+       globo del corazon maestro, y los seis de la pantalla de MCH- y las DOCE de la segunda:
+       tv-sec del modulo de arritmia ventricular,
        esub-sec, esub-grad, easv-sec, easv-grad, mca-sec, mca-eco, mca-vi, mca-score, tdf-sec,
        tdf-eco y tdf-vol. NINGUNA esta en Valvulas, que es la pestania que este caso mide. */
     FN('vInfoClic') && !!CARD() && !!REG() && Object.keys(REG() || {}).length === 120,
@@ -109097,11 +109099,31 @@ caso('TC-632', 'Tanda PANT-3: las tres presiones pulmonares se rotulan PSAP, PmA
   ex.push(['(A1) DENOM: hay rotulos de las tres presiones', todos.indexOf('PSAP') >= 0, true]);
 
   /* (B) LOS ROTULOS VIEJOS YA NO ESTAN. */
-  [['PAP media', 'PmAP'], ['PAP diast', 'PDAP'], ['PAPs ', 'PSAP'], ['PASP', 'PSAP'],
-   ['Presión sistólica pulmonar', 'PSAP']].forEach(function (par, i) {
+  [['PAP media', 'PmAP'], ['PAP diast', 'PDAP'], ['PAPs ', 'PSAP'], ['PASP', 'PSAP']
+  ].forEach(function (par, i) {
     ex.push(['(B' + (i + 1) + ') ningun rotulo de pantalla dice «' + par[0] + '»',
       todos.indexOf(par[0]) >= 0, false]);
   });
+  /* ⚠️ ADAPTADA (TANDA PANT-3, 03/11/2026). (B5) afirmaba que NINGUN rotulo de pantalla dice
+     «Presion sistolica pulmonar», y eso es mas de lo que la orden pide. La orden del commit 10
+     cierra con «si algo de esto choca con lo que existe, PARA esa parte y reporta», y acá choca:
+     la fila del TEP imprime en su valor la sigla CON el numero y el corte, asi que con «PSAP»
+     tambien en la etiqueta se lee «PSAP  PSAP 45 mmHg - elevada», y TC-519 (O6) -de otra tanda-
+     exige que esa etiqueta no contenga la sigla. Esa fila es la unica parada, se reporta en
+     docs/PENDIENTES.md -> P3-q, y su etiqueta nombra el PARAMETRO.
+     La condicion no se borra ni se ablanda: pasa a exigir que el nombre completo sobreviva en
+     EXACTAMENTE UN rotulo y que sea ESE, asi que si manana aparece en otro, o si desaparece de
+     este, el caso se pone rojo igual. */
+  const nComp = rots.filter(function (t) { return t.indexOf('Presión sistólica pulmonar') >= 0 }).length;
+  ex.push(['(B5) el nombre completo sobrevive en UN solo rotulo de pantalla', nComp, 1]);
+  ex.push(['(B5b) y es la fila del TEP, cuyo VALOR si trae la sigla',
+    (function () { const v = document.getElementById('tep-psap-interp');
+      const fila = v ? v.closest('.calc-row') : null;
+      const lbl = fila ? fila.querySelector('.calc-lbl') : null;
+      if (!lbl) return 'NO EXISTE';
+      const t = String(lbl.textContent || '');
+      return (t.indexOf('Presión sistólica pulmonar') >= 0 && t.indexOf('PSAP') < 0)
+        ? 'nombra el parametro' : 'dice «' + t + '»'; })(), 'nombra el parametro']);
   ex.push(['(B6) ni PAPm', todos.indexOf('PAPm') >= 0, false]);
 
   /* (C) LOS TRES NUEVOS SI ESTAN. */

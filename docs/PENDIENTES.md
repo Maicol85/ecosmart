@@ -199,6 +199,61 @@ La orden del commit 10 manda no tocar los ambiguos y reportarlos.
 | «PAPs estimada (mmHg)» del ductus | generador de la ficha del papel | ídem |
 | «PAP media (mmHg)» | **encabezado del Excel** | la orden prohíbe cambiar encabezados |
 
+## P3-q · [CERRADO 2026-11-03 · PANT3-12] La fila del TEP decía la sigla dos veces
+
+> **Cerrado.** La fila se leía **«PSAP  PSAP 45 mmHg — elevada (≥60 mmHg)»**: el `span` de al lado
+> escribe la sigla **con** su valor y su corte, así que poner «PSAP» también en la etiqueta la
+> decía dos veces. La regla del commit 10 es que el rótulo nombre el **parámetro** —y las dos
+> filas de arriba la cumplen porque su sigla, VD/VI y TAPSE, no es su nombre—, así que la
+> etiqueta dice **«Presión sistólica pulmonar»**. Lo fija **TC-519 (O6)**, que exige que la
+> etiqueta no contenga la sigla, y que es el caso que lo encontró. Los rótulos de la hoja del PDF
+> viven en `amiloTextoTEP` y no se tocaron.
+
+**Lo que queda para la próxima tanda:** la regla «el rótulo nombra el parámetro» choca con «la
+sigla se unifica» cada vez que el valor de la fila ya la trae. Hoy sólo pasaba en esa fila, pero
+no hay nada que lo impida en otra: **conviene un barrido de `calc-row` donde el texto del `span`
+empiece con la misma palabra que su `calc-lbl`**. No se hizo acá porque la orden no lo pide.
+
+## P3-r · El estilo de informe es estado de sesión, y TC-502 no lo devuelve
+
+Cerrando los rojos de la corrida completa apareció esto, **medido**: el bloque (E) de **TC-535**
+salía **verde aislado** —1/1, y también contra el árbol anterior en un worktree— y **rojo** en
+cuanto corría **después de TC-502**, que llama a `setEstiloInforme` y no lo restaura. Entonces su
+(E0) daba `0/0/0/0/0/0` y su (E7) `largo=0`: el informe se emitía en otro estilo, donde la oración
+del ventrículo derecho se redacta distinto, así que el filtro no encontraba ninguna línea. **El
+dato estaba y la condición no lo veía** — un denominador de cero, no un hallazgo. Es la misma
+clase de dependencia de orden que este repositorio ya documenta para **TC-507**, **TC-537** y
+**TC-547**.
+
+**Cerrado por el lado de TC-535**: su escena fija su propio estilo antes de emitir. Medido,
+`TC-502 + TC-535` pasa de **1/2 a 2/2**.
+
+**Lo que queda:** la causa sigue en pie. **TC-502 cambia el estilo y no lo devuelve**, así que
+cualquier caso posterior que mida el informe por su redacción es frágil. Son dos arreglos posibles
+y no se hizo ninguno porque la orden no los pide: que TC-502 restaure el estilo al salir —el
+patrón que ya usan los casos de la línea 50411—, o que el arnés lo restaure entre casos, que
+cerraría la familia entera de una vez.
+
+## P3-s · Dos sondas que leían `getComputedStyle` a mitad de una transición
+
+Los tres valores en cero que `_probe_pant3wk.mjs` informó en su primera corrida **no eran defectos
+de la app**: eran dos trampas de medición de la propia sonda, y las dos son transiciones de CSS
+leídas a mitad de camino. Están **cerradas** en `PANT3-13`:
+
+- **el relleno del botón de lesión.** `.tab-btn` lleva `transition: all 0.15s`, así que leer
+  `getComputedStyle` justo después del clic devuelve el valor **de partida**: la sonda informaba
+  «sin relleno» sobre el botón marcado, en los dos motores y en los cuatro anchos, que se lee como
+  «el commit 1 no pinta nada». Con 400 ms de espera el mismo botón da `rgb(62, 207, 142)`, que es
+  `var(--green)`. Hoy la sonda apaga la animación **antes** de tocar, y gana dos controles: que el
+  botón de CIV **no** se pinte con el clic en CIA, y que el relleno se vaya al desmarcar;
+- **el alto de la pantalla de MCH.** `.sacc-body` abre con `max-height` y una transición de 0,3 s,
+  y la sonda apagaba la transición **después** del clic: la sección informaba 46 o 70 px y el
+  máximo de campos por fila daba 0. Es la trampa que la tanda **AJ9** ya documenta.
+
+**Lo que queda:** el patrón «clic y leer el estilo computado en la misma pasada» puede estar en
+otras sondas de `scripts/`. No se barrieron: la orden acota el trabajo a esta tanda. **Antes de
+creerle a un cero de geometría o de color, apagar la transición y medir con su control negativo.**
+
 ## Tanda J · pericardio, constricción y VEXUS (2026-10-24) — DECLARADO y NO arreglado
 
 ### [CERRADO 2026-10-24 · AJ7-4a] J-a · Dos conductas siguen en el informe firmado de constricción y restricción

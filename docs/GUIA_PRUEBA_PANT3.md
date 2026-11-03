@@ -121,3 +121,8 @@ donde diga otra cosa.
     **«PAP media (mmHg)»** — los encabezados del Excel **no cambian**.
 42. **Control:** en la CIV, «PA sistémica (mmHg)» sigue igual: es presión **sistémica**, no
     pulmonar.
+43. En **Hemodinámica**, en el recuadro **«Criterios de sobrecarga del VD»** de la sección de
+    embolia pulmonar, cargá una PSAP alta. La fila tiene que leerse **«Presión sistólica
+    pulmonar · PSAP 45 mmHg — elevada (≥60 mmHg)»** y **no** «PSAP  PSAP 45 mmHg»: el rótulo
+    nombra el **parámetro** y el valor trae la sigla. Las dos filas de arriba —«Dilatación del
+    VD» y «Función sistólica del VD»— ya lo cumplían, porque su sigla no es su nombre.
