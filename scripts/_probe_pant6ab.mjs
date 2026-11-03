@@ -145,6 +145,11 @@ const ESCENAS = {
      «la frase no esta» de «la escena no llega a la zona».
      p6forrDos es el CONTROL NEGATIVO: con el indice cardiaco y la presion capilar cargados hay
      perfil y la frase no existe en ningun arbol. */
+  /* -- PANT-6, COMMIT 7: LA INSUFICIENCIA AORTICA SEVERA, que es lo unico que abre su seccion.
+     p6iaAjeno es el control: una valvula distinta, donde la seccion no existe. */
+  p6ia:      { campos: { peso:'70', talla:'170', fevi:'48', dsfvi:'52', ddfvi:'62' },
+               sel: { ia_grado:'4' } },
+  p6iaAjeno: { campos: { peso:'70', talla:'170', fevi:'60' }, sel: { ia_grado:'1' } },
   p6forrNada: { campos: { peso:'70', talla:'170' }, integrar:['hemo'] },
   p6forrIc:   { campos: { peso:'70', talla:'170', gasto_cardiaco:'3.2' }, integrar:['hemo'] },
   /* ⚠️ EL CONTROL NEGATIVO NECESITA EL INDICE CARDIACO DE VERDAD, y la primera version no lo

@@ -64199,8 +64199,12 @@ caso('TC-451', 'Evidencia: los dos ⓘ de termino abren su tarjeta completa y an
              gratis, que es lo que al corchete de una cita le costo una rama de teclado. ── */
       const ids = Object.keys(window.IND_TERMINOS).sort();
       const etqs = b0.map(b => b.getAttribute('aria-label'));
-      ex.push(['el registro tiene las TRES entradas y cada ⓘ es un <button> con aria-label PROPIO y distinto',
-        JSON.stringify(ids) === JSON.stringify(['cormier','emsintomas','score_eco']) &&
+      /* ADAPTADO POR PANT-6, commit 7: el registro pasa de TRES a CUATRO terminos con el globo
+         de los sintomas de la insuficiencia aortica. Y ese caso HIZO SU TRABAJO: la primera
+         version de los dos globos de sintomas compartia el aria-label «Que sintomas cuentan», o
+         sea la clave que hace que abrir uno no abra el otro. Hoy cada uno nombra su valvula. */
+      ex.push(['el registro tiene las CUATRO entradas y cada ⓘ es un <button> con aria-label PROPIO y distinto',
+        JSON.stringify(ids) === JSON.stringify(['cormier','emsintomas','iasintomas','score_eco']) &&
         b0.every(b => b.tagName === 'BUTTON' && b.getAttribute('aria-haspopup') === 'dialog') &&
         etqs.length === 3 && (new Set(etqs)).size === 3 && etqs.every(e => e && e.trim()),
         'ids=' + JSON.stringify(ids) + ' etiquetas=' + JSON.stringify(etqs) +

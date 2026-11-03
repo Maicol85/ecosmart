@@ -3459,6 +3459,8 @@ html.light-mode .amilo-root{
   display:grid;grid-template-columns:minmax(360px,1fr) minmax(360px,1fr);
   column-gap:18px;align-items:start;}
 #indic-card [data-ind-molde] .ind-pregcols > div{min-width:0;}
+#indic-card [data-ind-molde] .ind-pregcols-1,
+#indic-card [data-ind-molde][data-ind-cols="2"] .ind-pregcols-1{display:block;}
 /* ============================================================================================
    MORFOLOGIA Y MEDICIONES DE LA MITRAL EN TRES COLUMNAS  -  #etem-cols  (PANT-6, commit 4)
    ============================================================================================
@@ -86628,11 +86630,56 @@ const IND_TERMINOS = Object.freeze({
         tolerancia al ejercicio y la disnea de esfuerzo- y la ESC/EACTS NO los define: sus seis
         filas dicen «symptomatic» y «asymptomatic» a secas. Ningun corte se toca.
      ⚠️ TODO PARAFRASEADO EN ESPANIOL, sin copiar frases. */
+  /* ══ QUE SINTOMAS CUENTAN EN LA INSUFICIENCIA AORTICA (PANT-6, commit 7) ═════════════════
+     Misma regla que `emsintomas`: la orden pide que el globo diga QUE sintomas cuentan, leido
+     EN IMAGEN con su hoja y su folio, y que si las dos guias no dicen lo mismo se muestre la
+     diferencia sin resolverla.
+     LEIDO EN IMAGEN a 220 ppp el 2026-11-03, con el folio comprobado en el PIE IMPRESO de la
+     hoja -«February 2, 2021  e105»-: la Tabla 15 «Stages of Chronic AR» de la AHA/ACC 2020
+     (Otto), hoja 34, folio e105, columna «Symptoms». Su estadio D los NOMBRA y su estadio C
+     agrega que la prueba de esfuerzo es razonable para confirmar el estado sintomatico.
+     ⚠️ ESO AMPLIA LO QUE FUENTES.md TENIA TRANSCRITO de esa tabla, que resumia el estadio D como
+        «severa sintomatica» sin enumerar los sintomas. La columna se transcribe ahora completa.
+     ⚠️ LA DIFERENCIA ES LA MISMA QUE EN LA MITRAL: la ESC/EACTS 2025 dice «sintomatico» en sus
+        filas de insuficiencia aortica y NO define que sintomas cuentan. Ningun corte se toca.
+     ⚠️ TODO PARAFRASEADO EN ESPANIOL, sin copiar frases. */
+  iasintomas: Object.freeze({
+    rotulo: 'Síntomas en la insuficiencia aórtica',
+    tipo: 'definicion',
+    tam: 'chica',
+    /* ⚠️ LA ETIQUETA NOMBRA LA VALVULA, y no es prolijidad: `_indTermHTML` arma el `aria-label`
+       del boton con ella, y TC-451 exige que los de los terminos sean DISTINTOS porque es lo
+       que hace que abrir uno no abra el otro. Con «Que sintomas cuentan» a secas, este globo y
+       el de la estenosis mitral compartian clave. Lo cazo ese caso. */
+    etiqueta: 'Qué síntomas cuentan en la insuficiencia aórtica',
+    que: 'La respuesta separa dos cosas a la vez: el estadio C del D, y la fila de cirugía del '
+       + 'paciente sintomático de los criterios del asintomático.',
+    items: Object.freeze([
+      Object.freeze({ t:'AHA/ACC 2020 — los nombra',
+        d:'En su tabla de estadios, el estadio sintomático queda definido por la disnea de '
+        + 'esfuerzo, la angina o síntomas más severos de insuficiencia cardíaca.' }),
+      Object.freeze({ t:'Y en el asintomático propone comprobarlo',
+        d:'En el estadio severo asintomático, la misma tabla considera razonable la prueba de '
+        + 'esfuerzo para confirmar que el paciente está realmente sin síntomas.' }),
+      Object.freeze({ t:'ESC/EACTS 2025 — no los define',
+        d:'Sus filas de intervención hablan del paciente «sintomático» sin enumerar qué '
+        + 'síntomas cuentan.' }),
+      Object.freeze({ t:'Qué hace esta aplicación',
+        d:'No resuelve la diferencia y no mueve ningún corte: la pregunta es una sola y su '
+        + 'respuesta alimenta el estadio y las filas de la tabla. «Sin dato» no cuenta como «No».' })
+    ]),
+    guia: 'Las dos guías usan los síntomas para el mismo corte y sólo una los enumera: la '
+        + 'diferencia se muestra y la decide quien informa.',
+    fuente: 'AHA/ACC 2020 (Otto), Tabla 15 «Stages of Chronic AR», hoja 34, folio e105, columna '
+          + '«Symptoms». ESC/EACTS 2025, tabla de recomendaciones de insuficiencia aórtica.'
+  }),
   emsintomas: Object.freeze({
     rotulo: 'Síntomas en la estenosis mitral',
     tipo: 'definicion',
     tam: 'chica',
-    etiqueta: 'Qué síntomas cuentan',
+    /* La etiqueta nombra la valvula por el mismo motivo que la de la insuficiencia aortica:
+       `aria-label` distinto por termino. */
+    etiqueta: 'Qué síntomas cuentan en la estenosis mitral',
     que: 'La respuesta separa dos cosas a la vez: el estadio C del D, y las filas de la tabla de '
        + 'intervención del paciente sintomático de la única fila del asintomático.',
     items: Object.freeze([
@@ -87658,7 +87705,13 @@ function _indMoldeHTML(m){
         }).join('') + '</div>';
     };
     const hay = m.cols.some(function(gs){ return (gs||[]).some(function(g){ return g && g.filas && g.filas.length }) });
-    if (hay) h += '<div class="ind-pregcols">' + m.cols.map(col).join('') + '</div>';
+    /* ⚠️ UNA SOLA COLUMNA CUANDO LA VALVULA TIENE 6 PREGUNTAS O MENOS, que es la regla del
+       medico: la de dos columnas es para las de MAS de 6. Se decide por el numero de columnas
+       que la seccion declara y no por el de preguntas, porque es la seccion la que sabe si sus
+       grupos se reparten: con `cols` de un solo elemento, la grilla de dos dejaria media
+       pantalla vacia, que es justo el defecto que este commit viene a cerrar. */
+    if (hay) h += '<div class="ind-pregcols' + (m.cols.length < 2 ? ' ind-pregcols-1' : '') + '">' +
+      m.cols.map(col).join('') + '</div>';
   }
   /* 4 · AL PIE, A TODO EL ANCHO, la tabla de recomendaciones, sin cambiar nada de su contenido. */
   if (m.pie && m.pie.filas && m.pie.filas.length) {
@@ -91461,12 +91514,16 @@ function _indIA(){
   const _sx = _indClinGet('ia.sintomas'), _cx = _indClinGet('ia.cxconcom');
   const _rq = _indClinGet('ia.riesgo'),   _cand = _indClinGet('ia.cxcandidato');
   const clinica = [
-    _indFilaCtrl('Síntomas', 'ia.sintomas',
+    /* El globo dice QUE sintomas cuentan, con las dos guias y su diferencia sin resolver
+       (PANT-6, commit 7). Se agrega por `Object.assign` sobre la fila ya armada, igual que el
+       del score y el del Cormier: no le cambia la firma a `_indFilaCtrl` ni toca el rotulo. */
+    Object.assign(_indFilaCtrl('Síntomas', 'ia.sintomas',
       [{v:'si',t:'Sí'},{v:'no',t:'No'}],
       _sx === 'si' ? 'ok' : (_sx === 'no' ? 'none' : 'ask'),
       _sx === 'si' ? 'Clase I · Nivel B por sí solos, con independencia de la función del ventrículo izquierdo'
       : _sx === 'no' ? 'el asintomático entra por los criterios de diámetro y FEVI de arriba'
       : 'sin esto no se puede separar la Clase I de los criterios del asintomático'),
+      { term: 'iasintomas' }),
     /* ⚠️ TRES BANDAS Y NO DOS, porque son DOS FILAS DISTINTAS de la guía y viven en tablas
        distintas: «va a CABG o cirugía de aorta ascendente» está en la tabla de insuficiencia
        aórtica, y «va a cirugía de otra válvula» está en la tabla de valvulopatía izquierda
@@ -91496,8 +91553,9 @@ function _indIA(){
   ];
   /* EL ESTADIO (PANT-4, commit 6), por el mismo motivo que en la estenosis aortica: lo que
      separa C de D son los sintomas, que el ecocardiograma no evalua. */
-  const _estIA = _indEstFila(_indEstIA());
-  if (_estIA) clinica.unshift(_estIA);
+  /* EL ESTADIO SE MUDO A LA FRANJA AMBAR DEL MOLDE (PANT-6, commit 7): sale de la lista de
+     filas y deja de repetirse abajo. Su texto, su letra, su nota y su fuente no cambian. */
+  const _estIA = _indEstIA();
 
   /* El aviso de cabecera cubre los TRES insumos que pueden anular un criterio de Clase I, no
      sólo el diámetro: una FEVI de 0,58 en vez de 58 y un peso de 500 en vez de 50 hacen lo mismo
@@ -91515,7 +91573,36 @@ function _indIA(){
   const avisoPartes = [];
   if (ilegiblesI.length) avisoPartes.push(ilegiblesI.join(' y ') + ' — sostiene' + (ilegiblesI.length > 1 ? 'n' : '') + ' los criterios de Clase I del asintomático');
   if (ilegibles.length)  avisoPartes.push(ilegibles.join(' y ') + ' — sostiene el criterio de volumen de la fila de Clase IIb');
-  return { filas: filas,
+  /* ══ EL MOLDE (PANT-6, commit 7) ══════════════════════════════════════════════════════════
+     El mismo de la estenosis mitral, adaptado a lo que esta valvula tiene. La premisa del medico
+     se reproduce: medido en HEAD con el panel maximizado, la columna izquierda -las filas del
+     eco- medi­a 207,8 px de alto contra 419,8 de la de preguntas, o sea 212 px de VACIO a
+     1440 px y 187,3 a 1000.
+     ⚠️ LAS CUATRO PREGUNTAS VAN EN UNA SOLA COLUMNA, que es lo que la regla del medico manda con
+        SEIS O MENOS: la de dos columnas es para las que tienen mas.
+     ⚠️ LOS DOS GRUPOS NO SE INVENTAN: salen de lo que la propia seccion ya dice. `_indIAModalidad`
+        recibe `cand` y `rq` -el candidato y el riesgo quirurgico- y la nota de la fila del
+        candidato dice textual que «decide la MODALIDAD, no la indicacion». Los otros dos deciden
+        la INDICACION: los sintomas son Clase I por si solos y la cirugia programada es Clase I
+        con o sin sintomas.
+     ⚠️ EL PIE VA VACIO y la recomendacion se queda donde estaba: esta valvula no tiene una tabla
+        de filas con estado como la mitral, tiene la tarjeta de `recom`, que `_indSecPie` emite
+        despues del molde. */
+  const molde = {
+    cat: { et:'Grado — el que publica el informe',
+           txt:'Insuficiencia aórtica severa',
+           por:'severidad confirmada en el estudio: la sección sólo se abre con el grado severo' },
+    est: _estIA ? { et:'Estadio (AHA/ACC 2020)', txt:_estIA.txt, por:_estIA.nota } : null,
+    /* Los datos del estudio son las filas del eco MENOS la del grado, que subio a la franja. */
+    datos: filas.filter(function(f){ return f && f.lbl && f.lbl.indexOf('Grado de insuficiencia') !== 0; })
+      .map(function(f){ return { lbl:f.lbl, val:f.val, refs:f.refs || null,
+        est:String(f.nota || '').split(' · ')[0] }; }),
+    cols: [ [ { tit:'Indicación', filas:[clinica[0], clinica[1]] },
+              { tit:'Modalidad — cirugía o TAVI', filas:[clinica[2], clinica[3]] } ] ],
+    pie: null
+  };
+
+  return { filas: filas, molde: molde,
     aviso: avisoPartes.length
       ? 'Fuera de rango medible: ' + avisoPartes.join('; ') + '. Revisar la unidad antes de leer la recomendación.' : '',
     clinica: clinica,
@@ -154484,8 +154571,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261103-1921';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793744515792;                 /* eco-build-ms */
+const ECO_BUILD    = '20261103-1938';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793745503828;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -154571,7 +154658,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261103-1921</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261103-1938</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
