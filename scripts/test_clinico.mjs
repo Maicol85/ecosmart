@@ -66546,7 +66546,11 @@ caso('TC-471', 'Valvulas D1: la insuficiencia mitral en TRES columnas de SEIS co
        intervenida. Estas TRES SI viven en Valvulas, asi que suman tambien a los globos de la
        pestana (32 -> 35). Lo que esta condicion exige no cambia: toda clave del marcado tiene
        entrada -que es lo que impide una tarjeta VACIA- y ninguna es de legado. */
-    Object.keys(VINFO).length === 101,
+    /* ADAPTADO 2026-11-03 (PANT-3): 101 -> 108. Las SIETE nuevas son cc-3d, el globo del corazon
+       maestro al pie de congenitas, y los SEIS de la pantalla de MCH. NINGUNA esta en Valvulas,
+       que es la pestania que este caso mide: lo que cambia es el denominador del registro, no lo
+       que esta condicion afirma sobre el marcado de esa pestania. */
+    Object.keys(VINFO).length === 108,
     'registro=' + (HAY_INFO ? Object.keys(VINFO).join(',') : 'SIN REGISTRO')]);
   ex.push(['(H) y la tarjeta se coloca SIEMPRE dentro de la pantalla, sin cortarse',
     (function(){ const b = document.querySelector('[data-vinfo="avm-thp"]');
@@ -79287,7 +79291,14 @@ caso('TC-502', 'Tanda P: Referencias en CINCO subpestanas sin perder una entrada
        vt-morf-tipos y va-morf-tipos; no tienen ficha en Referencias por la MISMA razon que
        inf-min y tga-esq: dicen que define y que NO define la fuente de un tipo de valvula
        intervenida, y su contenido ya vive en los folios que el globo cita. */
-  ex.push(['(C3) LIMITE DECLARADO: treinta tarjetas sin boton, porque Referencias no tiene esa entrada',
+  /* ADAPTADA (TANDA PANT-3, 03/11/2026): treinta -> TREINTA Y SIETE. Las SIETE nuevas son
+     cc-3d -el globo del corazon maestro- y los SEIS de la pantalla de MCH. Ninguna tiene ficha en
+     Referencias, y por dos motivos distintos: cc-3d explica un DIBUJO de la interfaz, como tga-3d
+     y tga-esq; y los seis de MCH publican con su hoja y su folio lo que la pantalla decia antes
+     en prosa, sin crear una ficha nueva -escribir una seria publicar el mismo contenido dos
+     veces, que es la regla R4-. La lista las sigue nombrando una por una, que es lo que hace que
+     el dia que una consiga ficha el caso se ponga rojo. */
+  ex.push(['(C3) LIMITE DECLARADO: treinta y siete tarjetas sin boton, porque Referencias no tiene esa entrada',
     /* ADAPTADA (TANDA AJUSTES-2, commit 4a, 31/10/2026): 24 -> 25. La entrada nueva es
        inf-min, el ⓘ de la fila de miniaturas de lo que va al PDF; no tiene ficha en
        Referencias porque explica la INTERFAZ y no publica contenido clinico. */
@@ -79296,8 +79307,9 @@ caso('TC-502', 'Tanda P: Referencias en CINCO subpestanas sin perder una entrada
        inf-min y que tga-3d: explica un DIBUJO de la interfaz y no publica contenido clinico, asi
        que una ficha suya seria una entrada sin criterio detras. El limite que esta condicion
        declara no cambia; cambia su denominador. */
-    sinBoton.join(',') === 'amilo-score,co-monitoreo,co-riesgo-basal,coa-card,cvr-coc,cvr-ecosmart,et-avt-cont,'
+    sinBoton.join(',') === 'amilo-score,cc-3d,co-monitoreo,co-riesgo-basal,coa-card,cvr-coc,cvr-ecosmart,et-avt-cont,'
       + 'hemo-forr,hemo-ic,hemo-rvs,inf-min,'
+      + 'mch-adic,mch-ex,mch-hvi,mch-msub,mch-score,mch-sec,'
 
       + 'tarj-esten-pulmonar,tarj-esten-tricuspide,tarj-insuf-pulmonar,'
       + 'tep-eco-dx,tep-mcconnell,tga-3d,tga-esq,va-morf-tipos,'
@@ -91831,12 +91843,16 @@ caso('TC-535', 'Tanda AJ7: la linea de Fallot del EN SUMA sin la IP y el resumen
      los tipos de valvula intervenida, que nacen con la clase vinfo-btn-44. Lo que estas tres
      condiciones afirman no cambia: cambia el denominador. Medido en los dos motores y en los
      cuatro anchos: 44x44 con los CINCO puntos dando el propio boton. */
-  ex.push(['(K0) DENOMINADOR: los VEINTIDOS globos llevan la clase, tienen geometria y estan EN VISTA',
-    tapK.length === 22 && tapK.every((x) => x.w > 0 && x.h > 0 && x.enVista), JSON.stringify(tapK)]);
-  ex.push(['(K1) los veintidos miden 44x44 tambien con el mouse',
-    tapK.length === 22 && tapK.every((x) => x.w >= 44 && x.h >= 44), JSON.stringify(tapK)]);
+  /* ADAPTADA (TANDA PANT-3, 03/11/2026): veintidos -> VEINTINUEVE. Los SIETE nuevos son cc-3d,
+     el globo del corazon maestro, y los SEIS de la pantalla de MCH, que nacen con la clase
+     vinfo-btn-44 y SIN margenes negativos. Lo que estas tres condiciones exigen no cambia;
+     cambia cuantos globos lo tienen que cumplir. */
+  ex.push(['(K0) DENOMINADOR: los VEINTINUEVE globos llevan la clase, tienen geometria y estan EN VISTA',
+    tapK.length === 29 && tapK.every((x) => x.w > 0 && x.h > 0 && x.enVista), JSON.stringify(tapK)]);
+  ex.push(['(K1) los veintinueve miden 44x44 tambien con el mouse',
+    tapK.length === 29 && tapK.every((x) => x.w >= 44 && x.h >= 44), JSON.stringify(tapK)]);
   ex.push(['(K2) y su caja NO tapa a ningun vecino: los cinco puntos dan el propio boton',
-    tapK.length === 22 && tapK.every((x) => x.propios === 5), JSON.stringify(tapK)]);
+    tapK.length === 29 && tapK.every((x) => x.propios === 5), JSON.stringify(tapK)]);
   ex.push(['(K3) CONTROL: los demas globos NO se tocaron y siguen con su piso solo tactil',
     document.querySelectorAll('button.vinfo-btn').length
       - document.querySelectorAll('button.vinfo-btn-44').length >= 10,
@@ -108976,7 +108992,18 @@ caso('TC-626', 'Tanda PANT-3: el boton 3D del corazon maestro es uno solo, se ve
     const act = Array.prototype.map.call(document.querySelectorAll('.tab-section.active'), (e) => e.id).join(',');
     EXP.push(['(B) el pie esta ' + par[1] + ' en ' + par[0],
       visible('cc3d-wrap') === par[1],
-      'wrap=' + visible('cc3d-wrap') + ' activas=[' + act + ']']);
+      'wrap=' + visible('cc3d-wrap') + ' activas=[' + act + '] ' + (function(){
+        const wr = document.getElementById('cc3d-wrap');
+        if (!wr) return 'sin wrap';
+        let reglas = 0, texto = '';
+        try { for (const h of Array.prototype.slice.call(document.styleSheets)) {
+          let rr = null; try { rr = h.cssRules } catch (e) { continue }
+          for (const r of Array.prototype.slice.call(rr || [])) {
+            if (String(r.selectorText || '').indexOf('#cc3d-wrap') >= 0) {
+              reglas++; texto += '[' + r.selectorText + '{' + r.style.display + '}]'; }
+          } } } catch (e) { texto = 'ERR' }
+        return 'inline=' + (wr.getAttribute('style') || 'sin style') + ' reglas=' + reglas + texto +
+               ' hojas=' + document.styleSheets.length; })()]);
   }
 
   /* (C) EL PRESTAMO: abre, se lleva el recuadro, y al cerrar lo devuelve al mismo lugar. */

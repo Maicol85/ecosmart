@@ -19560,7 +19560,7 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
      cableado del 3D y del esquema: dos dibujos del mismo paciente que pueden divergir.
      Es SOLO LECTURA: no escribe ningun campo, no se guarda y no entra al informe, al EN SUMA,
      al PDF ni al PPT. -->
-<div id="cc3d-wrap">
+<div id="cc3d-wrap" style="display:none;">
   <div class="cc3d-pie">
     <!-- UN SOLO BOTON QUE PRENDE Y APAGA, CON EL MISMO TEXTO SIEMPRE. Lo que cambia es el color:
          apagado `btn-ghost`, prendido `btn-primary`, los dos de la paleta de la app, sin declarar
@@ -19569,7 +19569,7 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
             aria-pressed="false" aria-controls="cc3d-panel" style="min-height:44px;"
             title="Ver el corazon en 3D con lo cargado en el estudio">&#129728; Ver en 3D</button>
   </div>
-  <div class="card" id="cc3d-panel">
+  <div class="card" id="cc3d-panel" style="display:none;">
     <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
       <span style="font-size:12px;font-weight:700;color:var(--accent2);flex:1;">Corazon en 3D &mdash; lo cargado en este estudio</span>
       <span style="font-size:10.5px;font-weight:700;color:var(--text2);">Esquema ilustrativo</span>
@@ -97501,6 +97501,15 @@ function cc3dPieSync() {
   if (!w) return;
   const en = cc3dEnCongenitas();
   w.classList.toggle('cc3d-ver', en);
+  /* ⚠️ EL `display` SE ESCRIBE EN LINEA ADEMAS DE LA CLASE, Y NO ES REDUNDANCIA: ES EL DUENO.
+     Medido: con la clase sola, el envoltorio salia VISIBLE en las pestanias donde no va, pero
+     solo en el entorno de la suite -la pagina recargada con la sesion ya iniciada-, y no al
+     abrir el archivo a mano. Las dos reglas del envoltorio estaban en la hoja y el elemento no
+     tenia la clase, asi que algo fuera de este codigo decide su display en ese camino. Un
+     control cuya visibilidad depende de quien gano una cascada no es un control: la funcion se
+     hace duenia de la propiedad, que es lo que `applyViewMode` ya hace con las barras de
+     pestanias. La clase se conserva porque es la que lo documenta en la hoja de estilos. */
+  w.style.display = en ? 'block' : 'none';
   if (!en && _cc3d.abierto) cc3dCerrar();
 }
 window.cc3dPieSync = cc3dPieSync;
@@ -97561,6 +97570,7 @@ function cc3dAbrir() {
     _cc3d.abierto = true;
   }
   pan.classList.add('cc3d-ab');
+  pan.style.display = 'block';          /* dueno del display, por el mismo motivo que el envoltorio */
   const bb = document.getElementById('cc3d-abrir');
   if (bb) { bb.classList.remove('btn-ghost'); bb.classList.add('btn-primary'); bb.setAttribute('aria-pressed', 'true'); }
   /* El repintado lo hace el dueno del recuadro, no una copia: `tgaSync` decide el escenario desde
@@ -97572,7 +97582,7 @@ window.cc3dAbrir = cc3dAbrir;
 
 function cc3dCerrar() {
   const pan = document.getElementById('cc3d-panel');
-  if (pan) pan.classList.remove('cc3d-ab');
+  if (pan) { pan.classList.remove('cc3d-ab'); pan.style.display = 'none'; }
   const bb = document.getElementById('cc3d-abrir');
   if (bb) { bb.classList.add('btn-ghost'); bb.classList.remove('btn-primary'); bb.setAttribute('aria-pressed', 'false'); }
   if (_cc3d.abierto) {
@@ -151873,8 +151883,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261103-0024';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793676247240;                 /* eco-build-ms */
+const ECO_BUILD    = '20261103-0051';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793677879457;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -151960,7 +151970,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261103-0024</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261103-0051</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
