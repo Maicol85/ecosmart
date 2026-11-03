@@ -113,6 +113,22 @@ const ESCENAS = {
   p3dosSola:  { campos: DOS, les: ['cia','civ'] },
   p3dosDos:   { campos: DOS, les: ['cia','civ'], chk: ['ete_shunt_incluir_chk'] },
   p3mixto:    { campos: DOS, les: ['cia'], chk: ['ete_shunt_incluir_chk'] },
+  /* ══ LAS ESCENAS DE LA TRANSPOSICION (commit 2) ══════════════════════════════════════════
+     El control POSITIVO del commit 2a: el esquema de circulacion entra al PDF solo con el boton
+     «Incluido en el PDF» encendido, asi que sin una escena que lo encienda un cero no distingue
+     «no toca el papel» de «la sonda no mira donde el cambio puede actuar». El boton es
+     `tga-3d-pdf` y se toca por su gesto real.
+     `p3tgaSinPdf` es el control negativo: la misma transposicion con el boton APAGADO. */
+  p3tgaSinPdf: { campos: { peso:'70', talla:'170' },
+                 sel: { tga_tipo:'dtga', tga_cirugia:'auricular' }, chk: ['tga_incluir_chk'] },
+  p3tgaPdf:    { campos: { peso:'70', talla:'170' },
+                 sel: { tga_tipo:'dtga', tga_cirugia:'auricular' }, chk: ['tga_incluir_chk'],
+                 clics: ['tga-3d-pdf'] },
+  /* Con comunicaciones cargadas, que es donde los tres rotulos nuevos aparecen. */
+  p3tgaComs:   { campos: { peso:'70', talla:'170', ete_cia_tam_max:'12', ete_civ_tam:'6', dap_diam:'4' },
+                 sel: { tga_tipo:'dtga', tga_cirugia:'jatene', ete_cia_tipo:'secundum',
+                        ete_civ_tipo:'muscular', dap_tipo:'restrictivo', ete_cia_dir:'id', dap_dir:'id' },
+                 chk: ['tga_incluir_chk'], clics: ['tga-3d-pdf'] },
   ajeno:   { campos: { im_vc: '8', ea_dtsvi: '20', itv_tsvi: '20', itv_ao: '100', vmax_ao: '4.5',
                        onda_e: '110', e_sep: '5', e_lat: '6', ai_vol: '70', peso: '80', talla: '180' } }
 };
@@ -142,6 +158,9 @@ const MONTAR = `((esc) => {
   (esc.les || []).forEach(k => { const e = document.getElementById(k === 'civ' ? 'ete_civ_activa' : 'ete_cia_activa');
     if (e) { e.checked = true; e.dispatchEvent(new Event('change', { bubbles: true })) } });
   try { if (typeof eteShuntSync === 'function') eteShuntSync() } catch (e) {}
+  /* El gesto "clics" toca botones reales por id: lo necesita el boton del esquema al PDF, que no
+     es un campo ni una casilla. Va ANTES de los calculadores. */
+  (esc.clics || []).forEach(id => { const e = document.getElementById(id); if (e) e.click() });
   /* Los campos de dilucion y la dosis se reponen DESPUES de marcar, por el borrado de arriba. */
   Object.keys(esc.campos || {}).forEach(k => { if (/^pop_.*_(diluc_mg|diluc_ml|veloc|dosis)$/.test(k)
     && esc.campos[k] !== '') S(k, esc.campos[k]) });

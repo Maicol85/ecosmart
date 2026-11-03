@@ -46635,17 +46635,23 @@ const VINFO = Object.freeze({
        + 'Con el switch auricular no se dibuja la comunicación interauricular, porque el tabique '
        + 'se reconstruyó y la sangre va por los dos túneles que ese escenario muestra; con el '
        + 'Rastelli no se dibuja la interventricular, porque ahí la comunicación ES el túnel. En '
-       + 'los dos casos el texto de abajo lo dice.',
-    ojo: 'ES UN ESQUEMA ILUSTRATIVO: no es una imagen de este estudio, no está a escala y no '
-       + 'mide nada. Las cavidades, los vasos y las distancias son siempre los mismos; lo único '
-       + 'que cambia con el paciente es el recorrido que se dibuja y qué comunicaciones '
-       + 'aparecen.\n'
-       + 'LOS RECORRIDOS DE LAS CIRUGIAS ESTAN PENDIENTES DE REVISION por un cardiólogo de '
-       + 'cardiopatías congénitas. Cada uno se dibujó siguiendo el recorrido que esta misma '
-       + 'aplicación ya describe en el párrafo de la circulación, y la correspondencia está '
-       + 'verificada, pero esa revisión no se hizo todavía.\n'
-       + 'No se guarda con el estudio, no escribe ningún dato y no entra al informe ni al PDF: '
-       + 'vive sólo en esta pantalla.'
+       + 'los dos casos el texto de abajo lo dice.'
+    /* ══ EL BLOQUE «A tener en cuenta» SE RETIRO ENTERO (PANT-3, commit 2b) ══════════════════
+       DECISION DEL MEDICO del 02/11/2026, y sus tres parrafos salieron por tres motivos
+       distintos:
+         · la frase de que los recorridos de las cirugias estan PENDIENTES DE REVISION por un
+           cardiologo de congenitas, por la regla nueva: ninguna pantalla, globo, Evidencia,
+           Referencias ni documento del paciente dice que algo esta pendiente de revision o sin
+           validar por un especialista. Esa informacion vive SOLO en `docs/PENDIENTES.md`;
+         · la frase de que el esquema «no entra al informe ni al PDF: vive solo en esta
+           pantalla», porque dejo de ser CIERTA: con el boton «Incluido en el PDF» el esquema si
+           entra al PDF desde la tanda TGA-4;
+         · el aviso de que es un esquema ilustrativo que no mide nada, porque la orden lo nombra
+           expresamente y porque ese aviso general NO se pierde: la tarjeta lo muestra en su
+           etiqueta «Esquema ilustrativo» y el epigrafe del PDF dice, textual, «Esquema
+           ilustrativo: no es una imagen del estudio ni esta a escala.»
+       El resto del globo -por donde circula la sangre, los colores, de donde sale el escenario y
+       que se dibuja con cada comunicacion y con cada cirugia- no se toco. */
   },
   'tga-3d': {
     ancho: 380,
@@ -96983,24 +96989,41 @@ function tgaEsqSVG(k, sh) {
      declara la demo y el 3D ya la aplica; dibujarlas aca y no alla dejaria los dos dibujos de la
      misma caja contradiciendose sobre el mismo paciente. */
   const _ocultaCIA = (k === 'mus'), _ocultaCIV = (k === 'ras');
+  /* ⚠️ EL TRAZO VA ACA Y SU ROTULO AL FINAL, Y NO ES COSMETICO (PANT-3, commit 2a). Los tres
+     rotulos se emitian DENTRO de su propio bloque, o sea ANTES de las cavidades y de las flechas
+     del flujo: en SVG manda el orden de pintado, asi que una flecha del recorrido se dibujaba
+     ENCIMA de la palabra «CIA». Medido en HEAD: 131 cruces de rotulo contra linea en las treinta
+     combinaciones de escenario y comunicaciones. Se juntan abajo con los otros cuatro rotulos,
+     que es donde ya estaban y donde quedan pintados ultimos. */
+  const rotCom = [];
   if (sh.asd && !_ocultaCIA) {
     const d = _tgaEsqDirCom('ete_cia_dir');
     s += '<path d="M120 164L180 116" stroke="' + NAR + '" stroke-width="3" stroke-dasharray="5 3" ' +
-         'fill="none"' + (d ? ' marker-end="url(#' + TGA_ESQ_MK.r + ')"' : '') + '/>' +
-         '<text x="134" y="150" font-size="' + TGA_ESQ_FS.com + '" fill="' + NAR + '">CIA</text>';
+         'fill="none"' + (d ? ' marker-end="url(#' + TGA_ESQ_MK.r + ')"' : '') + '/>';
+    rotCom.push(['CIA', 126, 158, NAR]);
   }
   if (sh.vsd && !_ocultaCIV) {
     s += '<path d="M120 116L180 164" stroke="' + NAR + '" stroke-width="3" stroke-dasharray="5 3" ' +
-         'fill="none"/>' +
-         '<text x="134" y="132" font-size="' + TGA_ESQ_FS.com + '" fill="' + NAR + '">CIV</text>';
+         'fill="none"/>';
+    rotCom.push(['CIV', 126, 112, NAR]);
   }
   if (sh.pda) {
     const d = _tgaEsqDirCom('dap_dir');
     s += '<path d="M' + D.ap[0] + ' ' + D.ap[1] + 'L' + D.ao[0] + ' ' + D.ao[1] + '" stroke="' + NAR +
          '" stroke-width="3" stroke-dasharray="5 3" fill="none"' +
-         (d ? ' marker-end="url(#' + TGA_ESQ_MK.r + ')"' : '') + '/>' +
-         '<text x="' + ((D.ap[0] + D.ao[0]) / 2 + 4) + '" y="' + ((D.ap[1] + D.ao[1]) / 2 - 4) +
-         '" font-size="' + TGA_ESQ_FS.com + '" fill="' + NAR + '">DAP</text>';
+         (d ? ' marker-end="url(#' + TGA_ESQ_MK.r + ')"' : '') + '/>';
+    /* ⚠️ EL ROTULO DEL DUCTUS VA JUNTO A LA BOCA DE LA PULMONAR, NO EN EL MEDIO DE SU LINEA, y
+       las dos alternativas se midieron. En el punto medio -que es donde estaba- cae en el centro
+       del dibujo, que es por donde pasan las dos comunicaciones y donde viven «CIA», «CIV» y los
+       rotulos de las cavidades: se pisaba con ellos en cinco de las treinta combinaciones.
+       Apartarlo PERPENDICULAR a su propia linea tampoco alcanza —medido con 26 px: cuatro
+       superposiciones, porque en el switch auricular el ductus cruza el centro y la perpendicular
+       lo empuja justo contra «CIV»—.
+       Junto a la boca de la arteria pulmonar queda en el margen, que es donde hay lugar, y sigue
+       al lado del extremo del que nace el trazo. El lado se decide por donde esta la pulmonar en
+       ese escenario, igual que ya se decide el rotulo «AP». */
+    const _apDer = D.ap[0] > 150;
+    rotCom.push(['DAP', _apDer ? D.ap[0] - 46 : 116, _apDer ? D.ap[1] - 20 : 53, NAR]);
   }
   ['TL', 'TR', 'BL', 'BR'].forEach(function (c) { s += _tgaEsqCav(c, D.box[c]) });
   if (D.ex) s += D.ex.join('');
@@ -97016,12 +97039,35 @@ function tgaEsqSVG(k, sh) {
          'stroke-width="1.2"/><text x="' + v[0] + '" y="' + (v[1] + 4) + '" text-anchor="middle" ' +
          'font-size="' + TGA_ESQ_FS.val + '" fill="var(--text)">' + v[2] + '</text>';
   });
-  /* Los rotulos de las cuatro entradas y salidas. */
-  [['cavas', 86, 234], ['venas pulm.', 222, 60],
-   ['AP', D.ap[0] > 150 ? 258 : 90, D.ap[0] > 150 ? 102 : 62],
-   ['Ao', D.ao[0] < 100 ? 22 : 226, D.ao[0] < 100 ? 182 : 242]].forEach(function (l) {
+  /* ══ LOS ROTULOS, ULTIMOS Y CON HALO (PANT-3, commit 2a) ═══════════════════════════════════
+     El medico reporto que «venas pulm.», «AP», «CIA», «Ao» y «cavas» se superponian con las
+     lineas punteadas de los recorridos. Tres cosas, y ninguna toca el esquema ni su logica:
+       1 · van ULTIMOS, asi que ninguna linea se dibuja encima;
+       2 · llevan HALO del color del fondo —`paint-order="stroke"` con el trazo del fondo—, que
+           es lo que la orden propone primero y lo que los hace legibles si una linea pasa por
+           abajo. Es la version de texto del circulo opaco que ya tienen las dos valvulas;
+       3 · tres se REUBICAN para que su caja no cruce ninguna linea: «venas pulm.» se corre a la
+           izquierda porque la vertical del retorno pulmonar le cortaba el final; «AP» y «Ao» se
+           apartan de la diagonal del ductus en los escenarios donde los grandes vasos cambian de
+           lado. «cavas» no se movio: medido, no cruza nada.
+     Las posiciones viejas, para poder volver: cavas 86,234 · venas pulm. 222,60 · AP 258|90,
+     102|62 · Ao 22|226, 182|242.
+     ⚠️ «venas pulm.» NO PUEDE IR ENTRE LAS DOS VERTICALES. Mide 65 px y el hueco entre la del
+     retorno pulmonar (x=220) y la del borde derecho (x=282) son 62: la primera version la corrio
+     a x=206 y el resultado fue PEOR —de cero cruces a treinta, medido—. Va a la izquierda de la
+     de 220, que es el unico lado donde entra entera. */
+  [['cavas', 86, 234], ['venas pulm.', 150, 60],
+   ['AP', D.ap[0] > 150 ? 262 : 90, D.ap[0] > 150 ? 84 : 50],
+   ['Ao', D.ao[0] < 100 ? 20 : 226, D.ao[0] < 100 ? 208 : 242]].forEach(function (l) {
     s += '<text x="' + l[1] + '" y="' + l[2] + '" font-size="' + TGA_ESQ_FS.rot +
-         '" fill="var(--text2)">' + _tgaEsqTxt(l[0]) + '</text>';
+         '" class="tga-esq-rot" paint-order="stroke" stroke="var(--bg3)" stroke-width="3.5" ' +
+         'stroke-linejoin="round" fill="var(--text2)">' + _tgaEsqTxt(l[0]) + '</text>';
+  });
+  /* Y los tres de las comunicaciones, con el MISMO halo y por el mismo motivo. */
+  rotCom.forEach(function (l) {
+    s += '<text x="' + l[1] + '" y="' + l[2] + '" font-size="' + TGA_ESQ_FS.com +
+         '" class="tga-esq-rot" paint-order="stroke" stroke="var(--bg3)" stroke-width="3.5" ' +
+         'stroke-linejoin="round" fill="' + l[3] + '">' + _tgaEsqTxt(l[0]) + '</text>';
   });
   s += '</svg>';
   return s;
@@ -151447,8 +151493,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261102-2342';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793673736554;                 /* eco-build-ms */
+const ECO_BUILD    = '20261102-2353';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793674431201;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -151534,7 +151580,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261102-2342</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261102-2353</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
