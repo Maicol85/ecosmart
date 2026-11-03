@@ -108672,6 +108672,345 @@ caso('TC-622', 'Tanda PANT-2: el informe de la transposicion nombra la disfuncio
    CONTROL NEGATIVO. Todos caen contra HEAD por CONDICIONES y no por excepcion: los ayudantes
    toleran que la funcion o el nodo no existan en el arbol viejo y lo dicen con un valor. */
 
+/* == TANDA PANT-3, segunda mitad (2026-11-03) - TC-628 a TC-632 ==========================
+   Un caso por pantalla. Cada uno declara su DENOMINADOR antes de juzgar y lleva al menos un
+   CONTROL NEGATIVO. Todos caen contra el arbol anterior por CONDICIONES y no por excepcion.
+   NI UNA BARRA INVERTIDA EN UNA EXPRESION REGULAR DENTRO DE UN CUERPO: el cuerpo es un
+   template literal y una barra simple NO sobrevive. Se usa indexOf. */
+
+caso('TC-628', 'Tanda PANT-3: la pantalla de MCA reparte sus campos, sus textos de criterios estan en el globo y su censo de ids no cambia', `
+  return (async () => {
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]),
+                 'dio «' + t[1] + '» · esperado «' + t[2] + '»']) };
+  const esperar = (ms) => new Promise((r) => setTimeout(r, ms));
+  const abrir = () => { const sec = document.getElementById('sacc-cc-mca');
+    if (sec && !sec.classList.contains('open')) { const h = sec.querySelector('.sacc-hdr'); if (h) h.click() }
+    return !!sec };
+  const txtSec = () => { const sec = document.getElementById('sacc-cc-mca');
+    return sec ? String(sec.textContent || '') : '' };
+  const regla = (sel, prop) => { let v = '';
+    for (const hoja of Array.from(document.styleSheets)) {
+      let rs = null; try { rs = hoja.cssRules } catch (e) { continue }
+      if (!rs) continue;
+      for (const r of Array.from(rs)) {
+        if (r.selectorText === sel && r.style && r.style[prop]) v = r.style[prop];
+        if (r.cssRules) for (const r2 of Array.from(r.cssRules)) {
+          if (r2.selectorText === sel && r2.style && r2.style[prop]) v = r2.style[prop];
+        }
+      }
+    }
+    return v };
+  try { if (typeof showTab === 'function') showTab('congenitas') } catch (e) {}
+  try { if (typeof ccSubTab === 'function') ccSubTab('congenitas') } catch (e) {}
+  await esperar(250);
+  ex.push(['(A0) DENOM: la seccion de MCA existe', abrir(), true]);
+  await esperar(300);
+  const t = txtSec();
+  ex.push(['(A1) DENOM: la seccion tiene texto', t.length > 800, true]);
+
+  /* (B) LA DISPOSICION. El suite corre por debajo de 900 px, asi que se mide por la REGLA de la
+     hoja de estilos y por la ESTRUCTURA, no por la geometria: la geometria la miden las sondas. */
+  ex.push(['(B0) DENOM: la fila de dos columnas existe', !!document.getElementById('mca-fila'), true]);
+  ex.push(['(B1) la columna de campos existe', !!document.getElementById('mca-campos'), true]);
+  ex.push(['(B2) la columna de conclusion existe', !!document.getElementById('mca-concl-col'), true]);
+  ex.push(['(B3) los criterios NO ecocardiograficos quedan FUERA de la fila',
+    (function () { const z = document.getElementById('mca-nocols'), f = document.getElementById('mca-fila');
+      return (z && f) ? (f.contains(z) ? 'adentro' : 'afuera') : 'NO EXISTE' })(), 'afuera']);
+  ex.push(['(B4) desde 900 px la fila reparte campos y conclusion',
+    regla('#mca-fila, #tdf-fila, #esub-fila, #easv-fila', 'gridTemplateColumns'), 'minmax(0px, 1fr) 320px']);
+  ex.push(['(B5) y los criterios del eco van en DOS columnas',
+    regla('#mca-eco-cols', 'gridTemplateColumns'), 'repeat(2, minmax(0px, 1fr))']);
+  ex.push(['(B6) y las categorias en TRES, que es lo que las deja tres arriba y dos abajo',
+    regla('.mca-cat-grid', 'gridTemplateColumns'), 'repeat(3, minmax(0px, 1fr))']);
+  ex.push(['(B7) DENOM: las cinco categorias siguen siendo cinco',
+    document.querySelectorAll('.mca-cat-grid .mca-cat-col').length, 5]);
+
+  /* (C) LOS TEXTOS DE CRITERIOS SALIERON DE LA PANTALLA. */
+  ['Task Force 2010 revisados', 'El Task Force exige', 'Prevalencia 1/2000',
+   'ciego al ventriculo izquierdo', 'Umbrales: mayor'].forEach(function (f, i) {
+    ex.push(['(C' + (i + 1) + ') la pantalla ya no dice «' + f + '»', t.indexOf(f) >= 0, false]);
+  });
+  ex.push(['(C6) CONTROL NEGATIVO: el rotulo del grupo SI se queda',
+    t.indexOf('Criterios estructurales ecocardiograficos') >= 0 || t.indexOf('Criterios estructurales ecocardiogr') >= 0, true]);
+
+  /* (D) LOS CUATRO GLOBOS Y LO QUE DICEN. */
+  const V = (typeof VINFO !== 'undefined') ? VINFO : null;
+  ex.push(['(D0) DENOM: el registro de globos existe', !!V, true]);
+  ['mca-sec', 'mca-eco', 'mca-vi', 'mca-score'].forEach(function (k, i) {
+    ex.push(['(D' + (i + 1) + ') el globo ' + k + ' esta registrado', !!(V && V[k]), true]);
+    const b = document.querySelector('[data-vinfo="' + k + '"]');
+    ex.push(['(D' + (i + 1) + 'b) y su boton esta en la pantalla con el glifo estandar',
+      b ? String(b.textContent || '').trim() : 'NO EXISTE', String.fromCharCode(9432)]);
+  });
+  const _txt = (k) => { const e = V && V[k]; if (!e) return '';
+    return String((e.lee || '') + ' ' + (e.ojo || '') + ' ' + (e.fuente || '')) };
+  ex.push(['(D5) el globo del eco trae la hoja y el folio de su fuente',
+    _txt('mca-eco').indexOf('hoja 3 de 15') >= 0, true]);
+  ex.push(['(D6) y dice que la tabla publica cortes indexados que la app NO aplica',
+    _txt('mca-eco').indexOf('no aplica') >= 0, true]);
+  ex.push(['(D7) CONTROL NEGATIVO: ningun globo de esta pantalla da conducta',
+    ['mca-sec', 'mca-eco', 'mca-vi', 'mca-score'].some(function (k) {
+      const x = _txt(k).toLowerCase();
+      return x.indexOf('se recomienda') >= 0 || x.indexOf('esta indicad') >= 0 || x.indexOf('derivar') >= 0 }), false]);
+
+  /* (E) EL CENSO DE IDS NO CAMBIO: 26 campos con id dentro de la seccion. */
+  ex.push(['(E1) la seccion conserva sus 26 campos con id',
+    (function () { const sec = document.getElementById('sacc-cc-mca');
+      return sec ? sec.querySelectorAll('input[id], select[id], textarea[id]').length : -1 })(), 26]);
+  return { extra: EXP };
+  })();
+`);
+
+caso('TC-629', 'Tanda PANT-3: Fallot tiene su conclusion a la derecha, sus textos en el globo y ya no se contradice sobre los campos de volumen', `
+  return (async () => {
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]),
+                 'dio «' + t[1] + '» · esperado «' + t[2] + '»']) };
+  const esperar = (ms) => new Promise((r) => setTimeout(r, ms));
+  try { if (typeof showTab === 'function') showTab('congenitas') } catch (e) {}
+  try { if (typeof ccSubTab === 'function') ccSubTab('congenitas') } catch (e) {}
+  await esperar(250);
+  const sec = document.getElementById('sacc-cc-tdf');
+  if (sec && !sec.classList.contains('open')) { const h = sec.querySelector('.sacc-hdr'); if (h) h.click() }
+  await esperar(300);
+  const t = sec ? String(sec.textContent || '') : '';
+  ex.push(['(A0) DENOM: la seccion de Fallot existe y tiene texto', t.length > 400, true]);
+
+  /* (B) LA CONTRADICCION QUE SE CERRO: el recuadro decia que no hay campos de volumen y la
+     seccion tiene dos, con su grupo propio. */
+  ex.push(['(B0) DENOM: los dos campos de volumen siguen existiendo',
+    !!document.getElementById('tdf_vtdvdi') && !!document.getElementById('tdf_vtsvdi'), true]);
+  ex.push(['(B1) la pantalla ya no dice que no hay campos de volumen',
+    t.indexOf('no hay campos de volumen') >= 0, false]);
+  ex.push(['(B2) CONTROL NEGATIVO: el rotulo del grupo de volumenes SI se queda',
+    t.indexOf('criterio volum') >= 0, true]);
+
+  /* (C) LOS OTROS TEXTOS SALIERON. */
+  ['mas frecuente en el adulto', 'no los mide este estudio', 'Con obstruccion residual'].forEach(function (f, i) {
+    ex.push(['(C' + (i + 1) + ') la pantalla ya no dice «' + f + '»', t.indexOf(f) >= 0, false]);
+  });
+
+  /* (D) LA CONCLUSION A LA DERECHA Y LOS TRES GLOBOS. */
+  ex.push(['(D0) la fila de dos columnas existe', !!document.getElementById('tdf-fila'), true]);
+  ex.push(['(D1) la conclusion vive en su columna',
+    (function () { const c = document.getElementById('tdf-concl-col'), n = document.getElementById('tdf-concl');
+      return (c && n) ? (c.contains(n) ? 'adentro' : 'afuera') : 'NO EXISTE' })(), 'adentro']);
+  const V = (typeof VINFO !== 'undefined') ? VINFO : null;
+  ['tdf-sec', 'tdf-eco', 'tdf-vol'].forEach(function (k, i) {
+    ex.push(['(D' + (i + 2) + ') el globo ' + k + ' esta registrado', !!(V && V[k]), true]);
+  });
+  const _v = (k) => { const e = V && V[k]; return e ? String((e.lee || '') + ' ' + (e.ojo || '') + ' ' + (e.fuente || '')) : '' };
+  ex.push(['(D5) el globo de los volumenes trae su hoja y su folio',
+    _v('tdf-vol').indexOf('hoja 51') >= 0 && _v('tdf-vol').indexOf('folio 613') >= 0, true]);
+  ex.push(['(D6) y dice que ese corte puede no correlacionar con beneficio clinico',
+    _v('tdf-vol').indexOf('no correlacionar con beneficio') >= 0, true]);
+
+  /* (E) NINGUN CORTE SE MOVIO. */
+  ex.push(['(E1) el criterio de 160 sigue en la pantalla', t.indexOf('160') >= 0, true]);
+  ex.push(['(E2) y el de 80 tambien', t.indexOf('80') >= 0, true]);
+  return { extra: EXP };
+  })();
+`);
+
+caso('TC-630', 'Tanda PANT-3: las dos estenosis aorticas llevan su conclusion a la derecha y los DOS cortes de la subaortica estan rotulados medio y pico en el globo', `
+  return (async () => {
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]),
+                 'dio «' + t[1] + '» · esperado «' + t[2] + '»']) };
+  const esperar = (ms) => new Promise((r) => setTimeout(r, ms));
+  const abrirSec = (id) => { const sec = document.getElementById(id);
+    if (sec && !sec.classList.contains('open')) { const h = sec.querySelector('.sacc-hdr'); if (h) h.click() }
+    return sec ? String(sec.textContent || '') : '' };
+  try { if (typeof showTab === 'function') showTab('congenitas') } catch (e) {}
+  try { if (typeof ccSubTab === 'function') ccSubTab('congenitas') } catch (e) {}
+  await esperar(250);
+  const tSub = abrirSec('sacc-cc-esub');
+  const tSup = abrirSec('sacc-cc-easv');
+  await esperar(300);
+  ex.push(['(A0) DENOM: las dos secciones tienen texto', tSub.length > 200 && tSup.length > 200, true]);
+
+  /* (B) LAS DOS CONCLUSIONES A LA DERECHA. */
+  [['esub', 'esub-resultado'], ['easv', 'easv-resultado']].forEach(function (par, i) {
+    ex.push(['(B' + (i + 1) + ') la conclusion de ' + par[0] + ' vive en su columna',
+      (function () { const c = document.getElementById(par[0] + '-concl-col'), n = document.getElementById(par[1]);
+        return (c && n) ? (c.contains(n) ? 'adentro' : 'afuera') : 'NO EXISTE' })(), 'adentro']);
+  });
+
+  /* (C) LOS TEXTOS SALIERON DE LAS DOS PANTALLAS. */
+  ex.push(['(C1) la subaortica ya no explica el corte en la pantalla', tSub.indexOf('a cualquier nivel') >= 0, false]);
+  ex.push(['(C2) ni la secundaria al chorro', tSub.indexOf('Secundaria al chorro') >= 0, false]);
+  ex.push(['(C3) la supravalvular ya no dice el retraso cognitivo', tSup.indexOf('retraso cognitivo') >= 0, false]);
+  ex.push(['(C4) ni el riesgo de isquemia', tSup.indexOf('riesgo de isquemia') >= 0, false]);
+  ex.push(['(C5) CONTROL NEGATIVO: el rotulo «Es el que gradua» SI se queda en las dos',
+    tSub.indexOf('Es el que grad') >= 0 && tSup.indexOf('Es el que grad') >= 0, true]);
+
+  /* (D) LOS DOS CORTES, CADA UNO CON SU GUIA, SU HOJA, SU FOLIO Y SU CONDICION. */
+  const V = (typeof VINFO !== 'undefined') ? VINFO : null;
+  ex.push(['(D0) DENOM: el globo de los gradientes existe', !!(V && V['esub-grad']), true]);
+  const g = (function () { const e = V && V['esub-grad'];
+    return e ? String((e.lee || '') + ' ' + (e.ojo || '') + ' ' + (e.fuente || '')) : '' })();
+  ex.push(['(D1) DENOM: el globo tiene texto', g.length > 400, true]);
+  ex.push(['(D2) el 40 se dice MEDIO', g.indexOf('EL 40 ES GRADIENTE MEDIO') >= 0, true]);
+  ex.push(['(D3) el 50 se dice PICO', g.indexOf('EL 50 ES GRADIENTE PICO') >= 0, true]);
+  ex.push(['(D4) el 40 lleva su clase y su nivel', g.indexOf('Clase I, Nivel C') >= 0, true]);
+  ex.push(['(D5) y su folio', g.indexOf('folio 603') >= 0, true]);
+  ex.push(['(D6) se dice que la guia lo bajo de 50 a 40', g.indexOf('de 50') >= 0 && g.indexOf('a 40 mmHg') >= 0, true]);
+  ex.push(['(D7) el 50 lleva sus dos folios', g.indexOf('folio e157') >= 0 && g.indexOf('folio e167') >= 0, true]);
+  ex.push(['(D8) y se dice que NINGUN dato identifica un umbral de gradiente',
+    g.indexOf('NING') >= 0 && g.indexOf('umbral de gradiente') >= 0, true]);
+  ex.push(['(D9) CONTROL NEGATIVO: el 50 NO lleva clase ni nivel propios',
+    g.indexOf('Clase I, Nivel C') === g.lastIndexOf('Clase I, Nivel C'), true]);
+  const sup = (function () { const e = V && V['easv-grad'];
+    return e ? String((e.lee || '') + ' ' + (e.ojo || '') + ' ' + (e.fuente || '')) : '' })();
+  ex.push(['(D10) el globo de la supravalvular dice que la guia no publica un recuadro propio',
+    sup.indexOf('no publica un recuadro') >= 0, true]);
+  ex.push(['(D11) y trae su hoja y su folio', sup.indexOf('hoja 10, folio 572') >= 0, true]);
+
+  /* (E) NINGUN CORTE SE MOVIO. */
+  ex.push(['(E1) la constante de la subaortica sigue en 40',
+    (typeof ESUB_MEDIO_SEVERO !== 'undefined') ? ESUB_MEDIO_SEVERO : 'NO EXISTE', 40]);
+  ex.push(['(E2) y la de la supravalvular tambien',
+    (typeof EASV_MEDIO_SEVERO !== 'undefined') ? EASV_MEDIO_SEVERO : 'NO EXISTE', 40]);
+  return { extra: EXP };
+  })();
+`);
+
+caso('TC-631', 'Tanda PANT-3: el modulo de arritmia ventricular es la primera seccion, suma la parada cardiaca recuperada y su espejo de MCH no pisa al medico', `
+  return (async () => {
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]),
+                 'dio «' + t[1] + '» · esperado «' + t[2] + '»']) };
+  const esperar = (ms) => new Promise((r) => setTimeout(r, ms));
+  const S = (id, v) => { const e = document.getElementById(id); if (!e) return 'NO EXISTE ' + id;
+    e.value = v; e.dispatchEvent(new Event('input', { bubbles: true }));
+    e.dispatchEvent(new Event('change', { bubbles: true })); return e.value };
+  const V2 = (id) => { const e = document.getElementById(id); return e ? String(e.value) : 'NO EXISTE' };
+  const T2 = (id) => { const e = document.getElementById(id); return e ? String(e.textContent || '').trim() : 'NO EXISTE' };
+  try { if (typeof limpiarCampos === 'function') limpiarCampos(true) } catch (e) {}
+  try { if (typeof showTab === 'function') showTab('congenitas') } catch (e) {}
+  try { if (typeof ccSubTab === 'function') ccSubTab('congenitas') } catch (e) {}
+  await esperar(350);
+
+  /* (A) DENOMINADORES Y LO QUE EL COMMIT DECIDE DE LA PANTALLA. */
+  ex.push(['(A0) DENOM: el modulo existe', !!document.getElementById('sacc-cc-tv'), true]);
+  ex.push(['(A1) es la PRIMERA seccion de CC frecuentes',
+    (function () { const ss = document.querySelectorAll('#tab-congenitas [id^="sacc-cc-"]');
+      return ss.length ? ss[0].id : 'SIN SECCIONES' })(), 'sacc-cc-tv']);
+  ex.push(['(A2) el rotulo del primer campo nombra la parada',
+    (function () { const e = document.getElementById('tv_documentada'), fg = e && e.closest('.fg');
+      const l = fg && fg.querySelector('label'); return l ? String(l.textContent || '').trim() : 'NO EXISTE' })(),
+    'Parada cardíaca o TV documentada']);
+  ex.push(['(A3) el tipo suma el valor nuevo y conserva los tres viejos',
+    (function () { const e = document.getElementById('tv_tipo');
+      return e ? Array.prototype.map.call(e.options, o => o.value).join(',') : 'NO EXISTE' })(),
+    ',no_sostenida,sostenida,ambas,parada_rec']);
+  ex.push(['(A4) el boton Limpiar existe', typeof tvLimpiar, 'function']);
+  ex.push(['(A5) el enlace Editar existe', typeof tvIrAlModulo, 'function']);
+  ex.push(['(A6) la tarjeta tiene una fila por seccion',
+    ['tv-ap-mch', 'tv-ap-mca', 'tv-ap-tdf'].filter(function (i) { return !!document.getElementById(i) }).length, 3]);
+  ex.push(['(A7) y las tres secciones tienen su linea de resumen',
+    ['mch-tv-res', 'mca-tv-res', 'tdf-tv-res'].filter(function (i) { return !!document.getElementById(i) }).length, 3]);
+
+  /* (B) LA PARADA RECUPERADA: cuenta en MCH y NO cuenta en MCA. */
+  S('tv_documentada', 'si'); S('tv_tipo', 'parada_rec'); S('tv_morfologia', 'bcri_sup');
+  await esperar(400);
+  ex.push(['(B0) DENOM: el tipo tomo el valor nuevo', V2('tv_tipo'), 'parada_rec']);
+  ex.push(['(B1) MCH muestra Si, leido del modulo', V2('mch_ex_parada'), 'si']);
+  ex.push(['(B2) y queda bloqueado, porque lo contesta el modulo',
+    (function () { const e = document.getElementById('mch_ex_parada'); return e ? (e.disabled ? 'si' : 'no') : 'NO EXISTE' })(), 'si']);
+  ex.push(['(B3) MCA NO suma criterio mayor con la parada', V2('mca_v_may'), '']);
+  ex.push(['(B4) y la tarjeta lo dice', T2('tv-ap-mca').indexOf('no aporta criterio') >= 0, true]);
+
+  /* (C) CONTROL NEGATIVO: la misma morfologia con TV SOSTENIDA si suma criterio mayor. */
+  S('tv_tipo', 'sostenida'); await esperar(400);
+  ex.push(['(C1) CONTROL NEGATIVO: con TV sostenida el criterio mayor SI se enciende', V2('mca_v_may'), 'si']);
+  ex.push(['(C2) y MCH sigue mostrando Si', V2('mch_ex_parada'), 'si']);
+
+  /* (D) AL BAJAR A NO SOSTENIDA, EL SI DERIVADO SE VA Y EL CAMPO VUELVE AL MEDICO. */
+  S('tv_tipo', 'no_sostenida'); await esperar(400);
+  ex.push(['(D1) el Si que puso el modulo se retira', V2('mch_ex_parada'), '']);
+  ex.push(['(D2) y el campo vuelve a ser editable',
+    (function () { const e = document.getElementById('mch_ex_parada'); return e ? (e.disabled ? 'si' : 'no') : 'NO EXISTE' })(), 'no']);
+
+  /* (E) PERO EL SI DEL MEDICO NO SE PISA. Es la leccion del D-9. */
+  S('mch_ex_parada', 'si'); await esperar(250);
+  S('tv_tipo', 'ambas'); await esperar(400);
+  S('tv_tipo', 'no_sostenida'); await esperar(400);
+  ex.push(['(E1) el Si que contesto el medico sobrevive al ciclo entero', V2('mch_ex_parada'), 'si']);
+
+  /* (F) EL PAPEL: la frase describe el valor nuevo, sin guia y sin conducta. */
+  S('tv_tipo', 'parada_rec'); await esperar(400);
+  const f = (typeof tvFrase === 'function') ? String(tvFrase() || '') : 'SIN FN';
+  ex.push(['(F1) DENOM: la frase existe', f.length > 20, true]);
+  ex.push(['(F2) y encabeza con la parada', f.indexOf('Parada card') === 0, true]);
+  ex.push(['(F3) sin nombrar ninguna guia', f.indexOf('Task Force') >= 0 || f.indexOf('ESC') >= 0, false]);
+  ex.push(['(F4) y sin conducta', f.toLowerCase().indexOf('desfibrilador') >= 0 || f.toLowerCase().indexOf('se recomienda') >= 0, false]);
+
+  /* (G) LIMPIAR vacia los cuatro campos del modulo y nada mas. */
+  S('tv_ev24h', '700'); await esperar(250);
+  try { tvLimpiar() } catch (e) {}
+  await esperar(400);
+  ex.push(['(G1) Limpiar vacia los cuatro campos',
+    [V2('tv_documentada'), V2('tv_tipo'), V2('tv_morfologia'), V2('tv_ev24h')].join('|'), '|||']);
+  return { extra: EXP };
+  })();
+`);
+
+caso('TC-632', 'Tanda PANT-3: las tres presiones pulmonares se rotulan PSAP, PmAP y PDAP en la pantalla, y el Excel no cambia', `
+  return (async () => {
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]),
+                 'dio «' + t[1] + '» · esperado «' + t[2] + '»']) };
+  const esperar = (ms) => new Promise((r) => setTimeout(r, ms));
+  await esperar(200);
+  /* El censo se hace sobre los ROTULOS, no sobre el documento entero: el cuerpo de la pagina
+     trae el codigo de los script inline, y ahi estan los comentarios que explican el cambio.
+     Es la trampa que la tanda C2 documenta: el arnes se mide a si mismo. */
+  const rots = [];
+  document.querySelectorAll('label, .calc-lbl, th, option').forEach(function (e) {
+    if (e.querySelector('input, select, textarea')) {
+      const c = e.cloneNode(true);
+      c.querySelectorAll('input, select, textarea').forEach(function (x) { x.remove() });
+      rots.push(String(c.textContent || ''));
+    } else rots.push(String(e.textContent || ''));
+  });
+  const todos = rots.join(' | ');
+  ex.push(['(A0) DENOM: se junto texto de rotulos', todos.length > 4000, true]);
+  ex.push(['(A1) DENOM: hay rotulos de las tres presiones', todos.indexOf('PSAP') >= 0, true]);
+
+  /* (B) LOS ROTULOS VIEJOS YA NO ESTAN. */
+  [['PAP media', 'PmAP'], ['PAP diast', 'PDAP'], ['PAPs ', 'PSAP'], ['PASP', 'PSAP'],
+   ['Presión sistólica pulmonar', 'PSAP']].forEach(function (par, i) {
+    ex.push(['(B' + (i + 1) + ') ningun rotulo de pantalla dice «' + par[0] + '»',
+      todos.indexOf(par[0]) >= 0, false]);
+  });
+  ex.push(['(B6) ni PAPm', todos.indexOf('PAPm') >= 0, false]);
+
+  /* (C) LOS TRES NUEVOS SI ESTAN. */
+  ['PSAP', 'PmAP', 'PDAP'].forEach(function (r, i) {
+    ex.push(['(C' + (i + 1) + ') la pantalla rotula ' + r, todos.indexOf(r) >= 0, true]);
+  });
+
+  /* (D) CONTROL NEGATIVO: los ambiguos NO se tocaron. */
+  ex.push(['(D1) CONTROL NEGATIVO: la presion SISTEMICA sigue llamandose asi',
+    todos.indexOf('PA sist') >= 0, true]);
+  ex.push(['(D2) CONTROL NEGATIVO: la presion media de la auricula DERECHA sigue siendo PmAD',
+    todos.indexOf('PmAD') >= 0, true]);
+  ex.push(['(D3) CONTROL NEGATIVO: el DIAMETRO de la arteria pulmonar no es una presion',
+    todos.indexOf('metro de la arteria pulmonar') >= 0, true]);
+
+  /* (E) EL EXCEL NO CAMBIA: ni el numero de columnas ni el encabezado de la PAP media. */
+  const cols = (typeof LAB_XLS_MAP !== 'undefined' && LAB_XLS_MAP) ? LAB_XLS_MAP.length : -1;
+  ex.push(['(E0) DENOM: el mapa del Excel existe', cols > 400, true]);
+  ex.push(['(E1) el Excel sigue en 441 columnas', cols, 441]);
+  ex.push(['(E2) y el encabezado de la PAP media no cambio',
+    (function () { for (const f of LAB_XLS_MAP) { if (f && f[1] === 'pap_med') return String(f[0]) } return 'NO ESTA' })(),
+    'PAP media (mmHg)']);
+  return { extra: EXP };
+  })();
+`);
+
 caso('TC-623', 'Tanda PANT-3: los botones CIA y CIV marcan la lesion, se pintan enteros, el estado viaja con el estudio y la lesion entra al informe sin el boton de abajo', `
   return (async () => {
   const EXP = [];
