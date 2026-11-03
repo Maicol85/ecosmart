@@ -110703,17 +110703,66 @@ caso('TC-642', 'Tanda PANT-5: la CIA y la CIV lado a lado, y la longitud de los 
   try { eteShuntPanes(); } catch (e) { ex.push(['(B0) el dueno del display responde', String(e), 'sin error']); }
   ex.push(['(B1) con las dos marcadas, la CIA se ve', vis('ete-shunt-pane-cia'), true]);
   ex.push(['(B2) y la CIV tambien', vis('ete-shunt-pane-civ'), true]);
-  /* CONTROL NEGATIVO: con UNA sola marcada y navegada, la otra NO se ve. Sin esto, (B1) y (B2)
-     pasarian con un dueno que mostrara los dos SIEMPRE. */
+  /* (B3) INVERTIDA POR PANT-6, commit 1, y es el dia que esta condicion anunciaba. Decia
+     «con una sola marcada y navegada, la otra se esconde», que era el CONTROL NEGATIVO de la
+     regla de PANT-5 -«un panel se ve si su lesion esta marcada O si es el navegado»-. El medico
+     midio esa regla probando la pantalla y la retiro: ahora no hay logica especial, la CIA
+     siempre en una mitad y la CIV en la otra, y el boton SOLO decide si la lesion entra al
+     informe. Lo que esta condicion vigila ahora es la regla nueva, y queda MAS FUERTE que la
+     vieja: puede fallar por cualquiera de los tres lados -una sola marcada, ninguna marcada, o
+     un campo deshabilitado-, mientras la de antes solo miraba un display. */
   __t.chk('ete_civ_activa', false);
   try { eteShuntTab('cia'); } catch (e) {}
-  ex.push(['(B3) CONTROL: con una sola marcada y navegada, la otra se esconde', vis('ete-shunt-pane-civ'), false]);
+  ex.push(['(B3) con una sola marcada, la OTRA sigue a la vista', vis('ete-shunt-pane-civ'), true]);
   ex.push(['(B4) y la marcada se ve', vis('ete-shunt-pane-cia'), true]);
-  /* Y LA GARANTIA QUE SE CONSERVA: desmarcar NO esconde el panel, porque el gesto navega a esa
-     misma lesion y un campo oculto se sigue guardando. */
+  /* (B3b) NINGUNA marcada: los dos cuadros igual. Es la combinacion que el medico reporto como
+     la mas confusa -apagar la CIA hacia desaparecer el formulario de la CIV-. */
   __t.chk('ete_cia_activa', false);
+  try { eteShuntSync(); } catch (e) {}
+  ex.push(['(B3b) sin ninguna marcada, los DOS cuadros a la vista',
+    (vis('ete-shunt-pane-cia') ? 'C' : '-') + (vis('ete-shunt-pane-civ') ? 'V' : '-'), 'CV']);
+  /* (B3c) Y TODOS LOS CAMPOS HABILITADOS en esa misma combinacion: el boton no gatea la
+     entrada de datos. Los seis espejos de solo lectura NO cuentan, que son otro mecanismo. */
+  ex.push(['(B3c) y todos sus campos habilitados', (() => {
+    const sc = document.getElementById('sacc-cc-shunt');
+    const cu = sc && sc.querySelector('.sacc-body'); if (!cu) return 'sin cuerpo';
+    const d = Array.prototype.slice.call(cu.querySelectorAll('input[id], select[id]'))
+      .filter(e => e.type !== 'checkbox' && e.type !== 'hidden' && e.disabled).map(e => e.id);
+    return d.length ? d.join(',') : 'ninguno deshabilitado' })(), 'ninguno deshabilitado']);
+  /* Y LA GARANTIA DE PANT-3 QUE SE CONSERVA, hoy por construccion: desmarcar NO esconde el
+     formulario, porque ya no se esconde ninguno. Un campo oculto se sigue guardando. */
   try { eteShuntTab('cia'); } catch (e) {}
   ex.push(['(B5) desmarcar NO esconde el panel navegado', vis('ete-shunt-pane-cia'), true]);
+  /* (B6) EL TERCER CUADRO: la cuantificacion del shunt, de ancho completo y FUERA de la fila.
+     El medico no sabia de quien eran el Qp/Qs y el DDVI indexado que aparecian debajo del
+     diagrama; ahora lo dice su titulo. */
+  const com = document.getElementById('ete-shunt-comun');
+  ex.push(['(B6) el cuadro comun existe y esta FUERA de la fila',
+    !!(com && fila && !fila.contains(com)), true]);
+  ex.push(['(B7) y lleva los cuatro insumos del Qp/Qs mas los dos del DDVI indexado',
+    ['ete_shunt_tsvi_ro','ete_shunt_vtitsvi_ro','ete_shunt_tsvd_ro','ete_shunt_vtitsvd_ro',
+     'ete_shunt_ddvi_ro','ete_shunt_asc_ro']
+      .filter(i => { const e = document.getElementById(i); return !(e && com && com.contains(e)) })
+      .join(',') || 'los seis', 'los seis']);
+  /* (B8) LA «PSAP por IT» REPETIDA SALIO DE LA CIA: el punto 1a verifico en el codigo que era
+     una lectura repetida -el mismo papsTxt en los dos nodos- y que nadie mas la leia. La de
+     la CIV se queda. */
+  ex.push(['(B8) la PSAP por IT repetida ya no esta en la CIA',
+    !document.getElementById('ete-cia-paps-it'), true]);
+  ex.push(['(B8b) CONTROL: la de la CIV sigue estando',
+    !!document.getElementById('ete-civ-paps-it'), true]);
+  /* (B9) CADA BOTON DENTRO DE SU CUADRO, y sin salir de la cadena de ancestros que lo pinta:
+     cc-les-on y cc-pane-on se declaran como .subtabs-wrap .tab-btn.cc-*. */
+  ex.push(['(B9) el boton CIA vive dentro del cuadro de la CIA', (() => {
+    const b = document.getElementById('ete-shunt-tab-cia'), p = document.getElementById('ete-shunt-pane-cia');
+    return !!(b && p && p.contains(b)) })(), true]);
+  ex.push(['(B9b) el boton CIV dentro del de la CIV', (() => {
+    const b = document.getElementById('ete-shunt-tab-civ'), p = document.getElementById('ete-shunt-pane-civ');
+    return !!(b && p && p.contains(b)) })(), true]);
+  ex.push(['(B9c) y los dos siguen dentro de un .subtabs-wrap.cc-lesbar, que es lo que los pinta',
+    ['ete-shunt-tab-cia','ete-shunt-tab-civ'].filter(i => {
+      const b = document.getElementById(i); return !(b && b.closest('.subtabs-wrap.cc-lesbar')) })
+      .join(',') || 'los dos', 'los dos']);
   /* (C) EL DIAGRAMA DE BORDES, MAS CHICO, SIN PERDER NADA. */
   const donut = document.getElementById('cia-donut-svg');
   ex.push(['(C0) DENOM: el diagrama existe', !!donut, true]);

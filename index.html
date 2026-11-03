@@ -4085,20 +4085,59 @@ html.light-mode .amilo-root{
 @media (min-width:700px){
   #cvr-campos-grid{grid-template-columns:repeat(2,minmax(0,1fr));}
 }
-#ete-shunt-fila{display:block;}
+/* ============================================================================================
+   LA CIA SIEMPRE A LA IZQUIERDA Y LA CIV SIEMPRE A LA DERECHA  (PANT-6, commit 1)
+   ============================================================================================
+   Decision del medico (03/11/2026): dos cuadros de IGUAL ancho, siempre visibles, sin ocultarse
+   ni cambiar de ancho segun los botones.
+   ⚠️ ES GRID Y NO FLEX, Y ES AL REVES DE PANT-5: el flex de entonces existia para que «una sola
+      ocupe todo el ancho», que es justo lo que esta decision retira. Con los dos cuadros siempre
+      a la vista el reparto tiene que ser de igual ancho sea cual sea el contenido, y eso lo da
+      `repeat(2,minmax(0,1fr))`; con flex, el cuadro de la CIA -que tiene el diagrama- se habria
+      quedado con mas ancho que el de la CIV.
+   ⚠️ LOS CORTES VAN SOBRE LA VENTANA, en media queries explicitas, que es la regla fija de la
+      casa: con contenedores, el punto de quiebre depende del ancho que le quede a la tarjeta y
+      deja de ser medible.
+   El corte de las columnas INTERNAS de cada cuadro es 1140 px, y sale de una cuenta: el ancho
+   util de una seccion es la ventana menos 246 px, cada cuadro se queda con (util - 14)/2 y su
+   interior con 28 px menos -borde de 2 y relleno de 12 a cada lado-, asi que dos columnas de
+   200 px necesitan 410 px de interior, o sea una ventana de 1136. */
+#ete-shunt-fila{display:grid;grid-template-columns:minmax(0,1fr);gap:14px;align-items:start;}
 #ete-shunt-fila > div{min-width:0;}
 @media (min-width:900px){
-  #ete-shunt-fila{display:flex;gap:14px;align-items:flex-start;}
-  #ete-shunt-fila > div{flex:1 1 0;min-width:0;}
-  /* Solo cuando las DOS estan a la vista: con una sola, el panel tiene el ancho entero y sus
-     tres columnas entran. La clase la pone `eteShuntSync`, el mismo dueno que muestra y esconde
-     los paneles, asi que no pueden discrepar. */
-  #ete-shunt-fila.dos .grid-3{grid-template-columns:repeat(2,minmax(0,1fr));}
+  #ete-shunt-fila{grid-template-columns:repeat(2,minmax(0,1fr));}
 }
-/* EL DIAGRAMA DE BORDES, MAS CHICO: 260 -> 190 px. El pedido es que la CIA ocupe menos espacio
-   sin cambiar sus datos, sus rotulos ni sus colores de adecuacion. El `<svg>` lleva `width` y
-   `height` explicitos por Safari -ya documentado-, asi que el tamanio se baja por CSS y el
-   marcado no se toca. */
+/* El cuadro: borde de 2 px en el color de acento de la app, mismo radio y mismo fondo que las
+   tarjetas del resto de la pestania. El tercero, el comun, lleva 1 px. */
+.ete-shunt-cuadro{border:2px solid var(--accent);border-radius:12px;padding:12px;
+  background:var(--bg2);min-width:0;}
+.ete-shunt-cuadro-fino{border-width:1px;margin-top:14px;}
+/* La barra del boton de lesion dentro de su cuadro. NO se le toca el pintado: el boton sigue
+   dentro de `.subtabs-wrap.cc-lesbar > .tabs-row`, que es de donde cuelgan `cc-les-on` y
+   `cc-pane-on`. Lo unico que cambia es el margen, porque ya no es una barra de la seccion. */
+.ete-shunt-btnbar{margin:0 0 10px;}
+.ete-shunt-h{font-size:12px;font-weight:700;color:var(--accent2);margin-bottom:8px;}
+.ete-shunt-g1{display:grid;grid-template-columns:minmax(0,1fr);gap:8px 10px;align-items:start;}
+.ete-shunt-g1 > .fg{min-width:0;}
+.ete-shunt-g2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 10px;align-items:start;}
+.ete-shunt-g2 > .fg{min-width:0;}
+#ete-cia-cols,#ete-civ-cols{display:grid;grid-template-columns:minmax(0,1fr);gap:10px 12px;align-items:start;}
+#ete-cia-cols > div,#ete-civ-cols > div{min-width:0;}
+@media (min-width:1140px){
+  #ete-cia-cols,#ete-civ-cols{grid-template-columns:repeat(2,minmax(0,1fr));}
+}
+/* El cuadro comun: dos bloques lado a lado desde 900 px. A ese ancho el cuadro mide unos 654 px
+   y cada bloque 322, por encima del piso de 200. */
+#ete-shunt-comun-cols{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;align-items:start;}
+#ete-shunt-comun-cols > div{min-width:0;}
+@media (min-width:900px){
+  #ete-shunt-comun-cols{grid-template-columns:repeat(2,minmax(0,1fr));}
+}
+/* EL DIAGRAMA DE BORDES, MAS CHICO: 260 -> 190 px (PANT-5) y hoy al ancho de su columna, sin
+   espacio vacio a su derecha (PANT-6). El pedido es que la CIA ocupe menos espacio sin cambiar
+   sus datos, sus rotulos ni sus colores de adecuacion. El `<svg>` lleva `width` y `height`
+   explicitos por Safari -ya documentado-, asi que el tamanio se baja por CSS y el marcado no se
+   toca. */
 #cia-donut-svg{width:190px!important;height:190px!important;}
 @media (max-width:560px){
   #cia-donut-svg{width:160px!important;height:160px!important;}
@@ -19069,182 +19108,223 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
          en un formulario vacio no abren nada. -->
     <input type="checkbox" id="ete_cia_activa" style="display:none;" tabindex="-1" aria-hidden="true">
     <input type="checkbox" id="ete_civ_activa" style="display:none;" tabindex="-1" aria-hidden="true">
-    <div class="subtabs-wrap cc-lesbar" style="justify-content:flex-start;margin-bottom:6px;">
-      <div class="tabs-row">
-        <button type="button" class="tab-btn cc-pane-on" id="ete-shunt-tab-cia" aria-pressed="false"
-                onclick="eteShuntLesionTog('cia')">CIA</button>
-        <button type="button" class="tab-btn" id="ete-shunt-tab-civ" aria-pressed="false"
-                onclick="eteShuntLesionTog('civ')">CIV</button>
-      </div>
-    </div>
-    <div style="font-size:10.5px;color:var(--text2);margin-bottom:12px;">
-      Toque <b>CIA</b> o <b>CIV</b> para marcar la lesion y abrir su formulario; vuelva a tocarlo
-      para desmarcarla. La lesion marcada queda en el informe.
+    <!-- == LA CIA SIEMPRE A LA IZQUIERDA Y LA CIV SIEMPRE A LA DERECHA (PANT-6, commit 1) =====
+         DECISION DEL MEDICO (03/11/2026): no hay logica especial. DOS cuadros de igual ancho,
+         SIEMPRE visibles, con TODOS sus campos habilitados; el boton de cada lesion SOLO decide
+         si esa lesion entra al informe.
+         ⚠️ LO QUE SE REPRODUJO EN HEAD, PASO A PASO Y CON LOS BOTONES TOCADOS DE VERDAD, es lo
+            que el medico describio: prender CIA -> solo la CIA, a ancho completo (1194 px);
+            prender CIV -> las dos lado a lado (590/590); APAGAR CIV -> SIGUEN LAS DOS, porque
+            `eteShuntPanes` decia `vV = onV || _eteShuntPane === 'civ'` y el gesto de desmarcar
+            navega a esa misma lesion; apagar CIA -> la CIV DESAPARECE y la CIA se queda sola a
+            ancho completo. Dos duenos decidian: `eteShuntPanes` el `display` y la clase `dos`
+            de `eteShuntSync` el ancho. Hoy ninguno de los dos esconde nada.
+         ⚠️ ES GRID Y NO FLEX, Y ES AL REVES DE PANT-5: con los dos cuadros siempre a la vista el
+            reparto tiene que ser de IGUAL ancho, y `repeat(2,minmax(0,1fr))` lo garantiza sea
+            cual sea el contenido. El flex de PANT-5 existia para que «una sola ocupe todo», que
+            es justo lo que esta decision retira.
+         ⚠️ CADA BOTON VA DENTRO DE SU PROPIO `.subtabs-wrap.cc-lesbar > .tabs-row`, y no es
+            decorativo: el pintado de `cc-les-on` y `cc-pane-on` se declara como
+            `.subtabs-wrap .tab-btn.cc-*`, asi que sacar el boton de esa cadena de ancestros le
+            borra el relleno verde. El estilo, el estado pintado, la persistencia, los dos
+            checkbox y la conexion al informe quedan EXACTAMENTE como los dejo PANT-3. -->
+    <div style="font-size:10.5px;color:var(--text2);margin-bottom:10px;">
+      Toque <b>CIA</b> o <b>CIV</b> para marcar la lesion; vuelva a tocarlo para desmarcarla. La
+      lesion marcada queda en el informe. Los dos formularios quedan siempre a la vista y se
+      pueden cargar sin marcar la lesion.
     </div>
 
-    <!-- == LAS DOS LESIONES LADO A LADO CUANDO LAS DOS ESTAN ACTIVAS (PANT-5, commit 5) ======
-         Decision del medico (opcion 1): con las DOS lesiones marcadas se ven lado a lado, la CIA
-         a la izquierda y la CIV a la derecha; con UNA sola, esa ocupa el ancho completo; por
-         debajo de 900 px, apiladas y la CIA primero.
-         ⚠️ ES FLEX Y NO GRID, Y ESO ES LO QUE HACE QUE «UNA SOLA OCUPE TODO» SALGA GRATIS. Los
-            dos paneles se muestran y se esconden con `display:none` desde `eteShuntLesionTog`, y
-            un hijo en `display:none` NO participa del reparto flex: el que queda visible toma el
-            ancho entero sin una sola linea de JS nueva. Con un grid de dos columnas fijas, la
-            lesion sola se habria quedado en la columna izquierda con la derecha vacia.
-         ⚠️ LOS DOS BOTONES DE PRESENCIA NO SE TOCAN: siguen siendo los mismos toggles de PANT-3,
-            con sus dos checkbox ocultos como estado. Esta fila solo los envuelve. -->
     <div id="ete-shunt-fila">
     <!-- ── CIA ── -->
-    <div id="ete-shunt-pane-cia">
-      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin-bottom:8px;">Tipo y tamaño</div>
-      <div class="grid-3">
-        <div class="fg"><label>Tipo de CIA</label>
-          <select id="ete_cia_tipo" onchange="eteShuntSync()">
-            <option value="">—</option>
-            <option value="secundum">Ostium secundum</option>
-            <option value="primum">Ostium primum</option>
-            <option value="sv_vcs">Seno venoso VCS</option>
-            <option value="sv_vci">Seno venoso VCI</option>
-            <option value="seno_coronario">Seno coronario</option>
-          </select>
+    <div id="ete-shunt-pane-cia" class="ete-shunt-cuadro">
+      <div class="subtabs-wrap cc-lesbar ete-shunt-btnbar" style="justify-content:flex-start;">
+        <div class="tabs-row">
+          <button type="button" class="tab-btn cc-pane-on" id="ete-shunt-tab-cia" aria-pressed="false"
+                  onclick="eteShuntLesionTog('cia')">CIA</button>
         </div>
-        <div class="fg"><label>Tamaño máximo (mm)</label><input type="number" id="ete_cia_tam_max" step="0.1" placeholder="mm" oninput="eteShuntSync()"></div>
-        <div class="fg"><label>Tamaño mínimo (mm)</label><input type="number" id="ete_cia_tam_min" step="0.1" placeholder="mm" oninput="eteShuntSync()"></div>
       </div>
+      <div id="ete-cia-cols">
+        <!-- ── columna 1: tipo y tamanio, shunt, y la tarjeta del borde seleccionado ── -->
+        <div>
+          <div class="ete-shunt-h">Tipo y tamaño</div>
+          <div class="ete-shunt-g1">
+            <div class="fg"><label>Tipo de CIA</label>
+              <select id="ete_cia_tipo" onchange="eteShuntSync()">
+                <option value="">—</option>
+                <option value="secundum">Ostium secundum</option>
+                <option value="primum">Ostium primum</option>
+                <option value="sv_vcs">Seno venoso VCS</option>
+                <option value="sv_vci">Seno venoso VCI</option>
+                <option value="seno_coronario">Seno coronario</option>
+              </select>
+            </div>
+            <div class="fg"><label>Tamaño máximo (mm)</label><input type="number" id="ete_cia_tam_max" step="0.1" placeholder="mm" oninput="eteShuntSync()"></div>
+            <div class="fg"><label>Tamaño mínimo (mm)</label><input type="number" id="ete_cia_tam_min" step="0.1" placeholder="mm" oninput="eteShuntSync()"></div>
+          </div>
 
-      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:14px 0 8px;">Bordes</div>
-      <div class="grid-3" style="margin-bottom:4px;">
-        <div class="fg"><label>Borde aórtico (mm)</label><input type="number" id="ete_cia_borde_ao" step="0.1" placeholder="mm" oninput="eteShuntSync()"></div>
-        <div class="fg"><label>Borde AV / mitral (mm)</label><input type="number" id="ete_cia_borde_av" step="0.1" placeholder="mm" oninput="eteShuntSync()"></div>
-        <div class="fg"><label>Borde VCS (mm)</label><input type="number" id="ete_cia_borde_vcs" step="0.1" placeholder="mm" oninput="eteShuntSync()"></div>
-        <div class="fg"><label>Borde VCI (mm)</label><input type="number" id="ete_cia_borde_vci" step="0.1" placeholder="mm" oninput="eteShuntSync()"></div>
-        <div class="fg"><label>Borde posterior (mm)</label><input type="number" id="ete_cia_borde_post" step="0.1" placeholder="mm" oninput="eteShuntSync()"></div>
-      </div>
-      <div id="ete-cia-borde-min-box" class="calc-box" style="margin-top:8px;display:none;">
-        <div class="calc-row"><span class="calc-lbl">Borde mínimo</span><span id="ete-cia-borde-min">—</span></div>
-      </div>
+          <div class="ete-shunt-h" style="margin-top:14px;">Shunt</div>
+          <div class="ete-shunt-g1">
+            <div class="fg"><label>Dirección</label>
+              <select id="ete_cia_dir" onchange="eteShuntSync()">
+                <option value="">—</option>
+                <option value="id">Izquierda → derecha</option>
+                <option value="di">Derecha → izquierda</option>
+                <option value="bi">Bidireccional</option>
+              </select>
+            </div>
+            <div class="fg"><label>Velocidad pico del jet (m/s)</label><input type="number" id="ete_cia_vel" step="0.1" placeholder="m/s" oninput="eteShuntSync()"></div>
+          </div>
+          <!-- No se deriva PAPs del jet interauricular: esa fórmula (PAS − 4V²) es la del CIV,
+               donde la velocidad refleja el gradiente VI–VD. En una CIA el gradiente es AI–AD y
+               da números sin sentido (PAS 120 con V 1,2 → «PAPs 114»).
+               ⚠️ EL BLOQUE «PSAP por IT (del estudio)» SALIO DE LA CIA (PANT-6, commit 1): el
+                  punto 1a lo verifico en el codigo y es una LECTURA REPETIDA, no alimenta nada.
+                  `eteShuntSync` escribia el MISMO `papsTxt` en `ete-cia-paps-it` y en
+                  `ete-civ-paps-it`, y nadie mas leia el primero -censado el documento entero-.
+                  El de la CIV se queda, donde esta al lado de la PSAP estimada por el jet. -->
 
-      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:14px 0 8px;">Shunt</div>
-      <div class="grid-2">
-        <div class="fg"><label>Dirección</label>
-          <select id="ete_cia_dir" onchange="eteShuntSync()">
-            <option value="">—</option>
-            <option value="id">Izquierda → derecha</option>
-            <option value="di">Derecha → izquierda</option>
-            <option value="bi">Bidireccional</option>
-          </select>
+          <!-- La tarjeta del borde que el medico esta tocando: BORDE, medido por ETE y VENTANA DE
+               MEDICION. Va en la columna 1, debajo del shunt, y el diagrama en la 2. -->
+          <div id="cia-donut-panel" style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-top:14px;"></div>
+          <div id="ete-cia-borde-min-box" class="calc-box" style="margin-top:8px;display:none;">
+            <div class="calc-row"><span class="calc-lbl">Borde mínimo</span><span id="ete-cia-borde-min">—</span></div>
+          </div>
         </div>
-        <div class="fg"><label>Velocidad pico del jet (m/s)</label><input type="number" id="ete_cia_vel" step="0.1" placeholder="m/s" oninput="eteShuntSync()"></div>
-      </div>
-      <!-- No se deriva PAPs del jet interauricular: esa fórmula (PAS − 4V²) es la del CIV,
-           donde la velocidad refleja el gradiente VI–VD. En una CIA el gradiente es AI–AD y
-           da números sin sentido (PAS 120 con V 1,2 → «PAPs 114»). La PAPs de la CIA se
-           informa por IT, que ya viene calculada más abajo. -->
-      <div class="calc-box" style="margin-top:8px;">
-        <div class="calc-row"><span class="calc-lbl">PSAP por IT (del estudio)</span><span id="ete-cia-paps-it" class="calc-val">—</span></div>
-      </div>
 
-      <!-- Donut a la izquierda, detalle del borde tocado a la derecha. La columna «Ventana ETE»
-           de la tabla anterior se fue al panel, que es donde aparece la del borde que el médico
-           está mirando en vez de las cinco a la vez.
-           Los CINCO INPUTS SIGUEN EXISTIENDO, abajo: son campos persistidos que barre
-           `guardarInforme` por `input[id]`, y sacarlos habría dejado el donut sin forma de
-           cargarle datos y el estudio sin los bordes. «Reemplazar la tabla» es reemplazar su
-           PRESENTACIÓN, no la entrada de datos.
-           El diagrama va al FINAL del panel, debajo de los campos y del shunt: es una LECTURA de
-           lo cargado, no un control de entrada, y arriba empujaba los campos por debajo del
-           pliegue — el médico tenía que scrollear para llegar a lo que tiene que tipear.
-           `overflow:visible` y `width`/`height` explícitos en el <svg>: el UA le pone
-           `overflow:hidden` y Safari no deriva la altura del viewBox — sin las dos cosas el
-           diagrama sale recortado o de alto cero. Ya está documentado en este proyecto. -->
-      <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start;margin-bottom:12px;">
-        <svg id="cia-donut-svg" width="260" height="260" viewBox="-130 -130 260 260"
-             role="img" aria-label="Bordes de la comunicación interauricular"
-             style="overflow:visible;flex:0 0 auto;max-width:100%;height:auto;aspect-ratio:1/1;"></svg>
-        <div style="flex:1 1 220px;min-width:200px;">
-          <div id="cia-donut-panel" style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:12px 14px;"></div>
-          <div style="display:flex;gap:12px;flex-wrap:wrap;font-size:10.5px;color:var(--text2);margin-top:8px;">
+        <!-- ── columna 2: los cinco bordes y el diagrama ── -->
+        <div>
+          <div class="ete-shunt-h">Bordes</div>
+          <div class="ete-shunt-g2">
+            <div class="fg"><label>Borde aórtico (mm)</label><input type="number" id="ete_cia_borde_ao" step="0.1" placeholder="mm" oninput="eteShuntSync()"></div>
+            <div class="fg"><label>Borde AV / mitral (mm)</label><input type="number" id="ete_cia_borde_av" step="0.1" placeholder="mm" oninput="eteShuntSync()"></div>
+            <div class="fg"><label>Borde VCS (mm)</label><input type="number" id="ete_cia_borde_vcs" step="0.1" placeholder="mm" oninput="eteShuntSync()"></div>
+            <div class="fg"><label>Borde VCI (mm)</label><input type="number" id="ete_cia_borde_vci" step="0.1" placeholder="mm" oninput="eteShuntSync()"></div>
+            <div class="fg"><label>Borde posterior (mm)</label><input type="number" id="ete_cia_borde_post" step="0.1" placeholder="mm" oninput="eteShuntSync()"></div>
+          </div>
+          <!-- Los CINCO INPUTS SIGUEN EXISTIENDO, arriba: son campos persistidos que barre
+               `guardarInforme` por `input[id]`.
+               `overflow:visible` y `width`/`height` explicitos en el <svg>: el UA le pone
+               `overflow:hidden` y Safari no deriva la altura del viewBox - sin las dos cosas el
+               diagrama sale recortado o de alto cero. Ya esta documentado en este proyecto.
+               ⚠️ EL DIAGRAMA YA NO TIENE UNA COLUMNA VACIA A SU DERECHA (PANT-6, commit 1): su
+                  panel de detalle se fue a la columna 1, asi que el circulo ocupa el ancho de su
+                  propia columna y su leyenda va debajo. Sus datos, sus rotulos y sus colores de
+                  adecuacion no se tocaron. -->
+          <div style="margin-top:12px;text-align:center;">
+            <svg id="cia-donut-svg" width="260" height="260" viewBox="-130 -130 260 260"
+                 role="img" aria-label="Bordes de la comunicación interauricular"
+                 style="overflow:visible;max-width:100%;height:auto;aspect-ratio:1/1;"></svg>
+          </div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;font-size:10.5px;color:var(--text2);margin-top:8px;">
             <span>🟩 ≥5 mm adecuado</span><span>🟧 3–4 mm borderline</span><span>🟥 &lt;3 mm deficiente</span>
           </div>
-          <!-- Mismo rótulo, mismo emoji y misma clase que el «🧹 Limpiar» del bull's eye de
-               Contractilidad, que es la referencia de diseño del pedido. Va DEBAJO del panel y no
-               al lado del donut para no competir con los segmentos, que son la zona táctil. -->
+          <!-- Mismo rotulo, mismo emoji y misma clase que el «🧹 Limpiar» del bull's eye de
+               Contractilidad, que es la referencia de diseno del pedido. -->
           <div style="margin-top:10px;">
             <button type="button" class="btn btn-ghost" onclick="ciaBordesReset()"
                     title="Borra las cinco medidas de borde del diagrama">🧹 Limpiar</button>
           </div>
-        </div><!-- /columna derecha: panel + leyenda -->
-      </div><!-- /fila donut + panel -->
+        </div>
+      </div><!-- /ete-cia-cols -->
     </div>
 
     <!-- ── CIV ── -->
-    <div id="ete-shunt-pane-civ" style="display:none;">
-      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin-bottom:8px;">Tipo y tamaño</div>
-      <div class="grid-3">
-        <div class="fg"><label>Tipo de CIV</label>
-          <select id="ete_civ_tipo" onchange="eteShuntSync()">
-            <option value="">—</option>
-            <option value="perimembranosa">Perimembranosa</option>
-            <option value="muscular">Muscular</option>
-            <option value="infundibular">Infundibular</option>
-            <option value="inlet">Inlet</option>
-          </select>
+    <div id="ete-shunt-pane-civ" class="ete-shunt-cuadro">
+      <div class="subtabs-wrap cc-lesbar ete-shunt-btnbar" style="justify-content:flex-end;">
+        <div class="tabs-row">
+          <button type="button" class="tab-btn" id="ete-shunt-tab-civ" aria-pressed="false"
+                  onclick="eteShuntLesionTog('civ')">CIV</button>
         </div>
-        <div class="fg"><label>Tamaño máximo (mm)</label><input type="number" id="ete_civ_tam" step="0.1" placeholder="mm" oninput="eteShuntSync()"></div>
-        <div class="fg"><label>Vista ETE</label><input type="text" id="ete_civ_vista" placeholder="Ej: 4C 0°, eje corto 45°" oninput="eteShuntSync()"></div>
       </div>
-
-      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:14px 0 8px;">Gradiente y presión pulmonar</div>
-      <div class="grid-2">
-        <div class="fg"><label>Velocidad pico del jet CIV (m/s)</label><input type="number" id="ete_civ_vel" step="0.1" placeholder="m/s" oninput="eteShuntSync()"></div>
-        <div class="fg"><label>PA sistémica (mmHg)</label><input type="number" id="ete_civ_pas" step="1" placeholder="mmHg" oninput="eteShuntSync()"></div>
-      </div>
-      <div class="calc-box" style="margin-top:8px;">
-        <div class="calc-row"><span class="calc-lbl">PSAP estimada por CIV (PAS − 4V²)</span><span id="ete-civ-paps" class="calc-val">—</span></div>
-        <div class="calc-row"><span class="calc-lbl">PSAP por IT (del estudio)</span><span id="ete-civ-paps-it" class="calc-val">—</span></div>
-      </div>
+      <div id="ete-civ-cols">
+        <!-- ── columna 1: tipo y tamanio ── -->
+        <div>
+          <div class="ete-shunt-h">Tipo y tamaño</div>
+          <div class="ete-shunt-g1">
+            <div class="fg"><label>Tipo de CIV</label>
+              <select id="ete_civ_tipo" onchange="eteShuntSync()">
+                <option value="">—</option>
+                <option value="perimembranosa">Perimembranosa</option>
+                <option value="muscular">Muscular</option>
+                <option value="infundibular">Infundibular</option>
+                <option value="inlet">Inlet</option>
+              </select>
+            </div>
+            <div class="fg"><label>Tamaño máximo (mm)</label><input type="number" id="ete_civ_tam" step="0.1" placeholder="mm" oninput="eteShuntSync()"></div>
+            <div class="fg"><label>Vista ETE</label><input type="text" id="ete_civ_vista" placeholder="Ej: 4C 0°, eje corto 45°" oninput="eteShuntSync()"></div>
+          </div>
+        </div>
+        <!-- ── columna 2: gradiente y presion pulmonar, con sus DOS lecturas ── -->
+        <div>
+          <div class="ete-shunt-h">Gradiente y presión pulmonar</div>
+          <div class="ete-shunt-g1">
+            <div class="fg"><label>Velocidad pico del jet CIV (m/s)</label><input type="number" id="ete_civ_vel" step="0.1" placeholder="m/s" oninput="eteShuntSync()"></div>
+            <div class="fg"><label>PA sistémica (mmHg)</label><input type="number" id="ete_civ_pas" step="1" placeholder="mmHg" oninput="eteShuntSync()"></div>
+          </div>
+          <div class="calc-box" style="margin-top:8px;">
+            <div class="calc-row"><span class="calc-lbl">PSAP estimada por CIV (PAS − 4V²)</span><span id="ete-civ-paps" class="calc-val">—</span></div>
+            <div class="calc-row"><span class="calc-lbl">PSAP por IT (del estudio)</span><span id="ete-civ-paps-it" class="calc-val">—</span></div>
+          </div>
+        </div>
+      </div><!-- /ete-civ-cols -->
     </div>
     </div><!-- /ete-shunt-fila -->
 
-    <!-- ── Comunes a CIA y CIV ──
-         Qp/Qs y DDVI indexado se cargan UNA vez y valen para las dos pestañas: el Qp/Qs es
-         una propiedad del shunt y el DDVIi del paciente, ninguno de los dos es específico de
-         CIA o CIV. Con dos juegos de campos, un paciente con ambos defectos podía terminar
-         informando dos Qp/Qs distintos. -->
-    <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:16px 0 8px;border-top:1px solid var(--border);padding-top:12px;">
-      Qp/Qs y DDVI indexado <span style="font-weight:400;color:var(--text2);font-size:11px;">— comunes a CIA y CIV</span>
-    </div>
-    <div class="grid-4">
-      <div class="fg"><label>Ø TSVI (mm) <span style="color:var(--text2);font-size:10px;">— del estudio</span></label>
-        <input type="text" id="ete_shunt_tsvi_ro" readonly tabindex="-1" style="opacity:.7;cursor:not-allowed;" placeholder="—"></div>
-      <div class="fg"><label>VTI TSVI (cm) <span style="color:var(--text2);font-size:10px;">— del estudio</span></label>
-        <input type="text" id="ete_shunt_vtitsvi_ro" readonly tabindex="-1" style="opacity:.7;cursor:not-allowed;" placeholder="—"></div>
-      <!-- Los cuatro son espejos de solo lectura, no sólo los dos izquierdos: el diámetro y
-           el VTI del TSVD se cargan en la tab VD/AD, con el resto de las medidas del
-           ventrículo derecho. Antes el VTI TSVD estaba duplicado —uno acá para el Qp/Qs y
-           otro en VD/AD para la RVP de Abbas, sin sincronizar—, así que un mismo estudio
-           podía informar dos VTI distintos de la misma medición. -->
-      <div class="fg"><label>Ø TSVD (mm) <span style="color:var(--text2);font-size:10px;">— de VD/AD</span></label>
-        <input type="text" id="ete_shunt_tsvd_ro" readonly tabindex="-1" style="opacity:.7;cursor:not-allowed;" placeholder="—"></div>
-      <div class="fg"><label>VTI TSVD (cm) <span style="color:var(--text2);font-size:10px;">— de VD/AD</span></label>
-        <input type="text" id="ete_shunt_vtitsvd_ro" readonly tabindex="-1" style="opacity:.7;cursor:not-allowed;" placeholder="—"></div>
-    </div>
-    <div style="font-size:10.5px;color:var(--text2);margin-top:4px;">
-      Los cuatro valores del Qp/Qs se cargan en sus tabs: TSVI y VTI-TSVI en <b>〰️ Doppler → Doppler Aórtico (TSVI)</b>, diámetro y VTI del TSVD en <b>VD / AD</b>.
-    </div>
-    <div class="calc-box" style="margin-top:8px;">
-      <div class="calc-row"><span class="calc-lbl" style="font-weight:700;">Qp/Qs</span><span id="ete-shunt-qpqs">—</span></div>
-      <div class="calc-row"><span class="calc-lbl">Interpretación</span><span id="ete-shunt-qpqs-interp" style="font-size:11px;color:var(--text2);">—</span></div>
-    </div>
-    <div class="grid-3" style="margin-top:10px;">
-      <div class="fg"><label>DDVI (mm) <span style="color:var(--text2);font-size:10px;">— del estudio</span></label>
-        <input type="text" id="ete_shunt_ddvi_ro" readonly tabindex="-1" style="opacity:.7;cursor:not-allowed;" placeholder="—"></div>
-      <div class="fg"><label>ASC (m²) <span style="color:var(--text2);font-size:10px;">— del estudio</span></label>
-        <input type="text" id="ete_shunt_asc_ro" readonly tabindex="-1" style="opacity:.7;cursor:not-allowed;" placeholder="—"></div>
-      <div class="fg"><label>DDVI indexado</label>
-        <div class="calc-box" style="margin:0;padding:6px 10px;"><div class="calc-row" style="border:none;padding:0;">
-          <span id="ete-shunt-ddvii" class="calc-val">—</span></div></div>
-        <div style="font-size:10px;color:var(--text2);margin-top:3px;">Normal &lt; 32 mm/m²</div>
+    <!-- ── EL TERCER CUADRO: la cuantificacion del shunt, COMUN a las dos (PANT-6, commit 1) ──
+         El medico no sabia de quien eran el Qp/Qs, el DDVI indexado y la «PSAP por IT» que
+         aparecian debajo del diagrama: ahora van en un cuadro propio de ancho completo que lo
+         dice en su titulo. Qp/Qs y DDVI indexado se cargan UNA vez y valen para las dos
+         lesiones: el Qp/Qs es una propiedad del shunt y el DDVIi del paciente, ninguno de los
+         dos es especifico de CIA o CIV. Con dos juegos de campos, un paciente con ambos
+         defectos podia terminar informando dos Qp/Qs distintos.
+         ⚠️ VA FUERA DE `#ete-shunt-fila`, y es la leccion que PANT-5 pago: con sus bloques
+            dentro, la fila tenia SIETE hijos en vez de DOS y cada panel se quedaba con 183 px
+            de los 1194 a 1440 px. -->
+    <div id="ete-shunt-comun" class="ete-shunt-cuadro ete-shunt-cuadro-fino">
+      <div class="ete-shunt-h" style="margin-bottom:10px;">
+        Cuantificación del shunt <span style="font-weight:400;color:var(--text2);font-size:11px;">— común a CIA y CIV</span>
+      </div>
+      <div id="ete-shunt-comun-cols">
+        <!-- ── bloque 1: Qp/Qs ── -->
+        <div>
+          <div style="font-size:11px;font-weight:700;color:var(--text2);margin-bottom:6px;">Qp/Qs</div>
+          <div class="ete-shunt-g2">
+            <div class="fg"><label>Ø TSVI (mm) <span style="color:var(--text2);font-size:10px;">— del estudio</span></label>
+              <input type="text" id="ete_shunt_tsvi_ro" readonly tabindex="-1" style="opacity:.7;cursor:not-allowed;" placeholder="—"></div>
+            <div class="fg"><label>VTI TSVI (cm) <span style="color:var(--text2);font-size:10px;">— del estudio</span></label>
+              <input type="text" id="ete_shunt_vtitsvi_ro" readonly tabindex="-1" style="opacity:.7;cursor:not-allowed;" placeholder="—"></div>
+            <!-- Los cuatro son espejos de solo lectura, no sólo los dos izquierdos: el diámetro y
+                 el VTI del TSVD se cargan en la tab VD/AD, con el resto de las medidas del
+                 ventrículo derecho. Antes el VTI TSVD estaba duplicado —uno acá para el Qp/Qs y
+                 otro en VD/AD para la RVP de Abbas, sin sincronizar—, así que un mismo estudio
+                 podía informar dos VTI distintos de la misma medición. -->
+            <div class="fg"><label>Ø TSVD (mm) <span style="color:var(--text2);font-size:10px;">— de VD/AD</span></label>
+              <input type="text" id="ete_shunt_tsvd_ro" readonly tabindex="-1" style="opacity:.7;cursor:not-allowed;" placeholder="—"></div>
+            <div class="fg"><label>VTI TSVD (cm) <span style="color:var(--text2);font-size:10px;">— de VD/AD</span></label>
+              <input type="text" id="ete_shunt_vtitsvd_ro" readonly tabindex="-1" style="opacity:.7;cursor:not-allowed;" placeholder="—"></div>
+          </div>
+          <div class="calc-box" style="margin-top:8px;">
+            <div class="calc-row"><span class="calc-lbl" style="font-weight:700;">Qp/Qs</span><span id="ete-shunt-qpqs">—</span></div>
+            <div class="calc-row"><span class="calc-lbl">Interpretación</span><span id="ete-shunt-qpqs-interp" style="font-size:11px;color:var(--text2);">—</span></div>
+          </div>
+        </div>
+        <!-- ── bloque 2: DDVI indexado ── -->
+        <div>
+          <div style="font-size:11px;font-weight:700;color:var(--text2);margin-bottom:6px;">DDVI indexado</div>
+          <div class="ete-shunt-g2">
+            <div class="fg"><label>DDVI (mm) <span style="color:var(--text2);font-size:10px;">— del estudio</span></label>
+              <input type="text" id="ete_shunt_ddvi_ro" readonly tabindex="-1" style="opacity:.7;cursor:not-allowed;" placeholder="—"></div>
+            <div class="fg"><label>ASC (m²) <span style="color:var(--text2);font-size:10px;">— del estudio</span></label>
+              <input type="text" id="ete_shunt_asc_ro" readonly tabindex="-1" style="opacity:.7;cursor:not-allowed;" placeholder="—"></div>
+          </div>
+          <div class="calc-box" style="margin-top:8px;">
+            <div class="calc-row"><span class="calc-lbl" style="font-weight:700;">DDVI indexado</span><span id="ete-shunt-ddvii" class="calc-val">—</span></div>
+          </div>
+          <div style="font-size:10px;color:var(--text2);margin-top:3px;">Normal &lt; 32 mm/m²</div>
+        </div>
+      </div>
+      <div style="font-size:10.5px;color:var(--text2);margin-top:8px;">
+        Los cuatro valores del Qp/Qs se cargan en sus tabs: TSVI y VTI-TSVI en <b>〰️ Doppler → Doppler Aórtico (TSVI)</b>, diámetro y VTI del TSVD en <b>VD / AD</b>.
       </div>
     </div>
     <div style="text-align:center;margin-top:10px;">
@@ -77286,36 +77366,34 @@ function eteShuntLesionSync(){
        que el color dice en color: sin el, el relleno verde es un codigo que hay que aprender. */
     b.title = on ? (par[0] === 'cia' ? 'La CIA esta marcada y entra al informe. Toque para desmarcarla.'
                                      : 'La CIV esta marcada y entra al informe. Toque para desmarcarla.')
-                 : (par[0] === 'cia' ? 'Toque para marcar la CIA y abrir su formulario.'
-                                     : 'Toque para marcar la CIV y abrir su formulario.');
+                 : (par[0] === 'cia' ? 'Toque para marcar la CIA y que entre al informe.'
+                                     : 'Toque para marcar la CIV y que entre al informe.');
   });
 }
 window.eteShuntLesionSync = eteShuntLesionSync;
 
 /* Navegacion sola: trae un panel a la vista sin tocar la marca. La usa `eteShuntTaviReset` para
    volver a la CIA, y es la que dejan llamada las sondas de otras tandas. */
-/* ══ EL DUENO UNICO DEL `display` DE LOS DOS PANELES (PANT-5, commit 5) ═══════════════════════
-   Decision del medico (opcion 1): con las DOS lesiones marcadas, los dos formularios se ven
-   LADO A LADO; con una sola, esa ocupa el ancho completo. Hasta hoy el `display` lo decidia
-   SOLO `_eteShuntPane` -los botones nacieron como solapas-, asi que con las dos marcadas se
-   veia UN panel y el otro quedaba escondido: medido antes de tocar nada, con los dos checkbox
-   en `true` y `vis cia/civ = false/true`.
-   ⚠️ UN PANEL SE MUESTRA SI SU LESION ESTA MARCADA **O** SI ES EL NAVEGADO, y el «o» no es de
-      mas: `eteShuntLesionTog` desmarca y enseguida navega a esa misma lesion, y la regla
-      documentada de esa funcion es que DESMARCAR NO ESCONDE EL PANEL -un campo oculto se sigue
-      guardando, asi que esconder el formulario de una lesion con datos cargados los dejaria
-      fuera de la vista y dentro del estudio-. Con el `o`, desmarcar deja el panel a la vista y
-      el medico puede corregirlo o vaciarlo, que es lo que esa garantia protege.
-   ⚠️ Y NINGUNA MARCADA SE COMPORTA COMO HOY: queda el panel navegado -la CIA al abrir-, porque
-      esconder los dos dejaria los dos formularios fuera de la vista. */
+/* ══ EL DUENO UNICO DEL `display` DE LOS DOS CUADROS (PANT-6, commit 1) ═══════════════════════
+   DECISION DEL MEDICO (03/11/2026): NO HAY LOGICA ESPECIAL. La CIA siempre en una mitad y la
+   CIV siempre en la otra, los dos cuadros SIEMPRE a la vista y con todos sus campos
+   habilitados; el boton de cada lesion SOLO decide si esa lesion entra al informe.
+   ⚠️ ESTO REVIERTE LA REGLA DE PANT-5, Y ES POR LO QUE EL MEDICO MIDIO. Aquella decia «un panel
+      se muestra si su lesion esta marcada O si es el navegado», que es la que producia lo que
+      reporto: apagar la CIV dejaba los DOS paneles -porque el gesto de desmarcar navega a esa
+      misma lesion- y apagar la CIA hacia desaparecer el de la CIV y dejaba el de la CIA a ancho
+      completo. Reproducido paso a paso en HEAD con los botones tocados de verdad.
+   ⚠️ LA GARANTIA DE PANT-3 SE CONSERVA Y QUEDA MAS FUERTE: desmarcar nunca esconde un
+      formulario, porque ya no se esconde ninguno. Un campo oculto se sigue guardando, asi que
+      esconder el formulario de una lesion con datos cargados los dejaria fuera de la vista y
+      dentro del estudio.
+   ⚠️ LA FUNCION SE QUEDA, con su nombre y su lugar en `eteShuntSync`: la llaman `eteShuntTab`,
+      `eteShuntTaviReset` y las sondas de otras tandas. Lo que cambia es que ya no decide nada
+      -es idempotente y repone el `display` por si una ruta vieja lo hubiera apagado-. */
 function eteShuntPanes(){
   const p1=document.getElementById('ete-shunt-pane-cia'), p2=document.getElementById('ete-shunt-pane-civ');
-  const onC = (typeof eteShuntLesionOn === 'function') ? eteShuntLesionOn('cia') : false;
-  const onV = (typeof eteShuntLesionOn === 'function') ? eteShuntLesionOn('civ') : false;
-  const vC = onC || _eteShuntPane === 'cia';
-  const vV = onV || _eteShuntPane === 'civ';
-  if(p1) p1.style.display = vC ? '' : 'none';
-  if(p2) p2.style.display = vV ? '' : 'none';
+  if(p1) p1.style.display = '';
+  if(p2) p2.style.display = '';
 }
 window.eteShuntPanes = eteShuntPanes;
 
@@ -77327,12 +77405,13 @@ function eteShuntTab(cual){
 }
 window.eteShuntTab = eteShuntTab;
 
-/* El gesto del medico: UN toque marca o desmarca la lesion Y trae su formulario a la vista.
-   Las dos cosas juntas y no dos controles, porque es lo que el medico pidio y porque asi el
-   formulario de la lesion que se acaba de marcar es el que queda delante.
-   ⚠️ DESMARCAR NO ESCONDE EL PANEL: un campo oculto se sigue guardando, asi que esconder el
-   formulario de una lesion con datos cargados los dejaria fuera de la vista y dentro del
-   estudio. El panel se queda y el medico puede corregirlo o vaciarlo.
+/* El gesto del medico: UN toque marca o desmarca la lesion.
+   ⚠️ YA NO «TRAE SU FORMULARIO A LA VISTA» (PANT-6, commit 1): los dos cuadros estan siempre a
+   la vista, asi que no hay nada que traer. La llamada a `eteShuntTab` se queda porque sigue
+   siendo la que repinta los dos botones por dentro de `eteShuntSync`.
+   ⚠️ DESMARCAR NO ESCONDE EL PANEL, y hoy por construccion: un campo oculto se sigue guardando,
+   asi que esconder el formulario de una lesion con datos cargados los dejaria fuera de la vista
+   y dentro del estudio.
    El evento se despacha a mano por el mismo motivo que en `eteInclToggle`: asignar `.checked`
    no dispara `change`. */
 function eteShuntLesionTog(cual){
@@ -99999,19 +100078,12 @@ function eteShuntSync(){
      dispara ningun evento, asi que sin esto reabrir un estudio con las DOS lesiones marcadas
      dejaba un solo panel a la vista. Esta funcion esta en `RECALC_MODULOS`. */
   if (typeof eteShuntPanes === 'function') { try{ eteShuntPanes(); }catch(e){} }
-  /* ⚠️ LA MARCA DE «LAS DOS A LA VISTA» LA PONE EL MISMO DUENO QUE MUESTRA Y ESCONDE LOS DOS
-     PANELES (PANT-5, commit 5), y va DESPUES de `eteShuntLesionSync`, que es quien decide el
-     `display` de cada uno: al reves leeria el estado del gesto anterior. Con un segundo
-     escritor de esta clase, la maqueta y los paneles podrian discrepar.
-     Se lee el `display` COMPUTADO y no el checkbox: lo que decide si las dos columnas tienen que
-     compartir el ancho es que las dos cajas esten a la vista, que es lo que el flex reparte. */
-  (function(){
-    const fila = document.getElementById('ete-shunt-fila');
-    if (!fila) return;
-    const vis = (id) => { const e = document.getElementById(id);
-      return !!(e && getComputedStyle(e).display !== 'none') };
-    fila.classList.toggle('dos', vis('ete-shunt-pane-cia') && vis('ete-shunt-pane-civ'));
-  })();
+  /* ⚠️ LA CLASE `dos` SE RETIRO (PANT-6, commit 1), Y CON ELLA SU REGLA DE CSS. Existia para
+     achicar a DOS columnas las grillas de TRES de adentro cuando los dos paneles compartian el
+     ancho, y dejaba de aplicarse cuando uno ocupaba todo. Hoy los dos cuadros estan SIEMPRE a
+     la vista y cada uno reparte sus campos en dos columnas propias con su media query, asi que
+     no hay nada que conmutar: una clase sin regla es deuda que el proximo lector tiene que
+     rastrear. */
   const txt = (id,val)=>{ const e=document.getElementById(id); if(e) e.textContent = val; };
   const ro  = (id,val)=>{ const e=document.getElementById(id); if(e) e.value = val; };
   const f1 = n => (n==null||!isFinite(n)) ? '—' : String(Math.round(n*10)/10);
@@ -153841,8 +153913,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261103-1546';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793731583014;                 /* eco-build-ms */
+const ECO_BUILD    = '20261103-1751';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793739098021;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -153928,7 +154000,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261103-1546</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261103-1751</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
