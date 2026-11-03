@@ -4007,6 +4007,23 @@ html.light-mode .amilo-root{
    La fila: campos a la izquierda y dibujo a la derecha desde 900 px; apilado por debajo, con
    los campos primero. El corte va sobre la VENTANA y no sobre el contenedor, que es la regla
    fija de la casa. */
+/* ============================================================================================
+   EL PERFIL HEMODINAMICO Y EL FORRESTER LADO A LADO  -  #hemo-forr-fila  (PANT-5, 2026-11-03)
+   ============================================================================================
+   Decision del medico: las formulas y los valores a la izquierda, mas juntos, y el grafico de
+   Forrester a la DERECHA de esos datos; la advertencia de la PCP estimada DEBAJO, a ancho
+   completo. Por debajo de 900 px, apilado. El corte va sobre la VENTANA.
+   ⚠️ EL GRAFICO LLEVA SU ANCHO EN `flex-basis` Y NO UN PORCENTAJE: su caja interna ya se topa en
+      470 px, asi que con un porcentaje el hueco de la derecha quedaba mas grande que el dibujo y
+      la columna de la izquierda perdia ancho por nada. */
+#hemo-forr-fila{display:block;}
+#hemo-forr-datos{min-width:0;}
+#hemo-forr-graf{margin-top:10px;}
+@media (min-width:900px){
+  #hemo-forr-fila{display:flex;gap:12px;align-items:flex-start;}
+  #hemo-forr-datos{flex:1 1 auto;min-width:0;}
+  #hemo-forr-graf{flex:0 1 390px;min-width:0;margin-top:8px;}
+}
 #vdsc-caja{margin:10px 0 2px;}
 #vdsc-svg{display:block;width:110px;height:auto;max-width:100%;margin:0 auto;}
 #vdsc-pie{display:flex;align-items:center;gap:8px;justify-content:center;margin-top:4px;}
@@ -10329,6 +10346,13 @@ window.cerrarSesionReal = cerrarSesionReal;
         </div>
       </div>
       <div style="font-size:11px;color:var(--text2);margin:6px 2px 0;">PVC ← <b>VCI</b> (Ø + colapso, PmAD) · VS ← <b>TSVI</b> (área × VTI-TSVI) · VTI-TSVD ← <b>VD/AD</b> (RVP Abbas) · ASC, E/e' y PAPm se leen automáticamente de sus módulos.</div>
+      <!-- == LOS VALORES A LA IZQUIERDA Y EL FORRESTER A LA DERECHA (PANT-5, 2026-11-03) ====
+           Decision del medico: las formulas y los valores quedan a la izquierda, mas juntos, y
+           el grafico de Forrester a la DERECHA de esos datos; la advertencia de la PCP estimada
+           queda DEBAJO, a ancho completo. Por debajo de 900 px, apilado.
+           El corte va sobre la VENTANA, que es la regla fija de la casa. -->
+      <div id="hemo-forr-fila">
+        <div id="hemo-forr-datos">
       <div class="calc-box" style="margin-top:8px;">
         <div class="calc-row">
           <span class="calc-lbl">Gasto cardíaco (GC) <span style="color:var(--text2);font-size:10px;">= VS × FC / 1000</span></span>
@@ -10374,11 +10398,6 @@ window.cerrarSesionReal = cerrarSesionReal;
              Lo dibuja `hemoForrGrafPintar`, que llama al MISMO generador que el Laboratorio.
              `aria-live="polite"` y no `assertive`: el barrido de espejos lo repinta despues de
              cada tecla, y un lector de pantalla interrumpiendo en cada digito es inusable. -->
-        <div id="hemo-forr-graf" style="margin-top:10px;" aria-live="polite"></div>
-        <!-- Ojo: en ESTA tarjeta la RVP NO deriva de la PCP —sale de Abbas o del override por
-             cateterismo—, así que el disclaimer no puede decir que sí. En la tarjeta de
-             Cálculos es al revés: allí la RVP es GTP/GC y sí depende de la PCP. -->
-        <div style="font-size:10px;color:var(--text2);background:var(--bg3);border:1px solid var(--border);border-left:3px solid var(--orange);border-radius:6px;padding:7px 9px;margin-top:8px;line-height:1.5;">⚠️ <b>PCP estimada — valor orientativo, no reemplaza medición invasiva.</b> Derivada de E/e&#39; por la fórmula de Nagueh (1.24 × (E/e&#39;) + 1.9). El GTP y el perfil de Forrester se calculan a partir de ella y arrastran la misma limitación. La RVP de esta tarjeta se estima por Abbas o se ingresa por cateterismo: no depende de la PCP.</div>
         <div class="calc-row">
           <span class="calc-lbl" style="font-weight:700;">🩺 Perfil hemodinámico</span>
           <span id="hemo-perfil">—</span>
@@ -10388,6 +10407,19 @@ window.cerrarSesionReal = cerrarSesionReal;
           <span id="hemo-htp-tipo">—</span>
         </div>
       </div>
+        </div><!-- /hemo-forr-datos -->
+        <!-- EL GRAFICO DE FORRESTER, a la derecha de los datos desde 900 px. Lo pinta
+             `hemoForrGrafPintar`; su nodo es un div sin id de campo, asi que no entra a ninguna
+             superficie firmada, al Excel ni al guardado. -->
+        <div id="hemo-forr-graf" aria-live="polite"></div>
+      </div><!-- /hemo-forr-fila -->
+
+      <!-- LA ADVERTENCIA DE LA PCP ESTIMADA, DEBAJO Y A ANCHO COMPLETO.
+           Ojo: en ESTA tarjeta la RVP NO deriva de la PCP —sale de Abbas o del override por
+           cateterismo—, así que el disclaimer no puede decir que sí. En la tarjeta de
+           Cálculos es al revés: allí la RVP es GTP/GC y sí depende de la PCP. -->
+      <div style="font-size:10px;color:var(--text2);background:var(--bg3);border:1px solid var(--border);border-left:3px solid var(--orange);border-radius:6px;padding:7px 9px;margin-top:8px;line-height:1.5;">⚠️ <b>PCP estimada — valor orientativo, no reemplaza medición invasiva.</b> Derivada de E/e&#39; por la fórmula de Nagueh (1.24 × (E/e&#39;) + 1.9). El GTP y el perfil de Forrester se calculan a partir de ella y arrastran la misma limitación. La RVP de esta tarjeta se estima por Abbas o se ingresa por cateterismo: no depende de la PCP.</div>
+
       <div style="margin-top:14px;">
         <button class="btn btn-integrar" data-am-k="hemo" onclick="amiloIntegrar('hemo')">📎 Integrar al informe</button>
       </div>
@@ -144278,7 +144310,13 @@ function _labForrSVG(puntos, pal, opts) {
   /* `vacioTxt` es ADITIVO (C1-4b): sin el, el texto es el de siempre y el Laboratorio no cambia.
      La pestaña de Hemodinamica pasa el MISMO mensaje de «falta...» que publica la capsula, para
      que el grafico y la fila de arriba no le pidan al medico cosas distintas. */
-  if (!(puntos || []).length)
+  /* ⚠️ `sinVacio` ES ADITIVO, COMO `vacioTxt`, Y LO PIDIO UNA MEDICION (PANT-5, commit 2). El
+     medico encontro el mensaje de lo que falta TRES veces en la misma tarjeta, y el del SVG
+     TAPABA los rotulos del grafico: medido con getBBox a 1440 px, se superponia con «seco-frio»
+     (399 unidades cuadradas), «seco-caliente» (592), «III» (35) y «I» (12). La pestaña de
+     Hemodinamica lo apaga; el LABORATORIO no pasa esta opcion, asi que su grafico no cambia
+     -verificado en el A/B-. */
+  if (!(puntos || []).length && !o.sinVacio)
     h += '<text x="' + (W / 2) + '" y="' + ((MT + H - MB) / 2) + '" text-anchor="middle" font-size="11" font-style="italic" fill="' + pal.texto + '">' + esc(o.vacioTxt || 'Sin estudios con IC y PCP estimables en este período') + '</text>';
   return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + W + ' ' + H + '" width="' + W + '" height="' + H + '">' + h + '</svg>';
 }
@@ -144361,7 +144399,9 @@ function hemoForrGrafPintar(ic, pcp) {
   /* `max-width` y `width:100%` con alto automatico: a 390 px el SVG se achica solo y no hay
      barra horizontal. Es el mismo encuadre que usa el Laboratorio. */
   caja.style.cssText = 'width:100%;max-width:470px;margin:0 auto;';
-  caja.innerHTML = _labForrSVG(pts, pal, { vacioTxt: falta || 'Sin datos para ubicar al paciente' })
+  /* EL MENSAJE DE LO QUE FALTA YA NO SE ESCRIBE ENCIMA DEL GRAFICO: queda UNO SOLO, el de
+     abajo -la descripcion accesible de este mismo pintor-, que es el que la orden conserva. */
+  caja.innerHTML = _labForrSVG(pts, pal, { sinVacio: true })
     .replace('width="460" height="330"', 'style="width:100%;height:auto;display:block;"');
   cont.appendChild(caja);
   /* ══ LA DESCRIPCION ACCESIBLE, EN TEXTO Y NO SOLO EN EL COLOR ═══════════════════════════════
