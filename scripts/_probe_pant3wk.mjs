@@ -35,19 +35,43 @@ const MEDIR = `(() => {
     try { showTab(tab) } catch (e) {}
     try { if (tab.indexOf('congenitas') === 0) ccSubTab(tab) } catch (e) {}
     const s = document.getElementById(sec);
+    /* ⚠️ LA TRANSICION SE APAGA ANTES DEL CLIC, Y HAY QUE FORZAR max-height. .sacc-body abre
+       con max-height y una transicion de 0,3 s: apagandola DESPUES del clic, la caja ya se
+       leyo a mitad de la animacion y la seccion informa 46 o 70 px en vez de su alto real -o
+       cero, si se mide el cuerpo-. Medido el 03/11/2026: mchAlto daba 0 y mchColsReales
+       tambien, o sea un denominador de cero que se lee igual que «la pantalla no existe». Es la
+       trampa que la tanda AJ9 documento para .sacc-body. */
+    const b0 = s && s.querySelector('.sacc-body');
+    if (b0) { b0.style.transition = 'none'; }
     if (s && !s.classList.contains('open')) { const h = s.querySelector('.sacc-hdr'); if (h) h.click() }
-    const b = s && s.querySelector('.sacc-body'); if (b) b.style.transition = 'none';
-    return !!s;
+    const b = s && s.querySelector('.sacc-body');
+    if (b) { b.style.transition = 'none'; b.style.maxHeight = 'none'; }
+    return !!s && s.getBoundingClientRect().height > 0;
   };
   /* ── 1 · los dos botones de CIA / CIV ── */
   o.secShunt = abrirSec('congenitas2', 'sacc-cc-shunt');
   o.botCia = caja('ete-shunt-tab-cia');
   o.botCiv = caja('ete-shunt-tab-civ');
   const bc = document.getElementById('ete-shunt-tab-cia');
-  o.ciaRelleno = bc ? (/rgba?\\(0, 0, 0, 0\\)|transparent/.test(getComputedStyle(bc).backgroundColor) ? 'sin relleno' : 'con relleno') : 'NO EXISTE';
+  const bv = document.getElementById('ete-shunt-tab-civ');
+  /* ⚠️ .tab-btn LLEVA transition: all 0.15s, ASI QUE LEER EL FONDO JUSTO DESPUES DEL CLIC
+     DEVUELVE EL VALOR DE PARTIDA. Medido el 03/11/2026: el boton marcado informaba
+     «sin relleno» -rgba(0,0,0,0)- en los dos motores y en los cuatro anchos, que se lee como un
+     defecto de la app, y con 400 ms de espera el mismo boton da rgb(62, 207, 142), que es
+     var(--green). La animacion se apaga ANTES de tocar, que es lo que hace la medicion
+     sincronica y comparable entre motores. Es la trampa que la AJ9 documento con .sacc-body y
+     la que la POP-B documento con el color que no resolvia. */
+  if (bc) bc.style.transition = 'none';
+  if (bv) bv.style.transition = 'none';
+  const relleno = (e) => e ? (/rgba?\\(0, 0, 0, 0\\)|transparent/.test(getComputedStyle(e).backgroundColor)
+    ? 'sin relleno' : 'con relleno') : 'NO EXISTE';
+  o.ciaRelleno = relleno(bc);
   if (bc) { bc.click(); }
-  o.ciaRellenoTrasClic = bc ? (/rgba?\\(0, 0, 0, 0\\)|transparent/.test(getComputedStyle(bc).backgroundColor) ? 'sin relleno' : 'con relleno') : 'NO EXISTE';
+  o.ciaRellenoTrasClic = relleno(bc);
+  /* CONTROL NEGATIVO: el otro boton NO se pinta, asi que la metrica distingue estados. */
+  o.civRellenoTrasClic = relleno(bv);
   if (bc) { bc.click(); }
+  o.ciaRellenoTrasDesmarcar = relleno(bc);
   /* ── 2 · el esquema de la TGA: sus rotulos ── */
   abrirSec('congenitas2', 'sacc-cc-tga');
   const sv = document.getElementById('tga-esq-svg');
