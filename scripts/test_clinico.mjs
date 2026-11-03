@@ -47748,6 +47748,12 @@ caso('TC-322', 'Evidencia: citas numeradas POR SECCION, con un solo dueno de la 
       ['Comunicacion interventricular',       { ete_civ_tipo:'perimembranosa' },                     'escGuchCiv'],
       ['Ductus arterioso permeable',          { dap_tipo:'no_restrictivo', dap_diam:'4' },           'esc2020guch'],
       ['Coartacion de aorta',                 { coa_vmax:'3.2' },                                   'esc2020guch'],
+      /* AGREGADAS el 2026-11-03 (tanda PANT-4, commit 1e): las DOS secciones nuevas. Hasta esta
+         tanda las dos lesiones no tenian Evidencia, asi que este caso no podia tener su semilla.
+         Su compuerta es la misma que la del informe -que el evaluador diga que hay datos-, y su
+         linea de criterio cita la guia que RIGE, que por la regla E-2 es la mas nueva. */
+      ['Estenosis subaortica',                { esub_tipo:'membrana', esub_gradiente_medio:'45' },  'acc2025achd'],
+      ['Estenosis supravalvular aortica',     { easv_tipo:'reloj', easv_gradiente_medio:'45' },     'acc2025achd'],
       /* ADAPTADO el 2026-10-22 (tanda D, commit 4): la seccion pasa a citar fopAha2021 en su
          linea «Segun la guia». La indicacion de cierre se publica con la AHA/ASA 2021
          (Kleindorfer, apartado 5.4.5, folio e411), que es la que da clase y nivel; la posicion
