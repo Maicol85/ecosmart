@@ -12774,3 +12774,146 @@ tiene mutación propia**: el emisor regenera el textarea entero en cada llamada,
 en él después de pintar la fila no es efectivo. Lo que sostiene ese control es el **A/B**, que da
 cero diferencias de superficie firmada en las 26 escenas. La mutación 27 se redirigió al otro
 invariante del commit —que la fila lleve su tabla, su hoja y su folio—.
+
+## P5-a · Las 49 líneas de conclusión de congénitas que nombran una guía
+
+Censadas sobre las funciones `*Estado` / `*Sync` / `*Conclusion` de las secciones de congénitas,
+**sin cambiar ninguna**, que es lo que la orden del commit 3 pide. Son **49 líneas en once
+funciones**:
+
+| función | líneas | qué publica |
+|---|---|---|
+| `vabConclusion` | 9 | «cirugía de la aorta indicada (ESC 2024, Clase I)», umbrales y folios de la Tabla 68 |
+| `tdfConclusion` | 11 | «reemplazo valvular pulmonar indicado (ESC 2020, Clase I)», criterios de reintervención |
+| `ebsConclusion` | 6 | «cirugía indicada (ESC 2020, Clase I)», cianosis, cierre de la comunicación |
+| `dsavEstado` | 4 | criterios de cirugía del asintomático (ESC/EACTS 2021, Clase I), Clase III del cierre |
+| `mchConclusion` + `mchSync` | 5 | «desfibrilador a considerar (Clase IIa)», bandas de la ESC 2023 |
+| `fontanEstado` | 2 | riesgo de embarazo clase III y IV de la OMS (ESC 2020) |
+| `eisenEstado` | 1 | «embarazo contraindicado — mortalidad materna >50 % (ESC 2020)» |
+| `vapConclusion` | 1 | «cierre indicado (ESC 2020)» |
+| `cvpaEstado` | 2 | criterios de corrección quirúrgica de la ESC 2020, seguimiento anual |
+| `tgaConclusion` | 1 | «cirugía sobre la válvula a considerar … (ESC 2020)» |
+
+**Qué falta decidir:** cuáles de estas pasan al globo ⓘ y cuáles se quedan. El commit 3 sólo
+tocó las dos estenosis aórticas, que son las que el médico midió. Aplicar lo mismo a las once
+funciones es una decisión clínica por sección.
+
+**Y las tres alertas de la supravalvular que NO se tocaron**, con el motivo: «Compromiso de los
+ostios coronarios — en la estenosis supravalvular los ostios quedan proximales a la obstrucción,
+en zona de alta presión, con riesgo de isquemia miocárdica», «Dilatación de las arterias
+coronarias, que en esta lesión traduce la exposición a presión sistólica elevada proximal a la
+obstrucción» y «Asociada a síndrome de Williams-Beuren, en el que la estenosis pulmonar
+periférica y la hipercalcemia son parte del cuadro». Son explicaciones fisiopatológicas cuyo
+**cuerpo** es la explicación, no un apéndice tras un guión, así que no son «construcciones
+iguales» —que es la condición que la orden pone—.
+
+## P5-b · La tercera aparición del mensaje del Forrester está PARADA
+
+El commit 2 bajó el mensaje «faltan el índice cardíaco y la presión capilar pulmonar estimada»
+de **tres** apariciones a **dos**. La que queda es el span `hemo-forrester`, arriba a la derecha,
+y no se tocó porque **su texto llega al papel** por tres caminos, verificado en el código:
+`amiloTextoHemo()` lo integra al informe y a la hoja de ETT Avanzado del PDF, y
+`_pptSpan('hemo-forrester')` lo lleva a la diapositiva.
+
+Retirarlo de la pantalla exige **o** moverlo del papel —que la orden prohíbe— **o** esconderlo
+visualmente mientras el documento lo publica, que es una pantalla ocultando lo que el informe
+afirma. **Decisión del médico.**
+
+## P5-c · La tipografía del dibujo del VD a la mitad del esquema valvular
+
+Medido con `getBBox` a los cuatro anchos: con el dibujo en **110 px** —la mitad del esquema
+valvular 2D, que es lo que la orden fija— la tipografía de los rótulos sale en **2,6 px**
+(8,3 px a 768 y 3,9 a 390), por debajo del piso de 12 px que esta casa usa para texto chico.
+
+Los rótulos **entran** por el criterio de la orden —cruce **cero** contra la pared, el chorro y
+los otros rótulos, y cero fuera del lienzo en los cuatro anchos—, así que no se cayó al juego
+corto. La causa es el **tamaño**, no el rótulo.
+
+**Qué falta decidir:** o el dibujo crece —dejando de ser la mitad del esquema valvular— o la
+tipografía escala inversamente con su ancho, que es el patrón que la tanda TGA-3 usó, y entonces
+los rótulos largos no entran. Las dos son decisiones del médico.
+
+## P5-d · El rótulo de la velocidad máxima se superpone con el chorro
+
+Medido: 59 a 68 unidades cuadradas de cruce entre el texto «Vmáx IT» y el chorro de la
+insuficiencia tricuspídea, en los cuatro anchos. **Es la posición de la demo**, que manda, y la
+orden sólo exige que no se pisen los rótulos de las **dos marcas** —McConnell y el septum—, que
+dan cruce cero. El texto lleva `paint-order:stroke` con halo, así que se lee sobre el chorro. Se
+reporta y no se cambia.
+
+## P5-e · La disposición en tres columnas de la mitral del ETE está PARADA
+
+El commit 6 hizo la sincronía, que es el defecto medido, y **paró la disposición**. Exige fundir
+**tres acordeones independientes** en una sola fila:
+
+| sección | id | qué lleva |
+|---|---|---|
+| Morfología y clasificación VM | `#ete-seccion-morfo` | 2.877 B: `ete_etiologia`, `ete_carpentier`, `ete_mecanismo` y la casilla `ete_morfo_incluir_chk` |
+| el dibujo de la válvula mitral | `#m3d-fila` | las cuatro vistas, la del cirujano y el 3D |
+| Mediciones ETE — Válvula Mitral | `#ete-seccion-mediciones-mitral` | los ocho campos y la casilla `ete_etem_incluir_chk` |
+
+**Lo que la orden no dice, y por eso se paró:** qué pasa con los tres encabezados de acordeón y
+con las **dos casillas de inclusión** que quedarían —una sección vacía con sólo su casilla, o un
+acordeón retirado al que `secAutoOpen` y el badge de inclusión siguen apuntando—. Empezarla sin
+poder cerrarla dejaría la pantalla a medias.
+
+**Propuesta:** mover la sección de morfología **entera** (sus tres campos y su casilla) a la
+columna izquierda y retirar su encabezado de acordeón, dejando su casilla visible en esa columna;
+y mover los ocho campos de Mediciones ETE a la derecha en dos columnas, conservando el acordeón
+de Mediciones como el de la fila entera. Son dos decisiones del médico.
+
+## P5-f · La profundidad de coaptación: un duplicado AMBIGUO, PARADO
+
+`ete_prof_coapt` (Mediciones ETE) y `teer_prof_flail` (Criterios TEER) llevan la **misma**
+etiqueta de pantalla —«Profundidad coaptación (mm)»— y **no sincronizan**: medido, 14 en uno deja
+el otro vacío, y 8 en el otro deja el primero en 14.
+
+**Son dos campos distintos, y el censo de la propia app ya lo declara**: cortes distintos
+—«Normal ≤10 mm» contra «Excl: ≥11 mm»— y grupos distintos en `M3D_TABLA` —«Plástica mitral»
+contra «TEER»—, donde el comentario dice textual «APARECE DOS VECES Y SON DOS CAMPOS DISTINTOS,
+censado».
+
+Unirlos cambiaría el criterio **c4** del TEER, que decide APTO / NO APTO, para todo estudio con
+el otro campo cargado. Es contenido clínico. **Decisión del médico.**
+
+## P5-g · La premisa (iii) del commit 6 es parcialmente falsa, y está medida
+
+La orden dice que «la etiología, el Carpentier y el mecanismo repiten lo que ya está en la mitral
+de Válvulas y no están del todo sincronizados». Medido con gestos reales en los dos sentidos:
+
+- **la etiología SÍ sincroniza**: `ete_etiologia` en «barlow» pone `vm_morf` en «Mixomatosa /
+  Barlow», y al revés, por `eteVmPropagar` —con una guarda deliberada: hacia el ETE sólo copia si
+  el estudio es un ETE, porque si no fabricaría dato de un estudio que no se hizo—;
+- **el Carpentier SÍ sincroniza** en los dos sentidos, por `vmCarpPropagar`;
+- **el mecanismo predominante no tiene par** en Válvulas: su propio comentario dice «queda sólo
+  en el ETE», y `eteVmPropagar` lo declara.
+
+No había nada que unir.
+
+## P5-h · El área de la mitral vive en TRES campos
+
+`avm_plan` (Válvulas), `teer_area_mitral` (Criterios TEER) y `ete_area_mitral` (Mediciones ETE).
+Medido: `avm_plan` en 3,2 deja los otros dos vacíos. `_syncSiVacio` empareja los dos primeros
+pero sólo si el destino está vacío y sólo cuando corre `sincronizarTEERDesdeGlobal`.
+
+**La orden no los nombra**, así que no se tocaron. Antes de unirlos hay que decidir si los tres
+son el mismo dato: `ete_area_mitral` se rotula «Área planimetría» y `avm_plan` es el área por
+planimetría de Válvulas, pero el TEER la usa como criterio de exclusión con su propio corte.
+
+## P5-i · El texto cortado de «Datos usados en el dibujo» no se pudo reproducir
+
+El punto (iv) del commit 6. La tabla la puebla `m3dTabla` y **sólo con el panel 3D abierto**: con
+su botón tocado la tabla existe y tiene **cero caracteres**, o sea un denominador vacío, porque
+`#m3d-btn` nace `hidden` hasta que hay datos suficientes para el dibujo.
+
+**Lo que sí está localizado es el candidato**: `#m3d-tabla td:first-child{white-space:nowrap}`.
+No se tocó, porque la orden manda no arreglar lo que no se reproduce.
+
+**Cómo reproducirlo:** cargar los campos que habilitan el dibujo de la mitral, abrir el panel con
+`#m3d-btn`, llamar a `m3dTabla()` y medir `scrollWidth` contra `clientWidth` de cada celda.
+
+## P5-j · El desplazamiento horizontal de 30 px a 899 y 900 px es PREEXISTENTE
+
+Medido idéntico en HEAD, en las cuatro combinaciones de CIA/CIV y en Fallot: a 899 y 900 px el
+documento tiene **30 a 31 px** de desplazamiento horizontal. No es de esta tanda y no se tocó.
+Por encima y por debajo de ese ancho da cero.

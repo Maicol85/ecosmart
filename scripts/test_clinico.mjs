@@ -110499,6 +110499,21 @@ caso('TC-640', 'Tanda PANT-5: el Forrester con un solo mensaje y la conclusion d
   ex.push(['(B1) la fila de datos y grafico existe', !!fila, true]);
   ex.push(['(B2) tiene exactamente DOS hijos', fila ? fila.children.length : -1, 2]);
   ex.push(['(B3) y el grafico es el segundo', fila ? fila.children[1].id : '', 'hemo-forr-graf']);
+  /* Y LA REGLA, no solo la estructura: la fila tiene que ser FLEX desde 900 px. Nacio del
+     barrido de mutaciones - sin esto, devolver la fila a display:block dentro del mismo corte
+     dejaba el grafico debajo de los datos y las tres condiciones de arriba pasaban igual. */
+  const reglaF = (() => { let r = null;
+    for (const hoja of Array.prototype.slice.call(document.styleSheets)) {
+      let rs = null; try { rs = hoja.cssRules } catch (e) { continue }
+      if (!rs) continue;
+      for (const x of Array.prototype.slice.call(rs)) {
+        if (x.media && x.cssRules) for (const y of Array.prototype.slice.call(x.cssRules)) {
+          if (y.selectorText === '#hemo-forr-fila' && y.style && y.style.display)
+            r = { v: y.style.display, media: x.conditionText || String(x.media[0]) } } } }
+    return r })();
+  ex.push(['(B4) desde 900 px la fila es FLEX', reglaF ? reglaF.v : 'sin regla', 'flex']);
+  ex.push(['(B5) y ese corte va sobre la VENTANA',
+    reglaF && String(reglaF.media).indexOf('900px') > -1, true]);
   /* (C) LAS DOS ESTENOSIS AORTICAS: la conclusion de pantalla queda DESCRIPTIVA. */
   __t.limpiar();
   __t.set('esub_tipo', 'membrana'); __t.set('esub_gradiente_medio', '45');
@@ -110590,8 +110605,19 @@ caso('TC-641', 'Tanda PANT-5: las tres pantallas reordenadas - derrame en cuatro
      mismo corte pasaba en verde. Nacio del barrido de mutaciones. */
   ex.push(['(A5b) y ahi reparte CUATRO columnas',
     rDpt ? nCols(rDpt.v) : -1, 4]);
-  ex.push(['(A5c) y no usa auto-fit, que haria el corte no medible',
-    /auto-fit|auto-fill/.test(String((rDpt || {}).v)), false]);
+  /* EL auto-fit SE MIRA EN LAS DOS REGLAS, la base y la del corte: la mutacion lo metia en la
+     BASE y mirar solo la del corte la dejaba pasar. Nacio del barrido. */
+  const rDptBase = (() => { let r = null;
+    for (const hoja of Array.prototype.slice.call(document.styleSheets)) {
+      let rs = null; try { rs = hoja.cssRules } catch (e) { continue }
+      if (!rs) continue;
+      for (const x of Array.prototype.slice.call(rs))
+        if (!x.media && x.selectorText === '#dpt-cols' && x.style && x.style.gridTemplateColumns)
+          r = x.style.gridTemplateColumns }
+    return r })();
+  ex.push(['(A5c) ninguna de las dos reglas usa auto-fit, que haria el corte no medible',
+    /auto-fit|auto-fill/.test(String((rDpt || {}).v) + ' ' + String(rDptBase)), false]);
+  ex.push(['(A5d) y la regla base reparte UNA sola columna', nCols(rDptBase), 1]);
   ex.push(['(A6) y la descripcion queda FUERA de la grilla',
     (() => { const d = document.getElementById('dpt-concl'); return !!(d && dc && !dc.contains(d)) })(), true]);
   /* (B) FALLOT: tres columnas por tema, con los quince campos repartidos 4 / 6 / 5. */
