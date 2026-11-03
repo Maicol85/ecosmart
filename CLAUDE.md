@@ -200,9 +200,12 @@ Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la v
 ## Qué es EcoSmart y cómo se trabaja
 
 - App clínica de ecocardiografía en **un solo `index.html`**: HTML + CSS + JS inline, sin build,
-  sin frameworks. Hoy **11,09 MB / 155.230 líneas**, medido con `wc -c` y `wc -l` el 2026-11-03 al
-  cierre de la tanda **PANT-3**, sobre el árbol ya sellado **y commiteado**: sello
-  **`v20261103-0256`**, md5 **`0422963d`**. El diff de la tanda son **1.219 líneas agregadas y 221
+  sin frameworks. Hoy **11,15 MB / 155.780 líneas**, medido con `wc -c` y `wc -l` el 2026-11-03 al
+  cierre de la tanda **PANT-4**, sobre el árbol ya sellado **y commiteado**: sello
+  **`v20261103-1204`**, md5 **`e986c258`**. El diff de la tanda son **1.060 líneas agregadas y
+  163 quitadas**, medido con `git diff` contra `1e4b70c`, con **cero** `innerHTML`, `eval` o
+  `new Function` nuevos y cero claves.
+  (Antes: 11,09 MB / 155.230 al cierre de PANT-3, sello `v20261103-0256`, md5 `0422963d`.) El diff de la tanda son **1.219 líneas agregadas y 221
   quitadas**, medido con `git diff` contra `efce508`. **Cero** `innerHTML`, `eval` o
   `new Function` nuevos, y cero claves.
   ⚠️ **Y EL RENGLÓN QUE ESTA TANDA ENCONTRÓ ESTABA UNA RESELLADA ATRÁS**, por tercera vez
@@ -562,6 +565,127 @@ impecable.
 > secciones de REGLAS (la regla de oro con su tabla de mapas, «Qué es EcoSmart», el panel de
 > Evidencia, el protocolo de verificación, las trampas conocidas, el flujo de trabajo,
 > SEGURIDAD y la tabla de Procedencia) siguen enteras y en su lugar, verificado byte por byte.
+### Las dos estenosis aórticas, «Task Force» fuera del papel y los estadios — «PANT-4» (2026-11-03)
+
+- **NUEVE commits, y SEIS de los siete de la orden se hicieron.** `da890c6` + `ff5de8c` (1b/1c/1d)
+  · `f7e6cb2` (1e) · `2716cdd` (2) · `c676ba4` (3) · `b21ad0a` (5) · `ff8c56d` (6) · `997ed1e` y
+  el de cierre (7). Sello **`v20261103-1204`**, md5 de `index.html` **`e986c258`**. Al empezar,
+  `origin/main` = `HEAD` = **`1e4b70c`**, el cierre de PANT-3, ya publicado, con md5 `0422963d` y
+  el pendrive `DISK_IMG` montado.
+  **El push lo corre Maicol: esta tanda tenía orden expresa de NO pushear.**
+  Cierra **P3-m** y **P3-r**.
+
+- ⚠️ **EL COMMIT 4 NO TOCÓ UNA LÍNEA DE LA APP, Y SON DOS MEDICIONES LAS QUE LO PARAN.**
+  **La premisa de P3-j es FALSA:** medido con la misma sonda sobre el árbol anterior a PANT-3
+  (`efce508`) y sobre el de hoy, en el mismo directorio, la pantalla de MCA quedó **MÁS BAJA** en
+  los cuatro anchos y en los dos denominadores — vacía **1263 → 1153** a 1440 px y con datos
+  **1308 → 1282**. La meta del 4a ya está cumplida, así que cambiar la maqueta sería una decisión
+  que la orden sólo pide para corregir una altura que no se reproduce. Y **la condición del 4b
+  tampoco se cumple**: Fallot tiene **CINCO** filas de campos y **UN** solo título de grupo. Las
+  dos están en **P4-b** y **P4-a**.
+
+- **LO QUE EL MÉDICO VIO COMO «campos de anchos distintos» NO ERA EL ANCHO, y está medido:** los
+  tres controles de cada fila ya medían **igual** —diferencia 0,0 px— en los cuatro anchos. Lo que
+  estaba corrido era la **LÍNEA DE BASE**: el globo ⓘ de «Gradiente medio» es un `inline-flex` de
+  44 px dentro del `<label>`, así que su control bajaba **31 px** respecto de los vecinos, **44**
+  a 1000 px, y en la fila de abajo un rótulo de dos líneas corría el suyo **13**. Se arregla con
+  **`subgrid`** y no con un `min-height`: cada campo cede sus tres bandas a las filas de la grilla
+  de afuera. **yDif pasa de 31 y 44 a CERO en los dieciséis cruces.**
+  ⚠️ **Por debajo de 768 px el subgrid se RETIRA, y lo pidió una medición:** ahí el `row-gap` de
+  3 px pasaba a ser la separación **entre campos** y los seis quedaban apretados.
+
+- **EL PAPEL DE LAS DOS ESTENOSIS LO ARMA SU EVALUADOR**, con `papel` —una oración por tema— y
+  `suma` —UNA línea—, las dos de las mismas piezas que lee la pantalla. El EN SUMA pasa de hasta
+  **cinco** líneas a **una**. Ejemplo, el caso del médico: «Estenosis subaórtica (membrana
+  subaórtica). No se gradúa la severidad: el criterio de la ESC 2020 … Seguimiento ecocardiográfico
+  anual … Derivación a cirugía …» → **«Estenosis subaórtica (membrana subaórtica). Insuficiencia
+  aórtica asociada moderada.»**
+  ⚠️ **Y TRES FRASES PREEXISTENTES MAL CONSTRUIDAS, que destapó el A/B al imprimir la tabla de
+  combinaciones**, más una repetición: «el gradiente sin cambios», «Insuficiencia aórtica asociada
+  sin insuficiencia aórtica», «Ostios coronarios con compromiso de los ostios» y la longitud que
+  repetía «túnel subaórtico» dos oraciones seguidas.
+
+- **LAS DOS LESIONES NO TENÍAN EVIDENCIA**, censado sobre `IND_SECS`, que pasa de **33 a 35**.
+  Siete preguntas en la subaórtica y ocho en la supravalvular, cada una con su guía rotulada, su
+  clase, su nivel, su hoja y su folio, y diciendo «medio» o «pico» en cada corte.
+  ⚠️ **El «seguimiento ecocardiográfico ANUAL» NO entró, porque ninguna hoja lo sostiene:** la ESC
+  2020 dice que la frecuencia depende de la progresión esperada y la ACC/AHA 2025 publica el
+  intervalo **por estadio fisiológico** —anual sólo en dos de los cuatro—. → **P4-c**.
+
+- **«TASK FORCE 2010» FUERA DEL PAPEL DE MCA: 468 apariciones → CERO** en las cinco escenas
+  integradas, sobre las once superficies, con `mcaApa` y `ajeno` en cero en los dos árboles.
+  ⚠️ **DOS LAS ENCONTRÓ EL A/B Y NO EL CENSO**, y es la lección: el espía de jsPDF de
+  `_probe_pant4tf.mjs` devolvió **cero** caracteres de PDF, o sea un denominador vacío. Las dos
+  vivían en `resumen`, que leen la **hoja del PDF** y la **diapositiva** además del EN SUMA.
+  El nombre **se queda en la pantalla**, medido, y el Laboratorio y el Excel no se tocaron.
+
+- **LOS TRES TEXTOS CONTRA SU FUENTE.** La premisa de **P2-f** era falsa: el texto que cita **no
+  existe** en el árbol, verificado con grep sobre el `index.html` de `1e4b70c`. La frase de la
+  resonancia sí decía lo que su fuente no sostiene —te Riele, **hoja 7 de 15**: el estándar de
+  referencia es de la **morfología y la función del VD**, no de la caracterización tisular— y se
+  corrigió en los dos lugares donde vivía, **con su cita**, porque con el texto corregido la frase
+  ya tiene fuente. Y las **cuatro** discrepancias de **P3-l** se confirmaron en imagen y **tres** se
+  corrigieron en los rótulos; la cuarta —los cortes indexados— **no necesitaba corrección**: la app
+  no los aplica y **ya lo dice** con sus seis números.
+
+- **LA CITA DE AORTA, RECONCILIADA: las DOS numeraciones eran reales y eso era el problema.** Los
+  folios que `AO_EV_FTE` usaba son los de `Mazzolai_2024_Aorta.pdf` —199 hojas, **otra edición**—
+  y el resto del repositorio usa la **inglesa de 163 hojas**. Las **quince** entradas se unifican
+  a la inglesa, con hoja y folio, y la **Tabla 62 se releyó entera**: hoja 105, folio **3642**
+  impreso, coincidiendo con lo que la app aplica. **Ningún corte se movió.** → **P4-g**.
+
+- **LA ÚNICA SITUACIÓN DE LA ORDEN SIN EVIDENCIA** era la insuficiencia aórtica con aorta
+  dilatada, y entra como **bloque aparte** y no como novena situación, porque `derivada` elige UNA
+  sola: un paciente con Marfan y una insuficiencia severa tiene que ver las dos.
+
+- **EL ESTADIO DE LA AHA/ACC 2020, Y SÓLO EN LA EVIDENCIA**, en las **dos primeras** válvulas del
+  orden que la orden fija. Los **diecisiete** escalones medidos. Lo que no se infiere se dice:
+  «C o D, según síntomas», «C1 o C2, según la fracción de eyección», y el grado «moderada-severa»
+  —que la tabla **no tiene como fila**— sale como «B o C, según la severidad».
+  ⚠️ **Una diferencia de corte que se declara:** el C2 de la insuficiencia aórtica usa FEVI
+  **≤55 %** y la app usa **50 %** para su indicación. Son dos preguntas distintas.
+  ⚠️ **Y UNA TRAMPA DE MEDICIÓN: el grado va DESPUÉS del gradiente.** La app reclasifica
+  `ea_grado` desde la velocidad máxima, así que una escena de bajo gradiente severo montada al
+  revés deja el grado en «moderada» y el estadio cae a B. **No es un defecto del estadio.**
+  Las otras **cuatro** válvulas quedan en **P4-f**, con su tabla, su hoja y su folio.
+
+- **27/27 MUTACIONES DIRIGIDAS MUERTAS** en una sola pasada. **Cinco no revierten nada: la aplican
+  de más.**
+  ⚠️ **OCHO SOBREVIVIERON AL PRIMER BARRIDO Y ME DIJERON TRES COSAS DISTINTAS.** **Dos eran huecos
+  reales** —que la función exista no es que la sección esté REGISTRADA, y ninguna condición miraba
+  `resumen`—; **cuatro estaban mal escritas**, tres de ellas rompiendo UNA de DOS listas, que es la
+  lección del D-11; y **una era un borde que no discriminaba**: con una fracción de eyección de 50
+  los dos cortes dan C2, y sólo con **55 exactos** el de la tabla se separa del de la app.
+  ⚠️ **Y UNA CAÍA POR EXCEPCIÓN:** con dos opciones el tercer elemento es `undefined`.
+
+- ⚠️ **EL HELPER DE CONDICIONES QUE ESCRIBÍ ESTABA INVERTIDO: pasaba cuando el valor NO
+  coincidía.** El runner compara el **segundo** elemento con el **tercero**, y yo puse el esperado
+  en el tercero en vez de la constante `true`: tres casos «pasaban» sobre valores correctos y tres
+  «fallaban» sobre valores correctos también.
+  ⚠️ **Y EL ACENTO GRAVE DENTRO DE MIS PROPIOS COMENTARIOS, por decimosexta tanda seguida**, en
+  cinco lugares. **`node --check` los cazó todos.**
+
+- **A/B FINAL contra HEAD, 26 escenas con PDF y PPT generados de verdad:** cambian las **VEINTE**
+  escenas autorizadas y las **SEIS** de control dan **CERO** —`p4vacio`, `p4ajeno`, `s1Apa`,
+  `v1Apa`, `mcaApa` y `archivo`—. **Excel 441 → 441 con las mismas claves** y **campos 1004 →
+  1004**: ninguno nuevo y ninguno perdido.
+
+- **CHROME Y WEBKIT COINCIDEN EN LOS DIECISÉIS CRUCES**, sin una sola diferencia salvo 1 px en el
+  ancho de un botón y la métrica de fuente: **cero** desplazamiento horizontal, **cero** texto
+  recortado y **CERO errores de consola y de página en los dos motores**.
+  ⚠️ **WebKit de Playwright no es Safari, y se declara.**
+
+- **CELULAR: MEJORÓ.** **58 hallazgos a 360 px y 66 a 390, con 17 ALTA en cada ancho** — la línea
+  base era 59 y 68 con los mismos 17. **Semgrep 124 WARNING / 0 ERROR.** Sin huérfanos nuevos.
+
+- **Dónde está todo:** `docs/mapa/pant4-estenosis-evidencia.md` (**mapa NUEVO**, 12,7 KB),
+  `docs/fuentes/FUENTES.md` → «La tanda PANT-4» con las **siete** reglas de folio comprobadas en el
+  pie impreso y la tabla «Cambios de evidencia» de doce filas, `docs/REGISTRO_TANDAS.md` → el
+  bloque de la tanda, `docs/GUIA_PRUEBA_PANT4.md` → la guía manual en **veinte** pasos, y
+  `docs/PENDIENTES.md` → **NUEVE** cosas declaradas (**P4-a** a **P4-i**) más el cierre de **P3-m**
+  y de **P3-r**.
+  ⚠️ **`congenitas-otros.md` (34,5 KB) NO se tocó**, que es lo que la orden pide.
+
 ### Los botones CIA/CIV, el corazón maestro, cuatro pantallas y la arritmia ventricular — «PANT-3» (2026-11-02 y 03)
 
 - **VEINTICINCO commits —los de documentación incluidos, contados con `git log`—, y los ONCE

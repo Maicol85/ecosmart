@@ -5786,7 +5786,13 @@ caso('TC-65', 'MCA: el puntaje Task Force declara el reparto por categoria', `
   return { inf: r.inf, suma: r.suma,
     debe: ['Estructural por ecocardiografía — mayor (2 puntos)',
            'un puntaje ecocardiográfico aislado no confirma ni descarta la enfermedad'],
-    debeSuma: ['MCA — Task Force 2010 2 puntos (eco 2, resto 0) — diagnóstico posible.'] };
+    /* ADAPTADO el 2026-11-03 (tanda PANT-4, commit 2), CON EL MOTIVO ESCRITO: el papel ya no
+       nombra el criterio -esa es la regla fija «el papel describe»- y la linea del EN SUMA dice
+       «criterios diagnosticos» en su lugar. LO QUE ESTE CASO FIJA NO CAMBIA: el reparto por
+       categoria -2 puntos, eco 2, resto 0- y la banda, que son los numeros. Y gana una condicion
+       nueva para que pueda volver a fallar: que el nombre de la guia NO este. */
+    debeSuma: ['MCA — criterios diagnósticos 2 puntos (eco 2, resto 0) — diagnóstico posible.'],
+    noSuma: ['Task Force'] };
 `);
 
 caso('TC-66', 'VAB: aorta de 56 mm dispara la indicacion Clase I de la ESC 2024', `
