@@ -120,6 +120,13 @@ const ESCENAS = {
   /* -- PANT-5, COMMIT 8: CONSTRICCION VS RESTRICCION --
      p5cvr carga los cuatro campos que el commit mueve mas el cociente a los dos lados del corte
      de 0,78, que es donde la fila «Lectura» tiene que seguir diciendo lo mismo. */
+  /* -- PANT-5, COMMIT 9: LOS ESTADIOS DE LAS CUATRO VALVULAS QUE FALTABAN --
+     p5est carga las cuatro lesiones en su grado SEVERO, que es donde la escalera de la guia
+     tiene algo que decir; p5estLeve las carga en leve, que es el estadio B. */
+  p5est:     { campos: { avm_plan:'1.2', fevi:'58', dsfvi:'42' },
+               sel: { em_grado:'severa', im_grado:'4', it_grado:'4' } },
+  p5estLeve: { campos: { avm_plan:'2.4', fevi:'65', dsfvi:'34' },
+               sel: { em_grado:'leve', im_grado:'2', it_grado:'2' } },
   p5cvr:  { campos: { cvr_hep_coc:'0.85', resp_var_mitral:'30' },
             sel: { cvr_rebote:'si', cvr_hepatico:'espiratoria', cvr_pericardio_tc:'si' } },
   p5cvrB: { campos: { cvr_hep_coc:'0.70', resp_var_mitral:'30' },

@@ -88124,6 +88124,10 @@ function _indIM(){
 
   const _sx = _indClinGet('im.sintomas'), _fa = _indClinGet('im.fa');
   const _rq = _indClinGet('im.riesgo'), _rep = _indClinGet('im.reparable');
+  /* EL ESTADIO (PANT-5, commit 9), por el mismo motivo que en las dos aorticas de PANT-4: va en
+     la lista CLINICA y no en la de datos del eco, porque lo que lo decide es una pregunta que el
+     ecocardiograma no contesta. SOLO en la Evidencia: no llega al papel. */
+  const _estIMP = _indEstFila(_indEstIMP());
   const clinica = [
     _indFilaCtrl('Síntomas', 'im.sintomas', [{v:'si',t:'Sí'},{v:'no',t:'No'}],
       _sx === 'si' ? 'ok' : (_sx === 'no' ? 'none' : 'ask'),
@@ -88150,6 +88154,7 @@ function _indIM(){
       _rep === 'si' ? 'ok' : (_rep === 'no' ? 'none' : 'ask'),
       'es condición de la Clase I del tres-de-cuatro, de la fila de dilatación auricular y de que la reparación sea la técnica recomendada; la decide el equipo, no el ecocardiograma')
   ];
+  if (_estIMP) clinica.unshift(_estIMP);
 
   const disf = { dtsvi:_ge(dsf, IM_CRIT_2025.dtsvi), idx:_ge(dsfi, IM_CRIT_2025.dtsvi_idx),
                  fevi:(fevi != null && _le(fevi, IM_CRIT_2025.fevi)) };
@@ -88477,6 +88482,10 @@ function _indIMS(){
   const _tipo = _indClinGet('ims.tipo');
   const _sx = _indClinGet('ims.sintomas'), _tmo = _indClinGet('ims.tmo');
   const _cabg = _indClinGet('ims.cabg'), _crit = _indClinGet('ims.teercrit'), _cx = _indClinGet('ims.cxcandidato');
+  /* EL ESTADIO (PANT-5, commit 9), por el mismo motivo que en las dos aorticas de PANT-4: va en
+     la lista CLINICA y no en la de datos del eco, porque lo que lo decide es una pregunta que el
+     ecocardiograma no contesta. SOLO en la Evidencia: no llega al papel. */
+  const _estIMS = _indEstFila(_indEstIMS());
   const clinica = [
     /* ⚠️ EL TIPO LO ELIGE EL MÉDICO. Los criterios de la Figura 12 se unen con «Y» e incluyen
        datos clínicos que esta aplicación no recoge, así que deducirlo sería inventar una
@@ -88495,6 +88504,7 @@ function _indIMS(){
       'la severidad se evalúa DESPUÉS de optimizarlo y en estado euvolémico y normotenso, e incluye la resincronización si estaba indicada',
       ['esc2025vc'])
   ];
+  if (_estIMS) clinica.unshift(_estIMS);
   if (_tipo === 'ventricular') {
     clinica.push(_indFilaCtrl('Cirugía de revascularización coronaria programada', 'ims.cabg', [{v:'si',t:'Sí'},{v:'no',t:'No'}],
       _cabg ? 'ok' : 'ask',
@@ -89335,6 +89345,11 @@ function _indEM(){
     'edad avanzada, comisurotomía previa, NYHA IV, fibrilación auricular permanente o hipertensión pulmonar severa'
     + (_clin === 'una' ? ' · la guía no define si una sola alcanza, así que abajo se publican las dos lecturas' : ''),
     ['esc2025vc']));
+  /* EL ESTADIO (PANT-5, commit 9), por el mismo motivo que en las dos aorticas de PANT-4: va en
+     la lista CLINICA y no en la de datos del eco, porque lo que lo decide es una pregunta que el
+     ecocardiograma no contesta. SOLO en la Evidencia: no llega al papel. */
+  const _estEM = _indEstFila(_indEstEM());
+  if (_estEM) fClin.unshift(_estEM);
   fClin.push(_indFilaCtrl('Síntomas', 'em.sintomas', [{v:'si',t:'Sí'},{v:'no',t:'No'}],
     _sx === 'si' ? 'ok' : (_sx === 'no' ? 'none' : 'ask'),
     'separan las filas del sintomático de la única fila del asintomático', ['esc2025vc']));
@@ -92672,7 +92687,11 @@ function _indEP(){
       : 'sin el nivel no se puede saber si aplica el umbral de la guía')),
     _indFila('Etiología', etio || 'No especificada', etio && !/^no especificada/i.test(etio) ? 'none' : 'ask', ''),
     _indFila('Morfología valvular', morfDicha ? morf : 'No consignada', morfDicha ? 'none' : 'ask',
-      morfDicha ? '' : 'el campo arranca en «Normal»: sin confirmarlo no se puede afirmar la morfología, y de ella depende la técnica')
+      morfDicha ? '' : 'el campo arranca en «Normal»: sin confirmarlo no se puede afirmar la morfología, y de ella depende la técnica'),
+    /* EL AVISO DE QUE NO HAY ESTADIO (PANT-5, commit 9). La pantalla lo DICE en vez de callarlo:
+       una seccion sin la fila del estadio, al lado de las SEIS que si la tienen, se lee como un
+       olvido. No muestra estadio porque la guia no publica ninguno para esta lesion. */
+    _indEstFila(_indEstNoHay('la válvula pulmonar'))
   ];
   const D = _indEPDatos();
   const vdTxt = [D.t.val != null ? 'TAPSE ' + _indNum(D.t.val, 0, 'mm') : null,
@@ -93264,6 +93283,10 @@ function _indVT(){
   const D = _indVTDatos();
   /* Las filas de función y dilatación del VD se LEEN del estudio: no son controles. El dato ya
      está cargado en la pestaña de Ventrículo Derecho y preguntarlo sería duplicarlo. */
+  /* EL ESTADIO (PANT-5, commit 9), por el mismo motivo que en las dos aorticas de PANT-4: va en
+     la lista CLINICA y no en la de datos del eco, porque lo que lo decide es una pregunta que el
+     ecocardiograma no contesta. SOLO en la Evidencia: no llega al papel. */
+  const _estIT = _indEstFila(_indEstIT());
   const clinica = [
     _indFilaCtrl('Mecanismo de la insuficiencia', 'vt.mecanismo', [{v:'prim',t:'Primaria'},{v:'sec',t:'Secundaria'}],
       D.mec ? 'none' : 'ask',
@@ -93304,6 +93327,7 @@ function _indVT(){
       D.psap.crudo != null ? 'PSAP estimada ' + _indNum(D.psap.crudo, 0, 'mmHg') : 'No estimada', 'ask',
       'condición no verificable acá: las filas piden HTP severa, HTP a secas o HTP PRE-CAPILAR según cuál sea, la guía la define por cateterismo, y la PSAP de esta app no tiene banda de plausibilidad')
   ];
+  if (_estIT) clinica.unshift(_estIT);
   return { filas: filas,
     aviso: (E && E.fuera && E.fuera.length)
       ? 'Fuera de rango medible: ' + E.fuera.join(' y ') + '. Un valor ilegible no sostiene ni descarta el criterio.' : '',
@@ -96587,6 +96611,149 @@ function _indEstIA(){
     nota:'en riesgo de insuficiencia aórtica: insuficiencia ausente o trivial, sin consecuencias hemodinámicas ni síntomas' + F };
   return { txt:'Sin dato', marca:'ask',
     nota:'el estadio sale del grado de la insuficiencia y de los síntomas, y el grado no está consignado' + F };
+}
+
+/* ── LAS CUATRO TABLAS DE LA TANDA PANT-5 (03/11/2026) ─────────────────────────────────────────
+   Mismo metodo que las dos aorticas del commit 6 de PANT-4: el estadio se muestra SOLO en la
+   Evidencia, rotulado AHA/ACC 2020; C y D se separan por los SINTOMAS, con la pregunta que la
+   seccion YA tiene; lo que no se contesta queda en «Sin dato» y NO se infiere; y nada de esto
+   llega al papel.
+   LAS CUATRO TABLAS, LEIDAS EN IMAGEN A 200 ppp, con su folio COMPROBADO en el pie impreso de
+   cada hoja -regla folio = e(hoja + 71)-:
+   · Tabla 16 «Stages of MS»,              hoja 42, folio e113.
+   · Tabla 17 «Stages of Chronic Primary MR», hoja 50, folio e121.
+   · Tabla 18 «Stages of Secondary MR»,    hoja 57, folio e128.
+   · Tabla 20 «Stages of TR»,              hoja 61, folio e132.
+   ⚠️ NINGUN CORTE DE SEVERIDAD DE LA APP SE TOCA. Estas funciones LEEN el grado que la app ya
+      publica y lo traducen a la escalera de la guia; donde la guia corta distinto, se declara en
+      la nota y se reporta, que es lo que la orden manda. */
+
+/* ── Estenosis mitral — Tabla 16, hoja 42, folio e113 ────────────────────────────────────── */
+function _indEstEM(){
+  const grado = _indS('em_grado');
+  const sx = _indEstSint('em.sintomas');
+  const F = ' (Tabla 16, hoja 42, folio e113)';
+  /* ⚠️ EL GRADIENTE MEDIO NO ENTRA, Y LA TABLA LO DICE EXPRESAMENTE: su nota al pie explica que
+     el gradiente medio transmitral «suele ser de 5 a 10 mmHg en la estenosis mitral severa» pero
+     que, por su variabilidad con la frecuencia cardiaca y el flujo anterogrado, NO se incluyo
+     entre los criterios de severidad. Lo que gradua es el AREA. */
+  if (grado === 'severa') {
+    if (sx === 'no') return { txt:'C', marca:'warn',
+      nota:'estenosis mitral severa sin síntomas: área valvular de 1,5 cm² o menos, tiempo de hemipresión de 150 ms o más, aurícula izquierda severamente agrandada y presión sistólica pulmonar por encima de 50 mmHg' + F };
+    if (sx === 'si') return { txt:'D', marca:'alarm',
+      nota:'estenosis mitral severa sintomática: a los hallazgos del estadio C se agregan la disminución de la tolerancia al ejercicio y la disnea de esfuerzo' + F };
+    return { txt:'C o D, según síntomas', marca:'ask',
+      nota:'estenosis mitral severa. Lo que separa C de D son los síntomas, que el ecocardiograma no evalúa: contestá la pregunta de síntomas de más abajo. «Sin dato» no cuenta como «no»' + F };
+  }
+  /* ⚠️ EL SELECTOR DE ESTA APP ES BINARIO -«No significativa» / «Significativa»- y su corte es el
+     MISMO 1,5 cm² de la tabla, asi que «no significativa» cae entero en el estadio B. La tabla
+     separa ademas A de B por la anatomia -domo leve con velocidad transmitral normal contra
+     cambios reumaticos con fusion comisural-, y esa distincion la app no la recoge: se dice. */
+  if (grado === 'leve' || grado === 'moderada') return { txt:'B', marca:'none',
+    nota:'estenosis mitral progresiva: área valvular por encima de 1,5 cm², tiempo de hemipresión por debajo de 150 ms, aurícula izquierda de leve a moderadamente agrandada y presión pulmonar normal en reposo. La tabla separa además el estadio A —domo valvular leve en diástole, con velocidad transmitral normal— por la anatomía, y esta aplicación no recoge esa distinción' + F };
+  return { txt:'Sin dato', marca:'ask',
+    nota:'el estadio sale del área valvular y de los síntomas, y el grado no está consignado' + F };
+}
+
+/* ── Insuficiencia mitral primaria — Tabla 17, hoja 50, folio e121 ───────────────────────── */
+function _indEstIMP(){
+  const grado = _indS('im_grado');
+  const fevi = _indN('fevi'), dsf = _indN('dsfvi');
+  const sx = _indEstSint('im.sintomas');
+  const F = ' (Tabla 17, hoja 50, folio e121)';
+  if (grado === '4') {
+    if (sx === 'si') return { txt:'D', marca:'alarm',
+      nota:'insuficiencia mitral primaria crónica severa sintomática: disminución de la tolerancia al ejercicio y disnea de esfuerzo' + F };
+    if (sx === 'no') {
+      /* C1 y C2 se separan por la fraccion de eyeccion Y el diametro telesistolico, y la tabla
+         los une con «y» en el C1 y con «y/o» en el C2: alcanza con que UNO de los dos caiga. */
+      if (fevi == null && dsf == null) return { txt:'C1 o C2, según la fracción de eyección y el diámetro telesistólico', marca:'warn',
+        nota:'insuficiencia mitral primaria severa sin síntomas. La tabla separa C1 —fracción por encima del 60 % Y diámetro telesistólico por debajo de 40 mm— de C2 —fracción del 60 % o menos Y/O diámetro de 40 mm o más—, y no consta ninguno de los dos' + F };
+      const c2 = (fevi != null && !_gt(fevi, 60)) || (dsf != null && _ge(dsf, 40));
+      if (c2) return { txt:'C2', marca:'alarm',
+        nota:'insuficiencia mitral primaria severa sin síntomas, con fracción de eyección del 60 % o menos y/o diámetro telesistólico del ventrículo izquierdo de 40 mm o más' + F };
+      if (fevi == null || dsf == null) return { txt:'C1 o C2, según el dato que falta', marca:'warn',
+        nota:'insuficiencia mitral primaria severa sin síntomas. El dato cargado cae del lado de C1, pero la tabla pide los DOS —fracción por encima del 60 % y diámetro telesistólico por debajo de 40 mm— y el otro no consta' + F };
+      return { txt:'C1', marca:'warn',
+        nota:'insuficiencia mitral primaria severa sin síntomas, con fracción de eyección por encima del 60 % y diámetro telesistólico del ventrículo izquierdo por debajo de 40 mm' + F };
+    }
+    return { txt:'C o D, según síntomas', marca:'ask',
+      nota:'insuficiencia mitral primaria severa. Lo que separa C de D son los síntomas, que el ecocardiograma no evalúa: contestá la pregunta de síntomas de más abajo. «Sin dato» no cuenta como «no»' + F };
+  }
+  /* El grado «moderada-severa» no es una fila de la tabla: la escalera tiene B y C y nada en el
+     medio. Se dice asi, que es lo mismo que PANT-4 hizo con la insuficiencia aortica. */
+  if (grado === '3') return { txt:'B o C, según la severidad', marca:'ask',
+    nota:'el grado consignado es «moderada-severa», y la tabla no tiene esa fila: separa B —progresiva, con orificio regurgitante efectivo por debajo de 0,40 cm², volumen por debajo de 60 ml y fracción regurgitante por debajo del 50 %— de C —severa, con 0,40 cm² o más, 60 ml o más y 50 % o más—' + F };
+  if (grado === '1' || grado === '2') return { txt:'B', marca:'none',
+    nota:'insuficiencia mitral primaria progresiva: chorro central del 20 al 40 % de la aurícula izquierda o excéntrico telesistólico, vena contracta por debajo de 0,7 cm, volumen regurgitante por debajo de 60 ml, fracción regurgitante por debajo del 50 % y orificio regurgitante efectivo por debajo de 0,40 cm². La tabla separa además el estadio A —en riesgo— por la anatomía, con prolapso leve y coaptación normal' + F };
+  return { txt:'Sin dato', marca:'ask',
+    nota:'el estadio sale del grado de la insuficiencia y de los síntomas, y el grado no está consignado' + F };
+}
+
+/* ── Insuficiencia mitral secundaria — Tabla 18, hoja 57, folio e128 ─────────────────────── */
+function _indEstIMS(){
+  const grado = _indS('im_grado');
+  const sx = _indEstSint('ims.sintomas');
+  const F = ' (Tabla 18, hoja 57, folio e128)';
+  /* ⚠️ EN LA SECUNDARIA LOS SINTOMAS NO SEPARAN C DE D COMO EN LA PRIMARIA, Y ES LA DIFERENCIA
+     QUE HAY QUE DECIR: la tabla pone sintomas en los CUATRO estadios -«atribuibles a isquemia
+     coronaria o a insuficiencia cardiaca que PUEDEN RESPONDER a la revascularizacion y al
+     tratamiento medico apropiado»-, y lo que define el D es que los sintomas de insuficiencia
+     cardiaca PERSISTEN despues de la revascularizacion y de optimizar el tratamiento medico.
+     Eso no es un dato del ecocardiograma ni es lo que pregunta la seccion, asi que el estadio se
+     publica como «C o D» y la nota lo explica. */
+  if (grado === '4') {
+    if (sx === 'si') return { txt:'C o D, según la respuesta al tratamiento', marca:'ask',
+      nota:'insuficiencia mitral secundaria severa con síntomas. A diferencia de la primaria, acá los síntomas no separan C de D: la tabla los admite en los cuatro estadios cuando responden a la revascularización y al tratamiento médico, y define el estadio D porque los síntomas de insuficiencia cardíaca PERSISTEN después de la revascularización y de optimizar ese tratamiento. Eso no es un dato del ecocardiograma' + F };
+    if (sx === 'no') return { txt:'C', marca:'warn',
+      nota:'insuficiencia mitral secundaria severa sin síntomas: orificio regurgitante efectivo de 0,40 cm² o más, volumen regurgitante de 60 ml o más y fracción regurgitante del 50 % o más, con anomalías regionales de la motilidad y dilatación o disfunción del ventrículo izquierdo. La tabla advierte que el método de superficie proximal de isovelocidad por eco bidimensional SUBESTIMA el orificio verdadero en la insuficiencia secundaria, por la forma creciente de la convergencia proximal, y que el volumen regurgitante puede ser menor en los estados de bajo flujo' + F };
+    return { txt:'C o D, según la respuesta al tratamiento', marca:'ask',
+      nota:'insuficiencia mitral secundaria severa. La tabla separa C de D por la PERSISTENCIA de los síntomas de insuficiencia cardíaca después de la revascularización y de optimizar el tratamiento médico, no por tenerlos: contestá la pregunta de síntomas de más abajo. «Sin dato» no cuenta como «no»' + F };
+  }
+  if (grado === '3') return { txt:'B o C, según la severidad', marca:'ask',
+    nota:'el grado consignado es «moderada-severa», y la tabla no tiene esa fila: separa B —progresiva, con orificio regurgitante efectivo por debajo de 0,40 cm²— de C —severa, con 0,40 cm² o más—' + F };
+  if (grado === '1' || grado === '2') return { txt:'B', marca:'none',
+    nota:'insuficiencia mitral secundaria progresiva: orificio regurgitante efectivo por debajo de 0,40 cm², volumen regurgitante por debajo de 60 ml y fracción regurgitante por debajo del 50 %, con anomalías regionales de la motilidad y tethering leve del velo mitral. La tabla separa además el estadio A —en riesgo— por tratarse de velos, cuerdas y anillo normales en un paciente con enfermedad coronaria o miocardiopatía' + F };
+  return { txt:'Sin dato', marca:'ask',
+    nota:'el estadio sale del grado de la insuficiencia y de la respuesta al tratamiento, y el grado no está consignado' + F };
+}
+
+/* ── Insuficiencia tricuspídea — Tabla 20, hoja 61, folio e132 ───────────────────────────── */
+function _indEstIT(){
+  const grado = _indS('it_grado');
+  const sx = _indEstSint('vt.sintomas');
+  const F = ' (Tabla 20, hoja 61, folio e132)';
+  /* ⚠️ ESTA TABLA NO TIENE FILA A EN ESTA EDICION, verificado en imagen: arranca en B. Por eso
+     ningun grado cae en «A» y la nota del estadio B no menciona ninguna fila anterior. */
+  if (grado === '4') {
+    if (sx === 'si') return { txt:'D', marca:'alarm',
+      nota:'insuficiencia tricuspídea severa sintomática: presión venosa elevada con disnea de esfuerzo, fatiga, ascitis y edema' + F + _indEstITNota() };
+    if (sx === 'no') return { txt:'C', marca:'warn',
+      nota:'insuficiencia tricuspídea severa sin síntomas: chorro central del 50 % o más de la aurícula derecha, vena contracta de 0,7 cm o más, orificio regurgitante efectivo de 0,40 cm² o más, volumen regurgitante de 45 ml o más, señal de onda continua densa y de forma triangular e inversión del flujo sistólico en la vena hepática, con ventrículo y aurícula derechos dilatados y presión venosa elevada' + F + _indEstITNota() };
+    return { txt:'C o D, según síntomas', marca:'ask',
+      nota:'insuficiencia tricuspídea severa. Lo que separa C de D son los síntomas, que el ecocardiograma no evalúa: contestá la pregunta de síntomas de más abajo. «Sin dato» no cuenta como «no»' + F + _indEstITNota() };
+  }
+  if (grado === '3') return { txt:'B o C, según la severidad', marca:'ask',
+    nota:'el grado consignado es «moderada-severa», y la tabla no tiene esa fila: separa B —progresiva, con vena contracta por debajo de 0,7 cm, orificio por debajo de 0,40 cm² y volumen por debajo de 45 ml— de C —severa, con 0,7 cm o más, 0,40 cm² o más y 45 ml o más—' + F + _indEstITNota() };
+  if (grado === '1' || grado === '2') return { txt:'B', marca:'none',
+    nota:'insuficiencia tricuspídea progresiva: chorro central por debajo del 50 % de la aurícula derecha, vena contracta por debajo de 0,7 cm, orificio regurgitante efectivo por debajo de 0,40 cm² y volumen regurgitante por debajo de 45 ml, sin consecuencias hemodinámicas ni síntomas. Esta tabla NO tiene estadio A' + F + _indEstITNota() };
+  return { txt:'Sin dato', marca:'ask',
+    nota:'el estadio sale del grado de la insuficiencia y de los síntomas, y el grado no está consignado' + F + _indEstITNota() };
+}
+/* La fila del estadio de esta sección es la de la INSUFICIENCIA tricuspídea. La ESTENOSIS
+   tricuspídea, que esta misma sección también evalúa, no tiene tabla de estadios en esta guía:
+   se dice acá, en la nota, y no en una segunda fila «Estadio», que dejaría dos en la misma
+   sección diciendo cosas distintas sobre dos lesiones. */
+function _indEstITNota(){
+  return ' La estenosis tricuspídea, que esta sección también evalúa, no tiene tabla de estadios en la AHA/ACC 2020.';
+}
+
+/* ⚠️ LA ESTENOSIS TRICUSPIDEA Y LA VALVULA PULMONAR NO TIENEN TABLA DE ESTADIOS EN ESTA GUIA, y
+   la pantalla lo DICE en vez de callarlo: una seccion sin la fila «Estadio» al lado de otras que
+   si la tienen se lee como un olvido. No muestra estadio porque no hay ninguno que mostrar. */
+function _indEstNoHay(lesion){
+  return { txt:'La guía no publica estadios para esta lesión', marca:'none',
+    nota:'la AHA/ACC 2020 publica tablas de estadios para la estenosis y la insuficiencia aórticas, la estenosis mitral, las dos insuficiencias mitrales y la insuficiencia tricuspídea. Para ' + lesion + ' no hay tabla de estadios en esa guía, así que esta sección no publica ninguno' };
 }
 
 const IND_SECS = [
