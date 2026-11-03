@@ -86643,6 +86643,47 @@ const IND_TERMINOS = Object.freeze({
      ⚠️ LA DIFERENCIA ES LA MISMA QUE EN LA MITRAL: la ESC/EACTS 2025 dice «sintomatico» en sus
         filas de insuficiencia aortica y NO define que sintomas cuentan. Ningun corte se toca.
      ⚠️ TODO PARAFRASEADO EN ESPANIOL, sin copiar frases. */
+  /* ══ QUE SINTOMAS CUENTAN EN LA ESTENOSIS AORTICA (PANT-6, commit 7) ═════════════════════
+     Misma regla que los otros dos globos de sintomas.
+     LEIDO EN IMAGEN a 220 ppp el 2026-11-03, con el folio comprobado en el PIE IMPRESO de la
+     hoja -«February 2, 2021  e91»-: la Tabla 13 «Stages of AS» de la AHA/ACC 2020 (Otto), hoja
+     20, folio e91, columna «Symptoms».
+     ⚠️ ESTA VALVULA ES LA UNICA DE LAS TRES EN LA QUE EL ROTULO DE LA PREGUNTA YA LOS NOMBRA
+        -«Sintomas (angina, sincope, disnea)»-, asi que el globo agrega lo que el rotulo no dice:
+        que la tabla llama al estadio D1 sintomatico por disnea de esfuerzo, angina o sincope, y
+        que en el severo asintomatico la prueba de esfuerzo es la que confirma el estado.
+     ⚠️ Y LA DIFERENCIA ES LA MISMA QUE EN LAS OTRAS DOS: la ESC/EACTS 2025 dice «sintomatico» en
+        sus filas de estenosis aortica y no enumera cuales. Ningun corte se toca. */
+  easintomas: Object.freeze({
+    rotulo: 'Síntomas en la estenosis aórtica',
+    tipo: 'definicion',
+    tam: 'chica',
+    etiqueta: 'Qué síntomas cuentan en la estenosis aórtica',
+    que: 'La respuesta separa dos cosas a la vez: el estadio C del D, y la fila de intervención '
+       + 'del paciente sintomático de las del asintomático, que exigen riesgo bajo. El rótulo de '
+       + 'la pregunta nombra tres; la tabla de estadios enumera algunos más.',
+    items: Object.freeze([
+      Object.freeze({ t:'AHA/ACC 2020 — los nombra, y son más de tres',
+        d:'En el estadio sintomático de alto gradiente la tabla lista la disnea de esfuerzo, la '
+        + 'disminución de la tolerancia al ejercicio o la insuficiencia cardíaca, la angina de '
+        + 'esfuerzo, y el síncope o presíncope de esfuerzo. En los dos estadios sintomáticos de '
+        + 'bajo gradiente los nombra sin el calificativo de esfuerzo: insuficiencia cardíaca, '
+        + 'angina, y síncope o presíncope.' }),
+      Object.freeze({ t:'Y en el asintomático propone comprobarlo',
+        d:'En el estadio severo asintomático con fracción de eyección normal, la misma tabla '
+        + 'considera razonable la prueba de esfuerzo para confirmar el estado sintomático: por '
+        + 'eso esta sección la pregunta aparte.' }),
+      Object.freeze({ t:'ESC/EACTS 2025 — no los define',
+        d:'Sus filas de intervención hablan del paciente «sintomático» sin enumerar qué '
+        + 'síntomas cuentan.' }),
+      Object.freeze({ t:'Qué hace esta aplicación',
+        d:'No resuelve la diferencia y no mueve ningún corte. «Sin dato» no cuenta como «No».' })
+    ]),
+    guia: 'Las dos guías usan los síntomas para el mismo corte y sólo una los enumera: la '
+        + 'diferencia se muestra y la decide quien informa.',
+    fuente: 'AHA/ACC 2020 (Otto), Tabla 13 «Stages of AS», hoja 20, folio e91, columna '
+          + '«Symptoms». ESC/EACTS 2025, tabla de recomendaciones de estenosis aórtica.'
+  }),
   iasintomas: Object.freeze({
     rotulo: 'Síntomas en la insuficiencia aórtica',
     tipo: 'definicion',
@@ -88313,14 +88354,18 @@ function _indEA(){
   const _rq = _indClinGet('ea.riesgo'),   _vida = _indClinGet('ea.vida1a');
   /* EL ESTADIO (PANT-4, commit 6). Va en la lista CLINICA y no en la de datos del eco, porque
      lo que lo decide -C contra D- son los sintomas, que el ecocardiograma no evalua. */
-  const _estEA = _indEstFila(_indEstEA());
+  const _estEA = _indEstEA();
   const clinica = [
-    _indFilaCtrl('Síntomas (angina, síncope, disnea)', 'ea.sintomas',
+    /* El globo dice QUE sintomas cuentan, con las dos guias y su diferencia sin resolver
+       (PANT-6, commit 7). El ROTULO no se toca: ya nombra tres, y el globo agrega los que la
+       tabla de estadios enumera ademas. */
+    Object.assign(_indFilaCtrl('Síntomas (angina, síncope, disnea)', 'ea.sintomas',
       [{v:'si',t:'Sí'},{v:'no',t:'No'}],
       _sx === 'si' ? 'ok' : (_sx === 'no' ? 'none' : 'ask'),
       _sx === 'si' ? 'disparador de la Clase I en la estenosis severa'
       : _sx === 'no' ? 'el asintomático entra por las recomendaciones de Clase IIa, que exigen riesgo bajo'
       : 'sin esto no se puede separar la Clase I de la vigilancia activa'),
+      { term: 'easintomas' }),
     _indFilaCtrl('Prueba de esfuerzo', 'ea.ergo',
       [{v:'normal',t:'Normal'},{v:'sintomas',t:'Desenmascara síntomas'},
        {v:'ta',t:'Caída de TA > 20 mmHg'},{v:'no_realizada',t:'No realizada'}],
@@ -88349,7 +88394,8 @@ function _indEA(){
       _vida == null ? 'en la edición 2025 no es un umbral graduado: vive en el cuerpo del documento, sin clase'
       : 'sin clase asignada en 2025. Lo graduado es que la MODALIDAD se decida por Heart Team incorporando la expectativa de vida y el manejo a lo largo de la vida (Clase I · Nivel C).')
   ];
-  if (_estEA) clinica.unshift(_estEA);
+  /* EL ESTADIO SE MUDO A LA FRANJA AMBAR DEL MOLDE (PANT-6, commit 7). Su texto, su letra, su
+     nota y su fuente no cambian: lo unico que cambia es donde se pinta. */
 
   /* FALLA CERRADO (regla 4 de la cabecera). `_indFn` comprueba que la función EXISTA, no que no
      lance: `eaEscenario` llama a `_avaNum`, `getBSA`, `vliCalc` y al rango de FEVI, y si alguna
@@ -88358,7 +88404,36 @@ function _indEA(){
   let esc = null;
   try { if (_indFn('eaEscenario')) esc = window.eaEscenario(); } catch (e) { esc = null; }
 
-  return { filas: filas,
+  /* ══ EL MOLDE (PANT-6, commit 7) ══════════════════════════════════════════════════════════
+     La premisa se reproduce y es la mas grande de las tres valvulas medidas: con el panel
+     maximizado, la columna del eco medi­a 107,8 px de alto contra 468,8 de la de preguntas, o sea
+     361 px de VACIO a 1440 px y 400,9 a 1000.
+     ⚠️ LAS CUATRO PREGUNTAS VAN EN UNA SOLA COLUMNA: seis o menos, una columna.
+     ⚠️ LOS DOS GRUPOS NO SE INVENTAN. «Indicacion» son los sintomas -disparador de la Clase I- y
+        la prueba de esfuerzo -que es «lo que distingue al asintomatico verdadero», textual de su
+        propia nota-. «Riesgo y modalidad» son el riesgo del procedimiento -que las filas de SAVR
+        y del asintomatico exigen- y la expectativa de vida, cuya nota dice textual que lo
+        graduado es «que la MODALIDAD se decida por Heart Team incorporando la expectativa de
+        vida».
+     ⚠️ EL PIE VA VACIO: esta valvula tiene la tarjeta de `recom`, que `_indSecPie` emite despues
+        del molde, y no una tabla de filas con estado. */
+  const molde = {
+    cat: { et:'Grado — el que publica el informe',
+           txt: (function(){ const g = _indS('ea_grado');
+             return g === 'severa' ? 'Estenosis aórtica severa'
+                  : g === 'moderada' ? 'Estenosis aórtica moderada'
+                  : g === 'leve' ? 'Estenosis aórtica leve'
+                  : g === 'esclerosis' ? 'Esclerosis aórtica' : 'Grado no consignado'; })(),
+           por:'el grado que la aplicación publica; las tres mediciones de abajo son las que lo sostienen' },
+    est: _estEA ? { et:'Estadio (AHA/ACC 2020)', txt:_estEA.txt, por:_estEA.nota } : null,
+    datos: filas.map(function(f){ return { lbl:f.lbl, val:f.val, refs:f.refs || null,
+        est:String(f.nota || '').split(' · ')[0] }; }),
+    cols: [ [ { tit:'Indicación', filas:[clinica[0], clinica[1]] },
+              { tit:'Riesgo y modalidad', filas:[clinica[2], clinica[3]] } ] ],
+    pie: null
+  };
+
+  return { filas: filas, molde: molde,
     clinica: clinica,
     /* ⚠️ CON UN INSUMO FUERA DE BANDA NO SE PUBLICA CONDUCTA, Y LAS FILAS SE QUEDAN. Las cuatro
        mediciones de arriba ya dicen cada una lo suyo; lo que no puede salir es la RECOMENDACIÓN,
@@ -154571,8 +154646,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261103-1938';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793745503828;                 /* eco-build-ms */
+const ECO_BUILD    = '20261103-1947';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793746074525;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -154658,7 +154733,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261103-1938</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261103-1947</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

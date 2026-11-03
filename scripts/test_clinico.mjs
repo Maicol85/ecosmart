@@ -64203,8 +64203,8 @@ caso('TC-451', 'Evidencia: los dos ⓘ de termino abren su tarjeta completa y an
          de los sintomas de la insuficiencia aortica. Y ese caso HIZO SU TRABAJO: la primera
          version de los dos globos de sintomas compartia el aria-label «Que sintomas cuentan», o
          sea la clave que hace que abrir uno no abra el otro. Hoy cada uno nombra su valvula. */
-      ex.push(['el registro tiene las CUATRO entradas y cada ⓘ es un <button> con aria-label PROPIO y distinto',
-        JSON.stringify(ids) === JSON.stringify(['cormier','emsintomas','iasintomas','score_eco']) &&
+      ex.push(['el registro tiene las CINCO entradas y cada ⓘ es un <button> con aria-label PROPIO y distinto',
+        JSON.stringify(ids) === JSON.stringify(['cormier','easintomas','emsintomas','iasintomas','score_eco']) &&
         b0.every(b => b.tagName === 'BUTTON' && b.getAttribute('aria-haspopup') === 'dialog') &&
         etqs.length === 3 && (new Set(etqs)).size === 3 && etqs.every(e => e && e.trim()),
         'ids=' + JSON.stringify(ids) + ' etiquetas=' + JSON.stringify(etqs) +
@@ -110440,12 +110440,20 @@ caso('TC-638', 'Tanda PANT-4: la cita de aorta reconciliada, la insuficiencia ao
   __t.limpiar();
   __t.set('vmax_ao', '4.5'); __t.set('gmedio_ao', '45'); __t.set('fevi', '60'); __t.set('ea_grado', 'severa');
   const S = _indEA();
+  /* (E1) a (E3) ADAPTADAS POR PANT-6, commit 7, con el motivo: el estadio dejo de ser una FILA de
+     la lista clinica y pasó a la FRANJA AMBAR del molde, que es donde el medico lo pidio -«el
+     estadio sale de la fila donde esta hoy y deja de repetirse abajo»-. Lo que el caso vigila no
+     cambia: que la seccion lo publique, que lo rotule con la guia que usa estadios y que lleve su
+     tabla, su hoja y su folio. Y queda MAS fuerte, porque ahora tambien exige que NO siga en la
+     lista de filas: si alguien lo repusiera abajo, el caso se pone rojo. */
   const fil = (S && S.clinica ? S.clinica : []).filter(function (f) { return f && String(f.lbl).indexOf('Estadio') >= 0 });
+  const est = (S && S.molde) ? S.molde.est : null;
   ex.push(['(E0) DENOM: la seccion de estenosis aortica abre', !!S, true]);
-  ex.push(['(E1) y lleva su fila de estadio', fil.length, 1]);
-  ex.push(['(E2) rotulada con la guia que usa estadios', fil.length ? fil[0].lbl : 'NO HAY', 'Estadio (AHA/ACC 2020)']);
+  ex.push(['(E1) y publica su estadio en la franja del molde', !!est, true]);
+  ex.push(['(E1b) y NO lo repite como fila de la lista clinica', fil.length, 0]);
+  ex.push(['(E2) rotulado con la guia que usa estadios', est ? est.et : 'NO HAY', 'Estadio (AHA/ACC 2020)']);
   ex.push(['(E3) con su tabla, su hoja y su folio en la nota',
-    fil.length ? String(fil[0].nota).indexOf('folio e91') >= 0 : 'NO HAY', true]);
+    est ? String(est.por).indexOf('folio e91') >= 0 : 'NO HAY', true]);
   const papel = __t.informe();
   ex.push(['(E4) CONTROL NEGATIVO: el estadio no llega al informe', papel.inf.indexOf('Estadio (AHA/ACC') >= 0, false]);
   ex.push(['(E5) ni al EN SUMA', papel.suma.indexOf('Estadio (AHA/ACC') >= 0, false]);
