@@ -36391,9 +36391,18 @@ const EM_REC_HELPERS = `
        del CASO y no una regla de la app, y por eso lleva este comentario. «faltan» sale de las
        filas en «ask», que es donde el panel pide hoy cada dato: una pregunta sin contestar se ve
        donde esta la pregunta. */
+    /* ADAPTADO POR PANT-6, commit 3: con la etiologia REUMATICA los cinco grupos ya no viven en
+       «s.bloques[*].grupos» sino en el MOLDE -«s.molde.cols[*]» y «s.molde.pie»-, porque el
+       medico pidio las preguntas en dos columnas agrupadas por tema y la tabla de
+       recomendaciones al pie. Las FILAS son las mismas, con la misma fabrica y los mismos refs:
+       lo unico que cambio es donde se pintan. Este colector lee LOS DOS lugares, asi que sirve a
+       las dos etiologias y no hay que tocar ninguna condicion. */
     const grupos = () => { const s = sec(); if (!s) return [];
       let g = [];
       (s.bloques || []).forEach(b => { (b.grupos || []).forEach(x => { g.push(x) }) });
+      const m = s.molde;
+      if (m) { (m.cols || []).forEach(c => { (c || []).forEach(x => { if (x) g.push(x) }) });
+        if (m.pie) g.push(m.pie); }
       return g; };
     const grupo = re => { const g = grupos().filter(x => re.test(x.tit || ''))[0];
       return g ? (g.filas || []) : []; };
@@ -36988,9 +36997,13 @@ caso('TC-323', 'Estenosis mitral: compuerta de etiologia, umbral clinico declara
     const clase = () => { const r = rec(); return r ? (r.tipo + ' / ' + (r.clase || r.tit)) : 'sin recomendacion'; };
     /* Las cinco filas de la tabla de UNA SECCION CAPTURADA, para condiciones que comparan dos
        escenas: filasRec() relee el estado vivo y daria el de la ultima. */
+    /* ADAPTADO POR PANT-6, commit 3: ver el colector «grupos» del caso de la tabla. Con la
+       etiologia reumatica la tabla de recomendaciones vive en «sx.molde.pie». */
     const filasRecDe = sx => { if (!sx) return [];
       const g = [];
       (sx.bloques || []).forEach(b => { (b.grupos || []).forEach(x => { g.push(x) }) });
+      if (sx.molde) { (sx.molde.cols || []).forEach(c => { (c || []).forEach(x => { if (x) g.push(x) }) });
+        if (sx.molde.pie) g.push(sx.molde.pie); }
       const f = g.filter(x => /Filas de la tabla/.test(x.tit || ''))[0];
       return f ? (f.filas || []) : []; };
     const B = { avm_plan:'1.2', peso:'80', talla:'180' };
@@ -46662,17 +46675,33 @@ caso('TC-328', 'Evidencia: los cuatro textos corregidos contra el original ingle
     R.hayIM = !!secIM; R.hayEM = !!secEM;
 
     /* Una fila por su rotulo: se devuelve el texto de la celda de nota y las claves citadas ahi. */
+    /* ADAPTADO POR PANT-6, commit 3: los datos de SOLO LECTURA de la estenosis mitral ya no se
+       pintan como filas de tabla sino como TARJETAS en la franja «Datos del estudio», que es lo
+       que el medico pidio. Este helper busca primero la fila y, si no esta, la tarjeta. Lo que
+       verifica cada condicion no cambia -el rotulo, el texto del estado y los corchetes-, y de
+       hecho queda mas fuerte: ahora sirve a las dos presentaciones, asi que un cambio de molde
+       en otra valvula no lo rompe. Lo destapo la condicion 3, que medía la fila del area por
+       encima de 1,5 cm2. */
     const fila = function(sec, rot){
       if (!sec) return null;
       const tr = Array.prototype.slice.call(sec.querySelectorAll('tr')).filter(function(t){
         const td = t.querySelectorAll('td');
         return td.length >= 3 && pl(td[0].textContent).indexOf(pl(rot)) > -1;
       })[0];
-      if (!tr) return null;
-      const td = tr.querySelectorAll('td');
-      return { lbl: td[0].textContent.trim(), nota: pl(td[2].textContent),
-        refs: Array.prototype.slice.call(td[2].querySelectorAll('[data-ind-ref]'))
-          .map(function(x){ return x.getAttribute('data-ind-ref'); }) };
+      if (tr) { const td = tr.querySelectorAll('td');
+        return { lbl: td[0].textContent.trim(), nota: pl(td[2].textContent),
+          refs: Array.prototype.slice.call(td[2].querySelectorAll('[data-ind-ref]'))
+            .map(function(x){ return x.getAttribute('data-ind-ref'); }) }; }
+      const card = Array.prototype.slice.call(sec.querySelectorAll('.ind-dato')).filter(function(c){
+        const l = c.querySelector('.ind-dato-lbl');
+        return l && pl(l.textContent).indexOf(pl(rot)) > -1;
+      })[0];
+      if (!card) return null;
+      const est = card.querySelector('.ind-dato-est');
+      return { lbl: card.querySelector('.ind-dato-lbl').textContent.trim(),
+        nota: est ? pl(est.textContent) : '',
+        refs: est ? Array.prototype.slice.call(est.querySelectorAll('[data-ind-ref]'))
+          .map(function(x){ return x.getAttribute('data-ind-ref'); }) : [] };
     };
     /* Las notas hoja, sin la bibliografia: sus entradas tambien son div hoja. */
     /* ⚠️ ADAPTADO 2026-10-11, Y ES EL MISMO DEFECTO QUE LA BIBLIOGRAFIA YA HABIA PAGADO ACA. Este
@@ -64149,8 +64178,14 @@ caso('TC-451', 'Evidencia: los dos ⓘ de termino abren su tarjeta completa y an
       const ov = document.getElementById('indic-overlay');
       const geo = b0.map(b => { const r = b.getBoundingClientRect();
         return Math.round(r.width) + 'x' + Math.round(r.height); });
-      ex.push(['DENOMINADOR: los dos ⓘ tienen geometria real, el panel esta abierto y los DOS overlays que tapan la pantalla se fueron',
-        b0.length === 2 && b0.every(b => { const r = b.getBoundingClientRect();
+      /* ADAPTADO POR PANT-6, commit 3: el registro pasa de DOS a TRES terminos. El nuevo es
+         «emsintomas», el globo de la pregunta de sintomas de la estenosis mitral, que la orden
+         pide para que diga QUE sintomas cuentan y muestre la diferencia entre las dos guias.
+         Lo que el caso vigila no cambia: que cada ⓘ sea un <button> con su aria-label PROPIO y
+         distinto -que es lo que hace que abrir uno no abra el otro- y que los rotulos no se
+         muevan. Con tres, la condicion de etiquetas distintas queda MAS fuerte. */
+      ex.push(['DENOMINADOR: los TRES ⓘ tienen geometria real, el panel esta abierto y los DOS overlays que tapan la pantalla se fueron',
+        b0.length === 3 && b0.every(b => { const r = b.getBoundingClientRect();
           return r.width > 0 && r.height > 0; }) &&
         !!ov && getComputedStyle(ov).display === 'block' &&
         Object.keys(tapadores).every(k => tapadores[k] === 'none' || tapadores[k] === 'NO EXISTE'),
@@ -64164,10 +64199,10 @@ caso('TC-451', 'Evidencia: los dos ⓘ de termino abren su tarjeta completa y an
              gratis, que es lo que al corchete de una cita le costo una rama de teclado. ── */
       const ids = Object.keys(window.IND_TERMINOS).sort();
       const etqs = b0.map(b => b.getAttribute('aria-label'));
-      ex.push(['el registro tiene las DOS entradas y cada ⓘ es un <button> con aria-label PROPIO y distinto',
-        JSON.stringify(ids) === JSON.stringify(['cormier','score_eco']) &&
+      ex.push(['el registro tiene las TRES entradas y cada ⓘ es un <button> con aria-label PROPIO y distinto',
+        JSON.stringify(ids) === JSON.stringify(['cormier','emsintomas','score_eco']) &&
         b0.every(b => b.tagName === 'BUTTON' && b.getAttribute('aria-haspopup') === 'dialog') &&
-        etqs.length === 2 && etqs[0] !== etqs[1] && etqs.every(e => e && e.trim()),
+        etqs.length === 3 && (new Set(etqs)).size === 3 && etqs.every(e => e && e.trim()),
         'ids=' + JSON.stringify(ids) + ' etiquetas=' + JSON.stringify(etqs) +
         ' tags=' + JSON.stringify(b0.map(b => b.tagName))]);
 

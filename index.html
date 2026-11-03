@@ -3406,6 +3406,59 @@ html.light-mode .amilo-root{
 #indic-card [data-ind-grid][data-ind-preg="1"][data-ind-cols="1"] > [data-ind-col="eco"],
 #indic-card [data-ind-grid][data-ind-preg="1"][data-ind-cols="1"] [data-ind-pregcols="1"]{display:block}
 #indic-card [data-ind-grid][data-ind-preg="1"] [data-ind-col="clin"] > div:first-child{margin-top:6px}
+/* ============================================================================================
+   EL MOLDE DE UNA SECCION DE VALVULA  -  [data-ind-molde]  (PANT-6, commit 3)
+   ============================================================================================
+   DECISION DEL MEDICO (03/11/2026), con un esquema aprobado. De arriba abajo: (1) la franja
+   ambar con la CATEGORIA que publica el informe y el ESTADIO al lado; (2) la franja «Datos del
+   estudio», una tarjeta por dato de solo lectura; (3) las PREGUNTAS en dos columnas agrupadas
+   por tema; (4) al pie, a todo el ancho, la tabla de recomendaciones.
+   ⚠️ EL AMBAR LLEVA EL TEXTO EN `--text` Y NO EN `--orange`, Y LO DECIDIO UNA MEDICION DE
+      CONTRASTE: sobre el fondo de la franja -rgba(245,158,66,.15) sobre `--bg3`- el naranja da
+      2,48:1 en modo CLARO, por debajo del 4,5:1 que la orden exige. `--text` da 14,28:1 en claro
+      y 10,05:1 en oscuro, y `--text2` -el «por que»- da 4,58 y 4,67. El naranja se queda en el
+      borde y en la etiqueta, donde no es texto que haya que leer para entender el dato.
+   ⚠️ LA CATEGORIA LLEVA SU ETIQUETA ESCRITA y no solo el color, que es lo que la orden pide: un
+      color es un codigo que hay que aprender.
+   ⚠️ LOS DEMAS COLORES SEMANTICOS DE LA EVIDENCIA NO SE TOCAN -el verde, el rojo y el gris de
+      las marcas de fila siguen siendo los mismos-: esta franja es un elemento nuevo.
+   ⚠️ LAS DOS COLUMNAS DE PREGUNTAS SE DECIDEN POR EL ANCHO DEL PANEL, igual que las de
+      `data-ind-preg`: el corte es `IND_COLS_CORTE` y lo escribe `_indColsSync` midiendo la caja.
+      El piso de cada columna es 360 px, que es lo que la orden fija: por debajo, una sola. */
+#indic-card .ind-franja{display:flex;flex-wrap:wrap;gap:6px 20px;align-items:flex-start;
+  background:rgba(245,158,66,.15);border-left:3px solid var(--orange);border-radius:0 8px 8px 0;
+  padding:8px 12px;margin:4px 0 10px;}
+#indic-card .ind-franja > div{min-width:0;}
+#indic-card .ind-franja-cat{flex:1 1 280px;}
+#indic-card .ind-franja-est{flex:0 1 240px;}
+#indic-card .ind-franja-et{font-size:10px;font-weight:700;text-transform:uppercase;
+  letter-spacing:.4px;color:var(--text2);display:block;margin-bottom:1px;}
+#indic-card .ind-franja-val{font-size:13px;font-weight:700;color:var(--text);line-height:1.35;}
+#indic-card .ind-franja-por{font-size:11px;line-height:1.5;color:var(--text2);margin-top:2px;}
+/* La franja de datos del estudio: una tarjeta por dato, en una fila que baja a dos y a una. */
+/* ⚠️ LOS TRES TRAMOS SON EXPLICITOS Y NO `auto-fit`: con `auto-fit` el numero de columnas
+   depende del ancho que le quede a la tarjeta y deja de ser medible, que es lo que esta casa
+   prohibe. Los escribe `_indColsSync` en `data-ind-ancho` midiendo el PANEL -1100 y 620 px-.
+   En `xl` el flujo es por COLUMNA, asi que las tarjetas quedan en UNA fila sea cual sea su
+   numero: con un `repeat(5, ...)` una valvula con cuatro datos dejaria una columna vacia. */
+#indic-card .ind-datos{display:grid;gap:8px;align-items:stretch;margin:0 0 10px;
+  grid-template-columns:minmax(0,1fr);}
+#indic-card [data-ind-molde][data-ind-ancho="md"] .ind-datos{
+  grid-template-columns:repeat(2,minmax(0,1fr));}
+#indic-card [data-ind-molde][data-ind-ancho="xl"] .ind-datos{
+  grid-template-columns:none;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);}
+#indic-card .ind-dato{border:1px solid var(--border);border-radius:8px;background:var(--bg2);
+  padding:6px 9px;min-width:0;}
+#indic-card .ind-dato-lbl{font-size:10px;font-weight:700;color:var(--text2);line-height:1.3;}
+#indic-card .ind-dato-val{font-size:12.5px;font-weight:700;color:var(--text);line-height:1.35;
+  margin-top:1px;word-break:break-word;}
+#indic-card .ind-dato-est{font-size:10px;line-height:1.4;color:var(--text2);margin-top:1px;}
+/* Las dos columnas de preguntas del molde. */
+#indic-card [data-ind-molde] .ind-pregcols{display:block;}
+#indic-card [data-ind-molde][data-ind-cols="2"] .ind-pregcols{
+  display:grid;grid-template-columns:minmax(360px,1fr) minmax(360px,1fr);
+  column-gap:18px;align-items:start;}
+#indic-card [data-ind-molde] .ind-pregcols > div{min-width:0;}
 /* ══ LA BOTONERA DE RESPUESTA: 32 px VISIBLES, 44 px DE AREA TACTIL (PANT-2, C2) ═════════════
    El piso global de `button` es 44 px y era lo que mandaba el alto de la fila. La regla del
    medico pide una pregunta de una o dos lineas en 56 px o menos, asi que el alto VISIBLE baja a
@@ -86374,6 +86427,45 @@ const IND_TERMINOS = Object.freeze({
      esto entra por las notas ^c, que es otra cosa y está dicho así en la tarjeta.
      El texto es PROPIO: la guía es de la ESC y su contenido no se reproduce. Lo que se cita es
      la fuente y la página. */
+  /* ══ QUE SINTOMAS CUENTAN EN LA ESTENOSIS MITRAL (PANT-6, commit 3) ═══════════════════════
+     La orden pide que el globo de la pregunta de sintomas diga QUE sintomas cuentan, leido en
+     imagen con su hoja y su folio, y que si las dos guias no dicen lo mismo se muestre la
+     diferencia SIN resolverla y sin mover ningun corte.
+     Las dos fuentes YA estaban verificadas en imagen y transcritas en FUENTES.md, con el folio
+     comprobado contra el pie impreso -la regla de esta casa dice que un dato ya verificado no se
+     relee-: la Tabla 16 de la AHA/ACC 2020 (hoja 42, folio e113) la leyo PANT-5, y la
+     Recommendation Table 8 de la ESC/EACTS 2025 (PDF 48, folio 4682) la leyo la tanda de la
+     mitral el 2026-10-11.
+     ⚠️ LA DIFERENCIA ES REAL Y SE MUESTRA: la AHA/ACC NOMBRA los sintomas -la disminucion de la
+        tolerancia al ejercicio y la disnea de esfuerzo- y la ESC/EACTS NO los define: sus seis
+        filas dicen «symptomatic» y «asymptomatic» a secas. Ningun corte se toca.
+     ⚠️ TODO PARAFRASEADO EN ESPANIOL, sin copiar frases. */
+  emsintomas: Object.freeze({
+    rotulo: 'Síntomas en la estenosis mitral',
+    tipo: 'definicion',
+    tam: 'chica',
+    etiqueta: 'Qué síntomas cuentan',
+    que: 'La respuesta separa dos cosas a la vez: el estadio C del D, y las filas de la tabla de '
+       + 'intervención del paciente sintomático de la única fila del asintomático.',
+    items: Object.freeze([
+      Object.freeze({ t:'AHA/ACC 2020 — los nombra',
+        d:'En su tabla de estadios, el estadio sintomático queda definido por la disminución de '
+        + 'la tolerancia al ejercicio y por la disnea de esfuerzo. Son los dos únicos síntomas '
+        + 'que esa tabla nombra.' }),
+      Object.freeze({ t:'ESC/EACTS 2025 — no los define',
+        d:'Sus filas de intervención dicen «sintomático» y «asintomático» sin enumerar qué '
+        + 'síntomas cuentan. En el enunciado de severidad los cuenta entre los factores '
+        + 'clínicos, junto con el riesgo tromboembólico alto y la descompensación hemodinámica, '
+        + 'también sin definirlos.' }),
+      Object.freeze({ t:'Qué hace esta aplicación',
+        d:'No resuelve la diferencia y no mueve ningún corte: la pregunta es una sola y su '
+        + 'respuesta alimenta el estadio y las filas de la tabla. «Sin dato» no cuenta como «No».' })
+    ]),
+    guia: 'Las dos guías usan los síntomas para el mismo corte y sólo una los enumera: la '
+        + 'diferencia se muestra y la decide quien informa.',
+    fuente: 'AHA/ACC 2020 (Otto), Tabla 16 «Stages of MS», hoja 42, folio e113. ESC/EACTS 2025, '
+          + 'Recommendation Table 8, PDF 48, folio 4682, y el enunciado de severidad del folio 4680.'
+  }),
   cormier: Object.freeze({
     rotulo: 'Clasificación de Cormier',
     tipo: 'clasificacion',
@@ -86697,7 +86789,19 @@ function _indColsSync(){
   let w = 0;
   try { w = Math.round(card.getBoundingClientRect().width) } catch (e) { w = 0 }
   const dos = w >= IND_COLS_CORTE;
+  /* ══ EL TRAMO DE ANCHO PARA LA FRANJA DE DATOS DEL MOLDE (PANT-6, commit 3) ═══════════════
+     La franja de datos necesita TRES estados y `data-ind-cols` solo tiene dos, asi que el mismo
+     dueno escribe un atributo mas. Los cortes son del PANEL, no de la ventana, por el mismo
+     motivo que `IND_COLS_CORTE`: el panel sin maximizar mide 820 px a 1440 y a 1000.
+     `xl` -una sola fila- necesita que cinco tarjetas de 200 px entren con sus cuatro huecos de
+     8: 1032 px mas el relleno, de ahi el corte en 1100. `md` -dos columnas- necesita dos de 290
+     con un hueco: 588, de ahi el 620.
+     ⚠️ ES ADITIVO Y NO MUEVE NINGUNA OTRA SECCION: el atributo se escribe en todas las grillas
+        de preguntas, pero la unica regla de CSS que lo lee esta acotada a `[data-ind-molde]`.
+        Verificado con el A/B y con el conteo de secciones. */
+  const ancho = w >= 1100 ? 'xl' : (w >= 620 ? 'md' : 'sm');
   Array.prototype.forEach.call(card.querySelectorAll('[data-ind-grid][data-ind-preg="1"]'), function (g) {
+    g.setAttribute('data-ind-ancho', ancho);
     if (g.getAttribute('data-ind-manual') === '1') return;
     g.setAttribute('data-ind-cols', dos ? '2' : '1');
   });
@@ -87297,6 +87401,152 @@ function _indBloqueHTML(b){
       _critEsc(b.tit) + '</div>' : '') + c + '</div>';
 }
 
+/* ══ EL MOLDE DE UNA SECCION DE VALVULA (PANT-6, commit 3) ═══════════════════════════════════
+   DECISION DEL MEDICO (03/11/2026), con un esquema aprobado. Lo pidio porque en la estenosis
+   mitral las preguntas estaban dispersas y la CATEGORIA que publica el informe quedaba perdida
+   entre las demas filas: era una fila mas de una tabla de diecisiete.
+   Cuatro partes, de arriba abajo:
+     1. la FRANJA AMBAR con la categoria y su frase corta de por que, y el ESTADIO al lado;
+     2. la FRANJA DE DATOS DEL ESTUDIO, una tarjeta por dato de solo lectura;
+     3. las PREGUNTAS, en dos columnas y agrupadas por tema, con el reparto de grupos EXPLICITO
+        -no automatico-: la orden dice que grupo va en que columna;
+     4. al PIE, a todo el ancho, la tabla de recomendaciones con su estado.
+   ⚠️ EL REPARTO ES EXPLICITO Y NO POR MITADES, al reves de `_indReparto`: aquel corta una lista
+      plana por la mitad, y aca la orden agrupa por TEMA y dice cual va a cada lado. Un reparto
+      automatico pondria «Contraindicaciones de la comisurotomia» partido en dos columnas.
+   ⚠️ LAS FILAS SON LAS MISMAS, con la misma fabrica y los mismos refs: lo unico que cambia es
+      DONDE se pintan. Asi el conteo de citas no puede moverse, porque las invoca el mismo
+      conjunto de filas.
+   ⚠️ ESTO NO TOCA A LAS OTRAS SECCIONES: `_indSecHTMLCuerpo` entra a esta rama solo si la
+      seccion devuelve `molde`, y hoy la devuelve UNA. Las otras treinta y cuatro siguen por la
+      rama de siempre, verificado por el conteo de secciones y por su A/B. */
+function _indMoldeHTML(m){
+  if (!m) return '';
+  let h = '';
+  /* 1 · LA FRANJA AMBAR. La categoria lleva su etiqueta escrita, no solo el color. El estadio
+     sale de la fila donde estaba y deja de repetirse abajo. */
+  if (m.cat || m.est) {
+    h += '<div class="ind-franja">';
+    /* ⚠️ LOS CORCHETES DE LA FRANJA NO SON DECORACION: la fila de la categoria ya no se pinta
+       -subio aca-, asi que si sus `refs` no se invocaran el conteo de citas de la seccion
+       BAJARIA, y la orden exige que sea el mismo antes y despues. `_indRefMarca` numera por
+       orden de primera aparicion, y la franja va primera, que es donde la categoria estaba. */
+    if (m.cat) h += '<div class="ind-franja-cat">' +
+      '<span class="ind-franja-et">' + _critEsc(m.cat.et || 'Categoría') + '</span>' +
+      '<div class="ind-franja-val">' + _critEsc(m.cat.txt || '—') + '</div>' +
+      (m.cat.por ? '<div class="ind-franja-por">' + _critEsc(m.cat.por) +
+        (m.cat.refs || []).map(function(k){ return _indRefMarca(k) }).join('') + '</div>' : '') +
+      '</div>';
+    if (m.est) h += '<div class="ind-franja-est">' +
+      '<span class="ind-franja-et">' + _critEsc(m.est.et || 'Estadio') + '</span>' +
+      '<div class="ind-franja-val">' + _critEsc(m.est.txt || '—') + '</div>' +
+      (m.est.por ? '<div class="ind-franja-por">' + _critEsc(m.est.por) + '</div>' : '') +
+      '</div>';
+    h += '</div>';
+  }
+  /* 2 · LOS DATOS DEL ESTUDIO, una tarjeta cada uno con su valor y el estado corto que la app ya
+     escribe. El estado sale de la fila: no se redacta un segundo texto. */
+  if (m.datos && m.datos.length) {
+    h += '<div style="font-size:11px;font-weight:700;color:var(--text2);margin:2px 0 5px;">Datos del estudio</div>';
+    h += '<div class="ind-datos">' + m.datos.map(function(d){
+      return '<div class="ind-dato">' +
+        '<div class="ind-dato-lbl">' + _critEsc(d.lbl || '') + '</div>' +
+        '<div class="ind-dato-val">' + _critEsc(d.val == null || d.val === '' ? '—' : d.val) + '</div>' +
+        (d.est ? '<div class="ind-dato-est">' + _critEsc(d.est) +
+          (d.refs || []).map(function(k){ return _indRefMarca(k) }).join('') + '</div>' : '') +
+        '</div>';
+    }).join('') + '</div>';
+  }
+  /* 3 · LAS PREGUNTAS, en dos columnas, agrupadas por tema. Cada grupo conserva su rotulo y sus
+     filas; cada fila conserva sus tres estados, su globo y su respuesta. */
+  if (m.cols && m.cols.length) {
+    const col = function(gs){
+      return '<div>' + (gs || []).filter(function(g){ return g && g.filas && g.filas.length; })
+        .map(function(g){
+          return (g.tit ? '<div style="font-size:10.5px;font-weight:700;color:var(--text2);' +
+            'margin:10px 0 1px;text-transform:uppercase;letter-spacing:.4px;">' + _critEsc(g.tit) + '</div>' : '') +
+            '<table style="width:100%;border-collapse:collapse;">' +
+            g.filas.map(function(f){ return _indFilaHTML(f) }).join('') + '</table>';
+        }).join('') + '</div>';
+    };
+    const hay = m.cols.some(function(gs){ return (gs||[]).some(function(g){ return g && g.filas && g.filas.length }) });
+    if (hay) h += '<div class="ind-pregcols">' + m.cols.map(col).join('') + '</div>';
+  }
+  /* 4 · AL PIE, A TODO EL ANCHO, la tabla de recomendaciones, sin cambiar nada de su contenido. */
+  if (m.pie && m.pie.filas && m.pie.filas.length) {
+    h += (m.pie.tit ? '<div style="font-size:10.5px;font-weight:700;color:var(--text2);' +
+      'margin:12px 0 1px;text-transform:uppercase;letter-spacing:.4px;">' + _critEsc(m.pie.tit) + '</div>' : '') +
+      '<table style="width:100%;border-collapse:collapse;">' +
+      m.pie.filas.map(function(f){ return _indFilaHTML(f) }).join('') + '</table>';
+  }
+  return h;
+}
+
+/* ══ EL PIE COMUN DE TODA SECCION (PANT-6, commit 3) ═══════════════════════════════════════
+   El criterio visible, el detalle plegado y la bibliografia. Se saco a una funcion propia
+   cuando el molde abrio una SEGUNDA rama de cuerpo: con el pie escrito dos veces, el dia que
+   una cambie el molde y la rama normal publicarian bibliografias distintas. Es el mismo
+   motivo por el que `_bloRec` tiene un solo lugar de llamada.
+   ⚠️ LA BIBLIOGRAFIA VA ULTIMA Y DENTRO DEL `<div>` DEL CUERPO, y las dos cosas son
+      necesarias: el acumulador se puebla mientras se pinta, y su clave de detalle depende de
+      ser HIJA de la seccion. Todo eso esta explicado abajo, palabra por palabra. */
+function _indSecPie(h, r){
+  /* El bloque y la recomendacion los emite el llamador: la rama normal con `_bloRec()` y la
+     del molde con su propio orden. */
+  /* Sólo los párrafos de contexto del final van al detalle. Sin rótulo y sin mezclarse con nada:
+     al quedar `r.nota` visible, no hay dos orígenes que puedan confundirse. */
+  /* Las dos formas: string (la mayoría) u objeto `{txt, refs}` para las notas que citan. */
+  const det = (r.notas || []).filter(Boolean).map(function(n){
+    return (typeof n === 'string') ? { txt:n, refs:null } : { txt:n.txt, refs:n.refs || null };
+  });
+  /* EL CRITERIO y su corchete quedan SIEMPRE VISIBLES, y el detalle cuelga de ellos. El criterio,
+     el corchete y la glosa los reparte `_indGuiaHTML`.
+     ⚠️ EL DOCUMENTO Y SU EDICIÓN YA NO SE VEN ACÁ, y el comentario anterior —«la cita de guía queda
+     SIEMPRE VISIBLE»— afirmaba más de lo que el sistema garantiza desde las citas numeradas. Hoy
+     visible es «Clase I · Nivel C [2]»; el documento vive en la bibliografía del pie, que nace
+     cerrada. Es el diseño pedido —número inline, bibliografía en capa desplegable— y el corchete
+     la abre en UN clic marcando su entrada, que es lo que la vuelve alcanzable. En las SIETE
+     secciones sin bloque de recomendación (CIA, CIV, DAP, CoAo, FOP, MCH, VAB) el pie del panel es
+     el único lugar donde aparece el nombre de la guía: `_indRecomHTML` imprime `r.fuente` sólo si
+     hay `r.clase`, y esas siete no devuelven `recom`.
+     ⚠️ DECISIÓN DE MAICOL (2026-09-29): LA BIBLIOGRAFÍA QUEDA CERRADA POR DEFECTO. Se midió la
+     consecuencia —en esas siete el texto visible no nombra ninguna guía ni ningún año— y se
+     confirmó igual: el corchete la abre en un clic y marca su entrada, y eso es la resolución.
+     **Esto NO es un pendiente: está resuelto.** El que venga a «arreglar» que el documento no se
+     lee sin interacción tiene que leer esto primero. Y lo fija TC-322 por los dos lados: «el
+     desplegable nace cerrado» y «el clic en el corchete lo ABRE». */
+  h += '<div style="font-size:11px;line-height:1.55;color:var(--text2);margin-top:11px;padding-top:8px;border-top:1px dashed var(--border);">' +
+       _indGuiaHTML(r.guia) + _indDetalleHTML(det) + '</div>';
+  /* ⚠️ LA BIBLIOGRAFÍA VA ÚLTIMA, Y EL ORDEN ES LO QUE LA HACE CORRECTA. El acumulador se puebla
+     mientras se pinta —`_indRecomHTML` primero, `_indGuiaHTML` después— así que armarla antes de
+     esas dos líneas la dejaría VACÍA: `ctx.orden` todavía no tiene ninguna clave y la función
+     devuelve cadena vacía. No sería un error visible, sería una sección sin bibliografía.
+     Y va DENTRO del `<div>` del cuerpo, o sea como hija del `<details>` de la sección. Eso no es
+     estético: `_indRepintarConservando` indexa cada detalle por «summary del padre ▸ summary», así
+     que siendo hija su clave es «Estenosis aórtica ▸ ⓘ Bibliografía» y es ÚNICA. Como hermana de
+     las secciones, las trece compartirían la clave «ⓘ Bibliografía» y ganaría la última escritura:
+     contestar un control abriría o cerraría las trece a la vez, que es exactamente el defecto que
+     esa función ya pagó con los trece «ⓘ Ver detalle». El arreglo de aquella pasada cubre esto
+     GRATIS, y sólo porque la bibliografía es hija. */
+  h += _indBiblioHTML(_indRefCtx);
+  return h + '</div></details>';
+}
+
+/* El cuerpo de una seccion con molde: la franja y los datos primero, la prosa del bloque en
+   medio, y las preguntas y el pie despues. Va en una funcion propia para que `_indSecHTMLCuerpo`
+   no tenga dos cuerpos entrelazados. */
+function _indMoldeHTMLSec(r, compacta){
+  const m = r.molde || {};
+  let h = '<div data-ind-molde="1" data-ind-grid="1" data-ind-preg="1">';
+  /* La franja y los datos. */
+  h += _indMoldeHTML({ cat:m.cat, est:m.est, datos:m.datos });
+  /* La prosa de los bloques, SIN sus grupos. */
+  h += ((r.bloques && r.bloques.length) ? r.bloques.map(_indBloqueHTML).join('') : '');
+  /* Las preguntas y el pie. */
+  h += _indMoldeHTML({ cols:m.cols, pie:m.pie });
+  return h + '</div>';
+}
+
 function _indSecHTML(tit, r){
   /* ══ EL CONTEXTO DE NUMERACIÓN DE ESTA SECCIÓN ══════════════════════════════════════════════
      Se abre acá y se cierra en el `finally`, que es el idioma de `_pcCon` y `_vCon` de este mismo
@@ -87376,6 +87626,20 @@ function _indSecHTMLCuerpo(tit, r){
   const _bloRec = function(){
     return ((r.bloques && r.bloques.length) ? r.bloques.map(_indBloqueHTML).join('') : '')
          + (r.recom ? _indRecomHTML(r.recom) : ''); };
+  /* ══ EL MOLDE (PANT-6, commit 3) ══════════════════════════════════════════════════════════
+     Si la seccion devuelve `molde`, su cuerpo lo pinta `_indMoldeHTML` y no la grilla de
+     siempre. Hoy lo devuelve UNA seccion; las otras treinta y cuatro no entran a esta rama.
+     ⚠️ EL ORDEN ES franja -> datos -> la PROSA del bloque -> preguntas -> pie -> alarma. La prosa
+        del bloque va ENTRE los datos y las preguntas, y no al final, porque su aviso -«hay N
+        contraindicaciones de la comisurotomia»- cambia como se leen las preguntas y la tabla que
+        vienen despues: leerlo al final seria leerlo cuando ya no sirve.
+     ⚠️ Y LOS BLOQUES ENTRAN SIN SUS GRUPOS: sus filas se mudaron al molde. `_indBloqueHTML`
+        omite los grupos vacios, asi que no hay que tocarlo. */
+  if (r.molde) {
+    h += _indMoldeHTMLSec(r, compacta);
+    h += (r.recom ? _indRecomHTML(r.recom) : '');
+    return _indSecPie(h, r);
+  }
   const hayClin = !!(r.clinica && r.clinica.length);
   /* El boton chico de alternar una/dos columnas. NO guarda la preferencia -vive mientras el
      panel este abierto-, que es lo que la orden pide. Va solo en las secciones de preguntas. */
@@ -87431,43 +87695,8 @@ function _indSecHTMLCuerpo(tit, r){
      conclusión va DEBAJO de los datos que la sostienen. Las secciones que no traen `bloques` ni
      `recom` no emiten nada acá. */
   h += _bloRec();
-  /* Sólo los párrafos de contexto del final van al detalle. Sin rótulo y sin mezclarse con nada:
-     al quedar `r.nota` visible, no hay dos orígenes que puedan confundirse. */
-  /* Las dos formas: string (la mayoría) u objeto `{txt, refs}` para las notas que citan. */
-  const det = (r.notas || []).filter(Boolean).map(function(n){
-    return (typeof n === 'string') ? { txt:n, refs:null } : { txt:n.txt, refs:n.refs || null };
-  });
-  /* EL CRITERIO y su corchete quedan SIEMPRE VISIBLES, y el detalle cuelga de ellos. El criterio,
-     el corchete y la glosa los reparte `_indGuiaHTML`.
-     ⚠️ EL DOCUMENTO Y SU EDICIÓN YA NO SE VEN ACÁ, y el comentario anterior —«la cita de guía queda
-     SIEMPRE VISIBLE»— afirmaba más de lo que el sistema garantiza desde las citas numeradas. Hoy
-     visible es «Clase I · Nivel C [2]»; el documento vive en la bibliografía del pie, que nace
-     cerrada. Es el diseño pedido —número inline, bibliografía en capa desplegable— y el corchete
-     la abre en UN clic marcando su entrada, que es lo que la vuelve alcanzable. En las SIETE
-     secciones sin bloque de recomendación (CIA, CIV, DAP, CoAo, FOP, MCH, VAB) el pie del panel es
-     el único lugar donde aparece el nombre de la guía: `_indRecomHTML` imprime `r.fuente` sólo si
-     hay `r.clase`, y esas siete no devuelven `recom`.
-     ⚠️ DECISIÓN DE MAICOL (2026-09-29): LA BIBLIOGRAFÍA QUEDA CERRADA POR DEFECTO. Se midió la
-     consecuencia —en esas siete el texto visible no nombra ninguna guía ni ningún año— y se
-     confirmó igual: el corchete la abre en un clic y marca su entrada, y eso es la resolución.
-     **Esto NO es un pendiente: está resuelto.** El que venga a «arreglar» que el documento no se
-     lee sin interacción tiene que leer esto primero. Y lo fija TC-322 por los dos lados: «el
-     desplegable nace cerrado» y «el clic en el corchete lo ABRE». */
-  h += '<div style="font-size:11px;line-height:1.55;color:var(--text2);margin-top:11px;padding-top:8px;border-top:1px dashed var(--border);">' +
-       _indGuiaHTML(r.guia) + _indDetalleHTML(det) + '</div>';
-  /* ⚠️ LA BIBLIOGRAFÍA VA ÚLTIMA, Y EL ORDEN ES LO QUE LA HACE CORRECTA. El acumulador se puebla
-     mientras se pinta —`_indRecomHTML` primero, `_indGuiaHTML` después— así que armarla antes de
-     esas dos líneas la dejaría VACÍA: `ctx.orden` todavía no tiene ninguna clave y la función
-     devuelve cadena vacía. No sería un error visible, sería una sección sin bibliografía.
-     Y va DENTRO del `<div>` del cuerpo, o sea como hija del `<details>` de la sección. Eso no es
-     estético: `_indRepintarConservando` indexa cada detalle por «summary del padre ▸ summary», así
-     que siendo hija su clave es «Estenosis aórtica ▸ ⓘ Bibliografía» y es ÚNICA. Como hermana de
-     las secciones, las trece compartirían la clave «ⓘ Bibliografía» y ganaría la última escritura:
-     contestar un control abriría o cerraría las trece a la vez, que es exactamente el defecto que
-     esa función ya pagó con los trece «ⓘ Ver detalle». El arreglo de aquella pasada cubre esto
-     GRATIS, y sólo porque la bibliografía es hija. */
-  h += _indBiblioHTML(_indRefCtx);
-  return h + '</div></details>';
+  return _indSecPie(h, r);
+
 }
 
 /* ══ ESTENOSIS AÓRTICA — LA RECOMENDACIÓN DE LA GUÍA, SELECCIONADA ═══════════════════════════
@@ -89346,7 +89575,9 @@ function _indEM(){
      Válvulas, que NO está gateada por `data-mod`, así que es alcanzable en Modo Básico: ofrecerle
      un control sería la SEGUNDA FUENTE que `_indOrigen` existe para evitar, y `_indOrigenAssert`
      lo gritaría al arrancar. Sin consignar queda en «desconocido» y manda a Válvulas. */
-  const fAnat = [], fClin = [], fContra = [], fDisp = [], fRec = [];
+  /* `fDatosRO`: los datos de SOLO LECTURA que la franja de datos del molde publica como
+     tarjetas y que no son preguntas (PANT-6, commit 3). */
+  const fAnat = [], fClin = [], fContra = [], fDisp = [], fRec = [], fDatosRO = [];
   const _sx = _indClinGet('em.sintomas'), _clin = _indClinGet('em.clin'), _emb = _indClinGet('em.embolico');
   const _rq = _indClinGet('em.riesgo'), _dec = _indClinGet('em.decomp');
   const W = (_indFn('wilkinsScore') || function(){ return null; })();
@@ -89455,14 +89686,29 @@ function _indEM(){
     'edad avanzada, comisurotomía previa, NYHA IV, fibrilación auricular permanente o hipertensión pulmonar severa'
     + (_clin === 'una' ? ' · la guía no define si una sola alcanza, así que abajo se publican las dos lecturas' : ''),
     ['esc2025vc']));
-  /* EL ESTADIO (PANT-5, commit 9), por el mismo motivo que en las dos aorticas de PANT-4: va en
-     la lista CLINICA y no en la de datos del eco, porque lo que lo decide es una pregunta que el
-     ecocardiograma no contesta. SOLO en la Evidencia: no llega al papel. */
-  const _estEM = _indEstFila(_indEstEM());
-  if (_estEM) fClin.unshift(_estEM);
-  fClin.push(_indFilaCtrl('Síntomas', 'em.sintomas', [{v:'si',t:'Sí'},{v:'no',t:'No'}],
+  /* EL ESTADIO (PANT-5, commit 9) SE MUDO A LA FRANJA AMBAR (PANT-6, commit 3): sale de la lista
+     de filas y deja de repetirse abajo, que es lo que la orden pide. Su texto, su letra, su nota
+     y su fuente no cambian: lo unico que cambia es donde se pinta. SOLO en la Evidencia: no
+     llega al papel. */
+  const _estEM = _indEstEM();
+  /* ⚠️ LA PREGUNTA DE SINTOMAS VA SIEMPRE, CON CUALQUIER ETIOLOGIA (PANT-6, commit 3), y la
+     premisa del medico se reproduce: hasta hoy vivia en `fClin`, que se pinta SOLO dentro de
+     `bloque2`, y `bloque2` entra solo con etiologia reumatica o sin consignar. Con la
+     CALCIFICADA se pintaba `bloque3`, que no lleva `fClin`: no habia donde marcar que el
+     paciente tiene sintomas, y el estadio -que tambien vivia ahi- tampoco salia.
+     ⚠️ NO HAY RAZON CLINICA DOCUMENTADA para que no apareciera, censado el codigo y FUENTES.md:
+        lo que el comentario de `bloque3` justifica es que NO SE OFREZCA COMISUROTOMIA -la guia
+        dice que la degenerativa no es susceptible porque no hay fusion comisural-, no que no se
+        pregunten los sintomas. Y el estadio de la AHA/ACC 2020 no distingue etiologia: su
+        estadio D es «sintomatico» en cualquiera.
+     ⚠️ ES UNA SOLA Y NO SE DUPLICA: vive en `fSx`, que el molde pone en la columna izquierda, y
+        `fClin` ya no la lleva. El estadio la lee por `_indEstSint('em.sintomas')`, o sea la
+        MISMA respuesta.
+     Su globo dice QUE sintomas cuentan, con las dos guias y su diferencia sin resolver. */
+  const fSx = [Object.assign(_indFilaCtrl('Síntomas', 'em.sintomas', [{v:'si',t:'Sí'},{v:'no',t:'No'}],
     _sx === 'si' ? 'ok' : (_sx === 'no' ? 'none' : 'ask'),
-    'separan las filas del sintomático de la única fila del asintomático', ['esc2025vc']));
+    'separan las filas del sintomático de la única fila del asintomático, y separan el estadio C del D',
+    ['esc2025vc']), { term: 'emsintomas' })];
   fClin.push(_indFilaCtrl('Contraindicación quirúrgica o riesgo alto', 'em.riesgo',
     [{v:'alto',t:'Sí'},{v:'no_alto',t:'No'}],
     _rq === 'alto' ? 'ok' : (_rq === 'no_alto' ? 'none' : 'ask'),
@@ -89480,7 +89726,13 @@ function _indEM(){
     { term: 'cormier' }));
   const _itRaw = _indS('it_grado');
   const _itSev = (_itRaw === '4') ? 'si' : ((_itRaw === '1' || _itRaw === '2' || _itRaw === '3') ? 'no' : null);
-  fAnat.push(_indFila('Insuficiencia tricuspídea severa', _itSev === 'si' ? 'Presente' : (_itSev === 'no' ? 'Ausente' : 'Desconocida'),
+  /* ⚠️ LA INSUFICIENCIA TRICUSPIDEA SEVERA SALE DEL GRUPO DE ANATOMIA A LA FRANJA DE DATOS
+     (PANT-6, commit 3): es un dato de SOLO LECTURA que se lee de `it_grado` en Valvulas, no una
+     pregunta, y la orden la pone entre los datos del estudio. El grupo «Anatomia de la valvula»
+     queda con las dos preguntas que la orden le asigna, el score y el Cormier.
+     ⚠️ NO CAMBIA NINGUN CONTEO: `_contraPresentes` cuenta `fContra`, no `fAnat`, y las entradas
+        de `S` que alimentan las filas de recomendacion leen `score`, no esta fila. Verificado. */
+  fDatosRO.push(_indFila('Insuficiencia tricuspídea severa', _itSev === 'si' ? 'Presente' : (_itSev === 'no' ? 'Ausente' : 'Desconocida'),
     _itSev === 'si' ? 'warn' : (_itSev === 'no' ? 'none' : 'ask'),
     _itSev == null ? 'sin consignar — el grado de insuficiencia tricuspídea se elige en la pestaña Válvulas'
     : 'tercera característica anatómica desfavorable, junto con el score > ' + EM_CRIT_2025.score_desfav + ' y la calcificación de Cormier 3',
@@ -89575,11 +89827,19 @@ function _indEM(){
     ].filter(Boolean).join(' · '),
     lineas:[ { txt:'La comisurotomía abre la FUSIÓN COMISURAL, que es un mecanismo reumático.', refs:['esc2025vc'] },
              { txt:'El ETE se hace sistemáticamente en el candidato, para excluir trombo auricular.', refs:['esc2025vc'] } ],
-    grupos:[ { tit:'Características desfavorables — anatómicas', filas:fAnat },
-             { tit:'Características desfavorables — clínicas, y los síntomas', filas:fClin },
-             { tit:'Contraindicaciones de la comisurotomía (Tabla 8)', filas:fContra },
-             { tit:'Disparadores de la fila del asintomático', filas:fDisp },
-             { tit:'Filas de la tabla de recomendaciones, con su estado', filas:fRec } ],
+    /* ⚠️ LOS CINCO GRUPOS SE MUDARON AL MOLDE (PANT-6, commit 3) **CON LA ETIOLOGIA REUMATICA**.
+       Con la etiologia SIN CONSIGNAR se quedan aca, que es donde PANT-5 los tenia y donde el
+       bloque nace PLEGADO bajo «Si fuera reumatica»: medido, sacarlos al molde mostraba las
+       preguntas de comisurotomia abiertas y sin esa condicion. `_indBloqueHTML` omite los grupos
+       vacios, asi que no hubo que tocarlo. Las filas son las MISMAS en los dos caminos, con la
+       misma fabrica y los mismos refs: lo unico que cambia es donde se pintan.
+       La pregunta de SINTOMAS no esta en ninguno de los cinco: vive en el molde y va siempre. */
+    grupos: (etio === 'reumatica') ? [] :
+      [ { tit:'Características desfavorables — clínicas', filas:fClin },
+        { tit:'Características desfavorables — anatómicas', filas:fAnat },
+        { tit:'Contraindicaciones de la comisurotomía (Tabla 8)', filas:fContra },
+        { tit:'Disparadores de la fila del asintomático', filas:fDisp },
+        { tit:'Filas de la tabla de recomendaciones, con su estado', filas:fRec } ],
     nota:'La guía no dice cuántas características desfavorables son «varias», así que esta aplicación no publica un veredicto: muestra qué filas de la tabla se cumplen.' };
   if (etio == null) bloque2.tit = 'Si fuera reumática — comisurotomía percutánea o cirugía';
 
@@ -89612,7 +89872,85 @@ function _indEM(){
   if (etio === 'reumatica' || etio == null) bloques.push(bloque2);
   if (etio === 'otra' && morf === EM_ETIO_DEG) bloques.push(bloque3);
 
-  return { filas: filas,
+  /* ══ EL MOLDE (PANT-6, commit 3) ══════════════════════════════════════════════════════════
+     Las mismas filas, en el lugar que la orden fija. La franja ambar con la categoria y el
+     estadio; los cinco datos del estudio como tarjetas; las preguntas en dos columnas agrupadas
+     por tema; y la tabla de recomendaciones al pie.
+     ⚠️ LA CATEGORIA Y EL ESTADIO SALEN DE SUS DUENOS DE SIEMPRE -`emCategoria` y `_indEstEM`-:
+        no se redacta un segundo texto. La frase corta del «por que» es la MISMA que la fila de
+        la categoria publicaba.
+     ⚠️ LOS DATOS DEL ESTUDIO SON LAS FILAS DE `filas` SIN LA DE LA CATEGORIA, que subio a la
+        franja: se reusa `lbl`, `val` y `nota` de cada fila y no se escribe un texto nuevo. El
+        estado corto es la primera oracion de su nota, cortada en el primer separador, para que
+        la tarjeta quepa en tres lineas.
+     ⚠️ LAS COLUMNAS DE PREGUNTAS SIGUEN LA COMPUERTA DE ETIOLOGIA QUE YA EXISTIA, menos los
+        SINTOMAS, que van siempre (punto 3c). Con etiologia degenerativa la guia no escribe filas
+        de comisurotomia -su §10.3.2 dice que no es susceptible porque no hay fusion comisural-,
+        asi que ofrecer sus caracteristicas desfavorables, sus contraindicaciones y sus
+        disparadores seria publicar criterios de un procedimiento que esa etiologia no admite:
+        contenido clinico, que esta orden no cambia. Lo que se gana es que los sintomas y el
+        estadio aparecen en las dos etiologias. */
+  /* ⚠️ EL MOLDE EN DOS COLUMNAS ES PARA LA ETIOLOGIA REUMATICA, Y CON LA ETIOLOGIA SIN
+     CONSIGNAR LOS GRUPOS VUELVEN AL BLOQUE PLEGADO, que es donde PANT-5 los tenia. Lo decidio
+     una medicion: sacandolos al molde, un estudio sin etiologia consignada pasaba de 381,7 a
+     1073,2 px a 1440 px y mostraba las preguntas de comisurotomia ABIERTAS y sin la frase «Si
+     fuera reumatica» que las hace condicionales -el bloque nace plegado justo para eso-. Un
+     formulario que ofrece los criterios de un procedimiento sin decir que dependen de una
+     etiologia que nadie consigno se lee como que aplican.
+     La pregunta de SINTOMAS no entra en esa compuerta: va siempre, que es el punto 3c. */
+  const _moldePreg = (etio === 'reumatica');
+  const molde = {
+    cat: { et:'Categoría — la que publica el informe',
+           txt: catTxt || (cat ? 'Sin categoría' : '—'),
+           por: !cat ? 'no evaluable — la aplicación no pudo leer la función que gradúa la estenosis mitral'
+             : cat.clave === 'severa' ? 'el peor área de los métodos marcados alcanza el corte, o lo alcanza el gradiente medio'
+             : cat.clave === 'gradiente' ? 'gradiente elevado sin alcanzar el corte de significación, y ningún área marcada lo alcanza'
+             : cat.clave === 'gradiente_im' ? 'con insuficiencia mitral significativa el gradiente sube por volumen y no por obstrucción'
+             : 'ningún método marcado alcanza el corte de área y el gradiente no alcanza el de significación',
+           /* Los MISMOS refs que la fila de la categoria llevaba: `esc2025vc` en las dos ramas y
+              Pandian solo con la reumatica, igual que las filas del area. */
+           refs: cat ? (etio === 'reumatica' ? ['esc2025vc','asePandian2023'] : ['esc2025vc']) : null },
+    est: _estEM ? { et:'Estadio (AHA/ACC 2020)', txt:_estEM.txt, por:_estEM.nota } : null,
+    /* ⚠️ LOS CINCO DATOS DEL ESTUDIO que la orden nombra, en su orden: la etiologia, el area por
+       sus fuentes, el gradiente medio, la insuficiencia mitral asociada y la tricuspidea severa.
+       Se reusan las FILAS que la seccion ya armaba -su rotulo, su valor, su nota y sus refs-: no
+       se redacta un segundo texto, que es como dos superficies empiezan a discrepar.
+       ⚠️ LOS `refs` VIAJAN A LA TARJETA, y no es decoracion: estas filas ya no se pintan como
+          filas, asi que sin sus corchetes el conteo de citas de la seccion BAJARIA, y la orden
+          exige que sea el mismo antes y despues.
+       ⚠️ LA FILA DE LA INSUFICIENCIA MITRAL ASOCIADA SE QUEDA ADEMAS EN LA TABLA 8, y es una
+          decision medida: `_contraPresentes` cuenta `fContra` -la lista que se pinta- para
+          cortar las filas de recomendacion, asi que sacarla de ahi cambiaria cuales se cortan,
+          que es contenido clinico. La orden la nombra en los dos lugares.
+       El estado corto es la primera oracion de su nota, cortada en el primer separador, para que
+       la tarjeta quepa en tres lineas. */
+    datos: (function(){
+      /* ⚠️ EL ESTADO CORTO SE CORTA EN EL SEPARADOR DE CLAUSULAS Y **NO** EN EL GUION LARGO, y
+         lo decidio un caso de prueba. Con el guion, la fila «> 1,5 cm² — contraindicacion del
+         procedimiento» se quedaba en «> 1,5 cm²» y la tarjeta perdia QUE SIGNIFICA el valor:
+         TC-328 mide exactamente eso. El ` · ` es el separador con que esta seccion engancha
+         clausulas agregadas -«sin banda de plausibilidad declarada», «el gradiente depende de la
+         frecuencia cardiaca»-, asi que cortar ahi deja la primera oracion completa. */
+      const corto = function(f){
+        return { lbl:f.lbl, val:f.val, refs:f.refs || null,
+                 est:String(f.nota || '').split(' · ')[0] };
+      };
+      const ecoSinCat = filas.filter(function(f){
+        return f && f.lbl && f.lbl.indexOf('Categoría') !== 0; });
+      const imAsoc = fContra.filter(function(f){
+        return f && f.lbl === 'Insuficiencia mitral asociada'; });
+      return ecoSinCat.concat(imAsoc).concat(fDatosRO).map(corto);
+    })(),
+    cols: _moldePreg
+      ? [ [ { tit:'Clínica', filas:fSx.concat(fClin) },
+            { tit:'Anatomía de la válvula', filas:fAnat },
+            { tit:'Asintomático: disparadores', filas:fDisp } ],
+          [ { tit:'Contraindicaciones de la comisurotomía (Tabla 8)', filas:fContra } ] ]
+      : [ [ { tit:'Clínica', filas:fSx } ], [] ],
+    pie: _moldePreg ? { tit:'Filas de la tabla de recomendaciones, con su estado', filas:fRec } : null
+  };
+
+  return { filas: filas, molde: molde,
     /* ⚠️ LOS AVISOS SE CONCATENAN, NO SE ELIGE UNO. Escrito como ternario encadenado —que fue la
        primera versión— la rama de etiología se comía las otras dos, y como `etio == null` es el
        ESTADO DE FÁBRICA eso dejaba el aviso de unidades sin pintarse en la mayoría de los estudios:
@@ -153944,8 +154282,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261103-1807';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793740026018;                 /* eco-build-ms */
+const ECO_BUILD    = '20261103-1839';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793741969924;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -154031,7 +154369,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261103-1807</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261103-1839</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
