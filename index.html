@@ -95697,6 +95697,283 @@ function _indPOP(){
     notas: _popNotas };
 }
 
+/* ── Estenosis subaórtica y estenosis supravalvular aórtica (PANT-4, commit 1e) ──────────────
+   LA COMPUERTA Y LA LECTURA SALEN DE `esubEstado()` / `easvEstado()`, que es lo que ya sostiene
+   el informe firmado: ningun corte se reimplementa aca (regla 2). Las dos secciones son nuevas:
+   hasta esta tanda las dos lesiones no tenian Evidencia, censado sobre `IND_SECS`, y toda su
+   conducta vivia en la pantalla y en el papel.
+
+   LAS CUATRO HOJAS, LEIDAS EN IMAGEN, con su regla de folio comprobada en el pie impreso:
+   · ESC 2020 de cardiopatias congenitas del adulto, edicion INGLESA — folio = hoja + 562,
+     comprobado en las hojas 39, 40 y 41 (601, 602 y 603). Tabla «Recommendations for
+     intervention in supravalvular aortic stenosis», hoja 40, folio 602, con sus TRES filas y su
+     nota al pie c; tabla «Recommendations for intervention in subaortic stenosis», hoja 41,
+     folio 603, con sus TRES filas y sus notas al pie c y d; y los dos apartados de seguimiento,
+     4.5.2.5 (hoja 40, folio 602) y 4.5.3.5 (hojas 40 y 41, folios 602 y 603).
+   · ACC/AHA 2025 de cardiopatias congenitas del adulto — folio = e(hoja + 114), comprobado en
+     las hojas 52, 53, 55 y 56 (e166, e167, e169 y e170). Tabla «Recommendations for Subaortic
+     Stenosis», hoja 52, folio e166, con sus CUATRO filas; Tabla 21 de intervalos de control,
+     hoja 53, folio e167; tabla «Recommendations for Supravalvar Aortic Stenosis», hoja 55,
+     folio e169, con sus CINCO filas; y Tabla 23 de intervalos, hoja 56, folio e170.
+
+   ⚠️ LO QUE SALIO DE LA PANTALLA Y NO ENTRA ACA, PORQUE NINGUNA HOJA LO SOSTIENE: el
+   «seguimiento ecocardiografico ANUAL». Ninguna de las dos guias publica un intervalo anual
+   para toda la poblacion. La ESC 2020 escribe «lifelong regular follow-up» y dice que «la
+   frecuencia depende de la progresion esperada de la enfermedad»; la ACC/AHA 2025 publica un
+   intervalo POR ESTADIO FISIOLOGICO —ecocardiograma transtoracico cada 36 meses en el estadio A,
+   24 en el B y 12 en el C y el D para la subaortica; 24, 24, 12 y 12 para la supravalvular—, o
+   sea que anual vale solo para dos de los cuatro estadios. Lo que SI entra es lo que las hojas
+   dicen, con su intervalo por estadio. Queda declarado en PENDIENTES.md.
+
+   ⚠️ NADA DE ESTAS DOS SECCIONES LLEGA AL PAPEL. Las lee `indicRender` y nadie mas. */
+const ESUB_PREG = Object.freeze([
+  { clave:'esub.ev.sint', lbl:'Síntomas atribuibles a la estenosis subaórtica, espontáneos o en la prueba de esfuerzo', guia:'acc',
+    rec:'Clase 1 · Nivel C-EO, recomendación 2 — con síntomas atribuibles a la estenosis subaórtica, la reparación quirúrgica está recomendada para aliviarlos, hoja 52, folio e166',
+    ref:'con síntomas, espontáneos o en la prueba de esfuerzo, y gradiente medio de 40 mmHg o más, o insuficiencia aórtica severa, la cirugía está recomendada: Clase I · Nivel C (hoja 41, folio 603)',
+    tramo:'las dos no piden lo mismo: la ACC/AHA 2025 no agrega ningún umbral de gradiente a esta condición y la ESC 2020 sí' },
+  { clave:'esub.ev.sintdud', lbl:'Síntomas dudosos, que no se pueden atribuir a la lesión sin una prueba de esfuerzo', guia:'acc',
+    rec:'Clase 2b · Nivel C-EO, recomendación 1 — puede considerarse la prueba de esfuerzo para evaluar la respuesta fisiológica y determinar si los síntomas son atribuibles a la estenosis subaórtica, hoja 52, folio e166',
+    nota:'la ESC 2020 no publica una recomendación propia para esta condición' },
+  { clave:'esub.ev.hvi', lbl:'Hipertrofia marcada del ventrículo izquierdo', guia:'esc',
+    rec:'Clase IIa · Nivel C — en el paciente asintomático, con gradiente medio de 40 mmHg o más e hipertrofia marcada, debe considerarse la cirugía, hoja 41, folio 603',
+    nota:'ACC/AHA 2025 (más nueva): con disfunción o hipertrofia del ventrículo izquierdo en el contexto de la estenosis subaórtica, la reparación puede considerarse, Clase 2b · Nivel C-LD, recomendación 3, hoja 52, folio e166',
+    tramo:'las dos no piden lo mismo: la ESC 2020 condiciona esta fila a un gradiente medio de 40 mmHg o más y la ACC/AHA 2025 no pone umbral de gradiente' },
+  { clave:'esub.ev.disfvi', lbl:'Disfunción sistólica del ventrículo izquierdo atribuible a la lesión (fracción de eyección menor del 50 %)', guia:'esc',
+    rec:'Clase IIa · Nivel C — en el paciente asintomático, con gradiente medio menor de 40 mmHg y fracción de eyección menor del 50 %, debe considerarse la cirugía, hoja 41, folio 603',
+    nota:'ACC/AHA 2025 (más nueva): con disfunción del ventrículo izquierdo, la reparación puede considerarse, Clase 2b · Nivel C-LD, recomendación 3, hoja 52, folio e166' },
+  { clave:'esub.ev.caidapa', lbl:'Caída de la presión arterial por debajo del valor basal durante la prueba de esfuerzo', guia:'esc',
+    rec:'Clase IIa · Nivel C — en el paciente asintomático, con gradiente medio de 40 mmHg o más y caída de la presión arterial en el esfuerzo, debe considerarse la cirugía, hoja 41, folio 603',
+    nota:'la ACC/AHA 2025 no publica una recomendación propia para esta condición' },
+  { clave:'esub.ev.esfnormal', lbl:'Prueba de esfuerzo normal, ventrículo izquierdo normal y riesgo quirúrgico bajo', guia:'esc',
+    rec:'Clase IIb · Nivel C — en el paciente asintomático con gradiente medio de 40 mmHg o más, ventrículo izquierdo normal (fracción de eyección mayor del 50 % y sin hipertrofia), prueba de esfuerzo normal y riesgo quirúrgico bajo, puede considerarse la cirugía, hoja 41, folio 603',
+    nota:'la ACC/AHA 2025 no publica una recomendación con esta combinación de condiciones' },
+  { clave:'esub.ev.iaprog', lbl:'Progresión documentada de la insuficiencia aórtica, que pasa a ser más que leve', guia:'esc',
+    rec:'Clase IIb · Nivel C — en el paciente asintomático, con progresión documentada de la insuficiencia aórtica que pasa a ser más que leve, puede considerarse la cirugía para prevenir una progresión mayor, hoja 41, folio 603',
+    nota:'ACC/AHA 2025 (más nueva): en el paciente asintomático con estenosis subaórtica e insuficiencia aórtica al menos leve, la reparación puede considerarse para prevenir la progresión de la insuficiencia, Clase 2b · Nivel C-LD, recomendación 4, hoja 52, folio e166',
+    tramo:'las dos no piden lo mismo: la ACC/AHA 2025 se conforma con una insuficiencia al menos leve y la ESC 2020 pide que se documente su progresión a más que leve' }
+]);
+window.ESUB_PREG = ESUB_PREG;
+
+const EASV_PREG = Object.freeze([
+  { clave:'easv.ev.sint', lbl:'Síntomas atribuibles a la obstrucción (disnea de esfuerzo, angina o síncope), espontáneos o en la prueba de esfuerzo', guia:'acc',
+    rec:'Clase 1 · Nivel B-NR, recomendación 3 — con síntomas o función sistólica ventricular disminuida por la estenosis, la reparación quirúrgica está recomendada para aliviar los síntomas y preservar la función ventricular, hoja 55, folio e169',
+    ref:'con síntomas y gradiente medio de 40 mmHg o más la cirugía está recomendada, Clase I · Nivel C; y con gradiente medio menor de 40 mmHg basta que los síntomas sean atribuibles a la obstrucción —disnea de esfuerzo, angina o síncope—, también Clase I · Nivel C (hoja 40, folio 602)',
+    tramo:'las dos no piden lo mismo: la ACC/AHA 2025 no agrega umbral de gradiente a esta condición y la ESC 2020 parte sus dos filas en 40 mmHg' },
+  { clave:'easv.ev.isquemia', lbl:'Síntomas de isquemia con estenosis de los ostios coronarios', guia:'acc',
+    rec:'Clase 1 · Nivel C-LD, recomendación 4 — con estenosis de los ostios coronarios y síntomas de isquemia, corresponde la revascularización coronaria para aliviar los síntomas y preservar la función ventricular, hoja 55, folio e169',
+    nota:'la ESC 2020 no publica una recomendación propia para esta condición; su fila de gradiente medio menor de 40 mmHg incluye «cirugía necesaria por enfermedad coronaria significativa», que es otra condición' },
+  { clave:'easv.ev.disfvi', lbl:'Disfunción sistólica del ventrículo izquierdo atribuible a la estenosis (fracción de eyección menor del 50 %, sin otra explicación)', guia:'acc',
+    rec:'Clase 1 · Nivel B-NR, recomendación 3 — la reparación quirúrgica está recomendada para preservar la función ventricular, hoja 55, folio e169',
+    ref:'con gradiente medio menor de 40 mmHg, la disfunción sistólica del ventrículo izquierdo —fracción de eyección menor del 50 % sin otra explicación— es una de las tres condiciones de la Clase I · Nivel C (hoja 40, folio 602)' },
+  { clave:'easv.ev.cirugiacor', lbl:'Cirugía necesaria por enfermedad coronaria significativa o por enfermedad valvular', guia:'esc',
+    rec:'Clase I · Nivel C — con gradiente medio menor de 40 mmHg, es una de las tres condiciones que indican la cirugía, hoja 40, folio 602',
+    nota:'la ACC/AHA 2025 no publica una recomendación propia con esta condición' },
+  { clave:'easv.ev.esfanormal', lbl:'Prueba de esfuerzo anormal', guia:'esc',
+    rec:'Clase IIb · Nivel C — la fila del paciente con gradiente medio de 40 mmHg o más EXCLUYE al que tiene la prueba de esfuerzo anormal: la reparación puede considerarse sólo sin síntomas, sin disfunción sistólica, sin hipertrofia y con prueba de esfuerzo normal, hoja 40, folio 602',
+    nota:'ACC/AHA 2025 (más nueva): su recomendación 5 pide también una prueba de esfuerzo normal, Clase 2b · Nivel C-EO, hoja 55, folio e169' },
+  { clave:'easv.ev.asintsev', lbl:'Estenosis supravalvular severa sin síntomas, con tamaño y función ventricular normales y prueba de esfuerzo normal', guia:'acc',
+    rec:'Clase 2b · Nivel C-EO, recomendación 5 — la reparación quirúrgica puede considerarse para evitar el deterioro de la función cardíaca y la aparición de síntomas, hoja 55, folio e169',
+    ref:'la fila equivalente pide además que el gradiente medio sea de 40 mmHg o más, que no haya hipertrofia del ventrículo izquierdo y que el riesgo quirúrgico sea bajo, Clase IIb · Nivel C (hoja 40, folio 602)',
+    tramo:'la ESC 2020 pide dos condiciones que la ACC/AHA 2025 no nombra en esta fila: la ausencia de hipertrofia y el riesgo quirúrgico bajo' },
+  { clave:'easv.ev.riesgobajo', lbl:'Riesgo quirúrgico bajo', guia:'esc',
+    rec:'Clase IIb · Nivel C — es una de las condiciones de la fila del paciente asintomático con gradiente medio de 40 mmHg o más, hoja 40, folio 602',
+    nota:'la ACC/AHA 2025 no nombra el riesgo quirúrgico en las filas de esta lesión' },
+  { clave:'easv.ev.imgbasal', lbl:'Falta la imagen basal de la aorta o de las coronarias (resonancia, tomografía o ecocardiograma transesofágico)', guia:'acc',
+    rec:'Clase 1 · Nivel C-LD, recomendaciones 1 y 2 — con estenosis supravalvular sospechada o con síndrome de Williams, está recomendada la imagen aórtica basal para definir la anatomía y la severidad; y con síndrome de Williams y estenosis supravalvular, la imagen coronaria basal para buscar anomalías como la estenosis ostial, hoja 55, folio e169',
+    nota:'la ESC 2020 lo dice en prosa y no en su tabla de recomendaciones: la resonancia o la tomografía son útiles para la anatomía supravalvular y para la evaluación preoperatoria de las coronarias (hoja 40, folio 602)' }
+]);
+window.EASV_PREG = EASV_PREG;
+
+/* El cuerpo comun de las dos secciones: las preguntas, el balance y la lista de lo contestado.
+   Una sola copia, porque las dos usan el MISMO molde y dos copias divergen a la primera
+   correccion. Devuelve { clinica, siDet, balance }. */
+function _indObsPreg(PREG){
+  const OPS = [{ v:'si', t:'Sí' }, { v:'no', t:'No' }, IND_OPS_SD];
+  const clinica = [], _si = [], _no = [], _sd = [], _siDet = [];
+  PREG.forEach(function (p) {
+    const o = _indOrigen(null, p.clave);
+    if (o.val === 'si') { _si.push(p.lbl); _siDet.push(p); }
+    else if (o.val === 'no') _no.push(p.lbl); else _sd.push(p.lbl);
+    const _f = _indFilaOrigen(p.lbl, o, OPS, function (val) {
+      return { txt: val === 'si' ? 'Sí' : (val === 'no' ? 'No' : 'Sin dato'),
+               marca: val === 'si' ? 'warn' : (val === 'no' ? 'none' : 'ask'),
+               nota: _indPregNota(p, val == null) };
+    }, true);
+    const _b = _indPregBadge(p); if (_b) _f.badge = _b;
+    clinica.push(_f);
+  });
+  if (PREG.length) clinica.unshift(_indFila('Respuestas',
+    _si.length + ' en Sí · ' + _no.length + ' en No · ' + _sd.length + ' sin dato', 'none',
+    '«Sin dato» no cuenta como «no»: mientras una condición no se conteste, no sostiene ninguna recomendación.'));
+  const bal = _si.length
+    ? { txt:'Condiciones presentes en este paciente: ' + _si.length + ' de ' + PREG.length + ' (' + _si.join('; ') + ').'
+        + (_sd.length ? ' Sin contestar: ' + _sd.join('; ') + '.' : ' Las otras ' + _no.length + ' están contestadas que no.'), refs:null }
+    : (_sd.length
+      ? { txt:'Ninguna condición consta como presente, y quedan ' + _sd.length + ' sin contestar: ' + _sd.join('; ')
+          + '. Mientras no se contesten, ninguna de las recomendaciones de arriba se sostiene en este paciente — «sin dato» no cuenta como «no».', refs:null }
+      : { txt:'Las ' + PREG.length + ' condiciones están contestadas y ninguna está presente.', refs:null });
+  return { clinica: clinica, siDet: _siDet, balance: bal };
+}
+function _indObsAplican(siDet){
+  return siDet.length ? [{ tit:'Recomendaciones que aplican con lo contestado (' + siDet.length + ')',
+    lineas: siDet.map(function (p) {
+      const b = _indPregBadge(p);
+      const et = b ? (b.g === 'ACC' ? 'ACC/AHA 2025' : 'ESC 2020') + (b.cn ? ' · ' + b.cn : '') : '';
+      return { txt: p.lbl + (et ? ' — ' + et : '') + '.', refs:null };
+    }) }] : [];
+}
+/* Las tres notas del pie, iguales en las dos secciones. */
+const OBS_NOTAS = Object.freeze([
+  'El gradiente que gradúa la severidad es el MEDIO. Las dos guías lo dicen, y la nota al pie c de las dos tablas de la ESC 2020 agrega que los gradientes por Doppler pueden sobrestimar la obstrucción y pueden necesitar confirmación por cateterismo.',
+  'Lo que se contesta en esta sección no se guarda con el estudio: vive mientras el panel esté abierto y se pierde al cerrarlo o al empezar un estudio nuevo.',
+  'Las recomendaciones de esta sección no entran al informe, al EN SUMA, al PDF ni al PPT: el papel describe lo que se midió y las indicaciones se leen acá.'
+]);
+
+function _indESUB(){
+  const fn = _indFn('esubEstado');
+  const r = fn ? fn() : null;
+  if (!r || !r.hayDatos) return null;
+  const filas = [];
+  const TIPO = { membrana:'Membrana subaórtica', tunel:'Túnel subaórtico', noesp:'Tipo no especificado' };
+  filas.push(_indFila('Tipo de obstrucción', r.tipo ? (TIPO[r.tipo] || r.tipo) : '—',
+    r.tipo ? 'none' : 'ask',
+    r.tipo === 'tunel' ? 'la ACC/AHA 2025 declara que sus recomendaciones se aplican a la membrana discreta «simple» y NO cubren la obstrucción tunelizada «compleja» (hoja 52, folio e166)'
+    : (r.tipo ? '' : 'sin consignar')));
+  /* El corte es el que ya gobierna el informe firmado, leido de su constante. */
+  const corte = _indUmb('ESUB_MEDIO_SEVERO');
+  filas.push(_indFila('Gradiente medio', r.medioOk ? _indNum(r.medio, 1, 'mmHg') : '—',
+    r.medioOk ? (r.severa ? 'alarm' : 'none') : 'ask',
+    r.medioOk ? (r.severa ? 'de ' + corte + ' mmHg o más — es el umbral que la ESC 2020 usa en sus filas de Clase I, IIa y IIb'
+                          : 'por debajo de ' + corte + ' mmHg')
+              : 'sin el gradiente medio la severidad no se gradúa'));
+  filas.push(_indFila('Gradiente pico', r.picoOk ? _indNum(r.pico, 1, 'mmHg') : '—',
+    r.picoOk ? 'none' : 'ask',
+    r.picoOk ? 'la ACC/AHA 2025 lo usa como dato de PRONÓSTICO y no como criterio de intervención: un gradiente pico de 50 mmHg o más se asoció a menor supervivencia libre de intervención y a mayor probabilidad de insuficiencia aórtica (hoja 53, folio e167)'
+             : 'sin medir'));
+  const IA = { no:'Sin insuficiencia aórtica', leve:'Leve', moderada:'Moderada', severa:'Severa' };
+  filas.push(_indFila('Insuficiencia aórtica asociada', r.ia ? (IA[r.ia] || r.ia) : '—',
+    r.ia === 'severa' ? 'alarm' : (r.ia ? 'none' : 'ask'),
+    r.ia === 'severa' ? 'la insuficiencia aórtica severa entra por sí sola en la fila de Clase I de la ESC 2020, junto con los síntomas (hoja 41, folio 603)'
+    : (r.ia ? '' : 'sin consignar')));
+  const fevi = _indN('fevi');
+  filas.push(_indFila('Fracción de eyección del ventrículo izquierdo', _indNum(fevi, 0, '%'),
+    fevi != null ? (_lt(fevi, 50) ? 'warn' : 'none') : 'ask',
+    fevi != null ? (_lt(fevi, 50) ? 'por debajo del 50 % — entra en las filas de Clase IIa de la ESC 2020 y de Clase 2b de la ACC/AHA 2025' : 'del 50 % o más')
+                 : 'sin medir'));
+  const dsf = _indN('dsfvi');
+  filas.push(_indFila('Diámetro de fin de sístole del ventrículo izquierdo', _indNum(dsf, 0, 'mm'),
+    dsf != null ? (_gt(dsf, 50) ? 'warn' : 'none') : 'ask',
+    dsf != null ? (_gt(dsf, 50) ? 'mayor de 50 mm — con insuficiencia aórtica severa es una de las condiciones de la Clase IIa de la ESC 2020 (hoja 41, folio 603)'
+                               : 'de 50 mm o menos')
+                : 'sin medir'));
+  const q = _indObsPreg(ESUB_PREG);
+  return { filas: filas, clinica: q.clinica,
+    bloques: [
+      { tit:'Indicación quirúrgica — ACC/AHA 2025, apartado 4.2.3, hoja 52, folio e166', lineas:[
+        { txt:'Clase 2b · Nivel C-EO — Con síntomas dudosos, puede considerarse la prueba de esfuerzo para evaluar la respuesta fisiológica al ejercicio y determinar si los síntomas son atribuibles a la estenosis subaórtica (recomendación 1).', refs:null },
+        { txt:'Clase 1 · Nivel C-EO — Con síntomas atribuibles a la estenosis subaórtica, la reparación quirúrgica está recomendada para aliviarlos (recomendación 2).', refs:null },
+        { txt:'Clase 2b · Nivel C-LD — En el paciente asintomático con disfunción o hipertrofia del ventrículo izquierdo en el contexto de la estenosis subaórtica, la reparación quirúrgica puede considerarse para mitigar el deterioro de la función, de la hipertrofia o de las dos (recomendación 3).', refs:null },
+        { txt:'Clase 2b · Nivel C-LD — En el paciente asintomático con estenosis subaórtica e insuficiencia aórtica al menos leve, la reparación quirúrgica puede considerarse para prevenir la progresión de la insuficiencia (recomendación 4).', refs:null },
+        { txt:'Esta guía NO pone ningún umbral de gradiente en sus recomendaciones, y su texto de apoyo lo dice: ningún dato identifica un umbral ecocardiográfico de gradiente al que el paciente desarrolle síntomas ni uno al que los síntomas se alivien con la resección (hoja 52, folio e166).', refs:null },
+        { txt:'Sus recomendaciones se aplican a la membrana discreta «simple» y no cubren la obstrucción tunelizada «compleja» ni la miocardiopatía hipertrófica (hoja 52, folio e166).', refs:null },
+        { txt:'Fuente: guía ACC/AHA 2025 de cardiopatías congénitas del adulto, apartado 4.2.3 «Subaortic Stenosis», hoja 52, folio e166.', refs:['acc2025achd'] }
+      ]},
+      { tit:'Indicación quirúrgica — ESC 2020 (guía anterior), tabla de recomendaciones de intervención en la estenosis subaórtica, hoja 41, folio 603', lineas:[
+        { txt:'Clase I · Nivel C — En el paciente sintomático, espontáneamente o en la prueba de esfuerzo, con un gradiente medio por Doppler de 40 mmHg o más, o con insuficiencia aórtica severa, la cirugía está recomendada.', refs:null },
+        { txt:'Clase IIa · Nivel C — En el paciente asintomático debe considerarse la cirugía cuando hay una o más de estas condiciones: gradiente medio menor de 40 mmHg con fracción de eyección menor del 50 %; insuficiencia aórtica severa con diámetro de fin de sístole del ventrículo izquierdo mayor de 50 mm —o de 25 mm/m² de superficie corporal— o fracción de eyección menor del 50 %; gradiente medio de 40 mmHg o más con hipertrofia marcada; o gradiente medio de 40 mmHg o más con caída de la presión arterial por debajo del basal en el esfuerzo.', refs:null },
+        { txt:'Clase IIb · Nivel C — En el paciente asintomático puede considerarse la cirugía cuando hay una o más de estas condiciones: gradiente medio de 40 mmHg o más con ventrículo izquierdo normal —fracción de eyección mayor del 50 % y sin hipertrofia—, prueba de esfuerzo normal y riesgo quirúrgico bajo; o progresión documentada de la insuficiencia aórtica, que pasa a ser más que leve, para prevenir una progresión mayor.', refs:null },
+        { txt:'Su nota al pie c: los gradientes derivados del Doppler pueden sobrestimar la obstrucción y pueden necesitar confirmación por cateterismo cardíaco. Su nota al pie d remite a la guía ESC 2017 de valvulopatías para el criterio de fracción de eyección.', refs:null },
+        { txt:'Fuente: guía ESC 2020 de cardiopatías congénitas del adulto, edición inglesa, hoja 41, folio 603.', refs:['esc2020guch'] }
+      ]},
+      { tit:'Control: cada cuánto, y lo que cada guía dice', lineas:[
+        { txt:'ACC/AHA 2025, Tabla 21, hoja 53, folio e167 — intervalos por estadio fisiológico A, B, C y D: consulta con el cardiólogo de congénitas del adulto cada 36, 24, 6 a 12 y 3 a 6 meses; electrocardiograma cada 36, 24, 12 y 12 meses; ecocardiograma transtorácico cada 36, 24, 12 y 12 meses.', refs:['acc2025achd'] },
+        { txt:'ESC 2020, apartado 4.5.3.5, hojas 40 y 41, folios 602 y 603 — control regular de por vida, con ecocardiograma, en el no operado, para seguir la progresión de la obstrucción, de la insuficiencia aórtica y de la hipertrofia, la función y el tamaño del ventrículo izquierdo; y también después de operar, para detectar la reestenosis tardía, la insuficiencia aórtica progresiva y complicaciones como arritmias, bloqueo y comunicación interventricular iatrogénica. El control incluye la evaluación en centros especializados y su FRECUENCIA depende de la progresión esperada de la enfermedad.', refs:['esc2020guch'] },
+        { txt:'⚠️ Ninguna de las dos publica un intervalo ANUAL para toda la población: la ACC/AHA 2025 lo hace depender del estadio fisiológico —anual sólo en el C y el D— y la ESC 2020 no fija un número.', refs:null },
+        q.balance
+      ]}
+    ].concat(_indObsAplican(q.siDet)),
+    compacta: true,
+    preguntas: true,
+    guia: { ref:'acc2025achd',
+      txt:'Las indicaciones de esta sección salen de DOS guías: la ACC/AHA 2025 de cardiopatías congénitas del adulto (apartado 4.2.3, hoja 52, folio e166), que es la que rige cuando las dos tratan el mismo tema con cortes distintos, y la ESC 2020 de cardiopatías congénitas del adulto (hoja 41, folio 603), que queda como referencia. Cada pregunta usa los cortes de UNA sola de ellas, con su nombre y año a la vista: ninguna los combina.' },
+    notas: OBS_NOTAS.slice() };
+}
+
+
+function _indEASV(){
+  const fn = _indFn('easvEstado');
+  const r = fn ? fn() : null;
+  if (!r || !r.hayDatos) return null;
+  const filas = [];
+  const TIPO = { reloj:'Reloj de arena (localizada)', difusa:'Difusa (hipoplasia tubular)',
+                 membranosa:'Membranosa', noesp:'Tipo no especificado' };
+  filas.push(_indFila('Forma de la obstrucción', r.tipo ? (TIPO[r.tipo] || r.tipo) : '—',
+    r.tipo ? 'none' : 'ask',
+    r.tipo ? 'la ACC/AHA 2025 describe las dos formas: la estrechez discreta en reloj de arena, que es la más común, y la estenosis difusa de segmento largo de la aorta ascendente, que puede asociarse a estenosis de los vasos braquiocefálicos (hoja 55, folio e169)'
+           : 'sin consignar'));
+  const corte = _indUmb('EASV_MEDIO_SEVERO');
+  filas.push(_indFila('Gradiente medio', r.medioOk ? _indNum(r.medio, 1, 'mmHg') : '—',
+    r.medioOk ? (r.severa ? 'alarm' : 'none') : 'ask',
+    r.medioOk ? (r.severa ? 'de ' + corte + ' mmHg o más — es el umbral que la ESC 2020 usa para partir sus dos filas de Clase I y su fila de Clase IIb'
+                          : 'por debajo de ' + corte + ' mmHg')
+              : 'sin el gradiente medio la severidad no se gradúa'));
+  filas.push(_indFila('Gradiente pico', r.picoOk ? _indNum(r.pico, 1, 'mmHg') : '—',
+    r.picoOk ? 'none' : 'ask',
+    r.picoOk ? 'ninguna de las dos guías gradúa esta lesión por el gradiente pico' : 'sin medir'));
+  const COR = { no_eval:'No evaluados', normales:'Normales', comprometidos:'Comprometidos',
+                dilatacion:'Dilatación coronaria' };
+  filas.push(_indFila('Ostios coronarios', (r.cor && COR[r.cor]) ? COR[r.cor] : '—',
+    r.cor === 'comprometidos' ? 'alarm' : (r.cor === 'dilatacion' ? 'warn' : (r.cor === 'normales' ? 'ok' : 'ask')),
+    r.cor === 'comprometidos' ? 'con síntomas de isquemia, la revascularización coronaria es Clase 1 · Nivel C-LD de la ACC/AHA 2025 (hoja 55, folio e169)'
+    : (r.cor === 'normales' ? 'evaluados y normales'
+    : 'en esta lesión las coronarias quedan expuestas a la presión alta proximal a la obstrucción, así que su evaluación es parte del estudio (ACC/AHA 2025, hoja 56, folio e170)')));
+  filas.push(_indFila('Síndrome de Williams-Beuren',
+    r.wil === 'si' ? 'Con síndrome' : (r.wil === 'no' ? 'Sin síndrome' : (r.wil === 'no_eval' ? 'No evaluado' : '—')),
+    r.wil === 'si' ? 'warn' : (r.wil === 'no' ? 'none' : 'ask'),
+    r.wil === 'si' ? 'con síndrome de Williams y estenosis supravalvular, la imagen coronaria basal es Clase 1 · Nivel C-LD de la ACC/AHA 2025 (hoja 55, folio e169)'
+    : (r.wil === 'no' ? '' : 'sin consignar')));
+  const EP = { no:'Ausente', leve:'Leve', moderada:'Moderada', severa:'Severa' };
+  filas.push(_indFila('Estenosis pulmonar asociada', (r.ep && EP[r.ep]) ? EP[r.ep] : '—',
+    (r.ep === 'moderada' || r.ep === 'severa') ? 'warn' : (r.ep ? 'none' : 'ask'),
+    r.ep ? '' : 'sin consignar'));
+  const fevi = _indN('fevi');
+  filas.push(_indFila('Fracción de eyección del ventrículo izquierdo', _indNum(fevi, 0, '%'),
+    fevi != null ? (_lt(fevi, 50) ? 'warn' : 'none') : 'ask',
+    fevi != null ? (_lt(fevi, 50) ? 'por debajo del 50 % — con la obstrucción como causa y sin otra explicación, entra en la Clase I de la ESC 2020 y en la Clase 1 de la ACC/AHA 2025' : 'del 50 % o más')
+                 : 'sin medir'));
+  const q = _indObsPreg(EASV_PREG);
+  return { filas: filas, clinica: q.clinica,
+    bloques: [
+      { tit:'Indicación quirúrgica y diagnóstica — ACC/AHA 2025, apartado 4.2.5, hoja 55, folio e169', lineas:[
+        { txt:'Clase 1 · Nivel C-LD — Con estenosis supravalvular sospechada o con síndrome de Williams, la imagen aórtica basal está recomendada para definir la anatomía y la severidad de la estenosis (recomendación 1).', refs:null },
+        { txt:'Clase 1 · Nivel C-LD — Con síndrome de Williams y estenosis supravalvular, la imagen coronaria basal está recomendada para buscar anomalías como la estenosis de los ostios coronarios (recomendación 2).', refs:null },
+        { txt:'Clase 1 · Nivel B-NR — Con síntomas o con función sistólica del ventrículo izquierdo disminuida por la estenosis, la reparación quirúrgica está recomendada para aliviar los síntomas y preservar la función ventricular (recomendación 3).', refs:null },
+        { txt:'Clase 1 · Nivel C-LD — Con estenosis de los ostios coronarios y síntomas de isquemia, corresponde la revascularización coronaria para aliviar los síntomas y preservar la función ventricular (recomendación 4).', refs:null },
+        { txt:'Clase 2b · Nivel C-EO — Con estenosis supravalvular severa sin síntomas, tamaño y función ventricular normales y prueba de esfuerzo normal, la reparación quirúrgica puede considerarse para evitar el deterioro de la función cardíaca y la aparición de síntomas (recomendación 5).', refs:null },
+        { txt:'Fuente: guía ACC/AHA 2025 de cardiopatías congénitas del adulto, apartado 4.2.5 «Supravalvar Aortic Stenosis», hoja 55, folio e169.', refs:['acc2025achd'] }
+      ]},
+      { tit:'Indicación quirúrgica — ESC 2020 (guía anterior), tabla de recomendaciones de intervención en la estenosis supravalvular aórtica, hoja 40, folio 602', lineas:[
+        { txt:'Clase I · Nivel C — Con síntomas, espontáneos o en la prueba de esfuerzo, y un gradiente medio por Doppler de 40 mmHg o más, la cirugía está recomendada.', refs:null },
+        { txt:'Clase I · Nivel C — Con un gradiente medio por Doppler menor de 40 mmHg, la cirugía está recomendada cuando hay una o más de estas condiciones: síntomas atribuibles a la obstrucción —disnea de esfuerzo, angina o síncope—; disfunción sistólica del ventrículo izquierdo, con fracción de eyección menor del 50 % sin otra explicación; o cirugía necesaria por enfermedad coronaria significativa o por enfermedad valvular.', refs:null },
+        { txt:'Clase IIb · Nivel C — Con un gradiente medio por Doppler de 40 mmHg o más pero sin síntomas, sin disfunción sistólica del ventrículo izquierdo, sin hipertrofia y con prueba de esfuerzo normal, la reparación puede considerarse cuando el riesgo quirúrgico es bajo.', refs:null },
+        { txt:'Su nota al pie c: los gradientes derivados del Doppler pueden sobrestimar la obstrucción y pueden necesitar confirmación por cateterismo del corazón izquierdo.', refs:null },
+        { txt:'Fuente: guía ESC 2020 de cardiopatías congénitas del adulto, edición inglesa, hoja 40, folio 602.', refs:['esc2020guch'] }
+      ]},
+      { tit:'Por qué las coronarias, y las dos diferencias entre guías', lineas:[
+        { txt:'La estenosis está por encima de los orificios coronarios, en la unión sinotubular, así que las coronarias quedan expuestas a la presión alta que genera la obstrucción. La estenosis ostial aumenta el riesgo de muerte súbita, sobre todo con la anestesia, y en el síndrome de Williams el electrocardiograma muchas veces no muestra signos de isquemia y el paciente puede no poder describir sus síntomas (ACC/AHA 2025, hoja 56, folio e170).', refs:['acc2025achd'] },
+        { txt:'⚠️ Las dos guías no gradúan igual: la ACC/AHA 2025 escribe moderada con un gradiente medio de 20 a 40 mmHg y severa con MÁS de 40, y advierte que extrapolar esos cortes de la estenosis valvular aórtica puede ser inexacto por la variabilidad anatómica (hoja 56, folio e170); la ESC 2020 usa 40 mmHg o MÁS. La aplicación gradúa con el corte de la ESC 2020, que es el que ya sostiene el informe, y la diferencia se muestra acá sin resolverla.', refs:null },
+        { txt:'⚠️ Y no coinciden en el seguimiento: la ACC/AHA 2025 publica intervalos por estadio fisiológico (Tabla 23, hoja 56, folio e170) —consulta con el cardiólogo de congénitas del adulto cada 24, 24, 6 a 12 y 3 a 6 meses; electrocardiograma y ecocardiograma transtorácico cada 24, 24, 12 y 12 meses, con la salvedad de que el ecocardiograma de rutina puede no hacer falta si se hace resonancia para evaluar la anatomía aórtica—, mientras que la ESC 2020 pide control regular de por vida con ecocardiograma, en centros especializados, sin fijar un número (apartado 4.5.2.5, hoja 40, folio 602).', refs:null },
+        q.balance
+      ]}
+    ].concat(_indObsAplican(q.siDet)),
+    compacta: true,
+    preguntas: true,
+    guia: { ref:'acc2025achd',
+      txt:'Las indicaciones de esta sección salen de DOS guías: la ACC/AHA 2025 de cardiopatías congénitas del adulto (apartado 4.2.5, hoja 55, folio e169), que es la que rige cuando las dos tratan el mismo tema con cortes distintos, y la ESC 2020 de cardiopatías congénitas del adulto (hoja 40, folio 602), que queda como referencia. Cada pregunta usa los cortes de UNA sola de ellas, con su nombre y año a la vista: ninguna los combina.' },
+    notas: OBS_NOTAS.slice() };
+}
+
+
 const IND_SECS = [
   { tit:'Estenosis aórtica',                     fn:_indEA },
   { tit:'Insuficiencia mitral primaria',         fn:_indIM },
@@ -95716,6 +95993,12 @@ const IND_SECS = [
   { tit:'Comunicación interventricular',         fn:_indCIV },
   { tit:'Ductus arterioso permeable',            fn:_indDAP },
   { tit:'Coartación de aorta',                   fn:_indCoAo },
+  /* ⚠️ LAS DOS DE LA TANDA PANT-4 (03/11/2026). Van PEGADAS a la coartación porque son las
+     otras dos obstrucciones fijas del lado izquierdo, que es donde el médico las busca. Los dos
+     títulos son únicos y ninguno es prefijo de otro: la clave de `_indRepintarConservando` las
+     distingue por «subaórtica» contra «supravalvular aórtica». */
+  { tit:'Estenosis subaórtica',                  fn:_indESUB },
+  { tit:'Estenosis supravalvular aórtica',       fn:_indEASV },
   { tit:'Foramen oval permeable',                fn:_indFOP },
   { tit:'Miocardiopatía hipertrófica obstructiva', fn:_indMCH },
   /* ⚠️ LA DE LA TANDA TGA-2 (31/10/2026). Va PEGADA a la de arriba porque es la misma
@@ -96407,6 +96690,9 @@ function esubEstado(){
            severa, gradua, alertas, papel, suma };
 }
 window.esubEstado = esubEstado;
+/* El corte, expuesto para que `_indUmb` lo lea de su dueño y el panel de Evidencia no
+   tenga una segunda copia del numero (regla 2 del panel). */
+window.ESUB_MEDIO_SEVERO = ESUB_MEDIO_SEVERO;
 
 function esubSync(){
   const el = document.getElementById('esub-resultado'); if (!el) return;
@@ -96518,6 +96804,9 @@ function easvEstado(){
            alertas, papel, suma };
 }
 window.easvEstado = easvEstado;
+/* El corte, expuesto para que `_indUmb` lo lea de su dueño y el panel de Evidencia no
+   tenga una segunda copia del numero (regla 2 del panel). */
+window.EASV_MEDIO_SEVERO = EASV_MEDIO_SEVERO;
 
 function easvSync(){
   const el = document.getElementById('easv-resultado'); if (!el) return;
@@ -152352,8 +152641,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261103-1051';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793713905167;                 /* eco-build-ms */
+const ECO_BUILD    = '20261103-1104';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793714653786;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -152439,7 +152728,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261103-1051</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261103-1104</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
