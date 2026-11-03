@@ -200,10 +200,16 @@ Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la v
 ## Qué es EcoSmart y cómo se trabaja
 
 - App clínica de ecocardiografía en **un solo `index.html`**: HTML + CSS + JS inline, sin build,
-  sin frameworks. Hoy **11,02 MB / 154.232 líneas**, medido con `wc -c` y `wc -l` el 2026-11-02 al
-  cierre de la tanda **PANT-2**, sobre el árbol ya sellado. El diff de la tanda son **350 líneas
-  agregadas y 22 quitadas**, medido con `git diff` contra `d3f42b0`. **Cero** `innerHTML`, `eval`
-  o `new Function` nuevos, y cero claves.
+  sin frameworks. Hoy **11,09 MB / 155.230 líneas**, medido con `wc -c` y `wc -l` el 2026-11-03 al
+  cierre de la tanda **PANT-3**, sobre el árbol ya sellado **y commiteado**: sello
+  **`v20261103-0256`**, md5 **`0422963d`**. El diff de la tanda son **1.219 líneas agregadas y 221
+  quitadas**, medido con `git diff` contra `efce508`. **Cero** `innerHTML`, `eval` o
+  `new Function` nuevos, y cero claves.
+  ⚠️ **Y EL RENGLÓN QUE ESTA TANDA ENCONTRÓ ESTABA UNA RESELLADA ATRÁS**, por tercera vez
+  seguida: decía 11,02 MB / 154.232 líneas con el sello de PANT-2, y el árbol que se abrió traía
+  **`v20261102-2051`** con md5 **`8af4c80b`**. **Medir con `wc -c`, `wc -l` y `md5` antes de
+  presupuestar contexto**, no leer esto.
+  (Antes: 11,02 MB / 154.232 al cierre de PANT-2, sello `v20261102-2051`, md5 `8af4c80b`.)
   ⚠️ **Y EL RENGLÓN QUE ESTA TANDA ENCONTRÓ ESTABA UNA RESELLADA ATRÁS:** decía `v20261102-1624`
   con md5 `17acf57a`, y el árbol que se abrió traía **`v20261102-1645`** con md5 **`c96543c6`**
   —que es el que la propia bitácora de TGA-4 da como línea base de su suite—. **Medir con
@@ -547,12 +553,14 @@ impecable.
 > SEGURIDAD y la tabla de Procedencia) siguen enteras y en su lugar, verificado byte por byte.
 ### Los botones CIA/CIV, el corazón maestro, cuatro pantallas y la arritmia ventricular — «PANT-3» (2026-11-02 y 03)
 
-- **DIECISIETE commits, y los ONCE de la orden se hicieron enteros.** Primera mitad: los botones
+- **VEINTE commits, y los ONCE de la orden se hicieron enteros.** Primera mitad: los botones
   CIA/CIV, el esquema de la TGA, el retiro de los carteles de «revisión pendiente», el botón «3D»
   del corazón maestro y la pantalla de MCH. Segunda mitad: `ca412db` (6 · MCA) · `eb8b794`
   (7 · Fallot) · `6bb3e71` (8a) · `11ccfe7` (8b) · `27aa986` (9) · `ae9d1b4` (9b) · `9691de6`
-  (10) · `6dff25f` (10b) · los de cobertura. Sello **`v20261103-0204`**, md5 de `index.html`
-  **`080cf530`**. Al empezar, `origin/main` = `HEAD` = **`efce508`**.
+  (10) · `6dff25f` (10b) · los de cobertura. Y el cierre: `a0d6f8d` (12 · el rótulo del TEP y los
+  once rojos) · `901748a` (13 · la sonda de dos motores) · `be55fa0` (14 · la condición que pedía
+  más que la orden, y el paso 43 de la guía). Sello **`v20261103-0256`**, md5 de `index.html`
+  **`0422963d`**. Al empezar, `origin/main` = `HEAD` = **`efce508`**.
   **El push lo corre Maicol: esta tanda tenía orden expresa de NO pushear.**
 
 - ⚠️ **EL DEFECTO MÁS GRANDE QUE ESTA TANDA SE HIZO A SÍ MISMA, Y LO GRITÓ LA APP POR CONSOLA.**
@@ -656,12 +664,93 @@ impecable.
   de un error de sintaxis: los cinco casos nuevos nunca se habían commiteado. **El archivo de
   tests se commitea apenas parsea.**
 
+- ⚠️ **EL ÚNICO DEFECTO DE APP QUE DEJÓ LA TANDA LO ENCONTRÓ UN CASO VIEJO, Y SE CERRÓ.** La
+  fila del TEP se leía **«PSAP  PSAP 45 mmHg — elevada (≥60 mmHg)»**: el `span` de al lado escribe
+  la sigla **con** su valor y su corte, así que poner «PSAP» también en la etiqueta la decía dos
+  veces. **TC-519 (O6)**, de otra tanda, exige que esa etiqueta no contenga la sigla. La orden del
+  commit 10 cierra con «si algo de esto choca con lo que existe, PARÁ esa parte y reportá», así
+  que esa fila es **la única parada** del commit 10 por ese motivo y su etiqueta nombra el
+  **parámetro**: «Presión sistólica pulmonar». Las dos filas de arriba cumplen la misma regla
+  porque su sigla —VD/VI y TAPSE— no es su nombre. Los rótulos de la hoja del PDF viven en
+  `amiloTextoTEP` y no se tocaron. → **P3-q**.
+
+- **DOCE CASOS VIEJOS ADAPTADOS, cada uno con el motivo escrito, y los doce los destapó la
+  CORRIDA COMPLETA.** **TC-61**, **TC-62** y **TC-506 (F8b)**: la casilla «Integrar al informe» ya
+  no alcanza —desde la regla (v) del commit 1 la lesión tiene su propio dato de presencia—, y
+  TC-61 gana **(Ca)**, que mide esa mitad sola. **TC-471 (H)** y **TC-500**: el registro de globos
+  pasa de 108 y de 101 a **120**. **TC-502 (C3)**: las tarjetas sin ficha en Referencias, de 37 a
+  **49**, nombradas una por una. **TC-535 (K0-K2)**: los globos de 44×44, de 29 a **41**.
+  **TC-517 (g1)**: la ficha de HTP dice «TAPSE/PSAP». **TC-577 (G1)**: **INVERTIDA** y partida en
+  dos, porque nació como control negativo de POP-A —cuyo commit de rótulos tocaba sólo el
+  posoperatorio— y el commit 10 de esta tanda unificó las siglas en toda la app. **TC-604 (P6 a
+  Q1)**: (P6) pasa a medir el aviso general donde vive ahora —la etiqueta de la tarjeta— y las
+  otras cuatro quedan **INVERTIDAS**. Y **TC-632 (B5)**, que era de esta misma tanda y **pedía más
+  que la orden**: hoy exige que el nombre completo sobreviva en **exactamente un** rótulo y que
+  sea el del TEP, con **(B5b)** pidiendo que su valor sí traiga la sigla.
+  ⚠️ **Y UNA DERIVA QUE EL CENSO DESTAPÓ EN TC-500:** su rótulo decía «97 entradas» y el número
+  comparado era **101** —una adaptación anterior movió uno y no el otro—, así que el caso podía
+  pasar en verde anunciando un denominador que no era el suyo. Los dos dicen 120.
+
+- ⚠️ **LA SONDA DE DOS MOTORES MEDÍA SOBRE DOS DENOMINADORES DE CERO, Y NO ERAN DEFECTOS DE LA
+  APP.** `.tab-btn` lleva `transition: all 0.15s`, así que leer `getComputedStyle` justo después
+  del clic devuelve el valor **de partida**: el botón de lesión marcado informaba «sin relleno» en
+  los dos motores y en los cuatro anchos, que se lee como «el commit 1 no pinta nada», y con
+  400 ms de espera el mismo botón da `rgb(62, 207, 142)`, que es `var(--green)`. Y `.sacc-body`
+  abre con `max-height` y 0,3 s de transición, apagada **después** del clic: la pantalla de MCH
+  informaba 46 o 70 px y el máximo de campos por fila daba 0. Hoy la sonda apaga las dos
+  animaciones **antes** de tocar y gana dos controles —que el botón de CIV **no** se pinte y que
+  el relleno se vaya al desmarcar—. → **P3-s**.
+
+- ⚠️ **Y UNA DEPENDENCIA DE ORDEN CERRADA QUE NO ERA DE ESTA TANDA:** el bloque (E) de **TC-535**
+  salía **verde aislado** —y también contra `e97cd34` en un worktree— y **rojo** en cuanto corría
+  después de **TC-502**, que llama a `setEstiloInforme` y no lo devuelve: su (E0) daba
+  `0/0/0/0/0/0` y su (E7) `largo=0`, o sea un denominador de cero y no un hallazgo. Su escena fija
+  ahora su propio estilo antes de emitir, igual que TC-547. Medido: `TC-502 + TC-535` pasa de
+  **1/2 a 2/2**. **La causa sigue en pie en TC-502** → **P3-r**.
+
+- **Línea base al cierre: suite 641/647**, en **doce lotes** cubriendo los **647 casos distintos**
+  —contados nombre por nombre, con la guarda que compara lo listado con lo repartido y otra que
+  cuenta los ejecutados: **647 de 647**—, en UNA sola pasada sobre el árbol sellado **y
+  commiteado**, con el pendrive `DISK_IMG` **verificado al abrir, en los DOCE lotes y al cerrar**
+  (catorce verificaciones, listando nombres reales) y el md5 de `index.html` **idéntico** antes y
+  después (`0422963d`). Los rojos son **TC-223, TC-376, TC-390 y TC-406**, los cuatro de siempre,
+  más **TC-551 y TC-557**, los dos intermitentes declarados: **TC-551 corrido aislado sale VERDE**
+  y **TC-557 cae con la firma `00000 44x44`** de `elementFromPoint` fuera del viewport que
+  **TGA-h** ya documenta. **Ningún rojo nuevo.**
+  ⚠️ **Y ESA CORRIDA DIO 640/647 CON UN ROJO MÁS, TC-632, QUE ERA MÍO**, y por eso la cifra de
+  arriba sale de cerrarlo y volver a correr su lote entero: **42/42**.
+  ⚠️ **El archivo de casos se editó durante la corrida y se declara**: fue **sólo comentario**
+  —diez líneas, verificado con `git diff`—, `node --check` pasó antes del lote siguiente y ninguna
+  condición cambió.
+- **Semgrep 124 WARNING / 0 ERROR**, la línea base, sin un aviso nuevo. **Excel 441** columnas con
+  las **mismas 441 claves**, verificado clave por clave: en las escenas con una lesión marcada
+  cambian **dos celdas**, y son las dos columnas de texto que espejan el informe y el EN SUMA.
+  **Campos guardados 1002 → 1004**, los dos autorizados. **Sin huérfanos nuevos.**
+- **CELULAR: 59 hallazgos a 360 px y 68 a 390, con 17 ALTA en cada ancho** — la línea base exacta.
+  **No empeoró.**
+- **CHROME Y WEBKIT COINCIDEN EN LOS DIECISÉIS CRUCES** (dos motores × 1440, 1000, 768 y 390 px ×
+  dos temas), **sin una sola diferencia entre motores salvo métrica de fuente**: el botón de CIA en
+  44×45 y el de CIV en 44×44 —45 en WebKit—, el relleno apagado antes, **encendido** tras marcar,
+  apagado tras desmarcar y el de CIV apagado en los 16; las dos secciones abriendo en los 16; el
+  esquema de la TGA con sus **12** textos y **4** con halo; el pie del corazón maestro **visible en
+  Congénitas y oculto en Válvulas** —la única instancia—; la pantalla de MCH en 3 columnas, 2 cajas
+  y 6 globos, con **988 px a 1440 y 2321 a 390** en Chrome (911 y 2132 en WebKit) y el máximo de
+  campos por fila en **6 / 2 / 3 / 1**; **cero** desplazamiento horizontal, **cero** textos
+  recortados y **CERO errores de consola y de página en los dos motores**.
+  ⚠️ **WebKit de Playwright no es Safari, y se declara.** Chrome va por el del sistema con
+  `channel: 'chrome'`.
+- **`index.html` pasó de 11,02 MB / 154.232 líneas a 11,09 MB / 155.230** — medido con `wc -c` y
+  `wc -l` DESPUÉS de sellar. (MB de 10⁶.) El diff de la tanda son **1.219 líneas agregadas y 221
+  quitadas**, medido con `git diff` contra `efce508`, con **cero** `innerHTML`, `eval` o
+  `new Function` nuevos y cero claves ni contraseñas.
+
 - **Dónde está todo:** `docs/mapa/pant3-botones-3d-mch.md` (primera mitad) y
   `docs/mapa/pant3-pantallas-arritmia.md` (**mapa NUEVO**, 11,0 KB, segunda mitad),
   `docs/fuentes/FUENTES.md` → «La tanda PANT-3» con las cinco fuentes transcritas y sus reglas de
   folio comprobadas en el pie impreso, `docs/REGISTRO_TANDAS.md` → el bloque de la tanda,
   `docs/GUIA_PRUEBA_PANT3.md` → la guía manual en **42** pasos, `docs/CONTINUACION_PANT3.md`, y
-  `docs/PENDIENTES.md` → **P3-a** a **P3-p**, con **P3-h cerrado**.
+  `docs/PENDIENTES.md` → **P3-a** a **P3-s**, con **P3-h** y **P3-q** cerrados, y
+  `docs/GUIA_PRUEBA_PANT3.md` en **43** pasos.
 
 ### El PDF de la transposición, el panel compacto y la conclusión descriptiva — «TGA-4» (2026-11-02)
 

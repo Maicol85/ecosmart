@@ -40,8 +40,9 @@ en `docs/PENDIENTES.md` → **P3-i** a **P3-p**.
 
 ## PANT-3 — los botones CIA y CIV, el esquema de la TGA, el corazón maestro, MCH, MCA, Fallot, las dos estenosis aórticas, la arritmia ventricular y los rótulos de presión (2026-11-02 y 03)
 
-**Seis commits de los once de la orden.** Línea base al abrir: `origin/main` = `HEAD` =
-**`efce508`**, sello `v20261102-2051`, md5 `8af4c80b`, pendrive `DISK_IMG` montado.
+**Veinte commits, y los once de la orden se hicieron enteros.** Línea base al abrir:
+`origin/main` = `HEAD` = **`efce508`**, sello `v20261102-2051`, md5 `8af4c80b`, pendrive
+`DISK_IMG` montado. Al cerrar: sello **`v20261103-0256`**, md5 **`0422963d`**.
 **El push lo corre Maicol: esta tanda tenía orden expresa de NO pushear.**
 
 | commit | qué | estado |
@@ -51,11 +52,15 @@ en `docs/PENDIENTES.md` → **P3-i** a **P3-p**.
 | `eeb3ccf` | **3** — el censo de los carteles de «revisión pendiente» y lo que se retiró | cerrado y verificado |
 | `75b555f` | **4** — el botón «3D» del corazón maestro, fase 1 | cerrado y verificado |
 | `15098a5` | **5** — la pantalla de MCH en tres columnas | cerrado y verificado |
-| el de cierre | **11** — cobertura y documentación | cerrado |
-
-**Los commits 6 a 10 NO se hicieron y ninguno quedó a medias**: MCA, Fallot, las dos estenosis
-aórticas, la arritmia ventricular y los rótulos de las presiones pulmonares. Declarado en
-`docs/PENDIENTES.md` → **P3-h**, con el estado exacto en `docs/CONTINUACION_PANT3.md`.
+| `ca412db` | **6** — la pantalla de MCA | cerrado y verificado |
+| `eb8b794` | **7** — la pantalla de Fallot | cerrado; su disposición en tres columnas, PARADA → P3-i |
+| `6bb3e71` · `11ccfe7` | **8a** y **8b** — estenosis subaórtica y supravalvular aórtica | cerrado y verificado |
+| `27aa986` · `ae9d1b4` | **9** y **9b** — el módulo compartido de arritmia ventricular, y el arreglo estructural | cerrado y verificado |
+| `9691de6` · `6dff25f` | **10** y **10b** — los rótulos PSAP, PmAP y PDAP | cerrado; una fila PARADA → P3-q |
+| `6bb1732` · `7fe47b5` · `ae9d1b4` · `e97cd34` | **11** — cobertura y documentación | cerrado |
+| `a0d6f8d` | **12** — el rótulo del TEP que se decía dos veces, y los once rojos de la corrida completa | cerrado y verificado |
+| `901748a` | **13** — la sonda de dos motores medía sobre dos denominadores de cero | cerrado y verificado |
+| `be55fa0` | **14** — la condición que pedía más que la orden, y el paso 43 de la guía | cerrado y verificado |
 
 **Lo que más pesó, en una línea cada uno:**
 - el botón «CIA» no significaba nada y `showTab` lo desmarcaba al cambiar de pantalla, porque
@@ -64,13 +69,27 @@ aórticas, la arritmia ventricular y los rótulos de las presiones pulmonares. D
 - el censo de «revisión pendiente» encontró **una sola** frase visible, y se reescribió en vez de
   borrarse porque su mitad informativa evita un error;
 - el corazón maestro **no dibuja nada nuevo**: presta el recuadro que ya existía;
-- la pantalla de MCH pasa de **1287 a 939 px** a 1440, con el censo de ids intacto.
+- la pantalla de MCH pasa de **1287 a 939 px** a 1440, con el censo de ids intacto;
+- el commit 9 **cortó el documento por el medio** —se llevó el cierre de `#tab-congenitas` y la
+  apertura de `#tab-congenitas2`—, y lo gritó la propia app por consola; hoy el módulo se extrae
+  por **balance de etiquetas** y el defecto lo fija **TC-631 (H)**;
+- la fila del TEP se leía **«PSAP  PSAP 45 mmHg»**: es la única parada del commit 10, y la
+  encontró **TC-519 (O6)**, un caso de otra tanda.
 
-**Dos fuentes leídas en imagen**, con su regla de folio comprobada en el pie impreso: ESC 2022
-(Zeppenfeld), hoja 66 → folio 4062; y AHA/ACC 2024 (Ommen), hojas 9 → e1247 y 29 → e1267.
+**Cuatro fuentes leídas en imagen**, con su regla de folio comprobada en el pie impreso: ESC 2022
+(Zeppenfeld), hoja 66 → folio 4062; AHA/ACC 2024 (Ommen), hojas 9 → e1247 y 29 → e1267; más las
+cuatro hojas de los cortes de la obstrucción subaórtica.
 
-**Campos guardados: 1002 → 1004**, los dos autorizados. **Excel 441** columnas con las mismas
-claves. **Semgrep 124 WARNING / 0 ERROR.** **Celular 59 a 360 px y 68 a 390, con 17 ALTA.**
+**Al cierre:** suite **641/647**, con **647 de 647 ejecutados** en doce lotes y en una sola pasada;
+rojos **TC-223, TC-376, TC-390, TC-406** y los dos intermitentes declarados **TC-551** y
+**TC-557**, ninguno nuevo. **33/33 mutaciones dirigidas muertas.** **Campos guardados 1002 →
+1004**, los dos autorizados. **Excel 441** columnas con las mismas claves. **Semgrep 124 WARNING /
+0 ERROR.** **Celular 59 a 360 px y 68 a 390, con 17 ALTA.** **Dieciséis cruces de dos motores sin
+una diferencia entre ellos.** `index.html` **11,09 MB / 155.230 líneas**; el diff son **1.219
+líneas agregadas y 221 quitadas** contra `efce508`.
+
+**Declarado y no arreglado:** `docs/PENDIENTES.md` → **P3-a** a **P3-s**, con **P3-h** y **P3-q**
+cerrados. Guía de prueba manual en **43** pasos en `docs/GUIA_PRUEBA_PANT3.md`.
 
 ## TANDA NOCTURNA, Parte A — «A» · 2026-10-30
 
