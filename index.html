@@ -86258,6 +86258,19 @@ function _indFilaCtrl(lbl, clave, ops, marca, nota, refs){
   return { lbl:lbl, ctrl:{ clave:clave, ops:ops }, marca:marca || 'ask', nota:nota || '', refs:_indRefsNorm(refs) };
 }
 
+/* ══ LAS FILAS DE UNA LISTA, ELEGIDAS POR SU CLAVE (PANT-6, commit 7) ═════════════════════════
+   Los grupos del molde se arman nombrando las claves de sus preguntas y NO sus posiciones: hay
+   secciones cuya lista clinica es VARIABLE -la insuficiencia mitral secundaria agrega hasta tres
+   preguntas segun el tipo-, y con indices el grupo se llevaria la pregunta equivocada en cuanto
+   una condicion cambie. Devuelve las que existen, en el orden en que se las pide, y descarta en
+   silencio las que esa escena no tiene: eso es lo que hace que un grupo condicional no publique
+   un hueco. */
+function _indPorClave(lista, claves){
+  return (claves || []).map(function(k){
+    return (lista || []).filter(function(f){ return f && f.ctrl && f.ctrl.clave === k; })[0];
+  }).filter(Boolean);
+}
+
 /* ══ EL DATO DEL ESTUDIO, O CONTESTADO ACÁ ════════════════════════════════════════════════════
    Hay campos que el panel necesita y que viven en la pestaña ETE. Esa pestaña es un
    `data-mod="ete"` dentro de `.tabs-special`, y `applyViewMode()` pone esa fila entera en
@@ -86654,6 +86667,70 @@ const IND_TERMINOS = Object.freeze({
         que en el severo asintomatico la prueba de esfuerzo es la que confirma el estado.
      ⚠️ Y LA DIFERENCIA ES LA MISMA QUE EN LAS OTRAS DOS: la ESC/EACTS 2025 dice «sintomatico» en
         sus filas de estenosis aortica y no enumera cuales. Ningun corte se toca. */
+  /* ══ QUE SINTOMAS CUENTAN EN LA INSUFICIENCIA MITRAL PRIMARIA (PANT-6, commit 7) ═════════
+     LEIDO EN IMAGEN a 230 ppp el 2026-11-03, con el folio comprobado en el PIE IMPRESO de la
+     hoja: AHA/ACC 2020 (Otto), Tabla 17 «Stages of Chronic Primary MR», hoja 50, folio e121,
+     columna «Symptoms». Sus estadios A, B y C dicen «None» y el D nombra DOS. */
+  impsintomas: Object.freeze({
+    rotulo: 'Síntomas en la insuficiencia mitral primaria',
+    tipo: 'definicion',
+    tam: 'chica',
+    etiqueta: 'Qué síntomas cuentan en la insuficiencia mitral primaria',
+    que: 'La respuesta separa dos cosas a la vez: el estadio C del D, y la fila de cirugía del '
+       + 'paciente sintomático operable de los criterios del asintomático.',
+    items: Object.freeze([
+      Object.freeze({ t:'AHA/ACC 2020 — los nombra, y son dos',
+        d:'En su tabla de estadios, el estadio sintomático queda definido por la disminución de '
+        + 'la tolerancia al ejercicio y la disnea de esfuerzo. Los tres estadios anteriores '
+        + 'figuran sin ningún síntoma.' }),
+      Object.freeze({ t:'ESC/EACTS 2025 — no los define',
+        d:'Sus filas de intervención hablan del paciente «sintomático» sin enumerar cuáles.' }),
+      Object.freeze({ t:'Qué hace esta aplicación',
+        d:'No resuelve la diferencia y no mueve ningún corte. «Sin dato» no cuenta como «No».' })
+    ]),
+    guia: 'Las dos guías usan los síntomas para el mismo corte y sólo una los enumera: la '
+        + 'diferencia se muestra y la decide quien informa.',
+    fuente: 'AHA/ACC 2020 (Otto), Tabla 17 «Stages of Chronic Primary MR», hoja 50, folio e121, '
+          + 'columna «Symptoms». ESC/EACTS 2025, tabla de recomendaciones de insuficiencia mitral.'
+  }),
+  /* ══ QUE SINTOMAS CUENTAN EN LA INSUFICIENCIA MITRAL SECUNDARIA (PANT-6, commit 7) ════════
+     LEIDO EN IMAGEN a 230 ppp el 2026-11-03, folio comprobado en el PIE IMPRESO: AHA/ACC 2020
+     (Otto), Tabla 18 «Stages of Chronic Secondary MR», hoja 57, folio e128, columna «Symptoms».
+     ⚠️ ACA LA DIFERENCIA ENTRE LAS DOS GUIAS NO ES DE REDACCION SINO CLINICA, y es la que PANT-5
+        ya habia declarado: en esta valvula los sintomas NO separan C de D por si solos. Los
+        CUATRO estadios admiten sintomas; lo que define el D es que PERSISTAN despues de la
+        revascularizacion y de optimizar el tratamiento medico. */
+  imssintomas: Object.freeze({
+    rotulo: 'Síntomas en la insuficiencia mitral secundaria',
+    tipo: 'definicion',
+    tam: 'chica',
+    etiqueta: 'Qué síntomas cuentan en la insuficiencia mitral secundaria',
+    que: 'En esta válvula los síntomas no separan por sí solos el estadio C del D: lo que define '
+       + 'el estadio sintomático es que persistan después del tratamiento.',
+    items: Object.freeze([
+      Object.freeze({ t:'AHA/ACC 2020 — los admite en los cuatro estadios',
+        d:'En los tres primeros, la tabla dice que pueden estar presentes síntomas atribuibles a '
+        + 'isquemia coronaria o a insuficiencia cardíaca que responden a la revascularización y '
+        + 'al tratamiento médico apropiado.' }),
+      Object.freeze({ t:'Y el estadio sintomático es el que NO responde',
+        d:'El cuarto queda definido porque los síntomas de insuficiencia cardíaca atribuibles a '
+        + 'la insuficiencia mitral PERSISTEN aun después de la revascularización y de optimizar '
+        + 'el tratamiento médico. La misma celda nombra la disminución de la tolerancia al '
+        + 'ejercicio y la disnea de esfuerzo.' }),
+      Object.freeze({ t:'ESC/EACTS 2025 — no los define',
+        d:'Sus filas hablan del paciente sintomático en clase funcional II a IV y evalúan la '
+        + 'severidad después de optimizar el tratamiento médico, sin enumerar qué síntomas '
+        + 'cuentan.' }),
+      Object.freeze({ t:'Qué hace esta aplicación',
+        d:'Pregunta los síntomas y el tratamiento médico optimizado por separado, y no resuelve '
+        + 'la diferencia. «Sin dato» no cuenta como «No».' })
+    ]),
+    guia: 'La condición de la guía que usa estadios no es tener síntomas sino que persistan tras '
+        + 'el tratamiento: por eso esta sección pregunta las dos cosas.',
+    fuente: 'AHA/ACC 2020 (Otto), Tabla 18 «Stages of Chronic Secondary MR», hoja 57, folio e128, '
+          + 'columna «Symptoms». ESC/EACTS 2025, tabla de recomendaciones de insuficiencia mitral '
+          + 'secundaria.'
+  }),
   easintomas: Object.freeze({
     rotulo: 'Síntomas en la estenosis aórtica',
     tipo: 'definicion',
@@ -88782,13 +88859,15 @@ function _indIM(){
   /* EL ESTADIO (PANT-5, commit 9), por el mismo motivo que en las dos aorticas de PANT-4: va en
      la lista CLINICA y no en la de datos del eco, porque lo que lo decide es una pregunta que el
      ecocardiograma no contesta. SOLO en la Evidencia: no llega al papel. */
-  const _estIMP = _indEstFila(_indEstIMP());
+  const _estIMP = _indEstIMP();
   const clinica = [
-    _indFilaCtrl('Síntomas', 'im.sintomas', [{v:'si',t:'Sí'},{v:'no',t:'No'}],
+    /* El globo dice QUE sintomas cuentan (PANT-6, commit 7). */
+    Object.assign(_indFilaCtrl('Síntomas', 'im.sintomas', [{v:'si',t:'Sí'},{v:'no',t:'No'}],
       _sx === 'si' ? 'ok' : (_sx === 'no' ? 'none' : 'ask'),
       _sx === 'si' ? 'Clase I · Nivel B en el paciente operable, con independencia de los números de arriba'
       : _sx === 'no' ? 'el asintomático entra por la disfunción ventricular o por el tres-de-cuatro'
       : 'sin esto no se puede separar la Clase I del resto de la tabla'),
+      { term: 'impsintomas' }),
     /* ⚠️ TRES ESTADOS Y NO DOS, Y LA RAZÓN ES CLÍNICA: la guía usa la fibrilación auricular en DOS
        filas distintas y con dos definiciones. En el tres-de-cuatro es «AF» a secas; en la fila de
        Clase IIa es «AF SECONDARY TO MR», y el texto que se publica lo afirma. Con un sí/no, una
@@ -88809,7 +88888,7 @@ function _indIM(){
       _rep === 'si' ? 'ok' : (_rep === 'no' ? 'none' : 'ask'),
       'es condición de la Clase I del tres-de-cuatro, de la fila de dilatación auricular y de que la reparación sea la técnica recomendada; la decide el equipo, no el ecocardiograma')
   ];
-  if (_estIMP) clinica.unshift(_estIMP);
+  /* EL ESTADIO SE MUDO A LA FRANJA AMBAR DEL MOLDE (PANT-6, commit 7). */
 
   const disf = { dtsvi:_ge(dsf, IM_CRIT_2025.dtsvi), idx:_ge(dsfi, IM_CRIT_2025.dtsvi_idx),
                  fevi:(fevi != null && _le(fevi, IM_CRIT_2025.fevi)) };
@@ -88849,7 +88928,42 @@ function _indIM(){
   if (aiDiamL.fuera) ileg.push('el diámetro de aurícula izquierda');
   if (bsaFuera)      ileg.push('el peso o la talla');
   const D = { mec:oMec, disf:disf, tres:tres };
-  return { filas: filas,
+  /* ══ EL MOLDE (PANT-6, commit 7) ══════════════════════════════════════════════════════════
+     La premisa se reproduce: con el panel maximizado, la columna del eco medi­a 283,4 px de alto
+     contra 370,8 de la de preguntas, o sea 87,4 px de VACIO a 1440 px y 71,3 a 1000. Es el mas
+     chico de los medidos, porque esta valvula tiene SEIS filas de eco.
+     ⚠️ LAS CUATRO PREGUNTAS VAN EN UNA SOLA COLUMNA: seis o menos, una columna.
+     ⚠️ LOS DOS GRUPOS NO SE INVENTAN. «Indicacion» son los sintomas -Clase I en el operable- y la
+        fibrilacion auricular -que cuenta en el tres-de-cuatro y es por si sola una fila de Clase
+        IIa cuando es secundaria a la insuficiencia-. «Cirugia — riesgo y reparabilidad» son el
+        riesgo quirurgico -que esas dos filas exigen BAJO- y la reparacion duradera, cuya nota
+        dice textual que «la decide el equipo, no el ecocardiograma».
+     ⚠️ LAS FILAS SE ELIGEN POR SU CLAVE Y NO POR SU POSICION, que es lo que hace que el grupo no
+        se lleve la pregunta equivocada el dia que la lista cambie. */
+  const molde = {
+    /* ⚠️ LA FRANJA TOMA LA FILA DEL GRADO ENTERA -su valor, su nota y sus REFS- y no un texto
+       nuevo. Lo cazo TC-339 sobre la secundaria: esa fila lleva la posicion de CADA guia con su
+       cita, asi que filtrarla de las tarjetas sin subirle los corchetes movia el ORDEN de
+       primera aparicion y la ACC/AHA pasaba de [2] a [3]. Es el mismo arreglo que la estenosis
+       mitral ya tenia. */
+    cat: (function(){
+      const g = filas.filter(function(f){ return f && f.lbl && f.lbl.indexOf('Grado de insuficiencia') === 0; })[0];
+      return { et:'Grado — el que publica el informe',
+               txt:'Insuficiencia mitral primaria ' + String((g && g.val) || 'severa').toLowerCase(),
+               por: g ? String(g.nota || '') : 'la sección sólo se abre con el grado severo',
+               refs: g ? (g.refs || null) : null };
+    })(),
+    est: _estIMP ? { et:'Estadio (AHA/ACC 2020)', txt:_estIMP.txt, por:_estIMP.nota } : null,
+    /* La fila del GRADO sale de las tarjetas: subio a la franja y publicarla dos veces es el
+       defecto que el medico reporto del estadio. */
+    datos: filas.filter(function(f){ return f && f.lbl && f.lbl.indexOf('Grado de insuficiencia') !== 0; })
+      .map(function(f){ return { lbl:f.lbl, val:f.val, refs:f.refs || null,
+        est:String(f.nota || '').split(' · ')[0] }; }),
+    cols: [ [ { tit:'Indicación', filas:_indPorClave(clinica, ['im.sintomas','im.fa']) },
+              { tit:'Cirugía — riesgo y reparabilidad', filas:_indPorClave(clinica, ['im.riesgo','im.reparable']) } ] ],
+    pie: null
+  };
+  return { filas: filas, molde: molde,
     aviso: oMec.val === 'secundaria'
       ? 'El mecanismo registrado es SECUNDARIO (funcional). Los umbrales de esta sección son los de la insuficiencia mitral PRIMARIA y no gobiernan esa situación.'
       : ileg.length
@@ -89140,7 +89254,7 @@ function _indIMS(){
   /* EL ESTADIO (PANT-5, commit 9), por el mismo motivo que en las dos aorticas de PANT-4: va en
      la lista CLINICA y no en la de datos del eco, porque lo que lo decide es una pregunta que el
      ecocardiograma no contesta. SOLO en la Evidencia: no llega al papel. */
-  const _estIMS = _indEstFila(_indEstIMS());
+  const _estIMS = _indEstIMS();
   const clinica = [
     /* ⚠️ EL TIPO LO ELIGE EL MÉDICO. Los criterios de la Figura 12 se unen con «Y» e incluyen
        datos clínicos que esta aplicación no recoge, así que deducirlo sería inventar una
@@ -89150,16 +89264,18 @@ function _indIMS(){
       _tipo ? 'ok' : 'ask',
       'AURICULAR: FEVI ≥ 50 % sin alteraciones segmentarias, cavidad no dilatada y sin tracción de velos, anillo dilatado (AP mayor que 35 mm) y aurícula agrandada. VENTRICULAR: FEVI menor de 50 %, con o sin alteraciones segmentarias, y movimiento restrictivo con tracción de velos. Lo elige el médico: los criterios se unen con «y» e incluyen datos clínicos que esta aplicación no recoge',
       ['esc2025vc']),
-    _indFilaCtrl('Síntomas', 'ims.sintomas', [{v:'si',t:'Sí'},{v:'no',t:'No'}],
+    /* El globo dice QUE sintomas cuentan, y en esta valvula la diferencia entre las dos guias
+       es CLINICA y no de redaccion (PANT-6, commit 7): ver el termino `imssintomas`. */
+    Object.assign(_indFilaCtrl('Síntomas', 'ims.sintomas', [{v:'si',t:'Sí'},{v:'no',t:'No'}],
       _sx === 'si' ? 'ok' : (_sx === 'no' ? 'none' : 'ask'),
       'todas las filas de indicación son del paciente sintomático (clase NYHA II a IV)',
-      ['esc2025vc']),
+      ['esc2025vc']), { term: 'imssintomas' }),
     _indFilaCtrl('Tratamiento médico optimizado', 'ims.tmo', [{v:'si',t:'Sí'},{v:'no',t:'No'}],
       _tmo === 'si' ? 'ok' : (_tmo === 'no' ? 'none' : 'ask'),
       'la severidad se evalúa DESPUÉS de optimizarlo y en estado euvolémico y normotenso, e incluye la resincronización si estaba indicada',
       ['esc2025vc'])
   ];
-  if (_estIMS) clinica.unshift(_estIMS);
+  /* EL ESTADIO SE MUDO A LA FRANJA AMBAR DEL MOLDE (PANT-6, commit 7). */
   if (_tipo === 'ventricular') {
     clinica.push(_indFilaCtrl('Cirugía de revascularización coronaria programada', 'ims.cabg', [{v:'si',t:'Sí'},{v:'no',t:'No'}],
       _cabg ? 'ok' : 'ask',
@@ -89177,7 +89293,33 @@ function _indIMS(){
       ['esc2025vc']));
   }
 
-  return { filas: filas, clinica: clinica,
+  /* ══ EL MOLDE (PANT-6, commit 7) ══════════════════════════════════════════════════════════
+     ⚠️ LA LISTA DE PREGUNTAS DE ESTA SECCION ES VARIABLE: son TRES de base y hasta TRES mas
+        segun el tipo de insuficiencia secundaria, asi que los grupos se arman por CLAVE y no por
+        posicion. Con seis o menos, UNA sola columna.
+     ⚠️ LOS DOS GRUPOS NO SE INVENTAN. «Clinica» son el tipo, los sintomas y el tratamiento medico
+        optimizado -la guia evalua la severidad DESPUES de optimizarlo, textual de su nota-.
+        «Procedimiento» son la revascularizacion programada, los criterios especificos para TEER
+        y la candidatura a cirugia, las tres condicionales. Un grupo cuyas tres preguntas no
+        existen en esta escena no se pinta: `_indMoldeHTML` omite los grupos sin filas. */
+  const molde = {
+    /* Misma regla que en la primaria: la franja toma la fila del grado entera, con sus REFS. */
+    cat: (function(){
+      const g = filas.filter(function(f){ return f && f.lbl && f.lbl.indexOf('Grado de insuficiencia') === 0; })[0];
+      return { et:'Grado — el que publica el informe',
+               txt:'Insuficiencia mitral secundaria ' + String((g && g.val) || 'severa').toLowerCase(),
+               por: g ? String(g.nota || '') : 'la sección sólo se abre con el grado severo',
+               refs: g ? (g.refs || null) : null };
+    })(),
+    est: _estIMS ? { et:'Estadio (AHA/ACC 2020)', txt:_estIMS.txt, por:_estIMS.nota } : null,
+    datos: filas.filter(function(f){ return f && f.lbl && f.lbl.indexOf('Grado de insuficiencia') !== 0; })
+      .map(function(f){ return { lbl:f.lbl, val:f.val, refs:f.refs || null,
+        est:String(f.nota || '').split(' · ')[0] }; }),
+    cols: [ [ { tit:'Clínica', filas:_indPorClave(clinica, ['ims.tipo','ims.sintomas','ims.tmo']) },
+              { tit:'Procedimiento', filas:_indPorClave(clinica, ['ims.cabg','ims.teercrit','ims.cxcandidato']) } ] ],
+    pie: null
+  };
+  return { filas: filas, molde: molde, clinica: clinica,
     recom: _indIMSRecom({ tipo:_tipo, fevi:fevi }),
     /* ⚠️ LA LÍNEA DE CRITERIO SIGUE AL TIPO. Era estática y publicaba la fila VENTRICULAR —Clase I ·
        Nivel A— también en el paciente auricular, en negrita y al pie: dos clases en la misma
@@ -154646,8 +154788,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261103-1947';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793746074525;                 /* eco-build-ms */
+const ECO_BUILD    = '20261103-2008';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793747338313;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -154733,7 +154875,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261103-1947</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261103-2008</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

@@ -46488,10 +46488,17 @@ caso('TC-329', 'Evidencia IM secundaria: auricular y ventricular, cada una a su 
        clase—: lo que este helper quiere son los parrafos del detalle, no los envoltorios de
        maquetado. Se arregla en LAS DOS COPIAS (TC-329 y TC-328) aunque la segunda estuviera verde:
        ahi pasaba porque sus fragmentos no colisionan, o sea por suerte y no por el filtro. */
+    /* ADAPTADO POR PANT-6, commit 7: se excluye tambien la FRANJA del molde, por el mismo
+       argumento con que este helper ya excluye la bibliografia y los envoltorios de grilla y
+       POR ATRIBUTO, no por posicion. Lo que este helper quiere son los PARRAFOS DEL DETALLE, y
+       la franja es el titular de la seccion: desde que lleva la nota de la fila del grado -con
+       su cita, que es lo que conserva el orden de numeracion-, esa nota aparece en DOS leaf divs
+       y el conteo de «notas que nombran el umbral» pasaba de 1 a 2 sin que ninguna nota nueva
+       existiera. El invariante que el caso vigila no cambia: cada una lleva su corchete. */
     const hojas = function(sec){
       return sec ? Array.prototype.slice.call(sec.querySelectorAll('details div div'))
         .filter(function(d){ return d.querySelectorAll('div').length === 0 &&
-          !d.closest('[data-ind-biblio]') &&
+          !d.closest('[data-ind-biblio]') && !d.closest('.ind-franja') &&
           !d.hasAttribute('data-ind-grid') && !d.hasAttribute('data-ind-col'); }) : [];
     };
     const notaCon = function(sec, frag, clave){
@@ -46716,10 +46723,17 @@ caso('TC-328', 'Evidencia: los cuatro textos corregidos contra el original ingle
        clase—: lo que este helper quiere son los parrafos del detalle, no los envoltorios de
        maquetado. Se arregla en LAS DOS COPIAS (TC-329 y TC-328) aunque la segunda estuviera verde:
        ahi pasaba porque sus fragmentos no colisionan, o sea por suerte y no por el filtro. */
+    /* ADAPTADO POR PANT-6, commit 7: se excluye tambien la FRANJA del molde, por el mismo
+       argumento con que este helper ya excluye la bibliografia y los envoltorios de grilla y
+       POR ATRIBUTO, no por posicion. Lo que este helper quiere son los PARRAFOS DEL DETALLE, y
+       la franja es el titular de la seccion: desde que lleva la nota de la fila del grado -con
+       su cita, que es lo que conserva el orden de numeracion-, esa nota aparece en DOS leaf divs
+       y el conteo de «notas que nombran el umbral» pasaba de 1 a 2 sin que ninguna nota nueva
+       existiera. El invariante que el caso vigila no cambia: cada una lleva su corchete. */
     const hojas = function(sec){
       return sec ? Array.prototype.slice.call(sec.querySelectorAll('details div div'))
         .filter(function(d){ return d.querySelectorAll('div').length === 0 &&
-          !d.closest('[data-ind-biblio]') &&
+          !d.closest('[data-ind-biblio]') && !d.closest('.ind-franja') &&
           !d.hasAttribute('data-ind-grid') && !d.hasAttribute('data-ind-col'); }) : [];
     };
     const notasCon = function(sec, frag){
@@ -64203,8 +64217,8 @@ caso('TC-451', 'Evidencia: los dos ⓘ de termino abren su tarjeta completa y an
          de los sintomas de la insuficiencia aortica. Y ese caso HIZO SU TRABAJO: la primera
          version de los dos globos de sintomas compartia el aria-label «Que sintomas cuentan», o
          sea la clave que hace que abrir uno no abra el otro. Hoy cada uno nombra su valvula. */
-      ex.push(['el registro tiene las CINCO entradas y cada ⓘ es un <button> con aria-label PROPIO y distinto',
-        JSON.stringify(ids) === JSON.stringify(['cormier','easintomas','emsintomas','iasintomas','score_eco']) &&
+      ex.push(['el registro tiene las SIETE entradas y cada ⓘ es un <button> con aria-label PROPIO y distinto',
+        JSON.stringify(ids) === JSON.stringify(['cormier','easintomas','emsintomas','iasintomas','impsintomas','imssintomas','score_eco']) &&
         b0.every(b => b.tagName === 'BUTTON' && b.getAttribute('aria-haspopup') === 'dialog') &&
         etqs.length === 3 && (new Set(etqs)).size === 3 && etqs.every(e => e && e.trim()),
         'ids=' + JSON.stringify(ids) + ' etiquetas=' + JSON.stringify(etqs) +
