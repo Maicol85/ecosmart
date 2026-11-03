@@ -108683,9 +108683,19 @@ caso('TC-623', 'Tanda PANT-3: los botones CIA y CIV marcan la lesion, se pintan 
     e.dispatchEvent(new Event('change', { bubbles: true })); return 'ok' };
   const chk = (id) => { const e = document.getElementById(id); return e ? (e.checked ? 1 : 0) : 'NO EXISTE' };
   const clic = (id) => { const b = document.getElementById(id); if (!b) return 'NO EXISTE'; b.click(); return 'ok' };
+  /* ⚠️ NI UNA BARRA INVERTIDA EN UNA EXPRESION REGULAR DENTRO DEL CUERPO DE UN CASO. El cuerpo
+     es un template literal: una barra simple NO sobrevive. Esta trampa se cobro TRES de estos
+     cinco casos de una vez, y cada uno de una forma distinta y silenciosa:
+       · el colapso de espacios se escribia con la clase de espacio y llegaba como la LETRA ESE,
+         asi que «Esquema ilustrativo» quedaba «E quema ilu trativo» y el censo no lo encontraba;
+       · el parentesis escapado del color llegaba como un GRUPO, asi que la prueba de fondo
+         transparente no podia dar verdadero NUNCA y el boton siempre parecia pintado;
+       · lo mismo con el parentesis de la regla de la hoja de estilos.
+     El colapso de espacios se arma con los codigos de caracter y el resto se hace con indexOf. */
   const relleno = (id) => { const b = document.getElementById(id); if (!b) return 'NO EXISTE';
-    const c = getComputedStyle(b).backgroundColor;
-    return /rgba?\(0, 0, 0, 0\)|transparent/.test(c) ? 'sin relleno' : 'con relleno' };
+    const c = String(getComputedStyle(b).backgroundColor || '');
+    const vacio = c === 'transparent' || c.indexOf('rgba(0, 0, 0, 0)') >= 0;
+    return vacio ? 'sin relleno' : 'con relleno' };
   const inf = () => { try { generarInforme() } catch (e) {}
     const e = document.getElementById('informe_texto'); return e ? String(e.value || '') : '' };
   const suma = () => { const e = document.getElementById('en_suma'); return e ? String(e.value || '') : '' };
@@ -108908,6 +108918,8 @@ caso('TC-625', 'Tanda PANT-3: ninguna pantalla ni documento dice que algo este p
   const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]),
                  'dio «' + t[1] + '» · esperado «' + t[2] + '»']) };
   const esperar = (ms) => new Promise((r) => setTimeout(r, ms));
+  const _ESP = new RegExp('[' + String.fromCharCode(32, 9, 10, 13) + ']+', 'g');
+  const _plano = (x) => String(x == null ? '' : x).replace(_ESP, ' ');
   /* ⚠️ EL TEXTO SE JUNTA SIN LOS SCRIPT. body.textContent trae el codigo fuente de los bloques
      inline, y los comentarios que explican por que una frase se retiro la contienen: el caso se
      mediria a si mismo. Es la trampa que la tanda C2 documenta. */
@@ -108920,7 +108932,7 @@ caso('TC-625', 'Tanda PANT-3: ninguna pantalla ni documento dice que algo este p
         q = q.parentElement; }
       return NodeFilter.FILTER_ACCEPT } });
     while (w.nextNode()) t += ' ' + w.currentNode.nodeValue;
-    return t.replace(/\s+/g, ' ');
+    return _plano(t);
   };
   /* (A) EL CENSO sobre las dos sub-pestanias de congenitas, que es donde vivian las frases. */
   let t = '';
@@ -109033,15 +109045,21 @@ caso('TC-626', 'Tanda PANT-3: el boton 3D del corazon maestro es uno solo, se ve
   ex.push(['(D0) DENOM: la linea existe', faltan() !== 'NO EXISTE', true]);
   EXP.push(['(D1) sin lesiones cargadas dice que se muestra el corazon normal',
     faltan().indexOf('Sin lesiones cargadas') >= 0, 'linea=' + faltan().slice(0, 120)]);
+  /* ⚠️ SE CARGA TAMBIEN UNA COMUNICACION, Y ES UN HUECO QUE DESTAPO UNA MUTACION. Sin ella el
+     control (D3) pasaba sobre una escena donde NO HAY comunicaciones cargadas, asi que vaciar la
+     lista de lo que el diagrama dibuja no lo podia romper: la mutacion sobrevivia. Con la CIA y
+     el ductus cargados, (D3) distingue de verdad lo que se dibuja de lo que se declara. */
   S('coa_istmo', '8'); S('mch_espesor', '18');
-  await esperar(350);
+  S('ete_cia_tipo', 'secundum'); S('ete_cia_tam_max', '12');
+  S('dap_tipo', 'restrictivo'); S('dap_diam', '4');
+  await esperar(400);
   try { cc3dTextoSync() } catch (e) {}
   await esperar(200);
   const f2 = faltan();
   ex.push(['(D2) con la coartacion y la miocardiopatia cargadas las nombra como no dibujadas',
     f2.indexOf('CoAo') >= 0 && f2.indexOf('MCH') >= 0, true]);
-  ex.push(['(D3) CONTROL NEGATIVO: no nombra las comunicaciones, que SI dibuja',
-    f2.indexOf('CIA') >= 0 || f2.indexOf('DAP') >= 0, false]);
+  EXP.push(['(D3) CONTROL NEGATIVO: con la CIA y el ductus CARGADOS no los nombra, porque SI los dibuja',
+    f2.indexOf('CIA') < 0 && f2.indexOf('DAP') < 0, 'linea=' + f2.slice(0, 140)]);
 
   /* (E) AL CAMBIAR DE PESTANIA SE CIERRA Y DEVUELVE EL RECUADRO. */
   try { showTab('valvulas') } catch (e) {}
@@ -109078,6 +109096,8 @@ caso('TC-627', 'Tanda PANT-3: la pantalla de MCH conserva sus treinta campos, pa
   const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]),
                  'dio «' + t[1] + '» · esperado «' + t[2] + '»']) };
   const esperar = (ms) => new Promise((r) => setTimeout(r, ms));
+  const _ESP = new RegExp('[' + String.fromCharCode(32, 9, 10, 13) + ']+', 'g');
+  const _plano = (x) => String(x == null ? '' : x).replace(_ESP, ' ');
   try { showTab('congenitas'); ccSubTab('congenitas') } catch (e) {}
   const sec = document.getElementById('sacc-cc-mch');
   ex.push(['(A0) DENOM: la seccion de MCH existe', !!sec, true]);
@@ -109116,7 +109136,7 @@ caso('TC-627', 'Tanda PANT-3: la pantalla de MCH conserva sus treinta campos, pa
     }
   } catch (e) { regla = 'ERR' }
   EXP.push(['(B5) y la regla de 900 px reparte en tres',
-    /repeat\(3,/.test(regla), 'regla=' + regla]);
+    String(regla).indexOf('repeat(3') >= 0, 'regla=' + regla]);
 
   /* (C) LAS FRASES QUE PASARON AL GLOBO YA NO ESTAN EN LA PANTALLA. */
   let t = '';
@@ -109125,7 +109145,7 @@ caso('TC-627', 'Tanda PANT-3: la pantalla de MCH conserva sus treinta campos, pa
     while (q) { if (q.tagName === 'SCRIPT' || q.tagName === 'STYLE') return NodeFilter.FILTER_REJECT; q = q.parentElement }
     return NodeFilter.FILTER_ACCEPT } });
   while (w.nextNode()) t += ' ' + w.currentNode.nodeValue;
-  t = t.replace(/\s+/g, ' ');
+  t = _plano(t);
   ex.push(['(C0) DENOM: la pantalla tiene texto', t.length > 300, true]);
   [['la historia de una edicion de la guia', 'salió de la lista en esa edición'],
    ['la frase del realce tardio que la hoja no respalda', 'El realce tardío sí cuenta para la AHA'],
