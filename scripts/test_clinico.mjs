@@ -108903,8 +108903,17 @@ caso('TC-628', 'Tanda PANT-3: la pantalla de MCA reparte sus campos, sus textos 
   ex.push(['(B3) los criterios NO ecocardiograficos quedan FUERA de la fila',
     (function () { const z = document.getElementById('mca-nocols'), f = document.getElementById('mca-fila');
       return (z && f) ? (f.contains(z) ? 'adentro' : 'afuera') : 'NO EXISTE' })(), 'afuera']);
+  /* (B4) ADAPTADA EN LA TANDA PANT-5 (03/11/2026): #tdf-fila SALIO de este selector. La orden
+     de PANT-5 pone la conclusion de Fallot a la derecha desde 900 px SOLO SI sus tres columnas
+     de campos no quedan por debajo de 200 px, y medido NO se cumple -con la conclusion al lado,
+     #tdf-campos mide 344 px a 900 y 444 a 1000, o sea columnas de 108 y 141-, asi que esa fila
+     pasa a 1200 px. Las otras TRES no se movieron.
+     La condicion queda MAS FUERTE que antes: vigila el selector de las tres Y el corte propio de
+     Fallot, asi que puede volver a fallar por cualquiera de los dos lados. */
   ex.push(['(B4) desde 900 px la fila reparte campos y conclusion',
-    regla('#mca-fila, #tdf-fila, #esub-fila, #easv-fila', 'gridTemplateColumns'), 'minmax(0px, 1fr) 320px']);
+    regla('#mca-fila, #esub-fila, #easv-fila', 'gridTemplateColumns'), 'minmax(0px, 1fr) 320px']);
+  ex.push(['(B4b) y Fallot tiene su propio corte, en 1200 px',
+    regla('#tdf-fila', 'gridTemplateColumns'), 'minmax(0px, 1fr) 320px']);
   ex.push(['(B5) y los criterios del eco van en DOS columnas',
     regla('#mca-eco-cols', 'gridTemplateColumns'), 'repeat(2, minmax(0px, 1fr))']);
   ex.push(['(B6) y las categorias en TRES, que es lo que las deja tres arriba y dos abajo',
@@ -110006,9 +110015,14 @@ caso('TC-635', 'Tanda PANT-4: la conclusion de pantalla de las dos estenosis no 
   ex.push(['(A2) ni derivacion a cirugia', cs.indexOf('Derivación a cirugía') >= 0, false]);
   ex.push(['(A3) ni la frase de evaluar la indicacion quirurgica', cs.indexOf('indicación quirúrgica') >= 0, false]);
   ex.push(['(A4) ni la interpretacion quirurgica de la insuficiencia', cs.indexOf('decisión quirúrgica') >= 0, false]);
-  /* LO QUE SE QUEDA: la explicacion de por que el gradiente medio es el que gradua, y la
-     severidad con su guia, que en PANTALLA si se puede nombrar. */
-  ex.push(['(A5) se queda la severidad con su guia', cs.indexOf('severa (ESC 2020)') >= 0, true]);
+  /* (A5) INVERTIDA EN LA TANDA PANT-5 (03/11/2026), Y ES EL DIA QUE ESTE CASO ANUNCIABA. Decia
+     «se queda la severidad con su guia, que en PANTALLA si se puede nombrar», y era cierto
+     cuando se escribio; la decision del medico de PANT-5 lo revierte: la pantalla tampoco nombra
+     guias, y el nombre, el criterio, la hoja y el folio quedan SOLO en el globo esub-grad.
+     NO se borra: se invierte y GANA una condicion, para que siga pudiendo fallar. Lo que
+     vigilaba -que la pastilla siga diciendo que la estenosis es severa- se conserva entero. */
+  ex.push(['(A5) la pastilla NO nombra la guia', cs.indexOf('(ESC 2020)') >= 0, false]);
+  ex.push(['(A5b) pero SI sigue diciendo que es severa', cs.indexOf('severa') >= 0, true]);
   ex.push(['(A6) y la alerta de Valsalva, en minuscula', cs.indexOf('obstrucción dinámica') >= 0, true]);
   __t.set('esub_gradiente_medio', ''); try { esubSync() } catch (e) {}
   const cs2 = __t.txt('esub-resultado') || '';

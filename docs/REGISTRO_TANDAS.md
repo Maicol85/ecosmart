@@ -795,6 +795,20 @@ después; A/B por commit con PDF y PPT generados de verdad; cinco casos nuevos (
 que caen contra HEAD por **86 condiciones y cero excepciones**; la geometría del dibujo del VD
 comparada contra la demo en **10 de 10 escenarios**.
 
+**Línea base al cierre:** **suite 652/658**, en doce lotes cubriendo los **658 casos distintos**
+(658 de 658 ejecutados), con el pendrive `DISK_IMG` verificado al abrir, en los doce lotes y al
+cerrar, y el md5 de `index.html` idéntico antes y después (**`98d60651`**). Rojos: **TC-223,
+TC-376, TC-390 y TC-406**, los cuatro de siempre, más **TC-182 y TC-551**, los dos intermitentes
+declarados; **ningún rojo nuevo**. La corrida dio 650/658 con **TC-628** y **TC-635**, los dos
+míos y los dos adaptados —TC-635 **invertida**, y es el día que ese caso anunciaba—. **Semgrep
+124 WARNING / 0 ERROR**, **Excel 441** columnas, **censo 1004** sin un campo guardado nuevo,
+celular **58 a 360 px y 66 a 390 con 17 ALTA** (la línea base exacta), y **Chrome y WebKit
+idénticos en los dieciséis cruces** con cero errores de consola. El **A/B final de 25 escenas**
+da **UNA** diferencia de superficie firmada, la autorizada del commit 6. Sello
+**`v20261103-1546`**, **11,22 MB / 156.792 líneas**, diff **1.164 / 152** contra `dbfc0c3`.
+**Son DIECISIETE commits**: los nueve de código más ocho de cobertura y documentación.
+**El push lo corre Maicol.**
+
 **Dónde está todo:** `docs/mapa/pant5-pantallas-vd.md` (**mapa nuevo**, 14,0 KB),
 `docs/fuentes/FUENTES.md` → «La tanda PANT-5» con las cuatro tablas transcritas,
 `docs/GUIA_PRUEBA_PANT5.md` y `docs/PENDIENTES.md` → **P5-a** a **P5-j**.

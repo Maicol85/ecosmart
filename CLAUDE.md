@@ -118,6 +118,7 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Tocar la EVIDENCIA DE CONGENITAS con sus DOS guias** —la ACC/AHA 2025 y la ESC 2020—, una pregunta de la transposicion, de la CIA o de la CIV, la regla «una pregunta, una guia», la linea de referencia de la otra guia, la nota de tramos que no coinciden, **o el EN SUMA de una valvula con PLASTIA o con TEER** | `docs/mapa/correvid-evidencia-congenitas.md` |
 | **Tocar el PAPEL de la TGA operada con JATENE o con RASTELLI**, el dueño `TGA_CIR_OP`, o **agregar una sección al panel de Evidencia con PREGUNTAS de tres estados** —la de la transposición, la CIA, la CIV o la prevención de muerte súbita de la MCH—: dónde se persisten las respuestas, cómo se agrupan las recomendaciones por situación y qué quedó parado | `docs/mapa/t2-evidencia-congenitas.md` |
 | **Orientarse en otro módulo** (Congénitas, Laboratorio, PPT, Cardio-Onco, Pericardio) | `docs/mapa/congenitas-otros.md` |
+| **Tocar el DIBUJO DE SOBRECARGA DEL VD de Hemodinámica** —su motor portado de la demo, su ancho derivado del esquema valvular, los dos rótulos, la línea del TAPSE, el botón de pausa o la fase quieta—, **el Forrester al lado de los valores**, o la PANTALLA del derrame y el taponamiento, de la CIA y la CIV lado a lado, de la Fallot reparada en tres columnas, de constricción contra restricción, el ORDEN del ETE mitral con sus dos puertas, o los ESTADIOS de la AHA/ACC 2020 de las cuatro válvulas que faltaban | `docs/mapa/pant5-pantallas-vd.md` |
 | **Tocar algo que la tanda C1 movió** (28/10): los cuatro rótulos de VExUS contra la Figura 7 de Rola 2021 y su Evidencia sin conducta por grado, la casilla de HTP que dice «sin evaluar», los tres mensajes del Forrester con su dueño único, la RVS leyendo `pamEfectiva` con el origen de sus insumos, el POCUS del posoperatorio viendo el `vd_vi` de VD/AD, o el DIAGRAMA DE FORRESTER de la pestaña de Hemodinámica con sus dos cortes | `docs/mapa/c1-hemodinamica.md` |
 | **Tocar la CALCULADORA DE RIESGO CV de cardio-oncología —la Tabla 4 y sus seis columnas, las filas de edad, la casilla sin fármaco—, las TRES TABLAS de la sub-pestaña HFA-ICOS o el MONITOREO de inmunoterapia y anti-VEGF** | `docs/mapa/d2-cardioonco-tabla4.md` |
 | **Tocar la HEMODINÁMICA, la CARDIO-ONCOLOGÍA, el SCORE DE AMILOIDOSIS o la ficha de ECO PULMONAR**: los tres ⓘ del índice cardíaco, la RVS y el Forrester; las dos ramas de RVS baja; el seguimiento tras radioterapia; las etiquetas del score que salieron; las TRES Evidencias nuevas o la ficha `ref-pulmon` | `docs/mapa/j2-hemo-onco-amiloide-pulmon.md` |
@@ -200,11 +201,22 @@ Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la v
 ## Qué es EcoSmart y cómo se trabaja
 
 - App clínica de ecocardiografía en **un solo `index.html`**: HTML + CSS + JS inline, sin build,
-  sin frameworks. Hoy **11,15 MB / 155.780 líneas**, medido con `wc -c` y `wc -l` el 2026-11-03 al
-  cierre de la tanda **PANT-4**, sobre el árbol ya sellado **y commiteado**: sello
-  **`v20261103-1204`**, md5 **`e986c258`**. El diff de la tanda son **689 líneas agregadas y
-  139 quitadas**, medido con `git diff --numstat` contra `1e4b70c`, con **cero** `innerHTML`, `eval` o
+  sin frameworks. Hoy **11,22 MB / 156.792 líneas**, medido con `wc -c` y `wc -l` el 2026-11-03 al
+  cierre de la tanda **PANT-5**, sobre el árbol ya sellado **y commiteado**: sello
+  **`v20261103-1546`**, md5 **`98d60651`**. El diff de la tanda son **1.164 líneas agregadas y
+  152 quitadas**, medido con `git diff --numstat` contra `dbfc0c3`, con **cero** `eval` y **cero**
   `new Function` nuevos y cero claves.
+  ⚠️ **CINCO `innerHTML` NUEVOS, y están declarados**: uno es preexistente y sólo cambió su
+  argumento, y los otros cuatro escriben **constantes literales** o un número pasado por
+  `toFixed(1)`. **Ninguno interpola un dato de texto del paciente** y Semgrep sigue en 124 / 0.
+  ⚠️ **POR PRIMERA VEZ EN SEIS TANDAS EL RENGLÓN QUE SE ENCONTRÓ ESTABA BIEN, y casi lo
+  estropeo yo.** Decía 155.780 líneas con el sello y el md5 de PANT-4, y `wc -l` sobre
+  `dbfc0c3:index.html` da **155.780** exactos: ni una de diferencia. Una medición mía a mitad de
+  la tanda dijo 155.781 y la escribí acá como si el renglón hubiera estado corto; al cerrar la
+  volví a tomar con `wc -l` sobre el blob del commit y era falsa. **El renglón se mide al final,
+  con `wc -l` sobre el archivo sellado y con `git show <commit>:index.html | wc -l` para el
+  anterior** —no con lo que uno anotó al abrir—.
+  (Antes: 11,15 MB / 155.780 al cierre de PANT-4, sello `v20261103-1204`, md5 `e986c258`.)
   (Antes: 11,09 MB / 155.230 al cierre de PANT-3, sello `v20261103-0256`, md5 `0422963d`.) El diff de la tanda son **1.219 líneas agregadas y 221
   quitadas**, medido con `git diff` contra `efce508`. **Cero** `innerHTML`, `eval` o
   `new Function` nuevos, y cero claves.
@@ -565,6 +577,267 @@ impecable.
 > secciones de REGLAS (la regla de oro con su tabla de mapas, «Qué es EcoSmart», el panel de
 > Evidencia, el protocolo de verificación, las trampas conocidas, el flujo de trabajo,
 > SEGURIDAD y la tabla de Procedencia) siguen enteras y en su lugar, verificado byte por byte.
+### El dibujo de sobrecarga del VD, el Forrester y cinco pantallas — «PANT-5» (2026-11-03)
+
+- **DIECISIETE commits —contados con `git log`—, y los NUEVE de código se hicieron enteros.**
+  `4c2fc62` (1) · `cd5a720` (2) · `e60bdcc` (3) · `6068a1c` (4) · `92a7bd7` (5) · `c39635d` (6)
+  · `ff77df1` (7) · `9d65244` (8) · `b6f3a76` (9) · los **ocho** de cobertura y documentación.
+  Sello **`v20261103-1546`**, md5 de `index.html` **`98d60651`**. Al empezar, `origin/main` = `HEAD` =
+  **`dbfc0c3`**, el cierre de PANT-4, ya publicado, con md5 `e986c258`, sello `v20261103-1204` y
+  el pendrive `DISK_IMG` montado. **El push lo corre Maicol: esta tanda tenía orden expresa de
+  NO pushear.** Cierra **P4-a**, **P4-d** y **P4-f**.
+
+- **EL DIBUJO DE SOBRECARGA DEL VD: 10 DE 10 ESCENARIOS IDÉNTICOS A LA DEMO**, que es la
+  condición que la orden pone. No se comparan píxeles: con las MISMAS entradas y la MISMA fase se
+  leen los atributos `d` del contorno, de las dos cavidades, de las cuatro valvas, del chorro y
+  de las dos marcas, más las posiciones de los tres rótulos, la barra del TAPSE y el `viewBox`.
+  Cinco escenarios × dos fases, tolerancia declarada **0,011** —los dos lados redondean a dos
+  decimales con la misma función— y **1.058 a 1.131 caracteres de trazado de cada lado** como
+  denominador en cada escena.
+  **Es SOLO LECTURA y está medido**: tras seis fases y seis sincronizaciones, **cero campos
+  movidos** en los cuatro anchos. **Mudo sin un solo dato**: cero textos visibles, con el contorno
+  dibujado (369 caracteres) como denominador. **Un solo color**: cero nodos fuera de la escala de
+  grises más el celeste. **Y nada llega al papel**: `vdsc` no aparece en ningún registro de PDF,
+  de PPT ni de módulo integrado, censado.
+
+- ⚠️ **LA GEOMETRÍA NO SE COMPARTE CON EL ESQUEMA VALVULAR 2D, Y ES UNA MEDICIÓN, NO UN GUSTO.**
+  De los seis juegos de datos, `OUT` (424 B) y `JET.it` (565 B) son **idénticos**; `CL`, `CR` y
+  los dos juegos de valvas son **distintos**, porque la demo los re-digitalizó sin tracto de
+  salida ni válvula aórtica. Lo compartible son **989 bytes sobre 11,2 MB**, y sacarlos a un
+  dueño común obliga a editar el motor del esquema valvular —cuyo `D` vive dentro de su propia
+  IIFE y no es alcanzable desde afuera—, que es justo lo que la orden prohíbe tocar. La firma de
+  `#v2d-svg` sale **IDÉNTICA**: 8.683 caracteres nodo por nodo en las cinco escenas del A/B.
+
+- ⚠️ **EL ROTULO VA EN UN GRIS PURO Y LO DECIDIÓ UNA MEDICIÓN.** Con `var(--text)` de la app —un
+  gris **azulado**, rgb(232, 236, 244)— la sonda por color contaba once nodos fuera de la escala
+  de grises: los once textos del dibujo. La orden pide las variables de tema **de la demo**, cuyo
+  gris es puro.
+
+- ⚠️ **A LA MITAD DEL ESQUEMA VALVULAR LA TIPOGRAFÍA SALE EN 2,6 px, Y SE DECLARA.** El esquema
+  mide 220 / 220 / 714 / 336 px y el dibujo **110 / 110 / 353 / 164**, que es lo que la orden
+  fija. Los rótulos **entran** por el criterio de la orden —cruce **cero** contra la pared, el
+  chorro y los otros rótulos, y cero fuera del lienzo en los cuatro anchos—, así que no se cayó
+  al juego corto; pero a 110 px el texto sale en 2,6 px (8,3 a 768 y 3,9 a 390), por debajo del
+  piso de 12 px de esta casa. **La causa es el tamaño, no el rótulo.** → **P5-c**.
+
+- **EL FORRESTER: LA PREMISA SE REPRODUCE EXACTAMENTE.** El mensaje de lo que falta aparecía
+  **tres** veces y el del SVG **tapaba los rótulos**: cruce real en los dos ejes con
+  «seco-caliente» (592 unidades cuadradas), «seco-frío» (399), «III» (35) y «I» (12). Se apaga
+  con `sinVacio`, una opción **aditiva** que el **Laboratorio no pasa** —verificado con su control
+  negativo en el mismo generador: sin ella escribe sus 19 textos, con ella 18—.
+  El alto de la tarjeta baja **856,7 → 541,8** a 1440 px y **883,7 → 527** a 1000.
+  ⚠️ **LA TERCERA APARICIÓN ESTÁ PARADA**: el span `hemo-forrester` **llega al papel** por tres
+  caminos —`amiloTextoHemo()` al informe y a la hoja del PDF, y `_pptSpan` a la diapositiva—.
+  Quedan **dos** y no una. → **P5-b**.
+
+- **LA CONCLUSIÓN DE LAS DOS ESTENOSIS AÓRTICAS, CON SU CONTROL EN HEAD.** El caso que el médico
+  midió pasa de **290 caracteres de pantalla con cinco marcadores** —«ESC 2020», «criterio de
+  la», «flujo normal», «marcador de severidad»— a **72 con cero**: «Gradiente medio 45 mmHg —
+  severa · Insuficiencia aórtica moderada asociada.» La supravalvular, de 390 con cuatro a 236
+  con cero. **El criterio, su guía, su hoja y su folio siguen en el globo, que ya los tenía**:
+  medido, `esub-grad` conserva «40 mmHg», «flujo normal», «folio 603», «folio 572» y «ESC 2020»
+  en sus 1.346 caracteres. **El papel no se mueve, y es por construcción**: `papel` y `suma` se
+  arman de sus propias piezas y **no leen `alertas`**.
+
+- **LAS CINCO PANTALLAS REORDENADAS, CON SUS CORTES MEDIDOS Y NO ELEGIDOS.** El ancho útil de una
+  sección es la ventana menos 246 px por encima de 768 y menos 62 por debajo, así que N columnas
+  con 10 px de hueco dan (útil − 10(N−1))/N; de ahí sale cada corte, y los dos bordes se midieron:
+
+  | pantalla | columnas | corte | en el borde |
+  |---|---|---|---|
+  | Derrame / Taponamiento | 4 / 2 / 1 | 1100 y 700 px | 212 px a 1100 · 433,5 a 1099 |
+  | Fallot reparada | 3 / 1 | 700 px | 206 px a 700 · una de 637 a 699 |
+  | Constricción vs restricción | 2 / 1 | 700 px | 314 px a 700 |
+  | CIA / CIV | 2 / 1 | 900 px | 590 + 590 a 1440 |
+  | Perfil hemodinámico | datos + gráfico | 900 px | — |
+
+  **Alturas, antes → después.** Derrame **1018 → 620** a 1440 y **1377 → 880** a 768. Fallot
+  **1183 → 596** a 768. Constricción **762 → 677** a 1440, con la columna izquierda de **496 a
+  411** —el hueco que el médico pidió cerrar—. Hemodinámica **857 → 542** a 1440.
+  ⚠️ **Y SON MEDIA QUERIES EXPLÍCITAS Y NO `auto-fit`**, que es la lección que PANT-4 pagó con
+  una barra horizontal a 900 px exactos: con `auto-fit` el punto de quiebre depende del ancho que
+  le quede a la tarjeta y «el ancho donde las columnas bajan de 200 px» deja de ser medible.
+
+- ⚠️ **LA CONCLUSIÓN DE FALLOT PASA A LA DERECHA DESDE 1200 px Y NO DESDE 900, Y LO DECIDIÓ LA
+  MEDICIÓN QUE LA ORDEN PIDE.** Con la conclusión al lado, `#tdf-campos` mide **344 px a 900 y
+  444 a 1000**, o sea columnas de 108 y 141. A 1200 da 644 → 208 por columna. Por debajo de 1200
+  la conclusión va **debajo**, que es lo que la orden manda en ese caso, y los campos recuperan
+  el ancho. Las otras tres filas que compartían ese corte **no se tocan**.
+
+- **CIA Y CIV: EL DEFECTO, EN UNA LÍNEA — con las DOS lesiones marcadas se veía UN solo panel.**
+  Medido en HEAD con los dos botones tocados de verdad: los dos checkbox en `true` y
+  `vis cia/civ = false/true`. El `display` lo decidía SOLO `_eteShuntPane`, porque los botones
+  nacieron como solapas. **El dueño único `eteShuntPanes` es nuevo** y su regla es una línea: un
+  panel se ve si su lesión está marcada **o** si es el navegado.
+  ⚠️ **EL «o» NO ES DE MÁS**: conserva la garantía documentada de que **desmarcar no esconde el
+  panel** —un campo oculto se sigue guardando—. Y **es flex y no grid**, que es lo que hace que
+  «una sola ocupe todo» salga gratis: `solaAncho = true` en los doce cruces de una sola lesión.
+  El diagrama de bordes baja de **260 a 190 px** (160 a 390) sin perder un segmento, un texto ni
+  un carácter de su panel.
+  ⚠️ **UN DEFECTO PROPIO QUE CAZÓ UNA MEDICIÓN:** la primera versión dejó los **cinco** bloques
+  de «Comunes a CIA y CIV» dentro de la fila, que tenía **siete** hijos flex en vez de dos, y
+  cada panel se quedaba con **183 px** de los 1194 a 1440.
+
+- **LA LONGITUD DE LOS VELOS MITRALES: UN DATO, DOS PUERTAS, y la premisa se reproduce en los DOS
+  sentidos.** `ete_lva` en 24 dejaba `teer_lva` **vacío**, y `teer_lva` en 26 dejaba `ete_lva`
+  vacío: el rótulo «auto ← ETE Válvula Mitral» prometía un espejo que no ocurría en ningún gesto.
+  Hoy 24 → 24, 12 → 12, 26 → 26 y 9 → 9, **el vacío incluido**. Cuelga del **gesto** y no de
+  ningún barrido —la lección que el D-9, el D-10 y el D-11 pagaron tres veces—.
+  **El A/B da UNA sola diferencia, y es la que la orden autoriza**: con los velos cargados sólo
+  en Criterios TEER, `ete_lva` pasa de vacío a 26 y `ete_lvp` de vacío a 9. **El informe, el EN
+  SUMA, el Excel, el PDF y el PPT salen IDÉNTICOS en las tres escenas**: lo único que cambia es
+  que el dato deja de vivir en un solo lado.
+
+- ⚠️ **TRES PARTES DEL COMMIT 6 SE PARARON, CADA UNA CON SU MEDICIÓN.**
+  1. **La disposición en tres columnas** exige fundir **tres acordeones** con sus **dos casillas
+     de inclusión**, y la orden no dice qué pasa con ellas. → **P5-e**, con la propuesta.
+  2. **La profundidad de coaptación es un duplicado AMBIGUO**, y el censo de la propia app ya lo
+     declara: `ete_prof_coapt` y `teer_prof_flail` llevan la misma etiqueta y son **dos campos
+     distintos** —«Normal ≤10 mm» contra «Excl: ≥11 mm», y grupos distintos en `M3D_TABLA`—.
+     Unirlos cambiaría el criterio **c4** del TEER, que decide APTO / NO APTO. → **P5-f**.
+  3. **La premisa (iii) es parcialmente falsa**: la etiología y el Carpentier **ya sincronizan**
+     en los dos sentidos y el mecanismo **no tiene par** —su comentario dice «queda sólo en el
+     ETE»—. No había nada que unir. → **P5-g**.
+  Y **la (iv) no se pudo reproducir**: la tabla del dibujo sólo se puebla con el panel 3D abierto
+  y con el botón tocado tiene **cero caracteres**, o sea un denominador vacío. → **P5-i**.
+
+- **LAS CUATRO TABLAS DE ESTADIOS, LEÍDAS EN IMAGEN A 200 ppp, con su folio COMPROBADO EN EL PIE
+  IMPRESO DE CADA HOJA** —la regla folio = e(hoja + 71) queda comprobada en las **cuatro** y no
+  sólo en dos—: Tabla 16 (hoja 42, **e113**), 17 (50, **e121**), 18 (57, **e128**) y 20 (61,
+  **e132**).
+  ⚠️ **EN LA ESTENOSIS MITRAL EL GRADIENTE MEDIO NO ENTRA**, y la tabla lo dice en su nota al
+  pie: por su variabilidad con la frecuencia cardíaca y el flujo anterógrado **no se incluyó**
+  entre los criterios de severidad. Lo que gradúa es el **área**, cuyo corte —1,5 cm²— es **el
+  mismo** que el selector binario de la app: no hubo ninguna contradicción que reportar.
+  ⚠️ **EN LA SECUNDARIA LOS SÍNTOMAS NO SEPARAN C DE D, Y ES LA DIFERENCIA QUE HUBO QUE DECIR**:
+  la tabla los admite en los **cuatro** estadios y define el D porque **persisten** tras la
+  revascularización y la optimización del tratamiento. Con síntomas el estadio sale «C o D, según
+  la respuesta al tratamiento».
+  ⚠️ **LA TABLA 20 NO TIENE FILA A** en esta edición: arranca en B, verificado en imagen.
+  **Los cuatro bordes de C1/C2 de la insuficiencia mitral primaria, correctos**, incluido el que
+  importa: **FEVI 60 exactos es C2**, porque la tabla escribe C1 como «>60 %».
+  **Las dos lesiones sin estadio lo DICEN**: la válvula pulmonar con su propia fila y la
+  estenosis tricuspídea en la **nota** del estadio de la insuficiencia, para no dejar dos filas
+  «Estadio» en una sección diciendo cosas distintas. **Y nada llega al papel**: con las cuatro
+  lesiones cargadas, el informe y el EN SUMA no contienen ni «Estadio» ni «AHA/ACC».
+
+- **30/30 MUTACIONES DIRIGIDAS MUERTAS** en el barrido final, en worktree y nunca sobre el vivo,
+  con el md5 **idéntico** antes y después. **Cada una declara SU caso**: con los cinco por
+  mutación, un reparto mal hecho queda tapado por el caso de otro commit.
+  ⚠️ **TRECE SOBREVIVIERON A LOS DOS PRIMEROS BARRIDOS Y ME DIJERON DOS COSAS DISTINTAS.**
+  **Seis eran huecos reales**, y cuatro del mismo tipo: la condición miraba que la **media query
+  existiera** y no su **valor**, así que cambiar el reparto a una columna dentro del mismo corte
+  pasaba en verde; nada exigía que la fila del Forrester fuera flex desde 900 px; y nada probaba
+  que **sin** insuficiencia tricuspídea la velocidad máxima **no** se escriba. Nacen **(A5b)**,
+  **(A5c)**, **(A5d)**, **(B4)**, **(B5)**, **(B5b)**, **(C5b)** y **(C6)**.
+  **Siete estaban mal escritas**: una mutaba el selector base y no el bloque de la media query,
+  otra cambiaba el **texto** de un rótulo en vez de mover el nodo de columna, otra no aplicaba.
+  ⚠️ **Y UNA SE RETIRÓ EN VEZ DE ARREGLARSE**: «el estadio llega al papel» es exactamente la
+  mutación que **P4-i** ya declara imposible de escribir —el emisor regenera el textarea entero
+  en cada llamada—. Lo que sostiene ese control negativo es el **A/B**.
+
+- ⚠️ **EL ACENTO GRAVE DENTRO DE MIS PROPIOS COMENTARIOS COSTÓ TRES CORRIDAS, Y ES LA
+  DECIMOSÉPTIMA TANDA SEGUIDA QUE LO PAGA.** Esta vez quedó un **control automático**
+  (`chk_casos.py`): recorre el cuerpo de cada caso nuevo, cuenta los acentos graves y exige el
+  número exacto —dos por caso—; cazó cinco. `node --check` los caza siempre, pero esto los
+  previene.
+  ⚠️ **Y UNA VARIANTE QUE ESTA TANDA VOLVIÓ A PAGAR**: un acento grave dentro de un **mensaje de
+  commit entre comillas dobles** es sustitución de comandos —la palabra llegó vacía y bash avisó
+  «command not found»—. Los mensajes van por archivo, con `git commit -F`.
+  ⚠️ **Y LA BARRA INVERTIDA SIMPLE**: el contador de columnas murió con «Unterminated group»
+  porque `/repeat\(` no sobrevive al template literal de un caso. Se cerró **no usando ninguna
+  expresión regular**.
+
+- ⚠️ **SEIS DENOMINADORES VACÍOS, UNO POR SONDA, Y CADA UNO COSTÓ UNA CORRIDA.** La sección del
+  derrame y la de constricción viven en **Hemodinámica**, no en una pestaña de pericardio; la CIA
+  y la CIV en la sub-pestaña **«CC complejas»** y **Fallot en la primera**; el gráfico del
+  Forrester **no se pinta solo** al abrir la pestaña; el acordeón de Fallot abre con `max-height`
+  y una transición; la escena del derrame del A/B usaba un id que no existe, y el informe salía
+  **idéntico** al de la escena vacía; y la pausa del dibujo informaba «no funciona» porque
+  `vdscFase()` sin argumento **también pausa**, así que el clic la reanudaba.
+  ⚠️ **Y UN FALSO POSITIVO DEL COMPARADOR DEL A/B, CORREGIDO**: comparaba `_campos` como objeto,
+  y sus claves salen de un `querySelectorAll`, o sea **en orden del DOM**. Todo commit que
+  reordene campos cambia ese orden sin cambiar un valor, así que informaba una diferencia de
+  superficie firmada en las **cuatro** escenas —la vacía incluida— cuyos 1004 campos tenían
+  valores idénticos uno por uno. Hoy compara el conjunto de pares **ordenado**.
+
+- **A/B contra HEAD, uno por commit y uno FINAL de VEINTICINCO escenas, con el PDF y el PPT
+  generados de verdad: UNA sola diferencia de superficie firmada en las veinticinco**, y es la
+  que la orden autoriza —en la escena que carga los velos sólo en Criterios TEER, `ete_lva` pasa
+  de vacío a **26** y `ete_lvp` de vacío a **9**, con el informe en los tres estilos, el EN SUMA,
+  el Excel, el PDF y el PPT **idénticos**—. **Excel 441/441** con las mismas claves y **campos
+  1004/1004 en las veinticinco**. Las **105** de pantalla son los controles positivos: la firma
+  del dibujo nuevo, su conteo de nodos, sus textos, el nodo del gráfico de Forrester y los
+  estadios de la Evidencia, que pasan de **0 a 3**.
+  ⚠️ **Y EL COMPARADOR DABA UN FALSO POSITIVO EN TODO COMMIT QUE REORDENA CAMPOS.** Compara
+  `_campos` como objeto, y sus claves salen de un `querySelectorAll`, o sea **en orden del DOM**:
+  mover un campo de columna cambiaba el orden de las claves con los **valores idénticos byte por
+  byte**, y eso se lee como una diferencia de superficie firmada en **todas** las escenas. Hoy
+  compara el **conjunto ordenado de pares**.
+
+- **CINCO CASOS NUEVOS, TC-639 a TC-643**, con sus denominadores y sus controles negativos, y los
+  cinco **caen contra HEAD por 86 condiciones y NINGUNA por excepción**, verificado en un
+  worktree.
+- **DOS CASOS VIEJOS ADAPTADOS, cada uno con el motivo escrito, y LOS DOS LOS DESTAPÓ LA CORRIDA
+  COMPLETA**, no el censo —que es el modo de falla que este archivo ya documenta diez veces—.
+  **TC-635 (A5)**, **INVERTIDA**, y es el día que ese caso anunciaba: decía que la pastilla
+  «se queda con la severidad y su guía, que en PANTALLA sí se puede nombrar» —cierto cuando se
+  escribió— y la decisión de esta tanda lo revierte; gana **(A5b)**, que exige que la pastilla
+  siga diciendo que es severa, así que el caso no se limita a dejar de pedir la guía. Y
+  **TC-628 (B4)**, porque `#tdf-fila` salió del selector de las cuatro filas de 900 px: gana
+  **(B4b)**, que exige el corte propio de Fallot en **1200 px**, con lo que la condición queda
+  **más fuerte** —puede volver a fallar por cualquiera de los dos lados—.
+
+- **Línea base al cierre: suite 652/658**, en **doce lotes** cubriendo los **658 casos
+  distintos** —contados nombre por nombre, con la guarda que compara lo listado con lo ejecutado:
+  **658 de 658**—, en UNA sola pasada sobre el árbol sellado, con el pendrive `DISK_IMG`
+  **verificado al abrir, en los DOCE lotes y al cerrar** y el md5 de `index.html` **idéntico**
+  antes y después (`98d60651`). Los rojos son **TC-223, TC-376, TC-390 y TC-406**, los cuatro de
+  siempre, más **TC-182 y TC-551**, los dos intermitentes declarados. **Ningún rojo nuevo.**
+  ⚠️ **Y LA CORRIDA COMPLETA DIO 650/658 CON DOS ROJOS MÁS, LOS DOS MÍOS** —TC-628 y TC-635—,
+  y por eso esa cifra no es la línea base: los dos afirmaban lo que esta orden cambió **por la
+  medición que ella misma pide**. Están adaptados y su lote entero vuelve a dar **55/55** corrido
+  de nuevo, así que no había dependencia de orden.
+  **Semgrep 124 WARNING / 0 ERROR**, la línea base, sin un
+  aviso nuevo. **Excel 441** columnas con las mismas claves. **Censo de campos 1004, el mismo
+  juego exacto**: cero campos guardados nuevos y cero columnas de Excel. **Sin huérfanos nuevos.**
+  17 de 19 bloques de JS inline parsean, idéntico a HEAD.
+  ⚠️ **CINCO `innerHTML` NUEVOS, DECLARADOS Y MEDIDOS**: uno es preexistente y sólo cambió su
+  argumento, y los otros cuatro escriben **constantes literales** o un número pasado por
+  `toFixed(1)` —los tres `tspans` del dibujo vienen de la demo y el del botón son dos entidades—.
+  **Ninguno interpola un dato de texto del paciente** y Semgrep sigue en su línea base.
+- **CELULAR: 58 hallazgos a 360 px y 66 a 390, con 17 ALTA en cada ancho** — la línea base
+  exacta que la orden declara. **No empeoró.**
+- **CHROME Y WEBKIT COINCIDEN EN LOS DIECISÉIS CRUCES** (dos motores × 1440, 1000, 768 y 390 px
+  × dos temas), **sin una sola diferencia entre motores**: el dibujo en **110 / 110 / 353 / 164
+  px** —al lado de los campos a 1440 y 1000, apilado por debajo de 768— con sus **diez** textos,
+  **cero** nodos fuera de la escala de grises y el único botón de pausa en **44 px**; el
+  Forrester al lado de los valores y con **cero** mensajes dentro de su SVG; el derrame en
+  **4 / 2 / 2 / 1** columnas, Fallot en **3 / 3 / 3 / 1** y constricción en **2 / 2 / 2 / 1**;
+  la CIA y la CIV **las dos visibles** y lado a lado por encima de 900 px, con el diagrama de
+  bordes en **190** y **160 px**; la conclusión de la subaórtica **sin nombrar la guía** y
+  diciendo que es severa; **cero** desplazamiento horizontal, **cero** textos recortados y
+  **CERO errores de consola y de página en los dos motores**.
+  ⚠️ **WebKit de Playwright no es Safari, y se declara.** Chrome va por el del sistema con
+  `channel: 'chrome'`.
+  ⚠️ **Y ESA SONDA MIDIÓ SOBRE UN DENOMINADOR VACÍO ANTES DE SERVIR**: con el acordeón del
+  derrame y el de constricción **cerrados**, todos sus hijos informan y=0 y el contador de
+  «cuántos campos comparten fila» devolvía **4 en los dieciséis cruces**, 390 px incluido, donde
+  son UNA columna.
+- **`index.html` pasó de 11,15 MB / 155.780 líneas a 11,22 MB / 156.792** — medido con `wc -c` y
+  `wc -l` DESPUÉS de sellar. (MB de 10⁶.) El diff de la tanda son **1.164 líneas agregadas y 152
+  quitadas**, medido con `git diff --numstat` contra `dbfc0c3`, con cero `eval` y cero
+  `new Function` nuevos y cero claves ni contraseñas.
+
+- **Dónde está todo:** `docs/mapa/pant5-pantallas-vd.md` (**mapa NUEVO**, 14,0 KB),
+  `docs/fuentes/FUENTES.md` → «La tanda PANT-5» con las cuatro tablas transcritas fila por fila y
+  la tabla «Cambios de evidencia» de diez filas, `docs/REGISTRO_TANDAS.md` → el bloque de la
+  tanda, `docs/GUIA_PRUEBA_PANT5.md` → la guía manual en **24** pasos, **tres mapas con un
+  puntero cada uno** —medidos ANTES de escribir, todos por debajo de 33 KB— y
+  `docs/PENDIENTES.md` → **DIEZ** cosas declaradas (**P5-a** a **P5-j**), más el cierre de
+  **P4-a**, **P4-d** y **P4-f**.
+  ⚠️ **`congenitas-otros.md` (34.540 B) NO se tocó**, que es lo que la orden pide.
+
 ### Las dos estenosis aórticas, «Task Force» fuera del papel y los estadios — «PANT-4» (2026-11-03)
 
 - **CATORCE commits —contados con `git log`—, y SEIS de los siete de la orden se hicieron.** `da890c6` + `ff5de8c` (1b/1c/1d)
