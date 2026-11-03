@@ -329,6 +329,39 @@ movió**: lo que cambia es el verbo y lo que se omite, y el color sigue graduand
   `titulo` y `nota`, así que los dos textos no pueden divergir. Medido antes y después con el
   módulo **integrado**, que es el único denominador que prueba algo.
 
+## Nada dice que algo está «pendiente de revisión» — REGLA FIJA DE MAICOL (2026-11-02)
+
+**Ninguna pantalla, ⓘ, Evidencia, Referencias ni documento del paciente** —informe, PDF, PPT—
+dice que algo está «pendiente de revisión», «sin validar» o «a confirmar» por un cardiólogo, un
+especialista o un experto. Tampoco que algo **FUE** validado por un especialista. Esa información
+vive **solo** en los documentos internos del proyecto: `docs/PENDIENTES.md`, `docs/fuentes/FUENTES.md`
+y este archivo.
+
+**Lo que SE MANTIENE**, y hay que verificar que no se pierda al aplicar la regla:
+- que la herramienta es de apoyo clínico y no reemplaza el juicio médico;
+- que la Evidencia no constituye una recomendación terapéutica;
+- que un esquema es ilustrativo y no es una imagen del estudio.
+
+**Lo que NO es esta regla** y no se toca: un dato clínico del paciente («pendiente de estudio»,
+«falta confirmar el diagnóstico», un puntaje «provisorio»), y lo que una FUENTE dice de sí misma
+—«no validado externamente», «todavía no validados», «falta validación robusta»—, que es
+contenido bibliográfico y a veces un aviso que evita un error.
+
+⚠️ **Y si una frase sostiene algo que el usuario necesita para no equivocarse, no se saca: se
+reescribe.** La tanda PANT-3 encontró una sola frase visible que encajaba en la regla —«Esquema
+pendiente de revisión para esta cirugía: se muestra el de la anatomía»— y la mitad informativa
+evita que el médico tome el dibujo de la anatomía por el de la cirugía: quedó «Para esta cirugía
+se muestra el esquema de la anatomía».
+
+⚠️ **EL CENSO DE ESTAS FRASES NO SE PUEDE HACER ENMASCARANDO COMENTARIOS CON UNA EXPRESIÓN
+REGULAR, y está medido.** La apertura de comentario de bloque no graduada empareja con el cierre
+siguiente, y una apertura dentro de una cadena o de una expresión regular desincroniza el
+emparejamiento: enmascaraba el **74 %** del archivo y se comía el control positivo. Se hace en el
+navegador, sobre lo que el médico puede leer —el DOM sin los `<script>`, las tarjetas ⓘ abiertas
+**con su pestaña delante**, Referencias, la Evidencia y el papel—, más una pasada **cruda** sobre
+el archivo con patrones estrictos cuyos hallazgos se inspeccionan a mano. La sonda es
+`scripts/_probe_pant3rev.mjs`.
+
 ## La pantalla: campos a la izquierda, diagrama a la derecha — REGLA FIJA DE MAICOL (2026-10-31)
 
 En pantallas de **900 px o más**, los campos van a la izquierda y el diagrama a la derecha; por
@@ -512,6 +545,124 @@ impecable.
 > secciones de REGLAS (la regla de oro con su tabla de mapas, «Qué es EcoSmart», el panel de
 > Evidencia, el protocolo de verificación, las trampas conocidas, el flujo de trabajo,
 > SEGURIDAD y la tabla de Procedencia) siguen enteras y en su lugar, verificado byte por byte.
+### Los botones CIA/CIV, el corazón maestro, cuatro pantallas y la arritmia ventricular — «PANT-3» (2026-11-02 y 03)
+
+- **DIECISIETE commits, y los ONCE de la orden se hicieron enteros.** Primera mitad: los botones
+  CIA/CIV, el esquema de la TGA, el retiro de los carteles de «revisión pendiente», el botón «3D»
+  del corazón maestro y la pantalla de MCH. Segunda mitad: `ca412db` (6 · MCA) · `eb8b794`
+  (7 · Fallot) · `6bb3e71` (8a) · `11ccfe7` (8b) · `27aa986` (9) · `ae9d1b4` (9b) · `9691de6`
+  (10) · `6dff25f` (10b) · los de cobertura. Sello **`v20261103-0204`**, md5 de `index.html`
+  **`080cf530`**. Al empezar, `origin/main` = `HEAD` = **`efce508`**.
+  **El push lo corre Maicol: esta tanda tenía orden expresa de NO pushear.**
+
+- ⚠️ **EL DEFECTO MÁS GRANDE QUE ESTA TANDA SE HIZO A SÍ MISMA, Y LO GRITÓ LA APP POR CONSOLA.**
+  El commit 9 movió el módulo de arritmia ventricular al principio de «CC frecuentes» cortando el
+  texto **«desde su `<div>` hasta el `<div>` de la sección siguiente»**, y entre los dos estaban
+  el **cierre** de `#tab-congenitas` y la **apertura** de `#tab-congenitas2`. Medido en el DOM:
+  CC frecuentes se quedaba con **una** sección, sus otras nueve caían dentro de CC complejas y
+  **las nueve complejas quedaban fuera de todo panel**. El diagnóstico del panel de Evidencia lo
+  dijo con todas las letras —«#ete_cia_dir vive en ningún panel de pestaña»— y ese error de
+  consola **no está en el árbol base**, verificado alternando sólo `index.html`.
+  **Hoy el módulo se extrae por BALANCE DE ETIQUETAS**, contando `<div>` y `</div>` sobre el
+  texto sin comentarios, y no «hasta el siguiente».
+  ⚠️ **Y al revertirlo apareció el segundo, que lo tapaba:** MCA cerraba **un `</div>` de más**
+  —el commit 6 fundió dos filas de tres campos borrando la apertura de la segunda y dejó su
+  cierre—. Se vio por **profundidad de anidamiento**: Fallot y el módulo quedaban en 7 cuando sus
+  hermanas están en 8. **Ningún caso lo veía**: nació **TC-631 (H)**.
+
+- **LAS CUATRO PANTALLAS SIGUEN EL MISMO PATRÓN**, que es la regla fija de la casa: campos a la
+  izquierda y conclusión a la derecha desde **900 px**, con una sola regla de CSS compartida
+  (`#mca-fila, #tdf-fila, #esub-fila, #easv-fila`) y `repeat(3, …)` en vez de `auto-fit` por
+  encima del corte —la lección que el commit 5 pagó con una barra horizontal a 900 px exactos—.
+
+- ⚠️ **LA ZONA NO ECOCARDIOGRÁFICA DE MCA QUEDÓ A TODO EL ANCHO POR UNA MEDICIÓN, no por gusto.**
+  Metida en la columna de campos, con la conclusión al lado comiendo 320 px, sus cinco tablas de
+  criterios largos estiraban la sección de **1254 a 1821 px** a 1440: la disposición nueva era
+  **peor** que la vieja. A todo el ancho queda en **1345**. La orden decide tres cosas y no dice
+  cómo se anidan. **Aun así queda más alta a 1440 y a 1000 px** (1471 → 1985), y eso es el precio
+  de lo decidido → **P3-j**.
+
+- ⚠️ **LA DISPOSICIÓN EN TRES COLUMNAS DE FALLOT QUEDÓ PARADA, y es la condición que la orden
+  pone.** De las **cinco** filas de campos, **una sola** lleva título: agruparlas en tres es
+  inventarlas, y son **cuatro** temas, no tres. La propuesta está en **P3-i**.
+  ⚠️ **Y la pantalla se contradecía a sí misma**: un recuadro decía «Acá no hay campos de
+  volumen, y es a propósito» y veinte líneas más abajo están los dos campos de volumen con su
+  grupo propio.
+
+- **LOS DOS CORTES DE LA OBSTRUCCIÓN SUBAÓRTICA SE QUEDAN, CADA UNO ROTULADO.** Las cuatro hojas
+  se volvieron a leer **en imagen**: **el 40 es MEDIO** y es criterio de intervención (ESC 2020,
+  hoja 41 = folio 603, **Clase I · Nivel C**; la guía lo bajó expresamente de 50 a 40, hoja 10 =
+  folio 572) y **el 50 es PICO**, sin clase ni nivel (ACC/AHA 2025, hoja 43 = folio e157, en el
+  capítulo del defecto septal auriculoventricular; y la hoja 53 = folio e167 dice que **ningún
+  dato identifica un umbral de gradiente**). Las dos reglas de folio, comprobadas en el pie
+  impreso. **Ningún corte se movió.**
+  ⚠️ **La ESC 2020 NO publica un recuadro de recomendaciones propio para la supravalvular**,
+  censado sobre sus 84 hojas con control positivo: se aplica el umbral general y se dice así.
+
+- **EL VALOR NUEVO DEL MÓDULO DE ARRITMIA: «Parada cardíaca recuperada».** Es un **valor** de un
+  campo que ya existe: **cero campos nuevos y cero columnas de Excel**. Hubo que tocar las
+  **cuatro** listas paralelas del vocabulario —y sin la del **importador**, reimportar un Excel
+  exportado por la propia app devolvía `null` y el guardián descartaba la **fila entera** del
+  paciente—. En MCH cuenta como prevención secundaria; en MCA **no aporta ningún criterio**; en
+  Fallot se describe.
+
+- ⚠️ **EL ESPEJO CONDICIONAL DE MCH BORRABA LA RESPUESTA DEL MÉDICO, y lo encontró una medición
+  sobre el propio commit.** Reclamaba la autoría **siempre**, así que un «Sí» que el médico había
+  contestado él quedaba marcado como escrito por la app y se borraba al apagar la condición. Hoy
+  la marca sólo se pone cuando de verdad se escribió, y lo que el médico tuviera contestado se
+  guarda en `data-tvprev` para devolvérselo. **Las dos marcas entran en el selector Y en el
+  cuerpo** de «Nuevo estudio» — la lección que TC-514 cobró en rojo.
+
+- **EL PAPEL: la única diferencia de toda la segunda mitad es la descripción del valor nuevo.**
+  Con tipo «sostenida» el papel sale **idéntico carácter por carácter** en los dos árboles.
+  ⚠️ **La primera versión empujaba además una nota que NOMBRABA LA GUÍA en el informe firmado.**
+  Una medición la cazó y se retiró. Las otras notas de ese bloque **sí** la nombran: es
+  preexistente → **P3-o**.
+
+- **LOS RÓTULOS DE PRESIÓN: 25 de pantalla pasan a PSAP, PmAP y PDAP**, y **ningún id, ningún
+  valor, ningún encabezado de Excel y ninguna línea de papel**. ⚠️ **Tres los encontró el caso y
+  no el censo de origen**, porque el caso censa el **DOM**: un censo sobre el texto del archivo
+  no ve lo que el DOM arma con etiquetas anidadas.
+
+- **A/B POR COMMIT contra el árbol anterior: CERO diferencias de superficie firmada** en los
+  commits 6, 7, 8a, 8b, 10 y 10b, con Excel **441 → 441** y campos **988 → 988** en todos. El
+  commit 9 da **cero** en las quince escenas y **se declara que ése es un control negativo**:
+  ninguna carga el módulo. La medición que vale es la del módulo cargado con el informe emitido.
+  **A/B final contra `efce508`:** las tres claves de campos cambian en las **quince** escenas —son
+  los **dos** campos nuevos autorizados, 986 → 988— y las superficies de papel cambian **sólo en
+  las siete escenas con una lesión marcada**, que es el commit 1. `ajeno` cambia **sólo** por los
+  dos campos. **Excel 441 → 441.**
+
+- **33/33 MUTACIONES DIRIGIDAS MUERTAS** en el barrido final, en worktree y nunca sobre el vivo,
+  con guarda de md5 **idéntico** antes y después, en 2,0 min. **Siete no revierten nada: la
+  aplican de más**, porque las condiciones que las matan son controles negativos.
+  ⚠️ **Tres sobrevivieron y me dijeron tres cosas distintas:** M07b era un **hueco real** —no
+  había escena con una lesión encendida y la otra apagada CON DATOS, así que la compuerta de
+  entrada tapaba a la de la rama—; M13 **medía el lugar equivocado** —la etiqueta «esquema
+  ilustrativo» aparece DOS veces y preguntarle al documento entero dejaba pasar que se pierda
+  una—; y M10 era **equivalente**: mover la CIA sola da 91 cruces contra 82 pero **cero
+  desnudos**, porque lo que sostiene el invariante es el halo y el orden de emisión.
+
+- ⚠️ **EL ACENTO GRAVE DENTRO DE MIS PROPIOS COMENTARIOS, y es la decimoquinta tanda seguida.**
+  Siempre igual: un identificador entre acentos graves dentro del comentario de un caso, y el
+  cuerpo de un caso es un template literal. **`node --check` los cazó todos.**
+  ⚠️ **Y UNA VARIANTE NUEVA: el acento grave dentro de un MENSAJE DE COMMIT entre comillas
+  dobles es sustitución de comandos.** Cinco identificadores llegaron **vacíos** al mensaje, con
+  bash avisando «command not found» por cada uno. Los mensajes largos van **por archivo**, con
+  `git commit -F`.
+  ⚠️ **Y un comentario de JavaScript dentro de un archivo de Python**, que no parsea.
+
+- ⚠️ **SE PERDIÓ EL ARCHIVO DE TESTS ENTERO UNA VEZ**, por un `git checkout --` para recuperarse
+  de un error de sintaxis: los cinco casos nuevos nunca se habían commiteado. **El archivo de
+  tests se commitea apenas parsea.**
+
+- **Dónde está todo:** `docs/mapa/pant3-botones-3d-mch.md` (primera mitad) y
+  `docs/mapa/pant3-pantallas-arritmia.md` (**mapa NUEVO**, 11,0 KB, segunda mitad),
+  `docs/fuentes/FUENTES.md` → «La tanda PANT-3» con las cinco fuentes transcritas y sus reglas de
+  folio comprobadas en el pie impreso, `docs/REGISTRO_TANDAS.md` → el bloque de la tanda,
+  `docs/GUIA_PRUEBA_PANT3.md` → la guía manual en **42** pasos, `docs/CONTINUACION_PANT3.md`, y
+  `docs/PENDIENTES.md` → **P3-a** a **P3-p**, con **P3-h cerrado**.
+
 ### El PDF de la transposición, el panel compacto y la conclusión descriptiva — «TGA-4» (2026-11-02)
 
 - **SIETE commits, y los SEIS de código se hicieron enteros.** `8294072` (1) · `ca110fa` (2) ·

@@ -10,6 +10,14 @@ realizada en el informe y en el EN SUMA. Lo que **paró** está en `docs/PENDIEN
 
 ---
 
+## ⚠️ Lo que la tanda PANT-3 agregó alrededor de este recuadro (2026-11-03)
+
+Un **botón «3D» al pie del bloque de congénitas** lo abre desde cualquiera de las dos
+sub-pestañas. **No dibuja nada nuevo**: le PRESTA este mismo recuadro (`#tga-3d-box`) y lo
+devuelve al cerrar. El recuadro, sus controles, su pausa y su frecuencia no se tocaron.
+
+El mapa es **`docs/mapa/pant3-botones-3d-mch.md`** § 4.
+
 ## 1 · Los dos ejes, y por qué hacía falta un valor nuevo
 
 `tga_tipo` trae la anatomía y la cirugía **fusionadas**: `mustard` y `senning` son a la vez

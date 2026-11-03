@@ -98,8 +98,20 @@ const MEDIR = `((W) => {
         let bb = null; try { bb = m.getBBox() } catch (e) {}
         return bb ? { r: { x: bb.x, y: bb.y, width: bb.width, height: bb.height }, i: ordenDe(m) } : null;
       }).filter(Boolean);
-      const contiene = (a, b) => b.x >= a.x - 1 && b.y >= a.y - 1 &&
-                                 b.x + b.width <= a.x + a.width + 1 && b.y + b.height <= a.y + a.height + 1;
+      /* ⚠️ «APOYADO» NO MIRA EL ORDEN DE DIBUJO, Y LA TERCERA VERSION ES LA BUENA. Las dos
+         anteriores lo miraban y las dos fallaban en el mismo sitio: el rotulo «VD» del Rastelli
+         queda DENTRO de su recuadro de cavidad, pero una flecha del recorrido roza el borde de ese
+         recuadro a la altura de su linea de base, y las flechas se dibujan DESPUES de las
+         cavidades. El cruce es de una fraccion de pixel, por debajo de las letras, y cambia con la
+         metrica de la fuente: la sonda lo medía en cero y el caso en dos, sobre el MISMO arbol.
+         Lo que de verdad separa los dos casos no es quien se dibujo primero, sino DONDE VIVE el
+         rotulo: las letras de las valvulas y los rotulos de las cavidades viven DENTRO de una
+         forma opaca que es su contenedor; los cinco rotulos libres y los tres de las
+         comunicaciones no viven dentro de nada, se dibujan ULTIMOS y lo que los hace legibles es
+         su halo. Son esos ocho los que el medico nombro. */
+      const apoyado = (a, r) => { const cx = r.x + r.width / 2, cy = r.y + r.height / 2;
+        return cx >= a.x && cx <= a.x + a.width && cy >= a.y && cy <= a.y + a.height; };
+      /* Si la sonda y el caso de prueba no usan el mismo criterio, uno de los dos miente. */
       const cruces = [], pisa = [];
       txs.forEach(function (nodoT, iT) {
         const t = T.filter(function (o) { return o.nodo === nodoT })[0];
@@ -111,7 +123,7 @@ const MEDIR = `((W) => {
         L.forEach(function (l) {
           const n = l.mu.filter(function (q) { return dentro(q, t.r) }).length;
           if (!n) return;
-          const tapado = tapas.some(function (m) { return m.i > l.i && contiene(m.r, t.r) });
+          const tapado = tapas.some(function (m) { return apoyado(m.r, t.r) });
           const desnudo = !tieneHalo && !tapado;
           cruces.push({ rot: t.t, linea: l.d, pts: n, halo: tieneHalo ? 1 : 0,
                         tapa: tapado ? 1 : 0, desnudo: desnudo ? 1 : 0 });

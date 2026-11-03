@@ -17,6 +17,61 @@
 
 ---
 
+### Segunda mitad — commits 6 a 10 (2026-11-03)
+
+| commit | qué |
+|---|---|
+| `ca412db` 6 | **MCA**: dos columnas de criterios del eco, tres de categorías, conclusión a la derecha, cuatro globos. La zona no ecocardiográfica a todo el ancho **por medición** |
+| `eb8b794` 7 | **Fallot**: tres globos y conclusión a la derecha. La disposición en tres columnas **PARADA**; el recuadro que se contradecía, retirado |
+| `6bb3e71` 8a | **Estenosis subaórtica**: los **DOS** cortes rotulados medio y pico, cada uno con guía, hoja, folio y condición |
+| `11ccfe7` 8b | **Estenosis supravalvular**: ídem, con la salvedad de que la guía no publica recuadro propio |
+| `27aa986` 9 | **Arritmia ventricular**: primera sección, «Limpiar», tarjeta, valor nuevo «Parada cardíaca recuperada», espejo condicional de MCH |
+| `ae9d1b4` 9b | **El arreglo estructural**: la mudanza rompía las dos sub-pestañas y MCA cerraba un div de más |
+| `9691de6` 10 | **PSAP, PmAP y PDAP** en 25 rótulos de pantalla |
+| `6dff25f` 10b | los tres rótulos que el censo de origen no encontró y sí el caso |
+| — 11 | cobertura y documentación |
+
+**Lo que se midió:** A/B por commit contra el árbol anterior, **cero** diferencias de superficie
+firmada en los commits 6, 7, 8a, 8b y 10, y en el 9 la **única** diferencia es la descripción del
+valor nuevo. **33/33 mutaciones muertas.** Cinco casos nuevos, **TC-628 a TC-632**.
+
+**Lo que quedó parado:** la disposición en tres columnas de Fallot (**P3-i**), y ocho cosas más
+en `docs/PENDIENTES.md` → **P3-i** a **P3-p**.
+
+## PANT-3 — los botones CIA y CIV, el esquema de la TGA, el corazón maestro, MCH, MCA, Fallot, las dos estenosis aórticas, la arritmia ventricular y los rótulos de presión (2026-11-02 y 03)
+
+**Seis commits de los once de la orden.** Línea base al abrir: `origin/main` = `HEAD` =
+**`efce508`**, sello `v20261102-2051`, md5 `8af4c80b`, pendrive `DISK_IMG` montado.
+**El push lo corre Maicol: esta tanda tenía orden expresa de NO pushear.**
+
+| commit | qué | estado |
+|---|---|---|
+| `5504f6d` | **1** — los botones CIA y CIV marcan la lesión y la llevan al informe | cerrado y verificado |
+| `bc363f6` | **2** — los rótulos del esquema de la TGA y su ⓘ sin el cartel | cerrado y verificado |
+| `eeb3ccf` | **3** — el censo de los carteles de «revisión pendiente» y lo que se retiró | cerrado y verificado |
+| `75b555f` | **4** — el botón «3D» del corazón maestro, fase 1 | cerrado y verificado |
+| `15098a5` | **5** — la pantalla de MCH en tres columnas | cerrado y verificado |
+| el de cierre | **11** — cobertura y documentación | cerrado |
+
+**Los commits 6 a 10 NO se hicieron y ninguno quedó a medias**: MCA, Fallot, las dos estenosis
+aórticas, la arritmia ventricular y los rótulos de las presiones pulmonares. Declarado en
+`docs/PENDIENTES.md` → **P3-h**, con el estado exacto en `docs/CONTINUACION_PANT3.md`.
+
+**Lo que más pesó, en una línea cada uno:**
+- el botón «CIA» no significaba nada y `showTab` lo desmarcaba al cambiar de pantalla, porque
+  barre `.active` de todo `.tab-btn`; hoy es un dato del estudio que viaja con él;
+- los rótulos del esquema: **61 cruces desnudos y 14 rótulos pisados → 0 y 0**;
+- el censo de «revisión pendiente» encontró **una sola** frase visible, y se reescribió en vez de
+  borrarse porque su mitad informativa evita un error;
+- el corazón maestro **no dibuja nada nuevo**: presta el recuadro que ya existía;
+- la pantalla de MCH pasa de **1287 a 939 px** a 1440, con el censo de ids intacto.
+
+**Dos fuentes leídas en imagen**, con su regla de folio comprobada en el pie impreso: ESC 2022
+(Zeppenfeld), hoja 66 → folio 4062; y AHA/ACC 2024 (Ommen), hojas 9 → e1247 y 29 → e1267.
+
+**Campos guardados: 1002 → 1004**, los dos autorizados. **Excel 441** columnas con las mismas
+claves. **Semgrep 124 WARNING / 0 ERROR.** **Celular 59 a 360 px y 68 a 390, con 17 ALTA.**
+
 ## TANDA NOCTURNA, Parte A — «A» · 2026-10-30
 
 - `427aa06` A1: el esquema de la orejuela al lado de los campos, y los dos rotulos que se pisaban

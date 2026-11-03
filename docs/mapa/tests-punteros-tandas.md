@@ -13,6 +13,28 @@
 > Para los **arneses de A/B y de mutación** y sus trampas: `docs/mapa/arneses-ab-mutacion.md`.
 
 
+## La tanda PANT-3 (2026-11-02 y 03) — TC-623 a TC-627
+
+Cinco casos, uno por commit. El mapa es **`docs/mapa/pant3-botones-3d-mch.md`**.
+
+| caso | qué fija |
+|---|---|
+| **TC-623** | los botones CIA y CIV: se pintan enteros, la marca sobrevive al cambio de pantalla, viaja con el estudio, y cada lesión tiene su propia compuerta — con la casilla de abajo encendida y el botón apagado la lesión NO se emite |
+| **TC-624** | los rótulos del esquema de la TGA: ninguno queda tapado por una línea sin halo ni respaldo opaco, ninguno se pisa, y el ⓘ ya no trae el bloque «A tener en cuenta» |
+| **TC-625** | ninguna pantalla dice que algo esté pendiente de revisión por un especialista, y los tres avisos generales se mantienen |
+| **TC-626** | el botón «3D»: una sola instancia, sólo en las dos sub-pestañas de congénitas, el préstamo del recuadro ida y vuelta, la línea de lo no dibujado y cero campos del estudio movidos |
+| **TC-627** | la pantalla de MCH: treinta ids, tres columnas y dos cuadros, las seis frases fuera, los seis globos con su folio y el conteo rotulado 2024 |
+
+**Adaptados**: TC-471 (el registro de globos, 101 → 108), TC-502 (las tarjetas sin ficha en
+Referencias, treinta → treinta y siete) y TC-535 (los globos de 44×44, veintidós → veintinueve).
+
+⚠️ **Dos trampas que estos casos pagaron.** Un caso que no vacía el formulario hereda el del
+anterior: TC-626 pasaba aislado y fallaba en el lote. Y el criterio de «tapado» de TC-624 no
+puede mirar el orden de dibujo: el rótulo «VD» del Rastelli vive dentro de su recuadro y una
+flecha roza el borde de ese recuadro a la altura de su línea de base, así que la sonda lo medía
+en cero y el caso en dos **sobre el mismo árbol**. Lo que separa los dos casos es DÓNDE VIVE el
+rótulo, no quién se dibujó primero.
+
 ## ⚠️ El caso de la tanda J (2026-10-24)
 
 **TC-532** cubre el pericardio y el taponamiento, la constricción y VEXUS de esa tanda. Su ficha
@@ -483,3 +505,21 @@ que lo escribe TC-293 y esos dos lo dicen distinto. Los dos **pasan contra HEAD*
 
 ⚠️ **El (F2) de TC-569 informaba 26 «textos recortados» y NO hay recorte real**: un `<details>`
 cerrado conserva su caja teórica. Medido con las notas abiertas, **cero en los dos árboles**.
+
+## Tanda PANT-3, segunda mitad (2026-11-03) — TC-628 a TC-632
+
+| caso | qué fija |
+|---|---|
+| **TC-628** | la pantalla de MCA: la fila de dos columnas, la zona no ecocardiográfica **fuera** de ella, las reglas de 2 y 3 columnas medidas en la hoja de estilos, los cuatro globos con el glifo estándar, las cinco frases que salieron y los **26 ids** sin cambio |
+| **TC-629** | Fallot: la contradicción retirada con los dos campos de volumen **todavía presentes**, la conclusión en su columna, los tres globos y la hoja 51 / folio 613 |
+| **TC-630** | las dos estenosis aórticas: las dos conclusiones en su columna, los textos que salieron, y el globo diciendo **medio** y **pico** con sus cuatro folios. Los dos cortes siguen en 40 |
+| **TC-631** | el módulo de arritmia: primera sección, rótulo nuevo, valor nuevo, el espejo condicional de MCH con las dos marcas, «Limpiar», la frase del papel, y **el bloque (H)**, que fija la estructura de las dos sub-pestañas |
+| **TC-632** | los rótulos PSAP / PmAP / PDAP censados **en el DOM**, los viejos ausentes, los ambiguos intactos y el encabezado del Excel sin mover |
+
+⚠️ **TC-631 (H) nació de un defecto real de la propia tanda**: mover el módulo cortando «desde su
+div hasta el de la sección siguiente» se llevó el cierre de una sub-pestaña y la apertura de la
+otra. La app lo gritó sola por consola y **ningún caso lo veía**.
+
+⚠️ **TC-632 encontró tres rótulos que el censo de origen no había encontrado**, porque censa el
+**DOM** y no el texto del archivo: un censo sobre `index.html` no ve lo que el DOM arma a partir
+de etiquetas anidadas.

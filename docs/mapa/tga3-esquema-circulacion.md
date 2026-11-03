@@ -12,6 +12,20 @@ claves. Censo de campos idéntico.**
 
 ---
 
+## ⚠️ Lo que la tanda PANT-3 movió de este esquema (2026-11-03)
+
+Los **rótulos**, y nada más: el dibujo, sus escenarios y sus dos exclusiones clínicas no se
+tocaron. Los tres de las comunicaciones se emiten **últimos** —antes iban dentro de su bloque,
+o sea antes de las flechas, que se dibujaban encima—, los cinco libres llevan **halo** del color
+del fondo, y tres se reubicaron. Medido en las treinta combinaciones: **61 cruces desnudos y 14 rótulos pisados → 0 y 0**, con el criterio que la sonda y el
+caso de prueba comparten.
+
+Y el **bloque «A tener en cuenta» del ⓘ se retiró entero**, con sus tres párrafos: la frase de
+revisión pendiente, la de que el esquema no entra al PDF —que dejó de ser cierta— y el aviso de
+esquema ilustrativo, que no se pierde porque la tarjeta y el epígrafe del PDF lo dicen.
+
+El mapa es **`docs/mapa/pant3-botones-3d-mch.md`** § 2 y § 3.
+
 ## 1 · La conclusión en la columna izquierda (commit 1)
 
 El médico la pidió en el hueco que la maqueta de CONG-2A dejaba vacío bajo los campos. Medido

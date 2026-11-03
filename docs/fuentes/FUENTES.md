@@ -18,6 +18,222 @@ desacuerdo — `grep -n 'IND_REFS' index.html`) y `docs/historial/CLAUDE_histori
 ---
 
 
+## La tanda PANT-3 (2026-11-02 y 03)
+
+**Dos fuentes leídas EN IMAGEN en esta tanda, las dos con su regla de folio comprobada en el pie
+o el encabezado impreso.** Nada de lo que sigue se escribió de memoria ni de un resumen.
+
+### ESC 2022 — arritmias ventriculares y prevención de la muerte súbita
+
+Zeppenfeld K y cols., *Eur Heart J* 2022;43:3997-4126.
+`24_Arritmias_y_sincope/Zeppenfeld_2022_ESC_Arritmias_ventriculares.pdf`, 130 hojas.
+**Regla de folio: folio = hoja + 3996**, comprobada en las hojas 10 (4006), 66 (4062), 67 (4063)
+y 100 (4096).
+
+⚠️ **LA ETIQUETA «ESC 2022» DE LA PANTALLA DE MCH ES CORRECTA, y la continuación de PANT-2 la
+daba por dudosa.** Esa nota decía que lo único de miocardiopatías de la ESC en la biblioteca es
+Arbelo 2023. Buscado **por contenido** en los **246 PDF** de la biblioteca —con control positivo:
+la misma búsqueda encuentra «revised Ghent nosology» en seis archivos—, «HCM Risk-SCD» aparece en
+**once**, y la guía de 2022 que publica las bandas y sus clases está en la carpeta de arritmias y
+síncope, no en la de miocardiopatías.
+
+**Hoja 66, folio 4062 — Recommendation Table 30**, transcrita de la imagen:
+
+| recomendación | clase · nivel |
+|---|---|
+| ICD en pacientes de 16 años o más con riesgo estimado de muerte súbita a 5 años **≥6 %** | **IIa · B** |
+| ICD en pacientes de 16 años o más con riesgo **intermedio (≥4 a <6 %)** **y** (a) realce tardío significativo en RMC (habitualmente ≥15 % de la masa del VI); o (b) FEVI < 50 %; o (c) respuesta tensional anormal en el ejercicio; o (d) aneurisma apical del VI; o (e) mutación sarcomérica patogénica | **IIa · B** |
+| ICD «puede considerarse» con riesgo **≥4 a <6 %** | **IIb · B** |
+| ICD «puede considerarse» con riesgo **bajo (<4 %)** **y** (a) realce tardío significativo; o (b) FEVI < 50 %; o (c) aneurisma apical del VI | **IIb · B** |
+
+Y en la **columna izquierda de la misma hoja**, dos cosas que la pantalla usa:
+- el modelo es un puntaje de riesgo a 5 años basado en **siete factores**: edad, espesor de pared
+  del VI, tamaño de la aurícula izquierda, gradiente del tracto de salida, taquicardia ventricular
+  no sostenida, síncope inexplicado e historia familiar de muerte súbita;
+- la calculadora **no está pensada** para atletas de élite, ni para personas con enfermedades
+  metabólicas o infiltrativas, ni después de miectomía o alcoholización septal.
+
+**Hoja 67, folio 4063** — las notas al pie de la misma tabla: la nota **c** remite al HCM
+Risk-SCD y la **d** define la respuesta tensional anormal como no subir la presión sistólica al
+menos 20 mmHg del reposo al pico, o una caída de más de 20 mmHg desde el pico.
+
+### AHA/ACC 2024 — miocardiopatía hipertrófica
+
+Ommen SR y cols., *Circulation* 2024;149:e1239-e1311.
+`11_Miocardiopatias/ommen-et-al-2024-...-hypertrophic-cardiomyopathy-a-report.pdf`, 73 hojas.
+**Regla de folio: folio = hoja + 1238**, comprobada en el pie impreso de las hojas **9**
+(«June 4, 2024  e1247») y **29** («June 4, 2024  e1267»).
+
+**Hoja 9, folio e1247 — definición clínica**, transcrita de la imagen: el diagnóstico en el
+adulto se establece por imagen, habitualmente ecocardiografía 2D o resonancia, con un **espesor
+máximo de pared al final de la diástole de ≥15 mm** en cualquier punto del ventrículo izquierdo,
+en ausencia de otra causa de hipertrofia. Una **hipertrofia más limitada (13-14 mm)** puede ser
+diagnóstica en familiares de un paciente con la enfermedad o junto con un test genético positivo
+que identifique una variante patogénica, a menudo en un gen sarcomérico.
+
+**Hoja 29, folio e1267 — sección 7.2, «Patient Selection for ICD Placement»**:
+
+- **Recomendación 3 (COR 2a · B-NR)** — en adultos con **≥1 factor mayor** de riesgo de muerte
+  súbita es razonable ofrecer un desfibrilador. Los **cinco** factores mayores:
+  (a) muerte súbita atribuida definitiva o probablemente a la enfermedad en ≥1 familiar de primer
+  grado o pariente cercano **de ≤50 años**; (b) hipertrofia masiva **≥30 mm** en cualquier
+  segmento del VI; (c) ≥1 episodio reciente de síncope sospechado de ser arrítmico por la
+  historia clínica; (d) **aneurisma apical del VI con escara transmural o realce tardío**;
+  (e) disfunción sistólica del VI (**FE < 50 %**).
+- **Recomendación 6 (COR 2b · B-NR)** — en adultos seleccionados **SIN factores mayores** tras la
+  evaluación clínica, o cuando la decisión sigue siendo incierta, el desfibrilador **puede
+  considerarse** en pacientes con **realce tardío extenso** por resonancia con contraste **o**
+  **taquicardia ventricular no sostenida** en el monitoreo ambulatorio.
+- La **respuesta tensional anormal al ejercicio NO aparece** en ninguna de las dos.
+- Y en la columna izquierda de la misma hoja: el modelo de riesgo **no tiene en cuenta** la
+  disfunción sistólica (FE < 50 %), el aneurisma apical, la isquemia inducida por ejercicio ni el
+  realce tardío.
+
+**Qué confirma esto, y qué deja parado.** Confirma lo que PANT-2 había leído y lo que la app
+aplica: cinco factores mayores que coinciden uno por uno con `mchAHA`, y el realce tardío y la
+TVNS como **árbitros** de la recomendación 6 y **no** como factores mayores. Deja **parados** dos
+desajustes con la ESC 2022, que se reportan y no se tocan: la vía Clase IIa de la banda intermedia
+con sus cinco modificadores, y los tres modificadores de la banda baja frente a los dos que la app
+aplica. Están en `docs/PENDIENTES.md` → **P3-e**.
+
+### Cambios de evidencia
+
+| qué | antes | después | dónde |
+|---|---|---|---|
+| El realce tardío en MCH | «sí cuenta para la AHA y no para la ESC» | no es uno de los cinco factores mayores; interviene cuando no hay ninguno, y en la ESC modifica la banda baja | ⓘ `mch-msub` |
+| La respuesta tensional anormal | «salió de la lista en esa edición» | no está entre los cinco factores mayores de la AHA/ACC (la historia de la edición **salió**) | ⓘ `mch-msub` |
+| Umbral diagnóstico de espesor | «≥15 mm, o ≥13 mm con historia familiar» | ≥15 mm; 13-14 mm en familiares o con test genético positivo | ⓘ `mch-hvi` |
+| Exclusiones del modelo europeo | sin fuente en pantalla | ESC 2022, hoja 66, folio 4062 | ⓘ `mch-ex` |
+| Bandas del riesgo a 5 años | «<4 % bajo · 4 a 6 % intermedio (IIb) · ≥6 % alto (IIa)» en la pantalla | las mismas bandas en el ⓘ, con su hoja y su folio; las clases quedan fuera del texto de pantalla | ⓘ `mch-score` |
+| Las siete variables del modelo | «cualquiera de las siete» sin nombrarlas | nombradas una por una | ⓘ `mch-score` |
+| Tabla «Dónde no coinciden» de la tarjeta de criterios | rotulada «AHA/ACC 2020» | **«AHA/ACC 2024»**, cotejadas sus siete filas contra la hoja 29 | `critMCH` |
+
+**Lo que NO se citó, y por qué.** El globo del corazón maestro (`cc-3d`) y el del esquema de
+circulación no llevan **ninguna** cita: explican un dibujo, no respaldan una recomendación.
+
+### Notas de trabajo
+
+⚠️ **Buscar una guía por el nombre de su carpeta da falsos negativos.** La ESC 2022 del HCM
+Risk-SCD está archivada en `24_Arritmias_y_sincope` y no en `11_Miocardiopatias`. El censo por
+contenido sobre los 246 PDF tarda menos de dos minutos y es el que vale.
+
+⚠️ **El censo de frases de pantalla no se puede hacer enmascarando comentarios con una expresión
+regular.** Medido: enmascaraba el 74 % de `index.html` y se comía el control positivo. Está
+escrito como regla en `CLAUDE.md`.
+
+---
+
+### La segunda mitad de PANT-3 (commits 6 a 10, 2026-11-03)
+
+#### Miocardiopatía arritmogénica — te Riele y cols., *J Cardiovasc Magn Reson* 2014;**16**:50
+
+**Tabla 1, «Revised 2010 Task Force Criteria for ARVC», HOJA 3 de 15.** Leída en imagen a
+230 ppp. ⚠️ **Este artículo se pagina por NÚMERO DE ARTÍCULO y no por folio de revista**: su pie
+impreso dice «te Riele et al. Journal of Cardiovascular Magnetic Resonance 2014, 16:50 — Page 3
+of 15», así que **se cita por hoja con su pie**, como la tanda POP-C hizo con el manuscrito de
+Devereux. Es una **revisión que reproduce** la tabla revisada de 2010: se cita el documento que
+se leyó.
+
+⚠️ **El original de 2010 (Marcus y cols.) NO está en la biblioteca**, censado **por contenido**
+sobre los 246 PDF de las 29 carpetas, con **control positivo** (la misma búsqueda encuentra
+«revised Ghent nosology» en un archivo).
+
+Transcripción del criterio ecocardiográfico, literal:
+
+> **Major — 2D Echo Criteria.** Regional RV akinesia, dyskinesia, or aneurysm **AND** 1 of the
+> following measured at end diastole: PLAX RVOT ≥32 mm (PLAX/BSA ≥19 mm/m²), or PSAX RVOT ≥36 mm
+> (PSAX/BSA ≥21 mm/m²), or Fractional area change ≤33%.
+>
+> **Minor — 2D Echo Criteria.** Regional RV akinesia or dyskinesia or dyssynchronous RV
+> contraction **AND** 1 of the following measured at end diastole: PLAX RVOT ≥29 to <32 mm
+> (PLAX/BSA ≥16 to <19 mm/m²), or PSAX RVOT ≥32 to <36 mm (PSAX/BSA ≥18 to <21 mm/m²), or
+> Fractional area change >33% ≤40%.
+
+**Coincide con lo que la app aplica**, umbral por umbral. Lo que la app NO aplica son los cortes
+**indexados por superficie corporal**, y eso lo dice el ⓘ. Las otras cuatro diferencias de
+redacción están en `docs/PENDIENTES.md` → **P3-l**.
+
+⚠️ **Y el cuerpo de la misma hoja 3 contradice una frase de la app:** «ARVC evaluation should not
+be solely based on any one test, in particular CMR», con la sensibilidad baja de la resonancia.
+→ **P3-m**.
+
+#### Tetralogía de Fallot reparada — ESC 2020 de cardiopatías congénitas del adulto, edición inglesa
+
+**HOJA 51 = folio 613.** Regla **folio = hoja + 562**, comprobada en el **pie impreso** de esa
+misma hoja («ESC Guidelines 613»). Leída en imagen a 200 y 230 ppp.
+
+> **CMR is the method of choice for assessment of RV volume and function; PR; size, shape, and
+> expansion of the PAs; infundibulum; the ascending aorta; the position of great vessels or
+> conduits in relation to the sternum (resternotomy); and evaluation for residual shunt (Qp:Qs).**
+>
+> Longitudinal data are more important than single measurements to assist timing for
+> reintervention. Normalization of RV size after reintervention becomes unlikely as soon as the
+> end systolic index exceeds 80 mL/m² and the end diastolic volume index exceeds 160 mL/m², **but
+> this cut-off for reintervention may not correlate with clinical benefit.**
+
+⚠️ **Los dos números no son «los umbrales que definen la reintervención»**, que es como la
+pantalla los presentaba: la guía los publica diciendo que **la normalización del tamaño del VD
+tras la reintervención se vuelve improbable** al superarlos. El ⓘ lo dice con esas palabras.
+**Ningún corte se movió.**
+
+#### Obstrucción subaórtica — los DOS cortes, cada uno con su guía
+
+Las **cuatro** hojas se volvieron a leer en imagen, que es lo que la orden pide, y las cuatro
+coinciden con lo que ella anticipa.
+
+| corte | qué gradiente | qué es | fuente | clase y nivel |
+|---|---|---|---|---|
+| **40 mmHg** | **medio** | criterio de **intervención** | ESC 2020, **hoja 41 = folio 603** | **I · C** |
+| 50 → 40 | medio | la guía lo **bajó expresamente** | ESC 2020, **hoja 10 = folio 572** | — (tabla de revisadas) |
+| **50 mmHg** | **pico** | corte **sugerido** de obstrucción severa | ACC/AHA 2025 (Gurvitz), **hoja 43 = folio e157** | **sin clase ni nivel** |
+| 50 mmHg | pico | asociado a mayor probabilidad de insuficiencia aórtica | ACC/AHA 2025, **hoja 53 = folio e167** | — |
+
+Regla de folio de la ACC/AHA 2025: **folio = hoja + 114**, comprobada en el pie impreso de las
+hojas 43 y 53.
+
+> **ESC 2020, hoja 41 — «Recommendations for intervention in subaortic stenosis».** In
+> symptomatic patients (spontaneous or on exercise test) with a mean Doppler gradient ≥40 mmHg^c
+> or severe AR, surgery is recommended. **Class I, Level C.**
+>
+> **ESC 2020, hoja 10.** Lower mean Doppler gradient threshold for LVOTO intervention from 50 to
+> 40 mmHg.
+>
+> **ACC/AHA 2025, hoja 43** (capítulo del **defecto septal auriculoventricular**).
+> Echocardiographic gradients of peak ≥50 mm Hg (subaortic stenosis) or mean ≥40 mm Hg (valvular
+> aortic stenosis) have been suggested as cutoffs for severe LVOT obstruction.
+>
+> **ACC/AHA 2025, hoja 53.** No data identify an echocardiographic gradient threshold at which a
+> patient develops symptoms, nor one at which symptoms would be relieved by surgical resection.
+> … in adults, a peak gradient ≥50 mm Hg is associated with a higher probability of aortic
+> regurgitation.
+
+#### Estenosis supravalvular aórtica
+
+⚠️ **La ESC 2020 NO publica un recuadro de recomendaciones propio para esta lesión**, censado
+sobre las **84 hojas** del documento con **control positivo** —el de la subaórtica sí aparece, en
+la hoja 41—. Lo que la aplicación aplica es el umbral **general** de obstrucción del tracto de
+salida izquierdo que la guía bajó de 50 a 40 mmHg de gradiente **medio** (hoja 10, folio 572). El
+ⓘ lo dice así y no le inventa a la guía una recomendación específica.
+
+#### Tabla de cambios de evidencia — segunda mitad de PANT-3
+
+| qué decía | dónde | qué dice ahora |
+|---|---|---|
+| la prosa de MCA (prevalencia, fenotipos, Task Force, resonancia) | pantalla | en los globos `mca-sec` y `mca-score`; la frase de la resonancia **sin cita** (→ P3-m) |
+| «El Task Force exige …» con los umbrales | pantalla | en `mca-eco`, **una sola vez**, con hoja y pie impreso |
+| los umbrales de MCA **dichos dos veces seguidos** | pantalla | **una sola vez**, en el globo |
+| «Acá no hay campos de volumen, y es a propósito» | pantalla de Fallot | **retirada**: la sección tiene dos campos de volumen y la pantalla se contradecía |
+| «la ESC 2020 dice que la RMC es el método de elección…» | pantalla de Fallot | en `tdf-vol`, con hoja 51 y folio 613 |
+| «la ESC 2020 define severa … a cualquier nivel con medio ≥40 mmHg» | pantalla de la subaórtica | en `esub-grad`, con clase, nivel y folio |
+| «ESC 2020, medio ≥40 mmHg a flujo normal» | pantalla de la supravalvular | en `easv-grad`, con la salvedad de que no hay recuadro propio |
+| el 50 de la subaórtica, **sin rótulo** | código | rotulado **PICO** en el ⓘ, con sus dos folios y sin clase |
+| «Taquicardia ventricular documentada» | rótulo del módulo | **«Parada cardíaca o TV documentada»** |
+| — | tipo de TV | **valor nuevo** «Parada cardíaca recuperada», descrito en el papel sin guía ni conducta |
+| «PAP media», «PAP diastólica», «PAPs», «PAPm», «PASP» | **25 rótulos de pantalla** | **PSAP**, **PmAP** y **PDAP** |
+
+**Ningún corte, umbral, clase ni nivel se movió en toda la segunda mitad**, y el papel sólo
+cambia por la descripción del valor nuevo del módulo de arritmia.
+
 ## La tanda Y3d — la orientación transgástrica, los criterios TEER y la VÁLVULA AÓRTICA BICÚSPIDE (2026-10-19)
 
 ### ⚠️ Lo que esta tanda VERIFICÓ, y las TRES fuentes que la biblioteca NO tiene

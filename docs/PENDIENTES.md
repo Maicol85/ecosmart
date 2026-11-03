@@ -1,6 +1,204 @@
 # EcoSmart — pendientes vivos
 
 
+## P3-a · El caso «casilla de abajo tildada y ninguna lesión marcada» de CIA / CIV
+
+La orden de PANT-3 dice que ese caso **no está decidido** y que se deje el comportamiento de
+HEAD; y su punto 1b(v) dice, en cambio, que **con el botón apagado la lesión no se emite aunque
+tenga datos cargados**. Para ese escenario las dos cosas no pueden valer a la vez: en HEAD, con
+la casilla tildada y datos cargados, la lesión **sí** se emitía.
+
+**Se aplicó (v)**, que es una decisión explícita del pedido: no se emite nada. Lo que sí se dejó
+intacto es el **botón de abajo**: sigue tildando, sigue avisando con su mensaje y sigue
+encendiendo su propio estado. Medido en las dos escenas del A/B (`p3ciaAbajo`, `p3civAbajo`):
+HEAD emite el párrafo, el EN SUMA y la hoja aparte; hoy no emite nada.
+
+**Qué falta decidir:** si tocar «Integrar al informe» sin ninguna lesión marcada debería avisar
+que no hay nada que integrar, deshabilitarse, o marcar las lesiones que tengan datos.
+
+## P3-b · El cuadro de resultado de MCH podría ir a la derecha desde ~1200 px
+
+La orden lo pone a la derecha desde 900 px **sólo si** las tres columnas no bajan de 200 px.
+Medido: a 900 px el ancho útil de la tarjeta son ~780 px y con el cuadro a la derecha quedan
+**~155 px** por columna. Se aplicó la alternativa que la propia orden da —debajo de los campos—.
+
+**Desde ~1200 px sí entraría**: con 1008 px de ancho útil y el cuadro en 320, quedan ~220 px por
+columna. Haría falta un corte propio a 1200 px, que la orden no autoriza. Queda para el médico.
+
+## P3-c · La pantalla de MCH a 1000 px baja poco, y es el precio de no tener barra horizontal
+
+Con `repeat(3, minmax(0,1fr))` cada columna queda en **255 px** a 1000 px de ventana, y adentro
+entra **un** campo por fila: la pantalla pasa de 1.335 a 1.290 px, contra los 1.287 → 939 de
+1440 px. La primera versión usaba `repeat(auto-fit, minmax(300px, 1fr))`, que daba dos columnas
+a 1000 px y bajaba más, pero **a 900 px aparecía barra horizontal** —medido, `scrollX=1`—, que la
+regla de la casa prohíbe. Se eligió no tener barra.
+
+⚠️ **Y la barra horizontal a 900 px existe en los DOS árboles**: medida con la misma sonda sobre
+el cierre del commit 4, es **preexistente** y no de esta tanda. Fuera del alcance de la orden.
+
+## P3-d · Los diagramas de la tarjeta de criterios de MCH siguen siendo los de 2020
+
+`_critSvgAHA()` dibuja el algoritmo de la **AHA/ACC 2020**, y la tarjeta lo declara. La tabla
+«Dónde no coinciden» sí pasó a **2024** en PANT-3, porque sus siete filas se cotejaron una por
+una contra la hoja 29 (folio e1267) y dicen lo de 2024. **La columna de los diagramas conserva su
+rótulo y su cita de 2020**: cambiarle la etiqueta a un dibujo que no cambió sería rotularlo mal.
+
+**Qué haría falta:** redibujar el SVG con el esquema de la recomendación 3 de 2024 —cuyo único
+cambio de criterio es que el aneurisma apical exige escara transmural o realce tardío— y recién
+entonces cambiar el rótulo. Es contenido clínico dibujado y lo decide el médico.
+
+## P3-e · Dos cosas de la ESC 2022 que la app no publica, leídas en imagen
+
+Leída la **Recommendation Table 30** de la ESC 2022 (Zeppenfeld, hoja 66, folio 4062):
+
+1. **La banda INTERMEDIA tiene una vía Clase IIa** con uno de cinco modificadores —realce tardío
+   significativo, FEVI < 50 %, respuesta tensional anormal al ejercicio, aneurisma apical del VI
+   o mutación sarcomérica patogénica—. La app publica **sólo IIb** para esa banda.
+2. **La banda BAJA lista TRES modificadores** —realce tardío, FEVI < 50 % y aneurisma apical— y
+   la app aplica **dos** (`_mod`: realce tardío y FEVI).
+
+Son cortes y clases clínicas: **se reportan y no se tocan**.
+
+## P3-f · La conclusión de la miocardiopatía arritmogénica nombra dos guías en el papel
+
+`mcaConclusion` publica «Los criterios Task Force 2010 no puntúan el ventrículo izquierdo — los
+que sí lo hacen son los criterios de Padua 2020 y el consenso europeo de 2023, todavía no
+validados», y esa frase llega al **papel firmado**. Choca con la regla fija «el papel describe»:
+nombra tres documentos por su nombre y su año.
+
+El censo del commit 3 la encontró y la clasificó como **dudosa → no tocada**, porque «todavía no
+validados» es una propiedad de criterios publicados y no una revisión pendiente del contenido de
+la aplicación. Lo que queda declarado es lo **otro**: que nombra guías en el papel. Es
+preexistente y fuera del alcance de la orden de PANT-3.
+
+## P3-g · Dieciséis globos quedan fuera del censo del navegador
+
+La sonda `scripts/_probe_pant3rev.mjs` abre 56 de 72 tarjetas ⓘ por sección. Los que no abren
+están nombrados uno por uno en su salida: `tarj-diast`, `tapse-psap`, `vd-triv` (dos veces),
+los siete `prot-*` de Válvulas, `ea-pvl`, `ea-prot-ppm`, `pul-balik` (dos veces) e `inf-min`.
+Viven detrás de una pastilla de severidad o de un panel que el barrido no abre.
+
+**Los cubre la pasada CRUDA** sobre el archivo —sin enmascarar nada, con patrones estrictos y los
+catorce hallazgos inspeccionados a mano—, así que el censo del commit 3 no tiene un hueco; lo que
+falta es que la sonda los abra sola.
+
+## P3-h · [CERRADO 2026-11-03] Los commits 6 a 10 de PANT-3 se hicieron
+
+Quedaron declarados como no hechos al llegar al 95 % de contexto de la primera mitad. El médico
+pidió seguir en la misma sesión y los cinco se completaron: **MCA (6)**, **Fallot (7)**,
+**estenosis subaórtica y supravalvular (8a y 8b)**, **arritmia ventricular (9)** y **rótulos de
+las presiones pulmonares (10)**, cada uno con su inventario, su A/B contra el árbol anterior y
+su caso de cobertura. Lo que quedó parado de ellos está en **P3-i** a **P3-p**.
+
+⚠️ **El texto exacto de esos cinco commits NO se reconstruyó de memoria.** Se recuperó del
+transcripto de la sesión en disco (`~/.claude/projects/…/80759c74-….jsonl`), que guarda la orden
+del médico palabra por palabra, y se dejó copiado en el scratchpad de la sesión antes de empezar.
+
+## P3-i · La disposición en TRES columnas de Fallot quedó PARADA, y la propuesta
+
+La orden del commit 7 la condiciona a que los grupos estén claros: «con los grupos que la sección
+ya tiene —no inventes agrupamientos: si no están claros, PARÁ y proponé en el reporte—».
+**No están claros.** De las **cinco** filas de campos que la sección tiene, **una sola** lleva
+título —«Volúmenes del ventrículo derecho»—; las otras cuatro no dicen de qué tema son.
+
+**La propuesta, para que la decida el médico.** Los cuatro temas que se leen en los campos, que
+son CUATRO y no tres:
+
+| tema propuesto | campos que lo forman |
+|---|---|
+| Lesiones residuales por eco | `tdf_ip_ro`, `tdf_tsvd_ro`, `tdf_func_vd`, `tdf_grad_tsvd`, `tdf_psvd_ro`, `tdf_it_ro` |
+| Volúmenes del VD (ya tiene título) | `tdf_vtdvdi`, `tdf_vtsvdi`, `tdf_vol_fuente` |
+| Defectos residuales | `tdf_civ_residual`, `tdf_civ_grad`, `tdf_ep_stent` |
+| Situación clínica | `tdf_sintomas`, `tdf_ejercicio`, `tdf_tv` |
+
+Con tres columnas habría que fusionar dos de esos cuatro, y cuál con cuál es una decisión
+clínica. **Lo que sí se hizo** es lo que no depende del agrupamiento: los textos al ⓘ y la
+conclusión a la derecha desde 900 px.
+
+## P3-j · La pantalla de MCA queda MÁS ALTA a 1440 y a 1000 px
+
+Medido: **1440 px 1254 → 1345** y **1000 px 1471 → 1985**; a 768 px baja de 1849 a 1586 y a
+390 px de 2365 a 2024. Es el costo de lo que la orden decide: **dos** columnas de criterios
+ecocardiográficos en vez de dos filas de **tres**, **tres** columnas de categorías en vez de
+**cinco**, y **320 px** de ancho que se lleva la columna de conclusión.
+
+⚠️ **Y una decisión de anidamiento que la orden no toma y que se midió:** metiendo la zona NO
+ecocardiográfica dentro de la columna de campos, la sección pasaba a **1821 px** a 1440. A todo
+el ancho, fuera de la fila, queda en 1345. Se eligió el anidamiento que mide mejor y se declara.
+
+**Qué se podría hacer, si el médico quiere bajarla:** estrechar la columna de conclusión, o
+subir el corte de la fila de dos columnas por encima de 900 px —a 1000 px el panel mide 808 y
+una columna de 320 deja los campos en 470—. Las dos tocan una decisión que la orden fijó.
+
+## P3-k · La sección de MCA tiene DOS grupos que la orden no nombra
+
+La orden del commit 6 decide la disposición de los criterios **ecocardiográficos** y de los **no
+ecocardiográficos**. La sección tiene además **«Fenotipo predominante»** (un campo) y
+**«Compromiso del ventrículo izquierdo»** (dos campos y un resultado). **No se tocaron**, que es
+lo que corresponde cuando una decisión no está en la orden.
+
+## P3-l · Cuatro discrepancias entre la Tabla 1 del Task Force y lo que la app escribe
+
+Leídas en imagen en te Riele y cols., *J Cardiovasc Magn Reson* 2014;16:50, **Tabla 1, hoja 3 de
+15** (pie impreso «Page 3 of 15»). **No se corrigieron: se reportan.**
+
+| criterio | la fuente dice | la app dice |
+|---|---|---|
+| cortes del tracto de salida | publica además los **indexados por superficie corporal** —19 y 21 mm/m² el mayor, 16 a <19 y 18 a <21 el menor— | no los aplica (dicho en el ⓘ) |
+| tisular | «miocitos residuales <60 % por morfometría **(o <50 % si se estima)**» | «<60 % en biopsia» |
+| repolarización | las tres filas piden **>14 años** | la app no lo dice |
+| despolarización menor | potenciales tardíos **en ausencia de un QRS ≥110 ms** | la app no dice la condición |
+| arritmias menor | «TV **de configuración del TSVD**, morfología de BRI con eje inferior o desconocido» | sin «configuración del TSVD» |
+
+## P3-m · La app afirma que la resonancia es el estándar de referencia y su única fuente dice lo contrario
+
+La frase «La resonancia cardíaca con gadolinio es el estándar de referencia para la
+caracterización tisular del miocardio» pasó de la pantalla de MCA al ⓘ `mca-score`, **y va SIN
+cita**. El único documento de la biblioteca que trata el tema —te Riele 2014— dice en el cuerpo
+de la misma hoja 3 que la evaluación «no debería basarse en una sola prueba, en particular la
+resonancia», y que su sensibilidad es baja. **Regla de la casa: reportar y esperar.**
+
+## P3-n · Las frases de conducta de las dos estenosis aórticas, censadas y NO tocadas
+
+La orden del commit 8 pide anotarlas y no sacarlas. Salen del **mismo evaluador que alimenta el
+informe firmado**, no sólo de la pantalla.
+
+**Subaórtica:** «Corresponde evaluar la indicación quirúrgica en centro de cardiopatías
+congénitas del adulto» · «criterio que pesa por sí mismo en la decisión quirúrgica» · la fila
+«Seguimiento», que dice «Seguimiento ecocardiográfico anual, vigilando la progresión del
+gradiente y de la insuficiencia aórtica secundaria. Derivación a cirugía cardíaca de congénitas
+del adulto ante gradiente medio ≥40 mmHg o insuficiencia aórtica progresiva».
+
+**Supravalvular:** la misma frase quirúrgica · «evaluar indicación quirúrgica» en el EN SUMA ·
+«corresponde evaluar estenosis pulmonar periférica e hipercalcemia, y seguimiento
+multidisciplinario» · «si se indica cirugía, considerar la corrección simultánea» · su fila
+«Seguimiento».
+
+## P3-o · El módulo de arritmia ventricular nombra «Task Force 2010» en el papel firmado
+
+Sus **notas** —las de morfología y la de falta de tipo— llegan al informe nombrando la guía, y la
+línea del puntaje de MCA publica «Puntaje Task Force 2010: N puntos». Es **preexistente** y choca
+con la regla fija «el papel describe». **No se tocó**: cambiar el papel firmado más allá de lo
+que la orden lista está fuera de alcance.
+
+⚠️ La primera versión del commit 9 empujaba **una nota más** que nombraba la guía, para explicar
+por qué la parada no aporta criterio. Una medición la cazó y se retiró: la explicación vive en el
+globo `tv-sec` y en la tarjeta de la pantalla.
+
+## P3-p · Los rótulos de presión que NO se cambiaron, y por qué
+
+La orden del commit 10 manda no tocar los ambiguos y reportarlos.
+
+| rótulo | dónde | por qué no se toca |
+|---|---|---|
+| «PA sistémica (mmHg)» | CIV | es presión **sistémica**, no pulmonar |
+| «PAS» dentro de «PSAP estimada por CIV (PAS − 4V²)» | CIV | ídem: es la sistólica sistémica |
+| «PmAD» | Doppler tricuspídeo | presión media de la aurícula **derecha** |
+| «Diámetro de la arteria pulmonar» | IP y Referencias | es un **diámetro**, no una presión |
+| «PSAP», «PAPm (IP)», «PAPd (IP)» | filas del **PDF** | es papel, y el commit 10 no lo toca |
+| «PAPs estimada (mmHg)» del ductus | generador de la ficha del papel | ídem |
+| «PAP media (mmHg)» | **encabezado del Excel** | la orden prohíbe cambiar encabezados |
+
 ## Tanda J · pericardio, constricción y VEXUS (2026-10-24) — DECLARADO y NO arreglado
 
 ### [CERRADO 2026-10-24 · AJ7-4a] J-a · Dos conductas siguen en el informe firmado de constricción y restricción
