@@ -113,6 +113,14 @@ const ESCENAS = {
      El papel tiene que salir IDENTICO en las cuatro, con y sin el boton de abajo. Las lesiones
      se marcan por sus dos checkbox ocultos, que son el estado que `guardarInforme` captura. */
   p5ccNada: { campos: { ete_cia_tam_max:'14', ete_civ_tam:'8' } },
+  /* -- PANT-5, COMMIT 7: LA FALLOT REPARADA EN TRES COLUMNAS --
+     p5tdf carga los campos EDITABLES de las tres columnas, que es el denominador: sin ellos la
+     seccion no publica una linea de papel. p5tdfVacio es el control negativo. */
+  p5tdfVacio: { campos: {} },
+  p5tdf: { campos: { tdf_grad_tsvd:'35', tdf_vtdvdi:'168', tdf_vtsvdi:'84', tdf_civ_grad:'22' },
+           sel: { tdf_func_vd:'moderada', tdf_vol_fuente:'rmc', tdf_civ_residual:'si',
+                  tdf_ep_stent:'nativa', tdf_sintomas:'si', tdf_ejercicio:'si' },
+           chk: ['tdf_incluir_chk'] },
   /* -- PANT-5, COMMIT 6: LA SINCRONIA DE LA LONGITUD DE LOS VELOS MITRALES --
      p5etemA carga los velos SOLO en Mediciones ETE y p5etemB SOLO en Criterios TEER: son las dos
      escenas donde el espejo nuevo puede mover el papel, y es el unico caso de papel que la orden

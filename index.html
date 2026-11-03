@@ -1499,9 +1499,36 @@
   #mca-campos { min-width:0; }
   #mca-eco-cols { display:grid; grid-template-columns:repeat(auto-fit,minmax(175px,1fr)); gap:10px; }
   @media (min-width: 900px) {
-    #mca-fila, #tdf-fila, #esub-fila, #easv-fila { grid-template-columns:minmax(0,1fr) 320px; }
+    /* ⚠️ `#tdf-fila` SALE DE ESTE CORTE Y PASA A 1200 px, Y LO DECIDIO UNA MEDICION (PANT-5,
+       commit 7). La orden pone la conclusion de Fallot a la derecha desde 900 px SOLO SI las
+       tres columnas de campos no quedan por debajo de 200 px, y medido NO se cumple: con la
+       conclusion al lado el ancho de `#tdf-campos` es 344 px a 900 y 444 a 1000, o sea columnas
+       de 108 y 141 px. A 1200 px da 644 -> 208 px por columna, que si entra. Las otras TRES
+       filas no se tocan: su pantalla no tiene columnas que repartir. */
+    #mca-fila, #esub-fila, #easv-fila { grid-template-columns:minmax(0,1fr) 320px; }
     #mca-eco-cols { grid-template-columns:repeat(2, minmax(0,1fr)); }
     .mca-cat-grid { grid-template-columns:repeat(3, minmax(0,1fr)); }
+  }
+  @media (min-width: 1200px) {
+    #tdf-fila { grid-template-columns:minmax(0,1fr) 320px; }
+  }
+  /* ==========================================================================================
+     LA FALLOT REPARADA EN TRES COLUMNAS POR TEMA  -  #tdf-cols  (PANT-5, 2026-11-03)
+     ==========================================================================================
+     Cierra P4-a. Los tres grupos y el reparto campo por campo los decide el medico; los QUINCE
+     campos de la seccion entran en los tres, censado antes de mover nada.
+     ⚠️ EL CORTE SALE DE UNA MEDICION Y VA SOBRE LA VENTANA. El ancho util de `#tdf-campos` con
+        la conclusion DEBAJO es la ventana menos 246 px por encima de 768 y menos 62 por debajo
+        -medido: 706 px a 768 y 328 a 390-, asi que tres columnas con 10 px de hueco dan
+        (util - 20) / 3; para que no bajen de los 200 px que la orden fija hace falta un util de
+        620 px, o sea una ventana de 700. A 700 px cada columna mide 206 px y a 699 pasan a una.
+     ⚠️ Y NO HAY TRAMO DE DOS: entre una y tres no hay ancho donde dos columnas entren y tres no
+        -medido en los dos bordes-, asi que un tramo intermedio seria un corte sin medicion que
+        lo sostenga. */
+  #tdf-cols { display:grid; grid-template-columns:minmax(0,1fr); gap:10px; align-items:start; }
+  #tdf-cols .tdf-col { min-width:0; }
+  @media (min-width: 700px) {
+    #tdf-cols { grid-template-columns:repeat(3, minmax(0,1fr)); }
   }
   .mca-cat-col { border:1px solid var(--border); border-radius:8px; padding:6px 8px; background:var(--bg2); min-width:0; }
   .mca-cat-tit { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:var(--accent2); margin-bottom:2px; }
@@ -18292,80 +18319,99 @@ z
       </div>
       <div id="tdf-fila">
       <div id="tdf-campos">
-      <div class="grid-3">
-        <div class="fg"><label>IP — grado (de Válvulas)</label>
+      <!-- == TRES COLUMNAS POR TEMA (PANT-5, commit 7, 2026-11-03) ==========================
+           Cierra P4-a. La disposicion en tres columnas estaba PARADA porque la seccion tiene
+           CINCO filas de campos y UN solo titulo de grupo, asi que agruparlas era inventarlas:
+           esta orden trae los TRES grupos y el reparto campo por campo, decidido por el medico.
+           CENSADO ANTES DE MOVER NADA: la seccion tiene QUINCE campos y los QUINCE figuran en la
+           lista de la orden -4 + 6 + 5-, asi que no hubo nada que parar.
+             (1) Valvula pulmonar y tracto de salida : tdf_ip_ro, tdf_tsvd_ro, tdf_grad_tsvd,
+                                                       tdf_ep_stent
+             (2) Ventriculo derecho                  : tdf_func_vd, tdf_psvd_ro, tdf_it_ro, y el
+                                                       grupo de volumenes con su subtitulo, su
+                                                       globo y sus criterios -tdf_vtdvdi,
+                                                       tdf_vtsvdi, tdf_vol_fuente-
+             (3) Lesiones residuales y clinica       : tdf_civ_residual, tdf_civ_grad,
+                                                       tdf_sintomas, tdf_ejercicio, tdf_tv, y la
+                                                       linea «Arritmia ventricular» con su Editar
+           ⚠️ NINGUN campo, dato, valor, opcion ni texto cambia: cada bloque se mueve ENTERO, con
+              su rotulo, su globo, su ayuda y sus manejadores. Lo unico que cambia es en que
+              columna esta. -->
+      <div id="tdf-cols">
+        <div class="tdf-col">
+          <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:0 0 6px;">Válvula pulmonar y tracto de salida</div>
+          <div class="fg"><label>IP — grado (de Válvulas)</label>
           <input type="text" id="tdf_ip_ro" readonly tabindex="-1" placeholder="—" style="opacity:.7;"></div>
-        <div class="fg"><label>Ø TSVD (de VD / AD)</label>
+          <div class="fg"><label>Ø TSVD (de VD / AD)</label>
           <input type="text" id="tdf_tsvd_ro" readonly tabindex="-1" placeholder="—" style="opacity:.7;"></div>
-        <div class="fg"><label>Función del VD</label>
-          <select id="tdf_func_vd" onchange="tdfSync()">
-            <option value="">—</option>
-            <option value="normal">Normal</option>
-            <option value="leve">Disfunción leve</option>
-            <option value="moderada">Disfunción moderada</option>
-            <option value="severa">Disfunción severa</option>
+          <div class="fg"><label>Gradiente TSVD (mmHg) — si difiere del transvalvular</label><input type="number" id="tdf_grad_tsvd" step="1" placeholder="mmHg" oninput="tdfSync()"></div>
+          <div class="fg"><label>Estenosis pulmonar nativa o stent</label>
+          <select id="tdf_ep_stent" onchange="tdfSync()">
+          <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
           </select>
+          </div>
         </div>
-      </div>
-      <div class="grid-3" style="margin-top:10px;">
-        <div class="fg"><label>Gradiente TSVD (mmHg) — si difiere del transvalvular</label><input type="number" id="tdf_grad_tsvd" step="1" placeholder="mmHg" oninput="tdfSync()"></div>
-        <div class="fg"><label>Presión sistólica VD (de PSAP por IT)</label>
+        <div class="tdf-col">
+          <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:0 0 6px;">Ventrículo derecho</div>
+          <div class="fg"><label>Función del VD</label>
+          <select id="tdf_func_vd" onchange="tdfSync()">
+          <option value="">—</option>
+          <option value="normal">Normal</option>
+          <option value="leve">Disfunción leve</option>
+          <option value="moderada">Disfunción moderada</option>
+          <option value="severa">Disfunción severa</option>
+          </select>
+          </div>
+          <div class="fg"><label>Presión sistólica VD (de PSAP por IT)</label>
           <input type="text" id="tdf_psvd_ro" readonly tabindex="-1" placeholder="—" style="opacity:.7;"></div>
-        <div class="fg"><label>IT — grado (de Válvulas) <button type="button" class="vinfo-btn vinfo-btn-44" data-vinfo="tdf-eco" aria-label="De donde salen estos valores y que presion estima la IT" onclick="vInfoClic(this,event)">&#9432;</button></label>
+          <div class="fg"><label>IT — grado (de Válvulas) <button type="button" class="vinfo-btn vinfo-btn-44" data-vinfo="tdf-eco" aria-label="De donde salen estos valores y que presion estima la IT" onclick="vInfoClic(this,event)">&#9432;</button></label>
           <input type="text" id="tdf_it_ro" readonly tabindex="-1" placeholder="—" style="opacity:.7;"></div>
-      </div>
-      <div style="font-size:11.5px;font-weight:700;color:var(--text);margin:14px 0 4px;display:flex;align-items:center;gap:6px;">
-        <span>Volúmenes del ventrículo derecho — criterio volumétrico ESC 2020</span>
-        <button type="button" class="vinfo-btn vinfo-btn-44" data-vinfo="tdf-vol" aria-label="De donde salen estos volumenes y que dice la guia del corte" onclick="vInfoClic(this,event)">&#9432;</button>
-      </div>
-      <div class="grid-3">
-        <div class="fg"><label>VTDVD indexado (ml/m&sup2;)</label>
+          <div style="font-size:11.5px;font-weight:700;color:var(--text);margin:14px 0 4px;display:flex;align-items:center;gap:6px;">
+          <span>Volúmenes del ventrículo derecho — criterio volumétrico ESC 2020</span>
+          <button type="button" class="vinfo-btn vinfo-btn-44" data-vinfo="tdf-vol" aria-label="De donde salen estos volumenes y que dice la guia del corte" onclick="vInfoClic(this,event)">&#9432;</button>
+          </div>
+          <div class="fg"><label>VTDVD indexado (ml/m&sup2;)</label>
           <input type="number" id="tdf_vtdvdi" step="1" placeholder="ml/m²" oninput="tdfSync()">
           <span style="font-size:10px;color:var(--text2);">Criterio ESC 2020: &ge;160&nbsp;ml/m&sup2;.</span></div>
-        <div class="fg"><label>VTSVD indexado (ml/m&sup2;)</label>
+          <div class="fg"><label>VTSVD indexado (ml/m&sup2;)</label>
           <input type="number" id="tdf_vtsvdi" step="1" placeholder="ml/m²" oninput="tdfSync()">
           <span style="font-size:10px;color:var(--text2);">Criterio ESC 2020: &ge;80&nbsp;ml/m&sup2;.</span></div>
-        <div class="fg"><label>Método de medición</label>
+          <div class="fg"><label>Método de medición</label>
           <select id="tdf_vol_fuente" onchange="tdfSync()">
-            <option value="">&mdash;</option>
-            <option value="rmc">Resonancia magnética cardíaca</option>
-            <option value="eco3d">Ecocardiografía 3D</option>
-            <option value="tc">Tomografía</option>
+          <option value="">&mdash;</option>
+          <option value="rmc">Resonancia magnética cardíaca</option>
+          <option value="eco3d">Ecocardiografía 3D</option>
+          <option value="tc">Tomografía</option>
           </select></div>
-      </div>
-      <div class="grid-3" style="margin-top:10px;">
-        <div class="fg"><label>CIV residual</label>
+        </div>
+        <div class="tdf-col">
+          <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:0 0 6px;">Lesiones residuales y clínica</div>
+          <div class="fg"><label>CIV residual</label>
           <select id="tdf_civ_residual" onchange="tdfSync()">
-            <option value="">—</option><option value="no_eval">No evaluada</option><option value="no">No</option><option value="si">Sí</option>
+          <option value="">—</option><option value="no_eval">No evaluada</option><option value="no">No</option><option value="si">Sí</option>
           </select>
-        </div>
-        <div class="fg"><label>Gradiente CIV residual (mmHg)</label><input type="number" id="tdf_civ_grad" step="1" placeholder="mmHg" oninput="tdfSync()"></div>
-        <div class="fg"><label>Estenosis pulmonar nativa o stent</label>
-          <select id="tdf_ep_stent" onchange="tdfSync()">
-            <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
-          </select>
-        </div>
-      </div>
-      <div class="grid-3" style="margin-top:10px;">
-        <div class="fg"><label>Síntomas</label>
+          </div>
+          <div class="fg"><label>Gradiente CIV residual (mmHg)</label><input type="number" id="tdf_civ_grad" step="1" placeholder="mmHg" oninput="tdfSync()"></div>
+          <div class="fg"><label>Síntomas</label>
           <select id="tdf_sintomas" onchange="tdfSync()">
-            <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
+          <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
           </select>
-        </div>
-        <div class="fg"><label>Caída objetiva de la capacidad de ejercicio</label>
+          </div>
+          <div class="fg"><label>Caída objetiva de la capacidad de ejercicio</label>
           <select id="tdf_ejercicio" onchange="tdfSync()">
-            <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
+          <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
           </select>
-        </div>
-        <div class="fg"><label>Taquicardia ventricular <span style="font-weight:400;color:var(--text2);font-size:10px;">— derivado</span></label>
+          </div>
+          <div class="fg"><label>Taquicardia ventricular <span style="font-weight:400;color:var(--text2);font-size:10px;">— derivado</span></label>
           <select id="tdf_tv" disabled data-espejo title="Se deriva del bloque «⚡ Arritmia ventricular», arriba de esta pestaña.">
-            <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
+          <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
           </select>
+          </div>
+          <div style="font-size:10px;color:var(--text2);margin:8px 0 0;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          <span>&#9889; Arritmia ventricular: <b id="tdf-tv-res">&mdash;</b></span>
+          <button type="button" class="btn btn-ghost" style="font-size:10.5px;padding:2px 10px;margin:0;" onclick="tvIrAlModulo()">Editar</button>
+          </div>
         </div>
-      </div>
-      <div style="font-size:10px;color:var(--text2);margin:8px 0 0;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-        <span>&#9889; Arritmia ventricular: <b id="tdf-tv-res">&mdash;</b></span>
-        <button type="button" class="btn btn-ghost" style="font-size:10.5px;padding:2px 10px;margin:0;" onclick="tvIrAlModulo()">Editar</button>
       </div>
       </div><!-- /#tdf-campos -->
       <div id="tdf-concl-col">
