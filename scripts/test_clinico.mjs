@@ -8822,28 +8822,58 @@ caso('TC-127', 'Estenosis subaortica: gradua el gradiente MEDIO y no el pico', `
     ['medio 40 exactos es severa', m40.r.severa === true],
     ['medio 39 no', m39.r.severa === false],
     ['medio 41 si', m41.r.severa === true],
-    ['la alerta quirurgica sube al EN SUMA',
-      m40.inf.suma.indexOf('evaluar indicación quirúrgica') > -1],
+    /* ADAPTADA el 2026-11-03 (PANT-4, commit 1c). INVERTIDA: la conducta quirurgica salio del
+       papel. Lo que ahora exige es que la severidad SI suba al EN SUMA -el hallazgo se queda- y
+       que la conducta NO, que es lo que el principio del medico manda. */
+    ['la severidad sube al EN SUMA y la conducta quirurgica NO',
+      m40.inf.suma.indexOf('gradiente medio 40 mmHg — severa') > -1 &&
+      m40.inf.suma.indexOf('evaluar indicación quirúrgica') === -1],
+    ['y el informe la dice sin nombrar la guia',
+      m40.inf.inf.indexOf('Obstrucción severa del tracto de salida izquierdo') > -1 &&
+      m40.inf.inf.indexOf('ESC 2020') === -1],
     // EL PICO NO GRADUA.
     ['un pico de 65 con medio 24 NO es severa', picoAlto.r.severa === false],
     ['y el informe publica los dos gradientes', picoAlto.inf.inf.indexOf('65 mmHg') > -1 && picoAlto.inf.inf.indexOf('24 mmHg') > -1],
     ['sin gradiente medio no se gradua', soloPico.r.gradua === false && soloPico.r.severa === false],
-    ['y el informe dice cual falta en vez de callarlo',
-      soloPico.inf.inf.indexOf('el criterio de la ESC 2020 es el gradiente MEDIO y no consta') > -1],
+    /* ADAPTADA e INVERTIDA: «no consta» es una frase de dato faltante y salio del papel. Lo
+       que se conserva es que el PICO se publique igual —ningun dato cargado desaparece— y que
+       la explicacion siga en la PANTALLA, que es donde el medico decide. */
+    ['el informe ya no escribe la frase de dato faltante',
+      soloPico.inf.inf.indexOf('el criterio de la ESC 2020 es el gradiente MEDIO y no consta') === -1],
+    ['pero el gradiente pico cargado se publica igual',
+      soloPico.inf.inf.indexOf('Gradiente pico 65 mmHg') > -1],
+    /* ADVERTENCIA: la pantalla hay que volver a montarla ACA. Las escenas de arriba corren una
+       tras otra y el nodo de la conclusion conserva la ULTIMA, no la de este renglon. */
+    ['y la pantalla lo sigue explicando',
+      (function () { e({ pico: 65 });
+        return String(__t.txt('esub-resultado') || '').indexOf('Sin gradiente medio no se gradúa la severidad') > -1 })()],
     // La salvedad de flujo normal, solo donde podria tranquilizar de mas.
-    ['al graduar como NO severa se declara el supuesto de flujo normal',
-      m39.inf.inf.indexOf('con gasto cardíaco bajo el gradiente subestima') > -1],
-    ['y no se repite cuando ya es severa',
+    /* ADAPTADA e INVERTIDA: la salvedad nombra la guia, asi que salio del papel. Sigue en la
+       pantalla y en el globo, que es donde las citas viven. */
+    ['la salvedad de flujo normal ya no esta en el papel',
+      m39.inf.inf.indexOf('con gasto cardíaco bajo el gradiente subestima') === -1 &&
       m40.inf.inf.indexOf('con gasto cardíaco bajo el gradiente subestima') === -1],
+    ['y el gradiente de 39 se publica igual', m39.inf.inf.indexOf('Gradiente medio 39 mmHg') > -1],
     // IA secundaria.
-    ['IA moderada alerta y sube al EN SUMA',
-      iaMod.inf.inf.indexOf('marcador de severidad') > -1 && iaMod.inf.suma.indexOf('insuficiencia aórtica moderada') > -1],
+    /* ADAPTADA: la interpretacion clinica salio del papel y la insuficiencia se dice UNA vez.
+       El EN SUMA la sigue nombrando, que es el hallazgo. */
+    ['IA moderada sube al EN SUMA y su interpretacion clinica NO esta en el informe',
+      iaMod.inf.inf.indexOf('marcador de severidad') === -1 &&
+      iaMod.inf.suma.indexOf('insuficiencia aórtica moderada asociada') > -1],
+    ['y el informe la nombra UNA sola vez',
+      iaMod.inf.inf.split('nsuficiencia aórtica').length - 1 === 1],
     ['IA leve se describe y no alerta',
       iaLeve.inf.inf.indexOf('asociada leve') > -1 && iaLeve.inf.inf.indexOf('marcador de severidad') === -1],
     // Valsalva: distingue fija de dinamica.
-    ['un gradiente que AUMENTA con Valsalva manda al diferencial con MCH',
-      vals.inf.inf.indexOf('obstrucción DINÁMICA') > -1 && vals.inf.suma.indexOf('aumenta con Valsalva') > -1],
-    ['sin cambios no alerta', valsNo.inf.inf.indexOf('obstrucción DINÁMICA') === -1],
+    /* ADAPTADA: el diferencial es interpretacion y salio del papel; el comportamiento con
+       Valsalva, que es el hallazgo, se publica igual y sube al EN SUMA como asociacion. */
+    ['el comportamiento con Valsalva se publica y el diferencial no esta en el papel',
+      vals.inf.inf.indexOf('Con la maniobra de Valsalva el gradiente aumenta') > -1 &&
+      vals.inf.inf.indexOf('miocardiopatía hipertrófica') === -1 &&
+      vals.inf.suma.indexOf('aumenta con la maniobra de Valsalva') > -1],
+    ['sin cambios se publica con su verbo y no sube al EN SUMA',
+      valsNo.inf.inf.indexOf('el gradiente no se modifica') > -1 &&
+      valsNo.inf.suma.indexOf('Valsalva') === -1],
     // La longitud solo con tunel.
     ['la longitud se imprime con el tunel', tunel.inf.inf.indexOf('14 mm') > -1],
     ['y NO con una membrana: ahi no significa nada', memLargo.inf.inf.indexOf('14 mm') === -1],
@@ -8889,31 +8919,55 @@ caso('TC-128', 'Supravalvular aortica: gradiente MEDIO, y los ostios alertan sol
     ['medio 39 no', m39.r.severa === false],
     // El pico no gradua, igual que en la subaortica.
     ['un pico de 70 con medio 22 NO es severa', picoAlto.r.severa === false],
-    ['sin gradiente medio no se gradua y se dice cual falta',
+    /* ADAPTADA el 2026-11-03 (PANT-4, commit 1c). INVERTIDA la mitad del papel: «no consta» es
+       una frase de dato faltante y salio. Lo que se conserva es que NO se gradue y que el dato
+       cargado se publique igual. */
+    ['sin gradiente medio no se gradua y el papel ya no escribe la frase de dato faltante',
       soloPico.r.gradua === false &&
-      soloPico.inf.inf.indexOf('el criterio de la ESC 2020 es el gradiente MEDIO y no consta') > -1],
+      soloPico.inf.inf.indexOf('el criterio de la ESC 2020 es el gradiente MEDIO y no consta') === -1],
+    ['y el gradiente pico cargado se publica igual',
+      soloPico.inf.inf.indexOf('Gradiente pico 70 mmHg') > -1],
     // LOS OSTIOS: alertan con gradiente NO severo, que es lo propio de esta forma.
-    ['el compromiso de ostios alerta aunque el gradiente no sea severo',
-      corMal.r.severa === false && corMal.inf.inf.indexOf('riesgo de isquemia miocárdica') > -1],
+    /* ADAPTADA: la interpretacion de isquemia salio del papel y se quedo en la PANTALLA. Lo que
+       se conserva es que el compromiso se publique como hallazgo aunque el gradiente no sea
+       severo, que es lo propio de esta lesion. */
+    ['el compromiso de ostios se publica aunque el gradiente no sea severo',
+      corMal.r.severa === false && corMal.inf.inf.indexOf('Compromiso de los ostios coronarios') > -1],
+    ['y su interpretacion de isquemia sigue en la pantalla y no en el papel',
+      corMal.inf.inf.indexOf('riesgo de isquemia miocárdica') === -1 &&
+      corMal.r.alertas.map(function (a) { return a.txt }).join(' ').indexOf('riesgo de isquemia miocárdica') > -1],
     ['y sube al EN SUMA', corMal.inf.suma.indexOf('compromiso de los ostios coronarios') > -1],
     ['ostios normales se nombran y no alertan',
       corBien.inf.inf.indexOf('Ostios coronarios normales') > -1 &&
       corBien.inf.inf.indexOf('riesgo de isquemia') === -1],
-    ['«no evaluados» NO se publica como normales: se declara pendiente',
-      corNo.inf.inf.indexOf('no evaluados en este estudio') > -1 &&
+    /* ADAPTADA e INVERTIDA: «no evaluados en este estudio» es una frase de dato faltante y salio
+       del papel. LO QUE IMPORTA NO CAMBIA: «no evaluados» sigue sin publicarse como «normales»,
+       que es la afirmacion tranquilizadora que este caso persigue desde el principio. */
+    ['«no evaluados» sigue sin publicarse como normales',
       corNo.inf.inf.indexOf('Ostios coronarios normales') === -1],
-    ['y sin contestar nada, tambien se declara pendiente',
-      corSin.inf.inf.indexOf('no evaluados en este estudio') > -1],
+    ['y la frase de dato faltante salio del papel',
+      corNo.inf.inf.indexOf('no evaluados en este estudio') === -1 &&
+      corSin.inf.inf.indexOf('no evaluados en este estudio') === -1],
+    ['y la pantalla lo sigue diciendo con su pastilla',
+      (function () { e({ medio: 15, cor: 'no_eval' });
+        return String(__t.txt('easv-resultado') || '').indexOf('No evaluados') > -1 })()],
     // Williams-Beuren.
-    ['Williams-Beuren manda a buscar estenosis pulmonar e hipercalcemia',
-      wil.inf.inf.indexOf('hipercalcemia') > -1 && wil.inf.suma.indexOf('Williams-Beuren') > -1],
+    /* ADAPTADA: la conducta -buscar estenosis pulmonar periferica e hipercalcemia, seguimiento
+       multidisciplinario- salio del papel y quedo en la pantalla. El hallazgo se publica igual. */
+    ['Williams-Beuren se publica como hallazgo y su conducta no esta en el papel',
+      wil.inf.inf.indexOf('Asociada a síndrome de Williams-Beuren') > -1 &&
+      wil.inf.inf.indexOf('hipercalcemia') === -1 &&
+      wil.inf.suma.indexOf('Williams-Beuren') > -1],
     ['«sin sindrome» se nombra y no alerta',
       wilNo.inf.inf.indexOf('Sin síndrome de Williams-Beuren') > -1 &&
       wilNo.inf.inf.indexOf('hipercalcemia') === -1],
     // Estenosis pulmonar asociada.
-    ['EP moderada propone la correccion simultanea',
-      epMod.inf.inf.indexOf('corrección simultánea') > -1],
-    ['EP leve se describe y no lo propone',
+    /* ADAPTADA e INVERTIDA: la correccion simultanea es conducta y salio del papel. El grado de
+       la estenosis pulmonar, que es el hallazgo, se publica igual en los dos. */
+    ['EP moderada se publica y la conducta de la correccion simultanea salio del papel',
+      epMod.inf.inf.indexOf('Estenosis pulmonar asociada moderada') > -1 &&
+      epMod.inf.inf.indexOf('corrección simultánea') === -1],
+    ['EP leve se describe igual',
       epLeve.inf.inf.indexOf('asociada leve') > -1 && epLeve.inf.inf.indexOf('corrección simultánea') === -1],
     ['sin ningun dato no hay seccion', vacio.r.hayDatos === false]
   ] };
@@ -34846,7 +34900,7 @@ caso('TC-273', 'Panel de Evidencia: las trece secciones aparecen con su criterio
    no se toca, porque ese mecanismo no cambio.
 
    ⚠️ Y AL ADAPTARLO SE DESTAPO QUE LA CONDICION VIEJA ESTABA VERDE SOBRE UN DEFECTO. Medido en
-   HEAD con `getComputedStyle`: con `hidden === true` el boton tenia `display:flex` y **104 x 44
+   HEAD con getComputedStyle: con `hidden === true` el boton tenia `display:flex` y **104 x 44
    px reales en pantalla**, porque la regla de autor `.btn, .tab-btn, .nav-tab, .chip
    { display:inline-flex }` (index.html, la regla de los controles agrandados) le GANA al
    `[hidden]{display:none}` de la hoja del NAVEGADOR. O sea que el esconder nunca funciono a la
@@ -79683,6 +79737,22 @@ caso('TC-502', 'Tanda P: Referencias en CINCO subpestanas sin perder una entrada
       return d !== 'NO EXISTE' && (!FN('_labDiastGrado') || true);
     } catch (e) { return false; } })(), 'dd-interp=' + String(TXT('dd-interp')).slice(0, 40)]);
 
+  /* ADAPTADO el 2026-11-03 (tanda PANT-4, commit 7) — CIERRA P3-r. ESTE CASO CAMBIA EL ESTILO
+     DE INFORME Y NO LO DEVOLVIA, y el estilo es estado de SESION: el suite corre los casos en
+     UNA sola pagina, asi que cualquier caso POSTERIOR que mida el informe por su redaccion
+     quedaba frente a otro estilo. Es lo que puso en rojo el bloque (E) de TC-535 -verde aislado
+     y rojo despues de este-, con su denominador en cero: el dato estaba y la condicion no lo
+     veia. Se restaura el estilo estandar al salir, que es el de arranque, y se deja la
+     condicion que lo comprueba para que la restauracion no se pueda perder en silencio. */
+  try { if (FN('setEstiloInforme')) setEstiloInforme('estandar'); } catch (e) {}
+  try { if (FN('generarInforme')) generarInforme(); } catch (e) {}
+  /* ADVERTENCIA: la variable del estilo es un let de modulo y NO vive en el objeto global, asi que
+     preguntarle a window.estiloInforme devuelve undefined y la condicion no podria fallar
+     nunca. Se lee la binding directa, que si es alcanzable. */
+  ex.push(['(I4) este caso DEVUELVE el estilo de informe al estandar antes de salir',
+    (function () { try { return (typeof estiloInforme !== 'undefined') ? (estiloInforme === 'estandar') : 'NO HAY'; }
+      catch (e) { return 'EXC'; } })(), true]);
+
   return { extra: ex };
 `);
 
@@ -82254,7 +82324,7 @@ caso('TC-507', 'Tanda R: la VAB muestra la lesion PRESENTE sin grado con un solo
    DOS motores, las corre `scripts/_probe_r2wk.mjs`. Es el reparto que TC-460 y TC-463 ya tienen
    escrito, y esta dicho para que nadie lea «teclas reales» donde no las hay.
    ⚠️ Y LO QUE ESTE CASO MIRA ES LO RENDERIZADO, no el atributo: la leccion de la tanda R es que
-   un `<option hidden>` pasa `getComputedStyle` y WebKit lo PINTA igual, asi que las opciones se
+   un `<option hidden>` pasa getComputedStyle y WebKit lo PINTA igual, asi que las opciones se
    cuentan por lo que el <select> OFRECE y no por su atributo. */
 caso('TC-508', 'Tanda R2: el desplegable del derrame ofrece SOLO las cinco opciones vivas y los dos textos viejos se traducen en los TRES bordes sin perder la fila al reimportar; la seccion VAB se repinta con el gesto de la pastilla aortica; los SEIS puntos de la probabilidad de HTP de la Tabla 10 y la Figura 5 —el 2,8 en la banda BAJA, la VRT no medible, el VD basal fuera del conteo, el TAPSE/PSAP en la categoria A, el colapso de la VCI y los dos signos de la arteria pulmonar—; el e-prima medial de constriccion/restriccion en TRES tramos; el espesor relativo de amiloidosis sumando el septo y el criterio por eco alcanzando por UN camino; el SGL desde MAS de 15 %, los 250 mg/m2 y la calculadora que no es HFA-ICOS; el sindrome intersticial difuso por zonas, sin «edema alveolar» y con el punto pulmon; el indice cardiaco en DOS bandas con el 2,2 bajo, la RVS sin rotulo de banda y los rotulos «estimada por eco»; la orejuela sin «Posiblemente apto»; y el informe, el EN SUMA y las 441 columnas del Excel sin una sola columna nueva', `
   const ex = [];
@@ -90383,8 +90453,12 @@ caso('TC-533', 'Tanda J2: el indice cardiaco en 2,19/2,2/2,21 con su globo y la 
      TRES. Las que entran son «Transposicion de grandes arterias — indicaciones y seguimiento» y
      «Miocardiopatia hipertrofica — prevencion de muerte subita». El invariante -que las tres de
      la tanda J sigan ahi- sigue siendo el mismo. */
-  ex.push(['(L4) CONTROL: las secciones del panel de Evidencia son TREINTA Y TRES, y las tres de la tanda J siguen ahi',
-    IND_SECS.length === 33
+  /* ADAPTADO el 2026-11-03 (tanda PANT-4, commit 1e): de TREINTA Y TRES a TREINTA Y CINCO. Las
+     que entran son «Estenosis subaortica» y «Estenosis supravalvular aortica», que hasta esta
+     tanda no tenian Evidencia. El invariante -que las tres de la tanda J sigan ahi- no cambia;
+     lo que cambia es el denominador. */
+  ex.push(['(L4) CONTROL: las secciones del panel de Evidencia son TREINTA Y CINCO, y las tres de la tanda J siguen ahi',
+    IND_SECS.length === 35
       && IND_SECS.some(s => s.tit.indexOf('Derrame peric') === 0)
       && IND_SECS.some(s => s.tit.indexOf('Constricci\\u00f3n peric') === 0)
       && IND_SECS.some(s => s.tit.indexOf('Congesti\\u00f3n venosa') === 0),
@@ -109716,7 +109790,12 @@ caso('TC-627', 'Tanda PANT-3: la pantalla de MCH conserva sus treinta campos, pa
    ESTRUCTURA, no por geometria. La geometria la miden las sondas en los cuatro anchos. */
 caso('TC-633', 'Tanda PANT-4: los campos de las dos estenosis aorticas comparten ancho y linea de base, con la ayuda ocupando su propia banda', `
   const EXP = [];
-  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]), String(t[2])]) };
+  /* ADVERTENCIA: el TERCER elemento es la constante true y NO el valor esperado. El runner
+     compara el segundo con el tercero, asi que con el esperado ahi la condicion queda
+     INVERTIDA: pasa cuando el valor NO coincide. Lo destapo la primera corrida de estos seis
+     casos, donde tres «pasaban» sobre valores correctos y tres «fallaban» sobre valores
+     correctos tambien. El patron bueno es el de TC-632. */
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]), 'esperado ' + String(t[2]) + ' · hallado ' + String(t[1])]) };
   /* (A) DENOMINADOR: las cuatro grillas existen y tienen sus tres campos. */
   const grs = Array.prototype.slice.call(document.querySelectorAll('#esub-campos .esa-grid, #easv-campos .esa-grid'));
   ex.push(['(A0) DENOM: hay CUATRO grillas con la clase nueva', grs.length, 4]);
@@ -109749,13 +109828,37 @@ caso('TC-633', 'Tanda PANT-4: los campos de las dos estenosis aorticas comparten
   /* (C) LO COMPUTADO: los tres campos de una fila declaran el mismo ancho de pista. */
   const g0 = grs[0];
   const cs = g0 ? getComputedStyle(g0) : null;
-  const pistas = cs ? String(cs.gridTemplateColumns).split(' ').filter(function (x) { return x }) : [];
-  ex.push(['(C0) DENOM: la grilla computa tres pistas', pistas.length, 3]);
-  ex.push(['(C1) y las tres miden lo mismo',
-    pistas.length === 3 && pistas[0] === pistas[1] && pistas[1] === pistas[2], true]);
+  /* ADVERTENCIA: EL SUITE CORRE CHROME A UNOS 756 px, por DEBAJO del corte de 768, asi que lo
+     COMPUTADO aca es la grilla COLAPSADA -una columna y los campos de vuelta en flex-, que es
+     el comportamiento correcto a ese ancho y no el de escritorio. Medir ahi «tres pistas
+     iguales» da falso sobre una pantalla que esta bien: costo una corrida. Lo de escritorio lo
+     fijan (B1) y (B2) leyendo la REGLA, y lo miden las sondas en los cuatro anchos; aca se
+     comprueba lo que a este ancho SI es observable, que es el colapso y su retirada del
+     subgrid. */
+  const comp = cs ? String(cs.gridTemplateColumns) : '';
+  ex.push(['(C0) DENOM: la grilla computa su valor', comp.length > 0, true]);
+  const angosto = window.innerWidth <= 768;
+  ex.push(['(C1) a este ancho la grilla cae a UNA columna, que es lo que corresponde',
+    angosto ? (comp.split(' ').length === 1) : true, true]);
   const fg0 = g0 ? g0.querySelector('.fg') : null;
-  ex.push(['(C2) cada campo ocupa las TRES bandas, que es lo que alinea rotulo, control y ayuda',
-    fg0 ? String(getComputedStyle(fg0).gridRowEnd).indexOf('span 3') >= 0 : 'NO HAY', true]);
+  const gre = fg0 ? String(getComputedStyle(fg0).gridRowEnd) : 'NO HAY';
+  const dsp = fg0 ? String(getComputedStyle(fg0).display) : 'NO HAY';
+  ex.push(['(C2) y el campo vuelve a flex, que es lo que devuelve los 12 px entre campos',
+    angosto ? (dsp === 'flex' && gre === 'auto') : (gre.indexOf('span 3') >= 0), true]);
+  /* LA MEDIA QUERY DEL COLAPSO EXISTE, y es lo que hace que lo de arriba sea deliberado. */
+  let hayMq = false;
+  for (const hoja of Array.prototype.slice.call(document.styleSheets)) {
+    let rs = null; try { rs = hoja.cssRules } catch (e) { rs = null }
+    if (!rs) continue;
+    for (const r of Array.prototype.slice.call(rs)) {
+      if (r.media && String(r.media.mediaText).indexOf('768px') >= 0) {
+        for (const r2 of Array.prototype.slice.call(r.cssRules || [])) {
+          if (r2.selectorText === '.esa-grid > .fg' && String(r2.style.display) === 'flex') hayMq = true;
+        }
+      }
+    }
+  }
+  ex.push(['(C3) el subgrid se retira por debajo de 768 px, y es deliberado', hayMq, true]);
   /* (D) CONTROL NEGATIVO: una grilla de otra seccion NO se movio. La de la coartacion usa la
      misma clase de siempre y tiene que seguir sin la nueva: si el cambio se escapara a todas
      las grillas de la aplicacion, esta condicion lo caza. */
@@ -109777,7 +109880,12 @@ caso('TC-633', 'Tanda PANT-4: los campos de las dos estenosis aorticas comparten
 
 caso('TC-634', 'Tanda PANT-4: el papel de las dos estenosis aorticas describe, dice cada hallazgo UNA vez y no nombra la guia ni la conducta', `
   const EXP = [];
-  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]), String(t[2])]) };
+  /* ADVERTENCIA: el TERCER elemento es la constante true y NO el valor esperado. El runner
+     compara el segundo con el tercero, asi que con el esperado ahi la condicion queda
+     INVERTIDA: pasa cuando el valor NO coincide. Lo destapo la primera corrida de estos seis
+     casos, donde tres «pasaban» sobre valores correctos y tres «fallaban» sobre valores
+     correctos tambien. El patron bueno es el de TC-632. */
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]), 'esperado ' + String(t[2]) + ' · hallado ' + String(t[1])]) };
   function esc(o) { __t.limpiar();
     Object.keys(o).forEach(function (k) { __t.set(k, o[k]) });
     __t.chk('esub_incluir_chk', true);
@@ -109869,7 +109977,12 @@ caso('TC-634', 'Tanda PANT-4: el papel de las dos estenosis aorticas describe, d
 
 caso('TC-635', 'Tanda PANT-4: la conclusion de pantalla de las dos estenosis no da conducta, y las dos tienen Evidencia con sus tres estados', `
   const EXP = [];
-  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]), String(t[2])]) };
+  /* ADVERTENCIA: el TERCER elemento es la constante true y NO el valor esperado. El runner
+     compara el segundo con el tercero, asi que con el esperado ahi la condicion queda
+     INVERTIDA: pasa cuando el valor NO coincide. Lo destapo la primera corrida de estos seis
+     casos, donde tres «pasaban» sobre valores correctos y tres «fallaban» sobre valores
+     correctos tambien. El patron bueno es el de TC-632. */
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]), 'esperado ' + String(t[2]) + ' · hallado ' + String(t[1])]) };
   __t.limpiar();
   __t.set('esub_tipo', 'membrana'); __t.set('esub_gradiente_medio', '45');
   __t.set('esub_ia_asociada', 'moderada'); __t.set('esub_valsalva', 'aumenta');
@@ -109901,17 +110014,22 @@ caso('TC-635', 'Tanda PANT-4: la conclusion de pantalla de las dos estenosis no 
   ex.push(['(B3) ni el seguimiento multidisciplinario', vs.indexOf('multidisciplinario') >= 0, false]);
   ex.push(['(B4) se queda la pastilla de los ostios', vs.indexOf('Comprometidos') >= 0, true]);
   /* (C) LA EVIDENCIA DE LAS DOS LESIONES. */
+  /* ADVERTENCIA: las dos funciones NO EXISTEN en el arbol anterior, y llamarlas a pelo mata el
+     caso con un ReferenceError, que no dice que invariante se rompio. Es la leccion de TC-546:
+     caer por excepcion no es caer. Se llaman por un envoltorio que devuelve un centinela. */
+  const SEC = (n) => { try { return (typeof window[n] === 'function') ? window[n]() : 'NO EXISTE' }
+                       catch (e) { return 'EXC' } };
   ex.push(['(C0) DENOM: las dos funciones de seccion existen',
     typeof _indESUB === 'function' && typeof _indEASV === 'function', true]);
   /* CONTROL NEGATIVO: sin datos las dos devuelven null, o sea la seccion ni se pinta. */
   __t.limpiar();
-  ex.push(['(C1) CONTROL NEGATIVO: sin datos la subaortica no abre seccion', _indESUB(), null]);
-  ex.push(['(C2) CONTROL NEGATIVO: ni la supravalvular', _indEASV(), null]);
+  ex.push(['(C1) CONTROL NEGATIVO: sin datos la subaortica no abre seccion', SEC('_indESUB'), null]);
+  ex.push(['(C2) CONTROL NEGATIVO: ni la supravalvular', SEC('_indEASV'), null]);
   __t.set('esub_tipo', 'membrana'); __t.set('esub_gradiente_medio', '45');
   __t.set('easv_tipo', 'reloj'); __t.set('easv_gradiente_medio', '45');
-  const A = _indESUB(), B = _indEASV();
-  ex.push(['(C3) con datos la subaortica abre', !!A, true]);
-  ex.push(['(C4) y la supravalvular tambien', !!B, true]);
+  const A = SEC('_indESUB'), B = SEC('_indEASV');
+  ex.push(['(C3) con datos la subaortica abre', !!(A && A.clinica), true]);
+  ex.push(['(C4) y la supravalvular tambien', !!(B && B.clinica), true]);
   /* LAS PREGUNTAS: mas de 6, con tres estados, y la fila de resumen de respuestas. */
   const pA = (A && A.clinica ? A.clinica : []).filter(function (f) { return f && f.ctrl });
   const pB = (B && B.clinica ? B.clinica : []).filter(function (f) { return f && f.ctrl });
@@ -109920,10 +110038,10 @@ caso('TC-635', 'Tanda PANT-4: la conclusion de pantalla de las dos estenosis no 
   ex.push(['(C7) y las dos declaran el modo de dos columnas',
     !!(A && A.compacta && A.preguntas && B && B.compacta && B.preguntas), true]);
   /* TRES ESTADOS: Si, No y el centinela de «sin dato». */
-  const ops = pA.length ? pA[0].ctrl.ops.map(function (o) { return o.t }).join('|') : '';
+  const ops = pA.length ? pA[0].ctrl.ops.map(function (o) { return o.t }).join('|') : 'NO HAY';
   ex.push(['(C8) cada pregunta ofrece TRES estados', ops, 'Sí|No|?']);
   ex.push(['(C9) y el tercero pone el centinela de sin dato, no una cadena vacia',
-    pA.length ? pA[0].ctrl.ops[2].v === IND_SD_VAL : 'NO HAY', true]);
+    (pA.length && typeof IND_SD_VAL !== 'undefined') ? pA[0].ctrl.ops[2].v === IND_SD_VAL : 'NO HAY', true]);
   /* «SIN DATO» NO ES «NO»: la fila de resumen lo dice. */
   const res = (A && A.clinica ? A.clinica : []).filter(function (f) { return f && !f.ctrl })[0];
   ex.push(['(C10) la fila de resumen dice que sin dato no cuenta como no',
@@ -109950,7 +110068,12 @@ caso('TC-635', 'Tanda PANT-4: la conclusion de pantalla de las dos estenosis no 
 
 caso('TC-636', 'Tanda PANT-4: el papel de la miocardiopatia arritmogenica no nombra el criterio ni ninguna otra guia, y el puntaje sigue saliendo', `
   const EXP = [];
-  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]), String(t[2])]) };
+  /* ADVERTENCIA: el TERCER elemento es la constante true y NO el valor esperado. El runner
+     compara el segundo con el tercero, asi que con el esperado ahi la condicion queda
+     INVERTIDA: pasa cuando el valor NO coincide. Lo destapo la primera corrida de estos seis
+     casos, donde tres «pasaban» sobre valores correctos y tres «fallaban» sobre valores
+     correctos tambien. El patron bueno es el de TC-632. */
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]), 'esperado ' + String(t[2]) + ' · hallado ' + String(t[1])]) };
   function mca(o) { __t.limpiar();
     __t.set('peso', '70'); __t.set('talla', '170');
     Object.keys(o).forEach(function (k) { __t.set(k, o[k]) });
@@ -110006,14 +110129,26 @@ caso('TC-636', 'Tanda PANT-4: el papel de la miocardiopatia arritmogenica no nom
   ex.push(['(E2) DENOM: la seccion de pantalla tiene contenido', pant.length > 200, true]);
   ex.push(['(E3) y la pantalla SIGUE nombrando el criterio', pant.indexOf('Task Force 2010') >= 0, true]);
   /* (F) NI EL EXCEL NI EL LABORATORIO SE TOCARON: su encabezado sigue igual. */
-  const col = (function () { for (const f of LAB_XLS_MAP) { if (f && f[1] === 'mca_tf') return String(f[0]) } return 'NO ESTA' })();
-  ex.push(['(F1) el encabezado del Excel del puntaje no cambio', col, 'Puntaje Task Force de MCA']);
+  /* ADVERTENCIA: mca_tf NO vive en LAB_XLS_MAP -que es un array de arrays- sino en el mapa de
+     metricas del Laboratorio, que es un objeto. Buscarlo en el primero devuelve «NO ESTA» y se
+     lee como que el encabezado se borro. Costo una corrida: se busca el ROTULO en el documento,
+     que es lo que la orden pone fuera de alcance y tiene que seguir ahi. */
+  const fuente = document.documentElement.innerHTML;
+  ex.push(['(F1) el encabezado del Laboratorio y del Excel no cambio',
+    fuente.indexOf('Puntaje Task Force de MCA') >= 0, true]);
+  ex.push(['(F2) y la metrica del Laboratorio tampoco',
+    fuente.indexOf('Puntaje Task Force 2010') >= 0, true]);
   return { extra: EXP };
 `);
 
 caso('TC-637', 'Tanda PANT-4: los tres textos de pantalla dicen lo que su hoja dice — la resonancia, el realce tardio y los cuatro rotulos de la Tabla 1', `
   const EXP = [];
-  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]), String(t[2])]) };
+  /* ADVERTENCIA: el TERCER elemento es la constante true y NO el valor esperado. El runner
+     compara el segundo con el tercero, asi que con el esperado ahi la condicion queda
+     INVERTIDA: pasa cuando el valor NO coincide. Lo destapo la primera corrida de estos seis
+     casos, donde tres «pasaban» sobre valores correctos y tres «fallaban» sobre valores
+     correctos tambien. El patron bueno es el de TC-632. */
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]), 'esperado ' + String(t[2]) + ' · hallado ' + String(t[1])]) };
   /* (A) LA RESONANCIA, en el globo. La hoja 7 de te Riele dice «morfologia y funcion del
      ventriculo derecho», no «caracterizacion tisular». */
   const g = (typeof VINFO !== 'undefined' && VINFO) ? VINFO['mca-score'] : null;
@@ -110049,7 +110184,7 @@ caso('TC-637', 'Tanda PANT-4: los tres textos de pantalla dicen lo que su hoja d
   ex.push(['(B2) y ahora dice DONDE si aparece, que es dentro del cuarto factor',
     h ? String(h.lee).indexOf('DENTRO del cuarto factor mayor') >= 0 : 'NO HAY', true]);
   ex.push(['(B3) y que ninguno de esos marcadores entra en la calculadora',
-    h ? String(h.lee).indexOf('no entra en la calculadora de riesgo a 5 años') >= 0 : 'NO HAY', true]);
+    h ? String(h.lee).indexOf('entra en la calculadora de riesgo a 5 años') >= 0 && String(h.lee).indexOf('Y ninguno de esos marcadores') >= 0 : 'NO HAY', true]);
   ex.push(['(B4) con su hoja y su folio', h ? String(h.fuente || '').indexOf('folio e1267') >= 0 : 'NO HAY', true]);
   /* (C) LOS CUATRO ROTULOS DE LA TABLA 1, en las DOS listas donde viven. */
   const T = (typeof MCA_CATS !== 'undefined' && MCA_CATS) ? MCA_CATS : null;
@@ -110095,7 +110230,12 @@ caso('TC-637', 'Tanda PANT-4: los tres textos de pantalla dicen lo que su hoja d
 
 caso('TC-638', 'Tanda PANT-4: la cita de aorta reconciliada, la insuficiencia aortica con aorta dilatada, y el estadio de la AHA/ACC 2020 en las dos valvulas aorticas', `
   const EXP = [];
-  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]), String(t[2])]) };
+  /* ADVERTENCIA: el TERCER elemento es la constante true y NO el valor esperado. El runner
+     compara el segundo con el tercero, asi que con el esperado ahi la condicion queda
+     INVERTIDA: pasa cuando el valor NO coincide. Lo destapo la primera corrida de estos seis
+     casos, donde tres «pasaban» sobre valores correctos y tres «fallaban» sobre valores
+     correctos tambien. El patron bueno es el de TC-632. */
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]), 'esperado ' + String(t[2]) + ' · hallado ' + String(t[1])]) };
   /* (A) LAS CITAS DE AORTA: una sola paginacion, la de la edicion inglesa. */
   const F = (typeof AO_EV_FTE !== 'undefined' && AO_EV_FTE) ? AO_EV_FTE : null;
   ex.push(['(A0) DENOM: la tabla de fuentes existe y tiene quince entradas',
@@ -110139,7 +110279,7 @@ caso('TC-638', 'Tanda PANT-4: la cita de aorta reconciliada, la insuficiencia ao
     if (o.grado) __t.set('ea_grado', o.grado);
     try { _indClinVaciar() } catch (e) {}
     if (o.sx) { try { _indClin['ea.sintomas'] = o.sx } catch (e) {} }
-    return _indEstEA().txt;
+    return (typeof _indEstEA === 'function') ? _indEstEA().txt : 'NO EXISTE';
   }
   ex.push(['(C1) severa sin sintomas con fraccion conservada es C1',
     estEA({ vmax_ao:'4.5', gmedio_ao:'45', fevi:'60', grado:'severa', sx:'no' }), 'C1']);
@@ -110165,7 +110305,7 @@ caso('TC-638', 'Tanda PANT-4: la cita de aorta reconciliada, la insuficiencia ao
     Object.keys(o).forEach(function (k) { if (k !== 'sx') __t.set(k, o[k]) });
     try { _indClinVaciar() } catch (e) {}
     if (o.sx) { try { _indClin['ia.sintomas'] = o.sx } catch (e) {} }
-    return _indEstIA().txt;
+    return (typeof _indEstIA === 'function') ? _indEstIA().txt : 'NO EXISTE';
   }
   ex.push(['(D1) severa sin sintomas con ventriculo normal es C1',
     estIA({ ia_grado:'4', fevi:'60', dsfvi:'40', sx:'no' }), 'C1']);
