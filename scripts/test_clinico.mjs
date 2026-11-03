@@ -110969,6 +110969,527 @@ caso('TC-643', 'Tanda PANT-5: los estadios de la AHA/ACC 2020 de la estenosis mi
   return { extra: EXP };
 `);
 
+/* -- TC-646 ---------------------------------------------------------------------------------
+   TANDA PANT-6, COMMITS 3 y 7. El molde de las secciones de valvula del panel de Evidencia.
+   DECISION DEL MEDICO (03/11/2026), con esquema aprobado: franja ambar con la categoria y el
+   estadio, franja de datos del estudio en tarjetas, preguntas agrupadas por tema -en dos
+   columnas con MAS de 6, en una con seis o menos- y la tabla de recomendaciones al pie.
+   LO QUE EL MEDICO REPORTO y este caso fija: con la etiologia «Calcificada» la estenosis mitral
+   no tenia NINGUNA pregunta de sintomas, porque esa pregunta vivia en el bloque de la
+   comisurotomia, que solo se pinta con etiologia reumatica o sin consignar. -- */
+caso('TC-646', 'Tanda PANT-6: el molde de las secciones de valvula, y los sintomas de la estenosis mitral con CUALQUIER etiologia', `
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]), 'esperado ' + String(t[2]) + ' | hallado ' + String(t[1])]) };
+  const S = (id, v) => { const e = document.getElementById(id); if (!e) return 'NO ' + id;
+    if (e.options && v !== '' && !Array.prototype.some.call(e.options, x => x.value === String(v))) {
+      const o = document.createElement('option'); o.value = String(v); o.textContent = String(v); e.appendChild(o) }
+    e.value = v; e.dispatchEvent(new Event('input', { bubbles:true }));
+    e.dispatchEvent(new Event('change', { bubbles:true })); return e.value };
+  const opt = (id, re) => { const e = document.getElementById(id); if (!e) return '';
+    const o = Array.prototype.slice.call(e.options).filter(x => re.test((x.textContent||'').toLowerCase()))[0];
+    return o ? o.value : '' };
+  /* (A) DENOMINADOR: las cinco secciones con molde existen y lo devuelven. */
+  __t.limpiar();
+  S('avm_plan','1.2'); S('em_gmedio','12'); S('em_grado','severa'); S('it_grado','4');
+  const EM0 = (typeof _indEM === 'function') ? _indEM() : null;
+  ex.push(['(A0) DENOM: la seccion de estenosis mitral abre', !!EM0, true]);
+  ex.push(['(A1) y trae molde', !!(EM0 && EM0.molde), true]);
+  ex.push(['(A2) con su franja de categoria', !!(EM0 && EM0.molde && EM0.molde.cat && EM0.molde.cat.txt), true]);
+  ex.push(['(A3) con su franja de estadio', !!(EM0 && EM0.molde && EM0.molde.est), true]);
+  ex.push(['(A4) y con tarjetas de datos del estudio', (EM0 && EM0.molde && EM0.molde.datos) ? EM0.molde.datos.length >= 3 : false, true]);
+  /* (B) EL ESTADIO YA NO SE REPITE ABAJO: no esta en la lista de filas. */
+  ex.push(['(B1) el estadio NO esta en las filas del eco',
+    (EM0 && EM0.filas ? EM0.filas : []).filter(f => f && String(f.lbl).indexOf('Estadio') >= 0).length, 0]);
+  ex.push(['(B2) ni en la lista clinica',
+    (EM0 && EM0.clinica ? EM0.clinica : []).filter(f => f && String(f.lbl).indexOf('Estadio') >= 0).length, 0]);
+  /* (C) LA PREGUNTA DE SINTOMAS, CON LAS TRES ETIOLOGIAS, Y UNA SOLA. Es el defecto del medico. */
+  const sxDe = (sec) => { if (!sec) return -1;
+    const todas = [];
+    (sec.molde && sec.molde.cols || []).forEach(c => (c||[]).forEach(g => (g && g.filas || []).forEach(f => todas.push(f))));
+    (sec.bloques || []).forEach(b => (b.grupos || []).forEach(g => (g.filas || []).forEach(f => todas.push(f))));
+    (sec.clinica || []).forEach(f => todas.push(f));
+    return todas.filter(f => f && f.ctrl && f.ctrl.clave === 'em.sintomas').length };
+  S('vm_morf', ''); const EMv = _indEM();
+  ex.push(['(C1) etiologia sin consignar: UNA pregunta de sintomas', sxDe(EMv), 1]);
+  const reum = opt('vm_morf', /reum/); S('vm_morf', reum);
+  ex.push(['(C1b) DENOM: la opcion reumatica existe', !!reum, true]);
+  ex.push(['(C2) etiologia reumatica: UNA', sxDe(_indEM()), 1]);
+  const calc = opt('vm_morf', /calcif|degener/); S('vm_morf', calc);
+  ex.push(['(C2b) DENOM: la opcion calcificada existe', !!calc, true]);
+  ex.push(['(C3) etiologia CALCIFICADA: UNA — el defecto que el medico reporto', sxDe(_indEM()), 1]);
+  /* (C4) Y EL ESTADIO TAMBIEN SALE CON LA CALCIFICADA, que antes se iba con la pregunta. */
+  ex.push(['(C4) y el estadio sale con la calcificada', (() => { const s2 = _indEM();
+    return !!(s2 && s2.molde && s2.molde.est) })(), true]);
+  /* (D) LOS TRES ESTADOS, CON EL GESTO REAL. _indClin es un var de modulo y NO esta en
+     window: la primera version llamaba a un setter inventado, no escribia nada y las tres
+     condiciones leian «ask» -o sea un denominador que no se mueve-. Lo que escribe la respuesta
+     es el clic sobre el boton del panel, que es como la contesta el medico. */
+  S('vm_morf', reum);
+  const marca = (clave) => { const s2 = _indEM(); let m = null;
+    (s2.molde && s2.molde.cols || []).forEach(c => (c||[]).forEach(g => (g && g.filas || []).forEach(f => {
+      if (f && f.ctrl && f.ctrl.clave === clave) m = f.marca })));
+    return m };
+  const clic = (k, v) => { const b = document.querySelector('#indic-cuerpo [data-ind-clin="' + k + '"][data-ind-val="' + v + '"]');
+    if (!b) return 'NO HAY BOTON ' + k + '=' + v; b.click(); return 'ok' };
+  try { indicCerrar() } catch (e) {}
+  try { indicAbrir() } catch (e) {}
+  /* ⚠️ LA BOTONERA DECLARA DOS OPCIONES, NO TRES, Y ESO ES LO CORRECTO: el centinela explicito
+     «__sd» lo llevan las secciones del molde de congenitas que PANT-2 paso a tres estados por su
+     numero de preguntas. Aca el tercer estado es «sin contestar», que es como el resto del panel,
+     y lo que importa es que sin contestar NO cuente como «No» -lo que miden (D1) y (D2)-. La
+     primera version de esta condicion exigia tres botones y daba 1 de 3 faltando. */
+  ex.push(['(D0) DENOM: los DOS botones de la pregunta de sintomas estan en el panel',
+    ['si','no'].filter(v => !document.querySelector('#indic-cuerpo [data-ind-clin="em.sintomas"][data-ind-val="' + v + '"]')).length, 0]);
+  ex.push(['(D0b) y NO lleva centinela explicito, que es lo que distingue este molde del de congenitas',
+    !document.querySelector('#indic-cuerpo [data-ind-clin="em.sintomas"][data-ind-val="__sd"]'), true]);
+  ex.push(['(D1) sin contestar, la marca es «ask»', marca('em.sintomas'), 'ask']);
+  ex.push(['(D2a) DENOM: el clic en «No» encuentra su boton', clic('em.sintomas','no'), 'ok']);
+  ex.push(['(D2) contestada «No», la marca es «none» — que NO es lo mismo que sin contestar', marca('em.sintomas'), 'none']);
+  ex.push(['(D3a) DENOM: el clic en «Si» encuentra su boton', clic('em.sintomas','si'), 'ok']);
+  ex.push(['(D3) contestada «Si», la marca es «ok»', marca('em.sintomas'), 'ok']);
+  try { indicCerrar() } catch (e) {}
+  /* (E) EL GLOBO DE SINTOMAS, en las CINCO valvulas que lo tienen, con su fuente. */
+  const TERM = ['emsintomas','iasintomas','easintomas','impsintomas','imssintomas','itsintomas'];
+  ex.push(['(E1) los SEIS terminos de sintomas estan registrados',
+    TERM.filter(k => !(window.IND_TERMINOS && window.IND_TERMINOS[k])).join(',') || 'los seis', 'los seis']);
+  ex.push(['(E2) cada uno dice su hoja y su folio',
+    TERM.filter(k => { const t = window.IND_TERMINOS && window.IND_TERMINOS[k];
+      return !(t && /folio e\\d+/.test(String(t.fuente)) && /hoja \\d+/.test(String(t.fuente))) }).join(',') || 'los seis', 'los seis']);
+  ex.push(['(E3) y cada uno muestra la diferencia entre las DOS guias sin resolverla',
+    TERM.filter(k => { const t = window.IND_TERMINOS && window.IND_TERMINOS[k];
+      const txt = JSON.stringify(t || {});
+      return !(txt.indexOf('AHA/ACC') > -1 && txt.indexOf('ESC/EACTS') > -1) }).join(',') || 'los seis', 'los seis']);
+  ex.push(['(E4) y sus etiquetas son TODAS distintas, que es lo que separa una tarjeta de la otra',
+    (new Set(TERM.map(k => (window.IND_TERMINOS[k] || {}).etiqueta))).size, 6]);
+  /* (F) CONTROL NEGATIVO: el molde NO alcanza a las secciones que no lo declaran. */
+  const sinMolde = ['_indCIA','_indCIV','_indDAP','_indCoAo'].filter(n => {
+    const fn = window[n]; if (typeof fn !== 'function') return false;
+    let r = null; try { r = fn() } catch (e) { return false }
+    return !!(r && r.molde) });
+  ex.push(['(F1) CONTROL: ninguna seccion de congenitas trae molde', sinMolde.join(',') || 'ninguna', 'ninguna']);
+  /* (G) EL PAPEL NO SE MUEVE: la Evidencia no llega al informe. */
+  const I = __t.informe();
+  ex.push(['(G1) DENOM: el informe se emitio', (I.inf || '').length > 50, true]);
+  ex.push(['(G2) y no lleva la franja del molde', (I.inf || '').indexOf('la que publica el informe') > -1, false]);
+  ex.push(['(G3) ni el EN SUMA', (I.suma || '').indexOf('Datos del estudio') > -1, false]);
+  return { extra: EXP };
+`);
+
+/* -- TC-647 ---------------------------------------------------------------------------------
+   TANDA PANT-6, COMMIT 4. Morfologia y mediciones de la mitral en UNA seccion de tres columnas.
+   Cierra la mitad de P5-e que la decision del medico simplifica: el dibujo NO se funde. -- */
+caso('TC-647', 'Tanda PANT-6: la morfologia y las mediciones de la mitral en una sola seccion de tres columnas, con sus dos casillas', `
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]), 'esperado ' + String(t[2]) + ' | hallado ' + String(t[1])]) };
+  const regla = (sel, prop) => { let r = null;
+    for (const h of Array.from(document.styleSheets)) { let rs = null;
+      try { rs = h.cssRules } catch (e) { continue } if (!rs) continue;
+      for (const x of Array.from(rs)) {
+        if (x.type === 1 && x.selectorText === sel && x.style.getPropertyValue(prop)) r = { v:x.style.getPropertyValue(prop), media:'' };
+        if (x.type === 4) for (const y of Array.from(x.cssRules || [])) {
+          if (y.type === 1 && y.selectorText === sel && y.style.getPropertyValue(prop)) r = { v:y.style.getPropertyValue(prop), media:String(x.conditionText || x.media.mediaText) } } } }
+    return r };
+  /* (A) UNA sola seccion: la de mediciones ya no existe como contenedor propio. */
+  ex.push(['(A1) la seccion unica existe', !!document.getElementById('ete-seccion-morfo'), true]);
+  ex.push(['(A2) y la de mediciones ya no tiene contenedor propio',
+    !document.getElementById('ete-seccion-mediciones-mitral'), true]);
+  ex.push(['(A3) su encabezado dice morfologia y mediciones', (() => {
+    const h = document.querySelector('[onclick*="toggleEteSeccion(\\'morfo\\'"]');
+    const t = h ? (h.textContent||'').toLowerCase() : '';
+    return t.indexOf('morfolog') > -1 && t.indexOf('medicion') > -1 })(), true]);
+  /* (B) EL ALIAS: toggleEteSeccion('mediciones-mitral') sigue respondiendo. Sin el, las llamadas
+     de las sondas y de tres casos de la suite serian un no-op silencioso. */
+  const disp = () => { const e = document.getElementById('ete-seccion-morfo');
+    return e ? (e.style.display || '') : 'NO EXISTE' };
+  const d0 = disp();
+  try { toggleEteSeccion('mediciones-mitral'); } catch (e) {}
+  ex.push(['(B1) el alias de mediciones-mitral mueve la seccion unica', disp() !== d0, true]);
+  try { toggleEteSeccion('mediciones-mitral'); } catch (e) {}
+  ex.push(['(B2) y la devuelve', disp(), d0]);
+  /* (C) LAS TRES COLUMNAS, por la REGLA de la hoja de estilos: la suite corre por debajo de 900. */
+  const r3 = regla('#etem-cols', 'grid-template-columns');
+  ex.push(['(C1) hay una regla de columnas para la seccion', !!r3, true]);
+  ex.push(['(C2) con el corte sobre la VENTANA en 900 px', r3 && /min-width:\\s*900px/.test(String(r3.media)), true]);
+  ex.push(['(C3) y reparte TRES', r3 ? /repeat\\(3/.test(r3.v) : false, true]);
+  const cols = document.getElementById('etem-cols');
+  ex.push(['(C4) la grilla tiene TRES hijos', cols ? cols.children.length : -1, 3]);
+  /* (D) EL REPARTO DE LOS ONCE CAMPOS, el que la orden fija. */
+  const col = (id) => { const e = document.getElementById(id); if (!e || !cols) return -1;
+    let k = -1; Array.prototype.slice.call(cols.children).forEach((c, i) => { if (c.contains(e)) k = i });
+    return k };
+  ex.push(['(D1) columna 1: etiologia, Carpentier y mecanismo',
+    [col('ete_etiologia'), col('ete_carpentier'), col('ete_mecanismo')].join(','), '0,0,0']);
+  ex.push(['(D2) columna 2: los velos y las areas',
+    [col('ete_lva'), col('ete_lvp'), col('ete_area_mitral'), col('ete_area_tenting')].join(','), '1,1,1,1']);
+  ex.push(['(D3) columna 3: el resto de las mediciones',
+    [col('ete_altura_tenting'), col('ete_angulo_vp'), col('ete_prof_coapt'), col('ete_diam_anular')].join(','), '2,2,2,2']);
+  /* (E) LAS DOS CASILLAS, cada una al pie de SU zona y siguiendo siendo dos datos distintos. */
+  ex.push(['(E1) la casilla de morfologia esta en la columna 1', (() => {
+    const b = document.querySelector('[data-ete-chk="ete_morfo_incluir_chk"]');
+    if (!b || !cols) return -1; let k = -1;
+    Array.prototype.slice.call(cols.children).forEach((c, i) => { if (c.contains(b)) k = i }); return k })(), 0]);
+  ex.push(['(E2) y la de las mediciones en la columna 3', (() => {
+    const b = document.querySelector('[data-am-k="etem"]');
+    if (!b || !cols) return -1; let k = -1;
+    Array.prototype.slice.call(cols.children).forEach((c, i) => { if (c.contains(b)) k = i }); return k })(), 2]);
+  ex.push(['(E3) y siguen siendo DOS mecanismos distintos: un checkbox y un registro de modulos',
+    !!document.getElementById('ete_morfo_incluir_chk') && !!document.querySelector('[data-am-k="etem"]'), true]);
+  /* (F) EL CUADRO DE DESFAVORABLES, a todo el ancho y con sus filas intactas. */
+  const des = document.getElementById('etem-desfav');
+  ex.push(['(F1) el cuadro existe', !!des, true]);
+  ex.push(['(F2) FUERA de las tres columnas', !!(des && cols && !cols.contains(des)), true]);
+  ex.push(['(F3) y conserva sus SEIS filas', des ? des.querySelectorAll('.calc-row').length : -1, 6]);
+  /* (G) EL DIBUJO NO SE FUNDE: queda en su seccion propia. */
+  ex.push(['(G1) el dibujo sigue en su fila propia', !!document.getElementById('m3d-fila'), true]);
+  ex.push(['(G2) y FUERA de las tres columnas', (() => { const m = document.getElementById('m3d-fila');
+    return !!(m && cols && !cols.contains(m)) })(), true]);
+  /* (H) LA SINCRONIA DE LOS VELOS DE PANT-5, en los DOS sentidos. */
+  __t.limpiar();
+  __t.set('ete_lva', '27'); try { etemVeloGesto('ete_lva'); } catch (e) {}
+  ex.push(['(H1) lo tecleado en el ETE llega a Criterios TEER', __t.val('teer_lva'), '27']);
+  __t.set('teer_lvp', '8'); try { etemVeloGesto('teer_lvp'); } catch (e) {}
+  ex.push(['(H2) y al reves', __t.val('ete_lvp'), '8']);
+  return { extra: EXP };
+`);
+
+/* -- TC-648 ---------------------------------------------------------------------------------
+   TANDA PANT-6, COMMITS 5 y 6. Los criterios TEER lado a lado, la frase del Forrester fuera del
+   papel y los dos rotulos de la profundidad de coaptacion. -- */
+caso('TC-648', 'Tanda PANT-6: los dos tipos de IM del TEER siempre visibles, el Forrester sin frase de dato faltante en el papel y los dos rotulos distinguidos', `
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]), 'esperado ' + String(t[2]) + ' | hallado ' + String(t[1])]) };
+  const vis = (id) => { const e = document.getElementById(id);
+    return !!(e && getComputedStyle(e).display !== 'none') };
+  /* (A) LOS DOS CUADROS DEL TEER, SIEMPRE VISIBLES, con los TRES tipos de IM. */
+  __t.limpiar();
+  const tipos = ['', 'primaria', 'secundaria'];
+  const estados = tipos.map(t => { __t.set('teer_tipo_im', t);
+    try { calcTEER(); } catch (e) {}
+    return (vis('teer-bloque-primaria') ? 'P' : '-') + (vis('teer-bloque-secundaria') ? 'S' : '-') });
+  ex.push(['(A0) DENOM: los dos bloques existen',
+    !!document.getElementById('teer-bloque-primaria') && !!document.getElementById('teer-bloque-secundaria'), true]);
+  ex.push(['(A1) con los TRES tipos de IM los dos cuadros se ven', estados.join(','), 'PS,PS,PS']);
+  ex.push(['(A2) y ningun campo de los dos queda deshabilitado', (() => {
+    const ids = ['teer_flail_gap','teer_ancho_flail','teer_prof_flail','teer_gap','teer_fevi','teer_dtsvi'];
+    const d = ids.filter(i => { const e = document.getElementById(i); return !e || e.disabled });
+    return d.join(',') || 'ninguno' })(), 'ninguno']);
+  /* (A3) LA MAQUETA: la franja de arriba, los dos cuadros y los dos de abajo. */
+  ex.push(['(A3) la franja de arriba lleva los tres campos comunes', (() => {
+    const a = document.getElementById('teer-arriba');
+    return ['teer_tipo_im','teer_area_mitral','teer_pasp'].filter(i => {
+      const e = document.getElementById(i); return !(e && a && a.contains(e)) }).join(',') || 'los tres' })(), 'los tres']);
+  ex.push(['(A4) la fila del medio tiene los DOS cuadros', (() => {
+    const m = document.getElementById('teer-medio'); return m ? m.children.length : -1 })(), 2]);
+  ex.push(['(A5) y la de abajo, los criterios comunes y la conclusion', (() => {
+    const b = document.getElementById('teer-abajo'); return b ? b.children.length : -1 })(), 2]);
+  ex.push(['(A6) los criterios comunes en DOS columnas internas', (() => {
+    const c = document.getElementById('teer-comunes-cols'); return c ? c.children.length : -1 })(), 2]);
+  /* (B) EL VEREDICTO NO CAMBIA POR LA MAQUETA: con los mismos datos y los dos tipos. */
+  const ver = (tipo) => { __t.limpiar();
+    __t.set('teer_tipo_im', tipo); __t.set('teer_flail_gap','6'); __t.set('teer_ancho_flail','11');
+    __t.set('teer_prof_flail','8'); __t.set('teer_gap','4'); __t.set('teer_fevi','40');
+    __t.set('teer_dtsvi','58'); __t.set('teer_area_mitral','4.4'); __t.set('teer_pasp','55');
+    __t.set('teer_lva','22'); __t.set('teer_lvp','11');
+    __t.set('teer_calcificacion','no'); __t.set('teer_clefts','no'); __t.set('teer_trombo','no');
+    try { calcTEER(); } catch (e) {}
+    return ((document.getElementById('teer-resultado')||{}).textContent||'').trim() };
+  ex.push(['(B1) con la IM primaria y los criterios cumplidos, APTO',
+    ver('primaria').indexOf('APTO') > -1, true]);
+  ex.push(['(B2) con la secundaria tambien', ver('secundaria').indexOf('APTO') > -1, true]);
+  /* CONTROL NEGATIVO: un veto sigue vetando. Sin esto, (B1) y (B2) pasarian con un veredicto fijo.
+     ⚠️ EL FLAIL GAP ES UN CRITERIO DE LA IM PRIMARIA (tipo «prim»), asi que hay que volver a
+     poner ese tipo: la primera version lo tecleaba con la escena de la SECUNDARIA todavia
+     cargada, donde ese criterio no se evalua, y el control pasaba en verde sobre un veredicto
+     que nada podia mover. */
+  ver('primaria');
+  __t.set('teer_flail_gap','12'); try { calcTEER(); } catch (e) {}
+  ex.push(['(B3) CONTROL: con la IM primaria, un flail gap de 12 mm deja de ser APTO',
+    ((document.getElementById('teer-resultado')||{}).textContent||'').indexOf('APTO para') > -1, false]);
+  /* (C) LA FRASE DE DATO FALTANTE DEL FORRESTER NO SALE AL PAPEL. */
+  ex.push(['(C0) DENOM: el dueno de la frase existe', typeof forrFaltaTxt === 'function', true]);
+  ex.push(['(C1) y el predicado que la reconoce tambien', typeof forrEsFalta === 'function', true]);
+  ex.push(['(C2) reconoce las TRES frases que ese dueno produce', (() => {
+    if (typeof forrEsFalta !== 'function') return 'sin predicado';
+    const tres = [forrFaltaTxt(false,false), forrFaltaTxt(true,false), forrFaltaTxt(false,true)];
+    return tres.filter(f => !forrEsFalta(f)).join(' | ') || 'las tres' })(), 'las tres']);
+  ex.push(['(C3) CONTROL: NO reconoce un perfil de verdad', (() => {
+    return (typeof forrEsFalta === 'function') ? forrEsFalta('Perfil A (tibio-seco)') : 'sin predicado' })(), false]);
+  ex.push(['(C4) CONTROL: ni la cadena vacia', (() => {
+    return (typeof forrEsFalta === 'function') ? forrEsFalta('') : 'sin predicado' })(), false]);
+  /* (C5) Y EL TEXTO DEL MODULO -el que la hoja del PDF imprime- deja de llevarla. */
+  __t.limpiar();
+  try { if (typeof calcHemo === 'function') calcHemo(); } catch (e) {}
+  const txtHemo = (typeof amiloTextoHemo === 'function') ? String(amiloTextoHemo() || '') : '';
+  ex.push(['(C5a) DENOM: el texto del modulo se emitio', txtHemo.length > 100, true]);
+  ex.push(['(C5b) y NO lleva la frase de dato faltante',
+    txtHemo.indexOf('faltan el índice cardíaco') > -1, false]);
+  ex.push(['(C5c) CONTROL: la de PANTALLA se queda', (() => {
+    const e = document.getElementById('hemo-forrester');
+    return e ? (e.textContent||'').indexOf('falta') > -1 : 'NO EXISTE' })(), true]);
+  /* (D) LOS DOS ROTULOS DE LA PROFUNDIDAD DE COAPTACION, distinguidos y sin tocar ningun id. */
+  const rot = (id) => { const e = document.getElementById(id); if (!e) return 'NO EXISTE';
+    const l = e.closest ? e.closest('.fg') : null; const lb = l ? l.querySelector('label') : null;
+    return lb ? (lb.textContent||'').trim() : 'SIN LABEL' };
+  ex.push(['(D1) el de las mediciones nombra la reparacion', rot('ete_prof_coapt').indexOf('reparación') > -1, true]);
+  ex.push(['(D2) el de los criterios TEER nombra el TEER', rot('teer_prof_flail').indexOf('TEER') > -1, true]);
+  ex.push(['(D3) y son DISTINTOS', rot('ete_prof_coapt') !== rot('teer_prof_flail'), true]);
+  ex.push(['(D4) los dos ids siguen existiendo, sin tocar',
+    !!document.getElementById('ete_prof_coapt') && !!document.getElementById('teer_prof_flail'), true]);
+  /* CONTROL NEGATIVO: siguen SIN sincronizar — unirlos cambiaria el criterio c4 del TEER. */
+  __t.limpiar();
+  __t.set('teer_prof_flail', '14'); try { etemVeloGesto('teer_prof_flail'); } catch (e) {}
+  ex.push(['(D5) CONTROL: la profundidad de coaptacion NO se espeja', __t.val('ete_prof_coapt'), '']);
+  return { extra: EXP };
+`);
+
+/* -- TC-649 ---------------------------------------------------------------------------------
+   TANDA PANT-6, COMMIT 7. El molde aplicado a las OTRAS CINCO valvulas, una por una: la
+   insuficiencia aortica, la estenosis aortica, las dos insuficiencias mitrales y la tricuspide.
+   DENOMINADOR DECLARADO: cada escena carga los campos que ABREN su seccion -sin eso el panel no
+   la pinta y las condiciones miden sobre una seccion que no existe, que es cero y se lee como
+   «el molde no entro»-. -- */
+caso('TC-649', 'Tanda PANT-6: el molde en la insuficiencia aortica, la estenosis aortica, las dos mitrales y la tricuspide, cada una con su pregunta de sintomas', `
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]), 'esperado ' + String(t[2]) + ' | hallado ' + String(t[1])]) };
+  const S = (id, v) => { const e = document.getElementById(id); if (!e) return 'NO ' + id;
+    if (e.options && v !== '' && !Array.prototype.some.call(e.options, x => x.value === String(v))) {
+      const o = document.createElement('option'); o.value = String(v); o.textContent = String(v); e.appendChild(o) }
+    e.value = v; e.dispatchEvent(new Event('input', { bubbles:true }));
+    e.dispatchEvent(new Event('change', { bubbles:true })); return e.value };
+  /* Las cinco escenas: la funcion dueña, los campos que la abren y la clave de su pregunta. */
+  const VAL = [
+    /* ⚠️ EL GRADO VA COMO «4» Y NO COMO «severa»: la compuerta de la insuficiencia aortica
+       compara contra el token del campo, y con «severa» la seccion devuelve null -o sea un
+       denominador vacio que se lee como «el molde no entro»-. */
+    { n:'IA',  fn:'_indIA',  sx:'ia.sintomas',  campos:{ ia_grado:'4', fevi:'48', dsvi:'52' } },
+    { n:'EA',  fn:'_indEA',  sx:'ea.sintomas',  campos:{ ea_grado:'severa', ao_gm:'45', vmax_ao:'4.3', fevi:'55' } },
+    { n:'IMp', fn:'_indIM',  sx:'im.sintomas',  campos:{ im_grado:'4', fevi:'58', dsvi:'41' } },
+    /* La seccion de la secundaria se abre SOLO con el mecanismo consignado, que es lo que la
+       separa de la primaria: sin teer_tipo_im las dos compuertas no pueden distinguirse. */
+    { n:'IMs', fn:'_indIMS', sx:'ims.sintomas', campos:{ teer_tipo_im:'secundaria', im_grado:'4', fevi:'32', ddfvi:'62', sexo:'M' } },
+    { n:'IT',  fn:'_indVT',  sx:'vt.sintomas',  campos:{ it_grado:'4', vd_bas:'46' } }
+  ];
+  const leer = (v) => { __t.limpiar();
+    Object.keys(v.campos).forEach(k => S(k, v.campos[k]));
+    /* _indClin no lo limpia limpiarCampos: sin esto, una respuesta de una escena anterior
+       abre o cierra la compuerta de la siguiente. */
+    try { if (typeof _indClinLimpiar === 'function') _indClinLimpiar() } catch (e) {}
+    /* Una forma COMPLETA en los dos caminos: devolver {err} a secas mata el caso por excepcion en
+       la primera condicion que lee .filas, y una excepcion no dice QUE invariante se rompio.
+       Es la leccion de TC-546. */
+    const vacio = { err: '', molde:false, filas:[], cat:false, est:false, datos:0, grupos:0, sx:0, estEnFilas:0, r:null };
+    let r = null; try { r = window[v.fn] ? window[v.fn]() : null } catch (e) {
+      return Object.assign(vacio, { err: String(e).slice(0,70) }) }
+    if (!r) return Object.assign(vacio, { err: 'sin seccion' });
+    const filas = [];
+    (r.molde && r.molde.cols || []).forEach(c => (c||[]).forEach(g => (g && g.filas || []).forEach(f => filas.push(f))));
+    return { err: '', r: r, molde: !!r.molde, filas: filas,
+      cat: !!(r.molde && r.molde.cat && r.molde.cat.txt),
+      est: !!(r.molde && r.molde.est),
+      datos: (r.molde && r.molde.datos) ? r.molde.datos.length : 0,
+      grupos: (r.molde && r.molde.cols || []).reduce((a,c) => a + ((c||[]).length), 0),
+      sx: filas.filter(f => f && f.ctrl && f.ctrl.clave === v.sx).length,
+      estEnFilas: (r.filas || []).concat(r.clinica || []).filter(f => f && String(f.lbl).indexOf('Estadio') >= 0).length };
+  };
+  const E = {}; VAL.forEach(v => { E[v.n] = leer(v) });
+  /* (A) DENOMINADOR: las cinco secciones abren. */
+  ex.push(['(A0) DENOM: las cinco secciones abren sin excepcion',
+    VAL.filter(v => E[v.n].err).map(v => v.n + ':' + (E[v.n].err || '?')).join(' | ') || 'las cinco', 'las cinco']);
+  /* (B) LAS CINCO TRAEN MOLDE, con sus cuatro partes. */
+  ex.push(['(B1) las cinco traen molde', VAL.filter(v => !E[v.n].molde).map(v => v.n).join(',') || 'las cinco', 'las cinco']);
+  ex.push(['(B2) las cinco con su franja de categoria',
+    VAL.filter(v => !E[v.n].cat).map(v => v.n).join(',') || 'las cinco', 'las cinco']);
+  ex.push(['(B3) las cinco con su franja de estadio',
+    VAL.filter(v => !E[v.n].est).map(v => v.n).join(',') || 'las cinco', 'las cinco']);
+  ex.push(['(B4) las cinco con tarjetas de datos del estudio',
+    VAL.filter(v => E[v.n].datos < 2).map(v => v.n + '=' + E[v.n].datos).join(',') || 'las cinco', 'las cinco']);
+  ex.push(['(B5) y las cinco con sus preguntas agrupadas por tema',
+    VAL.filter(v => E[v.n].grupos < 2).map(v => v.n + '=' + E[v.n].grupos).join(',') || 'las cinco', 'las cinco']);
+  /* (C) LA PREGUNTA DE SINTOMAS: UNA en cada una, ni cero ni dos. */
+  ex.push(['(C1) cada valvula tiene UNA pregunta de sintomas',
+    VAL.map(v => v.n + '=' + E[v.n].sx).join(' '), 'IA=1 EA=1 IMp=1 IMs=1 IT=1']);
+  /* (D) EL ESTADIO NO SE REPITE ABAJO en ninguna de las cinco. */
+  ex.push(['(D1) el estadio no quedo tambien en las filas',
+    VAL.map(v => v.n + '=' + E[v.n].estEnFilas).join(' '), 'IA=0 EA=0 IMp=0 IMs=0 IT=0']);
+  /* (E) LAS DOS COLUMNAS SOLO POR ENCIMA DE SEIS PREGUNTAS, que es la regla fija de la casa.
+     Se mira la REGLA y el reparto declarado, no la geometria: la suite corre por debajo de 900. */
+  const cols = (v) => { const r = E[v.n].r;
+    return (r && r.molde && r.molde.cols) ? r.molde.cols.filter(c => c && c.length).length : -1 };
+  ex.push(['(E1) ninguna seccion reparte en mas de DOS columnas',
+    VAL.filter(v => cols(v) > 2).map(v => v.n + '=' + cols(v)).join(',') || 'ninguna', 'ninguna']);
+  ex.push(['(E2) y una seccion de SEIS preguntas o menos usa UNA sola columna', (() => {
+    const mal = VAL.filter(v => { const n = E[v.n].filas.filter(f => f && f.ctrl).length;
+      return n <= 6 && cols(v) > 1 });
+    return mal.map(v => v.n).join(',') || 'ninguna' })(), 'ninguna']);
+  /* (F) CONTROL NEGATIVO: el molde NO le entro a las dos secciones que esta tanda PARO. */
+  ex.push(['(F1) CONTROL: la valvula pulmonar y la protesis mitral siguen SIN molde — parado y reportado',
+    ['_indEP','_indProtM'].filter(n => { const fn = window[n];
+      if (typeof fn !== 'function') return false; let r = null;
+      try { r = fn() } catch (e) { return false } return !!(r && r.molde) }).join(',') || 'ninguna', 'ninguna']);
+  /* (G) EL PAPEL NO SE MUEVE con las cinco valvulas cargadas a la vez. */
+  __t.limpiar();
+  VAL.forEach(v => Object.keys(v.campos).forEach(k => S(k, v.campos[k])));
+  const I = __t.informe();
+  ex.push(['(G0) DENOM: el informe se emitio con las cinco lesiones', (I.inf || '').length > 200, true]);
+  ex.push(['(G1) y no lleva la franja de la categoria', (I.inf || '').indexOf('la que publica el informe') > -1, false]);
+  ex.push(['(G2) ni el rotulo de los datos del estudio', (I.inf || '').indexOf('Datos del estudio') > -1, false]);
+  ex.push(['(G3) ni el EN SUMA', (I.suma || '').indexOf('Datos del estudio') > -1, false]);
+  return { extra: EXP };
+`);
+
+/* -- TC-644 ---------------------------------------------------------------------------------
+   TANDA PANT-6, COMMIT 1. La pantalla de CIA y CIV rehecha.
+   DECISION DEL MEDICO (03/11/2026): no hay logica especial. La CIA siempre en una mitad y la
+   CIV siempre en la otra, los dos cuadros SIEMPRE visibles y con todos sus campos habilitados;
+   el boton de cada lesion SOLO decide si esa lesion entra al informe.
+   Lo que este caso fija es la regla nueva en las CUATRO combinaciones de botones, el reparto en
+   dos cuadros con cada boton dentro del suyo, el tercer cuadro comun y que el papel no se mueve.
+   El caso de PANT-5, TC-642, ya vigila la fila y el display; este agrega las combinaciones. -- */
+caso('TC-644', 'Tanda PANT-6: la CIA y la CIV siempre visibles en las cuatro combinaciones, cada boton en su cuadro y el papel sin moverse', `
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]), 'esperado ' + String(t[2]) + ' | hallado ' + String(t[1])]) };
+  __t.limpiar();
+  const vis = (id) => { const e = document.getElementById(id); return !!(e && e.style.display !== 'none') };
+  const sec = document.getElementById('sacc-cc-shunt');
+  const cuerpo = sec && sec.querySelector('.sacc-body');
+  /* (A) DENOMINADOR: la seccion y sus dos cuadros existen. Sin esto todo lo de abajo cuenta cero. */
+  ex.push(['(A0) DENOM: la seccion existe', !!sec, true]);
+  ex.push(['(A1) y sus DOS cuadros', document.querySelectorAll('.ete-shunt-cuadro').length >= 2, true]);
+  /* (B) LAS CUATRO COMBINACIONES: los dos cuadros a la vista en TODAS. Es la regla nueva. */
+  const combo = (c, v) => { __t.chk('ete_cia_activa', c); __t.chk('ete_civ_activa', v);
+    try { eteShuntSync(); } catch (e) {}
+    return (vis('ete-shunt-pane-cia') ? 'C' : '-') + (vis('ete-shunt-pane-civ') ? 'V' : '-'); };
+  ex.push(['(B1) ninguna marcada: los dos cuadros', combo(false, false), 'CV']);
+  ex.push(['(B2) solo la CIA: los dos cuadros', combo(true, false), 'CV']);
+  ex.push(['(B3) solo la CIV: los dos cuadros', combo(false, true), 'CV']);
+  ex.push(['(B4) las dos: los dos cuadros', combo(true, true), 'CV']);
+  /* (C) TODOS LOS CAMPOS HABILITADOS en la combinacion mas peligrosa, la de ninguna marcada:
+     el boton no gatea la entrada de datos. Los espejos de solo lectura no cuentan. */
+  combo(false, false);
+  ex.push(['(C1) y ningun campo deshabilitado', (() => {
+    if (!cuerpo) return 'sin cuerpo';
+    const d = Array.prototype.slice.call(cuerpo.querySelectorAll('input[id], select[id]'))
+      .filter(e => e.type !== 'checkbox' && e.type !== 'hidden' && e.disabled).map(e => e.id);
+    return d.length ? d.join(',') : 'ninguno' })(), 'ninguno']);
+  ex.push(['(C2) y los quince campos editables de las dos lesiones siguen existiendo', (() => {
+    const ids = ['ete_cia_tipo','ete_cia_tam_max','ete_cia_tam_min','ete_cia_borde_ao',
+      'ete_cia_borde_av','ete_cia_borde_vcs','ete_cia_borde_vci','ete_cia_borde_post',
+      'ete_cia_dir','ete_cia_vel','ete_civ_tipo','ete_civ_tam','ete_civ_vista','ete_civ_vel','ete_civ_pas'];
+    const f = ids.filter(i => !document.getElementById(i));
+    return f.length ? f.join(',') : 'los quince' })(), 'los quince']);
+  /* (D) CADA BOTON DENTRO DE SU CUADRO, y sin salir de la cadena que lo pinta. */
+  ex.push(['(D1) el boton CIA dentro del cuadro de la CIA', (() => {
+    const b = document.getElementById('ete-shunt-tab-cia'), p = document.getElementById('ete-shunt-pane-cia');
+    return !!(b && p && p.contains(b)) })(), true]);
+  ex.push(['(D2) el boton CIV dentro del de la CIV', (() => {
+    const b = document.getElementById('ete-shunt-tab-civ'), p = document.getElementById('ete-shunt-pane-civ');
+    return !!(b && p && p.contains(b)) })(), true]);
+  ex.push(['(D3) y los dos siguen dentro de un .subtabs-wrap.cc-lesbar, que es de donde cuelga su pintado',
+    ['ete-shunt-tab-cia','ete-shunt-tab-civ'].filter(i => {
+      const b = document.getElementById(i); return !(b && b.closest('.subtabs-wrap.cc-lesbar')) }).join(',') || 'los dos', 'los dos']);
+  /* (E) EL TERCER CUADRO, el comun, FUERA de la fila y con los seis insumos. */
+  const fila = document.getElementById('ete-shunt-fila');
+  const com = document.getElementById('ete-shunt-comun');
+  ex.push(['(E1) el cuadro comun existe y esta FUERA de la fila', !!(com && fila && !fila.contains(com)), true]);
+  ex.push(['(E2) con los cuatro insumos del Qp/Qs y los dos del DDVI indexado',
+    ['ete_shunt_tsvi_ro','ete_shunt_vtitsvi_ro','ete_shunt_tsvd_ro','ete_shunt_vtitsvd_ro',
+     'ete_shunt_ddvi_ro','ete_shunt_asc_ro']
+      .filter(i => { const e = document.getElementById(i); return !(e && com && com.contains(e)) })
+      .join(',') || 'los seis', 'los seis']);
+  ex.push(['(E3) y la PSAP por IT repetida ya no esta en la CIA', !document.getElementById('ete-cia-paps-it'), true]);
+  ex.push(['(E3b) CONTROL: la de la CIV sigue', !!document.getElementById('ete-civ-paps-it'), true]);
+  /* (F) EL DIAGRAMA DE BORDES NO PIERDE NADA. */
+  try { eteShuntSync(); } catch (e) {}
+  ex.push(['(F1) el diagrama conserva sus segmentos',
+    document.querySelectorAll('#cia-donut-svg path, #cia-donut-svg circle').length > 3, true]);
+  ex.push(['(F2) y sus textos', (() => {
+    return Array.prototype.slice.call(document.querySelectorAll('#cia-donut-svg text'))
+      .map(t => (t.textContent||'').trim()).filter(x => x).length >= 5 })(), true]);
+  ex.push(['(F3) y su tarjeta de detalle, que bajo a la columna 1',
+    (document.getElementById('cia-donut-panel') || { innerHTML:'' }).innerHTML.length > 100, true]);
+  /* (G) EL PAPEL NO SE MUEVE POR LA MAQUETA: con los campos cargados y SIN marcar ninguna
+     lesion, la seccion no emite. Es la garantia de PANT-3 y sigue valiendo. */
+  __t.limpiar();
+  __t.set('ete_cia_tipo', 'secundum'); __t.set('ete_cia_tam_max', '14');
+  __t.set('ete_cia_dir', 'id'); __t.set('ete_civ_tam', '8');
+  const I0 = __t.informe();
+  ex.push(['(G1) DENOM: el informe se emitio', (I0.inf || '').length > 50, true]);
+  /* El emisor escribe «CIA tipo ostium secundum» y NO la palabra «interauricular»: la primera
+     version de estas dos condiciones buscaba esa palabra y daba false en los dos lados, o sea un
+     denominador vacio que se lee como «la compuerta funciona». */
+  ex.push(['(G2) sin ninguna lesion marcada, la CIA no se emite', (I0.inf || '').indexOf('CIA tipo') > -1, false]);
+  /* El GESTO REAL y no la casilla a pelo: el toggle despacha el change que las cinco rutas
+     necesitan, y es como el medico la marca. */
+  try { eteShuntLesionTog('cia'); } catch (e) { __t.chk('ete_cia_activa', true) }
+  try { eteShuntSync(); } catch (e) {}
+  const I1 = __t.informe();
+  ex.push(['(G3) CONTROL: marcada, SI se emite', (I1.inf || '').indexOf('CIA tipo') > -1, true]);
+  return { extra: EXP };
+`);
+
+/* -- TC-645 ---------------------------------------------------------------------------------
+   TANDA PANT-6, COMMIT 2. El dibujo de sobrecarga del VD, mas grande.
+   La premisa del medico se reprodujo: el dibujo media 110 px a 1440 px y sus rotulos salian en
+   2,6 px. El ancho minimo para 12 px es 509 px -el rotulo mide 4,2 unidades en un viewBox de
+   178,09-, no los ~340 que la orden estimaba.
+   ⚠️ LA SUITE CORRE CHROME A ~756 px, por debajo del corte de 900, asi que la DISPOSICION se
+   mide por la REGLA de la hoja de estilos y por la estructura; la geometria la miden las sondas
+   a los cuatro anchos. -- */
+caso('TC-645', 'Tanda PANT-6: el dibujo del VD con su ancho minimo para 12 px, la lista en la columna izquierda y el esquema valvular sin moverse', `
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]), 'esperado ' + String(t[2]) + ' | hallado ' + String(t[1])]) };
+  const regla = (sel, prop) => { let r = null;
+    for (const h of Array.from(document.styleSheets)) { let rs = null;
+      try { rs = h.cssRules } catch (e) { continue } if (!rs) continue;
+      for (const x of Array.from(rs)) {
+        if (x.type === 1 && x.selectorText === sel && x.style.getPropertyValue(prop)) r = { v:x.style.getPropertyValue(prop), media:'' };
+        if (x.type === 4) for (const y of Array.from(x.cssRules || [])) {
+          if (y.type === 1 && y.selectorText === sel && y.style.getPropertyValue(prop)) r = { v:y.style.getPropertyValue(prop), media:String(x.conditionText || x.media.mediaText) } } } }
+    return r };
+  const svg = document.getElementById('vdsc-svg');
+  ex.push(['(A0) DENOM: el dibujo existe', !!svg, true]);
+  /* (A) EL ANCHO: 100 % de su columna con un tope de 520 px, que es el minimo de 509 redondeado. */
+  const rW = regla('#vdsc-svg', 'width');
+  ex.push(['(A1) el dibujo toma el ancho de su columna', rW ? rW.v.trim() : 'NO HAY', '100%']);
+  const rMax = regla('#vdsc-svg', 'max-width');
+  ex.push(['(A2) con un tope de 520 px, por encima del minimo medido de 509',
+    rMax ? rMax.v.trim() : 'NO HAY', '520px']);
+  /* (B) LA MAQUETA: campos a la izquierda, dibujo a la derecha, lista DEBAJO de los campos. */
+  const rFila = regla('#vdsc-fila', 'grid-template-columns');
+  ex.push(['(B1) desde 900 px la fila es una grilla', !!rFila, true]);
+  ex.push(['(B2) y el corte va sobre la VENTANA, en 900 px',
+    rFila && /min-width:\\s*900px/.test(String(rFila.media)), true]);
+  ex.push(['(B3) con el 55 % para los campos y el 45 % para el dibujo',
+    rFila ? /55fr/.test(rFila.v) && /45fr/.test(rFila.v) : false, true]);
+  const rLista = regla('#vdsc-lista', 'grid-column');
+  ex.push(['(B4) la lista de criterios va en la columna 1, debajo de los campos',
+    rLista ? rLista.v.trim() : 'NO HAY', '1']);
+  const rCaja = regla('#vdsc-caja', 'grid-row');
+  ex.push(['(B5) y el dibujo abarca las dos filas de la columna 2',
+    rCaja ? /span 2/.test(rCaja.v) : false, true]);
+  /* (C) EL ORDEN DEL DOM es campos -> dibujo -> lista, que es lo que la orden pide apilado. */
+  const f = document.getElementById('vdsc-fila');
+  ex.push(['(C1) la fila tiene TRES hijos', f ? f.children.length : -1, 3]);
+  ex.push(['(C2) en el orden campos, dibujo, lista',
+    f ? Array.prototype.slice.call(f.children).map(c => c.id).join(',') : '',
+    'vdsc-campos,vdsc-caja,vdsc-lista']);
+  /* (D) LA TARJETA DE CRITERIOS NO CAMBIA: sus filas y su contenido siguen. */
+  const lista = document.getElementById('vdsc-lista');
+  ex.push(['(D1) la lista conserva sus filas', lista ? lista.querySelectorAll('.calc-row').length >= 9 : false, true]);
+  ex.push(['(D2) y su score', !!document.getElementById('tep-score'), true]);
+  ex.push(['(D3) y su advertencia', lista ? (lista.textContent||'').indexOf('orientativa') > -1 : false, true]);
+  /* (E) EL DIBUJO SIGUE DE SOLO LECTURA: un solo control, el boton de pausa. */
+  ex.push(['(E1) un solo control en la caja del dibujo',
+    document.querySelectorAll('#vdsc-caja button, #vdsc-caja input, #vdsc-caja select').length, 1]);
+  ex.push(['(E2) y es el de pausa', !!document.getElementById('vdsc-play'), true]);
+  /* (F) CONTROL NEGATIVO: el esquema valvular 2D no tiene ninguna regla de ancho nueva. */
+  ex.push(['(F1) CONTROL: el esquema valvular 2D conserva su propio svg', !!document.getElementById('v2d-svg'), true]);
+  ex.push(['(F2) CONTROL: y el dibujo del VD NO hereda su ancho -son dos reglas distintas-',
+    regla('#v2d-svg', 'max-width') === null || (rMax && rMax.v.trim() === '520px'), true]);
+  return { extra: EXP };
+`);
+
+
 
 try {
   const s = await servir(); servidor = s.srv;
