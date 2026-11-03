@@ -113,6 +113,14 @@ const ESCENAS = {
      El papel tiene que salir IDENTICO en las cuatro, con y sin el boton de abajo. Las lesiones
      se marcan por sus dos checkbox ocultos, que son el estado que `guardarInforme` captura. */
   p5ccNada: { campos: { ete_cia_tam_max:'14', ete_civ_tam:'8' } },
+  /* -- PANT-5, COMMIT 6: LA SINCRONIA DE LA LONGITUD DE LOS VELOS MITRALES --
+     p5etemA carga los velos SOLO en Mediciones ETE y p5etemB SOLO en Criterios TEER: son las dos
+     escenas donde el espejo nuevo puede mover el papel, y es el unico caso de papel que la orden
+     autoriza. p5etemAmbos los carga en los dos, que es el control: ahi no hay nada que copiar. */
+  p5etemA:     { campos: { ete_lva:'24', ete_lvp:'12' }, chk: ['ete-es-ete','ete_etem_incluir_chk'] },
+  p5etemB:     { campos: { teer_lva:'26', teer_lvp:'9' }, chk: ['ete-es-ete','ete_etem_incluir_chk'] },
+  p5etemAmbos: { campos: { ete_lva:'24', ete_lvp:'12', teer_lva:'24', teer_lvp:'12' },
+                 chk: ['ete-es-ete','ete_etem_incluir_chk'] },
   p5ccCia:  { campos: { ete_cia_tam_max:'14', ete_cia_tam_min:'11', ete_cia_borde_post:'6' },
               sel: { ete_cia_tipo:'secundum' }, chk: ['ete_cia_activa'] },
   p5ccCiv:  { campos: { ete_civ_tam:'8' }, sel: { ete_civ_tipo:'perimembranosa' },

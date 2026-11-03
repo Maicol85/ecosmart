@@ -15976,10 +15976,10 @@ z
     <div class="card-body">
       <div class="grid-4">
         <div class="fg"><label>Longitud velo anterior (mm)</label>
-          <input type="number" id="ete_lva" placeholder="mm" oninput="calcETE()">
+          <input type="number" id="ete_lva" placeholder="mm" oninput="calcETE();etemVeloGesto('ete_lva')">
         </div>
         <div class="fg"><label>Longitud velo posterior (mm)</label>
-          <input type="number" id="ete_lvp" placeholder="mm" oninput="calcETE()">
+          <input type="number" id="ete_lvp" placeholder="mm" oninput="calcETE();etemVeloGesto('ete_lvp')">
         </div>
         <div class="fg"><label>Diámetro anular (mm)</label>
           <input type="number" id="ete_diam_anular" placeholder="mm" oninput="calcETE()">
@@ -16181,11 +16181,11 @@ z
            del velo anterior, que sí veta, un «Req:» idéntico contradecía a la propia cápsula. -->
       <div class="grid-2" style="margin-bottom:10px;">
         <div class="fg"><label>Longitud velo anterior (mm) <span style="font-weight:400;color:var(--text2);font-size:10px;">auto ← ETE Válvula Mitral</span></label>
-          <input type="number" id="teer_lva" placeholder="mm" oninput="calcTEER()">
+          <input type="number" id="teer_lva" placeholder="mm" oninput="calcTEER();etemVeloGesto('teer_lva')">
           <span style="font-size:10px; color:var(--text2);">Req: ≥20mm</span>
         </div>
         <div class="fg"><label>Longitud velo posterior (mm) <span style="font-weight:400;color:var(--text2);font-size:10px;">auto ← ETE Válvula Mitral</span></label>
-          <input type="number" id="teer_lvp" placeholder="mm" oninput="calcTEER()">
+          <input type="number" id="teer_lvp" placeholder="mm" oninput="calcTEER();etemVeloGesto('teer_lvp')">
           <span style="font-size:10px; color:var(--text2);">Ideal: ≥7mm (mejor ≥10mm) — advertencia, no modifica el veredicto</span>
         </div>
       </div>
@@ -40861,6 +40861,44 @@ window.imFrPdfVal = imFrPdfVal;
 /* TEER: los cinco criterios de MitraClip/PASCAL que ya están medidos en otras secciones.
    DTSVI es el diámetro TELEsistólico (LVESD del COAPT, umbral ≤70 mm), o sea DSFVI — no
    confundir con el «Ø TSVI» del tracto de salida que usan EM y EA, que es otro campo. */
+/* ══ UN DATO, DOS PUERTAS: LA LONGITUD DE LOS VELOS MITRALES (PANT-5, commit 6) ═══════════════
+   EL DEFECTO, MEDIDO EN LOS DOS SENTIDOS ANTES DE ESCRIBIR UNA LINEA: con `ete_lva` en 24 mm,
+   `teer_lva` quedaba VACIO; con `teer_lva` en 26, `ete_lva` quedaba vacio. Lo mismo con el velo
+   posterior. O sea que el rotulo «auto ← ETE Valvula Mitral» de Criterios TEER prometia un
+   espejo que no ocurria en ningun gesto: el unico que copiaba era `_syncSiVacio`, que corre
+   dentro de `sincronizarTEERDesdeGlobal` -no en cada tecla- y SOLO si el destino esta vacio.
+
+   LA REGLA ES LA DE LA CASA: un dato, dos puertas, GANA LA ULTIMA EDICION. Lo que el medico
+   teclea o borra en cualquiera de las dos pantallas va a la otra tecla por tecla, el vacio
+   incluido, aunque la otra ya tuviera valor.
+
+   ⚠️ CUELGA DEL GESTO Y NO DE NINGUN BARRIDO, que es la leccion que el D-9, el D-10 y el D-11
+      pagaron tres veces: nada automatico escribe en el estudio. Son los cuatro `oninput`.
+   ⚠️ NO SE DESPACHA `input` EN EL PAR: con el evento, el par volveria a entrar acá y el gesto se
+      copiaria de ida y de vuelta. Se asigna el valor y se corre el calculo del otro lado, que es
+      lo que esa pantalla necesita para repintar su propia capsula.
+   ⚠️ Y `_syncSiVacio` NO SE RETIRA: sigue siendo el camino de los ESTUDIOS VIEJOS, que se leen
+      sin migrarlos -uno guardado con `ete_lva` poblado y `teer_lva` vacio-. Con el espejo puesto
+      los dos campos valen lo mismo, asi que esa copia no tiene nada que hacer y no se pisan. */
+var _ETEM_VELOS = [['ete_lva', 'teer_lva'], ['ete_lvp', 'teer_lvp']];
+function etemVeloGesto(id) {
+  for (var i = 0; i < _ETEM_VELOS.length; i++) {
+    var par = _ETEM_VELOS[i], otro = null;
+    if (par[0] === id) otro = par[1];
+    else if (par[1] === id) otro = par[0];
+    else continue;
+    var a = document.getElementById(id), b = document.getElementById(otro);
+    if (!a || !b) return;
+    if (b.value === a.value) return;
+    b.value = a.value;
+    /* El otro lado repinta su propia capsula con su propio calculo. */
+    if (otro.indexOf('teer_') === 0) { if (typeof calcTEER === 'function') { try { calcTEER(); } catch (e) {} } }
+    else { if (typeof calcETE === 'function') { try { calcETE(); } catch (e) {} } }
+    return;
+  }
+}
+window.etemVeloGesto = etemVeloGesto;
+
 function sincronizarTEERDesdeGlobal() {
   _syncSiVacio([
     ['ete_lva','teer_lva'], ['ete_lvp','teer_lvp'], ['avm_plan','teer_area_mitral']
