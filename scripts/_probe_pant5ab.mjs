@@ -109,6 +109,20 @@ const ESCENAS = {
      p5dpt lleva los QUINCE campos de la seccion cargados, que es la unica forma de que su
      descripcion y su linea de papel existan. p5dptVacio es el control negativo. */
   p5dptVacio: { campos: {} },
+  /* -- PANT-5, COMMIT 5: LAS CUATRO COMBINACIONES DE CIA / CIV --
+     El papel tiene que salir IDENTICO en las cuatro, con y sin el boton de abajo. Las lesiones
+     se marcan por sus dos checkbox ocultos, que son el estado que `guardarInforme` captura. */
+  p5ccNada: { campos: { ete_cia_tam_max:'14', ete_civ_tam:'8' } },
+  p5ccCia:  { campos: { ete_cia_tam_max:'14', ete_cia_tam_min:'11', ete_cia_borde_post:'6' },
+              sel: { ete_cia_tipo:'secundum' }, chk: ['ete_cia_activa'] },
+  p5ccCiv:  { campos: { ete_civ_tam:'8' }, sel: { ete_civ_tipo:'perimembranosa' },
+              chk: ['ete_civ_activa'] },
+  p5ccDos:  { campos: { ete_cia_tam_max:'14', ete_cia_tam_min:'11', ete_civ_tam:'8' },
+              sel: { ete_cia_tipo:'secundum', ete_civ_tipo:'perimembranosa' },
+              chk: ['ete_cia_activa','ete_civ_activa'] },
+  p5ccDosI: { campos: { ete_cia_tam_max:'14', ete_cia_tam_min:'11', ete_civ_tam:'8' },
+              sel: { ete_cia_tipo:'secundum', ete_civ_tipo:'perimembranosa' },
+              chk: ['ete_cia_activa','ete_civ_activa','ete_shunt_incluir_chk'] },
   p5dpt: { campos: { dpt_mm_post:'18', dpt_mm_lat:'12', dpt_mm_ant:'9', dpt_col_ad_dur:'0.45',
                      resp_var_mitral:'30', resp_var_tric:'45', dpt_var_ao:'22', dpt_var_pulm:'18',
                      },

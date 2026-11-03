@@ -4033,6 +4033,34 @@ html.light-mode .amilo-root{
       del ancho que le quede a la tarjeta, y entonces «el ancho donde las columnas bajan de
       200 px» deja de ser medible. Es la leccion que PANT-4 pago con una barra horizontal a
       900 px exactos. */
+/* ============================================================================================
+   CIA Y CIV LADO A LADO  -  #ete-shunt-fila  (PANT-5, 2026-11-03)
+   ============================================================================================
+   Decision del medico (opcion 1). Flex y no grid: un hijo en `display:none` no participa del
+   reparto, asi que con una sola lesion activa la visible toma el ancho entero sin una linea de
+   JS. El corte va sobre la VENTANA, que es la regla fija de la casa.
+   ⚠️ CON LAS DOS ACTIVAS CADA PANEL TIENE LA MITAD, asi que las grillas de TRES columnas de
+      adentro pasan a DOS: medido, un `.grid-3` en 560 px de ancho deja campos de 180 px con
+      rotulos como «Duracion del colapso AD (fraccion del ciclo)». El `.grid-2` se queda en dos.
+      La regla se acota a `#ete-shunt-fila` para no alcanzar a ninguna otra pantalla. */
+#ete-shunt-fila{display:block;}
+#ete-shunt-fila > div{min-width:0;}
+@media (min-width:900px){
+  #ete-shunt-fila{display:flex;gap:14px;align-items:flex-start;}
+  #ete-shunt-fila > div{flex:1 1 0;min-width:0;}
+  /* Solo cuando las DOS estan a la vista: con una sola, el panel tiene el ancho entero y sus
+     tres columnas entran. La clase la pone `eteShuntSync`, el mismo dueno que muestra y esconde
+     los paneles, asi que no pueden discrepar. */
+  #ete-shunt-fila.dos .grid-3{grid-template-columns:repeat(2,minmax(0,1fr));}
+}
+/* EL DIAGRAMA DE BORDES, MAS CHICO: 260 -> 190 px. El pedido es que la CIA ocupe menos espacio
+   sin cambiar sus datos, sus rotulos ni sus colores de adecuacion. El `<svg>` lleva `width` y
+   `height` explicitos por Safari -ya documentado-, asi que el tamanio se baja por CSS y el
+   marcado no se toca. */
+#cia-donut-svg{width:190px!important;height:190px!important;}
+@media (max-width:560px){
+  #cia-donut-svg{width:160px!important;height:160px!important;}
+}
 #dpt-cols{display:grid;grid-template-columns:minmax(0,1fr);gap:10px;align-items:start;
   margin-bottom:10px;}
 #dpt-cols .dpt-col{min-width:0;}
@@ -18979,6 +19007,18 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
       para desmarcarla. La lesion marcada queda en el informe.
     </div>
 
+    <!-- == LAS DOS LESIONES LADO A LADO CUANDO LAS DOS ESTAN ACTIVAS (PANT-5, commit 5) ======
+         Decision del medico (opcion 1): con las DOS lesiones marcadas se ven lado a lado, la CIA
+         a la izquierda y la CIV a la derecha; con UNA sola, esa ocupa el ancho completo; por
+         debajo de 900 px, apiladas y la CIA primero.
+         ⚠️ ES FLEX Y NO GRID, Y ESO ES LO QUE HACE QUE «UNA SOLA OCUPE TODO» SALGA GRATIS. Los
+            dos paneles se muestran y se esconden con `display:none` desde `eteShuntLesionTog`, y
+            un hijo en `display:none` NO participa del reparto flex: el que queda visible toma el
+            ancho entero sin una sola linea de JS nueva. Con un grid de dos columnas fijas, la
+            lesion sola se habria quedado en la columna izquierda con la derecha vacia.
+         ⚠️ LOS DOS BOTONES DE PRESENCIA NO SE TOCAN: siguen siendo los mismos toggles de PANT-3,
+            con sus dos checkbox ocultos como estado. Esta fila solo los envuelve. -->
+    <div id="ete-shunt-fila">
     <!-- ── CIA ── -->
     <div id="ete-shunt-pane-cia">
       <div style="font-size:12px;font-weight:700;color:var(--accent2);margin-bottom:8px;">Tipo y tamaño</div>
@@ -19089,6 +19129,7 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
         <div class="calc-row"><span class="calc-lbl">PSAP por IT (del estudio)</span><span id="ete-civ-paps-it" class="calc-val">—</span></div>
       </div>
     </div>
+    </div><!-- /ete-shunt-fila -->
 
     <!-- ── Comunes a CIA y CIV ──
          Qp/Qs y DDVI indexado se cargan UNA vez y valen para las dos pestañas: el Qp/Qs es
@@ -19132,7 +19173,14 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
       </div>
     </div>
     <div style="text-align:center;margin-top:10px;">
-      <!-- El checkbox sigue siendo el estado; el botón es la piel. Oculto y no
+      <!-- El boton «Integrar al informe» queda DONDE ESTABA, debajo de las dos lesiones y a
+           ancho completo: fuera de la fila, igual que el bloque «Comunes a CIA y CIV».
+           ⚠️ ESOS CINCO BLOQUES COMUNES QUEDARON DENTRO DE LA FILA EN LA PRIMERA VERSION, Y LO
+              CAZO UNA MEDICION: la fila tenia SIETE hijos flex en vez de dos, asi que cada panel
+              se quedaba con 183 px de los 1194 a 1440 px y con 95 a 1000 px -con dos rotulos
+              recortados-. El Qp/Qs y el DDVI indexado no son de la CIA ni de la CIV: se cargan
+              una vez y valen para las dos.
+           El checkbox sigue siendo el estado; el botón es la piel. Oculto y no
            eliminado: guardarInforme lo captura por `input[type=checkbox][id]`. -->
       <input type="checkbox" id="ete_shunt_incluir_chk" style="display:none;" tabindex="-1" aria-hidden="true">
       <button type="button" class="btn btn-integrar" data-ete-chk="ete_shunt_incluir_chk" aria-pressed="false"
@@ -77133,12 +77181,35 @@ window.eteShuntLesionSync = eteShuntLesionSync;
 
 /* Navegacion sola: trae un panel a la vista sin tocar la marca. La usa `eteShuntTaviReset` para
    volver a la CIA, y es la que dejan llamada las sondas de otras tandas. */
+/* ══ EL DUENO UNICO DEL `display` DE LOS DOS PANELES (PANT-5, commit 5) ═══════════════════════
+   Decision del medico (opcion 1): con las DOS lesiones marcadas, los dos formularios se ven
+   LADO A LADO; con una sola, esa ocupa el ancho completo. Hasta hoy el `display` lo decidia
+   SOLO `_eteShuntPane` -los botones nacieron como solapas-, asi que con las dos marcadas se
+   veia UN panel y el otro quedaba escondido: medido antes de tocar nada, con los dos checkbox
+   en `true` y `vis cia/civ = false/true`.
+   ⚠️ UN PANEL SE MUESTRA SI SU LESION ESTA MARCADA **O** SI ES EL NAVEGADO, y el «o» no es de
+      mas: `eteShuntLesionTog` desmarca y enseguida navega a esa misma lesion, y la regla
+      documentada de esa funcion es que DESMARCAR NO ESCONDE EL PANEL -un campo oculto se sigue
+      guardando, asi que esconder el formulario de una lesion con datos cargados los dejaria
+      fuera de la vista y dentro del estudio-. Con el `o`, desmarcar deja el panel a la vista y
+      el medico puede corregirlo o vaciarlo, que es lo que esa garantia protege.
+   ⚠️ Y NINGUNA MARCADA SE COMPORTA COMO HOY: queda el panel navegado -la CIA al abrir-, porque
+      esconder los dos dejaria los dos formularios fuera de la vista. */
+function eteShuntPanes(){
+  const p1=document.getElementById('ete-shunt-pane-cia'), p2=document.getElementById('ete-shunt-pane-civ');
+  const onC = (typeof eteShuntLesionOn === 'function') ? eteShuntLesionOn('cia') : false;
+  const onV = (typeof eteShuntLesionOn === 'function') ? eteShuntLesionOn('civ') : false;
+  const vC = onC || _eteShuntPane === 'cia';
+  const vV = onV || _eteShuntPane === 'civ';
+  if(p1) p1.style.display = vC ? '' : 'none';
+  if(p2) p2.style.display = vV ? '' : 'none';
+}
+window.eteShuntPanes = eteShuntPanes;
+
 function eteShuntTab(cual){
   const cia = cual === 'cia';
   _eteShuntPane = cia ? 'cia' : 'civ';
-  const p1=document.getElementById('ete-shunt-pane-cia'), p2=document.getElementById('ete-shunt-pane-civ');
-  if(p1) p1.style.display = cia ? '' : 'none';
-  if(p2) p2.style.display = cia ? 'none' : '';
+  eteShuntPanes();
   eteShuntSync();
 }
 window.eteShuntTab = eteShuntTab;
@@ -99643,6 +99714,24 @@ function eteShuntSync(){
      que las cinco rutas de restauracion y todo gesto del medico lo repintan. Con un segundo
      enganche en `eteInclSync` habria dos escritores del mismo nodo. */
   if (typeof eteShuntLesionSync === 'function') { try{ eteShuntLesionSync(); }catch(e){} }
+  /* ⚠️ EL `display` DE LOS DOS PANELES SE REPINTA ACA, Y NO SOLO EN EL GESTO (PANT-5, commit 5):
+     las cinco rutas de restauracion reponen los dos checkbox asignando `.checked`, que no
+     dispara ningun evento, asi que sin esto reabrir un estudio con las DOS lesiones marcadas
+     dejaba un solo panel a la vista. Esta funcion esta en `RECALC_MODULOS`. */
+  if (typeof eteShuntPanes === 'function') { try{ eteShuntPanes(); }catch(e){} }
+  /* ⚠️ LA MARCA DE «LAS DOS A LA VISTA» LA PONE EL MISMO DUENO QUE MUESTRA Y ESCONDE LOS DOS
+     PANELES (PANT-5, commit 5), y va DESPUES de `eteShuntLesionSync`, que es quien decide el
+     `display` de cada uno: al reves leeria el estado del gesto anterior. Con un segundo
+     escritor de esta clase, la maqueta y los paneles podrian discrepar.
+     Se lee el `display` COMPUTADO y no el checkbox: lo que decide si las dos columnas tienen que
+     compartir el ancho es que las dos cajas esten a la vista, que es lo que el flex reparte. */
+  (function(){
+    const fila = document.getElementById('ete-shunt-fila');
+    if (!fila) return;
+    const vis = (id) => { const e = document.getElementById(id);
+      return !!(e && getComputedStyle(e).display !== 'none') };
+    fila.classList.toggle('dos', vis('ete-shunt-pane-cia') && vis('ete-shunt-pane-civ'));
+  })();
   const txt = (id,val)=>{ const e=document.getElementById(id); if(e) e.textContent = val; };
   const ro  = (id,val)=>{ const e=document.getElementById(id); if(e) e.value = val; };
   const f1 = n => (n==null||!isFinite(n)) ? '—' : String(Math.round(n*10)/10);
