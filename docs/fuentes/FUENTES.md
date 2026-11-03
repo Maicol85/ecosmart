@@ -9577,3 +9577,81 @@ salida**, sin gradiente.
 
 **Ninguna cita nueva se agregó a la pantalla.** Las dos recomendaciones que respaldan lo que se
 retiró ya estaban en la Evidencia desde CORR-EVID y VAL-PPT.
+
+## La tanda PANT-2 (2026-11-02) — el color del esquema en el PDF, el ⓘ del panel y las frases de la transposición
+
+### Lo que se leyó EN IMAGEN
+
+**AHA/ACC 2024 de miocardiopatía hipertrófica** — Ommen SR y cols., *Circulation* 2024;149:e1239-
+e1311. **Hoja 29**, cuyo **pie impreso dice «June 4, 2024  e1267»**, así que la regla de folio
+—folio = hoja + 1238— queda comprobada contra el papel y no contra una cuenta.
+
+**Recomendación 3** (apartado 7.2), leída en imagen a 320 ppp:
+
+> For adult patients with HCM with ≥1 major risk factors for SCD, it is reasonable to offer an
+> ICD. These **major risk factors include** (Figure 3, Table 8):
+> **a.** Sudden death judged definitively or likely attributable to HCM in ≥1 first-degree or
+> close relatives who are ≤50 years of age;
+> **b.** Massive LVH ≥30 mm in any LV segment;
+> **c.** ≥1 recent episodes of syncope suspected by clinical history to be arrhythmic (ie,
+> unlikely to be of neurocardiogenic [vasovagal] etiology, or related to LVOTO);
+> **d.** LV apical aneurysm with transmural scar or LGE;
+> **e.** LV systolic dysfunction (EF <50%).
+
+**Recomendación 6**, misma hoja:
+
+> In select adult patients with HCM and **without major SCD risk factors** after clinical
+> assessment, or in whom the decision to proceed with ICD placement remains otherwise uncertain,
+> ICD **may be considered** in patients with **extensive LGE** by contrast-enhanced CMR imaging
+> **or NSVT** present on ambulatory monitoring (Figure 3, Table 8).
+
+**Qué dice eso del conteo de factores mayores**, que es lo que la orden manda verificar:
+
+| afirmación | la hoja |
+|---|---|
+| los **cinco** factores mayores de `mchAHA` | **coinciden uno por uno** con los cinco (a-e) de la recomendación 3 |
+| el **realce tardío extenso (LGE)** cuenta en el conteo de mayores | **NO**: es árbitro de la recomendación 6, para pacientes **sin** factores mayores |
+| la **TVNS (NSVT)** cuenta en el conteo de mayores | **NO**: el otro árbitro de la recomendación 6 |
+| la **respuesta tensional anormal al ejercicio** | **NO APARECE** ni en la 3 ni en la 6 |
+
+**El código de la aplicación aplica exactamente eso**: `mchAHA` tiene cinco factores en `pres` y
+los dos árbitros en `arb`, y su clase IIb exige `pres.length === 0`. La respuesta tensional no
+entra en ninguna de las dos listas.
+
+⚠️ **UN TEXTO DE LA PANTALLA SE PARÓ, y es lo que la orden manda hacer.** El párrafo de los
+factores de riesgo de muerte súbita dice:
+
+> «La respuesta tensional anormal se registra y el informe la menciona, pero no suma al conteo de
+> la AHA/ACC 2024: salió de la lista en esa edición. **El realce tardío sí cuenta para la AHA** y
+> no para la ESC — el eco no lo evalúa.»
+
+En el mismo párrafo que dice «no suma al conteo» para la tensional, decir que el realce «sí
+cuenta» se lee como que **sí suma al conteo**, y eso la hoja **no lo respalda**: el realce tardío
+es árbitro de la recomendación 6, no uno de los cinco factores mayores. **El texto se dejó como
+está y no se movió al ⓘ.** Ver `docs/PENDIENTES.md` → **P2-f**.
+
+### Las dos copias de la ACC/AHA 2025 de congénitas (commit 1c)
+
+**Son la misma versión publicada.** Comparadas las 137 hojas de `…-a.pdf` y `…-a-2.pdf`
+normalizando el sello de descarga: **cero** hojas difieren, con el **control positivo** de que sin
+normalizar difieren las 137. El texto normalizado tiene el mismo largo exacto —**828.516**
+caracteres— y es idéntico; «LOE» 64 = 64, «Level of Evidence» 4 = 4, «mm Hg» 43 = 43, «%»
+209 = 209. El encabezado impreso de la hoja 1 es el mismo palabra por palabra: *Circulation*
+2026;153:e115-e251, 24 de febrero de 2026.
+
+La única diferencia es el **sello de descarga** —«by on October 17, 2026» contra «October 24,
+2026»— y la `modDate` de los metadatos. **Cero diferencias que cambien una clase, un nivel, un
+número o una condición.**
+
+### Cambios de evidencia
+
+| qué | dónde estaba | dónde está ahora |
+|---|---|---|
+| el escenario del esquema en el recuadro del PDF | dicho **dos veces**: en `tga3dLineaPDF` y en la línea del esquema | **una sola vez**, en `tga3dLineaPDF`, su dueño único |
+| «Circulación esquemática: …» en el PDF | la línea del esquema | **retirada del papel**; sigue en la **pantalla**, bajo el dibujo |
+| «La CIA no se dibuja con el switch auricular» en el PDF | la línea del esquema | **retirada del papel**; sigue en la **pantalla** |
+| «Función del ventrículo derecho sistémico con disfunción N» | informe, PDF y PPT | **«Disfunción del ventrículo derecho sistémico N»**, mismas palabras de las opciones de la app |
+| «— función del VD sistémico no consignada» | EN SUMA | **retirada**: sin dato no se dice nada |
+| los cinco factores mayores de la AHA/ACC | — | **verificados en imagen** contra la hoja 29, folio e1267: coinciden uno por uno |
+
+**Ninguna cita nueva se agregó a la pantalla**, y ningún corte, umbral, clase ni nivel se movió.

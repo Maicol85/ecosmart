@@ -460,3 +460,26 @@ más dos condiciones nuevas) y **TC-574** (la métrica de solape pasa a medir lo
 | **TC-612** | los cuatro símbolos del dibujo son distintos entre sí, y el rótulo de la miocardiopatía dice 2024 (**guardián**: pasa también contra HEAD) |
 
 Fichas en `docs/mapa/tests-fichas-609.md`.
+
+---
+
+## Tanda PANT-2 (2026-11-02) — TC-619 a TC-622
+
+| caso | qué fija |
+|---|---|
+| **TC-619** | el esquema que va al PDF se rasteriza con los colores y la tipografía de la pantalla, y la línea del recuadro dice el escenario una sola vez |
+| **TC-620** | el ⓘ de una pregunta se cierra al tocar fuera, con Escape y al abrir otro, y tocar DENTRO no lo cierra |
+| **TC-621** | las Evidencias de más de 6 preguntas reparten en dos columnas con filas compactas, y las de 6 o menos NO se mueven |
+| **TC-622** | el informe de la transposición nombra la disfunción directo y no menciona lo que no está cargado, y Ebstein no se toca |
+
+**Adaptados — SEIS**: TC-293 (invertida: contestar cierra la nota), TC-451 (una sola nota
+abierta), TC-615 (C3 y C4 invertidas: el esquema ya no lleva línea propia), TC-616 (B2: 32 px
+visibles con 44 de área, más B2b), **TC-528** (D2 invertida, el mismo invariante que TC-293) y
+**TC-569** (B1, B2 y E7 por zona; F2 deja de contar el contenido de los `<details>` cerrados).
+
+⚠️ **TC-528 y TC-569 los destapó la CORRIDA COMPLETA y no el censo**: grepeé por las palabras con
+que lo escribe TC-293 y esos dos lo dicen distinto. Los dos **pasan contra HEAD** y fallan en el
+árbol nuevo, verificado alternando sólo `index.html`.
+
+⚠️ **El (F2) de TC-569 informaba 26 «textos recortados» y NO hay recorte real**: un `<details>`
+cerrado conserva su caja teórica. Medido con las notas abiertas, **cero en los dos árboles**.

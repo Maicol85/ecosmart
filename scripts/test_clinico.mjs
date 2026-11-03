@@ -40108,8 +40108,14 @@ caso('TC-293', 'Panel de Evidencia: el detalle largo nace COLAPSADO, hay un solo
           const su = d.querySelector('summary');
           return su && su.getAttribute('aria-label') === etq; })[0];
         const otrosDesp = cu3.querySelectorAll('details[data-ind-info][open]').length - (mismo && mismo.open ? 1 : 0);
-        ex.push(['el ⓘ que estaba abierto SIGUE abierto al contestar, y los otros ⓘ no se abren solos',
-          !!(mismo && mismo.open) && otrosDesp === otrosAntes,
+        /* ⚠️ INVERTIDA, Y ES UNA DECISION (PANT-2, correccion B). Afirmaba que el ⓘ abierto SIGUE
+           abierto al contestar. Desde que la nota se cierra al tocar FUERA de ella, un boton de
+           respuesta ES un clic fuera, asi que contestar la cierra — que es lo que el medico
+           pidio. Lo que el caso protegia y SIGUE protegiendo es la otra mitad: que el repintado
+           no abra ⓘ solo. Sin esa segunda condicion, un mutante que abra todos al repintar
+           pasaria la primera. */
+        ex.push(['contestar CIERRA el ⓘ abierto -es un clic fuera de la nota- y no abre ningun otro',
+          !!(mismo && !mismo.open) && otrosDesp === 0,
           'etiqueta=' + JSON.stringify(etq) + ' sigue abierto=' + (mismo ? mismo.open : 'no se encontro') +
           ' · otros abiertos antes=' + otrosAntes + ' despues=' + otrosDesp]);
         if (mismo) mismo.open = false;
@@ -64113,16 +64119,26 @@ caso('TC-451', 'Evidencia: los dos ⓘ de termino abren su tarjeta completa y an
         titulo: N((tj().querySelector('#indic-term-tit') || {}).textContent) };
       const infoAbiertasDesp = cu().querySelectorAll('details[data-ind-info][open]').length;
 
-      ex.push(['DENOMINADOR del aislamiento: habia dos ⓘ de nota ABIERTOS que se podian romper',
-        infoAbiertasAntes === 2, 'abiertos=' + infoAbiertasAntes + ' de ' + infoAntes]);
+      /* ⚠️ DENOMINADOR ADAPTADO: UNA sola nota abierta (PANT-2, correccion B). El caso abre DOS ⓘ
+         con un clic en cada summary y exigia que quedaran los DOS abiertos. Desde que abrir una
+         cierra la anterior -que es la regla que el medico pidio- queda UNA, y eso sigue siendo un
+         denominador: hay una nota abierta que el ⓘ de termino podria romper. */
+      ex.push(['DENOMINADOR del aislamiento: queda UNA nota abierta que se podia romper',
+        infoAbiertasAntes === 1, 'abiertos=' + infoAbiertasAntes + ' de ' + infoAntes]);
+      ex.push(['y abrir la segunda CERRO la primera: nunca hay dos notas abiertas',
+        infoAbiertasAntes <= 1, 'abiertos=' + infoAbiertasAntes]);
       ex.push(['abrir uno CIERRA el otro: nunca hay dos tarjetas ni dos aria-expanded en true',
         uno.abierto !== dos.abierto &&
         uno.exp.split(',').filter(x => x === 'true').length === 1 &&
         dos.exp.split(',').filter(x => x === 'true').length === 1 &&
         uno.titulo !== dos.titulo && !!uno.titulo && !!dos.titulo,
         JSON.stringify([uno, dos])]);
-      ex.push(['CONTROL NEGATIVO: los ⓘ de nota de pregunta y los «Ver detalle» quedan INTACTOS',
-        infoAbiertasDesp === infoAbiertasAntes &&
+      /* ⚠️ ADAPTADO: el ⓘ de TERMINO tambien esta fuera de la nota, asi que abrirlo la cierra
+         (PANT-2, correccion B). Lo que el control negativo sigue vigilando -y es lo que importa-
+         es que no se DESTRUYA ni se cree ninguna: el conteo total de notas y de «Ver detalle» no
+         se mueve. */
+      ex.push(['CONTROL NEGATIVO: no se destruye ni se crea ningun ⓘ de nota ni «Ver detalle»',
+        infoAbiertasDesp === 0 &&
         cu().querySelectorAll('details[data-ind-info]').length === infoAntes &&
         cu().querySelectorAll('details[data-ind-detalle]').length === detAntes,
         'nota abiertas antes=' + infoAbiertasAntes + ' despues=' + infoAbiertasDesp +
@@ -88859,8 +88875,15 @@ caso('TC-528', 'Tanda AJ6-2: la Evidencia de la Fallot reparada con las recomend
                 infos: S2 ? S2.querySelectorAll('[data-ind-info]').length : 0 };
     }
   }
-  ex.push(['(D2) contestar una pregunta queda MARCADA, repinta el panel, no cierra el ⓘ que el medico tenia abierto y deja las recomendaciones ABAJO',
-    !!ciclo && ciclo.sigue && ciclo.abierto && ciclo.marcado && ciclo.cambio
+  /* ⚠️ INVERTIDA la mitad del ⓘ (PANT-2, correccion B), y es la MISMA decision que TC-293.
+     Afirmaba que contestar NO cierra el ⓘ que el medico tenia abierto. Desde que la nota se
+     cierra al tocar FUERA de ella, un boton de respuesta ES un clic fuera, asi que contestar la
+     cierra — que es lo que el medico pidio. Las otras cuatro mitades que esta condicion vigila
+     —la respuesta queda marcada, el panel repinta, el texto cambia y las recomendaciones quedan
+     abajo— siguen exactamente igual, y el conteo de dieciseis ⓘ tambien: lo que cambia es su
+     ESTADO, no cuantos hay. */
+  ex.push(['(D2) contestar una pregunta queda MARCADA, repinta el panel, CIERRA el ⓘ que estaba abierto y deja las recomendaciones ABAJO',
+    !!ciclo && ciclo.sigue && !ciclo.abierto && ciclo.marcado && ciclo.cambio
       && ciclo.recomAbajo && ciclo.infos === 16,
     JSON.stringify(ciclo)]);
 
@@ -101815,12 +101838,27 @@ caso('TC-569', 'Tanda AJUSTES-3: los botones Si / No / Sin dato de TODAS las pre
 
   /* ── (B) LOS 44 px ─────────────────────────────────────────────────────────────────────── */
   const caja = () => bs().map(b => { const r = b.getBoundingClientRect(); return { w: r.width, h: r.height }; });
-  ex.push(['(B1) TODOS miden 44 px de alto',
-           (function () { const c = caja(); return c.filter(x => x.h >= 44).length + '/' + c.length; })(),
-           (function () { const n = bs().length; return n + '/' + n; })()]);
-  ex.push(['(B2) y TODOS llegan a 44 px de ancho',
-           (function () { const c = caja(); return c.filter(x => x.w >= 44).length + '/' + c.length; })(),
-           (function () { const n = bs().length; return n + '/' + n; })()]);
+  /* ⚠️ ADAPTADO POR ZONA (PANT-2, correccion C). La regla del medico del 2026-11-02 baja el alto
+     VISIBLE de la botonera a 32 px en las Evidencias de MAS DE SEIS PREGUNTAS, para que una
+     pregunta de una o dos lineas entre en 56; el area tactil sigue en 44 y la da un ::after
+     absoluto, que getBoundingClientRect NO ve. Asi que «TODOS miden 44» dejo de ser cierto y lo
+     que se mide es por zona: los de FUERA del molde siguen en 44 -ese es el control negativo- y
+     los de DENTRO, 32 de caja con 44 de area. */
+  const _fueraM = () => bs().filter(b => !b.closest('[data-ind-preg="1"]'));
+  const _dentroM = () => bs().filter(b => !!b.closest('[data-ind-preg="1"]'));
+  ex.push(['(B0) DENOM: la escena trae botones DENTRO y FUERA del molde de preguntas',
+           (_dentroM().length > 0 && _fueraM().length > 0), true]);
+  ex.push(['(B1) los de FUERA del molde miden 44 px de alto',
+           (function () { const c = caja(); return c.filter(x => x.h >= 44).length; })(),
+           _fueraM().length]);
+  ex.push(['(B1b) y los de DENTRO miden 32 px de caja con 44 px de area tactil',
+           _dentroM().length
+             ? (Math.round(_dentroM()[0].getBoundingClientRect().height) + '/'
+                + String(getComputedStyle(_dentroM()[0], '::after').height))
+             : 'sin botones', '32/44px']);
+  ex.push(['(B2) y los de FUERA llegan a 44 px de ancho',
+           (function () { const c = caja(); return c.filter(x => x.w >= 44).length; })(),
+           _fueraM().length]);
 
   /* ── (C) NINGUNO CAE EN OTRO CONTROL. Es lo que la orden prohibe, y lo que tenia el defecto:
          con el boton en 22 px, CINCO tenian parte de su 44x44 encima de un vecino. Se miden
@@ -101903,17 +101941,27 @@ caso('TC-569', 'Tanda AJUSTES-3: los botones Si / No / Sin dato de TODAS las pre
   ex.push(['(E6) y el aria-pressed sigue estando en TODOS',
            bs().filter(b => b.hasAttribute('aria-pressed')).length + '/' + bs().length,
            bs().length + '/' + bs().length]);
+  /* ⚠️ ADAPTADO: tras el repintado los de fuera del molde siguen en 44 y los de dentro en 32.
+     Lo que esta condicion vigila -que el repintado no pierda el tamanio- sigue en pie. */
   ex.push(['(E7) los que crecieron siguen en 44 px despues del repintado',
            caja().filter(x => x.h >= 44).length + '/' + bs().length,
-           bs().length + '/' + bs().length]);
+           bs().filter(b => !b.closest('[data-ind-preg="1"]')).length + '/' + bs().length]);
 
   /* ── (F) EL PANEL NO CRECE NI DESBORDA ─────────────────────────────────────────────────── */
   ex.push(['(F1) cero barra horizontal del cuerpo',
            Math.max(0, document.documentElement.scrollWidth - innerWidth), 0]);
-  ex.push(['(F2) cero textos recortados dentro del panel',
+  /* ⚠️ NO SE CUENTA EL CONTENIDO DE UN details CERRADO, y es una correccion medida (PANT-2).
+     Un details cerrado no se renderiza pero conserva su caja teorica, asi que su div informa
+     scrollWidth 83 sobre clientWidth 11 y entra en este filtro aunque NADIE lo vea. Hasta esta
+     tanda daba cero por casualidad: contestar una pregunta CONSERVABA el ⓘ abierto, y desde que
+     la correccion B lo cierra -un boton de respuesta es un clic fuera de la nota- las notas
+     quedan cerradas tras el repintado y aparecian 26 «recortados» que no se ven.
+     Medido con el mismo escenario y las notas ABIERTAS: CERO recortados en los DOS arboles. */
+  ex.push(['(F2) cero textos recortados dentro del panel, sin contar lo que no se ve',
            cu ? [].slice.call(cu.querySelectorAll('*')).filter(function (e) {
              if (e.children.length) return false;
              const t = String(e.textContent || '').trim(); if (!t) return false;
+             if (e.closest('details:not([open])')) return false;
              return e.scrollWidth > e.clientWidth + 2; }).length : 'SIN PANEL', 0]);
 
   try { const ov = document.getElementById('indic-overlay'); if (ov) ov.classList.remove('open'); } catch (e) {}
@@ -107809,8 +107857,17 @@ caso('TC-615', 'Tanda TGA-4: el esquema de circulacion entra al PDF con el MISMO
   await esperar(400);
   const d = DAT();
   ex.push(['(C2) la rasterizacion dejo una imagen', !!(d && d.data && d.data.length > 500), true]);
-  ex.push(['(C3) y su linea nombra el escenario', String((d || {}).linea || '').indexOf('Circulación esquemática') >= 0, true]);
-  ex.push(['(C4) la linea nombra la cirugia cargada', String((d || {}).linea || '').indexOf('switch auricular') >= 0, true]);
+  /* ⚠️ (C3) y (C4) ESTAN INVERTIDAS, y es el dia que este caso anunciaba (PANT-2, correccion A4).
+     Afirmaban que la linea del esquema nombra el escenario y la cirugia, y el medico encontro en
+     el PDF que el recuadro los decia DOS VECES: una en la linea de tga3dLineaPDF y otra en la
+     del esquema. La duplicacion se corto en la raiz -el recuadro tiene un dueno unico- asi que el
+     esquema ya no lleva linea propia. Lo que el caso vigila ahora es lo mismo del otro lado: que
+     el escenario se diga UNA sola vez y que la frase ilustrativa siga estando. */
+  ex.push(['(C3) el esquema ya NO lleva linea propia: el escenario lo dice tga3dLineaPDF',
+    String((d || {}).linea || ''), '']);
+  ex.push(['(C4) y el dueno unico de la linea del recuadro SIGUE nombrando la cirugia cargada',
+    (typeof window.tga3dLineaPDF === 'function')
+      ? String(window.tga3dLineaPDF()).indexOf('switch auricular') >= 0 : 'sin fn', true]);
   ex.push(['(C5) y NO trae el recorrido de la sangre', String((d || {}).linea || '').indexOf('Recorrido') >= 0, false]);
   /* (D) LA PROPORCION del esquema, que es lo que lo deja sin estirar. */
   ex.push(['(D1) la proporcion sale del viewBox y no de un numero suelto',
@@ -107882,8 +107939,22 @@ caso('TC-616', 'Tanda TGA-4: el panel de Evidencia de la transposicion es compac
   const maxAlto = altos.length ? Math.max.apply(null, altos) : 0;
   const bot = preg[0] ? Array.prototype.slice.call(preg[0].querySelectorAll('button[data-ind-clin]')) : [];
   ex.push(['(B1) cada pregunta ofrece TRES estados', bot.length, 3]);
-  ex.push(['(B2) sus botones miden 44 px de alto',
-    bot.length ? bot.every((x) => Math.round(x.getBoundingClientRect().height) === 44) : false, true]);
+  /* ⚠️ (B2) ADAPTADA: 32 px VISIBLES y 44 de AREA TACTIL (PANT-2, correccion C2). La regla del
+     medico pide una pregunta de una o dos lineas en 56 px o menos, y el piso tactil de 44 px era
+     lo que mandaba el alto de la fila. El area no se perdio: la extiende un ::after absoluto, que
+     getBoundingClientRect NO ve, asi que se comprueba con elementFromPoint 5 px por encima del
+     borde visible -tiene que devolver el PROPIO boton-. Las dos mitades: sin la segunda, bajar el
+     alto sin dar el area pasaria la primera. */
+  ex.push(['(B2) sus botones miden 32 px de alto VISIBLE',
+    bot.length ? bot.every((x) => Math.round(x.getBoundingClientRect().height) === 32) : false, true]);
+  /* ⚠️ EL AREA SE MIDE POR EL PSEUDO-ELEMENTO Y NO CON elementFromPoint, y es una correccion
+     medida: la suite corre Chrome SIN --window-size, o sea a unos 756 px, y el boton cae fuera
+     del viewport del panel; elementFromPoint ahi devuelve null y la condicion informaba «sin
+     area» sobre un boton que la tiene. Es la firma que TGA-h ya documenta. El alto del ::after
+     es el CONTRATO y se lee igual a cualquier ancho; la comprobacion con el puntero, en los
+     cuatro anchos, la hace la sonda de dos motores. */
+  ex.push(['(B2b) y conservan 44 px de AREA TACTIL, que la da un ::after y no la caja',
+    bot.length ? String(getComputedStyle(bot[0], '::after').height) : 'sin botones', '44px']);
   ex.push(['(B3) y caen en la MISMA linea: la fila no pasa de 70 px', maxAlto > 0 && maxAlto <= 70, true]);
   /* (C) LA ETIQUETA DE GUIA, una por pregunta, y la de la ESC distinta de la de la ACC. */
   const badges = Array.prototype.slice.call(n.querySelectorAll('[data-ind-gbadge]'));
@@ -108278,6 +108349,308 @@ caso('TC-614', 'Tanda TGA-4: la caja «Tricuspide / PSAP» del PDF nombra la val
 
 
 let servidor, chrome;
+/* ══ TANDA PANT-2 (2026-11-02) — TC-619 a TC-622 ═══════════════════════════════════════════ */
+
+caso('TC-619', 'Tanda PANT-2: el esquema que va al PDF se rasteriza con los colores y la tipografia de la pantalla, y la linea del recuadro dice el escenario UNA sola vez', `
+  return (async () => {
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]),
+                 'dio «' + t[1] + '» · esperado «' + t[2] + '»']) };
+  /* Cada caso define SU esperar: los de este archivo esperan una CONDICION y este espera
+     milisegundos, asi que reusar el de otro cambiaria lo que se mide. */
+  const esperar = (ms) => new Promise((r) => setTimeout(r, ms));
+  const S = (id, v) => { const e = document.getElementById(id); if (!e) return 'NO EXISTE ' + id;
+    e.value = v; e.dispatchEvent(new Event('input', { bubbles: true }));
+    e.dispatchEvent(new Event('change', { bubbles: true })); return 'ok' };
+  /* (A) DENOMINADOR: el dueno unico existe y el esquema esta dibujado. */
+  ex.push(['(A1) DENOM: el resolvedor de estilos existe',
+    typeof window.esqSvgParaRaster, 'function']);
+  S('nombre', 'Prueba 619'); S('ci', '619');
+  S('tga_tipo', 'dtga'); S('tga_cirugia', 'auricular');
+  if (typeof tgaSync === 'function') { try { tgaSync() } catch (e) {} }
+  await esperar(500);
+  const cont = document.getElementById('tga-esq-svg');
+  const svg = cont && cont.firstChild;
+  ex.push(['(A2) DENOM: el esquema de circulacion esta dibujado', !!svg, true]);
+  let tx = '';
+  try { tx = svg ? new XMLSerializer().serializeToString(svg) : '' } catch (e) { tx = '' }
+  const nVarDom = tx.split('var(--').length - 1;
+  ex.push(['(A3) DENOM: su marcado del DOM USA variables de CSS -ahi si existen-',
+    nVarDom > 20, true]);
+  /* (B) EL ARREGLO: fuera del documento no existen, asi que se resuelven antes de serializar. */
+  const res = (typeof window.esqSvgParaRaster === 'function') ? window.esqSvgParaRaster(tx) : tx;
+  ex.push(['(B1) el marcado que se rasteriza no deja NINGUNA variable sin resolver',
+    res.split('var(--').length - 1, 0]);
+  ex.push(['(B2) y declara la tipografia, para que el texto no caiga en serif',
+    res.indexOf('font-family') >= 0, true]);
+  ex.push(['(B3) el relleno de la cavidad ya no es el valor inicial de fill, que es negro',
+    res.indexOf('fill="var(--bg)"') >= 0, false]);
+  /* (C) CONTROL NEGATIVO DE IDEMPOTENCIA: un marcado que ya trae literales sale IGUAL. El de la
+     orejuela resuelve sus colores con esqColor al emitir, asi que no tiene una sola variable. */
+  const lit = '<svg viewBox="0 0 10 10" style="font-family:X"><rect fill="#123456"/></svg>';
+  ex.push(['(C1) CONTROL NEGATIVO: un marcado sin variables sale identico',
+    (typeof window.esqSvgParaRaster === 'function') ? window.esqSvgParaRaster(lit) : 'sin fn', lit]);
+  /* (D) LA LINEA DEL RECUADRO: el escenario lo dice su dueno unico y el esquema no lo repite.
+     ⚠️ HAY QUE ABRIR LA COMPUERTA Y RASTERIZAR DE VERDAD, y es una correccion que pidio una
+     mutacion: leyendo el par sin disparar la rasterizacion, _tgaEsqPdf sigue en su valor
+     inicial y la linea sale vacia pase lo que pase — una condicion que no puede fallar. Con el
+     slot del 3D puesto la compuerta abre y el par se llena. */
+  const PX619 = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+  let puesto619 = 'no';
+  try { const r619 = await esqIncluirEnPDFImg('tga3d', 'Esquema 3D de la transposición', PX619);
+        puesto619 = r619 && r619.ok ? 'si' : 'no' } catch (e) { puesto619 = 'ERR' }
+  ex.push(['(D0) DENOM: el slot del 3D quedo puesto, asi que la compuerta puede abrir', puesto619, 'si']);
+  try { if (typeof tgaEsqPdfRaster === 'function') await tgaEsqPdfRaster(true) } catch (e) {}
+  await esperar(500);
+  const dat = (typeof window.tgaEsqPdfData === 'function') ? window.tgaEsqPdfData() : {};
+  ex.push(['(D0b) DENOM: la rasterizacion dejo una imagen, o sea que el par se lleno',
+    !!(dat && dat.data && String(dat.data).length > 500), true]);
+  ex.push(['(D1) y aun asi el esquema no publica linea propia', String(dat.linea || ''), '']);
+  const ln = (typeof window.tga3dLineaPDF === 'function') ? String(window.tga3dLineaPDF()) : 'sin fn';
+  ex.push(['(D2) el dueno unico de la linea nombra el escenario', ln.indexOf('d-TGA') >= 0, true]);
+  ex.push(['(D3) y la nombra UNA sola vez', ln.split('d-TGA').length - 1, 1]);
+  ex.push(['(D4) sin la etiqueta que el medico pidio sacar',
+    ln.indexOf('Circulación esquemática') >= 0, false]);
+  return { extra: EXP };
+  })();
+`);
+
+caso('TC-620', 'Tanda PANT-2: el ⓘ de una pregunta se cierra al tocar fuera, con Escape y al abrir otro, y tocar DENTRO de la nota no lo cierra', `
+  return (async () => {
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]),
+                 'dio «' + t[1] + '» · esperado «' + t[2] + '»']) };
+  /* Cada caso define SU esperar: los de este archivo esperan una CONDICION y este espera
+     milisegundos, asi que reusar el de otro cambiaria lo que se mide. */
+  const esperar = (ms) => new Promise((r) => setTimeout(r, ms));
+  const S = (id, v) => { const e = document.getElementById(id); if (!e) return 'NO EXISTE ' + id;
+    e.value = v; e.dispatchEvent(new Event('input', { bubbles: true }));
+    e.dispatchEvent(new Event('change', { bubbles: true })); return 'ok' };
+  ex.push(['(A1) DENOM: el cableado del ⓘ existe', typeof window._indInfoCerrar, 'function']);
+  S('nombre', 'Prueba 620'); S('ci', '620');
+  S('tga_tipo', 'dtga'); S('tga_cirugia', 'auricular');
+  S('ete_cia_tipo', 'secundum'); S('ete_cia_tam_max', '18');
+  if (typeof indicAbrir === 'function') indicAbrir();
+  await esperar(500);
+  const cu = () => document.getElementById('indic-cuerpo');
+  const notas = () => Array.prototype.slice.call(cu().querySelectorAll('details[data-ind-info]'));
+  const abiertas = () => cu().querySelectorAll('details[data-ind-info][open]').length;
+  const vis = notas().filter(function (d) {
+    const pa = d.parentElement ? d.parentElement.closest('details:not([open])') : null;
+    return !pa && (typeof d.checkVisibility === 'function' ? d.checkVisibility() : !!d.offsetParent); });
+  ex.push(['(A2) DENOM: hay al menos DOS ⓘ visibles para ejercer la regla', vis.length >= 2, true]);
+  if (vis.length < 2) return { extra: EXP };
+  /* (B) ABRIR: uno queda abierto y lo anuncia. */
+  vis[0].querySelector('summary').click(); await esperar(150);
+  ex.push(['(B1) tocar el ⓘ abre su nota', abiertas(), 1]);
+  ex.push(['(B2) y lo anuncia con aria-expanded',
+    vis[0].querySelector('summary').getAttribute('aria-expanded'), 'true']);
+  /* (C) CONTROL NEGATIVO: tocar DENTRO de la nota NO la cierra. El medico tiene que poder
+     leerla y seleccionar su texto. */
+  const cuerpo = vis[0].querySelector('div');
+  if (cuerpo) cuerpo.click();
+  await esperar(150);
+  ex.push(['(C1) CONTROL NEGATIVO: tocar DENTRO de la nota no la cierra', abiertas(), 1]);
+  /* (D) ABRIR OTRA: una sola abierta por vez. */
+  vis[1].querySelector('summary').click(); await esperar(150);
+  ex.push(['(D1) abrir otra cierra la primera: UNA sola abierta', abiertas(), 1]);
+  ex.push(['(D2) y la primera ya no lo anuncia',
+    vis[0].querySelector('summary').getAttribute('aria-expanded'), 'false']);
+  /* (E) TOCAR FUERA: se cierra. El titulo del panel esta fuera de toda nota. */
+  const tit = document.getElementById('indic-titulo');
+  if (tit) tit.click();
+  await esperar(150);
+  ex.push(['(E1) tocar FUERA de la nota la cierra', abiertas(), 0]);
+  /* (F) ESCAPE: cierra la nota y DEJA el panel abierto. */
+  vis[0].querySelector('summary').click(); await esperar(150);
+  ex.push(['(F0) DENOM: hay una nota abierta que Escape pueda cerrar', abiertas(), 1]);
+  const card = document.getElementById('indic-card'); if (card) card.focus();
+  document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+  await esperar(200);
+  ex.push(['(F1) Escape cierra la nota', abiertas(), 0]);
+  const ov = document.getElementById('indic-overlay');
+  ex.push(['(F2) y DEJA el panel abierto: una capa sobre otra', ov ? ov.style.display : 'sin overlay', 'block']);
+  /* (G) CERRAR Y REABRIR: ninguna nota queda abierta de la sesion anterior. */
+  vis[0].querySelector('summary').click(); await esperar(120);
+  if (typeof indicCerrar === 'function') indicCerrar();
+  await esperar(150);
+  if (typeof indicAbrir === 'function') indicAbrir();
+  await esperar(400);
+  ex.push(['(G1) cerrar y reabrir el panel no deja ninguna nota abierta', abiertas(), 0]);
+  if (typeof indicCerrar === 'function') indicCerrar();
+  return { extra: EXP };
+  })();
+`);
+
+caso('TC-621', 'Tanda PANT-2: las Evidencias de mas de 6 preguntas reparten en dos columnas con filas compactas, y las de 6 o menos NO se mueven', `
+  return (async () => {
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]),
+                 'dio «' + t[1] + '» · esperado «' + t[2] + '»']) };
+  /* Cada caso define SU esperar: los de este archivo esperan una CONDICION y este espera
+     milisegundos, asi que reusar el de otro cambiaria lo que se mide. */
+  const esperar = (ms) => new Promise((r) => setTimeout(r, ms));
+  const S = (id, v) => { const e = document.getElementById(id); if (!e) return 'NO EXISTE ' + id;
+    e.value = v; e.dispatchEvent(new Event('input', { bubbles: true }));
+    e.dispatchEvent(new Event('change', { bubbles: true })); return 'ok' };
+  /* (A) EL INVENTARIO: cuales usan el molde y cuantas preguntas tienen. Se le pregunta a la
+     funcion duenia de cada seccion, que es el unico lugar donde eso esta declarado. */
+  const conMolde = [], sinMolde = [];
+  if (typeof IND_SECS !== 'undefined') IND_SECS.forEach(function (sx) {
+    let r = null; try { r = sx.fn() } catch (e) { r = null }
+    if (!r) return;
+    const np = (r.clinica || []).filter(function (f) { return f && f.ctrl && !f.grupoHdr }).length;
+    (r.preguntas ? conMolde : sinMolde).push([String(sx.tit).slice(0, 26), np]);
+  });
+  S('nombre', 'Prueba 621'); S('ci', '621'); S('peso', '70'); S('talla', '170');
+  S('tga_tipo', 'dtga'); S('tga_cirugia', 'auricular');
+  S('ete_cia_tipo', 'secundum'); S('ete_cia_tam_max', '18');
+  S('ete_civ_tipo', 'perimembranosa'); S('ete_civ_tam', '8');
+  /* ⚠️ Y UNA SECCION SIN EL MOLDE, que es el CONTROL NEGATIVO del bloque (E): sin ella el
+     escenario despierta solo las tres del molde y el denominador «hay botones fuera» cae, que
+     es lo que paso la primera vez. La de prevencion de muerte subita de la miocardiopatia
+     hipertrofica tiene TRES preguntas -o sea menos de seis- y no usa el molde. */
+  S('siv', '18'); S('ppvi', '12'); S('fevi', '55');
+  S('mch_grad_reposo', '45'); S('vmax_ao', '3.2'); S('edad', '42'); S('sexo', 'M');
+  if (typeof indicAbrir === 'function') indicAbrir();
+  await esperar(600);
+  const card = document.getElementById('indic-card');
+  const grids = Array.prototype.slice.call(card.querySelectorAll('[data-ind-grid][data-ind-preg="1"]'));
+  ex.push(['(A1) DENOM: hay secciones que usan el molde de preguntas', grids.length >= 2, true]);
+  const nPreg = function (g) { let c = 0;
+    Array.prototype.forEach.call(g.querySelectorAll('tr'), function (tr) {
+      if (tr.querySelector('[data-ind-clin]')) c++ }); return c };
+  ex.push(['(A2) DENOM: todas las del molde tienen MAS de 6 preguntas',
+    grids.every(function (g) { return nPreg(g) > 6 }), true]);
+  /* (B) EL REPARTO: dos sub-tablas en orden, no una sola ni alternado. */
+  ex.push(['(B1) las preguntas se reparten en DOS sub-tablas',
+    grids.every(function (g) { const pc = g.querySelector('[data-ind-pregcols="1"]');
+      return pc && pc.querySelectorAll('[data-ind-sub="1"]').length === 2 }), true]);
+  ex.push(['(B2) y los datos del estudio tambien, para usar el ancho',
+    grids.every(function (g) {
+      return g.querySelectorAll('[data-ind-col="eco"] [data-ind-sub="1"]').length === 2 }), true]);
+  /* (C) LA REGLA DE DOS COLUMNAS vive en la hoja de estilos y la enciende el ancho del PANEL.
+     Se lee la REGLA y no la geometria: la suite corre a unos 756 px, por debajo del corte. */
+  let reglaOk = 'no se encontro';
+  try {
+    for (const h of Array.prototype.slice.call(document.styleSheets)) {
+      let rs = null; try { rs = h.cssRules } catch (e) { continue }
+      for (const r of Array.prototype.slice.call(rs || [])) {
+        const t = String(r.cssText || '');
+        /* ⚠️ SE EXIGE display:grid Y NO la palabra «grid»: una mutacion que cambiaba la regla
+           a display:block SOBREVIVIO, porque grid-template-columns sigue conteniendo «grid». */
+        if (t.indexOf('data-ind-pregcols') >= 0 && t.indexOf('data-ind-cols="2"') >= 0
+            && t.replace(/ /g, '').indexOf('display:grid') >= 0) reglaOk = 'si';
+      }
+    }
+  } catch (e) { reglaOk = 'ERR' }
+  ex.push(['(C1) la regla de dos columnas existe y la enciende data-ind-cols', reglaOk, 'si']);
+  ex.push(['(C2) y el corte es el ancho del PANEL, no el de la ventana',
+    (typeof IND_COLS_CORTE !== 'undefined') ? IND_COLS_CORTE : 'sin const', 900]);
+  /* (D) LA FILA COMPACTA: 32 px visibles con 44 de area, DENTRO del molde. */
+  const dentro = Array.prototype.slice.call(card.querySelectorAll('[data-ind-preg="1"] .ind-ctrl-btn'));
+  ex.push(['(D0) DENOM: hay botones de respuesta dentro del molde', dentro.length > 0, true]);
+  ex.push(['(D1) miden 32 px de alto visible',
+    dentro.length ? String(getComputedStyle(dentro[0]).minHeight) : 'sin botones', '32px']);
+  ex.push(['(D2) y conservan 44 px de area tactil, que la da un ::after',
+    dentro.length ? String(getComputedStyle(dentro[0], '::after').height) : 'sin botones', '44px']);
+  /* (E) CONTROL NEGATIVO: las secciones de SEIS O MENOS preguntas NO se movieron. */
+  const fuera = Array.prototype.slice.call(card.querySelectorAll('[data-ind-clin]'))
+    .filter(function (b) { return !b.closest('[data-ind-preg="1"]') });
+  ex.push(['(E0) DENOM: hay botones FUERA del molde con que comparar', fuera.length > 0, true]);
+  ex.push(['(E1) CONTROL NEGATIVO: los de fuera del molde siguen en el piso tactil de 44 px',
+    fuera.length ? (Math.round(fuera[0].getBoundingClientRect().height) >= 44) : 'sin botones', true]);
+  /* ⚠️ LA CLASE SE EMITE SIEMPRE Y LO ACOTADO ES LA REGLA, que es por lo que esta condicion
+     estaba mal escrita la primera vez: _indCtrlHTML es el molde de TODAS las botoneras del
+     panel, asi que el marcador lo llevan las trece secciones. Lo que NO les alcanza es la regla
+     de la hoja de estilos, que vive dentro de [data-ind-preg="1"]. Se mide el min-height
+     computado, que es donde esa regla se ve. */
+  ex.push(['(E2) y la regla que baja el alto NO les alcanza: su min-height sigue en 44 px',
+    fuera.length ? String(getComputedStyle(fuera[0]).minHeight) : 'sin botones', '44px']);
+  ex.push(['(E3) o sea que dentro y fuera del molde el min-height DIFIERE, que es el punto',
+    (dentro.length && fuera.length)
+      ? (getComputedStyle(dentro[0]).minHeight !== getComputedStyle(fuera[0]).minHeight)
+      : 'sin par', true]);
+  /* (F) LOS TRES ESTADOS SIGUEN FUNCIONANDO: «sin dato» deja null y no «No». */
+  const SD = (typeof IND_SD_VAL !== 'undefined') ? IND_SD_VAL : '__sd';
+  const conSd = {};
+  Array.prototype.forEach.call(card.querySelectorAll('[data-ind-clin]'), function (b) {
+    if (b.getAttribute('data-ind-val') === SD) conSd[b.getAttribute('data-ind-clin')] = 1 });
+  const cl = Object.keys(conSd)[0];
+  ex.push(['(F0) DENOM: hay preguntas con el tercer estado', !!cl, true]);
+  if (cl) {
+    const toca = function (v) { const b = card.querySelector('[data-ind-clin="' + cl + '"][data-ind-val="' + v + '"]');
+      if (b) b.click() };
+    const ops = Array.prototype.slice.call(card.querySelectorAll('[data-ind-clin="' + cl + '"]'))
+      .map(function (b) { return b.getAttribute('data-ind-val') }).filter(function (v) { return v !== SD });
+    toca(ops[0]); await esperar(250);
+    ex.push(['(F1) contestar deja la respuesta', String(_indClinGet(cl)), String(ops[0])]);
+    toca(SD); await esperar(250);
+    ex.push(['(F2) y el tercer estado la deja en «sin dato», que NO es «No»',
+      _indClinGet(cl) === null, true]);
+  }
+  if (typeof indicCerrar === 'function') indicCerrar();
+  return { extra: EXP };
+  })();
+`);
+
+caso('TC-622', 'Tanda PANT-2: el informe de la transposicion nombra la disfuncion directo y no menciona lo que no esta cargado, y la misma construccion de Ebstein NO se toca', `
+  return (async () => {
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]),
+                 'dio «' + t[1] + '» · esperado «' + t[2] + '»']) };
+  /* Cada caso define SU esperar: los de este archivo esperan una CONDICION y este espera
+     milisegundos, asi que reusar el de otro cambiaria lo que se mide. */
+  const esperar = (ms) => new Promise((r) => setTimeout(r, ms));
+  const S = (id, v) => { const e = document.getElementById(id); if (!e) return 'NO EXISTE ' + id;
+    e.value = v; e.dispatchEvent(new Event('input', { bubbles: true }));
+    e.dispatchEvent(new Event('change', { bubbles: true })); return 'ok' };
+  ex.push(['(A0) DENOM: la conclusion de la transposicion existe', typeof window.tgaConclusion, 'function']);
+  S('nombre', 'Prueba 622'); S('ci', '622');
+  S('tga_tipo', 'dtga'); S('tga_cirugia', 'auricular');
+  /* (A) CON DISFUNCION CARGADA: una frase propia y corta, con las palabras de las opciones. */
+  const CASOS_F = [['leve', 'Disfunción del ventrículo derecho sistémico leve'],
+                   ['moderada', 'Disfunción del ventrículo derecho sistémico moderada'],
+                   ['severa', 'Disfunción del ventrículo derecho sistémico severa']];
+  for (const par of CASOS_F) {
+    S('tga_func_vd', par[0]); await esperar(200);
+    const c = tgaConclusion() || {};
+    ex.push(['(A) con ' + par[0] + ' el informe nombra la disfuncion directo',
+      String(c.txt || '').indexOf(par[1]) >= 0, true]);
+    ex.push(['(A) y ya no repite funcion y disfuncion en la misma oracion',
+      String(c.txt || '').indexOf('Función del ventrículo derecho sistémico con disfunción') >= 0, false]);
+    ex.push(['(A) y el papel dice lo mismo que el cuerpo',
+      String(c.papel || '').indexOf(par[1]) >= 0, true]);
+  }
+  /* (B) CONTROL NEGATIVO: con la funcion NORMAL el texto NO cambia, porque ya era el correcto. */
+  S('tga_func_vd', 'normal'); await esperar(200);
+  const cn = tgaConclusion() || {};
+  ex.push(['(B1) CONTROL NEGATIVO: con la funcion normal se sigue diciendo que es una funcion',
+    String(cn.txt || '').indexOf('Función del ventrículo derecho sistémico normal') >= 0, true]);
+  /* (C) SIN DATO NO SE DICE NADA: ni en el cuerpo ni en el EN SUMA. */
+  S('tga_func_vd', ''); await esperar(200);
+  const cv = tgaConclusion() || {};
+  ex.push(['(C0) DENOM: la seccion sigue concluyendo sin la funcion cargada', !!cv.txt, true]);
+  ex.push(['(C1) el cuerpo no menciona la funcion que no esta cargada',
+    String(cv.txt || '').indexOf('ventrículo derecho sistémico ') >= 0
+      && String(cv.txt || '').indexOf('Función del ventrículo derecho sistémico') >= 0, false]);
+  const suma = (typeof ccSumaLinea === 'function') ? String(ccSumaLinea('tga') || '') : 'sin fn';
+  ex.push(['(C2) DENOM: el EN SUMA sigue publicando su linea', suma.indexOf('TGA') >= 0, true]);
+  ex.push(['(C3) y NO dice que el dato no esta consignado',
+    suma.indexOf('no consignada') >= 0, false]);
+  /* (D) CONTROL NEGATIVO: la MISMA construccion de Ebstein no se toco, que es lo que la orden
+     pide. Se mide su mapa, que es donde vive. */
+  S('ebs_desp', '25'); S('peso', '70'); S('talla', '170'); S('ebs_func_vd', 'moderada');
+  await esperar(250);
+  let eb = null; try { eb = (typeof ebsConclusion === 'function') ? ebsConclusion() : null } catch (e) { eb = null }
+  ex.push(['(D0) DENOM: la conclusion de Ebstein concluye', !!(eb && eb.txt), true]);
+  ex.push(['(D1) CONTROL NEGATIVO: Ebstein SIGUE con su construccion, que esta tanda no toca',
+    String((eb || {}).txt || '').indexOf('Ventrículo derecho funcional con disfunción moderada') >= 0, true]);
+  return { extra: EXP };
+  })();
+`);
+
+
 try {
   const s = await servir(); servidor = s.srv;
   chrome = await abrirChrome(`http://127.0.0.1:${s.port}/index.html`);

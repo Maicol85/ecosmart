@@ -253,3 +253,16 @@ El esquema lleva además, **visible**, la leyenda «Esquema ilustrativo».
 y esta tanda se llama TGA-3. Es la colisión que AJUSTES-1 y AJUSTES-3 pagaron sobrescribiendo una
 sonda ajena. Se verificó con `ls` **antes** de crear cada nombre: los seis nombres nuevos estaban
 libres y esa sonda **no se tocó**.
+
+---
+
+## Lo que la tanda PANT-2 corrigió del esquema (2026-11-02)
+
+- **Sus colores no llegaban al PDF.** El marcado usa `var(--…)` —que en la pantalla es lo
+  correcto— y fuera del documento esas variables no existen: las seis cajas salían negras y el
+  texto en serif. Lo resuelve `esqSvgParaRaster` en `esqRasterizar`, sin tocar el esquema de
+  pantalla.
+- **El esquema ya no publica línea propia al papel**: el recuadro decía el escenario y las
+  comunicaciones dos veces.
+
+Todo en `docs/mapa/pant2-correcciones.md`.

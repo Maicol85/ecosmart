@@ -165,3 +165,19 @@ Lo que se pierde de la pantalla y qué respalda la Evidencia está en `docs/PEND
   como marcador no puede aparecer en un comentario dentro del template.
 - El slot del dibujo **no lo borra `limpiarCampos`** y se filtra de una escena a la otra.
 - Una **barra invertida simple no sobrevive al template literal**: `\d` llega como la letra `d`.
+
+---
+
+## 8 · Lo que la tanda PANT-2 cambió de este panel y de este recuadro (2026-11-02)
+
+- **El esquema del PDF salía con las cajas NEGRAS y el texto en serif.** TGA-4 verificó la
+  GEOMETRÍA de esa hoja pero no los colores: el marcado se rasteriza fuera del documento, donde
+  `var(--bg)` no resuelve y `fill` cae en su valor inicial, que es negro. Lo cierra
+  `esqSvgParaRaster`, dentro de `esqRasterizar`.
+- **`tgaEsqPdfData()` ya no devuelve `linea`**: el recuadro decía el escenario DOS veces, y ahora
+  su dueño único es `tga3dLineaPDF`.
+- **Las filas del panel compacto de preguntas pasan a dos columnas** y su botonera a 32 px
+  visibles con 44 de área táctil: el alto del panel de la transposición baja de 1156 a 738 px
+  maximizado. El marcador `data-ind-preg` no cambió.
+
+Todo en `docs/mapa/pant2-correcciones.md`.

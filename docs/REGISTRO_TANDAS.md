@@ -594,3 +594,50 @@ CORR-EVID, ya publicado, con md5 de `index.html` **`16cf562a`** y sello `v202611
 
 **Lo que dejó declarado:** `T4-a` a `T4-h` en `docs/PENDIENTES.md`, incluida la decisión del
 médico sobre los símbolos de las válvulas del posoperatorio, que se quedan como están.
+
+---
+
+## PANT-2 (2026-11-02) — el color del esquema en el PDF, el ⓘ del panel, las dos columnas y las frases de la TGA
+
+**Seis commits de los trece que la orden pide.** Base: `d3f42b0` (cierre de TGA-4), sello
+`v20261102-1645`, md5 `c96543c6`. **El push lo corre el médico: esta tanda tenía orden expresa de
+NO pushear.**
+
+| commit | qué |
+|---|---|
+| `b335dbf` | **corrección A** — el esquema de circulación del PDF sale con sus colores y la línea dice el escenario una sola vez |
+| `b87a299` | **corrección B** — el ⓘ de una pregunta se cierra al tocar fuera, con Escape y al abrir otro |
+| `26999d4` | **corrección C** — las Evidencias de más de 6 preguntas, en dos columnas y con filas compactas |
+| `cba0a47` | **corrección D** — el informe de la transposición se adapta a lo cargado y escribe menos |
+| `b511f1c` | **commit 1** — inventario de las congénitas, auditoría de sincronías y las dos copias de la guía (SOLO LECTURA) |
+| (este) | **commit 9** — cobertura, documentación y la línea base al cierre |
+
+**Lo que NO se hizo:** los commits **2 a 8** (MCH, el botón «3D» del corazón maestro, MCA, Fallot,
+las dos estenosis aórticas, la arritmia ventricular y los rótulos de las presiones pulmonares).
+**Ninguno se empezó** y ninguna línea de la aplicación se tocó por ellos; la orden prohíbe dejar
+una pantalla a medias. Ver `docs/PENDIENTES.md` → **P2-a** y `docs/CONTINUACION_PANT2.md`.
+
+### Lo que cerró, en una línea cada uno
+
+- **A** — el esquema del PDF tenía las seis cajas con una fracción de casi negros de **1,000** y
+  moda RGB(4,4,4): el marcado se rasteriza fuera del documento, donde `var(--bg)` no resuelve y
+  `fill` cae en negro. Peor distancia moda-vs-pantalla **419,7 → 6,6**; contraste del texto
+  **1,02 → 14,5-17,3 : 1**. El censo destapó que el esquema del **posoperatorio** también salía
+  mal (113 `var()`), y el mismo arreglo lo cubre.
+- **B** — la nota de una pregunta no se cerraba hasta tocar el mismo ⓘ otra vez y se podían abrir
+  varias a la vez. Hoy se cierra al tocar fuera, con Escape —dejando el panel abierto— y al abrir
+  otra, con `aria-expanded` siguiendo al estado.
+- **C** — el panel ponía los datos del estudio a la izquierda y las preguntas a la derecha, o sea
+  las preguntas en media pantalla. Hoy los datos van arriba y las preguntas debajo, en dos
+  columnas: el alto baja un **32 a 36 %** maximizado y un 7 % a 390 px.
+- **D** — el informe decía «Función del ventrículo derecho sistémico con disfunción moderada» y el
+  EN SUMA «función del VD sistémico no consignada» con el dato vacío. Hoy nombra el hallazgo
+  directo y no menciona lo que no está cargado.
+- **1** — 19 secciones, 272 campos, 35 espejos, 53 frases; cinco casos de tipo 2 reportados sin
+  unir; y las dos copias de la ACC/AHA 2025 **son la misma versión publicada**.
+
+### Cobertura
+
+**TC-619 a TC-622**, que caen contra HEAD por **29 condiciones y ninguna por excepción**.
+**19/19 mutaciones dirigidas muertas**, en worktree y con md5 del árbol vivo idéntico.
+**Cuatro casos adaptados**: TC-293, TC-451, TC-615 y TC-616.

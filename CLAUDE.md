@@ -28,6 +28,7 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Tocar el AVISO DE EXCLUSIONES MITRALES de la diastólica, o la disfunción sistólica del VD en el LABORATORIO**: los disparadores, la referencia por guía, la columna `DisfSist_VD` o el LARS por magnitud | `docs/mapa/exclusiones-laboratorio-vd.md` |
 | **Tocar la ASE/EACVI 2016 en ritmo sinusal**: la Figura 8A, la 8B o el corte de FEVI | `docs/mapa/diastolica-ase2016.md` |
 | **Tocar el S/D venoso pulmonar, el LARS, los suplementarios de la ASE 2025, el E/e′ por sitio de la ASE 2016, los rótulos del cuadro o el rojo del E/e′** | `docs/mapa/diastolica-complementarios.md` |
+| **Tocar el COLOR de un esquema que va al PDF, el ⓘ de una pregunta del panel de Evidencia, el REPARTO en dos columnas de una Evidencia de más de 6 preguntas, o las FRASES del informe de la transposición** | `docs/mapa/pant2-correcciones.md` |
 | **Tocar un DIAGRAMA DE FLUJO de la ventana 🧭** (BSE 2024, ASE 2025 en ritmo sinusal o en FA, ASE/EACVI 2016 8A y 8B): los planos, el motor del SVG, el umbral de ancho o la tabla compacta | `docs/mapa/diastolica-diagrama.md` |
 | **Tocar la GRILLA del Doppler mitral**: el orden de los 16 campos —**las columnas 2 y 3 están intercambiadas desde el Y3f2**—, el Tab por columnas, los puntos de corte o el selector del S/D | `docs/mapa/doppler-mitral-grilla.md` |
 | **Tocar el BORRADO de una lesión valvular**: el retiro del grado, quién prendió una pastilla, los dos métodos de la IM, la continuidad de la IT, el grado de cada fila o **la salida temprana de `calcTHP`** | `docs/mapa/valvulas-borrado.md` |
@@ -199,8 +200,15 @@ Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la v
 ## Qué es EcoSmart y cómo se trabaja
 
 - App clínica de ecocardiografía en **un solo `index.html`**: HTML + CSS + JS inline, sin build,
-  sin frameworks. Hoy **11,00 MB / 153.899 líneas**, medido con `wc -c` y `wc -l` el 2026-11-02 al
-  cierre de la tanda **TGA-4**, sobre el árbol ya sellado (`v20261102-1624`, md5 `17acf57a`).
+  sin frameworks. Hoy **11,02 MB / 154.232 líneas**, medido con `wc -c` y `wc -l` el 2026-11-02 al
+  cierre de la tanda **PANT-2**, sobre el árbol ya sellado. El diff de la tanda son **350 líneas
+  agregadas y 22 quitadas**, medido con `git diff` contra `d3f42b0`. **Cero** `innerHTML`, `eval`
+  o `new Function` nuevos, y cero claves.
+  ⚠️ **Y EL RENGLÓN QUE ESTA TANDA ENCONTRÓ ESTABA UNA RESELLADA ATRÁS:** decía `v20261102-1624`
+  con md5 `17acf57a`, y el árbol que se abrió traía **`v20261102-1645`** con md5 **`c96543c6`**
+  —que es el que la propia bitácora de TGA-4 da como línea base de su suite—. **Medir con
+  `wc -c`, `wc -l` y `md5` antes de presupuestar contexto**, no leer esto.
+  (Antes: 11,00 MB / 153.899 al cierre de TGA-4, sello `v20261102-1645`, md5 `c96543c6`.)
   El diff de la tanda son **551 líneas agregadas y 62 quitadas**, medido con `git diff` contra
   `7f7d5ec`. **Cero** `innerHTML`, `eval` o `new Function` nuevos, y cero claves.
   (Antes: 10,96 MB / 153.410 al cierre de CORR-EVID, sello `v20261102-1206`, md5 `16cf562a`.)
@@ -332,6 +340,29 @@ Vale para los diagramas nuevos y para los que se toquen; **lo que ya quedó a la
 mueve.** El patrón de referencia es el de la orejuela (`#oai-fila`) y el de la TGA
 (`#tga-fila`): un contenedor flex, la columna de campos con `min-width:0` y la tarjeta del dibujo
 con su ancho, todo dentro de una `@media (min-width: 900px)`.
+
+## Las Evidencias de más de 6 preguntas, en dos columnas — REGLA FIJA DE MAICOL (2026-11-02)
+
+**Toda Evidencia con MÁS DE 6 PREGUNTAS ordena las preguntas en DOS columnas** (con su ⓘ), y en
+**UNA** columna en anchos menores, **y tiene que FUNCIONAR igual**: los tres estados, el ⓘ, la
+lista de lo contestado y la lectura de otros módulos.
+
+- Las dos columnas **reparten las preguntas en orden** —la primera mitad en la izquierda, leyendo
+  hacia abajo— y no alternadas; un rótulo de grupo que caiga en el corte pasa a la columna
+  siguiente. **La lista «Recomendaciones que aplican» y el contador van a todo el ancho.**
+- **Los datos del estudio van ARRIBA**, no en una columna propia: con la tabla de datos a la
+  izquierda las preguntas se leen en media pantalla.
+- **Fila compacta**: el texto de la pregunta (hasta dos líneas), el control «Sí | No | ?» en línea
+  y el ⓘ. Los botones del control miden **32 px de alto visible** con el **área táctil de 44 px**
+  —que la da un `::after` absoluto, no un margen negativo— **sin agrandar la fila**. Meta: una
+  pregunta de una o dos líneas ocupa **56 px o menos**.
+- **Las de 6 preguntas o menos NO se mueven**, y hay que verificarlo: `_indCtrlHTML` es el molde de
+  TODAS las botoneras del panel, así que una regla sin acotar las alcanza a las trece secciones.
+- El corte es el ancho del **PANEL** y no el de la ventana (`IND_COLS_CORTE`, 900 px), por el mismo
+  motivo de siempre: el panel sin maximizar mide 820 px tanto a 1440 como a 1000.
+
+Aplicado por primera vez en la tanda **PANT-2** sobre las tres secciones que usan el molde —la
+transposición (18 preguntas), la CIA (14) y la CIV (14)—; ver `docs/mapa/pant2-correcciones.md` § 3.
 
 ## Panel de Evidencia — reglas de citación
 

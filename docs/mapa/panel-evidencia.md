@@ -275,3 +275,16 @@ además del `aria-pressed` que ya tenía.
 
 Todo en **`docs/mapa/aj3-bucle-botones.md` § 2**, con la tabla de los dieciséis cruces y las dos
 mediciones que decidieron el mecanismo.
+
+---
+
+## Lo que la tanda PANT-2 agregó al molde (2026-11-02)
+
+- **El ⓘ de una pregunta se cierra** al tocar fuera, con Escape y al abrir otro, y mantiene
+  `aria-expanded`: `_indInfoCablear`, `_indInfoCerrar` y `_indInfoSync`.
+- **Las Evidencias de más de 6 preguntas reparten en dos columnas**: `_indReparto` y
+  `_indColsHTML`, con `data-ind-pregcols` y `data-ind-infofilas`.
+- **Sólo TRES secciones usan el molde de preguntas** —`_indCIA`, `_indCIV` y `_indTGA`— y **once**
+  son compactas, no ocho como dice el chequeo del código.
+
+Todo en `docs/mapa/pant2-correcciones.md`.

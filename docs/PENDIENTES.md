@@ -12292,3 +12292,101 @@ secciones que esta tanda toca **sí** miden 44 × 44, medido.
 propia línea por la maqueta móvil que ya existía, y las piezas que la orden pide agregar —cuatro
 rótulos de grupo, el contador y el botón de columnas— no se compensan con el ahorro de la fila.
 El arreglo es de escritorio: a 1440 px baja de 3947 a 3234, y maximizado de 3107 a 2384.
+
+# TANDA PANT-2 (2026-11-02) — lo declarado
+
+## P2-a · Los commits 2 a 8 NO se hicieron, y ninguno quedó a medias
+
+De los trece commits de la orden se hicieron **seis**: las cuatro correcciones A, B, C y D, el
+commit 1 (inventario y auditoría, solo lectura) y el commit 9 (cobertura y documentación). Los
+commits **2 a 8** —MCH, el botón «3D» del corazón maestro, MCA, Fallot, las dos estenosis
+aórticas, la arritmia ventricular y los rótulos de las presiones pulmonares— **no se empezaron**:
+ninguna línea de la aplicación se tocó por ellos.
+
+**Por qué se pararon y no se empezaron.** La orden es tajante: «NUNCA dejes una pantalla, un
+dibujo ni un cambio de rótulos a medias» y «si la sesión se acerca a su límite, NO empieces un
+commit nuevo». El commit 2 es una pantalla de **treinta campos y 1.253 px de alto** que hay que
+reordenar en tres columnas, con cinco textos que mudar al ⓘ y una verificación de rótulos:
+empezarla sin poder cerrarla verificada habría dejado exactamente lo que esa regla prohíbe.
+
+**Lo que SÍ queda hecho de ellos, y es aprovechable**: el inventario de las 19 secciones con sus
+campos, espejos, textos y alturas a cuatro anchos (commit 1a), la auditoría de sincronías
+(commit 1b) y **la verificación en imagen de la AHA/ACC 2024 que el commit 2c(iii) exige** —hoja
+29, folio e1267, recomendaciones 3 y 6—, que es la parte que podía **parar** el commit 2.
+El estado exacto y cómo retomar está en `docs/CONTINUACION_PANT2.md`.
+
+## P2-b · La frase de dato faltante que queda en `resumen` y hoy no llega al papel
+
+`tgaConclusion().resumen` publica «No consta la situación clínica, de la que dependen las
+indicaciones de intervención», que es una frase de dato faltante de las que la corrección D2
+retira. **Hoy no llega a ninguna superficie firmada**, verificado: `CC_PPT` registra la sección
+con `papel:true` y la hoja del PDF usa `c.papel || c.resumen`, y `papel` existe desde TGA-3. Es lo
+que **T3-b** ya declara.
+
+**Qué haría falta decidir:** si `resumen` se alinea con `papel` —y entonces las tres salidas dicen
+lo mismo— o si se deja como está. Mientras ningún emisor lo lea, la frase es inofensiva; el día
+que uno lo lea, llega al papel sin que nadie lo note.
+
+## P2-c · El panel de Evidencia del posoperatorio no usa el molde y queda fuera de la regla
+
+Medido llamando a `_indPOP`: devuelve `preguntas: false`, o sea **no usa el molde de preguntas**,
+y sus **cuatro** filas con botonera viven en `filas` y no en `clinica`, así que la separación
+entre filas informativas y preguntas que el molde hace no le aplica. Son cuatro, o sea **menos de
+seis**, y la regla de las dos columnas no lo alcanza. Su bloque mide **630 px** a 1440 y 1000 px y
+**608** a 390.
+
+**Qué habría que cambiar para pasarlo al molde:** marcar `preguntas: true` y **mover sus cuatro
+controles de `filas` a `clinica`**, que cambia la estructura de la sección y su orden de lectura.
+Fuera de esta orden.
+
+## P2-d · El botón «⇔ columnas» se queda, y por qué
+
+La orden pide quitarlo «si deja de tener sentido». **Sigue teniéndolo**: con la regla automática
+por ancho de panel, el botón es el escape manual para forzar **una** columna en un panel ancho, y
+su dueño es el **mismo atributo** que la regla automática escribe (`data-ind-cols`), así que no
+hay dos verdades. No se tocó.
+
+## P2-e · El chequeo de documentación de las secciones compactas nació vencido otra vez
+
+El comentario de `_indFilaHTML` lista **OCHO** secciones compactas y dice que ése es el conteo
+vivo; censadas, son **ONCE**: las ocho más `_indCIA`, `_indCIV` y `_indTGA`, que TGA-2 y TGA-4
+agregaron con `compacta: true` sin tocar la lista. Es la segunda vez que ese mismo chequeo se
+encuentra vencido —la tanda A ya lo documentó—. **No se corrigió** porque tocar ese comentario no
+es de esta orden; se reporta.
+
+## P2-f · El texto del realce tardío de la pantalla de MCH se PARÓ
+
+**Qué dice la pantalla** (párrafo de los factores de riesgo de muerte súbita):
+
+> «La respuesta tensional anormal se registra y el informe la menciona, pero no suma al conteo de
+> la AHA/ACC 2024: salió de la lista en esa edición. **El realce tardío sí cuenta para la AHA** y
+> no para la ESC — el eco no lo evalúa.»
+
+**Qué dice la hoja** (AHA/ACC 2024, hoja 29, folio e1267, leída en imagen): el realce tardío
+extenso es **árbitro de la recomendación 6** —«ICD **may be considered** in patients with extensive
+LGE … **or NSVT**», y sólo en pacientes **sin** factores mayores—, **no** uno de los cinco factores
+mayores de la recomendación 3.
+
+En el mismo párrafo que dice «no suma al conteo» para la respuesta tensional, decir que el realce
+«sí cuenta» se lee como que **sí suma al conteo**. **El texto se dejó como está, no se movió al ⓘ
+y no se cambió**, que es lo que la orden manda cuando la hoja no respalda lo que la pantalla
+afirma. La frase «salió de la lista en esa edición» es además una **historia de una edición**, de
+las que el commit 2c(ii) saca de la pantalla: las dos cosas se resuelven juntas cuando el commit 2
+se haga.
+
+## P2-g · Los cinco campos de tipo 2 de la auditoría no se unieron
+
+La CIV residual y su gradiente (Fallot y TGA), los síntomas (Fallot y TGA), la clase funcional
+NYHA (Eisenmenger y Fontan) y la función del VD (Fallot y Eisenmenger) son **dos campos
+independientes del mismo hecho**: editar uno no mueve al otro. **No se unieron**, que es lo que la
+orden pide —reportarlos—: elegir el dueño y decidir qué pasa con los estudios guardados que tienen
+los dos con valores distintos es una decisión de datos. Están en
+`docs/AUDITORIA_SINCRONIAS_CONGENITAS.md` § 1b.
+
+## P2-h · La asimetría de la arritmia ventricular en MCH, que el commit 7 cerraría
+
+Del **mismo** módulo de arritmia ventricular, MCH lee `mch_tvns` como espejo de solo lectura y
+responde `mch_ex_parada` «Parada cardíaca o TV sostenida previa» **por su cuenta**. Hoy el médico
+puede contestar «No» en MCH con una taquicardia ventricular documentada en el módulo y **la
+aplicación no lo avisa**. Es el caso de **tipo 4** de la auditoría y lo que el commit 7 (iii) viene
+a cerrar.
