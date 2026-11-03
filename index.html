@@ -103,6 +103,19 @@
     --v2d-sys: #ff6b81;    --v2d-dia: #8aa6ff;
     --v2d-pcuff: #cbbfd3;  --v2d-pmetal: #aab3c0; --v2d-pmetalhi: #f2f5fa;
     --v2d-bcuff: #a99bb0;  --v2d-brod: #e6b9ae;   --v2d-brodhi: #fff3f0;
+    /* == PALETA DEL DIBUJO DE SOBRECARGA DEL VD (PANT-5, 2026-11-03) ===============
+       Copiada de la demo aprobada `docs/3d/demo_sobrecarga_vd_v4_a4c_concepto.html`, que la
+       define en dos temas. TODO EN ESCALA DE GRISES: el UNICO color es `--vdsc-cel`, el celeste
+       del chorro de la insuficiencia tricuspidea y de las tres lineas de trazos -McConnell,
+       septum desplazado y la barra del TAPSE-. Va ACA, en el ambito global y no dentro de la
+       caja del dibujo, por el mismo motivo que la paleta del v2d: una variable que no existe en
+       el ambito donde se usa cae al heredado en silencio. Cada una tiene su gemela en
+       `light-mode`; las DOCE existen en los dos temas. */
+    --vdsc-myo1: #8a8a8a;  --vdsc-myo2: #5a5a5a;  --vdsc-myoline: #c4c4c4;
+    --vdsc-bl1: #404040;   --vdsc-bl2: #575757;
+    --vdsc-br1: #2f2f2f;   --vdsc-br2: #454545;
+    --vdsc-stroke: #bdbdbd; --vdsc-leaf: #d9d9d9; --vdsc-leafstroke: #1a1a1a;
+    --vdsc-names: #dddddd; --vdsc-cel: #5cc3f2; --vdsc-ink: #f2f2f2;
   }
   html.light-mode {
     --bg: #f4f6f9;
@@ -134,6 +147,12 @@
     --v2d-sys: #c2354f;    --v2d-dia: #3b5fc4;
     --v2d-pcuff: #3b3441;  --v2d-pmetal: #59606b; --v2d-pmetalhi: #d3d9e2;
     --v2d-bcuff: #8d7f92;  --v2d-brod: #c4857a;   --v2d-brodhi: #fff3f0;
+    /* La gemela clara de la paleta del dibujo del VD. Las DOCE existen en los dos temas. */
+    --vdsc-myo1: #e4e4e4;  --vdsc-myo2: #bcbcbc;  --vdsc-myoline: #7a7a7a;
+    --vdsc-bl1: #ffffff;   --vdsc-bl2: #f1f1f1;
+    --vdsc-br1: #fbfbfb;   --vdsc-br2: #dedede;
+    --vdsc-stroke: #6a6a6a; --vdsc-leaf: #f7f7f7; --vdsc-leafstroke: #444444;
+    --vdsc-names: #333333; --vdsc-cel: #2aa7e8; --vdsc-ink: #111111;
   }
   /* ⚠️ LAS CUATRO PROYECCIONES DEL ETE MITRAL SON SVG DE MATPLOTLIB Y NACIERON CON EL COLOR
      CABLEADO en `#e2e8f0`, o sea un gris casi blanco: sobre el fondo de la tarjeta en modo Día
@@ -3969,6 +3988,56 @@ html.light-mode .amilo-root{
 #v2d-svg .v2d-jet-it,#v2d-svg .v2d-jet-im{fill:var(--v2d-jetder);}
 #v2d-svg .v2d-jet-iao{fill:var(--v2d-jetao);}
 @media print{#v2d-ov{display:none!important;}}
+
+/* ============================================================================================
+   DIBUJO DE SOBRECARGA DEL VD  -  #vdsc-svg  (PANT-5, 2026-11-03)
+   ============================================================================================
+   Vista apical de cuatro camaras, SOLO LECTURA, portada de la demo aprobada
+   `docs/3d/demo_sobrecarga_vd_v4_a4c_concepto.html`. No lleva controles, no escribe un solo
+   campo y no entra al informe, al EN SUMA, al PDF ni al PPT.
+
+   ⚠️ EL ANCHO ES LA MITAD DEL ESQUEMA VALVULAR 2D, Y ESTA MEDIDO, NO ELEGIDO. `#v2d-svg` mide
+      220 px por encima de 768 px y el 100 % del ancho por debajo -medido en Chrome a 1440,
+      1000, 768 y 390 px: 220, 220, 714 y 336-. Las dos reglas de abajo son las de ese esquema
+      divididas por dos, asi que el dibujo SIGUE al esquema valvular si alguna vez se mueve.
+
+   ⚠️ LAS DOS REGLAS DE ANCHO SON DOS BLOQUES SEPARADOS y la segunda esta DENTRO de la media
+      query, igual que `#v2d-svg`: esa es la leccion que la tanda Y1 pago con ese mismo selector.
+
+   La fila: campos a la izquierda y dibujo a la derecha desde 900 px; apilado por debajo, con
+   los campos primero. El corte va sobre la VENTANA y no sobre el contenedor, que es la regla
+   fija de la casa. */
+#vdsc-caja{margin:10px 0 2px;}
+#vdsc-svg{display:block;width:110px;height:auto;max-width:100%;margin:0 auto;}
+#vdsc-pie{display:flex;align-items:center;gap:8px;justify-content:center;margin-top:4px;}
+#vdsc-fila{display:block;}
+#vdsc-campos{min-width:0;}
+@media (min-width:900px){
+  #vdsc-fila{display:flex;gap:14px;align-items:flex-start;}
+  #vdsc-campos{flex:1 1 auto;min-width:0;}
+  #vdsc-caja{flex:0 0 auto;margin:0;}
+}
+@media (max-width:768px){
+  #vdsc-svg{width:50%;}
+}
+/* El miocardio, las dos cavidades y las valvas: los mismos trazos del esquema valvular, con la
+   paleta gris del dibujo. */
+#vdsc-svg .vdsc-sector{fill:url(#vdscgMyo);stroke:var(--vdsc-myoline);stroke-width:.6;}
+#vdsc-svg .vdsc-shine{fill:url(#vdscgShine);pointer-events:none;}
+#vdsc-svg .vdsc-chamL{fill:url(#vdscgBL);stroke:var(--vdsc-stroke);stroke-width:.5;}
+#vdsc-svg .vdsc-chamR{fill:url(#vdscgBR);stroke:var(--vdsc-stroke);stroke-width:.5;}
+#vdsc-svg .vdsc-leaf{fill:var(--vdsc-leaf);stroke:var(--vdsc-leafstroke);stroke-width:1;
+  stroke-linejoin:round;vector-effect:non-scaling-stroke;}
+#vdsc-svg .vdsc-jet-it{fill:var(--vdsc-cel);}
+/* ⚠️ EL ROTULO VA EN `--vdsc-ink` Y NO EN `--text`, Y LO DECIDIO UNA MEDICION. El `--text` de la
+   app es un gris AZULADO -rgb(232,236,244) en modo noche-, asi que la sonda por color contaba
+   once nodos fuera de la escala de grises: los once textos del dibujo. La orden pide las
+   variables de tema DE LA DEMO, y la de la demo es un gris puro -#f2f2f2 y #111111-. */
+#vdsc-svg .vdsc-lbl{font-size:4.2px;font-weight:700;fill:var(--vdsc-ink);text-anchor:middle;
+  paint-order:stroke;stroke:var(--vdsc-bl1);stroke-width:1.2px;stroke-linejoin:round;}
+#vdsc-svg .vdsc-cn{font-size:5.2px;font-weight:700;fill:var(--vdsc-names);text-anchor:middle;
+  letter-spacing:.3px;paint-order:stroke;stroke:var(--vdsc-bl1);stroke-width:1.3px;
+  stroke-linejoin:round;opacity:.85;}
 </style>
 </head>
 <body>
@@ -10498,6 +10567,13 @@ window.cerrarSesionReal = cerrarSesionReal;
         Se calculan automáticamente los valores disponibles del estudio actual.
       </p>
 
+      <!-- == CAMPOS A LA IZQUIERDA Y EL DIBUJO A LA DERECHA (PANT-5, 2026-11-03) ==========
+           Regla fija de la casa: desde 900 px los campos a la izquierda y el dibujo a la
+           derecha; por debajo, apilado con los campos PRIMERO. El corte va sobre la VENTANA.
+           La lista CRITERIOS DE SOBRECARGA DEL VD y su score quedan DEBAJO de la fila, donde
+           estaban: no entran a ninguna de las dos columnas. -->
+      <div id="vdsc-fila">
+        <div id="vdsc-campos">
       <!-- Campos nuevos -->
       <div class="grid-2" style="margin-bottom:10px;">
         <div class="fg"><label>Signo de McConnell <button type="button" class="vinfo-btn vinfo-btn-44" data-vinfo="tep-mcconnell" aria-expanded="false" style="font-size:13px;" aria-label="Informaci&oacute;n sobre el rendimiento del signo de McConnell" onclick="vInfoClic(this)">&#9432;</button></label>
@@ -10532,6 +10608,63 @@ window.cerrarSesionReal = cerrarSesionReal;
           <span style="font-size:10px;color:var(--text2);">Patológico: &gt;0,9</span>
         </div>
       </div>
+        </div><!-- /vdsc-campos -->
+
+        <!-- == EL DIBUJO DE SOBRECARGA DEL VD ==========================================
+             Vista apical de cuatro camaras, portada de la demo aprobada
+             `docs/3d/demo_sobrecarga_vd_v4_a4c_concepto.html`. SOLO LECTURA: sin controles de
+             datos, no escribe un solo campo y no entra al informe, al EN SUMA, al PDF ni al PPT.
+             El unico control es el boton de pausa del latido.
+             ⚠️ NACE SIN UN SOLO TEXTO. Con el formulario vacio el dibujo es un corazon normal
+                MUDO -ni nombres de cavidades, ni rotulos de valvula, ni marcas, ni numeros-, que
+                es lo que la orden pide: un dibujo con leyendas sobre un paciente sin datos se lee
+                como una afirmacion. Los textos los enciende `vdscSync` en cuanto hay un dato. -->
+        <div id="vdsc-caja">
+          <svg id="vdsc-svg" viewBox="24 36 154 242" xmlns="http://www.w3.org/2000/svg" role="img"
+               aria-label="Esquema de sobrecarga del ventrículo derecho en vista apical de cuatro cámaras">
+            <defs>
+              <linearGradient id="vdscgMyo" x1="0" y1="0" x2="0.35" y2="1"><stop offset="0" style="stop-color:var(--vdsc-myo1)"/><stop offset="1" style="stop-color:var(--vdsc-myo2)"/></linearGradient>
+              <linearGradient id="vdscgBL" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:var(--vdsc-bl1)"/><stop offset="1" style="stop-color:var(--vdsc-bl2)"/></linearGradient>
+              <linearGradient id="vdscgBR" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:var(--vdsc-br1)"/><stop offset="1" style="stop-color:var(--vdsc-br2)"/></linearGradient>
+              <radialGradient id="vdscgShine" cx="0.3" cy="0.18" r="0.7"><stop offset="0" stop-color="#ffffff" stop-opacity=".38"/><stop offset="1" stop-color="#ffffff" stop-opacity="0"/></radialGradient>
+              <pattern id="vdscflw-it" width="9" height="11" patternUnits="userSpaceOnUse"><rect x="1" y="1" width="7" height="2.4" rx="1.2" fill="#ffffff" fill-opacity=".38"/><rect x="3" y="6.4" width="5" height="1.8" rx=".9" fill="#ffffff" fill-opacity=".26"/></pattern>
+              <clipPath id="vdscclipR"><path id="vdsc-clp"/></clipPath>
+            </defs>
+            <path id="vdsc-out" class="vdsc-sector"/>
+            <path id="vdsc-shine" class="vdsc-shine"/>
+            <path id="vdsc-cl" class="vdsc-chamR"/>
+            <path id="vdsc-cr" class="vdsc-chamL"/>
+            <g id="vdsc-jets" clip-path="url(#vdscclipR)"></g>
+            <g id="vdsc-valves"></g>
+            <g id="vdsc-vd">
+              <path id="vdsc-mc" fill="none" stroke="var(--vdsc-cel)" stroke-width="2.2" stroke-dasharray="3 1.6" stroke-linecap="round" stroke-linejoin="round" opacity="0"/>
+              <path id="vdsc-sp" fill="none" stroke="var(--vdsc-cel)" stroke-width="2.2" stroke-dasharray="3 1.6" stroke-linecap="round" stroke-linejoin="round" opacity="0"/>
+              <text id="vdsc-sptxt" class="vdsc-lbl" x="0" y="0" opacity="0"></text>
+              <text id="vdsc-mctxt" class="vdsc-lbl" x="0" y="0" opacity="0"></text>
+              <text id="vdsc-tptxt" class="vdsc-lbl" x="0" y="0" text-anchor="end" opacity="0"></text>
+              <text id="vdsc-vmtxt" class="vdsc-lbl" x="0" y="0" text-anchor="middle" opacity="0"></text>
+              <!-- LA RAYA DE 17 mm VA SIN NUMERO, por decision del medico: la demo escribia un
+                   «17» al costado y aca la raya se queda muda. Los unicos numeros escritos en el
+                   dibujo son el TAPSE y la velocidad maxima de la IT, y solo si estan cargados. -->
+              <line id="vdsc-tpref" stroke="var(--vdsc-cel)" stroke-width="0.7" stroke-dasharray="1.6 1.2" opacity="0"/>
+              <rect id="vdsc-tpbar" width="3" rx="1.2" fill="var(--vdsc-cel)" stroke="var(--vdsc-cel)" stroke-width="0.7" opacity="0"/>
+            </g>
+            <g id="vdsc-names" opacity="0">
+              <text id="vdsc-n-vd" class="vdsc-cn" x="72" y="92">VD</text><text id="vdsc-n-vi" class="vdsc-cn" x="124" y="92">VI</text>
+              <text id="vdsc-n-ad" class="vdsc-cn" x="62" y="238">AD</text><text id="vdsc-n-ai" class="vdsc-cn" x="122" y="238">AI</text>
+            </g>
+            <g id="vdsc-labels" opacity="0">
+              <text id="vdsc-l-tv" class="vdsc-lbl" x="64" y="201">VT</text>
+              <text id="vdsc-l-mv" class="vdsc-lbl" x="128" y="185">VM</text>
+            </g>
+          </svg>
+          <div id="vdsc-pie">
+            <button type="button" class="btn btn-ghost" id="vdsc-play" style="min-height:44px;"
+                    aria-pressed="false" onclick="vdscPlayTog()"
+                    title="Pausar o reanudar el latido del esquema">&#9208; Pausar</button>
+          </div>
+        </div><!-- /vdsc-caja -->
+      </div><!-- /vdsc-fila -->
 
       <!-- Resultados automáticos -->
       <div class="calc-box">
@@ -66012,6 +66145,12 @@ function RECALC_MODULOS() {
              Va DESPUÉS de todos: lee `_forrUlt`, que lo deja `calcHemo`, y las rutas de
              restauración lo llaman por su lado. */
           'hemoForrGrafSync',
+          /* PANT-5: el dibujo de sobrecarga del VD. Va DESPUÉS de `calcTEP`, que es el dueño
+             del cociente VD/VI que el dibujo lee; al revés dibujaría con el número del gesto
+             anterior. SOLO LEE: no escribe un solo campo y no toca ninguna superficie firmada.
+             Por eso entra en los dos registros y no en la cola de `calcTEP` —pintar en una
+             función que corre una vez por TECLA es lo que el C1 pagó con el Forrester—. */
+          'vdscSync',
           /* AJ1-5: la fila de miniaturas, al FINAL. Va detrás de los tres `*PdfSync` que esta
              lista ya llamaba —`contrPdfSync`, `sglPdfSync` y `eteQxPdfSync`— y de `calcOAI`,
              así que pinta con el estado ya repuesto y no con el del paciente anterior. */
@@ -66098,6 +66237,12 @@ function ESPEJOS_VIVOS() {
              números del gesto anterior. NO escribe un solo campo —su nodo es un `<div>` sin `id`
              de campo— y no recalcula nada. */
           'hemoForrGrafSync',
+          /* PANT-5: el dibujo de sobrecarga del VD. Va DESPUÉS de `calcTEP`, que es el dueño
+             del cociente VD/VI que el dibujo lee; al revés dibujaría con el número del gesto
+             anterior. SOLO LEE: no escribe un solo campo y no toca ninguna superficie firmada.
+             Por eso entra en los dos registros y no en la cola de `calcTEP` —pintar en una
+             función que corre una vez por TECLA es lo que el C1 pagó con el Forrester—. */
+          'vdscSync',
           /* D-3: el score de amiloidosis sigue al dato. Trae los insumos de las otras pestañas y
              deja que `amAplicarCalc` marque, respetando las dos decisiones del médico. NO escribe
              un solo campo del estudio —el sentido módulo → app cuelga del `oninput` del propio
@@ -67093,6 +67238,12 @@ function limpiarCampos(silencioso) {
      borran los números que `calcHemo` había dejado: la función lee `_forrUlt`, no el DOM. */
   try { if (typeof _forrUlt !== 'undefined') { _forrUlt.ic = null; _forrUlt.pcp = null; } } catch (e) {}
   if (typeof hemoForrGrafSync === 'function') { try { hemoForrGrafSync(); } catch (e) {} }
+  /* PANT-5: el dibujo de sobrecarga del VD vuelve al corazón normal MUDO. Por el mismo motivo
+     que el Forrester de arriba: el `<svg>` no es un campo, así que el barrido genérico de esta
+     función no lo toca, y `limpiarCampos` no pasa por `RECALC_MODULOS`. Sin esto, «Nuevo
+     estudio» dejaba el VD dilatado y el chorro del paciente ANTERIOR sobre un formulario vacío.
+     Va DESPUÉS de que los campos ya están borrados: la función los lee del DOM. */
+  if (typeof vdscSync === 'function') { try { vdscSync(); } catch (e) {} }
   if (!silencioso) toast('🗑 Formulario limpiado');
 }
 
@@ -152815,6 +152966,363 @@ window.m3dSync = m3dSync; window.m3dTarjetas = m3dTarjetas; window.m3dDescribir 
 window.m3dCamaraAplicar = m3dCamaraAplicar;
 
 
+
+/* ==============================================================================================
+   EL DIBUJO DE SOBRECARGA DEL VD  -  vista apical de cuatro camaras  (PANT-5, 2026-11-03)
+   ==============================================================================================
+   Portado de la demo aprobada `docs/3d/demo_sobrecarga_vd_v4_a4c_concepto.html`. LA DEMO MANDA:
+   la geometria digitalizada, el latido, la logica y los colores se copian tal cual; la
+   verificacion compara los atributos `d` de los trazados contra los que dibuja la demo con las
+   mismas entradas.
+
+   ⚠️ SOLO LECTURA Y SIN CONTROLES DE DATOS. Se arma con lo que ya esta cargado en el estudio y
+      NO escribe un solo campo. El unico control es el boton de pausa del latido. Nada de este
+      dibujo entra al informe, al EN SUMA, al PDF ni al PPT: no esta registrado en el motor de
+      tercios ni en ninguna hoja, y su propio caso de prueba lo mide.
+
+   ⚠️ LA GEOMETRIA ES PROPIA Y NO SE COMPARTE CON EL ESQUEMA VALVULAR 2D, Y ES UNA MEDICION.
+      De los seis juegos de datos, `OUT` (424 B) y `JET.it` (565 B) son IDENTICOS a los del
+      esquema valvular; `CL`, `CR`, `LEAF.tv` y `LEAF.mv` son DISTINTOS, porque la demo los
+      re-digitalizo sin tracto de salida ni valvula aortica. Asi que lo compartible son 989 bytes
+      sobre un archivo de 11,1 MB, y sacarlos a un dueño comun obliga a editar el motor del
+      esquema valvular -cuyo `D` vive dentro de su propia IIFE y no es alcanzable desde aca-, que
+      es justo lo que la orden prohibe tocar. Se duplican los 989 bytes y el esquema valvular no
+      se toca: su A/B sale identico.
+
+   ⚠️ LAS VALVAS SON LAS DE ESTA VISTA Y NO LAS DEL ESQUEMA VALVULAR. Las dos valvas mitrales y
+      las dos tricuspideas de la demo tienen otras coordenadas, y la aortica no existe: esta es
+      una apical de cuatro camaras.
+*/
+(function(){
+'use strict';
+var NS='http://www.w3.org/2000/svg';
+var D={"CL":[[52.75,174.73],[52.75,150.33],[58.02,124.62],[67.91,93.63],[77.8,71.21],[89.67,60],[93.63,73.85],[94.95,106.16],[90.33,137.15],[88.35,156.27],[90,166],[91.2,172],[92,178],[92.7,184],[94,190],[95,196],[96,201],[96.8,206],[98.24,214.95],[94.95,235.39],[89.01,243.3],[77.14,247.26],[61.98,239.35],[55.39,227.48],[51.43,213.63],[50.77,198.47],[52.75,185.94]],"CR":[[104.18,214.29],[102.86,227.48],[100.88,241.98],[112.09,248.58],[133.19,241.32],[145.06,219.56],[147.7,193.19],[139.78,180],[147.04,184.62],[148.35,184.62],[149.01,168.14],[147.04,144.4],[145.06,118.68],[138.46,96.27],[128.57,73.85],[114.73,55.39],[108.13,54.07],[100.22,61.32],[98.9,78.46],[101.54,103.52],[98.24,127.91],[95.61,156.93],[97,168],[98.8,177],[100.6,181.6],[101.6,184],[101.3,187],[101.8,194],[102.7,202],[103.6,208.5]],"LEAF":{"tv":[{"poly":[[55.6,185.9],[61.12,174.68],[62.98,167.37],[63.45,161.1],[62.9,157.95],[60.36,160.58],[56.89,166.37],[54.32,172.96],[55.6,174.7]],"b1":[55.6,185.9],"b2":[55.6,174.7],"tip":[62.9,157.95],"side":"L"},{"poly":[[91.2,176.5],[92.75,173.21],[89.94,165.91],[86.61,160.3],[84.3,157.95],[83.8,161.69],[84.41,168.66],[86.22,175.77],[92,186]],"b1":[91.2,176.5],"b2":[92,186],"tip":[84.3,157.95],"side":"L"}],"mv":[{"poly":[[101.8,180],[102.5,175.49],[106.56,168.94],[110.82,164.14],[113.5,162.3],[113.33,166.02],[111.49,172.66],[108.45,179.21],[102.6,187]],"b1":[101.8,180],"b2":[102.6,187],"tip":[113.5,162.3],"side":"R"},{"poly":[[140.4,177.5],[140.49,173.96],[136.34,167.42],[132.01,162.62],[129.3,160.8],[129.52,164.54],[131.45,171.19],[134.58,177.74],[141.4,186.5]],"b1":[140.4,177.5],"b2":[141.4,186.5],"tip":[129.3,160.8],"side":"R"}]},"OUT":[[44.18,176.71],[44.18,152.31],[44.84,135.83],[51.43,107.47],[59.34,86.38],[68.57,61.98],[79.78,48.79],[94.29,44.18],[115.39,43.52],[125.28,54.07],[133.85,65.28],[143.74,85.72],[151.65,111.43],[154.95,139.12],[155.61,166.82],[155.61,186.6],[153.63,219.56],[138.46,249.89],[118.02,253.85],[102.86,253.85],[99.56,251.21],[87.69,253.85],[76.48,254.51],[62.64,248.58],[54.73,238.69],[48.79,230.11],[43.52,215.61],[44.18,197.81]],"JET":{"it":["m 63.062881,168.72453 -2.088174,17.12304 -1.252905,8.77033 1.252905,3.34108 2.505811,0.83527 2.50581,-0.83527 2.088174,-2.92344 -0.835271,-8.3527 -0.417634,-6.68216 -1.67054,-7.51743 z","m 63.898152,168.72453 7.099795,24.64047 1.670539,17.54067 1.67054,8.3527 -4.593984,4.17635 -5.84689,1.67054 -4.593984,-3.34109 -4.17635,-7.93506 v -11.27614 l 0.417634,-8.77034 3.758716,-9.18797 z","m 64.315786,171.23034 14.617227,39.25769 2.923444,17.54067 -0.835271,11.69378 -10.440873,2.50581 -9.187971,-9.6056 -8.770335,-14.61723 -2.088173,-15.03486 3.341079,-17.12303 z"]},"BOW":{"tv":1.5,"mv":1.5}};
+D.CL0=D.CL.map(function(p){return [p[0],p[1]];});
+function $(id){return document.getElementById(id);}
+function el(n,a,p){var e=document.createElementNS(NS,n);for(var k in a){e.setAttribute(k,a[k]);}if(p){p.appendChild(e);}return e;}
+function clamp(x,a,b){return x<a?a:(x>b?b:x);}
+function sstep(x){x=clamp(x,0,1);return x*x*(3-2*x);}
+function ramp(a,b,x){return sstep((x-a)/(b-a));}
+function f(n){return Math.round(n*100)/100;}
+function bump(phi,c,w){var d=Math.abs(phi-c);d=Math.min(d,1-d);return d<w?0.5*(1+Math.cos(Math.PI*d/w)):0;}
+
+/* Configuracion geometrica: los mismos numeros de la demo, uno por uno. */
+var CFG={yTop:54,yAVL:185,yAVR:172,yBot:250,sept:96,
+  cxLV:111,cxRV:100,cxLA:128,cxRA:64,
+  ampLV:0.30,ampRV:0.30,outK:0.93,shift:4.2,apex:3.4,shiftRV:8,apexRV:5,atrX:0.06,atrKick:0.04,
+  x0LV:99,x0RV:95,x0LA:116,x0RA:76};
+var DIL={lv:[0,0.12,0.26,0.45],la:[0,0.18,0.38,0.65]};
+var FR=[1,0.72,0.5,0.3];
+var CFAC=[1,0.97,0.92,0.82];
+var JORG={it:[64,169]};
+var JALPHA=[0,0.55,0.75,0.92];
+
+/* VALORES NORMALES DE LA DEMO para la parte que falta: con el VD/VI o el TAPSE sin cargar, esa
+   parte del dibujo usa el valor normal y no se queda a medias. Son los de la demo. */
+var VDSC_VD_NORM=0.7, VDSC_TP_NORM=24;
+
+/* El estado. Nace en normal y lo escribe `vdscSync` leyendo el estudio; aca no hay un solo
+   control de dato, asi que no se parsea nada de la URL como hacia la demo. */
+var S={dvi:0,dai:0,dvdC:0,dadC:0,fT:1,vd:VDSC_VD_NORM,tp:VDSC_TP_NORM,mcc:false,tab:false,
+       itg:0,vmx:false,vmv:null,hay:false,play:true,dur:2.6,phi:0};
+var reduce=false;try{reduce=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;}catch(e){}
+/* ⚠️ CON `prefers-reduced-motion` EL DIBUJO QUEDA QUIETO EN SISTOLE, EN LA FASE 0,40, y no es la
+   de la demo -0,30-: es decision del medico, para que en el cuadro fijo se vean la barra del
+   TAPSE llena y el chorro de la insuficiencia tricuspidea, que en 0,30 recien arrancan. */
+if(reduce){S.phi=0.40;S.play=false;}
+
+function region(x,y,side){
+  var right=(side==='R')||(side==='O'&&x>=CFG.sept);
+  if(right){return y<CFG.yAVR?'LV':'LA';}
+  return y<CFG.yAVL?'RV':'RA';
+}
+function dilate(x,y,r){
+  var d,u,w,v,mx;
+  if(r==='LV'){d=DIL.lv[S.dvi];if(d){u=clamp((y-CFG.yTop)/(CFG.yAVR-CFG.yTop),0,1);w=Math.pow(Math.sin(Math.PI*u),0.6);x=CFG.x0LV+(x-CFG.x0LV)*(1+d*w);}}
+  else if(r==='RV'){d=S.dvdC;if(d){u=clamp((y-CFG.yTop)/(CFG.yAVL-CFG.yTop),0,1);w=1;x=CFG.x0RV+(x-CFG.x0RV)*(1+d*w);}}
+  else if(r==='LA'){d=DIL.la[S.dai];if(d){v=clamp((y-CFG.yAVR)/(CFG.yBot-CFG.yAVR),0,1);w=sstep(v*3);mx=sstep((x-110)/14);x=x+(x-CFG.x0LA)*d*w*mx*0.9;y=y+d*32*sstep(v)*mx;}}
+  else{d=S.dadC;if(d){v=clamp((y-CFG.yAVL)/(CFG.yBot-CFG.yAVL),0,1);w=sstep(v*3);mx=1-sstep((x-68)/14);x=x-(CFG.x0RA-x)*d*w*mx*0.9;y=y+d*32*sstep(v)*mx;}
+    d=S.dvdC;if(d){var tw=1-sstep((y-CFG.yAVL)/22);x=CFG.x0RV+(x-CFG.x0RV)*(1+d*tw);}}
+  return [x,y];
+}
+function deform(pt,side,cv){
+  var r=region(pt[0],pt[1],side),p=dilate(pt[0],pt[1],r),x=p[0],y=p[1];
+  if(S.tab&&side!=='O'){var bw=Math.pow(Math.sin(Math.PI*clamp((pt[1]-60)/110,0,1)),0.8);if(r==='RV'&&pt[0]>=86){x+=7*bw;}else if(r==='LV'&&pt[0]>=90&&pt[0]<=104.5&&pt[1]<172){x+=7*bw;}}
+  var isL=(r==='LV'||r==='LA'),c=isL?cv.l:cv.r;
+  var cx=isL?CFG.cxLV:CFG.cxRV,yAV=isL?CFG.yAVR:CFG.yAVL;
+  var amp=(isL?CFG.ampLV:CFG.ampRV)*(side==='O'?CFG.outK:1);
+  var nx=x,ny=y;
+  if(r==='LV'||r==='RV'){
+    var u=clamp((y-CFG.yTop)/(yAV-CFG.yTop),0,1),w=Math.max(Math.pow(Math.sin(Math.PI*u),0.7),0.55*(1-u));
+    var c2=c,shv=CFG.shift,apv=CFG.apex;
+    if(r==='RV'){
+      shv=CFG.shiftRV;apv=CFG.apexRV;
+      if(S.mcc){var wm=ramp(0.18,0.34,u)*(1-ramp(0.78,0.92,u)),xf=clamp((95-pt[0])/14,0,1);c2=c*(1-0.93*wm*xf)+c*1.3*(1-ramp(0,0.32,u));}
+    }
+    nx=cx+(x-cx)*(1-amp*c2*w);
+    ny=y-shv*c2*u+apv*c2*Math.pow(1-u,1.4);
+  }else{
+    var v=clamp((y-yAV)/(CFG.yBot-yAV),0,1);
+    ny=y-CFG.shift*c*(1-sstep(v));
+    var wa=sstep((y-yAV)/22)*(1-sstep((y-(CFG.yBot-8))/8));
+    var cxa=isL?CFG.cxLA:CFG.cxRA;
+    nx=cxa+(x-cxa)*(1+CFG.atrX*c*wa-CFG.atrKick*cv.ak*wa);
+  }
+  return [nx,ny];
+}
+function poly(arr,side,cv){
+  var s='';
+  for(var i=0;i<arr.length;i++){var p=deform(arr[i],side,cv);s+=(i?'L':'M')+f(p[0])+' '+f(p[1]);}
+  return s+'Z';
+}
+
+/* Las valvas: las hojas del propio dibujo, recortadas de las cavidades y animadas. */
+var gV=$('vdsc-valves'), gJ=$('vdsc-jets');
+function deg(a){return a*180/Math.PI;}
+function adiff(from,to){return ((to-from+540)%360)-180;}
+var VK={tv:{lbl:'vdsc-l-tv',lx:74,ly:201},mv:{lbl:'vdsc-l-mv',lx:121,ly:201}};
+function pstr(pl){var s='';for(var i=0;i<pl.length;i++){s+=(i?'L':'M')+pl[i][0]+' '+pl[i][1];}return s+'Z';}
+Object.keys(VK).forEach(function(k){
+  var v=VK[k];v.g=el('g',{},gV);v.lf=[];v.sh=[0,0];
+  D.LEAF[k].forEach(function(L){
+    var hh={L:L},d=pstr(L.poly);
+    hh.path=el('path',{'class':'vdsc-leaf',d:d},v.g);
+    hh.Ho=[(L.b1[0]+L.b2[0])/2,(L.b1[1]+L.b2[1])/2];
+    hh.b=deg(Math.atan2(L.tip[1]-hh.Ho[1],L.tip[0]-hh.Ho[0]));
+    hh.len=Math.sqrt(Math.pow(L.tip[0]-hh.Ho[0],2)+Math.pow(L.tip[1]-hh.Ho[1],2));
+    v.lf.push(hh);
+  });
+  v.lb=$(v.lbl);
+});
+function updValve(k,o,sten,reg,cv){
+  var v=VK[k],oe=o*FR[sten],i,hh,H=[];
+  for(i=0;i<v.lf.length;i++){
+    hh=v.lf[i];var L=hh.L,p1=deform(L.b1,L.side,cv),p2=deform(L.b2,L.side,cv);
+    hh.Hn=[(p1[0]+p2[0])/2,(p1[1]+p2[1])/2];H.push(hh.Hn);
+  }
+  var mid=[(H[0][0]+H[1][0])/2,(H[0][1]+H[1][1])/2],M=[mid[0],mid[1]+D.BOW[k]];
+  var m0=[(v.lf[0].Ho[0]+v.lf[1].Ho[0])/2,(v.lf[0].Ho[1]+v.lf[1].Ho[1])/2];
+  v.sh=[mid[0]-m0[0],mid[1]-m0[1]];
+  for(i=0;i<v.lf.length;i++){
+    hh=v.lf[i];
+    var dx=M[0]-hh.Hn[0],dy=M[1]-hh.Hn[1],dist=Math.sqrt(dx*dx+dy*dy);
+    var ac=deg(Math.atan2(dy,dx)),da=adiff(ac,hh.b);
+    var sc=clamp(dist/hh.len*1.1,0.5,1.35)*CFAC[reg];
+    var a=ac+da*oe,sx=sc+(1-sc)*oe;
+    var tr='translate('+f(hh.Hn[0])+' '+f(hh.Hn[1])+') rotate('+f(a)+') scale('+f(sx)+' 1) rotate('+f(-hh.b)+') translate('+f(-hh.Ho[0])+' '+f(-hh.Ho[1])+')';
+    hh.path.setAttribute('transform',tr);
+  }
+  v.lb.setAttribute('x',f(v.lx+v.sh[0]));v.lb.setAttribute('y',f(v.ly+v.sh[1]));
+}
+
+/* El chorro de la insuficiencia tricuspidea: el unico del dibujo. */
+var J={};
+(function(){
+  var g=el('g',{},gJ);
+  var base=el('path',{'class':'vdsc-jet-it'},g);
+  var sh=el('path',{fill:'url(#vdscflw-it)'},g);
+  J.it={g:g,base:base,sh:sh,pat:$('vdscflw-it')};
+})();
+function updJet(sev,I,sh,t){
+  var j=J.it;
+  if(sev<1||I<0.01){j.g.setAttribute('opacity','0');return;}
+  var o=JORG.it,sx=0.6+0.4*I,sy=I;
+  j.base.setAttribute('d',D.JET.it[sev-1]);j.sh.setAttribute('d',D.JET.it[sev-1]);
+  var jo=[10.5,13.6],jv=0.75;
+  j.g.setAttribute('transform','translate('+jo[0]+' '+jo[1]+') translate('+f(o[0]+sh[0])+' '+f(o[1]+sh[1])+') scale('+f(sx)+' '+f(sy*jv)+') translate('+f(-o[0])+' '+f(-o[1])+')');
+  j.g.setAttribute('opacity',f(JALPHA[sev]*Math.pow(I,0.8)));
+  j.sh.setAttribute('fill-opacity','0.55');
+  var off=(t*26)%11;
+  j.pat.setAttribute('patternTransform','translate(0 '+f(off)+')');
+}
+
+/* El ciclo cardiaco: las mismas funciones de la demo. */
+function cc(p){return ramp(0.12,0.34,p)*(1-ramp(0.46,0.64,p));}
+function atrialKick(p){var qq=p<0.5?p+1:p;return ramp(0.88,0.94,qq)*(1-ramp(1.0,1.08,qq));}
+function avOpen(p){
+  var o;
+  if(p<0.10){o=1;}else if(p<0.15){o=1-ramp(0.10,0.15,p);}else if(p<0.50){o=0;}else if(p<0.58){o=ramp(0.50,0.58,p);}else{o=1;}
+  var mod=0.7+0.3*Math.max(bump(p,0.64,0.10),bump(p,0.96,0.08),bump(p,0.02,0.07));
+  return o*mod;
+}
+function sysI(p){return ramp(0.15,0.21,p)*(1-ramp(0.44,0.52,p));}
+
+var pOut=$('vdsc-out'),pShine=$('vdsc-shine'),pCl=$('vdsc-cl'),pCr=$('vdsc-cr'),svgEl=$('vdsc-svg');
+var gNames=$('vdsc-names'),gLabels=$('vdsc-labels');
+var nVD=$('vdsc-n-vd'),nVI=$('vdsc-n-vi'),nAD=$('vdsc-n-ad'),nAI=$('vdsc-n-ai');
+var mcP=$('vdsc-mc'),mcT=$('vdsc-mctxt'),tpRef=$('vdsc-tpref'),tpBar=$('vdsc-tpbar'),tpT=$('vdsc-tptxt');
+var vmT=$('vdsc-vmtxt'),spP=$('vdsc-sp'),spT=$('vdsc-sptxt');
+
+/* ⚠️ LOS ROTULOS SON DOS JUEGOS Y LA ELECCION ES UNA MEDICION, NO UN GUSTO. Al ancho de la
+   mitad del esquema valvular el dibujo es chico, asi que se prueba primero el juego largo y, si
+   un rotulo pisa la pared, el chorro u otro rotulo, se cae al corto con letra mas chica. Quien
+   decide es `vdscRotulos()`, medido con `getBBox` a los cuatro anchos por su caso de prueba. */
+var ROT_LARGO={mc:['McConnell'],sp:['Septum','desplazado'],fs:4.2};
+var ROT_CORTO={mc:['Sg McConnell'],sp:['SIV','desplazado'],fs:3.4};
+var ROT=ROT_LARGO;
+function excAt(u,c){return CFG.shiftRV*c*u-CFG.apexRV*c*Math.pow(1-u,1.4);}
+function fmt(x){return String(x).replace('.',',');}
+function tspans(x,lineas){
+  var s='';
+  for(var i=0;i<lineas.length;i++){s+='<tspan x="'+f(x)+'" dy="'+(i?'5.4':'0')+'">'+lineas[i]+'</tspan>';}
+  return s;
+}
+function vdExtras(cv){
+  var z={l:0,r:0,ak:0},b=deform([52.75,180],'L',z),cur=deform([52.75,180],'L',cv);
+  var uu=clamp((180-CFG.yTop)/(CFG.yAVL-CFG.yTop),0,1),x=b[0]-12;
+  var yref=b[1]-excAt(uu,17/22);
+  /* LA BARRA Y SU RAYA SOLO SE DIBUJAN CON EL TAPSE CARGADO: sin el dato no hay nada que
+     comparar contra la raya de 17 mm, y una barra llena sobre un paciente sin TAPSE medido se
+     lee como una afirmacion. */
+  var hayTp=(S.tp!==null&&S.tpCargado);
+  if(hayTp){
+    tpRef.setAttribute('x1',f(x-4));tpRef.setAttribute('x2',f(x+7));tpRef.setAttribute('y1',f(yref));tpRef.setAttribute('y2',f(yref));
+    tpRef.setAttribute('opacity','1');
+    var h=Math.max(b[1]-cur[1],0.2);
+    tpBar.setAttribute('x',f(x));tpBar.setAttribute('y',f(b[1]-h));tpBar.setAttribute('height',f(h));
+    tpBar.setAttribute('fill',S.tp<17?'var(--panel)':'var(--vdsc-cel)');
+    tpBar.setAttribute('opacity','1');
+    tpT.setAttribute('x',f(x-2));tpT.setAttribute('y',f(b[1]+5));
+    tpT.textContent=S.tp+' mm';tpT.setAttribute('opacity','1');
+  }else{tpRef.setAttribute('opacity','0');tpBar.setAttribute('opacity','0');tpT.setAttribute('opacity','0');}
+  if(S.vmx){var pv=deform([84,218],'L',cv);
+    vmT.innerHTML=tspans(pv[0],['Vmax IT',fmt(S.vmv.toFixed(1))+' m/s']);
+    vmT.setAttribute('x',f(pv[0]));vmT.setAttribute('y',f(pv[1]));vmT.setAttribute('opacity','1');
+  }else{vmT.setAttribute('opacity','0');}
+  if(S.tab){var sp=[[100.22,61.32],[98.9,78.46],[101.54,103.52],[98.24,127.91],[95.61,156.93],[97.0,168.0]],ds='',q,k2;
+    for(k2=0;k2<sp.length;k2++){q=deform(sp[k2],'R',cv);ds+=(k2?'L':'M')+f(q[0])+' '+f(q[1]);}
+    spP.setAttribute('d',ds);spP.setAttribute('opacity','1');
+    var qm=deform(sp[3],'R',cv);
+    spT.innerHTML=tspans(qm[0]+4,ROT.sp);
+    spT.setAttribute('x',f(qm[0]+4));spT.setAttribute('y',f(qm[1]-2));spT.setAttribute('opacity','1');spT.setAttribute('text-anchor','start');
+  }else{spP.setAttribute('opacity','0');spT.setAttribute('opacity','0');}
+  if(S.mcc){
+    var pts=[D.CL[3],D.CL[2],D.CL[1],D.CL[0]],d2='',i,p;
+    for(i=0;i<pts.length;i++){p=deform(pts[i],'L',cv);d2+=(i?'L':'M')+f(p[0])+' '+f(p[1]);}
+    mcP.setAttribute('d',d2);mcP.setAttribute('opacity','1');
+    var pm=deform(D.CL[2],'L',cv);
+    mcT.innerHTML=tspans(pm[0]+3,ROT.mc);
+    mcT.setAttribute('x',f(pm[0]+3));mcT.setAttribute('y',f(pm[1]+1));mcT.setAttribute('opacity','1');mcT.setAttribute('text-anchor','start');
+  }else{mcP.setAttribute('opacity','0');mcT.setAttribute('opacity','0');}
+}
+function fitView(){
+  var cv={l:0,r:0,ak:0},mnx=1e9,mxx=-1e9,mny=1e9,mxy=-1e9,i,p;
+  for(i=0;i<D.OUT.length;i++){p=deform(D.OUT[i],'O',cv);mnx=Math.min(mnx,p[0]);mxx=Math.max(mxx,p[0]);mny=Math.min(mny,p[1]);mxy=Math.max(mxy,p[1]);}
+  var m=5;svgEl.setAttribute('viewBox',f(mnx-m-16)+' '+f(mny-m)+' '+f(mxx-mnx+2*m+16)+' '+f(mxy-mny+2*m));
+}
+function render(t){
+  var p=S.phi,base=cc(p),ak=atrialKick(p);
+  var cv={l:base,r:base*S.fT,ak:ak};
+  var dOut=poly(D.OUT,'O',cv);
+  pOut.setAttribute('d',dOut);pShine.setAttribute('d',dOut);
+  var dCl=poly(D.CL,'L',cv);pCl.setAttribute('d',dCl);$('vdsc-clp').setAttribute('d',dCl);
+  pCr.setAttribute('d',poly(D.CR,'R',cv));
+  var oAV=avOpen(p);
+  updValve('tv',oAV,0,0,cv);
+  updValve('mv',oAV,0,0,cv);
+  updJet(S.itg,sysI(p),VK.tv.sh,t);
+  vdExtras(cv);
+  nVI.setAttribute('x',f(124+DIL.lv[S.dvi]*45));nVD.setAttribute('x',f(72-S.dvdC*32));
+  nAI.setAttribute('x',f(122+DIL.la[S.dai]*32));nAI.setAttribute('y',f(238+DIL.la[S.dai]*22));
+  nAD.setAttribute('x',f(62-S.dadC*24));nAD.setAttribute('y',f(238+S.dadC*22));
+}
+function setApex(on){
+  var a=D.CL0.map(function(p){return [p[0],p[1]];});
+  if(on){a[3]=[68.5,91.0];a[4]=[80.5,66.5];a[5]=[98.0,50.5];a[6]=[94.2,66.5];a.splice(5,0,[90.0,56.5]);}
+  D.CL=a;
+}
+function dFromR(r){return clamp(r/0.72-1,-0.2,0.8);}
+
+/* ---------- la lectura del estudio: UN SOLO LUGAR ---------- */
+/* ⚠️ EL VD/VI SALE DE `tepVdViRatio`, SU DUEÑO UNICO, el mismo que lee el score y el informe:
+   con una segunda cuenta aca, el dibujo y la pastilla de al lado podrian discrepar sobre el
+   mismo paciente.
+   ⚠️ EL GRADO DE LA IT VIENE DE VALVULAS CON SU PROPIO VOCABULARIO: `it_grado` vale 0, 1, 2 y
+   **4** -no 3-, asi que la traduccion a los tres grados del dibujo va en una tabla y no en un
+   `parseInt`. Con 4 leido como 4 el indice del chorro caia fuera del array y la severa no se
+   dibujaba. */
+var IT_MAP={'1':1,'2':2,'4':3};
+function num(id){
+  var e=document.getElementById(id);
+  if(!e||e.value===''||e.value==null) return null;
+  var x=(typeof PF==='function')?PF(e.value):parseFloat(e.value);
+  return isFinite(x)?x:null;
+}
+function vdscLeer(){
+  var vdvi=null;
+  try{ if(typeof tepVdViRatio==='function'){ var r=tepVdViRatio(); if(r!==null&&isFinite(r)) vdvi=r; } }catch(e){}
+  var tp=num('tapse');
+  var mcEl=document.getElementById('tep_mcconnell'), tdEl=document.getElementById('tep_tabique_d');
+  var mcc=!!(mcEl&&mcEl.value==='si'), tab=!!(tdEl&&tdEl.value==='si');
+  var itEl=document.getElementById('it_grado');
+  var itg=(itEl&&IT_MAP[itEl.value])?IT_MAP[itEl.value]:0;
+  var vm=num('vmax_it');
+  return {vdvi:vdvi,tp:tp,mcc:mcc,tab:tab,itg:itg,vm:vm};
+}
+/* ---------- el sincronizador ---------- */
+function vdscSync(){
+  if(!svgEl) return;
+  var L=vdscLeer();
+  /* ⚠️ EL DIBUJO MUDO ES UNA DECISION DEL MEDICO Y SE DECIDE ACA, EN UN SOLO PREDICADO: sin
+     NINGUNO de los seis datos cargados se dibuja un corazon normal sin un solo texto -ni los
+     nombres de las cavidades, ni los rotulos de las valvulas-. */
+  S.hay=(L.vdvi!==null)||(L.tp!==null)||L.mcc||L.tab||(L.itg>0)||(L.vm!==null);
+  S.vd=(L.vdvi!==null)?L.vdvi:VDSC_VD_NORM;
+  S.tpCargado=(L.tp!==null);
+  S.tp=(L.tp!==null)?L.tp:VDSC_TP_NORM;
+  S.mcc=L.mcc; S.tab=L.tab; S.itg=L.itg;
+  S.vmx=(L.vm!==null&&L.itg>0); S.vmv=L.vm;
+  S.dvdC=dFromR(S.vd); S.dadC=clamp(S.dvdC*0.75,0,0.6); S.fT=clamp(S.tp/22,0.15,1.1);
+  gNames.setAttribute('opacity',S.hay?'1':'0');
+  gLabels.setAttribute('opacity',S.hay?'1':'0');
+  setApex(true);
+  fitView();
+  render(S.play?(Date.now()/1000):0);
+}
+window.vdscSync=vdscSync;
+
+/* ---------- el latido ---------- */
+var playB=$('vdsc-play');
+function setPlay(v){
+  S.play=v;
+  if(playB){playB.innerHTML=v?'&#9208; Pausar':'&#9654; Reproducir';playB.setAttribute('aria-pressed',v?'false':'true');}
+}
+function vdscPlayTog(){setPlay(!S.play);}
+window.vdscPlayTog=vdscPlayTog;
+
+/* ⚠️ PUERTA DE VERIFICACION, no de interfaz: fija la fase del latido y dibuja ese cuadro. La
+   usan la comparacion contra la demo aprobada -que compara los atributos `d` de los trazados en
+   una fase FIJA- y los casos de prueba. Sin ella no hay forma de comparar dos dibujos animados:
+   cada lado cae en un instante distinto del ciclo y la diferencia que se mide es el reloj.
+   NO la llama ningun control de la pantalla. */
+function vdscFase(ph){
+  if(typeof ph==='number'&&isFinite(ph)){S.phi=clamp(ph,0,0.9999);}
+  setPlay(false);
+  render(0);
+  return S.phi;
+}
+window.vdscFase=vdscFase;
+
+/* ⚠️ EL BUCLE SE APAGA CUANDO EL DIBUJO NO SE VE, con el mismo predicado que el esquema
+   valvular: una seccion cerrada no tiene por que gastar un cuadro por fotograma. */
+var visible=false;
+try{
+  var io=new IntersectionObserver(function(es){visible=es.some(function(e){return e.isIntersecting;});},{threshold:0.01});
+  io.observe(svgEl);
+}catch(e){visible=true;}
+var raf=window.requestAnimationFrame||function(cb){return setTimeout(function(){cb(Date.now());},16);};
+var last=null;
+function loop(ts){
+  if(last===null){last=ts;}
+  var dt=Math.min((ts-last)/1000,0.1);last=ts;
+  if(S.play&&visible&&svgEl.getClientRects().length){S.phi=(S.phi+dt/S.dur)%1;render(ts/1000);}
+  raf(loop);
+}
+setPlay(S.play);
+setApex(true);
+vdscSync();
+raf(loop);
+})();
 </script>
 
 <script>
