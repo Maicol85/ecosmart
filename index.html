@@ -3478,6 +3478,46 @@ html.light-mode .amilo-root{
 .etem-h{font-size:12px;font-weight:700;color:var(--accent2);margin-bottom:8px;}
 .etem-g1{display:grid;grid-template-columns:minmax(0,1fr);gap:8px 10px;align-items:start;}
 .etem-g1 > .fg{min-width:0;}
+/* ============================================================================================
+   CRITERIOS TEER: LA IM PRIMARIA Y LA SECUNDARIA LADO A LADO  (PANT-6, commit 5)
+   ============================================================================================
+   Pedido del medico (03/11/2026), con esquema aprobado: el mismo patron de la CIA y la CIV del
+   commit 1. Arriba una franja de ancho completo con los tres campos comunes; al medio los DOS
+   cuadros, uno por tipo; abajo los criterios comunes a la izquierda y la conclusion a la derecha.
+   ⚠️ LOS DOS CUADROS DEL MEDIO SON GRID Y DE IGUAL ANCHO, por el mismo motivo que la CIA y la
+      CIV: estan SIEMPRE visibles, asi que el reparto tiene que ser de igual ancho sea cual sea
+      el contenido. La IM primaria tiene DOS campos y la secundaria CUATRO: `align-items:stretch`
+      -el valor por omision del grid- los deja de la misma altura sin agregarle nada al corto,
+      que es lo que la orden pide.
+   ⚠️ LOS CORTES VAN SOBRE LA VENTANA, en media queries explicitas. El de las dos columnas es el
+      900 px de la regla fija de la casa. Las columnas INTERNAS de cada cuadro -los dos criterios
+      COAPT de la secundaria y las dos de los comunes- bajan a una cuando quedarian por debajo de
+      200 px: el ancho util de la seccion es la ventana menos 246, cada cuadro se queda con
+      (util - 14)/2 y su interior con 26 menos, asi que dos columnas de 200 necesitan 410 de
+      interior, o sea una ventana de 1132. Se redondea a 1140, el mismo numero que la CIA y la
+      CIV, porque la cuenta es la misma. */
+#teer-medio,#teer-abajo{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;
+  align-items:stretch;margin:8px 0 10px;}
+#teer-medio > div,#teer-abajo > div{min-width:0;}
+@media (min-width:900px){
+  #teer-medio,#teer-abajo{grid-template-columns:repeat(2,minmax(0,1fr));}
+}
+.teer-cuadro{border:2px solid var(--accent);border-radius:12px;padding:10px 12px;
+  background:var(--bg2);min-width:0;}
+.teer-cuadro-fino{border:1px solid var(--border);border-radius:10px;padding:10px 12px;
+  background:var(--bg2);min-width:0;}
+#teer-arriba{margin-bottom:8px;}
+.teer-g1{display:grid;grid-template-columns:minmax(0,1fr);gap:8px 10px;align-items:start;}
+.teer-g1 > .fg{min-width:0;}
+.teer-g2{display:grid;grid-template-columns:minmax(0,1fr);gap:8px 10px;align-items:start;
+  margin-top:8px;}
+.teer-g2 > .fg{min-width:0;}
+#teer-comunes-cols{display:grid;grid-template-columns:minmax(0,1fr);gap:8px 12px;align-items:start;}
+#teer-comunes-cols > div{min-width:0;}
+@media (min-width:1140px){
+  .teer-g2{grid-template-columns:repeat(2,minmax(0,1fr));}
+  #teer-comunes-cols{grid-template-columns:repeat(2,minmax(0,1fr));}
+}
 /* ══ LA BOTONERA DE RESPUESTA: 32 px VISIBLES, 44 px DE AREA TACTIL (PANT-2, C2) ═════════════
    El piso global de `button` es 44 px y era lo que mandaba el alto de la fila. La regla del
    medico pide una pregunta de una o dos lineas en 56 px o menos, asi que el alto VISIBLE baja a
@@ -16272,7 +16312,24 @@ z
   <div id="ete-seccion-teer" style="display:none;">
   <div class="card">
     <div class="card-body">
-      <div class="grid-3" style="margin-bottom:8px;">
+      <!-- == LOS DOS TIPOS DE IM LADO A LADO (PANT-6, commit 5) ===========================
+           Pedido del medico (03/11/2026), con esquema aprobado: se repite el patron de la CIA y
+           la CIV del commit 1. Arriba una franja de ancho completo con los tres campos comunes;
+           al medio los DOS cuadros, uno por tipo de insuficiencia mitral, SIEMPRE visibles y con
+           todos sus campos habilitados; abajo los criterios comunes a la izquierda y la
+           conclusion a la derecha.
+           ⚠️ LO QUE ESTABA ANTES, MEDIDO: `calcTEER` ESCONDIA el bloque que no corresponde al
+              tipo elegido -con «primaria» el de la secundaria quedaba en display:none y dos de
+              sus campos sin geometria, y al reves-. Hoy los dos se ven; el «Tipo de IM» sigue
+              decidiendo exactamente lo que decidia en el calculo y en las filas del cuadro de
+              criterios, sin cambiar esa logica.
+           ⚠️ LA FRANJA ROSADA DE ABAJO NO SE TOCO, y es una medicion: el punto 5a pide ocultarla
+              «si es un aviso sin texto». NO lo es: tiene 50 caracteres -«Definir tipo de IM para
+              ver criterios especificos.»- y se muestra solo sin tipo elegido. El «parentesis a la
+              izquierda» que el medico describe es su `border-left` de 3 px de `.mAviso`. Se
+              reporta y no se cambia. -->
+      <div id="teer-arriba" class="teer-cuadro-fino">
+      <div class="grid-3">
         <!-- ⚠️ `calcETE` TAMBIÉN: desde la I-E1 la frase de características desfavorables de la
              reparación depende del mecanismo, y este `<select>` es su única puerta en esta
              pantalla. Sin la llamada, elegir «Secundaria» dejaba el cuadro de más arriba con el
@@ -16291,6 +16348,7 @@ z
           <input type="number" id="teer_pasp" placeholder="mmHg" oninput="calcTEER()">
         </div>
       </div>
+      </div><!-- /teer-arriba -->
 
       <!-- Sin tipo de IM elegido se muestran los dos bloques, con este aviso. No se ocultan
            «por las dudas»: los criterios COAPT y los morfológicos contestan preguntas distintas
@@ -16299,11 +16357,12 @@ z
         Definir tipo de IM para ver criterios específicos.
       </div>
 
-      <div id="teer-bloque-primaria">
-      <div style="font-size:11px; font-weight:700; color:#ef4444; margin:8px 0 4px;">
+      <div id="teer-medio">
+      <div id="teer-bloque-primaria" class="teer-cuadro">
+      <div style="font-size:11px; font-weight:700; color:#ef4444; margin:0 0 6px;">
         🔴 IM Primaria — criterios anatómicos específicos
       </div>
-      <div class="grid-4" style="margin-bottom:10px;">
+      <div class="teer-g1">
         <div class="fg"><label>Flail gap (mm)</label>
           <div class="teer-figrow"><div class="teer-figcol">
           <input type="number" id="teer_flail_gap" placeholder="mm" oninput="calcTEER()">
@@ -16342,11 +16401,11 @@ z
 
       </div><!-- /teer-bloque-primaria -->
 
-      <div id="teer-bloque-secundaria">
-      <div style="font-size:11px; font-weight:700; color:#f97316; margin:8px 0 4px;">
+      <div id="teer-bloque-secundaria" class="teer-cuadro">
+      <div style="font-size:11px; font-weight:700; color:#f97316; margin:0 0 6px;">
         🟠 IM Secundaria — criterios anatómicos específicos
       </div>
-      <div class="grid-4" style="margin-bottom:10px;">
+      <div class="teer-g1">
         <!-- ⚠️ «Excl: ≥11mm» DESDE EL R2 (2026-10-20). DECISION DE MAICOL con la fuente leida:
              Tamburino 2010 (Eur Heart J, Tabla 1, folio 1386) EXCLUYE una profundidad de
              coaptación ≥11 mm, asi que el criterio pasa de `<= 10` a `< 11` y los 10,5 mm que el
@@ -16388,6 +16447,9 @@ z
             </svg>
           </div>
         </div>
+      </div><!-- /teer-g1 de la secundaria: los dos campos con dibujo -->
+      <!-- Y DEBAJO, en DOS columnas, los dos criterios COAPT del ventriculo izquierdo. -->
+      <div class="teer-g2">
         <div class="fg"><label>FEVI (%) <span style="font-weight:400;color:var(--text2);font-size:10px;">↔ AI/VI</span></label>
           <input type="number" id="teer_fevi" placeholder="%" oninput="teerEspejoEditado('teer_fevi')">
           <span style="font-size:10px; color:var(--text2);">COAPT: 20–50%</span>
@@ -16405,10 +16467,16 @@ z
       </div>
 
       </div><!-- /teer-bloque-secundaria -->
+      </div><!-- /teer-medio -->
 
-      <div style="font-size:11px; font-weight:700; color:var(--accent2); margin:8px 0 4px;">
+      <!-- == ABAJO: los criterios comunes a la izquierda y la conclusion a la derecha == -->
+      <div id="teer-abajo">
+      <div class="teer-cuadro-fino">
+      <div style="font-size:11px; font-weight:700; color:var(--accent2); margin:0 0 6px;">
         ⚪ Criterios comunes — ambos tipos
       </div>
+      <div id="teer-comunes-cols">
+      <div>
       <!-- Las longitudes de velo viven ACÁ y no en el bloque de IM primaria: son factibilidad
            de agarre del clip, no un criterio de mecanismo, y cuentan en los dos tipos. Estaban
            en el bloque primaria y al ocultarlo en la IM secundaria el velo ANTERIOR dejaba de
@@ -16416,7 +16484,7 @@ z
            advertencia declarada, por decisión clínica —«agarre difícil» es factibilidad del
            operador, no exclusión del COAPT—. Por eso su ayuda dice «Ideal» y no «Req»: al lado
            del velo anterior, que sí veta, un «Req:» idéntico contradecía a la propia cápsula. -->
-      <div class="grid-2" style="margin-bottom:10px;">
+      <div class="teer-g1">
         <div class="fg"><label>Longitud velo anterior (mm) <span style="font-weight:400;color:var(--text2);font-size:10px;">auto ← ETE Válvula Mitral</span></label>
           <input type="number" id="teer_lva" placeholder="mm" oninput="calcTEER();etemVeloGesto('teer_lva')">
           <span style="font-size:10px; color:var(--text2);">Req: ≥20mm</span>
@@ -16426,7 +16494,9 @@ z
           <span style="font-size:10px; color:var(--text2);">Ideal: ≥7mm (mejor ≥10mm) — advertencia, no modifica el veredicto</span>
         </div>
       </div>
-      <div class="grid-2">
+      </div><!-- /columna 1 de los comunes: los dos velos -->
+      <div>
+      <div class="teer-g1">
         <!-- Los tres arrancan en «— no evaluado —». Antes su opción 0 era «No», así que en todo
              estudio nuevo valían «no» sin que nadie los hubiera mirado: la hoja del PDF afirmaba
              «sin calcificación densa» y «sin clefts» —los dos hallazgos que más limitan el agarre
@@ -16454,8 +16524,13 @@ z
           </select>
         </div>
       </div>
+      </div><!-- /columna 2 de los comunes -->
+      </div><!-- /teer-comunes-cols -->
+      </div><!-- /cuadro de los criterios comunes -->
 
-      <div class="calc-box" style="margin-top:12px;">
+      <!-- ── A la derecha: los criterios anatomicos y la conclusion, sin cambiar su contenido ── -->
+      <div class="teer-cuadro-fino" id="teer-concl">
+      <div class="calc-box" style="margin-top:0;">
         <!-- ⚠️ EL ENCABEZADO DECIA «CRITERIOS ANATOMICOS ESC 2021» Y ATRIBUIA A UNA GUIA LOS
              CUATRO CRITERIOS PROPIOS DE LA APP (R2, 2026-10-20): los dos velos no tienen corte
              publicado y la profundidad sale del Tamburino 2010, no de la ESC. El pie del cuadro
@@ -16520,6 +16595,8 @@ z
           </div>
         </div>
       </div>
+      </div><!-- /teer-concl -->
+      </div><!-- /teer-abajo -->
 
       <div class="fg" style="margin-top:8px;"><label>Notas ETE / Heart Team</label>
         <textarea id="ete_notas" placeholder="Observaciones para el Heart Team, imagen multimodal, TC cardíaca..."></textarea>
@@ -75646,8 +75723,19 @@ function calcTEER() {
      antes de agregar la línea. No cambia ni un corte ni un grado — es un repintado. */
   if (typeof imSecAltSiExiste === 'function') imSecAltSiExiste();
   const _mostrar = (id, on) => { const el = document.getElementById(id); if (el) el.style.display = on ? '' : 'none'; };
-  _mostrar('teer-bloque-primaria',   !r.esSec);
-  _mostrar('teer-bloque-secundaria', !r.esPrim);
+  /* ⚠️ LOS DOS CUADROS YA NO SE ESCONDEN (PANT-6, commit 5). DECISION DEL MEDICO: los dos
+     SIEMPRE visibles y con todos sus campos habilitados, igual que la CIA y la CIV del commit 1.
+     Lo que habia, medido: con «primaria» el bloque de la secundaria quedaba en display:none y
+     DOS de sus campos sin geometria, y al reves con «secundaria».
+     ⚠️ EL «Tipo de IM» SIGUE DECIDIENDO LO QUE DECIDIA: el calculo de `calcTEER`, el veredicto y
+        las filas del cuadro de criterios -el mapa `_NO_APLICA` de abajo- no se tocan. Lo unico
+        que cambia es que la ENTRADA de datos deja de estar gateada por el tipo: un campo oculto
+        se sigue guardando, asi que esconder el formulario de un tipo con datos cargados los
+        dejaba fuera de la vista y dentro del estudio -el mismo argumento de PANT-3 para la CIA-.
+     Las dos lineas se dejan como comentario y no se borran para que se vea que la decision es
+     deliberada y donde estaba el gate. */
+  /* _mostrar('teer-bloque-primaria',   !r.esSec);   <- retirado en PANT-6, commit 5 */
+  /* _mostrar('teer-bloque-secundaria', !r.esPrim);  <- retirado en PANT-6, commit 5 */
   _mostrar('teer-tipo-aviso',        !r.tipoIM);
   _mostrar('teer-hdr-coapt',         r.esSec);
   /* Las filas de criterio del cuadro de resultados siguen la misma regla: una fila «No
@@ -154347,8 +154435,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261103-1851';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793742710590;                 /* eco-build-ms */
+const ECO_BUILD    = '20261103-1919';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793744370670;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -154434,7 +154522,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261103-1851</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261103-1919</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
