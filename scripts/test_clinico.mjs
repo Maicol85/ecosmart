@@ -108784,6 +108784,23 @@ caso('TC-623', 'Tanda PANT-3: los botones CIA y CIV marcan la lesion, se pintan 
   clic('ete-shunt-tab-civ'); await esperar(300);
   ex.push(['(I2) y con una lesion marcada se enciende',
     bdg ? (bdg.hidden ? 'oculta' : 'visible') : 'NO EXISTE', 'visible']);
+
+  /* (J) CONTROL NEGATIVO SIMETRICO, Y NACIO DE UNA MUTACION QUE SOBREVIVIO. Con la CIV marcada
+     y la CIA desmarcada PERO CON DATOS, la CIA no se emite. Sin esta condicion, romper la
+     compuerta de la RAMA de la CIA pasaba en verde: ninguna escena anterior tenia una lesion
+     encendida y la otra apagada con datos, asi que la compuerta de ENTRADA tapaba a la de la
+     rama -con las dos apagadas la funcion sale temprano y la rama no se ejecuta nunca-. Es la
+     leccion del D-11: una mutacion que rompe una de dos mitades redundantes sobrevive. */
+  const j1 = inf(), js1 = suma();
+  ex.push(['(J0) DENOM: la CIV esta marcada y la CIA no',
+    String(chk('ete_civ_activa')) + '/' + String(chk('ete_cia_activa')), '1/0']);
+  ex.push(['(J1) DENOM: la CIA sigue con sus datos cargados',
+    String((document.getElementById('ete_cia_tam_max') || {}).value || ''), '18']);
+  ex.push(['(J2) DENOM: y la CIV, que SI esta marcada, entra al informe',
+    j1.indexOf('CIV muscular') >= 0, true]);
+  ex.push(['(J3) CONTROL NEGATIVO: con la CIV marcada, la CIA desmarcada NO entra al informe',
+    j1.indexOf('CIA tipo ostium secundum') >= 0, false]);
+  ex.push(['(J4) ni al EN SUMA', js1.indexOf('CIA ostium secundum') >= 0, false]);
   return { extra: EXP };
   })();
 `);
@@ -108957,7 +108974,15 @@ caso('TC-625', 'Tanda PANT-3: ninguna pantalla ni documento dice que algo este p
     /de apoyo cl[ií]nic/i.test(tDoc), true]);
   ex.push(['(B2) sigue el aviso de que no reemplaza el juicio medico',
     /no reemplaza el juicio m[eé]dic/i.test(tDoc), true]);
-  ex.push(['(B3) y sigue la etiqueta de esquema ilustrativo', /[Ee]squema ilustrativo/.test(tDoc), true]);
+  /* ⚠️ LAS DOS ETIQUETAS DE «esquema ilustrativo», UNA POR UNA, Y NO UN SOLO «existe»: la
+     etiqueta aparece DOS veces -el esquema de circulacion de la TGA y el recuadro del corazon
+     maestro-, asi que preguntar por el documento entero deja pasar que se pierda UNA. Medido:
+     mutar la del esquema de la TGA sobrevivia, porque la otra sostenia el «existe». */
+  const _etq = (id) => { const e = document.getElementById(id);
+    return e ? (/[Ee]squema ilustrativo/.test(textoDe(e)) ? 'esta' : 'NO ESTA') : 'NO EXISTE ' + id };
+  ex.push(['(B3) sigue la etiqueta de esquema ilustrativo en el esquema de la TGA',
+    _etq('tga-esq-box'), 'esta']);
+  ex.push(['(B3b) y en el recuadro del corazon maestro', _etq('cc3d-wrap'), 'esta']);
 
   /* (C) LA FRASE DEL ESQUEMA DE LA TGA SE REESCRIBIO Y CONSERVA LO QUE EVITA UN ERROR. */
   ex.push(['(C0) DENOM: el generador de la linea de estado existe', typeof window.tgaEsqSync, 'function']);
