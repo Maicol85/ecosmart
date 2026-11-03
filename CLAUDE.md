@@ -567,7 +567,7 @@ impecable.
 > SEGURIDAD y la tabla de Procedencia) siguen enteras y en su lugar, verificado byte por byte.
 ### Las dos estenosis aórticas, «Task Force» fuera del papel y los estadios — «PANT-4» (2026-11-03)
 
-- **NUEVE commits, y SEIS de los siete de la orden se hicieron.** `da890c6` + `ff5de8c` (1b/1c/1d)
+- **CATORCE commits —contados con `git log`—, y SEIS de los siete de la orden se hicieron.** `da890c6` + `ff5de8c` (1b/1c/1d)
   · `f7e6cb2` (1e) · `2716cdd` (2) · `c676ba4` (3) · `b21ad0a` (5) · `ff8c56d` (6) · `997ed1e` y
   el de cierre (7). Sello **`v20261103-1204`**, md5 de `index.html` **`e986c258`**. Al empezar,
   `origin/main` = `HEAD` = **`1e4b70c`**, el cierre de PANT-3, ya publicado, con md5 `0422963d` y
@@ -675,6 +675,20 @@ impecable.
   recortado y **CERO errores de consola y de página en los dos motores**.
   ⚠️ **WebKit de Playwright no es Safari, y se declara.**
 
+- **Línea base al cierre: suite 647/653**, en **once lotes** cubriendo los **653 casos
+  distintos** —contados nombre por nombre, con la guarda que compara lo listado con lo ejecutado:
+  **653 de 653**—, en UNA sola pasada sobre el árbol sellado **y commiteado**, con el pendrive
+  `DISK_IMG` **verificado al abrir y al cerrar** y el md5 de `index.html` **idéntico** antes y
+  después (`e986c258`). Los rojos son **TC-223, TC-376, TC-390 y TC-406**, los cuatro de siempre,
+  más **TC-551 y TC-557**, los dos intermitentes declarados: **corridos aislados, los dos salen
+  VERDE**, verificado. **Ningún rojo nuevo.**
+  ⚠️ **Y LA PRIMERA CORRIDA COMPLETA DIO 646/653 CON UN ROJO MÁS, QUE ERA MÍO** —**TC-322**, que
+  recorre `IND_SECS` y exige que **cada** sección tenga escenario: su denominador decía
+  «abrieron=33/35». Hizo exactamente su trabajo, porque esa cobertura es simétrica desde que
+  `/sharp-edges` la encontró: borrar una sección rompe el caso **y agregar una también**. Está
+  adaptado y la cifra de arriba sale de la corrida **limpia**.
+  ⚠️ **Y UNA CORRIDA ANTERIOR SE ENVENENÓ Y SE DECLARA:** edité el archivo de casos con la suite
+  corriendo. Se cortó **por PID exacto** y se rehízo entera.
 - **CELULAR: MEJORÓ.** **58 hallazgos a 360 px y 66 a 390, con 17 ALTA en cada ancho** — la línea
   base era 59 y 68 con los mismos 17. **Semgrep 124 WARNING / 0 ERROR.** Sin huérfanos nuevos.
 
