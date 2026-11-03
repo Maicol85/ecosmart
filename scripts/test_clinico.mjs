@@ -102986,10 +102986,20 @@ caso('TC-575', 'Tanda CONG-2A: los cuatro dibujos de los criterios TEER van a la
            (veces('anatomía compleja') > 0 ? 'c' : '-'), 'ahc']);
   ex.push(['(E2) CONTROL NEGATIVO: los cuatro cortes de exclusion de los dibujos siguen',
            (veces('Excl: ≥10mm') > 0 ? 'a' : '-') + (veces('Excl: ≥15mm') > 0 ? 'b' : '-'), 'ab']);
-  ex.push(['(E3) y los rotulos de los cuatro campos ilustrados no cambiaron',
+  /* (E3) ADAPTADO POR PANT-6, commit 6b, con el motivo: el rotulo de la profundidad de
+     coaptacion CAMBIO a proposito. Habia DOS campos distintos con la MISMA etiqueta -este, que
+     es el criterio de exclusion del TEER con su corte en 11 mm, y ete_prof_coapt, el factor
+     desfavorable para la reparacion con su corte en 10- y P5-f los dejo declarados como un
+     duplicado ambiguo. La orden de este commit pide distinguirlos por el rotulo visible sin
+     tocar ningun id. La condicion queda MAS FUERTE que la vieja: ademas de exigir los cuatro
+     rotulos, exige que el de la profundidad diga TEER y que el viejo -ambiguo- ya no exista, asi
+     que se pone roja tanto si alguien revierte la distincion como si cambia otro rotulo. */
+  ex.push(['(E3) y los rotulos de los cuatro campos ilustrados: los tres sin tocar, y el de la profundidad con su contexto',
            (veces('Flail gap (mm)') > 0 ? 'g' : '-') + (veces('Ancho flail (mm)') > 0 ? 'a' : '-') +
-           (veces('Profundidad coaptación (mm)') > 0 ? 'p' : '-') +
+           (veces('Profundidad coaptación — TEER (mm)') > 0 ? 'p' : '-') +
            (veces('Longitud coaptación (mm)') > 0 ? 'l' : '-'), 'gapl']);
+  ex.push(['(E3b) y el rotulo AMBIGUO, el que los dos campos compartian, ya no existe en la seccion',
+           veces('Profundidad coaptación (mm)'), 0]);
 
   try { if (typeof limpiarCampos === 'function') limpiarCampos(true); } catch (e) {}
   return { extra: EXP };

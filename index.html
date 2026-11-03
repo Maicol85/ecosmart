@@ -12903,9 +12903,19 @@ window.cerrarSesionReal = cerrarSesionReal;
           <input type="number" id="ete_angulo_vp" placeholder="°" oninput="calcETE()">
           <span style="font-size:10px; color:var(--text2);">Desfavorable (IM secundaria): &gt;45°</span>
         </div>
-        <!-- ⚠️ EL ROTULO DICE «en diastole» PORQUE HAY OTRO CAMPO CON LA MISMA ETIQUETA, y son
-             dos campos distintos: ver el commit 6b. Ningun id cambia. -->
-        <div class="fg"><label>Profundidad coaptación (mm)</label>
+        <!-- ⚠️ EL ROTULO LLEVA «reparacion» PORQUE HAY OTRO CAMPO CON LA MISMA ETIQUETA, y son
+             DOS CAMPOS DISTINTOS (PANT-6, commit 6b; P5-f). Este es `ete_prof_coapt`, uno de los
+             tres factores desfavorables para la REPARACION de la IM secundaria, con su corte en
+             10 mm; el otro es `teer_prof_flail`, criterio de EXCLUSION del TEER con su corte en
+             11 mm, y decide APTO / NO APTO. NO se unen ni se sincronizan: unirlos cambiaria el
+             criterio c4 del TEER para todo estudio con el otro campo cargado, que es contenido
+             clinico.
+             ⚠️ LA PALABRA SALE DEL CONTEXTO QUE LA PANTALLA YA USA y no se invento ninguna
+                definicion: este campo vive en el cuadro «CARACTERISTICAS DESFAVORABLES PARA LA
+                REPARACION» y en el grupo «Plastica mitral» de la tabla del dibujo.
+             ⚠️ NINGUN id CAMBIA, y los rotulos del EXCEL y del PAPEL tampoco: la hoja del PDF
+                sigue imprimiendo «Profundidad de coaptación» por `_amFila`. -->
+        <div class="fg"><label>Profundidad coaptación — reparación (mm)</label>
           <input type="number" id="ete_prof_coapt" placeholder="mm" oninput="calcETE()">
           <span style="font-size:10px; color:var(--text2);">Desfavorable (IM secundaria): &ge;10 mm</span>
         </div>
@@ -16413,7 +16423,13 @@ z
              en las DOS superficies, la pantalla y el panel del Laboratorio—: el 2026-10-02 esta
              misma ayuda se habia alineado al código porque cambiar el corte era una decisión
              clínica; ahora la decisión está tomada y lo que se alinea es el código a la fuente. -->
-        <div class="fg"><label>Profundidad coaptación (mm)</label>
+        <!-- ⚠️ EL ROTULO LLEVA «TEER» POR EL MISMO MOTIVO QUE EL DE REPARACION (commit 6b):
+             son dos campos distintos con la misma etiqueta. Este es el criterio de EXCLUSION del
+             TEER -el c4, que decide APTO / NO APTO- con su corte en 11 mm; el otro es
+             `ete_prof_coapt`, factor desfavorable para la reparacion con su corte en 10. La
+             palabra sale del nombre de esta seccion y del grupo «TEER» de la tabla del dibujo.
+             Ningun id cambia y los rotulos del Excel y del papel tampoco. -->
+        <div class="fg"><label>Profundidad coaptación — TEER (mm)</label>
           <div class="teer-figrow"><div class="teer-figcol">
           <input type="number" id="teer_prof_flail" placeholder="mm" oninput="calcTEER()">
           <span style="font-size:10px; color:var(--text2);">Excl: &ge;11mm</span>
@@ -29459,6 +29475,25 @@ function forrFaltaTxt(hayIc, hayPcp) {
   return hayIc ? 'falta la presión capilar pulmonar estimada' : 'falta el índice cardíaco';
 }
 window.forrFaltaTxt = forrFaltaTxt;
+
+/* ══ ¿LO QUE DICE EL SPAN ES UNA FRASE DE DATO FALTANTE? (PANT-6, commit 6a) ═════════════════
+   REGLA DEL MEDICO: el papel NO escribe frases de dato faltante. La frase de lo que falta la
+   escribe `forrFaltaTxt` en el span `hemo-forrester`, y ese span lo LEEN dos superficies de
+   papel: `amiloTextoHemo()` -que la hoja de ETT Avanzado del PDF imprime- y
+   `_pptSpan('hemo-forrester')` -la diapositiva-.
+   ⚠️ SE PREGUNTA AL DUENO Y NO SE COMPARA CONTRA UN LITERAL. Las tres frases salen de
+   `forrFaltaTxt`, asi que este predicado las deriva de ella: con las cadenas retipeadas aca, el
+   dia que una se reescriba el papel volveria a publicarla sin que nada avise. Es la misma
+   decision que `emContValido` y `emCategoria` ya tomaron en el panel de Evidencia.
+   ⚠️ LA DE PANTALLA SE QUEDA, que es lo que la orden pide: el span sigue diciendo que falta, y el
+   mensaje de abajo del grafico tambien. Lo que no sale es el PAPEL. */
+function forrEsFalta(txt){
+  const t = String(txt == null ? '' : txt).trim();
+  if (!t) return false;
+  return [forrFaltaTxt(false, false), forrFaltaTxt(true, false), forrFaltaTxt(false, true)]
+    .filter(Boolean).some(function(f){ return t === f; });
+}
+window.forrEsFalta = forrEsFalta;
 
 /* Los tres origenes de la PAM, en la forma mas corta que los distingue. Las claves son las de
    `pamEfectiva` (`inv` / `tip` / `calc`). ⚠️ SON ROTULOS NUEVOS Y CORTOS, y no los de
@@ -110593,7 +110628,15 @@ function amiloTextoHemo() {
   else L.push('Sin parámetros calculados: faltan datos de entrada.');
 
   L.push('## Perfiles');
-  const f = _amTxt('hemo-forrester'), pf = _amTxt('hemo-perfil'), ht = _amTxt('hemo-htp-tipo');
+  /* ⚠️ LA FRASE DE DATO FALTANTE DEL FORRESTER NO SALE AL PAPEL (PANT-6, commit 6a). Medido en
+     HEAD con el modulo integrado y denominadores reales: la hoja del PDF la imprimia SEIS veces
+     -una por plantilla, sobre 18.197 caracteres- y la diapositiva UNA, sobre 3.517. Se le
+     pregunta al dueno (`forrEsFalta`) y, si lo que el span dice es lo que falta, esta linea cae
+     en «no determinable», que es exactamente lo que ya decia cuando el span estaba vacio: no se
+     agrega ninguna frase nueva. La de PANTALLA se queda. */
+  const _f0 = _amTxt('hemo-forrester');
+  const f = ((typeof forrEsFalta === 'function') && forrEsFalta(_f0)) ? '' : _f0;
+  const pf = _amTxt('hemo-perfil'), ht = _amTxt('hemo-htp-tipo');
   /* ⚠️ LOS DOS QUE SE ARMAN CON LA PCP ESTIMADA LO DICEN EN SU PROPIO ROTULO (R2-E8): el
      Forrester sale de IC + PCP y la clasificacion pre/pos/mixta de la PCP, asi que llevan
      «estimado por eco» donde se leen. El perfil hemodinamico sale de IC + RVS, que tambien son
@@ -116868,7 +116911,10 @@ function _pptDesdeFormulario(inf, tema, presentador){
     const s = nueva();
     titulo(s, 'Perfil Hemodinámico');
     const F = [];
-    fila(F,'Perfil de Forrester', _pptSpan('hemo-forrester'));
+    /* ⚠️ MISMA REGLA QUE LA HOJA DEL PDF (PANT-6, commit 6a): la frase de dato faltante no sale
+       al papel. Se le pregunta al mismo dueno, asi que las dos superficies no pueden discrepar. */
+    fila(F,'Perfil de Forrester', (function(){ const t = _pptSpan('hemo-forrester');
+      return ((typeof forrEsFalta === 'function') && forrEsFalta(t)) ? '' : t; })());
     fila(F,'Perfil hemodinámico', _pptSpan('hemo-perfil'));
     fila(F,'Gasto cardíaco', _pptSpan('hemo-gc'));
     fila(F,'Índice cardíaco', _pptSpan('hemo-ic'));
@@ -153949,11 +153995,14 @@ var M3D_TABLA = Object.freeze([
     Object.freeze({ id:'ete_altura_tenting' }),
     Object.freeze({ id:'ete_area_tenting' }),
     /* ⚠️ «PROFUNDIDAD COAPTACION» APARECE DOS VECES Y SON DOS CAMPOS DISTINTOS, censado: este es
-       `ete_prof_coapt` (Mediciones ETE, con su ayuda «Normal <=10mm») y el de abajo es
-       `teer_prof_flail` (TEER, IM secundaria, con su ayuda «Excl: >10mm»). La pestana les pone
-       la MISMA etiqueta a los dos, asi que no hay «nombres que ya usa la pestana» con los que
-       distinguirlos: lo que los distingue es el ENCABEZADO DE GRUPO, y por eso la tabla pasa a
-       llevar uno. Inventarles un nombre seria publicar un rotulo que la pantalla no usa. */
+       `ete_prof_coapt` (Mediciones ETE, factor desfavorable para la REPARACION, corte 10 mm) y el
+       de abajo es `teer_prof_flail` (criterio de EXCLUSION del TEER, corte 11 mm, que decide
+       APTO / NO APTO).
+       ⚠️ Y DESDE PANT-6 (commit 6b) LA PESTANIA **SI** LES PONE ETIQUETAS DISTINTAS, asi que el
+          parrafo que decia lo contrario dejo de ser cierto: son «Profundidad coaptación —
+          reparación» y «Profundidad coaptación — TEER». Esta tabla lee el nombre del `<label>`,
+          asi que los distingue sola; el encabezado de grupo se queda, que es informacion de mas
+          y no de menos. */
     Object.freeze({ id:'ete_prof_coapt' })]) }),
   Object.freeze({ g:'TEER', campos: Object.freeze([
     Object.freeze({ id:'teer_ancho_flail' }),
@@ -154435,8 +154484,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261103-1919';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793744370670;                 /* eco-build-ms */
+const ECO_BUILD    = '20261103-1921';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793744515792;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -154522,7 +154571,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261103-1919</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261103-1921</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

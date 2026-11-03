@@ -139,6 +139,21 @@ const ESCENAS = {
      ENCENDIDA, que es la otra compuerta del papel.
      p6ccNadaInt es el caso que P3-a declara: la casilla de abajo tildada y NINGUNA lesion
      marcada. */
+  /* -- PANT-6, COMMIT 6a: LA FRASE DE DATO FALTANTE DEL FORRESTER EN EL PAPEL --
+     Las tres escenas van con el modulo INTEGRADO, que es la unica forma de que la hoja del PDF
+     y la diapositiva del PPT traigan una palabra de hemodinamica: sin eso un cero no distingue
+     «la frase no esta» de «la escena no llega a la zona».
+     p6forrDos es el CONTROL NEGATIVO: con el indice cardiaco y la presion capilar cargados hay
+     perfil y la frase no existe en ningun arbol. */
+  p6forrNada: { campos: { peso:'70', talla:'170' }, integrar:['hemo'] },
+  p6forrIc:   { campos: { peso:'70', talla:'170', gasto_cardiaco:'3.2' }, integrar:['hemo'] },
+  /* ⚠️ EL CONTROL NEGATIVO NECESITA EL INDICE CARDIACO DE VERDAD, y la primera version no lo
+     tenia: el indice sale del volumen latido por eco -diametro del TSVI y VTI del TSVI- por la
+     frecuencia cardiaca, dividido por la superficie corporal, y NO de `gasto_cardiaco`. Con
+     aquellos campos la pantalla seguia diciendo «falta el indice cardiaco» y la escena no
+     distinguia nada. La presion capilar sale de Nagueh -onda E y los dos e primas-. */
+  p6forrDos:  { campos: { peso:'70', talla:'170', diam_tsvi:'20', itv_tsvi:'22', hemo_fc:'70',
+                          onda_e:'90', e_sep:'6', e_lat:'8' }, integrar:['hemo'] },
   p6ccNada:    { campos: CC6 },
   p6ccCia:     { campos: CC6, les:['cia'] },
   p6ccCiv:     { campos: CC6, les:['civ'] },
