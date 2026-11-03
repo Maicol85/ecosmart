@@ -202,8 +202,8 @@ Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la v
 - App clínica de ecocardiografía en **un solo `index.html`**: HTML + CSS + JS inline, sin build,
   sin frameworks. Hoy **11,15 MB / 155.780 líneas**, medido con `wc -c` y `wc -l` el 2026-11-03 al
   cierre de la tanda **PANT-4**, sobre el árbol ya sellado **y commiteado**: sello
-  **`v20261103-1204`**, md5 **`e986c258`**. El diff de la tanda son **1.060 líneas agregadas y
-  163 quitadas**, medido con `git diff` contra `1e4b70c`, con **cero** `innerHTML`, `eval` o
+  **`v20261103-1204`**, md5 **`e986c258`**. El diff de la tanda son **689 líneas agregadas y
+  139 quitadas**, medido con `git diff --numstat` contra `1e4b70c`, con **cero** `innerHTML`, `eval` o
   `new Function` nuevos y cero claves.
   (Antes: 11,09 MB / 155.230 al cierre de PANT-3, sello `v20261103-0256`, md5 `0422963d`.) El diff de la tanda son **1.219 líneas agregadas y 221
   quitadas**, medido con `git diff` contra `efce508`. **Cero** `innerHTML`, `eval` o
