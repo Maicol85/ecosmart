@@ -109001,9 +109001,13 @@ caso('TC-632', 'Tanda PANT-3: las tres presiones pulmonares se rotulan PSAP, PmA
     todos.indexOf('metro de la arteria pulmonar') >= 0, true]);
 
   /* (E) EL EXCEL NO CAMBIA: ni el numero de columnas ni el encabezado de la PAP media. */
+  /* ⚠️ EL MAPA DEL EXCEL NO TIENE UNA ENTRADA POR COLUMNA: tiene 365 y las columnas son
+     441, porque hay columnas DERIVADAS que no viven en el mapa. Lo que este caso vigila es que
+     el mapa no se mueva y que el encabezado de la PAP media siga llamandose igual; el conteo de
+     441 lo mide el A/B, que es donde se genera el Excel de verdad. */
   const cols = (typeof LAB_XLS_MAP !== 'undefined' && LAB_XLS_MAP) ? LAB_XLS_MAP.length : -1;
-  ex.push(['(E0) DENOM: el mapa del Excel existe', cols > 400, true]);
-  ex.push(['(E1) el Excel sigue en 441 columnas', cols, 441]);
+  ex.push(['(E0) DENOM: el mapa del Excel existe', cols > 300, true]);
+  ex.push(['(E1) el mapa del Excel no se movio', cols, 365]);
   ex.push(['(E2) y el encabezado de la PAP media no cambio',
     (function () { for (const f of LAB_XLS_MAP) { if (f && f[1] === 'pap_med') return String(f[0]) } return 'NO ESTA' })(),
     'PAP media (mmHg)']);
