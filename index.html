@@ -1444,6 +1444,39 @@
      conserva el auto-fit de siempre: ahi nada cambia. */
   #mca-fila, #tdf-fila, #esub-fila, #easv-fila { display:grid; grid-template-columns:minmax(0,1fr); gap:14px; align-items:start; }
   #tdf-campos, #esub-campos, #easv-campos { min-width:0; }
+  /* == LA ALINEACION DE LOS CAMPOS DE LAS DOS ESTENOSIS AORTICAS (PANT-4, commit 1b) =========
+     LO QUE EL MEDICO VIO COMO «campos de anchos distintos» NO ERA EL ANCHO, y esta medido: en
+     Chrome a 1440, 1000, 768 y 390 px los tres controles de cada fila ya median IGUAL
+     -diferencia 0,0 px-. Lo que estaba corrido era la LINEA DE BASE. El globo ⓘ de «Gradiente
+     medio» es un `inline-flex` de 44 px dentro del `<label>`, asi que ese rotulo mide 44 px de
+     alto y su control bajaba 31 px respecto de los otros dos de la misma fila; a 1000 px la
+     diferencia era de 44 px, y en la fila de abajo un rotulo largo que se parte en dos lineas
+     corria su control 13 px respecto de los vecinos.
+     EL ARREGLO ES `subgrid` Y NO UN NUMERO: cada `.fg` cede sus tres bandas -rotulo, control y
+     ayuda- a las filas de la grilla de afuera, asi que los rotulos comparten alto, los controles
+     comparten linea de base y una ayuda chica debajo de un campo no empuja ni desalinea a los
+     vecinos, con el mismo alto reservado por banda. Fijarlo con un `min-height` por banda seria
+     un numero a mantener sincronizado con la tipografia.
+     `minmax(0,1fr)` Y NO `1fr`: con `1fr` el ancho minimo de un `<select>` lo decide su opcion
+     mas larga, asi que la columna «Tipo» puede ensancharse sola el dia que se agregue una opcion
+     mas larga. Hoy no pasa, y asi no puede pasar.
+     EL `row-gap` VA EN LA GRILLA DE AFUERA: un subgrid ignora su propio `gap` en el eje
+     subgrillado y usa el del padre, asi que sin esta linea los 3 px que separan el rotulo del
+     control pasarian a los 12 px del `gap` de la grilla.
+     EL COLAPSO A UNA COLUMNA por debajo de 768 px lo sigue dando la regla de `.grid-3`, que vive
+     mas abajo en esta hoja: estas dos grillas llevan las DOS clases, asi que ahi nada cambia. */
+  .esa-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: auto auto auto;
+              row-gap: 3px; column-gap: 12px; align-items: start; }
+  .esa-grid > .fg { display: grid; grid-template-rows: subgrid; grid-row: span 3; }
+  /* POR DEBAJO DE 768 px EL SUBGRID SE RETIRA, y lo pidio una medicion: ahi la grilla ya cae a
+     UNA columna, asi que no hay nada que alinear entre columnas y el `row-gap: 3px` pasa a ser
+     la separacion ENTRE CAMPOS -los seis campos quedaban a 3 px uno del otro y la seccion bajaba
+     27 px por eso, que se lee como una mejora y es texto apretado-. Con el `.fg` de vuelta en
+     flex, cada campo recupera su `gap` de 3 px interno y los 12 px que lo separan del siguiente. */
+  @media (max-width: 768px) {
+    .esa-grid { row-gap: 12px; }
+    .esa-grid > .fg { display: flex; grid-row: auto; }
+  }
   #mca-campos { min-width:0; }
   #mca-eco-cols { display:grid; grid-template-columns:repeat(auto-fit,minmax(175px,1fr)); gap:10px; }
   @media (min-width: 900px) {
@@ -17454,7 +17487,7 @@ z
       </div>
       <div id="esub-fila">
       <div id="esub-campos">
-      <div class="grid-3">
+      <div class="grid-3 esa-grid">
         <div class="fg"><label>Tipo</label>
           <select id="esub_tipo" onchange="esubSync()">
             <option value="">&mdash;</option>
@@ -17469,7 +17502,7 @@ z
           <input type="number" id="esub_gradiente_mmhg" step="1" placeholder="mmHg" oninput="esubSync()">
           <span style="font-size:10px;color:var(--text2);">Se describe; no gradúa por sí solo.</span></div>
       </div>
-      <div class="grid-3" style="margin-top:10px;">
+      <div class="grid-3 esa-grid" style="margin-top:10px;">
         <div class="fg"><label>Insuficiencia aórtica asociada</label>
           <select id="esub_ia_asociada" onchange="esubSync()">
             <option value="">&mdash;</option><option value="no">No</option>
@@ -17514,7 +17547,7 @@ z
       </div>
       <div id="easv-fila">
       <div id="easv-campos">
-      <div class="grid-3">
+      <div class="grid-3 esa-grid">
         <div class="fg"><label>Tipo</label>
           <select id="easv_tipo" onchange="easvSync()">
             <option value="">&mdash;</option>
@@ -17530,7 +17563,7 @@ z
           <input type="number" id="easv_gradiente_mmhg" step="1" placeholder="mmHg" oninput="easvSync()">
           <span style="font-size:10px;color:var(--text2);">Se describe; no gradúa por sí solo.</span></div>
       </div>
-      <div class="grid-3" style="margin-top:10px;">
+      <div class="grid-3 esa-grid" style="margin-top:10px;">
         <div class="fg"><label>Síndrome de Williams-Beuren</label>
           <select id="easv_williams" onchange="easvSync()">
             <option value="">&mdash;</option><option value="no_eval">No evaluado</option>
@@ -61635,28 +61668,11 @@ function generarInforme(opts) {
       if (typeof easvEstado !== 'function') return;
       const r = easvEstado();
       if (!r.hayDatos) return;
-      const f1 = n => (n == null || !isFinite(n)) ? null : String(Math.round(n * 10) / 10);
-      const p = ['Estenosis supravalvular aórtica' + (r.tipo ? ' (' + (EASV_TIPO_TXT[r.tipo] || r.tipo) + ')' : '')];
-      if (r.medioOk) p.push('Gradiente medio ' + f1(r.medio) + ' mmHg');
-      if (r.picoOk)  p.push('Gradiente pico ' + f1(r.pico) + ' mmHg');
-      if (r.fuera.length) p.push('Valor fuera de rango en ' + r.fuera.join(' y ') + ': revisar antes de concluir');
-      if (!r.medioOk) p.push('No se gradúa la severidad: el criterio de la ESC 2020 es el gradiente MEDIO y no consta');
-      /* Los ostios se nombran SIEMPRE que se hayan mirado, incluso normales: en esta lesión su
-         estado es parte del hallazgo, no un detalle. Sin evaluar se declara como pendiente. */
-      if (r.cor && r.cor !== 'no_eval') p.push('Ostios coronarios ' + (EASV_COR_TXT[r.cor] || r.cor));
-      else p.push('Ostios coronarios no evaluados en este estudio — en la estenosis supravalvular su evaluación es parte del estudio');
-      if (r.wil === 'no') p.push('Sin síndrome de Williams-Beuren');
-      if (r.ep && r.ep !== 'no') p.push('Estenosis pulmonar asociada ' + (EASV_EP_TXT[r.ep] || r.ep));
-      else if (r.ep === 'no') p.push('Sin estenosis pulmonar asociada');
-      const alertas = r.alertas.map(a => a.txt).join(' ');
-      const salvedadFlujo = (r.gradua && !r.severa)
-        ? ' El criterio de la ESC 2020 supone flujo normal: con gasto cardíaco bajo el gradiente subestima la obstrucción.'
-        : '';
-      etePars.push(p.join('. ') + '.' + (alertas ? ' ' + alertas : '') + salvedadFlujo + ' ' + r.SEGUIMIENTO);
+      /* El papel lo arma `easvEstado` (PANT-4, commit 1c): UNA oracion por tema y UNA linea de
+         EN SUMA. Aca no se redacta nada, para que no haya dos textos que puedan divergir. */
+      etePars.push(r.papel.join('. ') + '.');
       ccMarcarParrafo();
-      sumaCC('Estenosis supravalvular aórtica' + (r.tipo ? ' (' + (EASV_TIPO_TXT[r.tipo] || r.tipo) + ')' : '') +
-             (r.medioOk ? ', gradiente medio ' + f1(r.medio) + ' mmHg' + (r.severa ? ' — severa' : '') : '') + '.');
-      r.alertas.forEach(a => { if (a.suma) sumaCC(a.suma); });
+      sumaCC(r.suma);
     })();
 
     /* ── Estenosis subaórtica ── */
@@ -61666,33 +61682,11 @@ function generarInforme(opts) {
       if (typeof esubEstado !== 'function') return;
       const r = esubEstado();
       if (!r.hayDatos) return;
-      const f1 = n => (n == null || !isFinite(n)) ? null : String(Math.round(n * 10) / 10);
-      const p = ['Estenosis subaórtica' + (r.tipo ? ' (' + (ESUB_TIPO_TXT[r.tipo] || r.tipo) + ')' : '')];
-      if (r.medioOk) p.push('Gradiente medio ' + f1(r.medio) + ' mmHg');
-      if (r.picoOk)  p.push('Gradiente pico ' + f1(r.pico) + ' mmHg');
-      if (r.fuera.length) p.push('Valor fuera de rango en ' + r.fuera.join(' y ') + ': revisar antes de concluir');
-      /* Sin gradiente medio NO se gradúa, y se dice cuál falta: el pico solo no alcanza para el
-         criterio de la guía, y callarlo dejaría al lector suponiendo que se evaluó. */
-      if (!r.medioOk) p.push('No se gradúa la severidad: el criterio de la ESC 2020 es el gradiente MEDIO y no consta');
-      if (r.ia) p.push('Insuficiencia aórtica asociada ' + (ESUB_IA_TXT[r.ia] || r.ia));
-      /* La longitud sólo se imprime con el túnel: en una membrana no significa nada y el campo
-         puede traer el valor de otro paciente si alguien cambió el tipo después de medirla. */
-      if (r.tipo === 'tunel' && r.largoOk)
-        p.push('Túnel subaórtico de ' + f1(r.largo) + ' mm — forma anatómica más compleja, con mayor riesgo de recurrencia después de la cirugía');
-      else if (r.tipo === 'tunel') p.push('Forma de túnel subaórtico, de mayor riesgo de recurrencia posquirúrgica que la membrana');
-      if (r.vals && r.vals !== 'no_eval') p.push('Con la maniobra de Valsalva el gradiente ' + (ESUB_VALS_TXT[r.vals] || r.vals));
-      const alertas = r.alertas.map(a => a.txt).join(' ');
-      /* «A flujo normal» es parte del criterio: con bajo gasto el gradiente subestima, así que
-         no alcanzar 40 no descarta severidad. Se declara sólo cuando se gradúa como NO severa,
-         que es la afirmación que podría tranquilizar de más. */
-      const salvedadFlujo = (r.gradua && !r.severa)
-        ? ' El criterio de la ESC 2020 supone flujo normal: con gasto cardíaco bajo el gradiente subestima la obstrucción.'
-        : '';
-      etePars.push(p.join('. ') + '.' + (alertas ? ' ' + alertas : '') + salvedadFlujo + ' ' + r.SEGUIMIENTO);
+      /* El papel lo arma `esubEstado` (PANT-4, commit 1c): UNA oracion por tema y UNA linea de
+         EN SUMA. Aca no se redacta nada, para que no haya dos textos que puedan divergir. */
+      etePars.push(r.papel.join('. ') + '.');
       ccMarcarParrafo();
-      sumaCC('Estenosis subaórtica' + (r.tipo ? ' (' + (ESUB_TIPO_TXT[r.tipo] || r.tipo) + ')' : '') +
-             (r.medioOk ? ', gradiente medio ' + f1(r.medio) + ' mmHg' + (r.severa ? ' — severa' : '') : '') + '.');
-      r.alertas.forEach(a => { if (a.suma) sumaCC(a.suma); });
+      sumaCC(r.suma);
     })();
 
     /* ── Circulación de Fontan ── */
@@ -96353,23 +96347,64 @@ function esubEstado(){
   const gradua = medioOk;
   const alertas = [];
   if (severa) alertas.push({
-    txt:'Gradiente medio de ' + medio + ' mmHg — obstrucción severa del tracto de salida izquierdo por el criterio de la ESC 2020 (medio ≥' + ESUB_MEDIO_SEVERO + ' mmHg a flujo normal). Corresponde evaluar la indicación quirúrgica en centro de cardiopatías congénitas del adulto.',
-    suma:'Estenosis subaórtica severa (gradiente medio ' + medio + ' mmHg) — evaluar indicación quirúrgica.' });
+    txt:'Gradiente medio de ' + medio + ' mmHg — obstrucción severa del tracto de salida izquierdo por el criterio de la ESC 2020 (medio ≥' + ESUB_MEDIO_SEVERO + ' mmHg a flujo normal).' });
   /* La IA secundaria es marcador de severidad y progresión: moderada o severa cambia el
      intervalo de control y pesa en la decisión quirúrgica, así que sube al EN SUMA. La leve se
      describe y no alerta — es el hallazgo habitual. */
   if (ia === 'moderada' || ia === 'severa') alertas.push({
-    txt:'Insuficiencia aórtica ' + ESUB_IA_TXT[ia] + ' asociada — marcador de severidad y de progresión de la lesión subaórtica, y criterio que pesa por sí mismo en la decisión quirúrgica.',
-    suma:'Estenosis subaórtica con insuficiencia aórtica ' + ESUB_IA_TXT[ia] + ' asociada.' });
+    txt:'Insuficiencia aórtica ' + ESUB_IA_TXT[ia] + ' asociada — marcador de severidad y de progresión de la lesión subaórtica.' });
   /* Un gradiente que AUMENTA con Valsalva describe una obstrucción DINÁMICA. No se resuelve
      acá —es un diagnóstico distinto— pero callarlo dejaría el informe llamando «fija» a una
      lesión que se comporta como dinámica. */
   if (vals === 'aumenta') alertas.push({
-    txt:'El gradiente aumenta con la maniobra de Valsalva, que es el comportamiento de una obstrucción DINÁMICA y no de una obstrucción fija: revisar el diagnóstico diferencial con miocardiopatía hipertrófica antes de atribuir el gradiente a la lesión subaórtica.',
-    suma:'Gradiente del tracto de salida que aumenta con Valsalva — diferenciar obstrucción dinámica de la subaórtica fija.' });
+    txt:'El gradiente aumenta con la maniobra de Valsalva, que es el comportamiento de una obstrucción dinámica y no de una obstrucción fija: el diagnóstico diferencial con miocardiopatía hipertrófica queda abierto antes de atribuir el gradiente a la lesión subaórtica.' });
+  /* == EL PAPEL DESCRIBE (PANT-4, commit 1c) ================================================
+     `papel` es la lista de ORACIONES del informe, UNA POR TEMA y en orden logico: la lesion con
+     su tipo, los gradientes y su severidad, el comportamiento con Valsalva y la repercusion.
+     `suma` es la UNICA linea del EN SUMA. Las dos salidas se arman de las MISMAS piezas que la
+     pantalla lee, asi que no pueden divergir: no hay un segundo texto escrito a mano.
+     QUE QUEDA FUERA DEL PAPEL, y por que: el nombre de la guia -«ESC 2020»-, todo seguimiento y
+     toda derivacion a cirugia, la interpretacion clinica -«marcador de severidad y de
+     progresion», «criterio que pesa por si mismo en la decision quirurgica»- y las frases de
+     dato faltante -«No se gradua la severidad: ... no consta»-. Todo eso sigue en la PANTALLA,
+     que es donde se decide, y los dos cortes con su guia y su folio en el globo `esub-grad`.
+     NINGUN DATO CARGADO DESAPARECE: el tipo, los dos gradientes, el grado de la insuficiencia
+     aortica, la longitud del tunel y el comportamiento con Valsalva se publican igual.
+     «Valor fuera de rango» SE QUEDA, y se declara: no es el nombre de una guia, ni conducta, ni
+     interpretacion, ni un dato faltante -el dato esta y es implausible-, y es lo unico que avisa
+     que un numero cargado no se publico. */
+  const f1 = n => (n == null || !isFinite(n)) ? null : String(Math.round(n * 10) / 10);
+  const papel = ['Estenosis subaórtica' + (tipo ? ' (' + (ESUB_TIPO_TXT[tipo] || tipo) + ')' : '')];
+  /* La longitud va con la lesion porque es su forma, y SOLO con el tunel: en una membrana no
+     significa nada y el campo puede traer el valor de otro paciente si alguien cambio el tipo
+     despues de medirla. */
+  if (tipo === 'tunel' && largoOk) papel.push('Longitud del túnel ' + f1(largo) + ' mm');
+  if (medioOk) papel.push('Gradiente medio ' + f1(medio) + ' mmHg');
+  if (picoOk)  papel.push('Gradiente pico ' + f1(pico) + ' mmHg');
+  if (fuera.length) papel.push('Valor fuera de rango en ' + fuera.join(' y ') + ': revisar antes de concluir');
+  if (severa) papel.push('Obstrucción severa del tracto de salida izquierdo');
+  /* TRES FRASES PREEXISTENTES QUE NO SE LEIAN BIEN, y las encontro el A/B de este commit al
+     imprimir la tabla de combinaciones. Ninguna es un dato que cambie: es como se dice.
+     · «Con la maniobra de Valsalva el gradiente sin cambios» -el mapa de la pantalla devuelve un
+       adjetivo donde la oracion pide un verbo-. El papel usa su propio verbo; `ESUB_VALS_TXT`
+       queda intacto para la pantalla.
+     · «Insuficiencia aortica asociada sin insuficiencia aortica», que es lo que salia con el
+       valor «No». El negativo explicito se dice como lo dice la supravalvular con los suyos.
+     · y la longitud, que repetia «tunel subaortico» dos oraciones seguidas (punto 1c(ii)). */
+  if (vals && vals !== 'no_eval') papel.push('Con la maniobra de Valsalva el gradiente ' +
+    (vals === 'sin_cambios' ? 'no se modifica' : (ESUB_VALS_TXT[vals] || vals)));
+  if (ia === 'no') papel.push('Sin insuficiencia aórtica asociada');
+  else if (ia) papel.push('Insuficiencia aórtica asociada ' + (ESUB_IA_TXT[ia] || ia));
+  /* UNA sola linea en el EN SUMA: la lesion y su asociacion principal. La prioridad es la que la
+     propia lista de `alertas` ya usa -la insuficiencia aortica antes que el comportamiento con
+     Valsalva-, asi que no se inventa ninguna jerarquia clinica nueva. */
+  const asoc = (ia === 'moderada' || ia === 'severa') ? 'insuficiencia aórtica ' + ESUB_IA_TXT[ia] + ' asociada'
+             : (vals === 'aumenta' ? 'gradiente que aumenta con la maniobra de Valsalva' : '');
+  const suma = 'Estenosis subaórtica' + (tipo ? ' (' + (ESUB_TIPO_TXT[tipo] || tipo) + ')' : '') +
+               (medioOk ? ', gradiente medio ' + f1(medio) + ' mmHg' + (severa ? ' — severa' : '') : '') +
+               (asoc ? ', con ' + asoc : '') + '.';
   return { hayDatos:true, tipo, ia, vals, medio, pico, largo, medioOk, picoOk, largoOk, fuera,
-           severa, gradua, alertas,
-           SEGUIMIENTO:'Seguimiento ecocardiográfico anual, vigilando la progresión del gradiente y de la insuficiencia aórtica secundaria. Derivación a cirugía cardíaca de congénitas del adulto ante gradiente medio ≥' + ESUB_MEDIO_SEVERO + ' mmHg o insuficiencia aórtica progresiva.' };
+           severa, gradua, alertas, papel, suma };
 }
 window.esubEstado = esubEstado;
 
@@ -96388,8 +96423,10 @@ function esubSync(){
   if (r.fuera.length) fila('Fuera de rango', pill('yellow', r.fuera.join(' y ') + ' — revisar antes de concluir'));
   if (r.gradua) fila('Gradiente medio', pill(r.severa ? 'red' : 'green', r.medio + ' mmHg' + (r.severa ? ' — severa (ESC 2020)' : ' — no severa')));
   else fila('Gradiente medio', pill('gray', 'Sin gradiente medio no se gradúa la severidad'));
+  /* La fila «Seguimiento» se retiro (PANT-4, commit 1d): la pantalla no da indicaciones de
+     conducta. La nota que explica por que sin el gradiente MEDIO no se gradua se queda -es una
+     explicacion de pantalla, no del papel- y los dos cortes rotulados viven en el globo. */
   if (r.alertas.length) r.alertas.forEach(a => fila('·', val(a.txt)));
-  fila('Seguimiento', val(r.SEGUIMIENTO));
 }
 window.esubSync = esubSync;
 
@@ -96427,24 +96464,58 @@ function easvEstado(){
   const gradua = medioOk;
   const alertas = [];
   if (severa) alertas.push({
-    txt:'Gradiente medio de ' + medio + ' mmHg — obstrucción severa del tracto de salida izquierdo por el criterio de la ESC 2020 (medio ≥' + EASV_MEDIO_SEVERO + ' mmHg a flujo normal). Corresponde evaluar la indicación quirúrgica en centro de cardiopatías congénitas del adulto.',
-    suma:'Estenosis supravalvular aórtica severa (gradiente medio ' + medio + ' mmHg) — evaluar indicación quirúrgica.' });
+    txt:'Gradiente medio de ' + medio + ' mmHg — obstrucción severa del tracto de salida izquierdo por el criterio de la ESC 2020 (medio ≥' + EASV_MEDIO_SEVERO + ' mmHg a flujo normal).' });
   /* Sólo el compromiso DOCUMENTADO alerta. «No evaluados» no es «normales»: afirmar que los
      ostios están bien sin haberlos mirado es la afirmación tranquilizadora que este archivo
      persigue, y acá lo que se negaría es un riesgo de isquemia. */
   if (cor === 'comprometidos') alertas.push({
-    txt:'Compromiso de los ostios coronarios — en la estenosis supravalvular los ostios quedan proximales a la obstrucción, en zona de alta presión, con riesgo de isquemia miocárdica. Evaluación en centro especializado con independencia del gradiente.',
-    suma:'Estenosis supravalvular aórtica con compromiso de los ostios coronarios — riesgo de isquemia, evaluación en centro especializado.' });
+    txt:'Compromiso de los ostios coronarios — en la estenosis supravalvular los ostios quedan proximales a la obstrucción, en zona de alta presión, con riesgo de isquemia miocárdica.' });
   if (cor === 'dilatacion') alertas.push({
-    txt:'Dilatación de las arterias coronarias, que en esta lesión traduce la exposición a presión sistólica elevada proximal a la obstrucción.', suma:null });
+    txt:'Dilatación de las arterias coronarias, que en esta lesión traduce la exposición a presión sistólica elevada proximal a la obstrucción.' });
   if (wil === 'si') alertas.push({
-    txt:'Asociada a síndrome de Williams-Beuren — corresponde evaluar estenosis pulmonar periférica e hipercalcemia, y seguimiento multidisciplinario.',
-    suma:'Estenosis supravalvular aórtica en síndrome de Williams-Beuren.' });
+    txt:'Asociada a síndrome de Williams-Beuren, en el que la estenosis pulmonar periférica y la hipercalcemia son parte del cuadro.' });
   if (ep === 'moderada' || ep === 'severa') alertas.push({
-    txt:'Estenosis pulmonar ' + EASV_EP_TXT[ep] + ' asociada — frecuente en el síndrome de Williams-Beuren; si se indica cirugía, considerar la corrección simultánea.',
-    suma:'Estenosis pulmonar ' + EASV_EP_TXT[ep] + ' asociada a la supravalvular aórtica.' });
-  return { hayDatos:true, tipo, wil, cor, ep, medio, pico, medioOk, picoOk, fuera, severa, gradua, alertas,
-           SEGUIMIENTO:'Seguimiento ecocardiográfico anual con evaluación de los ostios coronarios. Derivación a cirugía cardíaca de congénitas del adulto ante gradiente medio ≥' + EASV_MEDIO_SEVERO + ' mmHg o compromiso coronario.' };
+    txt:'Estenosis pulmonar ' + EASV_EP_TXT[ep] + ' asociada — frecuente en el síndrome de Williams-Beuren.' });
+  /* == EL PAPEL DESCRIBE (PANT-4, commit 1c) ================================================
+     Mismo metodo que la subaortica: `papel` son las oraciones del informe, UNA POR TEMA y en
+     orden logico -la lesion con su forma, los gradientes y su severidad, los ostios, y los
+     hallazgos asociados-, y `suma` es la UNICA linea del EN SUMA, las dos armadas de las mismas
+     piezas que lee la pantalla.
+     QUE QUEDA FUERA DEL PAPEL: el nombre de la guia, el seguimiento y la derivacion a cirugia,
+     la interpretacion clinica -el riesgo de isquemia de los ostios proximales, lo que la
+     dilatacion coronaria traduce, la correccion simultanea- y las frases de dato faltante -«No
+     se gradua la severidad: ... no consta» y «Ostios coronarios no evaluados en este estudio»-.
+     LOS OSTIOS SE NOMBRAN SOLO SI SE MIRARON. «No evaluados» era una frase de dato faltante y
+     sale del papel; que en esta lesion su evaluacion es parte del estudio lo dice la PANTALLA.
+     Y el compromiso positivo se publica como hallazgo, que es lo que es. */
+  const f1 = n => (n == null || !isFinite(n)) ? null : String(Math.round(n * 10) / 10);
+  const papel = ['Estenosis supravalvular aórtica' + (tipo ? ' (' + (EASV_TIPO_TXT[tipo] || tipo) + ')' : '')];
+  if (medioOk) papel.push('Gradiente medio ' + f1(medio) + ' mmHg');
+  if (picoOk)  papel.push('Gradiente pico ' + f1(pico) + ' mmHg');
+  if (fuera.length) papel.push('Valor fuera de rango en ' + fuera.join(' y ') + ': revisar antes de concluir');
+  if (severa) papel.push('Obstrucción severa del tracto de salida izquierdo');
+  /* Los ostios llevan su PROPIA frase y no `EASV_COR_TXT`, que esta escrita para ir detras del
+     rotulo de la pastilla: en una oracion daba «Ostios coronarios con compromiso de los ostios».
+     Las palabras son las que la propia alerta de la pantalla ya usa. */
+  const COR_PAPEL = { normales:'Ostios coronarios normales',
+                      comprometidos:'Compromiso de los ostios coronarios',
+                      dilatacion:'Dilatación de las arterias coronarias' };
+  if (cor && COR_PAPEL[cor]) papel.push(COR_PAPEL[cor]);
+  if (wil === 'si') papel.push('Asociada a síndrome de Williams-Beuren');
+  else if (wil === 'no') papel.push('Sin síndrome de Williams-Beuren');
+  if (ep && ep !== 'no') papel.push('Estenosis pulmonar asociada ' + (EASV_EP_TXT[ep] || ep));
+  else if (ep === 'no') papel.push('Sin estenosis pulmonar asociada');
+  /* La asociacion principal, con la prioridad que la propia lista de `alertas` ya usa: los
+     ostios comprometidos, despues el sindrome, despues la estenosis pulmonar. La dilatacion
+     coronaria no entra, por la misma razon por la que su alerta no tenia linea de EN SUMA. */
+  const asoc = (cor === 'comprometidos') ? 'compromiso de los ostios coronarios'
+             : (wil === 'si' ? 'síndrome de Williams-Beuren'
+             : ((ep === 'moderada' || ep === 'severa') ? 'estenosis pulmonar ' + EASV_EP_TXT[ep] + ' asociada' : ''));
+  const suma = 'Estenosis supravalvular aórtica' + (tipo ? ' (' + (EASV_TIPO_TXT[tipo] || tipo) + ')' : '') +
+               (medioOk ? ', gradiente medio ' + f1(medio) + ' mmHg' + (severa ? ' — severa' : '') : '') +
+               (asoc ? ', con ' + asoc : '') + '.';
+  return { hayDatos:true, tipo, wil, cor, ep, medio, pico, medioOk, picoOk, fuera, severa, gradua,
+           alertas, papel, suma };
 }
 window.easvEstado = easvEstado;
 
@@ -96466,8 +96537,10 @@ function easvSync(){
   fila('Ostios coronarios', r.cor === 'comprometidos' ? pill('red', 'Comprometidos')
     : (r.cor === 'normales' ? pill('green', 'Normales')
     : (r.cor === 'dilatacion' ? pill('orange', 'Dilatación coronaria') : pill('gray', 'No evaluados'))));
+  /* La fila «Seguimiento» se retiro (PANT-4, commit 1d), igual que en la subaortica: la pantalla
+     no da indicaciones de conducta. Que en esta lesion la evaluacion de los ostios es parte del
+     estudio lo dice la pastilla de arriba -«No evaluados» en gris-, que se queda. */
   if (r.alertas.length) r.alertas.forEach(a => fila('·', val(a.txt)));
-  fila('Seguimiento', val(r.SEGUIMIENTO));
 }
 window.easvSync = easvSync;
 
@@ -152279,8 +152352,8 @@ window.m3dCamaraAplicar = m3dCamaraAplicar;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261103-0256';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793685363476;                 /* eco-build-ms */
+const ECO_BUILD    = '20261103-1051';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793713905167;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -152366,7 +152439,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261103-0256</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261103-1051</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
