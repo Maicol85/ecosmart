@@ -39,6 +39,38 @@ visualizó, así que no hay medida— pero es una pérdida y la decide el médic
 número sobreviva, hace falta un campo guardado más (esta tanda tenía cuatro autorizados y los
 cuatro están usados).
 
+## P11-c · El derrame pleural por lado: lo que se gana, lo que se pierde y una premisa falsa
+
+**LA PREMISA DE LA ORDEN QUE NO SE REPRODUJO.** El punto 5c dice que los dos campos legados
+quedan derivados «para que el Excel conserve sus dos columnas». **Medido: ni `pul_derrame_tam`,
+ni `pua_derrame_lado`, ni ninguno de los `pua_*` tienen columna de Excel** — censados los
+exportadores, cero entradas, y el volcado de las 441 columnas de tres escenas con derrame
+cargado no trae una sola celda pulmonar. El inventario de PANT-8 también lo afirmaba
+(«Al Excel llegan los campos por `LAB_XLS_MAP`») y es **falso**. La derivación se hizo igual,
+porque su motivo verdadero es otro y sigue en pie: los dos legados son **campos guardados** que
+viajan con el estudio y que el emisor del papel lee, así que derivarlos es lo que mantiene el
+informe idéntico para todo estado que la pantalla anterior podía expresar.
+
+**LO QUE SE PIERDE, y lo decide el médico:**
+
+- **El tamaño legado publica la pleura MAYOR.** Con las dos pleuras cargadas y de severidad
+  distinta, `pul_derrame_tam` guarda la mayor de las dos. El dato fino está en los dos campos
+  nuevos y en el informe, que escribe una frase por pleura; lo que queda grueso es ese campo
+  guardado. No hay forma de evitarlo sin una columna o un campo más.
+- **El vocabulario del papel es el de la pantalla anterior.** Los dos campos nuevos dicen
+  «Leve (<1 cm)» —el valor interno es `leve`, el mismo de `pop_pleura_der`— y el informe, para
+  los estados que la pantalla anterior ya podía expresar, sigue escribiendo **«mínimo»**, que es
+  lo que escribía antes. Es el precio de la regla «el papel es IDÉNTICO a HEAD para todo estado
+  que HEAD podía expresar»: si el informe dijera «leve», el informe de un estudio viejo
+  reconciliado cambiaría de palabra. Si el médico prefiere que el papel diga «leve», hay que
+  aceptar esa diferencia en los estudios viejos.
+- **La distancia entre pleuras sigue siendo UNA sola** (`pua_balik`). Medir las dos pleuras por
+  separado son dos campos guardados nuevos, y esta tanda tenía cuatro autorizados y los cuatro
+  están usados.
+- **`pua_derrame` = sí con las dos pleuras en «ausente»** publica «Derrame pleural.» a secas.
+  Es el mismo texto que la pantalla anterior daba con el lado y el tamaño sin consignar, así que
+  no es una regresión; es una entrada contradictoria del usuario que la app no resuelve.
+
 ## P10-a · Los textos que el commit 1 retiró de los globos, LITERALES, y el que llega al papel
 
 La regla (ii) de la tanda PANT-10 manda que lo que **ninguna fuente de la biblioteca respalda**

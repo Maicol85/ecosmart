@@ -192,6 +192,32 @@ const ESCENAS = {
      criterio se evalua. Es la unica forma de ver lo que la orden pide mostrar. */
   p11coapEteInt: { campos: { ete_prof_coapt:'12', teer_gap:'8', teer_ancho_flail:'12',
       teer_area_mitral:'4.5', im_grado:'4' }, integrar:['teer'] },
+  /* -- COMMITS 5 a 7: la ecografia pulmonar. Las tres primeras son ESTUDIOS VIEJOS -solo los
+     campos legados, que es todo lo que HEAD tenia-: ahi el papel tiene que salir IDENTICO.
+     Las que usan los campos nuevos no existen en HEAD -sus selectores no estan-, asi que su
+     comparacion util es contra la escena legada equivalente DENTRO del arbol nuevo. -- */
+  p11pulVacio:  { campos: { pua_desliz:'presente', pua_lineasa:'presentes' } },
+  p11pulLegBil: { campos: { pua_derrame:'si', pua_derrame_lado:'bilateral',
+      pul_derrame_tam:'moderado', pua_derrame_tipo:'libre', pua_balik:'25' } },
+  p11pulLegDer: { campos: { pua_derrame:'si', pua_derrame_lado:'unilateral derecho',
+      pul_derrame_tam:'mínimo', pua_derrame_tipo:'libre' } },
+  p11pulLegIzq: { campos: { pua_derrame:'si', pua_derrame_lado:'unilateral izquierdo',
+      pul_derrame_tam:'severo' } },
+  p11pulNoDer:  { campos: { pua_derrame:'no' } },
+  p11pulConsol: { campos: { pua_consol:'si', pua_consol_bronco:'con', pul_consol_nota:'base derecha' } },
+  p11pulLineas: { campos: { pua_lineasb:'presentes', pua_lineasb_cant:'multiples',
+      pua_z_lat_d:'', pua_desliz:'presente' } },
+  /* Las que usan los campos NUEVOS. */
+  p11pulNvoBil: { campos: { pua_derrame:'si', pua_derrame_der:'moderado', pua_derrame_izq:'moderado',
+      pua_derrame_tipo:'libre', pua_balik:'25' } },
+  p11pulNvoDer: { campos: { pua_derrame:'si', pua_derrame_der:'leve', pua_derrame_izq:'ausente',
+      pua_derrame_tipo:'libre' } },
+  p11pulNvoIzq: { campos: { pua_derrame:'si', pua_derrame_der:'ausente', pua_derrame_izq:'severo' } },
+  p11pulDisti:  { campos: { pua_derrame:'si', pua_derrame_der:'leve', pua_derrame_izq:'severo',
+      pua_derrame_tipo:'libre', pua_balik:'25' } },
+  p11pulAusent: { campos: { pua_derrame:'si', pua_derrame_der:'ausente', pua_derrame_izq:'ausente' } },
+  p11pulCnLado: { campos: { pua_consol:'si', pua_consol_bronco:'con', pua_consol_lado:'der',
+      pul_consol_nota:'base derecha' } },
   /* == LAS ESCENAS DE LA TANDA PANT-9 ======================================================
      Una por seccion rediseniada, con TODOS sus campos cargados Y la casilla «Integrar al
      informe» encendida: sin eso un cero de superficie firmada no distingue «el papel no se

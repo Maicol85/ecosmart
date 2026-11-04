@@ -10421,8 +10421,44 @@ window.cerrarSesionReal = cerrarSesionReal;
              que traducirlo y renombrarlo obligaria a migrar un valor que hoy abre solo. Sus
              tres opciones y su texto son los de siempre; lo que gana es el estado «sin
              consignar», que antes no existia porque el campo nacia en «Minimo». -->
-        <div class="fg pua-der" style="display:none;"><label>Tamaño</label>
-          <select id="pul_derrame_tam" onchange="pulAvUI()">
+        <!-- ⚠️ LOS DOS CAMPOS POR LADO — PANT-11, commit 5 (04/11/2026, decision del medico).
+             EL DEFECTO QUE CIERRAN, medido e inventariado en docs/INVENTARIO_PLEURA_Y_PULMON.md:
+             el basico tenia UNA sola severidad para las dos pleuras y un selector de lado con
+             tres valores, asi que no podia expresar «leve a la derecha y severo a la izquierda».
+             El posoperatorio si puede, pero vive en el avanzado y hay medicos que no acceden.
+             ⚠️ LAS OPCIONES Y LOS VALORES INTERNOS SON LOS DE `pop_pleura_der` / `pop_pleura_izq`,
+             palabra por palabra: es lo que hace que la sincronia del commit 6 sea una copia y no
+             una traduccion, y una traduccion entre dos vocabularios es como se pierde un dato. -->
+        <div class="fg pua-der" style="display:none;"><label for="pua_derrame_der">Derrame derecho</label>
+          <select id="pua_derrame_der" onchange="puaDerrameGesto('pua_derrame_der');pulAvUI()">
+            <option value="">— no evaluado —</option>
+            <option value="leve">Leve (&lt;1 cm)</option><option value="moderado">Moderado (1-3 cm)</option>
+            <option value="severo">Severo (&gt;3 cm)</option><option value="ausente">Ausente</option>
+          </select>
+        </div>
+        <div class="fg pua-der" style="display:none;"><label for="pua_derrame_izq">Derrame izquierdo</label>
+          <select id="pua_derrame_izq" onchange="puaDerrameGesto('pua_derrame_izq');pulAvUI()">
+            <option value="">— no evaluado —</option>
+            <option value="leve">Leve (&lt;1 cm)</option><option value="moderado">Moderado (1-3 cm)</option>
+            <option value="severo">Severo (&gt;3 cm)</option><option value="ausente">Ausente</option>
+          </select>
+        </div>
+        <!-- ⚠️ EL TAMANO SIGUE EXISTIENDO Y PASA A SER DERIVADO (PANT-11, commit 5). Su id, su
+             columna de Excel y su vocabulario -minimo / moderado / severo- NO cambian: lo que
+             cambia es que ya no se edita a mano y lo escribe `puaDerrameDerivar` desde los dos
+             campos por lado -el MAYOR de las pleuras afectadas, con «leve» traducido a
+             «minimo»-.
+             ⚠️ Y NO ES POR EL EXCEL: LA PREMISA DE LA ORDEN ES FALSA, MEDIDA. Ni este campo ni
+             `pua_derrame_lado` ni ninguno de los `pua_*` tienen columna de Excel -censado: cero
+             entradas en los exportadores-, asi que no habia dos columnas que conservar. Lo que
+             la derivacion si conserva, y es el motivo verdadero, son los dos CAMPOS GUARDADOS
+             -que viajan con el estudio y los lee el emisor del papel- y con ellos el texto del
+             informe, que para todo estado que la pantalla anterior podia expresar sale
+             IDENTICO.
+             LA PERDIDA, DECLARADA: con las dos pleuras distintas, esta columna publica la
+             mayor. Esta en docs/PENDIENTES.md -> P11-c. -->
+        <div class="fg pua-der" style="display:none;"><label>Tamaño <span style="font-weight:400;color:var(--text2);font-size:10px;">— derivado de los dos lados</span></label>
+          <select id="pul_derrame_tam" disabled>
             <option value="">— sin consignar —</option>
             <option value="mínimo">Mínimo</option><option value="moderado">Moderado</option><option value="severo">Severo</option>
           </select>
@@ -10456,8 +10492,12 @@ window.cerrarSesionReal = cerrarSesionReal;
         <div class="fg pua-der" style="display:none;"><label>Distancia m&aacute;xima entre pleuras (mm) <button type="button" class="vinfo-btn" data-vinfo="pul-balik" aria-expanded="false" aria-label="Informaci&oacute;n sobre la estimaci&oacute;n del volumen del derrame pleural" onclick="vInfoClic(this)">&#9432;</button></label>
           <input type="number" id="pua_balik" step="1" min="1" max="120" placeholder="mm" oninput="pulAvUI()">
         </div>
-        <div class="fg pua-der" style="display:none;"><label>Lateralidad</label>
-          <select id="pua_derrame_lado" onchange="pulAvUI()">
+        <!-- ⚠️ LA LATERALIDAD TAMBIEN PASA A DERIVADA (PANT-11, commit 5), por el mismo motivo
+             y con el mismo mecanismo: la escribe `puaDerrameDerivar` segun que pleuras tengan
+             derrame. Su id y sus tres valores no cambian. (Columna de Excel no tiene: ver la
+             nota del tamano, arriba.) -->
+        <div class="fg pua-der" style="display:none;"><label>Lateralidad <span style="font-weight:400;color:var(--text2);font-size:10px;">— derivada de los dos lados</span></label>
+          <select id="pua_derrame_lado" disabled>
             <option value="">— sin consignar —</option>
             <option value="unilateral derecho">Unilateral derecho</option>
             <option value="unilateral izquierdo">Unilateral izquierdo</option>
@@ -10472,6 +10512,18 @@ window.cerrarSesionReal = cerrarSesionReal;
         <div class="fg"><label>Consolidación</label>
           <select id="pua_consol" onchange="pulAvUI()"><option value="">— no evaluado —</option>
             <option value="no">No</option><option value="si">Sí</option>
+          </select>
+        </div>
+        <!-- ⚠️ EL LADO DE LA CONSOLIDACION — PANT-11, commit 5. Se marca por PULMON y sin
+             lobulo, que es la decision del medico. Los valores internos son los de
+             `pop_pulmon_consol` -der, izq, bilateral- para que la sincronia del commit 6 sea
+             una copia. El campo `ausente` del posoperatorio no entra: aca la presencia la
+             decide `pua_consol`, que es la compuerta de siempre. -->
+        <div class="fg" id="pua-consol-lado-wrap" style="display:none;"><label for="pua_consol_lado">Lado de la consolidación</label>
+          <select id="pua_consol_lado" onchange="puaConsolGesto();pulAvUI()">
+            <option value="">— sin consignar —</option>
+            <option value="der">Derecho</option><option value="izq">Izquierdo</option>
+            <option value="bilateral">Bilateral</option>
           </select>
         </div>
         <div class="fg" id="pua-consol-bronco-wrap" style="display:none;"><label>Broncograma</label>
@@ -68076,7 +68128,8 @@ function RECALC_MODULOS() {
      cuando uno de los dos esta vacio; con los dos cargados y distintos no toca nada. */
   /* `vciNoVisSync` va PRIMERO: deja los dos campos de la VCI como corresponde ANTES de que los
      veinticinco consumidores de esta misma lista los lean. */
-  return ['vciNoVisSync','aoRaizReconciliar','taviAoReconciliar','profCoaptReconciliar','tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','asiaMmSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','dtTapSync','vdTrivSync','etOndaESync','papmEstSync','calcDopTric','etTsvdSync','calcET','vpVmaxSync','ipIncongruenciaSync','itRefFuenteSync','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccSegSync','vpSync','popSync','sglOrigenSync','calcVenaPulm','valvProtSync','eaTaviEspejar','imEspejosRestaurar','eteVmAvisoSync','vmCarpLegadoSync','vmCarpOrigenSync','vmProtBloqSync','vmMorfFitSync','vdStrainPlSync','emPdfValsSync','emCuadroRefRepintar','emContFaAvisoSync','imCortesPintar','imContAvisoPintar','itIncongruenciaSync','aoEspejosRestaurar','tangoRestaurar','diastExclSync','diastFcAvisoSync','diastBseEprimaAvisoSync','diastBseGrisAvisoSync','diastStrainMarcaSync','vdMarcaSync','vdTeiAvisoSync','tep6060Resalte','hfPepSync','hfPepPintar','viVolAutoSync','eaAvaiGradoPintar','eaPvlPintar','imPvlPintar','vdTapsePsapSync','ipApDiamSync','vdViSelSync','htpApSync','htpTablaPintar','m3dBotonSync','contrPdfSync','sglPdfSync','eteQxPdfSync','otrBurbUI','v2dCerrar','aiviSexoSync','vtDviAuto','sincronizarTEERDesdeGlobal','calcETE',
+  return ['vciNoVisSync','aoRaizReconciliar','taviAoReconciliar','profCoaptReconciliar',
+          'puaDerrameReconciliar','tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','asiaMmSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','dtTapSync','vdTrivSync','etOndaESync','papmEstSync','calcDopTric','etTsvdSync','calcET','vpVmaxSync','ipIncongruenciaSync','itRefFuenteSync','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccSegSync','vpSync','popSync','sglOrigenSync','calcVenaPulm','valvProtSync','eaTaviEspejar','imEspejosRestaurar','eteVmAvisoSync','vmCarpLegadoSync','vmCarpOrigenSync','vmProtBloqSync','vmMorfFitSync','vdStrainPlSync','emPdfValsSync','emCuadroRefRepintar','emContFaAvisoSync','imCortesPintar','imContAvisoPintar','itIncongruenciaSync','aoEspejosRestaurar','tangoRestaurar','diastExclSync','diastFcAvisoSync','diastBseEprimaAvisoSync','diastBseGrisAvisoSync','diastStrainMarcaSync','vdMarcaSync','vdTeiAvisoSync','tep6060Resalte','hfPepSync','hfPepPintar','viVolAutoSync','eaAvaiGradoPintar','eaPvlPintar','imPvlPintar','vdTapsePsapSync','ipApDiamSync','vdViSelSync','htpApSync','htpTablaPintar','m3dBotonSync','contrPdfSync','sglPdfSync','eteQxPdfSync','otrBurbUI','v2dCerrar','aiviSexoSync','vtDviAuto','sincronizarTEERDesdeGlobal','calcETE',
           /* `pamAvisoSync` (B-2) repinta la línea del dueño único de la PAM. Entra acá por lo
              mismo que los demás: las cinco rutas de restauración pueblan asignando `.value`,
              que no dispara `input`, así que al reabrir un estudio con dos PAM que difieren el
@@ -114709,11 +114762,76 @@ function pulAvPatron() {
     : 'Sin hallazgos patológicos en los campos evaluados.' };
 }
 
+/* ══ EL DERRAME PLEURAL POR LADO — PANT-11, commit 5 ═════════════════════════════════════════
+   Tres piezas y ninguna duplica una regla:
+     · `puaDerrameDerivar` escribe los DOS campos legados -`pua_derrame_lado` y
+       `pul_derrame_tam`- desde los dos campos por lado. Es lo que hace que el papel siga
+       diciendo lo mismo, carácter por carácter, para todo estado que la pantalla anterior podia
+       expresar: el emisor sigue leyendo los legados y solo mira los dos campos por lado para el
+       estado NUEVO -las dos pleuras con derrame de severidad distinta-, que es el unico que
+       antes no se podia escribir.
+     · `puaDerrameReconciliar` hace el camino inverso UNA sola vez, para los estudios guardados
+       ANTES de que estos campos existieran: deriva los dos lados del par (lado, tamano) de
+       legado. Cuelga de RECALC_MODULOS, es IDEMPOTENTE y SOLO completa lo vacio.
+     · `puaDerrameGesto` es lo que corre cuando el medico toca uno de los dos selectores.
+   ⚠️ `puaDerrameDerivar` NO TOCA NADA cuando los dos campos por lado estan vacios, y esa guarda
+      no es decorativa: sin ella, abrir un estudio viejo cuyo lado quedo «sin consignar» le
+      BORRARIA el tamano que si tenia. */
+var PUA_SEV_ORD = ['leve', 'moderado', 'severo'];
+/* El legado usa «minimo» donde los dos campos nuevos usan «leve». La traduccion vive en UN solo
+   lugar, en los dos sentidos, para que no puedan divergir. */
+var PUA_SEV_A_LEGADO = { leve: 'mínimo', moderado: 'moderado', severo: 'severo' };
+var PUA_LEGADO_A_SEV = { 'mínimo': 'leve', 'minimo': 'leve', leve: 'leve',
+                         moderado: 'moderado', severo: 'severo' };
+function _puaV(id) { const e = document.getElementById(id); return e ? String(e.value || '').trim() : ''; }
+function _puaSet(id, v) { const e = document.getElementById(id); if (e && String(e.value || '') !== v) e.value = v; }
+/* ¿Esta pleura tiene derrame? «ausente» y vacio no cuentan. */
+function _puaHay(v) { return PUA_SEV_ORD.indexOf(v) >= 0; }
+function puaDerrameDerivar() {
+  const d = _puaV('pua_derrame_der'), i = _puaV('pua_derrame_izq');
+  if (!d && !i) return;                     // nada que derivar: el legado no se toca
+  const hd = _puaHay(d), hi = _puaHay(i);
+  _puaSet('pua_derrame_lado', (hd && hi) ? 'bilateral'
+    : hd ? 'unilateral derecho' : hi ? 'unilateral izquierdo' : '');
+  /* El MAYOR de las pleuras afectadas, que es lo que la orden fija, con la perdida declarada. */
+  let may = '';
+  [d, i].forEach(function (x) {
+    if (!_puaHay(x)) return;
+    if (!may || PUA_SEV_ORD.indexOf(x) > PUA_SEV_ORD.indexOf(may)) may = x;
+  });
+  _puaSet('pul_derrame_tam', may ? (PUA_SEV_A_LEGADO[may] || may) : '');
+}
+window.puaDerrameDerivar = puaDerrameDerivar;
+function puaDerrameReconciliar() {
+  const e1 = document.getElementById('pua_derrame_der'), e2 = document.getElementById('pua_derrame_izq');
+  if (!e1 || !e2) return;
+  if (_puaV('pua_derrame_der') || _puaV('pua_derrame_izq')) { puaDerrameDerivar(); return; }
+  /* Estudio viejo: los dos lados vacios. Se derivan del par de legado y SOLO si hay derrame. */
+  if (_puaV('pua_derrame') !== 'si') return;
+  const lado = _puaV('pua_derrame_lado');
+  const sev = PUA_LEGADO_A_SEV[_puaV('pul_derrame_tam')] || '';
+  if (!lado) return;                        // sin lado no se puede repartir: no se inventa
+  if (lado === 'bilateral') { _puaSet('pua_derrame_der', sev); _puaSet('pua_derrame_izq', sev); }
+  else if (lado === 'unilateral derecho')   { _puaSet('pua_derrame_der', sev); _puaSet('pua_derrame_izq', 'ausente'); }
+  else if (lado === 'unilateral izquierdo') { _puaSet('pua_derrame_izq', sev); _puaSet('pua_derrame_der', 'ausente'); }
+}
+window.puaDerrameReconciliar = puaDerrameReconciliar;
+function puaDerrameGesto(id) {
+  puaDerrameDerivar();
+  if (typeof puaPopEspejoGesto === 'function') { try { puaPopEspejoGesto(id); } catch (e) {} }
+}
+window.puaDerrameGesto = puaDerrameGesto;
+function puaConsolGesto() {
+  if (typeof puaPopEspejoGesto === 'function') { try { puaPopEspejoGesto('pua_consol_lado'); } catch (e) {} }
+}
+window.puaConsolGesto = puaConsolGesto;
+
 function pulAvUI() {
   const on = (id, v) => { const e = document.getElementById(id); if (e) e.style.display = v ? '' : 'none'; };
   const lbOn = _amV('pua_lineasb') === 'presentes';
   on('pua-lb-cant-wrap', lbOn); on('pua-lb-zonas-wrap', lbOn);
   document.querySelectorAll('.pua-der').forEach(e => { e.style.display = (_amV('pua_derrame') === 'si') ? '' : 'none'; });
+  on('pua-consol-lado-wrap', _amV('pua_consol') === 'si');
   on('pua-consol-bronco-wrap', _amV('pua_consol') === 'si');
   /* Los dos campos que vinieron del modulo basico (B2-E2) siguen la MISMA compuerta que sus
      hermanos: el tamano cuelga de `.pua-der` por su clase, la nota del broncograma. */
@@ -114795,8 +114913,21 @@ function pulAvFrases() {
        Balik)», que nombra dos cosas distintas en el mismo parentesis. */
     const _bf = _balikFrase(bk);
     const vol = _bf ? ' (' + _bf + ')' : '';
-    L.push('Derrame pleural' + (dl ? ' ' + dl : '') + (tam ? ' ' + tam : '') +
-           (tipo ? ', de aspecto ' + tipo : '') + vol + '.');
+    /* ⚠️ PANT-11, commit 5 — EL ESTADO QUE LA PANTALLA ANTERIOR NO PODIA EXPRESAR, Y SOLO ESE.
+       Con las dos pleuras con derrame y de severidad DISTINTA se publica una frase por pleura,
+       con las palabras de los dos campos nuevos. En cualquier otro estado -el mismo derrame en
+       las dos, unilateral, o sin los campos nuevos- se emite la frase de SIEMPRE, con el lado y
+       el tamano DERIVADOS, y por eso el papel sale identico a HEAD por construccion y no por
+       una segunda redaccion que haya que mantener al dia. */
+    const _dd = _amV('pua_derrame_der'), _di = _amV('pua_derrame_izq');
+    const _hd = PUA_SEV_ORD.indexOf(_dd) >= 0, _hi = PUA_SEV_ORD.indexOf(_di) >= 0;
+    if (_hd && _hi && _dd !== _di) {
+      L.push('Derrame pleural derecho ' + _dd + ' e izquierdo ' + _di +
+             (tipo ? ', de aspecto ' + tipo : '') + vol + '.');
+    } else {
+      L.push('Derrame pleural' + (dl ? ' ' + dl : '') + (tam ? ' ' + tam : '') +
+             (tipo ? ', de aspecto ' + tipo : '') + vol + '.');
+    }
   } else if (_amV('pua_derrame')) {
     L.push('Sin derrame pleural.');
   }
@@ -114808,7 +114939,13 @@ function pulAvFrases() {
        —localizacion, broncograma, extension— y suelta se lee como un parrafo sin sujeto. Se le
        saca el punto final si el medico lo escribio, para no dejar dos. */
     const _cn = String(_amV('pul_consol_nota') || '').trim().replace(/[.;]+$/, '');
-    L.push('Consolidación pulmonar ' + (B[_amV('pua_consol_bronco')] || 'sin broncograma especificado') +
+    /* ⚠️ PANT-11, commit 5 — EL LADO, Y SOLO SI ESTA CONSIGNADO. Sin el, la frase es la de
+       siempre carácter por carácter, que es lo que mantiene el papel identico a HEAD para el
+       estado «consolidacion si o no» que la pantalla anterior ya podia expresar. */
+    const _CL = { der:'derecha', izq:'izquierda', bilateral:'bilateral' };
+    const _cl = _CL[_amV('pua_consol_lado')] || '';
+    L.push('Consolidación pulmonar ' + (_cl ? _cl + ' ' : '') +
+           (B[_amV('pua_consol_bronco')] || 'sin broncograma especificado') +
            (_cn ? ' (' + _cn + ')' : '') + '.');
   } else if (_amV('pua_consol')) {
     L.push('Sin consolidaciones.');
@@ -114855,7 +114992,12 @@ function pulAvSuma(omitir) {
     const bk = PF(_amV('pua_balik')), lado = _amV('pua_derrame_lado');
     const tam = _amV('pul_derrame_tam');
     const det = _balikDet(bk);
-    s.push('Derrame pleural' + (lado ? ' ' + lado : '') + (tam ? ' ' + tam : '') + det + '.');
+    /* La MISMA regla que el cuerpo, con las MISMAS piezas: una frase por pleura solo cuando las
+       dos difieren, y la de siempre en todo lo demas. */
+    const _dd = _amV('pua_derrame_der'), _di = _amV('pua_derrame_izq');
+    const _hd = PUA_SEV_ORD.indexOf(_dd) >= 0, _hi = PUA_SEV_ORD.indexOf(_di) >= 0;
+    if (_hd && _hi && _dd !== _di) s.push('Derrame pleural derecho ' + _dd + ' e izquierdo ' + _di + det + '.');
+    else s.push('Derrame pleural' + (lado ? ' ' + lado : '') + (tam ? ' ' + tam : '') + det + '.');
   }
   if (_amV('pua_consol') === 'si' && _om.indexOf('consol') < 0) {
     /* ⚠️ CON EL BRONCOGRAMA «sin consignar» DICE «sin broncograma especificado» Y NO «sin
@@ -114863,7 +115005,9 @@ function pulAvSuma(omitir) {
        texto alcanzable antes — y negar un hallazgo no evaluado en el EN SUMA firmado es
        exactamente lo que la rama del cuerpo ya evita con esas mismas palabras. */
     const b = _amV('pua_consol_bronco');
-    s.push('Consolidación pulmonar ' + (b === 'con' ? 'con broncograma aéreo' : b === 'fluido' ? 'con broncograma fluido' : b === 'sin' ? 'sin broncograma' : 'sin broncograma especificado') + '.');
+    const _CL2 = { der:'derecha', izq:'izquierda', bilateral:'bilateral' };
+    const _cl2 = _CL2[_amV('pua_consol_lado')] || '';
+    s.push('Consolidación pulmonar ' + (_cl2 ? _cl2 + ' ' : '') + (b === 'con' ? 'con broncograma aéreo' : b === 'fluido' ? 'con broncograma fluido' : b === 'sin' ? 'sin broncograma' : 'sin broncograma especificado') + '.');
   }
   return s;
 }
@@ -157493,8 +157637,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261104-1439';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793813975791;                 /* eco-build-ms */
+const ECO_BUILD    = '20261104-1447';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793814423518;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -157580,7 +157724,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261104-1439</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261104-1447</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
