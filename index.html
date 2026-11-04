@@ -87728,6 +87728,47 @@ const IND_TERMINOS = Object.freeze({
     fuente: 'AHA/ACC 2020 (Otto), Tabla 15 «Stages of Chronic AR», hoja 34, folio e105, columna '
           + '«Symptoms». ESC/EACTS 2025, tabla de recomendaciones de insuficiencia aórtica.'
   }),
+  /* ══ QUE SINTOMAS CUENTAN EN LA ESTENOSIS PULMONAR (PANT-8, commit 6) ════════════════════
+     Misma regla que los otros seis globos de sintomas: la orden pide que diga QUE sintomas
+     cuentan, LEIDO EN IMAGEN con su hoja y su folio.
+     LEIDO EN IMAGEN el 2026-11-04, con el folio comprobado en el PIE IMPRESO de la hoja -«608»-:
+     ESC 2020 de cardiopatias congenitas del adulto (Baumgartner), edicion INGLESA, apartado
+     4.8.2 «Clinical presentation and natural history», hoja 46, folio 608.
+     ⚠️ ESTA GUIA SI LOS ENUMERA, Y LOS ENUMERA POR NIVEL DE OBSTRUCCION, que es justo la otra
+        pregunta de esta seccion. Es la diferencia con los seis globos anteriores, donde quien
+        los nombraba era la AHA/ACC y la ESC decia «sintomatico» a secas.
+     ⚠️ Y LA OTRA GUIA NO CUBRE ESTA LESION: la ESC/EACTS 2025 de valvulopatias esta ausente de
+        esta estenosis, censado por la propia seccion. No hay dos fuentes que comparar.
+     ⚠️ SIN CONDUCTA: el globo dice que sintomas cuentan y no que hacer con ellos.
+     TODO PARAFRASEADO EN ESPANIOL, sin copiar frases. */
+  epsintomas: Object.freeze({
+    rotulo: 'Síntomas en la estenosis pulmonar',
+    tipo: 'definicion',
+    tam: 'chica',
+    etiqueta: 'Qué síntomas cuentan en la estenosis pulmonar',
+    que: 'Sostienen la indicación cuando hace falta un sustituto valvular, y por debajo del '
+       + 'umbral tienen que ser atribuibles a la estenosis.',
+    items: Object.freeze([
+      Object.freeze({ t:'La guía los enumera POR NIVEL de la obstrucción',
+        d:'Es la misma pregunta que esta sección hace unas filas más arriba, así que el nivel '
+        + 'consignado decide qué lista mirar.' }),
+      Object.freeze({ t:'Valvular — la que gobierna el umbral',
+        d:'Con estenosis leve o moderada el paciente suele estar asintomático. Con estenosis '
+        + 'severa puede presentarse con disnea y con capacidad de ejercicio reducida, y el '
+        + 'pronóstico es peor.' }),
+      Object.freeze({ t:'Subinfundibular e infundibular',
+        d:'El adulto con ventrículo derecho de doble cámara puede estar asintomático o '
+        + 'presentar disnea, molestia torácica, mareo o síncope durante el esfuerzo.' }),
+      Object.freeze({ t:'Supravalvular',
+        d:'Puede estar asintomático o tener disnea y capacidad de ejercicio reducida. Suele '
+        + 'reconocerse en el contexto de ciertos síndromes o al estudiar una sospecha de '
+        + 'hipertensión pulmonar.' }),
+      Object.freeze({ t:'La otra guía no cubre esta lesión',
+        d:'La guía europea de valvulopatías de 2025 no trata la estenosis pulmonar, así que acá '
+        + 'no hay dos fuentes que comparar: gobierna la de congénitas del adulto.' })
+    ]),
+    fuente: 'ESC 2020 de cardiopatías congénitas del adulto, edición inglesa, apartado 4.8.2 (folio 608)'
+  }),
   emsintomas: Object.freeze({
     rotulo: 'Síntomas en la estenosis mitral',
     tipo: 'definicion',
@@ -94575,9 +94616,10 @@ function _indEP(){
                  D.sp.val != null ? 'S′ ' + _indNum(D.sp.val, 1, 'cm/s') : null].filter(Boolean).join(' · ')
     || ((D.t.fuera || D.sp.fuera) ? 'TAPSE o S′ fuera de rango medible' : '');
   const clinica = [
-    _indFilaCtrl('Síntomas', 'ep.sintomas', [{v:'si',t:'Sí'},{v:'no',t:'No'}],
+    Object.assign(_indFilaCtrl('Síntomas', 'ep.sintomas', [{v:'si',t:'Sí'},{v:'no',t:'No'}],
       D.sx ? 'none' : 'ask',
       'sostienen la indicación cuando hace falta un sustituto valvular, y por debajo del umbral tienen que ser ATRIBUIBLES a la estenosis'),
+      { term: 'epsintomas' }),
     _indFilaCtrl('Requiere sustituto valvular', 'ep.sustituto', [{v:'si',t:'Sí'},{v:'no',t:'No'}],
       D.sust ? 'none' : 'ask',
       'es la precondición que parte la tabla en tres filas: sin sustituto se interviene la estenosis severa aunque el paciente esté asintomático'),
@@ -94613,7 +94655,46 @@ function _indEP(){
     _indFila('PSVD', D.psap.crudo != null ? _indNum(D.psap.crudo, 0, 'mmHg') : 'No estimada', 'ask',
       'la fila del asintomático pide PSVD mayor de ' + EP_PSVD_ASINT + ' mmHg, y la nota al pie pide que la PSVD confirme la estenosis severa. Ninguna de las dos cosas se puede hacer acá: la PSAP estimada de esta app no tiene banda de plausibilidad')
   ];
-  return { filas: filas,
+  /* ══ EL MOLDE (PANT-8, commit 6) ═══════════════════════════════════════════════════════════
+     LA PREMISA SE REPRODUCE Y ESTA MEDIDA: con el panel maximizado, la columna del eco media
+     324,4 px de alto contra 606,5 de la de preguntas, o sea 282,1 px de VACIO a 1440 px y 52,2
+     a 1000.
+     ⚠️ PANT-6 Y PANT-7 FRENARON ESTA VALVULA PORQUE «NO TIENE FILA DE ESTADIO», y medido eso NO
+        es un impedimento: el molde admite `est: null` desde el dia uno -la estenosis aortica lo
+        escribe `_estEA ? {...} : null`- y la fila que DICE que no hay estadio ya existia en esta
+        seccion desde PANT-5. La fila se queda entre los datos, que es donde explica el hueco.
+     ⚠️ SON CINCO PREGUNTAS, NO CUATRO: `ep.sintomas`, `ep.sustituto`, `ep.ejercicio`,
+        `ep.deterioro` y `ep.shunt`, medidas en el panel. Cinco es seis o menos, asi que van en
+        UNA sola columna.
+     ⚠️ LOS DOS GRUPOS NO SE INVENTAN: salen de las notas de las propias filas. «Indicacion» son
+        los sintomas -el disparador- y el sustituto valvular, que su nota llama «la precondicion
+        que parte la tabla en tres filas». «Criterios del asintomatico» son las otras tres, y es
+        textual: la nota del ejercicio dice «uno de los cuatro criterios del asintomatico con
+        sustituto necesario» y la recomendacion los lista.
+     ⚠️ LOS GRUPOS SE ARMAN POR CLAVE Y NO POR INDICE, con `_indPorClave`: la lista clinica de
+        esta seccion termina en DOS filas de solo lectura -la funcion del VD y la PSVD- que van a
+        los DATOS, no a las preguntas, y con indices el grupo se llevaria la fila equivocada el
+        dia que una condicion cambie.
+     ⚠️ EL PIE VA VACIO: esta valvula tiene la tarjeta de `recom`, que `_indSecPie` emite despues
+        del molde, igual que las dos aorticas.
+     Ningun corte, ninguna pregunta y ninguna regla de esta seccion cambian. */
+  const _epDatos = filas.concat(clinica.filter(function(f){ return f && !f.ctrl && !f.origen; }));
+  const molde = {
+    cat: { et:'Grado — el que abre esta sección',
+           txt: sev ? 'Estenosis pulmonar severa' : 'Estenosis pulmonar moderada',
+           por: (sel && sel !== 'sin')
+             ? 'el grado consignado a mano, que es el que firma el médico'
+             : 'el grado que sale del gradiente máximo medido' },
+    est: null,
+    datos: _epDatos.map(function(f){ return { lbl:f.lbl, val:f.val, refs:f.refs || null,
+        est:String(f.nota || '').split(' · ')[0] }; }),
+    cols: [ [ { tit:'Indicación', filas:_indPorClave(clinica, ['ep.sintomas', 'ep.sustituto']) },
+              { tit:'Criterios del asintomático',
+                filas:_indPorClave(clinica, ['ep.ejercicio', 'ep.deterioro', 'ep.shunt']) } ] ],
+    pie: null
+  };
+
+  return { filas: filas, molde: molde,
     clinica: clinica,
     recom: _indEPRecom(D, sev, mod, gmax, UM, valvular, nivelDicho, /^ramas/i.test(nivel)),
     /* El umbral de la prosa sale de la constante, no de la memoria: escribirlo a mano acá era
@@ -155848,8 +155929,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261104-0543';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793781797503;                 /* eco-build-ms */
+const ECO_BUILD    = '20261104-0556';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793782599561;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -155935,7 +156016,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261104-0543</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261104-0556</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
