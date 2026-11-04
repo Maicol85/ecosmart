@@ -202,15 +202,18 @@ Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la v
 ## Qué es EcoSmart y cómo se trabaja
 
 - App clínica de ecocardiografía en **un solo `index.html`**: HTML + CSS + JS inline, sin build,
-  sin frameworks. Hoy **11,22 MB / 156.792 líneas**, medido con `wc -c` y `wc -l` el 2026-11-03 al
-  cierre de la tanda **PANT-5**, sobre el árbol ya sellado **y commiteado**: sello
-  **`v20261103-1546`**, md5 **`98d60651`**. El diff de la tanda son **1.164 líneas agregadas y
-  152 quitadas**, medido con `git diff --numstat` contra `dbfc0c3`, con **cero** `eval` y **cero**
-  `new Function` nuevos y cero claves.
-  ⚠️ **CINCO `innerHTML` NUEVOS, y están declarados**: uno es preexistente y sólo cambió su
-  argumento, y los otros cuatro escriben **constantes literales** o un número pasado por
-  `toFixed(1)`. **Ninguno interpola un dato de texto del paciente** y Semgrep sigue en 124 / 0.
-  ⚠️ **POR PRIMERA VEZ EN SEIS TANDAS EL RENGLÓN QUE SE ENCONTRÓ ESTABA BIEN, y casi lo
+  sin frameworks. Hoy **11,30 MB / 157.812 líneas**, medido con `wc -c` y `wc -l` el 2026-11-04 al
+  cierre de la tanda **PANT-6**, sobre el árbol ya sellado: sello **`v20261103-2018`**, md5
+  **`bb6adf41`**. El diff de la tanda son **1.447 líneas agregadas y 427 quitadas**, medido con
+  `git diff --numstat` contra `c42d9e3`, de las que **1.365 no son comentario**, con **cero**
+  `innerHTML`, `eval` o `new Function` nuevos y cero claves ni contraseñas.
+  ⚠️ **POR SEGUNDA VEZ SEGUIDA EL RENGLÓN QUE SE ENCONTRÓ ESTABA BIEN, y se verificó de las dos
+  formas que esta casa manda:** decía 11,22 MB / 156.792 líneas con el sello `v20261103-1546` y el
+  md5 `98d60651`, y `git show c42d9e3:index.html` da **156.792** líneas, **11.223.517** bytes y ese
+  md5 exacto. **El renglón se mide al final**, con `wc -l` sobre el archivo sellado y con
+  `git show <commit>:index.html | wc -l` para el anterior.
+  (Antes: 11,22 MB / 156.792 al cierre de PANT-5, sello `v20261103-1546`, md5 `98d60651`.)
+  ⚠️ **Y EN PANT-5, POR PRIMERA VEZ EN SEIS TANDAS, EL RENGLÓN TAMBIÉN ESTABA BIEN, y casi lo
   estropeo yo.** Decía 155.780 líneas con el sello y el md5 de PANT-4, y `wc -l` sobre
   `dbfc0c3:index.html` da **155.780** exactos: ni una de diferencia. Una medición mía a mitad de
   la tanda dijo 155.781 y la escribí acá como si el renglón hubiera estado corto; al cerrar la
@@ -578,6 +581,188 @@ impecable.
 > secciones de REGLAS (la regla de oro con su tabla de mapas, «Qué es EcoSmart», el panel de
 > Evidencia, el protocolo de verificación, las trampas conocidas, el flujo de trabajo,
 > SEGURIDAD y la tabla de Procedencia) siguen enteras y en su lugar, verificado byte por byte.
+### La pantalla de CIA y CIV, el dibujo del VD, el molde de la Evidencia y los criterios TEER — «PANT-6» (2026-11-03 y 04)
+
+- **CATORCE commits —contados con `git log`—, y los SIETE de código se hicieron enteros.**
+  `f75d1cc` (1) · `69d7e9b` (2) · `a238240` (3) · `47b82fb` (4) · `36e05f6` (5) · `9ac2aa9` (6) ·
+  `ffa1b0c` · `1b16530` · `9a311a6` · `460121e` (7a-7d) · los de cobertura y documentación.
+  Sello **`v20261103-2018`**, md5 de `index.html` **`bb6adf41`**. Al empezar, `origin/main` =
+  `HEAD` = **`c42d9e3`**, el cierre de PANT-5, ya publicado, con md5 `98d60651`, sello
+  `v20261103-1546` y el pendrive `DISK_IMG` montado.
+  **El push lo corre Maicol: esta tanda tenía orden expresa de NO pushear.**
+  Cierra **P5-b**, **P5-c** y la mitad de **P5-f**.
+
+- ⚠️ **POR SEGUNDA VEZ SEGUIDA EL RENGLÓN DE TAMAÑO QUE SE ENCONTRÓ ESTABA BIEN**, y se verificó
+  como manda este archivo: `wc -l` sobre `c42d9e3:index.html` da **156.792** exactos, `wc -c`
+  **11.223.517** y el md5 **`98d60651`** — los tres idénticos a lo que el renglón decía.
+
+- **EL DEFECTO MÁS GRANDE QUE CERRÓ, EN UNA LÍNEA: el botón de cada lesión de «CIA / CIV» decidía
+  la MAQUETA, y el médico midió que no tenía sentido** —apagar la CIV dejaba los dos paneles y
+  apagar la CIA escondía los campos de la CIV pero dejaba los de la CIA—. **Decisión del médico:
+  ninguna lógica.** La CIA siempre a la izquierda, la CIV siempre a la derecha, todos los campos
+  siempre habilitados, y **el botón decide una sola cosa**: si esa lesión entra al informe.
+  `eteShuntPanes()` es dos líneas y **no lee ninguna casilla**; `eteShuntSync` perdió el bloque de
+  la clase `dos`, que era el **segundo** dueño de la maqueta.
+  ⚠️ **Y DE PASO CERRÓ UN DEFECTO PREEXISTENTE QUE NADIE PIDIÓ: el cuerpo del acordeón recortaba
+  entre 116 y 389 px de contenido**, porque `max-height` se congela al abrir y la maqueta vieja
+  crecía después. Medido en HEAD; la disposición nueva no recorta en ninguno de los cuatro anchos.
+  **La causa sigue en pie para cualquier otra sección que crezca después de abrir** → **P6-g**.
+
+- **EL DIBUJO DEL VD: DE 110 px A 520, Y LA LETRA DE 2,6 px A 12,26.** Cierra **P5-c**, que esa
+  tanda dejó declarado con la causa ya medida —«es el tamaño, no el rótulo»—. **No se tocó una
+  línea del dibujo.** El **520** es una medición y no una preferencia: la tipografía del SVG escala
+  con su ancho y el mínimo para que el rótulo más chico llegue a 12 px es **509 px**.
+  La sección pasa a `minmax(0,55fr) minmax(0,45fr)` desde 900 px, con los campos en dos columnas
+  angostas, **la lista de criterios debajo de ellos** y el dibujo abarcando las dos filas.
+  ⚠️ **ENTRE 900 Y ~1180 px LA LETRA QUEDA POR DEBAJO DE 12 px, y se declara** (**P6-b**): las dos
+  salidas posibles mueven el corte que la orden fija o tocan el dibujo, que la orden prohíbe.
+
+- **EL MOLDE, EN SEIS SECCIONES DE VÁLVULA, Y EL DESPACHO ES UNA LÍNEA.** `if (r.molde) { … }` en
+  `_indSecHTMLCuerpo`: una sección **sin** `molde` sigue por el camino de siempre, **sin tocarlo**.
+  `_indSecPie` se extrajo del cuerpo viejo para que los dos caminos cierren la sección con **las
+  mismas** piezas —dos cierres escritos a mano divergen—.
+  ⚠️ **LA FRANJA SE LLEVA LA FILA DEL GRADO ENTERA —valor, nota y citas— Y NO SÓLO SU VALOR**, y lo
+  decidió un caso: filtrar la fila y dejar sus corchetes afuera **renumeraba la bibliografía de la
+  sección**, porque la numeración es por primera aparición. La AHA pasaba de `[2]` a `[3]`. Lo cazó
+  **TC-339**.
+  ⚠️ **Y EL ÁMBAR ES `--text` / `--text2` Y NO `--orange`:** medido, sobre el fondo de la franja
+  `--orange` da **2,48:1** en el tema claro.
+
+- **LA PREGUNTA DE SÍNTOMAS CON CUALQUIER ETIOLOGÍA, que es el defecto que el médico reportó.**
+  Con «Calcificada» la estenosis mitral **no tenía ninguna**: vivía dentro del bloque de
+  contraindicaciones de la comisurotomía, que sólo se pinta con etiología reumática o sin
+  consignar. Hoy vive en `fSx`, que el molde pone **siempre** en la columna izquierda, y `fClin`
+  ya no la lleva —**una sola y sin duplicarse**—.
+
+- **LAS CINCO TABLAS DE ESTADIOS, LEÍDAS EN IMAGEN A 220-230 ppp, con el folio COMPROBADO EN EL
+  PIE IMPRESO de cada hoja:** Tabla 13 (hoja 20, **e91**), 15 (34, **e105**), 16 (42, **e113**),
+  17 (50, **e121**), 18 (57, **e128**) y 20 (61, **e132**). **Ningún umbral, ningún corte y ninguna
+  clase se movió.**
+  ⚠️ **NINGUNA SE PUDO LEER CON EXTRACCIÓN DE TEXTO:** son tablas de celdas con viñetas adentro, y
+  el texto plano las devuelve en un orden que no respeta la columna, así que una celda del estadio
+  D sale pegada a la del C.
+  ⚠️ **EN LA ESTENOSIS AÓRTICA SON MÁS DE TRES, y el rótulo de la pregunta nombra tres:** el
+  estadio D1 lista cuatro y los dos de bajo gradiente los nombran **sin** el calificativo de
+  esfuerzo. La diferencia se declara en el globo.
+  ⚠️ **EN LA SECUNDARIA LA DIFERENCIA NO ES DE REDACCIÓN SINO CLÍNICA:** los **cuatro** estadios
+  admiten síntomas, y lo que define el D es que **PERSISTAN** tras la revascularización y el
+  tratamiento médico. Por eso esa sección pregunta las dos cosas por separado.
+  ⚠️ **Y LA COLUMNA DE LA TRICUSPÍDEA NO ES SÓLO DE SÍNTOMAS:** se titula «Clinical Symptoms and
+  Presentation» y lista además la presión venosa elevada, que es un hallazgo del examen.
+  **La ESC/EACTS 2025 no los define en ninguna de las cinco**, y la diferencia **se muestra y no se
+  resuelve**, que es la regla de esta casa.
+
+- **LA MITRAL DEL ETE EN UNA SOLA SECCIÓN DE TRES COLUMNAS**, y el **dibujo NO se funde**, que es
+  lo que la orden fija. `ETE_SEC_ALIAS = { 'mediciones-mitral': 'morfo' }`, resuelto en la primera
+  línea de `toggleEteSeccion`.
+  ⚠️ **SIN ESE ALIAS LAS LLAMADAS VIEJAS SERÍAN UN NO-OP SILENCIOSO:** tres casos de la suite y
+  cuatro sondas abren esa sección por su nombre anterior, y un `toggle` sobre un id que no existe
+  **no avisa**.
+  ⚠️ **Y UN `</div>` DE MÁS COSTÓ UNA MEDICIÓN:** el cierre de la `grid-3` original ya cerraba
+  `#etem-g1`, así que el extra sacaba las columnas 2 y 3 **fuera** de `#etem-cols` —el reparto daba
+  **−1** y la sección medía 874 px—. Es el modo de falla que PANT-3 pagó con el módulo de arritmia.
+  **Las dos casillas siguen siendo dos mecanismos distintos** y no se unificaron: son dos
+  decisiones del médico sobre dos contenidos.
+
+- **LOS DOS TIPOS DE IM DEL TEER SE VEN LOS DOS, SIEMPRE**, con todos sus campos habilitados en
+  los tres valores del selector. **Lo que se retiró son DOS líneas, comentadas y no borradas**, con
+  su fecha, que es lo que impide que alguien las reponga creyendo que faltan.
+  **El veredicto no cambió por la maqueta, y es por construcción:** los criterios siguen declarando
+  su `tipo` y el evaluador aplica sólo los que corresponden.
+  ⚠️ **Y EL CONTROL NEGATIVO HAY QUE MONTARLO CON EL TIPO PRIMARIA PUESTO:** el flail gap es un
+  criterio `prim`, así que con la escena de la secundaria cargada no se evalúa y el control pasa en
+  verde sobre un veredicto que nada puede mover.
+  ⚠️ **LA FRANJA ROSA VACÍA NO SE REPRODUCE COMO DEFECTO, y está medido:** tiene **50 caracteres**
+  de texto, se muestra **sólo** sin tipo de IM elegido —que es su trabajo— y el «paréntesis» que el
+  médico vio es su **borde izquierdo de 3 px**. No se tocó → **P6-c**.
+
+- **EL FORRESTER FUERA DEL PAPEL POR SUS DOS CAMINOS RESTANTES.** Cierra **P5-b**.
+  `forrEsFalta(txt)` reconoce las **tres** frases que `forrFaltaTxt` produce **comparándolas contra
+  lo que él devuelve**, no contra una cadena escrita a mano: con el texto copiado, mover la
+  redacción de una dejaría el filtro mirando una frase que ya no existe. Sus dos consumidores son
+  `amiloTextoHemo()` —informe integrado y hoja del PDF— y la fila `_pptSpan`. **La de PANTALLA se
+  queda**, que es donde el médico necesita saber qué le falta.
+
+- **LOS DOS RÓTULOS DE LA PROFUNDIDAD DE COAPTACIÓN SE DISTINGUEN** —«reparación» y «TEER»—, y
+  **ningún id cambió ni ningún rótulo del Excel ni del papel**: la hoja del PDF sigue imprimiendo
+  «Profundidad de coaptación» por `_amFila`. **Siguen SIN sincronizarse a propósito**: son dos
+  cortes distintos, 10 mm como factor desfavorable y 11 mm como criterio **c4** del TEER, que decide
+  APTO / NO APTO. Es la mitad de **P5-f** que **no** se resuelve → **P6-f**.
+
+- ⚠️ **DOS SECCIONES DEL MOLDE SE PARARON Y SE REPORTARON**, cada una con su motivo: la **válvula
+  pulmonar** (`_indEP`, 4 preguntas) **no tiene fila de estadio** —la guía no publica estadios para
+  esa lesión—, y la **prótesis mitral** (`_indProtM`, 6) tiene por categoría el **voto de cuatro
+  criterios de obstrucción** y no un grado, así que qué va en la franja es una decisión clínica.
+  **TC-649 (F1)** es el guardián de esa parada → **P6-a**.
+
+- **32/32 MUTACIONES DIRIGIDAS MUERTAS** en una sola pasada, en worktree y nunca sobre el vivo, con
+  el md5 **idéntico** antes y después. **Seis de las treinta y dos no revierten nada: la aplican de
+  más**, porque las condiciones que las matan son **controles negativos**.
+  ⚠️ **QUINCE SOBREVIVIERON AL PRIMER BARRIDO Y ME DIJERON DOS COSAS DISTINTAS.**
+  **Nueve eran huecos reales**, y seis del mismo tipo: el caso miraba el **dato** o la
+  **visibilidad** y no la **maqueta** ni la **emisión** —apilar la fila de CIA/CIV en una columna,
+  sacarle el borde al cuadro, cambiar `display:grid` por `block` dentro de la media query, apagar
+  la emisión de las dos franjas y apilar las dos filas del TEER pasaban en verde—, y los otros tres
+  eran el **enganche** del globo: le sacaban el `term` a la fila de síntomas de las **seis**
+  válvulas y las seis sobrevivían, porque el registro de términos seguía entero. Nacen **(A2)**,
+  **(A3)**, **(A3b)**, **(B1b)**, **(A4b)**, **(E5)**, **(C2)** y el bloque **(H)** entero, que
+  abre el panel y mide el **DOM emitido**.
+  **Tres estaban mal escritas y no inyectaban nada:** una abría un **segundo** `div` con el id de
+  la fila y `getElementById` devuelve el primero; otra envolvía `window.etemVeloGesto` mientras el
+  caso llama al binding **local** de la página; y la tercera declaraba una variable que nadie lee.
+  ⚠️ **Y UNA DÉCIMA SOBREVIVIÓ AL SEGUNDO BARRIDO, SOBRE UN DENOMINADOR VACÍO:** el control
+  negativo de las dos secciones paradas las llamaba sobre la escena de la tricúspide, donde **las
+  dos devuelven `null`**, así que la rama `if (!r)` las salteaba. Hoy cada una tiene **su** escena
+  y un **(F0)** que declara que abren, que es lo que hace que **(F1)** pueda fallar.
+
+- **SEIS CASOS NUEVOS, TC-644 a TC-649**, con sus denominadores y sus controles negativos, y los
+  seis **caen contra HEAD por 81 condiciones y NINGUNA por excepción**, verificado en un worktree
+  con el mismo archivo de casos, alternando sólo `index.html`.
+  ⚠️ **CINCO TRAMPAS PAGADAS AL ESCRIBIRLOS, cada una con su nota en el caso.** `_indClin` es un
+  `var` de módulo y **no está en `window`**, así que el setter que inventé no escribía nada y las
+  tres condiciones de los tres estados leían la misma marca en los dos lados: lo que escribe la
+  respuesta es el **clic** sobre el botón del panel. La botonera declara **dos** opciones y no tres
+  —el centinela explícito `__sd` lo llevan las secciones de congénitas que PANT-2 pasó a tres
+  estados—. El **flail gap** es criterio de la IM primaria. La compuerta de la insuficiencia
+  aórtica compara contra el token **`'4'`** y no contra `'severa'`, y la de la secundaria necesita
+  el **mecanismo consignado**: las dos escenas devolvían `null`. Y `leer()` tiene que devolver una
+  **forma completa** en los dos caminos, porque `{err}` a secas mata el caso por **excepción**.
+  ⚠️ **Y LA BARRA INVERTIDA SIMPLE, otra vez:** `/repeat\(2/` escrito desde un heredoc llega al
+  template sin la barra y es un grupo sin cerrar. Se cerró **no usando ninguna expresión regular**.
+  ⚠️ **Y EL ACENTO GRAVE DENTRO DE MIS PROPIOS COMENTARIOS, POR DECIMOCTAVA TANDA SEGUIDA**, en
+  cuatro casos. **`node --check` los cazó todos**, y lo que acabó funcionando fue contar los
+  acentos graves de cada caso después de cada edición y exigir el número exacto —uno por caso—.
+
+- **DOCE ESCENAS NUEVAS EN EL A/B**, y cada una carga los campos que **abren** su sección: las seis
+  con molde —incluida `p6emCalc`, la estenosis mitral con etiología **calcificada**, que es el
+  defecto del médico— y las dos del TEER con sus dos tipos, **integradas al informe**, porque el
+  veredicto llega al papel por ahí. Sin eso, un cero no distingue «el papel no se movió» de «la
+  escena no llega a la zona».
+
+- **ONCE CASOS VIEJOS ADAPTADOS, cada uno con el motivo escrito**: **TC-328** (el estado corto se
+  corta en ` · ` y no en el guión largo, o la tarjeta pierde qué significa el valor), **TC-339** (la
+  franja se lleva la fila del grado entera, con sus citas, o la bibliografía se renumera),
+  **TC-451** (las etiquetas de los seis globos tienen que ser **distintas**, porque `_indTermHTML`
+  arma el `aria-label` con ellas y es lo que hace que abrir uno no abra el otro), **TC-642**,
+  **TC-575**, **TC-638**, **TC-329**, **TC-337** y los dos recolectores de grupos del panel.
+  ⚠️ **TC-451 FUE EL QUE CAZÓ QUE DOS GLOBOS COMPARTÍAN CLAVE**, con «Qué síntomas cuentan» a
+  secas: hoy cada etiqueta nombra su válvula.
+
+- **Dónde está todo:** `docs/mapa/pant6-pantallas-molde.md` (**mapa NUEVO**, 17,4 KB), las fichas
+  de los seis casos en `docs/mapa/tests-fichas-644.md` (**archivo propio**, porque
+  `tests-fichas.md` está a menos de 1 KB del techo), **cinco mapas con un puntero cada uno**
+  —medidos ANTES de escribir: `panel-evidencia.md` 18,8 → 20,5 KB, `pant5-pantallas-vd.md` 14,0 →
+  15,2, `c1-hemodinamica.md` 14,3 → 15,2, `mitral-dibujo-estatico.md` 33,5 → **34,6** y
+  `tests-punteros-tandas.md` 32,5 → 33,6—, `docs/fuentes/FUENTES.md` → «La tanda PANT-6» con las
+  cinco tablas transcritas columna por columna, las seis reglas de folio comprobadas en el pie
+  impreso y la tabla «Cambios de evidencia» de nueve filas, `docs/REGISTRO_TANDAS.md` → el bloque
+  de la tanda, `docs/GUIA_PRUEBA_PANT6.md` → la guía manual en **43** pasos, y
+  `docs/PENDIENTES.md` → **OCHO** cosas declaradas (**P6-a** a **P6-h**), más el cierre de
+  **P5-b**, **P5-c** y la mitad de **P5-f**.
+  ⚠️ **`congenitas-otros.md` (34.540 B) y `valvulas.md` (33.863 B) NO se tocaron.**
+  ⚠️ **Y `mitral-dibujo-estatico.md` quedó en 34,6 KB, a 400 bytes del techo: la próxima tanda que
+  lo toque tiene que partirlo** → **P6-h**.
+
 ### El dibujo de sobrecarga del VD, el Forrester y cinco pantallas — «PANT-5» (2026-11-03)
 
 - **DIECISIETE commits —contados con `git log`—, y los NUEVE de código se hicieron enteros.**

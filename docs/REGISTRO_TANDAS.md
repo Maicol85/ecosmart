@@ -812,3 +812,62 @@ da **UNA** diferencia de superficie firmada, la autorizada del commit 6. Sello
 **Dónde está todo:** `docs/mapa/pant5-pantallas-vd.md` (**mapa nuevo**, 14,0 KB),
 `docs/fuentes/FUENTES.md` → «La tanda PANT-5» con las cuatro tablas transcritas,
 `docs/GUIA_PRUEBA_PANT5.md` y `docs/PENDIENTES.md` → **P5-a** a **P5-j**.
+
+## PANT-6 (2026-11-03 y 04) — la pantalla de CIA y CIV, el dibujo del VD, el molde de la Evidencia, la mitral del ETE y los criterios TEER
+
+**Commits:** `f75d1cc` (1 · CIA y CIV) · `69d7e9b` (2 · el dibujo del VD) · `a238240` (3 · el molde
+de la estenosis mitral) · `47b82fb` (4 · la mitral del ETE en una sección) · `36e05f6` (5 · los
+criterios TEER) · `9ac2aa9` (6 · el Forrester y los dos rótulos) · `ffa1b0c` · `1b16530` ·
+`9a311a6` · `460121e` (7a-7d · el molde en las otras cinco válvulas) · `3a8bf04` y los de
+cobertura y documentación. Al empezar, `origin/main` = `HEAD` = **`c42d9e3`**, el cierre de
+PANT-5, con md5 `98d60651`. **El push lo corre Maicol.**
+
+**Qué cerró, en una línea cada cosa:**
+- **La pantalla de CIA y CIV se rehizo entera.** Los botones ya **no** deciden la maqueta: la CIA
+  siempre a la izquierda, la CIV siempre a la derecha, todos los campos habilitados, y el botón
+  decide **sólo** si la lesión entra al informe. Es la decisión del médico, que midió que la
+  lógica anterior no tenía sentido.
+- **El dibujo del VD pasó de 110 px a 520 y su letra de 2,6 px a 12,26.** Cierra **P5-c**, y el
+  dibujo no se tocó: lo que cambió es su ancho y la maqueta de la sección.
+- **El molde de las secciones de válvula**, en **seis**: franja ámbar con la categoría y el
+  estadio, tarjetas de datos, preguntas por tema en dos columnas y la tabla al pie.
+- **La pregunta de síntomas de la estenosis mitral existe con CUALQUIER etiología.** Era el
+  defecto que el médico reportó: con «Calcificada» no había ninguna, porque vivía dentro del
+  bloque de la comisurotomía.
+- **La morfología y las mediciones de la mitral son UNA sección de tres columnas**, con alias para
+  el nombre viejo. El dibujo **no** se fundió.
+- **Los dos tipos de IM del TEER se ven los dos, siempre.**
+- **La frase de dato faltante del Forrester salió del papel** por sus dos caminos restantes, y se
+  quedó en la pantalla. Cierra **P5-b**.
+- **Los dos rótulos de la profundidad de coaptación se distinguen** —«reparación» y «TEER»— sin
+  tocar un id ni un rótulo del Excel ni del papel. Cierra la mitad de **P5-f**.
+
+**Lo que se PARÓ y se reportó, con su medición:** la Evidencia de la **válvula pulmonar** y de la
+**prótesis mitral** (P6-a, con el motivo de cada una y **TC-649 (F1)** como guardián); la letra del
+dibujo del VD entre 900 y ~1180 px (P6-b); la **franja rosa** de los criterios TEER, que **no se
+reproduce como defecto** —tiene 50 caracteres de texto y el «paréntesis» es su borde de 3 px—
+(P6-c); `vdscRotulos()`, que **no existe** (P6-d); y la sincronización de los dos campos de
+coaptación, que cambiaría el criterio c4 del TEER (P6-f).
+
+**Las fuentes:** las **CINCO tablas de estadios** de la AHA/ACC 2020 leídas **en imagen** a
+220-230 ppp, con el folio comprobado en el **pie impreso** de cada hoja: Tabla 13 (hoja 20,
+**e91**), 15 (34, **e105**), 16 (42, **e113**), 17 (50, **e121**), 18 (57, **e128**) y 20 (61,
+**e132**). **Ningún umbral, ningún corte y ninguna clase se movió.** Las dos guías discrepan —sólo
+la AHA/ACC enumera los síntomas— y **la diferencia se muestra y no se resuelve**, que es la regla.
+
+**Verificación:** **32/32 mutaciones dirigidas muertas en UNA sola pasada**, en worktree y nunca
+sobre el vivo, con el md5 idéntico antes y después; **seis casos nuevos (TC-644 a TC-649)** que
+caen contra HEAD por **81 condiciones y cero excepciones**; **once casos viejos adaptados**; A/B
+final contra HEAD con PDF y PPT generados de verdad; Chrome y WebKit en los dieciséis cruces.
+⚠️ **Quince mutaciones sobrevivieron al primer barrido y me dijeron dos cosas distintas:** nueve
+eran **huecos reales** —el caso miraba el dato, la visibilidad o el registro, y no la maqueta, la
+emisión ni el enganche— y nacieron **(A2)**, **(A3)**, **(A3b)**, **(B1b)**, **(A4b)**, **(E5)**,
+**(C2)** y el bloque **(H)**; **tres estaban mal escritas** y no inyectaban nada. Y una décima
+sobrevivió al segundo barrido **sobre un denominador vacío**: el control de las dos secciones
+paradas las llamaba en una escena donde las dos devuelven `null`.
+
+**Dónde está todo:** `docs/mapa/pant6-pantallas-molde.md` (**mapa nuevo**, 17,4 KB),
+`docs/mapa/tests-fichas-644.md` (archivo propio), `docs/fuentes/FUENTES.md` → «La tanda PANT-6»
+con las cinco tablas transcritas columna por columna y los seis folios comprobados en el pie
+impreso, `docs/GUIA_PRUEBA_PANT6.md` (43 pasos) y `docs/PENDIENTES.md` → **P6-a** a **P6-h**.
+`congenitas-otros.md` y `valvulas.md` no se tocaron.
