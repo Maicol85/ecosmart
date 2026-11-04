@@ -54,6 +54,64 @@ El fragmento literal del informe es:
 Lo que la Evidencia de Ebstein sí hace, y no sustituye a esto: su fila del índice dice que no
 figura en ninguna de las dos guías y que las indicaciones de cirugía de la ESC 2020 son clínicas.
 
+### ⚠️ Y HAY UNA SEGUNDA COPIA EN EL PAPEL, EN EISENMENGER: TRES DE LAS FRASES RETIRADAS
+
+`eisenEstado` publica sus tres ALERTAS con `txt` y `suma`, y su propio comentario dice por qué
+—«Por eso suben al EN SUMA y no se quedan en el cuerpo»—. **Tres de las frases que el commit 1
+retiró de los globos tienen una segunda copia ahí, y esa copia llega al informe firmado.**
+Medido en la escena `p9eisen` del A/B, con la lesión de base, saturación 84 %, síncope y
+hemoptisis cargados, y **el mismo censo da el MISMO número en HEAD y en el árbol nuevo**: esta
+tanda no la introdujo y, por la regla de la orden, tampoco la tocó.
+
+| Superficie | «mortalidad materna >50» | «marcador de mal pronóstico» | «riesgo de episodio masivo» | «y fatal» | «ESC 2020» |
+|---|---|---|---|---|---|
+| informe, estilo estándar (1.391 caracteres) | 1 | 1 | 1 | 1 | 1 |
+| informe, estilo narrativo (1.503) | 1 | 1 | 1 | 1 | 1 |
+| informe, estilo conciso (1.233) | 1 | 1 | 1 | 1 | 1 |
+| EN SUMA, los tres estilos (312) | 1 | 1 | 1 | 0 | 0 |
+| PDF (35.018 caracteres de texto emitido, seis plantillas) | 30 | 30 | 30 | 18 | 18 |
+| PPT (2.947) | 1 | 1 | 1 | 0 | 0 |
+
+Los fragmentos literales del informe son:
+
+> «Saturación crítica (84 %, <90 %). **Embarazo contraindicado — mortalidad materna >50 %
+> (ESC 2020).** Evitar deshidratación, hipotensión y anestesia general sin experiencia en
+> hipertensión arterial pulmonar. **Síncope presente — marcador de mal pronóstico.** Evaluación
+> urgente en centro especializado … **Hemoptisis presente — riesgo de episodio masivo y fatal.**
+> Evaluación urgente.»
+
+Y el del EN SUMA:
+
+> «Eisenmenger con saturación 84 % — embarazo contraindicado, **mortalidad materna >50 %**.
+> Eisenmenger con síncope — **marcador de mal pronóstico**, evaluación urgente.
+> Eisenmenger con hemoptisis — **riesgo de episodio masivo**, evaluación urgente.»
+
+**Son cuatro problemas**, y los cuatro son decisión del médico:
+1. el **«>50 %»**, que ninguna fuente de la biblioteca publica: la ACC/AHA 2025 da **30 a 50 %**
+   (hoja 95, folio e209), y la **propia tarjeta de criterios de esta aplicación ya escribe
+   «30-50 %»**, así que la pantalla se contradice consigo misma;
+2. **«marcador de mal pronóstico»**, que es la frase de `cc9-eisen-sin` retirada del globo por no
+   aparecer en los capítulos de Eisenmenger de ninguna de las dos guías;
+3. **«y fatal»**, que es la frase de `cc9-eisen-hem` retirada por lo mismo —ninguna de las dos la
+   califica de fatal; la ACC/AHA 2025 dice que **suele autolimitarse**—;
+4. **«ESC 2020»**, un nombre de guía en el papel, que choca con la regla fija de esta casa.
+
+### Las DOS redacciones propuestas para «mortalidad materna >50 %» (punto 1c de la orden)
+
+La orden dice **no tocar** la franja roja de contraindicaciones, que es decisión expresa del
+médico, y proponer dos redacciones. Las dos conservan el hecho clínico —el embarazo está
+contraindicado— y ninguna inventa un número.
+
+| | Redacción propuesta | Qué gana | Qué pierde |
+|---|---|---|---|
+| **A — con la cifra que la fuente publica** | «Contraindicaciones absolutas — embarazo (mortalidad materna 30 a 50 %) · …» | Queda un número medido y **coincide con la fuente** (ACC/AHA 2025, hoja 95, folio e209) y con lo que la tarjeta de criterios de esta misma aplicación ya escribe, así que la pantalla deja de contradecirse. | Una cifra algo menor en la franja que grita; el médico decide si eso baja la alarma que la franja busca dar. |
+| **B — sin cifra** | «Contraindicaciones absolutas — embarazo · …» | No afirma ningún número, así que no hay nada que una fuente pueda desmentir, y la franja sigue diciendo lo único que tiene que decir. | Se pierde la magnitud, que es justamente lo que hace que el médico no la tome por una contraindicación relativa. |
+
+**Cualquiera de las dos hay que aplicarla en los DOS lugares**, o la pantalla y el papel divergen:
+la franja (`Contraindicaciones absolutas`) y `eisenEstado`, cuyos `txt` y `suma` son los que llegan
+al informe, al EN SUMA, al PDF y al PPT según la tabla de arriba. Y en el papel hay que sacar
+además el **«(ESC 2020)»**, que la regla fija prohíbe.
+
 ## P10-b · La ventana aortopulmonar no tiene Evidencia, y ninguna guía de la biblioteca la trata
 
 Censado por contenido, normalizando ligaduras: **la ESC 2020 de cardiopatías congénitas del
@@ -118,6 +176,8 @@ sigue, por orden de lo que la propia orden nombra:
 
 - **La frase del índice de Celermajer en el papel** — **P10-a** arriba, con la medición en las
   seis superficies. Es lo primero.
+- **Las tres alertas de Eisenmenger en el papel y la cifra de la franja** — **P10-a** arriba, con
+  su censo y con las **dos redacciones propuestas** para elegir. Es lo segundo.
 - **La ventana aortopulmonar sin Evidencia** — **P10-b**, con sus dos fuentes candidatas.
 - **Revisar las Evidencias existentes del ductus, la coartación y la miocardiopatía hipertrófica
   obstructiva**, que tienen **cero preguntas**, y la de la Fallot reparada, que cubre **sólo** la

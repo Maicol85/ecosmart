@@ -658,6 +658,13 @@ impecable.
   **idéntico a HEAD**. Son tres problemas en una frase —el κ sin respaldo, el nombre de una guía
   en el papel y una mayúscula en medio de la oración— y los tres son decisión del médico:
   `docs/PENDIENTES.md` → **P10-a**.
+  ⚠️ **Y NO ES UNA SOLA: `eisenEstado` TIENE OTRA, CON TRES DE LAS FRASES RETIRADAS.** Medido en
+  `p9eisen`, con el mismo censo dando el MISMO número en HEAD y en el árbol nuevo: el informe en
+  los **tres** estilos y el **PDF** publican «mortalidad materna >50 %», «marcador de mal
+  pronóstico», «riesgo de episodio masivo **y fatal**» y «ESC 2020»; el EN SUMA y el PPT, las tres
+  primeras. El «>50 %» no lo publica ninguna fuente —la ACC/AHA 2025 da **30 a 50 %**— y **la
+  propia tarjeta de criterios de la app ya escribe «30-50 %»**, así que la pantalla se contradice
+  consigo misma. Parado y reportado, con las **dos redacciones propuestas** para la franja.
 
 - **LAS SEIS REGLAS DE FOLIO SE COMPROBARON EN EL PIE IMPRESO, NINGUNA SE DIO POR BUENA.**
   ACC/AHA 2025 **e(hoja+114)**, en ocho hojas · ESC 2020 inglesa **hoja+562**, en siete ·
@@ -817,8 +824,8 @@ impecable.
   los **nueve** folios nuevos presentes, la franja de Eisenmenger en sus **137** caracteres,
   **186 de 186** botones de respuesta con área táctil, **cero** desplazamiento horizontal,
   **cero** textos recortados y **CERO errores de consola y de página en los dos motores**.
-  **El mismo cruce contra HEAD es el control**: da **0 de 5** secciones, con los globos, la
-  franja, el scroll y los recortes iguales.
+  **El mismo cruce contra HEAD es el control, en sus DIECISÉIS cruces**: da **0 de 5** secciones,
+  con los 17 globos, la franja en 137 caracteres, cero scroll y cero recortes **iguales**.
   ⚠️ **WebKit de Playwright no es Safari, y se declara.** Chrome va por el del sistema con
   `channel: 'chrome'`. El único error de consola del árbol de HEAD es del arnés
   —`ERR_FILE_NOT_FOUND`, porque se carga de una copia en el temporal—, que es lo que la tanda D2
