@@ -1075,7 +1075,10 @@ encabezado del acordeón; y lo que sigue.
 | `c05a29c` | 2026-11-04 | PANT10-4: la Evidencia de la circulacion de Fontan |
 | `742f493` | 2026-11-04 | PANT10-5: la Evidencia de la conexion venosa pulmonar anomala parcial |
 | `955053c` | 2026-11-04 | PANT10-6: la Evidencia del sindrome de Eisenmenger |
-| — | 2026-11-04 | PANT10-7: cobertura y documentacion de la tanda |
+| `808d89a` | 2026-11-04 | PANT10-7: cobertura y documentacion de la tanda |
+| `38ba80f` | 2026-11-04 | PANT10-8: el segundo hallazgo de papel y las dos redacciones de la franja |
+| `968df75` | 2026-11-04 | PANT10-9: la geometria del panel y los dos pasos que faltaban en la guia |
+| — | 2026-11-04 | PANT10-10: el conteo de commits al cerrar |
 
 **Qué cambió.** Los **diecisiete** textos que PANT-9 había movido al globo ⓘ se corrigieron
 contra la hoja que cada uno invoca, leída en imagen a 200-220 ppp y con el folio comprobado en el

@@ -637,9 +637,13 @@ impecable.
 > SEGURIDAD y la tabla de Procedencia) siguen enteras y en su lugar, verificado byte por byte.
 ### Los textos de congénitas contra las hojas y la Evidencia de cinco lesiones — «PANT-10» (2026-11-04)
 
-- **SIETE commits —contados con `git log b734958..HEAD` AL CERRAR— y los SEIS de código se
-  hicieron enteros.** `2f87731` (1) · `d87b4a5` (2) · `f49ccc3` (3) · `c05a29c` (4) · `742f493`
-  (5) · `955053c` (6) · el de cobertura y documentación. Sello **`v20261104-1123`**, md5 de
+- **DIEZ commits —contados con `git log b734958..HEAD` AL CERRAR, y el commit que escribe este
+  número entra en la cuenta— y los SEIS de código se hicieron enteros.** `2f87731` (1) ·
+  `d87b4a5` (2) · `f49ccc3` (3) · `c05a29c` (4) · `742f493` (5) · `955053c` (6) · `808d89a` (7,
+  cobertura y documentación) · `38ba80f` (8, el segundo hallazgo de papel y las dos redacciones
+  de la franja) · `968df75` (9, la geometría del panel y los dos pasos de la guía) · éste (10).
+  Los **cuatro** de documentación **NO vuelven a sellar `index.html`**, porque no lo tocan: su
+  md5 al cerrar es el mismo del sello, verificado. Sello **`v20261104-1123`**, md5 de
   `index.html` **`c91b1462`**. Al empezar, `origin/main` = `HEAD` = **`b734958`**, el cierre de
   PANT-9, ya publicado, con md5 `2a135ab1`, sello `v20261104-0832` y el pendrive `DISK_IMG`
   montado.
