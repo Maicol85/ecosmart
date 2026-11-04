@@ -100,6 +100,35 @@ párrafo del básico pone «Sí» y los valores ya están puestos.
 que el médico puede haber puesto él mismo en la otra pantalla, y eso es una pérdida que la orden
 no pide. Si el médico prefiere que también se vacíe, es una línea.
 
+## P11-e · El dibujo del pulmón: lo medido, y qué cuesta
+
+**EL «ESPACIO VACÍO DE 111 px AL PIE» REPRODUCE, Y NO ES ESPACIO VACÍO.** Medido con la métrica
+que lo reproduce —lo que queda entre el último campo y el borde de abajo de la sección—: **112 px
+a 1440 px**, 110 a 1000 y a 768, 121 a 390. Lo que ocupa esos píxeles es la tira «Patrón global
+/ Interpretación» y el botón de integrar, que son **contenido**, no un hueco. El espacio que de
+verdad estaba vacío era la **mitad derecha** de la sección, y es el que el dibujo ocupa.
+
+| ancho | caja antes | ocupado antes | caja después | ocupado después |
+|---|---|---|---|---|
+| 1440 px | 1232 × 414 | 33 % | 1232 × 489 | **38 %** |
+| 1000 px | 808 × 499 | 42 % | 808 × 511 | **51 %** |
+| 768 px | 736 × 499 | 42 % | 736 × 913 | 38 % |
+| 390 px | 358 × 712 | 50 % | 358 × 1130 | **56 %** |
+
+**LO QUE CUESTA, declarado:** por debajo de 900 px el dibujo se **apila**, que es la regla fija
+de esta casa, y la sección crece de 499 a 913 px a 768 y de 712 a 1130 a 390. Es el mismo precio
+que PANT-9 declaró para sus seis secciones. Por encima de 900 px crece 75 px a 1440 y 12 a 1000,
+y a cambio la mitad derecha deja de estar en blanco. **No se cambió la disposición para
+compensarlo.**
+
+**Lo que el dibujo NO dibuja, y lo DICE en su línea descriptiva:** líneas B presentes sin
+ninguna zona marcada, consolidación sin lado consignado, y punto pulmón sin un lado único
+(«bilateral» o sin consignar). Un dibujo que calla un hallazgo cargado se lee como que la app lo
+perdió.
+
+**Lo que el dibujo no muestra y se decide después:** el tipo del derrame (libre o tabicado), la
+distancia entre pleuras, el deslizamiento y las líneas A. La orden no los pide.
+
 ## P10-a · Los textos que el commit 1 retiró de los globos, LITERALES, y el que llega al papel
 
 La regla (ii) de la tanda PANT-10 manda que lo que **ninguna fuente de la biblioteca respalda**

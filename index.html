@@ -54,6 +54,18 @@
     font-display: swap;
   }
   :root {
+    /* PALETA DEL DIBUJO DE LA ECOGRAFIA PULMONAR (PANT-11, commit 7a). Valores de
+       docs/3d/demo_pulmon_interactivo_v2_aprobado.html, tema oscuro.
+       ADVERTENCIA: vive aca y en html.light-mode, y NO dentro de la caja del dibujo. Es la
+       regla de la casa y esta escrita con sangre: --amber se declaraba solo dentro de
+       .amilo-root, asi que cinco avisos que decian color:var(--amber) se veian GRISES. */
+    --pul-dib-lung: rgba(120,190,150,.14);
+    --pul-dib-lungline: #6fbf93;
+    --pul-dib-fluid: rgba(90,160,225,.48);
+    --pul-dib-fluidline: #7fb6ee;
+    --pul-dib-cons: rgba(190,190,190,.55);
+    --pul-dib-consline: rgba(220,220,220,.7);
+    --pul-dib-bline: #8cc0f2;
     --bg: #0f1117;
     --bg2: #181c27;
     --bg3: #1e2333;
@@ -118,6 +130,14 @@
     --vdsc-names: #dddddd; --vdsc-cel: #5cc3f2; --vdsc-ink: #f2f2f2;
   }
   html.light-mode {
+    /* Los mismos siete, en el tema claro de la demo aprobada. */
+    --pul-dib-lung: rgba(80,150,110,.17);
+    --pul-dib-lungline: #4a9a72;
+    --pul-dib-fluid: rgba(63,127,191,.5);
+    --pul-dib-fluidline: #2f6fb3;
+    --pul-dib-cons: rgba(95,95,95,.66);
+    --pul-dib-consline: rgba(60,60,60,.8);
+    --pul-dib-bline: #2f6fb3;
     --bg: #f4f6f9;
     --bg2: #ffffff;
     --bg3: #eef1f6;
@@ -504,12 +524,33 @@
      campos y la de consolidacion uno visible-, que es el hueco que se lee como «aca falta algo».
      Los campos de cada columna van en UNA columna (`.pul-col-campos`): es la grilla interna que
      reemplaza a las `grid-3`/`grid-2`/`grid-4` que tenian los cuatro grupos apilados. */
+  /* ⚠️ PANT-11, commit 7b — LOS CAMPOS A LA IZQUIERDA Y EL DIBUJO A LA DERECHA desde 900 px,
+     que es la regla fija de esta casa, con el corte sobre la VENTANA y el piso DENTRO de la
+     media query. Por debajo de 900 px se apila, con el dibujo debajo de los campos.
+     El dibujo mide 220 px, que es lo que mide el esquema valvular 2D de Valvulas, asi que el
+     reparto de `.pul-cols` se recalculo con esos 220 px menos: a 900 px de ventana la columna
+     de campos mide 428 px y dos columnas dan 209 px cada una -por encima del piso de 200-; a
+     1400 px mide 928 y cuatro columnas dan 221. De ahi salen los dos cortes de abajo. */
+  #pul-fila{display:flex;flex-direction:column;gap:12px;align-items:stretch;}
+  #pul-izq{min-width:0;}
+  #pul-dib-caja{width:100%;max-width:260px;margin:0 auto;}
+  @media(min-width:900px){
+    #pul-fila{flex-direction:row;align-items:flex-start;}
+    #pul-izq{flex:1 1 auto;min-width:0;}
+    #pul-dib-caja{flex:0 0 220px;width:220px;max-width:220px;margin:0;}
+  }
+  #pul-dib-svg{display:block;width:100%;height:auto;}
+  /* El colapso del neumotorax es lo unico que se mueve, y se apaga con prefers-reduced-motion. */
+  #pul-dib-svg .pul-dib-lung{transition:transform .4s ease;}
+  @media (prefers-reduced-motion: reduce){ #pul-dib-svg .pul-dib-lung{transition:none;} }
+  #pul-dib-svg .pul-dib-lbl{font-size:15px;font-weight:700;fill:var(--text);text-anchor:middle;}
+  #pul-dib-pie{font-size:10.5px;color:var(--text2);line-height:1.45;margin-top:6px;}
   .pul-cols{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;align-items:start;margin-bottom:12px;}
   .pul-col{min-width:0;}
   .pul-col-campos{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;margin-bottom:12px;}
   .pul-col-h{font-size:12px;font-weight:700;color:var(--accent2);margin-bottom:8px;
              padding-bottom:5px;border-bottom:1px solid var(--border);}
-  @media(max-width:1100px){ .pul-cols{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;} }
+  @media(max-width:1399px){ .pul-cols{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;} }
   @media(max-width:600px){ .pul-cols{grid-template-columns:minmax(0,1fr);} }
   .hfa-col{min-width:0;}
   .hfa-col-h{font-size:11px;font-weight:700;color:var(--accent2);text-transform:uppercase;letter-spacing:.04em;
@@ -10331,6 +10372,8 @@ window.cerrarSesionReal = cerrarSesionReal;
               nacen en `display:none` y solo aparecen con «Consolidacion: Si».
            La conclusion (patron global) y el boton de integrar quedan DEBAJO y a todo el ancho,
            donde ya estaban: no se tocan. -->
+      <div id="pul-fila">
+      <div id="pul-izq">
       <div class="pul-cols">
       <div class="pul-col" data-pul-col="pleura">
         <div class="pul-col-h">🔍 Pleura y líneas A</div>
@@ -10545,6 +10588,18 @@ window.cerrarSesionReal = cerrarSesionReal;
       </div>
       </div>
       </div>
+      </div><!-- /#pul-izq -->
+      <!-- ⚠️ EL DIBUJO — PANT-11, commit 7a. Portado de la demo aprobada por el medico el
+           04/11/2026 (docs/3d/demo_pulmon_interactivo_v2_aprobado.html), SIN sus controles: aca
+           es de SOLO LECTURA y se pinta con los campos cargados. Mide 220 px, que es lo que mide
+           el esquema valvular 2D de Valvulas. No escribe ningun campo y no llega al papel. -->
+      <div id="pul-dib-caja">
+        <svg id="pul-dib-svg" viewBox="0 0 440 560" xmlns="http://www.w3.org/2000/svg" role="img"
+             aria-label="Esquema frontal de los dos pulmones con la pleura, la traquea y el arbol bronquial"></svg>
+        <div id="pul-dib-desc" style="font-size:11px;color:var(--text);margin-top:6px;line-height:1.45;" aria-live="polite">—</div>
+        <div id="pul-dib-pie">Esquema ilustrativo: no está a escala ni mide.</div>
+      </div>
+      </div><!-- /#pul-fila -->
 
       <div class="calc-box" style="margin-bottom:12px;">
         <div class="calc-row">
@@ -68129,7 +68184,7 @@ function RECALC_MODULOS() {
   /* `vciNoVisSync` va PRIMERO: deja los dos campos de la VCI como corresponde ANTES de que los
      veinticinco consumidores de esta misma lista los lean. */
   return ['vciNoVisSync','aoRaizReconciliar','taviAoReconciliar','profCoaptReconciliar',
-          'puaDerrameReconciliar','puaPopReconciliar','tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','asiaMmSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','dtTapSync','vdTrivSync','etOndaESync','papmEstSync','calcDopTric','etTsvdSync','calcET','vpVmaxSync','ipIncongruenciaSync','itRefFuenteSync','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccSegSync','vpSync','popSync','sglOrigenSync','calcVenaPulm','valvProtSync','eaTaviEspejar','imEspejosRestaurar','eteVmAvisoSync','vmCarpLegadoSync','vmCarpOrigenSync','vmProtBloqSync','vmMorfFitSync','vdStrainPlSync','emPdfValsSync','emCuadroRefRepintar','emContFaAvisoSync','imCortesPintar','imContAvisoPintar','itIncongruenciaSync','aoEspejosRestaurar','tangoRestaurar','diastExclSync','diastFcAvisoSync','diastBseEprimaAvisoSync','diastBseGrisAvisoSync','diastStrainMarcaSync','vdMarcaSync','vdTeiAvisoSync','tep6060Resalte','hfPepSync','hfPepPintar','viVolAutoSync','eaAvaiGradoPintar','eaPvlPintar','imPvlPintar','vdTapsePsapSync','ipApDiamSync','vdViSelSync','htpApSync','htpTablaPintar','m3dBotonSync','contrPdfSync','sglPdfSync','eteQxPdfSync','otrBurbUI','v2dCerrar','aiviSexoSync','vtDviAuto','sincronizarTEERDesdeGlobal','calcETE',
+          'puaDerrameReconciliar','puaPopReconciliar','pulDibSync','tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','asiaMmSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','dtTapSync','vdTrivSync','etOndaESync','papmEstSync','calcDopTric','etTsvdSync','calcET','vpVmaxSync','ipIncongruenciaSync','itRefFuenteSync','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccSegSync','vpSync','popSync','sglOrigenSync','calcVenaPulm','valvProtSync','eaTaviEspejar','imEspejosRestaurar','eteVmAvisoSync','vmCarpLegadoSync','vmCarpOrigenSync','vmProtBloqSync','vmMorfFitSync','vdStrainPlSync','emPdfValsSync','emCuadroRefRepintar','emContFaAvisoSync','imCortesPintar','imContAvisoPintar','itIncongruenciaSync','aoEspejosRestaurar','tangoRestaurar','diastExclSync','diastFcAvisoSync','diastBseEprimaAvisoSync','diastBseGrisAvisoSync','diastStrainMarcaSync','vdMarcaSync','vdTeiAvisoSync','tep6060Resalte','hfPepSync','hfPepPintar','viVolAutoSync','eaAvaiGradoPintar','eaPvlPintar','imPvlPintar','vdTapsePsapSync','ipApDiamSync','vdViSelSync','htpApSync','htpTablaPintar','m3dBotonSync','contrPdfSync','sglPdfSync','eteQxPdfSync','otrBurbUI','v2dCerrar','aiviSexoSync','vtDviAuto','sincronizarTEERDesdeGlobal','calcETE',
           /* `pamAvisoSync` (B-2) repinta la línea del dueño único de la PAM. Entra acá por lo
              mismo que los demás: las cinco rutas de restauración pueblan asignando `.value`,
              que no dispara `input`, así que al reabrir un estudio con dos PAM que difieren el
@@ -114947,6 +115002,214 @@ function puaPopReconciliar() {
 }
 window.puaPopReconciliar = puaPopReconciliar;
 
+/* ══ EL DIBUJO DE LA ECOGRAFIA PULMONAR — PANT-11, commit 7a ═════════════════════════════════
+   Portado de la demo APROBADA por el medico el 04/11/2026
+   (docs/3d/demo_pulmon_interactivo_v2_aprobado.html), que es de donde salen el contorno del
+   pulmon, la escala de la cavidad, el arbol bronquial, el generador de la mancha irregular y
+   las alturas del nivel de liquido: ni una curva se invento aca.
+   LO QUE NO SE PORTA: los botones, los presets, la seleccion de lobulo por clic y las etiquetas
+   de lobulo. Aca el dibujo es de SOLO LECTURA, se pinta con los campos cargados, no escribe
+   ningun campo y NO llega al papel.
+   ADVERTENCIA: ni un nodo sale de innerHTML. Todo con createElementNS, igual que el esquema del
+   posoperatorio y el esquema valvular 2D.
+   ADVERTENCIA: los colores son variables de la app, declaradas en los DOS temas al lado de las
+   del resto de la pantalla -la leccion de --amber, que se declaraba solo dentro de .amilo-root
+   y dejaba cinco avisos en gris-. */
+var PUL_D_NS = 'http://www.w3.org/2000/svg';
+/* Contorno del pulmon derecho, en coordenadas del dibujo; el izquierdo es su espejo. */
+var PUL_D_LUNG = 'M208 98 C160 92 100 118 80 190 C62 260 62 360 82 430 C96 474 144 490 180 482 C202 474 208 456 208 440 C212 330 212 190 208 98 Z';
+var PUL_D_HX = 190, PUL_D_HY = 205, PUL_D_CAVS = 1.08;
+/* Altura del techo del liquido por severidad. Son las de la demo y son ILUSTRATIVAS. */
+var PUL_D_FLUID = { leve: 470, moderado: 410, severo: 330 };
+/* Colapso FIJO del neumotorax: la app no mide el tamano, asi que no gradua. Es el valor
+   intermedio de la demo. */
+var PUL_D_PNX = 0.72;
+var PUL_D_TRONCO = 'M190 205 L176 250 L164 350';
+var PUL_D_RAMAS = ['M190 205 L150 180', 'M150 180 L112 168', 'M150 180 L120 205', 'M165 190 L158 150',
+                   'M178 245 L130 275', 'M130 275 L96 268', 'M130 275 L104 300',
+                   'M170 300 L124 335', 'M124 335 L92 342', 'M164 350 L112 388',
+                   'M154 400 L128 440', 'M164 350 L146 432'];
+/* Las ramas que entran en la mancha, para el broncograma aereo. */
+var PUL_D_BRONINF = ['M170 300 L124 335', 'M124 335 L92 342', 'M164 350 L112 388',
+                     'M154 400 L128 440', 'M164 350 L146 432'];
+/* La mancha va en la parte INFERIOR del pulmon, SIN lobulo: es la decision del medico. */
+var PUL_D_BLOB = [120, 408, 48, 62, 3.1];
+/* Los tres sectores del abanico de lineas B. El abanico de la demo va de 100 a 260 grados desde
+   el hilio; se reparte en tres tramos de ancho igual -anterior arriba, lateral al medio, basal
+   abajo-, que es el reparto que la orden pide. Son ILUSTRATIVOS, como el resto del dibujo. */
+var PUL_D_SECT = { ant: 153, lat: 207 };
+function _pulDEl(n, a, p) { var e = document.createElementNS(PUL_D_NS, n);
+  for (var k in a) e.setAttribute(k, a[k]); if (p) p.appendChild(e); return e; }
+/* El generador de la mancha irregular es el de la demo, numero por numero. */
+function _pulDBlob(cx, cy, rx, ry, seed) {
+  var n = 14, pts = [], i;
+  for (i = 0; i < n; i++) {
+    var th = i / n * 2 * Math.PI;
+    var r = 1 + 0.17 * Math.sin(3 * th + seed) + 0.11 * Math.sin(5 * th + seed * 1.7) + 0.07 * Math.sin(7 * th + seed * 0.6);
+    pts.push([cx + Math.cos(th) * rx * r, cy + Math.sin(th) * ry * r]);
+  }
+  var d = 'M' + pts[0][0].toFixed(1) + ' ' + pts[0][1].toFixed(1);
+  for (i = 0; i < n; i++) {
+    var p0 = pts[(i - 1 + n) % n], p1 = pts[i], p2 = pts[(i + 1) % n], p3 = pts[(i + 2) % n];
+    var c1 = [p1[0] + (p2[0] - p0[0]) / 6, p1[1] + (p2[1] - p0[1]) / 6];
+    var c2 = [p2[0] - (p3[0] - p1[0]) / 6, p2[1] - (p3[1] - p1[1]) / 6];
+    d += ' C' + c1[0].toFixed(1) + ' ' + c1[1].toFixed(1) + ' ' + c2[0].toFixed(1) + ' ' + c2[1].toFixed(1)
+       + ' ' + p2[0].toFixed(1) + ' ' + p2[1].toFixed(1);
+  }
+  return d + ' Z';
+}
+/* EL ESTADO que el dibujo consume. Sale de los MISMOS ids que lee el emisor del papel: con una
+   segunda regla, el dibujo y el informe podrian decir cosas distintas del mismo paciente. */
+function pulDibEstado() {
+  var V = function (id) { var e = document.getElementById(id); return e ? String(e.value || '').trim() : ''; };
+  var C = function (id) { var e = document.getElementById(id); return !!(e && e.checked); };
+  var hayDer = V('pua_derrame') === 'si';
+  var sev = function (x) { return PUL_D_FLUID[x] ? x : ''; };
+  var lbOn = V('pua_lineasb') === 'presentes';
+  var zonas = { D: { ant: C('pua_z_ant_d'), lat: C('pua_z_lat_d'), bas: C('pua_z_bas_d') },
+                I: { ant: C('pua_z_ant_i'), lat: C('pua_z_lat_i'), bas: C('pua_z_bas_i') } };
+  var cons = V('pua_consol') === 'si';
+  var cl = V('pua_consol_lado');
+  var bronco = V('pua_consol_bronco') === 'con';
+  /* NEUMOTORAX: solo con punto pulmon PRESENTE y con un lado unico consignado. Con «bilateral»
+     o sin lado no se dibuja, y la linea de abajo lo DICE: un dibujo que calla un hallazgo
+     cargado se lee como que la app lo perdio. */
+  var punto = V('pua_punto') === 'si';
+  var pl = V('pua_desliz_lado');
+  return {
+    der: { D: hayDer ? sev(V('pua_derrame_der')) : '', I: hayDer ? sev(V('pua_derrame_izq')) : '' },
+    lb: { D: lbOn ? zonas.D : null, I: lbOn ? zonas.I : null },
+    lbSinZona: lbOn && !['ant', 'lat', 'bas'].some(function (k) { return zonas.D[k] || zonas.I[k]; }),
+    cons: { D: cons && (cl === 'der' || cl === 'bilateral'), I: cons && (cl === 'izq' || cl === 'bilateral') },
+    consSinLado: cons && !cl,
+    bronco: bronco,
+    pnx: { D: punto && pl === 'derecho', I: punto && pl === 'izquierdo' },
+    pnxSinLado: punto && pl !== 'derecho' && pl !== 'izquierdo'
+  };
+}
+window.pulDibEstado = pulDibEstado;
+function _pulDLado(svg, defs, side, st) {
+  var g = _pulDEl('g', {}, svg);
+  if (side === 'I') g.setAttribute('transform', 'translate(440 0) scale(-1 1)');
+  var cav = 'translate(' + PUL_D_HX + ' ' + PUL_D_HY + ') scale(' + PUL_D_CAVS + ') translate('
+          + (-PUL_D_HX) + ' ' + (-PUL_D_HY) + ')';
+  /* Pleura PARIETAL: la pared toracica, punteada. */
+  _pulDEl('path', { d: PUL_D_LUNG, transform: cav, fill: 'var(--bg2)',
+    stroke: 'var(--text2)', 'stroke-width': 1.5, 'stroke-dasharray': '5 4' }, g);
+  var lg = _pulDEl('g', { 'class': 'pul-dib-lung' }, g);
+  if (st.pnx[side]) lg.setAttribute('transform', 'translate(' + PUL_D_HX + ' ' + PUL_D_HY + ') scale('
+    + PUL_D_PNX + ') translate(' + (-PUL_D_HX) + ' ' + (-PUL_D_HY) + ')');
+  /* Pleura VISCERAL: el borde del pulmon. */
+  _pulDEl('path', { d: PUL_D_LUNG, fill: 'var(--pul-dib-lung)', stroke: 'var(--pul-dib-lungline)',
+    'stroke-width': 2 }, lg);
+  var cg = _pulDEl('g', { 'clip-path': 'url(#pulDibClipLng)' }, lg);
+  /* Cisuras tenues: tres lobulos a la derecha, dos a la izquierda. NO se seleccionan. */
+  if (side === 'D') {
+    _pulDEl('path', { d: 'M66 258 Q140 252 210 240', fill: 'none', stroke: 'var(--pul-dib-lungline)',
+      'stroke-width': 1.1, 'stroke-dasharray': '4 3', opacity: 0.8 }, cg);
+    _pulDEl('path', { d: 'M62 352 Q140 340 212 318', fill: 'none', stroke: 'var(--pul-dib-lungline)',
+      'stroke-width': 1.1, 'stroke-dasharray': '4 3', opacity: 0.8 }, cg);
+  } else {
+    _pulDEl('path', { d: 'M212 250 Q140 270 62 330', fill: 'none', stroke: 'var(--pul-dib-lungline)',
+      'stroke-width': 1.1, 'stroke-dasharray': '4 3', opacity: 0.8 }, cg);
+  }
+  /* Arbol bronquial. */
+  var tg = _pulDEl('g', { fill: 'none', stroke: 'var(--text2)', 'stroke-linecap': 'round',
+    'stroke-linejoin': 'round', opacity: 0.7 }, lg);
+  _pulDEl('path', { d: PUL_D_TRONCO, 'stroke-width': 5 }, tg);
+  PUL_D_RAMAS.forEach(function (d) { _pulDEl('path', { d: d, 'stroke-width': 2.6 }, tg); });
+  /* LINEAS B: desde el hilio hacia la periferia, SOLO en el sector de cada zona marcada. */
+  var z = st.lb[side];
+  if (z) {
+    var bg = _pulDEl('g', { 'clip-path': 'url(#pulDibClipLng)' }, lg);
+    for (var i = 0; i < 16; i++) {
+      var ang = 100 + i * (160 / 15);
+      var k = (ang < PUL_D_SECT.ant) ? 'ant' : (ang < PUL_D_SECT.lat) ? 'lat' : 'bas';
+      if (!z[k]) continue;
+      var a = ang * Math.PI / 180;
+      _pulDEl('line', { x1: PUL_D_HX, y1: PUL_D_HY,
+        x2: PUL_D_HX + Math.cos(a) * 260, y2: PUL_D_HY - Math.sin(a) * 260,
+        stroke: 'var(--pul-dib-bline)', 'stroke-width': 1.4, opacity: 0.7, 'stroke-linecap': 'round' }, bg);
+    }
+  }
+  /* CONSOLIDACION: una mancha gris irregular y redondeada en la parte inferior, SIN lobulo. */
+  if (st.cons[side]) {
+    var d2 = _pulDBlob(PUL_D_BLOB[0], PUL_D_BLOB[1], PUL_D_BLOB[2], PUL_D_BLOB[3], PUL_D_BLOB[4]);
+    var cid = 'pulDibBlob' + side;
+    var cc = _pulDEl('clipPath', { id: cid }, defs);
+    _pulDEl('path', { d: d2 }, cc);
+    var cw = _pulDEl('g', { 'clip-path': 'url(#pulDibClipLng)' }, lg);
+    _pulDEl('path', { d: d2, fill: 'var(--pul-dib-cons)', stroke: 'var(--pul-dib-consline)',
+      'stroke-width': 1.2 }, cw);
+    /* BRONCOGRAMA AEREO: solo con «con». Con «sin» o «fluido» estas lineas no se dibujan. */
+    if (st.bronco) {
+      var bb = _pulDEl('g', { 'clip-path': 'url(#' + cid + ')', fill: 'none',
+        stroke: 'var(--bg2)', 'stroke-linecap': 'round', 'stroke-linejoin': 'round', opacity: 0.92 }, cw);
+      PUL_D_BRONINF.forEach(function (dd, k2) { _pulDEl('path', { d: dd, 'stroke-width': k2 === 0 ? 3.2 : 2 }, bb); });
+    }
+  }
+  _pulDEl('circle', { cx: PUL_D_HX, cy: PUL_D_HY, r: 4, fill: 'var(--text2)' }, lg);
+  /* LIQUIDO en el espacio pleural, con menisco, DELANTE del pulmon. */
+  var sv = st.der[side];
+  if (sv) {
+    var fg = _pulDEl('g', { 'clip-path': 'url(#pulDibClipCav)' }, g);
+    var yt = PUL_D_FLUID[sv];
+    _pulDEl('path', { d: 'M0 ' + (yt - 16) + ' Q80 ' + (yt + 3) + ' 190 ' + yt + ' L440 ' + yt + ' L440 560 L0 560 Z',
+      fill: 'var(--pul-dib-fluid)', stroke: 'var(--pul-dib-fluidline)', 'stroke-width': 1.2 }, fg);
+  }
+}
+/* LA LINEA QUE DESCRIBE LO DIBUJADO, con las palabras de los campos. Sin conducta y sin
+   diagnostico: dice lo que se ve, y dice tambien lo que NO se pudo dibujar. */
+function pulDibDescripcion(st) {
+  var Z = { ant: 'anterior', lat: 'lateral', bas: 'basal' };
+  var lado = function (k) {
+    var f = [];
+    if (st.der[k]) f.push('derrame ' + st.der[k]);
+    var z = st.lb[k];
+    if (z) { var zz = ['ant', 'lat', 'bas'].filter(function (x) { return z[x]; }).map(function (x) { return Z[x]; });
+      if (zz.length) f.push('lineas B ' + zz.join(', ')); }
+    if (st.cons[k]) f.push('consolidacion' + (st.bronco ? ' con broncograma aereo' : ''));
+    if (st.pnx[k]) f.push('punto pulmon presente (colapso ilustrativo)');
+    return f.length ? f.join(' · ') : 'sin hallazgos dibujados';
+  };
+  var av = [];
+  if (st.lbSinZona) av.push('lineas B presentes sin zona marcada: no se dibujan');
+  if (st.consSinLado) av.push('consolidacion sin lado consignado: no se dibuja');
+  if (st.pnxSinLado) av.push('punto pulmon sin lado unico consignado: no se dibuja');
+  return 'Derecho: ' + lado('D') + ' · Izquierdo: ' + lado('I')
+       + (av.length ? ' — ' + av.join('; ') + '.' : '.');
+}
+window.pulDibDescripcion = pulDibDescripcion;
+function pulDibSync() {
+  var svg = document.getElementById('pul-dib-svg');
+  if (!svg) return;
+  var st = pulDibEstado();
+  while (svg.firstChild) svg.removeChild(svg.firstChild);
+  var defs = _pulDEl('defs', {}, svg);
+  var cav = 'translate(' + PUL_D_HX + ' ' + PUL_D_HY + ') scale(' + PUL_D_CAVS + ') translate('
+          + (-PUL_D_HX) + ' ' + (-PUL_D_HY) + ')';
+  var c1 = _pulDEl('clipPath', { id: 'pulDibClipCav' }, defs);
+  _pulDEl('path', { d: PUL_D_LUNG, transform: cav }, c1);
+  var c2 = _pulDEl('clipPath', { id: 'pulDibClipLng' }, defs);
+  _pulDEl('path', { d: PUL_D_LUNG }, c2);
+  /* Traquea y bronquios principales, fuera de los pulmones. */
+  _pulDEl('rect', { x: 209, y: 26, width: 22, height: 76, rx: 4, fill: 'var(--bg2)',
+    stroke: 'var(--text2)', 'stroke-width': 1.2 }, svg);
+  _pulDLado(svg, defs, 'D', st);
+  _pulDLado(svg, defs, 'I', st);
+  ['D', 'I'].forEach(function (k) {
+    var g = _pulDEl('g', {}, svg);
+    if (k === 'I') g.setAttribute('transform', 'translate(440 0) scale(-1 1)');
+    _pulDEl('path', { d: 'M220 98 L190 205', fill: 'none', stroke: 'var(--text2)',
+      'stroke-width': 6, opacity: 0.75, 'stroke-linecap': 'round' }, g);
+  });
+  var t1 = _pulDEl('text', { x: 112, y: 46, 'class': 'pul-dib-lbl' }, svg); t1.textContent = 'Derecho';
+  var t2 = _pulDEl('text', { x: 328, y: 46, 'class': 'pul-dib-lbl' }, svg); t2.textContent = 'Izquierdo';
+  var dd2 = document.getElementById('pul-dib-desc');
+  if (dd2) dd2.textContent = pulDibDescripcion(st);
+}
+window.pulDibSync = pulDibSync;
+
 function pulAvUI() {
   const on = (id, v) => { const e = document.getElementById(id); if (e) e.style.display = v ? '' : 'none'; };
   const lbOn = _amV('pua_lineasb') === 'presentes';
@@ -114966,6 +115229,8 @@ function pulAvUI() {
   const p = document.getElementById('pua-patron'), i = document.getElementById('pua-patron-interp');
   if (p) p.textContent = r.p;
   if (i) i.textContent = r.i;
+  /* El dibujo se repinta al final, con el estado ya resuelto. */
+  try { if (typeof pulDibSync === 'function') pulDibSync(); } catch (e) {}
 }
 window.pulAvUI = pulAvUI;
 
@@ -157758,8 +158023,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261104-1453';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793814834381;                 /* eco-build-ms */
+const ECO_BUILD    = '20261104-1509';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793815780483;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -157845,7 +158110,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261104-1453</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261104-1509</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
