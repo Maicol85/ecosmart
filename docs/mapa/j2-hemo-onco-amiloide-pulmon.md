@@ -330,3 +330,18 @@ cardíaco de 2,2 exactos **no** es hipoperfusión en el Forrester. Ver `PENDIENT
 C1-b.
 
 **Todo en `docs/mapa/c1-hemodinamica.md` §§ 3, 4 y 6.**
+
+---
+
+## Puntero · PANT-11 (2026-11-04) — el eco pulmonar gana el derrame por lado y su dibujo
+
+Tres campos nuevos —`pua_derrame_der`, `pua_derrame_izq` y `pua_consol_lado`—, los dos campos
+legados (`pua_derrame_lado` y `pul_derrame_tam`) **derivados y deshabilitados**, la sincronía con
+el POCUS del posoperatorio **con su guarda** —el básico escribe en el posoperatorio sólo si el
+posoperatorio ya está en uso, y «en uso» EXCLUYE los cinco campos que el espejo escribe— y el
+**dibujo del pulmón** de solo lectura, portado de la demo aprobada.
+
+⚠️ **Ninguno de estos campos tiene columna de Excel**, censado: la premisa de que la derivación
+preserva «sus dos columnas» es falsa → **P11-c**.
+
+Ver `docs/mapa/pant11-vci-pulmon-masas.md` § 5 a § 7 y **TC-678**.

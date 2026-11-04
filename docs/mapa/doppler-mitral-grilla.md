@@ -136,3 +136,16 @@ las dos «(estudio anterior)» con el campo vacío. **El chequeo de acá es estr
 puede probar desde este entorno, así que lo que se verifica es que las dos opciones no existen y que
 ninguna de las cuatro que quedan está oculta ni deshabilitada —con el `display` COMPUTADO, no con la
 propiedad—. Que en Safari ya no aparezcan lo mira el médico.
+
+---
+
+## Puntero · PANT-11 (2026-11-04) — el TDE y el TRIV intercambiaron de lugar
+
+La columna 2 pasa de **THP, TDE, TRIV, Onda L** a **THP, TRIV, TDE, Onda L**. Se intercambiaron
+las clases `dm-rN` **y el orden del MARCADO**, juntos, porque no hay un solo `tabindex` en la
+grilla y el Tab va por orden del documento. Las otras tres columnas no se movieron.
+
+⚠️ **Y el papel no se puede mover por eso, medido:** el informe NO nombra ninguna de las dos
+siglas y **ninguna de las dos tiene columna de Excel** —cero entradas en `LAB_XLS_MAP`—.
+
+Ver `docs/mapa/pant11-vci-pulmon-masas.md` § 2 y **TC-675**.

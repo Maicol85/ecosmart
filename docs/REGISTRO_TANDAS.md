@@ -1096,3 +1096,60 @@ por superficie y **no tocada**, porque la orden manda parar y reportar. Después
 aortopulmonar sin Evidencia —ninguna guía de la biblioteca la trata—, los cortes del DSAV que no
 son los de ninguna de las dos guías, y las Evidencias existentes del ductus, la coartación y la
 miocardiopatía hipertrófica obstructiva, que tienen cero preguntas.
+
+---
+
+## Tanda PANT-11 — el papel de Ebstein y Eisenmenger, la VCI no visualizada, el eco pulmonar por lado y las masas en Otros (2026-11-04)
+
+| commit | fecha | título |
+|---|---|---|
+| `3bd2d05` | 2026-11-04 | PANT11-1: el papel de Ebstein y de Eisenmenger lleva solo lo medido |
+| `785d83b` | 2026-11-04 | PANT11-2: TDE y TRIV del Doppler mitral intercambian de lugar |
+| `cb10ce2` | 2026-11-04 | PANT11-3: la casilla «(no se visualiza VCI)» en VD / AD |
+| `e3fa328` | 2026-11-04 | PANT11-4: la profundidad de coaptacion, un dato con dos puertas |
+| `476d4f0` | 2026-11-04 | PANT11-5: la ecografia pulmonar gana el derrame por lado y el lado de la consolidacion |
+| `45f18b7` | 2026-11-04 | PANT11-6: la ecografia pulmonar y el posoperatorio, sincronizados con guarda |
+| `df248c0` | 2026-11-04 | PANT11-7: el dibujo de la ecografia pulmonar y la disposicion de su seccion |
+| `c1576e8` | 2026-11-04 | PANT11-8: «Masas» se muda a la pestania Otros y «Pericardio y masas» pasa a «Pericardio» |
+| `ff3ede8` | 2026-11-04 | PANT11-9a: la tabla de diagnosticos diferenciales de las masas, con sus fuentes |
+| `ffe716f` | 2026-11-04 | PANT11-9b: el globo de endocarditis en la fila de la vegetacion |
+| `9edc0fe` | 2026-11-04 | PANT11-10: la ficha de Referencias de tumores cardiacos |
+| `682ffdb` | 2026-11-04 | PANT11-11: la ficha de Referencias de fuentes emboligenas |
+| `a26b03c` | 2026-11-04 | PANT11-8b: la seccion de masas era HERMANA de variantes y estaba ANIDADA |
+| — | 2026-11-04 | PANT11-12: cobertura y documentacion de la tanda |
+
+**Qué cambió.** Cierra **P10-a**: `ebsConclusion` y `eisenEstado` publican ahora una salida
+`papel` descriptiva, armada de las **mismas piezas** que la pantalla, así que el informe firmado
+de una anomalía de Ebstein deja de llevar el κ de 0,39, el apellido Celermajer, la resonancia, la
+serie neonatal, el nombre de la guía y la conducta —todo eso sigue en el globo y en la
+Evidencia—, y las alertas de síncope y de hemoptisis del síndrome de Eisenmenger se retiran
+enteras, con la mortalidad materna corregida a **30 a 50 %** contra la hoja 95, folio e209. En el
+Doppler mitral el **TDE y el TRIV intercambian de lugar**, clases y marcado juntos. La pestaña
+VD / AD gana la casilla **«(no se visualiza VCI)»**, que vacía y guarda los dos campos de la cava
+para que sus ~25 consumidores degraden a «sin dato» por construcción. Las **dos** profundidades de
+coaptación —la del ETE y la de los criterios TEER— pasan a ser **un dato con dos puertas**. La
+ecografía pulmonar gana el **derrame por lado** y el **lado de la consolidación**, con los dos
+campos legados derivados, la sincronía con el posoperatorio **con su guarda** y el **dibujo del
+pulmón** de solo lectura, portado de la demo aprobada. Y **«Masas» se muda a la pestaña Otros**,
+con una tabla de diagnósticos diferenciales de siete filas con sus fuentes, un globo de
+endocarditis, y **dos fichas de Referencias nuevas** —tumores cardíacos y fuentes embolígenas—.
+
+**Campos guardados nuevos: CUATRO**, los autorizados:
+`vci_no_vis`, `pua_derrame_der`, `pua_derrame_izq` y `pua_consol_lado`. `VINFO` pasa de **140 a
+142** entradas y las fichas de Referencias de **36 a 38**. **Cero columnas de Excel nuevas.**
+
+**Qué quedó pendiente.** `P11-a` a `P11-h`. Lo que la tanda paró y reportó: la columna de Excel
+que la premisa daba por existente y **no existe** para ningún campo del pulmón (P11-c); los pares
+del pulmón que **no** se sincronizan, con el motivo de cada uno (P11-d); lo que el dibujo no
+muestra (P11-e); la opción «pannus» en `masa_dx` (P11-f); y el botón «Ver referencia» de los dos
+globos nuevos, que no tiene destino exacto hoy (P11-g). El commit **8b** corrige un defecto propio
+de la tanda: un `</div>` de menos dejaba la sección de masas anidada dentro de «Variantes
+anatómicas», con el DOM balanceado y sin síntoma visible.
+**Suite al cierre: 689/694** en trece lotes, una sola pasada sobre el árbol sellado, con los
+cuatro rojos de siempre más el intermitente **TC-557** y **ningún rojo nuevo**. **44/44
+mutaciones dirigidas muertas.** Semgrep **124 WARNING / 0 ERROR**. Excel **441** columnas con las
+mismas claves. Censo de campos **1004 → 1008**.
+
+Cierra **P10-a**, **P6-f**, **P5-f** y **P6-h**; el último porque
+`docs/mapa/mitral-dibujo-estatico.md` cruzó el techo de ~35 KB al recibir el puntero de esta
+tanda y se partió a `docs/mapa/mitral-teer-criterios.md`, con cero líneas perdidas.

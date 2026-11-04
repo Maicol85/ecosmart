@@ -10943,3 +10943,134 @@ que cada sección tenga el suyo—, abre el panel y cuenta sobre el DOM emitido.
 que se cuenta son los de **primer nivel** de `#indic-cuerpo`. (2) El censo de guías y folios iba
 sobre `innerText`, y un `<details>` **cerrado** no aporta `innerText`: daba **cero guías** en
 secciones que sí las nombran. Se hace sobre `textContent`.
+
+---
+
+## La tanda PANT-11 — notas de trabajo (2026-11-04)
+
+Doce commits de código (1 a 11, más el **8b** correctivo) y el 12 de cobertura y documentación.
+Línea base al abrir: `cf04f84`, el cierre de PANT-10, md5 `c91b1462`, sello `v20261104-1123`.
+
+### Las reglas de folio, todas comprobadas en el PIE IMPRESO
+
+| documento | regla | comprobada en |
+|---|---|---|
+| ACC/AHA de cardiopatías congénitas del adulto (Gurvitz) | folio = e(hoja + 114) | hoja 95 → **e209** |
+| Celermajer 1992, *J Am Coll Cardiol* 19:1041-6 | folio = 1040 + hoja | hoja 2 → **1042** |
+| ESC 2023 de endocarditis infecciosa | folio = hoja + 3947 | hoja 44 → **3991**, hoja 60 → **4007** |
+| JACC CardioOncology 2024 (Angeli) | folio = hoja + 846 | hoja 5 → **851** |
+| ASE 2016 de fuente embólica (Saric) | folio = **hoja** | hojas 4, 10, 16, 17, 19, 21, 23, 26, 27 |
+| ASE 2024 de prótesis valvulares (Zoghbi) | folio impreso leído directo | hoja 25 → **26** |
+| AHA/ASA 2021 de prevención secundaria del ictus (Kleindorfer) | folio = e(363 + hoja) | hoja 10 → **e373**, hoja 11 → **e374** |
+| ACC/AHA 2020 de valvulopatías (Otto) | folio = e(71 + hoja) | hoja 91 → **e162** |
+
+### Lo leído en imagen, documento por documento
+
+**ACC/AHA de cardiopatías congénitas del adulto, hoja 95, folio e209**, a 220 ppp: la mortalidad
+materna en el síndrome de Eisenmenger está «reported at 30% to 50%». Es lo que la tarjeta de
+criterios de esta misma aplicación ya escribía, y lo que la alerta del módulo **no** decía: la
+pantalla se contradecía consigo misma.
+
+**Celermajer 1992, Figura 1, hoja 2, folio 1042**, en imagen: el índice es la **relación de áreas
+en cuatro cámaras** —(aurícula derecha + ventrículo derecho atrializado) / (ventrículo derecho
+funcional + aurícula izquierda + ventrículo izquierdo)—, en telediástole. **De ahí sale el nombre
+descriptivo con que el papel lo publica.**
+
+**ESC 2023 de endocarditis infecciosa** (carpeta 05), a 210 ppp:
+- gérmenes por contexto: válvula nativa —*S. aureus* 31 %, estreptococos orales 17 %,
+  coagulasa-negativos 11 %—, hoja 19, folio **3966**; prótesis precoz contra tardía, hoja 53,
+  folio **4000**; dispositivos implantables, hoja 55, folio **4002**; usuario de drogas
+  inyectables y endocarditis derecha, hoja 59, folio **4006**;
+- **Recommendation Table 12**, hoja 44, folio **3991**: las indicaciones quirúrgicas en tres
+  grupos —insuficiencia cardíaca, infección no controlada y prevención de embolia— con la nota de
+  plazos: emergencia dentro de 24 h, urgente dentro de 3 a 5 días, no urgente dentro del mismo
+  ingreso;
+- **Recommendation Table 21** de endocarditis derecha, hoja 60, folio **4007**: vegetación
+  tricuspídea residual de más de 20 mm (I · C) y preferencia por reparar antes que reemplazar
+  (IIa · B).
+
+**ASE 2016 de fuente embólica (Saric)**, a 210 ppp: Tabla 1 (clasificación por potencial
+embolígeno, hoja 4, folio 4); **la definición ecocardiográfica del trombo del ventrículo
+izquierdo, hoja 16, folio 16**; Tabla 5 de la vegetación (hoja 17); el corte de tamaño de la
+vegetación (hoja 19); las excrecencias de Lambl (hoja 21); Tabla 8 del par trombo / pannus
+(hoja 23); el mixoma (hoja 26); el fibroelastoma papilar (hoja 27); y Tabla 3 del rendimiento
+relativo del transtorácico y del transesofágico (hoja 10, folio 10).
+
+**ASE 2024 de prótesis valvulares (Zoghbi), Tabla 9, hoja 25, folio impreso 26**: trombo por
+debajo de 200 UH y pannus por encima, con el corte de **145 UH** separándolos con sensibilidad del
+87,5 % y especificidad del 96 %.
+
+**JACC CardioOncology 2024 (Angeli)**, a 210 ppp: Tabla 2, hoja 5, folio **851** —el aspecto por
+tipo de tumor y las seis señales de alarma— y hoja 4, folio **850**, las variantes normales.
+
+**AHA/ASA 2021 de prevención secundaria del ictus (Kleindorfer)**, a 220 ppp: las recomendaciones
+de evaluación diagnóstica, hoja 10, folio **e373** —la ecocardiografía en el ictus criptogénico es
+Clase 2a · Nivel B-R, y el transesofágico en el ictus embolígeno de origen indeterminado, Clase 2b
+· Nivel C-LD—; el algoritmo completo es su **Figura 2**, hoja 11, folio **e374**.
+
+**ACC/AHA 2020 de valvulopatías (Otto), hoja 91, folio e162**, recomendación 10, Clase 2b · Nivel
+B-NR, leída en el texto del documento: la cirugía por vegetación de **más de 10 mm** con un evento
+embólico previo.
+
+### Los censos, cada uno con su control positivo
+
+| censo | resultado | control positivo |
+|---|---|---|
+| el κ de 0,39 en la biblioteca | **cero** de 248 PDF | «ebstein» en 48 |
+| «marcador de mal pronóstico» del síncope en Eisenmenger | **cero** en los capítulos de las dos guías | PANT-10 lo censó y esta tanda lo reusa |
+| «two orthogonal», «well-defined» y «artifact» en Levine 2022 | **cero** en el documento entero | la misma búsqueda los encuentra en Saric 2016, hoja 16 |
+| un score de riesgo embólico validado en la biblioteca | **ninguno**: la ESC 2023 cita Hubert y cols., su referencia 470, que **no está** | censado por nombre de archivo sobre las 28 carpetas |
+| una regla propia para distinguir la red de Chiari o la válvula de Eustaquio de una masa | **ninguna fuente la da** más allá de que son variantes | las variantes sí están descritas en Angeli, hoja 4 |
+| `tde` y `triv` en `LAB_XLS_MAP` | **cero** entradas | el mapa tiene 441 columnas |
+| `pua_*` y `pul_derrame_tam` en `LAB_XLS_MAP` | **cero** entradas | ídem |
+| los nueve `masa_*` en `LAB_XLS_MAP` | **cero** entradas: viajan dentro del texto del informe | ídem |
+
+### Las premisas que NO se reprodujeron
+
+| premisa | qué se midió |
+|---|---|
+| la definición ecocardiográfica del trombo del VI es de Levine 2022, hoja 3, folio e207 | esa hoja trata los **factores de riesgo** y el documento entero no contiene los tres términos: la definición es de la **ASE 2016, hoja 16, folio 16**, y de ahí se cita |
+| la derivación del derrame pleural preserva «sus dos columnas» de Excel | **ninguno** de esos campos tiene columna: cero entradas en `LAB_XLS_MAP` → **P11-c** |
+| el hueco de 111 px al pie de la sección pulmonar es espacio en blanco | reproduce (**112 px** medidos) pero es la franja «Patrón global» más el botón de integrar: es **contenido**, no hueco → **P11-e** |
+| el globo `cc9-ebs-cel` conserva el κ de 0,39 | **no lo trae, y es correcto**: PANT-10 lo retiró porque ninguna de las 248 fuentes lo publica |
+
+### Las diferencias entre fuentes, mostradas y NO resueltas
+
+1. **El corte de tamaño de la vegetación**: 10 mm o más en la ESC 2023, más de 10 mm en la
+   ACC/AHA 2020, y más de 10 a 15 mm en la ASE 2016.
+2. **El par trombo / pannus sobre una prótesis**: la ASE 2016 asocia el pannus a la prótesis
+   mecánica **aórtica** y el trombo a la mitral o tricuspídea; la ASE 2024 sitúa, sobre una
+   prótesis aórtica, el trombo en el lado **aórtico** y el pannus en el **ventricular**.
+3. **Las cifras de los malignos primarios no suman 100 %** —sarcomas 65 a 88 %, linfomas 27 %,
+   mesoteliomas 8 %— y la fuente no las presenta como excluyentes: se publican como están y la
+   propia fila lo dice.
+
+### Cambios de evidencia
+
+| qué | de | a | fuente |
+|---|---|---|---|
+| mortalidad materna en Eisenmenger (alerta del módulo) | «>50 %» | **«30 a 50 %»** | ACC/AHA, hoja 95, folio e209 |
+| mortalidad materna en Eisenmenger (franja roja de la pantalla) | «>50 %» | **«30 a 50 %»** | ídem (redacción A, decisión expresa del médico) |
+| el índice de Ebstein en el **papel** | «Índice de Celermajer N — grado G», con κ, resonancia y serie neonatal | **«Relación de áreas en cuatro cámaras N — grado G»** | Celermajer 1992, Figura 1, hoja 2, folio 1042 |
+| la conducta de Ebstein en el papel | con su clase y el nombre de la guía | **retirada**: vive en `_indEBS` con guía, clase, nivel, hoja y folio | — |
+| la alerta de síncope en Eisenmenger | «marcador de mal pronóstico» | **retirada**: sin respaldo | censo de PANT-10 |
+| la alerta de hemoptisis en Eisenmenger | «riesgo de episodio masivo y fatal» | **retirada**: sin respaldo | ídem |
+| la definición del trombo del VI en la tabla | atribuida a Levine 2022 | **ASE 2016, hoja 16, folio 16** | lectura en imagen |
+| los gérmenes de la endocarditis por contexto | no estaban | **cuatro contextos con su hoja y su folio** | ESC 2023 |
+| las indicaciones quirúrgicas de la endocarditis | no estaban | **tres grupos con su plazo, su clase y su nivel** | ESC 2023, Rec. Table 12 y 21 |
+| los tumores cardíacos | no estaban | **ficha de catorce filas** | Angeli 2024 y Saric 2016 |
+| las fuentes embolígenas | no estaban | **ficha de dieciocho filas en dos bloques** | Saric 2016 y Kleindorfer 2021 |
+
+### Lo que NO se escribió, y por qué
+
+- **Los cortes del puntaje ecocardiográfico y del de resonancia de los tumores**: no se leyeron
+  con certeza, y la orden dice expresamente que entonces no se citen. Lo que sí se publica son las
+  **seis señales de alarma**, que están en la hoja 5.
+- **La clasificación de la OMS de los tumores cardíacos**: no está en la biblioteca —la fuente la
+  cita como su referencia 1— y la ficha lo dice con esas palabras en vez de publicar sus
+  categorías.
+- **Un algoritmo ecocardiográfico paso a paso de la ASE para la fuente embolígena**: no existe, y
+  la ficha lo dice. Lo que la guía trae son criterios de uso apropiado y sus tablas.
+- **Un score de riesgo embólico validado**: ninguno en la biblioteca, y el globo lo dice.
+- **La opción «pannus» en `masa_dx`**: la tabla la describe, pero agregar una opción a un selector
+  del estudio es contenido clínico nuevo → **P11-f**.

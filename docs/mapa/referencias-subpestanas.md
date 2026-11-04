@@ -447,3 +447,20 @@ fuente. Va en la subpestaña **Función**, que pasa de tres entradas a cuatro, y
 El censo de entradas pasa de **35 a 36**.
 
 → **`docs/mapa/aj9-sgl-patrones.md`** § 7
+
+---
+
+## Puntero · PANT-11 (2026-11-04) — dos fichas nuevas en «Otros hallazgos»
+
+`ref-tumores` —tumores cardíacos, **catorce** filas— y `ref-embolig` —fuentes embolígenas,
+**dieciocho** filas en dos bloques: qué evaluar y la estructura en pasos del estudio del ictus—.
+El censo de fichas pasa de **36 a 38** y la sub-pestaña «Otros hallazgos» de **12 a 14**.
+
+⚠️ **Las dos entran en `REF_SUBTAB` en el MISMO commit que su ficha**, por la lección que
+`constriccion` dejó en la tanda J.
+
+⚠️ **Los dos globos nuevos de las masas NO tienen botón «Ver referencia»**, y el motivo no es el
+de las otras sesenta y siete: ninguna de estas dos fichas publica el mismo contenido que ellos →
+**P11-g**.
+
+Ver `docs/mapa/pant11-vci-pulmon-masas.md` § 10 y **TC-679 (D)**.

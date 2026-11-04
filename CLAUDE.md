@@ -98,7 +98,8 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Montar un A/B o un barrido de MUTACIÓN, o leer una trampa de instrumentación** | `docs/mapa/arneses-ab-mutacion.md` |
 | **Tocar el BUCLE DEL VIDEO de los dos PPT, los BOTONES de respuesta del panel de Evidencia, la cláusula de la IT sistémica de la TGA o la línea de la MIOCARDIOPATÍA HIPERTRÓFICA del PPT de congénitas**: el árbol de tiempo y su falla cerrada, el dueño único que prepara un mp4, la media query del piso táctil, o `mchConclusion().papel` | `docs/mapa/aj3-bucle-botones.md` |
 | **Agregar o correr un caso de prueba** | `docs/mapa/tests.md` · los casos tanda por tanda en `docs/mapa/tests-punteros-tandas.md` · fichas en `docs/mapa/tests-fichas-577.md` (TC-577 a TC-581), `docs/mapa/tests-fichas-572.md` (TC-572 a TC-576), `docs/mapa/tests-fichas-550.md` (TC-550), `docs/mapa/tests-fichas-538.md` (TC-538), `docs/mapa/tests-fichas-537.md` (TC-537), `docs/mapa/tests-fichas-536.md` (TC-536), `docs/mapa/tests-fichas-535.md` (TC-535), `docs/mapa/tests-fichas-532.md` (TC-532), `docs/mapa/tests-fichas.md` (TC-499 en adelante), `docs/mapa/tests-fichas-496-498.md`, `docs/mapa/tests-fichas-491-495.md` y `docs/mapa/tests-fichas-481-490.md` |
-| **Tocar el DIBUJO ESTÁTICO de la mitral en ETE**: la tabla única de festones por ángulo, la geometría, la línea del plano, el giro, las tres vistas con sus LETRAS DE FESTÓN, **la ORIENTACIÓN de la TRANSGÁSTRICA**, el PDF, los CUATRO DIBUJOS DE MEDIDAS TEER, **los CRITERIOS TEER y sus cortes** o **el ESPEJO de la FEVI y el DSFVI del TEER** | `docs/mapa/mitral-dibujo-estatico.md` |
+| **Tocar el DIBUJO ESTÁTICO de la mitral en ETE**: la tabla única de festones por ángulo, la geometría, la línea del plano, el giro, las tres vistas con sus LETRAS DE FESTÓN, **la ORIENTACIÓN de la TRANSGÁSTRICA** o el PDF | `docs/mapa/mitral-dibujo-estatico.md` |
+| **Tocar los CUATRO DIBUJOS DE MEDIDAS TEER, los CRITERIOS TEER y sus cortes, el ESPEJO de la FEVI y el DSFVI del TEER, o las DOS PROFUNDIDADES DE COAPTACIÓN sincronizadas** | `docs/mapa/mitral-teer-criterios.md` |
 | **Tocar algo que la tanda R2 corrigió** (21/10): las cinco opciones del derrame y la traducción del token viejo, el repintado de la VAB con el gesto de la pastilla, los seis puntos de la probabilidad de HTP, el e′ medial en tres tramos, el espesor relativo y el criterio por eco de la amiloidosis, el SGL y la calculadora de cardio-oncología, el síndrome intersticial difuso por zonas, el índice cardiaco y la RVS, o la orejuela | `docs/mapa/tanda-r2-correcciones.md` |
 | **Tocar algo que la tanda R movió**: la lesión presente sin grado de la VAB, los cortes del TEER, la severidad de la disfunción del VD, el área de la AI, los grados del derrame, el taponamiento que ya no concluye, el VD/VI del TEP o los criterios declarados de Referencias | `docs/mapa/tanda-r-referencias.md` |
 | **Tocar la sección de la VÁLVULA AÓRTICA BICÚSPIDE**: la disposición en tres columnas, las seis tarjetas ⓘ, los factores de riesgo con casilla, el DIBUJO y sus puntos sensibles, **la SIMETRÍA DE LAS CÚSPIDES y el ÁNGULO con que se dibuja**, **los SEIS dibujos por tipo y la ANIMACIÓN de la apertura**, **la FUNCIÓN VALVULAR derivada**, **el RESUMEN esquemático y su texto en Evidencia**, la morfología que sigue al tipo de fusión, la descripción del informe, el PDF o el recordatorio de la coartación | `docs/mapa/vab-bicuspide.md` |
@@ -118,6 +119,7 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Tocar la EVIDENCIA DE CONGENITAS con sus DOS guias** —la ACC/AHA 2025 y la ESC 2020—, una pregunta de la transposicion, de la CIA o de la CIV, la regla «una pregunta, una guia», la linea de referencia de la otra guia, la nota de tramos que no coinciden, **o el EN SUMA de una valvula con PLASTIA o con TEER** | `docs/mapa/correvid-evidencia-congenitas.md` |
 | **Tocar el PAPEL de la TGA operada con JATENE o con RASTELLI**, el dueño `TGA_CIR_OP`, o **agregar una sección al panel de Evidencia con PREGUNTAS de tres estados** —la de la transposición, la CIA, la CIV o la prevención de muerte súbita de la MCH—: dónde se persisten las respuestas, cómo se agrupan las recomendaciones por situación y qué quedó parado | `docs/mapa/t2-evidencia-congenitas.md` |
 | **Tocar un TEXTO explicativo de una pantalla de congénitas —los diecisiete globos ⓘ `cc9-*`—, o una de las CINCO Evidencias nuevas** (defecto del septo auriculoventricular, anomalía de Ebstein, circulación de Fontan, conexión venosa pulmonar anómala parcial, síndrome de Eisenmenger): sus preguntas, sus bloques por guía, las diferencias que se muestran sin resolver, o la frase del índice de Celermajer que todavía llega al papel | `docs/mapa/pant10-congenitas-evidencia.md` |
+| **Tocar el PAPEL de la anomalía de Ebstein o del síndrome de Eisenmenger, la casilla «(no se visualiza VCI)», el TDE y el TRIV del Doppler mitral, las dos profundidades de coaptación, el DERRAME PLEURAL POR LADO del eco pulmonar con su sincronía con el posoperatorio, el DIBUJO DEL PULMÓN, o las MASAS en la pestaña Otros con su tabla de diferenciales y las dos fichas de Referencias nuevas** | `docs/mapa/pant11-vci-pulmon-masas.md` |
 | **Tocar una de las SIETE PANTALLAS de congenitas que la tanda PANT-9 redisenio** —Fontan, Eisenmenger, Ebstein, defecto del septo auriculoventricular, conexión venosa pulmonar anómala parcial, ductus o ventana aortopulmonar—: sus tres columnas por tema, el reparto de cada campo, los DOS cortes de 900 y 1.260 px, la tarjeta gris de conclusión, los **diecisiete textos que pasaron al globo** —la caja roja de Celermajer incluida—, o la **opción de valve-in-valve de TAVI** con su sincronía de morfología y su condición del Laboratorio | `docs/mapa/pant9-congenitas-columnas.md` |
 | **Orientarse en otro módulo** (Congénitas, Laboratorio, PPT, Cardio-Onco, Pericardio) | `docs/mapa/congenitas-otros.md` |
 | **Tocar la PANTALLA de «CIA / CIV», el ANCHO del dibujo del VD, el MOLDE de una sección de válvula del panel de Evidencia —su franja ámbar, sus tarjetas de datos, sus preguntas por tema o su pregunta de SÍNTOMAS con su ⓘ—, la sección ÚNICA de la mitral del ETE, los criterios TEER lado a lado, la frase de dato faltante del FORRESTER fuera del papel o los dos rótulos de la PROFUNDIDAD DE COAPTACIÓN** | `docs/mapa/pant6-pantallas-molde.md` |
@@ -204,9 +206,19 @@ Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la v
 ## Qué es EcoSmart y cómo se trabaja
 
 - App clínica de ecocardiografía en **un solo `index.html`**: HTML + CSS + JS inline, sin build,
-  sin frameworks. Hoy **11,55 MB / 160.245 líneas**, medido con `wc -c` y `wc -l` el 2026-11-04 al
-  cierre de la tanda **PANT-10**, sobre el árbol ya sellado: sello **`v20261104-1123`**, md5
-  **`c91b1462`**. El diff de la tanda son **1.065 líneas agregadas y 55 quitadas**, medido con
+  sin frameworks. Hoy **11,64 MB / 161.312 líneas**, medido con `wc -c` y `wc -l` el 2026-11-04 al
+  cierre de la tanda **PANT-11**, sobre el árbol ya sellado: sello **`v20261104-1554`**, md5
+  **`a78bd6ce`**. El diff de la tanda son **1.160 líneas agregadas y 93 quitadas**, medido con
+  `git diff --numstat` contra `cf04f84`, de las que **1.037** no son comentario, con **cero**
+  `innerHTML`, `eval(` o `new Function` nuevos —la única aparición de `innerHTML` en el diff es
+  un comentario que declara que el dibujo del pulmón no usa ninguno— y cero claves ni
+  contraseñas, y con los **17** bloques de JS inline parseando.
+  ⚠️ **POR SÉPTIMA VEZ SEGUIDA EL RENGLÓN QUE SE ENCONTRÓ ESTABA BIEN**, y se verificó de las dos
+  formas que esta casa manda: `git show cf04f84:index.html` da **160.245** líneas, **11.546.900**
+  bytes y el md5 **`c91b1462`**, los tres idénticos a lo que el renglón decía. **El renglón se
+  mide al final**, con `wc -l` sobre el archivo sellado.
+  (Antes: 11,55 MB / 160.245 al cierre de PANT-10, sello `v20261104-1123`, md5 `c91b1462`.)
+  El diff de PANT-10 son **1.065 líneas agregadas y 55 quitadas**, medido con
   `git diff --numstat` contra `b734958`, de las que **1.054** no son comentario, con **cero**
   `innerHTML`, `eval(` o `new Function` nuevos y cero claves ni contraseñas, y con los **17**
   bloques de JS inline parseando.
@@ -635,6 +647,283 @@ impecable.
 > secciones de REGLAS (la regla de oro con su tabla de mapas, «Qué es EcoSmart», el panel de
 > Evidencia, el protocolo de verificación, las trampas conocidas, el flujo de trabajo,
 > SEGURIDAD y la tabla de Procedencia) siguen enteras y en su lugar, verificado byte por byte.
+### El papel de Ebstein y Eisenmenger, la VCI, el eco pulmonar por lado y las masas — «PANT-11» (2026-11-04)
+
+- **CATORCE commits —contados con `git log cf04f84..HEAD` AL CERRAR, y el commit que escribe este
+  número entra en la cuenta— y los ONCE de la orden se hicieron enteros.** `3bd2d05` (1) ·
+  `785d83b` (2) · `cb10ce2` (3) · `e3fa328` (4) · `476d4f0` (5) · `45f18b7` (6) · `df248c0` (7) ·
+  `c1576e8` (8) · `ff3ede8` (9a) · `ffe716f` (9b) · `9edc0fe` (10) · `682ffdb` (11) · `a26b03c`
+  (**8b**, el correctivo) · **éste** (12, cobertura y documentación).
+  ⚠️ **EL HASH DEL ÚLTIMO NO SE ESCRIBE ACÁ, y es por una medición propia:** lo puse una vez y
+  el `--amend` que corrigió el conteo lo invalidó en el acto. El último commit se nombra «éste».
+  ⚠️ **Y ESTE NÚMERO LO ESCRIBÍ MAL UNA VEZ**: decía TRECE, por contar los commits antes de
+  hacer el último. Es la lección que PANT-6 dejó escrita con todas las letras —se cuenta con
+  `git log` al final y el commit que escribe el número entra en la cuenta—. El commit 12 **NO vuelve a
+  sellar `index.html`**, porque no lo toca: su md5 al cerrar es el mismo del sello, verificado.
+  Sello **`v20261104-1554`**, md5 de `index.html` **`a78bd6ce`**. Al empezar, `origin/main` =
+  `HEAD` = **`cf04f84`**, el cierre de PANT-10, ya publicado, con md5 `c91b1462`, sello
+  `v20261104-1123` y el pendrive `DISK_IMG` montado.
+  **El push lo corre Maicol: esta tanda tenía orden expresa de NO pushear.**
+  Cierra **P10-a**, **P6-f**, **P5-f** y **P6-h**.
+  ⚠️ **POR SÉPTIMA VEZ SEGUIDA EL RENGLÓN DE TAMAÑO QUE SE ENCONTRÓ ESTABA BIEN**, y se verificó
+  de las dos formas que esta casa manda: `git show cf04f84:index.html` da **160.245** líneas,
+  **11.546.900** bytes y el md5 **`c91b1462`**, los tres idénticos a lo que el renglón decía.
+
+- **EL DEFECTO MÁS GRANDE QUE CERRÓ, EN UNA LÍNEA: el informe FIRMADO de una anomalía de Ebstein
+  publicaba un κ que ninguna de las 248 fuentes respalda, y nombraba una guía.** Es **P10-a**,
+  que PANT-10 midió y dejó sin tocar porque la orden mandaba parar. `ebsConclusion` publica ahora
+  `papel` además de `txt`, **armados de las MISMAS piezas** —el patrón de `coaPapel`,
+  `mchConclusion().papel` y `tgaConclusion`—: el índice se nombra por lo que su propia fuente
+  define, «relación de áreas en cuatro cámaras» (Celermajer 1992, Figura 1, hoja 2, folio 1042
+  leído en imagen), y la conducta, su clase y el nombre de la guía salen del papel y **siguen
+  enteras en la pantalla y en la Evidencia** —verificado ANTES de retirarlas que las siete están
+  en `_indEBS` con guía, clase, nivel, hoja y folio—. `CC_PPT` gana `papel:true`.
+  **Medido con el PDF y el PPT generados de verdad:** el censo de los once marcadores da **CERO**
+  en el informe (tres estilos), el EN SUMA (tres), las seis plantillas del PDF y el PPT, contra
+  las apariciones que HEAD tenía. **Ningún número medido desaparece**: la relación de áreas y su
+  grado se publican con el MISMO valor, con dos decimales.
+
+- **Y EL SEGUNDO: el síndrome de Eisenmenger publicaba una mortalidad materna de «>50 %» que
+  ninguna fuente da, mientras la tarjeta de criterios de la misma pantalla escribía «30-50 %».**
+  La cifra pasa a **«30 a 50 %»** —ACC/AHA de cardiopatías congénitas del adulto, hoja 95, folio
+  **e209** comprobado en el pie impreso, leído en imagen a 220 ppp—, el «(ESC 2020)» sale, y las
+  alertas de **síncope** y de **hemoptisis** se retiran enteras: «marcador de mal pronóstico» y
+  «riesgo de episodio masivo y fatal» no las respalda ninguna de las dos guías en sus capítulos
+  de Eisenmenger. El texto literal de las dos quedó en `docs/PENDIENTES.md` → **P11-a**.
+
+- **EL TDE Y EL TRIV INTERCAMBIARON DE LUGAR, Y SE MOVIERON LAS CLASES Y EL MARCADO JUNTOS.** No
+  hay un solo `tabindex` en la grilla, así que el Tab va por orden del documento: mover sólo las
+  clases deja la pantalla mostrando el TRIV arriba y el Tab saltando al TDE.
+  ⚠️ **Y EL PAPEL NO SE PUEDE MOVER POR ESO, MEDIDO, Y LA PRIMERA VERSIÓN DE SU CASO MEDÍA SOBRE
+  UN DENOMINADOR VACÍO:** el informe **no nombra ninguna de las dos siglas** y **ninguna tiene
+  columna de Excel** —censado `LAB_XLS_MAP`: cero entradas—. Las dos entran al papel sólo a
+  través de la evaluación de la diastólica, que las lee por `id`.
+
+- **LA CASILLA «(no se visualiza VCI)»: SE VACÍA Y SE GUARDA, EN VEZ DE PARCHEAR A LOS ~25
+  CONSUMIDORES.** Reusa `.pac-id-mk` entera —el glifo, los dos colores, el `aria-pressed` que el
+  CSS deriva— y sólo estira su `::after` a 44 × 44. Con los dos campos de la cava vacíos, los ~25
+  lectores de la VCI degradan a «sin dato» **por construcción**, cada uno con la guarda que ya
+  tenía. El valor viejo queda en `dataset.vciprev` y vuelve al desmarcar.
+  ⚠️ **`data-vciprev` ENTRA EN LAS DOS LISTAS DE «Nuevo estudio»** —el selector Y el cuerpo—, y
+  **`vci_no_vis` es `hidden`**, así que el barrido que toma `text` y `number` no lo alcanza y
+  tiene su línea propia, igual que `pac_id_print`. **No agrega columna de Excel.**
+
+- **UN DATO, DOS PUERTAS, PARA LA PROFUNDIDAD DE COAPTACIÓN, Y ESO REVIERTE UNA PARADA.** El par
+  entra en `_ETEM_VELOS` —el gesto, el borrado incluido— y `profCoaptReconciliar` cubre el camino
+  de un estudio guardado antes: idempotente, colgado de `RECALC_MODULOS` y **sólo completa lo
+  vacío**; con los dos cargados y DISTINTOS no toca nada.
+  ⚠️ **`P6-f` Y `P5-f` DECÍAN QUE ESTOS DOS CAMPOS NO DEBÍAN SINCRONIZARSE, y la orden del médico
+  del 04/11 revierte esa decisión.** Lo que esas entradas protegían no se perdió: los dos
+  **rótulos** siguen distintos y los dos **cortes** siguen separados —10 mm como factor
+  desfavorable de la reparación y 11 mm como criterio **c4** del TEER—. Lo que se unifica es el
+  **valor**, no el significado. **TC-648 (D5)** quedó invertida y nació **(D5b)**.
+
+- **EL DERRAME PLEURAL POR LADO, CON EL PAPEL IDÉNTICO PARA TODO ESTADO QUE HEAD PODÍA EXPRESAR.**
+  Tres campos nuevos y los dos legados **derivados y deshabilitados**: el emisor sigue leyendo los
+  legados, así que los campos por lado sólo aportan el estado **nuevo** —las dos pleuras con
+  severidad distinta—. La traducción «leve» ↔ «mínimo» vive en UN solo lugar y el tamaño legado es
+  el **MAYOR** de las pleuras afectadas.
+  ⚠️ **LA GUARDA QUE NO ES DECORATIVA:** `puaDerrameDerivar` no toca nada con los dos campos por
+  lado vacíos. Sin ella, abrir un estudio viejo cuyo lado quedó «sin consignar» le **borraría** el
+  tamaño que sí tenía.
+  ⚠️ **Y UNA PREMISA DE LA ORDEN ES FALSA: ninguno de esos campos tiene columna de Excel.** La
+  orden y el inventario de PANT-8 dicen que la derivación preserva «sus dos columnas»; censado,
+  `pua_*` y `pul_derrame_tam` tienen **cero** entradas en `LAB_XLS_MAP` → **P11-c**.
+
+- **LA SINCRONÍA CON EL POSOPERATORIO, CON SU GUARDA, Y ES LA MISMA FORMA QUE `_labUsaTavi`.** El
+  posoperatorio escribe en el básico **siempre**; el básico escribe en el posoperatorio **sólo si
+  el posoperatorio ya está en uso**, y «en uso» **EXCLUYE** los cinco campos que el espejo
+  escribe: sin esa exclusión **el espejo se autoriza a sí mismo**. Hace falta porque está medido
+  que con sólo los dos campos de pleura cargados `popPatron().suficiente` pasa a `true`, su botón
+  «Integrar al informe» se habilita y su hoja del PDF pasa a tener 413 caracteres.
+  ⚠️ **`pua_derrame` —la compuerta sí/no— NO SE ESCRIBE, y lo decidió una medición:** escribirla
+  hace que un estudio cuyo derrame hoy sólo aparece en la hoja PostCEC del PDF gane además un
+  párrafo en el **cuerpo** del informe. Un hallazgo se escribe una sola vez.
+  **Lo que no se sincroniza y por qué** está en **P11-d**: el hemotórax sin equivalente, las
+  líneas B que son dos escalas distintas, el neumotórax deducido contra consignado.
+
+- **EL DIBUJO DEL PULMÓN: SOLO LECTURA, Y NO LLEGA AL PAPEL.** Portado de la demo aprobada: de ahí
+  salen el contorno, la escala de la cavidad, el árbol bronquial, el generador de la mancha y las
+  alturas del nivel de líquido. **Ni un nodo sale de `innerHTML`** —todo con `createElementNS`— y
+  los colores son variables declaradas en los **DOS** temas, que es la lección de `--amber`.
+  **Seis repintados no mueven un solo campo.** Y lo que el dibujo **no** dibuja lo **DICE**: las
+  líneas B sin zona marcada, la consolidación sin lado y el punto pulmón sin lado único.
+
+- **«MASAS» SE MUDA A LA PESTAÑA OTROS, Y LA TANDA SE HIZO UN DEFECTO QUE SE DECLARA.** El commit
+  8 insertó la sección **después** del contenido de «Variantes anatómicas» pero **antes** de su
+  cierre, así que `#otr-sub-masas` quedaba **dentro** de `#otr-sub-variantes`. **El DOM quedaba
+  balanceado** —el cierre que faltaba arriba sobraba abajo— y las tres secciones se dibujan igual,
+  porque los tres paneles `.otr-sub` están visibles a la vez desde el trabajo B. **El único
+  síntoma medible era que el panel de variantes informaba DOS `h2.card-head`**, que es justo lo
+  que TC-509 (C1) cuenta: **lo encontró el censo de casos viejos, no la lectura.** Lo corrige el
+  commit **8b**, y es el modo de falla que esta casa ya pagó cuatro veces.
+
+- **LA TABLA DE DIFERENCIALES, EL GLOBO DE ENDOCARDITIS Y LAS DOS FICHAS.** Siete filas por siete
+  columnas, **todo parafraseado** y cada fila con su guía, su hoja y su folio, con scroll
+  horizontal **propio de su contenedor**; dos globos nuevos —`VINFO` pasa de **140 a 142**—; y dos
+  fichas de Referencias, tumores cardíacos (**14** filas) y fuentes embolígenas (**18** en dos
+  bloques), que pasan el censo de **36 a 38** y «Otros hallazgos» de **12 a 14**. **Las dos entran
+  en `REF_SUBTAB` en el mismo commit que su ficha**, por la lección de la tanda J.
+  ⚠️ **Y UNA PREMISA DEL ÍNDICE DE LA ORDEN NO SE REPRODUJO:** atribuye la definición
+  ecocardiográfica del trombo del ventrículo izquierdo a Levine 2022, hoja 3, folio e207. Esa hoja
+  trata los **factores de riesgo** y, censado el documento entero, no contiene «two orthogonal»,
+  «well-defined» ni «artifact»: la definición es de la **ASE 2016, hoja 16, folio 16**.
+
+- **LO QUE LAS DOS FICHAS DICEN DE SÍ MISMAS Y NO SE OMITE:** las cifras de los malignos primarios
+  **no suman 100 %** y la fuente no las presenta como excluyentes; los cortes del puntaje
+  ecocardiográfico y del de resonancia **no se citan**, porque no se leyeron con certeza; la
+  clasificación de la **OMS no está en la biblioteca**; la guía de la ASE **no trae un algoritmo
+  ecocardiográfico paso a paso propio**; y **no hay ningún score de riesgo embólico validado** en
+  la biblioteca —la ESC 2023 cita uno que no está—.
+
+- **44/44 MUTACIONES DIRIGIDAS MUERTAS** en el barrido final, en un worktree y **nunca sobre el
+  árbol vivo**, con el md5 **idéntico** antes y después (`a78bd6ce`). **Nueve de las cuarenta y
+  cuatro no revierten nada: la aplican de más**, porque las condiciones que las matan son
+  controles negativos. Cada mutación declara **su** caso.
+  ⚠️ **CUATRO SOBREVIVIERON AL PRIMER BARRIDO Y ME DIJERON TRES COSAS DISTINTAS.** **Tres eran
+  huecos reales:** nada miraba el **PPT** —el registro del PPT es un `const` de módulo y no está
+  en `window`, así que hubo que generar el mazo de verdad espiando a PptxGenJS, y de ahí nació el
+  grupo (H) de TC-674—; nada miraba que «en uso» **excluya** los cinco espejados con uno de ellos
+  cargado y nada más, que es el único escenario que distingue (→ **(E2b)** de TC-678); y nada
+  miraba el **valor** que vuelve tras «Nuevo estudio» (→ **(F3b)** de TC-676). **Y la cuarta era
+  un freno que tapa al que se muta:** el GESTO de la VCI llama a `calcPmAD` por su cuenta, así que
+  sacar la llamada de adentro del reconciliador no se nota por el camino del gesto; el camino que
+  la necesita es el **MUDO**, el de restaurar un estudio (→ **(D3)** de TC-676).
+
+- ⚠️ **UNA CORRIDA DE MUTACIONES SE ENVENENÓ Y SE DECLARA.** El primer lanzamiento no pareció
+  arrancar —su log quedó en **cero bytes**— y se relanzó, así que **dos procesos quedaron mutando
+  el MISMO `index.html` del worktree a la vez**, que es justo lo que esta casa prohíbe. Se
+  cortaron los dos **por PID exacto**, se verificó que el árbol **vivo** no se había tocado —md5
+  idéntico al del sello—, se borró el worktree entero y el barrido se rehizo **de una sola
+  pasada**. La causa es la de **C2A-h**: un `nohup … &` lanzado desde la herramienta de shell
+  puede sobrevivir sin escribir nada visible, así que **antes de relanzar hay que mirar `ps`**.
+
+- **SEIS CASOS NUEVOS, TC-674 a TC-679**, con sus denominadores y sus controles negativos, y los
+  seis **caen contra la línea base de la tanda por 87 condiciones y NINGUNA por excepción**,
+  verificado en un worktree alternando sólo `index.html` con el mismo archivo de casos. Las ocho
+  `EXC` que aparecen están **dentro** de una condición, atrapadas por su propio `try`.
+
+- **ONCE CASOS VIEJOS ADAPTADOS, cada uno con el motivo escrito**: **TC-471** y **TC-500**
+  (`VINFO` de 140 a **142**), **TC-502** (las fichas de 36 a **38**, el reparto de «Otros» de 12 a
+  **14**, el índice del buscador de 34 a **36** y las tarjetas sin botón de 67 a **69**),
+  **TC-509** (los once campos partidos en **TRES** del pericardio y **NUEVE** de masas, las
+  **TRES** secciones de Otros y las 38 entradas), **TC-535** (los globos de 44 × 44, de 61 a
+  **63**), **TC-461** y **TC-506** (el orden y la casilla de dos de los dieciséis campos del
+  Doppler mitral), **TC-511** (los doce campos partidos y las **tres** barras de Otros), **TC-117**
+  y **TC-124** (**INVERTIDAS**: las tres alertas de Eisenmenger y las seis condiciones de Ebstein,
+  que pasan del PAPEL a la PANTALLA), **TC-488** (las dos profundidades con el **mismo** valor) y
+  **TC-648 (D5)** (**INVERTIDA**, con **(D5b)** nueva).
+  ⚠️ **SIETE DE LOS ONCE LOS DESTAPÓ LA CORRIDA COMPLETA Y NO EL CENSO**, y es el modo de falla
+  que este archivo ya documenta una docena de veces: grepeé por el nombre de lo que toqué y esos
+  siete lo afirman con otras palabras —un orden de campos, un conteo de barras, una frase del
+  informe—.
+
+- **A/B FINAL contra la línea base, con el PDF y el PPT generados de verdad: 59 escenas, y
+  CUARENTA Y CUATRO dan CERO diferencia de superficie firmada.** Las **quince** que cambian son
+  las autorizadas: las dos del commit 1 más su variante parcial, las cuatro de la coaptación, las
+  seis del pulmón y las dos de la VCI. `p9vacio`, `p9ajeno`, `p11masBlanco`, `p11masCargada`,
+  `p11pulAusent`, `p11medPopPleu` y `p11medDobleHead` dan **cero**.
+  ⚠️ **LAS SIETE DIFERENCIAS QUE APARECEN EN TODAS LAS ESCENAS NO SON PAPEL, Y SE DECLARA:** son
+  los **cuatro** campos nuevos en `_campos`, su lista de claves, el censo de campos (1004 → 1008)
+  y el registro de globos (140 → 142). Es el **inventario** del formulario, que es la consecuencia
+  autorizada. **Las 441 columnas del Excel son las MISMAS claves**, verificado clave por clave.
+  Ejemplos de lo que sí cambia: el EN SUMA de Ebstein pasa de «Celermajer grado 2 (índice 0.92)» a
+  «**relación de áreas en cuatro cámaras 0.92 (grado 2)**»; el de Eisenmenger pierde las dos
+  alertas y la cifra pasa a «30 a 50 %»; el del pulmón pasa de «Derrame pleural» a «Derrame
+  pleural **derecho leve e izquierdo severo**».
+
+- **CHROME Y WEBKIT COINCIDEN EN LOS DIECISÉIS CRUCES** (dos motores × 1440, 1000, 768 y 390 px ×
+  dos temas), con **OCHO** diferencias entre motores en total y las ocho de **3 px** en el ancho
+  del área táctil del circulito de la VCI —44 en Chrome, 47 en WebKit—, que es métrica de fuente:
+  en los dos el área es ≥ 44 y los **cinco** puntos dan el propio botón. En los dieciséis: la
+  casilla con su rótulo, el vaciado y el bloqueo de los dos campos, la frase en el informe **una**
+  vez, la columna 2 en `thp, triv, tde, onda_l` con el marcado en ese orden, la coaptación
+  viajando, el legado del pulmón en «bilateral/severo», el dibujo **al lado** de los campos con
+  sus 63 nodos, las tres secciones de Otros **hermanas** de la pestaña con un encabezado cada una,
+  los nueve campos de masa con caja, la tabla en **7 × 7** con su scroll **propio**, los dos
+  globos en **44 × 44** con los cinco puntos, el título «Pericardio», las dos fichas dentro de
+  «Otros hallazgos» con sus 14 y 18 filas, el buscador con **36** entradas indexándolas, **cero**
+  desplazamiento horizontal y **CERO errores de consola y de página en los dos motores**.
+  **El mismo cruce contra la línea base es el control, y reproduce cada premisa:** sin casilla
+  (`vciTac` nulo, frase en 0), `thp,tde,triv,onda_l` con «tde antes», la coaptación vacía, el
+  legado en «/», el dibujo inexistente, `otr-sub-masas` sin padre, los nueve campos fuera de
+  Otros, la tabla y los dos globos inexistentes, «⚪ Pericardio y Masas» y el buscador en **34**
+  entradas sin las dos fichas.
+  ⚠️ **WebKit de Playwright no es Safari, y se declara.** Chrome va por el del sistema con
+  `channel: 'chrome'`. **El único texto recortado es UNO a 1000 px, idéntico en la línea base en
+  los dos motores**: preexistente.
+
+- **Semgrep 124 WARNING / 0 ERROR**, la línea base, sin un aviso nuevo. **Excel 441** columnas con
+  las mismas claves. **Censo de campos 1004 → 1008**: los **cuatro** autorizados y ninguno
+  perdido. **Sin huérfanos nuevos**, medido en los dos árboles. **17 de 19** bloques de JS inline
+  parsean, idéntico a la línea base. El diff de la tanda son **1.160 líneas agregadas y 93
+  quitadas**, de las que **1.037** no son comentario, con **cero** `innerHTML`, `eval(` o
+  `new Function` nuevos —la única aparición de `innerHTML` en el diff es un comentario que declara
+  que el dibujo del pulmón no usa ninguno— y cero claves ni contraseñas.
+
+- ⚠️ **CELULAR: 59 hallazgos a 360 px y 67 a 390, con 18 ALTA en cada ancho — UNO MÁS QUE LA LÍNEA
+  BASE, Y ES UN FALSO POSITIVO MEDIDO.** La base es 58 y 66 con 17 ALTA, y el hallazgo nuevo es
+  **uno solo**: `#vci-no-vis-mk`, «7×11 px (min 44×44)». `check_mobile.js` mide
+  `getBoundingClientRect`, y el área táctil de ese control la da un **`::after` absoluto** que ese
+  rect **no ve** — exactamente igual que `#pac-id-mk-ci` y `#pac-id-mk-matricula`, que **ya están
+  en los 17 de la base**. Medido con `elementFromPoint`: **44 × 44 y los cinco puntos propios**,
+  en los dieciséis cruces de los dos motores. Declarado en **P11-i**, con la decisión que le toca
+  al médico: enseñarle el `::after` al barrido —y los **tres** saldrían, con la base bajando a 14
+  ALTA— o declarar los tres como excepción conocida.
+
+- **Línea base al cierre: suite 689/694**, en **trece lotes** cubriendo los **694 casos
+  distintos** —contados nombre por nombre, con una guarda que compara lo listado con lo
+  distinto: **694 de 694**—, en UNA sola pasada sobre el árbol sellado y con el archivo de casos
+  **final**, con el pendrive `DISK_IMG` **verificado al abrir, en los TRECE lotes y al cerrar**
+  (quince verificaciones, listando nombres reales) y el md5 de `index.html` **idéntico** antes y
+  después (`a78bd6ce`). Los rojos son **TC-223, TC-376, TC-390 y TC-406**, los cuatro de siempre,
+  más **TC-557**, el intermitente que `TGA-h` declara: **corrido aislado pasa 2 de 2**, verificado,
+  y su firma es la de siempre, `00000 44x44`, que es `elementFromPoint` fuera del viewport.
+  **Ningún rojo nuevo.** **TC-551 y TC-358 salieron VERDES.**
+  ⚠️ **Y LA PRIMERA CORRIDA COMPLETA DIO 679/694 CON NUEVE ROJOS MÁS, LOS NUEVE MÍOS**, y por eso
+  esa cifra no es la línea base: **TC-117** y **TC-124** (las alertas de Eisenmenger y las
+  condiciones de Ebstein, que medían el PAPEL), **TC-461** y **TC-506** (el orden y la casilla de
+  dos de los dieciséis campos del Doppler mitral), **TC-488** (las dos profundidades con valores
+  distintos), **TC-511** (los doce campos de pericardio y las dos barras de Otros), **TC-642** y
+  **TC-648** (los dos guardianes de la parada de P6-f) y **TC-668** (el texto exacto de la franja
+  de Eisenmenger). **Los nueve están adaptados** —cinco de ellos **invertidos**, porque eran el día
+  que ellos mismos anunciaban— y la cifra de arriba sale de la corrida **limpia**.
+  ⚠️ **Y DOS DE LOS NUEVE NO SE MUDARON A LA PANTALLA: SALIERON DE LA APLICACIÓN.** Las dos
+  condiciones de TC-124 que afirmaban el κ, la resonancia y la serie neonatal no pasaron del papel
+  a la pantalla: **el commit 1 las retiró de `partes` enteras**, porque ninguna de las 248 fuentes
+  las respalda y PANT-10 ya las había sacado del globo por ese mismo motivo. Lo que queda en la
+  pantalla es «orientativo por ecocardiografía», y el contenido de la segunda frase vive en el
+  globo. **Lo encontró la corrida, no la lectura:** mi primera adaptación las mandaba a `c.txt` y
+  seguían rojas.
+
+- ⚠️ **Y EL ARNES DE LOTES CONTABA MAL SU PROPIO NUMERO DE LOTE, y se declara.** `pend()` usaba
+  la variable `n` para contar las entradas del pendrive y el bucle la usaba para el numero de
+  lote, asi que el log imprimio «LOTE 1» y despues «LOTE 9» trece veces. **Los RANGOS eran
+  correctos y secuenciales** —1 a 55, 56 a 110, …, 661 a 694—, asi que la cobertura no se movio:
+  lo unico equivocado era el rotulo. Corregido antes de la corrida de cierre. Es el hermano del
+  `wc -l` de POP-C y del `grep -c` de VAL-PPT: **el contador del arnes tambien se mide**.
+
+- **`index.html` pasó de 11,55 MB / 160.245 líneas a 11,64 MB / 161.312** — medido con `wc -c` y
+  `wc -l` DESPUÉS de sellar. (MB de 10⁶.) Sello **`v20261104-1554`**, md5 **`a78bd6ce`**.
+
+- **Dónde está todo:** `docs/mapa/pant11-vci-pulmon-masas.md` (**mapa NUEVO**, 19,7 KB), las
+  fichas de los seis casos en `docs/mapa/tests-fichas-674.md` (**archivo propio**, porque
+  `tests-fichas.md` está en 34,2 KB), **seis mapas con un puntero cada uno** —medidos ANTES de
+  escribir—, `docs/fuentes/FUENTES.md` → «La tanda PANT-11» con las **ocho** reglas de folio
+  comprobadas en el pie impreso, los ocho censos con su control positivo, las cuatro premisas que
+  no se reprodujeron, las tres diferencias entre fuentes mostradas sin resolver y la tabla
+  «Cambios de evidencia» de once filas, `docs/REGISTRO_TANDAS.md` → el bloque de la tanda,
+  `docs/GUIA_PRUEBA_PANT11.md` → la guía manual en **26** pasos, y `docs/PENDIENTES.md` →
+  **NUEVE** cosas declaradas (**P11-a** a **P11-i**), más el cierre de **P10-a**, **P6-f**,
+  **P5-f** y **P6-h**.
+  ⚠️ **Y `mitral-dibujo-estatico.md` CRUZÓ EL TECHO Y SE PARTIÓ, que es el pendiente `P6-h`
+  esperando desde PANT-6.** Estaba medido en **34.594 B** y el puntero de esta tanda lo llevó a
+  **35.618**. Los criterios TEER, sus cuatro dibujos de medidas, el espejo de la FEVI y los
+  punteros de las tandas R, CONG-2A, PANT-6 y PANT-11 salieron a
+  `docs/mapa/mitral-teer-criterios.md` (16,1 KB) y el mapa volvió a **21,3 KB**, con **cero líneas
+  perdidas** verificadas una por una contra HEAD.
+  ⚠️ **`congenitas-otros.md` (34.540 B) y `tests-fichas.md` (34.237 B) NO se tocaron.**
+
 ### Los textos de congénitas contra las hojas y la Evidencia de cinco lesiones — «PANT-10» (2026-11-04)
 
 - **DIEZ commits —contados con `git log b734958..HEAD` AL CERRAR, y el commit que escribe este

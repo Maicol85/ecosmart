@@ -342,3 +342,22 @@ commits, sus dependencias y las doce trampas. En una línea, lo que toca acá:
   punto decimal intacto.
 - **Aorta**: `aoSegGrado` devuelve un solo grado, `'dilatada'`, **y el corte no se movió**.
 - **Diastólica**: la frase de «no clasificable» describe en vez de pedir un campo.
+
+---
+
+## Puntero · PANT-11 (2026-11-04) — «Masas» es la TERCERA sección de esta pestaña
+
+Los **nueve** campos `masa_*` se mudaron desde «Pericardio y masas», debajo de «Variantes
+anatómicas», con la misma forma de acordeón. **Ningún id, ninguna opción, ningún rótulo y ningún
+comportamiento cambian**, y el emisor del papel y el Excel no se tocan.
+
+Debajo de los campos vive la **tabla de diagnósticos diferenciales** —siete filas por siete
+columnas, con su fuente y su folio en cada fila, de SOLO LECTURA— y los dos globos `masa-ref` y
+`masa-ref-ei`.
+
+⚠️ **El commit 8 dejó la sección ANIDADA dentro de «Variantes anatómicas» por un `</div>` de
+menos**, con el DOM balanceado y sin síntoma visible; lo encontró TC-509 (C1), que cuenta los
+encabezados de cada panel, y lo corrige el commit 8b. **Las tres secciones son HERMANAS de
+`#tab-otros` y cada una tiene exactamente un `h2.card-head`.**
+
+Ver `docs/mapa/pant11-vci-pulmon-masas.md` § 8 a § 10 y **TC-679**.

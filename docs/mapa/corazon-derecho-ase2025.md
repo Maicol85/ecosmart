@@ -333,3 +333,21 @@ la función diastólica del VD, que esta tabla no implementa.
 
 El detalle —el diff completo de las once diferencias, la trampa de codificación de `≥` y `≤`, las
 fichas tocadas y la cobertura— está en **`docs/mapa/aj1-ajustes.md` § 2**.
+
+---
+
+## Puntero · PANT-11 (2026-11-04) — la casilla «(no se visualiza VCI)»
+
+Al lado del rótulo «VCI diámetro (mm)» hay un circulito igual al de «Documento» de la pestaña
+Paciente: reusa `.pac-id-mk` entera y sólo estira su `::after` a 44 × 44. Marcado, **vacía los dos
+campos de la cava guardando su valor en `dataset.vciprev`**, los deshabilita, recalcula la PmAD
+estimada y el informe dice **«No se visualiza la VCI.»**; desmarcado, los dos valores vuelven.
+
+El valor persistido vive en `#vci_no_vis`, un `input` hidden con guion BAJO. **No agrega columna
+de Excel.** `vciNoVisSync` va **PRIMERO** en `RECALC_MODULOS`.
+
+⚠️ **Los ~25 consumidores de la VCI degradan a «sin dato» por construcción**, cada uno con la
+guarda que ya tenía: por eso se vacía en vez de parchearlos. Lo que queda guardado y lo que no
+está declarado en **P11-b**.
+
+Ver `docs/mapa/pant11-vci-pulmon-masas.md` § 3 y **TC-676**.

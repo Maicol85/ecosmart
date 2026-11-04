@@ -304,3 +304,21 @@ las matan son controles negativos.
 
 Fichas en **`docs/mapa/tests-fichas-668.md`**. Adaptados: **TC-322** (cinco escenarios nuevos) y
 **TC-533 (L4)** (`IND_SECS` de 35 a 40). Mutaciones: `scripts/_mut_pant10.py`, **36/36 muertas**.
+
+## PANT-11 (2026-11-04) — el papel de Ebstein y Eisenmenger, la VCI, el eco pulmonar y las masas
+
+| Caso | Qué fija |
+|---|---|
+| **TC-674** | El papel de Ebstein y de Eisenmenger sin los once marcadores, con la relación de áreas publicada igual, la mortalidad materna en «30 a 50 %» y el PPT generado de verdad |
+| **TC-675** | El TDE y el TRIV intercambiados: clases, marcado, Tab y el papel que no se puede mover |
+| **TC-676** | La casilla «(no se visualiza VCI)»: su área de 44 × 44, el vaciado con guardado, la PmAD por el camino mudo, el desmarcado y «Nuevo estudio» |
+| **TC-677** | Las dos profundidades de coaptación: el gesto en los dos sentidos, la reconciliación idempotente y los dos cargados y distintos |
+| **TC-678** | El derrame pleural por lado, la derivación a los dos legados, la sincronía con el posoperatorio con su guarda, y el dibujo de solo lectura |
+| **TC-679** | Las masas en Otros como tercera sección hermana, la tabla de diferenciales, los dos globos y las dos fichas de Referencias |
+
+Fichas en **`docs/mapa/tests-fichas-674.md`**. Adaptados: **TC-471** y **TC-500** (`VINFO` de 140 a
+142), **TC-502** (las fichas de 36 a 38, el reparto de «Otros» de 12 a 14, el índice del buscador
+de 34 a 36 y las tarjetas sin botón de 67 a 69), **TC-509** (los once campos partidos en TRES del
+pericardio y NUEVE de masas, las TRES secciones de Otros y las 38 entradas) y **TC-535** (los
+globos de 44 × 44, de 61 a 63). Mutaciones: `scripts/_mut_pant11.py`, **44/44 muertas**, con
+**cuatro** condiciones nacidas de mutaciones que sobrevivieron al primer barrido.

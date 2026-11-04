@@ -141,6 +141,68 @@ contenido para distinguirlos ya está en la pantalla aunque el selector no lo of
 `otras_notas`, que es un campo de la sección del pericardio: cambiarlo movería el papel. Lo que
 cambió es sólo el **texto de ejemplo** de ese campo, que ya no menciona masas.
 
+## P11-g · Los dos globos de las masas no tienen ficha en Referencias, y el motivo es nuevo
+
+`masa-ref` —la tabla de diagnósticos diferenciales— y `masa-ref-ei` —los criterios de
+endocarditis— entran en la lista de tarjetas **sin** botón «Ver referencia» de TC-502 (C3), que
+pasa de 67 a **69**.
+
+⚠️ **Y en estas dos el motivo NO es el de las anteriores.** Las sesenta y siete anteriores no
+tienen ficha porque explican la PANTALLA y no publican un corte ni una recomendación: una ficha
+suya sería una entrada sin criterio detrás (regla R4). Estas dos **sí** publican contenido
+clínico con su guía, su hoja y su folio, y Referencias **sí** ganó dos fichas en esta misma
+tanda —`ref-tumores` y `ref-embolig`—. Lo que pasa es que **ninguna de las dos fichas publica el
+mismo contenido que estos dos globos**: la primera son tumores teóricos y la segunda fuentes
+embolígenas, no la tabla de diferenciales ni los criterios de endocarditis.
+
+**Lo que habría que decidir:** si `masa-ref` apunta a `ref-tumores` —que comparte la mitad del
+tema—, o si hace falta una ficha propia de «cómo distinguir una masa», o si se queda sin botón.
+Mapearlo a una ficha parecida sería mandar al médico a otra cosa, así que no se hizo: el dueño
+único del mapeo es `VINFO_REF` y agregarle una entrada que la orden no pide es una decisión.
+Y `masa-ref-ei` no tiene destino posible hoy: **no hay ficha de endocarditis en Referencias.**
+
+## P11-i · El barrido de celular informa UN hallazgo ALTA más, y es un falso positivo medido
+
+**El número empeora y la usabilidad no.** El barrido pasa de **58 a 59** hallazgos a 360 px y de
+**66 a 67** a 390, con **17 → 18** de severidad ALTA, y el hallazgo nuevo es **uno solo**:
+
+```
+#vci-no-vis-mk
+   7×11 px (min 44×44)
+```
+
+⚠️ **Es el mismo falso positivo que `#pac-id-mk-ci` y `#pac-id-mk-matricula`, que YA están en
+los 17 de la línea base.** `check_mobile.js` mide `getBoundingClientRect`, y el área táctil de
+estos tres controles la da un **`::after` absoluto** que ese rect **no ve**. El glifo mide 7 × 11 y
+el área real **44 × 44**, medido con `elementFromPoint` en los cinco puntos: los cinco devuelven
+el propio botón, en los **dieciséis** cruces de los dos motores y en los cuatro anchos. Lo fija
+**TC-676 (A4)** y **(A5)**, y lo vuelve a medir la sonda de dos motores.
+
+**Lo que habría que decidir:** si `check_mobile.js` aprende a sumar el `::after` —con lo que los
+**tres** saldrían de la lista y la línea base bajaría de 17 a 14 ALTA—, o si los tres se declaran
+como excepción conocida. Tocar el barrido es cambiar la línea base de toda la suite, así que no
+se hizo acá.
+
+## P11-h · Lo que PANT-11 paró, y lo que no alcanzó
+
+**Nada de los once commits de código quedó a medias.** Lo que se paró está declarado arriba, uno
+por uno: **P11-c** (la columna de Excel que la premisa daba por existente y no existe),
+**P11-d** (los pares del pulmón que no se sincronizan y por qué), **P11-e** (lo que el dibujo no
+muestra), **P11-f** (la opción «pannus») y **P11-g** (el botón de los dos globos nuevos).
+
+**Un defecto propio que la tanda se hizo y corrigió en el commit 8b:** el commit 8 dejó la
+sección de masas **anidada** dentro de «Variantes anatómicas» por un `</div>` de menos. El DOM
+quedaba balanceado y la pantalla no tenía síntoma visible; lo encontró el censo de casos viejos,
+por TC-509 (C1), que cuenta los encabezados de cada panel.
+
+**Una corrida de mutaciones se envenenó y se declara:** el primer lanzamiento del barrido no
+pareció arrancar —su log quedó en cero bytes— y se relanzó, así que **dos procesos quedaron
+mutando el MISMO `index.html` del worktree a la vez**. Se cortaron los dos **por PID exacto**, se
+verificó que el árbol **vivo** no se había tocado (md5 idéntico al del sello), se borró el
+worktree entero y el barrido se rehizo **de una sola pasada**. Es la trampa que PANT-7 ya
+documenta, y la causa es la de **C2A-h**: un `nohup … &` lanzado desde la herramienta de shell
+puede sobrevivir sin escribir nada visible, así que **antes de relanzar hay que mirar `ps`**.
+
 ## P10-a · Los textos que el commit 1 retiró de los globos, LITERALES, y el que llega al papel
 
 La regla (ii) de la tanda PANT-10 manda que lo que **ninguna fuente de la biblioteca respalda**
@@ -13347,6 +13409,11 @@ de Mediciones como el de la fila entera. Son dos decisiones del médico.
 
 ## P5-f · La profundidad de coaptación: un duplicado AMBIGUO, PARADO
 
+> ⚠️ **CERRADO DEL TODO EN PANT-11 (commit 4, 2026-11-04).** PANT-6 cerró la mitad —los dos
+> rótulos— y esta tanda cierra la otra **por orden expresa del médico**, que revierte la parada:
+> los dos campos son un solo valor con dos puertas, con los dos cortes y los dos rótulos
+> intactos. Ver **P6-f** y `docs/mapa/mitral-teer-criterios.md`.
+
 `ete_prof_coapt` (Mediciones ETE) y `teer_prof_flail` (Criterios TEER) llevan la **misma**
 etiqueta de pantalla —«Profundidad coaptación (mm)»— y **no sincronizan**: medido, 14 en uno deja
 el otro vacío, y 8 en el otro deja el primero en 14.
@@ -13470,6 +13537,17 @@ Verificado en un worktree sobre `c42d9e3`, con los mismos scripts y alternando s
 
 ## P6-f · Los dos campos de la profundidad de coaptación siguen sin sincronizarse
 
+> ⚠️ **CERRADO EN PANT-11 (commit 4, 2026-11-04), Y POR ORDEN EXPRESA DEL MÉDICO, QUE REVIERTE
+> ESTA PARADA.** Los dos campos pasan a ser **un solo valor con dos puertas**: el par entra en
+> `_ETEM_VELOS` y `profCoaptReconciliar` cubre el camino de un estudio guardado antes.
+> **Lo que esta entrada protegía no se perdió:** los dos **rótulos** siguen distintos y los dos
+> **cortes** siguen siendo distintos —10 mm como factor desfavorable de la reparación y 11 mm
+> como criterio **c4** del TEER—. Lo que se unifica es el **valor**, no el significado.
+> **TC-648 (D5)** quedó **invertida** —hoy exige que el valor viaje— y nació **(D5b)**, que exige
+> que los dos cortes sigan separados, así que el grupo puede fallar por los dos lados.
+> Ver `docs/mapa/mitral-teer-criterios.md` y **TC-677**.
+
+
 Esta tanda cierra **la mitad** de **P5-f**: los dos rótulos ya se distinguen —«reparación» y
 «TEER»—, así que el médico ya no puede confundir un campo con el otro. **La otra mitad sigue
 abierta a propósito:** son **dos datos distintos** con **dos cortes distintos** —10 mm como factor
@@ -13485,6 +13563,15 @@ pidiera. Se declara para que no se lea como un cambio de esta tanda: **la causa 
 cualquier otra sección cuyo contenido crezca después de abrir el acordeón.
 
 ## P6-h · `mitral-dibujo-estatico.md` quedó a 1,2 KB del techo
+
+> ⚠️ **CERRADO EN PANT-11 (2026-11-04): el mapa CRUZÓ el techo y se partió.** Medido en
+> **34.594 B** antes de escribirle el puntero de esta tanda, y en **35.618** después. Los
+> criterios TEER, sus cuatro dibujos de medidas, el espejo de la FEVI y el DSFVI, y los punteros
+> de las tandas R, CONG-2A, PANT-6 y PANT-11 salieron a `docs/mapa/mitral-teer-criterios.md`
+> (16,1 KB); el mapa de origen volvió a **21,3 KB**. **Cero líneas perdidas**, verificado una por
+> una contra HEAD. La tabla de mapas de `CLAUDE.md` ganó su renglón.
+> **Y es la enésima vez que la regla se aplica DESPUÉS de cruzar:** hay que medir el archivo
+> **más lo que se le va a escribir**, no sólo el archivo.
 
 Medido **antes** de escribirle el puntero: 33.526 B, y con el puntero quedó en **34.594 B (34,6 KB)**. El
 techo de esta casa es ~35 KB. **La próxima tanda que necesite escribirle tiene que partirlo**, como

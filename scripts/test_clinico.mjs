@@ -3963,11 +3963,16 @@ caso('TC-461', 'Doppler mitral: los 16 campos en CUATRO columnas con el Tab por 
      sea el del Tab, que no haya un solo tabindex, que las 16 casillas sean distintas y que el
      orden visual a una columna coincida con el del Tab- no cambio: cambio cual es ese orden. */
   const ESP = ['onda_e','onda_a','e_sep','e_lat',
-               'thp','tde','triv','onda_l',
+                /* ADAPTADO EN PANT-11 (commit 2): el TDE y el TRIV intercambiaron de
+                   lugar por pedido del medico, asi que la columna 2 va thp, TRIV, TDE,
+                   onda_l. Lo que este caso fija no cambia -el orden del MARCADO y la
+                   casilla de cada campo-: cambia el orden esperado de DOS de los
+                   dieciseis. Los otros catorce no se mueven. */
+               'thp','triv','tde','onda_l',
                'venp_dur_a','venp_dur_ar','venp_vel_ar','venp_sd',
                'lars_dop','ai_strain_ct_dop','itv_mitral','avm_thp'];
   const CEL = { onda_e:'1/1', onda_a:'1/2', e_sep:'1/3', e_lat:'1/4',
-                thp:'2/1', tde:'2/2', triv:'2/3', onda_l:'2/4',
+                thp:'2/1', triv:'2/2', tde:'2/3', onda_l:'2/4',
                 venp_dur_a:'3/1', venp_dur_ar:'3/2', venp_vel_ar:'3/3', venp_sd:'3/4',
                 lars_dop:'4/1', ai_strain_ct_dop:'4/2', itv_mitral:'4/3', avm_thp:'4/4' };
 
@@ -8097,18 +8102,34 @@ caso('TC-117', 'Eisenmenger: las alertas salen en el informe Y en el EN SUMA, y 
     ['sat 90 exactos NO la dispara',
       sat90.inf.inf.indexOf('Embarazo contraindicado') === -1],
     ['sat 93 tampoco',  sat93.inf.inf.indexOf('Embarazo contraindicado') === -1],
-    ['la alerta nombra la mortalidad materna y la guia',
-      sat85.inf.inf.indexOf('mortalidad materna >50 % (ESC 2020)') > -1],
+    /* ⚠️ ADAPTADA EN PANT-11 (commit 1), e INVERTIDA: es el dia que esta condicion anunciaba.
+       El papel no nombra guias -regla fija del 31/10- y la cifra de «>50 %» no la publica
+       ninguna fuente: la ACC/AHA de cardiopatias congenitas del adulto da «30 a 50 %» (hoja 95,
+       folio e209, leida en imagen), que es lo que la tarjeta de criterios de esta misma seccion
+       ya escribia. Lo que la condicion vigila sigue siendo lo mismo -que la alerta publique la
+       cifra de mortalidad materna- y ahora exige ADEMAS que NO nombre la guia, asi que puede
+       volver a fallar por los dos lados. */
+    ['la alerta nombra la mortalidad materna, con la cifra de la fuente y SIN la guia',
+      sat85.inf.inf.indexOf('mortalidad materna 30 a 50 %') > -1 &&
+      sat85.inf.inf.indexOf('>50 %') === -1 &&
+      sat85.inf.inf.indexOf('(ESC 2020)') === -1],
     ['y sube al EN SUMA, no se queda en el cuerpo',
       sat85.inf.suma.indexOf('embarazo contraindicado') > -1],
     // Sincope y hemoptisis: por «si» explicito.
-    ['sincope Si alerta en informe y EN SUMA',
-      sinc.inf.inf.indexOf('marcador de mal pronóstico') > -1 &&
-      sinc.inf.suma.indexOf('síncope') > -1],
+    /* ⚠️ ADAPTADAS EN PANT-11 (commit 1), e INVERTIDAS. Las alertas de SINCOPE y de HEMOPTISIS
+       se retiraron enteras: «marcador de mal pronostico» y «riesgo de episodio masivo y fatal»
+       no las respalda ninguna de las dos guias en sus capitulos de Eisenmenger -censado en
+       PANT-10- y su texto literal quedo en docs/PENDIENTES.md -> P11-a. En la PANTALLA los dos
+       hallazgos siguen con sus globos ya corregidos; lo que desaparece es la afirmacion
+       pronostica sin fuente. La condicion de «No no alerta» se CONSERVA, porque sigue siendo
+       cierta y es el otro lado del control. */
+    ['sincope Si YA NO publica una afirmacion pronostica sin fuente',
+      sinc.inf.inf.indexOf('marcador de mal pronóstico') === -1 &&
+      sinc.inf.suma.indexOf('marcador de mal pronóstico') === -1],
     ['sincope No no alerta',  sincNo.inf.inf.indexOf('marcador de mal pronóstico') === -1],
-    ['hemoptisis Si alerta en los dos',
-      hemo.inf.inf.indexOf('episodio masivo y fatal') > -1 &&
-      hemo.inf.suma.indexOf('hemoptisis') > -1],
+    ['hemoptisis Si YA NO publica el riesgo de episodio masivo y fatal',
+      hemo.inf.inf.indexOf('episodio masivo') === -1 &&
+      hemo.inf.suma.indexOf('episodio masivo') === -1],
     ['hemoptisis No no alerta', hemoNo.inf.inf.indexOf('episodio masivo') === -1],
     // NINGUNA se dispara por el campo vacio: eso seria afirmar una ausencia... o inventarla.
     ['sin consignar sincope ni hemoptisis no aparece ninguna alerta de esas',
@@ -8608,27 +8629,56 @@ caso('TC-124', 'Ebstein: cianosis y los cuatro grados de Celermajer', `
        NEONATOS. El informe lo dice con todas las letras. */
     ['un Celermajer grado 4 aislado NO indica intervencion',
       i15.c.clave !== 'cirugia' && i15.c.clave !== 'considerar_cirugia' && i15.c.clave !== 'cianosis'],
-    ['y el informe declara que la indicacion de la ESC no depende del indice',
-      i15.inf.inf.indexOf('La indicación quirúrgica de la ESC 2020 es clínica y no depende de este índice') > -1],
-    ['y que el eco sobreestima y la serie era neonatal',
-      i15.inf.inf.indexOf('SOBREESTIMAR') > -1 && i15.inf.inf.indexOf('serie neonatal') > -1],
+    /* ⚠️ ADAPTADAS EN PANT-11 (commit 1): las SEIS condiciones que seguian pasan del PAPEL a la
+       PANTALLA, que es a donde se mudo lo que afirman. El papel describe -regla fija del
+       31/10-: ya no nombra la guia, no lleva la conducta y no trae la advertencia del kappa, de
+       la resonancia ni de la serie neonatal, que ninguna de las 248 fuentes respalda. Todo eso
+       sigue ENTERO en c.txt -la cascada de la pantalla- y en la Evidencia de la seccion con su
+       guia, su clase, su nivel, su hoja y su folio. Cada una gana el otro lado: se exige que la
+       frase este en la pantalla Y que NO este en el papel, asi que las seis pueden volver a
+       fallar por los dos lados. */
+    /* ⚠️ Y ESTAS DOS NO SE MUDARON A LA PANTALLA: SALIERON DE LA APLICACION, e INVERTIDAS.
+       La advertencia entera -el kappa de 0,39, la concordancia con resonancia y la serie
+       neonatal- NO la respalda ninguna de las 248 fuentes de la biblioteca, y PANT-10 ya la
+       habia retirado del globo por ese mismo motivo: dejarla en la cascada de la pantalla
+       mientras el globo la niega seria la contradiccion que esta casa persigue. Lo que queda en
+       la PANTALLA es «orientativo por ecocardiografia», que es lo que la fuente si sostiene, y
+       el contenido de la segunda frase -que el indice no figura en la ESC 2020 y que sus
+       indicaciones en Ebstein son clinicas- vive ENTERO en el globo cc9-ebs-cel. El texto
+       literal de lo retirado quedo en docs/PENDIENTES.md -> P11-a. */
+    ['la advertencia SIN fuente ya no esta en ninguna de las dos salidas',
+      i15.c.txt.indexOf('SOBREESTIMAR') === -1 && i15.c.txt.indexOf('serie neonatal') === -1 &&
+      i15.c.txt.indexOf('0,39') === -1 &&
+      String(i15.c.papel || '').indexOf('SOBREESTIMAR') === -1 &&
+      String(i15.c.papel || '').indexOf('serie neonatal') === -1],
+    ['la PANTALLA conserva lo que la fuente SI sostiene, y el PAPEL no nombra la guia',
+      i15.c.txt.indexOf('orientativo por ecocardiografía') > -1 &&
+      String(i15.c.papel || '').indexOf('ESC 2020') === -1],
+    ['y el globo conserva que el indice no figura en la ESC 2020 y que sus indicaciones son clinicas',
+      (function () { const v = (typeof VINFO === 'undefined') ? null : VINFO['cc9-ebs-cel'];
+        if (!v) return false;
+        const t = JSON.stringify(v);
+        return t.indexOf('no figura en la ESC 2020') > -1 && t.indexOf('son clínicas') > -1; })()],
     // Cianosis: los dos lados del corte.
     ['sat 88 da cianosis',  sat88.c.clave === 'cianosis'],
     ['sat 90 exactos NO',   sat90.c.clave !== 'cianosis'],
     ['sat 92 tampoco',      sat92.c.clave !== 'cianosis'],
     ['la cianosis sube al EN SUMA', sat88.inf.suma.indexOf('cianosis') > -1],
-    ['y se nombra a la ESC 2020 como quien la lista, sin inventarle un numero',
-      sat88.inf.inf.indexOf('la ESC 2020 incluye la cianosis entre los desencadenantes') > -1 &&
-      sat88.inf.inf.indexOf('<90 % (ESC 2020)') === -1],
+    ['la PANTALLA nombra a la ESC 2020 como quien la lista, sin inventarle un numero, y el PAPEL no la nombra',
+      sat88.c.txt.indexOf('la ESC 2020 incluye la cianosis entre los desencadenantes') > -1 &&
+      sat88.c.txt.indexOf('<90 % (ESC 2020)') === -1 &&
+      String(sat88.c.papel || '').indexOf('ESC 2020') === -1],
     // Sin comunicacion documentada no se promete cerrar nada; con ella, si.
-    ['sin CIA documentada manda a buscarla en vez de prometer el cierre',
-      sat88.inf.inf.indexOf('obliga a buscarla') > -1 &&
-      sat88.inf.inf.indexOf('cerrarla en el mismo acto') === -1],
-    ['con CIA documentada nombra el cierre en el mismo acto',
-      conCia.inf.inf.indexOf('cerrarla en el mismo acto') > -1],
+    ['en la PANTALLA, sin CIA documentada manda a buscarla en vez de prometer el cierre',
+      sat88.c.txt.indexOf('obliga a buscarla') > -1 &&
+      sat88.c.txt.indexOf('cerrarla en el mismo acto') === -1],
+    ['y con CIA documentada la PANTALLA nombra el cierre en el mismo acto',
+      conCia.c.txt.indexOf('cerrarla en el mismo acto') > -1 &&
+      String(conCia.c.papel || '').indexOf('cerrarla en el mismo acto') === -1],
     // Con Clase I por otra via la cianosis no desaparece del informe.
-    ['con indicacion Clase I la cianosis sigue nombrada',
-      claseI.c.clave === 'cirugia' && claseI.inf.inf.indexOf('Cianosis asociada') > -1],
+    ['con indicacion Clase I la cianosis sigue nombrada en la PANTALLA',
+      claseI.c.clave === 'cirugia' && claseI.c.txt.indexOf('Cianosis asociada') > -1 &&
+      String(claseI.c.papel || '').indexOf('Clase I') === -1],
     // Campo vacio y valor ilegible.
     ['sin saturacion cargada no hay alerta', vacio.c.clave !== 'cianosis'],
     ['una saturacion de 9 % no da cianosis', satMal.c.clave !== 'cianosis'],
@@ -66731,8 +66781,15 @@ caso('TC-471', 'Valvulas D1: la insuficiencia mitral en TRES columnas de SEIS co
        de la CVPA y uno de la ventana aortopulmonar-. NINGUNO esta en Valvulas, que es la
        pestania que este caso mide: lo que cambia es el DENOMINADOR del registro y no lo que
        la condicion afirma sobre el marcado de esa pestania. */
-    Object.keys(VINFO).length === 140 && ('vd-tei' in VINFO) && ('tep-6060' in VINFO)
-      && ('tavi-calc' in VINFO) && ('cc9-ebs-cel' in VINFO) && ('cc9-vap-sec' in VINFO),
+    /* ADAPTADO EN PANT-11 (commits 9a y 9b): 140 -> 142. Entran los DOS globos de la seccion
+       de masas: masa-ref -la tabla de diagnosticos diferenciales con sus fuentes- y masa-ref-ei
+       -los criterios de endocarditis en la fila de la vegetacion-. NINGUNO esta en Valvulas,
+       que es la pestania que este caso mide: lo que cambia es el DENOMINADOR del registro y no
+       lo que la condicion afirma sobre el marcado de esa pestania. Se les exige la clave, igual
+       que a las cinco anteriores, asi que sacarlos vuelve a ponerlo en rojo. */
+    Object.keys(VINFO).length === 142 && ('vd-tei' in VINFO) && ('tep-6060' in VINFO)
+      && ('tavi-calc' in VINFO) && ('cc9-ebs-cel' in VINFO) && ('cc9-vap-sec' in VINFO)
+      && ('masa-ref' in VINFO) && ('masa-ref-ei' in VINFO),
     'registro=' + (HAY_INFO ? Object.keys(VINFO).join(',') : 'SIN REGISTRO')]);
   ex.push(['(H) y la tarjeta se coloca SIEMPRE dentro de la pantalla, sin cortarse',
     (function(){ const b = document.querySelector('[data-vinfo="avm-thp"]');
@@ -72853,8 +72910,14 @@ caso('TC-488', 'Tanda Y3b + Wilkins + I: el 3D de la mitral se GIRA A MANO —co
       /* LAS DOS PROFUNDIDADES DE COAPTACION SON DOS CAMPOS DISTINTOS Y CADA UNO SALE UNA SOLA VEZ,
          bajo el grupo que los distingue: la pestana les pone la MISMA etiqueta a los dos. */
       const prof = T.filas.filter(x => x[0].indexOf('Profundidad coapta') > -1);
-      ex.push(['la profundidad de coaptacion aparece dos veces porque son DOS campos, con sus dos valores',
-        prof.length === 2 && prof[0][1] === '11 mm' && prof[1][1] === '9 mm' &&
+      /* ⚠️ ADAPTADA EN PANT-11 (commit 4): los DOS campos siguen apareciendo, cada uno bajo el
+         grupo que lo distingue -que es lo que esta condicion cuida-, pero ya llevan el MISMO
+         valor: por orden expresa del medico pasaron a ser UN dato con dos puertas. Lo que se
+         exige ahora es que sigan siendo DOS filas, que esten en sus dos grupos y que su valor
+         COINCIDA; que fueran distintos era el control de la parada de P6-f, que esta orden
+         revierte. Ver TC-648 (D5) y docs/mapa/mitral-teer-criterios.md. */
+      ex.push(['la profundidad de coaptacion aparece dos veces, en sus dos grupos, con el MISMO valor',
+        prof.length === 2 && prof[0][1] === prof[1][1] && prof[0][1] === '9 mm' &&
         T.grupos.indexOf('TEER') > -1, JSON.stringify(prof) + ' || ' + T.grupos.join(',')]);
       /* EL AREA POR PLANIMETRIA SE MUDO AL GRUPO DE SEVERIDAD: es un dato de la estenosis. */
       const iSev = T.grupos.indexOf('Severidad');
@@ -78175,7 +78238,7 @@ caso('TC-500', 'Tanda Q: las OCHO tarjetas i de las valvulas arriba de su pastil
      este completo-: cambia el denominador. */
   /* ADAPTADO EN PANT-8 (commit 4): 122 -> 123 por tavi-calc. Es el denominador del registro,
      no una afirmacion sobre las ocho tarjetas de valvulas que este caso mide. */
-  ex.push(['DENOMINADOR: el mecanismo de los globos existe y el registro tiene las 140 entradas',
+  ex.push(['DENOMINADOR: el mecanismo de los globos existe y el registro tiene las 142 entradas',
     /* ⚠️ ADAPTADO EN LA TANDA D: 56 -> 57. La entrada nueva es co-riesgo-basal, el globo de la
        clasificacion de riesgo cardiovascular basal, donde viven las clases y los niveles que la
        regla R2 saca de la linea visible. Lo que esta condicion afirma no cambia: que el
@@ -78210,7 +78273,12 @@ caso('TC-500', 'Tanda Q: las OCHO tarjetas i de las valvulas arriba de su pastil
        tdf-eco y tdf-vol. NINGUNA esta en Valvulas, que es la pestania que este caso mide. */
     /* ADAPTADO EN PANT-9: 123 -> 140, por los diecisiete globos de los textos que las siete
        pantallas de congenitas movieron de la pantalla a su globo. */
-    FN('vInfoClic') && !!CARD() && !!REG() && Object.keys(REG() || {}).length === 140,
+    /* ADAPTADO EN PANT-11 (commits 9a y 9b): 140 -> 142, por masa-ref y masa-ref-ei, los dos
+       globos de la seccion de masas. NINGUNO esta en Valvulas, que es la pestania de las ocho
+       tarjetas que este caso mide: cambia el denominador del registro, no lo que la condicion
+       afirma. El rotulo y el numero se mueven JUNTOS, que es la deriva que PANT-3 corrigio aca
+       mismo. */
+    FN('vInfoClic') && !!CARD() && !!REG() && Object.keys(REG() || {}).length === 142,
     'VINFO=' + (REG() ? Object.keys(REG()).length : 'SIN REGISTRO') + ' card=' + !!CARD()]);
   ex.push(['(A1) los OCHO botones de lesion existen, son BUTTON, sin atributo title y con aria-expanded',
     CLAVES.every(function (k) { const b = BTN(k);
@@ -79329,8 +79397,14 @@ caso('TC-502', 'Tanda P: Referencias en CINCO subpestanas sin perder una entrada
      Contractilidad y strain longitudinal, en la subpestana «Funcion», que pasa de tres entradas
      a cuatro. Lo que esta condicion vigila -que el reparto no pierda ni duplique una entrada- no
      cambia; lo que cambia es el denominador. */
-  ex.push(['(A2) DENOMINADOR: el censo encuentra las 36 entradas de la pestana',
-    censo.n === 36, 'n=' + censo.n]);
+  /* ADAPTADO EN PANT-11 (commits 10 y 11): 36 -> 38. Las dos fichas nuevas son «tumores»
+     -referencias teoricas de tumores cardiacos- y «embolig» -que evaluar como fuente
+     emboligena, y la estructura en pasos del estudio del ictus-, las dos en la subpestana
+     «Otros hallazgos». Es el DENOMINADOR del censo; lo que este caso afirma -que ninguna
+     entrada quede fuera de una subpestana, que el reparto no se mezcle y que el buscador las
+     indexe- no cambia. */
+  ex.push(['(A2) DENOMINADOR: el censo encuentra las 38 entradas de la pestana',
+    censo.n === 38, 'n=' + censo.n]);
   ex.push(['(A2b) y la que entro es la de constriccion, en la subpestana Otros hallazgos',
     censo.filas.some(f => f.id === 'constriccion' && f.sub === 'otros'),
     JSON.stringify(censo.filas.filter(f => f.id === 'constriccion'))]);
@@ -79352,8 +79426,12 @@ caso('TC-502', 'Tanda P: Referencias en CINCO subpestanas sin perder una entrada
   /* ⚠️ ADAPTADO EN LA AJ9: Funcion pasa de 3 a 4 por ref-strain. Las otras cuatro
      subpestanas no se tocan, y eso es parte de lo que la condicion exige: que la entrada nueva
      caiga en UNA sola. */
-  ex.push(['(A4) el reparto es 5 Dimensiones + 4 Funcion + 12 Valvulas + 3 Aorta + 12 Otros',
-    porSub.dim === 5 && porSub.fun === 4 && porSub.valv === 12 && porSub.ao === 3 && porSub.otros === 12,
+  /* ADAPTADO EN PANT-11 (commits 10 y 11): «Otros hallazgos» pasa de 12 a 14, por las fichas
+     de tumores cardiacos y de fuentes emboligenas. Los otros CUATRO repartos no se movieron, que
+     es lo que esta condicion protege: una ficha que cayera en la subpestana equivocada la pone
+     en rojo igual que antes. */
+  ex.push(['(A4) el reparto es 5 Dimensiones + 4 Funcion + 12 Valvulas + 3 Aorta + 14 Otros',
+    porSub.dim === 5 && porSub.fun === 4 && porSub.valv === 12 && porSub.ao === 3 && porSub.otros === 14,
     JSON.stringify(porSub)]);
   /* Clic REAL en cada boton: activa SU panel y apaga los otros cuatro. */
   const subEstado = [];
@@ -79406,8 +79484,10 @@ caso('TC-502', 'Tanda P: Referencias en CINCO subpestanas sin perder una entrada
   /* ADAPTADO el 2026-10-24 (tanda G, commit G5): 32 -> 33, por la ficha del posoperatorio.
      Los dos agrupadores -nativas y protesicas- siguen fuera del indice. */
   /* ⚠️ ADAPTADO EN LA AJ9: 33 -> 34, por ref-strain. Los dos agrupadores siguen fuera. */
-  ex.push(['(B1) DENOMINADOR: el buscador existe y su indice tiene las 34 entradas (36 menos los dos agrupadores)',
-    !!EL('ref-busca') && (function () { try { return FN('_refIndiceArmar') && window._refIndiceArmar(true).length === 34; } catch (e) { return false; } })(),
+  /* ADAPTADO EN PANT-11 (commits 10 y 11): 34 -> 36, por las dos fichas nuevas. La resta de los
+     dos agrupadores no cambia: 38 entradas menos dos. */
+  ex.push(['(B1) DENOMINADOR: el buscador existe y su indice tiene las 36 entradas (38 menos los dos agrupadores)',
+    !!EL('ref-busca') && (function () { try { return FN('_refIndiceArmar') && window._refIndiceArmar(true).length === 36; } catch (e) { return false; } })(),
     'indice=' + (function () { try { return window._refIndiceArmar(true).length; } catch (e) { return 'EXC'; } })()]);
   ex.push(['(B2) «RWT» encuentra la GEOMETRIA DEL VI y dice su subpestana',
     !bRWT.err && bRWT.n > 0 && bRWT.ids.indexOf('vi') >= 0 && bRWT.subs.indexOf('Dimensiones') >= 0,
@@ -79560,7 +79640,7 @@ caso('TC-502', 'Tanda P: Referencias en CINCO subpestanas sin perder una entrada
        una fuente que no tuvieran, asi que una ficha publicaria un criterio que no existe.
        Es la convencion que esta condicion ya declara para inf-min, tga-esq y tavi-calc. El
        limite que declara no cambia; cambia su denominador. */
-  ex.push(['(C3) LIMITE DECLARADO: sesenta y siete tarjetas sin boton, porque Referencias no tiene esa entrada',
+  ex.push(['(C3) LIMITE DECLARADO: sesenta y nueve tarjetas sin boton, porque Referencias no tiene esa entrada',
     /* ADAPTADA (TANDA AJUSTES-2, commit 4a, 31/10/2026): 24 -> 25. La entrada nueva es
        inf-min, el ⓘ de la fila de miniaturas de lo que va al PDF; no tiene ficha en
        Referencias porque explica la INTERFAZ y no publica contenido clinico. */
@@ -79578,6 +79658,16 @@ caso('TC-502', 'Tanda P: Referencias en CINCO subpestanas sin perder una entrada
        El limite que esta condicion declara no cambia; cambia su denominador, y la lista las
        sigue nombrando una por una, que es lo que hace que el dia que una consiga ficha el caso
        se ponga rojo. */
+    /* ADAPTADA EN PANT-11 (commits 9a y 9b): 67 -> 69. Las DOS nuevas son masa-ref -la tabla de
+       diagnosticos diferenciales de las masas- y masa-ref-ei -los criterios de endocarditis-.
+       ⚠️ Y en estas dos el motivo NO es el de las anteriores: Referencias SI gano dos fichas en
+       esta misma tanda -ref-tumores y ref-embolig-, pero NINGUNA publica el mismo contenido que
+       estos dos globos -la primera son tumores teoricos y la segunda fuentes emboligenas, no la
+       tabla de diferenciales ni los criterios de endocarditis-, asi que no hay destino exacto y
+       mapearlos a una ficha parecida seria mandar al medico a otra cosa. Queda declarado en
+       docs/PENDIENTES.md -> P11-g y es decision del medico. El limite que esta condicion declara
+       no cambia; cambia su denominador, y la lista las sigue nombrando una por una, que es lo que
+       hace que el dia que una consiga ficha el caso se ponga rojo. */
     sinBoton.join(',') === 'amilo-score,cc-3d,'
       + 'cc9-cvpa-dren,cc9-cvpa-qp,cc9-cvpa-sec,'
       + 'cc9-dsav-comp,cc9-dsav-down,cc9-dsav-rav,cc9-dsav-rvp,'
@@ -79587,7 +79677,7 @@ caso('TC-502', 'Tanda P: Referencias en CINCO subpestanas sin perder una entrada
       + 'co-monitoreo,co-riesgo-basal,coa-card,cvr-coc,cvr-ecosmart,'
       + 'easv-grad,easv-sec,esub-grad,esub-sec,et-avt-cont,'
       + 'hemo-forr,hemo-ic,hemo-rvs,inf-min,'
-      + 'mca-eco,mca-score,mca-sec,mca-vi,'
+      + 'masa-ref,masa-ref-ei,mca-eco,mca-score,mca-sec,mca-vi,'
       + 'mch-adic,mch-ex,mch-hvi,mch-msub,mch-score,mch-sec,'
       + 'tarj-esten-pulmonar,tarj-esten-tricuspide,tarj-insuf-pulmonar,tavi-calc,'
       + 'tdf-eco,tdf-sec,tdf-vol,'
@@ -81382,7 +81472,12 @@ caso('TC-506', 'Tanda Y3f: la FEVI y el DSFVI como UN SOLO valor en los dos sent
 
   /* ══ (B) DOPPLER MITRAL: LAS COLUMNAS 2 Y 3 INTERCAMBIADAS ══════════════════════════════ */
   const ORD = ['onda_e','onda_a','e_sep','e_lat',
-               'thp','tde','triv','onda_l',
+                /* ADAPTADO EN PANT-11 (commit 2): el TDE y el TRIV intercambiaron de
+                   lugar por pedido del medico, asi que la columna 2 va thp, TRIV, TDE,
+                   onda_l. Lo que este caso fija no cambia -el orden del MARCADO y la
+                   casilla de cada campo-: cambia el orden esperado de DOS de los
+                   dieciseis. Los otros catorce no se mueven. */
+               'thp','triv','tde','onda_l',
                'venp_dur_a','venp_dur_ar','venp_vel_ar','venp_sd',
                'lars_dop','ai_strain_ct_dop','itv_mitral','avm_thp'];
   const _grid = document.querySelector('#dop-mitral .grid-4.dm-grid');
@@ -81397,7 +81492,7 @@ caso('TC-506', 'Tanda Y3f: la FEVI y el DSFVI como UN SOLO valor en los dos sent
     const mc = cl.match(/dm-c(\\d)/), mr = cl.match(/dm-r(\\d)/);
     return (mc && mr) ? (mc[1] + '/' + mr[1]) : 'SIN CLASES'; };
   const _CEL = { onda_e:'1/1', onda_a:'1/2', e_sep:'1/3', e_lat:'1/4',
-                 thp:'2/1', tde:'2/2', triv:'2/3', onda_l:'2/4',
+                 thp:'2/1', triv:'2/2', tde:'2/3', onda_l:'2/4',
                  venp_dur_a:'3/1', venp_dur_ar:'3/2', venp_vel_ar:'3/3', venp_sd:'3/4',
                  lars_dop:'4/1', ai_strain_ct_dop:'4/2', itv_mitral:'4/3', avm_thp:'4/4' };
   const _malas = ORD.filter(id => _cel(id) !== _CEL[id]);
@@ -83162,21 +83257,55 @@ caso('TC-509', 'Trabajo B (ADAPTADO por el B2): la columna izquierda con sus ONC
       return mal.length === 0; })(), 'sin paneles cruzados']);
 
   /* ══ (B) PERICARDIO Y MASAS ════════════════════════════════════════════════════════════ */
-  const PERI_IDS = ['pericardio','pericardio_hemo','otras_notas','masa_presente','masa_loc',
-    'masa_tam_mm','masa_morf','masa_movil','masa_eco','masa_dx','masa_notas'];
-  ex.push(['(B1) los ONCE campos de pericardio y masas viven en su pestana propia, con caja',
-    (function () { try { showTab('pericardio'); } catch (e) {}
-      const sec = EL('ete-seccion-pericardio-masas');
-      if (sec) sec.style.display = 'block';
-      const mp = EL('masa_presente');
-      if (mp) { mp.selectedIndex = 1; try { if (FN('showMasaPanel')) showMasaPanel(); } catch (e) {} }
-      return PERI_IDS.every(function (id) { const e = EL(id);
-        if (!e) return false;
-        const p = e.closest('.tab-section');
-        return !!p && p.id === 'tab-pericardio' && vis(e); }); })(),
+  /* ADAPTADO EN PANT-11 (commit 8, decision del medico): los ONCE campos se PARTIERON en dos
+     pestanias y la condicion se parte con ellos, que es por lo que queda MAS fuerte: antes
+     afirmaba que los once estaban en tab-pericardio, y ahora exige que los TRES del pericardio
+     sigan ahi -con la seccion renombrada a «Pericardio»- Y que los NUEVE de masas esten en
+     tab-otros, con caja los dos grupos. Asi puede volver a ponerse en rojo por los dos lados: si
+     una masa se queda en pericardio o si un campo de pericardio se va a Otros.
+     ⚠️ Son NUEVE y no ocho: la lista vieja se olvidaba de masa_cavidad. */
+  const PERI_IDS = ['pericardio','pericardio_hemo','otras_notas'];
+  const MASA_IDS = ['masa_presente','masa_cavidad','masa_loc','masa_tam_mm','masa_morf',
+    'masa_movil','masa_eco','masa_dx','masa_notas'];
+  const dOnde = function (id) { const e = EL(id); const p = e && e.closest('.tab-section');
+    return id + ':' + (p ? p.id : 'NO') + (vis(e) ? '' : ':SIN CAJA'); };
+  const peri509 = (function () {
+    try { showTab('pericardio'); } catch (e) {}
+    const sec = EL('ete-seccion-pericardio-masas');
+    if (sec) sec.style.display = 'block';
+    const okP = PERI_IDS.every(function (id) { const e = EL(id);
+      if (!e) return false;
+      const p = e.closest('.tab-section');
+      return !!p && p.id === 'tab-pericardio' && vis(e); });
+    try { showTab('otros'); } catch (e) {}
+    const h = [].slice.call(document.querySelectorAll('#otr-sub-masas h2.card-head'))
+      .filter(function (x) { return (x.getAttribute('onclick') || '').indexOf("'masas'") > -1; })[0];
+    if (h) { try { h.click(); } catch (e) {} }
+    const sm = EL('ete-seccion-masas');
+    if (sm) sm.style.display = 'block';
+    const mp = EL('masa_presente');
+    if (mp) { mp.selectedIndex = 1; try { if (FN('showMasaPanel')) showMasaPanel(); } catch (e) {} }
+    const okM = MASA_IDS.every(function (id) { const e = EL(id);
+      if (!e) return false;
+      const p = e.closest('.tab-section');
+      return !!p && p.id === 'tab-otros' && vis(e); });
+    return { okP: okP, okM: okM,
+      dP: PERI_IDS.map(dOnde).join(','), dM: MASA_IDS.map(dOnde).join(',') };
+  })();
+  ex.push(['(B1) los TRES campos del pericardio siguen en su pestana propia, con caja',
+    peri509.okP, peri509.dP]);
+  ex.push(['(B1b) y los NUEVE de masas viven en la pestana OTROS, con caja',
+    peri509.okM, peri509.dM]);
+  ex.push(['(B1c) el titulo de la seccion vieja ya NO nombra las masas: dice «Pericardio»',
     (function () { const sec = EL('ete-seccion-pericardio-masas');
-      return 'seccion en ' + (sec && sec.closest('.tab-section') ? sec.closest('.tab-section').id : 'NO')
-        + ' | sin caja: ' + PERI_IDS.filter(function (id) { return !vis(EL(id)); }).join(','); })()]);
+      const c = sec && sec.previousElementSibling;
+      const h = c ? c.querySelector('h2.card-head') : null;
+      const t = h ? (h.textContent || '') : '';
+      return !!h && t.indexOf('Pericardio') > -1 && t.toLowerCase().indexOf('masa') < 0; })(),
+    (function () { const sec = EL('ete-seccion-pericardio-masas');
+      const c = sec && sec.previousElementSibling;
+      const h = c ? c.querySelector('h2.card-head') : null;
+      return h ? ('titulo=' + (h.textContent || '').split('▶')[0].trim()) : 'NO HAY ENCABEZADO'; })()]);
   ex.push(['(B2) CONTROL: el desplegable del pericardio conserva sus CINCO opciones vivas del R2',
     (function () { const e = EL('pericardio');
       return !!e && e.options.length === 5; })(),
@@ -83189,20 +83318,31 @@ caso('TC-509', 'Trabajo B (ADAPTADO por el B2): la columna izquierda con sus ONC
      barra que ya tenia: ni barra, ni botones, ni otrSubTab, y los DOS paneles visibles a la
      vez con su propia barra de seccion. Lo que el caso cuida —que las dos secciones esten y
      sean alcanzables— es mas fuerte asi: antes una de las dos estaba siempre escondida. */
-  ex.push(['(C1) Otros NO tiene sub-pestanas: las dos secciones van APILADAS, visibles a la vez, cada una con su barra',
+  /* ADAPTADO EN PANT-11 (commit 8): son TRES secciones apiladas y no dos, porque «Masas» se
+     mudo a esta pestania. Se exige ademas que las tres sean HERMANAS de #tab-otros y que cada
+     una tenga EXACTAMENTE un card-head, que es lo que caza el defecto que esta tanda pago:
+     un </div> de menos dejo a «Masas» ANIDADA dentro de «Variantes anatomicas», con el DOM
+     balanceado y la pantalla sin un sintoma visible -el panel de variantes informaba DOS
+     card-head-. Lo que la condicion cuida -que no haya sub-pestanas y que las secciones sean
+     todas alcanzables a la vez- no cambia. */
+  ex.push(['(C1) Otros NO tiene sub-pestanas: las TRES secciones van APILADAS, visibles a la vez, cada una con su barra',
     (function () { try { showTab('otros'); } catch (e) {}
       if (document.querySelector('#tab-otros .otr-subbar')) return false;
-      if (EL('otr-subtab-burbuja') || EL('otr-subtab-variantes')) return false;
+      if (EL('otr-subtab-burbuja') || EL('otr-subtab-variantes') || EL('otr-subtab-masas')) return false;
       if (FN('otrSubTab')) return false;
-      const pb = EL('otr-sub-burbuja'), pv = EL('otr-sub-variantes');
-      if (!pb || !pv) return false;
-      if (!vis(pb) || !vis(pv)) return false;
+      const pb = EL('otr-sub-burbuja'), pv = EL('otr-sub-variantes'), pm = EL('otr-sub-masas');
+      if (!pb || !pv || !pm) return false;
+      if (!vis(pb) || !vis(pv) || !vis(pm)) return false;
+      /* HERMANAS de la pestania, no anidadas una en otra. */
+      if ([pb, pv, pm].some(function (x) { return !x.parentElement || x.parentElement.id !== 'tab-otros'; })) return false;
       /* UNA barra por seccion y no dos niveles: cada panel tiene exactamente un card-head. */
       return pb.querySelectorAll('.card-head').length === 1
-          && pv.querySelectorAll('.card-head').length === 1; })(),
-    (function () { const pb = EL('otr-sub-burbuja'), pv = EL('otr-sub-variantes');
+          && pv.querySelectorAll('.card-head').length === 1
+          && pm.querySelectorAll('.card-head').length === 1; })(),
+    (function () { const pb = EL('otr-sub-burbuja'), pv = EL('otr-sub-variantes'), pm = EL('otr-sub-masas');
       return 'subbar=' + !!document.querySelector('#tab-otros .otr-subbar')
         + ' fn=' + FN('otrSubTab')
+        + ' padres=' + [pb, pv, pm].map(function (x) { return x && x.parentElement ? x.parentElement.id : 'NO'; }).join('/')
         + ' barras=' + (pb ? pb.querySelectorAll('.card-head').length : 'NO')
         + '/' + (pv ? pv.querySelectorAll('.card-head').length : 'NO'); })()]);
   const VAR_IDS = ['otr_asia','otr_var_eustaquio','otr_var_chiari','otr_var_lipo',
@@ -83427,8 +83567,13 @@ caso('TC-509', 'Trabajo B (ADAPTADO por el B2): la columna izquierda con sus ONC
       /* ⚠️ ADAPTADO EN LA AJ9 (2026-10-29): 35 -> 36, por ref-strain en la subpestana
          «Funcion». Lo que esta condicion vigila -que sean SEIS subpestanas y que el censo no
          pierda una entrada- no cambia. */
-      return n === 36 && !!EL('ref-fop') && !!EL('ref-hfapeff') && !!EL('ref-constriccion')
-        && !!EL('ref-pulmon') && !!EL('ref-pop'); })(),
+      /* ⚠️ ADAPTADO EN PANT-11 (commits 10 y 11): 36 -> 38, por ref-tumores y ref-embolig, las
+         dos en la subpestana «Otros hallazgos». Se exigen las SIETE fichas nombradas -las cinco
+         de antes mas estas dos-, por el mismo motivo de siempre: asi la condicion sigue
+         distinguiendo «entraron dos» de «se perdieron dos y entraron otras». */
+      return n === 38 && !!EL('ref-fop') && !!EL('ref-hfapeff') && !!EL('ref-constriccion')
+        && !!EL('ref-pulmon') && !!EL('ref-pop')
+        && !!EL('ref-tumores') && !!EL('ref-embolig'); })(),
     (function () { const t = EL('tab-refs');
       const n = t ? [].slice.call(t.querySelectorAll('h2.card-head'))
         .filter(function (h) { return (h.getAttribute('onclick') || '').indexOf("toggleRef('") > -1; }).length : -1;
@@ -83558,8 +83703,14 @@ caso('TC-509', 'Trabajo B (ADAPTADO por el B2): la columna izquierda con sus ONC
       return window._labEstenSev({ campos: { em_grado: 'severa' } }, 'em_grado') === 'Severa'; })() === true,
     'el Laboratorio responde']);
   ex.push(['(J4) DENOMINADOR: hay algo que auditar en las tres superficies',
-    rail.length > 0 && arriba.length > 0 && PERI_IDS.length === 11 && VAR_IDS.length === 8,
-    'rail=' + rail.length + ' arriba=' + arriba.length]);
+    /* ADAPTADO EN PANT-11 (commit 8): PERI_IDS pasa de once a TRES y nace MASA_IDS con NUEVE,
+       porque los nueve campos de masas se mudaron a la pestania Otros. La suma sigue siendo
+       doce -tres mas nueve-, uno mas que los once de antes, porque la lista vieja se olvidaba
+       de masa_cavidad. */
+    rail.length > 0 && arriba.length > 0 && PERI_IDS.length === 3 && MASA_IDS.length === 9
+      && VAR_IDS.length === 8,
+    'rail=' + rail.length + ' arriba=' + arriba.length
+      + ' peri=' + PERI_IDS.length + ' masa=' + MASA_IDS.length + ' var=' + VAR_IDS.length]);
 
   return { extra: ex };
 `);
@@ -84037,15 +84188,20 @@ caso('TC-511', 'Trabajo B2: la columna izquierda con ONCE botones y «Pericardio
     (function () { const d = EL('ecoDrawer'); return d ? 'n=' + d.querySelectorAll('button').length : 'SIN DRAWER'; })()]);
 
   /* ══ (B) PERICARDIO Y MASAS: EL CONTENIDO INTACTO ══════════════════════════════════════ */
-  const PERI = ['pericardio','pericardio_hemo','otras_notas','masa_presente','masa_cavidad',
-    'masa_loc','masa_tam_mm','masa_morf','masa_movil','masa_eco','masa_dx','masa_notas'];
-  ex.push(['(B1) los DOCE campos de pericardio y masas siguen existiendo, en esa pantalla',
-    PERI.every(function (id) { const e = EL(id);
-      const p = e ? e.closest('.tab-section') : null;
-      return !!p && p.id === 'tab-pericardio'; }),
-    PERI.filter(function (id) { const e = EL(id);
-      const p = e ? e.closest('.tab-section') : null;
-      return !p || p.id !== 'tab-pericardio'; }).join(',') || 'los doce']);
+  /* ADAPTADO EN PANT-11 (commit 8, decision del medico): los DOCE campos se PARTIERON en dos
+     pestanias, y la condicion se parte con ellos -queda MAS fuerte, porque puede fallar por los
+     dos lados: si una masa se queda en pericardio o si un campo de pericardio se va a Otros-. */
+  const PERI = ['pericardio','pericardio_hemo','otras_notas'];
+  const MASAS511 = ['masa_presente','masa_cavidad','masa_loc','masa_tam_mm','masa_morf',
+    'masa_movil','masa_eco','masa_dx','masa_notas'];
+  const _en = (id, tab) => { const e = EL(id); const p = e ? e.closest('.tab-section') : null;
+    return !!p && p.id === tab; };
+  ex.push(['(B1) los TRES campos del pericardio siguen existiendo, en esa pantalla',
+    PERI.every(id => _en(id, 'tab-pericardio')),
+    PERI.filter(id => !_en(id, 'tab-pericardio')).join(',') || 'los tres']);
+  ex.push(['(B1b) y los NUEVE de masas existen, en la pestana OTROS',
+    MASAS511.every(id => _en(id, 'tab-otros')),
+    MASAS511.filter(id => !_en(id, 'tab-otros')).join(',') || 'los nueve']);
   ex.push(['(B2) y el desplegable del derrame conserva sus CINCO opciones vivas',
     (function () { const e = EL('pericardio');
       return !!e && e.options.length === 5; })(),
@@ -84197,18 +84353,28 @@ caso('TC-511', 'Trabajo B2: la columna izquierda con ONCE botones y «Pericardio
 
   /* ══ (E) OTROS: DOS BARRAS APILADAS ════════════════════════════════════════════════════ */
   try { showTab('otros'); } catch (e) {}
-  ex.push(['(E1) Otros no tiene sub-pestanas y sus dos secciones van APILADAS, visibles las dos',
+  /* ADAPTADO EN PANT-11 (commit 8): son TRES secciones apiladas y no dos. Se exige ademas que
+     las tres sean HERMANAS de #tab-otros, que es lo que caza el </div> de menos que el commit 8
+     dejo y el 8b corrigio: el DOM quedaba balanceado y el unico sintoma era que el panel de
+     variantes informaba DOS card-head. */
+  ex.push(['(E1) Otros no tiene sub-pestanas y sus TRES secciones van APILADAS, visibles las tres',
     (function () { if (document.querySelector('#tab-otros .otr-subbar')) return false;
-      if (EL('otr-subtab-burbuja') || EL('otr-subtab-variantes')) return false;
+      if (EL('otr-subtab-burbuja') || EL('otr-subtab-variantes') || EL('otr-subtab-masas')) return false;
       if (FN('otrSubTab')) return false;
-      const pb = EL('otr-sub-burbuja'), pv = EL('otr-sub-variantes');
-      return !!pb && !!pv && vis(pb) && vis(pv)
+      const pb = EL('otr-sub-burbuja'), pv = EL('otr-sub-variantes'), pm = EL('otr-sub-masas');
+      if (!pb || !pv || !pm) return false;
+      if ([pb, pv, pm].some(x => !x.parentElement || x.parentElement.id !== 'tab-otros')) return false;
+      return vis(pb) && vis(pv) && vis(pm)
         && pb.querySelectorAll('.card-head').length === 1
-        && pv.querySelectorAll('.card-head').length === 1; })(),
+        && pv.querySelectorAll('.card-head').length === 1
+        && pm.querySelectorAll('.card-head').length === 1; })(),
     'subbar=' + !!document.querySelector('#tab-otros .otr-subbar') + ' fn=' + FN('otrSubTab')]);
-  ex.push(['(E2) las dos barras de Otros tienen el color de las de Hemodinamica',
+  /* ADAPTADO EN PANT-11 (commit 8): son TRES barras y no dos, porque «Masas» se mudo a esta
+     pestania. Lo que la condicion cuida -que todas tengan el MISMO estilo que las de
+     Hemodinamica- no cambia; cambia su denominador. */
+  ex.push(['(E2) las TRES barras de Otros tienen el color de las de Hemodinamica',
     (function () { const hs = [].slice.call(document.querySelectorAll('#tab-otros .card-head'));
-      return !!hemo && hs.length === 2 && hs.every(function (h) {
+      return !!hemo && hs.length === 3 && hs.every(function (h) {
         return ['backgroundColor','color','fontSize','fontWeight','textTransform']
           .every(function (k) { return cs(h, k) === cs(hemo, k); }); }); })(),
     (function () { const hs = [].slice.call(document.querySelectorAll('#tab-otros .card-head'));
@@ -92190,12 +92356,17 @@ caso('TC-535', 'Tanda AJ7: la linea de Fallot del EN SUMA sin la IP y el resumen
      propio boton, tambien el del grupo «Indice de Celermajer», que vive dentro del titulo de
      su columna y hace crecer esa fila a 44 px -que es la decision de la casa: sin margenes
      negativos, el contenedor crece y nada queda tapado-. */
-  ex.push(['(K0) DENOMINADOR: los SESENTA Y UN globos llevan la clase, tienen geometria y estan EN VISTA',
-    tapK.length === 61 && tapK.every((x) => x.w > 0 && x.h > 0 && x.enVista), JSON.stringify(tapK)]);
-  ex.push(['(K1) los sesenta y uno miden 44x44 tambien con el mouse',
-    tapK.length === 61 && tapK.every((x) => x.w >= 44 && x.h >= 44), JSON.stringify(tapK)]);
+  /* ⚠️ ADAPTADO EN PANT-11 (commits 9a y 9b): SESENTA Y UNO -> SESENTA Y TRES. Los dos nuevos
+     son masa-ref y masa-ref-ei, los globos de la seccion de masas de la pestania Otros, y los
+     dos nacen con la clase vinfo-btn-44 y SIN margenes negativos. Lo que estas tres condiciones
+     exigen no cambia; cambia cuantos globos tienen que cumplirlo, y el conteo ES el denominador:
+     agregar uno sin la clase pone esto en rojo. Los TRES numeros se mueven JUNTOS. */
+  ex.push(['(K0) DENOMINADOR: los SESENTA Y TRES globos llevan la clase, tienen geometria y estan EN VISTA',
+    tapK.length === 63 && tapK.every((x) => x.w > 0 && x.h > 0 && x.enVista), JSON.stringify(tapK)]);
+  ex.push(['(K1) los sesenta y tres miden 44x44 tambien con el mouse',
+    tapK.length === 63 && tapK.every((x) => x.w >= 44 && x.h >= 44), JSON.stringify(tapK)]);
   ex.push(['(K2) y su caja NO tapa a ningun vecino: los cinco puntos dan el propio boton',
-    tapK.length === 61 && tapK.every((x) => x.propios === 5), JSON.stringify(tapK)]);
+    tapK.length === 63 && tapK.every((x) => x.propios === 5), JSON.stringify(tapK)]);
   ex.push(['(K3) CONTROL: los demas globos NO se tocaron y siguen con su piso solo tactil',
     document.querySelectorAll('button.vinfo-btn').length
       - document.querySelectorAll('button.vinfo-btn-44').length >= 10,
@@ -111018,7 +111189,12 @@ caso('TC-642', 'Tanda PANT-5: la CIA y la CIV lado a lado, y la longitud de los 
   __t.limpiar();
   __t.set('teer_prof_flail', '14');
   try { etemVeloGesto('teer_prof_flail'); } catch (e) {}
-  ex.push(['(D6) CONTROL: la profundidad de coaptacion NO se espeja', __t.val('ete_prof_coapt'), '']);
+  /* ⚠️ ADAPTADA EN PANT-11 (commit 4), e INVERTIDA, por el mismo motivo que TC-648 (D5): era el
+     otro guardian de la parada de P6-f, y la orden del medico del 04/11/2026 la revierte. Los
+     dos campos son UN dato con dos puertas; los dos ROTULOS y los dos CORTES siguen separados.
+     Ver TC-648 (D5), TC-677 y docs/mapa/mitral-teer-criterios.md. */
+  ex.push(['(D6) la profundidad de coaptacion SI se espeja: un dato con dos puertas',
+    __t.val('ete_prof_coapt'), '14']);
   /* El runner exige el objeto, no el array pelado: es la leccion que MARFAN-2 documenta. */
   return { extra: EXP };
 `);
@@ -111429,7 +111605,27 @@ caso('TC-648', 'Tanda PANT-6: los dos tipos de IM del TEER siempre visibles, el 
   /* CONTROL NEGATIVO: siguen SIN sincronizar — unirlos cambiaria el criterio c4 del TEER. */
   __t.limpiar();
   __t.set('teer_prof_flail', '14'); try { etemVeloGesto('teer_prof_flail'); } catch (e) {}
-  ex.push(['(D5) CONTROL: la profundidad de coaptacion NO se espeja', __t.val('ete_prof_coapt'), '']);
+  /* ⚠️ ADAPTADA EN PANT-11 (commit 4), e INVERTIDA: es el dia que esta condicion anunciaba.
+     Era el guardian de la PARADA de P6-f -«son dos datos distintos y unirlos cambiaria el
+     criterio c4 del TEER»-, y la orden del medico del 04/11/2026 REVIERTE esa decision: los dos
+     campos pasan a ser UN SOLO VALOR con dos puertas.
+     ⚠️ LO QUE LA PARADA PROTEGIA NO SE PERDIO, y por eso el grupo queda MAS fuerte: los dos
+        ROTULOS siguen distintos -(D1), (D2) y (D3), intactas- y los dos CORTES siguen siendo
+        distintos, 10 mm como factor desfavorable de la reparacion y 11 mm como criterio de
+        exclusion del TEER. Lo que se unifica es el VALOR, no el significado. (D5) exige ahora
+        que el valor viaje y (D5b) que los dos cortes sigan separados, asi que puede volver a
+        fallar por los dos lados. */
+  ex.push(['(D5) la profundidad de coaptacion SI se espeja: un dato con dos puertas',
+    __t.val('ete_prof_coapt'), '14']);
+  ex.push(['(D5b) y los DOS cortes siguen separados: 10 mm para la reparacion y 11 para el TEER',
+    (function () { const a = (typeof ETE_CORTES !== 'undefined') ? ETE_CORTES : null;
+      /* El corte del TEER es el criterio c4 de teerEstado; el de la reparacion, el factor
+         desfavorable del cuadro del ETE. Lo que se mide es que los rotulos no se unificaron,
+         que es lo observable sin tocar las dos cascadas. */
+      return (rot('ete_prof_coapt').indexOf('reparación') > -1
+        && rot('teer_prof_flail').indexOf('TEER') > -1
+        && rot('ete_prof_coapt') !== rot('teer_prof_flail')) ? 'separados' : 'unificados'; })(),
+    'separados']);
   return { extra: EXP };
 `);
 
@@ -113410,8 +113606,18 @@ caso('TC-668', 'Tanda PANT-10: los diecisiete textos de congenitas corregidos co
   /* ⚠️ ESTA CONDICION NO DISCRIMINABA Y LO ENCONTRO LA MUTACION 14. Pedia «mortalidad materna»
      y «50», y cambiar «>50 %» por «30 a 50 %» -que es justo la mutacion- las cumple las dos.
      Hoy compara el TEXTO EXACTO de la franja, que es lo unico que prueba que no se toco. */
-  ex.push(['(D1) CONTROL: la franja conserva su texto exacto, que es decision del medico',
-    frT, 'Contraindicaciones absolutas \u2014 embarazo (mortalidad materna >50\u00a0%) \u00b7   correccion quirurgica cardiaca del defecto \u00b7 ejercicio extenuante.']);
+  /* ⚠️ ADAPTADA EN PANT-11 (commit 1), e INVERTIDA: es el dia que esta condicion
+     anunciaba. PANT-10 la escribio para fijar que la franja NO se tocaba -«es decision del
+     medico»- y PANT-11 trae esa decision: la REDACCION A, orden expresa del 04/11/2026, pasa la
+     cifra a «30 a 50 %», que es lo que publica la ACC/AHA de cardiopatias congenitas del adulto
+     (hoja 95, folio e209 comprobado en el pie impreso) y lo que la tarjeta de criterios de esta
+     misma seccion ya escribia: la pantalla dejaba de contradecirse. Se sigue comparando el TEXTO
+     EXACTO, que es lo unico que prueba que no se toco nada mas, y se exige ADEMAS que el «>50 %»
+     ya no este, asi que puede volver a fallar por los dos lados. */
+  ex.push(['(D1) la franja lleva la cifra de la fuente, con el resto del texto exacto',
+    frT, 'Contraindicaciones absolutas \u2014 embarazo (mortalidad materna 30\u00a0a\u00a050\u00a0%) \u00b7   correccion quirurgica cardiaca del defecto \u00b7 ejercicio extenuante.']);
+  ex.push(['(D1b) y el «>50 %» que ninguna fuente publica ya no esta',
+    frT.indexOf('>50') > -1, false]);
   ex.push(['(D2) CONTROL: y sus otras dos contraindicaciones',
     frT.indexOf('quirurgica') > -1 && frT.indexOf('ejercicio extenuante') > -1, true]);
   /* ── (E) CONTROL NEGATIVO: el registro no cambio de tamanio ni de claves ── */
@@ -113929,6 +114135,930 @@ caso('TC-673', 'Tanda PANT-10: la Evidencia de Síndrome de Eisenmenger -sus fil
   /* ── (H) CONTROL: el evaluador de la pantalla es el dueno de la compuerta ── */
   ex.push(['(H1) CONTROL: la compuerta la decide eisenEstado, el evaluador de la pantalla',
     typeof eisenEstado === 'function', true]);
+  return { extra: EXP };
+`);
+
+
+/* ══ TANDA PANT-11 ══ Los casos nuevos van ANTES del bloque que consume CASOS: ese bucle no esta
+   al final del archivo, y un caso agregado despues de el NO se ejecuta -la suite imprime
+   «0/0 sin regresiones» sobre un caso que nunca corrio-. */
+caso('TC-674', 'Tanda PANT-11 (commit 1): el papel de la anomalia de Ebstein y del sindrome de Eisenmenger sin el kappa de Celermajer, sin su apellido, sin la resonancia, sin la serie neonatal, sin el nombre de la guia y sin la conducta; con la relacion de areas y su grado publicados igual; la mortalidad materna en 30 a 50 %; las alertas de sincope y de hemoptisis fuera del papel; la PANTALLA y la Evidencia conservandolo todo; y los CONTROLES -la seccion sin integrar y un estudio ajeno-', `
+  return (async () => {
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]), 'esperado ' + String(t[2]) + ' | hallado ' + String(t[1])]) };
+  const NN = (s) => String(s || '').split(String.fromCharCode(10)).join(' ').trim();
+  const cuenta = (s, p) => { let n = 0, i = 0; const t = String(s || '');
+    while (true) { const k = t.indexOf(p, i); if (k < 0) break; n++; i = k + 1; } return n; };
+  const EST = ['conciso', 'estandar', 'narrativo'];
+  /* Las TRES superficies de papel que un caso puede medir sin generar el PDF: el informe en sus
+     tres estilos y el EN SUMA en los tres. El PDF y el PPT los mide el A/B de la tanda, que los
+     genera de verdad; eso se declara aca para que el cero de este caso no se lea como que las
+     cuatro superficies estan cubiertas. */
+  const papelDe = () => { const o = { inf: '', suma: '' };
+    EST.forEach(e => { try { setEstiloInforme(e) } catch (x) {}
+      const r = __t.informe(); o.inf += ' ~ ' + NN(r.inf); o.suma += ' ~ ' + NN(r.suma); });
+    try { setEstiloInforme('estandar') } catch (x) {}
+    return o; };
+
+  /* ── (A) EBSTEIN: DENOMINADOR ── */
+  __t.limpiar();
+  __t.set('nombre', 'Papel PANT11'); __t.set('ci', '11111111');
+  /* Las CINCO areas hacen falta para que el indice se calcule: con una sola, celPapel sale
+     «no calculada, faltan: ...» y la condicion (B3) mediria sobre un denominador vacio. */
+  __t.set('peso', '80'); __t.set('talla', '180');
+  const EBS = { ebs_desplazamiento: '25', ebs_area_ad: '28', ebs_area_vd_atrial: '12',
+    ebs_area_vd_func: '14', ebs_area_ai: '18', ebs_area_vi: '26',
+    ebs_saturacion: '86', ebs_tsv: 'si', ebs_vias: 'si', it_grado: '4', ebs_sintomas: 'si' };
+  Object.keys(EBS).forEach(k => { try { __t.set(k, EBS[k]) } catch (e) {} });
+  let eb = null; try { eb = ebsConclusion() } catch (e) { eb = 'EXC ' + String(e).slice(0, 70) }
+  ex.push(['(A0) DENOMINADOR: ebsConclusion devuelve una conclusion con txt y con papel',
+    !!(eb && typeof eb === 'object' && eb.txt && eb.papel), true]);
+  const ebTxt = NN(eb && eb.txt), ebPap = NN(eb && eb.papel), ebRes = NN(eb && eb.resumen);
+  ex.push(['(A1) DENOMINADOR: la PANTALLA de Ebstein SI trae el indice por su nombre propio',
+    ebTxt.indexOf('Indice de Celermajer') > -1 || ebTxt.indexOf('ndice de Celermajer') > -1, true]);
+
+  /* ── (B) EL PAPEL DE EBSTEIN ── */
+  const MARC_EBS = ['0,39', '0.39', 'Celermajer', 'ESC 2020', 'SOBREESTIM', 'sobreestim',
+    'resonancia', 'serie neonatal', 'Clase I', 'cirugia indicada', 'cirug'];
+  ex.push(['(B1) el papel de Ebstein no contiene NINGUNO de los once marcadores',
+    MARC_EBS.filter(m => ebPap.indexOf(m) > -1).join(','), '']);
+  ex.push(['(B2) y la PANTALLA si contiene el apellido y el nombre de la guia -el control positivo-',
+    ebTxt.indexOf('Celermajer') > -1 && ebTxt.indexOf('ESC 2020') > -1, true]);
+  ex.push(['(B3) NINGUN NUMERO MEDIDO DESAPARECE: el papel publica la relacion de areas y su grado',
+    ebPap.indexOf('elaci') > -1 && ebPap.indexOf('reas en cuatro c') > -1 && ebPap.indexOf('grado') > -1, true]);
+  ex.push(['(B4) y publica el MISMO valor que la pantalla, con dos decimales',
+    (function () { const c = eb && eb.cel; if (!c || c.idx == null) return 'SIN INDICE';
+      const v = c.idx.toFixed(2); return (ebPap.indexOf(v) > -1 && ebTxt.indexOf(v) > -1) ? v : 'papel/pantalla no coinciden'; })(),
+    (function () { const c = eb && eb.cel; return (c && c.idx != null) ? c.idx.toFixed(2) : 'SIN INDICE'; })()]);
+  ex.push(['(B5) la linea de la evaluacion electrofisiologica sale del papel y se queda en la pantalla',
+    (ebTxt.indexOf('electrofisiol') > -1) && (ebPap.indexOf('electrofisiol') < 0), true]);
+  ex.push(['(B6) y el papel NO se arma a mano: tiene las MISMAS partes que la pantalla menos las retiradas',
+    ebPap.split('. ').length <= ebTxt.split('. ').length, true]);
+
+  /* ── (C) LAS CUATRO SUPERFICIES CON LA SECCION INTEGRADA ── */
+  __t.chk('ebs_incluir_chk', true);
+  const pEbs = papelDe();
+  ex.push(['(C0) DENOMINADOR: con la seccion integrada el informe nombra la anomalia de Ebstein',
+    pEbs.inf.indexOf('Ebstein') > -1, true]);
+  ex.push(['(C1) el informe en los TRES estilos no trae ninguno de los marcadores',
+    MARC_EBS.filter(m => pEbs.inf.indexOf(m) > -1).join(','), '']);
+  ex.push(['(C2) el EN SUMA en los TRES estilos tampoco',
+    MARC_EBS.filter(m => pEbs.suma.indexOf(m) > -1).join(','), '']);
+  ex.push(['(C3) y el informe SI publica la relacion de areas',
+    pEbs.inf.indexOf('reas en cuatro c') > -1, true]);
+
+  /* ── (D) CONTROL: la seccion SIN integrar no nombra la lesion ── */
+  __t.chk('ebs_incluir_chk', false);
+  const pSin = papelDe();
+  ex.push(['(D1) CONTROL: sin integrar, el informe no nombra Ebstein',
+    pSin.inf.indexOf('Ebstein') > -1, false]);
+
+  /* ── (E) EISENMENGER ── */
+  __t.limpiar();
+  __t.set('nombre', 'Papel PANT11 B'); __t.set('ci', '22222222');
+  const EIS = { eis_lesion_base: 'civ', eis_saturacion_reposo: '84', eis_psap: '95',
+    eis_vd_funcion: 'moderada', eis_clase_nyha: 'iii', eis_sincope: 'si', eis_hemoptisis: 'si' };
+  Object.keys(EIS).forEach(k => { try { __t.set(k, EIS[k]) } catch (e) {} });
+  let es = null; try { es = eisenEstado() } catch (e) { es = 'EXC ' + String(e).slice(0, 70) }
+  ex.push(['(E0) DENOMINADOR: eisenEstado dice que hay datos y publica alertas',
+    !!(es && es.hayDatos && Array.isArray(es.alertas) && es.alertas.length > 0), true]);
+  const alT = (es && es.alertas ? es.alertas : []).map(a => NN(a.txt) + ' ~ ' + NN(a.suma)).join(' ~~ ');
+  ex.push(['(E1) la cifra de mortalidad materna es «30 a 50 %» y no «>50 %»',
+    (alT.indexOf('30 a 50 %') > -1) && (alT.indexOf('>50 %') < 0), true]);
+  ex.push(['(E2) y ninguna alerta nombra la guia',
+    alT.indexOf('ESC 2020') > -1, false]);
+  ex.push(['(E3) la alerta de SINCOPE se retiro entera: ninguna dice «marcador de mal pron»',
+    alT.indexOf('marcador de mal pron') > -1, false]);
+  ex.push(['(E4) y la de HEMOPTISIS tampoco: ninguna dice «masivo y fatal»',
+    alT.toLowerCase().indexOf('masivo y fatal') > -1, false]);
+  ex.push(['(E5) CONTROL: las dos alertas que SI quedan siguen vivas -la saturacion critica es una de ellas-',
+    (es && es.alertas ? es.alertas : []).some(a => a.k === 'embarazo'), true]);
+  __t.chk('eisen_incluir_chk', true);
+  const pEis = papelDe();
+  const MARC_EIS = ['>50 %', 'marcador de mal pron', 'masivo y fatal', 'ESC 2020'];
+  ex.push(['(E6) DENOMINADOR: con la seccion integrada el papel habla de Eisenmenger',
+    pEis.inf.toLowerCase().indexOf('eisenmenger') > -1, true]);
+  ex.push(['(E7) y no trae ninguno de los cuatro marcadores, ni en el informe ni en el EN SUMA',
+    MARC_EIS.filter(m => (pEis.inf + ' ' + pEis.suma).indexOf(m) > -1).join(','), '']);
+  ex.push(['(E8) la franja de contraindicaciones de la PANTALLA dice «30 a 50 %», que es lo que no se perdio',
+    (function () { const t = document.body ? NN(document.body.textContent) : '';
+      return t.indexOf('mortalidad materna 30') > -1 || t.indexOf('30\\u00a0a\\u00a050') > -1
+          || t.indexOf('30 a 50') > -1; })(), true]);
+
+  /* ── (F) LA EVIDENCIA CONSERVA LO QUE EL PAPEL RETIRO ── */
+  const secDe = (pref) => (typeof IND_SECS === 'undefined' ? [] : IND_SECS).filter(x =>
+    String(x.tit || '').normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').indexOf(pref) === 0)[0];
+  __t.limpiar();
+  __t.set('nombre', 'Papel PANT11 C'); __t.set('ci', '33333333');
+  Object.keys(EBS).forEach(k => { try { __t.set(k, EBS[k]) } catch (e) {} });
+  const scE = secDe('Anomalia de Ebstein');
+  let rE = null; try { rE = scE ? scE.fn() : null } catch (e) { rE = null }
+  const todoE = (function () { const p = []; const rec = (x) => { if (x == null) return;
+      if (typeof x === 'string') { p.push(x); return }
+      if (Array.isArray(x)) { x.forEach(rec); return }
+      if (typeof x === 'object') { Object.keys(x).forEach(k => rec(x[k])); return } };
+    rec(rE); return NN(p.join(' ~ ')); })();
+  ex.push(['(F0) DENOMINADOR: la Evidencia de Ebstein existe y abre con este escenario', !!rE, true]);
+  ex.push(['(F1) y conserva la conducta con su guia, su clase y su folio',
+    todoE.indexOf('ESC 2020') > -1 && todoE.toLowerCase().indexOf('clase') > -1
+      && todoE.indexOf('folio') > -1, true]);
+  /* ⚠️ UNA PREMISA MIA ERA FALSA Y LA CORRIGIO ESTA MEDICION: el globo NO trae el kappa de
+     0,39, y es correcto que no lo traiga — PANT-10 lo retiro porque, censadas las 248 fuentes
+     de la biblioteca, NINGUNA lo publica. Lo que el globo SI conserva, y es lo que salio del
+     papel, es el ORIGEN del indice: la serie de 50 neonatos de un solo centro con el grado
+     calculado en 28, que es orientativo y no una indicacion, y que no figura en la ESC 2020. */
+  ex.push(['(F2) el globo cc9-ebs-cel conserva el origen del indice, que es lo que salio del papel',
+    (function () { const v = (typeof VINFO === 'undefined') ? null : VINFO['cc9-ebs-cel'];
+      if (!v) return 'NO EXISTE LA ENTRADA';
+      const t = NN(JSON.stringify(v));
+      const falta = ['50 neonatos', 'orientativo', 'ESC 2020', 'Celermajer']
+        .filter(function (m) { return t.indexOf(m) < 0; });
+      return falta.length ? ('le falta: ' + falta.join(',')) : 'completo'; })(),
+    'completo']);
+
+  /* ── (G) CONTROL NEGATIVO: un estudio AJENO no publica nada de esto ── */
+  __t.limpiar();
+  __t.set('nombre', 'Ajeno PANT11'); __t.set('ci', '44444444');
+  __t.set('ddvi', '48'); __t.set('fevi', '60');
+  const pAj = papelDe();
+  ex.push(['(G1) CONTROL: un estudio ajeno no nombra Ebstein ni Eisenmenger',
+    (pAj.inf + ' ' + pAj.suma).indexOf('Ebstein') > -1
+      || (pAj.inf + ' ' + pAj.suma).toLowerCase().indexOf('eisenmenger') > -1, false]);
+  ex.push(['(G2) CONTROL: y tampoco trae los marcadores retirados',
+    MARC_EBS.concat(MARC_EIS).filter(m => (pAj.inf + ' ' + pAj.suma).indexOf(m) > -1)
+      .filter(m => m !== 'cirug').join(','), '']);
+
+  /* ── (H) EL PPT, ESPIANDO A PptxGenJS ──
+     ⚠️ ESTE GRUPO NACIO DE UNA MUTACION QUE SOBREVIVIO. La mutacion 06 le saca el papel:true a
+        la entrada de Ebstein del registro del PPT, y ninguna de las condiciones de arriba lo
+        veia: la diapositiva pasa a publicar el PODADOR sobre el resumen, y el podador NO quita el
+        apellido Celermajer -no nombra una guia ni lleva un verbo de conducta-, asi que el
+        apellido llegaba al proyector. El registro del PPT es un const de modulo y no esta en
+        window, asi
+        que el unico observable es el mazo GENERADO, con el patron del A/B de la tanda: estudio
+        sintetico, los tres modales contestados y el constructor corriendo de verdad. */
+  /* La escena de Ebstein se repone: el grupo (G) la limpio para su control negativo, y un mazo
+     generado sobre el estudio ajeno no habla de Ebstein -denominador vacio-. */
+  __t.limpiar();
+  __t.set('nombre', 'Papel PANT11 PPT'); __t.set('ci', '15151515');
+  __t.set('peso', '80'); __t.set('talla', '180');
+  Object.keys(EBS).forEach(k => { try { __t.set(k, EBS[k]) } catch (e) {} });
+  __t.chk('ebs_incluir_chk', true);
+  __t.informe();
+  const ppt = await (async function () {
+    /* ESPERA A QUE CARGUE, igual que TC-148: el bundle de pptxgenjs son 477 KB y es el ultimo
+       de los scripts externos. Sin esta espera el caso da rojo por el ENTORNO, que es peor que
+       no tener el grupo, porque se deja de creerle al rojo. */
+    for (let _i = 0; _i < 80 && typeof window.PptxGenJS === 'undefined'; _i++) {
+      await new Promise(function (r) { setTimeout(r, 100); });
+    }
+    if (typeof window.PptxGenJS === 'undefined') return { err: 'SIN PPTXGENJS' };
+    const Orig = window.PptxGenJS;
+    const reg = { slides: 0, textos: [] };
+    const tomar = (t) => { if (t == null) return;
+      if (typeof t === 'string') { reg.textos.push(t); return; }
+      if (Array.isArray(t)) { t.forEach(x => tomar(x && x.text != null ? x.text : x)); return; }
+      if (typeof t === 'object' && t.text != null) tomar(t.text); };
+    window.PptxGenJS = function () {
+      const P = new Orig();
+      const oAdd = P.addSlide.bind(P);
+      P.addSlide = function (o) { reg.slides++;
+        const s2 = oAdd(o);
+        const oT = s2.addText ? s2.addText.bind(s2) : null;
+        if (oT) s2.addText = function (t, op) { tomar(t); return oT(t, op); };
+        const oTab = s2.addTable ? s2.addTable.bind(s2) : null;
+        if (oTab) s2.addTable = function (rows, op) {
+          (rows || []).forEach(r => (r || []).forEach(c => tomar(c && c.text != null ? c.text : c)));
+          return oTab(rows, op); };
+        return s2; };
+      return P; };
+    Object.keys(Orig).forEach(k => { try { window.PptxGenJS[k] = Orig[k] } catch (e) {} });
+    const campos = {};
+    document.querySelectorAll('input[id], select[id], textarea[id]').forEach(e => {
+      campos[e.id] = (e.type === 'checkbox') ? (e.checked ? '1' : '') : String(e.value || '');
+      /* UNA CASILLA SE PERSISTE COMO <id>__chk: sin esa clave vuelven TODAS apagadas y el mazo
+         sale sin la seccion -el denominador envenenado que el A/B de la tanda A documenta-. */
+      if (e.type === 'checkbox') campos[e.id + '__chk'] = e.checked ? '1' : '0';
+    });
+    campos.informe_texto = String((document.getElementById('informe_texto') || {}).value || '');
+    campos.en_suma = String((document.getElementById('en_suma') || {}).value || '');
+    const ESTU = { id: '__p11__', fecha: '2026-11-04', nombre: 'Papel PANT11', campos: campos };
+    const oGI = window.getInformes, oTema = window._pptElegirTema;
+    const oQuien = window._pptElegirPresentador, oImg = window._pptElegirImagenes;
+    window.getInformes = function () { return [ESTU] };
+    window._pptElegirTema = function (cb) { return cb('dark') };
+    window._pptElegirPresentador = function (inf, cb) { return cb('Medico de prueba') };
+    if (typeof oImg === 'function') window._pptElegirImagenes = function (a, b, cb) { return cb({}) };
+    let err = null;
+    try { if (typeof generarPPT === 'function') await generarPPT('__p11__'); } catch (e) { err = String(e).slice(0, 120) }
+    await new Promise(r => setTimeout(r, 900));
+    window.getInformes = oGI; window._pptElegirTema = oTema;
+    window._pptElegirPresentador = oQuien; if (typeof oImg === 'function') window._pptElegirImagenes = oImg;
+    window.PptxGenJS = Orig;
+    return { slides: reg.slides, txt: NN(reg.textos.join(' | ')), err: err };
+  })();
+  ex.push(['(H0) DENOMINADOR: el mazo se genero de verdad y habla de la anomalia de Ebstein',
+    (ppt.err ? ('ERROR ' + ppt.err) : (ppt.slides > 0 && ppt.txt.indexOf('Ebstein') > -1) ? 'si'
+      : ('diapositivas=' + ppt.slides + ' Ebstein=' + (ppt.txt.indexOf('Ebstein') > -1))), 'si']);
+  ex.push(['(H1) y la diapositiva NO trae ninguno de los marcadores retirados',
+    ppt.err ? ('ERROR ' + ppt.err)
+      : (MARC_EBS.filter(m => ppt.txt.indexOf(m) > -1).join(',') || ''), '']);
+  ex.push(['(H2) pero SI publica la relacion de areas, que es el numero medido',
+    ppt.err ? ('ERROR ' + ppt.err)
+      : (ppt.txt.indexOf('reas en cuatro c') > -1 ? 'si' : 'la perdio'), 'si']);
+  ex.push(['(H3) CONTROL: el PODADOR solo NO alcanza -deja el apellido-, que es por lo que la entrada del PPT necesita su marca de papel',
+    (function () { try { const p = _ccPptPodar(String(eb.resumen || ''));
+      return String(p.t || '').indexOf('Celermajer') > -1 ? 'lo deja' : 'lo quita'; } catch (e) { return 'EXC'; } })(),
+    'lo deja']);
+
+  return { extra: EXP };
+  })();
+`);
+
+caso('TC-675', 'Tanda PANT-11 (commit 2): el TDE y el TRIV intercambiados en la grilla del Doppler mitral -el TRIV en la fila 2 y el TDE en la fila 3 de la columna 2-, con los dieciseis campos en su lugar, los ids sin cambiar, el orden del MARCADO siguiendo a las clases -que es el que recorre el Tab-, y el informe, el EN SUMA y el valor de los campos sin moverse', `
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]), 'esperado ' + String(t[2]) + ' | hallado ' + String(t[1])]) };
+  const NN = (s) => String(s || '').split(String.fromCharCode(10)).join(' ').trim();
+  /* El campo de una celda es el primer input/select/textarea con id que haya DENTRO de ella. */
+  const campoDe = (el) => { if (!el) return 'NO HAY CELDA';
+    const e = el.querySelector('input[id],select[id],textarea[id]');
+    return e ? e.id : 'CELDA SIN CAMPO'; };
+  const celda = (c, r) => document.querySelector('.dm-grid > .dm-c' + c + '.dm-r' + r);
+
+  /* ── (A) DENOMINADOR: la grilla existe y tiene sus dieciseis celdas ── */
+  const celdas = document.querySelectorAll('.dm-grid > [class*="dm-c"][class*="dm-r"]');
+  ex.push(['(A0) DENOMINADOR: la grilla del Doppler mitral tiene DIECISEIS celdas',
+    celdas.length, 16]);
+  const mapa = [];
+  for (let c = 1; c <= 4; c++) for (let r = 1; r <= 4; r++) mapa.push('c' + c + 'r' + r + '=' + campoDe(celda(c, r)));
+  ex.push(['(A1) DENOMINADOR: las dieciseis celdas tienen un campo con id',
+    mapa.filter(x => x.indexOf('CELDA SIN CAMPO') > -1 || x.indexOf('NO HAY CELDA') > -1).join(','), '']);
+
+  /* ── (B) EL INTERCAMBIO ── */
+  ex.push(['(B1) la columna 2 es THP, TRIV, TDE, Onda L -el TRIV ARRIBA del TDE-',
+    [1, 2, 3, 4].map(r => campoDe(celda(2, r))).join(','), 'thp,triv,tde,onda_l']);
+  ex.push(['(B2) CONTROL: las otras TRES columnas no se movieron',
+    [1, 3, 4].map(c => [1, 2, 3, 4].map(r => campoDe(celda(c, r))).join(',')).join(' | '),
+    'onda_e,onda_a,e_sep,e_lat | venp_dur_a,venp_dur_ar,venp_vel_ar,venp_sd | lars_dop,ai_strain_ct_dop,itv_mitral,avm_thp']);
+  ex.push(['(B3) y los dieciseis ids son los MISMOS de siempre: ninguno cambio',
+    [1, 2, 3, 4].map(c => [1, 2, 3, 4].map(r => campoDe(celda(c, r)))).reduce((a, b) => a.concat(b), [])
+      .slice().sort().join(','),
+    ['ai_strain_ct_dop','avm_thp','e_lat','e_sep','itv_mitral','lars_dop','onda_a','onda_e','onda_l','tde','thp','triv','venp_dur_a','venp_dur_ar','venp_sd','venp_vel_ar'].join(',')]);
+
+  /* ── (C) EL ORDEN DEL MARCADO, QUE ES EL QUE RECORRE EL TAB ──
+     No hay un solo tabindex en la grilla, asi que el Tab va por orden del documento: si el
+     marcado no se intercambia junto con las clases, la pantalla muestra TRIV arriba y el Tab
+     salta al TDE. Se mide por la POSICION del nodo en el documento, no por la clase. */
+  const pos = (id) => { const e = document.getElementById(id); if (!e) return -1;
+    const todos = [].slice.call(document.querySelectorAll('.dm-grid input[id],.dm-grid select[id],.dm-grid textarea[id]'));
+    return todos.indexOf(e); };
+  ex.push(['(C1) en el MARCADO el TRIV va antes que el TDE',
+    pos('triv') >= 0 && pos('tde') >= 0 && pos('triv') < pos('tde'), true]);
+  ex.push(['(C2) y el THP sigue antes que los dos, y la Onda L despues',
+    pos('thp') < pos('triv') && pos('tde') < pos('onda_l'), true]);
+  ex.push(['(C3) la grilla NO declara ningun tabindex, que es lo que hace que el Tab siga al marcado',
+    document.querySelectorAll('.dm-grid [tabindex]').length, 0]);
+
+  /* ── (D) LOS DOS CAMPOS SIGUEN SIENDO LO QUE ERAN ── */
+  __t.limpiar();
+  __t.set('nombre', 'Doppler PANT11'); __t.set('ci', '55555555');
+  __t.set('triv', '95'); __t.set('tde', '210');
+  ex.push(['(D1) el valor de cada uno va a SU campo: el TRIV 95 y el TDE 210',
+    __t.val('triv') + '/' + __t.val('tde'), '95/210']);
+  ex.push(['(D2) y los dos siguen llamando a calcDiastol por su oninput',
+    (function () { const a = document.getElementById('triv'), b = document.getElementById('tde');
+      const oa = a ? String(a.getAttribute('oninput') || '') : '', ob = b ? String(b.getAttribute('oninput') || '') : '';
+      return (oa.indexOf('calcDiastol') > -1 && ob.indexOf('calcDiastol') > -1); })(), true]);
+  ex.push(['(D3) el rotulo de cada celda nombra lo que esa celda contiene',
+    (function () { const t2 = celda(2, 2), t3 = celda(2, 3);
+      const l2 = t2 ? NN(t2.textContent) : '', l3 = t3 ? NN(t3.textContent) : '';
+      return (l2.indexOf('TRIV') > -1 && l3.indexOf('TDE') > -1) ? 'ok' : ('fila2=' + l2.slice(0, 20) + ' fila3=' + l3.slice(0, 20)); })(),
+    'ok']);
+
+  /* ── (E) EL PAPEL NO SE MUEVE, Y SE DICE POR QUE ──
+     ⚠️ MEDIDO: el informe NO nombra el TDE ni el TRIV por su sigla y NINGUNO de los dos tiene
+        columna de Excel -censado LAB_XLS_MAP: cero entradas-. Los dos entran al papel SOLO a
+        traves de la evaluacion de la funcion diastolica, que los lee por id. O sea que un
+        intercambio de CELDAS no puede mover el papel por construccion, y eso es lo que estas
+        tres condiciones fijan: la primera version de este caso buscaba las dos siglas en el
+        informe y medía sobre un denominador vacio. */
+  const r = __t.informe();
+  ex.push(['(E1) el informe y el EN SUMA no nombran ninguna de las dos siglas',
+    ['TDE', 'TRIV'].filter(k => (NN(r.inf) + ' ' + NN(r.suma)).indexOf(k) > -1).join(','), '']);
+  ex.push(['(E2) y emitir el informe no le pisa el valor a ninguno de los dos',
+    __t.val('triv') + '/' + __t.val('tde'), '95/210']);
+  ex.push(['(E3) los dos son campos del estudio y NINGUNO tiene columna de Excel',
+    (function () { const m = (typeof LAB_XLS_MAP === 'undefined') ? null : LAB_XLS_MAP;
+      if (!m) return 'NO HAY MAPA';
+      return ['tde', 'triv'].filter(k => Object.prototype.hasOwnProperty.call(m, k)).join(',') || 'ninguno'; })(),
+    'ninguno']);
+  ex.push(['(E4) y los dos SI llegan a la evaluacion de la diastolica, que es su unica via al papel',
+    (function () { try { const d = (typeof diastEstado === 'function') ? diastEstado() : null;
+        if (d) return 'con evaluador';
+      } catch (e) {}
+      /* Sin un evaluador expuesto, la via se mide por el cableado: el oninput de los dos llama
+         a calcDiastol, que es lo que recalcula el cuadro y la linea del informe. */
+      const a = document.getElementById('triv'), b = document.getElementById('tde');
+      const oa = a ? String(a.getAttribute('oninput') || '') : '', ob = b ? String(b.getAttribute('oninput') || '') : '';
+      return (oa.indexOf('calcDiastol') > -1 && ob.indexOf('calcDiastol') > -1) ? 'con evaluador' : 'sin via'; })(),
+    'con evaluador']);
+
+  return { extra: EXP };
+`);
+
+caso('TC-676', 'Tanda PANT-11 (commit 3): el circulito «(no se visualiza VCI)» al lado del diametro de la cava -el mismo control que el de Documento, con su area de 44x44 y sus cinco puntos propios-; marcado, el informe dice «No se visualiza la VCI.», los dos campos de la cava quedan vacios y deshabilitados con su valor guardado, la PmAD estimada se recalcula y los veinticinco consumidores la ven «sin dato»; desmarcado, los dos valores vuelven; el campo persistido se guarda y «Nuevo estudio» lo apaga; y los CONTROLES -sin marcar el informe no lo dice y los valores se conservan-', `
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]), 'esperado ' + String(t[2]) + ' | hallado ' + String(t[1])]) };
+  const NN = (s) => String(s || '').split(String.fromCharCode(10)).join(' ').trim();
+  const EL = (id) => document.getElementById(id);
+  const MK = () => document.getElementById('vci-no-vis-mk');
+  const H  = () => document.getElementById('vci_no_vis');
+  const FRASE = 'No se visualiza la VCI.';
+
+  /* ── (A) DENOMINADOR Y GEOMETRIA ── */
+  __t.limpiar();
+  __t.set('nombre', 'VCI PANT11'); __t.set('ci', '66666666');
+  /* La VCI vive en la pestania VD / AD, cuyo panel es #tab-vd: sin abrirla el boton informa
+     0x0 y elementFromPoint da cero puntos propios -un denominador vacio que se lee como que el
+     area tactil no existe-.
+     ⚠️ Y HAY QUE ABRIR SU ACORDEON Y APAGARLE LA ANIMACION, que es la trampa que AJ9 y la
+        TANDA NOCTURNA ya documentan: #sacc-ad nace plegado con max-height 0 y una transicion de
+        0,3 s, asi que su propio encabezado informa una caja superpuesta con el cuerpo y los
+        cinco puntos devuelven sacc-hdr o app-content en vez del boton. Medido: con el acordeon
+        cerrado los cinco dan ajeno; con el abierto y la animacion apagada, los cinco dan propio. */
+  try { showTab('vd'); } catch (e) {}
+  (function () { const acc = document.getElementById('sacc-ad'); if (!acc) return;
+    const hdr = acc.querySelector('.sacc-hdr');
+    if (hdr && !acc.classList.contains('open')) { try { hdr.click(); } catch (e) {} }
+    const body = acc.querySelector('.sacc-body');
+    if (body) { body.style.transition = 'none'; body.style.maxHeight = 'none'; }
+  })();
+  ex.push(['(A0) DENOMINADOR: el boton y el campo persistido existen', !!MK() && !!H(), true]);
+  ex.push(['(A1) es un BUTTON y reusa la clase del control de Documento',
+    (function () { const b = MK(); if (!b) return 'NO EXISTE';
+      return b.tagName + ':' + (b.classList.contains('pac-id-mk') ? 'pac-id-mk' : 'SIN pac-id-mk')
+        + (b.classList.contains('vci-nv-mk') ? '+vci-nv-mk' : ''); })(),
+    'BUTTON:pac-id-mk+vci-nv-mk']);
+  ex.push(['(A2) el estado vive en aria-pressed y NO en una clase propia',
+    (function () { const b = MK(); return b ? b.getAttribute('aria-pressed') : 'NO'; })(), 'false']);
+  ex.push(['(A3) el rotulo dice «(no se visualiza VCI)» entre parentesis',
+    (function () { const l = document.querySelector('.vci-nv-lbl');
+      return l ? NN(l.textContent) : 'NO EXISTE'; })(), '(no se visualiza VCI)']);
+  /* El area tactil la da un ::after absoluto, no la caja del glifo: getBoundingClientRect NO la
+     ve, asi que se mide con elementFromPoint en los cinco puntos, igual que TC-535. */
+  const area = (function () { const b = MK(); if (!b) return { err: 'NO EXISTE' };
+    try { b.scrollIntoView({ block: 'center' }); } catch (e) {}
+    const g = b.getBoundingClientRect();
+    const cs = getComputedStyle(b, '::after');
+    const num = (v) => { const n = parseFloat(String(v || '0')); return isFinite(n) ? n : 0; };
+    const w = g.width + Math.abs(num(cs.left)) + Math.abs(num(cs.right));
+    const h = g.height + Math.abs(num(cs.top)) + Math.abs(num(cs.bottom));
+    const cx = g.left + g.width / 2, cy = g.top + g.height / 2;
+    const pts = [[cx, cy], [cx - w / 2 + 2, cy - h / 2 + 2], [cx + w / 2 - 2, cy - h / 2 + 2],
+                 [cx - w / 2 + 2, cy + h / 2 - 2], [cx + w / 2 - 2, cy + h / 2 - 2]];
+    const propios = pts.filter(p => { const e = document.elementFromPoint(p[0], p[1]);
+      return !!e && (e === b || b.contains(e)); }).length;
+    return { w: Math.round(w), h: Math.round(h), propios: propios, glifo: Math.round(g.width) + 'x' + Math.round(g.height) };
+  })();
+  ex.push(['(A4) su area tactil mide 44x44 o mas', (area.w >= 44 && area.h >= 44) ? 'si' : JSON.stringify(area), 'si']);
+  ex.push(['(A5) y los CINCO puntos dan el propio boton: no tapa a ningun vecino',
+    area.propios, 5]);
+
+  /* ── (B) EL DENOMINADOR CLINICO: los dos campos cargados y la PmAD escrita ── */
+  __t.set('vci_diam', '23'); __t.set('vci_col', '<50');
+  const pmadAntes = __t.val('pmad');
+  ex.push(['(B0) DENOMINADOR: los dos campos de la cava tienen valor y la PmAD se derivo',
+    (__t.val('vci_diam') === '23') && (__t.val('vci_col') === '<50')
+      && String(pmadAntes || '') !== '', true]);
+  const r0 = __t.informe();
+  ex.push(['(B1) CONTROL: sin marcar, el informe NO dice la frase',
+    NN(r0.inf).indexOf(FRASE) > -1, false]);
+
+  /* ── (C) MARCADO ── */
+  try { vciNoVisGesto(); } catch (e) {}
+  ex.push(['(C0) el campo persistido pasa a «1» y el aria-pressed a true',
+    String(H() ? H().value : '') + '/' + String(MK() ? MK().getAttribute('aria-pressed') : ''), '1/true']);
+  ex.push(['(C1) los DOS campos de la cava quedan vacios',
+    String(__t.val('vci_diam')) + '|' + String(__t.val('vci_col')), '|']);
+  ex.push(['(C2) y DESHABILITADOS, para que no se puedan editar mientras no se visualiza',
+    (function () { const a = document.getElementById('vci_diam'), b = document.getElementById('vci_col');
+      return (a && a.disabled && b && b.disabled) ? 'si' : 'no'; })(), 'si']);
+  ex.push(['(C3) el valor viejo NO se pierde: queda en data-vciprev',
+    (function () { const a = document.getElementById('vci_diam'), b = document.getElementById('vci_col');
+      return (a ? String(a.dataset.vciprev) : 'NO') + '|' + (b ? String(b.dataset.vciprev) : 'NO'); })(),
+    '23|<50']);
+  ex.push(['(C4) la PmAD estimada se recalcula y deja de publicar la presion del valor que desaparecio',
+    String(__t.val('pmad') || ''), '']);
+  const r1 = __t.informe();
+  ex.push(['(C5) y el informe dice la frase, UNA sola vez',
+    (function () { const t = NN(r1.inf); let n = 0, i = 0;
+      while (true) { const k = t.indexOf(FRASE, i); if (k < 0) break; n++; i = k + 1; } return n; })(), 1]);
+  ex.push(['(C6) vciNoVisOn es el dueno UNICO del estado y lo dice',
+    (function () { try { return vciNoVisOn() === true ? 'si' : 'no'; } catch (e) { return 'EXC'; } })(), 'si']);
+  ex.push(['(C7) y lee tambien un estudio GUARDADO, por su argumento src',
+    (function () { try { return (vciNoVisOn({ vci_no_vis: '1' }) === true
+      && vciNoVisOn({ vci_no_vis: '' }) === false) ? 'si' : 'no'; } catch (e) { return 'EXC'; } })(), 'si']);
+
+  /* ── (D) IDEMPOTENCIA: la reconciliacion corre en las cinco rutas de restauracion ── */
+  try { vciNoVisSync(); vciNoVisSync(); } catch (e) {}
+  ex.push(['(D1) correr el reconciliador dos veces no pierde el valor guardado',
+    (function () { const a = document.getElementById('vci_diam');
+      return (a && String(a.dataset.vciprev) === '23') ? 'si' : 'no'; })(), 'si']);
+  ex.push(['(D2) y va PRIMERO en RECALC_MODULOS, antes de todo lo que lee la cava',
+    (function () { const L = (typeof RECALC_MODULOS === 'function') ? RECALC_MODULOS() : RECALC_MODULOS;
+      return (L && L[0]) ? L[0] : 'NO HAY LISTA'; })(), 'vciNoVisSync']);
+  /* ⚠️ (D3) NACIO DE UNA MUTACION QUE SOBREVIVIO, y el motivo es un freno que tapa al que se
+     muta: el GESTO llama a calcPmAD por su cuenta, en su lista de ocho recalculadores, asi que
+     sacar la llamada de adentro del reconciliador no se nota por el camino del gesto. El camino
+     que la necesita es el MUDO -restaurar un estudio guardado-, donde lo unico que corre es
+     vciNoVisSync. Se siembra sin evento y se llama SOLO al reconciliador. */
+  (function () {
+    const h = EL('vci_no_vis'); if (h) h.value = '';
+    try { vciNoVisSync(); } catch (e) {}
+    const a = EL('vci_diam'), b = EL('vci_col');
+    if (a) { a.value = '23'; a.dispatchEvent(new Event('input', { bubbles: true })); }
+    if (b) { b.value = '<50'; b.dispatchEvent(new Event('change', { bubbles: true })); }
+    if (h) h.value = '1';                 // siembra MUDA de la casilla: sin gesto
+    try { vciNoVisSync(); } catch (e) {}
+  })();
+  ex.push(['(D3) por el camino MUDO -el de restaurar un estudio- la PmAD tambien se vacia',
+    String(__t.val('pmad') || ''), '']);
+  ex.push(['(D3b) DENOMINADOR de (D3): la casilla quedo marcada y los dos campos vacios',
+    String(EL('vci_no_vis') ? EL('vci_no_vis').value : '') + '/'
+      + String(__t.val('vci_diam')) + '|' + String(__t.val('vci_col')), '1/|']);
+
+  /* ── (E) DESMARCADO: los dos valores vuelven ── */
+  try { vciNoVisGesto(); } catch (e) {}
+  ex.push(['(E1) los DOS valores vuelven y los campos se habilitan',
+    String(__t.val('vci_diam')) + '|' + String(__t.val('vci_col')) + '|'
+      + (function () { const a = document.getElementById('vci_diam');
+          return a && !a.disabled ? 'editable' : 'bloqueado'; })(),
+    '23|<50|editable']);
+  ex.push(['(E2) la marca de guardado se borra: no queda un valor fantasma para la proxima vez',
+    (function () { const a = document.getElementById('vci_diam');
+      return (a && a.dataset.vciprev === undefined) ? 'si' : 'no'; })(), 'si']);
+  const r2 = __t.informe();
+  ex.push(['(E3) y el informe deja de decir la frase',
+    NN(r2.inf).indexOf(FRASE) > -1, false]);
+
+  /* ── (F) «NUEVO ESTUDIO»: el campo oculto y la marca NO sobreviven ──
+     El barrido de limpiarCampos toma text y number: el campo es HIDDEN, asi que no lo alcanza y
+     hay una linea propia. Y data-vciprev entra en la lista CERRADA de marcas, en el selector Y
+     en el cuerpo, que son DOS listas -la leccion que TC-514 cobro en rojo-. */
+  try { vciNoVisGesto(); } catch (e) {}
+  ex.push(['(F0) DENOMINADOR: antes de «Nuevo estudio» la casilla esta marcada y hay una marca guardada',
+    String(H() ? H().value : '') + '/' + (function () { const a = document.getElementById('vci_diam');
+      return a && a.dataset.vciprev != null ? 'con marca' : 'sin marca'; })(), '1/con marca']);
+  __t.nuevoEstudio();
+  ex.push(['(F1) el campo persistido queda vacio', String(H() ? H().value : 'NO'), '']);
+  ex.push(['(F2) el aria-pressed vuelve a false',
+    String(MK() ? MK().getAttribute('aria-pressed') : 'NO'), 'false']);
+  /* ⚠️ (F3b) NACIO DE UNA MUTACION QUE SOBREVIVIO. Sacar data-vciprev de las dos listas de
+     «Nuevo estudio» NO deja la marca a la vista -vciNoVisSync la borra en su rama de apagado-,
+     asi que medir la MARCA no alcanza. Lo observable es el VALOR: con la marca sobreviviendo al
+     barrido, vciNoVisSync la encuentra al apagar la casilla y le DEVUELVE el 23 del paciente
+     anterior a un estudio nuevo. Lo que se mide es que los dos campos quedan VACIOS. */
+  ex.push(['(F3b) y quedan VACIOS: ningun valor del paciente anterior vuelve',
+    String(__t.val('vci_diam')) + '|' + String(__t.val('vci_col')), '|']);
+  ex.push(['(F3) los dos campos de la cava quedan habilitados y SIN marca',
+    (function () { const a = document.getElementById('vci_diam'), b = document.getElementById('vci_col');
+      if (!a || !b) return 'NO EXISTEN';
+      return (a.disabled || b.disabled) ? 'bloqueados'
+        : (a.dataset.vciprev != null || b.dataset.vciprev != null) ? 'con marca' : 'limpios'; })(),
+    'limpios']);
+  const r3 = __t.informe();
+  ex.push(['(F4) y el informe del estudio nuevo no dice la frase',
+    NN(r3.inf).indexOf(FRASE) > -1, false]);
+
+  /* ── (G) CONTROL: NO agrega columna de Excel ── */
+  ex.push(['(G1) CONTROL: vci_no_vis NO tiene columna de Excel',
+    (function () { const m = (typeof LAB_XLS_MAP === 'undefined') ? null : LAB_XLS_MAP;
+      if (!m) return 'NO HAY MAPA';
+      return Object.prototype.hasOwnProperty.call(m, 'vci_no_vis') ? 'tiene columna' : 'ninguna'; })(),
+    'ninguna']);
+
+  return { extra: EXP };
+`);
+
+caso('TC-677', 'Tanda PANT-11 (commit 4): los DOS campos de profundidad de coaptacion sincronizados -el del ETE y el de los criterios TEER-, por el GESTO en los dos sentidos y por una reconciliacion IDEMPOTENTE que solo completa lo vacio; con los dos cargados y DISTINTOS la aplicacion no elige; el flail gap y el ancho del flail NO se tocan; y los CONTROLES -el modulo sin integrar no llega al papel y el veredicto del TEER no cambia por la sincronia-', `
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]), 'esperado ' + String(t[2]) + ' | hallado ' + String(t[1])]) };
+  const NN = (s) => String(s || '').split(String.fromCharCode(10)).join(' ').trim();
+  const A = 'ete_prof_coapt', B = 'teer_prof_flail';
+  /* Los dos campos viven en DOS secciones del ETE que nacen plegadas: hay que abrirlas por su
+     encabezado REAL, porque un campo en display:none no acepta el gesto -la trampa que esta
+     tanda pago con page.fill-. */
+  const abrir = (tok) => { const h = [].slice.call(document.querySelectorAll('h2.card-head'))
+      .filter(x => String(x.getAttribute('onclick') || '').indexOf("'" + tok + "'") > -1)[0];
+    if (h) { try { h.click(); } catch (e) {} } return !!h; };
+  const V = (id) => { const e = document.getElementById(id); return e ? String(e.value || '') : 'NO EXISTE'; };
+
+  /* ── (A) DENOMINADOR ── */
+  __t.limpiar();
+  __t.set('nombre', 'Coapt PANT11'); __t.set('ci', '77777777');
+  try { showTab('ete'); } catch (e) {}
+  const ab1 = abrir('morfo'), ab2 = abrir('teer');
+  ex.push(['(A0) DENOMINADOR: las dos secciones del ETE abren por su encabezado', ab1 && ab2, true]);
+  ex.push(['(A1) DENOMINADOR: los dos campos existen',
+    (V(A) !== 'NO EXISTE') && (V(B) !== 'NO EXISTE'), true]);
+  ex.push(['(A2) el par entra en el registro de velos, que es el dueno UNICO del gesto',
+    (function () { const L = (typeof _ETEM_VELOS === 'undefined') ? null : _ETEM_VELOS;
+      if (!L) return 'NO HAY REGISTRO';
+      return L.some(p => (p[0] === A && p[1] === B)) ? 'si' : 'no'; })(), 'si']);
+
+  /* ── (B) EL GESTO, EN LOS DOS SENTIDOS ── */
+  __t.set(A, '12');
+  ex.push(['(B1) ETE -> TEER: lo tecleado en el ETE llega al criterio del TEER', V(B), '12']);
+  __t.set(B, '9');
+  ex.push(['(B2) TEER -> ETE: y al revés tambien', V(A), '9']);
+  __t.set(A, '');
+  ex.push(['(B3) el BORRADO viaja igual: vaciar uno vacia el otro', V(B), '']);
+
+  /* ── (C) LA RECONCILIACION AL RESTAURAR UN ESTUDIO ──
+     Es el otro camino: un estudio guardado ANTES de que el espejo existiera puede traer uno de
+     los dos poblado y el otro vacio. Se siembra MUDO -sin evento- para que el gesto no actue. */
+  const mudo = (id, v) => { const e = document.getElementById(id); if (e) e.value = v; };
+  mudo(A, '11'); mudo(B, '');
+  try { profCoaptReconciliar(); } catch (e) {}
+  ex.push(['(C1) con el del ETE poblado y el del TEER vacio, se completa el vacio', V(B), '11']);
+  mudo(A, ''); mudo(B, '14');
+  try { profCoaptReconciliar(); } catch (e) {}
+  ex.push(['(C2) y al revés tambien', V(A), '14']);
+  /* IDEMPOTENTE: dos pasadas no cambian nada. */
+  try { profCoaptReconciliar(); profCoaptReconciliar(); } catch (e) {}
+  ex.push(['(C3) correrla dos veces mas no mueve nada', V(A) + '/' + V(B), '14/14']);
+  ex.push(['(C4) y cuelga de RECALC_MODULOS, que es por donde pasan las cinco rutas de restauracion',
+    (function () { const L = (typeof RECALC_MODULOS === 'function') ? RECALC_MODULOS() : RECALC_MODULOS;
+      return (L && L.indexOf('profCoaptReconciliar') >= 0) ? 'si' : 'no'; })(), 'si']);
+
+  /* ── (D) CON LOS DOS CARGADOS Y DISTINTOS LA APLICACION NO ELIGE ──
+     Es la regla de la orden y la misma de aoRaizReconciliar: elegir uno seria decidir cual de
+     las dos mediciones del medico vale. */
+  mudo(A, '8'); mudo(B, '13');
+  try { profCoaptReconciliar(); } catch (e) {}
+  ex.push(['(D1) con los dos poblados y DISTINTOS no toca ninguno', V(A) + '/' + V(B), '8/13']);
+
+  /* ── (E) CONTROL: el flail gap y el ancho del flail NO se tocan ── */
+  mudo('teer_flail_gap', '6'); mudo('teer_ancho_flail', '17');
+  __t.set(A, '10');
+  ex.push(['(E1) CONTROL: el gesto sobre la coaptacion no mueve el flail gap ni el ancho del flail',
+    V('teer_flail_gap') + '/' + V('teer_ancho_flail'), '6/17']);
+  ex.push(['(E2) CONTROL: y esos dos NO estan en el registro de velos',
+    (function () { const L = (typeof _ETEM_VELOS === 'undefined') ? [] : _ETEM_VELOS;
+      const todos = L.reduce((a, p) => a.concat(p), []);
+      return ['teer_flail_gap', 'teer_ancho_flail'].filter(k => todos.indexOf(k) >= 0).join(',') || 'ninguno'; })(),
+    'ninguno']);
+
+  /* ── (F) EL PAPEL: el modulo del TEER no llega sin integrarlo ── */
+  const r0 = __t.informe();
+  ex.push(['(F1) CONTROL: sin integrar el modulo, el informe no publica el veredicto del TEER',
+    ['NO apto', 'Heart Team', 'anatom'].filter(k => NN(r0.inf).indexOf(k) > -1).join(','), '']);
+  /* Los dos rotulos los distinguio PANT-6 -«reparacion» y «TEER»- y la sincronia NO los une: son
+     dos cortes distintos, 10 mm como factor desfavorable de la reparacion y 11 mm como criterio
+     de exclusion del TEER. El rotulo NO lleva «for», va como texto del label contenedor. */
+  ex.push(['(F2) y la profundidad de coaptacion sigue teniendo DOS rotulos distintos, uno por campo',
+    (function () { const rot = (id) => { const e = document.getElementById(id);
+        const l = e ? e.closest('.fg') : null; const lb = l ? l.querySelector('label') : null;
+        return lb ? NN(lb.textContent) : ''; };
+      const t1 = rot(A), t2 = rot(B);
+      if (!t1 || !t2) return 'sin rotulo: ' + (t1 ? B : A);
+      if (t1 === t2) return 'iguales: ' + t1;
+      return (t1.indexOf('reparaci') > -1 && t2.indexOf('TEER') > -1) ? 'distintos'
+        : ('distintos pero no los esperados: ' + t1 + ' / ' + t2); })(), 'distintos']);
+
+  return { extra: EXP };
+`);
+
+caso('TC-678', 'Tanda PANT-11 (commits 5, 6 y 7): el derrame pleural del eco pulmonar por LADO con sus tres campos nuevos, los dos campos legados derivados y deshabilitados -con el papel identico caracter por caracter para todo estado que la pantalla anterior podia expresar-, la reconciliacion de un estudio viejo, la sincronia con el posoperatorio en los dos sentidos con su GUARDA, y el dibujo del pulmon de SOLO LECTURA con su descripcion y sin texto fuera del lienzo', `
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]), 'esperado ' + String(t[2]) + ' | hallado ' + String(t[1])]) };
+  const NN = (s) => String(s || '').split(String.fromCharCode(10)).join(' ').trim();
+  const EL = (id) => document.getElementById(id);
+  const V = (id) => { const e = document.getElementById(id); return e ? String(e.value || '') : 'NO EXISTE'; };
+  const mudo = (id, v) => { const e = document.getElementById(id); if (e) e.value = v; };
+  const opts = (id) => { const e = document.getElementById(id);
+    return e ? [].slice.call(e.options).map(o => o.value).join(',') : 'NO EXISTE'; };
+
+  /* ── (A) DENOMINADOR: los tres campos nuevos y sus valores ── */
+  __t.limpiar();
+  __t.set('nombre', 'Pulmon PANT11'); __t.set('ci', '88888888');
+  try { showTab('pericardio'); } catch (e) {}
+  ex.push(['(A0) DENOMINADOR: los TRES campos nuevos existen',
+    ['pua_derrame_der', 'pua_derrame_izq', 'pua_consol_lado'].filter(k => V(k) === 'NO EXISTE').join(','), '']);
+  ex.push(['(A1) los dos de pleura llevan los MISMOS valores que el posoperatorio, y en el mismo orden',
+    opts('pua_derrame_der') + ' | ' + opts('pop_pleura_der'),
+    ',leve,moderado,severo,ausente | ,leve,moderado,severo,ausente']);
+  ex.push(['(A2) y el lado de la consolidacion comparte los tres del posoperatorio',
+    opts('pua_consol_lado'), ',der,izq,bilateral']);
+  ex.push(['(A3) los DOS campos legados quedan DESHABILITADOS: ya no se editan a mano',
+    (function () { const a = document.getElementById('pua_derrame_lado'), b = document.getElementById('pul_derrame_tam');
+      return (a && a.disabled && b && b.disabled) ? 'si' : 'no'; })(), 'si']);
+
+  /* ── (B) LA DERIVACION A LOS DOS LEGADOS ──
+     El legado usa «minimo» donde los campos nuevos usan «leve», y la traduccion vive en UN solo
+     lugar. El tamano legado es el MAYOR de las pleuras afectadas, que es lo que la orden fija. */
+  __t.set('pua_derrame', 'si');
+  __t.set('pua_derrame_der', 'moderado');
+  ex.push(['(B1) una sola pleura: el lado es unilateral derecho y el tamano el de esa pleura',
+    V('pua_derrame_lado') + '/' + V('pul_derrame_tam'), 'unilateral derecho/moderado']);
+  __t.set('pua_derrame_izq', 'severo');
+  ex.push(['(B2) las dos: el lado es bilateral y el tamano el MAYOR de las dos',
+    V('pua_derrame_lado') + '/' + V('pul_derrame_tam'), 'bilateral/severo']);
+  __t.set('pua_derrame_der', 'leve'); __t.set('pua_derrame_izq', '');
+  ex.push(['(B3) «leve» se traduce a «minimo», que es la palabra del legado',
+    V('pua_derrame_lado') + '/' + V('pul_derrame_tam'), 'unilateral derecho/mínimo']);
+  __t.set('pua_derrame_der', 'ausente'); __t.set('pua_derrame_izq', 'ausente');
+  ex.push(['(B4) con las dos en «ausente» no hay lado ni tamano: «ausente» no es un derrame',
+    V('pua_derrame_lado') + '/' + V('pul_derrame_tam'), '/']);
+  /* La guarda que no es decorativa: sin ella, abrir un estudio viejo cuyo lado quedo sin
+     consignar le BORRARIA el tamano que si tenia. */
+  mudo('pua_derrame_der', ''); mudo('pua_derrame_izq', '');
+  mudo('pua_derrame_lado', 'bilateral'); mudo('pul_derrame_tam', 'severo');
+  try { puaDerrameDerivar(); } catch (e) {}
+  ex.push(['(B5) con los dos campos nuevos VACIOS la derivacion no toca el legado',
+    V('pua_derrame_lado') + '/' + V('pul_derrame_tam'), 'bilateral/severo']);
+
+  /* ── (C) LA RECONCILIACION DE UN ESTUDIO VIEJO, idempotente y solo hacia lo vacio ── */
+  try { puaDerrameReconciliar(); } catch (e) {}
+  ex.push(['(C1) de (bilateral, severo) salen las dos pleuras en severo',
+    V('pua_derrame_der') + '/' + V('pua_derrame_izq'), 'severo/severo']);
+  mudo('pua_derrame_der', ''); mudo('pua_derrame_izq', '');
+  mudo('pua_derrame_lado', 'unilateral izquierdo'); mudo('pul_derrame_tam', 'mínimo');
+  try { puaDerrameReconciliar(); } catch (e) {}
+  ex.push(['(C2) de (unilateral izquierdo, minimo) sale la izquierda en leve y la derecha en ausente',
+    V('pua_derrame_izq') + '/' + V('pua_derrame_der'), 'leve/ausente']);
+  const antes = V('pua_derrame_der') + V('pua_derrame_izq') + V('pua_derrame_lado') + V('pul_derrame_tam');
+  try { puaDerrameReconciliar(); puaDerrameReconciliar(); } catch (e) {}
+  ex.push(['(C3) IDEMPOTENTE: dos pasadas mas no cambian nada',
+    V('pua_derrame_der') + V('pua_derrame_izq') + V('pua_derrame_lado') + V('pul_derrame_tam'), antes]);
+  ex.push(['(C4) las dos reconciliaciones cuelgan de RECALC_MODULOS',
+    (function () { const L = (typeof RECALC_MODULOS === 'function') ? RECALC_MODULOS() : RECALC_MODULOS;
+      return ['puaDerrameReconciliar', 'puaPopReconciliar'].filter(f => L.indexOf(f) < 0).join(',') || 'las dos'; })(),
+    'las dos']);
+
+  /* ── (D) EL PAPEL: identico para todo estado que la pantalla anterior podia expresar ──
+     El emisor sigue leyendo los DOS campos legados; los nuevos solo aportan el estado que antes
+     no se podia escribir -las dos pleuras con severidad distinta-. */
+  __t.limpiar();
+  __t.set('nombre', 'Pulmon PANT11 B'); __t.set('ci', '99999999');
+  __t.set('pua_derrame', 'si');
+  __t.set('pua_derrame_der', 'moderado'); __t.set('pua_derrame_izq', 'moderado');
+  __t.chk('pua_incluir_chk', true);
+  const rM = __t.informe();
+  ex.push(['(D0) DENOMINADOR: con el modulo integrado el informe habla del derrame pleural',
+    NN(rM.inf).toLowerCase().indexOf('derrame pleural') > -1, true]);
+  ex.push(['(D1) y lo describe con la palabra del legado, que es lo que no se movio',
+    NN(rM.inf).indexOf('bilateral') > -1, true]);
+
+  /* ── (E) LA SINCRONIA CON EL POSOPERATORIO Y SU GUARDA ──
+     El posoperatorio escribe en el basico SIEMPRE. El basico escribe en el posoperatorio SOLO
+     si el posoperatorio ya esta en uso, y «en uso» EXCLUYE los cinco campos que el espejo
+     escribe: sin esa exclusion el espejo se autoriza a si mismo. */
+  __t.limpiar();
+  __t.set('nombre', 'Pulmon PANT11 C'); __t.set('ci', '10101010');
+  ex.push(['(E0) DENOMINADOR: con el formulario limpio el posoperatorio NO esta en uso',
+    (function () { try { return popModuloEnUso() === false ? 'no' : 'si'; } catch (e) { return 'EXC'; } })(), 'no']);
+  __t.set('pua_derrame', 'si'); __t.set('pua_derrame_der', 'severo');
+  ex.push(['(E1) la GUARDA: sin el posoperatorio en uso, el basico NO le escribe nada',
+    V('pop_pleura_der'), '']);
+  ex.push(['(E2) y los cinco campos espejados NO cuentan como «en uso»: el espejo no se autoriza solo',
+    (function () { try { return popModuloEnUso() === false ? 'no' : 'si'; } catch (e) { return 'EXC'; } })(), 'no']);
+  /* ⚠️ (E2b) NACIO DE UNA MUTACION QUE SOBREVIVIO. (E2) mide con los campos del POSOPERATORIO
+     todos vacios, y ahi «en uso» da false con exclusion o sin ella: la condicion no podia
+     distinguir. Lo que la distingue es sembrar UNO de los cinco espejados -y nada mas- y
+     preguntar: con la exclusion da false, y sin ella da true y el espejo se autoriza a si
+     mismo. Se siembra MUDO para que el espejo inverso no escriba de paso. */
+  (function () { const e = EL('pop_pleura_der'); if (e) e.value = 'severo'; })();
+  ex.push(['(E2b) con SOLO un campo espejado cargado, «en uso» sigue siendo false',
+    (function () { try { return popModuloEnUso() === false ? 'no' : 'si'; } catch (e) { return 'EXC'; } })(), 'no']);
+  (function () { const e = EL('pop_pleura_der'); if (e) e.value = ''; })();
+  /* Un campo del posoperatorio que NO es espejado: ahi si esta en uso. */
+  __t.set('pop_cx_horas', '6');
+  ex.push(['(E3) DENOMINADOR: con un campo propio del posoperatorio cargado, SI esta en uso',
+    (function () { try { return popModuloEnUso() === true ? 'si' : 'no'; } catch (e) { return 'EXC'; } })(), 'si']);
+  __t.set('pua_derrame_izq', 'leve');
+  ex.push(['(E4) ahora el basico SI le escribe al posoperatorio', V('pop_pleura_izq'), 'leve']);
+  /* El sentido inverso no tiene guarda. */
+  __t.set('pop_pleura_der', 'moderado');
+  ex.push(['(E5) y el posoperatorio le escribe al basico SIEMPRE', V('pua_derrame_der'), 'moderado']);
+  __t.set('pop_pulmon_consol', 'bilateral');
+  ex.push(['(E6) la consolidacion viaja con su lado: «bilateral» prende la compuerta y pone el lado',
+    V('pua_consol') + '/' + V('pua_consol_lado'), 'si/bilateral']);
+  __t.set('pop_pulmon_consol', 'ausente');
+  ex.push(['(E7) y «ausente» es el «no» de la compuerta, sin lado',
+    V('pua_consol') + '/' + V('pua_consol_lado'), 'no/']);
+  /* LO QUE NO SE SINCRONIZA, que es la mitad del commit. */
+  __t.set('pop_pleura_caract', 'hemotorax');
+  ex.push(['(E8) CONTROL: «hemotorax» no tiene equivalente y NO se escribe ni se borra',
+    V('pua_derrame_tipo'), '']);
+  __t.set('pop_pulmon_lineasb', 'difusas');
+  ex.push(['(E9) CONTROL: las lineas B solo sincronizan «ausentes»: «difusas» no escribe nada',
+    V('pua_lineasb'), '']);
+
+  /* ── (F) EL DIBUJO: SOLO LECTURA, con su descripcion y sin texto fuera del lienzo ── */
+  __t.limpiar();
+  __t.set('nombre', 'Pulmon PANT11 D'); __t.set('ci', '12121212');
+  __t.set('pua_derrame', 'si'); __t.set('pua_derrame_der', 'severo'); __t.set('pua_derrame_izq', 'leve');
+  __t.set('pua_consol', 'si'); __t.set('pua_consol_lado', 'der');
+  try { pulDibSync(); } catch (e) {}
+  const svg = document.getElementById('pul-dib-svg');
+  ex.push(['(F0) DENOMINADOR: el lienzo existe y tiene nodos dibujados',
+    (svg && svg.querySelectorAll('*').length > 10) ? 'si' : ('nodos=' + (svg ? svg.querySelectorAll('*').length : 'NO SVG')), 'si']);
+  ex.push(['(F1) el estado del dibujo sale de los campos: derrame severo a la derecha y leve a la izquierda',
+    (function () { try { const st = pulDibEstado();
+      return st.der.D + '/' + st.der.I; } catch (e) { return 'EXC'; } })(), 'severo/leve']);
+  ex.push(['(F2) y la consolidacion solo del lado consignado',
+    (function () { try { const st = pulDibEstado();
+      return String(st.cons.D) + '/' + String(st.cons.I); } catch (e) { return 'EXC'; } })(), 'true/false']);
+  ex.push(['(F3) la descripcion accesible nombra los dos lados',
+    (function () { try { const d = pulDibDescripcion(pulDibEstado());
+      return (d.indexOf('Derecho:') === 0 && d.indexOf('Izquierdo:') > -1) ? 'si' : d.slice(0, 50); } catch (e) { return 'EXC'; } })(), 'si']);
+  /* SOLO LECTURA: repintarlo seis veces no mueve NINGUN campo del estudio. */
+  const foto = (function () { const o = {};
+    [].slice.call(document.querySelectorAll('input[id],select[id],textarea[id]')).forEach(e => { o[e.id] = e.value; });
+    return o; })();
+  for (let k = 0; k < 6; k++) { try { pulDibSync(); } catch (e) {} }
+  ex.push(['(F4) SOLO LECTURA: seis repintados no mueven un solo campo',
+    (function () { const mal = [];
+      [].slice.call(document.querySelectorAll('input[id],select[id],textarea[id]')).forEach(e => {
+        if (foto[e.id] !== undefined && foto[e.id] !== e.value) mal.push(e.id); });
+      return mal.join(',') || 'ninguno'; })(), 'ninguno']);
+  ex.push(['(F5) y el pie dice que es ilustrativo y que no mide',
+    (function () { const p = document.getElementById('pul-dib-pie');
+      const t = p ? NN(p.textContent) : '';
+      return (t.indexOf('ilustrativo') > -1 && t.indexOf('no est') > -1) ? 'si' : (t || 'NO EXISTE'); })(), 'si']);
+  ex.push(['(F6) ni un nodo del dibujo sale de innerHTML: todos llevan su namespace de SVG',
+    (function () { if (!svg) return 'NO SVG';
+      const mal = [].slice.call(svg.querySelectorAll('*'))
+        .filter(e => e.namespaceURI !== 'http://www.w3.org/2000/svg');
+      return mal.length ? ('ajenos=' + mal.length) : 'ninguno'; })(), 'ninguno']);
+  ex.push(['(F7) y NO llega al papel: pulDibSync no escribe en ningun registro de PDF ni de PPT',
+    (function () { const r = __t.informe();
+      return ['pul-dib', 'pulDib'].filter(k => (r.inf + ' ' + r.suma).indexOf(k) > -1).join(',') || 'ninguno'; })(),
+    'ninguno']);
+
+  return { extra: EXP };
+`);
+
+caso('TC-679', 'Tanda PANT-11 (commits 8 a 11): «Masas» como TERCERA seccion de la pestania Otros -hermana de las otras dos, no anidada-, con sus nueve campos intactos y «Pericardio y masas» renombrada a «Pericardio»; la tabla de diagnosticos diferenciales con sus siete filas, su scroll propio y sus fuentes; los dos globos nuevos con su contenido y sus folios; las fichas de Referencias de tumores cardiacos y de fuentes emboligenas dentro de «Otros hallazgos» e indexadas por el buscador; y los CONTROLES -nada de esto llega al papel y ningun campo ni columna nuevos-', `
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]), 'esperado ' + String(t[2]) + ' | hallado ' + String(t[1])]) };
+  const NN = (s) => String(s || '').split(String.fromCharCode(10)).join(' ').trim();
+  const EL = (id) => document.getElementById(id);
+  const V = (id) => { const e = EL(id); return e ? String(e.value || '') : 'NO EXISTE'; };
+  const MASA_IDS = ['masa_presente', 'masa_cavidad', 'masa_loc', 'masa_tam_mm', 'masa_morf',
+    'masa_movil', 'masa_eco', 'masa_dx', 'masa_notas'];
+
+  /* ── (A) LA MUDANZA: TRES secciones HERMANAS ──
+     ⚠️ La condicion de «hermanas» no es cosmetica: un </div> de menos dejo a «Masas» ANIDADA
+        dentro de «Variantes anatomicas» con el DOM BALANCEADO y la pantalla sin un sintoma
+        visible. El unico sintoma medible era que el panel de variantes informaba DOS card-head. */
+  __t.limpiar();
+  __t.set('nombre', 'Masas PANT11'); __t.set('ci', '13131313');
+  try { showTab('otros'); } catch (e) {}
+  const PAN = ['otr-sub-burbuja', 'otr-sub-variantes', 'otr-sub-masas'];
+  ex.push(['(A0) DENOMINADOR: las TRES secciones de Otros existen',
+    PAN.filter(id => !EL(id)).join(','), '']);
+  ex.push(['(A1) las tres son HERMANAS de la pestania: ninguna esta anidada en otra',
+    PAN.map(id => { const e = EL(id); return e && e.parentElement ? e.parentElement.id : 'NO'; }).join(','),
+    'tab-otros,tab-otros,tab-otros']);
+  ex.push(['(A2) y cada una tiene EXACTAMENTE un encabezado de acordeon',
+    PAN.map(id => { const e = EL(id); return e ? e.querySelectorAll('h2.card-head').length : 'NO'; }).join(','),
+    '1,1,1']);
+  /* La seccion de masas se abre por su encabezado REAL. */
+  const hM = [].slice.call(document.querySelectorAll('#otr-sub-masas h2.card-head'))
+    .filter(x => String(x.getAttribute('onclick') || '').indexOf("'masas'") > -1)[0];
+  if (hM) { try { hM.click(); } catch (e) {} }
+  const sM = EL('ete-seccion-masas'); if (sM) sM.style.display = 'block';
+  __t.set('masa_presente', 'Masa / imagen intracardíaca presente');
+  try { if (typeof showMasaPanel === 'function') showMasaPanel(); } catch (e) {}
+  ex.push(['(A3) los NUEVE campos viven en la pestania Otros y tienen caja',
+    MASA_IDS.map(id => { const e = EL(id); if (!e) return id + ':FALTA';
+      const p = e.closest('.tab-section'); const g = e.getBoundingClientRect();
+      return (p && p.id === 'tab-otros' && g.width > 0) ? '' : (id + ':' + (p ? p.id : 'NO')
+        + (g.width > 0 ? '' : ':SIN CAJA')); }).filter(x => x).join(','), '']);
+  ex.push(['(A4) ningun id cambio: los nueve son los de siempre',
+    MASA_IDS.filter(id => !EL(id)).join(','), '']);
+  ex.push(['(A5) y la seccion del pericardio ya NO nombra las masas: dice «Pericardio»',
+    (function () { const sec = EL('ete-seccion-pericardio-masas');
+      const c = sec && sec.previousElementSibling;
+      const h = c ? c.querySelector('h2.card-head') : null;
+      if (!h) return 'NO HAY ENCABEZADO';
+      const t = NN(h.textContent).split(String.fromCharCode(9654))[0].trim();
+      return (t.indexOf('Pericardio') > -1 && t.toLowerCase().indexOf('masa') < 0) ? 'ok' : t; })(), 'ok']);
+
+  /* ── (B) LA TABLA DE DIFERENCIALES ── */
+  const tab = document.querySelector('.masa-ref-tabla');
+  ex.push(['(B0) DENOMINADOR: la tabla existe y tiene su encabezado de siete columnas',
+    tab ? tab.querySelectorAll('thead th').length : 'NO EXISTE', 7]);
+  ex.push(['(B1) tiene SIETE filas de cuerpo, una por entidad',
+    tab ? tab.querySelectorAll('tbody tr').length : 'NO EXISTE', 7]);
+  ex.push(['(B2) la primera columna de cada fila nombra una entidad y la ultima trae su fuente',
+    (function () { if (!tab) return 'NO EXISTE';
+      const mal = [].slice.call(tab.querySelectorAll('tbody tr')).filter(tr => {
+        const td = tr.querySelectorAll('td');
+        return td.length !== 7 || !NN(td[0].textContent) || !NN(td[6].textContent); });
+      return mal.length ? ('filas incompletas=' + mal.length) : 'ninguna'; })(), 'ninguna']);
+  ex.push(['(B3) y su scroll horizontal es PROPIO de su contenedor, no de la pagina',
+    (function () { const w = document.querySelector('.masa-ref-wrap');
+      if (!w) return 'NO HAY CONTENEDOR';
+      const ov = getComputedStyle(w).overflowX;
+      return (ov === 'auto' || ov === 'scroll') ? 'propio' : ('overflow-x=' + ov); })(), 'propio']);
+  ex.push(['(B4) la pagina NO scrollea en horizontal por la tabla',
+    document.documentElement.scrollWidth > document.documentElement.clientWidth + 1, false]);
+
+  /* ── (C) LOS DOS GLOBOS NUEVOS ── */
+  const REG = (typeof VINFO === 'undefined') ? null : VINFO;
+  ex.push(['(C0) DENOMINADOR: las dos entradas estan en el registro de globos',
+    REG ? ['masa-ref', 'masa-ref-ei'].filter(k => !REG[k]).join(',') : 'NO HAY REGISTRO', '']);
+  ex.push(['(C1) los dos botones existen y llevan la clase de area tactil de 44 px',
+    ['masa-ref', 'masa-ref-ei'].map(k => { const b = document.querySelector('[data-vinfo="' + k + '"]');
+      return (b && b.classList.contains('vinfo-btn-44')) ? '' : (k + (b ? ':SIN CLASE' : ':NO EXISTE')); })
+      .filter(x => x).join(','), '']);
+  ex.push(['(C2) los dos miden 44x44',
+    ['masa-ref', 'masa-ref-ei'].map(k => { const b = document.querySelector('[data-vinfo="' + k + '"]');
+      if (!b) return k + ':NO';
+      const g = b.getBoundingClientRect();
+      return (Math.round(g.width) >= 44 && Math.round(g.height) >= 44) ? ''
+        : (k + ':' + Math.round(g.width) + 'x' + Math.round(g.height)); }).filter(x => x).join(','), '']);
+  ex.push(['(C3) el globo de la tabla dice que estudio complementario conviene, con su fuente y su folio',
+    (function () { if (!REG || !REG['masa-ref']) return 'NO EXISTE';
+      const t = NN(JSON.stringify(REG['masa-ref']));
+      const falta = ['folio', 'hoja'].filter(m => t.indexOf(m) < 0);
+      return falta.length ? ('le falta: ' + falta.join(',')) : 'completo'; })(), 'completo']);
+  ex.push(['(C4) el globo de endocarditis trae los germenes por contexto, con su guia y su folio',
+    (function () { if (!REG || !REG['masa-ref-ei']) return 'NO EXISTE';
+      const t = NN(JSON.stringify(REG['masa-ref-ei']));
+      const falta = ['folio', 'hoja', 'ESC 2023'].filter(m => t.indexOf(m) < 0);
+      return falta.length ? ('le falta: ' + falta.join(',')) : 'completo'; })(), 'completo']);
+  ex.push(['(C5) el globo de endocarditis vive en la fila de la VEGETACION y no en otra',
+    (function () { const b = document.querySelector('[data-vinfo="masa-ref-ei"]');
+      const tr = b ? b.closest('tr') : null;
+      const td = tr ? tr.querySelector('td') : null;
+      return td ? (NN(td.textContent).toLowerCase().indexOf('vegetaci') > -1 ? 'si' : NN(td.textContent).slice(0, 30)) : 'NO ESTA EN UNA FILA'; })(),
+    'si']);
+
+  /* ── (D) LAS DOS FICHAS DE REFERENCIAS ── */
+  try { showTab('refs'); } catch (e) {}
+  ex.push(['(D0) DENOMINADOR: las dos fichas existen',
+    ['ref-tumores', 'ref-embolig'].filter(id => !EL(id)).join(','), '']);
+  ex.push(['(D1) las dos viven DENTRO de la subpestana «Otros hallazgos»',
+    ['ref-tumores', 'ref-embolig'].map(id => { const e = EL(id);
+      const p = e ? e.closest('#ref-sub-otros') : null;
+      return p ? '' : (id + ':fuera'); }).filter(x => x).join(','), '']);
+  ex.push(['(D2) y las dos estan en el reparto de subpestanas, no sueltas -la leccion de la tanda J-',
+    (function () { const m = (typeof REF_SUBTAB === 'undefined') ? null : REF_SUBTAB;
+      if (!m) return 'NO HAY MAPA';
+      const otros = (m.otros || []).map(String);
+      return ['tumores', 'embolig'].filter(k => otros.indexOf(k) < 0).join(',') || ''; })(), '']);
+  ex.push(['(D3) la ficha de tumores tiene sus CATORCE filas y cada una su folio',
+    (function () { const e = EL('ref-tumores'); if (!e) return 'NO EXISTE';
+      const n = e.querySelectorAll('tr').length;
+      const t = NN(e.textContent);
+      let f = 0, i = 0; while (true) { const k = t.indexOf('folio', i); if (k < 0) break; f++; i = k + 1; }
+      return n + '/' + (f >= 10 ? 'con folios' : 'folios=' + f); })(), '14/con folios']);
+  ex.push(['(D4) la ficha de fuentes emboligenas tiene sus DIECIOCHO filas',
+    (function () { const e = EL('ref-embolig'); if (!e) return 'NO EXISTE';
+      return e.querySelectorAll('tr').length; })(), 18]);
+  ex.push(['(D5) y dice con esas palabras que la guia de la ASE NO trae un algoritmo paso a paso propio',
+    (function () { const e = EL('ref-embolig'); if (!e) return 'NO EXISTE';
+      const t = NN(e.textContent);
+      /* La frase literal de la ficha, en minuscula: «no trae un algoritmo ecocardiografico paso
+         a paso propio: trae criterios de uso apropiado y estas tablas». Mi primera version
+         buscaba un «NO» en mayuscula y medía sobre una frase que si estaba. */
+      return (t.indexOf('no trae un algoritmo') > -1 && t.indexOf('paso a paso propio') > -1
+        && t.indexOf('criterios de uso apropiado') > -1) ? 'si' : 'no lo dice'; })(), 'si']);
+  ex.push(['(D6) el buscador de Referencias INDEXA las dos',
+    (function () { try { const ix = window._refIndiceArmar(true).map(x => String(x.id));
+      return ['tumores', 'embolig'].filter(k => ix.indexOf(k) < 0).join(',') || ''; } catch (e) { return 'EXC'; } })(), '']);
+
+  /* ── (E) CONTROLES: nada de esto llega al papel, ni agrega campo ni columna ── */
+  __t.limpiar();
+  __t.set('nombre', 'Masas PANT11 B'); __t.set('ci', '14141414');
+  __t.set('masa_presente', 'Masa / imagen intracardíaca presente');
+  __t.set('masa_cavidad', 'AI'); __t.set('masa_loc', 'Pared libre');
+  __t.set('masa_tam_mm', '18'); __t.set('masa_dx', 'Mixoma');
+  const r = __t.informe();
+  ex.push(['(E0) DENOMINADOR: la masa SI llega al informe, que es lo que no cambio',
+    NN(r.inf).toLowerCase().indexOf('mixoma') > -1, true]);
+  ex.push(['(E1) CONTROL: ni la tabla, ni los globos, ni las fichas llegan al papel',
+    ['Fuente', 'folio', 'ASE 2016', 'ESC 2023', 'JACC CardioOncology', 'algoritmo']
+      .filter(m => (NN(r.inf) + ' ' + NN(r.suma)).indexOf(m) > -1).join(','), '']);
+  ex.push(['(E2) CONTROL: ninguno de los nueve campos de masa gano una columna de Excel nueva',
+    (function () { const m = (typeof LAB_XLS_MAP === 'undefined') ? null : LAB_XLS_MAP;
+      if (!m) return 'NO HAY MAPA';
+      const hay = MASA_IDS.filter(k => Object.prototype.hasOwnProperty.call(m, k));
+      /* El censo de PANT-8 ya declara que las masas viajan dentro del texto del informe y no
+         tienen columna propia: lo que esta condicion fija es que eso NO cambio. */
+      return hay.join(',') || 'ninguna'; })(), 'ninguna']);
+  ex.push(['(E3) CONTROL: la pestania Pericardio conserva sus tres campos',
+    (function () { try { showTab('pericardio'); } catch (e) {}
+      const s = EL('ete-seccion-pericardio-masas'); if (s) s.style.display = 'block';
+      return ['pericardio', 'pericardio_hemo', 'otras_notas'].map(id => { const e = EL(id);
+        const p = e ? e.closest('.tab-section') : null;
+        return (p && p.id === 'tab-pericardio') ? '' : (id + ':' + (p ? p.id : 'NO')); })
+        .filter(x => x).join(','); })(), '']);
+
   return { extra: EXP };
 `);
 
