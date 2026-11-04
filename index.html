@@ -1790,6 +1790,38 @@
   .cm3d-inf b { color:var(--text); font-weight:600; }
   .cm3d-ref { font-size:11px; line-height:1.5; color:var(--text2); margin:6px 0 0; }
   .cm3d-nt { font-size:10.5px; color:var(--text2); line-height:1.5; margin:10px 0 0; }
+  /* ══ LOS CONTROLES, LA TABLA LATERAL Y LOS DOS MODOS (PANT-12, commit 5) ═════════════════
+     ⚠️ EL CORTE VA SOBRE LA VENTANA, que es la regla fija de la casa, y el PISO de la columna
+     va DENTRO de la media query: con `flex-wrap` el punto de quiebre dependeria del ancho que
+     le quede a la tarjeta y «desde 900 px» dejaria de ser medible. */
+  .cm3d-tit { font-weight:700; color:var(--text); }
+  .cm3d-sg { margin:0 6px 4px 0; min-height:44px; font-size:11px; }
+  .cm3d-sg[aria-pressed="true"] { background:var(--accent2); color:#fff; border-color:var(--accent2); }
+  .cm3d-sg:disabled { opacity:0.45; cursor:default; }
+  .cm3d-estb { font-size:11px; line-height:1.5; color:var(--text2); margin:0 0 8px; }
+  .cm3d-note { font-size:10.5px; line-height:1.5; color:var(--text2); margin:0 0 8px; }
+  .cm3d-side { background:var(--bg2); border:0.5px solid var(--border); border-radius:12px;
+               padding:10px; margin-top:10px; }
+  .cm3d-sideh { font-size:12px; font-weight:700; color:var(--accent2); margin:0 0 6px; }
+  .cm3d-sidet { font-size:9px; font-weight:700; letter-spacing:.04em; text-transform:uppercase;
+                color:var(--text2); margin:10px 0 4px; }
+  .cm3d-srow { display:block; width:100%; text-align:left; margin:0 0 4px; padding:6px 8px;
+               min-height:44px; background:var(--card); color:var(--text);
+               border:0.5px solid var(--border); border-radius:8px; cursor:pointer; }
+  .cm3d-srow[aria-pressed="true"] { background:var(--accent2); border-color:var(--accent2); }
+  .cm3d-srow[aria-pressed="true"] .cm3d-srn,
+  .cm3d-srow[aria-pressed="true"] .cm3d-srd { color:#fff; }
+  .cm3d-srow:disabled { opacity:0.5; cursor:default; }
+  .cm3d-srn { display:block; font-size:11px; font-weight:700; color:var(--text); }
+  .cm3d-srd { display:block; font-size:10.5px; color:var(--text2); line-height:1.35; }
+  @media (min-width: 900px) {
+    /* La tabla a la DERECHA del dibujo, con su propio scroll, SOLO en modo Explorar: en
+       «Segun el estudio» la tabla esta oculta y la columna ocupa todo el ancho. */
+    #cm3d-fila.cm3d-con-tabla { display:flex; align-items:flex-start; gap:14px; }
+    #cm3d-fila.cm3d-con-tabla > #cm3d-col { flex:1 1 auto; min-width:300px; }
+    #cm3d-fila.cm3d-con-tabla > .cm3d-side { flex:0 0 300px; margin-top:0;
+                                             max-height:720px; overflow:auto; }
+  }
   /* ══ LA PANTALLA DE MCH EN TRES COLUMNAS (PANT-3, commit 5b) ═══════════════════════════════
      Tres columnas tematicas con los grupos que la seccion YA tenia -hipertrofia, obstruccion y
      factores de riesgo de muerte subita- y, debajo, los dos cuadros lado a lado. El corte va
@@ -21138,8 +21170,30 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
          caso de la suite que cuenta con que el hueco exista. -->
     <div id="cc3d-host"></div>
     <div id="cm3d-box">
+      <!-- ══ LOS DOS MODOS (PANT-12, commit 5) ═══════════════════════════════════════════════
+           «Segun el estudio» abre por omision: el corazon se arma solo con los datos cargados y
+           no se edita aca. «Explorar» abre los controles y la tabla lateral.
+           ⚠️ CLASE PROPIA `cm3d-md` Y NO `.active`: `showTab` hace un
+           querySelectorAll('.tab-btn') sobre TODO el documento y le saca `.active` a lo que
+           encuentre, que es el defecto que PANT-3 cerro para CIA/CIV y PANT-8 para TAVI. -->
+      <div class="cm3d-row">
+        <span class="cm3d-tit">Modo</span>
+        <button type="button" class="btn btn-ghost cm3d-sg cm3d-md" data-m="estudio" aria-pressed="true">Seg&uacute;n el estudio</button>
+        <button type="button" class="btn btn-ghost cm3d-sg cm3d-md" data-m="explorar" aria-pressed="false">Explorar</button>
+      </div>
+      <p class="cm3d-estb" id="cm3d-estb"><span id="cm3d-estbt">El coraz&oacute;n se arma solo con lo cargado en las pesta&ntilde;as de cong&eacute;nitas y no se edita ac&aacute;. &laquo;Explorar&raquo; abre los controles para experimentar: lo que se elija ah&iacute; es did&aacute;ctico, no se guarda con el estudio y no entra al informe.</span></p>
       <div id="cm3d-fila">
         <div id="cm3d-col">
+          <!-- Los controles de la anatomia de base, de las lesiones que se suman y de las
+               combinaciones frecuentes. Los pinta `cmRenderCtl`, que es su dueno unico. -->
+          <div id="cm3d-ctl" hidden>
+            <div class="cm3d-row"><span class="cm3d-tit">Anatom&iacute;a de base</span><span id="cm3d-baseb"></span></div>
+            <div class="cm3d-row" id="cm3d-basevarrow" hidden><span class="cm3d-tit">Vista</span><span id="cm3d-basevar"></span></div>
+            <div class="cm3d-row"><span class="cm3d-tit">Se suma</span><span id="cm3d-modb"></span></div>
+            <p class="cm3d-note" id="cm3d-note" hidden></p>
+            <div id="cm3d-mods"></div>
+            <div class="cm3d-row"><span class="cm3d-tit">Combinaciones frecuentes</span><span id="cm3d-presb"></span></div>
+          </div>
           <!-- Los controles del dibujo. Los cinco llevan `data-ui`, que es la TERCERA de las
                listas paralelas: sin el, `secAutoOpen` abriria esta seccion sola al entrar a la
                pestania, porque las dos casillas nacen marcadas y la frecuencia trae 70. -->
@@ -21159,6 +21213,11 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
             <span><span class="cm3d-sw" style="background:#e08a1e"></span>CIV, parches y suturas</span>
             <span><span class="cm3d-sw" style="background:#9a9a95"></span>obstrucci&oacute;n</span>
             <span><span class="cm3d-sw" style="background:#d9b92e"></span>v&aacute;lvula desplazada</span>
+            <!-- El globo estandar de la casa: glifo U+24D8 en un boton de 44 px. Abre y cierra
+                 el panel de abajo, cerrado por omision, por sus TRES vias. -->
+            <button type="button" class="vinfo-btn vinfo-btn-44" id="cm3d-ib" aria-expanded="false"
+                    aria-controls="cm3d-ip" aria-label="Qu&eacute; muestra este dibujo"
+                    style="margin-left:auto;">&#9432;</button>
           </div>
           <!-- El panel de los cuatro textos del dibujo. Nace OCULTO y lo abre el globo del
                commit 5: en este commit el motor ya los calcula y los escribe aca. -->
@@ -21174,6 +21233,15 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
                unico de «esta lesion esta cargada» y no una segunda lista. -->
           <p id="cc3d-faltan" style="font-size:10.5px;color:var(--text2);margin:8px 0 0;line-height:1.5;"></p>
         </div>
+        <!-- ══ LA TABLA LATERAL ══════════════════════════════════════════════════════════════
+             «Lesiones y combinaciones»: la anatomia de base, las lesiones que se suman y las
+             combinaciones frecuentes, cada fila con su linea. Tocar una fila la aplica; las que
+             no se combinan quedan apagadas con su motivo. La pinta `cmRenderSide`.
+             Desde 900 px va a la DERECHA del dibujo con su propio scroll; por debajo, apilada. -->
+        <aside class="cm3d-side" id="cm3d-side" hidden aria-label="Lesiones y combinaciones">
+          <div class="cm3d-sideh">Lesiones y combinaciones</div>
+          <div id="cm3d-sidebody"></div>
+        </aside>
       </div>
     </div>
   </div>
@@ -103376,16 +103444,16 @@ const CM_MODS=[['cia','CIA',[['sec','Ostium secundum'],['pri','Ostium primum'],[
  ['eis','Eisenmenger',[['std','Eisenmenger']]]];
 const CM_MCK={cvpa_cs:[['svs','CIA de seno venoso asociada']],coa_nat:[['col','Colaterales']],coa_rep:[['rec','Recoartación'],['ane','Aneurisma']],ea_sub:[['iao','Insuficiencia aórtica asociada']],ea_sup:[['iao','Insuficiencia aórtica asociada']]};
 const CM_PRES=[
- {n:'CIA + CIV + ductus',b:'norm',m:{cia:'sec',civ:'pm',dap:'std'},src:'Ejemplo didáctico de tres comunicaciones juntas.'},
- {n:'CIA + conexión venosa anómala + cava izquierda',b:'norm',m:{cia:'sv',cvpa:'cs',vcs:'std'},k:{svs:true},src:'La ESC 2020 nombra la conexión venosa pulmonar anómala, la cava superior izquierda persistente y la estenosis pulmonar entre las lesiones asociadas a la CIA (hoja 29, folio 591). A verificar por Code.'},
- {n:'CIA + estenosis pulmonar',b:'norm',m:{cia:'sec',ep:'valv'},src:'La ESC 2020 nombra la estenosis pulmonar entre las lesiones asociadas a la CIA (hoja 29, folio 591). A verificar por Code.'},
- {n:'Coartación + estenosis subaórtica',b:'norm',m:{coa:'nat',ea:'sub'},src:'La ESC 2020 asocia la coartación con la estenosis subaórtica y supravalvular y con la estenosis mitral, el complejo de Shone (hoja 41, folio 603). La lesión mitral no se dibuja acá. A verificar por Code.'},
- {n:'Ebstein + CIA',b:'ebs',m:{cia:'sec'},k:{eit:true},src:'La ESC 2020 nombra la CIA o el FOP como la asociación más frecuente del Ebstein (hoja 48, folio 610). A verificar por Code.'},
- {n:'CIV + ductus + Eisenmenger',b:'norm',m:{civ:'pm',dap:'std',eis:'std'},src:'Ejemplo didáctico: con hipertensión pulmonar fija los cortocircuitos se invierten.'}
+ {n:'CIA + CIV + ductus',b:'norm',m:{cia:'sec',civ:'pm',dap:'std'},src:'Ejemplo didáctico, sin fuente: tres comunicaciones juntas.'},
+ {n:'CIA + conexión venosa anómala + cava izquierda',b:'norm',m:{cia:'sv',cvpa:'cs',vcs:'std'},k:{svs:true},src:'ESC 2020 de cardiopatías congénitas del adulto, hoja 29, folio 591: nombra la conexión venosa pulmonar anómala, la cava superior izquierda persistente y la estenosis pulmonar entre las lesiones asociadas a la comunicación interauricular.'},
+ {n:'CIA + estenosis pulmonar',b:'norm',m:{cia:'sec',ep:'valv'},src:'ESC 2020 de cardiopatías congénitas del adulto, hoja 29, folio 591: nombra la estenosis valvular pulmonar entre las lesiones asociadas a la comunicación interauricular.'},
+ {n:'Coartación + estenosis subaórtica',b:'norm',m:{coa:'nat',ea:'sub'},src:'ESC 2020 de cardiopatías congénitas del adulto, hoja 41, folio 603: asocia la coartación con la estenosis subaórtica y la supravalvular, con la estenosis mitral y con el complejo de Shone. La lesión mitral no se dibuja acá.'},
+ {n:'Ebstein + CIA',b:'ebs',m:{cia:'sec'},k:{eit:true},src:'ESC 2020 de cardiopatías congénitas del adulto, hoja 48, folio 610: el cortocircuito a nivel auricular —comunicación interauricular ostium secundum o foramen oval permeable— es la anomalía asociada más frecuente de la anomalía de Ebstein.'},
+ {n:'CIV + ductus + Eisenmenger',b:'norm',m:{civ:'pm',dap:'std',eis:'std'},src:'Ejemplo didáctico, sin fuente: con hipertensión pulmonar fija los cortocircuitos se invierten.'}
 ];
 
 const CM_TBB=[['norm','Corazón normal','Referencia: la aorta nace del VI y la arteria pulmonar, del VD.'],['fal','Tetralogía de Fallot','CIV, aorta cabalgante, obstrucción pulmonar y VD hipertrófico. Operada: parche y residuales.'],['dsav','Defecto del septo AV','CIA primum y CIV de entrada; válvula AV común en el completo.'],['ebs','Anomalía de Ebstein','Valva septal desplazada, VD atrializado y aurícula derecha dilatada.'],['fon','Circulación de Fontan','Cavas conectadas a la arteria pulmonar; tronco pulmonar cerrado.']];
-const CM_TBM=[['cia','CIA','Pasaje entre aurículas; sobrecarga el VD.'],['civ','CIV','Pasaje entre ventrículos según el tipo; sobrecarga el VI.'],['dap','Ductus','Une la arteria pulmonar con la aorta descendente.'],['vap','Ventana aortopulmonar','Une la aorta ascendente con el tronco pulmonar.'],['cvpa','Conexión venosa anómala parcial','Una vena pulmonar derecha drena a la cava superior.'],['coa','Coartación','Estrechez del istmo: el flujo se acelera y se vuelve turbulento.'],['ep','Estenosis pulmonar','Obstrucción pulmonar: flujo rápido y turbulento; VD hipertrófico.'],['ea','Estenosis subaórtica o supravalvular','Obstrucción bajo o sobre la válvula aórtica; VI hipertrófico.'],['vcs','Cava superior izquierda','Vena izquierda que desemboca en un seno coronario dilatado.'],['eis','Eisenmenger','Invierte los cortocircuitos; arteria pulmonar dilatada.']];
+const CM_TBM=[['cia','CIA','Pasaje entre aurículas; sobrecarga el VD.'],['civ','CIV','Pasaje entre ventrículos según el tipo; sobrecarga el VI.'],['dap','Ductus','Une la arteria pulmonar izquierda con la aorta descendente.'],['vap','Ventana aortopulmonar','Une la aorta ascendente con la arteria pulmonar principal.'],['cvpa','Conexión venosa anómala parcial','Una vena pulmonar derecha drena a la cava superior.'],['coa','Coartación','Estrechez del istmo: el flujo se acelera y se vuelve turbulento.'],['ep','Estenosis pulmonar','Obstrucción del tracto de salida derecho: el flujo se acelera y se vuelve turbulento.'],['ea','Estenosis subaórtica o supravalvular','Obstrucción por debajo o por encima de la válvula aórtica.'],['vcs','Cava superior izquierda','Vena izquierda que puede drenar al seno coronario.'],['eis','Eisenmenger','Invierte los cortocircuitos; arteria pulmonar dilatada.']];
 const CM_EJ={base:'norm',mods:{cia:'sec',civ:'pm'},txt:'CIA ostium secundum + CIV perimembranosa'};
 const CM_INFO={
  norm:'<b>Corazón normal.</b> Concordancia auriculoventricular y ventriculoarterial: la aorta nace del ventrículo izquierdo y la arteria pulmonar, del derecho. Los grandes vasos se cruzan.',
@@ -103393,11 +103461,11 @@ const CM_INFO={
  fal_op:'<b>Tetralogía de Fallot operada.</b> Un parche cierra la CIV y dirige la sangre del ventrículo izquierdo a la aorta, y el tracto de salida del ventrículo derecho se amplía. Qué mirar: la insuficiencia pulmonar residual, el tamaño y la función del ventrículo derecho, la CIV residual, la estenosis residual y los gradientes.',
  coa_nat:'<b>Coartación de aorta nativa.</b> Estrechez de la aorta en el istmo, cerca de donde nace el ductus, después de la salida de los vasos del brazo izquierdo. El ventrículo izquierdo trabaja contra la obstrucción y se hipertrofia. Qué mirar: el diámetro del istmo y el gradiente por Doppler.',
  coa_rep:'<b>Coartación de aorta reparada.</b> El segmento estrecho fue resecado o ampliado; las líneas naranjas marcan las suturas. Qué mirar: la recoartación, el aneurisma en el sitio de la reparación y el gradiente residual.',
- ep_valv:'<b>Estenosis pulmonar valvular.</b> Las valvas se abren en cúpula y dejan un orificio pequeño; la arteria pulmonar se dilata después de la obstrucción y el ventrículo derecho se hipertrofia. Qué mirar: el gradiente y la morfología de la válvula.',
- ep_sub:'<b>Estenosis pulmonar subvalvular (infundibular).</b> La obstrucción está en el músculo del tracto de salida del ventrículo derecho, por debajo de la válvula, que puede ser normal. El ventrículo derecho se hipertrofia.',
- ep_sup:'<b>Estenosis pulmonar supravalvular o de ramas.</b> La obstrucción está en el tronco o en las ramas de la arteria pulmonar, después de la válvula. El ventrículo derecho se hipertrofia.',
- ea_sub:'<b>Estenosis subaórtica (membrana).</b> Un anillo fibroso por debajo de la válvula aórtica estrecha el tracto de salida del ventrículo izquierdo, que se hipertrofia. Puede acompañarse de insuficiencia aórtica. Qué mirar: el gradiente y la válvula aórtica.',
- ea_sup:'<b>Estenosis supravalvular aórtica.</b> La aorta se estrecha justo por encima de los senos, con forma de reloj de arena, y el ventrículo izquierdo se hipertrofia. Qué mirar: el gradiente, la raíz y el origen de las coronarias.'
+ ep_valv:'<b>Estenosis pulmonar valvular.</b> Suele ser una lesión aislada, con una válvula en cúpula de orificio central estrecho. La arteria pulmonar puede dilatarse por alteraciones de su propia pared, con independencia de la hemodinámica. Qué mirar: el gradiente y la morfología de la válvula.',
+ ep_sub:'<b>Estenosis pulmonar subvalvular (infundibular).</b> La obstrucción está en el infundíbulo, por debajo de la válvula. Suele aparecer junto a otras lesiones —comunicación interventricular, Fallot o estenosis valvular— y tiende a ser dinámica: el orificio se estrecha durante la sístole.',
+ ep_sup:'<b>Estenosis pulmonar supravalvular o de ramas.</b> La obstrucción está por encima de la válvula, en el tronco o en las ramas de la arteria pulmonar.',
+ ea_sub:'<b>Estenosis subaórtica (membrana).</b> La produce un rodete o anillo fibroso en el tracto de salida del ventrículo izquierdo, por debajo de la válvula aórtica, o un estrechamiento fibromuscular. La insuficiencia aórtica es frecuente. Hay que diferenciarla de la miocardiopatía hipertrófica obstructiva. Qué mirar: el gradiente y la válvula aórtica.',
+ ea_sup:'<b>Estenosis supravalvular aórtica.</b> Aparece como un diafragma fibroso justo por encima de los ostium coronarios, como una deformidad externa en reloj de arena —la forma más común— o como una estenosis difusa de la aorta ascendente. Puede comprometer los ostium coronarios. Qué mirar: el gradiente, la raíz y el origen de las coronarias.'
 };
 const CM_CIRC={
  norm:'AD → VD → arteria pulmonar → pulmones → AI → VI → aorta → cuerpo',
@@ -103423,19 +103491,19 @@ const CM_REF={
  ea_sup:'Anillo gris: estrechez por encima de los senos. Con «Insuficiencia aórtica asociada»: la corriente roja que vuelve hacia el ventrículo izquierdo.'
 };
 CM_INFO.cia_sec='<b>CIA ostium secundum.</b> Defecto en la parte central del tabique auricular (fosa oval). La sangre pasa de la aurícula izquierda a la derecha y sobrecarga la aurícula y el ventrículo derechos.';
-CM_INFO.cia_pri='<b>CIA ostium primum.</b> Defecto en la parte baja del tabique auricular, junto a las válvulas auriculoventriculares. Es una forma del defecto del septo auriculoventricular parcial y suele acompañarse de una hendidura de la válvula mitral.';
+CM_INFO.cia_pri='<b>CIA ostium primum.</b> Defecto del tabique auricular situado cerca del crux, junto a las válvulas auriculoventriculares, que suelen estar malformadas y regurgitar en grado variable. Es sinónimo de defecto del septo auriculoventricular parcial, que con frecuencia lleva una hendidura de la válvula auriculoventricular izquierda.';
 CM_INFO.cia_sv='<b>CIA de seno venoso superior.</b> Defecto alto del tabique auricular, cerca de la desembocadura de la vena cava superior, que suele acompañarse de conexión anómala de las venas pulmonares derechas.';
-CM_INFO.civ_pm='<b>CIV perimembranosa.</b> Se ubica en la porción membranosa del tabique, por debajo de la válvula aórtica y junto a la válvula tricúspide.';
-CM_INFO.civ_mus='<b>CIV muscular (trabecular).</b> Está rodeada de músculo, en cualquier parte de la porción trabecular del tabique, y puede ser múltiple.';
-CM_INFO.civ_sal='<b>CIV de salida (subarterial).</b> Se ubica por debajo de la válvula pulmonar, en el tracto de salida del ventrículo derecho. La cúspide aórtica vecina puede prolapsar.';
-CM_INFO.civ_ent='<b>CIV de entrada.</b> Se ubica en la porción posterior del tabique, junto a las válvulas auriculoventriculares. Se asocia al síndrome de Down y a los defectos auriculoventriculares.';
+CM_INFO.civ_pm='<b>CIV perimembranosa.</b> Es la más frecuente. Se ubica en el tabique membranoso, con posible extensión al tabique de entrada, trabecular o de salida, y queda junto a las válvulas tricúspide y aórtica.';
+CM_INFO.civ_mus='<b>CIV muscular (trabecular).</b> Está rodeada por completo de músculo, en localizaciones variables, y con frecuencia es múltiple.';
+CM_INFO.civ_sal='<b>CIV de salida (subarterial).</b> Se ubica por debajo de las válvulas semilunares, en el tabique de salida o conal. Puede acompañarse de insuficiencia aórtica progresiva por prolapso de la cúspide aórtica derecha.';
+CM_INFO.civ_ent='<b>CIV de entrada.</b> Se ubica en el tabique de entrada, inmediatamente por debajo del aparato valvular auriculoventricular, y se asocia a una válvula auriculoventricular común. Aparece típicamente en el síndrome de Down.';
 CM_INFO.dap_lr='<b>Ductus arterioso permeable.</b> Comunicación entre la arteria pulmonar y la aorta descendente. Con la presión pulmonar menor que la aórtica, la sangre pasa de la aorta a la arteria pulmonar (de izquierda a derecha).';
 CM_INFO.dap_rl='<b>Ductus con shunt invertido (Eisenmenger).</b> Con la presión pulmonar elevada el flujo se invierte: la sangre poco oxigenada pasa de la arteria pulmonar a la aorta descendente.';
-CM_INFO.vap_prox='<b>Ventana aortopulmonar proximal.</b> Comunicación directa entre la aorta ascendente y el tronco de la arteria pulmonar, con las dos válvulas semilunares separadas. La forma proximal está cerca de las válvulas.';
-CM_INFO.vap_dis='<b>Ventana aortopulmonar distal.</b> Comunicación directa entre la aorta ascendente y el tronco de la arteria pulmonar, con las dos válvulas semilunares separadas. La forma distal está cerca de la bifurcación pulmonar.';
-CM_INFO.dsav_par='<b>Defecto del septo auriculoventricular parcial.</b> CIA ostium primum con dos válvulas auriculoventriculares separadas, con frecuencia con hendidura de la válvula mitral.';
-CM_INFO.dsav_tra='<b>Defecto del septo auriculoventricular transicional.</b> CIA ostium primum con una comunicación interventricular restrictiva de entrada.';
-CM_INFO.dsav_com='<b>Defecto del septo auriculoventricular completo.</b> Defecto grande auricular y ventricular con una válvula auriculoventricular común. Se da sobre todo en el síndrome de Down.';
+CM_INFO.vap_prox='<b>Ventana aortopulmonar proximal.</b> Comunicación directa entre la aorta ascendente y la arteria pulmonar principal, cerca de las válvulas. Ninguna de las dos guías de cardiopatías congénitas del adulto de la biblioteca trata esta lesión, así que este texto no publica contenido de guía.';
+CM_INFO.vap_dis='<b>Ventana aortopulmonar distal.</b> Comunicación directa entre la aorta ascendente y la arteria pulmonar principal, cerca de la bifurcación. Ninguna de las dos guías de cardiopatías congénitas del adulto de la biblioteca trata esta lesión, así que este texto no publica contenido de guía.';
+CM_INFO.dsav_par='<b>Defecto del septo auriculoventricular parcial.</b> Tiene sólo el componente auricular (CIA ostium primum), con los velos puente fusionados en el centro, que dejan dos orificios separados, y con frecuencia una hendidura de la válvula auriculoventricular izquierda.';
+CM_INFO.dsav_tra='<b>Defecto del septo auriculoventricular transicional.</b> La válvula auriculoventricular común se inserta en la cresta del tabique y deja dos orificios funcionales, con una comunicación interventricular restrictiva y una CIA ostium primum.';
+CM_INFO.dsav_com='<b>Defecto del septo auriculoventricular completo.</b> Sin fusión central de los velos puente queda un solo orificio, con un defecto en el crux que se extiende al tabique auricular y al interventricular. Más del 75 % se da en el síndrome de Down.';
 CM_INFO.cvpa_cs='<b>Conexión venosa pulmonar anómala parcial.</b> Una o más venas pulmonares derechas drenan a la vena cava superior en lugar de la aurícula izquierda: la sangre oxigenada vuelve a la circulación derecha y sobrecarga el ventrículo derecho.';
 CM_CIRC.cia_sec='AI → (CIA) → AD → VD → arteria pulmonar → pulmones → AI → VI → aorta → cuerpo';
 CM_CIRC.cia_pri='AI → (CIA baja) → AD → VD → arteria pulmonar → pulmones → AI → VI → aorta → cuerpo';
@@ -103471,9 +103539,9 @@ CM_INFO.ebs_std='<b>Anomalía de Ebstein.</b> La válvula tricúspide se implant
 CM_INFO.eis_civ='<b>Síndrome de Eisenmenger con CIV.</b> Una comunicación grande termina en hipertensión pulmonar fija: el flujo se invierte y la sangre poco oxigenada pasa de derecha a izquierda. Las arterias pulmonares centrales se dilatan, las periféricas se afinan y el ventrículo derecho se hipertrofia.';
 CM_INFO.eis_cia='<b>Síndrome de Eisenmenger con CIA.</b> La comunicación auricular, con hipertensión pulmonar fija, pasa a llevar sangre poco oxigenada de derecha a izquierda. Las arterias pulmonares centrales se dilatan, las periféricas se afinan y el ventrículo derecho se hipertrofia.';
 CM_INFO.eis_dap='<b>Síndrome de Eisenmenger con ductus.</b> Con hipertensión pulmonar fija el flujo del ductus se invierte: la sangre poco oxigenada pasa de la arteria pulmonar a la aorta descendente. Las arterias pulmonares centrales se dilatan, las periféricas se afinan y el ventrículo derecho se hipertrofia.';
-CM_INFO.fon_ext='<b>Fontan con conducto extracardíaco.</b> La cava superior se conecta con la arteria pulmonar derecha y un conducto por fuera de la aurícula lleva la sangre de la cava inferior a la arteria pulmonar. La sangre venosa llega a los pulmones sin pasar por un ventrículo subpulmonar; el ventrículo sistémico bombea a la aorta.';
-CM_INFO.fon_tun='<b>Fontan con túnel lateral.</b> La cava superior se conecta con la arteria pulmonar derecha y un túnel dentro de la aurícula derecha dirige la sangre de la cava inferior a la arteria pulmonar. La sangre venosa llega a los pulmones sin pasar por un ventrículo subpulmonar.';
-CM_INFO.fon_atr='<b>Fontan atriopulmonar.</b> La aurícula derecha se conecta directamente con la arteria pulmonar y la sangre venosa llega a los pulmones sin pasar por un ventrículo subpulmonar. La aurícula derecha se dilata.';
+CM_INFO.fon_ext='<b>Fontan con conducto extracardíaco.</b> Conexión cavopulmonar total: la cava superior se anastomosa a la arteria pulmonar y un conducto por fuera del corazón lleva la sangre de la cava inferior a la arteria pulmonar. El retorno venoso sistémico y el pulmonar quedan en serie, sin un ventrículo subpulmonar.';
+CM_INFO.fon_tun='<b>Fontan con túnel lateral.</b> Conexión cavopulmonar total con un conducto intracardíaco: la cava superior se anastomosa a la arteria pulmonar y un túnel dentro de la aurícula dirige la sangre de la cava inferior a la arteria pulmonar, sin un ventrículo subpulmonar.';
+CM_INFO.fon_atr='<b>Fontan atriopulmonar.</b> Es la operación original, hoy reemplazada por la conexión cavopulmonar total: la orejuela de la aurícula derecha se conecta directamente con la arteria pulmonar, sin un ventrículo subpulmonar.';
 CM_CIRC.ebs_std='AD dilatada → válvula tricúspide desplazada → VD funcional pequeño → arteria pulmonar → pulmones → AI → VI → aorta';
 CM_CIRC.eis_civ='VD → arteria pulmonar dilatada (resistencia alta)   ·   VD → (CIV) → VI → aorta con sangre poco oxigenada';
 CM_CIRC.eis_cia='AD → (CIA) → AI → VI → aorta con sangre poco oxigenada   ·   VD → arteria pulmonar dilatada';
@@ -103488,8 +103556,8 @@ CM_REF.eis_dap='Tubo naranja: ductus con corriente azul hacia la aorta descenden
 CM_REF.fon_ext='Esfera gris: tronco pulmonar cerrado. Anillos naranjas: conexiones quirúrgicas. Con «Fenestración»: una pequeña comunicación en el conducto.';
 CM_REF.fon_tun='Esfera gris: tronco pulmonar cerrado. Tubo azul con «Ver por dentro»: el túnel dentro de la aurícula. Con «Fenestración»: una pequeña comunicación en el túnel.';
 CM_REF.fon_atr='Esfera gris: tronco pulmonar cerrado. Anillo naranja: conexión entre la aurícula y la arteria pulmonar.';
-CM_INFO.dap_std='<b>Ductus arterioso permeable.</b> Comunicación entre la arteria pulmonar y la aorta descendente. Con la presión pulmonar menor que la aórtica la sangre pasa de la aorta a la pulmonar; con hipertensión pulmonar fija el flujo se invierte.';
-CM_INFO.vcs_std='<b>Vena cava superior izquierda persistente.</b> Una vena adicional del lado izquierdo baja por delante del hilio pulmonar izquierdo y suele desembocar en el seno coronario, que se dilata. Puede acompañar a otras cardiopatías.';
+CM_INFO.dap_std='<b>Ductus arterioso permeable.</b> Comunicación persistente entre la arteria pulmonar izquierda proximal y la aorta descendente, justo distal a la subclavia izquierda. De entrada lleva sangre de izquierda a derecha; con hipertensión pulmonar fija el flujo se invierte.';
+CM_INFO.vcs_std='<b>Vena cava superior izquierda persistente.</b> Una vena adicional del lado izquierdo cuyo drenaje puede ser al seno coronario, a un seno coronario sin techo o a la aurícula izquierda. Es una de las lesiones que pueden acompañar a una comunicación interauricular.';
 CM_INFO.eis_std='<b>Eisenmenger.</b> Con una comunicación y una hipertensión pulmonar fija, los cortocircuitos se invierten y la sangre poco oxigenada pasa de derecha a izquierda. Las arterias pulmonares centrales se dilatan, las periféricas se afinan y el ventrículo derecho se hipertrofia.';
 CM_CIRC.dap_std='VI → aorta → (ductus) → arteria pulmonar → pulmones → AI → VI';
 CM_CIRC.vcs_std='Cava izquierda → seno coronario dilatado → AD → VD → arteria pulmonar → pulmones';
@@ -103742,6 +103810,7 @@ window.cm3dBoot = cm3dBoot;
 
 /* ══ EL MOTOR ═══════════════════════════════════════════════════════════════════════════════ */
 let cm3dBuild = function () {};   /* lo publica `cm3dInit`, que es quien tiene el contexto */
+let _cm3dVistaSet = null, _cm3dInsSet = null, _cm3dNomsSet = null;
 function cm3dInit() {
   let T=window.THREE,host=document.getElementById('cm3d-cv'),W=host.clientWidth||640,Hh=CM3D_ALTO;
   let scene=new T.Scene(),cam=new T.PerspectiveCamera(38,W/Hh,0.1,100);
@@ -103947,7 +104016,13 @@ host.addEventListener('pointerdown',function(e){drag={x:e.clientX,y:e.clientY};h
     const w2 = host.clientWidth || 640; rd.setSize(w2, Hh);
     cam.aspect = w2 / Hh; cam.updateProjectionMatrix();
   });
-  /* El repintado se publica para que lo llamen los controles y el modo «Segun el estudio». */
+  /* El repintado se publica para que lo llamen los controles y el modo «Segun el estudio», y
+     con el los TRES setters que el motor tiene que exponer. Son setters y no referencias al
+     grupo ni a los arrays: con el grupo expuesto cualquier cosa podria rotarlo sin pasar por su
+     dueno, que es el defecto que esta casa ya pago con mas de un espejo. */
+  _cm3dVistaSet = function (y) { root.rotation.set(0.05, y, 0) };
+  _cm3dInsSet = function () { setIns() };
+  _cm3dNomsSet = function () { lbs.forEach(function (l) { l.el.style.display = _cm3d.noms ? '' : 'none' }) };
   cm3dBuild = build;
   build();
   /* ⚠️ EL RELOJ EN HORA JUSTO ANTES DE ARRANCAR EL BUCLE: la tercera guarda. Entre el
@@ -103956,6 +104031,9 @@ host.addEventListener('pointerdown',function(e){drag={x:e.clientX,y:e.clientY};h
      un instante ya viejo. */
   last = performance.now();
   requestAnimationFrame(frame);
+  /* Los controles se cablean DESPUES del primer pintado y una sola vez: antes de que el motor
+     corra no hay nada que repintar y `cmSetModo` llamaria a un `cm3dBuild` vacio. */
+  try { if (typeof cm3dCablear === 'function') cm3dCablear() } catch (e) {}
 }
 
 /* ══ EL REPINTADO, UN SOLO DUENIO ═══════════════════════════════════════════════════════════
@@ -103969,6 +104047,166 @@ function cm3dSync() {
 window.cm3dSync = cm3dSync;
 window.cmEscena = cmEscena; window.cmBloqueado = cmBloqueado;
 window._cm3dEstado = function () { return _cm3d };
+
+/* ══════════════════════════════════════════════════════════════════════════════════════════
+   LOS CONTROLES, LA TABLA LATERAL, EL GLOBO Y LOS DOS MODOS (PANT-12, commit 5)
+   ══════════════════════════════════════════════════════════════════════════════════════════
+   Portados de la demo aprobada con el MISMO reparto: la anatomia de base con su vista y sus
+   casillas, «Se suma» con sus variantes y sus casillas, la linea que dice POR QUE un boton esta
+   apagado, las combinaciones frecuentes, y la tabla lateral «Lesiones y combinaciones» donde
+   tocar una fila la aplica y las que no se combinan quedan apagadas con su motivo.
+
+   LOS DOS MODOS: «Segun el estudio» abre por omision y no muestra controles ni tabla -el dibujo
+   no se edita ahi-; «Explorar» los muestra. Lo elegido en «Explorar» NO se guarda y se pierde al
+   cambiar de pestania o de estudio, porque vive en `_cm3d.S`, que es memoria de sesion.
+
+   EL GLOBO: un boton con el glifo estandar de la casa (U+24D8) en 44 px que abre y cierra el
+   panel de los cuatro textos, cerrado por omision, con `aria-expanded`, y que cierra por las
+   TRES vias -el mismo boton, un clic afuera y Escape-.
+   ══════════════════════════════════════════════════════════════════════════════════════════ */
+function _cmForceIns(){_cm3d.ins = true;document.getElementById('cm3d-ins').checked=true;}
+  function _cmBtn(parent,txt,pressed,fn,dis,title){let b=document.createElement('button');b.type='button';b.className = 'btn btn-ghost cm3d-sg';b.style.marginRight='6px';b.style.marginBottom='4px';b.textContent=txt;b.setAttribute('aria-pressed',pressed?'true':'false');if(dis){b.disabled=true;b.style.opacity='0.45';b.title=title||'';}else{b.addEventListener('click',fn);}parent.appendChild(b);return b;}
+function _cmChk(parent,txt,on,fn){let l=document.createElement('label');l.className = 'cm3d-lab';let i=document.createElement('input');i.type='checkbox';i.checked=!!on;i.addEventListener('change',function(){fn(this.checked);});l.appendChild(i);l.appendChild(document.createTextNode(' '+txt));parent.appendChild(l);}
+function _cmVistaDe(){let M=_cm3d.S.mods;if(M.coa||M.dap){return -0.75;}if(M.civ||M.cia||_cm3d.S.base==='dsav'){return -0.65;}if(M.vcs){return -0.4;}if(M.cvpa){return 0.6;}if(_cm3d.S.base==='ebs'||_cm3d.S.base==='fon'||M.vap){return 0.5;}if(M.eis){return -0.5;}return 0;}
+/* ⚠️ `root` ES LOCAL DEL MOTOR Y NO SE SACA A MODULO: el motor lo publica como
+   `_cm3dVistaSet`, que es un setter y no una referencia al grupo. Con el grupo expuesto,
+   cualquier cosa podria rotarlo sin pasar por el dueno. */
+function cmVista() { if (typeof _cm3dVistaSet === 'function') _cm3dVistaSet(_cmVistaDe()) }
+function _cmCambio(rv){_cm3d.S.src='';_cm3d.ins = true;document.getElementById('cm3d-ins').checked=true;cmRenderCtl();cm3dBuild();if(rv){cmVista();}}
+function cmSetBase(k){_cm3d.S.base=k;Object.keys(_cm3d.S.mods).forEach(function(m){if(cmBloqueado(m, _cm3d.S)){delete _cm3d.S.mods[m];}});_cmCambio(true);}
+function cmRenderSide(){
+  let sb=document.getElementById('cm3d-sidebody');sb.textContent='';
+  function sec(t){let h=document.createElement('div');h.className = 'cm3d-sidet';h.textContent=t;sb.appendChild(h);}
+  function row(name,desc,on,fn,dis,why){let b=document.createElement('button');b.type='button';b.className = 'cm3d-srow';b.setAttribute('aria-pressed',on?'true':'false');if(dis){b.disabled=true;b.title=why||'';}else{b.addEventListener('click',fn);}
+    let n=document.createElement('span');n.className = 'cm3d-srn';n.textContent=name;let d=document.createElement('span');d.className = 'cm3d-srd';d.textContent=dis?('No se combina: '+why):desc;b.appendChild(n);b.appendChild(d);sb.appendChild(b);}
+  sec('Anatomía de base');
+  CM_TBB.forEach(function(b){row(b[1],b[2],_cm3d.S.base===b[0],function(){cmSetBase(b[0]);});});
+  sec('Lesiones que se suman');
+  CM_TBM.forEach(function(m){let why=cmBloqueado(m[0], _cm3d.S);row(m[1],m[2],!!_cm3d.S.mods[m[0]],function(){let mm=CM_MODS.filter(function(x){return x[0]===m[0];})[0];if(_cm3d.S.mods[m[0]]){delete _cm3d.S.mods[m[0]];}else{_cm3d.S.mods[m[0]]=mm[2][0][0];}_cmCambio(true);},!!why,why);});
+  sec('Combinaciones frecuentes');
+  CM_PRES.forEach(function(p){let b=document.createElement('button');b.type='button';b.className = 'cm3d-srow';let n=document.createElement('span');n.className = 'cm3d-srn';n.textContent=p.n;let d=document.createElement('span');d.className = 'cm3d-srd';d.textContent=p.src.split(' (')[0].slice(0,120)+(p.src.length>120?'…':'');b.appendChild(n);b.appendChild(d);b.addEventListener('click',function(){cmAplicarPres(p);});sb.appendChild(b);});
+}
+function cmAplicarPres(p){_cm3d.S.base=p.b;_cm3d.S.mods={};Object.keys(p.m).forEach(function(k){_cm3d.S.mods[k]=p.m[k];});_cm3d.S.ck={};if(p.k){Object.keys(p.k).forEach(function(k){_cm3d.S.ck[k]=p.k[k];});}_cm3d.S.src=p.src;_cm3d.ins = true;document.getElementById('cm3d-ins').checked=true;cmRenderCtl();cm3dBuild();cmVista();}
+/* ══ LOS DOS MODOS ══════════════════════════════════════════════════════════════════════════
+   «Segun el estudio» es el que abre por omision y dibuja lo cargado en las pestanias: ahi no se
+   muestran ni los controles ni la tabla lateral, porque el dibujo no se edita. «Explorar» abre
+   los controles de la demo y la tabla.
+   ⚠️ LA DEMO SIMULABA EL ESTUDIO con un ejemplo cableado (`CM_EJ`). En la app lo lee de verdad
+   `cmDesdeEstudio`, que es su dueno unico. */
+function cmSetModo(m) {
+  _cm3d.modo = m;
+  const ctl = document.getElementById('cm3d-ctl'), sd = document.getElementById('cm3d-side'),
+        eb = document.getElementById('cm3d-estb');
+  if (ctl) ctl.hidden = (m === 'estudio');
+  if (sd) sd.hidden = (m === 'estudio');
+  if (eb) eb.hidden = (m !== 'estudio');
+  const fila = document.getElementById('cm3d-fila');
+  if (fila) fila.classList.toggle('cm3d-con-tabla', m === 'explorar');
+  Array.prototype.forEach.call(document.querySelectorAll('.cm3d-md'), function (b) {
+    b.setAttribute('aria-pressed', b.getAttribute('data-m') === m ? 'true' : 'false') });
+  if (m === 'estudio') { cmDesdeEstudio(); }
+  cmRenderCtl(); cm3dBuild(); cmVista();
+  if (typeof cc3dTextoSync === 'function') { try { cc3dTextoSync() } catch (e) {} }
+}
+function cmRenderCtl(){
+  let bb=document.getElementById('cm3d-baseb');bb.textContent='';
+  CM_BASES.forEach(function(b){_cmBtn(bb,b[1],_cm3d.S.base===b[0],function(){cmSetBase(b[0]);});});
+  let bvr=document.getElementById('cm3d-basevarrow'),bv=document.getElementById('cm3d-basevar');bv.textContent='';
+  let vars=CM_BVARS[_cm3d.S.base],ck=CM_BCK[_cm3d.S.base+'_'+_cm3d.S.bv[_cm3d.S.base]];
+  if(vars||ck){bvr.hidden=false;
+    if(vars){vars.forEach(function(v){_cmBtn(bv,v[1],_cm3d.S.bv[_cm3d.S.base]===v[0],function(){_cm3d.S.bv[_cm3d.S.base]=v[0];_cmCambio(false);});});}
+    if(ck){ck.forEach(function(c){_cmChk(bv,c[1],_cm3d.S.ck[c[0]],function(on){_cm3d.S.ck[c[0]]=on;_cm3d.ins = true;document.getElementById('cm3d-ins').checked=true;_cm3d.S.src='';cm3dBuild();});});}
+  }else{bvr.hidden=true;}
+  let mb=document.getElementById('cm3d-modb');mb.textContent='';let bl=[];
+  CM_MODS.forEach(function(m){let r=cmBloqueado(m[0], _cm3d.S);if(r){bl.push(m[1]+': '+r);}_cmBtn(mb,m[1],!!_cm3d.S.mods[m[0]],function(){if(_cm3d.S.mods[m[0]]){delete _cm3d.S.mods[m[0]];}else{_cm3d.S.mods[m[0]]=m[2][0][0];}_cmCambio(true);},!!r,r);});
+  let nt=document.getElementById('cm3d-note');if(bl.length){nt.hidden=false;nt.textContent='No se combinan con esta selección: '+bl.join(' · ');}else{nt.hidden=true;}
+  let md=document.getElementById('cm3d-mods');md.textContent='';
+  CM_MODS.forEach(function(m){let v=_cm3d.S.mods[m[0]];if(!v){return;}
+    let multi=m[2].length>1,cks=CM_MCK[m[0]+'_'+v]||CM_MCK[m[0]];
+    if(!multi&&!cks){return;}
+    let row=document.createElement('div');row.className = 'cm3d-row';let sp=document.createElement('span');sp.className = 'cm3d-tit';sp.textContent=m[1];row.appendChild(sp);
+    let box=document.createElement('span');row.appendChild(box);
+    if(multi){m[2].forEach(function(x){_cmBtn(box,x[1],v===x[0],function(){_cm3d.S.mods[m[0]]=x[0];_cmCambio(false);});});}
+    if(cks){cks.forEach(function(c){_cmChk(box,c[1],_cm3d.S.ck[c[0]],function(on){_cm3d.S.ck[c[0]]=on;_cm3d.ins = true;document.getElementById('cm3d-ins').checked=true;_cm3d.S.src='';cm3dBuild();});});}
+    md.appendChild(row);});
+  cmRenderSide();
+  let pb=document.getElementById('cm3d-presb');pb.textContent='';
+  CM_PRES.forEach(function(p){_cmBtn(pb,p.n,false,function(){cmAplicarPres(p);});});
+}
+
+/* ══ EL GLOBO, CON SUS TRES VIAS DE CIERRE ═════════════════════════════════════════════════
+   ⚠️ NO SE REUSA `vInfoClic`: ese abre la tarjeta compartida `#vinfo-card`, que es un cartel
+   flotante de una clave del registro. Lo que la orden pide aca es un PANEL que se abre y se
+   cierra debajo del dibujo, con su propio `aria-expanded`. Lo que SI se reusa es el boton: el
+   glifo, el tamanio de 44 px y la letra de 11 px del cuerpo, que es la regla fija de la casa. */
+function cmInfoTog(ev) {
+  if (ev) { try { ev.stopPropagation() } catch (e) {} }
+  const ip = document.getElementById('cm3d-ip'), b = document.getElementById('cm3d-ib');
+  if (!ip || !b) return;
+  const abrir = !!ip.hidden;
+  ip.hidden = !abrir;
+  b.setAttribute('aria-expanded', abrir ? 'true' : 'false');
+}
+window.cmInfoTog = cmInfoTog;
+function cmInfoCerrar() {
+  const ip = document.getElementById('cm3d-ip'), b = document.getElementById('cm3d-ib');
+  if (ip && !ip.hidden) { ip.hidden = true; if (b) b.setAttribute('aria-expanded', 'false') }
+}
+/* Las otras dos vias, colgadas del documento una sola vez: un clic FUERA del panel y de su
+   boton, y Escape. */
+document.addEventListener('click', function (ev) {
+  const ip = document.getElementById('cm3d-ip');
+  if (!ip || ip.hidden) return;
+  const b = document.getElementById('cm3d-ib');
+  if (ip.contains(ev.target) || (b && b.contains(ev.target))) return;
+  cmInfoCerrar();
+});
+document.addEventListener('keydown', function (ev) {
+  if (ev.key === 'Escape') cmInfoCerrar();
+});
+
+/* ══ «SEGUN EL ESTUDIO» ═════════════════════════════════════════════════════════════════════
+   El dueno unico de «que dibuja lo cargado». En este commit dibuja el CORAZON NORMAL y la linea
+   de debajo del dibujo -la que ya escribe `cc3dNoDibujadas`, que lee `_CC_SECS`- dice que
+   lesiones estan cargadas y todavia no se dibujan, que es exactamente lo que la fase 1 hacia.
+   El cableado de cada modulo lo pone el commit 6. */
+function cmDesdeEstudio() {
+  _cm3d.S.base = 'norm';
+  _cm3d.S.mods = {};
+  _cm3d.S.ck = {};
+  _cm3d.S.src = '';
+}
+window.cmDesdeEstudio = cmDesdeEstudio;
+
+/* ══ EL CABLEADO DE LOS CONTROLES, UNA SOLA VEZ ════════════════════════════════════════════
+   Va colgado del PRIMER pintado del modulo y no del arranque de la pagina: los elementos
+   existen desde el marcado, pero el motor puede no haber corrido todavia. */
+let _cm3dCableado = false;
+function cm3dCablear() {
+  if (_cm3dCableado) return;
+  const ins = document.getElementById('cm3d-ins'), nom = document.getElementById('cm3d-nom'),
+        fc = document.getElementById('cm3d-fc'), pz = document.getElementById('cm3d-pausar'),
+        ib = document.getElementById('cm3d-ib');
+  if (!ins || !nom || !fc || !pz) return;
+  _cm3dCableado = true;
+  ins.addEventListener('change', function () { _cm3d.ins = this.checked;
+    if (typeof _cm3dInsSet === 'function') _cm3dInsSet() });
+  nom.addEventListener('change', function () { _cm3d.noms = this.checked;
+    if (typeof _cm3dNomsSet === 'function') _cm3dNomsSet() });
+  fc.addEventListener('input', function () { const n = parseFloat(this.value);
+    _cm3d.fc = isNaN(n) ? 0 : Math.max(30, Math.min(200, n)) });
+  pz.addEventListener('click', function () { _cm3d.pausado = !_cm3d.pausado;
+    this.textContent = _cm3d.pausado ? 'Seguir' : 'Pausar' });
+  if (ib) ib.addEventListener('click', function (ev) { cmInfoTog(ev) });
+  Array.prototype.forEach.call(document.querySelectorAll('.cm3d-md'), function (b) {
+    b.addEventListener('click', function () { cmSetModo(b.getAttribute('data-m')) }) });
+  /* ⚠️ CON `prefers-reduced-motion` TODO QUIETO, y es la regla de diseno de la casa: la pausa se
+     pone ANTES del primer cuadro, asi que las particulas y el latido no se mueven ni una vez. */
+  if (_cm3dReducido()) { _cm3d.pausado = true; _cm3d.fc = 0;
+    pz.textContent = 'Seguir'; fc.value = '0'; }
+  cmSetModo(_cm3d.modo);
+}
+window.cm3dCablear = cm3dCablear;
 
 /* Rasteriza el SVG tal como esta, con el bucle en pausa. Diferido para no hacerlo por tecla. */
 function tgaEsqPdfRaster(inmediato) {
@@ -159166,8 +159404,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261104-1835';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793828124555;                 /* eco-build-ms */
+const ECO_BUILD    = '20261104-1850';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793829006061;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -159253,7 +159491,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261104-1835</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261104-1850</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

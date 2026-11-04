@@ -104,17 +104,30 @@ PRES.forEach(p => { const s = S0(); s.base = p.b; s.mods = Object.assign({}, p.m
   ESC.push({ n: 'comb ' + t[0] + '+' + t[2], S: s });
 });
 
-const OUT = { archivo: FILE, demo: DEMO, tolerancia: TOL, n: ESC.length, iguales: 0, distintos: [] };
+/* ⚠️ LA GEOMETRIA Y LOS TEXTOS SE COMPARAN POR SEPARADO, Y ES LO QUE LA ORDEN PIDE. Lo que
+   tiene que salir IDENTICO es la geometria -arterias, corrientes, extras, rotulos y tamanios-.
+   Los textos de la demo son de EJEMPLO y los de la app estan VERIFICADOS contra las guias hoja
+   por hoja, asi que ahi la diferencia es la prueba de que el trabajo se hizo, no un defecto.
+   Mezclarlos daba 39 «diferencias» que eran todas de redaccion y tapaban la medicion. */
+const SOLO_TEXTO = ['info', 'circ', 'ref', 'src'];
+const OUT = { archivo: FILE, demo: DEMO, tolerancia: TOL, n: ESC.length,
+              igualesGeo: 0, distintosGeo: [], escenasConTextoDistinto: 0, textos: [] };
 ESC.forEach(t => {
   let a = null, b = null;
   try { a = demoEsc(JSON.parse(JSON.stringify(t.S))) } catch (e) { a = { EXC: String(e).slice(0, 120) } }
   try { b = appEsc(JSON.parse(JSON.stringify(t.S))) } catch (e) { b = { EXC: String(e).slice(0, 120) } }
-  const difs = [];
+  const geoA = {}, geoB = {}, txA = {}, txB = {};
+  Object.keys(a || {}).forEach(k => { (SOLO_TEXTO.indexOf(k) >= 0 ? txA : geoA)[k] = a[k] });
+  Object.keys(b || {}).forEach(k => { (SOLO_TEXTO.indexOf(k) >= 0 ? txB : geoB)[k] = b[k] });
+  const difs = [], dtx = [];
   /* el denominador: una escena vacia a los dos lados no prueba nada */
   const peso = a && a.ar ? (a.ar.length + (a.fl || []).length + (a.ex || []).length + (a.lb || []).length) : 0;
-  cmp(a, b, '', difs);
-  if (difs.length === 0) OUT.iguales++;
-  else OUT.distintos.push({ escena: t.n, peso: peso, n: difs.length, difs: difs.slice(0, 6) });
-  if (peso === 0) OUT.distintos.push({ escena: t.n, DENOMINADOR_VACIO: true });
+  cmp(geoA, geoB, '', difs);
+  cmp(txA, txB, '', dtx);
+  if (difs.length === 0) OUT.igualesGeo++;
+  else OUT.distintosGeo.push({ escena: t.n, peso: peso, n: difs.length, difs: difs.slice(0, 6) });
+  if (dtx.length) { OUT.escenasConTextoDistinto++; OUT.textos.push({ escena: t.n, campos: dtx.map(x => x.split(':')[0]) }) }
+  if (peso === 0) OUT.distintosGeo.push({ escena: t.n, DENOMINADOR_VACIO: true });
 });
+OUT.textos = OUT.textos.slice(0, 12);
 console.log(JSON.stringify(OUT, null, 1));
