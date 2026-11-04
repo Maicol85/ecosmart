@@ -22751,6 +22751,62 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
       </div>
     </div>
   </div>
+  <!-- ══ FUENTES EMBOLIGENAS — PANT-11, commit 11 ═════════════════════════════════════════
+       Idea del medico: una referencia teorica, tipo algoritmo, que ayude al tecnico a tener
+       presente rapidamente lo que tiene que evaluar. SOLO TEXTO: ni un campo nuevo, ninguna
+       conducta propia, y nada llega al papel.
+       ⚠️ `embolig` VA A `REF_SUBTAB` EN EL MISMO COMMIT QUE LA FICHA (leccion de la tanda J).
+       ⚠️ SON DOS COSAS SEPARADAS Y SE PRESENTAN SEPARADAS: lo que hay que EVALUAR, que sale de
+          la ASE 2016, y la estructura en PASOS del estudio del ictus, que sale de la AHA/ASA
+          2021 con sus clases y niveles. La propia ficha dice que la ASE no trae un algoritmo
+          ecocardiografico paso a paso propio. -->
+  <div class="card">
+    <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleRef('embolig',this)">
+      &#129656; Fuentes embol&iacute;genas &mdash; qu&eacute; evaluar y en qu&eacute; orden
+      <span style="float:right;">&#9654;</span>
+    </h2>
+    <div id="ref-embolig" style="display:none;" class="card-body">
+      <div style="font-size:11.5px;font-weight:700;color:var(--accent2);margin:2px 0 6px;">1 &middot; Qu&eacute; estructuras evaluar, por potencial embol&iacute;geno</div>
+      <table style="width:100%;border-collapse:collapse;font-size:12px;">
+        <tr style="background:var(--section-head);"><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Estructura</th><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Qu&eacute; se busca</th><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Potencial</th><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Qu&eacute; m&eacute;todo rinde m&aacute;s</th></tr>
+        <tr style="border-bottom:1px solid var(--border);background:var(--bg3)"><td style="padding:5px 8px;"><b>Aur&iacute;cula izquierda y orejuela</b></td><td style="padding:5px 8px;">Trombo y contraste espont&aacute;neo. Con fibrilaci&oacute;n o aleteo auricular, el trombo de la orejuela es la fuente cardioemb&oacute;lica m&aacute;s prevalente.</td><td style="padding:5px 8px;"><b>Alto</b> (el contraste espont&aacute;neo SIN fibrilaci&oacute;n auricular es de bajo potencial)</td><td style="padding:5px 8px;">Favorece el <b>transesof&aacute;gico</b> (ETT &minus;/+ contra ETE ++++)</td></tr>
+        <tr style="border-bottom:1px solid var(--border)"><td style="padding:5px 8px;"><b>Ventr&iacute;culo izquierdo</b></td><td style="padding:5px 8px;">Trombo sobre una zona que no contrae: arritmia auricular, infarto reciente, infarto cr&oacute;nico sobre todo con aneurisma, y miocardiopat&iacute;as no isqu&eacute;micas.</td><td style="padding:5px 8px;"><b>Alto</b> (el aneurisma SIN trombo es de bajo potencial)</td><td style="padding:5px 8px;">Favorece el <b>transtor&aacute;cico</b> (ETT ++++ contra ETE ++)</td></tr>
+        <tr style="border-bottom:1px solid var(--border);background:var(--bg3)"><td style="padding:5px 8px;"><b>V&aacute;lvulas y pr&oacute;tesis</b></td><td style="padding:5px 8px;">Vegetaciones sobre v&aacute;lvula nativa, sobre pr&oacute;tesis y endocarditis no valvular; tambi&eacute;n pr&oacute;tesis y dispositivos como sustrato de trombo.</td><td style="padding:5px 8px;"><b>Alto</b></td><td style="padding:5px 8px;">Favorece el <b>transesof&aacute;gico</b>: vegetaci&oacute;n nativa (++ contra ++++) y anomal&iacute;as de pr&oacute;tesis (+ contra ++++)</td></tr>
+        <tr style="border-bottom:1px solid var(--border)"><td style="padding:5px 8px;"><b>Septo interauricular</b></td><td style="padding:5px 8px;">Foramen oval permeable, aneurisma del septo y comunicaci&oacute;n interauricular.</td><td style="padding:5px 8px;">Bajo</td><td style="padding:5px 8px;">Favorece el <b>transesof&aacute;gico</b> (++ contra ++++)</td></tr>
+        <tr style="border-bottom:1px solid var(--border);background:var(--bg3)"><td style="padding:5px 8px;"><b>Aorta</b></td><td style="padding:5px 8px;">Ateroma a&oacute;rtico, con sus dos formas de embolia: tromboembolismo y &eacute;mbolos de cristales de colesterol.</td><td style="padding:5px 8px;"><b>Alto</b></td><td style="padding:5px 8px;">Favorece el <b>transesof&aacute;gico</b> (&minus;/+ contra ++++)</td></tr>
+        <tr style="border-bottom:1px solid var(--border)"><td style="padding:5px 8px;"><b>Tumores y masas</b></td><td style="padding:5px 8px;">Mixoma, fibroelastoma papilar y otros tumores intracard&iacute;acos.</td><td style="padding:5px 8px;"><b>Alto</b></td><td style="padding:5px 8px;">Favorece el <b>transesof&aacute;gico</b> (+++ contra ++++)</td></tr>
+        <tr style="border-bottom:1px solid var(--border);background:var(--bg3)"><td style="padding:5px 8px;">Otros hallazgos de <b>bajo</b> potencial</td><td style="padding:5px 8px;">Prolapso mitral, calcificaci&oacute;n del anillo mitral, estenosis a&oacute;rtica calcificada, filamentos de fibrina y excrecencias de Lambl gigantes.</td><td style="padding:5px 8px;">Bajo</td><td style="padding:5px 8px;">&mdash;</td></tr>
+      </table>
+      <div style="font-size:11px;color:var(--text2);margin-top:6px;line-height:1.5;">
+        Clasificaci&oacute;n por potencial embol&iacute;geno: <b>Tabla 1</b>, hoja 4, folio <b>4</b>.
+        Rendimiento relativo del transtor&aacute;cico y del transesof&aacute;gico: <b>Tabla 3</b>,
+        hoja 10, folio <b>10</b>. Las dos de la ASE 2016 de fuente embol&iacute;gena.
+        <b>Esa gu&iacute;a no trae un algoritmo ecocardiogr&aacute;fico paso a paso propio</b>:
+        trae criterios de uso apropiado y estas tablas.
+      </div>
+      <div style="font-size:11.5px;font-weight:700;color:var(--accent2);margin:14px 0 6px;">2 &middot; La estructura en pasos del estudio del ictus isqu&eacute;mico</div>
+      <table style="width:100%;border-collapse:collapse;font-size:12px;">
+        <tr style="background:var(--section-head);"><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Paso</th><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Qu&eacute; recomienda</th><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Clase y nivel</th></tr>
+        <tr style="border-bottom:1px solid var(--border);background:var(--bg3)"><td style="padding:5px 8px;">1 &middot; Electrocardiograma</td><td style="padding:5px 8px;">Cribado de fibrilaci&oacute;n y aleteo auricular, y de otras condiciones card&iacute;acas acompa&ntilde;antes.</td><td style="padding:5px 8px;"><b>Clase 1 &middot; Nivel B-R</b></td></tr>
+        <tr style="border-bottom:1px solid var(--border)"><td style="padding:5px 8px;">2 &middot; Evaluaci&oacute;n diagn&oacute;stica, con plazo</td><td style="padding:5px 8px;">Completada o en curso <b>dentro de las 48 horas</b> del comienzo de los s&iacute;ntomas.</td><td style="padding:5px 8px;"><b>Clase 1 &middot; Nivel B-NR</b></td></tr>
+        <tr style="border-bottom:1px solid var(--border);background:var(--bg3)"><td style="padding:5px 8px;">3 &middot; Imagen cerebral</td><td style="padding:5px 8px;">Tomograf&iacute;a o resonancia para confirmar el infarto cerebral sintom&aacute;tico.</td><td style="padding:5px 8px;"><b>Clase 1 &middot; Nivel B-NR</b></td></tr>
+        <tr style="border-bottom:1px solid var(--border)"><td style="padding:5px 8px;">4 &middot; Imagen carot&iacute;dea no invasiva</td><td style="padding:5px 8px;">Eco, angiotomograf&iacute;a o angiorresonancia cervical en el territorio anterior sintom&aacute;tico con candidatura a revascularizaci&oacute;n.</td><td style="padding:5px 8px;"><b>Clase 1 &middot; Nivel B-NR</b></td></tr>
+        <tr style="border-bottom:1px solid var(--border);background:var(--bg3)"><td style="padding:5px 8px;">5 &middot; Anal&iacute;tica</td><td style="padding:5px 8px;">Hemograma, tiempos, glucemia, hemoglobina glicosilada, creatinina y perfil lip&iacute;dico.</td><td style="padding:5px 8px;"><b>Clase 1 &middot; Nivel B-NR</b></td></tr>
+        <tr style="border-bottom:1px solid var(--border)"><td style="padding:5px 8px;">6 &middot; <b>Ecocardiograf&iacute;a</b></td><td style="padding:5px 8px;">Con o sin contraste, en el ictus criptog&eacute;nico, para evaluar posibles fuentes card&iacute;acas o v&iacute;as transcard&iacute;acas de embolia cerebral.</td><td style="padding:5px 8px;"><b>Clase 2a &middot; Nivel B-R</b></td></tr>
+        <tr style="border-bottom:1px solid var(--border);background:var(--bg3)"><td style="padding:5px 8px;">7 &middot; Monitorizaci&oacute;n prolongada del ritmo</td><td style="padding:5px 8px;">En el ictus criptog&eacute;nico sin contraindicaci&oacute;n para anticoagular, para detectar fibrilaci&oacute;n auricular intermitente.</td><td style="padding:5px 8px;"><b>Clase 2a &middot; Nivel B-R</b></td></tr>
+        <tr style="border-bottom:1px solid var(--border)"><td style="padding:5px 8px;">8 &middot; Transesof&aacute;gico, tomograf&iacute;a o resonancia card&iacute;acas</td><td style="padding:5px 8px;">En el ictus embol&iacute;gico de origen indeterminado, para identificar fuentes cardioa&oacute;rticas o v&iacute;as transcard&iacute;acas.</td><td style="padding:5px 8px;"><b>Clase 2b &middot; Nivel C-LD</b></td></tr>
+        <tr style="border-bottom:1px solid var(--border);background:var(--bg3)"><td style="padding:5px 8px;">9 &middot; Doppler transcraneal con detecci&oacute;n de &eacute;mbolos</td><td style="padding:5px 8px;">Si se contempla el cierre del foramen oval permeable, para cribar el cortocircuito de derecha a izquierda.</td><td style="padding:5px 8px;"><b>Clase 2b &middot; Nivel C-LD</b></td></tr>
+      </table>
+      <div style="font-size:11px;color:var(--text2);margin-top:6px;line-height:1.5;">
+        AHA/ASA 2021 de prevenci&oacute;n secundaria del ictus, Kleindorfer y cols.,
+        <i>Stroke</i> 2021;52:e364-e467 &mdash; recomendaciones de evaluaci&oacute;n
+        diagn&oacute;stica, hoja 10, folio <b>e373</b>, le&iacute;das en imagen a 220 ppp con el
+        folio comprobado en el pie impreso; el algoritmo completo es su <b>Figura 2</b>, hoja 11,
+        folio <b>e374</b>. Los pasos est&aacute;n ordenados por clase y por el orden en que la
+        gu&iacute;a los publica; la ficha <b>no agrega ninguna conducta propia</b>.
+      </div>
+    </div>
+  </div>
   <div class="card">
     <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleRef('cardiotox',this)">
       🧪 Cardiotoxicidad — CTRCD (ESC Cardio-Oncología 2022)
@@ -77891,7 +77947,7 @@ const REF_SUBTAB = Object.freeze({
      existe, se abre y el buscador la indexa, pero el medico que navegue por las solapas no la
      encuentra nunca. Va pegada a `pop` y antes de `cardiotox`, con la que comparte tema. */
   otros: Object.freeze(['oai', 'burbujas', 'fop', 'coronarias', 'pericardio', 'constriccion',
-                        'pulmon', 'pop', 'tumores', 'cardiotox', 'miocard', 'congenitas', 'formulas'])
+                        'pulmon', 'pop', 'tumores', 'embolig', 'cardiotox', 'miocard', 'congenitas', 'formulas'])
 });
 const REF_SUB_ORDEN = Object.freeze(['calc', 'dim', 'fun', 'valv', 'ao', 'otros']);
 /* ══ ROTULOS DE BLOQUE (tanda P, commit 4) ═══════════════════════════════════════════════════
@@ -158305,8 +158361,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261104-1531';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793817100814;                 /* eco-build-ms */
+const ECO_BUILD    = '20261104-1535';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793817336055;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -158392,7 +158448,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261104-1531</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261104-1535</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
