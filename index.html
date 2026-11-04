@@ -1120,6 +1120,17 @@
   .pac-id-mk[aria-pressed="true"]::before { content: '●'; }
   .pac-id-mk::after { content: ''; position: absolute; left: -14px; right: -14px; top: -15px; bottom: -15px; }
   .pac-id-mk:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 3px; }
+  /* ══ PANT-11, commit 3 — EL MISMO CIRCULO, CON AREA TACTIL DE 44 px ══════════════════════
+     La casilla «(no se visualiza VCI)» reusa `.pac-id-mk` entera -el glifo, los dos colores, el
+     `aria-pressed` que el CSS deriva- y solo estira su `::after`. El de Documento da 35 x 41 y
+     la orden de esta tanda pide 44. MEDIDO en los ocho cruces: la caja del glifo es de 7 x 11 px
+     -no 11 x 11, que es lo que se habria estimado-, asi que las extensiones son ASIMETRICAS:
+     -18,5 px a los lados y -16,5 arriba y abajo dan 44 x 44 exactos.
+     ⚠️ EL AREA SE VERIFICO CON `elementFromPoint` EN LOS CINCO PUNTOS: ninguno cae en otro
+     control. Es la leccion de AJUSTES-1, donde un area de 44 encajada a mano tapo la miniatura
+     vecina. */
+  .vci-nv-mk::after { left: -18.5px; right: -18.5px; top: -16.5px; bottom: -16.5px; }
+  .vci-nv-lbl { font-weight: 400; color: var(--text2); font-size: 10px; margin-left: 4px; }
   /* ══ FRASES RÁPIDAS ══
      Desktop: panel lateral fijo al lado del textarea, que se achica por el flex.
      Móvil (<=768px, el mismo corte que usa el resto de la app): drawer desde abajo al 65 %
@@ -6421,8 +6432,25 @@ window.cerrarSesionReal = cerrarSesionReal;
           <input type="number" id="ad_area" placeholder="cm²" oninput="calcAD()">
         </div>
         <div class="fg">
-          <label>VCI diámetro (mm)</label>
+          <!-- ⚠️ EL CIRCULITO DE «NO SE VISUALIZA VCI» — PANT-11, commit 3 (04/11/2026, pedido
+               del medico: «un circulito chiquito como el que esta al lado de documento, que diga
+               entre parentesis no se visualiza VCI»). Es EXACTAMENTE el control de la pestania
+               Paciente: un <button> dentro del <label>, clase `.pac-id-mk`, el estado en
+               `aria-pressed` y el glifo derivado por el CSS -asi el circulo y el estado no se
+               pueden desincronizar-. Lo unico propio es el area tactil de 44 px y el rotulo.
+               El VALOR persistido vive en `#vci_no_vis`, un input hidden con guion BAJO, que es
+               lo que hace que `guardarInforme` -que barre input[id], select[id], textarea[id]-
+               lo guarde y la reimpresion lo reponga. NO agrega columna de Excel: el Excel
+               exporta por `LAB_XLS_MAP` y por bloques declarados, no por el DOM. -->
+          <label>VCI diámetro (mm)
+            <button type="button" class="pac-id-mk vci-nv-mk" id="vci-no-vis-mk"
+                    aria-pressed="false"
+                    aria-label="No se visualiza la vena cava inferior"
+                    title="No se visualiza la vena cava inferior"
+                    onclick="vciNoVisGesto()"></button><span class="vci-nv-lbl">(no se visualiza VCI)</span>
+          </label>
           <input type="number" id="vci_diam" placeholder="mm" oninput="calcPmAD();dptSync();cvrSync();calcDiastol()" onchange="dptSync();cvrSync();vexusRefrescarInforme()">
+          <input type="hidden" id="vci_no_vis" value="">
         </div>
         <div class="fg">
           <label>Colapso VCI</label>
@@ -32801,6 +32829,67 @@ function pmadEstimar(diam, col) {
   return                                                { pmad: 15, interp: '15 mmHg (elevada)',          fila: 'dil-sin' };
 }
 window.pmadEstimar = pmadEstimar;
+
+/* ══ «NO SE VISUALIZA VCI» — PANT-11, commit 3 ═══════════════════════════════════════════════
+   DECISION DE DISENO, y es la que hace que el resto del archivo no haya que tocarlo: con la
+   casilla marcada el diametro y el colapso quedan VACIOS en el DOM y su valor anterior se
+   guarda en `dataset.vciprev`. Los VEINTICINCO consumidores de la VCI -la PmAD estimada, la
+   pletora del derrame y el taponamiento, constriccion contra restriccion, VExUS, la
+   probabilidad de hipertension pulmonar, la Evidencia, el Excel, el Laboratorio y las cuatro
+   superficies de papel- ya tratan el vacio como SIN DATO, cada uno con su propia guarda
+   (`if (!diam || !col)`, `evaluada: d !== null && col !== ''`...). Marcar la casilla los pone a
+   todos en «sin dato» POR CONSTRUCCION, en vez de agregarle a cada uno una segunda regla que el
+   dia que alguien la olvide afirma normalidad sobre una cava que nadie vio.
+   ⚠️ LO QUE ESTO CUESTA, Y SE DECLARA: si el estudio se GUARDA con la casilla marcada, los dos
+   campos se guardan vacios. Dentro de la sesion destildar los devuelve; despues de guardar y
+   reabrir no hay nada que devolver. Es coherente con lo que la casilla afirma -no se visualizo,
+   asi que no hay medida- pero es una perdida y esta en docs/PENDIENTES.md (P11-b).
+   ⚠️ NO SE AGREGA NINGUNA COLUMNA DE EXCEL, que es lo que la orden fija. */
+function vciNoVisOn(src) {
+  const r = src ? src['vci_no_vis'] : ((document.getElementById('vci_no_vis') || {}).value);
+  return String(r == null ? '' : r).trim() === '1';
+}
+window.vciNoVisOn = vciNoVisOn;
+/* IDEMPOTENTE, y por eso puede colgar de RECALC_MODULOS: aplicar el estado dos veces no pierde
+   el valor guardado -solo se guarda si todavia hay algo que guardar- y no reescribe nada cuando
+   la casilla esta apagada. Es el patron de `aoRaizReconciliar` (PANT-5 y PANT-8). */
+function vciNoVisSync() {
+  const on = vciNoVisOn();
+  const b = document.getElementById('vci-no-vis-mk');
+  if (b) b.setAttribute('aria-pressed', on ? 'true' : 'false');
+  ['vci_diam', 'vci_col'].forEach(function (id) {
+    const e = document.getElementById(id); if (!e) return;
+    if (on) {
+      if (String(e.value || '') !== '') { e.dataset.vciprev = e.value; e.value = ''; }
+      e.disabled = true;
+    } else {
+      e.disabled = false;
+      if (String(e.value || '') === '' && e.dataset.vciprev != null) { e.value = e.dataset.vciprev; }
+      delete e.dataset.vciprev;
+    }
+  });
+  /* ⚠️ Y LA PmAD ESTIMADA CON ELLOS, QUE LO DESTAPO UNA MEDICION. `pmad` es un campo DERIVADO
+     que escribe `calcPmAD` desde el `oninput` de los dos campos de la cava: al vaciarlos por
+     siembra muda -el camino de restaurar un estudio- el campo se quedaba con la presion del
+     valor que acababa de desaparecer, y la tabla del PDF la imprime. Se recalcula SOLO cuando
+     la casilla esta marcada, para que el camino con la casilla apagada quede identico a HEAD. */
+  if (on) { try { if (typeof calcPmAD === 'function') calcPmAD(); } catch (e) {} }
+}
+window.vciNoVisSync = vciNoVisSync;
+/* El GESTO del medico. Escribe el campo persistido, aplica el estado y vuelve a correr lo que
+   lee la VCI: sin esto la pantalla se quedaba con la PmAD y el grado VExUS del valor que acaba
+   de desaparecer. */
+function vciNoVisGesto() {
+  const h = document.getElementById('vci_no_vis'); if (!h) return;
+  h.value = (String(h.value || '').trim() === '1') ? '' : '1';
+  vciNoVisSync();
+  ['calcPmAD', 'dptSync', 'cvrSync', 'calcVEXUS', 'vexusRefrescarInforme', 'calcDiastol',
+   'htpTablaPintar', 'calcAD'].forEach(function (f) {
+    try { if (typeof window[f] === 'function') window[f](); } catch (e) {}
+  });
+}
+window.vciNoVisGesto = vciNoVisGesto;
+
 function calcPmAD() {
   const diam = v('vci_diam'), col = sv('vci_col');
   const pmadInterp = document.getElementById('pmad-interp');
@@ -62405,7 +62494,12 @@ function generarInforme(opts) {
   // ── 11) VCI (diámetro + colapso + PmAD estimada) ──
   {
     const vci = v('vci_diam'), pmad = v('pmad'), colVCI = sv('vci_col');
-    if (vci && colVCI) {
+    /* PANT-11, commit 3: la frase AUTORIZADA por el medico. Describe un hallazgo que el
+       ecografista AFIRMA -no vio la cava-, no un dato que la app deduzca que falta, que es lo
+       que la regla del papel prohibe. Reemplaza la frase de la VCI entera: con la casilla
+       marcada no hay diametro, ni colapso, ni presion estimada que publicar. */
+    if (typeof vciNoVisOn === 'function' && vciNoVisOn()) { inf.push('No se visualiza la VCI.'); }
+    else if (vci && colVCI) {
       const colDesc = colVCI === '>50' ? 'mayor al 50%' : 'menor al 50%';
       inf.push(`VCI de ${vci} mm, con colapso ${colDesc} que permite estimar una PmAD de ${pmad || 5} mmHg.`);
     }
@@ -67948,7 +68042,9 @@ function RECALC_MODULOS() {
      puertas, y un estudio guardado puede traerla en una sola. Si corriera despues de
      `marfanSync` o de `calcAorta`, esos dos ya habrian pintado con el campo vacio. Solo copia
      cuando uno de los dos esta vacio; con los dos cargados y distintos no toca nada. */
-  return ['aoRaizReconciliar','taviAoReconciliar','tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','asiaMmSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','dtTapSync','vdTrivSync','etOndaESync','papmEstSync','calcDopTric','etTsvdSync','calcET','vpVmaxSync','ipIncongruenciaSync','itRefFuenteSync','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccSegSync','vpSync','popSync','sglOrigenSync','calcVenaPulm','valvProtSync','eaTaviEspejar','imEspejosRestaurar','eteVmAvisoSync','vmCarpLegadoSync','vmCarpOrigenSync','vmProtBloqSync','vmMorfFitSync','vdStrainPlSync','emPdfValsSync','emCuadroRefRepintar','emContFaAvisoSync','imCortesPintar','imContAvisoPintar','itIncongruenciaSync','aoEspejosRestaurar','tangoRestaurar','diastExclSync','diastFcAvisoSync','diastBseEprimaAvisoSync','diastBseGrisAvisoSync','diastStrainMarcaSync','vdMarcaSync','vdTeiAvisoSync','tep6060Resalte','hfPepSync','hfPepPintar','viVolAutoSync','eaAvaiGradoPintar','eaPvlPintar','imPvlPintar','vdTapsePsapSync','ipApDiamSync','vdViSelSync','htpApSync','htpTablaPintar','m3dBotonSync','contrPdfSync','sglPdfSync','eteQxPdfSync','otrBurbUI','v2dCerrar','aiviSexoSync','vtDviAuto','sincronizarTEERDesdeGlobal','calcETE',
+  /* `vciNoVisSync` va PRIMERO: deja los dos campos de la VCI como corresponde ANTES de que los
+     veinticinco consumidores de esta misma lista los lean. */
+  return ['vciNoVisSync','aoRaizReconciliar','taviAoReconciliar','tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','asiaMmSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','dtTapSync','vdTrivSync','etOndaESync','papmEstSync','calcDopTric','etTsvdSync','calcET','vpVmaxSync','ipIncongruenciaSync','itRefFuenteSync','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccSegSync','vpSync','popSync','sglOrigenSync','calcVenaPulm','valvProtSync','eaTaviEspejar','imEspejosRestaurar','eteVmAvisoSync','vmCarpLegadoSync','vmCarpOrigenSync','vmProtBloqSync','vmMorfFitSync','vdStrainPlSync','emPdfValsSync','emCuadroRefRepintar','emContFaAvisoSync','imCortesPintar','imContAvisoPintar','itIncongruenciaSync','aoEspejosRestaurar','tangoRestaurar','diastExclSync','diastFcAvisoSync','diastBseEprimaAvisoSync','diastBseGrisAvisoSync','diastStrainMarcaSync','vdMarcaSync','vdTeiAvisoSync','tep6060Resalte','hfPepSync','hfPepPintar','viVolAutoSync','eaAvaiGradoPintar','eaPvlPintar','imPvlPintar','vdTapsePsapSync','ipApDiamSync','vdViSelSync','htpApSync','htpTablaPintar','m3dBotonSync','contrPdfSync','sglPdfSync','eteQxPdfSync','otrBurbUI','v2dCerrar','aiviSexoSync','vtDviAuto','sincronizarTEERDesdeGlobal','calcETE',
           /* `pamAvisoSync` (B-2) repinta la línea del dueño único de la PAM. Entra acá por lo
              mismo que los demás: las cinco rutas de restauración pueblan asignando `.value`,
              que no dispara `input`, así que al reabrir un estudio con dos PAM que difieren el
@@ -68281,12 +68377,15 @@ function limpiarCampos(silencioso) {
      SELECTOR y en el CUERPO, que son dos listas. `data-tvderiv` dice «este Si lo escribio el
      modulo y no el medico»: vive en el nodo, asi que sin esta linea sobreviviria a «Nuevo
      estudio» y el campo del paciente siguiente arrancaria bloqueado en «Si». */
-  document.querySelectorAll('[data-derivado-de],[data-sugerido],[data-espejo-de],[data-espejo-vivo],[data-espejo-inferido],[data-params-disc],[data-grado-volum],[data-fuera-banda],[data-espejo="1"],[data-pop-mano],[data-pop-auto],[data-tvderiv],[data-tvprev]').forEach(el => {
+  /* ⚠️ `data-vciprev` ENTRA ACA Y EN EL CUERPO DE ABAJO, que son DOS listas: agregar la marca
+     al selector y olvidarse del cuerpo -o al reves- la hace sobrevivir a «Nuevo estudio» y
+     mandar sobre el paciente siguiente. Es la leccion que TC-514 cobro en rojo (D-11). */
+  document.querySelectorAll('[data-derivado-de],[data-sugerido],[data-espejo-de],[data-espejo-vivo],[data-espejo-inferido],[data-params-disc],[data-grado-volum],[data-fuera-banda],[data-espejo="1"],[data-pop-mano],[data-pop-auto],[data-tvderiv],[data-tvprev],[data-vciprev]').forEach(el => {
     delete el.dataset.derivadoDe; delete el.dataset.sugerido; delete el.dataset.espejoDe;
     delete el.dataset.espejoVivo; delete el.dataset.espejoInferido;
     delete el.dataset.paramsDisc; delete el.dataset.gradoVolum;
     delete el.dataset.popMano; delete el.dataset.popAuto;
-    delete el.dataset.tvderiv; delete el.dataset.tvprev;
+    delete el.dataset.tvderiv; delete el.dataset.tvprev; delete el.dataset.vciprev;
     /* ⚠️ SOLO LA MARCA DE RUNTIME, Y ESTO LO ENCONTRÓ TC-514 EN ROJO (D-11). `data-espejo` se usa
        para DOS cosas en este archivo: la marca que el reflejo de amiloidosis pone en vivo —valor
        `'1'`— y una DECLARACIÓN estática en el marcado, sin valor, que dice «este campo es un
@@ -68716,6 +68815,13 @@ function limpiarCampos(silencioso) {
      cerrar pudo haber traído otra elección, y lo que vale para el paciente nuevo es la de la
      sesión. Con la página recargada `_pacIdSesion` vuelve al documento. */
   { if (typeof pacIdNuevoEstudio === 'function') { try { pacIdNuevoEstudio(); } catch (e) {} } }
+  /* ⚠️ `vci_no_vis` ES `hidden`, ASI QUE EL BARRIDO DE ARRIBA NO LO ALCANZA -toma text y
+     number-, exactamente igual que `pac_id_print`. Sin esta linea la casilla «no se visualiza
+     VCI» del paciente ANTERIOR sobrevivia a «Nuevo estudio» y dejaba los dos campos de la cava
+     deshabilitados y el informe del paciente siguiente diciendo que no se vio la cava.
+     Se apaga y se vuelve a aplicar el estado, que es lo que reHABILITA los dos campos. */
+  { const _vnv = document.getElementById('vci_no_vis'); if (_vnv) _vnv.value = '';
+    if (typeof vciNoVisSync === 'function') { try { vciNoVisSync(); } catch (e) {} } }
   _estudioEpoca++;
   /* ⚠️ Y LA COLA DE CINELOOPS PENDIENTES, por el MISMO motivo que la época: es memoria de
      sesión que sobrevive al cambio de estudio. Sin esta línea, un cineloop que el médico pidió
@@ -74566,7 +74672,13 @@ function generarPDFReal(_aj) {
          rango viejo le ponía a lo normal un PISO que ninguna guía da, y contradecía a la propia
          app sobre el 21 exacto. */
       {lbl:'Área AD',     ref:'<' + UMBRAL_AD_AREA_NORMAL + ' cm2',  val:v('ad_area') ?v('ad_area') +' cm2':null},
-      {lbl:'Diám. VCI',   ref:'<=' + VCI_DIAM_DILATADA_MIN + ' mm',  val:v('vci_diam')?v('vci_diam')+' mm' :null},
+      /* PANT-11, commit 3: con la casilla marcada la fila DICE que no se visualiza, en vez de
+         desaparecer. Una fila ausente se lee como «no se midio»; la frase es la afirmacion del
+         ecografista. Las otras dos filas de la cava se callan: sin cava no hay colapso ni
+         presion que publicar, y repetirlo tres veces no agrega nada. */
+      {lbl:'Diám. VCI',   ref:'<=' + VCI_DIAM_DILATADA_MIN + ' mm',
+       val:(typeof vciNoVisOn === 'function' && vciNoVisOn()) ? 'No se visualiza'
+           : (v('vci_diam')?v('vci_diam')+' mm' :null)},
       /* ⚠️ EL COLAPSO LLEVA SU UNIDAD (H2, 2026-10-16). El `<select>` guarda los tokens «>50»
          y «<50» y el papel firmado los imprimía PELADOS, al lado de un diámetro que sí dice
          «mm»: un «>50» sin unidad en un informe clínico se lee como lo que el lector suponga.
@@ -157349,8 +157461,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261104-1422';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793812965542;                 /* eco-build-ms */
+const ECO_BUILD    = '20261104-1433';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793813598837;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -157436,7 +157548,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261104-1422</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261104-1433</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

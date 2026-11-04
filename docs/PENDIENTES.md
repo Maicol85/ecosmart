@@ -22,6 +22,23 @@ en la de Eisenmenger).
 | `eisenEstado`, alerta `embarazo`, y franja roja | «mortalidad materna >50 % (ESC 2020)» | Reemplazado por **«mortalidad materna 30 a 50 %»** en los DOS lugares (redacción A, decisión expresa del médico). Es lo que publica la fuente —ACC/AHA de cardiopatías congénitas del adulto, hoja 95, folio **e209** comprobado en el pie impreso, «reported at 30% to 50%», leído en imagen a 220 ppp— y lo que la tarjeta de criterios de esta misma sección ya escribía: la pantalla dejó de contradecirse consigo misma. |
 
 
+## P11-b · Lo que cuesta la casilla «no se visualiza VCI», declarado
+
+Con la casilla marcada, `vciNoVisSync` **vacía** `vci_diam` y `vci_col` y guarda el valor
+anterior en `dataset.vciprev`. Es lo que hace que los **veinticinco** consumidores de la vena
+cava —la presión media de la aurícula derecha estimada, la plétora del derrame y el
+taponamiento, constricción contra restricción, VExUS, la probabilidad de hipertensión pulmonar,
+la Evidencia, el Excel, el Laboratorio y las cuatro superficies de papel— la traten como **sin
+dato** por construcción, cada uno con la guarda que ya tenía, en vez de agregarle a cada uno una
+segunda regla que el día que alguien olvide afirma normalidad sobre una cava que nadie vio.
+
+**El precio:** si el estudio se **guarda** con la casilla marcada, los dos campos se guardan
+vacíos. Dentro de la sesión destildar los devuelve —medido en los ocho cruces—; después de
+guardar y reabrir no hay nada que devolver. Es coherente con lo que la casilla afirma —no se
+visualizó, así que no hay medida— pero es una pérdida y la decide el médico: si quiere que el
+número sobreviva, hace falta un campo guardado más (esta tanda tenía cuatro autorizados y los
+cuatro están usados).
+
 ## P10-a · Los textos que el commit 1 retiró de los globos, LITERALES, y el que llega al papel
 
 La regla (ii) de la tanda PANT-10 manda que lo que **ninguna fuente de la biblioteca respalda**

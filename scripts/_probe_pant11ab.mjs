@@ -162,6 +162,16 @@ const ESCENAS = {
      concluya: el papel tiene que salir IDENTICO a HEAD. -- */
   p11dop: { campos: { onda_e:'90', onda_a:'60', e_sep:'6', e_lat:'8', tde:'180', triv:'95',
       thp:'70', ai_vol_idx:'38', it_vel:'2.6', diast_ritmo:'sinusal' } },
+  /* -- COMMIT 3: la VCI. p11vciOff es el control: la casilla APAGADA con la cava cargada tiene
+     que dar el papel IDENTICO a HEAD. p11vciOn es la unica diferencia autorizada. --
+     ⚠️ En HEAD `vci_no_vis` NO existe, asi que la siembra devuelve «NO EXISTE» y la escena cae
+     en el camino de siempre: eso es justo lo que hace que el ANTES y el DESPUES se vean. */
+  p11vciOff: { campos: { ad_area:'20', vci_diam:'24', vci_col:'<50', tapse:'18',
+      it_vel:'3.1', vexus_sh:'normal', vexus_pv:'leve', vexus_ir:'normal' } },
+  p11vciOn:  { campos: { ad_area:'20', vci_diam:'24', vci_col:'<50', tapse:'18',
+      it_vel:'3.1', vexus_sh:'normal', vexus_pv:'leve', vexus_ir:'normal', vci_no_vis:'1' } },
+  /* La cava SIN cargar y la casilla marcada: el papel dice que no se visualiza igual. */
+  p11vciSolo: { campos: { ad_area:'20', vci_no_vis:'1' } },
   /* == LAS ESCENAS DE LA TANDA PANT-9 ======================================================
      Una por seccion rediseniada, con TODOS sus campos cargados Y la casilla «Integrar al
      informe» encendida: sin eso un cero de superficie firmada no distingue «el papel no se
