@@ -93840,6 +93840,153 @@ function _indFON(){
     ]
   };
 }
+/* ══ CONEXION VENOSA PULMONAR ANOMALA PARCIAL — PANT-10, commit 5 (2026-11-04) ════════════════
+   Molde: el de _indCIA, sin reescribirlo.
+
+   LAS FUENTES, LEIDAS EN IMAGEN a 200 ppp con el folio comprobado en el pie impreso:
+     ACC/AHA 2025 (Gurvitz y col., Circulation 2026;153:e115-e251), apartado 4.1.4: hoja 44,
+     folio e158 (recomendaciones diagnosticas 1 a 4) y hoja 45, folio e159 (recomendaciones
+     terapeuticas 5 a 8, la sinopsis y la Tabla 16). Folio = e(hoja + 114).
+     ESC 2020 de cardiopatias congenitas del adulto, edicion inglesa: hoja 13, folio 575
+     (Tabla 4 de complejidad) y hoja 29, folio 591 (tipos de defecto de seno venoso y papel de
+     la resonancia). Folio = hoja + 562.
+
+   ⚠️ LA DIFERENCIA DE FONDO ENTRE LAS DOS, Y SE MUESTRA: la ACC/AHA 2025 tiene un apartado
+   propio para esta lesion, con ocho recomendaciones y su corte de Qp:Qs; la ESC 2020 NO publica
+   una tabla propia -sus indicaciones siguen los principios del cierre de la comunicacion
+   interauricular- y dice que una sola vena de un solo lobulo rara vez justifica la cirugia.
+
+   ⚠️ NADA DE ESTE BLOQUE LLEGA AL PAPEL. Lo lee indicRender y nadie mas. */
+const CVPA_PREG = Object.freeze([
+  { clave:'cvpa.ev.reparado', lbl:'Reparada quirurgicamente', guia:'acc', rec:'Clase 1 · Nivel B-NR, recomendacion 3 — en la conexion venosa pulmonar anomala REPARADA con disnea de esfuerzo o capacidad funcional reducida, la angiografia por resonancia o por tomografia esta recomendada para evaluar obstruccion venosa o cortocircuito residual, hoja 44, folio e158', nota:'la respuesta cambia que recomendaciones aplican: las de cierre valen para la no reparada y esta para la reparada', ref:'la ESC 2020 no publica una tabla propia para esta lesion' },
+  { clave:'cvpa.ev.disneaPost', lbl:'Disnea de esfuerzo o capacidad funcional reducida despues de la reparacion', guia:'acc', rec:'Clase 1 · Nivel B-NR, recomendacion 3 — la angiografia por resonancia o por tomografia esta recomendada para evaluar obstruccion venosa o cortocircuito residual, hoja 44, folio e158', nota:'la sinopsis de la hoja 45, folio e159, advierte que la vena en cimitarra tiene mayor riesgo de trombosis y de estenosis venosa pulmonar despues de la reparacion', ref:'la ESC 2020 no publica una recomendacion propia con esta condicion' },
+  { clave:'cvpa.ev.sobrecargaSev', lbl:'Sobrecarga de volumen del ventriculo derecho severa o progresiva', guia:'acc', rec:'Clase 2a · Nivel B-NR, recomendacion 7 — en el paciente ASINTOMATICO con Qp:Qs de 1,5 o mas, la reparacion quirurgica es razonable para mejorar la hemodinamia y estabilizar el tamanio y la funcion del ventriculo derecho cuando hay sobrecarga severa o progresiva, funcion sistolica del ventriculo derecho reducida, hipertension arterial pulmonar por medicion invasiva o intolerancia objetiva al ejercicio, hoja 45, folio e159', ref:'la ESC 2020 remite a los principios del cierre de la comunicacion interauricular, cuya Clase I pide sobrecarga de volumen del ventriculo derecho' },
+  { clave:'cvpa.ev.vdReducido', lbl:'Funcion sistolica del ventriculo derecho reducida', guia:'acc', rec:'Clase 2a · Nivel B-NR, recomendacion 7 — es el segundo de los cuatro criterios del paciente asintomatico con Qp:Qs de 1,5 o mas, hoja 45, folio e159', ref:'la ESC 2020 no publica una recomendacion propia con esta condicion' },
+  { clave:'cvpa.ev.hapInvasiva', lbl:'Hipertension arterial pulmonar confirmada por medicion invasiva', guia:'acc', rec:'Clase 2a · Nivel B-NR, recomendacion 7 — es el tercero de los cuatro criterios del asintomatico, hoja 45, folio e159', ref:'la ESC 2020 pide cateterismo cuando hay signos no invasivos de presion pulmonar elevada -presion sistolica pulmonar calculada por encima de 40 mmHg, o signos indirectos cuando no se puede estimar- para determinar la resistencia (hoja 29, folio 591)' },
+  { clave:'cvpa.ev.intolEjerc', lbl:'Intolerancia objetiva al ejercicio', guia:'acc', rec:'Clase 2a · Nivel B-NR, recomendacion 7 — es el cuarto de los cuatro criterios del asintomatico, hoja 45, folio e159', ref:'la ESC 2020 no publica una recomendacion propia con esta condicion' },
+  { clave:'cvpa.ev.riesgoHap', lbl:'Evidencia no invasiva de hipertension arterial pulmonar, o factores de riesgo', guia:'acc', rec:'Clase 2a · Nivel B-NR, recomendacion 4 — en la conexion no reparada, el cateterismo cardiaco puede ser util para evaluar la hemodinamia y ayudar a determinar la indicacion de reparacion, hoja 44, folio e158', ref:'la ESC 2020 pide el cateterismo con los mismos signos no invasivos, en su apartado de la comunicacion interauricular (hoja 29, folio 591)' },
+  { clave:'cvpa.ev.cxCia', lbl:'Se va a operar una comunicacion interauricular', guia:'acc', rec:'Clase 1 · Nivel B-NR, recomendacion 6 — en el adulto que va a una reparacion quirurgica de una comunicacion interauricular, la reparacion de la conexion o las conexiones venosas pulmonares anomalas esta recomendada, cuando es tecnicamente factible, para reducir el cortocircuito izquierda-derecha y la sobrecarga de volumen del ventriculo derecho, hoja 45, folio e159', nota:'la ESC 2020 describe que el defecto de seno venoso superior, situado junto a la entrada de la vena cava superior, se asocia a conexion parcial o completa de las venas pulmonares derechas a la cava superior o a la auricula derecha (hoja 29, folio 591)' },
+  { clave:'cvpa.ev.factible', lbl:'La reparacion de la conexion anomala es tecnicamente factible', guia:'acc', rec:'Clase 1 · Nivel B-NR, recomendacion 6 — es la condicion que la guia pone para repararla junto con la comunicacion interauricular, hoja 45, folio e159', nota:'la sinopsis de la misma hoja describe las tecnicas: anastomosis directa a la auricula izquierda o a la orejuela izquierda para las venas del lado izquierdo, tunelizacion a traves de una comunicacion interauricular creada quirurgicamente para las del derecho, y el procedimiento de Warden' }
+]);
+window.CVPA_PREG = CVPA_PREG;
+function _indCVPA(){
+  const cEst = _indFn('cvpaEstado');
+  const r = cEst ? cEst() : null;
+  if (!r || r.hayDatos === false) return null;
+
+  const nven = _indS('cvpa_venas_numero'), cnx = _indS('cvpa_conexion'), lado = _indS('cvpa_lado');
+  const qp = _indN('cvpa_qp_qs'), htp = _indS('cvpa_htp'), sint = _indS('cvpa_sintomas');
+  const _NV = { '1':'1 vena', '2':'2 venas', '3':'3 venas', noesp:'No especificado' };
+  const _CNX = { vcs:'Vena cava superior', vci:'Vena cava inferior', ad:'Aurícula derecha directa',
+                 acigos:'Vena ácigos', otra:'Otra' };
+  const _LADO = { der:'Derecha', izq:'Izquierda', bil:'Bilateral' };
+  const _HTP = { no:'Sin HTP', leve:'Leve', moderada:'Moderada', severa:'Severa' };
+  const _SINT = { asintomatico:'Asintomático', disnea:'Disnea de esfuerzo',
+                  palpitaciones:'Palpitaciones', ic_derecha:'Insuficiencia cardíaca derecha' };
+  const cat = (_indFn('vdBasCat') || function(){ return null })(_indN('vd_bas'));
+  const _catDil = !!(cat && cat.cat !== 'normal' && cat.cat !== 'leve');
+  const qpVota = _gt(qp, 1.49);
+  const sintomatico = !!(sint && sint !== 'asintomatico');
+
+  const filas = [];
+  filas.push(_indFila('Número de venas anómalas', _ccLbl(_NV, nven) || '—', nven ? 'none' : 'ask',
+    nven === '1' ? 'la ESC 2020 dice que una sola vena de un solo lóbulo rara vez justifica la cirugía'
+    : nven ? 'tener más de una conexión anómala aumenta el riesgo de sobrecarga de volumen y de hipertensión arterial pulmonar' : 'sin consignar'));
+  filas.push(_indFila('Drenaje', _ccLbl(_CNX, cnx) || '—', cnx ? 'none' : 'ask',
+    cnx === 'vcs' ? 'es el drenaje más frecuente y se asocia al defecto de seno venoso superior' : 'sin umbral propio en las guías'));
+  filas.push(_indFila('Lado', _ccLbl(_LADO, lado) || '—', lado ? 'none' : 'ask',
+    lado ? 'la técnica quirúrgica depende del lado: anastomosis directa para las venas izquierdas y tunelización o procedimiento de Warden para las derechas' : 'sin consignar'));
+  filas.push(_indFila('Qp/Qs estimado por eco', _indNum(qp, 2), qpVota ? 'ok' : (qp != null ? 'none' : 'ask'),
+    qp == null ? 'sin calcular'
+    : qpVota ? '1,5 o más — es el corte que piden las recomendaciones de cirugía de la ACC/AHA 2025'
+    : 'por debajo de 1,5: con un ventrículo derecho normal o apenas agrandado, la cirugía NO está indicada (Clase 3: Sin beneficio)'));
+  filas.push(_indFila('Ventrículo derecho (del estudio)', cat ? cat.lbl : '—',
+    cat ? (_catDil ? 'ok' : (cat.cat === 'leve' ? 'warn' : 'none')) : 'ask',
+    cat ? (_catDil ? 'la sobrecarga de volumen del ventrículo derecho es la condición de la Clase 1' : cat.lbl)
+        : 'falta el diámetro basal del ventrículo derecho en la pestaña VD / AD'));
+  filas.push(_indFila('Hipertensión pulmonar', _ccLbl(_HTP, htp) || '—',
+    htp === 'severa' ? 'alarm' : (htp ? 'none' : 'ask'),
+    htp ? 'la recomendación del asintomático pide hipertensión arterial pulmonar por medición INVASIVA, no estimada por eco' : 'sin consignar'));
+  filas.push(_indFila('Situación clínica', _ccLbl(_SINT, sint) || '—',
+    sintomatico ? 'ok' : (sint ? 'none' : 'ask'),
+    sintomatico ? 'con sobrecarga de volumen del ventrículo derecho y Qp:Qs de 1,5 o más, la cirugía está recomendada (Clase 1)'
+    : sint ? 'en el asintomático la cirugía pide Qp:Qs de 1,5 o más y uno de cuatro criterios adicionales' : 'sin consignar'));
+  filas.push(_indFila('Comunicación interauricular asociada (del estudio)',
+    _indS('ete_cia_tipo') ? 'Consignada en CIA / CIV' : '—',
+    _indS('ete_cia_tipo') ? 'ok' : 'ask',
+    _indS('ete_cia_tipo') ? 'si se opera la comunicación interauricular, la reparación de la conexión anómala está recomendada cuando es técnicamente factible'
+    : 'sin consignar en la sección CIA / CIV'));
+
+  const CVPA_OPS = [{ v:'si', t:'Sí' }, { v:'no', t:'No' }, IND_OPS_SD];
+  const clinica = [], _si = [], _no = [], _sd = [], _siDet = [];
+  CVPA_PREG.forEach(function (p) {
+    const o = _indOrigen(null, p.clave);
+    if (o.val === 'si') { _si.push(p.lbl); _siDet.push(p); }
+    else if (o.val === 'no') _no.push(p.lbl); else _sd.push(p.lbl);
+    const _f = _indFilaOrigen(p.lbl, o, CVPA_OPS, function (val) {
+      return { txt: val === 'si' ? 'Sí' : (val === 'no' ? 'No' : 'Sin dato'),
+               marca: val === 'si' ? 'warn' : (val === 'no' ? 'none' : 'ask'),
+               nota: _indPregNota(p, val == null) };
+    }, true);
+    const _b = _indPregBadge(p); if (_b) _f.badge = _b;
+    clinica.push(_f);
+  });
+  clinica.unshift(_indFila('Respuestas',
+    _si.length + ' en Sí · ' + _no.length + ' en No · ' + _sd.length + ' sin dato', 'none',
+    '«Sin dato» no cuenta como «no»: mientras una condición no se conteste, no sostiene ninguna recomendación.'));
+  const _bal = _si.length
+    ? { txt:'Condiciones presentes en este paciente: ' + _si.length + ' de ' + CVPA_PREG.length + ' (' + _si.join('; ') + ').'
+        + (_sd.length ? ' Sin contestar: ' + _sd.join('; ') + '.' : ' Las otras ' + _no.length + ' están contestadas que no.'), refs:null }
+    : (_sd.length
+      ? { txt:'Ninguna condición consta como presente, y quedan ' + _sd.length + ' sin contestar: ' + _sd.join('; ')
+          + '. Mientras no se contesten, ninguna de las recomendaciones de arriba se sostiene en este paciente — «sin dato» no cuenta como «no».', refs:null }
+      : { txt:'Las ' + CVPA_PREG.length + ' condiciones están contestadas y ninguna está presente.', refs:null });
+
+  return { filas: filas,
+    clinica: clinica,
+    bloques: [
+      { tit:'Estudios — ACC/AHA 2025, apartado 4.1.4, hoja 44, folio e158', lineas:[
+        { txt:'Clase 1 · Nivel B-NR — La resonancia magnética cardíaca está recomendada para evaluar la anatomía venosa pulmonar, el tamaño y la función del ventrículo derecho y para determinar la fracción de cortocircuito (Qp:Qs) (recomendación 1). Su texto de apoyo de la hoja 45, folio e159, la considera superior a la ecocardiografía y a la angiografía por cateterismo para delinear la anatomía, y dice que la angiografía por tomografía puede usarse cuando la resonancia no es factible.', refs:null },
+        { txt:'Clase 1 · Nivel B-NR — Sin indicación de reparación, la imagen cardíaca de rutina está recomendada para la evaluación seriada del tamaño y la función del ventrículo derecho y para la valoración de la hipertensión pulmonar (recomendación 2).', refs:null },
+        { txt:'Clase 1 · Nivel B-NR — Con la conexión reparada y disnea de esfuerzo o capacidad funcional reducida, la angiografía por resonancia o por tomografía está recomendada para evaluar obstrucción venosa o cortocircuito residual (recomendación 3).', refs:null },
+        { txt:'Clase 2a · Nivel B-NR — Con la conexión no reparada y evidencia no invasiva de hipertensión arterial pulmonar, o factores de riesgo, el cateterismo cardíaco puede ser útil para evaluar la hemodinámica y ayudar a determinar la indicación de reparación (recomendación 4).', refs:null }
+      ]},
+      { tit:'Indicación de cirugía — ACC/AHA 2025, misma sección, hoja 45, folio e159', lineas:[
+        { txt:'Clase 1 · Nivel B-NR — Con síntomas cardíacos o capacidad funcional reducida, sobrecarga de volumen del ventrículo derecho y Qp:Qs de 1,5 o más, la reparación quirúrgica está recomendada para mejorar los síntomas y los resultados clínicos (recomendación 5).', refs:null },
+        { txt:'Clase 1 · Nivel B-NR — En el adulto que va a una reparación quirúrgica de una comunicación interauricular, la reparación de la conexión o las conexiones venosas pulmonares anómalas está recomendada, cuando es técnicamente factible, para reducir el cortocircuito izquierda-derecha y la sobrecarga de volumen del ventrículo derecho (recomendación 6).', refs:null },
+        { txt:'Clase 2a · Nivel B-NR — En el asintomático con Qp:Qs de 1,5 o más y sobrecarga de volumen del ventrículo derecho severa o progresiva, función sistólica del ventrículo derecho reducida, hipertensión arterial pulmonar por medición invasiva o intolerancia objetiva al ejercicio, la reparación quirúrgica es razonable para mejorar la hemodinámica y estabilizar el tamaño y la función del ventrículo derecho (recomendación 7).', refs:null },
+        { txt:'Clase 3: Sin beneficio · Nivel B-NR — Con un ventrículo derecho normal o apenas agrandado y Qp:Qs por debajo de 1,5, la reparación quirúrgica NO está indicada, por la ausencia de datos que sostengan un beneficio (recomendación 8).', refs:null },
+        { txt:'La sinopsis de esta hoja agrega que la conexión venosa pulmonar anómala aislada es un cortocircuito izquierda-derecha obligado: sin cortocircuito de derecha a izquierda no hay riesgo de embolia paradójica ni de hipoxemia, su magnitud no depende de la distensibilidad ventricular y no aumenta con el tiempo, y la cirugía es la única opción porque no hay alternativa por cateterismo.', refs:null },
+        { txt:'Fuente: ACC/AHA 2025 de cardiopatías congénitas del adulto, apartado 4.1.4, «Anomalous Pulmonary Venous Connections», hojas 44 y 45, folios e158 y e159.', refs:['acc2025achd'] }
+      ]},
+      { tit:'Lo que publica la ESC 2020 (guía anterior), hojas 13 y 29, folios 575 y 591', lineas:[
+        { txt:'La ESC 2020 NO publica una tabla de recomendaciones propia para esta lesión: sus indicaciones siguen los principios del cierre de la comunicación interauricular, y dice que una sola vena de un solo lóbulo rara vez justifica la cirugía.', refs:null },
+        { txt:'Su Tabla 4 de complejidad lista la conexión venosa pulmonar anómala, parcial o total, entre las cardiopatías congénitas del adulto de complejidad moderada, reparadas incluidas (hoja 13, folio 575).', refs:null },
+        { txt:'Describe el defecto de seno venoso superior —el 5 % de las comunicaciones interauriculares, situado junto a la entrada de la vena cava superior— asociado a conexión parcial o completa de las venas pulmonares derechas a la cava superior o a la aurícula derecha (hoja 29, folio 591).', refs:null },
+        { txt:'Sobre la resonancia dice que rara vez se necesita, pero que puede ser útil para evaluar la sobrecarga de volumen del ventrículo derecho, identificar el defecto de seno venoso inferior, cuantificar el Qp:Qs y evaluar la conexión venosa pulmonar (hoja 29, folio 591).', refs:null },
+        { txt:'Fuente: ESC 2020 de cardiopatías congénitas del adulto, hojas 13 y 29, folios 575 y 591.', refs:['esc2020guch'] }
+      ]},
+      { tit:'La diferencia entre las dos guías, sin resolver', lineas:[
+        { txt:'La ACC/AHA 2025 tiene un apartado propio para esta lesión, con ocho recomendaciones y su corte de Qp:Qs de 1,5; la ESC 2020 no publica tabla propia y remite a los principios del cierre de la comunicación interauricular, sin un corte de Qp:Qs para la conexión anómala.', refs:null },
+        { txt:'La resonancia para el Qp:Qs es recomendación de Clase 1 · Nivel B-NR en la ACC/AHA 2025 y, en la ESC 2020, un estudio que «rara vez se necesita».', refs:null },
+        _bal
+      ]}
+    ].concat(_siDet.length ? [{ tit:'Recomendaciones que aplican con lo contestado (' + _siDet.length + ')',
+      lineas: _siDet.map(function (p) {
+        const b = _indPregBadge(p);
+        const et = b ? (b.g === 'ACC' ? 'ACC/AHA 2025' : 'ESC 2020') + (b.cn ? ' · ' + b.cn : '') : '';
+        return { txt: p.lbl + (et ? ' — ' + et : '') + '.', refs:null };
+      }) }] : []),
+    compacta: true,
+    preguntas: true,
+    guia: { ref:'acc2025achd',
+      txt:'Las indicaciones de esta sección salen de la ACC/AHA 2025 de cardiopatías congénitas del adulto (apartado 4.1.4, hojas 44 y 45, folios e158 y e159), que es la única de las dos que publica un apartado propio para esta lesión. La ESC 2020 queda como referencia: no tiene tabla propia y remite a los principios del cierre de la comunicación interauricular.' },
+    notas: [
+      'La medición invasiva de la presión pulmonar y la resonancia magnética no son campos de esta pantalla: las recomendaciones que dependen de ellas se publican en el bloque y sus condiciones se preguntan.',
+      'Lo contestado en esta sección no se guarda con el estudio y no llega al informe.'
+    ]
+  };
+}
 const CIA_PREG = Object.freeze([
   { clave:'cia.ev.vddil', lbl:'Dilatación del ventrículo derecho', guia:'acc', rec:'Clase 1 · Nivel B-R, recomendación 5 —con cortocircuito significativo y sin hipertensión arterial pulmonar ni enfermedad significativa del ventrículo izquierdo, el cierre está recomendado—, y Clase 2a, recomendaciones 8 y 9, hoja 35, folio e149', ref:'la sobrecarga de volumen del ventrículo derecho —su nota al pie c la define como agrandamiento CON volumen latido aumentado— es la condición de la Clase I · Nivel B (hoja 30, folio 592)' },
   { clave:'cia.ev.qpqs15', lbl:'Qp:Qs de 1,5 o más', guia:'acc', rec:'Clase 1 · Nivel B-R, recomendación 5; Clase 2a, recomendaciones 8 y 9; Clase 2b, recomendación 12, hoja 35, folio e149', ref:'un cortocircuito izquierda-derecha significativo es un Qp:Qs MAYOR que 1,5 (hoja 30, folio 592)', tramo:'con un Qp:Qs de 1,5 exacto las dos guías no coinciden: la ACC/AHA 2025 escribe «≥1,5» y la ESC 2020 «>1,5»' },
@@ -99783,6 +99930,8 @@ const IND_SECS = [
   /* ⚠️ LA DEL COMMIT 4 DE PANT-10. «Circulación de Fontan» es único y no colisiona por
      prefijo con ninguno de los treinta y cinco. */
   { tit:'Circulación de Fontan',                 fn:_indFON },
+  /* ⚠️ LA DEL COMMIT 5 DE PANT-10. El título lleva «parcial» y no es prefijo de ninguno. */
+  { tit:'Conexión venosa pulmonar anómala parcial', fn:_indCVPA },
   { tit:'Ductus arterioso permeable',            fn:_indDAP },
   { tit:'Coartación de aorta',                   fn:_indCoAo },
   /* ⚠️ LAS DOS DE LA TANDA PANT-4 (03/11/2026). Van PEGADAS a la coartación porque son las
@@ -156947,8 +157096,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261104-1054';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793800463052;                 /* eco-build-ms */
+const ECO_BUILD    = '20261104-1058';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793800711051;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -157034,7 +157183,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261104-1054</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261104-1058</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
