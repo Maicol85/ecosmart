@@ -10903,6 +10903,7 @@ window.cerrarSesionReal = cerrarSesionReal;
         </div>
       </div>
   </div>
+  </div>
 
   <!-- ══ MASAS — PANT-11, commit 8 (04/11/2026, decision del medico) ═══════════════════════
        Los NUEVE campos se mudaron desde «Pericardio y masas», extraidos por BALANCE DE
@@ -10910,13 +10911,13 @@ window.cerrarSesionReal = cerrarSesionReal;
        rotulo, ni un comportamiento cambia, y el emisor del papel y el Excel no se tocan.
        Es la TERCERA seccion de «Otros», debajo de «Variantes anatomicas», con la MISMA forma de
        acordeon que las otras dos.
-       ⚠️ `data-autoopen` CON `masa_presente` QUE NACE CON VALOR: ese selector NO tiene opcion
+       ⚠️ «data-autoopen» CON «masa_presente» QUE NACE CON VALOR: ese selector NO tiene opcion
           vacia -su primer valor es «No se detectan masas»-, asi que un formulario en blanco
-          AFIRMA que no hay masas. `cardAutoOpen` cuenta un <select> solo con `selectedIndex > 0`,
+          AFIRMA que no hay masas. «cardAutoOpen» cuenta un <select> solo con selectedIndex > 0,
           asi que el valor de fabrica NO abre la seccion: se abre con «Masa / imagen
           intracardiaca presente» o con cualquier otro campo de masa movido de su primera
           opcion. Medido con sonda.
-       ⚠️ NO SE AGREGA NINGUNA OPCION A `masa_dx`: si lleva «pannus» lo decide el medico
+       ⚠️ NO SE AGREGA NINGUNA OPCION A «masa_dx»: si lleva «pannus» lo decide el medico
           (docs/PENDIENTES.md -> P11-f). -->
   <div id="otr-sub-masas" class="otr-sub">
   <div class="card" style="margin-bottom:6px;">
@@ -11081,7 +11082,6 @@ window.cerrarSesionReal = cerrarSesionReal;
   </div>
   </div>
 
-  </div>
 
 
 </div>
@@ -158361,8 +158361,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261104-1535';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793817336055;                 /* eco-build-ms */
+const ECO_BUILD    = '20261104-1554';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793818443379;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -158448,7 +158448,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261104-1535</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261104-1554</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
