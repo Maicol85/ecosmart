@@ -2021,6 +2021,20 @@
      esta hoja, asi que el margen de la version apilada reaparecia en la version lado a lado y
      dejaba el dibujo descolgado del borde de arriba de los campos. El `display:none` en linea
      SI se queda: lo gobierna `oaiEsqSync`. */
+  /* ══ WILKINS: LOS CUATRO CAMPOS EN UNA COLUMNA Y LA CONCLUSION A LA DERECHA (PANT-7, c5b)
+     Pedido del medico. Desde 900 px, campos a la izquierda y conclusion a la derecha; por
+     debajo, apilado, que es el orden del DOM. El corte va sobre la VENTANA y no sobre el
+     contenedor, que es la regla fija de la casa: con `flex-wrap` el punto de quiebre depende
+     del ancho que le quede a la tarjeta y deja de ser medible.
+     ⚠️ `.grid-1` es PROPIA de esta fila y no una clase global nueva: se declara acotada a
+        `#wilk-campos` para no alcanzar a ninguna otra grilla del documento. */
+  #wilk-fila { display:block; }
+  #wilk-campos.grid-1 { display:grid; grid-template-columns:1fr; gap:10px; }
+  #wilk-campos, #wilk-concl { min-width:0; }
+  @media (min-width:900px){
+    #wilk-fila { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+      gap:10px 14px; align-items:start; }
+  }
   #oai-fila > #oai-esq-caja { margin-top:10px; }
   @media (min-width: 900px) {
     #oai-fila { display:flex; gap:14px; align-items:flex-start; }
@@ -16687,7 +16701,15 @@ z
              saca del padre al parsear—. Es la lección del globo del panel de Evidencia. -->
         <button type="button" class="vinfo-btn" data-vinfo="wilk-score" aria-expanded="false" aria-label="Qué halló la serie original del score de Wilkins" onclick="vInfoClic(this)">&#9432;</button>
       </p>
-      <div class="grid-2">
+      <!-- == LOS CUATRO CAMPOS EN UNA COLUMNA Y LA CONCLUSION A LA DERECHA (PANT-7, c5b) =====
+           Pedido del medico, con sus palabras: «En el score de Wilkins, podriamos poner los 4
+           campos en una sola columna y la conclusion al lado, a la derecha».
+           Desde 900 px: `#wilk-fila` es la grilla de dos columnas —campos a la izquierda,
+           conclusion a la derecha—; por debajo, apilado, que es el orden del DOM. El corte va
+           sobre la VENTANA, que es la regla fija de la casa. Los cuatro campos pasan de
+           `grid-2` a UNA columna, asi que su rotulo y su opcion entran enteros. -->
+      <div id="wilk-fila">
+      <div id="wilk-campos" class="grid-1">
         <div class="fg"><label>Movilidad (1-4)</label>
           <select id="wilkins_movilidad" onchange="wilkMarcarGesto(event,'ete');calcWilkins()">
             <option value="0">—</option>
@@ -16724,16 +16746,24 @@ z
             <option value="4">4 — Engrosamiento y acortamiento hasta mm papilares</option>
           </select>
         </div>
-      </div>
       <!-- ⚠️ LA MARCA DE «PUNTUADO A PROPOSITO». Es un campo del estudio como cualquier otro: lo
            toma el barrido de `guardarInforme` y se repone al abrir un guardado, y NO agrega
            ninguna columna al Excel, que es una lista declarada y no un barrido. La escribe
-           `wilkMarcarGesto` solo con un `change` de CONFIANZA. -->
+           `wilkMarcarGesto` solo con un `change` de CONFIANZA.
+           ⚠️ VA DENTRO DE `#wilk-campos`, que es donde estaba: es `hidden`, no ocupa lugar en
+              la grilla y asi la columna de campos cierra donde cerraba su `grid-2`. Sacarlo
+              afuera dejaba un `</div>` de mas que cerraba `#wilk-fila` antes de tiempo y la
+              conclusion quedaba FUERA de la fila -medido: 713,5 px de ancho en vez de 590 y
+              `ladoALado` nulo-. Es la misma trampa que PANT-6 pago con la mitral del ETE. -->
       <input type="hidden" id="wilkins_delib" value="">
+      </div><!-- /wilk-campos -->
+      <div id="wilk-concl">
       <div class="calc-box" style="margin-top:10px;">
         <div class="calc-row"><span class="calc-lbl">Score de Wilkins total (/16)</span><span class="calc-val" id="wilkins-total">—</span></div>
         <div class="calc-row"><span class="calc-lbl">Interpretación</span><span id="wilkins-interp">—</span></div>
       </div>
+      </div><!-- /wilk-concl -->
+      </div><!-- /wilk-fila -->
       <div style="text-align:center;margin-top:10px;"><button type="button" class="btn btn-integrar" data-am-k="wilk" onclick="amiloIntegrar('wilk')">📎 Integrar al informe</button></div>
     </div>
   </div>
@@ -75658,11 +75688,54 @@ function wilkDeliberado(src) {
 /* La marca se pone SOLO con un gesto real del medico. Asignar `.value` no dispara ningun evento,
    asi que la restauracion de un estudio no pasa por aca; y un `change` despachado por codigo
    llega con `isTrusted` en false, que es lo que separa el gesto del recalculo. */
+/* ══ UN DATO, DOS PUERTAS (PANT-7, c5a) ════════════════════════════════════════════════════
+   El score de Wilkins se carga en DOS juegos de campos independientes: `wilkins_*`, en la
+   seccion del ETE —la que lee el informe narrativo—, y `cx_wilk_*`, en la seccion de cirugia
+   que arma su hoja del PDF. Hasta hoy no se hablaban, y el mismo paciente podia terminar con
+   DOS scores distintos en el mismo papel.
+   ⚠️ LA PREOCUPACION DE OCTUBRE SE REPRODUJO ANTES DE TOCAR NADA, en el navegador: con el juego
+      del ETE en 1/1/1/1 y el de cirugia en 4/4/4/4, el primero publica «sin puntuar — reingresá
+      los cuatro criterios» y el segundo «16/16 tramo > 11». `wilkinsScore('ete')` da
+      {total:4, reingresar:true} y `wilkinsScore('cx')` {total:16, banda:'nofavorable'}.
+   ⚠️ LA SINCRONIA ES INEQUIVOCA, y por eso se puede hacer: los dos juegos son los MISMOS cuatro
+      criterios de Wilkins con la MISMA escala de 1 a 4 —lo unico que cambia es la redaccion de
+      cada opcion y el centinela de vacio, `'0'` en el ETE y `''` en cirugia—, asi que la
+      traduccion es una tabla de dos entradas y no una interpretacion.
+   ⚠️ GANA LA ULTIMA EDICION Y NADA AUTOMATICO ESCRIBE: la puerta es ESTA funcion, que ya exigia
+      `ev.isTrusted === true`, o sea un gesto real de una persona. El valor que se copia NO
+      despacha eventos —se llama al recalculador del otro lado directamente—, y eso ademas cierra
+      el bucle por construccion: un evento sintetico no es `isTrusted` y no volveria a entrar.
+   ⚠️ LA MARCA DE DELIBERADO VIAJA CON EL VALOR, y hace falta: sin ella, un 1/1/1/1 que el medico
+      tecleo a proposito en un lado llegaba al otro como «reingresá los cuatro criterios».
+   Sin campos nuevos y sin tocar un solo id. */
+var WILK_VACIO = Object.freeze({ ete: '0', cx: '' });
+function wilkSincronizar(src) {
+  var dst = (src === 'ete') ? 'cx' : 'ete';
+  var a = WILK_CAMPOS[src], b = WILK_CAMPOS[dst];
+  if (!a || !b || a.length !== b.length) return false;
+  var n = 0;
+  for (var i = 0; i < a.length; i++) {
+    var eo = document.getElementById(a[i]), ed = document.getElementById(b[i]);
+    if (!eo || !ed) continue;
+    var val = String(eo.value == null ? '' : eo.value).trim();
+    /* el centinela de vacio se traduce; los valores 1 a 4 son los mismos de los dos lados */
+    if (val === '' || val === '0') val = WILK_VACIO[dst];
+    if (ed.value !== val) { ed.value = val; n++; }
+  }
+  var mo = document.getElementById(WILK_MARCA[src]), md = document.getElementById(WILK_MARCA[dst]);
+  if (mo && md) md.value = mo.value;
+  try { if (typeof calcWilkins === 'function') calcWilkins() } catch (e) {}
+  try { if (typeof cxWilkins === 'function') cxWilkins() } catch (e) {}
+  return n;
+}
+window.wilkSincronizar = wilkSincronizar;
+
 function wilkMarcarGesto(ev, src) {
   if (!ev || ev.isTrusted !== true) return false;
   var e = document.getElementById(WILK_MARCA[src]);
   if (!e) return false;
   e.value = '1';
+  wilkSincronizar(src);
   return true;
 }
 function wilkLimpiarMarca() {
@@ -155299,8 +155372,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261104-0040';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793763642827;                 /* eco-build-ms */
+const ECO_BUILD    = '20261104-0054';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793764456382;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -155386,7 +155459,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261104-0040</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261104-0054</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
