@@ -4396,6 +4396,56 @@ html.light-mode .amilo-root{
 @media (max-width:560px){
   #cia-donut-svg{width:160px!important;height:160px!important;}
 }
+/* == LAS SIETE PANTALLAS DE CONGENITAS EN TRES COLUMNAS - tanda PANT-9 (2026-11-04) =========
+   PEDIDO DEL MEDICO (01/11 y 04/11/2026): «ajustaria los campos en columnas mas compactas,
+   siguiendo un orden y logica, para que la conclusion quede en el costado derecho», y para
+   Ebstein, Eisenmenger y Fontan «con cierta logica (lo clinico, medidas, etc.)». La disposicion
+   la aprobo el medico en un lienzo de disenio.
+   LOS DOS CORTES SON UNA MEDICION Y NO UNA PREFERENCIA. El ancho util del cuerpo de una seccion
+   es la ventana menos 210 px por encima de 768 px -medido en HEAD a 1440, 1000 y 900-. De ahi
+   salen 28 px de relleno del cuerpo, 28 del cuadro con su borde de 2 px, los 360 de la tarjeta
+   de conclusion, el hueco de 14 y los dos huecos de 10 entre columnas, asi que cada columna
+   mide (ventana - 660) / 3 y el piso de 200 px se alcanza a los 1260 px de VENTANA -medido:
+   205,3 px por columna a 1260 y 192 a 1220, que es por lo que el corte NO es 1220-. Entre 900
+   y 1259 px las tres columnas se quedan y la conclusion baja a todo el ancho; por debajo de
+   900 px todo se apila, que es lo que la orden fija.
+   ** EL PISO DE LAS COLUMNAS VA DENTRO DE LA MEDIA QUERY, que es la leccion que PANT-8 pago:
+   declarado fuera, regiria tambien por debajo del corte y dejaria tres campos por fila donde
+   corresponde uno. Y los cortes van en media queries EXPLICITAS y no con `auto-fit`, porque con
+   `auto-fit` el punto de quiebre depende del ancho que le quede a la tarjeta.
+   ** LAS CLASES SON PROPIAS DE ESTAS SIETE SECCIONES. Ninguna otra pantalla de la aplicacion las
+   lleva, asi que un cambio aca no puede mover una pantalla que esta tanda no toca. */
+.cc9-cuadro{border:2px solid var(--accent);border-radius:12px;padding:12px;
+  background:var(--bg2);min-width:0;}
+.cc9-hdrbar{display:flex;align-items:center;gap:8px;margin:0 0 10px;flex-wrap:wrap;}
+/* El boton va a la DERECHA del encabezado. Sin esta regla -o con un `margin:0` en linea, que
+   le gana- el boton queda pegado a la izquierda: medido, x=225 en vez del borde derecho. */
+.cc9-hdrbar > .cc9-hdr-der{margin-left:auto;margin-right:0;}
+.cc9-fila{display:grid;grid-template-columns:minmax(0,1fr);gap:14px;align-items:start;}
+.cc9-fila > div{min-width:0;}
+.cc9-cols{display:grid;grid-template-columns:minmax(0,1fr);gap:10px;align-items:start;}
+.cc9-cols > .cc9-col{min-width:0;display:flex;flex-direction:column;gap:8px;}
+.cc9-h{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;
+  color:var(--accent2);margin:0;line-height:1.3;}
+/* La tarjeta GRIS de conclusion: la tira que la seccion ya muestra y el boton debajo. */
+.cc9-concl{background:var(--section-head);border:1px solid var(--border);border-radius:10px;
+  padding:12px;min-width:0;}
+.cc9-concl > .calc-box{margin:0;}
+.cc9-concl > .calc-box + .calc-box{margin-top:8px;}
+.cc9-concl-btn{display:flex;justify-content:center;margin-top:10px;}
+/* Las SEIS casillas de complicaciones del Fontan, en una grilla de dos columnas dentro de su
+   columna. La logica de exclusion la sigue decidiendo `fontanToggleComp`, que trabaja por id. */
+.cc9-chk2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:2px 6px;}
+.cc9-chk2 > label{min-width:0;}
+/* La grilla de dos columnas de las cinco areas de Celermajer, dentro de su columna. */
+.cc9-g2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;align-items:start;}
+.cc9-g2 > .fg{min-width:0;}
+@media (min-width:900px){
+  .cc9-cols{grid-template-columns:repeat(3,minmax(0,1fr));}
+}
+@media (min-width:1260px){
+  .cc9-fila{grid-template-columns:minmax(0,1fr) 360px;}
+}
 #dpt-cols{display:grid;grid-template-columns:minmax(0,1fr);gap:10px;align-items:start;
   margin-bottom:10px;}
 #dpt-cols .dpt-col{min-width:0;}
@@ -20494,89 +20544,108 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
       <span id="fontan_badge" class="incl-badge" hidden>&#9679; cargada</span>
     </button>
     <div class="card-body sacc-body">
-      <button type="button" class="btn btn-ghost" style="font-size:11px;padding:4px 12px;margin:0 0 12px;" onclick="critAbrir('fontan')">📋 Ver criterios</button>
-      <div class="grid-3">
-        <div class="fg"><label>Tipo de Fontan</label>
-          <select id="fontan_tipo" onchange="fontanSync()">
-            <option value="">&mdash;</option>
-            <option value="tunel">Tunel lateral</option>
-            <option value="extra">Conexion cavopulmonar total extracardiaca</option>
-            <option value="ap">Aurícula-pulmonar (antiguo)</option>
-            <option value="noesp">No especificado</option>
-          </select></div>
-        <div class="fg"><label>Fenestracion</label>
-          <select id="fontan_fenestracion" onchange="fontanSync()">
-            <option value="">&mdash;</option>
-            <option value="sin">Sin fenestracion</option>
-            <option value="presente">Fenestracion presente</option>
-            <option value="cerrada">Fenestracion cerrada</option>
-          </select></div>
-        <div class="fg"><label>Morfología del ventrículo sistémico</label>
-          <select id="fontan_vs_morfologia" onchange="fontanSync()">
-            <option value="">&mdash;</option>
-            <option value="izq">Morfología izquierda</option>
-            <option value="der">Morfología derecha</option>
-            <option value="indet">Indeterminado</option>
-          </select></div>
-      </div>
-      <div class="grid-3" style="margin-top:10px;">
-        <div class="fg"><label>FEVI del ventrículo sistémico (%)</label>
-          <input type="number" id="fontan_vs_fevi" placeholder="%" oninput="fontanSync()"></div>
-        <div class="fg"><label>FAC del ventrículo sistémico (%)</label>
-          <input type="number" id="fontan_vs_fac" placeholder="%" oninput="fontanSync()"></div>
-        <div class="fg"><label>Saturacion O&#8322; (%)</label>
-          <input type="number" id="fontan_saturacion" placeholder="%" oninput="fontanSync()">
-          <span style="font-size:10px;color:var(--text2);">Normal sin fenestracion: &gt;93-95&nbsp;%.</span></div>
-      </div>
-      <div class="grid-3" style="margin-top:10px;">
-        <div class="fg"><label>Insuficiencia AV sistémica</label>
-          <select id="fontan_it_grado" onchange="fontanSync()">
-            <option value="">&mdash;</option><option value="no">Sin IT</option>
-            <option value="leve">Leve</option><option value="moderada">Moderada</option>
-            <option value="severa">Severa</option>
-          </select>
-          <span style="font-size:10px;color:var(--text2);">En Fontan es marcador de disfuncion del ventriculo sistemico.</span></div>
-        <div class="fg"><label>Derrame pleural</label>
-          <select id="fontan_derrame_pleural" onchange="fontanSync()">
-            <option value="">&mdash;</option><option value="no">No</option>
-            <option value="leve">Si &mdash; leve</option><option value="moderado">Si &mdash; moderado</option>
-            <option value="severo">Si &mdash; severo</option>
-          </select></div>
-        <div class="fg"><label>Ascitis</label>
-          <select id="fontan_ascitis" onchange="fontanSync()">
-            <option value="">&mdash;</option><option value="no">No</option>
-            <option value="leve">Si &mdash; leve</option><option value="moderada">Si &mdash; moderada</option>
-            <option value="severa">Si &mdash; severa</option>
-          </select></div>
-      </div>
-      <div class="grid-3" style="margin-top:10px;">
-        <div class="fg"><label>Clase funcional NYHA</label>
-          <select id="fontan_clase_nyha" onchange="fontanSync()">
-            <option value="">&mdash;</option><option value="i">I</option><option value="ii">II</option>
-            <option value="iii">III</option><option value="iv">IV</option>
-          </select></div>
-        <div class="fg"><label>Arritmia</label>
-          <select id="fontan_arritmia" onchange="fontanSync()">
-            <option value="">&mdash;</option><option value="no">No</option>
-            <option value="fa">Fibrilación auricular</option><option value="flutter">Flutter</option>
-            <option value="tsv">TSV</option><option value="tv">TV</option>
-            <option value="brady">Bradicardia sinusal</option><option value="otra">Otra</option>
-          </select></div>
-      </div>
-      <div style="font-size:11.5px;font-weight:700;color:var(--text);margin:12px 0 4px;">Complicaciones</div>
-      <div style="display:flex;flex-direction:column;gap:2px;" id="fontan-complicaciones">
-        <label class="chk-toque" style="min-width:0;justify-content:flex-start;gap:8px;font-size:12px;padding:6px;"><input type="checkbox" id="fontan_comp_ninguna" onchange="fontanToggleComp('fontan_comp_ninguna')" style="width:16px;height:16px;flex:0 0 auto;"><span>Sin complicaciones</span></label>
-        <label class="chk-toque" style="min-width:0;justify-content:flex-start;gap:8px;font-size:12px;padding:6px;"><input type="checkbox" id="fontan_comp_epp" onchange="fontanToggleComp('fontan_comp_epp')" style="width:16px;height:16px;flex:0 0 auto;"><span>Enteropatia pierdeproteinas</span></label>
-        <label class="chk-toque" style="min-width:0;justify-content:flex-start;gap:8px;font-size:12px;padding:6px;"><input type="checkbox" id="fontan_comp_bronq" onchange="fontanToggleComp('fontan_comp_bronq')" style="width:16px;height:16px;flex:0 0 auto;"><span>Bronquitis plastica</span></label>
-        <label class="chk-toque" style="min-width:0;justify-content:flex-start;gap:8px;font-size:12px;padding:6px;"><input type="checkbox" id="fontan_comp_fald" onchange="fontanToggleComp('fontan_comp_fald')" style="width:16px;height:16px;flex:0 0 auto;"><span>Insuficiencia hepatica (FALD)</span></label>
-        <label class="chk-toque" style="min-width:0;justify-content:flex-start;gap:8px;font-size:12px;padding:6px;"><input type="checkbox" id="fontan_comp_trombo" onchange="fontanToggleComp('fontan_comp_trombo')" style="width:16px;height:16px;flex:0 0 auto;"><span>Trombosis del circuito</span></label>
-        <label class="chk-toque" style="min-width:0;justify-content:flex-start;gap:8px;font-size:12px;padding:6px;"><input type="checkbox" id="fontan_comp_otra" onchange="fontanToggleComp('fontan_comp_otra')" style="width:16px;height:16px;flex:0 0 auto;"><span>Otra</span></label>
-      </div>
-      <div id="fontan-resultado" class="calc-box" style="margin-top:12px;"></div>
-      <input type="checkbox" id="fontan_incluir_chk" style="display:none;" tabindex="-1" aria-hidden="true">
-      <div style="display:flex;justify-content:center;margin-top:10px;">
-        <button type="button" class="btn btn-integrar" data-ete-chk="fontan_incluir_chk" aria-pressed="false"
-                onclick="eteInclToggle('fontan_incluir_chk')">&#128206; Integrar al informe</button>
+      <!-- == FONTAN EN TRES COLUMNAS - tanda PANT-9, commit 1 (2026-11-04) ====================
+           DISPOSICION APROBADA POR EL MEDICO en un lienzo de disenio. Lo unico que cambia es
+           DONDE esta cada campo y donde esta cada texto: ningun id, ningun valor, ninguna opcion
+           y ninguna conclusion se movieron, y el papel sale identico -medido con el A/B-.
+           Los dos textos de 10 px que colgaban de la saturacion y de la insuficiencia AV pasaron
+           a su globo, PALABRA POR PALABRA, y estan en el registro de globos como
+           `cc9-fontan-sat` y `cc9-fontan-iav`.
+           La logica de las SEIS casillas no se toco: `fontanToggleComp` trabaja por id -«Sin
+           complicaciones» sigue siendo excluyente de las otras cinco- y lo que cambia es que se
+           ven en dos columnas en vez de seis filas apiladas. -->
+      <div class="cc9-cuadro">
+        <div class="cc9-hdrbar">
+          <button type="button" class="btn btn-ghost cc9-hdr-der" style="font-size:11px;padding:4px 12px;" onclick="critAbrir('fontan')">📋 Ver criterios</button>
+        </div>
+        <div class="cc9-fila" id="fontan-fila">
+          <div class="cc9-cols">
+            <div class="cc9-col">
+              <div class="cc9-h">Circuito y ventrículo sistémico</div>
+              <div class="fg"><label>Tipo de Fontan</label>
+                <select id="fontan_tipo" onchange="fontanSync()">
+                  <option value="">&mdash;</option>
+                  <option value="tunel">Tunel lateral</option>
+                  <option value="extra">Conexion cavopulmonar total extracardiaca</option>
+                  <option value="ap">Aurícula-pulmonar (antiguo)</option>
+                  <option value="noesp">No especificado</option>
+                </select></div>
+              <div class="fg"><label>Fenestracion</label>
+                <select id="fontan_fenestracion" onchange="fontanSync()">
+                  <option value="">&mdash;</option>
+                  <option value="sin">Sin fenestracion</option>
+                  <option value="presente">Fenestracion presente</option>
+                  <option value="cerrada">Fenestracion cerrada</option>
+                </select></div>
+              <div class="fg"><label>Morfología del ventrículo sistémico</label>
+                <select id="fontan_vs_morfologia" onchange="fontanSync()">
+                  <option value="">&mdash;</option>
+                  <option value="izq">Morfología izquierda</option>
+                  <option value="der">Morfología derecha</option>
+                  <option value="indet">Indeterminado</option>
+                </select></div>
+              <div class="fg"><label>FEVI del ventrículo sistémico (%)</label>
+                <input type="number" id="fontan_vs_fevi" placeholder="%" oninput="fontanSync()"></div>
+              <div class="fg"><label>FAC del ventrículo sistémico (%)</label>
+                <input type="number" id="fontan_vs_fac" placeholder="%" oninput="fontanSync()"></div>
+            </div>
+            <div class="cc9-col">
+              <div class="cc9-h">Saturación y función</div>
+              <div class="fg"><label>Saturacion O&#8322; (%) <button type="button" class="vinfo-btn vinfo-btn-44" data-vinfo="cc9-fontan-sat" aria-expanded="false" aria-label="Que saturacion de oxigeno se espera en una circulacion de Fontan" onclick="vInfoClic(this)">&#9432;</button></label>
+                <input type="number" id="fontan_saturacion" placeholder="%" oninput="fontanSync()"></div>
+              <div class="fg"><label>Insuficiencia AV sistémica <button type="button" class="vinfo-btn vinfo-btn-44" data-vinfo="cc9-fontan-iav" aria-expanded="false" aria-label="Que significa la insuficiencia auriculoventricular sistemica en una circulacion de Fontan" onclick="vInfoClic(this)">&#9432;</button></label>
+                <select id="fontan_it_grado" onchange="fontanSync()">
+                  <option value="">&mdash;</option><option value="no">Sin IT</option>
+                  <option value="leve">Leve</option><option value="moderada">Moderada</option>
+                  <option value="severa">Severa</option>
+                </select></div>
+              <div class="fg"><label>Clase funcional NYHA</label>
+                <select id="fontan_clase_nyha" onchange="fontanSync()">
+                  <option value="">&mdash;</option><option value="i">I</option><option value="ii">II</option>
+                  <option value="iii">III</option><option value="iv">IV</option>
+                </select></div>
+              <div class="fg"><label>Arritmia</label>
+                <select id="fontan_arritmia" onchange="fontanSync()">
+                  <option value="">&mdash;</option><option value="no">No</option>
+                  <option value="fa">Fibrilación auricular</option><option value="flutter">Flutter</option>
+                  <option value="tsv">TSV</option><option value="tv">TV</option>
+                  <option value="brady">Bradicardia sinusal</option><option value="otra">Otra</option>
+                </select></div>
+            </div>
+            <div class="cc9-col">
+              <div class="cc9-h">Congestión y complicaciones</div>
+              <div class="fg"><label>Derrame pleural</label>
+                <select id="fontan_derrame_pleural" onchange="fontanSync()">
+                  <option value="">&mdash;</option><option value="no">No</option>
+                  <option value="leve">Si &mdash; leve</option><option value="moderado">Si &mdash; moderado</option>
+                  <option value="severo">Si &mdash; severo</option>
+                </select></div>
+              <div class="fg"><label>Ascitis</label>
+                <select id="fontan_ascitis" onchange="fontanSync()">
+                  <option value="">&mdash;</option><option value="no">No</option>
+                  <option value="leve">Si &mdash; leve</option><option value="moderada">Si &mdash; moderada</option>
+                  <option value="severa">Si &mdash; severa</option>
+                </select></div>
+              <div style="font-size:11.5px;font-weight:700;color:var(--text);margin:4px 0 0;">Complicaciones</div>
+              <div class="cc9-chk2" id="fontan-complicaciones">
+                <label class="chk-toque" style="min-width:0;justify-content:flex-start;gap:8px;font-size:12px;padding:6px;"><input type="checkbox" id="fontan_comp_ninguna" onchange="fontanToggleComp('fontan_comp_ninguna')" style="width:16px;height:16px;flex:0 0 auto;"><span>Sin complicaciones</span></label>
+                <label class="chk-toque" style="min-width:0;justify-content:flex-start;gap:8px;font-size:12px;padding:6px;"><input type="checkbox" id="fontan_comp_epp" onchange="fontanToggleComp('fontan_comp_epp')" style="width:16px;height:16px;flex:0 0 auto;"><span>Enteropatia pierdeproteinas</span></label>
+                <label class="chk-toque" style="min-width:0;justify-content:flex-start;gap:8px;font-size:12px;padding:6px;"><input type="checkbox" id="fontan_comp_bronq" onchange="fontanToggleComp('fontan_comp_bronq')" style="width:16px;height:16px;flex:0 0 auto;"><span>Bronquitis plastica</span></label>
+                <label class="chk-toque" style="min-width:0;justify-content:flex-start;gap:8px;font-size:12px;padding:6px;"><input type="checkbox" id="fontan_comp_fald" onchange="fontanToggleComp('fontan_comp_fald')" style="width:16px;height:16px;flex:0 0 auto;"><span>Insuficiencia hepatica (FALD)</span></label>
+                <label class="chk-toque" style="min-width:0;justify-content:flex-start;gap:8px;font-size:12px;padding:6px;"><input type="checkbox" id="fontan_comp_trombo" onchange="fontanToggleComp('fontan_comp_trombo')" style="width:16px;height:16px;flex:0 0 auto;"><span>Trombosis del circuito</span></label>
+                <label class="chk-toque" style="min-width:0;justify-content:flex-start;gap:8px;font-size:12px;padding:6px;"><input type="checkbox" id="fontan_comp_otra" onchange="fontanToggleComp('fontan_comp_otra')" style="width:16px;height:16px;flex:0 0 auto;"><span>Otra</span></label>
+              </div>
+            </div>
+          </div>
+          <div class="cc9-concl">
+            <div id="fontan-resultado" class="calc-box"></div>
+            <input type="checkbox" id="fontan_incluir_chk" style="display:none;" tabindex="-1" aria-hidden="true">
+            <div class="cc9-concl-btn">
+              <button type="button" class="btn btn-integrar" data-ete-chk="fontan_incluir_chk" aria-pressed="false"
+                      onclick="eteInclToggle('fontan_incluir_chk')">&#128206; Integrar al informe</button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -48694,6 +48763,23 @@ const VINFO = Object.freeze({
        + 'arriba. La clasificaci\u00f3n es orientativa: la integraci\u00f3n cl\u00ednica es del m\u00e9dico tratante.'
   },
   /* La NOVENA tarjeta: la funcion diastolica («Q6»). Mismo ancho que las ocho de valvula. */
+  /* == LOS TEXTOS QUE LAS SIETE PANTALLAS DE CONGENITAS MOVIERON AL GLOBO - PANT-9 =========
+     Cada uno de estos textos YA ESTABA EN LA PANTALLA y se movio PALABRA POR PALABRA: no se
+     reescribio, no se completo y no se le agrego una fuente que no tuviera. Los que no traen
+     la clave de fuente es porque el texto de pantalla del que salen no la declaraba, y esta
+     tanda no inventa una: estan listados en docs/PENDIENTES.md -> P9-a con su ubicacion
+     anterior. Ninguno lleva ficha en la pestania Referencias, que es la convencion de las
+     entradas que no citan un corte de guia con su folio. */
+  'cc9-fontan-sat': {
+    ancho: 356,
+    tit: 'La saturacion de oxigeno en la circulacion de Fontan',
+    lee: 'Normal sin fenestracion: >93-95 %.'
+  },
+  'cc9-fontan-iav': {
+    ancho: 356,
+    tit: 'La insuficiencia auriculoventricular sistemica en Fontan',
+    lee: 'En Fontan es marcador de disfuncion del ventriculo sistemico.'
+  },
   'tarj-diast': { ancho: 356, dyn: function () { return qvDiast() } }
 });
 let _vInfoId = null;
@@ -155929,8 +156015,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261104-0623';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793784202135;                 /* eco-build-ms */
+const ECO_BUILD    = '20261104-0738';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793788716315;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -156016,7 +156102,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261104-0623</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261104-0738</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
