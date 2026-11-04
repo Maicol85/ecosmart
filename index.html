@@ -93656,6 +93656,190 @@ function _indEBS(){
     ]
   };
 }
+/* ══ CIRCULACION DE FONTAN — PANT-10, commit 4 (2026-11-04) ═══════════════════════════════════
+   Molde: el de _indCIA, sin reescribirlo.
+
+   LAS FUENTES, LEIDAS EN IMAGEN a 200 ppp con el folio comprobado en el pie impreso:
+     ACC/AHA 2025 (Gurvitz y col., Circulation 2026;153:e115-e251), apartado 4.4.5: hoja 87,
+     folio e201, con las VEINTITRES recomendaciones; y hoja 92, folio e206, con el texto de
+     apoyo 24 sobre la valvula auriculoventricular. Folio = e(hoja + 114).
+     ESC 2020 de cardiopatias congenitas del adulto, edicion inglesa, hoja 65, folio 627, con
+     sus OCHO recomendaciones especiales despues de la operacion de Fontan. Folio = hoja + 562.
+     Rychik J y col., Circulation 2019;140:e234-e284, hojas 8 y 9, folios e241 y e242. Es una
+     DECLARACION CIENTIFICA de la American Heart Association, NO una guia, y se cita asi.
+     Folio = e(233 + hoja).
+
+   ⚠️ CATORCE PREGUNTAS Y NO DIECISIETE, Y SE DICE POR QUE. Las recomendaciones respondibles con
+   los campos de esta pantalla son mas que el tope de la orden, asi que se priorizaron las de
+   clase 1 y 2a. Las TRES de clase 2b o IIb -la conversion del Fontan auriculopulmonar, los
+   vasodilatadores pulmonares y el cierre de la fenestracion- se publican en el bloque de su
+   guia, sin pregunta, y quedan listadas en docs/PENDIENTES.md.
+
+   ⚠️ NADA DE ESTE BLOQUE LLEGA AL PAPEL. Lo lee indicRender y nadie mas. */
+const FON_PREG = Object.freeze([
+  { clave:'fon.ev.falla', lbl:'Falla circulatoria progresiva del Fontan', guia:'acc', rec:'Clase 1 · Nivel B-NR, recomendacion 1 — se recomienda la evaluacion formal por un cardiologo de insuficiencia cardiaca y trasplante con experiencia en trasplante en la poblacion adulta con Fontan, hoja 87, folio e201', ref:'la ESC 2020 no publica una recomendacion equivalente en su tabla de Fontan' },
+  { clave:'fon.ev.sintNuevos', lbl:'Sintomas nuevos o progresivos, o deterioro de la clase funcional', guia:'acc', rec:'Clase 1 · Nivel C-EO, recomendacion 5 — la evaluacion hemodinamica con cateterismo cardiaco esta recomendada para guiar el tratamiento, hoja 87, folio e201', ref:'se recomienda un umbral bajo para el cateterismo ante edema sin explicacion, deterioro del ejercicio, arritmia de inicio reciente, cianosis o hemoptisis, Clase I · Nivel C (hoja 65, folio 627)' },
+  { clave:'fon.ev.hipoxemia', lbl:'Hipoxemia nueva, progresiva o severa', guia:'acc', rec:'Clase 1 · Nivel C-EO, recomendaciones 5 y 6 — la evaluacion hemodinamica con cateterismo esta recomendada, y con hipoxemia severa o de progresion rapida la imagen avanzada -resonancia, tomografia o ecocardiograma transesofagico- esta recomendada para descartar trombo o embolos en el Fontan o en la vasculatura pulmonar, hoja 87, folio e201', ref:'la cianosis esta entre las situaciones que piden un umbral bajo para el cateterismo, Clase I · Nivel C (hoja 65, folio 627)' },
+  { clave:'fon.ev.hipotension', lbl:'Hipotension nueva o severa', guia:'acc', rec:'Clase 1 · Nivel C-EO, recomendacion 6 — con hipoxemia o hipotension nueva, progresiva o severa, la imagen avanzada esta recomendada para descartar trombo o embolos, hoja 87, folio e201', ref:'la ESC 2020 no publica una recomendacion propia con esta condicion' },
+  { clave:'fon.ev.organos', lbl:'Disfuncion no cardiaca de organos, nueva o progresiva', guia:'acc', rec:'Clase 1 · Nivel C-EO, recomendacion 5 — la evaluacion hemodinamica con cateterismo esta recomendada para guiar el tratamiento, hoja 87, folio e201', nota:'la misma guia recomienda, en Clase 1 · Nivel C-EO (recomendacion 8), una evaluacion de laboratorio ANUAL para buscar disfuncion de organos o alteraciones hematologicas, sin que haga falta una condicion clinica que la dispare', ref:'la ESC 2020 no publica una recomendacion propia con esta condicion' },
+  { clave:'fon.ev.edema', lbl:'Edema sin explicacion', guia:'esc', rec:'Clase I · Nivel C — se recomienda un umbral bajo para el cateterismo cardiaco, hoja 65, folio 627', ref:'la ACC/AHA 2025 llega a lo mismo por los sintomas nuevos o progresivos y la disfuncion de organos (recomendacion 5, hoja 87, folio e201)' },
+  { clave:'fon.ev.hemoptisis', lbl:'Hemoptisis', guia:'esc', rec:'Clase I · Nivel C — se recomienda un umbral bajo para el cateterismo cardiaco, hoja 65, folio 627', ref:'la ACC/AHA 2025 no nombra la hemoptisis en su tabla de Fontan' },
+  { clave:'fon.ev.trombo', lbl:'Trombo conocido o sospechado', guia:'acc', rec:'Clase 1 · Nivel B-NR, recomendacion 12 — la anticoagulacion esta recomendada para reducir la probabilidad de enfermedad tromboembolica, hoja 87, folio e201', ref:'la anticoagulacion esta indicada en presencia, o con antecedente, de trombo auricular, arritmias auriculares o eventos tromboembolicos, Clase I · Nivel C (hoja 65, folio 627)' },
+  { clave:'fon.ev.tromboemb', lbl:'Antecedente de tromboembolia', guia:'acc', rec:'Clase 1 · Nivel B-NR, recomendacion 12 — es uno de los cuatro rasgos de alto riesgo que indican anticoagulacion, junto con el trombo, el Fontan auriculopulmonar y el flutter o la fibrilacion auricular sostenidos, hoja 87, folio e201', ref:'misma indicacion, Clase I · Nivel C (hoja 65, folio 627)' },
+  { clave:'fon.ev.arritmSost', lbl:'Flutter o fibrilacion auricular sostenidos', guia:'acc', rec:'Clase 1 · Nivel B-NR, recomendacion 12 -anticoagulacion-, Clase 1 · Nivel C-EO, recomendacion 4 -imagen y cateterismo de seguimiento para buscar anomalias anatomicas o hemodinamicas contribuyentes y trombosis del Fontan- y Clase 1 · Nivel C-LD, recomendacion 15 -con flutter o fibrilacion auricular de inicio reciente, la cardioversion oportuna, farmacologica o electrica, esta recomendada para prevenir la descompensacion clinica-, hoja 87, folio e201', ref:'la arritmia auricular sostenida con conduccion auriculoventricular rapida es una emergencia medica y debe tratarse con prontitud con cardioversion electrica, Clase I · Nivel C; y la anticoagulacion esta indicada con arritmias auriculares, Clase I · Nivel C (hoja 65, folio 627)' },
+  { clave:'fon.ev.sangrado', lbl:'Contraindicacion de sangrado para la anticoagulacion', guia:'acc', rec:'Clase 1 · Nivel B-NR, recomendacion 13 — en ausencia de rasgos de alto riesgo o de contraindicaciones de sangrado, el tratamiento con aspirina O anticoagulacion esta recomendado para reducir la probabilidad de enfermedad tromboembolica, hoja 87, folio e201', nota:'esta pregunta se contesta al reves que las otras: con contraindicacion de sangrado, la recomendacion 13 NO aplica', ref:'la ESC 2020 solo indica anticoagulacion con trombo, arritmia auricular o tromboembolia, y no publica una recomendacion para el paciente sin rasgos de alto riesgo (hoja 65, folio 627)', tramo:'las dos guias no cubren lo mismo: la ACC/AHA 2025 indica aspirina o anticoagulacion a TODO paciente sin rasgos de alto riesgo, y la ESC 2020 no' },
+  { clave:'fon.ev.tsvRec', lbl:'Taquicardia supraventricular recurrente', guia:'acc', rec:'Clase 2a · Nivel C-LD, recomendacion 19 — la ablacion por cateter hecha por un electrofisiologo con experiencia en cardiopatias congenitas del adulto es razonable para reducir la recurrencia de la arritmia y la morbilidad asociada, hoja 87, folio e201', ref:'con arritmias, un abordaje proactivo de evaluacion electrofisiologica y ablacion -cuando corresponda- debe considerarse, Clase IIa · Nivel C (hoja 65, folio 627)' },
+  { clave:'fon.ev.estenosis', lbl:'Estenosis hemodinamicamente significativa del circuito de Fontan o de las arterias pulmonares', guia:'acc', rec:'Clase 2a · Nivel C-EO, recomendacion 20 — la colocacion de un stent por cateterismo para reducir la presion del Fontan y mejorar el flujo es razonable para mejorar la hemodinamia, hoja 87, folio e201', nota:'su texto de apoyo (hoja 92, folio e206) agrega que no hay acuerdo sobre que constituye una obstruccion hemodinamicamente significativa, y que se ha usado una reduccion interna del 25 % del calibre o un gradiente de al menos 1 mmHg al retiro del cateter', ref:'la ESC 2020 pide excluir incluso obstrucciones menores al flujo cavopulmonar y al retorno venoso pulmonar, que pueden tener un impacto hemodinamico mayor (hoja 65, folio 627)' },
+  { clave:'fon.ev.colaterales', lbl:'Colaterales aortopulmonares, con sintomas o sobrecarga de volumen del ventriculo sistemico', guia:'acc', rec:'Clase 2a · Nivel C-EO, recomendacion 21 — el cierre de las colaterales aortopulmonares para mejorar los sintomas y reducir la probabilidad de remodelado ventricular patologico puede ser util, hoja 87, folio e201', nota:'su texto de apoyo (hoja 92, folio e206) agrega que las colaterales aortopulmonares son frecuentes en la fisiologia univentricular y que la decision de cerrarlas debe consultarse con un cardiologo intervencionista de congenitas con experiencia en adultos con Fontan', ref:'la ESC 2020 no publica una recomendacion propia con esta condicion' }
+]);
+window.FON_PREG = FON_PREG;
+function _indFON(){
+  const fEst = _indFn('fontanEstado');
+  const r = fEst ? fEst() : null;
+  if (!r || r.hayDatos === false) return null;
+
+  const tipo = _indS('fontan_tipo'), fen = _indS('fontan_fenestracion'), vsm = _indS('fontan_vs_morfologia');
+  const it = _indS('fontan_it_grado'), pleu = _indS('fontan_derrame_pleural'), asc = _indS('fontan_ascitis');
+  const nyha = _indS('fontan_clase_nyha'), arr = _indS('fontan_arritmia');
+  const fevi = _indN('fontan_vs_fevi'), fac = _indN('fontan_vs_fac'), sat = _indN('fontan_saturacion');
+  const _TIPO = { tunel:'Túnel lateral', extra:'Conexión cavopulmonar total extracardíaca',
+                  ap:'Aurícula-pulmonar (antiguo)', noesp:'No especificado' };
+  const _FEN = { sin:'Sin fenestración', presente:'Fenestración presente', cerrada:'Fenestración cerrada' };
+  const _VSM = { izq:'Morfología izquierda', der:'Morfología derecha', indet:'Indeterminado' };
+  const _GR = { no:'Sin IT', leve:'Leve', moderada:'Moderada', severa:'Severa' };
+  const _NYHA = { i:'I', ii:'II', iii:'III', iv:'IV' };
+  const _ARR = { no:'No', fa:'Fibrilación auricular', flutter:'Flutter', tsv:'TSV', tv:'TV',
+                 brady:'Bradicardia sinusal', otra:'Otra' };
+  const _PLE = { no:'No', leve:'Sí — leve', moderado:'Sí — moderado', severo:'Sí — severo' };
+  const _ASC = { no:'No', leve:'Sí — leve', moderada:'Sí — moderada', severa:'Sí — severa' };
+  const arrAur = (arr === 'fa' || arr === 'flutter');
+  const itModSev = (it === 'moderada' || it === 'severa');
+
+  const filas = [];
+  filas.push(_indFila('Tipo de Fontan', _ccLbl(_TIPO, tipo) || '—', tipo === 'ap' ? 'warn' : (tipo ? 'none' : 'ask'),
+    tipo === 'ap' ? 'el Fontan auriculopulmonar es uno de los cuatro rasgos de alto riesgo que indican anticoagulación en la ACC/AHA 2025, y el único en el que la conversión a cavopulmonar total tiene recomendación'
+    : tipo ? 'no es uno de los rasgos de alto riesgo de la recomendación de anticoagulación' : 'sin consignar'));
+  filas.push(_indFila('Fenestración', _ccLbl(_FEN, fen) || '—', fen ? 'none' : 'ask',
+    fen === 'presente' ? 'el cierre de la fenestración con dispositivo, cuando la cianosis es significativa, es Clase IIb · Nivel C de la ESC 2020'
+    : fen ? 'sin fenestración abierta, el cierre de la fenestración no se plantea' : 'sin consignar'));
+  filas.push(_indFila('Morfología del ventrículo sistémico', _ccLbl(_VSM, vsm) || '—', vsm ? 'none' : 'ask',
+    vsm === 'der' ? 'la disfunción de la válvula auriculoventricular es más frecuente con una válvula tricúspide morfológica' : 'sin umbral propio en las guías'));
+  filas.push(_indFila('Fracción de eyección del ventrículo sistémico', _indNum(fevi, 0, '%'),
+    fevi != null ? 'none' : 'ask',
+    fevi != null ? 'ninguna de las dos guías publica un umbral de fracción de eyección para el Fontan; la conversión del Fontan auriculopulmonar pide función ventricular preservada' : 'sin medir'));
+  filas.push(_indFila('Cambio fraccional de área del ventrículo sistémico', _indNum(fac, 0, '%'),
+    fac != null ? 'none' : 'ask', fac != null ? 'sin umbral propio en las guías' : 'sin medir'));
+  filas.push(_indFila('Saturación de oxígeno', _indNum(sat, 0, '%'),
+    sat == null ? 'ask' : (sat < 90 ? 'warn' : 'none'),
+    sat == null ? 'sin medir'
+    : sat < 90 ? 'por debajo de 90 % en reposo puede deberse a una fenestración o a colaterales venovenosas con cortocircuito de derecha a izquierda'
+    : 'en reposo y aire ambiente la saturación rara vez supera el 95 % y lo habitual es que esté entre 90 y 95 %'));
+  filas.push(_indFila('Insuficiencia auriculoventricular sistémica', _ccLbl(_GR, it) || '—',
+    it === 'severa' ? 'alarm' : (itModSev ? 'warn' : (it ? 'none' : 'ask')),
+    itModSev ? 'la insuficiencia moderada o mayor se asocia a mayor mortalidad en las dos fuentes' : 'sin consignar'));
+  filas.push(_indFila('Clase funcional NYHA', _ccLbl(_NYHA, nyha) || '—',
+    (nyha === 'iii' || nyha === 'iv') ? 'warn' : (nyha ? 'none' : 'ask'),
+    (nyha === 'iii' || nyha === 'iv') ? 'el deterioro de la clase funcional es una de las condiciones del cateterismo de la ACC/AHA 2025' : 'sin consignar'));
+  filas.push(_indFila('Arritmia', _ccLbl(_ARR, arr) || '—', arrAur ? 'warn' : (arr ? 'none' : 'ask'),
+    arrAur ? 'el flutter y la fibrilación auricular SOSTENIDOS son rasgo de alto riesgo para la anticoagulación; si son de inicio reciente, la cardioversión oportuna es Clase 1'
+    : arr ? 'sin umbral propio en las guías' : 'sin consignar'));
+  filas.push(_indFila('Derrame pleural', _ccLbl(_PLE, pleu) || '—',
+    (pleu && pleu !== 'no') ? 'warn' : (pleu ? 'none' : 'ask'),
+    (pleu && pleu !== 'no') ? 'la retención de líquido sin explicación es una de las situaciones que piden un umbral bajo para el cateterismo en la ESC 2020' : 'sin consignar'));
+  filas.push(_indFila('Ascitis', _ccLbl(_ASC, asc) || '—',
+    (asc && asc !== 'no') ? 'warn' : (asc ? 'none' : 'ask'),
+    (asc && asc !== 'no') ? 'mismo criterio que el derrame pleural' : 'sin consignar'));
+  const comps = (r.comps || []).map(function (c) { return c && c.lbl ? c.lbl : String(c); });
+  filas.push(_indFila('Complicaciones consignadas', comps.length ? comps.join('; ') : (r.sinComp ? 'Sin complicaciones' : '—'),
+    comps.length ? 'warn' : (r.sinComp ? 'none' : 'ask'),
+    comps.length ? 'la ACC/AHA 2025 recomienda imagen y laboratorio hepáticos al menos una vez al año, y la ESC 2020 imagen hepática regular' : 'sin consignar'));
+
+  const FON_OPS = [{ v:'si', t:'Sí' }, { v:'no', t:'No' }, IND_OPS_SD];
+  const clinica = [], _si = [], _no = [], _sd = [], _siDet = [];
+  FON_PREG.forEach(function (p) {
+    const o = _indOrigen(null, p.clave);
+    if (o.val === 'si') { _si.push(p.lbl); _siDet.push(p); }
+    else if (o.val === 'no') _no.push(p.lbl); else _sd.push(p.lbl);
+    const _f = _indFilaOrigen(p.lbl, o, FON_OPS, function (val) {
+      return { txt: val === 'si' ? 'Sí' : (val === 'no' ? 'No' : 'Sin dato'),
+               marca: val === 'si' ? 'warn' : (val === 'no' ? 'none' : 'ask'),
+               nota: _indPregNota(p, val == null) };
+    }, true);
+    const _b = _indPregBadge(p); if (_b) _f.badge = _b;
+    clinica.push(_f);
+  });
+  clinica.unshift(_indFila('Respuestas',
+    _si.length + ' en Sí · ' + _no.length + ' en No · ' + _sd.length + ' sin dato', 'none',
+    '«Sin dato» no cuenta como «no»: mientras una condición no se conteste, no sostiene ninguna recomendación.'));
+  const _bal = _si.length
+    ? { txt:'Condiciones presentes en este paciente: ' + _si.length + ' de ' + FON_PREG.length + ' (' + _si.join('; ') + ').'
+        + (_sd.length ? ' Sin contestar: ' + _sd.join('; ') + '.' : ' Las otras ' + _no.length + ' están contestadas que no.'), refs:null }
+    : (_sd.length
+      ? { txt:'Ninguna condición consta como presente, y quedan ' + _sd.length + ' sin contestar: ' + _sd.join('; ')
+          + '. Mientras no se contesten, ninguna de las recomendaciones de arriba se sostiene en este paciente — «sin dato» no cuenta como «no».', refs:null }
+      : { txt:'Las ' + FON_PREG.length + ' condiciones están contestadas y ninguna está presente.', refs:null });
+
+  return { filas: filas,
+    clinica: clinica,
+    bloques: [
+      { tit:'Seguimiento y estudios — ACC/AHA 2025, apartado 4.4.5, hoja 87, folio e201', lineas:[
+        { txt:'Clase 1 · Nivel B-NR — Con evidencia de falla circulatoria progresiva del Fontan, se recomienda la evaluación formal por un cardiólogo de insuficiencia cardíaca y trasplante con experiencia en la población adulta con Fontan (recomendación 1).', refs:null },
+        { txt:'Clase 1 · Nivel C-LD — La imagen y la evaluación de laboratorio del hígado deben hacerse al menos una vez al año, para cribar carcinoma hepatocelular y buscar evidencia de enfermedad hepática asociada al Fontan progresiva (recomendación 2).', refs:null },
+        { txt:'Clase 1 · Nivel C-EO — Con taquiarritmias auriculares nuevas o que empeoran, la evaluación con imagen y el cateterismo de seguimiento, según corresponda, están recomendados para buscar anomalías anatómicas o hemodinámicas contribuyentes y trombosis del circuito (recomendación 4).', refs:null },
+        { txt:'Clase 1 · Nivel C-EO — Con síntomas nuevos o progresivos, hipoxemia, deterioro de la clase funcional o evidencia de disfunción no cardíaca de órganos nueva o progresiva, la evaluación hemodinámica con cateterismo está recomendada para guiar el tratamiento (recomendación 5).', refs:null },
+        { txt:'Clase 1 · Nivel C-EO — Con hipoxemia o hipotensión nueva, progresiva o severa, la evaluación con imagen avanzada —resonancia, tomografía o ecocardiograma transesofágico— está recomendada para descartar trombo o émbolos en el Fontan o en la vasculatura pulmonar (recomendación 6).', refs:null },
+        { txt:'Clase 1 · Nivel C-EO — La evaluación de laboratorio anual está recomendada para buscar disfunción de órganos o alteraciones hematológicas (recomendación 8).', refs:null },
+        { txt:'Fuente: ACC/AHA 2025 de cardiopatías congénitas del adulto, apartado 4.4.5, «Fontan Palliation of Single-Ventricle Physiology», hoja 87, folio e201.', refs:['acc2025achd'] }
+      ]},
+      { tit:'Anticoagulación, arritmia e intervención — ACC/AHA 2025, misma hoja 87, folio e201', lineas:[
+        { txt:'Clase 1 · Nivel B-NR — Con trombo conocido o sospechado, Fontan auriculopulmonar, antecedente de tromboembolia, o flutter o fibrilación auricular sostenidos, la anticoagulación está recomendada para reducir la probabilidad de enfermedad tromboembólica (recomendación 12).', refs:null },
+        { txt:'Clase 1 · Nivel B-NR — En ausencia de esos rasgos de alto riesgo o de contraindicaciones de sangrado, el tratamiento con aspirina o con anticoagulación está recomendado con el mismo fin (recomendación 13).', refs:null },
+        { txt:'Clase 1 · Nivel C-LD — Con flutter o fibrilación auricular de inicio reciente, la cardioversión oportuna, farmacológica o eléctrica, está recomendada para prevenir la descompensación clínica (recomendación 15).', refs:null },
+        { txt:'Clase 2a · Nivel C-LD — Con taquicardia supraventricular recurrente, la ablación por catéter hecha por un electrofisiólogo con experiencia en cardiopatías congénitas del adulto es razonable para reducir la recurrencia y la morbilidad asociada (recomendación 19).', refs:null },
+        { txt:'Clase 2a · Nivel C-EO — Con estenosis hemodinámicamente significativa del circuito de Fontan o de las arterias pulmonares, la colocación de un stent por cateterismo es razonable para mejorar la hemodinámica (recomendación 20).', refs:null },
+        { txt:'Clase 2a · Nivel C-EO — En el paciente sintomático, o con evidencia de sobrecarga de volumen del ventrículo sistémico, el cierre de las colaterales aortopulmonares puede ser útil para mejorar los síntomas y reducir la probabilidad de remodelado ventricular patológico (recomendación 21).', refs:null },
+        { txt:'Clase 2b · Nivel B-R — El tratamiento con vasodilatadores pulmonares puede considerarse para mejorar la capacidad de ejercicio (recomendación 22). No tiene pregunta en esta sección.', refs:null },
+        { txt:'Clase 2b · Nivel C-LD — Con Fontan auriculopulmonar, función ventricular preservada y riesgo quirúrgico aceptable, la cirugía de conversión del Fontan puede considerarse con arritmias auriculares refractarias al tratamiento médico y por catéter, para reducir la recurrencia de la arritmia (recomendación 23). No tiene pregunta en esta sección.', refs:null }
+      ]},
+      { tit:'Consideraciones especiales después de la operación de Fontan — ESC 2020 (guía anterior), hoja 65, folio 627', lineas:[
+        { txt:'Clase I · Nivel C — La arritmia auricular sostenida con conducción auriculoventricular rápida es una emergencia médica y debe tratarse con prontitud con cardioversión eléctrica.', refs:null },
+        { txt:'Clase I · Nivel C — La anticoagulación está indicada en presencia, o con antecedente, de trombo auricular, arritmias auriculares o eventos tromboembólicos.', refs:null },
+        { txt:'Clase I · Nivel C — Se recomienda aconsejar en contra del embarazo a la mujer con circulación de Fontan y cualquier complicación.', refs:null },
+        { txt:'Clase I · Nivel C — Se recomienda un umbral bajo para el cateterismo cardíaco ante edema sin explicación, deterioro del ejercicio, arritmia de inicio reciente, cianosis o hemoptisis.', refs:null },
+        { txt:'Clase IIa · Nivel C — Con arritmias, debe considerarse un abordaje proactivo de evaluación electrofisiológica y ablación, cuando corresponda.', refs:null },
+        { txt:'Clase IIa · Nivel C — Debe considerarse la imagen hepática regular, por ecografía, tomografía o resonancia.', refs:null },
+        { txt:'Clase IIb · Nivel C — Los antagonistas del receptor de endotelina y los inhibidores de la fosfodiesterasa 5 pueden considerarse en pacientes seleccionados con presión o resistencia pulmonar elevadas y en ausencia de presión de fin de diástole ventricular elevada. No tiene pregunta en esta sección.', refs:null },
+        { txt:'Clase IIb · Nivel C — En pacientes seleccionados con cianosis significativa, el cierre con dispositivo de una fenestración puede considerarse, pero requiere una evaluación cuidadosa antes de la intervención para excluir que induzca un aumento de la presión venosa sistémica o una caída del gasto cardíaco. No tiene pregunta en esta sección.', refs:null },
+        { txt:'Fuente: ESC 2020 de cardiopatías congénitas del adulto, hoja 65, folio 627.', refs:['esc2020guch'] }
+      ]},
+      { tit:'Las diferencias entre las dos guías, sin resolver', lineas:[
+        { txt:'Anticoagulación: la ACC/AHA 2025 separa a los pacientes con rasgos de alto riesgo —que anticoagula— de los demás, a los que indica aspirina o anticoagulación; la ESC 2020 sólo la indica con trombo, arritmia auricular o tromboembolia, y no publica recomendación para el resto.', refs:null },
+        { txt:'Vasodilatadores pulmonares: la ACC/AHA 2025 los plantea para mejorar la capacidad de ejercicio, sin condición hemodinámica; la ESC 2020 pide presión o resistencia pulmonar elevadas y presión de fin de diástole ventricular normal.', refs:null },
+        { txt:'Cierre de la fenestración: sólo la ESC 2020 lo recomienda, con cianosis significativa (Clase IIb · Nivel C).', refs:null },
+        { txt:'Hígado: la ACC/AHA 2025 pide imagen y laboratorio al menos una vez al año (Clase 1 · Nivel C-LD) y la ESC 2020 imagen regular (Clase IIa · Nivel C).', refs:null },
+        _bal
+      ]},
+      { tit:'Lo que la declaración científica de la AHA de 2019 agrega — Rychik y col., Circulation 2019;140:e234-e284', lineas:[
+        { txt:'No es una guía de práctica: es una declaración científica de la American Heart Association, y se cita como tal.', refs:null },
+        { txt:'En reposo y respirando aire ambiente, la saturación arterial sistémica rara vez supera el 95 % y lo habitual es que esté entre 90 y 95 %; con el ejercicio suele caer por debajo de 90 % (hoja 8, folio e241).', refs:null },
+        { txt:'La relación entre la insuficiencia auriculoventricular y la función ventricular va en los dos sentidos, y la insuficiencia moderada o mayor es un factor de riesgo de mortalidad a largo plazo después de la cirugía de Fontan (hoja 9, folio e242).', refs:null }
+      ]}
+    ].concat(_siDet.length ? [{ tit:'Recomendaciones que aplican con lo contestado (' + _siDet.length + ')',
+      lineas: _siDet.map(function (p) {
+        const b = _indPregBadge(p);
+        const et = b ? (b.g === 'ACC' ? 'ACC/AHA 2025' : 'ESC 2020') + (b.cn ? ' · ' + b.cn : '') : '';
+        return { txt: p.lbl + (et ? ' — ' + et : '') + '.', refs:null };
+      }) }] : []),
+    compacta: true,
+    preguntas: true,
+    guia: { ref:'acc2025achd',
+      txt:'Las indicaciones de esta sección salen de DOS guías: la ACC/AHA 2025 de cardiopatías congénitas del adulto (apartado 4.4.5, hoja 87, folio e201), que es la que rige cuando las dos tratan el mismo tema con cortes distintos, y la ESC 2020 de cardiopatías congénitas del adulto (hoja 65, folio 627), que queda como referencia. La declaración científica de la AHA de 2019 sobre la circulación de Fontan se cita aparte y como lo que es: no es una guía. Cada pregunta usa los cortes de UNA sola de ellas, con su nombre y año a la vista.' },
+    notas: [
+      'Las preguntas de esta sección son catorce, y no todas las condiciones respondibles: se priorizaron las de clase 1 y 2a. Las tres de clase 2b o IIb —la conversión del Fontan auriculopulmonar, los vasodilatadores pulmonares y el cierre de la fenestración— se publican en el bloque de su guía, sin pregunta.',
+      'Lo contestado en esta sección no se guarda con el estudio y no llega al informe.'
+    ]
+  };
+}
 const CIA_PREG = Object.freeze([
   { clave:'cia.ev.vddil', lbl:'Dilatación del ventrículo derecho', guia:'acc', rec:'Clase 1 · Nivel B-R, recomendación 5 —con cortocircuito significativo y sin hipertensión arterial pulmonar ni enfermedad significativa del ventrículo izquierdo, el cierre está recomendado—, y Clase 2a, recomendaciones 8 y 9, hoja 35, folio e149', ref:'la sobrecarga de volumen del ventrículo derecho —su nota al pie c la define como agrandamiento CON volumen latido aumentado— es la condición de la Clase I · Nivel B (hoja 30, folio 592)' },
   { clave:'cia.ev.qpqs15', lbl:'Qp:Qs de 1,5 o más', guia:'acc', rec:'Clase 1 · Nivel B-R, recomendación 5; Clase 2a, recomendaciones 8 y 9; Clase 2b, recomendación 12, hoja 35, folio e149', ref:'un cortocircuito izquierda-derecha significativo es un Qp:Qs MAYOR que 1,5 (hoja 30, folio 592)', tramo:'con un Qp:Qs de 1,5 exacto las dos guías no coinciden: la ACC/AHA 2025 escribe «≥1,5» y la ESC 2020 «>1,5»' },
@@ -99596,6 +99780,9 @@ const IND_SECS = [
   /* ⚠️ LA DEL COMMIT 3 DE PANT-10. Va con las de congénitas y su título es único: «Anomalía de
      Ebstein» no es prefijo de ninguno de los treinta y cuatro ni ninguno es prefijo suyo. */
   { tit:'Anomalía de Ebstein',                   fn:_indEBS },
+  /* ⚠️ LA DEL COMMIT 4 DE PANT-10. «Circulación de Fontan» es único y no colisiona por
+     prefijo con ninguno de los treinta y cinco. */
+  { tit:'Circulación de Fontan',                 fn:_indFON },
   { tit:'Ductus arterioso permeable',            fn:_indDAP },
   { tit:'Coartación de aorta',                   fn:_indCoAo },
   /* ⚠️ LAS DOS DE LA TANDA PANT-4 (03/11/2026). Van PEGADAS a la coartación porque son las
@@ -156760,8 +156947,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261104-1051';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793800283926;                 /* eco-build-ms */
+const ECO_BUILD    = '20261104-1054';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793800463052;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -156847,7 +157034,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261104-1051</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261104-1054</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
