@@ -100033,8 +100033,16 @@ caso('TC-557', 'Tanda AJUSTES-2: la coartacion en el papel sin recomendaciones n
   /* ══ B — TODO DIAGRAMA INCLUIDO SE GUARDA (commit 2) ══════════════════════════════════════ */
   /* (B0) DENOMINADOR: el registro de diagramas existe y tiene sus seis entradas. */
   const REG = (typeof INF_MIN_DIAG !== 'undefined') ? INF_MIN_DIAG : null;
-  ex.push(['(B0) DENOMINADOR: INF_MIN_DIAG publica los seis diagramas',
-    !!REG && REG.length === 6, REG ? REG.map(d => d.k).join(',') : 'SIN REGISTRO']);
+  /* ADAPTADO EN PANT-7 (c2), CON EL MOTIVO: el registro pasa de SEIS a SIETE porque la CIA
+     entra en la fila de miniaturas. La premisa de esa orden era que la miniatura del diagrama de
+     la CIA «ya aparece», y medido no aparecia: con la CIA cargada, su dibujo generado y la
+     casilla marcada, la fila salia en display:none y el contador decia «En el PDF: 0» porque
+     este registro no la tenia. No hizo falta ningun campo guardado nuevo.
+     La condicion no se limita a cambiar el numero: ademas EXIGE que la entrada de la CIA este,
+     asi que sacarla vuelve a poner el caso en rojo. */
+  ex.push(['(B0) DENOMINADOR: INF_MIN_DIAG publica los siete diagramas, la CIA incluida',
+    !!REG && REG.length === 7 && REG.some(d => d.k === 'cia'),
+    REG ? REG.map(d => d.k).join(',') : 'SIN REGISTRO']);
 
   /* (B1) CONFIG VIENE PRENDIDO SI NADIE LO TOCO. Se prueba en el entorno de prueba, nunca
      sobre el almacenamiento real: la clave se borra y se repone al salir. */

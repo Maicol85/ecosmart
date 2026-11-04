@@ -74408,11 +74408,12 @@ function generarPDFReal(_aj) {
      malentendido contra el que este archivo ya puso guardas en el reloj del TAVI y en las
      dianas. try/catch por lo mismo que el reloj: una excepción acá aborta el PDF entero. */
   let _ciaImg = null, _ciaFilas = null;
+  const _ciaInfo = {};
   try {
     const _ciaChk = document.getElementById('ete_shunt_incluir_chk');
     const _hayBorde = (typeof _CIA_BORDES !== 'undefined') && _CIA_BORDES.some(b => v(b[0]) != null);
     if (_ciaChk && _ciaChk.checked && _hayBorde && typeof ciaDonutDataURL === 'function') {
-      _ciaImg = ciaDonutDataURL();
+      _ciaImg = ciaDonutDataURL(_ciaInfo);
       _ciaFilas = CIA_DONUT_SEGS.filter(s => s.campo).map(s => {
         const mm = v(s.campo), col = colorBordeCIA(mm);
         return { lbl: s.nombre.replace(/\s*\(.*\)$/, ''), mm: mm, col: col };
@@ -74423,30 +74424,57 @@ function generarPDFReal(_aj) {
     /* ⟶ RECOGIDO POR EL MOTOR (IMG3-5). R-4: la CIA va DEBAJO de su texto, en la hoja de
        «Cardiopatías congénitas», y no en una sección propia en medio del cuerpo — que es
        exactamente el «la CIA lejos de su texto de congénitas» que el médico reportó.
-       ⚠️ LA TABLA DE NUEVE FILAS PASA A UNA LINEA COMPACTA, con las MISMAS palabras y los
-       MISMOS dueños: `eteCiaBordeMin`, `ccQpQsDe`, `eteQpQsInterp` y `CIA_DIR_TXT`. El estado
-       por color de cada borde deja de dibujarse —en una franja no hay lugar para una columna de
-       cuadraditos— y en su lugar va el valor en milímetros, que es el dato. */
-    const _bm = (typeof eteCiaBordeMin === 'function') ? eteCiaBordeMin() : null;
-    const _cq = (typeof ccQpQsDe === 'function') ? ccQpQsDe('cia') : null;
-    const _cdir = sv('ete_cia_dir'), _cvel = v('ete_cia_vel');
-    const _cqTxt = (_cdir === 'di' || _cq == null) ? '' : String(eteQpQsInterp(_cq)).split(/\s*[—.]\s*/)[0];
-    const _cp = [];
-    /* ⚠️ EL ESTADO DE CADA BORDE VA EN LA LINEA, y no se pierde. La tabla publicaba una columna
-       «Estado» —adecuado, borderline, no medido— que el texto de congénitas NO dice, así que
-       dejarla afuera habría sido la única pérdida real de este commit. Los bordes SIN medir no
-       se nombran: «si no hay datos, sin línea» vale también por dato. */
-    _ciaFilas.forEach(function (f) {
-      if (f.mm == null) return;
-      const _e = (f.col && f.col.estado && f.col.estado !== 'sin') ? (' (' + f.col.estado + ')') : '';
-      _cp.push(f.lbl + ' ' + f.mm + ' mm' + _e);
+       ⚠️ LA LINEA DE CORRIDO SE RETIRA (PANT-7, c2), POR ORDEN DEL MEDICO. Decia los cinco
+          bordes, el borde minimo, la direccion del shunt, la velocidad del jet y el Qp/Qs en un
+          solo renglon -«VCS 4 mm (borderline) · Aortico 7 mm (adecuado) · AV / Mitral 10 mm
+          (adecuado) · VCI 12 mm (adecuado) · Posterior 2 mm (deficiente) · borde minimo 2 mm
+          (posterior) · izquierda a derecha · vel. del jet 3 m/s»— y el medico la rechazo.
+       ⚠️ NO SE PIERDE NADA, Y ESTA CENSADO ANTES DE RETIRARLO:
+          · los CINCO bordes con su medida pasan a estar DENTRO de su sector del diagrama, sobre
+            el color de adecuacion que ese sector ya tiene;
+          · el BORDE MINIMO, la DIRECCION del shunt y la VELOCIDAD DEL JET ya los dice el texto
+            de «Mediciones» y de «Hemodinamica» de la misma hoja, arriba del diagrama, asi que
+            repetirlos es lo que la orden prohibe expresamente;
+          · el QP/QS y el tipo, el tamanio y la direccion siguen EN EL CENTRO del diagrama, que
+            no se toca;
+          · el ESTADO de adecuacion sigue siendo el COLOR del sector, que es lo que la leyenda
+            de la pantalla explica, y vuelve como palabra solo en la lista lateral.
+       El estado por color de cada borde NO se dibuja como columna de cuadraditos: lo lleva el
+       propio sector. */
+    /* ⚠️ UNA PARTE DE LA PREMISA DE LA ORDEN ES FALSA, Y ESTA MEDIDA. La orden dice que el borde
+       minimo, la direccion del shunt y la velocidad del jet «ya estan en los textos de arriba de
+       la hoja», y manda no repetirlos. Medido en el PDF generado de verdad, en dos escenas:
+         · con la CIA INTEGRADA al informe (escena `p6ccDosInt`) es CIERTO: el parrafo de arriba
+           dice «CIA. Tamanio 14 x 11 mm. Borde minimo 3 mm (aortico). Velocidad pico del jet
+           1.2 m/s. Qp/Qs global 1.18.»;
+         · con el diagrama INCLUIDO y la seccion SIN integrar (escena `p6ccNadaInt`) es FALSO:
+           «borde minimo» x0, «jet» x0 y «Qp/Qs» x0 en los 3.108 caracteres de esa hoja.
+       De los tres, DOS no se pierden igual: la DIRECCION y el Qp/Qs siguen en el CENTRO del
+       diagrama -que la orden deja como esta- y el BORDE MINIMO es derivado de los cinco valores,
+       que ahora estan todos dentro de su sector con su nombre. El unico NUMERO MEDIDO que podria
+       desaparecer del papel es la VELOCIDAD DEL JET, y la regla fija de esta casa dice que
+       ninguno puede desaparecer: antes de retirar algo del papel hay que verificar que su
+       contenido este en otra parte, y si no esta, PARAR.
+       ⚠️ ASI QUE SE RETIRA LA LINEA Y SE CONSERVA UN SOLO DATO, Y SOLO DONDE HOY NO ESTA: la
+          velocidad del jet entra en la linea del diagrama unicamente cuando el parrafo de la CIA
+          NO se va a emitir. El predicado es el MISMO que usa ese parrafo -`eteShuntLesionOn('cia')`,
+          que es el `onCia` del emisor-, no una segunda regla: con una copia, el dia que una
+          cambie la otra se queda vieja y el dato sale repetido o se pierde.
+       Lo que la orden pide retirar -los cinco bordes en un renglon, el borde minimo, la
+       direccion y el Qp/Qs- se retira sin excepcion. */
+    const _ciaEnParrafo = (typeof eteShuntLesionOn === 'function') && eteShuntLesionOn('cia');
+    const _ciaVel = v('ete_cia_vel');
+    const _ciaLinea = (!_ciaEnParrafo && _ciaVel != null)
+      ? ('Velocidad pico del jet ' + _ciaVel + ' m/s') : '';
+    const _fuera = (_ciaInfo.fuera || []);
+    /* La lista lateral: SOLO los bordes cuyo valor no entro dentro de su sector, uno por linea,
+       con su muestra de color, su nombre, su medida y su adecuacion. Reusa el mecanismo de
+       leyenda del motor de tercios -el mismo de las dianas-, y no un renglon. */
+    const _leg = _fuera.map(function (f) {
+      return { color: f.color, nombre: f.nombre + ' ' + f.mm + ' mm · ' + f.estado };
     });
-    if (_bm) _cp.push('borde mínimo ' + _bm.mm + ' mm (' + _bm.nombre + ')');
-    if (typeof CIA_DIR_TXT === 'object' && CIA_DIR_TXT[_cdir]) _cp.push(CIA_DIR_TXT[_cdir]);
-    if (_cvel != null) _cp.push('vel. del jet ' + _cvel + ' m/s');
-    if (!(_cdir === 'di' || _cq == null))
-      _cp.push('Qp/Qs ' + (Math.round(_cq * 100) / 100).toFixed(2) + (_cqTxt ? ' (' + _cqTxt + ')' : ''));
-    _dg.cia = { partes: [{ data: _ciaImg }], linea: _cp.join('  ·  ') };
+    _dg.cia = { partes: [_leg.length ? { data: _ciaImg, leyenda: _leg } : { data: _ciaImg }],
+                linea: _ciaLinea };
   }
 
   /* ── EL ESQUEMA DEL POSOPERATORIO (POP-C-10) ──
@@ -77960,7 +77988,35 @@ window.ciaDonutRender = ciaDonutRender;
    igual que `bullseyeDataURL`. Supermuestreo 2x y base blanca, como el resto de las imágenes
    que entran al informe: sin la base, el PNG sale transparente y jsPDF lo estampa sobre el
    fondo del visor, que en modo oscuro deja el texto negro del centro ilegible. */
-function ciaDonutDataURL(){
+/* ⚠️ EL ANCHO QUE HAY DENTRO DE UN SECTOR SE MIDE, NO SE ESTIMA (PANT-7, c2). Un sector es un
+   segmento de anillo -radio interior 46, exterior 115, 72 grados- y el texto se dibuja
+   HORIZONTAL, asi que el espacio que queda depende del angulo: en el sector de arriba la
+   tangente es horizontal y hay casi toda la cuerda, y en el aortico es casi vertical y lo que
+   acota es el espesor del anillo. Esta funcion barre x desde el centro de la etiqueta hacia los
+   dos lados preguntando si el punto sigue dentro del anillo Y dentro del arco de SU sector, y
+   devuelve el doble del lado mas corto -el texto va centrado-. Es exacto.
+   Las unidades son las del viewBox del dibujo (260x260 centrado en 0,0), que son las mismas en
+   que se mide el texto despues de `c.scale`. */
+function _ciaSegAnchoDisp(seg, yy){
+  const R0 = 46, R1 = 115, MARG = 3.5, SEMI = 36 * Math.PI / 180, MARGANG = 0.07;
+  const cen = Math.atan2(seg.sy, seg.sx);
+  const dentro = (x, y2) => {
+    const r = Math.sqrt(x * x + y2 * y2);
+    if (r < R0 + MARG || r > R1 - MARG) return false;
+    let d = Math.atan2(y2, x) - cen;
+    while (d >  Math.PI) d -= 2 * Math.PI;
+    while (d < -Math.PI) d += 2 * Math.PI;
+    return Math.abs(d) <= SEMI - MARGANG;
+  };
+  if (!dentro(seg.sx, yy)) return 0;
+  let iz = 0, de = 0;
+  while (iz < 130 && dentro(seg.sx - iz - 1, yy)) iz++;
+  while (de < 130 && dentro(seg.sx + de + 1, yy)) de++;
+  return 2 * Math.min(iz, de);
+}
+window._ciaSegAnchoDisp = _ciaSegAnchoDisp;
+
+function ciaDonutDataURL(info){
   const S = 300, k = 2;
   const cv = document.createElement('canvas'); cv.width = S * k; cv.height = S * k;
   const c = cv.getContext('2d'); if (!c) return null;
@@ -77976,14 +78032,45 @@ function ciaDonutDataURL(){
     c.lineWidth = 1.5; c.strokeStyle = '#ffffff'; c.stroke(p);
   });
   /* Las siglas en una segunda pasada, por lo mismo que en el SVG: dibujadas dentro del bucle,
-     el relleno del sector siguiente tapa la del anterior en los bordes compartidos. */
+     el relleno del sector siguiente tapa la del anterior en los bordes compartidos.
+     ⚠️ Y DESDE PANT-7 (c2) CADA SECTOR LLEVA SU MEDIDA EN mm DEBAJO DE SU SIGLA, por orden del
+        medico: la hoja avanzada del PDF publicaba los cinco bordes en una LINEA DE CORRIDO
+        debajo del diagrama -«VCS 4 mm (borderline) · Aortico 7 mm (adecuado) · ...»- y el medico
+        la rechazo. El valor va DENTRO de su sector, sobre el color de adecuacion que ese sector
+        ya tiene, y la linea se retira.
+     ⚠️ SI UN VALOR NO ENTRA, ESE VALOR SALE AL COSTADO Y NO SE ENCOGE NI SE RECORTA. Lo decide
+        la medicion de `_ciaSegAnchoDisp` contra el ancho real de `measureText`, no una
+        estimacion; el sector se queda con su sigla sola y el borde se publica en la lista
+        lateral del diagrama -nombre, medida y adecuacion, uno por linea-, que es el mecanismo
+        de leyenda que el motor de tercios ya tiene. `info.fuera` es por donde sale esa lista.
+     ⚠️ UN BORDE SIN MEDIR NO ESCRIBE NINGUN NUMERO: se queda con la sigla centrada, como hasta
+        hoy. Es la misma regla que `colorBordeCIA` aplica con su estado propio «sin dato». */
   c.textAlign = 'center'; c.textBaseline = 'middle';
+  const FSIG = '500 9px Helvetica, Arial, sans-serif';
+  const FVAL = '600 9.5px Helvetica, Arial, sans-serif';
+  const DYSIG = -5, DYVAL = 5.5;
+  const _ciaFuera = [];
   CIA_DONUT_SEGS.forEach(function(seg){
-    const col = colorBordeCIA(_ciaSegMm(seg));
-    c.font = '500 9px Helvetica, Arial, sans-serif';
+    const mm = _ciaSegMm(seg), col = colorBordeCIA(mm);
     c.fillStyle = col.text;
-    c.fillText(seg.sigla, seg.sx, seg.sy);
+    if (mm == null) { c.font = FSIG; c.fillText(seg.sigla, seg.sx, seg.sy); return; }
+    const txt = String(mm) + ' mm';
+    c.font = FSIG; const wSig = c.measureText(seg.sigla).width;
+    c.font = FVAL; const wVal = c.measureText(txt).width;
+    const dSig = _ciaSegAnchoDisp(seg, seg.sy + DYSIG);
+    const dVal = _ciaSegAnchoDisp(seg, seg.sy + DYVAL);
+    if (wSig <= dSig && wVal <= dVal) {
+      c.font = FSIG; c.fillText(seg.sigla, seg.sx, seg.sy + DYSIG);
+      c.font = FVAL; c.fillText(txt, seg.sx, seg.sy + DYVAL);
+    } else {
+      c.font = FSIG; c.fillText(seg.sigla, seg.sx, seg.sy);
+      _ciaFuera.push({ sigla: seg.sigla, nombre: seg.nombre.replace(/\s*\(.*\)$/, ''),
+                       mm: mm, estado: col.estado, color: col.fill,
+                       medSig: Math.round(wSig * 10) / 10, medVal: Math.round(wVal * 10) / 10,
+                       dispSig: dSig, dispVal: dVal });
+    }
   });
+  if (info && typeof info === 'object') info.fuera = _ciaFuera;
   const aro = (r, w) => { c.beginPath(); c.arc(0, 0, r, 0, 2 * Math.PI); c.lineWidth = w; c.strokeStyle = '#d0d0d0'; c.stroke(); };
   aro(60, 1.5);
   c.beginPath(); c.arc(0, 0, 46, 0, 2 * Math.PI); c.fillStyle = '#ffffff'; c.fill(); aro(46, 1);
@@ -120845,6 +120932,28 @@ const INF_MIN_DIAG = Object.freeze([
                && (typeof vabPdfFilas === 'function') && !!vabPdfFilas()
                && typeof vabDataURL === 'function' && !!vabDataURL(),
     data:() => vabDataURL() },
+  /* ⚠️ LA CIA ENTRA EN PANT-7 (c2), Y LA PREMISA DE LA ORDEN ERA FALSA. La orden daba por hecho
+     que su miniatura «YA aparece entre los botones del informe»; medido con la CIA cargada, el
+     diagrama generado -66.818 bytes de dataURL- y la casilla marcada, la fila salia en
+     `display:none`, el contador decia «En el PDF: 0» y habia CERO tarjetas: este registro tenia
+     SEIS entradas y ninguna era la CIA. Lo que el medico vio fue la fila de otro diagrama.
+     ⚠️ NO HACE FALTA NINGUN CAMPO GUARDADO NUEVO, y es lo que permite hacerlo: la puerta es
+        `ete_shunt_incluir_chk`, que ya existe y ya se guarda, y el dibujo lo da
+        `ciaDonutDataURL`, que ya existe. El censo de campos no se mueve.
+     ⚠️ LA GUARDA ES LA MISMA QUE LA DEL PDF, las dos condiciones: la casilla Y que haya algun
+        borde medido. Un donut con los cinco sectores en celeste «sin dato» en la fila de lo que
+        va al papel se lee como «se midieron y estaban mal», que es el malentendido contra el que
+        este archivo ya puso guardas en el reloj del TAVI y en las dianas.
+     ⚠️ VA A `esqs` Y NO A `imgSlots`, por construccion: `diagGuardarIncluidos` escribe en `esqs`
+        y la CIA ya tiene su propia seccion en la hoja de congenitas, asi que entre los slots se
+        imprimiria DOS veces. Es la misma decision que AJ2 tomo para los otros cinco. */
+  { k:'cia', lbl:'Bordes de la CIA', chk:'ete_shunt_incluir_chk',
+    on:  () => { const c = document.getElementById('ete_shunt_incluir_chk');
+                 if (!(c && c.checked)) return false;
+                 if (typeof _CIA_BORDES === 'undefined' || typeof v !== 'function') return false;
+                 if (!_CIA_BORDES.some(b2 => v(b2[0]) != null)) return false;
+                 return typeof ciaDonutDataURL === 'function' },
+    data:() => ciaDonutDataURL() },
   { k:'eteqx', lbl:'Vista quirúrgica', campo:'ete_qx_pdf',
     on:  () => (typeof eteQxPdfOn === 'function') && eteQxPdfOn() && typeof eteQxDataURL === 'function',
     data:() => eteQxDataURL() },
@@ -154892,8 +155001,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261103-2357';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793761049537;                 /* eco-build-ms */
+const ECO_BUILD    = '20261104-0013';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793762028831;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -154979,7 +155088,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261103-2357</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261104-0013</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
