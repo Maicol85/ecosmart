@@ -68714,7 +68714,12 @@ function RECALC_MODULOS() {
           /* AJ1-5: la fila de miniaturas, al FINAL. Va detrás de los tres `*PdfSync` que esta
              lista ya llamaba —`contrPdfSync`, `sglPdfSync` y `eteQxPdfSync`— y de `calcOAI`,
              así que pinta con el estado ya repuesto y no con el del paciente anterior. */
-          'infMinPintar'];
+          'infMinPintar',
+          /* PANT-12: el corazon maestro en modo «Segun el estudio». Va al FINAL, detras de los
+             duenios de cada lesion -`eteShuntSync`, `dapSync`, `vapSync`, `cvpaSync`,
+             `eisenSync`-, asi que lee el estado ya repuesto y no el del paciente anterior.
+             SOLO LEE y sale temprano si el modulo no se ve. */
+          'cm3dEstudioSync'];
 }
 function _recalcModulos(etiqueta) {
   RECALC_MODULOS().forEach(function(fn){
@@ -68836,7 +68841,12 @@ function ESPEJOS_VIVOS() {
              SÓLO PINTA —lee `imgSlots`, seis compuertas y nada más, y escribe un `<div>` sin id
              de campo—, que es la regla con la que este registro excluye a `popSync` y a
              `calcVD`. */
-          'infMinPintar'];
+          'infMinPintar',
+          /* PANT-12: el corazon maestro en modo «Segun el estudio». Va al FINAL, detras de los
+             duenios de cada lesion -`eteShuntSync`, `dapSync`, `vapSync`, `cvpaSync`,
+             `eisenSync`-, asi que lee el estado ya repuesto y no el del paciente anterior.
+             SOLO LEE y sale temprano si el modulo no se ve. */
+          'cm3dEstudioSync'];
 }
 function _espejosBarrerTodos() {
   ESPEJOS_VIVOS().forEach(function (fn) {
@@ -103271,7 +103281,20 @@ window.cc3dPieSync = cc3dPieSync;
    LO QUE EL DIAGRAMA SI DIBUJA son las tres comunicaciones -interauricular, interventricular y
    ductus, con el foramen oval contando como interauricular, que es lo que `tga3dComs` decide- y
    la anatomia de la transposicion. Todo lo demas se DECLARA y no se dibuja. */
-const CC3D_DIBUJA = Object.freeze(['cia', 'civ', 'dap', 'fop', 'tga']);
+/* ⚠️ ACTUALIZADO EN PANT-12 (commit 6). Hasta esta tanda el panel prestaba el recuadro de la
+   transposicion, asi que lo que dibujaba era lo que ese recuadro dibuja. Desde el commit 4 el
+   corazon maestro tiene su propio motor, y lo que dibuja es otra lista: gana la ventana
+   aortopulmonar, la conexion venosa anomala y el sindrome de Eisenmenger, y pierde la
+   transposicion, que conserva su PROPIO diagrama en su propia seccion.
+   ⚠️ LA TRANSPOSICION NO SE LISTA COMO «no dibujada», y es deliberado: SI se dibuja en la
+   aplicacion, en su seccion. Decirle al medico que no se dibuja seria falso. Tiene su propia
+   frase, que es lo unico honesto. */
+const CC3D_DIBUJA = Object.freeze(['cia', 'civ', 'dap', 'fop', 'vap', 'cvpa', 'eisen']);
+/* ⚠️ LA TRANSPOSICION SALE DE LA LISTA DE «no dibujadas» POR SU PROPIA PUERTA. Si se la deja
+   caer ahi, la linea dice las dos cosas a la vez —«Cargadas y no dibujadas todavia: TGA» y «La
+   transposicion tiene su propio diagrama»—, que se contradicen. Lo que es cierto es lo segundo:
+   SI se dibuja, en su seccion. Medido: sin esta lista la linea salia con las dos frases. */
+const CC3D_PROPIO = Object.freeze(['tga']);
 function cc3dNoDibujadas() {
   const campos = {};
   try {
@@ -103287,6 +103310,7 @@ function cc3dNoDibujadas() {
       let on = false;
       try { on = !!sc.pred(inf) } catch (e) { on = false }
       if (!on) return;
+      if (CC3D_PROPIO.indexOf(sc.k) >= 0) return;   /* tiene su propio diagrama: ni dibujada ni faltante */
       if (CC3D_DIBUJA.indexOf(sc.k) >= 0) dib.push(sc.lbl); else falta.push(sc.lbl);
     });
   } catch (e) { return { falta: [], dib: [], hay: false } }
@@ -103297,11 +103321,42 @@ window.cc3dNoDibujadas = cc3dNoDibujadas;
 function cc3dTextoSync() {
   const pp = document.getElementById('cc3d-faltan');
   if (!pp) return;
+  /* ⚠️ EN MODO «EXPLORAR» LA LINEA NO HABLA DEL ESTUDIO, y es lo que corresponde: ahi el dibujo
+     es el que el medico eligio y no el del paciente, asi que decir «cargadas y no dibujadas»
+     seria una afirmacion sobre un dibujo que no es el suyo. */
+  if (_cm3d && _cm3d.modo === 'explorar') {
+    pp.textContent = 'Modo Explorar: el dibujo es el que elegiste acá y no el del estudio. Nada de esto se guarda.';
+    return;
+  }
   const r = cc3dNoDibujadas();
-  if (!r.hay) { pp.textContent = 'Sin lesiones cargadas que dibujar: se muestra el corazon normal.'; return }
-  pp.textContent = r.falta.length
-    ? ('Cargadas y no dibujadas todavia: ' + r.falta.join(', ') + '.')
-    : 'Todas las lesiones cargadas estan dibujadas.';
+  const partes = [];
+  if (!r.hay) partes.push('Sin lesiones cargadas que dibujar: se muestra el corazón normal.');
+  else if (r.falta.length) partes.push('Cargadas y no dibujadas todavía: ' + r.falta.join(', ') + '.');
+  else partes.push('Todas las lesiones cargadas están dibujadas.');
+  /* La transposicion tiene su PROPIO diagrama: se dice, en vez de listarla como no dibujada. */
+  try {
+    const secTga = (typeof _CC_SECS !== 'undefined') ? _CC_SECS.filter(function (s) { return s.k === 'tga' })[0] : null;
+    if (secTga) {
+      const campos = {};
+      document.querySelectorAll('input[id], select[id], textarea[id]').forEach(function (e) {
+        if (typeof _noEsDelEstudio === 'function' && _noEsDelEstudio(e.id)) return;
+        campos[e.id] = (e.type === 'checkbox') ? (e.checked ? '1' : '') : String(e.value || '');
+      });
+      if (secTga.pred({ campos: campos })) partes.push('La transposición tiene su propio diagrama, en su sección.');
+    }
+  } catch (e) {}
+  /* Lo que esta cargado y su opcion no tiene variante en el dibujo, y lo que choca por las
+     reglas de compatibilidad. Las dos listas las arma `cmDesdeEstudio`, que es su dueno. */
+  const ROT = { cia:'CIA', civ:'CIV', dap:'ductus', vap:'ventana aortopulmonar',
+                cvpa:'conexión venosa anómala', eisen:'Eisenmenger' };
+  if (_cm3d && _cm3d.omitidas && _cm3d.omitidas.length) {
+    partes.push('Cargadas con una opción que el dibujo no distingue: '
+      + _cm3d.omitidas.map(function (k) { return ROT[k] || k }).join(', ') + '.');
+  }
+  if (_cm3d && _cm3d.chocan && _cm3d.chocan.length) {
+    partes.push('No se dibujan juntas — ' + _cm3d.chocan.join(' · ') + '.');
+  }
+  pp.textContent = partes.join(' ');
 }
 window.cc3dTextoSync = cc3dTextoSync;
 
@@ -103582,7 +103637,15 @@ function cmEscena(S) {
   let labs={};
   function lab(n,p){if(labs[n]||s.lb.length>=12){return;}labs[n]=1;s.lb.push([n,p]);}
   let atr=function(y,z){return [[0.3,y+0.1,z-0.3],[-0.15,y+0.1,z-0.1],[-0.7,y,z+0.2],[-1.2,y-0.05,z+0.4]];};
-  function shunt(path,rl,n){let rev=(rl===undefined)?eis:rl;s.fl.push({p:rev?path.slice().reverse():path,c:rev?CM_C.blue:CM_C.red,n:n||5,sp:0.5});}
+  /* ⚠️ LA DIRECCION OPCIONAL ES LO UNICO QUE ESTA FUNCION AGREGA SOBRE LA DEMO, y esta hecho
+     para que NO cambie su comportamiento: con `S.dir` ausente -que es como la corre la sonda de
+     comparacion- la regla es exactamente la de la demo, asi que la geometria sigue dando 58 de
+     58. Con una direccion cargada en su pestania, el modo «Segun el estudio» la respeta.
+     `true` es de derecha a izquierda (azul); `false`, de izquierda a derecha (roja). */
+  function shunt(path,rl,n,k){
+    let rev=(rl===undefined)?eis:rl;
+    if(k&&S.dir&&S.dir[k]!=null){rev=!!S.dir[k];}
+    s.fl.push({p:rev?path.slice().reverse():path,c:rev?CM_C.blue:CM_C.red,n:n||5,sp:0.5});}
   let volRV=false,volLV=false,pressRV=false,pressLV=false,aoObs=null,paObs=null;
   function pa(n){let f={p:_cmCat(CM_SV,CM_PAA_T,CM_PAA_L),c:CM_C.blue,n:n};if(paObs){f.obs=paObs;f.w=0.05;f.m=3;f.amp=0.1;}s.fl.push(f);}
   lab('VD',[-1.0,-1.7,0.95]);lab('VI',[1.35,-2.1,0.5]);
@@ -103681,27 +103744,27 @@ function cmEscena(S) {
     volRV=true;
     let cy=(M.cia==='sec')?0.95:(M.cia==='pri'?0.45:1.6),cz=(M.cia==='sv')?-0.1:-0.3;
     s.ex.push({t:'ring',c:[-0.45,cy,cz],r:0.24,ry:true,in:true});
-    shunt(atr(cy,cz),eis||B==='ebs',6);
+    shunt(atr(cy,cz),eis||B==='ebs',6,'cia');
     lab('CIA',[-0.45,cy-0.35,cz+0.5]);
   }
   if(M.civ){
     volLV=true;
     let P={pm:[0.02,-0.45,0.12],ent:[0.0,-0.9,-0.1],sal:[-0.12,-0.15,0.5],mus:[-0.05,-1.7,0.25]}[M.civ];
     s.ex.push({t:'ring',c:P,r:0.2,ry:true,in:true});
-    shunt([[0.45,P[1],P[2]-0.12],P,[-0.5,P[1]+0.05,P[2]+0.18]]);
+    shunt([[0.45,P[1],P[2]-0.12],P,[-0.5,P[1]+0.05,P[2]+0.18]],undefined,undefined,'civ');
     lab('CIV',[P[0]+0.9,P[1]-0.2,P[2]+0.5]);
   }
   if(M.dap){
     let pd=[[1.6,1.98,-0.8],[1.66,1.82,-0.85],[1.7,1.66,-0.9]];
     s.ex.push({t:'tube',p:pd,r:0.09,c:CM_C.orange,op:0.95});
-    shunt(pd.slice().reverse(),undefined,3);
+    shunt(pd.slice().reverse(),undefined,3,'dap');
     if(!eis){volLV=true;}
     lab('Ductus',[2.1,1.95,-0.6]);
   }
   if(M.vap){
     let wy=(M.vap==='prox')?1.5:2.0;
     s.ex.push({t:'ring',c:[0.22,wy,0.1],r:0.2,col:CM_C.orange});
-    shunt([[0.35,wy-0.1,-0.25],[0.22,wy,0.1],[0.1,wy+0.05,0.4]],undefined,4);
+    shunt([[0.35,wy-0.1,-0.25],[0.22,wy,0.1],[0.1,wy+0.05,0.4]],undefined,4,'vap');
     lab('Ventana',[-0.75,wy+0.15,0.5]);
   }
   if(M.cvpa){
@@ -104170,13 +104233,123 @@ document.addEventListener('keydown', function (ev) {
    de debajo del dibujo -la que ya escribe `cc3dNoDibujadas`, que lee `_CC_SECS`- dice que
    lesiones estan cargadas y todavia no se dibujan, que es exactamente lo que la fase 1 hacia.
    El cableado de cada modulo lo pone el commit 6. */
+/* ══ EL MAPA PESTANIA -> DIBUJO, DECLARATIVO ════════════════════════════════════════════════
+   Cada entrada dice de que campo sale la variante del dibujo. Es una TABLA y no una cascada de
+   condiciones porque es lo que el inventario del commit 1 midio opcion por opcion, y porque el
+   dia que una pestania gane una opcion se agrega una fila y no se reescribe una funcion.
+   ⚠️ LO QUE LA PESTANIA NO TIENE NO SE INVENTA: una opcion sin variante equivalente cae en el
+   valor por omision que la demo ya trae -el primero de su lista- o no se dibuja, y la linea de
+   debajo del dibujo lo dice. */
+const CM_MAPA = Object.freeze({
+  cia:  Object.freeze({ campo:'ete_cia_tipo',   mapa: Object.freeze({ secundum:'sec', primum:'pri', sv_vcs:'sv' }), omision:'sec' }),
+  civ:  Object.freeze({ campo:'ete_civ_tipo',   mapa: Object.freeze({ perimembranosa:'pm', muscular:'mus', infundibular:'sal', inlet:'ent' }), omision:'pm' }),
+  dap:  Object.freeze({ campo:'dap_tipo',       mapa: Object.freeze({ silente:'std', restrictivo:'std', no_restrictivo:'std' }), omision:'std' }),
+  vap:  Object.freeze({ campo:'vap_tipo',       mapa: Object.freeze({ i:'prox', ii:'dis' }), omision:null }),
+  cvpa: Object.freeze({ campo:'cvpa_conexion',  mapa: Object.freeze({ vcs:'cs' }), omision:null })
+});
+/* La direccion de cada cortocircuito, donde la pestania la guarda. `di` es de derecha a
+   izquierda, que es lo que el dibujo pinta en azul. */
+const CM_DIR_CAMPO = Object.freeze({ cia:'ete_cia_dir', dap:'dap_dir', vap:'vap_dir' });
+
+/* ══ «SEGUN EL ESTUDIO» ═════════════════════════════════════════════════════════════════════
+   El dueno unico de «que dibuja lo cargado». SOLO LEE: no escribe un campo por ningun camino.
+   Gana lo que haya en cada pestania; lo que no se pueda dibujar lo declara la linea de abajo. */
 function cmDesdeEstudio() {
-  _cm3d.S.base = 'norm';
-  _cm3d.S.mods = {};
-  _cm3d.S.ck = {};
-  _cm3d.S.src = '';
+  const V = (id) => { const e = document.getElementById(id); return e ? String(e.value || '').trim() : '' };
+  const CH = (id) => { const e = document.getElementById(id); return !!(e && e.checked) };
+  const N = (id) => { const e = document.getElementById(id); if (!e) return null;
+    const v = parseFloat(String(e.value || '').replace(',', '.')); return isNaN(v) ? null : v };
+  const S = _cm3d.S;
+  S.base = 'norm'; S.mods = {}; S.ck = {}; S.src = ''; S.dir = {};
+  const omit = [];   /* lo que esta cargado y el dibujo todavia no puede mostrar */
+
+  /* ── las cinco lesiones del mapa ───────────────────────────────────────────────────────── */
+  Object.keys(CM_MAPA).forEach(function (k) {
+    const r = CM_MAPA[k], v = V(r.campo);
+    /* ¿la lesion esta cargada? El predicado de presencia es el de cada pestania y no uno nuevo. */
+    let hay = !!v;
+    if (k === 'cia') hay = hay || (N('ete_cia_tam_max') != null) || (N('ete_cia_tam_min') != null)
+                           || (N('fop_tunel') != null) || V('fop_shunt_reposo') === 'si' || V('fop_shunt_valsalva') === 'si';
+    if (k === 'civ') hay = hay || (N('ete_civ_tam') != null);
+    if (k === 'dap') hay = hay || (N('dap_diam') != null);
+    if (k === 'vap') hay = hay || (N('vap_diam') != null);
+    if (k === 'cvpa') hay = hay || !!V('cvpa_lado') || (N('cvpa_venas_numero') != null);
+    if (!hay) return;
+    const var_ = (v && r.mapa[v]) ? r.mapa[v] : r.omision;
+    if (!var_) { omit.push(k); return }   /* cargada, pero su opcion no tiene variante */
+    S.mods[k] = var_;
+  });
+  /* La CIA de seno venoso que acompania a la conexion venosa anomala.
+     ⚠️ NO SE LEE DEL ESPEJO `cvpa_cia_ro`, Y LO DESTAPO UNA MEDICION: ese campo publica la frase
+     «Sin CIA consignada» cuando NO hay ninguna, asi que preguntarle si tiene texto da que SI
+     sobre un estudio que dice que NO —el defecto de leer un centinela como si fuera un valor,
+     que esta casa ya pago varias veces—. Se le pregunta al DATO: la casilla se enciende cuando
+     el estudio tiene una comunicacion interauricular de SENO VENOSO, que es la que la ESC 2020
+     asocia a la conexion anomala de las venas pulmonares derechas (hoja 29, folio 591). */
+  if (S.mods.cvpa && S.mods.cia === 'sv') S.ck.svs = true;
+
+  /* ── la cava superior izquierda persistente: SU PROPIA casilla, y no se deduce ──────────── */
+  /* ⚠️ NO SE DEDUCE DE «Seno coronario dilatado»: son dos hallazgos distintos -un seno coronario
+     se dilata por muchas causas- y el medico lo pidio asi. */
+  if (CH('otr_var_vcsip')) S.mods.vcs = 'std';
+
+  /* ── Eisenmenger, como modificador ─────────────────────────────────────────────────────── */
+  const eisBase = V('eis_lesion_base');
+  if (eisBase) {
+    /* El modificador necesita una comunicacion: si la lesion de base es una que el dibujo tiene,
+       se dibuja con ella; si no, se declara. */
+    const conEq = { civ:'civ', cia:'cia', dap:'dap' };
+    if (conEq[eisBase]) {
+      if (!S.mods[conEq[eisBase]]) S.mods[conEq[eisBase]] = CM_MAPA[conEq[eisBase]].omision;
+      S.mods.eis = 'std';
+    } else if (eisBase === 'dsav') {
+      /* El defecto AV ya trae su comunicacion, pero es una ANATOMIA DE BASE y la pestania del
+         defecto AV es la que manda sobre ella: aca solo se declara. */
+      omit.push('eisen');
+    } else { omit.push('eisen') }
+  }
+
+  /* ── la direccion de cada cortocircuito, donde la pestania la guarda ───────────────────── */
+  Object.keys(CM_DIR_CAMPO).forEach(function (k) {
+    if (!S.mods[k]) return;
+    const d = V(CM_DIR_CAMPO[k]);
+    if (d === 'di') S.dir[k] = true;        /* de derecha a izquierda: azul */
+    else if (d === 'id') S.dir[k] = false;  /* de izquierda a derecha: roja */
+    /* «bi» y vacio NO se fuerzan: queda la regla de la demo, que es la que el medico aprobo. */
+  });
+
+  /* ── las reglas de compatibilidad: se dibuja lo que se pueda y la linea lo dice ─────────── */
+  const chocan = [];
+  Object.keys(S.mods).slice().forEach(function (k) {
+    const r = cmBloqueado(k, S);
+    if (r) { delete S.mods[k]; chocan.push(k + ': ' + r) }
+  });
+  _cm3d.omitidas = omit;
+  _cm3d.chocan = chocan;
+  return { mods: S.mods, omitidas: omit, chocan: chocan };
 }
 window.cmDesdeEstudio = cmDesdeEstudio;
+
+/* ══ LA SINCRONIA EN VIVO ═══════════════════════════════════════════════════════════════════
+   Entra en los DOS registros, igual que `vdscSync` y por el mismo motivo:
+     · `ESPEJOS_VIVOS`, para que un cambio en cualquier pestania se refleje al instante, colgado
+       del debounce de 220 ms que ya existe y SIN temporizador nuevo.
+     · `RECALC_MODULOS`, porque las rutas de restauracion y «Nuevo estudio» pueblan asignando
+       `.value`, que NO dispara `input`: sin esto, reabrir un estudio dejaba el dibujo con el
+       paciente anterior.
+   ⚠️ SOLO LEE: no escribe un solo campo, asi que no cae en la exclusion que `ESPEJOS_VIVOS`
+   declara para los pintores que escriben campos del estudio.
+   ⚠️ Y SALE TEMPRANO SI EL MODULO NO SE VE O SI EL MODO ES «EXPLORAR»: en Explorar el dibujo es
+   el que el medico eligio y pisarlo con el estudio seria borrarle lo que estaba mirando. */
+function cm3dEstudioSync() {
+  if (!_cm3d || _cm3d.modo !== 'estudio') return;
+  if (!_cm3dVisible()) return;
+  cmDesdeEstudio();
+  try { cm3dBuild() } catch (e) {}
+  try { cmVista() } catch (e) {}
+  try { cc3dTextoSync() } catch (e) {}
+}
+window.cm3dEstudioSync = cm3dEstudioSync;
 
 /* ══ EL CABLEADO DE LOS CONTROLES, UNA SOLA VEZ ════════════════════════════════════════════
    Va colgado del PRIMER pintado del modulo y no del arranque de la pagina: los elementos
@@ -159404,8 +159577,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261104-1850';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793829006061;                 /* eco-build-ms */
+const ECO_BUILD    = '20261104-1900';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793829636282;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -159491,7 +159664,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261104-1850</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261104-1900</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
