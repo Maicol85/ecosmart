@@ -6633,7 +6633,21 @@ window.cerrarSesionReal = cerrarSesionReal;
                banda `EM_BANDA_PLAUS.thp` que decide el resto. -->
           <div id="thp-marca" style="font-size:10px;color:var(--yellow);margin-top:3px;min-height:14px;"></div>
         </div>
+        <!-- ⚠️ TDE Y TRIV INTERCAMBIADOS - PANT-11, commit 2 (04/11/2026, pedido del medico:
+             «en Doppler de la mitral, los campos TDE y TRIV cambiaran de lugar, nada mas. Uno en
+             el lugar del otro»). El TRIV ocupa la fila 2 y el TDE la 3, dentro de la MISMA
+             columna 2. No cambia ningun id, rotulo, unidad, placeholder, manejador, calculo,
+             referencia ni orden de emision al papel: los campos se guardan por `id` y no por
+             posicion. Y el orden del MARCADO se intercambio junto con las clases `dm-rN`, porque
+             es el que recorre el Tab -no hay un solo `tabindex`- y el que la grilla apila a una
+             columna por debajo de 768 px.
+             ⚠️ EL TRIV DE ESTA FILA ES EL DEL VENTRICULO IZQUIERDO. El TRIV por Doppler tisular
+             de VD / AD y el tricuspideo son OTROS campos (`vd_triv`) y no se tocan. -->
         <div class="fg dm-c2 dm-r2">
+          <label>TRIV (ms)</label>
+          <input type="number" id="triv" placeholder="ms" oninput="calcDiastol()">
+        </div>
+        <div class="fg dm-c2 dm-r3">
           <!-- ⚠️ EL CUADRO GRIS SE ATRASABA, Y ERA PORQUE `calcDiastol` NO ESTABA CABLEADO A TODO
                LO QUE LEE. Vivia en el `oninput` de los cuatro campos del Doppler mitral, del LARS
                y de los dos selectores, y en ningun otro: el TDE y el TRIV no tenian manejador
@@ -6653,10 +6667,6 @@ window.cerrarSesionReal = cerrarSesionReal;
                escenas de la tanda anterior. -->
           <label>TDE (ms)</label>
           <input type="number" id="tde" placeholder="ms" oninput="calcDiastol()">
-        </div>
-        <div class="fg dm-c2 dm-r3">
-          <label>TRIV (ms)</label>
-          <input type="number" id="triv" placeholder="ms" oninput="calcDiastol()">
         </div>
         <div class="fg dm-c2 dm-r4">
           <!-- Onda L: velocidad mesodiastolica del llenado mitral, posterior a la onda E.
@@ -157339,8 +157349,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261104-1419';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793812753424;                 /* eco-build-ms */
+const ECO_BUILD    = '20261104-1422';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793812965542;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -157426,7 +157436,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261104-1419</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261104-1422</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
