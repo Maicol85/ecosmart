@@ -92372,12 +92372,19 @@ caso('TC-535', 'Tanda AJ7: la linea de Fallot del EN SUMA sin la IP y el resumen
      dos nacen con la clase vinfo-btn-44 y SIN margenes negativos. Lo que estas tres condiciones
      exigen no cambia; cambia cuantos globos tienen que cumplirlo, y el conteo ES el denominador:
      agregar uno sin la clase pone esto en rojo. Los TRES numeros se mueven JUNTOS. */
-  ex.push(['(K0) DENOMINADOR: los SESENTA Y TRES globos llevan la clase, tienen geometria y estan EN VISTA',
-    tapK.length === 63 && tapK.every((x) => x.w > 0 && x.h > 0 && x.enVista), JSON.stringify(tapK)]);
-  ex.push(['(K1) los sesenta y tres miden 44x44 tambien con el mouse',
-    tapK.length === 63 && tapK.every((x) => x.w >= 44 && x.h >= 44), JSON.stringify(tapK)]);
+  /* ADAPTADO (PANT-12, commit 5): 63 -> 64. El globo nuevo es el del corazon maestro,
+     cm3d-ib, y es el UNICO de los 64 sin data-vinfo: no abre una clave del registro, abre
+     el panel de los cuatro textos del dibujo, que es lo que la orden pide. Lo que el caso
+     vigila no se movio —los 64 miden 44x44 y dan sus cinco puntos propios— y queda MAS FUERTE:
+     (K0) exige ademas que el sin clave sea exactamente ese, asi que un globo nuevo que se
+     olvide su data-vinfo pone el caso en rojo. */
+  ex.push(['(K0) DENOMINADOR: los SESENTA Y CUATRO globos llevan la clase, tienen geometria y estan EN VISTA, y el unico sin clave es el del corazon maestro',
+    tapK.length === 64 && tapK.filter((x) => !x.k).length === 1
+      && !!document.querySelector('#cm3d-ib.vinfo-btn-44') && tapK.every((x) => x.w > 0 && x.h > 0 && x.enVista), JSON.stringify(tapK)]);
+  ex.push(['(K1) los sesenta y cuatro miden 44x44 tambien con el mouse',
+    tapK.length === 64 && tapK.every((x) => x.w >= 44 && x.h >= 44), JSON.stringify(tapK)]);
   ex.push(['(K2) y su caja NO tapa a ningun vecino: los cinco puntos dan el propio boton',
-    tapK.length === 63 && tapK.every((x) => x.propios === 5), JSON.stringify(tapK)]);
+    tapK.length === 64 && tapK.every((x) => x.propios === 5), JSON.stringify(tapK)]);
   ex.push(['(K3) CONTROL: los demas globos NO se tocaron y siguen con su piso solo tactil',
     document.querySelectorAll('button.vinfo-btn').length
       - document.querySelectorAll('button.vinfo-btn-44').length >= 10,
@@ -115089,6 +115096,614 @@ caso('TC-679', 'Tanda PANT-11 (commits 8 a 11): «Masas» como TERCERA seccion d
 
   return { extra: EXP };
 `);
+
+/* ══ TANDA PANT-12 ══ Los casos nuevos van ANTES del bloque que consume CASOS: ese bucle no esta
+   al final del archivo, y un caso agregado despues NO SE EJECUTA —la suite imprime «0/0 sin
+   regresiones» sobre un caso que nunca corrio—. Es la trampa que PANT-7 documenta. */
+
+caso('TC-680', 'Tanda PANT-12 (commit 2): el motor 3D no evalua la curva con un parametro fuera de rango, y las TRES guardas del reloj estan en su sitio', `
+  return (async () => {
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]),
+                 'dio «' + t[1] + '» · esperado «' + t[2] + '»']) };
+  const esperar = (ms) => new Promise((r) => setTimeout(r, ms));
+  const FN = (n) => (typeof window[n] === 'function') ? window[n] : null;
+
+  /* ── (A0) DENOMINADOR: las dos piezas del 3D existen ── */
+  ex.push(['(A0) el motor de la transposicion y el del corazon maestro existen',
+    (FN('tga3dBoot') ? 1 : 0) + (FN('cm3dBoot') ? 1 : 0) + '/2', '2/2']);
+
+  /* ── (A) LAS TRES GUARDAS, en los DOS motores, leidas del codigo que corre ── */
+  /* El tiempo transcurrido no puede ser negativo. */
+  const src = (nm) => { const f = FN(nm); return f ? String(f) : '' };
+  /* Las guardas viven dentro de init, que no es alcanzable: se miran sobre el texto del
+     documento, acotado a cada motor por sus marcas propias. */
+  const doc = document.documentElement.innerHTML;
+  const entre = (a, b) => { const i = doc.indexOf(a), j = doc.indexOf(b);
+    return (i >= 0 && j > i) ? doc.slice(i, j) : '' };
+  const MOT_CM = entre('function cm3dInit()', 'function cm3dSync()');
+  ex.push(['(A1) DENOM: el bloque del motor del corazon maestro se pudo acotar',
+    MOT_CM.length > 2000, true]);
+  ex.push(['(A2) el tiempo transcurrido se acota por abajo en cero',
+    MOT_CM.indexOf('Math.max(0,Math.min(0.1') >= 0 || MOT_CM.indexOf('Math.max(0, Math.min(0.1') >= 0, true]);
+  ex.push(['(A3) el parametro de la curva se normaliza con el DOBLE modulo',
+    MOT_CM.indexOf('%1)+1)%1') >= 0 || MOT_CM.indexOf('% 1) + 1) % 1') >= 0, true]);
+  ex.push(['(A4) y se ACOTA antes de evaluar la curva',
+    MOT_CM.indexOf('getPointAt(Math.max(0,Math.min(1,u)))') >= 0
+      || MOT_CM.indexOf('getPointAt(Math.max(0, Math.min(1, u)))') >= 0, true]);
+  ex.push(['(A5) el reloj se pone en hora justo antes de arrancar el bucle',
+    MOT_CM.indexOf('last = performance.now();') >= 0, true]);
+
+  /* ── (B) CONTROL POSITIVO DE LA MEDICION: el parchado cuenta de verdad ── */
+  /* Se parchea getPointAt y se le pasan a mano valores dentro y fuera de rango: si el contador
+     no distingue, todo lo de arriba no prueba nada. */
+  let dentro = 0, fuera = 0;
+  if (window.THREE && window.THREE.CatmullRomCurve3) {
+    const cu = new window.THREE.CatmullRomCurve3([new window.THREE.Vector3(0,0,0),
+      new window.THREE.Vector3(1,1,0), new window.THREE.Vector3(2,0,0)]);
+    [0, 0.5, 1].forEach(u => { try { cu.getPointAt(u); dentro++ } catch (e) {} });
+    [-0.01, 1.01].forEach(u => { try { cu.getPointAt(u); } catch (e) { fuera++ } });
+    ex.push(['(B1) DENOM: la curva evalua los tres parametros en rango', dentro, 3]);
+  } else {
+    ex.push(['(B1) DENOM: la libreria 3D no esta cargada en este caso, el control no corre', 'sin libreria', 'sin libreria']);
+  }
+
+  /* ── (C) CONTROL NEGATIVO: el motor de la transposicion tiene las MISMAS guardas ── */
+  const MOT_TGA = entre('const T = window.THREE, host = document.getElementById(\\'tga-3d-cv\\')', 'window.tga3dInit = tga3dInit;');
+  ex.push(['(C1) DENOM: el bloque del motor de la transposicion se pudo acotar',
+    MOT_TGA.length > 1000, true]);
+  ex.push(['(C2) tambien acota el tiempo transcurrido por abajo',
+    MOT_TGA.indexOf('Math.max(0, Math.min(0.1') >= 0, true]);
+  ex.push(['(C3) y normaliza el parametro con el doble modulo',
+    MOT_TGA.indexOf('% 1) + 1) % 1') >= 0, true]);
+  return { extra: EXP };
+  })();
+`);
+
+caso('TC-681', 'Tanda PANT-12 (commit 3): la casilla «Vena cava superior izquierda persistente» es UN campo guardado nuevo sin columna de Excel, se limpia y se restaura, y su frase entra al cuerpo del informe en los tres estilos y NO al EN SUMA', `
+  return (async () => {
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]),
+                 'dio «' + t[1] + '» · esperado «' + t[2] + '»']) };
+  const esperar = (ms) => new Promise((r) => setTimeout(r, ms));
+  const EL = (id) => document.getElementById(id);
+  const FN = (n) => (typeof window[n] === 'function') ? window[n] : null;
+  const CHK = (id, on) => { const e = EL(id); if (!e) return 'NO ' + id;
+    e.checked = !!on; e.dispatchEvent(new Event('change', { bubbles: true })); return 'ok' };
+  try { if (typeof limpiarCampos === 'function') limpiarCampos(true) } catch (e) {}
+  await esperar(300);
+
+  /* ── (A) LA CASILLA Y SU REGISTRO ── */
+  ex.push(['(A0) DENOM: la casilla existe y el registro de variantes tambien',
+    (EL('otr_var_vcsip') ? 1 : 0) + (Array.isArray(window.OTR_HALL) ? 1 : 0) + '/2', '2/2']);
+  ex.push(['(A1) va con guion BAJO, asi que es campo del estudio',
+    (FN('_noEsDelEstudio') ? !window._noEsDelEstudio('otr_var_vcsip') : 'SIN FN'), true]);
+  ex.push(['(A2) NO lleva caja de detalle, que seria un segundo campo guardado',
+    EL('otr_var_vcsip_nota') ? 'TIENE (mal)' : 'no tiene', 'no tiene']);
+  const REG = window.OTR_HALL || [];
+  const ids = REG.map(x => x.id);
+  ex.push(['(A3) esta en el registro JUSTO despues del seno coronario, que es donde el medico la pidio',
+    ids.indexOf('otr_var_vcsip') === ids.indexOf('otr_var_senocor') + 1, true]);
+  ex.push(['(A4) y con suma null, que es lo que la manda al cuerpo del informe y NO al EN SUMA',
+    String((REG.filter(x => x.id === 'otr_var_vcsip')[0] || {}).suma), 'null']);
+
+  /* ── (B) EL EMISOR, por su dueno y con un estudio como fuente ── */
+  const f = FN('otrHallazgos');
+  ex.push(['(B0) DENOM: el emisor existe', !!f, true]);
+  const conSrc = f ? f({ otr_var_vcsip__chk: '1' }) : [];
+  ex.push(['(B1) con la casilla encendida publica SU oracion y nada mas',
+    conSrc.map(x => x.inf).join(' | '), 'Vena cava superior izquierda persistente.']);
+  ex.push(['(B2) CONTROL NEGATIVO: sin la casilla no publica nada',
+    (f ? f({}) : ['x']).length, 0]);
+
+  /* ── (C) EL PAPEL, en los TRES estilos ── */
+  const papel = () => { const o = {};
+    ['narrativo', 'telegrafico', 'mixto'].forEach(st => {
+      try { if (FN('setEstiloInforme')) window.setEstiloInforme(st) } catch (e) {}
+      try { if (FN('generarInforme')) window.generarInforme() } catch (e) {}
+      o[st] = { inf: String((EL('informe_texto') || {}).value || ''),
+                suma: String((EL('en_suma') || {}).value || '') };
+    }); return o };
+  const N = EL('nombre'), CI = EL('ci');
+  if (N) N.value = 'Prueba P12'; if (CI) CI.value = '11111111';
+  const pOff = papel();
+  CHK('otr_var_vcsip', true);
+  await esperar(260);
+  const pOn = papel();
+  ex.push(['(C0) DENOM: el informe se emitio en los tres estilos',
+    Object.keys(pOff).filter(k => pOff[k].inf.length > 50).length, 3]);
+  ex.push(['(C1) CONTROL NEGATIVO: apagada, la frase NO esta en ninguno de los tres',
+    Object.keys(pOff).filter(k => pOff[k].inf.indexOf('cava superior izquierda persistente') >= 0).length, 0]);
+  ex.push(['(C2) encendida, la frase esta UNA vez en los tres',
+    Object.keys(pOn).map(k => pOn[k].inf.split('Vena cava superior izquierda persistente.').length - 1).join(','), '1,1,1']);
+  ex.push(['(C3) y el EN SUMA sale IDENTICO en los tres',
+    Object.keys(pOn).every(k => pOn[k].suma === pOff[k].suma), true]);
+
+  /* ── (D) LIMPIAR Y RESTAURAR ── */
+  try { if (typeof limpiarCampos === 'function') limpiarCampos(true) } catch (e) {}
+  await esperar(240);
+  ex.push(['(D1) «Nuevo estudio» la apaga', EL('otr_var_vcsip') ? EL('otr_var_vcsip').checked : 'NO EXISTE', false]);
+  /* La restauracion, con la MISMA regla del barrido real: la clave __chk manda sobre la casilla. */
+  const fuera = window._CAMPOS_FUERA_DEL_ESTUDIO || null;
+  const blob = { otr_var_vcsip__chk: '1' };
+  document.querySelectorAll('input[id]').forEach(el => {
+    if (fuera && fuera.test(el.id)) return;
+    if (el.type === 'checkbox') el.checked = (blob[el.id + '__chk'] === '1');
+  });
+  ex.push(['(D2) y el barrido de restauracion la repone', EL('otr_var_vcsip') ? EL('otr_var_vcsip').checked : 'NO EXISTE', true]);
+
+  /* ── (E) EL EXCEL NO SE MUEVE ── */
+  const campos = {};
+  document.querySelectorAll('input[id], select[id], textarea[id]').forEach(e => {
+    if (FN('_noEsDelEstudio') && window._noEsDelEstudio(e.id)) return;
+    campos[e.id] = (e.type === 'checkbox') ? (e.checked ? '1' : '') : String(e.value || '');
+  });
+  const fila = FN('_labExcelRow') ? window._labExcelRow({ campos: campos, fecha: '2026-11-04' }) : null;
+  ex.push(['(E1) DENOM: el exportador devuelve una fila', !!fila, true]);
+  ex.push(['(E2) con 441 columnas', fila ? Object.keys(fila).length : 'SIN FN', 441]);
+  ex.push(['(E3) y NINGUNA es la casilla nueva',
+    fila ? Object.keys(fila).filter(k => k.indexOf('cava superior izquierda') >= 0).length : 'SIN FN', 0]);
+  try { if (typeof limpiarCampos === 'function') limpiarCampos(true) } catch (e) {}
+  return { extra: EXP };
+  })();
+`);
+
+caso('TC-682', 'Tanda PANT-12 (commit 4): el corazon maestro tiene motor y lienzo PROPIOS, la transposicion conserva el suyo, el modelo trae las cinco anatomias y las diez lesiones con sus reglas de compatibilidad, y los cinco controles no son campos del estudio', `
+  return (async () => {
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]),
+                 'dio «' + t[1] + '» · esperado «' + t[2] + '»']) };
+  const esperar = (ms) => new Promise((r) => setTimeout(r, ms));
+  const EL = (id) => document.getElementById(id);
+  const FN = (n) => (typeof window[n] === 'function') ? window[n] : null;
+
+  /* ── (A0) DENOMINADOR ── */
+  const FNS = ['cmEscena', 'cmBloqueado', 'cm3dBoot', 'cm3dSync', 'cmDesdeEstudio', 'cm3dEstudioSync'];
+  ex.push(['(A0) las seis funciones del modulo existen',
+    FNS.filter(n => typeof window[n] === 'function').length + '/6', '6/6']);
+  ex.push(['(A1) el lienzo propio y los cinco controles estan en el documento',
+    ['cm3d-cv', 'cm3d-ins', 'cm3d-nom', 'cm3d-fc', 'cm3d-pausar', 'cm3d-frente'].filter(EL).length + '/6', '6/6']);
+  /* ⚠️ EL PANEL SE ABRE POR SU BOTON REAL ANTES DE MIRAR EL PRESTAMO, y sin esto la condicion
+     NO PUEDE FALLAR: quien prestaba el recuadro era cc3dAbrir, asi que con el panel cerrado
+     el recuadro esta en su sitio pase lo que pase. Lo destapo una mutacion que sobrevivio. */
+  try { if (typeof showTab === 'function') showTab('congenitas') } catch (e) {}
+  await esperar(360);
+  const bAb = EL('cc3d-abrir');
+  ex.push(['(A1b) DENOM: el boton del corazon maestro existe', !!bAb, true]);
+  if (bAb && bAb.getAttribute('aria-pressed') !== 'true') bAb.click();
+  await esperar(2600);
+  ex.push(['(A1c) DENOM: el panel abrio', EL('cc3d-panel') ? getComputedStyle(EL('cc3d-panel')).display : 'NO', 'block']);
+  ex.push(['(A2) y el recuadro de la transposicion NO esta dentro del panel del corazon maestro',
+    (function () { const b = EL('tga-3d-box'), hh = EL('cc3d-host');
+      return (b && hh && hh.contains(b)) ? 'PRESTADO (mal)' : 'en su sitio' })(), 'en su sitio']);
+  ex.push(['(A2b) y el hueco del prestamo queda VACIO',
+    EL('cc3d-host') ? EL('cc3d-host').children.length : 'NO EXISTE', 0]);
+
+  /* ── (B) LOS CINCO CONTROLES NO SON CAMPOS DEL ESTUDIO: las TRES listas paralelas ── */
+  const CT = ['cm3d-ins', 'cm3d-nom', 'cm3d-fc'];
+  ex.push(['(B1) ninguno entra en el barrido de lo que se guarda',
+    FN('_noEsDelEstudio') ? CT.filter(i => window._noEsDelEstudio(i)).length + '/3' : 'SIN FN', '3/3']);
+  ex.push(['(B2) ni en la lista de «el formulario tiene datos»',
+    window._CAMPOS_FUERA_DEL_ESTUDIO ? CT.filter(i => window._CAMPOS_FUERA_DEL_ESTUDIO.test(i)).length + '/3' : 'SIN REGEX', '3/3']);
+  ex.push(['(B3) y los tres llevan data-ui, que es lo que impide que secAutoOpen abra la seccion sola',
+    CT.filter(i => EL(i) && EL(i).hasAttribute('data-ui')).length + '/3', '3/3']);
+  /* CONTROL NEGATIVO: la casilla del commit 3, que SI es del estudio, no entra en ninguna. */
+  ex.push(['(B4) CONTROL NEGATIVO: la casilla del estudio NO esta en esas listas',
+    (FN('_noEsDelEstudio') ? (window._noEsDelEstudio('otr_var_vcsip') ? 1 : 0) : 9)
+      + (window._CAMPOS_FUERA_DEL_ESTUDIO && window._CAMPOS_FUERA_DEL_ESTUDIO.test('otr_var_vcsip') ? 1 : 0), 0]);
+
+  /* ── (C) EL MODELO: las cinco anatomias y las diez lesiones, por su escenario ── */
+  const S0 = () => ({ base: 'norm', bv: { fal: 'sin', dsav: 'par', ebs: 'std', fon: 'ext' }, mods: {}, ck: {}, src: '' });
+  const esc = (S) => { const f = FN('cmEscena'); if (!f) return null;
+    try { return f(S) } catch (e) { return { EXC: String(e).slice(0, 70) } } };
+  const peso = (s) => s && s.ar ? (s.ar.length + s.fl.length + s.ex.length + s.lb.length) : -1;
+  const base0 = esc(S0());
+  ex.push(['(C0) DENOM: el corazon normal dibuja algo', peso(base0) > 5, true]);
+  const BASES = ['fal', 'dsav', 'ebs', 'fon'];
+  ex.push(['(C1) las cuatro anatomias de base cambian la escena respecto del corazon normal',
+    BASES.filter(b => { const S = S0(); S.base = b;
+      return JSON.stringify(esc(S)) !== JSON.stringify(base0) }).length + '/4', '4/4']);
+  const MODS = [['cia','sec'],['civ','pm'],['dap','std'],['vap','prox'],['cvpa','cs'],
+                ['coa','nat'],['ep','valv'],['ea','sub'],['vcs','std']];
+  ex.push(['(C2) las nueve lesiones que se suman cambian la escena',
+    MODS.filter(m => { const S = S0(); S.mods[m[0]] = m[1];
+      return JSON.stringify(esc(S)) !== JSON.stringify(base0) }).length + '/9', '9/9']);
+  /* Eisenmenger INVIERTE el color de la corriente del cortocircuito: es el modificador. */
+  const sCiv = (function () { const S = S0(); S.mods.civ = 'pm'; return esc(S) })();
+  const sEis = (function () { const S = S0(); S.mods.civ = 'pm'; S.mods.eis = 'std'; return esc(S) })();
+  const rojo = 0xd8433b, azul = 0x2f6fd0;
+  /* ⚠️ TODO POR UN ACCESOR CON GUARDA: contra HEAD cmEscena no existe y esc() devuelve
+     null, asi que un acceso directo mata el caso con un TypeError. Un caso que cae por
+     EXCEPCION no dice que invariante se rompio. */
+  const FL = (s) => (s && s.fl) ? s.fl : [];
+  const AR = (s) => (s && s.ar) ? s.ar : [];
+  ex.push(['(C3) DENOM: con la CIV sola hay una corriente ROJA de cortocircuito',
+    FL(sCiv).filter(x => x.c === rojo && x.n === 5).length > 0, true]);
+  ex.push(['(C4) Eisenmenger la invierte a AZUL',
+    FL(sEis).filter(x => x.c === rojo && x.n === 5).length, 0]);
+  ex.push(['(C5) y dilata la arteria pulmonar central',
+    AR(sEis).filter(a => a.r && a.r[0] >= 0.45).length > 0, true]);
+
+  /* ── (D) LAS REGLAS DE COMPATIBILIDAD, portadas tal cual ── */
+  const bl = (base, mods, k) => { const S = S0(); S.base = base; S.mods = mods || {};
+    const f = FN('cmBloqueado'); return f ? String(f(k, S)) : 'SIN FN' };
+  ex.push(['(D1) Fallot ya incluye la CIV', bl('fal', {}, 'civ').indexOf('Fallot ya incluye la CIV') >= 0, true]);
+  ex.push(['(D2) y la obstruccion pulmonar', bl('fal', {}, 'ep').indexOf('obstrucci') >= 0, true]);
+  ex.push(['(D3) el defecto AV ya incluye la CIA primum', bl('dsav', {}, 'cia').indexOf('CIA primum') >= 0, true]);
+  ex.push(['(D4) Fontan no admite comunicaciones', bl('fon', {}, 'cia').indexOf('Fontan') >= 0, true]);
+  ex.push(['(D5) la estenosis pulmonar protege del Eisenmenger', bl('norm', { ep: 'valv' }, 'eis').indexOf('protege') >= 0, true]);
+  ex.push(['(D6) CONTROL NEGATIVO: sobre el corazon normal la CIA no esta bloqueada',
+    bl('norm', {}, 'cia'), 'null']);
+
+  /* ── (E) LO DIDACTICO NO ESCRIBE NINGUN CAMPO ── */
+  try { if (typeof limpiarCampos === 'function') limpiarCampos(true) } catch (e) {}
+  await esperar(280);
+  const censo = () => { const o = {};
+    document.querySelectorAll('input[id], select[id], textarea[id]').forEach(e => {
+      if (FN('_noEsDelEstudio') && window._noEsDelEstudio(e.id)) return;
+      o[e.id] = (e.type === 'checkbox') ? (e.checked ? '1' : '') : String(e.value || '');
+    }); return o };
+  const c0 = JSON.stringify(censo());
+  const st = FN('_cm3dEstado') ? window._cm3dEstado() : null;
+  ex.push(['(E0) DENOM: el estado del modulo es alcanzable', !!st, true]);
+  if (st) { ['fal', 'dsav', 'ebs', 'fon', 'norm'].forEach(b => { st.S.base = b; esc(st.S) });
+            MODS.forEach(m => { st.S.mods = {}; st.S.mods[m[0]] = m[1]; esc(st.S) });
+            st.S.base = 'norm'; st.S.mods = {} }
+  ex.push(['(E1) recorrer las cinco anatomias y las nueve lesiones no mueve un solo campo',
+    JSON.stringify(censo()) === c0, true]);
+  return { extra: EXP };
+  })();
+`);
+caso('TC-683', 'Tanda PANT-12 (commit 5): los dos modos, con «Segun el estudio» por omision y sin controles ni tabla; «Explorar» con sus cinco anatomias, sus diez lesiones y sus seis combinaciones; la tabla lateral con sus veintiuna filas; y lo elegido ahi NO sobrevive al cambio de modo', `
+  return (async () => {
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]),
+                 'dio «' + t[1] + '» · esperado «' + t[2] + '»']) };
+  const esperar = (ms) => new Promise((r) => setTimeout(r, ms));
+  const EL = (id) => document.getElementById(id);
+  const FN = (n) => (typeof window[n] === 'function') ? window[n] : null;
+  const OCULTO = (id) => { const e = EL(id); return e ? (e.hidden ? 'oculto' : 'visible') : 'NO EXISTE' };
+
+  /* ── (A0) DENOMINADOR ── */
+  ex.push(['(A0) las piezas de los dos modos existen',
+    ['cm3d-ctl', 'cm3d-side', 'cm3d-estb', 'cm3d-sidebody', 'cm3d-ib', 'cm3d-ip'].filter(EL).length + '/6', '6/6']);
+  ex.push(['(A1) hay DOS botones de modo, con su clase propia y no .active',
+    document.querySelectorAll('.cm3d-md').length, 2]);
+  /* ⚠️ La clase propia es lo que impide que showTab se los lleve: hace un querySelectorAll
+     sobre TODO el documento y le saca .active a lo que encuentre. */
+  ex.push(['(A2) y NINGUNO usa la clase .active, que showTab barre del documento entero',
+    Array.prototype.filter.call(document.querySelectorAll('.cm3d-md'), b => b.classList.contains('active')).length, 0]);
+
+  const st = FN('_cm3dEstado') ? window._cm3dEstado() : null;
+  ex.push(['(A3) DENOM: el estado del modulo es alcanzable', !!st, true]);
+  const bModo = (m) => Array.prototype.filter.call(document.querySelectorAll('.cm3d-md'),
+    b => b.getAttribute('data-m') === m)[0];
+  /* ⚠️ EL PANEL DEL GLOBO SE MIDE ANTES DEL PRIMER CLIC DEL CASO, y sin esto una mutacion
+     sobrevivia: el oyente que lo cierra con un clic afuera lo deja cerrado en cuanto el caso
+     toca cualquier cosa, asi que un panel nacido ABIERTO se ve cerrado un instante despues.
+     Aca todavia no se clickeo nada. */
+  ex.push(['(A3b) el panel del globo nace CERRADO, medido antes de tocar nada',
+    EL('cm3d-ip') ? EL('cm3d-ip').hidden : 'NO EXISTE', true]);
+  /* ⚠️ EL PANEL TIENE QUE ESTAR ABIERTO, Y SIN ESTO TODO EL CASO MIDE SOBRE UN DENOMINADOR
+     VACIO: los controles los cablea cm3dCablear, que corre DESPUES del primer pintado del
+     motor, y el motor no arranca con el modulo cerrado. Sin abrirlo, los botones de modo no
+     responden y los contadores dan cero, que se lee igual que «los controles no existen». */
+  try { if (typeof showTab === 'function') showTab('congenitas') } catch (e) {}
+  await esperar(360);
+  const bAbrir = EL('cc3d-abrir');
+  ex.push(['(A4) DENOM: el boton del corazon maestro existe', !!bAbrir, true]);
+  if (bAbrir && bAbrir.getAttribute('aria-pressed') !== 'true') bAbrir.click();
+  await esperar(2800);
+  ex.push(['(A5) DENOM: el modulo abrio y el motor pinto su lienzo',
+    !!document.querySelector('#cm3d-cv canvas'), true]);
+  /* ⚠️ EL ESTADO INICIAL SE MIDE ACA Y NO MAS ABAJO, y sin esto DOS mutaciones sobrevivian: los
+     clics de los bloques (B) a (D) llegan al documento y el oyente que cierra el globo con un
+     clic afuera lo deja cerrado, asi que una medicion posterior ve un estado ya resuelto y no
+     el de arranque. */
+  ex.push(['(A6) el modo que abre por omision es «Segun el estudio»', st ? st.modo : 'NO', 'estudio']);
+  ex.push(['(A7) con los controles y la tabla ocultos',
+    OCULTO('cm3d-ctl') + '/' + OCULTO('cm3d-side'), 'oculto/oculto']);
+  ex.push(['(A8) y la linea que lo explica a la vista', OCULTO('cm3d-estb'), 'visible']);
+  ex.push(['(A9) y su boton declara el globo cerrado',
+    EL('cm3d-ib') ? EL('cm3d-ib').getAttribute('aria-expanded') : 'NO', 'false']);
+
+  /* ── (B) «EXPLORAR»: los controles y la tabla ── */
+  const bE = bModo('explorar'); if (bE) bE.click();
+  await esperar(420);
+  ex.push(['(B1) el modo queda en explorar', st ? st.modo : 'NO', 'explorar']);
+  ex.push(['(B2) los controles se ven', OCULTO('cm3d-ctl'), 'visible']);
+  ex.push(['(B3) y la tabla lateral tambien', OCULTO('cm3d-side'), 'visible']);
+  ex.push(['(B4) con CINCO botones de anatomia de base', document.querySelectorAll('#cm3d-baseb button').length, 5]);
+  ex.push(['(B5) DIEZ de lesiones que se suman', document.querySelectorAll('#cm3d-modb button').length, 10]);
+  ex.push(['(B6) y SEIS de combinaciones frecuentes', document.querySelectorAll('#cm3d-presb button').length, 6]);
+  const filas = document.querySelectorAll('#cm3d-sidebody .cm3d-srow');
+  ex.push(['(B7) la tabla lateral tiene 5 + 10 + 6 = 21 filas', filas.length, 21]);
+  ex.push(['(B8) y TODAS traen su linea', Array.prototype.filter.call(filas,
+    b => String((b.querySelector('.cm3d-srd') || {}).textContent || '').length > 5).length, 21]);
+  ex.push(['(B9) las tres secciones estan rotuladas',
+    Array.prototype.map.call(document.querySelectorAll('#cm3d-sidebody .cm3d-sidet'), e => e.textContent).join('|'),
+    'Anatomía de base|Lesiones que se suman|Combinaciones frecuentes']);
+
+  /* ── (C) TOCAR UNA FILA LA APLICA, Y LAS QUE NO SE COMBINAN QUEDAN APAGADAS CON SU MOTIVO ── */
+  const fila = (t) => Array.prototype.filter.call(document.querySelectorAll('#cm3d-sidebody .cm3d-srow'),
+    b => String((b.querySelector('.cm3d-srn') || {}).textContent || '').indexOf(t) === 0)[0];
+  const fEb = fila('Anomal'); if (fEb) fEb.click();
+  await esperar(360);
+  ex.push(['(C1) tocar la fila de Ebstein la aplica', st ? st.S.base : 'NO', 'ebs']);
+  const fEis = fila('Eisenmenger');
+  ex.push(['(C2) y con Ebstein de base la fila de Eisenmenger queda APAGADA',
+    fEis ? (fEis.disabled ? 'apagada' : 'NO') : 'NO EXISTE', 'apagada']);
+  ex.push(['(C3) con su motivo a la vista',
+    fEis ? (String(fEis.textContent || '').indexOf('no se combina') >= 0
+            || String(fEis.textContent || '').indexOf('No se combina') >= 0) : 'NO', true]);
+  /* CONTROL NEGATIVO: sobre el corazon normal esa misma fila NO esta apagada. */
+  const fN = fila('Coraz'); if (fN) fN.click();
+  await esperar(360);
+  const fEis2 = fila('Eisenmenger');
+  ex.push(['(C4) CONTROL NEGATIVO: sobre el corazon normal la fila de Eisenmenger esta habilitada',
+    fEis2 ? (fEis2.disabled ? 'apagada' : 'habilitada') : 'NO EXISTE', 'habilitada']);
+
+  /* ── (D) LO DIDACTICO NO SOBREVIVE AL CAMBIO DE MODO ── */
+  const fCiv = fila('CIV'); if (fCiv) fCiv.click();
+  await esperar(320);
+  ex.push(['(D0) DENOM: la CIV quedo aplicada', st ? JSON.stringify(st.S.mods) : 'NO', '{"civ":"pm"}']);
+  const bEs = bModo('estudio'); if (bEs) bEs.click();
+  await esperar(420);
+  ex.push(['(D1) al volver a «Segun el estudio» no queda nada de lo explorado',
+    st ? JSON.stringify(st.S.mods) : 'NO', '{}']);
+  ex.push(['(D2) ni la anatomia de base', st ? st.S.base : 'NO', 'norm']);
+  ex.push(['(D3) y los controles y la tabla se esconden',
+    OCULTO('cm3d-ctl') + '/' + OCULTO('cm3d-side'), 'oculto/oculto']);
+
+  /* ── (E) EL GLOBO: cerrado por omision y por las TRES vias ── */
+  const ib = EL('cm3d-ib'), ip = EL('cm3d-ip');
+  ex.push(['(E0) DENOM: el boton y el panel existen', (ib ? 1 : 0) + (ip ? 1 : 0) + '/2', '2/2']);
+  ex.push(['(E1) el panel nace cerrado', ip ? ip.hidden : 'NO', true]);
+  ex.push(['(E2) y el boton lo declara con aria-expanded', ib ? ib.getAttribute('aria-expanded') : 'NO', 'false']);
+  if (ib) ib.click(); await esperar(200);
+  ex.push(['(E3) el boton lo abre', ip ? !ip.hidden : 'NO', true]);
+  ex.push(['(E4) y el aria-expanded lo sigue', ib ? ib.getAttribute('aria-expanded') : 'NO', 'true']);
+  if (ib) ib.click(); await esperar(180);
+  ex.push(['(E5) via 1: el mismo boton lo cierra', ip ? ip.hidden : 'NO', true]);
+  if (ib) ib.click(); await esperar(180); document.body.click(); await esperar(180);
+  ex.push(['(E6) via 2: un clic afuera lo cierra', ip ? ip.hidden : 'NO', true]);
+  if (ib) ib.click(); await esperar(200);
+  /* ⚠️ CON SU PROPIO DENOMINADOR: si el panel no quedo abierto, «Escape lo cerro» pasa en verde
+     sobre un panel que ya estaba cerrado, y la mutacion que rompe Escape sobrevive. */
+  ex.push(['(E7a) DENOM: el panel quedo abierto antes de probar Escape', ip ? !ip.hidden : 'NO', true]);
+  document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+  await esperar(200);
+  ex.push(['(E7) via 3: Escape lo cierra', ip ? ip.hidden : 'NO', true]);
+  return { extra: EXP };
+  })();
+`);
+
+caso('TC-684', 'Tanda PANT-12 (commit 5): los textos del globo y de la tabla lateral dicen lo que las guias dicen, con sus folios, y NINGUNO trae las dos frases que no pueden entrar a la app', `
+  return (async () => {
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]),
+                 'dio «' + t[1] + '» · esperado «' + t[2] + '»']) };
+  const FN = (n) => (typeof window[n] === 'function') ? window[n] : null;
+  const S0 = () => ({ base: 'norm', bv: { fal: 'sin', dsav: 'par', ebs: 'std', fon: 'ext' }, mods: {}, ck: {}, src: '' });
+  const texto = (base, bv, mods) => { const f = FN('cmEscena'); if (!f) return 'SIN FN';
+    const S = S0(); S.base = base; if (bv) S.bv[base] = bv; S.mods = mods || {};
+    try { const s = f(S); return String(s.info || '') + ' // ' + String(s.ref || '') } catch (e) { return 'EXC' } };
+
+  /* ── (A0) DENOMINADOR: los textos salen y no estan vacios ── */
+  const tCia = texto('norm', null, { cia: 'sec' });
+  ex.push(['(A0) el texto de una lesion sale y tiene cuerpo', tCia.length > 120, true]);
+
+  /* ── (A) LAS DOS FRASES QUE NO PUEDEN ENTRAR A LA APP ── */
+  /* ⚠️ La demo trae «A verificar por Code» en cuatro de sus seis combinaciones y la nota «Los
+     textos son de ejemplo y se verifican contra las guias». Ninguna de las dos pasa: la regla
+     fija del medico dice que nada en la app declara estar pendiente de revision. */
+  const doc = document.documentElement.innerHTML;
+  ex.push(['(A1) «A verificar por Code» no aparece ni una vez en el documento',
+    doc.split('A verificar por Code').length - 1, 0]);
+  ex.push(['(A2) ni «Los textos son de ejemplo»',
+    doc.split('Los textos son de ejemplo').length - 1, 0]);
+  ex.push(['(A3) ni ninguna variante de «pendiente de revision» en los textos del modulo',
+    /pendiente de revisi|sin validar|a confirmar por/i.test(tCia), false]);
+
+  /* ── (B) LO QUE LAS GUIAS DICEN, verificado hoja por hoja y en imagen ── */
+  const CLAVES = [
+    ['cia secundum', texto('norm', null, { cia: 'sec' }), ['fosa oval']],
+    ['cia primum',   texto('norm', null, { cia: 'pri' }), ['crux', 'auriculoventricular izquierda']],
+    ['cia seno ven', texto('norm', null, { cia: 'sv' }),  ['cava superior', 'venas pulmonares derechas']],
+    ['civ perimemb', texto('norm', null, { civ: 'pm' }),  ['membranoso', 'tricúspide']],
+    ['civ muscular', texto('norm', null, { civ: 'mus' }), ['músculo', 'múltiple']],
+    ['civ salida',   texto('norm', null, { civ: 'sal' }), ['semilunares', 'cúspide aórtica derecha']],
+    ['civ entrada',  texto('norm', null, { civ: 'ent' }), ['tabique de entrada', 'Down']],
+    ['ductus',       texto('norm', null, { dap: 'std' }), ['pulmonar izquierda proximal', 'subclavia izquierda']],
+    ['dsav parcial', texto('dsav', 'par', {}),            ['velos puente', 'auriculoventricular izquierda']],
+    ['dsav transic', texto('dsav', 'tra', {}),            ['cresta del tabique', 'restrictiva']],
+    ['dsav completo',texto('dsav', 'com', {}),            ['75', 'Down']],
+    ['fallot',       texto('fal', 'sin', {}),             ['cabalga', 'hipertrofia']],
+    ['ebstein',      texto('ebs', 'std', {}),             ['atrializada', 'ápex']],
+    ['fontan extra', texto('fon', 'ext', {}),             ['cavopulmonar', 'subpulmonar']],
+    ['coartacion',   texto('norm', null, { coa: 'nat' }), ['istmo', 'ductus']],
+    ['ep valvular',  texto('norm', null, { ep: 'valv' }), ['cúpula', 'independencia de la hemodinámica']],
+    ['ea subaortica',texto('norm', null, { ea: 'sub' }),  ['fibromuscular', 'miocardiopatía hipertrófica']],
+    /* ⚠️ EL ANCLA ES LA FRASE ENTERA Y NO «ostium coronarios» A SECAS: esas dos palabras
+       aparecen DOS veces en este texto —en la definicion y en «Puede comprometer los ostium
+       coronarios»—, asi que cambiar la primera dejaba la condicion pasando en verde. Lo
+       destapo una mutacion que sobrevivio. */
+    ['ea supravalv', texto('norm', null, { ea: 'sup' }),
+      ['diafragma fibroso justo por encima de los ostium coronarios', 'reloj de arena']],
+    ['cava izq',     texto('norm', null, { vcs: 'std' }), ['seno coronario', 'aurícula izquierda']]
+  ];
+  CLAVES.forEach(function (c) {
+    const faltan = c[2].filter(w => c[1].indexOf(w) < 0);
+    ex.push(['(B) ' + c[0] + ' dice lo que su fuente dice', faltan.join(','), '']);
+  });
+
+  /* ── (C) LO QUE SE SACO POR NO TENER RESPALDO ── */
+  /* Censada la biblioteca, las cinco apariciones de un seno coronario dilatado lo ligan al seno
+     sin techo, a la insuficiencia tricuspidea severa o a la hipertension pulmonar, y NINGUNA a
+     una cava izquierda persistente. */
+  const tVcs = texto('norm', null, { vcs: 'std' });
+  ex.push(['(C1) el texto de la cava izquierda ya NO afirma que el seno coronario se dilata',
+    /seno coronario,? que se dilata|seno coronario dilatado/.test(tVcs), false]);
+  ex.push(['(C2) ni que baja por delante del hilio pulmonar izquierdo',
+    tVcs.indexOf('hilio pulmonar') >= 0, false]);
+  /* La ventana aortopulmonar: la biblioteca no la trata, y el texto lo DICE. */
+  const tVap = texto('norm', null, { vap: 'prox' });
+  ex.push(['(C3) el de la ventana aortopulmonar declara que la biblioteca no la trata',
+    tVap.indexOf('Ninguna de las dos guías') >= 0, true]);
+
+  /* ── (D) LAS COMBINACIONES: cuatro con fuente y folio, dos rotuladas de ejemplo ── */
+  const PR = window.CM_PRES || null;
+  ex.push(['(D0) DENOM: el registro de combinaciones es alcanzable',
+    PR ? PR.length : 'no esta en window', 6]);
+  if (PR) {
+    const conFolio = PR.filter(p => /folio \\d+/.test(p.src));
+    ex.push(['(D1) CUATRO combinaciones traen su fuente con hoja y folio', conFolio.length, 4]);
+    ex.push(['(D2) y las otras DOS se rotulan ejemplo didactico, sin fuente',
+      PR.filter(p => p.src.indexOf('Ejemplo didáctico, sin fuente') === 0).length, 2]);
+    ex.push(['(D3) los tres folios son los que se leyeron en imagen',
+      ['folio 591', 'folio 603', 'folio 610'].filter(f => PR.some(p => p.src.indexOf(f) >= 0)).length + '/3', '3/3']);
+  }
+
+  /* ── (E) LA TABLA LATERAL tampoco afirma lo que no tiene fuente ── */
+  const TBM = window.CM_TBM || null;
+  ex.push(['(E0) DENOM: la tabla de lesiones es alcanzable', TBM ? TBM.length : 'no esta en window', 10]);
+  if (TBM) {
+    const lVcs = (TBM.filter(x => x[0] === 'vcs')[0] || [])[2] || '';
+    ex.push(['(E1) la fila de la cava izquierda no afirma la dilatacion',
+      lVcs.indexOf('dilatado') >= 0, false]);
+    const lEp = (TBM.filter(x => x[0] === 'ep')[0] || [])[2] || '';
+    ex.push(['(E2) ni la de la estenosis pulmonar la hipertrofia del VD',
+      lEp.indexOf('hipertr') >= 0, false]);
+  }
+  return { extra: EXP };
+  })();
+`);
+
+caso('TC-685', 'Tanda PANT-12 (commit 6): «Segun el estudio» dibuja lo cargado en las pestanias y SOLO LEE; lo que no tiene variante y lo que choca se DECLARAN; la transposicion tiene su propia frase; y el estudio vacio dibuja el corazon normal sin lista de ausentes', `
+  return (async () => {
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]),
+                 'dio «' + t[1] + '» · esperado «' + t[2] + '»']) };
+  const esperar = (ms) => new Promise((r) => setTimeout(r, ms));
+  const EL = (id) => document.getElementById(id);
+  const FN = (n) => (typeof window[n] === 'function') ? window[n] : null;
+  const S = (id, v) => { const e = EL(id); if (!e) return 'NO EXISTE ' + id;
+    e.value = v; e.dispatchEvent(new Event('input', { bubbles: true }));
+    e.dispatchEvent(new Event('change', { bubbles: true })); return e.value };
+  const CHK = (id, on) => { const e = EL(id); if (!e) return 'NO ' + id;
+    e.checked = !!on; e.dispatchEvent(new Event('change', { bubbles: true })); return 'ok' };
+  const st = FN('_cm3dEstado') ? window._cm3dEstado() : null;
+  const mods = () => st ? JSON.stringify(st.S.mods) : 'NO';
+  const leer = () => { const f = FN('cmDesdeEstudio'); return f ? f() : null };
+
+  ex.push(['(A0) DENOM: el lector y el estado existen',
+    (FN('cmDesdeEstudio') ? 1 : 0) + (st ? 1 : 0) + '/2', '2/2']);
+
+  /* ── (A) EL ESTUDIO VACIO ── */
+  try { if (typeof limpiarCampos === 'function') limpiarCampos(true) } catch (e) {}
+  await esperar(300);
+  leer();
+  ex.push(['(A1) el estudio vacio no dibuja ninguna lesion', mods(), '{}']);
+  ex.push(['(A2) y la base es el corazon normal', st ? st.S.base : 'NO', 'norm']);
+
+  /* ── (B) UNA ESCENA POR MODULO, con el gesto real ── */
+  const CASOS = [
+    ['CIA secundum', () => { S('ete_cia_tipo', 'secundum') }, '{"cia":"sec"}'],
+    ['CIA primum',   () => { S('ete_cia_tipo', 'primum') },   '{"cia":"pri"}'],
+    ['CIA seno ven', () => { S('ete_cia_tipo', 'sv_vcs') },   '{"cia":"sv"}'],
+    ['CIV inlet',    () => { S('ete_civ_tipo', 'inlet') },    '{"civ":"ent"}'],
+    ['CIV salida',   () => { S('ete_civ_tipo', 'infundibular') }, '{"civ":"sal"}'],
+    ['ductus',       () => { S('dap_tipo', 'restrictivo') },  '{"dap":"std"}'],
+    ['ventana prox', () => { S('vap_tipo', 'i') },            '{"vap":"prox"}'],
+    ['ventana dist', () => { S('vap_tipo', 'ii') },           '{"vap":"dis"}'],
+    ['CVPA a la VCS',() => { S('cvpa_conexion', 'vcs') },     '{"cvpa":"cs"}'],
+    ['cava izq',     () => { CHK('otr_var_vcsip', true) },    '{"vcs":"std"}'],
+    ['Eisen con CIV',() => { S('eis_lesion_base', 'civ') },   '{"civ":"pm","eis":"std"}']
+  ];
+  for (const c of CASOS) {
+    try { if (typeof limpiarCampos === 'function') limpiarCampos(true) } catch (e) {}
+    await esperar(200);
+    c[1](); await esperar(220); leer();
+    ex.push(['(B) ' + c[0] + ' dibuja lo que le toca', mods(), c[2]]);
+  }
+
+  /* ── (C) LA CIA DE SENO VENOSO ASOCIADA SALE DEL DATO Y NO DEL ESPEJO ── */
+  /* ⚠️ El espejo cvpa_cia_ro publica «Sin CIA consignada» cuando NO hay ninguna: preguntarle si tiene
+     texto encendia la casilla sobre un estudio que dice que no. Se le pregunta al DATO. */
+  try { if (typeof limpiarCampos === 'function') limpiarCampos(true) } catch (e) {}
+  await esperar(200);
+  S('cvpa_conexion', 'vcs'); await esperar(200); leer();
+  ex.push(['(C1) CONTROL NEGATIVO: la conexion venosa SOLA no enciende la CIA de seno venoso',
+    st ? JSON.stringify(st.S.ck) : 'NO', '{}']);
+  S('ete_cia_tipo', 'sv_vcs'); await esperar(220); leer();
+  ex.push(['(C2) con una CIA de seno venoso cargada, SI la enciende',
+    st ? String(st.S.ck.svs) : 'NO', 'true']);
+
+  /* ── (D) LA DIRECCION DEL CORTOCIRCUITO, donde la pestania la guarda ── */
+  try { if (typeof limpiarCampos === 'function') limpiarCampos(true) } catch (e) {}
+  await esperar(200);
+  S('ete_cia_tipo', 'secundum'); S('ete_cia_dir', 'di'); await esperar(220); leer();
+  ex.push(['(D1) «derecha a izquierda» se respeta', st ? String((st.S.dir || {}).cia) : 'NO', 'true']);
+  S('ete_cia_dir', 'id'); await esperar(220); leer();
+  ex.push(['(D2) «izquierda a derecha» tambien', st ? String((st.S.dir || {}).cia) : 'NO', 'false']);
+  S('ete_cia_dir', 'bi'); await esperar(220); leer();
+  ex.push(['(D3) CONTROL NEGATIVO: «bidireccional» NO se fuerza y queda la regla de la demo',
+    st ? String((st.S.dir || {}).cia) : 'NO', 'undefined']);
+
+  /* ── (E) LO QUE NO TIENE VARIANTE SE DECLARA, NO SE INVENTA ── */
+  try { if (typeof limpiarCampos === 'function') limpiarCampos(true) } catch (e) {}
+  await esperar(200);
+  S('vap_tipo', 'iii'); await esperar(220);
+  const r1 = leer();
+  ex.push(['(E1) la ventana TOTAL no se dibuja', mods(), '{}']);
+  ex.push(['(E2) y se declara como omitida', r1 ? r1.omitidas.join(',') : 'NO', 'vap']);
+  try { if (typeof limpiarCampos === 'function') limpiarCampos(true) } catch (e) {}
+  await esperar(200);
+  S('eis_lesion_base', 'tronco'); await esperar(220);
+  const r2 = leer();
+  ex.push(['(E3) un Eisenmenger sobre tronco arterioso tampoco se dibuja', mods(), '{}']);
+  ex.push(['(E4) y se declara', r2 ? r2.omitidas.join(',') : 'NO', 'eisen']);
+
+  /* ── (F) LA TRANSPOSICION TIENE SU PROPIA FRASE Y NO CAE EN «no dibujadas» ── */
+  try { if (typeof limpiarCampos === 'function') limpiarCampos(true) } catch (e) {}
+  await esperar(200);
+  S('tga_tipo', 'dtga'); await esperar(260);
+  try { if (FN('cc3dTextoSync')) window.cc3dTextoSync() } catch (e) {}
+  const lin = String((EL('cc3d-faltan') || {}).textContent || '');
+  ex.push(['(F0) DENOM: la linea se escribio', lin.length > 20, true]);
+  ex.push(['(F1) dice que la transposicion tiene su propio diagrama',
+    lin.indexOf('tiene su propio diagrama') >= 0, true]);
+  ex.push(['(F2) y NO la lista como no dibujada, que seria decir dos cosas contradictorias',
+    /no dibujadas todav[ií]a: *TGA/.test(lin), false]);
+
+  /* ── (G) SOLO LEE: ningun campo se mueve ── */
+  try { if (typeof limpiarCampos === 'function') limpiarCampos(true) } catch (e) {}
+  await esperar(240);
+  S('ete_cia_tipo', 'secundum'); S('ete_civ_tipo', 'inlet'); CHK('otr_var_vcsip', true);
+  await esperar(260);
+  const censo = () => { const o = {};
+    document.querySelectorAll('input[id], select[id], textarea[id]').forEach(e => {
+      if (FN('_noEsDelEstudio') && window._noEsDelEstudio(e.id)) return;
+      o[e.id] = (e.type === 'checkbox') ? (e.checked ? '1' : '') : String(e.value || '');
+    }); return o };
+  const c0 = JSON.stringify(censo());
+  leer(); leer();
+  ex.push(['(G1) leer el estudio dos veces no mueve un solo campo', JSON.stringify(censo()) === c0, true]);
+  ex.push(['(G2) DENOM: habia campos cargados que mover', Object.keys(JSON.parse(c0)).length > 500, true]);
+
+  /* ── (H) LOS DOS REGISTROS DEL EMBUDO ── */
+  const R1 = FN('RECALC_MODULOS') ? window.RECALC_MODULOS() : [];
+  const R2 = FN('ESPEJOS_VIVOS') ? window.ESPEJOS_VIVOS() : [];
+  ex.push(['(H1) el repintador esta en RECALC_MODULOS, que es el de las rutas de restauracion',
+    R1.indexOf('cm3dEstudioSync') >= 0, true]);
+  ex.push(['(H2) y en ESPEJOS_VIVOS, que es el del gesto',
+    R2.indexOf('cm3dEstudioSync') >= 0, true]);
+  try { if (typeof limpiarCampos === 'function') limpiarCampos(true) } catch (e) {}
+  return { extra: EXP };
+  })();
+`);
+
+
 
 
 try {

@@ -68715,9 +68715,11 @@ function RECALC_MODULOS() {
              lista ya llamaba —`contrPdfSync`, `sglPdfSync` y `eteQxPdfSync`— y de `calcOAI`,
              así que pinta con el estado ya repuesto y no con el del paciente anterior. */
           'infMinPintar',
-          /* PANT-12: el corazon maestro en modo «Segun el estudio». Va al FINAL, detras de los
-             duenios de cada lesion -`eteShuntSync`, `dapSync`, `vapSync`, `cvpaSync`,
-             `eisenSync`-, asi que lee el estado ya repuesto y no el del paciente anterior.
+          /* PANT-12: el corazon maestro en modo «Segun el estudio», por la ruta de
+             RESTAURACION. Va al FINAL, detras de los duenios de cada lesion -`eteShuntSync`,
+             `dapSync`, `vapSync`, `cvpaSync`, `eisenSync`-, asi que lee el estado ya repuesto y
+             no el del paciente anterior. Hace falta porque las cinco rutas de restauracion y
+             «Nuevo estudio» pueblan asignando `.value`, que NO dispara `input`.
              SOLO LEE y sale temprano si el modulo no se ve. */
           'cm3dEstudioSync'];
 }
@@ -68842,10 +68844,12 @@ function ESPEJOS_VIVOS() {
              de campo—, que es la regla con la que este registro excluye a `popSync` y a
              `calcVD`. */
           'infMinPintar',
-          /* PANT-12: el corazon maestro en modo «Segun el estudio». Va al FINAL, detras de los
-             duenios de cada lesion -`eteShuntSync`, `dapSync`, `vapSync`, `cvpaSync`,
-             `eisenSync`-, asi que lee el estado ya repuesto y no el del paciente anterior.
-             SOLO LEE y sale temprano si el modulo no se ve. */
+          /* PANT-12: el corazon maestro en modo «Segun el estudio», por la ruta del GESTO.
+             Va al FINAL, detras de los duenios de cada lesion. Hace falta porque sin el un
+             cambio tecleado en cualquier pestania no se reflejaria hasta el proximo repintado.
+             Cuelga del debounce de 220 ms que este registro ya tiene, SIN temporizador nuevo.
+             SOLO LEE, asi que no cae en la exclusion que este registro declara para los
+             pintores que escriben campos del estudio. */
           'cm3dEstudioSync'];
 }
 function _espejosBarrerTodos() {
@@ -103618,7 +103622,7 @@ CM_CIRC.dap_std='VI → aorta → (ductus) → arteria pulmonar → pulmones →
 CM_CIRC.vcs_std='Cava izquierda → seno coronario dilatado → AD → VD → arteria pulmonar → pulmones';
 CM_CIRC.eis_std='VD → arteria pulmonar dilatada · cortocircuitos de derecha a izquierda';
 CM_REF.dap_std='Tubo naranja: ductus. La corriente roja va de la aorta a la arteria pulmonar; con Eisenmenger, la azul va en sentido inverso.';
-CM_REF.vcs_std='Vena azul a la izquierda: cava superior izquierda persistente. Segmento ancho: seno coronario dilatado que llega a la aurícula derecha.';
+CM_REF.vcs_std='Vena azul a la izquierda: cava superior izquierda persistente. Segmento ancho: el trayecto del seno coronario hasta la aurícula derecha.';
 CM_REF.eis_std='Con Eisenmenger la corriente de cada cortocircuito se invierte y se vuelve azul.';
 
 function cmBloqueado(k, S) {
@@ -104109,6 +104113,9 @@ function cm3dSync() {
 }
 window.cm3dSync = cm3dSync;
 window.cmEscena = cmEscena; window.cmBloqueado = cmBloqueado;
+/* Los tres registros de datos se exponen de solo lectura, igual que `OTR_HALL`: los leen los
+   casos de la suite para contar lo que la tabla y las combinaciones publican. */
+window.CM_TBB = CM_TBB; window.CM_TBM = CM_TBM; window.CM_PRES = CM_PRES;
 window._cm3dEstado = function () { return _cm3d };
 
 /* ══════════════════════════════════════════════════════════════════════════════════════════
@@ -159577,8 +159584,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261104-1900';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793829636282;                 /* eco-build-ms */
+const ECO_BUILD    = '20261104-1942';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793832161715;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -159664,7 +159671,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261104-1900</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261104-1942</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

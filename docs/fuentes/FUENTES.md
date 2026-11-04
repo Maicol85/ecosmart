@@ -11074,3 +11074,67 @@ embólico previo.
 - **Un score de riesgo embólico validado**: ninguno en la biblioteca, y el globo lo dice.
 - **La opción «pannus» en `masa_dx`**: la tabla la describe, pero agregar una opción a un selector
   del estudio es contenido clínico nuevo → **P11-f**.
+
+---
+
+## La tanda PANT-12 (2026-11-04) — el corazón maestro en 3D
+
+**Las fuentes se leyeron EN IMAGEN a 220 ppp y el folio se comprobó en el pie impreso de cada
+hoja.** Lo que no se pudo respaldar se sacó del texto y está en `docs/PENDIENTES.md` → **P12-a**.
+
+### Las reglas de folio, comprobadas
+
+| Documento | Regla | Comprobada en |
+|---|---|---|
+| ESC 2020 de cardiopatías congénitas del adulto, **edición inglesa** (84 hojas) | folio = hoja + 562 | hojas 29→591, 32→594, 33→595, 35→597, 39→601, 40→602, 41→603, 46→608, 48→610, 50→612, 63→625 |
+| ACC/AHA 2025 de congénitas del adulto (Gurvitz, la copia **sin «-2»**, 137 hojas) | folio = e(hoja + 114) | hoja 43 |
+| ASE de estandarización del informe ecocardiográfico (Taub) | folio impreso en la hoja | hoja 35 → 769 |
+
+### Lo que cada hoja dice, y qué texto de la app sostiene
+
+| Hoja · folio | Lo leído | Qué sostiene |
+|---|---|---|
+| ESC h29 · **591** | «Secundum ASD (80 %; **located in the region of the fossa ovalis**)»; «Primum ASD [15 %; synonyms: partial AV septal defect; **located near the crux, AV valves are typically malformed, resulting in various degrees of regurgitation**]»; «Superior sinus venosus defect [5 %; **located near the superior vena cava entry, associated with partial or complete connection of right pulmonary veins to SVC/RA**]»; «Associated lesions include **anomalous pulmonary venous connection, persistent left SVC, pulmonary valve stenosis**…»; «**Interatrial defects are the most frequently associated defects in Ebstein anomaly**» | Los **tres** tipos de CIA, y la fuente de **dos** combinaciones frecuentes |
+| ESC h32 · **594** | Los cuatro tipos de CIV: perimembranosa «**in the membranous septum… adjacent to tricuspid and aortic valve**»; muscular «**completely surrounded by muscle… frequently multiple**»; de salida «**beneath the semilunar valves in the conal or outlet septum; may be associated with progressive AR due to prolapse of the right aortic cusp**»; de entrada «**inlet of the ventricular septum immediately inferior to the AV valve apparatus… typically occurring in Down syndrome**» | Los **cuatro** tipos de CIV |
+| ESC h33 · **595** | «The partial AVSD usually has a defect only at the atrial level (primum ASD)… **bridging leaflets are fused centrally, creating separate left- and right-sided orifices**»; «In a complete AVSD… **only one orifice**… a septal defect in the crux… **Most complete AVSDs occur in Down syndrome patients (>75 %)**» | El defecto AV parcial y el completo |
+| ESC h35 · **597** | «PDA is the persistent communication between the **proximal left PA and the descending aorta just distal to the left subclavian artery**»; «originally results in L→R shunt»; «a large PDA have, in general, developed Eisenmenger physiology» | El ductus y su inversión |
+| ESC h39 · **601** | «SupraAS occurs as a localized fibrous diaphragm **just distal to the coronary ostia** or, most commonly, as an external **hourglass deformity**… or as diffuse stenosis of the ascending aorta… **involvement of coronary ostia**» | La supravalvular aórtica |
+| ESC h40 · **602** | «It is caused by a **fibrous ridge/ring in the LVOT proximal to the aortic valve** or as a **fibromuscular narrowing**. SubAS has to be **differentiated from obstructive hypertrophic cardiomyopathy**»; «**AR is frequent**» | La subaórtica |
+| ESC h41 · **603** | «Typically, CoA is located in the **area where the ductus arteriosus inserts**»; «Associated lesions include BAV…, **SubAS, or SupraAS**, (supra)mitral valve stenosis…, **Shone complex**»; «**collateral arterial circulation**» | La coartación y la fuente de la **tercera** combinación |
+| ESC h46 · **608** | «RVOTO can occur at the **sub-infundibular, infundibular, valvular, or supravalvular levels**»; valvular: «**dilation of the PA may occur**… **Mainly due to intrinsic wall abnormalities, and independent of haemodynamics**… typical **dome-shaped** pulmonary valve with a **narrow central opening**»; infundibular: «usually occurs in combination with other lesions… the obstruction tends to be **dynamic**» | Los tres niveles de estenosis pulmonar |
+| ESC h48 · **610** | «apically displaced leaflets of the TV… the **septal and posterior leaflets are displaced towards the RV apex**»; «the right heart consists of a morphological RA, **an atrialized portion of the RV**, and the remaining functional RV; the TV is often regurgitant»; «**The most frequently associated anomalies include a shunt at the atrial level [secundum ASD or PFO]**» | El Ebstein y la fuente de la **cuarta** combinación |
+| ESC h50 · **612** | «TOF is characterized by the following four features: **a non-restrictive VSD; overriding aorta (but <50 %); infundibular, valvular, supravalvular RVOTO and/or branch PA stenosis; and consequent RV hypertrophy**» | Los **cuatro** componentes de la tetralogía |
+| ESC h63 · **625** | «separation of the systemic and pulmonary venous returns **without a subpulmonary ventricle**»; «the **total cavopulmonary connection** has replaced the **atriopulmonary connection (RA appendage to PA)**, with either an **intracardiac or extracardiac conduit between the IVC and the PA**, together with an **SVC-to-PA anastomosis**» | Los tres tipos de Fontan |
+| ACC/AHA **h43** | «Partial AVSD… has only an ASD component, **often with a cleft left atrioventricular valve**»; «**Transitional AVSD** … has attachments of the common atrioventricular valve to the **crest of the septum**, resulting in **2 functional atrioventricular-valve orifices**; however, a **pressure-restrictive VSD** is present, along with a **primum ASD**» | La hendidura (de la válvula **izquierda**, no «mitral») y el **transicional**, que la ESC no define |
+| ASE Taub h35 · **769** | «Congenital persistence of left superior vena cava — Drainage (**coronary sinus, unroofed coronary sinus, left atrium**) — Presence of a bridging vein» | El drenaje de la cava superior izquierda persistente |
+
+### Los censos, con su control positivo
+
+- **La dilatación del seno coronario en una cava izquierda persistente NO tiene fuente.** Censada
+  la biblioteca entera por «dilated coronary sinus», «coronary sinus is dilated» y «enlarged
+  coronary sinus»: **cinco** apariciones, y las cinco la ligan al **seno coronario sin techo**, a
+  la **insuficiencia tricuspídea severa** o a la **hipertensión pulmonar**. **Ninguna** a una cava
+  izquierda persistente. Control positivo: la misma búsqueda encuentra las cinco.
+- **La cava superior izquierda persistente aparece en 16 archivos** de la biblioteca, censada por
+  cuatro variantes de su nombre. El único que describe su **drenaje** de forma utilizable es la
+  ASE de estandarización del informe.
+- **La ventana aortopulmonar sigue sin fuente**, que es lo que PANT-10 ya había censado: la ESC
+  2020 no la nombra ni una vez en sus 84 hojas y la ACC/AHA una sola vez, dentro de una
+  recomendación de bosentán. El texto del módulo **lo dice**.
+
+### Cambios de evidencia
+
+| Qué decía | Qué dice | Por qué |
+|---|---|---|
+| CIA primum: «hendidura de la válvula **mitral**» | «de la válvula **auriculoventricular izquierda**» | ACC/AHA h43. En el defecto AV la válvula izquierda no es una mitral verdadera |
+| CIV de entrada: «porción **posterior** del tabique» | «tabique de **entrada**, inmediatamente por debajo del aparato valvular auriculoventricular» | ESC h32 · 594 |
+| CIV de salida: «por debajo de la válvula **pulmonar**» | «por debajo de las **válvulas semilunares**, en el tabique de salida o conal» | ESC h32 · 594 |
+| Defecto AV transicional: «CIA primum con una CIV restrictiva de entrada» | «la válvula AV común se inserta en la **cresta del tabique** y deja **dos orificios funcionales**…» | ACC/AHA h43. La ESC no lo define |
+| Estenosis pulmonar valvular: «la arteria pulmonar se dilata **después de la obstrucción**» | «puede dilatarse **por alteraciones de su propia pared, con independencia de la hemodinámica**» | ESC h46 · 608 lo dice **al revés** de lo que el texto afirmaba |
+| Supravalvular aórtica: «justo por encima de **los senos**» | «justo por encima de los **ostium coronarios**» | ESC h39 · 601 |
+| Las cuatro estenosis: «el ventrículo se hipertrofia» | retirado | No es literal de la fuente en ninguna de las cuatro |
+| Ductus: «entre la arteria pulmonar y la aorta descendente» | «entre la **arteria pulmonar izquierda proximal** y la aorta descendente, **justo distal a la subclavia izquierda**» | ESC h35 · 597 |
+| Fontan atriopulmonar: «la aurícula derecha se dilata» | «es la operación original, hoy reemplazada por la conexión cavopulmonar total» | ESC h63 · 625. La dilatación no es parte de su definición |
+| Cava izquierda: «baja por delante del hilio pulmonar izquierdo y **suele** desembocar en el seno coronario, **que se dilata**» | «cuyo drenaje puede ser al **seno coronario, a un seno coronario sin techo o a la aurícula izquierda**» | ASE h35 · 769. Lo retirado está en **P12-a** |
+| Las cuatro combinaciones con fuente: «… **A verificar por Code**.» | la cita con su hoja y su folio, sin esa frase | Verificadas en imagen. La frase no puede entrar a la app |
+| Las dos combinaciones sin fuente: «Ejemplo didáctico…» | «**Ejemplo didáctico, sin fuente**: …» | Que se lea que no tienen respaldo |

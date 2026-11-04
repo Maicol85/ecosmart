@@ -300,3 +300,20 @@ Lo que esa tanda movió de esta zona está en **`docs/mapa/tga3-esquema-circulac
 - `tgaEsqSync` se llama desde **`tga3dSync`, antes de toda salida temprana**, que es el único
   punto que cubre los tres caminos y que además deja el esquema vivo cuando three.js no carga.
 - La animación se cuelga de **`_tga3d.pausado`** y **`_tga3d.fc`**, los dueños del 3D.
+
+---
+
+## ⚠️ Desde PANT-12 el corazón maestro NO presta este recuadro
+
+Hasta esa tanda, el botón «Ver en 3D» de la fase 1 **movía** `#tga-3d-box` a su hueco y lo
+devolvía al cerrar. Desde PANT-12 el corazón maestro tiene **lienzo, motor y estado propios**
+(`#cm3d-cv`, `cm3dInit`, `_cm3d`) y **este recuadro no se mueve de su sección**.
+
+Lo que sí se comparte es la **librería**: `cm3dBoot` reusa `TGA3D_URL` y `TGA3D_SRI`, que siguen
+siendo sus dueños únicos — con una segunda constante, el día que haya que regenerar el hash
+habría dos lugares y el que quede viejo hace que el navegador descarte el script en silencio.
+
+La rama que devuelve el préstamo se conserva en `cc3dCerrar`, con su motivo escrito: no corre
+nunca (ahora `_cc3d.padre` es `null`) y queda porque es la única forma de deshacer uno.
+
+Ver `docs/mapa/pant12-corazon-maestro.md`.

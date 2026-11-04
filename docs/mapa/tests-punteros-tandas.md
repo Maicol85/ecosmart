@@ -322,3 +322,17 @@ de 34 a 36 y las tarjetas sin botón de 67 a 69), **TC-509** (los once campos pa
 pericardio y NUEVE de masas, las TRES secciones de Otros y las 38 entradas) y **TC-535** (los
 globos de 44 × 44, de 61 a 63). Mutaciones: `scripts/_mut_pant11.py`, **44/44 muertas**, con
 **cuatro** condiciones nacidas de mutaciones que sobrevivieron al primer barrido.
+
+## Tanda PANT-12 (2026-11-04) — el corazón maestro, parte 1
+
+| Caso | Qué fija |
+|---|---|
+| **TC-680** | Las **tres guardas del reloj** del motor 3D, en los **dos** motores, y que el parámetro de la curva no salga de rango |
+| **TC-681** | La casilla **«Vena cava superior izquierda persistente»**: un campo guardado, sin columna de Excel, su frase en el cuerpo del informe y **no** en el EN SUMA |
+| **TC-682** | El **motor modular**: lienzo propio, la transposición en su sitio, las cinco anatomías, las nueve lesiones, Eisenmenger como modificador, las reglas de compatibilidad y las **tres listas paralelas** |
+| **TC-683** | Los **dos modos**, la **tabla lateral** de 21 filas y el **globo** con sus tres vías de cierre |
+| **TC-684** | Los **textos verificados** hoja por hoja contra las guías, y las dos frases que no pueden entrar a la app |
+| **TC-685** | **«Según el estudio»**: once escenas con el gesto real, la dirección del cortocircuito, lo que se declara en vez de dibujarse, y que **sólo lee** |
+
+Las fichas están en `docs/mapa/tests-fichas-680.md` (archivo propio: `tests-fichas.md` está a
+menos de 1 KB del techo). El mapa de la tanda es `docs/mapa/pant12-corazon-maestro.md`.

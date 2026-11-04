@@ -1153,3 +1153,28 @@ mismas claves. Censo de campos **1004 → 1008**.
 Cierra **P10-a**, **P6-f**, **P5-f** y **P6-h**; el último porque
 `docs/mapa/mitral-dibujo-estatico.md` cruzó el techo de ~35 KB al recibir el puntero de esta
 tanda y se partió a `docs/mapa/mitral-teer-criterios.md`, con cero líneas perdidas.
+
+---
+
+## PANT-12 — el corazón maestro, parte 1 (2026-11-04)
+
+**Seis commits** —contados con `git log` al cerrar—, para los siete puntos de la orden: el 2 no cambia una línea. Al empezar, `origin/main` = `HEAD` = `9c5ab8f`, el cierre de PANT-11, ya
+publicado, con md5 `a78bd6ce`, sello `v20261104-1554` y el pendrive `DISK_IMG` montado.
+**El push lo corre Maicol: esta tanda tenía orden expresa de NO pushear.**
+
+| # | Commit | Qué hizo |
+|---|---|---|
+| 1 | `96a90bc` | Inventario de solo lectura del corazón maestro, y el defecto del reloj **medido** |
+| 2 | — | **No cambia una línea**: el defecto no se reproduce, y está medido con su control positivo |
+| 3 | `83e33f6` | La casilla «Vena cava superior izquierda persistente» |
+| 4 | `0a4cca5` | El motor modular y las dieciséis lesiones |
+| 5 | `928c860` | Los controles, la tabla lateral, el globo y los dos modos |
+| 6 | `185a173` | «Según el estudio»: las comunicaciones y las conexiones |
+| 7 | éste | Cobertura y documentación |
+
+**Lo que dejó:** un módulo 3D con motor, lienzo y estado propios abajo de las congénitas, con dos
+modos; la transposición conserva su propio diagrama; un campo guardado nuevo (el autorizado); y
+los textos del globo verificados hoja por hoja contra las guías.
+
+**Lo que NO hizo:** la parte 2 —«Según el estudio» para las siete lesiones que el motor ya
+dibuja pero la pestaña todavía no cablea—, declarada en `docs/PENDIENTES.md` → **P12-c**.

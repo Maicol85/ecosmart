@@ -1,5 +1,87 @@
 # EcoSmart — pendientes vivos
 
+## P12-a · Lo que PANT-12 sacó de los textos del corazón maestro, LITERAL, por no tener respaldo
+
+Los textos del globo y de la tabla lateral del corazón maestro se verificaron **hoja por hoja y
+en imagen** contra las guías de congénitas de la biblioteca. Lo que no se pudo respaldar salió,
+y queda acá palabra por palabra para que el médico lo recupere si aparece una fuente.
+
+| De dónde salió | Texto retirado, palabra por palabra | Por qué |
+|---|---|---|
+| `CM_INFO.vcs_std` — la cava superior izquierda persistente | «Una vena adicional del lado izquierdo **baja por delante del hilio pulmonar izquierdo** y **suele desembocar en el seno coronario, que se dilata**. Puede acompañar a otras cardiopatías.» | **Censada la biblioteca entera**: las CINCO apariciones de un seno coronario dilatado lo ligan al seno sin techo, a la insuficiencia tricuspídea severa o a la hipertensión pulmonar, y **ninguna** a una cava izquierda persistente. El trayecto por delante del hilio tampoco aparece. Lo que SÍ tiene fuente —el drenaje al seno coronario, a un seno sin techo o a la aurícula izquierda— se conserva (ASE de estandarización del informe, hoja 35, folio 769). |
+| `CM_REF.vcs_std` — la leyenda del dibujo | «Segmento ancho: **seno coronario dilatado** que llega a la aurícula derecha.» | Por lo mismo. La leyenda pasa a describir lo que se ve sin afirmarlo como hallazgo: «el trayecto del seno coronario hasta la aurícula derecha». ⚠️ **El dibujo sigue dibujando ese segmento más ancho**, porque es la geometría de la demo que el médico aprobó: lo que cambió es lo que el texto afirma. |
+| `CM_INFO.vap_prox` y `CM_INFO.vap_dis` | «Comunicación directa entre la aorta ascendente y el tronco de la arteria pulmonar, **con las dos válvulas semilunares separadas**. La forma proximal está cerca de las válvulas / La forma distal está cerca de la bifurcación pulmonar.» | **Ninguna de las dos guías de congénitas del adulto de la biblioteca trata esta lesión**, censado en PANT-10 y reconfirmado: la ESC 2020 no la nombra ni una vez en sus 84 hojas y la ACC/AHA una sola vez, dentro de una recomendación de bosentán. Queda la definición mínima —la MISMA que el globo `cc9-vap-sec` ya publica— y el texto **dice** que la biblioteca no la trata. |
+| Las cuatro combinaciones frecuentes con fuente | «… **A verificar por Code.**» | Las cuatro se **verificaron en imagen** en esta tanda, con su folio comprobado en el pie impreso. Y la frase no puede entrar a la app: la regla fija dice que nada declara estar pendiente de revisión. |
+| La nota al pie de la demo | «Los textos son de ejemplo y se verifican contra las guías de congénitas (Cowork).» | La misma regla. **No pasó a la app**, censado: cero apariciones. |
+
+**Lo que se corrigió en vez de retirarse** está en `docs/fuentes/FUENTES.md` → «La tanda PANT-12»,
+tabla «Cambios de evidencia», once filas.
+
+## P12-b · La casilla nueva va SIN caja de detalle, y lo decide el médico
+
+Las otras seis variantes anatómicas de la pestaña Otros llevan, al lado de su casilla, una
+`<input id="..._nota">` de texto libre que el emisor agrega a la oración del informe. La casilla
+nueva —«Vena cava superior izquierda persistente»— **no la lleva**, y es deliberado: esa caja es
+**otro campo guardado**, y la orden de esta tanda autorizaba **uno solo**.
+
+El emisor la soporta sin tocarlo: su helper `nota(id)` ya devuelve cadena vacía cuando el
+elemento no existe, así que agregarla el día que el médico lo decida es **una línea de marcado**
+y nada más. El precio de hoy: el médico no puede escribir un detalle al lado de esa variante.
+
+## P12-c · La PARTE 2 del corazón maestro: lo que el motor ya dibuja y la pestaña todavía no cablea
+
+El motor **ya dibuja** las siete lesiones que faltan —están en el modelo y se ven en «Explorar»—;
+lo que falta es leerlas de su pestaña en el modo «Según el estudio». Son: **Fallot** (con sus
+cuatro residuales), **coartación** (nativa y reparada, con colaterales, recoartación y
+aneurisma), **estenosis pulmonar** (sus tres niveles), **estenosis subaórtica y supravalvular
+aórtica** (con insuficiencia aórtica), **defecto del septo auriculoventricular** (sus tres
+tipos), **Ebstein** (con insuficiencia tricuspídea) y **Fontan** (sus tres tipos, con
+fenestración).
+
+El inventario del cruce pestaña ↔ dibujo para las siete está **hecho y medido** en
+`docs/INVENTARIO_CORAZON_MAESTRO.md` § 3, con las opciones de cada selector leídas del marcado.
+
+⚠️ **Y UNA DE LAS SIETE NO SE VA A PODER DECLARAR EN LA LÍNEA DE ABAJO, MEDIDO.** La línea lee
+`_CC_SECS`, el registro del Laboratorio, que tiene **diecinueve** secciones de congénitas y
+**ninguna es la estenosis pulmonar**: `ep_*` vive en Válvulas y no es una sección congénita de la
+app. Así que una estenosis pulmonar cargada no aparece hoy como «cargada y no dibujada». Lo que
+no se hizo es inventar una segunda lista, que es lo que este archivo documenta una y otra vez.
+
+## P12-d · Ninguna pareja incompatible es alcanzable todavía desde el estudio, y está medido
+
+La rama que dice «no se dibujan juntas» existe, funciona y tiene su mutación propia. Pero
+medido: `cmBloqueado` sólo devuelve un motivo cuando la **anatomía de base** es Fallot, defecto
+AV, Ebstein o Fontan, o cuando se combinan la **estenosis pulmonar** y el **Eisenmenger** — y
+esta tanda **no cablea ninguna anatomía de base ni la estenosis pulmonar** desde el estudio
+(eso es la parte 2). Así que hoy ningún estudio puede producir un choque.
+
+No es un defecto y no se tocó: la rama está escrita y probada para el día que la parte 2 cablee
+las bases. Se declara para que nadie la lea como código muerto.
+
+## P12-e · «Nuevo estudio» cierra el panel del corazón maestro, y es preexistente
+
+`limpiarCampos` llama a `cc3dCerrar`, y lo hace desde PANT-3. El efecto es que después de «Nuevo
+estudio» el módulo queda **cerrado** y hay que volver a abrirlo. Es coherente —el panel presta
+espacio y el estudio cambió— y no se tocó, porque cambiarlo es una decisión de pantalla que la
+orden no pide.
+
+⚠️ **Costó una medición entera**: la sonda del commit 6 vaciaba el formulario antes de cada una
+de sus 22 escenas y medía con el módulo cerrado, donde el repintado sale temprano — y las
+diecinueve primeras daban `{}`, que se lee igual que «el lector no funciona».
+
+## P12-f · El error de tiempo del motor 3D NO se reproduce en la app, y la sonda queda
+
+El commit 2 de la orden pedía corregir un error intermitente del reloj de la animación. **Medido
+con su control positivo: el árbol de hoy no lo tiene.** El detalle está en
+`docs/INVENTARIO_CORAZON_MAESTRO.md` § 6: cero parámetros fuera de rango sobre 13.088 llamadas y
+cero errores de página, contra dos y dos en una copia mutada sin las guardas. Las tres guardas
+las puso la tanda **TGA** del 31/10/2026 al portar la demo.
+
+La sonda `scripts/_probe_pant12reloj.mjs` queda como la forma de volver a medirlo: instala, antes
+de que la página corra una línea, un `requestAnimationFrame` que entrega un reloj cinco segundos
+anterior al real, y cuenta los parámetros fuera de rango.
+
+
 ## P11-a · Lo que el commit 1 de PANT-11 retiró del PAPEL, LITERAL, con su ubicación anterior
 
 El papel —informe en los tres estilos, EN SUMA, PDF y PPT— pasó a llevar **solo lo medido** en
