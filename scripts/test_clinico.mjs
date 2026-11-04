@@ -77614,7 +77614,11 @@ caso('TC-499', 'Tanda CORTOS: la POSICION del selector de origen mitral y de los
   /* ══ DENOMINADORES ════════════════════════════════════════════════════════════════════════ */
   ex.push(['(DENOM1) las piezas de esta tanda existen: el umbral de integracion, el estado aislado, la tabla de hallazgos de Otros y el dueno del test de burbuja',
     G('VT_PROT_OBSTR_MIN') === 2 && typeof G('VT_PROT_AISLADO_TXT') === 'string'
-      && Array.isArray(G('OTR_HALL')) && G('OTR_HALL').length === 8
+      /* ADAPTADO (PANT-12, commit 3): 8 -> 9. La entrada nueva es otr_var_vcsip, la casilla
+         «Vena cava superior izquierda persistente» que el medico pidio al lado del seno
+         coronario. Es adaptacion de DENOMINADOR y no de contrato: lo que este caso vigila es
+         que la tabla exista y sea un array, no cuantas filas tiene. */
+      && Array.isArray(G('OTR_HALL')) && G('OTR_HALL').length === 9
       && FN('otrHallazgos') && FN('otrBurbuja') && FN('etOndaESync') && FN('_otrRefClon'),
     'MIN=' + G('VT_PROT_OBSTR_MIN') + ' aislado=' + G('VT_PROT_AISLADO_TXT')
       + ' OTR_HALL=' + (Array.isArray(G('OTR_HALL')) ? G('OTR_HALL').length : G('OTR_HALL'))]);
@@ -77851,11 +77855,18 @@ caso('TC-499', 'Tanda CORTOS: la POSICION del selector de origen mitral y de los
         && LIN(a.suma, 'ASIA').length === 0; })(),
     (function(){ __t.limpiar(); CHK('otr_asia', false); S('otr_asia_nota', '(de 15 mm)');
       const a = inf('estandar'); return 'lineas con 15 mm=' + LIN(a.inf, '15 mm').length; })()]);
-  ex.push(['(f3) las SEIS variantes anatomicas van al informe y NINGUNA al EN SUMA, y la tabla lo dice con suma: null',
+  /* ADAPTADO (PANT-12, commit 3): SEIS -> SIETE variantes. La septima es otr_var_vcsip. El
+     invariante NO se movio —todas van al informe y NINGUNA al EN SUMA, y la tabla lo dice con
+     suma: null— y la condicion queda MAS FUERTE que antes: ademas del conteo exige que la
+     casilla nueva este inmediatamente DESPUES de la del seno coronario, que es donde el medico
+     la pidio, asi que mover una de las dos de lugar pone el caso en rojo. */
+  ex.push(['(f3) las SIETE variantes anatomicas van al informe y NINGUNA al EN SUMA, la tabla lo dice con suma: null, y la cava superior izquierda persistente va justo despues del seno coronario',
     (function(){ const H = G('OTR_HALL');
       if (!Array.isArray(H)) return false;
       const vars = H.filter(h => h.id.indexOf('otr_var_') === 0);
-      if (vars.length !== 6 || !vars.every(h => h.suma === null)) return false;
+      if (vars.length !== 7 || !vars.every(h => h.suma === null)) return false;
+      const ids = H.map(h => h.id);
+      if (ids.indexOf('otr_var_vcsip') !== ids.indexOf('otr_var_senocor') + 1) return false;
       __t.limpiar(); CHK('otr_var_chiari', true);
       const a = inf('estandar');
       return LIN(a.inf, 'Red de Chiari prominente.').length === 1

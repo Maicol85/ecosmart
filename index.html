@@ -10886,6 +10886,23 @@ window.cerrarSesionReal = cerrarSesionReal;
             </label>
             <input type="text" id="otr_var_senocor_nota" maxlength="120" placeholder="Detalle (opcional)" oninput="_refrescarInformeSiGenerado()">
           </div>
+          <!-- ⚠️ LA CASILLA DE LA CAVA SUPERIOR IZQUIERDA PERSISTENTE (PANT-12, commit 3).
+               PEDIDO DEL MEDICO (04/11/2026): va al lado de la del seno coronario, con el MISMO
+               estilo, y el 3D del corazon maestro la dibuja con los datos.
+               ⚠️ VA SIN CAJA DE DETALLE Y ES DELIBERADO: las otras seis variantes llevan una
+               `<input id="..._nota">`, que es OTRO campo guardado. La orden autoriza UN solo
+               campo nuevo en toda la tanda, asi que la caja queda afuera y se reporta en
+               `docs/PENDIENTES.md` -> P12-b para que lo decida el medico. El emisor la soporta
+               sin tocarlo: `nota(id)` devuelve cadena vacia cuando el elemento no existe.
+               ⚠️ Y EL 3D NO LA DEDUCE DEL SENO CORONARIO DILATADO: son dos hallazgos distintos
+               -un seno coronario se dilata por muchas causas- y el dibujo la pide por su propia
+               casilla, que es lo que el commit 6 cablea. -->
+          <div class="fg">
+            <label style="display:flex;align-items:center;gap:8px;min-height:44px;font-weight:600;">
+              <input type="checkbox" id="otr_var_vcsip" onchange="otrHallSync()">
+              <span style="font-size:12px;">Vena cava superior izquierda persistente</span>
+            </label>
+          </div>
           </div>
           <div class="fg" style="margin:12px 0 4px;border-top:1px solid var(--border);padding-top:10px;">
             <label style="font-weight:600">&#129656; Anomal&iacute;as coronarias</label>
@@ -72583,6 +72600,7 @@ const OTR_HALL = Object.freeze([
   Object.freeze({ id: 'otr_var_tendones',  def: 'Falsos tendones en el ventrículo izquierdo',          suma: null }),
   Object.freeze({ id: 'otr_var_lambl',     def: 'Excrecencias de Lambl',                               suma: null }),
   Object.freeze({ id: 'otr_var_senocor',   def: 'Seno coronario dilatado',                             suma: null }),
+  Object.freeze({ id: 'otr_var_vcsip',     def: 'Vena cava superior izquierda persistente',           suma: null }),
   Object.freeze({ id: 'otr_rac',           def: 'Arteria circunfleja retroaórtica',                    suma: 'RAC' })
 ]);
 /* Datos y no HTML, por el mismo motivo que `vtProtObstr`: lo consumen el cuerpo del informe y el
@@ -158361,8 +158379,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261104-1554';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793818443379;                 /* eco-build-ms */
+const ECO_BUILD    = '20261104-1820';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793827250337;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -158448,7 +158466,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261104-1554</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261104-1820</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
