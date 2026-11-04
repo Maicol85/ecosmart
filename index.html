@@ -20069,63 +20069,78 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
       <span id="cvpa_badge" class="incl-badge" hidden>&#9679; cargada</span>
     </button>
     <div class="card-body sacc-body">
-      <p style="font-size:11px;color:var(--text2);margin:0 0 12px;line-height:1.5;">
-        En el adulto sólo se ve la forma <b>parcial</b>: la total es una emergencia neonatal. El
-        <b>tipo de CIA</b> y la <b>dilatación del ventrículo derecho</b> son los del estudio
-        (secciones <b>CIA/CIV</b> y <b>VD / AD</b>): no se vuelven a pedir acá.
-      </p>
-      <div class="grid-3">
-        <div class="fg"><label>Número de venas anómalas</label>
-          <select id="cvpa_venas_numero" onchange="cvpaSync()">
-            <option value="">&mdash;</option>
-            <option value="1">1 vena</option><option value="2">2 venas</option>
-            <option value="3">3 venas</option><option value="noesp">No especificado</option>
-          </select></div>
-        <div class="fg"><label>Drenaje</label>
-          <select id="cvpa_conexion" onchange="cvpaSync()">
-            <option value="">&mdash;</option>
-            <option value="vcs">Vena cava superior</option>
-            <option value="vci">Vena cava inferior</option>
-            <option value="ad">Aurícula derecha directa</option>
-            <option value="acigos">Vena ácigos</option>
-            <option value="otra">Otra</option>
-          </select>
-          <span style="font-size:10px;color:var(--text2);">El drenaje a cava superior es el más frecuente y suele asociar CIA de seno venoso.</span></div>
-        <div class="fg"><label>Lado</label>
-          <select id="cvpa_lado" onchange="cvpaSync()">
-            <option value="">&mdash;</option><option value="der">Derecha</option>
-            <option value="izq">Izquierda</option><option value="bil">Bilateral</option>
-          </select></div>
-      </div>
-      <div class="grid-3" style="margin-top:10px;">
-        <div class="fg"><label>Qp/Qs estimado por eco</label>
-          <input type="number" id="cvpa_qp_qs" step="0.1" placeholder="p. ej. 1,8" oninput="cvpaSync()">
-          <span style="font-size:10px;color:var(--text2);">El eco <b>subestima</b> el shunt en esta lesión: la resonancia es el método de referencia (ESC 2020).</span></div>
-        <div class="fg"><label>Hipertensión pulmonar</label>
-          <select id="cvpa_htp" onchange="cvpaSync()">
-            <option value="">&mdash;</option><option value="no">Sin HTP</option>
-            <option value="leve">Leve</option><option value="moderada">Moderada</option><option value="severa">Severa</option>
-          </select></div>
-        <div class="fg"><label>Situación clínica</label>
-          <select id="cvpa_sintomas" onchange="cvpaSync()">
-            <option value="">&mdash;</option><option value="asintomatico">Asintomático</option>
-            <option value="disnea">Disnea de esfuerzo</option>
-            <option value="palpitaciones">Palpitaciones</option>
-            <option value="ic_derecha">Insuficiencia cardíaca derecha</option>
-            <option value="otro">Otro</option>
-          </select></div>
-      </div>
-      <div class="grid-2" style="margin-top:10px;">
-        <div class="fg"><label>CIA asociada (de CIA/CIV)</label>
-          <input type="text" id="cvpa_cia_ro" readonly tabindex="-1" data-espejo placeholder="—" style="opacity:.7;"></div>
-        <div class="fg"><label>Ventrículo derecho (de VD / AD)</label>
-          <input type="text" id="cvpa_vd_ro" readonly tabindex="-1" data-espejo placeholder="—" style="opacity:.7;"></div>
-      </div>
-      <div id="cvpa-resultado" class="calc-box" style="margin-top:12px;"></div>
-      <input type="checkbox" id="cvpa_incluir_chk" style="display:none;" tabindex="-1" aria-hidden="true">
-      <div style="display:flex;justify-content:center;margin-top:10px;">
-        <button type="button" class="btn btn-integrar" data-ete-chk="cvpa_incluir_chk" aria-pressed="false"
-                onclick="eteInclToggle('cvpa_incluir_chk')">&#128206; Integrar al informe</button>
+      <!-- == CVPA EN TRES COLUMNAS - tanda PANT-9, commit 5 (2026-11-04) =====================
+           DISPOSICION APROBADA POR EL MEDICO en un lienzo de disenio. Lo unico que cambia es
+           DONDE esta cada campo y donde esta cada texto: ningun id, ningun valor, ninguna opcion
+           y ninguna conclusion se movieron, y el papel sale identico -medido con el A/B-.
+           TRES TEXTOS PASARON AL GLOBO, PALABRA POR PALABRA: el parrafo inicial al globo del
+           TITULO (cc9-cvpa-sec), la nota del drenaje a su campo (cc9-cvpa-dren) y la del Qp/Qs
+           al suyo (cc9-cvpa-qp). Los dos campos de solo lectura se quedan con su rotulo, que es
+           lo que dice de donde sale el dato. -->
+      <div class="cc9-cuadro">
+        <div class="cc9-hdrbar">
+          <button type="button" class="vinfo-btn vinfo-btn-44" data-vinfo="cc9-cvpa-sec" aria-expanded="false" aria-label="Que forma de conexion venosa pulmonar anomala se ve en el adulto y de donde salen el tipo de CIA y el ventriculo derecho" onclick="vInfoClic(this)">&#9432;</button>
+        </div>
+        <div class="cc9-fila" id="cvpa-fila">
+          <div class="cc9-cols">
+            <div class="cc9-col">
+              <div class="cc9-h">Anatomía</div>
+              <div class="fg"><label>Número de venas anómalas</label>
+                <select id="cvpa_venas_numero" onchange="cvpaSync()">
+                  <option value="">&mdash;</option>
+                  <option value="1">1 vena</option><option value="2">2 venas</option>
+                  <option value="3">3 venas</option><option value="noesp">No especificado</option>
+                </select></div>
+              <div class="fg"><label>Drenaje <button type="button" class="vinfo-btn vinfo-btn-44" data-vinfo="cc9-cvpa-dren" aria-expanded="false" aria-label="Cual es el drenaje mas frecuente de la vena pulmonar anomala y con que se asocia" onclick="vInfoClic(this)">&#9432;</button></label>
+                <select id="cvpa_conexion" onchange="cvpaSync()">
+                  <option value="">&mdash;</option>
+                  <option value="vcs">Vena cava superior</option>
+                  <option value="vci">Vena cava inferior</option>
+                  <option value="ad">Aurícula derecha directa</option>
+                  <option value="acigos">Vena ácigos</option>
+                  <option value="otra">Otra</option>
+                </select></div>
+              <div class="fg"><label>Lado</label>
+                <select id="cvpa_lado" onchange="cvpaSync()">
+                  <option value="">&mdash;</option><option value="der">Derecha</option>
+                  <option value="izq">Izquierda</option><option value="bil">Bilateral</option>
+                </select></div>
+            </div>
+            <div class="cc9-col">
+              <div class="cc9-h">Hemodinámica</div>
+              <div class="fg"><label>Qp/Qs estimado por eco <button type="button" class="vinfo-btn vinfo-btn-44" data-vinfo="cc9-cvpa-qp" aria-expanded="false" aria-label="Por que el eco subestima el shunt en la conexion venosa pulmonar anomala" onclick="vInfoClic(this)">&#9432;</button></label>
+                <input type="number" id="cvpa_qp_qs" step="0.1" placeholder="p. ej. 1,8" oninput="cvpaSync()"></div>
+              <div class="fg"><label>Hipertensión pulmonar</label>
+                <select id="cvpa_htp" onchange="cvpaSync()">
+                  <option value="">&mdash;</option><option value="no">Sin HTP</option>
+                  <option value="leve">Leve</option><option value="moderada">Moderada</option><option value="severa">Severa</option>
+                </select></div>
+            </div>
+            <div class="cc9-col">
+              <div class="cc9-h">Clínica y datos del estudio</div>
+              <div class="fg"><label>Situación clínica</label>
+                <select id="cvpa_sintomas" onchange="cvpaSync()">
+                  <option value="">&mdash;</option><option value="asintomatico">Asintomático</option>
+                  <option value="disnea">Disnea de esfuerzo</option>
+                  <option value="palpitaciones">Palpitaciones</option>
+                  <option value="ic_derecha">Insuficiencia cardíaca derecha</option>
+                  <option value="otro">Otro</option>
+                </select></div>
+              <div class="fg"><label>CIA asociada (de CIA/CIV)</label>
+                <input type="text" id="cvpa_cia_ro" readonly tabindex="-1" data-espejo placeholder="—" style="opacity:.7;"></div>
+              <div class="fg"><label>Ventrículo derecho (de VD / AD)</label>
+                <input type="text" id="cvpa_vd_ro" readonly tabindex="-1" data-espejo placeholder="—" style="opacity:.7;"></div>
+            </div>
+          </div>
+          <div class="cc9-concl">
+            <div id="cvpa-resultado" class="calc-box"></div>
+            <input type="checkbox" id="cvpa_incluir_chk" style="display:none;" tabindex="-1" aria-hidden="true">
+            <div class="cc9-concl-btn">
+              <button type="button" class="btn btn-integrar" data-ete-chk="cvpa_incluir_chk" aria-pressed="false"
+                      onclick="eteInclToggle('cvpa_incluir_chk')">&#128206; Integrar al informe</button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -48880,6 +48895,24 @@ const VINFO = Object.freeze({
     ancho: 420,
     tit: 'La resistencia vascular pulmonar en el DSAV',
     lee: 'Por cateterismo. Es lo que decide sobre el cierre, no la PSAP del eco.'
+  },
+  'cc9-cvpa-sec': {
+    ancho: 420,
+    tit: 'La conexión venosa pulmonar anómala parcial',
+    lee: 'En el adulto sólo se ve la forma parcial: la total es una emergencia neonatal. El tipo '
+       + 'de CIA y la dilatación del ventrículo derecho son los del estudio (secciones CIA/CIV y '
+       + 'VD / AD): no se vuelven a pedir acá.'
+  },
+  'cc9-cvpa-dren': {
+    ancho: 420,
+    tit: 'El drenaje de la vena pulmonar anómala',
+    lee: 'El drenaje a cava superior es el más frecuente y suele asociar CIA de seno venoso.'
+  },
+  'cc9-cvpa-qp': {
+    ancho: 420,
+    tit: 'El Qp/Qs por eco en la conexión venosa pulmonar anómala',
+    lee: 'El eco subestima el shunt en esta lesión: la resonancia es el método de referencia '
+       + '(ESC 2020).'
   },
   'tarj-diast': { ancho: 356, dyn: function () { return qvDiast() } }
 });
@@ -156116,8 +156149,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261104-0750';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793789433733;                 /* eco-build-ms */
+const ECO_BUILD    = '20261104-0753';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793789586556;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -156203,7 +156236,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261104-0750</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261104-0753</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
