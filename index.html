@@ -93311,6 +93311,182 @@ function _indIA(){
    puede nombrar la otra guía. Dentro de la función no había forma de preguntárselo, y la
    primera versión de la sonda devolvía CERO sobre un array VACIO —un denominador de cero que
    se lee igual que «no hay mezclas»—. */
+/* ══ DEFECTO DEL SEPTO AURICULOVENTRICULAR — PANT-10, commit 2 (2026-11-04) ═══════════════════
+   Molde: el de _indCIA y el de _indTGA, sin reescribirlo. La seccion LEE los campos de la
+   pantalla del DSAV y los dos del estudio que su espejo ya publica -FEVI y DTSVI-, y PREGUNTA
+   solo lo que la pantalla no tiene.
+
+   LAS FUENTES, LEIDAS EN IMAGEN a 200 ppp con el folio comprobado en el pie impreso:
+     ACC/AHA 2025 de cardiopatias congenitas del adulto (Gurvitz y col., Circulation
+     2026;153:e115-e251), apartado 4.1.3, hoja 42, folio e156 (recomendaciones 1 a 3) y hoja 43,
+     folio e157 (recomendaciones 4 a 8, y la descripcion de los tres tipos). Folio = e(hoja+114).
+     ESC 2020 de cardiopatias congenitas del adulto, edicion inglesa: hoja 33, folio 595
+     (introduccion y tipos), hoja 34, folio 596 (cateterismo con presion sistolica pulmonar
+     calculada por encima de 40 mmHg) y hoja 35, folio 597 (tabla de intervencion). Folio =
+     hoja + 562.
+
+   REGLA E-1, una pregunta una guia: cada pregunta usa los cortes de UNA sola, con su nombre a
+   la vista, y la otra va en su linea de referencia. Las DIFERENCIAS se muestran y no se
+   resuelven: el diametro telesistolico (40 mm contra 45) y el operador de la FEVI (<60 % contra
+   ≤60 %).
+
+   ⚠️ LOS CORTES QUE LA PANTALLA APLICA NO SON LOS DE NINGUNA DE LAS DOS, Y SE DICE EN VEZ DE
+   CAMBIARLOS: DSAV_DTSI_CX vale 40 -el de la ACC/AHA- y DSAV_FEVI_CX se aplica con menor-o-igual
+   -el operador de la ESC-, asi que una FEVI de 60 exactos vota en la pantalla y NO cumple el
+   criterio de la ACC/AHA. Tocar un corte es decision del medico: queda en docs/PENDIENTES.md.
+
+   ⚠️ NADA DE ESTE BLOQUE LLEGA AL PAPEL. Lo lee indicRender y nadie mas. */
+const DSAV_PREG = Object.freeze([
+  { clave:'dsav.ev.noreparado', lbl:'Sin reparar, o con cortocircuito residual despues de una reparacion previa', guia:'acc', rec:'Clase 1 · Nivel C-LD, recomendacion 1 — debe evaluarse la presencia de hipertension arterial pulmonar para guiar el tratamiento medico y determinar la aptitud para la reparacion, hoja 42, folio e156. Es ademas la condicion de las recomendaciones 5, 6 y 8 de cierre, hoja 43, folio e157', ref:'la tabla de intervencion separa el DSAV completo del parcial y no usa esta condicion como entrada (hoja 35, folio 597)' },
+  { clave:'dsav.ev.sobrecargaVD', lbl:'Sobrecarga significativa de volumen del ventriculo derecho', guia:'esc', rec:'Clase I · Nivel C — en el DSAV parcial (comunicacion interauricular tipo ostium primum) el cierre quirurgico esta recomendado, y debe hacerlo un cirujano de cardiopatias congenitas, hoja 35, folio 597', ref:'la condicion equivalente es la dilatacion auricular o ventricular significativa o progresiva, que entra en las recomendaciones 5 y 6 junto con el Qp:Qs (hoja 43, folio e157)' },
+  { clave:'dsav.ev.dilatacion', lbl:'Dilatacion auricular o ventricular significativa o progresiva', guia:'acc', rec:'Clase 1 · Nivel C-LD, recomendacion 5, y Clase 2a · Nivel C-EO, recomendacion 6 — con cortocircuito izquierda-derecha significativo y/o esta dilatacion, el cierre esta recomendado si no hay hipertension arterial pulmonar, y es razonable con hipertension leve, hoja 43, folio e157', ref:'la tabla del DSAV parcial pide sobrecarga significativa de volumen del ventriculo derecho, Clase I · Nivel C (hoja 35, folio 597)' },
+  { clave:'dsav.ev.sintValv', lbl:'Sintomas atribuibles a la regurgitacion de la valvula auriculoventricular', guia:'acc', rec:'Clase 1 · Nivel B-NR, recomendacion 4a — con DSAV reparado y regurgitacion severa de la valvula auriculoventricular izquierda sintomatica, la cirugia valvular esta recomendada para mejorar el estado funcional y prevenir el deterioro de la funcion ventricular, hoja 43, folio e157', ref:'la cirugia valvular, preferentemente la reparacion, esta recomendada en el paciente sintomatico con regurgitacion auriculoventricular MODERADA A SEVERA, Clase I · Nivel C (hoja 35, folio 597)', tramo:'las dos guias no piden el mismo grado: la ACC/AHA 2025 exige regurgitacion severa y la ESC 2020 admite moderada a severa' },
+  { clave:'dsav.ev.tsviObstr', lbl:'Obstruccion del tracto de salida del ventriculo izquierdo', guia:'acc', rec:'Clase 1 · Nivel B-NR, recomendacion 3 — en el DSAV reparado con obstruccion del tracto de salida del ventriculo izquierdo y sintomas atribuibles a la obstruccion, o disfuncion sistolica con fraccion de eyeccion por debajo de 50 %, la reparacion quirurgica esta recomendada, hoja 42, folio e156', nota:'su texto de apoyo (hoja 44, folio e158) agrega que el gradiente pico por Doppler de 50 mmHg o mas se ha propuesto como corte de obstruccion severa del tracto de salida, y que la obstruccion es la segunda causa de reoperacion', ref:'la tabla remite a las recomendaciones de intervencion de la estenosis subaortica (hoja 35, folio 597)' },
+  { clave:'dsav.ev.sintTsvi', lbl:'Sintomas atribuibles a esa obstruccion del tracto de salida', guia:'acc', rec:'Clase 1 · Nivel B-NR, recomendacion 3 — es una de las dos condiciones que la activan; la otra es una fraccion de eyeccion por debajo de 50 %, hoja 42, folio e156', ref:'la ESC 2020 no publica una recomendacion propia con esta condicion dentro del DSAV' },
+  { clave:'dsav.ev.iaoProg', lbl:'Insuficiencia aortica mayor que leve y progresiva, en paciente asintomatico', guia:'acc', rec:'Clase 2b · Nivel C-LD, recomendacion 7 — con obstruccion del tracto de salida del ventriculo izquierdo y esta insuficiencia aortica, la reparacion quirurgica puede ser razonable para prevenir el deterioro de la funcion ventricular y la progresion de la enfermedad valvular aortica, hoja 43, folio e157', nota:'su texto de apoyo (hoja 44, folio e158) la plantea junto con un gradiente pico por Doppler de 50 mmHg o mas y bajo riesgo quirurgico', ref:'la ESC 2020 no publica una recomendacion propia con esta condicion dentro del DSAV' },
+  { clave:'dsav.ev.estenAvIzq', lbl:'Estenosis de la valvula auriculoventricular izquierda que causa sintomas', guia:'esc', rec:'Clase I · Nivel C — la guia escribe que la estenosis auriculoventricular izquierda, casi siempre consecuencia de una reparacion previa, debe operarse cuando causa sintomas, hoja 35, folio 597', nota:'la ACC/AHA 2025 no publica una recomendacion propia con esta condicion' },
+  { clave:'dsav.ev.fa', lbl:'Fibrilacion auricular', guia:'esc', rec:'Clase IIa · Nivel C — en el asintomatico con regurgitacion severa de la valvula auriculoventricular izquierda, funcion ventricular preservada (diametro telesistolico por debajo de 45 mm y/o fraccion de eyeccion por encima de 60 %), alta probabilidad de reparacion exitosa y bajo riesgo quirurgico, la intervencion debe considerarse cuando hay fibrilacion auricular o presion sistolica pulmonar por encima de 50 mmHg, hoja 35, folio 597', ref:'la ACC/AHA 2025 no publica una recomendacion propia con esta condicion dentro del DSAV' },
+  { clave:'dsav.ev.psap50', lbl:'Presion sistolica pulmonar por encima de 50 mmHg', guia:'esc', rec:'Clase IIa · Nivel C — misma recomendacion que la anterior: con funcion ventricular preservada, alta probabilidad de reparacion exitosa y bajo riesgo quirurgico, hoja 35, folio 597', nota:'la misma guia pide cateterismo cuando hay signos no invasivos de presion pulmonar elevada -una presion sistolica pulmonar calculada por encima de 40 mmHg, o signos indirectos cuando no se puede estimar- para determinar la resistencia (hoja 34, folio 596)' },
+  { clave:'dsav.ev.plastia', lbl:'Alta probabilidad de reparacion valvular exitosa y bajo riesgo quirurgico', guia:'esc', rec:'Clase IIa · Nivel C — es la tercera condicion de esa recomendacion del asintomatico, hoja 35, folio 597', nota:'la ESC 2020 agrega en el mismo folio que estas valvulas no son valvulas mitrales y son mas dificiles de reparar; la ACC/AHA 2025 (hoja 44, folio e158) recomienda que la reparacion primaria se haga cuando sea posible para evitar el reemplazo' },
+  { clave:'dsav.ev.eisen', lbl:'Fisiologia de Eisenmenger', guia:'acc', rec:'Clase 3: Dano · Nivel C-LD, recomendacion 8 — con DSAV sin reparar o con cortocircuito residual y fisiologia de Eisenmenger o resistencia vascular pulmonar por encima de 10 unidades Wood, el cierre NO debe realizarse, para evitar morbilidad y mortalidad adicionales, hoja 43, folio e157', ref:'la reparacion quirurgica no se recomienda con fisiologia de Eisenmenger ni con hipertension arterial pulmonar de 5 unidades Wood o mas que se presenta con desaturacion en el ejercicio, Clase III · Nivel C (hoja 35, folio 597)', tramo:'el umbral de resistencia por el que se desaconseja no coincide: 10 unidades Wood en la ACC/AHA 2025 y 5 en la ESC 2020' },
+  { clave:'dsav.ev.desat', lbl:'Desaturacion con el ejercicio', guia:'esc', rec:'Clase III · Nivel C — con hipertension arterial pulmonar y resistencia vascular pulmonar de 5 unidades Wood o mas que se presenta con desaturacion en el ejercicio, la reparacion quirurgica no se recomienda, hoja 35, folio 597', nota:'su nota al pie c aclara que hay pocos datos para un corte preciso y que, por experiencia clinica, correspondia a una caida de la saturacion arterial de oxigeno por debajo del 90 %. La ACC/AHA 2025 no publica una recomendacion con esta condicion' }
+]);
+window.DSAV_PREG = DSAV_PREG;
+function _indDSAV(){
+  const est = _indFn('dsavEstado');
+  const r = est ? est() : null;
+  if (!r || !r.hayDatos) return null;
+
+  const tipo = _indS('dsav_tipo'), izq = _indS('dsav_regurg_av_izq'), der = _indS('dsav_regurg_av_der');
+  const down = _indS('dsav_down'), htp = _indS('dsav_htp');
+  const civ = _indN('dsav_dssd_mm'), qp = _indN('dsav_qp_qs'), rvp = _indN('dsav_rvp_uw');
+  const fevi = _indN('fevi'), dtsi = _indN('dsfvi');
+  /* Los rotulos salen del marcado de la pantalla: uno inventado aca publicaria un nombre que el
+     medico no ve en su formulario. */
+  const _TIPO = { parcial:'Parcial (CIA ostium primum)', completo:'Completo (CIA + CIV + válvula AV única)',
+                  intermedio:'Intermedio', noesp:'No especificado' };
+  const _GR = { no:'Sin regurgitación', leve:'Leve', moderada:'Moderada', severa:'Severa' };
+  const _HTP = { no:'Sin HTP', leve:'Leve', moderada:'Moderada', severa:'Severa' };
+
+  const filas = [];
+  filas.push(_indFila('Tipo de defecto', _ccLbl(_TIPO, tipo) || 'No consignado', tipo ? 'none' : 'ask',
+    tipo === 'completo' ? 'el completo tiene un solo orificio auriculoventricular y una comunicación interventricular de entrada no restrictiva'
+    : tipo === 'parcial' ? 'el parcial suele tener el defecto sólo a nivel auricular; en casos raros, sólo a nivel ventricular'
+    : tipo === 'intermedio' ? 'el tipo transicional tiene dos orificios auriculoventriculares funcionales y una comunicación interventricular restrictiva por presión'
+    : 'sin consignar'));
+  filas.push(_indFila('Tamaño del componente ventricular', _indNum(civ, 0, 'mm'), civ != null ? 'none' : 'ask',
+    civ != null ? 'ninguna de las dos guías publica un umbral de tamaño para este componente' : 'sin medir'));
+  filas.push(_indFila('Síndrome de Down', down === 'si' ? 'Sí' : (down === 'no' ? 'No' : '—'),
+    down ? 'none' : 'ask',
+    down ? 'más del 75 % de los defectos completos se dan en personas con síndrome de Down, y más del 90 % de los parciales en personas sin él' : 'sin consignar'));
+  filas.push(_indFila('Regurgitación de la válvula AV izquierda', _ccLbl(_GR, izq) || '—',
+    izq === 'severa' ? 'alarm' : (izq === 'moderada' ? 'warn' : (izq ? 'none' : 'ask')),
+    izq === 'severa' ? 'es la condición de grado que pide la ACC/AHA 2025 para la cirugía valvular'
+    : izq === 'moderada' ? 'la ESC 2020 admite moderada a severa en el paciente sintomático; la ACC/AHA 2025 pide severa'
+    : izq ? 'es la causa más frecuente de reoperación después de la reparación' : 'sin consignar'));
+  filas.push(_indFila('Regurgitación de la válvula AV derecha', _ccLbl(_GR, der) || '—',
+    der === 'severa' ? 'warn' : (der ? 'none' : 'ask'),
+    der ? 'la ACC/AHA 2025 pide evaluar también la válvula auriculoventricular derecha residual en el paciente reparado' : 'sin consignar'));
+  filas.push(_indFila('Diámetro telesistólico del ventrículo izquierdo (del estudio)', _indNum(dtsi, 0, 'mm'),
+    dtsi != null ? (dtsi >= 45 ? 'warn' : (dtsi >= 40 ? 'warn' : 'none')) : 'ask',
+    dtsi == null ? 'sin medir en el estudio'
+    : dtsi >= 45 ? 'alcanza los dos umbrales: 40 mm o más (ACC/AHA 2025) y 45 mm o más (ESC 2020)'
+    : dtsi >= 40 ? 'alcanza el umbral de la ACC/AHA 2025 (40 mm o más) y no el de la ESC 2020 (45 mm o más)'
+    : 'por debajo de los dos umbrales'));
+  filas.push(_indFila('Fracción de eyección del ventrículo izquierdo (del estudio)', _indNum(fevi, 0, '%'),
+    fevi != null ? (fevi < 50 ? 'alarm' : (fevi <= 60 ? 'warn' : 'none')) : 'ask',
+    fevi == null ? 'sin medir en el estudio'
+    : fevi < 50 ? 'por debajo de 50 % es la condición de la recomendación de cirugía por obstrucción del tracto de salida'
+    : fevi < 60 ? 'por debajo de 60 % cumple el criterio ventricular de las dos guías'
+    : fevi === 60 ? 'con 60 exactos las dos guías no coinciden: la ACC/AHA 2025 escribe «menor de 60 %» y la ESC 2020 «60 % o menos»'
+    : 'por encima de los dos umbrales'));
+  filas.push(_indFila('Qp/Qs estimado', _indNum(qp, 2), _gt(qp, 1.49) ? 'warn' : (qp != null ? 'none' : 'ask'),
+    qp == null ? 'sin calcular'
+    : _gt(qp, 1.49) ? '1,5 o más — es el cortocircuito significativo que piden las recomendaciones 5 y 6'
+    : 'no alcanza 1,5'));
+  filas.push(_indFila('Hipertensión pulmonar', _ccLbl(_HTP, htp) || '—', htp === 'severa' ? 'alarm' : (htp ? 'none' : 'ask'),
+    htp ? 'el grado que decide es la resistencia por cateterismo, no la presión estimada por eco' : 'sin consignar'));
+  filas.push(_indFila('Resistencia vascular pulmonar', _indNum(rvp, 1, 'UW'),
+    rvp == null ? 'ask' : (rvp > 10 ? 'alarm' : (rvp >= 5 ? 'warn' : (rvp > 2 ? 'warn' : 'ok'))),
+    rvp == null ? 'por cateterismo; sin medir'
+    : rvp > 10 ? 'por encima de 10 unidades Wood el cierre no debe realizarse (ACC/AHA 2025, Clase 3: Daño)'
+    : rvp >= 5 ? 'de 5 a 10 unidades Wood: la ACC/AHA 2025 no publica recomendación para este tramo dentro del DSAV, y la ESC 2020 desaconseja la cirugía con 5 unidades Wood o más y desaturación en el ejercicio'
+    : rvp > 2 ? 'mayor de 2 y menor de 5 unidades Wood: el cierre es razonable (ACC/AHA 2025, Clase 2a)'
+    : '2 unidades Wood o menos: es la ausencia de hipertensión arterial pulmonar que pide la Clase 1'));
+
+  const DSAV_OPS = [{ v:'si', t:'Sí' }, { v:'no', t:'No' }, IND_OPS_SD];
+  const clinica = [], _si = [], _no = [], _sd = [], _siDet = [];
+  DSAV_PREG.forEach(function (p) {
+    const o = _indOrigen(null, p.clave);
+    if (o.val === 'si') { _si.push(p.lbl); _siDet.push(p); }
+    else if (o.val === 'no') _no.push(p.lbl); else _sd.push(p.lbl);
+    const _f = _indFilaOrigen(p.lbl, o, DSAV_OPS, function (val) {
+      return { txt: val === 'si' ? 'Sí' : (val === 'no' ? 'No' : 'Sin dato'),
+               marca: val === 'si' ? 'warn' : (val === 'no' ? 'none' : 'ask'),
+               nota: _indPregNota(p, val == null) };
+    }, true);
+    const _b = _indPregBadge(p); if (_b) _f.badge = _b;
+    clinica.push(_f);
+  });
+  clinica.unshift(_indFila('Respuestas',
+    _si.length + ' en Sí · ' + _no.length + ' en No · ' + _sd.length + ' sin dato', 'none',
+    '«Sin dato» no cuenta como «no»: mientras una condición no se conteste, no sostiene ninguna recomendación.'));
+  const _bal = _si.length
+    ? { txt:'Condiciones presentes en este paciente: ' + _si.length + ' de ' + DSAV_PREG.length + ' (' + _si.join('; ') + ').'
+        + (_sd.length ? ' Sin contestar: ' + _sd.join('; ') + '.' : ' Las otras ' + _no.length + ' están contestadas que no.'), refs:null }
+    : (_sd.length
+      ? { txt:'Ninguna condición consta como presente, y quedan ' + _sd.length + ' sin contestar: ' + _sd.join('; ')
+          + '. Mientras no se contesten, ninguna de las recomendaciones de arriba se sostiene en este paciente — «sin dato» no cuenta como «no».', refs:null }
+      : { txt:'Las ' + DSAV_PREG.length + ' condiciones están contestadas y ninguna está presente.', refs:null });
+
+  return { filas: filas,
+    clinica: clinica,
+    bloques: [
+      { tit:'Indicación de cierre y de cirugía — ACC/AHA 2025, apartado 4.1.3, hojas 42 y 43, folios e156 y e157', lineas:[
+        { txt:'Clase 1 · Nivel C-LD — Sin reparar, o con cortocircuito residual después de una reparación previa, debe evaluarse la presencia de hipertensión arterial pulmonar para guiar el tratamiento médico y determinar la aptitud para la reparación (recomendación 1).', refs:null },
+        { txt:'Clase 1 · Nivel C-LD — Con hipertensión arterial pulmonar, reparado o no, el manejo debe estar a cargo de profesionales con experiencia en hipertensión pulmonar (recomendación 2).', refs:null },
+        { txt:'Clase 1 · Nivel B-NR — Reparado, con obstrucción del tracto de salida del ventrículo izquierdo y síntomas atribuibles a la obstrucción, o disfunción sistólica con fracción de eyección por debajo de 50 %, la reparación quirúrgica está recomendada (recomendación 3).', refs:null },
+        { txt:'Clase 1 · Nivel B-NR — Reparado, con regurgitación severa de la válvula auriculoventricular izquierda sintomática, o asintomática con dilatación del ventrículo izquierdo (diámetro telesistólico de 40 mm o más) o disfunción sistólica (fracción de eyección por debajo de 60 %), la cirugía valvular está recomendada (recomendación 4).', refs:null },
+        { txt:'Clase 1 · Nivel C-LD — Sin reparar o con cortocircuito residual, con cortocircuito izquierda-derecha significativo (Qp:Qs de 1,5 o más) y/o dilatación auricular o ventricular significativa o progresiva, sin hipertensión arterial pulmonar (resistencia vascular pulmonar de 2 unidades Wood o menos), el cierre está recomendado (recomendación 5).', refs:null },
+        { txt:'Clase 2a · Nivel C-EO — Las mismas condiciones con hipertensión arterial pulmonar leve (resistencia mayor de 2 y menor de 5 unidades Wood): el cierre es razonable (recomendación 6).', refs:null },
+        { txt:'Clase 2b · Nivel C-LD — En el asintomático con obstrucción del tracto de salida del ventrículo izquierdo e insuficiencia aórtica progresiva mayor que leve, la reparación quirúrgica puede ser razonable (recomendación 7).', refs:null },
+        { txt:'Clase 3: Daño · Nivel C-LD — Sin reparar o con cortocircuito residual, con fisiología de Eisenmenger o resistencia vascular pulmonar por encima de 10 unidades Wood, el cierre NO debe realizarse (recomendación 8).', refs:null },
+        { txt:'El tramo de resistencia de 5 a 10 unidades Wood no tiene recomendación propia en este apartado.', refs:null },
+        { txt:'Fuente: ACC/AHA 2025 de cardiopatías congénitas del adulto, apartado 4.1.3, «Atrioventricular Septal Defect», hojas 42 y 43, folios e156 y e157.', refs:['acc2025achd'] }
+      ]},
+      { tit:'Indicación de intervención — ESC 2020 (guía anterior), tabla de recomendaciones de intervención en el defecto del septo auriculoventricular, hoja 35, folio 597', lineas:[
+        { txt:'Clase I · Nivel C — En el DSAV parcial (comunicación interauricular tipo ostium primum) con sobrecarga significativa de volumen del ventrículo derecho, el cierre quirúrgico está recomendado, y debe hacerlo un cirujano de cardiopatías congénitas.', refs:null },
+        { txt:'Clase I · Nivel C — Con regurgitación auriculoventricular moderada a severa sintomática, la cirugía valvular —preferentemente la reparación— está recomendada, y debe hacerla un cirujano de cardiopatías congénitas.', refs:null },
+        { txt:'Clase I · Nivel C — En el asintomático con regurgitación severa de la válvula auriculoventricular izquierda, la cirugía valvular está recomendada cuando el diámetro telesistólico del ventrículo izquierdo es de 45 mm o más y/o la fracción de eyección es de 60 % o menos, excluidas otras causas de disfunción ventricular.', refs:null },
+        { txt:'Clase IIa · Nivel C — En el asintomático con regurgitación severa de la válvula auriculoventricular izquierda y función ventricular preservada (diámetro telesistólico por debajo de 45 mm y/o fracción de eyección por encima de 60 %), alta probabilidad de reparación exitosa y bajo riesgo quirúrgico, la intervención debe considerarse cuando hay fibrilación auricular o presión sistólica pulmonar por encima de 50 mmHg.', refs:null },
+        { txt:'Clase III · Nivel C — En el DSAV completo, la reparación quirúrgica no se recomienda con fisiología de Eisenmenger, ni con hipertensión arterial pulmonar de 5 unidades Wood o más que se presenta con desaturación en el ejercicio. Su nota al pie c aclara que hay pocos datos para un corte preciso y que, por experiencia clínica, correspondía a una caída de la saturación arterial de oxígeno por debajo del 90 %.', refs:null },
+        { txt:'La obstrucción del tracto de salida del ventrículo izquierdo remite a las recomendaciones de intervención de la estenosis subaórtica. La estenosis de la válvula auriculoventricular izquierda, casi siempre consecuencia de una reparación previa, debe operarse cuando causa síntomas.', refs:null },
+        { txt:'Fuente: ESC 2020 de cardiopatías congénitas del adulto, hojas 33, 34 y 35, folios 595, 596 y 597.', refs:['esc2020guch'] }
+      ]},
+      { tit:'Las diferencias entre las dos guías, sin resolver', lineas:[
+        { txt:'Diámetro telesistólico del ventrículo izquierdo en el asintomático con regurgitación severa: 40 mm o más en la ACC/AHA 2025 y 45 mm o más en la ESC 2020.', refs:null },
+        { txt:'Fracción de eyección en esa misma situación: «por debajo de 60 %» en la ACC/AHA 2025 y «60 % o menos» en la ESC 2020. Con 60 exactos las dos no coinciden.', refs:null },
+        { txt:'Grado de regurgitación que pide la cirugía en el paciente sintomático: severa en la ACC/AHA 2025 y moderada a severa en la ESC 2020.', refs:null },
+        { txt:'Resistencia vascular pulmonar por la que se desaconseja la intervención: por encima de 10 unidades Wood en la ACC/AHA 2025 y de 5 unidades Wood o más con desaturación en el ejercicio en la ESC 2020.', refs:null },
+        { txt:'Dentro de la misma ACC/AHA 2025 el umbral del diámetro aparece de dos formas: la tabla de la hoja 43 escribe «40 mm o más» y su texto de apoyo de la hoja 44 escribe «mayor de 40 mm».', refs:null },
+        _bal
+      ]}
+    ].concat(_siDet.length ? [{ tit:'Recomendaciones que aplican con lo contestado (' + _siDet.length + ')',
+      lineas: _siDet.map(function (p) {
+        const b = _indPregBadge(p);
+        const et = b ? (b.g === 'ACC' ? 'ACC/AHA 2025' : 'ESC 2020') + (b.cn ? ' · ' + b.cn : '') : '';
+        return { txt: p.lbl + (et ? ' — ' + et : '') + '.', refs:null };
+      }) }] : []),
+    compacta: true,
+    preguntas: true,
+    guia: { ref:'acc2025achd',
+      txt:'Las indicaciones de esta sección salen de DOS guías: la ACC/AHA 2025 de cardiopatías congénitas del adulto (apartado 4.1.3, hojas 42 y 43, folios e156 y e157), que es la que rige cuando las dos tratan el mismo tema con cortes distintos, y la ESC 2020 de cardiopatías congénitas del adulto (hoja 35, folio 597), que queda como referencia. Cada pregunta usa los cortes de UNA sola de ellas, con su nombre y año a la vista: ninguna los combina.' },
+    notas: [
+      'Los cortes que la pantalla de esta sección aplica para votar los criterios ventriculares no son exactamente los de ninguna de las dos guías: usa 40 mm de diámetro telesistólico, que es el de la ACC/AHA 2025, con el operador «60 % o menos» de la fracción de eyección, que es el de la ESC 2020.',
+      'Lo contestado en esta sección no se guarda con el estudio y no llega al informe.'
+    ]
+  };
+}
 const CIA_PREG = Object.freeze([
   { clave:'cia.ev.vddil', lbl:'Dilatación del ventrículo derecho', guia:'acc', rec:'Clase 1 · Nivel B-R, recomendación 5 —con cortocircuito significativo y sin hipertensión arterial pulmonar ni enfermedad significativa del ventrículo izquierdo, el cierre está recomendado—, y Clase 2a, recomendaciones 8 y 9, hoja 35, folio e149', ref:'la sobrecarga de volumen del ventrículo derecho —su nota al pie c la define como agrandamiento CON volumen latido aumentado— es la condición de la Clase I · Nivel B (hoja 30, folio 592)' },
   { clave:'cia.ev.qpqs15', lbl:'Qp:Qs de 1,5 o más', guia:'acc', rec:'Clase 1 · Nivel B-R, recomendación 5; Clase 2a, recomendaciones 8 y 9; Clase 2b, recomendación 12, hoja 35, folio e149', ref:'un cortocircuito izquierda-derecha significativo es un Qp:Qs MAYOR que 1,5 (hoja 30, folio 592)', tramo:'con un Qp:Qs de 1,5 exacto las dos guías no coinciden: la ACC/AHA 2025 escribe «≥1,5» y la ESC 2020 «>1,5»' },
@@ -99242,6 +99418,12 @@ const IND_SECS = [
   { tit:'Insuficiencia cardíaca con fracción de eyección preservada — HFA-PEFF', fn:_indHFPEFF },
   { tit:'Comunicación interauricular',           fn:_indCIA },
   { tit:'Comunicación interventricular',         fn:_indCIV },
+  /* ⚠️ LA DEL COMMIT 2 DE PANT-10 (04/11/2026). Va PEGADA a la CIA y la CIV porque el defecto
+     del septo auriculoventricular es la tercera comunicación del mismo grupo, que es donde el
+     médico la busca. El título es único y no es prefijo de ninguno de los treinta y tres ni
+     ninguno es prefijo suyo: la clave de _indRepintarConservando lo distingue por «septo
+     auriculoventricular», que no aparece en ningún otro. */
+  { tit:'Defecto del septo auriculoventricular', fn:_indDSAV },
   { tit:'Ductus arterioso permeable',            fn:_indDAP },
   { tit:'Coartación de aorta',                   fn:_indCoAo },
   /* ⚠️ LAS DOS DE LA TANDA PANT-4 (03/11/2026). Van PEGADAS a la coartación porque son las
@@ -156406,8 +156588,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261104-1038';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793799536243;                 /* eco-build-ms */
+const ECO_BUILD    = '20261104-1045';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793799915911;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -156493,7 +156675,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261104-1038</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261104-1045</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
