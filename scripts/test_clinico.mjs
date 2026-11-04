@@ -109974,7 +109974,16 @@ caso('TC-625', 'Tanda PANT-3: ninguna pantalla ni documento dice que algo este p
   })();
 `);
 
-caso('TC-626', 'Tanda PANT-3: el boton 3D del corazon maestro es uno solo, se ve en las dos sub-pestanias, presta y devuelve el recuadro de la transposicion y no escribe nada del estudio', `
+/* ADAPTADO Y EN PARTE INVERTIDO (PANT-12, commit 4): ES EL DIA QUE ESTE CASO ANUNCIABA. Nacio
+   en PANT-3 para fijar que el boton PRESTABA el recuadro de la transposicion, que era la unica
+   forma de tener un dibujo sin duplicar el cableado. Desde PANT-12 el corazon maestro tiene
+   lienzo, motor y estado PROPIOS -se lo exige la tabla de lesiones y las dieciseis vistas-, asi
+   que las dos condiciones del prestamo quedan INVERTIDAS: (C2) exige que el recuadro de la TGA
+   NO se mueva y (E1)/(E2) que siga en su seccion. Lo que el caso vigila no se movio -un solo
+   boton, visible en las dos sub-pestanias, sin escribir un campo y sin llegar al papel- y queda
+   MAS FUERTE: gana (C2b), que exige el lienzo propio del modulo, y (C2c), que exige que el hueco
+   del prestamo quede vacio. */
+caso('TC-626', 'Tanda PANT-3 (adaptado en PANT-12): el boton 3D del corazon maestro es uno solo, se ve en las dos sub-pestanias, abre su PROPIO lienzo sin prestar el recuadro de la transposicion, y no escribe nada del estudio ni llega al papel', `
   return (async () => {
   const EXP = [];
   const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]),
@@ -110035,7 +110044,14 @@ caso('TC-626', 'Tanda PANT-3: el boton 3D del corazon maestro es uno solo, se ve
   if (bo) bo.click();
   await esperar(900);
   ex.push(['(C1) el panel se abre', visible('cc3d-panel'), 'visible']);
-  ex.push(['(C2) y el recuadro queda PRESTADO al panel', padre(), 'cc3d-host']);
+  ex.push(['(C2) INVERTIDA: el recuadro de la transposicion NO se mueve, porque ya no se presta',
+    padre(), 'tga-fila']);
+  ex.push(['(C2b) el modulo abre su PROPIO lienzo', (function(){
+    const c = document.getElementById('cm3d-cv');
+    return !!(c && document.getElementById('cc3d-panel') && document.getElementById('cc3d-panel').contains(c)) })(), true]);
+  ex.push(['(C2c) y el hueco del prestamo queda VACIO',
+    (function(){ const hh = document.getElementById('cc3d-host');
+      return hh ? hh.children.length : 'NO EXISTE' })(), 0]);
   let movidos = 0;
   document.querySelectorAll('input[id], select[id], textarea[id]').forEach((e) => {
     if (typeof _noEsDelEstudio === 'function' && _noEsDelEstudio(e.id)) return;
@@ -110068,7 +110084,8 @@ caso('TC-626', 'Tanda PANT-3: el boton 3D del corazon maestro es uno solo, se ve
   /* (E) AL CAMBIAR DE PESTANIA SE CIERRA Y DEVUELVE EL RECUADRO. */
   try { showTab('valvulas') } catch (e) {}
   await esperar(500);
-  ex.push(['(E1) el recuadro vuelve a su seccion', padre(), 'tga-fila']);
+  ex.push(['(E1) INVERTIDA: el recuadro de la transposicion sigue en su seccion, porque nunca salio',
+    padre(), 'tga-fila']);
   const sec = document.getElementById('sacc-cc-tga');
   const box = document.getElementById('tga-3d-box');
   ex.push(['(E2) y queda DENTRO de la seccion de la transposicion',
