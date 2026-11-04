@@ -202,9 +202,18 @@ Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la v
 ## Qué es EcoSmart y cómo se trabaja
 
 - App clínica de ecocardiografía en **un solo `index.html`**: HTML + CSS + JS inline, sin build,
-  sin frameworks. Hoy **11,30 MB / 157.812 líneas**, medido con `wc -c` y `wc -l` el 2026-11-04 al
-  cierre de la tanda **PANT-6**, sobre el árbol ya sellado: sello **`v20261103-2018`**, md5
-  **`bb6adf41`**. El diff de la tanda son **1.447 líneas agregadas y 427 quitadas**, medido con
+  sin frameworks. Hoy **11,35 MB / 158.439 líneas**, medido con `wc -c` y `wc -l` el 2026-11-04 al
+  cierre de la tanda **PANT-7**, sobre el árbol ya sellado y commiteado: sello
+  **`v20261104-0136`**, md5 **`77a4558a`**. El diff de la tanda son **746 líneas agregadas y 119
+  quitadas**, medido con `git diff --numstat` contra `437834d`, de las que **707** no son
+  comentario, con **cero** `innerHTML`, `eval` o `new Function` nuevos y cero claves ni
+  contraseñas.
+  ⚠️ **POR TERCERA VEZ SEGUIDA EL RENGLÓN QUE SE ENCONTRÓ ESTABA BIEN, y se verificó de las dos
+  formas que esta casa manda:** decía 11,30 MB / 157.812 líneas con el sello `v20261103-2018` y el
+  md5 `bb6adf41`, y `git show 437834d:index.html` da **157.812** líneas, **11.299.600** bytes y
+  ese md5 exacto. **El renglón se mide al final**, con `wc -l` sobre el archivo sellado y con
+  `git show <commit>:index.html | wc -l` para el anterior.
+  (Antes: 11,30 MB / 157.812 al cierre de PANT-6, sello `v20261103-2018`, md5 `bb6adf41`.) El diff de la tanda son **1.447 líneas agregadas y 427 quitadas**, medido con
   `git diff --numstat` contra `c42d9e3`, de las que **1.365 no son comentario**, con **cero**
   `innerHTML`, `eval` o `new Function` nuevos y cero claves ni contraseñas.
   ⚠️ **POR SEGUNDA VEZ SEGUIDA EL RENGLÓN QUE SE ENCONTRÓ ESTABA BIEN, y se verificó de las dos
@@ -397,7 +406,13 @@ que son papeles distintos y son iguales en todos.
 Medido en PANT-7 sobre las **122** claves del registro: 74.734 caracteres de cuerpo a 11 px,
 3.461 de título a 12 y 2.279 de rótulo a 9. El único que se salía era el de la orejuela
 (`_oaiRefGlobo`), que fijaba `font-size:12px` a mano y traía **2.537 de sus 3.110 caracteres**
-un punto más grandes que el resto — que es lo que el médico vio.
+un punto más grandes que el resto, más 116 en negrita también a 12 — que es lo que el médico vio.
+
+⚠️ **Y LA MEDICIÓN DE CIERRE DA 2.653, QUE ES LA SUMA DE ESOS DOS: no son dos cifras que se
+contradicen.** La sonda de dos motores cuenta los caracteres de cuerpo **por tamaño computado**,
+sin separar la negrita, así que publica **12px : 2.653** en HEAD y **11px : 2.653** en el árbol
+nuevo, con el pie en 10 px (413 caracteres), los 10,5 (16) y los 9 (20) **intactos** y los 3.110
+totales idénticos. Las dos mediciones dicen lo mismo contado de dos formas.
 
 Un tamaño **menor** dentro de un cartel sí es legítimo donde cumple un papel propio —los 10 px
 de un pie de ficha, los 9 de un chip—, y esos no se tocan.
@@ -596,6 +611,344 @@ impecable.
 > secciones de REGLAS (la regla de oro con su tabla de mapas, «Qué es EcoSmart», el panel de
 > Evidencia, el protocolo de verificación, las trampas conocidas, el flujo de trabajo,
 > SEGURIDAD y la tabla de Procedencia) siguen enteras y en su lugar, verificado byte por byte.
+### El dibujo del VD, los bordes de la CIA, los globos y cuatro pantallas — «PANT-7» (2026-11-03 y 04)
+
+- **ONCE commits —contados con `git log 437834d..HEAD` AL CERRAR— y de los doce puntos de la
+  orden se hicieron DIEZ.** `92dcd8d` (1) · `f401134` (2) · `cfcae6d` (3) · `803d755` (4) ·
+  `42c1d37` (4b) · `ab2aa3d` (5) · `8dace64` (6) · `1e11c07` (7) · `0693eca` (8) · `e7e643e`
+  (10b) · el de cobertura y documentación. **El commit 9 (Marfan) no tocó una línea**, porque la
+  pantalla ya estaba como la orden la describe. Sello **`v20261104-0136`**, md5 de `index.html`
+  **`77a4558a`**. Al empezar, `origin/main` = `HEAD` = **`437834d`**, el cierre de PANT-6, ya
+  publicado, con md5 `bb6adf41`, sello `v20261103-2018` y el pendrive `DISK_IMG` montado.
+  **El push lo corre Maicol: esta tanda tenía orden expresa de NO pushear.**
+  Cierra **P6-b**, **P6-c** y **P6-d**.
+  ⚠️ **EL PUNTO 10a Y EL COMMIT 11 NO SE HICIERON, Y NO QUEDARON A MEDIAS:** ninguna línea de la
+  app se tocó por ellos. Los paró la regla de prioridad de la propia orden —«si algo hay que
+  dejar afuera, que sea lo último»—. **Lo que SÍ quedó leído y verificado del 10a va a
+  `docs/fuentes/FUENTES.md` para que la próxima no lo relea**, con su folio comprobado en el pie
+  impreso: el tronco de la arteria pulmonar con sus cuatro grados y los tres diámetros del tracto
+  de salida del VD, de la Tabla 1 de la ASE 2025 (hoja 5, folio 145), más el corte de 25 mm y el
+  cociente tronco / raíz aórtica de la ESC/ERS 2022 (hoja 29, folio 28). Declarados en
+  `docs/PENDIENTES.md` como **P7-a** y **P7-b**.
+
+- ⚠️ **POR TERCERA VEZ SEGUIDA EL RENGLÓN DE TAMAÑO QUE SE ENCONTRÓ ESTABA BIEN**, y se verificó
+  como manda este archivo: `wc -l` sobre `437834d:index.html` da **157.812** exactos, `wc -c`
+  **11.299.600** y el md5 **`bb6adf41`** — los tres idénticos a lo que el renglón decía.
+
+- **EL DIBUJO DEL VD: DE 520 px A 220, QUE ES EXACTAMENTE EL ESQUEMA VALVULAR 2D, y la letra
+  pasó de 4.2 a 5.2px, que es la regla del esquema valvular.** No se tocó una curva, un color ni
+  un cuadro del latido: **la geometría contra la demo aprobada da 10 de 10 escenarios IDÉNTICOS**,
+  con 1.058 a 1.131 caracteres de trazado de cada lado como denominador. A 1440 y a 1000 px el
+  dibujo mide **exactamente** lo mismo que el esquema valvular; a 768 y a 390 la diferencia es de
+  **8 px** (1,1 % y 2,4 %, dentro de la tolerancia del 5 % que la orden fija) y es el relleno del
+  contenedor. La columna del dibujo pasó a **240 px fijos** en vez del 45 %, así que el ancho de
+  los campos sube de 649 a **940 px** a 1440 y el hueco vertical que el médico veía baja de
+  **104 px a 10** —el `row-gap`, o sea el mínimo—. El alto de la sección: 875,9 → **688** a 1440,
+  1526,9 → **1083** a 768.
+  ⚠️ **LA DIFERENCIA DEL 9 % EN LA LETRA EN PANTALLA SE DECLARA Y NO ES LA TIPOGRAFÍA:**
+  `fitView()` reserva 16 unidades más de `viewBox` a la izquierda para la barra del TAPSE, así que
+  con la misma caja el dibujo se encuadra un 10 % más chico. Eso es geometría, y la orden la
+  prohíbe tocar.
+  ⚠️ **Y `vdscRotulos()` NUNCA EXISTIÓ** —era **P6-d**—, así que `ROT_LARGO` / `ROT_CORTO` eran
+  código muerto y el comentario que decía que elegía «medido con getBBox a los cuatro anchos» era
+  **falso**. Hoy hay **un** solo juego de rótulos, de una línea cada uno, y el tamaño lo fija la
+  hoja de estilos.
+  ⚠️ **Y LA PRIMERA MEDICIÓN DE LA LETRA ERA FALSA Y PLAUSIBLE:** la sonda calculaba la escala
+  como `ancho / viewBox`, y con `preserveAspectRatio xMidYMid meet` la escala es el **menor** de
+  los dos cocientes. Daba 6,42 px donde el dibujo se ve en 9,37.
+  **P6-b queda cerrado por decisión del médico**, no por un arreglo: a 220 px la tipografía del
+  SVG no llega a los 12 px que esta casa pide, y el pedido es que el dibujo sea del tamaño del
+  esquema valvular.
+
+- **LOS CINCO VALORES DE BORDE DE LA CIA, DENTRO DE SU SECTOR, Y SE MIDE POR PÍXELES.** Contando
+  los píxeles del color de texto de cada sector dentro de su región del PNG, los cinco pasan de
+  **28/15/16/19/38 a 74/58/76/77/84**. Y la escena con tres bordes **sin medir** trae su propio
+  control: esos tres se quedan en 13/16/17 —la sigla sola, sin número— mientras los dos medidos
+  van a 74 y 84. **El ancho que hay dentro de un sector se MIDE y no se estima**
+  (`_ciaSegAnchoDisp`), y con cuatro caracteres en los cinco bordes el sector más apretado deja
+  **22 unidades de holgura sobre 60**: la lista lateral **no** se dispara con datos plausibles, es
+  un camino real con su mutación propia.
+  ⚠️ **UNA PARTE DE LA PREMISA DE LA ORDEN ES FALSA, Y ESTÁ MEDIDA:** afirma que el borde mínimo,
+  la dirección y la velocidad del jet «ya están en los textos de arriba de la hoja». Con la CIA
+  **integrada** es cierto; con el diagrama incluido y la sección **sin integrar** es **falso**
+  —«borde mínimo» ×0, «jet» ×0 y «Qp/Qs» ×0 en los 3.108 caracteres de esa hoja—. El único
+  **número medido** que podía desaparecer del papel es la **velocidad del jet**, así que entra
+  únicamente cuando el párrafo de la CIA no se va a emitir, decidido con el **mismo** predicado
+  que usa ese párrafo —`eteShuntLesionOn('cia')`— y no con una segunda regla.
+  ⚠️ **Y LA PREMISA DE LA MINIATURA TAMBIÉN ERA FALSA:** `INF_MIN_DIAG` tenía **SEIS** entradas y
+  ninguna era la CIA, así que la fila salía en `display:none` y el contador decía «En el PDF: 0»
+  con el dibujo generado (66.818 bytes) y la casilla marcada. **Lo que el médico vio fue la fila
+  de otro diagrama.** Se agregó **sin un campo guardado nuevo** —la puerta es
+  `ete_shunt_incluir_chk`, que ya existía—, con la **misma** guarda que el PDF y escribiendo en
+  **`esqs`** y no en `imgSlots`, porque la CIA ya tiene su sección en la hoja.
+  ⚠️ **EL PASO DE GUARDAR Y REABRIR NO SE PUDO MEDIR, Y SE DECLARA EN VEZ DE AFIRMARLO:**
+  `editarInforme(id)` no repuso nada en el arnés, y el **denominador** lo dice —el nombre del
+  paciente también volvió vacío—, así que lo que falló es el montaje de la sonda y no la app.
+  Queda en el paso 10 de la guía manual. Dos trampas del arnés, pagadas: los ids son `nombre` y
+  `ci`, no `pac_nombre`/`pac_ci`; y **`valvSevConfirmada` es una variable de MÓDULO y no está en
+  `window`**, así que ponerla desde afuera no hace nada y la tarjeta de severidades queda
+  esperando un clic.
+
+- **POR QUÉ DOS ⓘ NO ABRÍAN, EN UNA LÍNEA: `_vInfoBtnDe` devolvía SIEMPRE el primer botón del
+  documento**, y `_vInfoColocar` se ancla a ese y sale por `return null` si su caja mide 0 × 0.
+  Las dos claves tienen **dos** botones en **dos pestañas distintas**, así que el globo de la
+  pestaña donde estabas no abría porque el gemelo de la otra estaba escondido. Hoy manda el botón
+  que se **clickeó**, que es el que `vInfoClic` ya tenía en la mano. **Para una clave con un solo
+  botón el resultado es idéntico**, así que las ciento veinte tarjetas anteriores no se mueven un
+  píxel.
+  ⚠️ **Y MI PRIMERA SONDA FABRICÓ EL DEFECTO QUE VENÍA A MEDIR.** `#vinfo-card` es un elemento
+  **estático** del marcado y la sonda lo **borraba** antes de cada clic: `_vInfoColocar` sale por
+  su primera guarda y entonces **ningún** globo abre. Los cuatro daban `abrio=false`, que es
+  exactamente el síntoma buscado.
+  ⚠️ **Y AL CERRAR LA TANDA LA MEDICIÓN CORRIGIÓ UNA FRASE DEL MENSAJE DEL COMMIT 3.** Ese mensaje
+  dice que en HEAD «el de `tab-vd` abría —380x430 con 2.486 caracteres—». Medido ahora con la
+  sonda dedicada y con la de dos motores, sobre el **mismo** HEAD y sobre el árbol nuevo: **el
+  PRIMER botón de `vd-triv` y de `pul-balik` mide 0 × 0 en los DOS árboles**, así que su «no
+  abre» es un **denominador vacío** —con caja cero `_vInfoColocar` sale por su guarda en los dos
+  lados— y no un hallazgo: lo que ninguna de las dos sondas logra es abrir su contenedor.
+  **Lo que la tanda arregla, y lo que sí se ve en los dieciséis cruces, es el SEGUNDO botón de
+  cada clave: pasa de `NO ABRE` a abrir, con 2.486 y 750 caracteres.** Queda declarado en
+  `docs/PENDIENTES.md` como **P7-k**.
+
+- **LOS DOS GLOBOS NUEVOS, TODO LEÍDO EN IMAGEN CON EL FOLIO COMPROBADO EN EL PIE IMPRESO.** El
+  del **índice de Tei** (ASE 2025 de corazón derecho, hojas 18 → pie «158», 19 → «159», Tabla 1
+  hoja 5 → «145» y 17 → «157»; Lang 2015, apartado 8.1, hoja 23 → «23», o sea folio = hoja) dice
+  la fórmula, los cortes **por método con sus cuatro grados** y las limitaciones.
+  ⚠️ **LAS DOS GUÍAS DIFIEREN Y LA DIFERENCIA SE MUESTRA, CON LA MÁS NUEVA PRIMERO**, y **el corte
+  que la app usa NO se movió**. ⚠️ **Y LA PROPIA FUENTE SE CONTRADICE EN LA UNIDAD**, así que el
+  globo lo dice: el cuerpo declara el índice adimensional y el recuadro escribe «<0.40 ms».
+  ⚠️ **SIN valor normal del Tei del ventrículo IZQUIERDO:** ninguna fuente de la biblioteca lo
+  trae. El del **signo 60/60** (ESC 2019 de TEP, **edición inglesa**, hoja 15 → pie «557», y su
+  Figura 3 panel E, hoja 16 → «558») dice las **dos** condiciones, el ~12 % de los TEP no
+  seleccionados —contra el 20 % del McConnell— y la diferencia entre el texto y la figura, que se
+  muestra y no se resuelve. **Sin conducta y sin la palabra «positivo».**
+
+- **EL PINTADO DEL 60/60 ES SÓLO VISUAL, Y ESTÁ MEDIDO EN LOS CUATRO ANCHOS.** Con 59 ms los dos
+  rótulos en rgb(245,158,66), peso 700, contraste 7,98 y 7,33; con **60 exactos y con vacío** en
+  rgb(154,163,188), peso 500 —el control negativo—. En los tres casos el selector sigue en «ne»,
+  el span sigue diciendo «No evaluado» y el score sigue en «—»: **no** agrega texto, **no**
+  escribe el campo, **no** cuenta en el score y **no llega al papel**. El color es `--orange` y
+  **no `--amber`**, que no resuelve fuera de `.amilo-root`. Cuatro puertas: `calcTEP`, **`calcVD`**
+  —el campo vive en VD/AD y su `oninput` va a `calcVD`—, `RECALC_MODULOS` y el final de
+  `limpiarCampos`.
+
+- **LA BARRA DEL TIEMPO DE ACELERACIÓN, DE DOS TRAMOS A CUATRO**, con `ASE25_T1.vd_tap` y un
+  **`vdTapGrado`** nuevo al lado de `vdTapCat`, que **no se tocó**: son dos preguntas sobre el
+  mismo número y `UMBRAL_TAP_HTP` sigue valiendo **105**. La del Tei queda **idéntica**, que es el
+  control.
+  ⚠️ **EL CORTE DE ARRIBA SE NOMBRA «105» Y NO «106», y hubo que decirlo corte por corte:** con
+  `corteEn:'desde'` sale por el **piso** de la banda normal, que con `op:'>'` y cero decimales es
+  106 —medido—. La guía escribe «>105», así que ese se nombra por el **techo** de la banda leve.
+
+- **LA FRANJA ROSADA DEL TEER: EL MÉDICO TENÍA RAZÓN Y SON DOS CAUSAS INDEPENDIENTES.**
+  ⚠️ **P6-c LA MIDIÓ EN EL TEMA EQUIVOCADO:** medido el contraste contra el fondo **efectivo**,
+  tema oscuro **8,16** y tema claro **1,66** —`.mAviso` lleva `color:#FCA5A5`, un salmón para
+  fondo oscuro, y **no** tiene variante de tema—. Arreglado por **id** y no sobre la clase, que la
+  comparten 56 elementos: contraste **5,66** en claro con el oscuro **intacto**.
+  ⚠️ **Y LA SEGUNDA LA DESTAPÓ EL CASO DE PRUEBA AL LLAMAR A `limpiarCampos` ANTES DE MEDIR:** el
+  id `teer-tipo-aviso` **termina en «-aviso»**, y `limpiarCampos` barre `[id$="-aviso"]` con
+  `textContent = ''`. **Por eso PANT-6 midió 50 caracteres y concluyó que no se reproducía: esa
+  medición fue sobre una página recién cargada.** El commit 4b hace que `calcTEER` escriba el
+  texto al mostrarla, desde una **constante** palabra por palabra igual a la del marcado. **El id
+  no se cambia** y la lógica de cuándo aparece tampoco.
+
+- ⚠️ **LA PROFUNDIDAD DE COAPTACIÓN SE PARA, Y ES LA CONDICIÓN QUE LA ORDEN PONE.** Esa condición
+  es verificar «que las dos son de verdad la misma medición (misma vista y mismo sitio de
+  medida)», y **ninguna** de las dos entradas de `FUENTES.md` registra la vista ni el sitio; y
+  **Tamburino 2010 NO está en la biblioteca** —el propio FUENTES.md lo declara censado—. **Lo que
+  la sincronía cambiaría, medido:** con el valor copiado el veredicto pasa de «Faltan 8
+  criterio(s)» a «**1 criterio(s) no cumplido(s)**, Faltan 7», o sea que un criterio **sin dato**
+  pasaría a **no cumplido**, y es de **exclusión**: decide APTO / NO APTO. → **P7-c**.
+
+- **«NO DETERMINABLE» FUERA DEL PAPEL, CON SU DENOMINADOR Y SU CONTROL:** sin datos el bloque de
+  hemodinámica pasa de **307 a 251 caracteres** y la frase en la hoja del PDF de **6 a 0** —una
+  por plantilla—; con datos, **750 → 750, idéntico**. **No se cambia una frase por otra: se retira
+  el renglón.** ⚠️ **Y UN HALLAZGO QUE LA MEDICIÓN DESTAPÓ:** el perfil hemodinámico y la
+  clasificación HTP siguen escribiendo al papel **su propia** frase de dato faltante, que no es
+  «no determinable» —es el análogo de **P5-b** para otros dos spans— → **P7-f**.
+
+- **«PAPs» PASA A «PSAP» EN EL PAPEL, en los CUATRO emisores** —la CIA, las dos ramas de la CIV y
+  el ductus—: **23 diferencias de superficie firmada y las 23 son ese rótulo**. **Ningún valor,
+  ningún id y ningún ENCABEZADO del Excel se movieron.** «PAPm» y «PAPd» viven **solo en
+  pantalla**, censado, y el «PAPs» de las recomendaciones de la Evidencia es parte de la frase de
+  la guía que se cita.
+
+- **LAS CUATRO PANTALLAS, CON SUS ALTOS MEDIDOS Y SUS CORTES SOBRE LA VENTANA:**
+
+  | pantalla | campos | conclusión | alto a 1440 |
+  |---|---|---|---|
+  | Wilkins | [2,2] → **[1,1,1,1]** | 1194 → **590 px al lado** | 281 → 329 |
+  | Orejuela | — | 1194 → **820 px al lado del dibujo** | **851 → 660** |
+  | Aorta del ETE | [3,3,1] → **[2,2,2,1]** | 1194 → **590 px al lado** | **361 → 336** |
+  | VAB | 3 filas → **4 columnas de 224,5 px** | resumen **dentro de la fila** | **662,5 → 597,5** |
+
+  El hueco de la orejuela baja de **255 a 35 px** y el de la VAB de **286 a 89,5**.
+  ⚠️ **WILKINS QUEDA MÁS ALTA A 1440 Y A 1000, y es aritmética, no un defecto:** cuatro campos en
+  una columna ocupan cuatro filas, contra dos filas de dos más la conclusión debajo.
+  ⚠️ **Y EN LA VAB, ENTRE 1200 Y 1359 px EL DIBUJO BAJA A SU PROPIA FILA**, que es la única forma
+  de cumplir las dos condiciones de la orden a la vez —cuatro columnas desde 1200 y ninguna por
+  debajo de 200—; de 700 a 1199 se queda al lado, porque bajándolo la sección crecía a 930,5 px.
+
+- **EL SCORE DE WILKINS ESTABA DUPLICADO Y LA PREOCUPACIÓN DE OCTUBRE SE REPRODUJO.** Con el juego
+  del ETE en 1/1/1/1 y el de cirugía en 4/4/4/4, el primero publicaba «sin puntuar» y el segundo
+  «16/16»: dos juegos independientes, el mismo paciente, dos scores. **Un dato, dos puertas, gana
+  la última edición**, sin campos nuevos y sin tocar un id: la puerta es `wilkMarcarGesto`, que ya
+  exigía `ev.isTrusted === true`, y `wilkSincronizar` llama a los dos recalculadores
+  **directamente**, lo que cierra el bucle **por construcción**.
+  ⚠️ **LA SINCRONÍA ES INEQUÍVOCA, Y POR ESO SE PUDO HACER:** son los **mismos** cuatro criterios
+  con la **misma** escala de 1 a 4; lo único que cambia es la redacción de cada opción y el
+  centinela de vacío, así que la traducción es una tabla de dos entradas y no una interpretación.
+  **EL PAPEL NO SE MUEVE, Y ESTÁ MEDIDO CON SU ESCENA PROPIA:** con sólo el juego de cirugía
+  cargado y el embudo completo corrido, el lado del ETE sigue **vacío** y el informe sale
+  **idéntico en los dos árboles, 483 caracteres, cero menciones de Wilkins**.
+  ⚠️ **Y EL GESTO DE CONFIANZA NO SE PUEDE PRODUCIR DESDE PLAYWRIGHT**, así que la sincronía se
+  prueba llamando al sincronizador y la puerta por su control negativo.
+
+- ⚠️ **LOS DOS CUADROS DE NOTAS SE PARARON, Y NO ES INTERPRETACIÓN: lo que hay no es lo que la
+  orden describe.** Los puntos 6b y 7b mandan repartir el contenido de un recuadro de **texto
+  explicativo**; lo que hay son **dos `<textarea>` donde el médico escribe** (`oai_notas` y
+  `ao_ete_notas`), sin una explicación de guía ni una historia de la app. **Y sacarlos sería
+  peor:** son **campos guardados** —el censo pasaría de 1004 a 1002— y su contenido **llega al
+  informe**. → **P7-d**, con la pregunta concreta: si lo que querés es **moverlos**.
+
+- **LA LETRA ÚNICA DE LOS CARTELES ⓘ: EL MÉDICO TENÍA RAZÓN Y ESTÁ MEDIDO.** Barridas las **122**
+  claves del registro: **74.734** caracteres de cuerpo a 11 px, 3.461 de título a 12, 2.279 de
+  rótulo a 9 y 1.630 de fórmula a 10,5 — o sea que la letra ya era uniforme **por papel** en 121
+  de los 122. El que se salía es el de la **orejuela**, que traía **2.537 de sus 3.110 caracteres
+  a 12 px**. **La causa, en una línea: `_oaiRefGlobo` hacía `cont.style.cssText =
+  'font-size:12px;line-height:1.55;'`** — el único cartel que se declaraba su propio tamaño de
+  cuerpo. Se retira el `font-size` y se conserva el `line-height`: **3.110 caracteres antes y
+  3.110 después**.
+  ⚠️ **EL BARRIDO DE LAS 122 CLAVES SALE IDÉNTICO ANTES Y DESPUÉS, Y ESO ES EL CONTROL, NO LA
+  PRUEBA:** dice que los otros 121 carteles no se movieron un punto.
+  ⚠️ **Y UN CAMBIO MÍO QUE SE REVIRTIÓ POR NO ESTAR MEDIDO:** la primera hipótesis fue
+  `_otrRefClon`, y medido **no** era la causa.
+  **REGLA NUEVA EN ESTE ARCHIVO, con su medición: «Todo cartel ⓘ usa la MISMA letra».**
+
+- **35/35 MUTACIONES DIRIGIDAS MUERTAS**, en worktree y nunca sobre el vivo, con el md5 **idéntico**
+  antes y después.
+  ⚠️ **SIETE SOBREVIVIERON AL PRIMER BARRIDO Y ME DIJERON TRES COSAS DISTINTAS.** **Cuatro eran
+  condiciones que no podían fallar:** `indexOf('grid')` lo cumple `grid-template-columns` con
+  `display:block`; `indexOf('1fr')` lo cumple `1fr 1fr`;
+  `selectorText.indexOf('teer-tipo-aviso')` lo cumple `#teer-tipo-aviso-X`; y el control de que el
+  resalte no escribe el campo **leía el campo después** de haber corrido el resalte, así que si
+  escribía ya había escrito. **Una era un hueco real:** nada afirmaba que la regla que **ubica** la
+  conclusión de la orejuela exista —estar dentro de la fila en el DOM no dice en qué celda cae—.
+  **Una mutación estaba mal escrita:** mutaba el atributo `opacity` del marcado de `#vdsc-names`,
+  que **`vdscSync` reescribe en cada pasada**, así que no inyectaba ningún defecto.
+  ⚠️ **Y UNA ERA EQUIVALENTE, PROTEGIDA POR EL DOM, Y HUBO QUE MEDIRLO PARA SABERLO:** sacarle al
+  sincronizador de Wilkins la traducción del centinela `'0'` **no cambia el valor del campo**
+  —`cx_wilk_*` no tiene opción `value="0"` y lo rechaza: «,,,» en los dos árboles—. Lo observable
+  es la **idempotencia**: sin traducirlo, el sincronizador informa los cuatro campos movidos en
+  **cada** pasada, para siempre (4/4/4 contra **4/0/0**). Nació **(B4c)**.
+
+- **SEIS CASOS NUEVOS, TC-650 a TC-655**, con sus denominadores y sus controles negativos, y los
+  seis **caen contra HEAD por 69 condiciones y NINGUNA por excepción**, verificado en un worktree
+  con el mismo archivo de casos, alternando sólo `index.html`.
+  ⚠️ **TRES TRAMPAS DE MÉTODO PAGADAS AL ESCRIBIRLOS.** `document.styleSheets[i].cssRules`
+  devuelve **vacío** en este arnés, así que las reglas se leen del **texto** de los `<style>`.
+  **Delimitar un bloque de media query por balance de llaves se desalinea** en cuanto un
+  **comentario** de la hoja menciona «900 px» —esta hoja tiene varios—: lo que se hace es buscar
+  el **selector** y preguntar si la media query más cercana hacia atrás declara ese ancho. Y hay
+  que **acumular todas las coincidencias**, no devolver la primera: un mismo selector tiene la
+  regla de fuera y la de la media query.
+  ⚠️ **Y UN CASO AGREGADO AL FINAL DEL ARCHIVO NO SE EJECUTA:** `CASOS` se consume en el bloque
+  que arranca Chrome, que no está al final, y la suite imprime «0/0 ✓ sin regresiones» sobre un
+  caso que nunca corrió.
+  ⚠️ **EL ACENTO GRAVE DENTRO DE MIS PROPIOS COMENTARIOS, POR DECIMONOVENA TANDA SEGUIDA**, unas
+  cinco veces. **`node --check` los cazó todos**, y quedó un guardián automático
+  (`scripts/chk_pant7_backticks.py`) que cuenta los de cada sonda y exige el número exacto.
+  ⚠️ **Y LA BARRA INVERTIDA SIMPLE, otra vez:** `.join('\n')` y `prev === '\n'` escritos dentro de
+  un template literal llegan como saltos **reales** y la cadena deja de cerrar. Se cerró con
+  `String.fromCharCode(10)`.
+
+- **UN `</div>` DE MÁS COSTÓ UNA MEDICIÓN TRES VECES EN ESTA TANDA** —Wilkins, la orejuela y la
+  VAB—, y es la misma trampa que PANT-6 pagó con la mitral del ETE. El síntoma de la VAB fue
+  inequívoco: las cuatro columnas en **0 px**, los ids de la sección de 13 a **12** y los globos de
+  6 a **5**. Se cerró extrayendo cada bloque por **balance de `<div>` sobre el texto sin
+  comentarios**, verificando que cada pieza da 0 **antes** de escribir.
+
+- **Línea base al cierre: suite 665/670**, en **doce lotes** cubriendo los **670 casos distintos**
+  —contados nombre por nombre, con una guarda que compara lo listado con lo distinto y otra que
+  compara lo repartido: **670 de 670**—, en UNA sola pasada sobre el árbol sellado **y
+  commiteado**, con el pendrive `DISK_IMG` **verificado al abrir, en los DOCE lotes y al cerrar**
+  (catorce verificaciones, listando nombres reales) y el md5 de `index.html` **idéntico** antes y
+  después (`77a4558a`). Los rojos son **TC-223, TC-376, TC-390 y TC-406**, los cuatro de siempre, más **TC-551**, el
+  intermitente que `COR-f` declara: **pasa 3 de 3 corrido aislado** y falla dentro de su lote por
+  **(C3)**, la condición del chorro de la orejuela que ese pendiente nombra. **Ningún rojo nuevo.**
+  ⚠️ **Y LA PRIMERA CORRIDA COMPLETA DIO 661/670 CON CINCO ROJOS MÁS, LOS CINCO MÍOS**, y por
+  eso esa cifra no es la línea base: **TC-645**, **TC-492**, **TC-494**, **TC-651** y **TC-551**
+  —éste por su condición **(A1)**, que afirmaba que la fila de la orejuela es `flex`, justo lo que
+  el commit 6 cambió a propósito: hoy (A1) acepta las dos maquetas y **(A1b)** exige la que la app
+  usa, así que el caso quedó más fuerte y no adaptado hacia abajo—. Los tres
+  primeros son el día que ellos mismos anunciaban o conteos de inventario; **TC-651 era una
+  DEPENDENCIA DE ORDEN mía**, y se cerró midiendo el **delta** del contador y la **presencia** de
+  la tarjeta de la CIA por su etiqueta, en vez de leer el total «En el PDF: 1» —que suma TODAS las
+  miniaturas incluidas, así que si un caso anterior del lote dejó encendida la del bull's eye o la
+  de la VAB, el total no es 1 ni vuelve a 0: salía **verde aislado y rojo dentro de su lote**—.
+  ⚠️ **Y SU PRIMERA CORRECCIÓN BUSCABA LA ETIQUETA EN EL TEXTO DE LA LISTA, QUE TAMPOCO SIRVE:**
+  la etiqueta **visible** de la tarjeta de un diagrama es la palabra «diagrama» para los siete, y
+  el nombre propio va en el `title` y el `alt` de su miniatura.
+  ⚠️ **Y HUBO DOS CORRIDAS ENVENENADAS QUE SE DESCARTARON, no una.** La segunda se lanzó en
+  segundo plano y, al mover su archivo de log, el arnés **lo volvió a crear** y escribió ahí al
+  mismo tiempo que los lotes que yo corría en primer plano: **dos Chrome a la vez sobre el mismo
+  árbol**, que es justo lo que esta casa prohíbe, y un log que es la mezcla de los dos. El
+  síntoma fue un lote informando **54/54** donde su rango tiene **56** casos, y en la corrida
+  limpia el mismo lote da 56/56. La tercera se descartó porque el archivo de casos cambió al
+  adaptar TC-551. **La línea base sale de la cuarta, de una sola pasada en primer plano sobre el
+  árbol sellado y con el archivo de casos final.**
+- **Semgrep 124 WARNING / 0 ERROR**, la línea base, sin un aviso nuevo. **Excel 441** columnas con
+  las **mismas 441 claves**, verificado clave por clave en las 66 escenas: **cero** escenas con el
+  juego de columnas distinto. **Censo de campos 1004, el mismo juego exacto**: cero campos
+  guardados nuevos y cero perdidos, medido por diferencia de ids en las 66 escenas. **Sin
+  huérfanos nuevos.** 17 de 19 bloques de JS inline parsean, idéntico a HEAD. **Ningún id de campo
+  cambió**: los nueve ids nuevos del diff son envoltorios y rótulos con guion medio.
+- **CELULAR: 58 hallazgos a 360 px y 66 a 390, con 17 ALTA en cada ancho** — la línea base exacta
+  que la orden declara (17 ALTA + 41 MEDIA y 17 + 49). **No empeoró.**
+- **A/B FINAL contra HEAD, con el PDF y el PPT generados de verdad: 66 escenas, 75.356 claves y
+  29.106 celdas de Excel. TREINTA Y UNA diferencias de superficie firmada, en SIETE escenas, y las
+  31 son las autorizadas** —la frase del Forrester en `p6forrNada` y `p6forrIc`, la línea de
+  corrido de la CIA en `p6ccNadaInt`, y «PAPs» → «PSAP» en `p6ccCiv`, `p6ccDos`, `p6ccDosInt` y
+  `p7dap`—. **Las otras 59 escenas dan CERO**, `p4vacio`, `p4ajeno`, `p6ccCia`, `p5ccCia` y
+  `p7dapNo` incluidas.
+  ⚠️ **HUBO QUE AGREGARLE DOS ESCENAS AL ARNÉS, Y SIN ELLAS EL CUARTO EMISOR NO TENÍA
+  DENOMINADOR:** el rótulo lo escriben **cuatro** emisores de papel y el del **ductus** no tenía
+  ninguna escena en las 64 heredadas.
+- **CHROME Y WEBKIT COINCIDEN EN LOS DIECISÉIS CRUCES** (dos motores × 1440, 1000, 768 y 390 px ×
+  dos temas), con **CUATRO** diferencias entre motores en total y las cuatro de **4 px de alto** en
+  dos tarjetas a 390 px, que es métrica de fuente: la caja del dibujo en **220 × 300** con la letra
+  en **5.2px** y los rótulos de una línea, el resalte del 60/60 prendido con 59 ms y **apagado con
+  60 exactos**, los dos globos nuevos abriendo con **44 × 44** y su cuerpo en **11 px**, el ⓘ del
+  TRVI de Doppler y el de la pleura del posoperatorio **abriendo**, la franja del TEER con sus
+  **50** caracteres y en **rgb(185,28,28)** en el tema claro, el cartel de la orejuela con sus
+  **2.653 caracteres de cuerpo a 11 px**, las cuatro pantallas lado a lado por encima de 900 px y
+  apiladas por debajo, **cero** desplazamiento horizontal, **cero** textos recortados y **cero
+  errores de página**. **El único error de consola es el del arnés, idéntico en HEAD.**
+  **El mismo cruce contra HEAD es el control, y reproduce las premisas de la orden exactas:** el
+  dibujo en **520 × 832,2** con la letra en **4.2px** y «Septumdesplazado» en dos tspans, los dos
+  globos nuevos **sin botón**, los otros dos **sin abrir**, la franja del TEER en **cero
+  caracteres**, el cartel de la orejuela con sus 2.653 caracteres a **12 px** y las cuatro filas
+  **sin regla**.
+  ⚠️ **WebKit de Playwright no es Safari, y se declara.** Chrome va por el del sistema con
+  `channel: 'chrome'`.
+
+- **Dónde está todo:** `docs/mapa/pant7-vd-cia-globos.md` (**mapa NUEVO**, 30,4 KB) con su medición de cierre partida
+  a `docs/mapa/pant7-medicion-cierre.md` (5,3 KB) **antes** de cruzar el techo, las fichas de
+  los seis casos en `docs/mapa/tests-fichas-650.md` (**archivo propio**, porque `tests-fichas.md`
+  está a menos de 1 KB del techo), **nueve mapas con un puntero cada uno** —medidos ANTES de
+  escribir—, `docs/fuentes/FUENTES.md` → «La tanda PANT-7» con los CUATRO documentos leídos en imagen en sus
+  OCHO ubicaciones, cada folio comprobado en el pie impreso, `docs/REGISTRO_TANDAS.md` → el bloque de la tanda,
+  `docs/GUIA_PRUEBA_PANT7.md` → la guía manual en **22** pasos, y `docs/PENDIENTES.md` → **ONCE**
+  cosas declaradas (**P7-a** a **P7-k**), más el cierre de **P6-b**, **P6-c** y **P6-d**.
+  ⚠️ **Y `tests-punteros-tandas.md` CRUZÓ EL TECHO Y HUBO QUE PARTIRLO DESPUÉS, NO ANTES.** Estaba
+  medido en 33.569 B y el puntero de esta tanda —con su tabla de seis casos— lo llevó a **35.379**.
+  Las tandas del 24 al 31 de octubre salieron a `docs/mapa/tests-punteros-octubre.md` (18,4 KB) y
+  el mapa volvió a **17,7 KB**, con **cero líneas perdidas** verificadas una por una. **Es la
+  enésima vez que la regla se aplica después de cruzar: hay que medir el archivo MÁS lo que se le
+  va a escribir.**
+  ⚠️ **`mitral-dibujo-estatico.md` (34.594 B), `tests-fichas.md` (34.237), `congenitas-otros.md`
+  (34.540) y `valvulas.md` (33.863) NO se tocaron.**
+
 ### La pantalla de CIA y CIV, el dibujo del VD, el molde de la Evidencia y los criterios TEER — «PANT-6» (2026-11-03 y 04)
 
 - **DIECISÉIS commits —contados con `git log c42d9e3..HEAD` AL CERRAR, no a mitad de camino—, y

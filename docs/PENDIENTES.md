@@ -13046,3 +13046,184 @@ archivo: mismo directorio, mismos scripts, alternando sólo `index.html`.
   existe, así que sin la adaptación la segunda sección **nunca se abre**. El alias del commit 4
   cubre la llamada, no una guarda que busque el id viejo.
 
+
+
+---
+
+# Tanda PANT-7 (2026-11-03 y 04)
+
+## P7-a · El punto 10a NO se hizo: las referencias del tronco de la arteria pulmonar, sus ramas y el tracto de salida del VD
+
+**No quedó a medias: ninguna línea de la app se tocó por él.** Lo paró la regla de prioridad de la
+propia orden —«si algo hay que dejar afuera, que sea lo último»— y lo que falta es tiempo de
+lectura en imagen, no una decisión.
+
+**Lo que YA está leído y verificado, con su folio comprobado en el pie impreso**, y que está
+transcrito en `docs/fuentes/FUENTES.md` → «La tanda PANT-7» para que la próxima no lo relea:
+
+- **Tronco de la arteria pulmonar** (ASE 2025, Tabla 1, hoja 5, folio 145): normal ≤ 2,5 cm; leve
+  > 2,5 a 3,0; moderado > 3,0 a 3,5; severo > 3,5.
+- **Tracto de salida del VD**, los tres diámetros con sus tres grados (misma tabla): eje largo
+  < 3,3; eje corto proximal < 3,4; eje corto distal < 2,9.
+- **ESC/ERS 2022** (hoja 29, folio 28): el corte de 25 mm del tronco y el cociente tronco / raíz
+  aórtica.
+
+**Lo que falta leer:** la **Tabla 2** y las hojas 10 y 11 de la ASE 2025, y las hojas 18 y 20 de
+Lang 2015 —las **ramas** de la arteria pulmonar—.
+
+## P7-b · El commit 11 NO se hizo: el molde de Evidencia de la válvula pulmonar y de la prótesis mitral
+
+**No quedó a medias: ninguna línea de la app se tocó por él.** Es el último de la orden y lo paró
+la misma regla de prioridad. **Es lo mismo que PANT-6 declaró en `P6-a`**, con sus dos motivos
+intactos: la **válvula pulmonar** (`_indEP`, 4 preguntas) **no tiene fila de estadio** —la guía no
+publica estadios para esa lesión— y la **prótesis mitral** (`_indProtM`, 6) tiene por categoría el
+**voto de cuatro criterios de obstrucción** y no un grado, así que qué va en la franja es una
+decisión clínica que decide Maicol. **TC-649 (F1) sigue siendo el guardián de esa parada.**
+
+## P7-c · La profundidad de coaptación NO se sincronizó, y ahora con la medición (cierra la pregunta de P5-f y P6-f)
+
+**La condición que la orden pone no se puede cumplir.** Es verificar «leyendo FUENTES.md y el
+código, que las dos son de verdad la misma medición (misma vista y mismo sitio de medida)», y
+hay **dos** motivos medidos:
+
+- **Ninguna** de las dos entradas de `docs/fuentes/FUENTES.md` registra la **vista** ni el
+  **sitio** de medida. Lo que registran es el corte y el uso: `ete_prof_coapt` sale de la Tabla 7,
+  hoja 25 del documento de regurgitación valvular nativa —«coaptación ≥ 1 cm» como característica
+  **desfavorable para la reparación** en insuficiencia mitral secundaria—, y `teer_prof_flail` de
+  Tamburino 2010, Tabla 1, folio 1386 —«coaptation depth ≥ 11 mm» como criterio anatómico de
+  **exclusión** del TEER—.
+- ⚠️ **Tamburino 2010 NO está en la biblioteca**, y no es una suposición: el propio FUENTES.md lo
+  declara censado sobre las carpetas de valvulopatías y de ETE. Sin esa lectura en imagen,
+  «miden lo mismo» sería memoria.
+
+**Lo que la sincronía cambiaría, medido en el navegador** con una escena de IM secundaria: con
+`ete_prof_coapt` en 12 y `teer_prof_flail` vacío —lo de hoy— el veredicto dice «Faltan 8
+criterio(s) por ingresar»; con el mismo 12 copiado dice «**1 criterio(s) no cumplido(s)**, Faltan
+7». Un criterio que hoy está **sin dato** pasaría a estar **no cumplido**, y es un criterio de
+**exclusión** que decide APTO / NO APTO.
+
+**Para cerrarlo hace falta conseguir Tamburino 2010.** `TC-648 (D5)` lo fija como control negativo.
+
+## P7-d · Los dos cuadros de notas se PARARON, con una pregunta concreta para el médico
+
+Los puntos 6b y 7b mandan leer el contenido de un recuadro y repartirlo —«lo que sea explicación
+de una guía va al ⓘ, lo que sea historia de la app va a FUENTES.md, y si alguna nota evita un
+error del usuario NO la saques»—, o sea un recuadro de **texto explicativo**.
+
+**Lo que hay en la pantalla no es eso**, y por eso se paró: son **«Notas OAI»**
+(`<textarea id="oai_notas">`, marcador «Observaciones adicionales…») y **«Notas aorta ETE»**
+(`<textarea id="ao_ete_notas">`, marcador «Localización exacta, extensión, relación con ostiums
+coronarios…»), dos campos donde **el médico escribe**. No contienen explicación de guía ni
+historia de la app, así que las tres reglas de reparto no tienen nada sobre lo que aplicarse.
+
+**Y sacarlos sería peor:** los dos son **campos guardados** —el censo pasaría de 1004 a 1002, que
+la orden prohíbe expresamente— y su contenido **llega al informe** por `_amV('oai_notas')` y
+`_amV('ao_ete_notas')`. Retirarlos borraría texto clínico que el médico escribió.
+
+**La pregunta:** si lo que querés es **moverlos** —por ejemplo el de la orejuela debajo del
+dibujo— o si te referías a **otro** recuadro de esas dos pantallas.
+
+## P7-e · `.mAviso` sigue ilegible en el tema claro, y la comparten 56 elementos
+
+El arreglo del commit 4b va **por id** (`html.light-mode #teer-tipo-aviso`) y no sobre la clase,
+porque tocar `.mAviso` movería pantallas que esta orden no nombra. **El mismo defecto los alcanza
+a los 56**: `color:#FCA5A5` es un salmón para fondo oscuro y la clase **no tiene variante de
+tema**, así que en el tema claro el contraste es **1,66** —medido—.
+
+Para cerrarlo hace falta una orden que autorice tocar la clase y un barrido de las pantallas que
+la usan, con el contraste medido en los dos temas.
+
+## P7-f · El perfil hemodinámico y la clasificación HTP escriben al papel SU PROPIA frase de dato faltante
+
+Lo destapó la medición del commit 4c. No es «no determinable», así que el cambio de esa tanda no
+las alcanza: son **«Requiere IC + RVS (VFD/VFS, FC, PAM, PVC, ASC)»** y **«Requiere PAPm (PSAP) +
+PCP (E/e')»**, y las dos llegan al informe y a la hoja del PDF. Es el análogo de **P5-b** para
+otros dos spans y la orden no lo nombra.
+
+## P7-g · Las otras tres frases de «no determinable» que la orden no nombra
+
+Listadas con su ubicación, por si la próxima orden las quiere:
+
+- la **tercera** línea del bloque de hemodinámica, «HTP pre / pos / mixta (estimada por eco): no
+  determinable» — misma construcción, tercer parámetro;
+- «Interpretación: no determinable» del bloque del score de TEP (`amiloTextoTEP`);
+- «Clasificación de toxicidad: no determinable» de cardio-oncología (`_coFila`).
+
+## P7-h · El paso de guardar y reabrir la miniatura de la CIA no se pudo medir
+
+Se declara en vez de afirmarlo: **`editarInforme(id)` no repuso nada en el arnés**, y el
+**denominador** lo dice —el nombre del paciente también volvió vacío—, así que lo que falló es el
+montaje de la sonda y no la app. Lo que **sí** quedó medido: los **siete** campos que la miniatura
+lee están en `campos` del estudio guardado (`ete_shunt_incluir_chk__chk` = 1 y los cinco bordes
+con su valor, sobre 1.151 campos), «Nuevo estudio» la limpia, y el backup JSON lleva las siete
+claves con `validarInformeImportado` aceptando el estudio.
+
+**Queda en el paso de la guía de prueba manual** (`docs/GUIA_PRUEBA_PANT7.md`).
+
+## P7-i · `mitral-dibujo-estatico.md` sigue a 400 bytes del techo (sigue abierto `P6-h`)
+
+Esta tanda **no lo tocó**, a propósito: está en **34.594 B** y cualquier puntero lo cruza. **La
+próxima tanda que necesite escribirle tiene que partirlo primero.** Lo mismo
+`docs/mapa/tests-fichas.md` (34.237 B), `congenitas-otros.md` (34.540 B) y `valvulas.md`
+(33.863 B).
+
+⚠️ **Y EL MAPA NUEVO DE ESTA TANDA NACIÓ GRANDE Y SE PARTIÓ ANTES DE CRUZAR, que es la regla
+que esta casa paga una y otra vez al revés.** `pant7-vd-cia-globos.md` llegó a **34.775 B** —a
+225 bytes del techo— al escribirle su sección de medición de cierre, así que esa sección salió a
+`docs/mapa/pant7-medicion-cierre.md` (5.292 B) y el mapa volvió a **30.367 B**, con **cero líneas
+perdidas** verificadas una por una. **Es la primera vez en varias tandas que la regla se aplica
+antes y no después.**
+
+⚠️ **Y `tests-punteros-tandas.md` SÍ cruzó el techo en esta tanda y hubo que partirlo DESPUÉS, no
+antes.** Estaba medido en 33.569 B y el puntero de PANT-7 —con su tabla de seis casos— lo llevó a
+**35.379**. Las tandas del 24 al 31 de octubre salieron a `docs/mapa/tests-punteros-octubre.md`
+(18.358 B) y el mapa volvió a **17.684**, con cero líneas perdidas verificadas una por una. **Es
+la enésima vez que la regla se aplica después de cruzar: medir con `wc -c` el archivo MÁS lo que
+se le va a escribir, no sólo el archivo.**
+
+## P7-j · La letra del dibujo del VD queda por debajo de 12 px, y es decisión del médico (cierra `P6-b`)
+
+A 220 px de ancho la tipografía del SVG del dibujo de sobrecarga del VD sale en **6,42 px** a 1440
+y a 1000, y en 5,33 a 768 y a 390 —medido—. El piso de 12 px de esta casa se supera **a
+propósito**: el pedido del commit 1 es que el dibujo tenga «la misma proporción y casi el mismo
+tamaño» que el esquema valvular 2D, y a ese tamaño la letra no puede llegar a 12. **`P6-b` queda
+cerrado por esa decisión, no por un arreglo.**
+
+## P7-k · El PRIMER botón de `vd-triv` y de `pul-balik` mide 0 × 0, y ninguna sonda abre su contenedor
+
+Lo destapó la medición de cierre, y **corrige una frase del mensaje del commit 3**, que afirma que
+en HEAD «el de `tab-vd` abría —380x430 con 2.486 caracteres—».
+
+Medido con la sonda dedicada (`_probe_pant7c3.mjs`) y con la de dos motores
+(`_probe_pant7wk.mjs`), sobre el **mismo** HEAD (`437834d`) y sobre el árbol nuevo, con los dos
+abridores que esta casa usa —`showTab` por el id `tab-*` del ancestro, los cuerpos de acordeón sin
+la clase `open` clickeando su hermano anterior, y cualquier ancestro con `display:none` por su
+propio handler—:
+
+| clave | botón | HEAD | árbol nuevo |
+|---|---|---|---|
+| `vd-triv` | primero (`tab-vd`) | **0 × 0**, no abre | **0 × 0**, no abre |
+| `vd-triv` | segundo (`tab-doppler`) | 44 × 44, **no abre** | 44 × 44, **abre, 2.486 caracteres** |
+| `pul-balik` | primero (`tab-pericardio`) | **0 × 0**, no abre | **0 × 0**, no abre |
+| `pul-balik` | segundo (`tab-hemodinamica`) | 44 × 44, **no abre** | 44 × 44, **abre, 750 caracteres** |
+
+**Con caja cero `_vInfoColocar` sale por su guarda**, así que el «no abre» del primero es un
+**denominador vacío en los dos árboles** y no un hallazgo. Lo que falta es **averiguar qué
+contenedor de esos dos botones no abre ninguno de los dos abridores** y medirlo con la pestaña
+realmente abierta: hasta entonces no se puede afirmar nada sobre ellos.
+
+**Lo que sí está medido y verificado** es el arreglo que el médico reportó: el **segundo** botón
+de cada clave pasa de no abrir a abrir, en los dieciséis cruces y en los dos motores. Y la
+cobertura del arreglo no depende de esta geometría: **TC-652 (A2) y (A3)** prueban el ancla
+preguntándole a `_vInfoBtnDe(clave, btn)` con el segundo botón en la mano, sin mirar cajas.
+
+## Cierres de esta tanda
+
+- **`P6-b`** — cerrado por decisión del médico (ver `P7-j`).
+- **`P6-c`** — cerrado, **y la medición de PANT-6 estaba en el tema equivocado**: la franja del
+  TEER sí era el defecto que el médico reportó, por **dos** causas independientes —el contraste
+  1,66 en el tema claro y `limpiarCampos` vaciándola por el sufijo «-aviso» de su id—.
+- **`P6-d`** — cerrado midiendo que la premisa era falsa: **`vdscRotulos()` nunca existió**, así
+  que `ROT_LARGO` / `ROT_CORTO` eran código muerto y el comentario que decía que elegía «medido
+  con getBBox a los cuatro anchos» era falso.
+- **`P6-f`** — sigue abierto, ahora con su medición: pasa a ser **`P7-c`**.

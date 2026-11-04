@@ -312,3 +312,20 @@ Lo que hay que saber antes de tocar algo de esta zona:
   es Turner, la 66 Loeys-Dietz, la 38 la no sindrómica y la 59 el Ehlers-Danlos vascular.
 - La **regla de folio** de la ESC 2024 de aorta es **folio = hoja − 1**, comprobada en once hojas,
   y ese documento tiene **dos series de tablas que se pisan en 1-18**.
+
+
+## Puntero — la tanda PANT-7 (2026-11-03 y 04)
+
+- **El registro de globos pasó de 120 a 122 claves**: entran `vd-tei` (índice de Tei) y
+  `tep-6060` (signo 60/60), las dos con su entrada en `VINFO_REF` apuntando a la ficha `vd2`, que
+  es lo que les da el botón «Ver referencia».
+- **Dos fichas nuevas, una guía por ficha**, que es la convención del registro: **`FUN-VD-009`**
+  (signo 60/60, ESC 2019 inglesa, folios 557 y 558) y **`FUN-VD-010`** (muesca mesosistólica,
+  ESC/ERS 2022, folio 28). `FUN-VD-006` ganó los cuatro grados del índice de Tei.
+- ⚠️ **El ancla de una tarjeta es el botón que se CLICKEÓ**, no el primero del documento: una
+  clave con dos botones en dos pestañas distintas no abría en la pestaña donde el gemelo estaba
+  escondido. Para una clave con un solo botón el resultado es idéntico.
+- ⚠️ **Ningún cartel se declara su propio tamaño de cuerpo**: el de la orejuela era el único y se
+  corrigió. Es la regla fija «Todo cartel ⓘ usa la MISMA letra» de `CLAUDE.md`.
+
+Detalle en `docs/mapa/pant7-vd-cia-globos.md` § 3 y § 6.

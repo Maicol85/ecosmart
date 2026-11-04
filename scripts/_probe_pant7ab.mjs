@@ -193,6 +193,13 @@ const ESCENAS = {
   p6ccDos:     { campos: CC6, les:['cia','civ'] },
   p6ccDosInt:  { campos: CC6, les:['cia','civ'], chk:['ete_shunt_incluir_chk'] },
   p6ccNadaInt: { campos: CC6, chk:['ete_shunt_incluir_chk'] },
+  /* -- PANT-7, COMMIT 4d: EL CUARTO EMISOR DEL ROTULO PSAP ES EL DUCTUS --
+     Las escenas de CIA y de CIV cubren los otros tres. Sin esta, el A/B mide el cambio del
+     rotulo en tres de los cuatro emisores y el cuarto queda sin denominador. */
+  p7dap:    { campos: { peso:'70', talla:'170', dap_diam:'4', dap_vmax:'4.0', dap_paps:'45' },
+              sel:{ dap_tipo:'restrictivo', dap_dir:'id' }, chk:['ductus_incluir_chk'] },
+  p7dapNo:  { campos: { peso:'70', talla:'170', dap_diam:'4', dap_vmax:'4.0', dap_paps:'45' },
+              sel:{ dap_tipo:'restrictivo', dap_dir:'id' } },
   /* -- PANT-5, COMMIT 7: LA FALLOT REPARADA EN TRES COLUMNAS --
      p5tdf carga los campos EDITABLES de las tres columnas, que es el denominador: sin ellos la
      seccion no publica una linea de papel. p5tdfVacio es el control negativo. */

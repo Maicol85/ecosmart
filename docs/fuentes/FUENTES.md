@@ -10275,3 +10275,108 @@ imagen**, columna por columna, que es lo que este archivo manda.
 | 7 | ⓘ de síntomas de la insuficiencia tricuspídea | **no existía** | los cuatro, y que su columna incluye además un hallazgo del examen | Tabla 20, hoja 61, folio e132 |
 | 8 | el estadio en las seis secciones con molde | fila en la lista de preguntas | **franja ámbar arriba**, al lado de la categoría | los mismos folios |
 | 9 | la frase de dato faltante del Forrester | en el informe, en la hoja del PDF y en la diapositiva | **sólo en la pantalla** | — (cierra lo que PANT-5 dejó parado en P5-b) |
+
+---
+
+## La tanda PANT-7 (2026-11-03 y 04) — el índice de Tei, el signo 60/60 y los grados del tiempo de aceleración
+
+Todo lo de esta sección se leyó **en imagen**, con el folio **comprobado en el pie impreso** de
+cada hoja. Lo que no se pudo leer así no se escribió en la aplicación.
+
+### Los CUATRO documentos y sus OCHO ubicaciones, con su folio comprobado
+
+Son cuatro documentos distintos —la ASE 2025 de corazón derecho, Lang 2015, la ESC 2019 de
+tromboembolia pulmonar en su edición inglesa y la ESC/ERS 2022 de hipertensión pulmonar— leídos
+en ocho hojas:
+
+| documento | ubicación | pie impreso | para qué |
+|---|---|---|---|
+| **ASE 2025 de corazón derecho** (Mukherjee) | hoja 18 | «158 Mukherjee, M et al» | la fórmula del índice de Tei y el significado de cada intervalo |
+| ídem | hoja 19 | «Mukherjee, M et al 159» | el recuadro con los cortes por método |
+| ídem, **Tabla 1** | hoja 5 | «145» | los cuatro grados por Doppler tisular y por pulsado; el tronco de la arteria pulmonar y los tres diámetros del tracto de salida del VD |
+| ídem | hoja 17 | «157» | el índice es menos confiable con frecuencia cardíaca < 60 o > 100 lpm |
+| **Lang 2015**, traducción al español de la biblioteca, apartado 8.1 | hoja 23 | «23» | los cortes de disfunción por el índice de Tei. **En ese documento folio = hoja.** |
+| **ESC 2019 de tromboembolia pulmonar, EDICIÓN INGLESA**, apartado 4.9 | hoja 15 | «557» | las dos condiciones del signo 60/60 y el ~12 % de los TEP no seleccionados |
+| ídem, **Figura 3, panel E** | hoja 16 | «558» | la muesca mesosistólica y el gradiente «ligeramente elevado» |
+| **ESC/ERS 2022 de hipertensión pulmonar**, traducción al español, **Tabla 10** | hoja 29 | «28» | la muesca mesosistólica como signo de probabilidad; el corte de 25 mm del tronco y el cociente tronco / raíz aórtica |
+
+### El índice de Tei — lo verificado
+
+- **Los cortes por método, con sus cuatro grados** (Tabla 1 de la ASE 2025, columna de Doppler
+  **tisular**, que es la que la app aplica y **no se movió**): normal por debajo de 0,55, leve
+  hasta 0,62, moderado hasta 0,70 y severo desde 0,70. Por Doppler **pulsado**: 0,40, 0,49 y 0,57.
+- **Las dos guías difieren y la diferencia se muestra, con la más nueva primero:** Lang 2015 marca
+  disfunción por encima de **0,43** por pulsado y de **0,54** por tisular.
+- ⚠️ **La propia fuente se contradice en la UNIDAD, y el globo lo dice:** el cuerpo del folio 158
+  declara el índice **adimensional** y el recuadro del folio 159 escribe «<0.40 ms» y «<0.55 ms»,
+  con una unidad que un cociente no tiene.
+- **Las limitaciones**, verificadas: la precarga y la congestión derecha alargan los dos tiempos
+  isovolumétricos y suben el índice; la hipertensión pulmonar y la poscarga también, y con
+  independencia de la función sistólica; la insuficiencia tricuspídea severa acorta la relajación
+  isovolumétrica sin tocar la contracción; una presión auricular derecha alta puede dar un índice
+  falsamente bajo; y con intervalos R-R variables el tiempo de eyección y el de cierre-apertura
+  varían.
+- ⚠️ **SIN valor normal del Tei del ventrículo IZQUIERDO:** ninguna fuente de la biblioteca lo
+  trae, censado. No se escribió nada.
+
+### El signo 60/60 — lo verificado
+
+- **Las dos condiciones**, en el apartado 4.9 (folio 557): tiempo de aceleración pulmonar por
+  debajo de 60 ms **y** gradiente máximo tricuspídeo por debajo de 60 mmHg.
+- **Su frecuencia:** ~12 % de los TEP no seleccionados, contra el 20 % del signo de McConnell.
+- ⚠️ **El texto y la figura no dicen lo mismo, y la diferencia se muestra y no se resuelve:** la
+  Figura 3, panel E (folio 558) agrega la **muesca mesosistólica** y describe el gradiente como
+  «ligeramente elevado».
+- **Censado:** ni la AHA/ACC 2026 de tromboembolia pulmonar ni la ASE 2025 de corazón derecho lo
+  nombran. Por eso la ficha nueva lleva **una guía por ficha**, que es la convención del registro.
+- **Sin conducta y sin la palabra «positivo»**, que es la regla fija de la casa.
+
+### Los grados del tiempo de aceleración pulmonar
+
+De la Tabla 1 de la ASE 2025 (hoja 5, folio 145): **normal > 105 ms, leve ≥ 80, moderada ≥ 60,
+severa** por debajo de 60. ⚠️ **El corte de arriba se nombra «105» y no «106»**: con el piso de la
+banda normal y `op:'>'` sale 106, así que se nombra por el **techo** de la banda leve, que es como
+la guía lo escribe. **`UMBRAL_TAP_HTP` sigue valiendo 105** y `vdTapCat` no se tocó: son dos
+preguntas sobre el mismo número.
+
+### Lo que quedó LEÍDO Y VERIFICADO pero NO aplicado (punto 10a)
+
+El punto 10a no se hizo —ninguna línea de la app se tocó por él— y queda en
+`docs/PENDIENTES.md`. **Para que la próxima tanda no lo relea**, esto ya está verificado en
+imagen con su folio comprobado en el pie impreso:
+
+- **Tronco de la arteria pulmonar** (ASE 2025, Tabla 1, hoja 5, folio 145): normal ≤ 2,5 cm; leve
+  > 2,5 a 3,0; moderado > 3,0 a 3,5; severo > 3,5.
+- **Tracto de salida del VD**, los tres diámetros, cada uno con sus tres grados (misma tabla): eje
+  largo < 3,3; eje corto proximal < 3,4; eje corto distal < 2,9.
+- **ESC/ERS 2022** (hoja 29, folio 28): el corte de **25 mm** del tronco y el cociente tronco /
+  raíz aórtica.
+
+Lo que **falta** leer para cerrarlo: la **Tabla 2** y las hojas 10 y 11 de la ASE 2025, y las
+hojas 18 y 20 de Lang 2015 —las ramas de la arteria pulmonar—.
+
+### Lo que esta tanda retiró del papel, y dónde sigue estando
+
+| qué | de dónde salió | dónde sigue |
+|---|---|---|
+| la línea de corrido de los bordes de la CIA | hoja avanzada del PDF | los cinco valores, **dentro de su sector** del diagrama; la dirección y el Qp/Qs, en el centro |
+| «borde mínimo» y «Qp/Qs» de esa línea | ídem | el borde mínimo es **derivado** de los cinco valores; el Qp/Qs, en el centro del diagrama |
+| «vel. del jet» de esa línea | ídem | **entra como «Velocidad pico del jet N m/s» sólo cuando el párrafo de la CIA no se emite** — ningún número medido desaparece |
+| «Perfil de Forrester (estimado por eco): **no determinable**» | informe, hoja del PDF (×6) | con el dato resuelto la línea **vuelve**, idéntica |
+| «Perfil hemodinámico (estimado por eco): **no determinable**» | ídem | ídem |
+| el rótulo «PAPs» | cuatro emisores de papel | **«PSAP»**, el mismo valor |
+
+### Cambios de evidencia
+
+| qué | antes | después |
+|---|---|---|
+| globo del índice de Tei | no existía | `VINFO['vd-tei']`, con los cortes por método y sus cuatro grados, las dos guías y las limitaciones |
+| globo del signo 60/60 | no existía | `VINFO['tep-6060']`, con las dos condiciones, el ~12 % y la muesca mesosistólica |
+| `FUN-VD-006` (índice de Tei) | sin grados | los **cuatro** grados y la nota de la frecuencia cardíaca < 60 o > 100 lpm |
+| `FUN-VD-009` | no existía | signo 60/60 — ESC 2019 inglesa, folios 557 y 558 |
+| `FUN-VD-010` | no existía | muesca mesosistólica — ESC/ERS 2022, Tabla 10, folio 28 |
+| barra del tiempo de aceleración | 3 rectángulos, un corte («105 ms») | **5 rectángulos, tres cortes** («60 ms · 80 ms · 105 ms») y una nota de dos renglones |
+| `ASE25_T1.vd_tap` | no existía | normal > 105, leve ≥ 80, moderada ≥ 60, severa |
+| registro de globos | 120 claves | **122** |
+| mapeo a Referencias (`VINFO_REF`) | 48 entradas | **50** |
+| **ningún corte, umbral, clase ni nivel se movió** | — | verificado uno por uno |

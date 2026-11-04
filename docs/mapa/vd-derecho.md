@@ -428,3 +428,22 @@ La **TANDA AJUSTES-2** (31/10/2026) sacó las seis líneas del TRIV y sus tres f
 **función** del VD (por `_evBloqueTriv`) y la fila del **Doppler tricúspide** —que gana su ⓘ
 reusando la misma clave—. El ⓘ de **tamaño** lleva sólo una línea que remite.
 Inventario y mediciones en `docs/mapa/aj2-coartacion-diagramas.md` § 5.
+
+
+## Puntero — la tanda PANT-7 (2026-11-03 y 04)
+
+Tres cosas de esta pestaña se movieron:
+
+- **El índice de Tei tiene globo ⓘ** (`VINFO['vd-tei']`), con los cortes **por método y con sus
+  cuatro grados**, las limitaciones y la diferencia entre las dos guías —que se muestra y no se
+  resuelve—. **El corte que la app usa no se movió.**
+- **La barra del tiempo de aceleración pasó de dos tramos a CUATRO**: entra la fila
+  `ASE25_T1.vd_tap` y un **`vdTapGrado(x)`** nuevo al lado de `vdTapCat`, que **no se tocó** —son
+  dos preguntas sobre el mismo número, y `UMBRAL_TAP_HTP` sigue valiendo 105—.
+- **El signo 60/60 se pinta en ámbar** con el tiempo de aceleración por debajo de 60 ms
+  (`tep6060Resalte`, `TEP_6060_TAP_MAX`), y es **sólo visual**: no escribe el campo, no cuenta en
+  el score y no llega al papel.
+- **El globo de `vd-triv` ya abre desde las DOS filas que lo llevan**: antes el ancla era siempre
+  el primer botón del documento.
+
+Todo en `docs/mapa/pant7-vd-cia-globos.md` § 3.

@@ -350,3 +350,20 @@ Lo que esa tanda movió de esta zona está en **`docs/mapa/cong2a-desmarcar-tga-
 - **Lo que mantiene viva la válvula al desmarcar el tipo es la morfología, y NO se tocó**: el
   control negativo muestra que el estado resultante es indistinguible de una afirmación del médico.
   Ver `docs/PENDIENTES.md` → `C2A-a`.
+
+
+## Puntero — la tanda PANT-7 (2026-11-03 y 04): los campos en CUATRO columnas
+
+`#vab-fila` pasó a cuatro `.vab-col` —(tipo de fusión, rafe, simetría), (EA, IAo), (raíz,
+ascendente, fenotipo) y el contexto quirúrgico—, con el dibujo y **el resumen dentro de la
+fila**. Media queries en **700, 1200 y 1360 px**: cuatro columnas de 224,5 px a 1440 y de 210,5 a
+1360, dos de 255 a 1000 y una a 390. El alto de la sección bajó de 662,5 a **597,5** a 1440 y de
+753 a **654,5** a 768, y el espacio vacío antes del resumen de **286 px a 89,5**.
+
+⚠️ **Entre 1200 y 1359 px el dibujo baja a su propia fila**, que es la única forma de cumplir a la
+vez «cuatro columnas desde 1200» y «ninguna por debajo de 200». Desde 1360 vuelve al costado.
+
+**Ningún campo cambió de id, de grupo ni de orden dentro de su grupo**, y ningún valor, corte ni
+conclusión se movió: **ids 13 y globos 6** en los seis anchos, los mismos de antes.
+
+Detalle en `docs/mapa/pant7-vd-cia-globos.md` § 5.4.

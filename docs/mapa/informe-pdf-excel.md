@@ -522,3 +522,25 @@ publica la lista entera de opciones del `<select>` —defecto preexistente POP-h
 que la casilla «Otra» quedó sin token—.
 
 Está todo en `pa-pantalla-posoperatorio.md` § 8.
+
+
+## Puntero — la tanda PANT-7 (2026-11-03 y 04): los bordes de la CIA en la hoja avanzada
+
+- **Los cinco valores de borde se imprimen DENTRO de su sector del diagrama**, no en una línea de
+  corrido. El ancho disponible dentro de cada sector **se mide** (`_ciaSegAnchoDisp`) y lo que no
+  entra va a una **lista lateral, uno por línea**. Con datos plausibles los cinco entran, medido.
+- **La línea de corrido se retiró y quedó UN solo dato:** la velocidad del jet, y **sólo** cuando
+  el párrafo de la CIA no se va a emitir, decidido con el mismo predicado que usa ese párrafo
+  (`eteShuntLesionOn('cia')`). La hoja pasa de 4.610 a **4.396** caracteres con la sección
+  integrada y de 3.326 a **3.141** sin integrar, con las figuras en 108 y 106, iguales.
+- **`INF_MIN_DIAG` pasó de seis a SIETE entradas**: entra la CIA. **Sin ningún campo guardado
+  nuevo** —la puerta es `ete_shunt_incluir_chk`, que ya existía—, con la **misma** guarda que el
+  PDF y escribiendo en **`esqs`** y no en `imgSlots`, porque la CIA ya tiene su sección en la hoja
+  y entre los slots se imprimiría dos veces.
+- **Cuatro emisores de papel cambiaron «PAPs» por «PSAP»** —la CIA, las dos ramas de la CIV y el
+  ductus—: 23 diferencias de superficie firmada y las 23 son ese rótulo. **Ningún valor, ningún id
+  y ningún encabezado del Excel se movieron.**
+- **`amiloTextoHemo` ya no escribe la línea del Forrester ni la del perfil hemodinámico cuando el
+  dato falta:** se retira el renglón, no se cambia una frase por otra.
+
+Detalle en `docs/mapa/pant7-vd-cia-globos.md` § 2 y § 4.

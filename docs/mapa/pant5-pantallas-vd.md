@@ -258,3 +258,19 @@ tabla «Datos usados en el dibujo» sólo se puebla con el panel 3D abierto.
   paso** — ver `docs/PENDIENTES.md` → **P6-g**.
 
 **Dónde está todo:** `docs/mapa/pant6-pantallas-molde.md` § 1 y § 2.
+
+
+## Puntero — la tanda PANT-7 (2026-11-03 y 04) cambió el TAMAÑO del dibujo del VD
+
+El dibujo de sobrecarga del VD pasó a medir **lo mismo que el esquema valvular 2D** —220 × 300 px
+a 1440 y a 1000, y ancho completo con 240 de alto por debajo de 768—, con `.vdsc-lbl` en 5.2px,
+que es la letra de `.v2d-lbl`. **Este mapa decía 110 / 110 / 353 / 164 px y la letra en 2,6 px:
+dejó de ser cierto.** El alto de la sección bajó de 875,9 a **688 px** a 1440 y el hueco entre
+los campos y la lista de criterios de **104 px a 10**.
+
+⚠️ **Y `P6-b` queda CERRADO por decisión del médico, no por un arreglo:** el piso de 12 px de
+letra de esta casa se supera a propósito, porque a 220 px la tipografía del SVG no puede llegar.
+⚠️ **`vdscRotulos()` NUNCA EXISTIÓ** (era `P6-d`): `ROT_LARGO` / `ROT_CORTO` eran código muerto.
+Hoy hay **un** solo juego de rótulos, `ROT`, de una línea cada uno.
+
+Todo en `docs/mapa/pant7-vd-cia-globos.md` § 1.

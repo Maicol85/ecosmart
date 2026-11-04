@@ -247,3 +247,22 @@ SVG y dejó los otros dos declarados.
 | la pantalla de CIA y CIV antes de esta tanda | `docs/mapa/pant5-pantallas-vd.md` § 5 |
 | las fuentes de los seis globos, hoja y folio | `docs/fuentes/FUENTES.md` → «La tanda PANT-6» |
 | los seis casos nuevos | `docs/mapa/tests-fichas-644.md` |
+
+
+## Puntero — la tanda PANT-7 (2026-11-03 y 04) cerró tres pendientes de esta tanda
+
+- **`P6-c` — la franja rosada del TEER: el médico tenía razón y esta tanda la midió en el tema
+  equivocado.** El texto existe y se muestra sólo sin tipo de IM elegido, que es lo que P6-c
+  encontró; lo que esa medición no miró es el **tema**. En el claro el contraste es **1,66**
+  —`.mAviso` lleva un salmón para fondo oscuro y no tiene variante de tema—, o sea prácticamente
+  invisible. Y hay una **segunda** causa independiente: el id termina en «-aviso», así que
+  `limpiarCampos` **vacía** la franja y `_mostrar` sólo cambia el `display`. **Por eso PANT-6
+  midió 50 caracteres y concluyó que no se reproducía: midió sobre una página recién cargada.**
+- **`P6-b` queda cerrado por decisión del médico**, no por un arreglo: el dibujo del VD pasa al
+  tamaño del esquema valvular y el piso de 12 px de letra se supera a propósito.
+- **`P6-d` queda cerrado midiendo que la premisa era falsa**: `vdscRotulos()` nunca existió.
+- **`P6-f` sigue abierto y ahora con su medición**: la profundidad de coaptación no se sincronizó
+  porque **Tamburino 2010 no está en la biblioteca** y copiar el valor convertiría un criterio
+  **sin dato** del TEER en **no cumplido**, que decide APTO / NO APTO.
+
+Detalle en `docs/mapa/pant7-vd-cia-globos.md` § 1 y § 4.

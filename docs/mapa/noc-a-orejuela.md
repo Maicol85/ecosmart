@@ -277,3 +277,21 @@ un estudio el slot vuelve **sin `esqClave`** —no está en ninguna allowlist—
 «📄 Incluir» sobre un dibujo que ya está, y al tocarlo **el PDF lo imprime dos veces**.
 `esqSlotIdx` adopta el esquema huérfano cuando hay exactamente uno.
 La matriz entera y la causa raíz declarada están en `docs/mapa/aj2-coartacion-diagramas.md` § 3.
+
+
+## Puntero — la tanda PANT-7 (2026-11-03 y 04)
+
+- **La conclusión pasó al lado del dibujo.** `#oai-fila` dejó de ser `flex` y es una **grilla**:
+  el dibujo abarca las dos filas de la columna 2 y la conclusión va en la celda (fila 2, columna
+  1), que es el mismo patrón de `#vdsc-fila`. El hueco entre los campos y la conclusión bajó de
+  **255 a 35 px** a 1440 y de 228 a 20 a 1000, y el alto de la sección de 851 a **660**. Por
+  debajo de 900 px no cambia nada.
+- **El cartel ⓘ de la orejuela ya no se declara su propia letra.** `_oaiRefGlobo` fijaba
+  `font-size:12px` a mano y era el **único** cartel de la aplicación que lo hacía: traía 2.537 de
+  sus 3.110 caracteres un punto más grandes que todos los demás. Se retiró el `font-size` y se
+  conservó el `line-height`. El contenido es idéntico: 3.110 caracteres antes y después.
+- ⚠️ **El cuadro «Notas OAI» se PARÓ y se reportó:** no es un recuadro de texto explicativo, es
+  un `<textarea id="oai_notas">` donde **el médico escribe**, es un campo guardado y su contenido
+  llega al informe. Sacarlo borraría texto clínico.
+
+Detalle en `docs/mapa/pant7-vd-cia-globos.md` § 5.2 y § 6.

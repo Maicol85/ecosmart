@@ -9,6 +9,9 @@ ESPERADO = {
     "scripts/_probe_pant7vd1e.mjs": 12,
     "scripts/_probe_pant7cia.mjs": 6,
     "scripts/_probe_pant7c3.mjs": 8,
+    "scripts/_probe_pant7pant.mjs": 16,
+    "scripts/_probe_pant7info.mjs": 2,
+    "scripts/_probe_pant7wk.mjs": 2,
 }
 mal = 0
 for f, n in ESPERADO.items():

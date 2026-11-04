@@ -890,3 +890,105 @@ más **seis** de cobertura y documentación, de `3a8bf04` en adelante.
 con las cinco tablas transcritas columna por columna y los seis folios comprobados en el pie
 impreso, `docs/GUIA_PRUEBA_PANT6.md` (43 pasos) y `docs/PENDIENTES.md` → **P6-a** a **P6-h**.
 `congenitas-otros.md` y `valvulas.md` no se tocaron.
+
+---
+
+## Tanda PANT-7 — el dibujo del VD, los bordes de la CIA, los globos y cuatro pantallas (2026-11-03 y 04)
+
+**Línea base al abrir:** `origin/main` = `HEAD` = **`437834d`**, el cierre de PANT-6, ya
+publicado, sello `v20261103-2018`, md5 `bb6adf41`, 157.812 líneas.
+**Sello al cerrar:** **`v20261104-0136`**, md5 **`77a4558a`**, **11,35 MB / 158.439 líneas**.
+Diff **746 / 119** contra `437834d`, de las que **707** no son comentario.
+**El push lo corre Maicol: esta tanda tenía orden expresa de NO pushear.**
+
+### Commits
+
+```
+92dcd8d|2026-11-03|PANT7-1: el dibujo de sobrecarga del VD al tamanio del esquema valvular 2D
+f401134|2026-11-04|PANT7-2: los bordes de la CIA DENTRO del diagrama del PDF, y su miniatura
+cfcae6d|2026-11-04|PANT7-3: los dos globos que no abrian, el del Tei, el del signo 60/60 y la barra del tiempo de aceleracion
+803d755|2026-11-04|PANT7-4: la franja del TEER legible, «no determinable» fuera del papel y PAPs a PSAP
+ab2aa3d|2026-11-04|PANT7-5: el score de Wilkins en una columna con su conclusion al lado, y un dato con dos puertas
+8dace64|2026-11-04|PANT7-6: la conclusion de la orejuela al lado del dibujo, y el cuadro de notas PARADO
+1e11c07|2026-11-04|PANT7-7: la aorta del ETE en dos columnas con su conclusion al lado, y el cuadro de notas PARADO
+0693eca|2026-11-04|PANT7-8: la VAB en cuatro columnas de campos con el resumen metido arriba
+e7e643e|2026-11-04|PANT7-10b: la letra unica de los carteles ⓘ. El 10a NO se hizo
+42c1d37|2026-11-04|PANT7-4b: la franja del tipo de IM del TEER se reescribe al mostrarse
+```
+
+Más el commit de cobertura y documentación. **Son ONCE commits**, contados con
+`git log 437834d..HEAD` al cerrar; el commit 9 (Marfan) **no tocó una línea**, porque la pantalla
+ya estaba como la orden la describe.
+
+### Qué cambió
+
+**El dibujo de sobrecarga del VD pasó a medir lo mismo que el esquema valvular 2D** —220 × 300 px
+a 1440 y a 1000— con la misma letra y rótulos de una sola línea, y el hueco entre los campos y la
+lista de criterios bajó de 104 px a 10; la geometría contra la demo aprobada sale idéntica en los
+diez escenarios. **Los cinco valores de borde de la CIA se imprimen DENTRO de su sector** del
+diagrama del PDF, medidos por píxeles (28/15/16/19/38 → 74/58/76/77/84), con la línea de corrido
+retirada y la velocidad del jet entrando **sólo** cuando el párrafo de la CIA no se emite; y
+`INF_MIN_DIAG` ganó su séptima entrada, sin un campo guardado nuevo. **Dos globos ⓘ que no abrían
+abren** —el ancla pasó a ser el botón que se clickeó y no el primero del documento—, entran los de
+**índice de Tei** y **signo 60/60** con sus fichas `FUN-VD-009` y `FUN-VD-010`, la barra del
+tiempo de aceleración pasó de dos tramos a **cuatro** y el signo 60/60 se pinta en ámbar por
+debajo de 60 ms, **sólo visual**. **La franja del TEER se lee en el tema claro** (contraste 1,66 →
+5,66) y **se reescribe al mostrarse**, que eran dos causas independientes; «no determinable» salió
+del papel por sus dos líneas autorizadas y el rótulo **«PAPs» pasó a «PSAP»** en los cuatro
+emisores. **Cuatro pantallas reordenadas** —Wilkins en una columna con su conclusión al lado, la
+orejuela con la conclusión al lado del dibujo, la aorta del ETE en dos columnas y la VAB en
+**cuatro**—, y **el score de Wilkins dejó de estar duplicado**: un dato, dos puertas, colgado del
+**gesto** del médico y no de un barrido. **Y ningún cartel ⓘ se declara su propia letra**: el de la
+orejuela era el único de los 122 y traía 2.537 de sus 3.110 caracteres un punto más grandes.
+
+**Ningún corte, umbral, clase, nivel ni rótulo de grado se movió**, y **ningún id, campo guardado
+ni columna de Excel** tampoco.
+
+### Verificación
+
+**Línea base al cierre:** **suite 665/670**, en doce lotes cubriendo los **670 casos distintos**
+(**670 de 670**), en UNA sola pasada sobre el árbol sellado y commiteado, con el pendrive
+`DISK_IMG` verificado al abrir, en los doce lotes y al cerrar, y el md5 de `index.html` **idéntico**
+antes y después (**`77a4558a`**). Rojos: **TC-223, TC-376, TC-390 y TC-406**, los cuatro de
+siempre, más **TC-551**, el intermitente que `COR-f` declara —pasa 3 de 3 aislado y falla en su
+lote por **(C3)**, la condición del chorro de la orejuela—. **Ningún rojo nuevo.**
+⚠️ **La primera corrida dio 661/670 con CINCO rojos míos** —TC-645, TC-492, TC-494, TC-651 y la
+condición (A1) de TC-551—, todos adaptados; **y DOS corridas se descartaron por envenenadas**: una
+porque el arnés de fondo y los lotes de primer plano escribieron en el mismo log con **dos Chrome a
+la vez** —el síntoma fue un lote informando 54/54 donde su rango tiene 56—, y otra porque el
+archivo de casos cambió al adaptar TC-551.
+**Semgrep 124 WARNING / 0 ERROR**, **Excel 441** columnas con las mismas claves clave por clave en
+las 66 escenas, **censo 1004** con cero campos guardados nuevos y cero perdidos, **sin huérfanos
+nuevos**, **ningún id de campo cambió**, celular **58 a 360 px y 66 a 390 con 17 ALTA** (la línea
+base exacta), **A/B final de 66 escenas con 31 diferencias de superficie firmada en siete escenas,
+las 31 autorizadas y cero en las otras 59**, y **Chrome y WebKit con sólo CUATRO diferencias entre
+motores, las cuatro de 4 px de alto a 390 px**.
+**35/35 mutaciones dirigidas muertas**, con el md5 idéntico antes y después.
+**El push lo corre Maicol.**
+
+### Pendientes
+
+**P7-a** (el punto 10a: las referencias del tronco de la arteria pulmonar, sus ramas y el tracto
+de salida del VD — **no hecho**, con lo ya leído y verificado transcrito en FUENTES.md),
+**P7-b** (el commit 11: el molde de Evidencia de la válvula pulmonar y de la prótesis mitral —
+**no hecho**, mismos motivos que `P6-a`), **P7-c** (la profundidad de coaptación: falta conseguir
+Tamburino 2010; copiar el valor convertiría un criterio **sin dato** del TEER en **no cumplido**),
+**P7-d** (los dos cuadros de notas: son campos del médico que llegan al informe — la pregunta es
+si hay que **moverlos**), **P7-e** (`.mAviso` ilegible en el tema claro, 56 elementos),
+**P7-f** (el perfil hemodinámico y la clasificación HTP escriben su propia frase de dato faltante
+al papel), **P7-g** (las otras tres frases de «no determinable»), **P7-h** (el paso de guardar y
+reabrir la miniatura de la CIA, que queda en la guía manual), **P7-i** (cuatro mapas al techo) y
+**P7-j** (la letra del dibujo del VD por debajo de 12 px, por decisión del médico) y **P7-k**
+(el primer botón de `vd-triv` y de `pul-balik` mide 0 × 0 en los DOS árboles: un denominador que
+ninguna sonda abre, no un hallazgo — y corrige una frase del mensaje del commit 3).
+
+**Cierra** `P6-b` (por decisión del médico), `P6-c` (**la medición de PANT-6 estaba en el tema
+equivocado**) y `P6-d` (**`vdscRotulos()` nunca existió**). `P6-f` sigue abierto y pasa a `P7-c`.
+
+**Dónde está todo:** `docs/mapa/pant7-vd-cia-globos.md` (**mapa nuevo**, 30,4 KB) con
+`docs/mapa/pant7-medicion-cierre.md` (5,3 KB) partido **antes** de cruzar el techo,
+`docs/mapa/tests-fichas-650.md` (archivo propio), nueve mapas con un puntero cada uno,
+`docs/mapa/tests-punteros-octubre.md` (**partido** de `tests-punteros-tandas.md`, que cruzó el
+techo), `docs/fuentes/FUENTES.md` → «La tanda PANT-7» con los cuatro documentos en sus ocho ubicaciones,
+cada folio comprobado en el pie impreso, `docs/GUIA_PRUEBA_PANT7.md` (22 pasos) y `docs/PENDIENTES.md` →
+**P7-a** a **P7-k**.

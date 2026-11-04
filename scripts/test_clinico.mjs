@@ -74868,9 +74868,14 @@ caso('TC-492', 'Tanda M: las DIECISEIS FICHAS nuevas del registro de evidencia d
                             lec['vd-fun-card'].cortes || []);
     /* ADAPTADO (VS, 2026-10-17): de quince cortes a TREINTA Y SIETE. Las once filas de la Tabla 1
        pasan de dos o tres bandas a CUATRO —o sea tres cortes cada una— y entran las dos areas del
-       VD; el tiempo de aceleracion pulmonar es el unico que conserva su corte solo. */
+       VD; el tiempo de aceleracion pulmonar es el unico que conserva su corte solo.
+       ⚠️ ADAPTADO (PANT-7, commit 3, 2026-11-04): de TREINTA Y SIETE a TREINTA Y NUEVE. El tiempo
+       de aceleracion pulmonar era justamente el unico que conservaba su corte solo, y pasa a
+       CUATRO bandas con sus tres cortes —60, 80 y 105 ms, la Tabla 1 de la ASE 2025—, asi que
+       suma dos. La condicion gana los tres cortes nombrados, para que no alcance con el total. */
     ex.push(['CADA corte lleva su numero y su unidad',
-      TODOS.length === 37
+      TODOS.length === 39
+        && TODOS.indexOf('60 ms') > -1 && TODOS.indexOf('80 ms') > -1 && TODOS.indexOf('105 ms') > -1
         && TODOS.indexOf('19 cm\u00b2') > -1 && TODOS.indexOf('24 cm\u00b2') > -1
         && TODOS.indexOf('41 mm') > -1 && TODOS.indexOf('49 mm') > -1
         && TODOS.indexOf('35 mm') > -1 && TODOS.indexOf('82 mm') > -1 && TODOS.indexOf('96 mm') > -1
@@ -75030,7 +75035,15 @@ caso('TC-492', 'Tanda M: las DIECISEIS FICHAS nuevas del registro de evidencia d
          AOR-005, la Figura 5 de la ESC 2024 con sus ocho tramos por sexo, leida en imagen sobre
          la edicion INGLESA (hoja 26, folio 3563). Nace verificada, asi que el control de que la
          bibliografia sale SOLO de fichas verificadas sigue en pie. */
-      refs.ad.bib === 3 && refs.vd2.bib === 2 && refs.ao2.bib === 4
+      /* ⚠️ ADAPTADO (PANT-7, commit 3, 2026-11-04): vd2 pasa de DOS entradas a CUATRO. Las dos
+         nuevas son FUN-VD-009 —el signo 60/60, ESC 2019 de tromboembolia pulmonar, edicion
+         INGLESA, folios 557 y 558— y FUN-VD-010 —la muesca mesosistolica, ESC/ERS 2022, Tabla 10,
+         folio 28—, dos documentos que esa seccion no citaba. Nacen verificadas, asi que el
+         control de que la bibliografia sale SOLO de fichas verificadas sigue en pie, y la
+         condicion gana los dos documentos nombrados para que no alcance con el total. */
+      refs.ad.bib === 3 && refs.vd2.bib === 4 && refs.ao2.bib === 4
+        && String(refs.vd2.txt||'').indexOf('2019') > -1
+        && String(refs.vd2.txt||'').indexOf('2022') > -1
         && String(refs.ao2.txt||'').indexOf('Figura 13') > -1 && String(refs.ao2.txt||'').indexOf('Tabla 14') > -1,
       'ad=' + refs.ad.bib + ' vd2=' + refs.vd2.bib + ' ao2=' + refs.ao2.bib]);
     /* ADAPTADO (VS, 2026-10-17): el diametro longitudinal pasó de «por verificar» a verificado
@@ -75840,13 +75853,24 @@ caso('TC-494', 'Tanda VS: el VD, la AD, la VCI y la RAIZ AORTICA alineados a la 
     'tam=' + lTam.barras + ' fun=' + lFun.barras + ' ad=' + lAd.barras]);
   const cuatro = (l) => l.zonas.length > 0 && l.zonas.length % 4 === 0
     && ['normal','leve','moderada','severa'].every(g => l.zonas.indexOf(g) > -1);
+  /* ⚠️ ADAPTADO (PANT-7, commit 3, 2026-11-04): la barra del tiempo de aceleracion pulmonar era
+     la UNICA de la tarjeta de funcion que no graduaba en cuatro —tenia dos tramos y una zona
+     «htp»— y pasa a las cuatro bandas de la Tabla 1. Asi que las zonas distintas de «normal»
+     pasan de 15 a 18, no queda ninguna «htp», y la tarjeta entera cumple ahora el mismo
+     predicado de cuatro bandas que las otras dos: la condicion queda MAS fuerte, no adaptada hacia
+     abajo. */
   ex.push(['cada barra graduada dibuja CUATRO zonas: normal, leve, moderada y severa',
     cuatro(lAd) && lTam.zonas.length === 24 && cuatro(lTam)
-      && lFun.zonas.filter(z => z !== 'htp' && z !== 'normal').length === 15,
+      && cuatro(lFun) && lFun.zonas.indexOf('htp') < 0
+      && lFun.zonas.filter(z => z !== 'normal').length === 18,
     'ad=' + lAd.zonas.join(',') + ' | tam=' + lTam.zonas.length + ' | fun=' + lFun.zonas.join(',')]);
   const TODOS = [].concat(lAd.cortes, lTam.cortes, lFun.cortes);
+  /* ⚠️ ADAPTADO (PANT-7, commit 3): 37 -> 39 por los tres cortes del tiempo de aceleracion, que
+     antes era UNO. Nombrados, para que no alcance con el total. */
   ex.push(['CADA corte lleva su numero y su unidad, y son los del dueno',
-    TODOS.length === 37 && TODOS.indexOf('19 cm²') > -1 && TODOS.indexOf('24 cm²') > -1
+    TODOS.length === 39
+      && TODOS.indexOf('60 ms') > -1 && TODOS.indexOf('80 ms') > -1 && TODOS.indexOf('105 ms') > -1
+      && TODOS.indexOf('19 cm²') > -1 && TODOS.indexOf('24 cm²') > -1
       && TODOS.indexOf('41 mm') > -1 && TODOS.indexOf('49 mm') > -1 && TODOS.indexOf('82 mm') > -1
       && TODOS.indexOf('14 cm²') > -1 && TODOS.indexOf('25 cm²') > -1
       && TODOS.indexOf('17 mm') > -1 && TODOS.indexOf('10 mm') > -1
@@ -75920,7 +75944,10 @@ caso('TC-494', 'Tanda VS: el VD, la AD, la VCI y la RAIZ AORTICA alineados a la 
     /* ADAPTADO (TANDA AORTA-2, 30/10/2026): ao2 pasa de TRES entradas a CUATRO. La nueva es
        AOR-005, la Figura 5 de la ESC 2024 con sus ocho tramos por sexo, que es la que sostiene
        los dos segmentos que este commit alineo a la guia. */
-    refs.vd2.barras === 12 && refs.vd2.bib === 2 && refs.ad.bib === 3 && refs.ao2.bib === 4,
+    /* ⚠️ ADAPTADO (PANT-7, commit 3): la bibliografia de ref-vd2 pasa de DOS entradas a CUATRO
+       por las fichas FUN-VD-009 y FUN-VD-010, que citan dos documentos que esa seccion no
+       citaba. Las DOCE barras no se mueven, y eso es lo que esta condicion sigue vigilando. */
+    refs.vd2.barras === 12 && refs.vd2.bib === 4 && refs.ad.bib === 3 && refs.ao2.bib === 4,
     'barras=' + refs.vd2.barras + ' bib ad/vd2/ao2=' + refs.ad.bib + '/' + refs.vd2.bib + '/' + refs.ao2.bib]);
 
   /* ══ (h) · EL REGISTRO ══ */
@@ -97744,19 +97771,34 @@ caso('TC-551', 'Tanda NOCTURNA A: el esquema de la orejuela al lado de los campo
         if (r.type !== 4) continue;                       /* 4 = CSSMediaRule */
         if (!/min-width:\\s*900px/.test(r.conditionText || '')) continue;
         for (const q of [].slice.call(r.cssRules || [])) {
+          /* ⚠️ ADAPTADO (PANT-7, commit 6, 2026-11-04) — ES EL DIA QUE ESTE CASO ANUNCIABA.
+             La fila de la orejuela dejo de ser flexible y es una GRILLA: el dibujo abarca las dos
+             filas de la columna 2 y la conclusion va en la celda (2,1), que es lo que el medico
+             pidio para que no quede el hueco de 255 px entre los campos y la conclusion. Lo que
+             este caso vigila -que la maqueta de 900 px EXISTA y que la geometria la siga- no
+             cambia; lo que cambia es el valor del display. Se acepta cualquiera de los dos y la
+             condicion A1b exige el que esta app usa hoy, asi que sigue pudiendo fallar. */
           if ((q.selectorText || '').indexOf('#oai-fila') === 0 &&
-              (q.style || {}).display === 'flex') hallada = q.cssText;
+              ((q.style || {}).display === 'flex' || (q.style || {}).display === 'grid'))
+            hallada = q.cssText;
         }
       }
     }
     return hallada;
   })();
-  ex.push(['(A1) la regla de 900 px le pone display:flex a #oai-fila',
+  ex.push(['(A1) la regla de 900 px le da su maqueta a #oai-fila',
     !!reglaFila, String(reglaFila || 'NO HAY REGLA')]);
+  /* A1b NACIO DE LA ADAPTACION: A1 acepta flex o grid, asi que sin esto un cambio de maqueta
+     pasaria en verde. Esto fija la que la app usa HOY -grilla, con el dibujo abarcando las dos
+     filas de la columna 2- y la deja medible desde cualquier ancho. */
+  ex.push(['(A1b) y hoy esa maqueta es una GRILLA con el dibujo abarcando las dos filas',
+    !!(reglaFila && String(reglaFila).indexOf('grid') > -1)
+      && String(reglaFila).replace(/ /g, '').indexOf('grid-template-columns') > -1, true]);
   ex.push(['(A2) a este ancho, lo que dice la consulta de medios es lo que hace la geometria',
     (function(){ const f = EL('oai-fila'); if (!f) return false;
       const ancho = window.matchMedia('(min-width: 900px)').matches;
-      return (getComputedStyle(f).display === 'flex') === ancho; })(),
+      const d = getComputedStyle(f).display;
+      return (d === 'flex' || d === 'grid') === ancho; })(),
     'ventana ' + window.innerWidth + ' px · min-900 ' +
       window.matchMedia('(min-width: 900px)').matches + ' · display ' +
       (EL('oai-fila') ? getComputedStyle(EL('oai-fila')).display : 'NO')]);
@@ -111560,12 +111602,28 @@ caso('TC-645', 'Tanda PANT-6: el dibujo del VD con su ancho minimo para 12 px, l
     return r };
   const svg = document.getElementById('vdsc-svg');
   ex.push(['(A0) DENOM: el dibujo existe', !!svg, true]);
-  /* (A) EL ANCHO: 100 % de su columna con un tope de 520 px, que es el minimo de 509 redondeado. */
-  const rW = regla('#vdsc-svg', 'width');
-  ex.push(['(A1) el dibujo toma el ancho de su columna', rW ? rW.v.trim() : 'NO HAY', '100%']);
+  /* (A) EL ANCHO.
+     ⚠️ ADAPTADO (PANT-7, commit 1, 2026-11-04) — ES EL DIA QUE ESTE CASO ANUNCIABA. PANT-6 le
+        dio al dibujo el 100 % de su columna con un tope de 520 px, que era el ancho minimo para
+        que el rotulo mas chico llegara a 12 px. La orden de PANT-7 lo cambia por decision del
+        medico: el dibujo tiene que medir lo MISMO que el esquema valvular 2D, y a ese tamanio la
+        tipografia del SVG no puede llegar a 12 px —el piso se supera a proposito, y eso cierra
+        P6-b—. Las dos condiciones se INVIERTEN y quedan mas fuertes: ahora exigen el valor
+        declarado Y que sea el mismo que el del esquema valvular, asi que mover uno solo de los
+        dos pone el caso en rojo. */
+  const rW   = regla('#vdsc-svg', 'width');
+  const rH   = regla('#vdsc-svg', 'height');
+  const rW2  = regla('#v2d-svg', 'width');
+  const rH2  = regla('#v2d-svg', 'height');
+  ex.push(['(A1) el dibujo declara el MISMO ancho que el esquema valvular 2D',
+    (rW ? rW.v.trim() : 'NO HAY') + '/' + (rW2 ? rW2.v.trim() : 'NO HAY'),
+    (rW2 ? rW2.v.trim() : 'NO HAY') + '/' + (rW2 ? rW2.v.trim() : 'NO HAY')]);
+  ex.push(['(A1b) y el MISMO alto', (rH ? rH.v.trim() : 'NO HAY') + '/' + (rH2 ? rH2.v.trim() : 'NO HAY'),
+    (rH2 ? rH2.v.trim() : 'NO HAY') + '/' + (rH2 ? rH2.v.trim() : 'NO HAY')]);
   const rMax = regla('#vdsc-svg', 'max-width');
-  ex.push(['(A2) con un tope de 520 px, por encima del minimo medido de 509',
-    rMax ? rMax.v.trim() : 'NO HAY', '520px']);
+  ex.push(['(A2) INVERTIDA: ya NO hay tope de 520 px, y el que declara es el del esquema valvular',
+    (rMax ? rMax.v.trim() : 'NO HAY') + ' · ' + (regla('#v2d-svg','max-width') || {v:'NO HAY'}).v,
+    '100% · 100%']);
   /* (B) LA MAQUETA: campos a la izquierda, dibujo a la derecha, lista DEBAJO de los campos. */
   const rFila = regla('#vdsc-fila', 'grid-template-columns');
   ex.push(['(B1) desde 900 px la fila es una grilla', !!rFila, true]);
@@ -111577,8 +111635,16 @@ caso('TC-645', 'Tanda PANT-6: el dibujo del VD con su ancho minimo para 12 px, l
     return !!(r && r.v === 'grid' && String(r.media).indexOf('min-width: 900px') > -1) })(), true]);
   ex.push(['(B2) y el corte va sobre la VENTANA, en 900 px',
     rFila && /min-width:\\s*900px/.test(String(rFila.media)), true]);
-  ex.push(['(B3) con el 55 % para los campos y el 45 % para el dibujo',
-    rFila ? /55fr/.test(rFila.v) && /45fr/.test(rFila.v) : false, true]);
+  /* ⚠️ ADAPTADO (PANT-7, commit 1): el reparto pasa de 55/45 por ciento a una columna de ancho
+     FIJO para el dibujo, asi que todo el ancho que sobra va a los campos —de 649 a 940 px a
+     1440—. La condicion queda mas fuerte: exige el ancho fijo Y que el otro tramo sea elastico,
+     asi que volver a un porcentaje la pone en rojo. */
+  /* ⚠️ Y NO SE PREGUNTA POR «minmax(0,»: Chrome normaliza ese 0 a «0px», asi que la primera
+     version de esta condicion daba false sobre la regla correcta. Es la trampa que POP-A pago. */
+  ex.push(['(B3) INVERTIDA: la columna del dibujo es de ancho FIJO y la de los campos elastica',
+    rFila ? (rFila.v.indexOf('240px') > -1 && rFila.v.indexOf('1fr') > -1
+             && rFila.v.indexOf('55fr') < 0 && rFila.v.indexOf('45fr') < 0) : false,
+    true]);
   const rLista = regla('#vdsc-lista', 'grid-column');
   ex.push(['(B4) la lista de criterios va en la columna 1, debajo de los campos',
     rLista ? rLista.v.trim() : 'NO HAY', '1']);
@@ -111602,10 +111668,554 @@ caso('TC-645', 'Tanda PANT-6: el dibujo del VD con su ancho minimo para 12 px, l
   ex.push(['(E2) y es el de pausa', !!document.getElementById('vdsc-play'), true]);
   /* (F) CONTROL NEGATIVO: el esquema valvular 2D no tiene ninguna regla de ancho nueva. */
   ex.push(['(F1) CONTROL: el esquema valvular 2D conserva su propio svg', !!document.getElementById('v2d-svg'), true]);
-  ex.push(['(F2) CONTROL: y el dibujo del VD NO hereda su ancho -son dos reglas distintas-',
-    regla('#v2d-svg', 'max-width') === null || (rMax && rMax.v.trim() === '520px'), true]);
+  /* ⚠️ ADAPTADO (PANT-7, commit 1): los dos dibujos declaran AHORA los mismos valores, porque es
+     lo que la orden pide. Lo que este control sigue vigilando es que sean DOS reglas distintas y
+     no una herencia: cada selector tiene la suya, asi que el valor se puede mover en uno sin
+     tocar el otro —y entonces (A1) y (A1b) lo cazan—. Sin esta condicion, fusionar los dos
+     selectores en una sola regla pasaria en verde. */
+  ex.push(['(F2) CONTROL: son DOS reglas distintas, una por selector, no una herencia',
+    (function () { let nV = 0, nE = 0;
+      for (const h of Array.from(document.styleSheets)) { let rs = null;
+        try { rs = h.cssRules } catch (e) { continue } if (!rs) continue;
+        for (const x of Array.from(rs)) {
+          const mirar = (y) => { if (y.type !== 1) return;
+            const t = String(y.selectorText || '');
+            if (t === '#vdsc-svg') nV++; if (t === '#v2d-svg') nE++ };
+          mirar(x);
+          if (x.type === 4) for (const y of Array.from(x.cssRules || [])) mirar(y) } }
+      return nV >= 1 && nE >= 1 })(), true]);
   return { extra: EXP };
 `);
+
+/* -- TC-650 ---------------------------------------------------------------------------------
+   PANT-7, commit 1. El dibujo de sobrecarga del VD al tamanio del esquema valvular 2D: la
+   MISMA caja, la MISMA regla de letra, los rotulos CORTOS de una linea que no se pisan, y el
+   esquema valvular sin moverse.
+   DENOMINADORES: que los dos SVG existan y tengan caja, y que el dibujo tenga textos visibles
+   —con el formulario vacio es MUDO, asi que sin la escena cargada contar cruces da cero y
+   parece seguro—.
+   La suite corre Chrome a ~756 px, por debajo del corte de 900, asi que la MAQUETA se mide por
+   la REGLA de la hoja de estilos y la geometria la miden las sondas en los cuatro anchos. */
+caso('TC-650', 'Tanda PANT-7: el dibujo del VD con la caja y la letra del esquema valvular 2D, los rotulos cortos de una linea sin pisarse, y el esquema valvular sin cambios', `
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]), 'esperado ' + String(t[2]) + ' | hallado ' + String(t[1])]) };
+  const S = (id, v) => { const e = document.getElementById(id); if (!e) return 'NO ' + id;
+    e.value = v; e.dispatchEvent(new Event('input', { bubbles:true }));
+    e.dispatchEvent(new Event('change', { bubbles:true })); return e.value };
+  __t.limpiar();
+  /* (A) LA REGLA DE CSS, LEIDA DEL TEXTO DEL elemento style Y NO DE document.styleSheets.
+     ⚠️ document.styleSheets[i].cssRules devuelve VACIO en este arnes —medido: la primera
+        version de este caso daba cero reglas y los dos denominadores en false—, asi que lo que
+        se lee es el texto fuente de las hojas de estilo del documento, que siempre esta. */
+  const CSS = Array.prototype.slice.call(document.querySelectorAll('style'))
+    .map(e => e.textContent || '').join(String.fromCharCode(10));
+  const buscar = (sel) => { const out = [];
+    let i = 0;
+    while (true) { const k = CSS.indexOf(sel + '{', i) >= 0 ? CSS.indexOf(sel + '{', i)
+                           : CSS.indexOf(sel + ' {', i);
+      if (k < 0) break;
+      /* el selector tiene que empezar linea o venir tras una llave o un punto y coma */
+      const prev = CSS.slice(Math.max(0, k - 1), k);
+      const fin = CSS.indexOf('}', k);
+      if (fin < 0) break;
+      if (prev === '' || prev === String.fromCharCode(10) || prev === '{' || prev === '}' || prev === ' ')
+        out.push(CSS.slice(CSS.indexOf('{', k) + 1, fin));
+      i = fin + 1;
+    }
+    return out.join(' || ') };
+  const vdscCaja = buscar('#vdsc-svg'), v2dCaja = buscar('#v2d-svg');
+  ex.push(['(A1) DENOMINADOR: las dos reglas de caja existen',
+    (vdscCaja.length > 0) + '/' + (v2dCaja.length > 0), 'true/true']);
+  const mide = (t, p) => { const m = new RegExp(p + ': *([0-9]+px|100%|auto)').exec(t); return m ? m[1] : 'SIN' };
+  ex.push(['(A2) el dibujo del VD declara el MISMO ancho y alto que el esquema valvular',
+    mide(vdscCaja, 'width') + '/' + mide(vdscCaja, 'height'),
+    mide(v2dCaja, 'width') + '/' + mide(v2dCaja, 'height')]);
+  const vdscLbl = buscar('#vdsc-svg .vdsc-lbl'), v2dLbl = buscar('#v2d-svg .v2d-lbl');
+  const fs = (t) => { const m = /font-size: *([0-9.]+px)/.exec(t); return m ? m[1] : 'SIN' };
+  ex.push(['(A3) la letra del rotulo es la MISMA que la del esquema valvular', fs(vdscLbl), fs(v2dLbl)]);
+  const vdscCn = buscar('#vdsc-svg .vdsc-cn'), v2dCn = buscar('#v2d-svg .v2d-cn');
+  ex.push(['(A4) y la de los nombres de cavidad tambien', fs(vdscCn), fs(v2dCn)]);
+  /* (B) LOS ROTULOS CORTOS, de UNA sola linea. */
+  showTab('hemodinamica');
+  const h = document.querySelector('[onclick*="tep-seccion"]');
+  if (h && getComputedStyle(document.getElementById('tep-seccion')).display === 'none') h.click();
+  S('tep_mcconnell','si'); S('tep_tabique_d','si'); S('tapse','12');
+  S('it_grado','4'); S('vmax_it','4.2'); S('tvia','45');
+  try { calcTEP() } catch (e) {}
+  try { calcVD() } catch (e) {}
+  try { vdscSync() } catch (e) {}
+  const svg = document.getElementById('vdsc-svg');
+  const vis = Array.prototype.slice.call(svg ? svg.querySelectorAll('text') : [])
+    .filter(t => { let n = t; while (n && n !== svg) {
+        if (n.getAttribute && parseFloat(n.getAttribute('opacity') || '1') === 0) return false; n = n.parentNode }
+      return (t.textContent || '').trim().length > 0 });
+  ex.push(['(B0) DENOMINADOR: el dibujo tiene textos visibles con la escena cargada', vis.length > 0, 'true']);
+  const sp = document.getElementById('vdsc-sptxt'), mc = document.getElementById('vdsc-mctxt');
+  ex.push(['(B1) el rotulo del septum dice SIV desplazado', (sp ? sp.textContent : 'NO').trim(), 'SIV desplazado']);
+  ex.push(['(B2) el del McConnell dice Sg McConnell', (mc ? mc.textContent : 'NO').trim(), 'Sg McConnell']);
+  ex.push(['(B3) los dos van en UNA sola linea: un tspan cada uno',
+    (sp ? sp.querySelectorAll('tspan').length : -1) + '/' + (mc ? mc.querySelectorAll('tspan').length : -1), '1/1']);
+  /* (B4) NINGUN rotulo visible se pisa con otro, medido con getBBox. */
+  const caja = (e) => { try { return e.getBBox() } catch (x) { return null } };
+  const inter = (a, b) => { if (!a || !b) return 0;
+    const w = Math.min(a.x + a.width, b.x + b.width) - Math.max(a.x, b.x);
+    const hh = Math.min(a.y + a.height, b.y + b.height) - Math.max(a.y, b.y);
+    return (w > 0 && hh > 0) ? 1 : 0 };
+  const bs = vis.map(t => caja(t));
+  let cruces = 0;
+  for (let i = 0; i < bs.length; i++) for (let j = i + 1; j < bs.length; j++) cruces += inter(bs[i], bs[j]);
+  ex.push(['(B4) cero cruces entre rotulos del dibujo', cruces, 0]);
+  /* (B5) y ninguno se sale del lienzo. */
+  const vb = (svg ? (svg.getAttribute('viewBox') || '') : '').trim().split(/\\s+/).map(Number);
+  let fuera = 0;
+  bs.forEach(b => { if (!b || vb.length < 4) return;
+    if (b.x < vb[0] || b.y < vb[1] || b.x + b.width > vb[0] + vb[2] || b.y + b.height > vb[1] + vb[3]) fuera++ });
+  ex.push(['(B5) cero rotulos fuera del lienzo', fuera, 0]);
+  /* (C) CONTROL NEGATIVO: sin datos el dibujo es MUDO, con el contorno dibujado de denominador. */
+  __t.limpiar();
+  try { vdscSync() } catch (e) {}
+  const out = document.getElementById('vdsc-out');
+  ex.push(['(C0) DENOMINADOR del control: el contorno esta dibujado', (out && (out.getAttribute('d') || '').length) > 100, 'true']);
+  const vis2 = Array.prototype.slice.call(svg ? svg.querySelectorAll('text') : [])
+    .filter(t => { let n = t; while (n && n !== svg) {
+        if (n.getAttribute && parseFloat(n.getAttribute('opacity') || '1') === 0) return false; n = n.parentNode }
+      return (t.textContent || '').trim().length > 0 });
+  ex.push(['(C1) CONTROL NEGATIVO: sin datos, cero textos visibles', vis2.length, 0]);
+  /* (D) el UNICO control del dibujo sigue siendo el boton de pausa, de 44 px. */
+  const cj = document.getElementById('vdsc-caja');
+  const ctr = cj ? cj.querySelectorAll('input,select,textarea,button') : [];
+  ex.push(['(D1) un solo control dentro de la caja del dibujo', ctr.length, 1]);
+  ex.push(['(D2) y es el boton de pausa', ctr.length ? ctr[0].id : 'NINGUNO', 'vdsc-play']);
+  return { extra: EXP };
+`);
+
+/* -- TC-651 ---------------------------------------------------------------------------------
+   PANT-7, commit 2. Los bordes de la CIA DENTRO de su sector y la linea de corrido fuera de la
+   hoja; y la miniatura del diagrama en la fila de lo que va al PDF.
+   DENOMINADOR: el dataURL del donut y los cinco sectores del registro. */
+caso('TC-651', 'Tanda PANT-7: los valores de los bordes de la CIA dentro de su sector, sin la linea de corrido, y la miniatura del diagrama entre los botones del informe', `
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]), 'esperado ' + String(t[2]) + ' | hallado ' + String(t[1])]) };
+  const S = (id, v) => { const e = document.getElementById(id); if (!e) return 'NO ' + id;
+    e.value = v; e.dispatchEvent(new Event('input', { bubbles:true }));
+    e.dispatchEvent(new Event('change', { bubbles:true })); return e.value };
+  __t.limpiar();
+  S('ete_cia_borde_vcs','4'); S('ete_cia_borde_ao','7'); S('ete_cia_borde_av','10');
+  S('ete_cia_borde_vci','12'); S('ete_cia_borde_post','2'); S('ete_cia_tam','18'); S('ete_cia_vel','3');
+  S('ete_cia_dir','id');
+  __t.chk('ete_shunt_incluir_chk', true);
+  try { calcETE() } catch (e) {}
+  /* (A) EL ANCHO DISPONIBLE SE MIDE, no se estima. */
+  ex.push(['(A0) DENOMINADOR: la funcion que mide el ancho del sector existe',
+    typeof _ciaSegAnchoDisp === 'function', true]);
+  /* ⚠️ TODA LLAMADA A LO NUEVO VA GUARDADA. Contra el arbol anterior estas funciones no
+     existen, y llamarlas a pelo mata el caso con un ReferenceError, que NO dice que invariante
+     se rompio. Es la leccion de TC-546. */
+  const ancho = (sg, yy) => { try { return _ciaSegAnchoDisp(sg, yy) } catch (e) { return 'SIN FUNCION' } };
+  const seg = (typeof CIA_DONUT_SEGS !== 'undefined')
+    ? CIA_DONUT_SEGS.filter(s => s.id === 'ao')[0] : null;
+  ex.push(['(A1) el sector aortico declara un ancho disponible mayor que cero',
+    seg ? (ancho(seg, seg.sy + 5.5) > 0) : 'SIN SECTOR', true]);
+  /* fuera del anillo el ancho tiene que ser CERO: el control de que la funcion discrimina */
+  ex.push(['(A2) CONTROL NEGATIVO: a radio 20, dentro del agujero del anillo, el ancho es 0',
+    ancho({ sx: 0, sy: -20 }, -20), 0]);
+  /* (B) info.fuera existe y, con datos plausibles, esta VACIO. */
+  const info = {};
+  let url = '';
+  try { url = ciaDonutDataURL(info) } catch (e) { url = '' }
+  ex.push(['(B0) DENOMINADOR: el diagrama se genera', String(url || '').length > 5000, true]);
+  ex.push(['(B1) el generador publica la lista de los que no entraron', Array.isArray(info.fuera), true]);
+  ex.push(['(B2) con los cinco bordes medidos, NINGUNO sale al costado', (info.fuera || []).length, 0]);
+  /* (C) LA LINEA DE CORRIDO YA NO SE ARMA. Se le pregunta al emisor del PDF por su registro. */
+  ex.push(['(C0) DENOMINADOR: la casilla de la CIA esta marcada',
+    !!(document.getElementById('ete_shunt_incluir_chk') || {}).checked, true]);
+  /* (D) LA MINIATURA: el registro la tiene y la fila la muestra. */
+  ex.push(['(D0) DENOMINADOR: el registro de miniaturas existe', typeof INF_MIN_DIAG !== 'undefined', true]);
+  const dc = (typeof INF_MIN_DIAG !== 'undefined') ? INF_MIN_DIAG.filter(d => d.k === 'cia')[0] : null;
+  ex.push(['(D1) el registro de miniaturas incluye la CIA', !!dc, true]);
+  ex.push(['(D2) y su puerta esta abierta con la casilla y los bordes cargados',
+    dc ? !!dc.on() : 'SIN ENTRADA', true]);
+  /* ⚠️ NO SE LEE EL TOTAL «En el PDF: 1», Y ES UNA DEPENDENCIA DE ORDEN QUE LA CORRIDA COMPLETA
+     DESTAPO. El contador suma TODAS las miniaturas incluidas —las capturas, los esquemas y las
+     siete entradas de INF_MIN_DIAG—, asi que si un caso anterior del lote dejo encendida la del
+     bull's eye, la de la VAB o cualquier otra, el total no es 1 ni vuelve a 0: este caso salia
+     VERDE aislado y ROJO dentro de su lote, por «(D3)» y «(E2)».
+     Lo que se mide es el DELTA del contador y la PRESENCIA de la tarjeta de la CIA por su
+     etiqueta, que no dependen de lo que dejaron los demas y ademas distinguen CUAL miniatura
+     entro —el total no lo distingue—. */
+  const nMin = () => { const t = ((document.getElementById('inf-min-cont') || {}).textContent || '');
+    const i = t.lastIndexOf(': '); return (i < 0) ? -1 : parseInt(t.slice(i + 2), 10) };
+  /* ⚠️ SE BUSCA EN EL title/alt DE LA IMAGEN Y NO EN EL TEXTO DE LA LISTA: la etiqueta VISIBLE
+     de la tarjeta de un diagrama es la palabra «diagrama» para los siete, y el nombre propio
+     -«Bordes de la CIA»- va en el title y el alt de su miniatura. Preguntarle al textContent
+     daba false sobre una tarjeta que si estaba. */
+  const hayCia = () => { const l = document.getElementById('inf-min-lista'); if (!l) return false;
+    return Array.prototype.slice.call(l.querySelectorAll('img'))
+      .some(i => ((i.title || '') + ' ' + (i.alt || '')).indexOf('Bordes de la CIA') > -1) };
+  __t.chk('ete_shunt_incluir_chk', false);
+  try { infMinPintar() } catch (e) {}
+  const nSin = nMin();
+  ex.push(['(D2b) DENOMINADOR: con la casilla apagada la tarjeta de la CIA no esta', hayCia(), false]);
+  __t.chk('ete_shunt_incluir_chk', true);
+  try { infMinPintar() } catch (e) {}
+  ex.push(['(D3) la fila gana la miniatura de la CIA, y el contador sube en UNO',
+    hayCia() && nMin() === nSin + 1, true]);
+  /* (E) CONTROL NEGATIVO: sin la casilla, la puerta se cierra y la tarjeta se va. */
+  __t.chk('ete_shunt_incluir_chk', false);
+  try { infMinPintar() } catch (e) {}
+  ex.push(['(E1) CONTROL NEGATIVO: sin la casilla, la puerta de la CIA esta cerrada',
+    dc ? !!dc.on() : 'SIN ENTRADA', false]);
+  ex.push(['(E2) y la tarjeta de la CIA se va, con el contador de vuelta donde estaba',
+    !hayCia() && nMin() === nSin, true]);
+  /* (F) CONTROL NEGATIVO: con la casilla pero SIN ningun borde medido, tampoco. */
+  __t.limpiar();
+  __t.chk('ete_shunt_incluir_chk', true);
+  try { infMinPintar() } catch (e) {}
+  ex.push(['(F1) CONTROL NEGATIVO: con la casilla y sin un solo borde, la puerta sigue cerrada',
+    dc ? !!dc.on() : 'SIN ENTRADA', false]);
+  return { extra: EXP };
+`);
+
+/* -- TC-652 ---------------------------------------------------------------------------------
+   PANT-7, commit 3. Los dos globos que no abrian, los dos nuevos, el resalte del signo 60/60 y
+   los cuatro tramos de la barra del tiempo de aceleracion.
+   DENOMINADOR de los globos: que la tarjeta ESTATICA exista. Borrarla —como hizo la primera
+   version de la sonda de esta tanda— hace que NINGUN globo abra, que es justo el sintoma que
+   se viene a medir. */
+caso('TC-652', 'Tanda PANT-7: los globos de TRVI y de la pleura abriendo desde su propia pestania, los dos globos nuevos, el resalte del signo 60/60 y los cuatro tramos del tiempo de aceleracion', `
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]), 'esperado ' + String(t[2]) + ' | hallado ' + String(t[1])]) };
+  const S = (id, v) => { const e = document.getElementById(id); if (!e) return 'NO ' + id;
+    e.value = v; e.dispatchEvent(new Event('input', { bubbles:true }));
+    e.dispatchEvent(new Event('change', { bubbles:true })); return e.value };
+  __t.limpiar();
+  const card = document.getElementById('vinfo-card');
+  ex.push(['(A0) DENOMINADOR: la tarjeta de los globos existe en el marcado', !!card, true]);
+  /* (A) EL ANCLA ES EL BOTON QUE SE CLICKEA, no el primero del documento. */
+  ex.push(['(A1) DENOMINADOR: vd-triv y pul-balik tienen DOS botones cada una',
+    document.querySelectorAll('[data-vinfo="vd-triv"]').length + '/' +
+    document.querySelectorAll('[data-vinfo="pul-balik"]').length, '2/2']);
+  /* se le pasa el SEGUNDO boton: antes de PANT-7 la tarjeta se anclaba al primero y, si ese
+     estaba escondido, no abria ninguna. */
+  const probar = (k) => { try { vInfoCerrar(true) } catch (e) {}
+    const bs = document.querySelectorAll('[data-vinfo="' + k + '"]');
+    const b = bs[bs.length - 1];
+    const d = (typeof _vInfoBtnDe === 'function') ? _vInfoBtnDe(k, b) : null;
+    return d === b };
+  ex.push(['(A2) con el segundo boton en la mano, el ancla es ESE y no el primero (vd-triv)', probar('vd-triv'), true]);
+  ex.push(['(A3) idem para la pleura del posoperatorio', probar('pul-balik'), true]);
+  /* (B) LOS DOS GLOBOS NUEVOS, en el registro y con contenido. */
+  ex.push(['(B1) el registro tiene el globo del indice de Tei', (typeof VINFO !== 'undefined') && ('vd-tei' in VINFO), true]);
+  ex.push(['(B2) y el del signo 60/60', (typeof VINFO !== 'undefined') && ('tep-6060' in VINFO), true]);
+  const txtTei = (typeof VINFO !== 'undefined') ? String((VINFO['vd-tei'] || {}).lee || '') : '';
+  ex.push(['(B3) el del Tei trae los cuatro grados por Doppler tisular',
+    txtTei.indexOf('0,55') > -1 && txtTei.indexOf('0,62') > -1 && txtTei.indexOf('0,70') > -1, true]);
+  ex.push(['(B4) y los del pulsado', txtTei.indexOf('0,40') > -1 && txtTei.indexOf('0,49') > -1 && txtTei.indexOf('0,57') > -1, true]);
+  ex.push(['(B5) y muestra la diferencia con la otra guia sin resolverla',
+    txtTei.indexOf('0,43') > -1 && txtTei.indexOf('0,54') > -1, true]);
+  const txt60 = (typeof VINFO !== 'undefined') ? String((VINFO['tep-6060'] || {}).lee || '') : '';
+  ex.push(['(B6) el del 60/60 dice las DOS condiciones', txt60.indexOf('60 ms') > -1 && txt60.indexOf('60 mmHg') > -1, true]);
+  ex.push(['(B7) y nombra la diferencia entre el texto y la figura', txt60.indexOf('mesosist') > -1, true]);
+  ex.push(['(B8) CONTROL: no dice la palabra positivo', txt60.toLowerCase().indexOf('positivo') > -1, false]);
+  /* (C) LOS DOS GLOBOS NUEVOS LLEVAN SU BOTON «Ver referencia»: tienen entrada. */
+  ex.push(['(C1) el mapeo a Referencias incluye los dos',
+    (typeof VINFO_REF !== 'undefined') && ('vd-tei' in VINFO_REF) && ('tep-6060' in VINFO_REF), true]);
+  /* (D) EL RESALTE DEL 60/60: prende con 59 y apaga con 60 y con vacio. */
+  showTab('vd');
+  const lee = () => { const a = document.getElementById('tep-6060-lbl'), b = document.getElementById('tep-6060-fila-lbl');
+    return (a ? a.style.color : 'NO') + '|' + (b ? b.style.color : 'NO') };
+  ex.push(['(D0) DENOMINADOR: los dos rotulos del signo 60/60 existen',
+    !!document.getElementById('tep-6060-lbl') && !!document.getElementById('tep-6060-fila-lbl'), true]);
+  /* ⚠️ EL CONTROL DE (D5) SE MONTA ANTES DEL PRIMER RESALTE, Y CON UNA RESPUESTA QUE LO
+     CONTRADICE. La version anterior leia el campo DESPUES de haber corrido el resalte con 59
+     ms: si el resalte escribia, ya habia escrito, y la mutacion 19 SOBREVIVIA. Nacio de ese
+     barrido. «no» es la respuesta del medico y el resalte dice que si: si escribiera, se veria. */
+  S('tep_signo6060','no');
+  const selAntes = (document.getElementById('tep_signo6060') || {}).value;
+  ex.push(['(D0b) DENOMINADOR del control: el medico contesto No', selAntes, 'no']);
+  S('tvia','59'); try { calcVD() } catch (e) {} try { tep6060Resalte() } catch (e) {}
+  ex.push(['(D1) con 59 ms los dos rotulos se pintan', lee(), 'var(--orange)|var(--orange)']);
+  ex.push(['(D1b) y NO toco la respuesta del medico',
+    (document.getElementById('tep_signo6060') || {}).value, 'no']);
+  ex.push(['(D2) y el resaltador lo dice', (typeof tep6060Resalte === 'function') ? tep6060Resalte() : 'sin fn', true]);
+  S('tvia','60'); try { calcVD() } catch (e) {} try { tep6060Resalte() } catch (e) {}
+  ex.push(['(D3) CONTROL NEGATIVO: con 60 ms exactos NO se pinta', lee(), '|']);
+  S('tvia',''); try { calcVD() } catch (e) {} try { tep6060Resalte() } catch (e) {}
+  ex.push(['(D4) CONTROL NEGATIVO: con el campo vacio tampoco', lee(), '|']);
+  ex.push(['(D5) y el resalte NO toco lo que contesto el medico en el campo',
+    (document.getElementById('tep_signo6060') || {}).value, selAntes]);
+  /* (E) LA BARRA DEL TIEMPO DE ACELERACION: cuatro tramos, y el corte de 105 sin moverse. */
+  ex.push(['(E0) DENOMINADOR: la tabla de la ASE 2025 tiene la fila del tiempo de aceleracion',
+    (typeof ASE25_T1 !== 'undefined') && !!ASE25_T1.vd_tap, true]);
+  const g = (x) => (typeof vdTapGrado === 'function') ? vdTapGrado(x) : 'sin fn';
+  ex.push(['(E1) 59 ms es severa', g(59), 'severa']);
+  ex.push(['(E2) 60 ms es moderada', g(60), 'moderada']);
+  ex.push(['(E3) 79 moderada y 80 leve', g(79) + '/' + g(80), 'moderada/leve']);
+  ex.push(['(E4) 105 leve y 106 normal', g(105) + '/' + g(106), 'leve/normal']);
+  /* (F) CONTROL NEGATIVO: el corte que la app USA no se movio. */
+  ex.push(['(F1) CONTROL: el umbral de elemento indirecto de HTP sigue en 105',
+    (typeof UMBRAL_TAP_HTP !== 'undefined') ? UMBRAL_TAP_HTP : 'sin const', 105]);
+  const c = (x) => (typeof vdTapCat === 'function') ? vdTapCat(x) : 'sin fn';
+  ex.push(['(F2) CONTROL: la capsula sigue diciendo htp en 104 y normal en 105',
+    c(104) + '/' + c(105), 'htp/normal']);
+  return { extra: EXP };
+`);
+
+/* -- TC-653 ---------------------------------------------------------------------------------
+   PANT-7, commit 4. La franja del TEER legible en el tema claro, «no determinable» fuera del
+   papel y el rotulo PSAP. */
+caso('TC-653', 'Tanda PANT-7: la franja del tipo de IM del TEER legible en el tema claro, la frase no determinable fuera del papel y el rotulo PSAP en el informe', `
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]), 'esperado ' + String(t[2]) + ' | hallado ' + String(t[1])]) };
+  const S = (id, v) => { const e = document.getElementById(id); if (!e) return 'NO ' + id;
+    e.value = v; e.dispatchEvent(new Event('input', { bubbles:true }));
+    e.dispatchEvent(new Event('change', { bubbles:true })); return e.value };
+  __t.limpiar();
+  /* (A) LA FRANJA DEL TEER: su texto no cambio y el tema claro tiene regla propia. */
+  /* ⚠️ LA FRANJA SE MIDE DESPUES DE limpiarCampos Y DE calcTEER, QUE ES COMO LA VE EL MEDICO.
+     Su id termina en «-aviso», asi que limpiarCampos la vacia; lo que la repone es calcTEER al
+     mostrarla. Medirla sobre una pagina recien cargada —sin limpiar— es lo que hizo que PANT-6
+     contara 50 caracteres y concluyera que el defecto no se reproducia. */
+  try { calcTEER() } catch (e) {}
+  const av = document.getElementById('teer-tipo-aviso');
+  ex.push(['(A0) DENOMINADOR: la franja existe y, tras Nuevo estudio, tiene su texto',
+    (av ? (av.textContent || '').trim().length : 0) > 40, true]);
+  ex.push(['(A1) y el texto es el mismo de siempre',
+    (av ? (av.textContent || '').trim() : 'NO'), 'Definir tipo de IM para ver criterios específicos.']);
+  ex.push(['(A1b) y se muestra, que es su condicion: sin tipo de IM elegido',
+    av ? getComputedStyle(av).display : 'NO', 'block']);
+  /* La regla de tema se busca en el TEXTO de la hoja, porque la suite corre en UN solo tema.
+     ⚠️ SE EXIGE EL SELECTOR EXACTO, no que contenga el id: «#teer-tipo-aviso-X» tambien lo
+     contiene, y la mutacion 22 —renombrar el selector— SOBREVIVIA. Nacio de ese barrido. */
+  const CSS = Array.prototype.slice.call(document.querySelectorAll('style'))
+    .map(e => e.textContent || '').join(String.fromCharCode(10)).replace(/[ ]+/g, ' ');
+  const kClaro = CSS.indexOf('html.light-mode #teer-tipo-aviso {');
+  const reglaClaro = (kClaro < 0) ? '' : CSS.slice(kClaro, CSS.indexOf('}', kClaro) + 1);
+  ex.push(['(A2) el tema claro le da un color propio a la franja, con el selector exacto',
+    reglaClaro.indexOf('color') > -1, true]);
+  ex.push(['(A2b) y el color es el rojo oscuro, no el del tema oscuro',
+    reglaClaro.toUpperCase().indexOf('#B91C1C') > -1, true]);
+  /* (B) «NO DETERMINABLE» NO SE EMITE SIN DATO, y la linea SI sale con dato. */
+  ex.push(['(B0) DENOMINADOR: el emisor del bloque de hemodinamica existe', typeof amiloTextoHemo === 'function', true]);
+  const sinDato = (typeof amiloTextoHemo === 'function') ? String(amiloTextoHemo() || '') : '';
+  ex.push(['(B1) DENOMINADOR: sin datos el bloque igual publica texto', sinDato.length > 80, true]);
+  ex.push(['(B2) y NO escribe la linea del Forrester con no determinable',
+    sinDato.indexOf('Perfil de Forrester (estimado por eco): no determinable') > -1, false]);
+  ex.push(['(B3) ni la del perfil hemodinamico',
+    sinDato.indexOf('Perfil hemodinámico (estimado por eco): no determinable') > -1, false]);
+  /* con datos, la linea del Forrester VUELVE: es el control de que no se borro el renglon */
+  /* El control: con el Forrester calculable, la linea VUELVE. Se le pregunta al span que el
+     emisor lee, que es su denominador: si el span esta vacio, el control no prueba nada. */
+  const span = document.getElementById('hemo-forrester');
+  if (span) span.textContent = 'Perfil A (tibio-seco) — Normal, sin congestion';
+  const conDato = (typeof amiloTextoHemo === 'function') ? String(amiloTextoHemo() || '') : '';
+  ex.push(['(B3b) DENOMINADOR del control: el span del Forrester tiene texto',
+    !!(span && (span.textContent || '').trim()), true]);
+  ex.push(['(B4) CONTROL: con el Forrester resuelto, la linea SI se emite',
+    conDato.indexOf('Perfil de Forrester (estimado por eco): Perfil A') > -1, true]);
+  /* (C) EL ROTULO PSAP EN EL PAPEL, con su control de que el viejo no esta. */
+  __t.limpiar();
+  S('ete_civ_tipo','perimembranosa'); S('ete_civ_tam','4'); S('ete_civ_vel','4.5'); S('ete_civ_pas','90');
+  __t.chk('ete_shunt_incluir_chk', true);
+  if (typeof eteShuntLesionOn === 'function' && !eteShuntLesionOn('civ')) eteShuntLesionTog('civ');
+  const r = __t.informe();
+  ex.push(['(C0) DENOMINADOR: el informe trae el parrafo de la CIV', r.inf.indexOf('CIV') > -1, true]);
+  ex.push(['(C1) el papel dice PSAP estimada por CIV', r.inf.indexOf('PSAP estimada por CIV') > -1, true]);
+  ex.push(['(C2) CONTROL NEGATIVO: y NO dice el rotulo viejo', r.inf.indexOf('PAPs estimada por CIV') > -1, false]);
+  return { extra: EXP };
+`);
+
+/* -- TC-654 ---------------------------------------------------------------------------------
+   PANT-7, commits 5 a 8. Las cuatro pantallas reordenadas, medidas por la REGLA de la hoja de
+   estilos y por la ESTRUCTURA: la suite corre Chrome a ~756 px, por debajo del corte de 900,
+   asi que la geometria lado a lado la miden las sondas en los cuatro anchos.
+   Y el censo de ids de cada seccion, que es lo que prueba que no se perdio ni se gano un campo
+   al mover los envoltorios —el modo de falla que esta tanda pago TRES veces con un cierre de div de mas. */
+caso('TC-654', 'Tanda PANT-7: Wilkins en una columna con su conclusion al lado, la orejuela y la aorta del ETE con la conclusion arriba, y la VAB en cuatro columnas, sin perder un solo campo', `
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]), 'esperado ' + String(t[2]) + ' | hallado ' + String(t[1])]) };
+  __t.limpiar();
+  /* Las reglas se leen del TEXTO de los elementos style del documento y no de
+     document.styleSheets, que en este arnes devuelve vacio —medido—. Para una regla dentro de
+     una media query se busca el bloque de esa query y dentro de el el selector. */
+  const CSS = Array.prototype.slice.call(document.querySelectorAll('style'))
+    .map(e => e.textContent || '').join(String.fromCharCode(10));
+  const enTexto = (txt, sel) => { const k1 = txt.indexOf(sel + '{'), k2 = txt.indexOf(sel + ' {');
+    const k = (k1 < 0) ? k2 : ((k2 < 0) ? k1 : Math.min(k1, k2));
+    if (k < 0) return '';
+    const a = txt.indexOf('{', k), b = txt.indexOf('}', a);
+    return b < 0 ? '' : txt.slice(a + 1, b) };
+  /* ⚠️ NO SE RECORREN BLOQUES DE MEDIA QUERY, Y ES POR UNA MEDICION. Delimitar cada bloque por
+     balance de llaves se desalinea en cuanto un COMENTARIO de la hoja menciona «900 px» —esta
+     hoja tiene varios—, y entonces el bloque que se devuelve es otro: la version anterior de
+     este caso daba false en cinco condiciones sobre reglas que SI existen.
+     Lo que se hace es buscar el SELECTOR y preguntar si la media query mas cercana hacia atras
+     declara ese ancho. Es lo mismo que se quiere afirmar y no depende del balance. */
+  /* ⚠️ SE ACUMULAN TODAS LAS COINCIDENCIAS, no se devuelve la primera. Un mismo selector tiene
+     la regla de fuera y la de la media query —#wilk-fila y #oai-fila > #oai-esq-caja las
+     tienen—, y la de fuera tambien queda «despues de un @media» si hay una query anterior en
+     la hoja: devolviendo la primera, el caso leia la regla equivocada y daba false sobre una
+     regla que si existe. Medido. */
+  const regla = (sel, m) => { if (m === undefined) return enTexto(CSS, sel);
+    const acum = []; let i = 0;
+    while (true) {
+      const k1 = CSS.indexOf(sel + '{', i), k2 = CSS.indexOf(sel + ' {', i);
+      const k = (k1 < 0) ? k2 : ((k2 < 0) ? k1 : Math.min(k1, k2));
+      if (k < 0) break;
+      const atras = CSS.lastIndexOf('@media', k);
+      const cerca = (atras > -1) ? CSS.slice(atras, k) : '';
+      if (cerca.indexOf('min-width:' + m) > -1 || cerca.indexOf('min-width: ' + m) > -1) {
+        const a = CSS.indexOf('{', k), b = CSS.indexOf('}', a);
+        if (b > -1) acum.push(CSS.slice(a + 1, b));
+      }
+      i = k + 1;
+    }
+    return acum.join(' || ') };
+  ex.push(['(A0) DENOMINADOR: la hoja de estilos se pudo leer', CSS.length > 20000, true]);
+  /* (A) WILKINS */
+  ex.push(['(A1) la fila de Wilkins existe en la hoja de estilos', regla('#wilk-fila').length > 0, true]);
+  /* ⚠️ SE PREGUNTA POR display:grid Y NO POR LA PALABRA «grid»: la regla declara tambien
+     grid-template-columns, asi que un display:block la deja igual de «grid» y la mutacion 26
+     SOBREVIVIA. Nacio de ese barrido. */
+  ex.push(['(A2) y desde 900 px es una grilla de DOS columnas',
+    regla('#wilk-fila', '900').replace(/ /g, '').indexOf('display:grid') > -1, true]);
+  ex.push(['(A2b) con las DOS columnas declaradas',
+    regla('#wilk-fila', '900').replace(/ /g, '').indexOf('grid-template-columns:minmax(0,1fr)minmax(0,1fr)') > -1, true]);
+  /* ⚠️ SE EXIGE LA DECLARACION COMPLETA: «1fr» a secas lo cumple tambien «1fr 1fr», y la
+     mutacion 27 —volver a dos columnas— SOBREVIVIA. Nacio de ese barrido. */
+  ex.push(['(A3) los cuatro campos van en UNA columna',
+    regla('#wilk-campos.grid-1').replace(/ /g, '').indexOf('grid-template-columns:1fr;') > -1, true]);
+  ex.push(['(A4) DENOMINADOR: la fila tiene los dos hijos, campos y conclusion',
+    !!document.getElementById('wilk-campos') && !!document.getElementById('wilk-concl'), true]);
+  const wIds = ['wilkins_movilidad','wilkins_engrosamiento','wilkins_calcificacion','wilkins_subvalvular','wilkins_delib'];
+  ex.push(['(A5) y sus CINCO campos siguen dentro', wIds.filter(i => {
+    const e = document.getElementById(i); const f = document.getElementById('wilk-fila');
+    return !!(e && f && f.contains(e)) }).length, 5]);
+  /* (B) WILKINS: un dato, dos puertas */
+  ex.push(['(B0) DENOMINADOR: el sincronizador existe', typeof wilkSincronizar === 'function', true]);
+  const put = (ids, vals) => ids.forEach((id, i) => { const e = document.getElementById(id); if (e) e.value = vals[i] });
+  const E = ['wilkins_movilidad','wilkins_engrosamiento','wilkins_calcificacion','wilkins_subvalvular'];
+  const C = ['cx_wilk_mov','cx_wilk_eng','cx_wilk_cal','cx_wilk_sub'];
+  ex.push(['(B1) DENOMINADOR: los ocho campos existen',
+    E.concat(C).filter(i => !!document.getElementById(i)).length, 8]);
+  /* Guardada por el mismo motivo que en TC-651: contra el arbol anterior no existe. */
+  const sinc = (k) => { try { return wilkSincronizar(k) } catch (e) { return 'SIN FUNCION' } };
+  const val = (ids) => ids.map(i => (document.getElementById(i) || {}).value).join(',');
+  put(E, ['3','2','4','1']); sinc('ete');
+  ex.push(['(B2) del ETE a cirugia', val(C), '3,2,4,1']);
+  put(C, ['1','1','2','2']); sinc('cx');
+  ex.push(['(B3) y de cirugia al ETE', val(E), '1,1,2,2']);
+  put(C, ['','','','']); sinc('cx');
+  ex.push(['(B4) el borrado traduce el centinela', val(E), '0,0,0,0']);
+  /* ⚠️ Y EN EL OTRO SENTIDO, que es el que la mutacion 33 rompia sin que nada lo viera: el
+     centinela del ETE es el '0' de «No evaluado» y en cirugia tiene que llegar VACIO. (B4)
+     solo probaba vacio -> '0'. Nacio del barrido de mutaciones. */
+  /* cirugia se pone en 1 a proposito: (B4) la dejo vacia, y sin eso la primera pasada no
+     tendria nada que mover y el 4 de (B4c) seria un cero sin denominador. */
+  put(C, ['1','1','1','1']); put(E, ['0','0','0','0']);
+  const n1 = sinc('ete');
+  ex.push(['(B4b) y el centinela del ETE llega vacio a cirugia', val(C), ',,,']);
+  /* ⚠️ (B4c) ES LO QUE DE VERDAD MATA LA MUTACION 33, y hace falta decir por que. El VALOR del
+     campo no la distingue: cx_wilk_* no tiene opcion value="0", asi que asignarle el centinela
+     crudo lo deja igual en cadena vacia —medido: «,,,» en los dos arboles—. Lo protege el DOM,
+     no la linea, asi que por ese camino la mutacion es EQUIVALENTE.
+     Lo observable es la IDEMPOTENCIA: sin traducir el centinela, el destino nunca llega a
+     coincidir con el origen y el sincronizador informa los cuatro campos movidos en CADA
+     pasada, para siempre —medido 4/4/4 contra 4/0/0—. Un sincronizador que dice que movio algo
+     en cada pasada es lo que hace que un barrido no se estabilice. */
+  ex.push(['(B4c) y la segunda pasada no mueve nada: el centinela ya quedo traducido',
+    n1 + '/' + sinc('ete') + '/' + sinc('ete'), '4/0/0']);
+  /* CONTROL NEGATIVO: un change que NO es de confianza no copia nada */
+  put(E, ['4','4','4','4']); put(C, ['1','1','1','1']);
+  let falso = 'SIN FUNCION';
+  try { falso = wilkMarcarGesto(new Event('change', { bubbles:true }), 'ete') } catch (e) {}
+  ex.push(['(B5) CONTROL NEGATIVO: un gesto que no es de confianza devuelve false', falso, false]);
+  ex.push(['(B6) y NO copia nada', val(C), '1,1,1,1']);
+  /* (C) OREJUELA: la conclusion DENTRO de la fila */
+  const of = document.getElementById('oai-fila');
+  ex.push(['(C0) DENOMINADOR: la fila de la orejuela existe', !!of, true]);
+  ex.push(['(C1) la conclusion esta DENTRO de la fila', !!(of && of.querySelector('.calc-box')), true]);
+  /* ⚠️ (C1b) NACIO DEL BARRIDO: nada afirmaba que la regla que UBICA la conclusion exista.
+     Estar dentro de la fila en el DOM no dice en que celda cae. */
+  ex.push(['(C1b) y la regla de 900 px la ubica en la primera columna, segunda fila',
+    regla('#oai-fila > .calc-box', '900').replace(/ /g, '').indexOf('grid-row:2') > -1, true]);
+  ex.push(['(C2) y desde 900 px la fila es una grilla',
+    regla('#oai-fila', '900').replace(/ /g, '').indexOf('display:grid') > -1, true]);
+  ex.push(['(C3) con el dibujo abarcando las dos filas',
+    regla('#oai-fila > #oai-esq-caja', '900').indexOf('span 2') > -1, true]);
+  const oIds = ['oai_morfologia','oai_lobulos','oai_trombo','oai_sec','oai_vel_vac','oai_vel_llen',
+                'oai_patron','oai_ostium_diam','oai_profundidad','oai_area_ostium','oai_notas'];
+  ex.push(['(C4) los ONCE campos de la seccion siguen existiendo',
+    oIds.filter(i => !!document.getElementById(i)).length, 11]);
+  ex.push(['(C5) CONTROL: el cuadro de notas de la orejuela SIGUE, y es un campo del estudio',
+    !!document.getElementById('oai_notas'), true]);
+  /* (D) AORTA DEL ETE */
+  const af = document.getElementById('eteao-fila');
+  ex.push(['(D0) DENOMINADOR: la fila de la aorta del ETE existe', !!af, true]);
+  ex.push(['(D1) desde 900 px es una grilla de dos columnas', regla('#eteao-fila', '900').indexOf('grid') > -1, true]);
+  ex.push(['(D2) los campos van en DOS columnas',
+    (document.getElementById('eteao-campos') || {}).className, 'grid-2']);
+  const aIds = ['ao_segmento','ao_grado_atero','ao_grosor_placa','ao_movilidad_placa',
+                'ao_ulceracion','ao_calcificacion','ao_ete_notas'];
+  ex.push(['(D3) los SIETE campos siguen existiendo', aIds.filter(i => !!document.getElementById(i)).length, 7]);
+  ex.push(['(D4) CONTROL: el cuadro de notas de la aorta SIGUE', !!document.getElementById('ao_ete_notas'), true]);
+  /* (E) VAB: cuatro columnas y el resumen dentro de la fila */
+  const vf = document.getElementById('vab-fila');
+  ex.push(['(E0) DENOMINADOR: la fila de la VAB existe', !!vf, true]);
+  ex.push(['(E1) tiene CUATRO columnas de campos', vf ? vf.querySelectorAll(':scope > .vab-col').length : -1, 4]);
+  ex.push(['(E2) el dibujo esta dentro de la fila', !!(vf && vf.querySelector(':scope > #vab-dibujo-host')), true]);
+  ex.push(['(E3) y el resumen tambien', !!(vf && vf.querySelector(':scope > .calc-box')), true]);
+  ex.push(['(E4) desde 1200 px son cuatro columnas',
+    regla('#vab-fila', '1200').indexOf('repeat(4') > -1, true]);
+  ex.push(['(E5) y desde 1360 el dibujo vuelve al costado, en la quinta',
+    regla('#vab-fila > #vab-dibujo-host', '1360').replace(/ /g, '').indexOf('grid-column:5') > -1, true]);
+  const vIds = ['vab_tipo','vab_rafe','vab_simetria','vab_ea_ro','vab_ia_ro','vab_raiz_ro',
+                'vab_asc_ro','vab_fenotipo','vab_funcion','vab_morf_ro','vab_cx_valvular','vab_riesgo_qx'];
+  ex.push(['(E6) los DOCE campos de la fila siguen dentro de ella',
+    vIds.filter(i => { const e = document.getElementById(i); return !!(e && vf && vf.contains(e)) }).length, 12]);
+  ex.push(['(E7) y los SEIS globos de la seccion siguen',
+    document.querySelectorAll('#sacc-cc-vab [data-vinfo]').length, 6]);
+  /* (F) MARFAN: NO se toco, y esta como el medico lo pidio */
+  const mf = document.getElementById('mfs-fila');
+  ex.push(['(F0) DENOMINADOR: la fila de Marfan existe', !!mf, true]);
+  ex.push(['(F1) CONTROL: desde 900 px ya era flex, y no se toco', regla('#mfs-fila', '900').indexOf('flex') > -1, true]);
+  ex.push(['(F2) y la aorta ascendente sigue DESPUES de la sinusal en el DOM',
+    (function () { const a = document.getElementById('marfan_ao_seno'), b = document.getElementById('marfan_ao_ascendente');
+      if (!a || !b) return 'FALTA'; return !!(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING) })(), true]);
+  return { extra: EXP };
+`);
+
+/* -- TC-655 ---------------------------------------------------------------------------------
+   PANT-7, commit 10b. La letra unica de los carteles ⓘ: ningun cartel se declara su propio
+   tamanio de cuerpo.
+   DENOMINADOR: la tarjeta existe y declara su tamanio. */
+caso('TC-655', 'Tanda PANT-7: todos los carteles de los globos usan la letra de la tarjeta, y el de la orejuela ya no se declara la suya', `
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]), 'esperado ' + String(t[2]) + ' | hallado ' + String(t[1])]) };
+  const card = document.getElementById('vinfo-card');
+  ex.push(['(A0) DENOMINADOR: la tarjeta existe y declara su tamanio de letra',
+    !!(card && card.style.fontSize), true]);
+  ex.push(['(A1) y ese tamanio es 11px', card ? card.style.fontSize : 'NO', '11px']);
+  /* (B) EL CARTEL DE LA OREJUELA: su constructor ya NO se declara un font-size propio. */
+  ex.push(['(B0) DENOMINADOR: el constructor del cartel de la orejuela existe',
+    typeof _oaiRefGlobo === 'function', true]);
+  const n = (typeof _oaiRefGlobo === 'function') ? _oaiRefGlobo() : null;
+  ex.push(['(B1) DENOMINADOR: devuelve contenido', n ? (n.textContent || '').length > 500 : false, true]);
+  ex.push(['(B2) y su contenedor NO fija un tamanio de letra', n ? (n.style.fontSize || '') : 'NO', '']);
+  ex.push(['(B3) CONTROL: conserva su interlineado', n ? (n.style.lineHeight || '') : 'NO', '1.55']);
+  /* (C) NINGUN hijo directo del contenedor se declara 12px, que era el tamanio que se salia. */
+  let doce = 0;
+  if (n) Array.prototype.slice.call(n.querySelectorAll('[style]')).forEach(e => {
+    if (e.style && e.style.fontSize === '12px') doce++ });
+  ex.push(['(C1) cero nodos del cartel declaran 12px', doce, 0]);
+  /* (D) CONTROL: los tamanios MENORES con papel propio se conservan. */
+  let diez = 0;
+  if (n) Array.prototype.slice.call(n.querySelectorAll('[style]')).forEach(e => {
+    if (e.style && e.style.fontSize === '10px') diez++ });
+  ex.push(['(D1) CONTROL: el pie de la ficha conserva sus 10px', diez > 0, true]);
+  return { extra: EXP };
+`);
+
 
 
 

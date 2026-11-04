@@ -234,3 +234,19 @@ consumidores. La PSAP, McConnell, el 60/60 y el tabique en D **no se movieron**.
 Todo está en **`docs/mapa/tep-aha2026.md`**: por qué esto revierte al R7 sin contradecirlo, la
 cita falsa que se cerró, el efecto autorizado sobre el posoperatorio, los dos globos ⓘ nuevos y
 las cinco trampas medidas.
+
+
+## Puntero — la tanda PANT-7 (2026-11-03 y 04): el signo 60/60
+
+El signo 60/60 ganó su globo ⓘ (`VINFO['tep-6060']`) y su ficha de Referencias
+(**`FUN-VD-009`**), leídos en imagen de la ESC 2019 de tromboembolia pulmonar, **edición
+inglesa**, folios 557 y 558. Dice las **dos** condiciones, el ~12 % de los TEP no seleccionados
+—contra el 20 % del McConnell— y la diferencia entre el texto y la figura, que se muestra y no se
+resuelve. **Sin conducta y sin la palabra «positivo».** Entra también `FUN-VD-010` para la muesca
+mesosistólica.
+
+Y con el tiempo de aceleración por debajo de 60 ms se pintan en ámbar **dos** rótulos
+(`tep6060Resalte`), por decisión expresa del médico: **sólo visual**, no escribe el campo, no
+cuenta en el score y no llega al papel.
+
+Detalle en `docs/mapa/pant7-vd-cia-globos.md` § 3.3 y § 3.5.
