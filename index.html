@@ -20353,97 +20353,101 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
       <span id="ebs_badge" class="incl-badge" hidden>📎 en el informe</span>
     </button>
     <div class="card-body sacc-body">
-      <p style="font-size:11px;color:var(--text2);margin:0 0 12px;line-height:1.5;">
-        Desplazamiento apical del velo septal tricuspídeo con atrialización del ventrículo derecho. Menos del 1 % de las cardiopatías congénitas,
-        y la principal causa de <b>insuficiencia tricuspídea congénita severa</b>. Asociación frecuente con FOP o CIA y con vías accesorias.
-        <b style="color:var(--accent2);">Umbral diagnóstico: desplazamiento ≥8 mm/m² de superficie corporal.</b>
-      </p>
-      <div class="grid-3">
-        <div class="fg"><label>Desplazamiento del velo septal (mm)</label><input type="number" id="ebs_desplazamiento" step="0.1" placeholder="mm" oninput="ebsSync()"></div>
-        <div class="fg"><label>Indexado por superficie</label>
-          <div class="calc-box" style="margin:0;padding:6px 10px;"><div class="calc-row" style="border:none;padding:0;">
-            <span id="ebs-desp-idx" class="calc-val">—</span></div></div>
+      <!-- == EBSTEIN EN TRES COLUMNAS - tanda PANT-9, commit 3 (2026-11-04) ==================
+           DISPOSICION APROBADA POR EL MEDICO en un lienzo de disenio. Es la pantalla mas grande
+           de las siete. Lo unico que cambia es DONDE esta cada campo y donde esta cada texto:
+           ningun id, ningun valor, ninguna opcion y ninguna conclusion se movieron, y el papel
+           sale identico -medido con el A/B-.
+           TRES TEXTOS PASARON AL GLOBO, PALABRA POR PALABRA: el parrafo inicial de la seccion al
+           globo del TITULO (cc9-ebs-sec); la nota de las cinco areas Y LA CAJA ROJA del indice
+           al globo del grupo «Indice de Celermajer» (cc9-ebs-cel, con la caja roja en el bloque
+           «A tener en cuenta»); y la nota de la cianosis al globo de la saturacion en reposo
+           (cc9-ebs-cia). La caja roja es un AVISO QUE EVITA UN ERROR y se reporta aparte.
+           El globo del grupo hace crecer su titulo a 44 px, que es la decision de la casa para
+           el piso tactil: sin margenes negativos, el contenedor crece y nada queda tapado. -->
+      <div class="cc9-cuadro">
+        <div class="cc9-hdrbar">
+          <button type="button" class="vinfo-btn vinfo-btn-44" data-vinfo="cc9-ebs-sec" aria-expanded="false" aria-label="Que es la anomalia de Ebstein, con que frecuencia aparece y cual es su umbral diagnostico" onclick="vInfoClic(this)">&#9432;</button>
         </div>
-        <div class="fg"><label>Atrialización del VD (%)</label><input type="number" id="ebs_atrializacion" step="1" placeholder="%" oninput="ebsSync()"></div>
-      </div>
-      <div class="grid-2" style="margin-top:10px;">
-        <div class="fg"><label>Función del VD funcional</label>
-          <select id="ebs_func_vd" onchange="ebsSync()">
-            <option value="">—</option>
-            <option value="normal">Normal</option>
-            <option value="leve">Reducida leve</option>
-            <option value="moderada">Reducida moderada</option>
-            <option value="severa">Reducida severa</option>
-          </select>
+        <div class="cc9-fila" id="ebs-fila">
+          <div class="cc9-cols">
+            <div class="cc9-col">
+              <div class="cc9-h">Válvula y ventrículo derecho</div>
+              <div class="fg"><label>Desplazamiento del velo septal (mm)</label><input type="number" id="ebs_desplazamiento" step="0.1" placeholder="mm" oninput="ebsSync()"></div>
+              <div class="fg"><label>Indexado por superficie</label>
+                <div class="calc-box" style="margin:0;padding:6px 10px;"><div class="calc-row" style="border:none;padding:0;">
+                  <span id="ebs-desp-idx" class="calc-val">—</span></div></div>
+              </div>
+              <div class="fg"><label>Atrialización del VD (%)</label><input type="number" id="ebs_atrializacion" step="1" placeholder="%" oninput="ebsSync()"></div>
+              <div class="fg"><label>IT — grado (de Válvulas)</label>
+                <input type="text" id="ebs_it_ro" readonly tabindex="-1" placeholder="—" style="opacity:.7;"></div>
+              <div class="fg"><label>Función del VD funcional</label>
+                <select id="ebs_func_vd" onchange="ebsSync()">
+                  <option value="">—</option>
+                  <option value="normal">Normal</option>
+                  <option value="leve">Reducida leve</option>
+                  <option value="moderada">Reducida moderada</option>
+                  <option value="severa">Reducida severa</option>
+                </select>
+              </div>
+            </div>
+            <div class="cc9-col">
+              <div class="cc9-h">Índice de Celermajer <button type="button" class="vinfo-btn vinfo-btn-44" data-vinfo="cc9-ebs-cel" aria-expanded="false" aria-label="Como se trazan las cinco areas del indice de Celermajer y que limitaciones tiene el indice" onclick="vInfoClic(this)">&#9432;</button></div>
+              <div class="cc9-g2">
+                <div class="fg"><label>Área AD (cm²)</label><input type="number" id="ebs_area_ad" step="0.1" placeholder="cm²" oninput="ebsSync()"></div>
+                <div class="fg"><label>Área VD atrializado (cm²)</label><input type="number" id="ebs_area_vd_atrial" step="0.1" placeholder="cm²" oninput="ebsSync()"></div>
+                <div class="fg"><label>Área VD funcional (cm²)</label><input type="number" id="ebs_area_vd_func" step="0.1" placeholder="cm²" oninput="ebsSync()"></div>
+                <div class="fg"><label>Área AI (cm²)</label><input type="number" id="ebs_area_ai" step="0.1" placeholder="cm²" oninput="ebsSync()"></div>
+                <div class="fg"><label>Área VI (cm²)</label><input type="number" id="ebs_area_vi" step="0.1" placeholder="cm²" oninput="ebsSync()"></div>
+                <div class="fg"><label>Áreas del estudio (telesístole)</label>
+                  <input type="text" id="ebs_areas_ro" readonly tabindex="-1" placeholder="—" style="opacity:.7;"></div>
+              </div>
+              <div class="calc-box" style="margin:0;">
+                <div class="calc-row"><span class="calc-lbl">Índice de Celermajer</span><span id="ebs-celermajer" class="calc-val">—</span></div>
+              </div>
+            </div>
+            <div class="cc9-col">
+              <div class="cc9-h">Arritmias y situación clínica</div>
+              <div class="fg"><label>Taquicardia supraventricular</label>
+                <select id="ebs_tsv" onchange="ebsSync()">
+                  <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
+                </select>
+              </div>
+              <div class="fg"><label>Vías accesorias conocidas</label>
+                <select id="ebs_vias" onchange="ebsSync()">
+                  <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
+                </select>
+              </div>
+              <div class="fg"><label>Síntomas atribuibles</label>
+                <select id="ebs_sintomas" onchange="ebsSync()">
+                  <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
+                </select>
+              </div>
+              <div class="fg"><label>Saturación de O&#8322; en reposo (%) <button type="button" class="vinfo-btn vinfo-btn-44" data-vinfo="cc9-ebs-cia" aria-expanded="false" aria-label="Que significa la cianosis en la anomalia de Ebstein" onclick="vInfoClic(this)">&#9432;</button></label>
+                <input type="number" id="ebs_saturacion" step="1" placeholder="%" oninput="ebsSync()"></div>
+              <div class="fg"><label>Deterioro objetivo de la capacidad de ejercicio</label>
+                <select id="ebs_ejercicio" onchange="ebsSync()">
+                  <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
+                </select>
+              </div>
+              <div class="fg"><label>Dilatación progresiva del VD</label>
+                <select id="ebs_progresion" onchange="ebsSync()">
+                  <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          <div class="cc9-concl">
+            <div class="calc-box">
+              <div class="calc-row"><span class="calc-lbl">Conclusión</span><span id="ebs-concl" class="calc-val">—</span></div>
+            </div>
+            <input type="checkbox" id="ebs_incluir_chk" style="display:none;" tabindex="-1" aria-hidden="true">
+            <div class="cc9-concl-btn">
+              <button type="button" class="btn btn-integrar" data-ete-chk="ebs_incluir_chk" aria-pressed="false"
+                      onclick="eteInclToggle('ebs_incluir_chk')">&#128206; Integrar al informe</button>
+            </div>
+          </div>
         </div>
-        <div class="fg"><label>IT — grado (de Válvulas)</label>
-          <input type="text" id="ebs_it_ro" readonly tabindex="-1" placeholder="—" style="opacity:.7;"></div>
-      </div>
-
-      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:16px 0 8px;">Índice de Celermajer</div>
-      <p style="font-size:10px;color:var(--text2);margin:0 0 8px;">Las cinco áreas se trazan en <b>apical 4 cámaras y en TELEDIÁSTOLE</b>. No son las mismas que las áreas auriculares del estudio, que se miden en telesístole (aurícula máxima) para evaluar tamaño de cámara — por eso son campos aparte.</p>
-      <div class="grid-3">
-        <div class="fg"><label>Área AD (cm²)</label><input type="number" id="ebs_area_ad" step="0.1" placeholder="cm²" oninput="ebsSync()"></div>
-        <div class="fg"><label>Área VD atrializado (cm²)</label><input type="number" id="ebs_area_vd_atrial" step="0.1" placeholder="cm²" oninput="ebsSync()"></div>
-        <div class="fg"><label>Área VD funcional (cm²)</label><input type="number" id="ebs_area_vd_func" step="0.1" placeholder="cm²" oninput="ebsSync()"></div>
-      </div>
-      <div class="grid-3" style="margin-top:10px;">
-        <div class="fg"><label>Área AI (cm²)</label><input type="number" id="ebs_area_ai" step="0.1" placeholder="cm²" oninput="ebsSync()"></div>
-        <div class="fg"><label>Área VI (cm²)</label><input type="number" id="ebs_area_vi" step="0.1" placeholder="cm²" oninput="ebsSync()"></div>
-        <div class="fg"><label>Áreas del estudio (telesístole)</label>
-          <input type="text" id="ebs_areas_ro" readonly tabindex="-1" placeholder="—" style="opacity:.7;"></div>
-      </div>
-      <div class="calc-box" style="margin-top:10px;">
-        <div class="calc-row"><span class="calc-lbl">Índice de Celermajer</span><span id="ebs-celermajer" class="calc-val">—</span></div>
-      </div>
-      <div class="mBoxLike" style="border-left:3px solid var(--red,#b91c1c);background:rgba(185,28,28,.08);padding:8px 12px;border-radius:6px;font-size:10px;line-height:1.5;margin-top:10px;">
-        <b>El índice es orientativo, no una indicación.</b> Por ecocardiografía <b>sobreestima</b> la severidad (concordancia con resonancia κ=0,39; sólo el índice por RMC correlacionó con la capacidad funcional).
-        Se derivó en una serie de <b>28 neonatos</b> — el «100 %» del grado IV son 5 pacientes de 5 — y <b>no figura en la ESC 2020</b>, cuyas indicaciones de cirugía en Ebstein son clínicas.
-        Cortes: I &lt;0,5 · II 0,50-0,99 · III 1,00-1,49 · IV ≥1,5. Origen: Celermajer DS et al., <i>JACC</i> 1992;19:1041-6.
-      </div>
-
-      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:16px 0 8px;">Arritmias y situación clínica</div>
-      <div class="grid-3">
-        <div class="fg"><label>Taquicardia supraventricular</label>
-          <select id="ebs_tsv" onchange="ebsSync()">
-            <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
-          </select>
-        </div>
-        <div class="fg"><label>Vías accesorias conocidas</label>
-          <select id="ebs_vias" onchange="ebsSync()">
-            <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
-          </select>
-        </div>
-        <div class="fg"><label>Síntomas atribuibles</label>
-          <select id="ebs_sintomas" onchange="ebsSync()">
-            <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
-          </select>
-        </div>
-      </div>
-      <div class="grid-2" style="margin-top:10px;">
-        <div class="fg"><label>Saturación de O&#8322; en reposo (%)</label>
-          <input type="number" id="ebs_saturacion" step="1" placeholder="%" oninput="ebsSync()">
-          <span style="font-size:10px;color:var(--text2);">La <b>cianosis</b> es uno de los desencadenantes de intervención que lista la ESC 2020 en la anomalía de Ebstein. Por debajo de 90&nbsp;% indica shunt derecha-izquierda significativo a través de la comunicación interauricular.</span></div>
-      </div>
-      <div class="grid-2" style="margin-top:10px;">
-        <div class="fg"><label>Deterioro objetivo de la capacidad de ejercicio</label>
-          <select id="ebs_ejercicio" onchange="ebsSync()">
-            <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
-          </select>
-        </div>
-        <div class="fg"><label>Dilatación progresiva del VD</label>
-          <select id="ebs_progresion" onchange="ebsSync()">
-            <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
-          </select>
-        </div>
-      </div>
-      <div class="calc-box" style="margin-top:12px;">
-        <div class="calc-row"><span class="calc-lbl">Conclusión</span><span id="ebs-concl" class="calc-val">—</span></div>
-      </div>
-      <div style="text-align:center;margin-top:10px;">
-        <input type="checkbox" id="ebs_incluir_chk" style="display:none;" tabindex="-1" aria-hidden="true">
-        <button type="button" class="btn btn-integrar" data-ete-chk="ebs_incluir_chk" aria-pressed="false"
-                onclick="eteInclToggle('ebs_incluir_chk')">📎 Integrar al informe</button>
       </div>
     </div>
   </div>
@@ -48815,6 +48819,34 @@ const VINFO = Object.freeze({
     ancho: 356,
     tit: 'El derrame pericardico en el sindrome de Eisenmenger',
     lee: 'El derrame pericardico asocia peor pronostico en Eisenmenger.'
+  },
+  'cc9-ebs-sec': {
+    ancho: 420,
+    tit: 'La anomalía de Ebstein',
+    lee: 'Desplazamiento apical del velo septal tricuspídeo con atrialización del ventrículo '
+       + 'derecho. Menos del 1 % de las cardiopatías congénitas, y la principal causa de '
+       + 'insuficiencia tricuspídea congénita severa. Asociación frecuente con FOP o CIA y con '
+       + 'vías accesorias. Umbral diagnóstico: desplazamiento ≥8 mm/m² de superficie corporal.'
+  },
+  'cc9-ebs-cel': {
+    ancho: 440,
+    tit: 'El índice de Celermajer y sus cinco áreas',
+    lee: 'Las cinco áreas se trazan en apical 4 cámaras y en TELEDIÁSTOLE. No son las mismas que '
+       + 'las áreas auriculares del estudio, que se miden en telesístole (aurícula máxima) para '
+       + 'evaluar tamaño de cámara — por eso son campos aparte.',
+    ojo: 'El índice es orientativo, no una indicación. Por ecocardiografía sobreestima la '
+       + 'severidad (concordancia con resonancia κ=0,39; sólo el índice por RMC correlacionó con '
+       + 'la capacidad funcional). Se derivó en una serie de 28 neonatos — el «100 %» del grado '
+       + 'IV son 5 pacientes de 5 — y no figura en la ESC 2020, cuyas indicaciones de cirugía en '
+       + 'Ebstein son clínicas. Cortes: I <0,5 · II 0,50-0,99 · III 1,00-1,49 · IV ≥1,5. Origen: '
+       + 'Celermajer DS et al., JACC 1992;19:1041-6.'
+  },
+  'cc9-ebs-cia': {
+    ancho: 420,
+    tit: 'La cianosis en la anomalía de Ebstein',
+    lee: 'La cianosis es uno de los desencadenantes de intervención que lista la ESC 2020 en la '
+       + 'anomalía de Ebstein. Por debajo de 90 % indica shunt derecha-izquierda significativo a '
+       + 'través de la comunicación interauricular.'
   },
   'tarj-diast': { ancho: 356, dyn: function () { return qvDiast() } }
 });
@@ -156051,8 +156083,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261104-0744';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793789056001;                 /* eco-build-ms */
+const ECO_BUILD    = '20261104-0747';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793789262131;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -156138,7 +156170,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261104-0744</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261104-0747</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
