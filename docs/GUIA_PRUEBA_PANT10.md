@@ -99,3 +99,19 @@ Evidencia.
 → Aparece **«Síndrome de Eisenmenger»** con **14 preguntas**. Su bloque de la ESC/ERS 2022 cita
 el **folio 66** y publica el **bosentán en Clase I · Nivel B**. Y la Evidencia **no repite** la
 franja roja de la pantalla.
+
+**23.** Cargá Fontan (**Tipo** «Aurícula-pulmonar», **Saturación** `88`, **Clase NYHA** III) y abrí
+la Evidencia.
+→ La sección **«Circulación de Fontan»** aparece, pero **plegada**: se ve sólo su título. Tocá el
+título y se abre con sus **14 preguntas**. No es un defecto de esta tanda: la regla que abre una
+sección sola —un aviso, una fila que alcanza un criterio o una recomendación alcanzada— es
+**preexistente** y con esa carga no se cumple. Medido: el cuerpo plegado tiene **3.077 px** de
+contenido y está a un clic.
+
+**24.** Cargá Eisenmenger (**Lesión de base** «CIV», **Saturación en reposo** `84`, **Síncope**
+«Sí», **Hemoptisis** «Sí»), marcá **«Integrar al informe»** y generá el informe.
+→ ⚠️ **El informe y el EN SUMA todavía publican «mortalidad materna >50 %», «marcador de mal
+pronóstico» y «riesgo de episodio masivo y fatal»**, y el informe además **«(ESC 2020)»**. Son
+las mismas frases que el commit 1 retiró de los globos: tienen una segunda copia en otro emisor y
+esta tanda **no la tocó**. Medido e idéntico a HEAD, con las **dos redacciones propuestas** para
+la franja, en `docs/PENDIENTES.md` → **P10-a**.

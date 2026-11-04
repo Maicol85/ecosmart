@@ -135,3 +135,42 @@ etiqueta, `_indPregBadge`.
 | El barrido de mutaciones | `scripts/_mut_pant10.py`, 36 dirigidas |
 | El A/B | `scripts/_probe_pant10ab.mjs` |
 | Lo que quedó fuera | `docs/PENDIENTES.md` → **P10-b** a **P10-e** |
+
+---
+
+## 7. La geometría del panel con las cinco secciones abiertas
+
+Medida en Chrome con las cinco lesiones cargadas y el panel abierto, a los cuatro anchos. El
+corte de las dos columnas es `IND_COLS_CORTE` = **900 px** y se mide sobre el **PANEL**, no sobre
+la ventana: **sin maximizar el panel mide 820 px tanto a 1440 como a 1000**, que es lo que esta
+casa ya documenta desde PANT-2.
+
+| ventana | panel | cuerpo | secciones con molde de dos columnas | scroll horizontal | textos recortados |
+|---|---|---|---:|---:|---:|
+| 1440 px | 820 × 852 | 818 × 745 | 5 de 5 | 0 | 0 |
+| 1000 px | 820 × 852 | 818 × 745 | 5 de 5 | 0 | 0 |
+| 768 px | 744 × 852 | 742 × 745 | 5 de 5 | 0 | 0 |
+| 390 px | 366 × 852 | 364 × 729 | 5 de 5 | 0 | 0 |
+
+**El alto de cada sección, a 1440 px** (ancho 790 en las cinco):
+
+| sección | alto |
+|---|---:|
+| Defecto del septo auriculoventricular | 2.585 px |
+| Anomalía de Ebstein | 2.648 px |
+| Circulación de Fontan | **35 px — plegada** |
+| Conexión venosa pulmonar anómala parcial | 2.152 px |
+| Síndrome de Eisenmenger | 3.156 px |
+
+⚠️ **LOS 35 px DE FONTAN NO SON UN DEFECTO DE ESTA TANDA, Y ESTÁ MEDIDO.** Una sección del panel
+es un `<details>` y `_indSecHTMLCuerpo` le pone `open` cuando tiene un `aviso`, cuando alguna
+fila alcanza un criterio (`marca` «ok» o «alarm») o cuando hay una recomendación alcanzada. Esa
+regla **no se tocó**: cero líneas en el diff de la tanda. `_indFON` no publica `aviso` y con la
+carga de la sonda ninguna de sus filas alcanza su criterio, así que la sección se pinta plegada
+**con su cuerpo entero adentro —3.077 px— a un clic**. Las otras cuatro sí alcanzan uno con esa
+misma carga.
+
+⚠️ **Y no hay un «antes» que comparar**: contra HEAD el panel abre **0 de 5** de estas secciones
+—no existen—, así que una tabla de alto antes y después de las cinco no tiene denominador. Lo que
+sí se comparó, y sale idéntico, son el scroll horizontal, los recortes, los 17 globos y la franja
+de Eisenmenger en sus 137 caracteres.
