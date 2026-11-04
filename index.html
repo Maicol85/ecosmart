@@ -10978,6 +10978,100 @@ window.cerrarSesionReal = cerrarSesionReal;
           </div>
         </div>
       </div>
+      <!-- ══ LA TABLA DE DIFERENCIALES — PANT-11, commit 9a ═══════════════════════════════
+           Idea del medico del 04/11/2026: como en el SGL, arriba los campos propios -los que
+           van al informe- y abajo algo TEORICO con una tabla de diagnosticos diferenciales.
+           ⚠️ ES DE SOLO LECTURA Y NO TOCA NADA: no escribe en el estudio, no lee ningun campo
+              para sugerir un diagnostico, no cambia `masa_dx` y NO llega al papel.
+           ⚠️ NO LLEVA COLUMNA DE ESTUDIO COMPLEMENTARIO NI DE CONDUCTA, que es lo que la orden
+              fija: lo del estudio complementario vive en el globo del titulo.
+           ⚠️ LAS DIFERENCIAS ENTRE FUENTES SE MUESTRAN Y NO SE RESUELVEN -la regla de esta
+              casa-, en la fila de la protesis.
+           ⚠️ TODO PARAFRASEADO: ni una frase copiada. Cada fila lleva su guia, su edicion, su
+              hoja y su folio, los dos comprobados en el pie impreso.
+           ⚠️ CON SCROLL HORIZONTAL PROPIO EN SU CONTENEDOR, no en la pagina. -->
+      <div class="masa-ref" style="margin-top:14px;border-top:1px solid var(--border);padding-top:12px;">
+        <div class="calc-row" style="border:0;padding:0 0 8px;">
+          <span class="calc-lbl" style="font-weight:700;">C&oacute;mo distinguirlas (referencia)
+            <button type="button" class="vinfo-btn vinfo-btn-44" data-vinfo="masa-ref" aria-expanded="false"
+                    aria-label="Qu&eacute; estudio complementario conviene cuando hay dudas"
+                    onclick="vInfoClic(this)">&#9432;</button></span>
+        </div>
+        <div class="masa-ref-wrap">
+        <table class="masa-ref-tabla">
+          <thead>
+            <tr><th>Entidad</th><th>Localizaci&oacute;n t&iacute;pica</th><th>Aspecto</th>
+                <th>Movilidad</th><th>Relaci&oacute;n con la v&aacute;lvula o la pared</th>
+                <th>Hallazgos que acompa&ntilde;an</th><th>Fuente</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><b>Vegetaci&oacute;n</b></td>
+              <td>Lado auricular de las v&aacute;lvulas auriculoventriculares y lado ventricular de la a&oacute;rtica, aunque puede afectar cualquier cara.</td>
+              <td>Ecotextura gris, parecida a la del miocardio; forma amorfa, desflecada o lobulada, y con menos frecuencia lineal o redondeada. Las curadas suelen quedar m&aacute;s ecog&eacute;nicas y calcificadas.</td>
+              <td>Oscilante, ca&oacute;tica, de alta frecuencia e <b>independiente del movimiento valvular</b>; si es grande, prolapsa al ventr&iacute;culo en di&aacute;stole.</td>
+              <td>Adherida a la v&aacute;lvula pero con movimiento propio.</td>
+              <td>Insuficiencia valvular, aneurisma mic&oacute;tico, destrucci&oacute;n de la v&aacute;lvula, absceso perivalvular y dehiscencia de una pr&oacute;tesis.</td>
+              <td>ASE 2016 de fuente embol&iacute;gena, Tabla 5, hoja 17, folio 17.</td>
+            </tr>
+            <tr>
+              <td><b>Fibroelastoma papilar</b></td>
+              <td>Sobre las v&aacute;lvulas en el 80&nbsp;% de los casos, con m&aacute;s frecuencia en la a&oacute;rtica y despu&eacute;s en la mitral: lado <b>a&oacute;rtico</b> de la a&oacute;rtica y lado <b>ventricular</b> de la mitral, que es justo lo contrario de la endocarditis.</td>
+              <td>Textura homog&eacute;nea, redondeado, oval o irregular, con el <b>borde bien delimitado</b> y un pediculo central denso con extensiones en fronda. Habitualmente menor de 20&nbsp;mm (media de 8 a 9&nbsp;mm) y &uacute;nico en m&aacute;s del 90&nbsp;%.</td>
+              <td>A menudo m&oacute;vil.</td>
+              <td>Pegado a la v&aacute;lvula; rara vez produce disfunci&oacute;n valvular significativa.</td>
+              <td>Puede debutar con ictus, accidente isqu&eacute;mico transitorio o infarto por embolia coronaria; en torno a un tercio son asintom&aacute;ticos.</td>
+              <td>ASE 2016, hoja 27, folio 27. Tambi&eacute;n JACC CardioOncology 2024, Tabla 2, hoja 5, folio 851.</td>
+            </tr>
+            <tr>
+              <td><b>Mixoma</b></td>
+              <td>M&aacute;s del 75&nbsp;% en la <b>aur&iacute;cula izquierda</b>, con el ped&iacute;culo en la fosa oval en m&aacute;s del 90&nbsp;%. Tambi&eacute;n puede verse en el ventr&iacute;culo izquierdo, en la aur&iacute;cula derecha y, muy rara vez, en el ventr&iacute;culo derecho.</td>
+              <td>Aspecto gelatinoso, pediculado, de superficie lisa, vellosa o friable; puede tener &aacute;reas necr&oacute;ticas o calcificaciones focales.</td>
+              <td>M&oacute;vil; cuando es grande prolapsa a trav&eacute;s de la mitral.</td>
+              <td>No nace de la v&aacute;lvula: al crecer puede obstruir el orificio mitral y producir estenosis.</td>
+              <td>Disnea de esfuerzo o posicional; en hasta un tercio de los casos hay embolia a distancia, a veces como primer s&iacute;ntoma. Con contraste de microburbujas se opacifica en parte.</td>
+              <td>ASE 2016, hoja 26, folio 26. Tambi&eacute;n JACC CardioOncology 2024, Tabla 2, hoja 5, folio 851.</td>
+            </tr>
+            <tr>
+              <td><b>Trombo del ventr&iacute;culo izquierdo</b></td>
+              <td>En una zona del ventr&iacute;culo izquierdo con alteraci&oacute;n de la motilidad, segmentaria o global.</td>
+              <td>Masa ecodensa de <b>bordes bien definidos</b>, distintos del endocardio, visible durante toda la s&iacute;stole y toda la di&aacute;stole.</td>
+              <td>Variable.</td>
+              <td>Apoyado sobre la pared que no contrae, no sobre una v&aacute;lvula.</td>
+              <td>Hay que <b>confirmarlo en al menos dos planos ortogonales</b> y descartar artefactos: ruido de campo cercano, falsos tendones, trabeculaciones y acortamiento del &aacute;pex. Con dudas, contraste ecocardiogr&aacute;fico.</td>
+              <td>ASE 2016, hoja 16, folio 16.</td>
+            </tr>
+            <tr>
+              <td><b>Excrecencias de Lambl y filamentos</b></td>
+              <td>En la l&iacute;nea de cierre de los velos: lado auricular de la mitral y lado ventricular de la a&oacute;rtica. Afectan con m&aacute;s frecuencia las v&aacute;lvulas izquierdas, sobre todo la mitral.</td>
+              <td>Estructuras <b>filiformes</b>, de 2&nbsp;mm de ancho o menos y de unos 3 a 10&nbsp;mm de largo. Suelen ser m&uacute;ltiples.</td>
+              <td>Movimiento ondulante.</td>
+              <td>Nacen de la propia l&iacute;nea de cierre valvular.</td>
+              <td>La fuente dice expresamente que <b>por ecocardiograf&iacute;a no hay forma de distinguir</b> las excrecencias de Lambl de los filamentos.</td>
+              <td>ASE 2016, hoja 21, folio 21.</td>
+            </tr>
+            <tr>
+              <td><b>Trombo y pannus sobre una pr&oacute;tesis</b></td>
+              <td><b>Dos fuentes que no coinciden, y se muestran sin resolver.</b> La ASE 2016 asocia el pannus a la pr&oacute;tesis <b>mec&aacute;nica a&oacute;rtica</b> y el trombo a la mec&aacute;nica <b>mitral o tricusp&iacute;dea</b>. La ASE 2024 de pr&oacute;tesis sit&uacute;a, sobre una pr&oacute;tesis a&oacute;rtica, el trombo en el lado a&oacute;rtico y el pannus en el <b>ventricular</b>.</td>
+              <td>El trombo es una masa irregular; el pannus es tejido fibroso de crecimiento cr&oacute;nico. La mezcla de los dos no es rara.</td>
+              <td>A favor del <b>trombo</b>: masa grande y m&oacute;vil. A favor del <b>pannus</b>: masa poco m&oacute;vil.</td>
+              <td>A favor del trombo: movimiento anormal del oclusor con obstrucci&oacute;n y anclaje en el propio oclusor. A favor del pannus: sin ca&iacute;da significativa del movimiento del oclusor.</td>
+              <td>A favor del trombo, anticoagulaci&oacute;n infraterap&eacute;utica y aparici&oacute;n precoz en el posoperatorio; a favor del pannus, anticoagulaci&oacute;n en rango y aparici&oacute;n tard&iacute;a. Por tomograf&iacute;a: trombo por debajo de 200&nbsp;UH y pannus por encima; el corte de <b>145&nbsp;UH</b> los separa con sensibilidad del 87,5&nbsp;% y especificidad del 96&nbsp;%.</td>
+              <td>ASE 2016, Tabla 8, hoja 23, folio 23. ASE 2024 de pr&oacute;tesis valvulares, Tabla 9, hoja 25, folio 26.</td>
+            </tr>
+            <tr>
+              <td><b>Variantes normales</b></td>
+              <td>Red de Chiari y v&aacute;lvula de Eustaquio en la aur&iacute;cula derecha, cresta terminal en la aur&iacute;cula derecha, cresta de la orejuela izquierda, falsas cuerdas y trabeculaciones en el ventr&iacute;culo izquierdo.</td>
+              <td>Estructuras anat&oacute;micas normales que la fuente lista entre lo que <b>con m&aacute;s frecuencia se confunde</b> con una masa.</td>
+              <td>Variable.</td>
+              <td>Forman parte de la pared o del tabique, no se apoyan sobre &eacute;l.</td>
+              <td>Ninguna fuente de la biblioteca publica una regla ecocardiogr&aacute;fica propia para distinguirlas de una masa m&aacute;s all&aacute; de que son variantes.</td>
+              <td>JACC CardioOncology 2024, hoja 4, folio 850.</td>
+            </tr>
+          </tbody>
+        </table>
+        </div>
+      </div>
     </div>
   </div>
   </div>
@@ -24835,6 +24929,13 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
   .masa-col-h{font-size:12px;font-weight:700;color:var(--accent2);margin-bottom:8px;
               padding-bottom:5px;border-bottom:1px solid var(--border);}
   @media(min-width:900px){ .masa-cols{grid-template-columns:repeat(3,minmax(0,1fr));} }
+  /* La tabla de diferenciales: scroll horizontal PROPIO en su contenedor, nunca en la pagina. */
+  .masa-ref-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+  .masa-ref-tabla{border-collapse:collapse;width:100%;min-width:900px;font-size:11px;line-height:1.45;}
+  .masa-ref-tabla th,.masa-ref-tabla td{border:1px solid var(--border);padding:6px 8px;vertical-align:top;text-align:left;}
+  .masa-ref-tabla thead th{background:var(--section-head);color:var(--accent2);font-size:10.5px;
+                           font-weight:700;position:sticky;top:0;}
+  .masa-ref-tabla tbody td:first-child{white-space:nowrap;}
   #tab-otros .otr-sub{display:block}
   #tab-otros .otr-sub + .otr-sub{margin-top:12px}
   /* ══ LAS DOS SUB-PESTANAS DE CONGENITAS (B-E6) ═════════════════════════════════════════
@@ -49459,6 +49560,27 @@ const VINFO = Object.freeze({
        + 'de la ACC/AHA 2025 y no de la ESC 2020. Y la afirmación de que el eco subestima el '
        + 'cortocircuito en esta lesión no se encontró en ninguna de las dos fuentes, así que se '
        + 'retiró.'
+  },
+  /* ══ EL GLOBO DEL TITULO DE LA TABLA DE DIFERENCIALES — PANT-11, commit 9a ═══════════════
+     Lo que la orden manda poner aca y NO en el cuerpo de la tabla: que estudio complementario
+     conviene cuando hay dudas. Parafraseado, con guia, edicion, hoja y folio. */
+  'masa-ref': {
+    ancho: 440,
+    tit: 'Qué estudio complementario conviene cuando hay dudas',
+    lee: 'El ecocardiograma transesofágico es el método de referencia para las lesiones '
+       + 'pequeñas —menores de 1 cm— y muy móviles, como las vegetaciones, los fibroelastomas '
+       + 'o lo que nace de una válvula, porque resuelve mejor en el tiempo que la resonancia. '
+       + 'La ecocardiografía con contraste de microburbujas separa lo vascularizado de lo que '
+       + 'no lo está: un trombo no capta y no perfunde, un tumor vascularizado sí.',
+    ojo: 'Ninguna fuente de la biblioteca publica una regla ecocardiográfica propia para '
+       + 'distinguir la red de Chiari o la válvula de Eustaquio de una masa más allá de que '
+       + 'son variantes anatómicas normales: la fuente las lista entre lo que con más '
+       + 'frecuencia se confunde con una masa, y nada más. '
+       + 'Y para separar el trombo del pannus sobre una prótesis, la tomografía aporta un '
+       + 'corte de atenuación que la ecocardiografía no tiene.',
+    fuente: 'JACC CardioOncology 2024, «Multimodality Imaging in Cardiac Masses», hojas 4 y 5, '
+          + 'folios 850 y 851 (regla de folio: folio = hoja + 846, comprobada en el pie impreso '
+          + 'de la hoja 5). ASE 2024 de prótesis valvulares, Tabla 9, hoja 25, folio 26.'
   },
   'cc9-vap-sec': {
     ancho: 440,
@@ -158085,8 +158207,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261104-1515';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793816123245;                 /* eco-build-ms */
+const ECO_BUILD    = '20261104-1523';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793816592665;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -158172,7 +158294,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261104-1515</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261104-1523</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

@@ -121,6 +121,47 @@ for (const w of [1440, 1000, 768, 390]) {
       try { showMasaPanel() } catch (e) {} })()`);
     await page.waitForTimeout(300);
     r.cols = await page.evaluate(COLS);
+    /* La TABLA de diferenciales del commit 9a. */
+    r.tabla = await page.evaluate(`(() => {
+      const t = document.querySelector('.masa-ref-tabla');
+      if (!t) return { error: 'NO EXISTE' };
+      const filas = Array.prototype.slice.call(t.querySelectorAll('tbody tr'));
+      const cols = t.querySelectorAll('thead th').length;
+      /* Cada fila tiene que traer su fuente con hoja y folio. */
+      const conFuente = filas.filter((f) => /folio/.test(f.lastElementChild.textContent || '')).length;
+      /* Ninguna palabra de CONDUCTA en el cuerpo de la tabla. */
+      const cuerpo = filas.map((f) => f.textContent).join(' ');
+      const conducta = ['se recomienda','indicad','debe considerar','conviene','tratamiento',
+                        'cirugia','cirugía','anticoagular','derivar'].filter((k) => cuerpo.toLowerCase().indexOf(k) >= 0);
+      const w = t.closest('.masa-ref-wrap');
+      return { filas: filas.length, cols: cols, conFuente: conFuente, conducta: conducta,
+               entidades: filas.map((f) => (f.firstElementChild.textContent || '').trim()),
+               scrollPropio: w ? (w.scrollWidth > w.clientWidth + 1 ? 'SI' : 'no') : 'NO EXISTE',
+               scrollPagina: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1 ? 'SI' : 'NO',
+               largo: cuerpo.length };
+    })()`);
+    /* El globo del titulo: 44x44, abre y cierra por las TRES vias. */
+    r.globo = await page.evaluate(`(() => {
+      const b = document.querySelector('[data-vinfo="masa-ref"]');
+      if (!b) return { error: 'NO EXISTE' };
+      b.scrollIntoView({ block: 'center' });
+      const r0 = b.getBoundingClientRect();
+      b.click();
+      const c = document.getElementById('vinfo-card');
+      const abierto = c ? getComputedStyle(c).display !== 'none' : false;
+      const txt = c ? String(c.textContent || '').replace(/\\s+/g, ' ').trim() : '';
+      /* Cierre 1: el mismo boton. */
+      b.click(); const cerr1 = c ? getComputedStyle(c).display === 'none' : false;
+      /* Cierre 2: Escape. */
+      b.click(); document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+      const cerr2 = c ? getComputedStyle(c).display === 'none' : false;
+      /* Cierre 3: un clic fuera. */
+      b.click(); document.body.click();
+      const cerr3 = c ? getComputedStyle(c).display === 'none' : false;
+      return { caja: Math.round(r0.width) + 'x' + Math.round(r0.height), abrio: abierto,
+               cierra: [cerr1, cerr2, cerr3].join('/'), chars: txt.length,
+               folio: /folio/.test(txt) ? 'SI' : 'NO' };
+    })()`);
     r._errores = errs;
     res[w + 'px_' + tema] = r;
     await ctx.close();
