@@ -19991,61 +19991,74 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
       <span id="dsav_badge" class="incl-badge" hidden>&#9679; cargada</span>
     </button>
     <div class="card-body sacc-body">
-      <p style="font-size:11px;color:var(--text2);margin:0 0 12px;line-height:1.5;">
-        La <b>FEVI</b> y el <b>DTSVI</b> de esta sección son los del estudio (<b>AI / VI</b>): no se
-        vuelven a pedir acá. Dos lugares donde escribir el mismo número es la vía más corta a que la
-        pantalla y el informe firmado digan cosas distintas.
-      </p>
-      <div class="grid-3">
-        <div class="fg"><label>Tipo</label>
-          <select id="dsav_tipo" onchange="dsavSync()">
-            <option value="">&mdash;</option>
-            <option value="parcial">Parcial (CIA ostium primum)</option>
-            <option value="completo">Completo (CIA + CIV + válvula AV única)</option>
-            <option value="intermedio">Intermedio</option>
-            <option value="noesp">No especificado</option>
-          </select></div>
-        <div class="fg"><label>Regurgitación de la válvula AV izquierda</label>
-          <select id="dsav_regurg_av_izq" onchange="dsavSync()">
-            <option value="">&mdash;</option><option value="no">Sin regurgitación</option>
-            <option value="leve">Leve</option><option value="moderada">Moderada</option><option value="severa">Severa</option>
-          </select>
-          <span style="font-size:10px;color:var(--text2);">Marcador de severidad y principal indicación quirúrgica.</span></div>
-        <div class="fg"><label>Regurgitación de la válvula AV derecha</label>
-          <select id="dsav_regurg_av_der" onchange="dsavSync()">
-            <option value="">&mdash;</option><option value="no">Sin regurgitación</option>
-            <option value="leve">Leve</option><option value="moderada">Moderada</option><option value="severa">Severa</option>
-          </select></div>
-      </div>
-      <div class="grid-3" style="margin-top:10px;">
-        <div class="fg"><label>Tamaño del componente ventricular (mm)</label>
-          <input type="number" id="dsav_dssd_mm" step="1" placeholder="mm" oninput="dsavSync()">
-          <span style="font-size:10px;color:var(--text2);">Sólo en el tipo completo.</span></div>
-        <div class="fg"><label>Qp/Qs estimado</label>
-          <input type="number" id="dsav_qp_qs" step="0.1" placeholder="p. ej. 2,1" oninput="dsavSync()"></div>
-        <div class="fg"><label>Síndrome de Down</label>
-          <select id="dsav_down" onchange="dsavSync()">
-            <option value="">&mdash;</option><option value="no">No</option><option value="si">Sí</option>
-          </select>
-          <span style="font-size:10px;color:var(--text2);">Presente en buena parte de los DSAV completos del adulto.</span></div>
-      </div>
-      <div class="grid-3" style="margin-top:10px;">
-        <div class="fg"><label>Hipertensión pulmonar</label>
-          <select id="dsav_htp" onchange="dsavSync()">
-            <option value="">&mdash;</option><option value="no">Sin HTP</option>
-            <option value="leve">Leve</option><option value="moderada">Moderada</option><option value="severa">Severa</option>
-          </select></div>
-        <div class="fg"><label>Resistencia vascular pulmonar (UW)</label>
-          <input type="number" id="dsav_rvp_uw" step="0.1" placeholder="UW" oninput="dsavSync()">
-          <span style="font-size:10px;color:var(--text2);">Por cateterismo. Es lo que decide sobre el cierre, no la PSAP del eco.</span></div>
-        <div class="fg"><label>FEVI y DTSVI</label>
-          <input type="text" id="dsav_vi_ro" readonly tabindex="-1" data-espejo placeholder="—" style="opacity:.7;"></div>
-      </div>
-      <div id="dsav-resultado" class="calc-box" style="margin-top:12px;"></div>
-      <input type="checkbox" id="dsav_incluir_chk" style="display:none;" tabindex="-1" aria-hidden="true">
-      <div style="display:flex;justify-content:center;margin-top:10px;">
-        <button type="button" class="btn btn-integrar" data-ete-chk="dsav_incluir_chk" aria-pressed="false"
-                onclick="eteInclToggle('dsav_incluir_chk')">&#128206; Integrar al informe</button>
+      <!-- == DSAV EN TRES COLUMNAS - tanda PANT-9, commit 4 (2026-11-04) =====================
+           DISPOSICION APROBADA POR EL MEDICO en un lienzo de disenio. Lo unico que cambia es
+           DONDE esta cada campo y donde esta cada texto: ningun id, ningun valor, ninguna opcion
+           y ninguna conclusion se movieron, y el papel sale identico -medido con el A/B-.
+           LA LINEA INICIAL SALIO DE LA PANTALLA, y es lo que la orden fija: contaba una decision
+           de DISENIO -por que la FEVI y el DTSVI no se vuelven a pedir aca- y no un dato clinico,
+           asi que no va al globo sino a docs/fuentes/FUENTES.md. En la pantalla queda el rotulo
+           «FEVI y DTSVI - del estudio», que es lo que el medico necesita saber mirando el campo.
+           Las cuatro notas de 10 px pasaron al globo de su campo, PALABRA POR PALABRA.
+           Esta seccion no tiene «Ver criterios» ni globo de titulo, asi que no lleva barra de
+           encabezado: una barra vacia solo agregaria 10 px de margen. -->
+      <div class="cc9-cuadro">
+        <div class="cc9-fila" id="dsav-fila">
+          <div class="cc9-cols">
+            <div class="cc9-col">
+              <div class="cc9-h">Tipo y anatomía</div>
+              <div class="fg"><label>Tipo</label>
+                <select id="dsav_tipo" onchange="dsavSync()">
+                  <option value="">&mdash;</option>
+                  <option value="parcial">Parcial (CIA ostium primum)</option>
+                  <option value="completo">Completo (CIA + CIV + válvula AV única)</option>
+                  <option value="intermedio">Intermedio</option>
+                  <option value="noesp">No especificado</option>
+                </select></div>
+              <div class="fg"><label>Tamaño del componente ventricular (mm) <button type="button" class="vinfo-btn vinfo-btn-44" data-vinfo="cc9-dsav-comp" aria-expanded="false" aria-label="En que tipo de DSAV se mide el tamanio del componente ventricular" onclick="vInfoClic(this)">&#9432;</button></label>
+                <input type="number" id="dsav_dssd_mm" step="1" placeholder="mm" oninput="dsavSync()"></div>
+              <div class="fg"><label>Síndrome de Down <button type="button" class="vinfo-btn vinfo-btn-44" data-vinfo="cc9-dsav-down" aria-expanded="false" aria-label="Con que frecuencia se asocia el sindrome de Down al DSAV del adulto" onclick="vInfoClic(this)">&#9432;</button></label>
+                <select id="dsav_down" onchange="dsavSync()">
+                  <option value="">&mdash;</option><option value="no">No</option><option value="si">Sí</option>
+                </select></div>
+            </div>
+            <div class="cc9-col">
+              <div class="cc9-h">Regurgitación AV y función del VI</div>
+              <div class="fg"><label>Regurgitación de la válvula AV izquierda <button type="button" class="vinfo-btn vinfo-btn-44" data-vinfo="cc9-dsav-rav" aria-expanded="false" aria-label="Que peso tiene la regurgitacion de la valvula auriculoventricular izquierda en el DSAV" onclick="vInfoClic(this)">&#9432;</button></label>
+                <select id="dsav_regurg_av_izq" onchange="dsavSync()">
+                  <option value="">&mdash;</option><option value="no">Sin regurgitación</option>
+                  <option value="leve">Leve</option><option value="moderada">Moderada</option><option value="severa">Severa</option>
+                </select></div>
+              <div class="fg"><label>Regurgitación de la válvula AV derecha</label>
+                <select id="dsav_regurg_av_der" onchange="dsavSync()">
+                  <option value="">&mdash;</option><option value="no">Sin regurgitación</option>
+                  <option value="leve">Leve</option><option value="moderada">Moderada</option><option value="severa">Severa</option>
+                </select></div>
+              <div class="fg"><label>FEVI y DTSVI &mdash; del estudio</label>
+                <input type="text" id="dsav_vi_ro" readonly tabindex="-1" data-espejo placeholder="—" style="opacity:.7;"></div>
+            </div>
+            <div class="cc9-col">
+              <div class="cc9-h">Hemodinámica</div>
+              <div class="fg"><label>Qp/Qs estimado</label>
+                <input type="number" id="dsav_qp_qs" step="0.1" placeholder="p. ej. 2,1" oninput="dsavSync()"></div>
+              <div class="fg"><label>Hipertensión pulmonar</label>
+                <select id="dsav_htp" onchange="dsavSync()">
+                  <option value="">&mdash;</option><option value="no">Sin HTP</option>
+                  <option value="leve">Leve</option><option value="moderada">Moderada</option><option value="severa">Severa</option>
+                </select></div>
+              <div class="fg"><label>Resistencia vascular pulmonar (UW) <button type="button" class="vinfo-btn vinfo-btn-44" data-vinfo="cc9-dsav-rvp" aria-expanded="false" aria-label="Como se mide la resistencia vascular pulmonar y que decide en el DSAV" onclick="vInfoClic(this)">&#9432;</button></label>
+                <input type="number" id="dsav_rvp_uw" step="0.1" placeholder="UW" oninput="dsavSync()"></div>
+            </div>
+          </div>
+          <div class="cc9-concl">
+            <div id="dsav-resultado" class="calc-box"></div>
+            <input type="checkbox" id="dsav_incluir_chk" style="display:none;" tabindex="-1" aria-hidden="true">
+            <div class="cc9-concl-btn">
+              <button type="button" class="btn btn-integrar" data-ete-chk="dsav_incluir_chk" aria-pressed="false"
+                      onclick="eteInclToggle('dsav_incluir_chk')">&#128206; Integrar al informe</button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -48847,6 +48860,26 @@ const VINFO = Object.freeze({
     lee: 'La cianosis es uno de los desencadenantes de intervención que lista la ESC 2020 en la '
        + 'anomalía de Ebstein. Por debajo de 90 % indica shunt derecha-izquierda significativo a '
        + 'través de la comunicación interauricular.'
+  },
+  'cc9-dsav-comp': {
+    ancho: 356,
+    tit: 'El tamaño del componente ventricular del DSAV',
+    lee: 'Sólo en el tipo completo.'
+  },
+  'cc9-dsav-down': {
+    ancho: 400,
+    tit: 'El síndrome de Down en el DSAV',
+    lee: 'Presente en buena parte de los DSAV completos del adulto.'
+  },
+  'cc9-dsav-rav': {
+    ancho: 400,
+    tit: 'La regurgitación de la válvula AV izquierda en el DSAV',
+    lee: 'Marcador de severidad y principal indicación quirúrgica.'
+  },
+  'cc9-dsav-rvp': {
+    ancho: 420,
+    tit: 'La resistencia vascular pulmonar en el DSAV',
+    lee: 'Por cateterismo. Es lo que decide sobre el cierre, no la PSAP del eco.'
   },
   'tarj-diast': { ancho: 356, dyn: function () { return qvDiast() } }
 });
@@ -156083,8 +156116,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261104-0747';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793789262131;                 /* eco-build-ms */
+const ECO_BUILD    = '20261104-0750';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793789433733;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -156170,7 +156203,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261104-0747</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261104-0750</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
