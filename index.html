@@ -2035,6 +2035,17 @@
     #wilk-fila { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr);
       gap:10px 14px; align-items:start; }
   }
+  /* ══ AORTA DEL ETE: CAMPOS EN DOS COLUMNAS Y CONCLUSION A LA DERECHA (PANT-7, c7b) ══════
+     Pedido del medico. Desde 900 px, campos a la izquierda y conclusion a la derecha; por
+     debajo, apilado, que es el orden del DOM. El corte va sobre la VENTANA.
+     ⚠️ `#eteao-campos` lleva la clase `grid-2` que el documento YA define, asi que no se crea
+        ninguna clase nueva: lo unico propio de esta fila es su grilla exterior. */
+  #eteao-fila { display:block; }
+  #eteao-campos, #eteao-concl { min-width:0; }
+  @media (min-width:900px){
+    #eteao-fila { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+      gap:10px 14px; align-items:start; }
+  }
   #oai-fila > #oai-esq-caja { margin-top:10px; }
   /* ⚠️ GRILLA Y NO FLEX DESDE PANT-7 (c6b), y el motivo es la CONCLUSION. Con `flex` la fila
      tenia dos hijos y la conclusion vivia afuera, a ancho completo y debajo del dibujo: ahi
@@ -16975,7 +16986,15 @@ z
   <div id="ete-seccion-aorta" style="display:none;">
   <div class="card">
     <div class="card-body">
-      <div class="grid-3">
+      <!-- == LOS CAMPOS EN DOS COLUMNAS Y LA CONCLUSION A LA DERECHA (PANT-7, c7b) ==========
+           Pedido del medico, con sus palabras: «En aorta haria lo mismo: dos columnas con los
+           campos y la conclusion a la derecha». Desde 900 px `#eteao-fila` es una grilla de dos
+           columnas —campos a la izquierda, conclusion a la derecha— y los seis campos pasan de
+           `grid-3` a DOS columnas; por debajo, apilado, que es el orden del DOM. El corte va
+           sobre la VENTANA, que es la regla fija de la casa.
+           Ningun campo cambia de grupo, de id ni de orden. -->
+      <div id="eteao-fila">
+      <div id="eteao-campos" class="grid-2">
         <div class="fg"><label>Segmento evaluado</label>
           <select id="ao_segmento">
             <option value="">—</option>
@@ -17018,7 +17037,8 @@ z
             <option value="severa">Severa</option>
           </select>
         </div>
-      </div>
+      </div><!-- /eteao-campos -->
+      <div id="eteao-concl">
       <div class="calc-box" style="margin-top:10px;">
         <!-- ⚠️ FILA ESCONDIDA (AJ7-2b, 24/10/2026), y cierra AJ2-i. DECISION DE MAICOL. Con el
              grado 4 cargado esta fila decia «Ateroma de más de 5 mm» y la de «Descripción del
@@ -17039,6 +17059,8 @@ z
              consignado, que lo elige el médico en el desplegable de arriba. -->
         <div class="calc-row"><span class="calc-lbl">Grosor medido — grado en la escala</span><span id="ao-atero-grosor" style="font-size:11px;color:var(--text2);">—</span></div>
       </div>
+      </div><!-- /eteao-concl -->
+      </div><!-- /eteao-fila -->
       <div class="fg" style="margin-top:8px;"><label>Notas aorta ETE</label>
         <textarea id="ao_ete_notas" placeholder="Localización exacta, extensión, relación con ostiums coronarios..."></textarea>
       </div>
@@ -155389,8 +155411,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261104-0057';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793764678301;                 /* eco-build-ms */
+const ECO_BUILD    = '20261104-0059';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793764778742;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -155476,7 +155498,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261104-0057</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261104-0059</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
