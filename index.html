@@ -4293,17 +4293,40 @@ html.light-mode .amilo-root{
       que falta es una decision del medico entre mover el corte del lado a lado o escalar la
       letra con el ancho. Esta en PENDIENTES. */
 #vdsc-caja{margin:10px 0 2px;}
-#vdsc-svg{display:block;width:100%;max-width:520px;height:auto;margin:0 auto;}
+/* ⚠️ EL ANCHO Y EL ALTO SON LOS MISMOS DEL ESQUEMA VALVULAR 2D, NO LA MITAD (PANT-7, c1).
+   DECISION DEL MEDICO: «que tenga la MISMA proporcion y casi el mismo tamanio que el esquema
+   valvular 2D, con las letras iguales a las de ese esquema», y supera a proposito el piso de
+   12 px de letra que PANT-5 y PANT-6 persiguieron -de ahi el tope de 520 px, que en HEAD dejaba
+   el dibujo en 520x683,9 contra los 220x300 del esquema valvular: 2,4 veces mas ancho y con la
+   letra MAS GRANDE (15,18 px contra 9,37)-. Medido en Chrome a 1440, 1000, 768 y 390 px.
+   ⚠️ LAS DOS REGLAS SON COPIA EXACTA DE `#v2d-svg`, incluida la segunda DENTRO de su propia
+      media query y DESPUES de la de escritorio: misma especificidad, gana la ultima de la hoja.
+      Esa es la leccion que la tanda Y1 pago con ese mismo selector y que PANT-5 volvio a pagar.
+   ⚠️ SE ESCALA SOLO EL CONTENEDOR: con la caja fija, el `preserveAspectRatio` por omision
+      encuadra y centra el dibujo adentro, asi que `fitView()` puede seguir moviendo el viewBox
+      sin que la caja crezca. NO se toca una curva, un chorro, un color ni un cuadro del latido. */
+#vdsc-svg{display:block;width:220px;height:300px;max-width:100%;margin:0 auto;}
 #vdsc-pie{display:flex;align-items:center;gap:8px;justify-content:center;margin-top:4px;}
 #vdsc-fila{display:block;}
 #vdsc-campos,#vdsc-lista{min-width:0;}
 /* Por debajo de 900 px: apilado, campos -> dibujo centrado -> lista, que es el orden del DOM. */
 @media (min-width:900px){
-  #vdsc-fila{display:grid;grid-template-columns:minmax(0,55fr) minmax(0,45fr);
+  /* ⚠️ LA COLUMNA DEL DIBUJO ES FIJA Y NO UN PORCENTAJE (PANT-7, c1). Con el 45 % el dibujo se
+     quedaba con 343,8 px a 1000 px y 520 a 1440, o sea que su tamanio dependia de la ventana; hoy
+     la caja mide 220 px fijos, asi que la columna se topa en 240 -220 mas el hueco del boton de
+     pausa- y TODO el ancho que sobra va a los campos. Eso es lo que cierra el hueco vertical de
+     104 px que el medico veia entre los campos y la lista: con el dibujo en 300 px de alto en vez
+     de 683,9, la columna de la derecha ya no es la mas alta de la fila. */
+  #vdsc-fila{display:grid;grid-template-columns:minmax(0,1fr) 240px;
     gap:10px 14px;align-items:start;}
   #vdsc-campos{grid-column:1;grid-row:1;}
   #vdsc-caja{grid-column:2;grid-row:1 / span 2;margin:0;}
   #vdsc-lista{grid-column:1;grid-row:2;}
+}
+/* El angosto del dibujo, copia de `#v2d-svg`: en su propia media query y DESPUES de la regla
+   de escritorio, o no gana. */
+@media (max-width:768px){
+  #vdsc-svg{width:100%;height:240px;}
 }
 /* El miocardio, las dos cavidades y las valvas: los mismos trazos del esquema valvular, con la
    paleta gris del dibujo. */
@@ -4318,7 +4341,11 @@ html.light-mode .amilo-root{
    app es un gris AZULADO -rgb(232,236,244) en modo noche-, asi que la sonda por color contaba
    once nodos fuera de la escala de grises: los once textos del dibujo. La orden pide las
    variables de tema DE LA DEMO, y la de la demo es un gris puro -#f2f2f2 y #111111-. */
-#vdsc-svg .vdsc-lbl{font-size:4.2px;font-weight:700;fill:var(--vdsc-ink);text-anchor:middle;
+/* ⚠️ LA LETRA ES 5.2px Y NO 4.2, Y ES LA MISMA DE `.v2d-lbl` Y DE `.v2d-cn` (PANT-7, c1): el
+   esquema valvular lleva sus dos clases de texto en 5.2px, asi que con el mismo viewBox -los dos
+   son `24 36 154 242`- y la misma caja el dibujo se ve con la MISMA letra que el. `.vdsc-cn` ya
+   estaba en 5.2px y no se toco. */
+#vdsc-svg .vdsc-lbl{font-size:5.2px;font-weight:700;fill:var(--vdsc-ink);text-anchor:middle;
   paint-order:stroke;stroke:var(--vdsc-bl1);stroke-width:1.2px;stroke-linejoin:round;}
 #vdsc-svg .vdsc-cn{font-size:5.2px;font-weight:700;fill:var(--vdsc-names);text-anchor:middle;
   letter-spacing:.3px;paint-order:stroke;stroke:var(--vdsc-bl1);stroke-width:1.3px;
@@ -154677,13 +154704,17 @@ var nVD=$('vdsc-n-vd'),nVI=$('vdsc-n-vi'),nAD=$('vdsc-n-ad'),nAI=$('vdsc-n-ai');
 var mcP=$('vdsc-mc'),mcT=$('vdsc-mctxt'),tpRef=$('vdsc-tpref'),tpBar=$('vdsc-tpbar'),tpT=$('vdsc-tptxt');
 var vmT=$('vdsc-vmtxt'),spP=$('vdsc-sp'),spT=$('vdsc-sptxt');
 
-/* ⚠️ LOS ROTULOS SON DOS JUEGOS Y LA ELECCION ES UNA MEDICION, NO UN GUSTO. Al ancho de la
-   mitad del esquema valvular el dibujo es chico, asi que se prueba primero el juego largo y, si
-   un rotulo pisa la pared, el chorro u otro rotulo, se cae al corto con letra mas chica. Quien
-   decide es `vdscRotulos()`, medido con `getBBox` a los cuatro anchos por su caso de prueba. */
-var ROT_LARGO={mc:['McConnell'],sp:['Septum','desplazado'],fs:4.2};
-var ROT_CORTO={mc:['Sg McConnell'],sp:['SIV','desplazado'],fs:3.4};
-var ROT=ROT_LARGO;
+/* ⚠️ LOS ROTULOS DE LOS DOS SIGNOS SON CORTOS Y DE UNA SOLA LINEA, POR ORDEN DEL MEDICO
+   (PANT-7, c1): «Sg McConnell» y «SIV desplazado». La letra sube de 4.2 a 5.2px para igualar la
+   del esquema valvular, asi que el rotulo de dos lineas «Septum / desplazado» que habia en HEAD
+   ocupaba mas alto del que hay.
+   ⚠️ Y YA NO HAY DOS JUEGOS NI UNA ELECCION. El comentario de HEAD decia que elegia
+      `vdscRotulos()` «medido con getBBox a los cuatro anchos»: esa funcion NUNCA EXISTIO -esta
+      declarado en `docs/PENDIENTES.md` como **P6-d**-, asi que `ROT_CORTO` y su `fs` eran codigo
+      muerto y el juego largo era el unico que se dibujaba. Hoy hay UN solo juego, el corto, y el
+      `fs` se retira porque nadie lo leia: el tamanio lo fija `.vdsc-lbl` en la hoja de estilos.
+      Que no se pisan esta medido con `getBBox` en su caso de prueba y en la sonda de la tanda. */
+var ROT={mc:['Sg McConnell'],sp:['SIV desplazado']};
 function excAt(u,c){return CFG.shiftRV*c*u-CFG.apexRV*c*Math.pow(1-u,1.4);}
 function fmt(x){return String(x).replace('.',',');}
 function tspans(x,lineas){
@@ -154861,8 +154892,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261103-2018';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793747933552;                 /* eco-build-ms */
+const ECO_BUILD    = '20261103-2357';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793761049537;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -154948,7 +154979,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261103-2018</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261103-2357</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
