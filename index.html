@@ -1655,6 +1655,36 @@
   .ete-tavi-btnfila { display:flex; align-items:flex-start; gap:8px; margin:0 0 12px; }
   .ete-tavi-btnfila > .subtabs-wrap { flex:1 1 0; min-width:0; margin:0; }
   .ete-tavi-btnbar .tab-btn.cc-pane-on { background:var(--teal); color:#0f1117; border-color:var(--teal); }
+  /* ══ LAS TRES COLUMNAS DEL PANEL POST-TAVI (PANT-8, commit 2) ═══════════════════════════════
+     Calcado de `#mch-cols` (PANT-3), que es el precedente medido de esta casa: TRES columnas
+     FIJAS por encima del corte y UNA por debajo, y dentro de cada columna los campos con un
+     piso de 170 px, asi que entran dos por fila en una columna ancha y uno en una angosta.
+     ⚠️ EL CORTE ES 900 px Y NO 700, Y LO DECIDIO LA MEDICION QUE LA ORDEN PIDE. El criterio de
+        la orden es que una columna no baje de 200 px, y el ancho del panel NO es monotono en el
+        corte de 768 px: por debajo de 768 el riel desaparece y el panel gana ~160 px, asi que a
+        768 px una columna mediria 228 px pero a 800 px -ya con riel- mediria 186. Un corte en
+        700 px dejaria tres columnas de 186 px entre 769 y 900. Desde 900 px el ancho del panel
+        si es monotono y la columna mas angosta mide 219 px.
+     ⚠️ TRES COLUMNAS FIJAS Y NO `auto-fit`, que es la leccion que PANT-3 pago con una barra
+        horizontal a 900 px exactos. */
+  #ete-tavi-post-cols { display:grid; grid-template-columns:minmax(0,1fr); gap:12px; }
+  @media (min-width: 900px) {
+    #ete-tavi-post-cols { grid-template-columns:repeat(3, minmax(0,1fr)); }
+    /* ⚠️ EL PISO DE 170 px VA DENTRO DE LA MEDIA QUERY, Y LO DECIDIO UNA MEDICION. Declarado
+       afuera, tambien regia por DEBAJO del corte -donde las tres columnas estan apiladas y cada
+       una ocupa el ancho entero-, y ahi dejaba TRES campos por fila donde `grid-4` deja cuatro:
+       a 899 px el panel pasaba de 953,3 a 1.105,3 px de alto. Acotado, por debajo de 900 px la
+       maqueta de los campos es EXACTAMENTE la de HEAD. */
+    #ete-tavi-post-cols .ete-tavi-pcol > .grid-2,
+    #ete-tavi-post-cols .ete-tavi-pcol > .grid-3,
+    #ete-tavi-post-cols .ete-tavi-pcol > .grid-4 {
+      grid-template-columns:repeat(auto-fit, minmax(170px, 1fr));
+    }
+    /* Lado a lado, el titulo de cada columna arranca arriba: el margen de 14 px que separaba un
+       grupo del de arriba deja de tener sentido. Apilado -por debajo de 900 px- se conserva, que
+       es para lo que estaba. Ningun estilo en linea se toco. */
+    #ete-tavi-post-cols > .ete-tavi-pcol > div:first-child { margin-top:0; }
+  }
   /* ══ EL PIE DEL BLOQUE DE CONGENITAS Y EL PANEL DEL CORAZON MAESTRO (PANT-3, commit 4) ══
      Calcado del pie de la vista 2D de Valvulas (`.v2d-pie` + `#v2d-ov`), que es el patron que la
      orden pide repetir: UN boton al pie, debajo de todo, que prende y apaga un panel EN LINEA.
@@ -17224,6 +17254,19 @@ z
            que en este módulo ese eje no es una elección. Lo que sí se alineó es la palabra: el
            encabezado, el narrativo y el PPT dicen «prótesis TAVI» y no «prótesis» a secas, para
            compartir vocabulario con `VALV_PROT_OPCIONES`. -->
+      <!-- ══ LAS TRES COLUMNAS DEL PANEL POST-TAVI (PANT-8, commit 2) ══════════════════════
+           PEDIDO DEL MEDICO (03/11/2026): «En PosTAVI me gustaria reordenar los campos en 3
+           columnas: Protesis TAVI, Gradientes PosTAVI y Regurgitacion paravalvular. El resto lo
+           dejaria igual».
+           Las tres columnas son los TRES GRUPOS QUE YA EXISTIAN, con sus titulos y sus campos
+           sin mover de grupo: 4 + 6 + 5 campos. Ningun id y ningun rotulo cambian.
+           ⚠️ EL CUARTO GRUPO -«Localizacion del jet - EPC»- SE QUEDA DEBAJO, A TODO EL ANCHO, y
+              es lo que el medico pidio con «el resto lo dejaria igual»: es el lienzo de 340 px
+              con su extension circunferencial, la capsula de severidad VARC-3, la vista previa
+              del informe y la nota del medico. Dentro de una columna de 391 px el lienzo y su
+              panel lateral no entran lado a lado. -->
+      <div id="ete-tavi-post-cols">
+      <div class="ete-tavi-pcol">
       <div style="font-size:12px;font-weight:700;color:var(--accent2);margin-bottom:8px;">Prótesis TAVI</div>
       <div class="grid-4">
         <div class="fg"><label>Tipo</label>
@@ -17239,6 +17282,8 @@ z
           </select></div>
       </div>
 
+      </div>
+      <div class="ete-tavi-pcol">
       <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:14px 0 8px;">Gradientes post-TAVI</div>
       <div class="grid-4">
         <div class="fg"><label>Vmax (m/s)</label><input type="number" id="ete_tavi_vmax" step="0.1" placeholder="m/s" oninput="eteTaviSync()"></div>
@@ -17266,6 +17311,8 @@ z
         <div class="fg"><label>AT (ms) <span style="font-weight:400;color:var(--text2);font-size:10px;">— tiempo de aceleración</span></label><input type="number" id="ete_tavi_at" step="1" placeholder="ms" oninput="eteTaviSync()"></div>
       </div>
 
+      </div>
+      <div class="ete-tavi-pcol">
       <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:14px 0 8px;">Regurgitación paravalvular <span style="font-weight:400;color:var(--text2);font-size:11px;">— ASE/EACVI 2019 + VARC-3</span></div>
       <div class="grid-4">
         <div class="fg"><label>Ancho vena contracta (cm)</label><input type="number" id="ete_tavi_vc_ancho" step="0.01" placeholder="cm" oninput="eteTaviSync()"></div>
@@ -17281,6 +17328,8 @@ z
         <div class="fg"><label>Velocidad tele-diastólica aorta descendente (cm/s)</label>
           <input type="number" id="ete_tavi_vel_tele" step="1" placeholder="cm/s" oninput="eteTaviSync()"></div>
       </div>
+      </div>
+      </div><!-- /#ete-tavi-post-cols -->
 
       <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:14px 0 8px;">Localización del jet — EPC (eje paraesternal corto)</div>
       <div style="display:flex;flex-wrap:wrap;gap:14px;align-items:flex-start;">
@@ -155563,8 +155612,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261104-0508';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793779680504;                 /* eco-build-ms */
+const ECO_BUILD    = '20261104-0513';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793780014166;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -155650,7 +155699,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261104-0508</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261104-0513</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

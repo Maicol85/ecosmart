@@ -15,7 +15,7 @@ const RAIZ = '/Users/maicoldossantos/Desktop/APLICACIONES/ecosmart';
 const arg = (n) => { const i = process.argv.indexOf(n); return i > -1 ? process.argv[i + 1] : null };
 const FILE = arg('--file') || (RAIZ + '/index.html');
 const OUTF = arg('--out') || '/tmp/p8tavi.json';
-const ANCHOS = [1440, 1000, 768, 390];
+const ANCHOS = [1440, 1000, 900, 899, 768, 390];
 
 /* ══ PREPARAR: abrir la pestania ETE y la seccion de TAVI por su boton real ══
    La seccion abre con toggleEteSeccion('tavi'); su encabezado NO lleva el id en el onclick,
@@ -69,6 +69,40 @@ const FOTO = `(() => {
   /* los dos botones de CIA / CIV, para comparar estilo */
   o.cia  = btn('ete-shunt-tab-cia');
   o.civ  = btn('ete-shunt-tab-civ');
+  /* ══ LAS TRES COLUMNAS DEL PANEL POST (commit 2) ══ */
+  const cc = g('ete-tavi-post-cols');
+  o.cols = { existe: !!cc };
+  if (cc) {
+    o.cols.tpl = getComputedStyle(cc).gridTemplateColumns;
+    o.cols.gap = getComputedStyle(cc).columnGap;
+    const hijos = Array.prototype.slice.call(cc.children);
+    o.cols.n = hijos.length;
+    o.cols.rects = hijos.map(h => RR(h));
+    /* lado a lado = los tres comparten su y */
+    const ys = hijos.map(h => Math.round((RR(h)||{}).y));
+    o.cols.ladoALado = (Math.max.apply(null,ys) - Math.min.apply(null,ys)) < 20;
+    /* campos por fila dentro de cada columna */
+    o.cols.porFila = hijos.map(h => {
+      const fg = Array.prototype.slice.call(h.querySelectorAll('.fg'))
+        .filter(e => e.getBoundingClientRect().width > 0);
+      const porY = {};
+      fg.forEach(e => { const y = Math.round(e.getBoundingClientRect().y); (porY[y]=porY[y]||[]).push(1) });
+      const f = Object.keys(porY).sort((a,b)=>a-b).map(y => porY[y].length);
+      return { nCampos: fg.length, filas: f, max: f.length ? Math.max.apply(null,f) : 0 };
+    });
+    /* el bloque del jet sigue a todo el ancho y DEBAJO */
+    const jet = cc.nextElementSibling;
+    o.cols.trasCols = jet ? (jet.textContent||'').replace(/\s+/g,' ').trim().slice(0,46) : null;
+  }
+  /* textos recortados dentro de la seccion */
+  const sec2 = g('ete-seccion-tavi');
+  o.recortados = 0;
+  if (sec2) {
+    Array.prototype.slice.call(sec2.querySelectorAll('label, .calc-lbl, option, button, div')).forEach(e => {
+      if (e.children.length) return;
+      if (e.scrollWidth > e.clientWidth + 1 && e.clientWidth > 0) o.recortados++;
+    });
+  }
   return o;
 })()`;
 
