@@ -20454,86 +20454,101 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
       <span id="eisen_badge" class="incl-badge" hidden>&#9679; cargada</span>
     </button>
     <div class="card-body sacc-body">
-      <button type="button" class="btn btn-ghost" style="font-size:11px;padding:4px 12px;margin:0 0 12px;" onclick="critAbrir('eisen')">📋 Ver criterios</button>
-      <!-- El panel de contraindicaciones va SIEMPRE visible y no condicionado a ningun campo:
-           son absolutas por la fisiologia del sindrome, no por el valor de una medicion. Un
-           aviso que solo aparece cuando el dato ya esta cargado llega despues de la consulta
-           en que habia que darlo. -->
-      <div style="font-size:11.5px;border-left:3px solid var(--red);background:var(--section-head);padding:8px 10px;border-radius:0 6px 6px 0;margin-bottom:12px;line-height:1.55;">
-        <b style="color:var(--red);">Contraindicaciones absolutas</b> &mdash; embarazo (mortalidad materna &gt;50&nbsp;%) &middot;
-        correccion quirurgica cardiaca del defecto &middot; ejercicio extenuante.
-      </div>
-      <div class="grid-3">
-        <div class="fg"><label>Lesion de base</label>
-          <select id="eis_lesion_base" onchange="eisenSync()">
-            <option value="">&mdash;</option>
-            <option value="civ">CIV</option>
-            <option value="cia">CIA</option>
-            <option value="dap">DAP</option>
-            <option value="dsav">DSAV</option>
-            <option value="tronco">Tronco arterioso</option>
-            <option value="tga">TGA</option>
-            <option value="otra">Otra CC compleja</option>
-          </select>
+      <!-- == EISENMENGER EN TRES COLUMNAS - tanda PANT-9, commit 2 (2026-11-04) ===============
+           DISPOSICION APROBADA POR EL MEDICO en un lienzo de disenio. Lo unico que cambia es
+           DONDE esta cada campo y donde esta cada texto: ningun id, ningun valor, ninguna opcion
+           y ninguna conclusion se movieron, y el papel sale identico -medido con el A/B-.
+           LA FRANJA ROJA DE CONTRAINDICACIONES SE QUEDA ARRIBA, A TODO EL ANCHO Y VISIBLE: es
+           decision EXPRESA del medico y NO pasa al globo.
+           Los cuatro textos de 10 px que colgaban de la saturacion en reposo, del derrame
+           pericardico, del sincope y de la hemoptisis pasaron a su globo, PALABRA POR PALABRA. -->
+      <div class="cc9-cuadro">
+        <div class="cc9-hdrbar">
+          <button type="button" class="btn btn-ghost cc9-hdr-der" style="font-size:11px;padding:4px 12px;" onclick="critAbrir('eisen')">📋 Ver criterios</button>
         </div>
-        <div class="fg"><label>Saturacion O&#8322; en reposo (%)</label>
-          <input type="number" id="eis_saturacion_reposo" placeholder="%" oninput="eisenSync()">
-          <span style="font-size:10px;color:var(--text2);">&lt;90&nbsp;% &rarr; riesgo fetal critico. Embarazo practicamente imposible con &lt;85&nbsp;%. Mortalidad materna &gt;50&nbsp;%.</span>
+        <!-- El panel de contraindicaciones va SIEMPRE visible y no condicionado a ningun campo:
+             son absolutas por la fisiologia del sindrome, no por el valor de una medicion. Un
+             aviso que solo aparece cuando el dato ya esta cargado llega despues de la consulta
+             en que habia que darlo. -->
+        <div style="font-size:11.5px;border-left:3px solid var(--red);background:var(--section-head);padding:8px 10px;border-radius:0 6px 6px 0;margin-bottom:12px;line-height:1.55;">
+          <b style="color:var(--red);">Contraindicaciones absolutas</b> &mdash; embarazo (mortalidad materna &gt;50&nbsp;%) &middot;
+          correccion quirurgica cardiaca del defecto &middot; ejercicio extenuante.
         </div>
-        <div class="fg"><label>Saturacion O&#8322; en ejercicio (%)</label>
-          <input type="number" id="eis_saturacion_ejercicio" placeholder="%" oninput="eisenSync()">
+        <div class="cc9-fila" id="eisen-fila">
+          <div class="cc9-cols">
+            <div class="cc9-col">
+              <div class="cc9-h">Lesión y saturación</div>
+              <div class="fg"><label>Lesion de base</label>
+                <select id="eis_lesion_base" onchange="eisenSync()">
+                  <option value="">&mdash;</option>
+                  <option value="civ">CIV</option>
+                  <option value="cia">CIA</option>
+                  <option value="dap">DAP</option>
+                  <option value="dsav">DSAV</option>
+                  <option value="tronco">Tronco arterioso</option>
+                  <option value="tga">TGA</option>
+                  <option value="otra">Otra CC compleja</option>
+                </select>
+              </div>
+              <div class="fg"><label>Saturacion O&#8322; en reposo (%) <button type="button" class="vinfo-btn vinfo-btn-44" data-vinfo="cc9-eisen-sat" aria-expanded="false" aria-label="Que significa la saturacion de oxigeno en reposo en el sindrome de Eisenmenger" onclick="vInfoClic(this)">&#9432;</button></label>
+                <input type="number" id="eis_saturacion_reposo" placeholder="%" oninput="eisenSync()">
+              </div>
+              <div class="fg"><label>Saturacion O&#8322; en ejercicio (%)</label>
+                <input type="number" id="eis_saturacion_ejercicio" placeholder="%" oninput="eisenSync()">
+              </div>
+            </div>
+            <div class="cc9-col">
+              <div class="cc9-h">Presión pulmonar y ventrículo derecho</div>
+              <div class="fg"><label>PSAP estimada (mmHg)</label>
+                <input type="number" id="eis_psap" placeholder="mmHg" oninput="eisenSync()"></div>
+              <div class="fg"><label>PDAP estimada (mmHg)</label>
+                <input type="number" id="eis_pdap" placeholder="mmHg" oninput="eisenSync()"></div>
+              <div class="fg"><label>Velocidad de IT (m/s)</label>
+                <input type="number" id="eis_it_vel" placeholder="m/s" step="0.1" oninput="eisenSync()"></div>
+              <div class="fg"><label>Función del VD</label>
+                <select id="eis_vd_funcion" onchange="eisenSync()">
+                  <option value="">&mdash;</option>
+                  <option value="normal">Normal</option>
+                  <option value="leve">Levemente reducida</option>
+                  <option value="moderada">Moderadamente reducida</option>
+                  <option value="severa">Severamente reducida</option>
+                </select></div>
+            </div>
+            <div class="cc9-col">
+              <div class="cc9-h">Clínica</div>
+              <div class="fg"><label>Clase funcional NYHA</label>
+                <select id="eis_clase_nyha" onchange="eisenSync()">
+                  <option value="">&mdash;</option>
+                  <option value="i">I</option><option value="ii">II</option>
+                  <option value="iii">III</option><option value="iv">IV</option>
+                </select></div>
+              <div class="fg"><label>Sincope <button type="button" class="vinfo-btn vinfo-btn-44" data-vinfo="cc9-eisen-sin" aria-expanded="false" aria-label="Que significa el sincope en el sindrome de Eisenmenger" onclick="vInfoClic(this)">&#9432;</button></label>
+                <select id="eis_sincope" onchange="eisenSync()">
+                  <option value="">&mdash;</option><option value="no">No</option><option value="si">Si</option>
+                </select></div>
+              <div class="fg"><label>Hemoptisis <button type="button" class="vinfo-btn vinfo-btn-44" data-vinfo="cc9-eisen-hem" aria-expanded="false" aria-label="Que significa la hemoptisis en el sindrome de Eisenmenger" onclick="vInfoClic(this)">&#9432;</button></label>
+                <select id="eis_hemoptisis" onchange="eisenSync()">
+                  <option value="">&mdash;</option><option value="no">No</option><option value="si">Si</option>
+                </select></div>
+              <div class="fg"><label>Derrame pericárdico <button type="button" class="vinfo-btn vinfo-btn-44" data-vinfo="cc9-eisen-per" aria-expanded="false" aria-label="Que significa el derrame pericardico en el sindrome de Eisenmenger" onclick="vInfoClic(this)">&#9432;</button></label>
+                <select id="eis_pericardio" onchange="eisenSync()">
+                  <option value="">&mdash;</option>
+                  <option value="no">Sin derrame</option>
+                  <option value="leve">Derrame leve</option>
+                  <option value="moderado">Derrame moderado</option>
+                  <option value="severo">Derrame severo</option>
+                </select></div>
+            </div>
+          </div>
+          <div class="cc9-concl">
+            <div id="eisen-resultado" class="calc-box"></div>
+            <input type="checkbox" id="eisen_incluir_chk" style="display:none;" tabindex="-1" aria-hidden="true">
+            <div class="cc9-concl-btn">
+              <button type="button" class="btn btn-integrar" data-ete-chk="eisen_incluir_chk" aria-pressed="false"
+                      onclick="eteInclToggle('eisen_incluir_chk')">&#128206; Integrar al informe</button>
+            </div>
+          </div>
         </div>
-      </div>
-      <div class="grid-3" style="margin-top:10px;">
-        <div class="fg"><label>PSAP estimada (mmHg)</label>
-          <input type="number" id="eis_psap" placeholder="mmHg" oninput="eisenSync()"></div>
-        <div class="fg"><label>PDAP estimada (mmHg)</label>
-          <input type="number" id="eis_pdap" placeholder="mmHg" oninput="eisenSync()"></div>
-        <div class="fg"><label>Velocidad de IT (m/s)</label>
-          <input type="number" id="eis_it_vel" placeholder="m/s" step="0.1" oninput="eisenSync()"></div>
-      </div>
-      <div class="grid-3" style="margin-top:10px;">
-        <div class="fg"><label>Función del VD</label>
-          <select id="eis_vd_funcion" onchange="eisenSync()">
-            <option value="">&mdash;</option>
-            <option value="normal">Normal</option>
-            <option value="leve">Levemente reducida</option>
-            <option value="moderada">Moderadamente reducida</option>
-            <option value="severa">Severamente reducida</option>
-          </select></div>
-        <div class="fg"><label>Derrame pericárdico</label>
-          <select id="eis_pericardio" onchange="eisenSync()">
-            <option value="">&mdash;</option>
-            <option value="no">Sin derrame</option>
-            <option value="leve">Derrame leve</option>
-            <option value="moderado">Derrame moderado</option>
-            <option value="severo">Derrame severo</option>
-          </select>
-          <span style="font-size:10px;color:var(--text2);">El derrame pericardico asocia peor pronostico en Eisenmenger.</span></div>
-        <div class="fg"><label>Clase funcional NYHA</label>
-          <select id="eis_clase_nyha" onchange="eisenSync()">
-            <option value="">&mdash;</option>
-            <option value="i">I</option><option value="ii">II</option>
-            <option value="iii">III</option><option value="iv">IV</option>
-          </select></div>
-      </div>
-      <div class="grid-3" style="margin-top:10px;">
-        <div class="fg"><label>Sincope</label>
-          <select id="eis_sincope" onchange="eisenSync()">
-            <option value="">&mdash;</option><option value="no">No</option><option value="si">Si</option>
-          </select>
-          <span style="font-size:10px;color:var(--text2);">Marcador de mal pronostico.</span></div>
-        <div class="fg"><label>Hemoptisis</label>
-          <select id="eis_hemoptisis" onchange="eisenSync()">
-            <option value="">&mdash;</option><option value="no">No</option><option value="si">Si</option>
-          </select>
-          <span style="font-size:10px;color:var(--text2);">Riesgo de episodio masivo y fatal.</span></div>
-      </div>
-      <div id="eisen-resultado" class="calc-box" style="margin-top:12px;"></div>
-      <input type="checkbox" id="eisen_incluir_chk" style="display:none;" tabindex="-1" aria-hidden="true">
-      <div style="display:flex;justify-content:center;margin-top:10px;">
-        <button type="button" class="btn btn-integrar" data-ete-chk="eisen_incluir_chk" aria-pressed="false"
-                onclick="eteInclToggle('eisen_incluir_chk')">&#128206; Integrar al informe</button>
       </div>
     </div>
   </div>
@@ -48779,6 +48794,27 @@ const VINFO = Object.freeze({
     ancho: 356,
     tit: 'La insuficiencia auriculoventricular sistemica en Fontan',
     lee: 'En Fontan es marcador de disfuncion del ventriculo sistemico.'
+  },
+  'cc9-eisen-sat': {
+    ancho: 400,
+    tit: 'La saturacion de oxigeno en reposo en el sindrome de Eisenmenger',
+    lee: '<90 % → riesgo fetal critico. Embarazo practicamente imposible con <85 %. Mortalidad '
+       + 'materna >50 %.'
+  },
+  'cc9-eisen-sin': {
+    ancho: 356,
+    tit: 'El sincope en el sindrome de Eisenmenger',
+    lee: 'Marcador de mal pronostico.'
+  },
+  'cc9-eisen-hem': {
+    ancho: 356,
+    tit: 'La hemoptisis en el sindrome de Eisenmenger',
+    lee: 'Riesgo de episodio masivo y fatal.'
+  },
+  'cc9-eisen-per': {
+    ancho: 356,
+    tit: 'El derrame pericardico en el sindrome de Eisenmenger',
+    lee: 'El derrame pericardico asocia peor pronostico en Eisenmenger.'
   },
   'tarj-diast': { ancho: 356, dyn: function () { return qvDiast() } }
 });
@@ -156015,8 +156051,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261104-0738';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793788716315;                 /* eco-build-ms */
+const ECO_BUILD    = '20261104-0744';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793789056001;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -156102,7 +156138,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261104-0738</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261104-0744</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
