@@ -239,3 +239,22 @@ constricción viven en **Hemodinámica**, no en una pestaña de pericardio; la C
 sub-pestaña **«CC complejas»**; **Fallot en la primera**; el gráfico del Forrester **no se pinta
 solo** al abrir la pestaña; el acordeón de Fallot abre con `max-height` y una transición; y la
 tabla «Datos usados en el dibujo» sólo se puebla con el panel 3D abierto.
+
+---
+
+## Lo que la tanda PANT-6 movió de estas dos pantallas (2026-11-03)
+
+- **El dibujo de sobrecarga del VD pasó de 110 px a 520, y su letra de 2,6 px a 12,26.** Cierra
+  **P5-c**. **El dibujo no se tocó**: lo que cambió son su ancho (`#vdsc-svg`, `max-width:520px`)
+  y la maqueta de la sección (`#vdsc-fila`, 55/45 desde 900 px, con la lista de criterios debajo
+  de los campos). El **520** es una medición: el mínimo para 12 px es 509.
+- **La pantalla de CIA y CIV se rehizo entera.** Los botones ya **no** deciden la maqueta: la CIA
+  siempre a la izquierda, la CIV siempre a la derecha, todos los campos habilitados, y el botón
+  decide **sólo** si la lesión entra al informe. `eteShuntPanes()` es dos líneas y no lee ninguna
+  casilla; `eteShuntSync` perdió el bloque de la clase `dos`.
+- **La PSAP por insuficiencia tricuspídea se dejó de repetir** en los dos paneles: quedó la de la
+  CIV.
+- ⚠️ **Y el recorte de 116 a 389 px del cuerpo del acordeón, que era PREEXISTENTE, se cerró de
+  paso** — ver `docs/PENDIENTES.md` → **P6-g**.
+
+**Dónde está todo:** `docs/mapa/pant6-pantallas-molde.md` § 1 y § 2.

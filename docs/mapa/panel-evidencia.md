@@ -288,3 +288,28 @@ mediciones que decidieron el mecanismo.
   son compactas, no ocho como dice el chequeo del código.
 
 Todo en `docs/mapa/pant2-correcciones.md`.
+
+---
+
+## El MOLDE de las secciones de válvula (tanda PANT-6, 2026-11-03)
+
+**Seis secciones del panel ya no se dibujan con el cuerpo de siempre.** Por decisión del médico
+(03/11/2026, con esquema aprobado), la estenosis mitral, la insuficiencia aórtica, la estenosis
+aórtica, las dos insuficiencias mitrales y la tricuspídea usan un **molde**: franja ámbar con la
+categoría y el estadio, franja de tarjetas con los datos del estudio, las preguntas **agrupadas
+por tema** en dos columnas (una con seis o menos) y la tabla de recomendaciones al pie.
+
+- **El despacho es UNA línea** en `_indSecHTMLCuerpo`: `if (r.molde) { … }`. Una sección **sin**
+  `molde` sigue por el camino de siempre, que **no se tocó**.
+- Las piezas son `_indMoldeHTML`, `_indMoldeHTMLSec` y `_indSecPie` —éste extraído del cuerpo
+  viejo para que los dos caminos cierren la sección con las mismas piezas—.
+- `_indColsSync` escribe además **`data-ind-ancho`** (`xl` ≥1100, `md` ≥620, `sm`) para la franja
+  de datos. El corte de columnas sigue siendo el ancho del **panel** (`IND_COLS_CORTE`, 900 px).
+- **El estadio salió de la lista de filas y subió a la franja**, leyendo la **misma** respuesta que
+  la pregunta de síntomas (`_indEstSint`), así que no pueden discrepar.
+
+⚠️ **DOS SECCIONES SE PARARON Y SE REPORTARON** —la válvula pulmonar y la prótesis mitral—, con su
+motivo en `docs/PENDIENTES.md` → **P6-a**, y con **TC-649 (F1)** como guardián de esa parada.
+
+**Todo lo demás —la franja, el corte del estado corto, el ámbar, la pregunta de síntomas con
+cualquier etiología y los seis globos— está en `docs/mapa/pant6-pantallas-molde.md` § 3.**

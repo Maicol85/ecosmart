@@ -12917,3 +12917,89 @@ No se tocó, porque la orden manda no arreglar lo que no se reproduce.
 Medido idéntico en HEAD, en las cuatro combinaciones de CIA/CIV y en Fallot: a 899 y 900 px el
 documento tiene **30 a 31 px** de desplazamiento horizontal. No es de esta tanda y no se tocó.
 Por encima y por debajo de ese ancho da cero.
+
+---
+
+# TANDA PANT-6 (2026-11-03)
+
+## P6-a · La Evidencia de la válvula pulmonar y de la prótesis mitral quedan SIN molde
+
+El commit 7 pide aplicar el molde «a las otras válvulas, una por una», y se aplicó a **cinco**:
+insuficiencia aórtica, estenosis aórtica, las dos insuficiencias mitrales y la tricuspídea.
+**Faltan dos**, y cada una por su motivo:
+
+- **`_indEP` (válvula pulmonar), 4 preguntas.** No tiene fila de **estadio**, y es porque la guía
+  no publica estadios para esa lesión —lo que PANT-5 ya verificó y escribió en la propia sección—.
+  La franja del molde es categoría + estadio: con una sola mitad habría que decidir qué va en la
+  otra, y eso no está en la orden.
+- **`_indProtM` (prótesis mitral), 6 preguntas.** Su categoría no es un grado de severidad sino el
+  **voto de cuatro criterios de obstrucción** (ver `docs/mapa/protesis-z-z5-z6.md`), y la franja
+  ámbar afirma «la categoría que publica el informe». Qué texto va ahí con un voto en lugar de un
+  grado es una decisión clínica.
+
+**Lo que SÍ está hecho** es el guardián: **TC-649 (F1)** exige que las dos sigan **sin** molde, así
+que el día que entren el caso se pone rojo y hay que decidirlo a propósito.
+
+## P6-b · La letra del dibujo del VD a 1000 y a 390 px
+
+El commit 2 fija el ancho en **520 px** porque es lo que lleva el rótulo más chico a **12,26 px**,
+y eso se cumple a 1440. Por debajo, el dibujo toma el ancho de su columna:
+
+| ancho de ventana | dibujo | rótulo más chico |
+|---|---|---|
+| 1440 | 520 px (el tope) | **12,26 px** |
+| 1000 | ~400 px | **~9,4 px** |
+| 768 y 390 | ancho completo, apilado | por encima de 12 px |
+
+O sea que **entre 900 y ~1180 px el rótulo queda por debajo del piso de 12 px**, y es el único
+tramo donde pasa. Las dos salidas posibles —bajar el corte de la maqueta de 900 a 1180, o escalar
+la tipografía del SVG con su ancho— mueven algo que la orden fija (el corte) o tocan el dibujo
+(que la orden prohíbe). **No se tocó.**
+
+**Cómo medirlo:** abrir la sección por su encabezado, leer el `getBoundingClientRect().width` de
+`#vdsc-svg` y multiplicar el `font-size` de cada `<text>` por ancho/`viewBox`.
+
+## P6-c · La franja rosa vacía de los criterios TEER no se reproduce como defecto
+
+El punto del commit 5 que pedía investigar «la franja rosa vacía con un paréntesis a la izquierda».
+**Medido: no está vacía.** Tiene **50 caracteres** de texto, se muestra **sólo** cuando no hay tipo
+de insuficiencia mitral elegido —que es exactamente su trabajo— y el «paréntesis» que el médico vio
+es su **borde izquierdo de 3 px**, que es el estilo de aviso que esa pantalla usa en los demás.
+
+**No se tocó**, porque la orden manda no arreglar lo que no se reproduce. Si lo que molesta es el
+aspecto del borde, es una decisión de diseño y no un defecto.
+
+## P6-d · `vdscRotulos()` no existe
+
+Un comentario de la zona del dibujo del VD la nombra como «la que elige el rótulo largo o el
+corto». **Censado el documento entero: no hay ninguna función con ese nombre.** El reparto lo hace
+la constante `ROT` dentro del propio pintor. Es un comentario vencido, no un defecto: **no se tocó**
+porque esta tanda tiene prohibido tocar el dibujo.
+
+## P6-e · TC-337 falla idéntico contra HEAD
+
+Verificado en un worktree sobre `c42d9e3`, con los mismos scripts y alternando sólo `index.html`:
+**cae igual en los dos árboles**. No es de esta tanda.
+
+## P6-f · Los dos campos de la profundidad de coaptación siguen sin sincronizarse
+
+Esta tanda cierra **la mitad** de **P5-f**: los dos rótulos ya se distinguen —«reparación» y
+«TEER»—, así que el médico ya no puede confundir un campo con el otro. **La otra mitad sigue
+abierta a propósito:** son **dos datos distintos** con **dos cortes distintos** —10 mm como factor
+desfavorable para la reparación y 11 mm como criterio **c4** del TEER, que decide APTO / NO APTO—,
+y unirlos cambiaría ese criterio. **TC-648 (D5)** es el control negativo que lo fija.
+
+## P6-g · El recorte del acordeón de CIA/CIV era PREEXISTENTE, y se cerró de paso
+
+Medido en HEAD: el cuerpo del acordeón recortaba entre **116 y 389 px** de contenido, porque
+`max-height` se congela al abrir y la maqueta vieja crecía después. La disposición nueva **no
+recorta** en ninguno de los cuatro anchos, así que el defecto quedó cerrado sin que nadie lo
+pidiera. Se declara para que no se lea como un cambio de esta tanda: **la causa sigue en pie** para
+cualquier otra sección cuyo contenido crezca después de abrir el acordeón.
+
+## P6-h · `mitral-dibujo-estatico.md` quedó a 1,2 KB del techo
+
+Medido **antes** de escribirle el puntero: 33.526 B, y con el puntero quedó en **34.594 B (34,6 KB)**. El
+techo de esta casa es ~35 KB. **La próxima tanda que necesite escribirle tiene que partirlo**, como
+se hizo con `panel-evidencia.md` y con `tests.md` en AJUSTES-3. Siguen esperando
+`congenitas-otros.md` (34.540 B, no se tocó) y `valvulas.md` (33.863 B).

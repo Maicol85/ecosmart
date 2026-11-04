@@ -274,3 +274,21 @@ aparecía **tres** veces y una de ellas **tapaba los rótulos** del gráfico, ba
 SVG se apaga con `sinVacio`, una opción **aditiva** que el Laboratorio no pasa.
 La tercera —el span `hemo-forrester`— **está parada**: su texto llega al papel.
 → `docs/mapa/pant5-pantallas-vd.md` § 2, y `docs/PENDIENTES.md` → **P5-b**.
+
+---
+
+## La frase de dato faltante del Forrester salió del papel (tanda PANT-6, 2026-11-03)
+
+**Cierra P5-b.** Esa frase llegaba al papel por **tres** caminos; PANT-5 cerró el del SVG del
+gráfico y dejó los otros dos declarados. Hoy no llega por ninguno.
+
+- **`forrEsFalta(txt)`** vive al lado de `forrFaltaTxt` y reconoce las **tres** frases que ese
+  dueño produce **comparándolas contra lo que él devuelve**, no contra una cadena escrita a mano:
+  con el texto copiado, mover la redacción de una dejaría el filtro mirando una frase que ya no
+  existe.
+- **Sus dos consumidores** son `amiloTextoHemo()` —informe integrado y hoja del PDF— y la fila
+  `_pptSpan` de la diapositiva.
+- **La de PANTALLA se queda**, que es donde el médico necesita saber qué le falta.
+  **TC-648 (C5c)** lo fija.
+
+**Ver `docs/mapa/pant6-pantallas-molde.md` § 6.**

@@ -536,3 +536,20 @@ de etiquetas anidadas.
 
 Los cinco caen contra HEAD por **86 condiciones y cero excepciones**, y los sostienen **30
 mutaciones dirigidas**, todas muertas. → `docs/mapa/pant5-pantallas-vd.md`.
+
+## Tanda PANT-6 (2026-11-03) — TC-644 a TC-649
+
+Seis casos nuevos, uno por commit de código. Las fichas, con el denominador y el control negativo
+de cada bloque, están en **`docs/mapa/tests-fichas-644.md`** (archivo propio, porque
+`tests-fichas.md` está a menos de 1 KB del techo).
+
+| caso | commit | qué fija |
+|---|---|---|
+| TC-644 | 1 | la CIA y la CIV en las cuatro combinaciones, cada botón en su cuadro, el papel sin moverse |
+| TC-645 | 2 | el dibujo del VD con su ancho mínimo para 12 px, y la lista en la columna izquierda |
+| TC-646 | 3 y 7 | el molde, y los síntomas de la estenosis mitral con **cualquier** etiología |
+| TC-647 | 4 | la mitral del ETE en una sección de tres columnas, con su alias y sus dos casillas |
+| TC-648 | 5 y 6 | el TEER lado a lado, el Forrester fuera del papel y los dos rótulos distinguidos |
+| TC-649 | 7 | el molde en las otras cinco válvulas, con el control de las **dos** que se pararon |
+
+**Los seis caen contra HEAD (`c42d9e3`) por 69 condiciones y NINGUNA por excepción.**

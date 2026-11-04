@@ -561,3 +561,20 @@ Lo que esa tanda movió de esta zona está en **`docs/mapa/cong2a-desmarcar-tga-
 - **Ni una etiqueta, ni un corte, ni un veredicto se movió**: es CSS, tres reglas y una consulta de
   medios. Las tres etiquetas que el médico conserva —«NO apto», «Heart Team», «anatomía
   compleja»— llegan a la hoja del PDF, medido con denominador: `C2A-c`.
+
+---
+
+## Lo que la tanda PANT-6 movió de los criterios TEER (2026-11-03)
+
+- **La IM primaria y la IM secundaria se ven las DOS, siempre**, con todos sus campos habilitados,
+  en los tres valores del selector de tipo. Lo que se retiró son **dos líneas**, comentadas y no
+  borradas: `_mostrar('teer-bloque-primaria', !r.esSec)` y su par de la secundaria.
+- **La maqueta son tres filas**: `#teer-arriba` (franja común), `#teer-medio` (los dos cuadros) y
+  `#teer-abajo` (criterios comunes + conclusión), las dos últimas en dos columnas desde 900 px.
+- **El veredicto no cambió**, y es por construcción: los criterios siguen declarando su `tipo`
+  (`prim` / `sec`) y el evaluador aplica sólo los que corresponden.
+- **El rótulo de `teer_prof_flail` pasa a «Profundidad coaptación — TEER (mm)»** y el de
+  `ete_prof_coapt` a «— reparación». **Ningún id cambió** y los rótulos del Excel y del papel
+  tampoco. **Siguen sin sincronizarse a propósito**: son dos cortes distintos, 11 y 10 mm.
+
+**Ver `docs/mapa/pant6-pantallas-molde.md` § 5 y § 6.**

@@ -111061,6 +111061,28 @@ caso('TC-646', 'Tanda PANT-6: el molde de las secciones de valvula, y los sintom
       return !(txt.indexOf('AHA/ACC') > -1 && txt.indexOf('ESC/EACTS') > -1) }).join(',') || 'los seis', 'los seis']);
   ex.push(['(E4) y sus etiquetas son TODAS distintas, que es lo que separa una tarjeta de la otra',
     (new Set(TERM.map(k => (window.IND_TERMINOS[k] || {}).etiqueta))).size, 6]);
+  /* (E5) NACIO DEL BARRIDO: la mutacion 16 sobrevivia porque (E1) a (E4) miran el REGISTRO
+     -que sigue entero- y nada miraba el ENGANCHE. Un globo registrado y una fila sin term es
+     una pregunta sin ayuda. */
+  ex.push(['(E5) y la fila de sintomas lleva ENGANCHADO su termino, que es otra cosa que estar registrado',
+    (() => { const s2 = _indEM(); let t = null;
+      (s2.molde && s2.molde.cols || []).forEach(c => (c||[]).forEach(g => (g && g.filas || []).forEach(f => {
+        if (f && f.ctrl && f.ctrl.clave === 'em.sintomas') t = f.term })));
+      return t })(), 'emsintomas']);
+  /* (H) EL DOM QUE EL PANEL EMITE DE VERDAD, Y NO SOLO EL OBJETO QUE LA SECCION DEVUELVE.
+     NACIO DEL BARRIDO: las mutaciones 13 y 14 apagaban la EMISION de las dos franjas y
+     sobrevivian, porque (A2) y (A3) miran los DATOS. Un dato que nadie dibuja no se ve. */
+  try { indicCerrar() } catch (e) {}
+  try { indicAbrir() } catch (e) {}
+  const cu = document.getElementById('indic-cuerpo');
+  ex.push(['(H0) DENOM: el cuerpo del panel se dibujo', !!(cu && cu.innerHTML.length > 500), true]);
+  ex.push(['(H1) y hay al menos una seccion con molde en el DOM',
+    cu ? cu.querySelectorAll('[data-ind-molde]').length > 0 : -1, true]);
+  ex.push(['(H2) la franja de categoria se DIBUJA', cu ? cu.querySelectorAll('.ind-franja-cat').length > 0 : -1, true]);
+  ex.push(['(H3) la franja del estadio se DIBUJA', cu ? cu.querySelectorAll('.ind-franja-est').length > 0 : -1, true]);
+  ex.push(['(H4) las tarjetas de datos se DIBUJAN', cu ? cu.querySelectorAll('.ind-datos .ind-dato-lbl').length > 2 : -1, true]);
+  ex.push(['(H5) y las preguntas van en su contenedor de columnas', cu ? cu.querySelectorAll('.ind-pregcols').length > 0 : -1, true]);
+  try { indicCerrar() } catch (e) {}
   /* (F) CONTROL NEGATIVO: el molde NO alcanza a las secciones que no lo declaran. */
   const sinMolde = ['_indCIA','_indCIV','_indDAP','_indCoAo'].filter(n => {
     const fn = window[n]; if (typeof fn !== 'function') return false;
@@ -111180,6 +111202,18 @@ caso('TC-648', 'Tanda PANT-6: los dos tipos de IM del TEER siempre visibles, el 
       const e = document.getElementById(i); return !(e && a && a.contains(e)) }).join(',') || 'los tres' })(), 'los tres']);
   ex.push(['(A4) la fila del medio tiene los DOS cuadros', (() => {
     const m = document.getElementById('teer-medio'); return m ? m.children.length : -1 })(), 2]);
+  /* (A4b) NACIO DEL BARRIDO: la mutacion 21 apilaba las dos filas del TEER en una columna y
+     sobrevivia, porque (A4) y (A5) cuentan HIJOS y dos hijos siguen siendo dos apilados. */
+  ex.push(['(A4b) y las dos filas reparten en DOS columnas desde 900 px, con el corte sobre la VENTANA', (() => {
+    let r = null;
+    for (const h of Array.from(document.styleSheets)) { let rs = null;
+      try { rs = h.cssRules } catch (e) { continue } if (!rs) continue;
+      for (const x of Array.from(rs)) { if (x.type !== 4) continue;
+        for (const y of Array.from(x.cssRules || [])) {
+          if (y.type === 1 && String(y.selectorText).indexOf('#teer-medio') > -1
+              && y.style.getPropertyValue('grid-template-columns'))
+            r = { v:y.style.getPropertyValue('grid-template-columns'), media:String(x.conditionText || x.media.mediaText) } } } }
+    return !!(r && r.v.indexOf('repeat(2') > -1 && String(r.media).indexOf('min-width: 900px') > -1) })(), true]);
   ex.push(['(A5) y la de abajo, los criterios comunes y la conclusion', (() => {
     const b = document.getElementById('teer-abajo'); return b ? b.children.length : -1 })(), 2]);
   ex.push(['(A6) los criterios comunes en DOS columnas internas', (() => {
@@ -111308,6 +111342,16 @@ caso('TC-649', 'Tanda PANT-6: el molde en la insuficiencia aortica, la estenosis
   /* (C) LA PREGUNTA DE SINTOMAS: UNA en cada una, ni cero ni dos. */
   ex.push(['(C1) cada valvula tiene UNA pregunta de sintomas',
     VAL.map(v => v.n + '=' + E[v.n].sx).join(' '), 'IA=1 EA=1 IMp=1 IMs=1 IT=1']);
+  /* (C2) NACIO DEL BARRIDO: las mutaciones 27 a 31 le sacaban el term a la fila de sintomas de
+     cada valvula y las CINCO sobrevivian, porque nada miraba el ENGANCHE: el registro de
+     terminos seguia entero. Un globo registrado y una fila sin term es una pregunta sin ayuda. */
+  const termDe = (v) => { const r = E[v.n].r; let t = null;
+    (r && r.molde && r.molde.cols || []).forEach(c => (c||[]).forEach(g => (g && g.filas || []).forEach(f => {
+      if (f && f.ctrl && f.ctrl.clave === v.sx) t = f.term })));
+    return t || 'SIN TERMINO' };
+  ex.push(['(C2) y la fila de sintomas de cada valvula lleva ENGANCHADO su termino',
+    VAL.map(v => v.n + '=' + termDe(v)).join(' '),
+    'IA=iasintomas EA=easintomas IMp=impsintomas IMs=imssintomas IT=itsintomas']);
   /* (D) EL ESTADIO NO SE REPITE ABAJO en ninguna de las cinco. */
   ex.push(['(D1) el estadio no quedo tambien en las filas',
     VAL.map(v => v.n + '=' + E[v.n].estEnFilas).join(' '), 'IA=0 EA=0 IMp=0 IMs=0 IT=0']);
@@ -111355,6 +111399,32 @@ caso('TC-644', 'Tanda PANT-6: la CIA y la CIV siempre visibles en las cuatro com
   /* (A) DENOMINADOR: la seccion y sus dos cuadros existen. Sin esto todo lo de abajo cuenta cero. */
   ex.push(['(A0) DENOM: la seccion existe', !!sec, true]);
   ex.push(['(A1) y sus DOS cuadros', document.querySelectorAll('.ete-shunt-cuadro').length >= 2, true]);
+  /* (A2) y (A3) NACIERON DEL BARRIDO DE MUTACIONES: las dos primeras sobrevivieron porque este
+     caso miraba la VISIBILIDAD de los paneles y no la MAQUETA. Apilar la fila en una columna o
+     dejar el cuadro sin borde pasaban en verde. Se mide la REGLA de la hoja de estilos y no la
+     geometria, porque la suite corre Chrome sin --window-size, o sea a ~756 px. */
+  const reglaCC = (sel, prop) => { let r = null;
+    for (const h of Array.from(document.styleSheets)) { let rs = null;
+      try { rs = h.cssRules } catch (e) { continue } if (!rs) continue;
+      for (const x of Array.from(rs)) {
+        if (x.type === 1 && x.selectorText === sel && x.style.getPropertyValue(prop)) r = { v:x.style.getPropertyValue(prop), media:'' };
+        if (x.type === 4) for (const y of Array.from(x.cssRules || [])) {
+          if (y.type === 1 && y.selectorText === sel && y.style.getPropertyValue(prop)) r = { v:y.style.getPropertyValue(prop), media:String(x.conditionText || x.media.mediaText) } } } }
+    return r };
+  const rFila = reglaCC('#ete-shunt-fila', 'grid-template-columns');
+  /* SIN NINGUNA EXPRESION REGULAR: una barra invertida simple no sobrevive al template literal
+     del cuerpo de un caso -llega sin ella y /repeat(2/ es un grupo sin cerrar-, y es la trampa
+     que este repositorio ya documenta. Se compara con indexOf. */
+  ex.push(['(A2) la fila reparte en DOS columnas desde 900 px, con el corte sobre la VENTANA',
+    !!(rFila && rFila.v.indexOf('repeat(2') > -1 && String(rFila.media).indexOf('min-width: 900px') > -1), true]);
+  const rBorde = reglaCC('.ete-shunt-cuadro', 'border');
+  ex.push(['(A3) y el cuadro declara su borde de 2 px en el color de acento',
+    !!(rBorde && rBorde.v.indexOf('2px') > -1 && rBorde.v.indexOf('--accent') > -1), true]);
+  /* El fino NO redeclara el borde entero: afina el que hereda del cuadro con border-width,
+     que es lo que hace que un cambio de color del acento alcance a los tres cuadros. */
+  ex.push(['(A3b) CONTROL: el cuadro comun afina ese mismo borde a 1 px, que es lo que lo distingue',
+    (() => { const r = reglaCC('.ete-shunt-cuadro-fino', 'border-width');
+      return !!(r && r.v.indexOf('1px') > -1) })(), true]);
   /* (B) LAS CUATRO COMBINACIONES: los dos cuadros a la vista en TODAS. Es la regla nueva. */
   const combo = (c, v) => { __t.chk('ete_cia_activa', c); __t.chk('ete_civ_activa', v);
     try { eteShuntSync(); } catch (e) {}
@@ -111457,6 +111527,12 @@ caso('TC-645', 'Tanda PANT-6: el dibujo del VD con su ancho minimo para 12 px, l
   /* (B) LA MAQUETA: campos a la izquierda, dibujo a la derecha, lista DEBAJO de los campos. */
   const rFila = regla('#vdsc-fila', 'grid-template-columns');
   ex.push(['(B1) desde 900 px la fila es una grilla', !!rFila, true]);
+  /* (B1b) NACIO DEL BARRIDO: la mutacion 09 cambiaba display:grid por display:block DENTRO
+     de la media query y sobrevivia, porque (B1) mira si existe una regla de columnas y no el
+     display. Una grilla con display:block reparte nada. */
+  ex.push(['(B1b) y su regla declara display:grid, no solo las columnas', (() => {
+    const r = regla('#vdsc-fila', 'display');
+    return !!(r && r.v === 'grid' && String(r.media).indexOf('min-width: 900px') > -1) })(), true]);
   ex.push(['(B2) y el corte va sobre la VENTANA, en 900 px',
     rFila && /min-width:\\s*900px/.test(String(rFila.media)), true]);
   ex.push(['(B3) con el 55 % para los campos y el 45 % para el dibujo',

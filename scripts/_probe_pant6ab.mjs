@@ -159,6 +159,34 @@ const ESCENAS = {
      distinguia nada. La presion capilar sale de Nagueh -onda E y los dos e primas-. */
   p6forrDos:  { campos: { peso:'70', talla:'170', diam_tsvi:'20', itv_tsvi:'22', hemo_fc:'70',
                           onda_e:'90', e_sep:'6', e_lat:'8' }, integrar:['hemo'] },
+  /* -- PANT-6, COMMITS 3 y 7: LAS SEIS SECCIONES CON MOLDE --
+     El molde es PANTALLA: estas seis escenas existen para probar que el papel NO se mueve, y
+     cada una carga los campos que ABREN su seccion -sin eso un cero no distingue «no se movio»
+     de «la escena no llega a la zona»-. `p6emCalc` es la del defecto que el medico reporto: la
+     misma estenosis mitral con la etiologia CALCIFICADA. */
+  p6em:      { campos: { peso:'70', talla:'170', avm_plan:'1.2', em_gmedio:'12' },
+               sel: { em_grado:'severa' } },
+  p6emCalc:  { campos: { peso:'70', talla:'170', avm_plan:'1.2', em_gmedio:'12' },
+               sel: { em_grado:'severa', vm_morf:'calcificada' } },
+  p6ea:      { campos: { peso:'70', talla:'170', ao_gm:'45', vmax_ao:'4.3', fevi:'55' },
+               sel: { ea_grado:'severa' } },
+  p6imp:     { campos: { peso:'70', talla:'170', fevi:'58', dsfvi:'41' }, sel: { im_grado:'4' } },
+  p6ims:     { campos: { peso:'70', talla:'170', fevi:'32', ddfvi:'62' },
+               sel: { im_grado:'4', teer_tipo_im:'secundaria', sexo:'M' } },
+  p6it:      { campos: { peso:'70', talla:'170', vd_bas:'46' }, sel: { it_grado:'4' } },
+  /* -- PANT-6, COMMIT 5: LOS CRITERIOS TEER CON LOS DOS TIPOS --
+     La maqueta no puede mover el veredicto, y el veredicto llega al papel por el modulo
+     integrado: por eso las dos van con `integrar`. */
+  p6teerP:   { campos: { peso:'70', talla:'170', teer_flail_gap:'6', teer_ancho_flail:'11',
+                         teer_prof_flail:'8', teer_gap:'4', teer_fevi:'40', teer_dtsvi:'58',
+                         teer_area_mitral:'4.4', teer_pasp:'55', teer_lva:'22', teer_lvp:'11' },
+               sel: { teer_tipo_im:'primaria', teer_calcificacion:'no', teer_clefts:'no',
+                      teer_trombo:'no' }, integrar:['teer'] },
+  p6teerS:   { campos: { peso:'70', talla:'170', teer_flail_gap:'6', teer_ancho_flail:'11',
+                         teer_prof_flail:'8', teer_gap:'4', teer_fevi:'40', teer_dtsvi:'58',
+                         teer_area_mitral:'4.4', teer_pasp:'55', teer_lva:'22', teer_lvp:'11' },
+               sel: { teer_tipo_im:'secundaria', teer_calcificacion:'no', teer_clefts:'no',
+                      teer_trombo:'no' }, integrar:['teer'] },
   p6ccNada:    { campos: CC6 },
   p6ccCia:     { campos: CC6, les:['cia'] },
   p6ccCiv:     { campos: CC6, les:['civ'] },

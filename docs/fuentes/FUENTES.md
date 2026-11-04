@@ -10180,3 +10180,98 @@ flujo.
 | 8 | conclusión de la supravalvular | ídem | ídem | el criterio queda en `easv-grad` |
 | 9 | la respuesta tensional en la tarjeta de MCH | «la AHA/ACC la retiró explícitamente en 2020» | «no está en ninguno de los dos» | la edición 2020 no está en la biblioteca |
 | 10 | el mensaje de lo que falta del Forrester | tres veces, una tapando los rótulos | dos; la del SVG se fue | — |
+
+## La tanda PANT-6 (2026-11-03) — la columna «Symptoms» de las cinco tablas de estadios
+
+**TODO ESTO SE LEYÓ EN IMAGEN** a 220–230 ppp, y **el folio se comprobó en el pie impreso de cada
+hoja**, no se derivó de la regla. La regla de folio de esta guía es **folio = «e» + (índice
+0-based del PDF + 72)**, o sea folio = «e» + (hoja 1-based + 71), que es la que este repositorio
+ya tenía escrita; las cinco hojas la confirman.
+
+**Documento:** Otto CM y cols., *2020 ACC/AHA Guideline for the Management of Patients With
+Valvular Heart Disease*, **Circulation** 2021;143:e72-e227.
+
+### Las cinco tablas, con su hoja, su folio impreso y lo que dice su columna de síntomas
+
+| tabla | título | hoja | folio impreso | columna |
+|---|---|---|---|---|
+| 13 | Stages of AS | 20 | **e91** | «Symptoms» |
+| 15 | Stages of Chronic AR | 34 | **e105** | «Symptoms» |
+| 16 | Stages of MS | 42 | **e113** | «Symptoms» |
+| 17 | Stages of Chronic Primary MR | 50 | **e121** | «Symptoms» |
+| 18 | Stages of Chronic Secondary MR | 57 | **e128** | «Symptoms» |
+| 20 | Stages of TR | 61 | **e132** | «Clinical Symptoms and Presentation» |
+
+**Transcripción de lo que cada una enumera**, que es lo único que entró a los seis globos:
+
+- **Tabla 13 (estenosis aórtica, folio e91).** En el estadio **D1** —alto gradiente— la columna
+  lista: disnea de esfuerzo, disminución de la tolerancia al ejercicio o insuficiencia cardíaca,
+  angina de esfuerzo, y síncope o presíncope de esfuerzo. En **D2** y **D3** —los dos de bajo
+  gradiente— los nombra **sin** el calificativo de esfuerzo: insuficiencia cardíaca, angina, y
+  síncope o presíncope. En el estadio **C1** —severo asintomático con fracción de eyección
+  normal— la misma columna considera razonable la **prueba de esfuerzo** para confirmar el estado
+  sintomático.
+  ⚠️ **Son MÁS DE TRES, y el rótulo de la pregunta de la app nombra tres.** La diferencia se
+  declara en el globo y **ningún corte se movió**.
+- **Tabla 15 (insuficiencia aórtica, folio e105).** El estadio **D** queda definido por disnea de
+  esfuerzo, angina o síntomas más severos de insuficiencia cardíaca. En el estadio **C** la misma
+  columna considera razonable la prueba de esfuerzo para confirmar que el paciente está realmente
+  asintomático.
+- **Tabla 16 (estenosis mitral, folio e113).** El estadio sintomático queda definido por
+  **disminución de la tolerancia al ejercicio** y **disnea de esfuerzo**. Son los **dos únicos**
+  síntomas que esa tabla nombra.
+- **Tabla 17 (insuficiencia mitral primaria, folio e121).** El estadio **D** queda definido por
+  disminución de la tolerancia al ejercicio y disnea de esfuerzo. Los tres estadios anteriores
+  figuran **sin ningún síntoma**.
+- **Tabla 18 (insuficiencia mitral secundaria, folio e128).** ⚠️ **ACÁ LA DIFERENCIA NO ES DE
+  REDACCIÓN SINO CLÍNICA, y es la que PANT-5 ya había declarado:** los **cuatro** estadios admiten
+  síntomas. En los tres primeros la tabla dice que pueden estar presentes síntomas atribuibles a
+  isquemia coronaria o a insuficiencia cardíaca **que responden** a la revascularización y al
+  tratamiento médico apropiado. El estadio **D** queda definido porque los síntomas de
+  insuficiencia cardíaca atribuibles a la insuficiencia mitral **PERSISTEN** aun después de la
+  revascularización y de optimizar el tratamiento médico; la misma celda nombra la disminución de
+  la tolerancia al ejercicio y la disnea de esfuerzo.
+  **Por eso esa sección de la app pregunta los síntomas y el tratamiento médico optimizado por
+  separado.**
+- **Tabla 20 (insuficiencia tricuspídea, folio e132).** El estadio sintomático queda definido por
+  **disnea de esfuerzo, fatiga, ascitis y edema** — son cuatro.
+  ⚠️ **Y SU COLUMNA NO ES SÓLO DE SÍNTOMAS:** se titula «Clinical Symptoms and Presentation», y en
+  el estadio asintomático y en el sintomático lista además la **presión venosa elevada**, que es un
+  hallazgo del examen y no un síntoma. Lo que separa los dos estadios son los cuatro de arriba.
+
+### Lo que la ESC/EACTS 2025 dice de lo mismo
+
+**No los define en ninguna de las cinco válvulas**: sus filas de intervención hablan del paciente
+«sintomático» sin enumerar cuáles. En la **estenosis mitral** los cuenta entre los factores
+clínicos del enunciado de severidad —junto con el riesgo tromboembólico alto y la descompensación
+hemodinámica—, **también sin definirlos** (Recommendation Table 8, PDF 48, folio 4682; el
+enunciado de severidad en el folio 4680). En la **insuficiencia mitral secundaria** sus filas
+hablan de clase funcional II a IV y evalúan la severidad **después** de optimizar el tratamiento
+médico, sin enumerar qué síntomas cuentan.
+
+### La regla que esto sigue, y por qué no se resuelve la diferencia
+
+**Discrepancia entre la fuente y la app, o entre dos fuentes: no se corrige — se muestra y la
+decide quien informa.** Los seis globos dicen las dos cosas —qué enumera la guía que usa estadios
+y que la otra no enumera— y cierran con «Qué hace esta aplicación: no resuelve la diferencia y no
+mueve ningún corte. "Sin dato" no cuenta como "No"». **Ningún umbral, ningún corte y ninguna clase
+se movió en esta tanda.**
+
+⚠️ **Y NINGUNA DE LAS CINCO TABLAS SE PUDO LEER CON EXTRACCIÓN DE TEXTO:** son tablas de celdas con
+viñetas dentro de cada celda, y el texto plano las devuelve en un orden que no respeta la columna,
+así que una celda del estadio D puede salir pegada a la del C. **Se renderizó la hoja y se leyó la
+imagen**, columna por columna, que es lo que este archivo manda.
+
+## Cambios de evidencia
+
+| # | qué | antes | ahora | fuente |
+|---|---|---|---|---|
+| 1 | pregunta de síntomas en la estenosis mitral | existía, pero **sólo con etiología reumática o sin consignar** | existe **con cualquier etiología** | AHA/ACC 2020, Tabla 16, hoja 42, folio e113 |
+| 2 | ⓘ de esa pregunta | **no existía** | los dos síntomas de la tabla y que la ESC no los define | ídem |
+| 3 | ⓘ de síntomas de la insuficiencia aórtica | **no existía** | los tres de la tabla + la prueba de esfuerzo del estadio C | Tabla 15, hoja 34, folio e105 |
+| 4 | ⓘ de síntomas de la estenosis aórtica | **no existía** | los cuatro de D1, los tres de D2/D3 y la prueba de esfuerzo de C1 | Tabla 13, hoja 20, folio e91 |
+| 5 | ⓘ de síntomas de la insuficiencia mitral primaria | **no existía** | los dos de la tabla, y que los tres estadios anteriores no nombran ninguno | Tabla 17, hoja 50, folio e121 |
+| 6 | ⓘ de síntomas de la insuficiencia mitral secundaria | **no existía** | que los cuatro estadios los admiten y que el D es el que **persiste** tras el tratamiento | Tabla 18, hoja 57, folio e128 |
+| 7 | ⓘ de síntomas de la insuficiencia tricuspídea | **no existía** | los cuatro, y que su columna incluye además un hallazgo del examen | Tabla 20, hoja 61, folio e132 |
+| 8 | el estadio en las seis secciones con molde | fila en la lista de preguntas | **franja ámbar arriba**, al lado de la categoría | los mismos folios |
+| 9 | la frase de dato faltante del Forrester | en el informe, en la hoja del PDF y en la diapositiva | **sólo en la pantalla** | — (cierra lo que PANT-5 dejó parado en P5-b) |
