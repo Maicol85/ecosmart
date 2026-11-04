@@ -93987,6 +93987,196 @@ function _indCVPA(){
     ]
   };
 }
+/* ══ SINDROME DE EISENMENGER — PANT-10, commit 6 (2026-11-04) ═════════════════════════════════
+   Molde: el de _indCIA, sin reescribirlo. Es la seccion mas delicada de la tanda y por eso va
+   la ultima.
+
+   LAS FUENTES, LEIDAS EN IMAGEN a 200 ppp con el folio comprobado en el pie impreso:
+     ACC/AHA 2025 (Gurvitz y col., Circulation 2026;153:e115-e251), apartado 4.4.6: hoja 93,
+     folio e207, con las DOCE recomendaciones y la nota al pie que define el alto riesgo; hoja
+     95, folio e209, con los factores pronosticos y el riesgo del embarazo; y hoja 97, folio
+     e211, con los textos de apoyo de la anticoagulacion, del cierre del cortocircuito y de los
+     cables endocardicos. Folio = e(hoja + 114).
+     ESC/ERS 2022 de hipertension pulmonar (Humbert y col.), version en espaniol de la SEC,
+     hoja 67, folio 66, Recomendaciones-tabla 19, de hipertension arterial pulmonar asociada a
+     cardiopatias congenitas del adulto. ⚠️ SU FOLIO IMPRESO NO ES EL NUMERO DE HOJA: folio =
+     hoja - 1, comprobado en el encabezado.
+     ESC 2020 de cardiopatias congenitas del adulto, edicion inglesa, hoja 24, folio 586, con
+     los predictores de muerte. Folio = hoja + 562.
+     ESC 2025 de embarazo (De Backer y col.), hoja 47, folio 4508. Folio = hoja + 4461.
+
+   ⚠️ ESTA SECCION NO REPITE LA FRANJA DE CONTRAINDICACIONES DE LA PANTALLA NI CAMBIA SU TEXTO,
+   que es lo que la orden fija.
+
+   ⚠️ NADA DE ESTE BLOQUE LLEGA AL PAPEL. Lo lee indicRender y nadie mas. */
+const EIS_PREG = Object.freeze([
+  { clave:'eis.ev.invasiva', lbl:'Diagnostico confirmado con evaluacion hemodinamica invasiva', guia:'acc', rec:'Clase 1 · Nivel B-NR, recomendacion 1 — ante la sospecha de sindrome de Eisenmenger, la evaluacion hemodinamica invasiva debe hacerse para confirmar el diagnostico y para excluir enfermedad concomitante que contribuya al cortocircuito de derecha a izquierda o a la hipertension arterial pulmonar, hoja 93, folio e207', nota:'su texto de apoyo (hoja 95, folio e209) agrega que, establecido el diagnostico, la hemodinamia invasiva de seguimiento no suele hacer falta, pero puede plantearse ante empeoramiento clinico o como parte de la planificacion de asistencia circulatoria o trasplante', ref:'la ESC/ERS 2022 recomienda la evaluacion del riesgo en todo paciente con hipertension arterial pulmonar persistente despues del cierre del defecto, Clase I · Nivel C, y debe considerarse en el sindrome de Eisenmenger, Clase IIa · Nivel C (hoja 67, folio 66)' },
+  { clave:'eis.ev.sintomas', lbl:'Sintomas, o capacidad de ejercicio reducida', guia:'acc', rec:'Clase 1 · Nivel B-R, recomendacion 4 — con fraccion de eyeccion del ventriculo izquierdo por encima de 40 % y sintomas o capacidad de ejercicio reducida, la monoterapia inicial con tratamiento dirigido a la hipertension arterial pulmonar esta recomendada para mejorar los sintomas, la hemodinamia y la supervivencia global, hoja 93, folio e207', ref:'el tratamiento con bosentan esta recomendado para el paciente SINTOMATICO con sindrome de Eisenmenger, para mejorar la capacidad de ejercicio, Clase I · Nivel B (ESC/ERS 2022, hoja 67, folio 66)', tramo:'la primera linea no coincide: la ACC/AHA 2025 recomienda la monoterapia dirigida en general y la ESC/ERS 2022 nombra el bosentan en Clase I · Nivel B, dejando los demas farmacos en Clase IIa · Nivel C' },
+  { clave:'eis.ev.persisten', lbl:'Persisten los sintomas, o empeora la capacidad de ejercicio, con una sola terapia dirigida', guia:'acc', rec:'Clase 1 · Nivel B-NR, recomendacion 5 — con fraccion de eyeccion del ventriculo izquierdo por encima de 40 %, la terapia combinada doble con un antagonista del receptor de endotelina y un inhibidor de la fosfodiesterasa 5 esta recomendada para mejorar los sintomas, la hemodinamia y la supervivencia global, hoja 93, folio e207', ref:'el tratamiento combinado SECUENCIAL debe considerarse si no se cumplen los objetivos del tratamiento, Clase IIa · Nivel C (ESC/ERS 2022, hoja 67, folio 66)', tramo:'la clase de la terapia combinada no coincide: 1 en la ACC/AHA 2025 y IIa en la ESC/ERS 2022' },
+  { clave:'eis.ev.progresiva', lbl:'Enfermedad rapidamente progresiva', guia:'acc', rec:'Clase 2b · Nivel C-LD, recomendacion 8 — con fraccion de eyeccion del ventriculo izquierdo por encima de 40 % y riesgo alto de resultados adversos, o enfermedad rapidamente progresiva, el tratamiento con prostaciclina inhalada o subcutanea puede considerarse como terapia inicial o agregada, hoja 93, folio e207', nota:'la nota al pie de esa misma tabla define el riesgo alto por clase funcional 3 o 4 de la Organizacion Mundial de la Salud, distancia de marcha de seis minutos por debajo de 165 m, excursion sistolica del plano del anillo tricuspideo por debajo de 16 mm y peptido natriuretico NT-proBNP por encima de 1400 pg/ml', ref:'la ESC/ERS 2022 incluye los analogos de la prostaciclina y los agonistas de sus receptores entre los farmacos que deben considerarse, Clase IIa · Nivel C (hoja 67, folio 66)' },
+  { clave:'eis.ev.arritmia', lbl:'Arritmia auricular', guia:'acc', rec:'Clase 1 · Nivel C-LD, recomendacion 6 — se recomienda la restauracion y el mantenimiento prontos del ritmo sinusal para evitar el deterioro hemodinamico, hoja 93, folio e207. Es ademas uno de los tres rasgos de alto riesgo de la recomendacion 9 de anticoagulacion selectiva', ref:'la ESC 2020 lista la ausencia de ritmo sinusal entre los predictores mas fuertes de muerte en el sindrome de Eisenmenger (hoja 24, folio 586)' },
+  { clave:'eis.ev.tromboAp', lbl:'Trombosis de arteria pulmonar, nueva o en crecimiento', guia:'acc', rec:'Clase 2b · Nivel C-EO, recomendacion 9 — con rasgos de alto riesgo -arritmia auricular, trombosis arterial pulmonar nueva o en crecimiento, o evento tromboembolico previo- y riesgo bajo de sangrado, el tratamiento anticoagulante puede considerarse para prevenir complicaciones tromboembolicas, hoja 93, folio e207', ref:'en ausencia de hemoptisis significativa, el tratamiento anticoagulante oral se puede considerar para el paciente con sindrome de Eisenmenger y trombosis arterial pulmonar, Clase IIb · Nivel C (ESC/ERS 2022, hoja 67, folio 66)', tramo:'las dos piden condiciones distintas: la ACC/AHA 2025 pide riesgo bajo de sangrado y la ESC/ERS 2022 ausencia de hemoptisis significativa' },
+  { clave:'eis.ev.tromboemb', lbl:'Evento tromboembolico previo', guia:'acc', rec:'Clase 2b · Nivel C-EO, recomendacion 9 — es el tercero de los tres rasgos de alto riesgo de la anticoagulacion selectiva, hoja 93, folio e207', nota:'la misma guia publica, en Clase 3: Sin beneficio · Nivel B-NR (recomendacion 10), que la anticoagulacion oral NO debe prescribirse de rutina, por el riesgo alto de sangrado y la falta de beneficio en la supervivencia a largo plazo', ref:'la ESC/ERS 2022 solo la plantea con trombosis arterial pulmonar (hoja 67, folio 66)' },
+  { clave:'eis.ev.sangradoBajo', lbl:'Riesgo bajo de sangrado', guia:'acc', rec:'Clase 2b · Nivel C-EO, recomendacion 9 — es la condicion que la guia agrega a los rasgos de alto riesgo para considerar la anticoagulacion, hoja 93, folio e207', nota:'su texto de apoyo (hoja 97, folio e211) describe que el paciente con sindrome de Eisenmenger tiene riesgo alto de sangrado por alteraciones de la coagulacion, y que en el registro nacional aleman ni la anticoagulacion oral ni la aspirina mostraron efecto beneficioso sobre la supervivencia' },
+  { clave:'eis.ev.hemoptisisSig', lbl:'Hemoptisis significativa', guia:'esc', rec:'Clase IIb · Nivel C — la ESC/ERS 2022 condiciona el tratamiento anticoagulante oral a la AUSENCIA de hemoptisis significativa, hoja 67, folio 66', nota:'esta pregunta se contesta al reves que las otras: con hemoptisis significativa, esa recomendacion NO aplica. La ACC/AHA 2025 (hoja 97, folio e211) describe que la hemoptisis recurrente es frecuente, suele autolimitarse y puede causar sangrado mayor y poner en riesgo la vida' },
+  { clave:'eis.ev.oxigeno', lbl:'El oxigeno suplementario aumenta de forma constante la saturacion y reduce los sintomas', guia:'esc', rec:'Clase IIa · Nivel C — en esos casos debe considerarse la terapia suplementaria de oxigeno, hoja 67, folio 66', nota:'la ESC/ERS 2022 lo condiciona al efecto observado y no lo indica de rutina. La ACC/AHA 2025 no publica una recomendacion propia de oxigeno en su tabla de Eisenmenger' },
+  { clave:'eis.ev.hierro', lbl:'Deficit de hierro', guia:'esc', rec:'Clase IIa · Nivel C — debe considerarse el uso de suplementos de hierro, hoja 67, folio 66', nota:'la ESC 2020 agrega que el deficit de hierro lo causan con frecuencia las flebotomias inapropiadas o la menstruacion abundante, y que la microcitosis por deficit de hierro fue el predictor independiente mas fuerte de eventos cerebrovasculares en un estudio (hoja 24, folio 586). La misma ESC/ERS 2022 NO recomienda la flebotomia sistematica para reducir el hematocrito elevado, Clase III · Nivel C' },
+  { clave:'eis.ev.ejercicio', lbl:'Puede hacer un programa regular de ejercicio', guia:'acc', rec:'Clase 2a · Nivel C-LD, recomendacion 7 — un programa regular de ejercicio en combinacion con el tratamiento dirigido a la hipertension arterial pulmonar puede ser eficaz para mejorar la capacidad de ejercicio, hoja 93, folio e207', ref:'la ESC/ERS 2022 no publica una recomendacion propia de ejercicio en su tabla de cardiopatias congenitas del adulto' },
+  { clave:'eis.ev.dispositivo', lbl:'Tiene indicacion de marcapasos permanente o de desfibrilador', guia:'acc', rec:'Clase 3: Dano · Nivel B-NR, recomendacion 12 — con cortocircuitos intracardiacos, los cables endocardicos son potencialmente daninos por el aumento del riesgo de tromboembolismo sistemico, hoja 93, folio e207', nota:'su texto de apoyo (hoja 97, folio e211) plantea como alternativas el cable epicardico o el desfibrilador subcutaneo, y describe casos de marcapasos sin cables implantado en el ventriculo con anticoagulacion de corto plazo hasta la endotelizacion' },
+  { clave:'eis.ev.embarazo', lbl:'Embarazo, o deseo de embarazo', guia:'acc', rec:'Clase 3: Dano · Nivel B-NR, recomendacion 3 — se recomienda aconsejar en contra del embarazo, para disminuir el riesgo asociado al exceso de morbilidad y mortalidad maternas, hoja 93, folio e207', nota:'la ACC/AHA 2025 publica un riesgo de mortalidad materna de 30 a 50 %, con exacerbacion de insuficiencia cardiaca de hasta 50 % y perdida o morbilidad fetal perinatal de alrededor del 30 % (hoja 95, folio e209). La ESC 2025 de embarazo describe que por encima de 90 % de saturacion el resultado fetal suele ser mejor, con alrededor de 10 % de perdida fetal, y que por debajo de 85 % la tasa de nacido vivo es de alrededor del 12 % (hoja 47, folio 4508)', ref:'no se recomienda el embarazo a las pacientes con sindrome de Eisenmenger, Clase III · Nivel C (ESC/ERS 2022, hoja 67, folio 66)' }
+]);
+window.EIS_PREG = EIS_PREG;
+function _indEIS(){
+  const eEst = _indFn('eisenEstado');
+  const r = eEst ? eEst() : null;
+  if (!r || r.hayDatos === false) return null;
+
+  const les = _indS('eis_lesion_base'), vd = _indS('eis_vd_funcion'), peri = _indS('eis_pericardio');
+  const nyha = _indS('eis_clase_nyha'), sinc = _indS('eis_sincope'), hemo = _indS('eis_hemoptisis');
+  const satR = _indN('eis_saturacion_reposo'), satE = _indN('eis_saturacion_ejercicio');
+  const psap = _indN('eis_psap'), pdap = _indN('eis_pdap'), itv = _indN('eis_it_vel');
+  const fevi = _indN('fevi'), tapse = _indN('tapse');
+  const _LES = { civ:'CIV', cia:'CIA', dap:'DAP', dsav:'DSAV', tronco:'Tronco arterioso',
+                 tga:'TGA', otra:'Otra CC compleja' };
+  const _VD = { normal:'Normal', leve:'Levemente reducida', moderada:'Moderadamente reducida',
+                severa:'Severamente reducida' };
+  const _NYHA = { i:'I', ii:'II', iii:'III', iv:'IV' };
+  const _SN = { no:'No', si:'Sí' };
+  const preTric = (les === 'cia' || les === 'dsav');
+  const nyhaAlta = (nyha === 'iii' || nyha === 'iv');
+  const periSi = !!(peri && peri !== 'no');
+
+  const filas = [];
+  filas.push(_indFila('Lesión de base', _ccLbl(_LES, les) || '—', preTric ? 'warn' : (les ? 'none' : 'ask'),
+    preTric ? 'el cortocircuito pretricuspídeo está entre los predictores más fuertes de muerte de la ESC 2020 y entre los factores pronósticos de la ACC/AHA 2025'
+    : les ? 'sin umbral propio en las guías' : 'sin consignar'));
+  filas.push(_indFila('Saturación de oxígeno en reposo', _indNum(satR, 0, '%'),
+    satR == null ? 'ask' : (satR < 85 ? 'alarm' : (satR < 90 ? 'warn' : 'none')),
+    satR == null ? 'sin medir'
+    : satR < 85 ? 'por debajo de 85 % la ESC 2025 de embarazo describe una tasa de nacido vivo de alrededor del 12 %'
+    : satR < 90 ? 'una saturación en reposo más baja está entre los predictores más fuertes de muerte de la ESC 2020'
+    : 'por encima de 90 % la ESC 2025 de embarazo describe mejor resultado fetal'));
+  filas.push(_indFila('Saturación de oxígeno en ejercicio', _indNum(satE, 0, '%'),
+    satE == null ? 'ask' : (satE < 85 ? 'warn' : 'none'),
+    satE != null ? 'ninguna de las guías publica un corte de saturación en ejercicio propio del síndrome de Eisenmenger' : 'sin medir'));
+  filas.push(_indFila('Presión sistólica pulmonar estimada', _indNum(psap, 0, 'mmHg'),
+    psap != null ? 'none' : 'ask',
+    psap != null ? 'el diagnóstico se confirma con evaluación hemodinámica invasiva, no con la presión estimada por eco' : 'sin estimar'));
+  filas.push(_indFila('Presión diastólica pulmonar estimada', _indNum(pdap, 0, 'mmHg'),
+    pdap != null ? 'none' : 'ask', pdap != null ? 'sin umbral propio en las guías' : 'sin estimar'));
+  filas.push(_indFila('Velocidad de la insuficiencia tricuspídea', _indNum(itv, 1, 'm/s'),
+    itv != null ? 'none' : 'ask', itv != null ? 'sin umbral propio en la tabla de Eisenmenger' : 'sin medir'));
+  filas.push(_indFila('Función del ventrículo derecho', _ccLbl(_VD, vd) || '—',
+    vd === 'severa' ? 'alarm' : (vd === 'moderada' ? 'warn' : (vd ? 'none' : 'ask')),
+    vd ? 'los índices ecocardiográficos de disfunción del ventrículo derecho están entre los factores pronósticos de la ACC/AHA 2025' : 'sin consignar'));
+  filas.push(_indFila('TAPSE (de VD / AD)', _indNum(tapse, 0, 'mm'),
+    tapse == null ? 'ask' : (tapse < 16 ? 'warn' : 'none'),
+    tapse == null ? 'sin medir en la pestaña VD / AD'
+    : tapse < 16 ? 'por debajo de 16 mm es uno de los cuatro criterios de riesgo alto de la nota al pie de la ACC/AHA 2025'
+    : 'por encima del corte de riesgo alto de esa nota'));
+  filas.push(_indFila('Fracción de eyección del ventrículo izquierdo (del estudio)', _indNum(fevi, 0, '%'),
+    fevi == null ? 'ask' : (fevi > 40 ? 'ok' : 'warn'),
+    fevi == null ? 'sin medir en el estudio'
+    : fevi > 40 ? 'por encima de 40 % es la condición que piden las recomendaciones de tratamiento dirigido de la ACC/AHA 2025'
+    : 'las recomendaciones 4, 5 y 8 piden una fracción de eyección por encima de 40 %'));
+  filas.push(_indFila('Derrame pericárdico', peri ? (peri === 'no' ? 'Sin derrame' : peri) : '—',
+    periSi ? 'warn' : (peri ? 'none' : 'ask'),
+    periSi ? 'la presencia de derrame pericárdico está entre los predictores más fuertes de muerte de la ESC 2020' : 'sin consignar'));
+  filas.push(_indFila('Clase funcional NYHA', _ccLbl(_NYHA, nyha) || '—',
+    nyhaAlta ? 'warn' : (nyha ? 'none' : 'ask'),
+    nyhaAlta ? 'la clase funcional 3 o 4 de la Organización Mundial de la Salud es uno de los cuatro criterios de riesgo alto de la nota al pie de la ACC/AHA 2025' : 'sin consignar'));
+  filas.push(_indFila('Síncope', _ccLbl(_SN, sinc) || '—', sinc === 'si' ? 'warn' : (sinc ? 'none' : 'ask'),
+    'ninguna de las dos guías de cardiopatías congénitas del adulto lo nombra en sus capítulos de síndrome de Eisenmenger'));
+  filas.push(_indFila('Hemoptisis', _ccLbl(_SN, hemo) || '—', hemo === 'si' ? 'warn' : (hemo ? 'none' : 'ask'),
+    hemo === 'si' ? 'la ESC/ERS 2022 condiciona la anticoagulación oral a la ausencia de hemoptisis significativa' : 'sin consignar'));
+
+  const EIS_OPS = [{ v:'si', t:'Sí' }, { v:'no', t:'No' }, IND_OPS_SD];
+  const clinica = [], _si = [], _no = [], _sd = [], _siDet = [];
+  EIS_PREG.forEach(function (p) {
+    const o = _indOrigen(null, p.clave);
+    if (o.val === 'si') { _si.push(p.lbl); _siDet.push(p); }
+    else if (o.val === 'no') _no.push(p.lbl); else _sd.push(p.lbl);
+    const _f = _indFilaOrigen(p.lbl, o, EIS_OPS, function (val) {
+      return { txt: val === 'si' ? 'Sí' : (val === 'no' ? 'No' : 'Sin dato'),
+               marca: val === 'si' ? 'warn' : (val === 'no' ? 'none' : 'ask'),
+               nota: _indPregNota(p, val == null) };
+    }, true);
+    const _b = _indPregBadge(p); if (_b) _f.badge = _b;
+    clinica.push(_f);
+  });
+  clinica.unshift(_indFila('Respuestas',
+    _si.length + ' en Sí · ' + _no.length + ' en No · ' + _sd.length + ' sin dato', 'none',
+    '«Sin dato» no cuenta como «no»: mientras una condición no se conteste, no sostiene ninguna recomendación.'));
+  const _bal = _si.length
+    ? { txt:'Condiciones presentes en este paciente: ' + _si.length + ' de ' + EIS_PREG.length + ' (' + _si.join('; ') + ').'
+        + (_sd.length ? ' Sin contestar: ' + _sd.join('; ') + '.' : ' Las otras ' + _no.length + ' están contestadas que no.'), refs:null }
+    : (_sd.length
+      ? { txt:'Ninguna condición consta como presente, y quedan ' + _sd.length + ' sin contestar: ' + _sd.join('; ')
+          + '. Mientras no se contesten, ninguna de las recomendaciones de arriba se sostiene en este paciente — «sin dato» no cuenta como «no».', refs:null }
+      : { txt:'Las ' + EIS_PREG.length + ' condiciones están contestadas y ninguna está presente.', refs:null });
+
+  return { filas: filas,
+    clinica: clinica,
+    bloques: [
+      { tit:'Diagnóstico y tratamiento — ACC/AHA 2025, apartado 4.4.6, hoja 93, folio e207', lineas:[
+        { txt:'Clase 1 · Nivel B-NR — Ante la sospecha de síndrome de Eisenmenger, la evaluación hemodinámica invasiva debe hacerse para confirmar el diagnóstico y excluir enfermedad concomitante que contribuya al cortocircuito de derecha a izquierda o a la hipertensión arterial pulmonar (recomendación 1).', refs:null },
+        { txt:'Clase 1 · Nivel B-NR — El manejo debe estar a cargo de especialistas con experiencia tanto en cardiología de congénitas como en hipertensión arterial pulmonar (recomendación 2).', refs:null },
+        { txt:'Clase 3: Daño · Nivel B-NR — Se recomienda aconsejar en contra del embarazo, para disminuir el riesgo asociado al exceso de morbilidad y mortalidad maternas (recomendación 3).', refs:null },
+        { txt:'Clase 1 · Nivel B-R — Con fracción de eyección del ventrículo izquierdo por encima de 40 % y síntomas o capacidad de ejercicio reducida, la monoterapia inicial con tratamiento dirigido a la hipertensión arterial pulmonar está recomendada para mejorar los síntomas, la hemodinámica y la supervivencia global (recomendación 4).', refs:null },
+        { txt:'Clase 1 · Nivel B-NR — Con fracción de eyección por encima de 40 % y síntomas persistentes o capacidad de ejercicio que empeora con una sola terapia, la combinación doble con un antagonista del receptor de endotelina y un inhibidor de la fosfodiesterasa 5 está recomendada con el mismo fin (recomendación 5).', refs:null },
+        { txt:'Clase 1 · Nivel C-LD — Con arritmias auriculares, la restauración y el mantenimiento prontos del ritmo sinusal están recomendados para evitar el deterioro hemodinámico (recomendación 6).', refs:null },
+        { txt:'Clase 2a · Nivel C-LD — Un programa regular de ejercicio, en combinación con el tratamiento dirigido, puede ser eficaz para mejorar la capacidad de ejercicio (recomendación 7).', refs:null },
+        { txt:'Clase 2b · Nivel C-LD — Con fracción de eyección por encima de 40 % y riesgo alto de resultados adversos, o enfermedad rápidamente progresiva, la prostaciclina inhalada o subcutánea puede considerarse como terapia inicial o agregada (recomendación 8). La nota al pie define el riesgo alto por clase funcional 3 o 4 de la Organización Mundial de la Salud, distancia de marcha de seis minutos por debajo de 165 m, excursión sistólica del plano del anillo tricuspídeo por debajo de 16 mm y NT-proBNP por encima de 1400 pg/ml.', refs:null },
+        { txt:'Clase 2b · Nivel C-EO — Con rasgos de alto riesgo —arritmia auricular, trombosis arterial pulmonar nueva o en crecimiento, o evento tromboembólico previo— y riesgo bajo de sangrado, la anticoagulación puede considerarse para prevenir complicaciones tromboembólicas (recomendación 9).', refs:null },
+        { txt:'Clase 3: Sin beneficio · Nivel B-NR — La anticoagulación oral NO debe prescribirse de rutina, por el riesgo alto de sangrado y la falta de beneficio en la supervivencia a largo plazo (recomendación 10).', refs:null },
+        { txt:'Clase 3: Daño · Nivel B-NR — El cierre de cualquier cortocircuito intracardíaco o vascular NO debe realizarse, por el aumento del riesgo periprocedimiento y del riesgo de morbilidad y mortalidad a corto y largo plazo (recomendación 11).', refs:null },
+        { txt:'Clase 3: Daño · Nivel B-NR — Con cortocircuitos intracardíacos y indicación de marcapasos permanente o desfibrilador, los cables endocárdicos son potencialmente dañinos por el aumento del riesgo de tromboembolismo sistémico (recomendación 12).', refs:null },
+        { txt:'Fuente: ACC/AHA 2025 de cardiopatías congénitas del adulto, apartado 4.4.6, «Eisenmenger Syndrome», hojas 93, 95 y 97, folios e207, e209 y e211.', refs:['acc2025achd'] }
+      ]},
+      { tit:'Hipertensión arterial pulmonar asociada a cardiopatía congénita del adulto — ESC/ERS 2022, Recomendaciones-tabla 19, hoja 67, folio 66', lineas:[
+        { txt:'Clase I · Nivel C — La evaluación del riesgo se recomienda para el paciente con hipertensión arterial pulmonar persistente después del cierre del defecto.', refs:null },
+        { txt:'Clase IIa · Nivel C — Debe considerarse la evaluación del riesgo del paciente con síndrome de Eisenmenger.', refs:null },
+        { txt:'Clase I · Nivel B — Se recomienda el tratamiento con bosentán para el paciente sintomático con síndrome de Eisenmenger, para mejorar la capacidad de ejercicio.', refs:null },
+        { txt:'Clase IIa · Nivel C — Debe considerarse la terapia suplementaria de oxígeno en los casos en los que aumenta de manera constante la saturación arterial de oxígeno y reduce los síntomas.', refs:null },
+        { txt:'Clase IIa · Nivel C — Debe considerarse el uso de suplementos de hierro en el paciente con déficit de hierro.', refs:null },
+        { txt:'Clase IIa · Nivel C — Debe considerarse el uso de otros antagonistas del receptor de endotelina, inhibidores de la fosfodiesterasa 5, riociguat, análogos de la prostaciclina y agonistas de sus receptores.', refs:null },
+        { txt:'Clase IIa · Nivel C — Debe considerarse el tratamiento combinado secuencial si no se cumplen los objetivos del tratamiento.', refs:null },
+        { txt:'Clase IIb · Nivel C — En ausencia de hemoptisis significativa, el tratamiento anticoagulante oral se puede considerar para el paciente con síndrome de Eisenmenger y trombosis arterial pulmonar.', refs:null },
+        { txt:'Clase III · Nivel C — No se recomienda el embarazo a las pacientes con síndrome de Eisenmenger.', refs:null },
+        { txt:'Clase III · Nivel C — No se recomienda la flebotomía sistemática para reducir el hematocrito elevado.', refs:null },
+        { txt:'Su nota al pie c advierte que el nivel de evidencia difiere del de la guía ESC 2020 de cardiopatías congénitas del adulto porque el número de pacientes con cardiopatía congénita del adulto incluidos en el estudio AMBITION fue muy bajo.', refs:null },
+        { txt:'Fuente: ESC/ERS 2022 de hipertensión pulmonar, versión en español de la Sociedad Española de Cardiología, hoja 67, folio 66.', refs:null }
+      ]},
+      { tit:'Pronóstico y embarazo — ESC 2020 y ESC 2025', lineas:[
+        { txt:'En un estudio multicéntrico, los predictores más fuertes de muerte fueron la edad, el cortocircuito pretricuspídeo, la ausencia de ritmo sinusal, una saturación de oxígeno en reposo más baja y la presencia de derrame pericárdico; el péptido natriurético no quedó entre ellos (ESC 2020, hoja 24, folio 586).', refs:['esc2020guch'] },
+        { txt:'La ACC/AHA 2025 lista como factores pronósticos propios del síndrome de Eisenmenger el síndrome de Down, el cortocircuito pretricuspídeo, la edad mayor, la hipoxemia peor, el filtrado glomerular reducido y los índices ecocardiográficos de disfunción del ventrículo derecho (hoja 95, folio e209).', refs:null },
+        { txt:'Sobre el embarazo, la ACC/AHA 2025 publica un riesgo de mortalidad materna de 30 a 50 %, con exacerbación de insuficiencia cardíaca de hasta 50 % y pérdida o morbilidad fetal perinatal de alrededor del 30 %, y lo clasifica en el grupo de mayor riesgo de la Organización Mundial de la Salud (hoja 95, folio e209).', refs:null },
+        { txt:'La ESC 2025 de embarazo describe que por encima de 90 % de saturación el resultado fetal suele ser mejor, con alrededor de 10 % de pérdida fetal, y que por debajo de 85 % el aborto, la restricción del crecimiento, la prematuridad y la muerte fetal son frecuentes, con una tasa de nacido vivo de alrededor del 12 % (hoja 47, folio 4508).', refs:null }
+      ]},
+      { tit:'Las diferencias entre las guías, sin resolver', lineas:[
+        { txt:'Primera línea de tratamiento: la ACC/AHA 2025 recomienda la monoterapia dirigida en Clase 1 · Nivel B-R, sin nombrar un fármaco; la ESC/ERS 2022 nombra el bosentán en Clase I · Nivel B y deja los demás en Clase IIa · Nivel C.', refs:null },
+        { txt:'Terapia combinada: Clase 1 · Nivel B-NR en la ACC/AHA 2025 y Clase IIa · Nivel C, secuencial, en la ESC/ERS 2022.', refs:null },
+        { txt:'Anticoagulación: la ACC/AHA 2025 la plantea en Clase 2b con rasgos de alto riesgo y riesgo bajo de sangrado, y la desaconseja de rutina en Clase 3: Sin beneficio; la ESC/ERS 2022 la plantea en Clase IIb con trombosis arterial pulmonar y en ausencia de hemoptisis significativa.', refs:null },
+        { txt:'Embarazo: Clase 3: Daño · Nivel B-NR en la ACC/AHA 2025 y Clase III · Nivel C en la ESC/ERS 2022; las dos lo desaconsejan.', refs:null },
+        _bal
+      ]}
+    ].concat(_siDet.length ? [{ tit:'Recomendaciones que aplican con lo contestado (' + _siDet.length + ')',
+      lineas: _siDet.map(function (p) {
+        const b = _indPregBadge(p);
+        const et = b ? (b.g === 'ACC' ? 'ACC/AHA 2025' : 'ESC') + (b.cn ? ' · ' + b.cn : '') : '';
+        return { txt: p.lbl + (et ? ' — ' + et : '') + '.', refs:null };
+      }) }] : []),
+    compacta: true,
+    preguntas: true,
+    guia: { ref:'acc2025achd',
+      txt:'Las indicaciones de esta sección salen de la ACC/AHA 2025 de cardiopatías congénitas del adulto (apartado 4.4.6, hoja 93, folio e207), que es la que rige, y de la ESC/ERS 2022 de hipertensión pulmonar (Recomendaciones-tabla 19, hoja 67, folio 66), que es la que publica las recomendaciones específicas de tratamiento farmacológico. La ESC 2020 de cardiopatías congénitas del adulto y la ESC 2025 de embarazo se citan para el pronóstico y el embarazo. Cada pregunta usa los cortes de UNA sola de ellas, con su nombre y año a la vista.' },
+    notas: [
+      'Esta sección no repite la franja de contraindicaciones de la pantalla ni cambia su texto.',
+      'La distancia de marcha de seis minutos y el NT-proBNP no son campos de esta aplicación: de los cuatro criterios de riesgo alto de la nota al pie de la ACC/AHA 2025, esta sección sólo puede leer la clase funcional y el TAPSE. La recomendación de la ESC 2020 de iniciar con un antagonista del receptor de endotelina con una marcha de seis minutos por debajo de 450 m tampoco se puede responder acá.',
+      'Lo contestado en esta sección no se guarda con el estudio y no llega al informe.'
+    ]
+  };
+}
 const CIA_PREG = Object.freeze([
   { clave:'cia.ev.vddil', lbl:'Dilatación del ventrículo derecho', guia:'acc', rec:'Clase 1 · Nivel B-R, recomendación 5 —con cortocircuito significativo y sin hipertensión arterial pulmonar ni enfermedad significativa del ventrículo izquierdo, el cierre está recomendado—, y Clase 2a, recomendaciones 8 y 9, hoja 35, folio e149', ref:'la sobrecarga de volumen del ventrículo derecho —su nota al pie c la define como agrandamiento CON volumen latido aumentado— es la condición de la Clase I · Nivel B (hoja 30, folio 592)' },
   { clave:'cia.ev.qpqs15', lbl:'Qp:Qs de 1,5 o más', guia:'acc', rec:'Clase 1 · Nivel B-R, recomendación 5; Clase 2a, recomendaciones 8 y 9; Clase 2b, recomendación 12, hoja 35, folio e149', ref:'un cortocircuito izquierda-derecha significativo es un Qp:Qs MAYOR que 1,5 (hoja 30, folio 592)', tramo:'con un Qp:Qs de 1,5 exacto las dos guías no coinciden: la ACC/AHA 2025 escribe «≥1,5» y la ESC 2020 «>1,5»' },
@@ -99932,6 +100122,9 @@ const IND_SECS = [
   { tit:'Circulación de Fontan',                 fn:_indFON },
   /* ⚠️ LA DEL COMMIT 5 DE PANT-10. El título lleva «parcial» y no es prefijo de ninguno. */
   { tit:'Conexión venosa pulmonar anómala parcial', fn:_indCVPA },
+  /* ⚠️ LA DEL COMMIT 6 DE PANT-10, la ultima de las cinco. «Síndrome de Eisenmenger» es único
+     y no colisiona por prefijo con ninguno de los treinta y seis. */
+  { tit:'Síndrome de Eisenmenger',               fn:_indEIS },
   { tit:'Ductus arterioso permeable',            fn:_indDAP },
   { tit:'Coartación de aorta',                   fn:_indCoAo },
   /* ⚠️ LAS DOS DE LA TANDA PANT-4 (03/11/2026). Van PEGADAS a la coartación porque son las
@@ -157096,8 +157289,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261104-1058';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793800711051;                 /* eco-build-ms */
+const ECO_BUILD    = '20261104-1100';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793800803331;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -157183,7 +157376,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261104-1058</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261104-1100</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
