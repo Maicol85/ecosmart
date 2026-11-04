@@ -1632,6 +1632,29 @@
      `.btn-integrar.revisar`, que ya usa box-shadow para una segunda senal sobre un boton que ya
      tiene color propio. */
   .subtabs-wrap .tab-btn.cc-les-on.cc-pane-on { box-shadow:0 0 0 2px var(--teal); }
+  /* ══ LOS DOS BOTONES DE TAVI: UNO EN CADA ESQUINA Y PINTADOS ENTEROS (PANT-8, commit 1) ══
+     PEDIDO DEL MEDICO (03/11/2026): «me gustaria que los botones PreTAVI y PosTAVI quedaran uno
+     de cada lado, y que se prendan como los de la CIA y la CIV».
+     ⚠️ SE REUSA `cc-pane-on` Y NO SE DECLARA UNA CLASE NUEVA, y no es economia: esa clase YA
+        significa «este formulario esta a la vista», que es EXACTAMENTE lo que el boton de TAVI
+        dice. `cc-les-on` -el relleno verde- significa «esta lesion entra al informe», y en TAVI
+        no hay lesion por panel: la inclusion es UNA sola casilla para toda la seccion
+        (`ete_tavi_incluir_chk`). Pintar de verde el panel a la vista diria algo falso.
+     ⚠️ EL RELLENO VA ACOTADO A `.ete-tavi-btnbar`, y es lo que hace que CIA / CIV NO se muevan
+        por construccion: la regla de arriba sigue dando a `cc-pane-on` el borde teal en toda
+        otra `.subtabs-wrap`, y solo dentro de la barra de TAVI pasa a relleno. Medido antes y
+        despues en los dos botones de CIA / CIV.
+     El color es el MISMO `--teal` que `.active` ya usaba para este significado, asi que lo unico
+     que cambia es borde -> relleno, que es el «pintado ENTERO» que el medico pidio. El
+     `color:#0f1117` es el mismo texto oscuro de `cc-les-on`.
+     ⚠️ LAS DOS BARRAS LLEVAN `cc-lesbar`, Y TAMPOCO ES COSMETICO: sin esa clase, la regla de
+        `@media(max-width:768px)` esconde su `.tabs-row` con `display:none !important` y los dos
+        botones miden 0 x 0 -medido en HEAD a 768 y a 390 px-, asi que el panel Post-TAVI no se
+        podia alcanzar desde un telefono ni desde una tablet. Mismo mecanismo y mismo motivo que
+        `.cc-subbar` y que la barra de CIA / CIV. */
+  .ete-tavi-btnfila { display:flex; align-items:flex-start; gap:8px; margin:0 0 12px; }
+  .ete-tavi-btnfila > .subtabs-wrap { flex:1 1 0; min-width:0; margin:0; }
+  .ete-tavi-btnbar .tab-btn.cc-pane-on { background:var(--teal); color:#0f1117; border-color:var(--teal); }
   /* ══ EL PIE DEL BLOQUE DE CONGENITAS Y EL PANEL DEL CORAZON MAESTRO (PANT-3, commit 4) ══
      Calcado del pie de la vista 2D de Valvulas (`.v2d-pie` + `#v2d-ov`), que es el patron que la
      orden pide repetir: UN boton al pie, debajo de todo, que prende y apaga un panel EN LINEA.
@@ -17114,10 +17137,25 @@ z
   <div id="ete-seccion-tavi" style="display:none;">
   <div class="card"><div class="card-body">
 
-    <div class="subtabs-wrap" style="justify-content:flex-start;margin-bottom:12px;">
-      <div class="tabs-row">
-        <button type="button" class="tab-btn active" id="ete-tavi-tab-pre" onclick="eteTaviTab('pre')">Pre-TAVI</button>
-        <button type="button" class="tab-btn" id="ete-tavi-tab-post" onclick="eteTaviTab('post')">Post-TAVI</button>
+    <!-- ⚠️ CADA BOTON VA DENTRO DE SU PROPIA `.subtabs-wrap.cc-lesbar > .tabs-row`, igual que los
+         de CIA / CIV, y por el mismo motivo: el pintado de `cc-pane-on` se declara como
+         `.subtabs-wrap .tab-btn.cc-pane-on`, asi que un boton suelto fuera de esa estructura no
+         se pinta. Las dos barras van dentro de `.ete-tavi-btnfila`, que es lo que las lleva a
+         las dos esquinas.
+         `aria-pressed` arranca en el estado inicial (Pre-TAVI a la vista) y lo mantiene al dia
+         `eteTaviPaneSync`, que es el dueno unico del pintado. -->
+    <div class="ete-tavi-btnfila">
+      <div class="subtabs-wrap cc-lesbar ete-tavi-btnbar" style="justify-content:flex-start;">
+        <div class="tabs-row">
+          <button type="button" class="tab-btn cc-pane-on" id="ete-tavi-tab-pre" aria-pressed="true"
+                  onclick="eteTaviTab('pre')">Pre-TAVI</button>
+        </div>
+      </div>
+      <div class="subtabs-wrap cc-lesbar ete-tavi-btnbar" style="justify-content:flex-end;">
+        <div class="tabs-row">
+          <button type="button" class="tab-btn" id="ete-tavi-tab-post" aria-pressed="false"
+                  onclick="eteTaviTab('post')">Post-TAVI</button>
+        </div>
       </div>
     </div>
 
@@ -101672,14 +101710,47 @@ const TAVI_TXT = {
   pos:{correcta:'correcta',alta:'alta',baja:'baja',muy_baja:'muy baja'},
   flujo:{ausente:'ausente',proto:'proto-diastólico corto',holo:'holodiastólico'}
 };
-function eteTaviTab(cual){
-  const pre = cual === 'pre';
+/* ══ CUAL DE LOS DOS PANELES DE TAVI ESTA A LA VISTA (PANT-8, commit 1) ════════════════════
+   Estado de MODULO y NO campo del estudio, y esta declarado: para que sobreviviera a guardar y
+   reabrir haria falta un campo guardado nuevo, que esta tanda tiene prohibido. Lo que si
+   sobrevive es el cambio de pantalla, que es el defecto que el medico reporto.
+   ⚠️ POR QUE SE QUEDABA OSCURO EL BOTON, EN UNA LINEA: los dos usaban `.active`, y `showTab`
+      hace `document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'))`
+      sobre TODO el documento. Medido en HEAD: tras tocar Post-TAVI e irse a Valvulas y volver,
+      la clase era `tab-btn` a secas con su panel todavia a la vista -el boton apagado y los
+      campos puestos-. Es el mismo defecto que PANT-3 cerro para CIA / CIV y la misma salida:
+      una clase PROPIA que ese barrido no toca. */
+let _eteTaviPane = 'pre';
+
+/* Pinta los dos botones y reparte el `display` de los dos paneles DESDE el estado. Idempotente
+   y sin decidir nada. Lo llama `eteTaviSync`, que esta en `RECALC_MODULOS`, asi que las cinco
+   rutas de restauracion lo repintan sin un enganche propio -mismo mecanismo que
+   `eteShuntLesionSync`-. */
+function eteTaviPaneSync(){
+  [['pre','ete-tavi-tab-pre'],['post','ete-tavi-tab-post']].forEach(function(par){
+    const b = document.getElementById(par[1]); if(!b) return;
+    const on = (_eteTaviPane === par[0]);
+    b.classList.toggle('cc-pane-on', on);
+    b.setAttribute('aria-pressed', on ? 'true' : 'false');
+    /* El rotulo no cambia, asi que el titulo es lo que dice en palabras lo que el color dice en
+       color: sin el, el relleno es un codigo que hay que aprender. Mismo criterio que CIA / CIV. */
+    b.title = on ? (par[0] === 'pre' ? 'Los campos del sizing pre-TAVI estan a la vista.'
+                                     : 'Los campos del control post-TAVI estan a la vista.')
+                 : (par[0] === 'pre' ? 'Toque para ver los campos del sizing pre-TAVI.'
+                                     : 'Toque para ver los campos del control post-TAVI.');
+  });
+  /* El panel que no esta a la vista se esconde, que es lo que ya hacia `eteTaviTab` y lo que el
+     medico pidio conservar: «no necesitan estar los campos todos juntos a la vez». Un campo
+     oculto se sigue guardando, asi que esconderlo no pierde ningun dato. */
   const p1=document.getElementById('ete-tavi-pane-pre'), p2=document.getElementById('ete-tavi-pane-post');
-  if(p1) p1.style.display = pre ? '' : 'none';
-  if(p2) p2.style.display = pre ? 'none' : '';
-  const b1=document.getElementById('ete-tavi-tab-pre'), b2=document.getElementById('ete-tavi-tab-post');
-  if(b1) b1.classList.toggle('active', pre);
-  if(b2) b2.classList.toggle('active', !pre);
+  if(p1) p1.style.display = (_eteTaviPane === 'pre')  ? '' : 'none';
+  if(p2) p2.style.display = (_eteTaviPane === 'post') ? '' : 'none';
+}
+window.eteTaviPaneSync = eteTaviPaneSync;
+
+function eteTaviTab(cual){
+  _eteTaviPane = (cual === 'post') ? 'post' : 'pre';
+  eteTaviPaneSync();
   eteTaviSync();
 }
 window.eteTaviTab = eteTaviTab;
@@ -101860,6 +101931,10 @@ function taviDispositivoTxt(){
 window.taviDispositivoTxt = taviDispositivoTxt;
 
 function eteTaviSync(){
+  /* El pintado de los dos botones va PRIMERO y es incondicional: es lo que hace que la marca no
+     se pierda al cambiar de pantalla y lo que repone el `display` de los paneles si una ruta
+     vieja lo hubiera movido. No lee ni escribe un solo campo del estudio. */
+  if (typeof eteTaviPaneSync === 'function') { try { eteTaviPaneSync(); } catch (e) {} }
   /* El espejo va PRIMERO: la prosa y la cápsula de abajo leen los tres campos, así que si corriera
      al final publicarían el valor de la pasada anterior. */
   if (typeof eaTaviEspejar === 'function') { try { eaTaviEspejar(); } catch (e) {} }
@@ -155488,8 +155563,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261104-0136';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793766974449;                 /* eco-build-ms */
+const ECO_BUILD    = '20261104-0508';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793779680504;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -155575,7 +155650,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261104-0136</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261104-0508</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
