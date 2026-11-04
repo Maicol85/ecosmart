@@ -583,9 +583,15 @@ impecable.
 > SEGURIDAD y la tabla de Procedencia) siguen enteras y en su lugar, verificado byte por byte.
 ### La pantalla de CIA y CIV, el dibujo del VD, el molde de la Evidencia y los criterios TEER — «PANT-6» (2026-11-03 y 04)
 
-- **CATORCE commits —contados con `git log`—, y los SIETE de código se hicieron enteros.**
-  `f75d1cc` (1) · `69d7e9b` (2) · `a238240` (3) · `47b82fb` (4) · `36e05f6` (5) · `9ac2aa9` (6) ·
-  `ffa1b0c` · `1b16530` · `9a311a6` · `460121e` (7a-7d) · los de cobertura y documentación.
+- **DIECISÉIS commits —contados con `git log c42d9e3..HEAD` AL CERRAR, no a mitad de camino—, y
+  los SIETE puntos de código se hicieron enteros en DIEZ de ellos.** `f75d1cc` (1) · `69d7e9b` (2)
+  · `a238240` (3) · `47b82fb` (4) · `36e05f6` (5) · `9ac2aa9` (6) · `ffa1b0c` · `1b16530` ·
+  `9a311a6` · `460121e` (7a-7d) · y los **seis** de cobertura y documentación, de `3a8bf04` (8a) a
+  este mismo.
+  ⚠️ **ESTE NÚMERO ESTUVO MAL DOS VECES, Y ES EL MISMO MODO DE FALLA QUE EL RENGLÓN DE TAMAÑO:**
+  decía «CATORCE» acá y «DIECISÉIS» en el registro —los dos escritos a mitad de la tanda— y al
+  contarlos eran quince; corregirlo sumó el decimosexto. **Se cuenta con `git log` al final, y el
+  commit que escribe el número entra en la cuenta.**
   Sello **`v20261103-2018`**, md5 de `index.html` **`bb6adf41`**. Al empezar, `origin/main` =
   `HEAD` = **`c42d9e3`**, el cierre de PANT-5, ya publicado, con md5 `98d60651`, sello
   `v20261103-1546` y el pendrive `DISK_IMG` montado.

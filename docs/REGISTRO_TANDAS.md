@@ -881,7 +881,8 @@ un campo guardado nuevo, **sin huérfanos nuevos**, celular **58 a 360 px y 66 a
 diferencia entre motores. El **A/B final de 64 escenas** da **SEIS** diferencias de superficie
 firmada, las seis de la frase del Forrester que el commit 6a autoriza, con 62 escenas en cero.
 Sello **`v20261103-2018`**, **11,30 MB / 157.812 líneas**, diff **1.447 / 427** contra `c42d9e3`.
-**Son DIECISÉIS commits**: los diez de código más seis de cobertura y documentación.
+**Son DIECISÉIS commits**, contados con `git log c42d9e3..HEAD` al cerrar: los **diez** de código
+más **seis** de cobertura y documentación, de `3a8bf04` en adelante.
 **El push lo corre Maicol.**
 
 **Dónde está todo:** `docs/mapa/pant6-pantallas-molde.md` (**mapa nuevo**, 17,4 KB),
