@@ -2036,10 +2036,19 @@
       gap:10px 14px; align-items:start; }
   }
   #oai-fila > #oai-esq-caja { margin-top:10px; }
+  /* ⚠️ GRILLA Y NO FLEX DESDE PANT-7 (c6b), y el motivo es la CONCLUSION. Con `flex` la fila
+     tenia dos hijos y la conclusion vivia afuera, a ancho completo y debajo del dibujo: ahi
+     quedaba el hueco que el medico reporto. Con grilla, el dibujo abarca las DOS filas de la
+     columna 2 y la conclusion ocupa la celda (fila 2, columna 1), o sea pegada bajo los campos
+     y al lado del dibujo. Es el MISMO patron de `#vdsc-fila`, asi que una sola estructura sirve
+     a las dos maquetas: por debajo de 900 px el orden del DOM —campos, dibujo, conclusion— es
+     justo el apilado que corresponde. El corte va sobre la VENTANA. */
   @media (min-width: 900px) {
-    #oai-fila { display:flex; gap:14px; align-items:flex-start; }
-    #oai-fila > .grid-3 { flex:1 1 auto; min-width:0; }
-    #oai-fila > #oai-esq-caja { flex:0 0 360px; margin-top:0; }
+    #oai-fila { display:grid; grid-template-columns:minmax(0,1fr) 360px;
+      gap:10px 14px; align-items:start; }
+    #oai-fila > .grid-3 { grid-column:1; grid-row:1; min-width:0; }
+    #oai-fila > #oai-esq-caja { grid-column:2; grid-row:1 / span 2; margin-top:0; }
+    #oai-fila > .calc-box { grid-column:1; grid-row:2; margin-top:0; }
   }
   /* ══ LA PANTALLA DE LA TGA: CAMPOS A LA IZQUIERDA, DIBUJO A LA DERECHA — «CONG-2A» ═══════
      Pedido del medico (31/10/2026). Hasta hoy eran tres columnas anchas de campos y debajo una
@@ -16917,7 +16926,14 @@ z
           <span id="oai-esq-estado"></span>
         </p>
       </div>
-      </div><!-- /#oai-fila -->
+      <!-- ⚠️ LA CONCLUSION ENTRA DENTRO DE LA FILA (PANT-7, c6b). Pedido del medico: «pondria
+           la conclusion del cuadrado gris de abajo mas metida arriba, aunque quede mas corta,
+           dado el dibujo de la orejuela, para que no quede tanto espacio vacio entre los campos
+           y la conclusion». Hasta hoy vivia DESPUES de la fila, a ancho completo y debajo del
+           dibujo, que es lo que dejaba el hueco.
+           ⚠️ EL CIERRE DE `#oai-fila` SE MOVIO, NO SE AGREGO OTRO: un `</div>` de mas saca la
+              conclusion de la fila y la deja a ancho completo otra vez, que es la trampa que el
+              commit 5 de esta misma tanda pago con Wilkins y PANT-6 con la mitral del ETE. -->
       <div class="calc-box" style="margin-top:10px;">
         <div class="calc-row"><span class="calc-lbl">Velocidad vaciamiento</span><span id="oai-vel-interp">—</span></div>
         <!-- ⚠️ LA NOTA Y EL CHIP VAN EN NODOS PROPIOS Y SE ESCRIBEN CON `textContent` (I-E1):
@@ -16941,6 +16957,7 @@ z
         <div class="calc-row"><span class="calc-lbl" style="font-weight:700;">⚖️ Medidas de la orejuela</span><span id="oai-elegibilidad">—</span></div>
         <div class="calc-row"><span id="oai-notas" style="font-size:11px;color:var(--yellow);"></span></div>
       </div>
+      </div><!-- /#oai-fila -->
       <div class="fg" style="margin-top:8px;"><label>Notas OAI</label>
         <textarea id="oai_notas" placeholder="Observaciones adicionales..."></textarea>
       </div>
@@ -155372,8 +155389,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261104-0054';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793764456382;                 /* eco-build-ms */
+const ECO_BUILD    = '20261104-0057';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793764678301;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -155459,7 +155476,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261104-0054</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261104-0057</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
