@@ -28893,6 +28893,7 @@ const EV_FECHA_VS     = '2026-10-17';
    version de MAYO y comparados contra la de febrero. */
 const EV_FECHA_AJ1    = '2026-10-22';
 const EV_FECHA_AO2    = '2026-10-30';   // tanda AORTA-2: Figura 5 y Tabla 68 leidas en imagen
+const EV_FECHA_PANT8  = '2026-11-04';   // tanda PANT-8: tronco y ramas de la AP, y los tres TSVD
 /* ⚠️ LA EDICION INGLESA ES LA PRIMARIA EN ESTA FICHA Y EN LAS QUE VENGAN (AORTA-2, 30/10/2026).
    Las fichas anteriores citan la traduccion de la SEC, cuyo folio es «hoja menos uno»; la
    inglesa (Eur Heart J 2024;45:3538-3700, 163 hojas) tiene folio = hoja + 3537, comprobado en
@@ -29253,6 +29254,61 @@ const EV_REG = Object.freeze([
     doi: EV_DOI_ESCERS2022HP, fuente_original: '', tipo: 'guía',
     estado: 'verificado', fecha_verificacion: EV_FECHA_VER,
     fuente_una_linea: 'ESC/ERS 2022 de hipertensión pulmonar, traducción al español, Tabla 10 (folio 28)',
+  }),
+  /* ══ EL TRONCO Y LAS RAMAS DE LA ARTERIA PULMONAR, Y EL TRACTO DE SALIDA DEL VD ═════════════
+     Tanda PANT-8, commit 5 (2026-11-04). Cierra `P7-a`, que PANT-7 dejó declarado con la mitad
+     ya leída. Todo se leyó EN IMAGEN con su folio comprobado en el pie impreso. Dos reglas de
+     folio: ASE 2025 de corazón derecho — folio = hoja + 140; Lang 2015 en su traducción al
+     español — folio = hoja.
+     ⚠️ ESTAS TRES FICHAS NO MUEVEN NINGÚN CORTE DE PANTALLA. El campo `ip_ap_diam` sigue con su
+        banda de plausibilidad y con el corte de 25 mm que ya aplica en los signos de HTP, y
+        `tsvd_diametro` sigue sin graduar: lo que faltaba era la FILA DE REFERENCIA, que su
+        propio comentario declaraba ausente. */
+  Object.freeze({
+    id: 'DIM-VD-007', zona: 'VD/AD — Ventrículo derecho', dato: 'Tronco de la arteria pulmonar',
+    valor: 'Cuatro grados por ecocardiografía bidimensional, en centímetros: normal hasta 2,5 inclusive; dilatación leve por encima de 2,5 y hasta 3,0; moderada por encima de 3,0 y hasta 3,5; severa por encima de 3,5. Se mide desde la vista paraesternal de eje corto a la altura de la válvula aórtica, angulando hacia arriba hasta ver el tronco y la bifurcación, en TELEDIÁSTOLE y a mitad de camino entre el anillo pulmonar y la bifurcación. Un diámetro telediastólico por encima de 25 mm se considera anormal, y un cociente entre el tronco y la aorta ascendente de 1 o más identifica hipertensión pulmonar con sensibilidad del 84,3 % y especificidad del 83,9 %. Las otras técnicas no miden lo mismo y la propia guía pide tenerlo en cuenta: por tomografía el valor normativo es del diámetro SISTÓLICO, 29 mm en el varón y 27 en la mujer, y por resonancia el rango va de 21 a 33 mm en el varón y de 19 a 31 en la mujer. Un tronco dilatado es un hallazgo inespecífico: aparece en la hipertensión pulmonar de cualquier grupo, en la enfermedad pulmonar crónica, en las enfermedades del tejido conectivo, en la embolia pulmonar aguda y crónica y en las cardiopatías congénitas',
+    duenio: 'ip_ap_diam / HTP_AP_MM_MIN (sin graduar en pantalla)',
+    guia: EV_GUIA_ASE2025VD, ubicacion: 'Tabla 1, Tabla 2 y texto de la arteria pulmonar', folio: '145, 149 y 150', hoja_pdf: 5,
+    doi: EV_DOI_ASE2025VD, fuente_original: '', tipo: 'guía',
+    estado: 'verificado', fecha_verificacion: EV_FECHA_PANT8,
+    fuente_una_linea: 'ASE 2025 de corazón derecho (Mukherjee), Tabla 1 (folio 145), Tabla 2 (folio 149) y texto (folio 150)',
+  }),
+  Object.freeze({
+    id: 'DIM-VD-008', zona: 'VD/AD — Ventrículo derecho', dato: 'Ramas derecha e izquierda de la arteria pulmonar',
+    /* ⚠️ LA FICHA DICE QUE NO HAY VALOR NORMAL, Y ESO ES EL CONTENIDO. La Tabla 2 da el sitio de
+       medida de las dos ramas; la Tabla 1, que es la que publica los grados, tiene UNA sola fila
+       de arteria pulmonar -el tronco- y ninguna de las ramas. Inventar un número acá sería lo
+       que la regla de la casa prohíbe. */
+    valor: 'La guía da el SITIO de medida y NO un valor normal. Las dos ramas se miden en su porción proximal, en telediástole, desde la vista paraesternal de eje corto de la bifurcación; por vía transesofágica hay varias vistas que permiten evaluar el tronco y sus ramas principales. La tabla que publica los grados tiene una sola fila de arteria pulmonar, que es la del tronco: para las ramas esta guía no publica un valor normal ni grados de dilatación',
+    duenio: 'sin campo en la aplicación',
+    guia: EV_GUIA_ASE2025VD, ubicacion: 'Tabla 2 y texto de la arteria pulmonar', folio: '149 y 150', hoja_pdf: 9,
+    doi: EV_DOI_ASE2025VD, fuente_original: '', tipo: 'guía',
+    estado: 'verificado', fecha_verificacion: EV_FECHA_PANT8,
+    fuente_una_linea: 'ASE 2025 de corazón derecho (Mukherjee), Tabla 2 (folio 149) y texto (folio 150)',
+  }),
+  Object.freeze({
+    id: 'DIM-VD-009', zona: 'VD/AD — Ventrículo derecho', dato: 'Tracto de salida del ventrículo derecho — los tres diámetros',
+    valor: 'Son TRES mediciones distintas, cada una con sus cuatro grados en centímetros. Eje paraesternal largo: normal por debajo de 3,3; leve de 3,3 a 3,5 inclusive; moderado por encima de 3,5 y hasta 3,9; severo por encima de 3,9. Eje corto proximal: normal por debajo de 3,4; leve de 3,4 a 3,8; moderado por encima de 3,8 y hasta 4,1; severo por encima de 4,1. Eje corto distal: normal por debajo de 2,9; leve de 2,9 a 3,0; moderado por encima de 3,0 y hasta 3,3; severo por encima de 3,3. El proximal se mide en telediástole y se puede tomar tanto en eje largo —de la pared libre al tabique, por delante de la válvula aórtica— como en eje corto —de la pared libre a la pared aórtica anterior, por encima de la válvula aórtica—, y la guía advierte que las mediciones del tracto de salida pueden diferir hasta un 40 % entre planos. El distal se mide desde la vista de eje corto de la bifurcación, de la pared aórtica lateral a la pared libre del tracto de salida, justo por delante del anillo pulmonar, y la propia guía lo señala como el menos variable. Fuera del tracto de salida ninguna de las dos guías publica un diámetro del ventrículo derecho en eje corto: los tres que publican —basal, medio y longitudinal— son de la vista apical de cuatro cámaras',
+    duenio: 'tsvd_diametro (sin graduar: sólo insumo del Qp y del Qp/Qs)',
+    guia: EV_GUIA_ASE2025VD, ubicacion: 'Tabla 1 y Tabla 2', folio: '145 y 149', hoja_pdf: 5,
+    doi: EV_DOI_ASE2025VD, fuente_original: '', tipo: 'guía',
+    estado: 'verificado', fecha_verificacion: EV_FECHA_PANT8,
+    fuente_una_linea: 'ASE 2025 de corazón derecho (Mukherjee), Tabla 1 (folio 145) y Tabla 2 (folio 149)',
+  }),
+  Object.freeze({
+    id: 'DIM-VD-010', zona: 'VD/AD — Ventrículo derecho', dato: 'Tracto de salida del VD — la guía de 2015, para comparar',
+    /* ⚠️ LAS DOS GUIAS NO DICEN LO MISMO, Y LA DIFERENCIA SE MUESTRA Y NO SE RESUELVE, con la
+       MAS NUEVA primero. La de 2015 publica media y rango normal -o sea con piso Y techo-; la de
+       2025 publica un techo de normalidad y tres bandas de anormalidad. Los techos difieren en
+       los tres diámetros. Ningún corte de la aplicación se mueve por esta ficha.
+       ⚠️ EN LA BIBLIOTECA SOLO ESTA LA TRADUCCION AL ESPAÑOL de esta guía, y se declara: la
+       advertencia de esta casa sobre las traducciones que omiten palabras vale también acá. */
+    valor: 'Valores de la guía de cuantificación de cámaras de 2015, en milímetros, como media más o menos una desviación estándar y rango normal. Diámetro del tracto de salida en vista paraesternal de eje largo: 25 más o menos 2,5, rango de 20 a 30. Diámetro proximal: 28 más o menos 3,5, rango de 21 a 35. Diámetro distal: 22 más o menos 2,5, rango de 17 a 27. Los techos de normalidad difieren de los de la guía de 2025 —33, 34 y 29 milímetros—, y la diferencia se muestra sin resolver. En la biblioteca de esta aplicación sólo está la traducción al español de esta guía',
+    duenio: 'ninguno: ficha de comparación',
+    guia: EV_GUIA_ASE2015, ubicacion: 'Tabla 8', folio: '27', hoja_pdf: 27,
+    doi: EV_DOI_ASE2015, fuente_original: '', tipo: 'guía',
+    estado: 'verificado', fecha_verificacion: EV_FECHA_PANT8,
+    fuente_una_linea: 'Lang 2015 de cuantificación de cámaras, traducción al español, Tabla 8 (folio 27)',
   }),
   /* ── AORTA TORACICA ──────────────────────────────────────────────── */
   Object.freeze({
@@ -50594,7 +50650,8 @@ function evRefPintar(id) {
                             'DIM-VD-005', 'DIM-VD-006',
                             'FUN-VD-001', 'FUN-VD-002', 'FUN-VD-003', 'FUN-VD-004',
                             'FUN-VD-005', 'FUN-VD-006', 'FUN-VD-007', 'FUN-VD-008',
-                            'FUN-VD-009', 'FUN-VD-010']);
+                            'FUN-VD-009', 'FUN-VD-010',
+                            'DIM-VD-007', 'DIM-VD-008', 'DIM-VD-009', 'DIM-VD-010']);
     host.appendChild(_evRefTabla([
       ..._evRefFilasT1('DIM-VD-001', 'vd_bas',   'Diámetro basal'),
       ..._evRefFilasT1('DIM-VD-002', 'vd_mid',   'Diámetro medio'),
@@ -50627,6 +50684,35 @@ function evRefPintar(id) {
       { ficha: 'FUN-VD-008', rot: 'Strain de pared libre — disfunción leve (valor absoluto)',
         h: 'de ' + VD_STRAIN_PL_LEVE + ' a ' + VD_STRAIN_PL_NORMAL + ' %',
         fuente: 'Decisión de la aplicación' },
+      /* ══ EL TRONCO Y LAS RAMAS DE LA AP, Y LOS TRES TSVD (PANT-8, commit 5) ═════════════════
+         Las filas se escriben acá y NO con `_evRefFilasT1`, y es a proposito: ese ayudante lee
+         `ASE25_T1`, que es el dueno de las bandas que la PANTALLA del VD aplica. Ninguno de
+         estos cinco parametros se gradua en pantalla —`ip_ap_diam` sólo lleva su banda de
+         plausibilidad y `tsvd_diametro` es insumo del Qp—, asi que agregarles una clave a ese
+         registro meteria en el dueno de los cortes de pantalla cinco entradas que nadie evalua.
+         Las DOS columnas publican el mismo valor: ninguna de las dos guias separa por sexo. */
+      { ficha: 'DIM-VD-007', rot: 'Tronco de la AP — normal',               h: '≤ 2,5 cm', m: '≤ 2,5 cm' },
+      { ficha: 'DIM-VD-007', rot: 'Tronco de la AP — dilatación leve',      h: '> 2,5 a ≤ 3,0 cm', m: '> 2,5 a ≤ 3,0 cm' },
+      { ficha: 'DIM-VD-007', rot: 'Tronco de la AP — moderada',             h: '> 3,0 a ≤ 3,5 cm', m: '> 3,0 a ≤ 3,5 cm' },
+      { ficha: 'DIM-VD-007', rot: 'Tronco de la AP — severa',               h: '> 3,5 cm', m: '> 3,5 cm' },
+      { ficha: 'DIM-VD-007', rot: 'Tronco de la AP — anormal en 2D',        h: '> 25 mm', m: '> 25 mm' },
+      { ficha: 'DIM-VD-007', rot: 'Tronco / aorta ascendente — signo de HTP', h: '≥ 1', m: '≥ 1' },
+      { ficha: 'DIM-VD-008', rot: 'Ramas derecha e izquierda',              h: 'sin valor normal publicado', m: 'sin valor normal publicado' },
+      { ficha: 'DIM-VD-009', rot: 'TSVD eje largo — normal',                h: '< 3,3 cm', m: '< 3,3 cm' },
+      { ficha: 'DIM-VD-009', rot: 'TSVD eje largo — leve',                  h: '≥ 3,3 a ≤ 3,5 cm', m: '≥ 3,3 a ≤ 3,5 cm' },
+      { ficha: 'DIM-VD-009', rot: 'TSVD eje largo — moderado',              h: '> 3,5 a ≤ 3,9 cm', m: '> 3,5 a ≤ 3,9 cm' },
+      { ficha: 'DIM-VD-009', rot: 'TSVD eje largo — severo',                h: '> 3,9 cm', m: '> 3,9 cm' },
+      { ficha: 'DIM-VD-009', rot: 'TSVD eje corto proximal — normal',       h: '< 3,4 cm', m: '< 3,4 cm' },
+      { ficha: 'DIM-VD-009', rot: 'TSVD eje corto proximal — leve',         h: '≥ 3,4 a ≤ 3,8 cm', m: '≥ 3,4 a ≤ 3,8 cm' },
+      { ficha: 'DIM-VD-009', rot: 'TSVD eje corto proximal — moderado',     h: '> 3,8 a ≤ 4,1 cm', m: '> 3,8 a ≤ 4,1 cm' },
+      { ficha: 'DIM-VD-009', rot: 'TSVD eje corto proximal — severo',       h: '> 4,1 cm', m: '> 4,1 cm' },
+      { ficha: 'DIM-VD-009', rot: 'TSVD eje corto distal — normal',         h: '< 2,9 cm', m: '< 2,9 cm' },
+      { ficha: 'DIM-VD-009', rot: 'TSVD eje corto distal — leve',           h: '≥ 2,9 a ≤ 3,0 cm', m: '≥ 2,9 a ≤ 3,0 cm' },
+      { ficha: 'DIM-VD-009', rot: 'TSVD eje corto distal — moderado',       h: '> 3,0 a ≤ 3,3 cm', m: '> 3,0 a ≤ 3,3 cm' },
+      { ficha: 'DIM-VD-009', rot: 'TSVD eje corto distal — severo',         h: '> 3,3 cm', m: '> 3,3 cm' },
+      { ficha: 'DIM-VD-010', rot: 'TSVD eje largo — rango normal de 2015',  h: '20 a 30 mm', m: '20 a 30 mm' },
+      { ficha: 'DIM-VD-010', rot: 'TSVD proximal — rango normal de 2015',   h: '21 a 35 mm', m: '21 a 35 mm' },
+      { ficha: 'DIM-VD-010', rot: 'TSVD distal — rango normal de 2015',     h: '17 a 27 mm', m: '17 a 27 mm' },
     ], B.idx));
     /* La nota de la banda sin fuente, con el chip de la casa. Se arma con nodos y NO con
        `innerHTML`: es la regla de seguridad de la suite y evita un hallazgo de Semgrep nuevo. */
@@ -155762,8 +155848,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261104-0534';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793781257320;                 /* eco-build-ms */
+const ECO_BUILD    = '20261104-0543';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793781797503;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -155849,7 +155935,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261104-0534</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261104-0543</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
