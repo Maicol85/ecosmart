@@ -129,6 +129,18 @@ perdió.
 **Lo que el dibujo no muestra y se decide después:** el tipo del derrame (libre o tabicado), la
 distancia entre pleuras, el deslizamiento y las líneas A. La orden no los pide.
 
+## P11-f · «Pannus» en el diagnóstico diferencial de las masas — lo decide el médico
+
+La orden del commit 8 dice expresamente: **no se agrega ninguna opción a `masa_dx`**; si lleva
+«pannus» lo decide el médico después. Hoy el selector tiene siete: trombo, mixoma,
+fibroelastoma, vegetación, lipoma, metástasis e indeterminado. La tabla de diferenciales del
+commit 9 **sí** trata el par trombo / pannus de una prótesis, con sus fuentes, así que el
+contenido para distinguirlos ya está en la pantalla aunque el selector no lo ofrezca.
+
+**El rótulo del PAPEL no se tocó.** La tabla del PDF sigue imprimiendo «Masas / Notas» sobre
+`otras_notas`, que es un campo de la sección del pericardio: cambiarlo movería el papel. Lo que
+cambió es sólo el **texto de ejemplo** de ese campo, que ya no menciona masas.
+
 ## P10-a · Los textos que el commit 1 retiró de los globos, LITERALES, y el que llega al papel
 
 La regla (ii) de la tanda PANT-10 manda que lo que **ninguna fuente de la biblioteca respalda**

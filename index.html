@@ -10210,7 +10210,11 @@ window.cerrarSesionReal = cerrarSesionReal;
 
   <div class="card" style="margin-bottom:6px;">
     <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleEteSeccion('pericardio-masas',this)">
-      ⚪ Pericardio y Masas
+      <!-- ⚠️ EL TITULO PASA A «PERICARDIO» — PANT-11, commit 8. El id de la seccion
+           (`pericardio-masas`) NO cambia, a proposito: lo nombran `showTab`, el drawer, los
+           mapas y los casos de la suite, y renombrarlo serian cuatro cambios sin un solo efecto
+           para el medico. -->
+      ⚪ Pericardio
       <span id="ete-pericardio-masas-arrow" style="float:right;transition:transform 0.2s;">▶</span>
     </h2>
   </div>
@@ -10262,42 +10266,11 @@ window.cerrarSesionReal = cerrarSesionReal;
         </select>
       </div>
       <div class="fg" style="margin-top:8px;"><label>Notas adicionales</label>
-        <textarea id="otras_notas" placeholder="Masa, trombo, DSA/DSV, anomalías congénitas..."></textarea>
-      </div>
-      <div class="fg" style="margin-top:12px;border-top:1px solid var(--border);padding-top:10px;">
-        <label style="font-weight:600">🫀 Masa intracardíaca — descripción estructurada</label>
-        <select id="masa_presente" onchange="showMasaPanel()">
-          <option>No se detectan masas</option>
-          <option>Masa / imagen intracardíaca presente</option>
-        </select>
-      </div>
-      <div id="bloque-masa" style="display:none;margin-top:8px;">
-        <div class="grid-2">
-          <div class="fg"><label>Cavidad</label>
-            <select id="masa_cavidad"><option>VI</option><option>VD</option><option>AI</option><option>AD</option><option>Múltiples</option></select>
-          </div>
-          <div class="fg"><label>Localización</label>
-            <select id="masa_loc"><option>Pared libre</option><option>Septo</option><option>Válvula</option><option>Tracto de salida</option><option>Tracto de entrada</option><option>Auricular (orejuela)</option><option>Otro</option></select>
-          </div>
-          <div class="fg"><label>Tamaño (mm)</label>
-            <input type="number" id="masa_tam_mm" placeholder="mm">
-          </div>
-          <div class="fg"><label>Morfología</label>
-            <select id="masa_morf"><option>Pediculada</option><option>Sésil</option><option>Irregular</option><option>Redondeada</option></select>
-          </div>
-          <div class="fg"><label>Movilidad</label>
-            <select id="masa_movil"><option>Móvil</option><option>Semimóvil</option><option>Fija</option></select>
-          </div>
-          <div class="fg"><label>Ecogenicidad</label>
-            <select id="masa_eco"><option>Hiperecogénica</option><option>Hipoecoica</option><option>Mixta</option><option>Con calcificación</option></select>
-          </div>
-          <div class="fg"><label>Diagnóstico diferencial sugerido</label>
-            <select id="masa_dx"><option>Trombo</option><option>Mixoma</option><option>Fibroelastoma</option><option>Vegetación</option><option>Lipoma</option><option>Metástasis</option><option>Indeterminado</option></select>
-          </div>
-        </div>
-        <div class="fg" style="margin-top:8px;"><label>Notas adicionales</label>
-          <textarea id="masa_notas" placeholder="Detalles adicionales de la masa..."></textarea>
-        </div>
+        <!-- ⚠️ EL TEXTO DE EJEMPLO DEJA DE MENCIONAR MASAS (PANT-11, commit 8): la descripcion
+             estructurada se mudo a «Otros». El ROTULO DEL PAPEL no se toca -la tabla del PDF
+             sigue imprimiendo «Masas / Notas» por `sv('otras_notas')`-, porque el papel tiene
+             que salir identico. -->
+        <textarea id="otras_notas" placeholder="Trombo, DSA/DSV, anomalías congénitas..."></textarea>
       </div>
     </div>
   </div>
@@ -10930,6 +10903,86 @@ window.cerrarSesionReal = cerrarSesionReal;
         </div>
       </div>
   </div>
+
+  <!-- ══ MASAS — PANT-11, commit 8 (04/11/2026, decision del medico) ═══════════════════════
+       Los NUEVE campos se mudaron desde «Pericardio y masas», extraidos por BALANCE DE
+       ETIQUETAS -11 div de apertura y 11 de cierre, verificado-: ni un id, ni una opcion, ni un
+       rotulo, ni un comportamiento cambia, y el emisor del papel y el Excel no se tocan.
+       Es la TERCERA seccion de «Otros», debajo de «Variantes anatomicas», con la MISMA forma de
+       acordeon que las otras dos.
+       ⚠️ `data-autoopen` CON `masa_presente` QUE NACE CON VALOR: ese selector NO tiene opcion
+          vacia -su primer valor es «No se detectan masas»-, asi que un formulario en blanco
+          AFIRMA que no hay masas. `cardAutoOpen` cuenta un <select> solo con `selectedIndex > 0`,
+          asi que el valor de fabrica NO abre la seccion: se abre con «Masa / imagen
+          intracardiaca presente» o con cualquier otro campo de masa movido de su primera
+          opcion. Medido con sonda.
+       ⚠️ NO SE AGREGA NINGUNA OPCION A `masa_dx`: si lleva «pannus» lo decide el medico
+          (docs/PENDIENTES.md -> P11-f). -->
+  <div id="otr-sub-masas" class="otr-sub">
+  <div class="card" style="margin-bottom:6px;">
+    <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleEteSeccion('masas',this)">
+      &#129728; Masas
+      <span id="ete-masas-arrow" style="float:right;transition:transform 0.2s;">&#9654;</span>
+    </h2>
+  </div>
+  <div id="ete-seccion-masas" style="display:none;" data-autoopen>
+  <div class="card">
+    <div class="card-body">
+      <div class="fg" style="margin-bottom:12px;">
+        <label style="font-weight:600">&#129728; Masa intracard&iacute;aca &mdash; descripci&oacute;n estructurada</label>
+        <select id="masa_presente" onchange="showMasaPanel()">
+          <option>No se detectan masas</option>
+          <option>Masa / imagen intracardíaca presente</option>
+        </select>
+      </div>
+      <div id="bloque-masa" style="display:none;">
+        <div class="masa-cols">
+          <div class="masa-col">
+            <div class="masa-col-h">Ubicaci&oacute;n</div>
+            <div class="masa-col-campos">
+              <div class="fg"><label>Cavidad</label>
+                <select id="masa_cavidad"><option>VI</option><option>VD</option><option>AI</option><option>AD</option><option>Múltiples</option></select>
+              </div>
+              <div class="fg"><label>Localización</label>
+                <select id="masa_loc"><option>Pared libre</option><option>Septo</option><option>Válvula</option><option>Tracto de salida</option><option>Tracto de entrada</option><option>Auricular (orejuela)</option><option>Otro</option></select>
+              </div>
+            </div>
+          </div>
+          <div class="masa-col">
+            <div class="masa-col-h">Aspecto</div>
+            <div class="masa-col-campos">
+              <div class="fg"><label>Tamaño (mm)</label>
+                <input type="number" id="masa_tam_mm" placeholder="mm">
+              </div>
+              <div class="fg"><label>Morfología</label>
+                <select id="masa_morf"><option>Pediculada</option><option>Sésil</option><option>Irregular</option><option>Redondeada</option></select>
+              </div>
+              <div class="fg"><label>Ecogenicidad</label>
+                <select id="masa_eco"><option>Hiperecogénica</option><option>Hipoecoica</option><option>Mixta</option><option>Con calcificación</option></select>
+              </div>
+              <div class="fg"><label>Movilidad</label>
+                <select id="masa_movil"><option>Móvil</option><option>Semimóvil</option><option>Fija</option></select>
+              </div>
+            </div>
+          </div>
+          <div class="masa-col">
+            <div class="masa-col-h">Orientaci&oacute;n</div>
+            <div class="masa-col-campos">
+              <div class="fg"><label>Diagnóstico diferencial sugerido</label>
+                <select id="masa_dx"><option>Trombo</option><option>Mixoma</option><option>Fibroelastoma</option><option>Vegetación</option><option>Lipoma</option><option>Metástasis</option><option>Indeterminado</option></select>
+              </div>
+              <div class="fg"><label>Notas adicionales</label>
+                <textarea id="masa_notas" placeholder="Detalles adicionales de la masa..."></textarea>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  </div>
+  </div>
+
   </div>
 
 
@@ -24773,6 +24826,15 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
   /* ⚠️ LOS DOS PANELES SE VEN LOS DOS (B2-E3): eran sub-pestanas excluyentes y hoy son dos
      secciones APILADAS, cada una con su barra. Lo que se pliega y se despliega es el cuerpo de
      cada seccion, que sigue siendo de `toggleEteSeccion`. El margen separa las dos barras. */
+  /* ── MASAS EN TRES COLUMNAS POR TEMA (PANT-11, commit 8b) ──
+     Desde 900 px, que es el corte de la regla fija de esta casa y va sobre la VENTANA; por
+     debajo se apila. El selector de presencia queda ARRIBA y a todo el ancho. */
+  .masa-cols{display:grid;grid-template-columns:minmax(0,1fr);gap:14px;align-items:start;}
+  .masa-col{min-width:0;}
+  .masa-col-campos{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;}
+  .masa-col-h{font-size:12px;font-weight:700;color:var(--accent2);margin-bottom:8px;
+              padding-bottom:5px;border-bottom:1px solid var(--border);}
+  @media(min-width:900px){ .masa-cols{grid-template-columns:repeat(3,minmax(0,1fr));} }
   #tab-otros .otr-sub{display:block}
   #tab-otros .otr-sub + .otr-sub{margin-top:12px}
   /* ══ LAS DOS SUB-PESTANAS DE CONGENITAS (B-E6) ═════════════════════════════════════════
@@ -158023,8 +158085,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261104-1509';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793815780483;                 /* eco-build-ms */
+const ECO_BUILD    = '20261104-1515';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793816123245;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -158110,7 +158172,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261104-1509</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261104-1515</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

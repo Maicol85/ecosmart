@@ -231,6 +231,12 @@ const ESCENAS = {
       pop_pleura_der:'moderado', pop_pleura_izq:'moderado',
       pua_derrame:'si', pua_derrame_lado:'bilateral', pul_derrame_tam:'moderado' },
       integrar:['pop'] },
+  /* -- COMMIT 8: la mudanza de Masas. El papel tiene que salir IDENTICO en las dos. -- */
+  p11masBlanco: { campos: { pericardio:'leve' } },
+  p11masCargada: { campos: { masa_presente:'Masa / imagen intracardíaca presente',
+      masa_cavidad:'AI', masa_loc:'Septo', masa_tam_mm:'18', masa_morf:'Pediculada',
+      masa_movil:'Móvil', masa_eco:'Mixta', masa_dx:'Mixoma',
+      masa_notas:'pediculada en fosa oval', otras_notas:'control en 6 meses' } },
   /* == LAS ESCENAS DE LA TANDA PANT-9 ======================================================
      Una por seccion rediseniada, con TODOS sus campos cargados Y la casilla «Integrar al
      informe» encendida: sin eso un cero de superficie firmada no distingue «el papel no se
