@@ -2035,6 +2035,38 @@
     #wilk-fila { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr);
       gap:10px 14px; align-items:start; }
   }
+  /* ══ VAB: CUATRO COLUMNAS DE CAMPOS Y EL DIBUJO (PANT-7, c8b) ═══════════════════════════
+     Cada una de las tres filas de campos pasa a ser una COLUMNA y el contexto quirurgico es la
+     cuarta. Los cortes son MEDIA QUERIES EXPLICITAS y no `auto-fit` —la leccion que PANT-5
+     dejo escrita— y salen de una cuenta, no de un gusto: con el dibujo de 240 px al lado, cada
+     columna mide (util - 240 - 4 huecos de 14) / 4, y la orden fija que no baje de 200 px.
+       · 1440 px: util 1232 -> (1232-296)/4 = **234 px** por columna, con el dibujo al lado;
+       · 1360 px: util 1114 -> **204 px**, el ultimo ancho donde el dibujo entra al lado;
+       · por debajo de 1360 y hasta 1200 el dibujo baja a su propia fila, y las cuatro columnas
+         pasan a (util - 3 huecos)/4 = **228 px** a 1200;
+       · de 700 a 1199, DOS columnas; por debajo, UNA. El dibujo va al final, que es el orden
+         del DOM. */
+  #vab-fila { display:grid; grid-template-columns:1fr; gap:10px 14px; align-items:start; }
+  #vab-fila > .vab-col, #vab-fila > #vab-dibujo-host, #vab-fila > .calc-box { min-width:0; }
+  @media (min-width:700px){
+    #vab-fila { grid-template-columns:repeat(2, minmax(0,1fr)) 240px; }
+    #vab-fila > #vab-dibujo-host { grid-column:3; grid-row:1 / span 2; justify-self:start; }
+    #vab-fila > .calc-box { grid-column:1 / 3; margin-top:0; }
+  }
+  /* ⚠️ ENTRE 1200 Y 1359 EL DIBUJO BAJA A SU PROPIA FILA, y es la unica forma de cumplir las
+     DOS condiciones que la orden pone a la vez: cuatro columnas desde 1200 px y ninguna por
+     debajo de 200. Con el dibujo al lado, a 1200 px cada columna daria (954-296)/4 = 164 px.
+     Medido: baja, dan 234. Desde 1360 vuelve al costado con 210,5. */
+  @media (min-width:1200px){
+    #vab-fila { grid-template-columns:repeat(4, minmax(0,1fr)); }
+    #vab-fila > #vab-dibujo-host { grid-column:1 / -1; grid-row:auto; justify-self:center; }
+    #vab-fila > .calc-box { grid-column:1 / 5; }
+  }
+  @media (min-width:1360px){
+    #vab-fila { grid-template-columns:repeat(4, minmax(0,1fr)) 240px; }
+    #vab-fila > #vab-dibujo-host { grid-column:5; grid-row:1 / span 2; justify-self:start; }
+    #vab-fila > .calc-box { grid-column:1 / 5; }
+  }
   /* ══ AORTA DEL ETE: CAMPOS EN DOS COLUMNAS Y CONCLUSION A LA DERECHA (PANT-7, c7b) ══════
      Pedido del medico. Desde 900 px, campos a la izquierda y conclusion a la derecha; por
      debajo, apilado, que es el orden del DOM. El corte va sobre la VENTANA.
@@ -17428,9 +17460,18 @@ z
            <button>, y un boton dentro de otro no es marcado valido -el navegador lo saca del
            padre al parsear-. Es la leccion que la tanda L dejo escrita. -->
       <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:0 0 10px;">Válvula aórtica bicúspide <button type="button" class="vinfo-btn" data-vinfo="vab-tit" aria-expanded="false" aria-label="Válvula aórtica bicúspide" onclick="vInfoClic(this)">&#9432;</button></div>
-      <div style="display:flex;align-items:flex-start;gap:14px;flex-wrap:wrap;">
-        <div style="flex:1 1 420px;min-width:0;">
-          <div class="grid-3">
+      <!-- == CUATRO COLUMNAS DE CAMPOS Y EL DIBUJO (PANT-7, c8b) ===========================
+           Pedido del medico, con sus palabras: «En VAB reordenaria los campos en columnas: la
+           primera fila en la primera columna, la segunda fila en la segunda columna y la
+           tercera fila en la tercera columna, y una cuarta columna con el contexto quirurgico.
+           O sea que todos los campos mas cortos».
+           Las tres filas eran tres `grid-3` dentro de una columna izquierda, y el contexto
+           quirurgico vivia en OTRO bloque flex mas abajo: cada uno pasa a ser una columna de
+           esta grilla, en ese orden. Ningun campo cambia de grupo, de id ni de orden dentro de
+           su grupo, y los dos `input` ocultos -`vab_funcion` y `vab_morf_ro`- quedan donde
+           estaban: no generan caja, asi que no son celdas de la grilla. -->
+      <div id="vab-fila">
+        <div class="vab-col"><!-- COLUMNA 1: la primera fila -->
             <div class="fg"><label>Tipo de fusión <button type="button" class="vinfo-btn" data-vinfo="vab-valv" aria-expanded="false" aria-label="Clasificación de la válvula" onclick="vInfoClic(this)">&#9432;</button></label>
               <select id="vab_tipo" onchange="vabTipoCambio()">
                 <option value="">—</option>
@@ -17495,7 +17536,7 @@ z
                Medido: con `ea_grado` en moderada el campo vale «estenosis» y la barra abria. Es
                el mismo argumento de `im_espejos` y de los seis `ete_seg_*`. -->
           <input type="hidden" id="vab_funcion" value="" data-espejo>
-          <div class="grid-3" style="margin-top:10px;">
+        <div class="vab-col"><!-- COLUMNA 2: la segunda fila -->
             <!-- Los rotulos de SOLO LECTURA van sin parentesis: el globo de su grupo dice de
                  donde viene cada dato. -->
             <div class="fg"><label>EA — grado <button type="button" class="vinfo-btn" data-vinfo="vab-func" aria-expanded="false" aria-label="Función valvular" onclick="vInfoClic(this)">&#9432;</button></label>
@@ -17503,7 +17544,7 @@ z
             <div class="fg"><label>IAo — grado</label>
               <input type="text" id="vab_ia_ro" readonly tabindex="-1" placeholder="—" style="opacity:.7;"></div>
           </div>
-          <div class="grid-3" style="margin-top:10px;">
+        <div class="vab-col"><!-- COLUMNA 3: la tercera fila -->
             <div class="fg"><label>Raíz aórtica <button type="button" class="vinfo-btn" data-vinfo="vab-aorta" aria-expanded="false" aria-label="Aorta" onclick="vInfoClic(this)">&#9432;</button></label>
               <input type="text" id="vab_raiz_ro" readonly tabindex="-1" placeholder="—" style="opacity:.7;"></div>
             <div class="fg"><label>Ao ascendente</label>
@@ -17523,7 +17564,6 @@ z
                reemplaza en pantalla; el campo sigue existiendo para que nada que lo lea se
                quede sin nodo. -->
           <input type="text" id="vab_morf_ro" readonly tabindex="-1" style="display:none;">
-        </div>
         <!-- ══ EL DIBUJO (Y3d6, 2026-10-19) ═══════════════════════════════════════════════
              SVG en eje corto de la valvula, con tres senos, que se REDIBUJA con lo que el
              medico elige. Se construye POR NODOS en `vabDibujar` -ni un dato concatenado en
@@ -17533,6 +17573,25 @@ z
              consenso de Michelena y col.-, imagenes de ETT de eje corto PARAESTERNAL: R arriba,
              L abajo a la derecha y N abajo a la izquierda, que es exactamente lo que
              `vabGeom` dibuja. Por eso las letras llevan su sigla y la tarjeta puede nombrarlas. -->
+        <div class="vab-col"><!-- COLUMNA 4: el contexto quirurgico -->
+          <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:0 0 8px;">Contexto quirúrgico <button type="button" class="vinfo-btn" data-vinfo="vab-cx" aria-expanded="false" aria-label="Contexto quirúrgico" onclick="vInfoClic(this)">&#9432;</button></div>
+          <div class="fg"><label>Cirugía valvular aórtica prevista</label>
+            <select id="vab_cx_valvular" onchange="vabSync()">
+              <option value="">—</option>
+              <option value="no_eval">No consta</option>
+              <option value="no">No</option>
+              <option value="si">Sí</option>
+            </select>
+          </div>
+          <div class="fg" style="margin-top:10px;"><label>Riesgo quirúrgico bajo (&lt;3 %)</label>
+            <select id="vab_riesgo_qx" onchange="vabSync()">
+              <option value="">—</option>
+              <option value="no_eval">No consta</option>
+              <option value="no">No</option>
+              <option value="si">Sí</option>
+            </select>
+          </div>
+        </div>
         <div id="vab-dibujo-host" style="flex:0 0 240px;max-width:240px;">
           <svg id="vab-svg" viewBox="0 0 240 240" width="100%" style="max-width:240px;display:block;"
                role="img" aria-labelledby="vab-svg-tit"><title id="vab-svg-tit">Esquema de la válvula aórtica en eje corto</title></svg>
@@ -17569,28 +17628,28 @@ z
             </div>
           </div>
         </div>
+        <!-- ⚠️ EL RESUMEN ENTRA EN LA FILA Y ABARCA LAS COLUMNAS DE CAMPOS (PANT-7, c8b).
+             Pedido del medico: «la conclusion o resumen mas metido arriba, para que no quede
+             tanto espacio vacio». Hasta hoy vivia en OTRO bloque flex, debajo de todo: con los
+             campos repartidos en cuatro columnas cortas, eso dejaba 286 px de espacio vacio a
+             1440 px —medido— entre el fondo de las columnas y el resumen. Dentro de la fila
+             queda pegado debajo de los campos. -->
+          <div class="calc-box" style="margin-top:10px;">
+            <!-- ⚠️ EL RESUMEN ES ESQUEMATICO Y DESCRIPTIVO DESDE EL 2026-10-20 («Y3f4»).
+                 DECISION DE MAICOL. Antes eran dos filas: «Factores presentes» y «Conclusión»,
+                 y la segunda publicaba el parrafo de `vabConclusion`, que nombra la ESC 2024,
+                 recomienda («control anual por imagen», «corresponde reemplazar la aorta en el
+                 mismo acto») y avisa de datos sin evaluar. Ese texto NO se perdio ni se cambio:
+                 se mudo a la pestana Evidencia, que es donde viven los umbrales y las conductas.
+                 Lo que queda aca son cuatro lineas cortas que DESCRIBEN y no recomiendan, y el
+                 conteo de factores -que era la fila de arriba- es la cuarta.
+                 ⚠️ `vab-fr` CONSERVA SU id aunque haya cambiado de lugar: lo escribe
+                 `vabResumenPintar` y es el nodo que el resto del archivo conoce. -->
+            <div class="calc-row" style="align-items:flex-start;"><span class="calc-lbl">Resumen</span><span id="vab-concl" class="calc-val" style="text-align:right;line-height:1.55;"></span></div>
+          </div>
       </div>
 
       <div style="display:flex;align-items:flex-start;gap:14px;flex-wrap:wrap;margin-top:16px;">
-        <div style="flex:0 0 240px;max-width:260px;">
-          <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:0 0 8px;">Contexto quirúrgico <button type="button" class="vinfo-btn" data-vinfo="vab-cx" aria-expanded="false" aria-label="Contexto quirúrgico" onclick="vInfoClic(this)">&#9432;</button></div>
-          <div class="fg"><label>Cirugía valvular aórtica prevista</label>
-            <select id="vab_cx_valvular" onchange="vabSync()">
-              <option value="">—</option>
-              <option value="no_eval">No consta</option>
-              <option value="no">No</option>
-              <option value="si">Sí</option>
-            </select>
-          </div>
-          <div class="fg" style="margin-top:10px;"><label>Riesgo quirúrgico bajo (&lt;3 %)</label>
-            <select id="vab_riesgo_qx" onchange="vabSync()">
-              <option value="">—</option>
-              <option value="no_eval">No consta</option>
-              <option value="no">No</option>
-              <option value="si">Sí</option>
-            </select>
-          </div>
-        </div>
         <div style="flex:1 1 340px;min-width:0;">
           <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:0 0 8px;">Factores de riesgo <button type="button" class="vinfo-btn" data-vinfo="vab-friesgo" aria-expanded="false" aria-label="Factores de riesgo" onclick="vInfoClic(this)">&#9432;</button></div>
           <!-- ⚠️ EL ROTULO Y SU GLOBO SE QUEDAN, Y LAS CASILLAS NO (AORTA-2, commit 3a). El
@@ -17626,19 +17685,6 @@ z
             <input type="hidden" id="vab_fr_cx" value="">
             <input type="hidden" id="vab_fr_crecimiento" value="">
             <input type="hidden" id="vab_fr_embarazo" value="">
-          </div>
-          <div class="calc-box" style="margin-top:10px;">
-            <!-- ⚠️ EL RESUMEN ES ESQUEMATICO Y DESCRIPTIVO DESDE EL 2026-10-20 («Y3f4»).
-                 DECISION DE MAICOL. Antes eran dos filas: «Factores presentes» y «Conclusión»,
-                 y la segunda publicaba el parrafo de `vabConclusion`, que nombra la ESC 2024,
-                 recomienda («control anual por imagen», «corresponde reemplazar la aorta en el
-                 mismo acto») y avisa de datos sin evaluar. Ese texto NO se perdio ni se cambio:
-                 se mudo a la pestana Evidencia, que es donde viven los umbrales y las conductas.
-                 Lo que queda aca son cuatro lineas cortas que DESCRIBEN y no recomiendan, y el
-                 conteo de factores -que era la fila de arriba- es la cuarta.
-                 ⚠️ `vab-fr` CONSERVA SU id aunque haya cambiado de lugar: lo escribe
-                 `vabResumenPintar` y es el nodo que el resto del archivo conoce. -->
-            <div class="calc-row" style="align-items:flex-start;"><span class="calc-lbl">Resumen</span><span id="vab-concl" class="calc-val" style="text-align:right;line-height:1.55;"></span></div>
           </div>
         </div>
       </div>
@@ -155411,8 +155457,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261104-0059';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793764778742;                 /* eco-build-ms */
+const ECO_BUILD    = '20261104-0108';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793765336969;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -155498,7 +155544,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261104-0059</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261104-0108</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

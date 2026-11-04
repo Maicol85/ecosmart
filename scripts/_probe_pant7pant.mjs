@@ -14,7 +14,7 @@ const RAIZ = '/Users/maicoldossantos/Desktop/APLICACIONES/ecosmart';
 const arg = (n) => { const i = process.argv.indexOf(n); return i > -1 ? process.argv[i + 1] : null };
 const FILE = arg('--file') || (RAIZ + '/index.html');
 const OUTF = arg('--out') || '/tmp/p7pant.json';
-const ANCHOS = [1440, 1000, 768, 390];
+const ANCHOS = [1440, 1360, 1200, 1000, 768, 390];
 
 /* Las cinco zonas: su contenedor, su pestania y el acordeon que hay que abrir. */
 /* ⚠️ CADA ZONA DECLARA COMO SE ABRE, y no se adivina. Las tres del ETE abren con
