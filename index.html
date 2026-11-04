@@ -19953,54 +19953,73 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
       <span id="vap_badge" class="incl-badge" hidden>📎 en el informe</span>
     </button>
     <div class="card-body sacc-body">
-      <p style="font-size:11px;color:var(--text2);margin:0 0 12px;line-height:1.5;">
-        Comunicación directa entre la aorta ascendente y la arteria pulmonar principal. Menos del 1 % de las cardiopatías congénitas.
-        A diferencia del ductus no tiene variante restrictiva relevante en el adulto: el defecto es proximal y de gran calibre, así que
-        la repercusión hemodinámica se asume salvo prueba en contra.
-        <b style="color:var(--accent2);">ESC 2020: cierre indicado siempre, salvo hipertensión pulmonar irreversible (Eisenmenger).</b>
-      </p>
-      <div class="grid-3">
-        <div class="fg"><label>Tipo</label>
-          <select id="vap_tipo" onchange="vapSync()">
-            <option value="">—</option>
-            <option value="i">Tipo I — proximal</option>
-            <option value="ii">Tipo II — distal</option>
-            <option value="iii">Tipo III — total</option>
-          </select>
+      <!-- == VAP EN TRES COLUMNAS - tanda PANT-9, commit 7 (2026-11-04) ======================
+           DISPOSICION APROBADA POR EL MEDICO en un lienzo de disenio. Lo unico que cambia es
+           DONDE esta cada campo y donde esta el parrafo inicial: ningun id, ningun valor,
+           ninguna opcion y ninguna conclusion se movieron, y el papel sale identico -medido con
+           el A/B-.
+           EL PARRAFO INICIAL PASO AL GLOBO DEL TITULO (cc9-vap-sec), PALABRA POR PALABRA. ** Y
+           CONTIENE UNA CONDUCTA -«ESC 2020: cierre indicado siempre, salvo hipertension pulmonar
+           irreversible (Eisenmenger)»-: por la regla de esta tanda NO se borra, se mueve igual, y
+           queda listado en docs/PENDIENTES.md -> P9-a. -->
+      <div class="cc9-cuadro">
+        <div class="cc9-hdrbar">
+          <button type="button" class="vinfo-btn vinfo-btn-44" data-vinfo="cc9-vap-sec" aria-expanded="false" aria-label="Que es la ventana aortopulmonar, con que frecuencia aparece y en que se diferencia del ductus" onclick="vInfoClic(this)">&#9432;</button>
         </div>
-        <div class="fg"><label>Diámetro (mm)</label><input type="number" id="vap_diam" step="0.1" placeholder="mm" oninput="vapSync()"></div>
-        <div class="fg"><label>Dirección del shunt</label>
-          <select id="vap_dir" onchange="vapSync()">
-            <option value="">—</option>
-            <option value="id">Izquierda a derecha</option>
-            <option value="bi">Bidireccional</option>
-            <option value="di">Derecha a izquierda</option>
-          </select>
+        <div class="cc9-fila" id="vap-fila">
+          <div class="cc9-cols">
+            <div class="cc9-col">
+              <div class="cc9-h">Tipo y tamaño</div>
+              <div class="fg"><label>Tipo</label>
+                <select id="vap_tipo" onchange="vapSync()">
+                  <option value="">—</option>
+                  <option value="i">Tipo I — proximal</option>
+                  <option value="ii">Tipo II — distal</option>
+                  <option value="iii">Tipo III — total</option>
+                </select>
+              </div>
+              <div class="fg"><label>Diámetro (mm)</label><input type="number" id="vap_diam" step="0.1" placeholder="mm" oninput="vapSync()"></div>
+            </div>
+            <div class="cc9-col">
+              <div class="cc9-h">Shunt</div>
+              <div class="fg"><label>Dirección del shunt</label>
+                <select id="vap_dir" onchange="vapSync()">
+                  <option value="">—</option>
+                  <option value="id">Izquierda a derecha</option>
+                  <option value="bi">Bidireccional</option>
+                  <option value="di">Derecha a izquierda</option>
+                </select>
+              </div>
+              <div class="fg"><label>Qp/Qs</label>
+                <div class="calc-box" style="margin:0;padding:6px 10px;"><div class="calc-row" style="border:none;padding:0;">
+                  <span id="vap-qpqs" class="calc-val">—</span></div></div>
+              </div>
+            </div>
+            <div class="cc9-col">
+              <div class="cc9-h">Presión pulmonar</div>
+              <div class="fg"><label>Hipertensión pulmonar asociada</label>
+                <select id="vap_htp" onchange="vapSync()">
+                  <option value="">—</option>
+                  <option value="no_eval">No evaluada</option>
+                  <option value="no">No</option>
+                  <option value="si">Sí</option>
+                </select>
+              </div>
+              <div class="fg"><label>PSAP estimada — del estudio</label>
+                <input type="text" id="vap_paps_ro" readonly tabindex="-1" placeholder="—" style="opacity:.7;"></div>
+            </div>
+          </div>
+          <div class="cc9-concl">
+            <div class="calc-box">
+              <div class="calc-row"><span class="calc-lbl">Conclusión</span><span id="vap-concl" class="calc-val">—</span></div>
+            </div>
+            <input type="checkbox" id="vap_incluir_chk" style="display:none;" tabindex="-1" aria-hidden="true">
+            <div class="cc9-concl-btn">
+              <button type="button" class="btn btn-integrar" data-ete-chk="vap_incluir_chk" aria-pressed="false"
+                      onclick="eteInclToggle('vap_incluir_chk')">📎 Integrar al informe</button>
+            </div>
+          </div>
         </div>
-      </div>
-      <div class="grid-3" style="margin-top:10px;">
-        <div class="fg"><label>Hipertensión pulmonar asociada</label>
-          <select id="vap_htp" onchange="vapSync()">
-            <option value="">—</option>
-            <option value="no_eval">No evaluada</option>
-            <option value="no">No</option>
-            <option value="si">Sí</option>
-          </select>
-        </div>
-        <div class="fg"><label>PSAP estimada — del estudio</label>
-          <input type="text" id="vap_paps_ro" readonly tabindex="-1" placeholder="—" style="opacity:.7;"></div>
-        <div class="fg"><label>Qp/Qs</label>
-          <div class="calc-box" style="margin:0;padding:6px 10px;"><div class="calc-row" style="border:none;padding:0;">
-            <span id="vap-qpqs" class="calc-val">—</span></div></div>
-        </div>
-      </div>
-      <div class="calc-box" style="margin-top:12px;">
-        <div class="calc-row"><span class="calc-lbl">Conclusión</span><span id="vap-concl" class="calc-val">—</span></div>
-      </div>
-      <div style="text-align:center;margin-top:10px;">
-        <input type="checkbox" id="vap_incluir_chk" style="display:none;" tabindex="-1" aria-hidden="true">
-        <button type="button" class="btn btn-integrar" data-ete-chk="vap_incluir_chk" aria-pressed="false"
-                onclick="eteInclToggle('vap_incluir_chk')">📎 Integrar al informe</button>
       </div>
     </div>
   </div>
@@ -48933,6 +48952,15 @@ const VINFO = Object.freeze({
     tit: 'El Qp/Qs por eco en la conexión venosa pulmonar anómala',
     lee: 'El eco subestima el shunt en esta lesión: la resonancia es el método de referencia '
        + '(ESC 2020).'
+  },
+  'cc9-vap-sec': {
+    ancho: 440,
+    tit: 'La ventana aortopulmonar',
+    lee: 'Comunicación directa entre la aorta ascendente y la arteria pulmonar principal. Menos '
+       + 'del 1 % de las cardiopatías congénitas. A diferencia del ductus no tiene variante '
+       + 'restrictiva relevante en el adulto: el defecto es proximal y de gran calibre, así que '
+       + 'la repercusión hemodinámica se asume salvo prueba en contra. ESC 2020: cierre indicado '
+       + 'siempre, salvo hipertensión pulmonar irreversible (Eisenmenger).'
   },
   'tarj-diast': { ancho: 356, dyn: function () { return qvDiast() } }
 });
@@ -156169,8 +156197,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261104-0755';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793789747527;                 /* eco-build-ms */
+const ECO_BUILD    = '20261104-0757';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793789866058;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -156256,7 +156284,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261104-0755</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261104-0757</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
