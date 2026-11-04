@@ -172,6 +172,26 @@ const ESCENAS = {
       it_vel:'3.1', vexus_sh:'normal', vexus_pv:'leve', vexus_ir:'normal', vci_no_vis:'1' } },
   /* La cava SIN cargar y la casilla marcada: el papel dice que no se visualiza igual. */
   p11vciSolo: { campos: { ad_area:'20', vci_no_vis:'1' } },
+  /* -- COMMIT 4: la profundidad de coaptacion, las CUATRO escenas que el medico pide
+     DEMOSTRAR. `integrar` es un GESTO: sin el, el bloque no llega al papel. --
+     (i) solo en el campo del ETE, TEER sin integrar -> papel identico a HEAD.
+     (ii) solo en el del TEER, TEER sin integrar -> la UNICA diferencia autorizada: el parrafo
+          del ETE mitral pasa a mostrar la profundidad que llego del otro campo.
+     (iii) en los dos -> identico a HEAD.
+     (iv) TEER integrado, con y sin profundidad. */
+  p11coapEte:    { campos: { ete_prof_coapt:'12', ete_angulo_vp:'40' }, integrar:['etem'] },
+  p11coapTeer:   { campos: { teer_prof_flail:'12', ete_angulo_vp:'40' }, integrar:['etem'] },
+  p11coapTeerNi: { campos: { teer_prof_flail:'12', ete_angulo_vp:'40' } },
+  p11coapAmbos:  { campos: { ete_prof_coapt:'12', teer_prof_flail:'12', ete_angulo_vp:'40' }, integrar:['etem'] },
+  p11coapInt:    { campos: { teer_prof_flail:'12', teer_gap:'8', teer_ancho_flail:'12',
+      teer_area_mitral:'4.5', im_grado:'4' }, integrar:['teer'] },
+  p11coapIntSin: { campos: { teer_gap:'8', teer_ancho_flail:'12',
+      teer_area_mitral:'4.5', im_grado:'4' }, integrar:['teer'] },
+  /* (iv-bis) EL EJEMPLO DEL VEREDICTO: la profundidad cargada SOLO en el campo del ETE y el
+     TEER INTEGRADO. En HEAD el criterio c4 esta «sin dato»; con el espejo el dato llega y el
+     criterio se evalua. Es la unica forma de ver lo que la orden pide mostrar. */
+  p11coapEteInt: { campos: { ete_prof_coapt:'12', teer_gap:'8', teer_ancho_flail:'12',
+      teer_area_mitral:'4.5', im_grado:'4' }, integrar:['teer'] },
   /* == LAS ESCENAS DE LA TANDA PANT-9 ======================================================
      Una por seccion rediseniada, con TODOS sus campos cargados Y la casilla «Integrar al
      informe» encendida: sin eso un cero de superficie firmada no distingue «el papel no se

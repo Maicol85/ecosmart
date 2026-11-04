@@ -13173,7 +13173,7 @@ window.cerrarSesionReal = cerrarSesionReal;
              ⚠️ NINGUN id CAMBIA, y los rotulos del EXCEL y del PAPEL tampoco: la hoja del PDF
                 sigue imprimiendo «Profundidad de coaptación» por `_amFila`. -->
         <div class="fg"><label>Profundidad coaptación — reparación (mm)</label>
-          <input type="number" id="ete_prof_coapt" placeholder="mm" oninput="calcETE()">
+          <input type="number" id="ete_prof_coapt" placeholder="mm" oninput="calcETE();etemVeloGesto('ete_prof_coapt')">
           <span style="font-size:10px; color:var(--text2);">Desfavorable (IM secundaria): &ge;10 mm</span>
         </div>
         <div class="fg"><label>Diámetro anular (mm)</label>
@@ -16688,7 +16688,7 @@ z
              Ningun id cambia y los rotulos del Excel y del papel tampoco. -->
         <div class="fg"><label>Profundidad coaptación — TEER (mm)</label>
           <div class="teer-figrow"><div class="teer-figcol">
-          <input type="number" id="teer_prof_flail" placeholder="mm" oninput="calcTEER()">
+          <input type="number" id="teer_prof_flail" placeholder="mm" oninput="calcTEER();etemVeloGesto('teer_prof_flail')">
           <span style="font-size:10px; color:var(--text2);">Excl: &ge;11mm</span>
           </div>
           <svg class="teer-fig" id="teer-fig-prof" viewBox="0 0 320 250" role="img"
@@ -42154,7 +42154,20 @@ window.imFrPdfVal = imFrPdfVal;
    ⚠️ Y `_syncSiVacio` NO SE RETIRA: sigue siendo el camino de los ESTUDIOS VIEJOS, que se leen
       sin migrarlos -uno guardado con `ete_lva` poblado y `teer_lva` vacio-. Con el espejo puesto
       los dos campos valen lo mismo, asi que esa copia no tiene nada que hacer y no se pisan. */
-var _ETEM_VELOS = [['ete_lva', 'teer_lva'], ['ete_lvp', 'teer_lvp']];
+/* ⚠️ Y LA PROFUNDIDAD DE COAPTACION ENTRA ACA — PANT-11, commit 4 (decision del medico del
+   04/11/2026: «es sincronizar los campos: si uno esta escrito el otro toma el dato tambien, y
+   si se borra se borra tambien. El dato es el mismo en los dos campos; el significado para cada
+   sector puede ser distinto»). REVIERTE la parada de PANT-5 (P5-f), PANT-6 (commit 6b) y
+   PANT-7 (4a), que la habian dejado sin unir porque unirla cambia el criterio c4 del TEER.
+   ⚠️ CADA LADO CONSERVA LO SUYO, y eso es lo que la decision del medico separa: el VALOR es uno
+      solo, el SIGNIFICADO no. `ete_prof_coapt` sigue siendo factor desfavorable para la
+      REPARACION con su corte en 10 mm y su rotulo; `teer_prof_flail` sigue siendo el criterio de
+      EXCLUSION c4 del TEER con el suyo en 11 mm. Ni los ids, ni los rotulos, ni los cortes, ni
+      las notas, ni los emisores se tocan.
+   ⚠️ NO ES EL FLAIL GAP. `teer_flail_gap` y `teer_ancho_flail` son otras dos medidas y no se
+      sincronizan con nada. */
+var _ETEM_VELOS = [['ete_lva', 'teer_lva'], ['ete_lvp', 'teer_lvp'],
+                   ['ete_prof_coapt', 'teer_prof_flail']];
 function etemVeloGesto(id) {
   for (var i = 0; i < _ETEM_VELOS.length; i++) {
     var par = _ETEM_VELOS[i], otro = null;
@@ -42172,6 +42185,25 @@ function etemVeloGesto(id) {
   }
 }
 window.etemVeloGesto = etemVeloGesto;
+
+/* ══ LA RECONCILIACION AL RESTAURAR UN ESTUDIO — PANT-11, commit 4 ═══════════════════════════
+   El gesto de arriba cubre lo que el medico teclea. Esto cubre el OTRO camino: un estudio
+   guardado ANTES de que el espejo existiera, que se lee SIN migrarlo y puede traer uno de los
+   dos campos poblado y el otro vacio. Cuelga de `RECALC_MODULOS`, que es por donde pasan las
+   cinco rutas de restauracion, y es IDEMPOTENTE: corriendola dos veces no cambia nada.
+   ⚠️ SOLO COMPLETA LO VACIO. Con los dos cargados y DISTINTOS no toca nada: elegir uno seria
+      decidir cual de las dos mediciones del medico vale, y eso no lo decide la aplicacion.
+      Es la misma regla que `aoRaizReconciliar` (PANT-5) y `taviAoReconciliar` (PANT-8). */
+function profCoaptReconciliar() {
+  const a = document.getElementById('ete_prof_coapt'), b = document.getElementById('teer_prof_flail');
+  if (!a || !b) return;
+  const va = String(a.value == null ? '' : a.value).trim();
+  const vb = String(b.value == null ? '' : b.value).trim();
+  if (va === vb) return;
+  if (va !== '' && vb === '') { b.value = va; try { if (typeof calcTEER === 'function') calcTEER(); } catch (e) {} }
+  else if (vb !== '' && va === '') { a.value = vb; try { if (typeof calcETE === 'function') calcETE(); } catch (e) {} }
+}
+window.profCoaptReconciliar = profCoaptReconciliar;
 
 function sincronizarTEERDesdeGlobal() {
   _syncSiVacio([
@@ -68044,7 +68076,7 @@ function RECALC_MODULOS() {
      cuando uno de los dos esta vacio; con los dos cargados y distintos no toca nada. */
   /* `vciNoVisSync` va PRIMERO: deja los dos campos de la VCI como corresponde ANTES de que los
      veinticinco consumidores de esta misma lista los lean. */
-  return ['vciNoVisSync','aoRaizReconciliar','taviAoReconciliar','tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','asiaMmSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','dtTapSync','vdTrivSync','etOndaESync','papmEstSync','calcDopTric','etTsvdSync','calcET','vpVmaxSync','ipIncongruenciaSync','itRefFuenteSync','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccSegSync','vpSync','popSync','sglOrigenSync','calcVenaPulm','valvProtSync','eaTaviEspejar','imEspejosRestaurar','eteVmAvisoSync','vmCarpLegadoSync','vmCarpOrigenSync','vmProtBloqSync','vmMorfFitSync','vdStrainPlSync','emPdfValsSync','emCuadroRefRepintar','emContFaAvisoSync','imCortesPintar','imContAvisoPintar','itIncongruenciaSync','aoEspejosRestaurar','tangoRestaurar','diastExclSync','diastFcAvisoSync','diastBseEprimaAvisoSync','diastBseGrisAvisoSync','diastStrainMarcaSync','vdMarcaSync','vdTeiAvisoSync','tep6060Resalte','hfPepSync','hfPepPintar','viVolAutoSync','eaAvaiGradoPintar','eaPvlPintar','imPvlPintar','vdTapsePsapSync','ipApDiamSync','vdViSelSync','htpApSync','htpTablaPintar','m3dBotonSync','contrPdfSync','sglPdfSync','eteQxPdfSync','otrBurbUI','v2dCerrar','aiviSexoSync','vtDviAuto','sincronizarTEERDesdeGlobal','calcETE',
+  return ['vciNoVisSync','aoRaizReconciliar','taviAoReconciliar','profCoaptReconciliar','tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','asiaMmSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','dtTapSync','vdTrivSync','etOndaESync','papmEstSync','calcDopTric','etTsvdSync','calcET','vpVmaxSync','ipIncongruenciaSync','itRefFuenteSync','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccSegSync','vpSync','popSync','sglOrigenSync','calcVenaPulm','valvProtSync','eaTaviEspejar','imEspejosRestaurar','eteVmAvisoSync','vmCarpLegadoSync','vmCarpOrigenSync','vmProtBloqSync','vmMorfFitSync','vdStrainPlSync','emPdfValsSync','emCuadroRefRepintar','emContFaAvisoSync','imCortesPintar','imContAvisoPintar','itIncongruenciaSync','aoEspejosRestaurar','tangoRestaurar','diastExclSync','diastFcAvisoSync','diastBseEprimaAvisoSync','diastBseGrisAvisoSync','diastStrainMarcaSync','vdMarcaSync','vdTeiAvisoSync','tep6060Resalte','hfPepSync','hfPepPintar','viVolAutoSync','eaAvaiGradoPintar','eaPvlPintar','imPvlPintar','vdTapsePsapSync','ipApDiamSync','vdViSelSync','htpApSync','htpTablaPintar','m3dBotonSync','contrPdfSync','sglPdfSync','eteQxPdfSync','otrBurbUI','v2dCerrar','aiviSexoSync','vtDviAuto','sincronizarTEERDesdeGlobal','calcETE',
           /* `pamAvisoSync` (B-2) repinta la línea del dueño único de la PAM. Entra acá por lo
              mismo que los demás: las cinco rutas de restauración pueblan asignando `.value`,
              que no dispara `input`, así que al reabrir un estudio con dos PAM que difieren el
@@ -157461,8 +157493,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261104-1433';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793813598837;                 /* eco-build-ms */
+const ECO_BUILD    = '20261104-1439';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793813975791;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -157548,7 +157580,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261104-1433</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261104-1439</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
