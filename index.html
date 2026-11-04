@@ -20545,7 +20545,11 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
              aviso que solo aparece cuando el dato ya esta cargado llega despues de la consulta
              en que habia que darlo. -->
         <div style="font-size:11.5px;border-left:3px solid var(--red);background:var(--section-head);padding:8px 10px;border-radius:0 6px 6px 0;margin-bottom:12px;line-height:1.55;">
-          <b style="color:var(--red);">Contraindicaciones absolutas</b> &mdash; embarazo (mortalidad materna &gt;50&nbsp;%) &middot;
+          <!-- PANT-11, commit 1 (redaccion A, decision expresa del medico): la cifra pasa a la
+               que publica la fuente -ACC/AHA de cardiopatias congenitas del adulto, hoja 95,
+               folio e209, leida en imagen- y coincide con la tarjeta de criterios de esta misma
+               seccion, que ya escribia 30-50 %. -->
+          <b style="color:var(--red);">Contraindicaciones absolutas</b> &mdash; embarazo (mortalidad materna 30&nbsp;a&nbsp;50&nbsp;%) &middot;
           correccion quirurgica cardiaca del defecto &middot; ejercicio extenuante.
         </div>
         <div class="cc9-fila" id="eisen-fila">
@@ -81376,15 +81380,22 @@ function eisenEstado(src) {
   const satOk = sat != null && sat >= 40 && sat <= 100;
   const satFuera = sat != null && !satOk;
   const alertas = [];
+  /* ══ PANT-11, commit 1 — LAS TRES ALERTAS QUE LLEGABAN AL PAPEL ═════════════════════════
+     Medido en P10-a y reproducido antes de tocar nada: estas alertas van a `txt` y a `suma`, y
+     las dos llegan al informe firmado, al EN SUMA, al PDF y al PPT.
+     1 · La cifra de mortalidad materna pasa de «>50 %» a «30 a 50 %», que es lo que la fuente
+         publica —ACC/AHA de cardiopatias congenitas del adulto, hoja 95, folio e209 comprobado
+         en el pie impreso, «reported at 30% to 50%», leido en imagen a 220 ppp— y es ademas lo
+         que la tarjeta de criterios de esta misma aplicacion ya escribia: la pantalla se
+         contradecia consigo misma. El «(ESC 2020)» sale: el papel no nombra guias.
+     2 · Las alertas de SINCOPE y de HEMOPTISIS se retiran enteras. «Marcador de mal pronostico»
+         y «riesgo de episodio masivo y FATAL» no las respalda ninguna de las dos guias en sus
+         capitulos de Eisenmenger —censado en PANT-10—, y el texto literal de las dos quedo en
+         `docs/PENDIENTES.md` (P11-a). En la PANTALLA los dos hallazgos siguen con sus globos ya
+         corregidos; lo que desaparece es la afirmacion pronostica sin fuente. */
   if (satOk && sat < 90) alertas.push({ k:'embarazo',
-    txt:'Saturación crítica (' + sat + ' %, <90 %). Embarazo contraindicado — mortalidad materna >50 % (ESC 2020). Evitar deshidratación, hipotensión y anestesia general sin experiencia en hipertensión arterial pulmonar.',
-    suma:'Eisenmenger con saturación ' + sat + ' % — embarazo contraindicado, mortalidad materna >50 %.' });
-  if (sinc === 'si') alertas.push({ k:'sincope',
-    txt:'Síncope presente — marcador de mal pronóstico. Evaluación urgente en centro especializado en hipertensión pulmonar y cardiopatías congénitas del adulto.',
-    suma:'Eisenmenger con síncope — marcador de mal pronóstico, evaluación urgente.' });
-  if (hemo === 'si') alertas.push({ k:'hemoptisis',
-    txt:'Hemoptisis presente — riesgo de episodio masivo y fatal. Evaluación urgente.',
-    suma:'Eisenmenger con hemoptisis — riesgo de episodio masivo, evaluación urgente.' });
+    txt:'Saturación crítica (' + sat + ' %, <90 %). Embarazo contraindicado — mortalidad materna 30 a 50 %. Evitar deshidratación, hipotensión y anestesia general sin experiencia en hipertensión arterial pulmonar.',
+    suma:'Eisenmenger con saturación ' + sat + ' % — embarazo contraindicado, mortalidad materna 30 a 50 %.' });
   if (peri === 'moderado' || peri === 'severo') alertas.push({ k:'pericardio',
     txt:'Derrame pericárdico ' + EIS_PERI_TXT[peri] + ' — asociado a peor pronóstico en el síndrome de Eisenmenger.',
     suma:null });
@@ -84567,8 +84578,10 @@ function ccSumaLinea(sec){
     if (desp == null && !(cel && cel.grado)) return null;
     let l = cab;
     if (desp != null) l += ' — desplazamiento septal ' + _cc1(desp) + ' mm';
-    if (cel && cel.grado) l += ' — Celermajer grado ' + cel.grado + ' (índice ' + cel.idx.toFixed(2) + ')';
-    else if (cel && cel.fuera) l += ' — índice de Celermajer no calculado: ' + cel.fuera.join(' y ') + ' fuera de rango';
+    /* PANT-11, commit 1: en el EN SUMA el indice va por lo que ES —la relacion de areas en
+       cuatro camaras que define la Figura 1 de su fuente— y no por el apellido de su autor. */
+    if (cel && cel.grado) l += ' — relación de áreas en cuatro cámaras ' + cel.idx.toFixed(2) + ' (grado ' + cel.grado + ')';
+    else if (cel && cel.fuera) l += ' — relación de áreas en cuatro cámaras no calculada: ' + cel.fuera.join(' y ') + ' fuera de rango';
     if (it) l += ' — IT ' + it;
     if (fvd) l += ' — VD con ' + fvd;
     /* La cianosis SUBE al EN SUMA: es lo único de esta sección que cambia una conducta hoy
@@ -84576,7 +84589,10 @@ function ccSumaLinea(sec){
        línea describe. Se relee del mismo campo que evalúa la conclusión, con su misma banda. */
     const _sat = _ccNum('ebs_saturacion');
     if (_sat != null && _sat >= 40 && _sat <= 100 && _sat < 90)
-      l += ' — cianosis (saturación ' + _sat + ' %), desencadenante de intervención según ESC 2020';
+      /* PANT-11, commit 1: el HECHO medido se queda; el nombre de la guia sale, porque el EN
+         SUMA es papel firmado. Que la cianosis sea un desencadenante de intervencion, con su
+         guia y su clase, lo publica la Evidencia de esta seccion. */
+      l += ' — cianosis (saturación ' + _sat + ' %)';
     return l;
   }
 
@@ -100573,14 +100589,29 @@ function ebsConclusion(src){
   else if (satOk) partes.push('Saturación de oxígeno en reposo ' + sat + ' %' +
     (cianosis ? ' — cianosis' : ''));
 
+  /* ══ PANT-11, commit 1 — DOS SALIDAS DE LAS MISMAS PIEZAS ════════════════════════════════
+     El indice se nombraba por su AUTOR y arrastraba al informe FIRMADO una advertencia que
+     NINGUNA de las 248 fuentes de la biblioteca respalda —kappa=0,39, resonancia, serie
+     neonatal— mas el nombre de una guia. Medido en P10-a y reproducido antes de tocar nada.
+     La regla fija de esta casa dice que el papel DESCRIBE: nombra el hallazgo por lo que es y
+     no por su autor, no cita guias y no recomienda conducta. Por eso en el papel el indice se
+     publica como lo que su propia fuente define —la relacion de areas en cuatro camaras de la
+     Figura 1 de Celermajer 1992, hoja 2, folio 1042, leida en imagen— y la advertencia queda en
+     la PANTALLA, corta, con el detalle en el globo `cc9-ebs-cel` que PANT-10 ya corrigio.
+     `txt` y `papel` se arman de las MISMAS piezas: dos textos escritos a mano divergen. */
+  let celPapel = null;
   if (cel.fuera)  { fuera.push('áreas del índice de Celermajer');
-    partes.push('Índice de Celermajer no calculado: área de ' + cel.fuera.join(' y ') + ' fuera de rango — revisar unidades'); }
-  else if (cel.faltan) partes.push('Índice de Celermajer no calculado, faltan: ' + cel.faltan.join('; '));
+    partes.push('Índice de Celermajer no calculado: área de ' + cel.fuera.join(' y ') + ' fuera de rango — revisar unidades');
+    celPapel = 'Relación de áreas en cuatro cámaras no calculada: área de ' + cel.fuera.join(' y ') + ' fuera de rango — revisar unidades'; }
+  else if (cel.faltan) { partes.push('Índice de Celermajer no calculado, faltan: ' + cel.faltan.join('; '));
+    celPapel = 'Relación de áreas en cuatro cámaras no calculada, faltan: ' + cel.faltan.join('; '); }
   else {
-    partes.push('Índice de Celermajer ' + cel.idx.toFixed(2) + ' — grado ' +
-      ['', 'I', 'II', 'III', 'IV'][cel.grado] +
-      '. Medido por ecocardiografía el índice tiende a SOBREESTIMAR la severidad (concordancia con resonancia κ=0,39) y fue derivado en una serie neonatal: en el adulto es orientativo. La indicación quirúrgica de la ESC 2020 es clínica y no depende de este índice');
+    const _celGr = ['', 'I', 'II', 'III', 'IV'][cel.grado];
+    partes.push('Índice de Celermajer ' + cel.idx.toFixed(2) + ' — grado ' + _celGr +
+      ', orientativo por ecocardiografía');
+    celPapel = 'Relación de áreas en cuatro cámaras ' + cel.idx.toFixed(2) + ' — grado ' + _celGr;
   }
+  const celPos = partes.length - 1;
   /* El FOP y la CIA se DERIVAN de las secciones de esta misma pestaña. La asociación con Ebstein
      es frecuente y preguntarla otra vez es la vía a que el informe se contradiga. */
   /* ALLOWLIST de claves, no lista de exclusión: `clave !== 'descartado'` dejaba pasar
@@ -100598,7 +100629,16 @@ function ebsConclusion(src){
   if (hayFop) partes.push('Foramen oval permeable asociado');
   if (tsv === 'si')  partes.push('Taquicardia supraventricular');
   if (vias === 'si') partes.push('Vías accesorias conocidas');
-  if (tsv === 'si' || vias === 'si') partes.push('La asociación con vías accesorias y taquiarritmias obliga a evaluación electrofisiológica antes de una eventual cirugía');
+  let efPos = -1;
+  if (tsv === 'si' || vias === 'si') { efPos = partes.length;
+    partes.push('La asociación con vías accesorias y taquiarritmias obliga a evaluación electrofisiológica antes de una eventual cirugía'); }
+  /* `partesPapel` se congela ANTES de la conducta y es lo que las CUATRO superficies firmadas
+     publican: lo MEDIDO y nada mas. Lo que sale —la conducta, la clase, el nombre de la guia y
+     la linea de la evaluacion electrofisiologica— esta entero en la Evidencia de esta seccion
+     (`_indEBS`), con su guia, su clase, su nivel, su hoja y su folio: se verifico ANTES de
+     retirarlo, que es lo que la regla fija manda. */
+  const partesPapel = partes.map(function (x, i) { return i === celPos ? celPapel : x; })
+                            .filter(function (x, i) { return i !== efPos; });
 
   /* Conducta según ESC 2020 §4.9.3 — clínica, no por índice. */
   /* `it_grado` código 3 es MODERADA-SEVERA en toda la app (INSUF_TXT, _labRegurgSev, el propio
@@ -100654,7 +100694,8 @@ function ebsConclusion(src){
      la negación fallando abierta que CLAUDE.md ya documenta. */
   if (fuera.length) {
     const t = 'Anomalía de Ebstein — ' + fuera.join(' y ') + ' fuera de rango: revisar unidades antes de concluir';
-    return { clave:'no_interpretable', rotulo:'Anomalía de Ebstein', txt: partes.concat([t]).join('. '), resumen: t, cel: cel };
+    return { clave:'no_interpretable', rotulo:'Anomalía de Ebstein', txt: partes.concat([t]).join('. '),
+             papel: partesPapel.concat([t]).join('. '), resumen: t, cel: cel };
   }
   partes.push(conducta);
   /* El resumen NO afirma el diagnóstico cuando el desplazamiento quedó por debajo del umbral: el
@@ -100667,7 +100708,7 @@ function ebsConclusion(src){
   /* `rotulo` se EXPONE. La línea del EN SUMA lo necesita y recalcularlo sería una segunda
      derivación del mismo hecho — el defecto que este archivo persigue desde la fórmula
      duplicada entre pantalla e informe. */
-  return { clave: clave, rotulo: rotulo, txt: partes.join('. '), resumen: rotulo +
+  return { clave: clave, rotulo: rotulo, txt: partes.join('. '), papel: partesPapel.join('. '), resumen: rotulo +
     (cel.idx != null ? ', índice de Celermajer ' + cel.idx.toFixed(2) + ' (grado ' + ['', 'I','II','III','IV'][cel.grado] + ', orientativo por eco)' : '') +
     (itTxt ? ', insuficiencia tricuspídea ' + itTxt : '') + '. ' + conducta, cel: cel };
 }
@@ -119451,7 +119492,11 @@ function _pptDesdeFormulario(inf, tema, presentador){
          `resumen`, por la misma razon que la coartacion: su `resumen` lo lee tambien la hoja del
          PDF, y `_ccPptPodar` no podia podarlo sin llevarse un numero. Ver `mchConclusion`. */
       { chk:'mch_incluir_chk',       sec:'mch', nom:'MCH — miocardiopatía hipertrófica',    fn:'mchConclusion', papel:true },
-      { chk:'ebs_incluir_chk',       sec:'ebs', nom:'Anomalía de Ebstein',                  fn:'ebsConclusion' },
+      /* `papel:true` — PANT-11, commit 1: la anomalia de Ebstein publica su texto DESCRIPTIVO
+         y no `resumen`, por la misma razon que la coartacion, la miocardiopatia hipertrofica y
+         la transposicion: su `resumen` llevaba la conducta, el nombre de la guia y el apellido
+         del autor del indice. */
+      { chk:'ebs_incluir_chk',       sec:'ebs', nom:'Anomalía de Ebstein',                  fn:'ebsConclusion', papel:true },
       { chk:'tdf_incluir_chk',       sec:'tdf', nom:'Tetralogía de Fallot reparada',        fn:'tdfConclusion' },
       /* `papel:true` — la transposicion publica su texto DESCRIPTIVO y no `resumen`, por la misma
          razon que la coartacion y la miocardiopatia hipertrofica: su `resumen` llevaba la
@@ -157294,8 +157339,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261104-1123';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793802230693;                 /* eco-build-ms */
+const ECO_BUILD    = '20261104-1419';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793812753424;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -157381,7 +157426,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261104-1123</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261104-1419</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

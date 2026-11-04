@@ -1,5 +1,27 @@
 # EcoSmart — pendientes vivos
 
+## P11-a · Lo que el commit 1 de PANT-11 retiró del PAPEL, LITERAL, con su ubicación anterior
+
+El papel —informe en los tres estilos, EN SUMA, PDF y PPT— pasó a llevar **solo lo medido** en
+la anomalía de Ebstein y en el síndrome de Eisenmenger. Nada se borró del proyecto: lo que salió
+queda acá, palabra por palabra, para que el médico lo recupere si aparece una fuente o si decide
+devolverlo. **Cero apariciones** de los nueve marcadores en las superficies de papel de las dos
+lesiones, con el control positivo en HEAD (72 «ESC 2020», 44 «Celermajer», 17 «0,39», 17
+«resonancia», 17 «sobreestim» y 17 «serie neonatal» en la escena de Ebstein; 24, 42, 24, 42 y 42
+en la de Eisenmenger).
+
+| Dónde vivía | Texto retirado, palabra por palabra | A dónde fue / por qué |
+|---|---|---|
+| `ebsConclusion`, ítem del índice | «Medido por ecocardiografía el índice tiende a SOBREESTIMAR la severidad (concordancia con resonancia κ=0,39) y fue derivado en una serie neonatal: en el adulto es orientativo. La indicación quirúrgica de la ESC 2020 es clínica y no depende de este índice» | Ninguna de las 248 fuentes de la biblioteca respalda el κ (censado en PANT-10). En la **PANTALLA** queda la advertencia corta «orientativo por ecocardiografía»; el detalle está en el globo `cc9-ebs-cel`, que PANT-10 ya corrigió. |
+| `ebsConclusion`, nombre del índice en el papel | «Índice de Celermajer» | El papel no nombra autores (regla fija). Se publica por lo que la **Figura 1 de su propia fuente** define: «relación de áreas en cuatro cámaras» (Celermajer 1992, hoja 2, folio 1042, leído en imagen). En la **pantalla** sigue llamándose índice de Celermajer. |
+| `ebsConclusion`, conducta | «Insuficiencia tricuspídea severa con síntomas — cirugía indicada (ESC 2020, Clase I)» · «Cianosis asociada (saturación N %): si hay una comunicación interauricular, la ESC 2020 recomienda cerrarla durante la cirugía valvular cuando se prevea hemodinámicamente tolerada» · «Cianosis en reposo (saturación N %) — la ESC 2020 incluye la cianosis entre los desencadenantes de intervención en la anomalía de Ebstein. Evaluación en centro especializado en cardiopatías congénitas del adulto» · «Dilatación progresiva del ventrículo derecho — cirugía a considerar con independencia de los síntomas (ESC 2020, Clase IIa)» · «Insuficiencia tricuspídea severa sin síntomas ni deterioro objetivo documentados — seguimiento estrecho; la indicación quirúrgica de la ESC se apoya en los síntomas, la capacidad de ejercicio y la evolución del ventrículo derecho» · «No consta la situación clínica (síntomas y capacidad de ejercicio), que es de lo que dependen las indicaciones de intervención de la ESC 2020 en la anomalía de Ebstein» · «Sin criterios de intervención por los datos cargados — seguimiento clínico y por imagen» | **Siguen enteras en la PANTALLA.** Salen del papel porque la regla fija dice que el papel describe y no recomienda conducta, y era la única forma de cumplir la verificación 1d («ESC 2020» en cero). **Verificado antes de retirarlas:** las siete están en la Evidencia de la sección (`_indEBS`), con su guía, su clase, su nivel, su hoja y su folio. |
+| `ebsConclusion` | «La asociación con vías accesorias y taquiarritmias obliga a evaluación electrofisiológica antes de una eventual cirugía» | Es conducta. Sigue en la pantalla y en la Evidencia (Clase 1 · Nivel B-NR, ACC/AHA, hoja 59, folio e173). |
+| `ccSumaLinea('ebs')` | «, desencadenante de intervención según ESC 2020» | El hecho medido —«cianosis (saturación N %)»— se queda. Lo que sale es el nombre de la guía. |
+| `eisenEstado`, alerta `sincope` | «Síncope presente — marcador de mal pronóstico. Evaluación urgente en centro especializado en hipertensión pulmonar y cardiopatías congénitas del adulto.» / EN SUMA: «Eisenmenger con síncope — marcador de mal pronóstico, evaluación urgente.» | **Cero apariciones de «syncop»** en los capítulos de Eisenmenger de las dos guías (censado en PANT-10). En la pantalla queda el campo con su globo `cc9-eisen-sin`, ya corregido. |
+| `eisenEstado`, alerta `hemoptisis` | «Hemoptisis presente — riesgo de episodio masivo y fatal. Evaluación urgente.» / EN SUMA: «Eisenmenger con hemoptisis — riesgo de episodio masivo, evaluación urgente.» | Ninguna de las dos guías la califica de **fatal**; la ACC/AHA dice que suele autolimitarse. En la pantalla queda el campo con su globo `cc9-eisen-hem`, ya corregido. |
+| `eisenEstado`, alerta `embarazo`, y franja roja | «mortalidad materna >50 % (ESC 2020)» | Reemplazado por **«mortalidad materna 30 a 50 %»** en los DOS lugares (redacción A, decisión expresa del médico). Es lo que publica la fuente —ACC/AHA de cardiopatías congénitas del adulto, hoja 95, folio **e209** comprobado en el pie impreso, «reported at 30% to 50%», leído en imagen a 220 ppp— y lo que la tarjeta de criterios de esta misma sección ya escribía: la pantalla dejó de contradecirse consigo misma. |
+
+
 ## P10-a · Los textos que el commit 1 retiró de los globos, LITERALES, y el que llega al papel
 
 La regla (ii) de la tanda PANT-10 manda que lo que **ninguna fuente de la biblioteca respalda**
