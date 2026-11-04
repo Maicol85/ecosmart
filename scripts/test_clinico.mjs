@@ -5731,7 +5731,7 @@ caso('TC-61', 'CIA: sale al informe solo con el checkbox tildado', `
 
 /* El gradiente de la CIV es Bernoulli sobre la velocidad del jet: 4·4,5² = 81 mmHg. Y la PAPs
    estimada por CIV es PAS - gradiente: 90 - 81 = 9. */
-caso('TC-62', 'CIV: gradiente pico 4·V² y PAPs estimada por diferencia', `
+caso('TC-62', 'CIV: gradiente pico 4·V² y PSAP estimada por diferencia', `
   __t.limpiar();
   __t.set('ete_civ_tipo','perimembranosa'); __t.set('ete_civ_tam','4');
   __t.set('ete_civ_vel','4.5'); __t.set('ete_civ_pas','90');
@@ -5743,7 +5743,12 @@ caso('TC-62', 'CIV: gradiente pico 4·V² y PAPs estimada por diferencia', `
   if (typeof eteShuntLesionOn === 'function' && !eteShuntLesionOn('civ')) eteShuntLesionTog('civ');
   const r = __t.informe();
   return { inf: r.inf, suma: r.suma,
-    debe: ['Gradiente pico 81 mmHg (V 4.5 m/s).', 'PAPs estimada por CIV 9 mmHg.'],
+    /* ADAPTADO (TANDA PANT-7, commit 4d, 04/11/2026): el ROTULO del papel pasa de «PAPs» a
+       «PSAP», por decision del medico -la pantalla lo dice asi desde PANT-3-. El VALOR no se
+       movio: sigue siendo PAS menos el gradiente, 90 - 81 = 9, que es lo que este caso mide.
+       Se exige ademas que el rotulo viejo NO este, asi que revertir el cambio lo pone en rojo. */
+    debe: ['Gradiente pico 81 mmHg (V 4.5 m/s).', 'PSAP estimada por CIV 9 mmHg.'],
+    noDebe: ['PAPs estimada por CIV'],
     debeSuma: ['CIV perimembranosa 4 mm — gradiente 81 mmHg.'] };
 `);
 

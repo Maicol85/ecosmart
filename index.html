@@ -1556,6 +1556,21 @@
   .mOl { padding-left:18px; margin:0 0 12px; display:flex; flex-direction:column; gap:7px; }
   .mBox { padding:9px 12px; border-radius:8px; font-size:12px; margin:0 0 10px; line-height:1.6; }
   .mAviso { background:rgba(239,68,68,0.10); border-left:3px solid #EF4444; color:#FCA5A5; }
+  /* ⚠️ LA FRANJA DEL TIPO DE IM DEL TEER, LEGIBLE EN EL TEMA CLARO (PANT-7, c4b). El medico la
+     veia VACIA y la medicion le dio la razon: el texto existe -«Definir tipo de IM para ver
+     criterios especificos.», 50 caracteres, 11 px- pero su color es `#FCA5A5`, un salmon
+     pensado para fondo oscuro, y `.mAviso` NO tiene variante de tema. Medido el contraste
+     contra el fondo EFECTIVO -el rgba al 10 % compuesto sobre el del padre-: **8,16 en el tema
+     oscuro y 1,66 en el claro**, muy por debajo del 4,5 que esta casa exige. En claro el texto
+     es practicamente invisible, que es exactamente lo que el medico reporto.
+     ⚠️ POR ESO P6-c DECIA QUE «NO SE REPRODUCE»: esa medicion fue en el tema OSCURO, donde el
+        texto se lee. El defecto es del tema CLARO.
+     ⚠️ EL ARREGLO VA POR id Y NO SOBRE `.mAviso`, que la comparten 56 elementos del documento:
+        tocar la clase moveria pantallas que esta orden no nombra. El MISMO defecto los alcanza
+        a todos en el tema claro y queda declarado en `docs/PENDIENTES.md`.
+     El texto, el tamanio de letra, el borde izquierdo de 3 px y la logica de cuando aparece NO
+     cambian: lo unico que cambia es el color del texto en el tema claro. Medido despues: 5,72. */
+  html.light-mode #teer-tipo-aviso { color:#B91C1C; }
   .mTip { background:rgba(13,148,136,0.10); border-left:3px solid #0D9488; color:#94A3B8; }
   .mCaso { background:rgba(59,130,246,0.10); border-left:3px solid #3B82F6; color:#93C5FD; }
   .mTbl { width:100%; border-collapse:collapse; font-size:12px; margin:0 0 12px; }
@@ -62354,8 +62369,19 @@ function generarInforme(opts) {
       // ── CIA ──
       /* «Qp/Qs global» y no «Qp/Qs» a secas: con CIA y CIV a la vez el mismo cociente se
          imprime en los dos párrafos, y sin el adjetivo se lee como si cada defecto tuviera
-         ese valor. Y la PAPs de la CIA se nombra POR IT, que es de donde sale: en una
-         cardiopatía con shunt, PAPs por IT y PAPs por jet de CIV no son intercambiables. */
+         ese valor. Y la presión sistólica pulmonar de la CIA se nombra POR IT, que es de donde
+         sale: en una cardiopatía con shunt, la estimada por IT y la estimada por el jet de CIV
+         no son intercambiables.
+         ⚠️ EL ROTULO DEL PAPEL DICE «PSAP» Y NO «PAPs» DESDE PANT-7 (c4d), por decisión del
+            médico: la pantalla dice PSAP desde PANT-3 y el papel se había quedado con la otra
+            sigla. Cambia SOLO el rótulo en los CUATRO emisores de papel que lo escribían —la
+            CIA, las dos ramas de la CIV y el ductus—; ningún valor, ningún id y ningún
+            encabezado del Excel se mueven.
+            ⚠️ «PAPm» y «PAPd» NO se tocan: censado el documento, las dos siglas viven SOLO en
+               pantalla —la tabla de fórmulas de Hemodinámica y el pie de la calculadora— y no
+               las escribe ningún emisor de papel. Tampoco se toca el texto de las
+               recomendaciones de la Evidencia ni el del registro de citas: ahí «PAPs» es parte
+               de la frase de la guía que se cita, no un rótulo de esta aplicación. */
       const cTipo=sv('ete_cia_tipo'), cMax=v('ete_cia_tam_max'), cMin=v('ete_cia_tam_min');
       const bm=(typeof eteCiaBordeMin==='function')?eteCiaBordeMin():null;
       const cDir=sv('ete_cia_dir'), cVel=v('ete_cia_vel');
@@ -62371,7 +62397,7 @@ function generarInforme(opts) {
         if(f1(cVel)) p.push('Velocidad pico del jet '+f1(cVel)+' m/s');
         if(q!=null) p.push('Qp/Qs global '+q.toFixed(2));
         if(f1(di)) p.push('DDVI indexado '+f1(di)+' mm/m²');
-        if(f1(paps)) p.push('PAPs por IT '+f1(paps)+' mmHg');
+        if(f1(paps)) p.push('PSAP por IT '+f1(paps)+' mmHg');
         etePars.push(p.join('. ')+'.'); emitido = true; ccMarcarParrafo();
         /* La hoja APARTE la suma la casilla de abajo, no el boton de la lesion: el cuerpo del
            informe ya la describe, y la segunda hoja de congenitas es un extra que el medico
@@ -62391,8 +62417,8 @@ function generarInforme(opts) {
         if(f1(di)) p.push('DDVI indexado '+f1(di)+' mm/m²');
         // Mismo rango de plausibilidad que la pantalla: una PAPs negativa o menor a 5 no se informa.
         let pc = (vVel!=null && vPas!=null) ? (vPas - 4*vVel*vVel) : null;
-        if(pc!=null && isFinite(pc) && pc>=5 && pc<=150) p.push('PAPs estimada por CIV '+f1(pc)+' mmHg');
-        else if(f1(paps)) p.push('PAPs por IT '+f1(paps)+' mmHg');
+        if(pc!=null && isFinite(pc) && pc>=5 && pc<=150) p.push('PSAP estimada por CIV '+f1(pc)+' mmHg');
+        else if(f1(paps)) p.push('PSAP por IT '+f1(paps)+' mmHg');
         etePars.push(p.join('. ')+'.'); emitido = true; ccMarcarParrafo();
         if(aparte) ccHoja('civ', p, null, null);   // idem CIA: sin linea de guia porque no hay conducta publicada
       }
@@ -62550,7 +62576,7 @@ function generarInforme(opts) {
       if (f1(vmax)) p.push('Velocidad máxima ' + f1(vmax) + ' m/s');
       if (f1(g)) p.push('Gradiente instantáneo máximo ' + f1(g) + ' mmHg');
       if (q != null) p.push('Qp/Qs global ' + q.toFixed(2));
-      if (f1(paps)) p.push('PAPs estimada ' + f1(paps) + ' mmHg');
+      if (f1(paps)) p.push('PSAP estimada ' + f1(paps) + ' mmHg');
       etePars.push(p.join('. ') + '. ' + c.txt + '.'); ccMarcarParrafo();
       ccHoja('dap', p, c.txt, null);
       /* Al EN SUMA sólo las conclusiones ACCIONABLES. Mismo criterio que el shunt —que sólo
@@ -111391,8 +111417,21 @@ function amiloTextoHemo() {
      Forrester sale de IC + PCP y la clasificacion pre/pos/mixta de la PCP, asi que llevan
      «estimado por eco» donde se leen. El perfil hemodinamico sale de IC + RVS, que tambien son
      derivados del eco. Los VALORES no cambian: el Forrester no se toca. */
-  L.push('Perfil de Forrester (estimado por eco): ' + (f || 'no determinable'));
-  L.push('Perfil hemodinámico (estimado por eco): ' + (pf || 'no determinable'));
+  /* ⚠️ «NO DETERMINABLE» SALE DEL PAPEL EN LAS DOS LINEAS QUE LA ORDEN NOMBRA (PANT-7, c4c).
+     PANT-6 saco del papel la frase de lo QUE FALTA del Forrester, y sin datos esta linea caia
+     en «no determinable» —un fallback que ya existia—. La regla fija del medico es que el papel
+     no escribe frases de dato faltante, asi que sin dato la linea NO SE EMITE: no se cambia una
+     frase por otra, se retira el renglon. Con dato, la linea sale IDENTICA a como salia.
+     ⚠️ LA TERCERA LINEA NO SE TOCA, Y SE DECLARA. La orden dice «SOLO donde sea la frase de dato
+        faltante del perfil hemodinamico o del Forrester», y la clasificacion HTP pre/pos/mixta
+        es un tercer parametro que esa frase no nombra. Es la misma construccion y el mismo
+        defecto, pero retirarla es una decision que esta orden no toma. Queda en
+        `docs/PENDIENTES.md`, junto con los otros dos «no determinable» del documento —el de la
+        interpretacion del score de TEP y el de la clasificacion de toxicidad de
+        cardio-oncologia—, que estan en OTRO contexto y tampoco se tocan.
+     ⚠️ LA DE PANTALLA SE QUEDA, que es donde el medico necesita saber que le falta. */
+  if (f)  L.push('Perfil de Forrester (estimado por eco): ' + f);
+  if (pf) L.push('Perfil hemodinámico (estimado por eco): ' + pf);
   L.push('HTP pre / pos / mixta (estimada por eco): ' + (ht || 'no determinable'));
   /* Este bloque se integra al informe y sale en la hoja de ETT Avanzado del PDF. El perfil
      de Forrester y la clasificación pre/pos/mixta se apoyan en la PCP, que acá es una
@@ -155260,8 +155299,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261104-0033';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793763181965;                 /* eco-build-ms */
+const ECO_BUILD    = '20261104-0040';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793763642827;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -155347,7 +155386,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261104-0033</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261104-0040</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
