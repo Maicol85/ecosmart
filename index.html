@@ -30680,6 +30680,11 @@ window.vdTapGrado = vdTapGrado;
       tiempo de aceleracion vive en VD/AD y su `oninput` va a `calcVD`, no a `calcTEP`-, esta en
       `RECALC_MODULOS` y se repite al final de `limpiarCampos`. Sin la tercera, el rotulo se
       queda pintado sobre un formulario recien limpiado. */
+/* El texto de la franja del tipo de IM de los criterios TEER. Es constante y es palabra por
+   palabra el que vive en el marcado: `calcTEER` lo reescribe cada vez que muestra la franja,
+   porque `limpiarCampos` la vacia por el sufijo «-aviso» de su id. */
+const TEER_TIPO_AVISO_TXT = 'Definir tipo de IM para ver criterios específicos.';
+window.TEER_TIPO_AVISO_TXT = TEER_TIPO_AVISO_TXT;
 const TEP_6060_TAP_MAX = 60;   // ms - ESC 2019, hoja 15 folio 557 y Figura 3, hoja 16 folio 558
 window.TEP_6060_TAP_MAX = TEP_6060_TAP_MAX;
 function tep6060Resalte() {
@@ -76264,6 +76269,24 @@ function calcTEER() {
      deliberada y donde estaba el gate. */
   /* _mostrar('teer-bloque-primaria',   !r.esSec);   <- retirado en PANT-6, commit 5 */
   /* _mostrar('teer-bloque-secundaria', !r.esPrim);  <- retirado en PANT-6, commit 5 */
+  /* ⚠️ LA FRANJA SE REESCRIBE CADA VEZ QUE SE MUESTRA, Y ES LA OTRA MITAD DEL DEFECTO QUE EL
+     MEDICO REPORTO (PANT-7, c12). El la ve VACIA, y hay DOS causas: el contraste en el tema
+     claro —arreglado en el commit 4b— y esta, que destapo el caso de prueba al llamar a
+     `limpiarCampos` antes de medir: el id `teer-tipo-aviso` TERMINA EN «-aviso», y
+     `limpiarCampos` barre `[id$="-aviso"]` con `textContent = ''`. `_mostrar` solo cambia el
+     `display`, asi que despues de «Nuevo estudio» —que es como el medico empieza un paciente—
+     la franja queda genuinamente vacia, con su borde izquierdo de 3 px y nada adentro. Es
+     exactamente «una franja rosada con un parentesis a la izquierda».
+     ⚠️ POR ESO PANT-6 MIDIO 50 CARACTERES Y CONCLUYO QUE NO SE REPRODUCIA: esa medicion fue
+        sobre una pagina recien cargada, sin pasar por `limpiarCampos`.
+     ⚠️ EL id NO SE CAMBIA —la orden lo prohibe— y la LOGICA de cuando aparece tampoco: lo unico
+        que se agrega es que el texto se escriba al mostrarla. El texto es una CONSTANTE y es
+        palabra por palabra el que estaba en el marcado. Es la misma solucion que el aviso del
+        Tei usa para el mismo barrido. */
+  (function () {
+    const _av = document.getElementById('teer-tipo-aviso');
+    if (_av && !r.tipoIM) _av.textContent = TEER_TIPO_AVISO_TXT;
+  })();
   _mostrar('teer-tipo-aviso',        !r.tipoIM);
   _mostrar('teer-hdr-coapt',         r.esSec);
   /* Las filas de criterio del cuadro de resultados siguen la misma regla: una fila «No
@@ -155465,8 +155488,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261104-0114';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793765676934;                 /* eco-build-ms */
+const ECO_BUILD    = '20261104-0136';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793766974449;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -155552,7 +155575,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261104-0114</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261104-0136</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
