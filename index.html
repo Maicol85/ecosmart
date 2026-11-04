@@ -22711,6 +22711,46 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
       </div>
     </div>
   </div>
+  <!-- ══ TUMORES CARDIACOS — PANT-11, commit 10 ═══════════════════════════════════════════
+       Idea del medico: referencias TEORICAS sobre tumores cardiacos -benignos y malignos,
+       primarios y secundarios-, no sobre masas en general. SOLO TEXTO: ni un campo nuevo, ni un
+       cambio en ninguna pantalla, y NADA llega al papel.
+       ⚠️ `tumores` VA A `REF_SUBTAB` EN EL MISMO COMMIT QUE LA FICHA, por la leccion que
+          `constriccion` dejo en la tanda J: una ficha fuera de las seis subpestanas existe, se
+          abre y el buscador la indexa, pero el medico que navegue por las solapas no la
+          encuentra nunca.
+       ⚠️ NINGUNA CONDUCTA. Y las cifras que no se leyeron con certeza NO se citan. -->
+  <div class="card">
+    <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleRef('tumores',this)">
+      &#129728; Tumores card&iacute;acos &mdash; benignos, malignos y secundarios
+      <span style="float:right;">&#9654;</span>
+    </h2>
+    <div id="ref-tumores" style="display:none;" class="card-body">
+      <table style="width:100%;border-collapse:collapse;font-size:12px;">
+        <tr style="background:var(--section-head);"><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Dato</th><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Qu&eacute; dice la fuente</th><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Fuente</th></tr>
+        <tr style="border-bottom:1px solid var(--border);background:var(--bg3)"><td style="padding:5px 8px;">Proporci&oacute;n de tumores primarios <b>benignos</b></td><td style="padding:5px 8px;">Entre el <b>75 y el 90 %</b> de los tumores card&iacute;acos primarios son benignos, y el mixoma es el m&aacute;s frecuente en el adulto.</td><td style="padding:5px 8px;">JACC CardioOncology 2024 &middot; hoja 2, folio <b>848</b></td></tr>
+        <tr style="border-bottom:1px solid var(--border)"><td style="padding:5px 8px;">Reparto de los primarios <b>malignos</b></td><td style="padding:5px 8px;">Sarcomas <b>65 a 88 %</b>, linfomas <b>27 %</b> y mesoteliomas <b>8 %</b>. <b>Las tres cifras NO suman 100 %</b> y la fuente no las presenta como excluyentes: se publican tal como est&aacute;n, sin reinterpretarlas.</td><td style="padding:5px 8px;">JACC CardioOncology 2024 &middot; hoja 2, folio <b>848</b></td></tr>
+        <tr style="border-bottom:1px solid var(--border);background:var(--bg3)"><td style="padding:5px 8px;">Tumores <b>secundarios</b> (met&aacute;stasis)</td><td style="padding:5px 8px;">Son <b>20 veces m&aacute;s frecuentes</b> que los tumores card&iacute;acos benignos &mdash;un 1 % en series de autopsia&mdash;, aunque rara vez se los implica como fuente de embolia. Los malignos m&aacute;s frecuentes del coraz&oacute;n son los melanomas y las met&aacute;stasis de pulm&oacute;n, mama, colon y est&oacute;mago.</td><td style="padding:5px 8px;">ASE 2016 de fuente embol&iacute;gena &middot; hoja 26, folio <b>26</b></td></tr>
+        <tr style="border-bottom:1px solid var(--border)"><td style="padding:5px 8px;"><b>Mixoma</b> &mdash; aspecto</td><td style="padding:5px 8px;">M&oacute;vil, sujeto por un ped&iacute;culo, con m&aacute;s frecuencia en la fosa oval; realce heterog&eacute;neo tras el contraste. Por tomograf&iacute;a, m&aacute;rgenes regulares y calcificaci&oacute;n habitual.</td><td style="padding:5px 8px;">JACC CardioOncology 2024 &middot; Tabla 2, hoja 5, folio <b>851</b></td></tr>
+        <tr style="border-bottom:1px solid var(--border);background:var(--bg3)"><td style="padding:5px 8px;"><b>Fibroelastoma</b> &mdash; aspecto</td><td style="padding:5px 8px;">M&oacute;vil, de tama&ntilde;o peque&ntilde;o y habitualmente sobre una v&aacute;lvula; <b>sin</b> realce tras el contraste. Por tomograf&iacute;a, foco de baja atenuaci&oacute;n sobre la superficie valvular.</td><td style="padding:5px 8px;">JACC CardioOncology 2024 &middot; Tabla 2, hoja 5, folio <b>851</b></td></tr>
+        <tr style="border-bottom:1px solid var(--border)"><td style="padding:5px 8px;"><b>Lipoma</b> &mdash; aspecto</td><td style="padding:5px 8px;">De base ancha, inm&oacute;vil, sin ped&iacute;culo y bien circunscrito; hiperecog&eacute;nico si es intracavitario e hipoecoico en el espacio peric&aacute;rdico. Realce nulo o leve.</td><td style="padding:5px 8px;">JACC CardioOncology 2024 &middot; Tabla 2, hoja 5, folio <b>851</b></td></tr>
+        <tr style="border-bottom:1px solid var(--border);background:var(--bg3)"><td style="padding:5px 8px;"><b>Quiste</b> &mdash; aspecto</td><td style="padding:5px 8px;">Unilocular, anecoico, de m&aacute;rgenes bien definidos y regulares, <b>sin comunicaci&oacute;n</b> con las cavidades card&iacute;acas y sin realce.</td><td style="padding:5px 8px;">JACC CardioOncology 2024 &middot; Tabla 2, hoja 5, folio <b>851</b></td></tr>
+        <tr style="border-bottom:1px solid var(--border)"><td style="padding:5px 8px;"><b>Angiosarcoma</b> &mdash; aspecto</td><td style="padding:5px 8px;">Masa nodular o polilobulada de contorno irregular, habitualmente en la <b>aur&iacute;cula derecha</b>; invade con frecuencia las estructuras vecinas, con derrame peric&aacute;rdico o infiltraci&oacute;n directa del pericardio, y realza intensamente.</td><td style="padding:5px 8px;">JACC CardioOncology 2024 &middot; Tabla 2, hoja 5, folio <b>851</b></td></tr>
+        <tr style="border-bottom:1px solid var(--border);background:var(--bg3)"><td style="padding:5px 8px;"><b>Linfoma</b> card&iacute;aco primario &mdash; aspecto</td><td style="padding:5px 8px;">Masa homog&eacute;nea e infiltrante, de aspecto nodular, que se mete en las c&aacute;maras; suele asociarse a derrame peric&aacute;rdico y realza intensamente.</td><td style="padding:5px 8px;">JACC CardioOncology 2024 &middot; Tabla 2, hoja 5, folio <b>851</b></td></tr>
+        <tr style="border-bottom:1px solid var(--border)"><td style="padding:5px 8px;"><b>Met&aacute;stasis</b> &mdash; aspecto</td><td style="padding:5px 8px;">M&uacute;ltiples masas o n&oacute;dulos, con derrame peric&aacute;rdico posible y realce intenso.</td><td style="padding:5px 8px;">JACC CardioOncology 2024 &middot; Tabla 2, hoja 5, folio <b>851</b></td></tr>
+        <tr style="border-bottom:1px solid var(--border);background:var(--bg3)"><td style="padding:5px 8px;"><b>Seis se&ntilde;ales de alarma</b> de malignidad en el ecocardiograma</td><td style="padding:5px 8px;">Infiltraci&oacute;n &middot; masa polilobulada &middot; derrame peric&aacute;rdico significativo &middot; inserci&oacute;n s&eacute;sil &middot; heterogeneidad &middot; localizaci&oacute;n <b>no izquierda</b>. La fuente dice que son indicadores clave y que se han integrado en sistemas de puntuaci&oacute;n; <b>los cortes de esos puntajes no se citan ac&aacute; porque no se leyeron con certeza</b>.</td><td style="padding:5px 8px;">JACC CardioOncology 2024 &middot; hoja 5, folio <b>851</b></td></tr>
+        <tr style="border-bottom:1px solid var(--border)"><td style="padding:5px 8px;">Qu&eacute; m&eacute;todo conviene</td><td style="padding:5px 8px;">El transesof&aacute;gico es el de referencia para lo <b>menor de 1 cm</b> y muy m&oacute;vil &mdash;vegetaciones, fibroelastomas y lo que nace de una v&aacute;lvula&mdash; porque resuelve mejor en el tiempo que la resonancia. El contraste de microburbujas separa lo vascularizado de lo que no lo est&aacute;: un trombo no perfunde.</td><td style="padding:5px 8px;">JACC CardioOncology 2024 &middot; hojas 4 y 5, folios <b>850</b> y <b>851</b></td></tr>
+        <tr style="border-bottom:1px solid var(--border);background:var(--bg3)"><td style="padding:5px 8px;">Clasificaci&oacute;n de la <b>OMS</b></td><td style="padding:5px 8px;"><b>No est&aacute; en la biblioteca.</b> La fuente la cita como su referencia 1, y ese documento no figura entre las fuentes: por eso esta ficha no publica ninguna de sus categor&iacute;as.</td><td style="padding:5px 8px;">&mdash;</td></tr>
+      </table>
+      <div style="font-size:11px;color:var(--text2);margin-top:8px;line-height:1.5;">
+        <b>Regla de folio.</b> JACC CardioOncology 2024, &laquo;Multimodality Imaging in Cardiac
+        Masses&raquo;, Angeli y cols., 2024;6:847-862: folio = hoja + 846, comprobada en el pie
+        impreso de la hoja 5 (folio 851). ASE 2016 de fuente embol&iacute;gena, Saric y cols.,
+        <i>J Am Soc Echocardiogr</i> 2016;29:1-42: folio = hoja, comprobada en el pie impreso de
+        las hojas 4, 10, 17, 26 y 27.
+      </div>
+    </div>
+  </div>
   <div class="card">
     <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleRef('cardiotox',this)">
       🧪 Cardiotoxicidad — CTRCD (ESC Cardio-Oncología 2022)
@@ -77846,8 +77886,12 @@ const REF_SUBTAB = Object.freeze({
   /* ⚠️ `pop` VA PEGADA A `pulmon` (G5, 2026-10-24) Y SE AGREGA ACA EN EL MISMO COMMIT QUE LA
      FICHA, por la leccion de `constriccion` en la tanda J. Van juntas porque el posoperatorio
      usa la formula del derrame pleural de esa misma ficha. */
+  /* ⚠️ `tumores` SE AGREGA ACA EN EL MISMO COMMIT QUE LA FICHA (PANT-11, commit 10), por
+     la leccion de `constriccion` en la tanda J: una ficha fuera de las seis subpestanas
+     existe, se abre y el buscador la indexa, pero el medico que navegue por las solapas no la
+     encuentra nunca. Va pegada a `pop` y antes de `cardiotox`, con la que comparte tema. */
   otros: Object.freeze(['oai', 'burbujas', 'fop', 'coronarias', 'pericardio', 'constriccion',
-                        'pulmon', 'pop', 'cardiotox', 'miocard', 'congenitas', 'formulas'])
+                        'pulmon', 'pop', 'tumores', 'cardiotox', 'miocard', 'congenitas', 'formulas'])
 });
 const REF_SUB_ORDEN = Object.freeze(['calc', 'dim', 'fun', 'valv', 'ao', 'otros']);
 /* ══ ROTULOS DE BLOQUE (tanda P, commit 4) ═══════════════════════════════════════════════════
@@ -158261,8 +158305,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261104-1526';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793816781542;                 /* eco-build-ms */
+const ECO_BUILD    = '20261104-1531';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793817100814;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -158348,7 +158392,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261104-1526</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261104-1531</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
