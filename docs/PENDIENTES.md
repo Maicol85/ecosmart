@@ -71,6 +71,35 @@ informe idéntico para todo estado que la pantalla anterior podía expresar.
   Es el mismo texto que la pantalla anterior daba con el lado y el tamaño sin consignar, así que
   no es una regresión; es una entrada contradictoria del usuario que la app no resuelve.
 
+## P11-d · La sincronía del pulmón con el posoperatorio: lo que se paró, y por qué
+
+**LA COMPUERTA `pua_derrame` NO SE ESCRIBE, Y LO DECIDIÓ UNA MEDICIÓN.** La orden pide medir si
+un estudio con el posoperatorio integrado pasaría a imprimir el mismo derrame **dos veces** en
+el informe y, si es así, parar la dirección que duplica. Medido: el derrame del posoperatorio ya
+se publica en su hoja `PostCEC` del PDF («Pleura | derecho Moderado (1-3 cm) · izquierdo
+Moderado (1-3 cm)»), y escribir `pua_derrame` = «Sí» desde el posoperatorio le agregaría además
+un párrafo en el **cuerpo** del informe. Un hallazgo se escribe una sola vez, así que esa
+compuerta queda fuera del espejo — y coincide con la letra de la orden, que lista los pares uno
+por uno y no la nombra. **Medido después:** con sólo la pleura del posoperatorio cargada, el
+cuerpo del informe tiene **cero** líneas de derrame en los dos árboles. El médico que quiera el
+párrafo del básico pone «Sí» y los valores ya están puestos.
+`pua_consol` **sí** se escribe, porque la orden la nombra expresamente en su par.
+
+**LO QUE QUEDA SIN SINCRONIZAR, con su motivo:**
+
+| tema | por qué no |
+|---|---|
+| «hemotórax» de `pop_pleura_caract` | no tiene equivalente en el básico. Ni se escribe ni se borra: medido, con el posoperatorio en «hemotórax» el tipo del básico se queda en «tabicado». |
+| líneas B `focales` / `difusas` | son una escala de **distribución**; las del básico (`focal`, `múltiples`, `coalescentes`) son de **cantidad**. Sólo `ausentes` ↔ `ausentes`. |
+| neumotórax | el básico lo **deduce** (punto pulmón y deslizamiento abolido) y el posoperatorio lo **consigna**. |
+| deslizamiento, líneas A, zonas | no existen en el posoperatorio. |
+| distancia entre pleuras (`pua_balik`) | no existe en el posoperatorio. |
+
+**UNA ASIMETRÍA DECLARADA.** Al vaciar `pop_pulmon_consol`, el espejo limpia
+`pua_consol_lado` pero **deja** `pua_consol` como estaba. Vaciar la compuerta borraría un «Sí»
+que el médico puede haber puesto él mismo en la otra pantalla, y eso es una pérdida que la orden
+no pide. Si el médico prefiere que también se vacíe, es una línea.
+
 ## P10-a · Los textos que el commit 1 retiró de los globos, LITERALES, y el que llega al papel
 
 La regla (ii) de la tanda PANT-10 manda que lo que **ninguna fuente de la biblioteca respalda**

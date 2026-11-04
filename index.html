@@ -10377,7 +10377,7 @@ window.cerrarSesionReal = cerrarSesionReal;
         <div class="pul-col-h">💧 Líneas B</div>
       <div class="pul-col-campos">
         <div class="fg"><label>Líneas B</label>
-          <select id="pua_lineasb" onchange="pulAvUI()"><option value="">— no evaluado —</option>
+          <select id="pua_lineasb" onchange="puaPopEspejoGesto('pua_lineasb');pulAvUI()"><option value="">— no evaluado —</option>
             <option value="ausentes">Ausentes</option>
             <option value="presentes">Presentes</option>
           </select>
@@ -10471,7 +10471,7 @@ window.cerrarSesionReal = cerrarSesionReal;
              aspecto libre», «bilateral» y «con broncograma aereo» sobre hallazgos que nadie
              evaluo. Es la regla que los cinco selects primarios ya aplican. -->
         <div class="fg pua-der" style="display:none;"><label>Tipo</label>
-          <select id="pua_derrame_tipo" onchange="pulAvUI()">
+          <select id="pua_derrame_tipo" onchange="puaPopEspejoGesto('pua_derrame_tipo');pulAvUI()">
             <option value="">— sin consignar —</option>
             <option value="libre">Libre</option><option value="tabicado">Tabicado</option>
           </select>
@@ -10510,7 +10510,7 @@ window.cerrarSesionReal = cerrarSesionReal;
         <div class="pul-col-h">🫁 Consolidación</div>
       <div class="pul-col-campos">
         <div class="fg"><label>Consolidación</label>
-          <select id="pua_consol" onchange="pulAvUI()"><option value="">— no evaluado —</option>
+          <select id="pua_consol" onchange="puaPopEspejoGesto('pua_consol');pulAvUI()"><option value="">— no evaluado —</option>
             <option value="no">No</option><option value="si">Sí</option>
           </select>
         </div>
@@ -12456,17 +12456,17 @@ window.cerrarSesionReal = cerrarSesionReal;
            con el mismo contenido se desincroniza el día que una de las dos se corrija. -->
         <div style="font-size:11px;font-weight:700;color:var(--accent2);margin-bottom:6px;text-transform:uppercase;letter-spacing:.4px;">Pleura <button type="button" class="vinfo-btn vinfo-btn-44" data-vinfo="pul-balik" aria-expanded="false" aria-label="Informaci&oacute;n sobre la estimaci&oacute;n del volumen del derrame pleural" onclick="vInfoClic(this)">&#9432;</button></div>
         <div class="grid-2">
-        <div class="fg"><label for="pop_pleura_der">Derrame derecho</label><select id="pop_pleura_der" onchange="popPocusSync()"><option value="" selected>— no evaluado —</option><option value="leve">Leve (&lt;1 cm)</option><option value="moderado">Moderado (1-3 cm)</option><option value="severo">Severo (&gt;3 cm)</option><option value="ausente">Ausente</option></select></div>
-        <div class="fg"><label for="pop_pleura_izq">Derrame izquierdo</label><select id="pop_pleura_izq" onchange="popPocusSync()"><option value="" selected>— no evaluado —</option><option value="leve">Leve (&lt;1 cm)</option><option value="moderado">Moderado (1-3 cm)</option><option value="severo">Severo (&gt;3 cm)</option><option value="ausente">Ausente</option></select></div>
-        <div class="fg"><label for="pop_pleura_caract">Características</label><select id="pop_pleura_caract" onchange="popPocusSync()"><option value="" selected>— no evaluado —</option><option value="libre">Libre</option><option value="loculado">Loculado</option><option value="hemotorax">Hemotórax</option></select></div>
+        <div class="fg"><label for="pop_pleura_der">Derrame derecho</label><select id="pop_pleura_der" onchange="popPocusSync();popPuaEspejoGesto()"><option value="" selected>— no evaluado —</option><option value="leve">Leve (&lt;1 cm)</option><option value="moderado">Moderado (1-3 cm)</option><option value="severo">Severo (&gt;3 cm)</option><option value="ausente">Ausente</option></select></div>
+        <div class="fg"><label for="pop_pleura_izq">Derrame izquierdo</label><select id="pop_pleura_izq" onchange="popPocusSync();popPuaEspejoGesto()"><option value="" selected>— no evaluado —</option><option value="leve">Leve (&lt;1 cm)</option><option value="moderado">Moderado (1-3 cm)</option><option value="severo">Severo (&gt;3 cm)</option><option value="ausente">Ausente</option></select></div>
+        <div class="fg"><label for="pop_pleura_caract">Características</label><select id="pop_pleura_caract" onchange="popPocusSync();popPuaEspejoGesto()"><option value="" selected>— no evaluado —</option><option value="libre">Libre</option><option value="loculado">Loculado</option><option value="hemotorax">Hemotórax</option></select></div>
         </div>
         <div class="calc-box" style="margin:8px 0 14px;"><div id="pop-pocus-pleura">—</div></div>
         </div>
         <div>
         <div style="font-size:11px;font-weight:700;color:var(--accent2);margin-bottom:6px;text-transform:uppercase;letter-spacing:.4px;">Pulmón</div>
         <div class="grid-2">
-        <div class="fg"><label for="pop_pulmon_lineasb">Líneas B</label><select id="pop_pulmon_lineasb" onchange="popPocusSync()"><option value="" selected>— no evaluado —</option><option value="ausentes">Ausentes</option><option value="focales">Focales</option><option value="difusas">Difusas bilaterales</option></select></div>
-        <div class="fg"><label for="pop_pulmon_consol">Consolidación</label><select id="pop_pulmon_consol" onchange="popPocusSync()"><option value="" selected>— no evaluado —</option><option value="ausente">Ausente</option><option value="der">Derecha</option><option value="izq">Izquierda</option><option value="bilateral">Bilateral</option></select></div>
+        <div class="fg"><label for="pop_pulmon_lineasb">Líneas B</label><select id="pop_pulmon_lineasb" onchange="popPocusSync();popPuaEspejoGesto()"><option value="" selected>— no evaluado —</option><option value="ausentes">Ausentes</option><option value="focales">Focales</option><option value="difusas">Difusas bilaterales</option></select></div>
+        <div class="fg"><label for="pop_pulmon_consol">Consolidación</label><select id="pop_pulmon_consol" onchange="popPocusSync();popPuaEspejoGesto()"><option value="" selected>— no evaluado —</option><option value="ausente">Ausente</option><option value="der">Derecha</option><option value="izq">Izquierda</option><option value="bilateral">Bilateral</option></select></div>
         <div class="fg"><label for="pop_pulmon_neumo">Neumotórax</label><select id="pop_pulmon_neumo" onchange="popPocusSync()"><option value="" selected>— no evaluado —</option><option value="ausente">Ausente</option><option value="sospecha">Sospecha</option><option value="presente">Presente</option></select></div>
         </div>
         <div class="calc-box" style="margin:8px 0 14px;"><div id="pop-pocus-pulmon">—</div></div>
@@ -68129,7 +68129,7 @@ function RECALC_MODULOS() {
   /* `vciNoVisSync` va PRIMERO: deja los dos campos de la VCI como corresponde ANTES de que los
      veinticinco consumidores de esta misma lista los lean. */
   return ['vciNoVisSync','aoRaizReconciliar','taviAoReconciliar','profCoaptReconciliar',
-          'puaDerrameReconciliar','tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','asiaMmSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','dtTapSync','vdTrivSync','etOndaESync','papmEstSync','calcDopTric','etTsvdSync','calcET','vpVmaxSync','ipIncongruenciaSync','itRefFuenteSync','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccSegSync','vpSync','popSync','sglOrigenSync','calcVenaPulm','valvProtSync','eaTaviEspejar','imEspejosRestaurar','eteVmAvisoSync','vmCarpLegadoSync','vmCarpOrigenSync','vmProtBloqSync','vmMorfFitSync','vdStrainPlSync','emPdfValsSync','emCuadroRefRepintar','emContFaAvisoSync','imCortesPintar','imContAvisoPintar','itIncongruenciaSync','aoEspejosRestaurar','tangoRestaurar','diastExclSync','diastFcAvisoSync','diastBseEprimaAvisoSync','diastBseGrisAvisoSync','diastStrainMarcaSync','vdMarcaSync','vdTeiAvisoSync','tep6060Resalte','hfPepSync','hfPepPintar','viVolAutoSync','eaAvaiGradoPintar','eaPvlPintar','imPvlPintar','vdTapsePsapSync','ipApDiamSync','vdViSelSync','htpApSync','htpTablaPintar','m3dBotonSync','contrPdfSync','sglPdfSync','eteQxPdfSync','otrBurbUI','v2dCerrar','aiviSexoSync','vtDviAuto','sincronizarTEERDesdeGlobal','calcETE',
+          'puaDerrameReconciliar','puaPopReconciliar','tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','asiaMmSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','dtTapSync','vdTrivSync','etOndaESync','papmEstSync','calcDopTric','etTsvdSync','calcET','vpVmaxSync','ipIncongruenciaSync','itRefFuenteSync','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccSegSync','vpSync','popSync','sglOrigenSync','calcVenaPulm','valvProtSync','eaTaviEspejar','imEspejosRestaurar','eteVmAvisoSync','vmCarpLegadoSync','vmCarpOrigenSync','vmProtBloqSync','vmMorfFitSync','vdStrainPlSync','emPdfValsSync','emCuadroRefRepintar','emContFaAvisoSync','imCortesPintar','imContAvisoPintar','itIncongruenciaSync','aoEspejosRestaurar','tangoRestaurar','diastExclSync','diastFcAvisoSync','diastBseEprimaAvisoSync','diastBseGrisAvisoSync','diastStrainMarcaSync','vdMarcaSync','vdTeiAvisoSync','tep6060Resalte','hfPepSync','hfPepPintar','viVolAutoSync','eaAvaiGradoPintar','eaPvlPintar','imPvlPintar','vdTapsePsapSync','ipApDiamSync','vdViSelSync','htpApSync','htpTablaPintar','m3dBotonSync','contrPdfSync','sglPdfSync','eteQxPdfSync','otrBurbUI','v2dCerrar','aiviSexoSync','vtDviAuto','sincronizarTEERDesdeGlobal','calcETE',
           /* `pamAvisoSync` (B-2) repinta la línea del dueño único de la PAM. Entra acá por lo
              mismo que los demás: las cinco rutas de restauración pueblan asignando `.value`,
              que no dispara `input`, así que al reabrir un estudio con dos PAM que difieren el
@@ -114826,6 +114826,127 @@ function puaConsolGesto() {
 }
 window.puaConsolGesto = puaConsolGesto;
 
+/* ══ LA SINCRONIA CON EL POSOPERATORIO — PANT-11, commit 6 ═══════════════════════════════════
+   Pedido del medico: los campos del basico y del posoperatorio, sincronizados. Un dato, dos
+   puertas, gana la ultima edicion, en los dos sentidos.
+
+   LO QUE SE SINCRONIZA, Y POR QUE SOLO ESO. Un valor sin equivalente en el otro lado NO escribe
+   nada y NO borra nada, que es la regla de la orden:
+     · derrame por lado: los MISMOS valores en los dos lados, asi que la copia es literal;
+     · tipo del derrame: libre con libre y tabicado con loculado -decision del medico: son la
+       misma palabra-. «hemotorax» no tiene equivalente y no se escribe ni se borra;
+     · consolidacion: «ausente» con «no», y «der» / «izq» / «bilateral» con «si» mas el lado;
+     · lineas B: SOLO «ausentes» con «ausentes». «focales» y «difusas» del posoperatorio NO
+       equivalen a «focal», «multiples» ni «coalescentes» del basico -son dos escalas, una de
+       distribucion y otra de cantidad-, asi que no se sincronizan.
+   LO QUE NO SE SINCRONIZA: el neumotorax -el basico lo DEDUCE del punto pulmon y del
+   deslizamiento, el posoperatorio lo CONSIGNA-, el deslizamiento, las lineas A y las zonas, que
+   no existen del otro lado.
+
+   ⚠️ `pua_derrame` -la compuerta si/no del basico- NO SE ESCRIBE, Y ES UNA MEDICION LA QUE LO
+      DECIDE. La orden lista los pares uno por uno y esa compuerta no esta entre ellos; y
+      medido, escribirla hace que un estudio cuyo derrame hoy solo aparece en la hoja PostCEC
+      del PDF gane ademas un parrafo en el CUERPO del informe. Un hallazgo se escribe una sola
+      vez. El medico que quiera el parrafo pone «Si» y los valores ya estan.
+      `pua_consol` SI se escribe, porque la orden la nombra expresamente en su par.
+
+   ⚠️ LA GUARDA, Y ES LA MISMA FORMA QUE `_labUsaTavi` DE PANT-8 Y PANT-9. El posoperatorio
+      escribe en el basico SIEMPRE. El basico escribe en el posoperatorio SOLO si el
+      posoperatorio ya esta EN USO, y «en uso» EXCLUYE los cinco campos que este espejo escribe:
+      sin esa exclusion el espejo se autoriza a si mismo. Hace falta porque esta medido que con
+      SOLO los dos campos de pleura cargados `popPatron().suficiente` pasa a `true`, su boton
+      «Integrar al informe» se habilita y su hoja del PDF pasa a tener 413 caracteres: un
+      estudio que no es un posoperatorio quedaria ofreciendo una hoja de posoperatorio. */
+var PUA_POP_ESPEJADOS = ['pop_pleura_der', 'pop_pleura_izq', 'pop_pleura_caract',
+                         'pop_pulmon_lineasb', 'pop_pulmon_consol'];
+function popModuloEnUso() {
+  const els = document.querySelectorAll('input[id^="pop_"], select[id^="pop_"], textarea[id^="pop_"]');
+  for (let k = 0; k < els.length; k++) {
+    const e = els[k];
+    if (PUA_POP_ESPEJADOS.indexOf(e.id) >= 0) continue;
+    if (e.type === 'checkbox' || e.type === 'radio') { if (e.checked) return true; }
+    else if (String(e.value || '').trim() !== '') return true;
+  }
+  return false;
+}
+window.popModuloEnUso = popModuloEnUso;
+/* El tipo del derrame, en los dos sentidos y en UN solo lugar. */
+var PUA_TIPO_A_POP = { libre: 'libre', tabicado: 'loculado' };
+var POP_TIPO_A_PUA = { libre: 'libre', loculado: 'tabicado' };
+/* El lado de la consolidacion comparte los tres valores; «ausente» del posoperatorio es el
+   «no» de la compuerta del basico. */
+function _puaEsc(id, v) { const e = document.getElementById(id);
+  if (e && String(e.value || '') !== v) { e.value = v; return true; } return false; }
+
+/* BASICO -> POSOPERATORIO. Corre desde el gesto del medico sobre los campos del basico. */
+function puaPopEspejoGesto(id) {
+  if (!popModuloEnUso()) return;
+  let movio = false;
+  if (id === 'pua_derrame_der') movio = _puaEsc('pop_pleura_der', _puaV('pua_derrame_der')) || movio;
+  else if (id === 'pua_derrame_izq') movio = _puaEsc('pop_pleura_izq', _puaV('pua_derrame_izq')) || movio;
+  else if (id === 'pua_derrame_tipo') {
+    const t = _puaV('pua_derrame_tipo');
+    /* Al VACIAR, el otro lado se vacia SOLO si tiene el valor equivalente: un «hemotorax» no se
+       borra desde una pantalla que no puede expresarlo. */
+    if (t) { if (PUA_TIPO_A_POP[t]) movio = _puaEsc('pop_pleura_caract', PUA_TIPO_A_POP[t]) || movio; }
+    else if (POP_TIPO_A_PUA[_puaV('pop_pleura_caract')]) movio = _puaEsc('pop_pleura_caract', '') || movio;
+  }
+  else if (id === 'pua_consol' || id === 'pua_consol_lado') {
+    const c = _puaV('pua_consol'), l = _puaV('pua_consol_lado');
+    if (c === 'no') movio = _puaEsc('pop_pulmon_consol', 'ausente') || movio;
+    else if (c === 'si' && l) movio = _puaEsc('pop_pulmon_consol', l) || movio;
+    else if (c === '' && _puaV('pop_pulmon_consol')) movio = _puaEsc('pop_pulmon_consol', '') || movio;
+  }
+  else if (id === 'pua_lineasb') {
+    const b = _puaV('pua_lineasb');
+    if (b === 'ausentes') movio = _puaEsc('pop_pulmon_lineasb', 'ausentes') || movio;
+    else if (b === '' && _puaV('pop_pulmon_lineasb') === 'ausentes') movio = _puaEsc('pop_pulmon_lineasb', '') || movio;
+  }
+  if (movio) { try { if (typeof popPocusSync === 'function') popPocusSync(); } catch (e) {} }
+}
+window.puaPopEspejoGesto = puaPopEspejoGesto;
+
+/* POSOPERATORIO -> BASICO. Sin guarda: el posoperatorio escribe SIEMPRE. */
+function popPuaEspejoGesto() {
+  _puaEsc('pua_derrame_der', _puaV('pop_pleura_der'));
+  _puaEsc('pua_derrame_izq', _puaV('pop_pleura_izq'));
+  const car = _puaV('pop_pleura_caract');
+  if (POP_TIPO_A_PUA[car]) _puaEsc('pua_derrame_tipo', POP_TIPO_A_PUA[car]);
+  else if (car === '' && PUA_TIPO_A_POP[_puaV('pua_derrame_tipo')]) _puaEsc('pua_derrame_tipo', '');
+  const pc = _puaV('pop_pulmon_consol');
+  if (pc === 'ausente') { _puaEsc('pua_consol', 'no'); _puaEsc('pua_consol_lado', ''); }
+  else if (pc) { _puaEsc('pua_consol', 'si'); _puaEsc('pua_consol_lado', pc); }
+  else if (_puaV('pua_consol_lado')) { _puaEsc('pua_consol_lado', ''); }
+  const lb = _puaV('pop_pulmon_lineasb');
+  if (lb === 'ausentes') _puaEsc('pua_lineasb', 'ausentes');
+  else if (lb === '' && _puaV('pua_lineasb') === 'ausentes') _puaEsc('pua_lineasb', '');
+  try { if (typeof puaDerrameDerivar === 'function') puaDerrameDerivar(); } catch (e) {}
+  try { if (typeof pulAvUI === 'function') pulAvUI(); } catch (e) {}
+}
+window.popPuaEspejoGesto = popPuaEspejoGesto;
+
+/* LA RECONCILIACION AL RESTAURAR UN ESTUDIO. Idempotente y en UN solo sentido —el
+   posoperatorio manda—, porque es el unico que puede escribir sin guarda. SOLO completa lo
+   vacio: con los dos lados cargados y DISTINTOS no toca nada, que es la regla de la orden. */
+function puaPopReconciliar() {
+  if (!document.getElementById('pop_pleura_der') || !document.getElementById('pua_derrame_der')) return;
+  const par = [['pop_pleura_der', 'pua_derrame_der'], ['pop_pleura_izq', 'pua_derrame_izq']];
+  par.forEach(function (x) {
+    const a = _puaV(x[0]), b = _puaV(x[1]);
+    if (a && !b) _puaEsc(x[1], a);
+    else if (b && !a && popModuloEnUso()) _puaEsc(x[0], b);
+  });
+  const car = _puaV('pop_pleura_caract'), tip = _puaV('pua_derrame_tipo');
+  if (POP_TIPO_A_PUA[car] && !tip) _puaEsc('pua_derrame_tipo', POP_TIPO_A_PUA[car]);
+  else if (PUA_TIPO_A_POP[tip] && !car && popModuloEnUso()) _puaEsc('pop_pleura_caract', PUA_TIPO_A_POP[tip]);
+  const pc = _puaV('pop_pulmon_consol');
+  if (pc && pc !== 'ausente' && !_puaV('pua_consol_lado')) {
+    _puaEsc('pua_consol_lado', pc); if (!_puaV('pua_consol')) _puaEsc('pua_consol', 'si');
+  } else if (pc === 'ausente' && !_puaV('pua_consol')) _puaEsc('pua_consol', 'no');
+  try { if (typeof puaDerrameDerivar === 'function') puaDerrameDerivar(); } catch (e) {}
+}
+window.puaPopReconciliar = puaPopReconciliar;
+
 function pulAvUI() {
   const on = (id, v) => { const e = document.getElementById(id); if (e) e.style.display = v ? '' : 'none'; };
   const lbOn = _amV('pua_lineasb') === 'presentes';
@@ -157637,8 +157758,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261104-1447';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793814423518;                 /* eco-build-ms */
+const ECO_BUILD    = '20261104-1453';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793814834381;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -157724,7 +157845,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261104-1447</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261104-1453</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

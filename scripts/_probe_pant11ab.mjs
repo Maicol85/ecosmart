@@ -218,6 +218,19 @@ const ESCENAS = {
   p11pulAusent: { campos: { pua_derrame:'si', pua_derrame_der:'ausente', pua_derrame_izq:'ausente' } },
   p11pulCnLado: { campos: { pua_consol:'si', pua_consol_bronco:'con', pua_consol_lado:'der',
       pul_consol_nota:'base derecha' } },
+  /* -- COMMIT 6: la MEDICION previa a la sincronia con el posoperatorio. --
+     p11medPopPleu dice si escribir los campos de pleura del posoperatorio hace que un estudio
+     comun cuente como posoperatorio; p11medDoble, si con el posoperatorio INTEGRADO el derrame
+     se imprimiria DOS veces en el informe. */
+  p11medPopPleu: { campos: { pop_pleura_der:'moderado', pop_pleura_izq:'leve' } },
+  p11medDoble:   { campos: { peso:'70', talla:'170', pop_monitor:'picco', pop_picco_ic:'1.8',
+      pop_pleura_der:'moderado', pop_pleura_izq:'moderado',
+      pua_derrame:'si', pua_derrame_der:'moderado', pua_derrame_izq:'moderado' },
+      integrar:['pop'] },
+  p11medDobleHead: { campos: { peso:'70', talla:'170', pop_monitor:'picco', pop_picco_ic:'1.8',
+      pop_pleura_der:'moderado', pop_pleura_izq:'moderado',
+      pua_derrame:'si', pua_derrame_lado:'bilateral', pul_derrame_tam:'moderado' },
+      integrar:['pop'] },
   /* == LAS ESCENAS DE LA TANDA PANT-9 ======================================================
      Una por seccion rediseniada, con TODOS sus campos cargados Y la casilla «Integrar al
      informe» encendida: sin eso un cero de superficie firmada no distingue «el papel no se
