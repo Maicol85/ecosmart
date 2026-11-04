@@ -111365,11 +111365,22 @@ caso('TC-649', 'Tanda PANT-6: el molde en la insuficiencia aortica, la estenosis
     const mal = VAL.filter(v => { const n = E[v.n].filas.filter(f => f && f.ctrl).length;
       return n <= 6 && cols(v) > 1 });
     return mal.map(v => v.n).join(',') || 'ninguna' })(), 'ninguna']);
-  /* (F) CONTROL NEGATIVO: el molde NO le entro a las dos secciones que esta tanda PARO. */
-  ex.push(['(F1) CONTROL: la valvula pulmonar y la protesis mitral siguen SIN molde — parado y reportado',
-    ['_indEP','_indProtM'].filter(n => { const fn = window[n];
-      if (typeof fn !== 'function') return false; let r = null;
-      try { r = fn() } catch (e) { return false } return !!(r && r.molde) }).join(',') || 'ninguna', 'ninguna']);
+  /* (F) CONTROL NEGATIVO: el molde NO le entro a las dos secciones que esta tanda PARO.
+     ⚠️ CADA UNA CON SU ESCENA, Y ESO NACIO DEL BARRIDO. La primera version las llamaba sobre la
+     escena de la tricuspide, donde las DOS devuelven null, asi que la rama if (!r) las salteaba
+     y el control no podia fallar: la mutacion 32 -que le pone molde de verdad al objeto que
+     _indEP devuelve- sobrevivio sobre un denominador vacio. */
+  const abrir = (n, campos) => { __t.limpiar();
+    Object.keys(campos).forEach(k => S(k, campos[k]));
+    const fn = window[n]; if (typeof fn !== 'function') return { err:'no existe' };
+    let r = null; try { r = fn() } catch (e) { return { err: String(e).slice(0,60) } }
+    return r ? { abre: true, molde: !!r.molde } : { abre: false, molde: false } };
+  const EP = abrir('_indEP', { ep_grado:'Severa', vmax_ip:'4.2' });
+  const PM = abrir('_indProtM', { vm_morf:'Prótesis mecánica', em_gmedio:'8', avm_cont:'1.4' });
+  ex.push(['(F0) DENOM: las dos secciones que se pararon ABREN en su escena, que es lo que hace que (F1) pueda fallar',
+    [EP.abre ? 'EP' : 'EP-NO-ABRE', PM.abre ? 'PM' : 'PM-NO-ABRE'].join(','), 'EP,PM']);
+  ex.push(['(F1) CONTROL: y las dos siguen SIN molde — parado y reportado en P6-a',
+    [EP.molde ? 'EP' : '', PM.molde ? 'PM' : ''].filter(Boolean).join(',') || 'ninguna', 'ninguna']);
   /* (G) EL PAPEL NO SE MUEVE con las cinco valvulas cargadas a la vez. */
   __t.limpiar();
   VAL.forEach(v => Object.keys(v.campos).forEach(k => S(k, v.campos[k])));
