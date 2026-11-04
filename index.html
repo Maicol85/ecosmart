@@ -104108,7 +104108,15 @@ const OAI_GLOBO_FUENTES = Object.freeze([
    igual que el chip del recuadro de abajo. */
 function _oaiRefGlobo() {
   const cont = document.createElement('div');
-  cont.style.cssText = 'font-size:12px;line-height:1.55;';
+  /* ⚠️ SIN `font-size` PROPIO (PANT-7, c10b): la letra la pone el CARTEL. El medico encontro
+     que «el texto que se abre del ⓘ de la orejuela tiene la letra mas grande que el resto», y
+     la medicion le dio la razon: con el 12px que esta linea fijaba, este cartel traia **2.537
+     de sus 3.110 caracteres a 12 px**, mientras los otros 121 globos del registro llevan su
+     cuerpo a **11 px** —74.734 caracteres medidos sobre las 122 claves, con 12 px reservado al
+     titulo `<h4>` y 9 px a los rotulos de bloque—. Era el UNICO cartel de la aplicacion que se
+     declaraba su propio tamanio de cuerpo.
+     El `line-height` se queda: no es tipografia del cartel, es el aire de esta lista. */
+  cont.style.cssText = 'line-height:1.55;';
   OAI_GLOBO.forEach(function (par) {
     const d = document.createElement('div');
     d.style.cssText = 'margin-bottom:7px;';
@@ -155457,8 +155465,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261104-0108';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793765336969;                 /* eco-build-ms */
+const ECO_BUILD    = '20261104-0114';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793765676934;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -155544,7 +155552,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261104-0108</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261104-0114</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

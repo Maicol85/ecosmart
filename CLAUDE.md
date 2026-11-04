@@ -387,6 +387,21 @@ navegador, sobre lo que el médico puede leer —el DOM sin los `<script>`, las 
 el archivo con patrones estrictos cuyos hallazgos se inspeccionan a mano. La sonda es
 `scripts/_probe_pant3rev.mjs`.
 
+## Todo cartel ⓘ usa la MISMA letra — REGLA FIJA DE MAICOL (2026-11-04)
+
+El cuerpo de **todas** las tarjetas que abre un globo ⓘ se ve en el mismo tamaño de letra: el
+que la propia tarjeta (`#vinfo-card`) declara, hoy **11 px**. Un cartel no se declara su propio
+tamaño de cuerpo. Los 12 px quedan para el título `<h4>` y los 9 px para los rótulos de bloque,
+que son papeles distintos y son iguales en todos.
+
+Medido en PANT-7 sobre las **122** claves del registro: 74.734 caracteres de cuerpo a 11 px,
+3.461 de título a 12 y 2.279 de rótulo a 9. El único que se salía era el de la orejuela
+(`_oaiRefGlobo`), que fijaba `font-size:12px` a mano y traía **2.537 de sus 3.110 caracteres**
+un punto más grandes que el resto — que es lo que el médico vio.
+
+Un tamaño **menor** dentro de un cartel sí es legítimo donde cumple un papel propio —los 10 px
+de un pie de ficha, los 9 de un chip—, y esos no se tocan.
+
 ## El informe va en ORACIONES SEPARADAS — REGLA FIJA DE MAICOL (2026-11-03)
 
 El texto del informe va en **oraciones separadas, una por tema**, con un orden lógico; cuando se
