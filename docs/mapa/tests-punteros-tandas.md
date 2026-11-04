@@ -290,3 +290,17 @@ sobrevivía.
 El arnés de mutaciones es `scripts/_mut_pant9.py`: **41 mutaciones, 41 muertas**, cada una
 declarando **su** caso. Siete no revierten nada: la aplican **de más**, porque las condiciones que
 las matan son controles negativos.
+
+## PANT-10 (2026-11-04) — los textos de congénitas y la Evidencia de cinco lesiones
+
+| Caso | Qué fija |
+|---|---|
+| **TC-668** | Los diecisiete textos `cc9-*` corregidos contra su hoja, lo retirado ausente y la franja de Eisenmenger idéntica |
+| **TC-669** | La Evidencia del defecto del septo auriculoventricular, 13 preguntas |
+| **TC-670** | La Evidencia de la anomalía de Ebstein, 12 preguntas |
+| **TC-671** | La Evidencia de la circulación de Fontan, 14 preguntas |
+| **TC-672** | La Evidencia de la conexión venosa pulmonar anómala parcial, 9 preguntas |
+| **TC-673** | La Evidencia del síndrome de Eisenmenger, 14 preguntas |
+
+Fichas en **`docs/mapa/tests-fichas-668.md`**. Adaptados: **TC-322** (cinco escenarios nuevos) y
+**TC-533 (L4)** (`IND_SECS` de 35 a 40). Mutaciones: `scripts/_mut_pant10.py`, **36/36 muertas**.

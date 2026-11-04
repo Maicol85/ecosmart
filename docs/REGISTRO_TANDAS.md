@@ -1062,3 +1062,34 @@ movidos sin respaldo anotado y el que lleva una conducta; las seis pantallas que
 Evidencia; el borrado que no puede vaciar `va_morf`; el filtro «Con TAVI» del Laboratorio; el alto
 que sube por debajo del corte; las columnas desparejas de Ebstein; el globo del título fuera del
 encabezado del acordeón; y lo que sigue.
+
+---
+
+## PANT-10 — los textos de congénitas contra las hojas, y la Evidencia de cinco lesiones (2026-11-04)
+
+| commit | fecha | qué |
+|---|---|---|
+| `2f87731` | 2026-11-04 | PANT10-1: los diecisiete textos de congenitas contra las hojas de las guias |
+| `d87b4a5` | 2026-11-04 | PANT10-2: la Evidencia del defecto del septo auriculoventricular |
+| `f49ccc3` | 2026-11-04 | PANT10-3: la Evidencia de la anomalia de Ebstein |
+| `c05a29c` | 2026-11-04 | PANT10-4: la Evidencia de la circulacion de Fontan |
+| `742f493` | 2026-11-04 | PANT10-5: la Evidencia de la conexion venosa pulmonar anomala parcial |
+| `955053c` | 2026-11-04 | PANT10-6: la Evidencia del sindrome de Eisenmenger |
+| — | 2026-11-04 | PANT10-7: cobertura y documentacion de la tanda |
+
+**Qué cambió.** Los **diecisiete** textos que PANT-9 había movido al globo ⓘ se corrigieron
+contra la hoja que cada uno invoca, leída en imagen a 200-220 ppp y con el folio comprobado en el
+pie impreso; lo que **ninguna** de las 248 fuentes de la biblioteca respalda se retiró del globo y
+quedó literal en `docs/PENDIENTES.md` → P10-a. Y **cinco lesiones de congénitas que no tenían
+Evidencia ahora la tienen**: defecto del septo auriculoventricular (13 preguntas), anomalía de
+Ebstein (12), circulación de Fontan (14), conexión venosa pulmonar anómala parcial (9) y síndrome
+de Eisenmenger (14), con el molde de `_indCIA` sin reescribirlo y las diferencias entre guías
+mostradas sin resolver. `IND_SECS` pasa de **35 a 40**. **El papel no se movió en ninguno de los
+seis commits**, y no hay campos guardados nuevos ni columnas de Excel nuevas.
+
+**Qué quedó pendiente.** `P10-a` a `P10-e`. Lo primero: **la segunda copia de la frase del índice
+de Celermajer que `ebsConclusion` publica y que SÍ llega al informe firmado**, medida superficie
+por superficie y **no tocada**, porque la orden manda parar y reportar. Después, la ventana
+aortopulmonar sin Evidencia —ninguna guía de la biblioteca la trata—, los cortes del DSAV que no
+son los de ninguna de las dos guías, y las Evidencias existentes del ductus, la coartación y la
+miocardiopatía hipertrófica obstructiva, que tienen cero preguntas.

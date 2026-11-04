@@ -10604,6 +10604,279 @@ ESC/EACTS 2025 de valvulopatías **no cubre esta lesión**, censado por la propi
 | prótesis mecánica | «no la nombran» | **reoperación I · C** | este archivo | ídem — la premisa se corrige |
 
 **Ningún corte, ningún umbral y ninguna opción de la aplicación se movieron por esta lectura.**
+## La tanda PANT-10 — notas de trabajo (2026-11-04)
+
+Los diecisiete textos de congénitas contra las hojas de las guías, y la Evidencia de cinco
+lesiones: defecto del septo auriculoventricular, anomalía de Ebstein, circulación de Fontan,
+conexión venosa pulmonar anómala parcial y síndrome de Eisenmenger.
+
+### Las reglas de folio, comprobadas en el pie impreso
+
+Ninguna se dio por buena: cada una se verificó abriendo la hoja y leyendo el número impreso.
+
+| Documento | Regla | Hojas donde se comprobó |
+|---|---|---|
+| **ACC/AHA 2025** de cardiopatías congénitas del adulto — Gurvitz M y col., *Circulation* 2026;153:e115-e251. Archivo `gurvitz-et-al-...-a.pdf`, 137 hojas | folio = **e(hoja + 114)** | 1→e115 · 8→e122 · 42→e156 · 43→e157 · 60→e174 · 92→e206 · 95→e209 · 97→e211 |
+| **ESC 2020** de cardiopatías congénitas del adulto, edición **inglesa**. Archivo `ESC congenitos en ingles 2020.pdf`, 84 hojas | folio = **hoja + 562** | 13→575 · 24→586 · 33→595 · 35→597 · 48→610 · 49→611 · 65→627 |
+| **Celermajer DS y col.**, *J Am Coll Cardiol* 1992;19:1041-6, 6 hojas | folio = **1040 + hoja** | 1→1041 · 2→1042 · 3→1043 · 5→1045 |
+| **Rychik J y col.**, *Circulation* 2019;140:e234-e284, 51 hojas | folio = **e(233 + hoja)** | 1→e234 · 8→e241 |
+| **ESC 2025 de embarazo** — De Backer J y col. Archivo `DeBacker_2025_ESC_Embarazo.pdf`, 107 hojas | folio = **hoja + 4461** | 16→4477 · 46→4507 · 47→4508 · 48→4509 |
+| **ESC/ERS 2022 de hipertensión pulmonar** — Humbert M y col., versión en **español** de la SEC, 129 hojas | folio = **hoja − 1** | 67→66 |
+
+⚠️ **LA DE LA ESC/ERS 2022 ES LA ÚNICA QUE NO SIGUE EL PATRÓN DE SUMA**: su folio impreso es
+menor que el número de hoja, y por eso la orden de la tanda lo advierte.
+
+### Dos cosas del nombre de los archivos, anotadas porque engañan
+
+⚠️ **`celermajer-et-al-2010-outcome-in-neonates-with-ebstein-s-anomaly.pdf` NO es de 2010.** Sus
+seis hojas dicen, en el encabezado de cada una, «JACC Vol. 19, No. 5 · April 1992:1041-6», y la
+primera remata con «©1992 by the American College of Cardiology». **El artículo es de 1992** y
+así se cita. El nombre del archivo está mal.
+
+⚠️ **`rychik-et-al-2019-...` NO es una guía de práctica**: es una **declaración científica** de la
+American Heart Association («a Scientific Statement From the American Heart Association», en su
+propio título). En todo texto que la cite, la aplicación lo dice con esas palabras.
+
+⚠️ **Y la ACC/AHA se llama «2025» pero se publicó en 2026**: su propio encabezado dice
+«2025 ACC/AHA/HRS/ISACHD/SCAI Guideline…» y su pie, «*Circulation*. 2026;153:e115-e251 ·
+February 24, 2026». La aplicación la llama **ACC/AHA 2025**, que es correcto. Hay **dos copias**
+en la carpeta 08; se usó la que **no** termina en `-2`.
+
+### Los censos, con su control positivo
+
+| Qué se buscó | Dónde | Resultado | Control positivo |
+|---|---|---|---|
+| «aortopulmonary window» | ESC 2020, 84 hojas | **0** — sus 4 apariciones de «aortopulmonary» son referencias bibliográficas sobre colaterales y shunts, en las hojas 81 y 82 | «ebstein» ×28 |
+| «aortopulmonary window» | ACC/AHA 2025, 137 hojas | **1**, hoja 8, folio e122, en la tabla de cambios, dentro de una recomendación de bosentán para Eisenmenger | — |
+| «kappa», «κ», «0.39», «magnetic resonance», «overestimat», «mri» | Celermajer 1992, 6 hojas | **0** en todas | «ebstein» ×23 |
+| «kappa» y «κ» | **248 PDF de la biblioteca entera**; 48 nombran Ebstein | **0** en los 48 | los 48 se listan con su conteo de «ebstein» |
+| «syncop» | ACC/AHA 2025, hojas 93 a 98 (Eisenmenger) | **0** en las seis | — |
+| «syncop» | ESC 2020, hojas 21 a 28 (Eisenmenger) | **0** en las ocho | — |
+| «síncope» (sin diacríticos) | ESC/ERS 2022 de hipertensión pulmonar | **16**, y en la hoja 42, folio 41, está en la **tabla de evaluación de riesgo** de la HAP: «no síncope / síncope ocasional / síncope repetido» | — |
+
+⚠️ **Todos los censos normalizan la ligadura «fi»** y el guión de fin de línea antes de buscar.
+
+### Lo que cada hoja dice, transcrito
+
+**ACC/AHA 2025, hoja 43, folio e157 — defecto del septo auriculoventricular.** Recomendación 4,
+Clase 1 · Nivel B-NR: en el DSAV reparado con **a)** regurgitación severa de la válvula
+auriculoventricular izquierda sintomática o **b)** la misma asintomática con dilatación del
+ventrículo izquierdo (**diámetro telesistólico ≥40 mm**) o disfunción sistólica (**fracción de
+eyección <60 %**), la cirugía valvular está recomendada. Recomendación 5, Clase 1 · Nivel C-LD:
+sin reparar o con cortocircuito residual, con **Qp:Qs ≥1,5** y/o dilatación auricular o
+ventricular significativa o progresiva **sin hipertensión arterial pulmonar (resistencia ≤2
+unidades Wood)**, el cierre está recomendado. Recomendación 6, Clase 2a · Nivel C-EO: lo mismo
+con **resistencia >2 y <5 unidades Wood**. Recomendación 8, Clase 3: Daño · Nivel C-LD: con
+fisiología de Eisenmenger o **resistencia >10 unidades Wood**, el cierre no debe realizarse. **El
+tramo de 5 a 10 unidades Wood no tiene recomendación propia.** Su sinopsis describe los tres
+tipos: el **parcial** tiene sólo componente auricular; el **completo** no tiene fusión de los
+velos puente y da un defecto único auricular y ventricular; el **transicional** tiene **dos
+orificios auriculoventriculares funcionales y una comunicación interventricular restrictiva por
+presión**. Y: «**la regurgitación de la válvula auriculoventricular izquierda es la causa más
+frecuente de reoperación; la obstrucción del tracto de salida es la segunda**».
+
+**ESC 2020, hoja 35, folio 597 — misma lesión.** DSAV completo: la reparación **no se recomienda**
+con fisiología de Eisenmenger ni con hipertensión arterial pulmonar (**resistencia ≥5 unidades
+Wood**) que se presenta con desaturación en el ejercicio, **III · C**; su nota al pie c aclara que
+hay pocos datos para un corte preciso y que, por experiencia clínica, correspondería a una caída
+de la saturación arterial **por debajo del 90 %**. DSAV parcial con **sobrecarga significativa de
+volumen del ventrículo derecho**: cierre quirúrgico **I · C**. Regurgitación auriculoventricular
+**moderada a severa sintomática**: cirugía, preferentemente reparación, **I · C**. Asintomático
+con regurgitación izquierda severa: cirugía cuando el **diámetro telesistólico ≥45 mm y/o la
+fracción de eyección ≤60 %**, **I · C**. Con función preservada, alta probabilidad de reparación y
+bajo riesgo: **IIa · C** si hay **fibrilación auricular o presión sistólica pulmonar >50 mmHg**.
+
+**ESC 2020, hoja 33, folio 595.** «Most complete AVSDs occur in Down syndrome patients (**>75 %**),
+and most partial AVSDs occur in non-Down syndrome patients (>90 %).» **La hoja no restringe esa
+cifra al adulto.** Y el parcial «usually has a defect only at the atrial level (primum ASD) or,
+**in rare cases, only at the ventricular level**».
+
+**ESC 2020, hoja 34, folio 596.** «Cardiac catheterization is required in case of non-invasive
+signs of PAP elevation (**calculated systolic PAP >40 mmHg** or indirect signs when PAP cannot be
+estimated) to determine PVR.»
+
+**Celermajer 1992 — las cuatro hojas que importan.** Hoja 1, folio 1041: serie de **50 pacientes**
+con anomalía de Ebstein neonatal vistos entre **1961 y 1990** en un solo centro; 88 % se presentó
+en los primeros tres días de vida y la cianosis fue la presentación más frecuente (80 %); nueve
+murieron en el período neonatal y hubo quince muertes tardías; supervivencia actuarial a 10 años
+**61 %**; «in a multivariate analysis…, echocardiographic grade of severity was the **best
+independent predictor of death**». Hoja 2, folio 1042: el índice es la razón entre el **área
+combinada de la aurícula derecha y del ventrículo derecho atrializado** y el **área combinada del
+ventrículo derecho funcional, la aurícula izquierda y el ventrículo izquierdo**, «in a
+four-chamber view **at end-diastole**»; los cuatro grados son **grado 1 <0,5 · grado 2 de 0,5 a
+0,99 · grado 3 de 1 a 1,49 · grado 4 ≥1,5**; y «**in 28 cases** the neonatal echocardiogram was
+acceptable for calculation of the grade». Hoja 3, folio 1043, **Tabla 3**: grado 1, 4 pacientes, 0
+muertes; grado 2, 10 pacientes, 1 (10 %); grado 3, 9 pacientes, 4 (44 %); **grado 4, 5 pacientes,
+5 muertes (100 %)**. Hoja 5, folio 1045, la discusión: «measured in a four-chamber **apical or
+subcostal** view, at end-diastole».
+
+**ACC/AHA 2025, hoja 60, folio e174 — Ebstein.** Recomendación 6, Clase 1 · Nivel B-NR: con
+**insuficiencia tricuspídea al menos moderada** y presencia de insuficiencia cardíaca,
+empeoramiento de la capacidad de ejercicio o disfunción sistólica progresiva del ventrículo
+derecho, la cirugía está recomendada. Recomendación 7, Clase 1 · Nivel B-NR: vía accesoria de
+alto riesgo o vías múltiples, ablación. Recomendación 8, Clase 2a · Nivel B-NR: en el
+**asintomático** con insuficiencia al menos moderada **más uno de cuatro criterios** —agrandamiento
+progresivo del ventrículo derecho, desaturación sistémica por cortocircuito auricular de derecha
+a izquierda, arritmias recurrentes o embolia paradójica—. Recomendación 10, Clase 2b · Nivel
+C-LD: con comunicación interauricular o foramen oval y cianosis o embolia paradójica, el cierre
+**aislado** puede considerarse **después de una evaluación hemodinámica**. Su sinopsis: «Ebstein
+anomaly… occurs in about **1 in 1000 live births** in contemporary series».
+
+**ACC/AHA 2025, hoja 62, folio e176.** Texto de apoyo 10: «Isolated closure of an ASD/patent
+foramen ovale… can be considered to address cyanosis (**oxygen saturation <90 % at rest or with
+exertion**) or paradoxical embolism.»
+
+**ESC 2020, hoja 49, folio 611 — Ebstein.** Cirugía con **insuficiencia tricuspídea severa** y
+síntomas o deterioro objetivo del ejercicio, **I · C**; independientemente de los síntomas con
+dilatación derecha progresiva o reducción de la función sistólica del ventrículo derecho,
+**IIa · C**; cierre de la comunicación en el mismo acto si se prevé hemodinámicamente tolerado,
+**I · C**; estudio electrofisiológico y ablación con arritmia sintomática o preexcitación,
+**I · C**; cierre aislado por embolismo sistémico documentado, **IIa · C**; cierre aislado si la
+**cianosis (saturación en reposo <90 %)** es el problema principal, **IIb · C**. Y el umbral
+diagnóstico: desplazamiento apical del velo septal o posterior **≥0,8 cm/m²** en el adulto.
+
+**Rychik 2019, hoja 8, folio e241.** «Systemic arterial oxygen saturation at rest in room air
+**rarely achieves levels >95 %** and is commonly in the **90 % to 95 %** range… With exercise,
+arterial oxygen saturation often **drops to <90 %**… Some patients… demonstrate notably low
+arterial oxygen saturations (<90 %) at rest. This can be caused by the presence of a
+**fenestration** or the development of **veno-venous collaterals**.» **No publica un valor para el
+paciente sin fenestración.**
+
+**Rychik 2019, hoja 9, folio e242, Tabla 2.** «**Moderate or greater AVV regurgitation is a
+significant risk factor for long-term mortality after Fontan surgery.**» Y el cuerpo describe la
+relación en los dos sentidos: la insuficiencia compromete la circulación por sobrecarga de
+volumen, dilatación y caída de la contractilidad, y «**reduced ventricular function is also
+associated with the development of AVV regurgitation**».
+
+**ACC/AHA 2025, hoja 92, folio e206.** «Atrioventricular valve dysfunction in adults with Fontan
+circulation is relatively common, particularly in those with a common atrioventricular valve or a
+morphologic tricuspid valve. Although **moderate or greater atrioventricular valve regurgitation
+is associated with increased mortality**, whether… repair or replacement improves outcomes remains
+a matter of debate.»
+
+**ACC/AHA 2025, hoja 87, folio e201 — Fontan.** Las veintitrés recomendaciones, de las que la
+Evidencia publica las de clase 1 y 2a y nombra las tres de 2b. Entre ellas: evaluación formal por
+cardiólogo de insuficiencia cardíaca y trasplante ante falla circulatoria progresiva (1 · B-NR);
+imagen y laboratorio hepáticos **al menos una vez al año** (1 · C-LD); anticoagulación con trombo
+conocido o sospechado, **Fontan auriculopulmonar**, tromboembolia previa o flutter o fibrilación
+auricular sostenidos (1 · B-NR); aspirina **o** anticoagulación sin esos rasgos ni contraindicación
+de sangrado (1 · B-NR); cardioversión oportuna (1 · C-LD); ablación en taquicardia supraventricular
+recurrente (2a · C-LD); stent en estenosis significativa (2a · C-EO); cierre de colaterales
+aortopulmonares (2a · C-EO); vasodilatadores pulmonares (2b · B-R); conversión del Fontan
+auriculopulmonar (2b · C-LD).
+
+**ESC 2020, hoja 65, folio 627 — Fontan.** Las ocho: cardioversión eléctrica pronta en la arritmia
+auricular sostenida con conducción rápida (I · C); anticoagulación con trombo auricular, arritmias
+auriculares o tromboembolia (I · C); desaconsejar el embarazo con **cualquier** complicación
+(I · C); **umbral bajo** para el cateterismo ante edema sin explicación, deterioro del ejercicio,
+arritmia de inicio reciente, cianosis o hemoptisis (I · C); evaluación electrofisiológica y
+ablación proactivas (IIa · C); imagen hepática **regular** (IIa · C); antagonistas del receptor de
+endotelina e inhibidores de la fosfodiesterasa 5 con **presión o resistencia pulmonar elevadas y
+presión de fin de diástole ventricular normal** (IIb · C); cierre con dispositivo de la
+**fenestración** con cianosis significativa (IIb · C).
+
+**ACC/AHA 2025, hojas 44 y 45, folios e158 y e159 — conexión venosa pulmonar anómala.** Las ocho:
+resonancia para anatomía, ventrículo derecho y **Qp:Qs** (1 · B-NR); imagen seriada sin indicación
+de reparar (1 · B-NR); angiografía por resonancia o tomografía en la reparada con disnea de
+esfuerzo (1 · B-NR); cateterismo con evidencia o factores de riesgo de hipertensión arterial
+pulmonar (2a · B-NR); cirugía con síntomas o capacidad reducida, sobrecarga de volumen del
+ventrículo derecho y **Qp:Qs ≥1,5** (1 · B-NR); reparar la conexión si se opera una comunicación
+interauricular (1 · B-NR); cirugía en el asintomático con **Qp:Qs ≥1,5** y uno de cuatro criterios
+(2a · B-NR); y **cirugía no indicada** con ventrículo derecho normal o apenas agrandado y **Qp:Qs
+<1,5** (3: Sin beneficio · B-NR). Su texto de apoyo: «Cross-sectional 3-dimensional **CMR imaging
+is superior to echocardiography** and to cardiac catheterization angiography for delineating APVC
+anatomy… **CMR has the advantage of providing the Qp:Qs**». Y la sinopsis: las conexiones aisladas
+más frecuentes son de la **vena pulmonar superior derecha a la vena cava superior** y de la
+superior izquierda a la innominada izquierda.
+
+**ESC 2020, hoja 29, folio 591.** «**Superior sinus venosus defect** [5 %; located near the superior
+vena cava (SVC) entry, **associated with partial or complete connection of right pulmonary veins
+to SVC/RA**].» Y: «**CMR is rarely required** but may be useful for… **quantification of pulmonary
+to systemic flow ratio (Qp:Qs)**, and evaluation of pulmonary venous connection.»
+
+**ESC 2020, hoja 13, folio 575, Tabla 4.** Entre las cardiopatías congénitas del adulto de
+complejidad **MODERADA** (reparadas o no, donde no se especifique): «**Anomalous pulmonary venous
+connection (partial or total)**».
+
+**ACC/AHA 2025, hoja 93, folio e207 — Eisenmenger.** Las doce recomendaciones, con su nota al pie
+que define el riesgo alto: «Patients at high risk include patients with **World Health
+Organization functional class 3 or 4, a 6-minute walk distance <165 m, tricuspid annular plane
+systolic excursion <16 mm, and NT-proBNP level >1400 pg/mL**.»
+
+**ACC/AHA 2025, hoja 95, folio e209.** «**Maternal mortality risk in patients with Eisenmenger
+syndrome is reported at 30 % to 50 %**, with heart failure exacerbation rates of up to 50 % and a
+rate of perinatal fetal loss or morbidity of about 30 %.» Y los factores pronósticos propios:
+síndrome de Down, cortocircuito pretricuspídeo, edad mayor, hipoxemia peor, filtrado glomerular
+reducido e índices ecocardiográficos de disfunción del ventrículo derecho.
+
+**ACC/AHA 2025, hoja 97, folio e211.** «Although spontaneous bleeding events are usually minor and
+self-limiting, **recurrent hemoptysis is common**… **Hemoptysis is often self-limiting, but it can
+cause major bleeding and become life-threatening.**» Y: «in the absence of an additional
+indication for anticoagulation treatment, **routine anticoagulation for preventive purposes is not
+recommended**».
+
+**ESC 2020, hoja 24, folio 586.** «**Haemoptysis is the most common major bleeding event** and is an
+external manifestation of an intrapulmonary haemorrhage not reflecting the extent of parenchymal
+bleeding (reported in up to 100 % of Eisenmenger patients).» Y: «in a multicentre study, only
+**age, pre-tricuspid shunt, absence of sinus rhythm, lower oxygen saturation at rest, and presence
+of pericardial effusion**, but not BNP, were the strongest predictors for death».
+
+**ESC/ERS 2022, hoja 67, folio 66, Recomendaciones-tabla 19.** Evaluación del riesgo con HAP
+persistente tras el cierre (I · C) y en Eisenmenger (IIa · C); **bosentán** en el sintomático
+(**I · B**); oxígeno suplementario cuando aumenta de forma constante la saturación y reduce los
+síntomas (IIa · C); suplementos de hierro con déficit (IIa · C); otros antagonistas, inhibidores de
+la fosfodiesterasa 5, riociguat y análogos de la prostaciclina (IIa · C); combinado secuencial si
+no se cumplen los objetivos (IIa · C); **anticoagulación oral en ausencia de hemoptisis
+significativa y con trombosis arterial pulmonar** (IIb · C); **embarazo no recomendado** (III · C);
+**flebotomía sistemática no recomendada** (III · C). Su nota c: el nivel de evidencia difiere del de
+la ESC 2020 porque el número de pacientes con cardiopatía congénita del adulto en el estudio
+AMBITION fue muy bajo.
+
+**ESC 2025 de embarazo, hoja 47, folio 4508.** «**If oxygen saturation is >90 %, there is usually a
+better foetal outcome (10 % foetal loss). If oxygen saturation is <85 %, miscarriage, IUGR,
+prematurity, and foetal death are common (live birth rate of only 12 %).**» Y: «Women with
+Eisenmenger syndrome are unlikely to tolerate pregnancy».
+
+### Cambios de evidencia
+
+| Qué | Antes | Ahora | Fuente |
+|---|---|---|---|
+| Índice de Celermajer, tamaño de la serie | «una serie de 28 neonatos» | **50 neonatos, con el índice calculado en 28** | Celermajer 1992, hojas 1 y 2, folios 1041 y 1042 |
+| Índice de Celermajer, vista | «cinco áreas en apical 4 cámaras» | **cuatro cámaras en telediástole; la discusión precisa apical o subcostal** | hojas 2 y 5, folios 1042 y 1045 |
+| Índice de Celermajer, κ y resonancia | «sobreestima la severidad, κ=0,39» | **retirado** | censo de 248 PDF: cero |
+| Ebstein, frecuencia | «menos del 1 % de las cardiopatías congénitas» | **alrededor de 1 cada 1000 nacidos vivos** | ACC/AHA 2025, hoja 60, folio e174 |
+| Ebstein, cianosis | «desencadenante de intervención que lista la ESC 2020» | **condición del cierre AISLADO de CIA o FOP**, IIb · C en la ESC y 2b · C-LD en la ACC/AHA | ESC hoja 49 folio 611; ACC/AHA hojas 60 y 62, folios e174 y e176 |
+| Eisenmenger, mortalidad materna | «>50 %» | **30 a 50 %** | ACC/AHA 2025, hoja 95, folio e209 |
+| Eisenmenger, hemoptisis | «riesgo de episodio masivo y fatal» | **el sangrado mayor más frecuente; suele autolimitarse, pero puede poner en riesgo la vida** | ESC hoja 24 folio 586; ACC/AHA hoja 97 folio e211 |
+| Eisenmenger, síncope | «marcador de mal pronóstico» | **retirado**; se dice que ninguna de las dos guías lo nombra en Eisenmenger | censo con control positivo |
+| DSAV, componente ventricular | «sólo en el tipo completo» | **no es exclusivo del completo**: el transicional tiene CIV restrictiva y el parcial, en casos raros, es sólo ventricular | ACC/AHA hoja 43 folio e157; ESC hoja 33 folio 595 |
+| DSAV, regurgitación AV izquierda | «marcador de severidad y principal indicación quirúrgica» | **causa más frecuente de reoperación** | ACC/AHA hoja 43 folio e157; ESC hoja 35 folio 597 |
+| DSAV, síndrome de Down | «buena parte de los completos **del adulto**» | **más del 75 % de los completos**, sin restringir al adulto | ESC hoja 33 folio 595 |
+| CVPA, forma | «en el adulto sólo se ve la parcial» | **retirado**: la Tabla 4 lista «parcial o total» en el adulto | ESC hoja 13 folio 575 |
+| CVPA, resonancia | «método de referencia (ESC 2020)» | **recomendación 1 · B-NR de la ACC/AHA 2025**; la ESC dice que rara vez se necesita | ACC/AHA hoja 44 folio e158; ESC hoja 29 folio 591 |
+| CVPA, «el eco subestima el shunt» | presente | **retirado** | no aparece en ninguna de las dos |
+| Fontan, saturación | «normal sin fenestración >93-95 %» | **rara vez supera 95 %, habitual de 90 a 95 %; con ejercicio suele bajar de 90 %** | Rychik hoja 8 folio e241 |
+| Fontan, insuficiencia AV | «marcador de disfunción del ventrículo sistémico» | **relación en los dos sentidos; la moderada o mayor es factor de riesgo de mortalidad** | Rychik hoja 9 folio e242; ACC/AHA hoja 92 folio e206 |
+| Ventana aortopulmonar | «ESC 2020: cierre indicado siempre…» y dos cifras | **sólo la definición anatómica**; se dice que ninguna guía de la biblioteca la trata | censo con control positivo |
+
+### Las premisas de la orden que se verificaron y NO se reprodujeron
+
+| Lo que la orden anticipaba | Lo que la hoja dice |
+|---|---|
+| El síncope «no se encontró para Eisenmenger en ninguna fuente» | **Cierto para las dos guías de congénitas.** Pero la ESC/ERS 2022 de hipertensión pulmonar **sí** lo lista en su tabla de evaluación de riesgo de HAP (hoja 42, folio 41), que es otra pregunta. Se reporta en `P10-a`. |
+| El resto del índice de lectura previa | **Se reprodujo entero**, hoja por hoja: las trece ubicaciones de la ACC/AHA, las nueve de la ESC 2020, las cuatro de Celermajer, las dos de Rychik, la de la ESC 2025 de embarazo y la de la ESC/ERS 2022. |
+
+### Lo que se paró y se reportó
+
+- **La frase del índice de Celermajer en el papel**, que `ebsConclusion` publica y que llega al
+  informe en los tres estilos, al PDF, al EN SUMA y al PPT. Medido y no tocado: `P10-a`.
+- **La ventana aortopulmonar sin Evidencia**, con sus dos fuentes candidatas: `P10-b`.
+- **Los cortes que la pantalla del DSAV aplica**, que no son los de ninguna de las dos guías:
+  `P10-d`.
+- **La validación de la Evidencia de congénitas con un cardiólogo especialista antes de
+  comercializar**, que queda sólo en los documentos internos, como manda la regla de esta casa.
+
+
 ## La tanda PANT-9 — notas de trabajo (2026-11-04)
 
 **Esta tanda NO leyó ninguna fuente nueva y NO agregó ninguna cita**, y es por lo que hizo: los

@@ -47802,6 +47802,23 @@ caso('TC-322', 'Evidencia: citas numeradas POR SECCION, con un solo dueno de la 
          linea de criterio cita la guia que RIGE, que por la regla E-2 es la mas nueva. */
       ['Estenosis subaortica',                { esub_tipo:'membrana', esub_gradiente_medio:'45' },  'acc2025achd'],
       ['Estenosis supravalvular aortica',     { easv_tipo:'reloj', easv_gradiente_medio:'45' },     'acc2025achd'],
+      /* ⚠️ LAS CINCO DE LA TANDA PANT-10 (04/11/2026), commits 2 a 6. Este caso exige que TODA
+         seccion de IND_SECS tenga escenario, asi que cinco secciones nuevas lo ponen en rojo
+         NOMBRANDOLAS -que es justo para lo que el denominador existe-. La ADAPTACION es de
+         DENOMINADOR: lo que el caso afirma, que cada seccion numera sus corchetes POR SECCION y
+         arranca en [1], no cambia.
+         ⚠️ LAS CLAVES VAN SIN TILDES: el prefijo se compara sobre el titulo NORMALIZADO.
+         · El DSAV abre con dsavEstado punto hayDatos, que basta con el tipo cargado.
+         · Ebstein abre con ebsConclusion, cuyo hayDato pide el desplazamiento, la atrializacion,
+           la funcion del VD, el indice, o la taquicardia o las vias en «si».
+         · Fontan y Eisenmenger abren con su propio hayDatos, que basta con un selector.
+         · La CVPA abre con cvpaEstado punto hayDatos.
+         Las cinco citan la ACC/AHA 2025, que es la guia que rige en las cinco. */
+      ['Defecto del septo auriculoventricular', { dsav_tipo:'completo', dsav_qp_qs:'2.1' },        'acc2025achd'],
+      ['Anomalia de Ebstein',                  { ebs_desplazamiento:'22', ebs_func_vd:'moderada' }, 'acc2025achd'],
+      ['Circulacion de Fontan',                { fontan_tipo:'tunel', fontan_saturacion:'90' },    'acc2025achd'],
+      ['Conexion venosa pulmonar anomala parcial', { cvpa_venas_numero:'2', cvpa_conexion:'vcs' }, 'acc2025achd'],
+      ['Sindrome de Eisenmenger',              { eis_lesion_base:'civ', eis_saturacion_reposo:'84' }, 'acc2025achd'],
       /* ADAPTADO el 2026-10-22 (tanda D, commit 4): la seccion pasa a citar fopAha2021 en su
          linea «Segun la guia». La indicacion de cierre se publica con la AHA/ASA 2021
          (Kleindorfer, apartado 5.4.5, folio e411), que es la que da clase y nivel; la posicion
@@ -90617,8 +90634,14 @@ caso('TC-533', 'Tanda J2: el indice cardiaco en 2,19/2,2/2,21 con su globo y la 
      que entran son «Estenosis subaortica» y «Estenosis supravalvular aortica», que hasta esta
      tanda no tenian Evidencia. El invariante -que las tres de la tanda J sigan ahi- no cambia;
      lo que cambia es el denominador. */
-  ex.push(['(L4) CONTROL: las secciones del panel de Evidencia son TREINTA Y CINCO, y las tres de la tanda J siguen ahi',
-    IND_SECS.length === 35
+  /* ADAPTADO el 2026-11-04 (tanda PANT-10, commits 2 a 6): de TREINTA Y CINCO a CUARENTA. Las
+     que entran son las cinco lesiones de congenitas que hasta esta tanda no tenian Evidencia:
+     el defecto del septo auriculoventricular, la anomalia de Ebstein, la circulacion de
+     Fontan, la conexion venosa pulmonar anomala parcial y el sindrome de Eisenmenger. La
+     ADAPTACION es de DENOMINADOR y no de contrato: el invariante -que las tres de la tanda J
+     sigan ahi- no cambia. */
+  ex.push(['(L4) CONTROL: las secciones del panel de Evidencia son CUARENTA, y las tres de la tanda J siguen ahi',
+    IND_SECS.length === 40
       && IND_SECS.some(s => s.tit.indexOf('Derrame peric') === 0)
       && IND_SECS.some(s => s.tit.indexOf('Constricci\\u00f3n peric') === 0)
       && IND_SECS.some(s => s.tit.indexOf('Congesti\\u00f3n venosa') === 0),
@@ -112763,12 +112786,19 @@ caso('TC-662', 'Tanda PANT-9: la circulacion de Fontan en tres columnas con la c
     && g('cc9-fontan-iav').classList.contains('vinfo-btn-44'), true]);
   const REG = (typeof VINFO !== 'undefined') ? VINFO : null;
   ex.push(['(F5) DENOMINADOR: el registro de globos existe', !!REG, true]);
-  ex.push(['(F6) la nota de la saturacion esta en su entrada, palabra por palabra',
-    REG && REG['cc9-fontan-sat'] ? REG['cc9-fontan-sat'].lee : 'NO',
-    'Normal sin fenestracion: >93-95\\u00a0%.']);
-  ex.push(['(F7) y la de la insuficiencia AV sistemica en la suya',
-    REG && REG['cc9-fontan-iav'] ? REG['cc9-fontan-iav'].lee : 'NO',
-    'En Fontan es marcador de disfuncion del ventriculo sistemico.']);
+  /* ⚠️ ADAPTADO el 2026-11-04 (tanda PANT-10, commit 1), Y ES EL DIA QUE ESTE CASO ANUNCIABA:
+     exigia el texto de PANT-9 palabra por palabra y el commit 1 lo corrigio contra su hoja,
+     por orden expresa del medico. Cambia el FRAGMENTO esperado, no el invariante, y se agrega
+     que el texto VIEJO ya no esta. Lo retirado, literal, en docs/PENDIENTES.md -> P10-a. */
+  const _leeG = (k) => REG && REG[k] ? String(REG[k].lee || '') : 'NO';
+  ex.push(['(F6) la nota de la saturacion da el rango que la fuente publica',
+    _leeG('cc9-fontan-sat').indexOf('entre 90 y 95 %') > -1, true]);
+  ex.push(['(F6b) y YA NO afirma el valor sin fenestracion, que la fuente no publica',
+    _leeG('cc9-fontan-sat').indexOf('93-95') > -1, false]);
+  ex.push(['(F7) y la de la insuficiencia AV dice que la relacion va en los dos sentidos',
+    _leeG('cc9-fontan-iav').indexOf('los dos sentidos') > -1, true]);
+  ex.push(['(F7b) y YA NO la llama marcador de disfuncion del ventriculo sistemico',
+    _leeG('cc9-fontan-iav').indexOf('marcador de disfuncion') > -1, false]);
   const txt = body ? (body.textContent || '') : '';
   ex.push(['(F8) la nota de la saturacion YA NO esta en el cuerpo de la pantalla',
     txt.indexOf('Normal sin fenestracion') > -1, false]);
@@ -112845,10 +112875,17 @@ caso('TC-663', 'Tanda PANT-9: el sindrome de Eisenmenger en tres columnas con la
   const REG = (typeof VINFO !== 'undefined') ? VINFO : null;
   ex.push(['(D0) DENOMINADOR: el registro existe', !!REG, true]);
   const PARES = [
-    ['cc9-eisen-sat', 'riesgo fetal critico', '<90'],
-    ['cc9-eisen-sin', 'Marcador de mal pronostico.', 'Marcador de mal pronostico'],
-    ['cc9-eisen-hem', 'Riesgo de episodio masivo y fatal.', 'Riesgo de episodio masivo y fatal'],
-    ['cc9-eisen-per', 'El derrame pericardico asocia peor pronostico en Eisenmenger.', 'asocia peor pronostico']
+  /* ⚠️ ADAPTADO el 2026-11-04 (tanda PANT-10, commit 1), Y ES EL DIA QUE ESTE CASO ANUNCIABA.
+     Exigia el texto de PANT-9 PALABRA POR PALABRA, y PANT-9 lo habia movido al globo sin
+     corregirlo a proposito. El commit 1 de PANT-10 lo corrigio contra la hoja que cada uno
+     invoca, por orden expresa del medico. La ADAPTACION es del FRAGMENTO esperado: el
+     invariante -que el texto vive en el globo y NO en el cuerpo- no cambia, y se agrega que el
+     texto VIEJO ya no esta, para que el caso pueda volver a fallar por los dos lados. Lo
+     retirado, literal, en docs/PENDIENTES.md -> P10-a. */
+    ['cc9-eisen-sat', '30 a 50 %', '<90'],
+    ['cc9-eisen-sin', 'Se consigna como dato', 'Marcador de mal pronostico'],
+    ['cc9-eisen-hem', 'evento de sangrado mayor m', 'Riesgo de episodio masivo y fatal'],
+    ['cc9-eisen-per', 'derrame peric', 'asocia peor pronostico']
   ];
   const txt = body ? (body.textContent || '') : '';
   PARES.forEach((p, n) => {
@@ -112857,6 +112894,12 @@ caso('TC-663', 'Tanda PANT-9: el sindrome de Eisenmenger en tres columnas con la
     ex.push(['(D' + (n + 1) + 'b) su texto esta en el registro',
       REG && REG[p[0]] ? (String(REG[p[0]].lee || '').indexOf(p[1]) > -1) : false, true]);
     ex.push(['(D' + (n + 1) + 'c) y YA NO esta en el cuerpo de la pantalla', txt.indexOf(p[2]) > -1, false]);
+  });
+  /* Y lo que YA NO dicen: la mitad que hace que estas condiciones puedan volver a fallar. */
+  [['cc9-eisen-sat','Mortalidad materna >50'], ['cc9-eisen-sin','Marcador de mal pronostico'],
+   ['cc9-eisen-hem','episodio masivo y fatal']].forEach((q, n) => {
+    ex.push(['(D' + (n + 1) + 'd) y el texto viejo de ' + q[0] + ' YA NO esta en el registro',
+      REG && REG[q[0]] ? (String(REG[q[0]].lee || '').indexOf(q[1]) > -1) : true, false]);
   });
   /* ── (E) CONTROL POSITIVO: los rotulos siguen ── */
   ex.push(['(E1) CONTROL: el rotulo del sincope sigue en la pantalla', txt.indexOf('Sincope') > -1, true]);
@@ -112934,8 +112977,15 @@ caso('TC-664', 'Tanda PANT-9: la anomalia de Ebstein en tres columnas, con el pa
   const txt = body ? (body.textContent || '') : '';
   ex.push(['(E1) el parrafo de la seccion esta en su entrada',
     REG && REG['cc9-ebs-sec'] ? (String(REG['cc9-ebs-sec'].lee || '').indexOf('Desplazamiento apical del velo septal') > -1) : false, true]);
-  ex.push(['(E2) con su umbral diagnostico',
-    REG && REG['cc9-ebs-sec'] ? (String(REG['cc9-ebs-sec'].lee || '').indexOf('Umbral diagn') > -1) : false, true]);
+  /* ⚠️ ADAPTADO el 2026-11-04 (tanda PANT-10, commit 1), Y ES EL DIA QUE ESTE CASO ANUNCIABA:
+     exigia el texto de PANT-9 palabra por palabra y el commit 1 lo corrigio contra su hoja,
+     por orden expresa del medico. Cambia el FRAGMENTO esperado, no el invariante, y se agrega
+     que el texto VIEJO ya no esta. Lo retirado, literal, en docs/PENDIENTES.md -> P10-a. */
+  ex.push(['(E2) con su umbral diagnostico, que hoy va en cm/m2 como lo escribe la ESC 2020',
+    REG && REG['cc9-ebs-sec'] ? (String(REG['cc9-ebs-sec'].lee || '').indexOf('0,8 cm/m') > -1) : false, true]);
+  ex.push(['(E2b) y YA NO afirma las dos cifras que ninguna fuente de la biblioteca respalda',
+    REG && REG['cc9-ebs-sec'] ? (String(REG['cc9-ebs-sec'].lee || '').indexOf('Menos del 1 %') > -1
+      || String(REG['cc9-ebs-sec'].lee || '').indexOf('principal causa de insuficiencia') > -1) : true, false]);
   ex.push(['(E3) y YA NO esta en el cuerpo', txt.indexOf('Desplazamiento apical del velo septal') > -1, false]);
   ex.push(['(E4) la nota de las cinco areas esta en el globo del grupo',
     REG && REG['cc9-ebs-cel'] ? (String(REG['cc9-ebs-cel'].lee || '').indexOf('TELEDI') > -1) : false, true]);
@@ -112945,8 +112995,10 @@ caso('TC-664', 'Tanda PANT-9: la anomalia de Ebstein en tres columnas, con el pa
     REG && REG['cc9-ebs-cel'] ? (String(REG['cc9-ebs-cel'].ojo || '').indexOf('El \\u00edndice es orientativo, no una indicaci\\u00f3n') > -1) : false, true]);
   ex.push(['(E7) con sus cuatro cortes',
     REG && REG['cc9-ebs-cel'] ? (String(REG['cc9-ebs-cel'].ojo || '').indexOf('I <0,5') > -1) : false, true]);
-  ex.push(['(E8) y con su origen',
-    REG && REG['cc9-ebs-cel'] ? (String(REG['cc9-ebs-cel'].ojo || '').indexOf('Celermajer DS') > -1) : false, true]);
+  ex.push(['(E8) y con su origen, que hoy vive en su bloque de Fuente',
+    REG && REG['cc9-ebs-cel'] ? (String((REG['cc9-ebs-cel'].fuente || '') + (REG['cc9-ebs-cel'].ojo || '')).indexOf('Celermajer DS') > -1) : false, true]);
+  ex.push(['(E8b) y la serie dice 50 neonatos con el indice calculado en 28, no 28 a secas',
+    REG && REG['cc9-ebs-cel'] ? (String(REG['cc9-ebs-cel'].ojo || '').indexOf('50 neonatos') > -1) : false, true]);
   ex.push(['(E9) la caja roja YA NO esta en el cuerpo', txt.indexOf('El \\u00edndice es orientativo') > -1, false]);
   ex.push(['(E10) la nota de la cianosis esta en su globo',
     REG && REG['cc9-ebs-cia'] ? (String(REG['cc9-ebs-cia'].lee || '').indexOf('cianosis') > -1) : false, true]);
@@ -113028,12 +113080,16 @@ caso('TC-665', 'Tanda PANT-9: el DSAV, la CVPA, el ductus y la ventana aortopulm
   ex.push(['(L4) y ese rotulo dice que es del estudio', bdsav.indexOf('del estudio') > -1, true]);
   /* ── (M) LOS SEIS TEXTOS QUE SI PASARON AL GLOBO ── */
   const MOV = [
-    ['cc9-dsav-comp', 'dsav', 'S\\u00f3lo en el tipo completo.', 'S\\u00f3lo en el tipo completo'],
-    ['cc9-dsav-down', 'dsav', 'Presente en buena parte de los DSAV completos del adulto.', 'buena parte de los DSAV'],
-    ['cc9-dsav-rav', 'dsav', 'Marcador de severidad y principal indicaci\\u00f3n quir\\u00fargica.', 'principal indicaci\\u00f3n quir'],
-    ['cc9-dsav-rvp', 'dsav', 'Por cateterismo. Es lo que decide sobre el cierre, no la PSAP del eco.', 'no la PSAP del eco'],
-    ['cc9-cvpa-dren', 'cvpa', 'El drenaje a cava superior es el m\\u00e1s frecuente', 'cava superior es el m'],
-    ['cc9-cvpa-qp', 'cvpa', 'El eco subestima el shunt en esta lesi\\u00f3n', 'subestima el shunt']
+  /* ⚠️ ADAPTADO el 2026-11-04 (tanda PANT-10, commit 1), Y ES EL DIA QUE ESTE CASO ANUNCIABA:
+     exigia el texto de PANT-9 palabra por palabra y el commit 1 lo corrigio contra su hoja,
+     por orden expresa del medico. Cambia el FRAGMENTO esperado, no el invariante, y se agrega
+     que el texto VIEJO ya no esta. Lo retirado, literal, en docs/PENDIENTES.md -> P10-a. */
+    ['cc9-dsav-comp', 'dsav', 'No es exclusivo del tipo completo', 'S\\u00f3lo en el tipo completo'],
+    ['cc9-dsav-down', 'dsav', 'M\\u00e1s del 75 %', 'buena parte de los DSAV'],
+    ['cc9-dsav-rav', 'dsav', 'causa m\\u00e1s frecuente de reoperaci\\u00f3n', 'principal indicaci\\u00f3n quir'],
+    ['cc9-dsav-rvp', 'dsav', 'no la presi\\u00f3n sist\\u00f3lica pulmonar estimada por eco', 'no la PSAP del eco'],
+    ['cc9-cvpa-dren', 'cvpa', 'vena pulmonar superior derecha a la vena cava superior', 'cava superior es el m'],
+    ['cc9-cvpa-qp', 'cvpa', 'recomendaci\\u00f3n de la ACC/AHA 2025', 'subestima el shunt']
   ];
   MOV.forEach((m, n) => {
     const card = document.getElementById('sacc-cc-' + m[1]);
@@ -113044,9 +113100,16 @@ caso('TC-665', 'Tanda PANT-9: el DSAV, la CVPA, el ductus y la ventana aortopulm
     const b = card ? card.querySelector('.sacc-body') : null;
     ex.push(['(M' + (n + 1) + 'c) y YA NO esta en el cuerpo', b ? ((b.textContent || '').indexOf(m[3]) > -1) : true, false]);
   });
+  /* Y lo que YA NO dicen, que es la mitad que hace que estas condiciones puedan fallar. */
+  [['cc9-dsav-comp','S\\u00f3lo en el tipo completo'], ['cc9-dsav-down','completos del adulto'],
+   ['cc9-dsav-rav','Marcador de severidad'], ['cc9-cvpa-qp','El eco subestima el shunt']
+  ].forEach((q, n) => {
+    ex.push(['(M' + (n + 1) + 'd) y el texto viejo de ' + q[0] + ' YA NO esta en el registro',
+      REG && REG[q[0]] ? (String(REG[q[0]].lee || '').indexOf(q[1]) > -1) : true, false]);
+  });
   /* ── (N) LOS DOS PARRAFOS DE SECCION: CVPA y VAP ── */
   const PAR = [
-    ['cc9-cvpa-sec', 'cvpa', 'En el adulto s\\u00f3lo se ve la forma parcial', 'En el adulto s'],
+    ['cc9-cvpa-sec', 'cvpa', 'Esta secci\\u00f3n corresponde a la forma parcial', 'En el adulto s'],
     ['cc9-vap-sec', 'vap', 'Comunicaci\\u00f3n directa entre la aorta ascendente', 'Comunicaci\\u00f3n directa entre la aorta']
   ];
   PAR.forEach((m, n) => {
@@ -113060,8 +113123,14 @@ caso('TC-665', 'Tanda PANT-9: el DSAV, la CVPA, el ductus y la ventana aortopulm
     ex.push(['(N' + (n + 1) + 'c) y YA NO esta en el cuerpo', b ? ((b.textContent || '').indexOf(m[3]) > -1) : true, false]);
   });
   /* LA CONDUCTA DE LA VENTANA AORTOPULMONAR: se MOVIO y no se borro, que es la regla P9-a. */
-  ex.push(['(N3) la conducta de la ventana aortopulmonar SIGUE EN LA APLICACION, en su globo',
-    REG && REG['cc9-vap-sec'] ? (String(REG['cc9-vap-sec'].lee || '').indexOf('cierre indicado siempre') > -1) : false, true]);
+  /* ⚠️ INVERTIDA el 2026-11-04 (PANT-10, commit 1). PANT-9 la habia MOVIDO al globo sin tocarla
+     y este caso vigilaba que no se perdiera. El commit 1 la RETIRA, porque la ESC 2020 no nombra
+     la ventana aortopulmonar ni una vez en sus 84 hojas -censado, con «ebstein» x28 de control-.
+     Su texto literal queda en docs/PENDIENTES.md -> P10-a, que es donde la regla manda. */
+  ex.push(['(N3) la conducta atribuida a la ESC 2020 YA NO esta en el globo de la ventana',
+    REG && REG['cc9-vap-sec'] ? (String(REG['cc9-vap-sec'].lee || '').indexOf('cierre indicado siempre') > -1) : true, false]);
+  ex.push(['(N3b) y el globo dice que ninguna de las dos guias trata esta lesion',
+    REG && REG['cc9-vap-sec'] ? (String(REG['cc9-vap-sec'].ojo || '').indexOf('Ninguna de las dos gu') > -1) : false, true]);
   /* ── (O) CONTROL NEGATIVO: el ductus NO tiene ningun globo, porque no tenia textos ── */
   ex.push(['(O1) CONTROL: el ductus no tiene ningun globo en su seccion',
     (function () { const c = document.getElementById('sacc-cc-dap');
@@ -113266,6 +113335,603 @@ caso('TC-667', 'Tanda PANT-9: la opcion de valve-in-valve en la morfologia de TA
   limpio();
   return { extra: EXP };
 `);
+
+/* ══ TC-668 — PANT-10, commit 1: los diecisiete textos de congenitas contra las hojas ════════
+   Denominadores declarados: que los diecisiete globos del registro ABREN, y que la franja de
+   contraindicaciones de Eisenmenger EXISTE -sin eso, «identica» se cumple sobre dos ausencias-.
+   Controles negativos: la franja idéntica, y los textos que NO se tocaron. */
+caso('TC-668', 'Tanda PANT-10: los diecisiete textos de congenitas corregidos contra la hoja que cada uno invoca, con su guia, hoja y folio; lo que ninguna fuente respalda retirado; y la franja de contraindicaciones de Eisenmenger intacta', `
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]), 'esperado ' + String(t[2]) + ' | hallado ' + String(t[1])]) };
+  const CC9 = ['cc9-fontan-sat','cc9-fontan-iav','cc9-eisen-sat','cc9-eisen-sin',
+    'cc9-eisen-hem','cc9-eisen-per','cc9-ebs-sec','cc9-ebs-cel','cc9-ebs-cia',
+    'cc9-dsav-comp','cc9-dsav-down','cc9-dsav-rav','cc9-dsav-rvp',
+    'cc9-cvpa-sec','cc9-cvpa-dren','cc9-cvpa-qp','cc9-vap-sec'];
+  /* El texto se le pregunta al RENDERIZADOR y no al DOM: un globo cerrado no tiene caja, y esa
+     es la trampa que PANT-7 pago con dos claves que informaban 0x0. */
+  const tmp = document.createElement('div');
+  const NN = (s) => String(s || '').split(String.fromCharCode(10)).join(' ')
+    .split('  ').join(' ').split('  ').join(' ').trim();
+  const txtDe = (k) => { let h = '';
+    try { h = (typeof _vInfoHTML === 'function') ? _vInfoHTML(k, null) : '' } catch (e) { h = '' }
+    tmp.innerHTML = h; return NN(tmp.textContent) };
+  /* ── (A) DENOMINADORES ── */
+  const todos = CC9.map(txtDe);
+  ex.push(['(A0) DENOMINADOR: los DIECISIETE globos del registro devuelven tarjeta', CC9.length, 17]);
+  ex.push(['(A1) DENOMINADOR: ninguno cae al texto de legado', todos.filter(t => !t || t.indexOf('Referencia') === 0).length, 0]);
+  const todo = todos.join(' ~ ');
+  ex.push(['(A2) DENOMINADOR: el texto de los diecisiete junto pasa de 9.000 caracteres', todo.length > 9000, true]);
+  /* ── (B) LO QUE SE RETIRO POR NO TENER RESPALDO EN LA BIBLIOTECA ── */
+  const sin = (frag) => todo.indexOf(frag) === -1;
+  ex.push(['(B1) el kappa de 0,39 del indice de Celermajer ya no esta', sin('=0,39'), true]);
+  ex.push(['(B2) la frase de que sobreestima la severidad ya no esta', sin('sobreestima la severidad'), true]);
+  ex.push(['(B3) la mortalidad materna «>50 %» ya no esta en el globo de la saturacion', sin('Mortalidad materna >50'), true]);
+  ex.push(['(B4) la conducta atribuida a la ESC 2020 en la ventana aortopulmonar ya no esta', sin('ESC 2020: cierre indicado siempre'), true]);
+  ex.push(['(B5) el «Menos del 1 % de las cardiopatias congenitas» ya no esta', sin('Menos del 1 % de las cardiopat'), true]);
+  ex.push(['(B6) el «Solo en el tipo completo» del DSAV ya no esta', sin('Sólo en el tipo completo'), true]);
+  ex.push(['(B7) la afirmacion de que en el adulto solo se ve la CVPA parcial ya no esta',
+    sin('En el adulto sólo se ve la forma parcial: la total es una emergencia'), true]);
+  ex.push(['(B8) el «El eco subestima el shunt» ya no esta', sin('El eco subestima el shunt'), true]);
+  ex.push(['(B9) el «Marcador de mal pronostico» del sincope ya no esta', sin('Marcador de mal pronostico'), true]);
+  ex.push(['(B10) el «episodio masivo y fatal» de la hemoptisis ya no esta', sin('episodio masivo y fatal'), true]);
+  ex.push(['(B11) el «marcador de disfuncion del ventriculo sistemico» del Fontan ya no esta',
+    sin('marcador de disfuncion del ventriculo sistemico'), true]);
+  ex.push(['(B12) el «>93-95 %» de la saturacion del Fontan ya no esta', sin('>93-95'), true]);
+  /* ── (C) LO QUE ENTRO, CON SU HOJA Y SU FOLIO ── */
+  const con = (frag) => todo.indexOf(frag) > -1;
+  ex.push(['(C1) la mortalidad materna de la ACC/AHA 2025 es de 30 a 50 %', con('30 a 50 %'), true]);
+  ex.push(['(C2) y cita su folio e209', con('folio e209'), true]);
+  ex.push(['(C3) el indice de Celermajer cita su folio 1042', con('folio 1042'), true]);
+  ex.push(['(C4) y dice que la serie son 50 neonatos con el indice calculado en 28',
+    con('50 neonatos') && con('en 28'), true]);
+  ex.push(['(C5) y conserva sus cuatro cortes', con('I <0,5') && con('IV ≥1,5'), true]);
+  ex.push(['(C6) Ebstein cita el folio e174 y la frecuencia de 1 cada 1000 nacidos vivos',
+    con('folio e174') && con('1 cada 1000 nacidos vivos'), true]);
+  ex.push(['(C7) y conserva el umbral de desplazamiento de 0,8 cm/m²', con('0,8 cm/m²'), true]);
+  ex.push(['(C8) la cianosis de Ebstein cita el folio 611 y el cierre AISLADO', con('folio 611') && con('AISLADO'), true]);
+  ex.push(['(C9) el DSAV cita el folio 595 del parcial y el e157 del transicional',
+    con('folio 595') && con('folio e157'), true]);
+  ex.push(['(C10) el Down del DSAV dice «mas del 75 %» y NO lo restringe al adulto',
+    con('Más del 75 %') && todo.indexOf('completos del adulto') === -1, true]);
+  ex.push(['(C11) la CVPA cita el folio 575 de la Tabla 4 que la contradice', con('folio 575'), true]);
+  ex.push(['(C12) y atribuye la resonancia a la ACC/AHA con su folio e158', con('folio e158'), true]);
+  ex.push(['(C13) el Fontan cita el folio e241 y dice que Rychik es una declaracion cientifica',
+    con('folio e241') && con('declaración científica'), true]);
+  ex.push(['(C14) la hemoptisis cita el folio 586 de la ESC 2020', con('folio 586'), true]);
+  /* ── (D) LA FRANJA DE CONTRAINDICACIONES DE EISENMENGER: NO SE TOCA ── */
+  const sec = document.getElementById('sacc-cc-eisen');
+  let fr = null;
+  if (sec) { const ds = Array.prototype.slice.call(sec.querySelectorAll('div'));
+    for (let i = 0; i < ds.length; i++) {
+      if ((ds[i].textContent || '').indexOf('Contraindicaciones absolutas') > -1
+          && ds[i].querySelectorAll('div').length === 0) { fr = ds[i]; break } } }
+  ex.push(['(D0) DENOMINADOR: la franja de contraindicaciones de Eisenmenger existe', !!fr, true]);
+  const frT = fr ? NN(fr.textContent) : '';
+  /* ⚠️ ESTA CONDICION NO DISCRIMINABA Y LO ENCONTRO LA MUTACION 14. Pedia «mortalidad materna»
+     y «50», y cambiar «>50 %» por «30 a 50 %» -que es justo la mutacion- las cumple las dos.
+     Hoy compara el TEXTO EXACTO de la franja, que es lo unico que prueba que no se toco. */
+  ex.push(['(D1) CONTROL: la franja conserva su texto exacto, que es decision del medico',
+    frT, 'Contraindicaciones absolutas \u2014 embarazo (mortalidad materna >50\u00a0%) \u00b7   correccion quirurgica cardiaca del defecto \u00b7 ejercicio extenuante.']);
+  ex.push(['(D2) CONTROL: y sus otras dos contraindicaciones',
+    frT.indexOf('quirurgica') > -1 && frT.indexOf('ejercicio extenuante') > -1, true]);
+  /* ── (E) CONTROL NEGATIVO: el registro no cambio de tamanio ni de claves ── */
+  ex.push(['(E1) CONTROL: las diecisiete claves siguen siendo las mismas y ninguna se perdio',
+    CC9.filter(k => txtDe(k).length > 40).length, 17]);
+  return { extra: EXP };
+`);
+
+
+/* ══ TC-669 — PANT-10: la Evidencia de «Defecto del septo auriculoventricular» ══════════════════
+   DENOMINADOR: la seccion abre con su escenario. Sin eso, todo lo que sigue se cumpliria
+   sobre una seccion que no existe. CONTROL NEGATIVO: con el formulario VACIO no abre, y con
+   un estudio AJENO tampoco. Y el papel no la lleva. */
+caso('TC-669', 'Tanda PANT-10: la Evidencia de Defecto del septo auriculoventricular -sus filas de datos, sus 13 preguntas con guia, clase, nivel, hoja y folio, las diferencias entre guias mostradas sin resolver-, que NO abre con el formulario vacio ni con un estudio ajeno, y que NO llega al papel', `
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]), 'esperado ' + String(t[2]) + ' | hallado ' + String(t[1])]) };
+  const secDe = (pref) => IND_SECS.filter(x =>
+    x.tit.normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').indexOf(pref) === 0)[0];
+  const NN = (s) => String(s || '').split(String.fromCharCode(10)).join(' ')
+    .split('  ').join(' ').split('  ').join(' ').trim();
+  const S = (o) => { const p = []; const rec = (x) => { if (x == null) return;
+      if (typeof x === 'string') { p.push(x); return }
+      if (Array.isArray(x)) { x.forEach(rec); return }
+      if (typeof x === 'object') { Object.keys(x).forEach(k => rec(x[k])); return } };
+    rec(o); return NN(p.join(' ~ ')) };
+  /* ── (A) DENOMINADOR: la seccion esta registrada y abre con su escenario ── */
+  const sc = secDe('Defecto del septo auriculoventricular');
+  ex.push(['(A0) DENOMINADOR: la seccion esta registrada en IND_SECS', !!sc, true]);
+  __t.limpiar();
+  __t.set('nombre','Evidencia PANT10'); __t.set('ci','70707070');
+  const CAMP = { dsav_tipo:'completo', dsav_regurg_av_izq:'severa', dsav_qp_qs:'2.1', dsav_rvp_uw:'4.5', dsav_down:'si' };
+  Object.keys(CAMP).forEach(k => { try { __t.set(k, CAMP[k]) } catch (e) {} });
+  let r = null; try { r = sc ? sc.fn() : null } catch (e) { r = 'EXC ' + String(e).slice(0, 60) }
+  ex.push(['(A1) DENOMINADOR: con su escenario cargado la seccion ABRE', !!(r && r.filas), true]);
+  const filas = (r && r.filas) ? r.filas : [];
+  const clin  = (r && r.clinica) ? r.clinica : [];
+  const bloq  = (r && r.bloques) ? r.bloques : [];
+  ex.push(['(A2) DENOMINADOR: publica su franja de datos del estudio', filas.length >= 6, true]);
+  /* ── (B) LAS PREGUNTAS ── */
+  /* El DSAV tiene TRECE preguntas y la primera version de este caso decia doce: se corrige
+     el CASO, no la aplicacion, porque el numero real es el que la seccion publica. */
+  ex.push(['(B1) tiene 13 preguntas mas la fila de Respuestas', clin.length, 13 + 1]);
+  ex.push(['(B2) la primera fila es el recuento de Respuestas', (clin[0] || {}).lbl, 'Respuestas']);
+  ex.push(['(B3) y declara que «sin dato» no cuenta como «no»',
+    String((clin[0] || {}).nota || '').indexOf('no cuenta como') > -1, true]);
+  ex.push(['(B4) por tener mas de 6 preguntas va en DOS columnas', !!(r && r.preguntas), true]);
+  ex.push(['(B5) y usa el molde compacto', !!(r && r.compacta), true]);
+  /* ── (C) CADA PREGUNTA NOMBRA SU GUIA, SU CLASE Y SU FOLIO ── */
+  const txtClin = S(clin);
+  ex.push(['(C1) toda pregunta trae su recomendacion con clase', txtClin.indexOf('Clase') > -1, true]);
+  ex.push(['(C2) y su hoja y su folio', txtClin.indexOf('folio') > -1 && txtClin.indexOf('hoja') > -1, true]);
+  const todo = S(r);
+  /* ⚠️ LAS CONDICIONES DE FOLIO MIRABAN EL OBJETO ENTERO Y NO DISCRIMINABAN: lo encontro el
+     barrido de mutaciones. Un folio aparece en la linea de Fuente Y en la nota de varias
+     preguntas, asi que quitarlo de la Fuente -que es lo que una mutacion hace- pasaba en verde.
+     Hoy se exige ademas que CADA linea de Fuente nombre su hoja y su folio. */
+  const lineasFuente = [];
+  bloq.forEach(function (b) { (b.lineas || []).forEach(function (l) {
+    const t = String((l || {}).txt || '');
+    if (t.indexOf('Fuente:') === 0) lineasFuente.push(t); }); });
+  ex.push(['(C3b) DENOMINADOR: la seccion publica al menos dos lineas de Fuente', lineasFuente.length >= 2, true]);
+  ex.push(['(C3c) y TODA linea de Fuente nombra su hoja y su folio',
+    lineasFuente.filter(t => t.indexOf('folio') > -1 && t.indexOf('hoja') > -1).length, lineasFuente.length]);
+  const FOL = ['folio e156', 'folio e157', 'folio 597', 'folio 596'];
+  ex.push(['(C3) la seccion publica sus folios leidos en imagen',
+    FOL.filter(f => todo.indexOf(f) > -1).length, FOL.length]);
+  const CLA = ['Clase 1', 'Clase 2a', 'Clase 3: Daño', 'Clase I', 'Clase IIa', 'Clase III'];
+  ex.push(['(C4) y las clases de sus recomendaciones',
+    CLA.filter(c => todo.indexOf(c) > -1).length, CLA.length]);
+  /* ── (D) LAS DIFERENCIAS ENTRE GUIAS SE MUESTRAN Y NO SE RESUELVEN ── */
+  /* ⚠️ Y LA DE LAS DIFERENCIAS MIRABA EL OBJETO ENTERO TAMBIEN: la frase de una diferencia
+     aparece en la nota de la pregunta que la nombra, asi que sacarla del bloque de diferencias
+     pasaba en verde. Hoy se mide sobre el BLOQUE, que es donde la tanda la pone. */
+  const bloqDif = S(bloq.filter(b => {
+    const t = String((b || {}).tit || '');
+    return t.indexOf('diferencia') > -1 || t.indexOf('Lo que publica') > -1
+        || t.indexOf('declaraci\u00f3n cient\u00edfica') > -1 || t.indexOf('Pron\u00f3stico') > -1; }));
+  ex.push(['(D0) DENOMINADOR: la seccion tiene su bloque de diferencias o de fuente aparte', bloqDif.length > 100, true]);
+  const DIF = ['40 mm', '45 mm', 'por debajo de 60 %', '60 % o menos'];
+  ex.push(['(D1) muestra los dos umbrales de diametro telesistolico y los dos operadores de la fraccion de eyeccion, en su bloque', DIF.filter(d => bloqDif.indexOf(d) > -1).length, DIF.length]);
+  ex.push(['(D2) y lo hace en un bloque propio de diferencias, o en la nota de una pregunta',
+    todo.indexOf('no coincide') > -1 || todo.indexOf('sin resolver') > -1 || todo.indexOf('difieren') > -1, true]);
+  ex.push(['(D3) la guia que RIGE esta declarada', !!(r && r.guia && r.guia.txt), true]);
+  /* ── (E) EL PAPEL NO LA LLEVA ── */
+  try { if (typeof generarInforme === 'function') generarInforme() } catch (e) {}
+  const inf = String((document.getElementById('informe_texto') || {}).value || '');
+  const sum = String((document.getElementById('en_suma') || {}).value || '');
+  ex.push(['(E0) DENOMINADOR: el informe se emitio y no esta vacio', inf.length > 40, true]);
+  ex.push(['(E1) el informe NO publica «Recomendaciones que aplican»', inf.indexOf('Recomendaciones que aplican') === -1, true]);
+  ex.push(['(E2) el EN SUMA tampoco', sum.indexOf('Recomendaciones que aplican') === -1, true]);
+  ex.push(['(E3) y las respuestas de la seccion no son campos del estudio',
+    Object.keys(CAMP).concat(['nombre','ci']).length > 0
+      && !document.getElementById('dsav.ev.eisen'), true]);
+  /* ── (F) CONTROL NEGATIVO: con el formulario VACIO la seccion NO abre ── */
+  __t.limpiar();
+  let r0 = 'no-null'; try { r0 = sc ? sc.fn() : 'sin-sec' } catch (e) { r0 = 'EXC' }
+  ex.push(['(F1) CONTROL: con el formulario vacio la seccion NO abre', r0 === null, true]);
+  /* ── (G) CONTROL NEGATIVO: un estudio AJENO tampoco la abre ── */
+  __t.limpiar();
+  __t.set('nombre','Ajeno'); __t.set('ci','80808080');
+  ['im_vc','8'].length;
+  try { __t.set('im_vc','8'); __t.set('vmax_ao','4.5'); __t.set('onda_e','110') } catch (e) {}
+  let r1 = 'no-null'; try { r1 = sc ? sc.fn() : 'sin-sec' } catch (e) { r1 = 'EXC' }
+  ex.push(['(G1) CONTROL: un estudio sin datos de esta lesion NO abre la seccion', r1 === null, true]);
+  /* ── (H) CONTROL: el evaluador de la pantalla es el dueno de la compuerta ── */
+  ex.push(['(H1) CONTROL: la compuerta la decide dsavEstado, el evaluador de la pantalla',
+    typeof dsavEstado === 'function', true]);
+  return { extra: EXP };
+`);
+
+
+/* ══ TC-670 — PANT-10: la Evidencia de «Anomalía de Ebstein» ══════════════════
+   DENOMINADOR: la seccion abre con su escenario. Sin eso, todo lo que sigue se cumpliria
+   sobre una seccion que no existe. CONTROL NEGATIVO: con el formulario VACIO no abre, y con
+   un estudio AJENO tampoco. Y el papel no la lleva. */
+caso('TC-670', 'Tanda PANT-10: la Evidencia de Anomalía de Ebstein -sus filas de datos, sus 12 preguntas con guia, clase, nivel, hoja y folio, las diferencias entre guias mostradas sin resolver-, que NO abre con el formulario vacio ni con un estudio ajeno, y que NO llega al papel', `
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]), 'esperado ' + String(t[2]) + ' | hallado ' + String(t[1])]) };
+  const secDe = (pref) => IND_SECS.filter(x =>
+    x.tit.normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').indexOf(pref) === 0)[0];
+  const NN = (s) => String(s || '').split(String.fromCharCode(10)).join(' ')
+    .split('  ').join(' ').split('  ').join(' ').trim();
+  const S = (o) => { const p = []; const rec = (x) => { if (x == null) return;
+      if (typeof x === 'string') { p.push(x); return }
+      if (Array.isArray(x)) { x.forEach(rec); return }
+      if (typeof x === 'object') { Object.keys(x).forEach(k => rec(x[k])); return } };
+    rec(o); return NN(p.join(' ~ ')) };
+  /* ── (A) DENOMINADOR: la seccion esta registrada y abre con su escenario ── */
+  const sc = secDe('Anomalia de Ebstein');
+  ex.push(['(A0) DENOMINADOR: la seccion esta registrada en IND_SECS', !!sc, true]);
+  __t.limpiar();
+  __t.set('nombre','Evidencia PANT10'); __t.set('ci','70707070');
+  const CAMP = { peso:'70', talla:'170', ebs_desplazamiento:'22', ebs_func_vd:'moderada', ebs_sintomas:'si', ebs_saturacion:'88', it_grado:'4' };
+  Object.keys(CAMP).forEach(k => { try { __t.set(k, CAMP[k]) } catch (e) {} });
+  let r = null; try { r = sc ? sc.fn() : null } catch (e) { r = 'EXC ' + String(e).slice(0, 60) }
+  ex.push(['(A1) DENOMINADOR: con su escenario cargado la seccion ABRE', !!(r && r.filas), true]);
+  const filas = (r && r.filas) ? r.filas : [];
+  const clin  = (r && r.clinica) ? r.clinica : [];
+  const bloq  = (r && r.bloques) ? r.bloques : [];
+  ex.push(['(A2) DENOMINADOR: publica su franja de datos del estudio', filas.length >= 6, true]);
+  /* ── (B) LAS PREGUNTAS ── */
+  ex.push(['(B1) tiene 12 preguntas mas la fila de Respuestas', clin.length, 12 + 1]);
+  ex.push(['(B2) la primera fila es el recuento de Respuestas', (clin[0] || {}).lbl, 'Respuestas']);
+  ex.push(['(B3) y declara que «sin dato» no cuenta como «no»',
+    String((clin[0] || {}).nota || '').indexOf('no cuenta como') > -1, true]);
+  ex.push(['(B4) por tener mas de 6 preguntas va en DOS columnas', !!(r && r.preguntas), true]);
+  ex.push(['(B5) y usa el molde compacto', !!(r && r.compacta), true]);
+  /* ── (C) CADA PREGUNTA NOMBRA SU GUIA, SU CLASE Y SU FOLIO ── */
+  const txtClin = S(clin);
+  ex.push(['(C1) toda pregunta trae su recomendacion con clase', txtClin.indexOf('Clase') > -1, true]);
+  ex.push(['(C2) y su hoja y su folio', txtClin.indexOf('folio') > -1 && txtClin.indexOf('hoja') > -1, true]);
+  const todo = S(r);
+  /* ⚠️ LAS CONDICIONES DE FOLIO MIRABAN EL OBJETO ENTERO Y NO DISCRIMINABAN: lo encontro el
+     barrido de mutaciones. Un folio aparece en la linea de Fuente Y en la nota de varias
+     preguntas, asi que quitarlo de la Fuente -que es lo que una mutacion hace- pasaba en verde.
+     Hoy se exige ademas que CADA linea de Fuente nombre su hoja y su folio. */
+  const lineasFuente = [];
+  bloq.forEach(function (b) { (b.lineas || []).forEach(function (l) {
+    const t = String((l || {}).txt || '');
+    if (t.indexOf('Fuente:') === 0) lineasFuente.push(t); }); });
+  ex.push(['(C3b) DENOMINADOR: la seccion publica al menos dos lineas de Fuente', lineasFuente.length >= 2, true]);
+  ex.push(['(C3c) y TODA linea de Fuente nombra su hoja y su folio',
+    lineasFuente.filter(t => t.indexOf('folio') > -1 && t.indexOf('hoja') > -1).length, lineasFuente.length]);
+  const FOL = ['folio e173', 'folio e174', 'folio e176', 'folio 611'];
+  ex.push(['(C3) la seccion publica sus folios leidos en imagen',
+    FOL.filter(f => todo.indexOf(f) > -1).length, FOL.length]);
+  const CLA = ['Clase 1', 'Clase 2a', 'Clase 2b', 'Clase I', 'Clase IIa', 'Clase IIb'];
+  ex.push(['(C4) y las clases de sus recomendaciones',
+    CLA.filter(c => todo.indexOf(c) > -1).length, CLA.length]);
+  /* ── (D) LAS DIFERENCIAS ENTRE GUIAS SE MUESTRAN Y NO SE RESUELVEN ── */
+  /* ⚠️ Y LA DE LAS DIFERENCIAS MIRABA EL OBJETO ENTERO TAMBIEN: la frase de una diferencia
+     aparece en la nota de la pregunta que la nombra, asi que sacarla del bloque de diferencias
+     pasaba en verde. Hoy se mide sobre el BLOQUE, que es donde la tanda la pone. */
+  const bloqDif = S(bloq.filter(b => {
+    const t = String((b || {}).tit || '');
+    return t.indexOf('diferencia') > -1 || t.indexOf('Lo que publica') > -1
+        || t.indexOf('declaraci\u00f3n cient\u00edfica') > -1 || t.indexOf('Pron\u00f3stico') > -1; }));
+  ex.push(['(D0) DENOMINADOR: la seccion tiene su bloque de diferencias o de fuente aparte', bloqDif.length > 100, true]);
+  /* ⚠️ Y AUN SOBRE EL BLOQUE LAS CUATRO CADENAS NO DISCRIMINABAN: lo encontro la mutacion 23.
+     «al menos moderada» y «severa» aparecen tambien en la linea de al lado -la del paciente
+     asintomatico-, asi que reescribir la PRIMERA diferencia pasaba en verde. Hoy cada una pide
+     su frase entera, que es lo unico que prueba que esa diferencia esta dicha. */
+  const DIF = ['al menos moderada en la ACC/AHA 2025 y severa en la ESC 2020',
+               'en reposo o con esfuerzo, y la ESC 2020 sólo en reposo'];
+  ex.push(['(D1) muestra el grado de insuficiencia tricuspidea y como cuenta cada guia la cianosis, en su bloque', DIF.filter(d => bloqDif.indexOf(d) > -1).length, DIF.length]);
+  ex.push(['(D2) y lo hace en un bloque propio de diferencias, o en la nota de una pregunta',
+    todo.indexOf('no coincide') > -1 || todo.indexOf('sin resolver') > -1 || todo.indexOf('difieren') > -1, true]);
+  ex.push(['(D3) la guia que RIGE esta declarada', !!(r && r.guia && r.guia.txt), true]);
+  /* ── (E) EL PAPEL NO LA LLEVA ── */
+  try { if (typeof generarInforme === 'function') generarInforme() } catch (e) {}
+  const inf = String((document.getElementById('informe_texto') || {}).value || '');
+  const sum = String((document.getElementById('en_suma') || {}).value || '');
+  ex.push(['(E0) DENOMINADOR: el informe se emitio y no esta vacio', inf.length > 40, true]);
+  ex.push(['(E1) el informe NO publica «Recomendaciones que aplican»', inf.indexOf('Recomendaciones que aplican') === -1, true]);
+  ex.push(['(E2) el EN SUMA tampoco', sum.indexOf('Recomendaciones que aplican') === -1, true]);
+  ex.push(['(E3) y las respuestas de la seccion no son campos del estudio',
+    Object.keys(CAMP).concat(['nombre','ci']).length > 0
+      && !document.getElementById('ebs.ev.ic'), true]);
+  /* ── (F) CONTROL NEGATIVO: con el formulario VACIO la seccion NO abre ── */
+  __t.limpiar();
+  let r0 = 'no-null'; try { r0 = sc ? sc.fn() : 'sin-sec' } catch (e) { r0 = 'EXC' }
+  ex.push(['(F1) CONTROL: con el formulario vacio la seccion NO abre', r0 === null, true]);
+  /* ── (G) CONTROL NEGATIVO: un estudio AJENO tampoco la abre ── */
+  __t.limpiar();
+  __t.set('nombre','Ajeno'); __t.set('ci','80808080');
+  ['im_vc','8'].length;
+  try { __t.set('im_vc','8'); __t.set('vmax_ao','4.5'); __t.set('onda_e','110') } catch (e) {}
+  let r1 = 'no-null'; try { r1 = sc ? sc.fn() : 'sin-sec' } catch (e) { r1 = 'EXC' }
+  ex.push(['(G1) CONTROL: un estudio sin datos de esta lesion NO abre la seccion', r1 === null, true]);
+  /* ── (H) CONTROL: el evaluador de la pantalla es el dueno de la compuerta ── */
+  ex.push(['(H1) CONTROL: la compuerta la decide ebsConclusion, el evaluador de la pantalla',
+    typeof ebsConclusion === 'function', true]);
+  return { extra: EXP };
+`);
+
+
+/* ══ TC-671 — PANT-10: la Evidencia de «Circulación de Fontan» ══════════════════
+   DENOMINADOR: la seccion abre con su escenario. Sin eso, todo lo que sigue se cumpliria
+   sobre una seccion que no existe. CONTROL NEGATIVO: con el formulario VACIO no abre, y con
+   un estudio AJENO tampoco. Y el papel no la lleva. */
+caso('TC-671', 'Tanda PANT-10: la Evidencia de Circulación de Fontan -sus filas de datos, sus 14 preguntas con guia, clase, nivel, hoja y folio, las diferencias entre guias mostradas sin resolver-, que NO abre con el formulario vacio ni con un estudio ajeno, y que NO llega al papel', `
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]), 'esperado ' + String(t[2]) + ' | hallado ' + String(t[1])]) };
+  const secDe = (pref) => IND_SECS.filter(x =>
+    x.tit.normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').indexOf(pref) === 0)[0];
+  const NN = (s) => String(s || '').split(String.fromCharCode(10)).join(' ')
+    .split('  ').join(' ').split('  ').join(' ').trim();
+  const S = (o) => { const p = []; const rec = (x) => { if (x == null) return;
+      if (typeof x === 'string') { p.push(x); return }
+      if (Array.isArray(x)) { x.forEach(rec); return }
+      if (typeof x === 'object') { Object.keys(x).forEach(k => rec(x[k])); return } };
+    rec(o); return NN(p.join(' ~ ')) };
+  /* ── (A) DENOMINADOR: la seccion esta registrada y abre con su escenario ── */
+  const sc = secDe('Circulacion de Fontan');
+  ex.push(['(A0) DENOMINADOR: la seccion esta registrada en IND_SECS', !!sc, true]);
+  __t.limpiar();
+  __t.set('nombre','Evidencia PANT10'); __t.set('ci','70707070');
+  const CAMP = { fontan_tipo:'ap', fontan_saturacion:'88', fontan_it_grado:'moderada', fontan_clase_nyha:'iii', fontan_arritmia:'fa' };
+  Object.keys(CAMP).forEach(k => { try { __t.set(k, CAMP[k]) } catch (e) {} });
+  let r = null; try { r = sc ? sc.fn() : null } catch (e) { r = 'EXC ' + String(e).slice(0, 60) }
+  ex.push(['(A1) DENOMINADOR: con su escenario cargado la seccion ABRE', !!(r && r.filas), true]);
+  const filas = (r && r.filas) ? r.filas : [];
+  const clin  = (r && r.clinica) ? r.clinica : [];
+  const bloq  = (r && r.bloques) ? r.bloques : [];
+  ex.push(['(A2) DENOMINADOR: publica su franja de datos del estudio', filas.length >= 6, true]);
+  /* ── (B) LAS PREGUNTAS ── */
+  ex.push(['(B1) tiene 14 preguntas mas la fila de Respuestas', clin.length, 14 + 1]);
+  ex.push(['(B2) la primera fila es el recuento de Respuestas', (clin[0] || {}).lbl, 'Respuestas']);
+  ex.push(['(B3) y declara que «sin dato» no cuenta como «no»',
+    String((clin[0] || {}).nota || '').indexOf('no cuenta como') > -1, true]);
+  ex.push(['(B4) por tener mas de 6 preguntas va en DOS columnas', !!(r && r.preguntas), true]);
+  ex.push(['(B5) y usa el molde compacto', !!(r && r.compacta), true]);
+  /* ── (C) CADA PREGUNTA NOMBRA SU GUIA, SU CLASE Y SU FOLIO ── */
+  const txtClin = S(clin);
+  ex.push(['(C1) toda pregunta trae su recomendacion con clase', txtClin.indexOf('Clase') > -1, true]);
+  ex.push(['(C2) y su hoja y su folio', txtClin.indexOf('folio') > -1 && txtClin.indexOf('hoja') > -1, true]);
+  const todo = S(r);
+  /* ⚠️ LAS CONDICIONES DE FOLIO MIRABAN EL OBJETO ENTERO Y NO DISCRIMINABAN: lo encontro el
+     barrido de mutaciones. Un folio aparece en la linea de Fuente Y en la nota de varias
+     preguntas, asi que quitarlo de la Fuente -que es lo que una mutacion hace- pasaba en verde.
+     Hoy se exige ademas que CADA linea de Fuente nombre su hoja y su folio. */
+  const lineasFuente = [];
+  bloq.forEach(function (b) { (b.lineas || []).forEach(function (l) {
+    const t = String((l || {}).txt || '');
+    if (t.indexOf('Fuente:') === 0) lineasFuente.push(t); }); });
+  ex.push(['(C3b) DENOMINADOR: la seccion publica al menos dos lineas de Fuente', lineasFuente.length >= 2, true]);
+  ex.push(['(C3c) y TODA linea de Fuente nombra su hoja y su folio',
+    lineasFuente.filter(t => t.indexOf('folio') > -1 && t.indexOf('hoja') > -1).length, lineasFuente.length]);
+  const FOL = ['folio e201', 'folio e206', 'folio 627', 'folio e241', 'folio e242'];
+  ex.push(['(C3) la seccion publica sus folios leidos en imagen',
+    FOL.filter(f => todo.indexOf(f) > -1).length, FOL.length]);
+  const CLA = ['Clase 1', 'Clase 2a', 'Clase 2b', 'Clase I', 'Clase IIa', 'Clase IIb'];
+  ex.push(['(C4) y las clases de sus recomendaciones',
+    CLA.filter(c => todo.indexOf(c) > -1).length, CLA.length]);
+  /* ── (D) LAS DIFERENCIAS ENTRE GUIAS SE MUESTRAN Y NO SE RESUELVEN ── */
+  /* ⚠️ Y LA DE LAS DIFERENCIAS MIRABA EL OBJETO ENTERO TAMBIEN: la frase de una diferencia
+     aparece en la nota de la pregunta que la nombra, asi que sacarla del bloque de diferencias
+     pasaba en verde. Hoy se mide sobre el BLOQUE, que es donde la tanda la pone. */
+  const bloqDif = S(bloq.filter(b => {
+    const t = String((b || {}).tit || '');
+    return t.indexOf('diferencia') > -1 || t.indexOf('Lo que publica') > -1
+        || t.indexOf('declaraci\u00f3n cient\u00edfica') > -1 || t.indexOf('Pron\u00f3stico') > -1; }));
+  ex.push(['(D0) DENOMINADOR: la seccion tiene su bloque de diferencias o de fuente aparte', bloqDif.length > 100, true]);
+  const DIF = ['declaración científica', 'una guía de práctica'];
+  ex.push(['(D1) muestra que Rychik es una declaracion cientifica de la AHA y no una guia, en su bloque', DIF.filter(d => bloqDif.indexOf(d) > -1).length, DIF.length]);
+  ex.push(['(D2) y lo hace en un bloque propio de diferencias, o en la nota de una pregunta',
+    todo.indexOf('no coincide') > -1 || todo.indexOf('sin resolver') > -1 || todo.indexOf('difieren') > -1, true]);
+  ex.push(['(D3) la guia que RIGE esta declarada', !!(r && r.guia && r.guia.txt), true]);
+  /* ── (E) EL PAPEL NO LA LLEVA ── */
+  try { if (typeof generarInforme === 'function') generarInforme() } catch (e) {}
+  const inf = String((document.getElementById('informe_texto') || {}).value || '');
+  const sum = String((document.getElementById('en_suma') || {}).value || '');
+  ex.push(['(E0) DENOMINADOR: el informe se emitio y no esta vacio', inf.length > 40, true]);
+  ex.push(['(E1) el informe NO publica «Recomendaciones que aplican»', inf.indexOf('Recomendaciones que aplican') === -1, true]);
+  ex.push(['(E2) el EN SUMA tampoco', sum.indexOf('Recomendaciones que aplican') === -1, true]);
+  ex.push(['(E3) y las respuestas de la seccion no son campos del estudio',
+    Object.keys(CAMP).concat(['nombre','ci']).length > 0
+      && !document.getElementById('fon.ev.trombo'), true]);
+  /* ── (F) CONTROL NEGATIVO: con el formulario VACIO la seccion NO abre ── */
+  __t.limpiar();
+  let r0 = 'no-null'; try { r0 = sc ? sc.fn() : 'sin-sec' } catch (e) { r0 = 'EXC' }
+  ex.push(['(F1) CONTROL: con el formulario vacio la seccion NO abre', r0 === null, true]);
+  /* ── (G) CONTROL NEGATIVO: un estudio AJENO tampoco la abre ── */
+  __t.limpiar();
+  __t.set('nombre','Ajeno'); __t.set('ci','80808080');
+  ['im_vc','8'].length;
+  try { __t.set('im_vc','8'); __t.set('vmax_ao','4.5'); __t.set('onda_e','110') } catch (e) {}
+  let r1 = 'no-null'; try { r1 = sc ? sc.fn() : 'sin-sec' } catch (e) { r1 = 'EXC' }
+  ex.push(['(G1) CONTROL: un estudio sin datos de esta lesion NO abre la seccion', r1 === null, true]);
+  /* ── (H) CONTROL: el evaluador de la pantalla es el dueno de la compuerta ── */
+  ex.push(['(H1) CONTROL: la compuerta la decide fontanEstado, el evaluador de la pantalla',
+    typeof fontanEstado === 'function', true]);
+  return { extra: EXP };
+`);
+
+
+/* ══ TC-672 — PANT-10: la Evidencia de «Conexión venosa pulmonar anómala parcial» ══════════════════
+   DENOMINADOR: la seccion abre con su escenario. Sin eso, todo lo que sigue se cumpliria
+   sobre una seccion que no existe. CONTROL NEGATIVO: con el formulario VACIO no abre, y con
+   un estudio AJENO tampoco. Y el papel no la lleva. */
+caso('TC-672', 'Tanda PANT-10: la Evidencia de Conexión venosa pulmonar anómala parcial -sus filas de datos, sus 9 preguntas con guia, clase, nivel, hoja y folio, las diferencias entre guias mostradas sin resolver-, que NO abre con el formulario vacio ni con un estudio ajeno, y que NO llega al papel', `
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]), 'esperado ' + String(t[2]) + ' | hallado ' + String(t[1])]) };
+  const secDe = (pref) => IND_SECS.filter(x =>
+    x.tit.normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').indexOf(pref) === 0)[0];
+  const NN = (s) => String(s || '').split(String.fromCharCode(10)).join(' ')
+    .split('  ').join(' ').split('  ').join(' ').trim();
+  const S = (o) => { const p = []; const rec = (x) => { if (x == null) return;
+      if (typeof x === 'string') { p.push(x); return }
+      if (Array.isArray(x)) { x.forEach(rec); return }
+      if (typeof x === 'object') { Object.keys(x).forEach(k => rec(x[k])); return } };
+    rec(o); return NN(p.join(' ~ ')) };
+  /* ── (A) DENOMINADOR: la seccion esta registrada y abre con su escenario ── */
+  const sc = secDe('Conexion venosa pulmonar anomala parcial');
+  ex.push(['(A0) DENOMINADOR: la seccion esta registrada en IND_SECS', !!sc, true]);
+  __t.limpiar();
+  __t.set('nombre','Evidencia PANT10'); __t.set('ci','70707070');
+  const CAMP = { cvpa_venas_numero:'2', cvpa_conexion:'vcs', cvpa_lado:'der', cvpa_qp_qs:'1.8', cvpa_sintomas:'disnea' };
+  Object.keys(CAMP).forEach(k => { try { __t.set(k, CAMP[k]) } catch (e) {} });
+  let r = null; try { r = sc ? sc.fn() : null } catch (e) { r = 'EXC ' + String(e).slice(0, 60) }
+  ex.push(['(A1) DENOMINADOR: con su escenario cargado la seccion ABRE', !!(r && r.filas), true]);
+  const filas = (r && r.filas) ? r.filas : [];
+  const clin  = (r && r.clinica) ? r.clinica : [];
+  const bloq  = (r && r.bloques) ? r.bloques : [];
+  ex.push(['(A2) DENOMINADOR: publica su franja de datos del estudio', filas.length >= 6, true]);
+  /* ── (B) LAS PREGUNTAS ── */
+  ex.push(['(B1) tiene 9 preguntas mas la fila de Respuestas', clin.length, 9 + 1]);
+  ex.push(['(B2) la primera fila es el recuento de Respuestas', (clin[0] || {}).lbl, 'Respuestas']);
+  ex.push(['(B3) y declara que «sin dato» no cuenta como «no»',
+    String((clin[0] || {}).nota || '').indexOf('no cuenta como') > -1, true]);
+  ex.push(['(B4) por tener mas de 6 preguntas va en DOS columnas', !!(r && r.preguntas), true]);
+  ex.push(['(B5) y usa el molde compacto', !!(r && r.compacta), true]);
+  /* ── (C) CADA PREGUNTA NOMBRA SU GUIA, SU CLASE Y SU FOLIO ── */
+  const txtClin = S(clin);
+  ex.push(['(C1) toda pregunta trae su recomendacion con clase', txtClin.indexOf('Clase') > -1, true]);
+  ex.push(['(C2) y su hoja y su folio', txtClin.indexOf('folio') > -1 && txtClin.indexOf('hoja') > -1, true]);
+  const todo = S(r);
+  /* ⚠️ LAS CONDICIONES DE FOLIO MIRABAN EL OBJETO ENTERO Y NO DISCRIMINABAN: lo encontro el
+     barrido de mutaciones. Un folio aparece en la linea de Fuente Y en la nota de varias
+     preguntas, asi que quitarlo de la Fuente -que es lo que una mutacion hace- pasaba en verde.
+     Hoy se exige ademas que CADA linea de Fuente nombre su hoja y su folio. */
+  const lineasFuente = [];
+  bloq.forEach(function (b) { (b.lineas || []).forEach(function (l) {
+    const t = String((l || {}).txt || '');
+    if (t.indexOf('Fuente:') === 0) lineasFuente.push(t); }); });
+  ex.push(['(C3b) DENOMINADOR: la seccion publica al menos dos lineas de Fuente', lineasFuente.length >= 2, true]);
+  ex.push(['(C3c) y TODA linea de Fuente nombra su hoja y su folio',
+    lineasFuente.filter(t => t.indexOf('folio') > -1 && t.indexOf('hoja') > -1).length, lineasFuente.length]);
+  const FOL = ['folio e158', 'folio e159', 'folio 575', 'folio 591'];
+  ex.push(['(C3) la seccion publica sus folios leidos en imagen',
+    FOL.filter(f => todo.indexOf(f) > -1).length, FOL.length]);
+  const CLA = ['Clase 1', 'Clase 2a', 'Clase 3: Sin beneficio', 'Clase I'];
+  ex.push(['(C4) y las clases de sus recomendaciones',
+    CLA.filter(c => todo.indexOf(c) > -1).length, CLA.length]);
+  /* ── (D) LAS DIFERENCIAS ENTRE GUIAS SE MUESTRAN Y NO SE RESUELVEN ── */
+  /* ⚠️ Y LA DE LAS DIFERENCIAS MIRABA EL OBJETO ENTERO TAMBIEN: la frase de una diferencia
+     aparece en la nota de la pregunta que la nombra, asi que sacarla del bloque de diferencias
+     pasaba en verde. Hoy se mide sobre el BLOQUE, que es donde la tanda la pone. */
+  const bloqDif = S(bloq.filter(b => {
+    const t = String((b || {}).tit || '');
+    return t.indexOf('diferencia') > -1 || t.indexOf('Lo que publica') > -1
+        || t.indexOf('declaraci\u00f3n cient\u00edfica') > -1 || t.indexOf('Pron\u00f3stico') > -1; }));
+  ex.push(['(D0) DENOMINADOR: la seccion tiene su bloque de diferencias o de fuente aparte', bloqDif.length > 100, true]);
+  const DIF = ['publica una tabla de recomendaciones propia', 'rara vez se necesita'];
+  ex.push(['(D1) muestra que la ESC 2020 no tiene tabla propia y remite al cierre de la comunicacion interauricular, en su bloque', DIF.filter(d => bloqDif.indexOf(d) > -1).length, DIF.length]);
+  ex.push(['(D2) y lo hace en un bloque propio de diferencias, o en la nota de una pregunta',
+    todo.indexOf('no coincide') > -1 || todo.indexOf('sin resolver') > -1 || todo.indexOf('difieren') > -1, true]);
+  ex.push(['(D3) la guia que RIGE esta declarada', !!(r && r.guia && r.guia.txt), true]);
+  /* ── (E) EL PAPEL NO LA LLEVA ── */
+  try { if (typeof generarInforme === 'function') generarInforme() } catch (e) {}
+  const inf = String((document.getElementById('informe_texto') || {}).value || '');
+  const sum = String((document.getElementById('en_suma') || {}).value || '');
+  ex.push(['(E0) DENOMINADOR: el informe se emitio y no esta vacio', inf.length > 40, true]);
+  ex.push(['(E1) el informe NO publica «Recomendaciones que aplican»', inf.indexOf('Recomendaciones que aplican') === -1, true]);
+  ex.push(['(E2) el EN SUMA tampoco', sum.indexOf('Recomendaciones que aplican') === -1, true]);
+  ex.push(['(E3) y las respuestas de la seccion no son campos del estudio',
+    Object.keys(CAMP).concat(['nombre','ci']).length > 0
+      && !document.getElementById('cvpa.ev.reparado'), true]);
+  /* ── (F) CONTROL NEGATIVO: con el formulario VACIO la seccion NO abre ── */
+  __t.limpiar();
+  let r0 = 'no-null'; try { r0 = sc ? sc.fn() : 'sin-sec' } catch (e) { r0 = 'EXC' }
+  ex.push(['(F1) CONTROL: con el formulario vacio la seccion NO abre', r0 === null, true]);
+  /* ── (G) CONTROL NEGATIVO: un estudio AJENO tampoco la abre ── */
+  __t.limpiar();
+  __t.set('nombre','Ajeno'); __t.set('ci','80808080');
+  ['im_vc','8'].length;
+  try { __t.set('im_vc','8'); __t.set('vmax_ao','4.5'); __t.set('onda_e','110') } catch (e) {}
+  let r1 = 'no-null'; try { r1 = sc ? sc.fn() : 'sin-sec' } catch (e) { r1 = 'EXC' }
+  ex.push(['(G1) CONTROL: un estudio sin datos de esta lesion NO abre la seccion', r1 === null, true]);
+  /* ── (H) CONTROL: el evaluador de la pantalla es el dueno de la compuerta ── */
+  ex.push(['(H1) CONTROL: la compuerta la decide cvpaEstado, el evaluador de la pantalla',
+    typeof cvpaEstado === 'function', true]);
+  return { extra: EXP };
+`);
+
+
+/* ══ TC-673 — PANT-10: la Evidencia de «Síndrome de Eisenmenger» ══════════════════
+   DENOMINADOR: la seccion abre con su escenario. Sin eso, todo lo que sigue se cumpliria
+   sobre una seccion que no existe. CONTROL NEGATIVO: con el formulario VACIO no abre, y con
+   un estudio AJENO tampoco. Y el papel no la lleva. */
+caso('TC-673', 'Tanda PANT-10: la Evidencia de Síndrome de Eisenmenger -sus filas de datos, sus 14 preguntas con guia, clase, nivel, hoja y folio, las diferencias entre guias mostradas sin resolver-, que NO abre con el formulario vacio ni con un estudio ajeno, y que NO llega al papel', `
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]), 'esperado ' + String(t[2]) + ' | hallado ' + String(t[1])]) };
+  const secDe = (pref) => IND_SECS.filter(x =>
+    x.tit.normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').indexOf(pref) === 0)[0];
+  const NN = (s) => String(s || '').split(String.fromCharCode(10)).join(' ')
+    .split('  ').join(' ').split('  ').join(' ').trim();
+  const S = (o) => { const p = []; const rec = (x) => { if (x == null) return;
+      if (typeof x === 'string') { p.push(x); return }
+      if (Array.isArray(x)) { x.forEach(rec); return }
+      if (typeof x === 'object') { Object.keys(x).forEach(k => rec(x[k])); return } };
+    rec(o); return NN(p.join(' ~ ')) };
+  /* ── (A) DENOMINADOR: la seccion esta registrada y abre con su escenario ── */
+  const sc = secDe('Sindrome de Eisenmenger');
+  ex.push(['(A0) DENOMINADOR: la seccion esta registrada en IND_SECS', !!sc, true]);
+  __t.limpiar();
+  __t.set('nombre','Evidencia PANT10'); __t.set('ci','70707070');
+  const CAMP = { eis_lesion_base:'civ', eis_saturacion_reposo:'84', eis_psap:'95', eis_vd_funcion:'moderada', eis_clase_nyha:'iii', eis_hemoptisis:'si' };
+  Object.keys(CAMP).forEach(k => { try { __t.set(k, CAMP[k]) } catch (e) {} });
+  let r = null; try { r = sc ? sc.fn() : null } catch (e) { r = 'EXC ' + String(e).slice(0, 60) }
+  ex.push(['(A1) DENOMINADOR: con su escenario cargado la seccion ABRE', !!(r && r.filas), true]);
+  const filas = (r && r.filas) ? r.filas : [];
+  const clin  = (r && r.clinica) ? r.clinica : [];
+  const bloq  = (r && r.bloques) ? r.bloques : [];
+  ex.push(['(A2) DENOMINADOR: publica su franja de datos del estudio', filas.length >= 6, true]);
+  /* ── (B) LAS PREGUNTAS ── */
+  ex.push(['(B1) tiene 14 preguntas mas la fila de Respuestas', clin.length, 14 + 1]);
+  ex.push(['(B2) la primera fila es el recuento de Respuestas', (clin[0] || {}).lbl, 'Respuestas']);
+  ex.push(['(B3) y declara que «sin dato» no cuenta como «no»',
+    String((clin[0] || {}).nota || '').indexOf('no cuenta como') > -1, true]);
+  ex.push(['(B4) por tener mas de 6 preguntas va en DOS columnas', !!(r && r.preguntas), true]);
+  ex.push(['(B5) y usa el molde compacto', !!(r && r.compacta), true]);
+  /* ── (C) CADA PREGUNTA NOMBRA SU GUIA, SU CLASE Y SU FOLIO ── */
+  const txtClin = S(clin);
+  ex.push(['(C1) toda pregunta trae su recomendacion con clase', txtClin.indexOf('Clase') > -1, true]);
+  ex.push(['(C2) y su hoja y su folio', txtClin.indexOf('folio') > -1 && txtClin.indexOf('hoja') > -1, true]);
+  const todo = S(r);
+  /* ⚠️ LAS CONDICIONES DE FOLIO MIRABAN EL OBJETO ENTERO Y NO DISCRIMINABAN: lo encontro el
+     barrido de mutaciones. Un folio aparece en la linea de Fuente Y en la nota de varias
+     preguntas, asi que quitarlo de la Fuente -que es lo que una mutacion hace- pasaba en verde.
+     Hoy se exige ademas que CADA linea de Fuente nombre su hoja y su folio. */
+  const lineasFuente = [];
+  bloq.forEach(function (b) { (b.lineas || []).forEach(function (l) {
+    const t = String((l || {}).txt || '');
+    if (t.indexOf('Fuente:') === 0) lineasFuente.push(t); }); });
+  ex.push(['(C3b) DENOMINADOR: la seccion publica al menos dos lineas de Fuente', lineasFuente.length >= 2, true]);
+  ex.push(['(C3c) y TODA linea de Fuente nombra su hoja y su folio',
+    lineasFuente.filter(t => t.indexOf('folio') > -1 && t.indexOf('hoja') > -1).length, lineasFuente.length]);
+  const FOL = ['folio e207', 'folio e209', 'folio e211', 'folio 66', 'folio 586', 'folio 4508'];
+  ex.push(['(C3) la seccion publica sus folios leidos en imagen',
+    FOL.filter(f => todo.indexOf(f) > -1).length, FOL.length]);
+  const CLA = ['Clase 1', 'Clase 2a', 'Clase 2b', 'Clase 3: Daño', 'Clase 3: Sin beneficio', 'Clase I', 'Clase IIa', 'Clase IIb', 'Clase III'];
+  ex.push(['(C4) y las clases de sus recomendaciones',
+    CLA.filter(c => todo.indexOf(c) > -1).length, CLA.length]);
+  /* ── (D) LAS DIFERENCIAS ENTRE GUIAS SE MUESTRAN Y NO SE RESUELVEN ── */
+  /* ⚠️ Y LA DE LAS DIFERENCIAS MIRABA EL OBJETO ENTERO TAMBIEN: la frase de una diferencia
+     aparece en la nota de la pregunta que la nombra, asi que sacarla del bloque de diferencias
+     pasaba en verde. Hoy se mide sobre el BLOQUE, que es donde la tanda la pone. */
+  const bloqDif = S(bloq.filter(b => {
+    const t = String((b || {}).tit || '');
+    return t.indexOf('diferencia') > -1 || t.indexOf('Lo que publica') > -1
+        || t.indexOf('declaraci\u00f3n cient\u00edfica') > -1 || t.indexOf('Pron\u00f3stico') > -1; }));
+  ex.push(['(D0) DENOMINADOR: la seccion tiene su bloque de diferencias o de fuente aparte', bloqDif.length > 100, true]);
+  /* ⚠️ EL CORTE DE TAPSE VIVE EN EL BLOQUE DE RECOMENDACIONES Y NO EN EL DE DIFERENCIAS, asi
+     que va con condicion propia: lo encontro la mutacion 35, que lo saca de la nota al pie y
+     sobrevivia porque «16 mm» aparece tambien en la fila de datos del TAPSE. */
+  ex.push(['(D1b) la nota al pie de riesgo alto publica sus cuatro criterios, con el TAPSE de 16 mm',
+    todo.indexOf('por debajo de 16 mm y NT-proBNP por encima de 1400') > -1, true]);
+  const DIF = ['bosentán', 'Clase 3: Daño', 'IIb con trombosis'];
+  ex.push(['(D1) muestra la primera linea de tratamiento y la anticoagulacion, en su bloque', DIF.filter(d => bloqDif.indexOf(d) > -1).length, DIF.length]);
+  ex.push(['(D2) y lo hace en un bloque propio de diferencias, o en la nota de una pregunta',
+    todo.indexOf('no coincide') > -1 || todo.indexOf('sin resolver') > -1 || todo.indexOf('difieren') > -1, true]);
+  ex.push(['(D3) la guia que RIGE esta declarada', !!(r && r.guia && r.guia.txt), true]);
+  /* ── (E) EL PAPEL NO LA LLEVA ── */
+  try { if (typeof generarInforme === 'function') generarInforme() } catch (e) {}
+  const inf = String((document.getElementById('informe_texto') || {}).value || '');
+  const sum = String((document.getElementById('en_suma') || {}).value || '');
+  ex.push(['(E0) DENOMINADOR: el informe se emitio y no esta vacio', inf.length > 40, true]);
+  ex.push(['(E1) el informe NO publica «Recomendaciones que aplican»', inf.indexOf('Recomendaciones que aplican') === -1, true]);
+  ex.push(['(E2) el EN SUMA tampoco', sum.indexOf('Recomendaciones que aplican') === -1, true]);
+  ex.push(['(E3) y las respuestas de la seccion no son campos del estudio',
+    Object.keys(CAMP).concat(['nombre','ci']).length > 0
+      && !document.getElementById('eis.ev.embarazo'), true]);
+  /* ── (F) CONTROL NEGATIVO: con el formulario VACIO la seccion NO abre ── */
+  __t.limpiar();
+  let r0 = 'no-null'; try { r0 = sc ? sc.fn() : 'sin-sec' } catch (e) { r0 = 'EXC' }
+  ex.push(['(F1) CONTROL: con el formulario vacio la seccion NO abre', r0 === null, true]);
+  /* ── (G) CONTROL NEGATIVO: un estudio AJENO tampoco la abre ── */
+  __t.limpiar();
+  __t.set('nombre','Ajeno'); __t.set('ci','80808080');
+  ['im_vc','8'].length;
+  try { __t.set('im_vc','8'); __t.set('vmax_ao','4.5'); __t.set('onda_e','110') } catch (e) {}
+  let r1 = 'no-null'; try { r1 = sc ? sc.fn() : 'sin-sec' } catch (e) { r1 = 'EXC' }
+  ex.push(['(G1) CONTROL: un estudio sin datos de esta lesion NO abre la seccion', r1 === null, true]);
+  /* ── (H) CONTROL: el evaluador de la pantalla es el dueno de la compuerta ── */
+  ex.push(['(H1) CONTROL: la compuerta la decide eisenEstado, el evaluador de la pantalla',
+    typeof eisenEstado === 'function', true]);
+  return { extra: EXP };
+`);
+
 
 try {
   const s = await servir(); servidor = s.srv;

@@ -1,5 +1,140 @@
 # EcoSmart — pendientes vivos
 
+## P10-a · Los textos que el commit 1 retiró de los globos, LITERALES, y el que llega al papel
+
+La regla (ii) de la tanda PANT-10 manda que lo que **ninguna fuente de la biblioteca respalda**
+se saque del globo pero **no se borre**: queda acá, con su ubicación anterior y el motivo, para
+que el médico lo recupere si aparece una fuente. Ninguno se perdió.
+
+| Clave del globo | Texto retirado, palabra por palabra | Por qué |
+|---|---|---|
+| `cc9-ebs-cel` (bloque «A tener en cuenta») | «Por ecocardiografía sobreestima la severidad (concordancia con resonancia κ=0,39; sólo el índice por RMC correlacionó con la capacidad funcional).» | Censadas las **248** fuentes de la biblioteca: **48 nombran Ebstein y NINGUNA contiene «kappa» ni el carácter griego**. El propio artículo de Celermajer de 1992 tampoco: cero apariciones de «0.39», «kappa», «magnetic resonance», «overestimat» y «mri», con «ebstein» ×23 como control positivo. |
+| `cc9-eisen-sin` | «Marcador de mal pronostico.» | **Cero apariciones de «syncop»** en las hojas 93 a 98 de la ACC/AHA 2025 y 21 a 28 de la ESC 2020, que son sus capítulos de síndrome de Eisenmenger. ⚠️ **Lo que sí existe, y se reporta aparte:** la ESC/ERS 2022 de hipertensión pulmonar lista el síncope en su **tabla de evaluación de riesgo de la hipertensión arterial pulmonar** —«no síncope / síncope ocasional / síncope repetido», hoja 42, folio 41—, y la ACC/AHA 2025 (hoja 95, folio e209) dice que esa estratificación puede ser útil en Eisenmenger **con los cortes ajustados**. Es otra pregunta, y escribirla es decisión del médico. |
+| `cc9-eisen-hem` | «Riesgo de episodio masivo y fatal.» | Ninguna de las dos guías la califica de **fatal**. La ESC 2020 (hoja 24, folio 586) la llama «el evento de sangrado mayor más frecuente» y la ACC/AHA 2025 (hoja 97, folio e211) dice que **suele autolimitarse** pero puede causar sangrado mayor y poner en riesgo la vida. El texto nuevo dice eso. |
+| `cc9-ebs-sec` | «Menos del 1 % de las cardiopatías congénitas, y la principal causa de insuficiencia tricuspídea congénita severa.» | Ninguna fuente de la biblioteca trae esas dos cifras. La ACC/AHA 2025 (hoja 60, folio e174) da otra medida: **alrededor de 1 cada 1000 nacidos vivos** en series contemporáneas, y es la que el globo publica ahora. |
+| `cc9-vap-sec` | «Menos del 1 % de las cardiopatías congénitas. A diferencia del ductus no tiene variante restrictiva relevante en el adulto: el defecto es proximal y de gran calibre, así que la repercusión hemodinámica se asume salvo prueba en contra.» | Ninguna fuente de la biblioteca trata la ventana aortopulmonar. Ver **P10-b**. |
+| `cc9-vap-sec` | «**ESC 2020: cierre indicado siempre, salvo hipertensión pulmonar irreversible (Eisenmenger).**» | **La ESC 2020 no nombra la ventana aortopulmonar ni una vez en sus 84 hojas**, con «ebstein» ×28 como control positivo; sus cuatro apariciones de «aortopulmonary» son referencias bibliográficas sobre colaterales y shunts. La ACC/AHA 2025 la nombra **una sola vez**, en su tabla de cambios de la hoja 8, folio e122, dentro de una recomendación de bosentán para el síndrome de Eisenmenger. Era además el único de los diecisiete que afirmaba una conducta. |
+| `cc9-dsav-comp` | «Sólo en el tipo completo.» | **Contradicha.** La ACC/AHA 2025 (hoja 43, folio e157) describe el tipo transicional con **dos orificios auriculoventriculares funcionales y una comunicación interventricular restrictiva**, y la ESC 2020 (hoja 33, folio 595) dice que el parcial **en casos raros** tiene el defecto sólo a nivel ventricular. |
+| `cc9-cvpa-sec` | «En el adulto sólo se ve la forma parcial: la total es una emergencia neonatal.» | **Contradicha.** La Tabla 4 de la ESC 2020 (hoja 13, folio 575) lista la conexión venosa pulmonar anómala «**parcial o total**» entre las cardiopatías congénitas del adulto de complejidad moderada, reparadas incluidas. |
+| `cc9-cvpa-qp` | «El eco subestima el shunt en esta lesión: la resonancia es el método de referencia (ESC 2020).» | Las dos mitades son falsas. **«El eco subestima el shunt» no aparece** en ninguna de las dos fuentes, y la recomendación de resonancia es de la **ACC/AHA 2025** (hoja 44, folio e158, Clase 1 · Nivel B-NR), no de la ESC 2020, que dice que «rara vez se necesita» (hoja 29, folio 591). |
+| `cc9-fontan-sat` | «Normal sin fenestracion: >93-95 %.» | La declaración científica de la AHA de 2019 (hoja 8, folio e241) **no publica un valor para el paciente sin fenestración**: dice que en reposo y aire ambiente la saturación rara vez supera el 95 % y lo habitual es que esté entre 90 y 95 %. |
+| `cc9-fontan-iav` | «En Fontan es marcador de disfuncion del ventriculo sistemico.» | La relación va en **los dos sentidos** (Rychik, hoja 9, folio e242) y lo que las fuentes afirman del pronóstico es que la insuficiencia **moderada o mayor es un factor de riesgo de mortalidad a largo plazo**, no que sea un marcador de disfunción. |
+| `cc9-dsav-rav` | «Marcador de severidad y principal indicación quirúrgica.» | «Marcador de severidad» no aparece. Lo que las dos dicen es que es la **causa más frecuente de reoperación** (ACC/AHA, hoja 43, folio e157) y el problema que con más frecuencia aparece en los operados (ESC, hoja 35, folio 597). |
+| `cc9-ebs-cia` | «La cianosis es uno de los desencadenantes de intervención que lista la ESC 2020 en la anomalía de Ebstein. Por debajo de 90 % indica shunt derecha-izquierda significativo a través de la comunicación interauricular.» | **Las dos mitades son falsas.** La saturación en reposo por debajo de 90 % aparece en la ESC 2020 **sólo** como condición del cierre **AISLADO** de la comunicación interauricular o del foramen oval (Clase IIb · Nivel C, hoja 49, folio 611), **no** como desencadenante de cirugía. Y ninguna de las dos guías escribe que por sí sola indique un cortocircuito de derecha a izquierda significativo. |
+
+### ⚠️ LO QUE LLEGA AL PAPEL, MEDIDO Y NO TOCADO
+
+**El emisor `ebsConclusion` publica una SEGUNDA copia de la frase del índice de Celermajer**, y
+esa copia **sí llega al informe firmado**. El commit 1 corrigió el globo; esta copia quedó, y la
+orden de la tanda manda **parar y reportar dónde** cuando un texto a corregir resulta llegar al
+papel. Medido en la escena `p9ebs`, con las cinco áreas cargadas y el módulo integrado:
+
+| Superficie | Qué contiene |
+|---|---|
+| informe, estilo estándar (1.442 caracteres) | «0,39» · «SOBREESTIMAR» · «resonancia» · «serie neonatal» · «ESC 2020» · «Celermajer» |
+| informe, estilo narrativo (1.554) | los mismos seis |
+| informe, estilo conciso (1.284) | los mismos seis |
+| EN SUMA (213) | «ESC 2020» · «Celermajer» |
+| PDF (31.916 caracteres de texto emitido) | los mismos seis |
+| PPT (4.185) | «ESC 2020» · «Celermajer» |
+
+El fragmento literal del informe es:
+
+> «Índice de Celermajer 0.92 — grado II. Medido por ecocardiografía el índice tiende a
+> SOBREESTIMAR la severidad (concordancia con resonancia κ=0,39) y fue derivado en una serie
+> neonatal: en el adulto es orientativo. La indicación quirúrgica de la ESC 2020 es clínica y no
+> depende de este índice.»
+
+**Son tres problemas en una sola frase**, y los tres son decisión del médico:
+1. el **κ=0,39** y la comparación con resonancia, que ninguna de las 248 fuentes respalda;
+2. **«ESC 2020»**, que es un nombre de guía en el papel, y la regla fija de esta casa dice que el
+   papel describe y no nombra guías ni sociedades;
+3. **«SOBREESTIMAR»** en mayúsculas en medio de la frase, que choca con la regla R3.
+
+Lo que la Evidencia de Ebstein sí hace, y no sustituye a esto: su fila del índice dice que no
+figura en ninguna de las dos guías y que las indicaciones de cirugía de la ESC 2020 son clínicas.
+
+## P10-b · La ventana aortopulmonar no tiene Evidencia, y ninguna guía de la biblioteca la trata
+
+Censado por contenido, normalizando ligaduras: **la ESC 2020 de cardiopatías congénitas del
+adulto no nombra «aortopulmonary window» ni una vez en sus 84 hojas** —control positivo:
+«ebstein» ×28— y la **ACC/AHA 2025 la nombra una sola vez**, en su tabla de cambios de la hoja 8,
+folio e122, dentro de una recomendación de bosentán para el síndrome de Eisenmenger.
+
+Por eso esta tanda **no le escribió sección de Evidencia** y su globo no publica cortes ni
+conducta: sólo la definición anatómica.
+
+**Las fuentes candidatas que habría que bajar**, y que esta tanda no tiene:
+- Aggarwal SK y col., *Congenit Heart Dis* 2008;3:341-6.
+- Yakut K y col., *Turk Gogus Kalp Dama* 2018;26:30-37.
+
+## P10-c · Lo que quedó fuera de las preguntas, y por qué
+
+Por pedir un dato que la pantalla no tiene, o por el tope de catorce preguntas. Ninguna se
+perdió: todas se publican en el bloque de su guía, con su clase y su folio.
+
+### Por el tope de catorce preguntas — circulación de Fontan
+
+| Recomendación | Clase y nivel | Hoja y folio |
+|---|---|---|
+| Conversión del Fontan auriculopulmonar a cavopulmonar total con arritmias refractarias | 2b · C-LD, recomendación 23 | ACC/AHA 2025, hoja 87, folio e201 |
+| Vasodilatadores pulmonares para mejorar la capacidad de ejercicio | 2b · B-R, recomendación 22 | ACC/AHA 2025, hoja 87, folio e201 |
+| Cierre con dispositivo de la fenestración con cianosis significativa | IIb · C | ESC 2020, hoja 65, folio 627 |
+
+### Por pedir un dato que la pantalla no tiene
+
+| Lesión | Recomendación | Clase y nivel | Hoja y folio | Qué dato falta |
+|---|---|---|---|---|
+| Ebstein | Resonancia para anatomía, dimensiones y función sistólica del VD | 2a · B-NR, rec. 2 | ACC/AHA 2025, hoja 59, folio e173 | ninguno: es una recomendación de estudio, sin condición que contestar |
+| Ebstein | Intervalos de seguimiento por estadio fisiológico (Tabla 26) | — | ACC/AHA 2025, hoja 60, folio e174 | la aplicación no consigna el estadio fisiológico |
+| DSAV | Manejo por profesionales con experiencia en hipertensión pulmonar | 1 · C-LD, rec. 2 | ACC/AHA 2025, hoja 42, folio e156 | ninguno: es una recomendación de proceso |
+| Eisenmenger | Prostaciclina con riesgo alto, dos de sus cuatro criterios | 2b · C-LD, rec. 8 | ACC/AHA 2025, hoja 93, folio e207 | la distancia de marcha de seis minutos y el NT-proBNP |
+| Eisenmenger | Antagonista del receptor de endotelina con marcha de seis minutos por debajo de 450 m | IIa · B | ESC 2020 | la distancia de marcha de seis minutos |
+| CVPA | Cateterismo con sospecha o factores de riesgo de hipertensión arterial pulmonar | 2a · B-NR, rec. 4 | ACC/AHA 2025, hoja 44, folio e158 | la medición invasiva; la **condición** sí se pregunta |
+
+### Lo que la ACC/AHA no gradúa
+
+El tramo de **resistencia vascular pulmonar de 5 a 10 unidades Wood** no tiene recomendación
+propia en el apartado del DSAV de la ACC/AHA 2025. La sección lo dice en la fila de la
+resistencia, en vez de inventar un tramo intermedio.
+
+## P10-d · Los cortes que la pantalla del DSAV aplica no son los de ninguna de las dos guías
+
+Medido en el código: `DSAV_DTSI_CX` vale **40**, que es el umbral de diámetro telesistólico de la
+ACC/AHA 2025, y la fracción de eyección se aplica con **`<=`**, que es el operador de la ESC 2020
+(«60 % o menos»); la ACC/AHA escribe «por debajo de 60 %». Así que **una FEVI de 60 exactos vota
+en la pantalla y NO cumple el criterio de la ACC/AHA**, que es la guía que la sección declara
+como la que rige.
+
+Y dentro de la propia ACC/AHA el umbral del diámetro aparece de dos formas: su tabla de la
+hoja 43 escribe «40 mm o más» y su texto de apoyo de la hoja 44 escribe «mayor de 40 mm».
+
+**La Evidencia lo dice y no lo corrige.** Tocar un corte es decisión del médico.
+
+## P10-e · Lo que esta tanda no alcanzó a hacer, y lo que sigue
+
+Los **seis** commits de código se hicieron enteros, más el de cobertura y documentación. Lo que
+sigue, por orden de lo que la propia orden nombra:
+
+- **La frase del índice de Celermajer en el papel** — **P10-a** arriba, con la medición en las
+  seis superficies. Es lo primero.
+- **La ventana aortopulmonar sin Evidencia** — **P10-b**, con sus dos fuentes candidatas.
+- **Revisar las Evidencias existentes del ductus, la coartación y la miocardiopatía hipertrófica
+  obstructiva**, que tienen **cero preguntas**, y la de la Fallot reparada, que cubre **sólo** la
+  insuficiencia pulmonar. Están medidas en `docs/INVENTARIO_EVIDENCIA_CONGENITAS.md` § 2.
+- **Pleura y pulmón con lado independiente**, **Masas a Otros con su tabla de diferenciales** y
+  las **ideas N-01 a N-10** — los inventarios de PANT-8 (`P8-h`) siguen con sus decisiones
+  esperando.
+- **El cuadro de notas de la orejuela y el de la aorta del ETE** — `P7-d`.
+- **La prótesis mitral sin molde de Evidencia** — `P8-e`.
+- **El estado de `_labUsaTavi`** — `P8-g` y `P9-d`.
+- **La validación de la Evidencia de congénitas con un cardiólogo especialista antes de
+  comercializar.** El médico lo hará; queda anotado **sólo acá**, que es lo que la regla de esta
+  casa manda: ninguna pantalla, globo, Evidencia, ficha de Referencias ni documento del paciente
+  dice que algo está pendiente de revisión.
+
+
+
 ## P9-a · Los diecisiete textos que pasaron al globo sin respaldo anotado, y el que lleva una conducta
 
 La regla de la tanda PANT-9 manda mover cada texto explicativo al globo ⓘ **palabra por palabra**,

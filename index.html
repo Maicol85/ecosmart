@@ -94042,6 +94042,11 @@ function _indEIS(){
                 severa:'Severamente reducida' };
   const _NYHA = { i:'I', ii:'II', iii:'III', iv:'IV' };
   const _SN = { no:'No', si:'Sí' };
+  /* ⚠️ LOS ROTULOS DEL PERICARDIO SALEN DEL MARCADO Y NO DEL TOKEN. La primera version publicaba
+     el valor crudo -«leve», «moderado»- en la fila, que es el defecto que esta casa ya pago con
+     TAVI_TXT.morf: un token sin etiqueta sale a la pantalla tal cual. */
+  const _PERI = { no:'Sin derrame', leve:'Derrame leve', moderado:'Derrame moderado',
+                  severo:'Derrame severo' };
   const preTric = (les === 'cia' || les === 'dsav');
   const nyhaAlta = (nyha === 'iii' || nyha === 'iv');
   const periSi = !!(peri && peri !== 'no');
@@ -94079,7 +94084,7 @@ function _indEIS(){
     fevi == null ? 'sin medir en el estudio'
     : fevi > 40 ? 'por encima de 40 % es la condición que piden las recomendaciones de tratamiento dirigido de la ACC/AHA 2025'
     : 'las recomendaciones 4, 5 y 8 piden una fracción de eyección por encima de 40 %'));
-  filas.push(_indFila('Derrame pericárdico', peri ? (peri === 'no' ? 'Sin derrame' : peri) : '—',
+  filas.push(_indFila('Derrame pericárdico', _ccLbl(_PERI, peri) || '—',
     periSi ? 'warn' : (peri ? 'none' : 'ask'),
     periSi ? 'la presencia de derrame pericárdico está entre los predictores más fuertes de muerte de la ESC 2020' : 'sin consignar'));
   filas.push(_indFila('Clase funcional NYHA', _ccLbl(_NYHA, nyha) || '—',
@@ -157289,8 +157294,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261104-1100';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793800803331;                 /* eco-build-ms */
+const ECO_BUILD    = '20261104-1123';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793802230693;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -157376,7 +157381,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261104-1100</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261104-1123</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
