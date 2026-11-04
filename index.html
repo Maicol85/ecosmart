@@ -5572,15 +5572,15 @@ window.cerrarSesionReal = cerrarSesionReal;
         <div class="grid-3">
           <div class="fg">
             <label>Ao sinusal (mm)</label>
-            <input type="number" id="ao_sin" placeholder="mm" oninput="aoRaizSync('aivi');calcAorta()">
+            <input type="number" id="ao_sin" placeholder="mm" oninput="aoRaizSync('aivi');taviAoSync('ao','ao_sin');calcAorta()">
           </div>
           <div class="fg">
             <label>Ao sinotubular (mm)</label>
-            <input type="number" id="ao_st" placeholder="mm" oninput="calcAorta()">
+            <input type="number" id="ao_st" placeholder="mm" oninput="taviAoSync('ao','ao_st');calcAorta()">
           </div>
           <div class="fg">
             <label>Ao tubular (mm)</label>
-            <input type="number" id="ao_tub" placeholder="mm" oninput="calcAorta()">
+            <input type="number" id="ao_tub" placeholder="mm" oninput="taviAoSync('ao','ao_tub');calcAorta()">
           </div>
         </div>
         <div class="grid-3" style="margin-top:8px;">
@@ -17222,9 +17222,9 @@ z
              que se dejara vacío esperando un valor que nunca llega — en un sizing pre-TAVI
              el diámetro de la raíz no es opcional. -->
         <div class="fg"><label>Seno de Valsalva (mm)</label>
-          <input type="number" id="ete_tavi_valsalva" step="0.1" placeholder="mm" oninput="eteTaviSync()"></div>
-        <div class="fg"><label>Unión sinotubular (mm)</label><input type="number" id="ete_tavi_ust" step="0.1" placeholder="mm" oninput="eteTaviSync()"></div>
-        <div class="fg"><label>Aorta ascendente proximal (mm)</label><input type="number" id="ete_tavi_ao_asc" step="0.1" placeholder="mm" oninput="eteTaviSync()"></div>
+          <input type="number" id="ete_tavi_valsalva" step="0.1" placeholder="mm" oninput="taviAoSync('tavi','ete_tavi_valsalva');eteTaviSync()"></div>
+        <div class="fg"><label>Unión sinotubular (mm)</label><input type="number" id="ete_tavi_ust" step="0.1" placeholder="mm" oninput="taviAoSync('tavi','ete_tavi_ust');eteTaviSync()"></div>
+        <div class="fg"><label>Aorta ascendente proximal (mm)</label><input type="number" id="ete_tavi_ao_asc" step="0.1" placeholder="mm" oninput="taviAoSync('tavi','ete_tavi_ao_asc');eteTaviSync()"></div>
       </div>
 
       <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:14px 0 8px;">Distancia de las coronarias al anillo</div>
@@ -27404,6 +27404,118 @@ function aoRaizReconciliar() {
   dst.dispatchEvent(new Event('change', { bubbles: true }));
 }
 window.aoRaizReconciliar = aoRaizReconciliar;
+
+/* ══ LA SINCRONIA DE TAVI CON AORTA / AI (PANT-8, commit 3) ═══════════════════════════════════
+   PEDIDO DEL MEDICO (03/11/2026): los campos de TAVI «esten sincronizados con los de Aorta / AI
+   del basico, que no estan».
+   LA PREMISA SE REPRODUCE: medido en HEAD, con el sizing cargado `ete_tavi_valsalva` valia 38 y
+   `ao_sin` quedaba VACIO, y al revés lo mismo. El comentario del propio campo ya lo decia:
+   «nada autocompleta este campo, y prometerlo hacia que se dejara vacio esperando un valor que
+   nunca llega».
+
+   LAS TRES PAREJAS SON INEQUIVOCAS, y no es una lectura de los rotulos: lo dice el registro de
+   fuentes de la propia app. `AO_SEGS` declara `med` para cada segmento -«senos de Valsalva»,
+   «union sinotubular», «aorta ascendente»- y la ficha `AOR-003` de FUENTES.md nombra ese tercer
+   segmento «aorta ascendente proximal», que es palabra por palabra el rotulo de TAVI.
+
+   ⚠️ LAS QUE NO SE UNEN, Y POR QUE, cada una medida:
+     · `ete_tavi_anillo_diam` («Diametro anular (ETE 120-140 grados)») contra `diam_tsvi_ao`
+       («Diam. TSVI»): el ANILLO y el TRACTO DE SALIDA no son el mismo sitio de medida, y TAVI
+       ademas declara su vista y el otro no.
+     · `ete_tavi_vmax` y `ete_tavi_gmedio` contra `vmax_ao` y `gmedio_ao`: el comentario del
+       propio modulo ya declara que «los dos modulos duplican a proposito sus mediciones porque
+       describen dos estudios distintos» -el control post-TAVI no es el Doppler de la nativa-.
+     · `ete_tavi_at` contra `va_at`: es la misma DUDA de la Fase 2 que el modulo ya declara, con
+       tres DVI y dos AT aorticos sin dueno decidido. Decidirlo es clinico.
+
+   ⚠️ EL SENTIDO ESTUDIO -> TAVI ES CONDICIONAL, Y ES UNA CONSECUENCIA MEDIDA, no timidez.
+   `_labUsaTavi` nombra `ete_tavi_valsalva` y `ete_tavi_ao_asc` entre sus predicados, asi que con
+   el espejo simetrico TODO estudio con la raiz o la ascendente medidas pasaria a contar como
+   «Con TAVI» en el filtro de cohorte del Laboratorio. Medido: con `ao_sin` = 40, `ao_st` = 33 y
+   `ao_tub` = 37 y ningun campo de TAVI, `_labUsaTavi` da FALSE hoy y pasaria a TRUE. El
+   Laboratorio esta FUERA de esta tanda.
+   LA REGLA QUE QUEDA, y es la del D-9 y la de `aoRaizSync`: EL CAMPO DEL ESTUDIO ES EL DUENO. Lo
+   que se teclea en TAVI va SIEMPRE al estudio -ese sentido es incondicional, y es el que hace
+   que el sizing llegue al informe-. El inverso solo corre cuando el MODULO DE TAVI YA ESTA EN
+   USO, o sea cuando el medico cargo alguno de sus OTROS campos o integro la seccion. */
+const TAVI_AO_PARES = Object.freeze([
+  Object.freeze({ tavi:'ete_tavi_valsalva', ao:'ao_sin', lbl:'seno de Valsalva' }),
+  Object.freeze({ tavi:'ete_tavi_ust',      ao:'ao_st',  lbl:'union sinotubular' }),
+  Object.freeze({ tavi:'ete_tavi_ao_asc',   ao:'ao_tub', lbl:'aorta ascendente proximal' })
+]);
+window.TAVI_AO_PARES = TAVI_AO_PARES;
+
+/* Los campos de TAVI que NO son espejo. Si alguno tiene valor -o la seccion esta integrada-, el
+   modulo esta en uso y el sentido estudio -> TAVI puede correr.
+   ⚠️ LOS TRES ESPEJOS QUEDAN AFUERA A PROPOSITO: si contaran, el primer valor copiado haria que
+   el modulo pareciera en uso y el espejo se autorizaria a si mismo. */
+function _taviModuloEnUso() {
+  const c = document.getElementById('ete_tavi_incluir_chk');
+  if (c && c.checked) return true;
+  const espejos = TAVI_AO_PARES.map(function (pr) { return pr.tavi });
+  const campos = document.querySelectorAll('[id^="ete_tavi_"]');
+  for (let i = 0; i < campos.length; i++) {
+    const e = campos[i];
+    if (e.type === 'checkbox' || e.type === 'hidden') continue;
+    if (espejos.indexOf(e.id) > -1) continue;
+    if (e.readOnly) continue;            /* los tres readonly los llena `eaTaviEspejar` */
+    if (String(e.value || '').trim() !== '') return true;
+  }
+  return false;
+}
+window._taviModuloEnUso = _taviModuloEnUso;
+
+let _taviAoEnCurso = false;
+/* Un dato, dos puertas, gana la ultima edicion. `origen` es 'tavi' o 'ao'; `id` es el campo que
+   el medico acaba de editar, y es lo que decide la pareja: recorrer la tabla entera escribiendo
+   todo lo que tuviera valor deshace el gesto en el acto, que es la leccion del D-11. */
+function taviAoSync(origen, id) {
+  if (_taviAoEnCurso) return;
+  const pr = TAVI_AO_PARES.filter(function (x) { return x.tavi === id || x.ao === id })[0];
+  if (!pr) return;
+  const desdeTavi = (origen === 'tavi');
+  if (!desdeTavi && !_taviModuloEnUso()) return;
+  const a = document.getElementById(pr.tavi), b = document.getElementById(pr.ao);
+  if (!a || !b) return;
+  const src = desdeTavi ? a : b, dst = desdeTavi ? b : a;
+  /* Un campo a medio escribir no se propaga: un signo menos o un punto solo todavia no es un
+     numero, y propagarlo deja el otro lado con basura que el barrido despues no limpia. El
+     VACIO si se propaga -borrar borra-, que es la regla del D-11. */
+  const vs = String(src.value || '').trim();
+  if (vs !== '' && !isFinite(Number(vs))) return;
+  if (dst.value === src.value) return;
+  _taviAoEnCurso = true;
+  try {
+    dst.value = src.value;
+    dst.dispatchEvent(new Event('input', { bubbles: true }));
+    dst.dispatchEvent(new Event('change', { bubbles: true }));
+  } finally { _taviAoEnCurso = false; }
+}
+window.taviAoSync = taviAoSync;
+
+/* ══ AL CARGAR UN ESTUDIO GUARDADO ════════════════════════════════════════════════════════════
+   Entra en `RECALC_MODULOS`, que es el embudo de las cinco rutas de restauracion, y NO en
+   `ESPEJOS_VIVOS`: no es un espejo vivo, es una reconciliacion de una sola vez.
+   ⚠️ SOLO RECONCILIA CUANDO UNO DE LOS DOS ESTA VACIO, igual que `aoRaizReconciliar`. Un estudio
+   viejo puede tener los dos cargados con numeros DISTINTOS -antes no se sincronizaban, asi que
+   es un estado legitimo-: pisarle uno al medico seria decidir cual de sus dos mediciones vale, y
+   es la reescritura silenciosa que la regla «no migrar estudios guardados» prohibe. */
+function taviAoReconciliar() {
+  const enUso = _taviModuloEnUso();
+  TAVI_AO_PARES.forEach(function (pr) {
+    const a = document.getElementById(pr.tavi), b = document.getElementById(pr.ao);
+    if (!a || !b) return;
+    const va = String(a.value || '').trim(), vb = String(b.value || '').trim();
+    if (va === vb) return;
+    if (va !== '' && vb !== '') return;          /* los dos cargados y distintos: no se toca */
+    if (va === '' && !enUso) return;             /* estudio -> TAVI solo con el modulo en uso */
+    const src = (va !== '') ? a : b, dst = (va !== '') ? b : a;
+    dst.value = src.value;
+    dst.dispatchEvent(new Event('input', { bubbles: true }));
+    dst.dispatchEvent(new Event('change', { bubbles: true }));
+  });
+}
+window.taviAoReconciliar = taviAoReconciliar;
 function aoSegsMedidos() {
   return AO_SEGS.map(function(sg){
     const x = v(sg.k);
@@ -67226,7 +67338,7 @@ function RECALC_MODULOS() {
      puertas, y un estudio guardado puede traerla en una sola. Si corriera despues de
      `marfanSync` o de `calcAorta`, esos dos ya habrian pintado con el campo vacio. Solo copia
      cuando uno de los dos esta vacio; con los dos cargados y distintos no toca nada. */
-  return ['aoRaizReconciliar','tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','asiaMmSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','dtTapSync','vdTrivSync','etOndaESync','papmEstSync','calcDopTric','etTsvdSync','calcET','vpVmaxSync','ipIncongruenciaSync','itRefFuenteSync','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccSegSync','vpSync','popSync','sglOrigenSync','calcVenaPulm','valvProtSync','eaTaviEspejar','imEspejosRestaurar','eteVmAvisoSync','vmCarpLegadoSync','vmCarpOrigenSync','vmProtBloqSync','vmMorfFitSync','vdStrainPlSync','emPdfValsSync','emCuadroRefRepintar','emContFaAvisoSync','imCortesPintar','imContAvisoPintar','itIncongruenciaSync','aoEspejosRestaurar','tangoRestaurar','diastExclSync','diastFcAvisoSync','diastBseEprimaAvisoSync','diastBseGrisAvisoSync','diastStrainMarcaSync','vdMarcaSync','vdTeiAvisoSync','tep6060Resalte','hfPepSync','hfPepPintar','viVolAutoSync','eaAvaiGradoPintar','eaPvlPintar','imPvlPintar','vdTapsePsapSync','ipApDiamSync','vdViSelSync','htpApSync','htpTablaPintar','m3dBotonSync','contrPdfSync','sglPdfSync','eteQxPdfSync','otrBurbUI','v2dCerrar','aiviSexoSync','vtDviAuto','sincronizarTEERDesdeGlobal','calcETE',
+  return ['aoRaizReconciliar','taviAoReconciliar','tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','asiaMmSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','dtTapSync','vdTrivSync','etOndaESync','papmEstSync','calcDopTric','etTsvdSync','calcET','vpVmaxSync','ipIncongruenciaSync','itRefFuenteSync','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccSegSync','vpSync','popSync','sglOrigenSync','calcVenaPulm','valvProtSync','eaTaviEspejar','imEspejosRestaurar','eteVmAvisoSync','vmCarpLegadoSync','vmCarpOrigenSync','vmProtBloqSync','vmMorfFitSync','vdStrainPlSync','emPdfValsSync','emCuadroRefRepintar','emContFaAvisoSync','imCortesPintar','imContAvisoPintar','itIncongruenciaSync','aoEspejosRestaurar','tangoRestaurar','diastExclSync','diastFcAvisoSync','diastBseEprimaAvisoSync','diastBseGrisAvisoSync','diastStrainMarcaSync','vdMarcaSync','vdTeiAvisoSync','tep6060Resalte','hfPepSync','hfPepPintar','viVolAutoSync','eaAvaiGradoPintar','eaPvlPintar','imPvlPintar','vdTapsePsapSync','ipApDiamSync','vdViSelSync','htpApSync','htpTablaPintar','m3dBotonSync','contrPdfSync','sglPdfSync','eteQxPdfSync','otrBurbUI','v2dCerrar','aiviSexoSync','vtDviAuto','sincronizarTEERDesdeGlobal','calcETE',
           /* `pamAvisoSync` (B-2) repinta la línea del dueño único de la PAM. Entra acá por lo
              mismo que los demás: las cinco rutas de restauración pueblan asignando `.value`,
              que no dispara `input`, así que al reabrir un estudio con dos PAM que difieren el
@@ -155612,8 +155724,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261104-0513';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793780014166;                 /* eco-build-ms */
+const ECO_BUILD    = '20261104-0522';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793780550495;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -155699,7 +155811,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261104-0513</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261104-0522</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
