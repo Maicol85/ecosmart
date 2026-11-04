@@ -93487,6 +93487,175 @@ function _indDSAV(){
     ]
   };
 }
+/* ══ ANOMALIA DE EBSTEIN — PANT-10, commit 3 (2026-11-04) ═════════════════════════════════════
+   Molde: el de _indCIA, sin reescribirlo. La seccion LEE los campos de la pantalla de Ebstein
+   -incluidos los cinco selectores clinicos que ya existen, que por eso NO se vuelven a
+   preguntar- y PREGUNTA solo lo que la pantalla no tiene.
+
+   LAS FUENTES, LEIDAS EN IMAGEN a 200 ppp con el folio comprobado en el pie impreso:
+     ACC/AHA 2025 (Gurvitz y col., Circulation 2026;153:e115-e251), apartado 4.3.1: hoja 59,
+     folio e173 (recomendaciones 1 y 2), hoja 60, folio e174 (recomendaciones 3 a 10, la
+     Tabla 26 de seguimiento y la sinopsis) y hoja 62, folio e176 (texto de apoyo 10, que
+     define la cianosis). Folio = e(hoja + 114).
+     ESC 2020 de cardiopatias congenitas del adulto, edicion inglesa: hoja 48, folio 610
+     (descripcion y asociaciones) y hoja 49, folio 611 (tabla de intervencion y el umbral
+     diagnostico de desplazamiento). Folio = hoja + 562.
+
+   REGLA E-1: cada pregunta usa UNA guia, con su clase, su nivel, su hoja y su folio; la otra
+   va en su linea de referencia. Las CUATRO diferencias se muestran y no se resuelven.
+
+   ⚠️ NADA DE ESTE BLOQUE LLEGA AL PAPEL. Lo lee indicRender y nadie mas. */
+const EBS_PREG = Object.freeze([
+  { clave:'ebs.ev.ic', lbl:'Insuficiencia cardiaca', guia:'acc', rec:'Clase 1 · Nivel B-NR, recomendacion 6 — con insuficiencia tricuspidea al menos moderada y presencia de insuficiencia cardiaca, empeoramiento de la capacidad de ejercicio o disfuncion sistolica progresiva del ventriculo derecho, la intervencion quirurgica esta recomendada para restaurar la funcion valvular y aumentar el gasto cardiaco, hoja 60, folio e174', ref:'la reparacion quirurgica esta recomendada con insuficiencia tricuspidea SEVERA y sintomas o deterioro objetivo de la capacidad de ejercicio, Clase I · Nivel C (hoja 49, folio 611)', tramo:'el grado de insuficiencia tricuspidea que piden las dos no coincide: al menos moderada en la ACC/AHA 2025 y severa en la ESC 2020' },
+  { clave:'ebs.ev.arritmSint', lbl:'Arritmia sintomatica', guia:'acc', rec:'Clase 1 · Nivel B-NR, recomendacion 1 — el estudio electrofisiologico esta recomendado para evaluar sustratos de ablacion, incluidas las vias accesorias multiples o de alto riesgo, hoja 59, folio e173', ref:'con arritmias sintomaticas o preexcitacion en el electrocardiograma, el estudio electrofisiologico seguido de ablacion -si es factible- o el tratamiento quirurgico de las arritmias en caso de cirugia cardiaca planeada esta recomendado, Clase I · Nivel C (hoja 49, folio 611)' },
+  { clave:'ebs.ev.preexc', lbl:'Preexcitacion ventricular en el electrocardiograma', guia:'acc', rec:'Clase 1 · Nivel B-NR, recomendacion 1 — la guia la nombra como preexcitacion ventricular ASINTOMATICA, junto con la arritmia sintomatica, hoja 59, folio e173', nota:'su texto de apoyo (hoja 62, folio e176) agrega que alrededor de un tercio de los adultos con Ebstein y preexcitacion ventricular tienen vias accesorias multiples, asociadas a riesgo alto de muerte subita', ref:'misma condicion, Clase I · Nivel C (hoja 49, folio 611)' },
+  { clave:'ebs.ev.viaAlto', lbl:'Via accesoria de alto riesgo, o vias accesorias multiples', guia:'acc', rec:'Clase 1 · Nivel B-NR, recomendacion 7 — la ablacion por cateter esta recomendada para reducir el riesgo de muerte subita, hoja 60, folio e174', nota:'su texto de apoyo (hoja 62, folio e176) remite la definicion de via de alto riesgo a un documento de consenso previo, y dice que la interrupcion quirurgica se reserva para el paciente en quien varios intentos de ablacion no tuvieron exito', ref:'la ESC 2020 no publica una recomendacion propia con esta condicion dentro de Ebstein' },
+  { clave:'ebs.ev.arritmRec', lbl:'Arritmias recurrentes', guia:'acc', rec:'Clase 2a · Nivel B-NR, recomendacion 8 — en el paciente ASINTOMATICO con insuficiencia tricuspidea al menos moderada, la intervencion quirurgica puede ser beneficiosa cuando ademas hay agrandamiento progresivo del ventriculo derecho, desaturacion sistemica por cortocircuito auricular de derecha a izquierda, arritmias recurrentes o embolia paradojica, hoja 60, folio e174', ref:'en el asintomatico la ESC 2020 pide solo dilatacion derecha progresiva o reduccion de la funcion sistolica del ventriculo derecho, Clase IIa · Nivel C (hoja 49, folio 611)', tramo:'las dos guias no piden lo mismo en el asintomatico: la ACC/AHA 2025 exige insuficiencia tricuspidea al menos moderada mas uno de cuatro criterios, y la ESC 2020 solo la dilatacion o la disfuncion' },
+  { clave:'ebs.ev.desatShunt', lbl:'Desaturacion sistemica por cortocircuito auricular de derecha a izquierda', guia:'acc', rec:'Clase 2a · Nivel B-NR, recomendacion 8 — es uno de los cuatro criterios del paciente asintomatico con insuficiencia tricuspidea al menos moderada, hoja 60, folio e174', ref:'la ESC 2020 no usa esta condicion como indicacion de cirugia; la saturacion en reposo por debajo de 90 % aparece solo para el cierre AISLADO de la comunicacion interauricular o del foramen oval, Clase IIb · Nivel C (hoja 49, folio 611)' },
+  { clave:'ebs.ev.embparad', lbl:'Embolia paradojica, o embolismo sistemico documentado', guia:'acc', rec:'Clase 2a · Nivel B-NR, recomendacion 8 -como criterio de cirugia en el asintomatico- y Clase 2b · Nivel C-LD, recomendacion 10 -con comunicacion interauricular o foramen oval, el cierre aislado puede considerarse despues de una evaluacion hemodinamica-, hoja 60, folio e174', ref:'con embolismo sistemico documentado, probablemente por embolia paradojica, el cierre aislado con dispositivo DEBE considerarse, Clase IIa · Nivel C (hoja 49, folio 611)', tramo:'la clase del cierre aislado por embolia no coincide: 2b en la ACC/AHA 2025 y IIa en la ESC 2020' },
+  { clave:'ebs.ev.cianosisProb', lbl:'La cianosis es el problema principal', guia:'esc', rec:'Clase IIb · Nivel C — el cierre aislado con dispositivo de la comunicacion interauricular o del foramen oval puede considerarse, pero requiere una evaluacion cuidadosa antes de la intervencion para excluir que induzca un aumento de la presion en la auricula derecha o una caida del gasto cardiaco, hoja 49, folio 611', ref:'la ACC/AHA 2025 situa el cierre aislado por cianosis o embolia paradojica en Clase 2b · Nivel C-LD, despues de una evaluacion hemodinamica (recomendacion 10, hoja 60, folio e174), y define la cianosis como saturacion por debajo de 90 % en reposo O CON ESFUERZO (hoja 62, folio e176)', tramo:'la ESC 2020 cuenta la saturacion solo en reposo y la ACC/AHA 2025 en reposo o con esfuerzo' },
+  { clave:'ebs.ev.cxIndicada', lbl:'Hay indicacion de cirugia de la valvula tricuspide', guia:'acc', rec:'Clase 2a · Nivel B-NR, recomendacion 3 — el estudio electrofisiologico, y la ablacion por cateter si hace falta, puede ser util ANTES de la cirugia tricuspidea para mejorar los resultados clinicos, hoja 60, folio e174', ref:'si hay indicacion de cirugia valvular, el cierre de la comunicacion interauricular o del foramen oval esta recomendado en el mismo acto cuando se prevea hemodinamicamente tolerado, Clase I · Nivel C; y se recomienda que la reparacion la haga un cirujano con experiencia especifica en cirugia de Ebstein, Clase I · Nivel C (hoja 49, folio 611)' },
+  { clave:'ebs.ev.ettInsuf', lbl:'El ecocardiograma transtoracico no alcanza para planear la cirugia', guia:'acc', rec:'Clase 2a · Nivel C-LD, recomendacion 4 — el ecocardiograma transesofagico puede ser beneficioso para caracterizar la morfologia y la funcion de la valvula tricuspide, hoja 60, folio e174', ref:'la ESC 2020 no publica una recomendacion propia con esta condicion dentro de Ebstein' },
+  { clave:'ebs.ev.vdNoTolera', lbl:'Disfuncion severa del ventriculo derecho, con duda de que tolere todo el volumen latido', guia:'acc', rec:'Clase 2b · Nivel B-NR, recomendaciones 5 y 9 — el cateterismo diagnostico preoperatorio puede considerarse para evaluar la candidatura a una anastomosis cavopulmonar superior bidireccional (Glenn), y esa anastomosis puede considerarse en el momento de la cirugia tricuspidea en pacientes cuidadosamente seleccionados, para mejorar el gasto cardiaco descargando el ventriculo, hoja 60, folio e174', nota:'su texto de apoyo (hoja 62, folio e176) agrega que en el adulto esta estrategia se reserva para la disfuncion severa del ventriculo derecho y que, por su rareza y complejidad, la cirugia solo deberia hacerse en centros expertos', ref:'la ESC 2020 plantea la anastomosis de Glenn adicional cuando el ventriculo derecho es demasiado pequenio para la reparacion o ya hay disfuncion, en adultos con funcion del ventriculo izquierdo preservada y presiones izquierdas no elevadas (hoja 49, folio 611)' },
+  { clave:'ebs.ev.tolerada', lbl:'Se preve que el cierre de la comunicacion sea hemodinamicamente tolerado', guia:'esc', rec:'Clase I · Nivel C — es la condicion que la guia pone para cerrar la comunicacion interauricular o el foramen oval en el mismo acto de la reparacion valvular, hoja 49, folio 611', nota:'las dos guias piden lo mismo por caminos distintos: la ACC/AHA 2025 exige una evaluacion hemodinamica cuidadosa antes del cierre AISLADO, para asegurar que la intervencion no aumente la presion de la auricula derecha ni comprometa el gasto cardiaco (hoja 62, folio e176)' }
+]);
+window.EBS_PREG = EBS_PREG;
+function _indEBS(){
+  const ebsC = _indFn('ebsConclusion');
+  const r = ebsC ? ebsC() : null;
+  if (!r) return null;
+
+  const desp = _indN('ebs_desplazamiento'), atr = _indN('ebs_atrializacion');
+  const func = _indS('ebs_func_vd'), tsv = _indS('ebs_tsv'), vias = _indS('ebs_vias');
+  const sint = _indS('ebs_sintomas'), ejerc = _indS('ebs_ejercicio'), prog = _indS('ebs_progresion');
+  const sat = _indN('ebs_saturacion'), it = _indS('it_grado');
+  const bsaFn = _indFn('getBSA'); const bsa = bsaFn ? bsaFn() : null;
+  const idx = (desp != null && bsa && bsa > 0) ? (desp / bsa) : null;
+  const celFn = _indFn('ebsCelermajer'); const cel = celFn ? celFn() : null;
+  const _SN = { si:'Sí', no:'No', no_eval:'No consta' };
+  const _FUNC = { normal:'Normal', leve:'Reducida leve', moderada:'Reducida moderada', severa:'Reducida severa' };
+  const _IT = { '1':'Leve', '2':'Moderada', '3':'Moderada-severa', '4':'Severa' };
+  const itModSev = (it === '2' || it === '3' || it === '4');
+  const itSevera = (it === '4');
+
+  const filas = [];
+  filas.push(_indFila('Desplazamiento apical del velo septal',
+    desp != null ? (_indNum(desp, 1, 'mm') + (idx != null ? ' (' + _indNum(idx, 1, 'mm/m²') + ')' : '')) : '—',
+    idx == null ? 'ask' : (idx >= 8 ? 'ok' : 'none'),
+    idx == null ? (desp != null ? 'falta la superficie corporal (peso y talla) para indexarlo' : 'sin medir')
+    : idx >= 8 ? 'alcanza el umbral diagnóstico de 0,8 cm/m² de la ESC 2020' : 'por debajo del umbral diagnóstico de 0,8 cm/m²'));
+  filas.push(_indFila('Atrialización del ventrículo derecho', _indNum(atr, 0, '%'), atr != null ? 'none' : 'ask',
+    atr != null ? 'ninguna de las dos guías publica un umbral de atrialización' : 'sin medir'));
+  filas.push(_indFila('Insuficiencia tricuspídea (de Válvulas)', _ccLbl(_IT, it) || '—',
+    itSevera ? 'alarm' : (itModSev ? 'warn' : (it ? 'none' : 'ask')),
+    itSevera ? 'alcanza el grado que piden las dos guías'
+    : itModSev ? 'alcanza el «al menos moderada» de la ACC/AHA 2025; la ESC 2020 pide severa'
+    : it ? 'por debajo del grado que piden las dos guías' : 'sin consignar en Válvulas'));
+  filas.push(_indFila('Función del ventrículo derecho funcional', _ccLbl(_FUNC, func) || '—',
+    func === 'severa' ? 'alarm' : (func === 'moderada' ? 'warn' : (func ? 'none' : 'ask')),
+    func ? 'la disfunción sistólica progresiva es uno de los tres criterios de la Clase 1 de la ACC/AHA 2025' : 'sin consignar'));
+  filas.push(_indFila('Dilatación progresiva del ventrículo derecho', _ccLbl(_SN, prog) || '—',
+    prog === 'si' ? 'ok' : (prog === 'no' ? 'none' : 'ask'),
+    prog === 'si' ? 'es criterio del asintomático en las dos guías' : 'sin consignar'));
+  filas.push(_indFila('Síntomas atribuibles', _ccLbl(_SN, sint) || '—',
+    sint === 'si' ? 'ok' : (sint === 'no' ? 'none' : 'ask'),
+    sint === 'si' ? 'con insuficiencia tricuspídea severa es la Clase I de la ESC 2020' : 'sin consignar'));
+  filas.push(_indFila('Deterioro objetivo de la capacidad de ejercicio', _ccLbl(_SN, ejerc) || '—',
+    ejerc === 'si' ? 'ok' : (ejerc === 'no' ? 'none' : 'ask'),
+    ejerc === 'si' ? 'es uno de los tres criterios de la Clase 1 de la ACC/AHA 2025 y la Clase I de la ESC 2020' : 'sin consignar'));
+  filas.push(_indFila('Saturación de oxígeno en reposo', _indNum(sat, 0, '%'),
+    sat == null ? 'ask' : (sat < 90 ? 'warn' : 'none'),
+    sat == null ? 'sin medir'
+    : sat < 90 ? 'por debajo de 90 % es la cianosis que las dos guías usan para el cierre AISLADO de la comunicación, no para la cirugía valvular'
+    : 'por encima del corte de cianosis de las dos guías'));
+  filas.push(_indFila('Taquicardia supraventricular', _ccLbl(_SN, tsv) || '—',
+    tsv === 'si' ? 'warn' : (tsv === 'no' ? 'none' : 'ask'),
+    tsv === 'si' ? 'las taquiarritmias auriculares son frecuentes en el adulto con Ebstein' : 'sin consignar'));
+  filas.push(_indFila('Vías accesorias conocidas', _ccLbl(_SN, vias) || '—',
+    vias === 'si' ? 'warn' : (vias === 'no' ? 'none' : 'ask'),
+    vias === 'si' ? 'lo que decide la ablación es que la vía sea de alto riesgo o que haya varias' : 'sin consignar'));
+  filas.push(_indFila('Índice de Celermajer',
+    (cel && cel.idx != null) ? _indNum(cel.idx, 2) + ' — grado ' + ['', 'I', 'II', 'III', 'IV'][cel.grado] : '—',
+    (cel && cel.idx != null) ? 'none' : 'ask',
+    (cel && cel.idx != null) ? 'no figura en ninguna de las dos guías: las indicaciones de cirugía de la ESC 2020 en Ebstein son clínicas'
+    : (cel && cel.faltan ? 'faltan: ' + cel.faltan.join('; ') : 'sin calcular')));
+
+  const EBS_OPS = [{ v:'si', t:'Sí' }, { v:'no', t:'No' }, IND_OPS_SD];
+  const clinica = [], _si = [], _no = [], _sd = [], _siDet = [];
+  EBS_PREG.forEach(function (p) {
+    const o = _indOrigen(null, p.clave);
+    if (o.val === 'si') { _si.push(p.lbl); _siDet.push(p); }
+    else if (o.val === 'no') _no.push(p.lbl); else _sd.push(p.lbl);
+    const _f = _indFilaOrigen(p.lbl, o, EBS_OPS, function (val) {
+      return { txt: val === 'si' ? 'Sí' : (val === 'no' ? 'No' : 'Sin dato'),
+               marca: val === 'si' ? 'warn' : (val === 'no' ? 'none' : 'ask'),
+               nota: _indPregNota(p, val == null) };
+    }, true);
+    const _b = _indPregBadge(p); if (_b) _f.badge = _b;
+    clinica.push(_f);
+  });
+  clinica.unshift(_indFila('Respuestas',
+    _si.length + ' en Sí · ' + _no.length + ' en No · ' + _sd.length + ' sin dato', 'none',
+    '«Sin dato» no cuenta como «no»: mientras una condición no se conteste, no sostiene ninguna recomendación.'));
+  const _bal = _si.length
+    ? { txt:'Condiciones presentes en este paciente: ' + _si.length + ' de ' + EBS_PREG.length + ' (' + _si.join('; ') + ').'
+        + (_sd.length ? ' Sin contestar: ' + _sd.join('; ') + '.' : ' Las otras ' + _no.length + ' están contestadas que no.'), refs:null }
+    : (_sd.length
+      ? { txt:'Ninguna condición consta como presente, y quedan ' + _sd.length + ' sin contestar: ' + _sd.join('; ')
+          + '. Mientras no se contesten, ninguna de las recomendaciones de arriba se sostiene en este paciente — «sin dato» no cuenta como «no».', refs:null }
+      : { txt:'Las ' + EBS_PREG.length + ' condiciones están contestadas y ninguna está presente.', refs:null });
+
+  return { filas: filas,
+    clinica: clinica,
+    bloques: [
+      { tit:'Indicación de cirugía, ablación y estudios — ACC/AHA 2025, apartado 4.3.1, hojas 59 y 60, folios e173 y e174', lineas:[
+        { txt:'Clase 1 · Nivel B-NR — Con arritmia sintomática o preexcitación ventricular asintomática, el estudio electrofisiológico está recomendado para evaluar sustratos de ablación, incluidas las vías accesorias múltiples o de alto riesgo (recomendación 1).', refs:null },
+        { txt:'Clase 2a · Nivel B-NR — La resonancia magnética cardíaca puede ser útil para determinar la anatomía, las dimensiones del ventrículo derecho y su función sistólica, para guiar la planificación quirúrgica y el manejo (recomendación 2).', refs:null },
+        { txt:'Clase 2a · Nivel B-NR — El estudio electrofisiológico, y la ablación por catéter si hace falta, puede ser útil antes de la cirugía de la válvula tricúspide para mejorar los resultados clínicos (recomendación 3).', refs:null },
+        { txt:'Clase 2a · Nivel C-LD — Si el ecocardiograma transtorácico no alcanza para guiar la planificación quirúrgica, el transesofágico puede ser beneficioso para caracterizar la morfología y la función de la válvula tricúspide (recomendación 4).', refs:null },
+        { txt:'Clase 2b · Nivel B-NR — Con disfunción severa del ventrículo derecho y duda de que el ventrículo tolere todo el volumen latido, el cateterismo diagnóstico preoperatorio puede considerarse para evaluar la candidatura a una anastomosis cavopulmonar superior bidireccional (Glenn) (recomendación 5).', refs:null },
+        { txt:'Clase 1 · Nivel B-NR — Con insuficiencia tricuspídea al menos moderada y presencia de insuficiencia cardíaca, empeoramiento de la capacidad de ejercicio o disfunción sistólica progresiva del ventrículo derecho, la intervención quirúrgica está recomendada para restaurar la función valvular y aumentar el gasto cardíaco (recomendación 6).', refs:null },
+        { txt:'Clase 1 · Nivel B-NR — Con conducción por una vía accesoria de alto riesgo o con vías accesorias múltiples, la ablación por catéter está recomendada para reducir el riesgo de muerte súbita (recomendación 7).', refs:null },
+        { txt:'Clase 2a · Nivel B-NR — En el asintomático con insuficiencia tricuspídea al menos moderada, la intervención quirúrgica puede ser beneficiosa cuando además hay agrandamiento progresivo del ventrículo derecho, desaturación sistémica por cortocircuito auricular de derecha a izquierda, arritmias recurrentes o embolia paradójica (recomendación 8).', refs:null },
+        { txt:'Clase 2b · Nivel B-NR — Con disfunción severa del ventrículo derecho, la anastomosis de Glenn en el momento de la cirugía tricuspídea puede considerarse en pacientes cuidadosamente seleccionados, para mejorar el gasto cardíaco descargando el ventrículo (recomendación 9).', refs:null },
+        { txt:'Clase 2b · Nivel C-LD — Con comunicación interauricular o foramen oval permeable y cianosis o embolia paradójica, el cierre aislado puede considerarse después de una evaluación hemodinámica (recomendación 10). Su texto de apoyo define la cianosis como una saturación de oxígeno por debajo de 90 % en reposo o con esfuerzo, y advierte que la revisión cuidadosa de la hemodinámica es esencial para que la intervención no aumente de forma sustancial la presión en la aurícula derecha ni comprometa el gasto cardíaco.', refs:null },
+        { txt:'Fuente: ACC/AHA 2025 de cardiopatías congénitas del adulto, apartado 4.3.1, «Ebstein Anomaly», hojas 59, 60 y 62, folios e173, e174 y e176.', refs:['acc2025achd'] }
+      ]},
+      { tit:'Indicación de intervención — ESC 2020 (guía anterior), tabla de recomendaciones de intervención en la anomalía de Ebstein, hoja 49, folio 611', lineas:[
+        { txt:'Clase I · Nivel C — Con insuficiencia tricuspídea severa y síntomas o deterioro objetivo de la capacidad de ejercicio, la reparación quirúrgica está recomendada.', refs:null },
+        { txt:'Clase I · Nivel C — Se recomienda que la reparación la haga un cirujano de cardiopatías congénitas con experiencia específica en cirugía de Ebstein.', refs:null },
+        { txt:'Clase I · Nivel C — Si hay indicación de cirugía de la válvula tricúspide, el cierre de la comunicación interauricular o del foramen oval está recomendado en el momento de la reparación valvular, cuando se prevea hemodinámicamente tolerado.', refs:null },
+        { txt:'Clase IIa · Nivel C — Independientemente de los síntomas, la reparación quirúrgica debe considerarse con dilatación derecha progresiva o reducción de la función sistólica del ventrículo derecho.', refs:null },
+        { txt:'Clase I · Nivel C — Con arritmias sintomáticas o preexcitación en el electrocardiograma, el estudio electrofisiológico seguido de ablación —si es factible— o el tratamiento quirúrgico de las arritmias en caso de cirugía cardíaca planeada está recomendado.', refs:null },
+        { txt:'Clase IIa · Nivel C — Con embolismo sistémico documentado, probablemente causado por embolia paradójica, el cierre aislado con dispositivo de la comunicación interauricular o del foramen oval debe considerarse, pero requiere una evaluación cuidadosa antes de la intervención para excluir que induzca un aumento de la presión en la aurícula derecha o una caída del gasto cardíaco.', refs:null },
+        { txt:'Clase IIb · Nivel C — Si la cianosis (saturación de oxígeno en reposo por debajo de 90 %) es el problema principal, el cierre aislado con dispositivo puede considerarse, con la misma evaluación previa.', refs:null },
+        { txt:'La misma hoja publica el umbral diagnóstico: desplazamiento apical del velo septal o posterior de 0,8 cm/m² de superficie corporal o más en el adulto.', refs:null },
+        { txt:'Fuente: ESC 2020 de cardiopatías congénitas del adulto, hojas 48 y 49, folios 610 y 611.', refs:['esc2020guch'] }
+      ]},
+      { tit:'Las diferencias entre las dos guías, sin resolver', lineas:[
+        { txt:'Grado de insuficiencia tricuspídea que pide la cirugía: al menos moderada en la ACC/AHA 2025 y severa en la ESC 2020.', refs:null },
+        { txt:'Qué pide cada una en el paciente asintomático: la ACC/AHA 2025 exige insuficiencia tricuspídea al menos moderada más uno de cuatro criterios; la ESC 2020, sólo dilatación derecha progresiva o reducción de la función sistólica del ventrículo derecho.', refs:null },
+        { txt:'Cómo se cuenta la cianosis para el cierre aislado: la ACC/AHA 2025 la define por debajo de 90 % en reposo o con esfuerzo, y la ESC 2020 sólo en reposo.', refs:null },
+        { txt:'Clase del cierre aislado por embolia: 2b · Nivel C-LD en la ACC/AHA 2025 y IIa · Nivel C en la ESC 2020.', refs:null },
+        _bal
+      ]}
+    ].concat(_siDet.length ? [{ tit:'Recomendaciones que aplican con lo contestado (' + _siDet.length + ')',
+      lineas: _siDet.map(function (p) {
+        const b = _indPregBadge(p);
+        const et = b ? (b.g === 'ACC' ? 'ACC/AHA 2025' : 'ESC 2020') + (b.cn ? ' · ' + b.cn : '') : '';
+        return { txt: p.lbl + (et ? ' — ' + et : '') + '.', refs:null };
+      }) }] : []),
+    compacta: true,
+    preguntas: true,
+    guia: { ref:'acc2025achd',
+      txt:'Las indicaciones de esta sección salen de DOS guías: la ACC/AHA 2025 de cardiopatías congénitas del adulto (apartado 4.3.1, hojas 59 y 60, folios e173 y e174), que es la que rige cuando las dos tratan el mismo tema con cortes distintos, y la ESC 2020 de cardiopatías congénitas del adulto (hoja 49, folio 611), que queda como referencia. Cada pregunta usa los cortes de UNA sola de ellas, con su nombre y año a la vista: ninguna los combina.' },
+    notas: [
+      'El índice de Celermajer no figura en ninguna de las dos guías: las indicaciones de cirugía de la ESC 2020 en Ebstein son clínicas. Su origen y sus limitaciones están en el globo del grupo «Índice de Celermajer» de la pantalla.',
+      'Los intervalos de seguimiento por estadio fisiológico de la Tabla 26 de la ACC/AHA 2025 (hoja 60, folio e174) no se publican acá porque la aplicación no consigna el estadio.',
+      'Lo contestado en esta sección no se guarda con el estudio y no llega al informe.'
+    ]
+  };
+}
 const CIA_PREG = Object.freeze([
   { clave:'cia.ev.vddil', lbl:'Dilatación del ventrículo derecho', guia:'acc', rec:'Clase 1 · Nivel B-R, recomendación 5 —con cortocircuito significativo y sin hipertensión arterial pulmonar ni enfermedad significativa del ventrículo izquierdo, el cierre está recomendado—, y Clase 2a, recomendaciones 8 y 9, hoja 35, folio e149', ref:'la sobrecarga de volumen del ventrículo derecho —su nota al pie c la define como agrandamiento CON volumen latido aumentado— es la condición de la Clase I · Nivel B (hoja 30, folio 592)' },
   { clave:'cia.ev.qpqs15', lbl:'Qp:Qs de 1,5 o más', guia:'acc', rec:'Clase 1 · Nivel B-R, recomendación 5; Clase 2a, recomendaciones 8 y 9; Clase 2b, recomendación 12, hoja 35, folio e149', ref:'un cortocircuito izquierda-derecha significativo es un Qp:Qs MAYOR que 1,5 (hoja 30, folio 592)', tramo:'con un Qp:Qs de 1,5 exacto las dos guías no coinciden: la ACC/AHA 2025 escribe «≥1,5» y la ESC 2020 «>1,5»' },
@@ -99424,6 +99593,9 @@ const IND_SECS = [
      ninguno es prefijo suyo: la clave de _indRepintarConservando lo distingue por «septo
      auriculoventricular», que no aparece en ningún otro. */
   { tit:'Defecto del septo auriculoventricular', fn:_indDSAV },
+  /* ⚠️ LA DEL COMMIT 3 DE PANT-10. Va con las de congénitas y su título es único: «Anomalía de
+     Ebstein» no es prefijo de ninguno de los treinta y cuatro ni ninguno es prefijo suyo. */
+  { tit:'Anomalía de Ebstein',                   fn:_indEBS },
   { tit:'Ductus arterioso permeable',            fn:_indDAP },
   { tit:'Coartación de aorta',                   fn:_indCoAo },
   /* ⚠️ LAS DOS DE LA TANDA PANT-4 (03/11/2026). Van PEGADAS a la coartación porque son las
@@ -156588,8 +156760,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261104-1045';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793799915911;                 /* eco-build-ms */
+const ECO_BUILD    = '20261104-1051';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793800283926;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -156675,7 +156847,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261104-1045</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261104-1051</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
