@@ -19887,43 +19887,63 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
       <span id="ductus_badge" class="incl-badge" hidden>📎 en el informe</span>
     </button>
     <div class="card-body sacc-body">
-    <div class="grid-3">
-      <div class="fg"><label>Tipo de ductus</label>
-        <select id="dap_tipo" onchange="dapSync()">
-          <option value="">—</option>
-          <option value="silente">Silente</option>
-          <option value="restrictivo">Restrictivo (pequeño)</option>
-          <option value="no_restrictivo">No restrictivo (grande)</option>
-        </select>
+      <!-- == DAP EN TRES COLUMNAS - tanda PANT-9, commit 6 (2026-11-04) ======================
+           DISPOSICION APROBADA POR EL MEDICO en un lienzo de disenio. Esta seccion NO tiene
+           textos para mover: lo unico que cambia es DONDE esta cada campo. Ningun id, ningun
+           valor, ninguna opcion y ninguna conclusion se movieron, y el papel sale identico
+           -medido con el A/B-. La tarjeta de conclusion lleva LAS DOS tiras que la seccion ya
+           tenia -Qp/Qs y Conclusion- y el boton debajo.
+           Sin globo de titulo y sin «Ver criterios», asi que no lleva barra de encabezado. -->
+      <div class="cc9-cuadro">
+        <div class="cc9-fila" id="dap-fila">
+          <div class="cc9-cols">
+            <div class="cc9-col">
+              <div class="cc9-h">Tipo y tamaño</div>
+              <div class="fg"><label>Tipo de ductus</label>
+                <select id="dap_tipo" onchange="dapSync()">
+                  <option value="">—</option>
+                  <option value="silente">Silente</option>
+                  <option value="restrictivo">Restrictivo (pequeño)</option>
+                  <option value="no_restrictivo">No restrictivo (grande)</option>
+                </select>
+              </div>
+              <div class="fg"><label>Diámetro mínimo (mm)</label><input type="number" id="dap_diam" step="0.1" placeholder="mm" oninput="dapSync()"></div>
+            </div>
+            <div class="cc9-col">
+              <div class="cc9-h">Shunt</div>
+              <div class="fg"><label>Dirección del shunt</label>
+                <select id="dap_dir" onchange="dapSync()">
+                  <option value="">—</option>
+                  <option value="id">Izquierda a derecha</option>
+                  <option value="bi">Bidireccional</option>
+                  <option value="di">Derecha a izquierda</option>
+                </select>
+              </div>
+              <div class="fg"><label>Velocidad máxima (m/s)</label><input type="number" id="dap_vmax" step="0.1" placeholder="m/s" oninput="dapSync()"></div>
+            </div>
+            <div class="cc9-col">
+              <div class="cc9-h">Gradiente y presión</div>
+              <div class="fg"><label>Gradiente instantáneo máx.</label>
+                <div class="calc-box" style="margin:0;padding:6px 10px;"><div class="calc-row" style="border:none;padding:0;">
+                  <span id="dap-gmax" class="calc-val">—</span></div></div>
+                <div style="font-size:10px;color:var(--text2);margin-top:3px;">4 × Vmax²</div>
+              </div>
+              <div class="fg"><label>PSAP estimada (mmHg)</label><input type="number" id="dap_paps" step="1" placeholder="mmHg" oninput="dapSync()"></div>
+            </div>
+          </div>
+          <div class="cc9-concl">
+            <div class="calc-box">
+              <div class="calc-row"><span class="calc-lbl">Qp/Qs</span><span id="dap-qpqs" class="calc-val">—</span></div>
+              <div class="calc-row"><span class="calc-lbl">Conclusión</span><span id="dap-concl" class="calc-val">—</span></div>
+            </div>
+            <input type="checkbox" id="ductus_incluir_chk" style="display:none;" tabindex="-1" aria-hidden="true">
+            <div class="cc9-concl-btn">
+              <button type="button" class="btn btn-integrar" data-ete-chk="ductus_incluir_chk" aria-pressed="false"
+                      onclick="eteInclToggle('ductus_incluir_chk')">📎 Integrar al informe</button>
+            </div>
+          </div>
+        </div>
       </div>
-      <div class="fg"><label>Diámetro mínimo (mm)</label><input type="number" id="dap_diam" step="0.1" placeholder="mm" oninput="dapSync()"></div>
-      <div class="fg"><label>Dirección del shunt</label>
-        <select id="dap_dir" onchange="dapSync()">
-          <option value="">—</option>
-          <option value="id">Izquierda a derecha</option>
-          <option value="bi">Bidireccional</option>
-          <option value="di">Derecha a izquierda</option>
-        </select>
-      </div>
-    </div>
-    <div class="grid-3" style="margin-top:10px;">
-      <div class="fg"><label>Velocidad máxima (m/s)</label><input type="number" id="dap_vmax" step="0.1" placeholder="m/s" oninput="dapSync()"></div>
-      <div class="fg"><label>Gradiente instantáneo máx.</label>
-        <div class="calc-box" style="margin:0;padding:6px 10px;"><div class="calc-row" style="border:none;padding:0;">
-          <span id="dap-gmax" class="calc-val">—</span></div></div>
-        <div style="font-size:10px;color:var(--text2);margin-top:3px;">4 × Vmax²</div>
-      </div>
-      <div class="fg"><label>PSAP estimada (mmHg)</label><input type="number" id="dap_paps" step="1" placeholder="mmHg" oninput="dapSync()"></div>
-    </div>
-    <div class="calc-box" style="margin-top:12px;">
-      <div class="calc-row"><span class="calc-lbl">Qp/Qs</span><span id="dap-qpqs" class="calc-val">—</span></div>
-      <div class="calc-row"><span class="calc-lbl">Conclusión</span><span id="dap-concl" class="calc-val">—</span></div>
-    </div>
-    <div style="text-align:center;margin-top:10px;">
-      <input type="checkbox" id="ductus_incluir_chk" style="display:none;" tabindex="-1" aria-hidden="true">
-      <button type="button" class="btn btn-integrar" data-ete-chk="ductus_incluir_chk" aria-pressed="false"
-              onclick="eteInclToggle('ductus_incluir_chk')">📎 Integrar al informe</button>
-    </div>
     </div>
   </div>
 <div class="card sacc" id="sacc-cc-vap">
@@ -156149,8 +156169,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261104-0753';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793789586556;                 /* eco-build-ms */
+const ECO_BUILD    = '20261104-0755';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793789747527;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -156236,7 +156256,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261104-0753</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261104-0755</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
