@@ -6,7 +6,9 @@ apunta decenas de lineas antes del culpable. Es la trampa que esta casa paga des
 import sys, io, os
 ESPERADO = {
     "scripts/_probe_pant7vd.mjs": 4,
-    'scripts/_probe_pant7vd1e.mjs': 12,
+    "scripts/_probe_pant7vd1e.mjs": 12,
+    "scripts/_probe_pant7cia.mjs": 6,
+    "scripts/_probe_pant7c3.mjs": 8,
 }
 mal = 0
 for f, n in ESPERADO.items():

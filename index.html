@@ -2395,6 +2395,12 @@
   .ev-ref .ev-cat { font-size: 11px; color: var(--text); margin-top: 1px; }
   .ev-ref .ev-avi { font-size: 11px; color: var(--orange); margin-top: 2px; }
   .ev-ref .ev-fte { font-size: 10px; color: var(--text2); margin-top: 2px; font-style: italic; }
+  /* ⚠️ `.ev-nota` ES UNA CLASE PROPIA Y NO SE REUSA `.ev-cat` NI `.ev-fte` (PANT-7, c3d): las
+     dos las comparte TODO el panel —`.ev-cat` la usan las cápsulas de categoría de las treinta
+     y pico de barras y `.ev-fte` los pies de fuente—, así que tocarlas para acomodar una nota
+     de dos renglones movería todas. No es cursiva porque no es una fuente: es una nota. */
+  #vinfo-card .ev-nota { font-size: 10px; color: var(--text2); margin: 3px 0 6px; line-height: 1.35; }
+  .ev-ref .ev-nota { font-size: 10.5px; color: var(--text2); margin: 4px 0 8px; line-height: 1.35; }
 
   /* ══ LAS OCHO TARJETAS DE VALVULAS («Q1», 2026-10-17) ══════════════════════════════════════
      Los colores salen de las variables que esta zona YA define —`--text`, `--text2`, `--bg3`,
@@ -5934,7 +5940,7 @@ window.cerrarSesionReal = cerrarSesionReal;
                `placeholder` «0,55»: es el valor del corte, puesto a la vista justamente para que
                un 55 tipeado se vea raro antes de mandarlo. Un 55 igual queda MARCADO
                «(revisar)» por su banda, y no se corrige ni cambia ninguna cuenta. -->
-          <label>Índice de Tei (DTI)</label>
+          <label>Índice de Tei (DTI) <button type="button" class="vinfo-btn vinfo-btn-44" data-vinfo="vd-tei" aria-expanded="false" aria-label="Que es el indice de Tei del ventriculo derecho, como se mide y cuales son sus cortes" onclick="vInfoClic(this)">&#9432;</button></label>
           <input type="number" id="vd_tei" placeholder="0,55" step="0.01" oninput="vdMarcaSync();calcVD()">
           <div id="vd_tei-marca" style="font-size:10px;color:var(--yellow);margin-top:3px;min-height:14px;"></div>
         </div>
@@ -10910,7 +10916,7 @@ window.cerrarSesionReal = cerrarSesionReal;
             <option value="si">Sí — hipoquinesia pared libre VD con ápex conservado</option>
           </select>
         </div>
-        <div class="fg"><label>Signo 60/60</label>
+        <div class="fg"><label id="tep-6060-lbl">Signo 60/60 <button type="button" class="vinfo-btn vinfo-btn-44" data-vinfo="tep-6060" aria-expanded="false" aria-label="Que es el signo 60-60 segun la guia de tromboembolia pulmonar" onclick="vInfoClic(this)">&#9432;</button></label>
           <select id="tep_signo6060" onchange="calcTEP()">
             <option value="ne" selected>No evaluado</option>
             <option value="no">No</option>
@@ -11028,7 +11034,7 @@ window.cerrarSesionReal = cerrarSesionReal;
                es su nombre. Lo fija TC-519 (O6), que exige que la etiqueta no contenga la sigla. -->
           <div class="calc-row"><span class="calc-lbl">Presi&oacute;n sist&oacute;lica pulmonar</span><span id="tep-psap-interp">&mdash;</span></div>
           <div class="calc-row"><span class="calc-lbl">Signo de McConnell</span><span id="tep-mcconnell-interp">&mdash;</span></div>
-          <div class="calc-row"><span class="calc-lbl">Signo 60/60</span><span id="tep-6060-interp">&mdash;</span></div>
+          <div class="calc-row"><span class="calc-lbl" id="tep-6060-fila-lbl">Signo 60/60</span><span id="tep-6060-interp">&mdash;</span></div>
           <div class="calc-row"><span class="calc-lbl">Tabique en D</span><span id="tep-tabiqued-interp">&mdash;</span></div>
 
           <div style="font-size:11px;font-weight:700;color:var(--accent2);margin:14px 0 8px;">&Iacute;NDICES</div>
@@ -26191,7 +26197,17 @@ const ASE25_T1 = Object.freeze({
     Object.freeze({ g:'moderada', op:'>=', v:32 }), Object.freeze({ g:'severa' })]) }),
   vd_tei:    Object.freeze({ u:'', dec:2, fila:'Tissue Doppler RV MPI', bandas:Object.freeze([
     Object.freeze({ g:'normal', op:'<', v:0.55 }), Object.freeze({ g:'leve', op:'<', v:0.62 }),
-    Object.freeze({ g:'moderada', op:'<', v:0.70 }), Object.freeze({ g:'severa' })]) })
+    Object.freeze({ g:'moderada', op:'<', v:0.70 }), Object.freeze({ g:'severa' })]) }),
+  /* ⚠️ EL TIEMPO DE ACELERACION ENTRA EN PANT-7 (c3d) Y NO MUEVE EL CORTE QUE LA APP USA.
+     Leido en imagen: ASE 2025, Tabla 1, hoja 5, folio 145 comprobado en el pie impreso —«RVOT
+     AccT, ms: >105 normal · >=80 a <=105 leve · >=60 a <80 moderado · <60 severo»—.
+     `UMBRAL_TAP_HTP` sigue valiendo 105 y `vdTapCat` sigue devolviendo htp/normal: esta fila
+     alimenta SOLO los cuatro tramos de la barra de referencia. Son dos preguntas distintas
+     sobre el mismo numero -el elemento indirecto de hipertension pulmonar y el grado de
+     anormalidad- y por eso son dos dueños. */
+  vd_tap:    Object.freeze({ u:'ms', dec:0, fila:'RVOT AccT, ms', bandas:Object.freeze([
+    Object.freeze({ g:'normal', op:'>', v:105 }), Object.freeze({ g:'leve', op:'>=', v:80 }),
+    Object.freeze({ g:'moderada', op:'>=', v:60 }), Object.freeze({ g:'severa' })]) })
 });
 window.ASE25_T1 = ASE25_T1;
 /* Los cuatro grados, en orden de gravedad. Lo consumen el evaluador, el rótulo y el assert. */
@@ -28516,6 +28532,15 @@ const EV_DOI_ASE2025VD  = '10.1016/j.echo.2025.01.006';
    eyección; en la biblioteca está la traducción oficial de la Sociedad Española de
    Cardiología, y así se cita. Los dos identificadores se leyeron en el pie de la hoja 1 de su
    propio PDF. */
+/* ══ DOS GUIAS QUE ENTRAN EN PANT-7 (c3e) ════════════════════════════════════════════════
+   Las dos leidas EN IMAGEN, con el folio comprobado en el pie impreso de cada hoja. La de
+   tromboembolia es la EDICION INGLESA, que es la que esta casa cita cuando hay dos ediciones:
+   la traduccion al espaniol tiene otra paginacion -la que usa `IND_REFS.escTep2019`- y mezclar
+   folios de dos ediciones es como se llega a una cita que nadie puede comprobar. */
+const EV_GUIA_ESC2019TEP_EN = 'Konstantinides SV y col., 2019 ESC Guidelines for the diagnosis and management of acute pulmonary embolism. Eur Heart J 2020;41:543-603 (edición inglesa)';
+const EV_DOI_ESC2019TEP_EN  = '10.1093/eurheartj/ehz405';
+const EV_GUIA_ESCERS2022HP  = 'Humbert M y col., Guía ESC/ERS 2022 sobre el diagnóstico y tratamiento de la hipertensión pulmonar (traducción de la Sociedad Española de Cardiología)';
+const EV_DOI_ESCERS2022HP   = '10.1093/eurheartj/ehac237';
 const EV_GUIA_ASE2005 = 'Lang RM y col., Recomendaciones para la cuantificación de las cámaras cardiacas, ASE y Asociación Europea de Ecocardiografía, 2005';
 const EV_DOI_ASE2005  = '10.1016/j.echo.2005.10.005';
 /* ⚠️ LA UNICA GUIA DE AORTA DE LA BIBLIOTECA ES LA TRADUCCION DE LA SEC, y se declara: no hay
@@ -28824,12 +28849,16 @@ const EV_REG = Object.freeze([
   }),
   Object.freeze({
     id: 'FUN-VD-006', zona: 'VD/AD — Ventrículo derecho', dato: 'Tiempo de aceleración pulmonar',
-    valor: 'Normal con 105 ms o más; por debajo de 105, elemento indirecto de hipertensión pulmonar',
-    duenio: 'vdTapCat / UMBRAL_TAP_HTP',
+    /* ⚠️ LOS CUATRO GRADOS ENTRAN EN PANT-7 (c3d-e) Y EL CORTE DE 105 NO SE MUEVE. La Tabla 1
+       publica las dos cosas sobre el mismo numero: el valor normal, que es el que la capsula de
+       la pantalla aplica desde siempre con `UMBRAL_TAP_HTP`, y los tramos de anormalidad, que
+       son los que la barra de referencia dibuja desde esta tanda con `vdTapGrado`. */
+    valor: 'Normal por encima de 105 ms. Grados de anormalidad: leve de 80 a 105 ms, los dos incluidos; moderado de 60 a menos de 80; severo por debajo de 60. Es el mismo número que la aplicación usa como elemento indirecto de hipertensión pulmonar por debajo de 105 ms, y ese corte no cambia. Se mide sobre el Doppler pulsado del tracto de salida del ventrículo derecho, desde el comienzo del flujo hasta el pico de velocidad pulmonar. La propia guía avisa que es menos confiable con frecuencias cardíacas bajas o altas —por debajo de 60 o por encima de 100 latidos por minuto— y que no debe usarse aislado como medida de la función del ventrículo derecho (texto del folio 157)',
+    duenio: 'vdTapCat / UMBRAL_TAP_HTP · vdTapGrado / ASE25_T1.vd_tap',
     guia: EV_GUIA_ASE2025VD, ubicacion: 'Tabla 1', folio: '145', hoja_pdf: 5,
     doi: EV_DOI_ASE2025VD, fuente_original: '', tipo: 'guía',
     estado: 'verificado', fecha_verificacion: EV_FECHA_AJ1,
-    fuente_una_linea: 'ASE 2025 de mayo (Mukherjee), Tabla 1 (folio 145)',
+    fuente_una_linea: 'ASE 2025 de mayo (Mukherjee), Tabla 1 (folio 145) y texto (folio 157)',
   }),
   /* ⚠️ EL STRAIN DE PARED LIBRE NO DISTINGUE SEXO, Y ESA ES LA FICHA (AJ1, 22/10/2026). Son DOS
      lugares del mismo documento y los dos se leyeron en imagen: la Tabla 1 (folio 145) da el
@@ -28871,6 +28900,30 @@ const EV_REG = Object.freeze([
     doi: '', fuente_original: '', tipo: 'criterio propio de EcoSmart',
     estado: 'por verificar', fecha_verificacion: EV_FECHA_VER,
     fuente_una_linea: '',
+  }),
+  /* ══ DOS FICHAS NUEVAS DE PANT-7 (c3e) ══════════════════════════════════════════════════
+     Una guia por ficha, que es la convencion de este registro: el signo 60/60 lo define la
+     guia de tromboembolia y la muesca mesosistolica la publica como signo de probabilidad de
+     hipertension pulmonar la guia de hipertension pulmonar. Juntarlas en una sola ficha
+     obligaria a poner dos `guia` y dos `folio` en los campos que admiten uno.
+     ⚠️ NINGUNA DE LAS DOS MUEVE UN CORTE DE LA APLICACION: son texto. */
+  Object.freeze({
+    id: 'FUN-VD-009', zona: 'VD/AD — Ventrículo derecho', dato: 'El signo 60/60',
+    valor: 'Coexistencia de DOS condiciones: tiempo de aceleración de la eyección pulmonar, medido en el tracto de salida del ventrículo derecho, menor de 60 ms, y gradiente sistólico pico tricuspídeo menor de 60 mmHg. La figura de esa misma guía (panel E, folio 558) agrega una tercera cosa que el texto no menciona, una muesca mesosistólica en el flujo del tracto de salida, y describe el gradiente como «ligeramente elevado»; la diferencia entre el texto y la figura se muestra y no se resuelve. Es poco frecuente: los autores que la guía cita lo encuentran en alrededor del 12 % de los pacientes con tromboembolia pulmonar no seleccionados, contra el 20 % del signo de McConnell. La descripción original del signo es de una fuente primaria citada por la guía que no está en la biblioteca de este proyecto. Ni la guía de tromboembolia pulmonar de la AHA/ACC de 2026 ni la de corazón derecho de la ASE de 2025 lo nombran',
+    duenio: 'tep_signo6060 / TEP_6060_TAP_MAX',
+    guia: EV_GUIA_ESC2019TEP_EN, ubicacion: 'apartado 4.9 y Figura 3, panel E', folio: '557 y 558', hoja_pdf: 15,
+    doi: EV_DOI_ESC2019TEP_EN, fuente_original: '', tipo: 'guía',
+    estado: 'verificado', fecha_verificacion: EV_FECHA_VER,
+    fuente_una_linea: 'ESC 2019 de tromboembolia pulmonar, edición inglesa (Konstantinides), apartado 4.9 (folio 557) y Figura 3 (folio 558)',
+  }),
+  Object.freeze({
+    id: 'FUN-VD-010', zona: 'VD/AD — Ventrículo derecho', dato: 'La muesca mesosistólica del tracto de salida',
+    valor: 'La Tabla 10 de la guía de hipertensión pulmonar lista, en su categoría B —arteria pulmonar—, «tiempo de aceleración del tracto de salida del ventrículo derecho menor de 105 ms y/o muesca mesosistólica» como signo ecocardiográfico adicional indicativo de hipertensión pulmonar. Su texto agrega que el patrón de flujo con muesca mesosistólica puede indicar hipertensión pulmonar precapilar. Esos signos no se usan solos: la guía exige signos de al menos dos de sus tres categorías para mover el nivel de probabilidad ecocardiográfica. Esta aplicación no tiene campo para la muesca: lo que aplica es el corte de 105 ms',
+    duenio: 'UMBRAL_TAP_HTP',
+    guia: EV_GUIA_ESCERS2022HP, ubicacion: 'Tabla 10 y Figura 5', folio: '28', hoja_pdf: 29,
+    doi: EV_DOI_ESCERS2022HP, fuente_original: '', tipo: 'guía',
+    estado: 'verificado', fecha_verificacion: EV_FECHA_VER,
+    fuente_una_linea: 'ESC/ERS 2022 de hipertensión pulmonar, traducción al español, Tabla 10 (folio 28)',
   }),
   /* ── AORTA TORACICA ──────────────────────────────────────────────── */
   Object.freeze({
@@ -29025,7 +29078,10 @@ function evCortes(sexo) {
   if (typeof vdSprimeCat === 'function')r.vdSprime= _evBandas(vdSprimeCat, 2, 20, 0.1, 1);
   if (typeof vdFacCat === 'function')   r.vdFac   = _evBandas(vdFacCat, 5, 70, 1, 0);
   if (typeof vdFevdCat === 'function')  r.vdFevd  = _evBandas(vdFevdCat, 10, 80, 1, 0);
-  if (typeof vdTapCat === 'function')   r.vdTap   = _evBandas(vdTapCat, 40, 200, 1, 0);
+  /* Cuatro tramos desde PANT-7 (c3d): la barra gradua con `vdTapGrado` -Tabla 1 de la ASE
+     2025- y la capsula de la pantalla sigue con `vdTapCat` y su corte unico de 105 ms. */
+  if (typeof vdTapGrado === 'function') r.vdTap   = _evBandas(vdTapGrado, 40, 200, 1, 0);
+  else if (typeof vdTapCat === 'function') r.vdTap = _evBandas(vdTapCat, 40, 200, 1, 0);
   if (typeof vdTeiCat === 'function')   r.vdTei   = _evBandas(vdTeiCat, 0.1, 1.2, 0.01, 2);
   /* La aorta se sondea por SEGMENTO, con la misma funcion que clasifica al paciente. El dominio
      se queda dentro de la banda de plausibilidad del segmento: por fuera el dueno devuelve
@@ -30466,6 +30522,48 @@ function vdTapCat(x) {
   if (n == null || !isFinite(n) || !n) return null;
   return (n < UMBRAL_TAP_HTP) ? 'htp' : 'normal';
 }
+/* El GRADO de anormalidad del tiempo de aceleracion, que es OTRA pregunta que la de arriba
+   (PANT-7, c3d). `vdTapCat` contesta «es un elemento indirecto de hipertension pulmonar», con
+   el corte unico de 105 ms que la app ya usaba y que esta orden deja como esta; esta funcion
+   contesta «que tan anormal es», con los cuatro tramos de la Tabla 1 de la ASE 2025. Alimenta
+   SOLO la barra de referencia; ninguna capsula, ningun informe y ningun score la leen. */
+function vdTapGrado(x) {
+  const n = (typeof PF === 'function') ? PF(x) : parseFloat(x);
+  if (n == null || !isFinite(n) || !n) return null;
+  return ase25Grado('vd_tap', n);
+}
+window.vdTapGrado = vdTapGrado;
+
+/* ══ EL RESALTE DEL SIGNO 60/60 (PANT-7, c3c-ii, DECISION EXPRESA DEL MEDICO) ═══════════════
+   Cuando el tiempo de aceleracion pulmonar es MENOR DE 60 ms se pinta en ambar el TEXTO
+   «Signo 60/60»: el rotulo de su campo y el de su fila en la lista de criterios.
+   ⚠️ ES SOLO UN RESALTE VISUAL, y la orden lo dice una por una: NO agrega ningun texto ni
+      aviso, NO escribe ni cambia lo que el medico contesto en el campo, NO cuenta en el score,
+      NO se llama positivo, NO se relaciona con la insuficiencia tricuspidea ni sugiere
+      buscarla, y NO llega al papel. Con el campo vacio o con 60 ms o mas, sin pintar.
+   ⚠️ EL CORTE ES ESTRICTO -«<60 ms»-, que es como lo escriben las dos fuentes: la ESC 2019 de
+      tromboembolia (hoja 15, folio 557) y su Figura 3 (hoja 16, folio 558).
+   ⚠️ EL COLOR ES `--orange` Y NO `--amber`: `--amber` se define SOLO dentro de `.amilo-root` y
+      de `#sp-root`, asi que aqui `var(--amber)` no resuelve y el color cae al heredado. Es el
+      defecto que D2-2 dejo declarado y que esta casa ya pago seis veces.
+   ⚠️ TRES COLUMNAS, igual que `vdTeiAvisoSync`: lo llaman `calcTEP` y `calcVD` -el campo del
+      tiempo de aceleracion vive en VD/AD y su `oninput` va a `calcVD`, no a `calcTEP`-, esta en
+      `RECALC_MODULOS` y se repite al final de `limpiarCampos`. Sin la tercera, el rotulo se
+      queda pintado sobre un formulario recien limpiado. */
+const TEP_6060_TAP_MAX = 60;   // ms - ESC 2019, hoja 15 folio 557 y Figura 3, hoja 16 folio 558
+window.TEP_6060_TAP_MAX = TEP_6060_TAP_MAX;
+function tep6060Resalte() {
+  const tap = (typeof v === 'function') ? v('tvia') : null;
+  const on = (tap != null && isFinite(tap) && tap < TEP_6060_TAP_MAX);
+  ['tep-6060-lbl', 'tep-6060-fila-lbl'].forEach(function (id) {
+    const e = document.getElementById(id);
+    if (!e) return;
+    e.style.color = on ? 'var(--orange)' : '';
+    e.style.fontWeight = on ? '700' : '';
+  });
+  return on;
+}
+window.tep6060Resalte = tep6060Resalte;
 /* La pared devuelve la BANDA de gravedad, que es lo que `vdHvdEstado` ya derivaba de
    `VD_PARED_GRADOS`. El corte de hipertrofia no se movio: sigue siendo `>= 5 mm`. */
 function vdParedCat(x) {
@@ -31274,6 +31372,10 @@ function calcVD() {
     else _teiEl.innerHTML = vdBadgeGrado('vd_tei', _teiSt.val, _teiSt.grado, '', 'alterado,', ' por DTI');
   }
   if (typeof vdTeiAvisoSync === 'function') vdTeiAvisoSync();
+  /* El resalte del 60/60 (PANT-7, c3c-ii): el campo del tiempo de aceleracion vive en esta
+     pestania y su `oninput` llama a `calcVD`, no a `calcTEP`. Sin esta llamada el rotulo se
+     quedaba con el estado del gesto anterior. */
+  if (typeof tep6060Resalte === 'function') { try { tep6060Resalte(); } catch (e) {} }
   /* ── FEVD por 3D (G1) — ASE 2025, Tabla 1 folio 145: normal > 45 % ──
      La fila sólo existe cuando hay dato; de esconderla se ocupa `vdRefVisSync`, acá sólo se
      escribe el texto. UN SOLO corte y ninguna banda: la tabla gradúa y esta orden no lo pide. */
@@ -31605,6 +31707,10 @@ function calcTEP() {
 
      La estratificacion por la Tabla 8 vive ahora en el panel de Evidencia, que es donde puede
      preguntar los tres datos que faltan. Esta pantalla publica los hallazgos y el conteo. */
+
+  /* El resalte del signo 60/60 (PANT-7, c3c-ii). Solo pinta; no toca ningun veredicto
+     ni ningun campo, y no entra en el score que esta funcion acaba de calcular. */
+  try { tep6060Resalte(); } catch (e) {}
 }
 window.calcTEP = calcTEP;
 
@@ -47561,6 +47667,104 @@ const VINFO = Object.freeze({
      número y qué tipo de trabajo es cada uno, en vez de presentarlos como un criterio.
      ⚠️ Y DICE QUE NO SUMA A LA PROBABILIDAD DE HTP, que es lo que lo separa de los signos de la
      tabla: es un dato de apoyo y la app lo trata como tal. */
+  /* ══ EL INDICE DE TEI DEL VENTRICULO DERECHO (PANT-7, c3b) ═════════════════════════════
+     Todo leido EN IMAGEN y con el folio comprobado en el pie impreso de cada hoja:
+       · ASE 2025 de corazon derecho (Mukherjee), hoja 18 -pie «158 Mukherjee, M et al»- y
+         hoja 19 -pie «Mukherjee, M et al 159»-: la definicion, las dos formulas, los dos
+         metodos de medicion, los valores normales y las limitaciones;
+       · ASE 2025, Tabla 1, hoja 5 -pie «Mukherjee, M et al 145»-: los cuatro grados por metodo;
+       · Lang 2015 de cuantificacion de cavidades, TRADUCCION AL ESPANIOL de la biblioteca,
+         hoja 23 -pie impreso «23», asi que en este documento folio = hoja-, apartado 8.1.
+     ⚠️ LAS DOS GUIAS DIFIEREN Y SE MUESTRA LA DIFERENCIA, CON LA MAS NUEVA PRIMERO, SIN MOVER
+        EL CORTE QUE LA APP USA: la app gradua con la columna de Doppler tisular de la Tabla 1
+        de la ASE 2025, que es la que ya estaba en `ASE25_T1.vd_tei`, y no se toco.
+     ⚠️ Y LA PROPIA FUENTE SE CONTRADICE EN LA UNIDAD, asi que se dice: el cuerpo del folio 158
+        declara el indice ADIMENSIONAL y el recuadro de puntos clave del folio 159 escribe
+        «<0.40 ms» y «<0.55 ms», con una unidad que un cociente no tiene.
+     ⚠️ NO LLEVA EL VALOR NORMAL DEL TEI DEL VENTRICULO IZQUIERDO: ninguna de las fuentes de la
+        biblioteca lo trae, y la orden lo prohibe expresamente. */
+  'vd-tei': {
+    ancho: 420,
+    tit: 'El índice de Tei del ventrículo derecho',
+    lee: 'El índice de rendimiento miocárdico del ventrículo derecho —el índice de Tei— mide la '
+       + 'función global, sistólica y diastólica a la vez, comparando el tiempo que el '
+       + 'ventrículo pasa sin eyectar contra el que pasa eyectando.\n'
+       + 'FÓRMULA. Tiempo de relajación isovolumétrica más tiempo de contracción isovolumétrica, '
+       + 'dividido por el tiempo de eyección. La otra forma da lo mismo: el intervalo entre el '
+       + 'cierre y la apertura de la tricúspide, menos el tiempo de eyección, dividido por el '
+       + 'tiempo de eyección.\n'
+       + 'QUÉ ES CADA INTERVALO. El tiempo de contracción isovolumétrica es el que va del cierre '
+       + 'de la tricúspide a la apertura de la pulmonar. El tiempo de eyección es aquel durante '
+       + 'el cual la sangre atraviesa la válvula pulmonar. El tiempo de relajación isovolumétrica '
+       + 'es el que va del cierre de la pulmonar a la apertura de la tricúspide. El intervalo de '
+       + 'cierre-apertura tricuspídeo contiene los tres.\n'
+       + 'CÓMO SE MIDE. Por Doppler pulsado, el tiempo de eyección se toma con el cursor en el '
+       + 'tracto de salida del ventrículo derecho, desde el comienzo hasta el final del flujo, y '
+       + 'el intervalo de cierre-apertura con el Doppler pulsado del llenado tricuspídeo —del '
+       + 'final de la onda A al comienzo de la E— o con el Doppler continuo del chorro de '
+       + 'insuficiencia tricuspídea. Como las dos medidas salen de imágenes distintas, hay que '
+       + 'usar latidos con intervalos R-R parecidos. Por Doppler tisular los tres intervalos se '
+       + 'miden en un solo latido, pulsando el anillo tricuspídeo lateral, y esa limitación no '
+       + 'se aplica.\n'
+       + 'CORTES POR MÉTODO (ASE 2025, Tabla 1, folio 145). El índice no tiene unidad.\n'
+       + 'Por Doppler tisular: normal por debajo de 0,55; leve de 0,55 a menos de 0,62; moderado '
+       + 'de 0,62 a menos de 0,70; severo 0,70 o más. Es el que esta aplicación aplica.\n'
+       + 'Por Doppler pulsado: normal por debajo de 0,40; leve de 0,40 a menos de 0,49; moderado '
+       + 'de 0,49 a menos de 0,57; severo 0,57 o más.\n'
+       + 'Los dos métodos dan valores de referencia distintos y su correlación entre sí es solo '
+       + 'moderada, así que no son intercambiables.\n'
+       + 'LO QUE DICE LA OTRA GUÍA. Lang 2015 marca disfunción del ventrículo derecho por encima '
+       + 'de 0,43 por Doppler pulsado y por encima de 0,54 por Doppler tisular. Son cortes '
+       + 'distintos de los de la ASE 2025, y la diferencia se muestra sin resolverla: lo que '
+       + 'esta aplicación aplica sigue siendo la columna de Doppler tisular de la ASE 2025.\n'
+       + 'LÍMITES. Depende de la carga. El aumento de la precarga y la congestión derecha '
+       + 'alargan los dos tiempos isovolumétricos y suben el índice; bajar la precarga los '
+       + 'acorta. La hipertensión pulmonar y el aumento de la poscarga también los alargan y '
+       + 'suben el índice, con independencia de la función sistólica. La insuficiencia '
+       + 'tricuspídea severa puede acortar la relajación isovolumétrica sin tocar la '
+       + 'contracción. Una presión auricular derecha alta acorta la relajación isovolumétrica y '
+       + 'puede dar un índice falsamente bajo. Con intervalos R-R variables, como en la '
+       + 'fibrilación auricular, el tiempo de eyección y el de cierre-apertura varían.\n'
+       + 'Por su dependencia de la carga, la ASE 2025 no lo recomienda como único método '
+       + 'cuantitativo para evaluar la función del ventrículo derecho.',
+    fuente: 'ASE 2025, guía de corazón derecho (Mukherjee y cols., J Am Soc Echocardiogr '
+          + '2025;38(3)): Tabla 1, hoja 5, folio 145; texto, hojas 18 y 19, folios 158 y 159. '
+          + 'Lang 2015, guía de cuantificación de cavidades, traducción al español de la '
+          + 'biblioteca, apartado 8.1, hoja 23, folio 23.',
+    ojo: 'La fuente se contradice en la unidad: el texto del folio 158 dice que el índice es '
+       + 'adimensional y el recuadro de puntos clave del folio 159 escribe «<0,40 ms» y '
+       + '«<0,55 ms». Es un cociente y no tiene unidad. Esta aplicación no publica un valor '
+       + 'normal del índice de Tei del ventrículo izquierdo: ninguna de sus fuentes lo trae.'
+  },
+  /* ══ EL SIGNO 60/60 (PANT-7, c3c-i) ════════════════════════════════════════════════════
+     Leido EN IMAGEN, con el folio comprobado en el pie impreso: ESC 2019 de tromboembolia
+     pulmonar en ingles (Konstantinides y cols.), apartado 4.9, hoja 15 -pie «557»-, y su
+     Figura 3, panel E, hoja 16 -pie «558»-.
+     ⚠️ SIN CONDUCTA Y SIN LA PALABRA «POSITIVO», que es lo que la orden fija.
+     ⚠️ EL TEXTO Y LA FIGURA DE LA MISMA GUIA NO DICEN LO MISMO, y la diferencia se muestra: el
+        texto define el signo con DOS condiciones y la figura agrega la muesca mesosistolica.
+     ⚠️ LA AHA/ACC 2026 DE TEP Y LA ASE 2025 NO LO NOMBRAN, censado. */
+  'tep-6060': {
+    ancho: 400,
+    tit: 'El signo 60/60',
+    lee: 'La guía europea de tromboembolia pulmonar lo define como la coexistencia de DOS '
+       + 'condiciones: un tiempo de aceleración de la eyección pulmonar, medido en el tracto de '
+       + 'salida del ventrículo derecho, menor de 60 ms, y un gradiente sistólico pico '
+       + 'tricuspídeo menor de 60 mmHg.\n'
+       + 'La figura de esa misma guía agrega una tercera cosa que el texto no menciona: una '
+       + 'muesca mesosistólica en el flujo del tracto de salida. La diferencia entre el texto y '
+       + 'la figura se muestra y no se resuelve.\n'
+       + 'Es poco frecuente: los autores que la guía cita lo encuentran en alrededor del 12 % de '
+       + 'los pacientes con tromboembolia pulmonar no seleccionados. El signo de McConnell, en '
+       + 'la misma serie, aparece en el 20 %.\n'
+       + 'La descripción original del signo es de una fuente primaria que la guía cita y que no '
+       + 'está en la biblioteca de este proyecto, así que de ella no se cita nada.',
+    fuente: 'ESC 2019, guía de tromboembolia pulmonar, edición inglesa (Konstantinides y cols., '
+          + 'Eur Heart J 2020;41:543-603): apartado 4.9, hoja 15, folio 557; Figura 3, panel E, '
+          + 'hoja 16, folio 558.',
+    ojo: 'Ni la guía de tromboembolia pulmonar de la AHA/ACC de 2026 ni la guía de corazón '
+       + 'derecho de la ASE de 2025 nombran este signo, censadas las dos.'
+  },
   'vd-triv': {
     ancho: 380,
     tit: 'El TRIV del ventrículo derecho',
@@ -48065,8 +48269,32 @@ const VINFO = Object.freeze({
   'tarj-diast': { ancho: 356, dyn: function () { return qvDiast() } }
 });
 let _vInfoId = null;
-function _vInfoBtnDe(clave) {
-  return document.querySelector('[data-vinfo="' + String(clave).replace(/"/g, '') + '"]');
+/* ⚠️ UNA CLAVE PUEDE TENER VARIOS BOTONES, Y HASTA PANT-7 ESTA FUNCION DEVOLVIA SIEMPRE EL
+   PRIMERO DEL DOCUMENTO. Es la causa medida de los dos globos que el medico reporto como «no
+   abren»: `vd-triv` lo llevan la fila de referencia del VD y la del Doppler tricuspideo, y
+   `pul-balik` la pestania de pericardio y el posoperatorio. `_vInfoColocar` se ancla al boton
+   que esta funcion devuelve y sale por `return null` si su caja mide 0x0 — asi que estando en
+   una pestania, el globo de ESA pestania no abria porque el gemelo de la otra estaba escondido.
+   Medido en HEAD con clics reales: el de `tab-vd` abria -tarjeta de 380x430 con 2.486
+   caracteres- y el de `tab-doppler`, visible y de 44x44, no abria; los dos de `pul-balik`
+   tampoco.
+   Hoy manda el boton que se CLICKEO, que es el que `vInfoClic` ya tenia en la mano, y el
+   fallback -para las aperturas por codigo, que no traen boton- prefiere uno con caja. Para una
+   clave con un solo boton el resultado es identico, asi que las ochenta y pico de tarjetas
+   anteriores no se mueven un pixel. */
+function _vInfoBtnDe(clave, btn) {
+  const k = String(clave).replace(/"/g, '');
+  if (btn && btn.getAttribute && btn.getAttribute('data-vinfo') === k) return btn;
+  const bs = document.querySelectorAll('[data-vinfo="' + k + '"]');
+  for (let i = 0; i < bs.length; i++) {
+    const r = bs[i].getBoundingClientRect();
+    if (r.width > 0 && r.height > 0) return bs[i];
+  }
+  return bs[0] || null;
+}
+/* Todos los botones de una clave, para que el `aria-expanded` no quede prendido en el gemelo. */
+function _vInfoBtnsDe(clave) {
+  return document.querySelectorAll('[data-vinfo="' + String(clave).replace(/"/g, '') + '"]');
 }
 /* El texto de un globo de LEGADO sale del `title` de su propia fila, leido del DOM: la alternativa
    era copiarlo al registro, y entonces el dia que D2 reescriba uno quedarian dos textos y el que
@@ -48132,9 +48360,9 @@ function _otrRefClon(refId, modo) {
 window._otrRefClon = _otrRefClon;
 
 const VINFO_MARGEN = 8, VINFO_ANCHO = 300;
-function _vInfoColocar(clave) {
+function _vInfoColocar(clave, desde) {
   const c = document.getElementById('vinfo-card'); if (!c) return null;
-  const btn = _vInfoBtnDe(clave); if (!btn) return null;
+  const btn = _vInfoBtnDe(clave, desde); if (!btn) return null;
   const r0 = btn.getBoundingClientRect();
   if (r0.width === 0 || r0.height === 0) return null;
   const vw = innerWidth, vh = innerHeight, M = VINFO_MARGEN;
@@ -48213,24 +48441,27 @@ function vInfoCerrar(sinFoco) {
   const prev = _vInfoId;
   _vInfoId = null;
   if (c) { c.style.display = 'none'; c.innerHTML = ''; c.removeAttribute('data-ev-dyn'); }
+  /* ⚠️ EL `aria-expanded` SE APAGA EN TODOS LOS BOTONES DE LA CLAVE, no solo en uno: con dos
+     gemelos, apagar el primero dejaba al otro anunciando una tarjeta cerrada. */
+  if (prev) { const bs = _vInfoBtnsDe(prev);
+              for (let i = 0; i < bs.length; i++) bs[i].setAttribute('aria-expanded', 'false'); }
   const btn = prev ? _vInfoBtnDe(prev) : null;
   if (btn) {
-    btn.setAttribute('aria-expanded', 'false');
     /* El foco VUELVE al globo que abrio, salvo que el llamador diga que no: devolverselo a un
        boton que ya no esta lo tira al body, que es lo que `indicAbrir` tuvo que arreglar. */
     if (!sinFoco) { try { btn.focus({ preventScroll: true }); } catch (e) { btn.focus(); } }
   }
 }
 window.vInfoCerrar = vInfoCerrar;
-function _vInfoAbrir(clave) {
+function _vInfoAbrir(clave, desde) {
   /* El MISMO boton cierra, y va primero: sin esto el segundo toque repinta la misma tarjeta y
      parece que el boton no hace nada. */
   if (_vInfoId === clave) { vInfoCerrar(); return; }
   if (_vInfoId) vInfoCerrar(true);
-  const geo = _vInfoColocar(clave);
+  const geo = _vInfoColocar(clave, desde);
   if (!geo) return;
   _vInfoId = clave;
-  const btn = _vInfoBtnDe(clave);
+  const btn = _vInfoBtnDe(clave, desde);
   if (btn) btn.setAttribute('aria-expanded', 'true');
   /* El foco pasa a LA TARJETA y no a un control de adentro: su contenido es texto, asi que no hay
      «primer control», y dejarlo en el boton haria que un lector de pantalla no leyera nada de lo
@@ -48241,7 +48472,7 @@ function _vInfoAbrir(clave) {
 function vInfoClic(btn) {
   if (!btn) return;
   const k = btn.getAttribute('data-vinfo');
-  if (k) _vInfoAbrir(k);
+  if (k) _vInfoAbrir(k, btn);
 }
 window.vInfoClic = vInfoClic;
 /* ⚠️ EL CIERRE POR AFUERA VA EN CAPTURA Y DESCARTA EL CLIC QUE ABRE. Sin el `closest`, el mismo
@@ -49346,11 +49577,30 @@ function evTarjetaVDFun() {
     bandas: C.vdTei, lo: 0.15, hi: 1.0, unidad: '', dec: 2, corteEn: 'desde', valor: num('vd_tei'),
     cat: _evCapsula('vd-tei-interp'),
     aviso: (num('vd_tei') === null) ? 'Cargar el índice de Tei.' : '', ficha: 'FUN-VD-005' }));
+  /* ⚠️ CUATRO TRAMOS DESDE PANT-7 (c3d), y sin `colores`: la barra pasa a graduar con los
+     cuatro grados de la Tabla 1 de la ASE 2025, asi que usa la paleta normal/leve/moderada/
+     severa del panel como las otras cinco barras de esta tarjeta. El `colores:{htp:'--red'}`
+     que tenia era para las DOS bandas de `vdTapCat`, que ya no dibuja esta barra. */
+  /* ⚠️ LOS TRES CORTES SE NOMBRAN «60 · 80 · 105» Y NO «60 · 80 · 106», y hubo que decirlo
+     corte por corte. Con `corteEn:'desde'` para los tres, el de arriba sale por el PISO de la
+     banda normal, que con `op:'>'` y cero decimales es 106: medido. La guia escribe «>105», asi
+     que ese corte se nombra por el TECHO de la banda leve. Los dos de abajo si van por su piso,
+     que es como la tabla los escribe -«>=80» y «>=60»-. El orden del array es de abajo hacia
+     arriba, igual que en la barra del TAPSE. */
   fr.appendChild(_evBarra({ clave: 'vd-tap', rotulo: 'Tiempo de aceleración pulmonar (ms)',
-    bandas: C.vdTap, lo: 50, hi: 180, unidad: 'ms', dec: 0, corteEn: 'desde',
-    valor: num('tvia'), colores: { htp: '--red' }, cat: _evCapsula('tap-interp'),
+    bandas: C.vdTap, lo: 50, hi: 180, unidad: 'ms', dec: 0, corteEn: ['desde', 'desde', 'hasta'],
+    valor: num('tvia'), cat: _evCapsula('tap-interp'),
     aviso: (num('tvia') === null) ? 'Cargar el tiempo de aceleración pulmonar.' : '',
     ficha: 'FUN-VD-006' }));
+  /* La nota de DOS LINEAS debajo de la barra (PANT-7, c3d). Dice lo unico que la barra no
+     puede decir —que su tramo mas bajo es el mismo numero que una de las dos condiciones del
+     signo 60/60— y remite a Referencias para el detalle. NO lleva ninguna formula de estimacion
+     de presion: es decision expresa del medico. */
+  fr.appendChild(_evDiv('ev-nota', 'El corte de 60 ms del tramo severo es el mismo que una de '
+    + 'las dos condiciones del signo 60/60. La frecuencia cardíaca por debajo de 60 o por '
+    + 'encima de 100 latidos por minuto lo hace menos confiable. El detalle está en las fichas '
+    + '«Tiempo de aceleración pulmonar», «El signo 60/60» y «La muesca mesosistólica del tracto '
+    + 'de salida» de Referencias.'));
   /* ══ EL TRIV POR DOPPLER TISULAR (AJUSTES-2, commit 5, pedido del medico) ════════════════
      Va en la tarjeta de FUNCION y no en la de tamano: el TRIV es un parametro funcional. El
      texto sale de `_evBloqueTriv`, que lee los mismos dos dueños unicos que el globo
@@ -49971,7 +50221,8 @@ function evRefPintar(id) {
     const B = _evRefBiblio(['DIM-VD-001', 'DIM-VD-002', 'DIM-VD-003', 'DIM-VD-004',
                             'DIM-VD-005', 'DIM-VD-006',
                             'FUN-VD-001', 'FUN-VD-002', 'FUN-VD-003', 'FUN-VD-004',
-                            'FUN-VD-005', 'FUN-VD-006', 'FUN-VD-007', 'FUN-VD-008']);
+                            'FUN-VD-005', 'FUN-VD-006', 'FUN-VD-007', 'FUN-VD-008',
+                            'FUN-VD-009', 'FUN-VD-010']);
     host.appendChild(_evRefTabla([
       ..._evRefFilasT1('DIM-VD-001', 'vd_bas',   'Diámetro basal'),
       ..._evRefFilasT1('DIM-VD-002', 'vd_mid',   'Diámetro medio'),
@@ -66742,7 +66993,7 @@ function RECALC_MODULOS() {
      puertas, y un estudio guardado puede traerla en una sola. Si corriera despues de
      `marfanSync` o de `calcAorta`, esos dos ya habrian pintado con el campo vacio. Solo copia
      cuando uno de los dos esta vacio; con los dos cargados y distintos no toca nada. */
-  return ['aoRaizReconciliar','tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','asiaMmSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','dtTapSync','vdTrivSync','etOndaESync','papmEstSync','calcDopTric','etTsvdSync','calcET','vpVmaxSync','ipIncongruenciaSync','itRefFuenteSync','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccSegSync','vpSync','popSync','sglOrigenSync','calcVenaPulm','valvProtSync','eaTaviEspejar','imEspejosRestaurar','eteVmAvisoSync','vmCarpLegadoSync','vmCarpOrigenSync','vmProtBloqSync','vmMorfFitSync','vdStrainPlSync','emPdfValsSync','emCuadroRefRepintar','emContFaAvisoSync','imCortesPintar','imContAvisoPintar','itIncongruenciaSync','aoEspejosRestaurar','tangoRestaurar','diastExclSync','diastFcAvisoSync','diastBseEprimaAvisoSync','diastBseGrisAvisoSync','diastStrainMarcaSync','vdMarcaSync','vdTeiAvisoSync','hfPepSync','hfPepPintar','viVolAutoSync','eaAvaiGradoPintar','eaPvlPintar','imPvlPintar','vdTapsePsapSync','ipApDiamSync','vdViSelSync','htpApSync','htpTablaPintar','m3dBotonSync','contrPdfSync','sglPdfSync','eteQxPdfSync','otrBurbUI','v2dCerrar','aiviSexoSync','vtDviAuto','sincronizarTEERDesdeGlobal','calcETE',
+  return ['aoRaizReconciliar','tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','asiaMmSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','dtTapSync','vdTrivSync','etOndaESync','papmEstSync','calcDopTric','etTsvdSync','calcET','vpVmaxSync','ipIncongruenciaSync','itRefFuenteSync','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccSegSync','vpSync','popSync','sglOrigenSync','calcVenaPulm','valvProtSync','eaTaviEspejar','imEspejosRestaurar','eteVmAvisoSync','vmCarpLegadoSync','vmCarpOrigenSync','vmProtBloqSync','vmMorfFitSync','vdStrainPlSync','emPdfValsSync','emCuadroRefRepintar','emContFaAvisoSync','imCortesPintar','imContAvisoPintar','itIncongruenciaSync','aoEspejosRestaurar','tangoRestaurar','diastExclSync','diastFcAvisoSync','diastBseEprimaAvisoSync','diastBseGrisAvisoSync','diastStrainMarcaSync','vdMarcaSync','vdTeiAvisoSync','tep6060Resalte','hfPepSync','hfPepPintar','viVolAutoSync','eaAvaiGradoPintar','eaPvlPintar','imPvlPintar','vdTapsePsapSync','ipApDiamSync','vdViSelSync','htpApSync','htpTablaPintar','m3dBotonSync','contrPdfSync','sglPdfSync','eteQxPdfSync','otrBurbUI','v2dCerrar','aiviSexoSync','vtDviAuto','sincronizarTEERDesdeGlobal','calcETE',
           /* `pamAvisoSync` (B-2) repinta la línea del dueño único de la PAM. Entra acá por lo
              mismo que los demás: las cinco rutas de restauración pueblan asignando `.value`,
              que no dispara `input`, así que al reabrir un estudio con dos PAM que difieren el
@@ -67747,6 +67998,7 @@ function limpiarCampos(silencioso) {
      generico de `[id$="-aviso"]` le vacia el texto y le deja el `display:block` puesto, asi que
      sin esta linea «Nuevo estudio» dejaba un renglon ambar vacio en el cuadro del VD. */
   if (typeof vdTeiAvisoSync === 'function') { try { vdTeiAvisoSync(); } catch (e) {} }
+  if (typeof tep6060Resalte === 'function') { try { tep6060Resalte(); } catch (e) {} }
   /* Y LA TERCERA COLUMNA de las filas del cuadro del VD que solo se ven con dato (G1,
      2026-10-15), por un motivo que ninguno de los barridos de arriba cubre: el barrido generico
      de `.calc-box .calc-row span[id]` pone el span en «—», pero el `display` de la `.calc-row`
@@ -76581,6 +76833,13 @@ const VINFO_REF = Object.freeze({
      el mapeo, la tarjeta nueva entraba en la lista de las que no tienen entrada —que TC-502
      cuenta— sobre una entrada que si existe. */
   'wilk-score': 'em',
+  /* ⚠️ LOS DOS GLOBOS NUEVOS DE PANT-7 (c3) LLEVAN SU BOTON, por el mismo invariante que el
+     score de Wilkins: una tarjeta CON entrada de Referencias la lleva. El del indice de Tei
+     manda a la ficha del ventriculo derecho, donde vive FUN-VD-005 con su corte; el del signo
+     60/60, a la misma ficha, donde esta tanda agrego FUN-VD-009 y FUN-VD-010. Sin el mapeo
+     entrarian en la lista de tarjetas sin entrada que TC-502 cuenta, sobre entradas que SI
+     existen. */
+  'vd-tei': 'vd2', 'tep-6060': 'vd2',
   'ia-eroa-pisa': 'ia', 'it-eroa-pisa': 'it', 'ea-ava-cont': 'eao',
   'prot-eoa': 'pm', 'prot-dvi': 'pm', 'prot-obstr': 'pm', 'prot-ppm': 'pm',
   'prot-vmax': 'pm', 'prot-gmed': 'pm', 'prot-thp': 'pm',
@@ -155001,8 +155260,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261104-0013';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793762028831;                 /* eco-build-ms */
+const ECO_BUILD    = '20261104-0033';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793763181965;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -155088,7 +155347,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261104-0013</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261104-0033</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

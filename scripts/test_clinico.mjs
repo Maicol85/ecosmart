@@ -66690,7 +66690,10 @@ caso('TC-471', 'Valvulas D1: la insuficiencia mitral en TRES columnas de SEIS co
        easv-grad; mca-sec, mca-eco, mca-vi y mca-score; y tdf-sec, tdf-eco y tdf-vol. NINGUNA
        esta en Valvulas, que es la pestania que este caso mide: lo que cambia es el denominador
        del registro, no lo que la condicion afirma sobre el marcado de esa pestania. */
-    Object.keys(VINFO).length === 120,
+    /* ADAPTADO EN PANT-7 (c3): 120 -> 122. Entran vd-tei -el globo del indice de Tei del
+       ventriculo derecho- y tep-6060 -el del signo 60/60-. La condicion ademas EXIGE que las
+       dos claves esten, asi que sacar una vuelve a ponerla en rojo. */
+    Object.keys(VINFO).length === 122 && ('vd-tei' in VINFO) && ('tep-6060' in VINFO),
     'registro=' + (HAY_INFO ? Object.keys(VINFO).join(',') : 'SIN REGISTRO')]);
   ex.push(['(H) y la tarjeta se coloca SIEMPRE dentro de la pantalla, sin cortarse',
     (function(){ const b = document.querySelector('[data-vinfo="avm-thp"]');
@@ -78096,7 +78099,7 @@ caso('TC-500', 'Tanda Q: las OCHO tarjetas i de las valvulas arriba de su pastil
      esub-grad, easv-sec, easv-grad, mca-sec, mca-eco, mca-vi, mca-score, tdf-sec, tdf-eco y
      tdf-vol. Lo que esta condicion afirma no cambia -que el mecanismo exista y que el registro
      este completo-: cambia el denominador. */
-  ex.push(['DENOMINADOR: el mecanismo de los globos existe y el registro tiene las 120 entradas',
+  ex.push(['DENOMINADOR: el mecanismo de los globos existe y el registro tiene las 122 entradas',
     /* ⚠️ ADAPTADO EN LA TANDA D: 56 -> 57. La entrada nueva es co-riesgo-basal, el globo de la
        clasificacion de riesgo cardiovascular basal, donde viven las clases y los niveles que la
        regla R2 saca de la linea visible. Lo que esta condicion afirma no cambia: que el
@@ -78129,7 +78132,7 @@ caso('TC-500', 'Tanda Q: las OCHO tarjetas i de las valvulas arriba de su pastil
        tv-sec del modulo de arritmia ventricular,
        esub-sec, esub-grad, easv-sec, easv-grad, mca-sec, mca-eco, mca-vi, mca-score, tdf-sec,
        tdf-eco y tdf-vol. NINGUNA esta en Valvulas, que es la pestania que este caso mide. */
-    FN('vInfoClic') && !!CARD() && !!REG() && Object.keys(REG() || {}).length === 120,
+    FN('vInfoClic') && !!CARD() && !!REG() && Object.keys(REG() || {}).length === 122,
     'VINFO=' + (REG() ? Object.keys(REG()).length : 'SIN REGISTRO') + ' card=' + !!CARD()]);
   ex.push(['(A1) los OCHO botones de lesion existen, son BUTTON, sin atributo title y con aria-expanded',
     CLAVES.every(function (k) { const b = BTN(k);
@@ -79372,8 +79375,14 @@ caso('TC-502', 'Tanda P: Referencias en CINCO subpestanas sin perder una entrada
   /* ADAPTADO (TANDA AORTA-2, 30/10/2026): 46 -> 48 con entrada, y el total 67 -> 70. Las dos
      entradas nuevas son ao-cay-card y ao-desc-card, que mandan a la ficha de aorta; el de la
      coartacion entra al total y NO tiene entrada de Referencias, porque la coartacion no tiene ficha. */
-  ex.push(['(C1) DENOMINADOR: 48 de las 70 claves de tarjeta tienen entrada de Referencias',
-    Object.keys(MAPA).length === 48, 'n=' + Object.keys(MAPA).length]);
+  /* ADAPTADA EN PANT-7 (c3): 48 -> 50. Las dos claves nuevas son vd-tei y tep-6060, y llevan
+     boton por el mismo invariante que esta condicion vigila: las dos tienen entrada en la ficha
+     del ventriculo derecho -FUN-VD-005 el Tei, y FUN-VD-009 y FUN-VD-010 el signo 60-60, que
+     esta tanda agrego-. La condicion ademas EXIGE que las dos esten, asi que sacar el mapeo de
+     una vuelve a ponerla en rojo en lugar de compensarse con otra que entre. */
+  ex.push(['(C1) DENOMINADOR: 50 claves de tarjeta tienen entrada de Referencias',
+    Object.keys(MAPA).length === 50 && ('vd-tei' in MAPA) && ('tep-6060' in MAPA),
+    'n=' + Object.keys(MAPA).length]);
   ex.push(['(C2) el assert del mapeo no encuentra ninguna clave rota ni ningun destino inexistente',
     (function () { try { return FN('_vinfoRefAssert') && window._vinfoRefAssert().length === 0; } catch (e) { return false; } })(),
     (function () { try { return window._vinfoRefAssert().join(' | ') || 'cero'; } catch (e) { return 'EXC'; } })()]);
@@ -92062,12 +92071,15 @@ caso('TC-535', 'Tanda AJ7: la linea de Fallot del EN SUMA sin la IP y el resumen
      mca-eco, mca-vi y mca-score; tdf-sec, tdf-eco y tdf-vol. Todos nacen con la clase
      vinfo-btn-44 y SIN margenes negativos. Lo que estas tres condiciones exigen no cambia;
      cambia cuantos globos lo tienen que cumplir. */
-  ex.push(['(K0) DENOMINADOR: los CUARENTA Y UN globos llevan la clase, tienen geometria y estan EN VISTA',
-    tapK.length === 41 && tapK.every((x) => x.w > 0 && x.h > 0 && x.enVista), JSON.stringify(tapK)]);
-  ex.push(['(K1) los cuarenta y uno miden 44x44 tambien con el mouse',
-    tapK.length === 41 && tapK.every((x) => x.w >= 44 && x.h >= 44), JSON.stringify(tapK)]);
+  /* ADAPTADO EN PANT-7 (c3): 41 -> 43. Entran los dos globos nuevos, el del indice de Tei del
+     ventriculo derecho y el del signo 60-60, los dos con la clase vinfo-btn-44. Medidos: los
+     dos dan 44x44 y 5 de 5 puntos propios en los cuatro anchos. */
+  ex.push(['(K0) DENOMINADOR: los CUARENTA Y TRES globos llevan la clase, tienen geometria y estan EN VISTA',
+    tapK.length === 43 && tapK.every((x) => x.w > 0 && x.h > 0 && x.enVista), JSON.stringify(tapK)]);
+  ex.push(['(K1) los cuarenta y tres miden 44x44 tambien con el mouse',
+    tapK.length === 43 && tapK.every((x) => x.w >= 44 && x.h >= 44), JSON.stringify(tapK)]);
   ex.push(['(K2) y su caja NO tapa a ningun vecino: los cinco puntos dan el propio boton',
-    tapK.length === 41 && tapK.every((x) => x.propios === 5), JSON.stringify(tapK)]);
+    tapK.length === 43 && tapK.every((x) => x.propios === 5), JSON.stringify(tapK)]);
   ex.push(['(K3) CONTROL: los demas globos NO se tocaron y siguen con su piso solo tactil',
     document.querySelectorAll('button.vinfo-btn').length
       - document.querySelectorAll('button.vinfo-btn-44').length >= 10,
